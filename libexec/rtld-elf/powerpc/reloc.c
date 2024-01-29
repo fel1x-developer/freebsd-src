@@ -32,28 +32,32 @@
 #include <sys/param.h>
 #include <sys/mman.h>
 
+#include <machine/atomic.h>
+#include <machine/cpu.h>
+#include <machine/md_var.h>
+
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <machine/cpu.h>
-#include <machine/atomic.h>
-#include <machine/md_var.h>
 
 #include "debug.h"
 #include "rtld.h"
 
-#define _ppc_ha(x) ((((u_int32_t)(x) & 0x8000) ? \
-                        ((u_int32_t)(x) + 0x10000) : (u_int32_t)(x)) >> 16)
+#define _ppc_ha(x)                                                 \
+	((((u_int32_t)(x) & 0x8000) ? ((u_int32_t)(x) + 0x10000) : \
+				      (u_int32_t)(x)) >>           \
+	    16)
 #define _ppc_la(x) ((u_int32_t)(x) & 0xffff)
 
-#define min(a,b) (((a) < (b)) ? (a) : (b))
-#define max(a,b) (((a) > (b)) ? (a) : (b))
+#define min(a, b) (((a) < (b)) ? (a) : (b))
+#define max(a, b) (((a) > (b)) ? (a) : (b))
 
-#define PLT_EXTENDED_BEGIN	(1 << 13)
-#define JMPTAB_BASE(N)		(18 + N*2 + ((N > PLT_EXTENDED_BEGIN) ? \
-				    (N - PLT_EXTENDED_BEGIN)*2 : 0))
+#define PLT_EXTENDED_BEGIN (1 << 13)
+#define JMPTAB_BASE(N) \
+	(18 + N * 2 +  \
+	    ((N > PLT_EXTENDED_BEGIN) ? (N - PLT_EXTENDED_BEGIN) * 2 : 0))
 
 void _rtld_bind_secureplt_start(void);
 
@@ -71,9 +75,9 @@ do_copy_relocations(Obj_Entry *dstobj)
 	 */
 	assert(dstobj->mainprog);
 
-	relalim = (const Elf_Rela *)((const char *) dstobj->rela +
+	relalim = (const Elf_Rela *)((const char *)dstobj->rela +
 	    dstobj->relasize);
-	for (rela = dstobj->rela;  rela < relalim;  rela++) {
+	for (rela = dstobj->rela; rela < relalim; rela++) {
 		void *dstaddr;
 		const Elf_Sym *dstsym;
 		const char *name;
@@ -109,18 +113,19 @@ do_copy_relocations(Obj_Entry *dstobj)
 		if (srcobj == NULL) {
 			_rtld_error("Undefined symbol \"%s\" "
 				    " referenced from COPY"
-				    " relocation in %s", name, dstobj->path);
+				    " relocation in %s",
+			    name, dstobj->path);
 			return (-1);
 		}
 
-		srcaddr = (const void *)(defobj->relocbase+srcsym->st_value);
+		srcaddr = (const void *)(defobj->relocbase + srcsym->st_value);
 		memcpy(dstaddr, srcaddr, size);
-		dbg("copy_reloc: src=%p,dst=%p,size=%d\n",srcaddr,dstaddr,size);
+		dbg("copy_reloc: src=%p,dst=%p,size=%d\n", srcaddr, dstaddr,
+		    size);
 	}
 
 	return (0);
 }
-
 
 /*
  * Perform early relocation of the run-time linker image
@@ -138,7 +143,7 @@ reloc_non_plt_self(Elf_Dyn *dynp, Elf_Addr relocbase)
 	for (; dynp->d_tag != DT_NULL; dynp++) {
 		switch (dynp->d_tag) {
 		case DT_RELA:
-			rela = (const Elf_Rela *)(relocbase+dynp->d_un.d_ptr);
+			rela = (const Elf_Rela *)(relocbase + dynp->d_un.d_ptr);
 			break;
 		case DT_RELASZ:
 			relasz = dynp->d_un.d_val;
@@ -156,7 +161,6 @@ reloc_non_plt_self(Elf_Dyn *dynp, Elf_Addr relocbase)
 	}
 }
 
-
 /*
  * Relocate a non-PLT object with addend.
  */
@@ -164,9 +168,9 @@ static int
 reloc_nonplt_object(Obj_Entry *obj_rtld __unused, Obj_Entry *obj,
     const Elf_Rela *rela, SymCache *cache, int flags, RtldLockState *lockstate)
 {
-	const Elf_Sym	*def = NULL;
-	const Obj_Entry	*defobj;
-	Elf_Addr	*where, symval = 0;
+	const Elf_Sym *def = NULL;
+	const Obj_Entry *defobj;
+	Elf_Addr *where, symval = 0;
 
 	/*
 	 * First, resolve symbol for relocations which
@@ -174,14 +178,14 @@ reloc_nonplt_object(Obj_Entry *obj_rtld __unused, Obj_Entry *obj,
 	 */
 	switch (ELF_R_TYPE(rela->r_info)) {
 
-	case R_PPC_UADDR32:    /* word32 S + A */
+	case R_PPC_UADDR32: /* word32 S + A */
 	case R_PPC_ADDR32:
-	case R_PPC_GLOB_DAT:  /* word32 S + A */
+	case R_PPC_GLOB_DAT: /* word32 S + A */
 	case R_PPC_DTPMOD32:
 	case R_PPC_TPREL32:
 	case R_PPC_DTPREL32:
-		def = find_symdef(ELF_R_SYM(rela->r_info), obj, &defobj,
-		    flags, cache, lockstate);
+		def = find_symdef(ELF_R_SYM(rela->r_info), obj, &defobj, flags,
+		    cache, lockstate);
 		if (def == NULL) {
 			return (-1);
 		}
@@ -206,19 +210,18 @@ reloc_nonplt_object(Obj_Entry *obj_rtld __unused, Obj_Entry *obj,
 					obj->non_plt_gnu_ifunc = true;
 					return (0);
 				}
-				symval = (Elf_Addr)rtld_resolve_ifunc(
-					defobj, def);
+				symval = (Elf_Addr)rtld_resolve_ifunc(defobj,
+				    def);
 				break;
 			default:
 				_rtld_error("%s: IFUNC for TLS reloc",
-					obj->path);
+				    obj->path);
 				return (-1);
 			}
 		} else {
 			if ((flags & SYMLOOK_IFUNC) != 0)
 				return (0);
-			symval = (Elf_Addr)defobj->relocbase +
-				def->st_value;
+			symval = (Elf_Addr)defobj->relocbase + def->st_value;
 		}
 		break;
 	default:
@@ -239,7 +242,7 @@ reloc_nonplt_object(Obj_Entry *obj_rtld __unused, Obj_Entry *obj,
 		}
 		break;
 	case R_PPC_DTPMOD32:
-		*where = (Elf_Addr) defobj->tlsindex;
+		*where = (Elf_Addr)defobj->tlsindex;
 		break;
 	case R_PPC_TPREL32:
 		/*
@@ -252,20 +255,21 @@ reloc_nonplt_object(Obj_Entry *obj_rtld __unused, Obj_Entry *obj,
 		 */
 		if (!defobj->tls_static) {
 			if (!allocate_tls_offset(
-				    __DECONST(Obj_Entry *, defobj))) {
+				__DECONST(Obj_Entry *, defobj))) {
 				_rtld_error("%s: No space available for static "
-				    "Thread Local Storage", obj->path);
+					    "Thread Local Storage",
+				    obj->path);
 				return (-1);
 			}
 		}
 
-		*(Elf_Addr **)where = *where * sizeof(Elf_Addr)
-		    + (Elf_Addr *)(def->st_value + rela->r_addend 
-		    + defobj->tlsoffset - TLS_TP_OFFSET - TLS_TCB_SIZE);
+		*(Elf_Addr **)where = *where * sizeof(Elf_Addr) +
+		    (Elf_Addr *)(def->st_value + rela->r_addend +
+			defobj->tlsoffset - TLS_TP_OFFSET - TLS_TCB_SIZE);
 		break;
 	case R_PPC_DTPREL32:
-		*where += (Elf_Addr)(def->st_value + rela->r_addend 
-		    - TLS_DTV_OFFSET);
+		*where += (Elf_Addr)(def->st_value + rela->r_addend -
+		    TLS_DTV_OFFSET);
 		break;
 	case R_PPC_RELATIVE: /* word32 B + A */
 		symval = (Elf_Addr)(obj->relocbase + rela->r_addend);
@@ -286,7 +290,7 @@ reloc_nonplt_object(Obj_Entry *obj_rtld __unused, Obj_Entry *obj,
 		if (!obj->mainprog) {
 			_rtld_error("%s: Unexpected R_COPY "
 				    " relocation in shared library",
-				    obj->path);
+			    obj->path);
 			return (-1);
 		}
 		break;
@@ -304,13 +308,12 @@ reloc_nonplt_object(Obj_Entry *obj_rtld __unused, Obj_Entry *obj,
 
 	default:
 		_rtld_error("%s: Unsupported relocation type %d"
-			    " in non-PLT relocations\n", obj->path,
-			    ELF_R_TYPE(rela->r_info));
+			    " in non-PLT relocations\n",
+		    obj->path, ELF_R_TYPE(rela->r_info));
 		return (-1);
 	}
 	return (0);
 }
-
 
 /*
  * Process non-PLT relocations
@@ -343,7 +346,7 @@ reloc_non_plt(Obj_Entry *obj, Obj_Entry *obj_rtld, int flags,
 	relalim = (const Elf_Rela *)((const char *)obj->rela + obj->relasize);
 	for (rela = obj->rela; rela < relalim; rela++) {
 		if (reloc_nonplt_object(obj_rtld, obj, rela, cache, flags,
-		    lockstate) < 0)
+			lockstate) < 0)
 			goto done;
 	}
 	r = 0;
@@ -356,8 +359,8 @@ done:
 	 * any changes.
 	 */
 	for (phdr = obj->phdr;
-	    (const char *)phdr < (const char *)obj->phdr + obj->phsize;
-	    phdr++) {
+	     (const char *)phdr < (const char *)obj->phdr + obj->phsize;
+	     phdr++) {
 		if (phdr->p_type == PT_LOAD && (phdr->p_flags & PF_X) != 0) {
 			__syncicache(obj->relocbase + phdr->p_vaddr,
 			    phdr->p_memsz);
@@ -415,7 +418,6 @@ reloc_plt_object(Obj_Entry *obj, const Elf_Rela *rela)
 		where[2] = 0x7d8903a6;
 		where[3] = 0x4e800420;
 	}
-		
 
 	/*
 	 * The icache will be sync'd in reloc_plt, which is called
@@ -439,7 +441,7 @@ reloc_plt(Obj_Entry *obj, int flags __unused, RtldLockState *lockstate __unused)
 
 		relalim = (const Elf_Rela *)((const char *)obj->pltrela +
 		    obj->pltrelasize);
-		for (rela = obj->pltrela;  rela < relalim;  rela++) {
+		for (rela = obj->pltrela; rela < relalim; rela++) {
 			if (ELF_R_TYPE(rela->r_info) == R_PPC_IRELATIVE) {
 				dbg("ABI violation - found IRELATIVE in the PLT.");
 				obj->irelative = true;
@@ -464,7 +466,7 @@ reloc_plt(Obj_Entry *obj, int flags __unused, RtldLockState *lockstate __unused)
 	 * trampoline routines and call slots.
 	 */
 	if (obj->pltgot != NULL && obj->gotptr == NULL)
-		__syncicache(obj->pltgot, JMPTAB_BASE(N)*4);
+		__syncicache(obj->pltgot, JMPTAB_BASE(N) * 4);
 
 	return (0);
 }
@@ -509,7 +511,7 @@ reloc_jmpslots(Obj_Entry *obj, int flags, RtldLockState *lockstate)
 				continue;
 			}
 			reloc_jmpslot(where, target, defobj, obj,
-			    (const Elf_Rel *) rela);
+			    (const Elf_Rel *)rela);
 		}
 	}
 
@@ -517,7 +519,6 @@ reloc_jmpslots(Obj_Entry *obj, int flags, RtldLockState *lockstate)
 
 	return (0);
 }
-
 
 /*
  * Update the value of a PLT jump slot.
@@ -527,22 +528,20 @@ reloc_jmpslot(Elf_Addr *wherep, Elf_Addr target,
     const Obj_Entry *defobj __unused, const Obj_Entry *obj, const Elf_Rel *rel)
 {
 	Elf_Addr offset;
-	const Elf_Rela *rela = (const Elf_Rela *) rel;
+	const Elf_Rela *rela = (const Elf_Rela *)rel;
 
-	dbg(" reloc_jmpslot: where=%p, target=%p",
-	    (void *)wherep, (void *)target);
+	dbg(" reloc_jmpslot: where=%p, target=%p", (void *)wherep,
+	    (void *)target);
 
 	if (ld_bind_not)
 		goto out;
-
 
 	/*
 	 * Process Secure-PLT.
 	 */
 	if (obj->gotptr != NULL) {
 		assert(wherep >= (Elf_Word *)obj->pltgot);
-		assert(wherep <
-		    (Elf_Word *)obj->pltgot + obj->pltrelasize);
+		assert(wherep < (Elf_Word *)obj->pltgot + obj->pltrelasize);
 		if (*wherep != target)
 			*wherep = target;
 		goto out;
@@ -555,7 +554,7 @@ reloc_jmpslot(Elf_Addr *wherep, Elf_Addr target,
 	 * jump table.
 	 */
 	offset = target - (Elf_Addr)wherep;
-	if (abs((int)offset) < 32*1024*1024) {     /* inside 32MB? */
+	if (abs((int)offset) < 32 * 1024 * 1024) { /* inside 32MB? */
 		/*
 		 * At the PLT entry pointed at by `wherep', construct
 		 * a direct transfer to the now fully resolved function
@@ -575,8 +574,7 @@ reloc_jmpslot(Elf_Addr *wherep, Elf_Addr target,
 
 		pltcall = obj->pltgot;
 
-		dbg(" reloc_jmpslot: indir, reloff=%x, N=%x\n",
-		    reloff, N);
+		dbg(" reloc_jmpslot: indir, reloff=%x, N=%x\n", reloff, N);
 
 		jmptab = obj->pltgot + JMPTAB_BASE(N);
 		jmptab[reloff] = target;
@@ -601,8 +599,7 @@ out:
 }
 
 int
-reloc_iresolve(Obj_Entry *obj,
-    struct Struct_RtldLockState *lockstate)
+reloc_iresolve(Obj_Entry *obj, struct Struct_RtldLockState *lockstate)
 {
 	/*
 	 * Since PLT slots on PowerPC are always R_PPC_JMP_SLOT,
@@ -616,7 +613,7 @@ reloc_iresolve(Obj_Entry *obj,
 		return (0);
 
 	relalim = (const Elf_Rela *)((const char *)obj->rela + obj->relasize);
-	for (rela = obj->rela;  rela < relalim;  rela++) {
+	for (rela = obj->rela; rela < relalim; rela++) {
 		if (ELF_R_TYPE(rela->r_info) == R_PPC_IRELATIVE) {
 			ptr = (Elf_Addr *)(obj->relocbase + rela->r_addend);
 			where = (Elf_Addr *)(obj->relocbase + rela->r_offset);
@@ -632,8 +629,9 @@ reloc_iresolve(Obj_Entry *obj,
 	 * XXX Remove me when lld is fixed!
 	 * LLD currently makes illegal relocations in the PLT.
 	 */
-	relalim = (const Elf_Rela *)((const char *)obj->pltrela + obj->pltrelasize);
-	for (rela = obj->pltrela;  rela < relalim;  rela++) {
+	relalim = (const Elf_Rela *)((const char *)obj->pltrela +
+	    obj->pltrelasize);
+	for (rela = obj->pltrela; rela < relalim; rela++) {
 		if (ELF_R_TYPE(rela->r_info) == R_PPC_IRELATIVE) {
 			ptr = (Elf_Addr *)(obj->relocbase + rela->r_addend);
 			where = (Elf_Addr *)(obj->relocbase + rela->r_offset);
@@ -669,8 +667,9 @@ reloc_gnu_ifunc(Obj_Entry *obj __unused, int flags __unused,
 
 	if (!obj->gnu_ifunc)
 		return (0);
-	relalim = (const Elf_Rela *)((const char *)obj->pltrela + obj->pltrelasize);
-	for (rela = obj->pltrela;  rela < relalim;  rela++) {
+	relalim = (const Elf_Rela *)((const char *)obj->pltrela +
+	    obj->pltrelasize);
+	for (rela = obj->pltrela; rela < relalim; rela++) {
 		if (ELF_R_TYPE(rela->r_info) == R_PPC_JMP_SLOT) {
 			where = (Elf_Addr *)(obj->relocbase + rela->r_offset);
 			def = find_symdef(ELF_R_SYM(rela->r_info), obj, &defobj,
@@ -693,9 +692,9 @@ reloc_gnu_ifunc(Obj_Entry *obj __unused, int flags __unused,
 /*
  * Setup the plt glue routines.
  */
-#define PLTCALL_SIZE	   	20
-#define PLTLONGRESOLVE_SIZE	20
-#define PLTRESOLVE_SIZE		24
+#define PLTCALL_SIZE 20
+#define PLTLONGRESOLVE_SIZE 20
+#define PLTRESOLVE_SIZE 24
 
 void
 init_pltgot(Obj_Entry *obj)
@@ -714,9 +713,9 @@ init_pltgot(Obj_Entry *obj)
 	if (obj->gotptr != NULL) {
 		obj->gotptr[1] = (Elf_Addr)_rtld_bind_secureplt_start;
 		obj->gotptr[2] = (Elf_Addr)obj;
-		dbg("obj %s secure-plt gotptr=%p start=%p obj=%p",
-		    obj->path, obj->gotptr,
-		    (void *)obj->gotptr[1], (void *)obj->gotptr[2]);
+		dbg("obj %s secure-plt gotptr=%p start=%p obj=%p", obj->path,
+		    obj->gotptr, (void *)obj->gotptr[1],
+		    (void *)obj->gotptr[2]);
 		return;
 	}
 
@@ -748,8 +747,8 @@ init_pltgot(Obj_Entry *obj)
 	 * can determine this address.
 	 */
 	jmptab = obj->pltgot + JMPTAB_BASE(N);
-	pltcall[1] |= _ppc_ha(jmptab);	   /* addis 11,11,jmptab@ha */
-	pltcall[2] |= _ppc_la(jmptab);     /* lwz   11,jmptab@l(11) */
+	pltcall[1] |= _ppc_ha(jmptab); /* addis 11,11,jmptab@ha */
+	pltcall[2] |= _ppc_la(jmptab); /* lwz   11,jmptab@l(11) */
 
 	/*
 	 * Skip down 20 bytes into the initial reserved area and copy
@@ -764,10 +763,10 @@ init_pltgot(Obj_Entry *obj)
 
 	memcpy(pltlongresolve, _rtld_powerpc_pltlongresolve,
 	    PLTLONGRESOLVE_SIZE);
-	pltlongresolve[0] |= _ppc_ha(jmptab);	/* lis	12,jmptab@ha	*/
-	pltlongresolve[1] |= _ppc_la(jmptab);	/* addi	12,12,jmptab@l	*/
+	pltlongresolve[0] |= _ppc_ha(jmptab); /* lis	12,jmptab@ha	*/
+	pltlongresolve[1] |= _ppc_la(jmptab); /* addi	12,12,jmptab@l	*/
 
-	pltresolve = pltlongresolve + PLTLONGRESOLVE_SIZE/sizeof(uint32_t);
+	pltresolve = pltlongresolve + PLTLONGRESOLVE_SIZE / sizeof(uint32_t);
 	memcpy(pltresolve, _rtld_powerpc_pltresolve, PLTRESOLVE_SIZE);
 	pltresolve[0] |= _ppc_ha(_rtld_bind_start);
 	pltresolve[1] |= _ppc_la(_rtld_bind_start);
@@ -787,7 +786,7 @@ u_long cpu_features;
 u_long cpu_features2;
 
 void
-powerpc_abi_variant_hook(Elf_Auxinfo** aux_info)
+powerpc_abi_variant_hook(Elf_Auxinfo **aux_info)
 {
 	/*
 	 * Since aux_info[] is easier to work with than aux, go ahead and
@@ -804,7 +803,6 @@ powerpc_abi_variant_hook(Elf_Auxinfo** aux_info)
 void
 ifunc_init(Elf_Auxinfo aux_info[__min_size(AT_COUNT)] __unused)
 {
-
 }
 
 void
@@ -812,10 +810,10 @@ allocate_initial_tls(Obj_Entry *list)
 {
 
 	/*
-	* Fix the size of the static TLS block by using the maximum
-	* offset allocated so far and adding a bit for dynamic modules to
-	* use.
-	*/
+	 * Fix the size of the static TLS block by using the maximum
+	 * offset allocated so far and adding a bit for dynamic modules to
+	 * use.
+	 */
 
 	tls_static_space = tls_last_offset + tls_last_size +
 	    ld_static_tls_extra;
@@ -823,8 +821,8 @@ allocate_initial_tls(Obj_Entry *list)
 	_tcb_set(allocate_tls(list, NULL, TLS_TCB_SIZE, TLS_TCB_ALIGN));
 }
 
-void*
-__tls_get_addr(tls_index* ti)
+void *
+__tls_get_addr(tls_index *ti)
 {
 	uintptr_t **dtvp;
 	char *p;

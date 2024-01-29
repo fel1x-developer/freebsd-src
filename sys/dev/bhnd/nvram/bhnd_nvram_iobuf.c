@@ -30,8 +30,8 @@
 #include <sys/cdefs.h>
 #ifdef _KERNEL
 #include <sys/param.h>
-#include <sys/malloc.h>
 #include <sys/systm.h>
+#include <sys/malloc.h>
 #else /* !_KERNEL */
 #include <errno.h>
 #include <stdint.h>
@@ -39,25 +39,24 @@
 #include <string.h>
 #endif /* _KERNEL */
 
-#include "bhnd_nvram_private.h"
-
 #include "bhnd_nvram_io.h"
 #include "bhnd_nvram_iovar.h"
+#include "bhnd_nvram_private.h"
 
 /**
  * Buffer-backed NVRAM I/O context.
- * 
+ *
  * iobuf instances are gauranteed to provide persistent references to its
  * backing contigious buffer via bhnd_nvram_io_read_ptr() and
  * bhnd_nvram_io_write_ptr().
  */
 struct bhnd_nvram_iobuf {
-	struct bhnd_nvram_io	 io;		/**< common I/O instance state */
-	void			*buf;		/**< backing buffer. if inline-allocated, will
-						     be a reference to data[]. */
-	size_t			 size;		/**< size of @p buf */
-	size_t			 capacity;	/**< capacity of @p buf */
-	uint8_t			 data[];	/**< inline buffer allocation */
+	struct bhnd_nvram_io io; /**< common I/O instance state */
+	void *buf;		 /**< backing buffer. if inline-allocated, will
+				      be a reference to data[]. */
+	size_t size;		 /**< size of @p buf */
+	size_t capacity;	 /**< capacity of @p buf */
+	uint8_t data[];		 /**< inline buffer allocation */
 };
 
 BHND_NVRAM_IOPS_DEFN(iobuf)
@@ -70,7 +69,7 @@ BHND_NVRAM_IOPS_DEFN(iobuf)
  * bhnd_nvram_io_free().
  *
  * If @p capacity is less than @p size, a capacity of @p size will be used.
- * 
+ *
  * @param	size		The initial size of the I/O context.
  * @param	capacity	The total capacity of the I/O context buffer;
  *				the returned I/O context may be resized up to
@@ -84,9 +83,9 @@ BHND_NVRAM_IOPS_DEFN(iobuf)
 struct bhnd_nvram_io *
 bhnd_nvram_iobuf_empty(size_t size, size_t capacity)
 {
-	struct bhnd_nvram_iobuf	*iobuf;
-	size_t			 iosz;
-	bool			 inline_alloc;
+	struct bhnd_nvram_iobuf *iobuf;
+	size_t iosz;
+	bool inline_alloc;
 
 	/* Sanity check the capacity */
 	if (size > capacity)
@@ -131,18 +130,18 @@ bhnd_nvram_iobuf_empty(size_t size, size_t capacity)
  *
  * The caller is responsible for deallocating the returned I/O context via
  * bhnd_nvram_io_free().
- * 
+ *
  * @param	buffer	The buffer data be copied by the returned I/O context.
  * @param	size	The size of @p buffer, in bytes.
- * 
+ *
  * @retval	bhnd_nvram_io	success.
  * @retval	NULL		allocation failed.
  */
 struct bhnd_nvram_io *
 bhnd_nvram_iobuf_new(const void *buffer, size_t size)
 {
-	struct bhnd_nvram_io	*io;
-	struct bhnd_nvram_iobuf	*iobuf;
+	struct bhnd_nvram_io *io;
+	struct bhnd_nvram_iobuf *iobuf;
 
 	/* Allocate the iobuf */
 	if ((io = bhnd_nvram_iobuf_empty(size, size)) == NULL)
@@ -161,9 +160,9 @@ bhnd_nvram_iobuf_new(const void *buffer, size_t size)
  *
  * The caller is responsible for deallocating the returned I/O context via
  * bhnd_nvram_io_free().
- * 
+ *
  * @param	src	The I/O context to be copied.
- * 
+ *
  * @retval	bhnd_nvram_io	success.
  * @retval	NULL		allocation failed.
  * @retval	NULL		copying @p src failed.
@@ -171,8 +170,8 @@ bhnd_nvram_iobuf_new(const void *buffer, size_t size)
 struct bhnd_nvram_io *
 bhnd_nvram_iobuf_copy(struct bhnd_nvram_io *src)
 {
-	return (bhnd_nvram_iobuf_copy_range(src, 0x0,
-	    bhnd_nvram_io_getsize(src)));
+	return (
+	    bhnd_nvram_iobuf_copy_range(src, 0x0, bhnd_nvram_io_getsize(src)));
 }
 
 /**
@@ -181,11 +180,11 @@ bhnd_nvram_iobuf_copy(struct bhnd_nvram_io *src)
  *
  * The caller is responsible for deallocating the returned I/O context via
  * bhnd_nvram_io_free().
- * 
+ *
  * @param	src	The I/O context to be copied.
  * @param	offset	The offset of the bytes to be copied from @p src.
  * @param	size	The number of bytes to copy at @p offset from @p src.
- * 
+ *
  * @retval	bhnd_nvram_io	success.
  * @retval	NULL		allocation failed.
  * @retval	NULL		copying @p src failed.
@@ -194,9 +193,9 @@ struct bhnd_nvram_io *
 bhnd_nvram_iobuf_copy_range(struct bhnd_nvram_io *src, size_t offset,
     size_t size)
 {
-	struct bhnd_nvram_io	*io;
-	struct bhnd_nvram_iobuf	*iobuf;
-	int			 error;
+	struct bhnd_nvram_io *io;
+	struct bhnd_nvram_iobuf *iobuf;
+	int error;
 
 	/* Check if offset+size would overflow */
 	if (SIZE_MAX - size < offset)
@@ -219,7 +218,7 @@ bhnd_nvram_iobuf_copy_range(struct bhnd_nvram_io *src, size_t offset,
 static void
 bhnd_nvram_iobuf_free(struct bhnd_nvram_io *io)
 {
-	struct bhnd_nvram_iobuf	*iobuf = (struct bhnd_nvram_iobuf *)io;
+	struct bhnd_nvram_iobuf *iobuf = (struct bhnd_nvram_iobuf *)io;
 
 	/* Free the backing buffer if it wasn't allocated inline */
 	if (iobuf->buf != &iobuf->data)
@@ -231,14 +230,14 @@ bhnd_nvram_iobuf_free(struct bhnd_nvram_io *io)
 static size_t
 bhnd_nvram_iobuf_getsize(struct bhnd_nvram_io *io)
 {
-	struct bhnd_nvram_iobuf	*iobuf = (struct bhnd_nvram_iobuf *)io;
+	struct bhnd_nvram_iobuf *iobuf = (struct bhnd_nvram_iobuf *)io;
 	return (iobuf->size);
 }
 
 static int
 bhnd_nvram_iobuf_setsize(struct bhnd_nvram_io *io, size_t size)
 {
-	struct bhnd_nvram_iobuf	*iobuf = (struct bhnd_nvram_iobuf *)io;
+	struct bhnd_nvram_iobuf *iobuf = (struct bhnd_nvram_iobuf *)io;
 
 	/* Can't exceed the actual capacity */
 	if (size > iobuf->capacity)
@@ -276,11 +275,11 @@ static int
 bhnd_nvram_iobuf_read_ptr(struct bhnd_nvram_io *io, size_t offset,
     const void **ptr, size_t nbytes, size_t *navail)
 {
-	struct bhnd_nvram_iobuf	*iobuf;
-	void			*ioptr;
-	int			 error;
+	struct bhnd_nvram_iobuf *iobuf;
+	void *ioptr;
+	int error;
 
-	iobuf = (struct bhnd_nvram_iobuf *) io;
+	iobuf = (struct bhnd_nvram_iobuf *)io;
 
 	/* Return a pointer into our backing buffer */
 	error = bhnd_nvram_iobuf_ptr(iobuf, offset, &ioptr, nbytes, navail);
@@ -293,12 +292,12 @@ bhnd_nvram_iobuf_read_ptr(struct bhnd_nvram_io *io, size_t offset,
 }
 
 static int
-bhnd_nvram_iobuf_write_ptr(struct bhnd_nvram_io *io, size_t offset,
-    void **ptr, size_t nbytes, size_t *navail)
+bhnd_nvram_iobuf_write_ptr(struct bhnd_nvram_io *io, size_t offset, void **ptr,
+    size_t nbytes, size_t *navail)
 {
-	struct bhnd_nvram_iobuf	*iobuf;
+	struct bhnd_nvram_iobuf *iobuf;
 
-	iobuf = (struct bhnd_nvram_iobuf *) io;
+	iobuf = (struct bhnd_nvram_iobuf *)io;
 
 	/* Return a pointer into our backing buffer */
 	return (bhnd_nvram_iobuf_ptr(iobuf, offset, ptr, nbytes, navail));
@@ -308,8 +307,8 @@ static int
 bhnd_nvram_iobuf_read(struct bhnd_nvram_io *io, size_t offset, void *buffer,
     size_t nbytes)
 {
-	const void	*ptr;
-	int		 error;
+	const void *ptr;
+	int error;
 
 	/* Try to fetch a direct pointer for at least nbytes */
 	if ((error = bhnd_nvram_io_read_ptr(io, offset, &ptr, nbytes, NULL)))
@@ -321,11 +320,11 @@ bhnd_nvram_iobuf_read(struct bhnd_nvram_io *io, size_t offset, void *buffer,
 }
 
 static int
-bhnd_nvram_iobuf_write(struct bhnd_nvram_io *io, size_t offset,
-    void *buffer, size_t nbytes)
+bhnd_nvram_iobuf_write(struct bhnd_nvram_io *io, size_t offset, void *buffer,
+    size_t nbytes)
 {
-	void	*ptr;
-	int	 error;
+	void *ptr;
+	int error;
 
 	/* Try to fetch a direct pointer for at least nbytes */
 	if ((error = bhnd_nvram_io_write_ptr(io, offset, &ptr, nbytes, NULL)))

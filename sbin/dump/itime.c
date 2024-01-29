@@ -32,8 +32,6 @@
 #include <sys/param.h>
 #include <sys/queue.h>
 
-#include <ufs/ufs/dinode.h>
-
 #include <protocols/dumprestore.h>
 
 #include <errno.h>
@@ -44,23 +42,24 @@
 #include <string.h>
 #include <time.h>
 #include <timeconv.h>
+#include <ufs/ufs/dinode.h>
 
 #include "dump.h"
 
 struct dumptime {
-	struct	dumpdates dt_value;
+	struct dumpdates dt_value;
 	SLIST_ENTRY(dumptime) dt_list;
 };
 SLIST_HEAD(dthead, dumptime) dthead = SLIST_HEAD_INITIALIZER(dthead);
-int	nddates = 0;		/* number of records (might be zero) */
-struct	dumpdates **ddatev;	/* the arrayfied version */
-char	*dumpdates;		/* name of the file containing dump date info */
-int	lastlevel;		/* dump level of previous dump */
+int nddates = 0;	   /* number of records (might be zero) */
+struct dumpdates **ddatev; /* the arrayfied version */
+char *dumpdates;	   /* name of the file containing dump date info */
+int lastlevel;		   /* dump level of previous dump */
 
-static	void dumprecout(FILE *, const struct dumpdates *);
-static	int getrecord(FILE *, struct dumpdates *);
-static	int makedumpdate(struct dumpdates *, const char *);
-static	void readdumptimes(FILE *);
+static void dumprecout(FILE *, const struct dumpdates *);
+static int getrecord(FILE *, struct dumpdates *);
+static int makedumpdate(struct dumpdates *, const char *);
+static void readdumptimes(FILE *);
 
 void
 initdumptimes(void)
@@ -82,26 +81,26 @@ initdumptimes(void)
 			    strerror(errno));
 			return;
 		}
-		(void) fclose(df);
+		(void)fclose(df);
 		if ((df = fopen(dumpdates, "r")) == NULL) {
 			quit("cannot read %s even after creating it: %s\n",
 			    dumpdates, strerror(errno));
 			/* NOTREACHED */
 		}
 	}
-	(void) flock(fileno(df), LOCK_SH);
+	(void)flock(fileno(df), LOCK_SH);
 	readdumptimes(df);
-	(void) fclose(df);
+	(void)fclose(df);
 }
 
 static void
 readdumptimes(FILE *df)
 {
 	int i;
-	struct	dumptime *dtwalk;
+	struct dumptime *dtwalk;
 
 	for (;;) {
-		dtwalk = (struct dumptime *)calloc(1, sizeof (struct dumptime));
+		dtwalk = (struct dumptime *)calloc(1, sizeof(struct dumptime));
 		if (getrecord(df, &(dtwalk->dt_value)) < 0) {
 			free(dtwalk);
 			break;
@@ -114,7 +113,7 @@ readdumptimes(FILE *df)
 	 *	arrayify the list, leaving enough room for the additional
 	 *	record that we may have to add to the ddate structure
 	 */
-	ddatev = calloc((unsigned) (nddates + 1), sizeof (struct dumpdates *));
+	ddatev = calloc((unsigned)(nddates + 1), sizeof(struct dumpdates *));
 	dtwalk = SLIST_FIRST(&dthead);
 	for (i = nddates - 1; i >= 0; i--, dtwalk = SLIST_NEXT(dtwalk, dt_list))
 		ddatev[i] = &dtwalk->dt_value;
@@ -129,8 +128,8 @@ getdumptime(void)
 
 	fname = disk;
 #ifdef FDEBUG
-	msg("Looking for name %s in dumpdates = %s for level = %d\n",
-		fname, dumpdates, level);
+	msg("Looking for name %s in dumpdates = %s for level = %d\n", fname,
+	    dumpdates, level);
 #endif
 	spcl.c_ddate = 0;
 	lastlevel = 0;
@@ -140,8 +139,9 @@ getdumptime(void)
 	 *	Go find the entry with the same name for a lower increment
 	 *	and older date
 	 */
-	ITITERATE(i, ddp) {
-		if (strncmp(fname, ddp->dd_name, sizeof (ddp->dd_name)) != 0)
+	ITITERATE(i, ddp)
+	{
+		if (strncmp(fname, ddp->dd_name, sizeof(ddp->dd_name)) != 0)
 			continue;
 		if (ddp->dd_level >= level)
 			continue;
@@ -162,12 +162,12 @@ putdumptime(void)
 	char *fname;
 	char *tmsg;
 
-	if(uflag == 0)
+	if (uflag == 0)
 		return;
 	if ((df = fopen(dumpdates, "r+")) == NULL)
 		quit("cannot rewrite %s: %s\n", dumpdates, strerror(errno));
 	fd = fileno(df);
-	(void) flock(fd, LOCK_EX);
+	(void)flock(fd, LOCK_EX);
 	fname = disk;
 	free(ddatev);
 	ddatev = NULL;
@@ -176,9 +176,10 @@ putdumptime(void)
 	if (fseek(df, 0L, 0) < 0)
 		quit("fseek: %s\n", strerror(errno));
 	spcl.c_ddate = 0;
-	ITITERATE(i, dtwalk) {
-		if (strncmp(fname, dtwalk->dd_name,
-				sizeof (dtwalk->dd_name)) != 0)
+	ITITERATE(i, dtwalk)
+	{
+		if (strncmp(fname, dtwalk->dd_name, sizeof(dtwalk->dd_name)) !=
+		    0)
 			continue;
 		if (dtwalk->dd_level != level)
 			continue;
@@ -188,22 +189,23 @@ putdumptime(void)
 	 *	construct the new upper bound;
 	 *	Enough room has been allocated.
 	 */
-	dtwalk = ddatev[nddates] =
-		(struct dumpdates *)calloc(1, sizeof (struct dumpdates));
+	dtwalk = ddatev[nddates] = (struct dumpdates *)calloc(1,
+	    sizeof(struct dumpdates));
 	nddates += 1;
-  found:
-	(void) strncpy(dtwalk->dd_name, fname, sizeof (dtwalk->dd_name));
+found:
+	(void)strncpy(dtwalk->dd_name, fname, sizeof(dtwalk->dd_name));
 	dtwalk->dd_level = level;
 	dtwalk->dd_ddate = _time64_to_time(spcl.c_date);
 
-	ITITERATE(i, dtwalk) {
+	ITITERATE(i, dtwalk)
+	{
 		dumprecout(df, dtwalk);
 	}
 	if (fflush(df))
 		quit("%s: %s\n", dumpdates, strerror(errno));
 	if (ftruncate(fd, ftell(df)))
 		quit("ftruncate (%s): %s\n", dumpdates, strerror(errno));
-	(void) fclose(df);
+	(void)fclose(df);
 	if (spcl.c_date == 0) {
 		tmsg = "the epoch\n";
 	} else {
@@ -218,14 +220,14 @@ dumprecout(FILE *file, const struct dumpdates *what)
 {
 
 	if (strlen(what->dd_name) > DUMPFMTLEN)
-		quit("Name '%s' exceeds DUMPFMTLEN (%d) bytes\n",
-		    what->dd_name, DUMPFMTLEN);
-	if (fprintf(file, DUMPOUTFMT, DUMPFMTLEN, what->dd_name,
-	      what->dd_level, ctime(&what->dd_ddate)) < 0)
+		quit("Name '%s' exceeds DUMPFMTLEN (%d) bytes\n", what->dd_name,
+		    DUMPFMTLEN);
+	if (fprintf(file, DUMPOUTFMT, DUMPFMTLEN, what->dd_name, what->dd_level,
+		ctime(&what->dd_ddate)) < 0)
 		quit("%s: %s\n", dumpdates, strerror(errno));
 }
 
-int	recno;
+int recno;
 
 static int
 getrecord(FILE *df, struct dumpdates *ddatep)
@@ -233,18 +235,18 @@ getrecord(FILE *df, struct dumpdates *ddatep)
 	char tbuf[BUFSIZ];
 
 	recno = 0;
-	if ( (fgets(tbuf, sizeof (tbuf), df)) != tbuf)
-		return(-1);
+	if ((fgets(tbuf, sizeof(tbuf), df)) != tbuf)
+		return (-1);
 	recno++;
 	if (makedumpdate(ddatep, tbuf) < 0)
-		msg("Unknown intermediate format in %s, line %d\n",
-			dumpdates, recno);
+		msg("Unknown intermediate format in %s, line %d\n", dumpdates,
+		    recno);
 
 #ifdef FDEBUG
 	msg("getrecord: %s %d %s", ddatep->dd_name, ddatep->dd_level,
 	    ddatep->dd_ddate == 0 ? "the epoch\n" : ctime(&ddatep->dd_ddate));
 #endif
-	return(0);
+	return (0);
 }
 
 static int
@@ -252,9 +254,9 @@ makedumpdate(struct dumpdates *ddp, const char *tbuf)
 {
 	char un_buf[128];
 
-	(void) sscanf(tbuf, DUMPINFMT, ddp->dd_name, &ddp->dd_level, un_buf);
+	(void)sscanf(tbuf, DUMPINFMT, ddp->dd_name, &ddp->dd_level, un_buf);
 	ddp->dd_ddate = unctime(un_buf);
 	if (ddp->dd_ddate < 0)
-		return(-1);
-	return(0);
+		return (-1);
+	return (0);
 }

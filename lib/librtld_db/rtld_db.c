@@ -33,31 +33,31 @@
 #include <sys/sysctl.h>
 #include <sys/user.h>
 
+#include <machine/elf.h>
+
 #include <assert.h>
 #include <err.h>
 #include <fcntl.h>
+#include <libelf.h>
+#include <libproc.h>
+#include <libprocstat.h>
+#include <libutil.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <machine/elf.h>
-
-#include <libelf.h>
-#include <libproc.h>
-#include <libprocstat.h>
-#include <libutil.h>
-
 #include "rtld_db.h"
 
 static int _librtld_db_debug = 0;
-#define DPRINTF(...) do {				\
-	if (_librtld_db_debug) {			\
-		fprintf(stderr, "librtld_db: DEBUG: ");	\
-		fprintf(stderr, __VA_ARGS__);		\
-	}						\
-} while (0)
+#define DPRINTF(...)                                            \
+	do {                                                    \
+		if (_librtld_db_debug) {                        \
+			fprintf(stderr, "librtld_db: DEBUG: "); \
+			fprintf(stderr, __VA_ARGS__);           \
+		}                                               \
+	} while (0)
 
 void
 rd_delete(rd_agent_t *rdap)
@@ -328,8 +328,7 @@ rtld_syms(rd_agent_t *rdap, const char *rtldpath, u_long base)
 		}
 	}
 
-	if (rdap->rda_preinit_addr != 0 &&
-	    rdap->rda_postinit_addr != 0 &&
+	if (rdap->rda_preinit_addr != 0 && rdap->rda_postinit_addr != 0 &&
 	    rdap->rda_dlactivity_addr != 0)
 		ret = 0;
 

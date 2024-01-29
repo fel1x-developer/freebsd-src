@@ -24,7 +24,7 @@
  */
 
 #ifndef _BOOT_NVLIST_H_
-#define	_BOOT_NVLIST_H_
+#define _BOOT_NVLIST_H_
 
 typedef enum {
 	DATA_TYPE_UNKNOWN = 0,
@@ -57,18 +57,18 @@ typedef enum {
 } data_type_t;
 
 /* nvp implementation version */
-#define	NV_VERSION		0
+#define NV_VERSION 0
 
 /* nvlist pack encoding */
-#define	NV_ENCODE_NATIVE	0
-#define	NV_ENCODE_XDR		1
+#define NV_ENCODE_NATIVE 0
+#define NV_ENCODE_XDR 1
 
 /* nvlist persistent unique name flags, stored in nvl_nvflags */
-#define	NV_UNIQUE_NAME		0x1
-#define	NV_UNIQUE_NAME_TYPE	0x2
+#define NV_UNIQUE_NAME 0x1
+#define NV_UNIQUE_NAME_TYPE 0x2
 
-#define	NV_ALIGN4(x)		(((x) + 3) & ~3)
-#define	NV_ALIGN(x)		(((x) + 7) & ~7)
+#define NV_ALIGN4(x) (((x) + 3) & ~3)
+#define NV_ALIGN(x) (((x) + 7) & ~7)
 
 /*
  * nvlist header.
@@ -113,13 +113,13 @@ typedef struct {
 
 typedef struct {
 	unsigned nv_size;
-	uint8_t nv_data[];	/* NV_ALIGN4(string) */
+	uint8_t nv_data[]; /* NV_ALIGN4(string) */
 } nv_string_t;
 
 typedef struct {
-	unsigned nv_type;	/* data_type_t */
-	unsigned nv_nelem;	/* number of elements */
-	uint8_t nv_data[];	/* data stream */
+	unsigned nv_type;  /* data_type_t */
+	unsigned nv_nelem; /* number of elements */
+	uint8_t nv_data[]; /* data stream */
 } nv_pair_data_t;
 
 nvlist_t *nvlist_create(int);
@@ -132,8 +132,8 @@ nvp_header_t *nvpair_find(nvlist_t *, const char *);
 void nvpair_print(nvp_header_t *, unsigned int);
 void nvlist_print(const nvlist_t *, unsigned int);
 char *nvstring_get(nv_string_t *);
-int nvlist_find(const nvlist_t *, const char *, data_type_t,
-    int *, void *, int *);
+int nvlist_find(const nvlist_t *, const char *, data_type_t, int *, void *,
+    int *);
 nvp_header_t *nvlist_next_nvpair(nvlist_t *, nvp_header_t *);
 
 int nvlist_add_boolean_value(nvlist_t *, const char *, int);
@@ -157,7 +157,7 @@ int nvlist_add_int32_array(nvlist_t *, const char *, int32_t *, uint32_t);
 int nvlist_add_uint32_array(nvlist_t *, const char *, uint32_t *, uint32_t);
 int nvlist_add_int64_array(nvlist_t *, const char *, int64_t *, uint32_t);
 int nvlist_add_uint64_array(nvlist_t *, const char *, uint64_t *, uint32_t);
-int nvlist_add_string_array(nvlist_t *, const char *, char * const *, uint32_t);
+int nvlist_add_string_array(nvlist_t *, const char *, char *const *, uint32_t);
 int nvlist_add_nvlist(nvlist_t *, const char *, nvlist_t *);
 int nvlist_add_nvlist_array(nvlist_t *, const char *, nvlist_t **, uint32_t);
 

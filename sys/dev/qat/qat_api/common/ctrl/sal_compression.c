@@ -19,35 +19,35 @@
 #include "qat_utils.h"
 
 /* ADF includes */
-#include "icp_adf_init.h"
-#include "icp_adf_transport.h"
 #include "icp_accel_devices.h"
-#include "icp_adf_cfg.h"
 #include "icp_adf_accel_mgr.h"
-#include "icp_adf_poll.h"
+#include "icp_adf_cfg.h"
 #include "icp_adf_debug.h"
 #include "icp_adf_esram.h"
+#include "icp_adf_init.h"
+#include "icp_adf_poll.h"
+#include "icp_adf_transport.h"
 #include "icp_qat_hw.h"
 
 /* SAL includes */
-#include "lac_mem.h"
-#include "lac_common.h"
-#include "lac_mem_pools.h"
-#include "sal_statistics.h"
-#include "lac_list.h"
-#include "icp_sal_poll.h"
-#include "sal_types_compression.h"
-#include "dc_session.h"
 #include "dc_datapath.h"
+#include "dc_session.h"
 #include "dc_stats.h"
-#include "lac_sal.h"
-#include "lac_sal_ctrl.h"
-#include "sal_string_parse.h"
-#include "sal_service_state.h"
-#include "lac_buffer_desc.h"
 #include "icp_qat_fw_comp.h"
 #include "icp_qat_hw_20_comp_defs.h"
+#include "icp_sal_poll.h"
 #include "icp_sal_versions.h"
+#include "lac_buffer_desc.h"
+#include "lac_common.h"
+#include "lac_list.h"
+#include "lac_mem.h"
+#include "lac_mem_pools.h"
+#include "lac_sal.h"
+#include "lac_sal_ctrl.h"
+#include "sal_service_state.h"
+#include "sal_statistics.h"
+#include "sal_string_parse.h"
+#include "sal_types_compression.h"
 
 /* C string null terminator size */
 #define SAL_NULL_TERM_SIZE 1
@@ -72,33 +72,26 @@ SalCtrl_CompresionDebug(void *private_data, char *data, int size, int offset)
 
 	/* Engine Info */
 	if (NULL != pCompressionService->debug_file) {
-		len += snprintf(data + len,
-				size - len,
-				SEPARATOR BORDER
-				" Statistics for Instance %24s | \n" SEPARATOR,
-				pCompressionService->debug_file->name);
+		len += snprintf(data + len, size - len,
+		    SEPARATOR BORDER
+		    " Statistics for Instance %24s | \n" SEPARATOR,
+		    pCompressionService->debug_file->name);
 	}
 
 	/* Perform Info */
-	len += snprintf(data + len,
-			size - len,
-			BORDER " DC comp Requests:               %16llu " BORDER
-			       "\n" BORDER
-			       " DC comp Request Errors:         %16llu " BORDER
-			       "\n" BORDER
-			       " DC comp Completed:              %16llu " BORDER
-			       "\n" BORDER
-			       " DC comp Completed Errors:       %16llu " BORDER
-			       "\n" SEPARATOR,
-			(long long unsigned int)dcStats.numCompRequests,
-			(long long unsigned int)dcStats.numCompRequestsErrors,
-			(long long unsigned int)dcStats.numCompCompleted,
-			(long long unsigned int)dcStats.numCompCompletedErrors);
+	len += snprintf(data + len, size - len,
+	    BORDER " DC comp Requests:               %16llu " BORDER "\n" BORDER
+		   " DC comp Request Errors:         %16llu " BORDER "\n" BORDER
+		   " DC comp Completed:              %16llu " BORDER "\n" BORDER
+		   " DC comp Completed Errors:       %16llu " BORDER
+		   "\n" SEPARATOR,
+	    (long long unsigned int)dcStats.numCompRequests,
+	    (long long unsigned int)dcStats.numCompRequestsErrors,
+	    (long long unsigned int)dcStats.numCompCompleted,
+	    (long long unsigned int)dcStats.numCompCompletedErrors);
 
 	/* Perform Info */
-	len += snprintf(
-	    data + len,
-	    size - len,
+	len += snprintf(data + len, size - len,
 	    BORDER " DC decomp Requests:             %16llu " BORDER "\n" BORDER
 		   " DC decomp Request Errors:       %16llu " BORDER "\n" BORDER
 		   " DC decomp Completed:            %16llu " BORDER "\n" BORDER
@@ -114,7 +107,7 @@ SalCtrl_CompresionDebug(void *private_data, char *data, int size, int offset)
 /* Initialise device specific information needed by compression service */
 static CpaStatus
 SalCtrl_CompressionInit_CompData(icp_accel_dev_t *device,
-				 sal_compression_service_t *pCompService)
+    sal_compression_service_t *pCompService)
 {
 	int level = 0;
 	pCompService->comp_device_data.asbEnableSupport = CPA_FALSE;
@@ -142,8 +135,9 @@ SalCtrl_CompressionInit_CompData(icp_accel_dev_t *device,
 		pCompService->comp_device_data.highestHwCompressionDepth =
 		    ICP_QAT_HW_COMPRESSION_DEPTH_16;
 
-		pCompService->comp_device_data.windowSizeMask =
-		    (1 << DC_8K_WINDOW_SIZE | 1 << DC_32K_WINDOW_SIZE);
+		pCompService->comp_device_data.windowSizeMask = (1
+			<< DC_8K_WINDOW_SIZE |
+		    1 << DC_32K_WINDOW_SIZE);
 		pCompService->comp_device_data.cnvnrSupported = CPA_FALSE;
 		for (level = CPA_DC_L1; level <= CPA_DC_L12; level++) {
 			switch (level) {
@@ -181,8 +175,9 @@ SalCtrl_CompressionInit_CompData(icp_accel_dev_t *device,
 		    DC_INFLATE_EH_CONTEXT_SIZE;
 		pCompService->comp_device_data.highestHwCompressionDepth =
 		    ICP_QAT_HW_COMPRESSION_DEPTH_16;
-		pCompService->comp_device_data.windowSizeMask =
-		    (1 << DC_16K_WINDOW_SIZE | 1 << DC_32K_WINDOW_SIZE);
+		pCompService->comp_device_data.windowSizeMask = (1
+			<< DC_16K_WINDOW_SIZE |
+		    1 << DC_32K_WINDOW_SIZE);
 		pCompService->comp_device_data.minOutputBuffSize =
 		    DC_DEST_BUFFER_STA_MIN_SIZE;
 		pCompService->comp_device_data.enableDmm =
@@ -224,9 +219,10 @@ SalCtrl_CompressionInit_CompData(icp_accel_dev_t *device,
 		    DC_INFLATE_EH_CONTEXT_SIZE;
 		pCompService->comp_device_data.highestHwCompressionDepth =
 		    ICP_QAT_HW_COMPRESSION_DEPTH_16;
-		pCompService->comp_device_data.windowSizeMask =
-		    (1 << DC_4K_WINDOW_SIZE | 1 << DC_8K_WINDOW_SIZE |
-		     1 << DC_16K_WINDOW_SIZE | 1 << DC_32K_WINDOW_SIZE);
+		pCompService->comp_device_data.windowSizeMask = (1
+			<< DC_4K_WINDOW_SIZE |
+		    1 << DC_8K_WINDOW_SIZE | 1 << DC_16K_WINDOW_SIZE |
+		    1 << DC_32K_WINDOW_SIZE);
 		pCompService->comp_device_data.minOutputBuffSize =
 		    DC_DEST_BUFFER_STA_MIN_SIZE;
 		pCompService->comp_device_data.minOutputBuffSizeDynamic =
@@ -277,8 +273,9 @@ SalCtrl_CompressionInit_CompData(icp_accel_dev_t *device,
 		    DC_INFLATE_EH_CONTEXT_SIZE;
 		pCompService->comp_device_data.highestHwCompressionDepth =
 		    ICP_QAT_HW_COMPRESSION_DEPTH_128;
-		pCompService->comp_device_data.windowSizeMask =
-		    (1 << DC_16K_WINDOW_SIZE | 1 << DC_32K_WINDOW_SIZE);
+		pCompService->comp_device_data.windowSizeMask = (1
+			<< DC_16K_WINDOW_SIZE |
+		    1 << DC_32K_WINDOW_SIZE);
 		pCompService->comp_device_data.cnvnrSupported = CPA_TRUE;
 
 		for (level = CPA_DC_L1; level <= CPA_DC_L12; level++) {
@@ -320,9 +317,10 @@ SalCtrl_CompressionInit_CompData(icp_accel_dev_t *device,
 		    DC_INFLATE_CONTEXT_SIZE;
 		pCompService->comp_device_data.highestHwCompressionDepth =
 		    ICP_QAT_HW_COMP_20_SEARCH_DEPTH_LEVEL_9;
-		pCompService->comp_device_data.windowSizeMask =
-		    (1 << DC_4K_WINDOW_SIZE | 1 << DC_8K_WINDOW_SIZE |
-		     1 << DC_16K_WINDOW_SIZE | 1 << DC_32K_WINDOW_SIZE);
+		pCompService->comp_device_data.windowSizeMask = (1
+			<< DC_4K_WINDOW_SIZE |
+		    1 << DC_8K_WINDOW_SIZE | 1 << DC_16K_WINDOW_SIZE |
+		    1 << DC_32K_WINDOW_SIZE);
 		for (level = CPA_DC_L1; level <= CPA_DC_L12; level++) {
 			switch (level) {
 			case CPA_DC_L1:
@@ -342,7 +340,7 @@ SalCtrl_CompressionInit_CompData(icp_accel_dev_t *device,
 		break;
 	default:
 		QAT_UTILS_LOG("Unknown device type! - %d.\n",
-			      device->deviceType);
+		    device->deviceType);
 		return CPA_STATUS_FAIL;
 	}
 	return CPA_STATUS_SUCCESS;
@@ -391,45 +389,40 @@ SalCtrl_CompressionInit(icp_accel_dev_t *device, sal_service_t *service)
 	/* Initialise device specific compression data */
 	SalCtrl_CompressionInit_CompData(device, pCompressionService);
 
-	status = Sal_StringParsing(
-	    "Dc",
-	    pCompressionService->generic_service_info.instance,
-	    "BankNumber",
+	status = Sal_StringParsing("Dc",
+	    pCompressionService->generic_service_info.instance, "BankNumber",
 	    temp_string);
 	LAC_CHECK_STATUS(status);
-	status =
-	    icp_adf_cfgGetParamValue(device, section, temp_string, adfGetParam);
+	status = icp_adf_cfgGetParamValue(device, section, temp_string,
+	    adfGetParam);
 	if (CPA_STATUS_SUCCESS != status) {
 		QAT_UTILS_LOG("Failed to get %s from configuration.\n",
-			      temp_string);
+		    temp_string);
 		return status;
 	}
 
-	pCompressionService->bankNum =
-	    Sal_Strtoul(adfGetParam, NULL, SAL_CFG_BASE_DEC);
+	pCompressionService->bankNum = Sal_Strtoul(adfGetParam, NULL,
+	    SAL_CFG_BASE_DEC);
 
-	status = Sal_StringParsing(
-	    "Dc",
-	    pCompressionService->generic_service_info.instance,
-	    "IsPolled",
+	status = Sal_StringParsing("Dc",
+	    pCompressionService->generic_service_info.instance, "IsPolled",
 	    temp_string);
 	LAC_CHECK_STATUS(status);
-	status =
-	    icp_adf_cfgGetParamValue(device, section, temp_string, adfGetParam);
+	status = icp_adf_cfgGetParamValue(device, section, temp_string,
+	    adfGetParam);
 	if (CPA_STATUS_SUCCESS != status) {
 		QAT_UTILS_LOG("Failed to get %s from configuration.\n",
-			      temp_string);
+		    temp_string);
 		return status;
 	}
-	pCompressionService->isPolled =
-	    (Cpa8U)Sal_Strtoul(adfGetParam, NULL, SAL_CFG_BASE_DEC);
+	pCompressionService->isPolled = (Cpa8U)Sal_Strtoul(adfGetParam, NULL,
+	    SAL_CFG_BASE_DEC);
 
 	/* User instances only support poll and epoll mode */
 	if (SAL_RESP_POLL_CFG_FILE != pCompressionService->isPolled) {
 		QAT_UTILS_LOG(
 		    "IsPolled %u is not supported for user instance %s.\n",
-		    pCompressionService->isPolled,
-		    temp_string);
+		    pCompressionService->isPolled, temp_string);
 		return CPA_STATUS_FAIL;
 	}
 
@@ -437,29 +430,25 @@ SalCtrl_CompressionInit(icp_accel_dev_t *device, sal_service_t *service)
 		rx_resp_type = ICP_RESP_TYPE_POLL;
 	}
 
-	status = icp_adf_cfgGetParamValue(device,
-					  LAC_CFG_SECTION_GENERAL,
-					  ADF_DEV_PKG_ID,
-					  adfGetParam);
+	status = icp_adf_cfgGetParamValue(device, LAC_CFG_SECTION_GENERAL,
+	    ADF_DEV_PKG_ID, adfGetParam);
 	if (CPA_STATUS_SUCCESS != status) {
 		QAT_UTILS_LOG("Failed to get %s from configuration.\n",
-			      ADF_DEV_PKG_ID);
+		    ADF_DEV_PKG_ID);
 		return status;
 	}
-	pCompressionService->pkgID =
-	    (Cpa16U)Sal_Strtoul(adfGetParam, NULL, SAL_CFG_BASE_DEC);
+	pCompressionService->pkgID = (Cpa16U)Sal_Strtoul(adfGetParam, NULL,
+	    SAL_CFG_BASE_DEC);
 
-	status = icp_adf_cfgGetParamValue(device,
-					  LAC_CFG_SECTION_GENERAL,
-					  ADF_DEV_NODE_ID,
-					  adfGetParam);
+	status = icp_adf_cfgGetParamValue(device, LAC_CFG_SECTION_GENERAL,
+	    ADF_DEV_NODE_ID, adfGetParam);
 	if (CPA_STATUS_SUCCESS != status) {
 		QAT_UTILS_LOG("Failed to get %s from configuration.\n",
-			      ADF_DEV_NODE_ID);
+		    ADF_DEV_NODE_ID);
 		return status;
 	}
-	pCompressionService->nodeAffinity =
-	    (Cpa32U)Sal_Strtoul(adfGetParam, NULL, SAL_CFG_BASE_DEC);
+	pCompressionService->nodeAffinity = (Cpa32U)Sal_Strtoul(adfGetParam,
+	    NULL, SAL_CFG_BASE_DEC);
 
 	/* In case of interrupt instance, use the bank affinity set by adf_ctl
 	 * Otherwise, use the instance affinity for backwards compatibility */
@@ -467,59 +456,48 @@ SalCtrl_CompressionInit(icp_accel_dev_t *device, sal_service_t *service)
 		/* Next need to read the [AcceleratorX] section of the config
 		 * file */
 		status = Sal_StringParsing("Accelerator",
-					   pCompressionService->acceleratorNum,
-					   "",
-					   temp_string2);
+		    pCompressionService->acceleratorNum, "", temp_string2);
 		LAC_CHECK_STATUS(status);
 
-		status = Sal_StringParsing("Bank",
-					   pCompressionService->bankNum,
-					   "CoreAffinity",
-					   temp_string);
+		status = Sal_StringParsing("Bank", pCompressionService->bankNum,
+		    "CoreAffinity", temp_string);
 		LAC_CHECK_STATUS(status);
 	} else {
-		strncpy(temp_string2,
-			section,
-			sizeof(temp_string2) - SAL_NULL_TERM_SIZE);
+		strncpy(temp_string2, section,
+		    sizeof(temp_string2) - SAL_NULL_TERM_SIZE);
 		temp_string2[SAL_CFG_MAX_VAL_LEN_IN_BYTES -
-			     SAL_NULL_TERM_SIZE] = '\0';
+		    SAL_NULL_TERM_SIZE] = '\0';
 
-		status = Sal_StringParsing(
-		    "Dc",
+		status = Sal_StringParsing("Dc",
 		    pCompressionService->generic_service_info.instance,
-		    "CoreAffinity",
-		    temp_string);
+		    "CoreAffinity", temp_string);
 		LAC_CHECK_STATUS(status);
 	}
 
-	status = icp_adf_cfgGetParamValue(device,
-					  temp_string2,
-					  temp_string,
-					  adfGetParam);
+	status = icp_adf_cfgGetParamValue(device, temp_string2, temp_string,
+	    adfGetParam);
 	if (CPA_STATUS_SUCCESS != status) {
 		QAT_UTILS_LOG("Failed to get %s from configuration.\n",
-			      temp_string);
+		    temp_string);
 		return status;
 	}
-	pCompressionService->coreAffinity =
-	    (Cpa32U)Sal_Strtoul(adfGetParam, NULL, SAL_CFG_BASE_DEC);
+	pCompressionService->coreAffinity = (Cpa32U)Sal_Strtoul(adfGetParam,
+	    NULL, SAL_CFG_BASE_DEC);
 
-	status = Sal_StringParsing(
-	    "Dc",
+	status = Sal_StringParsing("Dc",
 	    pCompressionService->generic_service_info.instance,
-	    "NumConcurrentRequests",
-	    temp_string);
+	    "NumConcurrentRequests", temp_string);
 	LAC_CHECK_STATUS(status);
-	status =
-	    icp_adf_cfgGetParamValue(device, section, temp_string, adfGetParam);
+	status = icp_adf_cfgGetParamValue(device, section, temp_string,
+	    adfGetParam);
 	if (CPA_STATUS_SUCCESS != status) {
 		QAT_UTILS_LOG("Failed to get %s from configuration.\n",
-			      temp_string);
+		    temp_string);
 		return status;
 	}
 
-	numCompConcurrentReq =
-	    (Cpa32U)Sal_Strtoul(adfGetParam, NULL, SAL_CFG_BASE_DEC);
+	numCompConcurrentReq = (Cpa32U)Sal_Strtoul(adfGetParam, NULL,
+	    SAL_CFG_BASE_DEC);
 	if (validateConcurrRequest(numCompConcurrentReq)) {
 		QAT_UTILS_LOG(
 		    "Invalid NumConcurrentRequests, valid values are: {64, 128, 256, ... 32768, 65536}.\n");
@@ -528,30 +506,20 @@ SalCtrl_CompressionInit(icp_accel_dev_t *device, sal_service_t *service)
 
 	/* ADF does not allow us to completely fill the ring for batch requests
 	 */
-	pCompressionService->maxNumCompConcurrentReq =
-	    (numCompConcurrentReq - SAL_BATCH_SUBMIT_FREE_SPACE);
+	pCompressionService->maxNumCompConcurrentReq = (numCompConcurrentReq -
+	    SAL_BATCH_SUBMIT_FREE_SPACE);
 
 	/* 1. Create transport handles */
-	status = Sal_StringParsing(
-	    "Dc",
-	    pCompressionService->generic_service_info.instance,
-	    "RingTx",
+	status = Sal_StringParsing("Dc",
+	    pCompressionService->generic_service_info.instance, "RingTx",
 	    temp_string);
 	LAC_CHECK_STATUS(status);
 
 	msgSize = LAC_QAT_DC_REQ_SZ_LW * LAC_LONG_WORD_IN_BYTES;
-	status = icp_adf_transCreateHandle(
-	    device,
-	    ICP_TRANS_TYPE_ETR,
-	    section,
-	    pCompressionService->acceleratorNum,
-	    pCompressionService->bankNum,
-	    temp_string,
-	    lac_getRingType(SAL_RING_TYPE_DC),
-	    NULL,
-	    ICP_RESP_TYPE_NONE,
-	    numCompConcurrentReq,
-	    msgSize,
+	status = icp_adf_transCreateHandle(device, ICP_TRANS_TYPE_ETR, section,
+	    pCompressionService->acceleratorNum, pCompressionService->bankNum,
+	    temp_string, lac_getRingType(SAL_RING_TYPE_DC), NULL,
+	    ICP_RESP_TYPE_NONE, numCompConcurrentReq, msgSize,
 	    (icp_comms_trans_handle *)&(
 		pCompressionService->trans_handle_compression_tx));
 	LAC_CHECK_STATUS(status);
@@ -566,10 +534,8 @@ SalCtrl_CompressionInit(icp_accel_dev_t *device, sal_service_t *service)
 		return CPA_STATUS_FAIL;
 	}
 
-	status = Sal_StringParsing(
-	    "Dc",
-	    pCompressionService->generic_service_info.instance,
-	    "RingRx",
+	status = Sal_StringParsing("Dc",
+	    pCompressionService->generic_service_info.instance, "RingRx",
 	    temp_string);
 	if (CPA_STATUS_SUCCESS != status) {
 		icp_adf_transReleaseHandle(
@@ -578,18 +544,11 @@ SalCtrl_CompressionInit(icp_accel_dev_t *device, sal_service_t *service)
 	}
 
 	msgSize = LAC_QAT_DC_RESP_SZ_LW * LAC_LONG_WORD_IN_BYTES;
-	status = icp_adf_transCreateHandle(
-	    device,
-	    ICP_TRANS_TYPE_ETR,
-	    section,
-	    pCompressionService->acceleratorNum,
-	    pCompressionService->bankNum,
-	    temp_string,
-	    lac_getRingType(SAL_RING_TYPE_NONE),
-	    (icp_trans_callback)dcCompression_ProcessCallback,
-	    rx_resp_type,
-	    numCompConcurrentReq,
-	    msgSize,
+	status = icp_adf_transCreateHandle(device, ICP_TRANS_TYPE_ETR, section,
+	    pCompressionService->acceleratorNum, pCompressionService->bankNum,
+	    temp_string, lac_getRingType(SAL_RING_TYPE_NONE),
+	    (icp_trans_callback)dcCompression_ProcessCallback, rx_resp_type,
+	    numCompConcurrentReq, msgSize,
 	    (icp_comms_trans_handle *)&(
 		pCompressionService->trans_handle_compression_rx));
 	if (CPA_STATUS_SUCCESS != status) {
@@ -616,10 +575,8 @@ SalCtrl_CompressionInit(icp_accel_dev_t *device, sal_service_t *service)
 	/* Valid initialisation value for a pool ID */
 	pCompressionService->compression_mem_pool = LAC_MEM_POOL_INIT_POOL_ID;
 
-	status = Sal_StringParsing(
-	    "Comp",
-	    pCompressionService->generic_service_info.instance,
-	    "_MemPool",
+	status = Sal_StringParsing("Comp",
+	    pCompressionService->generic_service_info.instance, "_MemPool",
 	    compMemPool);
 	if (CPA_STATUS_SUCCESS != status) {
 		icp_adf_transReleaseHandle(
@@ -632,12 +589,9 @@ SalCtrl_CompressionInit(icp_accel_dev_t *device, sal_service_t *service)
 	}
 
 	status = Lac_MemPoolCreate(&pCompressionService->compression_mem_pool,
-				   compMemPool,
-				   (numCompConcurrentReq + 1),
-				   sizeof(dc_compression_cookie_t),
-				   LAC_64BYTE_ALIGNMENT,
-				   CPA_FALSE,
-				   pCompressionService->nodeAffinity);
+	    compMemPool, (numCompConcurrentReq + 1),
+	    sizeof(dc_compression_cookie_t), LAC_64BYTE_ALIGNMENT, CPA_FALSE,
+	    pCompressionService->nodeAffinity);
 	if (CPA_STATUS_SUCCESS != status) {
 		icp_adf_transReleaseHandle(
 		    pCompressionService->trans_handle_compression_tx);
@@ -677,10 +631,8 @@ SalCtrl_CompressionInit(icp_accel_dev_t *device, sal_service_t *service)
 			return CPA_STATUS_RESOURCE;
 		}
 
-		status = Sal_StringParsing(
-		    "Dc",
-		    pCompressionService->generic_service_info.instance,
-		    "Name",
+		status = Sal_StringParsing("Dc",
+		    pCompressionService->generic_service_info.instance, "Name",
 		    temp_string);
 		if (CPA_STATUS_SUCCESS != status) {
 			Lac_MemPoolDestroy(
@@ -694,13 +646,11 @@ SalCtrl_CompressionInit(icp_accel_dev_t *device, sal_service_t *service)
 			LAC_OS_FREE(instance_name);
 			return status;
 		}
-		status = icp_adf_cfgGetParamValue(device,
-						  section,
-						  temp_string,
-						  adfGetParam);
+		status = icp_adf_cfgGetParamValue(device, section, temp_string,
+		    adfGetParam);
 		if (CPA_STATUS_SUCCESS != status) {
 			QAT_UTILS_LOG("Failed to get %s from configuration.\n",
-				      temp_string);
+			    temp_string);
 
 			Lac_MemPoolDestroy(
 			    pCompressionService->compression_mem_pool);
@@ -714,13 +664,11 @@ SalCtrl_CompressionInit(icp_accel_dev_t *device, sal_service_t *service)
 			return status;
 		}
 
-		snprintf(instance_name,
-			 ADF_CFG_MAX_VAL_LEN_IN_BYTES,
-			 "%s",
-			 adfGetParam);
+		snprintf(instance_name, ADF_CFG_MAX_VAL_LEN_IN_BYTES, "%s",
+		    adfGetParam);
 
-		pCompressionService->debug_file =
-		    LAC_OS_MALLOC(sizeof(debug_file_info_t));
+		pCompressionService->debug_file = LAC_OS_MALLOC(
+		    sizeof(debug_file_info_t));
 		if (NULL == pCompressionService->debug_file) {
 			Lac_MemPoolDestroy(
 			    pCompressionService->compression_mem_pool);
@@ -734,9 +682,8 @@ SalCtrl_CompressionInit(icp_accel_dev_t *device, sal_service_t *service)
 			return CPA_STATUS_RESOURCE;
 		}
 
-		memset(pCompressionService->debug_file,
-		       0,
-		       sizeof(debug_file_info_t));
+		memset(pCompressionService->debug_file, 0,
+		    sizeof(debug_file_info_t));
 		pCompressionService->debug_file->name = instance_name;
 		pCompressionService->debug_file->seq_read =
 		    SalCtrl_CompresionDebug;
@@ -746,7 +693,7 @@ SalCtrl_CompressionInit(icp_accel_dev_t *device, sal_service_t *service)
 		    pCompressionService->generic_service_info.debug_parent_dir;
 
 		status = icp_adf_debugAddFile(device,
-					      pCompressionService->debug_file);
+		    pCompressionService->debug_file);
 		if (CPA_STATUS_SUCCESS != status) {
 			Lac_MemPoolDestroy(
 			    pCompressionService->compression_mem_pool);
@@ -826,11 +773,11 @@ SalCtrl_CompressionShutdown(icp_accel_dev_t *device, sal_service_t *service)
 	    (sal_statistics_collection_t *)device->pQatStats;
 
 	if ((SAL_SERVICE_STATE_INITIALIZED !=
-	     pCompressionService->generic_service_info.state) &&
+		pCompressionService->generic_service_info.state) &&
 	    (SAL_SERVICE_STATE_SHUTTING_DOWN !=
-	     pCompressionService->generic_service_info.state) &&
+		pCompressionService->generic_service_info.state) &&
 	    (SAL_SERVICE_STATE_RESTARTING !=
-	     pCompressionService->generic_service_info.state)) {
+		pCompressionService->generic_service_info.state)) {
 		QAT_UTILS_LOG("Not in the correct state to call shutdown.\n");
 		return CPA_STATUS_FAIL;
 	}
@@ -870,8 +817,7 @@ SalCtrl_CompressionShutdown(icp_accel_dev_t *device, sal_service_t *service)
 
 CpaStatus
 cpaDcGetStatusText(const CpaInstanceHandle dcInstance,
-		   const CpaStatus errStatus,
-		   Cpa8S *pStatusText)
+    const CpaStatus errStatus, Cpa8S *pStatusText)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 
@@ -909,7 +855,7 @@ cpaDcGetStatusText(const CpaInstanceHandle dcInstance,
 
 CpaStatus
 cpaDcGetNumIntermediateBuffers(CpaInstanceHandle dcInstance,
-			       Cpa16U *pNumBuffers)
+    Cpa16U *pNumBuffers)
 {
 	CpaInstanceHandle insHandle = NULL;
 	sal_compression_service_t *pService = NULL;
@@ -930,9 +876,8 @@ cpaDcGetNumIntermediateBuffers(CpaInstanceHandle dcInstance,
 }
 
 CpaStatus
-cpaDcStartInstance(CpaInstanceHandle instanceHandle,
-		   Cpa16U numBuffers,
-		   CpaBufferList **pIntermediateBufferPtrsArray)
+cpaDcStartInstance(CpaInstanceHandle instanceHandle, Cpa16U numBuffers,
+    CpaBufferList **pIntermediateBufferPtrsArray)
 {
 	icp_qat_addr_width_t *pInterBuffPtrsArray = NULL;
 	icp_qat_addr_width_t pArrayBufferListDescPhyAddr = 0;
@@ -1027,9 +972,9 @@ cpaDcStartInstance(CpaInstanceHandle instanceHandle,
 		     bufferIndex2++) {
 
 			if ((0 !=
-			     (*pTempIntermediateBufferPtrsArray)
-				 ->pBuffers[bufferIndex2]
-				 .dataLenInBytes) &&
+				(*pTempIntermediateBufferPtrsArray)
+				    ->pBuffers[bufferIndex2]
+				    .dataLenInBytes) &&
 			    NULL ==
 				(*pTempIntermediateBufferPtrsArray)
 				    ->pBuffers[bufferIndex2]
@@ -1058,9 +1003,8 @@ cpaDcStartInstance(CpaInstanceHandle instanceHandle,
 
 	/* Allocate array of physical pointers to icp_buffer_list_desc_t */
 	status = LAC_OS_CAMALLOC(&pInterBuffPtrsArray,
-				 (numBuffers * sizeof(icp_qat_addr_width_t)),
-				 LAC_64BYTE_ALIGNMENT,
-				 pService->nodeAffinity);
+	    (numBuffers * sizeof(icp_qat_addr_width_t)), LAC_64BYTE_ALIGNMENT,
+	    pService->nodeAffinity);
 	if (CPA_STATUS_SUCCESS != status) {
 		QAT_UTILS_LOG("Can not allocate Intermediate Buffers array.\n");
 		return status;
@@ -1100,8 +1044,7 @@ cpaDcStartInstance(CpaInstanceHandle instanceHandle,
 		    pClientCurrentIntermediateBuffer->pBuffers;
 
 		/* Calculate Physical address of current private SGL */
-		bufListDescPhyAddr = LAC_OS_VIRT_TO_PHYS_EXTERNAL(
-		    (*pService),
+		bufListDescPhyAddr = LAC_OS_VIRT_TO_PHYS_EXTERNAL((*pService),
 		    pClientCurrentIntermediateBuffer->pPrivateMetaData);
 		if (bufListDescPhyAddr == 0) {
 			QAT_UTILS_LOG(
@@ -1110,23 +1053,21 @@ cpaDcStartInstance(CpaInstanceHandle instanceHandle,
 		}
 
 		/* Align SGL physical address */
-		bufListAlignedPhyAddr =
-		    LAC_ALIGN_POW2_ROUNDUP(bufListDescPhyAddr,
-					   ICP_DESCRIPTOR_ALIGNMENT_BYTES);
+		bufListAlignedPhyAddr = LAC_ALIGN_POW2_ROUNDUP(
+		    bufListDescPhyAddr, ICP_DESCRIPTOR_ALIGNMENT_BYTES);
 
 		/* Set physical address of the Intermediate Buffer SGL in the
 		 * SGLs array
 		 */
-		*pInterBuffPtrsArray =
-		    LAC_MEM_CAST_PTR_TO_UINT64(bufListAlignedPhyAddr);
+		*pInterBuffPtrsArray = LAC_MEM_CAST_PTR_TO_UINT64(
+		    bufListAlignedPhyAddr);
 
 		/* Calculate (virtual) offset to the buffer list descriptor */
-		pBufferListDesc =
-		    (icp_buffer_list_desc_t
-			 *)((LAC_ARCH_UINT)pClientCurrentIntermediateBuffer
-				->pPrivateMetaData +
-			    (LAC_ARCH_UINT)(bufListAlignedPhyAddr -
-					    bufListDescPhyAddr));
+		pBufferListDesc = (icp_buffer_list_desc_t
+			*)((LAC_ARCH_UINT)pClientCurrentIntermediateBuffer
+			       ->pPrivateMetaData +
+		    (LAC_ARCH_UINT)(bufListAlignedPhyAddr -
+			bufListDescPhyAddr));
 
 		/* Set number of flat buffers in the physical Buffer List
 		 * descriptor */
@@ -1135,8 +1076,8 @@ cpaDcStartInstance(CpaInstanceHandle instanceHandle,
 		/* Go past the Buffer List descriptor to the list of buffer
 		 * descriptors
 		 */
-		pCurrFlatBufDesc =
-		    (icp_flat_buffer_desc_t *)((pBufferListDesc->phyBuffers));
+		pCurrFlatBufDesc = (icp_flat_buffer_desc_t *)((
+		    pBufferListDesc->phyBuffers));
 
 		/* Loop for each flat buffer in the SGL */
 		while (0 != numFlatBuffers) {
@@ -1147,8 +1088,8 @@ cpaDcStartInstance(CpaInstanceHandle instanceHandle,
 			/* Set physical address of the flat buffer */
 			pCurrFlatBufDesc->phyBuffer =
 			    LAC_MEM_CAST_PTR_TO_UINT64(
-				LAC_OS_VIRT_TO_PHYS_EXTERNAL(
-				    (*pService), pClientCurrFlatBuffer->pData));
+				LAC_OS_VIRT_TO_PHYS_EXTERNAL((*pService),
+				    pClientCurrFlatBuffer->pData));
 
 			if (pCurrFlatBufDesc->phyBuffer == 0) {
 				QAT_UTILS_LOG(
@@ -1234,8 +1175,8 @@ cpaDcGetNumInstances(Cpa16U *pNumInstances)
 	LAC_CHECK_STATUS(status);
 
 	/* Allocate memory to store addr of accel_devs */
-	pAdfInsts =
-	    malloc(num_accel_dev * sizeof(icp_accel_dev_t *), M_QAT, M_WAITOK);
+	pAdfInsts = malloc(num_accel_dev * sizeof(icp_accel_dev_t *), M_QAT,
+	    M_WAITOK);
 	num_accel_dev = 0;
 
 	/* Get ADF to return accel_devs with dc enabled */
@@ -1251,8 +1192,8 @@ cpaDcGetNumInstances(Cpa16U *pNumInstances)
 					    base_addr->compression_services;
 					while (NULL != list_temp) {
 						num++;
-						list_temp =
-						    SalList_next(list_temp);
+						list_temp = SalList_next(
+						    list_temp);
 					}
 				}
 			}
@@ -1289,8 +1230,8 @@ cpaDcGetInstances(Cpa16U numInstances, CpaInstanceHandle *dcInstances)
 	LAC_CHECK_STATUS(status);
 
 	/* Allocate memory to store addr of accel_devs */
-	pAdfInsts =
-	    malloc(num_accel_dev * sizeof(icp_accel_dev_t *), M_QAT, M_WAITOK);
+	pAdfInsts = malloc(num_accel_dev * sizeof(icp_accel_dev_t *), M_QAT,
+	    M_WAITOK);
 
 	num_accel_dev = 0;
 	/* Get ADF to return accel_devs with dc enabled */
@@ -1315,8 +1256,8 @@ cpaDcGetInstances(Cpa16U numInstances, CpaInstanceHandle *dcInstances)
 						dcInstances[index] =
 						    SalList_getObject(
 							list_temp);
-						list_temp =
-						    SalList_next(list_temp);
+						list_temp = SalList_next(
+						    list_temp);
 						index++;
 					}
 				}
@@ -1325,7 +1266,7 @@ cpaDcGetInstances(Cpa16U numInstances, CpaInstanceHandle *dcInstances)
 
 		if (numInstances > index) {
 			QAT_UTILS_LOG("Only %d dc instances available.\n",
-				      index);
+			    index);
 			status = CPA_STATUS_RESOURCE;
 		}
 	}
@@ -1347,8 +1288,8 @@ cpaDcGetInstances(Cpa16U numInstances, CpaInstanceHandle *dcInstances)
 						break;
 					}
 
-					dcInstances[index] =
-					    SalList_getObject(list_temp);
+					dcInstances[index] = SalList_getObject(
+					    list_temp);
 					list_temp = SalList_next(list_temp);
 					index++;
 				}
@@ -1363,7 +1304,7 @@ cpaDcGetInstances(Cpa16U numInstances, CpaInstanceHandle *dcInstances)
 
 CpaStatus
 cpaDcInstanceGetInfo2(const CpaInstanceHandle instanceHandle,
-		      CpaInstanceInfo2 *pInstanceInfo2)
+    CpaInstanceInfo2 *pInstanceInfo2)
 {
 	sal_compression_service_t *pCompressionService = NULL;
 	CpaInstanceHandle insHandle = NULL;
@@ -1387,17 +1328,13 @@ cpaDcInstanceGetInfo2(const CpaInstanceHandle instanceHandle,
 	pInstanceInfo2->accelerationServiceType =
 	    CPA_ACC_SVC_TYPE_DATA_COMPRESSION;
 
-	snprintf((char *)pInstanceInfo2->vendorName,
-		 CPA_INST_VENDOR_NAME_SIZE,
-		 "%s",
-		 SAL_INFO2_VENDOR_NAME);
+	snprintf((char *)pInstanceInfo2->vendorName, CPA_INST_VENDOR_NAME_SIZE,
+	    "%s", SAL_INFO2_VENDOR_NAME);
 	pInstanceInfo2->vendorName[CPA_INST_VENDOR_NAME_SIZE - 1] = '\0';
 
-	snprintf((char *)pInstanceInfo2->swVersion,
-		 CPA_INST_SW_VERSION_SIZE,
-		 "Version %d.%d",
-		 SAL_INFO2_DRIVER_SW_VERSION_MAJ_NUMBER,
-		 SAL_INFO2_DRIVER_SW_VERSION_MIN_NUMBER);
+	snprintf((char *)pInstanceInfo2->swVersion, CPA_INST_SW_VERSION_SIZE,
+	    "Version %d.%d", SAL_INFO2_DRIVER_SW_VERSION_MAJ_NUMBER,
+	    SAL_INFO2_DRIVER_SW_VERSION_MIN_NUMBER);
 	pInstanceInfo2->swVersion[CPA_INST_SW_VERSION_SIZE - 1] = '\0';
 
 	/* Note we can safely read the contents of the compression service
@@ -1409,14 +1346,14 @@ cpaDcInstanceGetInfo2(const CpaInstanceHandle instanceHandle,
 	pInstanceInfo2->physInstId.acceleratorId =
 	    pCompressionService->acceleratorNum;
 	pInstanceInfo2->physInstId.executionEngineId = 0;
-	pInstanceInfo2->physInstId.busAddress =
-	    icp_adf_get_busAddress(pInstanceInfo2->physInstId.packageId);
+	pInstanceInfo2->physInstId.busAddress = icp_adf_get_busAddress(
+	    pInstanceInfo2->physInstId.packageId);
 
 	/* set coreAffinity to zero before use */
 	LAC_OS_BZERO(pInstanceInfo2->coreAffinity,
-		     sizeof(pInstanceInfo2->coreAffinity));
+	    sizeof(pInstanceInfo2->coreAffinity));
 	CPA_BITMAP_BIT_SET(pInstanceInfo2->coreAffinity,
-			   pCompressionService->coreAffinity);
+	    pCompressionService->coreAffinity);
 
 	pInstanceInfo2->nodeAffinity = pCompressionService->nodeAffinity;
 
@@ -1443,38 +1380,29 @@ cpaDcInstanceGetInfo2(const CpaInstanceHandle instanceHandle,
 		LAC_OS_BZERO(pInstanceInfo2, sizeof(CpaInstanceInfo2));
 		return CPA_STATUS_FAIL;
 	}
-	snprintf((char *)pInstanceInfo2->partName,
-		 CPA_INST_PART_NAME_SIZE,
-		 SAL_INFO2_PART_NAME,
-		 dev->deviceName);
+	snprintf((char *)pInstanceInfo2->partName, CPA_INST_PART_NAME_SIZE,
+	    SAL_INFO2_PART_NAME, dev->deviceName);
 	pInstanceInfo2->partName[CPA_INST_PART_NAME_SIZE - 1] = '\0';
 
 	if (CPA_FALSE == pCompressionService->generic_service_info.is_dyn) {
 		section = icpGetProcessName();
 	}
 
-	status = Sal_StringParsing(
-	    "Dc",
-	    pCompressionService->generic_service_info.instance,
-	    "Name",
-	    keyStr);
+	status = Sal_StringParsing("Dc",
+	    pCompressionService->generic_service_info.instance, "Name", keyStr);
 	LAC_CHECK_STATUS(status);
 	status = icp_adf_cfgGetParamValue(dev, section, keyStr, valStr);
 	LAC_CHECK_STATUS(status);
-	strncpy((char *)pInstanceInfo2->instName,
-		valStr,
-		sizeof(pInstanceInfo2->instName) - 1);
+	strncpy((char *)pInstanceInfo2->instName, valStr,
+	    sizeof(pInstanceInfo2->instName) - 1);
 	pInstanceInfo2->instName[CPA_INST_NAME_SIZE - 1] = '\0';
 
 #if __GNUC__ >= 7
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-truncation"
 #endif
-	snprintf((char *)pInstanceInfo2->instID,
-		 CPA_INST_ID_SIZE,
-		 "%s_%s",
-		 section,
-		 valStr);
+	snprintf((char *)pInstanceInfo2->instID, CPA_INST_ID_SIZE, "%s_%s",
+	    section, valStr);
 #if __GNUC__ >= 7
 #pragma GCC diagnostic pop
 #endif
@@ -1484,7 +1412,7 @@ cpaDcInstanceGetInfo2(const CpaInstanceHandle instanceHandle,
 
 CpaStatus
 cpaDcQueryCapabilities(CpaInstanceHandle dcInstance,
-		       CpaDcInstanceCapabilities *pInstanceCapabilities)
+    CpaDcInstanceCapabilities *pInstanceCapabilities)
 {
 	CpaInstanceHandle insHandle = NULL;
 	sal_compression_service_t *pService = NULL;
@@ -1535,8 +1463,8 @@ cpaDcQueryCapabilities(CpaInstanceHandle dcInstance,
 	pExtendedFtrs = (dc_extd_ftrs_t *)&(
 	    ((sal_service_t *)insHandle)->dcExtendedFeatures);
 	pInstanceCapabilities->batchAndPack = CPA_FALSE;
-	pInstanceCapabilities->compressAndVerify =
-	    (CpaBoolean)pExtendedFtrs->is_cnv;
+	pInstanceCapabilities->compressAndVerify = (CpaBoolean)
+						       pExtendedFtrs->is_cnv;
 	pInstanceCapabilities->compressAndVerifyStrict = CPA_TRUE;
 	pInstanceCapabilities->compressAndVerifyAndRecover =
 	    (CpaBoolean)pExtendedFtrs->is_cnvnr;
@@ -1545,7 +1473,7 @@ cpaDcQueryCapabilities(CpaInstanceHandle dcInstance,
 
 CpaStatus
 cpaDcSetAddressTranslation(const CpaInstanceHandle instanceHandle,
-			   CpaVirtualToPhysical virtual2Physical)
+    CpaVirtualToPhysical virtual2Physical)
 {
 	sal_service_t *pService = NULL;
 	CpaInstanceHandle insHandle = NULL;
@@ -1575,7 +1503,7 @@ cpaDcSetAddressTranslation(const CpaInstanceHandle instanceHandle,
 
 CpaStatus
 icp_sal_DcPollInstance(CpaInstanceHandle instanceHandle_in,
-		       Cpa32U response_quota)
+    Cpa32U response_quota)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 	sal_compression_service_t *dc_handle = NULL;
@@ -1605,9 +1533,8 @@ icp_sal_DcPollInstance(CpaInstanceHandle instanceHandle_in,
 	trans_hndTable[0] = dc_handle->trans_handle_compression_rx;
 
 	/* Call adf to do the polling. */
-	status = icp_adf_pollInstance(trans_hndTable,
-				      DC_NUM_RX_RINGS,
-				      response_quota);
+	status = icp_adf_pollInstance(trans_hndTable, DC_NUM_RX_RINGS,
+	    response_quota);
 	return status;
 }
 
@@ -1616,8 +1543,7 @@ icp_sal_DcPollInstance(CpaInstanceHandle instanceHandle_in,
  * @ingroup cpaDcCommon
  *****************************************************************************/
 CpaStatus
-cpaDcInstanceSetNotificationCb(
-    const CpaInstanceHandle instanceHandle,
+cpaDcInstanceSetNotificationCb(const CpaInstanceHandle instanceHandle,
     const CpaDcInstanceNotificationCbFunc pInstanceNotificationCb,
     void *pCallbackTag)
 {

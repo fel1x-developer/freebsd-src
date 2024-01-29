@@ -33,18 +33,17 @@
 #ifndef __SDPCONTROL_H__
 #define __SDPCONTROL_H__
 
-#define OK			0	/* everything was OK */
-#define ERROR			1	/* could not execute command */
-#define FAILED			2	/* error was reported */
-#define USAGE			3	/* invalid parameters */
+#define OK 0	 /* everything was OK */
+#define ERROR 1	 /* could not execute command */
+#define FAILED 2 /* error was reported */
+#define USAGE 3	 /* invalid parameters */
 
 struct sdp_command {
-	char const		*command;
-	char const		*description;
-	int			(*handler)(void *, int, char **);
+	char const *command;
+	char const *description;
+	int (*handler)(void *, int, char **);
 };
 
-extern struct sdp_command	sdp_commands[];
+extern struct sdp_command sdp_commands[];
 
 #endif /* __SDPCONTROL_H__ */
-

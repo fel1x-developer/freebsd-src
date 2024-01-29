@@ -30,28 +30,29 @@
  */
 
 #ifndef _CBC_CCM_H
-# define _CBC_CCM_H
+#define _CBC_CCM_H
 
-# include <sys/types.h>
-# include <crypto/rijndael/rijndael.h>
+#include <sys/types.h>
 
-# define CCM_CBC_BLOCK_LEN	16	/* 128 bits */
-# define CCM_CBC_MAX_DIGEST_LEN	16
-# define CCM_CBC_MIN_DIGEST_LEN	4
+#include <crypto/rijndael/rijndael.h>
+
+#define CCM_CBC_BLOCK_LEN 16 /* 128 bits */
+#define CCM_CBC_MAX_DIGEST_LEN 16
+#define CCM_CBC_MIN_DIGEST_LEN 4
 
 /*
  * This is the authentication context structure;
  * the encryption one is similar.
  */
 struct aes_cbc_mac_ctx {
-	uint8_t		staging_block[CCM_CBC_BLOCK_LEN];
-	uint8_t		block[CCM_CBC_BLOCK_LEN];
-	int		blockIndex;
-	int		nonceLength;	/* This one is in bytes, not bits! */
-	const uint8_t	*nonce;
+	uint8_t staging_block[CCM_CBC_BLOCK_LEN];
+	uint8_t block[CCM_CBC_BLOCK_LEN];
+	int blockIndex;
+	int nonceLength; /* This one is in bytes, not bits! */
+	const uint8_t *nonce;
 	/* AES state data */
-	int		rounds;
-	uint32_t	keysched[4*(RIJNDAEL_MAXNR+1)];
+	int rounds;
+	uint32_t keysched[4 * (RIJNDAEL_MAXNR + 1)];
 };
 
 void AES_CBC_MAC_Init(void *);

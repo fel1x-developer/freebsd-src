@@ -28,225 +28,223 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
+#include <sys/rman.h>
+
 #include <machine/bus.h>
-
-#include <dev/fdt/simplebus.h>
-
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
 
 #include <dev/clk/clk_div.h>
 #include <dev/clk/clk_fixed.h>
 #include <dev/clk/clk_mux.h>
-
 #include <dev/clk/rockchip/rk_cru.h>
+#include <dev/fdt/simplebus.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
 
-#define	CRU_CLKSEL_CON(x)	(0x100 + (x) * 0x4)
-#define	CRU_CLKGATE_CON(x)	(0x200 + (x) * 0x4)
+#define CRU_CLKSEL_CON(x) (0x100 + (x) * 0x4)
+#define CRU_CLKGATE_CON(x) (0x200 + (x) * 0x4)
 
 /* Registers */
-#define	RK3328_GRF_SOC_CON4	0x410
-#define	RK3328_GRF_MAC_CON1	0x904
-#define	RK3328_GRF_MAC_CON2	0x908
+#define RK3328_GRF_SOC_CON4 0x410
+#define RK3328_GRF_MAC_CON1 0x904
+#define RK3328_GRF_MAC_CON2 0x908
 
 /* Exported clocks */
 
-#define	PLL_APLL		1
-#define	PLL_DPLL		2
-#define	PLL_CPLL		3
-#define	PLL_GPLL		4
-#define	PLL_NPLL		5
-#define	ARMCLK			6
+#define PLL_APLL 1
+#define PLL_DPLL 2
+#define PLL_CPLL 3
+#define PLL_GPLL 4
+#define PLL_NPLL 5
+#define ARMCLK 6
 
 /* SCLK */
-#define	SCLK_RTC32K		30
-#define	SCLK_SDMMC_EXT		31
-#define	SCLK_SPI		32
-#define	SCLK_SDMMC		33
-#define	SCLK_SDIO		34
-#define	SCLK_EMMC		35
-#define	SCLK_TSADC		36
-#define	SCLK_SARADC		37
-#define	SCLK_UART0		38
-#define	SCLK_UART1		39
-#define	SCLK_UART2		40
-#define	SCLK_I2S0		41
-#define	SCLK_I2S1		42
-#define	SCLK_I2S2		43
-#define	SCLK_I2S1_OUT		44
-#define	SCLK_I2S2_OUT		45
-#define	SCLK_SPDIF		46
-#define	SCLK_TIMER0		47
-#define	SCLK_TIMER1		48
-#define	SCLK_TIMER2		49
-#define	SCLK_TIMER3		50
-#define	SCLK_TIMER4		51
-#define	SCLK_TIMER5		52
-#define	SCLK_WIFI		53
-#define	SCLK_CIF_OUT		54
-#define	SCLK_I2C0		55
-#define	SCLK_I2C1		56
-#define	SCLK_I2C2		57
-#define	SCLK_I2C3		58
-#define	SCLK_CRYPTO		59
-#define	SCLK_PWM		60
-#define	SCLK_PDM		61
-#define	SCLK_EFUSE		62
-#define	SCLK_OTP		63
-#define	SCLK_DDRCLK		64
-#define	SCLK_VDEC_CABAC		65
-#define	SCLK_VDEC_CORE		66
-#define	SCLK_VENC_DSP		67
-#define	SCLK_VENC_CORE		68
-#define	SCLK_RGA		69
-#define	SCLK_HDMI_SFC		70
-#define	SCLK_HDMI_CEC		71	/* Unused ? */
-#define	SCLK_USB3_REF		72
-#define	SCLK_USB3_SUSPEND	73
-#define	SCLK_SDMMC_DRV		74
-#define	SCLK_SDIO_DRV		75
-#define	SCLK_EMMC_DRV		76
-#define	SCLK_SDMMC_EXT_DRV	77
-#define	SCLK_SDMMC_SAMPLE	78
-#define	SCLK_SDIO_SAMPLE	79
-#define	SCLK_EMMC_SAMPLE	80
-#define	SCLK_SDMMC_EXT_SAMPLE	81
-#define	SCLK_VOP		82
-#define	SCLK_MAC2PHY_RXTX	83
-#define	SCLK_MAC2PHY_SRC	84
-#define	SCLK_MAC2PHY_REF	85
-#define	SCLK_MAC2PHY_OUT	86
-#define	SCLK_MAC2IO_RX		87
-#define	SCLK_MAC2IO_TX		88
-#define	SCLK_MAC2IO_REFOUT	89
-#define	SCLK_MAC2IO_REF		90
-#define	SCLK_MAC2IO_OUT		91
-#define	SCLK_TSP		92
-#define	SCLK_HSADC_TSP		93
-#define	SCLK_USB3PHY_REF	94
-#define	SCLK_REF_USB3OTG	95
-#define	SCLK_USB3OTG_REF	96
-#define	SCLK_USB3OTG_SUSPEND	97
-#define	SCLK_REF_USB3OTG_SRC	98
-#define	SCLK_MAC2IO_SRC		99
-#define	SCLK_MAC2IO		100
-#define	SCLK_MAC2PHY		101
-#define	SCLK_MAC2IO_EXT		102
+#define SCLK_RTC32K 30
+#define SCLK_SDMMC_EXT 31
+#define SCLK_SPI 32
+#define SCLK_SDMMC 33
+#define SCLK_SDIO 34
+#define SCLK_EMMC 35
+#define SCLK_TSADC 36
+#define SCLK_SARADC 37
+#define SCLK_UART0 38
+#define SCLK_UART1 39
+#define SCLK_UART2 40
+#define SCLK_I2S0 41
+#define SCLK_I2S1 42
+#define SCLK_I2S2 43
+#define SCLK_I2S1_OUT 44
+#define SCLK_I2S2_OUT 45
+#define SCLK_SPDIF 46
+#define SCLK_TIMER0 47
+#define SCLK_TIMER1 48
+#define SCLK_TIMER2 49
+#define SCLK_TIMER3 50
+#define SCLK_TIMER4 51
+#define SCLK_TIMER5 52
+#define SCLK_WIFI 53
+#define SCLK_CIF_OUT 54
+#define SCLK_I2C0 55
+#define SCLK_I2C1 56
+#define SCLK_I2C2 57
+#define SCLK_I2C3 58
+#define SCLK_CRYPTO 59
+#define SCLK_PWM 60
+#define SCLK_PDM 61
+#define SCLK_EFUSE 62
+#define SCLK_OTP 63
+#define SCLK_DDRCLK 64
+#define SCLK_VDEC_CABAC 65
+#define SCLK_VDEC_CORE 66
+#define SCLK_VENC_DSP 67
+#define SCLK_VENC_CORE 68
+#define SCLK_RGA 69
+#define SCLK_HDMI_SFC 70
+#define SCLK_HDMI_CEC 71 /* Unused ? */
+#define SCLK_USB3_REF 72
+#define SCLK_USB3_SUSPEND 73
+#define SCLK_SDMMC_DRV 74
+#define SCLK_SDIO_DRV 75
+#define SCLK_EMMC_DRV 76
+#define SCLK_SDMMC_EXT_DRV 77
+#define SCLK_SDMMC_SAMPLE 78
+#define SCLK_SDIO_SAMPLE 79
+#define SCLK_EMMC_SAMPLE 80
+#define SCLK_SDMMC_EXT_SAMPLE 81
+#define SCLK_VOP 82
+#define SCLK_MAC2PHY_RXTX 83
+#define SCLK_MAC2PHY_SRC 84
+#define SCLK_MAC2PHY_REF 85
+#define SCLK_MAC2PHY_OUT 86
+#define SCLK_MAC2IO_RX 87
+#define SCLK_MAC2IO_TX 88
+#define SCLK_MAC2IO_REFOUT 89
+#define SCLK_MAC2IO_REF 90
+#define SCLK_MAC2IO_OUT 91
+#define SCLK_TSP 92
+#define SCLK_HSADC_TSP 93
+#define SCLK_USB3PHY_REF 94
+#define SCLK_REF_USB3OTG 95
+#define SCLK_USB3OTG_REF 96
+#define SCLK_USB3OTG_SUSPEND 97
+#define SCLK_REF_USB3OTG_SRC 98
+#define SCLK_MAC2IO_SRC 99
+#define SCLK_MAC2IO 100
+#define SCLK_MAC2PHY 101
+#define SCLK_MAC2IO_EXT 102
 
 /* DCLK */
-#define	DCLK_LCDC		120
-#define	DCLK_HDMIPHY		121
-#define	HDMIPHY			122
-#define	USB480M			123
-#define	DCLK_LCDC_SRC		124
+#define DCLK_LCDC 120
+#define DCLK_HDMIPHY 121
+#define HDMIPHY 122
+#define USB480M 123
+#define DCLK_LCDC_SRC 124
 
 /* ACLK */
-#define	ACLK_AXISRAM		130	/* Unused */
-#define	ACLK_VOP_PRE		131
-#define	ACLK_USB3OTG		132
-#define	ACLK_RGA_PRE		133
-#define	ACLK_DMAC		134	/* Unused */
-#define	ACLK_GPU		135
-#define	ACLK_BUS_PRE		136
-#define	ACLK_PERI_PRE		137
-#define	ACLK_RKVDEC_PRE		138
-#define	ACLK_RKVDEC		139
-#define	ACLK_RKVENC		140
-#define	ACLK_VPU_PRE		141
-#define	ACLK_VIO_PRE		142
-#define	ACLK_VPU		143
-#define	ACLK_VIO		144
-#define	ACLK_VOP		145
-#define	ACLK_GMAC		146
-#define	ACLK_H265		147
-#define	ACLK_H264		148
-#define	ACLK_MAC2PHY		149
-#define	ACLK_MAC2IO		150
-#define	ACLK_DCF		151
-#define	ACLK_TSP		152
-#define	ACLK_PERI		153
-#define	ACLK_RGA		154
-#define	ACLK_IEP		155
-#define	ACLK_CIF		156
-#define	ACLK_HDCP		157
+#define ACLK_AXISRAM 130 /* Unused */
+#define ACLK_VOP_PRE 131
+#define ACLK_USB3OTG 132
+#define ACLK_RGA_PRE 133
+#define ACLK_DMAC 134 /* Unused */
+#define ACLK_GPU 135
+#define ACLK_BUS_PRE 136
+#define ACLK_PERI_PRE 137
+#define ACLK_RKVDEC_PRE 138
+#define ACLK_RKVDEC 139
+#define ACLK_RKVENC 140
+#define ACLK_VPU_PRE 141
+#define ACLK_VIO_PRE 142
+#define ACLK_VPU 143
+#define ACLK_VIO 144
+#define ACLK_VOP 145
+#define ACLK_GMAC 146
+#define ACLK_H265 147
+#define ACLK_H264 148
+#define ACLK_MAC2PHY 149
+#define ACLK_MAC2IO 150
+#define ACLK_DCF 151
+#define ACLK_TSP 152
+#define ACLK_PERI 153
+#define ACLK_RGA 154
+#define ACLK_IEP 155
+#define ACLK_CIF 156
+#define ACLK_HDCP 157
 
 /* PCLK */
-#define	PCLK_GPIO0		200
-#define	PCLK_GPIO1		201
-#define	PCLK_GPIO2		202
-#define	PCLK_GPIO3		203
-#define	PCLK_GRF		204
-#define	PCLK_I2C0		205
-#define	PCLK_I2C1		206
-#define	PCLK_I2C2		207
-#define	PCLK_I2C3		208
-#define	PCLK_SPI		209
-#define	PCLK_UART0		210
-#define	PCLK_UART1		211
-#define	PCLK_UART2		212
-#define	PCLK_TSADC		213
-#define	PCLK_PWM		214
-#define	PCLK_TIMER		215
-#define	PCLK_BUS_PRE		216
-#define	PCLK_PERI_PRE		217	/* Unused */
-#define	PCLK_HDMI_CTRL		218	/* Unused */
-#define	PCLK_HDMI_PHY		219	/* Unused */
-#define	PCLK_GMAC		220
-#define	PCLK_H265		221
-#define	PCLK_MAC2PHY		222
-#define	PCLK_MAC2IO		223
-#define	PCLK_USB3PHY_OTG	224
-#define	PCLK_USB3PHY_PIPE	225
-#define	PCLK_USB3_GRF		226
-#define	PCLK_USB2_GRF		227
-#define	PCLK_HDMIPHY		228
-#define	PCLK_DDR		229
-#define	PCLK_PERI		230
-#define	PCLK_HDMI		231
-#define	PCLK_HDCP		232
-#define	PCLK_DCF		233
-#define	PCLK_SARADC		234
-#define	PCLK_ACODECPHY		235
-#define	PCLK_WDT		236	/* Controlled from the secure GRF */
+#define PCLK_GPIO0 200
+#define PCLK_GPIO1 201
+#define PCLK_GPIO2 202
+#define PCLK_GPIO3 203
+#define PCLK_GRF 204
+#define PCLK_I2C0 205
+#define PCLK_I2C1 206
+#define PCLK_I2C2 207
+#define PCLK_I2C3 208
+#define PCLK_SPI 209
+#define PCLK_UART0 210
+#define PCLK_UART1 211
+#define PCLK_UART2 212
+#define PCLK_TSADC 213
+#define PCLK_PWM 214
+#define PCLK_TIMER 215
+#define PCLK_BUS_PRE 216
+#define PCLK_PERI_PRE 217  /* Unused */
+#define PCLK_HDMI_CTRL 218 /* Unused */
+#define PCLK_HDMI_PHY 219  /* Unused */
+#define PCLK_GMAC 220
+#define PCLK_H265 221
+#define PCLK_MAC2PHY 222
+#define PCLK_MAC2IO 223
+#define PCLK_USB3PHY_OTG 224
+#define PCLK_USB3PHY_PIPE 225
+#define PCLK_USB3_GRF 226
+#define PCLK_USB2_GRF 227
+#define PCLK_HDMIPHY 228
+#define PCLK_DDR 229
+#define PCLK_PERI 230
+#define PCLK_HDMI 231
+#define PCLK_HDCP 232
+#define PCLK_DCF 233
+#define PCLK_SARADC 234
+#define PCLK_ACODECPHY 235
+#define PCLK_WDT 236 /* Controlled from the secure GRF */
 
 /* HCLK */
-#define	HCLK_PERI		308
-#define	HCLK_TSP		309
-#define	HCLK_GMAC		310	/* Unused */
-#define	HCLK_I2S0_8CH		311
-#define	HCLK_I2S1_8CH		312
-#define	HCLK_I2S2_2CH		313
-#define	HCLK_SPDIF_8CH		314
-#define	HCLK_VOP		315
-#define	HCLK_NANDC		316	/* Unused */
-#define	HCLK_SDMMC		317
-#define	HCLK_SDIO		318
-#define	HCLK_EMMC		319
-#define	HCLK_SDMMC_EXT		320
-#define	HCLK_RKVDEC_PRE		321
-#define	HCLK_RKVDEC		322
-#define	HCLK_RKVENC		323
-#define	HCLK_VPU_PRE		324
-#define	HCLK_VIO_PRE		325
-#define	HCLK_VPU		326
+#define HCLK_PERI 308
+#define HCLK_TSP 309
+#define HCLK_GMAC 310 /* Unused */
+#define HCLK_I2S0_8CH 311
+#define HCLK_I2S1_8CH 312
+#define HCLK_I2S2_2CH 313
+#define HCLK_SPDIF_8CH 314
+#define HCLK_VOP 315
+#define HCLK_NANDC 316 /* Unused */
+#define HCLK_SDMMC 317
+#define HCLK_SDIO 318
+#define HCLK_EMMC 319
+#define HCLK_SDMMC_EXT 320
+#define HCLK_RKVDEC_PRE 321
+#define HCLK_RKVDEC 322
+#define HCLK_RKVENC 323
+#define HCLK_VPU_PRE 324
+#define HCLK_VIO_PRE 325
+#define HCLK_VPU 326
 /* 327 doesn't exists */
-#define	HCLK_BUS_PRE		328
-#define	HCLK_PERI_PRE		329	/* Unused */
-#define	HCLK_H264		330
-#define	HCLK_CIF		331
-#define	HCLK_OTG_PMU		332
-#define	HCLK_OTG		333
-#define	HCLK_HOST0		334
-#define	HCLK_HOST0_ARB		335
-#define	HCLK_CRYPTO_MST		336
-#define	HCLK_CRYPTO_SLV		337
-#define	HCLK_PDM		338
-#define	HCLK_IEP		339
-#define	HCLK_RGA		340
-#define	HCLK_HDCP		341
+#define HCLK_BUS_PRE 328
+#define HCLK_PERI_PRE 329 /* Unused */
+#define HCLK_H264 330
+#define HCLK_CIF 331
+#define HCLK_OTG_PMU 332
+#define HCLK_OTG 333
+#define HCLK_HOST0 334
+#define HCLK_HOST0_ARB 335
+#define HCLK_CRYPTO_MST 336
+#define HCLK_CRYPTO_SLV 337
+#define HCLK_PDM 338
+#define HCLK_IEP 339
+#define HCLK_RGA 340
+#define HCLK_HDCP 341
 
 static struct rk_cru_gate rk3328_gates[] = {
 	/* CRU_CLKGATE_CON0 */
@@ -318,9 +316,11 @@ static struct rk_cru_gate rk3328_gates[] = {
 	GATE(SCLK_SDMMC, "clk_mmc0_src", "clk_sdmmc_c", 4, 3),
 	GATE(SCLK_SDIO, "clk_sdio_src", "clk_sdio_c", 4, 4),
 	GATE(SCLK_EMMC, "clk_emmc_src", "clk_emmc_c", 4, 5),
-	GATE(SCLK_REF_USB3OTG_SRC, "clk_ref_usb3otg_src", "clk_ref_usb3otg_src_c", 4, 6),
+	GATE(SCLK_REF_USB3OTG_SRC, "clk_ref_usb3otg_src",
+	    "clk_ref_usb3otg_src_c", 4, 6),
 	GATE(SCLK_USB3OTG_REF, "clk_usb3_otg0_ref", "xin24m", 4, 7),
-	GATE(SCLK_USB3OTG_SUSPEND, "clk_usb3otg_suspend", "clk_usb3otg_suspend_c", 4, 8),
+	GATE(SCLK_USB3OTG_SUSPEND, "clk_usb3otg_suspend",
+	    "clk_usb3otg_suspend_c", 4, 8),
 	/* Bit 9 clk_usb3phy_ref_25m_en */
 	GATE(SCLK_SDMMC_EXT, "clk_sdmmc_ext", "clk_sdmmc_ext_c", 4, 10),
 	/* Bit 11-15 unused */
@@ -567,16 +567,11 @@ static struct rk_cru_gate rk3328_gates[] = {
  * PLLs
  */
 
-#define PLL_RATE(_hz, _ref, _fb, _post1, _post2, _dspd, _frac)		\
-{									\
-	.freq = _hz,							\
-	.refdiv = _ref,							\
-	.fbdiv = _fb,							\
-	.postdiv1 = _post1,						\
-	.postdiv2 = _post2,						\
-	.dsmpd = _dspd,							\
-	.frac = _frac,							\
-}
+#define PLL_RATE(_hz, _ref, _fb, _post1, _post2, _dspd, _frac)                 \
+	{                                                                      \
+		.freq = _hz, .refdiv = _ref, .fbdiv = _fb, .postdiv1 = _post1, \
+		.postdiv2 = _post2, .dsmpd = _dspd, .frac = _frac,             \
+	}
 
 static struct rk_clk_pll_rate rk3328_pll_rates[] = {
 	/* _mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac */
@@ -636,17 +631,20 @@ static struct rk_clk_pll_rate rk3328_pll_frac_rates[] = {
 };
 
 /* Clock parents */
-PLIST(pll_src_p) = {"xin24m"};
-PLIST(xin24m_rtc32k_p) = {"xin24m", "clk_rtc32k"};
+PLIST(pll_src_p) = { "xin24m" };
+PLIST(xin24m_rtc32k_p) = { "xin24m", "clk_rtc32k" };
 
-PLIST(pll_src_cpll_gpll_p) = {"cpll", "gpll"};
-PLIST(pll_src_cpll_gpll_apll_p) = {"cpll", "gpll", "apll"};
-PLIST(pll_src_cpll_gpll_xin24m_p) = {"cpll", "gpll", "xin24m", "xin24m" /* Dummy */};
-PLIST(pll_src_cpll_gpll_usb480m_p) = {"cpll", "gpll", "usb480m"};
-PLIST(pll_src_cpll_gpll_hdmiphy_p) = {"cpll", "gpll", "hdmi_phy"};
-PLIST(pll_src_cpll_gpll_hdmiphy_usb480m_p) = {"cpll", "gpll", "hdmi_phy", "usb480m"};
-PLIST(pll_src_apll_gpll_dpll_npll_p) = {"apll", "gpll", "dpll", "npll"};
-PLIST(pll_src_cpll_gpll_xin24m_usb480m_p) = {"cpll", "gpll", "xin24m", "usb480m"};
+PLIST(pll_src_cpll_gpll_p) = { "cpll", "gpll" };
+PLIST(pll_src_cpll_gpll_apll_p) = { "cpll", "gpll", "apll" };
+PLIST(pll_src_cpll_gpll_xin24m_p) = { "cpll", "gpll", "xin24m",
+	"xin24m" /* Dummy */ };
+PLIST(pll_src_cpll_gpll_usb480m_p) = { "cpll", "gpll", "usb480m" };
+PLIST(pll_src_cpll_gpll_hdmiphy_p) = { "cpll", "gpll", "hdmi_phy" };
+PLIST(pll_src_cpll_gpll_hdmiphy_usb480m_p) = { "cpll", "gpll", "hdmi_phy",
+	"usb480m" };
+PLIST(pll_src_apll_gpll_dpll_npll_p) = { "apll", "gpll", "dpll", "npll" };
+PLIST(pll_src_cpll_gpll_xin24m_usb480m_p) = { "cpll", "gpll", "xin24m",
+	"usb480m" };
 PLIST(mux_ref_usb3otg_p) = { "xin24m", "clk_usb3_otg0_ref" };
 PLIST(mux_mac2io_p) = { "clk_mac2io_src", "gmac_clkin" };
 PLIST(mux_mac2io_ext_p) = { "clk_mac2io", "gmac_clkin" };
@@ -654,14 +652,14 @@ PLIST(mux_mac2phy_p) = { "clk_mac2phy_src", "phy_50m_out" };
 PLIST(mux_i2s0_p) = { "clk_i2s0_div", "clk_i2s0_frac", "xin12m", "xin12m" };
 PLIST(mux_i2s1_p) = { "clk_i2s1_div", "clk_i2s1_frac", "clkin_i2s1", "xin12m" };
 PLIST(mux_i2s2_p) = { "clk_i2s2_div", "clk_i2s2_frac", "clkin_i2s2", "xin12m" };
-PLIST(mux_dclk_lcdc_p) = {"hdmiphy", "vop_dclk_src"};
-PLIST(mux_hdmiphy_p) = {"hdmi_phy", "xin24m"};
-PLIST(mux_usb480m_p) = {"usb480m_phy", "xin24m"};
-PLIST(mux_uart0_p) = {"clk_uart0_div", "clk_uart0_frac", "xin24m", "xin24m"};
-PLIST(mux_uart1_p) = {"clk_uart1_div", "clk_uart1_frac", "xin24m", "xin24m"};
-PLIST(mux_uart2_p) = {"clk_uart2_div", "clk_uart2_frac", "xin24m", "xin24m"};
-PLIST(mux_spdif_p) = {"clk_spdif_div", "clk_spdif_frac", "xin12m", "xin12m"};
-PLIST(mux_cif_p) = {"clk_cif_pll", "xin24m"};
+PLIST(mux_dclk_lcdc_p) = { "hdmiphy", "vop_dclk_src" };
+PLIST(mux_hdmiphy_p) = { "hdmi_phy", "xin24m" };
+PLIST(mux_usb480m_p) = { "usb480m_phy", "xin24m" };
+PLIST(mux_uart0_p) = { "clk_uart0_div", "clk_uart0_frac", "xin24m", "xin24m" };
+PLIST(mux_uart1_p) = { "clk_uart1_div", "clk_uart1_frac", "xin24m", "xin24m" };
+PLIST(mux_uart2_p) = { "clk_uart2_div", "clk_uart2_frac", "xin24m", "xin24m" };
+PLIST(mux_spdif_p) = { "clk_spdif_div", "clk_spdif_frac", "xin12m", "xin12m" };
+PLIST(mux_cif_p) = { "clk_cif_pll", "xin24m" };
 
 static struct rk_clk_pll_def apll = {
 	.clkdef = {
@@ -741,52 +739,52 @@ static struct rk_clk_pll_def npll = {
 
 static struct rk_clk_armclk_rates rk3328_armclk_rates[] = {
 	{
-		.freq = 1296000000,
-		.div = 1,
+	    .freq = 1296000000,
+	    .div = 1,
 	},
 	{
-		.freq = 1200000000,
-		.div = 1,
+	    .freq = 1200000000,
+	    .div = 1,
 	},
 	{
-		.freq = 1104000000,
-		.div = 1,
+	    .freq = 1104000000,
+	    .div = 1,
 	},
 	{
-		.freq = 1008000000,
-		.div = 1,
+	    .freq = 1008000000,
+	    .div = 1,
 	},
 	{
-		.freq = 912000000,
-		.div = 1,
+	    .freq = 912000000,
+	    .div = 1,
 	},
 	{
-		.freq = 816000000,
-		.div = 1,
+	    .freq = 816000000,
+	    .div = 1,
 	},
 	{
-		.freq = 696000000,
-		.div = 1,
+	    .freq = 696000000,
+	    .div = 1,
 	},
 	{
-		.freq = 600000000,
-		.div = 1,
+	    .freq = 600000000,
+	    .div = 1,
 	},
 	{
-		.freq = 408000000,
-		.div = 1,
+	    .freq = 408000000,
+	    .div = 1,
 	},
 	{
-		.freq = 312000000,
-		.div = 1,
+	    .freq = 312000000,
+	    .div = 1,
 	},
 	{
-		.freq = 216000000,
-		.div = 1,
+	    .freq = 216000000,
+	    .div = 1,
 	},
 	{
-		.freq = 96000000,
-		.div = 1,
+	    .freq = 96000000,
+	    .div = 1,
 	},
 };
 
@@ -824,30 +822,15 @@ static struct rk_clk rk3328_clks[] = {
 	FRATE(0, "clkin_i2s2", 0),
 
 	/* PLLs */
-	{
-		.type = RK3328_CLK_PLL,
-		.clk.pll = &apll
-	},
-	{
-		.type = RK3328_CLK_PLL,
-		.clk.pll = &dpll
-	},
-	{
-		.type = RK3328_CLK_PLL,
-		.clk.pll = &cpll
-	},
-	{
-		.type = RK3328_CLK_PLL,
-		.clk.pll = &gpll
-	},
-	{
-		.type = RK3328_CLK_PLL,
-		.clk.pll = &npll
-	},
+	{ .type = RK3328_CLK_PLL, .clk.pll = &apll },
+	{ .type = RK3328_CLK_PLL, .clk.pll = &dpll },
+	{ .type = RK3328_CLK_PLL, .clk.pll = &cpll },
+	{ .type = RK3328_CLK_PLL, .clk.pll = &gpll },
+	{ .type = RK3328_CLK_PLL, .clk.pll = &npll },
 
 	{
-		.type = RK_CLK_ARMCLK,
-		.clk.armclk = &armclk,
+	    .type = RK_CLK_ARMCLK,
+	    .clk.armclk = &armclk,
 	},
 
 	/* CRU_CRU_MISC */
@@ -856,7 +839,8 @@ static struct rk_clk rk3328_clks[] = {
 
 	/* CRU_CLKSEL_CON0 */
 	/* COMP clk_core_div_con core_clk_pll_sel */
-	COMP(0, "aclk_bus_pre_c", pll_src_cpll_gpll_hdmiphy_p, 0, 0, 8, 5, 13, 2),
+	COMP(0, "aclk_bus_pre_c", pll_src_cpll_gpll_hdmiphy_p, 0, 0, 8, 5, 13,
+	    2),
 
 	/* CRU_CLKSEL_CON1 */
 	/* CDIV clk_core_dbg_div_con */
@@ -963,20 +947,24 @@ static struct rk_clk rk3328_clks[] = {
 	COMP(0, "clk_mac2io_out_c", pll_src_cpll_gpll_p, 0, 27, 8, 5, 15, 1),
 
 	/* CRU_CLKSEL_CON28 */
-	COMP(ACLK_PERI_PRE, "aclk_peri_pre", pll_src_cpll_gpll_hdmiphy_p, 0, 28, 0, 5, 6, 2),
+	COMP(ACLK_PERI_PRE, "aclk_peri_pre", pll_src_cpll_gpll_hdmiphy_p, 0, 28,
+	    0, 5, 6, 2),
 
 	/* CRU_CLKSEL_CON29 */
 	CDIV(0, "pclk_peri_c", "aclk_peri_pre", 0, 29, 0, 2),
 	CDIV(0, "hclk_peri_c", "aclk_peri_pre", 0, 29, 4, 3),
 
 	/* CRU_CLKSEL_CON30 */
-	COMP(0, "clk_sdmmc_c", pll_src_cpll_gpll_xin24m_usb480m_p, 0, 30, 0, 8, 8, 2),
+	COMP(0, "clk_sdmmc_c", pll_src_cpll_gpll_xin24m_usb480m_p, 0, 30, 0, 8,
+	    8, 2),
 
 	/* CRU_CLKSEL_CON31 */
-	COMP(0, "clk_sdio_c", pll_src_cpll_gpll_xin24m_usb480m_p, 0, 31, 0, 8, 8, 2),
+	COMP(0, "clk_sdio_c", pll_src_cpll_gpll_xin24m_usb480m_p, 0, 31, 0, 8,
+	    8, 2),
 
 	/* CRU_CLKSEL_CON32 */
-	COMP(0, "clk_emmc_c", pll_src_cpll_gpll_xin24m_usb480m_p, 0, 32, 0, 8, 8, 2),
+	COMP(0, "clk_emmc_c", pll_src_cpll_gpll_xin24m_usb480m_p, 0, 32, 0, 8,
+	    8, 2),
 
 	/* CRU_CLKSEL_CON33 */
 	COMP(0, "clk_usb3otg_suspend_c", xin24m_rtc32k_p, 0, 33, 0, 10, 15, 1),
@@ -990,18 +978,23 @@ static struct rk_clk rk3328_clks[] = {
 	COMP(0, "clk_i2c3_c", pll_src_cpll_gpll_p, 0, 35, 8, 7, 15, 1),
 
 	/* CRU_CLKSEL_CON36 */
-	COMP(0, "aclk_rga_pre_c", pll_src_cpll_gpll_hdmiphy_usb480m_p, 0, 36, 8, 5, 14, 2),
-	COMP(0, "sclk_rga_c", pll_src_cpll_gpll_hdmiphy_usb480m_p, 0, 36, 0, 5, 6, 2),
+	COMP(0, "aclk_rga_pre_c", pll_src_cpll_gpll_hdmiphy_usb480m_p, 0, 36, 8,
+	    5, 14, 2),
+	COMP(0, "sclk_rga_c", pll_src_cpll_gpll_hdmiphy_usb480m_p, 0, 36, 0, 5,
+	    6, 2),
 
 	/* CRU_CLKSEL_CON37 */
-	COMP(0, "aclk_vio_pre_c", pll_src_cpll_gpll_hdmiphy_usb480m_p, 0, 37, 0, 5, 6, 2),
+	COMP(0, "aclk_vio_pre_c", pll_src_cpll_gpll_hdmiphy_usb480m_p, 0, 37, 0,
+	    5, 6, 2),
 	CDIV(HCLK_VIO_PRE, "hclk_vio_pre", "aclk_vio_pre", 0, 37, 8, 5),
 
 	/* CRU_CLKSEL_CON38 */
-	COMP(0, "clk_rtc32k_c", pll_src_cpll_gpll_xin24m_p, 0, 38, 0, 14, 14, 2),
+	COMP(0, "clk_rtc32k_c", pll_src_cpll_gpll_xin24m_p, 0, 38, 0, 14, 14,
+	    2),
 
 	/* CRU_CLKSEL_CON39 */
-	COMP(0, "aclk_vop_pre_c", pll_src_cpll_gpll_hdmiphy_usb480m_p, 0, 39, 0, 5, 6, 2),
+	COMP(0, "aclk_vop_pre_c", pll_src_cpll_gpll_hdmiphy_usb480m_p, 0, 39, 0,
+	    5, 6, 2),
 
 	/* CRU_CLKSEL_CON40 */
 	COMP(0, "vop_dclk_src_c", pll_src_cpll_gpll_p, 0, 40, 8, 8, 0, 1),
@@ -1017,14 +1010,18 @@ static struct rk_clk rk3328_clks[] = {
 	COMP(0, "clk_cif_src_c", mux_cif_p, 0, 42, 0, 5, 5, 1),
 
 	/* CRU_CLKSEL_CON43 */
-	COMP(0, "clk_sdmmc_ext_c", pll_src_cpll_gpll_xin24m_usb480m_p, 0, 43, 0, 8, 8, 2),
+	COMP(0, "clk_sdmmc_ext_c", pll_src_cpll_gpll_xin24m_usb480m_p, 0, 43, 0,
+	    8, 8, 2),
 
 	/* CRU_CLKSEL_CON44 */
-	COMP(0, "aclk_gpu_pre_c", pll_src_cpll_gpll_hdmiphy_usb480m_p, 0, 44, 0, 5, 6, 2),
+	COMP(0, "aclk_gpu_pre_c", pll_src_cpll_gpll_hdmiphy_usb480m_p, 0, 44, 0,
+	    5, 6, 2),
 
 	/* CRU_CLKSEL_CON45 */
-	MUX(SCLK_REF_USB3OTG, "clk_ref_usb3otg", mux_ref_usb3otg_p, 0, 45, 8, 1),
-	COMP(0, "clk_ref_usb3otg_src_c", pll_src_cpll_gpll_p, 0, 45, 0, 7, 7, 1),
+	MUX(SCLK_REF_USB3OTG, "clk_ref_usb3otg", mux_ref_usb3otg_p, 0, 45, 8,
+	    1),
+	COMP(0, "clk_ref_usb3otg_src_c", pll_src_cpll_gpll_p, 0, 45, 0, 7, 7,
+	    1),
 
 	/* CRU_CLKSEL_CON46 */
 	/* Unused */
@@ -1033,31 +1030,41 @@ static struct rk_clk rk3328_clks[] = {
 	/* Unused */
 
 	/* CRU_CLKSEL_CON48 */
-	COMP(0, "sclk_cabac_c", pll_src_cpll_gpll_hdmiphy_usb480m_p, 0, 48, 8, 5, 14, 2),
-	COMP(0, "aclk_rkvdec_c", pll_src_cpll_gpll_hdmiphy_usb480m_p, 0, 48, 0, 5, 6, 2),
+	COMP(0, "sclk_cabac_c", pll_src_cpll_gpll_hdmiphy_usb480m_p, 0, 48, 8,
+	    5, 14, 2),
+	COMP(0, "aclk_rkvdec_c", pll_src_cpll_gpll_hdmiphy_usb480m_p, 0, 48, 0,
+	    5, 6, 2),
 
 	/* CRU_CLKSEL_CON49 */
-	COMP(0, "sclk_vdec_core_c", pll_src_cpll_gpll_hdmiphy_usb480m_p, 0, 49, 0, 5, 6, 2),
+	COMP(0, "sclk_vdec_core_c", pll_src_cpll_gpll_hdmiphy_usb480m_p, 0, 49,
+	    0, 5, 6, 2),
 
 	/* CRU_CLKSEL_CON50 */
-	COMP(0, "aclk_vpu_pre_c", pll_src_cpll_gpll_hdmiphy_usb480m_p, 0, 50, 0, 5, 6, 2),
+	COMP(0, "aclk_vpu_pre_c", pll_src_cpll_gpll_hdmiphy_usb480m_p, 0, 50, 0,
+	    5, 6, 2),
 
 	/* CRU_CLKSEL_CON51 */
-	COMP(0, "sclk_venc_c", pll_src_cpll_gpll_hdmiphy_usb480m_p, 0, 51, 8, 5, 14, 2),
-	COMP(0, "aclk_rkvenc_c", pll_src_cpll_gpll_hdmiphy_usb480m_p, 0, 51, 0, 5, 6, 2),
+	COMP(0, "sclk_venc_c", pll_src_cpll_gpll_hdmiphy_usb480m_p, 0, 51, 8, 5,
+	    14, 2),
+	COMP(0, "aclk_rkvenc_c", pll_src_cpll_gpll_hdmiphy_usb480m_p, 0, 51, 0,
+	    5, 6, 2),
 
 	/* CRU_CLKSEL_CON52 */
-	COMP(0, "sclk_venc_dsp_c", pll_src_cpll_gpll_hdmiphy_usb480m_p, 0, 51, 8, 5, 14, 2),
+	COMP(0, "sclk_venc_dsp_c", pll_src_cpll_gpll_hdmiphy_usb480m_p, 0, 51,
+	    8, 5, 14, 2),
 	COMP(0, "sclk_wifi_c", pll_src_cpll_gpll_usb480m_p, 0, 51, 0, 6, 6, 2),
 
 	/* GRF_SOC_CON4 */
-	MUXGRF(SCLK_MAC2IO_EXT, "clk_mac2io_ext", mux_mac2io_ext_p, 0, RK3328_GRF_SOC_CON4, 14, 1),
+	MUXGRF(SCLK_MAC2IO_EXT, "clk_mac2io_ext", mux_mac2io_ext_p, 0,
+	    RK3328_GRF_SOC_CON4, 14, 1),
 
 	/* GRF_MAC_CON1 */
-	MUXGRF(SCLK_MAC2IO, "clk_mac2io", mux_mac2io_p, 0, RK3328_GRF_MAC_CON1, 10, 1),
+	MUXGRF(SCLK_MAC2IO, "clk_mac2io", mux_mac2io_p, 0, RK3328_GRF_MAC_CON1,
+	    10, 1),
 
 	/* GRF_MAC_CON2 */
-	MUXGRF(SCLK_MAC2PHY, "clk_mac2phy", mux_mac2phy_p, 0, RK3328_GRF_MAC_CON2, 10, 1),
+	MUXGRF(SCLK_MAC2PHY, "clk_mac2phy", mux_mac2phy_p, 0,
+	    RK3328_GRF_MAC_CON2, 10, 1),
 
 	/*
 	 * This clock is controlled in the secure world
@@ -1102,14 +1109,14 @@ rk3328_cru_attach(device_t dev)
 
 static device_method_t rk3328_cru_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		rk3328_cru_probe),
-	DEVMETHOD(device_attach,	rk3328_cru_attach),
+	DEVMETHOD(device_probe, rk3328_cru_probe),
+	DEVMETHOD(device_attach, rk3328_cru_attach),
 
 	DEVMETHOD_END
 };
 
 DEFINE_CLASS_1(rk3328_cru, rk3328_cru_driver, rk3328_cru_methods,
-  sizeof(struct rk_cru_softc), rk_cru_driver);
+    sizeof(struct rk_cru_softc), rk_cru_driver);
 
 EARLY_DRIVER_MODULE(rk3328_cru, simplebus, rk3328_cru_driver, 0, 0,
     BUS_PASS_BUS + BUS_PASS_ORDER_MIDDLE);

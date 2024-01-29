@@ -32,7 +32,9 @@
 
 #include <sys/queue.h>
 #include <sys/uio.h>
+
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
 #include <assert.h>
 #define L2CAP_SOCKET_CHECKED
@@ -40,6 +42,7 @@
 #include <errno.h>
 #include <sdp.h>
 #include <string.h>
+
 #include "profile.h"
 #include "provider.h"
 #include "server.h"
@@ -52,15 +55,15 @@
 int32_t
 server_prepare_service_search_response(server_p srv, int32_t fd)
 {
-	uint8_t const	*req = srv->req + sizeof(sdp_pdu_t);
-	uint8_t const	*req_end = req + ((sdp_pdu_p)(srv->req))->len;
-	uint8_t		*rsp = srv->fdidx[fd].rsp;
-	uint8_t const	*rsp_end = rsp + NG_L2CAP_MTU_MAXIMUM;
+	uint8_t const *req = srv->req + sizeof(sdp_pdu_t);
+	uint8_t const *req_end = req + ((sdp_pdu_p)(srv->req))->len;
+	uint8_t *rsp = srv->fdidx[fd].rsp;
+	uint8_t const *rsp_end = rsp + NG_L2CAP_MTU_MAXIMUM;
 
-	uint8_t		*ptr = NULL;
-	provider_t	*provider = NULL;
-	int32_t		 type, ssplen, rsp_limit, rcount, cslen, cs;
-	uint128_t	 uuid, puuid;
+	uint8_t *ptr = NULL;
+	provider_t *provider = NULL;
+	int32_t type, ssplen, rsp_limit, rcount, cslen, cs;
+	uint128_t uuid, puuid;
 
 	/*
 	 * Minimal SDP Service Search Request
@@ -93,12 +96,12 @@ server_prepare_service_search_response(server_p srv, int32_t fd)
 	if (ssplen <= 0)
 		return (SDP_ERROR_CODE_INVALID_REQUEST_SYNTAX);
 
-	ptr = (uint8_t *) req + ssplen;
+	ptr = (uint8_t *)req + ssplen;
 
 	/* Get MaximumServiceRecordCount */
 	if (ptr + 2 > req_end)
 		return (SDP_ERROR_CODE_INVALID_REQUEST_SYNTAX);
-	
+
 	SDP_GET16(rsp_limit, ptr);
 	if (rsp_limit <= 0)
 		return (SDP_ERROR_CODE_INVALID_REQUEST_SYNTAX);
@@ -130,7 +133,7 @@ server_prepare_service_search_response(server_p srv, int32_t fd)
 	 * value32	- 4 bytes handle
 	 * [ value32 ]
 	 *
-	 * Calculate how many record handles we can fit 
+	 * Calculate how many record handles we can fit
 	 * in our reply buffer and adjust rlimit.
 	 */
 
@@ -140,9 +143,9 @@ server_prepare_service_search_response(server_p srv, int32_t fd)
 		rsp_limit = rcount;
 
 	/* Look for the record handles */
-	for (rcount = 0; ssplen > 0 && rcount < rsp_limit; ) {
+	for (rcount = 0; ssplen > 0 && rcount < rsp_limit;) {
 		SDP_GET8(type, req);
-		ssplen --;
+		ssplen--;
 
 		switch (type) {
 		case SDP_DATA_UUID16:
@@ -150,8 +153,8 @@ server_prepare_service_search_response(server_p srv, int32_t fd)
 				return (SDP_ERROR_CODE_INVALID_REQUEST_SYNTAX);
 
 			memcpy(&uuid, &uuid_base, sizeof(uuid));
-			uuid.b[2] = *req ++;
-			uuid.b[3] = *req ++;
+			uuid.b[2] = *req++;
+			uuid.b[3] = *req++;
 			ssplen -= 2;
 			break;
 
@@ -160,10 +163,10 @@ server_prepare_service_search_response(server_p srv, int32_t fd)
 				return (SDP_ERROR_CODE_INVALID_REQUEST_SYNTAX);
 
 			memcpy(&uuid, &uuid_base, sizeof(uuid));
-			uuid.b[0] = *req ++;
-			uuid.b[1] = *req ++;
-			uuid.b[2] = *req ++;
-			uuid.b[3] = *req ++;
+			uuid.b[0] = *req++;
+			uuid.b[1] = *req++;
+			uuid.b[2] = *req++;
+			uuid.b[3] = *req++;
 			ssplen -= 4;
 			break;
 
@@ -173,7 +176,7 @@ server_prepare_service_search_response(server_p srv, int32_t fd)
 
 			memcpy(uuid.b, req, 16);
 			req += 16;
-			ssplen -= 16; 
+			ssplen -= 16;
 			break;
 
 		default:
@@ -184,7 +187,8 @@ server_prepare_service_search_response(server_p srv, int32_t fd)
 		for (provider = provider_get_first();
 		     provider != NULL && rcount < rsp_limit;
 		     provider = provider_get_next(provider)) {
-			if (!provider_match_bdaddr(provider, &srv->req_sa.l2cap_bdaddr))
+			if (!provider_match_bdaddr(provider,
+				&srv->req_sa.l2cap_bdaddr))
 				continue;
 
 			memcpy(&puuid, &uuid_base, sizeof(puuid));
@@ -192,9 +196,10 @@ server_prepare_service_search_response(server_p srv, int32_t fd)
 			puuid.b[3] = provider->profile->uuid;
 
 			if (memcmp(&uuid, &puuid, sizeof(uuid)) == 0 ||
-			    memcmp(&uuid, &uuid_public_browse_group, sizeof(uuid)) == 0) {
+			    memcmp(&uuid, &uuid_public_browse_group,
+				sizeof(uuid)) == 0) {
 				SDP_PUT32(provider->handle, ptr);
-				rcount ++;
+				rcount++;
 			}
 		}
 	}
@@ -214,14 +219,14 @@ server_prepare_service_search_response(server_p srv, int32_t fd)
 int32_t
 server_send_service_search_response(server_p srv, int32_t fd)
 {
-	uint8_t		*rsp = srv->fdidx[fd].rsp + srv->fdidx[fd].rsp_cs;
-	uint8_t		*rsp_end = srv->fdidx[fd].rsp + srv->fdidx[fd].rsp_size;
+	uint8_t *rsp = srv->fdidx[fd].rsp + srv->fdidx[fd].rsp_cs;
+	uint8_t *rsp_end = srv->fdidx[fd].rsp + srv->fdidx[fd].rsp_size;
 
-	struct iovec	iov[4];
-	sdp_pdu_t	pdu;
-	uint16_t	rcounts[2];
-	uint8_t		cs[3];
-	int32_t		size;
+	struct iovec iov[4];
+	sdp_pdu_t pdu;
+	uint16_t rcounts[2];
+	uint8_t cs[3];
+	int32_t size;
 
 	/* First update continuation state (assume we will send all data) */
 	size = rsp_end - rsp;
@@ -230,7 +235,7 @@ server_send_service_search_response(server_p srv, int32_t fd)
 	if (size + 1 > srv->fdidx[fd].rsp_limit) {
 		/*
 		 * We need to split out response. Add 3 more bytes for the
-		 * continuation state and move rsp_end and rsp_cs backwards. 
+		 * continuation state and move rsp_end and rsp_cs backwards.
 		 */
 
 		while ((rsp_end - rsp) + 3 > srv->fdidx[fd].rsp_limit) {
@@ -269,7 +274,8 @@ server_send_service_search_response(server_p srv, int32_t fd)
 	iov[3].iov_len = 1 + cs[0];
 
 	do {
-		size = writev(fd, (struct iovec const *) &iov, sizeof(iov)/sizeof(iov[0]));
+		size = writev(fd, (struct iovec const *)&iov,
+		    sizeof(iov) / sizeof(iov[0]));
 	} while (size < 0 && errno == EINTR);
 
 	/* Check if we have sent (or failed to sent) last response chunk */
@@ -279,6 +285,5 @@ server_send_service_search_response(server_p srv, int32_t fd)
 		srv->fdidx[fd].rsp_limit = 0;
 	}
 
-	return ((size < 0)? errno : 0);
+	return ((size < 0) ? errno : 0);
 }
-

@@ -27,66 +27,64 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_FTS_COPMAT11_H_
-#define	_FTS_COPMAT11_H_
+#ifndef _FTS_COPMAT11_H_
+#define _FTS_COPMAT11_H_
 
 typedef struct {
-	struct _ftsent11 *fts_cur;	/* current node */
-	struct _ftsent11 *fts_child;	/* linked list of children */
-	struct _ftsent11 **fts_array;	/* sort array */
-	uint32_t fts_dev;		/* starting device # */
-	char *fts_path;			/* path for this descent */
-	int fts_rfd;			/* fd for root */
-	__size_t fts_pathlen;		/* sizeof(path) */
-	__size_t fts_nitems;		/* elements in the sort array */
-	int (*fts_compar)		/* compare function */
-	    (const struct _ftsent11 * const *,
-	    const struct _ftsent11 * const *);
-	int fts_options;		/* fts_open options, global flags */
-	void *fts_clientptr;		/* thunk for sort function */
+	struct _ftsent11 *fts_cur;    /* current node */
+	struct _ftsent11 *fts_child;  /* linked list of children */
+	struct _ftsent11 **fts_array; /* sort array */
+	uint32_t fts_dev;	      /* starting device # */
+	char *fts_path;		      /* path for this descent */
+	int fts_rfd;		      /* fd for root */
+	__size_t fts_pathlen;	      /* sizeof(path) */
+	__size_t fts_nitems;	      /* elements in the sort array */
+	int(*fts_compar)	      /* compare function */
+	    (const struct _ftsent11 *const *, const struct _ftsent11 *const *);
+	int fts_options;     /* fts_open options, global flags */
+	void *fts_clientptr; /* thunk for sort function */
 } FTS11;
 
 typedef struct _ftsent11 {
-	struct _ftsent11 *fts_cycle;	/* cycle node */
-	struct _ftsent11 *fts_parent;	/* parent directory */
-	struct _ftsent11 *fts_link;	/* next file in directory */
-	long long fts_number;		/* local numeric value */
-	void *fts_pointer;		/* local address value */
-	char *fts_accpath;		/* access path */
-	char *fts_path;			/* root path */
-	int fts_errno;			/* errno for this node */
-	int fts_symfd;			/* fd for symlink */
-	__size_t fts_pathlen;		/* strlen(fts_path) */
-	__size_t fts_namelen;		/* strlen(fts_name) */
+	struct _ftsent11 *fts_cycle;  /* cycle node */
+	struct _ftsent11 *fts_parent; /* parent directory */
+	struct _ftsent11 *fts_link;   /* next file in directory */
+	long long fts_number;	      /* local numeric value */
+	void *fts_pointer;	      /* local address value */
+	char *fts_accpath;	      /* access path */
+	char *fts_path;		      /* root path */
+	int fts_errno;		      /* errno for this node */
+	int fts_symfd;		      /* fd for symlink */
+	__size_t fts_pathlen;	      /* strlen(fts_path) */
+	__size_t fts_namelen;	      /* strlen(fts_name) */
 
-	uint32_t fts_ino;		/* inode */
-	uint32_t fts_dev;		/* device */
-	uint16_t fts_nlink;		/* link count */
+	uint32_t fts_ino;   /* inode */
+	uint32_t fts_dev;   /* device */
+	uint16_t fts_nlink; /* link count */
 
-	long fts_level;			/* depth (-1 to N) */
+	long fts_level; /* depth (-1 to N) */
 
-	int fts_info;			/* user status for FTSENT structure */
+	int fts_info; /* user status for FTSENT structure */
 
-	unsigned fts_flags;		/* private flags for FTSENT structure */
+	unsigned fts_flags; /* private flags for FTSENT structure */
 
-	int fts_instr;			/* fts_set() instructions */
+	int fts_instr; /* fts_set() instructions */
 
 	struct freebsd11_stat *fts_statp; /* stat(2) information */
-	char *fts_name;			/* file name */
-	FTS11 *fts_fts;			/* back pointer to main FTS */
+	char *fts_name;			  /* file name */
+	FTS11 *fts_fts;			  /* back pointer to main FTS */
 } FTSENT11;
 
-FTSENT11	*freebsd11_fts_children(FTS11 *, int);
-int		 freebsd11_fts_close(FTS11 *);
-void		*freebsd11_fts_get_clientptr(FTS11 *);
-#define	freebsd11_fts_get_clientptr(fts)	((fts)->fts_clientptr)
-FTS11		*freebsd11_fts_get_stream(FTSENT11 *);
-#define	freebsd11_fts_get_stream(ftsent)	((ftsent)->fts_fts)
-FTS11		*freebsd11_fts_open(char * const *, int,
-		    int (*)(const FTSENT11 * const *,
-		    const FTSENT11 * const *));
-FTSENT11	*freebsd11_fts_read(FTS11 *);
-int		 freebsd11_fts_set(FTS11 *, FTSENT11 *, int);
-void		 freebsd11_fts_set_clientptr(FTS11 *, void *);
+FTSENT11 *freebsd11_fts_children(FTS11 *, int);
+int freebsd11_fts_close(FTS11 *);
+void *freebsd11_fts_get_clientptr(FTS11 *);
+#define freebsd11_fts_get_clientptr(fts) ((fts)->fts_clientptr)
+FTS11 *freebsd11_fts_get_stream(FTSENT11 *);
+#define freebsd11_fts_get_stream(ftsent) ((ftsent)->fts_fts)
+FTS11 *freebsd11_fts_open(char *const *, int,
+    int (*)(const FTSENT11 *const *, const FTSENT11 *const *));
+FTSENT11 *freebsd11_fts_read(FTS11 *);
+int freebsd11_fts_set(FTS11 *, FTSENT11 *, int);
+void freebsd11_fts_set_clientptr(FTS11 *, void *);
 
 #endif /* !_FTS_COMPAT11_H_ */

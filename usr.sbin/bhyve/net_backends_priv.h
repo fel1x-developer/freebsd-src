@@ -37,15 +37,15 @@
  * net_backends.h.
  */
 struct net_backend {
-	const char *prefix;	/* prefix matching this backend */
+	const char *prefix; /* prefix matching this backend */
 
 	/*
 	 * Routines used to initialize and cleanup the resources needed
 	 * by a backend. The cleanup function is used internally,
 	 * and should not be called by the frontend.
 	 */
-	int (*init)(struct net_backend *be, const char *devname,
-	    nvlist_t *nvl, net_be_rxeof_t cb, void *param);
+	int (*init)(struct net_backend *be, const char *devname, nvlist_t *nvl,
+	    net_be_rxeof_t cb, void *param);
 	void (*cleanup)(struct net_backend *be);
 
 	/*
@@ -53,8 +53,8 @@ struct net_backend {
 	 * vector provided by the caller has 'iovcnt' elements and contains
 	 * the packet to send.
 	 */
-	ssize_t (*send)(struct net_backend *be, const struct iovec *iov,
-	    int iovcnt);
+	ssize_t (
+	    *send)(struct net_backend *be, const struct iovec *iov, int iovcnt);
 
 	/*
 	 * Get the length of the next packet that can be received from
@@ -70,8 +70,8 @@ struct net_backend {
 	 * The function returns 0 if the backend doesn't have a new packet to
 	 * receive.
 	 */
-	ssize_t (*recv)(struct net_backend *be, const struct iovec *iov,
-	    int iovcnt);
+	ssize_t (
+	    *recv)(struct net_backend *be, const struct iovec *iov, int iovcnt);
 
 	/*
 	 * Ask the backend to enable or disable receive operation in the
@@ -115,11 +115,11 @@ struct net_backend {
 	/* Backend-specific private data follows. */
 };
 
-#define	NET_BE_PRIV(be)		((void *)((be) + 1))
+#define NET_BE_PRIV(be) ((void *)((be) + 1))
 
 SET_DECLARE(net_backend_set, struct net_backend);
 
-#define VNET_HDR_LEN	sizeof(struct virtio_net_rxhdr)
+#define VNET_HDR_LEN sizeof(struct virtio_net_rxhdr)
 
 /*
  * Export the tap backend routines for the benefit of other backends which have
@@ -138,15 +138,15 @@ struct tap_priv {
 	ssize_t bbuflen;
 };
 
-void	tap_cleanup(struct net_backend *be);
-ssize_t	tap_send(struct net_backend *be, const struct iovec *iov, int iovcnt);
-ssize_t	tap_recv(struct net_backend *be, const struct iovec *iov, int iovcnt);
-ssize_t	tap_peek_recvlen(struct net_backend *be);
-void	tap_recv_enable(struct net_backend *be);
-ssize_t	tap_recv(struct net_backend *be, const struct iovec *iov, int iovcnt);
-void	tap_recv_disable(struct net_backend *be);
+void tap_cleanup(struct net_backend *be);
+ssize_t tap_send(struct net_backend *be, const struct iovec *iov, int iovcnt);
+ssize_t tap_recv(struct net_backend *be, const struct iovec *iov, int iovcnt);
+ssize_t tap_peek_recvlen(struct net_backend *be);
+void tap_recv_enable(struct net_backend *be);
+ssize_t tap_recv(struct net_backend *be, const struct iovec *iov, int iovcnt);
+void tap_recv_disable(struct net_backend *be);
 uint64_t tap_get_cap(struct net_backend *be);
-int	tap_set_cap(struct net_backend *be, uint64_t features,
-	    unsigned vnet_hdr_len);
+int tap_set_cap(struct net_backend *be, uint64_t features,
+    unsigned vnet_hdr_len);
 
 #endif /* !__NET_BACKENDS_PRIV_H__ */

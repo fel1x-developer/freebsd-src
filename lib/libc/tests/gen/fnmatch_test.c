@@ -25,13 +25,13 @@
  */
 
 #include <sys/param.h>
+
+#include <atf-c.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <atf-c.h>
 
 #include "fnmatch_testcases.h"
 
@@ -40,7 +40,8 @@ flags_to_string(int flags)
 {
 	static const int flagvalues[] = { FNM_NOESCAPE, FNM_PATHNAME,
 		FNM_PERIOD, FNM_LEADING_DIR, FNM_CASEFOLD, 0 };
-	static const char flagnames[] = "FNM_NOESCAPE\0FNM_PATHNAME\0FNM_PERIOD\0FNM_LEADING_DIR\0FNM_CASEFOLD\0";
+	static const char flagnames[] =
+	    "FNM_NOESCAPE\0FNM_PATHNAME\0FNM_PERIOD\0FNM_LEADING_DIR\0FNM_CASEFOLD\0";
 	static char result[sizeof(flagnames) + 3 * sizeof(int) + 2];
 	char *p;
 	size_t i, len;
@@ -101,7 +102,7 @@ ATF_TC_BODY(fnmatch_test, tc)
 				flags = t->flags;
 			}
 			if ((t->string[0] != '.' || t->pattern[0] == '.' ||
-			    t->result == FNM_NOMATCH) &&
+				t->result == FNM_NOMATCH) &&
 			    !(flags & (FNM_PATHNAME | FNM_PERIOD))) {
 				flags |= FNM_PERIOD;
 				result = fnmatch(t->pattern, t->string, flags);
@@ -110,7 +111,7 @@ ATF_TC_BODY(fnmatch_test, tc)
 				flags = t->flags;
 			}
 			if ((strchr(t->string, '/') == NULL ||
-			    t->result == FNM_NOMATCH) &&
+				t->result == FNM_NOMATCH) &&
 			    !(flags & FNM_PATHNAME)) {
 				flags |= FNM_PATHNAME;
 				result = fnmatch(t->pattern, t->string, flags);
@@ -119,8 +120,8 @@ ATF_TC_BODY(fnmatch_test, tc)
 				flags = t->flags;
 			}
 			if ((((t->string[0] != '.' || t->pattern[0] == '.') &&
-			    strstr(t->string, "/.") == NULL) ||
-			    t->result == FNM_NOMATCH) &&
+				 strstr(t->string, "/.") == NULL) ||
+				t->result == FNM_NOMATCH) &&
 			    flags & FNM_PATHNAME && !(flags & FNM_PERIOD)) {
 				flags |= FNM_PERIOD;
 				result = fnmatch(t->pattern, t->string, flags);
@@ -129,8 +130,8 @@ ATF_TC_BODY(fnmatch_test, tc)
 				flags = t->flags;
 			}
 			if ((((t->string[0] != '.' || t->pattern[0] == '.') &&
-			    strchr(t->string, '/') == NULL) ||
-			    t->result == FNM_NOMATCH) &&
+				 strchr(t->string, '/') == NULL) ||
+				t->result == FNM_NOMATCH) &&
 			    !(flags & (FNM_PATHNAME | FNM_PERIOD))) {
 				flags |= FNM_PATHNAME | FNM_PERIOD;
 				result = fnmatch(t->pattern, t->string, flags);
@@ -138,8 +139,9 @@ ATF_TC_BODY(fnmatch_test, tc)
 					break;
 				flags = t->flags;
 			}
-			if ((strchr(t->string, '/') == NULL || t->result == 0)
-			    && !(flags & FNM_LEADING_DIR)) {
+			if ((strchr(t->string, '/') == NULL ||
+				t->result == 0) &&
+			    !(flags & FNM_LEADING_DIR)) {
 				flags |= FNM_LEADING_DIR;
 				result = fnmatch(t->pattern, t->string, flags);
 				if (result != t->result)
@@ -167,13 +169,13 @@ ATF_TC_BODY(fnmatch_test, tc)
 		ATF_CHECK(result == t->result);
 		if (result == t->result)
 			printf("fnmatch(\"%s\", \"%s\", %s) == %d\n",
-			    t->pattern, t->string, flags_to_string(flags), result);
+			    t->pattern, t->string, flags_to_string(flags),
+			    result);
 		else
 			printf("fnmatch(\"%s\", \"%s\", %s) != %d (was %d)\n",
 			    t->pattern, t->string, flags_to_string(flags),
 			    t->result, result);
 	}
-
 }
 
 ATF_TP_ADD_TCS(tp)

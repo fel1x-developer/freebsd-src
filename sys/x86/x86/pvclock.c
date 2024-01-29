@@ -56,27 +56,27 @@
  */
 static volatile uint64_t pvclock_last_systime;
 
-static uint64_t		 pvclock_getsystime(struct pvclock *pvc);
-static void		 pvclock_read_time_info(
-    struct pvclock_vcpu_time_info *ti, uint64_t *ns, uint8_t *flags);
-static void		 pvclock_read_wall_clock(struct pvclock_wall_clock *wc,
+static uint64_t pvclock_getsystime(struct pvclock *pvc);
+static void pvclock_read_time_info(struct pvclock_vcpu_time_info *ti,
+    uint64_t *ns, uint8_t *flags);
+static void pvclock_read_wall_clock(struct pvclock_wall_clock *wc,
     struct timespec *ts);
-static u_int		 pvclock_tc_get_timecount(struct timecounter *tc);
-static uint32_t		 pvclock_tc_vdso_timehands(
-    struct vdso_timehands *vdso_th, struct timecounter *tc);
+static u_int pvclock_tc_get_timecount(struct timecounter *tc);
+static uint32_t pvclock_tc_vdso_timehands(struct vdso_timehands *vdso_th,
+    struct timecounter *tc);
 #ifdef COMPAT_FREEBSD32
-static uint32_t		 pvclock_tc_vdso_timehands32(
-    struct vdso_timehands32 *vdso_th, struct timecounter *tc);
+static uint32_t pvclock_tc_vdso_timehands32(struct vdso_timehands32 *vdso_th,
+    struct timecounter *tc);
 #endif
 
-static d_open_t		 pvclock_cdev_open;
-static d_mmap_t		 pvclock_cdev_mmap;
+static d_open_t pvclock_cdev_open;
+static d_mmap_t pvclock_cdev_mmap;
 
-static struct cdevsw	 pvclock_cdev_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_name =	PVCLOCK_CDEVNAME,
-	.d_open =	pvclock_cdev_open,
-	.d_mmap =	pvclock_cdev_mmap,
+static struct cdevsw pvclock_cdev_cdevsw = {
+	.d_version = D_VERSION,
+	.d_name = PVCLOCK_CDEVNAME,
+	.d_open = pvclock_cdev_open,
+	.d_mmap = pvclock_cdev_mmap,
 };
 
 void
@@ -99,8 +99,8 @@ pvclock_tsc_freq(struct pvclock_vcpu_time_info *ti)
 }
 
 static void
-pvclock_read_time_info(struct pvclock_vcpu_time_info *ti,
-    uint64_t *ns, uint8_t *flags)
+pvclock_read_time_info(struct pvclock_vcpu_time_info *ti, uint64_t *ns,
+    uint8_t *flags)
 {
 	uint64_t delta;
 	uint32_t version;
@@ -108,8 +108,9 @@ pvclock_read_time_info(struct pvclock_vcpu_time_info *ti,
 	do {
 		version = atomic_load_acq_32(&ti->version);
 		delta = rdtsc_ordered() - ti->tsc_timestamp;
-		*ns = ti->system_time + pvclock_scale_delta(delta,
-		    ti->tsc_to_system_mul, ti->tsc_shift);
+		*ns = ti->system_time +
+		    pvclock_scale_delta(delta, ti->tsc_to_system_mul,
+			ti->tsc_shift);
 		*flags = ti->flags;
 		atomic_thread_fence_acq();
 	} while ((ti->version & 1) != 0 || ti->version != version);
@@ -144,8 +145,8 @@ pvclock_getsystime(struct pvclock *pvc)
 				ret = last;
 				break;
 			}
-		} while (!atomic_fcmpset_rel_64(&pvclock_last_systime, &last,
-		    now));
+		} while (
+		    !atomic_fcmpset_rel_64(&pvclock_last_systime, &last, now));
 	}
 	critical_exit();
 	return (ret);
@@ -170,8 +171,8 @@ pvclock_get_timecount(struct pvclock_vcpu_time_info *ti)
 				ret = last;
 				break;
 			}
-		} while (!atomic_fcmpset_rel_64(&pvclock_last_systime, &last,
-		    now));
+		} while (
+		    !atomic_fcmpset_rel_64(&pvclock_last_systime, &last, now));
 	}
 	return (ret);
 }
@@ -227,14 +228,16 @@ pvclock_tc_vdso_timehands(struct vdso_timehands *vdso_th,
 	vdso_th->th_algo = VDSO_TH_ALGO_X86_PVCLK;
 	vdso_th->th_x86_shift = 0;
 	vdso_th->th_x86_hpet_idx = 0;
-	vdso_th->th_x86_pvc_last_systime =
-	    atomic_load_acq_64(&pvclock_last_systime);
+	vdso_th->th_x86_pvc_last_systime = atomic_load_acq_64(
+	    &pvclock_last_systime);
 	vdso_th->th_x86_pvc_stable_mask = !pvc->vdso_force_unstable &&
-	    pvc->stable_flag_supported ? PVCLOCK_FLAG_TSC_STABLE : 0;
+		pvc->stable_flag_supported ?
+	    PVCLOCK_FLAG_TSC_STABLE :
+	    0;
 	bzero(vdso_th->th_res, sizeof(vdso_th->th_res));
 	return ((amd_feature & AMDID_RDTSCP) != 0 ||
 	    ((vdso_th->th_x86_pvc_stable_mask & PVCLOCK_FLAG_TSC_STABLE) != 0 &&
-	    pvc->vdso_enable_without_rdtscp));
+		pvc->vdso_enable_without_rdtscp));
 }
 
 #ifdef COMPAT_FREEBSD32
@@ -250,14 +253,16 @@ pvclock_tc_vdso_timehands32(struct vdso_timehands32 *vdso_th,
 	vdso_th->th_algo = VDSO_TH_ALGO_X86_PVCLK;
 	vdso_th->th_x86_shift = 0;
 	vdso_th->th_x86_hpet_idx = 0;
-	*(uint64_t *)&vdso_th->th_x86_pvc_last_systime[0] =
-	    atomic_load_acq_64(&pvclock_last_systime);
+	*(uint64_t *)&vdso_th->th_x86_pvc_last_systime[0] = atomic_load_acq_64(
+	    &pvclock_last_systime);
 	vdso_th->th_x86_pvc_stable_mask = !pvc->vdso_force_unstable &&
-	    pvc->stable_flag_supported ? PVCLOCK_FLAG_TSC_STABLE : 0;
+		pvc->stable_flag_supported ?
+	    PVCLOCK_FLAG_TSC_STABLE :
+	    0;
 	bzero(vdso_th->th_res, sizeof(vdso_th->th_res));
 	return ((amd_feature & AMDID_RDTSCP) != 0 ||
 	    ((vdso_th->th_x86_pvc_stable_mask & PVCLOCK_FLAG_TSC_STABLE) != 0 &&
-	    pvc->vdso_enable_without_rdtscp));
+		pvc->vdso_enable_without_rdtscp));
 }
 #endif
 
@@ -326,7 +331,8 @@ pvclock_init(struct pvclock *pvc, device_t dev, const char *tc_name,
 	mda.mda_si_drv1 = pvc->timeinfos;
 	err = make_dev_s(&mda, &pvc->cdev, PVCLOCK_CDEVNAME);
 	if (err != 0) {
-		device_printf(dev, "Could not create /dev/%s, error %d. Fast "
+		device_printf(dev,
+		    "Could not create /dev/%s, error %d. Fast "
 		    "time of day will be unavailable for this timecounter.\n",
 		    PVCLOCK_CDEVNAME, err);
 		KASSERT(pvc->cdev == NULL,

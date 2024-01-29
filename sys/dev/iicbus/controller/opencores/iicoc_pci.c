@@ -28,16 +28,15 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
 
 #include <dev/iicbus/iicbus.h>
 #include <dev/iicbus/iiconf.h>
-
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
 
@@ -72,8 +71,8 @@ iicoc_attach(device_t dev)
 	sc->dev = dev;
 	mtx_init(&sc->sc_mtx, "iicoc", "iicoc", MTX_DEF);
 	sc->mem_rid = 0;
-	sc->mem_res = bus_alloc_resource_anywhere(dev,
-	    SYS_RES_MEMORY, &sc->mem_rid, 0x100, RF_ACTIVE);
+	sc->mem_res = bus_alloc_resource_anywhere(dev, SYS_RES_MEMORY,
+	    &sc->mem_rid, 0x100, RF_ACTIVE);
 
 	if (sc->mem_res == NULL) {
 		device_printf(dev, "Could not allocate bus resource.\n");

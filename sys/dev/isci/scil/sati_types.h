@@ -68,73 +68,72 @@
  * @brief This enumeration defines the possible return values from the
  *        SATI translation methods.
  */
-typedef enum _SATI_STATUS
-{
-   /**
-    * This indicates that the translation was supported and occurred
-    * without error.
-    */
-   SATI_SUCCESS,
+typedef enum _SATI_STATUS {
+	/**
+	 * This indicates that the translation was supported and occurred
+	 * without error.
+	 */
+	SATI_SUCCESS,
 
-   /**
-    * This indicates that the translation was supported and occurred
-    * without error.
-    * Additionally, this indicates the translation actually already
-    * translated the scatter gather list elements appropriately as
-    * well.
-    */
-   SATI_SUCCESS_SGL_TRANSLATED,
+	/**
+	 * This indicates that the translation was supported and occurred
+	 * without error.
+	 * Additionally, this indicates the translation actually already
+	 * translated the scatter gather list elements appropriately as
+	 * well.
+	 */
+	SATI_SUCCESS_SGL_TRANSLATED,
 
-   /**
-    * This indicates that the translation was supported, occurred without
-    * error, and no additional translation is necessary.  This is done in
-    * conditions where the SCSI command doesn't require any interaction with
-    * the remote device.
-    */
-   SATI_COMPLETE,
+	/**
+	 * This indicates that the translation was supported, occurred without
+	 * error, and no additional translation is necessary.  This is done in
+	 * conditions where the SCSI command doesn't require any interaction
+	 * with the remote device.
+	 */
+	SATI_COMPLETE,
 
-   /**
-   * This indicated everything SATI_COMPLETE does in addition to the response data
-     not using all the memory allocated by the OS.
-   */
-   SATI_COMPLETE_IO_DONE_EARLY,
+	/**
+	* This indicated everything SATI_COMPLETE does in addition to the
+	response data not using all the memory allocated by the OS.
+	*/
+	SATI_COMPLETE_IO_DONE_EARLY,
 
-   /**
-    * This indicates that translator sequence has finished some specific
-    * command in the sequence, but additional commands are necessary.
-    */
-   SATI_SEQUENCE_INCOMPLETE,
+	/**
+	 * This indicates that translator sequence has finished some specific
+	 * command in the sequence, but additional commands are necessary.
+	 */
+	SATI_SEQUENCE_INCOMPLETE,
 
-   /**
-    * This indicates a general failure has occurred for which no further
-    * specification information is available.
-    */
-   SATI_FAILURE,
+	/**
+	 * This indicates a general failure has occurred for which no further
+	 * specification information is available.
+	 */
+	SATI_FAILURE,
 
-   /**
-    * This indicates that the result of the IO request indicates a
-    * failure.  The caller should reference the corresponding response
-    * data for further details.
-    */
-   SATI_FAILURE_CHECK_RESPONSE_DATA,
+	/**
+	 * This indicates that the result of the IO request indicates a
+	 * failure.  The caller should reference the corresponding response
+	 * data for further details.
+	 */
+	SATI_FAILURE_CHECK_RESPONSE_DATA,
 
-   /**
-    * This status indicates that the supplied sequence type doesn't map
-    * to an existing definition.
-    */
-   SATI_FAILURE_INVALID_SEQUENCE_TYPE,
+	/**
+	 * This status indicates that the supplied sequence type doesn't map
+	 * to an existing definition.
+	 */
+	SATI_FAILURE_INVALID_SEQUENCE_TYPE,
 
-   /**
-    * This status indicates that the supplied sequence state doesn't match
-    * the operation being requested by the user.
-    */
-   SATI_FAILURE_INVALID_STATE
+	/**
+	 * This status indicates that the supplied sequence state doesn't match
+	 * the operation being requested by the user.
+	 */
+	SATI_FAILURE_INVALID_STATE
 
 } SATI_STATUS;
 
-#if (  !defined(DISABLE_SATI_MODE_SENSE)      \
-    || !defined(DISABLE_SATI_MODE_SELECT)     \
-    || !defined(DISABLE_SATI_REQUEST_SENSE) ) \
+#if (!defined(DISABLE_SATI_MODE_SENSE) || \
+    !defined(DISABLE_SATI_MODE_SELECT) || \
+    !defined(DISABLE_SATI_REQUEST_SENSE))
 
 #if !defined(ENABLE_SATI_MODE_PAGES)
 /**
@@ -149,4 +148,3 @@ typedef enum _SATI_STATUS
 #endif // MODE_SENSE/SELECT/REQUEST_SENSE
 
 #endif // _SATI_TYPES_H_
-

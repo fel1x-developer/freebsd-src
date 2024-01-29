@@ -32,11 +32,11 @@
  */
 
 #ifndef MODE_H
-#define	MODE_H	1
+#define MODE_H 1
 
 enum mode { display_RATE, display_DELTA, display_SINCE, display_ABS };
 
-extern	int		cmdmode(const char *cmd, const char *args);
-extern	enum mode	currentmode;
+extern int cmdmode(const char *cmd, const char *args);
+extern enum mode currentmode;
 
 #endif /* MODE_H */

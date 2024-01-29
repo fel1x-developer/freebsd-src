@@ -27,43 +27,40 @@
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/resource.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
 
-#include <sys/rman.h>
-
-#include <sys/lock.h>
-#include <sys/mutex.h>
-
-#include <dev/iicbus/iiconf.h>
-#include <dev/iicbus/iicbus.h>
+#include <dev/clk/clk.h>
+#include <dev/hwreset/hwreset.h>
 #include <dev/iicbus/controller/twsi/twsi.h>
+#include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include <dev/clk/clk.h>
-#include <dev/hwreset/hwreset.h>
-
 #include "iicbus_if.h"
 
-#define	TWI_ADDR	0x0
-#define	TWI_XADDR	0x4
-#define	TWI_DATA	0x8
-#define	TWI_CNTR	0xC
-#define	TWI_STAT	0x10
-#define	TWI_CCR		0x14
-#define	TWI_SRST	0x18
-#define	TWI_EFR		0x1C
-#define	TWI_LCR		0x20
+#define TWI_ADDR 0x0
+#define TWI_XADDR 0x4
+#define TWI_DATA 0x8
+#define TWI_CNTR 0xC
+#define TWI_STAT 0x10
+#define TWI_CCR 0x14
+#define TWI_SRST 0x18
+#define TWI_EFR 0x1C
+#define TWI_LCR 0x20
 
 static struct ofw_compat_data compat_data[] = {
-	{"allwinner,sun4i-a10-i2c", 1},
-	{"allwinner,sun6i-a31-i2c", 1},
-	{"allwinner,sun8i-a83t-i2c", 1},
-	{NULL, 0},
+	{ "allwinner,sun4i-a10-i2c", 1 },
+	{ "allwinner,sun6i-a31-i2c", 1 },
+	{ "allwinner,sun8i-a83t-i2c", 1 },
+	{ NULL, 0 },
 };
 
 static int
@@ -132,11 +129,11 @@ a10_twsi_get_node(device_t bus, device_t dev)
 
 static device_method_t a10_twsi_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		a10_twsi_probe),
-	DEVMETHOD(device_attach,	a10_twsi_attach),
+	DEVMETHOD(device_probe, a10_twsi_probe),
+	DEVMETHOD(device_attach, a10_twsi_attach),
 
 	/* OFW methods */
-	DEVMETHOD(ofw_bus_get_node,	a10_twsi_get_node),
+	DEVMETHOD(ofw_bus_get_node, a10_twsi_get_node),
 
 	{ 0, 0 }
 };
@@ -144,9 +141,9 @@ static device_method_t a10_twsi_methods[] = {
 DEFINE_CLASS_1(iichb, a10_twsi_driver, a10_twsi_methods,
     sizeof(struct twsi_softc), twsi_driver);
 
-EARLY_DRIVER_MODULE(a10_twsi, simplebus, a10_twsi_driver,
-    0, 0, BUS_PASS_INTERRUPT + BUS_PASS_ORDER_LATE);
-EARLY_DRIVER_MODULE(iicbus, a10_twsi, iicbus_driver,
-    0, 0, BUS_PASS_INTERRUPT + BUS_PASS_ORDER_LATE);
+EARLY_DRIVER_MODULE(a10_twsi, simplebus, a10_twsi_driver, 0, 0,
+    BUS_PASS_INTERRUPT + BUS_PASS_ORDER_LATE);
+EARLY_DRIVER_MODULE(iicbus, a10_twsi, iicbus_driver, 0, 0,
+    BUS_PASS_INTERRUPT + BUS_PASS_ORDER_LATE);
 MODULE_DEPEND(a10_twsi, iicbus, 1, 1, 1);
 SIMPLEBUS_PNP_INFO(compat_data);

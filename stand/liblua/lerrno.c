@@ -25,15 +25,15 @@
  */
 
 #include <sys/cdefs.h>
-#define _WANT_KERNEL_ERRNO	1
+#define _WANT_KERNEL_ERRNO 1
 #include <errno.h>
-
 #include <lua.h>
+
 #include "lauxlib.h"
 #include "lerrno.h"
 
 #ifndef nitems
-#define	nitems(x)	(sizeof((x)) / sizeof((x)[0]))
+#define nitems(x) (sizeof((x)) / sizeof((x)[0]))
 #endif
 
 /*
@@ -41,7 +41,10 @@
  * $ egrep "^#define.E" sys/sys/errno.h | \
  *   awk '{ print "\tENTRY(" $2 ")," }' >> lerrno.c
  */
-#define ENTRY(name)	{ #name, name }
+#define ENTRY(name)         \
+	{                   \
+		#name, name \
+	}
 static const struct err_name_number {
 	const char *err_name;
 	int err_num;

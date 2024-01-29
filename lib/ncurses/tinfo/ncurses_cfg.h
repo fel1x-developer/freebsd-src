@@ -48,7 +48,6 @@
  *	ftp://ftp.invisible-island.net/autoconf/
  */
 
-
 #ifndef NC_CONFIG_H
 #define NC_CONFIG_H
 
@@ -64,7 +63,8 @@
 #ifdef __FreeBSD__
 #define USE_SYSMOUSE 1
 #endif
-#define TERMINFO_DIRS "/usr/share/terminfo:/usr/local/share/terminfo:/usr/local/share/site-terminfo"
+#define TERMINFO_DIRS \
+	"/usr/share/terminfo:/usr/local/share/terminfo:/usr/local/share/site-terminfo"
 #define TERMINFO "/usr/share/terminfo"
 #define HAVE_BIG_CORE 1
 #define TERMPATH "/etc/termcap:/usr/share/misc/termcap"
@@ -132,9 +132,9 @@
 #define USE_HASHMAP 1
 #define USE_COLORFGBG 1
 #define GCC_SCANF 1
-#define GCC_SCANFLIKE(fmt,var) __attribute__((format(scanf,fmt,var)))
+#define GCC_SCANFLIKE(fmt, var) __attribute__((format(scanf, fmt, var)))
 #define GCC_PRINTF 1
-#define GCC_PRINTFLIKE(fmt,var) __attribute__((format(printf,fmt,var)))
+#define GCC_PRINTFLIKE(fmt, var) __attribute__((format(printf, fmt, var)))
 #define GCC_UNUSED __attribute__((unused))
 #define GCC_NORETURN __attribute__((noreturn))
 #define HAVE_NC_ALLOC_H 1
@@ -235,16 +235,16 @@
 
 #include <ncurses_def.h>
 
-	/* The C compiler may not treat these properly but C++ has to */
+/* The C compiler may not treat these properly but C++ has to */
 #ifdef __cplusplus
 #undef const
 #undef inline
 #endif
 
-	/* On HP-UX, the C compiler doesn't grok mbstate_t without
-	   -D_XOPEN_SOURCE=500. However, this causes problems on
-	   IRIX. So, we #define mbstate_t to int in configure.in
-	   only for the C compiler if needed. */
+/* On HP-UX, the C compiler doesn't grok mbstate_t without
+   -D_XOPEN_SOURCE=500. However, this causes problems on
+   IRIX. So, we #define mbstate_t to int in configure.in
+   only for the C compiler if needed. */
 #ifndef __cplusplus
 #ifdef NEED_MBSTATE_T_DEF
 #define mbstate_t int

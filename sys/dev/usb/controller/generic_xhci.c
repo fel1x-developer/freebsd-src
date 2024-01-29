@@ -28,43 +28,41 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
 #include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
 #include <sys/rman.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-
-#include <dev/usb/usb_core.h>
-#include <dev/usb/usb_busdma.h>
-#include <dev/usb/usb_process.h>
-#include <dev/usb/usb_util.h>
-
-#include <dev/usb/usb_controller.h>
-#include <dev/usb/usb_bus.h>
 #include <dev/usb/controller/xhci.h>
 #include <dev/usb/controller/xhcireg.h>
+#include <dev/usb/usb.h>
+#include <dev/usb/usb_bus.h>
+#include <dev/usb/usb_busdma.h>
+#include <dev/usb/usb_controller.h>
+#include <dev/usb/usb_core.h>
+#include <dev/usb/usb_process.h>
+#include <dev/usb/usb_util.h>
+#include <dev/usb/usbdi.h>
 
 #include "generic_xhci.h"
 
 #if __SIZEOF_LONG__ == 8
-#define	IS_DMA_32B	0
+#define IS_DMA_32B 0
 #elif __SIZEOF_LONG__ == 4
-#define	IS_DMA_32B	1
+#define IS_DMA_32B 1
 #else
 #error unsupported long size
 #endif
@@ -130,14 +128,16 @@ generic_xhci_attach(device_t dev)
 
 	err = xhci_start_controller(sc);
 	if (err != 0) {
-		device_printf(dev, "Failed to start XHCI controller, with error %d\n", err);
+		device_printf(dev,
+		    "Failed to start XHCI controller, with error %d\n", err);
 		generic_xhci_detach(dev);
 		return (ENXIO);
 	}
 
 	err = device_probe_and_attach(sc->sc_bus.bdev);
 	if (err != 0) {
-		device_printf(dev, "Failed to initialize USB, with error %d\n", err);
+		device_printf(dev, "Failed to initialize USB, with error %d\n",
+		    err);
 		generic_xhci_detach(dev);
 		return (ENXIO);
 	}

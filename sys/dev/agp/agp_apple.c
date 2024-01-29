@@ -28,40 +28,40 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
+
+#include <vm/vm.h>
+#include <vm/pmap.h>
+#include <vm/vm_object.h>
 
 #include <machine/resource.h>
 
 #include <dev/agp/agppriv.h>
 #include <dev/agp/agpreg.h>
-#include <dev/pci/pcivar.h>
 #include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
-#include <vm/vm.h>
-#include <vm/vm_object.h>
-#include <vm/pmap.h>
+#define UNIN_AGP_GART_BASE 0x8c
+#define UNIN_AGP_BASE_ADDR 0x90
+#define UNIN_AGP_GART_CONTROL 0x94
 
-#define UNIN_AGP_GART_BASE	0x8c
-#define UNIN_AGP_BASE_ADDR	0x90
-#define UNIN_AGP_GART_CONTROL	0x94
-
-#define UNIN_AGP_GART_INVAL	0x00000001
-#define UNIN_AGP_GART_ENABLE	0x00000100
-#define UNIN_AGP_GART_2XRESET	0x00010000
-#define UNIN_AGP_U3_GART_PERFRD	0x00080000
+#define UNIN_AGP_GART_INVAL 0x00000001
+#define UNIN_AGP_GART_ENABLE 0x00000100
+#define UNIN_AGP_GART_2XRESET 0x00010000
+#define UNIN_AGP_U3_GART_PERFRD 0x00080000
 
 struct agp_apple_softc {
 	struct agp_softc agp;
-	uint32_t	aperture;
+	uint32_t aperture;
 	struct agp_gatt *gatt;
-	int		u3;
-	int		needs_2x_reset;
+	int u3;
+	int needs_2x_reset;
 };
 
 static int
@@ -71,15 +71,15 @@ agp_apple_probe(device_t dev)
 	if (resource_disabled("agp", device_get_unit(dev)))
 		return (ENXIO);
 
-	if (pci_get_class(dev) != PCIC_BRIDGE
-	    || pci_get_subclass(dev) != PCIS_BRIDGE_HOST)
+	if (pci_get_class(dev) != PCIC_BRIDGE ||
+	    pci_get_subclass(dev) != PCIS_BRIDGE_HOST)
 		return (ENXIO);
 
 	if (agp_find_caps(dev) == 0)
 		return (ENXIO);
 
-	if (pci_get_class(dev) != PCIC_BRIDGE
-	    || pci_get_subclass(dev) != PCIS_BRIDGE_HOST)
+	if (pci_get_class(dev) != PCIC_BRIDGE ||
+	    pci_get_subclass(dev) != PCIS_BRIDGE_HOST)
 		return (ENXIO);
 
 	switch (pci_get_devid(dev)) {
@@ -135,15 +135,15 @@ agp_apple_attach(device_t dev)
 	if (error)
 		return (error);
 
-	sc->aperture = 256*1024*1024;
+	sc->aperture = 256 * 1024 * 1024;
 
-	for (sc->aperture = 256*1024*1024; sc->aperture >= 4*1024*1024;
-	    sc->aperture /= 2) {
+	for (sc->aperture = 256 * 1024 * 1024; sc->aperture >= 4 * 1024 * 1024;
+	     sc->aperture /= 2) {
 		sc->gatt = agp_alloc_gatt(dev);
 		if (sc->gatt)
 			break;
 	}
-	if (sc->aperture < 4*1024*1024) {
+	if (sc->aperture < 4 * 1024 * 1024) {
 		agp_generic_detach(dev);
 		return ENOMEM;
 	}
@@ -200,13 +200,12 @@ agp_apple_set_aperture(device_t dev, uint32_t aperture)
 	 * Check for a multiple of 4 MB and make sure it is within the
 	 * programmable range.
 	 */
-	if (aperture % (4*1024*1024)
-	    || aperture < 4*1024*1024
-	    || aperture > ((sc->u3) ? 512 : 256)*1024*1024)
+	if (aperture % (4 * 1024 * 1024) || aperture < 4 * 1024 * 1024 ||
+	    aperture > ((sc->u3) ? 512 : 256) * 1024 * 1024)
 		return EINVAL;
 
 	/* The aperture value is a multiple of 4 MB */
-	aperture /= (4*1024*1024);
+	aperture /= (4 * 1024 * 1024);
 
 	pci_write_config(dev, UNIN_AGP_GART_BASE,
 	    (sc->gatt->ag_physical & 0xfffff000) | aperture, 4);
@@ -260,25 +259,24 @@ agp_apple_flush_tlb(device_t dev)
 
 static device_method_t agp_apple_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		agp_apple_probe),
-	DEVMETHOD(device_attach,	agp_apple_attach),
-	DEVMETHOD(device_detach,	agp_apple_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	bus_generic_resume),
+	DEVMETHOD(device_probe, agp_apple_probe),
+	DEVMETHOD(device_attach, agp_apple_attach),
+	DEVMETHOD(device_detach, agp_apple_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
 
 	/* AGP interface */
-	DEVMETHOD(agp_get_aperture,	agp_apple_get_aperture),
-	DEVMETHOD(agp_set_aperture,	agp_apple_set_aperture),
-	DEVMETHOD(agp_bind_page,	agp_apple_bind_page),
-	DEVMETHOD(agp_unbind_page,	agp_apple_unbind_page),
-	DEVMETHOD(agp_flush_tlb,	agp_apple_flush_tlb),
-	DEVMETHOD(agp_enable,		agp_generic_enable),
-	DEVMETHOD(agp_alloc_memory,	agp_generic_alloc_memory),
-	DEVMETHOD(agp_free_memory,	agp_generic_free_memory),
-	DEVMETHOD(agp_bind_memory,	agp_generic_bind_memory),
-	DEVMETHOD(agp_unbind_memory,	agp_generic_unbind_memory),
-	{ 0, 0 }
+	DEVMETHOD(agp_get_aperture, agp_apple_get_aperture),
+	DEVMETHOD(agp_set_aperture, agp_apple_set_aperture),
+	DEVMETHOD(agp_bind_page, agp_apple_bind_page),
+	DEVMETHOD(agp_unbind_page, agp_apple_unbind_page),
+	DEVMETHOD(agp_flush_tlb, agp_apple_flush_tlb),
+	DEVMETHOD(agp_enable, agp_generic_enable),
+	DEVMETHOD(agp_alloc_memory, agp_generic_alloc_memory),
+	DEVMETHOD(agp_free_memory, agp_generic_free_memory),
+	DEVMETHOD(agp_bind_memory, agp_generic_bind_memory),
+	DEVMETHOD(agp_unbind_memory, agp_generic_unbind_memory), { 0, 0 }
 };
 
 static driver_t agp_apple_driver = {

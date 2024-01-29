@@ -63,10 +63,11 @@
 
 #include "extern.h"
 
-#define	STRIP_TRAILING_SLASH(p) {					\
-	while ((p).p_end > (p).p_path + 1 && (p).p_end[-1] == '/')	\
-	*--(p).p_end = 0;						\
-}
+#define STRIP_TRAILING_SLASH(p)                                            \
+	{                                                                  \
+		while ((p).p_end > (p).p_path + 1 && (p).p_end[-1] == '/') \
+			*--(p).p_end = 0;                                  \
+	}
 
 static char emptystring[] = "";
 
@@ -256,8 +257,8 @@ main(int argc, char *argv[])
 	 * as we need to skip checking root_stat on the first iteration and
 	 * ensure that we set it with the first mkdir().
 	 */
-	exit (copy(argv, type, fts_options, (type == DIR_TO_DNE ? NULL :
-	    &to_stat)));
+	exit(copy(argv, type, fts_options,
+	    (type == DIR_TO_DNE ? NULL : &to_stat)));
 }
 
 /* Does the right thing based on -R + -H/-L/-P */
@@ -274,7 +275,6 @@ copy_stat(const char *path, struct stat *sb)
 		return (stat(path, sb));
 	return (lstat(path, sb));
 }
-
 
 static int
 copy(char *argv[], enum op type, int fts_options, struct stat *root_stat)
@@ -303,16 +303,15 @@ copy(char *argv[], enum op type, int fts_options, struct stat *root_stat)
 		case FTS_NS:
 		case FTS_DNR:
 		case FTS_ERR:
-			warnx("%s: %s",
-			    curr->fts_path, strerror(curr->fts_errno));
+			warnx("%s: %s", curr->fts_path,
+			    strerror(curr->fts_errno));
 			badcp = rval = 1;
 			continue;
-		case FTS_DC:			/* Warn, continue. */
+		case FTS_DC: /* Warn, continue. */
 			warnx("%s: directory causes a cycle", curr->fts_path);
 			badcp = rval = 1;
 			continue;
-		default:
-			;
+		default:;
 		}
 
 		/*
@@ -353,11 +352,12 @@ copy(char *argv[], enum op type, int fts_options, struct stat *root_stat)
 			if (curr->fts_level == FTS_ROOTLEVEL) {
 				if (type != DIR_TO_DNE) {
 					p = strrchr(curr->fts_path, '/');
-					base = (p == NULL) ? 0 :
+					base = (p == NULL) ?
+					    0 :
 					    (int)(p - curr->fts_path + 1);
 
 					if (!strcmp(&curr->fts_path[base],
-					    ".."))
+						".."))
 						base += 1;
 				} else
 					base = curr->fts_pathlen;
@@ -403,9 +403,8 @@ copy(char *argv[], enum op type, int fts_options, struct stat *root_stat)
 					continue;
 				}
 
-
 				if (asprintf(&recurse_path, "%s/%s", to.p_path,
-				    rootname) == -1)
+					rootname) == -1)
 					err(1, "asprintf");
 			}
 
@@ -437,7 +436,7 @@ copy(char *argv[], enum op type, int fts_options, struct stat *root_stat)
 				if (setfile(curr->fts_statp, -1))
 					rval = 1;
 				if (preserve_dir_acls(curr->fts_statp,
-				    curr->fts_accpath, to.p_path) != 0)
+					curr->fts_accpath, to.p_path) != 0)
 					rval = 1;
 			} else {
 				mode = curr->fts_statp->st_mode;
@@ -468,7 +467,7 @@ copy(char *argv[], enum op type, int fts_options, struct stat *root_stat)
 			if (!S_ISDIR(curr->fts_statp->st_mode) &&
 			    S_ISDIR(to_stat.st_mode)) {
 				warnx("cannot overwrite directory %s with "
-				    "non-directory %s",
+				      "non-directory %s",
 				    to.p_path, curr->fts_path);
 				badcp = rval = 1;
 				continue;
@@ -481,10 +480,10 @@ copy(char *argv[], enum op type, int fts_options, struct stat *root_stat)
 			/* Catch special case of a non-dangling symlink. */
 			if ((fts_options & FTS_LOGICAL) ||
 			    ((fts_options & FTS_COMFOLLOW) &&
-			    curr->fts_level == 0)) {
+				curr->fts_level == 0)) {
 				if (copy_file(curr, dne))
 					badcp = rval = 1;
-			} else {	
+			} else {
 				if (copy_link(curr, !dne))
 					badcp = rval = 1;
 			}
@@ -507,7 +506,7 @@ copy(char *argv[], enum op type, int fts_options, struct stat *root_stat)
 			 */
 			if (dne) {
 				if (mkdir(to.p_path,
-				    curr->fts_statp->st_mode | S_IRWXU) < 0)
+					curr->fts_statp->st_mode | S_IRWXU) < 0)
 					err(1, "%s", to.p_path);
 				/*
 				 * First DNE with a NULL root_stat is the root
@@ -544,8 +543,7 @@ copy(char *argv[], enum op type, int fts_options, struct stat *root_stat)
 			}
 			break;
 		case S_IFSOCK:
-			warnx("%s is a socket (not copied).",
-			    curr->fts_path);
+			warnx("%s is a socket (not copied).", curr->fts_path);
 			break;
 		case S_IFIFO:
 			if (Rflag && !sflag) {

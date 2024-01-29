@@ -31,11 +31,12 @@
 
 #include <sys/param.h>
 #include <sys/time.h>
-#include <stddef.h>
-#include <stdarg.h>
-#include <string.h>
-#include <stand.h>
+
 #include <bootstrap.h>
+#include <stand.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <string.h>
 
 #include "libuserboot.h"
 
@@ -56,7 +57,7 @@ static int
 host_close(struct open_file *f)
 {
 
-        CALLBACK(close, f->f_fsdata);
+	CALLBACK(close, f->f_fsdata);
 	f->f_fsdata = (void *)0;
 
 	return (0);
@@ -82,7 +83,7 @@ host_seek(struct open_file *f, off_t offset, int where)
 static int
 host_stat(struct open_file *f, struct stat *sb)
 {
-	
+
 	CALLBACK(stat, f->f_fsdata, sb);
 	return (0);
 }
@@ -96,7 +97,7 @@ host_readdir(struct open_file *f, struct dirent *d)
 	int rc;
 
 	rc = CALLBACK(readdir, f->f_fsdata, &fileno, &type, &namelen,
-            d->d_name);
+	    d->d_name);
 	if (rc)
 		return (rc);
 
@@ -145,8 +146,8 @@ host_dev_close(struct open_file *f)
 }
 
 static int
-host_dev_strategy(void *devdata, int rw, daddr_t dblk, size_t size,
-    char *buf, size_t *rsize)
+host_dev_strategy(void *devdata, int rw, daddr_t dblk, size_t size, char *buf,
+    size_t *rsize)
 {
 
 	return (ENOSYS);

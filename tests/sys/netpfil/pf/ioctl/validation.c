@@ -23,31 +23,29 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
-#include <sys/module.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/ioctl.h>
+#include <sys/module.h>
 #include <sys/socket.h>
 
 #include <net/if.h>
 #include <net/pfvar.h>
 
+#include <atf-c.h>
 #include <fcntl.h>
 #include <stdio.h>
 
-#include <atf-c.h>
-
 static int dev;
 
-#define COMMON_HEAD() \
-	if (modfind("pf") == -1) \
+#define COMMON_HEAD()                         \
+	if (modfind("pf") == -1)              \
 		atf_tc_skip("pf not loaded"); \
-	dev = open("/dev/pf", O_RDWR); \
-	if (dev == -1) \
+	dev = open("/dev/pf", O_RDWR);        \
+	if (dev == -1)                        \
 		atf_tc_skip("Failed to open /dev/pf");
 
-#define COMMON_CLEANUP() \
-	close(dev);
+#define COMMON_CLEANUP() close(dev);
 
 static void
 common_init_tbl(struct pfr_table *tbl)
@@ -892,7 +890,6 @@ ATF_TC_CLEANUP(rpool_mtx2, tc)
 {
 	COMMON_CLEANUP();
 }
-
 
 ATF_TP_ADD_TCS(tp)
 {

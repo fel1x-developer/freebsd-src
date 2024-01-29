@@ -31,15 +31,13 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "efx.h"
 #include "efx_impl.h"
 
-	__checkReturn	efx_rc_t
-efx_sram_buf_tbl_set(
-	__in		efx_nic_t *enp,
-	__in		uint32_t id,
-	__in		efsys_mem_t *esmp,
-	__in		size_t n)
+__checkReturn efx_rc_t
+efx_sram_buf_tbl_set(__in efx_nic_t *enp, __in uint32_t id,
+    __in efsys_mem_t *esmp, __in size_t n)
 {
 	efx_qword_t qword;
 	uint32_t start = id;
@@ -67,7 +65,7 @@ efx_sram_buf_tbl_set(
 
 		return (0);
 	}
-#endif	/* EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2 */
+#endif /* EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2 */
 
 	if (stop >= EFX_BUF_TBL_SIZE) {
 		rc = EFBIG;
@@ -77,16 +75,13 @@ efx_sram_buf_tbl_set(
 	/* Add the entries into the buffer table */
 	addr = EFSYS_MEM_ADDR(esmp);
 	for (id = start; id != stop; id++) {
-		EFX_POPULATE_QWORD_5(qword,
-		    FRF_AZ_IP_DAT_BUF_SIZE, 0, FRF_AZ_BUF_ADR_REGION, 0,
-		    FRF_AZ_BUF_ADR_FBUF_DW0,
+		EFX_POPULATE_QWORD_5(qword, FRF_AZ_IP_DAT_BUF_SIZE, 0,
+		    FRF_AZ_BUF_ADR_REGION, 0, FRF_AZ_BUF_ADR_FBUF_DW0,
 		    (uint32_t)((addr >> 12) & 0xffffffff),
-		    FRF_AZ_BUF_ADR_FBUF_DW1,
-		    (uint32_t)((addr >> 12) >> 32),
+		    FRF_AZ_BUF_ADR_FBUF_DW1, (uint32_t)((addr >> 12) >> 32),
 		    FRF_AZ_BUF_OWNER_ID_FBUF, 0);
 
-		EFX_BAR_TBL_WRITEQ(enp, FR_AZ_BUF_FULL_TBL,
-				    id, &qword);
+		EFX_BAR_TBL_WRITEQ(enp, FR_AZ_BUF_FULL_TBL, id, &qword);
 
 		addr += EFX_BUF_SIZE;
 	}
@@ -94,8 +89,8 @@ efx_sram_buf_tbl_set(
 	EFSYS_PROBE2(buf, uint32_t, start, uint32_t, stop - 1);
 
 	/* Flush the write buffer */
-	EFX_POPULATE_OWORD_2(oword, FRF_AZ_BUF_UPD_CMD, 1,
-	    FRF_AZ_BUF_CLR_CMD, 0);
+	EFX_POPULATE_OWORD_2(oword, FRF_AZ_BUF_UPD_CMD, 1, FRF_AZ_BUF_CLR_CMD,
+	    0);
 	EFX_BAR_WRITEO(enp, FR_AZ_BUF_TBL_UPD_REG, &oword);
 
 	/* Poll for the last entry being written to the buffer table */
@@ -109,13 +104,12 @@ efx_sram_buf_tbl_set(
 		/* Spin for 1 ms */
 		EFSYS_SPIN(1000);
 
-		EFX_BAR_TBL_READQ(enp, FR_AZ_BUF_FULL_TBL,
-				    id - 1, &qword);
+		EFX_BAR_TBL_READQ(enp, FR_AZ_BUF_FULL_TBL, id - 1, &qword);
 
 		if (EFX_QWORD_FIELD(qword, FRF_AZ_BUF_ADR_FBUF_DW0) ==
-		    (uint32_t)((addr >> 12) & 0xffffffff) &&
+			(uint32_t)((addr >> 12) & 0xffffffff) &&
 		    EFX_QWORD_FIELD(qword, FRF_AZ_BUF_ADR_FBUF_DW1) ==
-		    (uint32_t)((addr >> 12) >> 32))
+			(uint32_t)((addr >> 12) >> 32))
 			goto verify;
 
 	} while (++count < 100);
@@ -129,13 +123,12 @@ verify:
 		addr -= EFX_BUF_SIZE;
 
 		/* Read the buffer table entry */
-		EFX_BAR_TBL_READQ(enp, FR_AZ_BUF_FULL_TBL,
-				    id - 1, &qword);
+		EFX_BAR_TBL_READQ(enp, FR_AZ_BUF_FULL_TBL, id - 1, &qword);
 
 		if (EFX_QWORD_FIELD(qword, FRF_AZ_BUF_ADR_FBUF_DW0) !=
-		    (uint32_t)((addr >> 12) & 0xffffffff) ||
+			(uint32_t)((addr >> 12) & 0xffffffff) ||
 		    EFX_QWORD_FIELD(qword, FRF_AZ_BUF_ADR_FBUF_DW1) !=
-		    (uint32_t)((addr >> 12) >> 32)) {
+			(uint32_t)((addr >> 12) >> 32)) {
 			rc = EFAULT;
 			goto fail3;
 		}
@@ -151,9 +144,8 @@ fail3:
 fail2:
 	EFSYS_PROBE(fail2);
 
-	EFX_POPULATE_OWORD_4(oword, FRF_AZ_BUF_UPD_CMD, 0,
-	    FRF_AZ_BUF_CLR_CMD, 1, FRF_AZ_BUF_CLR_END_ID, id - 1,
-	    FRF_AZ_BUF_CLR_START_ID, start);
+	EFX_POPULATE_OWORD_4(oword, FRF_AZ_BUF_UPD_CMD, 0, FRF_AZ_BUF_CLR_CMD,
+	    1, FRF_AZ_BUF_CLR_END_ID, id - 1, FRF_AZ_BUF_CLR_START_ID, start);
 	EFX_BAR_WRITEO(enp, FR_AZ_BUF_TBL_UPD_REG, &oword);
 
 fail1:
@@ -162,11 +154,8 @@ fail1:
 	return (rc);
 }
 
-		void
-efx_sram_buf_tbl_clear(
-	__in	efx_nic_t *enp,
-	__in	uint32_t id,
-	__in	size_t n)
+void
+efx_sram_buf_tbl_clear(__in efx_nic_t *enp, __in uint32_t id, __in size_t n)
 {
 	efx_oword_t oword;
 	uint32_t start = id;
@@ -190,40 +179,35 @@ efx_sram_buf_tbl_clear(
 
 		return;
 	}
-#endif	/* EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2 */
+#endif /* EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2 */
 
 	EFSYS_ASSERT3U(stop, <, EFX_BUF_TBL_SIZE);
 
 	EFSYS_PROBE2(buf, uint32_t, start, uint32_t, stop - 1);
 
-	EFX_POPULATE_OWORD_4(oword, FRF_AZ_BUF_UPD_CMD, 0,
-	    FRF_AZ_BUF_CLR_CMD, 1, FRF_AZ_BUF_CLR_END_ID, stop - 1,
-	    FRF_AZ_BUF_CLR_START_ID, start);
+	EFX_POPULATE_OWORD_4(oword, FRF_AZ_BUF_UPD_CMD, 0, FRF_AZ_BUF_CLR_CMD,
+	    1, FRF_AZ_BUF_CLR_END_ID, stop - 1, FRF_AZ_BUF_CLR_START_ID, start);
 	EFX_BAR_WRITEO(enp, FR_AZ_BUF_TBL_UPD_REG, &oword);
 }
 
 #if EFSYS_OPT_DIAG
 
-static			void
-efx_sram_byte_increment_set(
-	__in		size_t row,
-	__in		boolean_t negate,
-	__out		efx_qword_t *eqp)
+static void
+efx_sram_byte_increment_set(__in size_t row, __in boolean_t negate,
+    __out efx_qword_t *eqp)
 {
 	size_t offset = row * FR_AZ_SRM_DBG_REG_STEP;
 	unsigned int index;
 
 	_NOTE(ARGUNUSED(negate))
 
-	for (index = 0; index < sizeof (efx_qword_t); index++)
+	for (index = 0; index < sizeof(efx_qword_t); index++)
 		eqp->eq_u8[index] = offset + index;
 }
 
-static			void
-efx_sram_all_the_same_set(
-	__in		size_t row,
-	__in		boolean_t negate,
-	__out		efx_qword_t *eqp)
+static void
+efx_sram_all_the_same_set(__in size_t row, __in boolean_t negate,
+    __out efx_qword_t *eqp)
 {
 	_NOTE(ARGUNUSED(row))
 
@@ -233,42 +217,36 @@ efx_sram_all_the_same_set(
 		EFX_ZERO_QWORD(*eqp);
 }
 
-static			void
-efx_sram_bit_alternate_set(
-	__in		size_t row,
-	__in		boolean_t negate,
-	__out		efx_qword_t *eqp)
+static void
+efx_sram_bit_alternate_set(__in size_t row, __in boolean_t negate,
+    __out efx_qword_t *eqp)
 {
 	_NOTE(ARGUNUSED(row))
 
-	EFX_POPULATE_QWORD_2(*eqp,
-	    EFX_DWORD_0, (negate) ? 0x55555555 : 0xaaaaaaaa,
-	    EFX_DWORD_1, (negate) ? 0x55555555 : 0xaaaaaaaa);
+	EFX_POPULATE_QWORD_2(*eqp, EFX_DWORD_0,
+	    (negate) ? 0x55555555 : 0xaaaaaaaa, EFX_DWORD_1,
+	    (negate) ? 0x55555555 : 0xaaaaaaaa);
 }
 
-static			void
-efx_sram_byte_alternate_set(
-	__in		size_t row,
-	__in		boolean_t negate,
-	__out		efx_qword_t *eqp)
+static void
+efx_sram_byte_alternate_set(__in size_t row, __in boolean_t negate,
+    __out efx_qword_t *eqp)
 {
 	_NOTE(ARGUNUSED(row))
 
-	EFX_POPULATE_QWORD_2(*eqp,
-	    EFX_DWORD_0, (negate) ? 0x00ff00ff : 0xff00ff00,
-	    EFX_DWORD_1, (negate) ? 0x00ff00ff : 0xff00ff00);
+	EFX_POPULATE_QWORD_2(*eqp, EFX_DWORD_0,
+	    (negate) ? 0x00ff00ff : 0xff00ff00, EFX_DWORD_1,
+	    (negate) ? 0x00ff00ff : 0xff00ff00);
 }
 
-static			void
-efx_sram_byte_changing_set(
-	__in		size_t row,
-	__in		boolean_t negate,
-	__out		efx_qword_t *eqp)
+static void
+efx_sram_byte_changing_set(__in size_t row, __in boolean_t negate,
+    __out efx_qword_t *eqp)
 {
 	size_t offset = row * FR_AZ_SRM_DBG_REG_STEP;
 	unsigned int index;
 
-	for (index = 0; index < sizeof (efx_qword_t); index++) {
+	for (index = 0; index < sizeof(efx_qword_t); index++) {
 		uint8_t byte;
 
 		if (offset / 256 == 0)
@@ -280,36 +258,28 @@ efx_sram_byte_changing_set(
 	}
 }
 
-static			void
-efx_sram_bit_sweep_set(
-	__in		size_t row,
-	__in		boolean_t negate,
-	__out		efx_qword_t *eqp)
+static void
+efx_sram_bit_sweep_set(__in size_t row, __in boolean_t negate,
+    __out efx_qword_t *eqp)
 {
 	size_t offset = row * FR_AZ_SRM_DBG_REG_STEP;
 
 	if (negate) {
 		EFX_SET_QWORD(*eqp);
-		EFX_CLEAR_QWORD_BIT(*eqp, (offset / sizeof (efx_qword_t)) % 64);
+		EFX_CLEAR_QWORD_BIT(*eqp, (offset / sizeof(efx_qword_t)) % 64);
 	} else {
 		EFX_ZERO_QWORD(*eqp);
-		EFX_SET_QWORD_BIT(*eqp, (offset / sizeof (efx_qword_t)) % 64);
+		EFX_SET_QWORD_BIT(*eqp, (offset / sizeof(efx_qword_t)) % 64);
 	}
 }
 
-efx_sram_pattern_fn_t	__efx_sram_pattern_fns[] = {
-	efx_sram_byte_increment_set,
-	efx_sram_all_the_same_set,
-	efx_sram_bit_alternate_set,
-	efx_sram_byte_alternate_set,
-	efx_sram_byte_changing_set,
-	efx_sram_bit_sweep_set
-};
+efx_sram_pattern_fn_t __efx_sram_pattern_fns[] = { efx_sram_byte_increment_set,
+	efx_sram_all_the_same_set, efx_sram_bit_alternate_set,
+	efx_sram_byte_alternate_set, efx_sram_byte_changing_set,
+	efx_sram_bit_sweep_set };
 
-	__checkReturn	efx_rc_t
-efx_sram_test(
-	__in		efx_nic_t *enp,
-	__in		efx_pattern_type_t type)
+__checkReturn efx_rc_t
+efx_sram_test(__in efx_nic_t *enp, __in efx_pattern_type_t type)
 {
 	efx_sram_pattern_fn_t func;
 
@@ -332,4 +302,4 @@ efx_sram_test(
 	return (siena_sram_test(enp, func));
 }
 
-#endif	/* EFSYS_OPT_DIAG */
+#endif /* EFSYS_OPT_DIAG */

@@ -58,7 +58,7 @@
  * that no other process will be simultaneously frobbing it, and these tests
  * may fail if that assumption is not held.
  */
-static int	somaxconn;
+static int somaxconn;
 
 /*
  * Retrieve the current socket listen queue limit using SO_LISTENQLIMIT.
@@ -73,14 +73,14 @@ socket_get_backlog(int sock, int *backlogp, const char *testclass,
 	len = sizeof(i);
 	if (getsockopt(sock, SOL_SOCKET, SO_LISTENQLIMIT, &i, &len) < 0) {
 		warn("%s: %s: %s: socket_get_backlog: getsockopt("
-		    "SOL_SOCKET, SO_LISTENQLIMIT)", testclass, test,
-		    testfunc);
+		     "SOL_SOCKET, SO_LISTENQLIMIT)",
+		    testclass, test, testfunc);
 		return (-1);
 	}
 
 	if (len != sizeof(i)) {
 		warnx("%s: %s: %s: socket_get_backlog: getsockopt("
-		    "SOL_SOCKET, SO_LISTENQLIMIT): returned size %d",
+		      "SOL_SOCKET, SO_LISTENQLIMIT): returned size %d",
 		    testclass, test, testfunc, len);
 		return (-1);
 	}
@@ -104,14 +104,14 @@ socket_listen(int domain, int type, int protocol, int backlog,
 
 	sock = socket(domain, type, protocol);
 	if (sock < 0) {
-		warn("%s: %s: socket_listen: socket(%s, %s)", testclass,
-		    test, domainstring, typestring);
+		warn("%s: %s: socket_listen: socket(%s, %s)", testclass, test,
+		    domainstring, typestring);
 		close(sock);
 		return (-1);
 	}
 
 	if (socket_get_backlog(sock, &backlog_retrieved, testclass, test,
-	    "socket_listen") < 0) {
+		"socket_listen") < 0) {
 		close(sock);
 		return (-1);
 	}
@@ -132,7 +132,7 @@ socket_listen(int domain, int type, int protocol, int backlog,
 	}
 
 	if (socket_get_backlog(sock, &backlog_retrieved, testclass, test,
-	    "socket_listen") < 0) {
+		"socket_listen") < 0) {
 		close(sock);
 		return (-1);
 	}
@@ -166,7 +166,7 @@ test_defaults(void)
 	 * 0 and confirm it gets set that way.
 	 */
 	if (socket_listen(PF_INET, SOCK_STREAM, 0, 0, 0, 0, &sock, "PF_INET",
-	    "SOCK_STREAM", "test_defaults", "default_0_listen_0") < 0)
+		"SOCK_STREAM", "test_defaults", "default_0_listen_0") < 0)
 		exit(-1);
 	close(sock);
 
@@ -175,8 +175,8 @@ test_defaults(void)
 	 * to somaxconn.
 	 */
 	if (socket_listen(PF_INET, SOCK_STREAM, 0, -1, 0, somaxconn, &sock,
-	    "PF_INET", "SOCK_STREAM", "test_defaults", "default_0_listen_-1")
-	    < 0)
+		"PF_INET", "SOCK_STREAM", "test_defaults",
+		"default_0_listen_-1") < 0)
 		exit(-1);
 	close(sock);
 
@@ -185,7 +185,7 @@ test_defaults(void)
 	 * 1.
 	 */
 	if (socket_listen(PF_INET, SOCK_STREAM, 0, 1, 0, 1, &sock, "PF_INET",
-	    "SOCK_STREAM", "test_defaults", "default_0_listen_1") < 0)
+		"SOCK_STREAM", "test_defaults", "default_0_listen_1") < 0)
 		exit(-1);
 	close(sock);
 
@@ -194,8 +194,8 @@ test_defaults(void)
 	 * is set to somaxconn.
 	 */
 	if (socket_listen(PF_INET, SOCK_STREAM, 0, somaxconn, 0, somaxconn,
-	    &sock, "PF_INET", "SOCK_STREAM", "test_defaults",
-	    "default_0_listen_somaxconn") < 0)
+		&sock, "PF_INET", "SOCK_STREAM", "test_defaults",
+		"default_0_listen_somaxconn") < 0)
 		exit(-1);
 	close(sock);
 
@@ -203,9 +203,9 @@ test_defaults(void)
 	 * Fifth pass.  Listen with a backlog of somaxconn+1 and make sure it
 	 * is set to somaxconn.
 	 */
-	if (socket_listen(PF_INET, SOCK_STREAM, 0, somaxconn+1, 0, somaxconn,
-	    &sock, "PF_INET", "SOCK_STREAM", "test_defaults",
-	    "default_0_listen_somaxconn+1") < 0)
+	if (socket_listen(PF_INET, SOCK_STREAM, 0, somaxconn + 1, 0, somaxconn,
+		&sock, "PF_INET", "SOCK_STREAM", "test_defaults",
+		"default_0_listen_somaxconn+1") < 0)
 		exit(-1);
 	close(sock);
 }
@@ -217,17 +217,17 @@ test_defaults(void)
  */
 static int
 socket_listen_update(int domain __unused, int type __unused,
-    int protocol __unused, int backlog,
-    int update_backlog, int listen_backlog_assertion,
-    int update_backlog_assertion, int *sockp, const char *domainstring,
-    const char *typestring, const char *testclass, const char *test)
+    int protocol __unused, int backlog, int update_backlog,
+    int listen_backlog_assertion, int update_backlog_assertion, int *sockp,
+    const char *domainstring, const char *typestring, const char *testclass,
+    const char *test)
 {
 	int backlog_retrieved, sock;
 
 	sock = socket(PF_INET, SOCK_STREAM, 0);
 	if (sock < 0) {
-		warn("%s: %s: socket_listen_update: socket(%s, %s)",
-		    testclass, test, domainstring, typestring);
+		warn("%s: %s: socket_listen_update: socket(%s, %s)", testclass,
+		    test, domainstring, typestring);
 		return (-1);
 	}
 
@@ -239,14 +239,15 @@ socket_listen_update(int domain __unused, int type __unused,
 	}
 
 	if (socket_get_backlog(sock, &backlog_retrieved, testclass, test,
-	    "socket_listen_update") < 0) {
+		"socket_listen_update") < 0) {
 		close(sock);
 		return (-1);
 	}
 
 	if (backlog_retrieved != listen_backlog_assertion) {
 		warnx("%s: %s: socket_listen_update: initial backlog is %d "
-		    "not %d", testclass, test, backlog_retrieved,
+		      "not %d",
+		    testclass, test, backlog_retrieved,
 		    listen_backlog_assertion);
 		close(sock);
 		return (-1);
@@ -260,14 +261,15 @@ socket_listen_update(int domain __unused, int type __unused,
 	}
 
 	if (socket_get_backlog(sock, &backlog_retrieved, testclass, test,
-	    "socket_listen_update") < 0) {
+		"socket_listen_update") < 0) {
 		close(sock);
 		return (-1);
 	}
 
 	if (backlog_retrieved != update_backlog_assertion) {
 		warnx("%s: %s: socket_listen_update: updated backlog is %d "
-		    "not %d", testclass, test, backlog_retrieved,
+		      "not %d",
+		    testclass, test, backlog_retrieved,
 		    update_backlog_assertion);
 		close(sock);
 		return (-1);
@@ -291,8 +293,8 @@ test_listen_update(void)
 	 * Set to 5, update to -1, which should give somaxconn.
 	 */
 	if (socket_listen_update(PF_INET, SOCK_STREAM, 0, 5, -1, 5, somaxconn,
-	    &sock, "PF_INET", "SOCK_STREAM", "test_listen_update",
-	    "update_5,-1") < 0)
+		&sock, "PF_INET", "SOCK_STREAM", "test_listen_update",
+		"update_5,-1") < 0)
 		exit(-1);
 	close(sock);
 
@@ -300,8 +302,8 @@ test_listen_update(void)
 	 * Set to 5, update to 0, which should give 0.
 	 */
 	if (socket_listen_update(PF_INET, SOCK_STREAM, 0, 5, 0, 5, 0, &sock,
-	    "PF_INET", "SOCK_STREAM", "test_listen_update", "update_5,0")
-	    < 0)
+		"PF_INET", "SOCK_STREAM", "test_listen_update",
+		"update_5,0") < 0)
 		exit(-1);
 	close(sock);
 
@@ -309,8 +311,8 @@ test_listen_update(void)
 	 * Set to 5, update to 1, which should give 1.
 	 */
 	if (socket_listen_update(PF_INET, SOCK_STREAM, 0, 5, 1, 5, 1, &sock,
-	    "PF_INET", "SOCK_STREAM", "test_listen_update", "update_5,1")
-	    < 0)
+		"PF_INET", "SOCK_STREAM", "test_listen_update",
+		"update_5,1") < 0)
 		exit(-1);
 	close(sock);
 
@@ -318,17 +320,17 @@ test_listen_update(void)
 	 * Set to 5, update to somaxconn, which should give somaxconn.
 	 */
 	if (socket_listen_update(PF_INET, SOCK_STREAM, 0, 5, somaxconn, 5,
-	    somaxconn, &sock, "PF_INET", "SOCK_STREAM", "test_listen_update",
-	    "update_5,somaxconn") < 0)
+		somaxconn, &sock, "PF_INET", "SOCK_STREAM",
+		"test_listen_update", "update_5,somaxconn") < 0)
 		exit(-1);
 	close(sock);
 
 	/*
 	 * Set to 5, update to somaxconn+1, which should give somaxconn.
 	 */
-	if (socket_listen_update(PF_INET, SOCK_STREAM, 0, 5, somaxconn+1, 5,
-	    somaxconn, &sock, "PF_INET", "SOCK_STREAM", "test_listen_update",
-	    "update_5,somaxconn+1") < 0)
+	if (socket_listen_update(PF_INET, SOCK_STREAM, 0, 5, somaxconn + 1, 5,
+		somaxconn, &sock, "PF_INET", "SOCK_STREAM",
+		"test_listen_update", "update_5,somaxconn+1") < 0)
 		exit(-1);
 	close(sock);
 }
@@ -350,13 +352,13 @@ test_set_qlimit(void)
 	ret = setsockopt(sock, SOL_SOCKET, SO_LISTENQLIMIT, &i, sizeof(i));
 	if (ret < 0 && errno != ENOPROTOOPT) {
 		warn("test_set_qlimit: setsockopt(SOL_SOCKET, "
-		    "SO_LISTENQLIMIT, 0): unexpected error");
+		     "SO_LISTENQLIMIT, 0): unexpected error");
 		close(sock);
 	}
 
 	if (ret == 0) {
 		warnx("test_set_qlimit: setsockopt(SOL_SOCKET, "
-		    "SO_LISTENQLIMIT, 0) succeeded");
+		      "SO_LISTENQLIMIT, 0) succeeded");
 		close(sock);
 		exit(-1);
 	}
@@ -369,8 +371,8 @@ main(void)
 	size_t len;
 
 	len = sizeof(somaxconn);
-	if (sysctlbyname("kern.ipc.soacceptqueue", &somaxconn, &len, NULL, 0)
-	    < 0)
+	if (sysctlbyname("kern.ipc.soacceptqueue", &somaxconn, &len, NULL, 0) <
+	    0)
 		err(-1, "sysctlbyname(kern.ipc.soacceptqueue)");
 
 	test_defaults();

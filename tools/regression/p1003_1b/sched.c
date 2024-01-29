@@ -43,12 +43,13 @@
 #define _POSIX_C_SOURCE 199309L
 
 #include <sys/mman.h>
+
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <sched.h>
 #include <stdio.h>
-#define	__XSI_VISIBLE 1
+#define __XSI_VISIBLE 1
 #include <stdlib.h>
 #undef __XSI_VISIBLE
 #include <string.h>
@@ -66,44 +67,46 @@ checkpris(int sched)
 
 	errno = 0;
 
-	if ( (smin = sched_get_priority_min(sched)) == -1 && errno)
+	if ((smin = sched_get_priority_min(sched)) == -1 && errno)
 		quit("sched_get_priority_min");
 
-	if ( (smax = sched_get_priority_max(sched)) == -1 && errno)
+	if ((smax = sched_get_priority_max(sched)) == -1 && errno)
 		quit("sched_get_priority_max");
 
 	if (smax - smin + 1 < 32 || smax < smin) {
 		fprintf(stderr, "Illegal priority range for %s: %d to %d\n",
-		sched_text(sched), smin, smax);
+		    sched_text(sched), smin, smax);
 		exit(-1);
 	}
 
 	if (verbose)
 		fprintf(verbose, "%12s: sched_min %2d sched_max %2d\n",
-		sched_text(sched), smin, smax);
+		    sched_text(sched), smin, smax);
 }
 
 /* Set "try_anyway" to quit if you don't want to go on when
  * it doesn't look like something should work.
  */
-static void try_anyway(const char *s)
+static void
+try_anyway(const char *s)
 {
 	fputs(s, stderr);
 	fprintf(stderr, "(trying anyway)\n");
 	errno = 0;
 }
 
-static void q(int line, int code, const char *text)
+static void
+q(int line, int code, const char *text)
 {
-	if (code == -1)
-	{
+	if (code == -1) {
 		fprintf(stderr, "Error at line %d:\n", line);
 		perror(text);
 		exit(errno);
 	}
 }
 
-int sched(int ac, char *av[])
+int
+sched(int ac, char *av[])
 {
 	int fifo_schedmin, fifo_schedmax;
 	int i;
@@ -119,7 +122,7 @@ int sched(int ac, char *av[])
 
 #if !defined(_POSIX_PRIORITY_SCHEDULING)
 	try_anyway(
-	"The environment does not claim to support Posix scheduling.\n");
+	    "The environment does not claim to support Posix scheduling.\n");
 #endif
 
 	/* Is priority scheduling configured?
@@ -129,12 +132,11 @@ int sched(int ac, char *av[])
 		if (errno != 0) {
 			/* This isn't valid - may be a standard violation
 			 */
-			quit("(should not happen) sysconf(_SC_PRIORITY_SCHEDULING)");
-		}
-		else {
-			try_anyway(
-			"The environment does not have run-time "
-			"support for Posix scheduling.\n");
+			quit(
+			    "(should not happen) sysconf(_SC_PRIORITY_SCHEDULING)");
+		} else {
+			try_anyway("The environment does not have run-time "
+				   "support for Posix scheduling.\n");
 		}
 	}
 
@@ -162,18 +164,19 @@ int sched(int ac, char *av[])
 
 		if (verbose)
 			fprintf(verbose,
-			"The original scheduler is %s and the priority is %d.\n",
-			sched_text(orig_scheduler), orig_param.sched_priority);
+			    "The original scheduler is %s and the priority is %d.\n",
+			    sched_text(orig_scheduler),
+			    orig_param.sched_priority);
 
 		/* Basic check: Try to set current settings:
 		 */
 		q(__LINE__, sched_setscheduler(0, orig_scheduler, &orig_param),
-			"sched_setscheduler: Can't set original scheduler");
+		    "sched_setscheduler: Can't set original scheduler");
 
 		rt_param.sched_priority = fifo_schedmin;
 
 		q(__LINE__, sched_setscheduler(0, SCHED_FIFO, &rt_param),
-		"sched_setscheduler SCHED_FIFO");
+		    "sched_setscheduler SCHED_FIFO");
 
 		(void)sched_is(__LINE__, 0, SCHED_FIFO);
 
@@ -185,30 +188,28 @@ int sched(int ac, char *av[])
 		rt_param.sched_priority = fifo_schedmin;
 
 		q(__LINE__, sched_setparam(0, &rt_param),
-			"sched_setparam to fifo_schedmin");
+		    "sched_setparam to fifo_schedmin");
 
 		rt_param.sched_priority = fifo_schedmin + 1;
 
 		q(__LINE__, sched_setparam(0, &rt_param),
-			"sched_setparam to fifo_schedmin + 1");
+		    "sched_setparam to fifo_schedmin + 1");
 
-		q(__LINE__, sched_getparam(0, &shouldbe),
-			"sched_getparam");
+		q(__LINE__, sched_getparam(0, &shouldbe), "sched_getparam");
 
 		if (shouldbe.sched_priority != fifo_schedmin + 1)
 			quit("sched_setscheduler wrong priority (min + 1)");
 
 		q(__LINE__, sched_setscheduler(0, SCHED_RR, &rt_param),
-			"sched_setscheduler SCHED_RR");
+		    "sched_setscheduler SCHED_RR");
 
 		(void)sched_is(__LINE__, 0, SCHED_RR);
 
 		q(__LINE__, sched_setscheduler(0, orig_scheduler, &orig_param),
-			"sched_setscheduler restoring original scheduler");
+		    "sched_setscheduler restoring original scheduler");
 
 		(void)sched_is(__LINE__, 0, orig_scheduler);
 	}
-
 
 	{
 		char nam[] = "P1003_1b_schedXXXXXX";
@@ -226,24 +227,25 @@ int sched(int ac, char *av[])
 
 		write(fd, &p, sizeof(p));
 
-		q(__LINE__,  (int)(lastrun = mmap(0, sizeof(*lastrun), PROT_READ|PROT_WRITE,
-		MAP_SHARED, fd, 0)), "mmap");
+		q(__LINE__,
+		    (int)(lastrun = mmap(0, sizeof(*lastrun),
+			      PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0)),
+		    "mmap");
 
 		/* Set our priority at the highest:
 		 */
 		sched = SCHED_FIFO;
 		rt_param.sched_priority = fifo_schedmax;
 		q(__LINE__, sched_setscheduler(0, sched, &rt_param),
-		"sched_setscheduler sched");
+		    "sched_setscheduler sched");
 
-		for (i = 0; i < n_instances; i++)
-		{
+		for (i = 0; i < n_instances; i++) {
 			pid_t me;
 
-			/* XXX This is completely bogus.  The children never run.
+			/* XXX This is completely bogus.  The children never
+			 * run.
 			 */
-			if ((me = fork()) != 0)
-			{
+			if ((me = fork()) != 0) {
 				/* Parent.
 				 */
 				(void)sched_is(__LINE__, 0, sched);
@@ -252,32 +254,38 @@ int sched(int ac, char *av[])
 				 */
 				rt_param.sched_priority--;
 
-				q(__LINE__, sched_setscheduler(0, sched, &rt_param),
-				"sched_setscheduler sched");
+				q(__LINE__,
+				    sched_setscheduler(0, sched, &rt_param),
+				    "sched_setscheduler sched");
 
-				while (1)
-				{
-					q(__LINE__, sched_getparam(0, &rt_param), "sched_getparam");
+				while (1) {
+					q(__LINE__,
+					    sched_getparam(0, &rt_param),
+					    "sched_getparam");
 
 					rt_param.sched_priority--;
 
-
-					if (rt_param.sched_priority < fifo_schedmin)
+					if (rt_param.sched_priority <
+					    fifo_schedmin)
 						exit(0);
 
 					*lastrun = me;
-					q(__LINE__, sched_setparam(0, &rt_param), "sched_setparam");
+					q(__LINE__,
+					    sched_setparam(0, &rt_param),
+					    "sched_setparam");
 
-					if (*lastrun == me)
-					{
+					if (*lastrun == me) {
 						/* The child will run twice
 						 * at  the end:
 						 */
-						if (!me || rt_param.sched_priority != 0)
-						{
+						if (!me ||
+						    rt_param.sched_priority !=
+							0) {
 							fprintf(stderr,
-							"ran process %ld twice at priority %d\n",
-							(long)me, rt_param.sched_priority + 1);
+							    "ran process %ld twice at priority %d\n",
+							    (long)me,
+							    rt_param.sched_priority +
+								1);
 							exit(-1);
 						}
 					}
@@ -289,5 +297,9 @@ int sched(int ac, char *av[])
 	return 0;
 }
 #ifdef STANDALONE_TESTS
-int main(int argc, char *argv[]) { return sched(argc, argv); }
+int
+main(int argc, char *argv[])
+{
+	return sched(argc, argv);
+}
 #endif

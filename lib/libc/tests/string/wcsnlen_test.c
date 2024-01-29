@@ -26,13 +26,13 @@
 
 #include <sys/param.h>
 #include <sys/mman.h>
+
 #include <assert.h>
+#include <atf-c.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-
-#include <atf-c.h>
 
 static void *
 makebuf(size_t len, int guard_at_end)

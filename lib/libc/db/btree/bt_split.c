@@ -34,24 +34,24 @@
 
 #include <sys/param.h>
 
+#include <db.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <db.h>
 #include "btree.h"
 
-static int	 bt_broot(BTREE *, PAGE *, PAGE *, PAGE *);
-static PAGE	*bt_page(BTREE *, PAGE *, PAGE **, PAGE **, indx_t *, size_t);
-static int	 bt_preserve(BTREE *, pgno_t);
-static PAGE	*bt_psplit(BTREE *, PAGE *, PAGE *, PAGE *, indx_t *, size_t);
-static PAGE	*bt_root(BTREE *, PAGE *, PAGE **, PAGE **, indx_t *, size_t);
-static int	 bt_rroot(BTREE *, PAGE *, PAGE *, PAGE *);
-static recno_t	 rec_total(PAGE *);
+static int bt_broot(BTREE *, PAGE *, PAGE *, PAGE *);
+static PAGE *bt_page(BTREE *, PAGE *, PAGE **, PAGE **, indx_t *, size_t);
+static int bt_preserve(BTREE *, pgno_t);
+static PAGE *bt_psplit(BTREE *, PAGE *, PAGE *, PAGE *, indx_t *, size_t);
+static PAGE *bt_root(BTREE *, PAGE *, PAGE **, PAGE **, indx_t *, size_t);
+static int bt_rroot(BTREE *, PAGE *, PAGE *, PAGE *);
+static recno_t rec_total(PAGE *);
 
 #ifdef STATISTICS
-u_long	bt_rootsplit, bt_split, bt_sortsplit, bt_pfxsaved;
+u_long bt_rootsplit, bt_split, bt_sortsplit, bt_pfxsaved;
 #endif
 
 /*
@@ -91,9 +91,8 @@ __bt_split(BTREE *t, PAGE *sp, const DBT *key, const DBT *data, int flags,
 	 * are pinned.
 	 */
 	skip = argskip;
-	h = sp->pgno == P_ROOT ?
-	    bt_root(t, sp, &l, &r, &skip, ilen) :
-	    bt_page(t, sp, &l, &r, &skip, ilen);
+	h = sp->pgno == P_ROOT ? bt_root(t, sp, &l, &r, &skip, ilen) :
+				 bt_page(t, sp, &l, &r, &skip, ilen);
 	if (h == NULL)
 		return (RET_ERROR);
 
@@ -110,8 +109,8 @@ __bt_split(BTREE *t, PAGE *sp, const DBT *key, const DBT *data, int flags,
 
 	/* If the root page was split, make it look right. */
 	if (sp->pgno == P_ROOT &&
-	    (F_ISSET(t, R_RECNO) ?
-	    bt_rroot(t, sp, l, r) : bt_broot(t, sp, l, r)) == RET_ERROR)
+	    (F_ISSET(t, R_RECNO) ? bt_rroot(t, sp, l, r) :
+				   bt_broot(t, sp, l, r)) == RET_ERROR)
 		goto err2;
 
 	/*
@@ -201,7 +200,8 @@ __bt_split(BTREE *t, PAGE *sp, const DBT *key, const DBT *data, int flags,
 		}
 
 		/* Split the parent page if necessary or shift the indices. */
-		if ((u_int32_t)(h->upper - h->lower) < nbytes + sizeof(indx_t)) {
+		if ((u_int32_t)(h->upper - h->lower) <
+		    nbytes + sizeof(indx_t)) {
 			sp = h;
 			h = h->pgno == P_ROOT ?
 			    bt_root(t, h, &l, &r, &skip, nbytes) :
@@ -286,8 +286,8 @@ __bt_split(BTREE *t, PAGE *sp, const DBT *key, const DBT *data, int flags,
 
 		/* If the root page was split, make it look right. */
 		if (sp->pgno == P_ROOT &&
-		    (F_ISSET(t, R_RECNO) ?
-		    bt_rroot(t, sp, l, r) : bt_broot(t, sp, l, r)) == RET_ERROR)
+		    (F_ISSET(t, R_RECNO) ? bt_rroot(t, sp, l, r) :
+					   bt_broot(t, sp, l, r)) == RET_ERROR)
 			goto err1;
 
 		mpool_put(t->bt_mp, lchild, MPOOL_DIRTY);
@@ -306,10 +306,12 @@ __bt_split(BTREE *t, PAGE *sp, const DBT *key, const DBT *data, int flags,
 	 * up the tree and the tree is now inconsistent.  Nothing much we can
 	 * do about it but release any memory we're holding.
 	 */
-err1:	mpool_put(t->bt_mp, lchild, MPOOL_DIRTY);
+err1:
+	mpool_put(t->bt_mp, lchild, MPOOL_DIRTY);
 	mpool_put(t->bt_mp, rchild, MPOOL_DIRTY);
 
-err2:	mpool_put(t->bt_mp, l, 0);
+err2:
+	mpool_put(t->bt_mp, l, 0);
 	mpool_put(t->bt_mp, r, 0);
 	__dbpanic(t->bt_dbp);
 	return (RET_ERROR);
@@ -478,13 +480,13 @@ bt_rroot(BTREE *t, PAGE *h, PAGE *l, PAGE *r)
 	/* Insert the left and right keys, set the header information. */
 	h->linp[0] = h->upper = t->bt_psize - NRINTERNAL;
 	dest = (char *)h + h->upper;
-	WR_RINTERNAL(dest,
-	    l->flags & P_RLEAF ? NEXTINDEX(l) : rec_total(l), l->pgno);
+	WR_RINTERNAL(dest, l->flags & P_RLEAF ? NEXTINDEX(l) : rec_total(l),
+	    l->pgno);
 
 	__PAST_END(h->linp, 1) = h->upper -= NRINTERNAL;
 	dest = (char *)h + h->upper;
-	WR_RINTERNAL(dest,
-	    r->flags & P_RLEAF ? NEXTINDEX(r) : rec_total(r), r->pgno);
+	WR_RINTERNAL(dest, r->flags & P_RLEAF ? NEXTINDEX(r) : rec_total(r),
+	    r->pgno);
 
 	h->lower = BTDATAOFF + 2 * sizeof(indx_t);
 
@@ -542,7 +544,7 @@ bt_broot(BTREE *t, PAGE *h, PAGE *l, PAGE *r)
 		 * If the key is on an overflow page, mark the overflow chain
 		 * so it isn't deleted when the leaf copy of the key is deleted.
 		 */
-	if (bl->flags & P_BIGKEY) {
+		if (bl->flags & P_BIGKEY) {
 			pgno_t pgno;
 			memcpy(&pgno, bl->bytes, sizeof(pgno));
 			if (bt_preserve(t, pgno) == RET_ERROR)
@@ -613,7 +615,7 @@ bt_psplit(BTREE *t, PAGE *h, PAGE *l, PAGE *r, indx_t *pskip, size_t ilen)
 	for (nxt = off = 0, top = NEXTINDEX(h); nxt < top; ++off) {
 		if (skip == off) {
 			nbytes = ilen;
-			isbigkey = 0;		/* XXX: not really known. */
+			isbigkey = 0; /* XXX: not really known. */
 		} else
 			switch (h->flags & P_TYPE) {
 			case P_BINTERNAL:
@@ -686,9 +688,9 @@ bt_psplit(BTREE *t, PAGE *h, PAGE *l, PAGE *r, indx_t *pskip, size_t ilen)
 	if (F_ISSET(c, CURS_INIT) && c->pg.pgno == h->pgno) {
 		if (c->pg.index >= skip)
 			++c->pg.index;
-		if (c->pg.index < nxt)			/* Left page. */
+		if (c->pg.index < nxt) /* Left page. */
 			c->pg.pgno = l->pgno;
-		else {					/* Right page. */
+		else { /* Right page. */
 			c->pg.pgno = r->pgno;
 			c->pg.index -= nxt;
 		}

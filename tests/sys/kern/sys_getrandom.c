@@ -28,14 +28,13 @@
 
 #include <sys/param.h>
 #include <sys/random.h>
-#include <errno.h>
 
 #include <atf-c.h>
-
+#include <errno.h>
 #include <zstd.h>
 
 static const unsigned valid_flags[] = { 0, GRND_NONBLOCK, GRND_RANDOM,
-    GRND_NONBLOCK | GRND_RANDOM };
+	GRND_NONBLOCK | GRND_RANDOM };
 
 ATF_TC_WITHOUT_HEAD(getrandom_randomness);
 ATF_TC_BODY(getrandom_randomness, tc)
@@ -110,11 +109,13 @@ ATF_TC_BODY(getrandom_count, tc)
 
 	memset(buf, 0x7C, sizeof(buf));
 	ATF_REQUIRE_EQ(getrandom(buf, 255, 0), 255);
-	ATF_REQUIRE_EQ(memcmp(&buf[255], reference, sizeof(reference) - 255), 0);
+	ATF_REQUIRE_EQ(memcmp(&buf[255], reference, sizeof(reference) - 255),
+	    0);
 
 	memset(buf, 0x7C, sizeof(buf));
 	ATF_REQUIRE_EQ(getrandom(buf, 4095, 0), 4095);
-	ATF_REQUIRE_EQ(memcmp(&buf[4095], reference, sizeof(reference) - 4095), 0);
+	ATF_REQUIRE_EQ(memcmp(&buf[4095], reference, sizeof(reference) - 4095),
+	    0);
 }
 
 ATF_TP_ADD_TCS(tp)

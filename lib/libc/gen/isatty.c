@@ -39,5 +39,5 @@ isatty(int fd)
 	struct termios t;
 
 	retval = (tcgetattr(fd, &t) != -1);
-	return(retval);
+	return (retval);
 }

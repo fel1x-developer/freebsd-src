@@ -31,30 +31,32 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <dev/ppbus/lptio.h>
 
 #include <err.h>
 #include <fcntl.h>
-#include <unistd.h>
-
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
-#define DEFAULT_DEVICE	"/dev/lpt0.ctl"
-#define IRQ_UNSPECIFIED	-1
-#define DO_POLL		0
-#define USE_IRQ		1
-#define USE_EXT_MODE	2
-#define USE_STD_MODE	3
+#define DEFAULT_DEVICE "/dev/lpt0.ctl"
+#define IRQ_UNSPECIFIED -1
+#define DO_POLL 0
+#define USE_IRQ 1
+#define USE_EXT_MODE 2
+#define USE_STD_MODE 3
 
-static void usage(void)
+static void
+usage(void)
 {
 	fprintf(stderr,
-		"usage: lptcontrol -e | -i | -p | -s [[-d] controldevice]\n");
+	    "usage: lptcontrol -e | -i | -p | -s [[-d] controldevice]\n");
 	exit(1);
 }
 
-int main (int argc, char **argv)
+int
+main(int argc, char **argv)
 {
 	const char *device;
 	int fd;
@@ -102,5 +104,5 @@ int main (int argc, char **argv)
 		err(1, "ioctl");
 	close(fd);
 
-	return(0);
+	return (0);
 }

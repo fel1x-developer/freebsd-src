@@ -26,49 +26,47 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_bus.h"
+#include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/bus.h>
-#include <sys/queue.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/lockmgr.h>
-#include <sys/condvar.h>
+#include <sys/module.h>
+#include <sys/queue.h>
 #include <sys/rman.h>
-
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-#include <dev/usb/usb_core.h>
-#include <dev/usb/usb_busdma.h>
-#include <dev/usb/usb_process.h>
-#include <dev/usb/usb_util.h>
-#include <dev/usb/usb_controller.h>
-#include <dev/usb/usb_bus.h>
-#include <dev/usb/controller/ehci.h>
-#include <dev/usb/controller/ehcireg.h>
 
 #include <machine/bus.h>
 #include <machine/clock.h>
 #include <machine/resource.h>
 
-#include <powerpc/include/tlb.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+#include <dev/usb/controller/ehci.h>
+#include <dev/usb/controller/ehcireg.h>
+#include <dev/usb/usb.h>
+#include <dev/usb/usb_bus.h>
+#include <dev/usb/usb_busdma.h>
+#include <dev/usb/usb_controller.h>
+#include <dev/usb/usb_core.h>
+#include <dev/usb/usb_process.h>
+#include <dev/usb/usb_util.h>
+#include <dev/usb/usbdi.h>
 
-#include "opt_platform.h"
+#include <powerpc/include/tlb.h>
 
 /*
  * Register the driver
  */
 /* Forward declarations */
-static int	fsl_ehci_attach(device_t self);
-static int	fsl_ehci_detach(device_t self);
-static int	fsl_ehci_probe(device_t self);
+static int fsl_ehci_attach(device_t self);
+static int fsl_ehci_detach(device_t self);
+static int fsl_ehci_probe(device_t self);
 
 static device_method_t ehci_methods[] = {
 	/* Device interface */
@@ -80,16 +78,12 @@ static device_method_t ehci_methods[] = {
 	DEVMETHOD(device_shutdown, bus_generic_shutdown),
 
 	/* Bus interface */
-	DEVMETHOD(bus_print_child, bus_generic_print_child),
-	{ 0, 0 }
+	DEVMETHOD(bus_print_child, bus_generic_print_child), { 0, 0 }
 };
 
 /* kobj_class definition */
-static driver_t ehci_driver = {
-	"ehci",
-	ehci_methods,
-	sizeof(struct ehci_softc)
-};
+static driver_t ehci_driver = { "ehci", ehci_methods,
+	sizeof(struct ehci_softc) };
 
 DRIVER_MODULE(ehci, simplebus, ehci_driver, 0, 0);
 MODULE_DEPEND(ehci, usb, 1, 1, 1);
@@ -97,53 +91,43 @@ MODULE_DEPEND(ehci, usb, 1, 1, 1);
 /*
  * Private defines
  */
-#define FSL_EHCI_REG_OFF	0x100
-#define FSL_EHCI_REG_SIZE	0x300
+#define FSL_EHCI_REG_OFF 0x100
+#define FSL_EHCI_REG_SIZE 0x300
 
 /*
  * Internal interface registers' offsets.
  * Offsets from 0x000 ehci dev space, big-endian access.
  */
 enum internal_reg {
-	SNOOP1		= 0x400,
-	SNOOP2		= 0x404,
-	AGE_CNT_THRESH	= 0x408,
-	SI_CTRL		= 0x410,
-	CONTROL		= 0x500
+	SNOOP1 = 0x400,
+	SNOOP2 = 0x404,
+	AGE_CNT_THRESH = 0x408,
+	SI_CTRL = 0x410,
+	CONTROL = 0x500
 };
 
 /* CONTROL register bit flags */
 enum control_flags {
-	USB_EN		= 0x00000004,
-	UTMI_PHY_EN	= 0x00000200,
-	ULPI_INT_EN	= 0x00000001
+	USB_EN = 0x00000004,
+	UTMI_PHY_EN = 0x00000200,
+	ULPI_INT_EN = 0x00000001
 };
 
 /* SI_CTRL register bit flags */
-enum si_ctrl_flags {
-	FETCH_32	= 1,
-	FETCH_64	= 0
-};
+enum si_ctrl_flags { FETCH_32 = 1, FETCH_64 = 0 };
 
-#define SNOOP_RANGE_2GB	0x1E
+#define SNOOP_RANGE_2GB 0x1E
 
 /*
  * Operational registers' offsets.
  * Offsets from USBCMD register, little-endian access.
  */
-enum special_op_reg {
-	USBMODE		= 0x0A8,
-	PORTSC		= 0x084,
-	ULPI_VIEWPORT	= 0x70
-};
+enum special_op_reg { USBMODE = 0x0A8, PORTSC = 0x084, ULPI_VIEWPORT = 0x70 };
 
 /* USBMODE register bit flags */
-enum usbmode_flags {
-	HOST_MODE	= 0x3,
-	DEVICE_MODE	= 0x2
-};
+enum usbmode_flags { HOST_MODE = 0x3, DEVICE_MODE = 0x2 };
 
-#define	PORT_POWER_MASK	0x00001000
+#define PORT_POWER_MASK 0x00001000
 
 /*
  * Private methods
@@ -155,7 +139,8 @@ set_to_host_mode(ehci_softc_t *sc)
 	int tmp;
 
 	tmp = bus_space_read_4(sc->sc_io_tag, sc->sc_io_hdl, USBMODE);
-	bus_space_write_4(sc->sc_io_tag, sc->sc_io_hdl, USBMODE, tmp | HOST_MODE);
+	bus_space_write_4(sc->sc_io_tag, sc->sc_io_hdl, USBMODE,
+	    tmp | HOST_MODE);
 }
 
 static void
@@ -199,7 +184,8 @@ clear_port_power(ehci_softc_t *sc)
 	int tmp;
 
 	tmp = bus_space_read_4(sc->sc_io_tag, sc->sc_io_hdl, PORTSC);
-	bus_space_write_4(sc->sc_io_tag, sc->sc_io_hdl, PORTSC, tmp & ~PORT_POWER_MASK);
+	bus_space_write_4(sc->sc_io_tag, sc->sc_io_hdl, PORTSC,
+	    tmp & ~PORT_POWER_MASK);
 }
 
 /*
@@ -238,8 +224,8 @@ fsl_ehci_attach(device_t self)
 	sc->sc_bus.devices_max = EHCI_MAX_DEVICES;
 	sc->sc_bus.dma_bits = 32;
 
-	if (usb_bus_mem_alloc_all(&sc->sc_bus,
-	    USB_GET_DMA_TAG(self), &ehci_iterate_hw_softc))
+	if (usb_bus_mem_alloc_all(&sc->sc_bus, USB_GET_DMA_TAG(self),
+		&ehci_iterate_hw_softc))
 		return (ENOMEM);
 
 	/* Allocate io resource for EHCI */
@@ -249,8 +235,7 @@ fsl_ehci_attach(device_t self)
 		err = fsl_ehci_detach(self);
 		if (err) {
 			device_printf(self,
-			    "Detach of the driver failed with error %d\n",
-			    err);
+			    "Detach of the driver failed with error %d\n", err);
 		}
 		return (ENXIO);
 	}
@@ -268,8 +253,7 @@ fsl_ehci_attach(device_t self)
 		err = fsl_ehci_detach(self);
 		if (err) {
 			device_printf(self,
-			    "Detach of the driver failed with error %d\n",
-			    err);
+			    "Detach of the driver failed with error %d\n", err);
 		}
 		return (ENXIO);
 	}
@@ -284,8 +268,7 @@ fsl_ehci_attach(device_t self)
 		err = fsl_ehci_detach(self);
 		if (err) {
 			device_printf(self,
-			    "Detach of the driver failed with error %d\n",
-			    err);
+			    "Detach of the driver failed with error %d\n", err);
 		}
 		return (ENXIO);
 	}
@@ -299,8 +282,7 @@ fsl_ehci_attach(device_t self)
 		err = fsl_ehci_detach(self);
 		if (err) {
 			device_printf(self,
-			    "Detach of the driver failed with error %d\n",
-			    err);
+			    "Detach of the driver failed with error %d\n", err);
 		}
 		return (ENXIO);
 	}
@@ -312,8 +294,7 @@ fsl_ehci_attach(device_t self)
 		err = fsl_ehci_detach(self);
 		if (err) {
 			device_printf(self,
-			    "Detach of the driver failed with error %d\n",
-			    err);
+			    "Detach of the driver failed with error %d\n", err);
 		}
 		return (ENOMEM);
 	}
@@ -329,8 +310,7 @@ fsl_ehci_attach(device_t self)
 		err = fsl_ehci_detach(self);
 		if (err) {
 			device_printf(self,
-			    "Detach of the driver failed with error %d\n",
-			    err);
+			    "Detach of the driver failed with error %d\n", err);
 		}
 		return (ENXIO);
 	}
@@ -360,8 +340,7 @@ fsl_ehci_attach(device_t self)
 		err = fsl_ehci_detach(self);
 		if (err) {
 			device_printf(self,
-			    "Detach of the driver failed with error %d\n",
-			    err);
+			    "Detach of the driver failed with error %d\n", err);
 		}
 		return (EIO);
 	}
@@ -387,7 +366,8 @@ fsl_ehci_detach(device_t self)
 
 	/* Disable interrupts that might have been switched on in ehci_init */
 	if (sc->sc_io_tag && sc->sc_io_hdl)
-		bus_space_write_4(sc->sc_io_tag, sc->sc_io_hdl, EHCI_USBINTR, 0);
+		bus_space_write_4(sc->sc_io_tag, sc->sc_io_hdl, EHCI_USBINTR,
+		    0);
 
 	if (sc->sc_irq_res && sc->sc_intr_hdl) {
 		err = bus_teardown_intr(self, sc->sc_irq_res, sc->sc_intr_hdl);

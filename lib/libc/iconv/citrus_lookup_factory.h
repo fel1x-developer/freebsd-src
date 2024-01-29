@@ -32,7 +32,7 @@
 #define _CITRUS_LOOKUP_FACTORY_H_
 
 __BEGIN_DECLS
-int	 _citrus_lookup_factory_convert(FILE *, FILE *);
+int _citrus_lookup_factory_convert(FILE *, FILE *);
 __END_DECLS
 
 #endif

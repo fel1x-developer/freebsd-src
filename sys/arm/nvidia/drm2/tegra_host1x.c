@@ -31,21 +31,20 @@
 #include <sys/kernel.h>
 #include <sys/limits.h>
 #include <sys/lock.h>
-
 #include <sys/module.h>
 #include <sys/resource.h>
-#include <sys/sx.h>
 #include <sys/rman.h>
+#include <sys/sx.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
 
 #include <dev/clk/clk.h>
-#include <dev/hwreset/hwreset.h>
 #include <dev/drm2/drmP.h>
 #include <dev/drm2/drm_crtc_helper.h>
 #include <dev/drm2/drm_fb_helper.h>
 #include <dev/fdt/simplebus.h>
+#include <dev/hwreset/hwreset.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
@@ -54,21 +53,19 @@
 #include "fb_if.h"
 #include "tegra_drm_if.h"
 
-#define	WR4(_sc, _r, _v)	bus_rite_4((_sc)->mem_res, (_r), (_v))
-#define	RD4(_sc, _r)		bus_read_4((_sc)->mem_res, (_r))
+#define WR4(_sc, _r, _v) bus_rite_4((_sc)->mem_res, (_r), (_v))
+#define RD4(_sc, _r) bus_read_4((_sc)->mem_res, (_r))
 
-#define	LOCK(_sc)		sx_xlock(&(_sc)->lock)
-#define	UNLOCK(_sc)		sx_xunlock(&(_sc)->lock)
-#define	SLEEP(_sc, timeout)	sx_sleep(sc, &sc->lock, 0, "host1x", timeout);
-#define	LOCK_INIT(_sc)		sx_init(&_sc->lock, "host1x")
-#define	LOCK_DESTROY(_sc)	sx_destroy(&_sc->lock)
-#define	ASSERT_LOCKED(_sc)	sx_assert(&_sc->lock, SA_LOCKED)
-#define	ASSERT_UNLOCKED(_sc)	sx_assert(&_sc->lock, SA_UNLOCKED)
+#define LOCK(_sc) sx_xlock(&(_sc)->lock)
+#define UNLOCK(_sc) sx_xunlock(&(_sc)->lock)
+#define SLEEP(_sc, timeout) sx_sleep(sc, &sc->lock, 0, "host1x", timeout);
+#define LOCK_INIT(_sc) sx_init(&_sc->lock, "host1x")
+#define LOCK_DESTROY(_sc) sx_destroy(&_sc->lock)
+#define ASSERT_LOCKED(_sc) sx_assert(&_sc->lock, SA_LOCKED)
+#define ASSERT_UNLOCKED(_sc) sx_assert(&_sc->lock, SA_UNLOCKED)
 
-static struct ofw_compat_data compat_data[] = {
-	{"nvidia,tegra124-host1x",	1},
-	{NULL,				0}
-};
+static struct ofw_compat_data compat_data[] = { { "nvidia,tegra124-host1x", 1 },
+	{ NULL, 0 } };
 
 #define DRIVER_NAME "tegra"
 #define DRIVER_DESC "NVIDIA Tegra TK1"
@@ -84,29 +81,29 @@ typedef struct client_list client_list_t;
 struct client_info {
 	TAILQ_ENTRY(client_info) list_e;
 	device_t client;
-	int 	activated;
+	int activated;
 };
 
 struct host1x_softc {
-	struct simplebus_softc	simplebus_sc;	/* must be first */
-	device_t		dev;
-	struct sx		lock;
-	int 			attach_done;
+	struct simplebus_softc simplebus_sc; /* must be first */
+	device_t dev;
+	struct sx lock;
+	int attach_done;
 
-	struct resource		*mem_res;
-	struct resource		*syncpt_irq_res;
-	void			*syncpt_irq_h;
-	struct resource		*gen_irq_res;
-	void			*gen_irq_h;
+	struct resource *mem_res;
+	struct resource *syncpt_irq_res;
+	void *syncpt_irq_h;
+	struct resource *gen_irq_res;
+	void *gen_irq_h;
 
-	clk_t			clk;
-	hwreset_t			reset;
-	struct intr_config_hook	irq_hook;
+	clk_t clk;
+	hwreset_t reset;
+	struct intr_config_hook irq_hook;
 
-	int			drm_inited;
-	client_list_t		clients;
+	int drm_inited;
+	client_list_t clients;
 
-	struct tegra_drm 	*tegra_drm;
+	struct tegra_drm *tegra_drm;
 };
 
 static void
@@ -132,7 +129,7 @@ host1x_drm_init(struct host1x_softc *sc)
 
 	LOCK(sc);
 
-	TAILQ_FOREACH(entry, &sc->clients, list_e) {
+	TAILQ_FOREACH (entry, &sc->clients, list_e) {
 		if (entry->activated)
 			continue;
 		rv = TEGRA_DRM_INIT_CLIENT(entry->client, sc->dev,
@@ -163,7 +160,7 @@ host1x_drm_exit(struct host1x_softc *sc)
 		UNLOCK(sc);
 		return (0);
 	}
-	TAILQ_FOREACH_REVERSE(entry, &sc->clients, client_list, list_e) {
+	TAILQ_FOREACH_REVERSE (entry, &sc->clients, client_list, list_e) {
 		if (!entry->activated)
 			continue;
 		rv = TEGRA_DRM_EXIT_CLIENT(entry->client, sc->dev,
@@ -178,7 +175,7 @@ host1x_drm_exit(struct host1x_softc *sc)
 
 #ifdef FREEBSD_NOTYET
 	list_for_each_entry_safe(dev, tmp, &driver->device_list, driver_item)
-		drm_put_dev(dev);
+	    drm_put_dev(dev);
 #endif
 	sc->drm_inited = 0;
 	UNLOCK(sc);
@@ -264,7 +261,7 @@ tegra_drm_preclose(struct drm_device *drm, struct drm_file *file)
 	struct drm_crtc *crtc;
 
 	list_for_each_entry(crtc, &drm->mode_config.crtc_list, head)
-		tegra_dc_cancel_page_flip(crtc, file);
+	    tegra_dc_cancel_page_flip(crtc, file);
 }
 
 static void
@@ -274,7 +271,7 @@ host1x_drm_lastclose(struct drm_device *drm_dev)
 	struct tegra_drm *drm;
 
 	drm = container_of(drm_dev, struct tegra_drm, drm_dev);
-	if (drm->fb  != NULL)
+	if (drm->fb != NULL)
 		drm_fb_helper_restore_fbdev_mode(&drm->fb->fb_helper);
 }
 
@@ -283,7 +280,8 @@ host1x_drm_enable_vblank(struct drm_device *drm_dev, int pipe)
 {
 	struct drm_crtc *crtc;
 
-	list_for_each_entry(crtc, &drm_dev->mode_config.crtc_list, head) {
+	list_for_each_entry(crtc, &drm_dev->mode_config.crtc_list, head)
+	{
 		if (pipe == tegra_dc_get_pipe(crtc)) {
 			tegra_dc_enable_vblank(crtc);
 			return (0);
@@ -297,7 +295,8 @@ host1x_drm_disable_vblank(struct drm_device *drm_dev, int pipe)
 {
 	struct drm_crtc *crtc;
 
-	list_for_each_entry(crtc, &drm_dev->mode_config.crtc_list, head) {
+	list_for_each_entry(crtc, &drm_dev->mode_config.crtc_list, head)
+	{
 		if (pipe == tegra_dc_get_pipe(crtc)) {
 			tegra_dc_disable_vblank(crtc);
 			return;
@@ -305,8 +304,7 @@ host1x_drm_disable_vblank(struct drm_device *drm_dev, int pipe)
 	}
 }
 
-static struct drm_ioctl_desc host1x_drm_ioctls[] = {
-};
+static struct drm_ioctl_desc host1x_drm_ioctls[] = {};
 
 struct drm_driver tegra_drm_driver = {
 	.driver_features = DRIVER_MODESET | DRIVER_GEM | DRIVER_PRIME,
@@ -400,11 +398,11 @@ host1x_deregister_client(device_t dev, device_t client)
 	sc = device_get_softc(dev);
 
 	LOCK(sc);
-	TAILQ_FOREACH(entry, &sc->clients, list_e) {
+	TAILQ_FOREACH (entry, &sc->clients, list_e) {
 		if (entry->client == client) {
 			if (entry->activated)
 				panic("Tegra DRM: Attempt to deregister "
-				    "activated client");
+				      "activated client");
 			TAILQ_REMOVE(&sc->clients, entry, list_e);
 			free(entry, M_DEVBUF);
 			UNLOCK(sc);
@@ -498,17 +496,16 @@ host1x_new_pass(device_t dev)
 	}
 
 	/* Setup  interrupts */
-	rv = bus_setup_intr(dev, sc->gen_irq_res,
-	    INTR_TYPE_MISC | INTR_MPSAFE, NULL, host1x_gen_intr,
-	    sc, &sc->gen_irq_h);
+	rv = bus_setup_intr(dev, sc->gen_irq_res, INTR_TYPE_MISC | INTR_MPSAFE,
+	    NULL, host1x_gen_intr, sc, &sc->gen_irq_h);
 	if (rv) {
 		device_printf(dev, "Cannot setup gen interrupt.\n");
 		goto fail;
 	}
 
 	rv = bus_setup_intr(dev, sc->syncpt_irq_res,
-	    INTR_TYPE_MISC | INTR_MPSAFE, NULL, host1x_syncpt_intr,
-	    sc, &sc->syncpt_irq_h);
+	    INTR_TYPE_MISC | INTR_MPSAFE, NULL, host1x_syncpt_intr, sc,
+	    &sc->syncpt_irq_h);
 	if (rv) {
 		device_printf(dev, "Cannot setup syncpt interrupt.\n");
 		goto fail;
@@ -516,7 +513,7 @@ host1x_new_pass(device_t dev)
 
 	simplebus_init(dev, 0);
 	for (node = OF_child(node); node > 0; node = OF_peer(node))
-	    simplebus_add_device(dev, node, 0, NULL, -1, NULL);
+		simplebus_add_device(dev, node, 0, NULL, -1, NULL);
 
 	sc->irq_hook.ich_func = host1x_irq_hook;
 	sc->irq_hook.ich_arg = sc;
@@ -613,19 +610,19 @@ host1x_detach(device_t dev)
 
 static device_method_t host1x_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		host1x_probe),
-	DEVMETHOD(device_attach,	host1x_attach),
-	DEVMETHOD(device_detach,	host1x_detach),
+	DEVMETHOD(device_probe, host1x_probe),
+	DEVMETHOD(device_attach, host1x_attach),
+	DEVMETHOD(device_detach, host1x_detach),
 
 	/* Bus interface */
-	DEVMETHOD(bus_new_pass,		host1x_new_pass),
+	DEVMETHOD(bus_new_pass, host1x_new_pass),
 
 	/* Framebuffer service methods */
-	DEVMETHOD(fb_getinfo,           host1x_fb_helper_getinfo),
+	DEVMETHOD(fb_getinfo, host1x_fb_helper_getinfo),
 
 	/* tegra drm interface */
-	DEVMETHOD(tegra_drm_register_client,	host1x_register_client),
-	DEVMETHOD(tegra_drm_deregister_client,	host1x_deregister_client),
+	DEVMETHOD(tegra_drm_register_client, host1x_register_client),
+	DEVMETHOD(tegra_drm_deregister_client, host1x_deregister_client),
 
 	DEVMETHOD_END
 };

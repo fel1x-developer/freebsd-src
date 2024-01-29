@@ -24,11 +24,13 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
 #include <sys/param.h>
+
 #include <fdt_platform.h>
-#include <openfirm.h>
 #include <libfdt.h>
+#include <openfirm.h>
+#include <stand.h>
+
 #include "bootstrap.h"
 
 extern int command_fdt_internal(int argc, char *argv[]);
@@ -68,11 +70,13 @@ add_node_to_fdt(void *buffer, phandle_t node, int fdt_offset)
 		lastprop = name;
 		if (error)
 			printf("Error %d adding property %s to "
-			    "node %d\n", error, name, fdt_offset);
+			       "node %d\n",
+			    error, name, fdt_offset);
 	}
 
-	if (!OF_hasprop(node, "phandle") && !OF_hasprop(node, "linux,phandle")
-	    && !OF_hasprop(node, "ibm,phandle"))
+	if (!OF_hasprop(node, "phandle") &&
+	    !OF_hasprop(node, "linux,phandle") &&
+	    !OF_hasprop(node, "ibm,phandle"))
 		fdt_setprop(buffer, fdt_offset, "phandle", &node, sizeof(node));
 
 	for (node = OF_child(node); node > 0; node = OF_peer(node)) {
@@ -85,8 +89,8 @@ add_node_to_fdt(void *buffer, phandle_t node, int fdt_offset)
 			    child_offset, name, subname);
 			continue;
 		}
-	
-                add_node_to_fdt(buffer, node, child_offset);
+
+		add_node_to_fdt(buffer, node, child_offset);
 	}
 }
 
@@ -144,14 +148,13 @@ ofwfdt_fixups(void *fdtp)
 			fdt_delprop(fdtp, offset, "available");
 	}
 
-	
 	/*
 	 * Convert stored ihandles under /chosen to xref phandles
 	 */
 	offset = fdt_path_offset(fdtp, "/chosen");
 	if (offset > 0) {
-		const char *chosenprops[] = {"stdout", "stdin", "mmu", "cpu",
-		    NULL};
+		const char *chosenprops[] = { "stdout", "stdin", "mmu", "cpu",
+			NULL };
 		const uint32_t *ihand;
 		for (i = 0; chosenprops[i] != NULL; i++) {
 			ihand = fdt_getprop(fdtp, offset, chosenprops[i], &len);
@@ -179,39 +182,36 @@ ofwfdt_fixups(void *fdtp)
 int
 fdt_platform_load_dtb(void)
 {
-        void *buffer;
-        size_t buflen = 409600;
+	void *buffer;
+	size_t buflen = 409600;
 
-        buffer = malloc(buflen);
-        fdt_create_empty_tree(buffer, buflen);
-        add_node_to_fdt(buffer, OF_peer(0), fdt_path_offset(buffer, "/"));
-        ofwfdt_fixups(buffer);
-        fdt_pack(buffer);
+	buffer = malloc(buflen);
+	fdt_create_empty_tree(buffer, buflen);
+	add_node_to_fdt(buffer, OF_peer(0), fdt_path_offset(buffer, "/"));
+	ofwfdt_fixups(buffer);
+	fdt_pack(buffer);
 
-        fdt_load_dtb_addr(buffer);
-        free(buffer);
+	fdt_load_dtb_addr(buffer);
+	free(buffer);
 
-        return (0);
+	return (0);
 }
 
 void
 fdt_platform_load_overlays(void)
 {
-
 }
 
 void
 fdt_platform_fixups(void)
 {
-
 }
 
 static int
 command_fdt(int argc, char *argv[])
 {
- 
+
 	return (command_fdt_internal(argc, argv));
 }
- 
-COMMAND_SET(fdt, "fdt", "flattened device tree handling", command_fdt);
 
+COMMAND_SET(fdt, "fdt", "flattened device tree handling", command_fdt);

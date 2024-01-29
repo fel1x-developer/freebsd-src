@@ -1,4 +1,5 @@
-/*	$NetBSD: arm32_machdep.c,v 1.44 2004/03/24 15:34:47 atatat Exp $	*/
+/*	$NetBSD: arm32_machdep.c,v 1.44 2004/03/24 15:34:47 atatat Exp $
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-4-Clause
@@ -54,17 +55,17 @@
 #include <sys/sysproto.h>
 #include <sys/vmmeter.h>
 
+#include <vm/vm.h>
+#include <vm/pmap.h>
+#include <vm/vm_map.h>
+#include <vm/vm_param.h>
+
 #include <machine/asm.h>
 #include <machine/machdep.h>
 #include <machine/pcb.h>
 #include <machine/sysarch.h>
 #include <machine/vfp.h>
 #include <machine/vmparam.h>
-
-#include <vm/vm.h>
-#include <vm/vm_param.h>
-#include <vm/pmap.h>
-#include <vm/vm_map.h>
 
 _Static_assert(sizeof(mcontext_t) == 208, "mcontext_t size incorrect");
 _Static_assert(sizeof(ucontext_t) == 260, "ucontext_t size incorrect");
@@ -107,7 +108,7 @@ get_vfpcontext(struct thread *td, mcontext_vfp_t *vfp)
 		critical_exit();
 	}
 	KASSERT(pcb->pcb_vfpsaved == &pcb->pcb_vfpstate,
-		("Called get_vfpcontext while the kernel is using the VFP"));
+	    ("Called get_vfpcontext while the kernel is using the VFP"));
 	memcpy(vfp, &pcb->pcb_vfpstate, sizeof(*vfp));
 }
 
@@ -126,7 +127,7 @@ set_vfpcontext(struct thread *td, mcontext_vfp_t *vfp)
 		critical_exit();
 	}
 	KASSERT(pcb->pcb_vfpsaved == &pcb->pcb_vfpstate,
-		("Called set_vfpcontext while the kernel is using the VFP"));
+	    ("Called set_vfpcontext while the kernel is using the VFP"));
 	memcpy(&pcb->pcb_vfpstate, vfp, sizeof(*vfp));
 }
 #endif
@@ -136,7 +137,7 @@ arm_get_vfpstate(struct thread *td, void *args)
 {
 	int rv;
 	struct arm_get_vfpstate_args ua;
-	mcontext_vfp_t	mcontext_vfp;
+	mcontext_vfp_t mcontext_vfp;
 
 	rv = copyin(args, &ua, sizeof(ua));
 	if (rv != 0)
@@ -149,7 +150,7 @@ arm_get_vfpstate(struct thread *td, void *args)
 	bzero(&mcontext_vfp, sizeof(mcontext_vfp));
 #endif
 
-	rv = copyout(&mcontext_vfp, ua.mc_vfp,  sizeof(mcontext_vfp));
+	rv = copyout(&mcontext_vfp, ua.mc_vfp, sizeof(mcontext_vfp));
 	if (rv != 0)
 		return (rv);
 	return (0);
@@ -163,31 +164,31 @@ get_mcontext(struct thread *td, mcontext_t *mcp, int clear_ret)
 {
 	struct trapframe *tf = td->td_frame;
 	__greg_t *gr = mcp->__gregs;
-	mcontext_vfp_t	mcontext_vfp;
+	mcontext_vfp_t mcontext_vfp;
 	int rv;
 
 	if (clear_ret & GET_MC_CLEAR_RET) {
 		gr[_REG_R0] = 0;
 		gr[_REG_CPSR] = tf->tf_spsr & ~PSR_C;
 	} else {
-		gr[_REG_R0]   = tf->tf_r0;
+		gr[_REG_R0] = tf->tf_r0;
 		gr[_REG_CPSR] = tf->tf_spsr;
 	}
-	gr[_REG_R1]   = tf->tf_r1;
-	gr[_REG_R2]   = tf->tf_r2;
-	gr[_REG_R3]   = tf->tf_r3;
-	gr[_REG_R4]   = tf->tf_r4;
-	gr[_REG_R5]   = tf->tf_r5;
-	gr[_REG_R6]   = tf->tf_r6;
-	gr[_REG_R7]   = tf->tf_r7;
-	gr[_REG_R8]   = tf->tf_r8;
-	gr[_REG_R9]   = tf->tf_r9;
-	gr[_REG_R10]  = tf->tf_r10;
-	gr[_REG_R11]  = tf->tf_r11;
-	gr[_REG_R12]  = tf->tf_r12;
-	gr[_REG_SP]   = tf->tf_usr_sp;
-	gr[_REG_LR]   = tf->tf_usr_lr;
-	gr[_REG_PC]   = tf->tf_pc;
+	gr[_REG_R1] = tf->tf_r1;
+	gr[_REG_R2] = tf->tf_r2;
+	gr[_REG_R3] = tf->tf_r3;
+	gr[_REG_R4] = tf->tf_r4;
+	gr[_REG_R5] = tf->tf_r5;
+	gr[_REG_R6] = tf->tf_r6;
+	gr[_REG_R7] = tf->tf_r7;
+	gr[_REG_R8] = tf->tf_r8;
+	gr[_REG_R9] = tf->tf_r9;
+	gr[_REG_R10] = tf->tf_r10;
+	gr[_REG_R11] = tf->tf_r11;
+	gr[_REG_R12] = tf->tf_r12;
+	gr[_REG_SP] = tf->tf_usr_sp;
+	gr[_REG_LR] = tf->tf_usr_lr;
+	gr[_REG_PC] = tf->tf_pc;
 
 #ifdef VFP
 	if (mcp->mc_vfp_size != sizeof(mcontext_vfp_t))
@@ -198,7 +199,8 @@ get_mcontext(struct thread *td, mcontext_t *mcp, int clear_ret)
 #endif
 
 	if (mcp->mc_vfp_ptr != NULL) {
-		rv = copyout(&mcontext_vfp, mcp->mc_vfp_ptr,  sizeof(mcontext_vfp));
+		rv = copyout(&mcontext_vfp, mcp->mc_vfp_ptr,
+		    sizeof(mcontext_vfp));
 		if (rv != 0)
 			return (rv);
 	}
@@ -232,8 +234,8 @@ set_mcontext(struct thread *td, mcontext_t *mcp)
 #ifdef WITNESS
 	if (mcp->mc_vfp_size != 0 && mcp->mc_vfp_size != sizeof(mc_vfp)) {
 		printf("%s: %s: Malformed mc_vfp_size: %d (0x%08X)\n",
-		    td->td_proc->p_comm, __func__,
-		    mcp->mc_vfp_size, mcp->mc_vfp_size);
+		    td->td_proc->p_comm, __func__, mcp->mc_vfp_size,
+		    mcp->mc_vfp_size);
 	} else if (mcp->mc_vfp_size != 0 && mcp->mc_vfp_ptr == NULL) {
 		printf("%s: %s: c_vfp_size != 0 but mc_vfp_ptr == NULL\n",
 		    td->td_proc->p_comm, __func__);
@@ -319,7 +321,8 @@ sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 	frame.sf_uc.uc_sigmask = *mask;
 	frame.sf_uc.uc_stack = td->td_sigstk;
 	frame.sf_uc.uc_stack.ss_flags = (td->td_pflags & TDP_ALTSTACK) != 0 ?
-	    (onstack ? SS_ONSTACK : 0) : SS_DISABLE;
+	    (onstack ? SS_ONSTACK : 0) :
+	    SS_DISABLE;
 	mtx_unlock(&psp->ps_mtx);
 	PROC_UNLOCK(td->td_proc);
 
@@ -352,7 +355,7 @@ sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 	else
 		tf->tf_usr_lr = (register_t)(PROC_PS_STRINGS(p) -
 		    *(sysent->sv_szsigcode));
-	/* Set the mode to enter in the signal handler */
+		/* Set the mode to enter in the signal handler */
 #if __ARM_ARCH >= 7
 	if ((register_t)catcher & 1)
 		tf->tf_spsr |= PSR_T;

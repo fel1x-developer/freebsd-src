@@ -28,18 +28,15 @@
 
 #include <gssapi/gssapi.h>
 
-#include "mech_switch.h"
 #include "context.h"
+#include "mech_switch.h"
 
 OM_uint32
-gss_wrap_size_limit(OM_uint32 *minor_status,
-    const gss_ctx_id_t context_handle,
-    int conf_req_flag,
-    gss_qop_t qop_req,
-    OM_uint32 req_output_size,
+gss_wrap_size_limit(OM_uint32 *minor_status, const gss_ctx_id_t context_handle,
+    int conf_req_flag, gss_qop_t qop_req, OM_uint32 req_output_size,
     OM_uint32 *max_input_size)
 {
-	struct _gss_context *ctx = (struct _gss_context *) context_handle;
+	struct _gss_context *ctx = (struct _gss_context *)context_handle;
 	struct _gss_mech_switch *m;
 
 	*max_input_size = 0;
@@ -49,6 +46,6 @@ gss_wrap_size_limit(OM_uint32 *minor_status,
 	}
 	m = ctx->gc_mech;
 
-	return (m->gm_wrap_size_limit(minor_status, ctx->gc_ctx,
-		    conf_req_flag, qop_req, req_output_size, max_input_size));
+	return (m->gm_wrap_size_limit(minor_status, ctx->gc_ctx, conf_req_flag,
+	    qop_req, req_output_size, max_input_size));
 }

@@ -33,7 +33,7 @@
  */
 
 #ifndef _TIVAR_H_
-#define	_TIVAR_H_
+#define _TIVAR_H_
 
 /* board-dependent reset function implementation */
 extern void (*ti_cpu_reset)(void);

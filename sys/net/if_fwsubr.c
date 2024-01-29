@@ -42,22 +42,22 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_private.h>
-#include <net/netisr.h>
-#include <net/route.h>
-#include <net/if_llc.h>
-#include <net/if_dl.h>
-#include <net/if_types.h>
 #include <net/bpf.h>
 #include <net/firewire.h>
+#include <net/if.h>
+#include <net/if_dl.h>
 #include <net/if_llatbl.h>
+#include <net/if_llc.h>
+#include <net/if_private.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+#include <net/netisr.h>
+#include <net/route.h>
 
 #if defined(INET) || defined(INET6)
+#include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <netinet/in_var.h>
-#include <netinet/if_ether.h>
 #endif
 #ifdef INET6
 #include <netinet6/nd6.h>
@@ -67,14 +67,8 @@
 
 static MALLOC_DEFINE(M_FWCOM, "fw_com", "firewire interface internals");
 
-struct fw_hwaddr firewire_broadcastaddr = {
-	0xffffffff,
-	0xffffffff,
-	0xff,
-	0xff,
-	0xffff,
-	0xffffffff
-};
+struct fw_hwaddr firewire_broadcastaddr = { 0xffffffff, 0xffffffff, 0xff, 0xff,
+	0xffff, 0xffffffff };
 
 static int
 firewire_output(struct ifnet *ifp, struct mbuf *m, const struct sockaddr *dst,
@@ -102,7 +96,7 @@ firewire_output(struct ifnet *ifp, struct mbuf *m, const struct sockaddr *dst,
 #endif
 
 	if (!((ifp->if_flags & IFF_UP) &&
-	   (ifp->if_drv_flags & IFF_DRV_RUNNING))) {
+		(ifp->if_drv_flags & IFF_DRV_RUNNING))) {
 		error = ENETDOWN;
 		goto bad;
 	}
@@ -122,10 +116,11 @@ firewire_output(struct ifnet *ifp, struct mbuf *m, const struct sockaddr *dst,
 	 */
 	unicast = !(m->m_flags & (M_BCAST | M_MCAST));
 	if (unicast) {
-		mtag = m_tag_locate(m, MTAG_FIREWIRE, MTAG_FIREWIRE_HWADDR, NULL);
+		mtag = m_tag_locate(m, MTAG_FIREWIRE, MTAG_FIREWIRE_HWADDR,
+		    NULL);
 		if (!mtag) {
 			mtag = m_tag_alloc(MTAG_FIREWIRE, MTAG_FIREWIRE_HWADDR,
-			    sizeof (struct fw_hwaddr), M_NOWAIT);
+			    sizeof(struct fw_hwaddr), M_NOWAIT);
 			if (!mtag) {
 				error = ENOMEM;
 				goto bad;
@@ -166,20 +161,19 @@ firewire_output(struct ifnet *ifp, struct mbuf *m, const struct sockaddr *dst,
 		 * doesn't fit into the arp model.
 		 */
 		if (unicast) {
-			error = arpresolve(ifp, is_gw, m, dst,
-			    (u_char *) destfw, NULL, NULL);
+			error = arpresolve(ifp, is_gw, m, dst, (u_char *)destfw,
+			    NULL, NULL);
 			if (error)
 				return (error == EWOULDBLOCK ? 0 : error);
 		}
 		break;
 
-	case AF_ARP:
-	{
+	case AF_ARP: {
 		struct arphdr *ah;
 		ah = mtod(m, struct arphdr *);
 		ah->ar_hrd = htons(ARPHRD_IEEE1394);
 		if (unicast)
-			*destfw = *(struct fw_hwaddr *) ar_tha(ah);
+			*destfw = *(struct fw_hwaddr *)ar_tha(ah);
 
 		/*
 		 * The standard arp code leaves a hole for the target
@@ -195,7 +189,7 @@ firewire_output(struct ifnet *ifp, struct mbuf *m, const struct sockaddr *dst,
 	case AF_INET6:
 		if (unicast) {
 			error = nd6_resolve(fc->fc_ifp, LLE_SF(af, is_gw), m,
-			    dst, (u_char *) destfw, NULL, NULL);
+			    dst, (u_char *)destfw, NULL, NULL);
 			if (error)
 				return (error == EWOULDBLOCK ? 0 : error);
 		}
@@ -243,7 +237,7 @@ firewire_output(struct ifnet *ifp, struct mbuf *m, const struct sockaddr *dst,
 		psize = min(512 << speed, 2 << destfw->sender_max_rec);
 	} else {
 		speed = 0;
-		psize = 512 - 2*sizeof(uint32_t);
+		psize = 512 - 2 * sizeof(uint32_t);
 	}
 
 	/*
@@ -276,7 +270,7 @@ firewire_output(struct ifnet *ifp, struct mbuf *m, const struct sockaddr *dst,
 		 * Fragment the datagram, making sure to leave enough
 		 * space for the encapsulation header in each packet.
 		 */
-		fsize = psize - 2*sizeof(uint32_t);
+		fsize = psize - 2 * sizeof(uint32_t);
 		dgl = next_dgl++;
 		dsize = m->m_pkthdr.len;
 		foff = 0;
@@ -296,7 +290,7 @@ firewire_output(struct ifnet *ifp, struct mbuf *m, const struct sockaddr *dst,
 			 * Add our encapsulation header to this
 			 * fragment and hand it off to the link.
 			 */
-			M_PREPEND(m, 2*sizeof(uint32_t), M_NOWAIT);
+			M_PREPEND(m, 2 * sizeof(uint32_t), M_NOWAIT);
 			if (!m) {
 				error = ENOBUFS;
 				goto bad;
@@ -321,7 +315,7 @@ firewire_output(struct ifnet *ifp, struct mbuf *m, const struct sockaddr *dst,
 				enc->nextfrag.fragment_offset = foff;
 				enc->nextfrag.dgl = dgl;
 			}
-			foff += m->m_pkthdr.len - 2*sizeof(uint32_t);
+			foff += m->m_pkthdr.len - 2 * sizeof(uint32_t);
 
 			/*
 			 * Byte swap the encapsulation header manually.
@@ -363,7 +357,7 @@ firewire_input_fragment(struct fw_com *fc, struct mbuf *m, int src)
 	 */
 	enc = mtod(m, union fw_encap *);
 	id = enc->firstfrag.dgl | (src << 16);
-	STAILQ_FOREACH(r, &fc->fc_frags, fr_link)
+	STAILQ_FOREACH (r, &fc->fc_frags, fr_link)
 		if (r->fr_id == id)
 			break;
 	if (!r) {
@@ -385,7 +379,7 @@ firewire_input_fragment(struct fw_com *fc, struct mbuf *m, int src)
 		fstart = 0;
 	else
 		fstart = enc->nextfrag.fragment_offset;
-	fend = fstart + m->m_pkthdr.len - 2*sizeof(uint32_t);
+	fend = fstart + m->m_pkthdr.len - 2 * sizeof(uint32_t);
 	dsize = enc->nextfrag.datagram_size;
 	islast = (enc->nextfrag.lf == FW_ENCAP_LAST);
 
@@ -402,7 +396,7 @@ firewire_input_fragment(struct fw_com *fc, struct mbuf *m, int src)
 			start = 0;
 		else
 			start = enc->nextfrag.fragment_offset;
-		end = start + mf->m_pkthdr.len - 2*sizeof(uint32_t);
+		end = start + mf->m_pkthdr.len - 2 * sizeof(uint32_t);
 		if ((fstart < end && fend > start) ||
 		    (islast && enc->nextfrag.lf == FW_ENCAP_LAST)) {
 			/*
@@ -417,7 +411,7 @@ firewire_input_fragment(struct fw_com *fc, struct mbuf *m, int src)
 	 * Find where to put this fragment in the list.
 	 */
 	for (mf = r->fr_frags, mprev = NULL; mf;
-	    mprev = mf, mf = mf->m_nextpkt) {
+	     mprev = mf, mf = mf->m_nextpkt) {
 		enc = mtod(mf, union fw_encap *);
 		if (enc->firstfrag.lf == FW_ENCAP_FIRST)
 			start = 0;
@@ -447,24 +441,26 @@ firewire_input_fragment(struct fw_com *fc, struct mbuf *m, int src)
 			start = 0;
 		else
 			start = enc->nextfrag.fragment_offset;
-		end = start + mprev->m_pkthdr.len - 2*sizeof(uint32_t);
+		end = start + mprev->m_pkthdr.len - 2 * sizeof(uint32_t);
 		while (end == fstart) {
 			/*
 			 * Strip off the encap header from m and
 			 * append it to mprev, freeing m.
 			 */
-			m_adj(m, 2*sizeof(uint32_t));
+			m_adj(m, 2 * sizeof(uint32_t));
 			mprev->m_nextpkt = m->m_nextpkt;
 			mprev->m_pkthdr.len += m->m_pkthdr.len;
 			m_cat(mprev, m);
 
-			if (mprev->m_pkthdr.len == dsize + 1 + 2*sizeof(uint32_t)) {
+			if (mprev->m_pkthdr.len ==
+			    dsize + 1 + 2 * sizeof(uint32_t)) {
 				/*
 				 * We have assembled a complete packet
 				 * we must be finished. Make sure we have
 				 * merged the whole chain.
 				 */
-				STAILQ_REMOVE(&fc->fc_frags, r, fw_reass, fr_link);
+				STAILQ_REMOVE(&fc->fc_frags, r, fw_reass,
+				    fr_link);
 				free(r, M_TEMP);
 				m = mprev->m_nextpkt;
 				while (m) {
@@ -488,8 +484,8 @@ firewire_input_fragment(struct fw_com *fc, struct mbuf *m, int src)
 					fstart = 0;
 				else
 					fstart = enc->nextfrag.fragment_offset;
-				fend = fstart + m->m_pkthdr.len
-				    - 2*sizeof(uint32_t);
+				fend = fstart + m->m_pkthdr.len -
+				    2 * sizeof(uint32_t);
 			} else {
 				break;
 			}
@@ -527,7 +523,8 @@ firewire_input(struct ifnet *ifp, struct mbuf *m, uint16_t src)
 	 * up the line after handling link-level fragmentation.
 	 */
 	if (m->m_pkthdr.len < sizeof(uint32_t)) {
-		if_printf(ifp, "discarding frame without "
+		if_printf(ifp,
+		    "discarding frame without "
 		    "encapsulation header (len %u pkt len %u)\n",
 		    m->m_len, m->m_pkthdr.len);
 	}
@@ -543,7 +540,7 @@ firewire_input(struct ifnet *ifp, struct mbuf *m, uint16_t src)
 	enc->ul[0] = ntohl(enc->ul[0]);
 
 	if (enc->unfrag.lf != 0) {
-		m = m_pullup(m, 2*sizeof(uint32_t));
+		m = m_pullup(m, 2 * sizeof(uint32_t));
 		if (!m)
 			return;
 		enc = mtod(m, union fw_encap *);
@@ -553,7 +550,7 @@ firewire_input(struct ifnet *ifp, struct mbuf *m, uint16_t src)
 			return;
 		enc = mtod(m, union fw_encap *);
 		type = enc->firstfrag.ether_type;
-		m_adj(m, 2*sizeof(uint32_t));
+		m_adj(m, 2 * sizeof(uint32_t));
 	} else {
 		type = enc->unfrag.ether_type;
 		m_adj(m, sizeof(uint32_t));
@@ -568,7 +565,7 @@ firewire_input(struct ifnet *ifp, struct mbuf *m, uint16_t src)
 #ifdef DIAGNOSTIC
 	if (m->m_pkthdr.rcvif != ifp) {
 		if_printf(ifp, "Warning, frame marked as received on %s\n",
-			m->m_pkthdr.rcvif->if_xname);
+		    m->m_pkthdr.rcvif->if_xname);
 	}
 #endif
 
@@ -588,7 +585,8 @@ firewire_input(struct ifnet *ifp, struct mbuf *m, uint16_t src)
 		struct fw_bpfhdr h;
 		struct m_tag *mtag;
 
-		mtag = m_tag_locate(m, MTAG_FIREWIRE, MTAG_FIREWIRE_SENDER_EUID, 0);
+		mtag = m_tag_locate(m, MTAG_FIREWIRE, MTAG_FIREWIRE_SENDER_EUID,
+		    0);
 		if (mtag)
 			bcopy(mtag + 1, h.firewire_shost, 8);
 		else
@@ -614,7 +612,7 @@ firewire_input(struct ifnet *ifp, struct mbuf *m, uint16_t src)
 		return;
 	}
 
-	if (m->m_flags & (M_BCAST|M_MCAST))
+	if (m->m_flags & (M_BCAST | M_MCAST))
 		if_inc_counter(ifp, IFCOUNTER_IMCASTS, 1);
 
 	switch (type) {
@@ -623,8 +621,7 @@ firewire_input(struct ifnet *ifp, struct mbuf *m, uint16_t src)
 		isr = NETISR_IP;
 		break;
 
-	case ETHERTYPE_ARP:
-	{
+	case ETHERTYPE_ARP: {
 		struct arphdr *ah;
 		ah = mtod(m, struct arphdr *);
 
@@ -659,8 +656,8 @@ firewire_input(struct ifnet *ifp, struct mbuf *m, uint16_t src)
 int
 firewire_ioctl(struct ifnet *ifp, u_long command, caddr_t data)
 {
-	struct ifaddr *ifa = (struct ifaddr *) data;
-	struct ifreq *ifr = (struct ifreq *) data;
+	struct ifaddr *ifa = (struct ifaddr *)data;
+	struct ifreq *ifr = (struct ifreq *)data;
 	int error = 0;
 
 	switch (command) {
@@ -670,7 +667,7 @@ firewire_ioctl(struct ifnet *ifp, u_long command, caddr_t data)
 		switch (ifa->ifa_addr->sa_family) {
 #ifdef INET
 		case AF_INET:
-			ifp->if_init(ifp->if_softc);	/* before arpwhohas */
+			ifp->if_init(ifp->if_softc); /* before arpwhohas */
 			arp_ifinit(ifp, ifa);
 			break;
 #endif
@@ -696,7 +693,7 @@ firewire_ioctl(struct ifnet *ifp, u_long command, caddr_t data)
 		}
 		break;
 	default:
-		error = EINVAL;			/* XXX netbsd has ENOTTY??? */
+		error = EINVAL; /* XXX netbsd has ENOTTY??? */
 		break;
 	}
 	return (error);
@@ -713,7 +710,7 @@ firewire_resolvemulti(struct ifnet *ifp, struct sockaddr **llsa,
 	struct sockaddr_in6 *sin6;
 #endif
 
-	switch(sa->sa_family) {
+	switch (sa->sa_family) {
 	case AF_LINK:
 		/*
 		 * No mapping needed.
@@ -763,10 +760,8 @@ firewire_ifattach(struct ifnet *ifp, struct fw_hwaddr *llc)
 	struct fw_com *fc = IFP2FWC(ifp);
 	struct ifaddr *ifa;
 	struct sockaddr_dl *sdl;
-	static const char* speeds[] = {
-		"S100", "S200", "S400", "S800",
-		"S1600", "S3200"
-	};
+	static const char *speeds[] = { "S100", "S200", "S400", "S800", "S1600",
+		"S3200" };
 
 	fc->fc_speed = llc->sspd;
 	STAILQ_INIT(&fc->fc_frags);
@@ -774,10 +769,10 @@ firewire_ifattach(struct ifnet *ifp, struct fw_hwaddr *llc)
 	ifp->if_addrlen = sizeof(struct fw_hwaddr);
 	ifp->if_hdrlen = 0;
 	if_attach(ifp);
-	ifp->if_mtu = 1500;	/* XXX */
+	ifp->if_mtu = 1500; /* XXX */
 	ifp->if_output = firewire_output;
 	ifp->if_resolvemulti = firewire_resolvemulti;
-	ifp->if_broadcastaddr = (u_char *) &firewire_broadcastaddr;
+	ifp->if_broadcastaddr = (u_char *)&firewire_broadcastaddr;
 
 	ifa = ifp->if_addr;
 	KASSERT(ifa != NULL, ("%s: no lladdr!\n", __func__));
@@ -786,14 +781,12 @@ firewire_ifattach(struct ifnet *ifp, struct fw_hwaddr *llc)
 	sdl->sdl_alen = ifp->if_addrlen;
 	bcopy(llc, LLADDR(sdl), ifp->if_addrlen);
 
-	bpfattach(ifp, DLT_APPLE_IP_OVER_IEEE1394,
-	    sizeof(struct fw_hwaddr));
+	bpfattach(ifp, DLT_APPLE_IP_OVER_IEEE1394, sizeof(struct fw_hwaddr));
 
 	if_printf(ifp, "Firewire address: %8D @ 0x%04x%08x, %s, maxrec %d\n",
-	    (uint8_t *) &llc->sender_unique_ID_hi, ":",
+	    (uint8_t *)&llc->sender_unique_ID_hi, ":",
 	    ntohs(llc->sender_unicast_FIFO_hi),
-	    ntohl(llc->sender_unicast_FIFO_lo),
-	    speeds[llc->sspd],
+	    ntohl(llc->sender_unicast_FIFO_lo), speeds[llc->sspd],
 	    (2 << llc->sender_max_rec));
 }
 
@@ -828,7 +821,7 @@ firewire_busreset(struct ifnet *ifp)
 static void *
 firewire_alloc(u_char type, struct ifnet *ifp)
 {
-	struct fw_com	*fc;
+	struct fw_com *fc;
 
 	fc = malloc(sizeof(struct fw_com), M_FWCOM, M_WAITOK | M_ZERO);
 	fc->fc_ifp = ifp;
@@ -849,8 +842,8 @@ firewire_modevent(module_t mod, int type, void *data)
 
 	switch (type) {
 	case MOD_LOAD:
-		if_register_com_alloc(IFT_IEEE1394,
-		    firewire_alloc, firewire_free);
+		if_register_com_alloc(IFT_IEEE1394, firewire_alloc,
+		    firewire_free);
 		break;
 	case MOD_UNLOAD:
 		if_deregister_com_alloc(IFT_IEEE1394);
@@ -862,11 +855,7 @@ firewire_modevent(module_t mod, int type, void *data)
 	return (0);
 }
 
-static moduledata_t firewire_mod = {
-	"if_firewire",
-	firewire_modevent,
-	0
-};
+static moduledata_t firewire_mod = { "if_firewire", firewire_modevent, 0 };
 
 DECLARE_MODULE(if_firewire, firewire_mod, SI_SUB_INIT_IF, SI_ORDER_ANY);
 MODULE_VERSION(if_firewire, 1);

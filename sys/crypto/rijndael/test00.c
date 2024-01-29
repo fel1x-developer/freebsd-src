@@ -28,13 +28,13 @@
  * rijndael_blockDecrypt().
  */
 
-#include <stdio.h>
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 
 #include <crypto/rijndael/rijndael-api-fst.h>
+#include <stdio.h>
 
-#define LL 32 
+#define LL 32
 int
 main(int argc, char **argv)
 {

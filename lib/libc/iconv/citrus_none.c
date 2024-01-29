@@ -40,23 +40,23 @@
 #include <string.h>
 #include <wchar.h>
 
-#include "citrus_namespace.h"
-#include "citrus_types.h"
 #include "citrus_module.h"
+#include "citrus_namespace.h"
 #include "citrus_none.h"
 #include "citrus_stdenc.h"
+#include "citrus_types.h"
 
 _CITRUS_STDENC_DECLS(NONE);
 _CITRUS_STDENC_DEF_OPS(NONE);
 struct _citrus_stdenc_traits _citrus_NONE_stdenc_traits = {
-	0,	/* et_state_size */
-	1,	/* mb_cur_max */
+	0, /* et_state_size */
+	1, /* mb_cur_max */
 };
 
 static int
-_citrus_NONE_stdenc_init(struct _citrus_stdenc * __restrict ce,
+_citrus_NONE_stdenc_init(struct _citrus_stdenc *__restrict ce,
     const void *var __unused, size_t lenvar __unused,
-    struct _citrus_stdenc_traits * __restrict et)
+    struct _citrus_stdenc_traits *__restrict et)
 {
 
 	et->et_state_size = 0;
@@ -70,21 +70,20 @@ _citrus_NONE_stdenc_init(struct _citrus_stdenc * __restrict ce,
 static void
 _citrus_NONE_stdenc_uninit(struct _citrus_stdenc *ce __unused)
 {
-
 }
 
 static int
-_citrus_NONE_stdenc_init_state(struct _citrus_stdenc * __restrict ce __unused,
-    void * __restrict ps __unused)
+_citrus_NONE_stdenc_init_state(struct _citrus_stdenc *__restrict ce __unused,
+    void *__restrict ps __unused)
 {
 
 	return (0);
 }
 
 static int
-_citrus_NONE_stdenc_mbtocs(struct _citrus_stdenc * __restrict ce __unused,
-    _csid_t *csid, _index_t *idx, char **s, size_t n,
-    void *ps __unused, size_t *nresult, struct iconv_hooks *hooks)
+_citrus_NONE_stdenc_mbtocs(struct _citrus_stdenc *__restrict ce __unused,
+    _csid_t *csid, _index_t *idx, char **s, size_t n, void *ps __unused,
+    size_t *nresult, struct iconv_hooks *hooks)
 {
 
 	if (n < 1) {
@@ -103,7 +102,7 @@ _citrus_NONE_stdenc_mbtocs(struct _citrus_stdenc * __restrict ce __unused,
 }
 
 static int
-_citrus_NONE_stdenc_cstomb(struct _citrus_stdenc * __restrict ce __unused,
+_citrus_NONE_stdenc_cstomb(struct _citrus_stdenc *__restrict ce __unused,
     char *s, size_t n, _csid_t csid, _index_t idx, void *ps __unused,
     size_t *nresult, struct iconv_hooks *hooks __unused)
 {
@@ -153,14 +152,14 @@ _citrus_NONE_stdenc_cstomb(struct _citrus_stdenc * __restrict ce __unused,
 		s[3] = (char)(idx >> 24);
 		*nresult = 4;
 	}
-		
+
 	return (0);
 }
 
 static int
-_citrus_NONE_stdenc_mbtowc(struct _citrus_stdenc * __restrict ce __unused,
-    _wc_t * __restrict pwc, char ** __restrict s, size_t n,
-    void * __restrict pspriv __unused, size_t * __restrict nresult,
+_citrus_NONE_stdenc_mbtowc(struct _citrus_stdenc *__restrict ce __unused,
+    _wc_t *__restrict pwc, char **__restrict s, size_t n,
+    void *__restrict pspriv __unused, size_t *__restrict nresult,
     struct iconv_hooks *hooks)
 {
 
@@ -174,7 +173,7 @@ _citrus_NONE_stdenc_mbtowc(struct _citrus_stdenc * __restrict ce __unused,
 	}
 
 	if (pwc != NULL)
-		*pwc = (_wc_t)(unsigned char) **s;
+		*pwc = (_wc_t)(unsigned char)**s;
 
 	*nresult = **s == '\0' ? 0 : 1;
 
@@ -185,10 +184,9 @@ _citrus_NONE_stdenc_mbtowc(struct _citrus_stdenc * __restrict ce __unused,
 }
 
 static int
-_citrus_NONE_stdenc_wctomb(struct _citrus_stdenc * __restrict ce __unused,
-    char * __restrict s, size_t n, _wc_t wc,
-    void * __restrict pspriv __unused, size_t * __restrict nresult,
-    struct iconv_hooks *hooks __unused)
+_citrus_NONE_stdenc_wctomb(struct _citrus_stdenc *__restrict ce __unused,
+    char *__restrict s, size_t n, _wc_t wc, void *__restrict pspriv __unused,
+    size_t *__restrict nresult, struct iconv_hooks *hooks __unused)
 {
 
 	if ((wc & ~0xFFU) != 0) {
@@ -208,9 +206,10 @@ _citrus_NONE_stdenc_wctomb(struct _citrus_stdenc * __restrict ce __unused,
 }
 
 static int
-_citrus_NONE_stdenc_put_state_reset(struct _citrus_stdenc * __restrict ce __unused,
-    char * __restrict s __unused, size_t n __unused,
-    void * __restrict pspriv __unused, size_t * __restrict nresult)
+_citrus_NONE_stdenc_put_state_reset(
+    struct _citrus_stdenc *__restrict ce __unused, char *__restrict s __unused,
+    size_t n __unused, void *__restrict pspriv __unused,
+    size_t *__restrict nresult)
 {
 
 	*nresult = 0;
@@ -219,9 +218,9 @@ _citrus_NONE_stdenc_put_state_reset(struct _citrus_stdenc * __restrict ce __unus
 }
 
 static int
-_citrus_NONE_stdenc_get_state_desc(struct _stdenc * __restrict ce __unused,
-    void * __restrict ps __unused, int id,
-    struct _stdenc_state_desc * __restrict d)
+_citrus_NONE_stdenc_get_state_desc(struct _stdenc *__restrict ce __unused,
+    void *__restrict ps __unused, int id,
+    struct _stdenc_state_desc *__restrict d)
 {
 	int ret = 0;
 

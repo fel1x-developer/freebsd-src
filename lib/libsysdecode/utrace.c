@@ -28,11 +28,13 @@
  */
 
 #include <sys/param.h>
+
 #include <dlfcn.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <sysdecode.h>
+
 #include "rtld_utrace.h"
 
 #ifdef __LP64__
@@ -73,8 +75,8 @@ print_utrace_rtld(FILE *fp, void *p)
 		if (mode & RTLD_TRACE)
 			fprintf(fp, " | RTLD_TRACE");
 		if (mode & ~(RTLD_MODEMASK | RTLD_GLOBAL | RTLD_TRACE))
-			fprintf(fp, " | %#x", mode &
-			    ~(RTLD_MODEMASK | RTLD_GLOBAL | RTLD_TRACE));
+			fprintf(fp, " | %#x",
+			    mode & ~(RTLD_MODEMASK | RTLD_GLOBAL | RTLD_TRACE));
 		fprintf(fp, ")");
 		break;
 	case UTRACE_DLOPEN_STOP:
@@ -107,12 +109,12 @@ print_utrace_rtld(FILE *fp, void *p)
 		fprintf(fp, "RTLD: LD_PRELOAD finished");
 		break;
 	case UTRACE_INIT_CALL:
-		fprintf(fp, "RTLD: init %p for %p (%s)", ut->mapbase, ut->handle,
-		    ut->name);
+		fprintf(fp, "RTLD: init %p for %p (%s)", ut->mapbase,
+		    ut->handle, ut->name);
 		break;
 	case UTRACE_FINI_CALL:
-		fprintf(fp, "RTLD: fini %p for %p (%s)", ut->mapbase, ut->handle,
-		    ut->name);
+		fprintf(fp, "RTLD: fini %p for %p (%s)", ut->mapbase,
+		    ut->handle, ut->name);
 		break;
 	case UTRACE_DLSYM_START:
 		fprintf(fp, "RTLD: dlsym(%p, %s)", ut->handle, ut->name);
@@ -171,8 +173,8 @@ sysdecode_utrace(FILE *fp, void *p, size_t len)
 #endif
 	static const char rtld_utrace_sig[RTLD_UTRACE_SIG_SZ] = RTLD_UTRACE_SIG;
 
-	if (len == sizeof(struct utrace_rtld) && bcmp(p, rtld_utrace_sig,
-	    sizeof(rtld_utrace_sig)) == 0)
+	if (len == sizeof(struct utrace_rtld) &&
+	    bcmp(p, rtld_utrace_sig, sizeof(rtld_utrace_sig)) == 0)
 		return (print_utrace_rtld(fp, p));
 
 	if (len == sizeof(struct utrace_malloc)) {
@@ -181,8 +183,8 @@ sysdecode_utrace(FILE *fp, void *p, size_t len)
 	}
 
 #ifdef __LP64__
-	if (len == sizeof(struct utrace_rtld32) && bcmp(p, rtld_utrace_sig,
-	    sizeof(rtld_utrace_sig)) == 0) {
+	if (len == sizeof(struct utrace_rtld32) &&
+	    bcmp(p, rtld_utrace_sig, sizeof(rtld_utrace_sig)) == 0) {
 		pr = p;
 		memset(&ur, 0, sizeof(ur));
 		memcpy(ur.sig, pr->sig, sizeof(ur.sig));
@@ -199,7 +201,7 @@ sysdecode_utrace(FILE *fp, void *p, size_t len)
 		pm = p;
 		memset(&um, 0, sizeof(um));
 		um.p = pm->p == (uint32_t)-1 ? (void *)(intptr_t)-1 :
-		    (void *)(uintptr_t)pm->p;
+					       (void *)(uintptr_t)pm->p;
 		um.s = pm->s;
 		um.r = (void *)(uintptr_t)pm->r;
 		print_utrace_malloc(fp, &um);

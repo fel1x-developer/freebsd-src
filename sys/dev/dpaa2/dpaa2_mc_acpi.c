@@ -35,34 +35,34 @@
  * hardware objects used in network-oriented packet processing applications.
  */
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
-#include <sys/module.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
 #include <dev/acpica/acpivar.h>
 
-#include "acpi_bus_if.h"
-#include "pcib_if.h"
-#include "pci_if.h"
+#include <contrib/dev/acpica/include/acpi.h>
 
-#include "dpaa2_mcp.h"
+#include "acpi_bus_if.h"
 #include "dpaa2_mc.h"
 #include "dpaa2_mc_if.h"
+#include "dpaa2_mcp.h"
+#include "pci_if.h"
+#include "pcib_if.h"
 
 struct dpaa2_mac_dev_softc {
-	int			uid;
-	uint64_t		reg;
-	char			managed[64];
-	char			phy_conn_type[64];
-	char			phy_mode[64];
-	ACPI_HANDLE		phy_channel;
+	int uid;
+	uint64_t reg;
+	char managed[64];
+	char phy_conn_type[64];
+	char phy_mode[64];
+	ACPI_HANDLE phy_channel;
 };
 
 static int
@@ -115,7 +115,8 @@ dpaa2_mac_dev_attach(device_t dev)
 	    sizeof(sc->phy_channel), DEVICE_PROP_HANDLE);
 
 	if (bootverbose)
-		device_printf(dev, "UID %#04x reg %#04jx managed '%s' "
+		device_printf(dev,
+		    "UID %#04x reg %#04jx managed '%s' "
 		    "phy-connection-type '%s' phy-mode '%s' phy-handle '%s'\n",
 		    sc->uid, sc->reg, sc->managed[0] != '\0' ? sc->managed : "",
 		    sc->phy_conn_type[0] != '\0' ? sc->phy_conn_type : "",
@@ -157,9 +158,9 @@ dpaa2_mac_dev_get_phy_dev(device_t dev)
 
 static device_method_t dpaa2_mac_dev_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		dpaa2_mac_dev_probe),
-	DEVMETHOD(device_attach,	dpaa2_mac_dev_attach),
-	DEVMETHOD(device_detach,	bus_generic_detach),
+	DEVMETHOD(device_probe, dpaa2_mac_dev_probe),
+	DEVMETHOD(device_attach, dpaa2_mac_dev_attach),
+	DEVMETHOD(device_detach, bus_generic_detach),
 
 	DEVMETHOD_END
 };
@@ -192,9 +193,9 @@ dpaa2_mc_acpi_probe(device_t dev)
 
 /* Context for walking PRxx child devices. */
 struct dpaa2_mc_acpi_prxx_walk_ctx {
-	device_t	dev;
-	int		count;
-	int		countok;
+	device_t dev;
+	int count;
+	int countok;
 };
 
 static ACPI_STATUS
@@ -305,15 +306,18 @@ dpaa2_mc_acpi_get_phy_dev(device_t dev, device_t *phy_dev, uint32_t id)
 
 	mdev = dpaa2_mc_acpi_find_dpaa2_mac_dev(dev, id);
 	if (mdev == NULL) {
-		device_printf(dev, "%s: error finding dpmac device with id=%u\n",
-		    __func__, id);
+		device_printf(dev,
+		    "%s: error finding dpmac device with id=%u\n", __func__,
+		    id);
 		return (ENXIO);
 	}
 
 	pdev = dpaa2_mac_dev_get_phy_dev(mdev);
 	if (pdev == NULL) {
-		device_printf(dev, "%s: error getting MDIO device for dpamc %s "
-		    "(id=%u)\n", __func__, device_get_nameunit(mdev), id);
+		device_printf(dev,
+		    "%s: error getting MDIO device for dpamc %s "
+		    "(id=%u)\n",
+		    __func__, device_get_nameunit(mdev), id);
 		return (ENXIO);
 	}
 
@@ -347,37 +351,37 @@ dpaa2_mc_acpi_read_ivar(device_t dev, device_t child, int index,
 
 static device_method_t dpaa2_mc_acpi_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		dpaa2_mc_acpi_probe),
-	DEVMETHOD(device_attach,	dpaa2_mc_acpi_attach),
-	DEVMETHOD(device_detach,	dpaa2_mc_detach),
+	DEVMETHOD(device_probe, dpaa2_mc_acpi_probe),
+	DEVMETHOD(device_attach, dpaa2_mc_acpi_attach),
+	DEVMETHOD(device_detach, dpaa2_mc_detach),
 
 	/* Bus interface */
-	DEVMETHOD(bus_alloc_resource,	dpaa2_mc_alloc_resource),
-	DEVMETHOD(bus_adjust_resource,	dpaa2_mc_adjust_resource),
-	DEVMETHOD(bus_release_resource,	dpaa2_mc_release_resource),
+	DEVMETHOD(bus_alloc_resource, dpaa2_mc_alloc_resource),
+	DEVMETHOD(bus_adjust_resource, dpaa2_mc_adjust_resource),
+	DEVMETHOD(bus_release_resource, dpaa2_mc_release_resource),
 	DEVMETHOD(bus_activate_resource, dpaa2_mc_activate_resource),
 	DEVMETHOD(bus_deactivate_resource, dpaa2_mc_deactivate_resource),
-	DEVMETHOD(bus_setup_intr,	bus_generic_setup_intr),
-	DEVMETHOD(bus_teardown_intr,	bus_generic_teardown_intr),
+	DEVMETHOD(bus_setup_intr, bus_generic_setup_intr),
+	DEVMETHOD(bus_teardown_intr, bus_generic_teardown_intr),
 
 	/* Pseudo-PCIB interface */
-	DEVMETHOD(pcib_alloc_msi,	dpaa2_mc_alloc_msi),
-	DEVMETHOD(pcib_release_msi,	dpaa2_mc_release_msi),
-	DEVMETHOD(pcib_map_msi,		dpaa2_mc_map_msi),
-	DEVMETHOD(pcib_get_id,		dpaa2_mc_get_id),
+	DEVMETHOD(pcib_alloc_msi, dpaa2_mc_alloc_msi),
+	DEVMETHOD(pcib_release_msi, dpaa2_mc_release_msi),
+	DEVMETHOD(pcib_map_msi, dpaa2_mc_map_msi),
+	DEVMETHOD(pcib_get_id, dpaa2_mc_get_id),
 
 	/* DPAA2 MC bus interface */
-	DEVMETHOD(dpaa2_mc_manage_dev,	dpaa2_mc_manage_dev),
-	DEVMETHOD(dpaa2_mc_get_free_dev,dpaa2_mc_get_free_dev),
-	DEVMETHOD(dpaa2_mc_get_dev,	dpaa2_mc_get_dev),
+	DEVMETHOD(dpaa2_mc_manage_dev, dpaa2_mc_manage_dev),
+	DEVMETHOD(dpaa2_mc_get_free_dev, dpaa2_mc_get_free_dev),
+	DEVMETHOD(dpaa2_mc_get_dev, dpaa2_mc_get_dev),
 	DEVMETHOD(dpaa2_mc_get_shared_dev, dpaa2_mc_get_shared_dev),
-	DEVMETHOD(dpaa2_mc_reserve_dev,	dpaa2_mc_reserve_dev),
+	DEVMETHOD(dpaa2_mc_reserve_dev, dpaa2_mc_reserve_dev),
 	DEVMETHOD(dpaa2_mc_release_dev, dpaa2_mc_release_dev),
-	DEVMETHOD(dpaa2_mc_get_phy_dev,	dpaa2_mc_acpi_get_phy_dev),
+	DEVMETHOD(dpaa2_mc_get_phy_dev, dpaa2_mc_acpi_get_phy_dev),
 
 	/* ACPI compar layer. */
-	DEVMETHOD(bus_read_ivar,	dpaa2_mc_acpi_read_ivar),
-	DEVMETHOD(bus_get_property,	dpaa2_mc_acpi_get_property),
+	DEVMETHOD(bus_read_ivar, dpaa2_mc_acpi_read_ivar),
+	DEVMETHOD(bus_get_property, dpaa2_mc_acpi_get_property),
 
 	DEVMETHOD_END
 };

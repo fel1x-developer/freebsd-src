@@ -47,23 +47,24 @@
 #ifdef HAVE_KERNEL_OPTION_HEADERS
 #include "opt_snd.h"
 #endif
-#include <dev/sound/pcm/sound.h>
 #include <dev/sound/pcm/pcm.h>
+#include <dev/sound/pcm/sound.h>
+
 #include "feeder_if.h"
 
 #define SND_USE_FXDIV
 #include "snd_fxdiv_gen.h"
 #endif
 
-#define FEEDMATRIX_RESERVOIR	(SND_CHN_MAX * PCM_32_BPS)
+#define FEEDMATRIX_RESERVOIR (SND_CHN_MAX * PCM_32_BPS)
 
-#define SND_CHN_T_EOF		0x00e0fe0f
-#define SND_CHN_T_NULL		0x0e0e0e0e
+#define SND_CHN_T_EOF 0x00e0fe0f
+#define SND_CHN_T_NULL 0x0e0e0e0e
 
 struct feed_matrix_info;
 
-typedef void (*feed_matrix_t)(struct feed_matrix_info *, uint8_t *,
-    uint8_t *, uint32_t);
+typedef void (
+    *feed_matrix_t)(struct feed_matrix_info *, uint8_t *, uint8_t *, uint32_t);
 
 struct feed_matrix_info {
 	uint32_t bps;
@@ -97,8 +98,7 @@ static struct pcmchan_matrix feeder_matrix_maps[SND_CHN_MATRIX_MAX] = {
 	[SND_CHN_MATRIX_7_1] = SND_CHN_MATRIX_MAP_7_1
 };
 
-static int feeder_matrix_default_ids[9] = {
-	[0] = SND_CHN_MATRIX_UNKNOWN,
+static int feeder_matrix_default_ids[9] = { [0] = SND_CHN_MATRIX_UNKNOWN,
 	[1] = SND_CHN_MATRIX_1,
 	[2] = SND_CHN_MATRIX_2,
 	[3] = SND_CHN_MATRIX_3,
@@ -106,71 +106,72 @@ static int feeder_matrix_default_ids[9] = {
 	[5] = SND_CHN_MATRIX_5,
 	[6] = SND_CHN_MATRIX_6,
 	[7] = SND_CHN_MATRIX_7,
-	[8] = SND_CHN_MATRIX_8
-};
+	[8] = SND_CHN_MATRIX_8 };
 
 #ifdef _KERNEL
 #define FEEDMATRIX_CLIP_CHECK(...)
 #else
-#define FEEDMATRIX_CLIP_CHECK(v, BIT)	do {				\
-	if ((v) < PCM_S##BIT##_MIN || (v) > PCM_S##BIT##_MAX)		\
-	    errx(1, "\n\n%s(): Sample clipping: %jd\n",			\
-		__func__, (intmax_t)(v));				\
-} while (0)
+#define FEEDMATRIX_CLIP_CHECK(v, BIT)                                         \
+	do {                                                                  \
+		if ((v) < PCM_S##BIT##_MIN || (v) > PCM_S##BIT##_MAX)         \
+			errx(1, "\n\n%s(): Sample clipping: %jd\n", __func__, \
+			    (intmax_t)(v));                                   \
+	} while (0)
 #endif
 
-#define FEEDMATRIX_DECLARE(SIGN, BIT, ENDIAN)				\
-static void								\
-feed_matrix_##SIGN##BIT##ENDIAN(struct feed_matrix_info *info,		\
-    uint8_t *src, uint8_t *dst, uint32_t count)				\
-{									\
-	intpcm64_t accum;						\
-	intpcm_t v;							\
-	int i, j;							\
-									\
-	do {								\
-		for (i = 0; info->matrix[i].chn[0] != SND_CHN_T_EOF;	\
-		    i++) {						\
-			if (info->matrix[i].chn[0] == SND_CHN_T_NULL) {	\
-				_PCM_WRITE_##SIGN##BIT##_##ENDIAN(dst,	\
-				    0);					\
-				dst += PCM_##BIT##_BPS;			\
-				continue;				\
-			} else if (info->matrix[i].chn[1] ==		\
-			    SND_CHN_T_EOF) {				\
-				v = _PCM_READ_##SIGN##BIT##_##ENDIAN(	\
-				    src + info->matrix[i].chn[0]);	\
-				_PCM_WRITE_##SIGN##BIT##_##ENDIAN(dst,	\
-				    v);					\
-				dst += PCM_##BIT##_BPS;			\
-				continue;				\
-			}						\
-									\
-			accum = 0;					\
-			for (j = 0;					\
-			    info->matrix[i].chn[j] != SND_CHN_T_EOF;	\
-			    j++) {					\
-				v = _PCM_READ_##SIGN##BIT##_##ENDIAN(	\
-				    src + info->matrix[i].chn[j]);	\
-				accum += v;				\
-			}						\
-									\
-			accum = (accum * info->matrix[i].mul) >>	\
-			    info->matrix[i].shift;			\
-									\
-			FEEDMATRIX_CLIP_CHECK(accum, BIT);		\
-									\
-			v = (accum > PCM_S##BIT##_MAX) ?		\
-			    PCM_S##BIT##_MAX :				\
-			    ((accum < PCM_S##BIT##_MIN) ?		\
-			    PCM_S##BIT##_MIN :				\
-			    accum);					\
-			_PCM_WRITE_##SIGN##BIT##_##ENDIAN(dst, v);	\
-			dst += PCM_##BIT##_BPS;				\
-		}							\
-		src += info->ialign;					\
-	} while (--count != 0);						\
-}
+#define FEEDMATRIX_DECLARE(SIGN, BIT, ENDIAN)                                  \
+	static void feed_matrix_##SIGN##BIT##ENDIAN(                           \
+	    struct feed_matrix_info *info, uint8_t *src, uint8_t *dst,         \
+	    uint32_t count)                                                    \
+	{                                                                      \
+		intpcm64_t accum;                                              \
+		intpcm_t v;                                                    \
+		int i, j;                                                      \
+                                                                               \
+		do {                                                           \
+			for (i = 0; info->matrix[i].chn[0] != SND_CHN_T_EOF;   \
+			     i++) {                                            \
+				if (info->matrix[i].chn[0] ==                  \
+				    SND_CHN_T_NULL) {                          \
+					_PCM_WRITE_##SIGN##BIT##_##ENDIAN(dst, \
+					    0);                                \
+					dst += PCM_##BIT##_BPS;                \
+					continue;                              \
+				} else if (info->matrix[i].chn[1] ==           \
+				    SND_CHN_T_EOF) {                           \
+					v = _PCM_READ_##SIGN##BIT##_##ENDIAN(  \
+					    src + info->matrix[i].chn[0]);     \
+					_PCM_WRITE_##SIGN##BIT##_##ENDIAN(dst, \
+					    v);                                \
+					dst += PCM_##BIT##_BPS;                \
+					continue;                              \
+				}                                              \
+                                                                               \
+				accum = 0;                                     \
+				for (j = 0;                                    \
+				     info->matrix[i].chn[j] != SND_CHN_T_EOF;  \
+				     j++) {                                    \
+					v = _PCM_READ_##SIGN##BIT##_##ENDIAN(  \
+					    src + info->matrix[i].chn[j]);     \
+					accum += v;                            \
+				}                                              \
+                                                                               \
+				accum = (accum * info->matrix[i].mul) >>       \
+				    info->matrix[i].shift;                     \
+                                                                               \
+				FEEDMATRIX_CLIP_CHECK(accum, BIT);             \
+                                                                               \
+				v = (accum > PCM_S##BIT##_MAX) ?               \
+				    PCM_S##BIT##_MAX :                         \
+				    ((accum < PCM_S##BIT##_MIN) ?              \
+					    PCM_S##BIT##_MIN :                 \
+					    accum);                            \
+				_PCM_WRITE_##SIGN##BIT##_##ENDIAN(dst, v);     \
+				dst += PCM_##BIT##_BPS;                        \
+			}                                                      \
+			src += info->ialign;                                   \
+		} while (--count != 0);                                        \
+	}
 
 #if BYTE_ORDER == LITTLE_ENDIAN || defined(SND_FEEDER_MULTIFORMAT)
 FEEDMATRIX_DECLARE(S, 16, LE)
@@ -181,10 +182,10 @@ FEEDMATRIX_DECLARE(S, 16, BE)
 FEEDMATRIX_DECLARE(S, 32, BE)
 #endif
 #ifdef SND_FEEDER_MULTIFORMAT
-FEEDMATRIX_DECLARE(S,  8, NE)
+FEEDMATRIX_DECLARE(S, 8, NE)
 FEEDMATRIX_DECLARE(S, 24, LE)
 FEEDMATRIX_DECLARE(S, 24, BE)
-FEEDMATRIX_DECLARE(U,  8, NE)
+FEEDMATRIX_DECLARE(U, 8, NE)
 FEEDMATRIX_DECLARE(U, 16, LE)
 FEEDMATRIX_DECLARE(U, 24, LE)
 FEEDMATRIX_DECLARE(U, 32, LE)
@@ -193,10 +194,9 @@ FEEDMATRIX_DECLARE(U, 24, BE)
 FEEDMATRIX_DECLARE(U, 32, BE)
 #endif
 
-#define FEEDMATRIX_ENTRY(SIGN, BIT, ENDIAN)				\
-	{								\
-		AFMT_##SIGN##BIT##_##ENDIAN,				\
-		feed_matrix_##SIGN##BIT##ENDIAN				\
+#define FEEDMATRIX_ENTRY(SIGN, BIT, ENDIAN)                                  \
+	{                                                                    \
+		AFMT_##SIGN##BIT##_##ENDIAN, feed_matrix_##SIGN##BIT##ENDIAN \
 	}
 
 static const struct {
@@ -204,24 +204,17 @@ static const struct {
 	feed_matrix_t apply;
 } feed_matrix_tab[] = {
 #if BYTE_ORDER == LITTLE_ENDIAN || defined(SND_FEEDER_MULTIFORMAT)
-	FEEDMATRIX_ENTRY(S, 16, LE),
-	FEEDMATRIX_ENTRY(S, 32, LE),
+	FEEDMATRIX_ENTRY(S, 16, LE), FEEDMATRIX_ENTRY(S, 32, LE),
 #endif
 #if BYTE_ORDER == BIG_ENDIAN || defined(SND_FEEDER_MULTIFORMAT)
-	FEEDMATRIX_ENTRY(S, 16, BE),
-	FEEDMATRIX_ENTRY(S, 32, BE),
+	FEEDMATRIX_ENTRY(S, 16, BE), FEEDMATRIX_ENTRY(S, 32, BE),
 #endif
 #ifdef SND_FEEDER_MULTIFORMAT
-	FEEDMATRIX_ENTRY(S,  8, NE),
-	FEEDMATRIX_ENTRY(S, 24, LE),
-	FEEDMATRIX_ENTRY(S, 24, BE),
-	FEEDMATRIX_ENTRY(U,  8, NE),
-	FEEDMATRIX_ENTRY(U, 16, LE),
-	FEEDMATRIX_ENTRY(U, 24, LE),
-	FEEDMATRIX_ENTRY(U, 32, LE),
-	FEEDMATRIX_ENTRY(U, 16, BE),
-	FEEDMATRIX_ENTRY(U, 24, BE),
-	FEEDMATRIX_ENTRY(U, 32, BE)
+	FEEDMATRIX_ENTRY(S, 8, NE), FEEDMATRIX_ENTRY(S, 24, LE),
+	FEEDMATRIX_ENTRY(S, 24, BE), FEEDMATRIX_ENTRY(U, 8, NE),
+	FEEDMATRIX_ENTRY(U, 16, LE), FEEDMATRIX_ENTRY(U, 24, LE),
+	FEEDMATRIX_ENTRY(U, 32, LE), FEEDMATRIX_ENTRY(U, 16, BE),
+	FEEDMATRIX_ENTRY(U, 24, BE), FEEDMATRIX_ENTRY(U, 32, BE)
 #endif
 };
 
@@ -231,34 +224,32 @@ feed_matrix_reset(struct feed_matrix_info *info)
 	uint32_t i, j;
 
 	for (i = 0; i < (sizeof(info->matrix) / sizeof(info->matrix[0])); i++) {
-		for (j = 0;
-		    j < (sizeof(info->matrix[i].chn) /
-		    sizeof(info->matrix[i].chn[0])); j++) {
+		for (j = 0; j < (sizeof(info->matrix[i].chn) /
+				    sizeof(info->matrix[i].chn[0]));
+		     j++) {
 			info->matrix[i].chn[j] = SND_CHN_T_EOF;
 		}
-		info->matrix[i].mul   = 1;
+		info->matrix[i].mul = 1;
 		info->matrix[i].shift = 0;
 	}
 }
 
 #ifdef FEEDMATRIX_GENERIC
 static void
-feed_matrix_apply_generic(struct feed_matrix_info *info,
-    uint8_t *src, uint8_t *dst, uint32_t count)
+feed_matrix_apply_generic(struct feed_matrix_info *info, uint8_t *src,
+    uint8_t *dst, uint32_t count)
 {
 	intpcm64_t accum;
 	intpcm_t v;
 	int i, j;
 
 	do {
-		for (i = 0; info->matrix[i].chn[0] != SND_CHN_T_EOF;
-		    i++) {
+		for (i = 0; info->matrix[i].chn[0] != SND_CHN_T_EOF; i++) {
 			if (info->matrix[i].chn[0] == SND_CHN_T_NULL) {
 				info->wr(dst, 0);
 				dst += info->bps;
 				continue;
-			} else if (info->matrix[i].chn[1] ==
-			    SND_CHN_T_EOF) {
+			} else if (info->matrix[i].chn[1] == SND_CHN_T_EOF) {
 				v = info->rd(src + info->matrix[i].chn[0]);
 				info->wr(dst, v);
 				dst += info->bps;
@@ -266,9 +257,8 @@ feed_matrix_apply_generic(struct feed_matrix_info *info,
 			}
 
 			accum = 0;
-			for (j = 0;
-			    info->matrix[i].chn[j] != SND_CHN_T_EOF;
-			    j++) {
+			for (j = 0; info->matrix[i].chn[j] != SND_CHN_T_EOF;
+			     j++) {
 				v = info->rd(src + info->matrix[i].chn[j]);
 				accum += v;
 			}
@@ -278,7 +268,8 @@ feed_matrix_apply_generic(struct feed_matrix_info *info,
 
 			FEEDMATRIX_CLIP_CHECK(accum, 32);
 
-			v = (accum > PCM_S32_MAX) ? PCM_S32_MAX :
+			v = (accum > PCM_S32_MAX) ?
+			    PCM_S32_MAX :
 			    ((accum < PCM_S32_MIN) ? PCM_S32_MIN : accum);
 			info->wr(dst, v);
 			dst += info->bps;
@@ -308,8 +299,8 @@ feed_matrix_setup(struct feed_matrix_info *info, struct pcmchan_matrix *m_in,
 	 * If both in and out are part of standard matrix and identical, skip
 	 * everything altogether.
 	 */
-	if (m_in->id == m_out->id && !(m_in->id < SND_CHN_MATRIX_BEGIN ||
-	    m_in->id > SND_CHN_MATRIX_END))
+	if (m_in->id == m_out->id &&
+	    !(m_in->id < SND_CHN_MATRIX_BEGIN || m_in->id > SND_CHN_MATRIX_END))
 		return (0);
 
 	/*
@@ -328,8 +319,9 @@ feed_matrix_setup(struct feed_matrix_info *info, struct pcmchan_matrix *m_in,
 		in_mask = m_in->mask;
 
 	/* Merge, reduce, expand all possibilites. */
-	for (ch = SND_CHN_T_BEGIN; ch <= SND_CHN_T_END &&
-	    m_out->map[ch].type != SND_CHN_T_MAX; ch += SND_CHN_T_STEP) {
+	for (ch = SND_CHN_T_BEGIN;
+	     ch <= SND_CHN_T_END && m_out->map[ch].type != SND_CHN_T_MAX;
+	     ch += SND_CHN_T_STEP) {
 		merge_mask = m_out->map[ch].members & in_mask;
 		if (merge_mask == 0) {
 			info->matrix[ch].chn[0] = SND_CHN_T_NULL;
@@ -338,7 +330,7 @@ feed_matrix_setup(struct feed_matrix_info *info, struct pcmchan_matrix *m_in,
 
 		j = 0;
 		for (i = SND_CHN_T_BEGIN; i <= SND_CHN_T_END;
-		    i += SND_CHN_T_STEP) {
+		     i += SND_CHN_T_STEP) {
 			if (merge_mask & (1 << i)) {
 				if (m_in->offset[i] >= 0 &&
 				    m_in->offset[i] < (int)m_in->channels)
@@ -352,7 +344,7 @@ feed_matrix_setup(struct feed_matrix_info *info, struct pcmchan_matrix *m_in,
 			}
 		}
 
-#define FEEDMATRIX_ATTN_SHIFT	16
+#define FEEDMATRIX_ATTN_SHIFT 16
 
 		if (j > 1) {
 			/*
@@ -360,13 +352,13 @@ feed_matrix_setup(struct feed_matrix_info *info, struct pcmchan_matrix *m_in,
 			 * multiple channels, apply a slight attenuation to
 			 * avoid clipping.
 			 */
-			mul   = (1 << (FEEDMATRIX_ATTN_SHIFT - 1)) + 143 - j;
+			mul = (1 << (FEEDMATRIX_ATTN_SHIFT - 1)) + 143 - j;
 			shift = FEEDMATRIX_ATTN_SHIFT;
 			while ((mul & 1) == 0 && shift > 0) {
 				mul >>= 1;
 				shift--;
 			}
-			info->matrix[ch].mul   = mul;
+			info->matrix[ch].mul = mul;
 			info->matrix[ch].shift = shift;
 		}
 	}
@@ -381,10 +373,11 @@ feed_matrix_setup(struct feed_matrix_info *info, struct pcmchan_matrix *m_in,
 				fprintf(stderr, ", ");
 			fprintf(stderr, "%d",
 			    (info->matrix[i].chn[j] == SND_CHN_T_NULL) ?
-			    0xffffffff : info->matrix[i].chn[j] / info->bps);
+				0xffffffff :
+				info->matrix[i].chn[j] / info->bps);
 		}
-		fprintf(stderr, "] attn: (x * %d) >> %d\n",
-		    info->matrix[i].mul, info->matrix[i].shift);
+		fprintf(stderr, "] attn: (x * %d) >> %d\n", info->matrix[i].mul,
+		    info->matrix[i].shift);
 	}
 #endif
 
@@ -414,7 +407,8 @@ feed_matrix_init(struct pcm_feeder *f)
 	info->apply = NULL;
 
 	for (i = 0; info->apply == NULL &&
-	    i < (sizeof(feed_matrix_tab) / sizeof(feed_matrix_tab[0])); i++) {
+	     i < (sizeof(feed_matrix_tab) / sizeof(feed_matrix_tab[0]));
+	     i++) {
 		if (AFMT_ENCODING(info->in) == feed_matrix_tab[i].format)
 			info->apply = feed_matrix_tab[i].apply;
 	}
@@ -434,7 +428,7 @@ feed_matrix_init(struct pcm_feeder *f)
 #endif
 	}
 
-	m_in  = feeder_matrix_format_map(info->in);
+	m_in = feeder_matrix_format_map(info->in);
 	m_out = feeder_matrix_format_map(info->out);
 
 	ret = feed_matrix_setup(info, m_in, m_out);
@@ -522,16 +516,13 @@ feed_matrix_feed(struct pcm_feeder *f, struct pcm_channel *c, uint8_t *b,
 }
 
 static struct pcm_feederdesc feeder_matrix_desc[] = {
-	{ FEEDER_MATRIX, 0, 0, 0, 0 },
-	{ 0, 0, 0, 0, 0 }
+	{ FEEDER_MATRIX, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }
 };
 
-static kobj_method_t feeder_matrix_methods[] = {
-	KOBJMETHOD(feeder_init,		feed_matrix_init),
-	KOBJMETHOD(feeder_free,		feed_matrix_free),
-	KOBJMETHOD(feeder_feed,		feed_matrix_feed),
-	KOBJMETHOD_END
-};
+static kobj_method_t feeder_matrix_methods[] = { KOBJMETHOD(feeder_init,
+						     feed_matrix_init),
+	KOBJMETHOD(feeder_free, feed_matrix_free),
+	KOBJMETHOD(feeder_feed, feed_matrix_feed), KOBJMETHOD_END };
 
 FEEDER_DECLARE(feeder_matrix, NULL);
 
@@ -598,7 +589,7 @@ feeder_matrix_default_format(uint32_t format)
 		for (i = SND_CHN_MATRIX_BEGIN; i <= SND_CHN_MATRIX_END; i++) {
 			if (feeder_matrix_maps[i].channels == ch &&
 			    feeder_matrix_maps[i].ext == ext)
-			return (SND_FORMAT(format, ch, ext));
+				return (SND_FORMAT(format, ch, ext));
 		}
 	}
 
@@ -698,40 +689,35 @@ feeder_matrix_compare(struct pcmchan_matrix *m_in, struct pcmchan_matrix *m_out)
 
 /*
  * XXX 4front interpretation of "surround" is ambigous and sort of
- *     conflicting with "rear"/"back". Map it to "side". Well.. 
+ *     conflicting with "rear"/"back". Map it to "side". Well..
  *     who cares?
  */
-static int snd_chn_to_oss[SND_CHN_T_MAX] = {
-	[SND_CHN_T_FL] = CHID_L,
+static int snd_chn_to_oss[SND_CHN_T_MAX] = { [SND_CHN_T_FL] = CHID_L,
 	[SND_CHN_T_FR] = CHID_R,
 	[SND_CHN_T_FC] = CHID_C,
 	[SND_CHN_T_LF] = CHID_LFE,
 	[SND_CHN_T_SL] = CHID_LS,
 	[SND_CHN_T_SR] = CHID_RS,
 	[SND_CHN_T_BL] = CHID_LR,
-	[SND_CHN_T_BR] = CHID_RR
-};
+	[SND_CHN_T_BR] = CHID_RR };
 
-#define SND_CHN_OSS_VALIDMASK						\
-			(SND_CHN_T_MASK_FL | SND_CHN_T_MASK_FR |	\
-			 SND_CHN_T_MASK_FC | SND_CHN_T_MASK_LF |	\
-			 SND_CHN_T_MASK_SL | SND_CHN_T_MASK_SR |	\
-			 SND_CHN_T_MASK_BL | SND_CHN_T_MASK_BR)
+#define SND_CHN_OSS_VALIDMASK                                           \
+	(SND_CHN_T_MASK_FL | SND_CHN_T_MASK_FR | SND_CHN_T_MASK_FC |    \
+	    SND_CHN_T_MASK_LF | SND_CHN_T_MASK_SL | SND_CHN_T_MASK_SR | \
+	    SND_CHN_T_MASK_BL | SND_CHN_T_MASK_BR)
 
-#define SND_CHN_OSS_MAX		8
-#define SND_CHN_OSS_BEGIN	CHID_L
-#define SND_CHN_OSS_END		CHID_RR
+#define SND_CHN_OSS_MAX 8
+#define SND_CHN_OSS_BEGIN CHID_L
+#define SND_CHN_OSS_END CHID_RR
 
-static int oss_to_snd_chn[SND_CHN_OSS_END + 1] = {
-	[CHID_L]   = SND_CHN_T_FL,
-	[CHID_R]   = SND_CHN_T_FR,
-	[CHID_C]   = SND_CHN_T_FC,
+static int oss_to_snd_chn[SND_CHN_OSS_END + 1] = { [CHID_L] = SND_CHN_T_FL,
+	[CHID_R] = SND_CHN_T_FR,
+	[CHID_C] = SND_CHN_T_FC,
 	[CHID_LFE] = SND_CHN_T_LF,
-	[CHID_LS]  = SND_CHN_T_SL,
-	[CHID_RS]  = SND_CHN_T_SR,
-	[CHID_LR]  = SND_CHN_T_BL,
-	[CHID_RR]  = SND_CHN_T_BR
-};
+	[CHID_LS] = SND_CHN_T_SL,
+	[CHID_RS] = SND_CHN_T_SR,
+	[CHID_LR] = SND_CHN_T_BL,
+	[CHID_RR] = SND_CHN_T_BR };
 
 /*
  * Used by SNDCTL_DSP_GET_CHNORDER.
@@ -750,12 +736,11 @@ feeder_matrix_oss_get_channel_order(struct pcmchan_matrix *m,
 	tmpmap = 0x0000000000000000ULL;
 
 	for (i = 0; i < SND_CHN_OSS_MAX && m->map[i].type != SND_CHN_T_MAX;
-	    i++) {
+	     i++) {
 		if ((1 << m->map[i].type) & ~SND_CHN_OSS_VALIDMASK)
 			return (EINVAL);
-		tmpmap |=
-		    (unsigned long long)snd_chn_to_oss[m->map[i].type] <<
-		    (i * 4);
+		tmpmap |= (unsigned long long)snd_chn_to_oss[m->map[i].type]
+		    << (i * 4);
 	}
 
 	*map = tmpmap;
@@ -816,8 +801,7 @@ feeder_matrix_oss_set_channel_order(struct pcmchan_matrix *m,
 	}
 
 	if (tmp.channels != m->channels || tmp.ext != m->ext ||
-	    tmp.mask != m->mask ||
-	    tmp.map[m->channels].type != SND_CHN_T_MAX)
+	    tmp.mask != m->mask || tmp.map[m->channels].type != SND_CHN_T_MAX)
 		return (EINVAL);
 
 	*m = tmp;

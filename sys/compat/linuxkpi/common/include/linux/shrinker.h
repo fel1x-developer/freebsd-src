@@ -24,39 +24,42 @@
  */
 
 #ifndef _LINUXKPI_LINUX_SHRINKER_H_
-#define	_LINUXKPI_LINUX_SHRINKER_H_
+#define _LINUXKPI_LINUX_SHRINKER_H_
 
 #include <sys/queue.h>
+
 #include <linux/gfp.h>
 
 struct shrink_control {
-	gfp_t		gfp_mask;
-	unsigned long	nr_to_scan;
-	unsigned long	nr_scanned;
+	gfp_t gfp_mask;
+	unsigned long nr_to_scan;
+	unsigned long nr_scanned;
 };
 
 struct shrinker {
-	unsigned long		(*count_objects)(struct shrinker *, struct shrink_control *);
-	unsigned long		(*scan_objects)(struct shrinker *, struct shrink_control *);
-	int			seeks;
-	long			batch;
-	TAILQ_ENTRY(shrinker)	next;
+	unsigned long (
+	    *count_objects)(struct shrinker *, struct shrink_control *);
+	unsigned long (
+	    *scan_objects)(struct shrinker *, struct shrink_control *);
+	int seeks;
+	long batch;
+	TAILQ_ENTRY(shrinker) next;
 };
 
-#define	SHRINK_STOP	(~0UL)
+#define SHRINK_STOP (~0UL)
 
-#define	DEFAULT_SEEKS	2
+#define DEFAULT_SEEKS 2
 
-int	linuxkpi_register_shrinker(struct shrinker *s);
-void	linuxkpi_unregister_shrinker(struct shrinker *s);
-void	linuxkpi_synchronize_shrinkers(void);
+int linuxkpi_register_shrinker(struct shrinker *s);
+void linuxkpi_unregister_shrinker(struct shrinker *s);
+void linuxkpi_synchronize_shrinkers(void);
 
 #if defined(LINUXKPI_VERSION) && LINUXKPI_VERSION >= 60000
-#define	register_shrinker(s, ...)	linuxkpi_register_shrinker(s)
+#define register_shrinker(s, ...) linuxkpi_register_shrinker(s)
 #else
-#define	register_shrinker(s)	linuxkpi_register_shrinker(s)
+#define register_shrinker(s) linuxkpi_register_shrinker(s)
 #endif
-#define	unregister_shrinker(s)	linuxkpi_unregister_shrinker(s)
-#define	synchronize_shrinkers()	linuxkpi_synchronize_shrinkers()
+#define unregister_shrinker(s) linuxkpi_unregister_shrinker(s)
+#define synchronize_shrinkers() linuxkpi_synchronize_shrinkers()
 
-#endif	/* _LINUXKPI_LINUX_SHRINKER_H_ */
+#endif /* _LINUXKPI_LINUX_SHRINKER_H_ */

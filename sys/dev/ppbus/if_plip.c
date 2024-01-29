@@ -84,62 +84,65 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/module.h>
 #include <sys/bus.h>
-#include <sys/mbuf.h>
-#include <sys/socket.h>
-#include <sys/sockio.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/module.h>
+#include <sys/rman.h>
+#include <sys/socket.h>
+#include <sys/sockio.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
 
+#include <dev/ppbus/ppbconf.h>
+#include <dev/ppbus/ppbio.h>
+
+#include <net/bpf.h>
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_types.h>
+#include <net/if_var.h>
 #include <net/netisr.h>
 #include <net/route.h>
-
 #include <netinet/in.h>
 #include <netinet/in_var.h>
 
-#include <net/bpf.h>
-
-#include <dev/ppbus/ppbconf.h>
 #include "ppbus_if.h"
-#include <dev/ppbus/ppbio.h>
 
-#ifndef LPMTU			/* MTU for the lp# interfaces */
-#define	LPMTU		1500
+#ifndef LPMTU /* MTU for the lp# interfaces */
+#define LPMTU 1500
 #endif
 
-#ifndef LPMAXSPIN1		/* DELAY factor for the lp# interfaces */
-#define	LPMAXSPIN1	8000   /* Spinning for remote intr to happen */
+#ifndef LPMAXSPIN1	/* DELAY factor for the lp# interfaces */
+#define LPMAXSPIN1 8000 /* Spinning for remote intr to happen */
 #endif
 
-#ifndef LPMAXSPIN2		/* DELAY factor for the lp# interfaces */
-#define	LPMAXSPIN2	500	/* Spinning for remote handshake to happen */
+#ifndef LPMAXSPIN2     /* DELAY factor for the lp# interfaces */
+#define LPMAXSPIN2 500 /* Spinning for remote handshake to happen */
 #endif
 
-#ifndef LPMAXERRS		/* Max errors before !RUNNING */
-#define	LPMAXERRS	100
+#ifndef LPMAXERRS /* Max errors before !RUNNING */
+#define LPMAXERRS 100
 #endif
 
-#define	CLPIPHDRLEN	14	/* We send dummy ethernet addresses (two) + packet type in front of packet */
-#define	CLPIP_SHAKE	0x80	/* This bit toggles between nibble reception */
-#define	MLPIPHDRLEN	CLPIPHDRLEN
+#define CLPIPHDRLEN                                                            \
+	14 /* We send dummy ethernet addresses (two) + packet type in front of \
+	      packet */
+#define CLPIP_SHAKE 0x80 /* This bit toggles between nibble reception */
+#define MLPIPHDRLEN CLPIPHDRLEN
 
-#define	LPIPHDRLEN	2	/* We send 0x08, 0x00 in front of packet */
-#define	LPIP_SHAKE	0x40	/* This bit toggles between nibble reception */
+#define LPIPHDRLEN 2	/* We send 0x08, 0x00 in front of packet */
+#define LPIP_SHAKE 0x40 /* This bit toggles between nibble reception */
 #if !defined(MLPIPHDRLEN) || LPIPHDRLEN > MLPIPHDRLEN
-#define	MLPIPHDRLEN	LPIPHDRLEN
+#define MLPIPHDRLEN LPIPHDRLEN
 #endif
 
-#define	LPIPTBLSIZE	256	/* Size of octet translation table */
+#define LPIPTBLSIZE 256 /* Size of octet translation table */
 
-#define	lprintf		if (lptflag) printf
+#define lprintf      \
+	if (lptflag) \
+	printf
 
 #ifdef PLIP_DEBUG
 static int volatile lptflag = 1;
@@ -148,13 +151,13 @@ static int volatile lptflag = 0;
 #endif
 
 struct lp_data {
-	struct  ifnet	*sc_ifp;
-	device_t	sc_dev;
-	u_char		*sc_ifbuf;
-	int		sc_iferrs;
+	struct ifnet *sc_ifp;
+	device_t sc_dev;
+	u_char *sc_ifbuf;
+	int sc_iferrs;
 
 	struct resource *res_irq;
-	void		*sc_intr_cookie;
+	void *sc_intr_cookie;
 };
 
 static struct mtx lp_tables_lock;
@@ -162,26 +165,25 @@ MTX_SYSINIT(lp_tables, &lp_tables_lock, "plip tables", MTX_DEF);
 
 /* Tables for the lp# interface */
 static u_char *txmith;
-#define	txmitl (txmith + (1 * LPIPTBLSIZE))
-#define	trecvh (txmith + (2 * LPIPTBLSIZE))
-#define	trecvl (txmith + (3 * LPIPTBLSIZE))
+#define txmitl (txmith + (1 * LPIPTBLSIZE))
+#define trecvh (txmith + (2 * LPIPTBLSIZE))
+#define trecvl (txmith + (3 * LPIPTBLSIZE))
 
 static u_char *ctxmith;
-#define	ctxmitl (ctxmith + (1 * LPIPTBLSIZE))
-#define	ctrecvh (ctxmith + (2 * LPIPTBLSIZE))
-#define	ctrecvl (ctxmith + (3 * LPIPTBLSIZE))
+#define ctxmitl (ctxmith + (1 * LPIPTBLSIZE))
+#define ctrecvh (ctxmith + (2 * LPIPTBLSIZE))
+#define ctrecvl (ctxmith + (3 * LPIPTBLSIZE))
 
 /* Functions for the lp# interface */
 static int lpinittables(void);
 static int lpioctl(if_t, u_long, caddr_t);
 static int lpoutput(if_t, struct mbuf *, const struct sockaddr *,
-       struct route *);
+    struct route *);
 static void lpstop(struct lp_data *);
 static void lp_intr(void *);
 static int lp_module_handler(module_t, int, void *);
 
-#define	DEVTOSOFTC(dev) \
-	((struct lp_data *)device_get_softc(dev))
+#define DEVTOSOFTC(dev) ((struct lp_data *)device_get_softc(dev))
 
 static int
 lp_module_handler(module_t mod, int what, void *arg)
@@ -378,8 +380,8 @@ lpinit_locked(if_t ifp)
 		return (ENOBUFS);
 	}
 
-	sc->sc_ifbuf = malloc(if_getmtu(sc->sc_ifp) + MLPIPHDRLEN,
-	    M_DEVBUF, M_NOWAIT);
+	sc->sc_ifbuf = malloc(if_getmtu(sc->sc_ifp) + MLPIPHDRLEN, M_DEVBUF,
+	    M_NOWAIT);
 	if (sc->sc_ifbuf == NULL) {
 		ppb_release_bus(ppbus, dev);
 		return (ENOBUFS);
@@ -450,7 +452,7 @@ lpioctl(if_t ifp, u_long cmd, caddr_t data)
 	case SIOCADDMULTI:
 	case SIOCDELMULTI:
 		if (ifr == NULL) {
-			return (EAFNOSUPPORT);		/* XXX */
+			return (EAFNOSUPPORT); /* XXX */
 		}
 		switch (ifr->ifr_addr.sa_family) {
 		case AF_INET:
@@ -589,7 +591,7 @@ lp_intr(void *arg)
 	}
 	while ((ppb_rstr(ppbus) & LPIP_SHAKE)) {
 		len = if_getmtu(sc->sc_ifp) + LPIPHDRLEN;
-		bp  = sc->sc_ifbuf;
+		bp = sc->sc_ifbuf;
 		while (len--) {
 			cl = ppb_rstr(ppbus);
 			ppb_wdtr(ppbus, 8);
@@ -602,13 +604,13 @@ lp_intr(void *arg)
 			c = ppb_rstr(ppbus);
 			ppb_wdtr(ppbus, 0);
 
-			*bp++= trecvh[cl] | trecvl[c];
+			*bp++ = trecvh[cl] | trecvl[c];
 
 			j = LPMAXSPIN2;
 			while (!((cl = ppb_rstr(ppbus)) & LPIP_SHAKE)) {
 				if (cl != c &&
 				    (((cl = ppb_rstr(ppbus)) ^ 0xb8) & 0xf8) ==
-				    (c & 0xf8))
+					(c & 0xf8))
 					goto end;
 				if (!--j)
 					goto err;
@@ -674,8 +676,7 @@ lpoutbyte(u_char byte, int spin, device_t ppbus)
 }
 
 static int
-lpoutput(if_t ifp, struct mbuf *m, const struct sockaddr *dst,
-    struct route *ro)
+lpoutput(if_t ifp, struct mbuf *m, const struct sockaddr *dst, struct route *ro)
 {
 	struct lp_data *sc = if_getsoftc(ifp);
 	device_t dev = sc->sc_dev;
@@ -692,7 +693,7 @@ lpoutput(if_t ifp, struct mbuf *m, const struct sockaddr *dst,
 	ppb_lock(ppbus);
 	if_setdrvflagbits(ifp, IFF_DRV_OACTIVE, 0);
 
-	err = 1;		/* assume we're aborting because of an error */
+	err = 1; /* assume we're aborting because of an error */
 
 	/* Suspend (on laptops) or receive-errors might have taken us offline */
 	ppb_wctr(ppbus, IRQENABLE);
@@ -713,7 +714,7 @@ lpoutput(if_t ifp, struct mbuf *m, const struct sockaddr *dst,
 
 		/* Calculate length of packet, then send that */
 
-		count += 14;		/* Ethernet header len */
+		count += 14; /* Ethernet header len */
 
 		mm = m;
 		for (mm = m; mm; mm = mm->m_next) {
@@ -735,7 +736,7 @@ lpoutput(if_t ifp, struct mbuf *m, const struct sockaddr *dst,
 			goto nend;
 		if (clpoutbyte(0x00, LPMAXSPIN1, ppbus))
 			goto nend;
-		chksum += 0x08 + 0x00;		/* Add into checksum */
+		chksum += 0x08 + 0x00; /* Add into checksum */
 
 		mm = m;
 		do {
@@ -755,11 +756,11 @@ lpoutput(if_t ifp, struct mbuf *m, const struct sockaddr *dst,
 		/* Go quiescent */
 		ppb_wdtr(ppbus, 0);
 
-		err = 0;			/* No errors */
+		err = 0; /* No errors */
 
 	nend:
 		if_setdrvflagbits(ifp, 0, IFF_DRV_OACTIVE);
-		if (err)  {			/* if we didn't timeout... */
+		if (err) { /* if we didn't timeout... */
 			if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
 			lprintf("X");
 		} else {
@@ -797,14 +798,14 @@ lpoutput(if_t ifp, struct mbuf *m, const struct sockaddr *dst,
 				goto end;
 	} while ((mm = mm->m_next));
 
-	err = 0;			/* no errors were encountered */
+	err = 0; /* no errors were encountered */
 
 end:
 	--cp;
 	ppb_wdtr(ppbus, txmitl[*cp] ^ 0x17);
 
 	if_setdrvflagbits(ifp, 0, IFF_DRV_OACTIVE);
-	if (err)  {			/* if we didn't timeout... */
+	if (err) { /* if we didn't timeout... */
 		if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
 		lprintf("X");
 	} else {
@@ -825,12 +826,10 @@ end:
 }
 
 static device_method_t lp_methods[] = {
-  	/* device interface */
-	DEVMETHOD(device_identify,	lp_identify),
-	DEVMETHOD(device_probe,		lp_probe),
-	DEVMETHOD(device_attach,	lp_attach),
-	DEVMETHOD(device_detach,	lp_detach),
-	{ 0, 0 }
+	/* device interface */
+	DEVMETHOD(device_identify, lp_identify),
+	DEVMETHOD(device_probe, lp_probe), DEVMETHOD(device_attach, lp_attach),
+	DEVMETHOD(device_detach, lp_detach), { 0, 0 }
 };
 
 static driver_t lp_driver = {

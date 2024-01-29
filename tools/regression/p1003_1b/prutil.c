@@ -10,30 +10,32 @@
 
 /*
  */
-void quit(const char *text)
+void
+quit(const char *text)
 {
 	err(errno, "%s", text);
 }
 
-char *sched_text(int scheduler)
+char *
+sched_text(int scheduler)
 {
-	switch(scheduler)
-	{
-		case SCHED_FIFO:
+	switch (scheduler) {
+	case SCHED_FIFO:
 		return "SCHED_FIFO";
 
-		case SCHED_RR:
+	case SCHED_RR:
 		return "SCHED_RR";
 
-		case SCHED_OTHER:
+	case SCHED_OTHER:
 		return "SCHED_OTHER";
 
-		default:
+	default:
 		return "Illegal scheduler value";
 	}
 }
 
-int sched_is(int line, struct sched_param *p, int shouldbe)
+int
+sched_is(int line, struct sched_param *p, int shouldbe)
 {
 	int scheduler;
 	struct sched_param param;
@@ -48,11 +50,10 @@ int sched_is(int line, struct sched_param *p, int shouldbe)
 	if (p)
 		*p = param;
 
-	if (shouldbe != -1 && scheduler != shouldbe)
-	{
+	if (shouldbe != -1 && scheduler != shouldbe) {
 		fprintf(stderr,
-		"At line %d the scheduler should be %s yet it is %s.\n",
-		line, sched_text(shouldbe), sched_text(scheduler));
+		    "At line %d the scheduler should be %s yet it is %s.\n",
+		    line, sched_text(shouldbe), sched_text(scheduler));
 
 		exit(-1);
 	}

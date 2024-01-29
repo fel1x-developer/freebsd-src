@@ -66,17 +66,16 @@
 #include <sys/lock.h>
 #include <sys/mount.h>
 #include <sys/stat.h>
-#include <sys/vnode.h>
 #include <sys/vmmeter.h>
+#include <sys/vnode.h>
 
-#include <ufs/ufs/quota.h>
-#include <ufs/ufs/inode.h>
-#include <ufs/ufs/ufs_extern.h>
-#include <ufs/ufs/extattr.h>
-#include <ufs/ufs/ufsmount.h>
-
-#include <ufs/ffs/fs.h>
 #include <ufs/ffs/ffs_extern.h>
+#include <ufs/ffs/fs.h>
+#include <ufs/ufs/extattr.h>
+#include <ufs/ufs/inode.h>
+#include <ufs/ufs/quota.h>
+#include <ufs/ufs/ufs_extern.h>
+#include <ufs/ufs/ufsmount.h>
 
 /*
  * Balloc defines the structure of filesystem storage
@@ -138,9 +137,9 @@ ffs_balloc_ufs1(struct vnode *vp, off_t startoffset, int size,
 		if (osize < fs->fs_bsize && osize > 0) {
 			UFS_LOCK(ump);
 			error = ffs_realloccg(ip, nb, dp->di_db[nb],
-			   ffs_blkpref_ufs1(ip, lastlbn, (int)nb,
-			   &dp->di_db[0]), osize, (int)fs->fs_bsize, flags,
-			   cred, &bp);
+			    ffs_blkpref_ufs1(ip, lastlbn, (int)nb,
+				&dp->di_db[0]),
+			    osize, (int)fs->fs_bsize, flags, cred, &bp);
 			if (error)
 				goto done;
 			if (DOINGSOFTDEP(vp))
@@ -202,14 +201,14 @@ ffs_balloc_ufs1(struct vnode *vp, off_t startoffset, int size,
 				UFS_LOCK(ump);
 				error = ffs_realloccg(ip, lbn, dp->di_db[lbn],
 				    ffs_blkpref_ufs1(ip, lbn, (int)lbn,
-				    &dp->di_db[0]), osize, nsize, flags,
-				    cred, &bp);
+					&dp->di_db[0]),
+				    osize, nsize, flags, cred, &bp);
 				if (error)
 					goto done;
 				if (DOINGSOFTDEP(vp))
 					softdep_setup_allocdirect(ip, lbn,
-					    dbtofsb(fs, bp->b_blkno), nb,
-					    nsize, osize, bp);
+					    dbtofsb(fs, bp->b_blkno), nb, nsize,
+					    osize, bp);
 			}
 		} else {
 			if (ip->i_size < smalllblktosize(fs, lbn + 1))
@@ -244,7 +243,7 @@ ffs_balloc_ufs1(struct vnode *vp, off_t startoffset, int size,
 		goto done;
 #ifdef INVARIANTS
 	if (num < 1)
-		panic ("ffs_balloc_ufs1: ufs_getlbns returned indirect block");
+		panic("ffs_balloc_ufs1: ufs_getlbns returned indirect block");
 #endif
 	saved_inbdflush = curthread_pflags_set(TDP_INBDFLUSH);
 	/*
@@ -259,8 +258,8 @@ ffs_balloc_ufs1(struct vnode *vp, off_t startoffset, int size,
 		UFS_LOCK(ump);
 		pref = ffs_blkpref_ufs1(ip, lbn, -indirs[0].in_off - 1,
 		    (ufs1_daddr_t *)0);
-		if ((error = ffs_alloc(ip, lbn, pref, (int)fs->fs_bsize,
-		    flags, cred, &newb)) != 0) {
+		if ((error = ffs_alloc(ip, lbn, pref, (int)fs->fs_bsize, flags,
+			 cred, &newb)) != 0) {
 			curthread_pflags_restore(saved_inbdflush);
 			goto done;
 		}
@@ -295,15 +294,15 @@ ffs_balloc_ufs1(struct vnode *vp, off_t startoffset, int size,
 	 */
 retry:
 	for (i = 1;;) {
-		error = bread(vp,
-		    indirs[i].in_lbn, (int)fs->fs_bsize, NOCRED, &bp);
+		error = bread(vp, indirs[i].in_lbn, (int)fs->fs_bsize, NOCRED,
+		    &bp);
 		if (error) {
 			goto fail;
 		}
 		bap = (ufs1_daddr_t *)bp->b_data;
 		nb = bap[indirs[i].in_off];
 		if ((error = UFS_CHECK_BLKNO(mp, ip->i_number, nb,
-		    fs->fs_bsize)) != 0) {
+			 fs->fs_bsize)) != 0) {
 			brelse(bp);
 			goto fail;
 		}
@@ -323,7 +322,7 @@ retry:
 			pref = ffs_blkpref_ufs1(ip, lbn, i - num - 1,
 			    (ufs1_daddr_t *)0);
 		if ((error = ffs_alloc(ip, lbn, pref, (int)fs->fs_bsize,
-		    flags | IO_BUFLOCKED, cred, &newb)) != 0) {
+			 flags | IO_BUFLOCKED, cred, &newb)) != 0) {
 			brelse(bp);
 			UFS_LOCK(ump);
 			if (DOINGSOFTDEP(vp) && ++reclaimed == 1) {
@@ -334,11 +333,12 @@ retry:
 			}
 			if (!ffs_fsfail_cleanup_locked(ump, error) &&
 			    ppsratecheck(&ump->um_last_fullmsg,
-			    &ump->um_secs_fullmsg, 1)) {
+				&ump->um_secs_fullmsg, 1)) {
 				UFS_UNLOCK(ump);
 				ffs_fserr(fs, ip->i_number, "filesystem full");
 				uprintf("\n%s: write failed, filesystem "
-				    "is full\n", fs->fs_fsmnt);
+					"is full\n",
+				    fs->fs_fsmnt);
 			} else {
 				UFS_UNLOCK(ump);
 			}
@@ -419,11 +419,12 @@ retry:
 			}
 			if (!ffs_fsfail_cleanup_locked(ump, error) &&
 			    ppsratecheck(&ump->um_last_fullmsg,
-			    &ump->um_secs_fullmsg, 1)) {
+				&ump->um_secs_fullmsg, 1)) {
 				UFS_UNLOCK(ump);
 				ffs_fserr(fs, ip->i_number, "filesystem full");
 				uprintf("\n%s: write failed, filesystem "
-				    "is full\n", fs->fs_fsmnt);
+					"is full\n",
+				    fs->fs_fsmnt);
 			} else {
 				UFS_UNLOCK(ump);
 			}
@@ -465,8 +466,8 @@ retry:
 		    (vp->v_mount->mnt_flag & MNT_NOCLUSTERR) == 0 &&
 		    !(vm_page_count_severe() || buf_dirty_count_severe())) {
 			error = cluster_read(vp, ip->i_size, lbn,
-			    (int)fs->fs_bsize, NOCRED,
-			    MAXBSIZE, seqcount, gbflags, &nbp);
+			    (int)fs->fs_bsize, NOCRED, MAXBSIZE, seqcount,
+			    gbflags, &nbp);
 		} else {
 			error = bread_gb(vp, lbn, (int)fs->fs_bsize, NOCRED,
 			    gbflags, &nbp);
@@ -504,7 +505,7 @@ fail:
 	 *
 	 * XXX Still have to journal the free below
 	 */
-	(void) ffs_syncvnode(vp, MNT_WAIT, 0);
+	(void)ffs_syncvnode(vp, MNT_WAIT, 0);
 	for (deallocated = 0, blkp = allociblk, lbns_remfree = lbns;
 	     blkp < allocblk; blkp++, lbns_remfree++) {
 		/*
@@ -516,9 +517,10 @@ fail:
 		if (bp != NULL) {
 			KASSERT(bp->b_blkno == fsbtodb(fs, *blkp),
 			    ("mismatch1 l %jd %jd b %ju %ju",
-			    (intmax_t)bp->b_lblkno, (uintmax_t)*lbns_remfree,
-			    (uintmax_t)bp->b_blkno,
-			    (uintmax_t)fsbtodb(fs, *blkp)));
+				(intmax_t)bp->b_lblkno,
+				(uintmax_t)*lbns_remfree,
+				(uintmax_t)bp->b_blkno,
+				(uintmax_t)fsbtodb(fs, *blkp)));
 			bp->b_flags |= B_INVAL | B_RELBUF | B_NOCACHE;
 			bp->b_flags &= ~(B_ASYNC | B_CACHE);
 			brelse(bp);
@@ -530,8 +532,8 @@ fail:
 	} else if (unwindidx >= 0) {
 		int r;
 
-		r = bread(vp, indirs[unwindidx].in_lbn, 
-		    (int)fs->fs_bsize, NOCRED, &bp);
+		r = bread(vp, indirs[unwindidx].in_lbn, (int)fs->fs_bsize,
+		    NOCRED, &bp);
 		if (r) {
 			panic("Could not unwind indirect block, error %d", r);
 			brelse(bp);
@@ -552,12 +554,12 @@ fail:
 		/*
 		 * Restore user's disk quota because allocation failed.
 		 */
-		(void) chkdq(ip, -btodb(deallocated), cred, FORCE);
+		(void)chkdq(ip, -btodb(deallocated), cred, FORCE);
 #endif
 		dp->di_blocks -= btodb(deallocated);
 		UFS_INODE_SET_FLAG(ip, IN_CHANGE | IN_UPDATE);
 	}
-	(void) ffs_syncvnode(vp, MNT_WAIT, 0);
+	(void)ffs_syncvnode(vp, MNT_WAIT, 0);
 	/*
 	 * After the buffers are invalidated and on-disk pointers are
 	 * cleared, free the blocks.
@@ -569,8 +571,8 @@ fail:
 		bp = getblk(vp, *lbns_remfree, fs->fs_bsize, 0, 0,
 		    GB_NOCREAT | GB_UNMAPPED);
 		if (bp != NULL) {
-			panic("zombie1 %jd %ju %ju",
-			    (intmax_t)bp->b_lblkno, (uintmax_t)bp->b_blkno,
+			panic("zombie1 %jd %ju %ju", (intmax_t)bp->b_lblkno,
+			    (uintmax_t)bp->b_blkno,
 			    (uintmax_t)fsbtodb(fs, *blkp));
 		}
 		lbns_remfree++;
@@ -656,15 +658,15 @@ ffs_balloc_ufs2(struct vnode *vp, off_t startoffset, int size,
 				error = ffs_realloccg(ip, -1 - nb,
 				    dp->di_extb[nb],
 				    ffs_blkpref_ufs2(ip, lastlbn, (int)nb,
-				    &dp->di_extb[0]), osize,
-				    (int)fs->fs_bsize, flags, cred, &bp);
+					&dp->di_extb[0]),
+				    osize, (int)fs->fs_bsize, flags, cred, &bp);
 				if (error)
 					goto done;
 				if (DOINGSOFTDEP(vp))
 					softdep_setup_allocext(ip, nb,
 					    dbtofsb(fs, bp->b_blkno),
-					    dp->di_extb[nb],
-					    fs->fs_bsize, osize, bp);
+					    dp->di_extb[nb], fs->fs_bsize,
+					    osize, bp);
 				dp->di_extsize = smalllblktosize(fs, nb + 1);
 				dp->di_extb[nb] = dbtofsb(fs, bp->b_blkno);
 				bp->b_xflags |= BX_ALTDATA;
@@ -710,15 +712,15 @@ ffs_balloc_ufs2(struct vnode *vp, off_t startoffset, int size,
 				error = ffs_realloccg(ip, -1 - lbn,
 				    dp->di_extb[lbn],
 				    ffs_blkpref_ufs2(ip, lbn, (int)lbn,
-				    &dp->di_extb[0]), osize, nsize, flags,
-				    cred, &bp);
+					&dp->di_extb[0]),
+				    osize, nsize, flags, cred, &bp);
 				if (error)
 					goto done;
 				bp->b_xflags |= BX_ALTDATA;
 				if (DOINGSOFTDEP(vp))
 					softdep_setup_allocext(ip, lbn,
-					    dbtofsb(fs, bp->b_blkno), nb,
-					    nsize, osize, bp);
+					    dbtofsb(fs, bp->b_blkno), nb, nsize,
+					    osize, bp);
 			}
 		} else {
 			if (dp->di_extsize < smalllblktosize(fs, lbn + 1))
@@ -727,8 +729,9 @@ ffs_balloc_ufs2(struct vnode *vp, off_t startoffset, int size,
 				nsize = fs->fs_bsize;
 			UFS_LOCK(ump);
 			error = ffs_alloc(ip, lbn,
-			   ffs_blkpref_ufs2(ip, lbn, (int)lbn, &dp->di_extb[0]),
-			   nsize, flags, cred, &newb);
+			    ffs_blkpref_ufs2(ip, lbn, (int)lbn,
+				&dp->di_extb[0]),
+			    nsize, flags, cred, &newb);
 			if (error)
 				goto done;
 			bp = getblk(vp, -1 - lbn, nsize, 0, 0, gbflags);
@@ -737,8 +740,8 @@ ffs_balloc_ufs2(struct vnode *vp, off_t startoffset, int size,
 			if (flags & BA_CLRBUF)
 				vfs_bio_clrbuf(bp);
 			if (DOINGSOFTDEP(vp))
-				softdep_setup_allocext(ip, lbn, newb, 0,
-				    nsize, 0, bp);
+				softdep_setup_allocext(ip, lbn, newb, 0, nsize,
+				    0, bp);
 		}
 		dp->di_extb[lbn] = dbtofsb(fs, bp->b_blkno);
 		UFS_INODE_SET_FLAG(ip, IN_CHANGE | IN_IBLKDATA);
@@ -759,20 +762,19 @@ ffs_balloc_ufs2(struct vnode *vp, off_t startoffset, int size,
 			UFS_LOCK(ump);
 			error = ffs_realloccg(ip, nb, dp->di_db[nb],
 			    ffs_blkpref_ufs2(ip, lastlbn, (int)nb,
-			    &dp->di_db[0]), osize, (int)fs->fs_bsize,
-			    flags, cred, &bp);
+				&dp->di_db[0]),
+			    osize, (int)fs->fs_bsize, flags, cred, &bp);
 			if (error)
 				goto done;
 			if (DOINGSOFTDEP(vp))
 				softdep_setup_allocdirect(ip, nb,
-				    dbtofsb(fs, bp->b_blkno),
-				    dp->di_db[nb],
+				    dbtofsb(fs, bp->b_blkno), dp->di_db[nb],
 				    fs->fs_bsize, osize, bp);
 			ip->i_size = smalllblktosize(fs, nb + 1);
 			dp->di_size = ip->i_size;
 			dp->di_db[nb] = dbtofsb(fs, bp->b_blkno);
 			UFS_INODE_SET_FLAG(ip,
-			    IN_SIZEMOD |IN_CHANGE | IN_UPDATE | IN_IBLKDATA);
+			    IN_SIZEMOD | IN_CHANGE | IN_UPDATE | IN_IBLKDATA);
 			if (flags & IO_SYNC)
 				bwrite(bp);
 			else
@@ -822,14 +824,14 @@ ffs_balloc_ufs2(struct vnode *vp, off_t startoffset, int size,
 				UFS_LOCK(ump);
 				error = ffs_realloccg(ip, lbn, dp->di_db[lbn],
 				    ffs_blkpref_ufs2(ip, lbn, (int)lbn,
-				    &dp->di_db[0]), osize, nsize, flags,
-				    cred, &bp);
+					&dp->di_db[0]),
+				    osize, nsize, flags, cred, &bp);
 				if (error)
 					goto done;
 				if (DOINGSOFTDEP(vp))
 					softdep_setup_allocdirect(ip, lbn,
-					    dbtofsb(fs, bp->b_blkno), nb,
-					    nsize, osize, bp);
+					    dbtofsb(fs, bp->b_blkno), nb, nsize,
+					    osize, bp);
 			}
 		} else {
 			if (ip->i_size < smalllblktosize(fs, lbn + 1))
@@ -838,8 +840,8 @@ ffs_balloc_ufs2(struct vnode *vp, off_t startoffset, int size,
 				nsize = fs->fs_bsize;
 			UFS_LOCK(ump);
 			error = ffs_alloc(ip, lbn,
-			    ffs_blkpref_ufs2(ip, lbn, (int)lbn,
-				&dp->di_db[0]), nsize, flags, cred, &newb);
+			    ffs_blkpref_ufs2(ip, lbn, (int)lbn, &dp->di_db[0]),
+			    nsize, flags, cred, &newb);
 			if (error)
 				goto done;
 			bp = getblk(vp, lbn, nsize, 0, 0, gbflags);
@@ -864,7 +866,7 @@ ffs_balloc_ufs2(struct vnode *vp, off_t startoffset, int size,
 		goto done;
 #ifdef INVARIANTS
 	if (num < 1)
-		panic ("ffs_balloc_ufs2: ufs_getlbns returned indirect block");
+		panic("ffs_balloc_ufs2: ufs_getlbns returned indirect block");
 #endif
 	saved_inbdflush = curthread_pflags_set(TDP_INBDFLUSH);
 	/*
@@ -879,8 +881,8 @@ ffs_balloc_ufs2(struct vnode *vp, off_t startoffset, int size,
 		UFS_LOCK(ump);
 		pref = ffs_blkpref_ufs2(ip, lbn, -indirs[0].in_off - 1,
 		    (ufs2_daddr_t *)0);
-		if ((error = ffs_alloc(ip, lbn, pref, (int)fs->fs_bsize,
-		    flags, cred, &newb)) != 0) {
+		if ((error = ffs_alloc(ip, lbn, pref, (int)fs->fs_bsize, flags,
+			 cred, &newb)) != 0) {
 			curthread_pflags_restore(saved_inbdflush);
 			goto done;
 		}
@@ -924,7 +926,7 @@ retry:
 		bap = (ufs2_daddr_t *)bp->b_data;
 		nb = bap[indirs[i].in_off];
 		if ((error = UFS_CHECK_BLKNO(mp, ip->i_number, nb,
-		    fs->fs_bsize)) != 0) {
+			 fs->fs_bsize)) != 0) {
 			brelse(bp);
 			goto fail;
 		}
@@ -944,7 +946,7 @@ retry:
 			pref = ffs_blkpref_ufs2(ip, lbn, i - num - 1,
 			    (ufs2_daddr_t *)0);
 		if ((error = ffs_alloc(ip, lbn, pref, (int)fs->fs_bsize,
-		    flags | IO_BUFLOCKED, cred, &newb)) != 0) {
+			 flags | IO_BUFLOCKED, cred, &newb)) != 0) {
 			brelse(bp);
 			UFS_LOCK(ump);
 			if (DOINGSOFTDEP(vp) && ++reclaimed == 1) {
@@ -955,11 +957,12 @@ retry:
 			}
 			if (!ffs_fsfail_cleanup_locked(ump, error) &&
 			    ppsratecheck(&ump->um_last_fullmsg,
-			    &ump->um_secs_fullmsg, 1)) {
+				&ump->um_secs_fullmsg, 1)) {
 				UFS_UNLOCK(ump);
 				ffs_fserr(fs, ip->i_number, "filesystem full");
 				uprintf("\n%s: write failed, filesystem "
-				    "is full\n", fs->fs_fsmnt);
+					"is full\n",
+				    fs->fs_fsmnt);
 			} else {
 				UFS_UNLOCK(ump);
 			}
@@ -1041,11 +1044,12 @@ retry:
 			}
 			if (!ffs_fsfail_cleanup_locked(ump, error) &&
 			    ppsratecheck(&ump->um_last_fullmsg,
-			    &ump->um_secs_fullmsg, 1)) {
+				&ump->um_secs_fullmsg, 1)) {
 				UFS_UNLOCK(ump);
 				ffs_fserr(fs, ip->i_number, "filesystem full");
 				uprintf("\n%s: write failed, filesystem "
-				    "is full\n", fs->fs_fsmnt);
+					"is full\n",
+				    fs->fs_fsmnt);
 			} else {
 				UFS_UNLOCK(ump);
 			}
@@ -1093,11 +1097,11 @@ retry:
 		    (vp->v_mount->mnt_flag & MNT_NOCLUSTERR) == 0 &&
 		    !(vm_page_count_severe() || buf_dirty_count_severe())) {
 			error = cluster_read(vp, ip->i_size, lbn,
-			    (int)fs->fs_bsize, NOCRED,
-			    MAXBSIZE, seqcount, gbflags, &nbp);
+			    (int)fs->fs_bsize, NOCRED, MAXBSIZE, seqcount,
+			    gbflags, &nbp);
 		} else {
-			error = bread_gb(vp, lbn, (int)fs->fs_bsize,
-			    NOCRED, gbflags, &nbp);
+			error = bread_gb(vp, lbn, (int)fs->fs_bsize, NOCRED,
+			    gbflags, &nbp);
 		}
 		if (error) {
 			brelse(nbp);
@@ -1132,7 +1136,7 @@ fail:
 	 *
 	 * XXX Still have to journal the free below
 	 */
-	(void) ffs_syncvnode(vp, MNT_WAIT, 0);
+	(void)ffs_syncvnode(vp, MNT_WAIT, 0);
 	for (deallocated = 0, blkp = allociblk, lbns_remfree = lbns;
 	     blkp < allocblk; blkp++, lbns_remfree++) {
 		/*
@@ -1144,9 +1148,10 @@ fail:
 		if (bp != NULL) {
 			KASSERT(bp->b_blkno == fsbtodb(fs, *blkp),
 			    ("mismatch2 l %jd %jd b %ju %ju",
-			    (intmax_t)bp->b_lblkno, (uintmax_t)*lbns_remfree,
-			    (uintmax_t)bp->b_blkno,
-			    (uintmax_t)fsbtodb(fs, *blkp)));
+				(intmax_t)bp->b_lblkno,
+				(uintmax_t)*lbns_remfree,
+				(uintmax_t)bp->b_blkno,
+				(uintmax_t)fsbtodb(fs, *blkp)));
 			bp->b_flags |= B_INVAL | B_RELBUF | B_NOCACHE;
 			bp->b_flags &= ~(B_ASYNC | B_CACHE);
 			brelse(bp);
@@ -1158,8 +1163,8 @@ fail:
 	} else if (unwindidx >= 0) {
 		int r;
 
-		r = bread_gb(vp, indirs[unwindidx].in_lbn,
-		    (int)fs->fs_bsize, NOCRED, gbwflag, &bp);
+		r = bread_gb(vp, indirs[unwindidx].in_lbn, (int)fs->fs_bsize,
+		    NOCRED, gbwflag, &bp);
 		if (r) {
 			panic("Could not unwind indirect block, error %d", r);
 			brelse(bp);
@@ -1180,12 +1185,12 @@ fail:
 		/*
 		 * Restore user's disk quota because allocation failed.
 		 */
-		(void) chkdq(ip, -btodb(deallocated), cred, FORCE);
+		(void)chkdq(ip, -btodb(deallocated), cred, FORCE);
 #endif
 		dp->di_blocks -= btodb(deallocated);
 		UFS_INODE_SET_FLAG(ip, IN_CHANGE | IN_UPDATE);
 	}
-	(void) ffs_syncvnode(vp, MNT_WAIT, 0);
+	(void)ffs_syncvnode(vp, MNT_WAIT, 0);
 	/*
 	 * After the buffers are invalidated and on-disk pointers are
 	 * cleared, free the blocks.
@@ -1197,8 +1202,8 @@ fail:
 		bp = getblk(vp, *lbns_remfree, fs->fs_bsize, 0, 0,
 		    GB_NOCREAT | GB_UNMAPPED | gbwflag);
 		if (bp != NULL) {
-			panic("zombie2 %jd %ju %ju",
-			    (intmax_t)bp->b_lblkno, (uintmax_t)bp->b_blkno,
+			panic("zombie2 %jd %ju %ju", (intmax_t)bp->b_lblkno,
+			    (uintmax_t)bp->b_blkno,
 			    (uintmax_t)fsbtodb(fs, *blkp));
 		}
 		lbns_remfree++;

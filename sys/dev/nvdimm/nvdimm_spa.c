@@ -28,10 +28,10 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_acpi.h"
 #include "opt_ddb.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bio.h>
@@ -50,40 +50,84 @@
 #include <sys/sglist.h>
 #include <sys/uio.h>
 #include <sys/uuid.h>
-#include <geom/geom.h>
-#include <geom/geom_int.h>
-#include <machine/vmparam.h>
+
 #include <vm/vm.h>
 #include <vm/vm_object.h>
 #include <vm/vm_page.h>
 #include <vm/vm_pager.h>
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
-#include <contrib/dev/acpica/include/acuuid.h>
+
+#include <machine/vmparam.h>
+
 #include <dev/acpica/acpivar.h>
 #include <dev/nvdimm/nvdimm_var.h>
 
-#define UUID_INITIALIZER_VOLATILE_MEMORY \
-    {0x7305944f,0xfdda,0x44e3,0xb1,0x6c,{0x3f,0x22,0xd2,0x52,0xe5,0xd0}}
-#define UUID_INITIALIZER_PERSISTENT_MEMORY \
-    {0x66f0d379,0xb4f3,0x4074,0xac,0x43,{0x0d,0x33,0x18,0xb7,0x8c,0xdb}}
-#define UUID_INITIALIZER_CONTROL_REGION \
-    {0x92f701f6,0x13b4,0x405d,0x91,0x0b,{0x29,0x93,0x67,0xe8,0x23,0x4c}}
-#define UUID_INITIALIZER_DATA_REGION \
-    {0x91af0530,0x5d86,0x470e,0xa6,0xb0,{0x0a,0x2d,0xb9,0x40,0x82,0x49}}
-#define UUID_INITIALIZER_VOLATILE_VIRTUAL_DISK \
-    {0x77ab535a,0x45fc,0x624b,0x55,0x60,{0xf7,0xb2,0x81,0xd1,0xf9,0x6e}}
-#define UUID_INITIALIZER_VOLATILE_VIRTUAL_CD \
-    {0x3d5abd30,0x4175,0x87ce,0x6d,0x64,{0xd2,0xad,0xe5,0x23,0xc4,0xbb}}
-#define UUID_INITIALIZER_PERSISTENT_VIRTUAL_DISK \
-    {0x5cea02c9,0x4d07,0x69d3,0x26,0x9f,{0x44,0x96,0xfb,0xe0,0x96,0xf9}}
-#define UUID_INITIALIZER_PERSISTENT_VIRTUAL_CD \
-    {0x08018188,0x42cd,0xbb48,0x10,0x0f,{0x53,0x87,0xd5,0x3d,0xed,0x3d}}
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
+#include <contrib/dev/acpica/include/acuuid.h>
+#include <geom/geom.h>
+#include <geom/geom_int.h>
+
+#define UUID_INITIALIZER_VOLATILE_MEMORY                   \
+	{                                                  \
+		0x7305944f, 0xfdda, 0x44e3, 0xb1, 0x6c,    \
+		{                                          \
+			0x3f, 0x22, 0xd2, 0x52, 0xe5, 0xd0 \
+		}                                          \
+	}
+#define UUID_INITIALIZER_PERSISTENT_MEMORY                 \
+	{                                                  \
+		0x66f0d379, 0xb4f3, 0x4074, 0xac, 0x43,    \
+		{                                          \
+			0x0d, 0x33, 0x18, 0xb7, 0x8c, 0xdb \
+		}                                          \
+	}
+#define UUID_INITIALIZER_CONTROL_REGION                    \
+	{                                                  \
+		0x92f701f6, 0x13b4, 0x405d, 0x91, 0x0b,    \
+		{                                          \
+			0x29, 0x93, 0x67, 0xe8, 0x23, 0x4c \
+		}                                          \
+	}
+#define UUID_INITIALIZER_DATA_REGION                       \
+	{                                                  \
+		0x91af0530, 0x5d86, 0x470e, 0xa6, 0xb0,    \
+		{                                          \
+			0x0a, 0x2d, 0xb9, 0x40, 0x82, 0x49 \
+		}                                          \
+	}
+#define UUID_INITIALIZER_VOLATILE_VIRTUAL_DISK             \
+	{                                                  \
+		0x77ab535a, 0x45fc, 0x624b, 0x55, 0x60,    \
+		{                                          \
+			0xf7, 0xb2, 0x81, 0xd1, 0xf9, 0x6e \
+		}                                          \
+	}
+#define UUID_INITIALIZER_VOLATILE_VIRTUAL_CD               \
+	{                                                  \
+		0x3d5abd30, 0x4175, 0x87ce, 0x6d, 0x64,    \
+		{                                          \
+			0xd2, 0xad, 0xe5, 0x23, 0xc4, 0xbb \
+		}                                          \
+	}
+#define UUID_INITIALIZER_PERSISTENT_VIRTUAL_DISK           \
+	{                                                  \
+		0x5cea02c9, 0x4d07, 0x69d3, 0x26, 0x9f,    \
+		{                                          \
+			0x44, 0x96, 0xfb, 0xe0, 0x96, 0xf9 \
+		}                                          \
+	}
+#define UUID_INITIALIZER_PERSISTENT_VIRTUAL_CD             \
+	{                                                  \
+		0x08018188, 0x42cd, 0xbb48, 0x10, 0x0f,    \
+		{                                          \
+			0x53, 0x87, 0xd5, 0x3d, 0xed, 0x3d \
+		}                                          \
+	}
 
 static struct nvdimm_SPA_uuid_list_elm {
-	const char		*u_name;
-	struct uuid		u_id;
-	const bool		u_usr_acc;
+	const char *u_name;
+	struct uuid u_id;
+	const bool u_usr_acc;
 } nvdimm_SPA_uuid_list[] = {
 	[SPA_TYPE_VOLATILE_MEMORY] = {
 		.u_name =	"VOLA MEM ",
@@ -278,12 +322,12 @@ nvdimm_spa_mmap_single(struct cdev *cdev, vm_ooffset_t *offset, vm_size_t size,
 }
 
 static struct cdevsw spa_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_flags =	D_DISK,
-	.d_name =	"nvdimm_spa",
-	.d_read =	nvdimm_spa_rw,
-	.d_write =	nvdimm_spa_rw,
-	.d_ioctl =	nvdimm_spa_ioctl,
+	.d_version = D_VERSION,
+	.d_flags = D_DISK,
+	.d_name = "nvdimm_spa",
+	.d_read = nvdimm_spa_rw,
+	.d_write = nvdimm_spa_rw,
+	.d_ioctl = nvdimm_spa_ioctl,
 	.d_mmap_single = nvdimm_spa_mmap_single,
 };
 
@@ -298,8 +342,10 @@ nvdimm_spa_g_all_unmapped(struct nvdimm_spa_dev *dev, struct bio *bp, int rw)
 	mattr = dev->spa_memattr;
 	for (i = 0; i < nitems(ma); i++) {
 		bzero(&maa[i], sizeof(maa[i]));
-		vm_page_initfake(&maa[i], dev->spa_phys_base +
-		    trunc_page(bp->bio_offset) + PAGE_SIZE * i, mattr);
+		vm_page_initfake(&maa[i],
+		    dev->spa_phys_base + trunc_page(bp->bio_offset) +
+			PAGE_SIZE * i,
+		    mattr);
 		ma[i] = &maa[i];
 	}
 	if (rw == BIO_READ)
@@ -352,14 +398,15 @@ nvdimm_spa_g_thread(void *arg)
 				pmap_flush_cache_phys_range(
 				    (vm_paddr_t)sc->dev->spa_phys_base,
 				    (vm_paddr_t)sc->dev->spa_phys_base +
-				    sc->dev->spa_len, sc->dev->spa_memattr);
+					sc->dev->spa_len,
+				    sc->dev->spa_memattr);
 			}
 			/*
 			 * XXX flush IMC
 			 */
 			goto completed;
 		}
-		
+
 		if ((bp->bio_flags & BIO_UNMAPPED) != 0) {
 			if (sc->dev->spa_kva != NULL) {
 				aiovec.iov_base = (char *)sc->dev->spa_kva +
@@ -371,7 +418,8 @@ nvdimm_spa_g_thread(void *arg)
 				auio.uio_offset = bp->bio_offset;
 				auio.uio_segflg = UIO_SYSSPACE;
 				auio.uio_rw = bp->bio_cmd == BIO_READ ?
-				    UIO_WRITE : UIO_READ;
+				    UIO_WRITE :
+				    UIO_READ;
 				auio.uio_td = curthread;
 				error = uiomove_fromphys(bp->bio_ma,
 				    bp->bio_ma_offset, bp->bio_length, &auio);
@@ -391,14 +439,14 @@ nvdimm_spa_g_thread(void *arg)
 			auio.uio_offset = bp->bio_offset;
 			auio.uio_segflg = UIO_SYSSPACE;
 			auio.uio_rw = bp->bio_cmd == BIO_READ ? UIO_READ :
-			    UIO_WRITE;
+								UIO_WRITE;
 			auio.uio_td = curthread;
 			error = nvdimm_spa_uio(sc->dev, &auio);
 			bp->bio_resid = auio.uio_resid;
 		}
 		bp->bio_bcount = bp->bio_length;
 		devstat_end_transaction_bio(sc->spa_g_devstat, bp);
-completed:
+	completed:
 		bp->bio_completed = bp->bio_length;
 		g_io_deliver(bp, error);
 	}
@@ -426,16 +474,16 @@ nvdimm_spa_g_access(struct g_provider *pp, int r, int w, int e)
 	return (0);
 }
 
-static struct g_geom * nvdimm_spa_g_create(struct nvdimm_spa_dev *dev,
+static struct g_geom *nvdimm_spa_g_create(struct nvdimm_spa_dev *dev,
     const char *name);
 static g_ctl_destroy_geom_t nvdimm_spa_g_destroy_geom;
 
 struct g_class nvdimm_spa_g_class = {
-	.name =		"SPA",
-	.version =	G_VERSION,
-	.start =	nvdimm_spa_g_start,
-	.access =	nvdimm_spa_g_access,
-	.destroy_geom =	nvdimm_spa_g_destroy_geom,
+	.name = "SPA",
+	.version = G_VERSION,
+	.start = nvdimm_spa_g_start,
+	.access = nvdimm_spa_g_access,
+	.destroy_geom = nvdimm_spa_g_destroy_geom,
 };
 DECLARE_GEOM_CLASS(nvdimm_spa_g_class, g_spa);
 
@@ -448,16 +496,16 @@ nvdimm_spa_init(struct SPA_mapping *spa, ACPI_NFIT_SYSTEM_ADDRESS *nfitaddr,
 
 	spa->spa_type = spa_type;
 	spa->spa_nfit_idx = nfitaddr->RangeIndex;
-	spa->dev.spa_domain =
-	    ((nfitaddr->Flags & ACPI_NFIT_PROXIMITY_VALID) != 0) ?
-	    nfitaddr->ProximityDomain : -1;
+	spa->dev.spa_domain = ((nfitaddr->Flags & ACPI_NFIT_PROXIMITY_VALID) !=
+				  0) ?
+	    nfitaddr->ProximityDomain :
+	    -1;
 	spa->dev.spa_phys_base = nfitaddr->Address;
 	spa->dev.spa_len = nfitaddr->Length;
 	spa->dev.spa_efi_mem_flags = nfitaddr->MemoryMapping;
 	if (bootverbose) {
 		printf("NVDIMM SPA%d base %#016jx len %#016jx %s fl %#jx\n",
-		    spa->spa_nfit_idx,
-		    (uintmax_t)spa->dev.spa_phys_base,
+		    spa->spa_nfit_idx, (uintmax_t)spa->dev.spa_phys_base,
 		    (uintmax_t)spa->dev.spa_len,
 		    nvdimm_SPA_uuid_list[spa_type].u_name,
 		    spa->dev.spa_efi_mem_flags);
@@ -480,8 +528,8 @@ nvdimm_spa_dev_init(struct nvdimm_spa_dev *dev, const char *name, int unit)
 	char *devname;
 	int error, error1;
 
-	error1 = pmap_large_map(dev->spa_phys_base, dev->spa_len,
-	    &dev->spa_kva, dev->spa_memattr);
+	error1 = pmap_large_map(dev->spa_phys_base, dev->spa_len, &dev->spa_kva,
+	    dev->spa_memattr);
 	if (error1 != 0) {
 		printf("NVDIMM %s cannot map into KVA, error %d\n", name,
 		    error1);
@@ -489,8 +537,7 @@ nvdimm_spa_dev_init(struct nvdimm_spa_dev *dev, const char *name, int unit)
 	}
 
 	spa_sg = sglist_alloc(1, M_WAITOK);
-	error = sglist_append_phys(spa_sg, dev->spa_phys_base,
-	    dev->spa_len);
+	error = sglist_append_phys(spa_sg, dev->spa_phys_base, dev->spa_len);
 	if (error == 0) {
 		dev->spa_obj = vm_pager_allocate(OBJT_SG, spa_sg, dev->spa_len,
 		    VM_PROT_ALL, 0, NULL);

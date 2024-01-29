@@ -32,13 +32,13 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_MACHINE_BOOTINFO_H_
-#define	_MACHINE_BOOTINFO_H_
+#ifndef _MACHINE_BOOTINFO_H_
+#define _MACHINE_BOOTINFO_H_
 
 /* Only change the version number if you break compatibility. */
-#define	BOOTINFO_VERSION	1
+#define BOOTINFO_VERSION 1
 
-#define	_WAS_N_BIOS_GEOM	8
+#define _WAS_N_BIOS_GEOM 8
 
 /*
  * A zero bootinfo field often means that there is no info available.
@@ -46,27 +46,28 @@
  * that bi_size is always valid when bi_version == 1.
  */
 struct bootinfo {
-	u_int32_t	bi_version;		/* Must be 1 */
-	u_int32_t	bi_kernelname;		/* represents a char * */
-	u_int32_t	bi_nfs_diskless;	/* struct nfs_diskless * */
-	u_int32_t	_was_bi_n_bios_used;
-	u_int32_t	_was_bi_bios_geom[_WAS_N_BIOS_GEOM];
-	u_int32_t	bi_size;
-	u_int8_t	bi_memsizes_valid;
-	u_int8_t	bi_bios_dev;	/* bootdev BIOS unit number (bootX -> loader only) */
-	u_int8_t	bi_pad[2];
-	u_int32_t	bi_basemem;
-	u_int32_t	bi_extmem;
-	u_int32_t	bi_symtab;		/* struct symtab * */
-	u_int32_t	bi_esymtab;		/* struct symtab * */
-				/* Items below only from advanced bootloader */
-	u_int32_t	bi_kernend;		/* end of kernel space */
-	u_int32_t	bi_envp;		/* environment */
-	u_int32_t	bi_modulep;		/* preloaded modules */
+	u_int32_t bi_version;	   /* Must be 1 */
+	u_int32_t bi_kernelname;   /* represents a char * */
+	u_int32_t bi_nfs_diskless; /* struct nfs_diskless * */
+	u_int32_t _was_bi_n_bios_used;
+	u_int32_t _was_bi_bios_geom[_WAS_N_BIOS_GEOM];
+	u_int32_t bi_size;
+	u_int8_t bi_memsizes_valid;
+	u_int8_t
+	    bi_bios_dev; /* bootdev BIOS unit number (bootX -> loader only) */
+	u_int8_t bi_pad[2];
+	u_int32_t bi_basemem;
+	u_int32_t bi_extmem;
+	u_int32_t bi_symtab;  /* struct symtab * */
+	u_int32_t bi_esymtab; /* struct symtab * */
+			      /* Items below only from advanced bootloader */
+	u_int32_t bi_kernend; /* end of kernel space */
+	u_int32_t bi_envp;    /* environment */
+	u_int32_t bi_modulep; /* preloaded modules */
 };
 
 #ifdef _KERNEL
-extern struct bootinfo	bootinfo;
+extern struct bootinfo bootinfo;
 #endif
 
 /*
@@ -81,30 +82,30 @@ extern struct bootinfo	bootinfo;
  *	|MA | SLICE | UN| PART  | TYPE |
  *	--------------------------------
  */
-#define B_SLICESHIFT		20
-#define B_SLICEMASK		0xff
-#define B_SLICE(val)		(((val)>>B_SLICESHIFT) & B_SLICEMASK)
-#define B_UNITSHIFT		16
-#define B_UNITMASK		0xf
-#define	B_UNIT(val)		(((val) >> B_UNITSHIFT) & B_UNITMASK)
-#define B_PARTITIONSHIFT	8
-#define B_PARTITIONMASK		0xff
-#define	B_PARTITION(val)	(((val) >> B_PARTITIONSHIFT) & B_PARTITIONMASK)
-#define	B_TYPESHIFT		0
-#define	B_TYPEMASK		0xff
-#define	B_TYPE(val)		(((val) >> B_TYPESHIFT) & B_TYPEMASK)
+#define B_SLICESHIFT 20
+#define B_SLICEMASK 0xff
+#define B_SLICE(val) (((val) >> B_SLICESHIFT) & B_SLICEMASK)
+#define B_UNITSHIFT 16
+#define B_UNITMASK 0xf
+#define B_UNIT(val) (((val) >> B_UNITSHIFT) & B_UNITMASK)
+#define B_PARTITIONSHIFT 8
+#define B_PARTITIONMASK 0xff
+#define B_PARTITION(val) (((val) >> B_PARTITIONSHIFT) & B_PARTITIONMASK)
+#define B_TYPESHIFT 0
+#define B_TYPEMASK 0xff
+#define B_TYPE(val) (((val) >> B_TYPESHIFT) & B_TYPEMASK)
 
-#define	B_MAGICMASK	0xf0000000
-#define	B_DEVMAGIC	0xa0000000
+#define B_MAGICMASK 0xf0000000
+#define B_DEVMAGIC 0xa0000000
 
-#define	MAKEBOOTDEV(type, slice, unit, partition) \
-	(((type) << B_TYPESHIFT) | ((slice) << B_SLICESHIFT) | \
-	((unit) << B_UNITSHIFT) | ((partition) << B_PARTITIONSHIFT) | \
-	B_DEVMAGIC)
+#define MAKEBOOTDEV(type, slice, unit, partition)                         \
+	(((type) << B_TYPESHIFT) | ((slice) << B_SLICESHIFT) |            \
+	    ((unit) << B_UNITSHIFT) | ((partition) << B_PARTITIONSHIFT) | \
+	    B_DEVMAGIC)
 
-#define	BASE_SLICE		2
-#define	COMPATIBILITY_SLICE	0
-#define	MAX_SLICES		32
-#define	WHOLE_DISK_SLICE	1
+#define BASE_SLICE 2
+#define COMPATIBILITY_SLICE 0
+#define MAX_SLICES 32
+#define WHOLE_DISK_SLICE 1
 
-#endif	/* !_MACHINE_BOOTINFO_H_ */
+#endif /* !_MACHINE_BOOTINFO_H_ */

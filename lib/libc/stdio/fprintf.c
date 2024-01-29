@@ -37,12 +37,13 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
 #include <stdarg.h>
+#include <stdio.h>
+
 #include "xlocale_private.h"
 
 int
-fprintf(FILE * __restrict fp, const char * __restrict fmt, ...)
+fprintf(FILE *__restrict fp, const char *__restrict fmt, ...)
 {
 	int ret;
 	va_list ap;
@@ -53,7 +54,7 @@ fprintf(FILE * __restrict fp, const char * __restrict fmt, ...)
 	return (ret);
 }
 int
-fprintf_l(FILE * __restrict fp, locale_t locale, const char * __restrict fmt, ...)
+fprintf_l(FILE *__restrict fp, locale_t locale, const char *__restrict fmt, ...)
 {
 	int ret;
 	va_list ap;

@@ -24,8 +24,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_DEV_OFW_OFW_SUBR_H_
-#define	_DEV_OFW_OFW_SUBR_H_
+#ifndef _DEV_OFW_OFW_SUBR_H_
+#define _DEV_OFW_OFW_SUBR_H_
 
 /*
  * Translate an address from the Nth tuple of a device node's reg properties to
@@ -39,7 +39,7 @@
  * This is intended to be a helper function called by the platform-specific
  * implementation of OF_decode_addr(), and not for direct use by device drivers.
  */
-#define	OFW_PADDR_NOT_PCI	(~0)
+#define OFW_PADDR_NOT_PCI (~0)
 
 int ofw_reg_to_paddr(phandle_t _dev, int _regno, bus_addr_t *_paddr,
     bus_size_t *_size, pcell_t *_pci_hi);

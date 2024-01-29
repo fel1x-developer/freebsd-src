@@ -35,7 +35,7 @@
 
 /* Interceptors are required for KMSAN. */
 #if defined(KASAN) || defined(KCSAN)
-#define	SAN_RUNTIME
+#define SAN_RUNTIME
 #endif
 
 #include <sys/param.h>
@@ -63,7 +63,7 @@
 
 MALLOC_DEFINE(M_KCOV_INFO, "kcovinfo", "KCOV info type");
 
-#define	KCOV_ELEMENT_SIZE	sizeof(uint64_t)
+#define KCOV_ELEMENT_SIZE sizeof(uint64_t)
 
 /*
  * To know what the code can safely perform at any point in time we use a
@@ -106,10 +106,10 @@ MALLOC_DEFINE(M_KCOV_INFO, "kcovinfo", "KCOV info type");
  */
 typedef enum {
 	KCOV_STATE_INVALID,
-	KCOV_STATE_OPEN,	/* The device is open, but with no buffer */
-	KCOV_STATE_READY,	/* The buffer has been allocated */
-	KCOV_STATE_RUNNING,	/* Recording trace data */
-	KCOV_STATE_DYING,	/* The fd was closed */
+	KCOV_STATE_OPEN,    /* The device is open, but with no buffer */
+	KCOV_STATE_READY,   /* The buffer has been allocated */
+	KCOV_STATE_RUNNING, /* Recording trace data */
+	KCOV_STATE_DYING,   /* The fd was closed */
 } kcov_state_t;
 
 /*
@@ -121,46 +121,45 @@ typedef enum {
  *     moving into or out of the RUNNING state.
  */
 struct kcov_info {
-	struct thread	*thread;	/* (l) */
-	vm_object_t	bufobj;		/* (o) */
-	vm_offset_t	kvaddr;		/* (o) */
-	size_t		entries;	/* (o) */
-	size_t		bufsize;	/* (o) */
-	kcov_state_t	state;		/* (s) */
-	int		mode;		/* (l) */
+	struct thread *thread; /* (l) */
+	vm_object_t bufobj;    /* (o) */
+	vm_offset_t kvaddr;    /* (o) */
+	size_t entries;	       /* (o) */
+	size_t bufsize;	       /* (o) */
+	kcov_state_t state;    /* (s) */
+	int mode;	       /* (l) */
 };
 
 /* Prototypes */
-static d_open_t		kcov_open;
-static d_close_t	kcov_close;
-static d_mmap_single_t	kcov_mmap_single;
-static d_ioctl_t	kcov_ioctl;
+static d_open_t kcov_open;
+static d_close_t kcov_close;
+static d_mmap_single_t kcov_mmap_single;
+static d_ioctl_t kcov_ioctl;
 
-static int  kcov_alloc(struct kcov_info *info, size_t entries);
+static int kcov_alloc(struct kcov_info *info, size_t entries);
 static void kcov_free(struct kcov_info *info);
 static void kcov_init(const void *unused);
 
 static struct cdevsw kcov_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_open =	kcov_open,
-	.d_close =	kcov_close,
+	.d_version = D_VERSION,
+	.d_open = kcov_open,
+	.d_close = kcov_close,
 	.d_mmap_single = kcov_mmap_single,
-	.d_ioctl =	kcov_ioctl,
-	.d_name =	"kcov",
+	.d_ioctl = kcov_ioctl,
+	.d_name = "kcov",
 };
 
 SYSCTL_NODE(_kern, OID_AUTO, kcov, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "Kernel coverage");
 
 static u_int kcov_max_entries = KCOV_MAXENTRIES;
-SYSCTL_UINT(_kern_kcov, OID_AUTO, max_entries, CTLFLAG_RW,
-    &kcov_max_entries, 0,
+SYSCTL_UINT(_kern_kcov, OID_AUTO, max_entries, CTLFLAG_RW, &kcov_max_entries, 0,
     "Maximum number of entries in the kcov buffer");
 
 static struct mtx kcov_lock;
 static int active_count;
 
-static struct kcov_info * __nosanitizeaddress __nosanitizememory
+static struct kcov_info *__nosanitizeaddress __nosanitizememory
 get_kinfo(struct thread *td)
 {
 	struct kcov_info *info;

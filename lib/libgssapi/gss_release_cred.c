@@ -26,21 +26,21 @@
  * SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <gssapi/gssapi.h>
 #include <stdlib.h>
-#include <errno.h>
 
-#include "mech_switch.h"
 #include "cred.h"
+#include "mech_switch.h"
 
 OM_uint32
 gss_release_cred(OM_uint32 *minor_status, gss_cred_id_t *cred_handle)
 {
-	struct _gss_cred *cred = (struct _gss_cred *) *cred_handle;
+	struct _gss_cred *cred = (struct _gss_cred *)*cred_handle;
 	struct _gss_mechanism_cred *mc;
 
 	if (*cred_handle == GSS_C_NO_CREDENTIAL)
-	    return (GSS_S_COMPLETE);
+		return (GSS_S_COMPLETE);
 
 	while (SLIST_FIRST(&cred->gc_mc)) {
 		mc = SLIST_FIRST(&cred->gc_mc);

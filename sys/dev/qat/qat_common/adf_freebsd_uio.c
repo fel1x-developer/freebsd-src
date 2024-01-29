@@ -1,46 +1,48 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
-#include "qat_freebsd.h"
-#include "adf_cfg.h"
-#include "adf_common_drv.h"
-#include "adf_accel_devices.h"
-#include "icp_qat_uclo.h"
-#include "icp_qat_fw.h"
-#include "icp_qat_fw_init_admin.h"
-#include "adf_cfg_strings.h"
-#include "adf_uio_control.h"
-#include "adf_uio_cleanup.h"
-#include "adf_uio.h"
-#include "adf_transport_access_macros.h"
-#include "adf_transport_internal.h"
-#include <sys/conf.h>
-#include <sys/capsicum.h>
-#include <sys/kdb.h>
-#include <sys/condvar.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/proc.h>
+#include <sys/capsicum.h>
+#include <sys/condvar.h>
+#include <sys/conf.h>
 #include <sys/file.h>
+#include <sys/kdb.h>
 #include <sys/lock.h>
+#include <sys/proc.h>
 #include <sys/rwlock.h>
 #include <sys/sglist.h>
+
 #include <vm/vm.h>
 #include <vm/vm_object.h>
 #include <vm/vm_page.h>
 #include <vm/vm_pager.h>
 
+#include "adf_accel_devices.h"
+#include "adf_cfg.h"
+#include "adf_cfg_strings.h"
+#include "adf_common_drv.h"
+#include "adf_transport_access_macros.h"
+#include "adf_transport_internal.h"
+#include "adf_uio.h"
+#include "adf_uio_cleanup.h"
+#include "adf_uio_control.h"
+#include "icp_qat_fw.h"
+#include "icp_qat_fw_init_admin.h"
+#include "icp_qat_uclo.h"
+#include "qat_freebsd.h"
+
 #define ADF_UIO_GET_NAME(accel_dev) (GET_HW_DATA(accel_dev)->dev_class->name)
 #define ADF_UIO_GET_TYPE(accel_dev) (GET_HW_DATA(accel_dev)->dev_class->type)
-#define ADF_UIO_GET_BAR(accel_dev)                                             \
+#define ADF_UIO_GET_BAR(accel_dev) \
 	(GET_HW_DATA(accel_dev)->get_etr_bar_id(GET_HW_DATA(accel_dev)))
 
 static d_ioctl_t adf_uio_ioctl;
 static d_mmap_single_t adf_uio_mmap_single;
 
 static struct cdevsw adf_uio_cdevsw = { .d_ioctl = adf_uio_ioctl,
-					.d_mmap_single = adf_uio_mmap_single,
-					.d_version = D_VERSION,
-					.d_name = "qat" };
+	.d_mmap_single = adf_uio_mmap_single,
+	.d_version = D_VERSION,
+	.d_name = "qat" };
 
 struct adf_uio_open_bundle {
 	struct adf_uio_control_accel *accel;
@@ -129,15 +131,13 @@ adf_add_mem_fd(struct adf_accel_dev *accel_dev, int mem_fd)
 	for (;;) {
 		old_count = handle->num_mem_files;
 		mtx_unlock(&accel->lock);
-		new_files = malloc((old_count + 1) * sizeof(*new_files),
-				   M_QAT,
-				   M_WAITOK);
+		new_files = malloc((old_count + 1) * sizeof(*new_files), M_QAT,
+		    M_WAITOK);
 		mtx_lock(&accel->lock);
 		if (old_count == handle->num_mem_files) {
 			if (old_count != 0) {
-				memcpy(new_files,
-				       handle->mem_files,
-				       old_count * sizeof(*new_files));
+				memcpy(new_files, handle->mem_files,
+				    old_count * sizeof(*new_files));
 				free(handle->mem_files, M_QAT);
 			}
 			handle->mem_files = new_files;
@@ -169,12 +169,11 @@ adf_uio_map_bar(struct adf_accel_dev *accel_dev, uint8_t bank_offset)
 	 * for bundle CSRs
 	 */
 	sglist_append_phys(sg,
-			   accel->bar->base_addr + offset +
-			       csr_info->csr_addr_offset,
-			   ring_bundle_size);
+	    accel->bar->base_addr + offset + csr_info->csr_addr_offset,
+	    ring_bundle_size);
 
-	obj = vm_pager_allocate(
-	    OBJT_SG, sg, ring_bundle_size, VM_PROT_RW, 0, NULL);
+	obj = vm_pager_allocate(OBJT_SG, sg, ring_bundle_size, VM_PROT_RW, 0,
+	    NULL);
 	if (obj != NULL) {
 		VM_OBJECT_WLOCK(obj);
 		vm_object_set_memattr(obj, VM_MEMATTR_UNCACHEABLE);
@@ -215,8 +214,7 @@ adf_alloc_bundle(struct adf_accel_dev *accel_dev, int bundle_nr)
 	if (error) {
 		adf_release_bundle(handle);
 		device_printf(GET_DEV(accel_dev),
-			      "ERROR in adf_alloc_bundle %d\n",
-			      __LINE__);
+		    "ERROR in adf_alloc_bundle %d\n", __LINE__);
 		return (error);
 	}
 
@@ -224,11 +222,8 @@ adf_alloc_bundle(struct adf_accel_dev *accel_dev, int bundle_nr)
 }
 
 static int
-adf_uio_ioctl(struct cdev *dev,
-	      u_long cmd,
-	      caddr_t data,
-	      int fflag,
-	      struct thread *td)
+adf_uio_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
+    struct thread *td)
 {
 	struct adf_accel_dev *accel_dev = dev->si_drv1;
 	struct adf_hw_csr_info *csr_info = NULL;
@@ -258,11 +253,8 @@ adf_uio_ioctl(struct cdev *dev,
 }
 
 static int
-adf_uio_mmap_single(struct cdev *dev,
-		    vm_ooffset_t *offset,
-		    vm_size_t size,
-		    struct vm_object **object,
-		    int nprot)
+adf_uio_mmap_single(struct cdev *dev, vm_ooffset_t *offset, vm_size_t size,
+    struct vm_object **object, int nprot)
 {
 	struct adf_uio_open_bundle *handle = NULL;
 	struct adf_uio_control_accel *accel = NULL;
@@ -292,8 +284,8 @@ adf_uio_mmap_single(struct cdev *dev,
 	}
 
 	/* Adding pid to bundle list */
-	instance_rings =
-	    malloc(sizeof(*instance_rings), M_QAT, M_WAITOK | M_ZERO);
+	instance_rings = malloc(sizeof(*instance_rings), M_QAT,
+	    M_WAITOK | M_ZERO);
 	if (!instance_rings) {
 		printf("QAT: Memory allocation error - line: %d\n", __LINE__);
 		return -ENOMEM;
@@ -311,8 +303,7 @@ adf_uio_mmap_single(struct cdev *dev,
 
 static inline void
 adf_uio_init_accel_ctrl(struct adf_uio_control_accel *accel,
-			struct adf_accel_dev *accel_dev,
-			unsigned int nb_bundles)
+    struct adf_accel_dev *accel_dev, unsigned int nb_bundles)
 {
 	struct adf_uio_control_bundle *bundle;
 	struct qat_uio_bundle_dev *priv;
@@ -325,8 +316,8 @@ adf_uio_init_accel_ctrl(struct adf_uio_control_accel *accel,
 		/*initialize the bundle */
 		bundle = &accel->bundle[i];
 		priv = &bundle->uio_priv;
-		bundle->hardware_bundle_number =
-		    GET_MAX_BANKS(accel_dev) - nb_bundles + i;
+		bundle->hardware_bundle_number = GET_MAX_BANKS(accel_dev) -
+		    nb_bundles + i;
 
 		INIT_LIST_HEAD(&bundle->list);
 		priv->bundle = bundle;
@@ -346,20 +337,18 @@ adf_uio_init_accel_ctrl(struct adf_uio_control_accel *accel,
  */
 static inline void
 adf_uio_init_bundle_dev(struct adf_uio_control_accel *accel,
-			struct adf_accel_dev *accel_dev,
-			unsigned int nb_bundles)
+    struct adf_accel_dev *accel_dev, unsigned int nb_bundles)
 {
 	struct adf_uio_control_bundle *bundle;
 	unsigned int i;
 
 	for (i = 0; i < nb_bundles; i++) {
 		bundle = &accel->bundle[i];
-		bundle->obj =
-		    adf_uio_map_bar(accel_dev, bundle->hardware_bundle_number);
+		bundle->obj = adf_uio_map_bar(accel_dev,
+		    bundle->hardware_bundle_number);
 		if (!bundle->obj) {
 			device_printf(GET_DEV(accel_dev),
-				      "ERROR in adf_alloc_bundle %d\n",
-				      __LINE__);
+			    "ERROR in adf_alloc_bundle %d\n", __LINE__);
 		}
 	}
 }
@@ -376,8 +365,8 @@ adf_uio_register(struct adf_accel_dev *accel_dev)
 		return EFAULT;
 	}
 
-	if (adf_cfg_get_param_value(
-		accel_dev, ADF_GENERAL_SEC, ADF_FIRST_USER_BUNDLE, val)) {
+	if (adf_cfg_get_param_value(accel_dev, ADF_GENERAL_SEC,
+		ADF_FIRST_USER_BUNDLE, val)) {
 		nb_bundles = 0;
 	} else {
 		nb_bundles = GET_MAX_BANKS(accel_dev);
@@ -385,23 +374,16 @@ adf_uio_register(struct adf_accel_dev *accel_dev)
 
 	if (nb_bundles) {
 		accel = malloc(sizeof(*accel) +
-				   nb_bundles *
-				       sizeof(struct adf_uio_control_bundle),
-			       M_QAT,
-			       M_WAITOK | M_ZERO);
+			nb_bundles * sizeof(struct adf_uio_control_bundle),
+		    M_QAT, M_WAITOK | M_ZERO);
 		mtx_init(&accel->lock, "qat uio", NULL, MTX_DEF);
 		accel->accel_dev = accel_dev;
 		accel->bar = accel_dev->accel_pci_dev.pci_bars +
 		    ADF_UIO_GET_BAR(accel_dev);
 
 		adf_uio_init_accel_ctrl(accel, accel_dev, nb_bundles);
-		accel->cdev = make_dev(&adf_uio_cdevsw,
-				       0,
-				       UID_ROOT,
-				       GID_WHEEL,
-				       0600,
-				       "%s",
-				       device_get_nameunit(GET_DEV(accel_dev)));
+		accel->cdev = make_dev(&adf_uio_cdevsw, 0, UID_ROOT, GID_WHEEL,
+		    0600, "%s", device_get_nameunit(GET_DEV(accel_dev)));
 		if (accel->cdev == NULL) {
 			mtx_destroy(&accel->lock);
 			goto fail_clean;
@@ -436,9 +418,8 @@ adf_uio_remove(struct adf_accel_dev *accel_dev)
 		destroy_dev(accel->cdev);
 		mtx_lock(&accel->lock);
 		while (accel->num_handles) {
-			cv_timedwait_sig(&accel->cleanup_ok,
-					 &accel->lock,
-					 3 * hz);
+			cv_timedwait_sig(&accel->cleanup_ok, &accel->lock,
+			    3 * hz);
 		}
 		mtx_unlock(&accel->lock);
 		mtx_destroy(&accel->lock);

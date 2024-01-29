@@ -41,16 +41,15 @@ __RCSID("$NetBSD: efun.c,v 1.10 2015/07/26 02:20:30 kamil Exp $");
 #include <err.h>
 #include <errno.h>
 #include <inttypes.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <util.h>
 
 static void (*efunc)(int, const char *, ...) = err;
 
-void (*
-esetfunc(void (*ef)(int, const char *, ...)))(int, const char *, ...)
+void (*esetfunc(void (*ef)(int, const char *, ...)))(int, const char *, ...)
 {
 	void (*of)(int, const char *, ...) = efunc;
 	efunc = ef == NULL ? (void (*)(int, const char *, ...))exit : ef;
@@ -63,8 +62,7 @@ estrlcpy(char *dst, const char *src, size_t len)
 	size_t rv;
 	if ((rv = strlcpy(dst, src, len)) >= len) {
 		errno = ENAMETOOLONG;
-		(*efunc)(1,
-		    "Cannot copy string; %zu chars needed %zu provided",
+		(*efunc)(1, "Cannot copy string; %zu chars needed %zu provided",
 		    rv, len);
 	}
 	return rv;
@@ -138,7 +136,7 @@ efopen(const char *p, const char *m)
 }
 
 int
-easprintf(char ** __restrict ret, const char * __restrict format, ...)
+easprintf(char **__restrict ret, const char *__restrict format, ...)
 {
 	int rv;
 	va_list ap;
@@ -150,7 +148,7 @@ easprintf(char ** __restrict ret, const char * __restrict format, ...)
 }
 
 int
-evasprintf(char ** __restrict ret, const char * __restrict format, va_list ap)
+evasprintf(char **__restrict ret, const char *__restrict format, va_list ap)
 {
 	int rv;
 	if ((rv = vasprintf(ret, format, ap)) == -1)

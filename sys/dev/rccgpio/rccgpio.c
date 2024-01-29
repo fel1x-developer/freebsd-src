@@ -39,19 +39,20 @@
 #include <machine/bus.h>
 
 #include <dev/gpio/gpiobusvar.h>
+
 #include <isa/isavar.h>
 
 #include "gpio_if.h"
 
-#define	RCC_GPIO_BASE		0x500
-#define	RCC_GPIO_USE_SEL	0x00
-#define	RCC_GPIO_IO_SEL		0x04
-#define	RCC_GPIO_GP_LVL		0x08
+#define RCC_GPIO_BASE 0x500
+#define RCC_GPIO_USE_SEL 0x00
+#define RCC_GPIO_IO_SEL 0x04
+#define RCC_GPIO_GP_LVL 0x08
 
 struct rcc_gpio_pin {
-	uint32_t		pin;
-	const char		*name;
-	uint32_t		caps;
+	uint32_t pin;
+	const char *name;
+	uint32_t caps;
 };
 
 static struct rcc_gpio_pin rcc_pins[] = {
@@ -65,27 +66,26 @@ static struct rcc_gpio_pin rcc_pins[] = {
 };
 
 struct rcc_gpio_softc {
-	device_t		sc_dev;
-	device_t		sc_busdev;
-	struct mtx		sc_mtx;
-	struct resource		*sc_io_res;
-	bus_space_tag_t		sc_bst;
-	bus_space_handle_t	sc_bsh;
-	uint32_t		sc_output;
-	int			sc_io_rid;
-	int			sc_gpio_npins;
+	device_t sc_dev;
+	device_t sc_busdev;
+	struct mtx sc_mtx;
+	struct resource *sc_io_res;
+	bus_space_tag_t sc_bst;
+	bus_space_handle_t sc_bsh;
+	uint32_t sc_output;
+	int sc_io_rid;
+	int sc_gpio_npins;
 };
 
-#define	RCC_GPIO_LOCK(_sc)	mtx_lock(&(_sc)->sc_mtx)
-#define	RCC_GPIO_UNLOCK(_sc)	mtx_unlock(&(_sc)->sc_mtx)
-#define	RCC_WRITE(_sc, _off, _val)				\
+#define RCC_GPIO_LOCK(_sc) mtx_lock(&(_sc)->sc_mtx)
+#define RCC_GPIO_UNLOCK(_sc) mtx_unlock(&(_sc)->sc_mtx)
+#define RCC_WRITE(_sc, _off, _val) \
 	bus_space_write_4((_sc)->sc_bst, (_sc)->sc_bsh, _off, _val)
-#define	RCC_READ(_sc, _off)					\
-	bus_space_read_4((_sc)->sc_bst, (_sc)->sc_bsh, _off)
+#define RCC_READ(_sc, _off) bus_space_read_4((_sc)->sc_bst, (_sc)->sc_bsh, _off)
 
 static void
 rcc_gpio_modify_bits(struct rcc_gpio_softc *sc, uint32_t reg, uint32_t mask,
-	uint32_t writebits)
+    uint32_t writebits)
 {
 	uint32_t value;
 
@@ -278,7 +278,7 @@ rcc_gpio_attach(device_t dev)
 	struct rcc_gpio_softc *sc;
 
 	sc = device_get_softc(dev);
- 	sc->sc_dev = dev;
+	sc->sc_dev = dev;
 
 	/* Allocate IO resources. */
 	sc->sc_io_rid = 0;
@@ -302,8 +302,8 @@ rcc_gpio_attach(device_t dev)
 			rcc_gpio_modify_bits(sc, RCC_GPIO_IO_SEL,
 			    rcc_pins[i].pin, 0);
 		else
-			rcc_gpio_modify_bits(sc, RCC_GPIO_IO_SEL,
-			    0, rcc_pins[i].pin);
+			rcc_gpio_modify_bits(sc, RCC_GPIO_IO_SEL, 0,
+			    rcc_pins[i].pin);
 	}
 	RCC_WRITE(sc, RCC_GPIO_GP_LVL, sc->sc_output);
 
@@ -342,20 +342,20 @@ rcc_gpio_detach(device_t dev)
 
 static device_method_t rcc_gpio_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		rcc_gpio_probe),
-	DEVMETHOD(device_attach,	rcc_gpio_attach),
-	DEVMETHOD(device_detach,	rcc_gpio_detach),
+	DEVMETHOD(device_probe, rcc_gpio_probe),
+	DEVMETHOD(device_attach, rcc_gpio_attach),
+	DEVMETHOD(device_detach, rcc_gpio_detach),
 
 	/* GPIO protocol */
-	DEVMETHOD(gpio_get_bus,		rcc_gpio_get_bus),
-	DEVMETHOD(gpio_pin_max,		rcc_gpio_pin_max),
-	DEVMETHOD(gpio_pin_getname,	rcc_gpio_pin_getname),
-	DEVMETHOD(gpio_pin_getflags,	rcc_gpio_pin_getflags),
-	DEVMETHOD(gpio_pin_getcaps,	rcc_gpio_pin_getcaps),
-	DEVMETHOD(gpio_pin_setflags,	rcc_gpio_pin_setflags),
-	DEVMETHOD(gpio_pin_get,		rcc_gpio_pin_get),
-	DEVMETHOD(gpio_pin_set,		rcc_gpio_pin_set),
-	DEVMETHOD(gpio_pin_toggle,	rcc_gpio_pin_toggle),
+	DEVMETHOD(gpio_get_bus, rcc_gpio_get_bus),
+	DEVMETHOD(gpio_pin_max, rcc_gpio_pin_max),
+	DEVMETHOD(gpio_pin_getname, rcc_gpio_pin_getname),
+	DEVMETHOD(gpio_pin_getflags, rcc_gpio_pin_getflags),
+	DEVMETHOD(gpio_pin_getcaps, rcc_gpio_pin_getcaps),
+	DEVMETHOD(gpio_pin_setflags, rcc_gpio_pin_setflags),
+	DEVMETHOD(gpio_pin_get, rcc_gpio_pin_get),
+	DEVMETHOD(gpio_pin_set, rcc_gpio_pin_set),
+	DEVMETHOD(gpio_pin_toggle, rcc_gpio_pin_toggle),
 
 	DEVMETHOD_END
 };

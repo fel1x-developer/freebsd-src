@@ -5,6 +5,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "igc_api.h"
 
 /**
@@ -14,7 +15,8 @@
  *  This function initializes the function pointers for the MAC
  *  set of functions.  Called by drivers or by igc_setup_init_funcs.
  **/
-s32 igc_init_mac_params(struct igc_hw *hw)
+s32
+igc_init_mac_params(struct igc_hw *hw)
 {
 	s32 ret_val = IGC_SUCCESS;
 
@@ -40,7 +42,8 @@ out:
  *  This function initializes the function pointers for the NVM
  *  set of functions.  Called by drivers or by igc_setup_init_funcs.
  **/
-s32 igc_init_nvm_params(struct igc_hw *hw)
+s32
+igc_init_nvm_params(struct igc_hw *hw)
 {
 	s32 ret_val = IGC_SUCCESS;
 
@@ -66,7 +69,8 @@ out:
  *  This function initializes the function pointers for the PHY
  *  set of functions.  Called by drivers or by igc_setup_init_funcs.
  **/
-s32 igc_init_phy_params(struct igc_hw *hw)
+s32
+igc_init_phy_params(struct igc_hw *hw)
 {
 	s32 ret_val = IGC_SUCCESS;
 
@@ -78,7 +82,7 @@ s32 igc_init_phy_params(struct igc_hw *hw)
 		}
 	} else {
 		DEBUGOUT("phy.init_phy_params was NULL\n");
-		ret_val =  -IGC_ERR_CONFIG;
+		ret_val = -IGC_ERR_CONFIG;
 	}
 
 out:
@@ -94,7 +98,8 @@ out:
  *  MUST BE FIRST FUNCTION CALLED (explicitly or through
  *  igc_setup_init_funcs()).
  **/
-s32 igc_set_mac_type(struct igc_hw *hw)
+s32
+igc_set_mac_type(struct igc_hw *hw)
 {
 	struct igc_mac_info *mac = &hw->mac;
 	s32 ret_val = IGC_SUCCESS;
@@ -139,7 +144,8 @@ s32 igc_set_mac_type(struct igc_hw *hw)
  *  This function must be called by a driver in order to use the rest
  *  of the 'shared' code files. Called by drivers only.
  **/
-s32 igc_setup_init_funcs(struct igc_hw *hw, bool init_device)
+s32
+igc_setup_init_funcs(struct igc_hw *hw, bool init_device)
 {
 	s32 ret_val;
 
@@ -209,7 +215,8 @@ out:
  *  adapter is attached and stores it in the hw structure. This is a
  *  function pointer entry point called by drivers.
  **/
-s32 igc_get_bus_info(struct igc_hw *hw)
+s32
+igc_get_bus_info(struct igc_hw *hw)
 {
 	if (hw->mac.ops.get_bus_info)
 		return hw->mac.ops.get_bus_info(hw);
@@ -224,7 +231,8 @@ s32 igc_get_bus_info(struct igc_hw *hw)
  *  This clears the VLAN filter table on the adapter. This is a function
  *  pointer entry point called by drivers.
  **/
-void igc_clear_vfta(struct igc_hw *hw)
+void
+igc_clear_vfta(struct igc_hw *hw)
 {
 	if (hw->mac.ops.clear_vfta)
 		hw->mac.ops.clear_vfta(hw);
@@ -239,7 +247,8 @@ void igc_clear_vfta(struct igc_hw *hw)
  *  This writes a 32-bit value to a 32-bit offset in the VLAN filter
  *  table. This is a function pointer entry point called by drivers.
  **/
-void igc_write_vfta(struct igc_hw *hw, u32 offset, u32 value)
+void
+igc_write_vfta(struct igc_hw *hw, u32 offset, u32 value)
 {
 	if (hw->mac.ops.write_vfta)
 		hw->mac.ops.write_vfta(hw, offset, value);
@@ -254,12 +263,12 @@ void igc_write_vfta(struct igc_hw *hw, u32 offset, u32 value)
  *  Updates the Multicast Table Array.
  *  The caller must have a packed mc_addr_list of multicast addresses.
  **/
-void igc_update_mc_addr_list(struct igc_hw *hw, u8 *mc_addr_list,
-			       u32 mc_addr_count)
+void
+igc_update_mc_addr_list(struct igc_hw *hw, u8 *mc_addr_list, u32 mc_addr_count)
 {
 	if (hw->mac.ops.update_mc_addr_list)
 		hw->mac.ops.update_mc_addr_list(hw, mc_addr_list,
-						mc_addr_count);
+		    mc_addr_count);
 }
 
 /**
@@ -270,7 +279,8 @@ void igc_update_mc_addr_list(struct igc_hw *hw, u8 *mc_addr_list,
  *  and all implementations are handled in the generic version of this
  *  function.
  **/
-s32 igc_force_mac_fc(struct igc_hw *hw)
+s32
+igc_force_mac_fc(struct igc_hw *hw)
 {
 	return igc_force_mac_fc_generic(hw);
 }
@@ -283,7 +293,8 @@ s32 igc_force_mac_fc(struct igc_hw *hw)
  *  results in the hw->mac structure. This is a function pointer entry
  *  point called by drivers.
  **/
-s32 igc_check_for_link(struct igc_hw *hw)
+s32
+igc_check_for_link(struct igc_hw *hw)
 {
 	if (hw->mac.ops.check_for_link)
 		return hw->mac.ops.check_for_link(hw);
@@ -298,7 +309,8 @@ s32 igc_check_for_link(struct igc_hw *hw)
  *  This resets the hardware into a known state. This is a function pointer
  *  entry point called by drivers.
  **/
-s32 igc_reset_hw(struct igc_hw *hw)
+s32
+igc_reset_hw(struct igc_hw *hw)
 {
 	if (hw->mac.ops.reset_hw)
 		return hw->mac.ops.reset_hw(hw);
@@ -313,7 +325,8 @@ s32 igc_reset_hw(struct igc_hw *hw)
  *  This inits the hardware readying it for operation. This is a function
  *  pointer entry point called by drivers.
  **/
-s32 igc_init_hw(struct igc_hw *hw)
+s32
+igc_init_hw(struct igc_hw *hw)
 {
 	if (hw->mac.ops.init_hw)
 		return hw->mac.ops.init_hw(hw);
@@ -329,7 +342,8 @@ s32 igc_init_hw(struct igc_hw *hw)
  *  is a function pointer entry point called by drivers. While modules can
  *  also call this, they probably call their own version of this function.
  **/
-s32 igc_setup_link(struct igc_hw *hw)
+s32
+igc_setup_link(struct igc_hw *hw)
 {
 	if (hw->mac.ops.setup_link)
 		return hw->mac.ops.setup_link(hw);
@@ -347,7 +361,8 @@ s32 igc_setup_link(struct igc_hw *hw)
  *  variables passed in. This is a function pointer entry point called
  *  by drivers.
  **/
-s32 igc_get_speed_and_duplex(struct igc_hw *hw, u16 *speed, u16 *duplex)
+s32
+igc_get_speed_and_duplex(struct igc_hw *hw, u16 *speed, u16 *duplex)
 {
 	if (hw->mac.ops.get_link_up_info)
 		return hw->mac.ops.get_link_up_info(hw, speed, duplex);
@@ -363,7 +378,8 @@ s32 igc_get_speed_and_duplex(struct igc_hw *hw, u16 *speed, u16 *duplex)
  *  requests. Currently no func pointer exists and all implementations are
  *  handled in the generic version of this function.
  **/
-s32 igc_disable_pcie_master(struct igc_hw *hw)
+s32
+igc_disable_pcie_master(struct igc_hw *hw)
 {
 	return igc_disable_pcie_master_generic(hw);
 }
@@ -375,7 +391,8 @@ s32 igc_disable_pcie_master(struct igc_hw *hw)
  *  Configures the collision distance to the default value and is used
  *  during link setup.
  **/
-void igc_config_collision_dist(struct igc_hw *hw)
+void
+igc_config_collision_dist(struct igc_hw *hw)
 {
 	if (hw->mac.ops.config_collision_dist)
 		hw->mac.ops.config_collision_dist(hw);
@@ -389,7 +406,8 @@ void igc_config_collision_dist(struct igc_hw *hw)
  *
  *  Sets a Receive Address Register (RAR) to the specified address.
  **/
-int igc_rar_set(struct igc_hw *hw, u8 *addr, u32 index)
+int
+igc_rar_set(struct igc_hw *hw, u8 *addr, u32 index)
 {
 	if (hw->mac.ops.rar_set)
 		return hw->mac.ops.rar_set(hw, addr, index);
@@ -403,7 +421,8 @@ int igc_rar_set(struct igc_hw *hw, u8 *addr, u32 index)
  *
  *  Ensures that the MDI/MDIX SW state is valid.
  **/
-s32 igc_validate_mdi_setting(struct igc_hw *hw)
+s32
+igc_validate_mdi_setting(struct igc_hw *hw)
 {
 	if (hw->mac.ops.validate_mdi_setting)
 		return hw->mac.ops.validate_mdi_setting(hw);
@@ -420,7 +439,8 @@ s32 igc_validate_mdi_setting(struct igc_hw *hw)
  *  table. Currently no func pointer exists and all implementations
  *  are handled in the generic version of this function.
  **/
-u32 igc_hash_mc_addr(struct igc_hw *hw, u8 *mc_addr)
+u32
+igc_hash_mc_addr(struct igc_hw *hw, u8 *mc_addr)
 {
 	return igc_hash_mc_addr_generic(hw, mc_addr);
 }
@@ -432,7 +452,8 @@ u32 igc_hash_mc_addr(struct igc_hw *hw, u8 *mc_addr)
  *  Checks if the PHY is in a state that can be reset or if manageability
  *  has it tied up. This is a function pointer entry point called by drivers.
  **/
-s32 igc_check_reset_block(struct igc_hw *hw)
+s32
+igc_check_reset_block(struct igc_hw *hw)
 {
 	if (hw->phy.ops.check_reset_block)
 		return hw->phy.ops.check_reset_block(hw);
@@ -449,7 +470,8 @@ s32 igc_check_reset_block(struct igc_hw *hw)
  *  Reads the PHY register and returns the value in data.
  *  This is a function pointer entry point called by drivers.
  **/
-s32 igc_read_phy_reg(struct igc_hw *hw, u32 offset, u16 *data)
+s32
+igc_read_phy_reg(struct igc_hw *hw, u32 offset, u16 *data)
 {
 	if (hw->phy.ops.read_reg)
 		return hw->phy.ops.read_reg(hw, offset, data);
@@ -466,7 +488,8 @@ s32 igc_read_phy_reg(struct igc_hw *hw, u32 offset, u16 *data)
  *  Writes the PHY register at offset with the value in data.
  *  This is a function pointer entry point called by drivers.
  **/
-s32 igc_write_phy_reg(struct igc_hw *hw, u32 offset, u16 data)
+s32
+igc_write_phy_reg(struct igc_hw *hw, u32 offset, u16 data)
 {
 	if (hw->phy.ops.write_reg)
 		return hw->phy.ops.write_reg(hw, offset, data);
@@ -481,7 +504,8 @@ s32 igc_write_phy_reg(struct igc_hw *hw, u32 offset, u16 data)
  *  Return if silicon family does not require a semaphore when accessing the
  *  PHY.
  **/
-void igc_release_phy(struct igc_hw *hw)
+void
+igc_release_phy(struct igc_hw *hw)
 {
 	if (hw->phy.ops.release)
 		hw->phy.ops.release(hw);
@@ -494,7 +518,8 @@ void igc_release_phy(struct igc_hw *hw)
  *  Return success if silicon family does not require a semaphore when
  *  accessing the PHY.
  **/
-s32 igc_acquire_phy(struct igc_hw *hw)
+s32
+igc_acquire_phy(struct igc_hw *hw)
 {
 	if (hw->phy.ops.acquire)
 		return hw->phy.ops.acquire(hw);
@@ -510,7 +535,8 @@ s32 igc_acquire_phy(struct igc_hw *hw)
  *  populates hw->phy values with it. This is a function pointer entry
  *  point called by drivers.
  **/
-s32 igc_get_phy_info(struct igc_hw *hw)
+s32
+igc_get_phy_info(struct igc_hw *hw)
 {
 	if (hw->phy.ops.get_info)
 		return hw->phy.ops.get_info(hw);
@@ -525,7 +551,8 @@ s32 igc_get_phy_info(struct igc_hw *hw)
  *  Performs a hard PHY reset. This is a function pointer entry point called
  *  by drivers.
  **/
-s32 igc_phy_hw_reset(struct igc_hw *hw)
+s32
+igc_phy_hw_reset(struct igc_hw *hw)
 {
 	if (hw->phy.ops.reset)
 		return hw->phy.ops.reset(hw);
@@ -547,7 +574,8 @@ s32 igc_phy_hw_reset(struct igc_hw *hw)
  *  During driver activity, SmartSpeed should be enabled so performance is
  *  maintained.  This is a function pointer entry point called by drivers.
  **/
-s32 igc_set_d0_lplu_state(struct igc_hw *hw, bool active)
+s32
+igc_set_d0_lplu_state(struct igc_hw *hw, bool active)
 {
 	if (hw->phy.ops.set_d0_lplu_state)
 		return hw->phy.ops.set_d0_lplu_state(hw, active);
@@ -569,7 +597,8 @@ s32 igc_set_d0_lplu_state(struct igc_hw *hw, bool active)
  *  During driver activity, SmartSpeed should be enabled so performance is
  *  maintained.  This is a function pointer entry point called by drivers.
  **/
-s32 igc_set_d3_lplu_state(struct igc_hw *hw, bool active)
+s32
+igc_set_d3_lplu_state(struct igc_hw *hw, bool active)
 {
 	if (hw->phy.ops.set_d3_lplu_state)
 		return hw->phy.ops.set_d3_lplu_state(hw, active);
@@ -585,7 +614,8 @@ s32 igc_set_d3_lplu_state(struct igc_hw *hw, bool active)
  *  Currently no func pointer exists and all implementations are handled in the
  *  generic version of this function.
  **/
-s32 igc_read_mac_addr(struct igc_hw *hw)
+s32
+igc_read_mac_addr(struct igc_hw *hw)
 {
 	if (hw->mac.ops.read_mac_addr)
 		return hw->mac.ops.read_mac_addr(hw);
@@ -604,7 +634,8 @@ s32 igc_read_mac_addr(struct igc_hw *hw)
  *  Currently no func pointer exists and all implementations are handled in the
  *  generic version of this function.
  **/
-s32 igc_read_pba_string(struct igc_hw *hw, u8 *pba_num, u32 pba_num_size)
+s32
+igc_read_pba_string(struct igc_hw *hw, u8 *pba_num, u32 pba_num_size)
 {
 	return igc_read_pba_string_generic(hw, pba_num, pba_num_size);
 }
@@ -616,7 +647,8 @@ s32 igc_read_pba_string(struct igc_hw *hw, u8 *pba_num, u32 pba_num_size)
  *  Validates the NVM checksum is correct. This is a function pointer entry
  *  point called by drivers.
  **/
-s32 igc_validate_nvm_checksum(struct igc_hw *hw)
+s32
+igc_validate_nvm_checksum(struct igc_hw *hw)
 {
 	if (hw->nvm.ops.validate)
 		return hw->nvm.ops.validate(hw);
@@ -631,7 +663,8 @@ s32 igc_validate_nvm_checksum(struct igc_hw *hw)
  *  Updates the NVM checksum. Currently no func pointer exists and all
  *  implementations are handled in the generic version of this function.
  **/
-s32 igc_update_nvm_checksum(struct igc_hw *hw)
+s32
+igc_update_nvm_checksum(struct igc_hw *hw)
 {
 	if (hw->nvm.ops.update)
 		return hw->nvm.ops.update(hw);
@@ -646,7 +679,8 @@ s32 igc_update_nvm_checksum(struct igc_hw *hw)
  *  Reloads the EEPROM by setting the "Reinitialize from EEPROM" bit in the
  *  extended control register.
  **/
-void igc_reload_nvm(struct igc_hw *hw)
+void
+igc_reload_nvm(struct igc_hw *hw)
 {
 	if (hw->nvm.ops.reload)
 		hw->nvm.ops.reload(hw);
@@ -662,7 +696,8 @@ void igc_reload_nvm(struct igc_hw *hw)
  *  Reads 16-bit chunks of data from the NVM (EEPROM). This is a function
  *  pointer entry point called by drivers.
  **/
-s32 igc_read_nvm(struct igc_hw *hw, u16 offset, u16 words, u16 *data)
+s32
+igc_read_nvm(struct igc_hw *hw, u16 offset, u16 words, u16 *data)
 {
 	if (hw->nvm.ops.read)
 		return hw->nvm.ops.read(hw, offset, words, data);
@@ -680,7 +715,8 @@ s32 igc_read_nvm(struct igc_hw *hw, u16 offset, u16 words, u16 *data)
  *  Writes 16-bit chunks of data to the NVM (EEPROM). This is a function
  *  pointer entry point called by drivers.
  **/
-s32 igc_write_nvm(struct igc_hw *hw, u16 offset, u16 words, u16 *data)
+s32
+igc_write_nvm(struct igc_hw *hw, u16 offset, u16 words, u16 *data)
 {
 	if (hw->nvm.ops.write)
 		return hw->nvm.ops.write(hw, offset, words, data);
@@ -695,7 +731,8 @@ s32 igc_write_nvm(struct igc_hw *hw, u16 offset, u16 words, u16 *data)
  * The phy may be powered down to save power, to turn off link when the
  * driver is unloaded, or wake on lan is not enabled (among others).
  **/
-void igc_power_up_phy(struct igc_hw *hw)
+void
+igc_power_up_phy(struct igc_hw *hw)
 {
 	if (hw->phy.ops.power_up)
 		hw->phy.ops.power_up(hw);
@@ -710,9 +747,9 @@ void igc_power_up_phy(struct igc_hw *hw)
  * The phy may be powered down to save power, to turn off link when the
  * driver is unloaded, or wake on lan is not enabled (among others).
  **/
-void igc_power_down_phy(struct igc_hw *hw)
+void
+igc_power_down_phy(struct igc_hw *hw)
 {
 	if (hw->phy.ops.power_down)
 		hw->phy.ops.power_down(hw);
 }
-

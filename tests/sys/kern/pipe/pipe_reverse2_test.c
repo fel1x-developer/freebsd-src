@@ -45,7 +45,7 @@ main(void)
 
 	FD_ZERO(&set);
 	FD_SET(pip[0], &set);
-	n = select(pip[1] + 1, NULL, &set, NULL, &(struct timeval){ 0, 0 });
+	n = select(pip[1] + 1, NULL, &set, NULL, &(struct timeval) { 0, 0 });
 	if (n != 1)
 		errx(1, "FAIL: select initial reverse direction");
 
@@ -55,7 +55,7 @@ main(void)
 
 	FD_ZERO(&set);
 	FD_SET(pip[0], &set);
-	n = select(pip[1] + 1, NULL, &set, NULL, &(struct timeval){ 0, 0 });
+	n = select(pip[1] + 1, NULL, &set, NULL, &(struct timeval) { 0, 0 });
 	if (n != 1)
 		errx(1, "FAIL: select reverse direction after write");
 

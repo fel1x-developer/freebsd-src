@@ -30,9 +30,10 @@
  */
 
 #include <sys/param.h>
-#include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/sysctl.h>
+#include <sys/time.h>
+
 #include <vm/vm_param.h>
 
 #include <stdlib.h>
@@ -58,6 +59,6 @@ getloadavg(double loadavg[], int nelem)
 
 	nelem = MIN(nelem, sizeof(loadinfo.ldavg) / sizeof(fixpt_t));
 	for (i = 0; i < nelem; i++)
-		loadavg[i] = (double) loadinfo.ldavg[i] / loadinfo.fscale;
+		loadavg[i] = (double)loadinfo.ldavg[i] / loadinfo.fscale;
 	return (nelem);
 }

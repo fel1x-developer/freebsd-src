@@ -28,7 +28,7 @@ fletcher_2_native(const void *buf, uint64_t size,
     const void *ctx_template __unused, zio_cksum_t *zcp)
 {
 	const uint64_t *ip = buf;
-	const uint64_t *ipend = ip + (size / sizeof (uint64_t));
+	const uint64_t *ipend = ip + (size / sizeof(uint64_t));
 	uint64_t a0, b0, a1, b1;
 
 	for (a0 = b0 = a1 = b1 = 0; ip < ipend; ip += 2) {
@@ -46,7 +46,7 @@ fletcher_2_byteswap(const void *buf, uint64_t size,
     const void *ctx_template __unused, zio_cksum_t *zcp)
 {
 	const uint64_t *ip = buf;
-	const uint64_t *ipend = ip + (size / sizeof (uint64_t));
+	const uint64_t *ipend = ip + (size / sizeof(uint64_t));
 	uint64_t a0, b0, a1, b1;
 
 	for (a0 = b0 = a1 = b1 = 0; ip < ipend; ip += 2) {
@@ -64,7 +64,7 @@ fletcher_4_native(const void *buf, uint64_t size,
     const void *ctx_template __unused, zio_cksum_t *zcp)
 {
 	const uint32_t *ip = buf;
-	const uint32_t *ipend = ip + (size / sizeof (uint32_t));
+	const uint32_t *ipend = ip + (size / sizeof(uint32_t));
 	uint64_t a, b, c, d;
 
 	for (a = b = c = d = 0; ip < ipend; ip++) {
@@ -82,7 +82,7 @@ fletcher_4_byteswap(const void *buf, uint64_t size,
     const void *ctx_template __unused, zio_cksum_t *zcp)
 {
 	const uint32_t *ip = buf;
-	const uint32_t *ipend = ip + (size / sizeof (uint32_t));
+	const uint32_t *ipend = ip + (size / sizeof(uint32_t));
 	uint64_t a, b, c, d;
 
 	for (a = b = c = d = 0; ip < ipend; ip++) {

@@ -27,18 +27,14 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/module.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/kernel.h>
+#include <sys/module.h>
+#include <sys/rman.h>
 
-#include <dev/ofw/openfirm.h>
-#include <dev/ofw/ofw_pci.h>
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
+#include <vm/vm.h>
+#include <vm/pmap.h>
 
 #include <machine/bus.h>
 #include <machine/intr_machdep.h>
@@ -46,12 +42,14 @@
 #include <machine/pio.h>
 #include <machine/resource.h>
 
-#include <sys/rman.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/ofw_pci.h>
+#include <dev/ofw/openfirm.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include <powerpc/powermac/uninorthvar.h>
-
-#include <vm/vm.h>
-#include <vm/pmap.h>
 
 /*
  * Driver for the Uninorth chip itself.
@@ -63,33 +61,30 @@ static MALLOC_DEFINE(M_UNIN, "unin", "unin device information");
  * Device interface.
  */
 
-static int  unin_chip_probe(device_t);
-static int  unin_chip_attach(device_t);
+static int unin_chip_probe(device_t);
+static int unin_chip_attach(device_t);
 
 /*
  * Bus interface.
  */
-static int  unin_chip_print_child(device_t dev, device_t child);
+static int unin_chip_print_child(device_t dev, device_t child);
 static void unin_chip_probe_nomatch(device_t, device_t);
 static struct rman *unin_chip_get_rman(device_t, int, u_int);
 static struct resource *unin_chip_alloc_resource(device_t, device_t, int, int *,
-						 rman_res_t, rman_res_t,
-						 rman_res_t, u_int);
-static int  unin_chip_adjust_resource(device_t, device_t, int,
-				      struct resource *, rman_res_t,
-				      rman_res_t);
-static int  unin_chip_activate_resource(device_t, device_t, int, int,
-					struct resource *);
-static int  unin_chip_deactivate_resource(device_t, device_t, int, int,
-					  struct resource *);
-static int  unin_chip_map_resource(device_t, device_t, int, struct resource *,
-				   struct resource_map_request *,
-				   struct resource_map *);
-static int  unin_chip_unmap_resource(device_t, device_t, int, struct resource *,
-				     struct resource_map *);
-static int  unin_chip_release_resource(device_t, device_t, int, int,
-				       struct resource *);
-static struct resource_list *unin_chip_get_resource_list (device_t, device_t);
+    rman_res_t, rman_res_t, rman_res_t, u_int);
+static int unin_chip_adjust_resource(device_t, device_t, int, struct resource *,
+    rman_res_t, rman_res_t);
+static int unin_chip_activate_resource(device_t, device_t, int, int,
+    struct resource *);
+static int unin_chip_deactivate_resource(device_t, device_t, int, int,
+    struct resource *);
+static int unin_chip_map_resource(device_t, device_t, int, struct resource *,
+    struct resource_map_request *, struct resource_map *);
+static int unin_chip_unmap_resource(device_t, device_t, int, struct resource *,
+    struct resource_map *);
+static int unin_chip_release_resource(device_t, device_t, int, int,
+    struct resource *);
+static struct resource_list *unin_chip_get_resource_list(device_t, device_t);
 
 /*
  * OFW Bus interface
@@ -101,57 +96,53 @@ static ofw_bus_get_devinfo_t unin_chip_get_devinfo;
  * Local routines
  */
 
-static void		unin_enable_gmac(device_t dev);
-static void		unin_enable_mpic(device_t dev);
+static void unin_enable_gmac(device_t dev);
+static void unin_enable_mpic(device_t dev);
 
 /*
  * Driver methods.
  */
 static device_method_t unin_chip_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,         unin_chip_probe),
-	DEVMETHOD(device_attach,        unin_chip_attach),
+	DEVMETHOD(device_probe, unin_chip_probe),
+	DEVMETHOD(device_attach, unin_chip_attach),
 
 	/* Bus interface */
-	DEVMETHOD(bus_print_child,      unin_chip_print_child),
-	DEVMETHOD(bus_probe_nomatch,    unin_chip_probe_nomatch),
-	DEVMETHOD(bus_setup_intr,       bus_generic_setup_intr),
-	DEVMETHOD(bus_teardown_intr,    bus_generic_teardown_intr),
+	DEVMETHOD(bus_print_child, unin_chip_print_child),
+	DEVMETHOD(bus_probe_nomatch, unin_chip_probe_nomatch),
+	DEVMETHOD(bus_setup_intr, bus_generic_setup_intr),
+	DEVMETHOD(bus_teardown_intr, bus_generic_teardown_intr),
 
-	DEVMETHOD(bus_get_rman,		unin_chip_get_rman),
-	DEVMETHOD(bus_alloc_resource,   unin_chip_alloc_resource),
-	DEVMETHOD(bus_adjust_resource,	unin_chip_adjust_resource),
+	DEVMETHOD(bus_get_rman, unin_chip_get_rman),
+	DEVMETHOD(bus_alloc_resource, unin_chip_alloc_resource),
+	DEVMETHOD(bus_adjust_resource, unin_chip_adjust_resource),
 	DEVMETHOD(bus_release_resource, unin_chip_release_resource),
 	DEVMETHOD(bus_activate_resource, unin_chip_activate_resource),
 	DEVMETHOD(bus_deactivate_resource, unin_chip_deactivate_resource),
-	DEVMETHOD(bus_map_resource,	unin_chip_map_resource),
-	DEVMETHOD(bus_unmap_resource,	unin_chip_unmap_resource),
+	DEVMETHOD(bus_map_resource, unin_chip_map_resource),
+	DEVMETHOD(bus_unmap_resource, unin_chip_unmap_resource),
 	DEVMETHOD(bus_get_resource_list, unin_chip_get_resource_list),
 
-	DEVMETHOD(bus_child_pnpinfo,	ofw_bus_gen_child_pnpinfo),
+	DEVMETHOD(bus_child_pnpinfo, ofw_bus_gen_child_pnpinfo),
 
-        /* ofw_bus interface */
-	DEVMETHOD(ofw_bus_get_devinfo,	unin_chip_get_devinfo),
-	DEVMETHOD(ofw_bus_get_compat,	ofw_bus_gen_get_compat),
-	DEVMETHOD(ofw_bus_get_model,	ofw_bus_gen_get_model),
-	DEVMETHOD(ofw_bus_get_name,	ofw_bus_gen_get_name),
-	DEVMETHOD(ofw_bus_get_node,	ofw_bus_gen_get_node),
-	DEVMETHOD(ofw_bus_get_type,	ofw_bus_gen_get_type),
-	{ 0, 0 }
+	/* ofw_bus interface */
+	DEVMETHOD(ofw_bus_get_devinfo, unin_chip_get_devinfo),
+	DEVMETHOD(ofw_bus_get_compat, ofw_bus_gen_get_compat),
+	DEVMETHOD(ofw_bus_get_model, ofw_bus_gen_get_model),
+	DEVMETHOD(ofw_bus_get_name, ofw_bus_gen_get_name),
+	DEVMETHOD(ofw_bus_get_node, ofw_bus_gen_get_node),
+	DEVMETHOD(ofw_bus_get_type, ofw_bus_gen_get_type), { 0, 0 }
 };
 
-static driver_t	unin_chip_driver = {
-	"unin",
-	unin_chip_methods,
-	sizeof(struct unin_chip_softc)
-};
+static driver_t unin_chip_driver = { "unin", unin_chip_methods,
+	sizeof(struct unin_chip_softc) };
 
 /*
  * Assume there is only one unin chip in a PowerMac, so that pmu.c functions can
  * suspend the chip after the whole rest of the device tree is suspended, not
  * earlier.
  */
-static device_t		unin_chip;
+static device_t unin_chip;
 
 EARLY_DRIVER_MODULE(unin, ofwbus, unin_chip_driver, 0, 0, BUS_PASS_BUS);
 
@@ -162,20 +153,20 @@ static void
 unin_chip_add_intr(phandle_t devnode, struct unin_chip_devinfo *dinfo)
 {
 	phandle_t iparent;
-	int	*intr;
-	int	i, nintr;
-	int 	icells;
+	int *intr;
+	int i, nintr;
+	int icells;
 
 	if (dinfo->udi_ninterrupts >= 6) {
 		printf("unin: device has more than 6 interrupts\n");
 		return;
 	}
 
-	nintr = OF_getprop_alloc_multi(devnode, "interrupts", sizeof(*intr), 
-		(void **)&intr);
+	nintr = OF_getprop_alloc_multi(devnode, "interrupts", sizeof(*intr),
+	    (void **)&intr);
 	if (nintr == -1) {
-		nintr = OF_getprop_alloc_multi(devnode, "AAPL,interrupts", 
-			sizeof(*intr), (void **)&intr);
+		nintr = OF_getprop_alloc_multi(devnode, "AAPL,interrupts",
+		    sizeof(*intr), (void **)&intr);
 		if (nintr == -1)
 			return;
 	}
@@ -183,15 +174,15 @@ unin_chip_add_intr(phandle_t devnode, struct unin_chip_devinfo *dinfo)
 	if (intr[0] == -1)
 		return;
 
-	if (OF_getprop(devnode, "interrupt-parent", &iparent, sizeof(iparent))
-	    <= 0)
+	if (OF_getprop(devnode, "interrupt-parent", &iparent,
+		sizeof(iparent)) <= 0)
 		panic("Interrupt but no interrupt parent!\n");
 
-	if (OF_searchprop(iparent, "#interrupt-cells", &icells, sizeof(icells))
-	    <= 0)
+	if (OF_searchprop(iparent, "#interrupt-cells", &icells,
+		sizeof(icells)) <= 0)
 		icells = 1;
 
-	for (i = 0; i < nintr; i+=icells) {
+	for (i = 0; i < nintr; i += icells) {
 		u_int irq = MAP_IRQ(iparent, intr[i]);
 
 		resource_list_add(&dinfo->udi_resources, SYS_RES_IRQ,
@@ -199,8 +190,9 @@ unin_chip_add_intr(phandle_t devnode, struct unin_chip_devinfo *dinfo)
 
 		if (icells > 1) {
 			powerpc_config_intr(irq,
-			    (intr[i+1] & 1) ? INTR_TRIGGER_LEVEL :
-			    INTR_TRIGGER_EDGE, INTR_POLARITY_LOW);
+			    (intr[i + 1] & 1) ? INTR_TRIGGER_LEVEL :
+						INTR_TRIGGER_EDGE,
+			    INTR_POLARITY_LOW);
 		}
 
 		dinfo->udi_interrupts[dinfo->udi_ninterrupts] = irq;
@@ -211,18 +203,18 @@ unin_chip_add_intr(phandle_t devnode, struct unin_chip_devinfo *dinfo)
 static void
 unin_chip_add_reg(phandle_t devnode, struct unin_chip_devinfo *dinfo)
 {
-	struct	unin_chip_reg *reg;
-	int	i, nreg;
+	struct unin_chip_reg *reg;
+	int i, nreg;
 
-	nreg = OF_getprop_alloc_multi(devnode, "reg", sizeof(*reg), (void **)&reg);
+	nreg = OF_getprop_alloc_multi(devnode, "reg", sizeof(*reg),
+	    (void **)&reg);
 	if (nreg == -1)
 		return;
 
 	for (i = 0; i < nreg; i++) {
 		resource_list_add(&dinfo->udi_resources, SYS_RES_MEMORY, i,
-				  reg[i].mr_base,
-				  reg[i].mr_base + reg[i].mr_size,
-				  reg[i].mr_size);
+		    reg[i].mr_base, reg[i].mr_base + reg[i].mr_size,
+		    reg[i].mr_size);
 	}
 }
 
@@ -250,21 +242,22 @@ unin_enable_gmac(device_t dev)
 static void
 unin_enable_mpic(device_t dev)
 {
-	unin_update_reg(dev, UNIN_TOGGLE_REG, UNIN_MPIC_RESET | UNIN_MPIC_OUTPUT_ENABLE, 0);
+	unin_update_reg(dev, UNIN_TOGGLE_REG,
+	    UNIN_MPIC_RESET | UNIN_MPIC_OUTPUT_ENABLE, 0);
 }
 
 static int
 unin_chip_probe(device_t dev)
 {
-	const char	*name;
+	const char *name;
 
 	name = ofw_bus_get_name(dev);
 
 	if (name == NULL)
 		return (ENXIO);
 
-	if (strcmp(name, "uni-n") != 0 && strcmp(name, "u3") != 0
-	    && strcmp(name, "u4") != 0)
+	if (strcmp(name, "uni-n") != 0 && strcmp(name, "u3") != 0 &&
+	    strcmp(name, "u4") != 0)
 		return (ENXIO);
 
 	device_set_desc(dev, "Apple UniNorth System Controller");
@@ -276,11 +269,11 @@ unin_chip_attach(device_t dev)
 {
 	struct unin_chip_softc *sc;
 	struct unin_chip_devinfo *dinfo;
-	phandle_t  root;
-	phandle_t  child;
-	phandle_t  iparent;
-	device_t   cdev;
-	cell_t     acells, scells;
+	phandle_t root;
+	phandle_t child;
+	phandle_t iparent;
+	device_t cdev;
+	cell_t acells, scells;
 	char compat[32];
 	char name[32];
 	u_int irq, reg[3];
@@ -319,25 +312,23 @@ unin_chip_attach(device_t dev)
 	}
 
 	error = rman_manage_region(&sc->sc_mem_rman, sc->sc_physaddr,
-				   sc->sc_physaddr + sc->sc_size - 1);	
+	    sc->sc_physaddr + sc->sc_size - 1);
 	if (error) {
-		device_printf(dev,
-			      "rman_manage_region() failed. error = %d\n",
-			      error);
+		device_printf(dev, "rman_manage_region() failed. error = %d\n",
+		    error);
 		return (error);
 	}
 
 	if (unin_chip == NULL)
 		unin_chip = dev;
 
-        /*
+	/*
 	 * Iterate through the sub-devices
 	 */
 	for (child = OF_child(root); child != 0; child = OF_peer(child)) {
 		dinfo = malloc(sizeof(*dinfo), M_UNIN, M_WAITOK | M_ZERO);
-		if (ofw_bus_gen_setup_devinfo(&dinfo->udi_obdinfo, child)
-		    != 0)
-		{
+		if (ofw_bus_gen_setup_devinfo(&dinfo->udi_obdinfo, child) !=
+		    0) {
 			free(dinfo, M_UNIN);
 			continue;
 		}
@@ -359,16 +350,17 @@ unin_chip_attach(device_t dev)
 			device_printf(dev, "device has no name!\n");
 		if (dinfo->udi_ninterrupts == 0 &&
 		    (strcmp(name, "i2c-bus") == 0 ||
-		     strcmp(name, "i2c")  == 0)) {
+			strcmp(name, "i2c") == 0)) {
 			if (OF_getprop(child, "interrupt-parent", &iparent,
-				       sizeof(iparent)) <= 0) {
+				sizeof(iparent)) <= 0) {
 				iparent = OF_finddevice("/u3/mpic");
-				device_printf(dev, "Set /u3/mpic as iparent!\n");
+				device_printf(dev,
+				    "Set /u3/mpic as iparent!\n");
 			}
 			/* Add an interrupt number 0 to the parent. */
 			irq = MAP_IRQ(iparent, 0);
 			resource_list_add(&dinfo->udi_resources, SYS_RES_IRQ,
-					  dinfo->udi_ninterrupts, irq, irq, 1);
+			    dinfo->udi_ninterrupts, irq, irq, 1);
 			dinfo->udi_interrupts[dinfo->udi_ninterrupts] = irq;
 			dinfo->udi_ninterrupts++;
 		}
@@ -378,7 +370,7 @@ unin_chip_attach(device_t dev)
 		cdev = device_add_child(dev, NULL, -1);
 		if (cdev == NULL) {
 			device_printf(dev, "<%s>: device_add_child failed\n",
-				      dinfo->udi_obdinfo.obd_name);
+			    dinfo->udi_obdinfo.obd_name);
 			resource_list_free(&dinfo->udi_resources);
 			ofw_bus_gen_destroy_devinfo(&dinfo->udi_obdinfo);
 			free(dinfo, M_UNIN);
@@ -425,28 +417,28 @@ unin_chip_attach(device_t dev)
 static int
 unin_chip_print_child(device_t dev, device_t child)
 {
-        struct unin_chip_devinfo *dinfo;
-        struct resource_list *rl;
-        int retval = 0;
+	struct unin_chip_devinfo *dinfo;
+	struct resource_list *rl;
+	int retval = 0;
 
-        dinfo = device_get_ivars(child);
-        rl = &dinfo->udi_resources;
+	dinfo = device_get_ivars(child);
+	rl = &dinfo->udi_resources;
 
-        retval += bus_print_child_header(dev, child);
+	retval += bus_print_child_header(dev, child);
 
-        retval += resource_list_print_type(rl, "mem", SYS_RES_MEMORY, "%#jx");
-        retval += resource_list_print_type(rl, "irq", SYS_RES_IRQ, "%jd");
+	retval += resource_list_print_type(rl, "mem", SYS_RES_MEMORY, "%#jx");
+	retval += resource_list_print_type(rl, "irq", SYS_RES_IRQ, "%jd");
 
-        retval += bus_print_child_footer(dev, child);
+	retval += bus_print_child_footer(dev, child);
 
-        return (retval);
+	return (retval);
 }
 
 static void
 unin_chip_probe_nomatch(device_t dev, device_t child)
 {
-        struct unin_chip_devinfo *dinfo;
-        struct resource_list *rl;
+	struct unin_chip_devinfo *dinfo;
+	struct resource_list *rl;
 	const char *type;
 
 	if (bootverbose) {
@@ -465,7 +457,7 @@ unin_chip_probe_nomatch(device_t dev, device_t child)
 static struct rman *
 unin_chip_get_rman(device_t bus, int type, u_int flags)
 {
-	struct		unin_chip_softc *sc;
+	struct unin_chip_softc *sc;
 
 	sc = device_get_softc(bus);
 	switch (type) {
@@ -479,12 +471,11 @@ unin_chip_get_rman(device_t bus, int type, u_int flags)
 
 static struct resource *
 unin_chip_alloc_resource(device_t bus, device_t child, int type, int *rid,
-			 rman_res_t start, rman_res_t end, rman_res_t count,
-			 u_int flags)
+    rman_res_t start, rman_res_t end, rman_res_t count, u_int flags)
 {
-	rman_res_t	adjstart, adjend, adjcount;
-	struct		unin_chip_devinfo *dinfo;
-	struct		resource_list_entry *rle;
+	rman_res_t adjstart, adjend, adjcount;
+	struct unin_chip_devinfo *dinfo;
+	struct resource_list_entry *rle;
 
 	dinfo = device_get_ivars(child);
 
@@ -492,10 +483,10 @@ unin_chip_alloc_resource(device_t bus, device_t child, int type, int *rid,
 	case SYS_RES_MEMORY:
 	case SYS_RES_IOPORT:
 		rle = resource_list_find(&dinfo->udi_resources, SYS_RES_MEMORY,
-					 *rid);
+		    *rid);
 		if (rle == NULL) {
 			device_printf(bus, "no rle for %s memory %d\n",
-				      device_get_nameunit(child), *rid);
+			    device_get_nameunit(child), *rid);
 			return (NULL);
 		}
 
@@ -523,32 +514,29 @@ unin_chip_alloc_resource(device_t bus, device_t child, int type, int *rid,
 		/* Check for passthrough from subattachments. */
 		if (device_get_parent(child) != bus)
 			return BUS_ALLOC_RESOURCE(device_get_parent(bus), child,
-						  type, rid, start, end, count,
-						  flags);
+			    type, rid, start, end, count, flags);
 
 		rle = resource_list_find(&dinfo->udi_resources, SYS_RES_IRQ,
 		    *rid);
 		if (rle == NULL) {
 			if (dinfo->udi_ninterrupts >= 6) {
 				device_printf(bus,
-					      "%s has more than 6 interrupts\n",
-					      device_get_nameunit(child));
+				    "%s has more than 6 interrupts\n",
+				    device_get_nameunit(child));
 				return (NULL);
 			}
 			resource_list_add(&dinfo->udi_resources, SYS_RES_IRQ,
-					  dinfo->udi_ninterrupts, start, start,
-					  1);
+			    dinfo->udi_ninterrupts, start, start, 1);
 
 			dinfo->udi_interrupts[dinfo->udi_ninterrupts] = start;
 			dinfo->udi_ninterrupts++;
 		}
 
 		return (resource_list_alloc(&dinfo->udi_resources, bus, child,
-					    type, rid, start, end, count,
-					    flags));
+		    type, rid, start, end, count, flags));
 	default:
 		device_printf(bus, "unknown resource request from %s\n",
-			      device_get_nameunit(child));
+		    device_get_nameunit(child));
 		return (NULL);
 	}
 }
@@ -572,7 +560,7 @@ unin_chip_adjust_resource(device_t bus, device_t child, int type,
 
 static int
 unin_chip_release_resource(device_t bus, device_t child, int type, int rid,
-			   struct resource *res)
+    struct resource *res)
 {
 	switch (type) {
 	case SYS_RES_IOPORT:
@@ -589,7 +577,7 @@ unin_chip_release_resource(device_t bus, device_t child, int type, int rid,
 
 static int
 unin_chip_activate_resource(device_t bus, device_t child, int type, int rid,
-			    struct resource *res)
+    struct resource *res)
 {
 	switch (type) {
 	case SYS_RES_IOPORT:
@@ -597,8 +585,8 @@ unin_chip_activate_resource(device_t bus, device_t child, int type, int rid,
 		return (bus_generic_rman_activate_resource(bus, child, type,
 		    rid, res));
 	case SYS_RES_IRQ:
-		return (bus_generic_activate_resource(bus, child, type, rid,
-		    res));
+		return (
+		    bus_generic_activate_resource(bus, child, type, rid, res));
 	default:
 		return (EINVAL);
 	}
@@ -606,7 +594,7 @@ unin_chip_activate_resource(device_t bus, device_t child, int type, int rid,
 
 static int
 unin_chip_deactivate_resource(device_t bus, device_t child, int type, int rid,
-			      struct resource *res)
+    struct resource *res)
 {
 	switch (type) {
 	case SYS_RES_IOPORT:
@@ -649,8 +637,8 @@ unin_chip_map_resource(device_t bus, device_t child, int type,
 		return (error);
 
 	if (bootverbose)
-		printf("nexus mapdev: start %jx, len %jd\n",
-		    (uintmax_t)start, (uintmax_t)length);
+		printf("nexus mapdev: start %jx, len %jd\n", (uintmax_t)start,
+		    (uintmax_t)length);
 
 	map->r_vaddr = pmap_mapdev_attr(start, length, args.memattr);
 	if (map->r_vaddr == NULL)
@@ -680,7 +668,7 @@ unin_chip_unmap_resource(device_t bus, device_t child, int type,
 }
 
 static struct resource_list *
-unin_chip_get_resource_list (device_t dev, device_t child)
+unin_chip_get_resource_list(device_t dev, device_t child)
 {
 	struct unin_chip_devinfo *dinfo;
 
@@ -720,9 +708,11 @@ unin_chip_sleep(device_t dev, int idle)
 	unin_update_reg(dev, UNIN_HWINIT_STATE, UNIN_SLEEPING, 0);
 	DELAY(10);
 	if (idle)
-		unin_update_reg(dev, UNIN_PWR_MGMT, UNIN_PWR_IDLE2, UNIN_PWR_MASK);
+		unin_update_reg(dev, UNIN_PWR_MGMT, UNIN_PWR_IDLE2,
+		    UNIN_PWR_MASK);
 	else
-		unin_update_reg(dev, UNIN_PWR_MGMT, UNIN_PWR_SLEEP, UNIN_PWR_MASK);
+		unin_update_reg(dev, UNIN_PWR_MGMT, UNIN_PWR_SLEEP,
+		    UNIN_PWR_MASK);
 	DELAY(10);
 
 	return (0);

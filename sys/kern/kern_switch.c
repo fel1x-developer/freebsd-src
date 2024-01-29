@@ -26,9 +26,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_sched.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/kdb.h>
@@ -46,9 +46,9 @@
 
 /* Uncomment this to enable logging of critical_enter/exit. */
 #if 0
-#define	KTR_CRITICAL	KTR_SCHED
+#define KTR_CRITICAL KTR_SCHED
 #else
-#define	KTR_CRITICAL	0
+#define KTR_CRITICAL 0
 #endif
 
 #ifdef FULL_PREEMPTION
@@ -85,51 +85,47 @@ SYSCTL_NODE(_kern_sched, OID_AUTO, stats, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
 DPCPU_DEFINE(long, sched_switch_stats[SWT_COUNT]);
 SCHED_STAT_DEFINE_VAR(owepreempt,
     &DPCPU_NAME(sched_switch_stats[SWT_OWEPREEMPT]), "");
-SCHED_STAT_DEFINE_VAR(turnstile,
-    &DPCPU_NAME(sched_switch_stats[SWT_TURNSTILE]), "");
-SCHED_STAT_DEFINE_VAR(sleepq,
-    &DPCPU_NAME(sched_switch_stats[SWT_SLEEPQ]), "");
-SCHED_STAT_DEFINE_VAR(relinquish, 
+SCHED_STAT_DEFINE_VAR(turnstile, &DPCPU_NAME(sched_switch_stats[SWT_TURNSTILE]),
+    "");
+SCHED_STAT_DEFINE_VAR(sleepq, &DPCPU_NAME(sched_switch_stats[SWT_SLEEPQ]), "");
+SCHED_STAT_DEFINE_VAR(relinquish,
     &DPCPU_NAME(sched_switch_stats[SWT_RELINQUISH]), "");
 SCHED_STAT_DEFINE_VAR(needresched,
     &DPCPU_NAME(sched_switch_stats[SWT_NEEDRESCHED]), "");
-SCHED_STAT_DEFINE_VAR(idle,
-    &DPCPU_NAME(sched_switch_stats[SWT_IDLE]), "");
-SCHED_STAT_DEFINE_VAR(iwait,
-    &DPCPU_NAME(sched_switch_stats[SWT_IWAIT]), "");
-SCHED_STAT_DEFINE_VAR(suspend,
-    &DPCPU_NAME(sched_switch_stats[SWT_SUSPEND]), "");
+SCHED_STAT_DEFINE_VAR(idle, &DPCPU_NAME(sched_switch_stats[SWT_IDLE]), "");
+SCHED_STAT_DEFINE_VAR(iwait, &DPCPU_NAME(sched_switch_stats[SWT_IWAIT]), "");
+SCHED_STAT_DEFINE_VAR(suspend, &DPCPU_NAME(sched_switch_stats[SWT_SUSPEND]),
+    "");
 SCHED_STAT_DEFINE_VAR(remotepreempt,
     &DPCPU_NAME(sched_switch_stats[SWT_REMOTEPREEMPT]), "");
 SCHED_STAT_DEFINE_VAR(remotewakeidle,
     &DPCPU_NAME(sched_switch_stats[SWT_REMOTEWAKEIDLE]), "");
-SCHED_STAT_DEFINE_VAR(bind,
-    &DPCPU_NAME(sched_switch_stats[SWT_BIND]), "");
+SCHED_STAT_DEFINE_VAR(bind, &DPCPU_NAME(sched_switch_stats[SWT_BIND]), "");
 
 static int
 sysctl_stats_reset(SYSCTL_HANDLER_ARGS)
 {
 	struct sysctl_oid *p;
 	uintptr_t counter;
-        int error;
+	int error;
 	int val;
 	int i;
 
-        val = 0;
-        error = sysctl_handle_int(oidp, &val, 0, req);
-        if (error != 0 || req->newptr == NULL)
-                return (error);
-        if (val == 0)
-                return (0);
+	val = 0;
+	error = sysctl_handle_int(oidp, &val, 0, req);
+	if (error != 0 || req->newptr == NULL)
+		return (error);
+	if (val == 0)
+		return (0);
 	/*
 	 * Traverse the list of children of _kern_sched_stats and reset each
 	 * to 0.  Skip the reset entry.
 	 */
-	RB_FOREACH(p, sysctl_oid_list, oidp->oid_parent) {
+	RB_FOREACH (p, sysctl_oid_list, oidp->oid_parent) {
 		if (p == oidp || p->oid_arg1 == NULL)
 			continue;
 		counter = (uintptr_t)p->oid_arg1;
-		CPU_FOREACH(i) {
+		CPU_FOREACH (i) {
 			*(long *)(dpcpu_off[i] + counter) = 0;
 		}
 	}
@@ -137,8 +133,7 @@ sysctl_stats_reset(SYSCTL_HANDLER_ARGS)
 }
 
 SYSCTL_PROC(_kern_sched_stats, OID_AUTO, reset,
-    CTLTYPE_INT | CTLFLAG_WR | CTLFLAG_MPSAFE, NULL, 0,
-    sysctl_stats_reset, "I",
+    CTLTYPE_INT | CTLFLAG_WR | CTLFLAG_MPSAFE, NULL, 0, sysctl_stats_reset, "I",
     "Reset scheduler statistics");
 #endif
 
@@ -159,7 +154,7 @@ choosethread_panic(struct thread *td)
 	 */
 retry:
 	if (((td->td_proc->p_flag & P_SYSTEM) == 0 &&
-	    (td->td_flags & TDF_INPANIC) == 0)) {
+		(td->td_flags & TDF_INPANIC) == 0)) {
 		/* note that it is no longer on the run queue */
 		TD_SET_CAN_RUN(td);
 		td = sched_choose();
@@ -278,8 +273,8 @@ runq_clrbit(struct runq *rq, int pri)
 	rqb = &rq->rq_status;
 	CTR4(KTR_RUNQ, "runq_clrbit: bits=%#x %#x bit=%#x word=%d",
 	    rqb->rqb_bits[RQB_WORD(pri)],
-	    rqb->rqb_bits[RQB_WORD(pri)] & ~RQB_BIT(pri),
-	    RQB_BIT(pri), RQB_WORD(pri));
+	    rqb->rqb_bits[RQB_WORD(pri)] & ~RQB_BIT(pri), RQB_BIT(pri),
+	    RQB_WORD(pri));
 	rqb->rqb_bits[RQB_WORD(pri)] &= ~RQB_BIT(pri);
 }
 
@@ -324,8 +319,8 @@ again:
 		if (mask == 0)
 			continue;
 		pri = RQB_FFS(mask) + (i << RQB_L2BPW);
-		CTR3(KTR_RUNQ, "runq_findbit_from: bits=%#x i=%d pri=%d",
-		    mask, i, pri);
+		CTR3(KTR_RUNQ, "runq_findbit_from: bits=%#x i=%d pri=%d", mask,
+		    i, pri);
 		return (pri);
 	}
 	if (pri == 0)
@@ -350,8 +345,8 @@ runq_setbit(struct runq *rq, int pri)
 	rqb = &rq->rq_status;
 	CTR4(KTR_RUNQ, "runq_setbit: bits=%#x %#x bit=%#x word=%d",
 	    rqb->rqb_bits[RQB_WORD(pri)],
-	    rqb->rqb_bits[RQB_WORD(pri)] | RQB_BIT(pri),
-	    RQB_BIT(pri), RQB_WORD(pri));
+	    rqb->rqb_bits[RQB_WORD(pri)] | RQB_BIT(pri), RQB_BIT(pri),
+	    RQB_WORD(pri));
 	rqb->rqb_bits[RQB_WORD(pri)] |= RQB_BIT(pri);
 }
 
@@ -369,8 +364,8 @@ runq_add(struct runq *rq, struct thread *td, int flags)
 	td->td_rqindex = pri;
 	runq_setbit(rq, pri);
 	rqh = &rq->rq_queues[pri];
-	CTR4(KTR_RUNQ, "runq_add: td=%p pri=%d %d rqh=%p",
-	    td, td->td_priority, pri, rqh);
+	CTR4(KTR_RUNQ, "runq_add: td=%p pri=%d %d rqh=%p", td, td->td_priority,
+	    pri, rqh);
 	if (flags & SRQ_PREEMPTED) {
 		TAILQ_INSERT_HEAD(rqh, td, td_runq);
 	} else {
@@ -387,8 +382,8 @@ runq_add_pri(struct runq *rq, struct thread *td, u_char pri, int flags)
 	td->td_rqindex = pri;
 	runq_setbit(rq, pri);
 	rqh = &rq->rq_queues[pri];
-	CTR4(KTR_RUNQ, "runq_add_pri: td=%p pri=%d idx=%d rqh=%p",
-	    td, td->td_priority, pri, rqh);
+	CTR4(KTR_RUNQ, "runq_add_pri: td=%p pri=%d idx=%d rqh=%p", td,
+	    td->td_priority, pri, rqh);
 	if (flags & SRQ_PREEMPTED) {
 		TAILQ_INSERT_HEAD(rqh, td, td_runq);
 	} else {
@@ -450,9 +445,10 @@ runq_choose_fuzz(struct runq *rq, int fuzz)
 			}
 		} else
 			td = TAILQ_FIRST(rqh);
-		KASSERT(td != NULL, ("runq_choose_fuzz: no proc on busy queue"));
-		CTR3(KTR_RUNQ,
-		    "runq_choose_fuzz: pri=%d thread=%p rqh=%p", pri, td, rqh);
+		KASSERT(td != NULL,
+		    ("runq_choose_fuzz: no proc on busy queue"));
+		CTR3(KTR_RUNQ, "runq_choose_fuzz: pri=%d thread=%p rqh=%p", pri,
+		    td, rqh);
 		return (td);
 	}
 	CTR1(KTR_RUNQ, "runq_choose_fuzz: idleproc pri=%d", pri);
@@ -474,8 +470,8 @@ runq_choose(struct runq *rq)
 		rqh = &rq->rq_queues[pri];
 		td = TAILQ_FIRST(rqh);
 		KASSERT(td != NULL, ("runq_choose: no thread on busy queue"));
-		CTR3(KTR_RUNQ,
-		    "runq_choose: pri=%d thread=%p rqh=%p", pri, td, rqh);
+		CTR3(KTR_RUNQ, "runq_choose: pri=%d thread=%p rqh=%p", pri, td,
+		    rqh);
 		return (td);
 	}
 	CTR1(KTR_RUNQ, "runq_choose: idlethread pri=%d", pri);
@@ -495,8 +491,8 @@ runq_choose_from(struct runq *rq, u_char idx)
 		td = TAILQ_FIRST(rqh);
 		KASSERT(td != NULL, ("runq_choose: no thread on busy queue"));
 		CTR4(KTR_RUNQ,
-		    "runq_choose_from: pri=%d thread=%p idx=%d rqh=%p",
-		    pri, td, td->td_rqindex, rqh);
+		    "runq_choose_from: pri=%d thread=%p idx=%d rqh=%p", pri, td,
+		    td->td_rqindex, rqh);
 		return (td);
 	}
 	CTR1(KTR_RUNQ, "runq_choose_from: idlethread pri=%d", pri);
@@ -522,12 +518,12 @@ runq_remove_idx(struct runq *rq, struct thread *td, u_char *idx)
 	u_char pri;
 
 	KASSERT(td->td_flags & TDF_INMEM,
-		("runq_remove_idx: thread swapped out"));
+	    ("runq_remove_idx: thread swapped out"));
 	pri = td->td_rqindex;
 	KASSERT(pri < RQ_NQS, ("runq_remove_idx: Invalid index %d\n", pri));
 	rqh = &rq->rq_queues[pri];
-	CTR4(KTR_RUNQ, "runq_remove_idx: td=%p, pri=%d %d rqh=%p",
-	    td, td->td_priority, pri, rqh);
+	CTR4(KTR_RUNQ, "runq_remove_idx: td=%p, pri=%d %d rqh=%p", td,
+	    td->td_priority, pri, rqh);
 	TAILQ_REMOVE(rqh, td, td_runq);
 	if (TAILQ_EMPTY(rqh)) {
 		CTR0(KTR_RUNQ, "runq_remove_idx: empty");

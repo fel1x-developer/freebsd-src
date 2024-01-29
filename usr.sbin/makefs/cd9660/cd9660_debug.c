@@ -1,4 +1,5 @@
-/*	$NetBSD: cd9660_debug.c,v 1.11 2010/10/27 18:51:35 christos Exp $	*/
+/*	$NetBSD: cd9660_debug.c,v 1.11 2010/10/27 18:51:35 christos Exp $
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
@@ -35,23 +36,22 @@
  */
 
 #include <sys/param.h>
-
 #include <sys/mount.h>
 
-#include "makefs.h"
 #include "cd9660.h"
 #include "iso9660_rrip.h"
+#include "makefs.h"
 
 static void debug_print_susp_attrs(cd9660node *, int);
 static void debug_dump_to_xml_padded_hex_output(const char *, const char *,
-						int);
+    int);
 
 static inline void
 print_n_tabs(int n)
 {
 	int i;
 
-	for (i = 1; i <= n; i ++)
+	for (i = 1; i <= n; i++)
 		printf("\t");
 }
 
@@ -71,10 +71,10 @@ debug_print_susp_attrs(cd9660node *n, int indent)
 {
 	struct ISO_SUSP_ATTRIBUTES *t;
 
-	TAILQ_FOREACH(t, &n->head, rr_ll) {
+	TAILQ_FOREACH (t, &n->head, rr_ll) {
 		print_n_tabs(indent);
 		printf("-");
-		printf("%c%c: L:%i",t->attr.su_entry.SP.h.type[0],
+		printf("%c%c: L:%i", t->attr.su_entry.SP.h.type[0],
 		    t->attr.su_entry.SP.h.type[1],
 		    (int)t->attr.su_entry.SP.h.length[0]);
 		printf("\n");
@@ -89,30 +89,27 @@ debug_print_tree(iso9660_disk *diskStructure, cd9660node *node, int level)
 
 	print_n_tabs(level);
 	if (node->type & CD9660_TYPE_DOT) {
-		printf(". (%i)\n",
-		    isonum_733(node->isoDirRecord->extent));
+		printf(". (%i)\n", isonum_733(node->isoDirRecord->extent));
 	} else if (node->type & CD9660_TYPE_DOTDOT) {
-		printf("..(%i)\n",
-		    isonum_733(node->isoDirRecord->extent));
-	} else if (node->isoDirRecord->name[0]=='\0') {
+		printf("..(%i)\n", isonum_733(node->isoDirRecord->extent));
+	} else if (node->isoDirRecord->name[0] == '\0') {
 		printf("(ROOT) (%" PRIu32 " to %" PRId64 ")\n",
 		    node->fileDataSector,
-		    node->fileDataSector +
-			node->fileSectorsUsed - 1);
+		    node->fileDataSector + node->fileSectorsUsed - 1);
 	} else {
 		printf("%s (%s) (%" PRIu32 " to %" PRId64 ")\n",
 		    node->isoDirRecord->name,
-		    (node->isoDirRecord->flags[0]
-			& ISO_FLAG_DIRECTORY) ?  "DIR" : "FILE",
+		    (node->isoDirRecord->flags[0] & ISO_FLAG_DIRECTORY) ?
+			"DIR" :
+			"FILE",
 		    node->fileDataSector,
 		    (node->fileSectorsUsed == 0) ?
 			node->fileDataSector :
-			node->fileDataSector
-			    + node->fileSectorsUsed - 1);
+			node->fileDataSector + node->fileSectorsUsed - 1);
 	}
 	if (diskStructure->rock_ridge_enabled)
 		debug_print_susp_attrs(node, level + 1);
-	TAILQ_FOREACH(cn, &node->cn_children, cn_next_child)
+	TAILQ_FOREACH (cn, &node->cn_children, cn_next_child)
 		debug_print_tree(diskStructure, cn, level + 1);
 #else
 	printf("Sorry, debugging is not supported in host-tools mode.\n");
@@ -151,22 +148,22 @@ debug_print_volume_descriptor_information(iso9660_disk *diskStructure)
 		memset(temp, 0, CD9660_SECTOR_SIZE);
 		memcpy(temp, tmp->volumeDescriptorData + 1, 5);
 		printf("Volume descriptor in sector %" PRId64
-		    ": type %i, ID %s\n",
+		       ": type %i, ID %s\n",
 		    tmp->sector, tmp->volumeDescriptorData[0], temp);
-		switch(tmp->volumeDescriptorData[0]) {
-		case 0:/*boot record*/
+		switch (tmp->volumeDescriptorData[0]) {
+		case 0: /*boot record*/
 			break;
 
-		case 1:		/* PVD */
+		case 1: /* PVD */
 			break;
 
-		case 2:		/* SVD */
+		case 2: /* SVD */
 			break;
 
-		case 3:		/* Volume Partition Descriptor */
+		case 3: /* Volume Partition Descriptor */
 			break;
 
-		case 255:	/* terminator */
+		case 255: /* terminator */
 			break;
 		}
 		tmp = tmp->next;
@@ -178,14 +175,14 @@ debug_print_volume_descriptor_information(iso9660_disk *diskStructure)
 void
 debug_dump_to_xml_ptentry(path_table_entry *pttemp, int num, int mode)
 {
-	printf("<ptentry num=\"%i\">\n" ,num);
+	printf("<ptentry num=\"%i\">\n", num);
 	printf("<length>%i</length>\n", pttemp->length[0]);
 	printf("<extended_attribute_length>%i</extended_attribute_length>\n",
 	    pttemp->extended_attribute_length[0]);
 	printf("<parent_number>%i</parent_number>\n",
-	    debug_get_encoded_number(pttemp->parent_number,mode));
-	debug_dump_to_xml_padded_hex_output("name",
-	    pttemp->name, pttemp->length[0]);
+	    debug_get_encoded_number(pttemp->parent_number, mode));
+	debug_dump_to_xml_padded_hex_output("name", pttemp->name,
+	    pttemp->length[0]);
 	printf("</ptentry>\n");
 }
 
@@ -204,12 +201,11 @@ debug_dump_to_xml_path_table(FILE *fd, off_t sector, int size, int mode)
 		fread(&pttemp, 1, 8, fd);
 		t += 8;
 		/* Read variable */
-		fread(((unsigned char*)&pttemp) + 8, 1, pttemp.length[0], fd);
+		fread(((unsigned char *)&pttemp) + 8, 1, pttemp.length[0], fd);
 		t += pttemp.length[0];
 		debug_dump_to_xml_ptentry(&pttemp, n, mode);
 		n++;
 	}
-
 }
 
 /*
@@ -251,8 +247,8 @@ debug_dump_to_xml(FILE *fd)
 	t = debug_get_encoded_number((u_char *)primaryVD.type_l_path_table,
 	    731);
 	t2 = debug_get_encoded_number((u_char *)primaryVD.path_table_size, 733);
-	printf("Path table 1 located at sector %i and is %i bytes long\n",
-	    t,t2);
+	printf("Path table 1 located at sector %i and is %i bytes long\n", t,
+	    t2);
 	debug_dump_to_xml_path_table(fd, t, t2, 721);
 
 	t = debug_get_encoded_number((u_char *)primaryVD.type_m_path_table,
@@ -269,24 +265,24 @@ debug_dump_to_xml_padded_hex_output(const char *element, const char *buf,
 	int i;
 	int t;
 
-	printf("<%s>",element);
+	printf("<%s>", element);
 	for (i = 0; i < len; i++) {
 		t = (unsigned char)buf[i];
 		if (t >= 32 && t < 127)
-			printf("%c",t);
+			printf("%c", t);
 	}
-	printf("</%s>\n",element);
+	printf("</%s>\n", element);
 
-	printf("<%s:hex>",element);
+	printf("<%s:hex>", element);
 	for (i = 0; i < len; i++) {
 		t = (unsigned char)buf[i];
-		printf(" %x",t);
+		printf(" %x", t);
 	}
-	printf("</%s:hex>\n",element);
+	printf("</%s:hex>\n", element);
 }
 
 int
-debug_get_encoded_number(const unsigned char* buf, int mode)
+debug_get_encoded_number(const unsigned char *buf, int mode)
 {
 #if !HAVE_NBTOOL_CONFIG_H
 	switch (mode) {
@@ -327,20 +323,20 @@ debug_get_encoded_number(const unsigned char* buf, int mode)
 }
 
 void
-debug_dump_integer(const char *element, const unsigned char* buf, int mode)
+debug_dump_integer(const char *element, const unsigned char *buf, int mode)
 {
 	printf("<%s>%i</%s>\n", element, debug_get_encoded_number(buf, mode),
 	    element);
 }
 
 void
-debug_dump_string(const char *element __unused, const unsigned char *buf __unused, int len __unused)
+debug_dump_string(const char *element __unused,
+    const unsigned char *buf __unused, int len __unused)
 {
-
 }
 
 void
-debug_dump_directory_record_9_1(unsigned char* buf)
+debug_dump_directory_record_9_1(unsigned char *buf)
 {
 	struct iso_directory_record *rec = (struct iso_directory_record *)buf;
 	printf("<directoryrecord>\n");
@@ -359,16 +355,15 @@ debug_dump_directory_record_9_1(unsigned char* buf)
 	printf("</directoryrecord>\n");
 }
 
-
 void
-debug_dump_to_xml_volume_descriptor(unsigned char* buf, int sector)
+debug_dump_to_xml_volume_descriptor(unsigned char *buf, int sector)
 {
-	struct iso_primary_descriptor *desc =
-	    (struct iso_primary_descriptor *)buf;
+	struct iso_primary_descriptor *desc = (struct iso_primary_descriptor *)
+	    buf;
 
 	printf("<volumedescriptor sector=\"%i\">\n", sector);
 	printf("<vdtype>");
-	switch(buf[0]) {
+	switch (buf[0]) {
 	case 0:
 		printf("boot");
 		break;
@@ -391,7 +386,7 @@ debug_dump_to_xml_volume_descriptor(unsigned char* buf, int sector)
 	}
 
 	printf("</vdtype>\n");
-	switch(buf[0]) {
+	switch (buf[0]) {
 	case 1:
 		debug_dump_integer("type", desc->type, 711);
 		debug_dump_to_xml_padded_hex_output("id", desc->id,
@@ -451,4 +446,3 @@ debug_dump_to_xml_volume_descriptor(unsigned char* buf, int sector)
 	}
 	printf("</volumedescriptor>\n");
 }
-

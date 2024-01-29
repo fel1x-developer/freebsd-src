@@ -27,6 +27,7 @@
 
 #include <errno.h>
 #include <signal.h>
+
 #include "libc_private.h"
 
 __weak_reference(__libc_sigwait, __sigwait);
@@ -36,8 +37,8 @@ int
 sigwait(const sigset_t *set, int *sig)
 {
 
-	return (((int (*)(const sigset_t *, int *))
-	    __libc_interposing[INTERPOS_sigwait])(set, sig));
+	return (((int (*)(const sigset_t *,
+	    int *))__libc_interposing[INTERPOS_sigwait])(set, sig));
 }
 
 int
@@ -46,7 +47,7 @@ __libc_sigwait(const sigset_t *set, int *sig)
 	int ret;
 
 	/* POSIX does not allow EINTR to be returned */
-	do  {
+	do {
 		ret = __sys_sigwait(set, sig);
 	} while (ret == EINTR);
 	return (ret);

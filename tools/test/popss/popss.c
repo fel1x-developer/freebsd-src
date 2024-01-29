@@ -38,17 +38,19 @@
 #include <sys/param.h>
 #include <sys/ptrace.h>
 #include <sys/wait.h>
+
+#include <machine/reg.h>
+
 #include <err.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <machine/reg.h>
 
 static u_long *stk;
 
-#define	ITERATIONS	4
+#define ITERATIONS 4
 
 static void
 setup(pid_t child)
@@ -92,8 +94,8 @@ setup(pid_t child)
 		if (error != 0)
 			err(1, "ptrace PT_GETDBREGS");
 		printf("child %d stopped eip %#x esp %#x dr0 %#x "
-		    "dr6 %#x dr7 %#x\n", child, r.r_eip, r.r_esp,
-		    dbr.dr[0], dbr.dr[6], dbr.dr[7]);
+		       "dr6 %#x dr7 %#x\n",
+		    child, r.r_eip, r.r_esp, dbr.dr[0], dbr.dr[6], dbr.dr[7]);
 		error = ptrace(PT_CONTINUE, child, (caddr_t)1, 0);
 		if (error == -1)
 			err(1, "ptrace PT_CONTINUE tail");
@@ -111,17 +113,17 @@ read_ss(void)
 {
 	u_int res;
 
-	__asm volatile("movl\t%%ss,%0" : "=r" (res));
+	__asm volatile("movl\t%%ss,%0" : "=r"(res));
 	return (res);
 }
 
-#define	PROLOGUE	"int3;movl\t%0,%%esp;popl\t%%ss;"
+#define PROLOGUE "int3;movl\t%0,%%esp;popl\t%%ss;"
 
 static void
 act(const char *cmd)
 {
 	int error;
-	static const int boundx[2] = {0, 1};
+	static const int boundx[2] = { 0, 1 };
 
 	printf("child pid %d, stk at %p\n", getpid(), stk);
 	*stk = read_ss();
@@ -133,27 +135,27 @@ act(const char *cmd)
 	if (strcmp(cmd, "bound") == 0) {
 		/* XXX BOUND args order clang ias bug */
 		__asm volatile("int3;movl\t$11,%%eax;"
-		    "movl\t%0,%%esp;popl\t%%ss;bound\t%1,%%eax"
-		    : : "r" (stk), "m" (boundx) : "memory");
+			       "movl\t%0,%%esp;popl\t%%ss;bound\t%1,%%eax"
+			       :
+			       : "r"(stk), "m"(boundx)
+			       : "memory");
 	} else if (strcmp(cmd, "int1") == 0) {
-		__asm volatile(PROLOGUE ".byte 0xf1"
-		    : : "r" (stk) : "memory");
+		__asm volatile(PROLOGUE ".byte 0xf1" : : "r"(stk) : "memory");
 	} else if (strcmp(cmd, "int3") == 0) {
-		__asm volatile(PROLOGUE "int3"
-		    : : "r" (stk) : "memory");
+		__asm volatile(PROLOGUE "int3" : : "r"(stk) : "memory");
 	} else if (strcmp(cmd, "into") == 0) {
-		__asm volatile("int3;movl\t$0x80000000,%%eax;"
+		__asm volatile(
+		    "int3;movl\t$0x80000000,%%eax;"
 		    "addl\t%%eax,%%eax;movl\t%0,%%esp;popl\t%%ss;into"
-		    : : "r" (stk) : "memory");
+		    :
+		    : "r"(stk)
+		    : "memory");
 	} else if (strcmp(cmd, "int80") == 0) {
-		__asm volatile(PROLOGUE "int\t$0x80"
-		    : : "r" (stk) : "memory");
+		__asm volatile(PROLOGUE "int\t$0x80" : : "r"(stk) : "memory");
 	} else if (strcmp(cmd, "syscall") == 0) {
-		__asm volatile(PROLOGUE "syscall"
-		    : : "r" (stk) : "memory");
+		__asm volatile(PROLOGUE "syscall" : : "r"(stk) : "memory");
 	} else if (strcmp(cmd, "sysenter") == 0) {
-		__asm volatile(PROLOGUE "sysenter"
-		    : : "r" (stk) : "memory");
+		__asm volatile(PROLOGUE "sysenter" : : "r"(stk) : "memory");
 	} else {
 		fprintf(stderr, "unknown instruction\n");
 		exit(1);
@@ -168,7 +170,7 @@ main(int argc, char *argv[])
 
 	if (argc != 2) {
 		printf(
-	    "Usage: popss [bound|int1|int3|into|int80|syscall|sysenter]\n");
+		    "Usage: popss [bound|int1|int3|into|int80|syscall|sysenter]\n");
 		exit(1);
 	}
 	stk = &tmpstk[nitems(tmpstk) - 1];

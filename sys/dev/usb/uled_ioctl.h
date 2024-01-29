@@ -30,12 +30,12 @@
 #include <sys/ioccom.h>
 
 struct uled_color {
-	uint8_t	red;
-	uint8_t	green;
-	uint8_t	blue;
+	uint8_t red;
+	uint8_t green;
+	uint8_t blue;
 };
 
-#define	ULED_GET_COLOR	_IOR('U', 205, struct uled_color)
-#define	ULED_SET_COLOR	_IOW('U', 206, struct uled_color)
+#define ULED_GET_COLOR _IOR('U', 205, struct uled_color)
+#define ULED_SET_COLOR _IOW('U', 206, struct uled_color)
 
-#endif	/* _ULED_IOCTL_H_ */
+#endif /* _ULED_IOCTL_H_ */

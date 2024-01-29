@@ -37,7 +37,7 @@
  * Radix tree
  */
 struct vm_radix {
-	struct pctrie	rt_trie;
+	struct pctrie rt_trie;
 };
 
 #endif /* !__VM_RADIX_H_ */

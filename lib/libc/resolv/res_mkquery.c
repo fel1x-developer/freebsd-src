@@ -1,8 +1,9 @@
 /*-
  * SPDX-License-Identifier: (ISC AND BSD-3-Clause)
  *
- * Portions Copyright (C) 2004, 2005, 2008  Internet Systems Consortium, Inc. ("ISC")
- * Portions Copyright (C) 1996, 1997, 1988, 1999, 2001, 2003  Internet Software Consortium.
+ * Portions Copyright (C) 2004, 2005, 2008  Internet Systems Consortium, Inc.
+ * ("ISC") Portions Copyright (C) 1996, 1997, 1988, 1999, 2001, 2003  Internet
+ * Software Consortium.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -66,19 +67,22 @@
  * SOFTWARE.
  */
 
-#include "port_before.h"
 #include <sys/param.h>
+
 #include <netinet/in.h>
+
 #include <arpa/nameser.h>
 #include <netdb.h>
 #include <resolv.h>
 #include <stdio.h>
 #include <string.h>
+
 #include "port_after.h"
+#include "port_before.h"
 
 /* Options.  Leave them on. */
-#ifndef	DEBUG
-#define	DEBUG
+#ifndef DEBUG
+#define DEBUG
 #endif
 
 extern const char *_res_opcodes[];
@@ -88,15 +92,14 @@ extern const char *_res_opcodes[];
  * Returns the size of the result or -1.
  */
 int
-res_nmkquery(res_state statp,
-	     int op,			/*!< opcode of query  */
-	     const char *dname,		/*!< domain name  */
-	     int class, int type,	/*!< class and type of query  */
-	     const u_char *data,	/*!< resource record data  */
-	     int datalen,		/*!< length of data  */
-	     const u_char *newrr_in,	/*!< new rr for modify or append  */
-	     u_char *buf,		/*!< buffer to put query  */
-	     int buflen)		/*!< size of buffer  */
+res_nmkquery(res_state statp, int op, /*!< opcode of query  */
+    const char *dname,		      /*!< domain name  */
+    int class, int type,	      /*!< class and type of query  */
+    const u_char *data,		      /*!< resource record data  */
+    int datalen,		      /*!< length of data  */
+    const u_char *newrr_in,	      /*!< new rr for modify or append  */
+    u_char *buf,		      /*!< buffer to put query  */
+    int buflen)			      /*!< size of buffer  */
 {
 	HEADER *hp;
 	u_char *cp, *ep;
@@ -107,8 +110,8 @@ res_nmkquery(res_state statp,
 
 #ifdef DEBUG
 	if (statp->options & RES_DEBUG)
-		printf(";; res_nmkquery(%s, %s, %s, %s)\n",
-		       _res_opcodes[op], dname, p_class(class), p_type(type));
+		printf(";; res_nmkquery(%s, %s, %s, %s)\n", _res_opcodes[op],
+		    dname, p_class(class), p_type(type));
 #endif
 	/*
 	 * Initialize header fields.
@@ -116,7 +119,7 @@ res_nmkquery(res_state statp,
 	if ((buf == NULL) || (buflen < HFIXEDSZ))
 		return (-1);
 	memset(buf, 0, HFIXEDSZ);
-	hp = (HEADER *) buf;
+	hp = (HEADER *)buf;
 	statp->id = res_nrandomid(statp);
 	hp->id = htons(statp->id);
 	hp->opcode = op;
@@ -132,12 +135,12 @@ res_nmkquery(res_state statp,
 	 * perform opcode specific processing
 	 */
 	switch (op) {
-	case QUERY:	/*FALLTHROUGH*/
+	case QUERY: /*FALLTHROUGH*/
 	case NS_NOTIFY_OP:
 		if (ep - cp < QFIXEDSZ)
 			return (-1);
 		if ((n = dn_comp(dname, cp, ep - cp - QFIXEDSZ, dnptrs,
-		    lastdnptr)) < 0)
+			 lastdnptr)) < 0)
 			return (-1);
 		cp += n;
 		ns_put16(type, cp);
@@ -152,8 +155,8 @@ res_nmkquery(res_state statp,
 		 */
 		if ((ep - cp) < RRFIXEDSZ)
 			return (-1);
-		n = dn_comp((const char *)data, cp, ep - cp - RRFIXEDSZ,
-			    dnptrs, lastdnptr);
+		n = dn_comp((const char *)data, cp, ep - cp - RRFIXEDSZ, dnptrs,
+		    lastdnptr);
 		if (n < 0)
 			return (-1);
 		cp += n;
@@ -174,7 +177,7 @@ res_nmkquery(res_state statp,
 		 */
 		if (ep - cp < 1 + RRFIXEDSZ + datalen)
 			return (-1);
-		*cp++ = '\0';	/*%< no domain name */
+		*cp++ = '\0'; /*%< no domain name */
 		ns_put16(type, cp);
 		cp += INT16SZ;
 		ns_put16(class, cp);
@@ -200,11 +203,10 @@ res_nmkquery(res_state statp,
 /* attach OPT pseudo-RR, as documented in RFC2671 (EDNS0). */
 
 int
-res_nopt(res_state statp,
-	 int n0,		/*%< current offset in buffer */
-	 u_char *buf,		/*%< buffer to put query */
-	 int buflen,		/*%< size of buffer */
-	 int anslen)		/*%< UDP answer buffer size */
+res_nopt(res_state statp, int n0, /*%< current offset in buffer */
+    u_char *buf,		  /*%< buffer to put query */
+    int buflen,			  /*%< size of buffer */
+    int anslen)			  /*%< UDP answer buffer size */
 {
 	HEADER *hp;
 	u_char *cp, *ep;
@@ -215,22 +217,22 @@ res_nopt(res_state statp,
 		printf(";; res_nopt()\n");
 #endif
 
-	hp = (HEADER *) buf;
+	hp = (HEADER *)buf;
 	cp = buf + n0;
 	ep = buf + buflen;
 
 	if ((ep - cp) < 1 + RRFIXEDSZ)
 		return (-1);
 
-	*cp++ = 0;				/*%< "." */
-	ns_put16(ns_t_opt, cp);			/*%< TYPE */
+	*cp++ = 0;		/*%< "." */
+	ns_put16(ns_t_opt, cp); /*%< TYPE */
 	cp += INT16SZ;
 	if (anslen > 0xffff)
-		anslen = 0xffff;		/* limit to 16bit value */
-	ns_put16(anslen & 0xffff, cp);		/*%< CLASS = UDP payload size */
+		anslen = 0xffff;       /* limit to 16bit value */
+	ns_put16(anslen & 0xffff, cp); /*%< CLASS = UDP payload size */
 	cp += INT16SZ;
-	*cp++ = NOERROR;			/*%< extended RCODE */
-	*cp++ = 0;				/*%< EDNS version */
+	*cp++ = NOERROR; /*%< extended RCODE */
+	*cp++ = 0;	 /*%< EDNS version */
 
 	if (statp->options & RES_USE_DNSSEC) {
 #ifdef DEBUG
@@ -242,7 +244,7 @@ res_nopt(res_state statp,
 	ns_put16(flags, cp);
 	cp += INT16SZ;
 
-	ns_put16(0U, cp);			/*%< RDLEN */
+	ns_put16(0U, cp); /*%< RDLEN */
 	cp += INT16SZ;
 
 	hp->arcount = htons(ntohs(hp->arcount) + 1);
@@ -256,14 +258,13 @@ res_nopt(res_state statp,
  * res_nopt()) with the new RDATA length.
  */
 int
-res_nopt_rdata(res_state statp,
-	  int n0,	 	/*%< current offset in buffer */
-	  u_char *buf,	 	/*%< buffer to put query */
-	  int buflen,		/*%< size of buffer */
-	  u_char *rdata,	/*%< ptr to start of opt rdata */
-	  u_short code,		/*%< OPTION-CODE */
-	  u_short len,		/*%< OPTION-LENGTH */
-	  u_char *data)		/*%< OPTION_DATA */
+res_nopt_rdata(res_state statp, int n0, /*%< current offset in buffer */
+    u_char *buf,			/*%< buffer to put query */
+    int buflen,				/*%< size of buffer */
+    u_char *rdata,			/*%< ptr to start of opt rdata */
+    u_short code,			/*%< OPTION-CODE */
+    u_short len,			/*%< OPTION-LENGTH */
+    u_char *data)			/*%< OPTION_DATA */
 {
 	register u_char *cp, *ep;
 
@@ -291,7 +292,7 @@ res_nopt_rdata(res_state statp,
 	cp += len;
 
 	len = cp - rdata;
-	ns_put16(len, rdata - 2);	/* Update RDLEN field */
+	ns_put16(len, rdata - 2); /* Update RDLEN field */
 
 	return (cp - buf);
 }

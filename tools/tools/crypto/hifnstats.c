@@ -41,23 +41,21 @@ main(int argc, char *argv[])
 	struct hifn_stats stats;
 	size_t slen;
 
-	slen = sizeof (stats);
+	slen = sizeof(stats);
 	if (sysctlbyname("hw.hifn.stats", &stats, &slen, NULL, 0) < 0)
 		err(1, "kern.hifn.stats");
 
-	printf("input %llu bytes %u packets\n",
-		stats.hst_ibytes, stats.hst_ipackets);
-	printf("output %llu bytes %u packets\n",
-		stats.hst_obytes, stats.hst_opackets);
-	printf("invalid %u nomem %u abort %u\n",
-		stats.hst_invalid, stats.hst_nomem, stats.hst_abort);
-	printf("noirq %u unaligned %u\n",
-		stats.hst_noirq, stats.hst_unaligned);
-	printf("totbatch %u maxbatch %u\n",
-		stats.hst_totbatch, stats.hst_maxbatch);
+	printf("input %llu bytes %u packets\n", stats.hst_ibytes,
+	    stats.hst_ipackets);
+	printf("output %llu bytes %u packets\n", stats.hst_obytes,
+	    stats.hst_opackets);
+	printf("invalid %u nomem %u abort %u\n", stats.hst_invalid,
+	    stats.hst_nomem, stats.hst_abort);
+	printf("noirq %u unaligned %u\n", stats.hst_noirq, stats.hst_unaligned);
+	printf("totbatch %u maxbatch %u\n", stats.hst_totbatch,
+	    stats.hst_maxbatch);
 	printf("nomem: map %u load %u mbuf %u mcl %u cr %u sd %u\n",
-		stats.hst_nomem_map, stats.hst_nomem_load,
-		stats.hst_nomem_mbuf, stats.hst_nomem_mcl,
-		stats.hst_nomem_cr, stats.hst_nomem_sd);
+	    stats.hst_nomem_map, stats.hst_nomem_load, stats.hst_nomem_mbuf,
+	    stats.hst_nomem_mcl, stats.hst_nomem_cr, stats.hst_nomem_sd);
 	return 0;
 }

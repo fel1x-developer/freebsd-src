@@ -40,34 +40,34 @@
  */
 
 #include <sys/capsicum.h>
-#include <capsicum_helpers.h>
 
+#include <capsicum_helpers.h>
 #include <err.h>
 #include <errno.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include <string.h>
 #include <sysexits.h>
 #include <time.h>
-#include <unistd.h> 
+#include <unistd.h>
 
-#ifndef	PI
-#define	PI	  3.14159265358979323846
+#ifndef PI
+#define PI 3.14159265358979323846
 #endif
-#define	EPOCH	  85
-#define	EPSILONg  279.611371	/* solar ecliptic long at EPOCH */
-#define	RHOg	  282.680403	/* solar ecliptic long of perigee at EPOCH */
-#define	ECCEN	  0.01671542	/* solar orbit eccentricity */
-#define	lzero	  18.251907	/* lunar mean long at EPOCH */
-#define	Pzero	  192.917585	/* lunar mean long of perigee at EPOCH */
-#define	Nzero	  55.204723	/* lunar mean long of node at EPOCH */
+#define EPOCH 85
+#define EPSILONg 279.611371 /* solar ecliptic long at EPOCH */
+#define RHOg 282.680403	    /* solar ecliptic long of perigee at EPOCH */
+#define ECCEN 0.01671542    /* solar orbit eccentricity */
+#define lzero 18.251907	    /* lunar mean long at EPOCH */
+#define Pzero 192.917585    /* lunar mean long of perigee at EPOCH */
+#define Nzero 55.204723	    /* lunar mean long of node at EPOCH */
 #define isleap(y) ((((y) % 4) == 0 && ((y) % 100) != 0) || ((y) % 400) == 0)
 
-static void	adj360(double *);
-static double	dtor(double);
-static double	potm(double);
-static void	usage(char *progname);
+static void adj360(double *);
+static double dtor(double);
+static double potm(double);
+static void usage(char *progname);
 
 int
 main(int argc, char **argv)
@@ -101,7 +101,7 @@ main(int argc, char **argv)
 			usage(progname);
 		}
 
-        argc -= optind;
+	argc -= optind;
 	argv += optind;
 
 	if (argc)
@@ -133,8 +133,9 @@ main(int argc, char **argv)
 	}
 
 	gmtime_r(&tt, &GMT);
-	days = (GMT.tm_yday + 1) + ((GMT.tm_hour +
-	    (GMT.tm_min / 60.0) + (GMT.tm_sec / 3600.0)) / 24.0);
+	days = (GMT.tm_yday + 1) +
+	    ((GMT.tm_hour + (GMT.tm_min / 60.0) + (GMT.tm_sec / 3600.0)) /
+		24.0);
 	for (cnt = EPOCH; cnt < GMT.tm_year; ++cnt)
 		days += isleap(1900 + cnt) ? 366 : 365;
 	today = potm(days);
@@ -150,11 +151,12 @@ main(int argc, char **argv)
 	else {
 		tomorrow = potm(days + 1);
 		if (today >= 49.5 && today < 50.5)
-			(void)printf("%s\n", tomorrow > today ?
-			    "at the First Quarter" : "at the Last Quarter");
+			(void)printf("%s\n",
+			    tomorrow > today ? "at the First Quarter" :
+					       "at the Last Quarter");
 		else {
-			(void)printf("%s ", tomorrow > today ?
-			    "Waxing" : "Waning");
+			(void)printf("%s ",
+			    tomorrow > today ? "Waxing" : "Waning");
 			if (today > 50)
 				(void)printf("Gibbous (%1.0f%% of Full)\n",
 				    today);
@@ -177,30 +179,30 @@ potm(double days)
 	double N, Msol, Ec, LambdaSol, l, Mm, Ev, Ac, A3, Mmprime;
 	double A4, lprime, V, ldprime, D, Nm;
 
-	N = 360 * days / 365.2422;				/* sec 42 #3 */
+	N = 360 * days / 365.2422; /* sec 42 #3 */
 	adj360(&N);
-	Msol = N + EPSILONg - RHOg;				/* sec 42 #4 */
+	Msol = N + EPSILONg - RHOg; /* sec 42 #4 */
 	adj360(&Msol);
-	Ec = 360 / PI * ECCEN * sin(dtor(Msol));		/* sec 42 #5 */
-	LambdaSol = N + Ec + EPSILONg;				/* sec 42 #6 */
+	Ec = 360 / PI * ECCEN * sin(dtor(Msol)); /* sec 42 #5 */
+	LambdaSol = N + Ec + EPSILONg;		 /* sec 42 #6 */
 	adj360(&LambdaSol);
-	l = 13.1763966 * days + lzero;				/* sec 61 #4 */
+	l = 13.1763966 * days + lzero; /* sec 61 #4 */
 	adj360(&l);
-	Mm = l - (0.1114041 * days) - Pzero;			/* sec 61 #5 */
+	Mm = l - (0.1114041 * days) - Pzero; /* sec 61 #5 */
 	adj360(&Mm);
-	Nm = Nzero - (0.0529539 * days);			/* sec 61 #6 */
+	Nm = Nzero - (0.0529539 * days); /* sec 61 #6 */
 	adj360(&Nm);
-	Ev = 1.2739 * sin(dtor(2*(l - LambdaSol) - Mm));	/* sec 61 #7 */
-	Ac = 0.1858 * sin(dtor(Msol));				/* sec 61 #8 */
+	Ev = 1.2739 * sin(dtor(2 * (l - LambdaSol) - Mm)); /* sec 61 #7 */
+	Ac = 0.1858 * sin(dtor(Msol));			   /* sec 61 #8 */
 	A3 = 0.37 * sin(dtor(Msol));
-	Mmprime = Mm + Ev - Ac - A3;				/* sec 61 #9 */
-	Ec = 6.2886 * sin(dtor(Mmprime));			/* sec 61 #10 */
-	A4 = 0.214 * sin(dtor(2 * Mmprime));			/* sec 61 #11 */
-	lprime = l + Ev + Ec - Ac + A4;				/* sec 61 #12 */
-	V = 0.6583 * sin(dtor(2 * (lprime - LambdaSol)));	/* sec 61 #13 */
-	ldprime = lprime + V;					/* sec 61 #14 */
-	D = ldprime - LambdaSol;				/* sec 63 #2 */
-	return(50 * (1 - cos(dtor(D))));			/* sec 63 #3 */
+	Mmprime = Mm + Ev - Ac - A3;			  /* sec 61 #9 */
+	Ec = 6.2886 * sin(dtor(Mmprime));		  /* sec 61 #10 */
+	A4 = 0.214 * sin(dtor(2 * Mmprime));		  /* sec 61 #11 */
+	lprime = l + Ev + Ec - Ac + A4;			  /* sec 61 #12 */
+	V = 0.6583 * sin(dtor(2 * (lprime - LambdaSol))); /* sec 61 #13 */
+	ldprime = lprime + V;				  /* sec 61 #14 */
+	D = ldprime - LambdaSol;			  /* sec 63 #2 */
+	return (50 * (1 - cos(dtor(D))));		  /* sec 63 #3 */
 }
 
 /*
@@ -211,7 +213,7 @@ static double
 dtor(double deg)
 {
 
-	return(deg * PI / 180);
+	return (deg * PI / 180);
 }
 
 /*

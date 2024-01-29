@@ -39,12 +39,13 @@
 /* Ensure that unistd.h pulls in getopt */
 #define __USE_POSIX2
 #endif
-#include_next <unistd.h>
+#include <sys/syscall.h>
+
 #include <fcntl.h>
 #include <getopt.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/syscall.h>
+#include_next <unistd.h>
 
 #ifndef required_argument
 #error "something went wrong including getopt"
@@ -60,8 +61,8 @@ issetugid(void)
 }
 #endif
 
-char	*fflagstostr(unsigned long flags);
-int	strtofflags(char **stringp, u_long *setp, u_long *clrp);
+char *fflagstostr(unsigned long flags);
+int strtofflags(char **stringp, u_long *setp, u_long *clrp);
 
 /*
  * getentropy() was added in glibc 2.25. Declare it for !glibc and older

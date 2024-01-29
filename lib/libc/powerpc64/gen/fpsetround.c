@@ -33,6 +33,7 @@
  */
 
 #include <sys/types.h>
+
 #include <ieeefp.h>
 
 #ifndef _SOFT_FLOAT
@@ -45,7 +46,7 @@ fpsetround(fp_rnd_t rnd_dir)
 	__asm__ __volatile("mffs %0" : "=f"(fpscr));
 	old = (fp_rnd_t)(fpscr & 0x3);
 	fpscr = (fpscr & 0xfffffffc) | rnd_dir;
-	__asm__ __volatile("mtfsf 0xff,%0" :: "f"(fpscr));
+	__asm__ __volatile("mtfsf 0xff,%0" ::"f"(fpscr));
 	return (old);
 }
 #endif

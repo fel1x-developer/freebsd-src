@@ -49,14 +49,15 @@
 
 #include <sys/types.h>
 #include <sys/systm.h>
+
 #include <opencrypto/xform_enc.h>
 
-static	int aes_xts_setkey(void *, const uint8_t *, int);
-static	void aes_xts_encrypt(void *, const uint8_t *, uint8_t *);
-static	void aes_xts_decrypt(void *, const uint8_t *, uint8_t *);
-static	void aes_xts_encrypt_multi(void *, const uint8_t *, uint8_t *, size_t);
-static	void aes_xts_decrypt_multi(void *, const uint8_t *, uint8_t *, size_t);
-static	void aes_xts_reinit(void *, const uint8_t *, size_t);
+static int aes_xts_setkey(void *, const uint8_t *, int);
+static void aes_xts_encrypt(void *, const uint8_t *, uint8_t *);
+static void aes_xts_decrypt(void *, const uint8_t *, uint8_t *);
+static void aes_xts_encrypt_multi(void *, const uint8_t *, uint8_t *, size_t);
+static void aes_xts_decrypt_multi(void *, const uint8_t *, uint8_t *, size_t);
+static void aes_xts_reinit(void *, const uint8_t *, size_t);
 
 /* Encryption instances */
 const struct enc_xform enc_xform_aes_xts = {
@@ -85,8 +86,7 @@ aes_xts_reinit(void *key, const uint8_t *iv, size_t ivlen)
 	uint64_t blocknum;
 	u_int i;
 
-	KASSERT(ivlen == sizeof(blocknum),
-	    ("%s: invalid IV length", __func__));
+	KASSERT(ivlen == sizeof(blocknum), ("%s: invalid IV length", __func__));
 
 	/*
 	 * Prepare tweak as E_k2(IV). IV is specified as LE representation
@@ -127,7 +127,8 @@ aes_xts_crypt(struct aes_xts_ctx *ctx, const uint8_t *in, uint8_t *out,
 		carry_in = 0;
 		for (i = 0; i < AES_XTS_BLOCKSIZE; i++) {
 			carry_out = ctx->tweak[i] & 0x80;
-			ctx->tweak[i] = (ctx->tweak[i] << 1) | (carry_in ? 1 : 0);
+			ctx->tweak[i] = (ctx->tweak[i] << 1) |
+			    (carry_in ? 1 : 0);
 			carry_in = carry_out;
 		}
 		if (carry_in)

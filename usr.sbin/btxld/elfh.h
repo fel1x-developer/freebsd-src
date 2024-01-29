@@ -29,10 +29,10 @@
 #include <sys/elf32.h>
 
 struct elfh {
-    Elf32_Ehdr e;		/* ELF header */
-    Elf32_Phdr p[2];		/* program header */
-    Elf32_Shdr sh[4];		/* section header */
-    char shstrtab[28];		/* section header string table */
+	Elf32_Ehdr e;	   /* ELF header */
+	Elf32_Phdr p[2];   /* program header */
+	Elf32_Shdr sh[4];  /* section header */
+	char shstrtab[28]; /* section header string table */
 };
 
-extern const struct elfh elfhdr;	/* ELF header template */
+extern const struct elfh elfhdr; /* ELF header template */

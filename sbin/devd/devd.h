@@ -47,12 +47,12 @@ struct eps *new_action(const char *);
 void set_pidfile(const char *);
 void set_variable(const char *, const char *);
 void yyerror(const char *s);
-int  yylex(void);
-int  yyparse(void);
+int yylex(void);
+int yyparse(void);
 extern int lineno;
 __END_DECLS
 
-#define PATH_DEVCTL	"/dev/devctl"
-#define DEVCTL_MAXBUF	8192
+#define PATH_DEVCTL "/dev/devctl"
+#define DEVCTL_MAXBUF 8192
 
 #endif /* DEVD_H */

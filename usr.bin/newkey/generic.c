@@ -35,10 +35,9 @@
 #include <sys/cdefs.h>
 #include <sys/file.h>
 
-#include <rpc/rpc.h>
-#include <rpc/key_prot.h>
-
 #include <mp.h>
+#include <rpc/key_prot.h>
+#include <rpc/rpc.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -68,8 +67,8 @@ genkeys(char *public, char *secret, char *pass)
 {
 	unsigned int i;
 
-#   define BASEBITS (8*sizeof (short) - 1)
-#	define BASE		(1 << BASEBITS)
+#define BASEBITS (8 * sizeof(short) - 1)
+#define BASE (1 << BASEBITS)
 
 	MINT *pk = mp_itom(0);
 	MINT *sk = mp_itom(0);
@@ -78,11 +77,11 @@ genkeys(char *public, char *secret, char *pass)
 	MINT *root = mp_itom(PROOT);
 	MINT *modulus = mp_xtom(HEXMODULUS);
 	short r;
-	unsigned short seed[KEYSIZE/BASEBITS + 1];
+	unsigned short seed[KEYSIZE / BASEBITS + 1];
 	char *xkey;
 
-	getseed((char *)seed, sizeof (seed), (u_char *)pass);
-	for (i = 0; i < KEYSIZE/BASEBITS + 1; i++) {
+	getseed((char *)seed, sizeof(seed), (u_char *)pass);
+	for (i = 0; i < KEYSIZE / BASEBITS + 1; i++) {
 		r = seed[i] % BASE;
 		tmp = mp_itom(r);
 		mp_mult(sk, base, sk);
@@ -108,7 +107,7 @@ genkeys(char *public, char *secret, char *pass)
  * Adjust the input key so that it is 0-filled on the left
  */
 static void
-adjust(char keyout[HEXKEYBYTES+1], char *keyin)
+adjust(char keyout[HEXKEYBYTES + 1], char *keyin)
 {
 	char *p;
 	char *s;

@@ -56,11 +56,9 @@
  * SUCH DAMAGE.
  */
 
-
-
 #include <sys/param.h>
-#include <sys/sysctl.h>
 #include <sys/resource.h>
+#include <sys/sysctl.h>
 
 #include <devstat.h>
 #include <err.h>
@@ -70,14 +68,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "systat.h"
-#include "extern.h"
 #include "devs.h"
+#include "extern.h"
+#include "systat.h"
 
-static  int linesperregion;
-static  double etime;
-static  bool numbers = false;		/* default display bar graphs */
-static  bool kbpt = false;		/* default ms/seek shown */
+static int linesperregion;
+static double etime;
+static bool numbers = false; /* default display bar graphs */
+static bool kbpt = false;    /* default ms/seek shown */
 
 static int barlabels(int);
 static void histogram(long double, int, double);
@@ -88,7 +86,7 @@ static void stat1(int, int);
 WINDOW *
 openiostat(void)
 {
-	return (subwin(stdscr, LINES-3-1, 0, MAINWIN_ROW, 0));
+	return (subwin(stdscr, LINES - 3 - 1, 0, MAINWIN_ROW, 0));
 }
 
 void
@@ -109,9 +107,9 @@ initiostat(void)
 	 * how to calculate it, though.
 	 */
 	if (dsinit(7) != 1)
-		return(0);
+		return (0);
 
-	return(1);
+	return (1);
 }
 
 void
@@ -121,10 +119,10 @@ fetchiostat(void)
 	size_t len;
 
 	len = sizeof(cur_dev.cp_time);
-	if (sysctlbyname("kern.cp_time", &cur_dev.cp_time, &len, NULL, 0)
-	    || len != sizeof(cur_dev.cp_time)) {
+	if (sysctlbyname("kern.cp_time", &cur_dev.cp_time, &len, NULL, 0) ||
+	    len != sizeof(cur_dev.cp_time)) {
 		perror("kern.cp_time");
-		exit (1);
+		exit(1);
 	}
 	tmp_dinfo = last_dev.dinfo;
 	last_dev.dinfo = cur_dev.dinfo;
@@ -151,10 +149,9 @@ fetchiostat(void)
 	}
 	num_devices = cur_dev.dinfo->numdevs;
 	generation = cur_dev.dinfo->generation;
-
 }
 
-#define	INSET	10
+#define INSET 10
 
 void
 labeliostat(void)
@@ -162,7 +159,8 @@ labeliostat(void)
 	int row;
 
 	row = 0;
-	wmove(wnd, row, 0); wclrtobot(wnd);
+	wmove(wnd, row, 0);
+	wclrtobot(wnd);
 	mvwaddstr(wnd, row++, INSET,
 	    "/0%  /10  /20  /30  /40  /50  /60  /70  /80  /90  /100");
 	mvwaddstr(wnd, row++, 0, "cpu  user|");
@@ -182,8 +180,8 @@ numlabels(int row)
 	int i, _col, regions, ndrives;
 	char tmpstr[32];
 
-#define COLWIDTH	17
-#define DRIVESPERLINE	((getmaxx(wnd) - 1 - INSET) / COLWIDTH)
+#define COLWIDTH 17
+#define DRIVESPERLINE ((getmaxx(wnd) - 1 - INSET) / COLWIDTH)
 	for (ndrives = 0, i = 0; i < num_devices; i++)
 		if (dev_select[i].selected)
 			ndrives++;
@@ -203,11 +201,13 @@ numlabels(int row)
 		if (dev_select[i].selected) {
 			if (_col + COLWIDTH >= getmaxx(wnd) - 1 - INSET) {
 				_col = INSET, row += linesperregion + 1;
-				if (row > getmaxy(wnd) - 1 - (linesperregion + 1))
+				if (row >
+				    getmaxy(wnd) - 1 - (linesperregion + 1))
 					break;
 			}
-			snprintf(tmpstr, sizeof(tmpstr), "%s%d", dev_select[i].device_name,
-				dev_select[i].unit_number);
+			snprintf(tmpstr, sizeof(tmpstr), "%s%d",
+			    dev_select[i].device_name,
+			    dev_select[i].unit_number);
 			mvwaddstr(wnd, row, _col + 4, tmpstr);
 			mvwaddstr(wnd, row + 1, _col, "  KB/t tps  MB/s ");
 			_col += COLWIDTH;
@@ -230,10 +230,10 @@ barlabels(int row)
 		if (dev_select[i].selected) {
 			if (row > getmaxy(wnd) - 1 - linesperregion)
 				break;
-			snprintf(tmpstr, sizeof(tmpstr), "%s%d", dev_select[i].device_name,
-				dev_select[i].unit_number);
-			mvwprintw(wnd, row++, 0, "%-5.5s MB/s|",
-				  tmpstr);
+			snprintf(tmpstr, sizeof(tmpstr), "%s%d",
+			    dev_select[i].device_name,
+			    dev_select[i].unit_number);
+			mvwprintw(wnd, row++, 0, "%-5.5s MB/s|", tmpstr);
 			mvwaddstr(wnd, row++, 0, "      tps|");
 			if (kbpt)
 				mvwaddstr(wnd, row++, 0, "     KB/t|");
@@ -247,9 +247,12 @@ showiostat(void)
 	long t;
 	int i, row, _col;
 
-#define X(fld)	t = cur_dev.fld[i]; cur_dev.fld[i] -= last_dev.fld[i]; last_dev.fld[i] = t
+#define X(fld)                             \
+	t = cur_dev.fld[i];                \
+	cur_dev.fld[i] -= last_dev.fld[i]; \
+	last_dev.fld[i] = t
 	etime = 0;
-	for(i = 0; i < CPUSTATES; i++) {
+	for (i = 0; i < CPUSTATES; i++) {
 		X(cp_time);
 		etime += cur_dev.cp_time[i];
 	}
@@ -278,14 +281,15 @@ showiostat(void)
 		if (dev_select[i].selected) {
 			if (_col + COLWIDTH >= getmaxx(wnd) - 1 - INSET) {
 				_col = INSET, row += linesperregion + 1;
-				if (row > getmaxy(wnd) - 1 - (linesperregion + 1))
+				if (row >
+				    getmaxy(wnd) - 1 - (linesperregion + 1))
 					break;
 				wmove(wnd, row + linesperregion, 0);
 				wdeleteln(wnd);
 				wmove(wnd, row + 3, 0);
 				winsertln(wnd);
 			}
-			(void) devstats(row + 3, _col, i);
+			(void)devstats(row + 3, _col, i);
 			_col += COLWIDTH;
 		}
 }
@@ -303,17 +307,16 @@ devstats(int row, int _col, int dn)
 	busy_seconds = cur_dev.snap_time - last_dev.snap_time;
 
 	if (devstat_compute_statistics(&cur_dev.dinfo->devices[di],
-	    &last_dev.dinfo->devices[di], busy_seconds,
-	    DSM_KB_PER_TRANSFER, &kb_per_transfer,
-	    DSM_TRANSFERS_PER_SECOND, &transfers_per_second,
-	    DSM_MB_PER_SECOND, &mb_per_second, DSM_NONE) != 0)
+		&last_dev.dinfo->devices[di], busy_seconds, DSM_KB_PER_TRANSFER,
+		&kb_per_transfer, DSM_TRANSFERS_PER_SECOND,
+		&transfers_per_second, DSM_MB_PER_SECOND, &mb_per_second,
+		DSM_NONE) != 0)
 		errx(1, "%s", devstat_errbuf);
 
 	if (numbers) {
 		mvwprintw(wnd, row, _col, " %5.2Lf %3.0Lf %5.2Lf ",
-			 kb_per_transfer, transfers_per_second,
-			 mb_per_second);
-		return(row);
+		    kb_per_transfer, transfers_per_second, mb_per_second);
+		return (row);
 	}
 	wmove(wnd, row++, _col);
 	histogram(mb_per_second, 50, .5);
@@ -324,8 +327,7 @@ devstats(int row, int _col, int dn)
 		histogram(kb_per_transfer, 50, .5);
 	}
 
-	return(row);
-
+	return (row);
 }
 
 static void
@@ -340,7 +342,7 @@ stat1(int row, int o)
 	if (dtime == 0.0)
 		dtime = 1.0;
 	wmove(wnd, row, INSET);
-#define CPUSCALE	0.5
+#define CPUSCALE 0.5
 	histogram(100.0 * cur_dev.cp_time[o] / dtime, 50, CPUSCALE);
 }
 

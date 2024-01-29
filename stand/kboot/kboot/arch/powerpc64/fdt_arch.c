@@ -24,8 +24,10 @@
  */
 
 #include <sys/types.h>
+
 #include <fdt_platform.h>
 #include <libfdt.h>
+
 #include "kboot.h"
 
 /* Fix up wrong values added to the device tree by prom_init() in Linux */
@@ -52,10 +54,8 @@ fdt_arch_fixups(void *fdtp)
 	offset = fdt_path_offset(fdtp, "/ibm,opal");
 	if (offset > 0) {
 		const uint64_t *base, *size;
-		base = fdt_getprop(fdtp, offset, "opal-base-address",
-		    &len);
-		size = fdt_getprop(fdtp, offset, "opal-runtime-size",
-		    &len);
+		base = fdt_getprop(fdtp, offset, "opal-base-address", &len);
+		size = fdt_getprop(fdtp, offset, "opal-runtime-size", &len);
 		if (base != NULL && size != NULL)
 			fdt_add_mem_rsv(fdtp, fdt64_to_cpu(*base),
 			    fdt64_to_cpu(*size));

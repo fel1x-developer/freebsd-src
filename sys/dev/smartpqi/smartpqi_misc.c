@@ -23,7 +23,6 @@
  * SUCH DAMAGE.
  */
 
-
 #include "smartpqi_includes.h"
 
 /*
@@ -33,21 +32,20 @@ void
 os_get_time(struct bmic_host_wellness_time *host_wellness_time)
 {
 	struct timespec ts;
-	struct clocktime ct = {0};
+	struct clocktime ct = { 0 };
 
 	getnanotime(&ts);
 	clock_ts_to_ct(&ts, &ct);
 
 	/* Fill the time In BCD Format */
-	host_wellness_time->hour= (uint8_t)bin2bcd(ct.hour);
+	host_wellness_time->hour = (uint8_t)bin2bcd(ct.hour);
 	host_wellness_time->min = (uint8_t)bin2bcd(ct.min);
-	host_wellness_time->sec= (uint8_t)bin2bcd(ct.sec);
+	host_wellness_time->sec = (uint8_t)bin2bcd(ct.sec);
 	host_wellness_time->reserved = 0;
 	host_wellness_time->month = (uint8_t)bin2bcd(ct.mon);
 	host_wellness_time->day = (uint8_t)bin2bcd(ct.day);
 	host_wellness_time->century = (uint8_t)bin2bcd(ct.year / 100);
 	host_wellness_time->year = (uint8_t)bin2bcd(ct.year % 100);
-
 }
 
 /*
@@ -61,14 +59,17 @@ os_wellness_periodic(void *data)
 	int ret = 0;
 
 	/* update time to FW */
-	if (!pqisrc_ctrl_offline(softs)){
-		if( (ret = pqisrc_write_current_time_to_host_wellness(softs)) != 0 )
-			DBG_ERR("Failed to update time to FW in periodic ret = %d\n", ret);
+	if (!pqisrc_ctrl_offline(softs)) {
+		if ((ret = pqisrc_write_current_time_to_host_wellness(softs)) !=
+		    0)
+			DBG_ERR(
+			    "Failed to update time to FW in periodic ret = %d\n",
+			    ret);
 	}
 
 	/* reschedule ourselves */
 	callout_reset(&softs->os_specific.wellness_periodic,
-			PQI_HOST_WELLNESS_TIMEOUT_SEC * hz, os_wellness_periodic, softs);
+	    PQI_HOST_WELLNESS_TIMEOUT_SEC * hz, os_wellness_periodic, softs);
 }
 
 /*
@@ -97,11 +98,11 @@ os_start_heartbeat_timer(void *data)
 	pqisrc_heartbeat_timer_handler(softs);
 	if (!pqisrc_ctrl_offline(softs)) {
 		callout_reset(&softs->os_specific.heartbeat_timeout_id,
-				PQI_HEARTBEAT_TIMEOUT_SEC * hz,
-				os_start_heartbeat_timer, softs);
+		    PQI_HEARTBEAT_TIMEOUT_SEC * hz, os_start_heartbeat_timer,
+		    softs);
 	}
 
-       DBG_FUNC("OUT\n");
+	DBG_FUNC("OUT\n");
 }
 
 /*
@@ -109,11 +110,10 @@ os_start_heartbeat_timer(void *data)
  */
 int
 os_init_spinlock(struct pqisrc_softstate *softs, struct mtx *lock,
-			char *lockname)
+    char *lockname)
 {
-    mtx_init(lock, lockname, NULL, MTX_SPIN);
-    return 0;
-
+	mtx_init(lock, lockname, NULL, MTX_SPIN);
+	return 0;
 }
 
 /*
@@ -149,8 +149,7 @@ os_destroy_semaphore(struct sema *sema)
 /*
  * Semaphore grab function
  */
-void inline
-os_sema_lock(struct sema *sema)
+void inline os_sema_lock(struct sema *sema)
 {
 	sema_post(sema);
 }
@@ -158,8 +157,7 @@ os_sema_lock(struct sema *sema)
 /*
  * Semaphore release function
  */
-void inline
-os_sema_unlock(struct sema *sema)
+void inline os_sema_unlock(struct sema *sema)
 {
 	sema_wait(sema);
 }
@@ -187,29 +185,30 @@ bsd_status_to_pqi_status(int bsd_status)
  * Return default: The feature status is not deciding from hints.
  * */
 boolean_t
-check_device_hint_status(struct pqisrc_softstate *softs, unsigned int feature_bit)
+check_device_hint_status(struct pqisrc_softstate *softs,
+    unsigned int feature_bit)
 {
 	DBG_FUNC("IN\n");
 
-	switch(feature_bit) {
-		case PQI_FIRMWARE_FEATURE_RAID_1_WRITE_BYPASS:
-			if (!softs->hint.aio_raid1_write_status)
-				return true;
-			break;
-		case PQI_FIRMWARE_FEATURE_RAID_5_WRITE_BYPASS:
-			if (!softs->hint.aio_raid5_write_status)
-				return true;
-			break;
-		case PQI_FIRMWARE_FEATURE_RAID_6_WRITE_BYPASS:
-			if (!softs->hint.aio_raid6_write_status)
-				return true;
-			break;
-		case PQI_FIRMWARE_FEATURE_UNIQUE_SATA_WWN:
-			if (!softs->hint.sata_unique_wwn_status)
-				return true;
-			break;
-		default:
-			return false;
+	switch (feature_bit) {
+	case PQI_FIRMWARE_FEATURE_RAID_1_WRITE_BYPASS:
+		if (!softs->hint.aio_raid1_write_status)
+			return true;
+		break;
+	case PQI_FIRMWARE_FEATURE_RAID_5_WRITE_BYPASS:
+		if (!softs->hint.aio_raid5_write_status)
+			return true;
+		break;
+	case PQI_FIRMWARE_FEATURE_RAID_6_WRITE_BYPASS:
+		if (!softs->hint.aio_raid6_write_status)
+			return true;
+		break;
+	case PQI_FIRMWARE_FEATURE_UNIQUE_SATA_WWN:
+		if (!softs->hint.sata_unique_wwn_status)
+			return true;
+		break;
+	default:
+		return false;
 	}
 
 	DBG_FUNC("OUT\n");
@@ -224,23 +223,21 @@ bsd_set_hint_adapter_queue_depth(struct pqisrc_softstate *softs)
 
 	DBG_FUNC("IN\n");
 
-	if ((!softs->hint.queue_depth) || (softs->hint.queue_depth >
-			 softs->pqi_cap.max_outstanding_io)) {
+	if ((!softs->hint.queue_depth) ||
+	    (softs->hint.queue_depth > softs->pqi_cap.max_outstanding_io)) {
 		/* Nothing to do here. Supported queue depth
 		 * is already set by controller/driver */
-	}
-	else if (softs->hint.queue_depth < PQISRC_MIN_OUTSTANDING_REQ) {
+	} else if (softs->hint.queue_depth < PQISRC_MIN_OUTSTANDING_REQ) {
 		/* Nothing to do here. Supported queue depth
 		 * is already set by controller/driver */
-	}
-	else {
+	} else {
 		/* Set Device.Hint queue depth here */
-		softs->pqi_cap.max_outstanding_io =
-			softs->hint.queue_depth;
+		softs->pqi_cap.max_outstanding_io = softs->hint.queue_depth;
 	}
 
-	DBG_NOTE("Adapter queue depth before hint set = %u, Queue depth after hint set = %u\n",
-			queue_depth, softs->pqi_cap.max_outstanding_io);
+	DBG_NOTE(
+	    "Adapter queue depth before hint set = %u, Queue depth after hint set = %u\n",
+	    queue_depth, softs->pqi_cap.max_outstanding_io);
 
 	DBG_FUNC("OUT\n");
 }
@@ -255,23 +252,21 @@ bsd_set_hint_scatter_gather_config(struct pqisrc_softstate *softs)
 	/* At least > 16 sg's required to wotk hint correctly.
 	 * Default the sg count set by driver/controller. */
 
-	if ((!softs->hint.sg_segments) || (softs->hint.sg_segments >
-			 softs->pqi_cap.max_sg_elem)) {
+	if ((!softs->hint.sg_segments) ||
+	    (softs->hint.sg_segments > softs->pqi_cap.max_sg_elem)) {
 		/* Nothing to do here. Supported sg count
 		 * is already set by controller/driver. */
-	}
-	else if (softs->hint.sg_segments < BSD_MIN_SG_SEGMENTS)
-	{
+	} else if (softs->hint.sg_segments < BSD_MIN_SG_SEGMENTS) {
 		/* Nothing to do here. Supported sg count
 		 * is already set by controller/driver. */
-	}
-	else {
+	} else {
 		/* Set Device.Hint sg count here */
 		softs->pqi_cap.max_sg_elem = softs->hint.sg_segments;
 	}
 
-	DBG_NOTE("SG segments before hint set = %u, SG segments after hint set = %u\n",
-			pqi_sg_segments, softs->pqi_cap.max_sg_elem);
+	DBG_NOTE(
+	    "SG segments before hint set = %u, SG segments after hint set = %u\n",
+	    pqi_sg_segments, softs->pqi_cap.max_sg_elem);
 
 	DBG_FUNC("OUT\n");
 }
@@ -295,15 +290,14 @@ bsd_set_hint_adapter_cpu_config(struct pqisrc_softstate *softs)
 	/* online cpu count decides the no.of queues the driver can create,
 	 * and msi interrupt count as well.
 	 * If the cpu count is "zero" set by hint file then the driver
-	 * can have "one" queue and "one" legacy interrupt. (It shares event queue for
-	 * operational IB queue).
-	 * Check for os_get_intr_config function for interrupt assignment.*/
+	 * can have "one" queue and "one" legacy interrupt. (It shares event
+	 * queue for operational IB queue). Check for os_get_intr_config
+	 * function for interrupt assignment.*/
 
 	if (softs->hint.cpu_count > softs->num_cpus_online) {
 		/* Nothing to do here. Supported cpu count
 		 * already fetched from hardware */
-	}
-	else {
+	} else {
 		/* Set Device.Hint cpu count here */
 		softs->num_cpus_online = softs->hint.cpu_count;
 	}

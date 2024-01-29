@@ -32,39 +32,38 @@
  * BERI virtio mmio backend common methods
  */
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/cdefs.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/malloc.h>
-#include <sys/rman.h>
-#include <sys/timeet.h>
-#include <sys/timetc.h>
 #include <sys/conf.h>
-#include <sys/uio.h>
+#include <sys/endian.h>
+#include <sys/event.h>
+#include <sys/kernel.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/rman.h>
+#include <sys/rwlock.h>
+#include <sys/selinfo.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <sys/event.h>
-#include <sys/selinfo.h>
-#include <sys/endian.h>
-#include <sys/rwlock.h>
+#include <sys/timeet.h>
+#include <sys/timetc.h>
+#include <sys/uio.h>
 
 #include <machine/bus.h>
-#include <machine/fdt.h>
 #include <machine/cpu.h>
+#include <machine/fdt.h>
 #include <machine/intr.h>
 
+#include <dev/altera/pio/pio.h>
+#include <dev/beri/virtio/virtio.h>
 #include <dev/fdt/fdt_common.h>
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/beri/virtio/virtio.h>
-#include <dev/virtio/virtqueue.h>
+#include <dev/ofw/openfirm.h>
 #include <dev/virtio/virtio_ring.h>
-#include <dev/altera/pio/pio.h>
+#include <dev/virtio/virtqueue.h>
 
 #include "pio_if.h"
 
@@ -79,8 +78,8 @@ int
 vq_has_descs(struct vqueue_info *vq)
 {
 
-	return (vq_ring_ready(vq) && vq->vq_last_avail !=
-		be16toh(vq->vq_avail->idx));
+	return (vq_ring_ready(vq) &&
+	    vq->vq_last_avail != be16toh(vq->vq_avail->idx));
 }
 
 void *
@@ -88,8 +87,7 @@ paddr_map(uint32_t offset, uint32_t phys, uint32_t size)
 {
 	bus_space_handle_t bsh;
 
-	if (bus_space_map(fdtbus_bs_tag, (phys + offset),
-			size, 0, &bsh) != 0) {
+	if (bus_space_map(fdtbus_bs_tag, (phys + offset), size, 0, &bsh) != 0) {
 		panic("Couldn't map 0x%08x\n", (phys + offset));
 	}
 
@@ -105,20 +103,20 @@ paddr_unmap(void *phys, uint32_t size)
 
 static inline void
 _vq_record(uint32_t offs, int i, volatile struct vring_desc *vd,
-	struct iovec *iov, int n_iov, uint16_t *flags) {
+    struct iovec *iov, int n_iov, uint16_t *flags)
+{
 	if (i >= n_iov)
 		return;
 
-	iov[i].iov_base = paddr_map(offs, be64toh(vd->addr),
-				be32toh(vd->len));
+	iov[i].iov_base = paddr_map(offs, be64toh(vd->addr), be32toh(vd->len));
 	iov[i].iov_len = be32toh(vd->len);
 	if (flags != NULL)
 		flags[i] = be16toh(vd->flags);
 }
 
 int
-vq_getchain(uint32_t offs, struct vqueue_info *vq,
-	struct iovec *iov, int n_iov, uint16_t *flags)
+vq_getchain(uint32_t offs, struct vqueue_info *vq, struct iovec *iov, int n_iov,
+    uint16_t *flags)
 {
 	volatile struct vring_desc *vdir, *vindir, *vp;
 	int idx, ndesc, n_indir;
@@ -141,18 +139,19 @@ vq_getchain(uint32_t offs, struct vqueue_info *vq,
 		} else {
 			n_indir = be32toh(vdir->len) / 16;
 			vindir = paddr_map(offs, be64toh(vdir->addr),
-					be32toh(vdir->len));
+			    be32toh(vdir->len));
 			next = 0;
 			for (;;) {
 				vp = &vindir[next];
 				_vq_record(offs, i, vp, iov, n_iov, flags);
-				i+=1;
-				if ((be16toh(vp->flags) & \
-					VRING_DESC_F_NEXT) == 0)
+				i += 1;
+				if ((be16toh(vp->flags) & VRING_DESC_F_NEXT) ==
+				    0)
 					break;
 				next = be16toh(vp->next);
 			}
-			paddr_unmap(__DEVOLATILE(void *, vindir), be32toh(vdir->len));
+			paddr_unmap(__DEVOLATILE(void *, vindir),
+			    be32toh(vdir->len));
 		}
 
 		if ((be16toh(vdir->flags) & VRING_DESC_F_NEXT) == 0)
@@ -198,13 +197,12 @@ setup_pio(device_t dev, char *name, device_t *pio_dev)
 	if ((node = ofw_bus_get_node(dev)) == -1)
 		return (ENXIO);
 
-	if (OF_searchencprop(node, name, &xref,
-		sizeof(xref)) == -1) {
+	if (OF_searchencprop(node, name, &xref, sizeof(xref)) == -1) {
 		return (ENXIO);
 	}
 
 	pio_node = OF_node_from_xref(xref);
-	SLIST_FOREACH(ic, &fdt_ic_list_head, fdt_ics) {
+	SLIST_FOREACH (ic, &fdt_ic_list_head, fdt_ics) {
 		if (ic->iph == pio_node) {
 			*pio_dev = ic->dev;
 			return (0);
@@ -226,8 +224,7 @@ setup_offset(device_t dev, uint32_t *offset)
 	if ((node = ofw_bus_get_node(dev)) == -1)
 		return (ENXIO);
 
-	if (OF_searchencprop(node, "beri-mem", &xref,
-		sizeof(xref)) == -1) {
+	if (OF_searchencprop(node, "beri-mem", &xref, sizeof(xref)) == -1) {
 		return (ENXIO);
 	}
 

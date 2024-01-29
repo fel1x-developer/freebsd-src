@@ -51,12 +51,12 @@
 #include <machine/atomic.h>
 #include <machine/cpu.h>
 
+#include <dev/random/hash.h>
+#include <dev/random/random_harvestq.h>
+#include <dev/random/randomdev.h>
+
 #include <crypto/rijndael/rijndael-api-fst.h>
 #include <crypto/sha2/sha256.h>
-
-#include <dev/random/hash.h>
-#include <dev/random/randomdev.h>
-#include <dev/random/random_harvestq.h>
 
 #if defined(RANDOM_ENABLE_ETHER)
 #define _RANDOM_HARVEST_ETHER_OFF 0
@@ -74,7 +74,7 @@
  * entropy into a subset of pools per iteration with the goal of feeding
  * HARVESTSIZE into every pool at least once per second.
  */
-#define	RANDOM_KTHREAD_HZ	10
+#define RANDOM_KTHREAD_HZ 10
 
 static void random_kthread(void);
 static void random_sources_feed(void);
@@ -93,12 +93,11 @@ static __read_mostly epoch_t rs_epoch;
  * supplied junk. When used, they are transferred back to the
  * 'empty' queue.
  */
-#define	RANDOM_RING_MAX		1024
-#define	RANDOM_ACCUM_MAX	8
+#define RANDOM_RING_MAX 1024
+#define RANDOM_ACCUM_MAX 8
 
 /* 1 to let the kernel thread run, 0 to terminate, -1 to mark completion */
 volatile int random_kthread_control;
-
 
 /* Allow the sysadmin to select the broad category of
  * entropy types to harvest.
@@ -106,12 +105,12 @@ volatile int random_kthread_control;
 __read_frequently u_int hc_source_mask;
 
 struct random_sources {
-	CK_LIST_ENTRY(random_sources)	 rrs_entries;
-	struct random_source		*rrs_source;
+	CK_LIST_ENTRY(random_sources) rrs_entries;
+	struct random_source *rrs_source;
 };
 
-static CK_LIST_HEAD(sources_head, random_sources) source_list =
-    CK_LIST_HEAD_INITIALIZER(source_list);
+static CK_LIST_HEAD(sources_head,
+    random_sources) source_list = CK_LIST_HEAD_INITIALIZER(source_list);
 
 SYSCTL_NODE(_kern_random, OID_AUTO, harvest, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "Entropy Device Parameters");
@@ -177,34 +176,49 @@ random_harvestq_fast_process_event(struct harvest_event *event)
 static void
 random_kthread(void)
 {
-        u_int maxloop, ring_out, i;
+	u_int maxloop, ring_out, i;
 
 	/*
-	 * Locking is not needed as this is the only place we modify ring.out, and
-	 * we only examine ring.in without changing it. Both of these are volatile,
-	 * and this is a unique thread.
+	 * Locking is not needed as this is the only place we modify ring.out,
+	 * and we only examine ring.in without changing it. Both of these are
+	 * volatile, and this is a unique thread.
 	 */
 	for (random_kthread_control = 1; random_kthread_control;) {
-		/* Deal with events, if any. Restrict the number we do in one go. */
+		/* Deal with events, if any. Restrict the number we do in one
+		 * go. */
 		maxloop = RANDOM_RING_MAX;
-		while (harvest_context.hc_entropy_ring.out != harvest_context.hc_entropy_ring.in) {
-			ring_out = (harvest_context.hc_entropy_ring.out + 1)%RANDOM_RING_MAX;
-			random_harvestq_fast_process_event(harvest_context.hc_entropy_ring.ring + ring_out);
+		while (harvest_context.hc_entropy_ring.out !=
+		    harvest_context.hc_entropy_ring.in) {
+			ring_out = (harvest_context.hc_entropy_ring.out + 1) %
+			    RANDOM_RING_MAX;
+			random_harvestq_fast_process_event(
+			    harvest_context.hc_entropy_ring.ring + ring_out);
 			harvest_context.hc_entropy_ring.out = ring_out;
 			if (!--maxloop)
 				break;
 		}
 		random_sources_feed();
-		/* XXX: FIX!! Increase the high-performance data rate? Need some measurements first. */
+		/* XXX: FIX!! Increase the high-performance data rate? Need some
+		 * measurements first. */
 		for (i = 0; i < RANDOM_ACCUM_MAX; i++) {
-			if (harvest_context.hc_entropy_fast_accumulator.buf[i]) {
-				random_harvest_direct(harvest_context.hc_entropy_fast_accumulator.buf + i, sizeof(harvest_context.hc_entropy_fast_accumulator.buf[0]), RANDOM_UMA);
-				harvest_context.hc_entropy_fast_accumulator.buf[i] = 0;
+			if (harvest_context.hc_entropy_fast_accumulator
+				.buf[i]) {
+				random_harvest_direct(
+				    harvest_context.hc_entropy_fast_accumulator
+					    .buf +
+					i,
+				    sizeof(harvest_context
+					       .hc_entropy_fast_accumulator
+					       .buf[0]),
+				    RANDOM_UMA);
+				harvest_context.hc_entropy_fast_accumulator
+				    .buf[i] = 0;
 			}
 		}
-		/* XXX: FIX!! This is a *great* place to pass hardware/live entropy to random(9) */
+		/* XXX: FIX!! This is a *great* place to pass hardware/live
+		 * entropy to random(9) */
 		tsleep_sbt(&harvest_context.hc_kthread_proc, 0, "-",
-		    SBT_1S/RANDOM_KTHREAD_HZ, 0, C_PREL(1));
+		    SBT_1S / RANDOM_KTHREAD_HZ, 0, C_PREL(1));
 	}
 	random_kthread_control = -1;
 	wakeup(&harvest_context.hc_kthread_proc);
@@ -279,10 +293,13 @@ random_sources_feed(void)
 	 */
 	if (rse_warm)
 		epoch_enter_preempt(rs_epoch, &et);
-	CK_LIST_FOREACH(rrs, &source_list, rrs_entries) {
+	CK_LIST_FOREACH(rrs, &source_list, rrs_entries)
+	{
 		for (i = 0; i < npools; i++) {
 			n = rrs->rrs_source->rs_read(entropy, sizeof(entropy));
-			KASSERT((n <= sizeof(entropy)), ("%s: rs_read returned too much data (%u > %zu)", __func__, n, sizeof(entropy)));
+			KASSERT((n <= sizeof(entropy)),
+			    ("%s: rs_read returned too much data (%u > %zu)",
+				__func__, n, sizeof(entropy)));
 			/*
 			 * Sometimes the HW entropy source doesn't have anything
 			 * ready for us.  This isn't necessarily untrustworthy.
@@ -296,7 +313,8 @@ random_sources_feed(void)
 			 */
 			if (n == 0)
 				continue;
-			random_harvest_direct(entropy, n, rrs->rrs_source->rs_source);
+			random_harvest_direct(entropy, n,
+			    rrs->rrs_source->rs_source);
 		}
 	}
 	if (rse_warm)
@@ -332,8 +350,7 @@ random_check_uint_harvestmask(SYSCTL_HANDLER_ARGS)
 }
 SYSCTL_PROC(_kern_random_harvest, OID_AUTO, mask,
     CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, NULL, 0,
-    random_check_uint_harvestmask, "IU",
-    "Entropy harvesting mask");
+    random_check_uint_harvestmask, "IU", "Entropy harvesting mask");
 
 /* ARGSUSED */
 static int
@@ -346,7 +363,8 @@ random_print_harvestmask(SYSCTL_HANDLER_ARGS)
 	if (error == 0) {
 		sbuf_new_for_sysctl(&sbuf, NULL, 128, req);
 		for (i = ENTROPYSOURCE - 1; i >= 0; i--)
-			sbuf_cat(&sbuf, (hc_source_mask & (1 << i)) ? "1" : "0");
+			sbuf_cat(&sbuf,
+			    (hc_source_mask & (1 << i)) ? "1" : "0");
 		error = sbuf_finish(&sbuf);
 		sbuf_delete(&sbuf);
 	}
@@ -354,8 +372,7 @@ random_print_harvestmask(SYSCTL_HANDLER_ARGS)
 }
 SYSCTL_PROC(_kern_random_harvest, OID_AUTO, mask_bin,
     CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, 0,
-    random_print_harvestmask, "A",
-    "Entropy harvesting mask (printable)");
+    random_print_harvestmask, "A", "Entropy harvesting mask (printable)");
 
 static const char *random_source_descr[ENTROPYSOURCE] = {
 	[RANDOM_CACHED] = "CACHED",
@@ -369,7 +386,7 @@ static const char *random_source_descr[ENTROPYSOURCE] = {
 	[RANDOM_SWI] = "SWI",
 	[RANDOM_FS_ATIME] = "FS_ATIME",
 	[RANDOM_UMA] = "UMA",
-	[RANDOM_CALLOUT] = "CALLOUT", /* ENVIRONMENTAL_END */
+	[RANDOM_CALLOUT] = "CALLOUT",	      /* ENVIRONMENTAL_END */
 	[RANDOM_PURE_OCTEON] = "PURE_OCTEON", /* PURE_START */
 	[RANDOM_PURE_SAFE] = "PURE_SAFE",
 	[RANDOM_PURE_GLXSB] = "PURE_GLXSB",
@@ -406,9 +423,11 @@ random_print_harvestmask_symbolic(SYSCTL_HANDLER_ARGS)
 				continue;
 			if (!first)
 				sbuf_cat(&sbuf, ",");
-			sbuf_cat(&sbuf, !(hc_source_mask & (1 << i)) ? "[" : "");
+			sbuf_cat(&sbuf,
+			    !(hc_source_mask & (1 << i)) ? "[" : "");
 			sbuf_cat(&sbuf, random_source_descr[i]);
-			sbuf_cat(&sbuf, !(hc_source_mask & (1 << i)) ? "]" : "");
+			sbuf_cat(&sbuf,
+			    !(hc_source_mask & (1 << i)) ? "]" : "");
 			first = false;
 		}
 		error = sbuf_finish(&sbuf);
@@ -427,13 +446,15 @@ random_harvestq_init(void *unused __unused)
 {
 	static const u_int almost_everything_mask =
 	    (((1 << (RANDOM_ENVIRONMENTAL_END + 1)) - 1) &
-	    ~_RANDOM_HARVEST_ETHER_OFF & ~_RANDOM_HARVEST_UMA_OFF);
+		~_RANDOM_HARVEST_ETHER_OFF & ~_RANDOM_HARVEST_UMA_OFF);
 
 	hc_source_mask = almost_everything_mask;
 	RANDOM_HARVEST_INIT_LOCK();
-	harvest_context.hc_entropy_ring.in = harvest_context.hc_entropy_ring.out = 0;
+	harvest_context.hc_entropy_ring.in =
+	    harvest_context.hc_entropy_ring.out = 0;
 }
-SYSINIT(random_device_h_init, SI_SUB_RANDOM, SI_ORDER_THIRD, random_harvestq_init, NULL);
+SYSINIT(random_device_h_init, SI_SUB_RANDOM, SI_ORDER_THIRD,
+    random_harvestq_init, NULL);
 
 /*
  * Subroutine to slice up a contiguous chunk of 'entropy' and feed it into the
@@ -512,13 +533,15 @@ random_harvestq_prime(void *unused __unused)
 	size = random_prime_loader_file(RANDOM_PLATFORM_BOOT_ENTROPY_MODULE);
 	if (bootverbose) {
 		if (size > 0)
-			printf("random: read %zu bytes from platform bootloader\n",
+			printf(
+			    "random: read %zu bytes from platform bootloader\n",
 			    size);
 		else
 			printf("random: no platform bootloader entropy\n");
 	}
 }
-SYSINIT(random_device_prime, SI_SUB_RANDOM, SI_ORDER_MIDDLE, random_harvestq_prime, NULL);
+SYSINIT(random_device_prime, SI_SUB_RANDOM, SI_ORDER_MIDDLE,
+    random_harvestq_prime, NULL);
 
 /* ARGSUSED */
 static void
@@ -528,9 +551,11 @@ random_harvestq_deinit(void *unused __unused)
 	/* Command the hash/reseed thread to end and wait for it to finish */
 	random_kthread_control = 0;
 	while (random_kthread_control >= 0)
-		tsleep(&harvest_context.hc_kthread_proc, 0, "harvqterm", hz/5);
+		tsleep(&harvest_context.hc_kthread_proc, 0, "harvqterm",
+		    hz / 5);
 }
-SYSUNINIT(random_device_h_init, SI_SUB_RANDOM, SI_ORDER_THIRD, random_harvestq_deinit, NULL);
+SYSUNINIT(random_device_h_init, SI_SUB_RANDOM, SI_ORDER_THIRD,
+    random_harvestq_deinit, NULL);
 
 /*-
  * Entropy harvesting queue routine.
@@ -547,28 +572,31 @@ SYSUNINIT(random_device_h_init, SI_SUB_RANDOM, SI_ORDER_THIRD, random_harvestq_d
  * read which can be quite expensive.
  */
 void
-random_harvest_queue_(const void *entropy, u_int size, enum random_entropy_source origin)
+random_harvest_queue_(const void *entropy, u_int size,
+    enum random_entropy_source origin)
 {
 	struct harvest_event *event;
 	u_int ring_in;
 
-	KASSERT(origin >= RANDOM_START && origin < ENTROPYSOURCE, ("%s: origin %d invalid\n", __func__, origin));
+	KASSERT(origin >= RANDOM_START && origin < ENTROPYSOURCE,
+	    ("%s: origin %d invalid\n", __func__, origin));
 	RANDOM_HARVEST_LOCK();
-	ring_in = (harvest_context.hc_entropy_ring.in + 1)%RANDOM_RING_MAX;
+	ring_in = (harvest_context.hc_entropy_ring.in + 1) % RANDOM_RING_MAX;
 	if (ring_in != harvest_context.hc_entropy_ring.out) {
 		/* The ring is not full */
 		event = harvest_context.hc_entropy_ring.ring + ring_in;
 		event->he_somecounter = (uint32_t)get_cyclecount();
 		event->he_source = origin;
-		event->he_destination = harvest_context.hc_destination[origin]++;
+		event->he_destination =
+		    harvest_context.hc_destination[origin]++;
 		if (size <= sizeof(event->he_entropy)) {
 			event->he_size = size;
 			memcpy(event->he_entropy, entropy, size);
-		}
-		else {
+		} else {
 			/* Big event, so squash it */
 			event->he_size = sizeof(event->he_entropy[0]);
-			event->he_entropy[0] = jenkins_hash(entropy, size, (uint32_t)(uintptr_t)event);
+			event->he_entropy[0] = jenkins_hash(entropy, size,
+			    (uint32_t)(uintptr_t)event);
 		}
 		harvest_context.hc_entropy_ring.in = ring_in;
 	}
@@ -587,8 +615,10 @@ random_harvest_fast_(const void *entropy, u_int size)
 	u_int pos;
 
 	pos = harvest_context.hc_entropy_fast_accumulator.pos;
-	harvest_context.hc_entropy_fast_accumulator.buf[pos] ^= jenkins_hash(entropy, size, (uint32_t)get_cyclecount());
-	harvest_context.hc_entropy_fast_accumulator.pos = (pos + 1)%RANDOM_ACCUM_MAX;
+	harvest_context.hc_entropy_fast_accumulator.buf[pos] ^=
+	    jenkins_hash(entropy, size, (uint32_t)get_cyclecount());
+	harvest_context.hc_entropy_fast_accumulator.pos = (pos + 1) %
+	    RANDOM_ACCUM_MAX;
 }
 
 /*-
@@ -598,11 +628,13 @@ random_harvest_fast_(const void *entropy, u_int size)
  * (e.g.) booting when initial entropy is being gathered.
  */
 void
-random_harvest_direct_(const void *entropy, u_int size, enum random_entropy_source origin)
+random_harvest_direct_(const void *entropy, u_int size,
+    enum random_entropy_source origin)
 {
 	struct harvest_event event;
 
-	KASSERT(origin >= RANDOM_START && origin < ENTROPYSOURCE, ("%s: origin %d invalid\n", __func__, origin));
+	KASSERT(origin >= RANDOM_START && origin < ENTROPYSOURCE,
+	    ("%s: origin %d invalid\n", __func__, origin));
 	size = MIN(size, sizeof(event.he_entropy));
 	event.he_somecounter = (uint32_t)get_cyclecount();
 	event.he_size = size;
@@ -656,10 +688,10 @@ random_source_deregister(struct random_source *rsource)
 
 	RANDOM_HARVEST_LOCK();
 	CK_LIST_FOREACH(rrs, &source_list, rrs_entries)
-		if (rrs->rrs_source == rsource) {
-			CK_LIST_REMOVE(rrs, rrs_entries);
-			break;
-		}
+	if (rrs->rrs_source == rsource) {
+		CK_LIST_REMOVE(rrs, rrs_entries);
+		break;
+	}
 	RANDOM_HARVEST_UNLOCK();
 
 	if (rrs != NULL && epoch_inited)
@@ -682,7 +714,8 @@ random_source_handler(SYSCTL_HANDLER_ARGS)
 	sbuf_new_for_sysctl(&sbuf, NULL, 64, req);
 	count = 0;
 	epoch_enter_preempt(rs_epoch, &et);
-	CK_LIST_FOREACH(rrs, &source_list, rrs_entries) {
+	CK_LIST_FOREACH(rrs, &source_list, rrs_entries)
+	{
 		sbuf_cat(&sbuf, (count++ ? ",'" : "'"));
 		sbuf_cat(&sbuf, rrs->rrs_source->rs_ident);
 		sbuf_cat(&sbuf, "'");
@@ -692,8 +725,8 @@ random_source_handler(SYSCTL_HANDLER_ARGS)
 	sbuf_delete(&sbuf);
 	return (error);
 }
-SYSCTL_PROC(_kern_random, OID_AUTO, random_sources, CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE,
-	    NULL, 0, random_source_handler, "A",
-	    "List of active fast entropy sources.");
+SYSCTL_PROC(_kern_random, OID_AUTO, random_sources,
+    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, 0,
+    random_source_handler, "A", "List of active fast entropy sources.");
 
 MODULE_VERSION(random_harvestq, 1);

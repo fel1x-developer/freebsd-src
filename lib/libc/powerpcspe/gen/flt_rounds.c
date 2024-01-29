@@ -1,4 +1,5 @@
-/*	$NetBSD: flt_rounds.c,v 1.4.10.3 2002/03/22 20:41:53 nathanw Exp $	*/
+/*	$NetBSD: flt_rounds.c,v 1.4.10.3 2002/03/22 20:41:53 nathanw Exp $
+ */
 
 /*
  * Copyright (c) 2016 Justin Hibbits
@@ -32,15 +33,16 @@
  */
 
 #include <sys/types.h>
+
 #include <machine/float.h>
 #include <machine/spr.h>
 
 #ifndef _SOFT_FLOAT
 static const int map[] = {
-	1,	/* round to nearest */
-	0,	/* round to zero */
-	2,	/* round to positive infinity */
-	3	/* round to negative infinity */
+	1, /* round to nearest */
+	0, /* round to zero */
+	2, /* round to positive infinity */
+	3  /* round to negative infinity */
 };
 
 int

@@ -31,10 +31,9 @@
 #include <sys/errno.h>
 #include <sys/mac.h>
 
-#include <unistd.h>
-#include <string.h>
-
 #include <security/mac_veriexec/mac_veriexec.h>
+#include <string.h>
+#include <unistd.h>
 
 /**
  * @brief get veriexec params for a process
@@ -43,8 +42,7 @@
  * @li 0 if successful
  */
 int
-veriexec_get_pid_params(pid_t pid,
-    struct mac_veriexec_syscall_params *params)
+veriexec_get_pid_params(pid_t pid, struct mac_veriexec_syscall_params *params)
 {
 	struct mac_veriexec_syscall_params_args args;
 
@@ -163,23 +161,23 @@ veriexec_get_pid_label(pid_t pid, char *buf, size_t bufsz)
  * and if want ends with / then we match that prefix too.
  */
 static int
-check_label_want(const char *label, size_t labellen,
-    const char *want, size_t wantlen)
+check_label_want(const char *label, size_t labellen, const char *want,
+    size_t wantlen)
 {
 	char *cp;
 
 	/* Does label contain [,]<want>[,] ? */
-	if (labellen > 0 && wantlen > 0 &&
-	    (cp = strstr(label, want)) != NULL) {
+	if (labellen > 0 && wantlen > 0 && (cp = strstr(label, want)) != NULL) {
 		if (cp == label || cp[-1] == ',') {
 			if (cp[wantlen] == '\0' || cp[wantlen] == ',' ||
-			    (cp[wantlen-1] == '/' && want[wantlen-1] == '/'))
+			    (cp[wantlen - 1] == '/' &&
+				want[wantlen - 1] == '/'))
 				return 1; /* yes */
 		}
 	}
-	return 0;			/* no */
+	return 0; /* no */
 }
-	
+
 /**
  * @brief check if a process has label that contains what we want
  *
@@ -201,13 +199,11 @@ veriexec_check_pid_label(pid_t pid, const char *want)
 	struct mac_veriexec_syscall_params params;
 	size_t n;
 
-	if (want != NULL &&
-	    (n = strlen(want)) > 0 &&
+	if (want != NULL && (n = strlen(want)) > 0 &&
 	    veriexec_get_pid_params(pid, &params) == 0) {
-		return check_label_want(params.label, params.labellen,
-		    want, n);
+		return check_label_want(params.label, params.labellen, want, n);
 	}
-	return 0;			/* no */
+	return 0; /* no */
 }
 
 /**
@@ -231,24 +227,22 @@ veriexec_check_path_label(const char *file, const char *want)
 	struct mac_veriexec_syscall_params params;
 	size_t n;
 
-	if (want != NULL && file != NULL &&
-	    (n = strlen(want)) > 0 &&
+	if (want != NULL && file != NULL && (n = strlen(want)) > 0 &&
 	    veriexec_get_path_params(file, &params) == 0) {
-		return check_label_want(params.label, params.labellen,
-		    want, n);
+		return check_label_want(params.label, params.labellen, want, n);
 	}
-	return 0;			/* no */
+	return 0; /* no */
 }
 
 #ifdef UNIT_TEST
-#include <stdlib.h>
-#include <stdio.h>
 #include <err.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 static char *
 hash2hex(char *type, unsigned char *digest)
 {
-	static char buf[2*MAXFINGERPRINTLEN+1];
+	static char buf[2 * MAXFINGERPRINTLEN + 1];
 	size_t n;
 	int i;
 
@@ -260,7 +254,7 @@ hash2hex(char *type, unsigned char *digest)
 		n = 48;
 	}
 	for (i = 0; i < n; i++) {
-		sprintf(&buf[2*i], "%02x", (unsigned)digest[i]);
+		sprintf(&buf[2 * i], "%02x", (unsigned)digest[i]);
 	}
 	return buf;
 }
@@ -298,29 +292,31 @@ main(int argc, char *argv[])
 		if (pflag) {
 			pid = atoi(argv[optind]);
 			if (lflag) {
-				cp = veriexec_get_pid_label(pid, buf, sizeof(buf));
+				cp = veriexec_get_pid_label(pid, buf,
+				    sizeof(buf));
 				if (cp)
 					printf("pid=%d label='%s'\n", pid, cp);
 				continue;
 			}
 			if (want) {
 				error = veriexec_check_pid_label(pid, want);
-				printf("pid=%d want='%s': %d\n",
-				    pid, want, error);
+				printf("pid=%d want='%s': %d\n", pid, want,
+				    error);
 				continue;
 			}
 			error = veriexec_get_pid_params(pid, &params);
 		} else {
 			if (lflag) {
-				cp = veriexec_get_path_label(argv[optind],
-				    buf, sizeof(buf));
+				cp = veriexec_get_path_label(argv[optind], buf,
+				    sizeof(buf));
 				if (cp)
 					printf("path='%s' label='%s'\n",
 					    argv[optind], cp);
 				continue;
 			}
 			if (want) {
-				error = veriexec_check_path_label(argv[optind], want);
+				error = veriexec_check_path_label(argv[optind],
+				    want);
 				printf("path='%s' want='%s': %d\n",
 				    argv[optind], want, error);
 				continue;
@@ -331,10 +327,10 @@ main(int argc, char *argv[])
 			err(2, "%s, error=%d", argv[optind], error);
 		}
 
-		printf("arg=%s, type=%s, flags=%u, label='%s', fingerprint='%s'\n",
+		printf(
+		    "arg=%s, type=%s, flags=%u, label='%s', fingerprint='%s'\n",
 		    argv[optind], params.fp_type, (unsigned)params.flags,
-		    params.label,
-		    hash2hex(params.fp_type, params.fingerprint));
+		    params.label, hash2hex(params.fp_type, params.fingerprint));
 	}
 	return 0;
 }

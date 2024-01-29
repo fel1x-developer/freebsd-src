@@ -36,7 +36,7 @@
 #include <string.h>
 #include <unistd.h>
 
-static int	curtest = 1;
+static int curtest = 1;
 
 /*-
  * This test uses UNIX domain socket pairs to perform some basic exercising
@@ -53,8 +53,9 @@ static int	curtest = 1;
  *   closed.
  */
 
-#define OK(testname)	printf("ok %d - %s\n", curtest, testname); \
-			curtest++;
+#define OK(testname)                               \
+	printf("ok %d - %s\n", curtest, testname); \
+	curtest++;
 
 static void
 fail(int error, const char *func, const char *socktype, const char *rest)
@@ -65,8 +66,7 @@ fail(int error, const char *func, const char *socktype, const char *rest)
 	if (socktype == NULL)
 		printf("# %s(): %s\n", func, strerror(error));
 	else if (rest == NULL)
-		printf("# %s(%s): %s\n", func, socktype,
-		    strerror(error));
+		printf("# %s(%s): %s\n", func, socktype, strerror(error));
 	else
 		printf("# %s(%s, %s): %s\n", func, socktype, rest,
 		    strerror(error));
@@ -81,14 +81,13 @@ fail_assertion(const char *func, const char *socktype, const char *rest,
 	printf("not ok %d - %s\n", curtest, assertion);
 
 	if (socktype == NULL)
-		printf("# %s(): assertion %s failed\n", func,
-		    assertion);
+		printf("# %s(): assertion %s failed\n", func, assertion);
 	else if (rest == NULL)
-		printf("# %s(%s): assertion %s failed\n", func,
-		    socktype, assertion);
+		printf("# %s(%s): assertion %s failed\n", func, socktype,
+		    assertion);
 	else
-		printf("# %s(%s, %s): assertion %s failed\n", func,
-		    socktype, rest, assertion);
+		printf("# %s(%s, %s): assertion %s failed\n", func, socktype,
+		    rest, assertion);
 	exit(-1);
 }
 
@@ -215,7 +214,8 @@ test_evfilt_write(int kq, int fd[2], const char *socktype)
 	 * Write bytes into the socket until we can't write anymore.
 	 */
 	ch = 'a';
-	while ((len = write(fd[0], &ch, sizeof(ch))) == sizeof(ch)) {};
+	while ((len = write(fd[0], &ch, sizeof(ch))) == sizeof(ch)) {
+	};
 	if (len == -1 && errno != EAGAIN && errno != ENOBUFS)
 		fail(errno, "write", socktype, NULL);
 	OK("write");

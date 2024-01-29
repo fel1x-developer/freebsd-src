@@ -27,6 +27,7 @@
  */
 
 #include <sys/endian.h>
+
 #include <ctype.h>
 #include <float.h>
 #include <math.h>
@@ -50,8 +51,8 @@
 void
 _scan_nan(uint32_t *words, int num_words, const char *s)
 {
-	int si;		/* index into s */
-	int bitpos;	/* index into words (in bits) */
+	int si;	    /* index into s */
+	int bitpos; /* index into words (in bits) */
 
 	bzero(words, num_words * sizeof(uint32_t));
 
@@ -70,8 +71,8 @@ _scan_nan(uint32_t *words, int num_words, const char *s)
 #if _BYTE_ORDER == _LITTLE_ENDIAN
 		words[bitpos / 32] |= digittoint(s[si]) << (bitpos % 32);
 #else
-		words[num_words - 1 - bitpos / 32] |=
-		    digittoint(s[si]) << (bitpos % 32);
+		words[num_words - 1 - bitpos / 32] |= digittoint(s[si])
+		    << (bitpos % 32);
 #endif
 	}
 }

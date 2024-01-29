@@ -55,11 +55,11 @@
  */
 
 #ifndef _SDIOB_H
-#define	_SDIOB_H
+#define _SDIOB_H
 
-#define	SDIOB_NAME			sdiob
-#define	_SDIOB_NAME_S(x)		__STRING(x)
-#define	SDIOB_NAME_S			_SDIOB_NAME_S(SDIOB_NAME)
+#define SDIOB_NAME sdiob
+#define _SDIOB_NAME_S(x) __STRING(x)
+#define SDIOB_NAME_S _SDIOB_NAME_S(SDIOB_NAME)
 
 #ifdef _SYS_BUS_H_
 /* Ivars for sdiob. */
@@ -73,18 +73,18 @@ enum sdiob_dev_enum {
 	SDIOB_IVAR_DRVDATA,
 };
 
-#define	SDIOB_ACCESSOR(var, ivar, type)				\
-    __BUS_ACCESSOR(sdio, var, SDIOB, ivar, type)
+#define SDIOB_ACCESSOR(var, ivar, type) \
+	__BUS_ACCESSOR(sdio, var, SDIOB, ivar, type)
 
-SDIOB_ACCESSOR(support_multiblk,SUPPORT_MULTIBLK,	bool)
-SDIOB_ACCESSOR(function,	FUNCTION,		struct sdio_func *)
-SDIOB_ACCESSOR(funcnum,		FUNCNUM,		uint8_t)
-SDIOB_ACCESSOR(class,		CLASS,			uint8_t)
-SDIOB_ACCESSOR(vendor,		VENDOR,			uint16_t)
-SDIOB_ACCESSOR(device,		DEVICE,			uint16_t)
-SDIOB_ACCESSOR(drvdata,		DRVDATA,		void *)
+SDIOB_ACCESSOR(support_multiblk, SUPPORT_MULTIBLK, bool)
+SDIOB_ACCESSOR(function, FUNCTION, struct sdio_func *)
+SDIOB_ACCESSOR(funcnum, FUNCNUM, uint8_t)
+SDIOB_ACCESSOR(class, CLASS, uint8_t)
+SDIOB_ACCESSOR(vendor, VENDOR, uint16_t)
+SDIOB_ACCESSOR(device, DEVICE, uint16_t)
+SDIOB_ACCESSOR(drvdata, DRVDATA, void *)
 
 #undef SDIOB_ACCESSOR
-#endif  /* _SYS_BUS_H_ */
+#endif /* _SYS_BUS_H_ */
 
-#endif	/* _SDIOB_H */
+#endif /* _SDIOB_H */

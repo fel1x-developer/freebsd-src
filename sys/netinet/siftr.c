@@ -86,10 +86,9 @@
 #include <net/if_var.h>
 #include <net/pfil.h>
 #include <net/route.h>
-
 #include <netinet/in.h>
-#include <netinet/in_kdtrace.h>
 #include <netinet/in_fib.h>
+#include <netinet/in_kdtrace.h>
 #include <netinet/in_pcb.h>
 #include <netinet/in_systm.h>
 #include <netinet/in_var.h>
@@ -99,9 +98,9 @@
 
 #ifdef SIFTR_IPV6
 #include <netinet/ip6.h>
-#include <netinet6/ip6_var.h>
 #include <netinet6/in6_fib.h>
 #include <netinet6/in6_pcb.h>
+#include <netinet6/ip6_var.h>
 #endif /* SIFTR_IPV6 */
 
 #include <machine/in_cksum.h>
@@ -112,12 +111,13 @@
  * Y is bumped to mark backwards incompatible changes
  * Z is bumped to mark backwards compatible changes
  */
-#define V_MAJOR		1
-#define V_BACKBREAK	3
-#define V_BACKCOMPAT	0
-#define MODVERSION	__CONCAT(V_MAJOR, __CONCAT(V_BACKBREAK, V_BACKCOMPAT))
-#define MODVERSION_STR	__XSTRING(V_MAJOR) "." __XSTRING(V_BACKBREAK) "." \
-    __XSTRING(V_BACKCOMPAT)
+#define V_MAJOR 1
+#define V_BACKBREAK 3
+#define V_BACKCOMPAT 0
+#define MODVERSION __CONCAT(V_MAJOR, __CONCAT(V_BACKBREAK, V_BACKCOMPAT))
+#define MODVERSION_STR     \
+	__XSTRING(V_MAJOR) \
+	"." __XSTRING(V_BACKBREAK) "." __XSTRING(V_BACKCOMPAT)
 
 #define HOOK 0
 #define UNHOOK 1
@@ -136,7 +136,7 @@
 #define MAX_LOG_MSG_LEN 300
 #define MAX_LOG_BATCH_SIZE 3
 /* XXX: Make this a sysctl tunable. */
-#define SIFTR_ALQ_BUFLEN (1000*MAX_LOG_MSG_LEN)
+#define SIFTR_ALQ_BUFLEN (1000 * MAX_LOG_MSG_LEN)
 
 #ifdef SIFTR_IPV6
 #define SIFTR_IPMODE 6
@@ -145,99 +145,95 @@
 #endif
 
 static MALLOC_DEFINE(M_SIFTR, "siftr", "dynamic memory used by SIFTR");
-static MALLOC_DEFINE(M_SIFTR_PKTNODE, "siftr_pktnode",
-    "SIFTR pkt_node struct");
+static MALLOC_DEFINE(M_SIFTR_PKTNODE, "siftr_pktnode", "SIFTR pkt_node struct");
 static MALLOC_DEFINE(M_SIFTR_HASHNODE, "siftr_hashnode",
     "SIFTR flow_hash_node struct");
 
 /* Used as links in the pkt manager queue. */
 struct pkt_node {
 	/* Timestamp of pkt as noted in the pfil hook. */
-	struct timeval		tval;
+	struct timeval tval;
 	/* Direction pkt is travelling. */
 	enum {
 		DIR_IN = 0,
 		DIR_OUT = 1,
-	}			direction;
+	} direction;
 	/* IP version pkt_node relates to; either INP_IPV4 or INP_IPV6. */
-	uint8_t			ipver;
+	uint8_t ipver;
 	/* Local TCP port. */
-	uint16_t		lport;
+	uint16_t lport;
 	/* Foreign TCP port. */
-	uint16_t		fport;
+	uint16_t fport;
 	/* Local address. */
-	union in_dependaddr	laddr;
+	union in_dependaddr laddr;
 	/* Foreign address. */
-	union in_dependaddr	faddr;
+	union in_dependaddr faddr;
 	/* Congestion Window (bytes). */
-	uint32_t		snd_cwnd;
+	uint32_t snd_cwnd;
 	/* Sending Window (bytes). */
-	uint32_t		snd_wnd;
+	uint32_t snd_wnd;
 	/* Receive Window (bytes). */
-	uint32_t		rcv_wnd;
+	uint32_t rcv_wnd;
 	/* More tcpcb flags storage */
-	uint32_t		t_flags2;
+	uint32_t t_flags2;
 	/* Slow Start Threshold (bytes). */
-	uint32_t		snd_ssthresh;
+	uint32_t snd_ssthresh;
 	/* Current state of the TCP FSM. */
-	int			conn_state;
+	int conn_state;
 	/* Max Segment Size (bytes). */
-	uint32_t		mss;
+	uint32_t mss;
 	/* Smoothed RTT (usecs). */
-	uint32_t		srtt;
+	uint32_t srtt;
 	/* Is SACK enabled? */
-	u_char			sack_enabled;
+	u_char sack_enabled;
 	/* Window scaling for snd window. */
-	u_char			snd_scale;
+	u_char snd_scale;
 	/* Window scaling for recv window. */
-	u_char			rcv_scale;
+	u_char rcv_scale;
 	/* TCP control block flags. */
-	u_int			t_flags;
+	u_int t_flags;
 	/* Retransmission timeout (usec). */
-	uint32_t		rto;
+	uint32_t rto;
 	/* Size of the TCP send buffer in bytes. */
-	u_int			snd_buf_hiwater;
+	u_int snd_buf_hiwater;
 	/* Current num bytes in the send socket buffer. */
-	u_int			snd_buf_cc;
+	u_int snd_buf_cc;
 	/* Size of the TCP receive buffer in bytes. */
-	u_int			rcv_buf_hiwater;
+	u_int rcv_buf_hiwater;
 	/* Current num bytes in the receive socket buffer. */
-	u_int			rcv_buf_cc;
+	u_int rcv_buf_cc;
 	/* Number of bytes inflight that we are waiting on ACKs for. */
-	u_int			sent_inflight_bytes;
+	u_int sent_inflight_bytes;
 	/* Number of segments currently in the reassembly queue. */
-	int			t_segqlen;
+	int t_segqlen;
 	/* Flowid for the connection. */
-	u_int			flowid;
+	u_int flowid;
 	/* Flow type for the connection. */
-	u_int			flowtype;
+	u_int flowtype;
 	/* Link to next pkt_node in the list. */
-	STAILQ_ENTRY(pkt_node)	nodes;
+	STAILQ_ENTRY(pkt_node) nodes;
 };
 
-struct flow_info
-{
+struct flow_info {
 #ifdef SIFTR_IPV6
-	char	laddr[INET6_ADDRSTRLEN];	/* local IP address */
-	char	faddr[INET6_ADDRSTRLEN];	/* foreign IP address */
+	char laddr[INET6_ADDRSTRLEN]; /* local IP address */
+	char faddr[INET6_ADDRSTRLEN]; /* foreign IP address */
 #else
-	char	laddr[INET_ADDRSTRLEN];		/* local IP address */
-	char	faddr[INET_ADDRSTRLEN];		/* foreign IP address */
+	char laddr[INET_ADDRSTRLEN]; /* local IP address */
+	char faddr[INET_ADDRSTRLEN]; /* foreign IP address */
 #endif
-	uint16_t	lport;			/* local TCP port */
-	uint16_t	fport;			/* foreign TCP port */
-	uint32_t	key;			/* flowid of the connection */
+	uint16_t lport; /* local TCP port */
+	uint16_t fport; /* foreign TCP port */
+	uint32_t key;	/* flowid of the connection */
 };
 
-struct flow_hash_node
-{
+struct flow_hash_node {
 	uint16_t counter;
-	struct flow_info const_info;		/* constant connection info */
+	struct flow_info const_info; /* constant connection info */
 	LIST_ENTRY(flow_hash_node) nodes;
 };
 
-struct siftr_stats
-{
+struct siftr_stats {
 	/* # TCP pkts seen by the SIFTR PFIL hooks, including any skipped. */
 	uint64_t n_in;
 	uint64_t n_out;
@@ -260,7 +256,7 @@ DPCPU_DEFINE_STATIC(struct siftr_stats, ss);
 static volatile unsigned int siftr_exit_pkt_manager_thread = 0;
 static unsigned int siftr_enabled = 0;
 static unsigned int siftr_pkts_per_log = 1;
-static uint16_t     siftr_port_filter = 0;
+static uint16_t siftr_port_filter = 0;
 /* static unsigned int siftr_binary_log = 0; */
 static char siftr_logfile[PATH_MAX] = "/var/log/siftr.log";
 static char siftr_logfile_shadow[PATH_MAX] = "/var/log/siftr.log";
@@ -272,7 +268,7 @@ static struct alq *siftr_alq = NULL;
 static struct mtx siftr_pkt_queue_mtx;
 static struct mtx siftr_pkt_mgr_mtx;
 static struct thread *siftr_pkt_manager_thr = NULL;
-static char direction[2] = {'i','o'};
+static char direction[2] = { 'i', 'o' };
 
 /* Required function prototypes. */
 static int siftr_sysctl_enabled_handler(SYSCTL_HANDLER_ARGS);
@@ -286,8 +282,8 @@ SYSCTL_NODE(_net_inet, OID_AUTO, siftr, CTLFLAG_RW | CTLFLAG_MPSAFE, NULL,
     "siftr related settings");
 
 SYSCTL_PROC(_net_inet_siftr, OID_AUTO, enabled,
-    CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_NEEDGIANT,
-    &siftr_enabled, 0, &siftr_sysctl_enabled_handler, "IU",
+    CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, &siftr_enabled, 0,
+    &siftr_sysctl_enabled_handler, "IU",
     "switch siftr module operations on/off");
 
 SYSCTL_PROC(_net_inet_siftr, OID_AUTO, logfile,
@@ -295,13 +291,11 @@ SYSCTL_PROC(_net_inet_siftr, OID_AUTO, logfile,
     sizeof(siftr_logfile_shadow), &siftr_sysctl_logfile_name_handler, "A",
     "file to save siftr log messages to");
 
-SYSCTL_UINT(_net_inet_siftr, OID_AUTO, ppl, CTLFLAG_RW,
-    &siftr_pkts_per_log, 1,
+SYSCTL_UINT(_net_inet_siftr, OID_AUTO, ppl, CTLFLAG_RW, &siftr_pkts_per_log, 1,
     "number of packets between generating a log message");
 
 SYSCTL_U16(_net_inet_siftr, OID_AUTO, port_filter, CTLFLAG_RW,
-    &siftr_port_filter, 0,
-    "enable packet filter on a TCP port");
+    &siftr_port_filter, 0, "enable packet filter on a TCP port");
 
 /* XXX: TODO
 SYSCTL_UINT(_net_inet_siftr, OID_AUTO, binary, CTLFLAG_RW,
@@ -324,7 +318,7 @@ siftr_find_flow(struct listhead *counter_list, uint32_t id)
 		 * Loop through the hash nodes in the list.
 		 * There should normally only be 1 hash node in the list.
 		 */
-		LIST_FOREACH(hash_node, counter_list, nodes) {
+		LIST_FOREACH (hash_node, counter_list, nodes) {
 			/*
 			 * Check if the key for the pkt we are currently
 			 * processing is the same as the key stored in the
@@ -343,8 +337,7 @@ siftr_find_flow(struct listhead *counter_list, uint32_t id)
 }
 
 static inline struct flow_hash_node *
-siftr_new_hash_node(struct flow_info info, int dir,
-		    struct siftr_stats *ss)
+siftr_new_hash_node(struct flow_info info, int dir, struct siftr_stats *ss)
 {
 	struct flow_hash_node *hash_node;
 	struct listhead *counter_list;
@@ -352,7 +345,7 @@ siftr_new_hash_node(struct flow_info info, int dir,
 	counter_list = counter_hash + (info.key & siftr_hashmask);
 	/* Create a new hash node to store the flow's constant info. */
 	hash_node = malloc(sizeof(struct flow_hash_node), M_SIFTR_HASHNODE,
-			   M_NOWAIT|M_ZERO);
+	    M_NOWAIT | M_ZERO);
 
 	if (hash_node != NULL) {
 		/* Initialise our new hash node list entry. */
@@ -372,7 +365,7 @@ siftr_new_hash_node(struct flow_info info, int dir,
 }
 
 static int
-siftr_process_pkt(struct pkt_node * pkt_node, char *buf)
+siftr_process_pkt(struct pkt_node *pkt_node, char *buf)
 {
 	struct flow_hash_node *hash_node;
 	struct listhead *counter_list;
@@ -396,7 +389,7 @@ siftr_process_pkt(struct pkt_node * pkt_node, char *buf)
 		 * messages being written to the log file.
 		 */
 		hash_node->counter = (hash_node->counter + 1) %
-				     siftr_pkts_per_log;
+		    siftr_pkts_per_log;
 		/*
 		 * If we have not seen enough packets since the last time
 		 * we wrote a log message for this connection, return.
@@ -409,34 +402,18 @@ siftr_process_pkt(struct pkt_node * pkt_node, char *buf)
 	ret_sz = snprintf(buf, MAX_LOG_MSG_LEN,
 	    "%c,%jd.%06ld,%s,%hu,%s,%hu,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,"
 	    "%u,%u,%u,%u,%u,%u,%u,%u\n",
-	    direction[pkt_node->direction],
-	    (intmax_t)pkt_node->tval.tv_sec,
-	    pkt_node->tval.tv_usec,
-	    hash_node->const_info.laddr,
-	    hash_node->const_info.lport,
-	    hash_node->const_info.faddr,
-	    hash_node->const_info.fport,
-	    pkt_node->snd_ssthresh,
-	    pkt_node->snd_cwnd,
-	    pkt_node->t_flags2,
-	    pkt_node->snd_wnd,
-	    pkt_node->rcv_wnd,
-	    pkt_node->snd_scale,
-	    pkt_node->rcv_scale,
-	    pkt_node->conn_state,
-	    pkt_node->mss,
-	    pkt_node->srtt,
-	    pkt_node->sack_enabled,
-	    pkt_node->t_flags,
-	    pkt_node->rto,
-	    pkt_node->snd_buf_hiwater,
-	    pkt_node->snd_buf_cc,
-	    pkt_node->rcv_buf_hiwater,
-	    pkt_node->rcv_buf_cc,
-	    pkt_node->sent_inflight_bytes,
-	    pkt_node->t_segqlen,
-	    pkt_node->flowid,
-	    pkt_node->flowtype);
+	    direction[pkt_node->direction], (intmax_t)pkt_node->tval.tv_sec,
+	    pkt_node->tval.tv_usec, hash_node->const_info.laddr,
+	    hash_node->const_info.lport, hash_node->const_info.faddr,
+	    hash_node->const_info.fport, pkt_node->snd_ssthresh,
+	    pkt_node->snd_cwnd, pkt_node->t_flags2, pkt_node->snd_wnd,
+	    pkt_node->rcv_wnd, pkt_node->snd_scale, pkt_node->rcv_scale,
+	    pkt_node->conn_state, pkt_node->mss, pkt_node->srtt,
+	    pkt_node->sack_enabled, pkt_node->t_flags, pkt_node->rto,
+	    pkt_node->snd_buf_hiwater, pkt_node->snd_buf_cc,
+	    pkt_node->rcv_buf_hiwater, pkt_node->rcv_buf_cc,
+	    pkt_node->sent_inflight_bytes, pkt_node->t_segqlen,
+	    pkt_node->flowid, pkt_node->flowtype);
 
 	return ret_sz;
 }
@@ -444,8 +421,8 @@ siftr_process_pkt(struct pkt_node * pkt_node, char *buf)
 static void
 siftr_pkt_manager_thread(void *arg)
 {
-	STAILQ_HEAD(pkthead, pkt_node) tmp_pkt_queue =
-	    STAILQ_HEAD_INITIALIZER(tmp_pkt_queue);
+	STAILQ_HEAD(pkthead, pkt_node) tmp_pkt_queue = STAILQ_HEAD_INITIALIZER(
+	    tmp_pkt_queue);
 	struct pkt_node *pkt_node;
 	uint8_t draining;
 	struct ale *log_buf;
@@ -488,9 +465,11 @@ siftr_pkt_manager_thread(void *arg)
 
 		while ((pkt_node = STAILQ_FIRST(&tmp_pkt_queue)) != NULL) {
 
-			log_buf = alq_getn(siftr_alq, MAX_LOG_MSG_LEN *
-			    ((STAILQ_NEXT(pkt_node, nodes) != NULL) ?
-				MAX_LOG_BATCH_SIZE : 1),
+			log_buf = alq_getn(siftr_alq,
+			    MAX_LOG_MSG_LEN *
+				((STAILQ_NEXT(pkt_node, nodes) != NULL) ?
+					MAX_LOG_BATCH_SIZE :
+					1),
 			    ALQ_WAITOK);
 
 			if (log_buf != NULL) {
@@ -505,10 +484,10 @@ siftr_pkt_manager_thread(void *arg)
 			}
 
 			/* Flush all pkt_nodes to the log file. */
-			STAILQ_FOREACH(pkt_node, &tmp_pkt_queue, nodes) {
+			STAILQ_FOREACH (pkt_node, &tmp_pkt_queue, nodes) {
 				if (log_buf != NULL) {
 					ret_sz = siftr_process_pkt(pkt_node,
-								   bufp);
+					    bufp);
 					bufp += ret_sz;
 					log_buf->ae_bytesused += ret_sz;
 				}
@@ -518,7 +497,7 @@ siftr_pkt_manager_thread(void *arg)
 			if (log_buf != NULL) {
 				alq_post_flags(siftr_alq, log_buf, 0);
 			}
-			for (;cnt > 0; cnt--) {
+			for (; cnt > 0; cnt--) {
 				pkt_node = STAILQ_FIRST(&tmp_pkt_queue);
 				STAILQ_REMOVE_HEAD(&tmp_pkt_queue, nodes);
 				free(pkt_node, M_SIFTR_PKTNODE);
@@ -560,8 +539,8 @@ siftr_pkt_manager_thread(void *arg)
 static inline int
 siftr_chkreinject(struct mbuf *m, int dir, struct siftr_stats *ss)
 {
-	if (m_tag_locate(m, PACKET_COOKIE_SIFTR, PACKET_TAG_SIFTR, NULL)
-	    != NULL) {
+	if (m_tag_locate(m, PACKET_COOKIE_SIFTR, PACKET_TAG_SIFTR, NULL) !=
+	    NULL) {
 		if (dir == PFIL_IN)
 			ss->nskip_in_dejavu++;
 		else
@@ -601,33 +580,31 @@ siftr_findinpcb(int ipver, struct ip *ip, struct mbuf *m, uint16_t sport,
 
 	if (dir == PFIL_IN)
 		inp = (ipver == INP_IPV4 ?
-		    in_pcblookup(&V_tcbinfo, ip->ip_src, sport, ip->ip_dst,
-		    dport, INPLOOKUP_RLOCKPCB, m->m_pkthdr.rcvif)
-		    :
+			in_pcblookup(&V_tcbinfo, ip->ip_src, sport, ip->ip_dst,
+			    dport, INPLOOKUP_RLOCKPCB, m->m_pkthdr.rcvif) :
 #ifdef SIFTR_IPV6
-		    in6_pcblookup(&V_tcbinfo,
-		    &((struct ip6_hdr *)ip)->ip6_src, sport,
-		    &((struct ip6_hdr *)ip)->ip6_dst, dport, INPLOOKUP_RLOCKPCB,
-		    m->m_pkthdr.rcvif)
+			in6_pcblookup(&V_tcbinfo,
+			    &((struct ip6_hdr *)ip)->ip6_src, sport,
+			    &((struct ip6_hdr *)ip)->ip6_dst, dport,
+			    INPLOOKUP_RLOCKPCB, m->m_pkthdr.rcvif)
 #else
-		    NULL
+			NULL
 #endif
-		    );
+		);
 
 	else
 		inp = (ipver == INP_IPV4 ?
-		    in_pcblookup(&V_tcbinfo, ip->ip_dst, dport, ip->ip_src,
-		    sport, INPLOOKUP_RLOCKPCB, m->m_pkthdr.rcvif)
-		    :
+			in_pcblookup(&V_tcbinfo, ip->ip_dst, dport, ip->ip_src,
+			    sport, INPLOOKUP_RLOCKPCB, m->m_pkthdr.rcvif) :
 #ifdef SIFTR_IPV6
-		    in6_pcblookup(&V_tcbinfo,
-		    &((struct ip6_hdr *)ip)->ip6_dst, dport,
-		    &((struct ip6_hdr *)ip)->ip6_src, sport, INPLOOKUP_RLOCKPCB,
-		    m->m_pkthdr.rcvif)
+			in6_pcblookup(&V_tcbinfo,
+			    &((struct ip6_hdr *)ip)->ip6_dst, dport,
+			    &((struct ip6_hdr *)ip)->ip6_src, sport,
+			    INPLOOKUP_RLOCKPCB, m->m_pkthdr.rcvif)
 #else
-		    NULL
+			NULL
 #endif
-		    );
+		);
 
 	/* If we can't find the inpcb, bail. */
 	if (inp == NULL) {
@@ -647,20 +624,14 @@ siftr_get_flowid(struct inpcb *inp, int ipver, uint32_t *phashtype)
 #ifdef SIFTR_IPV6
 		if (ipver == INP_IPV6) {
 			return fib6_calc_packet_hash(&inp->in6p_laddr,
-						     &inp->in6p_faddr,
-						     inp->inp_lport,
-						     inp->inp_fport,
-						     IPPROTO_TCP,
-						     phashtype);
+			    &inp->in6p_faddr, inp->inp_lport, inp->inp_fport,
+			    IPPROTO_TCP, phashtype);
 		} else
 #endif
 		{
 			return fib4_calc_packet_hash(inp->inp_laddr,
-						     inp->inp_faddr,
-						     inp->inp_lport,
-						     inp->inp_fport,
-						     IPPROTO_TCP,
-						     phashtype);
+			    inp->inp_faddr, inp->inp_lport, inp->inp_fport,
+			    IPPROTO_TCP, phashtype);
 		}
 	} else {
 		*phashtype = inp->inp_flowtype;
@@ -837,7 +808,8 @@ siftr_chkpkt(struct mbuf **m, struct ifnet *ifp, int flags,
 		goto inp_unlock;
 	}
 
-	pn = malloc(sizeof(struct pkt_node), M_SIFTR_PKTNODE, M_NOWAIT|M_ZERO);
+	pn = malloc(sizeof(struct pkt_node), M_SIFTR_PKTNODE,
+	    M_NOWAIT | M_ZERO);
 
 	if (pn == NULL) {
 		if (dir == PFIL_IN)
@@ -986,7 +958,8 @@ siftr_chkpkt6(struct mbuf **m, struct ifnet *ifp, int flags,
 		goto inp_unlock6;
 	}
 
-	pn = malloc(sizeof(struct pkt_node), M_SIFTR_PKTNODE, M_NOWAIT|M_ZERO);
+	pn = malloc(sizeof(struct pkt_node), M_SIFTR_PKTNODE,
+	    M_NOWAIT | M_ZERO);
 
 	if (pn == NULL) {
 		if (dir == PFIL_IN)
@@ -1017,10 +990,10 @@ ret6:
 #endif /* #ifdef SIFTR_IPV6 */
 
 VNET_DEFINE_STATIC(pfil_hook_t, siftr_inet_hook);
-#define	V_siftr_inet_hook	VNET(siftr_inet_hook)
+#define V_siftr_inet_hook VNET(siftr_inet_hook)
 #ifdef SIFTR_IPV6
 VNET_DEFINE_STATIC(pfil_hook_t, siftr_inet6_hook);
-#define	V_siftr_inet6_hook	VNET(siftr_inet6_hook)
+#define V_siftr_inet6_hook VNET(siftr_inet6_hook)
 #endif
 static int
 siftr_pfil(int action)
@@ -1039,7 +1012,8 @@ siftr_pfil(int action)
 	VNET_ITERATOR_DECL(vnet_iter);
 
 	VNET_LIST_RLOCK();
-	VNET_FOREACH(vnet_iter) {
+	VNET_FOREACH(vnet_iter)
+	{
 		CURVNET_SET(vnet_iter);
 
 		if (action == HOOK) {
@@ -1211,17 +1185,12 @@ siftr_manage_ops(uint8_t action)
 		    "num_inbound_skipped_pkts_inpcb=%u\t"
 		    "num_outbound_skipped_pkts_inpcb=%u\t"
 		    "total_skipped_tcp_pkts=%u\tflow_list=",
-		    (intmax_t)tval.tv_sec,
-		    tval.tv_usec,
-		    (uintmax_t)totalss.n_in,
-		    (uintmax_t)totalss.n_out,
+		    (intmax_t)tval.tv_sec, tval.tv_usec,
+		    (uintmax_t)totalss.n_in, (uintmax_t)totalss.n_out,
 		    (uintmax_t)(totalss.n_in + totalss.n_out),
-		    totalss.nskip_in_malloc,
-		    totalss.nskip_out_malloc,
-		    totalss.nskip_in_tcpcb,
-		    totalss.nskip_out_tcpcb,
-		    totalss.nskip_in_inpcb,
-		    totalss.nskip_out_inpcb,
+		    totalss.nskip_in_malloc, totalss.nskip_out_malloc,
+		    totalss.nskip_in_tcpcb, totalss.nskip_out_tcpcb,
+		    totalss.nskip_in_inpcb, totalss.nskip_out_inpcb,
 		    total_skipped_pkts);
 
 		/*
@@ -1230,13 +1199,13 @@ siftr_manage_ops(uint8_t action)
 		 * The hash consists of an array of LISTs (man 3 queue).
 		 */
 		for (i = 0; i <= siftr_hashmask; i++) {
-			LIST_FOREACH_SAFE(counter, counter_hash + i, nodes,
+			LIST_FOREACH_SAFE (counter, counter_hash + i, nodes,
 			    tmp_counter) {
 				sbuf_printf(s, "%s;%hu-%s;%hu,",
-					    counter->const_info.laddr,
-					    counter->const_info.lport,
-					    counter->const_info.faddr,
-					    counter->const_info.fport);
+				    counter->const_info.laddr,
+				    counter->const_info.lport,
+				    counter->const_info.faddr,
+				    counter->const_info.fport);
 
 				free(counter, M_SIFTR_HASHNODE);
 			}
@@ -1249,8 +1218,9 @@ siftr_manage_ops(uint8_t action)
 
 		i = 0;
 		do {
-			bytes_to_write = min(SIFTR_ALQ_BUFLEN, sbuf_len(s)-i);
-			alq_writen(siftr_alq, sbuf_data(s)+i, bytes_to_write, ALQ_WAITOK);
+			bytes_to_write = min(SIFTR_ALQ_BUFLEN, sbuf_len(s) - i);
+			alq_writen(siftr_alq, sbuf_data(s) + i, bytes_to_write,
+			    ALQ_WAITOK);
 			i += bytes_to_write;
 		} while (i < sbuf_len(s));
 
@@ -1336,7 +1306,7 @@ init_siftr(void)
 
 	/* Print message to the user's current terminal. */
 	uprintf("\nStatistical Information For TCP Research (SIFTR) %s\n"
-	    "          http://caia.swin.edu.au/urp/newtcp\n\n",
+		"          http://caia.swin.edu.au/urp/newtcp\n\n",
 	    MODVERSION_STR);
 
 	return (0);

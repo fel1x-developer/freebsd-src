@@ -32,6 +32,7 @@
 
 #include <sys/param.h>
 #include <sys/endian.h>
+
 #include <ctype.h>
 #include <locale.h>
 #include <stdbool.h>
@@ -67,44 +68,45 @@
  *	Added ordering options.
  */
 
-#define	STORING_PTRS	(Oflag || Rflag)
-#define	CHUNKSIZE	512
+#define STORING_PTRS (Oflag || Rflag)
+#define CHUNKSIZE 512
 
-#define		ALLOC(ptr, sz)	do { \
-			if (ptr == NULL) \
-				ptr = malloc(CHUNKSIZE * sizeof(*ptr)); \
-			else if (((sz) + 1) % CHUNKSIZE == 0) \
-				ptr = realloc(ptr, ((sz) + CHUNKSIZE) * sizeof(*ptr)); \
-			if (ptr == NULL) { \
-				fprintf(stderr, "out of space\n"); \
-				exit(1); \
-			} \
-		} while (0)
+#define ALLOC(ptr, sz)                                                         \
+	do {                                                                   \
+		if (ptr == NULL)                                               \
+			ptr = malloc(CHUNKSIZE * sizeof(*ptr));                \
+		else if (((sz) + 1) % CHUNKSIZE == 0)                          \
+			ptr = realloc(ptr, ((sz) + CHUNKSIZE) * sizeof(*ptr)); \
+		if (ptr == NULL) {                                             \
+			fprintf(stderr, "out of space\n");                     \
+			exit(1);                                               \
+		}                                                              \
+	} while (0)
 
 typedef struct {
-	int	first;
-	off_t	pos;
+	int first;
+	off_t pos;
 } STR;
 
-static char	*Infile		= NULL,		/* input file name */
-		Outfile[MAXPATHLEN] = "",	/* output file name */
-		Delimch		= '%';		/* delimiting character */
+static char *Infile = NULL,   /* input file name */
+    Outfile[MAXPATHLEN] = "", /* output file name */
+    Delimch = '%';	      /* delimiting character */
 
-static int	Cflag		= false;	/* embedded comments */
-static int	Sflag		= false;	/* silent run flag */
-static int	Oflag		= false;	/* ordering flag */
-static int	Iflag		= false;	/* ignore case flag */
-static int	Rflag		= false;	/* randomize order flag */
-static int	Xflag		= false;	/* set rotated bit */
-static uint32_t	Num_pts		= 0;		/* number of pointers/strings */
+static int Cflag = false;    /* embedded comments */
+static int Sflag = false;    /* silent run flag */
+static int Oflag = false;    /* ordering flag */
+static int Iflag = false;    /* ignore case flag */
+static int Rflag = false;    /* randomize order flag */
+static int Xflag = false;    /* set rotated bit */
+static uint32_t Num_pts = 0; /* number of pointers/strings */
 
-static off_t	*Seekpts;
+static off_t *Seekpts;
 
-static FILE	*Sort_1, *Sort_2;		/* pointers for sorting */
+static FILE *Sort_1, *Sort_2; /* pointers for sorting */
 
-static STRFILE	Tbl;				/* statistics table */
+static STRFILE Tbl; /* statistics table */
 
-static STR	*Firstch;			/* first chars of each string */
+static STR *Firstch; /* first chars of each string */
 
 static void add_offset(FILE *, off_t);
 static int cmp_str(const void *, const void *);
@@ -137,7 +139,7 @@ main(int ac, char *av[])
 
 	setlocale(LC_ALL, "");
 
-	getargs(ac, av);		/* evalute arguments */
+	getargs(ac, av); /* evalute arguments */
 	dc = Delimch;
 	if ((inf = fopen(Infile, "r")) == NULL) {
 		perror(Infile);
@@ -177,8 +179,7 @@ main(int ac, char *av[])
 			if ((size_t)Tbl.str_shortlen > length)
 				Tbl.str_shortlen = length;
 			first = Oflag;
-		}
-		else if (first) {
+		} else if (first) {
 			for (nsp = sp; !isalnum((unsigned char)*nsp); nsp++)
 				continue;
 			ALLOC(Firstch, Num_pts);
@@ -217,9 +218,9 @@ main(int ac, char *av[])
 		else
 			printf("There were %u strings\n", Num_pts - 1);
 		printf("Longest string: %u byte%s\n", Tbl.str_longlen,
-		       Tbl.str_longlen == 1 ? "" : "s");
+		    Tbl.str_longlen == 1 ? "" : "s");
 		printf("Shortest string: %u byte%s\n", Tbl.str_shortlen,
-		       Tbl.str_shortlen == 1 ? "" : "s");
+		    Tbl.str_shortlen == 1 ? "" : "s");
 	}
 
 	rewind(outf);
@@ -247,30 +248,30 @@ getargs(int argc, char **argv)
 	int ch;
 
 	while ((ch = getopt(argc, argv, "Cc:iorsx")) != -1)
-		switch(ch) {
-		case 'C':			/* embedded comments */
+		switch (ch) {
+		case 'C': /* embedded comments */
 			Cflag++;
 			break;
-		case 'c':			/* new delimiting char */
+		case 'c': /* new delimiting char */
 			Delimch = *optarg;
 			if (!isascii(Delimch)) {
 				printf("bad delimiting character: '\\%o\n'",
-				       (unsigned char)Delimch);
+				    (unsigned char)Delimch);
 			}
 			break;
-		case 'i':			/* ignore case in ordering */
+		case 'i': /* ignore case in ordering */
 			Iflag++;
 			break;
-		case 'o':			/* order strings */
+		case 'o': /* order strings */
 			Oflag++;
 			break;
-		case 'r':			/* randomize pointers */
+		case 'r': /* randomize pointers */
 			Rflag++;
 			break;
-		case 's':			/* silent */
+		case 's': /* silent */
 			Sflag++;
 			break;
-		case 'x':			/* set the rotated bit */
+		case 'x': /* set the rotated bit */
 			Xflag++;
 			break;
 		case '?':
@@ -296,7 +297,7 @@ getargs(int argc, char **argv)
 	}
 	if (*Outfile == '\0') {
 		if ((size_t)snprintf(Outfile, sizeof(Outfile), "%s.dat",
-		    Infile) >= sizeof(Outfile)) {
+			Infile) >= sizeof(Outfile)) {
 			fprintf(stderr,
 			    "generated output_file path is too long\n");
 			exit(1);
@@ -378,8 +379,8 @@ cmp_str(const void *s1, const void *s2)
 	const STR *p1, *p2;
 	int c1, c2, n1, n2, r;
 
-#define	SET_N(nf,ch)	(nf = (ch == '\n'))
-#define	IS_END(ch,nf)	(ch == EOF || (ch == (unsigned char)Delimch && nf))
+#define SET_N(nf, ch) (nf = (ch == '\n'))
+#define IS_END(ch, nf) (ch == EOF || (ch == (unsigned char)Delimch && nf))
 
 	p1 = (const STR *)s1;
 	p2 = (const STR *)s2;

@@ -39,38 +39,40 @@
 #include <dev/virtio/pci/virtio_pci_var.h>
 
 /* VirtIO ABI version, this must match exactly. */
-#define VIRTIO_PCI_ABI_VERSION	0
+#define VIRTIO_PCI_ABI_VERSION 0
 
 /*
  * VirtIO Header, located in BAR 0.
  */
-#define VIRTIO_PCI_HOST_FEATURES  0  /* host's supported features (32bit, RO)*/
-#define VIRTIO_PCI_GUEST_FEATURES 4  /* guest's supported features (32, RW) */
-#define VIRTIO_PCI_QUEUE_PFN      8  /* physical address of VQ (32, RW) */
-#define VIRTIO_PCI_QUEUE_NUM      12 /* number of ring entries (16, RO) */
-#define VIRTIO_PCI_QUEUE_SEL      14 /* current VQ selection (16, RW) */
-#define VIRTIO_PCI_QUEUE_NOTIFY	  16 /* notify host regarding VQ (16, RW) */
-#define VIRTIO_PCI_STATUS         18 /* device status register (8, RW) */
-#define VIRTIO_PCI_ISR            19 /* interrupt status register, reading
-				      * also clears the register (8, RO) */
+#define VIRTIO_PCI_HOST_FEATURES 0  /* host's supported features (32bit, RO)*/
+#define VIRTIO_PCI_GUEST_FEATURES 4 /* guest's supported features (32, RW) */
+#define VIRTIO_PCI_QUEUE_PFN 8	    /* physical address of VQ (32, RW) */
+#define VIRTIO_PCI_QUEUE_NUM 12	    /* number of ring entries (16, RO) */
+#define VIRTIO_PCI_QUEUE_SEL 14	    /* current VQ selection (16, RW) */
+#define VIRTIO_PCI_QUEUE_NOTIFY 16  /* notify host regarding VQ (16, RW) */
+#define VIRTIO_PCI_STATUS 18	    /* device status register (8, RW) */
+#define VIRTIO_PCI_ISR                           \
+	19 /* interrupt status register, reading \
+	    * also clears the register (8, RO) */
 /* Only if MSIX is enabled: */
-#define VIRTIO_MSI_CONFIG_VECTOR  20 /* configuration change vector (16, RW) */
-#define VIRTIO_MSI_QUEUE_VECTOR   22 /* vector for selected VQ notifications
-					(16, RW) */
+#define VIRTIO_MSI_CONFIG_VECTOR 20 /* configuration change vector (16, RW) */
+#define VIRTIO_MSI_QUEUE_VECTOR                    \
+	22 /* vector for selected VQ notifications \
+	      (16, RW) */
 
 /*
  * The remaining space is defined by each driver as the per-driver
  * configuration space.
  */
-#define VIRTIO_PCI_CONFIG_OFF(msix_enabled)     ((msix_enabled) ? 24 : 20)
+#define VIRTIO_PCI_CONFIG_OFF(msix_enabled) ((msix_enabled) ? 24 : 20)
 
 /*
  * How many bits to shift physical queue address written to QUEUE_PFN.
  * 12 is historical, and due to x86 page size.
  */
-#define VIRTIO_PCI_QUEUE_ADDR_SHIFT	12
+#define VIRTIO_PCI_QUEUE_ADDR_SHIFT 12
 
 /* The alignment to use between consumer and producer parts of vring. */
-#define VIRTIO_PCI_VRING_ALIGN	4096
+#define VIRTIO_PCI_VRING_ALIGN 4096
 
 #endif /* _VIRTIO_PCI_LEGACY_VAR_H */

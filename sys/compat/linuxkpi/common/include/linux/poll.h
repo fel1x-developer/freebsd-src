@@ -26,22 +26,23 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef	_LINUXKPI_LINUX_POLL_H_
-#define	_LINUXKPI_LINUX_POLL_H_
+#ifndef _LINUXKPI_LINUX_POLL_H_
+#define _LINUXKPI_LINUX_POLL_H_
 
-#include <sys/poll.h>
 #include <sys/fcntl.h>
+#include <sys/poll.h>
 
 #include <linux/eventpoll.h>
-#include <linux/wait.h>
 #include <linux/file.h>
+#include <linux/wait.h>
 
 typedef struct poll_table_struct {
 } poll_table;
 
-extern void linux_poll_wait(struct linux_file *, wait_queue_head_t *, poll_table *);
-#define	poll_wait(...) linux_poll_wait(__VA_ARGS__)
+extern void linux_poll_wait(struct linux_file *, wait_queue_head_t *,
+    poll_table *);
+#define poll_wait(...) linux_poll_wait(__VA_ARGS__)
 
 extern void linux_poll_wakeup(struct linux_file *);
 
-#endif	/* _LINUXKPI_LINUX_POLL_H_ */
+#endif /* _LINUXKPI_LINUX_POLL_H_ */

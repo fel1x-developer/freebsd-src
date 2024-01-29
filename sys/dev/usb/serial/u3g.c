@@ -29,67 +29,67 @@
  */
 
 #include <sys/param.h>
-#include <sys/eventhandler.h>
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/queue.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/eventhandler.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
+#include <dev/usb/usb_cdc.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
-#include <dev/usb/usb_cdc.h>
+
 #include "usbdevs.h"
 
-#define	USB_DEBUG_VAR u3g_debug
-#include <dev/usb/usb_debug.h>
-#include <dev/usb/usb_process.h>
-#include <dev/usb/usb_msctest.h>
-
-#include <dev/usb/serial/usb_serial.h>
+#define USB_DEBUG_VAR u3g_debug
 #include <dev/usb/quirk/usb_quirk.h>
+#include <dev/usb/serial/usb_serial.h>
+#include <dev/usb/usb_debug.h>
+#include <dev/usb/usb_msctest.h>
+#include <dev/usb/usb_process.h>
 
 #ifdef USB_DEBUG
 static int u3g_debug = 0;
 
 static SYSCTL_NODE(_hw_usb, OID_AUTO, u3g, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "USB 3g");
-SYSCTL_INT(_hw_usb_u3g, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &u3g_debug, 0, "Debug level");
+SYSCTL_INT(_hw_usb_u3g, OID_AUTO, debug, CTLFLAG_RWTUN, &u3g_debug, 0,
+    "Debug level");
 #endif
 
-#define	U3G_MAXPORTS		12
-#define	U3G_CONFIG_INDEX	0
-#define	U3G_BSIZE		2048
-#define	U3G_TXSIZE		(U3G_BSIZE / U3G_TXFRAMES)
-#define	U3G_TXFRAMES		4
+#define U3G_MAXPORTS 12
+#define U3G_CONFIG_INDEX 0
+#define U3G_BSIZE 2048
+#define U3G_TXSIZE (U3G_BSIZE / U3G_TXFRAMES)
+#define U3G_TXFRAMES 4
 
 /* Eject methods; See also usb_quirks.h:UQ_MSC_EJECT_* */
-#define	U3GINIT_HUAWEI		1	/* Requires Huawei init command */
-#define	U3GINIT_SIERRA		2	/* Requires Sierra init command */
-#define	U3GINIT_SCSIEJECT	3	/* Requires SCSI eject command */
-#define	U3GINIT_REZERO		4	/* Requires SCSI rezero command */
-#define	U3GINIT_ZTESTOR		5	/* Requires ZTE SCSI command */
-#define	U3GINIT_CMOTECH		6	/* Requires CMOTECH SCSI command */
-#define	U3GINIT_WAIT		7	/* Device reappears after a delay */
-#define	U3GINIT_SAEL_M460	8	/* Requires vendor init */
-#define	U3GINIT_HUAWEISCSI	9	/* Requires Huawei SCSI init command */
-#define	U3GINIT_HUAWEISCSI2	10	/* Requires Huawei SCSI init command (2) */
-#define	U3GINIT_HUAWEISCSI3	11	/* Requires Huawei SCSI init command (3) */
-#define	U3GINIT_HUAWEISCSI4	12	/* Requires Huawei SCSI init command (4) */
-#define	U3GINIT_TCT		13	/* Requires TCT Mobile init command */
+#define U3GINIT_HUAWEI 1       /* Requires Huawei init command */
+#define U3GINIT_SIERRA 2       /* Requires Sierra init command */
+#define U3GINIT_SCSIEJECT 3    /* Requires SCSI eject command */
+#define U3GINIT_REZERO 4       /* Requires SCSI rezero command */
+#define U3GINIT_ZTESTOR 5      /* Requires ZTE SCSI command */
+#define U3GINIT_CMOTECH 6      /* Requires CMOTECH SCSI command */
+#define U3GINIT_WAIT 7	       /* Device reappears after a delay */
+#define U3GINIT_SAEL_M460 8    /* Requires vendor init */
+#define U3GINIT_HUAWEISCSI 9   /* Requires Huawei SCSI init command */
+#define U3GINIT_HUAWEISCSI2 10 /* Requires Huawei SCSI init command (2) */
+#define U3GINIT_HUAWEISCSI3 11 /* Requires Huawei SCSI init command (3) */
+#define U3GINIT_HUAWEISCSI4 12 /* Requires Huawei SCSI init command (4) */
+#define U3GINIT_TCT 13	       /* Requires TCT Mobile init command */
 
 enum {
 	U3G_BULK_WR,
@@ -103,10 +103,10 @@ struct u3g_softc {
 	struct ucom_softc sc_ucom[U3G_MAXPORTS];
 
 	struct usb_xfer *sc_xfer[U3G_MAXPORTS][U3G_N_TRANSFER];
-	uint8_t sc_iface[U3G_MAXPORTS];			/* local status register */
-	uint8_t sc_lsr[U3G_MAXPORTS];			/* local status register */
-	uint8_t sc_msr[U3G_MAXPORTS];			/* u3g status register */
-	uint16_t sc_line[U3G_MAXPORTS];			/* line status */
+	uint8_t sc_iface[U3G_MAXPORTS]; /* local status register */
+	uint8_t sc_lsr[U3G_MAXPORTS];	/* local status register */
+	uint8_t sc_msr[U3G_MAXPORTS];	/* u3g status register */
+	uint16_t sc_line[U3G_MAXPORTS]; /* line status */
 
 	struct usb_device *sc_udev;
 	struct mtx sc_mtx;
@@ -134,7 +134,7 @@ static void u3g_poll(struct ucom_softc *ucom);
 static void u3g_free(struct ucom_softc *ucom);
 
 static void u3g_test_autoinst(void *, struct usb_device *,
-		struct usb_attach_arg *);
+    struct usb_attach_arg *);
 static int u3g_driver_loaded(struct module *mod, int what, void *arg);
 
 static eventhandler_tag u3g_etag;
@@ -181,12 +181,9 @@ static const struct ucom_callback u3g_callback = {
 	.ucom_free = &u3g_free,
 };
 
-static device_method_t u3g_methods[] = {
-	DEVMETHOD(device_probe, u3g_probe),
+static device_method_t u3g_methods[] = { DEVMETHOD(device_probe, u3g_probe),
 	DEVMETHOD(device_attach, u3g_attach),
-	DEVMETHOD(device_detach, u3g_detach),
-	DEVMETHOD_END
-};
+	DEVMETHOD(device_detach, u3g_detach), DEVMETHOD_END };
 
 static driver_t u3g_driver = {
 	.name = "u3g",
@@ -195,7 +192,10 @@ static driver_t u3g_driver = {
 };
 
 static const STRUCT_USB_HOST_ID u3g_devs[] = {
-#define	U3G_DEV(v,p,i) { USB_VPI(USB_VENDOR_##v, USB_PRODUCT_##v##_##p, i) }
+#define U3G_DEV(v, p, i)                                          \
+	{                                                         \
+		USB_VPI(USB_VENDOR_##v, USB_PRODUCT_##v##_##p, i) \
+	}
 	U3G_DEV(ABIT, AK_020, 0),
 	U3G_DEV(ACERP, H10, 0),
 	U3G_DEV(AIRPLUS, MCD650, 0),
@@ -632,7 +632,7 @@ static const STRUCT_USB_HOST_ID u3g_devs[] = {
 	U3G_DEV(QUALCOMMINC, ZTE_STOR2, U3GINIT_SCSIEJECT),
 	U3G_DEV(QUANTA, Q101_STOR, U3GINIT_SCSIEJECT),
 	U3G_DEV(SIERRA, TRUINSTALL, U3GINIT_SIERRA),
-#undef	U3G_DEV
+#undef U3G_DEV
 };
 
 DRIVER_MODULE(u3g, uhub, u3g_driver, u3g_driver_loaded, NULL);
@@ -652,8 +652,7 @@ u3g_sierra_init(struct usb_device *udev)
 	USETW(req.wIndex, UHF_PORT_CONNECTION);
 	USETW(req.wLength, 0);
 
-	if (usbd_do_request_flags(udev, NULL, &req,
-	    NULL, 0, NULL, USB_MS_HZ)) {
+	if (usbd_do_request_flags(udev, NULL, &req, NULL, 0, NULL, USB_MS_HZ)) {
 		/* ignore any errors */
 	}
 	return (0);
@@ -670,8 +669,7 @@ u3g_huawei_init(struct usb_device *udev)
 	USETW(req.wIndex, UHF_PORT_SUSPEND);
 	USETW(req.wLength, 0);
 
-	if (usbd_do_request_flags(udev, NULL, &req,
-	    NULL, 0, NULL, USB_MS_HZ)) {
+	if (usbd_do_request_flags(udev, NULL, &req, NULL, 0, NULL, USB_MS_HZ)) {
 		/* ignore any errors */
 	}
 	return (0);
@@ -720,33 +718,33 @@ static void
 u3g_sael_m460_init(struct usb_device *udev)
 {
 	static const uint8_t setup[][24] = {
-	     { 0x41, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-	     { 0x41, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 },
-	     { 0x41, 0x13, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00,
-	       0x01, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00, 0x00,
-	       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-	     { 0xc1, 0x0f, 0x00, 0x00, 0x00, 0x00, 0x40, 0x02 },
-	     { 0xc1, 0x08, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00 },
-	     { 0x41, 0x07, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00 },
-	     { 0xc1, 0x0f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02 },
-	     { 0x41, 0x01, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00 },
-	     { 0x41, 0x07, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00 },
-	     { 0x41, 0x03, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00 },
-	     { 0x41, 0x19, 0x00, 0x00, 0x00, 0x00, 0x06, 0x00,
-	       0x00, 0x00, 0x00, 0x00, 0x11, 0x13 },
-	     { 0x41, 0x13, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00,
-	       0x09, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00,
-	       0x0a, 0x00, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x00 },
-	     { 0x41, 0x12, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00 },
-	     { 0x41, 0x01, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00 },
-	     { 0x41, 0x07, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00 },
-	     { 0x41, 0x03, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00 },
-	     { 0x41, 0x19, 0x00, 0x00, 0x00, 0x00, 0x06, 0x00,
-	       0x00, 0x00, 0x00, 0x00, 0x11, 0x13 },
-	     { 0x41, 0x13, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00,
-	       0x09, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00,
-	       0x0a, 0x00, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x00 },
-	     { 0x41, 0x07, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x41, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x41, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x41, 0x13, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x01, 0x00,
+		    0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		    0x00, 0x00, 0x00, 0x00 },
+		{ 0xc1, 0x0f, 0x00, 0x00, 0x00, 0x00, 0x40, 0x02 },
+		{ 0xc1, 0x08, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00 },
+		{ 0x41, 0x07, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00 },
+		{ 0xc1, 0x0f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02 },
+		{ 0x41, 0x01, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x41, 0x07, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x41, 0x03, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x41, 0x19, 0x00, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00,
+		    0x00, 0x00, 0x11, 0x13 },
+		{ 0x41, 0x13, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x09, 0x00,
+		    0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x00,
+		    0x0a, 0x00, 0x00, 0x00 },
+		{ 0x41, 0x12, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x41, 0x01, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x41, 0x07, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x41, 0x03, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x41, 0x19, 0x00, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00,
+		    0x00, 0x00, 0x11, 0x13 },
+		{ 0x41, 0x13, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x09, 0x00,
+		    0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x00,
+		    0x0a, 0x00, 0x00, 0x00 },
+		{ 0x41, 0x07, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00 },
 	};
 
 	struct usb_device_request req;
@@ -781,8 +779,7 @@ u3g_sael_m460_init(struct usb_device *udev)
 			    __DECONST(uint8_t *, &setup[n][8]));
 		}
 		if (err) {
-			DPRINTFN(1, "request %u failed\n",
-			    (unsigned)n);
+			DPRINTFN(1, "request %u failed\n", (unsigned)n);
 			/*
 			 * Some of the requests will fail. Stop doing
 			 * requests when we are getting timeouts so
@@ -847,58 +844,57 @@ u3g_test_autoinst(void *arg, struct usb_device *udev,
 	else if (usbd_lookup_id_by_uaa(u3g_devs, sizeof(u3g_devs), uaa) == 0)
 		method = USB_GET_DRIVER_INFO(uaa);
 	else
-		return;		/* no device match */
+		return; /* no device match */
 
 	if (bootverbose) {
 		printf("Ejecting %s %s using method %ld\n",
-		       usb_get_manufacturer(udev),
-		       usb_get_product(udev), method);
+		    usb_get_manufacturer(udev), usb_get_product(udev), method);
 	}
 
 	switch (method) {
-		case U3GINIT_HUAWEI:
-			error = u3g_huawei_init(udev);
-			break;
-		case U3GINIT_HUAWEISCSI:
-			error = usb_msc_eject(udev, 0, MSC_EJECT_HUAWEI);
-			break;
-		case U3GINIT_HUAWEISCSI2:
-			error = usb_msc_eject(udev, 0, MSC_EJECT_HUAWEI2);
-			break;
-		case U3GINIT_HUAWEISCSI3:
-			error = usb_msc_eject(udev, 0, MSC_EJECT_HUAWEI3);
-			break;
-		case U3GINIT_HUAWEISCSI4:
-			error = usb_msc_eject(udev, 0, MSC_EJECT_HUAWEI4);
-			break;
-		case U3GINIT_SCSIEJECT:
-			error = usb_msc_eject(udev, 0, MSC_EJECT_STOPUNIT);
-			break;
-		case U3GINIT_REZERO:
-			error = usb_msc_eject(udev, 0, MSC_EJECT_REZERO);
-			break;
-		case U3GINIT_ZTESTOR:
-			error = usb_msc_eject(udev, 0, MSC_EJECT_STOPUNIT);
-			if (error == 0)
-			    error = usb_msc_eject(udev, 0, MSC_EJECT_ZTESTOR);
-			break;
-		case U3GINIT_CMOTECH:
-			error = usb_msc_eject(udev, 0, MSC_EJECT_CMOTECH);
-			break;
-		case U3GINIT_TCT:
-			error = usb_msc_eject(udev, 0, MSC_EJECT_TCT);
-			break;
-		case U3GINIT_SIERRA:
-			error = u3g_sierra_init(udev);
-			break;
-		case U3GINIT_WAIT:
-			/* Just pretend we ejected, the card will timeout */
-			error = 0;
-			break;
-		default:
-			/* no 3G eject quirks */
-			error = EOPNOTSUPP;
-			break;
+	case U3GINIT_HUAWEI:
+		error = u3g_huawei_init(udev);
+		break;
+	case U3GINIT_HUAWEISCSI:
+		error = usb_msc_eject(udev, 0, MSC_EJECT_HUAWEI);
+		break;
+	case U3GINIT_HUAWEISCSI2:
+		error = usb_msc_eject(udev, 0, MSC_EJECT_HUAWEI2);
+		break;
+	case U3GINIT_HUAWEISCSI3:
+		error = usb_msc_eject(udev, 0, MSC_EJECT_HUAWEI3);
+		break;
+	case U3GINIT_HUAWEISCSI4:
+		error = usb_msc_eject(udev, 0, MSC_EJECT_HUAWEI4);
+		break;
+	case U3GINIT_SCSIEJECT:
+		error = usb_msc_eject(udev, 0, MSC_EJECT_STOPUNIT);
+		break;
+	case U3GINIT_REZERO:
+		error = usb_msc_eject(udev, 0, MSC_EJECT_REZERO);
+		break;
+	case U3GINIT_ZTESTOR:
+		error = usb_msc_eject(udev, 0, MSC_EJECT_STOPUNIT);
+		if (error == 0)
+			error = usb_msc_eject(udev, 0, MSC_EJECT_ZTESTOR);
+		break;
+	case U3GINIT_CMOTECH:
+		error = usb_msc_eject(udev, 0, MSC_EJECT_CMOTECH);
+		break;
+	case U3GINIT_TCT:
+		error = usb_msc_eject(udev, 0, MSC_EJECT_TCT);
+		break;
+	case U3GINIT_SIERRA:
+		error = u3g_sierra_init(udev);
+		break;
+	case U3GINIT_WAIT:
+		/* Just pretend we ejected, the card will timeout */
+		error = 0;
+		break;
+	default:
+		/* no 3G eject quirks */
+		error = EOPNOTSUPP;
+		break;
 	}
 	if (error == 0) {
 		/* success, mark the udev as disappearing */
@@ -939,7 +935,7 @@ u3g_probe(device_t self)
 		return (ENXIO);
 	}
 	if (u3g_huawei_is_cdce(uaa->info.idVendor, uaa->info.bInterfaceSubClass,
-	    uaa->info.bInterfaceProtocol)) {
+		uaa->info.bInterfaceProtocol)) {
 		return (ENXIO);
 	}
 	return (usbd_lookup_id_by_uaa(u3g_devs, sizeof(u3g_devs), uaa));
@@ -961,8 +957,8 @@ u3g_attach(device_t dev)
 	DPRINTF("sc=%p\n", sc);
 
 	type = USB_GET_DRIVER_INFO(uaa);
-	if (type == U3GINIT_SAEL_M460
-	    || usb_test_quirk(uaa, UQ_MSC_EJECT_SAEL_M460)) {
+	if (type == U3GINIT_SAEL_M460 ||
+	    usb_test_quirk(uaa, UQ_MSC_EJECT_SAEL_M460)) {
 		u3g_sael_m460_init(uaa->device);
 	}
 
@@ -986,17 +982,17 @@ u3g_attach(device_t dev)
 		if (id == NULL || id->bInterfaceClass != UICLASS_VENDOR)
 			continue;
 		if (u3g_huawei_is_cdce(uaa->info.idVendor,
-		    id->bInterfaceSubClass, id->bInterfaceProtocol))
+			id->bInterfaceSubClass, id->bInterfaceProtocol))
 			continue;
 		usbd_set_parent_iface(uaa->device, i, uaa->info.bIfaceIndex);
-		iface_valid |= (1<<i);
+		iface_valid |= (1 << i);
 	}
 
-	i = 0;		/* interface index */
-	ep = 0;		/* endpoint index */
-	nports = 0;	/* number of ports */
+	i = 0;	    /* interface index */
+	ep = 0;	    /* endpoint index */
+	nports = 0; /* number of ports */
 	while (i < USB_IFACE_MAX) {
-		if ((iface_valid & (1<<i)) == 0) {
+		if ((iface_valid & (1 << i)) == 0) {
 			i++;
 			continue;
 		}
@@ -1022,7 +1018,7 @@ u3g_attach(device_t dev)
 
 		if (bootverbose && sc->sc_xfer[nports][U3G_INTR]) {
 			device_printf(dev, "port %d supports modem control\n",
-				      nports);
+			    nports);
 		}
 
 		/* set stall by default */
@@ -1031,7 +1027,7 @@ u3g_attach(device_t dev)
 		usbd_xfer_set_stall(sc->sc_xfer[nports][U3G_BULK_RD]);
 		mtx_unlock(&sc->sc_mtx);
 
-		nports++;	/* found one port */
+		nports++; /* found one port */
 		ep++;
 		if (nports == U3G_MAXPORTS)
 			break;
@@ -1042,15 +1038,15 @@ u3g_attach(device_t dev)
 	}
 	sc->sc_numports = nports;
 
-	error = ucom_attach(&sc->sc_super_ucom, sc->sc_ucom,
-	    sc->sc_numports, sc, &u3g_callback, &sc->sc_mtx);
+	error = ucom_attach(&sc->sc_super_ucom, sc->sc_ucom, sc->sc_numports,
+	    sc, &u3g_callback, &sc->sc_mtx);
 	if (error) {
 		DPRINTF("ucom_attach failed\n");
 		goto detach;
 	}
 	ucom_set_pnpinfo_usb(&sc->sc_super_ucom, dev);
 	device_printf(dev, "Found %u port%s.\n", sc->sc_numports,
-	    sc->sc_numports > 1 ? "s":"");
+	    sc->sc_numports > 1 ? "s" : "");
 
 	return (0);
 
@@ -1148,12 +1144,14 @@ u3g_write_callback(struct usb_xfer *xfer, usb_error_t error)
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_TRANSFERRED:
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		for (frame = 0; frame != U3G_TXFRAMES; frame++) {
-			usbd_xfer_set_frame_offset(xfer, frame * U3G_TXSIZE, frame);
+			usbd_xfer_set_frame_offset(xfer, frame * U3G_TXSIZE,
+			    frame);
 
 			pc = usbd_xfer_get_frame(xfer, frame);
-			if (ucom_get_data(ucom, pc, 0, U3G_TXSIZE, &actlen) == 0)
+			if (ucom_get_data(ucom, pc, 0, U3G_TXSIZE, &actlen) ==
+			    0)
 				break;
 			usbd_xfer_set_frame_len(xfer, frame, actlen);
 		}
@@ -1163,7 +1161,7 @@ tr_setup:
 		}
 		break;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* do a builtin clear-stall */
 			usbd_xfer_set_stall(xfer);
@@ -1188,12 +1186,12 @@ u3g_read_callback(struct usb_xfer *xfer, usb_error_t error)
 		ucom_put_data(ucom, pc, 0, actlen);
 
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		break;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* do a builtin clear-stall */
 			usbd_xfer_set_stall(xfer);
@@ -1226,8 +1224,7 @@ u3g_cfg_set_line(struct ucom_softc *ucom)
 	req.wIndex[1] = 0;
 	USETW(req.wLength, 0);
 
-	ucom_cfg_do_request(sc->sc_udev, ucom,
-	    &req, NULL, 0, 1000);
+	ucom_cfg_do_request(sc->sc_udev, ucom, &req, NULL, 0, 1000);
 }
 
 static void
@@ -1275,8 +1272,9 @@ u3g_intr_callback(struct usb_xfer *xfer, usb_error_t error)
 
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_TRANSFERRED:
-		if (actlen < 8) {	/* usb_cdc_notification with 2 data bytes */
-			DPRINTF("message too short (expected 8, received %d)\n", actlen);
+		if (actlen < 8) { /* usb_cdc_notification with 2 data bytes */
+			DPRINTF("message too short (expected 8, received %d)\n",
+			    actlen);
 			goto tr_setup;
 		}
 		pc = usbd_xfer_get_frame(xfer, 0);
@@ -1284,18 +1282,20 @@ u3g_intr_callback(struct usb_xfer *xfer, usb_error_t error)
 
 		wLen = UGETW(pkt.wLength);
 		if (wLen < 2) {
-			DPRINTF("message too short (expected 2 data bytes, received %d)\n", wLen);
+			DPRINTF(
+			    "message too short (expected 2 data bytes, received %d)\n",
+			    wLen);
 			goto tr_setup;
 		}
 
-		if (pkt.bmRequestType == UCDC_NOTIFICATION
-		    && pkt.bNotification == UCDC_N_SERIAL_STATE) {
+		if (pkt.bmRequestType == UCDC_NOTIFICATION &&
+		    pkt.bNotification == UCDC_N_SERIAL_STATE) {
 			/*
-		         * Set the serial state in ucom driver based on
-		         * the bits from the notify message
-		         */
-			DPRINTF("notify bytes = 0x%02x, 0x%02x\n",
-			    pkt.data[0], pkt.data[1]);
+			 * Set the serial state in ucom driver based on
+			 * the bits from the notify message
+			 */
+			DPRINTF("notify bytes = 0x%02x, 0x%02x\n", pkt.data[0],
+			    pkt.data[1]);
 
 			/* currently, lsr is always zero. */
 			sc->sc_lsr[ucom->sc_subunit] = 0;
@@ -1313,12 +1313,12 @@ u3g_intr_callback(struct usb_xfer *xfer, usb_error_t error)
 		}
 
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);

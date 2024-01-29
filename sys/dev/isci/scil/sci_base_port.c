@@ -66,23 +66,14 @@
 //* P R O T E C T E D   M E T H O D S
 //******************************************************************************
 
-void sci_base_port_construct(
-   SCI_BASE_PORT_T   *this_port,
-   SCI_BASE_LOGGER_T *logger,
-   SCI_BASE_STATE_T  *state_table
-)
+void
+sci_base_port_construct(SCI_BASE_PORT_T *this_port, SCI_BASE_LOGGER_T *logger,
+    SCI_BASE_STATE_T *state_table)
 {
-   sci_base_object_construct(&this_port->parent, logger);
+	sci_base_object_construct(&this_port->parent, logger);
 
-   sci_base_state_machine_construct(
-      &this_port->state_machine,
-      &this_port->parent,
-      state_table,
-      SCI_BASE_PORT_STATE_STOPPED
-   );
+	sci_base_state_machine_construct(&this_port->state_machine,
+	    &this_port->parent, state_table, SCI_BASE_PORT_STATE_STOPPED);
 
-   sci_base_state_machine_start(
-      &this_port->state_machine
-   );
+	sci_base_state_machine_start(&this_port->state_machine);
 }
-

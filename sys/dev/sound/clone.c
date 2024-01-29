@@ -89,12 +89,13 @@ struct snd_clone {
 };
 
 #ifdef SND_DIAGNOSTIC
-#define SND_CLONE_ASSERT(x, y)		do {			\
-	if (!(x))						\
-		panic y;					\
-} while (0)
+#define SND_CLONE_ASSERT(x, y)   \
+	do {                     \
+		if (!(x))        \
+			panic y; \
+	} while (0)
 #else
-#define SND_CLONE_ASSERT(...)		KASSERT(__VA_ARGS__)
+#define SND_CLONE_ASSERT(...) KASSERT(__VA_ARGS__)
 #endif
 
 /*
@@ -108,9 +109,9 @@ snd_clone_create(int typemask, int maxunit, int deadline, uint32_t flags)
 	SND_CLONE_ASSERT(!(typemask & ~SND_CLONE_MAXUNIT),
 	    ("invalid typemask: 0x%08x", typemask));
 	SND_CLONE_ASSERT(maxunit == -1 ||
-	    !(maxunit & ~(~typemask & SND_CLONE_MAXUNIT)),
-	    ("maxunit overflow: typemask=0x%08x maxunit=%d",
-	    typemask, maxunit));
+		!(maxunit & ~(~typemask & SND_CLONE_MAXUNIT)),
+	    ("maxunit overflow: typemask=0x%08x maxunit=%d", typemask,
+		maxunit));
 	SND_CLONE_ASSERT(!(flags & ~SND_CLONE_MASK),
 	    ("invalid clone flags=0x%08x", flags));
 
@@ -119,7 +120,7 @@ snd_clone_create(int typemask, int maxunit, int deadline, uint32_t flags)
 	c->size = 0;
 	c->typemask = typemask;
 	c->maxunit = (maxunit == -1) ? (~typemask & SND_CLONE_MAXUNIT) :
-	    maxunit;
+				       maxunit;
 	c->deadline = deadline;
 	c->flags = flags;
 	getnanouptime(&c->tsp);
@@ -138,7 +139,7 @@ snd_clone_busy(struct snd_clone *c)
 	if (c->size == 0)
 		return (0);
 
-	TAILQ_FOREACH(ce, &c->head, link) {
+	TAILQ_FOREACH (ce, &c->head, link) {
 		if ((ce->flags & SND_CLONE_BUSY) ||
 		    (ce->devt != NULL && ce->devt->si_threadcount != 0))
 			return (EBUSY);
@@ -201,12 +202,12 @@ snd_clone_setmaxunit(struct snd_clone *c, int maxunit)
 {
 	SND_CLONE_ASSERT(c != NULL, ("NULL snd_clone"));
 	SND_CLONE_ASSERT(maxunit == -1 ||
-	    !(maxunit & ~(~c->typemask & SND_CLONE_MAXUNIT)),
-	    ("maxunit overflow: typemask=0x%08x maxunit=%d",
-	    c->typemask, maxunit));
+		!(maxunit & ~(~c->typemask & SND_CLONE_MAXUNIT)),
+	    ("maxunit overflow: typemask=0x%08x maxunit=%d", c->typemask,
+		maxunit));
 
 	c->maxunit = (maxunit == -1) ? (~c->typemask & SND_CLONE_MAXUNIT) :
-	    maxunit;
+				       maxunit;
 
 	return (c->maxunit);
 }
@@ -286,17 +287,17 @@ snd_clone_setdevflags(struct cdev *dev, uint32_t flags)
 }
 
 /* Elapsed time conversion to ms */
-#define SND_CLONE_ELAPSED(x, y)						\
-	((((x)->tv_sec - (y)->tv_sec) * 1000) +				\
-	(((y)->tv_nsec > (x)->tv_nsec) ?				\
-	(((1000000000L + (x)->tv_nsec -					\
-	(y)->tv_nsec) / 1000000) - 1000) :				\
-	(((x)->tv_nsec - (y)->tv_nsec) / 1000000)))
+#define SND_CLONE_ELAPSED(x, y)                                                \
+	((((x)->tv_sec - (y)->tv_sec) * 1000) +                                \
+	    (((y)->tv_nsec > (x)->tv_nsec) ?                                   \
+		    (((1000000000L + (x)->tv_nsec - (y)->tv_nsec) / 1000000) - \
+			1000) :                                                \
+		    (((x)->tv_nsec - (y)->tv_nsec) / 1000000)))
 
-#define SND_CLONE_EXPIRED(x, y, z)					\
-	((x)->deadline < 1 ||						\
-	((y)->tv_sec - (z)->tv_sec) > ((x)->deadline / 1000) ||		\
-	SND_CLONE_ELAPSED(y, z) > (x)->deadline)
+#define SND_CLONE_EXPIRED(x, y, z)                                  \
+	((x)->deadline < 1 ||                                       \
+	    ((y)->tv_sec - (z)->tv_sec) > ((x)->deadline / 1000) || \
+	    SND_CLONE_ELAPSED(y, z) > (x)->deadline)
 
 /*
  * snd_clone_gc() : Garbage collector for stalled, expired objects. Refer to
@@ -332,10 +333,10 @@ snd_clone_gc(struct snd_clone *c)
 	 * and either revoke its clone invocation status or mercilessly
 	 * throw it away.
 	 */
-	TAILQ_FOREACH_REVERSE_SAFE(ce, &c->head, link_head, link, tce) {
+	TAILQ_FOREACH_REVERSE_SAFE (ce, &c->head, link_head, link, tce) {
 		if (!(ce->flags & SND_CLONE_BUSY) &&
 		    (!(ce->flags & SND_CLONE_INVOKE) ||
-		    SND_CLONE_EXPIRED(c, &now, &ce->tsp))) {
+			SND_CLONE_EXPIRED(c, &now, &ce->tsp))) {
 			if ((c->flags & SND_CLONE_GC_REVOKE) ||
 			    ce->devt->si_threadcount != 0) {
 				ce->flags &= ~SND_CLONE_INVOKE;
@@ -481,12 +482,12 @@ snd_clone_unref(struct cdev *dev)
 
 	c->refcount--;
 
-	/* 
+	/*
 	 * Run automatic garbage collector, if needed.
 	 */
 	if ((c->flags & SND_CLONE_GC_UNREF) &&
 	    (!(c->flags & SND_CLONE_GC_LASTREF) ||
-	    (c->refcount == 0 && (c->flags & SND_CLONE_GC_LASTREF))))
+		(c->refcount == 0 && (c->flags & SND_CLONE_GC_LASTREF))))
 		(void)snd_clone_gc(c);
 
 	return (c->refcount);
@@ -502,8 +503,8 @@ snd_clone_register(struct snd_clone_entry *ce, struct cdev *dev)
 	    ("invalid clone alloc flags=0x%08x", ce->flags));
 	SND_CLONE_ASSERT(ce->devt == NULL, ("ce->devt not NULL"));
 	SND_CLONE_ASSERT(ce->unit == dev2unit(dev),
-	    ("invalid unit ce->unit=0x%08x dev2unit=0x%08x",
-	    ce->unit, dev2unit(dev)));
+	    ("invalid unit ce->unit=0x%08x dev2unit=0x%08x", ce->unit,
+		dev2unit(dev)));
 
 	SND_CLONE_ASSERT(ce->parent != NULL, ("NULL parent"));
 
@@ -524,12 +525,12 @@ snd_clone_alloc(struct snd_clone *c, struct cdev **dev, int *unit, int tmask)
 	SND_CLONE_ASSERT(c != NULL, ("NULL snd_clone"));
 	SND_CLONE_ASSERT(dev != NULL, ("NULL dev pointer"));
 	SND_CLONE_ASSERT((c->typemask & tmask) == tmask,
-	    ("invalid tmask: typemask=0x%08x tmask=0x%08x",
-	    c->typemask, tmask));
+	    ("invalid tmask: typemask=0x%08x tmask=0x%08x", c->typemask,
+		tmask));
 	SND_CLONE_ASSERT(unit != NULL, ("NULL unit pointer"));
 	SND_CLONE_ASSERT(*unit == -1 || !(*unit & (c->typemask | tmask)),
 	    ("typemask collision: typemask=0x%08x tmask=0x%08x *unit=%d",
-	    c->typemask, tmask, *unit));
+		c->typemask, tmask, *unit));
 
 	if (!(c->flags & SND_CLONE_ENABLE) ||
 	    (*unit != -1 && *unit > c->maxunit))
@@ -537,17 +538,17 @@ snd_clone_alloc(struct snd_clone *c, struct cdev **dev, int *unit, int tmask)
 
 	ce = NULL;
 	after = NULL;
-	bce = NULL;	/* "b"usy candidate */
-	cce = NULL;	/* "c"urthread/proc candidate */
-	nce = NULL;	/* "n"ull, totally unbusy candidate */
-	tce = NULL;	/* Last "t"ry candidate */
+	bce = NULL; /* "b"usy candidate */
+	cce = NULL; /* "c"urthread/proc candidate */
+	nce = NULL; /* "n"ull, totally unbusy candidate */
+	tce = NULL; /* Last "t"ry candidate */
 	cunit = 0;
 	allocunit = (*unit == -1) ? 0 : *unit;
 	curpid = curthread->td_proc->p_pid;
 
 	getnanouptime(&now);
 
-	TAILQ_FOREACH(ce, &c->head, link) {
+	TAILQ_FOREACH (ce, &c->head, link) {
 		/*
 		 * Sort incrementally according to device type.
 		 */
@@ -587,8 +588,9 @@ snd_clone_alloc(struct snd_clone *c, struct cdev **dev, int *unit, int tmask)
 		 *      any entries that doesn't fit with anything above.
 		 */
 		if (ce->flags & SND_CLONE_BUSY) {
-			if (ce->devt != NULL && (bce == NULL ||
-			    timespeccmp(&ce->tsp, &bce->tsp, <)))
+			if (ce->devt != NULL &&
+			    (bce == NULL ||
+				timespeccmp(&ce->tsp, &bce->tsp, <)))
 				bce = ce;
 			continue;
 		}

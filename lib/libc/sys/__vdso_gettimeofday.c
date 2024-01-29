@@ -28,11 +28,14 @@
 #include <sys/elf.h>
 #include <sys/time.h>
 #include <sys/vdso.h>
+
+#include <machine/atomic.h>
+
 #include <errno.h>
 #include <stdbool.h>
 #include <strings.h>
 #include <time.h>
-#include <machine/atomic.h>
+
 #include "libc_private.h"
 
 static int

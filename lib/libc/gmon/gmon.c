@@ -29,12 +29,11 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/param.h>
-#include <sys/time.h>
 #include <sys/gmon.h>
 #include <sys/mman.h>
 #include <sys/sysctl.h>
+#include <sys/time.h>
 
 #include <err.h>
 #include <fcntl.h>
@@ -43,21 +42,22 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "un-namespace.h"
 
 #include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 struct gmonparam _gmonparam = { GMON_PROF_OFF };
 
-static int	s_scale;
+static int s_scale;
 /* See profil(2) where this is described (incorrectly). */
-#define	SCALE_SHIFT	16
+#define SCALE_SHIFT 16
 
 #define ERR(s) _write(2, s, sizeof(s))
 
-void	moncontrol(int);
+void moncontrol(int);
 static int hertz(void);
-void	_mcleanup(void);
+void _mcleanup(void);
 
 void
 monstartup(u_long lowpc, u_long highpc)
@@ -102,7 +102,8 @@ monstartup(u_long lowpc, u_long highpc)
 
 	o = p->highpc - p->lowpc;
 	s_scale = (p->kcountsize < o) ?
-	    ((uintmax_t)p->kcountsize << SCALE_SHIFT) / o : (1 << SCALE_SHIFT);
+	    ((uintmax_t)p->kcountsize << SCALE_SHIFT) / o :
+	    (1 << SCALE_SHIFT);
 	moncontrol(1);
 }
 
@@ -146,24 +147,24 @@ _mcleanup(void)
 
 	moncontrol(0);
 	if (getenv("PROFIL_USE_PID"))
-		snprintf(outname, sizeof(outname), "%s.%d.gmon",
-		    _getprogname(), getpid());
+		snprintf(outname, sizeof(outname), "%s.%d.gmon", _getprogname(),
+		    getpid());
 	else
 		snprintf(outname, sizeof(outname), "%s.gmon", _getprogname());
 
-	fd = _open(outname, O_CREAT|O_TRUNC|O_WRONLY|O_CLOEXEC, 0666);
+	fd = _open(outname, O_CREAT | O_TRUNC | O_WRONLY | O_CLOEXEC, 0666);
 	if (fd < 0) {
 		_warn("_mcleanup: %s", outname);
 		return;
 	}
 #ifdef DEBUG
-	log = _open("gmon.log", O_CREAT|O_TRUNC|O_WRONLY|O_CLOEXEC, 0664);
+	log = _open("gmon.log", O_CREAT | O_TRUNC | O_WRONLY | O_CLOEXEC, 0664);
 	if (log < 0) {
 		_warn("_mcleanup: gmon.log");
 		return;
 	}
-	len = sprintf(buf, "[mcleanup1] kcount 0x%p ssiz %lu\n",
-	    p->kcount, p->kcountsize);
+	len = sprintf(buf, "[mcleanup1] kcount 0x%p ssiz %lu\n", p->kcount,
+	    p->kcountsize);
 	_write(log, buf, len);
 #endif
 	hdr = (struct gmonhdr *)&gmonhdr;
@@ -186,9 +187,9 @@ _mcleanup(void)
 		     toindex = p->tos[toindex].link) {
 #ifdef DEBUG
 			len = sprintf(buf,
-			"[mcleanup2] frompc 0x%lx selfpc 0x%lx count %lu\n" ,
-				frompc, p->tos[toindex].selfpc,
-				p->tos[toindex].count);
+			    "[mcleanup2] frompc 0x%lx selfpc 0x%lx count %lu\n",
+			    frompc, p->tos[toindex].selfpc,
+			    p->tos[toindex].count);
 			_write(log, buf, len);
 #endif
 			rawarc.raw_frompc = frompc;
@@ -237,6 +238,6 @@ hertz(void)
 	setitimer(ITIMER_REAL, &tim, 0);
 	setitimer(ITIMER_REAL, 0, &tim);
 	if (tim.it_interval.tv_usec < 2)
-		return(0);
+		return (0);
 	return (1000000 / tim.it_interval.tv_usec);
 }

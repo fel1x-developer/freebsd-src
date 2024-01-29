@@ -32,32 +32,31 @@
 #include <sys/param.h>
 
 #include <errno.h>
+#include <pjdlog.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <strings.h>
 #include <unistd.h>
 
-#include <pjdlog.h>
-
 #include "ebuf.h"
 
-#ifndef	PJDLOG_ASSERT
+#ifndef PJDLOG_ASSERT
 #include <assert.h>
-#define	PJDLOG_ASSERT(...)	assert(__VA_ARGS__)
+#define PJDLOG_ASSERT(...) assert(__VA_ARGS__)
 #endif
 
-#define	EBUF_MAGIC	0xeb0f41c
+#define EBUF_MAGIC 0xeb0f41c
 struct ebuf {
 	/* Magic to assert the caller uses valid structure. */
-	int		 eb_magic;
+	int eb_magic;
 	/* Address where we did the allocation. */
-	unsigned char	*eb_start;
+	unsigned char *eb_start;
 	/* Allocation end address. */
-	unsigned char	*eb_end;
+	unsigned char *eb_end;
 	/* Start of real data. */
-	unsigned char	*eb_used;
+	unsigned char *eb_used;
 	/* Size of real data. */
-	size_t		 eb_size;
+	size_t eb_size;
 };
 
 static int ebuf_head_extend(struct ebuf *eb, size_t size);
@@ -147,8 +146,8 @@ ebuf_add_tail(struct ebuf *eb, const void *data, size_t size)
 		if (ebuf_tail_extend(eb, size) == -1)
 			return (-1);
 	}
-	PJDLOG_ASSERT(size <=
-	    (size_t)(eb->eb_end - (eb->eb_used + eb->eb_size)));
+	PJDLOG_ASSERT(
+	    size <= (size_t)(eb->eb_end - (eb->eb_used + eb->eb_size)));
 
 	/*
 	 * If data is NULL the caller just wants to reserve space.
@@ -224,8 +223,8 @@ ebuf_head_extend(struct ebuf *eb, size_t size)
 	newstart = malloc(newsize);
 	if (newstart == NULL)
 		return (-1);
-	newused =
-	    newstart + (page_size / 4) + size + (eb->eb_used - eb->eb_start);
+	newused = newstart + (page_size / 4) + size +
+	    (eb->eb_used - eb->eb_start);
 
 	bcopy(eb->eb_used, newused, eb->eb_size);
 

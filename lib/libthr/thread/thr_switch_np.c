@@ -33,14 +33,14 @@
  */
 
 #include <sys/cdefs.h>
-#include "namespace.h"
+
 #include <errno.h>
 #include <pthread.h>
 #include <pthread_np.h>
-#include "un-namespace.h"
 
+#include "namespace.h"
 #include "thr_private.h"
-
+#include "un-namespace.h"
 
 __weak_reference(_pthread_switch_add_np, pthread_switch_add_np);
 __weak_reference(_pthread_switch_delete_np, pthread_switch_delete_np);

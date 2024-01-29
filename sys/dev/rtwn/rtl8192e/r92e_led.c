@@ -24,34 +24,32 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <dev/rtwn/if_rtwnvar.h>
-
 #include <dev/rtwn/rtl8192e/r92e.h>
 #include <dev/rtwn/rtl8192e/r92e_reg.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 void
 r92e_set_led(struct rtwn_softc *sc, int led, int on)
@@ -62,6 +60,6 @@ r92e_set_led(struct rtwn_softc *sc, int led, int on)
 			rtwn_setbits_1(sc, R92C_LEDCFG1, 0, R92C_LEDCFG1_DIS);
 		else
 			rtwn_setbits_1(sc, R92C_LEDCFG1, R92C_LEDCFG1_DIS, 0);
-		sc->ledlink = on;	/* Save LED state. */
+		sc->ledlink = on; /* Save LED state. */
 	}
 }

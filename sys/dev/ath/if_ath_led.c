@@ -37,8 +37,8 @@
  * is greatly appreciated.
  */
 
-#include "opt_inet.h"
 #include "opt_ath.h"
+#include "opt_inet.h"
 /*
  * This is needed for register operations which are performed
  * by the driver - eg, calls to ath_hal_gettsf32().
@@ -48,38 +48,37 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/sysctl.h>
-#include <sys/mbuf.h>
-#include <sys/malloc.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
+#include <sys/bus.h>
+#include <sys/callout.h>
+#include <sys/endian.h>
+#include <sys/errno.h>
 #include <sys/kernel.h>
+#include <sys/kthread.h>
+#include <sys/ktr.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/priv.h>
+#include <sys/smp.h> /* for mp_ncpus */
 #include <sys/socket.h>
 #include <sys/sockio.h>
-#include <sys/errno.h>
-#include <sys/callout.h>
-#include <sys/bus.h>
-#include <sys/endian.h>
-#include <sys/kthread.h>
+#include <sys/sysctl.h>
 #include <sys/taskqueue.h>
-#include <sys/priv.h>
-#include <sys/module.h>
-#include <sys/ktr.h>
-#include <sys/smp.h>	/* for mp_ncpus */
 
 #include <machine/bus.h>
 
+#include <net/ethernet.h>
 #include <net/if.h>
+#include <net/if_arp.h>
 #include <net/if_dl.h>
+#include <net/if_llc.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_llc.h>
 #include <net/if_var.h>
-
-#include <net80211/ieee80211_var.h>
 #include <net80211/ieee80211_regdomain.h>
+#include <net80211/ieee80211_var.h>
 #ifdef IEEE80211_SUPPORT_SUPERG
 #include <net80211/ieee80211_superg.h>
 #endif
@@ -90,18 +89,16 @@
 #include <net/bpf.h>
 
 #ifdef INET
-#include <netinet/in.h>
 #include <netinet/if_ether.h>
+#include <netinet/in.h>
 #endif
 
-#include <dev/ath/if_athvar.h>
-#include <dev/ath/ath_hal/ah_devid.h>		/* XXX for softled */
+#include <dev/ath/ath_hal/ah_devid.h> /* XXX for softled */
 #include <dev/ath/ath_hal/ah_diagcodes.h>
-
 #include <dev/ath/if_ath_debug.h>
-#include <dev/ath/if_ath_misc.h>
-
 #include <dev/ath/if_ath_led.h>
+#include <dev/ath/if_ath_misc.h>
+#include <dev/ath/if_athvar.h>
 
 /*
  * Software LED driver routines.
@@ -192,8 +189,8 @@ ath_led_blink(struct ath_softc *sc, int on, int off)
 void
 ath_led_event(struct ath_softc *sc, int rix)
 {
-	sc->sc_ledevent = ticks;	/* time of last event */
-	if (sc->sc_blinking)		/* don't interrupt active blink */
+	sc->sc_ledevent = ticks; /* time of last event */
+	if (sc->sc_blinking)	 /* don't interrupt active blink */
 		return;
 	ath_led_blink(sc, sc->sc_hwmap[rix].ledon, sc->sc_hwmap[rix].ledoff);
 }

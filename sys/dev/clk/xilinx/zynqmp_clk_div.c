@@ -26,24 +26,22 @@
  */
 
 #include <sys/cdefs.h>
-
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
 
 #include <dev/clk/clk.h>
-
 #include <dev/clk/xilinx/zynqmp_clk_div.h>
 
 #include "clkdev_if.h"
 #include "zynqmp_firmware_if.h"
 
-#define DIV_ROUND_CLOSEST(n, d)	(((n) + (d) / 2) / (d))
+#define DIV_ROUND_CLOSEST(n, d) (((n) + (d) / 2) / (d))
 
 struct zynqmp_clk_div_softc {
-	device_t			firmware;
-	enum zynqmp_clk_div_type	type;
-	uint32_t			id;
+	device_t firmware;
+	enum zynqmp_clk_div_type type;
+	uint32_t id;
 };
 
 static int
@@ -64,8 +62,7 @@ zynqmp_clk_div_recalc(struct clknode *clk, uint64_t *freq)
 	sc = clknode_get_softc(clk);
 	rv = ZYNQMP_FIRMWARE_CLOCK_GETDIVIDER(sc->firmware, sc->id, &div);
 	if (rv != 0) {
-		printf("%s: Error while getting divider for %s\n",
-		    __func__,
+		printf("%s: Error while getting divider for %s\n", __func__,
 		    clknode_get_name(clk));
 		return (EINVAL);
 	}
@@ -99,8 +96,7 @@ zynqmp_clk_div_set_freq(struct clknode *clk, uint64_t fparent, uint64_t *fout,
 
 	rv = ZYNQMP_FIRMWARE_CLOCK_SETDIVIDER(sc->firmware, sc->id, div);
 	if (rv != 0) {
-		printf("%s: Error while setting divider for %s\n",
-		    __func__,
+		printf("%s: Error while setting divider for %s\n", __func__,
 		    clknode_get_name(clk));
 		return (EINVAL);
 	}
@@ -110,17 +106,19 @@ zynqmp_clk_div_set_freq(struct clknode *clk, uint64_t fparent, uint64_t *fout,
 
 static clknode_method_t zynqmp_clk_div_clknode_methods[] = {
 	/* Device interface */
-	CLKNODEMETHOD(clknode_init,		zynqmp_clk_div_init),
-	CLKNODEMETHOD(clknode_recalc_freq,	zynqmp_clk_div_recalc),
-	CLKNODEMETHOD(clknode_set_freq,		zynqmp_clk_div_set_freq),
+	CLKNODEMETHOD(clknode_init, zynqmp_clk_div_init),
+	CLKNODEMETHOD(clknode_recalc_freq, zynqmp_clk_div_recalc),
+	CLKNODEMETHOD(clknode_set_freq, zynqmp_clk_div_set_freq),
 	CLKNODEMETHOD_END
 };
 
 DEFINE_CLASS_1(zynqmp_clk_div_clknode, zynqmp_clk_div_clknode_class,
-    zynqmp_clk_div_clknode_methods, sizeof(struct zynqmp_clk_div_softc), clknode_class);
+    zynqmp_clk_div_clknode_methods, sizeof(struct zynqmp_clk_div_softc),
+    clknode_class);
 
 int
-zynqmp_clk_div_register(struct clkdom *clkdom, device_t fw, struct clknode_init_def *clkdef, enum zynqmp_clk_div_type type)
+zynqmp_clk_div_register(struct clkdom *clkdom, device_t fw,
+    struct clknode_init_def *clkdef, enum zynqmp_clk_div_type type)
 {
 	struct clknode *clk;
 	struct zynqmp_clk_div_softc *sc;

@@ -30,64 +30,64 @@
  */
 
 #ifndef __PCI_HOST_GENERIC_H_
-#define	__PCI_HOST_GENERIC_H_
+#define __PCI_HOST_GENERIC_H_
 
 #include "pci_if.h"
 
 /* Assembling ECAM Configuration Address */
-#define	PCIE_BUS_SHIFT		20
-#define	PCIE_SLOT_SHIFT		15
-#define	PCIE_FUNC_SHIFT		12
-#define	PCIE_BUS_MASK		0xFF
-#define	PCIE_SLOT_MASK		0x1F
-#define	PCIE_FUNC_MASK		0x07
-#define	PCIE_REG_MASK		0xFFF
+#define PCIE_BUS_SHIFT 20
+#define PCIE_SLOT_SHIFT 15
+#define PCIE_FUNC_SHIFT 12
+#define PCIE_BUS_MASK 0xFF
+#define PCIE_SLOT_MASK 0x1F
+#define PCIE_FUNC_MASK 0x07
+#define PCIE_REG_MASK 0xFFF
 
-#define	PCIE_ADDR_OFFSET(bus, slot, func, reg)			\
-	((((bus) & PCIE_BUS_MASK) << PCIE_BUS_SHIFT)	|	\
-	(((slot) & PCIE_SLOT_MASK) << PCIE_SLOT_SHIFT)	|	\
-	(((func) & PCIE_FUNC_MASK) << PCIE_FUNC_SHIFT)	|	\
-	((reg) & PCIE_REG_MASK))
+#define PCIE_ADDR_OFFSET(bus, slot, func, reg)               \
+	((((bus) & PCIE_BUS_MASK) << PCIE_BUS_SHIFT) |       \
+	    (((slot) & PCIE_SLOT_MASK) << PCIE_SLOT_SHIFT) | \
+	    (((func) & PCIE_FUNC_MASK) << PCIE_FUNC_SHIFT) | \
+	    ((reg) & PCIE_REG_MASK))
 
-#define	MAX_RANGES_TUPLES	16
-#define	MIN_RANGES_TUPLES	2
+#define MAX_RANGES_TUPLES 16
+#define MIN_RANGES_TUPLES 2
 
 struct pcie_range {
-	uint64_t	pci_base;
-	uint64_t	phys_base;
-	uint64_t	size;
-	uint64_t	flags;
-#define	FLAG_TYPE(x)		((x) & FLAG_TYPE_MASK)
-#define	FLAG_TYPE_MASK		0x3
-#define	FLAG_TYPE_INVALID	0x0
-#define	FLAG_TYPE_IO		0x1
-#define	FLAG_TYPE_MEM		0x2
-#define	FLAG_TYPE_PMEM		0x3
+	uint64_t pci_base;
+	uint64_t phys_base;
+	uint64_t size;
+	uint64_t flags;
+#define FLAG_TYPE(x) ((x) & FLAG_TYPE_MASK)
+#define FLAG_TYPE_MASK 0x3
+#define FLAG_TYPE_INVALID 0x0
+#define FLAG_TYPE_IO 0x1
+#define FLAG_TYPE_MEM 0x2
+#define FLAG_TYPE_PMEM 0x3
 };
 
 struct generic_pcie_core_softc {
-	struct pcie_range	ranges[MAX_RANGES_TUPLES];
-	int			nranges;
-	int			coherent;
-	bool			has_pmem;
-	struct rman		pmem_rman;
-	struct rman		mem_rman;
-	struct rman		io_rman;
-	struct resource		*res;
-	struct resource		*res1;
-	int			bus_start;
-	int			bus_end;
-	int			ecam;
-	device_t		dev;
-	bus_space_handle_t	ioh;
-	bus_dma_tag_t		dmat;
-	uint32_t		quirks;
+	struct pcie_range ranges[MAX_RANGES_TUPLES];
+	int nranges;
+	int coherent;
+	bool has_pmem;
+	struct rman pmem_rman;
+	struct rman mem_rman;
+	struct rman io_rman;
+	struct resource *res;
+	struct resource *res1;
+	int bus_start;
+	int bus_end;
+	int ecam;
+	device_t dev;
+	bus_space_handle_t ioh;
+	bus_dma_tag_t dmat;
+	uint32_t quirks;
 };
 
 /* Quirks */
-#define PCIE_ECAM_DESIGNWARE_QUIRK	(1 << 0)
+#define PCIE_ECAM_DESIGNWARE_QUIRK (1 << 0)
 /* Child will map resources to access config registers */
-#define PCIE_CUSTOM_CONFIG_SPACE_QUIRK	(1 << 1)
+#define PCIE_CUSTOM_CONFIG_SPACE_QUIRK (1 << 1)
 
 DECLARE_CLASS(generic_pcie_core_driver);
 

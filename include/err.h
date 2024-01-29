@@ -30,7 +30,7 @@
  */
 
 #ifndef _ERR_H_
-#define	_ERR_H_
+#define _ERR_H_
 
 /*
  * Don't use va_list in the err/warn prototypes.   Va_list is typedef'd in two
@@ -45,21 +45,20 @@
 __NULLABILITY_PRAGMA_PUSH
 
 __BEGIN_DECLS
-void	err(int, const char *, ...) __dead2 __printf0like(2, 3);
-void	verr(int, const char *, __va_list) __dead2 __printf0like(2, 0);
-void	errc(int, int, const char *, ...) __dead2 __printf0like(3, 4);
-void	verrc(int, int, const char *, __va_list) __dead2
-	    __printf0like(3, 0);
-void	errx(int, const char *, ...) __dead2 __printf0like(2, 3);
-void	verrx(int, const char *, __va_list) __dead2 __printf0like(2, 0);
-void	warn(const char *, ...) __printf0like(1, 2);
-void	vwarn(const char *, __va_list) __printf0like(1, 0);
-void	warnc(int, const char *, ...) __printf0like(2, 3);
-void	vwarnc(int, const char *, __va_list) __printf0like(2, 0);
-void	warnx(const char *, ...) __printflike(1, 2);
-void	vwarnx(const char *, __va_list) __printf0like(1, 0);
-void	err_set_file(void *);
-void	err_set_exit(void (* _Nullable)(int));
+void err(int, const char *, ...) __dead2 __printf0like(2, 3);
+void verr(int, const char *, __va_list) __dead2 __printf0like(2, 0);
+void errc(int, int, const char *, ...) __dead2 __printf0like(3, 4);
+void verrc(int, int, const char *, __va_list) __dead2 __printf0like(3, 0);
+void errx(int, const char *, ...) __dead2 __printf0like(2, 3);
+void verrx(int, const char *, __va_list) __dead2 __printf0like(2, 0);
+void warn(const char *, ...) __printf0like(1, 2);
+void vwarn(const char *, __va_list) __printf0like(1, 0);
+void warnc(int, const char *, ...) __printf0like(2, 3);
+void vwarnc(int, const char *, __va_list) __printf0like(2, 0);
+void warnx(const char *, ...) __printflike(1, 2);
+void vwarnx(const char *, __va_list) __printf0like(1, 0);
+void err_set_file(void *);
+void err_set_exit(void (*_Nullable)(int));
 __END_DECLS
 __NULLABILITY_PRAGMA_POP
 

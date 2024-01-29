@@ -30,11 +30,11 @@
  */
 
 #include <sys/types.h>
-#include <sys/uio.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <sys/uio.h>
 #include <sys/wait.h>
-#include <sys/socket.h>
 
 #include <protocols/talkd.h>
 
@@ -47,8 +47,8 @@
 #include <unistd.h>
 #include <vis.h>
 
-#include "ttymsg.h"
 #include "extern.h"
+#include "ttymsg.h"
 
 /*
  * Announce an invitation to talk.
@@ -64,14 +64,14 @@ announce(CTL_MSG *request, const char *remote_machine)
 	char full_tty[32];
 	struct stat stbuf;
 
-	(void)snprintf(full_tty, sizeof(full_tty),
-	    "%s%s", _PATH_DEV, request->r_tty);
-	if (stat(full_tty, &stbuf) < 0 || (stbuf.st_mode&020) == 0)
+	(void)snprintf(full_tty, sizeof(full_tty), "%s%s", _PATH_DEV,
+	    request->r_tty);
+	if (stat(full_tty, &stbuf) < 0 || (stbuf.st_mode & 020) == 0)
 		return (PERMISSION_DENIED);
 	return (print_mesg(request->r_tty, request, remote_machine));
 }
 
-#define max(a,b) ( (a) > (b) ? (a) : (b) )
+#define max(a, b) ((a) > (b) ? (a) : (b))
 #define N_LINES 5
 #define N_CHARS 256
 
@@ -82,8 +82,7 @@ announce(CTL_MSG *request, const char *remote_machine)
  * in vi at the time
  */
 int
-print_mesg(const char *tty, CTL_MSG *request,
-    const char *remote_machine)
+print_mesg(const char *tty, CTL_MSG *request, const char *remote_machine)
 {
 	struct timeval now;
 	time_t clock_sec;
@@ -91,7 +90,7 @@ print_mesg(const char *tty, CTL_MSG *request,
 	struct iovec iovec;
 	char line_buf[N_LINES][N_CHARS];
 	int sizes[N_LINES];
-	char big_buf[N_LINES*N_CHARS];
+	char big_buf[N_LINES * N_CHARS];
 	char *bptr, *lptr, *vis_user;
 	int i, j, max_size;
 
@@ -105,10 +104,10 @@ print_mesg(const char *tty, CTL_MSG *request,
 	max_size = max(max_size, sizes[i]);
 	i++;
 	(void)snprintf(line_buf[i], N_CHARS,
-		"Message from Talk_Daemon@%s at %d:%02d on %d/%.2d/%.2d ...",
-		hostname, localclock->tm_hour , localclock->tm_min,
-		localclock->tm_year + 1900, localclock->tm_mon + 1,
-		localclock->tm_mday);
+	    "Message from Talk_Daemon@%s at %d:%02d on %d/%.2d/%.2d ...",
+	    hostname, localclock->tm_hour, localclock->tm_min,
+	    localclock->tm_year + 1900, localclock->tm_mon + 1,
+	    localclock->tm_mday);
 	sizes[i] = strlen(line_buf[i]);
 	max_size = max(max_size, sizes[i]);
 	i++;
@@ -131,7 +130,7 @@ print_mesg(const char *tty, CTL_MSG *request,
 	i++;
 	bptr = big_buf;
 	*bptr++ = '\007'; /* send something to wake them up */
-	*bptr++ = '\r';	/* add a \r in case of raw mode */
+	*bptr++ = '\r';	  /* add a \r in case of raw mode */
 	*bptr++ = '\n';
 	for (i = 0; i < N_LINES; i++) {
 		/* copy the line into the big buffer */
@@ -141,7 +140,7 @@ print_mesg(const char *tty, CTL_MSG *request,
 		/* pad out the rest of the lines with blanks */
 		for (j = sizes[i]; j < max_size + 2; j++)
 			*(bptr++) = ' ';
-		*(bptr++) = '\r';	/* add a \r in case of raw mode */
+		*(bptr++) = '\r'; /* add a \r in case of raw mode */
 		*(bptr++) = '\n';
 	}
 	*bptr = '\0';

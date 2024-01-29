@@ -25,13 +25,13 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/disk.h>
 #include <sys/types.h>
+#include <sys/disk.h>
+
+#include <geom/eli/g_eli.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <geom/eli/g_eli.h>
 
 #include "fstyp.h"
 

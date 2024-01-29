@@ -68,13 +68,13 @@ extern void qls_reset_allmulti(qla_host_t *ha);
 extern int qls_hw_tx_done(qla_host_t *ha, uint32_t txr_idx);
 
 extern int qls_hw_send(qla_host_t *ha, bus_dma_segment_t *segs, int nsegs,
-		uint32_t tx_idx, struct mbuf *mp, uint32_t txr_idx);
+    uint32_t tx_idx, struct mbuf *mp, uint32_t txr_idx);
 
 extern void qls_del_hw_if(qla_host_t *ha);
 extern int qls_init_hw_if(qla_host_t *ha);
 
 extern void qls_hw_set_multi(qla_host_t *ha, uint8_t *mta, uint32_t mcnt,
-	uint32_t add_multi);
+    uint32_t add_multi);
 
 extern void qls_update_link_state(qla_host_t *ha);
 
@@ -89,7 +89,7 @@ extern int qls_mpi_risc_rd_reg(qla_host_t *ha, uint32_t reg, uint32_t *data);
 extern int qls_mpi_risc_wr_reg(qla_host_t *ha, uint32_t reg, uint32_t data);
 
 extern int qls_mbx_dump_risc_ram(qla_host_t *ha, void *buf, uint32_t r_addr,
-		uint32_t r_size);
+    uint32_t r_size);
 
 extern int qls_mpi_reset(qla_host_t *ha);
 

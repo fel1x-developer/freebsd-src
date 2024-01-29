@@ -26,50 +26,58 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_PMCSTAT_TOP_H_
-#define	_PMCSTAT_TOP_H_
+#ifndef _PMCSTAT_TOP_H_
+#define _PMCSTAT_TOP_H_
 
 /* Return the ncurses attributes for the given value. */
-#define PMCSTAT_ATTRPERCENT(b) 					\
-    ((b) > 10.0 ? (args.pa_topcolor ? COLOR_PAIR(1) : A_BOLD) :	\
-    ((b) >  5.0 ? (args.pa_topcolor ? COLOR_PAIR(2) : 0) : 	\
-    ((b) >  2.5 ? (args.pa_topcolor ? COLOR_PAIR(3) : 0) : 0)))
+#define PMCSTAT_ATTRPERCENT(b)                                                \
+	((b) > 10.0 ?                                                         \
+		(args.pa_topcolor ? COLOR_PAIR(1) : A_BOLD) :                 \
+		((b) > 5.0 ?                                                  \
+			(args.pa_topcolor ? COLOR_PAIR(2) : 0) :              \
+			((b) > 2.5 ? (args.pa_topcolor ? COLOR_PAIR(3) : 0) : \
+				     0)))
 
 /* Print to the default ncurse windows if on a terminal or to the file. */
-#define PMCSTAT_PRINTW(...) do {			\
-	if (args.pa_toptty)				\
-		printw(__VA_ARGS__);			\
-	else						\
-		fprintf(args.pa_printfile, __VA_ARGS__);\
-} while (0)
+#define PMCSTAT_PRINTW(...)                                      \
+	do {                                                     \
+		if (args.pa_toptty)                              \
+			printw(__VA_ARGS__);                     \
+		else                                             \
+			fprintf(args.pa_printfile, __VA_ARGS__); \
+	} while (0)
 
 /* If ncurses mode active set attributes. */
-#define PMCSTAT_ATTRON(b) do {				\
-	if (args.pa_toptty)				\
-		attron(b);				\
-} while (0)
+#define PMCSTAT_ATTRON(b)           \
+	do {                        \
+		if (args.pa_toptty) \
+			attron(b);  \
+	} while (0)
 
 /* If ncurses mode active unset attributes. */
-#define PMCSTAT_ATTROFF(b) do {				\
-	if (args.pa_toptty)				\
-		attroff(b);				\
-} while (0)
+#define PMCSTAT_ATTROFF(b)          \
+	do {                        \
+		if (args.pa_toptty) \
+			attroff(b); \
+	} while (0)
 
 /* Erase screen and set cursor to top left. */
-#define PMCSTAT_PRINTBEGIN() do {			\
-	if (args.pa_toptty)				\
-		clear();				\
-} while (0)
+#define PMCSTAT_PRINTBEGIN()        \
+	do {                        \
+		if (args.pa_toptty) \
+			clear();    \
+	} while (0)
 
 /* Flush buffer to backend. */
-#define PMCSTAT_PRINTEND() do {				\
-	if (!args.pa_toptty) {				\
-		PMCSTAT_PRINTW("---\n");		\
-		fflush(args.pa_printfile);		\
-	} else						\
-		refresh();				\
-} while (0)
+#define PMCSTAT_PRINTEND()                         \
+	do {                                       \
+		if (!args.pa_toptty) {             \
+			PMCSTAT_PRINTW("---\n");   \
+			fflush(args.pa_printfile); \
+		} else                             \
+			refresh();                 \
+	} while (0)
 
 /* Function prototypes */
 
-#endif	/* _PMCSTAT_TOP_H_ */
+#endif /* _PMCSTAT_TOP_H_ */

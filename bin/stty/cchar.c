@@ -34,8 +34,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "stty.h"
 #include "extern.h"
+#include "stty.h"
 
 static int c_cchar(const void *, const void *);
 
@@ -47,40 +47,41 @@ static int c_cchar(const void *, const void *);
  * command line.
  */
 struct cchar cchars1[] = {
-	{ "discard",	VDISCARD, 	CDISCARD },
-	{ "dsusp", 	VDSUSP,		CDSUSP },
-	{ "eof",	VEOF,		CEOF },
-	{ "eol",	VEOL,		CEOL },
-	{ "eol2",	VEOL2,		CEOL },
-	{ "erase",	VERASE,		CERASE },
-	{ "erase2",	VERASE2,	CERASE2 },
-	{ "intr",	VINTR,		CINTR },
-	{ "kill",	VKILL,		CKILL },
-	{ "lnext",	VLNEXT,		CLNEXT },
-	{ "min",	VMIN,		CMIN },
-	{ "quit",	VQUIT,		CQUIT },
-	{ "reprint",	VREPRINT, 	CREPRINT },
-	{ "start",	VSTART,		CSTART },
-	{ "status",	VSTATUS, 	CSTATUS },
-	{ "stop",	VSTOP,		CSTOP },
-	{ "susp",	VSUSP,		CSUSP },
-	{ "time",	VTIME,		CTIME },
-	{ "werase",	VWERASE,	CWERASE },
-	{ NULL,		0,		0},
+	{ "discard", VDISCARD, CDISCARD },
+	{ "dsusp", VDSUSP, CDSUSP },
+	{ "eof", VEOF, CEOF },
+	{ "eol", VEOL, CEOL },
+	{ "eol2", VEOL2, CEOL },
+	{ "erase", VERASE, CERASE },
+	{ "erase2", VERASE2, CERASE2 },
+	{ "intr", VINTR, CINTR },
+	{ "kill", VKILL, CKILL },
+	{ "lnext", VLNEXT, CLNEXT },
+	{ "min", VMIN, CMIN },
+	{ "quit", VQUIT, CQUIT },
+	{ "reprint", VREPRINT, CREPRINT },
+	{ "start", VSTART, CSTART },
+	{ "status", VSTATUS, CSTATUS },
+	{ "stop", VSTOP, CSTOP },
+	{ "susp", VSUSP, CSUSP },
+	{ "time", VTIME, CTIME },
+	{ "werase", VWERASE, CWERASE },
+	{ NULL, 0, 0 },
 };
 
 struct cchar cchars2[] = {
-	{ "brk",	VEOL,		CEOL },
-	{ "flush",	VDISCARD, 	CDISCARD },
-	{ "rprnt",	VREPRINT, 	CREPRINT },
-	{ NULL,		0,		0 },
+	{ "brk", VEOL, CEOL },
+	{ "flush", VDISCARD, CDISCARD },
+	{ "rprnt", VREPRINT, CREPRINT },
+	{ NULL, 0, 0 },
 };
 
 static int
 c_cchar(const void *a, const void *b)
 {
 
-        return (strcmp(((const struct cchar *)a)->name, ((const struct cchar *)b)->name));
+	return (strcmp(((const struct cchar *)a)->name,
+	    ((const struct cchar *)b)->name));
 }
 
 int
@@ -94,10 +95,11 @@ csearch(char ***argvp, struct info *ip)
 
 	tmp.name = name;
 	if (!(cp = (struct cchar *)bsearch(&tmp, cchars1,
-	    sizeof(cchars1)/sizeof(struct cchar) - 1, sizeof(struct cchar),
-	    c_cchar)) && !(cp = (struct cchar *)bsearch(&tmp, cchars2,
-	    sizeof(cchars2)/sizeof(struct cchar) - 1, sizeof(struct cchar),
-	    c_cchar)))
+		  sizeof(cchars1) / sizeof(struct cchar) - 1,
+		  sizeof(struct cchar), c_cchar)) &&
+	    !(cp = (struct cchar *)bsearch(&tmp, cchars2,
+		  sizeof(cchars2) / sizeof(struct cchar) - 1,
+		  sizeof(struct cchar), c_cchar)))
 		return (0);
 
 	arg = *++*argvp;
@@ -106,14 +108,14 @@ csearch(char ***argvp, struct info *ip)
 		usage();
 	}
 
-#define CHK(s)  (*arg == s[0] && !strcmp(arg, s))
+#define CHK(s) (*arg == s[0] && !strcmp(arg, s))
 	if (CHK("undef") || CHK("<undef>"))
 		ip->t.c_cc[cp->sub] = _POSIX_VDISABLE;
 	else if (cp->sub == VMIN || cp->sub == VTIME) {
 		val = strtol(arg, &ep, 10);
 		if (val > UCHAR_MAX) {
-			warnx("maximum option value is %d -- %s",
-			    UCHAR_MAX, name);
+			warnx("maximum option value is %d -- %s", UCHAR_MAX,
+			    name);
 			usage();
 		}
 		if (*ep != '\0') {
@@ -123,7 +125,8 @@ csearch(char ***argvp, struct info *ip)
 		ip->t.c_cc[cp->sub] = val;
 	} else if (arg[0] == '^')
 		ip->t.c_cc[cp->sub] = (arg[1] == '?') ? 0177 :
-		    (arg[1] == '-') ? _POSIX_VDISABLE : arg[1] & 037;
+		    (arg[1] == '-')		      ? _POSIX_VDISABLE :
+							arg[1] & 037;
 	else
 		ip->t.c_cc[cp->sub] = arg[0];
 	ip->set = 1;

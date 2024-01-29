@@ -35,12 +35,12 @@
 #include <stand.h>
 
 /* Buffer for holding tslog data in string format. */
-static char * tslog_buf = NULL;
+static char *tslog_buf = NULL;
 static size_t tslog_buflen = 0;
 static size_t tslog_bufpos = 0;
 
 static size_t
-tsccat(char * buf, uint64_t tsc)
+tsccat(char *buf, uint64_t tsc)
 {
 	size_t len;
 
@@ -58,7 +58,7 @@ tsccat(char * buf, uint64_t tsc)
 }
 
 void
-tslog_setbuf(void * buf, size_t len)
+tslog_setbuf(void *buf, size_t len)
 {
 
 	tslog_buf = (char *)buf;
@@ -67,7 +67,7 @@ tslog_setbuf(void * buf, size_t len)
 }
 
 void
-tslog_getbuf(void ** buf, size_t * len)
+tslog_getbuf(void **buf, size_t *len)
 {
 
 	*buf = (void *)tslog_buf;
@@ -75,7 +75,7 @@ tslog_getbuf(void ** buf, size_t * len)
 }
 
 void
-tslog(const char * type, const char * f, const char * s)
+tslog(const char *type, const char *f, const char *s)
 {
 #if defined(__amd64__) || defined(__i386__)
 	uint64_t tsc = rdtsc();
@@ -90,8 +90,8 @@ tslog(const char * type, const char * f, const char * s)
 		return;
 
 	/* Check that we have enough space. */
-	if (tslog_buflen - tslog_bufpos < 32 + strlen(type) + strlen(f) +
-	    (s ? strlen(s) : 0))
+	if (tslog_buflen - tslog_bufpos <
+	    32 + strlen(type) + strlen(f) + (s ? strlen(s) : 0))
 		return;
 
 	/* Append to existing buffer. */

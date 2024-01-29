@@ -44,20 +44,20 @@
 
 #include "zopen.h"
 
-static void	compress(const char *, const char *, int);
-static void	cwarn(const char *, ...) __printflike(1, 2);
-static void	cwarnx(const char *, ...) __printflike(1, 2);
-static void	decompress(const char *, const char *, int);
-static int	permission(const char *);
-static void	setfile(const char *, struct stat *);
-static void	usage(int);
+static void compress(const char *, const char *, int);
+static void cwarn(const char *, ...) __printflike(1, 2);
+static void cwarnx(const char *, ...) __printflike(1, 2);
+static void decompress(const char *, const char *, int);
+static int permission(const char *);
+static void setfile(const char *, struct stat *);
+static void usage(int);
 
 static int eval, force, verbose;
 
 int
 main(int argc, char *argv[])
 {
-	enum {COMPRESS, DECOMPRESS} style;
+	enum { COMPRESS, DECOMPRESS } style;
 	size_t len;
 	int bits, cat, ch;
 	char *p, newname[MAXPATHLEN];
@@ -79,7 +79,7 @@ main(int argc, char *argv[])
 
 	bits = 0;
 	while ((ch = getopt(argc, argv, "b:cdfv")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case 'b':
 			bits = strtol(optarg, &p, 10);
 			if (*p)
@@ -88,7 +88,7 @@ main(int argc, char *argv[])
 		case 'c':
 			cat = 1;
 			break;
-		case 'd':		/* Backward compatible. */
+		case 'd': /* Backward compatible. */
 			style = DECOMPRESS;
 			break;
 		case 'f':
@@ -105,7 +105,7 @@ main(int argc, char *argv[])
 	argv += optind;
 
 	if (argc == 0) {
-		switch(style) {
+		switch (style) {
 		case COMPRESS:
 			(void)compress("/dev/stdin", "/dev/stdout", bits);
 			break;
@@ -113,14 +113,14 @@ main(int argc, char *argv[])
 			(void)decompress("/dev/stdin", "/dev/stdout", bits);
 			break;
 		}
-		exit (eval);
+		exit(eval);
 	}
 
 	if (cat == 1 && style == COMPRESS && argc > 1)
 		errx(1, "the -c option permits only a single file argument");
 
 	for (; *argv; ++argv)
-		switch(style) {
+		switch (style) {
 		case COMPRESS:
 			if (strcmp(*argv, "-") == 0) {
 				compress("/dev/stdin", "/dev/stdout", bits);
@@ -162,8 +162,8 @@ main(int argc, char *argv[])
 				newname[len] = '.';
 				newname[len + 1] = 'Z';
 				newname[len + 2] = '\0';
-				decompress(newname,
-				    cat ? "/dev/stdout" : *argv, bits);
+				decompress(newname, cat ? "/dev/stdout" : *argv,
+				    bits);
 			} else {
 				if (len - 2 > sizeof(newname) - 1) {
 					cwarnx("%s: name too long", *argv);
@@ -171,12 +171,12 @@ main(int argc, char *argv[])
 				}
 				memmove(newname, *argv, len - 2);
 				newname[len - 2] = '\0';
-				decompress(*argv,
-				    cat ? "/dev/stdout" : newname, bits);
+				decompress(*argv, cat ? "/dev/stdout" : newname,
+				    bits);
 			}
 			break;
 		}
-	exit (eval);
+	exit(eval);
 }
 
 static void
@@ -198,7 +198,7 @@ compress(const char *in, const char *out, int bits)
 		cwarn("%s", in);
 		return;
 	}
-	if (stat(in, &isb)) {		/* DON'T FSTAT! */
+	if (stat(in, &isb)) { /* DON'T FSTAT! */
 		cwarn("%s", in);
 		goto err;
 	}
@@ -235,8 +235,9 @@ compress(const char *in, const char *out, int bits)
 
 		if (!force && sb.st_size >= isb.st_size) {
 			if (verbose)
-		(void)fprintf(stderr, "%s: file would grow; left unmodified\n",
-		    in);
+				(void)fprintf(stderr,
+				    "%s: file would grow; left unmodified\n",
+				    in);
 			eval = 2;
 			if (unlink(out))
 				cwarn("%s", out);
@@ -260,7 +261,8 @@ compress(const char *in, const char *out, int bits)
 	}
 	return;
 
-err:	if (ofp) {
+err:
+	if (ofp) {
 		if (oreg)
 			(void)unlink(out);
 		(void)fclose(ofp);
@@ -338,7 +340,8 @@ decompress(const char *in, const char *out, int bits)
 	}
 	return;
 
-err:	if (ofp) {
+err:
+	if (ofp) {
 		if (oreg)
 			(void)unlink(out);
 		(void)fclose(ofp);
@@ -352,7 +355,7 @@ setfile(const char *name, struct stat *fs)
 {
 	static struct timespec tspec[2];
 
-	fs->st_mode &= S_ISUID|S_ISGID|S_IRWXU|S_IRWXG|S_IRWXO;
+	fs->st_mode &= S_ISUID | S_ISGID | S_IRWXU | S_IRWXG | S_IRWXO;
 
 	tspec[0] = fs->st_atim;
 	tspec[1] = fs->st_mtim;
@@ -368,7 +371,7 @@ setfile(const char *name, struct stat *fs)
 	if (chown(name, fs->st_uid, fs->st_gid)) {
 		if (errno != EPERM)
 			cwarn("chown: %s", name);
-		fs->st_mode &= ~(S_ISUID|S_ISGID);
+		fs->st_mode &= ~(S_ISUID | S_ISGID);
 	}
 	if (chmod(name, fs->st_mode) && errno != EOPNOTSUPP)
 		cwarn("chmod: %s", name);

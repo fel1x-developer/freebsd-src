@@ -18,42 +18,39 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/rman.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
 
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-
+#include <dev/rtwn/if_rtwn_debug.h>
 #include <dev/rtwn/if_rtwnreg.h>
 #include <dev/rtwn/if_rtwnvar.h>
-#include <dev/rtwn/if_rtwn_debug.h>
-
-#include <dev/rtwn/pci/rtwn_pci_var.h>
 #include <dev/rtwn/pci/rtwn_pci_tx.h>
-
+#include <dev/rtwn/pci/rtwn_pci_var.h>
 #include <dev/rtwn/rtl8192c/pci/r92ce_reg.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_var.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 static struct mbuf *
 rtwn_mbuf_defrag(struct mbuf *m0, int how)
@@ -118,12 +115,12 @@ rtwn_pci_tx_start_frame(struct rtwn_softc *sc, struct ieee80211_node *ni,
 		return (ENOBUFS);
 	}
 
-	txd = (struct rtwn_tx_desc_common *)
-	    ((uint8_t *)ring->desc + sc->txdesc_len * ring->cur);
+	txd = (struct rtwn_tx_desc_common *)((uint8_t *)ring->desc +
+	    sc->txdesc_len * ring->cur);
 	if (txd->flags0 & RTWN_FLAGS0_OWN) {
 		device_printf(sc->sc_dev,
-		    "%s: OWN bit is set (tx desc %d, ring %u)!\n",
-		    __func__, ring->cur, qid);
+		    "%s: OWN bit is set (tx desc %d, ring %u)!\n", __func__,
+		    ring->cur, qid);
 		return (ENOBUFS);
 	}
 
@@ -135,8 +132,7 @@ rtwn_pci_tx_start_frame(struct rtwn_softc *sc, struct ieee80211_node *ni,
 	error = bus_dmamap_load_mbuf_sg(ring->data_dmat, data->map, m, segs,
 	    &nsegs, BUS_DMA_NOWAIT);
 	if (error != 0 && error != EFBIG) {
-		device_printf(sc->sc_dev, "can't map mbuf (error %d)\n",
-		    error);
+		device_printf(sc->sc_dev, "can't map mbuf (error %d)\n", error);
 		return (error);
 	}
 	if (error != 0) {
@@ -152,15 +148,15 @@ rtwn_pci_tx_start_frame(struct rtwn_softc *sc, struct ieee80211_node *ni,
 		error = bus_dmamap_load_mbuf_sg(ring->data_dmat, data->map, m,
 		    segs, &nsegs, BUS_DMA_NOWAIT);
 		if (error != 0) {
-			device_printf(sc->sc_dev,
-			    "can't map mbuf (error %d)\n", error);
+			device_printf(sc->sc_dev, "can't map mbuf (error %d)\n",
+			    error);
 			if (ni != NULL) {
 				if_inc_counter(ni->ni_vap->iv_ifp,
 				    IFCOUNTER_OERRORS, 1);
 				ieee80211_free_node(ni);
 			}
 			m_freem(m);
-			return (0);	/* XXX */
+			return (0); /* XXX */
 		}
 	}
 
@@ -210,11 +206,10 @@ rtwn_pci_tx_start_beacon(struct rtwn_softc *sc, struct mbuf *m,
 
 	ring = &pc->tx_ring[RTWN_PCI_BEACON_QUEUE];
 	data = &ring->tx_data[id];
-	txd = (struct rtwn_tx_desc_common *)
-	    ((uint8_t *)ring->desc + id * sc->txdesc_len);
+	txd = (struct rtwn_tx_desc_common *)((uint8_t *)ring->desc +
+	    id * sc->txdesc_len);
 
-	bus_dmamap_sync(ring->desc_dmat, ring->desc_map,
-	    BUS_DMASYNC_POSTREAD);
+	bus_dmamap_sync(ring->desc_dmat, ring->desc_map, BUS_DMASYNC_POSTREAD);
 	own = !!(txd->flags0 & RTWN_FLAGS0_OWN);
 	error = 0;
 	if (!own || txd->pktlen != htole16(m->m_pkthdr.len)) {
@@ -227,8 +222,8 @@ rtwn_pci_tx_start_beacon(struct rtwn_softc *sc, struct mbuf *m,
 			bus_dmamap_unload(ring->data_dmat, data->map);
 		}
 
-		error = bus_dmamap_load_mbuf_sg(ring->data_dmat,
-		    data->map, m, segs, &nsegs, BUS_DMA_NOWAIT);
+		error = bus_dmamap_load_mbuf_sg(ring->data_dmat, data->map, m,
+		    segs, &nsegs, BUS_DMA_NOWAIT);
 		if (error != 0) {
 			device_printf(sc->sc_dev,
 			    "can't map beacon (error %d)\n", error);
@@ -239,7 +234,7 @@ rtwn_pci_tx_start_beacon(struct rtwn_softc *sc, struct mbuf *m,
 		txd->pktlen = htole16(m->m_pkthdr.len);
 		rtwn_pci_tx_postsetup(pc, txd, segs);
 		txd->flags0 |= RTWN_FLAGS0_OWN;
-end:
+	end:
 		bus_dmamap_sync(ring->desc_dmat, ring->desc_map,
 		    BUS_DMASYNC_PREWRITE);
 	}
@@ -260,7 +255,7 @@ rtwn_pci_tx_start(struct rtwn_softc *sc, struct ieee80211_node *ni,
 
 	RTWN_ASSERT_LOCKED(sc);
 
-	if (ni == NULL)		/* beacon frame */
+	if (ni == NULL) /* beacon frame */
 		error = rtwn_pci_tx_start_beacon(sc, m, tx_desc, id);
 	else
 		error = rtwn_pci_tx_start_frame(sc, ni, m, tx_desc, type);

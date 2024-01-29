@@ -8,17 +8,9 @@
 
 #include "ipf.h"
 
-wordtab_t poolfields[] = {
-	{ "all",	-2 },
-	{ "address",	1 },
-	{ "mask",	2 },
-	{ "ifname",	3 },
-	{ "pkts",	4 },
-	{ "bytes",	5 },
-	{ "family",	6 },
-	{ NULL, 0 }
-};
-
+wordtab_t poolfields[] = { { "all", -2 }, { "address", 1 }, { "mask", 2 },
+	{ "ifname", 3 }, { "pkts", 4 }, { "bytes", 5 }, { "family", 6 },
+	{ NULL, 0 } };
 
 void
 printpoolfield(void *p, int ptype, int fieldnum)
@@ -27,9 +19,8 @@ printpoolfield(void *p, int ptype, int fieldnum)
 	char abuf[80];
 	int i;
 
-	switch (fieldnum)
-	{
-	case -2 :
+	switch (fieldnum) {
+	case -2:
 		for (i = 1; poolfields[i].w_word != NULL; i++) {
 			if (poolfields[i].w_value > 0) {
 				printpoolfield(p, ptype, i);
@@ -46,20 +37,22 @@ printpoolfield(void *p, int ptype, int fieldnum)
 			if (node->ipn_info)
 				PRINTF("!");
 			a = &node->ipn_addr;
-			PRINTF("%s", inet_ntop(a->adf_family, &a->adf_addr,
-					       abuf, sizeof(abuf)));
+			PRINTF("%s",
+			    inet_ntop(a->adf_family, &a->adf_addr, abuf,
+				sizeof(abuf)));
 		} else if (ptype == IPLT_HASH) {
 			iphtent_t *node = (iphtent_t *)p;
 
-			PRINTF("%s", inet_ntop(node->ipe_family,
-					       &node->ipe_addr,
-					       abuf, sizeof(abuf)));
+			PRINTF("%s",
+			    inet_ntop(node->ipe_family, &node->ipe_addr, abuf,
+				sizeof(abuf)));
 		} else if (ptype == IPLT_DSTLIST) {
 			ipf_dstnode_t *node = (ipf_dstnode_t *)p;
 
 			a = &node->ipfd_dest.fd_addr;
-			PRINTF("%s", inet_ntop(a->adf_family, &a->adf_addr,
-					       abuf, sizeof(abuf)));
+			PRINTF("%s",
+			    inet_ntop(a->adf_family, &a->adf_addr, abuf,
+				sizeof(abuf)));
 		}
 		break;
 
@@ -68,14 +61,15 @@ printpoolfield(void *p, int ptype, int fieldnum)
 			ip_pool_node_t *node = (ip_pool_node_t *)p;
 
 			a = &node->ipn_mask;
-			PRINTF("%s", inet_ntop(a->adf_family, &a->adf_addr,
-					       abuf, sizeof(abuf)));
+			PRINTF("%s",
+			    inet_ntop(a->adf_family, &a->adf_addr, abuf,
+				sizeof(abuf)));
 		} else if (ptype == IPLT_HASH) {
 			iphtent_t *node = (iphtent_t *)p;
 
-			PRINTF("%s", inet_ntop(node->ipe_family,
-					       &node->ipe_mask,
-					       abuf, sizeof(abuf)));
+			PRINTF("%s",
+			    inet_ntop(node->ipe_family, &node->ipe_mask, abuf,
+				sizeof(abuf)));
 		} else if (ptype == IPLT_DSTLIST) {
 			PRINTF("%s", "");
 		}
@@ -92,8 +86,8 @@ printpoolfield(void *p, int ptype, int fieldnum)
 			if (node->ipfd_dest.fd_name == -1) {
 				PRINTF("%s", "");
 			} else {
-				PRINTF("%s", node->ipfd_names +
-				       node->ipfd_dest.fd_name);
+				PRINTF("%s",
+				    node->ipfd_names + node->ipfd_dest.fd_name);
 			}
 		}
 		break;
@@ -103,7 +97,7 @@ printpoolfield(void *p, int ptype, int fieldnum)
 			ip_pool_node_t *node = (ip_pool_node_t *)p;
 
 #ifdef USE_QUAD_T
-			PRINTF("%"PRIu64"", node->ipn_hits);
+			PRINTF("%" PRIu64 "", node->ipn_hits);
 #else
 			PRINTF("%lu", node->ipn_hits);
 #endif
@@ -111,7 +105,7 @@ printpoolfield(void *p, int ptype, int fieldnum)
 			iphtent_t *node = (iphtent_t *)p;
 
 #ifdef USE_QUAD_T
-			PRINTF("%"PRIu64"", node->ipe_hits);
+			PRINTF("%" PRIu64 "", node->ipe_hits);
 #else
 			PRINTF("%lu", node->ipe_hits);
 #endif
@@ -125,7 +119,7 @@ printpoolfield(void *p, int ptype, int fieldnum)
 			ip_pool_node_t *node = (ip_pool_node_t *)p;
 
 #ifdef USE_QUAD_T
-			PRINTF("%"PRIu64"", node->ipn_bytes);
+			PRINTF("%" PRIu64 "", node->ipn_bytes);
 #else
 			PRINTF("%lu", node->ipn_bytes);
 #endif
@@ -133,7 +127,7 @@ printpoolfield(void *p, int ptype, int fieldnum)
 			iphtent_t *node = (iphtent_t *)p;
 
 #ifdef USE_QUAD_T
-			PRINTF("%"PRIu64"", node->ipe_bytes);
+			PRINTF("%" PRIu64 "", node->ipe_bytes);
 #else
 			PRINTF("%lu", node->ipe_bytes);
 #endif
@@ -159,7 +153,7 @@ printpoolfield(void *p, int ptype, int fieldnum)
 		}
 		break;
 
-	default :
+	default:
 		break;
 	}
 }

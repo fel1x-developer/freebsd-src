@@ -18,7 +18,7 @@
  * Permission to use, copy, and modify this software without fee
  * is hereby granted, provided that this entire notice is included in
  * all source code copies of any software which is or includes a copy or
- * modification of this software. 
+ * modification of this software.
  *
  * THIS SOFTWARE IS BEING PROVIDED "AS IS", WITHOUT ANY EXPRESS OR
  * IMPLIED WARRANTY. IN PARTICULAR, NONE OF THE AUTHORS MAKES ANY
@@ -34,9 +34,8 @@
 #include <crypto/sha2/sha256.h>
 #include <crypto/sha2/sha384.h>
 #include <crypto/sha2/sha512.h>
-#include <opencrypto/rmd160.h>
 #include <opencrypto/gmac.h>
-
+#include <opencrypto/rmd160.h>
 #include <opencrypto/xform_auth.h>
 #include <opencrypto/xform_comp.h>
 #include <opencrypto/xform_enc.h>

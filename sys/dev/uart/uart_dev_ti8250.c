@@ -34,16 +34,16 @@
 #include <sys/conf.h>
 #include <sys/kernel.h>
 #include <sys/sysctl.h>
+
 #include <machine/bus.h>
 
 #include <dev/fdt/fdt_common.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
 #include <dev/uart/uart.h>
+#include <dev/uart/uart_bus.h>
 #include <dev/uart/uart_cpu.h>
 #include <dev/uart/uart_cpu_fdt.h>
-#include <dev/uart/uart_bus.h>
 #include <dev/uart/uart_dev_ns8250.h>
 
 #include <arm/ti/ti_sysc.h>
@@ -58,13 +58,13 @@ struct ti8250_softc {
 	/*uint32_t	mystuff;*/
 };
 
-#define	MDR1_REG		8
-#define	  MDR1_MODE_UART	0
-#define	  MDR1_MODE_DISABLE	7
-#define	SYSCC_REG		15
-#define	  SYSCC_SOFTRESET	(1 << 1)
-#define	SYSS_REG		16
-#define	  SYSS_STATUS_RESETDONE	(1 << 0)
+#define MDR1_REG 8
+#define MDR1_MODE_UART 0
+#define MDR1_MODE_DISABLE 7
+#define SYSCC_REG 15
+#define SYSCC_SOFTRESET (1 << 1)
+#define SYSS_REG 16
+#define SYSS_STATUS_RESETDONE (1 << 0)
 
 static int
 ti8250_bus_probe(struct uart_softc *sc)
@@ -85,43 +85,35 @@ ti8250_bus_probe(struct uart_softc *sc)
 		continue;
 	uart_setreg(&sc->sc_bas, MDR1_REG, MDR1_MODE_UART);
 
-	status = ns8250_bus_probe(sc); 
+	status = ns8250_bus_probe(sc);
 	if (status == 0)
 		device_set_desc(sc->sc_dev, "TI UART (16550 compatible)");
 
 	return (status);
 }
 
-static kobj_method_t ti8250_methods[] = {
-	KOBJMETHOD(uart_probe,		ti8250_bus_probe),
+static kobj_method_t ti8250_methods[] = { KOBJMETHOD(uart_probe,
+					      ti8250_bus_probe),
 
-	KOBJMETHOD(uart_attach,		ns8250_bus_attach),
-	KOBJMETHOD(uart_detach,		ns8250_bus_detach),
-	KOBJMETHOD(uart_flush,		ns8250_bus_flush),
-	KOBJMETHOD(uart_getsig,		ns8250_bus_getsig),
-	KOBJMETHOD(uart_ioctl,		ns8250_bus_ioctl),
-	KOBJMETHOD(uart_ipend,		ns8250_bus_ipend),
-	KOBJMETHOD(uart_param,		ns8250_bus_param),
-	KOBJMETHOD(uart_receive,	ns8250_bus_receive),
-	KOBJMETHOD(uart_setsig,		ns8250_bus_setsig),
-	KOBJMETHOD(uart_transmit,	ns8250_bus_transmit),
-	KOBJMETHOD(uart_txbusy,		ns8250_bus_txbusy),
-	KOBJMETHOD_END
-};
+	KOBJMETHOD(uart_attach, ns8250_bus_attach),
+	KOBJMETHOD(uart_detach, ns8250_bus_detach),
+	KOBJMETHOD(uart_flush, ns8250_bus_flush),
+	KOBJMETHOD(uart_getsig, ns8250_bus_getsig),
+	KOBJMETHOD(uart_ioctl, ns8250_bus_ioctl),
+	KOBJMETHOD(uart_ipend, ns8250_bus_ipend),
+	KOBJMETHOD(uart_param, ns8250_bus_param),
+	KOBJMETHOD(uart_receive, ns8250_bus_receive),
+	KOBJMETHOD(uart_setsig, ns8250_bus_setsig),
+	KOBJMETHOD(uart_transmit, ns8250_bus_transmit),
+	KOBJMETHOD(uart_txbusy, ns8250_bus_txbusy), KOBJMETHOD_END };
 
-static struct uart_class uart_ti8250_class = {
-	"ti8250",
-	ti8250_methods,
-	sizeof(struct ti8250_softc),
-	.uc_ops = &uart_ns8250_ops,
-	.uc_range = 0x88,
-	.uc_rclk = 48000000,
-	.uc_rshift = 2
-};
+static struct uart_class uart_ti8250_class = { "ti8250", ti8250_methods,
+	sizeof(struct ti8250_softc), .uc_ops = &uart_ns8250_ops,
+	.uc_range = 0x88, .uc_rclk = 48000000, .uc_rshift = 2 };
 static struct ofw_compat_data compat_data[] = {
-	{"ti,ns16550",		(uintptr_t)&uart_ti8250_class},
-	{"ti,omap3-uart",	(uintptr_t)&uart_ti8250_class},
-	{"ti,omap4-uart",	(uintptr_t)&uart_ti8250_class},
-	{NULL,			(uintptr_t)NULL},
+	{ "ti,ns16550", (uintptr_t)&uart_ti8250_class },
+	{ "ti,omap3-uart", (uintptr_t)&uart_ti8250_class },
+	{ "ti,omap4-uart", (uintptr_t)&uart_ti8250_class },
+	{ NULL, (uintptr_t)NULL },
 };
 UART_FDT_CLASS_AND_DEVICE(compat_data);

@@ -33,9 +33,10 @@
  */
 
 #ifndef _TELLDIR_H_
-#define	_TELLDIR_H_
+#define _TELLDIR_H_
 
 #include <sys/queue.h>
+
 #include <stdbool.h>
 
 /*
@@ -46,19 +47,19 @@
  */
 struct ddloc_mem {
 	LIST_ENTRY(ddloc_mem) loc_lqe; /* entry in list */
-	long	loc_index;	/* key associated with structure */
-	off_t	loc_seek;	/* magic cookie returned by getdirentries */
-	long	loc_loc;	/* offset of entry in buffer */
+	long loc_index;		       /* key associated with structure */
+	off_t loc_seek; /* magic cookie returned by getdirentries */
+	long loc_loc;	/* offset of entry in buffer */
 };
 
 #ifdef __LP64__
-#define DD_LOC_BITS	31
-#define DD_SEEK_BITS	32
-#define DD_INDEX_BITS	63
+#define DD_LOC_BITS 31
+#define DD_SEEK_BITS 32
+#define DD_INDEX_BITS 63
 #else
-#define DD_LOC_BITS	12
-#define DD_SEEK_BITS	19
-#define DD_INDEX_BITS	31
+#define DD_LOC_BITS 12
+#define DD_SEEK_BITS 19
+#define DD_INDEX_BITS 31
 #endif
 
 /*
@@ -69,20 +70,20 @@ struct ddloc_mem {
  * architectures.
  */
 union ddloc_packed {
-	long	l;		/* Opaque type returned by telldir(3) */
+	long l; /* Opaque type returned by telldir(3) */
 	struct {
 		/* Identifies union type.  Must be 0. */
-		unsigned long is_packed:1;
+		unsigned long is_packed : 1;
 		/* Index into directory's linked list of ddloc_mem */
-		unsigned long index:DD_INDEX_BITS;
+		unsigned long index : DD_INDEX_BITS;
 	} __packed i;
 	struct {
 		/* Identifies union type.  Must be 1. */
-		unsigned long is_packed:1;
+		unsigned long is_packed : 1;
 		/* offset of entry in buffer*/
-		unsigned long loc:DD_LOC_BITS;
+		unsigned long loc : DD_LOC_BITS;
 		/* magic cookie returned by getdirentries */
-		unsigned long seek:DD_SEEK_BITS;
+		unsigned long seek : DD_SEEK_BITS;
 	} __packed s;
 };
 
@@ -95,16 +96,16 @@ _Static_assert(sizeof(long) == sizeof(union ddloc_packed),
  */
 struct _telldir {
 	LIST_HEAD(, ddloc_mem) td_locq; /* list of locations */
-	long	td_loccnt;	/* index of entry for sequential readdir's */
+	long td_loccnt; /* index of entry for sequential readdir's */
 };
 
-bool		_filldir(DIR *, bool);
-struct dirent	*_readdir_unlocked(DIR *, int);
-void 		_reclaim_telldir(DIR *);
-void 		_seekdir(DIR *, long);
-void		_fixtelldir(DIR *dirp, long oldseek, long oldloc);
+bool _filldir(DIR *, bool);
+struct dirent *_readdir_unlocked(DIR *, int);
+void _reclaim_telldir(DIR *);
+void _seekdir(DIR *, long);
+void _fixtelldir(DIR *dirp, long oldseek, long oldloc);
 
-#define	RDU_SKIP	0x0001
-#define	RDU_SHORT	0x0002
+#define RDU_SKIP 0x0001
+#define RDU_SHORT 0x0002
 
 #endif

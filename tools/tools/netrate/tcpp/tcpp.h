@@ -25,7 +25,7 @@
  */
 
 #ifndef TCPP_H
-#define	TCPP_H
+#define TCPP_H
 
 extern struct sockaddr_in localipbase, remoteip;
 extern int cflag, hflag, lflag, mflag, pflag, sflag, tflag;
@@ -33,18 +33,18 @@ extern int Iflag, Mflag, Pflag;
 extern uint64_t bflag;
 extern u_short rflag;
 
-#define	TCPP_MAGIC	0x84e812f7
+#define TCPP_MAGIC 0x84e812f7
 struct tcpp_header {
-	u_int32_t	th_magic;
-	u_int64_t	th_len;
+	u_int32_t th_magic;
+	u_int64_t th_len;
 } __packed;
 
-void	tcpp_client(void);
-void	tcpp_header_encode(struct tcpp_header *thp);
-void	tcpp_header_decode(struct tcpp_header *thp);
-void	tcpp_server(void);
+void tcpp_client(void);
+void tcpp_header_encode(struct tcpp_header *thp);
+void tcpp_header_decode(struct tcpp_header *thp);
+void tcpp_server(void);
 
-#define	SYSCTLNAME_CPUS		"kern.smp.cpus"
-#define	SYSCTLNAME_CPTIME	"kern.cp_time"
+#define SYSCTLNAME_CPUS "kern.smp.cpus"
+#define SYSCTLNAME_CPTIME "kern.cp_time"
 
 #endif /* TCPP_H */

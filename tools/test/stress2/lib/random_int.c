@@ -26,13 +26,15 @@
  */
 
 #include <sys/types.h>
+
 #include <stdlib.h>
+
 #include "stress.h"
 
 int
 random_int(int mi, int ma)
 {
-	return (arc4random()  % (ma - mi + 1) + mi);
+	return (arc4random() % (ma - mi + 1) + mi);
 }
 
 #ifdef TEST
@@ -44,7 +46,7 @@ main()
 	min = 100;
 	max = 1;
 	for (i = 0; i < 10000; i++) {
-		j += (r = random_int(1,100));
+		j += (r = random_int(1, 100));
 		if (max < r)
 			max = r;
 		if (min > r)

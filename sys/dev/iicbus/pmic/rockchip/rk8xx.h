@@ -26,7 +26,7 @@
  */
 
 #ifndef _RK8XX_H_
-#define	_RK8XX_H_
+#define _RK8XX_H_
 
 #include <sys/kernel.h>
 
@@ -41,75 +41,75 @@ enum rk_pmic_type {
 };
 
 struct rk8xx_regdef {
-	intptr_t		id;
-	char			*name;
-	uint8_t			enable_reg;
-	uint8_t			enable_mask;
-	uint8_t			voltage_reg;
-	uint8_t			voltage_mask;
-	int			voltage_min;
-	int			voltage_max;
-	int			voltage_min2;
-	int			voltage_max2;
-	int			voltage_step;
-	int			voltage_step2;
-	int			voltage_nstep;
+	intptr_t id;
+	char *name;
+	uint8_t enable_reg;
+	uint8_t enable_mask;
+	uint8_t voltage_reg;
+	uint8_t voltage_mask;
+	int voltage_min;
+	int voltage_max;
+	int voltage_min2;
+	int voltage_max2;
+	int voltage_step;
+	int voltage_step2;
+	int voltage_nstep;
 };
 
 struct rk8xx_reg_sc {
-	struct regnode		*regnode;
-	device_t		base_dev;
-	struct rk8xx_regdef	*def;
-	phandle_t		xref;
+	struct regnode *regnode;
+	device_t base_dev;
+	struct rk8xx_regdef *def;
+	phandle_t xref;
 	struct regnode_std_param *param;
 };
 
 struct reg_list {
-	TAILQ_ENTRY(reg_list)	next;
-	struct rk8xx_reg_sc	*reg;
+	TAILQ_ENTRY(reg_list) next;
+	struct rk8xx_reg_sc *reg;
 };
 
 struct rk8xx_rtc_reg {
-	uint8_t	secs;
-	uint8_t	secs_mask;
-	uint8_t	minutes;
-	uint8_t	minutes_mask;
-	uint8_t	hours;
-	uint8_t	hours_mask;
-	uint8_t	days;
-	uint8_t	days_mask;
-	uint8_t	months;
-	uint8_t	months_mask;
-	uint8_t	years;
-	uint8_t	weeks;
-	uint8_t	weeks_mask;
-	uint8_t	ctrl;
-	uint8_t	ctrl_stop_mask;
-	uint8_t	ctrl_ampm_mask;
-	uint8_t	ctrl_gettime_mask;
-	uint8_t	ctrl_readsel_mask;
+	uint8_t secs;
+	uint8_t secs_mask;
+	uint8_t minutes;
+	uint8_t minutes_mask;
+	uint8_t hours;
+	uint8_t hours_mask;
+	uint8_t days;
+	uint8_t days_mask;
+	uint8_t months;
+	uint8_t months_mask;
+	uint8_t years;
+	uint8_t weeks;
+	uint8_t weeks_mask;
+	uint8_t ctrl;
+	uint8_t ctrl_stop_mask;
+	uint8_t ctrl_ampm_mask;
+	uint8_t ctrl_gettime_mask;
+	uint8_t ctrl_readsel_mask;
 };
 
 struct rk8xx_dev_ctrl {
-	uint8_t	dev_ctrl_reg;
-	uint8_t	pwr_off_mask;
-	uint8_t	pwr_rst_mask;
+	uint8_t dev_ctrl_reg;
+	uint8_t pwr_off_mask;
+	uint8_t pwr_rst_mask;
 };
 
 struct rk8xx_softc {
-	device_t		dev;
-	struct mtx		mtx;
-	struct resource *	res[1];
-	void *			intrcookie;
-	struct intr_config_hook	intr_hook;
-	enum rk_pmic_type	type;
+	device_t dev;
+	struct mtx mtx;
+	struct resource *res[1];
+	void *intrcookie;
+	struct intr_config_hook intr_hook;
+	enum rk_pmic_type type;
 
-	struct rk8xx_regdef	*regdefs;
-	TAILQ_HEAD(, reg_list)	regs;
-	int			nregs;
+	struct rk8xx_regdef *regdefs;
+	TAILQ_HEAD(, reg_list) regs;
+	int nregs;
 
-	struct rk8xx_rtc_reg	rtc_regs;
-	struct rk8xx_dev_ctrl	dev_ctrl;
+	struct rk8xx_rtc_reg rtc_regs;
+	struct rk8xx_dev_ctrl dev_ctrl;
 };
 
 int rk8xx_read(device_t dev, uint8_t reg, uint8_t *data, uint8_t size);
@@ -124,11 +124,11 @@ int rk8xx_attach_clocks(struct rk8xx_softc *sc);
 
 /* rk8xx_regulators.c */
 void rk8xx_attach_regulators(struct rk8xx_softc *sc);
-int rk8xx_map(device_t dev, phandle_t xref, int ncells,
-    pcell_t *cells, intptr_t *id);
+int rk8xx_map(device_t dev, phandle_t xref, int ncells, pcell_t *cells,
+    intptr_t *id);
 
 /* rk8xx_rtc.c */
 int rk8xx_gettime(device_t dev, struct timespec *ts);
 int rk8xx_settime(device_t dev, struct timespec *ts);
 
-#endif	/* _RK8XX_H_ */
+#endif /* _RK8XX_H_ */

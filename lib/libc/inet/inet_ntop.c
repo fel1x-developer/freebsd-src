@@ -17,20 +17,19 @@
  * OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "port_before.h"
-
 #include <sys/param.h>
 #include <sys/socket.h>
 
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
 #include <arpa/nameser.h>
-
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "port_after.h"
+#include "port_before.h"
 
 /*%
  * WARNING: Don't even consider trying to compile this on a system where
@@ -49,7 +48,7 @@ static const char *inet_ntop6(const u_char *src, char *dst, socklen_t size);
  *	Paul Vixie, 1996.
  */
 const char *
-inet_ntop(int af, const void * __restrict src, char * __restrict dst,
+inet_ntop(int af, const void *__restrict src, char *__restrict dst,
     socklen_t size)
 {
 	switch (af) {
@@ -83,7 +82,7 @@ inet_ntop4(const u_char *src, char *dst, socklen_t size)
 	int l;
 
 	l = snprintf(tmp, sizeof(tmp), fmt, src[0], src[1], src[2], src[3]);
-	if (l <= 0 || (socklen_t) l >= size) {
+	if (l <= 0 || (socklen_t)l >= size) {
 		errno = ENOSPC;
 		return (NULL);
 	}
@@ -108,7 +107,9 @@ inet_ntop6(const u_char *src, char *dst, socklen_t size)
 	 * to use pointer overlays.  All the world's not a VAX.
 	 */
 	char tmp[sizeof "ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255"], *tp;
-	struct { int base, len; } best, cur;
+	struct {
+		int base, len;
+	} best, cur;
 	u_int words[NS_IN6ADDRSZ / NS_INT16SZ];
 	int i;
 
@@ -161,10 +162,11 @@ inet_ntop6(const u_char *src, char *dst, socklen_t size)
 		if (i != 0)
 			*tp++ = ':';
 		/* Is this address an encapsulated IPv4? */
-		if (i == 6 && best.base == 0 && (best.len == 6 ||
-		    (best.len == 7 && words[7] != 0x0001) ||
-		    (best.len == 5 && words[5] == 0xffff))) {
-			if (!inet_ntop4(src+12, tp, sizeof tmp - (tp - tmp))) {
+		if (i == 6 && best.base == 0 &&
+		    (best.len == 6 || (best.len == 7 && words[7] != 0x0001) ||
+			(best.len == 5 && words[5] == 0xffff))) {
+			if (!inet_ntop4(src + 12, tp,
+				sizeof tmp - (tp - tmp))) {
 				errno = ENOSPC;
 				return (NULL);
 			}
@@ -174,8 +176,8 @@ inet_ntop6(const u_char *src, char *dst, socklen_t size)
 		tp += sprintf(tp, "%x", words[i]);
 	}
 	/* Was it a trailing run of 0x00's? */
-	if (best.base != -1 && (best.base + best.len) == 
-	    (NS_IN6ADDRSZ / NS_INT16SZ))
+	if (best.base != -1 &&
+	    (best.base + best.len) == (NS_IN6ADDRSZ / NS_INT16SZ))
 		*tp++ = ':';
 	*tp++ = '\0';
 

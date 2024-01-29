@@ -31,15 +31,14 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "efx.h"
 #include "efx_impl.h"
 
 #if EFSYS_OPT_SIENA
 
-	__checkReturn	efx_rc_t
-siena_mac_poll(
-	__in		efx_nic_t *enp,
-	__out		efx_link_mode_t *link_modep)
+__checkReturn efx_rc_t
+siena_mac_poll(__in efx_nic_t *enp, __out efx_link_mode_t *link_modep)
 {
 	efx_port_t *epp = &(enp->en_port);
 	siena_link_state_t sls;
@@ -63,10 +62,8 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-siena_mac_up(
-	__in		efx_nic_t *enp,
-	__out		boolean_t *mac_upp)
+__checkReturn efx_rc_t
+siena_mac_up(__in efx_nic_t *enp, __out boolean_t *mac_upp)
 {
 	siena_link_state_t sls;
 	efx_rc_t rc;
@@ -88,16 +85,15 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-siena_mac_reconfigure(
-	__in		efx_nic_t *enp)
+__checkReturn efx_rc_t
+siena_mac_reconfigure(__in efx_nic_t *enp)
 {
 	efx_port_t *epp = &(enp->en_port);
 	efx_oword_t multicast_hash[2];
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload,
-		MAX(MC_CMD_SET_MAC_IN_LEN, MC_CMD_SET_MCAST_HASH_IN_LEN),
-		MAX(MC_CMD_SET_MAC_OUT_LEN, MC_CMD_SET_MCAST_HASH_OUT_LEN));
+	    MAX(MC_CMD_SET_MAC_IN_LEN, MC_CMD_SET_MCAST_HASH_IN_LEN),
+	    MAX(MC_CMD_SET_MAC_OUT_LEN, MC_CMD_SET_MCAST_HASH_OUT_LEN));
 
 	unsigned int fcntl;
 	efx_rc_t rc;
@@ -111,18 +107,18 @@ siena_mac_reconfigure(
 	MCDI_IN_SET_DWORD(req, SET_MAC_IN_MTU, epp->ep_mac_pdu);
 	MCDI_IN_SET_DWORD(req, SET_MAC_IN_DRAIN, epp->ep_mac_drain ? 1 : 0);
 	EFX_MAC_ADDR_COPY(MCDI_IN2(req, uint8_t, SET_MAC_IN_ADDR),
-			    epp->ep_mac_addr);
+	    epp->ep_mac_addr);
 	MCDI_IN_POPULATE_DWORD_2(req, SET_MAC_IN_REJECT,
-			    SET_MAC_IN_REJECT_UNCST, !epp->ep_all_unicst,
-			    SET_MAC_IN_REJECT_BRDCST, !epp->ep_brdcst);
+	    SET_MAC_IN_REJECT_UNCST, !epp->ep_all_unicst,
+	    SET_MAC_IN_REJECT_BRDCST, !epp->ep_brdcst);
 
 	if (epp->ep_fcntl_autoneg)
 		/* efx_fcntl_set() has already set the phy capabilities */
 		fcntl = MC_CMD_FCNTL_AUTO;
 	else if (epp->ep_fcntl & EFX_FCNTL_RESPOND)
-		fcntl = (epp->ep_fcntl & EFX_FCNTL_GENERATE)
-			? MC_CMD_FCNTL_BIDIR
-			: MC_CMD_FCNTL_RESPOND;
+		fcntl = (epp->ep_fcntl & EFX_FCNTL_GENERATE) ?
+		    MC_CMD_FCNTL_BIDIR :
+		    MC_CMD_FCNTL_RESPOND;
 	else
 		fcntl = MC_CMD_FCNTL_OFF;
 
@@ -169,15 +165,15 @@ siena_mac_reconfigure(
 		EFX_SET_OWORD_BIT(multicast_hash[1], 0x7f);
 	}
 
-	(void) memset(payload, 0, sizeof (payload));
+	(void)memset(payload, 0, sizeof(payload));
 	req.emr_cmd = MC_CMD_SET_MCAST_HASH;
 	req.emr_in_buf = payload;
 	req.emr_in_length = MC_CMD_SET_MCAST_HASH_IN_LEN;
 	req.emr_out_buf = payload;
 	req.emr_out_length = MC_CMD_SET_MCAST_HASH_OUT_LEN;
 
-	memcpy(MCDI_IN2(req, uint8_t, SET_MCAST_HASH_IN_HASH0),
-	    multicast_hash, sizeof (multicast_hash));
+	memcpy(MCDI_IN2(req, uint8_t, SET_MCAST_HASH_IN_HASH0), multicast_hash,
+	    sizeof(multicast_hash));
 
 	efx_mcdi_execute(enp, &req);
 
@@ -198,11 +194,9 @@ fail1:
 
 #if EFSYS_OPT_LOOPBACK
 
-	__checkReturn	efx_rc_t
-siena_mac_loopback_set(
-	__in		efx_nic_t *enp,
-	__in		efx_link_mode_t link_mode,
-	__in		efx_loopback_type_t loopback_type)
+__checkReturn efx_rc_t
+siena_mac_loopback_set(__in efx_nic_t *enp, __in efx_link_mode_t link_mode,
+    __in efx_loopback_type_t loopback_type)
 {
 	efx_port_t *epp = &(enp->en_port);
 	const efx_phy_ops_t *epop = epp->ep_epop;
@@ -230,15 +224,13 @@ fail1:
 	return (rc);
 }
 
-#endif	/* EFSYS_OPT_LOOPBACK */
+#endif /* EFSYS_OPT_LOOPBACK */
 
 #if EFSYS_OPT_MAC_STATS
 
-	__checkReturn			efx_rc_t
-siena_mac_stats_get_mask(
-	__in				efx_nic_t *enp,
-	__inout_bcount(mask_size)	uint32_t *maskp,
-	__in				size_t mask_size)
+__checkReturn efx_rc_t
+siena_mac_stats_get_mask(__in efx_nic_t *enp,
+    __inout_bcount(mask_size) uint32_t *maskp, __in size_t mask_size)
 {
 	const struct efx_mac_stats_range siena_stats[] = {
 		{ EFX_MAC_RX_OCTETS, EFX_MAC_RX_GE_15XX_PKTS },
@@ -249,8 +241,8 @@ siena_mac_stats_get_mask(
 
 	_NOTE(ARGUNUSED(enp))
 
-	if ((rc = efx_mac_stats_mask_add_ranges(maskp, mask_size,
-	    siena_stats, EFX_ARRAY_SIZE(siena_stats))) != 0)
+	if ((rc = efx_mac_stats_mask_add_ranges(maskp, mask_size, siena_stats,
+		 EFX_ARRAY_SIZE(siena_stats))) != 0)
 		goto fail1;
 
 	return (0);
@@ -261,15 +253,13 @@ fail1:
 	return (rc);
 }
 
-#define	SIENA_MAC_STAT_READ(_esmp, _field, _eqp)			\
-	EFSYS_MEM_READQ((_esmp), (_field) * sizeof (efx_qword_t), _eqp)
+#define SIENA_MAC_STAT_READ(_esmp, _field, _eqp) \
+	EFSYS_MEM_READQ((_esmp), (_field) * sizeof(efx_qword_t), _eqp)
 
-	__checkReturn			efx_rc_t
-siena_mac_stats_update(
-	__in				efx_nic_t *enp,
-	__in				efsys_mem_t *esmp,
-	__inout_ecount(EFX_MAC_NSTATS)	efsys_stat_t *stat,
-	__inout_opt			uint32_t *generationp)
+__checkReturn efx_rc_t
+siena_mac_stats_update(__in efx_nic_t *enp, __in efsys_mem_t *esmp,
+    __inout_ecount(EFX_MAC_NSTATS) efsys_stat_t *stat,
+    __inout_opt uint32_t *generationp)
 {
 	const efx_nic_cfg_t *encp = &enp->en_nic_cfg;
 	efx_qword_t generation_start;
@@ -283,7 +273,7 @@ siena_mac_stats_update(
 		goto fail1;
 	}
 	if (EFSYS_MEM_SIZE(esmp) <
-	    (encp->enc_mac_stats_nstats * sizeof (efx_qword_t))) {
+	    (encp->enc_mac_stats_nstats * sizeof(efx_qword_t))) {
 		/* DMA buffer too small */
 		rc = ENOSPC;
 		goto fail2;
@@ -348,11 +338,11 @@ siena_mac_stats_update(
 	EFSYS_STAT_SET_QWORD(&(stat[EFX_MAC_TX_SGL_COL_PKTS]), &value);
 
 	SIENA_MAC_STAT_READ(esmp, MC_CMD_MAC_TX_MULTIPLE_COLLISION_PKTS,
-			    &value);
+	    &value);
 	EFSYS_STAT_SET_QWORD(&(stat[EFX_MAC_TX_MULT_COL_PKTS]), &value);
 
 	SIENA_MAC_STAT_READ(esmp, MC_CMD_MAC_TX_EXCESSIVE_COLLISION_PKTS,
-			    &value);
+	    &value);
 	EFSYS_STAT_SET_QWORD(&(stat[EFX_MAC_TX_EX_COL_PKTS]), &value);
 
 	SIENA_MAC_STAT_READ(esmp, MC_CMD_MAC_TX_LATE_COLLISION_PKTS, &value);
@@ -432,27 +422,27 @@ siena_mac_stats_update(
 
 	SIENA_MAC_STAT_READ(esmp, MC_CMD_MAC_RX_LANES01_CHAR_ERR, &value);
 	EFSYS_STAT_SET_DWORD(&(stat[EFX_MAC_RX_LANE0_CHAR_ERR]),
-			    &(value.eq_dword[0]));
+	    &(value.eq_dword[0]));
 	EFSYS_STAT_SET_DWORD(&(stat[EFX_MAC_RX_LANE1_CHAR_ERR]),
-			    &(value.eq_dword[1]));
+	    &(value.eq_dword[1]));
 
 	SIENA_MAC_STAT_READ(esmp, MC_CMD_MAC_RX_LANES23_CHAR_ERR, &value);
 	EFSYS_STAT_SET_DWORD(&(stat[EFX_MAC_RX_LANE2_CHAR_ERR]),
-			    &(value.eq_dword[0]));
+	    &(value.eq_dword[0]));
 	EFSYS_STAT_SET_DWORD(&(stat[EFX_MAC_RX_LANE3_CHAR_ERR]),
-			    &(value.eq_dword[1]));
+	    &(value.eq_dword[1]));
 
 	SIENA_MAC_STAT_READ(esmp, MC_CMD_MAC_RX_LANES01_DISP_ERR, &value);
 	EFSYS_STAT_SET_DWORD(&(stat[EFX_MAC_RX_LANE0_DISP_ERR]),
-			    &(value.eq_dword[0]));
+	    &(value.eq_dword[0]));
 	EFSYS_STAT_SET_DWORD(&(stat[EFX_MAC_RX_LANE1_DISP_ERR]),
-			    &(value.eq_dword[1]));
+	    &(value.eq_dword[1]));
 
 	SIENA_MAC_STAT_READ(esmp, MC_CMD_MAC_RX_LANES23_DISP_ERR, &value);
 	EFSYS_STAT_SET_DWORD(&(stat[EFX_MAC_RX_LANE2_DISP_ERR]),
-			    &(value.eq_dword[0]));
+	    &(value.eq_dword[0]));
 	EFSYS_STAT_SET_DWORD(&(stat[EFX_MAC_RX_LANE3_DISP_ERR]),
-			    &(value.eq_dword[1]));
+	    &(value.eq_dword[1]));
 
 	SIENA_MAC_STAT_READ(esmp, MC_CMD_MAC_RX_MATCH_FAULT, &value);
 	EFSYS_STAT_SET_QWORD(&(stat[EFX_MAC_RX_MATCH_FAULT]), &value);
@@ -463,12 +453,12 @@ siena_mac_stats_update(
 	EFSYS_DMA_SYNC_FOR_KERNEL(esmp, 0, EFSYS_MEM_SIZE(esmp));
 	EFSYS_MEM_READ_BARRIER();
 	SIENA_MAC_STAT_READ(esmp, MC_CMD_MAC_GENERATION_START,
-			    &generation_start);
+	    &generation_start);
 
 	/* Check that we didn't read the stats in the middle of a DMA */
 	/* Not a good enough check ? */
 	if (memcmp(&generation_start, &generation_end,
-	    sizeof (generation_start)))
+		sizeof(generation_start)))
 		return (EAGAIN);
 
 	if (generationp)
@@ -484,14 +474,12 @@ fail1:
 	return (rc);
 }
 
-#endif	/* EFSYS_OPT_MAC_STATS */
+#endif /* EFSYS_OPT_MAC_STATS */
 
-	__checkReturn		efx_rc_t
-siena_mac_pdu_get(
-	__in		efx_nic_t *enp,
-	__out		size_t *pdu)
+__checkReturn efx_rc_t
+siena_mac_pdu_get(__in efx_nic_t *enp, __out size_t *pdu)
 {
 	return (ENOTSUP);
 }
 
-#endif	/* EFSYS_OPT_SIENA */
+#endif /* EFSYS_OPT_SIENA */

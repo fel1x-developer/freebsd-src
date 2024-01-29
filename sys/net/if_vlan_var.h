@@ -12,7 +12,7 @@
  * no representations about the suitability of this software for any
  * purpose.  It is provided "as is" without express or implied
  * warranty.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY M.I.T. ``AS IS''.  M.I.T. DISCLAIMS
  * ALL EXPRESS OR IMPLIED WARRANTIES WITH REGARD TO THIS SOFTWARE,
  * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
@@ -28,54 +28,53 @@
  */
 
 #ifndef _NET_IF_VLAN_VAR_H_
-#define	_NET_IF_VLAN_VAR_H_	1
+#define _NET_IF_VLAN_VAR_H_ 1
 
 #include <sys/mbuf.h>
 
 /* Set the VLAN ID in an mbuf packet header non-destructively. */
-#define EVL_APPLY_VLID(m, vlid)						\
-	do {								\
-		if ((m)->m_flags & M_VLANTAG) {				\
-			(m)->m_pkthdr.ether_vtag &= EVL_VLID_MASK;	\
-			(m)->m_pkthdr.ether_vtag |= (vlid);		\
-		} else {						\
-			(m)->m_pkthdr.ether_vtag = (vlid);		\
-			(m)->m_flags |= M_VLANTAG;			\
-		}							\
+#define EVL_APPLY_VLID(m, vlid)                                    \
+	do {                                                       \
+		if ((m)->m_flags & M_VLANTAG) {                    \
+			(m)->m_pkthdr.ether_vtag &= EVL_VLID_MASK; \
+			(m)->m_pkthdr.ether_vtag |= (vlid);        \
+		} else {                                           \
+			(m)->m_pkthdr.ether_vtag = (vlid);         \
+			(m)->m_flags |= M_VLANTAG;                 \
+		}                                                  \
 	} while (0)
 
 /* Set the priority ID in an mbuf packet header non-destructively. */
-#define EVL_APPLY_PRI(m, pri)						\
-	do {								\
-		if ((m)->m_flags & M_VLANTAG) {				\
-			uint16_t __vlantag = (m)->m_pkthdr.ether_vtag;	\
-			(m)->m_pkthdr.ether_vtag |= EVL_MAKETAG(	\
-			    EVL_VLANOFTAG(__vlantag), (pri),		\
-			    EVL_CFIOFTAG(__vlantag));			\
-		} else {						\
-			(m)->m_pkthdr.ether_vtag =			\
-			    EVL_MAKETAG(0, (pri), 0);			\
-			(m)->m_flags |= M_VLANTAG;			\
-		}							\
+#define EVL_APPLY_PRI(m, pri)                                                \
+	do {                                                                 \
+		if ((m)->m_flags & M_VLANTAG) {                              \
+			uint16_t __vlantag = (m)->m_pkthdr.ether_vtag;       \
+			(m)->m_pkthdr.ether_vtag |=                          \
+			    EVL_MAKETAG(EVL_VLANOFTAG(__vlantag), (pri),     \
+				EVL_CFIOFTAG(__vlantag));                    \
+		} else {                                                     \
+			(m)->m_pkthdr.ether_vtag = EVL_MAKETAG(0, (pri), 0); \
+			(m)->m_flags |= M_VLANTAG;                           \
+		}                                                            \
 	} while (0)
 
 /* sysctl(3) tags, for compatibility purposes */
-#define	VLANCTL_PROTO	1
-#define	VLANCTL_MAX	2
+#define VLANCTL_PROTO 1
+#define VLANCTL_MAX 2
 
 /*
  * Configuration structure for SIOCSETVLAN and SIOCGETVLAN ioctls.
  */
-struct	vlanreq {
-	char	vlr_parent[IFNAMSIZ];
-	u_short	vlr_tag;
-	u_short	vlr_proto;
+struct vlanreq {
+	char vlr_parent[IFNAMSIZ];
+	u_short vlr_tag;
+	u_short vlr_proto;
 };
-#define	SIOCSETVLAN	SIOCSIFGENERIC
-#define	SIOCGETVLAN	SIOCGIFGENERIC
+#define SIOCSETVLAN SIOCSIFGENERIC
+#define SIOCGETVLAN SIOCGIFGENERIC
 
-#define	SIOCGVLANPCP	SIOCGLANPCP	/* Get VLAN PCP */
-#define	SIOCSVLANPCP	SIOCSLANPCP	/* Set VLAN PCP */
+#define SIOCGVLANPCP SIOCGLANPCP /* Get VLAN PCP */
+#define SIOCSVLANPCP SIOCSLANPCP /* Set VLAN PCP */
 
 #ifdef _KERNEL
 /*
@@ -95,7 +94,7 @@ struct	vlanreq {
  * Drivers that support hardware VLAN tag stripping fill in the
  * received VLAN tag (containing both vlan and priority information)
  * into the ether_vtag mbuf packet header field:
- * 
+ *
  *	m->m_pkthdr.ether_vtag = vtag;		// ntohs()?
  *	m->m_flags |= M_VLANTAG;
  *
@@ -120,16 +119,16 @@ struct	vlanreq {
  * semantically quite different from use of the ether_vtag field, which is
  * defined only between the device driver and VLAN layer.
  */
-#define	MTAG_8021Q		1326104895
-#define	MTAG_8021Q_PCP_IN	0		/* Input priority. */
-#define	MTAG_8021Q_PCP_OUT	1		/* Output priority. */
+#define MTAG_8021Q 1326104895
+#define MTAG_8021Q_PCP_IN 0  /* Input priority. */
+#define MTAG_8021Q_PCP_OUT 1 /* Output priority. */
 
-#define	VLAN_PCP_MAX		7
+#define VLAN_PCP_MAX 7
 
-#define	DOT1Q_VID_NULL		0x0
-#define	DOT1Q_VID_DEF_PVID	0x1
-#define	DOT1Q_VID_DEF_SR_PVID	0x2
-#define	DOT1Q_VID_RSVD_IMPL	0xfff
+#define DOT1Q_VID_NULL 0x0
+#define DOT1Q_VID_DEF_PVID 0x1
+#define DOT1Q_VID_DEF_SR_PVID 0x2
+#define DOT1Q_VID_RSVD_IMPL 0xfff
 
 /*
  * 802.1q full tag. Proto and vid are stored in host byte order.
@@ -137,35 +136,39 @@ struct	vlanreq {
 struct ether_8021q_tag {
 	uint16_t proto;
 	uint16_t vid;
-	uint8_t  pcp;
+	uint8_t pcp;
 };
 
-#define	VLAN_CAPABILITIES(_ifp) do {				\
-	if (if_getvlantrunk(_ifp) != NULL) 			\
-		(*vlan_trunk_cap_p)(_ifp);			\
-} while (0)
+#define VLAN_CAPABILITIES(_ifp)                    \
+	do {                                       \
+		if (if_getvlantrunk(_ifp) != NULL) \
+			(*vlan_trunk_cap_p)(_ifp); \
+	} while (0)
 
-#define	VLAN_TRUNKDEV(_ifp)					\
+#define VLAN_TRUNKDEV(_ifp) \
 	(if_gettype(_ifp) == IFT_L2VLAN ? (*vlan_trunkdev_p)((_ifp)) : NULL)
-#define	VLAN_TAG(_ifp, _vid)					\
-	(if_gettype(_ifp) == IFT_L2VLAN ? (*vlan_tag_p)((_ifp), (_vid)) : EINVAL)
-#define	VLAN_PCP(_ifp, _pcp)					\
-	(if_gettype(_ifp) == IFT_L2VLAN ? (*vlan_pcp_p)((_ifp), (_pcp)) : EINVAL)
-#define	VLAN_COOKIE(_ifp)					\
+#define VLAN_TAG(_ifp, _vid)                                              \
+	(if_gettype(_ifp) == IFT_L2VLAN ? (*vlan_tag_p)((_ifp), (_vid)) : \
+					  EINVAL)
+#define VLAN_PCP(_ifp, _pcp)                                              \
+	(if_gettype(_ifp) == IFT_L2VLAN ? (*vlan_pcp_p)((_ifp), (_pcp)) : \
+					  EINVAL)
+#define VLAN_COOKIE(_ifp) \
 	(if_gettype(_ifp) == IFT_L2VLAN ? (*vlan_cookie_p)((_ifp)) : NULL)
-#define	VLAN_SETCOOKIE(_ifp, _cookie)				\
-	(if_gettype(_ifp) == IFT_L2VLAN ?			\
-	    (*vlan_setcookie_p)((_ifp), (_cookie)) : EINVAL)
-#define	VLAN_DEVAT(_ifp, _vid)					\
+#define VLAN_SETCOOKIE(_ifp, _cookie)                    \
+	(if_gettype(_ifp) == IFT_L2VLAN ?                \
+		(*vlan_setcookie_p)((_ifp), (_cookie)) : \
+		EINVAL)
+#define VLAN_DEVAT(_ifp, _vid) \
 	(if_getvlantrunk(_ifp) != NULL ? (*vlan_devat_p)((_ifp), (_vid)) : NULL)
 
-extern	void (*vlan_trunk_cap_p)(struct ifnet *);
-extern	struct ifnet *(*vlan_trunkdev_p)(struct ifnet *);
-extern	struct ifnet *(*vlan_devat_p)(struct ifnet *, uint16_t);
-extern	int (*vlan_tag_p)(struct ifnet *, uint16_t *);
-extern	int (*vlan_pcp_p)(struct ifnet *, uint16_t *);
-extern	int (*vlan_setcookie_p)(struct ifnet *, void *);
-extern	void *(*vlan_cookie_p)(struct ifnet *);
+extern void (*vlan_trunk_cap_p)(struct ifnet *);
+extern struct ifnet *(*vlan_trunkdev_p)(struct ifnet *);
+extern struct ifnet *(*vlan_devat_p)(struct ifnet *, uint16_t);
+extern int (*vlan_tag_p)(struct ifnet *, uint16_t *);
+extern int (*vlan_pcp_p)(struct ifnet *, uint16_t *);
+extern int (*vlan_setcookie_p)(struct ifnet *, void *);
+extern void *(*vlan_cookie_p)(struct ifnet *);
 
 #include <sys/_eventhandler.h>
 
@@ -180,8 +183,7 @@ vlan_set_pcp(struct mbuf *m, uint8_t prio)
 {
 	struct m_tag *mtag;
 
-	KASSERT(prio <= VLAN_PCP_MAX,
-	    ("%s with invalid pcp", __func__));
+	KASSERT(prio <= VLAN_PCP_MAX, ("%s with invalid pcp", __func__));
 
 	mtag = m_tag_locate(m, MTAG_8021Q, MTAG_8021Q_PCP_OUT, NULL);
 	if (mtag == NULL) {

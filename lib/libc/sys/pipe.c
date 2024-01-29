@@ -28,7 +28,6 @@
  * SUCH DAMAGE.
  */
 
-
 #include <unistd.h>
 
 __weak_reference(__sys_pipe, pipe);

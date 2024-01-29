@@ -1,29 +1,30 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
 #include <adf_accel_devices.h>
-#include <adf_common_drv.h>
 #include <adf_cfg.h>
-#include <adf_pfvf_msg.h>
+#include <adf_common_drv.h>
 #include <adf_dev_err.h>
 #include <adf_gen2_hw_data.h>
 #include <adf_gen2_pfvf.h>
+#include <adf_pfvf_msg.h>
+
 #include "adf_c62x_hw_data.h"
-#include "icp_qat_hw.h"
 #include "adf_cfg.h"
 #include "adf_heartbeat.h"
+#include "icp_qat_hw.h"
 
 /* Worker thread to service arbiter mappings */
-static const u32 thrd_to_arb_map[ADF_C62X_MAX_ACCELENGINES] =
-    { 0x12222AAA, 0x11222AAA, 0x12222AAA, 0x11222AAA, 0x12222AAA,
-      0x11222AAA, 0x12222AAA, 0x11222AAA, 0x12222AAA, 0x11222AAA };
+static const u32 thrd_to_arb_map[ADF_C62X_MAX_ACCELENGINES] = { 0x12222AAA,
+	0x11222AAA, 0x12222AAA, 0x11222AAA, 0x12222AAA, 0x11222AAA, 0x12222AAA,
+	0x11222AAA, 0x12222AAA, 0x11222AAA };
 
 enum { DEV_C62X_SKU_1 = 0, DEV_C62X_SKU_2 = 1 };
 
 static u32 thrd_to_arb_map_gen[ADF_C62X_MAX_ACCELENGINES] = { 0 };
 
-static struct adf_hw_device_class c62x_class = {.name = ADF_C62X_DEVICE_NAME,
-						.type = DEV_C62X,
-						.instances = 0 };
+static struct adf_hw_device_class c62x_class = { .name = ADF_C62X_DEVICE_NAME,
+	.type = DEV_C62X,
+	.instances = 0 };
 
 static u32
 get_accel_mask(struct adf_accel_dev *accel_dev)
@@ -53,8 +54,8 @@ get_ae_mask(struct adf_accel_dev *accel_dev)
 	me_straps = pci_read_config(pdev, ADF_C62X_SOFTSTRAP_CSR_OFFSET, 4);
 
 	/* If SSMs are disabled, then disable the corresponding MEs */
-	ssms_disabled =
-	    (~get_accel_mask(accel_dev)) & ADF_C62X_ACCELERATORS_MASK;
+	ssms_disabled = (~get_accel_mask(accel_dev)) &
+	    ADF_C62X_ACCELERATORS_MASK;
 	me_disable = 0x3;
 	while (ssms_disabled) {
 		if (ssms_disabled & 1)
@@ -129,7 +130,7 @@ get_sku(struct adf_hw_device_data *self)
 
 static void
 adf_get_arbiter_mapping(struct adf_accel_dev *accel_dev,
-			u32 const **arb_map_config)
+    u32 const **arb_map_config)
 {
 	int i;
 	struct adf_hw_device_data *hw_device = accel_dev->hw_device;
@@ -139,10 +140,8 @@ adf_get_arbiter_mapping(struct adf_accel_dev *accel_dev,
 		if (hw_device->ae_mask & (1 << i))
 			thrd_to_arb_map_gen[i] = thrd_to_arb_map[i];
 	}
-	adf_cfg_gen_dispatch_arbiter(accel_dev,
-				     thrd_to_arb_map,
-				     thrd_to_arb_map_gen,
-				     ADF_C62X_MAX_ACCELENGINES);
+	adf_cfg_gen_dispatch_arbiter(accel_dev, thrd_to_arb_map,
+	    thrd_to_arb_map_gen, ADF_C62X_MAX_ACCELENGINES);
 	*arb_map_config = thrd_to_arb_map_gen;
 }
 
@@ -254,10 +253,8 @@ measure_clock(struct adf_accel_dev *accel_dev)
 	u32 frequency;
 	int ret = 0;
 
-	ret = adf_dev_measure_clock(accel_dev,
-				    &frequency,
-				    ADF_C62X_MIN_AE_FREQ,
-				    ADF_C62X_MAX_AE_FREQ);
+	ret = adf_dev_measure_clock(accel_dev, &frequency, ADF_C62X_MIN_AE_FREQ,
+	    ADF_C62X_MAX_AE_FREQ);
 	if (ret)
 		return ret;
 
@@ -288,14 +285,14 @@ c62x_get_hw_cap(struct adf_accel_dev *accel_dev)
 	    ICP_ACCEL_CAPABILITIES_EXT_ALGCHAIN;
 	if (legfuses & ICP_ACCEL_MASK_CIPHER_SLICE)
 		capabilities &= ~(ICP_ACCEL_CAPABILITIES_CRYPTO_SYMMETRIC |
-				  ICP_ACCEL_CAPABILITIES_CIPHER |
-				  ICP_ACCEL_CAPABILITIES_HKDF |
-				  ICP_ACCEL_CAPABILITIES_EXT_ALGCHAIN);
+		    ICP_ACCEL_CAPABILITIES_CIPHER |
+		    ICP_ACCEL_CAPABILITIES_HKDF |
+		    ICP_ACCEL_CAPABILITIES_EXT_ALGCHAIN);
 	if (legfuses & ICP_ACCEL_MASK_AUTH_SLICE)
 		capabilities &= ~ICP_ACCEL_CAPABILITIES_AUTHENTICATION;
 	if (legfuses & ICP_ACCEL_MASK_PKE_SLICE)
 		capabilities &= ~(ICP_ACCEL_CAPABILITIES_CRYPTO_ASYMMETRIC |
-				  ICP_ACCEL_CAPABILITIES_ECEDMONT);
+		    ICP_ACCEL_CAPABILITIES_ECEDMONT);
 	if (legfuses & ICP_ACCEL_MASK_COMPRESS_SLICE)
 		capabilities &= ~ICP_ACCEL_CAPABILITIES_COMPRESSION;
 	if (legfuses & ICP_ACCEL_MASK_EIA3_SLICE)
@@ -314,7 +311,7 @@ c62x_get_hw_cap(struct adf_accel_dev *accel_dev)
 
 static const char *
 get_obj_name(struct adf_accel_dev *accel_dev,
-	     enum adf_accel_unit_services service)
+    enum adf_accel_unit_services service)
 {
 	return ADF_CXXX_AE_FW_NAME_CUSTOM1;
 }
@@ -327,7 +324,7 @@ get_objs_num(struct adf_accel_dev *accel_dev)
 
 static uint32_t
 get_obj_cfg_ae_mask(struct adf_accel_dev *accel_dev,
-		    enum adf_accel_unit_services services)
+    enum adf_accel_unit_services services)
 {
 	return accel_dev->hw_device->ae_mask;
 }

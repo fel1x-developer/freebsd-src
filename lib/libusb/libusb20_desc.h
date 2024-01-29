@@ -44,14 +44,14 @@
  */
 
 #ifndef _LIBUSB20_DESC_H_
-#define	_LIBUSB20_DESC_H_
+#define _LIBUSB20_DESC_H_
 
 #ifndef LIBUSB_GLOBAL_INCLUDE_FILE
 #include <stdint.h>
 #endif
 
 #ifdef __cplusplus
-extern	"C" {
+extern "C" {
 #endif
 #if 0
 };					/* style */
@@ -59,16 +59,16 @@ extern	"C" {
 #endif
 /* basic macros */
 
-#define	LIBUSB20__NOT(...) __VA_ARGS__
-#define	LIBUSB20_NOT(arg) LIBUSB20__NOT(LIBUSB20_YES arg(() LIBUSB20_NO))
-#define	LIBUSB20_YES(...) __VA_ARGS__
-#define	LIBUSB20_NO(...)
-#define	LIBUSB20_END(...) __VA_ARGS__
-#define	LIBUSB20_MAX(a,b) (((a) > (b)) ? (a) : (b))
-#define	LIBUSB20_MIN(a,b) (((a) < (b)) ? (a) : (b))
+#define LIBUSB20__NOT(...) __VA_ARGS__
+#define LIBUSB20_NOT(arg) LIBUSB20__NOT(LIBUSB20_YES arg(() LIBUSB20_NO))
+#define LIBUSB20_YES(...) __VA_ARGS__
+#define LIBUSB20_NO(...)
+#define LIBUSB20_END(...) __VA_ARGS__
+#define LIBUSB20_MAX(a, b) (((a) > (b)) ? (a) : (b))
+#define LIBUSB20_MIN(a, b) (((a) < (b)) ? (a) : (b))
 
-#define	LIBUSB20_ADD_BYTES(ptr,off) \
-  ((void *)(((const uint8_t *)(ptr)) + (off) - ((const uint8_t *)0)))
+#define LIBUSB20_ADD_BYTES(ptr, off) \
+	((void *)(((const uint8_t *)(ptr)) + (off) - ((const uint8_t *)0)))
 
 /* basic message elements */
 enum {
@@ -77,7 +77,7 @@ enum {
 	LIBUSB20_ME_INT32,
 	LIBUSB20_ME_INT64,
 	LIBUSB20_ME_STRUCT,
-	LIBUSB20_ME_MAX,		/* used to indicate end */
+	LIBUSB20_ME_MAX, /* used to indicate end */
 };
 
 /* basic message element modifiers */
@@ -88,221 +88,197 @@ enum {
 };
 
 enum {
-	LIBUSB20_ME_IS_RAW,		/* structure excludes length field
-					 * (hardcoded value) */
-	LIBUSB20_ME_IS_ENCODED,		/* structure includes length field */
-	LIBUSB20_ME_IS_EMPTY,		/* no structure */
-	LIBUSB20_ME_IS_DECODED,		/* structure is recursive */
+	LIBUSB20_ME_IS_RAW,	/* structure excludes length field
+				 * (hardcoded value) */
+	LIBUSB20_ME_IS_ENCODED, /* structure includes length field */
+	LIBUSB20_ME_IS_EMPTY,	/* no structure */
+	LIBUSB20_ME_IS_DECODED, /* structure is recursive */
 };
 
 /* basic helper structures and macros */
 
-#define	LIBUSB20_ME_STRUCT_ALIGN sizeof(void *)
+#define LIBUSB20_ME_STRUCT_ALIGN sizeof(void *)
 
 struct libusb20_me_struct {
-	void   *ptr;			/* data pointer */
-	uint16_t len;			/* defaults to zero */
-	uint16_t type;			/* defaults to LIBUSB20_ME_IS_EMPTY */
+	void *ptr;     /* data pointer */
+	uint16_t len;  /* defaults to zero */
+	uint16_t type; /* defaults to LIBUSB20_ME_IS_EMPTY */
 } __aligned(LIBUSB20_ME_STRUCT_ALIGN);
 
 struct libusb20_me_format {
-	const uint8_t *format;		/* always set */
-	const char *desc;		/* optionally set */
-	const char *fields;		/* optionally set */
+	const uint8_t *format; /* always set */
+	const char *desc;      /* optionally set */
+	const char *fields;    /* optionally set */
 };
 
-#define	LIBUSB20_ME_STRUCT(n, field, arg, ismeta)		\
-  ismeta ( LIBUSB20_ME_STRUCT, 1, 0, )			\
-  LIBUSB20_NOT(ismeta) ( struct libusb20_me_struct field; )
+#define LIBUSB20_ME_STRUCT(n, field, arg, ismeta) \
+	ismeta(LIBUSB20_ME_STRUCT, 1, 0, )        \
+	    LIBUSB20_NOT(ismeta)(struct libusb20_me_struct field;)
 
-#define	LIBUSB20_ME_STRUCT_ARRAY(n, field, arg, ismeta)	\
-  ismeta ( LIBUSB20_ME_STRUCT , (arg) & 0xFF,		\
-	   ((arg) / 0x100) & 0xFF, )			\
-  LIBUSB20_NOT(ismeta) ( struct libusb20_me_struct field [arg]; )
+#define LIBUSB20_ME_STRUCT_ARRAY(n, field, arg, ismeta)                    \
+	ismeta(LIBUSB20_ME_STRUCT, (arg) & 0xFF, ((arg) / 0x100) & 0xFF, ) \
+	    LIBUSB20_NOT(ismeta)(struct libusb20_me_struct field[arg];)
 
-#define	LIBUSB20_ME_INTEGER(n, field, ismeta, un, u, bits, a, size)	\
-  ismeta ( LIBUSB20_ME_INT##bits |					\
-	   LIBUSB20_ME_IS_##un##SIGNED ,				\
-	   (size) & 0xFF, ((size) / 0x100) & 0xFF, )		\
-  LIBUSB20_NOT(ismeta) ( u##int##bits##_t				\
-		    __aligned((bits) / 8) field a; )
+#define LIBUSB20_ME_INTEGER(n, field, ismeta, un, u, bits, a, size) \
+	ismeta(LIBUSB20_ME_INT##bits | LIBUSB20_ME_IS_##un##SIGNED, \
+	    (size) & 0xFF, ((size) / 0x100) & 0xFF, )               \
+	    LIBUSB20_NOT(ismeta)(                                   \
+		u##int##bits##_t __aligned((bits) / 8) field a;)
 
-#define	LIBUSB20_ME_UINT8_T(n, field, arg, ismeta) \
-  LIBUSB20_ME_INTEGER(n, field, ismeta, UN, u, 8, , 1)
+#define LIBUSB20_ME_UINT8_T(n, field, arg, ismeta) \
+	LIBUSB20_ME_INTEGER(n, field, ismeta, UN, u, 8, , 1)
 
-#define	LIBUSB20_ME_UINT8_ARRAY_T(n, field, arg, ismeta) \
-  LIBUSB20_ME_INTEGER(n, field, ismeta, UN, u, 8, [arg], arg)
+#define LIBUSB20_ME_UINT8_ARRAY_T(n, field, arg, ismeta) \
+	LIBUSB20_ME_INTEGER(n, field, ismeta, UN, u, 8, [arg], arg)
 
-#define	LIBUSB20_ME_SINT8_T(n, field, arg, ismeta) \
-  LIBUSB20_ME_INTEGER(n, field, ismeta,,, 8, , 1)
+#define LIBUSB20_ME_SINT8_T(n, field, arg, ismeta) \
+	LIBUSB20_ME_INTEGER(n, field, ismeta, , , 8, , 1)
 
-#define	LIBUSB20_ME_SINT8_ARRAY_T(n, field, arg, ismeta) \
-  LIBUSB20_ME_INTEGER(n, field, ismeta,,, 8, [arg], arg)
+#define LIBUSB20_ME_SINT8_ARRAY_T(n, field, arg, ismeta) \
+	LIBUSB20_ME_INTEGER(n, field, ismeta, , , 8, [arg], arg)
 
-#define	LIBUSB20_ME_UINT16_T(n, field, arg, ismeta) \
-  LIBUSB20_ME_INTEGER(n, field, ismeta, UN, u, 16, , 1)
+#define LIBUSB20_ME_UINT16_T(n, field, arg, ismeta) \
+	LIBUSB20_ME_INTEGER(n, field, ismeta, UN, u, 16, , 1)
 
-#define	LIBUSB20_ME_UINT16_ARRAY_T(n, field, arg, ismeta) \
-  LIBUSB20_ME_INTEGER(n, field, ismeta, UN, u, 16, [arg], arg)
+#define LIBUSB20_ME_UINT16_ARRAY_T(n, field, arg, ismeta) \
+	LIBUSB20_ME_INTEGER(n, field, ismeta, UN, u, 16, [arg], arg)
 
-#define	LIBUSB20_ME_SINT16_T(n, field, arg, ismeta) \
-  LIBUSB20_ME_INTEGER(n, field, ismeta,,, 16, , 1)
+#define LIBUSB20_ME_SINT16_T(n, field, arg, ismeta) \
+	LIBUSB20_ME_INTEGER(n, field, ismeta, , , 16, , 1)
 
-#define	LIBUSB20_ME_SINT16_ARRAY_T(n, field, arg, ismeta) \
-  LIBUSB20_ME_INTEGER(n, field, ismeta,,, 16, [arg], arg)
+#define LIBUSB20_ME_SINT16_ARRAY_T(n, field, arg, ismeta) \
+	LIBUSB20_ME_INTEGER(n, field, ismeta, , , 16, [arg], arg)
 
-#define	LIBUSB20_ME_UINT32_T(n, field, arg, ismeta) \
-  LIBUSB20_ME_INTEGER(n, field, ismeta, UN, u, 32, , 1)
+#define LIBUSB20_ME_UINT32_T(n, field, arg, ismeta) \
+	LIBUSB20_ME_INTEGER(n, field, ismeta, UN, u, 32, , 1)
 
-#define	LIBUSB20_ME_UINT32_ARRAY_T(n, field, arg, ismeta) \
-  LIBUSB20_ME_INTEGER(n, field, ismeta, UN, u, 32, [arg], arg)
+#define LIBUSB20_ME_UINT32_ARRAY_T(n, field, arg, ismeta) \
+	LIBUSB20_ME_INTEGER(n, field, ismeta, UN, u, 32, [arg], arg)
 
-#define	LIBUSB20_ME_SINT32_T(n, field, arg, ismeta) \
-  LIBUSB20_ME_INTEGER(n, field, ismeta,,, 32, , 1)
+#define LIBUSB20_ME_SINT32_T(n, field, arg, ismeta) \
+	LIBUSB20_ME_INTEGER(n, field, ismeta, , , 32, , 1)
 
-#define	LIBUSB20_ME_SINT32_ARRAY_T(n, field, arg, ismeta) \
-  LIBUSB20_ME_INTEGER(n, field, ismeta,,, 32, [arg], arg)
+#define LIBUSB20_ME_SINT32_ARRAY_T(n, field, arg, ismeta) \
+	LIBUSB20_ME_INTEGER(n, field, ismeta, , , 32, [arg], arg)
 
-#define	LIBUSB20_ME_UINT64_T(n, field, arg, ismeta) \
-  LIBUSB20_ME_INTEGER(n, field, ismeta, UN, u, 64, , 1)
+#define LIBUSB20_ME_UINT64_T(n, field, arg, ismeta) \
+	LIBUSB20_ME_INTEGER(n, field, ismeta, UN, u, 64, , 1)
 
-#define	LIBUSB20_ME_UINT64_ARRAY_T(n, field, arg, ismeta) \
-  LIBUSB20_ME_INTEGER(n, field, ismeta, UN, u, 64, [arg], arg)
+#define LIBUSB20_ME_UINT64_ARRAY_T(n, field, arg, ismeta) \
+	LIBUSB20_ME_INTEGER(n, field, ismeta, UN, u, 64, [arg], arg)
 
-#define	LIBUSB20_ME_SINT64_T(n, field, arg, ismeta) \
-  LIBUSB20_ME_INTEGER(n, field, ismeta,,, 64, , 1)
+#define LIBUSB20_ME_SINT64_T(n, field, arg, ismeta) \
+	LIBUSB20_ME_INTEGER(n, field, ismeta, , , 64, , 1)
 
-#define	LIBUSB20_ME_SINT64_ARRAY_T(n, field, arg, ismeta) \
-  LIBUSB20_ME_INTEGER(n, field, ismeta,,, 64, [arg], arg)
+#define LIBUSB20_ME_SINT64_ARRAY_T(n, field, arg, ismeta) \
+	LIBUSB20_ME_INTEGER(n, field, ismeta, , , 64, [arg], arg)
 
-#define	LIBUSB20_MAKE_DECODED_FIELD(n, type, field, arg) \
-  LIBUSB20_ME_##type (n, field, arg, LIBUSB20_NO)
+#define LIBUSB20_MAKE_DECODED_FIELD(n, type, field, arg) \
+	LIBUSB20_ME_##type(n, field, arg, LIBUSB20_NO)
 
-#define	LIBUSB20_MAKE_STRUCT(name)			\
-  extern const struct libusb20_me_format			\
-	 name##_FORMAT[1];				\
-  struct name##_DECODED {				\
-    const struct libusb20_me_format *name##_FORMAT;	\
-    name (LIBUSB20_MAKE_DECODED_FIELD,)			\
-  }
+#define LIBUSB20_MAKE_STRUCT(name)                               \
+	extern const struct libusb20_me_format name##_FORMAT[1]; \
+	struct name##_DECODED {                                  \
+		const struct libusb20_me_format *name##_FORMAT;  \
+		name(LIBUSB20_MAKE_DECODED_FIELD, )              \
+	}
 
-#define	LIBUSB20_MAKE_STRUCT_FORMAT(name)		\
-  const struct libusb20_me_format			\
-    name##_FORMAT[1] = {{			\
-      .format = LIBUSB20_MAKE_FORMAT(name),	\
-      .desc = #name,				\
-      .fields = NULL,				\
-  }}
+#define LIBUSB20_MAKE_STRUCT_FORMAT(name)                      \
+	const struct libusb20_me_format name##_FORMAT[1] = { { \
+	    .format = LIBUSB20_MAKE_FORMAT(name),              \
+	    .desc = #name,                                     \
+	    .fields = NULL,                                    \
+	} }
 
-#define	LIBUSB20_MAKE_FORMAT_SUB(n, type, field, arg) \
-  LIBUSB20_ME_##type (n, field, arg, LIBUSB20_YES)
+#define LIBUSB20_MAKE_FORMAT_SUB(n, type, field, arg) \
+	LIBUSB20_ME_##type(n, field, arg, LIBUSB20_YES)
 
-#define	LIBUSB20_MAKE_FORMAT(what) (const uint8_t []) \
-  { what (LIBUSB20_MAKE_FORMAT_SUB, ) LIBUSB20_ME_MAX, 0, 0 }
+#define LIBUSB20_MAKE_FORMAT(what)                                     \
+	(const uint8_t[])                                              \
+	{                                                              \
+		what(LIBUSB20_MAKE_FORMAT_SUB, ) LIBUSB20_ME_MAX, 0, 0 \
+	}
 
-#define	LIBUSB20_INIT(what, ptr) do {		\
-    memset(ptr, 0, sizeof(*(ptr)));		\
-    (ptr)->what##_FORMAT = what##_FORMAT;	\
-} while (0)
+#define LIBUSB20_INIT(what, ptr)                      \
+	do {                                          \
+		memset(ptr, 0, sizeof(*(ptr)));       \
+		(ptr)->what##_FORMAT = what##_FORMAT; \
+	} while (0)
 
-#define	LIBUSB20_DEVICE_DESC(m,n) \
-  m(n, UINT8_T, bLength, ) \
-  m(n, UINT8_T, bDescriptorType, ) \
-  m(n, UINT16_T, bcdUSB, ) \
-  m(n, UINT8_T, bDeviceClass, ) \
-  m(n, UINT8_T, bDeviceSubClass, ) \
-  m(n, UINT8_T, bDeviceProtocol, ) \
-  m(n, UINT8_T, bMaxPacketSize0, ) \
-  m(n, UINT16_T, idVendor, ) \
-  m(n, UINT16_T, idProduct, ) \
-  m(n, UINT16_T, bcdDevice, ) \
-  m(n, UINT8_T, iManufacturer, ) \
-  m(n, UINT8_T, iProduct, ) \
-  m(n, UINT8_T, iSerialNumber, ) \
-  m(n, UINT8_T, bNumConfigurations, ) \
+#define LIBUSB20_DEVICE_DESC(m, n)                                           \
+	m(n, UINT8_T, bLength, ) m(n, UINT8_T, bDescriptorType, )            \
+	    m(n, UINT16_T, bcdUSB, ) m(n, UINT8_T, bDeviceClass, ) m(n,      \
+		UINT8_T, bDeviceSubClass, ) m(n, UINT8_T, bDeviceProtocol, ) \
+		m(n, UINT8_T, bMaxPacketSize0, ) m(n, UINT16_T, idVendor, )  \
+		    m(n, UINT16_T, idProduct, ) m(n, UINT16_T, bcdDevice, )  \
+			m(n, UINT8_T, iManufacturer, )                       \
+			    m(n, UINT8_T, iProduct, )                        \
+				m(n, UINT8_T, iSerialNumber, )               \
+				    m(n, UINT8_T, bNumConfigurations, )
 
 LIBUSB20_MAKE_STRUCT(LIBUSB20_DEVICE_DESC);
 
-#define	LIBUSB20_ENDPOINT_DESC(m,n) \
-  m(n, UINT8_T,  bLength, ) \
-  m(n, UINT8_T,  bDescriptorType, ) \
-  m(n, UINT8_T,  bEndpointAddress, ) \
-  m(n, UINT8_T,  bmAttributes, ) \
-  m(n, UINT16_T, wMaxPacketSize, ) \
-  m(n, UINT8_T,  bInterval, ) \
-  m(n, UINT8_T,  bRefresh, ) \
-  m(n, UINT8_T,  bSynchAddress, ) \
+#define LIBUSB20_ENDPOINT_DESC(m, n)                                        \
+	m(n, UINT8_T, bLength, ) m(n, UINT8_T, bDescriptorType, )           \
+	    m(n, UINT8_T, bEndpointAddress, ) m(n, UINT8_T, bmAttributes, ) \
+		m(n, UINT16_T, wMaxPacketSize, ) m(n, UINT8_T, bInterval, ) \
+		    m(n, UINT8_T, bRefresh, ) m(n, UINT8_T, bSynchAddress, )
 
 LIBUSB20_MAKE_STRUCT(LIBUSB20_ENDPOINT_DESC);
 
-#define	LIBUSB20_INTERFACE_DESC(m,n) \
-  m(n, UINT8_T,  bLength, ) \
-  m(n, UINT8_T,  bDescriptorType, ) \
-  m(n, UINT8_T,  bInterfaceNumber, ) \
-  m(n, UINT8_T,  bAlternateSetting, ) \
-  m(n, UINT8_T,  bNumEndpoints, ) \
-  m(n, UINT8_T,  bInterfaceClass, ) \
-  m(n, UINT8_T,  bInterfaceSubClass, ) \
-  m(n, UINT8_T,  bInterfaceProtocol, ) \
-  m(n, UINT8_T,  iInterface, ) \
+#define LIBUSB20_INTERFACE_DESC(m, n)                                       \
+	m(n, UINT8_T, bLength, ) m(n, UINT8_T, bDescriptorType, ) m(n,      \
+	    UINT8_T, bInterfaceNumber, ) m(n, UINT8_T, bAlternateSetting, ) \
+	    m(n, UINT8_T, bNumEndpoints, ) m(n, UINT8_T, bInterfaceClass, ) \
+		m(n, UINT8_T, bInterfaceSubClass, )                         \
+		    m(n, UINT8_T, bInterfaceProtocol, )                     \
+			m(n, UINT8_T, iInterface, )
 
 LIBUSB20_MAKE_STRUCT(LIBUSB20_INTERFACE_DESC);
 
-#define	LIBUSB20_CONFIG_DESC(m,n) \
-  m(n, UINT8_T,  bLength, ) \
-  m(n, UINT8_T,  bDescriptorType, ) \
-  m(n, UINT16_T, wTotalLength, ) \
-  m(n, UINT8_T,  bNumInterfaces, ) \
-  m(n, UINT8_T,  bConfigurationValue, ) \
-  m(n, UINT8_T,  iConfiguration, ) \
-  m(n, UINT8_T,  bmAttributes, ) \
-  m(n, UINT8_T,  bMaxPower, ) \
+#define LIBUSB20_CONFIG_DESC(m, n)                                         \
+	m(n, UINT8_T, bLength, ) m(n, UINT8_T, bDescriptorType, )          \
+	    m(n, UINT16_T, wTotalLength, ) m(n, UINT8_T, bNumInterfaces, ) \
+		m(n, UINT8_T, bConfigurationValue, )                       \
+		    m(n, UINT8_T, iConfiguration, )                        \
+			m(n, UINT8_T, bmAttributes, )                      \
+			    m(n, UINT8_T, bMaxPower, )
 
 LIBUSB20_MAKE_STRUCT(LIBUSB20_CONFIG_DESC);
 
-#define	LIBUSB20_CONTROL_SETUP(m,n) \
-  m(n, UINT8_T,  bmRequestType, ) \
-  m(n, UINT8_T,  bRequest, ) \
-  m(n, UINT16_T, wValue, ) \
-  m(n, UINT16_T, wIndex, ) \
-  m(n, UINT16_T, wLength, ) \
+#define LIBUSB20_CONTROL_SETUP(m, n)                             \
+	m(n, UINT8_T, bmRequestType, ) m(n, UINT8_T, bRequest, ) \
+	    m(n, UINT16_T, wValue, ) m(n, UINT16_T, wIndex, )    \
+		m(n, UINT16_T, wLength, )
 
 LIBUSB20_MAKE_STRUCT(LIBUSB20_CONTROL_SETUP);
 
-#define	LIBUSB20_SS_ENDPT_COMP_DESC(m,n) \
-  m(n, UINT8_T,  bLength, ) \
-  m(n, UINT8_T,  bDescriptorType, ) \
-  m(n, UINT8_T,  bMaxBurst, ) \
-  m(n, UINT8_T,  bmAttributes, ) \
-  m(n, UINT16_T, wBytesPerInterval, ) \
+#define LIBUSB20_SS_ENDPT_COMP_DESC(m, n)                            \
+	m(n, UINT8_T, bLength, ) m(n, UINT8_T, bDescriptorType, )    \
+	    m(n, UINT8_T, bMaxBurst, ) m(n, UINT8_T, bmAttributes, ) \
+		m(n, UINT16_T, wBytesPerInterval, )
 
 LIBUSB20_MAKE_STRUCT(LIBUSB20_SS_ENDPT_COMP_DESC);
 
-#define	LIBUSB20_USB_20_DEVCAP_DESC(m,n) \
-  m(n, UINT8_T,  bLength, ) \
-  m(n, UINT8_T,  bDescriptorType, ) \
-  m(n, UINT8_T,  bDevCapabilityType, ) \
-  m(n, UINT32_T, bmAttributes, ) \
+#define LIBUSB20_USB_20_DEVCAP_DESC(m, n)                         \
+	m(n, UINT8_T, bLength, ) m(n, UINT8_T, bDescriptorType, ) \
+	    m(n, UINT8_T, bDevCapabilityType, ) m(n, UINT32_T, bmAttributes, )
 
 LIBUSB20_MAKE_STRUCT(LIBUSB20_USB_20_DEVCAP_DESC);
 
-#define	LIBUSB20_SS_USB_DEVCAP_DESC(m,n) \
-  m(n, UINT8_T,  bLength, ) \
-  m(n, UINT8_T,  bDescriptorType, ) \
-  m(n, UINT8_T,  bDevCapabilityType, ) \
-  m(n, UINT8_T,  bmAttributes, ) \
-  m(n, UINT16_T, wSpeedSupported, ) \
-  m(n, UINT8_T,  bFunctionalitySupport, ) \
-  m(n, UINT8_T,  bU1DevExitLat, ) \
-  m(n, UINT16_T, wU2DevExitLat, ) \
+#define LIBUSB20_SS_USB_DEVCAP_DESC(m, n)                                     \
+	m(n, UINT8_T, bLength, ) m(n, UINT8_T, bDescriptorType, )             \
+	    m(n, UINT8_T, bDevCapabilityType, ) m(n, UINT8_T, bmAttributes, ) \
+		m(n, UINT16_T, wSpeedSupported, )                             \
+		    m(n, UINT8_T, bFunctionalitySupport, )                    \
+			m(n, UINT8_T, bU1DevExitLat, )                        \
+			    m(n, UINT16_T, wU2DevExitLat, )
 
 LIBUSB20_MAKE_STRUCT(LIBUSB20_SS_USB_DEVCAP_DESC);
 
-#define	LIBUSB20_BOS_DESCRIPTOR(m,n) \
-  m(n, UINT8_T,  bLength, ) \
-  m(n, UINT8_T,  bDescriptorType, ) \
-  m(n, UINT16_T, wTotalLength, ) \
-  m(n, UINT8_T,  bNumDeviceCapabilities, ) \
+#define LIBUSB20_BOS_DESCRIPTOR(m, n)                                  \
+	m(n, UINT8_T, bLength, ) m(n, UINT8_T, bDescriptorType, ) m(n, \
+	    UINT16_T, wTotalLength, ) m(n, UINT8_T, bNumDeviceCapabilities, )
 
 LIBUSB20_MAKE_STRUCT(LIBUSB20_BOS_DESCRIPTOR);
 
@@ -396,19 +372,19 @@ enum libusb20_device_capability_type {
 };
 
 /* Descriptor sizes per descriptor type */
-#define	LIBUSB20_DT_DEVICE_SIZE			18
-#define	LIBUSB20_DT_CONFIG_SIZE			9
-#define	LIBUSB20_DT_INTERFACE_SIZE		9
-#define	LIBUSB20_DT_ENDPOINT_SIZE		7
-#define	LIBUSB20_DT_ENDPOINT_AUDIO_SIZE		9	/* Audio extension */
-#define	LIBUSB20_DT_HUB_NONVAR_SIZE		7
-#define	LIBUSB20_DT_SS_ENDPOINT_COMPANION_SIZE	6
-#define	LIBUSB20_DT_BOS_SIZE		5
-#define	LIBUSB20_USB_2_0_EXTENSION_DEVICE_CAPABILITY_SIZE	7
-#define	LIBUSB20_SS_USB_DEVICE_CAPABILITY_SIZE	10
+#define LIBUSB20_DT_DEVICE_SIZE 18
+#define LIBUSB20_DT_CONFIG_SIZE 9
+#define LIBUSB20_DT_INTERFACE_SIZE 9
+#define LIBUSB20_DT_ENDPOINT_SIZE 7
+#define LIBUSB20_DT_ENDPOINT_AUDIO_SIZE 9 /* Audio extension */
+#define LIBUSB20_DT_HUB_NONVAR_SIZE 7
+#define LIBUSB20_DT_SS_ENDPOINT_COMPANION_SIZE 6
+#define LIBUSB20_DT_BOS_SIZE 5
+#define LIBUSB20_USB_2_0_EXTENSION_DEVICE_CAPABILITY_SIZE 7
+#define LIBUSB20_SS_USB_DEVICE_CAPABILITY_SIZE 10
 
-#define	LIBUSB20_ENDPOINT_ADDRESS_MASK	0x0f	/* in bEndpointAddress */
-#define	LIBUSB20_ENDPOINT_DIR_MASK	0x80
+#define LIBUSB20_ENDPOINT_ADDRESS_MASK 0x0f /* in bEndpointAddress */
+#define LIBUSB20_ENDPOINT_DIR_MASK 0x80
 
 /** \ingroup desc
  * Endpoint direction. Values for bit 7 of the
@@ -422,7 +398,7 @@ enum libusb20_endpoint_direction {
 	LIBUSB20_ENDPOINT_OUT = 0x00,
 };
 
-#define	LIBUSB20_TRANSFER_TYPE_MASK	0x03	/* in bmAttributes */
+#define LIBUSB20_TRANSFER_TYPE_MASK 0x03 /* in bmAttributes */
 
 /** \ingroup desc
  * Endpoint transfer type. Values for bits 0:1 of the
@@ -526,7 +502,7 @@ enum libusb20_request_recipient {
 	LIBUSB20_RECIPIENT_OTHER = 0x03,
 };
 
-#define	LIBUSB20_ISO_SYNC_TYPE_MASK		0x0C
+#define LIBUSB20_ISO_SYNC_TYPE_MASK 0x0C
 
 /** \ingroup desc
  * Synchronization type for isochronous endpoints. Values for bits 2:3
@@ -547,7 +523,7 @@ enum libusb20_iso_sync_type {
 	LIBUSB20_ISO_SYNC_TYPE_SYNC = 3,
 };
 
-#define	LIBUSB20_ISO_USAGE_TYPE_MASK 0x30
+#define LIBUSB20_ISO_USAGE_TYPE_MASK 0x30
 
 /** \ingroup desc
  * Usage type for isochronous endpoints. Values for bits 4:5 of the
@@ -575,22 +551,24 @@ struct libusb20_interface {
 	struct libusb20_me_struct extra;
 	struct libusb20_interface *altsetting;
 	struct libusb20_endpoint *endpoints;
-	uint8_t	num_altsetting;
-	uint8_t	num_endpoints;
+	uint8_t num_altsetting;
+	uint8_t num_endpoints;
 } __aligned(sizeof(void *));
 
 struct libusb20_config {
 	struct LIBUSB20_CONFIG_DESC_DECODED desc;
 	struct libusb20_me_struct extra;
 	struct libusb20_interface *interface;
-	uint8_t	num_interface;
+	uint8_t num_interface;
 } __aligned(sizeof(void *));
 
-uint8_t	libusb20_me_get_1(const struct libusb20_me_struct *ie, uint16_t offset);
-uint16_t libusb20_me_get_2(const struct libusb20_me_struct *ie, uint16_t offset);
+uint8_t libusb20_me_get_1(const struct libusb20_me_struct *ie, uint16_t offset);
+uint16_t libusb20_me_get_2(const struct libusb20_me_struct *ie,
+    uint16_t offset);
 uint16_t libusb20_me_encode(void *ptr, uint16_t len, const void *pd);
 uint16_t libusb20_me_decode(const void *ptr, uint16_t len, void *pd);
-const uint8_t *libusb20_desc_foreach(const struct libusb20_me_struct *pdesc, const uint8_t *psubdesc);
+const uint8_t *libusb20_desc_foreach(const struct libusb20_me_struct *pdesc,
+    const uint8_t *psubdesc);
 struct libusb20_config *libusb20_parse_config_desc(const void *config_desc);
 
 #if 0
@@ -601,4 +579,4 @@ struct libusb20_config *libusb20_parse_config_desc(const void *config_desc);
 
 #endif
 
-#endif					/* _LIBUSB20_DESC_H_ */
+#endif /* _LIBUSB20_DESC_H_ */

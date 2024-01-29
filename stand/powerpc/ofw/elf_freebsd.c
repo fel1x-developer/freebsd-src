@@ -27,8 +27,8 @@
 #include <sys/param.h>
 #include <sys/linker.h>
 
-#include <machine/metadata.h>
 #include <machine/elf.h>
+#include <machine/metadata.h>
 #if defined(__powerpc__)
 #include <machine/md_var.h>
 #endif
@@ -37,17 +37,17 @@
 
 #include "bootstrap.h"
 #include "libofw.h"
-#include "openfirm.h"
 #include "modinfo.h"
+#include "openfirm.h"
 
-extern char		end[];
-extern vm_offset_t	reloc;	/* From <arch>/conf.c */
+extern char end[];
+extern vm_offset_t reloc; /* From <arch>/conf.c */
 
 int
-__elfN(ofw_loadfile)(char *filename, uint64_t dest,
-    struct preloaded_file **result)
+__elfN(
+    ofw_loadfile)(char *filename, uint64_t dest, struct preloaded_file **result)
 {
-	int	r;
+	int r;
 
 	r = __elfN(loadfile)(filename, dest, result);
 	if (r != 0)
@@ -59,7 +59,7 @@ __elfN(ofw_loadfile)(char *filename, uint64_t dest,
 	 * be done by the kernel after relocation.
 	 */
 	if (!strcmp((*result)->f_type, "elf kernel"))
-		__syncicache((void *) (*result)->f_addr, (*result)->f_size);
+		__syncicache((void *)(*result)->f_addr, (*result)->f_size);
 #endif
 	return (0);
 }
@@ -67,14 +67,14 @@ __elfN(ofw_loadfile)(char *filename, uint64_t dest,
 int
 __elfN(ofw_exec)(struct preloaded_file *fp)
 {
-	struct file_metadata	*fmp;
-	vm_offset_t		mdp, dtbp;
-	Elf_Ehdr		*e;
-	int			error;
-	intptr_t		entry;
+	struct file_metadata *fmp;
+	vm_offset_t mdp, dtbp;
+	Elf_Ehdr *e;
+	int error;
+	intptr_t entry;
 
 	if ((fmp = file_findmetadata(fp, MODINFOMD_ELFHDR)) == NULL) {
-		return(EFTYPE);
+		return (EFTYPE);
 	}
 	e = (Elf_Ehdr *)&fmp->md_data;
 	entry = e->e_entry;
@@ -97,8 +97,4 @@ __elfN(ofw_exec)(struct preloaded_file *fp)
 	panic("exec returned");
 }
 
-struct file_format	ofw_elf =
-{
-	__elfN(ofw_loadfile),
-	__elfN(ofw_exec)
-};
+struct file_format ofw_elf = { __elfN(ofw_loadfile), __elfN(ofw_exec) };

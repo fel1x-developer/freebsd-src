@@ -38,11 +38,10 @@
  */
 
 #ifndef _DEVDCTL_EVENT_H_
-#define	_DEVDCTL_EVENT_H_
+#define _DEVDCTL_EVENT_H_
 
 /*============================ Namespace Control =============================*/
-namespace DevdCtl
-{
+namespace DevdCtl {
 
 /*=========================== Forward Declarations ===========================*/
 class EventFactory;
@@ -65,24 +64,23 @@ typedef std::map<std::string, std::string> NVPairMap;
  * example, ATTACH and DETACH events have "device-name" and "parent"
  * name => value pairs added.
  */
-class Event
-{
+class Event {
 	friend class EventFactory;
 
-public:
+    public:
 	/** Event type */
 	enum Type {
 		/** Generic event notification. */
-		NOTIFY  = '!',
+		NOTIFY = '!',
 
 		/** A driver was not found for this device. */
 		NOMATCH = '?',
 
 		/** A bus device instance has been added. */
-		ATTACH  = '+',
+		ATTACH = '+',
 
 		/** A bus device instance has been removed. */
-		DETACH  = '-'
+		DETACH = '-'
 	};
 
 	/**
@@ -90,13 +88,13 @@ public:
 	 * the type of event and an NVPairMap populated from
 	 * the event string received from devd.
 	 */
-	typedef Event* (BuildMethod)(Type, NVPairMap &, const std::string &);
+	typedef Event *(BuildMethod)(Type, NVPairMap &, const std::string &);
 
 	/** Generic Event object factory. */
 	static BuildMethod Builder;
 
 	static Event *CreateEvent(const EventFactory &factory,
-				  const std::string &eventString);
+	    const std::string &eventString);
 
 	/**
 	 * Returns the devname, if any, associated with the event
@@ -104,7 +102,7 @@ public:
 	 * \param name	Devname, returned by reference
 	 * \return	True iff the event contained a devname
 	 */
-	virtual bool DevName(std::string &name)	const;
+	virtual bool DevName(std::string &name) const;
 
 	/**
 	 * Returns the absolute pathname of the device associated with this
@@ -113,12 +111,12 @@ public:
 	 * \param name	Devname, returned by reference
 	 * \return	True iff the event contained a devname
 	 */
-	bool DevPath(std::string &path)		const;
+	bool DevPath(std::string &path) const;
 
 	/**
 	 * Returns true iff this event refers to a disk device
 	 */
-	bool IsDiskDev()			const;
+	bool IsDiskDev() const;
 
 	/** Returns the physical path of the device, if any
 	 *
@@ -126,7 +124,7 @@ public:
 	 * \return	True iff the event contains a device with a physical
 	 * 		path
 	 */
-	bool PhysicalPath(std::string &path)	const;
+	bool PhysicalPath(std::string &path) const;
 
 	/**
 	 * Provide a user friendly string representation of an
@@ -136,7 +134,7 @@ public:
 	 *
 	 * \return  A user friendly string representing the input type.
 	 */
-	static const char  *TypeToString(Type type);
+	static const char *TypeToString(Type type);
 
 	/**
 	 * Determine the availability of a name => value pair by name.
@@ -146,7 +144,7 @@ public:
 	 * \return  true if the specified key is available in this
 	 *          event, otherwise false.
 	 */
-	bool Contains(const std::string &name)		 const;
+	bool Contains(const std::string &name) const;
 
 	/**
 	 * \param key  The name of the key for which to retrieve its
@@ -165,14 +163,14 @@ public:
 	 *
 	 * \return  The type of this event instance.
 	 */
-	Type GetType()					 const;
+	Type GetType() const;
 
 	/**
 	 * Get the original DevdCtl event string for this event.
 	 *
 	 * \return  The DevdCtl event string.
 	 */
-	const std::string &GetEventString()		 const;
+	const std::string &GetEventString() const;
 
 	/**
 	 * Convert the event instance into a string suitable for
@@ -180,12 +178,12 @@ public:
 	 *
 	 * \return  A string of formatted event data.
 	 */
-	std::string ToString()				 const;
+	std::string ToString() const;
 
 	/**
 	 * Pretty-print this event instance to cout.
 	 */
-	void Print()					 const;
+	void Print() const;
 
 	/**
 	 * Pretty-print this event instance to syslog.
@@ -193,13 +191,13 @@ public:
 	 * \param priority  The logging priority/facility.
 	 *                  See syslog(3).
 	 */
-	void Log(int priority)				 const;
+	void Log(int priority) const;
 
 	/**
 	 * Create and return a fully independent clone
 	 * of this event.
 	 */
-	virtual Event *DeepCopy()			 const;
+	virtual Event *DeepCopy() const;
 
 	/** Destructor */
 	virtual ~Event();
@@ -210,12 +208,12 @@ public:
 	 *
 	 * \return True if this event should be queued for later reevaluation
 	 */
-	virtual bool Process()				 const;
+	virtual bool Process() const;
 
 	/**
 	 * Get the time that the event was created
 	 */
-	timeval GetTimestamp()				 const;
+	timeval GetTimestamp() const;
 
 	/**
 	 * Add a timestamp to the event string, if one does not already exist
@@ -230,14 +228,13 @@ public:
 	/**
 	 * Access all parsed key => value pairs.
 	 */
-	const NVPairMap &GetMap()			 const;
+	const NVPairMap &GetMap() const;
 
-protected:
+    protected:
 	/** Table entries used to map a type to a user friendly string. */
-	struct EventTypeRecord
-	{
-		Type         m_type;
-		const char  *m_typeName;
+	struct EventTypeRecord {
+		Type m_type;
+		const char *m_typeName;
 	};
 
 	/**
@@ -251,13 +248,13 @@ protected:
 	Event(const Event &src);
 
 	/** Always empty string returned when NVPairMap lookups fail. */
-	static const std::string    s_theEmptyString;
+	static const std::string s_theEmptyString;
 
 	/** Unsorted table of event types. */
-	static EventTypeRecord      s_typeTable[];
+	static EventTypeRecord s_typeTable[];
 
 	/** The type of this event. */
-	const Type                  m_type;
+	const Type m_type;
 
 	/**
 	 * Event attribute storage.
@@ -267,15 +264,15 @@ protected:
 	 *       is dynamically allocated and owned by this event object.
 	 *       m_nvPairs must be deleted at event destruction.
 	 */
-	NVPairMap                  &m_nvPairs;
+	NVPairMap &m_nvPairs;
 
 	/**
 	 * The unaltered event string, as received from devd, used to
 	 * create this event object.
 	 */
-	std::string                 m_eventString;
+	std::string m_eventString;
 
-private:
+    private:
 	/**
 	 * Ingest event data from the supplied string.
 	 *
@@ -283,7 +280,7 @@ private:
 	 * \param[out] nvpairs     Returns the parsed data
 	 */
 	static void ParseEventString(Type type, const std::string &eventString,
-				     NVPairMap &nvpairs);
+	    NVPairMap &nvpairs);
 };
 
 inline Event::Type
@@ -299,7 +296,7 @@ Event::GetEventString() const
 }
 
 inline const NVPairMap &
-Event::GetMap()	const
+Event::GetMap() const
 {
 	return (m_nvPairs);
 }
@@ -311,25 +308,24 @@ Event::GetMap()	const
 typedef std::list<Event *> EventList;
 
 /*-------------------------------- DevfsEvent --------------------------------*/
-class DevfsEvent : public Event
-{
-public:
+class DevfsEvent : public Event {
+    public:
 	/** Specialized Event object factory for Devfs events. */
 	static BuildMethod Builder;
 
-	virtual Event *DeepCopy()		const;
+	virtual Event *DeepCopy() const;
 
 	/**
 	 * Interpret and perform any actions necessary to
 	 * consume the event.
 	 * \return True if this event should be queued for later reevaluation
 	 */
-	virtual bool Process()			const;
+	virtual bool Process() const;
 
-	bool IsWholeDev()			const;
-	virtual bool DevName(std::string &name)	const;
+	bool IsWholeDev() const;
+	virtual bool DevName(std::string &name) const;
 
-protected:
+    protected:
 	/**
 	 * Given the device name of a disk, determine if the device
 	 * represents the whole device, not just a partition.
@@ -349,19 +345,18 @@ protected:
 };
 
 /*--------------------------------- GeomEvent --------------------------------*/
-class GeomEvent : public Event
-{
-public:
+class GeomEvent : public Event {
+    public:
 	/** Specialized Event object factory for GEOM events. */
 	static BuildMethod Builder;
 
-	virtual Event *DeepCopy()	const;
+	virtual Event *DeepCopy() const;
 
-	virtual bool DevName(std::string &name)	const;
+	virtual bool DevName(std::string &name) const;
 
-	const std::string &DeviceName()	const;
+	const std::string &DeviceName() const;
 
-protected:
+    protected:
 	/** Constructor */
 	GeomEvent(Type, NVPairMap &, const std::string &);
 
@@ -372,33 +367,32 @@ protected:
 };
 
 /*--------------------------------- ZfsEvent ---------------------------------*/
-class ZfsEvent : public Event
-{
-public:
+class ZfsEvent : public Event {
+    public:
 	/** Specialized Event object factory for ZFS events. */
 	static BuildMethod Builder;
 
-	virtual Event *DeepCopy()	const;
+	virtual Event *DeepCopy() const;
 
-	virtual bool DevName(std::string &name)	const;
+	virtual bool DevName(std::string &name) const;
 
-	const std::string &PoolName()	const;
-	Guid		   PoolGUID()	const;
-	Guid		   VdevGUID()	const;
+	const std::string &PoolName() const;
+	Guid PoolGUID() const;
+	Guid VdevGUID() const;
 
-protected:
+    protected:
 	/** Constructor */
 	ZfsEvent(Type, NVPairMap &, const std::string &);
 
 	/** Deep copy constructor. */
 	ZfsEvent(const ZfsEvent &src);
 
-	Guid	m_poolGUID;
-	Guid	m_vdevGUID;
+	Guid m_poolGUID;
+	Guid m_vdevGUID;
 };
 
 //- ZfsEvent Inline Public Methods --------------------------------------------
-inline const std::string&
+inline const std::string &
 ZfsEvent::PoolName() const
 {
 	/* The pool name is reported as the subsystem of ZFS events. */

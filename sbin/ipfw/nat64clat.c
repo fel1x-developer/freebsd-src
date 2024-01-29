@@ -30,8 +30,12 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#include "ipfw2.h"
+#include <net/if.h>
+#include <netinet/in.h>
+#include <netinet/ip_fw.h>
+#include <netinet6/ip_fw_nat64.h>
 
+#include <arpa/inet.h>
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
@@ -42,14 +46,10 @@
 #include <string.h>
 #include <sysexits.h>
 
-#include <net/if.h>
-#include <netinet/in.h>
-#include <netinet/ip_fw.h>
-#include <netinet6/ip_fw_nat64.h>
-#include <arpa/inet.h>
+#include "ipfw2.h"
 
-typedef int (nat64clat_cb_t)(ipfw_nat64clat_cfg *i, const char *name,
-    uint8_t set);
+typedef int(
+    nat64clat_cb_t)(ipfw_nat64clat_cfg *i, const char *name, uint8_t set);
 static int nat64clat_foreach(nat64clat_cb_t *f, const char *name, uint8_t set,
     int sort);
 
@@ -63,20 +63,12 @@ static int nat64clat_show_cb(ipfw_nat64clat_cfg *cfg, const char *name,
 static int nat64clat_destroy_cb(ipfw_nat64clat_cfg *cfg, const char *name,
     uint8_t set);
 
-static struct _s_x nat64cmds[] = {
-      { "create",	TOK_CREATE },
-      { "config",	TOK_CONFIG },
-      { "destroy",	TOK_DESTROY },
-      { "list",		TOK_LIST },
-      { "show",		TOK_LIST },
-      { "stats",	TOK_STATS },
-      { NULL, 0 }
-};
+static struct _s_x nat64cmds[] = { { "create", TOK_CREATE },
+	{ "config", TOK_CONFIG }, { "destroy", TOK_DESTROY },
+	{ "list", TOK_LIST }, { "show", TOK_LIST }, { "stats", TOK_STATS },
+	{ NULL, 0 } };
 
-static struct _s_x nat64statscmds[] = {
-      { "reset",	TOK_RESET },
-      { NULL, 0 }
-};
+static struct _s_x nat64statscmds[] = { { "reset", TOK_RESET }, { NULL, 0 } };
 
 /*
  * This one handles all nat64clat-related commands
@@ -85,7 +77,7 @@ static struct _s_x nat64statscmds[] = {
  *	ipfw [set N] nat64clat {NAME | all} destroy
  *	ipfw [set N] nat64clat {NAME | all} {list | show}
  */
-#define	nat64clat_check_name	table_check_name
+#define nat64clat_check_name table_check_name
 void
 ipfw_nat64clat_handler(int ac, char *av[])
 {
@@ -97,7 +89,8 @@ ipfw_nat64clat_handler(int ac, char *av[])
 		set = g_co.use_set - 1;
 	else
 		set = 0;
-	ac--; av++;
+	ac--;
+	av++;
 
 	NEED1("nat64clat needs instance name");
 	name = *av;
@@ -108,7 +101,8 @@ ipfw_nat64clat_handler(int ac, char *av[])
 			errx(EX_USAGE, "nat64clat instance name %s is invalid",
 			    name);
 	}
-	ac--; av++;
+	ac--;
+	av++;
 	NEED1("nat64clat needs command");
 
 	tcmd = get_token(nat64cmds, *av, "nat64clat command");
@@ -116,11 +110,13 @@ ipfw_nat64clat_handler(int ac, char *av[])
 		errx(EX_USAGE, "nat64clat instance name required");
 	switch (tcmd) {
 	case TOK_CREATE:
-		ac--; av++;
+		ac--;
+		av++;
 		nat64clat_create(name, set, ac, av);
 		break;
 	case TOK_CONFIG:
-		ac--; av++;
+		ac--;
+		av++;
 		nat64clat_config(name, set, ac, av);
 		break;
 	case TOK_LIST:
@@ -133,7 +129,8 @@ ipfw_nat64clat_handler(int ac, char *av[])
 			nat64clat_destroy(name, set);
 		break;
 	case TOK_STATS:
-		ac--; av++;
+		ac--;
+		av++;
 		if (ac == 0) {
 			nat64clat_stats(name, set);
 			break;
@@ -143,7 +140,6 @@ ipfw_nat64clat_handler(int ac, char *av[])
 			nat64clat_reset_stats(name, set);
 	}
 }
-
 
 static void
 nat64clat_fill_ntlv(ipfw_obj_ntlv *ntlv, const char *name, uint8_t set)
@@ -156,23 +152,18 @@ nat64clat_fill_ntlv(ipfw_obj_ntlv *ntlv, const char *name, uint8_t set)
 	strlcpy(ntlv->name, name, sizeof(ntlv->name));
 }
 
-static struct _s_x nat64newcmds[] = {
-      { "plat_prefix",	TOK_PLAT_PREFIX },
-      { "clat_prefix",	TOK_CLAT_PREFIX },
-      { "log",		TOK_LOG },
-      { "-log",		TOK_LOGOFF },
-      { "allow_private", TOK_PRIVATE },
-      { "-allow_private", TOK_PRIVATEOFF },
-      { NULL, 0 }
-};
+static struct _s_x nat64newcmds[] = { { "plat_prefix", TOK_PLAT_PREFIX },
+	{ "clat_prefix", TOK_CLAT_PREFIX }, { "log", TOK_LOG },
+	{ "-log", TOK_LOGOFF }, { "allow_private", TOK_PRIVATE },
+	{ "-allow_private", TOK_PRIVATEOFF }, { NULL, 0 } };
 
 /*
  * Creates new nat64clat instance
  * ipfw nat64clat <NAME> create clat_prefix <prefix> plat_prefix <prefix>
  * Request: [ ipfw_obj_lheader ipfw_nat64clat_cfg ]
  */
-#define	NAT64CLAT_HAS_CLAT_PREFIX	0x01
-#define	NAT64CLAT_HAS_PLAT_PREFIX	0x02
+#define NAT64CLAT_HAS_CLAT_PREFIX 0x01
+#define NAT64CLAT_HAS_PLAT_PREFIX 0x02
 static void
 nat64clat_create(const char *name, uint8_t set, int ac, char *av[])
 {
@@ -195,7 +186,8 @@ nat64clat_create(const char *name, uint8_t set, int ac, char *av[])
 	flags = NAT64CLAT_HAS_PLAT_PREFIX;
 	while (ac > 0) {
 		tcmd = get_token(nat64newcmds, *av, "option");
-		ac--; av++;
+		ac--;
+		av++;
 
 		switch (tcmd) {
 		case TOK_PLAT_PREFIX:
@@ -209,12 +201,10 @@ nat64clat_create(const char *name, uint8_t set, int ac, char *av[])
 			if ((p = strchr(*av, '/')) != NULL)
 				*p++ = '\0';
 			if (inet_pton(AF_INET6, *av, &prefix) != 1)
-				errx(EX_USAGE,
-				    "Bad prefix: %s", *av);
+				errx(EX_USAGE, "Bad prefix: %s", *av);
 			plen = strtol(p, NULL, 10);
 			if (ipfw_check_nat64prefix(&prefix, plen) != 0)
-				errx(EX_USAGE,
-				    "Bad prefix length: %s", p);
+				errx(EX_USAGE, "Bad prefix length: %s", p);
 			if (tcmd == TOK_PLAT_PREFIX) {
 				flags |= NAT64CLAT_HAS_PLAT_PREFIX;
 				cfg->plat_prefix = prefix;
@@ -224,7 +214,8 @@ nat64clat_create(const char *name, uint8_t set, int ac, char *av[])
 				cfg->clat_prefix = prefix;
 				cfg->clat_plen = plen;
 			}
-			ac--; av++;
+			ac--;
+			av++;
 			break;
 		case TOK_LOG:
 			cfg->flags |= NAT64_LOG;
@@ -287,7 +278,8 @@ nat64clat_config(const char *name, uint8_t set, int ac, char **av)
 	while (ac > 0) {
 		tcmd = get_token(nat64newcmds, *av, "option");
 		opt = *av;
-		ac--; av++;
+		ac--;
+		av++;
 
 		switch (tcmd) {
 		case TOK_PLAT_PREFIX:
@@ -301,15 +293,13 @@ nat64clat_config(const char *name, uint8_t set, int ac, char **av)
 			if ((p = strchr(*av, '/')) != NULL)
 				*p++ = '\0';
 			else
-				errx(EX_USAGE,
-				    "Prefix length required: %s", *av);
+				errx(EX_USAGE, "Prefix length required: %s",
+				    *av);
 			if (inet_pton(AF_INET6, *av, &prefix) != 1)
-				errx(EX_USAGE,
-				    "Bad prefix: %s", *av);
+				errx(EX_USAGE, "Bad prefix: %s", *av);
 			plen = strtol(p, NULL, 10);
 			if (ipfw_check_nat64prefix(&prefix, plen) != 0)
-				errx(EX_USAGE,
-				    "Bad prefix length: %s", p);
+				errx(EX_USAGE, "Bad prefix length: %s", p);
 			if (tcmd == TOK_PLAT_PREFIX) {
 				cfg->plat_prefix = prefix;
 				cfg->plat_plen = plen;
@@ -317,7 +307,8 @@ nat64clat_config(const char *name, uint8_t set, int ac, char **av)
 				cfg->clat_prefix = prefix;
 				cfg->clat_plen = plen;
 			}
-			ac--; av++;
+			ac--;
+			av++;
 			break;
 		case TOK_LOG:
 			cfg->flags |= NAT64_LOG;
@@ -397,10 +388,8 @@ nat64clat_stats(const char *name, uint8_t set)
 	    (uintmax_t)stats.opcnt64);
 	printf("\t%ju packets translated from IPv4 to IPv6\n",
 	    (uintmax_t)stats.opcnt46);
-	printf("\t%ju IPv6 fragments created\n",
-	    (uintmax_t)stats.ofrags);
-	printf("\t%ju IPv4 fragments received\n",
-	    (uintmax_t)stats.ifrags);
+	printf("\t%ju IPv6 fragments created\n", (uintmax_t)stats.ofrags);
+	printf("\t%ju IPv4 fragments received\n", (uintmax_t)stats.ifrags);
 	printf("\t%ju output packets dropped due to no bufs, etc.\n",
 	    (uintmax_t)stats.oerrors);
 	printf("\t%ju output packets discarded due to no IPv4 route\n",
@@ -446,8 +435,8 @@ nat64clat_show_cb(ipfw_nat64clat_cfg *cfg, const char *name, uint8_t set)
 
 	inet_ntop(AF_INET6, &cfg->clat_prefix, clat_buf, sizeof(clat_buf));
 	inet_ntop(AF_INET6, &cfg->plat_prefix, plat_buf, sizeof(plat_buf));
-	printf("nat64clat %s clat_prefix %s/%u plat_prefix %s/%u",
-	    cfg->name, clat_buf, cfg->clat_plen, plat_buf, cfg->plat_plen);
+	printf("nat64clat %s clat_prefix %s/%u plat_prefix %s/%u", cfg->name,
+	    clat_buf, cfg->clat_plen, plat_buf, cfg->plat_plen);
 	if (cfg->flags & NAT64_LOG)
 		printf(" log");
 	if (cfg->flags & NAT64_ALLOW_PRIVATE)
@@ -467,7 +456,6 @@ nat64clat_destroy_cb(ipfw_nat64clat_cfg *cfg, const char *name __unused,
 	nat64clat_destroy(cfg->name, cfg->set);
 	return (0);
 }
-
 
 /*
  * Compare nat64clat instances names.
@@ -519,8 +507,7 @@ nat64clat_foreach(nat64clat_cb_t *f, const char *name, uint8_t set, int sort)
 		}
 
 		if (sort != 0)
-			qsort(olh + 1, olh->count, olh->objsize,
-			    nat64name_cmp);
+			qsort(olh + 1, olh->count, olh->objsize, nat64name_cmp);
 
 		cfg = (ipfw_nat64clat_cfg *)(olh + 1);
 		for (i = 0; i < olh->count; i++) {
@@ -533,4 +520,3 @@ nat64clat_foreach(nat64clat_cb_t *f, const char *name, uint8_t set, int sort)
 	}
 	return (0);
 }
-

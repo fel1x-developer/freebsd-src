@@ -56,24 +56,13 @@ static void rulespec_outfp(FILE *fp, struct devfs_rule *dr);
 static command_t rule_add, rule_apply, rule_applyset;
 static command_t rule_del, rule_delset, rule_show, rule_showsets;
 
-static ctbl_t ctbl_rule = {
-	{ "add",		rule_add },
-	{ "apply",		rule_apply },
-	{ "applyset",		rule_applyset },
-	{ "del",		rule_del },
-	{ "delset",		rule_delset },
-	{ "show",		rule_show },
-	{ "showsets",		rule_showsets },
-	{ NULL,			NULL }
-};
+static ctbl_t ctbl_rule = { { "add", rule_add }, { "apply", rule_apply },
+	{ "applyset", rule_applyset }, { "del", rule_del },
+	{ "delset", rule_delset }, { "show", rule_show },
+	{ "showsets", rule_showsets }, { NULL, NULL } };
 
-static struct intstr ist_type[] = {
-	{ "disk",		D_DISK },
-	{ "mem",		D_MEM },
-	{ "tape",		D_TAPE },
-	{ "tty",		D_TTY },
-	{ NULL,			-1 }
-};
+static struct intstr ist_type[] = { { "disk", D_DISK }, { "mem", D_MEM },
+	{ "tape", D_TAPE }, { "tty", D_TTY }, { NULL, -1 } };
 
 static devfs_rsnum in_rsnum;
 
@@ -258,7 +247,6 @@ ruleset_main(int ac, char **av)
 	return (0);
 }
 
-
 /*
  * Input rules from a file (probably the standard input).  This
  * differs from the other rulespec_in*() routines in that it also
@@ -273,13 +261,13 @@ rulespec_infp(FILE *fp, unsigned long request, devfs_rsnum rsnum)
 	char *line;
 	int rv;
 
-	assert(fp == stdin);	/* XXX: De-hardcode "stdin" from error msg. */
+	assert(fp == stdin); /* XXX: De-hardcode "stdin" from error msg. */
 	while (efgetln(fp, &line)) {
 		rulespec_instr(&dr, line, rsnum);
 		rv = ioctl(mpfd, request, &dr);
 		if (rv == -1)
 			err(1, "ioctl");
-		free(line);	/* efgetln() always malloc()s. */
+		free(line); /* efgetln() always malloc()s. */
 	}
 	if (ferror(stdin))
 		err(1, "stdin");
@@ -325,7 +313,7 @@ rulespec_intok(struct devfs_rule *dr, int ac __unused, char **av,
 
 	/* If the first argument is an integer, treat it as a rule number. */
 	if (!atonum(av[0], &rnum))
-		rnum = 0;		/* auto-number */
+		rnum = 0; /* auto-number */
 	else
 		++av;
 
@@ -351,8 +339,8 @@ rulespec_intok(struct devfs_rule *dr, int ac __unused, char **av,
 		} else if (strcmp(av[0], "path") == 0) {
 			if (av[1] == NULL)
 				errx(1, "expecting argument for path");
-			if (strlcpy(dr->dr_pathptrn, av[1], DEVFS_MAXPTRNLEN)
-			    >= DEVFS_MAXPTRNLEN)
+			if (strlcpy(dr->dr_pathptrn, av[1], DEVFS_MAXPTRNLEN) >=
+			    DEVFS_MAXPTRNLEN)
 				warnx("pattern specified too long; truncated");
 			dr->dr_icond |= DRC_PATHPTRN;
 			av += 2;

@@ -61,12 +61,11 @@
  */
 
 #include <dev/isci/scil/scic_remote_device.h>
-
+#include <dev/isci/scil/scif_sas_domain.h>
+#include <dev/isci/scil/scif_sas_internal_io_request.h>
 #include <dev/isci/scil/scif_sas_logger.h>
 #include <dev/isci/scil/scif_sas_remote_device.h>
-#include <dev/isci/scil/scif_sas_domain.h>
 #include <dev/isci/scil/scif_sas_task_request.h>
-#include <dev/isci/scil/scif_sas_internal_io_request.h>
 
 //******************************************************************************
 //* S T O P P E D   H A N D L E R S
@@ -85,31 +84,28 @@
  * @return This method returns an indication as to whether the start
  *         operating began successfully.
  */
-static
-SCI_STATUS scif_sas_remote_device_stopped_start_handler(
-   SCI_BASE_REMOTE_DEVICE_T * remote_device
-)
+static SCI_STATUS
+scif_sas_remote_device_stopped_start_handler(
+    SCI_BASE_REMOTE_DEVICE_T *remote_device)
 {
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
-                                          remote_device;
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+	    remote_device;
 
-   sci_base_state_machine_change_state(
-      &fw_device->parent.state_machine, SCI_BASE_REMOTE_DEVICE_STATE_STARTING
-   );
+	sci_base_state_machine_change_state(&fw_device->parent.state_machine,
+	    SCI_BASE_REMOTE_DEVICE_STATE_STARTING);
 
-   // Check to see if the state transition occurred without issue.
-   if (sci_base_state_machine_get_state(&fw_device->parent.state_machine)
-       == SCI_BASE_REMOTE_DEVICE_STATE_FAILED)
-   {
-      SCIF_LOG_WARNING((
-         sci_base_object_get_logger(fw_device),
-         SCIF_LOG_OBJECT_REMOTE_DEVICE | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
-         "Domain:0x%x Device:0x%x Status:0x%x failed to start\n",
-         fw_device->domain, fw_device, fw_device->operation_status
-      ));
-   }
+	// Check to see if the state transition occurred without issue.
+	if (sci_base_state_machine_get_state(
+		&fw_device->parent.state_machine) ==
+	    SCI_BASE_REMOTE_DEVICE_STATE_FAILED) {
+		SCIF_LOG_WARNING((sci_base_object_get_logger(fw_device),
+		    SCIF_LOG_OBJECT_REMOTE_DEVICE |
+			SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
+		    "Domain:0x%x Device:0x%x Status:0x%x failed to start\n",
+		    fw_device->domain, fw_device, fw_device->operation_status));
+	}
 
-   return fw_device->operation_status;
+	return fw_device->operation_status;
 }
 
 /**
@@ -122,42 +118,38 @@ SCI_STATUS scif_sas_remote_device_stopped_start_handler(
  * @return This method returns an indication as to whether the destruct
  *         operation completed successfully.
  */
-static
-SCI_STATUS scif_sas_remote_device_stopped_destruct_handler(
-   SCI_BASE_REMOTE_DEVICE_T * remote_device
-)
+static SCI_STATUS
+scif_sas_remote_device_stopped_destruct_handler(
+    SCI_BASE_REMOTE_DEVICE_T *remote_device)
 {
-   SCI_STATUS                 status;
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
-                                          remote_device;
+	SCI_STATUS status;
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+	    remote_device;
 
-   SMP_DISCOVER_RESPONSE_PROTOCOLS_T  dev_protocols;
-   scic_remote_device_get_protocols(fw_device->core_object, &dev_protocols);
+	SMP_DISCOVER_RESPONSE_PROTOCOLS_T dev_protocols;
+	scic_remote_device_get_protocols(fw_device->core_object,
+	    &dev_protocols);
 
-   //For smp device, need to clear its smp phy list first.
-   if(dev_protocols.u.bits.attached_smp_target)
-      scif_sas_smp_remote_device_removed(fw_device);
+	// For smp device, need to clear its smp phy list first.
+	if (dev_protocols.u.bits.attached_smp_target)
+		scif_sas_smp_remote_device_removed(fw_device);
 
-   status = scic_remote_device_destruct(fw_device->core_object);
-   if (status == SCI_SUCCESS)
-   {
-      sci_base_state_machine_change_state(
-         &fw_device->parent.state_machine, SCI_BASE_REMOTE_DEVICE_STATE_FINAL
-      );
+	status = scic_remote_device_destruct(fw_device->core_object);
+	if (status == SCI_SUCCESS) {
+		sci_base_state_machine_change_state(
+		    &fw_device->parent.state_machine,
+		    SCI_BASE_REMOTE_DEVICE_STATE_FINAL);
 
-      scif_sas_remote_device_deinitialize_state_logging(fw_device);
-   }
-   else
-   {
-      SCIF_LOG_ERROR((
-         sci_base_object_get_logger(fw_device),
-         SCIF_LOG_OBJECT_REMOTE_DEVICE | SCIF_LOG_OBJECT_REMOTE_DEVICE_CONFIG,
-         "Device:0x%x Status:0x%x failed to destruct core device\n",
-         fw_device
-      ));
-   }
+		scif_sas_remote_device_deinitialize_state_logging(fw_device);
+	} else {
+		SCIF_LOG_ERROR((sci_base_object_get_logger(fw_device),
+		    SCIF_LOG_OBJECT_REMOTE_DEVICE |
+			SCIF_LOG_OBJECT_REMOTE_DEVICE_CONFIG,
+		    "Device:0x%x Status:0x%x failed to destruct core device\n",
+		    fw_device));
+	}
 
-   return status;
+	return status;
 }
 
 //******************************************************************************
@@ -180,33 +172,27 @@ SCI_STATUS scif_sas_remote_device_stopped_destruct_handler(
  *
  * @return none.
  */
-static
-void scif_sas_remote_device_stopping_stop_complete_handler(
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device,
-   SCI_STATUS                 completion_status
-)
+static void
+scif_sas_remote_device_stopping_stop_complete_handler(
+    SCIF_SAS_REMOTE_DEVICE_T *fw_device, SCI_STATUS completion_status)
 {
-   // Transition directly to the STOPPED state since the core ensures
-   // all IO/Tasks are complete.
-   sci_base_state_machine_change_state(
-      &fw_device->parent.state_machine,
-      SCI_BASE_REMOTE_DEVICE_STATE_STOPPED
-   );
+	// Transition directly to the STOPPED state since the core ensures
+	// all IO/Tasks are complete.
+	sci_base_state_machine_change_state(&fw_device->parent.state_machine,
+	    SCI_BASE_REMOTE_DEVICE_STATE_STOPPED);
 
-   if (completion_status != SCI_SUCCESS)
-   {
-      SCIF_LOG_ERROR((
-         sci_base_object_get_logger(fw_device),
-         SCIF_LOG_OBJECT_REMOTE_DEVICE | SCIF_LOG_OBJECT_REMOTE_DEVICE_CONFIG,
-         "Device:0x%x Status:0x%x failed to stop core device\n",
-         fw_device, completion_status
-      ));
+	if (completion_status != SCI_SUCCESS) {
+		SCIF_LOG_ERROR((sci_base_object_get_logger(fw_device),
+		    SCIF_LOG_OBJECT_REMOTE_DEVICE |
+			SCIF_LOG_OBJECT_REMOTE_DEVICE_CONFIG,
+		    "Device:0x%x Status:0x%x failed to stop core device\n",
+		    fw_device, completion_status));
 
-      // Something is seriously wrong.  Stopping the core remote device
-      // shouldn't fail in anyway.
-      scif_cb_controller_error(fw_device->domain->controller,
-              SCI_CONTROLLER_REMOTE_DEVICE_ERROR);
-   }
+		// Something is seriously wrong.  Stopping the core remote
+		// device shouldn't fail in anyway.
+		scif_cb_controller_error(fw_device->domain->controller,
+		    SCI_CONTROLLER_REMOTE_DEVICE_ERROR);
+	}
 }
 
 /**
@@ -223,37 +209,29 @@ void scif_sas_remote_device_stopping_stop_complete_handler(
  *
  * @return This method always returns success.
  */
-static
-SCI_STATUS scif_sas_remote_device_stopping_complete_high_priority_io_handler(
-   SCI_BASE_REMOTE_DEVICE_T * remote_device,
-   SCI_BASE_REQUEST_T       * io_request,
-   void                     * response_data,
-   SCI_IO_STATUS              completion_status
-)
+static SCI_STATUS
+scif_sas_remote_device_stopping_complete_high_priority_io_handler(
+    SCI_BASE_REMOTE_DEVICE_T *remote_device, SCI_BASE_REQUEST_T *io_request,
+    void *response_data, SCI_IO_STATUS completion_status)
 {
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
-                                          remote_device;
-   SCIF_SAS_REQUEST_T       * fw_request = (SCIF_SAS_REQUEST_T *) io_request;
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+	    remote_device;
+	SCIF_SAS_REQUEST_T *fw_request = (SCIF_SAS_REQUEST_T *)io_request;
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(remote_device),
-      SCIF_LOG_OBJECT_REMOTE_DEVICE | SCIF_LOG_OBJECT_IO_REQUEST,
-      "scif_sas_remote_device_stopping_complete_high_priority_io_handler(0x%x,0x%x,0x%x) enter\n",
-      remote_device, io_request, response_data
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(remote_device),
+	    SCIF_LOG_OBJECT_REMOTE_DEVICE | SCIF_LOG_OBJECT_IO_REQUEST,
+	    "scif_sas_remote_device_stopping_complete_high_priority_io_handler(0x%x,0x%x,0x%x) enter\n",
+	    remote_device, io_request, response_data));
 
-   fw_device->request_count--;
+	fw_device->request_count--;
 
-   if (fw_request->is_internal == TRUE)
-   {
-      scif_sas_internal_io_request_complete(
-         fw_device->domain->controller,
-         (SCIF_SAS_INTERNAL_IO_REQUEST_T *) io_request,
-         SCI_SUCCESS
-      );
-   }
+	if (fw_request->is_internal == TRUE) {
+		scif_sas_internal_io_request_complete(
+		    fw_device->domain->controller,
+		    (SCIF_SAS_INTERNAL_IO_REQUEST_T *)io_request, SCI_SUCCESS);
+	}
 
-   return SCI_SUCCESS;
+	return SCI_SUCCESS;
 }
 
 //******************************************************************************
@@ -270,27 +248,22 @@ SCI_STATUS scif_sas_remote_device_stopping_complete_high_priority_io_handler(
  * @return This method returns an indication as to whether the failure
  *         operation completed successfully.
  */
-static
-SCI_STATUS scif_sas_remote_device_failed_stop_handler(
-   SCI_BASE_REMOTE_DEVICE_T * remote_device
-)
+static SCI_STATUS
+scif_sas_remote_device_failed_stop_handler(
+    SCI_BASE_REMOTE_DEVICE_T *remote_device)
 {
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
-                                          remote_device;
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+	    remote_device;
 
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger(fw_device),
-      SCIF_LOG_OBJECT_REMOTE_DEVICE,
-      "RemoteDevice:0x%x stopping failed device\n",
-      fw_device
-   ));
+	SCIF_LOG_WARNING((sci_base_object_get_logger(fw_device),
+	    SCIF_LOG_OBJECT_REMOTE_DEVICE,
+	    "RemoteDevice:0x%x stopping failed device\n", fw_device));
 
-   sci_base_state_machine_change_state(
-      &fw_device->parent.state_machine, SCI_BASE_REMOTE_DEVICE_STATE_STOPPING
-   );
+	sci_base_state_machine_change_state(&fw_device->parent.state_machine,
+	    SCI_BASE_REMOTE_DEVICE_STATE_STOPPING);
 
-   /// @todo Fix the return code handling.
-   return SCI_FAILURE;
+	/// @todo Fix the return code handling.
+	return SCI_FAILURE;
 }
 
 //******************************************************************************
@@ -309,20 +282,21 @@ SCI_STATUS scif_sas_remote_device_failed_stop_handler(
  *         allowed.
  * @retval SCI_FAILURE_INVALID_STATE This value is always returned.
  */
-SCI_STATUS scif_sas_remote_device_default_start_handler(
-   SCI_BASE_REMOTE_DEVICE_T * remote_device
-)
+SCI_STATUS
+scif_sas_remote_device_default_start_handler(
+    SCI_BASE_REMOTE_DEVICE_T *remote_device)
 {
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger((SCIF_SAS_REMOTE_DEVICE_T *)remote_device),
-      SCIF_LOG_OBJECT_REMOTE_DEVICE | SCIF_LOG_OBJECT_REMOTE_DEVICE_CONFIG,
-      "RemoteDevice:0x%x State:0x%x invalid state to start\n",
-      remote_device,
-      sci_base_state_machine_get_state(
-         &((SCIF_SAS_REMOTE_DEVICE_T *)remote_device)->parent.state_machine)
-   ));
+	SCIF_LOG_WARNING((sci_base_object_get_logger(
+			      (SCIF_SAS_REMOTE_DEVICE_T *)remote_device),
+	    SCIF_LOG_OBJECT_REMOTE_DEVICE |
+		SCIF_LOG_OBJECT_REMOTE_DEVICE_CONFIG,
+	    "RemoteDevice:0x%x State:0x%x invalid state to start\n",
+	    remote_device,
+	    sci_base_state_machine_get_state(
+		&((SCIF_SAS_REMOTE_DEVICE_T *)remote_device)
+		     ->parent.state_machine)));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -337,20 +311,20 @@ SCI_STATUS scif_sas_remote_device_default_start_handler(
  *         allowed.
  * @retval SCI_FAILURE_INVALID_STATE This value is always returned.
  */
-SCI_STATUS scif_sas_remote_device_default_stop_handler(
-   SCI_BASE_REMOTE_DEVICE_T * remote_device
-)
+SCI_STATUS
+scif_sas_remote_device_default_stop_handler(
+    SCI_BASE_REMOTE_DEVICE_T *remote_device)
 {
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger((SCIF_SAS_REMOTE_DEVICE_T *)remote_device),
-      SCIF_LOG_OBJECT_REMOTE_DEVICE,
-      "RemoteDevice:0x%x State:0x%x invalid state to stop\n",
-      remote_device,
-      sci_base_state_machine_get_state(
-         &((SCIF_SAS_REMOTE_DEVICE_T *)remote_device)->parent.state_machine)
-   ));
+	SCIF_LOG_WARNING((sci_base_object_get_logger(
+			      (SCIF_SAS_REMOTE_DEVICE_T *)remote_device),
+	    SCIF_LOG_OBJECT_REMOTE_DEVICE,
+	    "RemoteDevice:0x%x State:0x%x invalid state to stop\n",
+	    remote_device,
+	    sci_base_state_machine_get_state(
+		&((SCIF_SAS_REMOTE_DEVICE_T *)remote_device)
+		     ->parent.state_machine)));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -365,21 +339,20 @@ SCI_STATUS scif_sas_remote_device_default_stop_handler(
  *         allowed.
  * @retval SCI_FAILURE_INVALID_STATE This value is always returned.
  */
-static
-SCI_STATUS scif_sas_remote_device_default_fail_handler(
-   SCI_BASE_REMOTE_DEVICE_T * remote_device
-)
+static SCI_STATUS
+scif_sas_remote_device_default_fail_handler(
+    SCI_BASE_REMOTE_DEVICE_T *remote_device)
 {
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger((SCIF_SAS_REMOTE_DEVICE_T *)remote_device),
-      SCIF_LOG_OBJECT_REMOTE_DEVICE,
-      "RemoteDevice:0x%x State:0x%x invalid state to fail device\n",
-      remote_device,
-      sci_base_state_machine_get_state(
-         &((SCIF_SAS_REMOTE_DEVICE_T *)remote_device)->parent.state_machine)
-   ));
+	SCIF_LOG_WARNING((sci_base_object_get_logger(
+			      (SCIF_SAS_REMOTE_DEVICE_T *)remote_device),
+	    SCIF_LOG_OBJECT_REMOTE_DEVICE,
+	    "RemoteDevice:0x%x State:0x%x invalid state to fail device\n",
+	    remote_device,
+	    sci_base_state_machine_get_state(
+		&((SCIF_SAS_REMOTE_DEVICE_T *)remote_device)
+		     ->parent.state_machine)));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -394,20 +367,20 @@ SCI_STATUS scif_sas_remote_device_default_fail_handler(
  *         allowed.
  * @retval SCI_FAILURE_INVALID_STATE This value is always returned.
  */
-SCI_STATUS scif_sas_remote_device_default_destruct_handler(
-   SCI_BASE_REMOTE_DEVICE_T * remote_device
-)
+SCI_STATUS
+scif_sas_remote_device_default_destruct_handler(
+    SCI_BASE_REMOTE_DEVICE_T *remote_device)
 {
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger((SCIF_SAS_REMOTE_DEVICE_T *)remote_device),
-      SCIF_LOG_OBJECT_REMOTE_DEVICE,
-      "RemoteDevice:0x%x State:0x%x invalid state to destruct.\n",
-      remote_device,
-      sci_base_state_machine_get_state(
-         &((SCIF_SAS_REMOTE_DEVICE_T *)remote_device)->parent.state_machine)
-   ));
+	SCIF_LOG_WARNING((sci_base_object_get_logger(
+			      (SCIF_SAS_REMOTE_DEVICE_T *)remote_device),
+	    SCIF_LOG_OBJECT_REMOTE_DEVICE,
+	    "RemoteDevice:0x%x State:0x%x invalid state to destruct.\n",
+	    remote_device,
+	    sci_base_state_machine_get_state(
+		&((SCIF_SAS_REMOTE_DEVICE_T *)remote_device)
+		     ->parent.state_machine)));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -422,20 +395,20 @@ SCI_STATUS scif_sas_remote_device_default_destruct_handler(
  *         allowed.
  * @retval SCI_FAILURE_INVALID_STATE This value is always returned.
  */
-SCI_STATUS scif_sas_remote_device_default_reset_handler(
-   SCI_BASE_REMOTE_DEVICE_T * remote_device
-)
+SCI_STATUS
+scif_sas_remote_device_default_reset_handler(
+    SCI_BASE_REMOTE_DEVICE_T *remote_device)
 {
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger((SCIF_SAS_REMOTE_DEVICE_T *)remote_device),
-      SCIF_LOG_OBJECT_REMOTE_DEVICE,
-      "RemoteDevice:0x%x State:0x%x invalid state to reset.\n",
-      remote_device,
-      sci_base_state_machine_get_state(
-         &((SCIF_SAS_REMOTE_DEVICE_T *)remote_device)->parent.state_machine)
-   ));
+	SCIF_LOG_WARNING((sci_base_object_get_logger(
+			      (SCIF_SAS_REMOTE_DEVICE_T *)remote_device),
+	    SCIF_LOG_OBJECT_REMOTE_DEVICE,
+	    "RemoteDevice:0x%x State:0x%x invalid state to reset.\n",
+	    remote_device,
+	    sci_base_state_machine_get_state(
+		&((SCIF_SAS_REMOTE_DEVICE_T *)remote_device)
+		     ->parent.state_machine)));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -450,20 +423,20 @@ SCI_STATUS scif_sas_remote_device_default_reset_handler(
  *         allowed.
  * @retval SCI_FAILURE_INVALID_STATE This value is always returned.
  */
-SCI_STATUS scif_sas_remote_device_default_reset_complete_handler(
-   SCI_BASE_REMOTE_DEVICE_T * remote_device
-)
+SCI_STATUS
+scif_sas_remote_device_default_reset_complete_handler(
+    SCI_BASE_REMOTE_DEVICE_T *remote_device)
 {
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger((SCIF_SAS_REMOTE_DEVICE_T *)remote_device),
-      SCIF_LOG_OBJECT_REMOTE_DEVICE,
-      "RemoteDevice:0x%x State:0x%x invalid state to complete reset.\n",
-      remote_device,
-      sci_base_state_machine_get_state(
-         &((SCIF_SAS_REMOTE_DEVICE_T *)remote_device)->parent.state_machine)
-   ));
+	SCIF_LOG_WARNING((sci_base_object_get_logger(
+			      (SCIF_SAS_REMOTE_DEVICE_T *)remote_device),
+	    SCIF_LOG_OBJECT_REMOTE_DEVICE,
+	    "RemoteDevice:0x%x State:0x%x invalid state to complete reset.\n",
+	    remote_device,
+	    sci_base_state_machine_get_state(
+		&((SCIF_SAS_REMOTE_DEVICE_T *)remote_device)
+		     ->parent.state_machine)));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -481,21 +454,20 @@ SCI_STATUS scif_sas_remote_device_default_reset_complete_handler(
  *         are not allowed.
  * @retval SCI_FAILURE_INVALID_STATE This value is always returned.
  */
-SCI_STATUS scif_sas_remote_device_default_start_io_handler(
-   SCI_BASE_REMOTE_DEVICE_T * remote_device,
-   SCI_BASE_REQUEST_T       * io_request
-)
+SCI_STATUS
+scif_sas_remote_device_default_start_io_handler(
+    SCI_BASE_REMOTE_DEVICE_T *remote_device, SCI_BASE_REQUEST_T *io_request)
 {
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger((SCIF_SAS_REMOTE_DEVICE_T *)remote_device),
-      SCIF_LOG_OBJECT_REMOTE_DEVICE,
-      "RemoteDevice:0x%x State:0x%x invalid state to start IO.\n",
-      remote_device,
-      sci_base_state_machine_get_state(
-         &((SCIF_SAS_REMOTE_DEVICE_T *)remote_device)->parent.state_machine)
-   ));
+	SCIF_LOG_WARNING((sci_base_object_get_logger(
+			      (SCIF_SAS_REMOTE_DEVICE_T *)remote_device),
+	    SCIF_LOG_OBJECT_REMOTE_DEVICE,
+	    "RemoteDevice:0x%x State:0x%x invalid state to start IO.\n",
+	    remote_device,
+	    sci_base_state_machine_get_state(
+		&((SCIF_SAS_REMOTE_DEVICE_T *)remote_device)
+		     ->parent.state_machine)));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -513,23 +485,21 @@ SCI_STATUS scif_sas_remote_device_default_start_io_handler(
  *         are not allowed.
  * @retval SCI_FAILURE_INVALID_STATE This value is always returned.
  */
-SCI_STATUS scif_sas_remote_device_default_complete_io_handler(
-   SCI_BASE_REMOTE_DEVICE_T * remote_device,
-   SCI_BASE_REQUEST_T       * io_request
-)
+SCI_STATUS
+scif_sas_remote_device_default_complete_io_handler(
+    SCI_BASE_REMOTE_DEVICE_T *remote_device, SCI_BASE_REQUEST_T *io_request)
 {
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger((SCIF_SAS_REMOTE_DEVICE_T *)remote_device),
-      SCIF_LOG_OBJECT_REMOTE_DEVICE,
-      "RemoteDevice:0x%x State:0x%x invalid state to complete IO\n",
-      remote_device,
-      sci_base_state_machine_get_state(
-         &((SCIF_SAS_REMOTE_DEVICE_T *)remote_device)->parent.state_machine)
-   ));
+	SCIF_LOG_WARNING((sci_base_object_get_logger(
+			      (SCIF_SAS_REMOTE_DEVICE_T *)remote_device),
+	    SCIF_LOG_OBJECT_REMOTE_DEVICE,
+	    "RemoteDevice:0x%x State:0x%x invalid state to complete IO\n",
+	    remote_device,
+	    sci_base_state_machine_get_state(
+		&((SCIF_SAS_REMOTE_DEVICE_T *)remote_device)
+		     ->parent.state_machine)));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
-
 
 /**
  * @brief This method provides default handling (i.e. returns an error);
@@ -546,25 +516,22 @@ SCI_STATUS scif_sas_remote_device_default_complete_io_handler(
  *         are not allowed.
  * @retval SCI_FAILURE_INVALID_STATE This value is always returned.
  */
-SCI_STATUS scif_sas_remote_device_default_complete_high_priority_io_handler(
-   SCI_BASE_REMOTE_DEVICE_T * remote_device,
-   SCI_BASE_REQUEST_T       * io_request,
-   void                     * response_data,
-   SCI_IO_STATUS              completion_status
-)
+SCI_STATUS
+scif_sas_remote_device_default_complete_high_priority_io_handler(
+    SCI_BASE_REMOTE_DEVICE_T *remote_device, SCI_BASE_REQUEST_T *io_request,
+    void *response_data, SCI_IO_STATUS completion_status)
 {
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger((SCIF_SAS_REMOTE_DEVICE_T *)remote_device),
-      SCIF_LOG_OBJECT_REMOTE_DEVICE,
-      "RemoteDevice:0x%x State:0x%x invalid state to complete high priority IO\n",
-      remote_device,
-      sci_base_state_machine_get_state(
-         &((SCIF_SAS_REMOTE_DEVICE_T *)remote_device)->parent.state_machine)
-   ));
+	SCIF_LOG_WARNING((sci_base_object_get_logger(
+			      (SCIF_SAS_REMOTE_DEVICE_T *)remote_device),
+	    SCIF_LOG_OBJECT_REMOTE_DEVICE,
+	    "RemoteDevice:0x%x State:0x%x invalid state to complete high priority IO\n",
+	    remote_device,
+	    sci_base_state_machine_get_state(
+		&((SCIF_SAS_REMOTE_DEVICE_T *)remote_device)
+		     ->parent.state_machine)));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
-
 
 /**
  * @brief This method provides default handling (i.e. returns an error);
@@ -581,21 +548,20 @@ SCI_STATUS scif_sas_remote_device_default_complete_high_priority_io_handler(
  *         are not allowed.
  * @retval SCI_FAILURE_INVALID_STATE This value is always returned.
  */
-SCI_STATUS scif_sas_remote_device_default_continue_io_handler(
-   SCI_BASE_REMOTE_DEVICE_T * remote_device,
-   SCI_BASE_REQUEST_T       * io_request
-)
+SCI_STATUS
+scif_sas_remote_device_default_continue_io_handler(
+    SCI_BASE_REMOTE_DEVICE_T *remote_device, SCI_BASE_REQUEST_T *io_request)
 {
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger((SCIF_SAS_REMOTE_DEVICE_T *)remote_device),
-      SCIF_LOG_OBJECT_REMOTE_DEVICE,
-      "RemoteDevice:0x%x State:0x%x invalid state to continue IO\n",
-      remote_device,
-      sci_base_state_machine_get_state(
-         &((SCIF_SAS_REMOTE_DEVICE_T *)remote_device)->parent.state_machine)
-   ));
+	SCIF_LOG_WARNING((sci_base_object_get_logger(
+			      (SCIF_SAS_REMOTE_DEVICE_T *)remote_device),
+	    SCIF_LOG_OBJECT_REMOTE_DEVICE,
+	    "RemoteDevice:0x%x State:0x%x invalid state to continue IO\n",
+	    remote_device,
+	    sci_base_state_machine_get_state(
+		&((SCIF_SAS_REMOTE_DEVICE_T *)remote_device)
+		     ->parent.state_machine)));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -613,21 +579,20 @@ SCI_STATUS scif_sas_remote_device_default_continue_io_handler(
  *         are not allowed.
  * @retval SCI_FAILURE_INVALID_STATE This value is always returned.
  */
-SCI_STATUS scif_sas_remote_device_default_start_task_handler(
-   SCI_BASE_REMOTE_DEVICE_T * remote_device,
-   SCI_BASE_REQUEST_T       * task_request
-)
+SCI_STATUS
+scif_sas_remote_device_default_start_task_handler(
+    SCI_BASE_REMOTE_DEVICE_T *remote_device, SCI_BASE_REQUEST_T *task_request)
 {
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger((SCIF_SAS_REMOTE_DEVICE_T *)remote_device),
-      SCIF_LOG_OBJECT_REMOTE_DEVICE | SCIF_LOG_OBJECT_TASK_MANAGEMENT,
-      "RemoteDevice:0x%x State:0x%x invalid state to start task\n",
-      remote_device,
-      sci_base_state_machine_get_state(
-         &((SCIF_SAS_REMOTE_DEVICE_T *)remote_device)->parent.state_machine)
-   ));
+	SCIF_LOG_WARNING((sci_base_object_get_logger(
+			      (SCIF_SAS_REMOTE_DEVICE_T *)remote_device),
+	    SCIF_LOG_OBJECT_REMOTE_DEVICE | SCIF_LOG_OBJECT_TASK_MANAGEMENT,
+	    "RemoteDevice:0x%x State:0x%x invalid state to start task\n",
+	    remote_device,
+	    sci_base_state_machine_get_state(
+		&((SCIF_SAS_REMOTE_DEVICE_T *)remote_device)
+		     ->parent.state_machine)));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -645,21 +610,20 @@ SCI_STATUS scif_sas_remote_device_default_start_task_handler(
  *         are not allowed.
  * @retval SCI_FAILURE_INVALID_STATE This value is always returned.
  */
-SCI_STATUS scif_sas_remote_device_default_complete_task_handler(
-   SCI_BASE_REMOTE_DEVICE_T * remote_device,
-   SCI_BASE_REQUEST_T       * task_request
-)
+SCI_STATUS
+scif_sas_remote_device_default_complete_task_handler(
+    SCI_BASE_REMOTE_DEVICE_T *remote_device, SCI_BASE_REQUEST_T *task_request)
 {
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger((SCIF_SAS_REMOTE_DEVICE_T *)remote_device),
-      SCIF_LOG_OBJECT_REMOTE_DEVICE | SCIF_LOG_OBJECT_TASK_MANAGEMENT,
-      "RemoteDevice:0x%x State:0x%x invalid state to complete task\n",
-      remote_device,
-      sci_base_state_machine_get_state(
-         &((SCIF_SAS_REMOTE_DEVICE_T *)remote_device)->parent.state_machine)
-   ));
+	SCIF_LOG_WARNING((sci_base_object_get_logger(
+			      (SCIF_SAS_REMOTE_DEVICE_T *)remote_device),
+	    SCIF_LOG_OBJECT_REMOTE_DEVICE | SCIF_LOG_OBJECT_TASK_MANAGEMENT,
+	    "RemoteDevice:0x%x State:0x%x invalid state to complete task\n",
+	    remote_device,
+	    sci_base_state_machine_get_state(
+		&((SCIF_SAS_REMOTE_DEVICE_T *)remote_device)
+		     ->parent.state_machine)));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -674,18 +638,16 @@ SCI_STATUS scif_sas_remote_device_default_complete_task_handler(
  *
  * @return none.
  */
-void scif_sas_remote_device_default_start_complete_handler(
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device,
-   SCI_STATUS                 completion_status
-)
+void
+scif_sas_remote_device_default_start_complete_handler(
+    SCIF_SAS_REMOTE_DEVICE_T *fw_device, SCI_STATUS completion_status)
 {
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger(fw_device),
-      SCIF_LOG_OBJECT_REMOTE_DEVICE,
-      "RemoteDevice:0x%x State:0x%x invalid state to start complete\n",
-      fw_device,
-      sci_base_state_machine_get_state(&fw_device->parent.state_machine)
-   ));
+	SCIF_LOG_WARNING((sci_base_object_get_logger(fw_device),
+	    SCIF_LOG_OBJECT_REMOTE_DEVICE,
+	    "RemoteDevice:0x%x State:0x%x invalid state to start complete\n",
+	    fw_device,
+	    sci_base_state_machine_get_state(
+		&fw_device->parent.state_machine)));
 }
 
 /**
@@ -700,18 +662,16 @@ void scif_sas_remote_device_default_start_complete_handler(
  *
  * @return none.
  */
-void scif_sas_remote_device_default_stop_complete_handler(
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device,
-   SCI_STATUS                 completion_status
-)
+void
+scif_sas_remote_device_default_stop_complete_handler(
+    SCIF_SAS_REMOTE_DEVICE_T *fw_device, SCI_STATUS completion_status)
 {
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger(fw_device),
-      SCIF_LOG_OBJECT_REMOTE_DEVICE,
-      "RemoteDevice:0x%x State:0x%x invalid state to stop complete\n",
-      fw_device,
-      sci_base_state_machine_get_state(&fw_device->parent.state_machine)
-   ));
+	SCIF_LOG_WARNING((sci_base_object_get_logger(fw_device),
+	    SCIF_LOG_OBJECT_REMOTE_DEVICE,
+	    "RemoteDevice:0x%x State:0x%x invalid state to stop complete\n",
+	    fw_device,
+	    sci_base_state_machine_get_state(
+		&fw_device->parent.state_machine)));
 }
 
 /**
@@ -724,17 +684,16 @@ void scif_sas_remote_device_default_stop_complete_handler(
  *
  * @return none.
  */
-void scif_sas_remote_device_default_ready_handler(
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device
-)
+void
+scif_sas_remote_device_default_ready_handler(
+    SCIF_SAS_REMOTE_DEVICE_T *fw_device)
 {
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger(fw_device),
-      SCIF_LOG_OBJECT_REMOTE_DEVICE,
-      "RemoteDevice:0x%x State:0x%x invalid state to handle ready\n",
-      fw_device,
-      sci_base_state_machine_get_state(&fw_device->parent.state_machine)
-   ));
+	SCIF_LOG_WARNING((sci_base_object_get_logger(fw_device),
+	    SCIF_LOG_OBJECT_REMOTE_DEVICE,
+	    "RemoteDevice:0x%x State:0x%x invalid state to handle ready\n",
+	    fw_device,
+	    sci_base_state_machine_get_state(
+		&fw_device->parent.state_machine)));
 }
 
 /**
@@ -747,18 +706,16 @@ void scif_sas_remote_device_default_ready_handler(
  *
  * @return none.
  */
-void scif_sas_remote_device_default_not_ready_handler(
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device,
-   U32                        reason_code
-)
+void
+scif_sas_remote_device_default_not_ready_handler(
+    SCIF_SAS_REMOTE_DEVICE_T *fw_device, U32 reason_code)
 {
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger(fw_device),
-      SCIF_LOG_OBJECT_REMOTE_DEVICE,
-      "RemoteDevice:0x%x State:0x%x invalid state to handle not ready\n",
-      fw_device,
-      sci_base_state_machine_get_state(&fw_device->parent.state_machine)
-   ));
+	SCIF_LOG_WARNING((sci_base_object_get_logger(fw_device),
+	    SCIF_LOG_OBJECT_REMOTE_DEVICE,
+	    "RemoteDevice:0x%x State:0x%x invalid state to handle not ready\n",
+	    fw_device,
+	    sci_base_state_machine_get_state(
+		&fw_device->parent.state_machine)));
 }
 
 #if !defined(DISABLE_WIDE_PORTED_TARGETS)
@@ -771,41 +728,35 @@ void scif_sas_remote_device_default_not_ready_handler(
  *
  * @return none.
  */
-static
-SCI_STATUS scif_sas_remote_device_updating_port_width_state_complete_io_handler(
-   SCI_BASE_REMOTE_DEVICE_T * remote_device,
-   SCI_BASE_REQUEST_T       * io_request
-)
+static SCI_STATUS
+scif_sas_remote_device_updating_port_width_state_complete_io_handler(
+    SCI_BASE_REMOTE_DEVICE_T *remote_device, SCI_BASE_REQUEST_T *io_request)
 {
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device = (SCIF_SAS_REMOTE_DEVICE_T*)
-                                          remote_device;
-   fw_device->request_count--;
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+	    remote_device;
+	fw_device->request_count--;
 
-   //If the request count is zero, go ahead to update the RNC.
-   if (fw_device->request_count == 0 )
-   {
-      if (fw_device->destination_state == SCIF_SAS_REMOTE_DEVICE_DESTINATION_STATE_STOPPING)
-      {
-         //if the destination state of this device change to STOPPING, no matter
-         //whether we need to update the port width, just make the device
-         //go to the STOPPING state, the device will be removed anyway.
-         sci_base_state_machine_change_state(
-            &fw_device->parent.state_machine,
-            SCI_BASE_REMOTE_DEVICE_STATE_STOPPING
-         );
-      }
-      else
-      {
-         //stop the device, upon the stop complete callback, start the device again
-         //with the updated port width.
-         scic_remote_device_stop(
-            fw_device->core_object, SCIF_SAS_REMOTE_DEVICE_CORE_OP_TIMEOUT);
-      }
-   }
+	// If the request count is zero, go ahead to update the RNC.
+	if (fw_device->request_count == 0) {
+		if (fw_device->destination_state ==
+		    SCIF_SAS_REMOTE_DEVICE_DESTINATION_STATE_STOPPING) {
+			// if the destination state of this device change to
+			// STOPPING, no matter whether we need to update the
+			// port width, just make the device go to the STOPPING
+			// state, the device will be removed anyway.
+			sci_base_state_machine_change_state(
+			    &fw_device->parent.state_machine,
+			    SCI_BASE_REMOTE_DEVICE_STATE_STOPPING);
+		} else {
+			// stop the device, upon the stop complete callback,
+			// start the device again with the updated port width.
+			scic_remote_device_stop(fw_device->core_object,
+			    SCIF_SAS_REMOTE_DEVICE_CORE_OP_TIMEOUT);
+		}
+	}
 
-   return SCI_SUCCESS;
+	return SCI_SUCCESS;
 }
-
 
 /**
  * @brief This method provides handling of device start complete duing
@@ -816,48 +767,36 @@ SCI_STATUS scif_sas_remote_device_updating_port_width_state_complete_io_handler(
  *
  * @return none.
  */
-static
-void scif_sas_remote_device_updating_port_width_state_start_complete_handler(
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device,
-   SCI_STATUS                 completion_status
-)
+static void
+scif_sas_remote_device_updating_port_width_state_start_complete_handler(
+    SCIF_SAS_REMOTE_DEVICE_T *fw_device, SCI_STATUS completion_status)
 {
-   SCIF_LOG_INFO((
-      sci_base_object_get_logger(fw_device),
-      SCIF_LOG_OBJECT_REMOTE_DEVICE,
-      "RemoteDevice:0x%x updating port width state start complete handler\n",
-      fw_device,
-      sci_base_state_machine_get_state(&fw_device->parent.state_machine)
-   ));
+	SCIF_LOG_INFO((sci_base_object_get_logger(fw_device),
+	    SCIF_LOG_OBJECT_REMOTE_DEVICE,
+	    "RemoteDevice:0x%x updating port width state start complete handler\n",
+	    fw_device,
+	    sci_base_state_machine_get_state(
+		&fw_device->parent.state_machine)));
 
-   if ( fw_device->destination_state
-           == SCIF_SAS_REMOTE_DEVICE_DESTINATION_STATE_STOPPING )
-   {
-      //if the destination state of this device change to STOPPING, no matter
-      //whether we need to update the port width again, just make the device
-      //go to the STOPPING state.
-      sci_base_state_machine_change_state(
-         &fw_device->parent.state_machine,
-         SCI_BASE_REMOTE_DEVICE_STATE_STOPPING
-      );
-   }
-   else if ( scic_remote_device_get_port_width(fw_device->core_object)
-                != fw_device->device_port_width
-            && fw_device->device_port_width != 0)
-   {
-      scic_remote_device_stop(
-         fw_device->core_object,
-         SCIF_SAS_REMOTE_DEVICE_CORE_OP_TIMEOUT
-      );
-   }
-   else
-   {
-      //Port width updating succeeds. Transfer to destination state.
-      sci_base_state_machine_change_state(
-         &fw_device->parent.state_machine,
-         SCI_BASE_REMOTE_DEVICE_STATE_READY
-      );
-   }
+	if (fw_device->destination_state ==
+	    SCIF_SAS_REMOTE_DEVICE_DESTINATION_STATE_STOPPING) {
+		// if the destination state of this device change to STOPPING,
+		// no matter whether we need to update the port width again,
+		// just make the device go to the STOPPING state.
+		sci_base_state_machine_change_state(
+		    &fw_device->parent.state_machine,
+		    SCI_BASE_REMOTE_DEVICE_STATE_STOPPING);
+	} else if (scic_remote_device_get_port_width(fw_device->core_object) !=
+		fw_device->device_port_width &&
+	    fw_device->device_port_width != 0) {
+		scic_remote_device_stop(fw_device->core_object,
+		    SCIF_SAS_REMOTE_DEVICE_CORE_OP_TIMEOUT);
+	} else {
+		// Port width updating succeeds. Transfer to destination state.
+		sci_base_state_machine_change_state(
+		    &fw_device->parent.state_machine,
+		    SCI_BASE_REMOTE_DEVICE_STATE_READY);
+	}
 }
 
 /**
@@ -869,46 +808,39 @@ void scif_sas_remote_device_updating_port_width_state_start_complete_handler(
  *
  * @return none.
  */
-static
-void scif_sas_remote_device_updating_port_width_state_stop_complete_handler(
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device,
-   SCI_STATUS                 completion_status
-)
+static void
+scif_sas_remote_device_updating_port_width_state_stop_complete_handler(
+    SCIF_SAS_REMOTE_DEVICE_T *fw_device, SCI_STATUS completion_status)
 {
-   SCIF_LOG_INFO((
-      sci_base_object_get_logger(fw_device),
-      SCIF_LOG_OBJECT_REMOTE_DEVICE,
-      "RemoteDevice:0x%x updating port width state stop complete handler\n",
-      fw_device,
-      sci_base_state_machine_get_state(&fw_device->parent.state_machine)
-   ));
+	SCIF_LOG_INFO((sci_base_object_get_logger(fw_device),
+	    SCIF_LOG_OBJECT_REMOTE_DEVICE,
+	    "RemoteDevice:0x%x updating port width state stop complete handler\n",
+	    fw_device,
+	    sci_base_state_machine_get_state(
+		&fw_device->parent.state_machine)));
 
-   if ( fw_device->destination_state
-           == SCIF_SAS_REMOTE_DEVICE_DESTINATION_STATE_STOPPING )
-   {
-      //Device directly transits to STOPPED STATE from UPDATING_PORT_WIDTH state,
-      fw_device->domain->device_start_count--;
+	if (fw_device->destination_state ==
+	    SCIF_SAS_REMOTE_DEVICE_DESTINATION_STATE_STOPPING) {
+		// Device directly transits to STOPPED STATE from
+		// UPDATING_PORT_WIDTH state,
+		fw_device->domain->device_start_count--;
 
-      //if the destination state of this device change to STOPPING, no matter
-      //whether we need to update the port width again, just make the device
-      //go to the STOPPED state.
-      sci_base_state_machine_change_state(
-         &fw_device->parent.state_machine,
-         SCI_BASE_REMOTE_DEVICE_STATE_STOPPED
-      );
-   }
-   else
-   {
-      scic_remote_device_set_port_width(
-         fw_device->core_object,
-         fw_device->device_port_width
-      );
+		// if the destination state of this device change to STOPPING,
+		// no matter whether we need to update the port width again,
+		// just make the device go to the STOPPED state.
+		sci_base_state_machine_change_state(
+		    &fw_device->parent.state_machine,
+		    SCI_BASE_REMOTE_DEVICE_STATE_STOPPED);
+	} else {
+		scic_remote_device_set_port_width(fw_device->core_object,
+		    fw_device->device_port_width);
 
-      //Device stop complete, means the RNC has been destructed. Now we need to
-      //start core device so the RNC with updated port width will be posted.
-      scic_remote_device_start(
-         fw_device->core_object, SCIF_SAS_REMOTE_DEVICE_CORE_OP_TIMEOUT);
-   }
+		// Device stop complete, means the RNC has been destructed. Now
+		// we need to start core device so the RNC with updated port
+		// width will be posted.
+		scic_remote_device_start(fw_device->core_object,
+		    SCIF_SAS_REMOTE_DEVICE_CORE_OP_TIMEOUT);
+	}
 }
 
 /**
@@ -922,240 +854,200 @@ void scif_sas_remote_device_updating_port_width_state_stop_complete_handler(
  *
  * @return This method always return SCI_SUCCESS.
  */
-static
-SCI_STATUS scif_sas_remote_device_updating_port_width_state_stop_handler(
-   SCI_BASE_REMOTE_DEVICE_T * remote_device
-)
+static SCI_STATUS
+scif_sas_remote_device_updating_port_width_state_stop_handler(
+    SCI_BASE_REMOTE_DEVICE_T *remote_device)
 {
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device =
-      (SCIF_SAS_REMOTE_DEVICE_T *)remote_device;
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+	    remote_device;
 
-   SCIF_LOG_INFO((
-      sci_base_object_get_logger(fw_device),
-      SCIF_LOG_OBJECT_REMOTE_DEVICE,
-      "RemoteDevice:0x%x updating port width state stop handler\n",
-      fw_device,
-      sci_base_state_machine_get_state(&fw_device->parent.state_machine)
-   ));
+	SCIF_LOG_INFO((sci_base_object_get_logger(fw_device),
+	    SCIF_LOG_OBJECT_REMOTE_DEVICE,
+	    "RemoteDevice:0x%x updating port width state stop handler\n",
+	    fw_device,
+	    sci_base_state_machine_get_state(
+		&fw_device->parent.state_machine)));
 
-   //Can't stop the device right now. Remember the pending stopping request.
-   //When exit the UPDATING_PORT_WIDTH state, we will check this variable
-   //to decide which state to go.
-   fw_device->destination_state =
-      SCIF_SAS_REMOTE_DEVICE_DESTINATION_STATE_STOPPING;
+	// Can't stop the device right now. Remember the pending stopping
+	// request. When exit the UPDATING_PORT_WIDTH state, we will check this
+	// variable to decide which state to go.
+	fw_device->destination_state =
+	    SCIF_SAS_REMOTE_DEVICE_DESTINATION_STATE_STOPPING;
 
-   return SCI_SUCCESS;
+	return SCI_SUCCESS;
 }
 
-#endif //#if !defined(DISABLE_WIDE_PORTED_TARGETS)
+#endif // #if !defined(DISABLE_WIDE_PORTED_TARGETS)
 
-#define scif_sas_remote_device_stopping_complete_io_handler   \
-        scif_sas_remote_device_ready_operational_complete_io_handler
+#define scif_sas_remote_device_stopping_complete_io_handler \
+	scif_sas_remote_device_ready_operational_complete_io_handler
 #define scif_sas_remote_device_stopping_complete_task_handler \
-        scif_sas_remote_device_ready_operational_complete_task_handler
+	scif_sas_remote_device_ready_operational_complete_task_handler
 
 SCIF_SAS_REMOTE_DEVICE_STATE_HANDLER_T
-scif_sas_remote_device_state_handler_table[SCI_BASE_REMOTE_DEVICE_MAX_STATES] =
-{
-   // SCI_BASE_REMOTE_DEVICE_STATE_INITIAL
-   {
-      {
-         scif_sas_remote_device_default_start_handler,
-         scif_sas_remote_device_default_stop_handler,
-         scif_sas_remote_device_default_fail_handler,
-         scif_sas_remote_device_default_destruct_handler,
-         scif_sas_remote_device_default_reset_handler,
-         scif_sas_remote_device_default_reset_complete_handler,
-         scif_sas_remote_device_default_start_io_handler,
-         scif_sas_remote_device_default_complete_io_handler,
-         scif_sas_remote_device_default_continue_io_handler,
-         scif_sas_remote_device_default_start_task_handler,
-         scif_sas_remote_device_default_complete_task_handler
-      },
-      scif_sas_remote_device_default_start_complete_handler,
-      scif_sas_remote_device_default_stop_complete_handler,
-      scif_sas_remote_device_default_ready_handler,
-      scif_sas_remote_device_default_not_ready_handler,
-      scif_sas_remote_device_default_start_io_handler,
-      scif_sas_remote_device_default_complete_high_priority_io_handler
-   },
-   // SCI_BASE_REMOTE_DEVICE_STATE_STOPPED
-   {
-      {
-         scif_sas_remote_device_stopped_start_handler,
-         scif_sas_remote_device_default_stop_handler,
-         scif_sas_remote_device_default_fail_handler,
-         scif_sas_remote_device_stopped_destruct_handler,
-         scif_sas_remote_device_default_reset_handler,
-         scif_sas_remote_device_default_reset_complete_handler,
-         scif_sas_remote_device_default_start_io_handler,
-         scif_sas_remote_device_default_complete_io_handler,
-         scif_sas_remote_device_default_continue_io_handler,
-         scif_sas_remote_device_default_start_task_handler,
-         scif_sas_remote_device_default_complete_task_handler
-      },
-      scif_sas_remote_device_default_start_complete_handler,
-      scif_sas_remote_device_default_stop_complete_handler,
-      scif_sas_remote_device_default_ready_handler,
-      scif_sas_remote_device_default_not_ready_handler,
-      scif_sas_remote_device_default_start_io_handler,
-      scif_sas_remote_device_default_complete_high_priority_io_handler
-   },
-   // SCI_BASE_REMOTE_DEVICE_STATE_STARTING
-   {
-      {
-         scif_sas_remote_device_default_start_handler,
-         scif_sas_remote_device_default_stop_handler,
-         scif_sas_remote_device_default_fail_handler,
-         scif_sas_remote_device_default_destruct_handler,
-         scif_sas_remote_device_default_reset_handler,
-         scif_sas_remote_device_default_reset_complete_handler,
-         scif_sas_remote_device_default_start_io_handler,
-         scif_sas_remote_device_default_complete_io_handler,
-         scif_sas_remote_device_default_continue_io_handler,
-         scif_sas_remote_device_default_start_task_handler,
-         scif_sas_remote_device_default_complete_task_handler
-      },
-      scif_sas_remote_device_default_start_complete_handler,
-      scif_sas_remote_device_default_stop_complete_handler,
-      scif_sas_remote_device_default_ready_handler,
-      scif_sas_remote_device_default_not_ready_handler,
-      scif_sas_remote_device_default_start_io_handler,
-      scif_sas_remote_device_default_complete_high_priority_io_handler
-   },
-   // SCI_BASE_REMOTE_DEVICE_STATE_READY - see substate handlers
-   {
-      {
-         scif_sas_remote_device_default_start_handler,
-         scif_sas_remote_device_default_stop_handler,
-         scif_sas_remote_device_default_fail_handler,
-         scif_sas_remote_device_default_destruct_handler,
-         scif_sas_remote_device_default_reset_handler,
-         scif_sas_remote_device_default_reset_complete_handler,
-         scif_sas_remote_device_default_start_io_handler,
-         scif_sas_remote_device_default_complete_io_handler,
-         scif_sas_remote_device_default_continue_io_handler,
-         scif_sas_remote_device_default_start_task_handler,
-         scif_sas_remote_device_default_complete_task_handler
-      },
-      scif_sas_remote_device_default_start_complete_handler,
-      scif_sas_remote_device_default_stop_complete_handler,
-      scif_sas_remote_device_default_ready_handler,
-      scif_sas_remote_device_default_not_ready_handler,
-      scif_sas_remote_device_default_start_io_handler,
-      scif_sas_remote_device_default_complete_high_priority_io_handler
-   },
-   // SCI_BASE_REMOTE_DEVICE_STATE_STOPPING
-   {
-      {
-         scif_sas_remote_device_default_start_handler,
-         scif_sas_remote_device_default_stop_handler,
-         scif_sas_remote_device_default_fail_handler,
-         scif_sas_remote_device_default_destruct_handler,
-         scif_sas_remote_device_default_reset_handler,
-         scif_sas_remote_device_default_reset_complete_handler,
-         scif_sas_remote_device_default_start_io_handler,
-         scif_sas_remote_device_stopping_complete_io_handler,
-         scif_sas_remote_device_default_continue_io_handler,
-         scif_sas_remote_device_default_start_task_handler,
-         scif_sas_remote_device_stopping_complete_task_handler
-      },
-      scif_sas_remote_device_default_start_complete_handler,
-      scif_sas_remote_device_stopping_stop_complete_handler,
-      scif_sas_remote_device_default_ready_handler,
-      scif_sas_remote_device_default_not_ready_handler,
-      scif_sas_remote_device_default_start_io_handler,
-      scif_sas_remote_device_stopping_complete_high_priority_io_handler
-   },
-   // SCI_BASE_REMOTE_DEVICE_STATE_FAILED
-   {
-      {
-         scif_sas_remote_device_default_start_handler,
-         scif_sas_remote_device_failed_stop_handler,
-         scif_sas_remote_device_default_fail_handler,
-         scif_sas_remote_device_default_destruct_handler,
-         scif_sas_remote_device_default_reset_handler,
-         scif_sas_remote_device_default_reset_complete_handler,
-         scif_sas_remote_device_default_start_io_handler,
-         scif_sas_remote_device_default_complete_io_handler,
-         scif_sas_remote_device_default_continue_io_handler,
-         scif_sas_remote_device_default_start_task_handler,
-         scif_sas_remote_device_default_complete_task_handler
-      },
-      scif_sas_remote_device_default_start_complete_handler,
-      scif_sas_remote_device_default_stop_complete_handler,
-      scif_sas_remote_device_default_ready_handler,
-      scif_sas_remote_device_default_not_ready_handler,
-      scif_sas_remote_device_default_start_io_handler,
-      scif_sas_remote_device_default_complete_high_priority_io_handler
-   },
-   // SCI_BASE_REMOTE_DEVICE_STATE_RESETTING - is unused by framework
-   {
-      {
-         scif_sas_remote_device_default_start_handler,
-         scif_sas_remote_device_default_stop_handler,
-         scif_sas_remote_device_default_fail_handler,
-         scif_sas_remote_device_default_destruct_handler,
-         scif_sas_remote_device_default_reset_handler,
-         scif_sas_remote_device_default_reset_complete_handler,
-         scif_sas_remote_device_default_start_io_handler,
-         scif_sas_remote_device_default_complete_io_handler,
-         scif_sas_remote_device_default_continue_io_handler,
-         scif_sas_remote_device_default_start_task_handler,
-         scif_sas_remote_device_default_complete_task_handler
-      },
-      scif_sas_remote_device_default_start_complete_handler,
-      scif_sas_remote_device_default_stop_complete_handler,
-      scif_sas_remote_device_default_ready_handler,
-      scif_sas_remote_device_default_not_ready_handler,
-      scif_sas_remote_device_default_start_io_handler,
-      scif_sas_remote_device_default_complete_high_priority_io_handler
-   },
+scif_sas_remote_device_state_handler_table[SCI_BASE_REMOTE_DEVICE_MAX_STATES] = {
+	// SCI_BASE_REMOTE_DEVICE_STATE_INITIAL
+	{ { scif_sas_remote_device_default_start_handler,
+	      scif_sas_remote_device_default_stop_handler,
+	      scif_sas_remote_device_default_fail_handler,
+	      scif_sas_remote_device_default_destruct_handler,
+	      scif_sas_remote_device_default_reset_handler,
+	      scif_sas_remote_device_default_reset_complete_handler,
+	      scif_sas_remote_device_default_start_io_handler,
+	      scif_sas_remote_device_default_complete_io_handler,
+	      scif_sas_remote_device_default_continue_io_handler,
+	      scif_sas_remote_device_default_start_task_handler,
+	      scif_sas_remote_device_default_complete_task_handler },
+	    scif_sas_remote_device_default_start_complete_handler,
+	    scif_sas_remote_device_default_stop_complete_handler,
+	    scif_sas_remote_device_default_ready_handler,
+	    scif_sas_remote_device_default_not_ready_handler,
+	    scif_sas_remote_device_default_start_io_handler,
+	    scif_sas_remote_device_default_complete_high_priority_io_handler },
+	// SCI_BASE_REMOTE_DEVICE_STATE_STOPPED
+	{ { scif_sas_remote_device_stopped_start_handler,
+	      scif_sas_remote_device_default_stop_handler,
+	      scif_sas_remote_device_default_fail_handler,
+	      scif_sas_remote_device_stopped_destruct_handler,
+	      scif_sas_remote_device_default_reset_handler,
+	      scif_sas_remote_device_default_reset_complete_handler,
+	      scif_sas_remote_device_default_start_io_handler,
+	      scif_sas_remote_device_default_complete_io_handler,
+	      scif_sas_remote_device_default_continue_io_handler,
+	      scif_sas_remote_device_default_start_task_handler,
+	      scif_sas_remote_device_default_complete_task_handler },
+	    scif_sas_remote_device_default_start_complete_handler,
+	    scif_sas_remote_device_default_stop_complete_handler,
+	    scif_sas_remote_device_default_ready_handler,
+	    scif_sas_remote_device_default_not_ready_handler,
+	    scif_sas_remote_device_default_start_io_handler,
+	    scif_sas_remote_device_default_complete_high_priority_io_handler },
+	// SCI_BASE_REMOTE_DEVICE_STATE_STARTING
+	{ { scif_sas_remote_device_default_start_handler,
+	      scif_sas_remote_device_default_stop_handler,
+	      scif_sas_remote_device_default_fail_handler,
+	      scif_sas_remote_device_default_destruct_handler,
+	      scif_sas_remote_device_default_reset_handler,
+	      scif_sas_remote_device_default_reset_complete_handler,
+	      scif_sas_remote_device_default_start_io_handler,
+	      scif_sas_remote_device_default_complete_io_handler,
+	      scif_sas_remote_device_default_continue_io_handler,
+	      scif_sas_remote_device_default_start_task_handler,
+	      scif_sas_remote_device_default_complete_task_handler },
+	    scif_sas_remote_device_default_start_complete_handler,
+	    scif_sas_remote_device_default_stop_complete_handler,
+	    scif_sas_remote_device_default_ready_handler,
+	    scif_sas_remote_device_default_not_ready_handler,
+	    scif_sas_remote_device_default_start_io_handler,
+	    scif_sas_remote_device_default_complete_high_priority_io_handler },
+	// SCI_BASE_REMOTE_DEVICE_STATE_READY - see substate handlers
+	{ { scif_sas_remote_device_default_start_handler,
+	      scif_sas_remote_device_default_stop_handler,
+	      scif_sas_remote_device_default_fail_handler,
+	      scif_sas_remote_device_default_destruct_handler,
+	      scif_sas_remote_device_default_reset_handler,
+	      scif_sas_remote_device_default_reset_complete_handler,
+	      scif_sas_remote_device_default_start_io_handler,
+	      scif_sas_remote_device_default_complete_io_handler,
+	      scif_sas_remote_device_default_continue_io_handler,
+	      scif_sas_remote_device_default_start_task_handler,
+	      scif_sas_remote_device_default_complete_task_handler },
+	    scif_sas_remote_device_default_start_complete_handler,
+	    scif_sas_remote_device_default_stop_complete_handler,
+	    scif_sas_remote_device_default_ready_handler,
+	    scif_sas_remote_device_default_not_ready_handler,
+	    scif_sas_remote_device_default_start_io_handler,
+	    scif_sas_remote_device_default_complete_high_priority_io_handler },
+	// SCI_BASE_REMOTE_DEVICE_STATE_STOPPING
+	{ { scif_sas_remote_device_default_start_handler,
+	      scif_sas_remote_device_default_stop_handler,
+	      scif_sas_remote_device_default_fail_handler,
+	      scif_sas_remote_device_default_destruct_handler,
+	      scif_sas_remote_device_default_reset_handler,
+	      scif_sas_remote_device_default_reset_complete_handler,
+	      scif_sas_remote_device_default_start_io_handler,
+	      scif_sas_remote_device_stopping_complete_io_handler,
+	      scif_sas_remote_device_default_continue_io_handler,
+	      scif_sas_remote_device_default_start_task_handler,
+	      scif_sas_remote_device_stopping_complete_task_handler },
+	    scif_sas_remote_device_default_start_complete_handler,
+	    scif_sas_remote_device_stopping_stop_complete_handler,
+	    scif_sas_remote_device_default_ready_handler,
+	    scif_sas_remote_device_default_not_ready_handler,
+	    scif_sas_remote_device_default_start_io_handler,
+	    scif_sas_remote_device_stopping_complete_high_priority_io_handler },
+	// SCI_BASE_REMOTE_DEVICE_STATE_FAILED
+	{ { scif_sas_remote_device_default_start_handler,
+	      scif_sas_remote_device_failed_stop_handler,
+	      scif_sas_remote_device_default_fail_handler,
+	      scif_sas_remote_device_default_destruct_handler,
+	      scif_sas_remote_device_default_reset_handler,
+	      scif_sas_remote_device_default_reset_complete_handler,
+	      scif_sas_remote_device_default_start_io_handler,
+	      scif_sas_remote_device_default_complete_io_handler,
+	      scif_sas_remote_device_default_continue_io_handler,
+	      scif_sas_remote_device_default_start_task_handler,
+	      scif_sas_remote_device_default_complete_task_handler },
+	    scif_sas_remote_device_default_start_complete_handler,
+	    scif_sas_remote_device_default_stop_complete_handler,
+	    scif_sas_remote_device_default_ready_handler,
+	    scif_sas_remote_device_default_not_ready_handler,
+	    scif_sas_remote_device_default_start_io_handler,
+	    scif_sas_remote_device_default_complete_high_priority_io_handler },
+	// SCI_BASE_REMOTE_DEVICE_STATE_RESETTING - is unused by framework
+	{ { scif_sas_remote_device_default_start_handler,
+	      scif_sas_remote_device_default_stop_handler,
+	      scif_sas_remote_device_default_fail_handler,
+	      scif_sas_remote_device_default_destruct_handler,
+	      scif_sas_remote_device_default_reset_handler,
+	      scif_sas_remote_device_default_reset_complete_handler,
+	      scif_sas_remote_device_default_start_io_handler,
+	      scif_sas_remote_device_default_complete_io_handler,
+	      scif_sas_remote_device_default_continue_io_handler,
+	      scif_sas_remote_device_default_start_task_handler,
+	      scif_sas_remote_device_default_complete_task_handler },
+	    scif_sas_remote_device_default_start_complete_handler,
+	    scif_sas_remote_device_default_stop_complete_handler,
+	    scif_sas_remote_device_default_ready_handler,
+	    scif_sas_remote_device_default_not_ready_handler,
+	    scif_sas_remote_device_default_start_io_handler,
+	    scif_sas_remote_device_default_complete_high_priority_io_handler },
 #if !defined(DISABLE_WIDE_PORTED_TARGETS)
-   // SCI_BASE_REMOTE_DEVICE_STATE_UPDATING_PORT_WIDTH
-   {
-      {
-         scif_sas_remote_device_default_start_handler,
-         scif_sas_remote_device_updating_port_width_state_stop_handler,
-         scif_sas_remote_device_default_fail_handler,
-         scif_sas_remote_device_default_destruct_handler,
-         scif_sas_remote_device_default_reset_handler,
-         scif_sas_remote_device_default_reset_complete_handler,
-         scif_sas_remote_device_default_start_io_handler,
-         scif_sas_remote_device_updating_port_width_state_complete_io_handler,
-         scif_sas_remote_device_default_continue_io_handler,
-         scif_sas_remote_device_default_start_task_handler,
-         scif_sas_remote_device_default_complete_task_handler
-      },
-      scif_sas_remote_device_updating_port_width_state_start_complete_handler,
-      scif_sas_remote_device_updating_port_width_state_stop_complete_handler,
-      scif_sas_remote_device_default_ready_handler,
-      scif_sas_remote_device_default_not_ready_handler,
-      scif_sas_remote_device_default_start_io_handler,
-      scif_sas_remote_device_default_complete_high_priority_io_handler
-   },
+	// SCI_BASE_REMOTE_DEVICE_STATE_UPDATING_PORT_WIDTH
+	{ { scif_sas_remote_device_default_start_handler,
+	      scif_sas_remote_device_updating_port_width_state_stop_handler,
+	      scif_sas_remote_device_default_fail_handler,
+	      scif_sas_remote_device_default_destruct_handler,
+	      scif_sas_remote_device_default_reset_handler,
+	      scif_sas_remote_device_default_reset_complete_handler,
+	      scif_sas_remote_device_default_start_io_handler,
+	      scif_sas_remote_device_updating_port_width_state_complete_io_handler,
+	      scif_sas_remote_device_default_continue_io_handler,
+	      scif_sas_remote_device_default_start_task_handler,
+	      scif_sas_remote_device_default_complete_task_handler },
+	    scif_sas_remote_device_updating_port_width_state_start_complete_handler,
+	    scif_sas_remote_device_updating_port_width_state_stop_complete_handler,
+	    scif_sas_remote_device_default_ready_handler,
+	    scif_sas_remote_device_default_not_ready_handler,
+	    scif_sas_remote_device_default_start_io_handler,
+	    scif_sas_remote_device_default_complete_high_priority_io_handler },
 #endif
-   // SCI_BASE_REMOTE_DEVICE_STATE_FINAL
-   {
-      {
-         scif_sas_remote_device_default_start_handler,
-         scif_sas_remote_device_default_stop_handler,
-         scif_sas_remote_device_default_fail_handler,
-         scif_sas_remote_device_default_destruct_handler,
-         scif_sas_remote_device_default_reset_handler,
-         scif_sas_remote_device_default_reset_complete_handler,
-         scif_sas_remote_device_default_start_io_handler,
-         scif_sas_remote_device_default_complete_io_handler,
-         scif_sas_remote_device_default_continue_io_handler,
-         scif_sas_remote_device_default_start_task_handler,
-         scif_sas_remote_device_default_complete_task_handler
-      },
-      scif_sas_remote_device_default_start_complete_handler,
-      scif_sas_remote_device_default_stop_complete_handler,
-      scif_sas_remote_device_default_ready_handler,
-      scif_sas_remote_device_default_not_ready_handler,
-      scif_sas_remote_device_default_start_io_handler,
-      scif_sas_remote_device_default_complete_high_priority_io_handler
-   }
+	// SCI_BASE_REMOTE_DEVICE_STATE_FINAL
+	{ { scif_sas_remote_device_default_start_handler,
+	      scif_sas_remote_device_default_stop_handler,
+	      scif_sas_remote_device_default_fail_handler,
+	      scif_sas_remote_device_default_destruct_handler,
+	      scif_sas_remote_device_default_reset_handler,
+	      scif_sas_remote_device_default_reset_complete_handler,
+	      scif_sas_remote_device_default_start_io_handler,
+	      scif_sas_remote_device_default_complete_io_handler,
+	      scif_sas_remote_device_default_continue_io_handler,
+	      scif_sas_remote_device_default_start_task_handler,
+	      scif_sas_remote_device_default_complete_task_handler },
+	    scif_sas_remote_device_default_start_complete_handler,
+	    scif_sas_remote_device_default_stop_complete_handler,
+	    scif_sas_remote_device_default_ready_handler,
+	    scif_sas_remote_device_default_not_ready_handler,
+	    scif_sas_remote_device_default_start_io_handler,
+	    scif_sas_remote_device_default_complete_high_priority_io_handler }
 };
-

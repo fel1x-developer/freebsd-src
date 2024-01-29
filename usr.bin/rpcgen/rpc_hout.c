@@ -31,19 +31,20 @@
  * rpc_hout.c, Header file outputter for the RPC protocol compiler
  * Copyright (C) 1987, Sun Microsystems, Inc.
  */
-#include <stdio.h>
 #include <ctype.h>
+#include <stdio.h>
+
 #include "rpc_parse.h"
 #include "rpc_scan.h"
 #include "rpc_util.h"
 
-void storexdrfuncdecl(const char *, int );
-static void pconstdef( definition * );
-static void pstructdef( definition * );
-static void puniondef( definition * );
-static void pprogramdef( definition *, int );
-static void penumdef( definition * );
-static void ptypedef( definition * );
+void storexdrfuncdecl(const char *, int);
+static void pconstdef(definition *);
+static void pstructdef(definition *);
+static void puniondef(definition *);
+static void pprogramdef(definition *, int);
+static void penumdef(definition *);
+static void ptypedef(definition *);
 static void pdefine(const char *, const char *);
 static int undefined2(const char *, const char *);
 static void parglist(proc_list *, const char *);
@@ -56,7 +57,7 @@ void
 print_datadef(definition *def, int headeronly)
 {
 
-	if (def->def_kind == DEF_PROGRAM)  /* handle data only */
+	if (def->def_kind == DEF_PROGRAM) /* handle data only */
 		return;
 
 	if (def->def_kind != DEF_CONST) {
@@ -83,13 +84,11 @@ print_datadef(definition *def, int headeronly)
 		break;
 	}
 	if (def->def_kind != DEF_PROGRAM && def->def_kind != DEF_CONST) {
-	    storexdrfuncdecl(def->def_name,
-			     def->def_kind != DEF_TYPEDEF ||
-			     !isvectordef(def->def.ty.old_type,
-					  def->def.ty.rel));
+		storexdrfuncdecl(def->def_name,
+		    def->def_kind != DEF_TYPEDEF ||
+			!isvectordef(def->def.ty.old_type, def->def.ty.rel));
 	}
 }
-
 
 void
 print_funcdef(definition *def, int headeronly)
@@ -110,7 +109,7 @@ print_funcdef(definition *def, int headeronly)
 void
 storexdrfuncdecl(const char *name, int pointerp)
 {
-	xdrfunc * xdrptr;
+	xdrfunc *xdrptr;
 
 	xdrptr = XALLOC(struct xdrfunc);
 
@@ -118,24 +117,21 @@ storexdrfuncdecl(const char *name, int pointerp)
 	xdrptr->pointerp = pointerp;
 	xdrptr->next = NULL;
 
-	if (xdrfunc_tail == NULL){
+	if (xdrfunc_tail == NULL) {
 		xdrfunc_head = xdrptr;
 		xdrfunc_tail = xdrptr;
 	} else {
 		xdrfunc_tail->next = xdrptr;
 		xdrfunc_tail = xdrptr;
 	}
-
-
 }
 
 void
 print_xdr_func_def(const char *name, int pointerp)
 {
-	f_print(fout, "extern  bool_t xdr_%s(XDR *, %s%s);\n", name,
-		name, pointerp ? "*" : "");
+	f_print(fout, "extern  bool_t xdr_%s(XDR *, %s%s);\n", name, name,
+	    pointerp ? "*" : "");
 }
-
 
 static void
 pconstdef(definition *def)
@@ -154,30 +150,24 @@ pargdef(definition *def)
 	char *name;
 	proc_list *plist;
 
-
 	for (vers = def->def.pr.versions; vers != NULL; vers = vers->next) {
-			for (plist = vers->procs; plist != NULL;
-			    plist = plist->next) {
+		for (plist = vers->procs; plist != NULL; plist = plist->next) {
 
-				if (!newstyle || plist->arg_num < 2) {
-					continue; /* old style or single args */
-				}
-				name = plist->args.argname;
-				f_print(fout, "struct %s {\n", name);
-				for (l = plist->args.decls;
-				    l != NULL; l = l->next) {
-					pdeclaration(name, &l->decl, 1,
-						     ";\n");
-				}
-				f_print(fout, "};\n");
-				f_print(fout, "typedef struct %s %s;\n",
-					name, name);
-				storexdrfuncdecl(name, 1);
-				f_print(fout, "\n");
+			if (!newstyle || plist->arg_num < 2) {
+				continue; /* old style or single args */
 			}
+			name = plist->args.argname;
+			f_print(fout, "struct %s {\n", name);
+			for (l = plist->args.decls; l != NULL; l = l->next) {
+				pdeclaration(name, &l->decl, 1, ";\n");
+			}
+			f_print(fout, "};\n");
+			f_print(fout, "typedef struct %s %s;\n", name, name);
+			storexdrfuncdecl(name, 1);
+			f_print(fout, "\n");
 		}
+	}
 }
-
 
 static void
 pstructdef(definition *def)
@@ -209,8 +199,8 @@ puniondef(definition *def)
 	}
 	f_print(fout, "\tunion {\n");
 	for (l = def->def.un.cases; l != NULL; l = l->next) {
-	    if (l->contflag == 0)
-		pdeclaration(name, &l->case_decl, 2, ";\n");
+		if (l->contflag == 0)
+			pdeclaration(name, &l->case_decl, 2, ";\n");
 	}
 	decl = def->def.un.default_decl;
 	if (decl && !streq(decl->type, "void")) {
@@ -253,7 +243,7 @@ define_printed(proc_list *stop, version_list *start)
 }
 
 static void
-pfreeprocdef(const char * name, const char *vers)
+pfreeprocdef(const char *name, const char *vers)
 {
 	f_print(fout, "extern int ");
 	pvname(name, vers);
@@ -261,7 +251,7 @@ pfreeprocdef(const char * name, const char *vers)
 }
 
 static void
-pdispatch(const char * name, const char *vers)
+pdispatch(const char *name, const char *vers)
 {
 
 	f_print(fout, "void ");
@@ -282,11 +272,10 @@ pprogramdef(definition *def, int headeronly)
 	for (vers = def->def.pr.versions; vers != NULL; vers = vers->next) {
 		if (tblflag) {
 			f_print(fout,
-				"extern struct rpcgen_table %s_%s_table[];\n",
-				locase(def->def_name), vers->vers_num);
-			f_print(fout,
-				"extern %s_%s_nproc;\n",
-				locase(def->def_name), vers->vers_num);
+			    "extern struct rpcgen_table %s_%s_table[];\n",
+			    locase(def->def_name), vers->vers_num);
+			f_print(fout, "extern %s_%s_nproc;\n",
+			    locase(def->def_name), vers->vers_num);
 		}
 		puldefine(vers->vers_name, vers->vers_num);
 
@@ -310,9 +299,10 @@ pprogramdef(definition *def, int headeronly)
 }
 
 static void
-pprocdef(proc_list *proc, version_list *vp, const char *addargtype, int server_p)
+pprocdef(proc_list *proc, version_list *vp, const char *addargtype,
+    int server_p)
 {
-	if (mtflag) {/* Print MT style stubs */
+	if (mtflag) { /* Print MT style stubs */
 		if (server_p)
 			f_print(fout, "bool_t ");
 		else
@@ -329,8 +319,6 @@ pprocdef(proc_list *proc, version_list *vp, const char *addargtype, int server_p
 	parglist(proc, addargtype);
 }
 
-
-
 /* print out argument list of procedure */
 static void
 parglist(proc_list *proc, const char *addargtype)
@@ -341,8 +329,7 @@ parglist(proc_list *proc, const char *addargtype)
 	if (proc->arg_num < 2 && newstyle &&
 	    streq(proc->args.decls->decl.type, "void")) {
 		/* 0 argument in new style:  do nothing*/
-	}
-	else {
+	} else {
 		for (dl = proc->args.decls; dl != NULL; dl = dl->next) {
 			ptype(dl->decl.prefix, dl->decl.type, 1);
 			if (!newstyle)
@@ -352,13 +339,12 @@ parglist(proc_list *proc, const char *addargtype)
 		}
 	}
 
-	if (mtflag)  {
+	if (mtflag) {
 		ptype(proc->res_prefix, proc->res_type, 1);
 		f_print(fout, "*, ");
 	}
 
 	f_print(fout, "%s);\n", addargtype);
-
 }
 
 static void
@@ -397,9 +383,8 @@ ptypedef(definition *def)
 {
 	const char *name = def->def_name;
 	const char *old = def->def.ty.old_type;
-	char prefix[8];	/* enough to contain "struct ", including NUL */
+	char prefix[8]; /* enough to contain "struct ", including NUL */
 	relation rel = def->def.ty.rel;
-
 
 	if (!streq(name, old)) {
 		if (streq(old, "string")) {
@@ -428,7 +413,7 @@ ptypedef(definition *def)
 			break;
 		case REL_VECTOR:
 			f_print(fout, "%s%s %s[%s]", prefix, old, name,
-				def->def.ty.array_max);
+			    def->def.ty.array_max);
 			break;
 		case REL_ALIAS:
 			f_print(fout, "%s%s %s", prefix, old, name);
@@ -441,7 +426,7 @@ ptypedef(definition *def)
 void
 pdeclaration(const char *name, declaration *dec, int tab, const char *separator)
 {
-	char buf[8];	/* enough to hold "struct ", include NUL */
+	char buf[8]; /* enough to hold "struct ", include NUL */
 	const char *prefix;
 	const char *type;
 
@@ -473,7 +458,7 @@ pdeclaration(const char *name, declaration *dec, int tab, const char *separator)
 			break;
 		case REL_VECTOR:
 			f_print(fout, "%s%s %s[%s]", prefix, type, dec->name,
-				dec->array_max);
+			    dec->array_max);
 			break;
 		case REL_POINTER:
 			f_print(fout, "%s%s *%s", prefix, type, dec->name);
@@ -483,8 +468,8 @@ pdeclaration(const char *name, declaration *dec, int tab, const char *separator)
 			tabify(fout, tab);
 			f_print(fout, "\tu_int %s_len;\n", dec->name);
 			tabify(fout, tab);
-			f_print(fout,
-				"\t%s%s *%s_val;\n", prefix, type, dec->name);
+			f_print(fout, "\t%s%s *%s_val;\n", prefix, type,
+			    dec->name);
 			tabify(fout, tab);
 			f_print(fout, "} %s", dec->name);
 			break;
@@ -500,7 +485,7 @@ undefined2(const char *type, const char *stop)
 	definition *def;
 
 	for (l = defined; l != NULL; l = l->next) {
-		def = (definition *) l->val;
+		def = (definition *)l->val;
 		if (def->def_kind != DEF_PROGRAM) {
 			if (streq(def->def_name, stop)) {
 				return (1);

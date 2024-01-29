@@ -30,6 +30,11 @@
  * Send or receive messages over an SMBus.
  */
 
+#include <sys/types.h>
+#include <sys/ioctl.h>
+
+#include <dev/smbus/smb.h>
+
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -39,11 +44,6 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-#include <sys/types.h>
-#include <sys/ioctl.h>
-
-#include <dev/smbus/smb.h>
-
 #include "pathnames.h"
 
 static const char *dev = PATH_DEFAULTSMBDEV;
@@ -51,13 +51,13 @@ static const char *bytefmt = "0x%02x";
 static const char *wordfmt = "0x%04x";
 static const char *fmt;
 
-static int fd;			/* file descriptor for /dev/smbX */
-static int cflag = -1;		/* SMBus cmd */
-static int iflag = -1;		/* input data */
-static int oflag = -1;		/* output data */
-static int pflag;		/* probe bus */
-static int slave = -1;		/* slave address */
-static int wflag;		/* word IO */
+static int fd;	       /* file descriptor for /dev/smbX */
+static int cflag = -1; /* SMBus cmd */
+static int iflag = -1; /* input data */
+static int oflag = -1; /* output data */
+static int pflag;      /* probe bus */
+static int slave = -1; /* slave address */
+static int wflag;      /* word IO */
 
 static unsigned char ibuf[SMB_MAXBLOCKSIZE];
 static unsigned char obuf[SMB_MAXBLOCKSIZE];
@@ -68,21 +68,21 @@ static unsigned short oword;
  * 240 are reserved.  Address 0 is the global address, but we do not
  * care for this detail.
  */
-#define MIN_I2C_ADDR	16
-#define MAX_I2C_ADDR	240
+#define MIN_I2C_ADDR 16
+#define MAX_I2C_ADDR 240
 
-static int	do_io(void);
-static int	getnum(const char *s);
-static void	probe_i2c(void);
-static void	usage(void);
+static int do_io(void);
+static int getnum(const char *s);
+static void probe_i2c(void);
+static void usage(void);
 
 static void
 usage(void)
 {
 	fprintf(stderr,
-		"usage: smbmsg [-f dev] -p\n"
-		"       smbmsg [-f dev] -s slave [-F fmt] [-c cmd] [-w] "
-		"[-i incnt] [-o outcnt] [outdata ...]\n");
+	    "usage: smbmsg [-f dev] -p\n"
+	    "       smbmsg [-f dev] -s slave [-F fmt] [-c cmd] [-w] "
+	    "[-i incnt] [-o outcnt] [outdata ...]\n");
 	exit(EX_USAGE);
 }
 
@@ -103,8 +103,8 @@ probe_i2c(void)
 {
 	unsigned char addr;
 	int flags;
-#define IS_READABLE	1
-#define IS_WRITEABLE	2
+#define IS_READABLE 1
+#define IS_WRITEABLE 2
 	struct smbcmd c;
 
 	printf("Probing for devices on %s:\n", dev);
@@ -139,7 +139,7 @@ do_io(void)
 	c.wcount = 0;
 
 	if (fmt == NULL && iflag > 0)
-		fmt = wflag? wordfmt: bytefmt;
+		fmt = wflag ? wordfmt : bytefmt;
 
 	if (cflag == -1) {
 		/* operations that do not require a command byte */
@@ -219,7 +219,6 @@ do_io(void)
 	return (-2);
 }
 
-
 int
 main(int argc, char **argv)
 {
@@ -236,9 +235,7 @@ main(int argc, char **argv)
 			if ((cflag = getnum(optarg)) == -1)
 				errx(EX_USAGE, "Invalid number: %s", optarg);
 			if (cflag < 0 || cflag >= 256)
-				errx(EX_USAGE,
-				     "CMD out of range: %d",
-				     cflag);
+				errx(EX_USAGE, "CMD out of range: %d", cflag);
 			break;
 
 		case 'f':
@@ -249,9 +246,8 @@ main(int argc, char **argv)
 			if ((iflag = getnum(optarg)) == -1)
 				errx(EX_USAGE, "Invalid number: %s", optarg);
 			if (iflag < 0 || iflag > SMB_MAXBLOCKSIZE)
-				errx(EX_USAGE,
-				     "# input bytes out of range: %d",
-				     iflag);
+				errx(EX_USAGE, "# input bytes out of range: %d",
+				    iflag);
 			break;
 
 		case 'o':
@@ -259,8 +255,7 @@ main(int argc, char **argv)
 				errx(EX_USAGE, "Invalid number: %s", optarg);
 			if (oflag < 0 || oflag > SMB_MAXBLOCKSIZE)
 				errx(EX_USAGE,
-				     "# output bytes out of range: %d",
-				     oflag);
+				    "# output bytes out of range: %d", oflag);
 			break;
 
 		case 'p':
@@ -272,9 +267,8 @@ main(int argc, char **argv)
 				errx(EX_USAGE, "Invalid number: %s", optarg);
 
 			if (slave < MIN_I2C_ADDR || slave >= MAX_I2C_ADDR)
-				errx(EX_USAGE,
-				     "Slave address out of range: %d",
-				     slave);
+				errx(EX_USAGE, "Slave address out of range: %d",
+				    slave);
 			break;
 
 		case 'w':
@@ -289,9 +283,8 @@ main(int argc, char **argv)
 	if (errs || (slave != -1 && pflag) || (slave == -1 && !pflag))
 		usage();
 	if (wflag &&
-	    !((iflag == 2 && oflag == -1) ||
-	      (iflag == -1 && oflag == 2) ||
-	      (iflag == 2 && oflag == 2)))
+	    !((iflag == 2 && oflag == -1) || (iflag == -1 && oflag == 2) ||
+		(iflag == 2 && oflag == 2)))
 		errx(EX_USAGE, "Illegal # IO bytes for word IO");
 	if (!pflag && iflag == -1 && oflag == -1)
 		errx(EX_USAGE, "Nothing to do");
@@ -300,7 +293,8 @@ main(int argc, char **argv)
 	if (oflag > 0) {
 		if (oflag == 2 && wflag) {
 			if (argc == 0)
-				errx(EX_USAGE, "Too few arguments for -o count");
+				errx(EX_USAGE,
+				    "Too few arguments for -o count");
 			if ((n = getnum(*argv)) == -1)
 				errx(EX_USAGE, "Invalid number: %s", *argv);
 			if (n < 0 || n >= 65535)
@@ -308,15 +302,19 @@ main(int argc, char **argv)
 			oword = n;
 			argc--;
 			argv++;
-		} else for (i = 0; i < oflag; i++, argv++, argc--) {
-			if (argc == 0)
-				errx(EX_USAGE, "Too few arguments for -o count");
-			if ((n = getnum(*argv)) == -1)
-				errx(EX_USAGE, "Invalid number: %s", *argv);
-			if (n < 0 || n >= 256)
-				errx(EX_USAGE, "Value out of range: %d", n);
-			obuf[i] = n;
-		}
+		} else
+			for (i = 0; i < oflag; i++, argv++, argc--) {
+				if (argc == 0)
+					errx(EX_USAGE,
+					    "Too few arguments for -o count");
+				if ((n = getnum(*argv)) == -1)
+					errx(EX_USAGE, "Invalid number: %s",
+					    *argv);
+				if (n < 0 || n >= 256)
+					errx(EX_USAGE, "Value out of range: %d",
+					    n);
+				obuf[i] = n;
+			}
 	}
 	if (argc != 0)
 		usage();

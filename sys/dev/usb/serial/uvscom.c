@@ -37,103 +37,103 @@
  * P-in m@ater and various data communication card adapters.
  */
 
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
+
 #include "usbdevs.h"
 
-#define	USB_DEBUG_VAR uvscom_debug
+#define USB_DEBUG_VAR uvscom_debug
+#include <dev/usb/serial/usb_serial.h>
 #include <dev/usb/usb_debug.h>
 #include <dev/usb/usb_process.h>
-
-#include <dev/usb/serial/usb_serial.h>
 
 #ifdef USB_DEBUG
 static int uvscom_debug = 0;
 
 static SYSCTL_NODE(_hw_usb, OID_AUTO, uvscom, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "USB uvscom");
-SYSCTL_INT(_hw_usb_uvscom, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &uvscom_debug, 0, "Debug level");
+SYSCTL_INT(_hw_usb_uvscom, OID_AUTO, debug, CTLFLAG_RWTUN, &uvscom_debug, 0,
+    "Debug level");
 #endif
 
-#define	UVSCOM_MODVER		1	/* module version */
+#define UVSCOM_MODVER 1 /* module version */
 
-#define	UVSCOM_CONFIG_INDEX	0
-#define	UVSCOM_IFACE_INDEX	0
+#define UVSCOM_CONFIG_INDEX 0
+#define UVSCOM_IFACE_INDEX 0
 
 /* Request */
-#define	UVSCOM_SET_SPEED	0x10
-#define	UVSCOM_LINE_CTL		0x11
-#define	UVSCOM_SET_PARAM	0x12
-#define	UVSCOM_READ_STATUS	0xd0
-#define	UVSCOM_SHUTDOWN		0xe0
+#define UVSCOM_SET_SPEED 0x10
+#define UVSCOM_LINE_CTL 0x11
+#define UVSCOM_SET_PARAM 0x12
+#define UVSCOM_READ_STATUS 0xd0
+#define UVSCOM_SHUTDOWN 0xe0
 
 /* UVSCOM_SET_SPEED parameters */
-#define	UVSCOM_SPEED_150BPS	0x00
-#define	UVSCOM_SPEED_300BPS	0x01
-#define	UVSCOM_SPEED_600BPS	0x02
-#define	UVSCOM_SPEED_1200BPS	0x03
-#define	UVSCOM_SPEED_2400BPS	0x04
-#define	UVSCOM_SPEED_4800BPS	0x05
-#define	UVSCOM_SPEED_9600BPS	0x06
-#define	UVSCOM_SPEED_19200BPS	0x07
-#define	UVSCOM_SPEED_38400BPS	0x08
-#define	UVSCOM_SPEED_57600BPS	0x09
-#define	UVSCOM_SPEED_115200BPS	0x0a
+#define UVSCOM_SPEED_150BPS 0x00
+#define UVSCOM_SPEED_300BPS 0x01
+#define UVSCOM_SPEED_600BPS 0x02
+#define UVSCOM_SPEED_1200BPS 0x03
+#define UVSCOM_SPEED_2400BPS 0x04
+#define UVSCOM_SPEED_4800BPS 0x05
+#define UVSCOM_SPEED_9600BPS 0x06
+#define UVSCOM_SPEED_19200BPS 0x07
+#define UVSCOM_SPEED_38400BPS 0x08
+#define UVSCOM_SPEED_57600BPS 0x09
+#define UVSCOM_SPEED_115200BPS 0x0a
 
 /* UVSCOM_LINE_CTL parameters */
-#define	UVSCOM_BREAK		0x40
-#define	UVSCOM_RTS		0x02
-#define	UVSCOM_DTR		0x01
-#define	UVSCOM_LINE_INIT	0x08
+#define UVSCOM_BREAK 0x40
+#define UVSCOM_RTS 0x02
+#define UVSCOM_DTR 0x01
+#define UVSCOM_LINE_INIT 0x08
 
 /* UVSCOM_SET_PARAM parameters */
-#define	UVSCOM_DATA_MASK	0x03
-#define	UVSCOM_DATA_BIT_8	0x03
-#define	UVSCOM_DATA_BIT_7	0x02
-#define	UVSCOM_DATA_BIT_6	0x01
-#define	UVSCOM_DATA_BIT_5	0x00
+#define UVSCOM_DATA_MASK 0x03
+#define UVSCOM_DATA_BIT_8 0x03
+#define UVSCOM_DATA_BIT_7 0x02
+#define UVSCOM_DATA_BIT_6 0x01
+#define UVSCOM_DATA_BIT_5 0x00
 
-#define	UVSCOM_STOP_MASK	0x04
-#define	UVSCOM_STOP_BIT_2	0x04
-#define	UVSCOM_STOP_BIT_1	0x00
+#define UVSCOM_STOP_MASK 0x04
+#define UVSCOM_STOP_BIT_2 0x04
+#define UVSCOM_STOP_BIT_1 0x00
 
-#define	UVSCOM_PARITY_MASK	0x18
-#define	UVSCOM_PARITY_EVEN	0x18
-#define	UVSCOM_PARITY_ODD	0x08
-#define	UVSCOM_PARITY_NONE	0x00
+#define UVSCOM_PARITY_MASK 0x18
+#define UVSCOM_PARITY_EVEN 0x18
+#define UVSCOM_PARITY_ODD 0x08
+#define UVSCOM_PARITY_NONE 0x00
 
 /* Status bits */
-#define	UVSCOM_TXRDY		0x04
-#define	UVSCOM_RXRDY		0x01
+#define UVSCOM_TXRDY 0x04
+#define UVSCOM_RXRDY 0x01
 
-#define	UVSCOM_DCD		0x08
-#define	UVSCOM_NOCARD		0x04
-#define	UVSCOM_DSR		0x02
-#define	UVSCOM_CTS		0x01
-#define	UVSCOM_USTAT_MASK	(UVSCOM_NOCARD | UVSCOM_DSR | UVSCOM_CTS)
+#define UVSCOM_DCD 0x08
+#define UVSCOM_NOCARD 0x04
+#define UVSCOM_DSR 0x02
+#define UVSCOM_CTS 0x01
+#define UVSCOM_USTAT_MASK (UVSCOM_NOCARD | UVSCOM_DSR | UVSCOM_CTS)
 
-#define	UVSCOM_BULK_BUF_SIZE	1024	/* bytes */
+#define UVSCOM_BULK_BUF_SIZE 1024 /* bytes */
 
 enum {
 	UVSCOM_BULK_DT_WR,
@@ -150,13 +150,13 @@ struct uvscom_softc {
 	struct usb_device *sc_udev;
 	struct mtx sc_mtx;
 
-	uint16_t sc_line;		/* line control register */
+	uint16_t sc_line; /* line control register */
 
-	uint8_t	sc_iface_no;		/* interface number */
-	uint8_t	sc_iface_index;		/* interface index */
-	uint8_t	sc_lsr;			/* local status register */
-	uint8_t	sc_msr;			/* uvscom status register */
-	uint8_t	sc_unit_status;		/* unit status */
+	uint8_t sc_iface_no;	/* interface number */
+	uint8_t sc_iface_index; /* interface index */
+	uint8_t sc_lsr;		/* local status register */
+	uint8_t sc_msr;		/* uvscom status register */
+	uint8_t sc_unit_status; /* unit status */
 };
 
 /* prototypes */
@@ -170,24 +170,23 @@ static usb_callback_t uvscom_write_callback;
 static usb_callback_t uvscom_read_callback;
 static usb_callback_t uvscom_intr_callback;
 
-static void	uvscom_free(struct ucom_softc *);
-static void	uvscom_cfg_set_dtr(struct ucom_softc *, uint8_t);
-static void	uvscom_cfg_set_rts(struct ucom_softc *, uint8_t);
-static void	uvscom_cfg_set_break(struct ucom_softc *, uint8_t);
-static int	uvscom_pre_param(struct ucom_softc *, struct termios *);
-static void	uvscom_cfg_param(struct ucom_softc *, struct termios *);
-static int	uvscom_pre_open(struct ucom_softc *);
-static void	uvscom_cfg_open(struct ucom_softc *);
-static void	uvscom_cfg_close(struct ucom_softc *);
-static void	uvscom_start_read(struct ucom_softc *);
-static void	uvscom_stop_read(struct ucom_softc *);
-static void	uvscom_start_write(struct ucom_softc *);
-static void	uvscom_stop_write(struct ucom_softc *);
-static void	uvscom_cfg_get_status(struct ucom_softc *, uint8_t *,
-		    uint8_t *);
-static void	uvscom_cfg_write(struct uvscom_softc *, uint8_t, uint16_t);
-static uint16_t	uvscom_cfg_read_status(struct uvscom_softc *);
-static void	uvscom_poll(struct ucom_softc *ucom);
+static void uvscom_free(struct ucom_softc *);
+static void uvscom_cfg_set_dtr(struct ucom_softc *, uint8_t);
+static void uvscom_cfg_set_rts(struct ucom_softc *, uint8_t);
+static void uvscom_cfg_set_break(struct ucom_softc *, uint8_t);
+static int uvscom_pre_param(struct ucom_softc *, struct termios *);
+static void uvscom_cfg_param(struct ucom_softc *, struct termios *);
+static int uvscom_pre_open(struct ucom_softc *);
+static void uvscom_cfg_open(struct ucom_softc *);
+static void uvscom_cfg_close(struct ucom_softc *);
+static void uvscom_start_read(struct ucom_softc *);
+static void uvscom_stop_read(struct ucom_softc *);
+static void uvscom_start_write(struct ucom_softc *);
+static void uvscom_stop_write(struct ucom_softc *);
+static void uvscom_cfg_get_status(struct ucom_softc *, uint8_t *, uint8_t *);
+static void uvscom_cfg_write(struct uvscom_softc *, uint8_t, uint16_t);
+static uint16_t uvscom_cfg_read_status(struct uvscom_softc *);
+static void uvscom_poll(struct ucom_softc *ucom);
 
 static const struct usb_config uvscom_config[UVSCOM_N_TRANSFER] = {
 	[UVSCOM_BULK_DT_WR] = {
@@ -238,23 +237,21 @@ static const struct ucom_callback uvscom_callback = {
 
 static const STRUCT_USB_HOST_ID uvscom_devs[] = {
 	/* SUNTAC U-Cable type A4 */
-	{USB_VPI(USB_VENDOR_SUNTAC, USB_PRODUCT_SUNTAC_AS144L4, 0)},
+	{ USB_VPI(USB_VENDOR_SUNTAC, USB_PRODUCT_SUNTAC_AS144L4, 0) },
 	/* SUNTAC U-Cable type D2 */
-	{USB_VPI(USB_VENDOR_SUNTAC, USB_PRODUCT_SUNTAC_DS96L, 0)},
+	{ USB_VPI(USB_VENDOR_SUNTAC, USB_PRODUCT_SUNTAC_DS96L, 0) },
 	/* SUNTAC Ir-Trinity */
-	{USB_VPI(USB_VENDOR_SUNTAC, USB_PRODUCT_SUNTAC_IS96U, 0)},
+	{ USB_VPI(USB_VENDOR_SUNTAC, USB_PRODUCT_SUNTAC_IS96U, 0) },
 	/* SUNTAC U-Cable type P1 */
-	{USB_VPI(USB_VENDOR_SUNTAC, USB_PRODUCT_SUNTAC_PS64P1, 0)},
+	{ USB_VPI(USB_VENDOR_SUNTAC, USB_PRODUCT_SUNTAC_PS64P1, 0) },
 	/* SUNTAC Slipper U */
-	{USB_VPI(USB_VENDOR_SUNTAC, USB_PRODUCT_SUNTAC_VS10U, 0)},
+	{ USB_VPI(USB_VENDOR_SUNTAC, USB_PRODUCT_SUNTAC_VS10U, 0) },
 };
 
-static device_method_t uvscom_methods[] = {
-	DEVMETHOD(device_probe, uvscom_probe),
+static device_method_t uvscom_methods[] = { DEVMETHOD(device_probe,
+						uvscom_probe),
 	DEVMETHOD(device_attach, uvscom_attach),
-	DEVMETHOD(device_detach, uvscom_detach),
-	DEVMETHOD_END
-};
+	DEVMETHOD(device_detach, uvscom_detach), DEVMETHOD_END };
 
 static driver_t uvscom_driver = {
 	.name = "uvscom",
@@ -386,16 +383,16 @@ uvscom_write_callback(struct usb_xfer *xfer, usb_error_t error)
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_SETUP:
 	case USB_ST_TRANSFERRED:
-tr_setup:
+	tr_setup:
 		pc = usbd_xfer_get_frame(xfer, 0);
-		if (ucom_get_data(&sc->sc_ucom, pc, 0,
-		    UVSCOM_BULK_BUF_SIZE, &actlen)) {
+		if (ucom_get_data(&sc->sc_ucom, pc, 0, UVSCOM_BULK_BUF_SIZE,
+			&actlen)) {
 			usbd_xfer_set_frame_len(xfer, 0, actlen);
 			usbd_transfer_submit(xfer);
 		}
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -420,12 +417,12 @@ uvscom_read_callback(struct usb_xfer *xfer, usb_error_t error)
 		ucom_put_data(&sc->sc_ucom, pc, 0, actlen);
 
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -477,12 +474,12 @@ uvscom_intr_callback(struct usb_xfer *xfer, usb_error_t error)
 			ucom_status_change(&sc->sc_ucom);
 		}
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -541,18 +538,18 @@ static int
 uvscom_pre_param(struct ucom_softc *ucom, struct termios *t)
 {
 	switch (t->c_ospeed) {
-		case B150:
-		case B300:
-		case B600:
-		case B1200:
-		case B2400:
-		case B4800:
-		case B9600:
-		case B19200:
-		case B38400:
-		case B57600:
-		case B115200:
-		default:
+	case B150:
+	case B300:
+	case B600:
+	case B1200:
+	case B2400:
+	case B4800:
+	case B9600:
+	case B19200:
+	case B38400:
+	case B57600:
+	case B115200:
+	default:
 		return (EINVAL);
 	}
 	return (0);
@@ -729,11 +726,13 @@ uvscom_cfg_write(struct uvscom_softc *sc, uint8_t index, uint16_t value)
 	USETW(req.wIndex, 0);
 	USETW(req.wLength, 0);
 
-	err = ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, 
-	    &req, NULL, 0, 1000);
+	err = ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, NULL, 0,
+	    1000);
 	if (err) {
-		DPRINTFN(0, "device request failed, err=%s "
-		    "(ignored)\n", usbd_errstr(err));
+		DPRINTFN(0,
+		    "device request failed, err=%s "
+		    "(ignored)\n",
+		    usbd_errstr(err));
 	}
 }
 
@@ -750,11 +749,13 @@ uvscom_cfg_read_status(struct uvscom_softc *sc)
 	USETW(req.wIndex, 0);
 	USETW(req.wLength, 2);
 
-	err = ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, 
-	    &req, data, 0, 1000);
+	err = ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, data, 0,
+	    1000);
 	if (err) {
-		DPRINTFN(0, "device request failed, err=%s "
-		    "(ignored)\n", usbd_errstr(err));
+		DPRINTFN(0,
+		    "device request failed, err=%s "
+		    "(ignored)\n",
+		    usbd_errstr(err));
 	}
 	return (data[0] | (data[1] << 8));
 }

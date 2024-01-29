@@ -18,39 +18,36 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/rtwn/if_rtwnreg.h>
-#include <dev/rtwn/if_rtwnvar.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <dev/rtwn/if_rtwn_ridx.h>
 #include <dev/rtwn/if_rtwn_tx.h>
-
+#include <dev/rtwn/if_rtwnreg.h>
+#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/rtl8192c/r92c.h>
-#include <dev/rtwn/rtl8192c/r92c_var.h>
 #include <dev/rtwn/rtl8192c/r92c_tx_desc.h>
+#include <dev/rtwn/rtl8192c/r92c_var.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 static int
 r92c_tx_get_sco(struct rtwn_softc *sc, struct ieee80211_channel *c)
@@ -94,8 +91,7 @@ r92c_tx_protection(struct rtwn_softc *sc, struct r92c_tx_desc *txd,
 		break;
 	}
 
-	if (mode == IEEE80211_PROT_CTSONLY ||
-	    mode == IEEE80211_PROT_RTSCTS) {
+	if (mode == IEEE80211_PROT_CTSONLY || mode == IEEE80211_PROT_RTSCTS) {
 		if (ridx >= RTWN_RIDX_HT_MCS(0))
 			rate = rtwn_ctl_mcsrate(ic->ic_rt, ridx);
 		else
@@ -122,8 +118,8 @@ r92c_tx_raid(struct rtwn_softc *sc, struct r92c_tx_desc *txd,
 	enum ieee80211_phymode mode;
 	uint8_t raid;
 
-	chan = (ni->ni_chan != IEEE80211_CHAN_ANYC) ?
-		ni->ni_chan : ic->ic_curchan;
+	chan = (ni->ni_chan != IEEE80211_CHAN_ANYC) ? ni->ni_chan :
+						      ic->ic_curchan;
 	mode = ieee80211_chan2mode(chan);
 
 	/* NB: group addressed frames are done at 11bg rates for now */
@@ -173,10 +169,10 @@ r92c_tx_set_sgi(struct rtwn_softc *sc, void *buf, struct ieee80211_node *ni)
 	struct r92c_tx_desc *txd = (struct r92c_tx_desc *)buf;
 	struct ieee80211vap *vap = ni->ni_vap;
 
-	if ((vap->iv_flags_ht & IEEE80211_FHT_SHORTGI20) &&	/* HT20 */
+	if ((vap->iv_flags_ht & IEEE80211_FHT_SHORTGI20) && /* HT20 */
 	    (ni->ni_htcap & IEEE80211_HTCAP_SHORTGI20))
 		txd->txdw5 |= htole32(R92C_TXDW5_SGI);
-	else if (ni->ni_chan != IEEE80211_CHAN_ANYC &&		/* HT40 */
+	else if (ni->ni_chan != IEEE80211_CHAN_ANYC && /* HT40 */
 	    IEEE80211_IS_CHAN_HT40(ni->ni_chan) &&
 	    (ni->ni_htcap & IEEE80211_HTCAP_SHORTGI40) &&
 	    (vap->iv_flags_ht & IEEE80211_FHT_SHORTGI40))
@@ -254,11 +250,11 @@ r92c_fill_tx_desc(struct rtwn_softc *sc, struct ieee80211_node *ni,
 
 	if (!ismcast) {
 		/* Unicast frame, check if an ACK is expected. */
-		if (!qos || (qos & IEEE80211_QOS_ACKPOLICY) !=
-		    IEEE80211_QOS_ACKPOLICY_NOACK) {
+		if (!qos ||
+		    (qos & IEEE80211_QOS_ACKPOLICY) !=
+			IEEE80211_QOS_ACKPOLICY_NOACK) {
 			txd->txdw5 |= htole32(R92C_TXDW5_RTY_LMT_ENA);
-			txd->txdw5 |= htole32(SM(R92C_TXDW5_RTY_LMT,
-			    maxretry));
+			txd->txdw5 |= htole32(SM(R92C_TXDW5_RTY_LMT, maxretry));
 		}
 
 		struct rtwn_node *un = RTWN_NODE(ni);
@@ -272,8 +268,8 @@ r92c_fill_tx_desc(struct rtwn_softc *sc, struct ieee80211_node *ni,
 			if (m->m_flags & M_AMPDU_MPDU) {
 				txd->txdw2 |= htole32(SM(R92C_TXDW2_AMPDU_DEN,
 				    vap->iv_ampdu_density));
-				txd->txdw6 |= htole32(SM(R92C_TXDW6_MAX_AGG,
-				    0x1f));	/* XXX */
+				txd->txdw6 |= htole32(
+				    SM(R92C_TXDW6_MAX_AGG, 0x1f)); /* XXX */
 			}
 			if (sc->sc_ratectl == RTWN_RATECTL_NET80211) {
 				txd->txdw2 |= htole32(R92C_TXDW2_CCX_RPT);
@@ -298,14 +294,14 @@ r92c_fill_tx_desc(struct rtwn_softc *sc, struct ieee80211_node *ni,
 			/* XXX fix last comparison for A-MSDU (in net80211) */
 			/* XXX A-MPDU? */
 			if (m->m_pkthdr.len + IEEE80211_CRC_LEN >
-			    vap->iv_rtsthreshold &&
+				vap->iv_rtsthreshold &&
 			    vap->iv_rtsthreshold != IEEE80211_RTS_MAX)
 				prot = IEEE80211_PROT_RTSCTS;
 
 			/* NB: checks for ht40 / short bits (set above). */
 			if (prot != IEEE80211_PROT_NONE)
 				r92c_tx_protection(sc, txd, prot, ridx);
-		} else	/* IEEE80211_FC0_TYPE_MGT */
+		} else /* IEEE80211_FC0_TYPE_MGT */
 			qsel = R92C_TXDW1_QSEL_MGNT;
 	} else {
 		macid = RTWN_MACID_BC;
@@ -368,8 +364,7 @@ r92c_fill_tx_desc_raw(struct rtwn_softc *sc, struct ieee80211_node *ni,
 
 	if ((params->ibp_flags & IEEE80211_BPF_NOACK) == 0) {
 		txd->txdw5 |= htole32(R92C_TXDW5_RTY_LMT_ENA);
-		txd->txdw5 |= htole32(SM(R92C_TXDW5_RTY_LMT,
-		    params->ibp_try0));
+		txd->txdw5 |= htole32(SM(R92C_TXDW5_RTY_LMT, params->ibp_try0));
 	}
 	if (params->ibp_flags & IEEE80211_BPF_RTS)
 		r92c_tx_protection(sc, txd, IEEE80211_PROT_RTSCTS, ridx);
@@ -397,23 +392,20 @@ r92c_fill_tx_desc_raw(struct rtwn_softc *sc, struct ieee80211_node *ni,
 }
 
 void
-r92c_fill_tx_desc_null(struct rtwn_softc *sc, void *buf, int is11b,
-    int qos, int id)
+r92c_fill_tx_desc_null(struct rtwn_softc *sc, void *buf, int is11b, int qos,
+    int id)
 {
 	struct r92c_tx_desc *txd = (struct r92c_tx_desc *)buf;
 
 	txd->flags0 = R92C_FLAGS0_FSG | R92C_FLAGS0_LSG | R92C_FLAGS0_OWN;
-	txd->txdw1 = htole32(
-	    SM(R92C_TXDW1_QSEL, R92C_TXDW1_QSEL_MGNT));
+	txd->txdw1 = htole32(SM(R92C_TXDW1_QSEL, R92C_TXDW1_QSEL_MGNT));
 
 	txd->txdw4 = htole32(R92C_TXDW4_DRVRATE);
 	txd->txdw4 |= htole32(SM(R92C_TXDW4_PORT_ID, id));
 	if (is11b) {
-		txd->txdw5 = htole32(SM(R92C_TXDW5_DATARATE,
-		    RTWN_RIDX_CCK1));
+		txd->txdw5 = htole32(SM(R92C_TXDW5_DATARATE, RTWN_RIDX_CCK1));
 	} else {
-		txd->txdw5 = htole32(SM(R92C_TXDW5_DATARATE,
-		    RTWN_RIDX_OFDM6));
+		txd->txdw5 = htole32(SM(R92C_TXDW5_DATARATE, RTWN_RIDX_OFDM6));
 	}
 
 	if (!qos) {

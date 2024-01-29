@@ -29,26 +29,24 @@
  * File : ecore_ll2.c
  */
 #include <sys/cdefs.h>
+
 #include "bcm_osal.h"
-
 #include "ecore.h"
-#include "ecore_status.h"
-#include "ecore_ll2.h"
-#include "reg_addr.h"
-#include "ecore_int.h"
 #include "ecore_cxt.h"
-#include "ecore_sp_commands.h"
-#include "ecore_hw.h"
-#include "reg_addr.h"
 #include "ecore_dev_api.h"
-#include "ecore_iro.h"
 #include "ecore_gtt_reg_addr.h"
-#include "ecore_ooo.h"
 #include "ecore_hw.h"
+#include "ecore_int.h"
+#include "ecore_iro.h"
+#include "ecore_ll2.h"
 #include "ecore_mcp.h"
+#include "ecore_ooo.h"
+#include "ecore_sp_commands.h"
+#include "ecore_status.h"
+#include "reg_addr.h"
 
-#define ECORE_LL2_RX_REGISTERED(ll2)	((ll2)->rx_queue.b_cb_registred)
-#define ECORE_LL2_TX_REGISTERED(ll2)	((ll2)->tx_queue.b_cb_registred)
+#define ECORE_LL2_RX_REGISTERED(ll2) ((ll2)->rx_queue.b_cb_registred)
+#define ECORE_LL2_TX_REGISTERED(ll2) ((ll2)->tx_queue.b_cb_registred)
 
 #ifdef _NTDDK_
 #pragma warning(push)
@@ -58,9 +56,8 @@
 #endif
 
 static struct ecore_ll2_info *
-__ecore_ll2_handle_sanity(struct ecore_hwfn *p_hwfn,
-			  u8 connection_handle,
-			  bool b_lock, bool b_only_active)
+__ecore_ll2_handle_sanity(struct ecore_hwfn *p_hwfn, u8 connection_handle,
+    bool b_lock, bool b_only_active)
 {
 	struct ecore_ll2_info *p_ll2_conn, *p_ret = OSAL_NULL;
 
@@ -90,36 +87,31 @@ __ecore_ll2_handle_sanity(struct ecore_hwfn *p_hwfn,
 }
 
 static struct ecore_ll2_info *
-ecore_ll2_handle_sanity(struct ecore_hwfn *p_hwfn,
-			u8 connection_handle)
+ecore_ll2_handle_sanity(struct ecore_hwfn *p_hwfn, u8 connection_handle)
 {
-	return __ecore_ll2_handle_sanity(p_hwfn, connection_handle,
-					 false, true);
+	return __ecore_ll2_handle_sanity(p_hwfn, connection_handle, false,
+	    true);
 }
 
 static struct ecore_ll2_info *
-ecore_ll2_handle_sanity_lock(struct ecore_hwfn *p_hwfn,
-			     u8 connection_handle)
+ecore_ll2_handle_sanity_lock(struct ecore_hwfn *p_hwfn, u8 connection_handle)
 {
-	return __ecore_ll2_handle_sanity(p_hwfn, connection_handle,
-					 true, true);
+	return __ecore_ll2_handle_sanity(p_hwfn, connection_handle, true, true);
 }
 
 static struct ecore_ll2_info *
 ecore_ll2_handle_sanity_inactive(struct ecore_hwfn *p_hwfn,
-				 u8 connection_handle)
+    u8 connection_handle)
 {
-	return __ecore_ll2_handle_sanity(p_hwfn, connection_handle,
-					 false, false);
+	return __ecore_ll2_handle_sanity(p_hwfn, connection_handle, false,
+	    false);
 }
 
 #ifndef LINUX_REMOVE
 /* TODO - is this really been used by anyone? Is it a on future todo list? */
 enum _ecore_status_t
 ecore_ll2_get_fragment_of_tx_packet(struct ecore_hwfn *p_hwfn,
-				    u8 connection_handle,
-				    dma_addr_t *p_addr,
-				    bool *b_last_fragment)
+    u8 connection_handle, dma_addr_t *p_addr, bool *b_last_fragment)
 {
 	struct ecore_ll2_tx_packet *p_pkt;
 	struct ecore_ll2_info *p_ll2_conn;
@@ -141,14 +133,14 @@ ecore_ll2_get_fragment_of_tx_packet(struct ecore_hwfn *p_hwfn,
 	*p_addr = p_pkt->bds_set[cur_frag_idx].tx_frag;
 	if (b_last_fragment)
 		*b_last_fragment = p_pkt->bd_used ==
-				   p_ll2_conn->tx_queue.cur_completing_bd_idx;
+		    p_ll2_conn->tx_queue.cur_completing_bd_idx;
 
 	return ECORE_SUCCESS;
 }
 #endif
 
-static void ecore_ll2_txq_flush(struct ecore_hwfn *p_hwfn,
-				u8 connection_handle)
+static void
+ecore_ll2_txq_flush(struct ecore_hwfn *p_hwfn, u8 connection_handle)
 {
 	bool b_last_packet = false, b_last_frag = false;
 	struct ecore_ll2_tx_packet *p_pkt = OSAL_NULL;
@@ -158,7 +150,7 @@ static void ecore_ll2_txq_flush(struct ecore_hwfn *p_hwfn,
 	dma_addr_t tx_frag;
 
 	p_ll2_conn = ecore_ll2_handle_sanity_inactive(p_hwfn,
-						      connection_handle);
+	    connection_handle);
 	if (p_ll2_conn == OSAL_NULL)
 		return;
 	p_tx = &p_ll2_conn->tx_queue;
@@ -166,8 +158,7 @@ static void ecore_ll2_txq_flush(struct ecore_hwfn *p_hwfn,
 	OSAL_SPIN_LOCK_IRQSAVE(&p_tx->lock, flags);
 	while (!OSAL_LIST_IS_EMPTY(&p_tx->active_descq)) {
 		p_pkt = OSAL_LIST_FIRST_ENTRY(&p_tx->active_descq,
-					      struct ecore_ll2_tx_packet,
-					      list_entry);
+		    struct ecore_ll2_tx_packet, list_entry);
 
 		if (p_pkt == OSAL_NULL)
 			break;
@@ -175,14 +166,12 @@ static void ecore_ll2_txq_flush(struct ecore_hwfn *p_hwfn,
 #if defined(_NTDDK_)
 #pragma warning(suppress : 6011 28182)
 #endif
-		OSAL_LIST_REMOVE_ENTRY(&p_pkt->list_entry,
-				       &p_tx->active_descq);
+		OSAL_LIST_REMOVE_ENTRY(&p_pkt->list_entry, &p_tx->active_descq);
 		b_last_packet = OSAL_LIST_IS_EMPTY(&p_tx->active_descq);
-		OSAL_LIST_PUSH_TAIL(&p_pkt->list_entry,
-				    &p_tx->free_descq);
+		OSAL_LIST_PUSH_TAIL(&p_pkt->list_entry, &p_tx->free_descq);
 		OSAL_SPIN_UNLOCK_IRQSAVE(&p_tx->lock, flags);
 		if (p_ll2_conn->input.conn_type == ECORE_LL2_TYPE_OOO) {
-			struct ecore_ooo_buffer	*p_buffer;
+			struct ecore_ooo_buffer *p_buffer;
 
 			p_buffer = (struct ecore_ooo_buffer *)p_pkt->cookie;
 			ecore_ooo_put_free_buffer(p_hwfn->p_ooo_info, p_buffer);
@@ -190,15 +179,12 @@ static void ecore_ll2_txq_flush(struct ecore_hwfn *p_hwfn,
 			p_tx->cur_completing_packet = *p_pkt;
 			p_tx->cur_completing_bd_idx = 1;
 			b_last_frag = p_tx->cur_completing_bd_idx ==
-				      p_pkt->bd_used;
+			    p_pkt->bd_used;
 
 			tx_frag = p_pkt->bds_set[0].tx_frag;
 			p_ll2_conn->cbs.tx_release_cb(p_ll2_conn->cbs.cookie,
-						      p_ll2_conn->my_id,
-						      p_pkt->cookie,
-						      tx_frag,
-						      b_last_frag,
-						      b_last_packet);
+			    p_ll2_conn->my_id, p_pkt->cookie, tx_frag,
+			    b_last_frag, b_last_packet);
 		}
 		OSAL_SPIN_LOCK_IRQSAVE(&p_tx->lock, flags);
 	}
@@ -206,10 +192,9 @@ static void ecore_ll2_txq_flush(struct ecore_hwfn *p_hwfn,
 }
 
 static enum _ecore_status_t
-ecore_ll2_txq_completion(struct ecore_hwfn *p_hwfn,
-			 void *p_cookie)
+ecore_ll2_txq_completion(struct ecore_hwfn *p_hwfn, void *p_cookie)
 {
-	struct ecore_ll2_info *p_ll2_conn = (struct ecore_ll2_info*)p_cookie;
+	struct ecore_ll2_info *p_ll2_conn = (struct ecore_ll2_info *)p_cookie;
 	struct ecore_ll2_tx_queue *p_tx = &p_ll2_conn->tx_queue;
 	u16 new_idx = 0, num_bds = 0, num_bds_in_packet = 0;
 	struct ecore_ll2_tx_packet *p_pkt;
@@ -235,8 +220,7 @@ ecore_ll2_txq_completion(struct ecore_hwfn *p_hwfn,
 			goto out;
 
 		p_pkt = OSAL_LIST_FIRST_ENTRY(&p_tx->active_descq,
-					      struct ecore_ll2_tx_packet,
-					      list_entry);
+		    struct ecore_ll2_tx_packet, list_entry);
 		if (!p_pkt)
 			goto out;
 
@@ -246,12 +230,11 @@ ecore_ll2_txq_completion(struct ecore_hwfn *p_hwfn,
 #if defined(_NTDDK_)
 #pragma warning(suppress : 6011 28182)
 #endif
-		OSAL_LIST_REMOVE_ENTRY(&p_pkt->list_entry,
-				       &p_tx->active_descq);
+		OSAL_LIST_REMOVE_ENTRY(&p_pkt->list_entry, &p_tx->active_descq);
 
 		if (num_bds < num_bds_in_packet) {
 			DP_NOTICE(p_hwfn, true,
-				  "Rest of BDs does not cover whole packet\n");
+			    "Rest of BDs does not cover whole packet\n");
 			goto out;
 		}
 
@@ -261,19 +244,14 @@ ecore_ll2_txq_completion(struct ecore_hwfn *p_hwfn,
 			ecore_chain_consume(&p_tx->txq_chain);
 
 		p_tx->cur_completing_bd_idx = 1;
-		b_last_frag = p_tx->cur_completing_bd_idx ==
-			      p_pkt->bd_used;
-		OSAL_LIST_PUSH_TAIL(&p_pkt->list_entry,
-				    &p_tx->free_descq);
+		b_last_frag = p_tx->cur_completing_bd_idx == p_pkt->bd_used;
+		OSAL_LIST_PUSH_TAIL(&p_pkt->list_entry, &p_tx->free_descq);
 
 		OSAL_SPIN_UNLOCK_IRQSAVE(&p_tx->lock, flags);
 
 		p_ll2_conn->cbs.tx_comp_cb(p_ll2_conn->cbs.cookie,
-					   p_ll2_conn->my_id,
-					   p_pkt->cookie,
-					   p_pkt->bds_set[0].tx_frag,
-					   b_last_frag,
-					   !num_bds);
+		    p_ll2_conn->my_id, p_pkt->cookie, p_pkt->bds_set[0].tx_frag,
+		    b_last_frag, !num_bds);
 
 		OSAL_SPIN_LOCK_IRQSAVE(&p_tx->lock, flags);
 	}
@@ -285,43 +263,40 @@ out:
 	return rc;
 }
 
-static void ecore_ll2_rxq_parse_gsi(union core_rx_cqe_union *p_cqe,
-				    struct ecore_ll2_comp_rx_data *data)
+static void
+ecore_ll2_rxq_parse_gsi(union core_rx_cqe_union *p_cqe,
+    struct ecore_ll2_comp_rx_data *data)
 {
-	data->parse_flags =
-		OSAL_LE16_TO_CPU(p_cqe->rx_cqe_gsi.parse_flags.flags);
-	data->length.data_length =
-		OSAL_LE16_TO_CPU(p_cqe->rx_cqe_gsi.data_length);
-	data->vlan =
-		OSAL_LE16_TO_CPU(p_cqe->rx_cqe_gsi.vlan);
-	data->opaque_data_0 =
-		OSAL_LE32_TO_CPU(p_cqe->rx_cqe_gsi.src_mac_addrhi);
-	data->opaque_data_1 =
-		OSAL_LE16_TO_CPU(p_cqe->rx_cqe_gsi.src_mac_addrlo);
-	data->u.data_length_error =
-		p_cqe->rx_cqe_gsi.data_length_error;
+	data->parse_flags = OSAL_LE16_TO_CPU(
+	    p_cqe->rx_cqe_gsi.parse_flags.flags);
+	data->length.data_length = OSAL_LE16_TO_CPU(
+	    p_cqe->rx_cqe_gsi.data_length);
+	data->vlan = OSAL_LE16_TO_CPU(p_cqe->rx_cqe_gsi.vlan);
+	data->opaque_data_0 = OSAL_LE32_TO_CPU(
+	    p_cqe->rx_cqe_gsi.src_mac_addrhi);
+	data->opaque_data_1 = OSAL_LE16_TO_CPU(
+	    p_cqe->rx_cqe_gsi.src_mac_addrlo);
+	data->u.data_length_error = p_cqe->rx_cqe_gsi.data_length_error;
 	data->qp_id = OSAL_LE16_TO_CPU(p_cqe->rx_cqe_gsi.qp_id);
 
 	data->src_qp = OSAL_LE32_TO_CPU(p_cqe->rx_cqe_gsi.src_qp);
 }
 
-static void ecore_ll2_rxq_parse_reg(union core_rx_cqe_union *p_cqe,
-				    struct ecore_ll2_comp_rx_data *data)
+static void
+ecore_ll2_rxq_parse_reg(union core_rx_cqe_union *p_cqe,
+    struct ecore_ll2_comp_rx_data *data)
 {
-	data->parse_flags =
-		OSAL_LE16_TO_CPU(p_cqe->rx_cqe_fp.parse_flags.flags);
-	data->err_flags =
-		OSAL_LE16_TO_CPU(p_cqe->rx_cqe_fp.err_flags.flags);
-	data->length.packet_length =
-		OSAL_LE16_TO_CPU(p_cqe->rx_cqe_fp.packet_length);
-	data->vlan =
-		OSAL_LE16_TO_CPU(p_cqe->rx_cqe_fp.vlan);
-	data->opaque_data_0 =
-		OSAL_LE32_TO_CPU(p_cqe->rx_cqe_fp.opaque_data.data[0]);
-	data->opaque_data_1 =
-		OSAL_LE32_TO_CPU(p_cqe->rx_cqe_fp.opaque_data.data[1]);
-	data->u.placement_offset =
-		p_cqe->rx_cqe_fp.placement_offset;
+	data->parse_flags = OSAL_LE16_TO_CPU(
+	    p_cqe->rx_cqe_fp.parse_flags.flags);
+	data->err_flags = OSAL_LE16_TO_CPU(p_cqe->rx_cqe_fp.err_flags.flags);
+	data->length.packet_length = OSAL_LE16_TO_CPU(
+	    p_cqe->rx_cqe_fp.packet_length);
+	data->vlan = OSAL_LE16_TO_CPU(p_cqe->rx_cqe_fp.vlan);
+	data->opaque_data_0 = OSAL_LE32_TO_CPU(
+	    p_cqe->rx_cqe_fp.opaque_data.data[0]);
+	data->opaque_data_1 = OSAL_LE32_TO_CPU(
+	    p_cqe->rx_cqe_fp.opaque_data.data[1]);
+	data->u.placement_offset = p_cqe->rx_cqe_fp.placement_offset;
 }
 
 #if defined(_NTDDK_)
@@ -329,9 +304,8 @@ static void ecore_ll2_rxq_parse_reg(union core_rx_cqe_union *p_cqe,
 #endif
 static enum _ecore_status_t
 ecore_ll2_handle_slowpath(struct ecore_hwfn *p_hwfn,
-			  struct ecore_ll2_info *p_ll2_conn,
-			  union core_rx_cqe_union *p_cqe,
-			  unsigned long *p_lock_flags)
+    struct ecore_ll2_info *p_ll2_conn, union core_rx_cqe_union *p_cqe,
+    unsigned long *p_lock_flags)
 {
 	struct ecore_ll2_rx_queue *p_rx = &p_ll2_conn->rx_queue;
 	struct core_rx_slow_path_cqe *sp_cqe;
@@ -339,23 +313,22 @@ ecore_ll2_handle_slowpath(struct ecore_hwfn *p_hwfn,
 	sp_cqe = &p_cqe->rx_cqe_sp;
 	if (sp_cqe->ramrod_cmd_id != CORE_RAMROD_RX_QUEUE_FLUSH) {
 		DP_NOTICE(p_hwfn, true,
-			  "LL2 - unexpected Rx CQE slowpath ramrod_cmd_id:%d\n",
-			  sp_cqe->ramrod_cmd_id);
+		    "LL2 - unexpected Rx CQE slowpath ramrod_cmd_id:%d\n",
+		    sp_cqe->ramrod_cmd_id);
 		return ECORE_INVAL;
 	}
 
 	if (p_ll2_conn->cbs.slowpath_cb == OSAL_NULL) {
 		DP_NOTICE(p_hwfn, true,
-			  "LL2 - received RX_QUEUE_FLUSH but no callback was provided\n");
+		    "LL2 - received RX_QUEUE_FLUSH but no callback was provided\n");
 		return ECORE_INVAL;
 	}
 
 	OSAL_SPIN_UNLOCK_IRQSAVE(&p_rx->lock, *p_lock_flags);
 
-	p_ll2_conn->cbs.slowpath_cb(p_ll2_conn->cbs.cookie,
-				    p_ll2_conn->my_id,
-				    OSAL_LE32_TO_CPU(sp_cqe->opaque_data.data[0]),
-				    OSAL_LE32_TO_CPU(sp_cqe->opaque_data.data[1]));
+	p_ll2_conn->cbs.slowpath_cb(p_ll2_conn->cbs.cookie, p_ll2_conn->my_id,
+	    OSAL_LE32_TO_CPU(sp_cqe->opaque_data.data[0]),
+	    OSAL_LE32_TO_CPU(sp_cqe->opaque_data.data[1]));
 
 	OSAL_SPIN_LOCK_IRQSAVE(&p_rx->lock, *p_lock_flags);
 
@@ -364,10 +337,8 @@ ecore_ll2_handle_slowpath(struct ecore_hwfn *p_hwfn,
 
 static enum _ecore_status_t
 ecore_ll2_rxq_handle_completion(struct ecore_hwfn *p_hwfn,
-				struct ecore_ll2_info *p_ll2_conn,
-				union core_rx_cqe_union *p_cqe,
-				unsigned long *p_lock_flags,
-				bool b_last_cqe)
+    struct ecore_ll2_info *p_ll2_conn, union core_rx_cqe_union *p_cqe,
+    unsigned long *p_lock_flags, bool b_last_cqe)
 {
 	struct ecore_ll2_rx_queue *p_rx = &p_ll2_conn->rx_queue;
 	struct ecore_ll2_rx_packet *p_pkt = OSAL_NULL;
@@ -375,12 +346,11 @@ ecore_ll2_rxq_handle_completion(struct ecore_hwfn *p_hwfn,
 
 	if (!OSAL_LIST_IS_EMPTY(&p_rx->active_descq))
 		p_pkt = OSAL_LIST_FIRST_ENTRY(&p_rx->active_descq,
-					      struct ecore_ll2_rx_packet,
-					      list_entry);
+		    struct ecore_ll2_rx_packet, list_entry);
 	if (!p_pkt) {
 		DP_NOTICE(p_hwfn, false,
-			  "[%d] LL2 Rx completion but active_descq is empty\n",
-			  p_ll2_conn->input.conn_type);
+		    "[%d] LL2 Rx completion but active_descq is empty\n",
+		    p_ll2_conn->input.conn_type);
 
 		return ECORE_IO;
 	}
@@ -394,7 +364,7 @@ ecore_ll2_rxq_handle_completion(struct ecore_hwfn *p_hwfn,
 
 	if (ecore_chain_consume(&p_rx->rxq_chain) != p_pkt->rxq_bd) {
 		DP_NOTICE(p_hwfn, false,
-			  "Mismatch between active_descq and the LL2 Rx chain\n");
+		    "Mismatch between active_descq and the LL2 Rx chain\n");
 		/* TODO - didn't return error value since this wasn't handled
 		 * before, but this is obviously lacking.
 		 */
@@ -408,18 +378,17 @@ ecore_ll2_rxq_handle_completion(struct ecore_hwfn *p_hwfn,
 	data.b_last_packet = b_last_cqe;
 
 	OSAL_SPIN_UNLOCK_IRQSAVE(&p_rx->lock, *p_lock_flags);
-	p_ll2_conn->cbs.rx_comp_cb(p_ll2_conn->cbs.cookie,
-				   &data);
+	p_ll2_conn->cbs.rx_comp_cb(p_ll2_conn->cbs.cookie, &data);
 
 	OSAL_SPIN_LOCK_IRQSAVE(&p_rx->lock, *p_lock_flags);
 
 	return ECORE_SUCCESS;
 }
 
-static enum _ecore_status_t ecore_ll2_rxq_completion(struct ecore_hwfn *p_hwfn,
-						     void *cookie)
+static enum _ecore_status_t
+ecore_ll2_rxq_completion(struct ecore_hwfn *p_hwfn, void *cookie)
 {
-	struct ecore_ll2_info *p_ll2_conn = (struct ecore_ll2_info*)cookie;
+	struct ecore_ll2_info *p_ll2_conn = (struct ecore_ll2_info *)cookie;
 	struct ecore_ll2_rx_queue *p_rx = &p_ll2_conn->rx_queue;
 	union core_rx_cqe_union *cqe = OSAL_NULL;
 	u16 cq_new_idx = 0, cq_old_idx = 0;
@@ -433,23 +402,23 @@ static enum _ecore_status_t ecore_ll2_rxq_completion(struct ecore_hwfn *p_hwfn,
 	while (cq_new_idx != cq_old_idx) {
 		bool b_last_cqe = (cq_new_idx == cq_old_idx);
 
-		cqe = (union core_rx_cqe_union *)ecore_chain_consume(&p_rx->rcq_chain);
+		cqe = (union core_rx_cqe_union *)ecore_chain_consume(
+		    &p_rx->rcq_chain);
 		cq_old_idx = ecore_chain_get_cons_idx(&p_rx->rcq_chain);
 
 		DP_VERBOSE(p_hwfn, ECORE_MSG_LL2,
-			   "LL2 [sw. cons %04x, fw. at %04x] - Got Packet of type %02x\n",
-			   cq_old_idx, cq_new_idx, cqe->rx_cqe_sp.type);
+		    "LL2 [sw. cons %04x, fw. at %04x] - Got Packet of type %02x\n",
+		    cq_old_idx, cq_new_idx, cqe->rx_cqe_sp.type);
 
 		switch (cqe->rx_cqe_sp.type) {
 		case CORE_RX_CQE_TYPE_SLOW_PATH:
-			rc = ecore_ll2_handle_slowpath(p_hwfn, p_ll2_conn,
-						       cqe, &flags);
+			rc = ecore_ll2_handle_slowpath(p_hwfn, p_ll2_conn, cqe,
+			    &flags);
 			break;
 		case CORE_RX_CQE_TYPE_GSI_OFFLOAD:
 		case CORE_RX_CQE_TYPE_REGULAR:
 			rc = ecore_ll2_rxq_handle_completion(p_hwfn, p_ll2_conn,
-							     cqe, &flags,
-							     b_last_cqe);
+			    cqe, &flags, b_last_cqe);
 			break;
 		default:
 			rc = ECORE_IO;
@@ -460,8 +429,8 @@ static enum _ecore_status_t ecore_ll2_rxq_completion(struct ecore_hwfn *p_hwfn,
 	return rc;
 }
 
-static void ecore_ll2_rxq_flush(struct ecore_hwfn *p_hwfn,
-			 u8 connection_handle)
+static void
+ecore_ll2_rxq_flush(struct ecore_hwfn *p_hwfn, u8 connection_handle)
 {
 	struct ecore_ll2_info *p_ll2_conn = OSAL_NULL;
 	struct ecore_ll2_rx_packet *p_pkt = OSAL_NULL;
@@ -469,7 +438,7 @@ static void ecore_ll2_rxq_flush(struct ecore_hwfn *p_hwfn,
 	unsigned long flags = 0;
 
 	p_ll2_conn = ecore_ll2_handle_sanity_inactive(p_hwfn,
-						      connection_handle);
+	    connection_handle);
 	if (p_ll2_conn == OSAL_NULL)
 		return;
 	p_rx = &p_ll2_conn->rx_queue;
@@ -478,34 +447,28 @@ static void ecore_ll2_rxq_flush(struct ecore_hwfn *p_hwfn,
 	while (!OSAL_LIST_IS_EMPTY(&p_rx->active_descq)) {
 		bool b_last;
 		p_pkt = OSAL_LIST_FIRST_ENTRY(&p_rx->active_descq,
-					      struct ecore_ll2_rx_packet,
-					      list_entry);
+		    struct ecore_ll2_rx_packet, list_entry);
 		if (p_pkt == OSAL_NULL)
 			break;
 #if defined(_NTDDK_)
 #pragma warning(suppress : 6011 28182)
 #endif
-		OSAL_LIST_REMOVE_ENTRY(&p_pkt->list_entry,
-				       &p_rx->active_descq);
-		OSAL_LIST_PUSH_TAIL(&p_pkt->list_entry,
-				    &p_rx->free_descq);
+		OSAL_LIST_REMOVE_ENTRY(&p_pkt->list_entry, &p_rx->active_descq);
+		OSAL_LIST_PUSH_TAIL(&p_pkt->list_entry, &p_rx->free_descq);
 		b_last = OSAL_LIST_IS_EMPTY(&p_rx->active_descq);
 		OSAL_SPIN_UNLOCK_IRQSAVE(&p_rx->lock, flags);
 
 		if (p_ll2_conn->input.conn_type == ECORE_LL2_TYPE_OOO) {
-			struct ecore_ooo_buffer	*p_buffer;
+			struct ecore_ooo_buffer *p_buffer;
 
 			p_buffer = (struct ecore_ooo_buffer *)p_pkt->cookie;
 			ecore_ooo_put_free_buffer(p_hwfn->p_ooo_info, p_buffer);
 		} else {
 			dma_addr_t rx_buf_addr = p_pkt->rx_buf_addr;
-			void *cookie  = p_pkt->cookie;
+			void *cookie = p_pkt->cookie;
 
 			p_ll2_conn->cbs.rx_release_cb(p_ll2_conn->cbs.cookie,
-						      p_ll2_conn->my_id,
-						      cookie,
-						      rx_buf_addr,
-						      b_last);
+			    p_ll2_conn->my_id, cookie, rx_buf_addr, b_last);
 		}
 		OSAL_SPIN_LOCK_IRQSAVE(&p_rx->lock, flags);
 	}
@@ -514,7 +477,7 @@ static void ecore_ll2_rxq_flush(struct ecore_hwfn *p_hwfn,
 
 static bool
 ecore_ll2_lb_rxq_handler_slowpath(struct ecore_hwfn *p_hwfn,
-				  struct core_rx_slow_path_cqe *p_cqe)
+    struct core_rx_slow_path_cqe *p_cqe)
 {
 	struct ooo_opaque *iscsi_ooo;
 	u32 cid;
@@ -535,7 +498,7 @@ ecore_ll2_lb_rxq_handler_slowpath(struct ecore_hwfn *p_hwfn,
 
 static enum _ecore_status_t
 ecore_ll2_lb_rxq_handler(struct ecore_hwfn *p_hwfn,
-			 struct ecore_ll2_info *p_ll2_conn)
+    struct ecore_ll2_info *p_ll2_conn)
 {
 	struct ecore_ll2_rx_queue *p_rx = &p_ll2_conn->rx_queue;
 	u16 packet_length = 0, parse_flags = 0, vlan = 0;
@@ -543,7 +506,7 @@ ecore_ll2_lb_rxq_handler(struct ecore_hwfn *p_hwfn,
 	u32 cid;
 	union core_rx_cqe_union *cqe = OSAL_NULL;
 	u16 cq_new_idx = 0, cq_old_idx = 0;
-	struct ecore_ooo_buffer	*p_buffer;
+	struct ecore_ooo_buffer *p_buffer;
 	struct ooo_opaque *iscsi_ooo;
 	u8 placement_offset = 0;
 	u8 cqe_type;
@@ -556,19 +519,20 @@ ecore_ll2_lb_rxq_handler(struct ecore_hwfn *p_hwfn,
 	while (cq_new_idx != cq_old_idx) {
 		struct core_rx_fast_path_cqe *p_cqe_fp;
 
-		cqe = (union core_rx_cqe_union *)ecore_chain_consume(&p_rx->rcq_chain);
+		cqe = (union core_rx_cqe_union *)ecore_chain_consume(
+		    &p_rx->rcq_chain);
 		cq_old_idx = ecore_chain_get_cons_idx(&p_rx->rcq_chain);
 		cqe_type = cqe->rx_cqe_sp.type;
 
 		if (cqe_type == CORE_RX_CQE_TYPE_SLOW_PATH)
 			if (ecore_ll2_lb_rxq_handler_slowpath(p_hwfn,
-							      &cqe->rx_cqe_sp))
+				&cqe->rx_cqe_sp))
 				continue;
 
 		if (cqe_type != CORE_RX_CQE_TYPE_REGULAR) {
 			DP_NOTICE(p_hwfn, true,
-				  "Got a non-regular LB LL2 completion [type 0x%02x]\n",
-				  cqe_type);
+			    "Got a non-regular LB LL2 completion [type 0x%02x]\n",
+			    cqe_type);
 			return ECORE_INVAL;
 		}
 		p_cqe_fp = &cqe->rx_cqe_fp;
@@ -584,8 +548,7 @@ ecore_ll2_lb_rxq_handler(struct ecore_hwfn *p_hwfn,
 		/* Process delete isle first*/
 		if (iscsi_ooo->drop_size)
 			ecore_ooo_delete_isles(p_hwfn, p_hwfn->p_ooo_info, cid,
-					       iscsi_ooo->drop_isle,
-					       iscsi_ooo->drop_size);
+			    iscsi_ooo->drop_isle, iscsi_ooo->drop_size);
 
 		if (iscsi_ooo->ooo_opcode == TCP_EVENT_NOP)
 			continue;
@@ -593,13 +556,12 @@ ecore_ll2_lb_rxq_handler(struct ecore_hwfn *p_hwfn,
 		/* Now process create/add/join isles */
 		if (OSAL_LIST_IS_EMPTY(&p_rx->active_descq)) {
 			DP_NOTICE(p_hwfn, true,
-				  "LL2 OOO RX chain has no submitted buffers\n");
+			    "LL2 OOO RX chain has no submitted buffers\n");
 			return ECORE_IO;
 		}
 
 		p_pkt = OSAL_LIST_FIRST_ENTRY(&p_rx->active_descq,
-					      struct ecore_ll2_rx_packet,
-					      list_entry);
+		    struct ecore_ll2_rx_packet, list_entry);
 
 		if ((iscsi_ooo->ooo_opcode == TCP_EVENT_ADD_NEW_ISLE) ||
 		    (iscsi_ooo->ooo_opcode == TCP_EVENT_ADD_ISLE_RIGHT) ||
@@ -608,14 +570,14 @@ ecore_ll2_lb_rxq_handler(struct ecore_hwfn *p_hwfn,
 		    (iscsi_ooo->ooo_opcode == TCP_EVENT_JOIN)) {
 			if (!p_pkt) {
 				DP_NOTICE(p_hwfn, true,
-					  "LL2 OOO RX packet is not valid\n");
+				    "LL2 OOO RX packet is not valid\n");
 				return ECORE_IO;
 			}
 #if defined(_NTDDK_)
 #pragma warning(suppress : 6011 28182)
 #endif
 			OSAL_LIST_REMOVE_ENTRY(&p_pkt->list_entry,
-					       &p_rx->active_descq);
+			    &p_rx->active_descq);
 			p_buffer = (struct ecore_ooo_buffer *)p_pkt->cookie;
 			p_buffer->packet_length = packet_length;
 			p_buffer->parse_flags = parse_flags;
@@ -627,54 +589,43 @@ ecore_ll2_lb_rxq_handler(struct ecore_hwfn *p_hwfn,
 			}
 			ecore_ooo_dump_rx_event(p_hwfn, iscsi_ooo, p_buffer);
 			OSAL_LIST_PUSH_TAIL(&p_pkt->list_entry,
-					    &p_rx->free_descq);
+			    &p_rx->free_descq);
 
 			switch (iscsi_ooo->ooo_opcode) {
 			case TCP_EVENT_ADD_NEW_ISLE:
 				ecore_ooo_add_new_isle(p_hwfn,
-						       p_hwfn->p_ooo_info,
-						       cid,
-						       iscsi_ooo->ooo_isle,
-						       p_buffer);
+				    p_hwfn->p_ooo_info, cid,
+				    iscsi_ooo->ooo_isle, p_buffer);
 				break;
 			case TCP_EVENT_ADD_ISLE_RIGHT:
 				ecore_ooo_add_new_buffer(p_hwfn,
-							 p_hwfn->p_ooo_info,
-							 cid,
-							 iscsi_ooo->ooo_isle,
-							 p_buffer,
-							 ECORE_OOO_RIGHT_BUF);
+				    p_hwfn->p_ooo_info, cid,
+				    iscsi_ooo->ooo_isle, p_buffer,
+				    ECORE_OOO_RIGHT_BUF);
 				break;
 			case TCP_EVENT_ADD_ISLE_LEFT:
 				ecore_ooo_add_new_buffer(p_hwfn,
-							 p_hwfn->p_ooo_info,
-							 cid,
-							 iscsi_ooo->ooo_isle,
-							 p_buffer,
-							 ECORE_OOO_LEFT_BUF);
+				    p_hwfn->p_ooo_info, cid,
+				    iscsi_ooo->ooo_isle, p_buffer,
+				    ECORE_OOO_LEFT_BUF);
 				break;
 			case TCP_EVENT_JOIN:
 				ecore_ooo_add_new_buffer(p_hwfn,
-							 p_hwfn->p_ooo_info,
-							 cid,
-							 iscsi_ooo->ooo_isle +
-							 1,
-							 p_buffer,
-							 ECORE_OOO_LEFT_BUF);
-				ecore_ooo_join_isles(p_hwfn,
-						     p_hwfn->p_ooo_info,
-						     cid,
-						     iscsi_ooo->ooo_isle);
+				    p_hwfn->p_ooo_info, cid,
+				    iscsi_ooo->ooo_isle + 1, p_buffer,
+				    ECORE_OOO_LEFT_BUF);
+				ecore_ooo_join_isles(p_hwfn, p_hwfn->p_ooo_info,
+				    cid, iscsi_ooo->ooo_isle);
 				break;
 			case TCP_EVENT_ADD_PEN:
 				ecore_ooo_put_ready_buffer(p_hwfn->p_ooo_info,
-							   p_buffer, true);
+				    p_buffer, true);
 				break;
 			}
 		} else {
 			DP_NOTICE(p_hwfn, true,
-				  "Unexpected event (%d) TX OOO completion\n",
-				  iscsi_ooo->ooo_opcode);
+			    "Unexpected event (%d) TX OOO completion\n",
+			    iscsi_ooo->ooo_opcode);
 		}
 	}
 
@@ -683,7 +634,7 @@ ecore_ll2_lb_rxq_handler(struct ecore_hwfn *p_hwfn,
 
 static void
 ecore_ooo_submit_tx_buffers(struct ecore_hwfn *p_hwfn,
-			    struct ecore_ll2_info *p_ll2_conn)
+    struct ecore_ll2_info *p_ll2_conn)
 {
 	struct ecore_ll2_tx_pkt_info tx_pkt;
 	struct ecore_ooo_buffer *p_buffer;
@@ -698,7 +649,7 @@ ecore_ooo_submit_tx_buffers(struct ecore_hwfn *p_hwfn,
 		bd_flags = 0;
 
 		first_frag = p_buffer->rx_buffer_phys_addr +
-			     p_buffer->placement_offset;
+		    p_buffer->placement_offset;
 		SET_FIELD(bd_flags, CORE_TX_BD_DATA_FORCE_VLAN_MODE, 1);
 		SET_FIELD(bd_flags, CORE_TX_BD_DATA_L4_PROTOCOL, 1);
 
@@ -713,10 +664,10 @@ ecore_ooo_submit_tx_buffers(struct ecore_hwfn *p_hwfn,
 		tx_pkt.cookie = p_buffer;
 
 		rc = ecore_ll2_prepare_tx_packet(p_hwfn, p_ll2_conn->my_id,
-						 &tx_pkt, true);
+		    &tx_pkt, true);
 		if (rc != ECORE_SUCCESS) {
-			ecore_ooo_put_ready_buffer(p_hwfn->p_ooo_info,
-						   p_buffer, false);
+			ecore_ooo_put_ready_buffer(p_hwfn->p_ooo_info, p_buffer,
+			    false);
 			break;
 		}
 	}
@@ -724,16 +675,14 @@ ecore_ooo_submit_tx_buffers(struct ecore_hwfn *p_hwfn,
 
 static void
 ecore_ooo_submit_rx_buffers(struct ecore_hwfn *p_hwfn,
-			    struct ecore_ll2_info *p_ll2_conn)
+    struct ecore_ll2_info *p_ll2_conn)
 {
 	struct ecore_ooo_buffer *p_buffer;
 	enum _ecore_status_t rc;
 
 	while ((p_buffer = ecore_ooo_get_free_buffer(p_hwfn->p_ooo_info))) {
-		rc = ecore_ll2_post_rx_buffer(p_hwfn,
-					    p_ll2_conn->my_id,
-					    p_buffer->rx_buffer_phys_addr,
-					    0, p_buffer, true);
+		rc = ecore_ll2_post_rx_buffer(p_hwfn, p_ll2_conn->my_id,
+		    p_buffer->rx_buffer_phys_addr, 0, p_buffer, true);
 		if (rc != ECORE_SUCCESS) {
 			ecore_ooo_put_free_buffer(p_hwfn->p_ooo_info, p_buffer);
 			break;
@@ -742,8 +691,7 @@ ecore_ooo_submit_rx_buffers(struct ecore_hwfn *p_hwfn,
 }
 
 static enum _ecore_status_t
-ecore_ll2_lb_rxq_completion(struct ecore_hwfn *p_hwfn,
-			    void *p_cookie)
+ecore_ll2_lb_rxq_completion(struct ecore_hwfn *p_hwfn, void *p_cookie)
 {
 	struct ecore_ll2_info *p_ll2_conn = (struct ecore_ll2_info *)p_cookie;
 	enum _ecore_status_t rc;
@@ -759,13 +707,12 @@ ecore_ll2_lb_rxq_completion(struct ecore_hwfn *p_hwfn,
 }
 
 static enum _ecore_status_t
-ecore_ll2_lb_txq_completion(struct ecore_hwfn *p_hwfn,
-			    void *p_cookie)
+ecore_ll2_lb_txq_completion(struct ecore_hwfn *p_hwfn, void *p_cookie)
 {
 	struct ecore_ll2_info *p_ll2_conn = (struct ecore_ll2_info *)p_cookie;
 	struct ecore_ll2_tx_queue *p_tx = &p_ll2_conn->tx_queue;
 	struct ecore_ll2_tx_packet *p_pkt = OSAL_NULL;
-	struct ecore_ooo_buffer	*p_buffer;
+	struct ecore_ooo_buffer *p_buffer;
 	bool b_dont_submit_rx = false;
 	u16 new_idx = 0, num_bds = 0;
 	enum _ecore_status_t rc;
@@ -781,28 +728,25 @@ ecore_ll2_lb_txq_completion(struct ecore_hwfn *p_hwfn,
 			return ECORE_INVAL;
 
 		p_pkt = OSAL_LIST_FIRST_ENTRY(&p_tx->active_descq,
-					      struct ecore_ll2_tx_packet,
-					      list_entry);
+		    struct ecore_ll2_tx_packet, list_entry);
 		if (!p_pkt)
 			return ECORE_INVAL;
 
 		if (p_pkt->bd_used != 1) {
 			DP_NOTICE(p_hwfn, true,
-				  "Unexpectedly many BDs(%d) in TX OOO completion\n",
-				  p_pkt->bd_used);
+			    "Unexpectedly many BDs(%d) in TX OOO completion\n",
+			    p_pkt->bd_used);
 			return ECORE_INVAL;
 		}
 
-		OSAL_LIST_REMOVE_ENTRY(&p_pkt->list_entry,
-				       &p_tx->active_descq);
+		OSAL_LIST_REMOVE_ENTRY(&p_pkt->list_entry, &p_tx->active_descq);
 
 		num_bds--;
 		p_tx->bds_idx++;
 		ecore_chain_consume(&p_tx->txq_chain);
 
 		p_buffer = (struct ecore_ooo_buffer *)p_pkt->cookie;
-		OSAL_LIST_PUSH_TAIL(&p_pkt->list_entry,
-				    &p_tx->free_descq);
+		OSAL_LIST_PUSH_TAIL(&p_pkt->list_entry, &p_tx->free_descq);
 
 		if (b_dont_submit_rx) {
 			ecore_ooo_put_free_buffer(p_hwfn->p_ooo_info, p_buffer);
@@ -810,8 +754,7 @@ ecore_ll2_lb_txq_completion(struct ecore_hwfn *p_hwfn,
 		}
 
 		rc = ecore_ll2_post_rx_buffer(p_hwfn, p_ll2_conn->my_id,
-					      p_buffer->rx_buffer_phys_addr, 0,
-					      p_buffer, true);
+		    p_buffer->rx_buffer_phys_addr, 0, p_buffer, true);
 		if (rc != ECORE_SUCCESS) {
 			ecore_ooo_put_free_buffer(p_hwfn->p_ooo_info, p_buffer);
 			b_dont_submit_rx = true;
@@ -823,9 +766,9 @@ ecore_ll2_lb_txq_completion(struct ecore_hwfn *p_hwfn,
 	return ECORE_SUCCESS;
 }
 
-static enum _ecore_status_t ecore_sp_ll2_rx_queue_start(struct ecore_hwfn *p_hwfn,
-							struct ecore_ll2_info *p_ll2_conn,
-							u8 action_on_error)
+static enum _ecore_status_t
+ecore_sp_ll2_rx_queue_start(struct ecore_hwfn *p_hwfn,
+    struct ecore_ll2_info *p_ll2_conn, u8 action_on_error)
 {
 	enum ecore_ll2_conn_type conn_type = p_ll2_conn->input.conn_type;
 	struct ecore_ll2_rx_queue *p_rx = &p_ll2_conn->rx_queue;
@@ -833,7 +776,7 @@ static enum _ecore_status_t ecore_sp_ll2_rx_queue_start(struct ecore_hwfn *p_hwf
 	struct ecore_spq_entry *p_ent = OSAL_NULL;
 	struct ecore_sp_init_data init_data;
 	u16 cqe_pbl_size;
-	enum _ecore_status_t rc	= ECORE_SUCCESS;
+	enum _ecore_status_t rc = ECORE_SUCCESS;
 
 	/* Get SPQ entry */
 	OSAL_MEMSET(&init_data, 0, sizeof(init_data));
@@ -841,9 +784,8 @@ static enum _ecore_status_t ecore_sp_ll2_rx_queue_start(struct ecore_hwfn *p_hwf
 	init_data.opaque_fid = p_hwfn->hw_info.opaque_fid;
 	init_data.comp_mode = ECORE_SPQ_MODE_EBLOCK;
 
-	rc = ecore_sp_init_request(p_hwfn, &p_ent,
-				   CORE_RAMROD_RX_QUEUE_START,
-				   PROTOCOLID_CORE, &init_data);
+	rc = ecore_sp_init_request(p_hwfn, &p_ent, CORE_RAMROD_RX_QUEUE_START,
+	    PROTOCOLID_CORE, &init_data);
 	if (rc != ECORE_SUCCESS)
 		return rc;
 
@@ -854,16 +796,15 @@ static enum _ecore_status_t ecore_sp_ll2_rx_queue_start(struct ecore_hwfn *p_hwf
 	p_ramrod->complete_event_flg = 1;
 
 	p_ramrod->mtu = OSAL_CPU_TO_LE16(p_ll2_conn->input.mtu);
-	DMA_REGPAIR_LE(p_ramrod->bd_base,
-		       p_rx->rxq_chain.p_phys_addr);
+	DMA_REGPAIR_LE(p_ramrod->bd_base, p_rx->rxq_chain.p_phys_addr);
 	cqe_pbl_size = (u16)ecore_chain_get_page_cnt(&p_rx->rcq_chain);
 	p_ramrod->num_of_pbl_pages = OSAL_CPU_TO_LE16(cqe_pbl_size);
 	DMA_REGPAIR_LE(p_ramrod->cqe_pbl_addr,
-		       ecore_chain_get_pbl_phys(&p_rx->rcq_chain));
+	    ecore_chain_get_pbl_phys(&p_rx->rcq_chain));
 
 	p_ramrod->drop_ttl0_flg = p_ll2_conn->input.rx_drop_ttl0_flg;
 	p_ramrod->inner_vlan_stripping_en =
-		p_ll2_conn->input.rx_vlan_removal_en;
+	    p_ll2_conn->input.rx_vlan_removal_en;
 
 	if (OSAL_TEST_BIT(ECORE_MF_UFP_SPECIFIC, &p_hwfn->p_dev->mf_bits) &&
 	    (p_ll2_conn->input.conn_type == ECORE_LL2_TYPE_FCOE))
@@ -871,11 +812,10 @@ static enum _ecore_status_t ecore_sp_ll2_rx_queue_start(struct ecore_hwfn *p_hwf
 	p_ramrod->queue_id = p_ll2_conn->queue_id;
 	p_ramrod->main_func_queue = p_ll2_conn->main_func_queue;
 
-	if (OSAL_TEST_BIT(ECORE_MF_LL2_NON_UNICAST,
-			  &p_hwfn->p_dev->mf_bits) &&
+	if (OSAL_TEST_BIT(ECORE_MF_LL2_NON_UNICAST, &p_hwfn->p_dev->mf_bits) &&
 	    p_ramrod->main_func_queue &&
 	    ((conn_type != ECORE_LL2_TYPE_ROCE) &&
-	     (conn_type != ECORE_LL2_TYPE_IWARP))) {
+		(conn_type != ECORE_LL2_TYPE_IWARP))) {
 		p_ramrod->mf_si_bcast_accept_all = 1;
 		p_ramrod->mf_si_mcast_accept_all = 1;
 	} else {
@@ -888,8 +828,9 @@ static enum _ecore_status_t ecore_sp_ll2_rx_queue_start(struct ecore_hwfn *p_hwf
 	return ecore_spq_post(p_hwfn, p_ent, OSAL_NULL);
 }
 
-static enum _ecore_status_t ecore_sp_ll2_tx_queue_start(struct ecore_hwfn *p_hwfn,
-							struct ecore_ll2_info *p_ll2_conn)
+static enum _ecore_status_t
+ecore_sp_ll2_tx_queue_start(struct ecore_hwfn *p_hwfn,
+    struct ecore_ll2_info *p_ll2_conn)
 {
 	enum ecore_ll2_conn_type conn_type = p_ll2_conn->input.conn_type;
 	struct ecore_ll2_tx_queue *p_tx = &p_ll2_conn->tx_queue;
@@ -913,9 +854,8 @@ static enum _ecore_status_t ecore_sp_ll2_tx_queue_start(struct ecore_hwfn *p_hwf
 	init_data.opaque_fid = p_hwfn->hw_info.opaque_fid;
 	init_data.comp_mode = ECORE_SPQ_MODE_EBLOCK;
 
-	rc = ecore_sp_init_request(p_hwfn, &p_ent,
-				   CORE_RAMROD_TX_QUEUE_START,
-				   PROTOCOLID_CORE, &init_data);
+	rc = ecore_sp_init_request(p_hwfn, &p_ent, CORE_RAMROD_TX_QUEUE_START,
+	    PROTOCOLID_CORE, &init_data);
 	if (rc != ECORE_SUCCESS)
 		return rc;
 
@@ -928,7 +868,7 @@ static enum _ecore_status_t ecore_sp_ll2_tx_queue_start(struct ecore_hwfn *p_hwf
 	p_ramrod->stats_id = p_ll2_conn->tx_stats_id;
 
 	DMA_REGPAIR_LE(p_ramrod->pbl_base_addr,
-		       ecore_chain_get_pbl_phys(&p_tx->txq_chain));
+	    ecore_chain_get_pbl_phys(&p_tx->txq_chain));
 	pbl_size = (u16)ecore_chain_get_page_cnt(&p_tx->txq_chain);
 	p_ramrod->pbl_size = OSAL_CPU_TO_LE16(pbl_size);
 
@@ -969,7 +909,7 @@ static enum _ecore_status_t ecore_sp_ll2_tx_queue_start(struct ecore_hwfn *p_hwf
 	default:
 		p_ramrod->conn_type = PROTOCOLID_ETH;
 		DP_NOTICE(p_hwfn, false, "Unknown connection type: %d\n",
-			  conn_type);
+		    conn_type);
 	}
 
 	p_ramrod->gsi_offload_flag = p_ll2_conn->input.gsi_enable;
@@ -979,15 +919,15 @@ static enum _ecore_status_t ecore_sp_ll2_tx_queue_start(struct ecore_hwfn *p_hwf
 		return rc;
 
 	rc = ecore_db_recovery_add(p_hwfn->p_dev, p_tx->doorbell_addr,
-				   &p_tx->db_msg, DB_REC_WIDTH_32B,
-				   DB_REC_KERNEL);
+	    &p_tx->db_msg, DB_REC_WIDTH_32B, DB_REC_KERNEL);
 	return rc;
 }
 
-static enum _ecore_status_t ecore_sp_ll2_rx_queue_stop(struct ecore_hwfn *p_hwfn,
-						       struct ecore_ll2_info *p_ll2_conn)
+static enum _ecore_status_t
+ecore_sp_ll2_rx_queue_stop(struct ecore_hwfn *p_hwfn,
+    struct ecore_ll2_info *p_ll2_conn)
 {
-	struct core_rx_stop_ramrod_data	*p_ramrod = OSAL_NULL;
+	struct core_rx_stop_ramrod_data *p_ramrod = OSAL_NULL;
 	struct ecore_spq_entry *p_ent = OSAL_NULL;
 	struct ecore_sp_init_data init_data;
 	enum _ecore_status_t rc = ECORE_NOTIMPL;
@@ -998,9 +938,8 @@ static enum _ecore_status_t ecore_sp_ll2_rx_queue_stop(struct ecore_hwfn *p_hwfn
 	init_data.opaque_fid = p_hwfn->hw_info.opaque_fid;
 	init_data.comp_mode = ECORE_SPQ_MODE_EBLOCK;
 
-	rc = ecore_sp_init_request(p_hwfn, &p_ent,
-				   CORE_RAMROD_RX_QUEUE_STOP,
-				   PROTOCOLID_CORE, &init_data);
+	rc = ecore_sp_init_request(p_hwfn, &p_ent, CORE_RAMROD_RX_QUEUE_STOP,
+	    PROTOCOLID_CORE, &init_data);
 	if (rc != ECORE_SUCCESS)
 		return rc;
 
@@ -1012,8 +951,9 @@ static enum _ecore_status_t ecore_sp_ll2_rx_queue_stop(struct ecore_hwfn *p_hwfn
 	return ecore_spq_post(p_hwfn, p_ent, OSAL_NULL);
 }
 
-static enum _ecore_status_t ecore_sp_ll2_tx_queue_stop(struct ecore_hwfn *p_hwfn,
-						       struct ecore_ll2_info *p_ll2_conn)
+static enum _ecore_status_t
+ecore_sp_ll2_tx_queue_stop(struct ecore_hwfn *p_hwfn,
+    struct ecore_ll2_info *p_ll2_conn)
 {
 	struct ecore_ll2_tx_queue *p_tx = &p_ll2_conn->tx_queue;
 	struct ecore_spq_entry *p_ent = OSAL_NULL;
@@ -1021,7 +961,7 @@ static enum _ecore_status_t ecore_sp_ll2_tx_queue_stop(struct ecore_hwfn *p_hwfn
 	enum _ecore_status_t rc = ECORE_NOTIMPL;
 
 	ecore_db_recovery_del(p_hwfn->p_dev, p_tx->doorbell_addr,
-			      &p_tx->db_msg);
+	    &p_tx->db_msg);
 
 	/* Get SPQ entry */
 	OSAL_MEMSET(&init_data, 0, sizeof(init_data));
@@ -1029,9 +969,8 @@ static enum _ecore_status_t ecore_sp_ll2_tx_queue_stop(struct ecore_hwfn *p_hwfn
 	init_data.opaque_fid = p_hwfn->hw_info.opaque_fid;
 	init_data.comp_mode = ECORE_SPQ_MODE_EBLOCK;
 
-	rc = ecore_sp_init_request(p_hwfn, &p_ent,
-				   CORE_RAMROD_TX_QUEUE_STOP,
-				   PROTOCOLID_CORE, &init_data);
+	rc = ecore_sp_init_request(p_hwfn, &p_ent, CORE_RAMROD_TX_QUEUE_STOP,
+	    PROTOCOLID_CORE, &init_data);
 	if (rc != ECORE_SUCCESS)
 		return rc;
 
@@ -1040,7 +979,7 @@ static enum _ecore_status_t ecore_sp_ll2_tx_queue_stop(struct ecore_hwfn *p_hwfn
 
 static enum _ecore_status_t
 ecore_ll2_acquire_connection_rx(struct ecore_hwfn *p_hwfn,
-				struct ecore_ll2_info *p_ll2_info)
+    struct ecore_ll2_info *p_ll2_info)
 {
 	struct ecore_ll2_rx_packet *p_descq;
 	u32 capacity;
@@ -1050,46 +989,38 @@ ecore_ll2_acquire_connection_rx(struct ecore_hwfn *p_hwfn,
 		goto out;
 
 	rc = ecore_chain_alloc(p_hwfn->p_dev,
-			       ECORE_CHAIN_USE_TO_CONSUME_PRODUCE,
-			       ECORE_CHAIN_MODE_NEXT_PTR,
-			       ECORE_CHAIN_CNT_TYPE_U16,
-			       p_ll2_info->input.rx_num_desc,
-			       sizeof(struct core_rx_bd),
-			       &p_ll2_info->rx_queue.rxq_chain, OSAL_NULL);
+	    ECORE_CHAIN_USE_TO_CONSUME_PRODUCE, ECORE_CHAIN_MODE_NEXT_PTR,
+	    ECORE_CHAIN_CNT_TYPE_U16, p_ll2_info->input.rx_num_desc,
+	    sizeof(struct core_rx_bd), &p_ll2_info->rx_queue.rxq_chain,
+	    OSAL_NULL);
 	if (rc) {
-		DP_NOTICE(p_hwfn, false,
-			  "Failed to allocate ll2 rxq chain\n");
+		DP_NOTICE(p_hwfn, false, "Failed to allocate ll2 rxq chain\n");
 		goto out;
 	}
 
 	capacity = ecore_chain_get_capacity(&p_ll2_info->rx_queue.rxq_chain);
 	p_descq = OSAL_ZALLOC(p_hwfn->p_dev, GFP_KERNEL,
-			      capacity * sizeof(struct ecore_ll2_rx_packet));
+	    capacity * sizeof(struct ecore_ll2_rx_packet));
 	if (!p_descq) {
 		rc = ECORE_NOMEM;
-		DP_NOTICE(p_hwfn, false,
-			  "Failed to allocate ll2 Rx desc\n");
+		DP_NOTICE(p_hwfn, false, "Failed to allocate ll2 Rx desc\n");
 		goto out;
 	}
 	p_ll2_info->rx_queue.descq_array = p_descq;
 
 	rc = ecore_chain_alloc(p_hwfn->p_dev,
-			       ECORE_CHAIN_USE_TO_CONSUME_PRODUCE,
-			       ECORE_CHAIN_MODE_PBL,
-			       ECORE_CHAIN_CNT_TYPE_U16,
-			       p_ll2_info->input.rx_num_desc,
-			       sizeof(struct core_rx_fast_path_cqe),
-			       &p_ll2_info->rx_queue.rcq_chain, OSAL_NULL);
+	    ECORE_CHAIN_USE_TO_CONSUME_PRODUCE, ECORE_CHAIN_MODE_PBL,
+	    ECORE_CHAIN_CNT_TYPE_U16, p_ll2_info->input.rx_num_desc,
+	    sizeof(struct core_rx_fast_path_cqe),
+	    &p_ll2_info->rx_queue.rcq_chain, OSAL_NULL);
 	if (rc != ECORE_SUCCESS) {
-		DP_NOTICE(p_hwfn, false,
-			  "Failed to allocate ll2 rcq chain\n");
+		DP_NOTICE(p_hwfn, false, "Failed to allocate ll2 rcq chain\n");
 		goto out;
 	}
 
 	DP_VERBOSE(p_hwfn, ECORE_MSG_LL2,
-		   "Allocated LL2 Rxq [Type %08x] with 0x%08x buffers\n",
-		   p_ll2_info->input.conn_type,
-		   p_ll2_info->input.rx_num_desc);
+	    "Allocated LL2 Rxq [Type %08x] with 0x%08x buffers\n",
+	    p_ll2_info->input.conn_type, p_ll2_info->input.rx_num_desc);
 
 out:
 	return rc;
@@ -1097,7 +1028,7 @@ out:
 
 static enum _ecore_status_t
 ecore_ll2_acquire_connection_tx(struct ecore_hwfn *p_hwfn,
-				struct ecore_ll2_info *p_ll2_info)
+    struct ecore_ll2_info *p_ll2_info)
 {
 	struct ecore_ll2_tx_packet *p_descq;
 	u32 capacity;
@@ -1108,22 +1039,19 @@ ecore_ll2_acquire_connection_tx(struct ecore_hwfn *p_hwfn,
 		goto out;
 
 	rc = ecore_chain_alloc(p_hwfn->p_dev,
-			       ECORE_CHAIN_USE_TO_CONSUME_PRODUCE,
-			       ECORE_CHAIN_MODE_PBL,
-			       ECORE_CHAIN_CNT_TYPE_U16,
-			       p_ll2_info->input.tx_num_desc,
-			       sizeof(struct core_tx_bd),
-			       &p_ll2_info->tx_queue.txq_chain, OSAL_NULL);
+	    ECORE_CHAIN_USE_TO_CONSUME_PRODUCE, ECORE_CHAIN_MODE_PBL,
+	    ECORE_CHAIN_CNT_TYPE_U16, p_ll2_info->input.tx_num_desc,
+	    sizeof(struct core_tx_bd), &p_ll2_info->tx_queue.txq_chain,
+	    OSAL_NULL);
 	if (rc != ECORE_SUCCESS)
 		goto out;
 
 	capacity = ecore_chain_get_capacity(&p_ll2_info->tx_queue.txq_chain);
 	desc_size = (sizeof(*p_descq) +
-		     (p_ll2_info->input.tx_max_bds_per_packet - 1) *
-		     sizeof(p_descq->bds_set));
+	    (p_ll2_info->input.tx_max_bds_per_packet - 1) *
+		sizeof(p_descq->bds_set));
 
-	p_descq = OSAL_ZALLOC(p_hwfn->p_dev, GFP_KERNEL,
-			      capacity * desc_size);
+	p_descq = OSAL_ZALLOC(p_hwfn->p_dev, GFP_KERNEL, capacity * desc_size);
 	if (!p_descq) {
 		rc = ECORE_NOMEM;
 		goto out;
@@ -1131,21 +1059,20 @@ ecore_ll2_acquire_connection_tx(struct ecore_hwfn *p_hwfn,
 	p_ll2_info->tx_queue.descq_array = p_descq;
 
 	DP_VERBOSE(p_hwfn, ECORE_MSG_LL2,
-		   "Allocated LL2 Txq [Type %08x] with 0x%08x buffers\n",
-		   p_ll2_info->input.conn_type,
-		   p_ll2_info->input.tx_num_desc);
+	    "Allocated LL2 Txq [Type %08x] with 0x%08x buffers\n",
+	    p_ll2_info->input.conn_type, p_ll2_info->input.tx_num_desc);
 
 out:
 	if (rc != ECORE_SUCCESS)
 		DP_NOTICE(p_hwfn, false,
-			  "Can't allocate memory for Tx LL2 with 0x%08x buffers\n",
-			  p_ll2_info->input.tx_num_desc);
+		    "Can't allocate memory for Tx LL2 with 0x%08x buffers\n",
+		    p_ll2_info->input.tx_num_desc);
 	return rc;
 }
 
 static enum _ecore_status_t
 ecore_ll2_acquire_connection_ooo(struct ecore_hwfn *p_hwfn,
-				 struct ecore_ll2_info *p_ll2_info, u16 mtu)
+    struct ecore_ll2_info *p_ll2_info, u16 mtu)
 {
 	struct ecore_ooo_buffer *p_buf = OSAL_NULL;
 	u32 rx_buffer_size = 0;
@@ -1168,25 +1095,24 @@ ecore_ll2_acquire_connection_ooo(struct ecore_hwfn *p_hwfn,
 	/* TODO - use some defines for buffer size */
 	rx_buffer_size = mtu + 14 + 4 + 8 + ETH_CACHE_LINE_SIZE;
 	rx_buffer_size = (rx_buffer_size + ETH_CACHE_LINE_SIZE - 1) &
-			 ~(ETH_CACHE_LINE_SIZE - 1);
+	    ~(ETH_CACHE_LINE_SIZE - 1);
 
 	for (buf_idx = 0; buf_idx < p_ll2_info->input.rx_num_ooo_buffers;
 	     buf_idx++) {
 		p_buf = OSAL_ZALLOC(p_hwfn->p_dev, GFP_KERNEL, sizeof(*p_buf));
 		if (!p_buf) {
 			DP_NOTICE(p_hwfn, false,
-				  "Failed to allocate ooo descriptor\n");
+			    "Failed to allocate ooo descriptor\n");
 			rc = ECORE_NOMEM;
 			goto out;
 		}
 
 		p_buf->rx_buffer_size = rx_buffer_size;
 		p_virt = OSAL_DMA_ALLOC_COHERENT(p_hwfn->p_dev,
-						 &p_buf->rx_buffer_phys_addr,
-						 p_buf->rx_buffer_size);
+		    &p_buf->rx_buffer_phys_addr, p_buf->rx_buffer_size);
 		if (!p_virt) {
 			DP_NOTICE(p_hwfn, false,
-				  "Failed to allocate ooo buffer\n");
+			    "Failed to allocate ooo buffer\n");
 			OSAL_FREE(p_hwfn->p_dev, p_buf);
 			rc = ECORE_NOMEM;
 			goto out;
@@ -1196,8 +1122,8 @@ ecore_ll2_acquire_connection_ooo(struct ecore_hwfn *p_hwfn,
 	}
 
 	DP_VERBOSE(p_hwfn, ECORE_MSG_LL2,
-		   "Allocated [%04x] LL2 OOO buffers [each of size 0x%08x]\n",
-		   p_ll2_info->input.rx_num_ooo_buffers, rx_buffer_size);
+	    "Allocated [%04x] LL2 OOO buffers [each of size 0x%08x]\n",
+	    p_ll2_info->input.rx_num_ooo_buffers, rx_buffer_size);
 
 out:
 	return rc;
@@ -1205,13 +1131,11 @@ out:
 
 static enum _ecore_status_t
 ecore_ll2_set_cbs(struct ecore_ll2_info *p_ll2_info,
-		    const struct ecore_ll2_cbs *cbs)
+    const struct ecore_ll2_cbs *cbs)
 {
-	if (!cbs || (!cbs->rx_comp_cb ||
-		     !cbs->rx_release_cb ||
-		     !cbs->tx_comp_cb ||
-		     !cbs->tx_release_cb ||
-		     !cbs->cookie))
+	if (!cbs ||
+	    (!cbs->rx_comp_cb || !cbs->rx_release_cb || !cbs->tx_comp_cb ||
+		!cbs->tx_release_cb || !cbs->cookie))
 		return ECORE_INVAL;
 
 	p_ll2_info->cbs.rx_comp_cb = cbs->rx_comp_cb;
@@ -1240,8 +1164,7 @@ ecore_ll2_get_error_choice(enum ecore_ll2_error_handle err)
 }
 
 enum _ecore_status_t
-ecore_ll2_acquire_connection(void *cxt,
-			     struct ecore_ll2_acquire_data *data)
+ecore_ll2_acquire_connection(void *cxt, struct ecore_ll2_acquire_data *data)
 {
 	struct ecore_hwfn *p_hwfn = (struct ecore_hwfn *)cxt;
 	ecore_int_comp_cb_t comp_rx_cb, comp_tx_cb;
@@ -1250,7 +1173,8 @@ ecore_ll2_acquire_connection(void *cxt,
 	u8 i, *p_tx_max;
 
 	if (!data->p_connection_handle || !p_hwfn->p_ll2_info) {
-		DP_NOTICE(p_hwfn, false, "Invalid connection handle, ll2_info not allocated\n");
+		DP_NOTICE(p_hwfn, false,
+		    "Invalid connection handle, ll2_info not allocated\n");
 		return ECORE_INVAL;
 	}
 
@@ -1273,7 +1197,7 @@ ecore_ll2_acquire_connection(void *cxt,
 	}
 
 	OSAL_MEMCPY(&p_ll2_info->input, &data->input,
-		    sizeof(p_ll2_info->input));
+	    sizeof(p_ll2_info->input));
 
 	switch (data->input.tx_dest) {
 	case ECORE_LL2_TX_DEST_NW:
@@ -1301,7 +1225,7 @@ ecore_ll2_acquire_connection(void *cxt,
 		*p_tx_max = CORE_LL2_TX_MAX_BDS_PER_PACKET;
 	else
 		*p_tx_max = OSAL_MIN_T(u8, *p_tx_max,
-				       CORE_LL2_TX_MAX_BDS_PER_PACKET);
+		    CORE_LL2_TX_MAX_BDS_PER_PACKET);
 
 	rc = ecore_ll2_set_cbs(p_ll2_info, data->cbs);
 	if (rc) {
@@ -1322,7 +1246,7 @@ ecore_ll2_acquire_connection(void *cxt,
 	}
 
 	rc = ecore_ll2_acquire_connection_ooo(p_hwfn, p_ll2_info,
-					      data->input.mtu);
+	    data->input.mtu);
 	if (rc != ECORE_SUCCESS) {
 		DP_NOTICE(p_hwfn, false, "ll2 acquire ooo connection failed\n");
 		goto q_allocate_fail;
@@ -1340,19 +1264,16 @@ ecore_ll2_acquire_connection(void *cxt,
 
 	if (data->input.rx_num_desc) {
 		ecore_int_register_cb(p_hwfn, comp_rx_cb,
-				      &p_hwfn->p_ll2_info[i],
-				      &p_ll2_info->rx_queue.rx_sb_index,
-				      &p_ll2_info->rx_queue.p_fw_cons);
-		p_ll2_info->rx_queue.b_cb_registred   = true;
+		    &p_hwfn->p_ll2_info[i], &p_ll2_info->rx_queue.rx_sb_index,
+		    &p_ll2_info->rx_queue.p_fw_cons);
+		p_ll2_info->rx_queue.b_cb_registred = true;
 	}
 
 	if (data->input.tx_num_desc) {
-		ecore_int_register_cb(p_hwfn,
-				      comp_tx_cb,
-				      &p_hwfn->p_ll2_info[i],
-				      &p_ll2_info->tx_queue.tx_sb_index,
-				      &p_ll2_info->tx_queue.p_fw_cons);
-		p_ll2_info->tx_queue.b_cb_registred   = true;
+		ecore_int_register_cb(p_hwfn, comp_tx_cb,
+		    &p_hwfn->p_ll2_info[i], &p_ll2_info->tx_queue.tx_sb_index,
+		    &p_ll2_info->tx_queue.p_fw_cons);
+		p_ll2_info->tx_queue.b_cb_registred = true;
 	}
 
 	*(data->p_connection_handle) = i;
@@ -1363,8 +1284,9 @@ q_allocate_fail:
 	return ECORE_NOMEM;
 }
 
-static enum _ecore_status_t ecore_ll2_establish_connection_rx(struct ecore_hwfn *p_hwfn,
-							      struct ecore_ll2_info *p_ll2_conn)
+static enum _ecore_status_t
+ecore_ll2_establish_connection_rx(struct ecore_hwfn *p_hwfn,
+    struct ecore_ll2_info *p_ll2_conn)
 {
 	enum ecore_ll2_error_handle error_input;
 	enum core_error_handle error_mode;
@@ -1376,19 +1298,18 @@ static enum _ecore_status_t ecore_ll2_establish_connection_rx(struct ecore_hwfn 
 	DIRECT_REG_WR(p_hwfn, p_ll2_conn->rx_queue.set_prod_addr, 0x0);
 	error_input = p_ll2_conn->input.ai_err_packet_too_big;
 	error_mode = ecore_ll2_get_error_choice(error_input);
-	SET_FIELD(action_on_error,
-		  CORE_RX_ACTION_ON_ERROR_PACKET_TOO_BIG, error_mode);
+	SET_FIELD(action_on_error, CORE_RX_ACTION_ON_ERROR_PACKET_TOO_BIG,
+	    error_mode);
 	error_input = p_ll2_conn->input.ai_err_no_buf;
 	error_mode = ecore_ll2_get_error_choice(error_input);
-	SET_FIELD(action_on_error,
-		  CORE_RX_ACTION_ON_ERROR_NO_BUFF, error_mode);
+	SET_FIELD(action_on_error, CORE_RX_ACTION_ON_ERROR_NO_BUFF, error_mode);
 
 	return ecore_sp_ll2_rx_queue_start(p_hwfn, p_ll2_conn, action_on_error);
 }
 
 static void
 ecore_ll2_establish_connection_ooo(struct ecore_hwfn *p_hwfn,
-				   struct ecore_ll2_info *p_ll2_conn)
+    struct ecore_ll2_info *p_ll2_conn)
 {
 	if (p_ll2_conn->input.conn_type != ECORE_LL2_TYPE_OOO)
 		return;
@@ -1397,8 +1318,8 @@ ecore_ll2_establish_connection_ooo(struct ecore_hwfn *p_hwfn,
 	ecore_ooo_submit_rx_buffers(p_hwfn, p_ll2_conn);
 }
 
-enum _ecore_status_t ecore_ll2_establish_connection(void *cxt,
-						    u8 connection_handle)
+enum _ecore_status_t
+ecore_ll2_establish_connection(void *cxt, u8 connection_handle)
 {
 	struct ecore_hwfn *p_hwfn = (struct ecore_hwfn *)cxt;
 	struct e4_core_conn_context *p_cxt;
@@ -1435,7 +1356,7 @@ enum _ecore_status_t ecore_ll2_establish_connection(void *cxt,
 	capacity = ecore_chain_get_capacity(&p_rx->rxq_chain);
 	for (i = 0; i < capacity; i++)
 		OSAL_LIST_PUSH_TAIL(&p_rx->descq_array[i].list_entry,
-				    &p_rx->free_descq);
+		    &p_rx->free_descq);
 	*p_rx->p_fw_cons = 0;
 
 	ecore_chain_reset(&p_tx->txq_chain);
@@ -1446,14 +1367,13 @@ enum _ecore_status_t ecore_ll2_establish_connection(void *cxt,
 	capacity = ecore_chain_get_capacity(&p_tx->txq_chain);
 	/* The size of the element in descq_array is flexible */
 	desc_size = (sizeof(*p_pkt) +
-		     (p_ll2_conn->input.tx_max_bds_per_packet - 1) *
-		     sizeof(p_pkt->bds_set));
+	    (p_ll2_conn->input.tx_max_bds_per_packet - 1) *
+		sizeof(p_pkt->bds_set));
 
 	for (i = 0; i < capacity; i++) {
 		p_pkt = (struct ecore_ll2_tx_packet *)((u8 *)p_tx->descq_array +
-						       desc_size*i);
-		OSAL_LIST_PUSH_TAIL(&p_pkt->list_entry,
-				    &p_tx->free_descq);
+		    desc_size * i);
+		OSAL_LIST_PUSH_TAIL(&p_pkt->list_entry, &p_tx->free_descq);
 	}
 	p_tx->cur_completing_bd_idx = 0;
 	p_tx->bds_idx = 0;
@@ -1470,7 +1390,7 @@ enum _ecore_status_t ecore_ll2_establish_connection(void *cxt,
 	rc = ecore_cxt_get_cid_info(p_hwfn, &cxt_info);
 	if (rc) {
 		DP_NOTICE(p_hwfn, true, "Cannot find context info for cid=%d\n",
-			  p_ll2_conn->cid);
+		    p_ll2_conn->cid);
 		goto out;
 	}
 
@@ -1482,19 +1402,16 @@ enum _ecore_status_t ecore_ll2_establish_connection(void *cxt,
 	qid = ecore_ll2_handle_to_queue_id(p_hwfn, connection_handle);
 	p_ll2_conn->queue_id = qid;
 	p_ll2_conn->tx_stats_id = qid;
-	p_rx->set_prod_addr = (u8 OSAL_IOMEM*)p_hwfn->regview +
-					      GTT_BAR0_MAP_REG_TSDM_RAM +
-					      TSTORM_LL2_RX_PRODS_OFFSET(qid);
-	p_tx->doorbell_addr = (u8 OSAL_IOMEM*)p_hwfn->doorbells +
-					      DB_ADDR(p_ll2_conn->cid,
-						      DQ_DEMS_LEGACY);
+	p_rx->set_prod_addr = (u8 OSAL_IOMEM *)p_hwfn->regview +
+	    GTT_BAR0_MAP_REG_TSDM_RAM + TSTORM_LL2_RX_PRODS_OFFSET(qid);
+	p_tx->doorbell_addr = (u8 OSAL_IOMEM *)p_hwfn->doorbells +
+	    DB_ADDR(p_ll2_conn->cid, DQ_DEMS_LEGACY);
 
 	/* prepare db data */
 	SET_FIELD(p_tx->db_msg.params, CORE_DB_DATA_DEST, DB_DEST_XCM);
-	SET_FIELD(p_tx->db_msg.params, CORE_DB_DATA_AGG_CMD,
-		  DB_AGG_CMD_SET);
+	SET_FIELD(p_tx->db_msg.params, CORE_DB_DATA_AGG_CMD, DB_AGG_CMD_SET);
 	SET_FIELD(p_tx->db_msg.params, CORE_DB_DATA_AGG_VAL_SEL,
-		  DQ_XCM_CORE_TX_BD_PROD_CMD);
+	    DQ_XCM_CORE_TX_BD_PROD_CMD);
 	p_tx->db_msg.agg_flags = DQ_XCM_CORE_DQ_CF_CMD;
 
 	rc = ecore_ll2_establish_connection_rx(p_hwfn, p_ll2_conn);
@@ -1512,13 +1429,11 @@ enum _ecore_status_t ecore_ll2_establish_connection(void *cxt,
 
 	if (p_ll2_conn->input.conn_type == ECORE_LL2_TYPE_FCOE) {
 		if (!OSAL_TEST_BIT(ECORE_MF_UFP_SPECIFIC,
-				   &p_hwfn->p_dev->mf_bits))
+			&p_hwfn->p_dev->mf_bits))
 			ecore_llh_add_protocol_filter(p_hwfn->p_dev, 0,
-						      ECORE_LLH_FILTER_ETHERTYPE,
-						      0x8906, 0);
+			    ECORE_LLH_FILTER_ETHERTYPE, 0x8906, 0);
 		ecore_llh_add_protocol_filter(p_hwfn->p_dev, 0,
-					      ECORE_LLH_FILTER_ETHERTYPE,
-					      0x8914, 0);
+		    ECORE_LLH_FILTER_ETHERTYPE, 0x8914, 0);
 	}
 
 out:
@@ -1527,32 +1442,32 @@ out:
 	return rc;
 }
 
-static void ecore_ll2_post_rx_buffer_notify_fw(struct ecore_hwfn *p_hwfn,
-					       struct ecore_ll2_rx_queue *p_rx,
-					       struct ecore_ll2_rx_packet *p_curp)
+static void
+ecore_ll2_post_rx_buffer_notify_fw(struct ecore_hwfn *p_hwfn,
+    struct ecore_ll2_rx_queue *p_rx, struct ecore_ll2_rx_packet *p_curp)
 {
 	struct ecore_ll2_rx_packet *p_posting_packet = OSAL_NULL;
-	struct core_ll2_rx_prod rx_prod = {0, 0, 0};
+	struct core_ll2_rx_prod rx_prod = { 0, 0, 0 };
 	bool b_notify_fw = false;
 	u16 bd_prod, cq_prod;
 
 	/* This handles the flushing of already posted buffers */
 	while (!OSAL_LIST_IS_EMPTY(&p_rx->posting_descq)) {
 		p_posting_packet = OSAL_LIST_FIRST_ENTRY(&p_rx->posting_descq,
-							 struct ecore_ll2_rx_packet,
-							 list_entry);
+		    struct ecore_ll2_rx_packet, list_entry);
 #if defined(_NTDDK_)
 #pragma warning(suppress : 6011 28182)
 #endif
-		OSAL_LIST_REMOVE_ENTRY(&p_posting_packet->list_entry, &p_rx->posting_descq);
-		OSAL_LIST_PUSH_TAIL(&p_posting_packet->list_entry, &p_rx->active_descq);
+		OSAL_LIST_REMOVE_ENTRY(&p_posting_packet->list_entry,
+		    &p_rx->posting_descq);
+		OSAL_LIST_PUSH_TAIL(&p_posting_packet->list_entry,
+		    &p_rx->active_descq);
 		b_notify_fw = true;
 	}
 
 	/* This handles the supplied packet [if there is one] */
 	if (p_curp) {
-		OSAL_LIST_PUSH_TAIL(&p_curp->list_entry,
-				    &p_rx->active_descq);
+		OSAL_LIST_PUSH_TAIL(&p_curp->list_entry, &p_rx->active_descq);
 		b_notify_fw = true;
 	}
 
@@ -1566,12 +1481,9 @@ static void ecore_ll2_post_rx_buffer_notify_fw(struct ecore_hwfn *p_hwfn,
 	DIRECT_REG_WR(p_hwfn, p_rx->set_prod_addr, *((u32 *)&rx_prod));
 }
 
-enum _ecore_status_t ecore_ll2_post_rx_buffer(void *cxt,
-					      u8 connection_handle,
-					      dma_addr_t addr,
-					      u16 buf_len,
-					      void *cookie,
-					      u8 notify_fw)
+enum _ecore_status_t
+ecore_ll2_post_rx_buffer(void *cxt, u8 connection_handle, dma_addr_t addr,
+    u16 buf_len, void *cookie, u8 notify_fw)
 {
 	struct ecore_hwfn *p_hwfn = (struct ecore_hwfn *)cxt;
 	struct core_rx_bd_with_buff_len *p_curb = OSAL_NULL;
@@ -1592,8 +1504,7 @@ enum _ecore_status_t ecore_ll2_post_rx_buffer(void *cxt,
 	OSAL_SPIN_LOCK_IRQSAVE(&p_rx->lock, flags);
 	if (!OSAL_LIST_IS_EMPTY(&p_rx->free_descq))
 		p_curp = OSAL_LIST_FIRST_ENTRY(&p_rx->free_descq,
-					       struct ecore_ll2_rx_packet,
-					       list_entry);
+		    struct ecore_ll2_rx_packet, list_entry);
 	if (p_curp) {
 		if (ecore_chain_get_elem_left(&p_rx->rxq_chain) &&
 		    ecore_chain_get_elem_left(&p_rx->rcq_chain)) {
@@ -1605,7 +1516,7 @@ enum _ecore_status_t ecore_ll2_post_rx_buffer(void *cxt,
 
 	/* If we're lacking entires, let's try to flush buffers to FW */
 	if (!p_curp || !p_curb) {
-		rc =  ECORE_BUSY;
+		rc = ECORE_BUSY;
 		p_curp = OSAL_NULL;
 		goto out_notify;
 	}
@@ -1617,13 +1528,11 @@ enum _ecore_status_t ecore_ll2_post_rx_buffer(void *cxt,
 	p_curp->cookie = cookie;
 	p_curp->rxq_bd = p_curb;
 	p_curp->buf_length = buf_len;
-	OSAL_LIST_REMOVE_ENTRY(&p_curp->list_entry,
-			       &p_rx->free_descq);
+	OSAL_LIST_REMOVE_ENTRY(&p_curp->list_entry, &p_rx->free_descq);
 
 	/* Check if we only want to enqueue this packet without informing FW */
 	if (!notify_fw) {
-		OSAL_LIST_PUSH_TAIL(&p_curp->list_entry,
-				    &p_rx->posting_descq);
+		OSAL_LIST_PUSH_TAIL(&p_curp->list_entry, &p_rx->posting_descq);
 		goto out;
 	}
 
@@ -1634,13 +1543,12 @@ out:
 	return rc;
 }
 
-static void ecore_ll2_prepare_tx_packet_set(struct ecore_ll2_tx_queue *p_tx,
-					    struct ecore_ll2_tx_packet *p_curp,
-					    struct ecore_ll2_tx_pkt_info *pkt,
-					    u8 notify_fw)
+static void
+ecore_ll2_prepare_tx_packet_set(struct ecore_ll2_tx_queue *p_tx,
+    struct ecore_ll2_tx_packet *p_curp, struct ecore_ll2_tx_pkt_info *pkt,
+    u8 notify_fw)
 {
-	OSAL_LIST_REMOVE_ENTRY(&p_curp->list_entry,
-			       &p_tx->free_descq);
+	OSAL_LIST_REMOVE_ENTRY(&p_curp->list_entry, &p_tx->free_descq);
 	p_curp->cookie = pkt->cookie;
 	p_curp->bd_used = pkt->num_of_bds;
 	p_curp->notify_fw = notify_fw;
@@ -1652,11 +1560,10 @@ static void ecore_ll2_prepare_tx_packet_set(struct ecore_ll2_tx_queue *p_tx,
 	p_tx->cur_send_frag_num++;
 }
 
-static void ecore_ll2_prepare_tx_packet_set_bd(
-		struct ecore_hwfn *p_hwfn,
-		struct ecore_ll2_info *p_ll2,
-		struct ecore_ll2_tx_packet *p_curp,
-		struct ecore_ll2_tx_pkt_info *pkt)
+static void
+ecore_ll2_prepare_tx_packet_set_bd(struct ecore_hwfn *p_hwfn,
+    struct ecore_ll2_info *p_ll2, struct ecore_ll2_tx_packet *p_curp,
+    struct ecore_ll2_tx_pkt_info *pkt)
 {
 	struct ecore_chain *p_tx_chain = &p_ll2->tx_queue.txq_chain;
 	u16 prod_idx = ecore_chain_get_prod_idx(p_tx_chain);
@@ -1665,8 +1572,8 @@ static void ecore_ll2_prepare_tx_packet_set_bd(
 	enum core_tx_dest tx_dest;
 	u16 bd_data = 0, frag_idx;
 
-	roce_flavor = (pkt->ecore_roce_flavor == ECORE_LL2_ROCE) ?
-		CORE_ROCE : CORE_RROCE;
+	roce_flavor = (pkt->ecore_roce_flavor == ECORE_LL2_ROCE) ? CORE_ROCE :
+								   CORE_RROCE;
 
 	switch (pkt->tx_dest) {
 	case ECORE_LL2_TX_DEST_NW:
@@ -1683,21 +1590,22 @@ static void ecore_ll2_prepare_tx_packet_set_bd(
 		break;
 	}
 
-	start_bd = (struct core_tx_bd*)ecore_chain_produce(p_tx_chain);
+	start_bd = (struct core_tx_bd *)ecore_chain_produce(p_tx_chain);
 
 	if (ECORE_IS_IWARP_PERSONALITY(p_hwfn) &&
 	    (p_ll2->input.conn_type == ECORE_LL2_TYPE_OOO)) {
-		start_bd->nw_vlan_or_lb_echo =
-			OSAL_CPU_TO_LE16(IWARP_LL2_IN_ORDER_TX_QUEUE);
+		start_bd->nw_vlan_or_lb_echo = OSAL_CPU_TO_LE16(
+		    IWARP_LL2_IN_ORDER_TX_QUEUE);
 	} else {
 		start_bd->nw_vlan_or_lb_echo = OSAL_CPU_TO_LE16(pkt->vlan);
-		if (OSAL_TEST_BIT(ECORE_MF_UFP_SPECIFIC, &p_hwfn->p_dev->mf_bits) &&
+		if (OSAL_TEST_BIT(ECORE_MF_UFP_SPECIFIC,
+			&p_hwfn->p_dev->mf_bits) &&
 		    (p_ll2->input.conn_type == ECORE_LL2_TYPE_FCOE))
 			pkt->remove_stag = true;
 	}
 
 	SET_FIELD(start_bd->bitfield1, CORE_TX_BD_L4_HDR_OFFSET_W,
-		  OSAL_CPU_TO_LE16(pkt->l4_hdr_offset_w));
+	    OSAL_CPU_TO_LE16(pkt->l4_hdr_offset_w));
 	SET_FIELD(start_bd->bitfield1, CORE_TX_BD_TX_DST, tx_dest);
 	bd_data |= pkt->bd_flags;
 	SET_FIELD(bd_data, CORE_TX_BD_DATA_START_BD, 0x1);
@@ -1707,18 +1615,18 @@ static void ecore_ll2_prepare_tx_packet_set_bd(
 	SET_FIELD(bd_data, CORE_TX_BD_DATA_L4_CSUM, !!(pkt->enable_l4_cksum));
 	SET_FIELD(bd_data, CORE_TX_BD_DATA_IP_LEN, !!(pkt->calc_ip_len));
 	SET_FIELD(bd_data, CORE_TX_BD_DATA_DISABLE_STAG_INSERTION,
-		  !!(pkt->remove_stag));
+	    !!(pkt->remove_stag));
 
 	start_bd->bd_data.as_bitfield = OSAL_CPU_TO_LE16(bd_data);
 	DMA_REGPAIR_LE(start_bd->addr, pkt->first_frag);
 	start_bd->nbytes = OSAL_CPU_TO_LE16(pkt->first_frag_len);
 
 	DP_VERBOSE(p_hwfn, (ECORE_MSG_TX_QUEUED | ECORE_MSG_LL2),
-		   "LL2 [q 0x%02x cid 0x%08x type 0x%08x] Tx Producer at [0x%04x] - set with a %04x bytes %02x BDs buffer at %08x:%08x\n",
-		   p_ll2->queue_id, p_ll2->cid, p_ll2->input.conn_type,
-		   prod_idx, pkt->first_frag_len, pkt->num_of_bds,
-		   OSAL_LE32_TO_CPU(start_bd->addr.hi),
-		   OSAL_LE32_TO_CPU(start_bd->addr.lo));
+	    "LL2 [q 0x%02x cid 0x%08x type 0x%08x] Tx Producer at [0x%04x] - set with a %04x bytes %02x BDs buffer at %08x:%08x\n",
+	    p_ll2->queue_id, p_ll2->cid, p_ll2->input.conn_type, prod_idx,
+	    pkt->first_frag_len, pkt->num_of_bds,
+	    OSAL_LE32_TO_CPU(start_bd->addr.hi),
+	    OSAL_LE32_TO_CPU(start_bd->addr.lo));
 
 	if (p_ll2->tx_queue.cur_send_frag_num == pkt->num_of_bds)
 		return;
@@ -1737,8 +1645,9 @@ static void ecore_ll2_prepare_tx_packet_set_bd(
 }
 
 /* This should be called while the Txq spinlock is being held */
-static void ecore_ll2_tx_packet_notify(struct ecore_hwfn *p_hwfn,
-				       struct ecore_ll2_info *p_ll2_conn)
+static void
+ecore_ll2_tx_packet_notify(struct ecore_hwfn *p_hwfn,
+    struct ecore_ll2_info *p_ll2_conn)
 {
 	bool b_notify = p_ll2_conn->tx_queue.cur_send_packet->notify_fw;
 	struct ecore_ll2_tx_queue *p_tx = &p_ll2_conn->tx_queue;
@@ -1752,7 +1661,7 @@ static void ecore_ll2_tx_packet_notify(struct ecore_hwfn *p_hwfn,
 
 	/* Push the current packet to the list and clean after it */
 	OSAL_LIST_PUSH_TAIL(&p_ll2_conn->tx_queue.cur_send_packet->list_entry,
-			    &p_ll2_conn->tx_queue.sending_descq);
+	    &p_ll2_conn->tx_queue.sending_descq);
 	p_ll2_conn->tx_queue.cur_send_packet = OSAL_NULL;
 	p_ll2_conn->tx_queue.cur_send_frag_num = 0;
 
@@ -1764,15 +1673,14 @@ static void ecore_ll2_tx_packet_notify(struct ecore_hwfn *p_hwfn,
 
 	while (!OSAL_LIST_IS_EMPTY(&p_tx->sending_descq)) {
 		p_pkt = OSAL_LIST_FIRST_ENTRY(&p_tx->sending_descq,
-					      struct ecore_ll2_tx_packet,
-					      list_entry);
+		    struct ecore_ll2_tx_packet, list_entry);
 		if (p_pkt == OSAL_NULL)
 			break;
 #if defined(_NTDDK_)
 #pragma warning(suppress : 6011 28182)
 #endif
 		OSAL_LIST_REMOVE_ENTRY(&p_pkt->list_entry,
-				       &p_tx->sending_descq);
+		    &p_tx->sending_descq);
 		OSAL_LIST_PUSH_TAIL(&p_pkt->list_entry, &p_tx->active_descq);
 	}
 
@@ -1781,21 +1689,18 @@ static void ecore_ll2_tx_packet_notify(struct ecore_hwfn *p_hwfn,
 	/* Make sure the BDs data is updated before ringing the doorbell */
 	OSAL_WMB(p_hwfn->p_dev);
 
-	//DIRECT_REG_WR(p_hwfn, p_tx->doorbell_addr, *((u32 *)&p_tx->db_msg));
+	// DIRECT_REG_WR(p_hwfn, p_tx->doorbell_addr, *((u32 *)&p_tx->db_msg));
 	DIRECT_REG_WR_DB(p_hwfn, p_tx->doorbell_addr, *((u32 *)&p_tx->db_msg));
 
 	DP_VERBOSE(p_hwfn, (ECORE_MSG_TX_QUEUED | ECORE_MSG_LL2),
-		   "LL2 [q 0x%02x cid 0x%08x type 0x%08x] Doorbelled [producer 0x%04x]\n",
-		   p_ll2_conn->queue_id, p_ll2_conn->cid,
-		   p_ll2_conn->input.conn_type,
-		   p_tx->db_msg.spq_prod);
+	    "LL2 [q 0x%02x cid 0x%08x type 0x%08x] Doorbelled [producer 0x%04x]\n",
+	    p_ll2_conn->queue_id, p_ll2_conn->cid, p_ll2_conn->input.conn_type,
+	    p_tx->db_msg.spq_prod);
 }
 
-enum _ecore_status_t ecore_ll2_prepare_tx_packet(
-		void *cxt,
-		u8 connection_handle,
-		struct ecore_ll2_tx_pkt_info *pkt,
-		bool notify_fw)
+enum _ecore_status_t
+ecore_ll2_prepare_tx_packet(void *cxt, u8 connection_handle,
+    struct ecore_ll2_tx_pkt_info *pkt, bool notify_fw)
 {
 	struct ecore_hwfn *p_hwfn = (struct ecore_hwfn *)cxt;
 	struct ecore_ll2_tx_packet *p_curp = OSAL_NULL;
@@ -1823,8 +1728,7 @@ enum _ecore_status_t ecore_ll2_prepare_tx_packet(
 	/* Get entry, but only if we have tx elements for it */
 	if (!OSAL_LIST_IS_EMPTY(&p_tx->free_descq))
 		p_curp = OSAL_LIST_FIRST_ENTRY(&p_tx->free_descq,
-					       struct ecore_ll2_tx_packet,
-					       list_entry);
+		    struct ecore_ll2_tx_packet, list_entry);
 	if (p_curp && ecore_chain_get_elem_left(p_tx_chain) < pkt->num_of_bds)
 		p_curp = OSAL_NULL;
 
@@ -1836,8 +1740,7 @@ enum _ecore_status_t ecore_ll2_prepare_tx_packet(
 	/* Prepare packet and BD, and perhaps send a doorbell to FW */
 	ecore_ll2_prepare_tx_packet_set(p_tx, p_curp, pkt, notify_fw);
 
-	ecore_ll2_prepare_tx_packet_set_bd(p_hwfn, p_ll2_conn, p_curp,
-					   pkt);
+	ecore_ll2_prepare_tx_packet_set_bd(p_hwfn, p_ll2_conn, p_curp, pkt);
 
 	ecore_ll2_tx_packet_notify(p_hwfn, p_ll2_conn);
 
@@ -1846,10 +1749,9 @@ out:
 	return rc;
 }
 
-enum _ecore_status_t ecore_ll2_set_fragment_of_tx_packet(void *cxt,
-							 u8 connection_handle,
-							 dma_addr_t addr,
-							 u16 nbytes)
+enum _ecore_status_t
+ecore_ll2_set_fragment_of_tx_packet(void *cxt, u8 connection_handle,
+    dma_addr_t addr, u16 nbytes)
 {
 	struct ecore_ll2_tx_packet *p_cur_send_packet = OSAL_NULL;
 	struct ecore_hwfn *p_hwfn = (struct ecore_hwfn *)cxt;
@@ -1887,8 +1789,8 @@ enum _ecore_status_t ecore_ll2_set_fragment_of_tx_packet(void *cxt,
 	return ECORE_SUCCESS;
 }
 
-enum _ecore_status_t ecore_ll2_terminate_connection(void *cxt,
-						    u8 connection_handle)
+enum _ecore_status_t
+ecore_ll2_terminate_connection(void *cxt, u8 connection_handle)
 {
 	struct ecore_hwfn *p_hwfn = (struct ecore_hwfn *)cxt;
 	struct ecore_ll2_info *p_ll2_conn = OSAL_NULL;
@@ -1925,13 +1827,11 @@ enum _ecore_status_t ecore_ll2_terminate_connection(void *cxt,
 
 	if (p_ll2_conn->input.conn_type == ECORE_LL2_TYPE_FCOE) {
 		if (!OSAL_TEST_BIT(ECORE_MF_UFP_SPECIFIC,
-				   &p_hwfn->p_dev->mf_bits))
+			&p_hwfn->p_dev->mf_bits))
 			ecore_llh_remove_protocol_filter(p_hwfn->p_dev, 0,
-							 ECORE_LLH_FILTER_ETHERTYPE,
-							 0x8906, 0);
+			    ECORE_LLH_FILTER_ETHERTYPE, 0x8906, 0);
 		ecore_llh_remove_protocol_filter(p_hwfn->p_dev, 0,
-						 ECORE_LLH_FILTER_ETHERTYPE,
-						 0x8914, 0);
+		    ECORE_LLH_FILTER_ETHERTYPE, 0x8914, 0);
 	}
 
 out:
@@ -1940,8 +1840,9 @@ out:
 	return rc;
 }
 
-static void ecore_ll2_release_connection_ooo(struct ecore_hwfn *p_hwfn,
-					     struct ecore_ll2_info *p_ll2_conn)
+static void
+ecore_ll2_release_connection_ooo(struct ecore_hwfn *p_hwfn,
+    struct ecore_ll2_info *p_ll2_conn)
 {
 	struct ecore_ooo_buffer *p_buffer;
 
@@ -1951,15 +1852,14 @@ static void ecore_ll2_release_connection_ooo(struct ecore_hwfn *p_hwfn,
 	ecore_ooo_release_all_isles(p_hwfn->p_ooo_info);
 	while ((p_buffer = ecore_ooo_get_free_buffer(p_hwfn->p_ooo_info))) {
 		OSAL_DMA_FREE_COHERENT(p_hwfn->p_dev,
-				       p_buffer->rx_buffer_virt_addr,
-				       p_buffer->rx_buffer_phys_addr,
-				       p_buffer->rx_buffer_size);
+		    p_buffer->rx_buffer_virt_addr,
+		    p_buffer->rx_buffer_phys_addr, p_buffer->rx_buffer_size);
 		OSAL_FREE(p_hwfn->p_dev, p_buffer);
 	}
 }
 
-void ecore_ll2_release_connection(void *cxt,
-				  u8 connection_handle)
+void
+ecore_ll2_release_connection(void *cxt, u8 connection_handle)
 {
 	struct ecore_hwfn *p_hwfn = (struct ecore_hwfn *)cxt;
 	struct ecore_ll2_info *p_ll2_conn = OSAL_NULL;
@@ -1971,13 +1871,13 @@ void ecore_ll2_release_connection(void *cxt,
 	if (ECORE_LL2_RX_REGISTERED(p_ll2_conn)) {
 		p_ll2_conn->rx_queue.b_cb_registred = false;
 		ecore_int_unregister_cb(p_hwfn,
-					p_ll2_conn->rx_queue.rx_sb_index);
+		    p_ll2_conn->rx_queue.rx_sb_index);
 	}
 
 	if (ECORE_LL2_TX_REGISTERED(p_ll2_conn)) {
 		p_ll2_conn->tx_queue.b_cb_registred = false;
 		ecore_int_unregister_cb(p_hwfn,
-					p_ll2_conn->tx_queue.tx_sb_index);
+		    p_ll2_conn->tx_queue.tx_sb_index);
 	}
 
 	OSAL_FREE(p_hwfn->p_dev, p_ll2_conn->tx_queue.descq_array);
@@ -1998,18 +1898,18 @@ void ecore_ll2_release_connection(void *cxt,
 
 /* ECORE LL2: internal functions */
 
-enum _ecore_status_t ecore_ll2_alloc(struct ecore_hwfn *p_hwfn)
+enum _ecore_status_t
+ecore_ll2_alloc(struct ecore_hwfn *p_hwfn)
 {
 	struct ecore_ll2_info *p_ll2_info;
 	u8 i;
 
 	/* Allocate LL2's set struct */
 	p_ll2_info = OSAL_ZALLOC(p_hwfn->p_dev, GFP_KERNEL,
-				 sizeof(struct ecore_ll2_info) *
-				 ECORE_MAX_NUM_OF_LL2_CONNECTIONS);
+	    sizeof(struct ecore_ll2_info) * ECORE_MAX_NUM_OF_LL2_CONNECTIONS);
 	if (!p_ll2_info) {
 		DP_NOTICE(p_hwfn, false,
-			  "Failed to allocate `struct ecore_ll2'\n");
+		    "Failed to allocate `struct ecore_ll2'\n");
 		return ECORE_NOMEM;
 	}
 
@@ -2035,15 +1935,17 @@ handle_err:
 #endif
 }
 
-void ecore_ll2_setup(struct ecore_hwfn *p_hwfn)
+void
+ecore_ll2_setup(struct ecore_hwfn *p_hwfn)
 {
-	int  i;
+	int i;
 
 	for (i = 0; i < ECORE_MAX_NUM_OF_LL2_CONNECTIONS; i++)
 		OSAL_MUTEX_INIT(&p_hwfn->p_ll2_info[i].mutex);
 }
 
-void ecore_ll2_free(struct ecore_hwfn *p_hwfn)
+void
+ecore_ll2_free(struct ecore_hwfn *p_hwfn)
 {
 #ifdef CONFIG_ECORE_LOCK_ALLOC
 	int i;
@@ -2062,32 +1964,30 @@ void ecore_ll2_free(struct ecore_hwfn *p_hwfn)
 	p_hwfn->p_ll2_info = OSAL_NULL;
 }
 
-static void _ecore_ll2_get_port_stats(struct ecore_hwfn *p_hwfn,
-				      struct ecore_ptt *p_ptt,
-				      struct ecore_ll2_stats *p_stats)
+static void
+_ecore_ll2_get_port_stats(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
+    struct ecore_ll2_stats *p_stats)
 {
 	struct core_ll2_port_stats port_stats;
 
 	OSAL_MEMSET(&port_stats, 0, sizeof(port_stats));
 	ecore_memcpy_from(p_hwfn, p_ptt, &port_stats,
-			  BAR0_MAP_REG_TSDM_RAM +
-			  TSTORM_LL2_PORT_STAT_OFFSET(MFW_PORT(p_hwfn)),
-			  sizeof(port_stats));
+	    BAR0_MAP_REG_TSDM_RAM +
+		TSTORM_LL2_PORT_STAT_OFFSET(MFW_PORT(p_hwfn)),
+	    sizeof(port_stats));
 
-	p_stats->gsi_invalid_hdr +=
-		HILO_64_REGPAIR(port_stats.gsi_invalid_hdr);
-	p_stats->gsi_invalid_pkt_length +=
-		HILO_64_REGPAIR(port_stats.gsi_invalid_pkt_length);
-	p_stats->gsi_unsupported_pkt_typ +=
-		HILO_64_REGPAIR(port_stats.gsi_unsupported_pkt_typ);
-	p_stats->gsi_crcchksm_error +=
-		HILO_64_REGPAIR(port_stats.gsi_crcchksm_error);
+	p_stats->gsi_invalid_hdr += HILO_64_REGPAIR(port_stats.gsi_invalid_hdr);
+	p_stats->gsi_invalid_pkt_length += HILO_64_REGPAIR(
+	    port_stats.gsi_invalid_pkt_length);
+	p_stats->gsi_unsupported_pkt_typ += HILO_64_REGPAIR(
+	    port_stats.gsi_unsupported_pkt_typ);
+	p_stats->gsi_crcchksm_error += HILO_64_REGPAIR(
+	    port_stats.gsi_crcchksm_error);
 }
 
-static void _ecore_ll2_get_tstats(struct ecore_hwfn *p_hwfn,
-				  struct ecore_ptt *p_ptt,
-				  struct ecore_ll2_info *p_ll2_conn,
-				  struct ecore_ll2_stats *p_stats)
+static void
+_ecore_ll2_get_tstats(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
+    struct ecore_ll2_info *p_ll2_conn, struct ecore_ll2_stats *p_stats)
 {
 	struct core_ll2_tstorm_per_queue_stat tstats;
 	u8 qid = p_ll2_conn->queue_id;
@@ -2095,21 +1995,17 @@ static void _ecore_ll2_get_tstats(struct ecore_hwfn *p_hwfn,
 
 	OSAL_MEMSET(&tstats, 0, sizeof(tstats));
 	tstats_addr = BAR0_MAP_REG_TSDM_RAM +
-		      CORE_LL2_TSTORM_PER_QUEUE_STAT_OFFSET(qid);
-	ecore_memcpy_from(p_hwfn, p_ptt, &tstats,
-			  tstats_addr,
-			  sizeof(tstats));
+	    CORE_LL2_TSTORM_PER_QUEUE_STAT_OFFSET(qid);
+	ecore_memcpy_from(p_hwfn, p_ptt, &tstats, tstats_addr, sizeof(tstats));
 
-	p_stats->packet_too_big_discard +=
-		HILO_64_REGPAIR(tstats.packet_too_big_discard);
-	p_stats->no_buff_discard +=
-		HILO_64_REGPAIR(tstats.no_buff_discard);
+	p_stats->packet_too_big_discard += HILO_64_REGPAIR(
+	    tstats.packet_too_big_discard);
+	p_stats->no_buff_discard += HILO_64_REGPAIR(tstats.no_buff_discard);
 }
 
-static void _ecore_ll2_get_ustats(struct ecore_hwfn *p_hwfn,
-				  struct ecore_ptt *p_ptt,
-				  struct ecore_ll2_info *p_ll2_conn,
-				  struct ecore_ll2_stats *p_stats)
+static void
+_ecore_ll2_get_ustats(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
+    struct ecore_ll2_info *p_ll2_conn, struct ecore_ll2_stats *p_stats)
 {
 	struct core_ll2_ustorm_per_queue_stat ustats;
 	u8 qid = p_ll2_conn->queue_id;
@@ -2117,10 +2013,8 @@ static void _ecore_ll2_get_ustats(struct ecore_hwfn *p_hwfn,
 
 	OSAL_MEMSET(&ustats, 0, sizeof(ustats));
 	ustats_addr = BAR0_MAP_REG_USDM_RAM +
-		      CORE_LL2_USTORM_PER_QUEUE_STAT_OFFSET(qid);
-	ecore_memcpy_from(p_hwfn, p_ptt, &ustats,
-			  ustats_addr,
-			  sizeof(ustats));
+	    CORE_LL2_USTORM_PER_QUEUE_STAT_OFFSET(qid);
+	ecore_memcpy_from(p_hwfn, p_ptt, &ustats, ustats_addr, sizeof(ustats));
 
 	p_stats->rcv_ucast_bytes += HILO_64_REGPAIR(ustats.rcv_ucast_bytes);
 	p_stats->rcv_mcast_bytes += HILO_64_REGPAIR(ustats.rcv_mcast_bytes);
@@ -2130,10 +2024,9 @@ static void _ecore_ll2_get_ustats(struct ecore_hwfn *p_hwfn,
 	p_stats->rcv_bcast_pkts += HILO_64_REGPAIR(ustats.rcv_bcast_pkts);
 }
 
-static void _ecore_ll2_get_pstats(struct ecore_hwfn *p_hwfn,
-				  struct ecore_ptt *p_ptt,
-				  struct ecore_ll2_info *p_ll2_conn,
-				  struct ecore_ll2_stats *p_stats)
+static void
+_ecore_ll2_get_pstats(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
+    struct ecore_ll2_info *p_ll2_conn, struct ecore_ll2_stats *p_stats)
 {
 	struct core_ll2_pstorm_per_queue_stat pstats;
 	u8 stats_id = p_ll2_conn->tx_stats_id;
@@ -2141,10 +2034,8 @@ static void _ecore_ll2_get_pstats(struct ecore_hwfn *p_hwfn,
 
 	OSAL_MEMSET(&pstats, 0, sizeof(pstats));
 	pstats_addr = BAR0_MAP_REG_PSDM_RAM +
-		      CORE_LL2_PSTORM_PER_QUEUE_STAT_OFFSET(stats_id);
-	ecore_memcpy_from(p_hwfn, p_ptt, &pstats,
-			  pstats_addr,
-			  sizeof(pstats));
+	    CORE_LL2_PSTORM_PER_QUEUE_STAT_OFFSET(stats_id);
+	ecore_memcpy_from(p_hwfn, p_ptt, &pstats, pstats_addr, sizeof(pstats));
 
 	p_stats->sent_ucast_bytes += HILO_64_REGPAIR(pstats.sent_ucast_bytes);
 	p_stats->sent_mcast_bytes += HILO_64_REGPAIR(pstats.sent_mcast_bytes);
@@ -2154,9 +2045,9 @@ static void _ecore_ll2_get_pstats(struct ecore_hwfn *p_hwfn,
 	p_stats->sent_bcast_pkts += HILO_64_REGPAIR(pstats.sent_bcast_pkts);
 }
 
-enum _ecore_status_t __ecore_ll2_get_stats(void *cxt,
-					   u8 connection_handle,
-					   struct ecore_ll2_stats *p_stats)
+enum _ecore_status_t
+__ecore_ll2_get_stats(void *cxt, u8 connection_handle,
+    struct ecore_ll2_stats *p_stats)
 {
 	struct ecore_hwfn *p_hwfn = (struct ecore_hwfn *)cxt;
 	struct ecore_ll2_info *p_ll2_conn = OSAL_NULL;
@@ -2190,9 +2081,9 @@ enum _ecore_status_t __ecore_ll2_get_stats(void *cxt,
 	return ECORE_SUCCESS;
 }
 
-enum _ecore_status_t ecore_ll2_get_stats(void *cxt,
-					 u8 connection_handle,
-					 struct ecore_ll2_stats	*p_stats)
+enum _ecore_status_t
+ecore_ll2_get_stats(void *cxt, u8 connection_handle,
+    struct ecore_ll2_stats *p_stats)
 {
 	OSAL_MEMSET(p_stats, 0, sizeof(*p_stats));
 

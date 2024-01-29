@@ -3,7 +3,7 @@
  *
  * Copyright (c) 1987, 1993
  *    The Regents of the University of California.  All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -15,7 +15,7 @@
  * 3. Neither the name of the University nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -46,41 +46,40 @@
  * OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "port_before.h"
-
-#include "namespace.h"
 #include <sys/param.h>
 #include <sys/uio.h>
 
 #include <netinet/in.h>
-#include <arpa/nameser.h>
 
+#include <arpa/nameser.h>
 #include <netdb.h>
 #include <resolv.h>
 #include <string.h>
 #include <unistd.h>
+
+#include "namespace.h"
+#include "port_after.h"
+#include "port_before.h"
 #include "un-namespace.h"
 
-#include "port_after.h"
-
 const char *h_errlist[] = {
-	"Resolver Error 0 (no error)",
-	"Unknown host",				/*%< 1 HOST_NOT_FOUND */
-	"Host name lookup failure",		/*%< 2 TRY_AGAIN */
-	"Unknown server error",			/*%< 3 NO_RECOVERY */
-	"No address associated with name",	/*%< 4 NO_ADDRESS */
+	"Resolver Error 0 (no error)", "Unknown host", /*%< 1 HOST_NOT_FOUND */
+	"Host name lookup failure",		       /*%< 2 TRY_AGAIN */
+	"Unknown server error",			       /*%< 3 NO_RECOVERY */
+	"No address associated with name",	       /*%< 4 NO_ADDRESS */
 };
 const int h_nerr = { nitems(h_errlist) };
 
-#undef	h_errno
-int	h_errno;
+#undef h_errno
+int h_errno;
 
 /*%
  * herror --
  *	print the error indicated by the h_errno value.
  */
 void
-herror(const char *s) {
+herror(const char *s)
+{
 	struct iovec iov[4], *v = iov;
 	char *t;
 
@@ -109,7 +108,8 @@ herror(const char *s) {
  *	return the string associated with a given "host" errno value.
  */
 const char *
-hstrerror(int err) {
+hstrerror(int err)
+{
 	if (err < 0)
 		return ("Resolver internal error");
 	else if (err < h_nerr)

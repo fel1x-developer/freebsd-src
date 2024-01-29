@@ -26,72 +26,69 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
+#include <sys/module.h>
+#include <sys/rman.h>
 #include <sys/socket.h>
-#include <sys/sysctl.h>
 #include <sys/sockio.h>
-
-#include <net/ethernet.h>
-#include <net/if.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
-#include <net/if_arp.h>
+#include <sys/sysctl.h>
 
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
 
-#include "miibus_if.h"
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
 
-#include <contrib/ncsw/inc/integrations/dpaa_integration_ext.h>
 #include <contrib/ncsw/inc/Peripherals/fm_ext.h>
 #include <contrib/ncsw/inc/Peripherals/fm_mac_ext.h>
 #include <contrib/ncsw/inc/Peripherals/fm_port_ext.h>
+#include <contrib/ncsw/inc/integrations/dpaa_integration_ext.h>
 #include <contrib/ncsw/inc/xx_ext.h>
 
-#include "fman.h"
 #include "bman.h"
-#include "qman.h"
+#include "fman.h"
 #include "if_dtsec.h"
 #include "if_dtsec_rm.h"
-
+#include "miibus_if.h"
+#include "qman.h"
 
 /**
  * @group dTSEC RM private defines.
  * @{
  */
-#define	DTSEC_BPOOLS_USED	(1)
-#define	DTSEC_MAX_TX_QUEUE_LEN	256
+#define DTSEC_BPOOLS_USED (1)
+#define DTSEC_MAX_TX_QUEUE_LEN 256
 
 struct dtsec_rm_frame_info {
-	struct mbuf			*fi_mbuf;
-	t_DpaaSGTE			fi_sgt[DPAA_NUM_OF_SG_TABLE_ENTRY];
+	struct mbuf *fi_mbuf;
+	t_DpaaSGTE fi_sgt[DPAA_NUM_OF_SG_TABLE_ENTRY];
 };
 
 enum dtsec_rm_pool_params {
-	DTSEC_RM_POOL_RX_LOW_MARK	= 16,
-	DTSEC_RM_POOL_RX_HIGH_MARK	= 64,
-	DTSEC_RM_POOL_RX_MAX_SIZE	= 256,
+	DTSEC_RM_POOL_RX_LOW_MARK = 16,
+	DTSEC_RM_POOL_RX_HIGH_MARK = 64,
+	DTSEC_RM_POOL_RX_MAX_SIZE = 256,
 
-	DTSEC_RM_POOL_FI_LOW_MARK	= 16,
-	DTSEC_RM_POOL_FI_HIGH_MARK	= 64,
-	DTSEC_RM_POOL_FI_MAX_SIZE	= 256,
+	DTSEC_RM_POOL_FI_LOW_MARK = 16,
+	DTSEC_RM_POOL_FI_HIGH_MARK = 64,
+	DTSEC_RM_POOL_FI_MAX_SIZE = 256,
 };
 
-#define	DTSEC_RM_FQR_RX_CHANNEL		e_QM_FQ_CHANNEL_POOL1
-#define	DTSEC_RM_FQR_TX_CONF_CHANNEL	e_QM_FQ_CHANNEL_SWPORTAL0
+#define DTSEC_RM_FQR_RX_CHANNEL e_QM_FQ_CHANNEL_POOL1
+#define DTSEC_RM_FQR_TX_CONF_CHANNEL e_QM_FQ_CHANNEL_SWPORTAL0
 enum dtsec_rm_fqr_params {
-	DTSEC_RM_FQR_RX_WQ		= 1,
-	DTSEC_RM_FQR_TX_WQ		= 1,
-	DTSEC_RM_FQR_TX_CONF_WQ		= 1
+	DTSEC_RM_FQR_RX_WQ = 1,
+	DTSEC_RM_FQR_TX_WQ = 1,
+	DTSEC_RM_FQR_TX_CONF_WQ = 1
 };
 /** @} */
-
 
 /**
  * @group dTSEC Frame Info routines.
@@ -138,7 +135,6 @@ dtsec_rm_fi_free(struct dtsec_softc *sc, struct dtsec_rm_frame_info *fi)
 	uma_zfree(sc->sc_fi_zone, fi);
 }
 /** @} */
-
 
 /**
  * @group dTSEC FMan PORT routines.
@@ -240,7 +236,6 @@ dtsec_rm_fm_port_tx_init(struct dtsec_softc *sc, int unit)
 }
 /** @} */
 
-
 /**
  * @group dTSEC buffer pools routines.
  * @{
@@ -318,8 +313,8 @@ dtsec_rm_pool_rx_init(struct dtsec_softc *sc)
 	sc->sc_rx_pool = bman_pool_create(&sc->sc_rx_bpid, FM_PORT_BUFFER_SIZE,
 	    0, 0, DTSEC_RM_POOL_RX_MAX_SIZE, dtsec_rm_pool_rx_get_buffer,
 	    dtsec_rm_pool_rx_put_buffer, DTSEC_RM_POOL_RX_LOW_MARK,
-	    DTSEC_RM_POOL_RX_HIGH_MARK, 0, 0, dtsec_rm_pool_rx_depleted, sc, NULL,
-	    NULL);
+	    DTSEC_RM_POOL_RX_HIGH_MARK, 0, 0, dtsec_rm_pool_rx_depleted, sc,
+	    NULL, NULL);
 	if (sc->sc_rx_pool == NULL) {
 		device_printf(sc->sc_dev, "NULL rx pool  somehow\n");
 		dtsec_rm_pool_rx_free(sc);
@@ -329,7 +324,6 @@ dtsec_rm_pool_rx_init(struct dtsec_softc *sc)
 	return (0);
 }
 /** @} */
-
 
 /**
  * @group dTSEC Frame Queue Range routines.
@@ -363,7 +357,7 @@ dtsec_rm_fqr_rx_callback(t_Handle app, t_Handle fqr, t_Handle portal,
 	frame_va = DPAA_FD_GET_ADDR(frame);
 	KASSERT(DPAA_FD_GET_FORMAT(frame) == e_DPAA_FD_FORMAT_TYPE_SHORT_SBSF,
 	    ("%s(): Got unsupported frame format 0x%02X!", __func__,
-	    DPAA_FD_GET_FORMAT(frame)));
+		DPAA_FD_GET_FORMAT(frame)));
 
 	KASSERT(DPAA_FD_GET_OFFSET(frame) == 0,
 	    ("%s(): Only offset 0 is supported!", __func__));
@@ -378,9 +372,8 @@ dtsec_rm_fqr_rx_callback(t_Handle app, t_Handle fqr, t_Handle portal,
 	if (m == NULL)
 		goto err;
 
-	m_extadd(m, frame_va, FM_PORT_BUFFER_SIZE,
-	    dtsec_rm_fqr_mext_free, frame_va, sc, 0,
-	    EXT_NET_DRV);
+	m_extadd(m, frame_va, FM_PORT_BUFFER_SIZE, dtsec_rm_fqr_mext_free,
+	    frame_va, sc, 0, EXT_NET_DRV);
 
 	m->m_pkthdr.rcvif = sc->sc_ifnet;
 	m->m_len = DPAA_FD_GET_LENGTH(frame);
@@ -459,7 +452,8 @@ dtsec_rm_fqr_rx_init(struct dtsec_softc *sc)
 	fqr = qman_fqr_create(1, DTSEC_RM_FQR_RX_CHANNEL, DTSEC_RM_FQR_RX_WQ,
 	    false, 0, false, false, true, false, 0, 0, 0);
 	if (fqr == NULL) {
-		device_printf(sc->sc_dev, "could not create default RX queue"
+		device_printf(sc->sc_dev,
+		    "could not create default RX queue"
 		    "\n");
 		return (EIO);
 	}
@@ -495,10 +489,11 @@ dtsec_rm_fqr_tx_init(struct dtsec_softc *sc)
 	t_Handle fqr;
 
 	/* TX Frame Queue */
-	fqr = qman_fqr_create(1, sc->sc_port_tx_qman_chan,
-	    DTSEC_RM_FQR_TX_WQ, false, 0, false, false, true, false, 0, 0, 0);
+	fqr = qman_fqr_create(1, sc->sc_port_tx_qman_chan, DTSEC_RM_FQR_TX_WQ,
+	    false, 0, false, false, true, false, 0, 0, 0);
 	if (fqr == NULL) {
-		device_printf(sc->sc_dev, "could not create default TX queue"
+		device_printf(sc->sc_dev,
+		    "could not create default TX queue"
 		    "\n");
 		return (EIO);
 	}
@@ -510,7 +505,8 @@ dtsec_rm_fqr_tx_init(struct dtsec_softc *sc)
 	    DTSEC_RM_FQR_TX_CONF_WQ, false, 0, false, false, true, false, 0, 0,
 	    0);
 	if (fqr == NULL) {
-		device_printf(sc->sc_dev, "could not create TX confirmation "
+		device_printf(sc->sc_dev,
+		    "could not create TX confirmation "
 		    "queue\n");
 		dtsec_rm_fqr_tx_free(sc);
 		return (EIO);
@@ -521,7 +517,8 @@ dtsec_rm_fqr_tx_init(struct dtsec_softc *sc)
 
 	error = qman_fqr_register_cb(fqr, dtsec_rm_fqr_tx_confirm_callback, sc);
 	if (error != E_OK) {
-		device_printf(sc->sc_dev, "could not register TX confirmation "
+		device_printf(sc->sc_dev,
+		    "could not register TX confirmation "
 		    "callback\n");
 		dtsec_rm_fqr_tx_free(sc);
 		return (EIO);
@@ -530,7 +527,6 @@ dtsec_rm_fqr_tx_init(struct dtsec_softc *sc)
 	return (0);
 }
 /** @} */
-
 
 /**
  * @group dTSEC IFnet routines.
@@ -632,7 +628,7 @@ dtsec_rm_if_start_locked(struct dtsec_softc *sc)
 			continue;
 		}
 
-		DPAA_SGTE_SET_FINAL(&fi->fi_sgt[i-1], 1);
+		DPAA_SGTE_SET_FINAL(&fi->fi_sgt[i - 1], 1);
 
 		DPAA_FD_SET_ADDR(&fd, fi->fi_sgt);
 		DPAA_FD_SET_LENGTH(&fd, psize);

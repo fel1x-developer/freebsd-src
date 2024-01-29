@@ -45,16 +45,16 @@
 #include <sys/kernel.h>
 #include <sys/module.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
 #include <dev/acpica/acpivar.h>
-
 #include <dev/virtio/mmio/virtio_mmio.h>
 
-static int	vtmmio_acpi_probe(device_t);
+#include <contrib/dev/acpica/include/acpi.h>
+
+static int vtmmio_acpi_probe(device_t);
 
 static device_method_t vtmmio_acpi_methods[] = {
 	/* Device interface. */
-	DEVMETHOD(device_probe,		vtmmio_acpi_probe),
+	DEVMETHOD(device_probe, vtmmio_acpi_probe),
 
 	DEVMETHOD_END
 };
@@ -62,7 +62,7 @@ static device_method_t vtmmio_acpi_methods[] = {
 DEFINE_CLASS_1(virtio_mmio, vtmmio_acpi_driver, vtmmio_acpi_methods,
     sizeof(struct vtmmio_softc), vtmmio_driver);
 
-DRIVER_MODULE(virtio_mmio, acpi, vtmmio_acpi_driver, 0,0);
+DRIVER_MODULE(virtio_mmio, acpi, vtmmio_acpi_driver, 0, 0);
 MODULE_DEPEND(virtio_mmio, acpi, 1, 1, 1);
 
 static int

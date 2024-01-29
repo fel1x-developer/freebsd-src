@@ -9,13 +9,13 @@
 
 #include "ipf.h"
 
-long	string_start = -1;
-long	string_end = -1;
-char	*string_val = NULL;
-long	pos = 0;
+long string_start = -1;
+long string_end = -1;
+char *string_val = NULL;
+long pos = 0;
 
-
-void resetlexer(void)
+void
+resetlexer(void)
 {
 	string_start = -1;
 	string_end = -1;

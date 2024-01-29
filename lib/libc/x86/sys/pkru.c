@@ -27,20 +27,23 @@
  */
 
 #include <sys/param.h>
+
 #include <machine/cpufunc.h>
 #include <machine/specialreg.h>
 #include <machine/sysarch.h>
+
 #include <x86/ifunc.h>
+
 #include <errno.h>
 #include <string.h>
 
-#define	MAX_PKRU_IDX	0xf
+#define MAX_PKRU_IDX 0xf
 #ifdef __i386__
-#define	X86_SET_PKRU	I386_SET_PKRU
-#define	X86_CLEAR_PKRU	I386_CLEAR_PKRU
+#define X86_SET_PKRU I386_SET_PKRU
+#define X86_CLEAR_PKRU I386_CLEAR_PKRU
 #else
-#define	X86_SET_PKRU	AMD64_SET_PKRU
-#define	X86_CLEAR_PKRU	AMD64_CLEAR_PKRU
+#define X86_SET_PKRU AMD64_SET_PKRU
+#define X86_CLEAR_PKRU AMD64_CLEAR_PKRU
 #endif
 
 static int
@@ -71,7 +74,8 @@ DEFINE_UIFUNC(, int, x86_pkru_get_perm, (u_int, int *, int *))
 {
 
 	return ((cpu_stdext_feature2 & CPUID_STDEXT2_OSPKE) == 0 ?
-	    x86_pkru_get_perm_unsup : x86_pkru_get_perm_hw);
+		x86_pkru_get_perm_unsup :
+		x86_pkru_get_perm_hw);
 }
 
 static int
@@ -106,7 +110,8 @@ DEFINE_UIFUNC(, int, x86_pkru_set_perm, (u_int, int, int))
 {
 
 	return ((cpu_stdext_feature2 & CPUID_STDEXT2_OSPKE) == 0 ?
-	    x86_pkru_set_perm_unsup : x86_pkru_set_perm_hw);
+		x86_pkru_set_perm_unsup :
+		x86_pkru_set_perm_hw);
 }
 
 int

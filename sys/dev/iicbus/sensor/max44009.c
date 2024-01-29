@@ -26,15 +26,15 @@
  *
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
 #include <machine/bus.h>
 
@@ -49,18 +49,18 @@
 /*
  * Driver for MAX44009 Ambient Light Sensor with ADC.
  */
-#define	REG_LUX_HIGH			0x03
-#define	REG_LUX_LOW			0x04
+#define REG_LUX_HIGH 0x03
+#define REG_LUX_LOW 0x04
 
 struct max44009_softc {
-	device_t		sc_dev;
-	uint8_t			sc_addr;
+	device_t sc_dev;
+	uint8_t sc_addr;
 };
 
 #ifdef FDT
 static const struct ofw_compat_data compat_data[] = {
-        { "maxim,max44009",		true },
-	{ NULL,				false },
+	{ "maxim,max44009", true },
+	{ NULL, false },
 };
 #endif
 
@@ -157,8 +157,8 @@ max44009_attach(device_t dev)
 	tree = SYSCTL_CHILDREN(tree_node);
 
 	SYSCTL_ADD_PROC(ctx, tree, OID_AUTO, "illuminance",
-	    CTLTYPE_INT | CTLFLAG_RD, dev, 0,
-	    max44009_lux_sysctl, "I", "Light intensity, lux");
+	    CTLTYPE_INT | CTLFLAG_RD, dev, 0, max44009_lux_sysctl, "I",
+	    "Light intensity, lux");
 	return (0);
 }
 
@@ -168,20 +168,17 @@ max44009_detach(device_t dev)
 	return (0);
 }
 
-static device_method_t  max44009_methods[] = {
+static device_method_t max44009_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		max44009_probe),
-	DEVMETHOD(device_attach,	max44009_attach),
-	DEVMETHOD(device_detach,	max44009_detach),
+	DEVMETHOD(device_probe, max44009_probe),
+	DEVMETHOD(device_attach, max44009_attach),
+	DEVMETHOD(device_detach, max44009_detach),
 
 	DEVMETHOD_END
 };
 
-static driver_t max44009_driver = {
-	"max44009",
-	max44009_methods,
-	sizeof(struct max44009_softc)
-};
+static driver_t max44009_driver = { "max44009", max44009_methods,
+	sizeof(struct max44009_softc) };
 
 DRIVER_MODULE(max44009, iicbus, max44009_driver, 0, 0);
 MODULE_DEPEND(max44009, iicbus, IICBUS_MINVER, IICBUS_PREFVER, IICBUS_MAXVER);

@@ -33,8 +33,7 @@
 #ifndef _UUID_PRIVATE_H_
 #define _UUID_PRIVATE_H_
 
-extern	uint128_t	uuid_base;
-extern	uint128_t	uuid_public_browse_group;
+extern uint128_t uuid_base;
+extern uint128_t uuid_public_browse_group;
 
 #endif /* ndef _UUID_PRIVATE_H_ */
-

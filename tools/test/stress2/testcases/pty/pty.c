@@ -29,6 +29,7 @@
 
 #include <sys/types.h>
 #include <sys/ioctl.h>
+
 #include <err.h>
 #include <libutil.h>
 #include <stdio.h>
@@ -43,7 +44,7 @@
 int
 setup(int nb __unused)
 {
-        return (0);
+	return (0);
 }
 
 void
@@ -55,7 +56,7 @@ int
 test(void)
 {
 	struct termios tios;
-        int i, master, slave;
+	int i, master, slave;
 	int s[32], m[32];
 	char buf[512], slname[1025];
 
@@ -91,8 +92,8 @@ test(void)
 		}
 	}
 
-        if (openpty(&master, &slave, slname, NULL, NULL) == -1)
-                err(1, "openpty");
+	if (openpty(&master, &slave, slname, NULL, NULL) == -1)
+		err(1, "openpty");
 	if (tcgetattr(slave, &tios) < 0)
 		err(1, "tcgetattr(%s)", slname);
 	cfmakeraw(&tios);
@@ -105,7 +106,7 @@ test(void)
 		if (read(slave, buf, sizeof(TXT)) == -1)
 			err(1, "read(%s)", slname);
 	}
-        close(master);
-        close(slave);
-        return (0);
+	close(master);
+	close(slave);
+	return (0);
 }

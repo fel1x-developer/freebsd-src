@@ -16,31 +16,31 @@ __RCSID("$NetBSD: tfind.c,v 1.2 1999/09/16 11:45:37 lukem Exp $");
 #endif /* LIBC_SCCS and not lint */
 #endif
 #define _SEARCH_PRIVATE
-#include <stdlib.h>
 #include <search.h>
+#include <stdlib.h>
 
-/* 
+/*
  * find a node, or return 0
  *
- * vkey   - key to be found 
- * vrootp - address of the tree root 
+ * vkey   - key to be found
+ * vrootp - address of the tree root
  */
 posix_tnode *
-tfind(const void *vkey, posix_tnode * const *rootp,
+tfind(const void *vkey, posix_tnode *const *rootp,
     int (*compar)(const void *, const void *))
 {
 
 	if (rootp == NULL)
 		return NULL;
 
-	while (*rootp != NULL) {		/* T1: */
+	while (*rootp != NULL) { /* T1: */
 		int r;
 
-		if ((r = (*compar)(vkey, (*rootp)->key)) == 0)	/* T2: */
-			return *rootp;		/* key found */
+		if ((r = (*compar)(vkey, (*rootp)->key)) == 0) /* T2: */
+			return *rootp;			       /* key found */
 		rootp = (r < 0) ?
-		    &(*rootp)->llink :		/* T3: follow left branch */
-		    &(*rootp)->rlink;		/* T4: follow right branch */
+		    &(*rootp)->llink : /* T3: follow left branch */
+		    &(*rootp)->rlink;  /* T4: follow right branch */
 	}
 	return NULL;
 }

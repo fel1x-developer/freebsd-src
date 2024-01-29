@@ -31,35 +31,35 @@
 #include "opt_wlan.h"
 
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/endian.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
-#include <sys/systm.h> 
-#include <sys/endian.h>
-
 #include <sys/socket.h>
 
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_media.h>
 #include <net/ethernet.h>
-
-#include <net80211/ieee80211_var.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_var.h>
 #include <net80211/ieee80211_action.h>
 #include <net80211/ieee80211_input.h>
+#include <net80211/ieee80211_var.h>
 #include <net80211/ieee80211_vht.h>
 
-#define	ADDSHORT(frm, v) do {			\
-	frm[0] = (v) & 0xff;			\
-	frm[1] = (v) >> 8;			\
-	frm += 2;				\
-} while (0)
-#define	ADDWORD(frm, v) do {			\
-	frm[0] = (v) & 0xff;			\
-	frm[1] = ((v) >> 8) & 0xff;		\
-	frm[2] = ((v) >> 16) & 0xff;		\
-	frm[3] = ((v) >> 24) & 0xff;		\
-	frm += 4;				\
-} while (0)
+#define ADDSHORT(frm, v)             \
+	do {                         \
+		frm[0] = (v) & 0xff; \
+		frm[1] = (v) >> 8;   \
+		frm += 2;            \
+	} while (0)
+#define ADDWORD(frm, v)                      \
+	do {                                 \
+		frm[0] = (v) & 0xff;         \
+		frm[1] = ((v) >> 8) & 0xff;  \
+		frm[2] = ((v) >> 16) & 0xff; \
+		frm[3] = ((v) >> 24) & 0xff; \
+		frm += 4;                    \
+	} while (0)
 
 /*
  * Immediate TODO:
@@ -78,20 +78,19 @@
 
 static int
 vht_recv_action_placeholder(struct ieee80211_node *ni,
-    const struct ieee80211_frame *wh,
-    const uint8_t *frm, const uint8_t *efrm)
+    const struct ieee80211_frame *wh, const uint8_t *frm, const uint8_t *efrm)
 {
 
 #ifdef IEEE80211_DEBUG
-	ieee80211_note(ni->ni_vap, "%s: called; fc=0x%.2x/0x%.2x",
-	    __func__, wh->i_fc[0], wh->i_fc[1]);
+	ieee80211_note(ni->ni_vap, "%s: called; fc=0x%.2x/0x%.2x", __func__,
+	    wh->i_fc[0], wh->i_fc[1]);
 #endif
 	return (0);
 }
 
 static int
-vht_send_action_placeholder(struct ieee80211_node *ni,
-    int category, int action, void *arg0)
+vht_send_action_placeholder(struct ieee80211_node *ni, int category, int action,
+    void *arg0)
 {
 
 #ifdef IEEE80211_DEBUG
@@ -137,20 +136,20 @@ ieee80211_vht_vattach(struct ieee80211vap *vap)
 {
 	struct ieee80211com *ic = vap->iv_ic;
 
-	if (! IEEE80211_CONF_VHT(ic))
+	if (!IEEE80211_CONF_VHT(ic))
 		return;
 
 	vap->iv_vht_cap.vht_cap_info = ic->ic_vht_cap.vht_cap_info;
 	vap->iv_vhtextcaps = ic->ic_vhtextcaps;
 
 	/* XXX assume VHT80 support; should really check vhtcaps */
-	vap->iv_vht_flags =
-	    IEEE80211_FVHT_VHT
-	    | IEEE80211_FVHT_USEVHT40
-	    | IEEE80211_FVHT_USEVHT80;
-	if (IEEE80211_VHTCAP_SUPP_CHAN_WIDTH_IS_160MHZ(vap->iv_vht_cap.vht_cap_info))
+	vap->iv_vht_flags = IEEE80211_FVHT_VHT | IEEE80211_FVHT_USEVHT40 |
+	    IEEE80211_FVHT_USEVHT80;
+	if (IEEE80211_VHTCAP_SUPP_CHAN_WIDTH_IS_160MHZ(
+		vap->iv_vht_cap.vht_cap_info))
 		vap->iv_vht_flags |= IEEE80211_FVHT_USEVHT160;
-	if (IEEE80211_VHTCAP_SUPP_CHAN_WIDTH_IS_160_80P80MHZ(vap->iv_vht_cap.vht_cap_info))
+	if (IEEE80211_VHTCAP_SUPP_CHAN_WIDTH_IS_160_80P80MHZ(
+		vap->iv_vht_cap.vht_cap_info))
 		vap->iv_vht_flags |= IEEE80211_FVHT_USEVHT80P80;
 
 	memcpy(&vap->iv_vht_cap.supp_mcs, &ic->ic_vht_cap.supp_mcs,
@@ -190,15 +189,19 @@ ieee80211_vht_announce(struct ieee80211com *ic)
 {
 	int i, tx, rx;
 
-	if (! IEEE80211_CONF_VHT(ic))
+	if (!IEEE80211_CONF_VHT(ic))
 		return;
 
 	/* Channel width */
 	ic_printf(ic, "[VHT] Channel Widths: 20MHz, 40MHz, 80MHz%s%s\n",
-	    (IEEE80211_VHTCAP_SUPP_CHAN_WIDTH_IS_160MHZ(ic->ic_vht_cap.vht_cap_info)) ?
-		", 160MHz" : "",
-	    (IEEE80211_VHTCAP_SUPP_CHAN_WIDTH_IS_160_80P80MHZ(ic->ic_vht_cap.vht_cap_info)) ?
-		 ", 80+80MHz" : "");
+	    (IEEE80211_VHTCAP_SUPP_CHAN_WIDTH_IS_160MHZ(
+		ic->ic_vht_cap.vht_cap_info)) ?
+		", 160MHz" :
+		"",
+	    (IEEE80211_VHTCAP_SUPP_CHAN_WIDTH_IS_160_80P80MHZ(
+		ic->ic_vht_cap.vht_cap_info)) ?
+		", 80+80MHz" :
+		"");
 	/* Features */
 	ic_printf(ic, "[VHT] Features: %b\n", ic->ic_vht_cap.vht_cap_info,
 	    IEEE80211_VHTCAP_BITS);
@@ -206,8 +209,8 @@ ieee80211_vht_announce(struct ieee80211com *ic)
 	/* For now, just 5GHz VHT.  Worry about 2GHz VHT later */
 	for (i = 0; i < 8; i++) {
 		/* Each stream is 2 bits */
-		tx = (ic->ic_vht_cap.supp_mcs.tx_mcs_map >> (2*i)) & 0x3;
-		rx = (ic->ic_vht_cap.supp_mcs.rx_mcs_map >> (2*i)) & 0x3;
+		tx = (ic->ic_vht_cap.supp_mcs.tx_mcs_map >> (2 * i)) & 0x3;
+		rx = (ic->ic_vht_cap.supp_mcs.rx_mcs_map >> (2 * i)) & 0x3;
 		if (tx == 3 && rx == 3)
 			continue;
 		ic_printf(ic, "[VHT] NSS %d: TX MCS 0..%d, RX MCS 0..%d\n",
@@ -219,8 +222,8 @@ void
 ieee80211_vht_node_init(struct ieee80211_node *ni)
 {
 
-	IEEE80211_NOTE(ni->ni_vap, IEEE80211_MSG_11N, ni,
-	    "%s: called", __func__);
+	IEEE80211_NOTE(ni->ni_vap, IEEE80211_MSG_11N, ni, "%s: called",
+	    __func__);
 	ni->ni_flags |= IEEE80211_NODE_VHT;
 }
 
@@ -228,8 +231,8 @@ void
 ieee80211_vht_node_cleanup(struct ieee80211_node *ni)
 {
 
-	IEEE80211_NOTE(ni->ni_vap, IEEE80211_MSG_11N, ni,
-	    "%s: called", __func__);
+	IEEE80211_NOTE(ni->ni_vap, IEEE80211_MSG_11N, ni, "%s: called",
+	    __func__);
 	ni->ni_flags &= ~IEEE80211_NODE_VHT;
 	ni->ni_vhtcap = 0;
 	bzero(&ni->ni_vht_mcsinfo, sizeof(struct ieee80211_vht_mcs_info));
@@ -272,12 +275,11 @@ ieee80211_parse_vhtcap(struct ieee80211_node *ni, const uint8_t *ie)
 }
 
 int
-ieee80211_vht_updateparams(struct ieee80211_node *ni,
-    const uint8_t *vhtcap_ie,
+ieee80211_vht_updateparams(struct ieee80211_node *ni, const uint8_t *vhtcap_ie,
     const uint8_t *vhtop_ie)
 {
 
-	//printf("%s: called\n", __func__);
+	// printf("%s: called\n", __func__);
 
 	ieee80211_parse_vhtcap(ni, vhtcap_ie);
 	ieee80211_parse_vhtopmode(ni, vhtop_ie);
@@ -285,12 +287,11 @@ ieee80211_vht_updateparams(struct ieee80211_node *ni,
 }
 
 void
-ieee80211_setup_vht_rates(struct ieee80211_node *ni,
-    const uint8_t *vhtcap_ie,
+ieee80211_setup_vht_rates(struct ieee80211_node *ni, const uint8_t *vhtcap_ie,
     const uint8_t *vhtop_ie)
 {
 
-	//printf("%s: called\n", __func__);
+	// printf("%s: called\n", __func__);
 	/* XXX TODO */
 }
 
@@ -303,16 +304,16 @@ void
 ieee80211_vht_node_join(struct ieee80211_node *ni)
 {
 
-	IEEE80211_NOTE(ni->ni_vap, IEEE80211_MSG_11N, ni,
-	    "%s: called", __func__);
+	IEEE80211_NOTE(ni->ni_vap, IEEE80211_MSG_11N, ni, "%s: called",
+	    __func__);
 }
 
 void
 ieee80211_vht_node_leave(struct ieee80211_node *ni)
 {
 
-	IEEE80211_NOTE(ni->ni_vap, IEEE80211_MSG_11N, ni,
-	    "%s: called", __func__);
+	IEEE80211_NOTE(ni->ni_vap, IEEE80211_MSG_11N, ni, "%s: called",
+	    __func__);
 }
 
 /*
@@ -341,7 +342,7 @@ ieee80211_vht_get_vhtcap_ie(struct ieee80211_node *ni,
     struct ieee80211_vht_cap *vhtcap, int opmode)
 {
 	struct ieee80211vap *vap = ni->ni_vap;
-//	struct ieee80211com *ic = vap->iv_ic;
+	//	struct ieee80211com *ic = vap->iv_ic;
 	uint32_t val, val1, val2;
 	uint32_t new_vhtcap;
 	int i;
@@ -383,7 +384,7 @@ ieee80211_vht_get_vhtcap_ie(struct ieee80211_node *ni,
 		val2 = 0;
 	val = MIN(val1, val2);
 	new_vhtcap |= _IEEE80211_SHIFTMASK(val,
-	     IEEE80211_VHTCAP_SUPP_CHAN_WIDTH_MASK);
+	    IEEE80211_VHTCAP_SUPP_CHAN_WIDTH_MASK);
 
 	/* RX LDPC */
 	val2 = val1 = _IEEE80211_MASKSHIFT(vap->iv_vht_cap.vht_cap_info,
@@ -435,7 +436,7 @@ ieee80211_vht_get_vhtcap_ie(struct ieee80211_node *ni,
 	    IEEE80211_VHTCAP_TXSTBC);
 	if (opmode == 1) {
 		/* STA mode - enable it only if node RXSTBC is non-zero */
-		val2 = !! _IEEE80211_MASKSHIFT(ni->ni_vhtcap,
+		val2 = !!_IEEE80211_MASKSHIFT(ni->ni_vhtcap,
 		    IEEE80211_VHTCAP_RXSTBC_MASK);
 	}
 	val = MIN(val1, val2);
@@ -450,7 +451,7 @@ ieee80211_vht_get_vhtcap_ie(struct ieee80211_node *ni,
 	if (opmode == 1) {
 		/* STA mode - enable it only if node TXSTBC is non-zero */
 		val2 = _IEEE80211_MASKSHIFT(ni->ni_vhtcap,
-		   IEEE80211_VHTCAP_TXSTBC);
+		    IEEE80211_VHTCAP_TXSTBC);
 	}
 	val = MIN(val1, val2);
 	/* XXX For now, use the 11n config flag */
@@ -534,10 +535,10 @@ ieee80211_vht_get_vhtcap_ie(struct ieee80211_node *ni,
 	val = MIN(val1, val2);
 	if ((new_vhtcap & IEEE80211_VHTCAP_SU_BEAMFORMER_CAPABLE) == 0)
 		val = 0;
-	if (opmode != 1)	/* Only enable for STA mode */
+	if (opmode != 1) /* Only enable for STA mode */
 		val = 0;
 	new_vhtcap |= _IEEE80211_SHIFTMASK(val,
-	   IEEE80211_VHTCAP_SU_BEAMFORMER_CAPABLE);
+	    IEEE80211_VHTCAP_SU_BEAMFORMER_CAPABLE);
 
 	/*
 	 * MU Beamformee capable - only if SU BFE capable, MU BFE capable
@@ -551,10 +552,10 @@ ieee80211_vht_get_vhtcap_ie(struct ieee80211_node *ni,
 	val = MIN(val1, val2);
 	if ((new_vhtcap & IEEE80211_VHTCAP_SU_BEAMFORMEE_CAPABLE) == 0)
 		val = 0;
-	if (opmode != 0)	/* Only enable for AP mode */
+	if (opmode != 0) /* Only enable for AP mode */
 		val = 0;
 	new_vhtcap |= _IEEE80211_SHIFTMASK(val,
-	   IEEE80211_VHTCAP_SU_BEAMFORMEE_CAPABLE);
+	    IEEE80211_VHTCAP_SU_BEAMFORMEE_CAPABLE);
 
 	/* VHT TXOP PS */
 	val2 = val1 = _IEEE80211_MASKSHIFT(vap->iv_vht_cap.vht_cap_info,
@@ -650,13 +651,13 @@ ieee80211_vht_get_vhtcap_ie(struct ieee80211_node *ni,
 	 */
 	if (opmode) {
 		for (i = 0; i < 8; i++) {
-			val1 = (vhtcap->supp_mcs.tx_mcs_map >> (i*2)) & 0x3;
-			val2 = (ni->ni_vht_mcsinfo.tx_mcs_map >> (i*2)) & 0x3;
+			val1 = (vhtcap->supp_mcs.tx_mcs_map >> (i * 2)) & 0x3;
+			val2 = (ni->ni_vht_mcsinfo.tx_mcs_map >> (i * 2)) & 0x3;
 			val = MIN(val1, val2);
 			if (val1 == 3 || val2 == 3)
 				val = 3;
-			vhtcap->supp_mcs.tx_mcs_map &= ~(0x3 << (i*2));
-			vhtcap->supp_mcs.tx_mcs_map |= (val << (i*2));
+			vhtcap->supp_mcs.tx_mcs_map &= ~(0x3 << (i * 2));
+			vhtcap->supp_mcs.tx_mcs_map |= (val << (i * 2));
 		}
 	}
 }
@@ -742,7 +743,7 @@ ieee80211_vht_get_chwidth_ie(struct ieee80211_channel *c)
 
 	/* We shouldn't get here */
 	printf("%s: called on a non-VHT channel (freq=%d, flags=0x%08x\n",
-	    __func__, (int) c->ic_freq, c->ic_flags);
+	    __func__, (int)c->ic_freq, c->ic_flags);
 	return IEEE80211_VHT_CHANWIDTH_USE_HT;
 }
 

@@ -26,14 +26,13 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/bus.h>
 
 #include <dev/fdt/simplebus.h>
-
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
 
 struct ofw_clkbus_softc {
 	struct simplebus_softc simplebus_sc;
@@ -42,7 +41,7 @@ struct ofw_clkbus_softc {
 static int
 ofw_clkbus_probe(device_t dev)
 {
-	const char	*name;
+	const char *name;
 
 	name = ofw_bus_get_name(dev);
 
@@ -60,7 +59,7 @@ ofw_clkbus_attach(device_t dev)
 	phandle_t node, child;
 	device_t cdev;
 
-	node  = ofw_bus_get_node(dev);
+	node = ofw_bus_get_node(dev);
 	simplebus_init(dev, node);
 
 	for (child = OF_child(node); child > 0; child = OF_peer(child)) {
@@ -74,8 +73,8 @@ ofw_clkbus_attach(device_t dev)
 
 static device_method_t ofw_clkbus_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		ofw_clkbus_probe),
-	DEVMETHOD(device_attach,	ofw_clkbus_attach),
+	DEVMETHOD(device_probe, ofw_clkbus_probe),
+	DEVMETHOD(device_attach, ofw_clkbus_attach),
 
 	DEVMETHOD_END
 };

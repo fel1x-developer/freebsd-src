@@ -29,25 +29,25 @@
 #include <sys/conf.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <machine/bus.h>
 #include <sys/rman.h>
-#include <machine/resource.h>
 #include <sys/sbuf.h>
+
+#include <machine/bus.h>
+#include <machine/resource.h>
+
+#include <dev/proto/proto.h>
 
 #include <isa/isavar.h>
 #include <isa/pnpvar.h>
-
-#include <dev/proto/proto.h>
 
 static int proto_isa_probe(device_t dev);
 static int proto_isa_attach(device_t dev);
 
 static device_method_t proto_isa_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		proto_isa_probe),
-	DEVMETHOD(device_attach,	proto_isa_attach),
-	DEVMETHOD(device_detach,	proto_detach),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, proto_isa_probe),
+	DEVMETHOD(device_attach, proto_isa_attach),
+	DEVMETHOD(device_detach, proto_detach), DEVMETHOD_END
 };
 
 static driver_t proto_isa_driver = {

@@ -28,43 +28,40 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/malloc.h>
-#include <sys/systm.h>
+#include <sys/pciio.h>
+#include <sys/rman.h>
 #include <sys/uio.h>
 
-#include <sys/bus.h>
 #include <machine/bus.h>
-#include <sys/rman.h>
 #include <machine/resource.h>
 
-#include <sys/pciio.h>
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pci_private.h>
-
+#include <dev/cardbus/cardbus_cis.h>
 #include <dev/cardbus/cardbusreg.h>
 #include <dev/cardbus/cardbusvar.h>
-#include <dev/cardbus/cardbus_cis.h>
 #include <dev/pccard/pccard_cis.h>
+#include <dev/pci/pci_private.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
-static	d_open_t	cardbus_open;
-static	d_close_t	cardbus_close;
-static	d_read_t	cardbus_read;
-static	d_ioctl_t	cardbus_ioctl;
+static d_open_t cardbus_open;
+static d_close_t cardbus_close;
+static d_read_t cardbus_read;
+static d_ioctl_t cardbus_ioctl;
 
-static struct cdevsw cardbus_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_open =	cardbus_open,
-	.d_close =	cardbus_close,
-	.d_read =	cardbus_read,
-	.d_ioctl =	cardbus_ioctl,
-	.d_name =	"cardbus"
-};
+static struct cdevsw cardbus_cdevsw = { .d_version = D_VERSION,
+	.d_open = cardbus_open,
+	.d_close = cardbus_close,
+	.d_read = cardbus_read,
+	.d_ioctl = cardbus_ioctl,
+	.d_name = "cardbus" };
 
 static int
-cardbus_build_cis(device_t cbdev, device_t child, int id,
-    int len, uint8_t *tupledata, uint32_t start, uint32_t *off,
+cardbus_build_cis(device_t cbdev, device_t child, int id, int len,
+    uint8_t *tupledata, uint32_t start, uint32_t *off,
     struct tuple_callbacks *info, void *argp)
 {
 	struct cis_buffer *cis;
@@ -97,9 +94,8 @@ static int
 cardbus_device_buffer_cis(device_t parent, device_t child,
     struct cis_buffer *cbp)
 {
-	struct tuple_callbacks cb[] = {
-		{CISTPL_GENERIC, "GENERIC", cardbus_build_cis}
-	};
+	struct tuple_callbacks cb[] = { { CISTPL_GENERIC, "GENERIC",
+	    cardbus_build_cis } };
 
 	return (cardbus_parse_cis(parent, child, cb, cbp));
 }
@@ -130,28 +126,28 @@ cardbus_device_destroy(struct cardbus_devinfo *devi)
 	return (0);
 }
 
-static	int
+static int
 cardbus_open(struct cdev *dev, int oflags, int devtype, struct thread *td)
 {
 
 	return (0);
 }
 
-static	int
+static int
 cardbus_close(struct cdev *dev, int fflags, int devtype, struct thread *td)
 {
 
 	return (0);
 }
 
-static	int
+static int
 cardbus_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
     struct thread *td)
 {
 	return (ENOTTY);
 }
 
-static	int
+static int
 cardbus_read(struct cdev *dev, struct uio *uio, int ioflag)
 {
 	struct cardbus_devinfo *devi;
@@ -161,5 +157,5 @@ cardbus_read(struct cdev *dev, struct uio *uio, int ioflag)
 	if (uio->uio_offset >= devi->sc_cis.len)
 		return (0);
 	return (uiomove(devi->sc_cis.buffer + uio->uio_offset,
-	  MIN(uio->uio_resid, devi->sc_cis.len - uio->uio_offset), uio));
+	    MIN(uio->uio_resid, devi->sc_cis.len - uio->uio_offset), uio));
 }

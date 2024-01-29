@@ -31,21 +31,20 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
+#include <sys/bus.h>
 #include <sys/endian.h>
 #include <sys/errno.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/syslog.h>
-#include <sys/bus.h>
 
-#include <machine/bus.h>
 #include <machine/atomic.h>
+#include <machine/bus.h>
 
-#include <dev/pci/pcivar.h>
 #include <dev/pci/pcireg.h>
-
+#include <dev/pci/pcivar.h>
 #include <dev/smbus/smbconf.h>
 
 #include "imcsmb_reg.h"
@@ -172,7 +171,7 @@ imcsmb_callback(device_t dev, int index, void *data)
 	int rc;
 
 	sc = device_get_softc(dev);
-	how = (int *) data;
+	how = (int *)data;
 
 	switch (index) {
 	case SMB_REQUEST_BUS: {
@@ -342,8 +341,7 @@ imcsmb_transfer(device_t dev, u_char slave, char cmd, void *data, int word_op,
 	/* We modify the value of the control register; save the original, so
 	 * we can restore it later
 	 */
-	orig_cntl_val = pci_read_config(sc->imcsmb_pci,
-	    sc->regs->smb_cntl, 4);
+	orig_cntl_val = pci_read_config(sc->imcsmb_pci, sc->regs->smb_cntl, 4);
 	cntl_val = orig_cntl_val;
 
 	/*
@@ -354,7 +352,7 @@ imcsmb_transfer(device_t dev, u_char slave, char cmd, void *data, int word_op,
 	 * the four high bits of the slave address.
 	 */
 	cntl_val &= ~IMCSMB_CNTL_DTI_MASK;
-	cntl_val |= ((uint32_t) slave & 0xf0) << 24;
+	cntl_val |= ((uint32_t)slave & 0xf0) << 24;
 
 	/* [27:27] Set the CLK_OVERRIDE bit, to enable normal operation */
 	cntl_val |= IMCSMB_CNTL_CLK_OVERRIDE;
@@ -387,12 +385,12 @@ imcsmb_transfer(device_t dev, u_char slave, char cmd, void *data, int word_op,
 	}
 
 	/* [26:24] The three non-DTI, non-R/W bits of the slave address. */
-	cmd_val |= (uint32_t) ((slave & 0xe) << 23);
+	cmd_val |= (uint32_t)((slave & 0xe) << 23);
 
 	/* [23:16] The command (offset in the case of an EEPROM, or register in
 	 * the case of TSOD or NVDIMM controller).
 	 */
-	cmd_val |= (uint32_t) ((uint8_t) cmd << 16);
+	cmd_val |= (uint32_t)((uint8_t)cmd << 16);
 
 	/* [15:0] The data to be written for a write operation. */
 	if (write_op) {
@@ -413,7 +411,7 @@ imcsmb_transfer(device_t dev, u_char slave, char cmd, void *data, int word_op,
 			/* For byte operations, the data goes in the LSB, and
 			 * the MSB is a don't care.
 			 */
-			lword = (uint16_t) (lbyte & 0xff);
+			lword = (uint16_t)(lbyte & 0xff);
 		}
 		cmd_val |= lword;
 	}
@@ -450,8 +448,7 @@ imcsmb_transfer(device_t dev, u_char slave, char cmd, void *data, int word_op,
 	/* Wait for WRITE_DATA_DONE/READ_DATA_VALID to be set, or timeout and
 	 * fail. We wait up to 35ms.
 	 */
-	for (i = 35000; i != 0; i -= 10)
-	{
+	for (i = 35000; i != 0; i -= 10) {
 		DELAY(10);
 		stat_val = pci_read_config(sc->imcsmb_pci, sc->regs->smb_stat,
 		    4);
@@ -500,12 +497,12 @@ imcsmb_transfer(device_t dev, u_char slave, char cmd, void *data, int word_op,
 			/* The data is returned in bits [15:0]; as discussed
 			 * above, byte-swap.
 			 */
-			lword = (uint16_t) (stat_val & 0xffff);
+			lword = (uint16_t)(stat_val & 0xffff);
 			lword = htobe16(lword);
 			*word = lword;
 		} else {
 			/* The data is returned in bits [7:0] */
-			lbyte = (uint8_t) (stat_val & 0xff);
+			lbyte = (uint8_t)(stat_val & 0xff);
 			*byte = lbyte;
 		}
 	}
@@ -522,16 +519,16 @@ out:
 /* Device methods */
 static device_method_t imcsmb_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_attach,	imcsmb_attach),
-	DEVMETHOD(device_detach,	imcsmb_detach),
-	DEVMETHOD(device_probe,		imcsmb_probe),
+	DEVMETHOD(device_attach, imcsmb_attach),
+	DEVMETHOD(device_detach, imcsmb_detach),
+	DEVMETHOD(device_probe, imcsmb_probe),
 
 	/* smbus methods */
-	DEVMETHOD(smbus_callback,	imcsmb_callback),
-	DEVMETHOD(smbus_readb,		imcsmb_readb),
-	DEVMETHOD(smbus_readw,		imcsmb_readw),
-	DEVMETHOD(smbus_writeb,		imcsmb_writeb),
-	DEVMETHOD(smbus_writew,		imcsmb_writew),
+	DEVMETHOD(smbus_callback, imcsmb_callback),
+	DEVMETHOD(smbus_readb, imcsmb_readb),
+	DEVMETHOD(smbus_readw, imcsmb_readw),
+	DEVMETHOD(smbus_writeb, imcsmb_writeb),
+	DEVMETHOD(smbus_writew, imcsmb_writew),
 
 	DEVMETHOD_END
 };

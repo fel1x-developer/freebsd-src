@@ -28,6 +28,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
@@ -36,48 +37,43 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
 
 #include <machine/bus.h>
-#include <dev/iicbus/iic.h>
-#include <dev/iicbus/iiconf.h>
-#include <dev/iicbus/iicbus.h>
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include <dev/mdio/mdio.h>
-
-#include <dev/etherswitch/etherswitch.h>
-
-#include <dev/etherswitch/arswitch/arswitchreg.h>
-#include <dev/etherswitch/arswitch/arswitchvar.h>
-#include <dev/etherswitch/arswitch/arswitch_reg.h>
-#include <dev/etherswitch/arswitch/arswitch_phy.h>
-#include <dev/etherswitch/arswitch/arswitch_vlans.h>
 
 #include <dev/etherswitch/arswitch/arswitch_8216.h>
 #include <dev/etherswitch/arswitch/arswitch_8226.h>
 #include <dev/etherswitch/arswitch/arswitch_8316.h>
 #include <dev/etherswitch/arswitch/arswitch_8327.h>
+#include <dev/etherswitch/arswitch/arswitch_phy.h>
+#include <dev/etherswitch/arswitch/arswitch_reg.h>
+#include <dev/etherswitch/arswitch/arswitch_vlans.h>
+#include <dev/etherswitch/arswitch/arswitchreg.h>
+#include <dev/etherswitch/arswitch/arswitchvar.h>
+#include <dev/etherswitch/etherswitch.h>
+#include <dev/iicbus/iic.h>
+#include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
+#include <dev/mdio/mdio.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
 
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+
+#include "etherswitch_if.h"
 #include "mdio_if.h"
 #include "miibus_if.h"
-#include "etherswitch_if.h"
 
 /* Map ETHERSWITCH_PORT_LED_* to Atheros pattern codes */
-static int led_pattern_table[] = {
-	[ETHERSWITCH_PORT_LED_DEFAULT] = 0x3,
+static int led_pattern_table[] = { [ETHERSWITCH_PORT_LED_DEFAULT] = 0x3,
 	[ETHERSWITCH_PORT_LED_ON] = 0x2,
 	[ETHERSWITCH_PORT_LED_OFF] = 0x0,
-	[ETHERSWITCH_PORT_LED_BLINK] = 0x1
-};
+	[ETHERSWITCH_PORT_LED_BLINK] = 0x1 };
 
 static inline int arswitch_portforphy(int phy);
 static void arswitch_tick(void *arg);
@@ -104,7 +100,8 @@ arswitch_probe(device_t dev)
 	/* AR8xxx probe */
 	id = arswitch_readreg(dev, AR8X16_REG_MASK_CTRL);
 	sc->chip_rev = (id & AR8X16_MASK_CTRL_REV_MASK);
-	sc->chip_ver = (id & AR8X16_MASK_CTRL_VER_MASK) >> AR8X16_MASK_CTRL_VER_SHIFT;
+	sc->chip_ver = (id & AR8X16_MASK_CTRL_VER_MASK) >>
+	    AR8X16_MASK_CTRL_VER_SHIFT;
 	switch (id & (AR8X16_MASK_CTRL_VER_MASK | AR8X16_MASK_CTRL_REV_MASK)) {
 	case 0x0101:
 		chipname = "AR8216";
@@ -133,10 +130,8 @@ arswitch_probe(device_t dev)
 	DPRINTF(sc, ARSWITCH_DBG_ANY, "chipname=%s, id=%08x\n", chipname, id);
 	if (chipname != NULL) {
 		snprintf(desc, sizeof(desc),
-		    "Atheros %s Ethernet Switch (ver %d rev %d)",
-		    chipname,
-		    sc->chip_ver,
-		    sc->chip_rev);
+		    "Atheros %s Ethernet Switch (ver %d rev %d)", chipname,
+		    sc->chip_ver, sc->chip_rev);
 		device_set_desc_copy(dev, desc);
 		return (BUS_PROBE_DEFAULT);
 	}
@@ -154,40 +149,40 @@ arswitch_attach_phys(struct arswitch_softc *sc)
 	for (phy = 0; phy < sc->numphys; phy++) {
 		sc->ifp[phy] = if_alloc(IFT_ETHER);
 		if (sc->ifp[phy] == NULL) {
-			device_printf(sc->sc_dev, "couldn't allocate ifnet structure\n");
+			device_printf(sc->sc_dev,
+			    "couldn't allocate ifnet structure\n");
 			err = ENOMEM;
 			break;
 		}
 
 		if_setsoftc(sc->ifp[phy], sc);
-		if_setflagbits(sc->ifp[phy], IFF_UP | IFF_BROADCAST |
-		    IFF_DRV_RUNNING | IFF_SIMPLEX, 0);
-		sc->ifname[phy] = malloc(strlen(name)+1, M_DEVBUF, M_WAITOK);
-		bcopy(name, sc->ifname[phy], strlen(name)+1);
+		if_setflagbits(sc->ifp[phy],
+		    IFF_UP | IFF_BROADCAST | IFF_DRV_RUNNING | IFF_SIMPLEX, 0);
+		sc->ifname[phy] = malloc(strlen(name) + 1, M_DEVBUF, M_WAITOK);
+		bcopy(name, sc->ifname[phy], strlen(name) + 1);
 		if_initname(sc->ifp[phy], sc->ifname[phy],
 		    arswitch_portforphy(phy));
 		err = mii_attach(sc->sc_dev, &sc->miibus[phy], sc->ifp[phy],
-		    arswitch_ifmedia_upd, arswitch_ifmedia_sts, \
-		    BMSR_DEFCAPMASK, phy, MII_OFFSET_ANY, 0);
+		    arswitch_ifmedia_upd, arswitch_ifmedia_sts, BMSR_DEFCAPMASK,
+		    phy, MII_OFFSET_ANY, 0);
 #if 0
 		DPRINTF(sc->sc_dev, "%s attached to pseudo interface %s\n",
 		    device_get_nameunit(sc->miibus[phy]),
 		    sc->ifp[phy]->if_xname);
 #endif
 		if (err != 0) {
-			device_printf(sc->sc_dev,
-			    "attaching PHY %d failed\n",
+			device_printf(sc->sc_dev, "attaching PHY %d failed\n",
 			    phy);
 			return (err);
 		}
 
 		if (AR8X16_IS_SWITCH(sc, AR8327)) {
 			int led;
-			char ledname[IFNAMSIZ+4];
+			char ledname[IFNAMSIZ + 4];
 
 			for (led = 0; led < 3; led++) {
 				sprintf(ledname, "%s%dled%d", name,
-				    arswitch_portforphy(phy), led+1);
+				    arswitch_portforphy(phy), led + 1);
 				sc->dev_led[phy][led].sc = sc;
 				sc->dev_led[phy][led].phy = phy;
 				sc->dev_led[phy][led].lednum = led;
@@ -245,22 +240,26 @@ ar8xxx_port_init(struct arswitch_softc *sc, int port)
 	if (port == AR8X16_PORT_CPU) {
 		arswitch_writereg(sc->sc_dev, AR8X16_REG_PORT_STS(0),
 		    (AR8X16_IS_SWITCH(sc, AR8216) ?
-		    AR8X16_PORT_STS_SPEED_100 : AR8X16_PORT_STS_SPEED_1000) |
-		    (AR8X16_IS_SWITCH(sc, AR8216) ? 0 : AR8X16_PORT_STS_RXFLOW) |
-		    (AR8X16_IS_SWITCH(sc, AR8216) ? 0 : AR8X16_PORT_STS_TXFLOW) |
-		    AR8X16_PORT_STS_RXMAC |
-		    AR8X16_PORT_STS_TXMAC |
-		    AR8X16_PORT_STS_DUPLEX);
+			    AR8X16_PORT_STS_SPEED_100 :
+			    AR8X16_PORT_STS_SPEED_1000) |
+			(AR8X16_IS_SWITCH(sc, AR8216) ?
+				0 :
+				AR8X16_PORT_STS_RXFLOW) |
+			(AR8X16_IS_SWITCH(sc, AR8216) ?
+				0 :
+				AR8X16_PORT_STS_TXFLOW) |
+			AR8X16_PORT_STS_RXMAC | AR8X16_PORT_STS_TXMAC |
+			AR8X16_PORT_STS_DUPLEX);
 		arswitch_writereg(sc->sc_dev, AR8X16_REG_PORT_CTRL(0),
 		    arswitch_readreg(sc->sc_dev, AR8X16_REG_PORT_CTRL(0)) &
-		    ~AR8X16_PORT_CTRL_HEADER);
+			~AR8X16_PORT_CTRL_HEADER);
 	} else {
 		/* Set ports to auto negotiation. */
 		arswitch_writereg(sc->sc_dev, AR8X16_REG_PORT_STS(port),
 		    AR8X16_PORT_STS_LINK_AUTO);
 		arswitch_writereg(sc->sc_dev, AR8X16_REG_PORT_CTRL(port),
 		    arswitch_readreg(sc->sc_dev, AR8X16_REG_PORT_CTRL(port)) &
-		    ~AR8X16_PORT_CTRL_HEADER);
+			~AR8X16_PORT_CTRL_HEADER);
 	}
 }
 
@@ -271,10 +270,7 @@ ar8xxx_atu_wait_ready(struct arswitch_softc *sc)
 
 	ARSWITCH_LOCK_ASSERT(sc, MA_OWNED);
 
-	ret = arswitch_waitreg(sc->sc_dev,
-	    AR8216_REG_ATU,
-	    AR8216_ATU_ACTIVE,
-	    0,
+	ret = arswitch_waitreg(sc->sc_dev, AR8216_REG_ATU, AR8216_ATU_ACTIVE, 0,
 	    1000);
 
 	return (ret);
@@ -297,8 +293,7 @@ ar8xxx_atu_flush(struct arswitch_softc *sc)
 		device_printf(sc->sc_dev, "%s: waitreg failed\n", __func__);
 
 	if (!ret)
-		arswitch_writereg(sc->sc_dev,
-		    AR8216_REG_ATU,
+		arswitch_writereg(sc->sc_dev, AR8216_REG_ATU,
 		    AR8216_ATU_OP_FLUSH | AR8216_ATU_ACTIVE);
 
 	return (ret);
@@ -312,8 +307,7 @@ ar8xxx_atu_flush_port(struct arswitch_softc *sc, int port)
 {
 	int ret, val;
 
-	DPRINTF(sc, ARSWITCH_DBG_ATU, "%s: flushing port %d\n", __func__,
-	    port);
+	DPRINTF(sc, ARSWITCH_DBG_ATU, "%s: flushing port %d\n", __func__, port);
 
 	ARSWITCH_LOCK_ASSERT(sc, MA_OWNED);
 
@@ -330,8 +324,7 @@ ar8xxx_atu_flush_port(struct arswitch_softc *sc, int port)
 		device_printf(sc->sc_dev, "%s: waitreg failed\n", __func__);
 
 	if (!ret)
-		arswitch_writereg(sc->sc_dev,
-		    AR8216_REG_ATU,
+		arswitch_writereg(sc->sc_dev, AR8216_REG_ATU,
 		    val | AR8216_ATU_ACTIVE);
 
 	return (ret);
@@ -357,14 +350,12 @@ ar8xxx_atu_fetch_table(struct arswitch_softc *sc, etherswitch_atu_entry_t *e,
 		/* Initialise things for the first fetch */
 
 		DPRINTF(sc, ARSWITCH_DBG_ATU, "%s: initializing\n", __func__);
-		(void) ar8xxx_atu_wait_ready(sc);
+		(void)ar8xxx_atu_wait_ready(sc);
 
-		arswitch_writereg(sc->sc_dev,
-		    AR8216_REG_ATU, AR8216_ATU_OP_GET_NEXT);
-		arswitch_writereg(sc->sc_dev,
-		    AR8216_REG_ATU_DATA, 0);
-		arswitch_writereg(sc->sc_dev,
-		    AR8216_REG_ATU_CTRL2, 0);
+		arswitch_writereg(sc->sc_dev, AR8216_REG_ATU,
+		    AR8216_ATU_OP_GET_NEXT);
+		arswitch_writereg(sc->sc_dev, AR8216_REG_ATU_DATA, 0);
+		arswitch_writereg(sc->sc_dev, AR8216_REG_ATU_CTRL2, 0);
 
 		return (0);
 	case 1:
@@ -373,7 +364,7 @@ ar8xxx_atu_fetch_table(struct arswitch_softc *sc, etherswitch_atu_entry_t *e,
 		 * Attempt to read the next address entry; don't modify what
 		 * is there in AT_ADDR{4,5} as its used for the next fetch
 		 */
-		(void) ar8xxx_atu_wait_ready(sc);
+		(void)ar8xxx_atu_wait_ready(sc);
 
 		/* Begin the next read event; not modifying anything */
 		val = arswitch_readreg(sc->sc_dev, AR8216_REG_ATU);
@@ -381,7 +372,7 @@ ar8xxx_atu_fetch_table(struct arswitch_softc *sc, etherswitch_atu_entry_t *e,
 		arswitch_writereg(sc->sc_dev, AR8216_REG_ATU, val);
 
 		/* Wait for it to complete */
-		(void) ar8xxx_atu_wait_ready(sc);
+		(void)ar8xxx_atu_wait_ready(sc);
 
 		/* Fetch the ethernet address and ATU status */
 		ret0 = arswitch_readreg(sc->sc_dev, AR8216_REG_ATU);
@@ -406,8 +397,7 @@ ar8xxx_atu_fetch_table(struct arswitch_softc *sc, etherswitch_atu_entry_t *e,
 		/* TODO: other flags that are interesting */
 
 		DPRINTF(sc, ARSWITCH_DBG_ATU, "%s: MAC %6D portmask 0x%08x\n",
-		    __func__,
-		    e->es_macaddr, ":", e->es_portmask);
+		    __func__, e->es_macaddr, ":", e->es_portmask);
 		return (0);
 	default:
 		return (-1);
@@ -441,11 +431,9 @@ ar8xxx_atu_learn_default(struct arswitch_softc *sc)
 	val |= AR8216_ATU_CTRL_ARP_EN;
 	val |= AR8216_ATU_CTRL_LEARN_CHANGE;
 	val |= AR8216_ATU_CTRL_AGE_EN;
-	val |= 0x2b;	/* 5 minutes; bits 15:0 */
+	val |= 0x2b; /* 5 minutes; bits 15:0 */
 
-	ret = arswitch_writereg(sc->sc_dev,
-	    AR8216_REG_ATU_CTRL,
-	    val);
+	ret = arswitch_writereg(sc->sc_dev, AR8216_REG_ATU_CTRL, val);
 
 	if (ret)
 		device_printf(sc->sc_dev, "%s: writereg failed\n", __func__);
@@ -468,7 +456,7 @@ ar8xxx_hw_get_switch_macaddr(struct arswitch_softc *sc, struct ether_addr *ea)
 	uint32_t ret0, ret1;
 	char *s;
 
-	s = (void *) ea;
+	s = (void *)ea;
 
 	ret0 = arswitch_readreg(sc->sc_dev, AR8X16_REG_SW_MAC_ADDR0);
 	ret1 = arswitch_readreg(sc->sc_dev, AR8X16_REG_SW_MAC_ADDR1);
@@ -517,9 +505,8 @@ arswitch_attach(device_t dev)
 	/* Debugging */
 	ctx = device_get_sysctl_ctx(sc->sc_dev);
 	tree = device_get_sysctl_tree(sc->sc_dev);
-	SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "debug", CTLFLAG_RW, &sc->sc_debug, 0,
-	    "control debugging printfs");
+	SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "debug",
+	    CTLFLAG_RW, &sc->sc_debug, 0, "control debugging printfs");
 
 	/* Allocate a 128 entry ATU table; hopefully its big enough! */
 	/* XXX TODO: make this per chip */
@@ -574,8 +561,8 @@ arswitch_attach(device_t dev)
 	else if (AR8X16_IS_SWITCH(sc, AR8327))
 		ar8327_attach(sc);
 	else {
-		DPRINTF(sc, ARSWITCH_DBG_ANY,
-		    "%s: unknown switch (%d)?\n", __func__, sc->sc_switchtype);
+		DPRINTF(sc, ARSWITCH_DBG_ANY, "%s: unknown switch (%d)?\n",
+		    __func__, sc->sc_switchtype);
 		return (ENXIO);
 	}
 
@@ -589,15 +576,15 @@ arswitch_attach(device_t dev)
 	sc->is_gmii = 0;
 	sc->is_mii = 0;
 
-	(void) resource_int_value(device_get_name(dev), device_get_unit(dev),
+	(void)resource_int_value(device_get_name(dev), device_get_unit(dev),
 	    "numphys", &sc->numphys);
-	(void) resource_int_value(device_get_name(dev), device_get_unit(dev),
+	(void)resource_int_value(device_get_name(dev), device_get_unit(dev),
 	    "phy4cpu", &sc->phy4cpu);
-	(void) resource_int_value(device_get_name(dev), device_get_unit(dev),
+	(void)resource_int_value(device_get_name(dev), device_get_unit(dev),
 	    "is_rgmii", &sc->is_rgmii);
-	(void) resource_int_value(device_get_name(dev), device_get_unit(dev),
+	(void)resource_int_value(device_get_name(dev), device_get_unit(dev),
 	    "is_gmii", &sc->is_gmii);
-	(void) resource_int_value(device_get_name(dev), device_get_unit(dev),
+	(void)resource_int_value(device_get_name(dev), device_get_unit(dev),
 	    "is_mii", &sc->is_mii);
 
 	if (sc->numphys > AR8X16_NUM_PHYS)
@@ -605,22 +592,22 @@ arswitch_attach(device_t dev)
 
 	/* Reset the switch. */
 	if (arswitch_reset(dev)) {
-		DPRINTF(sc, ARSWITCH_DBG_ANY,
-		    "%s: arswitch_reset: failed\n", __func__);
+		DPRINTF(sc, ARSWITCH_DBG_ANY, "%s: arswitch_reset: failed\n",
+		    __func__);
 		return (ENXIO);
 	}
 
 	err = sc->hal.arswitch_hw_setup(sc);
 	if (err != 0) {
-		DPRINTF(sc, ARSWITCH_DBG_ANY,
-		    "%s: hw_setup: err=%d\n", __func__, err);
+		DPRINTF(sc, ARSWITCH_DBG_ANY, "%s: hw_setup: err=%d\n",
+		    __func__, err);
 		return (err);
 	}
 
 	err = sc->hal.arswitch_hw_global_setup(sc);
 	if (err != 0) {
-		DPRINTF(sc, ARSWITCH_DBG_ANY,
-		    "%s: hw_global_setup: err=%d\n", __func__, err);
+		DPRINTF(sc, ARSWITCH_DBG_ANY, "%s: hw_global_setup: err=%d\n",
+		    __func__, err);
 		return (err);
 	}
 
@@ -630,8 +617,8 @@ arswitch_attach(device_t dev)
 	 */
 	err = sc->hal.arswitch_atu_learn_default(sc);
 	if (err != 0) {
-		DPRINTF(sc, ARSWITCH_DBG_ANY,
-		    "%s: atu_learn_default: err=%d\n", __func__, err);
+		DPRINTF(sc, ARSWITCH_DBG_ANY, "%s: atu_learn_default: err=%d\n",
+		    __func__, err);
 		return (err);
 	}
 
@@ -645,16 +632,16 @@ arswitch_attach(device_t dev)
 	 */
 	err = arswitch_attach_phys(sc);
 	if (err != 0) {
-		DPRINTF(sc, ARSWITCH_DBG_ANY,
-		    "%s: attach_phys: err=%d\n", __func__, err);
+		DPRINTF(sc, ARSWITCH_DBG_ANY, "%s: attach_phys: err=%d\n",
+		    __func__, err);
 		return (err);
 	}
 
 	/* Default to ingress filters off. */
 	err = arswitch_set_vlan_mode(sc, 0);
 	if (err != 0) {
-		DPRINTF(sc, ARSWITCH_DBG_ANY,
-		    "%s: set_vlan_mode: err=%d\n", __func__, err);
+		DPRINTF(sc, ARSWITCH_DBG_ANY, "%s: set_vlan_mode: err=%d\n",
+		    __func__, err);
 		return (err);
 	}
 
@@ -666,13 +653,13 @@ arswitch_attach(device_t dev)
 		    "%s: bus_generic_attach: err=%d\n", __func__, err);
 		return (err);
 	}
-	
+
 	callout_init_mtx(&sc->callout_tick, &sc->sc_mtx, 0);
 
 	ARSWITCH_LOCK(sc);
 	arswitch_tick(sc);
 	ARSWITCH_UNLOCK(sc);
-	
+
 	return (err);
 }
 
@@ -684,7 +671,7 @@ arswitch_detach(device_t dev)
 
 	callout_drain(&sc->callout_tick);
 
-	for (i=0; i < sc->numphys; i++) {
+	for (i = 0; i < sc->numphys; i++) {
 		if (sc->miibus[i] != NULL)
 			device_delete_child(dev, sc->miibus[i]);
 		if (sc->ifp[i] != NULL)
@@ -707,23 +694,23 @@ arswitch_detach(device_t dev)
 static inline int
 arswitch_portforphy(int phy)
 {
-	return (phy+1);
+	return (phy + 1);
 }
 
 static inline struct mii_data *
 arswitch_miiforport(struct arswitch_softc *sc, int port)
 {
-	int phy = port-1;
+	int phy = port - 1;
 
 	if (phy < 0 || phy >= sc->numphys)
 		return (NULL);
 	return (device_get_softc(sc->miibus[phy]));
 }
 
-static inline if_t 
+static inline if_t
 arswitch_ifpforport(struct arswitch_softc *sc, int port)
 {
-	int phy = port-1;
+	int phy = port - 1;
 
 	if (phy < 0 || phy >= sc->numphys)
 		return (NULL);
@@ -734,7 +721,8 @@ arswitch_ifpforport(struct arswitch_softc *sc, int port)
  * Convert port status to ifmedia.
  */
 static void
-arswitch_update_ifmedia(int portstatus, u_int *media_status, u_int *media_active)
+arswitch_update_ifmedia(int portstatus, u_int *media_status,
+    u_int *media_active)
 {
 	*media_active = IFM_ETHER;
 	*media_status = IFM_AVALID;
@@ -788,7 +776,8 @@ arswitch_miipollstat(struct arswitch_softc *sc)
 		if (sc->miibus[i] == NULL)
 			continue;
 		mii = device_get_softc(sc->miibus[i]);
-		/* XXX This would be nice to have abstracted out to be per-chip */
+		/* XXX This would be nice to have abstracted out to be per-chip
+		 */
 		/* AR8327/AR8337 has a different register base */
 		if (AR8X16_IS_SWITCH(sc, AR8327))
 			portstatus = arswitch_readreg(sc->sc_dev,
@@ -797,10 +786,8 @@ arswitch_miipollstat(struct arswitch_softc *sc)
 			portstatus = arswitch_readreg(sc->sc_dev,
 			    AR8X16_REG_PORT_STS(arswitch_portforphy(i)));
 #if 1
-		DPRINTF(sc, ARSWITCH_DBG_POLL, "p[%d]=0x%08x (%b)\n",
-		    i,
-		    portstatus,
-		    portstatus,
+		DPRINTF(sc, ARSWITCH_DBG_POLL, "p[%d]=0x%08x (%b)\n", i,
+		    portstatus, portstatus,
 		    "\20\3TXMAC\4RXMAC\5TXFLOW\6RXFLOW\7"
 		    "DUPLEX\11LINK_UP\12LINK_AUTO\13LINK_PAUSE");
 #endif
@@ -811,8 +798,7 @@ arswitch_miipollstat(struct arswitch_softc *sc)
 		if ((mii->mii_media_status & IFM_ACTIVE) == 0 &&
 		    (portstatus & AR8X16_PORT_STS_LINK_UP) != 0) {
 			device_printf(sc->sc_dev, "%s: port %d: port -> UP\n",
-			    __func__,
-			    i);
+			    __func__, i);
 			port_flap = 1;
 		}
 		/*
@@ -821,13 +807,12 @@ arswitch_miipollstat(struct arswitch_softc *sc)
 		if ((mii->mii_media_status & IFM_ACTIVE) != 0 &&
 		    (portstatus & AR8X16_PORT_STS_LINK_UP) == 0) {
 			device_printf(sc->sc_dev, "%s: port %d: port -> DOWN\n",
-			    __func__,
-			    i);
+			    __func__, i);
 			port_flap = 1;
 		}
 		arswitch_update_ifmedia(portstatus, &mii->mii_media_status,
 		    &mii->mii_media_active);
-		LIST_FOREACH(miisc, &mii->mii_phys, mii_list) {
+		LIST_FOREACH (miisc, &mii->mii_phys, mii_list) {
 			if (IFM_INST(mii->mii_media.ifm_cur->ifm_media) !=
 			    miisc->mii_inst)
 				continue;
@@ -871,7 +856,7 @@ static etherswitch_info_t *
 arswitch_getinfo(device_t dev)
 {
 	struct arswitch_softc *sc = device_get_softc(dev);
-	
+
 	return (&sc->info);
 }
 
@@ -904,8 +889,7 @@ arswitch_is_cpuport(struct arswitch_softc *sc, int port)
 {
 
 	return ((port == AR8X16_PORT_CPU) ||
-	    ((AR8X16_IS_SWITCH(sc, AR8327) &&
-	      port == AR8327_PORT_GMAC6)));
+	    ((AR8X16_IS_SWITCH(sc, AR8327) && port == AR8327_PORT_GMAC6)));
 }
 
 static int
@@ -932,50 +916,52 @@ arswitch_getport(device_t dev, etherswitch_port_t *p)
 		p->es_flags |= ETHERSWITCH_PORT_CPU;
 		ifmr = &p->es_ifmr;
 		ifmr->ifm_count = 0;
-		ifmr->ifm_current = ifmr->ifm_active =
-		    IFM_ETHER | IFM_1000_T | IFM_FDX;
+		ifmr->ifm_current = ifmr->ifm_active = IFM_ETHER | IFM_1000_T |
+		    IFM_FDX;
 		ifmr->ifm_mask = 0;
 		ifmr->ifm_status = IFM_ACTIVE | IFM_AVALID;
 	} else if (mii != NULL) {
-		err = ifmedia_ioctl(mii->mii_ifp, &p->es_ifr,
-		    &mii->mii_media, SIOCGIFMEDIA);
+		err = ifmedia_ioctl(mii->mii_ifp, &p->es_ifr, &mii->mii_media,
+		    SIOCGIFMEDIA);
 		if (err)
 			return (err);
 	} else {
 		return (ENXIO);
 	}
-	
+
 	if (!arswitch_is_cpuport(sc, p->es_port) &&
 	    AR8X16_IS_SWITCH(sc, AR8327)) {
 		int led;
 		p->es_nleds = 3;
 
-		for (led = 0; led < p->es_nleds; led++)
-		{
+		for (led = 0; led < p->es_nleds; led++) {
 			int style;
 			uint32_t val;
-			
+
 			/* Find the right style enum for our pattern */
 			val = arswitch_readreg(dev,
-			    ar8327_led_mapping[p->es_port-1][led].reg);
-			val = (val>>ar8327_led_mapping[p->es_port-1][led].shift)&0x03;
+			    ar8327_led_mapping[p->es_port - 1][led].reg);
+			val =
+			    (val >>
+				ar8327_led_mapping[p->es_port - 1][led].shift) &
+			    0x03;
 
-			for (style = 0; style < ETHERSWITCH_PORT_LED_MAX; style++)
-			{
-				if (led_pattern_table[style] == val) break;
+			for (style = 0; style < ETHERSWITCH_PORT_LED_MAX;
+			     style++) {
+				if (led_pattern_table[style] == val)
+					break;
 			}
-			
+
 			/* can't happen */
 			if (style == ETHERSWITCH_PORT_LED_MAX)
 				style = ETHERSWITCH_PORT_LED_DEFAULT;
-			
+
 			p->es_led[led] = style;
 		}
-	} else
-	{
+	} else {
 		p->es_nleds = 0;
 	}
-	
+
 	return (0);
 }
 
@@ -1002,16 +988,16 @@ ar8xxx_port_vlan_setup(struct arswitch_softc *sc, etherswitch_port_t *p)
 	if (p->es_flags & ETHERSWITCH_PORT_DOUBLE_TAG)
 		reg |= AR8X16_PORT_CTRL_DOUBLE_TAG;
 	if (p->es_flags & ETHERSWITCH_PORT_ADDTAG)
-		reg |= AR8X16_PORT_CTRL_EGRESS_VLAN_MODE_ADD <<
-		    AR8X16_PORT_CTRL_EGRESS_VLAN_MODE_SHIFT;
+		reg |= AR8X16_PORT_CTRL_EGRESS_VLAN_MODE_ADD
+		    << AR8X16_PORT_CTRL_EGRESS_VLAN_MODE_SHIFT;
 	if (p->es_flags & ETHERSWITCH_PORT_STRIPTAG)
-		reg |= AR8X16_PORT_CTRL_EGRESS_VLAN_MODE_STRIP <<
-		    AR8X16_PORT_CTRL_EGRESS_VLAN_MODE_SHIFT;
+		reg |= AR8X16_PORT_CTRL_EGRESS_VLAN_MODE_STRIP
+		    << AR8X16_PORT_CTRL_EGRESS_VLAN_MODE_SHIFT;
 
-	err = arswitch_modifyreg(sc->sc_dev,
-	    AR8X16_REG_PORT_CTRL(p->es_port),
+	err = arswitch_modifyreg(sc->sc_dev, AR8X16_REG_PORT_CTRL(p->es_port),
 	    0x3 << AR8X16_PORT_CTRL_EGRESS_VLAN_MODE_SHIFT |
-	    AR8X16_PORT_CTRL_DOUBLE_TAG, reg);
+		AR8X16_PORT_CTRL_DOUBLE_TAG,
+	    reg);
 
 	ARSWITCH_UNLOCK(sc);
 	return (err);
@@ -1040,13 +1026,12 @@ arswitch_setport(device_t dev, etherswitch_port_t *p)
 	/* Do not allow media or led changes on CPU port. */
 	if (arswitch_is_cpuport(sc, p->es_port))
 		return (0);
-	
-	if (AR8X16_IS_SWITCH(sc, AR8327))
-	{
-		for (i = 0; i < 3; i++)
-		{	
+
+	if (AR8X16_IS_SWITCH(sc, AR8327)) {
+		for (i = 0; i < 3; i++) {
 			int err;
-			err = arswitch_setled(sc, p->es_port-1, i, p->es_led[i]);
+			err = arswitch_setled(sc, p->es_port - 1, i,
+			    p->es_led[i]);
 			if (err)
 				return (err);
 		}
@@ -1077,8 +1062,7 @@ arswitch_setled(struct arswitch_softc *sc, int phy, int led, int style)
 	ARSWITCH_LOCK(sc);
 
 	shift = ar8327_led_mapping[phy][led].shift;
-	err = (arswitch_modifyreg(sc->sc_dev,
-	    ar8327_led_mapping[phy][led].reg,
+	err = (arswitch_modifyreg(sc->sc_dev, ar8327_led_mapping[phy][led].reg,
 	    0x03 << shift, led_pattern_table[style] << shift));
 	ARSWITCH_UNLOCK(sc);
 
@@ -1133,8 +1117,7 @@ arswitch_getconf(device_t dev, etherswitch_conf_t *conf)
 	conf->vlan_mode = sc->vlan_mode;
 
 	/* Return the switch ethernet address. */
-	ret = sc->hal.arswitch_hw_get_switch_macaddr(sc,
-	    &conf->switch_macaddr);
+	ret = sc->hal.arswitch_hw_get_switch_macaddr(sc, &conf->switch_macaddr);
 	if (ret == 0) {
 		conf->cmd |= ETHERSWITCH_CONF_SWITCH_MACADDR;
 	}
@@ -1276,40 +1259,41 @@ arswitch_writephy(device_t dev, int phy, int reg, int val)
 
 static device_method_t arswitch_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		arswitch_probe),
-	DEVMETHOD(device_attach,	arswitch_attach),
-	DEVMETHOD(device_detach,	arswitch_detach),
-	
+	DEVMETHOD(device_probe, arswitch_probe),
+	DEVMETHOD(device_attach, arswitch_attach),
+	DEVMETHOD(device_detach, arswitch_detach),
+
 	/* bus interface */
-	DEVMETHOD(bus_add_child,	device_add_child_ordered),
-	
+	DEVMETHOD(bus_add_child, device_add_child_ordered),
+
 	/* MII interface */
-	DEVMETHOD(miibus_readreg,	arswitch_readphy),
-	DEVMETHOD(miibus_writereg,	arswitch_writephy),
-	DEVMETHOD(miibus_statchg,	arswitch_statchg),
+	DEVMETHOD(miibus_readreg, arswitch_readphy),
+	DEVMETHOD(miibus_writereg, arswitch_writephy),
+	DEVMETHOD(miibus_statchg, arswitch_statchg),
 
 	/* MDIO interface */
-	DEVMETHOD(mdio_readreg,		arswitch_readphy),
-	DEVMETHOD(mdio_writereg,	arswitch_writephy),
+	DEVMETHOD(mdio_readreg, arswitch_readphy),
+	DEVMETHOD(mdio_writereg, arswitch_writephy),
 
 	/* etherswitch interface */
-	DEVMETHOD(etherswitch_lock,	arswitch_lock),
-	DEVMETHOD(etherswitch_unlock,	arswitch_unlock),
-	DEVMETHOD(etherswitch_getinfo,	arswitch_getinfo),
-	DEVMETHOD(etherswitch_readreg,	arswitch_readreg),
-	DEVMETHOD(etherswitch_writereg,	arswitch_writereg),
-	DEVMETHOD(etherswitch_readphyreg,	arswitch_readphy),
-	DEVMETHOD(etherswitch_writephyreg,	arswitch_writephy),
-	DEVMETHOD(etherswitch_getport,	arswitch_getport),
-	DEVMETHOD(etherswitch_setport,	arswitch_setport),
-	DEVMETHOD(etherswitch_getvgroup,	arswitch_getvgroup),
-	DEVMETHOD(etherswitch_setvgroup,	arswitch_setvgroup),
-	DEVMETHOD(etherswitch_getconf,	arswitch_getconf),
-	DEVMETHOD(etherswitch_setconf,	arswitch_setconf),
+	DEVMETHOD(etherswitch_lock, arswitch_lock),
+	DEVMETHOD(etherswitch_unlock, arswitch_unlock),
+	DEVMETHOD(etherswitch_getinfo, arswitch_getinfo),
+	DEVMETHOD(etherswitch_readreg, arswitch_readreg),
+	DEVMETHOD(etherswitch_writereg, arswitch_writereg),
+	DEVMETHOD(etherswitch_readphyreg, arswitch_readphy),
+	DEVMETHOD(etherswitch_writephyreg, arswitch_writephy),
+	DEVMETHOD(etherswitch_getport, arswitch_getport),
+	DEVMETHOD(etherswitch_setport, arswitch_setport),
+	DEVMETHOD(etherswitch_getvgroup, arswitch_getvgroup),
+	DEVMETHOD(etherswitch_setvgroup, arswitch_setvgroup),
+	DEVMETHOD(etherswitch_getconf, arswitch_getconf),
+	DEVMETHOD(etherswitch_setconf, arswitch_setconf),
 	DEVMETHOD(etherswitch_flush_all, arswitch_atu_flush_all),
 	DEVMETHOD(etherswitch_flush_port, arswitch_atu_flush_port),
 	DEVMETHOD(etherswitch_fetch_table, arswitch_atu_fetch_table),
-	DEVMETHOD(etherswitch_fetch_table_entry, arswitch_atu_fetch_table_entry),
+	DEVMETHOD(etherswitch_fetch_table_entry,
+	    arswitch_atu_fetch_table_entry),
 
 	DEVMETHOD_END
 };
@@ -1322,5 +1306,5 @@ DRIVER_MODULE(miibus, arswitch, miibus_driver, 0, 0);
 DRIVER_MODULE(mdio, arswitch, mdio_driver, 0, 0);
 DRIVER_MODULE(etherswitch, arswitch, etherswitch_driver, 0, 0);
 MODULE_VERSION(arswitch, 1);
-MODULE_DEPEND(arswitch, miibus, 1, 1, 1); /* XXX which versions? */
+MODULE_DEPEND(arswitch, miibus, 1, 1, 1);      /* XXX which versions? */
 MODULE_DEPEND(arswitch, etherswitch, 1, 1, 1); /* XXX which versions? */

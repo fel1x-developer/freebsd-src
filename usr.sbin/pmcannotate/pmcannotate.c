@@ -38,68 +38,68 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include <unistd.h>
 
 /* NB: Make sure FNBUFF is as large as LNBUFF, otherwise it could overflow */
-#define	FNBUFF	512
-#define	LNBUFF	512
+#define FNBUFF 512
+#define LNBUFF 512
 
-#define	TMPNAME	"pmcannotate.XXXXXX"
+#define TMPNAME "pmcannotate.XXXXXX"
 
-#define	FATAL(ptr, x ...) do {						\
-	fqueue_deleteall();						\
-	general_deleteall();						\
-	if ((ptr) != NULL)						\
-		perror(ptr);						\
-	fprintf(stderr, ##x);						\
-	remove(tbfl);							\
-	remove(tofl);							\
-	exit(EXIT_FAILURE);						\
-} while (0)
+#define FATAL(ptr, x...)              \
+	do {                          \
+		fqueue_deleteall();   \
+		general_deleteall();  \
+		if ((ptr) != NULL)    \
+			perror(ptr);  \
+		fprintf(stderr, ##x); \
+		remove(tbfl);         \
+		remove(tofl);         \
+		exit(EXIT_FAILURE);   \
+	} while (0)
 
-#define	PERCSAMP(x)	((x) * 100 / totalsamples)
+#define PERCSAMP(x) ((x) * 100 / totalsamples)
 
 struct entry {
-        TAILQ_ENTRY(entry)	en_iter;
-        char		*en_name;
-	uintptr_t	en_pc;
-	uintptr_t	en_ostart;
-	uintptr_t	en_oend;
-	u_int		en_nsamples;
+	TAILQ_ENTRY(entry) en_iter;
+	char *en_name;
+	uintptr_t en_pc;
+	uintptr_t en_ostart;
+	uintptr_t en_oend;
+	u_int en_nsamples;
 };
 
 struct aggent {
-	TAILQ_ENTRY(aggent)	ag_fiter;
-	long		ag_offset;
-	uintptr_t	ag_ostart;
-	uintptr_t	ag_oend;
-	char		*ag_name;
-	u_int		ag_nsamples;
+	TAILQ_ENTRY(aggent) ag_fiter;
+	long ag_offset;
+	uintptr_t ag_ostart;
+	uintptr_t ag_oend;
+	char *ag_name;
+	u_int ag_nsamples;
 };
 
-static struct aggent	*agg_create(const char *name, u_int nsamples,
-			    uintptr_t start, uintptr_t end);
-static void		 agg_destroy(struct aggent *agg) __unused;
-static void		 asmparse(FILE *fp);
-static int		 cparse(FILE *fp);
-static void		 entry_acqref(struct entry *entry);
-static struct entry	*entry_create(const char *name, uintptr_t pc,
-			    uintptr_t start, uintptr_t end);
-static void		 entry_destroy(struct entry *entry) __unused;
-static void		 fqueue_compact(float th);
-static void		 fqueue_deleteall(void);
-static struct aggent	*fqueue_findent_by_name(const char *name);
-static int		 fqueue_getall(const char *bin, char *temp, int asmf);
-static int		 fqueue_insertent(struct entry *entry);
-static int		 fqueue_insertgen(void);
-static void		 general_deleteall(void);
-static struct entry	*general_findent(uintptr_t pc);
-static void		 general_insertent(struct entry *entry);
-static void		 general_printasm(FILE *fp, struct aggent *agg);
-static int		 general_printc(FILE *fp, struct aggent *agg);
-static int		 printblock(FILE *fp, struct aggent *agg);
-static void		 usage(const char *progname) __dead2;
+static struct aggent *agg_create(const char *name, u_int nsamples,
+    uintptr_t start, uintptr_t end);
+static void agg_destroy(struct aggent *agg) __unused;
+static void asmparse(FILE *fp);
+static int cparse(FILE *fp);
+static void entry_acqref(struct entry *entry);
+static struct entry *entry_create(const char *name, uintptr_t pc,
+    uintptr_t start, uintptr_t end);
+static void entry_destroy(struct entry *entry) __unused;
+static void fqueue_compact(float th);
+static void fqueue_deleteall(void);
+static struct aggent *fqueue_findent_by_name(const char *name);
+static int fqueue_getall(const char *bin, char *temp, int asmf);
+static int fqueue_insertent(struct entry *entry);
+static int fqueue_insertgen(void);
+static void general_deleteall(void);
+static struct entry *general_findent(uintptr_t pc);
+static void general_insertent(struct entry *entry);
+static void general_printasm(FILE *fp, struct aggent *agg);
+static int general_printc(FILE *fp, struct aggent *agg);
+static int printblock(FILE *fp, struct aggent *agg);
+static void usage(const char *progname) __dead2;
 
 static TAILQ_HEAD(, entry) mainlst = TAILQ_HEAD_INITIALIZER(mainlst);
 static TAILQ_HEAD(, aggent) fqueue = TAILQ_HEAD_INITIALIZER(fqueue);
@@ -204,7 +204,7 @@ asmparse(FILE *fp)
 		agg->ag_offset = ftell(fp);
 	}
 
-	TAILQ_FOREACH(agg, &fqueue, ag_fiter) {
+	TAILQ_FOREACH (agg, &fqueue, ag_fiter) {
 		if (fseek(fp, agg->ag_offset, SEEK_SET) == -1)
 			return;
 		printf("Profile trace for function: %s() [%.2f%%]\n",
@@ -243,7 +243,7 @@ cparse(FILE *fp)
 		agg->ag_offset = ftell(fp);
 	}
 
-	TAILQ_FOREACH(agg, &fqueue, ag_fiter) {
+	TAILQ_FOREACH (agg, &fqueue, ag_fiter) {
 		if (fseek(fp, agg->ag_offset, SEEK_SET) == -1)
 			return (-1);
 		printf("Profile trace for function: %s() [%.2f%%]\n",
@@ -315,7 +315,7 @@ fqueue_compact(float th)
 
 	/* Revert the percentage calculation. */
 	thi = th * totalsamples / 100;
-	TAILQ_FOREACH_SAFE(agg, &fqueue, ag_fiter, tmpagg)
+	TAILQ_FOREACH_SAFE (agg, &fqueue, ag_fiter, tmpagg)
 		if (agg->ag_nsamples < thi)
 			TAILQ_REMOVE(&fqueue, agg, ag_fiter);
 }
@@ -347,7 +347,7 @@ fqueue_insertent(struct entry *entry)
 	int found;
 
 	found = 0;
-	TAILQ_FOREACH(obj, &fqueue, ag_fiter)
+	TAILQ_FOREACH (obj, &fqueue, ag_fiter)
 		if (!strcmp(obj->ag_name, entry->en_name)) {
 			found = 1;
 			obj->ag_nsamples += entry->en_nsamples;
@@ -362,7 +362,7 @@ fqueue_insertent(struct entry *entry)
 	if (found) {
 		TAILQ_REMOVE(&fqueue, obj, ag_fiter);
 		found = 0;
-		TAILQ_FOREACH(tmp, &fqueue, ag_fiter)
+		TAILQ_FOREACH (tmp, &fqueue, ag_fiter)
 			if (obj->ag_nsamples > tmp->ag_nsamples) {
 				found = 1;
 				break;
@@ -388,7 +388,7 @@ fqueue_insertent(struct entry *entry)
 		TAILQ_INSERT_HEAD(&fqueue, obj, ag_fiter);
 		return (0);
 	}
-	TAILQ_FOREACH(tmp, &fqueue, ag_fiter)
+	TAILQ_FOREACH (tmp, &fqueue, ag_fiter)
 		if (obj->ag_nsamples > tmp->ag_nsamples) {
 			found = 1;
 			break;
@@ -408,7 +408,7 @@ fqueue_findent_by_name(const char *name)
 {
 	struct aggent *obj;
 
-	TAILQ_FOREACH(obj, &fqueue, ag_fiter)
+	TAILQ_FOREACH (obj, &fqueue, ag_fiter)
 		if (!strcmp(obj->ag_name, name))
 			return (obj);
 	return (NULL);
@@ -426,7 +426,7 @@ fqueue_getall(const char *bin, char *temp, int asmf)
 
 	if (mkstemp(temp) == -1)
 		return (-1);
-	TAILQ_FOREACH(agg, &fqueue, ag_fiter) {
+	TAILQ_FOREACH (agg, &fqueue, ag_fiter) {
 		bzero(tmpf, sizeof(tmpf));
 		start = agg->ag_ostart;
 		end = agg->ag_oend;
@@ -434,13 +434,13 @@ fqueue_getall(const char *bin, char *temp, int asmf)
 		if (asmf)
 			snprintf(tmpf, sizeof(tmpf),
 			    "objdump --start-address=%p "
-			    "--stop-address=%p -d %s >> %s", (void *)start,
-			    (void *)end, bin, temp);
+			    "--stop-address=%p -d %s >> %s",
+			    (void *)start, (void *)end, bin, temp);
 		else
 			snprintf(tmpf, sizeof(tmpf),
 			    "objdump --start-address=%p "
-			    "--stop-address=%p -S %s >> %s", (void *)start,
-			    (void *)end, bin, temp);
+			    "--stop-address=%p -S %s >> %s",
+			    (void *)start, (void *)end, bin, temp);
 		if (system(tmpf) != 0)
 			return (-1);
 	}
@@ -456,7 +456,7 @@ fqueue_insertgen(void)
 {
 	struct entry *obj;
 
-	TAILQ_FOREACH(obj, &mainlst, en_iter)
+	TAILQ_FOREACH (obj, &mainlst, en_iter)
 		if (fqueue_insertent(obj) == -1)
 			return (-1);
 	return (0);
@@ -484,7 +484,7 @@ general_findent(uintptr_t pc)
 {
 	struct entry *obj;
 
-	TAILQ_FOREACH(obj, &mainlst, en_iter)
+	TAILQ_FOREACH (obj, &mainlst, en_iter)
 		if (obj->en_pc == pc)
 			return (obj);
 	return (NULL);
@@ -682,7 +682,7 @@ main(int argc, char *argv[])
 	asmsrc = 0;
 	limit = 0.5;
 	while ((cget = getopt(argc, argv, "ahl:k:")) != -1)
-		switch(cget) {
+		switch (cget) {
 		case 'a':
 			asmsrc = 1;
 			break;
@@ -705,14 +705,12 @@ main(int argc, char *argv[])
 	bin = argv[1];
 
 	if (access(bin, R_OK | F_OK) == -1)
-		FATAL(exec, "%s: Impossible to locate the binary file\n",
-		    exec);
+		FATAL(exec, "%s: Impossible to locate the binary file\n", exec);
 	if (access(ofile, R_OK | F_OK) == -1)
 		FATAL(exec, "%s: Impossible to locate the pmcstat file\n",
 		    exec);
 	if (kfile != NULL && access(kfile, R_OK | F_OK) == -1)
-		FATAL(exec, "%s: Impossible to locate the kernel file\n",
-		    exec);
+		FATAL(exec, "%s: Impossible to locate the kernel file\n", exec);
 
 	bzero(tmpf, sizeof(tmpf));
 	tmpdir = getenv("TMPDIR");
@@ -724,25 +722,21 @@ main(int argc, char *argv[])
 		asprintf(&tofl, "%s/%s", tmpdir, TMPNAME);
 	}
 	if (tofl == NULL || tbfl == NULL)
-		FATAL(exec, "%s: Cannot create tempfile templates\n",
-		    exec);
+		FATAL(exec, "%s: Cannot create tempfile templates\n", exec);
 	if (mkstemp(tofl) == -1)
-		FATAL(exec, "%s: Impossible to create the tmp file\n",
-		    exec);
+		FATAL(exec, "%s: Impossible to create the tmp file\n", exec);
 	if (kfile != NULL)
-		snprintf(tmpf, sizeof(tmpf), "pmcstat -k %s -R %s -m %s",
-		    kfile, ofile, tofl);
+		snprintf(tmpf, sizeof(tmpf), "pmcstat -k %s -R %s -m %s", kfile,
+		    ofile, tofl);
 	else
 		snprintf(tmpf, sizeof(tmpf), "pmcstat -R %s -m %s", ofile,
 		    tofl);
 	if (system(tmpf) != 0)
-		FATAL(exec, "%s: Impossible to create the tmp file\n",
-		    exec);
+		FATAL(exec, "%s: Impossible to create the tmp file\n", exec);
 
 	gfp = fopen(tofl, "r");
 	if (gfp == NULL)
-		FATAL(exec, "%s: Impossible to open the map file\n",
-		    exec);
+		FATAL(exec, "%s: Impossible to open the map file\n", exec);
 
 	/*
 	 * Make the collection of raw entries from a pmcstat mapped file.
@@ -752,8 +746,8 @@ main(int argc, char *argv[])
 	while (fgets(buffer, LNBUFF, gfp) != NULL) {
 		if (isspace(buffer[0]))
 			continue;
-		if (sscanf(buffer, "%p %s %p %p\n", &ptr, fname,
-		    &hstart, &hend) != 4)
+		if (sscanf(buffer, "%p %s %p %p\n", &ptr, fname, &hstart,
+			&hend) != 4)
 			FATAL(NULL,
 			    "%s: Invalid scan of function in the map file\n",
 			    exec);
@@ -768,43 +762,36 @@ main(int argc, char *argv[])
 		}
 		obj = entry_create(fname, tmppc, ostart, oend);
 		if (obj == NULL)
-			FATAL(exec,
-			    "%s: Impossible to create a new object\n", exec);
+			FATAL(exec, "%s: Impossible to create a new object\n",
+			    exec);
 		general_insertent(obj);
 	}
 	if (fclose(gfp) == EOF)
-		FATAL(exec, "%s: Impossible to close the filedesc\n",
-		    exec);
+		FATAL(exec, "%s: Impossible to close the filedesc\n", exec);
 	if (remove(tofl) == -1)
-                FATAL(exec, "%s: Impossible to remove the tmpfile\n",
-                    exec);
+		FATAL(exec, "%s: Impossible to remove the tmpfile\n", exec);
 
 	/*
 	 * Remove the loose end objects and feed the first-level aggregation
 	 * queue.
 	 */
 	if (fqueue_insertgen() == -1)
-		FATAL(exec, "%s: Impossible to generate an analysis\n",
-		    exec);
+		FATAL(exec, "%s: Impossible to generate an analysis\n", exec);
 	fqueue_compact(limit);
 	if (fqueue_getall(bin, tbfl, asmsrc) == -1)
-		FATAL(exec, "%s: Impossible to create the tmp file\n",
-		    exec);
+		FATAL(exec, "%s: Impossible to create the tmp file\n", exec);
 
 	bfp = fopen(tbfl, "r");
 	if (bfp == NULL)
-		FATAL(exec, "%s: Impossible to open the binary file\n",
-		    exec);
+		FATAL(exec, "%s: Impossible to open the binary file\n", exec);
 
 	if (asmsrc != 0)
 		asmparse(bfp);
 	else if (cparse(bfp) == -1)
 		FATAL(NULL, "%s: Invalid format for the C file\n", exec);
 	if (fclose(bfp) == EOF)
-                FATAL(exec, "%s: Impossible to close the filedesc\n",
-                    exec);
+		FATAL(exec, "%s: Impossible to close the filedesc\n", exec);
 	if (remove(tbfl) == -1)
-                FATAL(exec, "%s: Impossible to remove the tmpfile\n",
-                    exec);
+		FATAL(exec, "%s: Impossible to remove the tmpfile\n", exec);
 	return (0);
 }

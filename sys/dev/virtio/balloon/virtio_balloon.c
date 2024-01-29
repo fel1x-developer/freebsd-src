@@ -30,117 +30,116 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
+#include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/kthread.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
-#include <sys/sglist.h>
-#include <sys/sysctl.h>
-#include <sys/lock.h>
 #include <sys/mutex.h>
 #include <sys/queue.h>
+#include <sys/rman.h>
+#include <sys/sglist.h>
+#include <sys/sysctl.h>
 
 #include <vm/vm.h>
 #include <vm/vm_page.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/bus.h>
-#include <sys/rman.h>
 
+#include <dev/virtio/balloon/virtio_balloon.h>
 #include <dev/virtio/virtio.h>
 #include <dev/virtio/virtqueue.h>
-#include <dev/virtio/balloon/virtio_balloon.h>
 
 #include "virtio_if.h"
 
 struct vtballoon_softc {
-	device_t		 vtballoon_dev;
-	struct mtx		 vtballoon_mtx;
-	uint64_t		 vtballoon_features;
-	uint32_t		 vtballoon_flags;
-#define VTBALLOON_FLAG_DETACH	 0x01
+	device_t vtballoon_dev;
+	struct mtx vtballoon_mtx;
+	uint64_t vtballoon_features;
+	uint32_t vtballoon_flags;
+#define VTBALLOON_FLAG_DETACH 0x01
 
-	struct virtqueue	*vtballoon_inflate_vq;
-	struct virtqueue	*vtballoon_deflate_vq;
+	struct virtqueue *vtballoon_inflate_vq;
+	struct virtqueue *vtballoon_deflate_vq;
 
-	uint32_t		 vtballoon_desired_npages;
-	uint32_t		 vtballoon_current_npages;
-	TAILQ_HEAD(,vm_page)	 vtballoon_pages;
+	uint32_t vtballoon_desired_npages;
+	uint32_t vtballoon_current_npages;
+	TAILQ_HEAD(, vm_page) vtballoon_pages;
 
-	struct thread		*vtballoon_td;
-	uint32_t		*vtballoon_page_frames;
-	int			 vtballoon_timeout;
+	struct thread *vtballoon_td;
+	uint32_t *vtballoon_page_frames;
+	int vtballoon_timeout;
 };
 
 static struct virtio_feature_desc vtballoon_feature_desc[] = {
-	{ VIRTIO_BALLOON_F_MUST_TELL_HOST,	"MustTellHost"	},
-	{ VIRTIO_BALLOON_F_STATS_VQ,		"StatsVq"	},
-	{ VIRTIO_BALLOON_F_DEFLATE_ON_OOM,	"DeflateOnOOM"	},
+	{ VIRTIO_BALLOON_F_MUST_TELL_HOST, "MustTellHost" },
+	{ VIRTIO_BALLOON_F_STATS_VQ, "StatsVq" },
+	{ VIRTIO_BALLOON_F_DEFLATE_ON_OOM, "DeflateOnOOM" },
 
 	{ 0, NULL }
 };
 
-static int	vtballoon_probe(device_t);
-static int	vtballoon_attach(device_t);
-static int	vtballoon_detach(device_t);
-static int	vtballoon_config_change(device_t);
+static int vtballoon_probe(device_t);
+static int vtballoon_attach(device_t);
+static int vtballoon_detach(device_t);
+static int vtballoon_config_change(device_t);
 
-static int	vtballoon_negotiate_features(struct vtballoon_softc *);
-static int	vtballoon_setup_features(struct vtballoon_softc *);
-static int	vtballoon_alloc_virtqueues(struct vtballoon_softc *);
+static int vtballoon_negotiate_features(struct vtballoon_softc *);
+static int vtballoon_setup_features(struct vtballoon_softc *);
+static int vtballoon_alloc_virtqueues(struct vtballoon_softc *);
 
-static void	vtballoon_vq_intr(void *);
+static void vtballoon_vq_intr(void *);
 
-static void	vtballoon_inflate(struct vtballoon_softc *, int);
-static void	vtballoon_deflate(struct vtballoon_softc *, int);
+static void vtballoon_inflate(struct vtballoon_softc *, int);
+static void vtballoon_deflate(struct vtballoon_softc *, int);
 
-static void	vtballoon_send_page_frames(struct vtballoon_softc *,
-		    struct virtqueue *, int);
+static void vtballoon_send_page_frames(struct vtballoon_softc *,
+    struct virtqueue *, int);
 
-static void	vtballoon_pop(struct vtballoon_softc *);
-static void	vtballoon_stop(struct vtballoon_softc *);
+static void vtballoon_pop(struct vtballoon_softc *);
+static void vtballoon_stop(struct vtballoon_softc *);
 
-static vm_page_t
-		vtballoon_alloc_page(struct vtballoon_softc *);
-static void	vtballoon_free_page(struct vtballoon_softc *, vm_page_t);
+static vm_page_t vtballoon_alloc_page(struct vtballoon_softc *);
+static void vtballoon_free_page(struct vtballoon_softc *, vm_page_t);
 
-static int	vtballoon_sleep(struct vtballoon_softc *);
-static void	vtballoon_thread(void *);
-static void	vtballoon_setup_sysctl(struct vtballoon_softc *);
+static int vtballoon_sleep(struct vtballoon_softc *);
+static void vtballoon_thread(void *);
+static void vtballoon_setup_sysctl(struct vtballoon_softc *);
 
 #define vtballoon_modern(_sc) \
-    (((_sc)->vtballoon_features & VIRTIO_F_VERSION_1) != 0)
+	(((_sc)->vtballoon_features & VIRTIO_F_VERSION_1) != 0)
 
 /* Features desired/implemented by this driver. */
-#define VTBALLOON_FEATURES		VIRTIO_BALLOON_F_MUST_TELL_HOST
+#define VTBALLOON_FEATURES VIRTIO_BALLOON_F_MUST_TELL_HOST
 
 /* Timeout between retries when the balloon needs inflating. */
-#define VTBALLOON_LOWMEM_TIMEOUT	hz
+#define VTBALLOON_LOWMEM_TIMEOUT hz
 
 /*
  * Maximum number of pages we'll request to inflate or deflate
  * the balloon in one virtqueue request. Both Linux and NetBSD
  * have settled on 256, doing up to 1MB at a time.
  */
-#define VTBALLOON_PAGES_PER_REQUEST	256
+#define VTBALLOON_PAGES_PER_REQUEST 256
 
 /* Must be able to fix all pages frames in one page (segment). */
 CTASSERT(VTBALLOON_PAGES_PER_REQUEST * sizeof(uint32_t) <= PAGE_SIZE);
 
-#define VTBALLOON_MTX(_sc)		&(_sc)->vtballoon_mtx
-#define VTBALLOON_LOCK_INIT(_sc, _name)	mtx_init(VTBALLOON_MTX((_sc)), _name, \
-					    "VirtIO Balloon Lock", MTX_DEF)
-#define VTBALLOON_LOCK(_sc)		mtx_lock(VTBALLOON_MTX((_sc)))
-#define VTBALLOON_UNLOCK(_sc)		mtx_unlock(VTBALLOON_MTX((_sc)))
-#define VTBALLOON_LOCK_DESTROY(_sc)	mtx_destroy(VTBALLOON_MTX((_sc)))
+#define VTBALLOON_MTX(_sc) &(_sc)->vtballoon_mtx
+#define VTBALLOON_LOCK_INIT(_sc, _name) \
+	mtx_init(VTBALLOON_MTX((_sc)), _name, "VirtIO Balloon Lock", MTX_DEF)
+#define VTBALLOON_LOCK(_sc) mtx_lock(VTBALLOON_MTX((_sc)))
+#define VTBALLOON_UNLOCK(_sc) mtx_unlock(VTBALLOON_MTX((_sc)))
+#define VTBALLOON_LOCK_DESTROY(_sc) mtx_destroy(VTBALLOON_MTX((_sc)))
 
 static device_method_t vtballoon_methods[] = {
 	/* Device methods. */
-	DEVMETHOD(device_probe,		vtballoon_probe),
-	DEVMETHOD(device_attach,	vtballoon_attach),
-	DEVMETHOD(device_detach,	vtballoon_detach),
+	DEVMETHOD(device_probe, vtballoon_probe),
+	DEVMETHOD(device_attach, vtballoon_attach),
+	DEVMETHOD(device_detach, vtballoon_detach),
 
 	/* VirtIO methods. */
 	DEVMETHOD(virtio_config_change, vtballoon_config_change),
@@ -148,11 +147,8 @@ static device_method_t vtballoon_methods[] = {
 	DEVMETHOD_END
 };
 
-static driver_t vtballoon_driver = {
-	"vtballoon",
-	vtballoon_methods,
-	sizeof(struct vtballoon_softc)
-};
+static driver_t vtballoon_driver = { "vtballoon", vtballoon_methods,
+	sizeof(struct vtballoon_softc) };
 
 VIRTIO_DRIVER_MODULE(virtio_balloon, vtballoon_driver, 0, 0);
 MODULE_VERSION(virtio_balloon, 1);
@@ -189,7 +185,8 @@ vtballoon_attach(device_t dev)
 	}
 
 	sc->vtballoon_page_frames = malloc(VTBALLOON_PAGES_PER_REQUEST *
-	    sizeof(uint32_t), M_DEVBUF, M_NOWAIT | M_ZERO);
+		sizeof(uint32_t),
+	    M_DEVBUF, M_NOWAIT | M_ZERO);
 	if (sc->vtballoon_page_frames == NULL) {
 		error = ENOMEM;
 		device_printf(dev,
@@ -209,8 +206,8 @@ vtballoon_attach(device_t dev)
 		goto fail;
 	}
 
-	error = kthread_add(vtballoon_thread, sc, NULL, &sc->vtballoon_td,
-	    0, 0, "virtio_balloon");
+	error = kthread_add(vtballoon_thread, sc, NULL, &sc->vtballoon_td, 0, 0,
+	    "virtio_balloon");
 	if (error) {
 		device_printf(dev, "cannot create balloon kthread\n");
 		goto fail;
@@ -346,8 +343,8 @@ vtballoon_inflate(struct vtballoon_softc *sc, int npages)
 			break;
 		}
 
-		sc->vtballoon_page_frames[i] =
-		    VM_PAGE_TO_PHYS(m) >> VIRTIO_BALLOON_PFN_SHIFT;
+		sc->vtballoon_page_frames[i] = VM_PAGE_TO_PHYS(m) >>
+		    VIRTIO_BALLOON_PFN_SHIFT;
 
 		KASSERT(m->a.queue == PQ_NONE,
 		    ("%s: allocated page %p on queue", __func__, m));
@@ -376,8 +373,8 @@ vtballoon_deflate(struct vtballoon_softc *sc, int npages)
 		m = TAILQ_FIRST(&sc->vtballoon_pages);
 		KASSERT(m != NULL, ("%s: no more pages to deflate", __func__));
 
-		sc->vtballoon_page_frames[i] =
-		    VM_PAGE_TO_PHYS(m) >> VIRTIO_BALLOON_PFN_SHIFT;
+		sc->vtballoon_page_frames[i] = VM_PAGE_TO_PHYS(m) >>
+		    VIRTIO_BALLOON_PFN_SHIFT;
 
 		TAILQ_REMOVE(&sc->vtballoon_pages, m, plinks.q);
 		TAILQ_INSERT_TAIL(&free_pages, m, plinks.q);
@@ -394,11 +391,11 @@ vtballoon_deflate(struct vtballoon_softc *sc, int npages)
 	}
 
 	KASSERT((TAILQ_EMPTY(&sc->vtballoon_pages) &&
-	    sc->vtballoon_current_npages == 0) ||
-	    (!TAILQ_EMPTY(&sc->vtballoon_pages) &&
-	    sc->vtballoon_current_npages != 0),
+		    sc->vtballoon_current_npages == 0) ||
+		(!TAILQ_EMPTY(&sc->vtballoon_pages) &&
+		    sc->vtballoon_current_npages != 0),
 	    ("%s: bogus page count %d", __func__,
-	    sc->vtballoon_current_npages));
+		sc->vtballoon_current_npages));
 }
 
 static void
@@ -578,11 +575,11 @@ vtballoon_setup_sysctl(struct vtballoon_softc *sc)
 	tree = device_get_sysctl_tree(dev);
 	child = SYSCTL_CHILDREN(tree);
 
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "desired",
-	    CTLFLAG_RD, &sc->vtballoon_desired_npages, sizeof(uint32_t),
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "desired", CTLFLAG_RD,
+	    &sc->vtballoon_desired_npages, sizeof(uint32_t),
 	    "Desired balloon size in pages");
 
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "current",
-	    CTLFLAG_RD, &sc->vtballoon_current_npages, sizeof(uint32_t),
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "current", CTLFLAG_RD,
+	    &sc->vtballoon_current_npages, sizeof(uint32_t),
 	    "Current balloon size in pages");
 }

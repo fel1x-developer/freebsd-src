@@ -39,50 +39,48 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/endian.h>
-#include <sys/mbuf.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/mbuf.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/rman.h>
 #include <sys/socket.h>
+#include <sys/sockio.h>
 #include <sys/sysctl.h>
 
-#include <net/ethernet.h>
+#include <machine/bus.h>
+#include <machine/resource.h>
+
+#include <dev/fdt/fdt_common.h>
+#include <dev/mdio/mdio.h>
+#include <dev/mge/if_mgevar.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+
 #include <net/bpf.h>
+#include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_arp.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
 #include <net/if_vlan_var.h>
-
-#include <netinet/in_systm.h>
 #include <netinet/in.h>
+#include <netinet/in_systm.h>
 #include <netinet/ip.h>
 
-#include <sys/sockio.h>
-#include <sys/bus.h>
-#include <machine/bus.h>
-#include <sys/rman.h>
-#include <machine/resource.h>
-
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-
-#include <dev/fdt/fdt_common.h>
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-#include <dev/mdio/mdio.h>
-
-#include <dev/mge/if_mgevar.h>
 #include <arm/mv/mvreg.h>
 #include <arm/mv/mvvar.h>
 
-#include "miibus_if.h"
 #include "mdio_if.h"
+#include "miibus_if.h"
 
-#define	MGE_DELAY(x)	pause("SMI access sleep", (x) / tick_sbt)
+#define MGE_DELAY(x) pause("SMI access sleep", (x) / tick_sbt)
 
 static int mge_probe(device_t dev);
 static int mge_attach(device_t dev);
@@ -132,14 +130,14 @@ static void mge_set_ucast_address(struct mge_softc *sc, uint8_t last_byte,
 static void mge_set_prom_mode(struct mge_softc *sc, uint8_t queue);
 static int mge_allocate_dma(struct mge_softc *sc);
 static int mge_alloc_desc_dma(struct mge_softc *sc,
-    struct mge_desc_wrapper* desc_tab, uint32_t size,
+    struct mge_desc_wrapper *desc_tab, uint32_t size,
     bus_dma_tag_t *buffer_tag);
 static int mge_new_rxbuf(bus_dma_tag_t tag, bus_dmamap_t map,
     struct mbuf **mbufp, bus_addr_t *paddr);
 static void mge_get_dma_addr(void *arg, bus_dma_segment_t *segs, int nseg,
     int error);
 static void mge_free_dma(struct mge_softc *sc);
-static void mge_free_desc(struct mge_softc *sc, struct mge_desc_wrapper* tab,
+static void mge_free_desc(struct mge_softc *sc, struct mge_desc_wrapper *tab,
     uint32_t size, bus_dma_tag_t buffer_tag, uint8_t free_mbufs);
 static void mge_offload_process_frame(if_t ifp, struct mbuf *frame,
     uint32_t status, uint16_t bufsize);
@@ -154,19 +152,18 @@ static int mge_sysctl_ic(SYSCTL_HANDLER_ARGS);
 
 static device_method_t mge_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		mge_probe),
-	DEVMETHOD(device_attach,	mge_attach),
-	DEVMETHOD(device_detach,	mge_detach),
-	DEVMETHOD(device_shutdown,	mge_shutdown),
-	DEVMETHOD(device_suspend,	mge_suspend),
-	DEVMETHOD(device_resume,	mge_resume),
+	DEVMETHOD(device_probe, mge_probe),
+	DEVMETHOD(device_attach, mge_attach),
+	DEVMETHOD(device_detach, mge_detach),
+	DEVMETHOD(device_shutdown, mge_shutdown),
+	DEVMETHOD(device_suspend, mge_suspend),
+	DEVMETHOD(device_resume, mge_resume),
 	/* MII interface */
-	DEVMETHOD(miibus_readreg,	mge_miibus_readreg),
-	DEVMETHOD(miibus_writereg,	mge_miibus_writereg),
+	DEVMETHOD(miibus_readreg, mge_miibus_readreg),
+	DEVMETHOD(miibus_writereg, mge_miibus_writereg),
 	/* MDIO interface */
-	DEVMETHOD(mdio_readreg,		mge_mdio_readreg),
-	DEVMETHOD(mdio_writereg,	mge_mdio_writereg),
-	{ 0, 0 }
+	DEVMETHOD(mdio_readreg, mge_mdio_readreg),
+	DEVMETHOD(mdio_writereg, mge_mdio_writereg), { 0, 0 }
 };
 
 DEFINE_CLASS_0(mge, mge_driver, mge_methods, sizeof(struct mge_softc));
@@ -180,24 +177,21 @@ MODULE_DEPEND(mge, ether, 1, 1, 1);
 MODULE_DEPEND(mge, miibus, 1, 1, 1);
 MODULE_DEPEND(mge, mdio, 1, 1, 1);
 
-static struct resource_spec res_spec[] = {
-	{ SYS_RES_MEMORY, 0, RF_ACTIVE },
+static struct resource_spec res_spec[] = { { SYS_RES_MEMORY, 0, RF_ACTIVE },
 	{ SYS_RES_IRQ, 0, RF_ACTIVE | RF_SHAREABLE },
 	{ SYS_RES_IRQ, 1, RF_ACTIVE | RF_SHAREABLE },
-	{ SYS_RES_IRQ, 2, RF_ACTIVE | RF_SHAREABLE },
-	{ -1, 0 }
-};
+	{ SYS_RES_IRQ, 2, RF_ACTIVE | RF_SHAREABLE }, { -1, 0 } };
 
 static struct {
 	driver_intr_t *handler;
-	char * description;
+	char *description;
 } mge_intrs[MGE_INTR_COUNT + 1] = {
-	{ mge_intr_rxtx,"GbE aggregated interrupt" },
-	{ mge_intr_rx,	"GbE receive interrupt" },
-	{ mge_intr_tx,	"GbE transmit interrupt" },
-	{ mge_intr_misc,"GbE misc interrupt" },
-	{ mge_intr_sum,	"GbE summary interrupt" },
-	{ mge_intr_err,	"GbE error interrupt" },
+	{ mge_intr_rxtx, "GbE aggregated interrupt" },
+	{ mge_intr_rx, "GbE receive interrupt" },
+	{ mge_intr_tx, "GbE transmit interrupt" },
+	{ mge_intr_misc, "GbE misc interrupt" },
+	{ mge_intr_sum, "GbE summary interrupt" },
+	{ mge_intr_err, "GbE error interrupt" },
 };
 
 /* SMI access interlock */
@@ -215,8 +209,7 @@ mv_read_ge_smi(device_t dev, int phy, int reg)
 	timeout = MGE_SMI_WRITE_RETRIES;
 
 	MGE_SMI_LOCK();
-	while (--timeout &&
-	    (MGE_READ(sc, MGE_REG_SMI) & MGE_SMI_BUSY))
+	while (--timeout && (MGE_READ(sc, MGE_REG_SMI) & MGE_SMI_BUSY))
 		MGE_DELAY(MGE_SMI_WRITE_DELAY);
 
 	if (timeout == 0) {
@@ -225,13 +218,12 @@ mv_read_ge_smi(device_t dev, int phy, int reg)
 		goto out;
 	}
 
-	MGE_WRITE(sc, MGE_REG_SMI, MGE_SMI_MASK &
-	    (MGE_SMI_READ | (reg << 21) | (phy << 16)));
+	MGE_WRITE(sc, MGE_REG_SMI,
+	    MGE_SMI_MASK & (MGE_SMI_READ | (reg << 21) | (phy << 16)));
 
 	/* Wait till finished. */
 	timeout = MGE_SMI_WRITE_RETRIES;
-	while (--timeout &&
-	    !((MGE_READ(sc, MGE_REG_SMI) & MGE_SMI_READVALID)))
+	while (--timeout && !((MGE_READ(sc, MGE_REG_SMI) & MGE_SMI_READVALID)))
 		MGE_DELAY(MGE_SMI_WRITE_DELAY);
 
 	if (timeout == 0) {
@@ -247,7 +239,6 @@ mv_read_ge_smi(device_t dev, int phy, int reg)
 out:
 	MGE_SMI_UNLOCK();
 	return (ret);
-
 }
 
 static void
@@ -261,8 +252,7 @@ mv_write_ge_smi(device_t dev, int phy, int reg, uint32_t value)
 
 	MGE_SMI_LOCK();
 	timeout = MGE_SMI_READ_RETRIES;
-	while (--timeout &&
-	    (MGE_READ(sc, MGE_REG_SMI) & MGE_SMI_BUSY))
+	while (--timeout && (MGE_READ(sc, MGE_REG_SMI) & MGE_SMI_BUSY))
 		MGE_DELAY(MGE_SMI_READ_DELAY);
 
 	if (timeout == 0) {
@@ -270,9 +260,10 @@ mv_write_ge_smi(device_t dev, int phy, int reg, uint32_t value)
 		goto out;
 	}
 
-	MGE_WRITE(sc, MGE_REG_SMI, MGE_SMI_MASK &
-	    (MGE_SMI_WRITE | (reg << 21) | (phy << 16) |
-	    (value & MGE_SMI_DATA_MASK)));
+	MGE_WRITE(sc, MGE_REG_SMI,
+	    MGE_SMI_MASK &
+		(MGE_SMI_WRITE | (reg << 21) | (phy << 16) |
+		    (value & MGE_SMI_DATA_MASK)));
 
 out:
 	MGE_SMI_UNLOCK();
@@ -288,8 +279,8 @@ mv_read_ext_phy(device_t dev, int phy, int reg)
 	sc = device_get_softc(dev);
 
 	MGE_SMI_LOCK();
-	MGE_WRITE(sc->phy_sc, MGE_REG_SMI, MGE_SMI_MASK &
-	    (MGE_SMI_READ | (reg << 21) | (phy << 16)));
+	MGE_WRITE(sc->phy_sc, MGE_REG_SMI,
+	    MGE_SMI_MASK & (MGE_SMI_READ | (reg << 21) | (phy << 16)));
 
 	retries = MGE_SMI_READ_RETRIES;
 	while (--retries &&
@@ -314,9 +305,10 @@ mv_write_ext_phy(device_t dev, int phy, int reg, int value)
 	sc = device_get_softc(dev);
 
 	MGE_SMI_LOCK();
-	MGE_WRITE(sc->phy_sc, MGE_REG_SMI, MGE_SMI_MASK &
-	    (MGE_SMI_WRITE | (reg << 21) | (phy << 16) |
-	    (value & MGE_SMI_DATA_MASK)));
+	MGE_WRITE(sc->phy_sc, MGE_REG_SMI,
+	    MGE_SMI_MASK &
+		(MGE_SMI_WRITE | (reg << 21) | (phy << 16) |
+		    (value & MGE_SMI_DATA_MASK)));
 
 	retries = MGE_SMI_WRITE_RETRIES;
 	while (--retries && MGE_READ(sc->phy_sc, MGE_REG_SMI) & MGE_SMI_BUSY)
@@ -398,10 +390,8 @@ mge_ver_params(struct mge_softc *sc)
 	uint32_t d, r;
 
 	soc_id(&d, &r);
-	if (d == MV_DEV_88F6281 || d == MV_DEV_88F6781 ||
-	    d == MV_DEV_88F6282 ||
-	    d == MV_DEV_MV78100 ||
-	    d == MV_DEV_MV78100_Z0 ||
+	if (d == MV_DEV_88F6281 || d == MV_DEV_88F6781 || d == MV_DEV_88F6282 ||
+	    d == MV_DEV_MV78100 || d == MV_DEV_MV78100_Z0 ||
 	    (d & MV_DEV_FAMILY_MASK) == MV_DEV_DISCOVERY) {
 		sc->mge_ver = 2;
 		sc->mge_mtu = 0x4e8;
@@ -441,8 +431,8 @@ mge_set_mac_address(struct mge_softc *sc)
 	if_mac = (char *)if_getlladdr(sc->ifp);
 
 	mac_l = (if_mac[4] << 8) | (if_mac[5]);
-	mac_h = (if_mac[0] << 24)| (if_mac[1] << 16) |
-	    (if_mac[2] << 8) | (if_mac[3] << 0);
+	mac_h = (if_mac[0] << 24) | (if_mac[1] << 16) | (if_mac[2] << 8) |
+	    (if_mac[3] << 0);
 
 	MGE_WRITE(sc, MGE_MAC_ADDR_L, mac_l);
 	MGE_WRITE(sc, MGE_MAC_ADDR_H, mac_h);
@@ -461,7 +451,7 @@ mge_set_ucast_address(struct mge_softc *sc, uint8_t last_byte, uint8_t queue)
 	reg_val = (1 | (queue << 1)) << reg_off;
 
 	for (i = 0; i < MGE_UCAST_REG_NUMBER; i++) {
-		if ( i == reg_idx)
+		if (i == reg_idx)
 			MGE_WRITE(sc, MGE_DA_FILTER_UCAST(i), reg_val);
 		else
 			MGE_WRITE(sc, MGE_DA_FILTER_UCAST(i), 0);
@@ -481,7 +471,7 @@ mge_set_prom_mode(struct mge_softc *sc, uint8_t queue)
 		MGE_WRITE(sc, MGE_PORT_CONFIG, port_config);
 
 		reg_val = ((1 | (queue << 1)) | (1 | (queue << 1)) << 8 |
-		   (1 | (queue << 1)) << 16 | (1 | (queue << 1)) << 24);
+		    (1 | (queue << 1)) << 16 | (1 | (queue << 1)) << 24);
 
 		for (i = 0; i < MGE_MCAST_REG_NUMBER; i++) {
 			MGE_WRITE(sc, MGE_DA_FILTER_SPEC_MCAST(i), reg_val);
@@ -551,7 +541,7 @@ mge_new_rxbuf(bus_dma_tag_t tag, bus_dmamap_t map, struct mbuf **mbufp,
 }
 
 static int
-mge_alloc_desc_dma(struct mge_softc *sc, struct mge_desc_wrapper* tab,
+mge_alloc_desc_dma(struct mge_softc *sc, struct mge_desc_wrapper *tab,
     uint32_t size, bus_dma_tag_t *buffer_tag)
 {
 	struct mge_desc_wrapper *dw;
@@ -562,7 +552,7 @@ mge_alloc_desc_dma(struct mge_softc *sc, struct mge_desc_wrapper* tab,
 	for (i = size - 1; i >= 0; i--) {
 		dw = &(tab[i]);
 		error = bus_dmamem_alloc(sc->mge_desc_dtag,
-		    (void**)&(dw->mge_desc),
+		    (void **)&(dw->mge_desc),
 		    BUS_DMA_NOWAIT | BUS_DMA_ZERO | BUS_DMA_COHERENT,
 		    &(dw->desc_dmap));
 
@@ -591,15 +581,15 @@ mge_alloc_desc_dma(struct mge_softc *sc, struct mge_desc_wrapper* tab,
 	tab[size - 1].mge_desc->next_desc = desc_paddr;
 
 	/* Allocate a busdma tag for mbufs. */
-	error = bus_dma_tag_create(bus_get_dma_tag(sc->dev),	/* parent */
-	    1, 0,				/* alignment, boundary */
-	    BUS_SPACE_MAXADDR_32BIT,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,			/* highaddr */
-	    NULL, NULL,				/* filtfunc, filtfuncarg */
-	    MCLBYTES, 1,			/* maxsize, nsegments */
-	    MCLBYTES, 0,			/* maxsegsz, flags */
-	    NULL, NULL,				/* lockfunc, lockfuncarg */
-	    buffer_tag);			/* dmat */
+	error = bus_dma_tag_create(bus_get_dma_tag(sc->dev), /* parent */
+	    1, 0,		     /* alignment, boundary */
+	    BUS_SPACE_MAXADDR_32BIT, /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filtfunc, filtfuncarg */
+	    MCLBYTES, 1,	     /* maxsize, nsegments */
+	    MCLBYTES, 0,	     /* maxsegsz, flags */
+	    NULL, NULL,		     /* lockfunc, lockfuncarg */
+	    buffer_tag);	     /* dmat */
 	if (error) {
 		if_printf(sc->ifp, "failed to create busdma tag for mbufs\n");
 		return (ENXIO);
@@ -614,7 +604,7 @@ mge_alloc_desc_dma(struct mge_softc *sc, struct mge_desc_wrapper* tab,
 			return (ENXIO);
 		}
 
-		dw->buffer = (struct mbuf*)NULL;
+		dw->buffer = (struct mbuf *)NULL;
 		dw->mge_desc->buffer = (bus_addr_t)NULL;
 	}
 
@@ -628,16 +618,15 @@ mge_allocate_dma(struct mge_softc *sc)
 	int i;
 
 	/* Allocate a busdma tag and DMA safe memory for TX/RX descriptors. */
-	bus_dma_tag_create(bus_get_dma_tag(sc->dev),	/* parent */
-	    16, 0,				/* alignment, boundary */
-	    BUS_SPACE_MAXADDR_32BIT,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,			/* highaddr */
-	    NULL, NULL,				/* filtfunc, filtfuncarg */
-	    sizeof(struct mge_desc), 1,		/* maxsize, nsegments */
-	    sizeof(struct mge_desc), 0,		/* maxsegsz, flags */
-	    NULL, NULL,				/* lockfunc, lockfuncarg */
-	    &sc->mge_desc_dtag);		/* dmat */
-
+	bus_dma_tag_create(bus_get_dma_tag(sc->dev), /* parent */
+	    16, 0,				     /* alignment, boundary */
+	    BUS_SPACE_MAXADDR_32BIT,		     /* lowaddr */
+	    BUS_SPACE_MAXADDR,			     /* highaddr */
+	    NULL, NULL,				     /* filtfunc, filtfuncarg */
+	    sizeof(struct mge_desc), 1,		     /* maxsize, nsegments */
+	    sizeof(struct mge_desc), 0,		     /* maxsegsz, flags */
+	    NULL, NULL,				     /* lockfunc, lockfuncarg */
+	    &sc->mge_desc_dtag);		     /* dmat */
 
 	mge_alloc_desc_dma(sc, sc->mge_tx_desc, MGE_TX_DESC_NUM,
 	    &sc->mge_tx_dtag);
@@ -657,8 +646,8 @@ mge_allocate_dma(struct mge_softc *sc)
 }
 
 static void
-mge_free_desc(struct mge_softc *sc, struct mge_desc_wrapper* tab,
-    uint32_t size, bus_dma_tag_t buffer_tag, uint8_t free_mbufs)
+mge_free_desc(struct mge_softc *sc, struct mge_desc_wrapper *tab, uint32_t size,
+    bus_dma_tag_t buffer_tag, uint8_t free_mbufs)
 {
 	struct mge_desc_wrapper *dw;
 	int i;
@@ -719,7 +708,7 @@ mge_reinit_rx(struct mge_softc *sc)
 	for (i = 0; i < MGE_RX_DESC_NUM; i++) {
 		dw = &(sc->mge_rx_desc[i]);
 		mge_new_rxbuf(sc->mge_rx_dtag, dw->buffer_dmap, &dw->buffer,
-		&dw->mge_desc->buffer);
+		    &dw->mge_desc->buffer);
 	}
 
 	sc->rx_desc_start = sc->mge_rx_desc[0].mge_desc_paddr;
@@ -763,7 +752,6 @@ mge_poll(if_t ifp, enum poll_cmd cmd, int count)
 		}
 	}
 
-
 	rx_npkts = mge_intr_rx_locked(sc, count);
 
 	MGE_RECEIVE_UNLOCK(sc);
@@ -788,7 +776,8 @@ mge_attach(device_t dev)
 	sc->node = ofw_bus_get_node(dev);
 	phy = 0;
 
-	if (fdt_get_phyaddr(sc->node, sc->dev, &phy, (void **)&sc->phy_sc) == 0) {
+	if (fdt_get_phyaddr(sc->node, sc->dev, &phy, (void **)&sc->phy_sc) ==
+	    0) {
 		device_printf(dev, "PHY%i attached, phy_sc points to %s\n", phy,
 		    device_get_nameunit(sc->phy_sc->dev));
 		sc->phy_attached = 1;
@@ -897,26 +886,24 @@ mge_attach(device_t dev)
 		MGE_WRITE(sc, MGE_REG_PHYDEV, miisc->mii_phy);
 	} else {
 		/* no PHY, so use hard-coded values */
-		ifmedia_init(&sc->mge_ifmedia, 0,
-		    mge_ifmedia_upd,
+		ifmedia_init(&sc->mge_ifmedia, 0, mge_ifmedia_upd,
 		    mge_ifmedia_sts);
-		ifmedia_add(&sc->mge_ifmedia,
-		    IFM_ETHER | IFM_1000_T | IFM_FDX,
+		ifmedia_add(&sc->mge_ifmedia, IFM_ETHER | IFM_1000_T | IFM_FDX,
 		    0, NULL);
-		ifmedia_set(&sc->mge_ifmedia,
-		    IFM_ETHER | IFM_1000_T | IFM_FDX);
+		ifmedia_set(&sc->mge_ifmedia, IFM_ETHER | IFM_1000_T | IFM_FDX);
 	}
 
 	/* Attach interrupt handlers */
 	/* TODO: review flags, in part. mark RX as INTR_ENTROPY ? */
 	for (i = 1; i <= sc->mge_intr_cnt; ++i) {
 		error = bus_setup_intr(dev, sc->res[i],
-		    INTR_TYPE_NET | INTR_MPSAFE,
-		    NULL, *mge_intrs[(sc->mge_intr_cnt == 1 ? 0 : i)].handler,
-		    sc, &sc->ih_cookie[i - 1]);
+		    INTR_TYPE_NET | INTR_MPSAFE, NULL,
+		    *mge_intrs[(sc->mge_intr_cnt == 1 ? 0 : i)].handler, sc,
+		    &sc->ih_cookie[i - 1]);
 		if (error) {
 			device_printf(dev, "could not setup %s\n",
-			    mge_intrs[(sc->mge_intr_cnt == 1 ? 0 : i)].description);
+			    mge_intrs[(sc->mge_intr_cnt == 1 ? 0 : i)]
+				.description);
 			mge_detach(dev);
 			return (error);
 		}
@@ -935,7 +922,7 @@ static int
 mge_detach(device_t dev)
 {
 	struct mge_softc *sc;
-	int error,i;
+	int error, i;
 
 	sc = device_get_softc(dev);
 
@@ -944,7 +931,7 @@ mge_detach(device_t dev)
 		mge_shutdown(dev);
 
 	/* Wait for stopping ticks */
-        callout_drain(&sc->wd_callout);
+	callout_drain(&sc->wd_callout);
 
 	/* Stop and release all interrupts */
 	for (i = 0; i < sc->mge_intr_cnt; ++i) {
@@ -955,7 +942,8 @@ mge_detach(device_t dev)
 		    sc->ih_cookie[i]);
 		if (error)
 			device_printf(dev, "could not release %s\n",
-			    mge_intrs[(sc->mge_intr_cnt == 1 ? 0 : i + 1)].description);
+			    mge_intrs[(sc->mge_intr_cnt == 1 ? 0 : i + 1)]
+				.description);
 	}
 
 	/* Detach network interface */
@@ -1014,24 +1002,23 @@ mge_set_port_serial_control(uint32_t media)
 	    PORT_SERIAL_MRU(PORT_SERIAL_MRU_1552);
 
 	if (IFM_TYPE(media) == IFM_ETHER) {
-		switch(IFM_SUBTYPE(media)) {
-			case IFM_AUTO:
-				break;
-			case IFM_1000_T:
-				port_config  |= (PORT_SERIAL_GMII_SPEED_1000 |
-				    PORT_SERIAL_AUTONEG | PORT_SERIAL_AUTONEG_FC
-				    | PORT_SERIAL_SPEED_AUTONEG);
-				break;
-			case IFM_100_TX:
-				port_config  |= (PORT_SERIAL_MII_SPEED_100 |
-				    PORT_SERIAL_AUTONEG | PORT_SERIAL_AUTONEG_FC
-				    | PORT_SERIAL_SPEED_AUTONEG);
-				break;
-			case IFM_10_T:
-				port_config  |= (PORT_SERIAL_AUTONEG |
-				    PORT_SERIAL_AUTONEG_FC |
-				    PORT_SERIAL_SPEED_AUTONEG);
-				break;
+		switch (IFM_SUBTYPE(media)) {
+		case IFM_AUTO:
+			break;
+		case IFM_1000_T:
+			port_config |= (PORT_SERIAL_GMII_SPEED_1000 |
+			    PORT_SERIAL_AUTONEG | PORT_SERIAL_AUTONEG_FC |
+			    PORT_SERIAL_SPEED_AUTONEG);
+			break;
+		case IFM_100_TX:
+			port_config |= (PORT_SERIAL_MII_SPEED_100 |
+			    PORT_SERIAL_AUTONEG | PORT_SERIAL_AUTONEG_FC |
+			    PORT_SERIAL_SPEED_AUTONEG);
+			break;
+		case IFM_10_T:
+			port_config |= (PORT_SERIAL_AUTONEG |
+			    PORT_SERIAL_AUTONEG_FC | PORT_SERIAL_SPEED_AUTONEG);
+			break;
 		}
 		if (media & IFM_FDX)
 			port_config |= PORT_SERIAL_FULL_DUPLEX;
@@ -1057,7 +1044,6 @@ mge_ifmedia_upd(if_t ifp)
 
 			/* MGE MAC needs to be reinitialized. */
 			mge_init_locked(sc);
-
 		}
 		MGE_GLOBAL_UNLOCK(sc);
 	}
@@ -1086,7 +1072,6 @@ mge_init_locked(void *arg)
 	volatile uint32_t reg_val;
 	int i, count;
 	uint32_t media_status;
-
 
 	MGE_GLOBAL_LOCK_ASSERT(sc);
 
@@ -1125,8 +1110,8 @@ mge_init_locked(void *arg)
 	/* Port configuration */
 	MGE_WRITE(sc, MGE_PORT_CONFIG,
 	    PORT_CONFIG_RXCS | PORT_CONFIG_DFLT_RXQ(0) |
-	    PORT_CONFIG_ARO_RXQ(0));
-	MGE_WRITE(sc, MGE_PORT_EXT_CONFIG , 0x0);
+		PORT_CONFIG_ARO_RXQ(0));
+	MGE_WRITE(sc, MGE_PORT_EXT_CONFIG, 0x0);
 
 	/* Configure promisc mode */
 	mge_set_prom_mode(sc, MGE_RX_DEFAULT_QUEUE);
@@ -1142,10 +1127,10 @@ mge_init_locked(void *arg)
 	MGE_WRITE(sc, MGE_PORT_SERIAL_CTRL, reg_val);
 
 	/* Setup SDMA configuration */
-	MGE_WRITE(sc, MGE_SDMA_CONFIG , MGE_SDMA_RX_BYTE_SWAP |
-	    MGE_SDMA_TX_BYTE_SWAP |
-	    MGE_SDMA_RX_BURST_SIZE(MGE_SDMA_BURST_16_WORD) |
-	    MGE_SDMA_TX_BURST_SIZE(MGE_SDMA_BURST_16_WORD));
+	MGE_WRITE(sc, MGE_SDMA_CONFIG,
+	    MGE_SDMA_RX_BYTE_SWAP | MGE_SDMA_TX_BYTE_SWAP |
+		MGE_SDMA_RX_BURST_SIZE(MGE_SDMA_BURST_16_WORD) |
+		MGE_SDMA_TX_BURST_SIZE(MGE_SDMA_BURST_16_WORD));
 
 	MGE_WRITE(sc, MGE_TX_FIFO_URGENT_TRSH, 0x0);
 
@@ -1193,7 +1178,7 @@ mge_init_locked(void *arg)
 
 	/* Enable interrupts */
 #ifdef DEVICE_POLLING
-        /*
+	/*
 	 * * ...only if polling is not turned on. Disable interrupts explicitly
 	 * if polling is enabled.
 	 */
@@ -1201,7 +1186,7 @@ mge_init_locked(void *arg)
 		mge_intrs_ctrl(sc, 0);
 	else
 #endif /* DEVICE_POLLING */
-	mge_intrs_ctrl(sc, 1);
+		mge_intrs_ctrl(sc, 1);
 
 	/* Activate network interface */
 	if_setdrvflagbits(sc->ifp, IFF_DRV_RUNNING, 0);
@@ -1234,10 +1219,10 @@ mge_intr_rxtx(void *arg)
 	int_cause_ext = MGE_READ(sc, MGE_PORT_INT_CAUSE_EXT);
 
 	/* Check for Transmit interrupt */
-	if (int_cause_ext & (MGE_PORT_INT_EXT_TXBUF0 |
-	    MGE_PORT_INT_EXT_TXUR)) {
-		MGE_WRITE(sc, MGE_PORT_INT_CAUSE_EXT, ~(int_cause_ext &
-		    (MGE_PORT_INT_EXT_TXBUF0 | MGE_PORT_INT_EXT_TXUR)));
+	if (int_cause_ext & (MGE_PORT_INT_EXT_TXBUF0 | MGE_PORT_INT_EXT_TXUR)) {
+		MGE_WRITE(sc, MGE_PORT_INT_CAUSE_EXT,
+		    ~(int_cause_ext &
+			(MGE_PORT_INT_EXT_TXBUF0 | MGE_PORT_INT_EXT_TXUR)));
 		mge_intr_tx_locked(sc);
 	}
 
@@ -1272,7 +1257,8 @@ mge_intr_misc(void *arg)
 }
 
 static void
-mge_intr_rx(void *arg) {
+mge_intr_rx(void *arg)
+{
 	struct mge_softc *sc;
 	uint32_t int_cause, int_cause_ext;
 
@@ -1322,7 +1308,7 @@ mge_intr_rx_locked(struct mge_softc *sc, int count)
 	if_t ifp = sc->ifp;
 	uint32_t status;
 	uint16_t bufsize;
-	struct mge_desc_wrapper* dw;
+	struct mge_desc_wrapper *dw;
 	struct mbuf *mb;
 	int rx_npkts = 0;
 
@@ -1339,15 +1325,14 @@ mge_intr_rx_locked(struct mge_softc *sc, int count)
 		if ((status & MGE_DMA_OWNED) != 0)
 			break;
 
-		if (dw->mge_desc->byte_count &&
-		    ~(status & MGE_ERR_SUMMARY)) {
+		if (dw->mge_desc->byte_count && ~(status & MGE_ERR_SUMMARY)) {
 
 			bus_dmamap_sync(sc->mge_rx_dtag, dw->buffer_dmap,
 			    BUS_DMASYNC_POSTREAD);
 
 			mb = m_devget(dw->buffer->m_data,
-			    dw->mge_desc->byte_count - ETHER_CRC_LEN,
-			    0, ifp, NULL);
+			    dw->mge_desc->byte_count - ETHER_CRC_LEN, 0, ifp,
+			    NULL);
 
 			if (mb == NULL)
 				/* Give up if no mbufs */
@@ -1359,8 +1344,7 @@ mge_intr_rx_locked(struct mge_softc *sc, int count)
 
 			mb->m_pkthdr.rcvif = ifp;
 
-			mge_offload_process_frame(ifp, mb, status,
-			    bufsize);
+			mge_offload_process_frame(ifp, mb, status, bufsize);
 
 			MGE_RECEIVE_UNLOCK(sc);
 			if_input(ifp, mb);
@@ -1410,8 +1394,9 @@ mge_intr_tx(void *arg)
 
 	/* Ack the interrupt */
 	int_cause_ext = MGE_READ(sc, MGE_PORT_INT_CAUSE_EXT);
-	MGE_WRITE(sc, MGE_PORT_INT_CAUSE_EXT, ~(int_cause_ext &
-	    (MGE_PORT_INT_EXT_TXBUF0 | MGE_PORT_INT_EXT_TXUR)));
+	MGE_WRITE(sc, MGE_PORT_INT_CAUSE_EXT,
+	    ~(int_cause_ext &
+		(MGE_PORT_INT_EXT_TXBUF0 | MGE_PORT_INT_EXT_TXUR)));
 
 	mge_intr_tx_locked(sc);
 
@@ -1445,8 +1430,8 @@ mge_intr_tx_locked(struct mge_softc *sc)
 		if (status & MGE_DMA_OWNED)
 			break;
 
-		sc->tx_desc_used_idx =
-			(++sc->tx_desc_used_idx) % MGE_TX_DESC_NUM;
+		sc->tx_desc_used_idx = (++sc->tx_desc_used_idx) %
+		    MGE_TX_DESC_NUM;
 		sc->tx_desc_used_count--;
 
 		/* Update collision statistics */
@@ -1461,7 +1446,7 @@ mge_intr_tx_locked(struct mge_softc *sc)
 		    BUS_DMASYNC_POSTWRITE);
 		bus_dmamap_unload(sc->mge_tx_dtag, dw->buffer_dmap);
 		m_freem(dw->buffer);
-		dw->buffer = (struct mbuf*)NULL;
+		dw->buffer = (struct mbuf *)NULL;
 		send++;
 
 		if_inc_counter(ifp, IFCOUNTER_OPACKETS, 1);
@@ -1498,8 +1483,7 @@ mge_ioctl(if_t ifp, u_long command, caddr_t data)
 					mge_setup_multicast(sc);
 			} else
 				mge_init_locked(sc);
-		}
-		else if (if_getdrvflags(ifp) & IFF_DRV_RUNNING)
+		} else if (if_getdrvflags(ifp) & IFF_DRV_RUNNING)
 			mge_stop(sc);
 
 		sc->mge_if_flags = if_getflags(ifp);
@@ -1517,7 +1501,8 @@ mge_ioctl(if_t ifp, u_long command, caddr_t data)
 		mask = if_getcapenable(ifp) ^ ifr->ifr_reqcap;
 		if (mask & IFCAP_HWCSUM) {
 			if_setcapenablebit(ifp, 0, IFCAP_HWCSUM);
-			if_setcapenablebit(ifp, IFCAP_HWCSUM & ifr->ifr_reqcap, 0);
+			if_setcapenablebit(ifp, IFCAP_HWCSUM & ifr->ifr_reqcap,
+			    0);
 			if (if_getcapenable(ifp) & IFCAP_TXCSUM)
 				if_sethwassist(ifp, MGE_CHECKSUM_FEATURES);
 			else
@@ -1528,7 +1513,7 @@ mge_ioctl(if_t ifp, u_long command, caddr_t data)
 			if (ifr->ifr_reqcap & IFCAP_POLLING) {
 				error = ether_poll_register(mge_poll, ifp);
 				if (error)
-					return(error);
+					return (error);
 
 				MGE_GLOBAL_LOCK(sc);
 				mge_intrs_ctrl(sc, 0);
@@ -1558,8 +1543,8 @@ mge_ioctl(if_t ifp, u_long command, caddr_t data)
 			break;
 		}
 
-		if (IFM_SUBTYPE(ifr->ifr_media) == IFM_1000_T
-		    && !(ifr->ifr_media & IFM_FDX)) {
+		if (IFM_SUBTYPE(ifr->ifr_media) == IFM_1000_T &&
+		    !(ifr->ifr_media & IFM_FDX)) {
 			device_printf(sc->dev,
 			    "1000baseTX half-duplex unsupported\n");
 			return 0;
@@ -1622,7 +1607,7 @@ mge_shutdown(device_t dev)
 	MGE_GLOBAL_LOCK(sc);
 
 #ifdef DEVICE_POLLING
-        if (if_getcapenable(sc->ifp) & IFCAP_POLLING)
+	if (if_getcapenable(sc->ifp) & IFCAP_POLLING)
 		ether_poll_deregister(sc->ifp);
 #endif
 
@@ -1701,7 +1686,7 @@ mge_tick(void *msc)
 	mii_tick(sc->mii);
 
 	/* Check for media type change */
-	if(sc->mge_media_status != sc->mii->mii_media.ifm_media)
+	if (sc->mge_media_status != sc->mii->mii_media.ifm_media)
 		mge_ifmedia_upd(sc->ifp);
 
 	MGE_GLOBAL_UNLOCK(sc);
@@ -1763,7 +1748,7 @@ mge_start_locked(if_t ifp)
 		if (m0 == NULL)
 			break;
 
-		if (m0->m_pkthdr.csum_flags & (CSUM_IP|CSUM_TCP|CSUM_UDP) ||
+		if (m0->m_pkthdr.csum_flags & (CSUM_IP | CSUM_TCP | CSUM_UDP) ||
 		    m0->m_flags & M_VLANTAG) {
 			if (M_WRITABLE(m0) == 0) {
 				mtmp = m_dup(m0, M_NOWAIT);
@@ -1855,14 +1840,14 @@ mge_stop(struct mge_softc *sc)
 		bus_dmamap_unload(sc->mge_tx_dtag, dw->buffer_dmap);
 
 		m_freem(dw->buffer);
-		dw->buffer = (struct mbuf*)NULL;
+		dw->buffer = (struct mbuf *)NULL;
 	}
 
 	/* Wait for end of transmission */
 	count = 0x100000;
 	while (count--) {
 		reg_val = MGE_READ(sc, MGE_PORT_STATUS);
-		if ( !(reg_val & MGE_STATUS_TX_IN_PROG) &&
+		if (!(reg_val & MGE_STATUS_TX_IN_PROG) &&
 		    (reg_val & MGE_STATUS_TX_FIFO_EMPTY))
 			break;
 		DELAY(100);
@@ -1875,7 +1860,7 @@ mge_stop(struct mge_softc *sc)
 
 	reg_val = MGE_READ(sc, MGE_PORT_SERIAL_CTRL);
 	reg_val &= ~(PORT_SERIAL_ENABLE);
-	MGE_WRITE(sc, MGE_PORT_SERIAL_CTRL ,reg_val);
+	MGE_WRITE(sc, MGE_PORT_SERIAL_CTRL, reg_val);
 }
 
 static int
@@ -1887,8 +1872,8 @@ mge_suspend(device_t dev)
 }
 
 static void
-mge_offload_process_frame(if_t ifp, struct mbuf *frame,
-    uint32_t status, uint16_t bufsize)
+mge_offload_process_frame(if_t ifp, struct mbuf *frame, uint32_t status,
+    uint16_t bufsize)
 {
 	int csum_flags = 0;
 
@@ -1956,11 +1941,12 @@ mge_intrs_ctrl(struct mge_softc *sc, int enable)
 {
 
 	if (enable) {
-		MGE_WRITE(sc, MGE_PORT_INT_MASK , MGE_PORT_INT_RXQ0 |
-		    MGE_PORT_INT_EXTEND | MGE_PORT_INT_RXERRQ0);
-		MGE_WRITE(sc, MGE_PORT_INT_MASK_EXT , MGE_PORT_INT_EXT_TXERR0 |
-		    MGE_PORT_INT_EXT_RXOR | MGE_PORT_INT_EXT_TXUR |
-		    MGE_PORT_INT_EXT_TXBUF0);
+		MGE_WRITE(sc, MGE_PORT_INT_MASK,
+		    MGE_PORT_INT_RXQ0 | MGE_PORT_INT_EXTEND |
+			MGE_PORT_INT_RXERRQ0);
+		MGE_WRITE(sc, MGE_PORT_INT_MASK_EXT,
+		    MGE_PORT_INT_EXT_TXERR0 | MGE_PORT_INT_EXT_RXOR |
+			MGE_PORT_INT_EXT_TXUR | MGE_PORT_INT_EXT_TXBUF0);
 	} else {
 		MGE_WRITE(sc, MGE_INT_CAUSE, 0x0);
 		MGE_WRITE(sc, MGE_INT_MASK, 0x0);
@@ -1977,45 +1963,37 @@ static uint8_t
 mge_crc8(uint8_t *data, int size)
 {
 	uint8_t crc = 0;
-	static const uint8_t ct[256] = {
-		0x00, 0x07, 0x0E, 0x09, 0x1C, 0x1B, 0x12, 0x15,
-		0x38, 0x3F, 0x36, 0x31, 0x24, 0x23, 0x2A, 0x2D,
-		0x70, 0x77, 0x7E, 0x79, 0x6C, 0x6B, 0x62, 0x65,
-		0x48, 0x4F, 0x46, 0x41, 0x54, 0x53, 0x5A, 0x5D,
-		0xE0, 0xE7, 0xEE, 0xE9, 0xFC, 0xFB, 0xF2, 0xF5,
-		0xD8, 0xDF, 0xD6, 0xD1, 0xC4, 0xC3, 0xCA, 0xCD,
-		0x90, 0x97, 0x9E, 0x99, 0x8C, 0x8B, 0x82, 0x85,
-		0xA8, 0xAF, 0xA6, 0xA1, 0xB4, 0xB3, 0xBA, 0xBD,
-		0xC7, 0xC0, 0xC9, 0xCE, 0xDB, 0xDC, 0xD5, 0xD2,
-		0xFF, 0xF8, 0xF1, 0xF6, 0xE3, 0xE4, 0xED, 0xEA,
-		0xB7, 0xB0, 0xB9, 0xBE, 0xAB, 0xAC, 0xA5, 0xA2,
-		0x8F, 0x88, 0x81, 0x86, 0x93, 0x94, 0x9D, 0x9A,
-		0x27, 0x20, 0x29, 0x2E, 0x3B, 0x3C, 0x35, 0x32,
-		0x1F, 0x18, 0x11, 0x16, 0x03, 0x04, 0x0D, 0x0A,
-		0x57, 0x50, 0x59, 0x5E, 0x4B, 0x4C, 0x45, 0x42,
-		0x6F, 0x68, 0x61, 0x66, 0x73, 0x74, 0x7D, 0x7A,
-		0x89, 0x8E, 0x87, 0x80, 0x95, 0x92, 0x9B, 0x9C,
-		0xB1, 0xB6, 0xBF, 0xB8, 0xAD, 0xAA, 0xA3, 0xA4,
-		0xF9, 0xFE, 0xF7, 0xF0, 0xE5, 0xE2, 0xEB, 0xEC,
-		0xC1, 0xC6, 0xCF, 0xC8, 0xDD, 0xDA, 0xD3, 0xD4,
-		0x69, 0x6E, 0x67, 0x60, 0x75, 0x72, 0x7B, 0x7C,
-		0x51, 0x56, 0x5F, 0x58, 0x4D, 0x4A, 0x43, 0x44,
-		0x19, 0x1E, 0x17, 0x10, 0x05, 0x02, 0x0B, 0x0C,
-		0x21, 0x26, 0x2F, 0x28, 0x3D, 0x3A, 0x33, 0x34,
-		0x4E, 0x49, 0x40, 0x47, 0x52, 0x55, 0x5C, 0x5B,
-		0x76, 0x71, 0x78, 0x7F, 0x6A, 0x6D, 0x64, 0x63,
-		0x3E, 0x39, 0x30, 0x37, 0x22, 0x25, 0x2C, 0x2B,
-		0x06, 0x01, 0x08, 0x0F, 0x1A, 0x1D, 0x14, 0x13,
-		0xAE, 0xA9, 0xA0, 0xA7, 0xB2, 0xB5, 0xBC, 0xBB,
-		0x96, 0x91, 0x98, 0x9F, 0x8A, 0x8D, 0x84, 0x83,
-		0xDE, 0xD9, 0xD0, 0xD7, 0xC2, 0xC5, 0xCC, 0xCB,
-		0xE6, 0xE1, 0xE8, 0xEF, 0xFA, 0xFD, 0xF4, 0xF3
-	};
+	static const uint8_t ct[256] = { 0x00, 0x07, 0x0E, 0x09, 0x1C, 0x1B,
+		0x12, 0x15, 0x38, 0x3F, 0x36, 0x31, 0x24, 0x23, 0x2A, 0x2D,
+		0x70, 0x77, 0x7E, 0x79, 0x6C, 0x6B, 0x62, 0x65, 0x48, 0x4F,
+		0x46, 0x41, 0x54, 0x53, 0x5A, 0x5D, 0xE0, 0xE7, 0xEE, 0xE9,
+		0xFC, 0xFB, 0xF2, 0xF5, 0xD8, 0xDF, 0xD6, 0xD1, 0xC4, 0xC3,
+		0xCA, 0xCD, 0x90, 0x97, 0x9E, 0x99, 0x8C, 0x8B, 0x82, 0x85,
+		0xA8, 0xAF, 0xA6, 0xA1, 0xB4, 0xB3, 0xBA, 0xBD, 0xC7, 0xC0,
+		0xC9, 0xCE, 0xDB, 0xDC, 0xD5, 0xD2, 0xFF, 0xF8, 0xF1, 0xF6,
+		0xE3, 0xE4, 0xED, 0xEA, 0xB7, 0xB0, 0xB9, 0xBE, 0xAB, 0xAC,
+		0xA5, 0xA2, 0x8F, 0x88, 0x81, 0x86, 0x93, 0x94, 0x9D, 0x9A,
+		0x27, 0x20, 0x29, 0x2E, 0x3B, 0x3C, 0x35, 0x32, 0x1F, 0x18,
+		0x11, 0x16, 0x03, 0x04, 0x0D, 0x0A, 0x57, 0x50, 0x59, 0x5E,
+		0x4B, 0x4C, 0x45, 0x42, 0x6F, 0x68, 0x61, 0x66, 0x73, 0x74,
+		0x7D, 0x7A, 0x89, 0x8E, 0x87, 0x80, 0x95, 0x92, 0x9B, 0x9C,
+		0xB1, 0xB6, 0xBF, 0xB8, 0xAD, 0xAA, 0xA3, 0xA4, 0xF9, 0xFE,
+		0xF7, 0xF0, 0xE5, 0xE2, 0xEB, 0xEC, 0xC1, 0xC6, 0xCF, 0xC8,
+		0xDD, 0xDA, 0xD3, 0xD4, 0x69, 0x6E, 0x67, 0x60, 0x75, 0x72,
+		0x7B, 0x7C, 0x51, 0x56, 0x5F, 0x58, 0x4D, 0x4A, 0x43, 0x44,
+		0x19, 0x1E, 0x17, 0x10, 0x05, 0x02, 0x0B, 0x0C, 0x21, 0x26,
+		0x2F, 0x28, 0x3D, 0x3A, 0x33, 0x34, 0x4E, 0x49, 0x40, 0x47,
+		0x52, 0x55, 0x5C, 0x5B, 0x76, 0x71, 0x78, 0x7F, 0x6A, 0x6D,
+		0x64, 0x63, 0x3E, 0x39, 0x30, 0x37, 0x22, 0x25, 0x2C, 0x2B,
+		0x06, 0x01, 0x08, 0x0F, 0x1A, 0x1D, 0x14, 0x13, 0xAE, 0xA9,
+		0xA0, 0xA7, 0xB2, 0xB5, 0xBC, 0xBB, 0x96, 0x91, 0x98, 0x9F,
+		0x8A, 0x8D, 0x84, 0x83, 0xDE, 0xD9, 0xD0, 0xD7, 0xC2, 0xC5,
+		0xCC, 0xCB, 0xE6, 0xE1, 0xE8, 0xEF, 0xFA, 0xFD, 0xF4, 0xF3 };
 
-	while(size--)
+	while (size--)
 		crc = ct[crc ^ *(data++)];
 
-	return(crc);
+	return (crc);
 }
 
 struct mge_hash_maddr_ctx {
@@ -2053,8 +2031,8 @@ mge_setup_multicast(struct mge_softc *sc)
 
 	if (if_getflags(ifp) & IFF_ALLMULTI) {
 		for (i = 0; i < MGE_MCAST_REG_NUMBER; i++)
-			ctx.smt[i] = ctx.omt[i] =
-			    (v << 24) | (v << 16) | (v << 8) | v;
+			ctx.smt[i] = ctx.omt[i] = (v << 24) | (v << 16) |
+			    (v << 8) | v;
 	} else {
 		memset(&ctx, 0, sizeof(ctx));
 		if_foreach_llmaddr(ifp, mge_hash_maddr, &ctx);
@@ -2101,10 +2079,10 @@ mge_sysctl_ic(SYSCTL_HANDLER_ARGS)
 	uint32_t time;
 	int error;
 
-	time = (arg2 == MGE_IC_RX) ? sc->rx_ic_time : sc->tx_ic_time; 
+	time = (arg2 == MGE_IC_RX) ? sc->rx_ic_time : sc->tx_ic_time;
 	error = sysctl_handle_int(oidp, &time, 0, req);
 	if (error != 0)
-		return(error);
+		return (error);
 
 	MGE_GLOBAL_LOCK(sc);
 	if (arg2 == MGE_IC_RX) {
@@ -2116,7 +2094,7 @@ mge_sysctl_ic(SYSCTL_HANDLER_ARGS)
 	}
 	MGE_GLOBAL_UNLOCK(sc);
 
-	return(0);
+	return (0);
 }
 
 static void
@@ -2148,7 +2126,6 @@ mge_mdio_writereg(device_t dev, int phy, int reg, int value)
 
 	return (0);
 }
-
 
 static int
 mge_mdio_readreg(device_t dev, int phy, int reg)

@@ -28,26 +28,25 @@
  * make LDFLAGS+=-lgpio gpioevents
  */
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <limits.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <signal.h>
-#include <aio.h>
-#include <string.h>
-#include <stdbool.h>
-#include <errno.h>
-#include <err.h>
-
 #include <sys/endian.h>
 #include <sys/event.h>
 #include <sys/poll.h>
 #include <sys/select.h>
 #include <sys/time.h>
 
+#include <aio.h>
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <libgpio.h>
+#include <limits.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 static bool be_verbose = false;
 static int report_format = GPIO_EVENT_REPORT_DETAIL;
@@ -56,17 +55,20 @@ static struct timespec utc_offset;
 static volatile sig_atomic_t sigio = 0;
 
 static void
-sigio_handler(int sig __unused){
+sigio_handler(int sig __unused)
+{
 	sigio = 1;
 }
 
 static void
 usage()
 {
-	fprintf(stderr, "usage: %s [-f ctldev] [-m method] [-s] [-n] [-S] [-u]"
+	fprintf(stderr,
+	    "usage: %s [-f ctldev] [-m method] [-s] [-n] [-S] [-u]"
 	    "[-t timeout] [-d delay-usec] pin intr-config pin-mode [pin intr-config pin-mode ...]\n\n",
 	    getprogname());
-	fprintf(stderr, "  -d  delay before each call to read/poll/select/etc\n");
+	fprintf(stderr,
+	    "  -d  delay before each call to read/poll/select/etc\n");
 	fprintf(stderr, "  -n  Non-blocking IO\n");
 	fprintf(stderr, "  -s  Single-shot (else loop continuously)\n");
 	fprintf(stderr, "  -S  Report summary data (else report each event)\n");
@@ -77,7 +79,8 @@ usage()
 	fprintf(stderr, "  p\tpoll\n");
 	fprintf(stderr, "  s\tselect\n");
 	fprintf(stderr, "  k\tkqueue\n");
-	fprintf(stderr, "  a\taio_read (needs sysctl vfs.aio.enable_unsafe=1)\n");
+	fprintf(stderr,
+	    "  a\taio_read (needs sysctl vfs.aio.enable_unsafe=1)\n");
 	fprintf(stderr, "  i\tsignal-driven I/O\n\n");
 	fprintf(stderr, "Possible options for intr-config:\n\n");
 	fprintf(stderr, "  no\t no interrupt\n");
@@ -103,7 +106,7 @@ verbose(const char *fmt, ...)
 	va_end(args);
 }
 
-static const char*
+static const char *
 poll_event_to_str(short event)
 {
 	switch (event) {
@@ -172,7 +175,7 @@ print_timestamp(const char *str, sbintime_t timestamp)
 	if (!timespecisset(&utc_offset)) {
 		printf("%s %jd.%09ld ", str, (intmax_t)ts.tv_sec, ts.tv_nsec);
 	} else {
-                timespecadd(&utc_offset, &ts, &ts);
+		timespecadd(&utc_offset, &ts, &ts);
 		strftime(timebuf, sizeof(timebuf), "%Y-%m-%dT%H:%M:%S",
 		    gmtime(&ts.tv_sec));
 		printf("%s %s.%09ld ", str, timebuf, ts.tv_nsec);
@@ -191,9 +194,8 @@ print_event_summary(const struct gpio_event_summary *sum)
 {
 	print_timestamp("first_time", sum->gp_first_time);
 	print_timestamp("last_time", sum->gp_last_time);
-	printf("pin %hu count %hu first state %u last state %u\n",
-	    sum->gp_pin, sum->gp_count,
-	    sum->gp_first_state, sum->gp_last_state);
+	printf("pin %hu count %hu first state %u last state %u\n", sum->gp_pin,
+	    sum->gp_count, sum->gp_first_state, sum->gp_last_state);
 }
 
 static void
@@ -211,8 +213,8 @@ run_read(bool loop, int handle, const char *file, u_int delayus)
 	const size_t numrecs = 64;
 	union {
 		const struct gpio_event_summary sum[numrecs];
-		const struct gpio_event_detail  det[numrecs];
-		uint8_t                         data[1];
+		const struct gpio_event_detail det[numrecs];
+		uint8_t data[1];
 	} buffer;
 	ssize_t reccount, recsize, res;
 
@@ -231,9 +233,10 @@ run_read(bool loop, int handle, const char *file, u_int delayus)
 		res = read(handle, buffer.data, sizeof(buffer));
 		if (res < 0)
 			err(EXIT_FAILURE, "Cannot read from %s", file);
-		
+
 		if ((res % recsize) != 0) {
-			fprintf(stderr, "%s: read() %zd bytes from %s; "
+			fprintf(stderr,
+			    "%s: read() %zd bytes from %s; "
 			    "expected a multiple of %zu\n",
 			    getprogname(), res, file, recsize);
 		} else {
@@ -256,9 +259,9 @@ run_poll(bool loop, int handle, const char *file, int timeout, u_int delayus)
 	struct pollfd fds;
 	int res;
 
-        fds.fd = handle;
-        fds.events = POLLIN | POLLRDNORM;
-        fds.revents = 0;
+	fds.fd = handle;
+	fds.events = POLLIN | POLLRDNORM;
+	fds.revents = 0;
 
 	do {
 		if (delayus != 0) {
@@ -278,8 +281,10 @@ run_poll(bool loop, int handle, const char *file, int timeout, u_int delayus)
 			print_poll_events(fds.revents);
 			printf(") on %s\n", file);
 			if (fds.revents & (POLLHUP | POLLERR)) {
-				err(EXIT_FAILURE, "Recieved POLLHUP or POLLERR "
-				    "on %s", file);
+				err(EXIT_FAILURE,
+				    "Recieved POLLHUP or POLLERR "
+				    "on %s",
+				    file);
 			}
 			run_read(false, handle, file, 0);
 		}
@@ -365,7 +370,8 @@ run_kqueue(bool loop, int handle, const char *file, int timeout, u_int delayus)
 			    file);
 		} else {
 			printf("%s: kevent() returned %i events (flags: %d) on "
-			    "%s\n", getprogname(), nev, tevent[0].flags, file);
+			       "%s\n",
+			    getprogname(), nev, tevent[0].flags, file);
 			if (tevent[0].flags & EV_EOF) {
 				err(EXIT_FAILURE, "Recieved EV_EOF on %s",
 				    file);
@@ -420,7 +426,8 @@ run_aio_read(bool loop, int handle, const char *file, u_int delayus)
 		if (res < 0)
 			err(EXIT_FAILURE, "aio_return on %s", file);
 		if ((res % recsize) != 0) {
-			fprintf(stderr, "%s: aio_read() %zd bytes from %s; "
+			fprintf(stderr,
+			    "%s: aio_read() %zd bytes from %s; "
 			    "expected a multiple of %zu\n",
 			    getprogname(), res, file, recsize);
 		} else {
@@ -429,7 +436,6 @@ run_aio_read(bool loop, int handle, const char *file, u_int delayus)
 		}
 	} while (loop);
 }
-
 
 static void
 run_sigio(bool loop, int handle, const char *file)
@@ -502,7 +508,7 @@ main(int argc, char *argv[])
 			report_format = GPIO_EVENT_REPORT_SUMMARY;
 			break;
 		case 'n':
-			nonblock= true;
+			nonblock = true;
 			break;
 		case 't':
 			errno = 0;
@@ -549,7 +555,8 @@ main(int argc, char *argv[])
 	}
 
 	if (argc % 3 != 0) {
-		fprintf(stderr, "%s: Invalid number of (pin intr-conf mode) triplets.\n",
+		fprintf(stderr,
+		    "%s: Invalid number of (pin intr-conf mode) triplets.\n",
 		    getprogname());
 		usage();
 		return EXIT_FAILURE;
@@ -560,12 +567,12 @@ main(int argc, char *argv[])
 		err(EXIT_FAILURE, "Cannot open %s", file);
 
 	if (report_format == GPIO_EVENT_REPORT_SUMMARY) {
-		struct gpio_event_config cfg = 
-		    {GPIO_EVENT_REPORT_SUMMARY, 0};
+		struct gpio_event_config cfg = { GPIO_EVENT_REPORT_SUMMARY, 0 };
 
 		res = ioctl(handle, GPIOCONFIGEVENTS, &cfg);
 		if (res < 0)
-			err(EXIT_FAILURE, "GPIOCONFIGEVENTS failed on %s", file);
+			err(EXIT_FAILURE, "GPIOCONFIGEVENTS failed on %s",
+			    file);
 	}
 
 	if (nonblock == true) {
@@ -587,13 +594,15 @@ main(int argc, char *argv[])
 		}
 
 		if (strnlen(argv[i + 1], 2) < 2) {
-			fprintf(stderr, "%s: Invalid trigger type (argument "
-			    "too short).\n", getprogname());
+			fprintf(stderr,
+			    "%s: Invalid trigger type (argument "
+			    "too short).\n",
+			    getprogname());
 			usage();
 			return EXIT_FAILURE;
 		}
 
-		switch((argv[i + 1][0] << 8) + argv[i + 1][1]) {
+		switch ((argv[i + 1][0] << 8) + argv[i + 1][1]) {
 		case ('n' << 8) + 'o':
 			pin_config.g_flags = GPIO_INTR_NONE;
 			break;
@@ -614,13 +623,15 @@ main(int argc, char *argv[])
 		}
 
 		if (strnlen(argv[i + 2], 2) < 2) {
-			fprintf(stderr, "%s: Invalid pin mode (argument "
-			    "too short).\n", getprogname());
+			fprintf(stderr,
+			    "%s: Invalid pin mode (argument "
+			    "too short).\n",
+			    getprogname());
 			usage();
 			return EXIT_FAILURE;
 		}
 
-		switch((argv[i + 2][0] << 8) + argv[i + 2][1]) {
+		switch ((argv[i + 2][0] << 8) + argv[i + 2][1]) {
 		case ('f' << 8) + 't':
 			/* no changes to pin_config */
 			break;
@@ -641,9 +652,10 @@ main(int argc, char *argv[])
 
 		res = gpio_pin_set_flags(handle, &pin_config);
 		if (res < 0)
-			err(EXIT_FAILURE, "configuration of pin %d on %s "
-			    "failed (flags=%d)", pin_config.g_pin, file,
-			    pin_config.g_flags);
+			err(EXIT_FAILURE,
+			    "configuration of pin %d on %s "
+			    "failed (flags=%d)",
+			    pin_config.g_pin, file, pin_config.g_flags);
 	}
 
 	switch (method) {

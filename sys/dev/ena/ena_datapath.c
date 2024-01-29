@@ -27,8 +27,10 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include <sys/cdefs.h>
 #include "opt_rss.h"
+
+#include <sys/cdefs.h>
+
 #include "ena.h"
 #include "ena_datapath.h"
 #ifdef DEV_NETMAP
@@ -146,7 +148,7 @@ ena_mq_start(if_t ifp, struct mbuf *m)
 	if (M_HASHTYPE_GET(m) != M_HASHTYPE_NONE) {
 #ifdef RSS
 		if (rss_hash2bucket(m->m_pkthdr.flowid, M_HASHTYPE_GET(m),
-		    &bucket_id) == 0)
+			&bucket_id) == 0)
 			i = bucket_id % adapter->num_io_queues;
 		else
 #endif
@@ -217,8 +219,8 @@ ena_get_tx_req_id(struct ena_ring *tx_ring, struct ena_com_io_cq *io_cq,
 		return (0);
 
 	ena_log(adapter->pdev, ERR,
-	    "tx_info doesn't have valid mbuf. req_id %hu qid %hu\n",
-	    *req_id, tx_ring->qid);
+	    "tx_info doesn't have valid mbuf. req_id %hu qid %hu\n", *req_id,
+	    tx_ring->qid);
 err:
 	ena_trigger_reset(adapter, ENA_REGS_RESET_INV_TX_REQ_ID);
 
@@ -525,7 +527,7 @@ ena_rx_checksum(struct ena_ring *rx_ring, struct ena_com_rx_ctx *ena_rx_ctx,
 
 	/* if IP and error */
 	if (unlikely((ena_rx_ctx->l3_proto == ENA_ETH_IO_L3_PROTO_IPV4) &&
-	    ena_rx_ctx->l3_csum_err)) {
+		ena_rx_ctx->l3_csum_err)) {
 		/* ipv4 checksum error */
 		mbuf->m_pkthdr.csum_flags = 0;
 		counter_u64_add(rx_ring->rx_stats.csum_bad, 1);
@@ -655,7 +657,7 @@ ena_rx_cleanup(struct ena_ring *rx_ring)
 		 * should be computed by hardware.
 		 */
 		do_if_input = 1;
-		if (((if_getcapenable(ifp) & IFCAP_LRO) != 0)  &&
+		if (((if_getcapenable(ifp) & IFCAP_LRO) != 0) &&
 		    ((mbuf->m_pkthdr.csum_flags & CSUM_IP_VALID) != 0) &&
 		    (ena_rx_ctx.l4_proto == ENA_ETH_IO_L4_PROTO_TCP)) {
 			/*
@@ -786,14 +788,14 @@ ena_tx_csum(struct ena_com_tx_ctx *ena_tx_ctx, struct mbuf *mbuf,
 	if (ipproto == IPPROTO_TCP) {
 		ena_tx_ctx->l4_proto = ENA_ETH_IO_L4_PROTO_TCP;
 		if ((mbuf->m_pkthdr.csum_flags &
-		    (CSUM_IP_TCP | CSUM_IP6_TCP)) != 0)
+			(CSUM_IP_TCP | CSUM_IP6_TCP)) != 0)
 			ena_tx_ctx->l4_csum_enable = 1;
 		else
 			ena_tx_ctx->l4_csum_enable = 0;
 	} else if (ipproto == IPPROTO_UDP) {
 		ena_tx_ctx->l4_proto = ENA_ETH_IO_L4_PROTO_UDP;
 		if ((mbuf->m_pkthdr.csum_flags &
-		    (CSUM_IP_UDP | CSUM_IP6_UDP)) != 0)
+			(CSUM_IP_UDP | CSUM_IP6_UDP)) != 0)
 			ena_tx_ctx->l4_csum_enable = 1;
 		else
 			ena_tx_ctx->l4_csum_enable = 0;
@@ -861,8 +863,8 @@ ena_tx_map_mbuf(struct ena_ring *tx_ring, struct ena_tx_buffer *tx_info,
 	 * For easier maintaining of the DMA map, map the whole mbuf even if
 	 * the LLQ is used. The descriptors will be filled using the segments.
 	 */
-	rc = bus_dmamap_load_mbuf_sg(adapter->tx_buf_tag,
-	    tx_info->dmamap, mbuf, segs, &nsegs, BUS_DMA_NOWAIT);
+	rc = bus_dmamap_load_mbuf_sg(adapter->tx_buf_tag, tx_info->dmamap, mbuf,
+	    segs, &nsegs, BUS_DMA_NOWAIT);
 	if (unlikely((rc != 0) || (nsegs == 0))) {
 		ena_log_io(adapter->pdev, WARN,
 		    "dmamap load failed! err: %d nsegs: %d\n", rc, nsegs);
@@ -886,10 +888,10 @@ ena_tx_map_mbuf(struct ena_ring *tx_ring, struct ena_tx_buffer *tx_info,
 		/* If header is in linear space, just point into mbuf's data. */
 		if (likely(*header_len <= mbuf_head_len)) {
 			*push_hdr = mbuf->m_data;
-		/*
-		 * Otherwise, copy whole portion of header from multiple
-		 * mbufs to intermediate buffer.
-		 */
+			/*
+			 * Otherwise, copy whole portion of header from multiple
+			 * mbufs to intermediate buffer.
+			 */
 		} else {
 			m_copydata(mbuf, 0, *header_len,
 			    tx_ring->push_buf_intermediate_buf);
@@ -899,10 +901,11 @@ ena_tx_map_mbuf(struct ena_ring *tx_ring, struct ena_tx_buffer *tx_info,
 		}
 
 		ena_log_io(adapter->pdev, DBG,
-		    "mbuf: %p header_buf->vaddr: %p push_len: %d\n",
-		    mbuf, *push_hdr, *header_len);
+		    "mbuf: %p header_buf->vaddr: %p push_len: %d\n", mbuf,
+		    *push_hdr, *header_len);
 
-		/* If packet is fitted in LLQ header, no need for DMA segments. */
+		/* If packet is fitted in LLQ header, no need for DMA segments.
+		 */
 		if (mbuf->m_pkthdr.len <= tx_ring->tx_max_header_size) {
 			return (0);
 		} else {
@@ -1056,7 +1059,7 @@ ena_xmit_mbuf(struct ena_ring *tx_ring, struct mbuf **mbuf)
 	 * (if the header is larger than tx_max_header_size).
 	 */
 	if (unlikely(!ena_com_sq_have_enough_space(tx_ring->ena_com_io_sq,
-	    adapter->max_tx_sgl_size + 2))) {
+		adapter->max_tx_sgl_size + 2))) {
 		ena_log_io(pdev, DBG, "Stop queue %d\n", tx_ring->que->id);
 
 		tx_ring->running = false;
@@ -1072,7 +1075,7 @@ ena_xmit_mbuf(struct ena_ring *tx_ring, struct mbuf **mbuf)
 		mb();
 
 		if (ena_com_sq_have_enough_space(tx_ring->ena_com_io_sq,
-		    ENA_TX_RESUME_THRESH)) {
+			ENA_TX_RESUME_THRESH)) {
 			tx_ring->running = true;
 			counter_u64_add(tx_ring->tx_stats.queue_wakeup, 1);
 		}
@@ -1130,7 +1133,8 @@ ena_start_xmit(struct ena_ring *tx_ring)
 
 		drbr_advance(adapter->ifp, tx_ring->br);
 
-		if (unlikely((if_getdrvflags(adapter->ifp) & IFF_DRV_RUNNING) == 0))
+		if (unlikely(
+			(if_getdrvflags(adapter->ifp) & IFF_DRV_RUNNING) == 0))
 			return;
 
 		tx_ring->acum_pkts++;

@@ -18,40 +18,37 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-#include <net80211/ieee80211_ratectl.h>
-
-#include <dev/rtwn/if_rtwnreg.h>
-#include <dev/rtwn/if_rtwnvar.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <dev/rtwn/if_rtwn_debug.h>
 #include <dev/rtwn/if_rtwn_ridx.h>
-
-#include <dev/rtwn/rtl8192c/r92c.h>
+#include <dev/rtwn/if_rtwnreg.h>
+#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/rtl8188e/r88e.h>
 #include <dev/rtwn/rtl8188e/r88e_rx_desc.h>
+#include <dev/rtwn/rtl8192c/r92c.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_ratectl.h>
+#include <net80211/ieee80211_var.h>
 
 int
 r88e_classify_intr(struct rtwn_softc *sc, void *buf, int len)
@@ -62,12 +59,12 @@ r88e_classify_intr(struct rtwn_softc *sc, void *buf, int len)
 	switch (report_sel) {
 	case R88E_RXDW3_RPT_RX:
 		return (RTWN_RX_DATA);
-	case R88E_RXDW3_RPT_TX1:	/* per-packet Tx report */
-	case R88E_RXDW3_RPT_TX2:	/* periodical Tx report */
+	case R88E_RXDW3_RPT_TX1: /* per-packet Tx report */
+	case R88E_RXDW3_RPT_TX2: /* periodical Tx report */
 		return (RTWN_RX_TX_REPORT);
 	case R88E_RXDW3_RPT_HIS:
 		return (RTWN_RX_OTHER);
-	default:			/* shut up the compiler */
+	default: /* shut up the compiler */
 		return (RTWN_RX_DATA);
 	}
 }
@@ -88,8 +85,8 @@ r88e_ratectl_tx_complete(struct rtwn_softc *sc, uint8_t *buf, int len)
 	rpt = (struct r88e_tx_rpt_ccx *)buf;
 	if (len != sizeof(*rpt)) {
 		RTWN_DPRINTF(sc, RTWN_DEBUG_INTR,
-		    "%s: wrong report size (%d, must be %zu)\n",
-		    __func__, len, sizeof(*rpt));
+		    "%s: wrong report size (%d, must be %zu)\n", __func__, len,
+		    sizeof(*rpt));
 		return;
 	}
 
@@ -102,8 +99,7 @@ r88e_ratectl_tx_complete(struct rtwn_softc *sc, uint8_t *buf, int len)
 	macid = MS(rpt->rptb1, R88E_RPTB1_MACID);
 	if (macid > sc->macid_limit) {
 		device_printf(sc->sc_dev,
-		    "macid %u is too big; increase MACID_MAX limit\n",
-		    macid);
+		    "macid %u is too big; increase MACID_MAX limit\n", macid);
 		return;
 	}
 
@@ -111,17 +107,18 @@ r88e_ratectl_tx_complete(struct rtwn_softc *sc, uint8_t *buf, int len)
 
 	ni = sc->node_list[macid];
 	if (ni != NULL) {
-		RTWN_DPRINTF(sc, RTWN_DEBUG_INTR, "%s: frame for macid %u was"
-		    "%s sent (%d retries)\n", __func__, macid,
-		    (rpt->rptb1 & R88E_RPTB1_PKT_OK) ? "" : " not",
-		    ntries);
+		RTWN_DPRINTF(sc, RTWN_DEBUG_INTR,
+		    "%s: frame for macid %u was"
+		    "%s sent (%d retries)\n",
+		    __func__, macid,
+		    (rpt->rptb1 & R88E_RPTB1_PKT_OK) ? "" : " not", ntries);
 
 		txs.flags = IEEE80211_RATECTL_STATUS_LONG_RETRY |
-			    IEEE80211_RATECTL_STATUS_FINAL_RATE;
+		    IEEE80211_RATECTL_STATUS_FINAL_RATE;
 		txs.long_retries = ntries;
-		if (rpt->final_rate > RTWN_RIDX_OFDM54) {	/* MCS */
-			txs.final_rate =
-			    rpt->final_rate - RTWN_RIDX_HT_MCS_SHIFT;
+		if (rpt->final_rate > RTWN_RIDX_OFDM54) { /* MCS */
+			txs.final_rate = rpt->final_rate -
+			    RTWN_RIDX_HT_MCS_SHIFT;
 			txs.final_rate |= IEEE80211_RATE_MCS;
 		} else
 			txs.final_rate = ridx2rate[rpt->final_rate];
@@ -223,7 +220,7 @@ r88e_get_rx_stats(struct rtwn_softc *sc, struct ieee80211_rx_stats *rxs,
 
 	r92c_get_rx_stats(sc, rxs, desc, physt_ptr);
 
-	if (!sc->sc_ht40) {	/* XXX center channel */
+	if (!sc->sc_ht40) { /* XXX center channel */
 		rxs->r_flags |= IEEE80211_R_IEEE | IEEE80211_R_FREQ;
 		rxs->r_flags |= IEEE80211_R_BAND;
 		rxs->c_ieee = physt->chan;

@@ -33,21 +33,21 @@
 #include "cudbg_lib_common.h"
 
 enum {
-	SF_ATTEMPTS = 10,		/* max retries for SF operations */
+	SF_ATTEMPTS = 10, /* max retries for SF operations */
 
 	/* flash command opcodes */
-	SF_PROG_PAGE	= 2,	/* program page */
-	SF_WR_DISABLE	= 4,	/* disable writes */
-	SF_RD_STATUS	= 5,	/* read status register */
-	SF_WR_ENABLE	= 6,	/* enable writes */
+	SF_PROG_PAGE = 2,	/* program page */
+	SF_WR_DISABLE = 4,	/* disable writes */
+	SF_RD_STATUS = 5,	/* read status register */
+	SF_WR_ENABLE = 6,	/* enable writes */
 	SF_RD_DATA_FAST = 0xb,	/* read flash */
-	SF_RD_ID	= 0x9f, /* read ID */
+	SF_RD_ID = 0x9f,	/* read ID */
 	SF_ERASE_SECTOR = 0xd8, /* erase sector */
 };
 
 int write_flash(struct adapter *adap, u32 start_sec, void *data, u32 size);
-int read_flash(struct adapter *adap, u32 start_sec , void *data, u32 size,
-		u32 start_address);
+int read_flash(struct adapter *adap, u32 start_sec, void *data, u32 size,
+    u32 start_address);
 
 void
 update_skip_size(struct cudbg_flash_sec_info *sec_info, u32 size)
@@ -55,9 +55,9 @@ update_skip_size(struct cudbg_flash_sec_info *sec_info, u32 size)
 	sec_info->skip_size += size;
 }
 
-static
-void set_sector_availability(struct cudbg_flash_sec_info *sec_info,
-    int sector_nu, int avail)
+static void
+set_sector_availability(struct cudbg_flash_sec_info *sec_info, int sector_nu,
+    int avail)
 {
 	sector_nu -= CUDBG_START_SEC;
 	if (avail)
@@ -84,9 +84,9 @@ find_empty_sec(struct cudbg_flash_sec_info *sec_info)
 
 /* This function will get header initially. If header is already there
  * then it will update that header */
-static void update_headers(void *handle, struct cudbg_buffer *dbg_buff,
-		    u64 timestamp, u32 cur_entity_hdr_offset,
-		    u32 start_offset, u32 ext_size)
+static void
+update_headers(void *handle, struct cudbg_buffer *dbg_buff, u64 timestamp,
+    u32 cur_entity_hdr_offset, u32 start_offset, u32 ext_size)
 {
 	struct cudbg_private *priv = handle;
 	struct cudbg_flash_sec_info *sec_info = &priv->sec_info;
@@ -100,10 +100,10 @@ static void update_headers(void *handle, struct cudbg_buffer *dbg_buff,
 	u32 sec_hdr_start_addr;
 
 	data_hdr_size = CUDBG_MAX_ENTITY * sizeof(struct cudbg_entity_hdr) +
-				sizeof(struct cudbg_hdr);
+	    sizeof(struct cudbg_hdr);
 	total_hdr_size = data_hdr_size + sizeof(struct cudbg_flash_hdr);
 	sec_hdr_start_addr = CUDBG_SF_SECTOR_SIZE - total_hdr_size;
-	sec_hdr  = sec_info->sec_data + sec_hdr_start_addr;
+	sec_hdr = sec_info->sec_data + sec_hdr_start_addr;
 
 	flash_hdr = (struct cudbg_flash_hdr *)(sec_hdr);
 	cudbg_hdr = (struct cudbg_hdr *)dbg_buff->data;
@@ -117,39 +117,36 @@ static void update_headers(void *handle, struct cudbg_buffer *dbg_buff,
 		flash_hdr->minor_ver = CUDBG_FL_MINOR_VERSION;
 		flash_hdr->build_ver = CUDBG_FL_BUILD_VERSION;
 		flash_hdr->hdr_len = sizeof(struct cudbg_flash_hdr);
-		hdr_offset =  sizeof(struct cudbg_flash_hdr);
+		hdr_offset = sizeof(struct cudbg_flash_hdr);
 
 		memcpy((void *)((char *)sec_hdr + hdr_offset),
-		       (void *)((char *)dbg_buff->data), data_hdr_size);
+		    (void *)((char *)dbg_buff->data), data_hdr_size);
 	} else
 		memcpy((void *)((char *)sec_hdr +
-			sizeof(struct cudbg_flash_hdr) +
-			cur_entity_hdr_offset),
-			(void *)((char *)dbg_buff->data +
-			cur_entity_hdr_offset),
-			sizeof(struct cudbg_entity_hdr));
+			   sizeof(struct cudbg_flash_hdr) +
+			   cur_entity_hdr_offset),
+		    (void *)((char *)dbg_buff->data + cur_entity_hdr_offset),
+		    sizeof(struct cudbg_entity_hdr));
 
 	hdr_offset = data_hdr_size + sizeof(struct cudbg_flash_hdr);
 	flash_hdr->data_len = cudbg_hdr->data_len - sec_info->skip_size;
 	flash_hdr->timestamp = timestamp;
 
 	entity_hdr = (struct cudbg_entity_hdr *)((char *)sec_hdr +
-		      sizeof(struct cudbg_flash_hdr) +
-		      cur_entity_hdr_offset);
+	    sizeof(struct cudbg_flash_hdr) + cur_entity_hdr_offset);
 	/* big entity like mc need to be skipped */
 	entity_hdr->start_offset -= sec_info->skip_size;
 
 	cudbg_hdr = (struct cudbg_hdr *)((char *)sec_hdr +
-			sizeof(struct cudbg_flash_hdr));
+	    sizeof(struct cudbg_flash_hdr));
 	cudbg_hdr->data_len = flash_hdr->data_len;
 	flash_hdr->data_len += ext_size;
 }
 
 /* Write CUDBG data into serial flash */
-int cudbg_write_flash(void *handle, u64 timestamp, void *data,
-		      u32 start_offset, u32 cur_entity_hdr_offset,
-		      u32 cur_entity_size,
-		      u32 ext_size)
+int
+cudbg_write_flash(void *handle, u64 timestamp, void *data, u32 start_offset,
+    u32 cur_entity_hdr_offset, u32 cur_entity_size, u32 ext_size)
 {
 	struct cudbg_private *priv = handle;
 	struct cudbg_init *cudbg_init = &priv->dbg_init;
@@ -168,7 +165,7 @@ int cudbg_write_flash(void *handle, u64 timestamp, void *data,
 	int sec;
 
 	data_hdr_size = CUDBG_MAX_ENTITY * sizeof(struct cudbg_entity_hdr) +
-			sizeof(struct cudbg_hdr);
+	    sizeof(struct cudbg_hdr);
 	total_hdr_size = data_hdr_size + sizeof(struct cudbg_flash_hdr);
 	sec_hdr_start_addr = CUDBG_SF_SECTOR_SIZE - total_hdr_size;
 	sec_data_size = sec_hdr_start_addr;
@@ -179,9 +176,8 @@ int cudbg_write_flash(void *handle, u64 timestamp, void *data,
 	 * have any header and
 	 * will update the header if it has header
 	 */
-	update_headers(handle, dbg_buff, timestamp,
-		       cur_entity_hdr_offset,
-		       start_offset, ext_size);
+	update_headers(handle, dbg_buff, timestamp, cur_entity_hdr_offset,
+	    start_offset, ext_size);
 
 	if (ext_size) {
 		cur_entity_size += sizeof(struct cudbg_entity_hdr);
@@ -189,7 +185,7 @@ int cudbg_write_flash(void *handle, u64 timestamp, void *data,
 	}
 
 	flash_hdr = (struct cudbg_flash_hdr *)(sec_info->sec_data +
-			sec_hdr_start_addr);
+	    sec_hdr_start_addr);
 
 	if (flash_hdr->data_len > CUDBG_FLASH_SIZE) {
 		rc = CUDBG_STATUS_FLASH_FULL;
@@ -223,15 +219,14 @@ int cudbg_write_flash(void *handle, u64 timestamp, void *data,
 			tmp_size = cur_entity_size;
 			sec_info->par_sec = sec;
 			sec_info->par_sec_offset = cur_entity_size +
-						  sec_data_offset;
+			    sec_data_offset;
 		}
 
 		memcpy((void *)((char *)sec_info->sec_data + sec_data_offset),
-		       (void *)((char *)dbg_buff->data + start_offset),
-		       tmp_size);
+		    (void *)((char *)dbg_buff->data + start_offset), tmp_size);
 
 		rc = write_flash(adap, sec, sec_info->sec_data,
-				CUDBG_SF_SECTOR_SIZE);
+		    CUDBG_SF_SECTOR_SIZE);
 		if (rc)
 			goto out;
 
@@ -243,7 +238,8 @@ out:
 	return rc;
 }
 
-int write_flash(struct adapter *adap, u32 start_sec, void *data, u32 size)
+int
+write_flash(struct adapter *adap, u32 start_sec, void *data, u32 size)
 {
 	unsigned int addr;
 	unsigned int i, n;
@@ -252,14 +248,13 @@ int write_flash(struct adapter *adap, u32 start_sec, void *data, u32 size)
 
 	u8 *ptr = (u8 *)data;
 
-	sf_sec_size = adap->params.sf_size/adap->params.sf_nsec;
+	sf_sec_size = adap->params.sf_size / adap->params.sf_nsec;
 
-	addr =  start_sec * CUDBG_SF_SECTOR_SIZE;
-	i = DIV_ROUND_UP(size,/* # of sectors spanned */
-			sf_sec_size);
+	addr = start_sec * CUDBG_SF_SECTOR_SIZE;
+	i = DIV_ROUND_UP(size, /* # of sectors spanned */
+	    sf_sec_size);
 
-	rc = t4_flash_erase_sectors(adap, start_sec,
-		   start_sec + i - 1);
+	rc = t4_flash_erase_sectors(adap, start_sec, start_sec + i - 1);
 	/*
 	 * If size == 0 then we're simply erasing the FLASH sectors associated
 	 * with the on-adapter OptionROM Configuration File.
@@ -270,7 +265,7 @@ int write_flash(struct adapter *adap, u32 start_sec, void *data, u32 size)
 
 	/* this will write to the flash up to SF_PAGE_SIZE at a time */
 	for (i = 0; i < size; i += SF_PAGE_SIZE) {
-		if ((size - i) <  SF_PAGE_SIZE)
+		if ((size - i) < SF_PAGE_SIZE)
 			n = size - i;
 		else
 			n = SF_PAGE_SIZE;
@@ -287,16 +282,18 @@ out:
 	return rc;
 }
 
-int cudbg_read_flash_details(void *handle, struct cudbg_flash_hdr *data)
+int
+cudbg_read_flash_details(void *handle, struct cudbg_flash_hdr *data)
 {
 	int rc;
 	rc = cudbg_read_flash(handle, (void *)data,
-			      sizeof(struct cudbg_flash_hdr), 0);
+	    sizeof(struct cudbg_flash_hdr), 0);
 
 	return rc;
 }
 
-int cudbg_read_flash_data(void *handle, void *buf, u32 buf_size)
+int
+cudbg_read_flash_data(void *handle, void *buf, u32 buf_size)
 {
 	int rc;
 	u32 total_hdr_size, data_header_size;
@@ -304,7 +301,7 @@ int cudbg_read_flash_data(void *handle, void *buf, u32 buf_size)
 	u32 payload_size = 0;
 
 	data_header_size = CUDBG_MAX_ENTITY * sizeof(struct cudbg_entity_hdr) +
-		sizeof(struct cudbg_hdr);
+	    sizeof(struct cudbg_hdr);
 	total_hdr_size = data_header_size + sizeof(struct cudbg_flash_hdr);
 
 	/* Copy flash header to buffer */
@@ -312,7 +309,7 @@ int cudbg_read_flash_data(void *handle, void *buf, u32 buf_size)
 	if (rc != 0)
 		goto out;
 	payload = (char *)buf + total_hdr_size;
-	payload_size  = buf_size - total_hdr_size;
+	payload_size = buf_size - total_hdr_size;
 
 	/* Reading flash data to buf */
 	rc = cudbg_read_flash(handle, payload, payload_size, 1);
@@ -323,7 +320,8 @@ out:
 	return rc;
 }
 
-int cudbg_read_flash(void *handle, void *data, u32 size, int data_flag)
+int
+cudbg_read_flash(void *handle, void *data, u32 size, int data_flag)
 {
 	struct cudbg_private *priv = handle;
 	struct cudbg_init *cudbg_init = &priv->dbg_init;
@@ -341,12 +339,12 @@ int cudbg_read_flash(void *handle, void *data, u32 size, int data_flag)
 	rc = t4_get_flash_params(adap);
 	if (rc) {
 		cudbg_init->print("\nGet flash params failed."
-			"Try Again...readflash\n\n");
+				  "Try Again...readflash\n\n");
 		return rc;
 	}
 
 	data_hdr_size = CUDBG_MAX_ENTITY * sizeof(struct cudbg_entity_hdr) +
-			sizeof(struct cudbg_hdr);
+	    sizeof(struct cudbg_hdr);
 	total_hdr_size = data_hdr_size + sizeof(struct cudbg_flash_hdr);
 	sec_hdr_start_addr = CUDBG_SF_SECTOR_SIZE - total_hdr_size;
 
@@ -358,65 +356,63 @@ int cudbg_read_flash(void *handle, void *data, u32 size, int data_flag)
 			 */
 			memset(&flash_hdr, 0, sizeof(struct cudbg_flash_hdr));
 			rc = read_flash(adap, CUDBG_START_SEC, &flash_hdr,
-				sizeof(struct cudbg_flash_hdr),
-				sec_hdr_start_addr);
+			    sizeof(struct cudbg_flash_hdr), sec_hdr_start_addr);
 
 			if (flash_hdr.signature == CUDBG_FL_SIGNATURE) {
 				sec_info->max_timestamp = flash_hdr.timestamp;
 			} else {
 				rc = read_flash(adap, CUDBG_START_SEC + 1,
-					&flash_hdr,
-					sizeof(struct cudbg_flash_hdr),
-					sec_hdr_start_addr);
+				    &flash_hdr, sizeof(struct cudbg_flash_hdr),
+				    sec_hdr_start_addr);
 
 				if (flash_hdr.signature == CUDBG_FL_SIGNATURE)
 					sec_info->max_timestamp =
-							flash_hdr.timestamp;
+					    flash_hdr.timestamp;
 				else {
-					cudbg_init->print("\n\tNo cudbg dump "\
+					cudbg_init->print("\n\tNo cudbg dump "
 							  "found in flash\n\n");
 					return CUDBG_STATUS_NO_SIGNATURE;
 				}
-
 			}
 
 			/* finding max sequence number because max sequenced
 			 * sector has updated header
 			 */
-			for (i = CUDBG_START_SEC; i <
-					CUDBG_SF_MAX_SECTOR; i++) {
+			for (i = CUDBG_START_SEC; i < CUDBG_SF_MAX_SECTOR;
+			     i++) {
 				memset(&flash_hdr, 0,
-				       sizeof(struct cudbg_flash_hdr));
+				    sizeof(struct cudbg_flash_hdr));
 				rc = read_flash(adap, i, &flash_hdr,
-						sizeof(struct cudbg_flash_hdr),
-						sec_hdr_start_addr);
+				    sizeof(struct cudbg_flash_hdr),
+				    sec_hdr_start_addr);
 
 				if (flash_hdr.signature == CUDBG_FL_SIGNATURE &&
 				    sec_info->max_timestamp ==
-				    flash_hdr.timestamp &&
+					flash_hdr.timestamp &&
 				    sec_info->max_seq_no <=
-				    flash_hdr.sec_seq_no) {
+					flash_hdr.sec_seq_no) {
 					if (sec_info->max_seq_no ==
 					    flash_hdr.sec_seq_no) {
 						if (sec_info->hdr_data_len <
 						    flash_hdr.data_len)
-							sec_info->max_seq_sec = i;
+							sec_info->max_seq_sec =
+							    i;
 					} else {
 						sec_info->max_seq_sec = i;
 						sec_info->hdr_data_len =
-							flash_hdr.data_len;
+						    flash_hdr.data_len;
 					}
-					sec_info->max_seq_no = flash_hdr.sec_seq_no;
+					sec_info->max_seq_no =
+					    flash_hdr.sec_seq_no;
 				}
 			}
 		}
 		rc = read_flash(adap, sec_info->max_seq_sec,
-				(struct cudbg_flash_hdr *)data,
-				size, sec_hdr_start_addr);
+		    (struct cudbg_flash_hdr *)data, size, sec_hdr_start_addr);
 
 		if (rc)
 			cudbg_init->print("Read flash header failed, rc %d\n",
-					rc);
+			    rc);
 
 		return rc;
 	}
@@ -426,31 +422,28 @@ int cudbg_read_flash(void *handle, void *data, u32 size, int data_flag)
 		for (j = CUDBG_START_SEC; j < CUDBG_SF_MAX_SECTOR; j++) {
 			memset(&flash_hdr, 0, sizeof(struct cudbg_flash_hdr));
 			rc = read_flash(adap, j, &flash_hdr,
-				sizeof(struct cudbg_flash_hdr),
-				sec_hdr_start_addr);
+			    sizeof(struct cudbg_flash_hdr), sec_hdr_start_addr);
 
-			if (flash_hdr.signature ==
-					CUDBG_FL_SIGNATURE &&
-					sec_info->max_timestamp ==
-					flash_hdr.timestamp &&
-					flash_hdr.sec_seq_no == i) {
+			if (flash_hdr.signature == CUDBG_FL_SIGNATURE &&
+			    sec_info->max_timestamp == flash_hdr.timestamp &&
+			    flash_hdr.sec_seq_no == i) {
 				if (size + total_hdr_size >
-						CUDBG_SF_SECTOR_SIZE)
+				    CUDBG_SF_SECTOR_SIZE)
 					tmp_size = CUDBG_SF_SECTOR_SIZE -
-						total_hdr_size;
+					    total_hdr_size;
 				else
-					tmp_size =  size;
+					tmp_size = size;
 
 				if ((i != sec_info->max_seq_no) ||
 				    (i == sec_info->max_seq_no &&
-				    j == sec_info->max_seq_sec)){
+					j == sec_info->max_seq_sec)) {
 					/* filling data buffer with sector data
 					 * except sector header
 					 */
 					rc = read_flash(adap, j,
-							(void *)((char *)data +
-							data_offset),
-							tmp_size, 0);
+					    (void *)((char *)data +
+						data_offset),
+					    tmp_size, 0);
 					data_offset += (tmp_size);
 					size -= (tmp_size);
 					break;
@@ -462,8 +455,9 @@ int cudbg_read_flash(void *handle, void *data, u32 size, int data_flag)
 	return rc;
 }
 
-int read_flash(struct adapter *adap, u32 start_sec , void *data, u32 size,
-		u32 start_address)
+int
+read_flash(struct adapter *adap, u32 start_sec, void *data, u32 size,
+    u32 start_address)
 {
 	unsigned int addr, i, n;
 	int rc;
@@ -471,7 +465,7 @@ int read_flash(struct adapter *adap, u32 start_sec , void *data, u32 size,
 	addr = start_sec * CUDBG_SF_SECTOR_SIZE + start_address;
 	size = size / 4;
 	for (i = 0; i < size; i += SF_PAGE_SIZE) {
-		if ((size - i) <  SF_PAGE_SIZE)
+		if ((size - i) < SF_PAGE_SIZE)
 			n = size - i;
 		else
 			n = SF_PAGE_SIZE;
@@ -479,7 +473,7 @@ int read_flash(struct adapter *adap, u32 start_sec , void *data, u32 size,
 		if (rc)
 			goto out;
 
-		addr = addr + (n*4);
+		addr = addr + (n * 4);
 		ptr += n;
 	}
 

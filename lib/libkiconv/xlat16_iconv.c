@@ -50,9 +50,9 @@
 #include "quirks.h"
 
 struct xlat16_table {
-	uint32_t *	idx[0x200];
-	void *		data;
-	size_t		size;
+	uint32_t *idx[0x200];
+	void *data;
+	size_t size;
 };
 
 static struct xlat16_table kiconv_xlat16_open(const char *, const char *, int);
@@ -83,10 +83,8 @@ kiconv_add_xlat16_cspair(const char *tocode, const char *fromcode, int flag)
 	char *p;
 	const char unicode[] = ENCODING_UNICODE;
 
-	if ((flag & KICONV_WCTYPE) == 0 &&
-	    strcmp(unicode, tocode) != 0 &&
-	    strcmp(unicode, fromcode) != 0 &&
-	    kiconv_lookupconv(unicode) == 0) {
+	if ((flag & KICONV_WCTYPE) == 0 && strcmp(unicode, tocode) != 0 &&
+	    strcmp(unicode, fromcode) != 0 && kiconv_lookupconv(unicode) == 0) {
 		error = kiconv_add_xlat16_cspair(unicode, fromcode, flag);
 		if (error)
 			return (-1);
@@ -171,9 +169,10 @@ kiconv_xlat16_open(const char *tocode, const char *fromcode, int lcase)
 	if (ret)
 		return (xt);
 
-	cd = my_iconv_open(search_quirk(tocode, fromcode, &pre_q_list, &pre_q_size),
+	cd = my_iconv_open(search_quirk(tocode, fromcode, &pre_q_list,
+			       &pre_q_size),
 	    search_quirk(fromcode, tocode, &post_q_list, &post_q_size));
-	if (cd == (iconv_t) (-1))
+	if (cd == (iconv_t)(-1))
 		return (xt);
 
 	if ((xt.data = malloc(0x200 * 0x80 * sizeof(uint32_t))) == NULL)
@@ -181,9 +180,9 @@ kiconv_xlat16_open(const char *tocode, const char *fromcode, int lcase)
 
 	p = xt.data;
 
-	for (ls = 0 ; ls < 0x200 ; ls++) {
+	for (ls = 0; ls < 0x200; ls++) {
 		xt.idx[ls] = NULL;
-		for (us = 0 ; us < 0x80 ; us++) {
+		for (us = 0; us < 0x80; us++) {
 			srcp = src;
 			dstp = dst;
 
@@ -221,8 +220,8 @@ kiconv_xlat16_open(const char *tocode, const char *fromcode, int lcase)
 			src[0] = (u_char)(c >> 8);
 			src[1] = (u_char)c;
 
-			ret = my_iconv_char(cd, &srcp, &inbytesleft,
-				&dstp, &outbytesleft);
+			ret = my_iconv_char(cd, &srcp, &inbytesleft, &dstp,
+			    &outbytesleft);
 			if (ret == -1) {
 				table[us] = 0;
 				continue;
@@ -231,7 +230,7 @@ kiconv_xlat16_open(const char *tocode, const char *fromcode, int lcase)
 			ud = (u_char)dst[0];
 			ld = (u_char)dst[1];
 
-			switch(outbytesleft) {
+			switch (outbytesleft) {
 			case 0:
 #ifdef XLAT16_ACCEPT_3BYTE_CHR
 				table[us] = (ud << 8) | ld;
@@ -261,18 +260,20 @@ kiconv_xlat16_open(const char *tocode, const char *fromcode, int lcase)
 				break;
 			}
 
-			switch(inbytesleft) {
+			switch (inbytesleft) {
 			case 0:
 				if ((ls & 0xff) == 0)
 					table[us] |= XLAT16_ACCEPT_NULL_IN;
 				break;
 			case 1:
 				c = ls > 0xff ? us | 0x80 : us;
-				if (lcase & KICONV_FROM_LOWER && c != tolower(c)) {
+				if (lcase & KICONV_FROM_LOWER &&
+				    c != tolower(c)) {
 					table[us] |= (u_char)tolower(c) << 16;
 					table[us] |= XLAT16_HAS_FROM_LOWER_CASE;
 				}
-				if (lcase & KICONV_FROM_UPPER && c != toupper(c)) {
+				if (lcase & KICONV_FROM_UPPER &&
+				    c != toupper(c)) {
 					table[us] |= (u_char)toupper(c) << 16;
 					table[us] |= XLAT16_HAS_FROM_UPPER_CASE;
 				}
@@ -310,8 +311,8 @@ chklocale(int category, const char *code)
 		error = strcasecmp(code, p);
 		if (error) {
 			/* XXX - can't avoid calling quirk here... */
-			error = strcasecmp(code, kiconv_quirkcs(p,
-			    KICONV_VENDOR_MICSFT));
+			error = strcasecmp(code,
+			    kiconv_quirkcs(p, KICONV_VENDOR_MICSFT));
 		}
 	}
 	return (error);
@@ -338,13 +339,13 @@ my_iconv_init(void)
 #endif
 
 static size_t
-my_iconv_char(iconv_t cd, u_char **ibuf, size_t * ilen, u_char **obuf,
-	size_t * olen)
+my_iconv_char(iconv_t cd, u_char **ibuf, size_t *ilen, u_char **obuf,
+    size_t *olen)
 {
 	u_char *sp, *dp, ilocal[3], olocal[3];
 	u_char c1, c2;
 	int ret;
-	size_t ir, or;
+	size_t ir, or ;
 
 	sp = *ibuf;
 	dp = *obuf;
@@ -374,7 +375,7 @@ my_iconv_char(iconv_t cd, u_char **ibuf, size_t * ilen, u_char **obuf,
 	sp = ilocal;
 	dp = olocal;
 
-	if ((my_iconv(cd,(char **)&sp, &ir, (char **)&dp, &or)) != -1) {
+	if ((my_iconv(cd, (char **)&sp, &ir, (char **)&dp, & or)) != -1) {
 		if (olocal[0] != c1)
 			return (ret);
 
@@ -383,11 +384,11 @@ my_iconv_char(iconv_t cd, u_char **ibuf, size_t * ilen, u_char **obuf,
 			 * inbuf is a single byte char
 			 */
 			*ilen = 1;
-			*olen = or;
+			*olen = or ;
 			return (ret);
 		}
 
-		switch(or) {
+		switch (or) {
 		case 0:
 		case 1:
 			if (olocal[1] == c2) {
@@ -428,7 +429,7 @@ my_iconv_char(iconv_t cd, u_char **ibuf, size_t * ilen, u_char **obuf,
 	sp = ilocal + 1;
 	dp = olocal;
 
-	if ((my_iconv(cd,(char **)&sp, &ir, (char **)&dp, &or)) != -1) {
+	if ((my_iconv(cd, (char **)&sp, &ir, (char **)&dp, & or)) != -1) {
 		if (olocal[0] == c2)
 			/*
 			 * inbuf is a single byte char
@@ -443,11 +444,12 @@ my_iconv_char(iconv_t cd, u_char **ibuf, size_t * ilen, u_char **obuf,
 
 #include <sys/types.h>
 #include <sys/iconv.h>
+
 #include <errno.h>
 
 int
-kiconv_add_xlat16_cspair(const char *tocode __unused, const char *fromcode __unused,
-    int flag __unused)
+kiconv_add_xlat16_cspair(const char *tocode __unused,
+    const char *fromcode __unused, int flag __unused)
 {
 
 	errno = EINVAL;
@@ -455,7 +457,8 @@ kiconv_add_xlat16_cspair(const char *tocode __unused, const char *fromcode __unu
 }
 
 int
-kiconv_add_xlat16_cspairs(const char *tocode __unused, const char *fromcode __unused)
+kiconv_add_xlat16_cspairs(const char *tocode __unused,
+    const char *fromcode __unused)
 {
 	errno = EINVAL;
 	return (-1);

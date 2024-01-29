@@ -68,27 +68,27 @@ static struct vop_vector devfs_vnodeops;
 static struct vop_vector devfs_specops;
 static struct fileops devfs_ops_f;
 
-#include <fs/devfs/devfs.h>
-#include <fs/devfs/devfs_int.h>
-
-#include <security/mac/mac_framework.h>
-
 #include <vm/vm.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_object.h>
 
+#include <fs/devfs/devfs.h>
+#include <fs/devfs/devfs_int.h>
+#include <security/mac/mac_framework.h>
+
 static MALLOC_DEFINE(M_CDEVPDATA, "DEVFSP", "Metainfo for cdev-fp data");
 
-struct mtx	devfs_de_interlock;
-MTX_SYSINIT(devfs_de_interlock, &devfs_de_interlock, "devfs interlock", MTX_DEF);
-struct mtx	cdevpriv_mtx;
+struct mtx devfs_de_interlock;
+MTX_SYSINIT(devfs_de_interlock, &devfs_de_interlock, "devfs interlock",
+    MTX_DEF);
+struct mtx cdevpriv_mtx;
 MTX_SYSINIT(cdevpriv_mtx, &cdevpriv_mtx, "cdevpriv lock", MTX_DEF);
 
 SYSCTL_DECL(_vfs_devfs);
 
 static int devfs_dotimes;
-SYSCTL_INT(_vfs_devfs, OID_AUTO, dotimes, CTLFLAG_RW,
-    &devfs_dotimes, 0, "Update timestamps on DEVFS with default precision");
+SYSCTL_INT(_vfs_devfs, OID_AUTO, dotimes, CTLFLAG_RW, &devfs_dotimes, 0,
+    "Update timestamps on DEVFS with default precision");
 
 /*
  * Update devfs node timestamp.  Note that updates are unlocked and
@@ -259,7 +259,7 @@ devfs_usecount_subl(struct vnode *vp)
 	}
 	if (dev->si_usecount < de->de_usecount)
 		panic("%s: si_usecount underflow for dev %p "
-		    "(has %ld, dirent has %d)\n",
+		      "(has %ld, dirent has %d)\n",
 		    __func__, dev, dev->si_usecount, de->de_usecount);
 	if (VN_IS_DOOMED(vp)) {
 		dev->si_usecount -= de->de_usecount;
@@ -453,7 +453,7 @@ devfs_fqpn(char *buf, struct devfs_mount *dmp, struct devfs_dirent *dd,
 	if (cnp != NULL)
 		i -= cnp->cn_namelen;
 	if (i < 0)
-		 return (NULL);
+		return (NULL);
 	if (cnp != NULL)
 		bcopy(cnp->cn_nameptr, buf + i, cnp->cn_namelen);
 	de = dd;
@@ -461,14 +461,13 @@ devfs_fqpn(char *buf, struct devfs_mount *dmp, struct devfs_dirent *dd,
 		if (cnp != NULL || i < SPECNAMELEN) {
 			i--;
 			if (i < 0)
-				 return (NULL);
+				return (NULL);
 			buf[i] = '/';
 		}
 		i -= de->de_dirent->d_namlen;
 		if (i < 0)
-			 return (NULL);
-		bcopy(de->de_dirent->d_name, buf + i,
-		    de->de_dirent->d_namlen);
+			return (NULL);
+		bcopy(de->de_dirent->d_name, buf + i, de->de_dirent->d_namlen);
 		de = devfs_parent_dirent(de);
 		if (de == NULL)
 			return (NULL);
@@ -478,7 +477,7 @@ devfs_fqpn(char *buf, struct devfs_mount *dmp, struct devfs_dirent *dd,
 
 static int
 devfs_allocv_drop_refs(int drop_dm_lock, struct devfs_mount *dmp,
-	struct devfs_dirent *de)
+    struct devfs_dirent *de)
 {
 	int not_found;
 
@@ -491,7 +490,7 @@ devfs_allocv_drop_refs(int drop_dm_lock, struct devfs_mount *dmp,
 	}
 	if (DEVFS_DMP_DROP(dmp)) {
 		KASSERT(not_found == 1,
-			("DEVFS mount struct freed before dirent"));
+		    ("DEVFS mount struct freed before dirent"));
 		not_found = 2;
 		sx_xunlock(&dmp->dm_lock);
 		devfs_unmount_final(dmp);
@@ -535,8 +534,7 @@ loop:
 		if (devfs_allocv_drop_refs(0, dmp, de)) {
 			vput(vp);
 			return (ENOENT);
-		}
-		else if (VN_IS_DOOMED(vp)) {
+		} else if (VN_IS_DOOMED(vp)) {
 			mtx_lock(&devfs_de_interlock);
 			if (de->de_vnode == vp) {
 				de->de_vnode = NULL;
@@ -605,7 +603,7 @@ loop:
 		mtx_unlock(&devfs_de_interlock);
 		vgone(vp);
 		vput(vp);
-		(void) devfs_allocv_drop_refs(1, dmp, de);
+		(void)devfs_allocv_drop_refs(1, dmp, de);
 		return (error);
 	}
 	if (devfs_allocv_drop_refs(0, dmp, de)) {
@@ -694,7 +692,8 @@ devfs_close(struct vop_close_args *ap)
 				SESS_LOCK(p->p_session);
 				mtx_lock(&devfs_de_interlock);
 				VI_LOCK(vp);
-				if (devfs_usecountl(vp) == 2 && !VN_IS_DOOMED(vp)) {
+				if (devfs_usecountl(vp) == 2 &&
+				    !VN_IS_DOOMED(vp)) {
 					p->p_session->s_ttyvp = NULL;
 					p->p_session->s_ttydp = NULL;
 					oldvp = vp;
@@ -743,7 +742,8 @@ devfs_close(struct vop_close_args *ap)
 	vp_locked = VOP_ISLOCKED(vp);
 	VOP_UNLOCK(vp);
 	KASSERT(dev->si_refcount > 0,
-	    ("devfs_close() on un-referenced struct cdev *(%s)", devtoname(dev)));
+	    ("devfs_close() on un-referenced struct cdev *(%s)",
+		devtoname(dev)));
 	error = dsw->d_close(dev, ap->a_fflag | dflags, S_IFCHR, td);
 	dev_relthread(dev, ref);
 	vn_lock(vp, vp_locked | LK_RETRY);
@@ -815,15 +815,15 @@ devfs_getattr(struct vop_getattr_args *ap)
 	vap->va_type = vp->v_type;
 
 	getboottime(&boottime);
-#define fix(aa)							\
-	do {							\
-		if ((aa).tv_sec <= 3600) {			\
-			(aa).tv_sec = boottime.tv_sec;		\
+#define fix(aa)                                                 \
+	do {                                                    \
+		if ((aa).tv_sec <= 3600) {                      \
+			(aa).tv_sec = boottime.tv_sec;          \
 			(aa).tv_nsec = boottime.tv_usec * 1000; \
-		}						\
+		}                                               \
 	} while (0)
 
-	if (vp->v_type != VCHR)  {
+	if (vp->v_type != VCHR) {
 		fix(de->de_atime);
 		vap->va_atime = de->de_atime;
 		fix(de->de_mtime);
@@ -852,7 +852,8 @@ devfs_getattr(struct vop_getattr_args *ap)
 
 /* ARGSUSED */
 static int
-devfs_ioctl_f(struct file *fp, u_long com, void *data, struct ucred *cred, struct thread *td)
+devfs_ioctl_f(struct file *fp, u_long com, void *data, struct ucred *cred,
+    struct thread *td)
 {
 	struct file *fpop;
 	int error;
@@ -868,9 +869,9 @@ void *
 fiodgname_buf_get_ptr(void *fgnp, u_long com)
 {
 	union {
-		struct fiodgname_arg	fgn;
+		struct fiodgname_arg fgn;
 #ifdef COMPAT_FREEBSD32
-		struct fiodgname_arg32	fgn32;
+		struct fiodgname_arg32 fgn32;
 #endif
 	} *fgnup;
 
@@ -916,7 +917,7 @@ devfs_ioctl(struct vop_ioctl_args *ap)
 		error = 0;
 		break;
 	case FIODGNAME:
-#ifdef	COMPAT_FREEBSD32
+#ifdef COMPAT_FREEBSD32
 	case FIODGNAME_32:
 #endif
 		fgn = ap->a_data;
@@ -1082,7 +1083,7 @@ devfs_lookupx(struct vop_lookup_args *ap, int *dm_unlock)
 
 	dd = dvp->v_data;
 	de = devfs_find(dd, cnp->cn_nameptr, cnp->cn_namelen, 0);
-	while (de == NULL) {	/* While(...) so we can use break */
+	while (de == NULL) { /* While(...) so we can use break */
 
 		if (nameiop == DELETE)
 			return (ENOENT);
@@ -1098,8 +1099,8 @@ devfs_lookupx(struct vop_lookup_args *ap, int *dm_unlock)
 		cdev = NULL;
 		DEVFS_DMP_HOLD(dmp);
 		sx_xunlock(&dmp->dm_lock);
-		EVENTHANDLER_INVOKE(dev_clone,
-		    td->td_ucred, pname, strlen(pname), &cdev);
+		EVENTHANDLER_INVOKE(dev_clone, td->td_ucred, pname,
+		    strlen(pname), &cdev);
 
 		if (cdev == NULL)
 			sx_xlock(&dmp->dm_lock);
@@ -1203,14 +1204,14 @@ devfs_mknod(struct vop_mknod_args *ap)
 
 	error = ENOENT;
 	sx_xlock(&dmp->dm_lock);
-	TAILQ_FOREACH(de, &dd->de_dlist, de_list) {
+	TAILQ_FOREACH (de, &dd->de_dlist, de_list) {
 		if (cnp->cn_namelen != de->de_dirent->d_namlen)
 			continue;
 		if (de->de_dirent->d_type == DT_CHR &&
 		    (de->de_cdp->cdp_flags & CDP_ACTIVE) == 0)
 			continue;
 		if (bcmp(cnp->cn_nameptr, de->de_dirent->d_name,
-		    de->de_dirent->d_namlen) != 0)
+			de->de_dirent->d_namlen) != 0)
 			continue;
 		if (de->de_flags & DE_WHITEOUT)
 			break;
@@ -1288,7 +1289,7 @@ devfs_open(struct vop_open_args *ap)
 		return (error);
 	}
 
-#if 0	/* /dev/console */
+#if 0 /* /dev/console */
 	KASSERT(fp != NULL, ("Could not vnode bypass device on NULL fp"));
 #else
 	if (fp == NULL)
@@ -1372,7 +1373,7 @@ devfs_poll_f(struct file *fp, int events, struct ucred *cred, struct thread *td)
 	error = dsw->d_poll(dev, events, td);
 	td->td_fpop = fpop;
 	dev_relthread(dev, ref);
-	return(error);
+	return (error);
 }
 
 /*
@@ -1387,8 +1388,8 @@ devfs_print(struct vop_print_args *ap)
 }
 
 static int
-devfs_read_f(struct file *fp, struct uio *uio, struct ucred *cred,
-    int flags, struct thread *td)
+devfs_read_f(struct file *fp, struct uio *uio, struct ucred *cred, int flags,
+    struct thread *td)
 {
 	struct cdev *dev;
 	int ioflag, error, ref;
@@ -1444,7 +1445,7 @@ devfs_readdir(struct vop_readdir_args *ap)
 	 * supporting cookies. We store the location of the ncookies pointer
 	 * in a temporary variable before calling vfs_subr.c:vfs_read_dirent()
 	 * and set the number of cookies to 0. We then set the pointer to
-	 * NULL so that vfs_read_dirent doesn't try to call realloc() on 
+	 * NULL so that vfs_read_dirent doesn't try to call realloc() on
 	 * ap->a_cookies. Later in this function, we restore the ap->a_ncookies
 	 * pointer to its original location before returning to the caller.
 	 */
@@ -1463,8 +1464,9 @@ devfs_readdir(struct vop_readdir_args *ap)
 	error = 0;
 	de = ap->a_vp->v_data;
 	off = 0;
-	TAILQ_FOREACH(dd, &de->de_dlist, de_list) {
-		KASSERT(dd->de_cdp != (void *)0xdeadc0de, ("%s %d\n", __func__, __LINE__));
+	TAILQ_FOREACH (dd, &de->de_dlist, de_list) {
+		KASSERT(dd->de_cdp != (void *)0xdeadc0de,
+		    ("%s %d\n", __func__, __LINE__));
 		if (dd->de_flags & (DE_COVERED | DE_WHITEOUT))
 			continue;
 		if (devfs_prison_check(dd, uio->uio_td))
@@ -1628,7 +1630,7 @@ devfs_revoke(struct vop_revoke_args *ap)
 	vdrop(vp);
 
 	VOP_UNLOCK(vp);
- loop:
+loop:
 	for (;;) {
 		mtx_lock(&devfs_de_interlock);
 		dev_lock();
@@ -1663,8 +1665,8 @@ devfs_revoke(struct vop_revoke_args *ap)
 	cdp->cdp_inuse--;
 	if (!(cdp->cdp_flags & CDP_ACTIVE) && cdp->cdp_inuse == 0) {
 		KASSERT((cdp->cdp_flags & CDP_ON_ACTIVE_LIST) != 0,
-		    ("%s: cdp %p (%s) not on active list",
-		    __func__, cdp, dev->si_name));
+		    ("%s: cdp %p (%s) not on active list", __func__, cdp,
+			dev->si_name));
 		cdp->cdp_flags &= ~CDP_ON_ACTIVE_LIST;
 		TAILQ_REMOVE(&cdevp_list, cdp, cdp_list);
 		dev_unlock();
@@ -1727,14 +1729,11 @@ devfs_setattr(struct vop_setattr_args *ap)
 	vap = ap->a_vap;
 	vp = ap->a_vp;
 	td = curthread;
-	if ((vap->va_type != VNON) ||
-	    (vap->va_nlink != VNOVAL) ||
-	    (vap->va_fsid != VNOVAL) ||
-	    (vap->va_fileid != VNOVAL) ||
+	if ((vap->va_type != VNON) || (vap->va_nlink != VNOVAL) ||
+	    (vap->va_fsid != VNOVAL) || (vap->va_fileid != VNOVAL) ||
 	    (vap->va_blocksize != VNOVAL) ||
 	    (vap->va_flags != VNOVAL && vap->va_flags != 0) ||
-	    (vap->va_rdev != VNOVAL) ||
-	    ((int)vap->va_bytes != VNOVAL) ||
+	    (vap->va_rdev != VNOVAL) || ((int)vap->va_bytes != VNOVAL) ||
 	    (vap->va_gen != VNOVAL)) {
 		return (EINVAL);
 	}
@@ -1843,7 +1842,7 @@ devfs_symlink(struct vop_symlink_args *ap)
 
 	error = priv_check(curthread, PRIV_DEVFS_SYMLINK);
 	if (error)
-		return(error);
+		return (error);
 	dmp = VFSTODEVFS(ap->a_dvp->v_mount);
 	if (devfs_populate_vp(ap->a_dvp) != 0)
 		return (ENOENT);
@@ -1876,8 +1875,8 @@ devfs_symlink(struct vop_symlink_args *ap)
 		de_covered->de_flags |= DE_COVERED;
 	}
 
-	de_dotdot = TAILQ_FIRST(&dd->de_dlist);		/* "." */
-	de_dotdot = TAILQ_NEXT(de_dotdot, de_list);	/* ".." */
+	de_dotdot = TAILQ_FIRST(&dd->de_dlist);	    /* "." */
+	de_dotdot = TAILQ_NEXT(de_dotdot, de_list); /* ".." */
 	TAILQ_INSERT_AFTER(&dd->de_dlist, de_dotdot, de, de_list);
 	devfs_dir_ref_de(dmp, dd);
 	devfs_rules_apply(dmp, de);
@@ -1886,15 +1885,16 @@ devfs_symlink(struct vop_symlink_args *ap)
 }
 
 static int
-devfs_truncate_f(struct file *fp, off_t length, struct ucred *cred, struct thread *td)
+devfs_truncate_f(struct file *fp, off_t length, struct ucred *cred,
+    struct thread *td)
 {
 
 	return (vnops.fo_truncate(fp, length, cred, td));
 }
 
 static int
-devfs_write_f(struct file *fp, struct uio *uio, struct ucred *cred,
-    int flags, struct thread *td)
+devfs_write_f(struct file *fp, struct uio *uio, struct ucred *cred, int flags,
+    struct thread *td)
 {
 	struct cdev *dev;
 	int error, ioflag, ref;
@@ -2018,99 +2018,97 @@ devfs_cmp_f(struct file *fp1, struct file *fp2, struct thread *td)
 	return (kcmp_cmp((uintptr_t)fp1->f_data, (uintptr_t)fp2->f_data));
 }
 
-static struct fileops devfs_ops_f = {
-	.fo_read =	devfs_read_f,
-	.fo_write =	devfs_write_f,
-	.fo_truncate =	devfs_truncate_f,
-	.fo_ioctl =	devfs_ioctl_f,
-	.fo_poll =	devfs_poll_f,
-	.fo_kqfilter =	devfs_kqfilter_f,
-	.fo_stat =	devfs_stat_f,
-	.fo_close =	devfs_close_f,
-	.fo_chmod =	vn_chmod,
-	.fo_chown =	vn_chown,
-	.fo_sendfile =	vn_sendfile,
-	.fo_seek =	vn_seek,
+static struct fileops devfs_ops_f = { .fo_read = devfs_read_f,
+	.fo_write = devfs_write_f,
+	.fo_truncate = devfs_truncate_f,
+	.fo_ioctl = devfs_ioctl_f,
+	.fo_poll = devfs_poll_f,
+	.fo_kqfilter = devfs_kqfilter_f,
+	.fo_stat = devfs_stat_f,
+	.fo_close = devfs_close_f,
+	.fo_chmod = vn_chmod,
+	.fo_chown = vn_chown,
+	.fo_sendfile = vn_sendfile,
+	.fo_seek = vn_seek,
 	.fo_fill_kinfo = vn_fill_kinfo,
-	.fo_mmap =	devfs_mmap_f,
-	.fo_cmp =	devfs_cmp_f,
-	.fo_flags =	DFLAG_PASSABLE | DFLAG_SEEKABLE
-};
+	.fo_mmap = devfs_mmap_f,
+	.fo_cmp = devfs_cmp_f,
+	.fo_flags = DFLAG_PASSABLE | DFLAG_SEEKABLE };
 
 /* Vops for non-CHR vnodes in /dev. */
 static struct vop_vector devfs_vnodeops = {
-	.vop_default =		&default_vnodeops,
+	.vop_default = &default_vnodeops,
 
-	.vop_access =		devfs_access,
-	.vop_getattr =		devfs_getattr,
-	.vop_ioctl =		devfs_rioctl,
-	.vop_lookup =		devfs_lookup,
-	.vop_mknod =		devfs_mknod,
-	.vop_pathconf =		devfs_pathconf,
-	.vop_read =		devfs_rread,
-	.vop_readdir =		devfs_readdir,
-	.vop_readlink =		devfs_readlink,
-	.vop_reclaim =		devfs_reclaim,
-	.vop_remove =		devfs_remove,
-	.vop_revoke =		devfs_revoke,
-	.vop_setattr =		devfs_setattr,
+	.vop_access = devfs_access,
+	.vop_getattr = devfs_getattr,
+	.vop_ioctl = devfs_rioctl,
+	.vop_lookup = devfs_lookup,
+	.vop_mknod = devfs_mknod,
+	.vop_pathconf = devfs_pathconf,
+	.vop_read = devfs_rread,
+	.vop_readdir = devfs_readdir,
+	.vop_readlink = devfs_readlink,
+	.vop_reclaim = devfs_reclaim,
+	.vop_remove = devfs_remove,
+	.vop_revoke = devfs_revoke,
+	.vop_setattr = devfs_setattr,
 #ifdef MAC
-	.vop_setlabel =		devfs_setlabel,
+	.vop_setlabel = devfs_setlabel,
 #endif
-	.vop_symlink =		devfs_symlink,
-	.vop_vptocnp =		devfs_vptocnp,
-	.vop_lock1 =		vop_lock,
-	.vop_unlock =		vop_unlock,
-	.vop_islocked =		vop_islocked,
-	.vop_add_writecount =	vop_stdadd_writecount_nomsync,
+	.vop_symlink = devfs_symlink,
+	.vop_vptocnp = devfs_vptocnp,
+	.vop_lock1 = vop_lock,
+	.vop_unlock = vop_unlock,
+	.vop_islocked = vop_islocked,
+	.vop_add_writecount = vop_stdadd_writecount_nomsync,
 };
 VFS_VOP_VECTOR_REGISTER(devfs_vnodeops);
 
 /* Vops for VCHR vnodes in /dev. */
 static struct vop_vector devfs_specops = {
-	.vop_default =		&default_vnodeops,
+	.vop_default = &default_vnodeops,
 
-	.vop_access =		devfs_access,
-	.vop_bmap =		VOP_PANIC,
-	.vop_close =		devfs_close,
-	.vop_create =		VOP_PANIC,
-	.vop_fsync =		vop_stdfsync,
-	.vop_getattr =		devfs_getattr,
-	.vop_ioctl =		devfs_ioctl,
-	.vop_link =		VOP_PANIC,
-	.vop_mkdir =		VOP_PANIC,
-	.vop_mknod =		VOP_PANIC,
-	.vop_open =		devfs_open,
-	.vop_pathconf =		devfs_pathconf,
-	.vop_poll =		dead_poll,
-	.vop_print =		devfs_print,
-	.vop_read =		dead_read,
-	.vop_readdir =		VOP_PANIC,
-	.vop_readlink =		VOP_PANIC,
-	.vop_reallocblks =	VOP_PANIC,
-	.vop_reclaim =		devfs_reclaim_vchr,
-	.vop_remove =		devfs_remove,
-	.vop_rename =		VOP_PANIC,
-	.vop_revoke =		devfs_revoke,
-	.vop_rmdir =		VOP_PANIC,
-	.vop_setattr =		devfs_setattr,
+	.vop_access = devfs_access,
+	.vop_bmap = VOP_PANIC,
+	.vop_close = devfs_close,
+	.vop_create = VOP_PANIC,
+	.vop_fsync = vop_stdfsync,
+	.vop_getattr = devfs_getattr,
+	.vop_ioctl = devfs_ioctl,
+	.vop_link = VOP_PANIC,
+	.vop_mkdir = VOP_PANIC,
+	.vop_mknod = VOP_PANIC,
+	.vop_open = devfs_open,
+	.vop_pathconf = devfs_pathconf,
+	.vop_poll = dead_poll,
+	.vop_print = devfs_print,
+	.vop_read = dead_read,
+	.vop_readdir = VOP_PANIC,
+	.vop_readlink = VOP_PANIC,
+	.vop_reallocblks = VOP_PANIC,
+	.vop_reclaim = devfs_reclaim_vchr,
+	.vop_remove = devfs_remove,
+	.vop_rename = VOP_PANIC,
+	.vop_revoke = devfs_revoke,
+	.vop_rmdir = VOP_PANIC,
+	.vop_setattr = devfs_setattr,
 #ifdef MAC
-	.vop_setlabel =		devfs_setlabel,
+	.vop_setlabel = devfs_setlabel,
 #endif
-	.vop_strategy =		VOP_PANIC,
-	.vop_symlink =		VOP_PANIC,
-	.vop_vptocnp =		devfs_vptocnp,
-	.vop_write =		dead_write,
-	.vop_lock1 =		vop_lock,
-	.vop_unlock =		vop_unlock,
-	.vop_islocked =		vop_islocked,
-	.vop_add_writecount =	vop_stdadd_writecount_nomsync,
+	.vop_strategy = VOP_PANIC,
+	.vop_symlink = VOP_PANIC,
+	.vop_vptocnp = devfs_vptocnp,
+	.vop_write = dead_write,
+	.vop_lock1 = vop_lock,
+	.vop_unlock = vop_unlock,
+	.vop_islocked = vop_islocked,
+	.vop_add_writecount = vop_stdadd_writecount_nomsync,
 };
 VFS_VOP_VECTOR_REGISTER(devfs_specops);
 
 /*
  * Our calling convention to the device drivers used to be that we passed
- * vnode.h IO_* flags to read()/write(), but we're moving to fcntl.h O_ 
+ * vnode.h IO_* flags to read()/write(), but we're moving to fcntl.h O_
  * flags instead since that's what open(), close() and ioctl() takes and
  * we don't really want vnode.h in device drivers.
  * We solved the source compatibility by redefining some vnode flags to

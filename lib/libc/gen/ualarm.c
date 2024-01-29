@@ -30,9 +30,10 @@
  */
 
 #include <sys/time.h>
+
 #include <unistd.h>
 
-#define	USPS	1000000		/* # of microseconds in a second */
+#define USPS 1000000 /* # of microseconds in a second */
 
 /*
  * Generate a SIGALRM signal in ``usecs'' microseconds.

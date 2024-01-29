@@ -40,12 +40,12 @@
 #include <sys/sf_buf.h>
 
 #include <vm/vm.h>
-#include <vm/vm_page.h>
 #include <vm/pmap.h>
+#include <vm/vm_page.h>
 
 #include <linux/page.h>
 
-#define	PageHighMem(p)		(0)
+#define PageHighMem(p) (0)
 
 static inline struct page *
 kmap_to_page(void *addr)
@@ -132,4 +132,4 @@ kunmap_local(void *addr)
 	kunmap_atomic(addr);
 }
 
-#endif	/* _LINUXKPI_LINUX_HIGHMEM_H_ */
+#endif /* _LINUXKPI_LINUX_HIGHMEM_H_ */

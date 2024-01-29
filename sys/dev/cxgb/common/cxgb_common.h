@@ -34,107 +34,86 @@ POSSIBILITY OF SUCH DAMAGE.
 
 enum {
 	MAX_FRAME_SIZE = 10240, /* max MAC frame size, includes header + FCS */
-	EEPROMSIZE     = 8192,  /* Serial EEPROM size */
-	SERNUM_LEN     = 16,    /* Serial # length */
-	ECNUM_LEN      = 16,    /* EC # length */
-	RSS_TABLE_SIZE = 64,    /* size of RSS lookup and mapping tables */
-	TCB_SIZE       = 128,   /* TCB size */
-	NMTUS          = 16,    /* size of MTU table */
-	NCCTRL_WIN     = 32,    /* # of congestion control windows */
-	NTX_SCHED      = 8,     /* # of HW Tx scheduling queues */
+	EEPROMSIZE = 8192,	/* Serial EEPROM size */
+	SERNUM_LEN = 16,	/* Serial # length */
+	ECNUM_LEN = 16,		/* EC # length */
+	RSS_TABLE_SIZE = 64,	/* size of RSS lookup and mapping tables */
+	TCB_SIZE = 128,		/* TCB size */
+	NMTUS = 16,		/* size of MTU table */
+	NCCTRL_WIN = 32,	/* # of congestion control windows */
+	NTX_SCHED = 8,		/* # of HW Tx scheduling queues */
 	PROTO_SRAM_LINES = 128, /* size of protocol sram */
-	EXACT_ADDR_FILTERS = 8,	/* # of HW exact match filters */
+	EXACT_ADDR_FILTERS = 8, /* # of HW exact match filters */
 };
 
 #define MAX_RX_COALESCING_LEN 12288U
 
-enum {
-	PAUSE_RX      = 1 << 0,
-	PAUSE_TX      = 1 << 1,
-	PAUSE_AUTONEG = 1 << 2
-};
+enum { PAUSE_RX = 1 << 0, PAUSE_TX = 1 << 1, PAUSE_AUTONEG = 1 << 2 };
 
 enum {
 	SUPPORTED_LINK_IRQ = 1 << 24,
 	/* skip 25 */
 	SUPPORTED_MISC_IRQ = 1 << 26,
-	SUPPORTED_IRQ      = (SUPPORTED_LINK_IRQ | SUPPORTED_MISC_IRQ),
+	SUPPORTED_IRQ = (SUPPORTED_LINK_IRQ | SUPPORTED_MISC_IRQ),
 };
 
-enum {                            /* adapter interrupt-maintained statistics */
+enum { /* adapter interrupt-maintained statistics */
 	STAT_ULP_CH0_PBL_OOB,
 	STAT_ULP_CH1_PBL_OOB,
 	STAT_PCI_CORR_ECC,
 
-	IRQ_NUM_STATS             /* keep last */
+	IRQ_NUM_STATS /* keep last */
 };
+
+enum { TP_VERSION_MAJOR = 1, TP_VERSION_MINOR = 1, TP_VERSION_MICRO = 0 };
+
+#define S_TP_VERSION_MAJOR 16
+#define M_TP_VERSION_MAJOR 0xFF
+#define V_TP_VERSION_MAJOR(x) ((x) << S_TP_VERSION_MAJOR)
+#define G_TP_VERSION_MAJOR(x) (((x) >> S_TP_VERSION_MAJOR) & M_TP_VERSION_MAJOR)
+
+#define S_TP_VERSION_MINOR 8
+#define M_TP_VERSION_MINOR 0xFF
+#define V_TP_VERSION_MINOR(x) ((x) << S_TP_VERSION_MINOR)
+#define G_TP_VERSION_MINOR(x) (((x) >> S_TP_VERSION_MINOR) & M_TP_VERSION_MINOR)
+
+#define S_TP_VERSION_MICRO 0
+#define M_TP_VERSION_MICRO 0xFF
+#define V_TP_VERSION_MICRO(x) ((x) << S_TP_VERSION_MICRO)
+#define G_TP_VERSION_MICRO(x) (((x) >> S_TP_VERSION_MICRO) & M_TP_VERSION_MICRO)
+
+enum { FW_VERSION_MAJOR = 7, FW_VERSION_MINOR = 11, FW_VERSION_MICRO = 0 };
+
+enum { LA_CTRL = 0x80, LA_DATA = 0x84, LA_ENTRIES = 512 };
+
+enum { IOQ_ENTRIES = 7 };
 
 enum {
-	TP_VERSION_MAJOR	= 1,
-	TP_VERSION_MINOR	= 1,
-	TP_VERSION_MICRO	= 0
+	SGE_QSETS = 8,	     /* # of SGE Tx/Rx/RspQ sets */
+	SGE_RXQ_PER_SET = 2, /* # of Rx queues per set */
+	SGE_TXQ_PER_SET = 3  /* # of Tx queues per set */
 };
 
-#define S_TP_VERSION_MAJOR		16
-#define M_TP_VERSION_MAJOR		0xFF
-#define V_TP_VERSION_MAJOR(x)		((x) << S_TP_VERSION_MAJOR)
-#define G_TP_VERSION_MAJOR(x)		\
-	    (((x) >> S_TP_VERSION_MAJOR) & M_TP_VERSION_MAJOR)
-
-#define S_TP_VERSION_MINOR		8
-#define M_TP_VERSION_MINOR		0xFF
-#define V_TP_VERSION_MINOR(x)		((x) << S_TP_VERSION_MINOR)
-#define G_TP_VERSION_MINOR(x)		\
-	    (((x) >> S_TP_VERSION_MINOR) & M_TP_VERSION_MINOR)
-
-#define S_TP_VERSION_MICRO		0
-#define M_TP_VERSION_MICRO		0xFF
-#define V_TP_VERSION_MICRO(x)		((x) << S_TP_VERSION_MICRO)
-#define G_TP_VERSION_MICRO(x)		\
-	    (((x) >> S_TP_VERSION_MICRO) & M_TP_VERSION_MICRO)
-
-enum {
-	FW_VERSION_MAJOR = 7,
-	FW_VERSION_MINOR = 11,
-	FW_VERSION_MICRO = 0
-};
-
-enum {
-	LA_CTRL = 0x80,
-	LA_DATA = 0x84,
-	LA_ENTRIES = 512
-};
-
-enum {
-	IOQ_ENTRIES = 7
-};
-
-enum {
-	SGE_QSETS = 8,            /* # of SGE Tx/Rx/RspQ sets */
-	SGE_RXQ_PER_SET = 2,      /* # of Rx queues per set */
-	SGE_TXQ_PER_SET = 3       /* # of Tx queues per set */
-};
-
-enum sge_context_type {           /* SGE egress context types */
+enum sge_context_type { /* SGE egress context types */
 	SGE_CNTXT_RDMA = 0,
-	SGE_CNTXT_ETH  = 2,
+	SGE_CNTXT_ETH = 2,
 	SGE_CNTXT_OFLD = 4,
 	SGE_CNTXT_CTRL = 5
 };
 
 enum {
-	AN_PKT_SIZE    = 32,      /* async notification packet size */
-	IMMED_PKT_SIZE = 48       /* packet size for immediate data */
+	AN_PKT_SIZE = 32,   /* async notification packet size */
+	IMMED_PKT_SIZE = 48 /* packet size for immediate data */
 };
 
-struct sg_ent {                   /* SGE scatter/gather entry */
+struct sg_ent { /* SGE scatter/gather entry */
 	__be32 len[2];
 	__be64 addr[2];
 };
 
 #ifndef SGE_NUM_GENBITS
 /* Must be 1 or 2 */
-# define SGE_NUM_GENBITS 2
+#define SGE_NUM_GENBITS 2
 #endif
 
 #define TX_DESC_FLITS 16U
@@ -145,21 +124,21 @@ struct sg_ent {                   /* SGE scatter/gather entry */
 struct cphy;
 
 struct mdio_ops {
-	int  (*read)(adapter_t *adapter, int phy_addr, int mmd_addr,
-		     int reg_addr, unsigned int *val);
-	int  (*write)(adapter_t *adapter, int phy_addr, int mmd_addr,
-		      int reg_addr, unsigned int val);
+	int (*read)(adapter_t *adapter, int phy_addr, int mmd_addr,
+	    int reg_addr, unsigned int *val);
+	int (*write)(adapter_t *adapter, int phy_addr, int mmd_addr,
+	    int reg_addr, unsigned int val);
 };
 
 struct adapter_info {
-	unsigned char          nports0;        /* # of ports on channel 0 */
-	unsigned char          nports1;        /* # of ports on channel 1 */
-	unsigned char          phy_base_addr;  /* MDIO PHY base address */
-	unsigned int           gpio_out;       /* GPIO output settings */
+	unsigned char nports0;		       /* # of ports on channel 0 */
+	unsigned char nports1;		       /* # of ports on channel 1 */
+	unsigned char phy_base_addr;	       /* MDIO PHY base address */
+	unsigned int gpio_out;		       /* GPIO output settings */
 	unsigned char gpio_intr[MAX_PHYINTRS]; /* GPIO PHY IRQ pins */
-	unsigned long          caps;           /* adapter capabilities */
+	unsigned long caps;		       /* adapter capabilities */
 	const struct mdio_ops *mdio_ops;       /* MDIO operations */
-	const char            *desc;           /* product description */
+	const char *desc;		       /* product description */
 };
 
 struct mc5_stats {
@@ -180,23 +159,23 @@ struct mc7_stats {
 };
 
 struct mac_stats {
-	u64 tx_octets;            /* total # of octets in good frames */
-	u64 tx_octets_bad;        /* total # of octets in error frames */
-	u64 tx_frames;            /* all good frames */
-	u64 tx_mcast_frames;      /* good multicast frames */
-	u64 tx_bcast_frames;      /* good broadcast frames */
-	u64 tx_pause;             /* # of transmitted pause frames */
-	u64 tx_deferred;          /* frames with deferred transmissions */
-	u64 tx_late_collisions;   /* # of late collisions */
+	u64 tx_octets;		  /* total # of octets in good frames */
+	u64 tx_octets_bad;	  /* total # of octets in error frames */
+	u64 tx_frames;		  /* all good frames */
+	u64 tx_mcast_frames;	  /* good multicast frames */
+	u64 tx_bcast_frames;	  /* good broadcast frames */
+	u64 tx_pause;		  /* # of transmitted pause frames */
+	u64 tx_deferred;	  /* frames with deferred transmissions */
+	u64 tx_late_collisions;	  /* # of late collisions */
 	u64 tx_total_collisions;  /* # of total collisions */
 	u64 tx_excess_collisions; /* frame errors from excessive collisions */
-	u64 tx_underrun;          /* # of Tx FIFO underruns */
-	u64 tx_len_errs;          /* # of Tx length errors */
+	u64 tx_underrun;	  /* # of Tx FIFO underruns */
+	u64 tx_len_errs;	  /* # of Tx length errors */
 	u64 tx_mac_internal_errs; /* # of internal MAC errors on Tx */
-	u64 tx_excess_deferral;   /* # of frames with excessive deferral */
-	u64 tx_fcs_errs;          /* # of frames with bad FCS */
+	u64 tx_excess_deferral;	  /* # of frames with excessive deferral */
+	u64 tx_fcs_errs;	  /* # of frames with bad FCS */
 
-	u64 tx_frames_64;         /* # of Tx frames in a particular range */
+	u64 tx_frames_64; /* # of Tx frames in a particular range */
 	u64 tx_frames_65_127;
 	u64 tx_frames_128_255;
 	u64 tx_frames_256_511;
@@ -204,24 +183,24 @@ struct mac_stats {
 	u64 tx_frames_1024_1518;
 	u64 tx_frames_1519_max;
 
-	u64 rx_octets;            /* total # of octets in good frames */
-	u64 rx_octets_bad;        /* total # of octets in error frames */
-	u64 rx_frames;            /* all good frames */
-	u64 rx_mcast_frames;      /* good multicast frames */
-	u64 rx_bcast_frames;      /* good broadcast frames */
-	u64 rx_pause;             /* # of received pause frames */
-	u64 rx_fcs_errs;          /* # of received frames with bad FCS */
-	u64 rx_align_errs;        /* alignment errors */
-	u64 rx_symbol_errs;       /* symbol errors */
-	u64 rx_data_errs;         /* data errors */
-	u64 rx_sequence_errs;     /* sequence errors */
-	u64 rx_runt;              /* # of runt frames */
-	u64 rx_jabber;            /* # of jabber frames */
-	u64 rx_short;             /* # of short frames */
-	u64 rx_too_long;          /* # of oversized frames */
+	u64 rx_octets;		  /* total # of octets in good frames */
+	u64 rx_octets_bad;	  /* total # of octets in error frames */
+	u64 rx_frames;		  /* all good frames */
+	u64 rx_mcast_frames;	  /* good multicast frames */
+	u64 rx_bcast_frames;	  /* good broadcast frames */
+	u64 rx_pause;		  /* # of received pause frames */
+	u64 rx_fcs_errs;	  /* # of received frames with bad FCS */
+	u64 rx_align_errs;	  /* alignment errors */
+	u64 rx_symbol_errs;	  /* symbol errors */
+	u64 rx_data_errs;	  /* data errors */
+	u64 rx_sequence_errs;	  /* sequence errors */
+	u64 rx_runt;		  /* # of runt frames */
+	u64 rx_jabber;		  /* # of jabber frames */
+	u64 rx_short;		  /* # of short frames */
+	u64 rx_too_long;	  /* # of oversized frames */
 	u64 rx_mac_internal_errs; /* # of internal MAC errors on Rx */
 
-	u64 rx_frames_64;         /* # of Rx frames in a particular range */
+	u64 rx_frames_64; /* # of Rx frames in a particular range */
 	u64 rx_frames_65_127;
 	u64 rx_frames_128_255;
 	u64 rx_frames_256_511;
@@ -229,7 +208,7 @@ struct mac_stats {
 	u64 rx_frames_1024_1518;
 	u64 rx_frames_1519_max;
 
-	u64 rx_cong_drops;        /* # of Rx drops due to SGE congestion */
+	u64 rx_cong_drops; /* # of Rx drops due to SGE congestion */
 
 	unsigned long tx_fifo_parity_err;
 	unsigned long rx_fifo_parity_err;
@@ -242,7 +221,7 @@ struct mac_stats {
 	unsigned long num_toggled; /* # times toggled TxEn due to stuck TX */
 	unsigned long num_resets;  /* # times reset due to stuck TX */
 
-	unsigned long link_faults;  /* # detected link faults */
+	unsigned long link_faults; /* # detected link faults */
 };
 
 struct tp_mib_stats {
@@ -290,57 +269,51 @@ struct tp_mib_stats {
 };
 
 struct tp_params {
-	unsigned int nchan;          /* # of channels */
-	unsigned int pmrx_size;      /* total PMRX capacity */
-	unsigned int pmtx_size;      /* total PMTX capacity */
-	unsigned int cm_size;        /* total CM capacity */
-	unsigned int chan_rx_size;   /* per channel Rx size */
-	unsigned int chan_tx_size;   /* per channel Tx size */
-	unsigned int rx_pg_size;     /* Rx page size */
-	unsigned int tx_pg_size;     /* Tx page size */
-	unsigned int rx_num_pgs;     /* # of Rx pages */
-	unsigned int tx_num_pgs;     /* # of Tx pages */
-	unsigned int ntimer_qs;      /* # of timer queues */
-	unsigned int tre;            /* log2 of core clocks per TP tick */
-	unsigned int dack_re;        /* DACK timer resolution */
+	unsigned int nchan;	   /* # of channels */
+	unsigned int pmrx_size;	   /* total PMRX capacity */
+	unsigned int pmtx_size;	   /* total PMTX capacity */
+	unsigned int cm_size;	   /* total CM capacity */
+	unsigned int chan_rx_size; /* per channel Rx size */
+	unsigned int chan_tx_size; /* per channel Tx size */
+	unsigned int rx_pg_size;   /* Rx page size */
+	unsigned int tx_pg_size;   /* Tx page size */
+	unsigned int rx_num_pgs;   /* # of Rx pages */
+	unsigned int tx_num_pgs;   /* # of Tx pages */
+	unsigned int ntimer_qs;	   /* # of timer queues */
+	unsigned int tre;	   /* log2 of core clocks per TP tick */
+	unsigned int dack_re;	   /* DACK timer resolution */
 };
 
-struct qset_params {                   /* SGE queue set parameters */
-	unsigned int polling;          /* polling/interrupt service for rspq */
-	unsigned int lro;              /* large receive offload */
-	unsigned int coalesce_usecs;   /* irq coalescing timer */
-	unsigned int rspq_size;        /* # of entries in response queue */
-	unsigned int fl_size;          /* # of entries in regular free list */
-	unsigned int jumbo_size;       /* # of entries in jumbo free list */
-	unsigned int jumbo_buf_size;   /* buffer size of jumbo entry */
-	unsigned int txq_size[SGE_TXQ_PER_SET];  /* Tx queue sizes */
-	unsigned int cong_thres;       /* FL congestion threshold */
-	unsigned int vector;           /* Interrupt (line or vector) number */
+struct qset_params {		     /* SGE queue set parameters */
+	unsigned int polling;	     /* polling/interrupt service for rspq */
+	unsigned int lro;	     /* large receive offload */
+	unsigned int coalesce_usecs; /* irq coalescing timer */
+	unsigned int rspq_size;	     /* # of entries in response queue */
+	unsigned int fl_size;	     /* # of entries in regular free list */
+	unsigned int jumbo_size;     /* # of entries in jumbo free list */
+	unsigned int jumbo_buf_size; /* buffer size of jumbo entry */
+	unsigned int txq_size[SGE_TXQ_PER_SET]; /* Tx queue sizes */
+	unsigned int cong_thres;		/* FL congestion threshold */
+	unsigned int vector; /* Interrupt (line or vector) number */
 };
 
 struct sge_params {
-	unsigned int max_pkt_size;     /* max offload pkt size */
+	unsigned int max_pkt_size; /* max offload pkt size */
 	struct qset_params qset[SGE_QSETS];
 };
 
 struct mc5_params {
-	unsigned int mode;       /* selects MC5 width */
-	unsigned int nservers;   /* size of server region */
-	unsigned int nfilters;   /* size of filter region */
-	unsigned int nroutes;    /* size of routing region */
+	unsigned int mode;     /* selects MC5 width */
+	unsigned int nservers; /* size of server region */
+	unsigned int nfilters; /* size of filter region */
+	unsigned int nroutes;  /* size of routing region */
 };
 
 /* Default MC5 region sizes */
-enum {
-	DEFAULT_NSERVERS = 512,
-	DEFAULT_NFILTERS = 128
-};
+enum { DEFAULT_NSERVERS = 512, DEFAULT_NFILTERS = 128 };
 
 /* MC5 modes, these must be non-0 */
-enum {
-	MC5_MODE_144_BIT = 1,
-	MC5_MODE_72_BIT  = 2
-};
+enum { MC5_MODE_144_BIT = 1, MC5_MODE_72_BIT = 2 };
 
 /* MC5 min active region size */
 enum { MC5_MIN_TIDS = 16 };
@@ -367,11 +340,11 @@ struct generic_vpd {
 enum { MAX_VPD_BYTES = 32000 };
 
 struct pci_params {
-	unsigned int   vpd_cap_addr;
-	unsigned int   pcie_cap_addr;
+	unsigned int vpd_cap_addr;
+	unsigned int pcie_cap_addr;
 	unsigned short speed;
-	unsigned char  width;
-	unsigned char  variant;
+	unsigned char width;
+	unsigned char variant;
 };
 
 enum {
@@ -385,7 +358,7 @@ enum {
 struct adapter_params {
 	struct sge_params sge;
 	struct mc5_params mc5;
-	struct tp_params  tp;
+	struct tp_params tp;
 	struct vpd_params vpd;
 	struct pci_params pci;
 
@@ -394,19 +367,19 @@ struct adapter_params {
 	unsigned short mtus[NMTUS];
 	unsigned short a_wnd[NCCTRL_WIN];
 	unsigned short b_wnd[NCCTRL_WIN];
-	unsigned int   nports;              /* # of ethernet ports */
-	unsigned int   chan_map;            /* bitmap of in-use Tx channels */
-	unsigned int   stats_update_period; /* MAC stats accumulation period */
-	unsigned int   linkpoll_period;     /* link poll period in 0.1s */
-	unsigned int   rev;                 /* chip revision */
-	unsigned int   offload;
+	unsigned int nports;		  /* # of ethernet ports */
+	unsigned int chan_map;		  /* bitmap of in-use Tx channels */
+	unsigned int stats_update_period; /* MAC stats accumulation period */
+	unsigned int linkpoll_period;	  /* link poll period in 0.1s */
+	unsigned int rev;		  /* chip revision */
+	unsigned int offload;
 };
 
-enum {					    /* chip revisions */
-	T3_REV_A  = 0,
-	T3_REV_B  = 2,
+enum { /* chip revisions */
+	T3_REV_A = 0,
+	T3_REV_B = 2,
 	T3_REV_B2 = 3,
-	T3_REV_C  = 4,
+	T3_REV_C = 4,
 };
 
 struct trace_params {
@@ -418,29 +391,29 @@ struct trace_params {
 	u16 sport_mask;
 	u16 dport;
 	u16 dport_mask;
-	u32 vlan:12;
-	u32 vlan_mask:12;
-	u32 intf:4;
-	u32 intf_mask:4;
-	u8  proto;
-	u8  proto_mask;
+	u32 vlan : 12;
+	u32 vlan_mask : 12;
+	u32 intf : 4;
+	u32 intf_mask : 4;
+	u8 proto;
+	u8 proto_mask;
 };
 
 struct link_config {
-	unsigned int   supported;        /* link capabilities */
-	unsigned int   advertising;      /* advertised capabilities */
-	unsigned short requested_speed;  /* speed user has requested */
-	unsigned short speed;            /* actual link speed */
-	unsigned char  requested_duplex; /* duplex user has requested */
-	unsigned char  duplex;           /* actual link duplex */
-	unsigned char  requested_fc;     /* flow control user has requested */
-	unsigned char  fc;               /* actual link flow control */
-	unsigned char  autoneg;          /* autonegotiating? */
-	unsigned int   link_ok;          /* link up? */
+	unsigned int supported;		/* link capabilities */
+	unsigned int advertising;	/* advertised capabilities */
+	unsigned short requested_speed; /* speed user has requested */
+	unsigned short speed;		/* actual link speed */
+	unsigned char requested_duplex; /* duplex user has requested */
+	unsigned char duplex;		/* actual link duplex */
+	unsigned char requested_fc;	/* flow control user has requested */
+	unsigned char fc;		/* actual link flow control */
+	unsigned char autoneg;		/* autonegotiating? */
+	unsigned int link_ok;		/* link up? */
 };
 
-#define SPEED_INVALID   0xffff
-#define DUPLEX_INVALID  0xff
+#define SPEED_INVALID 0xffff
+#define DUPLEX_INVALID 0xff
 
 struct mc5 {
 	adapter_t *adapter;
@@ -451,21 +424,23 @@ struct mc5 {
 	struct mc5_stats stats;
 };
 
-static inline unsigned int t3_mc5_size(const struct mc5 *p)
+static inline unsigned int
+t3_mc5_size(const struct mc5 *p)
 {
 	return p->tcam_size;
 }
 
 struct mc7 {
-	adapter_t *adapter;     /* backpointer to adapter */
-	unsigned int size;      /* memory size in bytes */
-	unsigned int width;     /* MC7 interface width */
-	unsigned int offset;    /* register address offset for MC7 instance */
-	const char *name;       /* name of MC7 instance */
+	adapter_t *adapter;	/* backpointer to adapter */
+	unsigned int size;	/* memory size in bytes */
+	unsigned int width;	/* MC7 interface width */
+	unsigned int offset;	/* register address offset for MC7 instance */
+	const char *name;	/* name of MC7 instance */
 	struct mc7_stats stats; /* MC7 statistics */
 };
 
-static inline unsigned int t3_mc7_size(const struct mc7 *p)
+static inline unsigned int
+t3_mc7_size(const struct mc7 *p)
 {
 	return p->size;
 }
@@ -473,10 +448,10 @@ static inline unsigned int t3_mc7_size(const struct mc7 *p)
 struct cmac {
 	adapter_t *adapter;
 	unsigned int offset;
-	unsigned char nucast;    /* # of address filters for unicast MACs */
-	unsigned char multiport; /* multiple ports connected to this MAC */
-	unsigned char ext_port;  /* external MAC port */
-	unsigned char promisc_map;  /* which external ports are promiscuous */
+	unsigned char nucast;	   /* # of address filters for unicast MACs */
+	unsigned char multiport;   /* multiple ports connected to this MAC */
+	unsigned char ext_port;	   /* external MAC port */
+	unsigned char promisc_map; /* which external ports are promiscuous */
 	unsigned int tx_tcnt;
 	unsigned int tx_xcnt;
 	u64 tx_mcnt;
@@ -490,38 +465,31 @@ struct cmac {
 	struct mac_stats stats;
 };
 
-enum {
-	MAC_DIRECTION_RX = 1,
-	MAC_DIRECTION_TX = 2,
-	MAC_RXFIFO_SIZE  = 32768
-};
+enum { MAC_DIRECTION_RX = 1, MAC_DIRECTION_TX = 2, MAC_RXFIFO_SIZE = 32768 };
 
 /* IEEE 802.3 specified MDIO devices */
 enum {
 	MDIO_DEV_PMA_PMD = 1,
-	MDIO_DEV_WIS     = 2,
-	MDIO_DEV_PCS     = 3,
-	MDIO_DEV_XGXS    = 4,
-	MDIO_DEV_ANEG    = 7,
-	MDIO_DEV_VEND1   = 30,
-	MDIO_DEV_VEND2   = 31
+	MDIO_DEV_WIS = 2,
+	MDIO_DEV_PCS = 3,
+	MDIO_DEV_XGXS = 4,
+	MDIO_DEV_ANEG = 7,
+	MDIO_DEV_VEND1 = 30,
+	MDIO_DEV_VEND2 = 31
 };
 
 /* LASI control and status registers */
 enum {
 	RX_ALARM_CTRL = 0x9000,
 	TX_ALARM_CTRL = 0x9001,
-	LASI_CTRL     = 0x9002,
+	LASI_CTRL = 0x9002,
 	RX_ALARM_STAT = 0x9003,
 	TX_ALARM_STAT = 0x9004,
-	LASI_STAT     = 0x9005
+	LASI_STAT = 0x9005
 };
 
 /* PHY loopback direction */
-enum {
-	PHY_LOOPBACK_TX = 1,
-	PHY_LOOPBACK_RX = 2
-};
+enum { PHY_LOOPBACK_TX = 1, PHY_LOOPBACK_RX = 2 };
 
 /* PHY interrupt types */
 enum {
@@ -542,11 +510,7 @@ enum {
 	phy_modtype_unknown
 };
 
-enum {
-	PHY_LINK_DOWN = 0,
-	PHY_LINK_UP,
-	PHY_LINK_PARTIAL
-};
+enum { PHY_LINK_DOWN = 0, PHY_LINK_UP, PHY_LINK_PARTIAL };
 
 /* PHY operations */
 struct cphy_ops {
@@ -564,55 +528,55 @@ struct cphy_ops {
 	int (*set_loopback)(struct cphy *phy, int mmd, int dir, int enable);
 	int (*set_speed_duplex)(struct cphy *phy, int speed, int duplex);
 	int (*get_link_status)(struct cphy *phy, int *link_state, int *speed,
-			       int *duplex, int *fc);
+	    int *duplex, int *fc);
 	int (*power_down)(struct cphy *phy, int enable);
 };
 
 /* A PHY instance */
 struct cphy {
-	u8 addr;                             /* PHY address */
-	u8 modtype;                          /* PHY module type */
+	u8 addr;    /* PHY address */
+	u8 modtype; /* PHY module type */
 	u8 rst;
-	unsigned int priv;                   /* scratch pad */
-	unsigned int caps;                   /* PHY capabilities */
-	adapter_t *adapter;                  /* associated adapter */
-	pinfo_t *pinfo;                      /* associated port */
-	const char *desc;                    /* PHY description */
-	unsigned long fifo_errors;           /* FIFO over/under-flows */
-	const struct cphy_ops *ops;          /* PHY operations */
+	unsigned int priv;	    /* scratch pad */
+	unsigned int caps;	    /* PHY capabilities */
+	adapter_t *adapter;	    /* associated adapter */
+	pinfo_t *pinfo;		    /* associated port */
+	const char *desc;	    /* PHY description */
+	unsigned long fifo_errors;  /* FIFO over/under-flows */
+	const struct cphy_ops *ops; /* PHY operations */
 	int (*mdio_read)(adapter_t *adapter, int phy_addr, int mmd_addr,
-			 int reg_addr, unsigned int *val);
+	    int reg_addr, unsigned int *val);
 	int (*mdio_write)(adapter_t *adapter, int phy_addr, int mmd_addr,
-			  int reg_addr, unsigned int val);
+	    int reg_addr, unsigned int val);
 };
 
 /* Convenience MDIO read/write wrappers */
-static inline int mdio_read(struct cphy *phy, int mmd, int reg,
-			    unsigned int *valp)
+static inline int
+mdio_read(struct cphy *phy, int mmd, int reg, unsigned int *valp)
 {
 	return phy->mdio_read(phy->adapter, phy->addr, mmd, reg, valp);
 }
 
-static inline int mdio_write(struct cphy *phy, int mmd, int reg,
-			     unsigned int val)
+static inline int
+mdio_write(struct cphy *phy, int mmd, int reg, unsigned int val)
 {
 	return phy->mdio_write(phy->adapter, phy->addr, mmd, reg, val);
 }
 
 /* Convenience initializer */
-static inline void cphy_init(struct cphy *phy, adapter_t *adapter, pinfo_t *pinfo,
-			     int phy_addr, struct cphy_ops *phy_ops,
-			     const struct mdio_ops *mdio_ops, unsigned int caps,
-			     const char *desc)
+static inline void
+cphy_init(struct cphy *phy, adapter_t *adapter, pinfo_t *pinfo, int phy_addr,
+    struct cphy_ops *phy_ops, const struct mdio_ops *mdio_ops,
+    unsigned int caps, const char *desc)
 {
-	phy->addr    = (u8)phy_addr;
-	phy->caps    = caps;
+	phy->addr = (u8)phy_addr;
+	phy->caps = caps;
 	phy->adapter = adapter;
-	phy->pinfo   = pinfo;
-	phy->desc    = desc;
-	phy->ops     = phy_ops;
+	phy->pinfo = pinfo;
+	phy->desc = desc;
+	phy->ops = phy_ops;
 	if (mdio_ops) {
-		phy->mdio_read  = mdio_ops->read;
+		phy->mdio_read = mdio_ops->read;
 		phy->mdio_write = mdio_ops->write;
 	}
 }
@@ -634,7 +598,7 @@ struct addr_val_pair {
 #include <cxgb_adapter.h>
 
 #ifndef PCI_VENDOR_ID_CHELSIO
-# define PCI_VENDOR_ID_CHELSIO 0x1425
+#define PCI_VENDOR_ID_CHELSIO 0x1425
 #endif
 
 #define for_each_port(adapter, iter) \
@@ -642,52 +606,58 @@ struct addr_val_pair {
 
 #define adapter_info(adap) ((adap)->params.info)
 
-static inline int uses_xaui(const adapter_t *adap)
+static inline int
+uses_xaui(const adapter_t *adap)
 {
 	return adapter_info(adap)->caps & SUPPORTED_AUI;
 }
 
-static inline int is_10G(const adapter_t *adap)
+static inline int
+is_10G(const adapter_t *adap)
 {
 	return adapter_info(adap)->caps & SUPPORTED_10000baseT_Full;
 }
 
-static inline int is_offload(const adapter_t *adap)
+static inline int
+is_offload(const adapter_t *adap)
 {
 	return adap->params.offload;
 }
 
-static inline unsigned int core_ticks_per_usec(const adapter_t *adap)
+static inline unsigned int
+core_ticks_per_usec(const adapter_t *adap)
 {
 	return adap->params.vpd.cclk / 1000;
 }
 
-static inline unsigned int dack_ticks_to_usec(const adapter_t *adap,
-					      unsigned int ticks)
+static inline unsigned int
+dack_ticks_to_usec(const adapter_t *adap, unsigned int ticks)
 {
 	return (ticks << adap->params.tp.dack_re) / core_ticks_per_usec(adap);
 }
 
-static inline unsigned int is_pcie(const adapter_t *adap)
+static inline unsigned int
+is_pcie(const adapter_t *adap)
 {
 	return adap->params.pci.variant == PCI_VARIANT_PCIE;
 }
 
 void t3_set_reg_field(adapter_t *adap, unsigned int addr, u32 mask, u32 val);
 void t3_write_regs(adapter_t *adapter, const struct addr_val_pair *p, int n,
-		   unsigned int offset);
+    unsigned int offset);
 int t3_wait_op_done_val(adapter_t *adapter, int reg, u32 mask, int polarity,
-			int attempts, int delay, u32 *valp);
+    int attempts, int delay, u32 *valp);
 
-static inline int t3_wait_op_done(adapter_t *adapter, int reg, u32 mask,
-				  int polarity, int attempts, int delay)
+static inline int
+t3_wait_op_done(adapter_t *adapter, int reg, u32 mask, int polarity,
+    int attempts, int delay)
 {
 	return t3_wait_op_done_val(adapter, reg, mask, polarity, attempts,
-				   delay, NULL);
+	    delay, NULL);
 }
 
 int t3_mdio_change_bits(struct cphy *phy, int mmd, int reg, unsigned int clear,
-			unsigned int set);
+    unsigned int set);
 int t3_phy_reset(struct cphy *phy, int mmd, int wait);
 int t3_phy_advertise(struct cphy *phy, unsigned int advert);
 int t3_phy_advertise_fiber(struct cphy *phy, unsigned int advert);
@@ -716,7 +686,7 @@ int t3_seeprom_wp(adapter_t *adapter, int enable);
 int t3_get_vpd_len(adapter_t *adapter, struct generic_vpd *vpd);
 int t3_read_vpd(adapter_t *adapter, struct generic_vpd *vpd);
 int t3_read_flash(adapter_t *adapter, unsigned int addr, unsigned int nwords,
-		  u32 *data, int byte_oriented);
+    u32 *data, int byte_oriented);
 int t3_get_tp_version(adapter_t *adapter, u32 *vers);
 int t3_check_tpsram_version(adapter_t *adapter);
 int t3_check_tpsram(adapter_t *adapter, const u8 *tp_ram, unsigned int size);
@@ -728,7 +698,8 @@ int t3_init_hw(adapter_t *adapter, u32 fw_params);
 void mac_prep(struct cmac *mac, adapter_t *adapter, int index);
 void early_hw_init(adapter_t *adapter, const struct adapter_info *ai);
 int t3_reset_adapter(adapter_t *adapter);
-int t3_prep_adapter(adapter_t *adapter, const struct adapter_info *ai, int reset);
+int t3_prep_adapter(adapter_t *adapter, const struct adapter_info *ai,
+    int reset);
 int t3_reinit_adapter(adapter_t *adap);
 void t3_led_ready(adapter_t *adapter);
 void t3_fatal_err(adapter_t *adapter);
@@ -737,7 +708,7 @@ void t3_enable_filters(adapter_t *adap);
 void t3_disable_filters(adapter_t *adap);
 void t3_tp_set_offload_mode(adapter_t *adap, int enable);
 void t3_config_rss(adapter_t *adapter, unsigned int rss_config, const u8 *cpus,
-		   const u16 *rspq);
+    const u16 *rspq);
 int t3_read_rss(adapter_t *adapter, u8 *lkup, u16 *map);
 int t3_set_proto_sram(adapter_t *adap, const u8 *data);
 int t3_mps_set_active_ports(adapter_t *adap, unsigned int port_mask);
@@ -745,9 +716,9 @@ void t3_port_failover(adapter_t *adapter, int port);
 void t3_failover_done(adapter_t *adapter, int port);
 void t3_failover_clear(adapter_t *adapter);
 int t3_cim_ctl_blk_read(adapter_t *adap, unsigned int addr, unsigned int n,
-			unsigned int *valp);
+    unsigned int *valp);
 int t3_mc7_bd_read(struct mc7 *mc7, unsigned int start, unsigned int n,
-		   u64 *buf);
+    u64 *buf);
 
 int t3_mac_init(struct cmac *mac);
 void t3b_pcs_reset(struct cmac *mac);
@@ -761,57 +732,55 @@ int t3_mac_set_rx_mode(struct cmac *mac, struct t3_rx_mode *rm);
 int t3_mac_set_address(struct cmac *mac, unsigned int idx, u8 addr[6]);
 int t3_mac_set_num_ucast(struct cmac *mac, unsigned char n);
 const struct mac_stats *t3_mac_update_stats(struct cmac *mac);
-int t3_mac_set_speed_duplex_fc(struct cmac *mac, int speed, int duplex,
-			       int fc);
+int t3_mac_set_speed_duplex_fc(struct cmac *mac, int speed, int duplex, int fc);
 int t3b2_mac_watchdog_task(struct cmac *mac);
 
 void t3_mc5_prep(adapter_t *adapter, struct mc5 *mc5, int mode);
 int t3_mc5_init(struct mc5 *mc5, unsigned int nservers, unsigned int nfilters,
-		unsigned int nroutes);
+    unsigned int nroutes);
 void t3_mc5_intr_handler(struct mc5 *mc5);
 int t3_read_mc5_range(const struct mc5 *mc5, unsigned int start, unsigned int n,
-		      u32 *buf);
+    u32 *buf);
 
 int t3_tp_set_coalescing_size(adapter_t *adap, unsigned int size, int psh);
 void t3_tp_set_max_rxsize(adapter_t *adap, unsigned int size);
 void t3_tp_get_mib_stats(adapter_t *adap, struct tp_mib_stats *tps);
 void t3_load_mtus(adapter_t *adap, unsigned short mtus[NMTUS],
-		  unsigned short alpha[NCCTRL_WIN],
-		  unsigned short beta[NCCTRL_WIN], unsigned short mtu_cap);
+    unsigned short alpha[NCCTRL_WIN], unsigned short beta[NCCTRL_WIN],
+    unsigned short mtu_cap);
 void t3_read_hw_mtus(adapter_t *adap, unsigned short mtus[NMTUS]);
 void t3_get_cong_cntl_tab(adapter_t *adap,
-			  unsigned short incr[NMTUS][NCCTRL_WIN]);
+    unsigned short incr[NMTUS][NCCTRL_WIN]);
 void t3_config_trace_filter(adapter_t *adapter, const struct trace_params *tp,
-			    int filter_index, int invert, int enable);
+    int filter_index, int invert, int enable);
 void t3_query_trace_filter(adapter_t *adapter, struct trace_params *tp,
-			   int filter_index, int *inverted, int *enabled);
+    int filter_index, int *inverted, int *enabled);
 int t3_config_sched(adapter_t *adap, unsigned int kbps, int sched);
 int t3_set_sched_ipg(adapter_t *adap, int sched, unsigned int ipg);
 void t3_get_tx_sched(adapter_t *adap, unsigned int sched, unsigned int *kbps,
-		     unsigned int *ipg);
+    unsigned int *ipg);
 void t3_read_pace_tbl(adapter_t *adap, unsigned int pace_vals[NTX_SCHED]);
 void t3_set_pace_tbl(adapter_t *adap, unsigned int *pace_vals,
-		     unsigned int start, unsigned int n);
+    unsigned int start, unsigned int n);
 
-int t3_get_up_la(adapter_t *adapter, u32 *stopped, u32 *index,
-		 u32 *size, void *data);
+int t3_get_up_la(adapter_t *adapter, u32 *stopped, u32 *index, u32 *size,
+    void *data);
 int t3_get_up_ioqs(adapter_t *adapter, u32 *size, void *data);
 
 void t3_sge_prep(adapter_t *adap, struct sge_params *p);
 void t3_sge_init(adapter_t *adap, struct sge_params *p);
 int t3_sge_init_ecntxt(adapter_t *adapter, unsigned int id, int gts_enable,
-		       enum sge_context_type type, int respq, u64 base_addr,
-		       unsigned int size, unsigned int token, int gen,
-		       unsigned int cidx);
+    enum sge_context_type type, int respq, u64 base_addr, unsigned int size,
+    unsigned int token, int gen, unsigned int cidx);
 int t3_sge_init_flcntxt(adapter_t *adapter, unsigned int id, int gts_enable,
-			u64 base_addr, unsigned int size, unsigned int esize,
-			unsigned int cong_thres, int gen, unsigned int cidx);
+    u64 base_addr, unsigned int size, unsigned int esize,
+    unsigned int cong_thres, int gen, unsigned int cidx);
 int t3_sge_init_rspcntxt(adapter_t *adapter, unsigned int id, int irq_vec_idx,
-			 u64 base_addr, unsigned int size,
-			 unsigned int fl_thres, int gen, unsigned int cidx);
+    u64 base_addr, unsigned int size, unsigned int fl_thres, int gen,
+    unsigned int cidx);
 int t3_sge_init_cqcntxt(adapter_t *adapter, unsigned int id, u64 base_addr,
- 			unsigned int size, int rspq, int ovfl_mode,
-			unsigned int credits, unsigned int credit_thres);
+    unsigned int size, int rspq, int ovfl_mode, unsigned int credits,
+    unsigned int credit_thres);
 int t3_sge_enable_ecntxt(adapter_t *adapter, unsigned int id, int enable);
 int t3_sge_disable_fl(adapter_t *adapter, unsigned int id);
 int t3_sge_disable_rspcntxt(adapter_t *adapter, unsigned int id);
@@ -821,7 +790,7 @@ int t3_sge_read_fl(adapter_t *adapter, unsigned int id, u32 data[4]);
 int t3_sge_read_cq(adapter_t *adapter, unsigned int id, u32 data[4]);
 int t3_sge_read_rspq(adapter_t *adapter, unsigned int id, u32 data[4]);
 int t3_sge_cqcntxt_op(adapter_t *adapter, unsigned int id, unsigned int op,
-		      unsigned int credits);
+    unsigned int credits);
 
 int t3_elmr_blk_write(adapter_t *adap, int start, const u32 *vals, int n);
 int t3_elmr_blk_read(adapter_t *adap, int start, u32 *vals, int n);
@@ -837,29 +806,29 @@ int t3_i2c_read8(adapter_t *adapter, int chained, u8 *valp);
 int t3_i2c_write8(adapter_t *adapter, int chained, u8 val);
 
 int t3_mi1_read(adapter_t *adapter, int phy_addr, int mmd_addr, int reg_addr,
-		unsigned int *valp);
+    unsigned int *valp);
 int t3_mi1_write(adapter_t *adapter, int phy_addr, int mmd_addr, int reg_addr,
-		 unsigned int val);
+    unsigned int val);
 
 int t3_mv88e1xxx_phy_prep(pinfo_t *pinfo, int phy_addr,
-			  const struct mdio_ops *mdio_ops);
+    const struct mdio_ops *mdio_ops);
 int t3_vsc8211_phy_prep(pinfo_t *pinfo, int phy_addr,
-			const struct mdio_ops *mdio_ops);
+    const struct mdio_ops *mdio_ops);
 int t3_vsc8211_fifo_depth(adapter_t *adap, unsigned int mtu, int port);
 int t3_ael1002_phy_prep(pinfo_t *pinfo, int phy_addr,
-			const struct mdio_ops *mdio_ops);
+    const struct mdio_ops *mdio_ops);
 int t3_ael1006_phy_prep(pinfo_t *pinfo, int phy_addr,
-			const struct mdio_ops *mdio_ops);
+    const struct mdio_ops *mdio_ops);
 int t3_ael2005_phy_prep(pinfo_t *pinfo, int phy_addr,
-			const struct mdio_ops *mdio_ops);
+    const struct mdio_ops *mdio_ops);
 int t3_ael2020_phy_prep(pinfo_t *pinfo, int phy_addr,
-			const struct mdio_ops *mdio_ops);
+    const struct mdio_ops *mdio_ops);
 int t3_qt2045_phy_prep(pinfo_t *pinfo, int phy_addr,
-		       const struct mdio_ops *mdio_ops);
+    const struct mdio_ops *mdio_ops);
 int t3_tn1010_phy_prep(pinfo_t *pinfo, int phy_addr,
-		       const struct mdio_ops *mdio_ops);
+    const struct mdio_ops *mdio_ops);
 int t3_xaui_direct_phy_prep(pinfo_t *pinfo, int phy_addr,
-			    const struct mdio_ops *mdio_ops);
+    const struct mdio_ops *mdio_ops);
 int t3_aq100x_phy_prep(pinfo_t *pinfo, int phy_addr,
-		       const struct mdio_ops *mdio_ops);
+    const struct mdio_ops *mdio_ops);
 #endif /* __CHELSIO_COMMON_H */

@@ -23,62 +23,62 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "openfirm.h"
 #include <readin.h>
 
-#define DEVT_OFDISK	1001
+#include "openfirm.h"
+
+#define DEVT_OFDISK 1001
 
 struct ofw_devdesc {
-	struct devdesc			dd;
+	struct devdesc dd;
 	union {
 		struct {
-			ihandle_t	d_handle;	
-			char		d_path[256];
+			ihandle_t d_handle;
+			char d_path[256];
 		};
 		struct {
-			uint64_t	pool_guid;
-			uint64_t	root_guid;
+			uint64_t pool_guid;
+			uint64_t root_guid;
 		};
 	};
 };
 
-extern int	ofw_getdev(void **vdev, const char *devspec, const char **path);
+extern int ofw_getdev(void **vdev, const char *devspec, const char **path);
 
-extern struct devsw		ofwdisk;
-extern struct devsw		ofw_netdev;
-extern struct netif_driver	ofwnet;
+extern struct devsw ofwdisk;
+extern struct devsw ofw_netdev;
+extern struct netif_driver ofwnet;
 
-int	ofwn_getunit(const char *);
+int ofwn_getunit(const char *);
 
-ssize_t	ofw_copyin(const void *src, vm_offset_t dest, const size_t len);
+ssize_t ofw_copyin(const void *src, vm_offset_t dest, const size_t len);
 ssize_t ofw_copyout(const vm_offset_t src, void *dest, const size_t len);
 ssize_t ofw_readin(readin_handle_t fd, vm_offset_t dest, const size_t len);
 
-extern int	ofw_boot(void);
-extern int	ofw_autoload(void);
+extern int ofw_boot(void);
+extern int ofw_autoload(void);
 
-void	ofw_memmap(int);
+void ofw_memmap(int);
 
-phandle_t ofw_path_to_handle(const char *ofwpath, const char *want_type, const char **path);
-int ofw_common_parsedev(struct devdesc **dev, const char *devspec, const char **path,
-    const char *ofwtype);
+phandle_t ofw_path_to_handle(const char *ofwpath, const char *want_type,
+    const char **path);
+int ofw_common_parsedev(struct devdesc **dev, const char *devspec,
+    const char **path, const char *ofwtype);
 
 struct preloaded_file;
 struct file_format;
 
-extern void	reboot(void);
+extern void reboot(void);
 
-struct ofw_reg
-{
-	cell_t		base;
-	cell_t		size;
+struct ofw_reg {
+	cell_t base;
+	cell_t size;
 };
 
-struct ofw_reg2
-{
-	cell_t		base_hi;
-	cell_t		base_lo;
-	cell_t		size;
+struct ofw_reg2 {
+	cell_t base_hi;
+	cell_t base_lo;
+	cell_t size;
 };
 
 extern int (*openfirmware)(void *);

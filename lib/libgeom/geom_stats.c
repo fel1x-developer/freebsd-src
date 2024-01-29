@@ -30,19 +30,20 @@
  */
 
 #include <sys/types.h>
-#include <sys/ioctl.h>
-#include <sys/disk.h>
 #include <sys/devicestat.h>
+#include <sys/disk.h>
+#include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/time.h>
+
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <libgeom.h>
 #include <paths.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <libgeom.h>
 
 /************************************************************/
 static uint npages, spp;
@@ -56,7 +57,7 @@ geom_stats_close(void)
 		return;
 	munmap(statp, npages * pagesize);
 	statp = NULL;
-	close (statsfd);
+	close(statsfd);
 	statsfd = -1;
 }
 
@@ -111,13 +112,13 @@ geom_stats_open(void)
 }
 
 struct snapshot {
-	u_char		*ptr;
-	uint		pages;
-	uint		pagesize;
-	uint		perpage;
-	struct timespec	time;
+	u_char *ptr;
+	uint pages;
+	uint pagesize;
+	uint perpage;
+	struct timespec time;
 	/* used by getnext: */
-	uint		u, v;
+	uint u, v;
 };
 
 void *
@@ -134,7 +135,7 @@ geom_stats_snapshot_get(void)
 		free(sp);
 		return (NULL);
 	}
-	explicit_bzero(sp->ptr, pagesize * npages); 	/* page in, cache */
+	explicit_bzero(sp->ptr, pagesize * npages); /* page in, cache */
 	clock_gettime(CLOCK_REALTIME, &sp->time);
 	memcpy(sp->ptr, statp, pagesize * npages);
 	sp->pages = npages;
@@ -178,8 +179,8 @@ geom_stats_snapshot_next(void *arg)
 	struct snapshot *sp;
 
 	sp = arg;
-	gsp = (struct devstat *)
-	    (sp->ptr + sp->u * pagesize + sp->v * sizeof *gsp);
+	gsp = (struct devstat *)(sp->ptr + sp->u * pagesize +
+	    sp->v * sizeof *gsp);
 	if (++sp->v >= sp->perpage) {
 		if (++sp->u >= sp->pages)
 			return (NULL);

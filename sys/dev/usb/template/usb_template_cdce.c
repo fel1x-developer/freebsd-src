@@ -37,34 +37,33 @@
 #ifdef USB_GLOBAL_INCLUDE_FILE
 #include USB_GLOBAL_INCLUDE_FILE
 #else
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
-
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-#include <dev/usb/usb_core.h>
-#include <dev/usb/usb_cdc.h>
-#include <dev/usb/usb_ioctl.h>
-#include <dev/usb/usb_util.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/template/usb_template.h>
-#endif			/* USB_GLOBAL_INCLUDE_FILE */
+#include <dev/usb/usb.h>
+#include <dev/usb/usb_cdc.h>
+#include <dev/usb/usb_core.h>
+#include <dev/usb/usb_ioctl.h>
+#include <dev/usb/usb_util.h>
+#include <dev/usb/usbdi.h>
+#endif /* USB_GLOBAL_INCLUDE_FILE */
 
 enum {
 	ETH_LANG_INDEX,
@@ -78,25 +77,25 @@ enum {
 	ETH_MAX_INDEX,
 };
 
-#define	ETH_DEFAULT_VENDOR_ID		USB_TEMPLATE_VENDOR
-#define	ETH_DEFAULT_PRODUCT_ID		0x27e1
-#define	ETH_DEFAULT_MAC			"2A02030405060789AB"
-#define	ETH_DEFAULT_CONTROL		"USB Ethernet Comm Interface"
-#define	ETH_DEFAULT_DATA		"USB Ethernet Data Interface"
-#define	ETH_DEFAULT_CONFIG		"Default Config"
-#define	ETH_DEFAULT_MANUFACTURER	USB_TEMPLATE_MANUFACTURER
-#define	ETH_DEFAULT_PRODUCT		"USB Ethernet Adapter"
-#define	ETH_DEFAULT_SERIAL_NUMBER	"December 2007"
+#define ETH_DEFAULT_VENDOR_ID USB_TEMPLATE_VENDOR
+#define ETH_DEFAULT_PRODUCT_ID 0x27e1
+#define ETH_DEFAULT_MAC "2A02030405060789AB"
+#define ETH_DEFAULT_CONTROL "USB Ethernet Comm Interface"
+#define ETH_DEFAULT_DATA "USB Ethernet Data Interface"
+#define ETH_DEFAULT_CONFIG "Default Config"
+#define ETH_DEFAULT_MANUFACTURER USB_TEMPLATE_MANUFACTURER
+#define ETH_DEFAULT_PRODUCT "USB Ethernet Adapter"
+#define ETH_DEFAULT_SERIAL_NUMBER "December 2007"
 
-static struct usb_string_descriptor	eth_mac;
-static struct usb_string_descriptor	eth_control;
-static struct usb_string_descriptor	eth_data;
-static struct usb_string_descriptor	eth_configuration;
-static struct usb_string_descriptor	eth_manufacturer;
-static struct usb_string_descriptor	eth_product;
-static struct usb_string_descriptor	eth_serial_number;
+static struct usb_string_descriptor eth_mac;
+static struct usb_string_descriptor eth_control;
+static struct usb_string_descriptor eth_data;
+static struct usb_string_descriptor eth_configuration;
+static struct usb_string_descriptor eth_manufacturer;
+static struct usb_string_descriptor eth_product;
+static struct usb_string_descriptor eth_serial_number;
 
-static struct sysctl_ctx_list		eth_ctx_list;
+static struct sysctl_ctx_list eth_ctx_list;
 
 /* prototypes */
 
@@ -106,8 +105,8 @@ static const struct usb_cdc_union_descriptor eth_union_desc = {
 	.bLength = sizeof(eth_union_desc),
 	.bDescriptorType = UDESC_CS_INTERFACE,
 	.bDescriptorSubtype = UDESCSUB_CDC_UNION,
-	.bMasterInterface = 0,		/* this is automatically updated */
-	.bSlaveInterface[0] = 1,	/* this is automatically updated */
+	.bMasterInterface = 0,	 /* this is automatically updated */
+	.bSlaveInterface[0] = 1, /* this is automatically updated */
 };
 
 static const struct usb_cdc_header_descriptor eth_header_desc = {
@@ -123,9 +122,9 @@ static const struct usb_cdc_ethernet_descriptor eth_enf_desc = {
 	.bDescriptorType = UDESC_CS_INTERFACE,
 	.bDescriptorSubtype = UDESCSUB_CDC_ENF,
 	.iMacAddress = ETH_MAC_INDEX,
-	.bmEthernetStatistics = {0, 0, 0, 0},
-	.wMaxSegmentSize = {0xEA, 0x05},/* 1514 bytes */
-	.wNumberMCFilters = {0, 0},
+	.bmEthernetStatistics = { 0, 0, 0, 0 },
+	.wMaxSegmentSize = { 0xEA, 0x05 }, /* 1514 bytes */
+	.wNumberMCFilters = { 0, 0 },
 	.bNumberPowerFilters = 0,
 };
 
@@ -193,7 +192,7 @@ static const struct usb_temp_endpoint_desc *eth_data_endpoints[] = {
 };
 
 static const struct usb_temp_interface_desc eth_data_null_interface = {
-	.ppEndpoints = NULL,		/* no endpoints */
+	.ppEndpoints = NULL, /* no endpoints */
 	.bInterfaceClass = UICLASS_CDC_DATA,
 	.bInterfaceSubClass = 0,
 	.bInterfaceProtocol = 0,
@@ -206,7 +205,7 @@ static const struct usb_temp_interface_desc eth_data_interface = {
 	.bInterfaceSubClass = UISUBCLASS_DATA,
 	.bInterfaceProtocol = 0,
 	.iInterface = ETH_DATA_INDEX,
-	.isAltInterface = 1,		/* this is an alternate setting */
+	.isAltInterface = 1, /* this is an alternate setting */
 };
 
 static const struct usb_temp_interface_desc *eth_interfaces[] = {
@@ -281,12 +280,10 @@ eth_init(void *arg __unused)
 	struct sysctl_oid *parent;
 	char parent_name[3];
 
-	usb_make_str_desc(&eth_mac, sizeof(eth_mac),
-	    ETH_DEFAULT_MAC);
+	usb_make_str_desc(&eth_mac, sizeof(eth_mac), ETH_DEFAULT_MAC);
 	usb_make_str_desc(&eth_control, sizeof(eth_control),
 	    ETH_DEFAULT_CONTROL);
-	usb_make_str_desc(&eth_data, sizeof(eth_data),
-	    ETH_DEFAULT_DATA);
+	usb_make_str_desc(&eth_data, sizeof(eth_data), ETH_DEFAULT_DATA);
 	usb_make_str_desc(&eth_configuration, sizeof(eth_configuration),
 	    ETH_DEFAULT_CONFIG);
 	usb_make_str_desc(&eth_manufacturer, sizeof(eth_manufacturer),
@@ -300,19 +297,18 @@ eth_init(void *arg __unused)
 	sysctl_ctx_init(&eth_ctx_list);
 
 	parent = SYSCTL_ADD_NODE(&eth_ctx_list,
-	    SYSCTL_STATIC_CHILDREN(_hw_usb_templates), OID_AUTO,
-	    parent_name, CTLFLAG_RW | CTLFLAG_MPSAFE,
-	    0, "USB CDC Ethernet device side template");
+	    SYSCTL_STATIC_CHILDREN(_hw_usb_templates), OID_AUTO, parent_name,
+	    CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
+	    "USB CDC Ethernet device side template");
 	SYSCTL_ADD_U16(&eth_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
-	    "vendor_id", CTLFLAG_RWTUN,
-	    &usb_template_cdce.idVendor, 1, "Vendor identifier");
+	    "vendor_id", CTLFLAG_RWTUN, &usb_template_cdce.idVendor, 1,
+	    "Vendor identifier");
 	SYSCTL_ADD_U16(&eth_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
-	    "product_id", CTLFLAG_RWTUN,
-	    &usb_template_cdce.idProduct, 1, "Product identifier");
-	SYSCTL_ADD_PROC(&eth_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
-	    "mac", CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    &eth_mac, sizeof(eth_mac), usb_temp_sysctl,
-	    "A", "MAC address string");
+	    "product_id", CTLFLAG_RWTUN, &usb_template_cdce.idProduct, 1,
+	    "Product identifier");
+	SYSCTL_ADD_PROC(&eth_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO, "mac",
+	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, &eth_mac,
+	    sizeof(eth_mac), usb_temp_sysctl, "A", "MAC address string");
 #if 0
 	SYSCTL_ADD_PROC(&eth_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
 	    "control", CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
@@ -329,16 +325,16 @@ eth_init(void *arg __unused)
 #endif
 	SYSCTL_ADD_PROC(&eth_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
 	    "manufacturer", CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    &eth_manufacturer, sizeof(eth_manufacturer), usb_temp_sysctl,
-	    "A", "Manufacturer string");
+	    &eth_manufacturer, sizeof(eth_manufacturer), usb_temp_sysctl, "A",
+	    "Manufacturer string");
 	SYSCTL_ADD_PROC(&eth_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
 	    "product", CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    &eth_product, sizeof(eth_product), usb_temp_sysctl,
-	    "A", "Product string");
+	    &eth_product, sizeof(eth_product), usb_temp_sysctl, "A",
+	    "Product string");
 	SYSCTL_ADD_PROC(&eth_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
 	    "serial_number", CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    &eth_serial_number, sizeof(eth_serial_number), usb_temp_sysctl,
-	    "A", "Serial number string");
+	    &eth_serial_number, sizeof(eth_serial_number), usb_temp_sysctl, "A",
+	    "Serial number string");
 }
 
 static void

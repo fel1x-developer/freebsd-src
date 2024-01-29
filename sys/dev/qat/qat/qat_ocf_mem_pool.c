@@ -7,6 +7,7 @@
 #include <sys/kernel.h>
 #include <sys/mbuf.h>
 #include <sys/mutex.h>
+
 #include <machine/bus.h>
 
 /* Cryptodev headers */
@@ -14,9 +15,9 @@
 #include <opencrypto/xform.h>
 
 /* QAT specific headers */
+#include "cpa.h"
 #include "qat_ocf_mem_pool.h"
 #include "qat_ocf_utils.h"
-#include "cpa.h"
 
 /* Private functions */
 static void
@@ -33,10 +34,7 @@ qat_ocf_alloc_single_cb(void *arg, bus_dma_segment_t *segs, int nseg, int error)
 
 static int
 qat_ocf_populate_buf_list_cb(struct qat_ocf_buffer_list *buffers,
-			     bus_dma_segment_t *segs,
-			     int niseg,
-			     int skip_seg,
-			     int skip_bytes)
+    bus_dma_segment_t *segs, int niseg, int skip_seg, int skip_bytes)
 {
 	CpaPhysFlatBuffer *flatBuffer;
 	bus_addr_t segment_addr;
@@ -44,8 +42,7 @@ qat_ocf_populate_buf_list_cb(struct qat_ocf_buffer_list *buffers,
 	int iseg, oseg;
 
 	for (iseg = 0, oseg = skip_seg;
-	     iseg < niseg && oseg < QAT_OCF_MAX_FLATS;
-	     iseg++) {
+	     iseg < niseg && oseg < QAT_OCF_MAX_FLATS; iseg++) {
 		segment_addr = segs[iseg].ds_addr;
 		segment_len = segs[iseg].ds_len;
 
@@ -69,10 +66,8 @@ qat_ocf_populate_buf_list_cb(struct qat_ocf_buffer_list *buffers,
 }
 
 void
-qat_ocf_crypto_load_aadbuf_cb(void *_arg,
-			      bus_dma_segment_t *segs,
-			      int nseg,
-			      int error)
+qat_ocf_crypto_load_aadbuf_cb(void *_arg, bus_dma_segment_t *segs, int nseg,
+    int error)
 {
 	struct qat_ocf_load_cb_arg *arg;
 	struct qat_ocf_cookie *qat_cookie;
@@ -84,15 +79,13 @@ qat_ocf_crypto_load_aadbuf_cb(void *_arg,
 	}
 
 	qat_cookie = arg->qat_cookie;
-	arg->error = qat_ocf_populate_buf_list_cb(
-	    &qat_cookie->src_buffers, segs, nseg, 0, 0);
+	arg->error = qat_ocf_populate_buf_list_cb(&qat_cookie->src_buffers,
+	    segs, nseg, 0, 0);
 }
 
 void
-qat_ocf_crypto_load_buf_cb(void *_arg,
-			   bus_dma_segment_t *segs,
-			   int nseg,
-			   int error)
+qat_ocf_crypto_load_buf_cb(void *_arg, bus_dma_segment_t *segs, int nseg,
+    int error)
 {
 	struct qat_ocf_cookie *qat_cookie;
 	struct qat_ocf_load_cb_arg *arg;
@@ -109,15 +102,13 @@ qat_ocf_crypto_load_buf_cb(void *_arg,
 	skip_bytes = 0;
 	start_segment = qat_cookie->src_buffers.numBuffers;
 
-	arg->error = qat_ocf_populate_buf_list_cb(
-	    &qat_cookie->src_buffers, segs, nseg, start_segment, skip_bytes);
+	arg->error = qat_ocf_populate_buf_list_cb(&qat_cookie->src_buffers,
+	    segs, nseg, start_segment, skip_bytes);
 }
 
 void
-qat_ocf_crypto_load_obuf_cb(void *_arg,
-			    bus_dma_segment_t *segs,
-			    int nseg,
-			    int error)
+qat_ocf_crypto_load_obuf_cb(void *_arg, bus_dma_segment_t *segs, int nseg,
+    int error)
 {
 	struct qat_ocf_load_cb_arg *arg;
 	struct cryptop *crp;
@@ -143,11 +134,8 @@ qat_ocf_crypto_load_obuf_cb(void *_arg,
 	if (crp->crp_aad_length == 0 ||
 	    (CPA_TRUE == is_sep_aad_supported(csp) && crp->crp_aad)) {
 		arg->error =
-		    qat_ocf_populate_buf_list_cb(&qat_cookie->dst_buffers,
-						 segs,
-						 nseg,
-						 0,
-						 crp->crp_payload_output_start);
+		    qat_ocf_populate_buf_list_cb(&qat_cookie->dst_buffers, segs,
+			nseg, 0, crp->crp_payload_output_start);
 		return;
 	}
 
@@ -175,67 +163,48 @@ qat_ocf_crypto_load_obuf_cb(void *_arg,
 		to_copy -= data_len;
 	}
 
-	arg->error =
-	    qat_ocf_populate_buf_list_cb(&qat_cookie->dst_buffers,
-					 segs,
-					 nseg,
-					 osegs,
-					 crp->crp_payload_output_start);
+	arg->error = qat_ocf_populate_buf_list_cb(&qat_cookie->dst_buffers,
+	    segs, nseg, osegs, crp->crp_payload_output_start);
 }
 
 static int
-qat_ocf_alloc_dma_mem(device_t dev,
-		      struct qat_ocf_dma_mem *dma_mem,
-		      int nseg,
-		      bus_size_t size,
-		      bus_size_t alignment)
+qat_ocf_alloc_dma_mem(device_t dev, struct qat_ocf_dma_mem *dma_mem, int nseg,
+    bus_size_t size, bus_size_t alignment)
 {
 	int error;
 
-	error = bus_dma_tag_create(bus_get_dma_tag(dev),
-				   alignment,
-				   0,		      /* alignment, boundary */
-				   BUS_SPACE_MAXADDR, /* lowaddr */
-				   BUS_SPACE_MAXADDR, /* highaddr */
-				   NULL,
-				   NULL,	     /* filter, filterarg */
-				   size,	     /* maxsize */
-				   nseg,	     /* nsegments */
-				   size,	     /* maxsegsize */
-				   BUS_DMA_COHERENT, /* flags */
-				   NULL,
-				   NULL, /* lockfunc, lockarg */
-				   &dma_mem->dma_tag);
+	error = bus_dma_tag_create(bus_get_dma_tag(dev), alignment,
+	    0,		       /* alignment, boundary */
+	    BUS_SPACE_MAXADDR, /* lowaddr */
+	    BUS_SPACE_MAXADDR, /* highaddr */
+	    NULL, NULL,	       /* filter, filterarg */
+	    size,	       /* maxsize */
+	    nseg,	       /* nsegments */
+	    size,	       /* maxsegsize */
+	    BUS_DMA_COHERENT,  /* flags */
+	    NULL, NULL,	       /* lockfunc, lockarg */
+	    &dma_mem->dma_tag);
 	if (error != 0) {
-		device_printf(dev,
-			      "couldn't create DMA tag, error = %d\n",
-			      error);
+		device_printf(dev, "couldn't create DMA tag, error = %d\n",
+		    error);
 		return error;
 	}
 
-	error =
-	    bus_dmamem_alloc(dma_mem->dma_tag,
-			     &dma_mem->dma_vaddr,
-			     BUS_DMA_NOWAIT | BUS_DMA_ZERO | BUS_DMA_COHERENT,
-			     &dma_mem->dma_map);
+	error = bus_dmamem_alloc(dma_mem->dma_tag, &dma_mem->dma_vaddr,
+	    BUS_DMA_NOWAIT | BUS_DMA_ZERO | BUS_DMA_COHERENT,
+	    &dma_mem->dma_map);
 	if (error != 0) {
-		device_printf(dev,
-			      "couldn't allocate dmamem, error = %d\n",
-			      error);
+		device_printf(dev, "couldn't allocate dmamem, error = %d\n",
+		    error);
 		goto fail_0;
 	}
 
-	error = bus_dmamap_load(dma_mem->dma_tag,
-				dma_mem->dma_map,
-				dma_mem->dma_vaddr,
-				size,
-				qat_ocf_alloc_single_cb,
-				dma_mem,
-				BUS_DMA_NOWAIT);
+	error = bus_dmamap_load(dma_mem->dma_tag, dma_mem->dma_map,
+	    dma_mem->dma_vaddr, size, qat_ocf_alloc_single_cb, dma_mem,
+	    BUS_DMA_NOWAIT);
 	if (error) {
-		device_printf(dev,
-			      "couldn't load dmamem map, error = %d\n",
-			      error);
+		device_printf(dev, "couldn't load dmamem map, error = %d\n",
+		    error);
 		goto fail_1;
 	}
 
@@ -260,33 +229,27 @@ qat_ocf_free_dma_mem(struct qat_ocf_dma_mem *qdm)
 }
 
 static int
-qat_ocf_dma_tag_and_map(device_t dev,
-			struct qat_ocf_dma_mem *dma_mem,
-			bus_size_t size,
-			bus_size_t segs)
+qat_ocf_dma_tag_and_map(device_t dev, struct qat_ocf_dma_mem *dma_mem,
+    bus_size_t size, bus_size_t segs)
 {
 	int error;
 
-	error = bus_dma_tag_create(bus_get_dma_tag(dev),
-				   1,
-				   0,		      /* alignment, boundary */
-				   BUS_SPACE_MAXADDR, /* lowaddr */
-				   BUS_SPACE_MAXADDR, /* highaddr */
-				   NULL,
-				   NULL,	     /* filter, filterarg */
-				   size,	     /* maxsize */
-				   segs,	     /* nsegments */
-				   size,	     /* maxsegsize */
-				   BUS_DMA_COHERENT, /* flags */
-				   NULL,
-				   NULL, /* lockfunc, lockarg */
-				   &dma_mem->dma_tag);
+	error = bus_dma_tag_create(bus_get_dma_tag(dev), 1,
+	    0,		       /* alignment, boundary */
+	    BUS_SPACE_MAXADDR, /* lowaddr */
+	    BUS_SPACE_MAXADDR, /* highaddr */
+	    NULL, NULL,	       /* filter, filterarg */
+	    size,	       /* maxsize */
+	    segs,	       /* nsegments */
+	    size,	       /* maxsegsize */
+	    BUS_DMA_COHERENT,  /* flags */
+	    NULL, NULL,	       /* lockfunc, lockarg */
+	    &dma_mem->dma_tag);
 	if (error != 0)
 		return error;
 
-	error = bus_dmamap_create(dma_mem->dma_tag,
-				  BUS_DMA_COHERENT,
-				  &dma_mem->dma_map);
+	error = bus_dmamap_create(dma_mem->dma_tag, BUS_DMA_COHERENT,
+	    &dma_mem->dma_map);
 	if (error != 0)
 		return error;
 
@@ -300,11 +263,11 @@ qat_ocf_clear_cookie(struct qat_ocf_cookie *qat_cookie)
 	qat_cookie->dst_buffers.numBuffers = 0;
 	qat_cookie->is_sep_aad_used = CPA_FALSE;
 	explicit_bzero(qat_cookie->qat_ocf_iv_buf,
-		       sizeof(qat_cookie->qat_ocf_iv_buf));
+	    sizeof(qat_cookie->qat_ocf_iv_buf));
 	explicit_bzero(qat_cookie->qat_ocf_digest,
-		       sizeof(qat_cookie->qat_ocf_digest));
+	    sizeof(qat_cookie->qat_ocf_digest));
 	explicit_bzero(qat_cookie->qat_ocf_gcm_aad,
-		       sizeof(qat_cookie->qat_ocf_gcm_aad));
+	    sizeof(qat_cookie->qat_ocf_gcm_aad));
 	qat_cookie->crp_op = NULL;
 }
 
@@ -321,21 +284,20 @@ qat_ocf_cookie_dma_pre_sync(struct cryptop *crp, CpaCySymDpOpData *pOpData)
 
 	if (CPA_TRUE == qat_cookie->is_sep_aad_used) {
 		bus_dmamap_sync(qat_cookie->gcm_aad_dma_mem.dma_tag,
-				qat_cookie->gcm_aad_dma_mem.dma_map,
-				BUS_DMASYNC_PREWRITE | BUS_DMASYNC_PREREAD);
+		    qat_cookie->gcm_aad_dma_mem.dma_map,
+		    BUS_DMASYNC_PREWRITE | BUS_DMASYNC_PREREAD);
 	}
 
 	bus_dmamap_sync(qat_cookie->src_dma_mem.dma_tag,
-			qat_cookie->src_dma_mem.dma_map,
-			BUS_DMASYNC_PREWRITE | BUS_DMASYNC_PREREAD);
+	    qat_cookie->src_dma_mem.dma_map,
+	    BUS_DMASYNC_PREWRITE | BUS_DMASYNC_PREREAD);
 	if (CRYPTO_HAS_OUTPUT_BUFFER(crp)) {
 		bus_dmamap_sync(qat_cookie->dst_dma_mem.dma_tag,
-				qat_cookie->dst_dma_mem.dma_map,
-				BUS_DMASYNC_PREWRITE | BUS_DMASYNC_PREREAD);
+		    qat_cookie->dst_dma_mem.dma_map,
+		    BUS_DMASYNC_PREWRITE | BUS_DMASYNC_PREREAD);
 	}
-	bus_dmamap_sync(qat_cookie->dma_tag,
-			qat_cookie->dma_map,
-			BUS_DMASYNC_PREWRITE | BUS_DMASYNC_PREREAD);
+	bus_dmamap_sync(qat_cookie->dma_tag, qat_cookie->dma_map,
+	    BUS_DMASYNC_PREWRITE | BUS_DMASYNC_PREREAD);
 
 	return CPA_STATUS_SUCCESS;
 }
@@ -351,22 +313,21 @@ qat_ocf_cookie_dma_post_sync(struct cryptop *crp, CpaCySymDpOpData *pOpData)
 	qat_cookie = (struct qat_ocf_cookie *)pOpData->pCallbackTag;
 
 	bus_dmamap_sync(qat_cookie->src_dma_mem.dma_tag,
-			qat_cookie->src_dma_mem.dma_map,
-			BUS_DMASYNC_POSTREAD | BUS_DMASYNC_POSTWRITE);
+	    qat_cookie->src_dma_mem.dma_map,
+	    BUS_DMASYNC_POSTREAD | BUS_DMASYNC_POSTWRITE);
 
 	if (CRYPTO_HAS_OUTPUT_BUFFER(crp)) {
 		bus_dmamap_sync(qat_cookie->dst_dma_mem.dma_tag,
-				qat_cookie->dst_dma_mem.dma_map,
-				BUS_DMASYNC_POSTREAD | BUS_DMASYNC_POSTWRITE);
+		    qat_cookie->dst_dma_mem.dma_map,
+		    BUS_DMASYNC_POSTREAD | BUS_DMASYNC_POSTWRITE);
 	}
-	bus_dmamap_sync(qat_cookie->dma_tag,
-			qat_cookie->dma_map,
-			BUS_DMASYNC_POSTREAD | BUS_DMASYNC_POSTWRITE);
+	bus_dmamap_sync(qat_cookie->dma_tag, qat_cookie->dma_map,
+	    BUS_DMASYNC_POSTREAD | BUS_DMASYNC_POSTWRITE);
 
 	if (qat_cookie->is_sep_aad_used)
 		bus_dmamap_sync(qat_cookie->gcm_aad_dma_mem.dma_tag,
-				qat_cookie->gcm_aad_dma_mem.dma_map,
-				BUS_DMASYNC_POSTREAD | BUS_DMASYNC_POSTWRITE);
+		    qat_cookie->gcm_aad_dma_mem.dma_map,
+		    BUS_DMASYNC_POSTREAD | BUS_DMASYNC_POSTWRITE);
 
 	return CPA_STATUS_SUCCESS;
 }
@@ -382,13 +343,13 @@ qat_ocf_cookie_dma_unload(struct cryptop *crp, CpaCySymDpOpData *pOpData)
 		return CPA_STATUS_FAIL;
 
 	bus_dmamap_unload(qat_cookie->src_dma_mem.dma_tag,
-			  qat_cookie->src_dma_mem.dma_map);
+	    qat_cookie->src_dma_mem.dma_map);
 	if (CRYPTO_HAS_OUTPUT_BUFFER(crp))
 		bus_dmamap_unload(qat_cookie->dst_dma_mem.dma_tag,
-				  qat_cookie->dst_dma_mem.dma_map);
+		    qat_cookie->dst_dma_mem.dma_map);
 	if (qat_cookie->is_sep_aad_used)
 		bus_dmamap_unload(qat_cookie->gcm_aad_dma_mem.dma_tag,
-				  qat_cookie->gcm_aad_dma_mem.dma_map);
+		    qat_cookie->gcm_aad_dma_mem.dma_map);
 
 	return CPA_STATUS_SUCCESS;
 }
@@ -398,10 +359,8 @@ qat_ocf_cookie_pool_init(struct qat_ocf_instance *instance, device_t dev)
 {
 	int i, error = 0;
 
-	mtx_init(&instance->cookie_pool_mtx,
-		 "QAT cookie pool MTX",
-		 NULL,
-		 MTX_DEF);
+	mtx_init(&instance->cookie_pool_mtx, "QAT cookie pool MTX", NULL,
+	    MTX_DEF);
 	instance->free_cookie_ptr = 0;
 	for (i = 0; i < QAT_OCF_MEM_POOL_SIZE; i++) {
 		struct qat_ocf_cookie *qat_cookie;
@@ -414,11 +373,8 @@ qat_ocf_cookie_pool_init(struct qat_ocf_instance *instance, device_t dev)
 		 * it contains i.a src and dst flat buffer
 		 * lists.
 		 */
-		error = qat_ocf_alloc_dma_mem(dev,
-					      entry_dma_mem,
-					      1,
-					      sizeof(struct qat_ocf_cookie),
-					      (1 << 6));
+		error = qat_ocf_alloc_dma_mem(dev, entry_dma_mem, 1,
+		    sizeof(struct qat_ocf_cookie), (1 << 6));
 		if (error)
 			break;
 
@@ -459,29 +415,23 @@ qat_ocf_cookie_pool_init(struct qat_ocf_instance *instance, device_t dev)
 		    offsetof(struct qat_ocf_cookie, pOpdata);
 		/* Init QAT DP API OP data with const values */
 		qat_cookie->pOpdata.pCallbackTag = (void *)qat_cookie;
-		qat_cookie->pOpdata.thisPhys =
-		    (CpaPhysicalAddr)qat_cookie->pOpData_paddr;
+		qat_cookie->pOpdata.thisPhys = (CpaPhysicalAddr)
+						   qat_cookie->pOpData_paddr;
 
-		error = qat_ocf_dma_tag_and_map(dev,
-						&qat_cookie->src_dma_mem,
-						QAT_OCF_MAXLEN,
-						QAT_OCF_MAX_FLATS);
+		error = qat_ocf_dma_tag_and_map(dev, &qat_cookie->src_dma_mem,
+		    QAT_OCF_MAXLEN, QAT_OCF_MAX_FLATS);
 		if (error)
 			break;
 
-		error = qat_ocf_dma_tag_and_map(dev,
-						&qat_cookie->dst_dma_mem,
-						QAT_OCF_MAXLEN,
-						QAT_OCF_MAX_FLATS);
+		error = qat_ocf_dma_tag_and_map(dev, &qat_cookie->dst_dma_mem,
+		    QAT_OCF_MAXLEN, QAT_OCF_MAX_FLATS);
 		if (error)
 			break;
 
 		/* Max one flat buffer for embedded AAD if provided as separated
 		 * by OCF and it's not supported by QAT */
 		error = qat_ocf_dma_tag_and_map(dev,
-						&qat_cookie->gcm_aad_dma_mem,
-						QAT_OCF_MAXLEN,
-						1);
+		    &qat_cookie->gcm_aad_dma_mem, QAT_OCF_MAXLEN, 1);
 		if (error)
 			break;
 
@@ -494,7 +444,7 @@ qat_ocf_cookie_pool_init(struct qat_ocf_instance *instance, device_t dev)
 
 CpaStatus
 qat_ocf_cookie_alloc(struct qat_ocf_instance *qat_instance,
-		     struct qat_ocf_cookie **cookie_out)
+    struct qat_ocf_cookie **cookie_out)
 {
 	mtx_lock(&qat_instance->cookie_pool_mtx);
 	if (qat_instance->free_cookie_ptr == 0) {
@@ -510,7 +460,7 @@ qat_ocf_cookie_alloc(struct qat_ocf_instance *qat_instance,
 
 void
 qat_ocf_cookie_free(struct qat_ocf_instance *qat_instance,
-		    struct qat_ocf_cookie *cookie)
+    struct qat_ocf_cookie *cookie)
 {
 	qat_ocf_clear_cookie(cookie);
 	mtx_lock(&qat_instance->cookie_pool_mtx);
@@ -534,21 +484,21 @@ qat_ocf_cookie_pool_deinit(struct qat_ocf_instance *qat_instance)
 		/* Destroy tag and map for source SGL */
 		if (cookie->src_dma_mem.dma_tag) {
 			bus_dmamap_destroy(cookie->src_dma_mem.dma_tag,
-					   cookie->src_dma_mem.dma_map);
+			    cookie->src_dma_mem.dma_map);
 			bus_dma_tag_destroy(cookie->src_dma_mem.dma_tag);
 		}
 
 		/* Destroy tag and map for dest SGL */
 		if (cookie->dst_dma_mem.dma_tag) {
 			bus_dmamap_destroy(cookie->dst_dma_mem.dma_tag,
-					   cookie->dst_dma_mem.dma_map);
+			    cookie->dst_dma_mem.dma_map);
 			bus_dma_tag_destroy(cookie->dst_dma_mem.dma_tag);
 		}
 
 		/* Destroy tag and map for separated AAD */
 		if (cookie->gcm_aad_dma_mem.dma_tag) {
 			bus_dmamap_destroy(cookie->gcm_aad_dma_mem.dma_tag,
-					   cookie->gcm_aad_dma_mem.dma_map);
+			    cookie->gcm_aad_dma_mem.dma_map);
 			bus_dma_tag_destroy(cookie->gcm_aad_dma_mem.dma_tag);
 		}
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018 Cavium, Inc. 
+ * Copyright (c) 2017-2018 Cavium, Inc.
  * All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -30,10 +30,10 @@
 #define __ECORE_MCP_H__
 
 #include "bcm_osal.h"
-#include "mcp_public.h"
 #include "ecore.h"
-#include "ecore_mcp_api.h"
 #include "ecore_dev_api.h"
+#include "ecore_mcp_api.h"
+#include "mcp_public.h"
 
 /* Using hwfn number (and not pf_num) is required since in CMT mode,
  * same pf_num may be used by two different hwfn
@@ -41,11 +41,11 @@
  * required during hw-init will be placed in their correct place in shmem
  * we need it in ecore_dev.c [for readin the nvram reflection in shmem].
  */
-#define MCP_PF_ID_BY_REL(p_hwfn, rel_pfid) (ECORE_IS_BB((p_hwfn)->p_dev) ? \
-					    ((rel_pfid) | \
-					     ((p_hwfn)->abs_pf_id & 1) << 3) : \
-					     rel_pfid)
-#define MCP_PF_ID(p_hwfn)	MCP_PF_ID_BY_REL(p_hwfn, (p_hwfn)->rel_pf_id)
+#define MCP_PF_ID_BY_REL(p_hwfn, rel_pfid)                      \
+	(ECORE_IS_BB((p_hwfn)->p_dev) ?                         \
+		((rel_pfid) | ((p_hwfn)->abs_pf_id & 1) << 3) : \
+		rel_pfid)
+#define MCP_PF_ID(p_hwfn) MCP_PF_ID_BY_REL(p_hwfn, (p_hwfn)->rel_pf_id)
 
 struct ecore_mcp_info {
 	/* List for mailbox commands which were sent and wait for a response */
@@ -78,11 +78,11 @@ struct ecore_mcp_info {
 	/* Current driver pulse sequence */
 	u16 drv_pulse_seq;
 
-	struct ecore_mcp_link_params       link_input;
-	struct ecore_mcp_link_state	   link_output;
+	struct ecore_mcp_link_params link_input;
+	struct ecore_mcp_link_state link_output;
 	struct ecore_mcp_link_capabilities link_capabilities;
 
-	struct ecore_mcp_function_info	   func_info;
+	struct ecore_mcp_function_info func_info;
 
 	u8 *mfw_mb_cur;
 	u8 *mfw_mb_shadow;
@@ -103,9 +103,9 @@ struct ecore_mcp_mb_params {
 	u8 data_src_size;
 	u8 data_dst_size;
 	u32 flags;
-#define ECORE_MB_FLAG_CAN_SLEEP		(0x1 << 0)
-#define ECORE_MB_FLAG_AVOID_BLOCK	(0x1 << 1)
-#define ECORE_MB_FLAGS_IS_SET(params, flag)	\
+#define ECORE_MB_FLAG_CAN_SLEEP (0x1 << 0)
+#define ECORE_MB_FLAG_AVOID_BLOCK (0x1 << 1)
+#define ECORE_MB_FLAGS_IS_SET(params, flag) \
 	((params) != OSAL_NULL && ((params)->flags & ECORE_MB_FLAG_##flag))
 };
 
@@ -116,8 +116,8 @@ enum ecore_ov_eswitch {
 };
 
 struct ecore_drv_tlv_hdr {
-	u8 tlv_type;	/* According to the enum below */
-	u8 tlv_length;	/* In dwords - not including this header */
+	u8 tlv_type;   /* According to the enum below */
+	u8 tlv_length; /* In dwords - not including this header */
 	u8 tlv_reserved;
 #define ECORE_DRV_TLV_FLAGS_CHANGED 0x01
 	u8 tlv_flags;
@@ -132,7 +132,7 @@ struct ecore_drv_tlv_hdr {
  * @return enum _ecore_status_t
  */
 enum _ecore_status_t ecore_mcp_cmd_init(struct ecore_hwfn *p_hwfn,
-					struct ecore_ptt *p_ptt);
+    struct ecore_ptt *p_ptt);
 
 /**
  * @brief Initialize the port interface with the MCP
@@ -142,7 +142,7 @@ enum _ecore_status_t ecore_mcp_cmd_init(struct ecore_hwfn *p_hwfn,
  * Can only be called after `num_ports_in_engine' is set
  */
 void ecore_mcp_cmd_port_init(struct ecore_hwfn *p_hwfn,
-			     struct ecore_ptt *p_ptt);
+    struct ecore_ptt *p_ptt);
 /**
  * @brief Releases resources allocated during the init process.
  *
@@ -167,7 +167,7 @@ enum _ecore_status_t ecore_mcp_free(struct ecore_hwfn *p_hwfn);
  * was successul.
  */
 enum _ecore_status_t ecore_mcp_handle_events(struct ecore_hwfn *p_hwfn,
-					     struct ecore_ptt *p_ptt);
+    struct ecore_ptt *p_ptt);
 
 /**
  * @brief When MFW doesn't get driver pulse for couple of seconds, at some
@@ -184,7 +184,7 @@ enum _ecore_status_t ecore_mcp_handle_events(struct ecore_hwfn *p_hwfn,
  * was successful.
  */
 enum _ecore_status_t ecore_issue_pulse(struct ecore_hwfn *p_hwfn,
-				       struct ecore_ptt *p_ptt);
+    struct ecore_ptt *p_ptt);
 
 enum ecore_drv_role {
 	ECORE_DRV_ROLE_OS,
@@ -213,8 +213,7 @@ struct ecore_load_req_params {
  * @return enum _ecore_status_t - ECORE_SUCCESS - Operation was successful.
  */
 enum _ecore_status_t ecore_mcp_load_req(struct ecore_hwfn *p_hwfn,
-					struct ecore_ptt *p_ptt,
-					struct ecore_load_req_params *p_params);
+    struct ecore_ptt *p_ptt, struct ecore_load_req_params *p_params);
 
 /**
  * @brief Sends a LOAD_DONE message to the MFW
@@ -225,7 +224,7 @@ enum _ecore_status_t ecore_mcp_load_req(struct ecore_hwfn *p_hwfn,
  * @return enum _ecore_status_t - ECORE_SUCCESS - Operation was successful.
  */
 enum _ecore_status_t ecore_mcp_load_done(struct ecore_hwfn *p_hwfn,
-					 struct ecore_ptt *p_ptt);
+    struct ecore_ptt *p_ptt);
 
 /**
  * @brief Sends a CANCEL_LOAD_REQ message to the MFW
@@ -236,7 +235,7 @@ enum _ecore_status_t ecore_mcp_load_done(struct ecore_hwfn *p_hwfn,
  * @return enum _ecore_status_t - ECORE_SUCCESS - Operation was successful.
  */
 enum _ecore_status_t ecore_mcp_cancel_load_req(struct ecore_hwfn *p_hwfn,
-					       struct ecore_ptt *p_ptt);
+    struct ecore_ptt *p_ptt);
 
 /**
  * @brief Sends a UNLOAD_REQ message to the MFW
@@ -247,7 +246,7 @@ enum _ecore_status_t ecore_mcp_cancel_load_req(struct ecore_hwfn *p_hwfn,
  * @return enum _ecore_status_t - ECORE_SUCCESS - Operation was successful.
  */
 enum _ecore_status_t ecore_mcp_unload_req(struct ecore_hwfn *p_hwfn,
-					  struct ecore_ptt *p_ptt);
+    struct ecore_ptt *p_ptt);
 
 /**
  * @brief Sends a UNLOAD_DONE message to the MFW
@@ -258,7 +257,7 @@ enum _ecore_status_t ecore_mcp_unload_req(struct ecore_hwfn *p_hwfn,
  * @return enum _ecore_status_t - ECORE_SUCCESS - Operation was successful.
  */
 enum _ecore_status_t ecore_mcp_unload_done(struct ecore_hwfn *p_hwfn,
-					   struct ecore_ptt *p_ptt);
+    struct ecore_ptt *p_ptt);
 
 /**
  * @brief Read the MFW mailbox into Current buffer.
@@ -266,8 +265,7 @@ enum _ecore_status_t ecore_mcp_unload_done(struct ecore_hwfn *p_hwfn,
  * @param p_hwfn
  * @param p_ptt
  */
-void ecore_mcp_read_mb(struct ecore_hwfn *p_hwfn,
-		       struct ecore_ptt *p_ptt);
+void ecore_mcp_read_mb(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt);
 
 /**
  * @brief Ack to mfw that driver finished FLR process for VFs
@@ -279,8 +277,7 @@ void ecore_mcp_read_mb(struct ecore_hwfn *p_hwfn,
  * @param return enum _ecore_status_t - ECORE_SUCCESS upon success.
  */
 enum _ecore_status_t ecore_mcp_ack_vf_flr(struct ecore_hwfn *p_hwfn,
-					  struct ecore_ptt *p_ptt,
-					  u32 *vfs_to_ack);
+    struct ecore_ptt *p_ptt, u32 *vfs_to_ack);
 
 /**
  * @brief - calls during init to read shmem of all function-related info.
@@ -290,7 +287,7 @@ enum _ecore_status_t ecore_mcp_ack_vf_flr(struct ecore_hwfn *p_hwfn,
  * @param return ECORE_SUCCESS upon success.
  */
 enum _ecore_status_t ecore_mcp_fill_shmem_func_info(struct ecore_hwfn *p_hwfn,
-						    struct ecore_ptt *p_ptt);
+    struct ecore_ptt *p_ptt);
 
 /**
  * @brief - Reset the MCP using mailbox command.
@@ -301,7 +298,7 @@ enum _ecore_status_t ecore_mcp_fill_shmem_func_info(struct ecore_hwfn *p_hwfn,
  * @param return ECORE_SUCCESS upon success.
  */
 enum _ecore_status_t ecore_mcp_reset(struct ecore_hwfn *p_hwfn,
-				     struct ecore_ptt *p_ptt);
+    struct ecore_ptt *p_ptt);
 
 /**
  * @brief indicates whether the MFW objects [under mcp_info] are accessible
@@ -323,8 +320,7 @@ bool ecore_mcp_is_init(struct ecore_hwfn *p_hwfn);
  * @return enum _ecore_status_t
  */
 enum _ecore_status_t ecore_mcp_config_vf_msix(struct ecore_hwfn *p_hwfn,
-					      struct ecore_ptt *p_ptt,
-					      u8 vf_id, u8 num);
+    struct ecore_ptt *p_ptt, u8 vf_id, u8 num);
 
 /**
  * @brief - Halt the MCP.
@@ -335,7 +331,7 @@ enum _ecore_status_t ecore_mcp_config_vf_msix(struct ecore_hwfn *p_hwfn,
  * @param return ECORE_SUCCESS upon success.
  */
 enum _ecore_status_t ecore_mcp_halt(struct ecore_hwfn *p_hwfn,
-				    struct ecore_ptt *p_ptt);
+    struct ecore_ptt *p_ptt);
 
 /**
  * @brief - Wake up the MCP.
@@ -346,18 +342,13 @@ enum _ecore_status_t ecore_mcp_halt(struct ecore_hwfn *p_hwfn,
  * @param return ECORE_SUCCESS upon success.
  */
 enum _ecore_status_t ecore_mcp_resume(struct ecore_hwfn *p_hwfn,
-				      struct ecore_ptt *p_ptt);
+    struct ecore_ptt *p_ptt);
 int __ecore_configure_pf_max_bandwidth(struct ecore_hwfn *p_hwfn,
-				       struct ecore_ptt *p_ptt,
-				       struct ecore_mcp_link_state *p_link,
-				       u8 max_bw);
+    struct ecore_ptt *p_ptt, struct ecore_mcp_link_state *p_link, u8 max_bw);
 int __ecore_configure_pf_min_bandwidth(struct ecore_hwfn *p_hwfn,
-				       struct ecore_ptt *p_ptt,
-				       struct ecore_mcp_link_state *p_link,
-				       u8 min_bw);
+    struct ecore_ptt *p_ptt, struct ecore_mcp_link_state *p_link, u8 min_bw);
 enum _ecore_status_t ecore_mcp_mask_parities(struct ecore_hwfn *p_hwfn,
-					     struct ecore_ptt *p_ptt,
-					     u32 mask_parities);
+    struct ecore_ptt *p_ptt, u32 mask_parities);
 #if 0
 enum _ecore_status_t ecore_hw_init_first_eth(struct ecore_hwfn *p_hwfn,
 					     struct ecore_ptt *p_ptt,
@@ -374,8 +365,7 @@ enum _ecore_status_t ecore_hw_init_first_eth(struct ecore_hwfn *p_hwfn,
  * @param return ECORE_SUCCESS upon success.
  */
 enum _ecore_status_t ecore_mcp_mdump_set_values(struct ecore_hwfn *p_hwfn,
-						struct ecore_ptt *p_ptt,
-						u32 epoch);
+    struct ecore_ptt *p_ptt, u32 epoch);
 
 /**
  * @brief - Triggers a MFW crash dump procedure.
@@ -386,7 +376,7 @@ enum _ecore_status_t ecore_mcp_mdump_set_values(struct ecore_hwfn *p_hwfn,
  * @param return ECORE_SUCCESS upon success.
  */
 enum _ecore_status_t ecore_mcp_mdump_trigger(struct ecore_hwfn *p_hwfn,
-					     struct ecore_ptt *p_ptt);
+    struct ecore_ptt *p_ptt);
 
 struct ecore_mdump_retain_data {
 	u32 valid;
@@ -404,9 +394,8 @@ struct ecore_mdump_retain_data {
  *
  * @param return ECORE_SUCCESS upon success.
  */
-enum _ecore_status_t
-ecore_mcp_mdump_get_retain(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
-			   struct ecore_mdump_retain_data *p_mdump_retain);
+enum _ecore_status_t ecore_mcp_mdump_get_retain(struct ecore_hwfn *p_hwfn,
+    struct ecore_ptt *p_ptt, struct ecore_mdump_retain_data *p_mdump_retain);
 
 /**
  * @brief - Sets the MFW's max value for the given resource
@@ -419,10 +408,9 @@ ecore_mcp_mdump_get_retain(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
  *
  * @return enum _ecore_status_t - ECORE_SUCCESS - operation was successful.
  */
-enum _ecore_status_t
-ecore_mcp_set_resc_max_val(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
-			   enum ecore_resources res_id, u32 resc_max_val,
-			   u32 *p_mcp_resp);
+enum _ecore_status_t ecore_mcp_set_resc_max_val(struct ecore_hwfn *p_hwfn,
+    struct ecore_ptt *p_ptt, enum ecore_resources res_id, u32 resc_max_val,
+    u32 *p_mcp_resp);
 
 /**
  * @brief - Gets the MFW allocation info for the given resource
@@ -436,10 +424,9 @@ ecore_mcp_set_resc_max_val(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
  *
  * @return enum _ecore_status_t - ECORE_SUCCESS - operation was successful.
  */
-enum _ecore_status_t
-ecore_mcp_get_resc_info(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
-			enum ecore_resources res_id, u32 *p_mcp_resp,
-			u32 *p_resc_num, u32 *p_resc_start);
+enum _ecore_status_t ecore_mcp_get_resc_info(struct ecore_hwfn *p_hwfn,
+    struct ecore_ptt *p_ptt, enum ecore_resources res_id, u32 *p_mcp_resp,
+    u32 *p_resc_num, u32 *p_resc_start);
 
 /**
  * @brief - Initiates PF FLR
@@ -450,7 +437,7 @@ ecore_mcp_get_resc_info(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
  * @return enum _ecore_status_t - ECORE_SUCCESS - operation was successful.
  */
 enum _ecore_status_t ecore_mcp_initiate_pf_flr(struct ecore_hwfn *p_hwfn,
-					       struct ecore_ptt *p_ptt);
+    struct ecore_ptt *p_ptt);
 
 /**
  * @brief Send eswitch mode to MFW
@@ -461,12 +448,11 @@ enum _ecore_status_t ecore_mcp_initiate_pf_flr(struct ecore_hwfn *p_hwfn,
  *
  * @return enum _ecore_status_t - ECORE_SUCCESS - operation was successful.
  */
-enum _ecore_status_t
-ecore_mcp_ov_update_eswitch(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
-			    enum ecore_ov_eswitch eswitch);
+enum _ecore_status_t ecore_mcp_ov_update_eswitch(struct ecore_hwfn *p_hwfn,
+    struct ecore_ptt *p_ptt, enum ecore_ov_eswitch eswitch);
 
-#define ECORE_MCP_RESC_LOCK_MIN_VAL	RESOURCE_DUMP /* 0 */
-#define ECORE_MCP_RESC_LOCK_MAX_VAL	31
+#define ECORE_MCP_RESC_LOCK_MIN_VAL RESOURCE_DUMP /* 0 */
+#define ECORE_MCP_RESC_LOCK_MAX_VAL 31
 
 enum ecore_resc_lock {
 	ECORE_RESC_LOCK_DBG_DUMP = ECORE_MCP_RESC_LOCK_MIN_VAL,
@@ -492,16 +478,16 @@ struct ecore_resc_lock_params {
 
 	/* Lock timeout value in seconds [default, none or 1..254] */
 	u8 timeout;
-#define ECORE_MCP_RESC_LOCK_TO_DEFAULT	0
-#define ECORE_MCP_RESC_LOCK_TO_NONE	255
+#define ECORE_MCP_RESC_LOCK_TO_DEFAULT 0
+#define ECORE_MCP_RESC_LOCK_TO_NONE 255
 
 	/* Number of times to retry locking */
 	u8 retry_num;
-#define ECORE_MCP_RESC_LOCK_RETRY_CNT_DFLT	10
+#define ECORE_MCP_RESC_LOCK_RETRY_CNT_DFLT 10
 
 	/* The interval in usec between retries */
 	u32 retry_interval;
-#define ECORE_MCP_RESC_LOCK_RETRY_VAL_DFLT	10000
+#define ECORE_MCP_RESC_LOCK_RETRY_VAL_DFLT 10000
 
 	/* Use sleep or delay between retries */
 	bool sleep_b4_retry;
@@ -524,9 +510,8 @@ struct ecore_resc_lock_params {
  *
  * @return enum _ecore_status_t - ECORE_SUCCESS - operation was successful.
  */
-enum _ecore_status_t
-ecore_mcp_resc_lock(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
-		    struct ecore_resc_lock_params *p_params);
+enum _ecore_status_t ecore_mcp_resc_lock(struct ecore_hwfn *p_hwfn,
+    struct ecore_ptt *p_ptt, struct ecore_resc_lock_params *p_params);
 
 struct ecore_resc_unlock_params {
 	/* Resource number [valid values are 0..31] */
@@ -548,9 +533,8 @@ struct ecore_resc_unlock_params {
  *
  * @return enum _ecore_status_t - ECORE_SUCCESS - operation was successful.
  */
-enum _ecore_status_t
-ecore_mcp_resc_unlock(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
-		      struct ecore_resc_unlock_params *p_params);
+enum _ecore_status_t ecore_mcp_resc_unlock(struct ecore_hwfn *p_hwfn,
+    struct ecore_ptt *p_ptt, struct ecore_resc_unlock_params *p_params);
 
 /**
  * @brief - default initialization for lock/unlock resource structs
@@ -561,12 +545,11 @@ ecore_mcp_resc_unlock(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
  * @paral b_is_permanent - disable retries & aging when set
  */
 void ecore_mcp_resc_lock_default_init(struct ecore_resc_lock_params *p_lock,
-				      struct ecore_resc_unlock_params *p_unlock,
-				      enum ecore_resc_lock resource,
-				      bool b_is_permanent);
+    struct ecore_resc_unlock_params *p_unlock, enum ecore_resc_lock resource,
+    bool b_is_permanent);
 
 void ecore_mcp_wol_wr(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
-		      u32 offset, u32 val);
+    u32 offset, u32 val);
 
 /**
  * @brief Learn of supported MFW features; To be done during early init
@@ -575,7 +558,7 @@ void ecore_mcp_wol_wr(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
  * @param p_ptt
  */
 enum _ecore_status_t ecore_mcp_get_capabilities(struct ecore_hwfn *p_hwfn,
-						struct ecore_ptt *p_ptt);
+    struct ecore_ptt *p_ptt);
 
 /**
  * @brief Inform MFW of set of features supported by driver. Should be done
@@ -585,7 +568,7 @@ enum _ecore_status_t ecore_mcp_get_capabilities(struct ecore_hwfn *p_hwfn,
  * @param p_ptt
  */
 enum _ecore_status_t ecore_mcp_set_capabilities(struct ecore_hwfn *p_hwfn,
-						struct ecore_ptt *p_ptt);
+    struct ecore_ptt *p_ptt);
 
 /**
  * @brief Initialize MFW mailbox and sequence values for driver interaction.
@@ -594,7 +577,7 @@ enum _ecore_status_t ecore_mcp_set_capabilities(struct ecore_hwfn *p_hwfn,
  * @param p_ptt
  */
 enum _ecore_status_t ecore_load_mcp_offsets(struct ecore_hwfn *p_hwfn,
-					    struct ecore_ptt *p_ptt);
+    struct ecore_ptt *p_ptt);
 
 enum ecore_mcp_drv_attr_cmd {
 	ECORE_MCP_DRV_ATTR_CMD_READ,
@@ -627,9 +610,8 @@ struct ecore_mcp_drv_attr {
  * @param p_ptt
  * @param p_drv_attr
  */
-enum _ecore_status_t
-ecore_mcp_drv_attribute(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
-			struct ecore_mcp_drv_attr *p_drv_attr);
+enum _ecore_status_t ecore_mcp_drv_attribute(struct ecore_hwfn *p_hwfn,
+    struct ecore_ptt *p_ptt, struct ecore_mcp_drv_attr *p_drv_attr);
 
 /**
  * @brief Read ufp config from the shared memory.
@@ -637,8 +619,8 @@ ecore_mcp_drv_attribute(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
  * @param p_hwfn
  * @param p_ptt
  */
-void
-ecore_mcp_read_ufp_config(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt);
+void ecore_mcp_read_ufp_config(struct ecore_hwfn *p_hwfn,
+    struct ecore_ptt *p_ptt);
 
 /**
  * @brief Get the engine affinity configuration.
@@ -647,7 +629,7 @@ ecore_mcp_read_ufp_config(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt);
  * @param p_ptt
  */
 enum _ecore_status_t ecore_mcp_get_engine_config(struct ecore_hwfn *p_hwfn,
-						 struct ecore_ptt *p_ptt);
+    struct ecore_ptt *p_ptt);
 
 /**
  * @brief Get the PPFID bitmap.
@@ -656,7 +638,7 @@ enum _ecore_status_t ecore_mcp_get_engine_config(struct ecore_hwfn *p_hwfn,
  * @param p_ptt
  */
 enum _ecore_status_t ecore_mcp_get_ppfid_bitmap(struct ecore_hwfn *p_hwfn,
-						struct ecore_ptt *p_ptt);
+    struct ecore_ptt *p_ptt);
 
 /**
  * @brief Acquire MCP lock to access to HW indirection table entries
@@ -666,11 +648,8 @@ enum _ecore_status_t ecore_mcp_get_ppfid_bitmap(struct ecore_hwfn *p_hwfn,
  * @param retry_num
  * @param retry_interval
  */
-enum _ecore_status_t
-ecore_mcp_ind_table_lock(struct ecore_hwfn *p_hwfn,
-			 struct ecore_ptt *p_ptt,
-			 u8 retry_num,
-			 u32 retry_interval);
+enum _ecore_status_t ecore_mcp_ind_table_lock(struct ecore_hwfn *p_hwfn,
+    struct ecore_ptt *p_ptt, u8 retry_num, u32 retry_interval);
 
 /**
  * @brief Release MCP lock of access to HW indirection table entries
@@ -678,7 +657,7 @@ ecore_mcp_ind_table_lock(struct ecore_hwfn *p_hwfn,
  * @param p_hwfn
  * @param p_ptt
  */
-enum _ecore_status_t
-ecore_mcp_ind_table_unlock(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt);
+enum _ecore_status_t ecore_mcp_ind_table_unlock(struct ecore_hwfn *p_hwfn,
+    struct ecore_ptt *p_ptt);
 
 #endif /* __ECORE_MCP_H__ */

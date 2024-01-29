@@ -32,22 +32,22 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/malloc.h>
+#include <sys/interrupt.h>
 #include <sys/kernel.h>
 #include <sys/limits.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
 #include <sys/mutex.h>
-#include <sys/interrupt.h>
 #include <sys/pcpu.h>
 #include <sys/proc.h>
 #include <sys/smp.h>
 #include <sys/stddef.h>
 
-#include <xen/xen-os.h>
-#include <xen/xen_intr.h>
 #include <machine/xen/arch-intr.h>
 
 #include <x86/apicvar.h>
+#include <xen/xen-os.h>
+#include <xen/xen_intr.h>
 
 /************************ Xen x86 interrupt interface ************************/
 
@@ -64,7 +64,7 @@ xen_intrcnt_init(void *dummy __unused)
 	if (!xen_domain())
 		return;
 
-	CPU_FOREACH(i) {
+	CPU_FOREACH (i) {
 		char buf[MAXCOMLEN + 1];
 
 		snprintf(buf, sizeof(buf), "cpu%d:xen", i);
@@ -115,11 +115,11 @@ static MALLOC_DEFINE(M_XENINTR, "xen_intr", "Xen Interrupt Services");
  * xen_intr_auto_vector_count, and allocating interrupts require this lock be
  * held.
  */
-static struct mtx	xen_intr_x86_lock;
+static struct mtx xen_intr_x86_lock;
 
-static u_int		first_evtchn_irq;
+static u_int first_evtchn_irq;
 
-static u_int		xen_intr_auto_vector_count;
+static u_int xen_intr_auto_vector_count;
 
 /*
  * list of released isrcs
@@ -130,8 +130,8 @@ struct avail_list {
 	xen_arch_isrc_t preserve;
 	SLIST_ENTRY(avail_list) free;
 };
-static SLIST_HEAD(free, avail_list) avail_list =
-    SLIST_HEAD_INITIALIZER(avail_list);
+static SLIST_HEAD(free, avail_list) avail_list = SLIST_HEAD_INITIALIZER(
+    avail_list);
 
 void
 xen_intr_alloc_irqs(void)
@@ -262,32 +262,31 @@ xen_intr_pic_config_intr(struct intsrc *isrc, enum intr_trigger trig,
 	return (ENODEV);
 }
 
-
 static int
 xen_intr_pic_assign_cpu(struct intsrc *isrc, u_int apic_id)
 {
 
 	_Static_assert(offsetof(struct xenisrc, xi_arch.intsrc) == 0,
 	    "xi_arch MUST be at top of xenisrc for x86");
-	return (xen_intr_assign_cpu((struct xenisrc *)isrc,
-	    apic_cpuid(apic_id)));
+	return (
+	    xen_intr_assign_cpu((struct xenisrc *)isrc, apic_cpuid(apic_id)));
 }
 
 /**
  * PIC interface for all event channel port types except physical IRQs.
  */
 static struct pic xen_intr_pic = {
-	.pic_enable_source  = xen_intr_pic_enable_source,
+	.pic_enable_source = xen_intr_pic_enable_source,
 	.pic_disable_source = xen_intr_pic_disable_source,
-	.pic_eoi_source     = xen_intr_pic_eoi_source,
-	.pic_enable_intr    = xen_intr_pic_enable_intr,
-	.pic_disable_intr   = xen_intr_pic_disable_intr,
-	.pic_vector         = xen_intr_pic_vector,
+	.pic_eoi_source = xen_intr_pic_eoi_source,
+	.pic_enable_intr = xen_intr_pic_enable_intr,
+	.pic_disable_intr = xen_intr_pic_disable_intr,
+	.pic_vector = xen_intr_pic_vector,
 	.pic_source_pending = xen_intr_pic_source_pending,
-	.pic_suspend        = xen_intr_pic_suspend,
-	.pic_resume         = xen_intr_pic_resume,
-	.pic_config_intr    = xen_intr_pic_config_intr,
-	.pic_assign_cpu     = xen_intr_pic_assign_cpu,
+	.pic_suspend = xen_intr_pic_suspend,
+	.pic_resume = xen_intr_pic_resume,
+	.pic_config_intr = xen_intr_pic_config_intr,
+	.pic_assign_cpu = xen_intr_pic_assign_cpu,
 };
 
 /******************************* ARCH wrappers *******************************/
@@ -373,7 +372,7 @@ xen_arch_intr_release(struct xenisrc *isrc)
 	_Static_assert(sizeof(struct xenisrc) >= sizeof(struct avail_list),
 	    "unused structure MUST be no larger than in-use structure");
 	_Static_assert(offsetof(struct xenisrc, xi_arch) ==
-	    offsetof(struct avail_list, preserve),
+		offsetof(struct avail_list, preserve),
 	    "unused structure does not properly overlay in-use structure");
 
 	mtx_lock(&xen_intr_x86_lock);

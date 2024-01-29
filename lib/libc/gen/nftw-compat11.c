@@ -23,6 +23,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
 #include <errno.h>
 #include <fts.h>
 #include <ftw.h>
@@ -34,7 +35,7 @@ freebsd11_nftw(const char *path,
     int (*fn)(const char *, const struct freebsd11_stat *, int, struct FTW *),
     int nfds, int ftwflags)
 {
-	char * const paths[2] = { (char *)path, NULL };
+	char *const paths[2] = { (char *)path, NULL };
 	struct FTW ftw;
 	FTSENT11 *cur;
 	FTS11 *ftsp;
@@ -109,4 +110,4 @@ done:
 	return (error);
 }
 
-__sym_compat(nftw, freebsd11_nftw, FBSD_1.0);
+__sym_compat(nftw, freebsd11_nftw, FBSD_1 .0);

@@ -39,59 +39,53 @@
  * Attribute descriptor
  */
 
-typedef int32_t	(profile_attr_create_t)(
-			uint8_t *buf, uint8_t const * const eob,
-			uint8_t const *data, uint32_t datalen);
-typedef profile_attr_create_t *	profile_attr_create_p;
+typedef int32_t(profile_attr_create_t)(uint8_t *buf, uint8_t const *const eob,
+    uint8_t const *data, uint32_t datalen);
+typedef profile_attr_create_t *profile_attr_create_p;
 
-typedef int32_t	(profile_data_valid_t)(
-			uint8_t const *data, uint32_t datalen);
-typedef profile_data_valid_t *	profile_data_valid_p;
+typedef int32_t(profile_data_valid_t)(uint8_t const *data, uint32_t datalen);
+typedef profile_data_valid_t *profile_data_valid_p;
 
-struct attr
-{
-	uint16_t		attr;	/* attribute id */
-	profile_attr_create_p	create;	/* create attr value */
+struct attr {
+	uint16_t attr;		      /* attribute id */
+	profile_attr_create_p create; /* create attr value */
 };
 
-typedef struct attr	attr_t;
-typedef struct attr *	attr_p;
+typedef struct attr attr_t;
+typedef struct attr *attr_p;
 
 /*
  * Profile descriptor
  */
 
-
-struct profile
-{
-	uint16_t		uuid;	/* profile uuid */
-	uint16_t		dsize;	/* profile data size */
-	profile_data_valid_p	valid;	/* profile data validator */
-	attr_t const * const	attrs;	/* supported attributes */
+struct profile {
+	uint16_t uuid;		    /* profile uuid */
+	uint16_t dsize;		    /* profile data size */
+	profile_data_valid_p valid; /* profile data validator */
+	attr_t const *const attrs;  /* supported attributes */
 };
 
-typedef struct profile	profile_t;
+typedef struct profile profile_t;
 typedef struct profile *profile_p;
 
-profile_p		profile_get_descriptor(uint16_t uuid);
-profile_attr_create_p	profile_get_attr(const profile_p profile, uint16_t attr);
+profile_p profile_get_descriptor(uint16_t uuid);
+profile_attr_create_p profile_get_attr(const profile_p profile, uint16_t attr);
 
-profile_attr_create_t	common_profile_create_service_record_handle;
-profile_attr_create_t	common_profile_create_service_class_id_list;
-profile_attr_create_t	common_profile_create_bluetooth_profile_descriptor_list;
-profile_attr_create_t	common_profile_create_language_base_attribute_id_list;
-profile_attr_create_t	common_profile_create_service_provider_name;
-profile_attr_create_t	common_profile_create_string8;
-profile_attr_create_t	common_profile_create_service_availability;
-profile_attr_create_t	rfcomm_profile_create_protocol_descriptor_list;
-profile_attr_create_t	obex_profile_create_protocol_descriptor_list;
-profile_attr_create_t	obex_profile_create_supported_formats_list;
-profile_attr_create_t	bnep_profile_create_protocol_descriptor_list;
-profile_attr_create_t	bnep_profile_create_security_description;
+profile_attr_create_t common_profile_create_service_record_handle;
+profile_attr_create_t common_profile_create_service_class_id_list;
+profile_attr_create_t common_profile_create_bluetooth_profile_descriptor_list;
+profile_attr_create_t common_profile_create_language_base_attribute_id_list;
+profile_attr_create_t common_profile_create_service_provider_name;
+profile_attr_create_t common_profile_create_string8;
+profile_attr_create_t common_profile_create_service_availability;
+profile_attr_create_t rfcomm_profile_create_protocol_descriptor_list;
+profile_attr_create_t obex_profile_create_protocol_descriptor_list;
+profile_attr_create_t obex_profile_create_supported_formats_list;
+profile_attr_create_t bnep_profile_create_protocol_descriptor_list;
+profile_attr_create_t bnep_profile_create_security_description;
 
-profile_data_valid_t	common_profile_always_valid;
-profile_data_valid_t	common_profile_server_channel_valid;
-profile_data_valid_t	obex_profile_data_valid;
+profile_data_valid_t common_profile_always_valid;
+profile_data_valid_t common_profile_server_channel_valid;
+profile_data_valid_t obex_profile_data_valid;
 
 #endif /* ndef _PROFILE_H_ */
-

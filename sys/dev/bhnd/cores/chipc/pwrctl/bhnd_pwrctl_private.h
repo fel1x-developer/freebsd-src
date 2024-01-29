@@ -29,21 +29,19 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
- * 
+ *
  */
 
 #ifndef _BHND_PWRCTL_BHND_PWRCTL_PRIVATE_H_
 #define _BHND_PWRCTL_BHND_PWRCTL_PRIVATE_H_
 
 #include "bhnd_pwrctl_hostb_if.h"
-
 #include "bhnd_pwrctlvar.h"
 
-int		bhnd_pwrctl_init(struct bhnd_pwrctl_softc *sc);
-int		bhnd_pwrctl_setclk(struct bhnd_pwrctl_softc *sc,
-		    bhnd_clock clock);
-uint32_t	bhnd_pwrctl_getclk_speed(struct bhnd_pwrctl_softc *sc);
-u_int		bhnd_pwrctl_fast_pwrup_delay(struct bhnd_pwrctl_softc *sc);
+int bhnd_pwrctl_init(struct bhnd_pwrctl_softc *sc);
+int bhnd_pwrctl_setclk(struct bhnd_pwrctl_softc *sc, bhnd_clock clock);
+uint32_t bhnd_pwrctl_getclk_speed(struct bhnd_pwrctl_softc *sc);
+u_int bhnd_pwrctl_fast_pwrup_delay(struct bhnd_pwrctl_softc *sc);
 
 /**
  * If supported by the chipset, return the clock source for the given clock.
@@ -62,8 +60,8 @@ u_int		bhnd_pwrctl_fast_pwrup_delay(struct bhnd_pwrctl_softc *sc);
 static inline bhnd_clksrc
 bhnd_pwrctl_hostb_get_clksrc(device_t dev, bhnd_clock clock)
 {
-	return (BHND_PWRCTL_HOSTB_GET_CLKSRC(device_get_parent(dev), dev,
-	    clock));
+	return (
+	    BHND_PWRCTL_HOSTB_GET_CLKSRC(device_get_parent(dev), dev, clock));
 }
 
 /**
@@ -83,8 +81,8 @@ bhnd_pwrctl_hostb_get_clksrc(device_t dev, bhnd_clock clock)
 static inline int
 bhnd_pwrctl_hostb_gate_clock(device_t dev, bhnd_clock clock)
 {
-	return (BHND_PWRCTL_HOSTB_GATE_CLOCK(device_get_parent(dev), dev,
-	    clock));
+	return (
+	    BHND_PWRCTL_HOSTB_GATE_CLOCK(device_get_parent(dev), dev, clock));
 }
 
 /**
@@ -104,8 +102,8 @@ bhnd_pwrctl_hostb_gate_clock(device_t dev, bhnd_clock clock)
 static inline int
 bhnd_pwrctl_hostb_ungate_clock(device_t dev, bhnd_clock clock)
 {
-	return (BHND_PWRCTL_HOSTB_UNGATE_CLOCK(device_get_parent(dev), dev,
-	    clock));
+	return (
+	    BHND_PWRCTL_HOSTB_UNGATE_CLOCK(device_get_parent(dev), dev, clock));
 }
 
 #endif /* _BHND_PWRCTL_BHND_PWRCTL_PRIVATE_H_ */

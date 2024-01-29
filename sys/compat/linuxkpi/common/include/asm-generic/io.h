@@ -25,16 +25,16 @@
  */
 
 #ifndef _LINUXKPI_ASMGENERIC_IO_H_
-#define	_LINUXKPI_ASMGENERIC_IO_H_
+#define _LINUXKPI_ASMGENERIC_IO_H_
 
 #if defined(__i386__) || defined(__amd64__)
 
 #include <machine/cpufunc.h>
 
-#define	outb(a,b)	outb(b,a)
-#define	outw(a,b)	outw(b,a)
-#define	outl(a,b)	outl(b,a)
+#define outb(a, b) outb(b, a)
+#define outw(a, b) outw(b, a)
+#define outl(a, b) outl(b, a)
 
 #endif
 
-#endif	/* _LINUXKPI_ASMGENERIC_IO_H_ */
+#endif /* _LINUXKPI_ASMGENERIC_IO_H_ */

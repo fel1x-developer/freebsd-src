@@ -25,24 +25,24 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <err.h>
-#include <string.h>
-#include <pwd.h>
-#include <grp.h>
 #include <ctype.h>
-
+#include <err.h>
+#include <grp.h>
 #include <libusb20.h>
 #include <libusb20_desc.h>
+#include <pwd.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "dump.h"
 
-#define	DUMP0(n,type,field,...) dump_field(pdev, "  ", #field, n->field);
-#define	DUMP1(n,type,field,...) dump_field(pdev, "    ", #field, n->field);
-#define	DUMP2(n,type,field,...) dump_field(pdev, "      ", #field, n->field);
-#define	DUMP3(n,type,field,...) dump_field(pdev, "        ", #field, n->field);
+#define DUMP0(n, type, field, ...) dump_field(pdev, "  ", #field, n->field);
+#define DUMP1(n, type, field, ...) dump_field(pdev, "    ", #field, n->field);
+#define DUMP2(n, type, field, ...) dump_field(pdev, "      ", #field, n->field);
+#define DUMP3(n, type, field, ...) \
+	dump_field(pdev, "        ", #field, n->field);
 
 const char *
 dump_mode(uint8_t value)
@@ -55,7 +55,7 @@ dump_mode(uint8_t value)
 const char *
 dump_speed(uint8_t value)
 {
-	;				/* style fix */
+	; /* style fix */
 	switch (value) {
 	case LIBUSB20_SPEED_LOW:
 		return ("LOW (1.5Mbps)");
@@ -76,7 +76,7 @@ dump_speed(uint8_t value)
 const char *
 dump_power_mode(uint8_t value)
 {
-	;				/* style fix */
+	; /* style fix */
 	switch (value) {
 	case LIBUSB20_POWER_OFF:
 		return ("OFF");
@@ -94,8 +94,8 @@ dump_power_mode(uint8_t value)
 }
 
 static void
-dump_field(struct libusb20_device *pdev, const char *plevel,
-    const char *field, uint32_t value)
+dump_field(struct libusb20_device *pdev, const char *plevel, const char *field,
+    uint32_t value)
 {
 	uint8_t temp_string[256];
 
@@ -149,7 +149,7 @@ dump_field(struct libusb20_device *pdev, const char *plevel,
 			return;
 		}
 		if (libusb20_dev_req_string_simple_sync(pdev, value,
-		    temp_string, sizeof(temp_string))) {
+			temp_string, sizeof(temp_string))) {
 			printf(" <retrieving string failed>\n");
 			return;
 		}
@@ -247,45 +247,53 @@ dump_extra(struct libusb20_me_struct *str, const char *plevel)
 	ptr = NULL;
 
 	while ((ptr = libusb20_desc_foreach(str, ptr))) {
-		printf("\n" "%sAdditional Descriptor\n\n", plevel);
+		printf("\n"
+		       "%sAdditional Descriptor\n\n",
+		    plevel);
 		printf("%sbLength = 0x%02x\n", plevel, ptr[0]);
 		printf("%sbDescriptorType = 0x%02x\n", plevel, ptr[1]);
 		if (ptr[0] > 1)
-			printf("%sbDescriptorSubType = 0x%02x\n",
-			    plevel, ptr[2]);
+			printf("%sbDescriptorSubType = 0x%02x\n", plevel,
+			    ptr[2]);
 		printf("%s RAW dump: ", plevel);
 		for (x = 0; x != ptr[0]; x++) {
 			if ((x % 8) == 0) {
 				printf("\n%s 0x%02x | ", plevel, x);
 			}
 			printf("0x%02x%s", ptr[x],
-			    (x != (ptr[0] - 1)) ? ", " : (x % 8) ? "\n" : "");
+			    (x != (ptr[0] - 1)) ? ", " :
+				(x % 8)		? "\n" :
+						  "");
 		}
 		printf("\n");
 	}
 }
 
 static void
-dump_endpoint(struct libusb20_device *pdev,
-    struct libusb20_endpoint *ep)
+dump_endpoint(struct libusb20_device *pdev, struct libusb20_endpoint *ep)
 {
 	struct LIBUSB20_ENDPOINT_DESC_DECODED *edesc;
 
 	edesc = &ep->desc;
 	LIBUSB20_ENDPOINT_DESC(DUMP3, edesc);
-	dump_extra(&ep->extra, "  " "  " "  ");
+	dump_extra(&ep->extra,
+	    "  "
+	    "  "
+	    "  ");
 }
 
 static void
-dump_iface(struct libusb20_device *pdev,
-    struct libusb20_interface *iface)
+dump_iface(struct libusb20_device *pdev, struct libusb20_interface *iface)
 {
 	struct LIBUSB20_INTERFACE_DESC_DECODED *idesc;
 	uint8_t z;
 
 	idesc = &iface->desc;
 	LIBUSB20_INTERFACE_DESC(DUMP2, idesc);
-	dump_extra(&iface->extra, "  " "  " "  ");
+	dump_extra(&iface->extra,
+	    "  "
+	    "  "
+	    "  ");
 
 	for (z = 0; z != iface->num_endpoints; z++) {
 		printf("\n     Endpoint %u\n", z);
@@ -303,12 +311,10 @@ dump_device_info(struct libusb20_device *pdev, uint8_t show_ifdrv)
 	usage = libusb20_dev_get_power_usage(pdev);
 
 	printf("%s, cfg=%u md=%s spd=%s pwr=%s (%umA)\n",
-	    libusb20_dev_get_desc(pdev),
-	    libusb20_dev_get_config_index(pdev),
+	    libusb20_dev_get_desc(pdev), libusb20_dev_get_config_index(pdev),
 	    dump_mode(libusb20_dev_get_mode(pdev)),
 	    dump_speed(libusb20_dev_get_speed(pdev)),
-	    dump_power_mode(libusb20_dev_get_power_mode(pdev)),
-	    usage);
+	    dump_power_mode(libusb20_dev_get_power_mode(pdev)), usage);
 
 	if (!show_ifdrv)
 		return;
@@ -318,8 +324,7 @@ dump_device_info(struct libusb20_device *pdev, uint8_t show_ifdrv)
 			break;
 		if (buf[0] == 0)
 			continue;
-		printf("ugen%u.%u.%u: %s\n",
-		    libusb20_dev_get_bus_number(pdev),
+		printf("ugen%u.%u.%u: %s\n", libusb20_dev_get_bus_number(pdev),
 		    libusb20_dev_get_address(pdev), n, buf);
 	}
 }
@@ -341,7 +346,7 @@ dump_be_quirk_names(struct libusb20_backend *pbe)
 		if (error) {
 			if (x == 0) {
 				printf("No quirk names - maybe the USB quirk "
-				    "module has not been loaded.\n");
+				       "module has not been loaded.\n");
 			}
 			break;
 		}
@@ -368,15 +373,15 @@ dump_be_dev_quirks(struct libusb20_backend *pbe)
 		if (error) {
 			if (x == 0) {
 				printf("No device quirks - maybe the USB quirk "
-				    "module has not been loaded.\n");
+				       "module has not been loaded.\n");
 			}
 			break;
 		}
 		if (strcmp(q.quirkname, "UQ_NONE")) {
 			printf("VID=0x%04x PID=0x%04x REVLO=0x%04x "
-			    "REVHI=0x%04x QUIRK=%s\n",
-			    q.vid, q.pid, q.bcdDeviceLow,
-			    q.bcdDeviceHigh, q.quirkname);
+			       "REVHI=0x%04x QUIRK=%s\n",
+			    q.vid, q.pid, q.bcdDeviceLow, q.bcdDeviceHigh,
+			    q.quirkname);
 		}
 	}
 	printf("\n");
@@ -421,13 +426,16 @@ dump_config(struct libusb20_device *pdev, uint8_t all_cfg)
 		printf("\n Configuration index %u\n\n", cfg_index);
 		cdesc = &(pcfg->desc);
 		LIBUSB20_CONFIG_DESC(DUMP1, cdesc);
-		dump_extra(&(pcfg->extra), "  " "  ");
+		dump_extra(&(pcfg->extra),
+		    "  "
+		    "  ");
 
 		for (x = 0; x != pcfg->num_interface; x++) {
 			printf("\n    Interface %u\n", x);
 			dump_iface(pdev, pcfg->interface + x);
 			printf("\n");
-			for (y = 0; y != (pcfg->interface + x)->num_altsetting; y++) {
+			for (y = 0; y != (pcfg->interface + x)->num_altsetting;
+			     y++) {
 				printf("\n    Interface %u Alt %u\n", x, y + 1);
 				dump_iface(pdev,
 				    (pcfg->interface + x)->altsetting + y);
@@ -452,8 +460,8 @@ dump_string_by_index(struct libusb20_device *pdev, uint8_t str_index)
 
 	if (str_index == 0) {
 		/* language table */
-		if (libusb20_dev_req_string_sync(pdev,
-		    str_index, 0, pbuf, 256)) {
+		if (libusb20_dev_req_string_sync(pdev, str_index, 0, pbuf,
+			256)) {
 			printf("STRING_0x%02x = <read error>\n", str_index);
 		} else {
 			printf("STRING_0x%02x = ", str_index);
@@ -466,8 +474,8 @@ dump_string_by_index(struct libusb20_device *pdev, uint8_t str_index)
 		}
 	} else {
 		/* ordinary string */
-		if (libusb20_dev_req_string_simple_sync(pdev,
-		    str_index, pbuf, 256)) {
+		if (libusb20_dev_req_string_simple_sync(pdev, str_index, pbuf,
+			256)) {
 			printf("STRING_0x%02x = <read error>\n", str_index);
 		} else {
 			printf("STRING_0x%02x = <%s>\n", str_index, pbuf);
@@ -485,19 +493,19 @@ dump_device_stats(struct libusb20_device *pdev)
 		printf("{}\n");
 	} else {
 		printf("{\n"
-		    "    UE_CONTROL_OK       : %llu\n"
-		    "    UE_ISOCHRONOUS_OK   : %llu\n"
-		    "    UE_BULK_OK          : %llu\n"
-		    "    UE_INTERRUPT_OK     : %llu\n"
-		    "    UE_CONTROL_FAIL     : %llu\n"
-		    "    UE_ISOCHRONOUS_FAIL : %llu\n"
-		    "    UE_BULK_FAIL        : %llu\n"
-		    "    UE_INTERRUPT_FAIL   : %llu\n"
-		    "}\n",
+		       "    UE_CONTROL_OK       : %llu\n"
+		       "    UE_ISOCHRONOUS_OK   : %llu\n"
+		       "    UE_BULK_OK          : %llu\n"
+		       "    UE_INTERRUPT_OK     : %llu\n"
+		       "    UE_CONTROL_FAIL     : %llu\n"
+		       "    UE_ISOCHRONOUS_FAIL : %llu\n"
+		       "    UE_BULK_FAIL        : %llu\n"
+		       "    UE_INTERRUPT_FAIL   : %llu\n"
+		       "}\n",
 		    (unsigned long long)st.xfer_ok[0],
 		    (unsigned long long)st.xfer_ok[1],
 		    (unsigned long long)st.xfer_ok[2],
-	            (unsigned long long)st.xfer_ok[3],
+		    (unsigned long long)st.xfer_ok[3],
 		    (unsigned long long)st.xfer_fail[0],
 		    (unsigned long long)st.xfer_fail[1],
 		    (unsigned long long)st.xfer_fail[2],

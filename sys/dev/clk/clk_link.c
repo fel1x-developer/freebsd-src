@@ -25,15 +25,15 @@
  */
 
 #include <sys/param.h>
-#include <sys/conf.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/conf.h>
 #include <sys/kernel.h>
 #include <sys/kobj.h>
 #include <sys/malloc.h>
-#include <sys/mutex.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/rman.h>
-#include <sys/systm.h>
 
 #include <machine/bus.h>
 
@@ -48,20 +48,19 @@ static int clknode_link_set_gate(struct clknode *clk, bool enable);
 
 static clknode_method_t clknode_link_methods[] = {
 	/* Device interface */
-	CLKNODEMETHOD(clknode_init,	   clknode_link_init),
+	CLKNODEMETHOD(clknode_init, clknode_link_init),
 	CLKNODEMETHOD(clknode_recalc_freq, clknode_link_recalc),
-	CLKNODEMETHOD(clknode_set_freq,	   clknode_link_set_freq),
-	CLKNODEMETHOD(clknode_set_gate,	   clknode_link_set_gate),
-	CLKNODEMETHOD(clknode_set_mux,	   clknode_link_set_mux),
-	CLKNODEMETHOD_END
+	CLKNODEMETHOD(clknode_set_freq, clknode_link_set_freq),
+	CLKNODEMETHOD(clknode_set_gate, clknode_link_set_gate),
+	CLKNODEMETHOD(clknode_set_mux, clknode_link_set_mux), CLKNODEMETHOD_END
 };
-DEFINE_CLASS_1(clknode_link, clknode_link_class, clknode_link_methods,
-   0, clknode_class);
+DEFINE_CLASS_1(clknode_link, clknode_link_class, clknode_link_methods, 0,
+    clknode_class);
 
 static int
 clknode_link_init(struct clknode *clk, device_t dev)
 {
-	return(0);
+	return (0);
 }
 
 static int

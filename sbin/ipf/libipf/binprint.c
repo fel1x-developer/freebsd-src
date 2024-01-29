@@ -9,7 +9,6 @@
 
 #include "ipf.h"
 
-
 void
 binprint(void *ptr, size_t size)
 {

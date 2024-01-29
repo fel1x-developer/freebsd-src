@@ -60,15 +60,15 @@
  *        object methods and it's state machines.
  */
 
-#include <dev/isci/scil/scic_user_callback.h>
-#include <dev/isci/scil/scic_sds_logger.h>
-#include <dev/isci/scil/scic_sds_remote_device.h>
+#include <dev/isci/scil/scic_remote_device.h>
 #include <dev/isci/scil/scic_sds_controller.h>
+#include <dev/isci/scil/scic_sds_logger.h>
 #include <dev/isci/scil/scic_sds_port.h>
+#include <dev/isci/scil/scic_sds_remote_device.h>
 #include <dev/isci/scil/scic_sds_request.h>
+#include <dev/isci/scil/scic_user_callback.h>
 #include <dev/isci/scil/scu_event_codes.h>
 #include <dev/isci/scil/scu_task_context.h>
-#include <dev/isci/scil/scic_remote_device.h>
 
 //*****************************************************************************
 //*  SMP REMOTE DEVICE READY IDLE SUBSTATE HANDLERS
@@ -83,49 +83,41 @@
  *
  * @return SCI_STATUS
  */
-static
-SCI_STATUS scic_sds_smp_remote_device_ready_idle_substate_start_io_handler(
-   SCI_BASE_REMOTE_DEVICE_T * device,
-   SCI_BASE_REQUEST_T       * request
-)
+static SCI_STATUS
+scic_sds_smp_remote_device_ready_idle_substate_start_io_handler(
+    SCI_BASE_REMOTE_DEVICE_T *device, SCI_BASE_REQUEST_T *request)
 {
-   SCI_STATUS status;
-   SCIC_SDS_REMOTE_DEVICE_T * this_device = (SCIC_SDS_REMOTE_DEVICE_T *)device;
-   SCIC_SDS_REQUEST_T       * io_request  = (SCIC_SDS_REQUEST_T       *)request;
+	SCI_STATUS status;
+	SCIC_SDS_REMOTE_DEVICE_T *this_device = (SCIC_SDS_REMOTE_DEVICE_T *)
+	    device;
+	SCIC_SDS_REQUEST_T *io_request = (SCIC_SDS_REQUEST_T *)request;
 
-   // Will the port allow the io request to start?
-   status = this_device->owning_port->state_handlers->start_io_handler(
-      this_device->owning_port,
-      this_device,
-      io_request
-   );
+	// Will the port allow the io request to start?
+	status = this_device->owning_port->state_handlers->start_io_handler(
+	    this_device->owning_port, this_device, io_request);
 
-   if (status == SCI_SUCCESS)
-   {
-      status =
-         scic_sds_remote_node_context_start_io(this_device->rnc, io_request);
+	if (status == SCI_SUCCESS) {
+		status = scic_sds_remote_node_context_start_io(this_device->rnc,
+		    io_request);
 
-      if (status == SCI_SUCCESS)
-      {
-         status = scic_sds_request_start(io_request);
-      }
+		if (status == SCI_SUCCESS) {
+			status = scic_sds_request_start(io_request);
+		}
 
-      if (status == SCI_SUCCESS)
-      {
-         this_device->working_request = io_request;
+		if (status == SCI_SUCCESS) {
+			this_device->working_request = io_request;
 
-         sci_base_state_machine_change_state(
-               &this_device->ready_substate_machine,
-               SCIC_SDS_SMP_REMOTE_DEVICE_READY_SUBSTATE_CMD
-         );
-      }
+			sci_base_state_machine_change_state(
+			    &this_device->ready_substate_machine,
+			    SCIC_SDS_SMP_REMOTE_DEVICE_READY_SUBSTATE_CMD);
+		}
 
-      scic_sds_remote_device_start_request(this_device, io_request, status);
-   }
+		scic_sds_remote_device_start_request(this_device, io_request,
+		    status);
+	}
 
-   return status;
+	return status;
 }
-
 
 //******************************************************************************
 //* SMP REMOTE DEVICE READY SUBSTATE CMD HANDLERS
@@ -140,15 +132,12 @@ SCI_STATUS scic_sds_smp_remote_device_ready_idle_substate_start_io_handler(
  *
  * @return SCI_STATUS
  */
-static
-SCI_STATUS scic_sds_smp_remote_device_ready_cmd_substate_start_io_handler(
-   SCI_BASE_REMOTE_DEVICE_T * device,
-   SCI_BASE_REQUEST_T       * request
-)
+static SCI_STATUS
+scic_sds_smp_remote_device_ready_cmd_substate_start_io_handler(
+    SCI_BASE_REMOTE_DEVICE_T *device, SCI_BASE_REQUEST_T *request)
 {
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
-
 
 /**
  * @brief this is the complete_io_handler for smp device at ready cmd substate.
@@ -158,46 +147,39 @@ SCI_STATUS scic_sds_smp_remote_device_ready_cmd_substate_start_io_handler(
  *
  * @return SCI_STATUS
  */
-static
-SCI_STATUS scic_sds_smp_remote_device_ready_cmd_substate_complete_io_handler(
-   SCI_BASE_REMOTE_DEVICE_T * device,
-   SCI_BASE_REQUEST_T       * request
-)
+static SCI_STATUS
+scic_sds_smp_remote_device_ready_cmd_substate_complete_io_handler(
+    SCI_BASE_REMOTE_DEVICE_T *device, SCI_BASE_REQUEST_T *request)
 {
-   SCI_STATUS                 status;
-   SCIC_SDS_REMOTE_DEVICE_T * this_device;
-   SCIC_SDS_REQUEST_T       * the_request;
+	SCI_STATUS status;
+	SCIC_SDS_REMOTE_DEVICE_T *this_device;
+	SCIC_SDS_REQUEST_T *the_request;
 
-   this_device = (SCIC_SDS_REMOTE_DEVICE_T *)device;
-   the_request = (SCIC_SDS_REQUEST_T       *)request;
+	this_device = (SCIC_SDS_REMOTE_DEVICE_T *)device;
+	the_request = (SCIC_SDS_REQUEST_T *)request;
 
-   status = scic_sds_io_request_complete(the_request);
+	status = scic_sds_io_request_complete(the_request);
 
-   if (status == SCI_SUCCESS)
-   {
-      status = scic_sds_port_complete_io(
-         this_device->owning_port, this_device, the_request);
+	if (status == SCI_SUCCESS) {
+		status = scic_sds_port_complete_io(this_device->owning_port,
+		    this_device, the_request);
 
-      if (status == SCI_SUCCESS)
-      {
-       scic_sds_remote_device_decrement_request_count(this_device);
-         sci_base_state_machine_change_state(
-            &this_device->ready_substate_machine,
-            SCIC_SDS_SMP_REMOTE_DEVICE_READY_SUBSTATE_IDLE
-         );
-      }
-      else
-      {
-         SCIC_LOG_ERROR((
-            sci_base_object_get_logger(this_device),
-            SCIC_LOG_OBJECT_SMP_REMOTE_TARGET,
-            "SCIC SDS Remote Device 0x%x io request 0x%x could not be completd on the port 0x%x failed with status %d.\n",
-            this_device, the_request, this_device->owning_port, status
-         ));
-      }
-   }
+		if (status == SCI_SUCCESS) {
+			scic_sds_remote_device_decrement_request_count(
+			    this_device);
+			sci_base_state_machine_change_state(
+			    &this_device->ready_substate_machine,
+			    SCIC_SDS_SMP_REMOTE_DEVICE_READY_SUBSTATE_IDLE);
+		} else {
+			SCIC_LOG_ERROR((sci_base_object_get_logger(this_device),
+			    SCIC_LOG_OBJECT_SMP_REMOTE_TARGET,
+			    "SCIC SDS Remote Device 0x%x io request 0x%x could not be completd on the port 0x%x failed with status %d.\n",
+			    this_device, the_request, this_device->owning_port,
+			    status));
+		}
+	}
 
-   return status;
+	return status;
 }
 
 /**
@@ -208,72 +190,59 @@ SCI_STATUS scic_sds_smp_remote_device_ready_cmd_substate_complete_io_handler(
  *
  * @return SCI_STATUS
  */
-static
-SCI_STATUS scic_sds_smp_remote_device_ready_cmd_substate_frame_handler(
-   SCIC_SDS_REMOTE_DEVICE_T * this_device,
-   U32                        frame_index
-)
+static SCI_STATUS
+scic_sds_smp_remote_device_ready_cmd_substate_frame_handler(
+    SCIC_SDS_REMOTE_DEVICE_T *this_device, U32 frame_index)
 {
-   SCI_STATUS status;
+	SCI_STATUS status;
 
-   /// The device does not process any UF received from the hardware while
-   /// in this state.  All unsolicited frames are forwarded to the io request
-   /// object.
-   status = scic_sds_io_request_frame_handler(
-      this_device->working_request,
-      frame_index
-   );
+	/// The device does not process any UF received from the hardware while
+	/// in this state.  All unsolicited frames are forwarded to the io
+	/// request object.
+	status = scic_sds_io_request_frame_handler(this_device->working_request,
+	    frame_index);
 
-   return status;
+	return status;
 }
 
 // ---------------------------------------------------------------------------
 
 SCIC_SDS_REMOTE_DEVICE_STATE_HANDLER_T
-   scic_sds_smp_remote_device_ready_substate_handler_table[
-                              SCIC_SDS_SMP_REMOTE_DEVICE_READY_MAX_SUBSTATES] =
-{
-   // SCIC_SDS_SMP_REMOTE_DEVICE_READY_SUBSTATE_IDLE
-   {
-      {
-         scic_sds_remote_device_default_start_handler,
-         scic_sds_remote_device_ready_state_stop_handler,
-         scic_sds_remote_device_default_fail_handler,
-         scic_sds_remote_device_default_destruct_handler,
-         scic_sds_remote_device_default_reset_handler,
-         scic_sds_remote_device_default_reset_complete_handler,
-         scic_sds_smp_remote_device_ready_idle_substate_start_io_handler,
-         scic_sds_remote_device_default_complete_request_handler,
-         scic_sds_remote_device_default_continue_request_handler,
-         scic_sds_remote_device_default_start_request_handler,
-         scic_sds_remote_device_default_complete_request_handler
-      },
-      scic_sds_remote_device_default_suspend_handler,
-      scic_sds_remote_device_default_resume_handler,
-      scic_sds_remote_device_general_event_handler,
-      scic_sds_remote_device_default_frame_handler
-   },
-   // SCIC_SDS_SMP_REMOTE_DEVICE_READY_SUBSTATE_CMD
-   {
-      {
-         scic_sds_remote_device_default_start_handler,
-         scic_sds_remote_device_ready_state_stop_handler,
-         scic_sds_remote_device_default_fail_handler,
-         scic_sds_remote_device_default_destruct_handler,
-         scic_sds_remote_device_default_reset_handler,
-         scic_sds_remote_device_default_reset_complete_handler,
-         scic_sds_smp_remote_device_ready_cmd_substate_start_io_handler,
-         scic_sds_smp_remote_device_ready_cmd_substate_complete_io_handler,
-         scic_sds_remote_device_default_continue_request_handler,
-         scic_sds_remote_device_default_start_request_handler,
-         scic_sds_remote_device_default_complete_request_handler
-      },
-      scic_sds_remote_device_default_suspend_handler,
-      scic_sds_remote_device_default_resume_handler,
-      scic_sds_remote_device_general_event_handler,
-      scic_sds_smp_remote_device_ready_cmd_substate_frame_handler
-   }
-};
+scic_sds_smp_remote_device_ready_substate_handler_table
+    [SCIC_SDS_SMP_REMOTE_DEVICE_READY_MAX_SUBSTATES] = {
+	    // SCIC_SDS_SMP_REMOTE_DEVICE_READY_SUBSTATE_IDLE
+	    { { scic_sds_remote_device_default_start_handler,
+		  scic_sds_remote_device_ready_state_stop_handler,
+		  scic_sds_remote_device_default_fail_handler,
+		  scic_sds_remote_device_default_destruct_handler,
+		  scic_sds_remote_device_default_reset_handler,
+		  scic_sds_remote_device_default_reset_complete_handler,
+		  scic_sds_smp_remote_device_ready_idle_substate_start_io_handler,
+		  scic_sds_remote_device_default_complete_request_handler,
+		  scic_sds_remote_device_default_continue_request_handler,
+		  scic_sds_remote_device_default_start_request_handler,
+		  scic_sds_remote_device_default_complete_request_handler },
+		scic_sds_remote_device_default_suspend_handler,
+		scic_sds_remote_device_default_resume_handler,
+		scic_sds_remote_device_general_event_handler,
+		scic_sds_remote_device_default_frame_handler },
+	    // SCIC_SDS_SMP_REMOTE_DEVICE_READY_SUBSTATE_CMD
+	    { { scic_sds_remote_device_default_start_handler,
+		  scic_sds_remote_device_ready_state_stop_handler,
+		  scic_sds_remote_device_default_fail_handler,
+		  scic_sds_remote_device_default_destruct_handler,
+		  scic_sds_remote_device_default_reset_handler,
+		  scic_sds_remote_device_default_reset_complete_handler,
+		  scic_sds_smp_remote_device_ready_cmd_substate_start_io_handler,
+		  scic_sds_smp_remote_device_ready_cmd_substate_complete_io_handler,
+		  scic_sds_remote_device_default_continue_request_handler,
+		  scic_sds_remote_device_default_start_request_handler,
+		  scic_sds_remote_device_default_complete_request_handler },
+		scic_sds_remote_device_default_suspend_handler,
+		scic_sds_remote_device_default_resume_handler,
+		scic_sds_remote_device_general_event_handler,
+		scic_sds_smp_remote_device_ready_cmd_substate_frame_handler }
+    };
 
 /**
  * This is the SCIC_SDS_SMP_REMOTE_DEVICE_READY_SUBSTATE_IDLE enter method. This
@@ -284,21 +253,19 @@ SCIC_SDS_REMOTE_DEVICE_STATE_HANDLER_T
  *
  * @return none
  */
-static
-void scic_sds_smp_remote_device_ready_idle_substate_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scic_sds_smp_remote_device_ready_idle_substate_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIC_SDS_REMOTE_DEVICE_T *this_device = (SCIC_SDS_REMOTE_DEVICE_T *)object;
+	SCIC_SDS_REMOTE_DEVICE_T *this_device = (SCIC_SDS_REMOTE_DEVICE_T *)
+	    object;
 
-   SET_STATE_HANDLER(
-      this_device,
-      scic_sds_smp_remote_device_ready_substate_handler_table,
-      SCIC_SDS_SMP_REMOTE_DEVICE_READY_SUBSTATE_IDLE
-   );
+	SET_STATE_HANDLER(this_device,
+	    scic_sds_smp_remote_device_ready_substate_handler_table,
+	    SCIC_SDS_SMP_REMOTE_DEVICE_READY_SUBSTATE_IDLE);
 
-   scic_cb_remote_device_ready(
-      scic_sds_remote_device_get_controller(this_device), this_device);
+	scic_cb_remote_device_ready(scic_sds_remote_device_get_controller(
+					this_device),
+	    this_device);
 }
 
 /**
@@ -311,26 +278,21 @@ void scic_sds_smp_remote_device_ready_idle_substate_enter(
  *
  * @return none
  */
-static
-void scic_sds_smp_remote_device_ready_cmd_substate_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scic_sds_smp_remote_device_ready_cmd_substate_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIC_SDS_REMOTE_DEVICE_T *this_device = (SCIC_SDS_REMOTE_DEVICE_T *)object;
+	SCIC_SDS_REMOTE_DEVICE_T *this_device = (SCIC_SDS_REMOTE_DEVICE_T *)
+	    object;
 
-   ASSERT(this_device->working_request != NULL);
+	ASSERT(this_device->working_request != NULL);
 
-   SET_STATE_HANDLER(
-      this_device,
-      scic_sds_smp_remote_device_ready_substate_handler_table,
-      SCIC_SDS_SMP_REMOTE_DEVICE_READY_SUBSTATE_CMD
-   );
+	SET_STATE_HANDLER(this_device,
+	    scic_sds_smp_remote_device_ready_substate_handler_table,
+	    SCIC_SDS_SMP_REMOTE_DEVICE_READY_SUBSTATE_CMD);
 
-   scic_cb_remote_device_not_ready(
-      scic_sds_remote_device_get_controller(this_device),
-      this_device,
-      SCIC_REMOTE_DEVICE_NOT_READY_SMP_REQUEST_STARTED
-   );
+	scic_cb_remote_device_not_ready(scic_sds_remote_device_get_controller(
+					    this_device),
+	    this_device, SCIC_REMOTE_DEVICE_NOT_READY_SMP_REQUEST_STARTED);
 }
 
 /**
@@ -341,31 +303,23 @@ void scic_sds_smp_remote_device_ready_cmd_substate_enter(
  *
  * @return none
  */
-static
-void scic_sds_smp_remote_device_ready_cmd_substate_exit(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scic_sds_smp_remote_device_ready_cmd_substate_exit(SCI_BASE_OBJECT_T *object)
 {
-   SCIC_SDS_REMOTE_DEVICE_T * this_device = (SCIC_SDS_REMOTE_DEVICE_T *)object;
+	SCIC_SDS_REMOTE_DEVICE_T *this_device = (SCIC_SDS_REMOTE_DEVICE_T *)
+	    object;
 
-   this_device->working_request = NULL;
+	this_device->working_request = NULL;
 }
 
 // ---------------------------------------------------------------------------
 
 SCI_BASE_STATE_T
-   scic_sds_smp_remote_device_ready_substate_table[
-                     SCIC_SDS_SMP_REMOTE_DEVICE_READY_MAX_SUBSTATES] =
-{
-   {
-      SCIC_SDS_SMP_REMOTE_DEVICE_READY_SUBSTATE_IDLE,
-      scic_sds_smp_remote_device_ready_idle_substate_enter,
-      NULL
-   },
-   {
-      SCIC_SDS_SMP_REMOTE_DEVICE_READY_SUBSTATE_CMD,
-      scic_sds_smp_remote_device_ready_cmd_substate_enter,
-      scic_sds_smp_remote_device_ready_cmd_substate_exit
-   }
-};
-
+scic_sds_smp_remote_device_ready_substate_table
+    [SCIC_SDS_SMP_REMOTE_DEVICE_READY_MAX_SUBSTATES] = {
+	    { SCIC_SDS_SMP_REMOTE_DEVICE_READY_SUBSTATE_IDLE,
+		scic_sds_smp_remote_device_ready_idle_substate_enter, NULL },
+	    { SCIC_SDS_SMP_REMOTE_DEVICE_READY_SUBSTATE_CMD,
+		scic_sds_smp_remote_device_ready_cmd_substate_enter,
+		scic_sds_smp_remote_device_ready_cmd_substate_exit }
+    };

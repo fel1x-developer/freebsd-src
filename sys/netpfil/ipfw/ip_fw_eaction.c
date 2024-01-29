@@ -24,27 +24,26 @@
  * SUCH DAMAGE.
  */
 
+#include "opt_ipfw.h"
+
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/kernel.h>
 #include <sys/hash.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
-#include <sys/rwlock.h>
+#include <sys/malloc.h>
+#include <sys/queue.h>
 #include <sys/rmlock.h>
+#include <sys/rwlock.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
-#include <sys/queue.h>
 
-#include <net/if.h>	/* ip_fw.h requires IFNAMSIZ */
+#include <net/if.h> /* ip_fw.h requires IFNAMSIZ */
 #include <net/pfil.h>
 #include <netinet/in.h>
-#include <netinet/ip_var.h>	/* struct ipfw_rule_ref */
 #include <netinet/ip_fw.h>
-
+#include <netinet/ip_var.h> /* struct ipfw_rule_ref */
 #include <netpfil/ipfw/ip_fw_private.h>
-
-#include "opt_ipfw.h"
 
 /*
  * External actions support for ipfw.
@@ -86,26 +85,27 @@
  */
 
 struct eaction_obj {
-	struct named_object	no;
-	ipfw_eaction_t		*handler;
-	char			name[64];
+	struct named_object no;
+	ipfw_eaction_t *handler;
+	char name[64];
 };
 
-#define	EACTION_OBJ(ch, cmd)			\
-    ((struct eaction_obj *)SRV_OBJECT((ch), (cmd)->arg1))
+#define EACTION_OBJ(ch, cmd) \
+	((struct eaction_obj *)SRV_OBJECT((ch), (cmd)->arg1))
 
 #if 0
-#define	EACTION_DEBUG(fmt, ...)	do {			\
-	printf("%s: " fmt "\n", __func__, ## __VA_ARGS__);	\
-} while (0)
+#define EACTION_DEBUG(fmt, ...)                                   \
+	do {                                                      \
+		printf("%s: " fmt "\n", __func__, ##__VA_ARGS__); \
+	} while (0)
 #else
-#define	EACTION_DEBUG(fmt, ...)
+#define EACTION_DEBUG(fmt, ...)
 #endif
 
 const char *default_eaction_typename = "drop";
 static int
-default_eaction(struct ip_fw_chain *ch, struct ip_fw_args *args,
-    ipfw_insn *cmd, int *done)
+default_eaction(struct ip_fw_chain *ch, struct ip_fw_args *args, ipfw_insn *cmd,
+    int *done)
 {
 
 	*done = 1; /* terminate the search */
@@ -147,15 +147,15 @@ eaction_findbyname(struct ip_fw_chain *ch, struct tid_info *ti,
 	    IPFW_TLV_EACTION);
 	if (ntlv == NULL)
 		return (EINVAL);
-	EACTION_DEBUG("name %s, uidx %u, type %u", ntlv->name,
-	    ti->uidx, ti->type);
+	EACTION_DEBUG("name %s, uidx %u, type %u", ntlv->name, ti->uidx,
+	    ti->type);
 	/*
 	 * Search named object with corresponding name.
 	 * Since eaction objects are global - ignore the set value
 	 * and use zero instead.
 	 */
-	*pno = ipfw_objhash_lookup_name_type(CHAIN_TO_SRV(ch),
-	    0, IPFW_TLV_EACTION, ntlv->name);
+	*pno = ipfw_objhash_lookup_name_type(CHAIN_TO_SRV(ch), 0,
+	    IPFW_TLV_EACTION, ntlv->name);
 	if (*pno == NULL)
 		return (ESRCH);
 	return (0);
@@ -171,12 +171,12 @@ eaction_findbykidx(struct ip_fw_chain *ch, uint16_t idx)
 
 static struct opcode_obj_rewrite eaction_opcodes[] = {
 	{
-		.opcode = O_EXTERNAL_ACTION,
-		.etlv = IPFW_TLV_EACTION,
-		.classifier = eaction_classify,
-		.update = eaction_update,
-		.find_byname = eaction_findbyname,
-		.find_bykidx = eaction_findbykidx,
+	    .opcode = O_EXTERNAL_ACTION,
+	    .etlv = IPFW_TLV_EACTION,
+	    .classifier = eaction_classify,
+	    .update = eaction_update,
+	    .find_byname = eaction_findbyname,
+	    .find_bykidx = eaction_findbykidx,
 	},
 };
 
@@ -197,8 +197,8 @@ create_eaction_obj(struct ip_fw_chain *ch, ipfw_eaction_t handler,
 	strlcpy(obj->name, name, sizeof(obj->name));
 
 	IPFW_UH_WLOCK(ch);
-	if (ipfw_objhash_lookup_name_type(ni, 0, IPFW_TLV_EACTION,
-	    name) != NULL) {
+	if (ipfw_objhash_lookup_name_type(ni, 0, IPFW_TLV_EACTION, name) !=
+	    NULL) {
 		/*
 		 * Object is already created.
 		 * We don't allow eactions with the same name.
@@ -206,7 +206,8 @@ create_eaction_obj(struct ip_fw_chain *ch, ipfw_eaction_t handler,
 		IPFW_UH_WUNLOCK(ch);
 		free(obj, M_IPFW);
 		EACTION_DEBUG("External action with typename "
-		    "'%s' already exists", name);
+			      "'%s' already exists",
+		    name);
 		return (EEXIST);
 	}
 	if (ipfw_objhash_alloc_idx(ni, &obj->no.kidx) != 0) {
@@ -279,7 +280,7 @@ reset_eaction_rules(struct ip_fw_chain *ch, uint16_t eaction_id,
 			 * need to reference default_eaction object.
 			 */
 			if (ipfw_reset_eaction(ch, ch->map[i], eaction_id,
-			    no->kidx, instance_id) != 0)
+				no->kidx, instance_id) != 0)
 				no->refcnt++;
 		}
 	}
@@ -362,8 +363,8 @@ ipfw_del_eaction(struct ip_fw_chain *ch, uint16_t eaction_id)
 		return (EINVAL);
 	}
 	reset_eaction_rules(ch, eaction_id, 0, (no->refcnt > 1));
-	EACTION_DEBUG("External action '%s' with id %u unregistered",
-	    no->name, eaction_id);
+	EACTION_DEBUG("External action '%s' with id %u unregistered", no->name,
+	    eaction_id);
 	destroy_eaction_obj(ch, no);
 	IPFW_UH_WUNLOCK(ch);
 	return (0);
@@ -384,8 +385,7 @@ ipfw_reset_eaction(struct ip_fw_chain *ch, struct ip_fw *rule,
 	 * different.
 	 */
 	cmd = ipfw_get_action(rule);
-	if (cmd->opcode != O_EXTERNAL_ACTION ||
-	    cmd->arg1 != eaction_id)
+	if (cmd->opcode != O_EXTERNAL_ACTION || cmd->arg1 != eaction_id)
 		return (0);
 	/*
 	 * Check if there is O_EXTERNAL_INSTANCE opcode, we need
@@ -399,8 +399,8 @@ ipfw_reset_eaction(struct ip_fw_chain *ch, struct ip_fw *rule,
 	if (l > 1) {
 		MPASS(F_LEN(cmd) == 1);
 		icmd = cmd + 1;
-		if (icmd->opcode == O_EXTERNAL_INSTANCE &&
-		    instance_id != 0 && icmd->arg1 != instance_id)
+		if (icmd->opcode == O_EXTERNAL_INSTANCE && instance_id != 0 &&
+		    icmd->arg1 != instance_id)
 			return (0);
 		/*
 		 * Since named_object related to this instance will be
@@ -408,12 +408,11 @@ ipfw_reset_eaction(struct ip_fw_chain *ch, struct ip_fw *rule,
 		 * the rest of cmd chain just after O_EXTERNAL_ACTION
 		 * opcode.
 		 */
-		EACTION_DEBUG("truncate rule %d: len %u -> %u",
-		    rule->rulenum, rule->cmd_len,
-		    rule->cmd_len - F_LEN(icmd));
+		EACTION_DEBUG("truncate rule %d: len %u -> %u", rule->rulenum,
+		    rule->cmd_len, rule->cmd_len - F_LEN(icmd));
 		rule->cmd_len -= F_LEN(icmd);
-		MPASS(((uint32_t *)icmd -
-		    (uint32_t *)rule->cmd) == rule->cmd_len);
+		MPASS(((uint32_t *)icmd - (uint32_t *)rule->cmd) ==
+		    rule->cmd_len);
 	}
 
 	cmd->arg1 = default_id; /* Set to default id */

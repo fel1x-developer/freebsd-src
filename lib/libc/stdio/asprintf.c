@@ -37,12 +37,12 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <xlocale.h>
 
 int
-asprintf(char ** __restrict s, char const * __restrict fmt, ...)
+asprintf(char **__restrict s, char const *__restrict fmt, ...)
 {
 	int ret;
 	va_list ap;
@@ -53,8 +53,8 @@ asprintf(char ** __restrict s, char const * __restrict fmt, ...)
 	return (ret);
 }
 int
-asprintf_l(char ** __restrict s, locale_t locale, char const * __restrict fmt,
-		...)
+asprintf_l(char **__restrict s, locale_t locale, char const *__restrict fmt,
+    ...)
 {
 	int ret;
 	va_list ap;

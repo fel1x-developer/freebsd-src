@@ -59,31 +59,35 @@
 #include <netdb.h>
 #include <pmc.h>
 #include <pmclog.h>
-#include <sysexits.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sysexits.h>
 #include <unistd.h>
 
+#include "pmcpl_annotate.h"
 #include "pmcstat.h"
 #include "pmcstat_log.h"
-#include "pmcpl_annotate.h"
 
 /*
  * Record a callchain.
  */
 
 void
-pmcpl_annotate_process(struct pmcstat_process *pp, struct pmcstat_pmcrecord *pmcr,
-    uint32_t nsamples, uintfptr_t *cc, int usermode, uint32_t cpu)
+pmcpl_annotate_process(struct pmcstat_process *pp,
+    struct pmcstat_pmcrecord *pmcr, uint32_t nsamples, uintfptr_t *cc,
+    int usermode, uint32_t cpu)
 {
 	struct pmcstat_pcmap *map;
 	struct pmcstat_symbol *sym;
 	uintfptr_t newpc;
 	struct pmcstat_image *image;
 
-	(void) pmcr; (void) nsamples; (void) usermode; (void) cpu;
+	(void)pmcr;
+	(void)nsamples;
+	(void)usermode;
+	(void)cpu;
 
 	map = pmcstat_process_find_map(usermode ? pp : pmcstat_kernproc, cc[0]);
 	if (map == NULL) {
@@ -95,16 +99,13 @@ pmcpl_annotate_process(struct pmcstat_process *pp, struct pmcstat_pmcrecord *pmc
 	assert(cc[0] >= map->ppm_lowpc && cc[0] < map->ppm_highpc);
 
 	image = map->ppm_image;
-	newpc = cc[0] - (map->ppm_lowpc +
-		(image->pi_vaddr - image->pi_start));
+	newpc = cc[0] - (map->ppm_lowpc + (image->pi_vaddr - image->pi_start));
 	sym = pmcstat_symbol_search(image, newpc);
 	if (sym == NULL)
 		return;
 
-	fprintf(args.pa_graphfile, "%p %s 0x%jx 0x%jx\n",
-		(void *)cc[0],
-		pmcstat_string_unintern(sym->ps_name),
-		(uintmax_t)(sym->ps_start +
-		image->pi_vaddr), (uintmax_t)(sym->ps_end +
-		image->pi_vaddr));
+	fprintf(args.pa_graphfile, "%p %s 0x%jx 0x%jx\n", (void *)cc[0],
+	    pmcstat_string_unintern(sym->ps_name),
+	    (uintmax_t)(sym->ps_start + image->pi_vaddr),
+	    (uintmax_t)(sym->ps_end + image->pi_vaddr));
 }

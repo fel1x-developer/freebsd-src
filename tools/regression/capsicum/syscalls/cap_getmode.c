@@ -64,7 +64,8 @@ main(void)
 	CHECK(cap_getmode((void *)(uintptr_t)0xdeadc0de) == -1);
 	CHECK(errno == EFAULT);
 
-	/* If parent is not in capability mode, child after fork() also won't be. */
+	/* If parent is not in capability mode, child after fork() also won't
+	 * be. */
 	pid = fork();
 	switch (pid) {
 	case -1:
@@ -82,7 +83,8 @@ main(void)
 			err(1, "waitpid() failed");
 	}
 
-	/* If parent is not in capability mode, child after pdfork() also won't be. */
+	/* If parent is not in capability mode, child after pdfork() also won't
+	 * be. */
 	pid = pdfork(&pfd, 0);
 	switch (pid) {
 	case -1:
@@ -141,7 +143,8 @@ main(void)
 		sleep(1);
 	}
 
-	/* If parent is in capability mode, child after pdfork() also will be. */
+	/* If parent is in capability mode, child after pdfork() also will be.
+	 */
 	pid = pdfork(&pfd, 0);
 	switch (pid) {
 	case -1:

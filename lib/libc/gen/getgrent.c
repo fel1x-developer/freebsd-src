@@ -32,8 +32,9 @@
  * SUCH DAMAGE.
  *
  */
-#include "namespace.h"
 #include <sys/param.h>
+
+#include "namespace.h"
 #ifdef YP
 #include <rpc/rpc.h>
 #include <rpcsvc/yp_prot.h>
@@ -54,114 +55,110 @@
 #include <string.h>
 #include <syslog.h>
 #include <unistd.h>
-#include "un-namespace.h"
+
 #include "libc_private.h"
 #include "nss_tls.h"
+#include "un-namespace.h"
 #ifdef NS_CACHING
 #include "nscache.h"
 #endif
 
 enum constants {
-	GRP_STORAGE_INITIAL	= 1 << 10, /* 1 KByte */
-	GRP_STORAGE_MAX		= 1 << 20, /* 1 MByte */
-	SETGRENT		= 1,
-	ENDGRENT		= 2,
-	HESIOD_NAME_MAX		= 256,
+	GRP_STORAGE_INITIAL = 1 << 10, /* 1 KByte */
+	GRP_STORAGE_MAX = 1 << 20,     /* 1 MByte */
+	SETGRENT = 1,
+	ENDGRENT = 2,
+	HESIOD_NAME_MAX = 256,
 };
 
-static const ns_src defaultsrc[] = {
-	{ NSSRC_COMPAT, NS_SUCCESS },
-	{ NULL, 0 }
-};
+static const ns_src defaultsrc[] = { { NSSRC_COMPAT, NS_SUCCESS },
+	{ NULL, 0 } };
 
-int	 __getgroupmembership(const char *, gid_t, gid_t *, int, int *);
-int	 __gr_match_entry(const char *, size_t, enum nss_lookup_type,
-	    const char *, gid_t);
-int	 __gr_parse_entry(char *, size_t, struct group *, char *, size_t,
-	    int *);
+int __getgroupmembership(const char *, gid_t, gid_t *, int, int *);
+int __gr_match_entry(const char *, size_t, enum nss_lookup_type, const char *,
+    gid_t);
+int __gr_parse_entry(char *, size_t, struct group *, char *, size_t, int *);
 
-static	int	 is_comment_line(const char *, size_t);
+static int is_comment_line(const char *, size_t);
 
 union key {
-	const char	*name;
-	gid_t		 gid;
+	const char *name;
+	gid_t gid;
 };
-static	struct group *getgr(int (*)(union key, struct group *, char *, size_t,
-		    struct group **), union key);
-static	int	 wrap_getgrnam_r(union key, struct group *, char *, size_t,
-		    struct group **);
-static	int	 wrap_getgrgid_r(union key, struct group *, char *, size_t,
-		    struct group **);
-static	int	 wrap_getgrent_r(union key, struct group *, char *, size_t,
-		    struct group **);
+static struct group *getgr(int (*)(union key, struct group *, char *, size_t,
+			       struct group **),
+    union key);
+static int wrap_getgrnam_r(union key, struct group *, char *, size_t,
+    struct group **);
+static int wrap_getgrgid_r(union key, struct group *, char *, size_t,
+    struct group **);
+static int wrap_getgrent_r(union key, struct group *, char *, size_t,
+    struct group **);
 
 struct files_state {
-	FILE	*fp;
-	int	 stayopen;
+	FILE *fp;
+	int stayopen;
 };
-static	void	 files_endstate(void *);
+static void files_endstate(void *);
 NSS_TLS_HANDLING(files);
-static	int	 files_setgrent(void *, void *, va_list);
-static	int	 files_group(void *, void *, va_list);
-
+static int files_setgrent(void *, void *, va_list);
+static int files_group(void *, void *, va_list);
 
 #ifdef HESIOD
 struct dns_state {
-	long	counter;
+	long counter;
 };
-static	void	 dns_endstate(void *);
+static void dns_endstate(void *);
 NSS_TLS_HANDLING(dns);
-static	int	 dns_setgrent(void *, void *, va_list);
-static	int	 dns_group(void *, void *, va_list);
+static int dns_setgrent(void *, void *, va_list);
+static int dns_group(void *, void *, va_list);
 #endif
-
 
 #ifdef YP
 struct nis_state {
-	char	 domain[MAXHOSTNAMELEN];
-	int	 done;
-	char	*key;
-	int	 keylen;
+	char domain[MAXHOSTNAMELEN];
+	int done;
+	char *key;
+	int keylen;
 };
-static	void	 nis_endstate(void *);
+static void nis_endstate(void *);
 NSS_TLS_HANDLING(nis);
-static	int	 nis_setgrent(void *, void *, va_list);
-static	int	 nis_group(void *, void *, va_list);
+static int nis_setgrent(void *, void *, va_list);
+static int nis_group(void *, void *, va_list);
 #endif
 
 struct compat_state {
-	FILE	*fp;
-	int	 stayopen;
-	char	*name;
+	FILE *fp;
+	int stayopen;
+	char *name;
 	enum _compat {
 		COMPAT_MODE_OFF = 0,
 		COMPAT_MODE_ALL,
 		COMPAT_MODE_NAME
-	}	 compat;
+	} compat;
 };
-static	void	 compat_endstate(void *);
+static void compat_endstate(void *);
 NSS_TLS_HANDLING(compat);
-static	int	 compat_setgrent(void *, void *, va_list);
-static	int	 compat_group(void *, void *, va_list);
+static int compat_setgrent(void *, void *, va_list);
+static int compat_group(void *, void *, va_list);
 
-static	int	gr_addgid(gid_t, gid_t *, int, int *);
-static	int	getgroupmembership_fallback(void *, void *, va_list);
+static int gr_addgid(gid_t, gid_t *, int, int *);
+static int getgroupmembership_fallback(void *, void *, va_list);
 
 #ifdef NS_CACHING
-static	int	 grp_id_func(char *, size_t *, va_list, void *);
-static	int	 grp_marshal_func(char *, size_t *, void *, va_list, void *);
-static	int	 grp_unmarshal_func(char *, size_t, void *, va_list, void *);
+static int grp_id_func(char *, size_t *, va_list, void *);
+static int grp_marshal_func(char *, size_t *, void *, va_list, void *);
+static int grp_unmarshal_func(char *, size_t, void *, va_list, void *);
 
 static int
 grp_id_func(char *buffer, size_t *buffer_size, va_list ap, void *cache_mdata)
 {
-	char	*name;
-	gid_t	gid;
+	char *name;
+	gid_t gid;
 
-	size_t	desired_size, size;
-	int	res = NS_UNAVAIL;
+	size_t desired_size, size;
+	int res = NS_UNAVAIL;
 	enum nss_lookup_type lookup_type;
-
 
 	lookup_type = (enum nss_lookup_type)(uintptr_t)cache_mdata;
 	switch (lookup_type) {
@@ -330,8 +327,8 @@ grp_unmarshal_func(char *buffer, size_t buffer_size, void *retval, va_list ap,
 	orig_buf_size = va_arg(ap, size_t);
 	ret_errno = va_arg(ap, int *);
 
-	if (orig_buf_size + sizeof(struct group) + sizeof(char *) < buffer_size)
-	{
+	if (orig_buf_size + sizeof(struct group) + sizeof(char *) <
+	    buffer_size) {
 		*ret_errno = ERANGE;
 		return (NS_RETURN);
 	} else if (buffer_size < sizeof(struct group) + sizeof(char *)) {
@@ -346,17 +343,19 @@ grp_unmarshal_func(char *buffer, size_t buffer_size, void *retval, va_list ap,
 	memcpy(grp, buffer, sizeof(struct group));
 	memcpy(&p, buffer + sizeof(struct group), sizeof(char *));
 
-	if (orig_buf_size + sizeof(struct group) + sizeof(char *) +
-	    _ALIGN(p) - (size_t)p < buffer_size) {
+	if (orig_buf_size + sizeof(struct group) + sizeof(char *) + _ALIGN(p) -
+		(size_t)p <
+	    buffer_size) {
 		*ret_errno = ERANGE;
 		return (NS_RETURN);
 	}
 
 	orig_buf = (char *)_ALIGN(orig_buf);
-	memcpy(orig_buf, buffer + sizeof(struct group) + sizeof(char *) +
-	    _ALIGN(p) - (size_t)p,
-	    buffer_size - sizeof(struct group) - sizeof(char *) -
-	    _ALIGN(p) + (size_t)p);
+	memcpy(orig_buf,
+	    buffer + sizeof(struct group) + sizeof(char *) + _ALIGN(p) -
+		(size_t)p,
+	    buffer_size - sizeof(struct group) - sizeof(char *) - _ALIGN(p) +
+		(size_t)p);
 	p = (char *)_ALIGN(p);
 
 	NS_APPLY_OFFSET(grp->gr_name, orig_buf, p, char *);
@@ -378,13 +377,12 @@ NSS_MP_CACHE_HANDLING(group);
 #endif /* NS_CACHING */
 
 #ifdef NS_CACHING
-static const nss_cache_info setgrent_cache_info = NS_MP_CACHE_INFO_INITIALIZER(
-	group, (void *)nss_lt_all,
-	NULL, NULL);
+static const nss_cache_info setgrent_cache_info =
+    NS_MP_CACHE_INFO_INITIALIZER(group, (void *)nss_lt_all, NULL, NULL);
 #endif
 
-static const ns_dtab setgrent_dtab[] = {
-	{ NSSRC_FILES, files_setgrent, (void *)SETGRENT },
+static const ns_dtab setgrent_dtab[] = { { NSSRC_FILES, files_setgrent,
+					     (void *)SETGRENT },
 #ifdef HESIOD
 	{ NSSRC_DNS, dns_setgrent, (void *)SETGRENT },
 #endif
@@ -395,17 +393,15 @@ static const ns_dtab setgrent_dtab[] = {
 #ifdef NS_CACHING
 	NS_CACHE_CB(&setgrent_cache_info)
 #endif
-	{ NULL, NULL, NULL }
-};
+	    { NULL, NULL, NULL } };
 
 #ifdef NS_CACHING
-static const nss_cache_info endgrent_cache_info = NS_MP_CACHE_INFO_INITIALIZER(
-	group, (void *)nss_lt_all,
-	NULL, NULL);
+static const nss_cache_info endgrent_cache_info =
+    NS_MP_CACHE_INFO_INITIALIZER(group, (void *)nss_lt_all, NULL, NULL);
 #endif
 
-static const ns_dtab endgrent_dtab[] = {
-	{ NSSRC_FILES, files_setgrent, (void *)ENDGRENT },
+static const ns_dtab endgrent_dtab[] = { { NSSRC_FILES, files_setgrent,
+					     (void *)ENDGRENT },
 #ifdef HESIOD
 	{ NSSRC_DNS, dns_setgrent, (void *)ENDGRENT },
 #endif
@@ -416,17 +412,16 @@ static const ns_dtab endgrent_dtab[] = {
 #ifdef NS_CACHING
 	NS_CACHE_CB(&endgrent_cache_info)
 #endif
-	{ NULL, NULL, NULL }
-};
+	    { NULL, NULL, NULL } };
 
 #ifdef NS_CACHING
-static const nss_cache_info getgrent_r_cache_info = NS_MP_CACHE_INFO_INITIALIZER(
-	group, (void *)nss_lt_all,
-	grp_marshal_func, grp_unmarshal_func);
+static const nss_cache_info getgrent_r_cache_info =
+    NS_MP_CACHE_INFO_INITIALIZER(group, (void *)nss_lt_all, grp_marshal_func,
+	grp_unmarshal_func);
 #endif
 
-static const ns_dtab getgrent_r_dtab[] = {
-	{ NSSRC_FILES, files_group, (void *)nss_lt_all },
+static const ns_dtab getgrent_r_dtab[] = { { NSSRC_FILES, files_group,
+					       (void *)nss_lt_all },
 #ifdef HESIOD
 	{ NSSRC_DNS, dns_group, (void *)nss_lt_all },
 #endif
@@ -437,13 +432,12 @@ static const ns_dtab getgrent_r_dtab[] = {
 #ifdef NS_CACHING
 	NS_CACHE_CB(&getgrent_r_cache_info)
 #endif
-	{ NULL, NULL, NULL }
-};
+	    { NULL, NULL, NULL } };
 
 static int
 gr_addgid(gid_t gid, gid_t *groups, int maxgrp, int *grpcnt)
 {
-	int     ret, dupc;
+	int ret, dupc;
 
 	for (dupc = 1; dupc < MIN(maxgrp, *grpcnt); dupc++) {
 		if (groups[dupc] == gid)
@@ -464,19 +458,16 @@ gr_addgid(gid_t gid, gid_t *groups, int maxgrp, int *grpcnt)
 static int
 getgroupmembership_fallback(void *retval, void *mdata, va_list ap)
 {
-	const ns_src src[] = {
-		{ mdata, NS_SUCCESS },
-		{ NULL, 0}
-	};
-	struct group	grp;
-	struct group	*grp_p;
-	char		*buf;
-	size_t		bufsize;
-	const char	*uname;
-	gid_t		*groups;
-	gid_t		agroup;
-	int 		maxgrp, *grpcnt;
-	int		i, rv, ret_errno;
+	const ns_src src[] = { { mdata, NS_SUCCESS }, { NULL, 0 } };
+	struct group grp;
+	struct group *grp_p;
+	char *buf;
+	size_t bufsize;
+	const char *uname;
+	gid_t *groups;
+	gid_t agroup;
+	int maxgrp, *grpcnt;
+	int i, rv, ret_errno;
 
 	/*
 	 * As this is a fallback method, only provided src
@@ -488,7 +479,7 @@ getgroupmembership_fallback(void *retval, void *mdata, va_list ap)
 	agroup = va_arg(ap, gid_t);
 	groups = va_arg(ap, gid_t *);
 	maxgrp = va_arg(ap, int);
-	grpcnt = va_arg(ap, int *); 
+	grpcnt = va_arg(ap, int *);
 
 	rv = NS_UNAVAIL;
 
@@ -534,7 +525,7 @@ getgroupmembership_fallback(void *retval, void *mdata, va_list ap)
 
 		for (i = 0; grp.gr_mem[i]; i++) {
 			if (strcmp(grp.gr_mem[i], uname) == 0)
-			    gr_addgid(grp.gr_gid, groups, maxgrp, grpcnt);
+				gr_addgid(grp.gr_gid, groups, maxgrp, grpcnt);
 		}
 	}
 
@@ -547,42 +538,40 @@ out:
 void
 setgrent(void)
 {
-	(void)_nsdispatch(NULL, setgrent_dtab, NSDB_GROUP, "setgrent", defaultsrc, 0);
+	(void)_nsdispatch(NULL, setgrent_dtab, NSDB_GROUP, "setgrent",
+	    defaultsrc, 0);
 }
-
 
 int
 setgroupent(int stayopen)
 {
-	(void)_nsdispatch(NULL, setgrent_dtab, NSDB_GROUP, "setgrent", defaultsrc,
-	    stayopen);
+	(void)_nsdispatch(NULL, setgrent_dtab, NSDB_GROUP, "setgrent",
+	    defaultsrc, stayopen);
 	return (1);
 }
-
 
 void
 endgrent(void)
 {
-	(void)_nsdispatch(NULL, endgrent_dtab, NSDB_GROUP, "endgrent", defaultsrc);
+	(void)_nsdispatch(NULL, endgrent_dtab, NSDB_GROUP, "endgrent",
+	    defaultsrc);
 }
-
 
 int
 getgrent_r(struct group *grp, char *buffer, size_t bufsize,
     struct group **result)
 {
-	int	rv, ret_errno;
+	int rv, ret_errno;
 
 	ret_errno = 0;
 	*result = NULL;
-	rv = _nsdispatch(result, getgrent_r_dtab, NSDB_GROUP, "getgrent_r", defaultsrc,
-	    grp, buffer, bufsize, &ret_errno);
+	rv = _nsdispatch(result, getgrent_r_dtab, NSDB_GROUP, "getgrent_r",
+	    defaultsrc, grp, buffer, bufsize, &ret_errno);
 	if (rv == NS_SUCCESS)
 		return (0);
 	else
 		return (ret_errno);
 }
-
 
 int
 getgrnam_r(const char *name, struct group *grp, char *buffer, size_t bufsize,
@@ -590,13 +579,12 @@ getgrnam_r(const char *name, struct group *grp, char *buffer, size_t bufsize,
 {
 #ifdef NS_CACHING
 	static const nss_cache_info cache_info =
-    		NS_COMMON_CACHE_INFO_INITIALIZER(
-		group, (void *)nss_lt_name,
+	    NS_COMMON_CACHE_INFO_INITIALIZER(group, (void *)nss_lt_name,
 		grp_id_func, grp_marshal_func, grp_unmarshal_func);
 #endif
 
-	static const ns_dtab dtab[] = {
-		{ NSSRC_FILES, files_group, (void *)nss_lt_name },
+	static const ns_dtab dtab[] = { { NSSRC_FILES, files_group,
+					    (void *)nss_lt_name },
 #ifdef HESIOD
 		{ NSSRC_DNS, dns_group, (void *)nss_lt_name },
 #endif
@@ -607,9 +595,8 @@ getgrnam_r(const char *name, struct group *grp, char *buffer, size_t bufsize,
 #ifdef NS_CACHING
 		NS_CACHE_CB(&cache_info)
 #endif
-		{ NULL, NULL, NULL }
-	};
-	int	rv, ret_errno;
+		    { NULL, NULL, NULL } };
+	int rv, ret_errno;
 
 	ret_errno = 0;
 	*result = NULL;
@@ -621,20 +608,18 @@ getgrnam_r(const char *name, struct group *grp, char *buffer, size_t bufsize,
 		return (ret_errno);
 }
 
-
 int
 getgrgid_r(gid_t gid, struct group *grp, char *buffer, size_t bufsize,
     struct group **result)
 {
 #ifdef NS_CACHING
 	static const nss_cache_info cache_info =
-    		NS_COMMON_CACHE_INFO_INITIALIZER(
-		group, (void *)nss_lt_id,
+	    NS_COMMON_CACHE_INFO_INITIALIZER(group, (void *)nss_lt_id,
 		grp_id_func, grp_marshal_func, grp_unmarshal_func);
 #endif
 
-	static const ns_dtab dtab[] = {
-		{ NSSRC_FILES, files_group, (void *)nss_lt_id },
+	static const ns_dtab dtab[] = { { NSSRC_FILES, files_group,
+					    (void *)nss_lt_id },
 #ifdef HESIOD
 		{ NSSRC_DNS, dns_group, (void *)nss_lt_id },
 #endif
@@ -645,9 +630,8 @@ getgrgid_r(gid_t gid, struct group *grp, char *buffer, size_t bufsize,
 #ifdef NS_CACHING
 		NS_CACHE_CB(&cache_info)
 #endif
-		{ NULL, NULL, NULL }
-	};
-	int	rv, ret_errno;
+		    { NULL, NULL, NULL } };
+	int rv, ret_errno;
 
 	ret_errno = 0;
 	*result = NULL;
@@ -659,16 +643,12 @@ getgrgid_r(gid_t gid, struct group *grp, char *buffer, size_t bufsize,
 		return (ret_errno);
 }
 
-
-
 int
-__getgroupmembership(const char *uname, gid_t agroup, gid_t *groups,
-	int maxgrp, int *grpcnt)
+__getgroupmembership(const char *uname, gid_t agroup, gid_t *groups, int maxgrp,
+    int *grpcnt)
 {
-	static const ns_dtab dtab[] = {
-		NS_FALLBACK_CB(getgroupmembership_fallback)
-		{ NULL, NULL, NULL }
-	};
+	static const ns_dtab dtab[] = { NS_FALLBACK_CB(
+	    getgroupmembership_fallback) { NULL, NULL, NULL } };
 
 	assert(uname != NULL);
 	/* groups may be NULL if just sizing when invoked with maxgrp = 0 */
@@ -682,17 +662,16 @@ __getgroupmembership(const char *uname, gid_t agroup, gid_t *groups,
 	return (*grpcnt > maxgrp ? -1 : 0);
 }
 
-
-static struct group	 grp;
-static char		*grp_storage;
-static size_t		 grp_storage_size;
+static struct group grp;
+static char *grp_storage;
+static size_t grp_storage_size;
 
 static struct group *
 getgr(int (*fn)(union key, struct group *, char *, size_t, struct group **),
     union key key)
 {
-	int		 rv;
-	struct group	*res;
+	int rv;
+	struct group *res;
 
 	if (grp_storage == NULL) {
 		grp_storage = malloc(GRP_STORAGE_INITIAL);
@@ -720,14 +699,12 @@ getgr(int (*fn)(union key, struct group *, char *, size_t, struct group **),
 	return (res);
 }
 
-
 static int
 wrap_getgrnam_r(union key key, struct group *grp, char *buffer, size_t bufsize,
     struct group **res)
 {
 	return (getgrnam_r(key.name, grp, buffer, bufsize, res));
 }
-
 
 static int
 wrap_getgrgid_r(union key key, struct group *grp, char *buffer, size_t bufsize,
@@ -736,14 +713,12 @@ wrap_getgrgid_r(union key key, struct group *grp, char *buffer, size_t bufsize,
 	return (getgrgid_r(key.gid, grp, buffer, bufsize, res));
 }
 
-
 static int
 wrap_getgrent_r(union key key __unused, struct group *grp, char *buffer,
     size_t bufsize, struct group **res)
 {
 	return (getgrent_r(grp, buffer, bufsize, res));
 }
-
 
 struct group *
 getgrnam(const char *name)
@@ -754,7 +729,6 @@ getgrnam(const char *name)
 	return (getgr(wrap_getgrnam_r, key));
 }
 
-
 struct group *
 getgrgid(gid_t gid)
 {
@@ -763,7 +737,6 @@ getgrgid(gid_t gid)
 	key.gid = gid;
 	return (getgr(wrap_getgrgid_r, key));
 }
-
 
 struct group *
 getgrent(void)
@@ -774,11 +747,10 @@ getgrent(void)
 	return (getgr(wrap_getgrent_r, key));
 }
 
-
 static int
 is_comment_line(const char *s, size_t n)
 {
-	const char	*eom;
+	const char *eom;
 
 	eom = &s[n];
 
@@ -787,7 +759,6 @@ is_comment_line(const char *s, size_t n)
 			break;
 	return (*s == '#' || s == eom);
 }
-
 
 /*
  * files backend
@@ -803,15 +774,14 @@ files_endstate(void *p)
 	free(p);
 }
 
-
 static int
 files_setgrent(void *retval, void *mdata, va_list ap)
 {
 	struct files_state *st;
-	int		 rv, stayopen;
+	int rv, stayopen;
 
 	rv = files_getstate(&st);
-	if (rv != 0) 
+	if (rv != 0)
 		return (NS_UNAVAIL);
 	switch ((enum constants)(uintptr_t)mdata) {
 	case SETGRENT:
@@ -834,19 +804,18 @@ files_setgrent(void *retval, void *mdata, va_list ap)
 	return (NS_UNAVAIL);
 }
 
-
 static int
 files_group(void *retval, void *mdata, va_list ap)
 {
-	struct files_state	*st;
-	enum nss_lookup_type	 how;
-	const char		*name, *line;
-	struct group		*grp;
-	gid_t			 gid;
-	char			*buffer;
-	size_t			 bufsize, linesize;
-	off_t			 pos;
-	int			 fresh, rv, stayopen, *errnop;
+	struct files_state *st;
+	enum nss_lookup_type how;
+	const char *name, *line;
+	struct group *grp;
+	gid_t gid;
+	char *buffer;
+	size_t bufsize, linesize;
+	off_t pos;
+	int fresh, rv, stayopen, *errnop;
 
 	fresh = 0;
 	name = NULL;
@@ -886,7 +855,7 @@ files_group(void *retval, void *mdata, va_list ap)
 		rewind(st->fp);
 	rv = NS_NOTFOUND;
 	while ((line = fgetln(st->fp, &linesize)) != NULL) {
-		if (line[linesize-1] == '\n')
+		if (line[linesize - 1] == '\n')
 			linesize--;
 		rv = __gr_match_entry(line, linesize, how, name, gid);
 		if (rv != NS_SUCCESS)
@@ -902,7 +871,7 @@ files_group(void *retval, void *mdata, va_list ap)
 		}
 		memcpy(buffer, line, linesize);
 		buffer[linesize] = '\0';
-		rv = __gr_parse_entry(buffer, linesize, grp, 
+		rv = __gr_parse_entry(buffer, linesize, grp,
 		    &buffer[linesize + 1], bufsize - linesize - 1, errnop);
 		if (rv & NS_TERMINATE)
 			break;
@@ -922,7 +891,6 @@ files_group(void *retval, void *mdata, va_list ap)
 	return (rv);
 }
 
-
 #ifdef HESIOD
 /*
  * dns backend
@@ -934,12 +902,11 @@ dns_endstate(void *p)
 	free(p);
 }
 
-
 static int
 dns_setgrent(void *retval, void *cb_data, va_list ap)
 {
-	struct dns_state	*st;
-	int			 rv;
+	struct dns_state *st;
+	int rv;
 
 	rv = dns_getstate(&st);
 	if (rv != 0)
@@ -948,20 +915,19 @@ dns_setgrent(void *retval, void *cb_data, va_list ap)
 	return (NS_UNAVAIL);
 }
 
-
 static int
 dns_group(void *retval, void *mdata, va_list ap)
 {
-	char			 buf[HESIOD_NAME_MAX];
-	struct dns_state	*st;
-	struct group		*grp;
-	const char		*name, *label;
-	void			*ctx;
-	char			*buffer, **hes;
-	size_t			 bufsize, adjsize, linesize;
-	gid_t			 gid;
-	enum nss_lookup_type	 how;
-	int			 rv, *errnop;
+	char buf[HESIOD_NAME_MAX];
+	struct dns_state *st;
+	struct group *grp;
+	const char *name, *label;
+	void *ctx;
+	char *buffer, **hes;
+	size_t bufsize, adjsize, linesize;
+	gid_t gid;
+	enum nss_lookup_type how;
+	int rv, *errnop;
 
 	ctx = NULL;
 	hes = NULL;
@@ -978,10 +944,10 @@ dns_group(void *retval, void *mdata, va_list ap)
 	case nss_lt_all:
 		break;
 	}
-	grp     = va_arg(ap, struct group *);
-	buffer  = va_arg(ap, char *);
+	grp = va_arg(ap, struct group *);
+	buffer = va_arg(ap, char *);
 	bufsize = va_arg(ap, size_t);
-	errnop  = va_arg(ap, int *);
+	errnop = va_arg(ap, int *);
 	*errnop = dns_getstate(&st);
 	if (*errnop != 0)
 		return (NS_UNAVAIL);
@@ -998,7 +964,7 @@ dns_group(void *retval, void *mdata, va_list ap)
 			break;
 		case nss_lt_id:
 			if (snprintf(buf, sizeof(buf), "%lu",
-			    (unsigned long)gid) >= sizeof(buf))
+				(unsigned long)gid) >= sizeof(buf))
 				goto fin;
 			label = buf;
 			break;
@@ -1006,7 +972,7 @@ dns_group(void *retval, void *mdata, va_list ap)
 			if (st->counter < 0)
 				goto fin;
 			if (snprintf(buf, sizeof(buf), "group-%ld",
-			    st->counter++) >= sizeof(buf))
+				st->counter++) >= sizeof(buf))
 				goto fin;
 			label = buf;
 			break;
@@ -1014,7 +980,7 @@ dns_group(void *retval, void *mdata, va_list ap)
 		hes = hesiod_resolve(ctx, label,
 		    how == nss_lt_id ? "gid" : "group");
 		if ((how == nss_lt_id && hes == NULL &&
-		    (hes = hesiod_resolve(ctx, buf, "group")) == NULL) ||
+			(hes = hesiod_resolve(ctx, buf, "group")) == NULL) ||
 		    hes == NULL) {
 			if (how == nss_lt_all)
 				st->counter = -1;
@@ -1055,7 +1021,6 @@ fin:
 }
 #endif /* HESIOD */
 
-
 #ifdef YP
 /*
  * nis backend
@@ -1070,12 +1035,11 @@ nis_endstate(void *p)
 	free(p);
 }
 
-
 static int
 nis_setgrent(void *retval, void *cb_data, va_list ap)
 {
-	struct nis_state	*st;
-	int			 rv;
+	struct nis_state *st;
+	int rv;
 
 	rv = nis_getstate(&st);
 	if (rv != 0)
@@ -1086,20 +1050,19 @@ nis_setgrent(void *retval, void *cb_data, va_list ap)
 	return (NS_UNAVAIL);
 }
 
-
 static int
 nis_group(void *retval, void *mdata, va_list ap)
 {
-	char		 *map;
+	char *map;
 	struct nis_state *st;
-	struct group	*grp;
-	const char	*name;
-	char		*buffer, *key, *result;
-	size_t		 bufsize;
-	gid_t		 gid;
+	struct group *grp;
+	const char *name;
+	char *buffer, *key, *result;
+	size_t bufsize;
+	gid_t gid;
 	enum nss_lookup_type how;
-	int		*errnop, keylen, resultlen, rv;
-	
+	int *errnop, keylen, resultlen, rv;
+
 	name = NULL;
 	gid = (gid_t)-1;
 	how = (enum nss_lookup_type)(uintptr_t)mdata;
@@ -1116,10 +1079,10 @@ nis_group(void *retval, void *mdata, va_list ap)
 		map = "group.byname";
 		break;
 	}
-	grp     = va_arg(ap, struct group *);
-	buffer  = va_arg(ap, char *);
+	grp = va_arg(ap, struct group *);
+	buffer = va_arg(ap, char *);
 	bufsize = va_arg(ap, size_t);
-	errnop  = va_arg(ap, int *);
+	errnop = va_arg(ap, int *);
 	*errnop = nis_getstate(&st);
 	if (*errnop != 0)
 		return (NS_UNAVAIL);
@@ -1139,7 +1102,7 @@ nis_group(void *retval, void *mdata, va_list ap)
 			break;
 		case nss_lt_id:
 			if (snprintf(buffer, bufsize, "%lu",
-			    (unsigned long)gid) >= bufsize)
+				(unsigned long)gid) >= bufsize)
 				goto erange;
 			break;
 		case nss_lt_all:
@@ -1157,8 +1120,7 @@ nis_group(void *retval, void *mdata, va_list ap)
 				keylen = st->keylen;
 				st->key = NULL;
 				rv = yp_next(st->domain, map, key, keylen,
-				    &st->key, &st->keylen, &result,
-				    &resultlen);
+				    &st->key, &st->keylen, &result, &resultlen);
 				free(key);
 			}
 			if (rv != 0) {
@@ -1198,20 +1160,18 @@ nis_group(void *retval, void *mdata, va_list ap)
 		rv = __gr_match_entry(buffer, resultlen, how, name, gid);
 		if (rv == NS_SUCCESS)
 			rv = __gr_parse_entry(buffer, resultlen, grp,
-			    &buffer[resultlen+1], bufsize - resultlen - 1,
+			    &buffer[resultlen + 1], bufsize - resultlen - 1,
 			    errnop);
 	} while (how == nss_lt_all && !(rv & NS_TERMINATE));
 fin:
 	if (rv == NS_SUCCESS && retval != NULL)
 		*(struct group **)retval = grp;
-	return (rv);	
+	return (rv);
 erange:
 	*errnop = ERANGE;
 	return (NS_RETURN);
 }
 #endif /* YP */
-
-
 
 /*
  * compat backend
@@ -1229,7 +1189,6 @@ compat_endstate(void *p)
 		fclose(st->fp);
 	free(p);
 }
-
 
 static int
 compat_setgrent(void *retval, void *mdata, va_list ap)
@@ -1250,13 +1209,14 @@ compat_setgrent(void *retval, void *mdata, va_list ap)
 		{ NULL, NULL, NULL }
 	};
 	struct compat_state *st;
-	int		 rv, stayopen;
+	int rv, stayopen;
 
-#define set_setent(x, y) do {	 				\
-	int i;							\
-	for (i = 0; i < (int)(nitems(x) - 1); i++)		\
-		x[i].mdata = (void *)y;				\
-} while (0)
+#define set_setent(x, y)                                   \
+	do {                                               \
+		int i;                                     \
+		for (i = 0; i < (int)(nitems(x) - 1); i++) \
+			x[i].mdata = (void *)y;            \
+	} while (0)
 
 	rv = compat_getstate(&st);
 	if (rv != 0)
@@ -1292,7 +1252,6 @@ compat_setgrent(void *retval, void *mdata, va_list ap)
 #undef set_setent
 }
 
-
 static int
 compat_group(void *retval, void *mdata, va_list ap)
 {
@@ -1311,22 +1270,23 @@ compat_group(void *retval, void *mdata, va_list ap)
 #endif
 		{ NULL, NULL, NULL }
 	};
-	struct compat_state	*st;
-	enum nss_lookup_type	 how;
-	const char		*name, *line;
-	struct group		*grp;
-	gid_t			 gid;
-	char			*buffer, *p;
-	void			*discard;
-	size_t			 bufsize, linesize;
-	off_t			 pos;
-	int			 fresh, rv, stayopen, *errnop;
+	struct compat_state *st;
+	enum nss_lookup_type how;
+	const char *name, *line;
+	struct group *grp;
+	gid_t gid;
+	char *buffer, *p;
+	void *discard;
+	size_t bufsize, linesize;
+	off_t pos;
+	int fresh, rv, stayopen, *errnop;
 
-#define set_lookup_type(x, y) do { 				\
-	int i;							\
-	for (i = 0; i < (int)(nitems(x) - 1); i++)		\
-		x[i].mdata = (void *)y;				\
-} while (0)
+#define set_lookup_type(x, y)                              \
+	do {                                               \
+		int i;                                     \
+		for (i = 0; i < (int)(nitems(x) - 1); i++) \
+			x[i].mdata = (void *)y;            \
+	} while (0)
 
 	fresh = 0;
 	name = NULL;
@@ -1382,8 +1342,8 @@ docompat:
 			break;
 		case nss_lt_name:
 			rv = _nsdispatch(&discard, dtab, NSDB_GROUP_COMPAT,
-			    "getgrnam_r", compatsrc, name, grp, buffer,
-			    bufsize, errnop);
+			    "getgrnam_r", compatsrc, name, grp, buffer, bufsize,
+			    errnop);
 			break;
 		}
 		if (rv & NS_TERMINATE)
@@ -1426,7 +1386,7 @@ docompat:
 	}
 	rv = NS_NOTFOUND;
 	while ((line = fgetln(st->fp, &linesize)) != NULL) {
-		if (line[linesize-1] == '\n')
+		if (line[linesize - 1] == '\n')
 			linesize--;
 		if (linesize > 2 && line[0] == '+') {
 			p = memchr(&line[1], ':', linesize);
@@ -1436,7 +1396,7 @@ docompat:
 				st->name = malloc(p - line);
 				if (st->name == NULL) {
 					syslog(LOG_ERR,
-					 "getgrent memory allocation failure");
+					    "getgrent memory allocation failure");
 					*errnop = ENOMEM;
 					rv = NS_UNAVAIL;
 					break;
@@ -1446,7 +1406,7 @@ docompat:
 				st->compat = COMPAT_MODE_NAME;
 			}
 			goto docompat;
-		} 
+		}
 		rv = __gr_match_entry(line, linesize, how, name, gid);
 		if (rv != NS_SUCCESS)
 			continue;
@@ -1461,7 +1421,7 @@ docompat:
 		}
 		memcpy(buffer, line, linesize);
 		buffer[linesize] = '\0';
-		rv = __gr_parse_entry(buffer, linesize, grp, 
+		rv = __gr_parse_entry(buffer, linesize, grp,
 		    &buffer[linesize + 1], bufsize - linesize - 1, errnop);
 		if (rv & NS_TERMINATE)
 			break;
@@ -1483,7 +1443,6 @@ fin:
 #undef set_lookup_type
 }
 
-
 /*
  * common group line matching and parsing
  */
@@ -1491,18 +1450,24 @@ int
 __gr_match_entry(const char *line, size_t linesize, enum nss_lookup_type how,
     const char *name, gid_t gid)
 {
-	size_t		 namesize;
-	const char	*p, *eol;
-	char		*q;
-	unsigned long	 n;
-	int		 i, needed;
+	size_t namesize;
+	const char *p, *eol;
+	char *q;
+	unsigned long n;
+	int i, needed;
 
 	if (linesize == 0 || is_comment_line(line, linesize))
 		return (NS_NOTFOUND);
 	switch (how) {
-	case nss_lt_name:	needed = 1; break;
-	case nss_lt_id:		needed = 2; break;
-	default:		needed = 2; break;
+	case nss_lt_name:
+		needed = 1;
+		break;
+	case nss_lt_id:
+		needed = 2;
+		break;
+	default:
+		needed = 2;
+		break;
 	}
 	eol = &line[linesize];
 	for (p = line, i = 0; i < needed && p < eol; p++)
@@ -1530,25 +1495,22 @@ __gr_match_entry(const char *line, size_t linesize, enum nss_lookup_type how,
 	return (NS_NOTFOUND);
 }
 
-
 int
 __gr_parse_entry(char *line, size_t linesize, struct group *grp, char *membuf,
     size_t membufsize, int *errnop)
 {
-	char	       *s_gid, *s_mem, *p, **members;
-	unsigned long	n;
-	int		maxmembers;
+	char *s_gid, *s_mem, *p, **members;
+	unsigned long n;
+	int maxmembers;
 
 	memset(grp, 0, sizeof(*grp));
 	members = (char **)_ALIGN(membuf);
 	membufsize -= (char *)members - membuf;
 	maxmembers = membufsize / sizeof(*members);
-	if (maxmembers <= 0 ||
-	    (grp->gr_name = strsep(&line, ":")) == NULL ||
+	if (maxmembers <= 0 || (grp->gr_name = strsep(&line, ":")) == NULL ||
 	    grp->gr_name[0] == '\0' ||
 	    (grp->gr_passwd = strsep(&line, ":")) == NULL ||
-	    (s_gid = strsep(&line, ":")) == NULL ||
-	    s_gid[0] == '\0')
+	    (s_gid = strsep(&line, ":")) == NULL || s_gid[0] == '\0')
 		return (NS_NOTFOUND);
 	s_mem = line;
 	n = strtoul(s_gid, &s_gid, 10);
@@ -1571,5 +1533,3 @@ __gr_parse_entry(char *line, size_t linesize, struct group *grp, char *membuf,
 		return (NS_RETURN);
 	}
 }
-
-

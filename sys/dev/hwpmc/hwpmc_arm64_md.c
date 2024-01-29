@@ -60,8 +60,8 @@ pmc_save_kernel_callchain(uintptr_t *cc, int maxsamples, struct trapframe *tf)
 	struct unwind_state frame;
 	int count;
 
-	KASSERT(TRAPF_USERMODE(tf) == 0,("[arm64,%d] not a kernel backtrace",
-	    __LINE__));
+	KASSERT(TRAPF_USERMODE(tf) == 0,
+	    ("[arm64,%d] not a kernel backtrace", __LINE__));
 
 	frame.pc = PMC_TRAPFRAME_TO_PC(tf);
 	*cc++ = frame.pc;
@@ -85,14 +85,13 @@ pmc_save_kernel_callchain(uintptr_t *cc, int maxsamples, struct trapframe *tf)
 }
 
 int
-pmc_save_user_callchain(uintptr_t *cc, int maxsamples,
-    struct trapframe *tf)
+pmc_save_user_callchain(uintptr_t *cc, int maxsamples, struct trapframe *tf)
 {
 	uintptr_t pc, r, oldfp, fp;
 	int count;
 
-	KASSERT(TRAPF_USERMODE(tf), ("[arm64,%d] Not a user trap frame tf=%p",
-	    __LINE__, (void *) tf));
+	KASSERT(TRAPF_USERMODE(tf),
+	    ("[arm64,%d] Not a user trap frame tf=%p", __LINE__, (void *)tf));
 
 	pc = PMC_TRAPFRAME_TO_PC(tf);
 	*cc++ = pc;
@@ -102,8 +101,7 @@ pmc_save_user_callchain(uintptr_t *cc, int maxsamples,
 
 	oldfp = fp = PMC_TRAPFRAME_TO_FP(tf);
 
-	if (!PMC_IN_USERSPACE(pc) ||
-	    !PMC_IN_USERSPACE(fp))
+	if (!PMC_IN_USERSPACE(pc) || !PMC_IN_USERSPACE(fp))
 		return (1);
 
 	for (count = 1; count < maxsamples; count++) {

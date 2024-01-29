@@ -29,21 +29,21 @@
  */
 
 #if !defined(__BWSTRING_H__)
-#define	__BWSTRING_H__
+#define __BWSTRING_H__
 
+#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <errno.h>
 #include <sysexits.h>
 #include <wchar.h>
 
-#include "sort.h"
 #include "mem.h"
+#include "sort.h"
 
 extern bool byte_sort;
 
 /* wchar_t is of 4 bytes: */
-#define	SIZEOF_WCHAR_STRING(LEN) ((LEN)*sizeof(wchar_t))
+#define SIZEOF_WCHAR_STRING(LEN) ((LEN) * sizeof(wchar_t))
 
 struct wstr {
 	size_t len;
@@ -58,8 +58,7 @@ struct cstr {
 /*
  * Binary "wide" string
  */
-struct bwstring
-{
+struct bwstring {
 	union {
 		struct wstr wdata;
 		struct cstr cdata;
@@ -68,11 +67,11 @@ struct bwstring
 
 typedef void *bwstring_iterator;
 
-#define	BWSLEN(s) ((mb_cur_max == 1) ? (s)->cdata.len : (s)->wdata.len)
+#define BWSLEN(s) ((mb_cur_max == 1) ? (s)->cdata.len : (s)->wdata.len)
 struct bwstring *bwsalloc(size_t sz);
 
 size_t bwsrawlen(const struct bwstring *bws);
-const void* bwsrawdata(const struct bwstring *bws);
+const void *bwsrawdata(const struct bwstring *bws);
 void bws_setlen(struct bwstring *bws, size_t newlen);
 size_t bws_memsize(const struct bwstring *bws);
 double bwstod(struct bwstring *s0, bool *empty);
@@ -83,17 +82,22 @@ struct bwstring *ignore_nonprinting(struct bwstring *str);
 struct bwstring *dictionary_order(struct bwstring *str);
 struct bwstring *ignore_case(struct bwstring *str);
 
-void bwsprintf(FILE*, struct bwstring*, const char *prefix, const char *suffix);
+void bwsprintf(FILE *, struct bwstring *, const char *prefix,
+    const char *suffix);
 void bws_disorder_warnx(struct bwstring *s, const char *fn, size_t pos);
 
 struct bwstring *bwsdup(const struct bwstring *s);
 struct bwstring *bwssbdup(const wchar_t *str, size_t size);
 struct bwstring *bwscsbdup(const unsigned char *str, size_t size);
 void bwsfree(const struct bwstring *s);
-struct bwstring *bwsnocpy(struct bwstring *dst, const struct bwstring *src, size_t offset, size_t size);
-int bwscmp(const struct bwstring *bws1, const struct bwstring *bws2, size_t offset);
-int bwsncmp(const struct bwstring *bws1, const struct bwstring *bws2, size_t offset, size_t len);
-int bwscoll(const struct bwstring *bws1, const struct bwstring *bws2, size_t offset);
+struct bwstring *bwsnocpy(struct bwstring *dst, const struct bwstring *src,
+    size_t offset, size_t size);
+int bwscmp(const struct bwstring *bws1, const struct bwstring *bws2,
+    size_t offset);
+int bwsncmp(const struct bwstring *bws1, const struct bwstring *bws2,
+    size_t offset, size_t len);
+int bwscoll(const struct bwstring *bws1, const struct bwstring *bws2,
+    size_t offset);
 size_t bwsfwrite(struct bwstring *bws, FILE *f, bool zero_ended);
 
 static inline bwstring_iterator
@@ -108,8 +112,8 @@ bws_end(struct bwstring *bws)
 {
 
 	return ((mb_cur_max == 1) ?
-	    (bwstring_iterator) (bws->cdata.str + bws->cdata.len) :
-	    (bwstring_iterator) (bws->wdata.str + bws->wdata.len));
+		(bwstring_iterator)(bws->cdata.str + bws->cdata.len) :
+		(bwstring_iterator)(bws->wdata.str + bws->wdata.len));
 }
 
 static inline bwstring_iterator
@@ -117,9 +121,9 @@ bws_iterator_inc(bwstring_iterator iter, size_t pos)
 {
 
 	if (mb_cur_max == 1)
-		return ((unsigned char *) iter) + pos;
+		return ((unsigned char *)iter) + pos;
 	else
-		return ((wchar_t*) iter) + pos;
+		return ((wchar_t *)iter) + pos;
 }
 
 static inline wchar_t
@@ -127,15 +131,16 @@ bws_get_iter_value(bwstring_iterator iter)
 {
 
 	if (mb_cur_max == 1)
-		return *((unsigned char *) iter);
+		return *((unsigned char *)iter);
 	else
-		return *((wchar_t*) iter);
+		return *((wchar_t *)iter);
 }
 
-int
-bws_iterator_cmp(bwstring_iterator iter1, bwstring_iterator iter2, size_t len);
+int bws_iterator_cmp(bwstring_iterator iter1, bwstring_iterator iter2,
+    size_t len);
 
-#define	BWS_GET(bws, pos) ((mb_cur_max == 1) ? (bws->cdata.str[(pos)]) : bws->wdata.str[(pos)])
+#define BWS_GET(bws, pos) \
+	((mb_cur_max == 1) ? (bws->cdata.str[(pos)]) : bws->wdata.str[(pos)])
 
 void initialise_months(void);
 

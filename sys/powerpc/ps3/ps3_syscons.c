@@ -28,12 +28,12 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/sysctl.h>
-#include <sys/limits.h>
 #include <sys/conf.h>
 #include <sys/cons.h>
 #include <sys/fbio.h>
+#include <sys/kernel.h>
+#include <sys/limits.h>
+#include <sys/sysctl.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
@@ -41,31 +41,31 @@
 #include <machine/platform.h>
 
 #include <dev/ofw/openfirm.h>
-#include <dev/vt/vt.h>
-#include <dev/vt/hw/fb/vt_fb.h>
 #include <dev/vt/colors/vt_termcolors.h>
+#include <dev/vt/hw/fb/vt_fb.h>
+#include <dev/vt/vt.h>
 
 #include "ps3-hvcall.h"
 
-#define L1GPU_CONTEXT_ATTRIBUTE_DISPLAY_MODE_SET	0x0100
-#define L1GPU_CONTEXT_ATTRIBUTE_DISPLAY_SYNC		0x0101
-#define  L1GPU_DISPLAY_SYNC_HSYNC			1
-#define  L1GPU_DISPLAY_SYNC_VSYNC			2
-#define L1GPU_CONTEXT_ATTRIBUTE_DISPLAY_FLIP		0x0102
+#define L1GPU_CONTEXT_ATTRIBUTE_DISPLAY_MODE_SET 0x0100
+#define L1GPU_CONTEXT_ATTRIBUTE_DISPLAY_SYNC 0x0101
+#define L1GPU_DISPLAY_SYNC_HSYNC 1
+#define L1GPU_DISPLAY_SYNC_VSYNC 2
+#define L1GPU_CONTEXT_ATTRIBUTE_DISPLAY_FLIP 0x0102
 
 static vd_init_t ps3fb_init;
 static vd_probe_t ps3fb_probe;
 void ps3fb_remap(void);
 
 struct ps3fb_softc {
-	struct fb_info	fb_info;
+	struct fb_info fb_info;
 
-	uint64_t	sc_fbhandle;
-	uint64_t	sc_fbcontext;
-	uint64_t	sc_dma_control;
-	uint64_t	sc_driver_info;
-	uint64_t	sc_reports;
-	uint64_t	sc_reports_size;
+	uint64_t sc_fbhandle;
+	uint64_t sc_fbcontext;
+	uint64_t sc_dma_control;
+	uint64_t sc_driver_info;
+	uint64_t sc_reports;
+	uint64_t sc_reports_size;
 };
 
 static struct vt_driver vt_ps3fb_driver = {
@@ -104,7 +104,7 @@ ps3fb_probe(struct vt_device *vd)
 
 	root = OF_finddevice("/");
 	if (OF_getprop(root, "compatible", compatible, sizeof(compatible)) <= 0)
-                return (CN_DEAD);
+		return (CN_DEAD);
 
 	if (strncmp(compatible, "sony,ps3", sizeof(compatible)) != 0)
 		return (CN_DEAD);
@@ -124,15 +124,15 @@ ps3fb_remap(void)
 	lv1_gpu_open(0);
 
 	lv1_gpu_context_attribute(0, L1GPU_CONTEXT_ATTRIBUTE_DISPLAY_MODE_SET,
-	    0,0,0,0);
+	    0, 0, 0, 0);
 	lv1_gpu_context_attribute(0, L1GPU_CONTEXT_ATTRIBUTE_DISPLAY_MODE_SET,
-	    0,0,1,0);
-	lv1_gpu_context_attribute(0, L1GPU_CONTEXT_ATTRIBUTE_DISPLAY_SYNC,
-	    0,L1GPU_DISPLAY_SYNC_VSYNC,0,0);
-	lv1_gpu_context_attribute(0, L1GPU_CONTEXT_ATTRIBUTE_DISPLAY_SYNC,
-	    1,L1GPU_DISPLAY_SYNC_VSYNC,0,0);
-	lv1_gpu_memory_allocate(roundup2(sc->fb_info.fb_size, 1024*1024),
-	    0, 0, 0, 0, &sc->sc_fbhandle, &fb_paddr);
+	    0, 0, 1, 0);
+	lv1_gpu_context_attribute(0, L1GPU_CONTEXT_ATTRIBUTE_DISPLAY_SYNC, 0,
+	    L1GPU_DISPLAY_SYNC_VSYNC, 0, 0);
+	lv1_gpu_context_attribute(0, L1GPU_CONTEXT_ATTRIBUTE_DISPLAY_SYNC, 1,
+	    L1GPU_DISPLAY_SYNC_VSYNC, 0, 0);
+	lv1_gpu_memory_allocate(roundup2(sc->fb_info.fb_size, 1024 * 1024), 0,
+	    0, 0, 0, &sc->sc_fbhandle, &fb_paddr);
 	lv1_gpu_context_allocate(sc->sc_fbhandle, 0, &sc->sc_fbcontext,
 	    &sc->sc_dma_control, &sc->sc_driver_info, &sc->sc_reports,
 	    &sc->sc_reports_size);
@@ -209,7 +209,7 @@ ps3fb_init(struct vt_device *vd)
 	TUNABLE_INT_FETCH("hw.ps3fb.height", &sc->fb_info.fb_height);
 	TUNABLE_INT_FETCH("hw.ps3fb.width", &sc->fb_info.fb_width);
 
-	sc->fb_info.fb_stride = sc->fb_info.fb_width*4;
+	sc->fb_info.fb_stride = sc->fb_info.fb_width * 4;
 	sc->fb_info.fb_size = sc->fb_info.fb_height * sc->fb_info.fb_stride;
 	sc->fb_info.fb_bpp = sc->fb_info.fb_stride / sc->fb_info.fb_width * 8;
 
@@ -222,8 +222,8 @@ ps3fb_init(struct vt_device *vd)
 	sc->fb_info.fb_cmsize = 16;
 
 	/* 32-bit VGA palette */
-	vt_config_cons_colors(&sc->fb_info, COLOR_FORMAT_RGB,
-	    255, 16, 255, 8, 255, 0);
+	vt_config_cons_colors(&sc->fb_info, COLOR_FORMAT_RGB, 255, 16, 255, 8,
+	    255, 0);
 
 	/* Set correct graphics context */
 	lv1_gpu_context_attribute(sc->sc_fbcontext,

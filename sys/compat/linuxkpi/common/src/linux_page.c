@@ -28,43 +28,42 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
 #include <sys/kernel.h>
-#include <sys/sysctl.h>
 #include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/rwlock.h>
-#include <sys/proc.h>
-#include <sys/sched.h>
+#include <sys/malloc.h>
 #include <sys/memrange.h>
-
-#include <machine/bus.h>
+#include <sys/mutex.h>
+#include <sys/proc.h>
+#include <sys/rwlock.h>
+#include <sys/sched.h>
+#include <sys/sysctl.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
-#include <vm/vm_param.h>
+#include <vm/uma.h>
+#include <vm/uma_int.h>
+#include <vm/vm_extern.h>
 #include <vm/vm_kern.h>
-#include <vm/vm_object.h>
 #include <vm/vm_map.h>
+#include <vm/vm_object.h>
 #include <vm/vm_page.h>
 #include <vm/vm_pageout.h>
 #include <vm/vm_pager.h>
+#include <vm/vm_param.h>
 #include <vm/vm_radix.h>
 #include <vm/vm_reserv.h>
-#include <vm/vm_extern.h>
 
-#include <vm/uma.h>
-#include <vm/uma_int.h>
+#include <machine/bus.h>
 
+#include <linux/fs.h>
 #include <linux/gfp.h>
+#include <linux/idr.h>
+#include <linux/io-mapping.h>
+#include <linux/io.h>
+#include <linux/kernel.h>
 #include <linux/mm.h>
 #include <linux/preempt.h>
-#include <linux/fs.h>
 #include <linux/shmem_fs.h>
-#include <linux/kernel.h>
-#include <linux/idr.h>
-#include <linux/io.h>
-#include <linux/io-mapping.h>
 
 #ifdef __i386__
 DEFINE_IDR(mtrr_idr);
@@ -88,8 +87,8 @@ linux_page_address(struct page *page)
 
 	if (page->object != kernel_object) {
 		return (PMAP_HAS_DMAP ?
-		    ((void *)(uintptr_t)PHYS_TO_DMAP(page_to_phys(page))) :
-		    NULL);
+			((void *)(uintptr_t)PHYS_TO_DMAP(page_to_phys(page))) :
+			NULL);
 	}
 	return ((void *)(uintptr_t)(VM_MIN_KERNEL_ADDRESS +
 	    IDX_TO_OFF(page->pindex)));
@@ -112,7 +111,8 @@ linux_alloc_pages(gfp_t flags, unsigned int order)
 				return (NULL);
 		} else {
 			vm_paddr_t pmax = (flags & GFP_DMA32) ?
-			    BUS_SPACE_MAXADDR_32BIT : BUS_SPACE_MAXADDR;
+			    BUS_SPACE_MAXADDR_32BIT :
+			    BUS_SPACE_MAXADDR;
 		retry:
 			page = vm_page_alloc_noobj_contig(req, npages, 0, pmax,
 			    PAGE_SIZE, 0, VM_MEMATTR_DEFAULT);
@@ -217,7 +217,8 @@ linux_get_user_pages_internal(vm_map_t map, unsigned long start, int nr_pages,
 
 	prot = write ? (VM_PROT_READ | VM_PROT_WRITE) : VM_PROT_READ;
 	len = ptoa((vm_offset_t)nr_pages);
-	count = vm_fault_quick_hold_pages(map, start, len, prot, pages, nr_pages);
+	count = vm_fault_quick_hold_pages(map, start, len, prot, pages,
+	    nr_pages);
 	return (count == -1 ? -EFAULT : nr_pages);
 }
 
@@ -242,7 +243,7 @@ __get_user_pages_fast(unsigned long start, int nr_pages, int write,
 		return (-EINVAL);
 	prot = write ? (VM_PROT_READ | VM_PROT_WRITE) : VM_PROT_READ;
 	for (count = 0, mp = pages, va = start; va < end;
-	    mp++, va += PAGE_SIZE, count++) {
+	     mp++, va += PAGE_SIZE, count++) {
 		*mp = pmap_extract_and_hold(map->pmap, va, prot);
 		if (*mp == NULL)
 			break;
@@ -330,7 +331,8 @@ retry:
 					vm_page_xunbusy(page);
 					VM_OBJECT_WUNLOCK(tmp_obj);
 					printf("%s: page rename failed: page "
-					    "is mapped\n", __func__);
+					       "is mapped\n",
+					    __func__);
 					VM_OBJECT_WLOCK(vm_obj);
 					return (VM_FAULT_NOPAGE);
 				}
@@ -363,11 +365,10 @@ lkpi_remap_pfn_range(struct vm_area_struct *vma, unsigned long start_addr,
 	vm_obj = vma->vm_obj;
 
 	VM_OBJECT_WLOCK(vm_obj);
-	for (addr = start_addr, pfn = start_pfn;
-	    addr < start_addr + size;
-	    addr += PAGE_SIZE) {
+	for (addr = start_addr, pfn = start_pfn; addr < start_addr + size;
+	     addr += PAGE_SIZE) {
 		vm_fault_t ret;
-retry:
+	retry:
 		ret = lkpi_vmf_insert_pfn_prot_locked(vma, addr, pfn, prot);
 
 		if ((ret & VM_FAULT_OOM) != 0) {
@@ -387,8 +388,7 @@ retry:
 	VM_OBJECT_WUNLOCK(vm_obj);
 
 	if (unlikely(err)) {
-		zap_vma_ptes(vma, start_addr,
-		    (pfn - start_pfn) << PAGE_SHIFT);
+		zap_vma_ptes(vma, start_addr, (pfn - start_pfn) << PAGE_SHIFT);
 		return (err);
 	}
 
@@ -396,9 +396,8 @@ retry:
 }
 
 int
-lkpi_io_mapping_map_user(struct io_mapping *iomap,
-    struct vm_area_struct *vma, unsigned long addr,
-    unsigned long pfn, unsigned long size)
+lkpi_io_mapping_map_user(struct io_mapping *iomap, struct vm_area_struct *vma,
+    unsigned long addr, unsigned long pfn, unsigned long size)
 {
 	pgprot_t prot;
 	int ret;
@@ -429,7 +428,7 @@ lkpi_unmap_mapping_range(void *obj, loff_t const holebegin __unused,
 		page_count = OFF_TO_IDX(holelen);
 
 		VM_OBJECT_WLOCK(devobj);
-retry:
+	retry:
 		for (i = 0; i < page_count; i++) {
 			page = vm_page_lookup(devobj, i);
 			if (page == NULL)
@@ -471,9 +470,8 @@ lkpi_arch_phys_wc_add(unsigned long base, unsigned long size)
 	}
 	if (error != 0) {
 		free(mrdesc, M_LKMTRR);
-		pr_warn(
-		    "Failed to add WC MTRR for [%p-%p]: %d; "
-		    "performance may suffer\n",
+		pr_warn("Failed to add WC MTRR for [%p-%p]: %d; "
+			"performance may suffer\n",
 		    (void *)base, (void *)(base + size - 1), error);
 	} else
 		pr_warn("Successfully added WC MTRR for [%p-%p]\n",
@@ -514,16 +512,17 @@ lkpi_arch_phys_wc_del(int reg)
  * a more elaborate version.
  */
 void *
-linuxkpi_page_frag_alloc(struct page_frag_cache *pfc,
-    size_t fragsz, gfp_t gfp)
+linuxkpi_page_frag_alloc(struct page_frag_cache *pfc, size_t fragsz, gfp_t gfp)
 {
 	vm_page_t pages;
 
 	if (fragsz == 0)
 		return (NULL);
 
-	KASSERT(fragsz <= PAGE_SIZE, ("%s: fragsz %zu > PAGE_SIZE not yet "
-	    "supported", __func__, fragsz));
+	KASSERT(fragsz <= PAGE_SIZE,
+	    ("%s: fragsz %zu > PAGE_SIZE not yet "
+	     "supported",
+		__func__, fragsz));
 
 	pages = alloc_pages(gfp, flsl(howmany(fragsz, PAGE_SIZE) - 1));
 	if (pages == NULL)

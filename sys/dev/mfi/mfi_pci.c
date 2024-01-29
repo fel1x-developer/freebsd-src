@@ -58,104 +58,134 @@
 #include "opt_mfi.h"
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bio.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/eventhandler.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
-#include <sys/module.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/rman.h>
 #include <sys/selinfo.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 #include <sys/uio.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
 
+#include <dev/mfi/mfi_ioctl.h>
+#include <dev/mfi/mfireg.h>
+#include <dev/mfi/mfivar.h>
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
 
-#include <dev/mfi/mfireg.h>
-#include <dev/mfi/mfi_ioctl.h>
-#include <dev/mfi/mfivar.h>
+static int mfi_pci_probe(device_t);
+static int mfi_pci_attach(device_t);
+static int mfi_pci_detach(device_t);
+static int mfi_pci_suspend(device_t);
+static int mfi_pci_resume(device_t);
+static void mfi_pci_free(struct mfi_softc *);
 
-static int	mfi_pci_probe(device_t);
-static int	mfi_pci_attach(device_t);
-static int	mfi_pci_detach(device_t);
-static int	mfi_pci_suspend(device_t);
-static int	mfi_pci_resume(device_t);
-static void	mfi_pci_free(struct mfi_softc *);
+static device_method_t mfi_methods[] = { DEVMETHOD(device_probe, mfi_pci_probe),
+	DEVMETHOD(device_attach, mfi_pci_attach),
+	DEVMETHOD(device_detach, mfi_pci_detach),
+	DEVMETHOD(device_suspend, mfi_pci_suspend),
+	DEVMETHOD(device_resume, mfi_pci_resume),
 
-static device_method_t mfi_methods[] = {
-	DEVMETHOD(device_probe,		mfi_pci_probe),
-	DEVMETHOD(device_attach,	mfi_pci_attach),
-	DEVMETHOD(device_detach,	mfi_pci_detach),
-	DEVMETHOD(device_suspend,	mfi_pci_suspend),
-	DEVMETHOD(device_resume,	mfi_pci_resume),
+	DEVMETHOD_END };
 
-	DEVMETHOD_END
-};
+static driver_t mfi_pci_driver = { "mfi", mfi_methods,
+	sizeof(struct mfi_softc) };
 
-static driver_t mfi_pci_driver = {
-	"mfi",
-	mfi_methods,
-	sizeof(struct mfi_softc)
-};
-
-static int	mfi_msi = 1;
+static int mfi_msi = 1;
 SYSCTL_INT(_hw_mfi, OID_AUTO, msi, CTLFLAG_RDTUN, &mfi_msi, 0,
     "Enable use of MSI interrupts");
 
-static int	mfi_mrsas_enable;
-SYSCTL_INT(_hw_mfi, OID_AUTO, mrsas_enable, CTLFLAG_RDTUN, &mfi_mrsas_enable,
-     0, "Allow mrasas to take newer cards");
+static int mfi_mrsas_enable;
+SYSCTL_INT(_hw_mfi, OID_AUTO, mrsas_enable, CTLFLAG_RDTUN, &mfi_mrsas_enable, 0,
+    "Allow mrasas to take newer cards");
 
 struct mfi_ident {
-	uint16_t	vendor;
-	uint16_t	device;
-	uint16_t	subvendor;
-	uint16_t	subdevice;
-	int		flags;
-	const char	*desc;
-} mfi_identifiers[] = {
-	{0x1000, 0x005b, 0x1028, 0x1fc9, MFI_FLAGS_SKINNY| MFI_FLAGS_TBOLT| MFI_FLAGS_MRSAS, "Dell PERC H840 Adapter"},
-	{0x1000, 0x005b, 0x1028, 0x1f2d, MFI_FLAGS_SKINNY| MFI_FLAGS_TBOLT| MFI_FLAGS_MRSAS, "Dell PERC H810 Adapter"},
-	{0x1000, 0x005b, 0x1028, 0x1f30, MFI_FLAGS_SKINNY| MFI_FLAGS_TBOLT| MFI_FLAGS_MRSAS, "Dell PERC H710 Embedded"},
-	{0x1000, 0x005b, 0x1028, 0x1f31, MFI_FLAGS_SKINNY| MFI_FLAGS_TBOLT| MFI_FLAGS_MRSAS, "Dell PERC H710P Adapter"},
-	{0x1000, 0x005b, 0x1028, 0x1f33, MFI_FLAGS_SKINNY| MFI_FLAGS_TBOLT| MFI_FLAGS_MRSAS, "Dell PERC H710P Mini (blades)"},
-	{0x1000, 0x005b, 0x1028, 0x1f34, MFI_FLAGS_SKINNY| MFI_FLAGS_TBOLT| MFI_FLAGS_MRSAS, "Dell PERC H710P Mini (monolithics)"},
-	{0x1000, 0x005b, 0x1028, 0x1f35, MFI_FLAGS_SKINNY| MFI_FLAGS_TBOLT| MFI_FLAGS_MRSAS, "Dell PERC H710 Adapter"},
-	{0x1000, 0x005b, 0x1028, 0x1f37, MFI_FLAGS_SKINNY| MFI_FLAGS_TBOLT| MFI_FLAGS_MRSAS, "Dell PERC H710 Mini (blades)"},
-	{0x1000, 0x005b, 0x1028, 0x1f38, MFI_FLAGS_SKINNY| MFI_FLAGS_TBOLT| MFI_FLAGS_MRSAS, "Dell PERC H710 Mini (monolithics)"},
-	{0x1000, 0x005b, 0x8086, 0x9265, MFI_FLAGS_SKINNY| MFI_FLAGS_TBOLT| MFI_FLAGS_MRSAS, "Intel (R) RAID Controller RS25DB080"},
-	{0x1000, 0x005b, 0x8086, 0x9285, MFI_FLAGS_SKINNY| MFI_FLAGS_TBOLT| MFI_FLAGS_MRSAS, "Intel (R) RAID Controller RS25NB008"},
-	{0x1000, 0x005b, 0xffff, 0xffff, MFI_FLAGS_SKINNY| MFI_FLAGS_TBOLT| MFI_FLAGS_MRSAS, "ThunderBolt"},
-	{0x1000, 0x005d, 0xffff, 0xffff, MFI_FLAGS_SKINNY| MFI_FLAGS_TBOLT| MFI_FLAGS_MRSAS| MFI_FLAGS_INVADER, "Invader"},
-	{0x1000, 0x005f, 0xffff, 0xffff, MFI_FLAGS_SKINNY| MFI_FLAGS_TBOLT| MFI_FLAGS_MRSAS| MFI_FLAGS_FURY, "Fury"},
-	{0x1000, 0x0060, 0x1028, 0xffff, MFI_FLAGS_1078,  "Dell PERC 6"},
-	{0x1000, 0x0060, 0xffff, 0xffff, MFI_FLAGS_1078,  "LSI MegaSAS 1078"},
-	{0x1000, 0x0071, 0xffff, 0xffff, MFI_FLAGS_SKINNY, "Drake Skinny"},
-	{0x1000, 0x0073, 0xffff, 0xffff, MFI_FLAGS_SKINNY, "Drake Skinny"},
-	{0x1000, 0x0078, 0xffff, 0xffff, MFI_FLAGS_GEN2,  "LSI MegaSAS Gen2"},
-	{0x1000, 0x0079, 0x1028, 0x1f15, MFI_FLAGS_GEN2,  "Dell PERC H800 Adapter"},
-	{0x1000, 0x0079, 0x1028, 0x1f16, MFI_FLAGS_GEN2,  "Dell PERC H700 Adapter"},
-	{0x1000, 0x0079, 0x1028, 0x1f17, MFI_FLAGS_GEN2,  "Dell PERC H700 Integrated"},
-	{0x1000, 0x0079, 0x1028, 0x1f18, MFI_FLAGS_GEN2,  "Dell PERC H700 Modular"},
-	{0x1000, 0x0079, 0x1028, 0x1f19, MFI_FLAGS_GEN2,  "Dell PERC H700"},
-	{0x1000, 0x0079, 0x1028, 0x1f1a, MFI_FLAGS_GEN2,  "Dell PERC H800 Proto Adapter"},
-	{0x1000, 0x0079, 0x1028, 0x1f1b, MFI_FLAGS_GEN2,  "Dell PERC H800"},
-	{0x1000, 0x0079, 0x1028, 0xffff, MFI_FLAGS_GEN2,  "Dell PERC Gen2"},
-	{0x1000, 0x0079, 0xffff, 0xffff, MFI_FLAGS_GEN2,  "LSI MegaSAS Gen2"},
-	{0x1000, 0x007c, 0xffff, 0xffff, MFI_FLAGS_1078,  "LSI MegaSAS 1078"},
-	{0x1000, 0x0411, 0xffff, 0xffff, MFI_FLAGS_1064R, "LSI MegaSAS 1064R"}, /* Brocton IOP */
-	{0x1000, 0x0413, 0xffff, 0xffff, MFI_FLAGS_1064R, "LSI MegaSAS 1064R"}, /* Verde ZCR */
-	{0x1028, 0x0015, 0xffff, 0xffff, MFI_FLAGS_1064R, "Dell PERC 5/i"},
-	{0, 0, 0, 0, 0, NULL}
-};
+	uint16_t vendor;
+	uint16_t device;
+	uint16_t subvendor;
+	uint16_t subdevice;
+	int flags;
+	const char *desc;
+} mfi_identifiers[] = { { 0x1000, 0x005b, 0x1028, 0x1fc9,
+			    MFI_FLAGS_SKINNY | MFI_FLAGS_TBOLT |
+				MFI_FLAGS_MRSAS,
+			    "Dell PERC H840 Adapter" },
+	{ 0x1000, 0x005b, 0x1028, 0x1f2d,
+	    MFI_FLAGS_SKINNY | MFI_FLAGS_TBOLT | MFI_FLAGS_MRSAS,
+	    "Dell PERC H810 Adapter" },
+	{ 0x1000, 0x005b, 0x1028, 0x1f30,
+	    MFI_FLAGS_SKINNY | MFI_FLAGS_TBOLT | MFI_FLAGS_MRSAS,
+	    "Dell PERC H710 Embedded" },
+	{ 0x1000, 0x005b, 0x1028, 0x1f31,
+	    MFI_FLAGS_SKINNY | MFI_FLAGS_TBOLT | MFI_FLAGS_MRSAS,
+	    "Dell PERC H710P Adapter" },
+	{ 0x1000, 0x005b, 0x1028, 0x1f33,
+	    MFI_FLAGS_SKINNY | MFI_FLAGS_TBOLT | MFI_FLAGS_MRSAS,
+	    "Dell PERC H710P Mini (blades)" },
+	{ 0x1000, 0x005b, 0x1028, 0x1f34,
+	    MFI_FLAGS_SKINNY | MFI_FLAGS_TBOLT | MFI_FLAGS_MRSAS,
+	    "Dell PERC H710P Mini (monolithics)" },
+	{ 0x1000, 0x005b, 0x1028, 0x1f35,
+	    MFI_FLAGS_SKINNY | MFI_FLAGS_TBOLT | MFI_FLAGS_MRSAS,
+	    "Dell PERC H710 Adapter" },
+	{ 0x1000, 0x005b, 0x1028, 0x1f37,
+	    MFI_FLAGS_SKINNY | MFI_FLAGS_TBOLT | MFI_FLAGS_MRSAS,
+	    "Dell PERC H710 Mini (blades)" },
+	{ 0x1000, 0x005b, 0x1028, 0x1f38,
+	    MFI_FLAGS_SKINNY | MFI_FLAGS_TBOLT | MFI_FLAGS_MRSAS,
+	    "Dell PERC H710 Mini (monolithics)" },
+	{ 0x1000, 0x005b, 0x8086, 0x9265,
+	    MFI_FLAGS_SKINNY | MFI_FLAGS_TBOLT | MFI_FLAGS_MRSAS,
+	    "Intel (R) RAID Controller RS25DB080" },
+	{ 0x1000, 0x005b, 0x8086, 0x9285,
+	    MFI_FLAGS_SKINNY | MFI_FLAGS_TBOLT | MFI_FLAGS_MRSAS,
+	    "Intel (R) RAID Controller RS25NB008" },
+	{ 0x1000, 0x005b, 0xffff, 0xffff,
+	    MFI_FLAGS_SKINNY | MFI_FLAGS_TBOLT | MFI_FLAGS_MRSAS,
+	    "ThunderBolt" },
+	{ 0x1000, 0x005d, 0xffff, 0xffff,
+	    MFI_FLAGS_SKINNY | MFI_FLAGS_TBOLT | MFI_FLAGS_MRSAS |
+		MFI_FLAGS_INVADER,
+	    "Invader" },
+	{ 0x1000, 0x005f, 0xffff, 0xffff,
+	    MFI_FLAGS_SKINNY | MFI_FLAGS_TBOLT | MFI_FLAGS_MRSAS |
+		MFI_FLAGS_FURY,
+	    "Fury" },
+	{ 0x1000, 0x0060, 0x1028, 0xffff, MFI_FLAGS_1078, "Dell PERC 6" },
+	{ 0x1000, 0x0060, 0xffff, 0xffff, MFI_FLAGS_1078, "LSI MegaSAS 1078" },
+	{ 0x1000, 0x0071, 0xffff, 0xffff, MFI_FLAGS_SKINNY, "Drake Skinny" },
+	{ 0x1000, 0x0073, 0xffff, 0xffff, MFI_FLAGS_SKINNY, "Drake Skinny" },
+	{ 0x1000, 0x0078, 0xffff, 0xffff, MFI_FLAGS_GEN2, "LSI MegaSAS Gen2" },
+	{ 0x1000, 0x0079, 0x1028, 0x1f15, MFI_FLAGS_GEN2,
+	    "Dell PERC H800 Adapter" },
+	{ 0x1000, 0x0079, 0x1028, 0x1f16, MFI_FLAGS_GEN2,
+	    "Dell PERC H700 Adapter" },
+	{ 0x1000, 0x0079, 0x1028, 0x1f17, MFI_FLAGS_GEN2,
+	    "Dell PERC H700 Integrated" },
+	{ 0x1000, 0x0079, 0x1028, 0x1f18, MFI_FLAGS_GEN2,
+	    "Dell PERC H700 Modular" },
+	{ 0x1000, 0x0079, 0x1028, 0x1f19, MFI_FLAGS_GEN2, "Dell PERC H700" },
+	{ 0x1000, 0x0079, 0x1028, 0x1f1a, MFI_FLAGS_GEN2,
+	    "Dell PERC H800 Proto Adapter" },
+	{ 0x1000, 0x0079, 0x1028, 0x1f1b, MFI_FLAGS_GEN2, "Dell PERC H800" },
+	{ 0x1000, 0x0079, 0x1028, 0xffff, MFI_FLAGS_GEN2, "Dell PERC Gen2" },
+	{ 0x1000, 0x0079, 0xffff, 0xffff, MFI_FLAGS_GEN2, "LSI MegaSAS Gen2" },
+	{ 0x1000, 0x007c, 0xffff, 0xffff, MFI_FLAGS_1078, "LSI MegaSAS 1078" },
+	{ 0x1000, 0x0411, 0xffff, 0xffff, MFI_FLAGS_1064R,
+	    "LSI MegaSAS 1064R" }, /* Brocton IOP */
+	{ 0x1000, 0x0413, 0xffff, 0xffff, MFI_FLAGS_1064R,
+	    "LSI MegaSAS 1064R" }, /* Verde ZCR */
+	{ 0x1028, 0x0015, 0xffff, 0xffff, MFI_FLAGS_1064R, "Dell PERC 5/i" },
+	{ 0, 0, 0, 0, 0, NULL } };
 
 DRIVER_MODULE(mfi, pci, mfi_pci_driver, 0, 0);
 MODULE_PNP_INFO("U16:vendor;U16:device;U16:subvendor;U16:subdevice", pci, mfi,
@@ -171,9 +201,9 @@ mfi_find_ident(device_t dev)
 		if ((m->vendor == pci_get_vendor(dev)) &&
 		    (m->device == pci_get_device(dev)) &&
 		    ((m->subvendor == pci_get_subvendor(dev)) ||
-		    (m->subvendor == 0xffff)) &&
+			(m->subvendor == 0xffff)) &&
 		    ((m->subdevice == pci_get_subdevice(dev)) ||
-		    (m->subdevice == 0xffff)))
+			(m->subdevice == 0xffff)))
 			return (m);
 	}
 
@@ -218,15 +248,14 @@ mfi_pci_attach(device_t dev)
 	    (sc->mfi_flags & MFI_FLAGS_1078)) {
 		/* 1068/1078: Memory mapped BAR is at offset 0x10 */
 		sc->mfi_regs_rid = PCIR_BAR(0);
-	}
-	else if ((sc->mfi_flags & MFI_FLAGS_GEN2) ||
-		 (sc->mfi_flags & MFI_FLAGS_SKINNY) ||
-		(sc->mfi_flags & MFI_FLAGS_TBOLT)) { 
+	} else if ((sc->mfi_flags & MFI_FLAGS_GEN2) ||
+	    (sc->mfi_flags & MFI_FLAGS_SKINNY) ||
+	    (sc->mfi_flags & MFI_FLAGS_TBOLT)) {
 		/* Gen2/Skinny: Memory mapped BAR is at offset 0x14 */
 		sc->mfi_regs_rid = PCIR_BAR(1);
 	}
 	if ((sc->mfi_regs_resource = bus_alloc_resource_any(sc->mfi_dev,
-	    SYS_RES_MEMORY, &sc->mfi_regs_rid, RF_ACTIVE)) == NULL) {
+		 SYS_RES_MEMORY, &sc->mfi_regs_rid, RF_ACTIVE)) == NULL) {
 		device_printf(dev, "Cannot allocate PCI registers\n");
 		return (ENXIO);
 	}
@@ -236,17 +265,17 @@ mfi_pci_attach(device_t dev)
 	error = ENOMEM;
 
 	/* Allocate parent DMA tag */
-	if (bus_dma_tag_create(	bus_get_dma_tag(dev),	/* PCI parent */
-				1, 0,			/* algnmnt, boundary */
-				BUS_SPACE_MAXADDR,	/* lowaddr */
-				BUS_SPACE_MAXADDR,	/* highaddr */
-				NULL, NULL,		/* filter, filterarg */
-				BUS_SPACE_MAXSIZE_32BIT,/* maxsize */
-				BUS_SPACE_UNRESTRICTED,	/* nsegments */
-				BUS_SPACE_MAXSIZE_32BIT,/* maxsegsize */
-				0,			/* flags */
-				NULL, NULL,		/* lockfunc, lockarg */
-				&sc->mfi_parent_dmat)) {
+	if (bus_dma_tag_create(bus_get_dma_tag(dev), /* PCI parent */
+		1, 0,				     /* algnmnt, boundary */
+		BUS_SPACE_MAXADDR,		     /* lowaddr */
+		BUS_SPACE_MAXADDR,		     /* highaddr */
+		NULL, NULL,			     /* filter, filterarg */
+		BUS_SPACE_MAXSIZE_32BIT,	     /* maxsize */
+		BUS_SPACE_UNRESTRICTED,		     /* nsegments */
+		BUS_SPACE_MAXSIZE_32BIT,	     /* maxsegsize */
+		0,				     /* flags */
+		NULL, NULL,			     /* lockfunc, lockarg */
+		&sc->mfi_parent_dmat)) {
 		device_printf(dev, "Cannot allocate parent DMA tag\n");
 		goto out;
 	}
@@ -259,7 +288,7 @@ mfi_pci_attach(device_t dev)
 		sc->mfi_irq_rid = 1;
 	}
 	if ((sc->mfi_irq = bus_alloc_resource_any(sc->mfi_dev, SYS_RES_IRQ,
-	    &sc->mfi_irq_rid, RF_SHAREABLE | RF_ACTIVE)) == NULL) {
+		 &sc->mfi_irq_rid, RF_SHAREABLE | RF_ACTIVE)) == NULL) {
 		device_printf(sc->mfi_dev, "Cannot allocate interrupt\n");
 		error = EINVAL;
 		goto out;
@@ -294,7 +323,8 @@ mfi_pci_detach(device_t dev)
 	sc->mfi_detaching = 1;
 	mtx_unlock(&sc->mfi_io_lock);
 
-	if ((error = device_get_children(sc->mfi_dev, &devlist, &devcount)) != 0) {
+	if ((error = device_get_children(sc->mfi_dev, &devlist, &devcount)) !=
+	    0) {
 		sx_xunlock(&sc->mfi_config_lock);
 		return error;
 	}

@@ -36,7 +36,7 @@
  */
 #if (LDBL_MANT_DIG > 53)
 #define WARN_IMPRECISE(x) \
-	__warn_references(x, # x " has lower than advertised precision");
+	__warn_references(x, #x " has lower than advertised precision");
 #else
 #define WARN_IMPRECISE(x)
 #endif
@@ -44,12 +44,15 @@
  * Declare the functions as weak variants so that other libraries providing
  * real versions can override them.
  */
-#define	DECLARE_WEAK(x)\
-	__weak_reference(imprecise_## x, x);\
+#define DECLARE_WEAK(x)                     \
+	__weak_reference(imprecise_##x, x); \
 	WARN_IMPRECISE(x)
 
-#define DECLARE_IMPRECISE(f) \
-	long double imprecise_ ## f ## l(long double v) { return f(v); }\
-	DECLARE_WEAK(f ## l)
+#define DECLARE_IMPRECISE(f)                        \
+	long double imprecise_##f##l(long double v) \
+	{                                           \
+		return f(v);                        \
+	}                                           \
+	DECLARE_WEAK(f##l)
 
 DECLARE_IMPRECISE(tgamma);

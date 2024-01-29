@@ -31,8 +31,8 @@
  */
 
 #include <sys/param.h>
-#include <sys/socket.h>
 #include <sys/select.h>
+#include <sys/socket.h>
 
 #include <errno.h>
 #include <fcntl.h>
@@ -49,16 +49,16 @@
 #include "common_impl.h"
 #include "msgio.h"
 
-#ifndef	HAVE_PJDLOG
+#ifndef HAVE_PJDLOG
 #include <assert.h>
-#define	PJDLOG_ASSERT(...)		assert(__VA_ARGS__)
-#define	PJDLOG_RASSERT(expr, ...)	assert(expr)
-#define	PJDLOG_ABORT(...)		abort()
+#define PJDLOG_ASSERT(...) assert(__VA_ARGS__)
+#define PJDLOG_RASSERT(expr, ...) assert(expr)
+#define PJDLOG_ABORT(...) abort()
 #endif
 
 #ifdef __linux__
 /* Linux: arbitrary size, but must be lower than SCM_MAX_FD. */
-#define	PKG_MAX_SIZE	((64U - 1) * CMSG_SPACE(sizeof(int)))
+#define PKG_MAX_SIZE ((64U - 1) * CMSG_SPACE(sizeof(int)))
 #else
 /*
  * To work around limitations in 32-bit emulation on 64-bit kernels, use a
@@ -66,7 +66,7 @@
  * message contains 1 FD and requires 12 bytes for the header, 4 pad bytes,
  * 4 bytes for the descriptor, and another 4 pad bytes.
  */
-#define	PKG_MAX_SIZE	(MCLBYTES / 24)
+#define PKG_MAX_SIZE (MCLBYTES / 24)
 #endif
 
 static int
@@ -92,8 +92,8 @@ fd_wait(int fd, bool doread)
 
 	FD_ZERO(&fds);
 	FD_SET(fd, &fds);
-	(void)select(fd + 1, doread ? &fds : NULL, doread ? NULL : &fds,
-	    NULL, NULL);
+	(void)select(fd + 1, doread ? &fds : NULL, doread ? NULL : &fds, NULL,
+	    NULL);
 }
 
 static int
@@ -252,7 +252,7 @@ fd_package_send(int sock, const int *fds, size_t nfds)
 	ret = -1;
 
 	for (i = 0, cmsg = CMSG_FIRSTHDR(&msg); i < nfds && cmsg != NULL;
-	    i++, cmsg = CMSG_NXTHDR(&msg, cmsg)) {
+	     i++, cmsg = CMSG_NXTHDR(&msg, cmsg)) {
 		if (msghdr_add_fd(cmsg, fds[i]) == -1)
 			goto end;
 	}
@@ -347,7 +347,7 @@ fd_package_recv(int sock, int *fds, size_t nfds)
 	 * consistency.
 	 */
 	for (i = 0; i < nfds; i++) {
-		(void) fcntl(fds[i], F_SETFD, FD_CLOEXEC);
+		(void)fcntl(fds[i], F_SETFD, FD_CLOEXEC);
 	}
 #endif
 

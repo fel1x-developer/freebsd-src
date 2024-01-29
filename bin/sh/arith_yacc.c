@@ -33,19 +33,21 @@
  */
 
 #include <sys/cdefs.h>
-#include <limits.h>
+
 #include <errno.h>
 #include <inttypes.h>
-#include <stdlib.h>
+#include <limits.h>
 #include <stdio.h>
+#include <stdlib.h>
+
 #include "arith.h"
 #include "arith_yacc.h"
-#include "expand.h"
-#include "shell.h"
 #include "error.h"
+#include "expand.h"
 #include "memalloc.h"
-#include "output.h"
 #include "options.h"
+#include "output.h"
+#include "shell.h"
 #include "var.h"
 
 #if ARITH_BOR + 11 != ARITH_BORASS || ARITH_ASS + 11 != ARITH_EQ
@@ -84,13 +86,15 @@ static const char prec[ARITH_BINOP_MAX - ARITH_BINOP_MIN] = {
 
 int letcmd(int, char **);
 
-static __dead2 void yyerror(const char *s)
+static __dead2 void
+yyerror(const char *s)
 {
 	error("arithmetic expression: %s: \"%s\"", s, arith_startbuf);
 	/* NOTREACHED */
 }
 
-static arith_t arith_lookupvarint(char *varname)
+static arith_t
+arith_lookupvarint(char *varname)
 {
 	const char *str;
 	char *p;
@@ -108,17 +112,20 @@ static arith_t arith_lookupvarint(char *varname)
 	return result;
 }
 
-static inline int arith_prec(int op)
+static inline int
+arith_prec(int op)
 {
 	return prec[op - ARITH_BINOP_MIN];
 }
 
-static inline int higher_prec(int op1, int op2)
+static inline int
+higher_prec(int op1, int op2)
 {
 	return arith_prec(op1) < arith_prec(op2);
 }
 
-static arith_t do_binop(int op, arith_t a, arith_t b)
+static arith_t
+do_binop(int op, arith_t a, arith_t b)
 {
 
 	switch (op) {
@@ -163,7 +170,8 @@ static arith_t do_binop(int op, arith_t a, arith_t b)
 
 static arith_t assignment(int var, int noeval);
 
-static arith_t primary(int token, union yystype *val, int op, int noeval)
+static arith_t
+primary(int token, union yystype *val, int op, int noeval)
 {
 	arith_t result;
 
@@ -200,7 +208,8 @@ again:
 	}
 }
 
-static arith_t binop2(arith_t a, int op, int precedence, int noeval)
+static arith_t
+binop2(arith_t a, int op, int precedence, int noeval)
 {
 	for (;;) {
 		union yystype val;
@@ -230,7 +239,8 @@ static arith_t binop2(arith_t a, int op, int precedence, int noeval)
 	}
 }
 
-static arith_t binop(int token, union yystype *val, int op, int noeval)
+static arith_t
+binop(int token, union yystype *val, int op, int noeval)
 {
 	arith_t a = primary(token, val, op, noeval);
 
@@ -241,7 +251,7 @@ static arith_t binop(int token, union yystype *val, int op, int noeval)
 	return binop2(a, op, ARITH_MAX_PREC, noeval);
 }
 
-static arith_t and(int token, union yystype *val, int op, int noeval)
+static arith_t and (int token, union yystype *val, int op, int noeval)
 {
 	arith_t a = binop(token, val, op, noeval);
 	arith_t b;
@@ -258,7 +268,7 @@ static arith_t and(int token, union yystype *val, int op, int noeval)
 	return a && b;
 }
 
-static arith_t or(int token, union yystype *val, int op, int noeval)
+static arith_t or (int token, union yystype *val, int op, int noeval)
 {
 	arith_t a = and(token, val, op, noeval);
 	arith_t b;
@@ -270,14 +280,15 @@ static arith_t or(int token, union yystype *val, int op, int noeval)
 	token = yylex();
 	*val = yylval;
 
-	b = or(token, val, yylex(), noeval | !!a);
+	b = or (token, val, yylex(), noeval | !!a);
 
 	return a || b;
 }
 
-static arith_t cond(int token, union yystype *val, int op, int noeval)
+static arith_t
+cond(int token, union yystype *val, int op, int noeval)
 {
-	arith_t a = or(token, val, op, noeval);
+	arith_t a = or (token, val, op, noeval);
 	arith_t b;
 	arith_t c;
 
@@ -297,7 +308,8 @@ static arith_t cond(int token, union yystype *val, int op, int noeval)
 	return a ? b : c;
 }
 
-static arith_t assignment(int var, int noeval)
+static arith_t
+assignment(int var, int noeval)
 {
 	union yystype val = yylval;
 	int op = yylex();
@@ -315,13 +327,15 @@ static arith_t assignment(int var, int noeval)
 		return result;
 
 	if (op != ARITH_ASS)
-		result = do_binop(op - 11, arith_lookupvarint(val.name), result);
+		result = do_binop(op - 11, arith_lookupvarint(val.name),
+		    result);
 	snprintf(sresult, sizeof(sresult), ARITH_FORMAT_STR, result);
 	setvar(val.name, sresult, 0);
 	return result;
 }
 
-arith_t arith(const char *s)
+arith_t
+arith(const char *s)
 {
 	struct stackmark smark;
 	arith_t result;

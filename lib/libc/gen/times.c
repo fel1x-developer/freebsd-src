@@ -30,15 +30,15 @@
  */
 
 #include <sys/param.h>
+#include <sys/resource.h>
 #include <sys/time.h>
 #include <sys/times.h>
-#include <sys/resource.h>
 
 /*
  * Convert usec to clock ticks; could do (usec * CLK_TCK) / 1000000,
  * but this would overflow if we switch to nanosec.
  */
-#define	CONVTCK(r)	(r.tv_sec * CLK_TCK + r.tv_usec / (1000000 / CLK_TCK))
+#define CONVTCK(r) (r.tv_sec * CLK_TCK + r.tv_usec / (1000000 / CLK_TCK))
 
 clock_t
 times(struct tms *tp)

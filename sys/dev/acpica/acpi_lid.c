@@ -27,36 +27,37 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_acpi.h"
 #include "opt_evdev.h"
+
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/bus.h>
 #include <sys/eventhandler.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/bus.h>
 #include <sys/proc.h>
-
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
 
 #include <dev/acpica/acpivar.h>
 
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
+
 #ifdef EVDEV_SUPPORT
-#include <dev/evdev/input.h>
 #include <dev/evdev/evdev.h>
+#include <dev/evdev/input.h>
 #endif
 
 /* Hooks for the ACPI CA debugging infrastructure */
-#define _COMPONENT	ACPI_BUTTON
+#define _COMPONENT ACPI_BUTTON
 ACPI_MODULE_NAME("LID")
 
 struct acpi_lid_softc {
-    device_t	lid_dev;
-    ACPI_HANDLE	lid_handle;
-    int		lid_status;	/* open or closed */
+	device_t lid_dev;
+	ACPI_HANDLE lid_handle;
+	int lid_status; /* open or closed */
 #ifdef EVDEV_SUPPORT
-    struct evdev_dev *lid_evdev;
+	struct evdev_dev *lid_evdev;
 #endif
 };
 
@@ -64,28 +65,28 @@ ACPI_HANDLE acpi_lid_handle;
 
 ACPI_SERIAL_DECL(lid, "ACPI lid");
 
-static int	acpi_lid_probe(device_t dev);
-static int	acpi_lid_attach(device_t dev);
-static int	acpi_lid_suspend(device_t dev);
-static int	acpi_lid_resume(device_t dev);
-static void	acpi_lid_notify_status_changed(void *arg);
-static void 	acpi_lid_notify_handler(ACPI_HANDLE h, UINT32 notify,
-					void *context);
+static int acpi_lid_probe(device_t dev);
+static int acpi_lid_attach(device_t dev);
+static int acpi_lid_suspend(device_t dev);
+static int acpi_lid_resume(device_t dev);
+static void acpi_lid_notify_status_changed(void *arg);
+static void acpi_lid_notify_handler(ACPI_HANDLE h, UINT32 notify,
+    void *context);
 
 static device_method_t acpi_lid_methods[] = {
-    /* Device interface */
-    DEVMETHOD(device_probe,	acpi_lid_probe),
-    DEVMETHOD(device_attach,	acpi_lid_attach),
-    DEVMETHOD(device_suspend,	acpi_lid_suspend),
-    DEVMETHOD(device_resume,	acpi_lid_resume),
+	/* Device interface */
+	DEVMETHOD(device_probe, acpi_lid_probe),
+	DEVMETHOD(device_attach, acpi_lid_attach),
+	DEVMETHOD(device_suspend, acpi_lid_suspend),
+	DEVMETHOD(device_resume, acpi_lid_resume),
 
-    DEVMETHOD_END
+	DEVMETHOD_END
 };
 
 static driver_t acpi_lid_driver = {
-    "acpi_lid",
-    acpi_lid_methods,
-    sizeof(struct acpi_lid_softc),
+	"acpi_lid",
+	acpi_lid_methods,
+	sizeof(struct acpi_lid_softc),
 };
 
 DRIVER_MODULE(acpi_lid, acpi, acpi_lid_driver, 0, 0);
@@ -97,7 +98,7 @@ acpi_lid_status_update(struct acpi_lid_softc *sc)
 	ACPI_STATUS status;
 	int lid_status;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	/*
 	 * Evaluate _LID and check the return value, update lid status.
@@ -106,7 +107,7 @@ acpi_lid_status_update(struct acpi_lid_softc *sc)
 	 */
 	status = acpi_GetInteger(sc->lid_handle, "_LID", &lid_status);
 	if (ACPI_FAILURE(status))
-		lid_status = 1;		/* assume lid is opened */
+		lid_status = 1; /* assume lid is opened */
 	else
 		lid_status = (lid_status != 0); /* range check value */
 
@@ -128,142 +129,144 @@ acpi_lid_status_update(struct acpi_lid_softc *sc)
 static int
 acpi_lid_probe(device_t dev)
 {
-    static char *lid_ids[] = { "PNP0C0D", NULL };
-    int rv;
+	static char *lid_ids[] = { "PNP0C0D", NULL };
+	int rv;
 
-    if (acpi_disabled("lid"))
-	return (ENXIO);
-    rv = ACPI_ID_PROBE(device_get_parent(dev), dev, lid_ids, NULL);
-    if (rv <= 0)
-	device_set_desc(dev, "Control Method Lid Switch");
-    return (rv);
+	if (acpi_disabled("lid"))
+		return (ENXIO);
+	rv = ACPI_ID_PROBE(device_get_parent(dev), dev, lid_ids, NULL);
+	if (rv <= 0)
+		device_set_desc(dev, "Control Method Lid Switch");
+	return (rv);
 }
 
 static int
 acpi_lid_attach(device_t dev)
 {
-    struct acpi_prw_data	prw;
-    struct acpi_lid_softc	*sc;
+	struct acpi_prw_data prw;
+	struct acpi_lid_softc *sc;
 
-    ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
-    sc = device_get_softc(dev);
-    sc->lid_dev = dev;
-    acpi_lid_handle = sc->lid_handle = acpi_get_handle(dev);
-    sc->lid_status = -1;
+	sc = device_get_softc(dev);
+	sc->lid_dev = dev;
+	acpi_lid_handle = sc->lid_handle = acpi_get_handle(dev);
+	sc->lid_status = -1;
 
 #ifdef EVDEV_SUPPORT
-    /* Register evdev device before initial status update */
-    sc->lid_evdev = evdev_alloc();
-    evdev_set_name(sc->lid_evdev, device_get_desc(dev));
-    evdev_set_phys(sc->lid_evdev, device_get_nameunit(dev));
-    evdev_set_id(sc->lid_evdev, BUS_HOST, 0, 0, 1);
-    evdev_support_event(sc->lid_evdev, EV_SYN);
-    evdev_support_event(sc->lid_evdev, EV_SW);
-    evdev_support_sw(sc->lid_evdev, SW_LID);
+	/* Register evdev device before initial status update */
+	sc->lid_evdev = evdev_alloc();
+	evdev_set_name(sc->lid_evdev, device_get_desc(dev));
+	evdev_set_phys(sc->lid_evdev, device_get_nameunit(dev));
+	evdev_set_id(sc->lid_evdev, BUS_HOST, 0, 0, 1);
+	evdev_support_event(sc->lid_evdev, EV_SYN);
+	evdev_support_event(sc->lid_evdev, EV_SW);
+	evdev_support_sw(sc->lid_evdev, SW_LID);
 
-    if (evdev_register(sc->lid_evdev))
-        return (ENXIO);
+	if (evdev_register(sc->lid_evdev))
+		return (ENXIO);
 #endif
 
-    /*
-     * If a system does not get lid events, it may make sense to change
-     * the type to ACPI_ALL_NOTIFY.  Some systems generate both a wake and
-     * runtime notify in that case though.
-     */
-    AcpiInstallNotifyHandler(sc->lid_handle, ACPI_DEVICE_NOTIFY,
-			     acpi_lid_notify_handler, sc);
+	/*
+	 * If a system does not get lid events, it may make sense to change
+	 * the type to ACPI_ALL_NOTIFY.  Some systems generate both a wake and
+	 * runtime notify in that case though.
+	 */
+	AcpiInstallNotifyHandler(sc->lid_handle, ACPI_DEVICE_NOTIFY,
+	    acpi_lid_notify_handler, sc);
 
-    /* Enable the GPE for wake/runtime. */
-    acpi_wake_set_enable(dev, 1);
-    if (acpi_parse_prw(sc->lid_handle, &prw) == 0)
-	AcpiEnableGpe(prw.gpe_handle, prw.gpe_bit);
+	/* Enable the GPE for wake/runtime. */
+	acpi_wake_set_enable(dev, 1);
+	if (acpi_parse_prw(sc->lid_handle, &prw) == 0)
+		AcpiEnableGpe(prw.gpe_handle, prw.gpe_bit);
 
-    /* Get the initial lid status */
-    acpi_lid_status_update(sc);
+	/* Get the initial lid status */
+	acpi_lid_status_update(sc);
 
-    /*
-     * Export the lid status
-     */
-    SYSCTL_ADD_INT(device_get_sysctl_ctx(dev),
-	SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO,
-	"state", CTLFLAG_RD, &sc->lid_status, 0,
-	"Device state (0 = closed, 1 = open)");
+	/*
+	 * Export the lid status
+	 */
+	SYSCTL_ADD_INT(device_get_sysctl_ctx(dev),
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO, "state",
+	    CTLFLAG_RD, &sc->lid_status, 0,
+	    "Device state (0 = closed, 1 = open)");
 
-    return (0);
+	return (0);
 }
 
 static int
 acpi_lid_suspend(device_t dev)
 {
-    return (0);
+	return (0);
 }
 
 static int
 acpi_lid_resume(device_t dev)
 {
-    struct acpi_lid_softc	*sc;
+	struct acpi_lid_softc *sc;
 
-    sc = device_get_softc(dev);
+	sc = device_get_softc(dev);
 
-    /* Update lid status, if any */
-    acpi_lid_status_update(sc);
+	/* Update lid status, if any */
+	acpi_lid_status_update(sc);
 
-    return (0);
+	return (0);
 }
 
 static void
 acpi_lid_notify_status_changed(void *arg)
 {
-    struct acpi_lid_softc	*sc;
-    struct acpi_softc		*acpi_sc;
+	struct acpi_lid_softc *sc;
+	struct acpi_softc *acpi_sc;
 
-    ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
-    sc = (struct acpi_lid_softc *)arg;
-    ACPI_SERIAL_BEGIN(lid);
+	sc = (struct acpi_lid_softc *)arg;
+	ACPI_SERIAL_BEGIN(lid);
 
-    /* Update lid status, if any */
-    if (acpi_lid_status_update(sc) != 0)
-	goto out;
+	/* Update lid status, if any */
+	if (acpi_lid_status_update(sc) != 0)
+		goto out;
 
-    acpi_sc = acpi_device_get_parent_softc(sc->lid_dev);
-    if (acpi_sc == NULL)
-	goto out;
+	acpi_sc = acpi_device_get_parent_softc(sc->lid_dev);
+	if (acpi_sc == NULL)
+		goto out;
 
-    ACPI_VPRINT(sc->lid_dev, acpi_sc, "Lid %s\n",
-		sc->lid_status ? "opened" : "closed");
+	ACPI_VPRINT(sc->lid_dev, acpi_sc, "Lid %s\n",
+	    sc->lid_status ? "opened" : "closed");
 
-    if (sc->lid_status == 0)
-	EVENTHANDLER_INVOKE(acpi_sleep_event, acpi_sc->acpi_lid_switch_sx);
-    else
-	EVENTHANDLER_INVOKE(acpi_wakeup_event, acpi_sc->acpi_lid_switch_sx);
+	if (sc->lid_status == 0)
+		EVENTHANDLER_INVOKE(acpi_sleep_event,
+		    acpi_sc->acpi_lid_switch_sx);
+	else
+		EVENTHANDLER_INVOKE(acpi_wakeup_event,
+		    acpi_sc->acpi_lid_switch_sx);
 
 out:
-    ACPI_SERIAL_END(lid);
-    return_VOID;
+	ACPI_SERIAL_END(lid);
+	return_VOID;
 }
 
 /* XXX maybe not here */
-#define	ACPI_NOTIFY_STATUS_CHANGED	0x80
+#define ACPI_NOTIFY_STATUS_CHANGED 0x80
 
-static void 
+static void
 acpi_lid_notify_handler(ACPI_HANDLE h, UINT32 notify, void *context)
 {
-    struct acpi_lid_softc	*sc;
+	struct acpi_lid_softc *sc;
 
-    ACPI_FUNCTION_TRACE_U32((char *)(uintptr_t)__func__, notify);
+	ACPI_FUNCTION_TRACE_U32((char *)(uintptr_t) __func__, notify);
 
-    sc = (struct acpi_lid_softc *)context;
-    switch (notify) {
-    case ACPI_NOTIFY_STATUS_CHANGED:
-	AcpiOsExecute(OSL_NOTIFY_HANDLER,
-		      acpi_lid_notify_status_changed, sc);
-	break;
-    default:
-	device_printf(sc->lid_dev, "unknown notify %#x\n", notify);
-	break;
-    }
+	sc = (struct acpi_lid_softc *)context;
+	switch (notify) {
+	case ACPI_NOTIFY_STATUS_CHANGED:
+		AcpiOsExecute(OSL_NOTIFY_HANDLER,
+		    acpi_lid_notify_status_changed, sc);
+		break;
+	default:
+		device_printf(sc->lid_dev, "unknown notify %#x\n", notify);
+		break;
+	}
 
-    return_VOID;
+	return_VOID;
 }

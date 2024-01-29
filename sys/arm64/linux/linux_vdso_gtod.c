@@ -30,11 +30,9 @@
 #include <sys/errno.h>
 #include <sys/proc.h>
 #include <sys/stddef.h>
-#define	_KERNEL
+#define _KERNEL
 #include <sys/vdso.h>
-#undef	_KERNEL
-#include <stdbool.h>
-
+#undef _KERNEL
 #include <machine/atomic.h>
 #include <machine/stdarg.h>
 
@@ -42,6 +40,7 @@
 #include <arm64/linux/linux_syscall.h>
 #include <compat/linux/linux_errno.h>
 #include <compat/linux/linux_time.h>
+#include <stdbool.h>
 
 /* The kernel fixup this at vDSO install */
 uintptr_t *kern_timekeep_base = NULL;
@@ -54,13 +53,12 @@ write(int lfd, const void *lbuf, size_t lsize)
 	register int fd asm("x0") = lfd;
 	register const char *buf asm("x1") = lbuf;
 	register long size asm("x2") = lsize;
-	register long res asm ("x0");
+	register long res asm("x0");
 
-	asm volatile(
-	"       svc #0\n"
-	: "=r" (res)
-	: "r" (fd), "r" (buf), "r" (size), "r" (svc)
-	: "memory");
+	asm volatile("       svc #0\n"
+		     : "=r"(res)
+		     : "r"(fd), "r"(buf), "r"(size), "r"(svc)
+		     : "memory");
 	return (res);
 }
 
@@ -70,13 +68,12 @@ __vdso_clock_gettime_fallback(clockid_t clock_id, struct l_timespec *lts)
 	register long svc asm("x8") = LINUX_SYS_linux_clock_gettime;
 	register clockid_t clockid asm("x0") = clock_id;
 	register struct l_timespec *ts asm("x1") = lts;
-	register long res asm ("x0");
+	register long res asm("x0");
 
-	asm volatile(
-	"       svc #0\n"
-	: "=r" (res)
-	: "r" (clockid), "r" (ts), "r" (svc)
-	: "memory");
+	asm volatile("       svc #0\n"
+		     : "=r"(res)
+		     : "r"(clockid), "r"(ts), "r"(svc)
+		     : "memory");
 	return (res);
 }
 
@@ -86,13 +83,12 @@ __vdso_gettimeofday_fallback(l_timeval *ltv, struct timezone *ltz)
 	register long svc asm("x8") = LINUX_SYS_gettimeofday;
 	register l_timeval *tv asm("x0") = ltv;
 	register struct timezone *tz asm("x1") = ltz;
-	register long res asm ("x0");
+	register long res asm("x0");
 
-	asm volatile(
-	"       svc #0\n"
-	: "=r" (res)
-	: "r" (tv), "r" (tz), "r" (svc)
-	: "memory");
+	asm volatile("       svc #0\n"
+		     : "=r"(res)
+		     : "r"(tv), "r"(tz), "r"(svc)
+		     : "memory");
 	return (res);
 }
 
@@ -102,13 +98,12 @@ __vdso_clock_getres_fallback(clockid_t clock_id, struct l_timespec *lts)
 	register long svc asm("x8") = LINUX_SYS_linux_clock_getres;
 	register clockid_t clockid asm("x0") = clock_id;
 	register struct l_timespec *ts asm("x1") = lts;
-	register long res asm ("x0");
+	register long res asm("x0");
 
-	asm volatile(
-	"       svc #0\n"
-	: "=r" (res)
-	: "r" (clockid), "r" (ts), "r" (svc)
-	: "memory");
+	asm volatile("       svc #0\n"
+		     : "=r"(res)
+		     : "r"(clockid), "r"(ts), "r"(svc)
+		     : "memory");
 	return (res);
 }
 
@@ -121,7 +116,7 @@ cp15_cntvct_get(void)
 {
 	uint64_t reg;
 
-	__asm __volatile("mrs %0, cntvct_el0" : "=r" (reg));
+	__asm __volatile("mrs %0, cntvct_el0" : "=r"(reg));
 	return (reg);
 }
 
@@ -130,7 +125,7 @@ cp15_cntpct_get(void)
 {
 	uint64_t reg;
 
-	__asm __volatile("mrs %0, cntpct_el0" : "=r" (reg));
+	__asm __volatile("mrs %0, cntpct_el0" : "=r"(reg));
 	return (reg);
 }
 

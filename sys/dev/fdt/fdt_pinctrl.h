@@ -34,7 +34,7 @@
  * pinctrl driver for configuration.
  */
 int fdt_pinctrl_configure(device_t client, u_int index);
-int fdt_pinctrl_configure_by_name(device_t client, const char * name);
+int fdt_pinctrl_configure_by_name(device_t client, const char *name);
 
 /*
  * Register a pinctrl driver so that it can be used by other devices which call
@@ -53,4 +53,3 @@ int fdt_pinctrl_register(device_t pinctrl, const char *pinprop);
 int fdt_pinctrl_configure_tree(device_t pinctrl);
 
 #endif /* DEV_FDT_PINCTRL_H */
-

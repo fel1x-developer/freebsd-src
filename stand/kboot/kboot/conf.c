@@ -25,7 +25,9 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stand.h>
+
 #include "bootstrap.h"
 
 #if defined(LOADER_NET_SUPPORT)
@@ -50,50 +52,49 @@ extern struct devsw host_dev;
 /* Exported for libsa */
 struct devsw *devsw[] = {
 #if defined(LOADER_DISK_SUPPORT) || defined(LOADER_CD9660_SUPPORT)
-    &hostdisk,
+	&hostdisk,
 #endif
 #if defined(LOADER_NET_SUPPORT)
-    &netdev,
+	&netdev,
 #endif
-    &host_dev,
+	&host_dev,
 #if defined(LOADER_ZFS_SUPPORT)
-    &zfs_dev,				/* Must be last */
+	&zfs_dev, /* Must be last */
 #endif
-    NULL
+	NULL
 };
 
 extern struct fs_ops hostfs_fsops;
 
 struct fs_ops *file_system[] = {
 #if defined(LOADER_UFS_SUPPORT)
-    &ufs_fsops,
+	&ufs_fsops,
 #endif
 #if defined(LOADER_CD9660_SUPPORT)
-    &cd9660_fsops,
+	&cd9660_fsops,
 #endif
 #if defined(LOADER_EXT2FS_SUPPORT)
-    &ext2fs_fsops,
+	&ext2fs_fsops,
 #endif
 #if defined(LOADER_NFS_SUPPORT)
-    &nfs_fsops,
+	&nfs_fsops,
 #endif
 #if defined(LOADER_TFTP_SUPPORT)
-    &tftp_fsops,
+	&tftp_fsops,
 #endif
 #if defined(LOADER_GZIP_SUPPORT)
-    &gzipfs_fsops,
+	&gzipfs_fsops,
 #endif
 #if defined(LOADER_BZIP2_SUPPORT)
-    &bzipfs_fsops,
+	&bzipfs_fsops,
 #endif
 #if defined(LOADER_MSDOS_SUPPORT)
-    &dosfs_fsops,
+	&dosfs_fsops,
 #endif
 #if defined(LOADER_ZFS_SUPPORT)
 	&zfs_fsops,
 #endif
-    &hostfs_fsops,
-    NULL
+	&hostfs_fsops, NULL
 };
 
 extern struct netif_driver kbootnet;
@@ -112,7 +113,4 @@ struct netif_driver *netif_drivers[] = {
  */
 extern struct console hostconsole;
 
-struct console *consoles[] = {
-    &hostconsole,
-    NULL
-};
+struct console *consoles[] = { &hostconsole, NULL };

@@ -30,26 +30,27 @@
 #include <sys/conf.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <machine/bus.h>
 #include <sys/rman.h>
+
+#include <machine/bus.h>
 #include <machine/resource.h>
 
+#include <dev/acpica/acpivar.h>
 #include <dev/uart/uart.h>
 #include <dev/uart/uart_bus.h>
 #include <dev/uart/uart_cpu_acpi.h>
-#include <contrib/dev/acpica/include/acpi.h>
+
 #include <contrib/dev/acpica/include/accommon.h>
-#include <dev/acpica/acpivar.h>
+#include <contrib/dev/acpica/include/acpi.h>
 
 static int uart_acpi_probe(device_t dev);
 
 static device_method_t uart_acpi_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		uart_acpi_probe),
-	DEVMETHOD(device_attach,	uart_bus_attach),
-	DEVMETHOD(device_detach,	uart_bus_detach),
-	DEVMETHOD(device_resume,	uart_bus_resume),
-	{ 0, 0 }
+	DEVMETHOD(device_probe, uart_acpi_probe),
+	DEVMETHOD(device_attach, uart_bus_attach),
+	DEVMETHOD(device_detach, uart_bus_detach),
+	DEVMETHOD(device_resume, uart_bus_resume), { 0, 0 }
 };
 
 static driver_t uart_acpi_driver = {
@@ -67,7 +68,8 @@ uart_acpi_find_device(device_t dev)
 	if ((h = acpi_get_handle(dev)) == NULL)
 		return (NULL);
 
-	SET_FOREACH(cd, uart_acpi_class_and_device_set) {
+	SET_FOREACH(cd, uart_acpi_class_and_device_set)
+	{
 		for (cd_it = *cd; cd_it->cd_hid != NULL; cd_it++) {
 			if (acpi_MatchHid(h, cd_it->cd_hid))
 				return (cd_it);
@@ -96,13 +98,13 @@ uart_acpi_probe(device_t dev)
 	if (cd->cd_desc != NULL)
 		device_set_desc(dev, cd->cd_desc);
 
-	size = device_get_property(dev, "clock-frequency", &rclk,
-	    sizeof(rclk), DEVICE_PROP_UINT32);
+	size = device_get_property(dev, "clock-frequency", &rclk, sizeof(rclk),
+	    DEVICE_PROP_UINT32);
 	if (size < 0 || rclk == 0)
 		rclk = cd->cd_rclk;
 
-	return (uart_bus_probe(dev, cd->cd_regshft, cd->cd_regiowidth,
-	    rclk, 0, 0, cd->cd_quirks));
+	return (uart_bus_probe(dev, cd->cd_regshft, cd->cd_regiowidth, rclk, 0,
+	    0, cd->cd_quirks));
 }
 
 DRIVER_MODULE(uart, acpi, uart_acpi_driver, 0, 0);

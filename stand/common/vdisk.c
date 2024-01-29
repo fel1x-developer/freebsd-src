@@ -24,15 +24,17 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
-#include <stdarg.h>
-#include <machine/_inttypes.h>
-#include <bootstrap.h>
+#include <sys/param.h>
 #include <sys/disk.h>
 #include <sys/errno.h>
 #include <sys/queue.h>
-#include <sys/param.h>
+
+#include <machine/_inttypes.h>
+
+#include <bootstrap.h>
 #include <disk.h>
+#include <stand.h>
+#include <stdarg.h>
 
 static int vdisk_init(void);
 static int vdisk_strategy(void *, int, daddr_t, size_t, char *, size_t *);
@@ -57,25 +59,24 @@ struct devsw vdisk_dev = {
 
 typedef STAILQ_HEAD(vdisk_info_list, vdisk_info) vdisk_info_list_t;
 
-typedef struct vdisk_info
-{
-	STAILQ_ENTRY(vdisk_info)	vdisk_link; /* link in device list */
-	char			*vdisk_path;
-	int			vdisk_unit;
-	int			vdisk_fd;
-	uint64_t		vdisk_size;	/* size in bytes */
-	uint32_t		vdisk_sectorsz;
-	uint32_t		vdisk_open;	/* reference counter */
+typedef struct vdisk_info {
+	STAILQ_ENTRY(vdisk_info) vdisk_link; /* link in device list */
+	char *vdisk_path;
+	int vdisk_unit;
+	int vdisk_fd;
+	uint64_t vdisk_size; /* size in bytes */
+	uint32_t vdisk_sectorsz;
+	uint32_t vdisk_open; /* reference counter */
 } vdisk_info_t;
 
-static vdisk_info_list_t vdisk_list;	/* list of mapped vdisks. */
+static vdisk_info_list_t vdisk_list; /* list of mapped vdisks. */
 
 static vdisk_info_t *
 vdisk_get_info(struct devdesc *dev)
 {
 	vdisk_info_t *vd;
 
-	STAILQ_FOREACH(vd, &vdisk_list, vdisk_link) {
+	STAILQ_FOREACH (vd, &vdisk_list, vdisk_link) {
 		if (vd->vdisk_unit == dev->d_unit)
 			return (vd);
 	}
@@ -95,7 +96,7 @@ command_mapvd(int argc, char *argv[])
 		return (CMD_ERROR);
 	}
 
-	STAILQ_FOREACH(vd, &vdisk_list, vdisk_link) {
+	STAILQ_FOREACH (vd, &vdisk_list, vdisk_link) {
 		if (strcmp(vd->vdisk_path, argv[1]) == 0) {
 			printf("%s: file %s is already mapped as %s%d\n",
 			    argv[0], argv[1], vdisk_dev.dv_name,
@@ -124,14 +125,14 @@ command_mapvd(int argc, char *argv[])
 		return (CMD_ERROR);
 	}
 
-	vd = calloc(1, sizeof (*vd));
+	vd = calloc(1, sizeof(*vd));
 	if (vd == NULL) {
 		printf("%s: out of memory\n", argv[0]);
 		return (CMD_ERROR);
 	}
 	vd->vdisk_path = strdup(argv[1]);
 	if (vd->vdisk_path == NULL) {
-		free (vd);
+		free(vd);
 		printf("%s: out of memory\n", argv[0]);
 		return (CMD_ERROR);
 	}
@@ -145,7 +146,7 @@ command_mapvd(int argc, char *argv[])
 
 	vd->vdisk_size = sb.st_size;
 	vd->vdisk_sectorsz = DEV_BSIZE;
-	STAILQ_FOREACH(p, &vdisk_list, vdisk_link) {
+	STAILQ_FOREACH (p, &vdisk_list, vdisk_link) {
 		vdisk_info_t *n;
 		if (p->vdisk_unit == vd->vdisk_unit) {
 			vd->vdisk_unit++;
@@ -212,7 +213,7 @@ command_unmapvd(int argc, char *argv[])
 		return (CMD_ERROR);
 	}
 
-	STAILQ_FOREACH(vd, &vdisk_list, vdisk_link) {
+	STAILQ_FOREACH (vd, &vdisk_list, vdisk_link) {
 		if (vd->vdisk_unit == unit)
 			break;
 	}
@@ -223,13 +224,13 @@ command_unmapvd(int argc, char *argv[])
 	}
 
 	if (vd->vdisk_open != 0) {
-		printf("%s: %s is in use, unable to unmap.\n",
-		    argv[0], argv[1]);
+		printf("%s: %s is in use, unable to unmap.\n", argv[0],
+		    argv[1]);
 		return (CMD_ERROR);
 	}
 
 	STAILQ_REMOVE(&vdisk_list, vd, vdisk_info, vdisk_link);
-	(void) close(vd->vdisk_fd);
+	(void)close(vd->vdisk_fd);
 	printf("%s (%s) unmapped\n", argv[1], vd->vdisk_path);
 	free(vd->vdisk_path);
 	free(vd);
@@ -245,8 +246,8 @@ vdisk_init(void)
 }
 
 static int
-vdisk_strategy(void *devdata, int rw, daddr_t blk, size_t size,
-    char *buf, size_t *rsize)
+vdisk_strategy(void *devdata, int rw, daddr_t blk, size_t size, char *buf,
+    size_t *rsize)
 {
 	struct disk_devdesc *dev;
 	vdisk_info_t *vd;
@@ -381,7 +382,7 @@ vdisk_print(int verbose)
 	if ((ret = pager_output("\n")) != 0)
 		return (ret);
 
-	STAILQ_FOREACH(vd, &vdisk_list, vdisk_link) {
+	STAILQ_FOREACH (vd, &vdisk_list, vdisk_link) {
 		struct disk_devdesc vd_dev;
 
 		if (verbose) {
@@ -389,11 +390,10 @@ vdisk_print(int verbose)
 			if ((ret = pager_output("\n")) != 0)
 				break;
 		}
-		snprintf(line, sizeof(line),
-		    "    %s%d", vdisk_dev.dv_name, vd->vdisk_unit);
+		snprintf(line, sizeof(line), "    %s%d", vdisk_dev.dv_name,
+		    vd->vdisk_unit);
 		printf("%s:    %" PRIu64 " X %u blocks", line,
-		    vd->vdisk_size / vd->vdisk_sectorsz,
-		    vd->vdisk_sectorsz);
+		    vd->vdisk_size / vd->vdisk_sectorsz, vd->vdisk_sectorsz);
 		if ((ret = pager_output("\n")) != 0)
 			break;
 

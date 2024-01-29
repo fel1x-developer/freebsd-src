@@ -37,21 +37,21 @@
 #include <err.h>
 #include <limits.h>
 #include <signal.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #include "extern.h"
 
 static u_char *remmap(u_char *, int, off_t);
 static void segv_handler(int);
-#define MMAP_CHUNK (8*1024*1024)
+#define MMAP_CHUNK (8 * 1024 * 1024)
 
 #define ROUNDPAGE(i) ((i) & ~pagemask)
 
 void
-c_regular(int fd1, const char *file1, off_t skip1, off_t len1,
-    int fd2, const char *file2, off_t skip2, off_t len2, off_t limit)
+c_regular(int fd1, const char *file1, off_t skip1, off_t len1, int fd2,
+    const char *file2, off_t skip2, off_t len2, off_t limit)
 {
 	struct sigaction act, oact;
 	cap_rights_t rights;
@@ -133,7 +133,7 @@ c_regular(int fd1, const char *file1, off_t skip1, off_t len1,
 					    (long long)byte, ch, *p2);
 			} else
 				diffmsg(file1, file2, byte, line, ch, *p2);
-				/* NOTREACHED */
+			/* NOTREACHED */
 		}
 		if (ch == '\n')
 			++line;
@@ -161,7 +161,7 @@ c_regular(int fd1, const char *file1, off_t skip1, off_t len1,
 		err(ERR_EXIT, "sigaction()");
 
 	if (len1 != len2)
-		eofmsg (len1 > len2 ? file2 : file1);
+		eofmsg(len1 > len2 ? file2 : file1);
 	if (dfound)
 		exit(DIFF_EXIT);
 }
@@ -179,7 +179,8 @@ remmap(u_char *mem, int fd, off_t offset)
 }
 
 static void
-segv_handler(int sig __unused) {
+segv_handler(int sig __unused)
+{
 	static const char msg[] = "cmp: Input/output error (caught SIGSEGV)\n";
 
 	write(STDERR_FILENO, msg, sizeof(msg));

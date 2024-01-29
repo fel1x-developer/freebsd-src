@@ -31,28 +31,31 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/dtrace_bsd.h>
+#include <sys/dtrace_impl.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/proc.h>
 #include <sys/smp.h>
-#include <sys/dtrace_impl.h>
-#include <sys/dtrace_bsd.h>
-#include <cddl/dev/dtrace/dtrace_cddl.h>
+
+#include <vm/pmap.h>
+
 #include <machine/clock.h>
 #include <machine/cpufunc.h>
 #include <machine/frame.h>
 #include <machine/md_var.h>
 #include <machine/psl.h>
 #include <machine/trap.h>
-#include <vm/pmap.h>
+
+#include <cddl/dev/dtrace/dtrace_cddl.h>
 
 extern void dtrace_getnanotime(struct timespec *tsp);
 extern int (*dtrace_invop_jump_addr)(struct trapframe *);
 
-int	dtrace_invop(uintptr_t, struct trapframe *, void **);
-int	dtrace_invop_start(struct trapframe *frame);
-void	dtrace_invop_init(void);
-void	dtrace_invop_uninit(void);
+int dtrace_invop(uintptr_t, struct trapframe *, void **);
+int dtrace_invop_start(struct trapframe *frame);
+void dtrace_invop_init(void);
+void dtrace_invop_uninit(void);
 
 typedef struct dtrace_invop_hdlr {
 	int (*dtih_func)(uintptr_t, struct trapframe *, uintptr_t);
@@ -85,7 +88,7 @@ dtrace_invop_add(int (*func)(uintptr_t, struct trapframe *, uintptr_t))
 {
 	dtrace_invop_hdlr_t *hdlr;
 
-	hdlr = kmem_alloc(sizeof (dtrace_invop_hdlr_t), KM_SLEEP);
+	hdlr = kmem_alloc(sizeof(dtrace_invop_hdlr_t), KM_SLEEP);
 	hdlr->dtih_func = func;
 	hdlr->dtih_next = dtrace_invop_hdlr;
 	dtrace_invop_hdlr = hdlr;
@@ -161,7 +164,7 @@ dtrace_sync_func(void)
 void
 dtrace_sync(void)
 {
-        dtrace_xcall(DTRACE_CPUALL, (dtrace_xcall_t)dtrace_sync_func, NULL);
+	dtrace_xcall(DTRACE_CPUALL, (dtrace_xcall_t)dtrace_sync_func, NULL);
 }
 
 #ifdef notyet
@@ -264,18 +267,18 @@ dtrace_safe_defer_signal(void)
 }
 #endif
 
-static int64_t	tgt_cpu_tsc;
-static int64_t	hst_cpu_tsc;
-static int64_t	tsc_skew[MAXCPU];
-static uint64_t	nsec_scale;
+static int64_t tgt_cpu_tsc;
+static int64_t hst_cpu_tsc;
+static int64_t tsc_skew[MAXCPU];
+static uint64_t nsec_scale;
 
 /* See below for the explanation of this macro. */
-#define SCALE_SHIFT	28
+#define SCALE_SHIFT 28
 
 static void
 dtrace_gethrtime_init_cpu(void *arg)
 {
-	uintptr_t cpu = (uintptr_t) arg;
+	uintptr_t cpu = (uintptr_t)arg;
 
 	if (cpu == curcpu)
 		tgt_cpu_tsc = rdtsc();
@@ -325,7 +328,7 @@ dtrace_gethrtime_init(void *arg)
 	/* The current CPU is the reference one. */
 	sched_pin();
 	tsc_skew[curcpu] = 0;
-	CPU_FOREACH(i) {
+	CPU_FOREACH (i) {
 		if (i == curcpu)
 			continue;
 
@@ -333,9 +336,8 @@ dtrace_gethrtime_init(void *arg)
 		CPU_SETOF(PCPU_GET(cpuid), &map);
 		CPU_SET(pc->pc_cpuid, &map);
 
-		smp_rendezvous_cpus(map, NULL,
-		    dtrace_gethrtime_init_cpu,
-		    smp_no_rendezvous_barrier, (void *)(uintptr_t) i);
+		smp_rendezvous_cpus(map, NULL, dtrace_gethrtime_init_cpu,
+		    smp_no_rendezvous_barrier, (void *)(uintptr_t)i);
 
 		tsc_skew[i] = tgt_cpu_tsc - hst_cpu_tsc;
 	}
@@ -419,19 +421,22 @@ dtrace_trap(struct trapframe *frame, u_int type)
 			 * Offset the instruction pointer to the instruction
 			 * following the one causing the fault.
 			 */
-			frame->tf_rip += dtrace_instr_size((uint8_t *) frame->tf_rip);
+			frame->tf_rip += dtrace_instr_size(
+			    (uint8_t *)frame->tf_rip);
 			return (1);
 		/* Page fault. */
 		case T_PAGEFLT:
 			/* Flag a bad address. */
-			cpu_core[curcpu].cpuc_dtrace_flags |= CPU_DTRACE_BADADDR;
+			cpu_core[curcpu].cpuc_dtrace_flags |=
+			    CPU_DTRACE_BADADDR;
 			cpu_core[curcpu].cpuc_dtrace_illval = frame->tf_addr;
 
 			/*
 			 * Offset the instruction pointer to the instruction
 			 * following the one causing the fault.
 			 */
-			frame->tf_rip += dtrace_instr_size((uint8_t *) frame->tf_rip);
+			frame->tf_rip += dtrace_instr_size(
+			    (uint8_t *)frame->tf_rip);
 			return (1);
 		default:
 			/* Handle all other traps in the usual way. */

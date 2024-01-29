@@ -30,7 +30,6 @@
 #include <sys/queue.h>
 
 #include <bsnmp/snmpmod.h>
-
 #include <string.h>
 
 #include "hast.h"
@@ -41,7 +40,7 @@
 #include "pjdlog.h"
 #include "proto.h"
 
-#define UPDATE_INTERVAL	500	/* update interval in ticks */
+#define UPDATE_INTERVAL 500 /* update interval in ticks */
 
 static struct lmodule *module;
 
@@ -55,38 +54,38 @@ static u_int hast_index = 0;
  */
 struct hast_snmp_resource {
 	TAILQ_ENTRY(hast_snmp_resource) link;
-	int32_t		index;
-	char		name[NAME_MAX];
-	int		error;
-	int		role;
-	char		provname[NAME_MAX];
-	char		localpath[PATH_MAX];
-	int32_t		extentsize;
-	int32_t		keepdirty;
-	char		remoteaddr[HAST_ADDRSIZE];
-	char		sourceaddr[HAST_ADDRSIZE];
-	int		replication;
-	int		status;
-	uint64_t	dirty;
-	uint64_t	reads;
-	uint64_t	writes;
-	uint64_t	deletes;
-	uint64_t	flushes;
-	uint64_t	activemap_updates;
-	uint64_t	read_errors;
-	uint64_t	write_errors;
-	uint64_t	delete_errors;
-	uint64_t	flush_errors;
-	pid_t		workerpid;
-	uint32_t	local_queue;
-	uint32_t	send_queue;
-	uint32_t	recv_queue;
-	uint32_t	done_queue;
-	uint32_t	idle_queue;
+	int32_t index;
+	char name[NAME_MAX];
+	int error;
+	int role;
+	char provname[NAME_MAX];
+	char localpath[PATH_MAX];
+	int32_t extentsize;
+	int32_t keepdirty;
+	char remoteaddr[HAST_ADDRSIZE];
+	char sourceaddr[HAST_ADDRSIZE];
+	int replication;
+	int status;
+	uint64_t dirty;
+	uint64_t reads;
+	uint64_t writes;
+	uint64_t deletes;
+	uint64_t flushes;
+	uint64_t activemap_updates;
+	uint64_t read_errors;
+	uint64_t write_errors;
+	uint64_t delete_errors;
+	uint64_t flush_errors;
+	pid_t workerpid;
+	uint32_t local_queue;
+	uint32_t send_queue;
+	uint32_t recv_queue;
+	uint32_t done_queue;
+	uint32_t idle_queue;
 };
 
-static TAILQ_HEAD(, hast_snmp_resource) resources =
-    TAILQ_HEAD_INITIALIZER(resources);
+static TAILQ_HEAD(, hast_snmp_resource) resources = TAILQ_HEAD_INITIALIZER(
+    resources);
 
 /* Path to configuration file. */
 static u_char *cfgpath;
@@ -105,12 +104,12 @@ static int str2status(const char *str);
 static int update_resources(void);
 
 const struct snmp_module config = {
-    .comment   = "This module implements the BEGEMOT MIB for HAST.",
-    .init      = hast_init,
-    .start     = hast_start,
-    .fini      = hast_fini,
-    .tree      = hast_ctree,
-    .tree_size = hast_CTREE_SIZE,
+	.comment = "This module implements the BEGEMOT MIB for HAST.",
+	.init = hast_init,
+	.start = hast_start,
+	.fini = hast_fini,
+	.tree = hast_ctree,
+	.tree_size = hast_CTREE_SIZE,
 };
 
 static int
@@ -129,7 +128,7 @@ hast_init(struct lmodule *mod, int argc __unused, char *argv[] __unused)
 		return (-1);
 	}
 	strcpy(cfgpath, HAST_CONFIG);
-	return(0);
+	return (0);
 }
 
 static void
@@ -292,14 +291,15 @@ update_resources(void)
 	if (error != 0)
 		return (-1);
 
-	for (i = 0; ; i++) {
+	for (i = 0;; i++) {
 		str = nv_get_string(nvout, "resource%u", i);
 		if (str == NULL)
 			break;
 		res = calloc(1, sizeof(*res));
 		if (res == NULL) {
 			pjdlog_error("Unable to allocate %zu bytes for "
-			    "resource", sizeof(*res));
+				     "resource",
+			    sizeof(*res));
 			return (-1);
 		}
 		res->index = i + 1;
@@ -338,27 +338,22 @@ update_resources(void)
 		res->writes = nv_get_uint64(nvout, "stat_write%u", i);
 		res->deletes = nv_get_uint64(nvout, "stat_delete%u", i);
 		res->flushes = nv_get_uint64(nvout, "stat_flush%u", i);
-		res->activemap_updates =
-		    nv_get_uint64(nvout, "stat_activemap_update%u", i);
-		res->read_errors =
-		    nv_get_uint64(nvout, "stat_read_error%u", i);
-		res->write_errors =
-		    nv_get_uint64(nvout, "stat_write_error%u", i);
-		res->delete_errors =
-		    nv_get_uint64(nvout, "stat_delete_error%u", i);
-		res->flush_errors =
-		    nv_get_uint64(nvout, "stat_flush_error%u", i);
+		res->activemap_updates = nv_get_uint64(nvout,
+		    "stat_activemap_update%u", i);
+		res->read_errors = nv_get_uint64(nvout, "stat_read_error%u", i);
+		res->write_errors = nv_get_uint64(nvout, "stat_write_error%u",
+		    i);
+		res->delete_errors = nv_get_uint64(nvout, "stat_delete_error%u",
+		    i);
+		res->flush_errors = nv_get_uint64(nvout, "stat_flush_error%u",
+		    i);
 		res->workerpid = nv_get_int32(nvout, "workerpid%u", i);
-		res->local_queue =
-		    nv_get_uint64(nvout, "local_queue_size%u", i);
-		res->send_queue =
-		    nv_get_uint64(nvout, "send_queue_size%u", i);
-		res->recv_queue =
-		    nv_get_uint64(nvout, "recv_queue_size%u", i);
-		res->done_queue =
-		    nv_get_uint64(nvout, "done_queue_size%u", i);
-		res->idle_queue =
-		    nv_get_uint64(nvout, "idle_queue_size%u", i);
+		res->local_queue = nv_get_uint64(nvout, "local_queue_size%u",
+		    i);
+		res->send_queue = nv_get_uint64(nvout, "send_queue_size%u", i);
+		res->recv_queue = nv_get_uint64(nvout, "recv_queue_size%u", i);
+		res->done_queue = nv_get_uint64(nvout, "done_queue_size%u", i);
+		res->idle_queue = nv_get_uint64(nvout, "idle_queue_size%u", i);
 		TAILQ_INSERT_TAIL(&resources, res, link);
 	}
 	nv_free(nvout);
@@ -366,8 +361,8 @@ update_resources(void)
 }
 
 int
-op_hastConfig(struct snmp_context *context, struct snmp_value *value,
-    u_int sub, u_int iidx __unused, enum snmp_op op)
+op_hastConfig(struct snmp_context *context, struct snmp_value *value, u_int sub,
+    u_int iidx __unused, enum snmp_op op)
 {
 	asn_subid_t which;
 

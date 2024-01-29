@@ -62,24 +62,25 @@
 #include <netdb.h>
 #include <pmc.h>
 #include <pmclog.h>
-#include <sysexits.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sysexits.h>
 #include <unistd.h>
 
+#include "pmcpl_annotate_cg.h"
 #include "pmcstat.h"
 #include "pmcstat_log.h"
-#include "pmcpl_annotate_cg.h"
 
 /*
  * Record a callchain.
  */
 
 void
-pmcpl_annotate_cg_process(struct pmcstat_process *pp, struct pmcstat_pmcrecord *pmcr,
-    uint32_t nsamples, uintfptr_t *cc, int usermode, uint32_t cpu)
+pmcpl_annotate_cg_process(struct pmcstat_process *pp,
+    struct pmcstat_pmcrecord *pmcr, uint32_t nsamples, uintfptr_t *cc,
+    int usermode, uint32_t cpu)
 {
 	struct pmcstat_pcmap *map;
 	struct pmcstat_symbol *sym;
@@ -89,9 +90,12 @@ pmcpl_annotate_cg_process(struct pmcstat_process *pp, struct pmcstat_pmcrecord *
 	char filename[PATH_MAX], funcname[PATH_MAX];
 	unsigned sline;
 
-	(void) pmcr; (void) nsamples; (void) usermode; (void) cpu;
+	(void)pmcr;
+	(void)nsamples;
+	(void)usermode;
+	(void)cpu;
 
-	for (i = 0; i < (int) nsamples; i++) {
+	for (i = 0; i < (int)nsamples; i++) {
 		map = NULL;
 		sym = NULL;
 		image = NULL;
@@ -99,29 +103,30 @@ pmcpl_annotate_cg_process(struct pmcstat_process *pp, struct pmcstat_pmcrecord *
 		funcname[0] = '\0';
 		sline = 0;
 
-		map = pmcstat_process_find_map(usermode ? pp : pmcstat_kernproc, cc[i]);
+		map = pmcstat_process_find_map(usermode ? pp : pmcstat_kernproc,
+		    cc[i]);
 		if (map != NULL) {
-			assert(cc[i] >= map->ppm_lowpc && cc[i] < map->ppm_highpc);
+			assert(
+			    cc[i] >= map->ppm_lowpc && cc[i] < map->ppm_highpc);
 			image = map->ppm_image;
-			newpc = cc[i] - (map->ppm_lowpc +
+			newpc = cc[i] -
+			    (map->ppm_lowpc +
 				(image->pi_vaddr - image->pi_start));
 			sym = pmcstat_symbol_search(image, newpc);
 		}
 
 		if (map != NULL && image != NULL && sym != NULL) {
-			(void) pmcstat_image_addr2line(image, cc[i],
-			    filename, sizeof(filename), &sline, funcname, sizeof(funcname));
+			(void)pmcstat_image_addr2line(image, cc[i], filename,
+			    sizeof(filename), &sline, funcname,
+			    sizeof(funcname));
 		}
 
 		if (map != NULL && sym != NULL) {
 			fprintf(args.pa_graphfile, "%p %s %s:%d\n",
-			    (void *)cc[i],
-			    funcname,
-			    filename,
-			    sline);
+			    (void *)cc[i], funcname, filename, sline);
 		} else {
 			fprintf(args.pa_graphfile, "%p <unknown> ??:0\n",
-			    (void *) cc[i]);
+			    (void *)cc[i]);
 		}
 	}
 	fprintf(args.pa_graphfile, "--\n");

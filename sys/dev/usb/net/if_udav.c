@@ -45,46 +45,44 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/socket.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_media.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
-
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
-#include "usbdevs.h"
+
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_var.h>
 
 #include "miibus_if.h"
+#include "usbdevs.h"
 
-#define	USB_DEBUG_VAR udav_debug
+#define USB_DEBUG_VAR udav_debug
+#include <dev/usb/net/if_udavreg.h>
+#include <dev/usb/net/usb_ethernet.h>
 #include <dev/usb/usb_debug.h>
 #include <dev/usb/usb_process.h>
-
-#include <dev/usb/net/usb_ethernet.h>
-#include <dev/usb/net/if_udavreg.h>
 
 /* prototypes */
 
@@ -104,13 +102,13 @@ static uether_fn_t udav_tick;
 static uether_fn_t udav_setmulti;
 static uether_fn_t udav_setpromisc;
 
-static int	udav_csr_read(struct udav_softc *, uint16_t, void *, int);
-static int	udav_csr_write(struct udav_softc *, uint16_t, void *, int);
-static uint8_t	udav_csr_read1(struct udav_softc *, uint16_t);
-static int	udav_csr_write1(struct udav_softc *, uint16_t, uint8_t);
-static void	udav_reset(struct udav_softc *);
-static int	udav_ifmedia_upd(if_t);
-static void	udav_ifmedia_status(if_t, struct ifmediareq *);
+static int udav_csr_read(struct udav_softc *, uint16_t, void *, int);
+static int udav_csr_write(struct udav_softc *, uint16_t, void *, int);
+static uint8_t udav_csr_read1(struct udav_softc *, uint16_t);
+static int udav_csr_write1(struct udav_softc *, uint16_t, uint8_t);
+static void udav_reset(struct udav_softc *);
+static int udav_ifmedia_upd(if_t);
+static void udav_ifmedia_status(if_t, struct ifmediareq *);
 
 static miibus_readreg_t udav_miibus_readreg;
 static miibus_writereg_t udav_miibus_writereg;
@@ -169,17 +167,17 @@ static driver_t udav_driver = {
 
 static const STRUCT_USB_HOST_ID udav_devs[] = {
 	/* ShanTou DM9601 USB NIC */
-	{USB_VPI(USB_VENDOR_SHANTOU, USB_PRODUCT_SHANTOU_DM9601, 0)},
+	{ USB_VPI(USB_VENDOR_SHANTOU, USB_PRODUCT_SHANTOU_DM9601, 0) },
 	/* ShanTou ST268 USB NIC */
-	{USB_VPI(USB_VENDOR_SHANTOU, USB_PRODUCT_SHANTOU_ST268, 0)},
+	{ USB_VPI(USB_VENDOR_SHANTOU, USB_PRODUCT_SHANTOU_ST268, 0) },
 	/* Corega USB-TXC */
-	{USB_VPI(USB_VENDOR_COREGA, USB_PRODUCT_COREGA_FETHER_USB_TXC, 0)},
+	{ USB_VPI(USB_VENDOR_COREGA, USB_PRODUCT_COREGA_FETHER_USB_TXC, 0) },
 	/* ShanTou AMD8515 USB NIC */
-	{USB_VPI(USB_VENDOR_SHANTOU, USB_PRODUCT_SHANTOU_ADM8515, 0)},
+	{ USB_VPI(USB_VENDOR_SHANTOU, USB_PRODUCT_SHANTOU_ADM8515, 0) },
 	/* Kontron AG USB Ethernet */
-	{USB_VPI(USB_VENDOR_KONTRON, USB_PRODUCT_KONTRON_DM9601, 0)},
-	{USB_VPI(USB_VENDOR_KONTRON, USB_PRODUCT_KONTRON_JP1082,
-	    UDAV_FLAG_NO_PHY)},
+	{ USB_VPI(USB_VENDOR_KONTRON, USB_PRODUCT_KONTRON_DM9601, 0) },
+	{ USB_VPI(USB_VENDOR_KONTRON, USB_PRODUCT_KONTRON_JP1082,
+	    UDAV_FLAG_NO_PHY) },
 };
 
 DRIVER_MODULE(udav, uhub, udav_driver, NULL, NULL);
@@ -221,10 +219,10 @@ SYSCTL_INT(_hw_usb_udav, OID_AUTO, debug, CTLFLAG_RWTUN, &udav_debug, 0,
     "Debug level");
 #endif
 
-#define	UDAV_SETBIT(sc, reg, x)	\
+#define UDAV_SETBIT(sc, reg, x) \
 	udav_csr_write1(sc, reg, udav_csr_read1(sc, reg) | (x))
 
-#define	UDAV_CLRBIT(sc, reg, x)	\
+#define UDAV_CLRBIT(sc, reg, x) \
 	udav_csr_write1(sc, reg, udav_csr_read1(sc, reg) & ~(x))
 
 static void
@@ -270,8 +268,8 @@ udav_attach(device_t dev)
 	mtx_init(&sc->sc_mtx, device_get_nameunit(dev), NULL, MTX_DEF);
 
 	iface_index = UDAV_IFACE_INDEX;
-	error = usbd_transfer_setup(uaa->device, &iface_index,
-	    sc->sc_xfer, udav_config, UDAV_N_TRANSFER, sc, &sc->sc_mtx);
+	error = usbd_transfer_setup(uaa->device, &iface_index, sc->sc_xfer,
+	    udav_config, UDAV_N_TRANSFER, sc, &sc->sc_mtx);
 	if (error) {
 		device_printf(dev, "allocating USB transfers failed\n");
 		goto detach;
@@ -298,11 +296,11 @@ udav_attach(device_t dev)
 		goto detach;
 	}
 
-	return (0);			/* success */
+	return (0); /* success */
 
 detach:
 	udav_detach(dev);
-	return (ENXIO);			/* failure */
+	return (ENXIO); /* failure */
 }
 
 static int
@@ -412,8 +410,7 @@ udav_csr_read1(struct udav_softc *sc, uint16_t offset)
 }
 
 static int
-udav_csr_write1(struct udav_softc *sc, uint16_t offset,
-    uint8_t ch)
+udav_csr_write1(struct udav_softc *sc, uint16_t offset, uint8_t ch)
 {
 	struct usb_device_request req;
 
@@ -521,13 +518,13 @@ udav_setmulti(struct usb_ether *ue)
 	UDAV_LOCK_ASSERT(sc, MA_OWNED);
 
 	if (if_getflags(ifp) & IFF_ALLMULTI || if_getflags(ifp) & IFF_PROMISC) {
-		UDAV_SETBIT(sc, UDAV_RCR, UDAV_RCR_ALL|UDAV_RCR_PRMSC);
+		UDAV_SETBIT(sc, UDAV_RCR, UDAV_RCR_ALL | UDAV_RCR_PRMSC);
 		return;
 	}
 
 	/* first, zot all the existing hash bits */
 	memset(hashtbl, 0x00, sizeof(hashtbl));
-	hashtbl[7] |= 0x80;	/* broadcast address */
+	hashtbl[7] |= 0x80; /* broadcast address */
 	udav_csr_write(sc, UDAV_MAR, hashtbl, sizeof(hashtbl));
 
 	/* now program new ones */
@@ -590,7 +587,7 @@ udav_bulk_write_callback(struct usb_xfer *xfer, usb_error_t error)
 
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		if ((sc->sc_flags & UDAV_FLAG_LINK) == 0) {
 			/*
 			 * don't send anything if there is no link !
@@ -638,9 +635,8 @@ tr_setup:
 		usbd_transfer_submit(xfer);
 		return;
 
-	default:			/* Error */
-		DPRINTFN(11, "transfer error, %s\n",
-		    usbd_errstr(error));
+	default: /* Error */
+		DPRINTFN(11, "transfer error, %s\n", usbd_errstr(error));
 
 		if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
 
@@ -690,15 +686,14 @@ udav_bulk_read_callback(struct usb_xfer *xfer, usb_error_t error)
 		uether_rxbuf(ue, pc, sizeof(stat), len);
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		uether_rxflush(ue);
 		return;
 
-	default:			/* Error */
-		DPRINTF("bulk read error, %s\n",
-		    usbd_errstr(error));
+	default: /* Error */
+		DPRINTF("bulk read error, %s\n", usbd_errstr(error));
 
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
@@ -715,12 +710,12 @@ udav_intr_callback(struct usb_xfer *xfer, usb_error_t error)
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_TRANSFERRED:
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -762,8 +757,8 @@ udav_ifmedia_upd(if_t ifp)
 
 	UDAV_LOCK_ASSERT(sc, MA_OWNED);
 
-        sc->sc_flags &= ~UDAV_FLAG_LINK;
-	LIST_FOREACH(miisc, &mii->mii_phys, mii_list)
+	sc->sc_flags &= ~UDAV_FLAG_LINK;
+	LIST_FOREACH (miisc, &mii->mii_phys, mii_list)
 		PHY_RESET(miisc);
 	error = mii_mediachg(mii);
 	return (error);
@@ -791,8 +786,8 @@ udav_tick(struct usb_ether *ue)
 	UDAV_LOCK_ASSERT(sc, MA_OWNED);
 
 	mii_tick(mii);
-	if ((sc->sc_flags & UDAV_FLAG_LINK) == 0
-	    && mii->mii_media_status & IFM_ACTIVE &&
+	if ((sc->sc_flags & UDAV_FLAG_LINK) == 0 &&
+	    mii->mii_media_status & IFM_ACTIVE &&
 	    IFM_SUBTYPE(mii->mii_media_active) != IFM_NONE) {
 		sc->sc_flags |= UDAV_FLAG_LINK;
 		udav_start(ue);
@@ -832,8 +827,7 @@ udav_miibus_readreg(device_t dev, int phy, int reg)
 
 	data16 = (val[0] | (val[1] << 8));
 
-	DPRINTFN(11, "phy=%d reg=0x%04x => 0x%04x\n",
-	    phy, reg, data16);
+	DPRINTFN(11, "phy=%d reg=0x%04x => 0x%04x\n", phy, reg, data16);
 
 	if (!locked)
 		UDAV_UNLOCK(sc);

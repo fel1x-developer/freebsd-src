@@ -29,11 +29,10 @@ static const char rcsid[] =
 
 #include "cron.h"
 
-#define TMAX(a,b) ((a)>(b)?(a):(b))
+#define TMAX(a, b) ((a) > (b) ? (a) : (b))
 
-static	void		process_crontab(const char *, const char *,
-					const char *, struct stat *,
-					cron_db *, cron_db *);
+static void process_crontab(const char *, const char *, const char *,
+    struct stat *, cron_db *, cron_db *);
 
 void
 load_database(cron_db *old_db)
@@ -47,21 +46,19 @@ load_database(cron_db *old_db)
 	struct {
 		const char *name;
 		struct stat st;
-	} syscrontabs [] = {
-		{ SYSCRONTABS },
-		{ LOCALSYSCRONTABS }
-	};
+	} syscrontabs[] = { { SYSCRONTABS }, { LOCALSYSCRONTABS } };
 	int i, ret;
 
 	Debug(DLOAD, ("[%d] load_database()\n", getpid()))
 
-	/* before we start loading any data, do a stat on SPOOL_DIR
-	 * so that if anything changes as of this moment (i.e., before we've
-	 * cached any of the database), we'll see the changes next time.
-	 */
-	if (stat(SPOOL_DIR, &statbuf) < OK) {
+	    /* before we start loading any data, do a stat on SPOOL_DIR
+	     * so that if anything changes as of this moment (i.e., before we've
+	     * cached any of the database), we'll see the changes next time.
+	     */
+	    if (stat(SPOOL_DIR, &statbuf) < OK)
+	{
 		log_it("CRON", getpid(), "STAT FAILED", SPOOL_DIR);
-		(void) exit(ERROR_EXIT);
+		(void)exit(ERROR_EXIT);
 	}
 
 	/* track system crontab file
@@ -99,9 +96,9 @@ load_database(cron_db *old_db)
 	 * time this function is called.
 	 */
 	if (old_db->mtime == maxmtime) {
-		Debug(DLOAD, ("[%d] spool dir mtime unch, no load needed.\n",
-			      getpid()))
-		return;
+		Debug(DLOAD,
+		    ("[%d] spool dir mtime unch, no load needed.\n",
+			getpid())) return;
 	}
 
 	/* something's different.  make a new database, moving unchanged
@@ -113,9 +110,8 @@ load_database(cron_db *old_db)
 	new_db.head = new_db.tail = NULL;
 
 	if (syscron_stat.st_mtime) {
-		process_crontab("root", SYS_NAME,
-				SYSCRONTAB, &syscron_stat,
-				&new_db, old_db);
+		process_crontab("root", SYS_NAME, SYSCRONTAB, &syscron_stat,
+		    &new_db, old_db);
 	}
 
 	for (i = 0; i < nitems(syscrontabs); i++) {
@@ -125,7 +121,7 @@ load_database(cron_db *old_db)
 		if (!(dir = opendir(syscrontabs[i].name))) {
 			log_it("CRON", getpid(), "OPENDIR FAILED",
 			    syscrontabs[i].name);
-			(void) exit(ERROR_EXIT);
+			(void)exit(ERROR_EXIT);
 		}
 
 		while (NULL != (dp = readdir(dir))) {
@@ -148,11 +144,11 @@ load_database(cron_db *old_db)
 	 */
 	if (!(dir = opendir(SPOOL_DIR))) {
 		log_it("CRON", getpid(), "OPENDIR FAILED", SPOOL_DIR);
-		(void) exit(ERROR_EXIT);
+		(void)exit(ERROR_EXIT);
 	}
 
 	while (NULL != (dp = readdir(dir))) {
-		char fname[MAXNAMLEN+1], tabname[MAXNAMLEN+1];
+		char fname[MAXNAMLEN + 1], tabname[MAXNAMLEN + 1];
 
 		/* avoid file names beginning with ".".  this is good
 		 * because we would otherwise waste two guaranteed calls
@@ -162,15 +158,15 @@ load_database(cron_db *old_db)
 		if (dp->d_name[0] == '.')
 			continue;
 
-		(void) strncpy(fname, dp->d_name, sizeof(fname));
-		fname[sizeof(fname)-1] = '\0';
+		(void)strncpy(fname, dp->d_name, sizeof(fname));
+		fname[sizeof(fname) - 1] = '\0';
 
-		if (snprintf(tabname, sizeof tabname, CRON_TAB(fname))
-		    >= sizeof(tabname))
-			continue;	/* XXX log? */
+		if (snprintf(tabname, sizeof tabname, CRON_TAB(fname)) >=
+		    sizeof(tabname))
+			continue; /* XXX log? */
 
-		process_crontab(fname, fname, tabname,
-				&statbuf, &new_db, old_db);
+		process_crontab(fname, fname, tabname, &statbuf, &new_db,
+		    old_db);
 	}
 	closedir(dir);
 
@@ -182,10 +178,10 @@ load_database(cron_db *old_db)
 
 	/* whatever's left in the old database is now junk.
 	 */
-	Debug(DLOAD, ("unlinking old database:\n"))
-	for (u = old_db->head;  u != NULL;  u = nu) {
-		Debug(DLOAD, ("\t%s\n", u->name))
-		nu = u->next;
+	Debug(DLOAD, ("unlinking old database:\n")) for (u = old_db->head;
+							 u != NULL; u = nu)
+	{
+		Debug(DLOAD, ("\t%s\n", u->name)) nu = u->next;
 		unlink_user(old_db, u);
 		free_user(u);
 	}
@@ -227,7 +223,7 @@ find_user(cron_db *db, const char *name)
 {
 	user *u;
 
-	for (u = db->head;  u != NULL;  u = u->next)
+	for (u = db->head; u != NULL; u = u->next)
 		if (strcmp(u->name, name) == 0)
 			break;
 	return (u);
@@ -235,7 +231,7 @@ find_user(cron_db *db, const char *name)
 
 static void
 process_crontab(const char *uname, const char *fname, const char *tabname,
-		struct stat *statbuf, cron_db *new_db, cron_db *old_db)
+    struct stat *statbuf, cron_db *new_db, cron_db *old_db)
 {
 	struct passwd *pw = NULL;
 	int crontab_fd = OK - 1;
@@ -262,15 +258,14 @@ process_crontab(const char *uname, const char *fname, const char *tabname,
 		goto next_crontab;
 	}
 
-	Debug(DLOAD, ("\t%s:", fname))
-	u = find_user(old_db, fname);
+	Debug(DLOAD, ("\t%s:", fname)) u = find_user(old_db, fname);
 	if (u != NULL) {
 		/* if crontab has not changed since we last read it
 		 * in, then we can just use our existing entry.
 		 */
 		if (u->mtime == statbuf->st_mtime) {
 			Debug(DLOAD, (" [no change, using old data]"))
-			unlink_user(old_db, u);
+			    unlink_user(old_db, u);
 			link_user(new_db, u);
 			goto next_crontab;
 		}
@@ -282,8 +277,7 @@ process_crontab(const char *uname, const char *fname, const char *tabname,
 		 * users will be deleted from the old database when
 		 * we finish with the crontab...
 		 */
-		Debug(DLOAD, (" [delete old data]"))
-		unlink_user(old_db, u);
+		Debug(DLOAD, (" [delete old data]")) unlink_user(old_db, u);
 		free_user(u);
 		log_it(fname, getpid(), "RELOAD", tabname);
 	}
@@ -308,9 +302,8 @@ process_crontab(const char *uname, const char *fname, const char *tabname,
 		link_user(new_db, u);
 	}
 
- next_crontab:
+next_crontab:
 	if (crontab_fd >= OK) {
-		Debug(DLOAD, (" [done]\n"))
-		close(crontab_fd);
+		Debug(DLOAD, (" [done]\n")) close(crontab_fd);
 	}
 }

@@ -30,14 +30,14 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	__IP175D_H__
-#define	__IP175D_H__
+#ifndef __IP175D_H__
+#define __IP175D_H__
 
-#define	IP175D_ID_PHY		20
-#define	IP175D_ID_REG		0
-#define	IP175D_RESET_PHY	20
-#define	IP175D_RESET_REG	2
+#define IP175D_ID_PHY 20
+#define IP175D_ID_REG 0
+#define IP175D_RESET_PHY 20
+#define IP175D_RESET_REG 2
 
 void ip175d_attach(struct ip17x_softc *sc);
 
-#endif	/* __IP175D_H__ */
+#endif /* __IP175D_H__ */

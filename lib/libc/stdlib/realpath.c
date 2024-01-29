@@ -28,17 +28,18 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/param.h>
 #include <sys/stat.h>
 
 #include <errno.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include "un-namespace.h"
+
 #include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 extern int __realpathat(int fd, const char *path, char *buf, size_t size,
     int flags);
@@ -48,7 +49,7 @@ extern int __realpathat(int fd, const char *path, char *buf, size_t size,
  * components.  Returns (resolved) on success, or (NULL) on failure,
  * in which case the path which caused trouble is left in (resolved).
  */
-static char * __noinline
+static char *__noinline
 realpath1(const char *path, char *resolved)
 {
 	struct stat sb;
@@ -172,7 +173,8 @@ realpath1(const char *path, char *resolved)
 			 */
 			if (p != NULL) {
 				if (symlink[slen - 1] != '/') {
-					if (slen + 1 >= (ssize_t)sizeof(symlink)) {
+					if (slen + 1 >=
+					    (ssize_t)sizeof(symlink)) {
 						errno = ENAMETOOLONG;
 						return (NULL);
 					}
@@ -203,7 +205,7 @@ realpath1(const char *path, char *resolved)
 }
 
 char *
-realpath(const char * __restrict path, char * __restrict resolved)
+realpath(const char *__restrict path, char *__restrict resolved)
 {
 	char *m, *res;
 

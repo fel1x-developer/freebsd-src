@@ -29,8 +29,8 @@
 #include <stdio.h>
 
 ssize_t
-getline(char ** __restrict linep, size_t * __restrict linecapp,
-	FILE * __restrict fp)
+getline(char **__restrict linep, size_t *__restrict linecapp,
+    FILE *__restrict fp)
 {
 
 	return (getdelim(linep, linecapp, '\n', fp));

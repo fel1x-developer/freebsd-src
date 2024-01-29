@@ -28,11 +28,11 @@
  */
 
 #ifndef _ZALLOC_PROTOS_H
-#define	_ZALLOC_PROTOS_H
+#define _ZALLOC_PROTOS_H
 
 Library void *znalloc(struct MemPool *mpool, uintptr_t bytes, size_t align);
 Library void zfree(struct MemPool *mpool, void *ptr, uintptr_t bytes);
 Library void zextendPool(MemPool *mp, void *base, uintptr_t bytes);
 Library void zallocstats(struct MemPool *mp);
 
-#endif	/* _ZALLOC_PROTOS_H */
+#endif /* _ZALLOC_PROTOS_H */

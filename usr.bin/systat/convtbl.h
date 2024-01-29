@@ -32,6 +32,7 @@
 #define _CONVTBL_H_
 
 #include <sys/types.h>
+
 #include <stdint.h>
 
 /*
@@ -48,12 +49,12 @@ enum scale {
 	SC_MEGABIT,
 	SC_GIGABIT,
 	SC_TERABIT,
-	SC_AUTO		/* KEEP THIS LAST */
+	SC_AUTO /* KEEP THIS LAST */
 };
 
-extern	double		 convert(const uintmax_t, const int);
-extern	const char	*get_helplist(void);
-extern	int		 get_scale(const char *);
-extern	const char	*get_string(const uintmax_t, const int);
+extern double convert(const uintmax_t, const int);
+extern const char *get_helplist(void);
+extern int get_scale(const char *);
+extern const char *get_string(const uintmax_t, const int);
 
-#endif		/* ! _CONVTBL_H_ */
+#endif /* ! _CONVTBL_H_ */

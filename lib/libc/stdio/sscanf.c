@@ -37,14 +37,15 @@
  * SUCH DAMAGE.
  */
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdarg.h>
 #include <xlocale.h>
+
 #include "local.h"
 
 int
-sscanf(const char * __restrict str, char const * __restrict fmt, ...)
+sscanf(const char *__restrict str, char const *__restrict fmt, ...)
 {
 	int ret;
 	va_list ap;
@@ -55,8 +56,8 @@ sscanf(const char * __restrict str, char const * __restrict fmt, ...)
 	return (ret);
 }
 int
-sscanf_l(const char * __restrict str, locale_t locale,
-		char const * __restrict fmt, ...)
+sscanf_l(const char *__restrict str, locale_t locale,
+    char const *__restrict fmt, ...)
 {
 	int ret;
 	va_list ap;

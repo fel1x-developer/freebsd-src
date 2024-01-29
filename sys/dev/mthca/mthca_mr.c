@@ -31,17 +31,17 @@
  * SOFTWARE.
  */
 
-#include <linux/slab.h>
 #include <linux/errno.h>
+#include <linux/slab.h>
 
-#include "mthca_dev.h"
 #include "mthca_cmd.h"
+#include "mthca_dev.h"
 #include "mthca_memfree.h"
 
 struct mthca_mtt {
 	struct mthca_buddy *buddy;
-	int                 order;
-	u32                 first_seg;
+	int order;
+	u32 first_seg;
 };
 
 /*
@@ -58,17 +58,17 @@ struct mthca_mpt_entry {
 	__be32 window_count;
 	__be32 window_count_limit;
 	__be64 mtt_seg;
-	__be32 mtt_sz;		/* Arbel only */
-	u32    reserved[2];
+	__be32 mtt_sz; /* Arbel only */
+	u32 reserved[2];
 } __attribute__((packed));
 
-#define MTHCA_MPT_FLAG_SW_OWNS       (0xfUL << 28)
-#define MTHCA_MPT_FLAG_MIO           (1 << 17)
-#define MTHCA_MPT_FLAG_BIND_ENABLE   (1 << 15)
-#define MTHCA_MPT_FLAG_PHYSICAL      (1 <<  9)
-#define MTHCA_MPT_FLAG_REGION        (1 <<  8)
+#define MTHCA_MPT_FLAG_SW_OWNS (0xfUL << 28)
+#define MTHCA_MPT_FLAG_MIO (1 << 17)
+#define MTHCA_MPT_FLAG_BIND_ENABLE (1 << 15)
+#define MTHCA_MPT_FLAG_PHYSICAL (1 << 9)
+#define MTHCA_MPT_FLAG_REGION (1 << 8)
 
-#define MTHCA_MTT_FLAG_PRESENT       1
+#define MTHCA_MTT_FLAG_PRESENT 1
 
 #define MTHCA_MPT_STATUS_SW 0xF0
 #define MTHCA_MPT_STATUS_HW 0x00
@@ -81,7 +81,8 @@ struct mthca_mpt_entry {
  * through the bitmaps)
  */
 
-static u32 mthca_buddy_alloc(struct mthca_buddy *buddy, int order)
+static u32
+mthca_buddy_alloc(struct mthca_buddy *buddy, int order)
 {
 	int o;
 	int m;
@@ -100,7 +101,7 @@ static u32 mthca_buddy_alloc(struct mthca_buddy *buddy, int order)
 	spin_unlock(&buddy->lock);
 	return -1;
 
- found:
+found:
 	clear_bit(seg, buddy->bits[o]);
 	--buddy->num_free[o];
 
@@ -118,7 +119,8 @@ static u32 mthca_buddy_alloc(struct mthca_buddy *buddy, int order)
 	return seg;
 }
 
-static void mthca_buddy_free(struct mthca_buddy *buddy, u32 seg, int order)
+static void
+mthca_buddy_free(struct mthca_buddy *buddy, u32 seg, int order)
 {
 	seg >>= order;
 
@@ -137,27 +139,27 @@ static void mthca_buddy_free(struct mthca_buddy *buddy, u32 seg, int order)
 	spin_unlock(&buddy->lock);
 }
 
-static int mthca_buddy_init(struct mthca_buddy *buddy, int max_order)
+static int
+mthca_buddy_init(struct mthca_buddy *buddy, int max_order)
 {
 	int i, s;
 
 	buddy->max_order = max_order;
 	spin_lock_init(&buddy->lock);
 
-	buddy->bits = kzalloc((buddy->max_order + 1) * sizeof (long *),
-			      GFP_KERNEL);
-	buddy->num_free = kcalloc((buddy->max_order + 1), sizeof *buddy->num_free,
-				  GFP_KERNEL);
+	buddy->bits = kzalloc((buddy->max_order + 1) * sizeof(long *),
+	    GFP_KERNEL);
+	buddy->num_free = kcalloc((buddy->max_order + 1),
+	    sizeof *buddy->num_free, GFP_KERNEL);
 	if (!buddy->bits || !buddy->num_free)
 		goto err_out;
 
 	for (i = 0; i <= buddy->max_order; ++i) {
 		s = BITS_TO_LONGS(1 << (buddy->max_order - i));
-		buddy->bits[i] = kmalloc(s * sizeof (long), GFP_KERNEL);
+		buddy->bits[i] = kmalloc(s * sizeof(long), GFP_KERNEL);
 		if (!buddy->bits[i])
 			goto err_out_free;
-		bitmap_zero(buddy->bits[i],
-			    1 << (buddy->max_order - i));
+		bitmap_zero(buddy->bits[i], 1 << (buddy->max_order - i));
 	}
 
 	set_bit(0, buddy->bits[buddy->max_order]);
@@ -176,7 +178,8 @@ err_out:
 	return -ENOMEM;
 }
 
-static void mthca_buddy_cleanup(struct mthca_buddy *buddy)
+static void
+mthca_buddy_cleanup(struct mthca_buddy *buddy)
 {
 	int i;
 
@@ -187,8 +190,9 @@ static void mthca_buddy_cleanup(struct mthca_buddy *buddy)
 	kfree(buddy->num_free);
 }
 
-static u32 mthca_alloc_mtt_range(struct mthca_dev *dev, int order,
-				 struct mthca_buddy *buddy)
+static u32
+mthca_alloc_mtt_range(struct mthca_dev *dev, int order,
+    struct mthca_buddy *buddy)
 {
 	u32 seg = mthca_buddy_alloc(buddy, order);
 
@@ -197,7 +201,7 @@ static u32 mthca_alloc_mtt_range(struct mthca_dev *dev, int order,
 
 	if (mthca_is_memfree(dev))
 		if (mthca_table_get_range(dev, dev->mr_table.mtt_table, seg,
-					  seg + (1 << order) - 1)) {
+			seg + (1 << order) - 1)) {
 			mthca_buddy_free(buddy, seg, order);
 			seg = -1;
 		}
@@ -205,8 +209,8 @@ static u32 mthca_alloc_mtt_range(struct mthca_dev *dev, int order,
 	return seg;
 }
 
-static struct mthca_mtt *__mthca_alloc_mtt(struct mthca_dev *dev, int size,
-					   struct mthca_buddy *buddy)
+static struct mthca_mtt *
+__mthca_alloc_mtt(struct mthca_dev *dev, int size, struct mthca_buddy *buddy)
 {
 	struct mthca_mtt *mtt;
 	int i;
@@ -232,27 +236,29 @@ static struct mthca_mtt *__mthca_alloc_mtt(struct mthca_dev *dev, int size,
 	return mtt;
 }
 
-struct mthca_mtt *mthca_alloc_mtt(struct mthca_dev *dev, int size)
+struct mthca_mtt *
+mthca_alloc_mtt(struct mthca_dev *dev, int size)
 {
 	return __mthca_alloc_mtt(dev, size, &dev->mr_table.mtt_buddy);
 }
 
-void mthca_free_mtt(struct mthca_dev *dev, struct mthca_mtt *mtt)
+void
+mthca_free_mtt(struct mthca_dev *dev, struct mthca_mtt *mtt)
 {
 	if (!mtt)
 		return;
 
 	mthca_buddy_free(mtt->buddy, mtt->first_seg, mtt->order);
 
-	mthca_table_put_range(dev, dev->mr_table.mtt_table,
-			      mtt->first_seg,
-			      mtt->first_seg + (1 << mtt->order) - 1);
+	mthca_table_put_range(dev, dev->mr_table.mtt_table, mtt->first_seg,
+	    mtt->first_seg + (1 << mtt->order) - 1);
 
 	kfree(mtt);
 }
 
-static int __mthca_write_mtt(struct mthca_dev *dev, struct mthca_mtt *mtt,
-			     int start_index, u64 *buffer_list, int list_len)
+static int
+__mthca_write_mtt(struct mthca_dev *dev, struct mthca_mtt *mtt, int start_index,
+    u64 *buffer_list, int list_len)
 {
 	struct mthca_mailbox *mailbox;
 	__be64 *mtt_entry;
@@ -266,12 +272,12 @@ static int __mthca_write_mtt(struct mthca_dev *dev, struct mthca_mtt *mtt,
 
 	while (list_len > 0) {
 		mtt_entry[0] = cpu_to_be64(dev->mr_table.mtt_base +
-					   mtt->first_seg * dev->limits.mtt_seg_size +
-					   start_index * 8);
+		    mtt->first_seg * dev->limits.mtt_seg_size +
+		    start_index * 8);
 		mtt_entry[1] = 0;
 		for (i = 0; i < list_len && i < MTHCA_MAILBOX_SIZE / 8 - 2; ++i)
-			mtt_entry[i + 2] = cpu_to_be64(buffer_list[i] |
-						       MTHCA_MTT_FLAG_PRESENT);
+			mtt_entry[i + 2] = cpu_to_be64(
+			    buffer_list[i] | MTHCA_MTT_FLAG_PRESENT);
 
 		/*
 		 * If we have an odd number of entries to write, add
@@ -286,7 +292,7 @@ static int __mthca_write_mtt(struct mthca_dev *dev, struct mthca_mtt *mtt,
 			goto out;
 		}
 
-		list_len    -= i;
+		list_len -= i;
 		start_index += i;
 		buffer_list += i;
 	}
@@ -296,7 +302,8 @@ out:
 	return err;
 }
 
-int mthca_write_mtt_size(struct mthca_dev *dev)
+int
+mthca_write_mtt_size(struct mthca_dev *dev)
 {
 	if (dev->mr_table.fmr_mtt_buddy != &dev->mr_table.mtt_buddy ||
 	    !(dev->mthca_flags & MTHCA_FLAG_FMR))
@@ -306,75 +313,79 @@ int mthca_write_mtt_size(struct mthca_dev *dev)
 		 * index and reserved fields of the
 		 * mailbox.
 		 */
-		return PAGE_SIZE / sizeof (u64) - 2;
+		return PAGE_SIZE / sizeof(u64) - 2;
 
 	/* For Arbel, all MTTs must fit in the same page. */
-	return mthca_is_memfree(dev) ? (PAGE_SIZE / sizeof (u64)) : 0x7ffffff;
+	return mthca_is_memfree(dev) ? (PAGE_SIZE / sizeof(u64)) : 0x7ffffff;
 }
 
-static void mthca_tavor_write_mtt_seg(struct mthca_dev *dev,
-				      struct mthca_mtt *mtt, int start_index,
-				      u64 *buffer_list, int list_len)
+static void
+mthca_tavor_write_mtt_seg(struct mthca_dev *dev, struct mthca_mtt *mtt,
+    int start_index, u64 *buffer_list, int list_len)
 {
 	u64 __iomem *mtts;
 	int i;
 
-	mtts = dev->mr_table.tavor_fmr.mtt_base + mtt->first_seg * dev->limits.mtt_seg_size +
-		start_index * sizeof (u64);
+	mtts = dev->mr_table.tavor_fmr.mtt_base +
+	    mtt->first_seg * dev->limits.mtt_seg_size +
+	    start_index * sizeof(u64);
 	for (i = 0; i < list_len; ++i)
-		mthca_write64_raw(cpu_to_be64(buffer_list[i] | MTHCA_MTT_FLAG_PRESENT),
-				  mtts + i);
+		mthca_write64_raw(cpu_to_be64(
+				      buffer_list[i] | MTHCA_MTT_FLAG_PRESENT),
+		    mtts + i);
 }
 
-static void mthca_arbel_write_mtt_seg(struct mthca_dev *dev,
-				      struct mthca_mtt *mtt, int start_index,
-				      u64 *buffer_list, int list_len)
+static void
+mthca_arbel_write_mtt_seg(struct mthca_dev *dev, struct mthca_mtt *mtt,
+    int start_index, u64 *buffer_list, int list_len)
 {
 	__be64 *mtts;
 	dma_addr_t dma_handle;
 	int i;
-	int s = start_index * sizeof (u64);
+	int s = start_index * sizeof(u64);
 
 	/* For Arbel, all MTTs must fit in the same page. */
 	BUG_ON(s / PAGE_SIZE != (s + list_len * sizeof(u64) - 1) / PAGE_SIZE);
 	/* Require full segments */
 	BUG_ON(s % dev->limits.mtt_seg_size);
 
-	mtts = mthca_table_find(dev->mr_table.mtt_table, mtt->first_seg +
-				s / dev->limits.mtt_seg_size, &dma_handle);
+	mtts = mthca_table_find(dev->mr_table.mtt_table,
+	    mtt->first_seg + s / dev->limits.mtt_seg_size, &dma_handle);
 
 	BUG_ON(!mtts);
 
 	dma_sync_single_for_cpu(&dev->pdev->dev, dma_handle,
-				list_len * sizeof (u64), DMA_TO_DEVICE);
+	    list_len * sizeof(u64), DMA_TO_DEVICE);
 
 	for (i = 0; i < list_len; ++i)
 		mtts[i] = cpu_to_be64(buffer_list[i] | MTHCA_MTT_FLAG_PRESENT);
 
 	dma_sync_single_for_device(&dev->pdev->dev, dma_handle,
-				   list_len * sizeof (u64), DMA_TO_DEVICE);
+	    list_len * sizeof(u64), DMA_TO_DEVICE);
 }
 
-int mthca_write_mtt(struct mthca_dev *dev, struct mthca_mtt *mtt,
-		    int start_index, u64 *buffer_list, int list_len)
+int
+mthca_write_mtt(struct mthca_dev *dev, struct mthca_mtt *mtt, int start_index,
+    u64 *buffer_list, int list_len)
 {
 	int size = mthca_write_mtt_size(dev);
 	int chunk;
 
 	if (dev->mr_table.fmr_mtt_buddy != &dev->mr_table.mtt_buddy ||
 	    !(dev->mthca_flags & MTHCA_FLAG_FMR))
-		return __mthca_write_mtt(dev, mtt, start_index, buffer_list, list_len);
+		return __mthca_write_mtt(dev, mtt, start_index, buffer_list,
+		    list_len);
 
 	while (list_len > 0) {
 		chunk = min(size, list_len);
 		if (mthca_is_memfree(dev))
 			mthca_arbel_write_mtt_seg(dev, mtt, start_index,
-						  buffer_list, chunk);
+			    buffer_list, chunk);
 		else
 			mthca_tavor_write_mtt_seg(dev, mtt, start_index,
-						  buffer_list, chunk);
+			    buffer_list, chunk);
 
-		list_len    -= chunk;
+		list_len -= chunk;
 		start_index += chunk;
 		buffer_list += chunk;
 	}
@@ -382,27 +393,32 @@ int mthca_write_mtt(struct mthca_dev *dev, struct mthca_mtt *mtt,
 	return 0;
 }
 
-static inline u32 tavor_hw_index_to_key(u32 ind)
+static inline u32
+tavor_hw_index_to_key(u32 ind)
 {
 	return ind;
 }
 
-static inline u32 tavor_key_to_hw_index(u32 key)
+static inline u32
+tavor_key_to_hw_index(u32 key)
 {
 	return key;
 }
 
-static inline u32 arbel_hw_index_to_key(u32 ind)
+static inline u32
+arbel_hw_index_to_key(u32 ind)
 {
 	return (ind >> 24) | (ind << 8);
 }
 
-static inline u32 arbel_key_to_hw_index(u32 key)
+static inline u32
+arbel_key_to_hw_index(u32 key)
 {
 	return (key << 24) | (key >> 8);
 }
 
-static inline u32 hw_index_to_key(struct mthca_dev *dev, u32 ind)
+static inline u32
+hw_index_to_key(struct mthca_dev *dev, u32 ind)
 {
 	if (mthca_is_memfree(dev))
 		return arbel_hw_index_to_key(ind);
@@ -410,7 +426,8 @@ static inline u32 hw_index_to_key(struct mthca_dev *dev, u32 ind)
 		return tavor_hw_index_to_key(ind);
 }
 
-static inline u32 key_to_hw_index(struct mthca_dev *dev, u32 key)
+static inline u32
+key_to_hw_index(struct mthca_dev *dev, u32 key)
 {
 	if (mthca_is_memfree(dev))
 		return arbel_key_to_hw_index(key);
@@ -418,7 +435,8 @@ static inline u32 key_to_hw_index(struct mthca_dev *dev, u32 key)
 		return tavor_key_to_hw_index(key);
 }
 
-static inline u32 adjust_key(struct mthca_dev *dev, u32 key)
+static inline u32
+adjust_key(struct mthca_dev *dev, u32 key)
 {
 	if (dev->mthca_flags & MTHCA_FLAG_SINAI_OPT)
 		return ((key << 20) & 0x800000) | (key & 0x7fffff);
@@ -426,8 +444,9 @@ static inline u32 adjust_key(struct mthca_dev *dev, u32 key)
 		return key;
 }
 
-int mthca_mr_alloc(struct mthca_dev *dev, u32 pd, int buffer_size_shift,
-		   u64 iova, u64 total_size, u32 access, struct mthca_mr *mr)
+int
+mthca_mr_alloc(struct mthca_dev *dev, u32 pd, int buffer_size_shift, u64 iova,
+    u64 total_size, u32 access, struct mthca_mr *mr)
 {
 	struct mthca_mailbox *mailbox;
 	struct mthca_mpt_entry *mpt_entry;
@@ -456,40 +475,36 @@ int mthca_mr_alloc(struct mthca_dev *dev, u32 pd, int buffer_size_shift,
 	}
 	mpt_entry = mailbox->buf;
 
-	mpt_entry->flags = cpu_to_be32(MTHCA_MPT_FLAG_SW_OWNS     |
-				       MTHCA_MPT_FLAG_MIO         |
-				       MTHCA_MPT_FLAG_REGION      |
-				       access);
+	mpt_entry->flags = cpu_to_be32(MTHCA_MPT_FLAG_SW_OWNS |
+	    MTHCA_MPT_FLAG_MIO | MTHCA_MPT_FLAG_REGION | access);
 	if (!mr->mtt)
 		mpt_entry->flags |= cpu_to_be32(MTHCA_MPT_FLAG_PHYSICAL);
 
 	mpt_entry->page_size = cpu_to_be32(buffer_size_shift - 12);
-	mpt_entry->key       = cpu_to_be32(key);
-	mpt_entry->pd        = cpu_to_be32(pd);
-	mpt_entry->start     = cpu_to_be64(iova);
-	mpt_entry->length    = cpu_to_be64(total_size);
+	mpt_entry->key = cpu_to_be32(key);
+	mpt_entry->pd = cpu_to_be32(pd);
+	mpt_entry->start = cpu_to_be64(iova);
+	mpt_entry->length = cpu_to_be64(total_size);
 
 	memset(&mpt_entry->lkey, 0,
-	       sizeof *mpt_entry - offsetof(struct mthca_mpt_entry, lkey));
+	    sizeof *mpt_entry - offsetof(struct mthca_mpt_entry, lkey));
 
 	if (mr->mtt)
-		mpt_entry->mtt_seg =
-			cpu_to_be64(dev->mr_table.mtt_base +
-				    mr->mtt->first_seg * dev->limits.mtt_seg_size);
+		mpt_entry->mtt_seg = cpu_to_be64(dev->mr_table.mtt_base +
+		    mr->mtt->first_seg * dev->limits.mtt_seg_size);
 
 	if (0) {
 		mthca_dbg(dev, "Dumping MPT entry %08x:\n", mr->ibmr.lkey);
-		for (i = 0; i < sizeof (struct mthca_mpt_entry) / 4; ++i) {
+		for (i = 0; i < sizeof(struct mthca_mpt_entry) / 4; ++i) {
 			if (i % 4 == 0)
 				printk("[%02x] ", i * 4);
-			printk(" %08x", be32_to_cpu(((__be32 *) mpt_entry)[i]));
+			printk(" %08x", be32_to_cpu(((__be32 *)mpt_entry)[i]));
 			if ((i + 1) % 4 == 0)
 				printk("\n");
 		}
 	}
 
-	err = mthca_SW2HW_MPT(dev, mailbox,
-			      key & (dev->limits.num_mpts - 1));
+	err = mthca_SW2HW_MPT(dev, mailbox, key & (dev->limits.num_mpts - 1));
 	if (err) {
 		mthca_warn(dev, "SW2HW_MPT failed (%d)\n", err);
 		goto err_out_mailbox;
@@ -509,17 +524,18 @@ err_out_mpt_free:
 	return err;
 }
 
-int mthca_mr_alloc_notrans(struct mthca_dev *dev, u32 pd,
-			   u32 access, struct mthca_mr *mr)
+int
+mthca_mr_alloc_notrans(struct mthca_dev *dev, u32 pd, u32 access,
+    struct mthca_mr *mr)
 {
 	mr->mtt = NULL;
 	return mthca_mr_alloc(dev, pd, 12, 0, ~0ULL, access, mr);
 }
 
-int mthca_mr_alloc_phys(struct mthca_dev *dev, u32 pd,
-			u64 *buffer_list, int buffer_size_shift,
-			int list_len, u64 iova, u64 total_size,
-			u32 access, struct mthca_mr *mr)
+int
+mthca_mr_alloc_phys(struct mthca_dev *dev, u32 pd, u64 *buffer_list,
+    int buffer_size_shift, int list_len, u64 iova, u64 total_size, u32 access,
+    struct mthca_mr *mr)
 {
 	int err;
 
@@ -533,8 +549,8 @@ int mthca_mr_alloc_phys(struct mthca_dev *dev, u32 pd,
 		return err;
 	}
 
-	err = mthca_mr_alloc(dev, pd, buffer_size_shift, iova,
-			     total_size, access, mr);
+	err = mthca_mr_alloc(dev, pd, buffer_size_shift, iova, total_size,
+	    access, mr);
 	if (err)
 		mthca_free_mtt(dev, mr->mtt);
 
@@ -542,21 +558,22 @@ int mthca_mr_alloc_phys(struct mthca_dev *dev, u32 pd,
 }
 
 /* Free mr or fmr */
-static void mthca_free_region(struct mthca_dev *dev, u32 lkey)
+static void
+mthca_free_region(struct mthca_dev *dev, u32 lkey)
 {
 	mthca_table_put(dev, dev->mr_table.mpt_table,
-			key_to_hw_index(dev, lkey));
+	    key_to_hw_index(dev, lkey));
 
 	mthca_free(&dev->mr_table.mpt_alloc, key_to_hw_index(dev, lkey));
 }
 
-void mthca_free_mr(struct mthca_dev *dev, struct mthca_mr *mr)
+void
+mthca_free_mr(struct mthca_dev *dev, struct mthca_mr *mr)
 {
 	int err;
 
 	err = mthca_HW2SW_MPT(dev, NULL,
-			      key_to_hw_index(dev, mr->ibmr.lkey) &
-			      (dev->limits.num_mpts - 1));
+	    key_to_hw_index(dev, mr->ibmr.lkey) & (dev->limits.num_mpts - 1));
 	if (err)
 		mthca_warn(dev, "HW2SW_MPT failed (%d)\n", err);
 
@@ -564,8 +581,8 @@ void mthca_free_mr(struct mthca_dev *dev, struct mthca_mr *mr)
 	mthca_free_mtt(dev, mr->mtt);
 }
 
-int mthca_fmr_alloc(struct mthca_dev *dev, u32 pd,
-		    u32 access, struct mthca_fmr *mr)
+int
+mthca_fmr_alloc(struct mthca_dev *dev, u32 pd, u32 access, struct mthca_fmr *mr)
 {
 	struct mthca_mpt_entry *mpt_entry;
 	struct mthca_mailbox *mailbox;
@@ -598,11 +615,12 @@ int mthca_fmr_alloc(struct mthca_dev *dev, u32 pd,
 		if (err)
 			goto err_out_mpt_free;
 
-		mr->mem.arbel.mpt = mthca_table_find(dev->mr_table.mpt_table, key, NULL);
+		mr->mem.arbel.mpt = mthca_table_find(dev->mr_table.mpt_table,
+		    key, NULL);
 		BUG_ON(!mr->mem.arbel.mpt);
 	} else
 		mr->mem.tavor.mpt = dev->mr_table.tavor_fmr.mpt_base +
-			sizeof *(mr->mem.tavor.mpt) * idx;
+		    sizeof *(mr->mem.tavor.mpt) * idx;
 
 	mr->mtt = __mthca_alloc_mtt(dev, list_len, dev->mr_table.fmr_mtt_buddy);
 	if (IS_ERR(mr->mtt)) {
@@ -614,8 +632,7 @@ int mthca_fmr_alloc(struct mthca_dev *dev, u32 pd,
 
 	if (mthca_is_memfree(dev)) {
 		mr->mem.arbel.mtts = mthca_table_find(dev->mr_table.mtt_table,
-						      mr->mtt->first_seg,
-						      &mr->mem.arbel.dma_handle);
+		    mr->mtt->first_seg, &mr->mem.arbel.dma_handle);
 		BUG_ON(!mr->mem.arbel.mtts);
 	} else
 		mr->mem.tavor.mtts = dev->mr_table.tavor_fmr.mtt_base + mtt_seg;
@@ -628,31 +645,28 @@ int mthca_fmr_alloc(struct mthca_dev *dev, u32 pd,
 
 	mpt_entry = mailbox->buf;
 
-	mpt_entry->flags = cpu_to_be32(MTHCA_MPT_FLAG_SW_OWNS     |
-				       MTHCA_MPT_FLAG_MIO         |
-				       MTHCA_MPT_FLAG_REGION      |
-				       access);
+	mpt_entry->flags = cpu_to_be32(MTHCA_MPT_FLAG_SW_OWNS |
+	    MTHCA_MPT_FLAG_MIO | MTHCA_MPT_FLAG_REGION | access);
 
 	mpt_entry->page_size = cpu_to_be32(mr->attr.page_shift - 12);
-	mpt_entry->key       = cpu_to_be32(key);
-	mpt_entry->pd        = cpu_to_be32(pd);
+	mpt_entry->key = cpu_to_be32(key);
+	mpt_entry->pd = cpu_to_be32(pd);
 	memset(&mpt_entry->start, 0,
-	       sizeof *mpt_entry - offsetof(struct mthca_mpt_entry, start));
-	mpt_entry->mtt_seg   = cpu_to_be64(dev->mr_table.mtt_base + mtt_seg);
+	    sizeof *mpt_entry - offsetof(struct mthca_mpt_entry, start));
+	mpt_entry->mtt_seg = cpu_to_be64(dev->mr_table.mtt_base + mtt_seg);
 
 	if (0) {
 		mthca_dbg(dev, "Dumping MPT entry %08x:\n", mr->ibmr.lkey);
-		for (i = 0; i < sizeof (struct mthca_mpt_entry) / 4; ++i) {
+		for (i = 0; i < sizeof(struct mthca_mpt_entry) / 4; ++i) {
 			if (i % 4 == 0)
 				printk("[%02x] ", i * 4);
-			printk(" %08x", be32_to_cpu(((__be32 *) mpt_entry)[i]));
+			printk(" %08x", be32_to_cpu(((__be32 *)mpt_entry)[i]));
 			if ((i + 1) % 4 == 0)
 				printk("\n");
 		}
 	}
 
-	err = mthca_SW2HW_MPT(dev, mailbox,
-			      key & (dev->limits.num_mpts - 1));
+	err = mthca_SW2HW_MPT(dev, mailbox, key & (dev->limits.num_mpts - 1));
 	if (err) {
 		mthca_warn(dev, "SW2HW_MPT failed (%d)\n", err);
 		goto err_out_mailbox_free;
@@ -675,7 +689,8 @@ err_out_mpt_free:
 	return err;
 }
 
-int mthca_free_fmr(struct mthca_dev *dev, struct mthca_fmr *fmr)
+int
+mthca_free_fmr(struct mthca_dev *dev, struct mthca_fmr *fmr)
 {
 	if (fmr->maps)
 		return -EBUSY;
@@ -686,8 +701,8 @@ int mthca_free_fmr(struct mthca_dev *dev, struct mthca_fmr *fmr)
 	return 0;
 }
 
-static inline int mthca_check_fmr(struct mthca_fmr *fmr, u64 *page_list,
-				  int list_len, u64 iova)
+static inline int
+mthca_check_fmr(struct mthca_fmr *fmr, u64 *page_list, int list_len, u64 iova)
 {
 	int i, page_mask;
 
@@ -713,8 +728,9 @@ static inline int mthca_check_fmr(struct mthca_fmr *fmr, u64 *page_list,
 	return 0;
 }
 
-int mthca_tavor_map_phys_fmr(struct ib_fmr *ibfmr, u64 *page_list,
-			     int list_len, u64 iova)
+int
+mthca_tavor_map_phys_fmr(struct ib_fmr *ibfmr, u64 *page_list, int list_len,
+    u64 iova)
 {
 	struct mthca_fmr *fmr = to_mfmr(ibfmr);
 	struct mthca_dev *dev = to_mdev(ibfmr->device);
@@ -735,27 +751,29 @@ int mthca_tavor_map_phys_fmr(struct ib_fmr *ibfmr, u64 *page_list,
 	writeb(MTHCA_MPT_STATUS_SW, fmr->mem.tavor.mpt);
 
 	for (i = 0; i < list_len; ++i) {
-		__be64 mtt_entry = cpu_to_be64(page_list[i] |
-					       MTHCA_MTT_FLAG_PRESENT);
+		__be64 mtt_entry = cpu_to_be64(
+		    page_list[i] | MTHCA_MTT_FLAG_PRESENT);
 		mthca_write64_raw(mtt_entry, fmr->mem.tavor.mtts + i);
 	}
 
-	mpt_entry.lkey   = cpu_to_be32(key);
-	mpt_entry.length = cpu_to_be64(list_len * (1ull << fmr->attr.page_shift));
-	mpt_entry.start  = cpu_to_be64(iova);
+	mpt_entry.lkey = cpu_to_be32(key);
+	mpt_entry.length = cpu_to_be64(
+	    list_len * (1ull << fmr->attr.page_shift));
+	mpt_entry.start = cpu_to_be64(iova);
 
-	__raw_writel((__force u32) mpt_entry.lkey, &fmr->mem.tavor.mpt->key);
+	__raw_writel((__force u32)mpt_entry.lkey, &fmr->mem.tavor.mpt->key);
 	memcpy_toio(&fmr->mem.tavor.mpt->start, &mpt_entry.start,
-		    offsetof(struct mthca_mpt_entry, window_count) -
-		    offsetof(struct mthca_mpt_entry, start));
+	    offsetof(struct mthca_mpt_entry, window_count) -
+		offsetof(struct mthca_mpt_entry, start));
 
 	writeb(MTHCA_MPT_STATUS_HW, fmr->mem.tavor.mpt);
 
 	return 0;
 }
 
-int mthca_arbel_map_phys_fmr(struct ib_fmr *ibfmr, u64 *page_list,
-			     int list_len, u64 iova)
+int
+mthca_arbel_map_phys_fmr(struct ib_fmr *ibfmr, u64 *page_list, int list_len,
+    u64 iova)
 {
 	struct mthca_fmr *fmr = to_mfmr(ibfmr);
 	struct mthca_dev *dev = to_mdev(ibfmr->device);
@@ -775,35 +793,37 @@ int mthca_arbel_map_phys_fmr(struct ib_fmr *ibfmr, u64 *page_list,
 		key += dev->limits.num_mpts;
 	fmr->ibmr.lkey = fmr->ibmr.rkey = arbel_hw_index_to_key(key);
 
-	*(u8 *) fmr->mem.arbel.mpt = MTHCA_MPT_STATUS_SW;
+	*(u8 *)fmr->mem.arbel.mpt = MTHCA_MPT_STATUS_SW;
 
 	wmb();
 
 	dma_sync_single_for_cpu(&dev->pdev->dev, fmr->mem.arbel.dma_handle,
-				list_len * sizeof(u64), DMA_TO_DEVICE);
+	    list_len * sizeof(u64), DMA_TO_DEVICE);
 
 	for (i = 0; i < list_len; ++i)
-		fmr->mem.arbel.mtts[i] = cpu_to_be64(page_list[i] |
-						     MTHCA_MTT_FLAG_PRESENT);
+		fmr->mem.arbel.mtts[i] = cpu_to_be64(
+		    page_list[i] | MTHCA_MTT_FLAG_PRESENT);
 
 	dma_sync_single_for_device(&dev->pdev->dev, fmr->mem.arbel.dma_handle,
-				   list_len * sizeof(u64), DMA_TO_DEVICE);
+	    list_len * sizeof(u64), DMA_TO_DEVICE);
 
-	fmr->mem.arbel.mpt->key    = cpu_to_be32(key);
-	fmr->mem.arbel.mpt->lkey   = cpu_to_be32(key);
-	fmr->mem.arbel.mpt->length = cpu_to_be64(list_len * (1ull << fmr->attr.page_shift));
-	fmr->mem.arbel.mpt->start  = cpu_to_be64(iova);
+	fmr->mem.arbel.mpt->key = cpu_to_be32(key);
+	fmr->mem.arbel.mpt->lkey = cpu_to_be32(key);
+	fmr->mem.arbel.mpt->length = cpu_to_be64(
+	    list_len * (1ull << fmr->attr.page_shift));
+	fmr->mem.arbel.mpt->start = cpu_to_be64(iova);
 
 	wmb();
 
-	*(u8 *) fmr->mem.arbel.mpt = MTHCA_MPT_STATUS_HW;
+	*(u8 *)fmr->mem.arbel.mpt = MTHCA_MPT_STATUS_HW;
 
 	wmb();
 
 	return 0;
 }
 
-void mthca_tavor_fmr_unmap(struct mthca_dev *dev, struct mthca_fmr *fmr)
+void
+mthca_tavor_fmr_unmap(struct mthca_dev *dev, struct mthca_fmr *fmr)
 {
 	if (!fmr->maps)
 		return;
@@ -813,24 +833,25 @@ void mthca_tavor_fmr_unmap(struct mthca_dev *dev, struct mthca_fmr *fmr)
 	writeb(MTHCA_MPT_STATUS_SW, fmr->mem.tavor.mpt);
 }
 
-void mthca_arbel_fmr_unmap(struct mthca_dev *dev, struct mthca_fmr *fmr)
+void
+mthca_arbel_fmr_unmap(struct mthca_dev *dev, struct mthca_fmr *fmr)
 {
 	if (!fmr->maps)
 		return;
 
 	fmr->maps = 0;
 
-	*(u8 *) fmr->mem.arbel.mpt = MTHCA_MPT_STATUS_SW;
+	*(u8 *)fmr->mem.arbel.mpt = MTHCA_MPT_STATUS_SW;
 }
 
-int mthca_init_mr_table(struct mthca_dev *dev)
+int
+mthca_init_mr_table(struct mthca_dev *dev)
 {
 	phys_addr_t addr;
 	int mpts, mtts, err, i;
 
-	err = mthca_alloc_init(&dev->mr_table.mpt_alloc,
-			       dev->limits.num_mpts,
-			       ~0, dev->limits.reserved_mrws);
+	err = mthca_alloc_init(&dev->mr_table.mpt_alloc, dev->limits.num_mpts,
+	    ~0, dev->limits.reserved_mrws);
 	if (err)
 		return err;
 
@@ -841,10 +862,11 @@ int mthca_init_mr_table(struct mthca_dev *dev)
 		dev->mthca_flags |= MTHCA_FLAG_FMR;
 
 	if (dev->mthca_flags & MTHCA_FLAG_SINAI_OPT)
-		mthca_dbg(dev, "Memory key throughput optimization activated.\n");
+		mthca_dbg(dev,
+		    "Memory key throughput optimization activated.\n");
 
 	err = mthca_buddy_init(&dev->mr_table.mtt_buddy,
-			       fls(dev->limits.num_mtt_segs - 1));
+	    fls(dev->limits.num_mtt_segs - 1));
 
 	if (err)
 		goto err_mtt_buddy;
@@ -866,14 +888,13 @@ int mthca_init_mr_table(struct mthca_dev *dev)
 		mpts = dev->limits.num_mpts;
 	}
 
-	if (!mthca_is_memfree(dev) &&
-	    (dev->mthca_flags & MTHCA_FLAG_FMR)) {
+	if (!mthca_is_memfree(dev) && (dev->mthca_flags & MTHCA_FLAG_FMR)) {
 		addr = pci_resource_start(dev->pdev, 4) +
-			((pci_resource_len(dev->pdev, 4) - 1) &
-			 dev->mr_table.mpt_base);
+		    ((pci_resource_len(dev->pdev, 4) - 1) &
+			dev->mr_table.mpt_base);
 
-		dev->mr_table.tavor_fmr.mpt_base =
-			ioremap(addr, mpts * sizeof(struct mthca_mpt_entry));
+		dev->mr_table.tavor_fmr.mpt_base = ioremap(addr,
+		    mpts * sizeof(struct mthca_mpt_entry));
 
 		if (!dev->mr_table.tavor_fmr.mpt_base) {
 			mthca_warn(dev, "MPT ioremap for FMR failed.\n");
@@ -882,11 +903,11 @@ int mthca_init_mr_table(struct mthca_dev *dev)
 		}
 
 		addr = pci_resource_start(dev->pdev, 4) +
-			((pci_resource_len(dev->pdev, 4) - 1) &
-			 dev->mr_table.mtt_base);
+		    ((pci_resource_len(dev->pdev, 4) - 1) &
+			dev->mr_table.mtt_base);
 
-		dev->mr_table.tavor_fmr.mtt_base =
-			ioremap(addr, mtts * dev->limits.mtt_seg_size);
+		dev->mr_table.tavor_fmr.mtt_base = ioremap(addr,
+		    mtts * dev->limits.mtt_seg_size);
 		if (!dev->mr_table.tavor_fmr.mtt_base) {
 			mthca_warn(dev, "MTT ioremap for FMR failed.\n");
 			err = -ENOMEM;
@@ -895,17 +916,19 @@ int mthca_init_mr_table(struct mthca_dev *dev)
 	}
 
 	if (dev->limits.fmr_reserved_mtts) {
-		err = mthca_buddy_init(&dev->mr_table.tavor_fmr.mtt_buddy, fls(mtts - 1));
+		err = mthca_buddy_init(&dev->mr_table.tavor_fmr.mtt_buddy,
+		    fls(mtts - 1));
 		if (err)
 			goto err_fmr_mtt_buddy;
 
 		/* Prevent regular MRs from using FMR keys */
-		err = mthca_buddy_alloc(&dev->mr_table.mtt_buddy, fls(mtts - 1));
+		err = mthca_buddy_alloc(&dev->mr_table.mtt_buddy,
+		    fls(mtts - 1));
 		if (err)
 			goto err_reserve_fmr;
 
 		dev->mr_table.fmr_mtt_buddy =
-			&dev->mr_table.tavor_fmr.mtt_buddy;
+		    &dev->mr_table.tavor_fmr.mtt_buddy;
 	} else
 		dev->mr_table.fmr_mtt_buddy = &dev->mr_table.mtt_buddy;
 
@@ -914,9 +937,9 @@ int mthca_init_mr_table(struct mthca_dev *dev)
 		i = fls(dev->limits.reserved_mtts - 1);
 
 		if (mthca_alloc_mtt_range(dev, i,
-					  dev->mr_table.fmr_mtt_buddy) == -1) {
+			dev->mr_table.fmr_mtt_buddy) == -1) {
 			mthca_warn(dev, "MTT table of order %d is too small.\n",
-				  dev->mr_table.fmr_mtt_buddy->max_order);
+			    dev->mr_table.fmr_mtt_buddy->max_order);
 			err = -ENOMEM;
 			goto err_reserve_mtts;
 		}
@@ -946,7 +969,8 @@ err_mtt_buddy:
 	return err;
 }
 
-void mthca_cleanup_mr_table(struct mthca_dev *dev)
+void
+mthca_cleanup_mr_table(struct mthca_dev *dev)
 {
 	/* XXX check if any MRs are still allocated? */
 	if (dev->limits.fmr_reserved_mtts)

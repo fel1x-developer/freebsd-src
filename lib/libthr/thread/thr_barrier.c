@@ -27,20 +27,21 @@
  */
 
 #include <sys/cdefs.h>
-#include "namespace.h"
-#include <errno.h>
-#include <stdlib.h>
-#include <pthread.h>
-#include "un-namespace.h"
 
+#include <errno.h>
+#include <pthread.h>
+#include <stdlib.h>
+
+#include "namespace.h"
 #include "thr_private.h"
+#include "un-namespace.h"
 
 _Static_assert(sizeof(struct pthread_barrier) <= THR_PAGE_SIZE_MIN,
     "pthread_barrier is too large for off-page");
 
-__weak_reference(_pthread_barrier_init,		pthread_barrier_init);
-__weak_reference(_pthread_barrier_wait,		pthread_barrier_wait);
-__weak_reference(_pthread_barrier_destroy,	pthread_barrier_destroy);
+__weak_reference(_pthread_barrier_init, pthread_barrier_init);
+__weak_reference(_pthread_barrier_wait, pthread_barrier_wait);
+__weak_reference(_pthread_barrier_destroy, pthread_barrier_destroy);
 
 int
 _pthread_barrier_destroy(pthread_barrier_t *barrier)
@@ -94,8 +95,8 @@ _pthread_barrier_destroy(pthread_barrier_t *barrier)
 }
 
 int
-_pthread_barrier_init(pthread_barrier_t * __restrict barrier,
-    const pthread_barrierattr_t * __restrict attr, unsigned count)
+_pthread_barrier_init(pthread_barrier_t *__restrict barrier,
+    const pthread_barrierattr_t *__restrict attr, unsigned count)
 {
 	pthread_barrier_t bar;
 	int pshared;

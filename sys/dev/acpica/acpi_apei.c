@@ -25,10 +25,10 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_acpi.h"
 #include "opt_pci.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -39,37 +39,38 @@
 #include <sys/module.h>
 #include <sys/queue.h>
 #include <sys/rman.h>
+
 #include <vm/vm.h>
 #include <vm/pmap.h>
-
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
-#include <contrib/dev/acpica/include/aclocal.h>
-#include <contrib/dev/acpica/include/actables.h>
 
 #include <dev/acpica/acpivar.h>
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
+
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/aclocal.h>
+#include <contrib/dev/acpica/include/acpi.h>
+#include <contrib/dev/acpica/include/actables.h>
 
 struct apei_ge {
 	union {
 		ACPI_HEST_GENERIC v1;
 		ACPI_HEST_GENERIC_V2 v2;
 	};
-	int		 res_type;
-	int		 res_rid;
-	struct resource	*res;
-	int		 res2_type;
-	int		 res2_rid;
-	struct resource	*res2;
-	uint8_t		*buf, *copybuf;
+	int res_type;
+	int res_rid;
+	struct resource *res;
+	int res2_type;
+	int res2_rid;
+	struct resource *res2;
+	uint8_t *buf, *copybuf;
 	TAILQ_ENTRY(apei_ge) link;
 	TAILQ_ENTRY(apei_ge) nlink;
 };
 
 /* NMI */
 struct apei_nges {
-	void		*swi_ih;
+	void *swi_ih;
 	TAILQ_HEAD(, apei_ge) ges;
 } *apei_nmi_nges;
 
@@ -80,8 +81,8 @@ struct apei_iges {
 
 /* Polling */
 struct apei_pges {
-	sbintime_t	 interval;
-	struct callout	 poll;
+	sbintime_t interval;
+	struct callout poll;
 	TAILQ_HEAD(, apei_ge) ges;
 };
 
@@ -94,39 +95,39 @@ struct apei_softc {
 };
 
 struct apei_mem_error {
-	uint64_t	ValidationBits;
-	uint64_t	ErrorStatus;
-	uint64_t	PhysicalAddress;
-	uint64_t	PhysicalAddressMask;
-	uint16_t	Node;
-	uint16_t	Card;
-	uint16_t	Module;
-	uint16_t	Bank;
-	uint16_t	Device;
-	uint16_t	Row;
-	uint16_t	Column;
-	uint16_t	BitPosition;
-	uint64_t	RequesterID;
-	uint64_t	ResponderID;
-	uint64_t	TargetID;
-	uint8_t		MemoryErrorType;
-	uint8_t		Extended;
-	uint16_t	RankNumber;
-	uint16_t	CardHandle;
-	uint16_t	ModuleHandle;
+	uint64_t ValidationBits;
+	uint64_t ErrorStatus;
+	uint64_t PhysicalAddress;
+	uint64_t PhysicalAddressMask;
+	uint16_t Node;
+	uint16_t Card;
+	uint16_t Module;
+	uint16_t Bank;
+	uint16_t Device;
+	uint16_t Row;
+	uint16_t Column;
+	uint16_t BitPosition;
+	uint64_t RequesterID;
+	uint64_t ResponderID;
+	uint64_t TargetID;
+	uint8_t MemoryErrorType;
+	uint8_t Extended;
+	uint16_t RankNumber;
+	uint16_t CardHandle;
+	uint16_t ModuleHandle;
 };
 
 struct apei_pcie_error {
-	uint64_t	ValidationBits;
-	uint32_t	PortType;
-	uint32_t	Version;
-	uint32_t	CommandStatus;
-	uint32_t	Reserved;
-	uint8_t		DeviceID[16];
-	uint8_t		DeviceSerialNumber[8];
-	uint8_t		BridgeControlStatus[4];
-	uint8_t		CapabilityStructure[60];
-	uint8_t		AERInfo[96];
+	uint64_t ValidationBits;
+	uint32_t PortType;
+	uint32_t Version;
+	uint32_t CommandStatus;
+	uint32_t Reserved;
+	uint8_t DeviceID[16];
+	uint8_t DeviceSerialNumber[8];
+	uint8_t BridgeControlStatus[4];
+	uint8_t CapabilityStructure[60];
+	uint8_t AERInfo[96];
 };
 
 #ifdef __i386__
@@ -142,18 +143,19 @@ apei_bus_write_8(struct resource *res, bus_size_t offset, uint64_t val)
 	bus_write_4(res, offset, val);
 	bus_write_4(res, offset + 4, val >> 32);
 }
-#define	READ8(r, o)	apei_bus_read_8((r), (o))
-#define	WRITE8(r, o, v)	apei_bus_write_8((r), (o), (v))
+#define READ8(r, o) apei_bus_read_8((r), (o))
+#define WRITE8(r, o, v) apei_bus_write_8((r), (o), (v))
 #else
-#define	READ8(r, o)	bus_read_8((r), (o))
-#define	WRITE8(r, o, v)	bus_write_8((r), (o), (v))
+#define READ8(r, o) bus_read_8((r), (o))
+#define WRITE8(r, o, v) bus_write_8((r), (o), (v))
 #endif
 
-#define GED_SIZE(ged)	((ged)->Revision >= 0x300 ? \
-    sizeof(ACPI_HEST_GENERIC_DATA_V300) : sizeof(ACPI_HEST_GENERIC_DATA))
-#define GED_DATA(ged)	((uint8_t *)(ged) + GED_SIZE(ged))
+#define GED_SIZE(ged)                                                     \
+	((ged)->Revision >= 0x300 ? sizeof(ACPI_HEST_GENERIC_DATA_V300) : \
+				    sizeof(ACPI_HEST_GENERIC_DATA))
+#define GED_DATA(ged) ((uint8_t *)(ged) + GED_SIZE(ged))
 
-#define PGE_ID(ge)	(fls(MAX(1, (ge)->v1.Notify.PollInterval)) - 1)
+#define PGE_ID(ge) (fls(MAX(1, (ge)->v1.Notify.PollInterval)) - 1)
 
 static struct sysctl_ctx_list apei_sysctl_ctx;
 static struct sysctl_oid *apei_sysctl_tree;
@@ -166,13 +168,13 @@ apei_severity(uint32_t s)
 {
 	switch (s) {
 	case ACPI_HEST_GEN_ERROR_RECOVERABLE:
-	    return ("Recoverable");
+		return ("Recoverable");
 	case ACPI_HEST_GEN_ERROR_FATAL:
-	    return ("Fatal");
+		return ("Fatal");
 	case ACPI_HEST_GEN_ERROR_CORRECTED:
-	    return ("Corrected");
+		return ("Corrected");
 	case ACPI_HEST_GEN_ERROR_NONE:
-	    return ("Informational");
+		return ("Informational");
 	}
 	return ("???");
 }
@@ -184,7 +186,7 @@ apei_mem_handler(ACPI_HEST_GENERIC_DATA *ged)
 
 	if (!log_corrected &&
 	    (ged->ErrorSeverity == ACPI_HEST_GEN_ERROR_CORRECTED ||
-	    ged->ErrorSeverity == ACPI_HEST_GEN_ERROR_NONE))
+		ged->ErrorSeverity == ACPI_HEST_GEN_ERROR_NONE))
 		return (1);
 
 	printf("APEI %s Memory Error:\n", apei_severity(ged->ErrorSeverity));
@@ -193,7 +195,8 @@ apei_mem_handler(ACPI_HEST_GENERIC_DATA *ged)
 	if (p->ValidationBits & 0x02)
 		printf(" Physical Address: 0x%jx\n", p->PhysicalAddress);
 	if (p->ValidationBits & 0x04)
-		printf(" Physical Address Mask: 0x%jx\n", p->PhysicalAddressMask);
+		printf(" Physical Address Mask: 0x%jx\n",
+		    p->PhysicalAddressMask);
 	if (p->ValidationBits & 0x08)
 		printf(" Node: %u\n", p->Node);
 	if (p->ValidationBits & 0x10)
@@ -249,8 +252,8 @@ apei_pcie_handler(ACPI_HEST_GENERIC_DATA *ged)
 	if ((p->ValidationBits & 0x8) == 0x8) {
 		mtx_lock(&Giant);
 		dev = pci_find_dbsf((uint32_t)p->DeviceID[10] << 8 |
-		    p->DeviceID[9], p->DeviceID[11], p->DeviceID[8],
-		    p->DeviceID[7]);
+			p->DeviceID[9],
+		    p->DeviceID[11], p->DeviceID[8], p->DeviceID[7]);
 		if (dev != NULL) {
 			switch (ged->ErrorSeverity) {
 			case ACPI_HEST_GEN_ERROR_FATAL:
@@ -275,7 +278,7 @@ apei_pcie_handler(ACPI_HEST_GENERIC_DATA *ged)
 
 	if (!log_corrected &&
 	    (ged->ErrorSeverity == ACPI_HEST_GEN_ERROR_CORRECTED ||
-	    ged->ErrorSeverity == ACPI_HEST_GEN_ERROR_NONE))
+		ged->ErrorSeverity == ACPI_HEST_GEN_ERROR_NONE))
 		return (1);
 
 	printf("APEI %s PCIe Error:\n", apei_severity(ged->ErrorSeverity));
@@ -328,15 +331,13 @@ apei_ged_handler(ACPI_HEST_GENERIC_DATA *ged)
 {
 	ACPI_HEST_GENERIC_DATA_V300 *ged3 = (ACPI_HEST_GENERIC_DATA_V300 *)ged;
 	/* A5BC1114-6F64-4EDE-B863-3E83ED7C83B1 */
-	static uint8_t mem_uuid[ACPI_UUID_LENGTH] = {
-		0x14, 0x11, 0xBC, 0xA5, 0x64, 0x6F, 0xDE, 0x4E,
-		0xB8, 0x63, 0x3E, 0x83, 0xED, 0x7C, 0x83, 0xB1
-	};
+	static uint8_t mem_uuid[ACPI_UUID_LENGTH] = { 0x14, 0x11, 0xBC, 0xA5,
+		0x64, 0x6F, 0xDE, 0x4E, 0xB8, 0x63, 0x3E, 0x83, 0xED, 0x7C,
+		0x83, 0xB1 };
 	/* D995E954-BBC1-430F-AD91-B44DCB3C6F35 */
-	static uint8_t pcie_uuid[ACPI_UUID_LENGTH] = {
-		0x54, 0xE9, 0x95, 0xD9, 0xC1, 0xBB, 0x0F, 0x43,
-		0xAD, 0x91, 0xB4, 0x4D, 0xCB, 0x3C, 0x6F, 0x35
-	};
+	static uint8_t pcie_uuid[ACPI_UUID_LENGTH] = { 0x54, 0xE9, 0x95, 0xD9,
+		0xC1, 0xBB, 0x0F, 0x43, 0xAD, 0x91, 0xB4, 0x4D, 0xCB, 0x3C,
+		0x6F, 0x35 };
 	uint8_t *t;
 	int h = 0, off;
 
@@ -347,15 +348,15 @@ apei_ged_handler(ACPI_HEST_GENERIC_DATA *ged)
 	} else {
 		if (!log_corrected &&
 		    (ged->ErrorSeverity == ACPI_HEST_GEN_ERROR_CORRECTED ||
-		    ged->ErrorSeverity == ACPI_HEST_GEN_ERROR_NONE))
+			ged->ErrorSeverity == ACPI_HEST_GEN_ERROR_NONE))
 			return;
 
 		t = ged->SectionType;
 		printf("APEI %s Error %02x%02x%02x%02x-%02x%02x-"
-		    "%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x:\n",
-		    apei_severity(ged->ErrorSeverity),
-		    t[3], t[2], t[1], t[0], t[5], t[4], t[7], t[6],
-		    t[8], t[9], t[10], t[11], t[12], t[13], t[14], t[15]);
+		       "%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x:\n",
+		    apei_severity(ged->ErrorSeverity), t[3], t[2], t[1], t[0],
+		    t[5], t[4], t[7], t[6], t[8], t[9], t[10], t[11], t[12],
+		    t[13], t[14], t[15]);
 		printf(" Error Data:\n");
 		t = (uint8_t *)GED_DATA(ged);
 		for (off = 0; off < ged->ErrorDataLength; off++) {
@@ -371,9 +372,9 @@ apei_ged_handler(ACPI_HEST_GENERIC_DATA *ged)
 	if (ged->ValidationBits & ACPI_HEST_GEN_VALID_FRU_ID) {
 		t = ged->FruId;
 		printf(" FRU Id: %02x%02x%02x%02x-%02x%02x-%02x%02x-"
-		    "%02x%02x-%02x%02x%02x%02x%02x%02x\n",
-		    t[3], t[2], t[1], t[0], t[5], t[4], t[7], t[6],
-		    t[8], t[9], t[10], t[11], t[12], t[13], t[14], t[15]);
+		       "%02x%02x-%02x%02x%02x%02x%02x%02x\n",
+		    t[3], t[2], t[1], t[0], t[5], t[4], t[7], t[6], t[8], t[9],
+		    t[10], t[11], t[12], t[13], t[14], t[15]);
 	}
 	if (ged->ValidationBits & ACPI_HEST_GEN_VALID_FRU_STRING)
 		printf(" FRU Text: %.20s\n", ged->FruText);
@@ -431,7 +432,7 @@ apei_nmi_swi(void *arg)
 	struct apei_nges *nges = arg;
 	struct apei_ge *ge;
 
-	TAILQ_FOREACH(ge, &nges->ges, nlink)
+	TAILQ_FOREACH (ge, &nges->ges, nlink)
 		apei_ge_handler(ge, true);
 }
 
@@ -446,7 +447,7 @@ apei_nmi_handler(void)
 	if (nges == NULL)
 		return (0);
 
-	TAILQ_FOREACH(ge, &nges->ges, nlink) {
+	TAILQ_FOREACH (ge, &nges->ges, nlink) {
 		ges = (ACPI_HEST_GENERIC_STATUS *)ge->buf;
 		if (ges == NULL || ges->BlockStatus == 0)
 			continue;
@@ -485,7 +486,7 @@ apei_callout_handler(void *context)
 	struct apei_pges *pges = context;
 	struct apei_ge *ge;
 
-	TAILQ_FOREACH(ge, &pges->ges, nlink)
+	TAILQ_FOREACH (ge, &pges->ges, nlink)
 		apei_ge_handler(ge, false);
 	callout_schedule_sbt(&pges->poll, pges->interval, pges->interval, 0);
 }
@@ -497,7 +498,7 @@ apei_notify_handler(ACPI_HANDLE h, UINT32 notify, void *context)
 	struct apei_softc *sc = device_get_softc(dev);
 	struct apei_ge *ge;
 
-	TAILQ_FOREACH(ge, &sc->iges.ges, nlink)
+	TAILQ_FOREACH (ge, &sc->iges.ges, nlink)
 		apei_ge_handler(ge, false);
 }
 
@@ -513,13 +514,13 @@ hest_parse_structure(struct apei_softc *sc, void *addr, int remaining)
 	switch (hdr->Type) {
 	case ACPI_HEST_TYPE_IA32_CHECK: {
 		ACPI_HEST_IA_MACHINE_CHECK *s = addr;
-		return (sizeof(*s) + s->NumHardwareBanks *
-		    sizeof(ACPI_HEST_IA_ERROR_BANK));
+		return (sizeof(*s) +
+		    s->NumHardwareBanks * sizeof(ACPI_HEST_IA_ERROR_BANK));
 	}
 	case ACPI_HEST_TYPE_IA32_CORRECTED_CHECK: {
 		ACPI_HEST_IA_CORRECTED *s = addr;
-		return (sizeof(*s) + s->NumHardwareBanks *
-		    sizeof(ACPI_HEST_IA_ERROR_BANK));
+		return (sizeof(*s) +
+		    s->NumHardwareBanks * sizeof(ACPI_HEST_IA_ERROR_BANK));
 	}
 	case ACPI_HEST_TYPE_IA32_NMI: {
 		ACPI_HEST_IA_NMI *s = addr;
@@ -553,8 +554,8 @@ hest_parse_structure(struct apei_softc *sc, void *addr, int remaining)
 	}
 	case ACPI_HEST_TYPE_IA32_DEFERRED_CHECK: {
 		ACPI_HEST_IA_DEFERRED_CHECK *s = addr;
-		return (sizeof(*s) + s->NumHardwareBanks *
-		    sizeof(ACPI_HEST_IA_ERROR_BANK));
+		return (sizeof(*s) +
+		    s->NumHardwareBanks * sizeof(ACPI_HEST_IA_ERROR_BANK));
 	}
 	default:
 		return (-1);
@@ -582,8 +583,7 @@ hest_parse_table(struct apei_softc *sc)
 static char *apei_ids[] = { "PNP0C33", NULL };
 
 static ACPI_STATUS
-apei_find(ACPI_HANDLE handle, UINT32 level, void *context,
-    void **status)
+apei_find(ACPI_HANDLE handle, UINT32 level, void *context, void **status)
 {
 	int *found = (int *)status;
 	char **ids;
@@ -600,10 +600,10 @@ apei_find(ACPI_HANDLE handle, UINT32 level, void *context,
 static void
 apei_identify(driver_t *driver, device_t parent)
 {
-	device_t	child;
-	int		found;
+	device_t child;
+	int found;
 	ACPI_TABLE_HEADER *hest;
-	ACPI_STATUS	status;
+	ACPI_STATUS status;
 
 	if (acpi_disabled("apei"))
 		return;
@@ -620,8 +620,8 @@ apei_identify(driver_t *driver, device_t parent)
 
 	/* Search for ACPI error device to be used. */
 	found = 0;
-	AcpiWalkNamespace(ACPI_TYPE_DEVICE, ACPI_ROOT_OBJECT,
-	    100, apei_find, NULL, NULL, (void *)&found);
+	AcpiWalkNamespace(ACPI_TYPE_DEVICE, ACPI_ROOT_OBJECT, 100, apei_find,
+	    NULL, NULL, (void *)&found);
 	if (found)
 		return;
 
@@ -635,7 +635,7 @@ static int
 apei_probe(device_t dev)
 {
 	ACPI_TABLE_HEADER *hest;
-	ACPI_STATUS	status;
+	ACPI_STATUS status;
 	int rv;
 
 	if (acpi_disabled("apei"))
@@ -675,8 +675,9 @@ apei_attach(device_t dev)
 		    SYSCTL_CHILDREN(acpi_sc->acpi_sysctl_tree), OID_AUTO,
 		    "apei", CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
 		    "ACPI Platform Error Interface");
-		SYSCTL_ADD_INT(&apei_sysctl_ctx, SYSCTL_CHILDREN(apei_sysctl_tree),
-		    OID_AUTO, "log_corrected", CTLFLAG_RWTUN, &log_corrected, 0,
+		SYSCTL_ADD_INT(&apei_sysctl_ctx,
+		    SYSCTL_CHILDREN(apei_sysctl_tree), OID_AUTO,
+		    "log_corrected", CTLFLAG_RWTUN, &log_corrected, 0,
 		    "Log corrected errors to the console");
 	}
 
@@ -691,20 +692,22 @@ apei_attach(device_t dev)
 	}
 
 	/* Search and parse HEST table. */
-	status = AcpiGetTable(ACPI_SIG_HEST, 0, (ACPI_TABLE_HEADER **)&sc->hest);
+	status = AcpiGetTable(ACPI_SIG_HEST, 0,
+	    (ACPI_TABLE_HEADER **)&sc->hest);
 	if (ACPI_FAILURE(status))
 		return (ENXIO);
 	hest_parse_table(sc);
 	AcpiPutTable((ACPI_TABLE_HEADER *)sc->hest);
 
 	rid = 0;
-	TAILQ_FOREACH(ge, &sc->ges, link) {
+	TAILQ_FOREACH (ge, &sc->ges, link) {
 		ge->res_rid = rid++;
 		acpi_bus_alloc_gas(dev, &ge->res_type, &ge->res_rid,
 		    &ge->v1.ErrorStatusAddress, &ge->res, 0);
 		if (ge->res) {
 			ge->buf = pmap_mapdev_attr(READ8(ge->res, 0),
-			    ge->v1.ErrorBlockLength, VM_MEMATTR_WRITE_COMBINING);
+			    ge->v1.ErrorBlockLength,
+			    VM_MEMATTR_WRITE_COMBINING);
 		} else {
 			device_printf(dev, "Can't allocate status resource.\n");
 		}
@@ -713,20 +716,21 @@ apei_attach(device_t dev)
 			acpi_bus_alloc_gas(dev, &ge->res2_type, &ge->res2_rid,
 			    &ge->v2.ReadAckRegister, &ge->res2, RF_SHAREABLE);
 			if (ge->res2 == NULL)
-				device_printf(dev, "Can't allocate ack resource.\n");
+				device_printf(dev,
+				    "Can't allocate ack resource.\n");
 		}
 		if (ge->v1.Notify.Type == ACPI_HEST_NOTIFY_POLLED) {
 			pges = &sc->pges[PGE_ID(ge)];
 			TAILQ_INSERT_TAIL(&sc->pges[PGE_ID(ge)].ges, ge, nlink);
-			callout_reset_sbt(&pges->poll, pges->interval, pges->interval,
-			    apei_callout_handler, pges, 0);
+			callout_reset_sbt(&pges->poll, pges->interval,
+			    pges->interval, apei_callout_handler, pges, 0);
 		} else if (ge->v1.Notify.Type == ACPI_HEST_NOTIFY_SCI ||
 		    ge->v1.Notify.Type == ACPI_HEST_NOTIFY_GPIO ||
 		    ge->v1.Notify.Type == ACPI_HEST_NOTIFY_GSIV) {
 			TAILQ_INSERT_TAIL(&sc->iges.ges, ge, nlink);
 		} else if (ge->v1.Notify.Type == ACPI_HEST_NOTIFY_NMI) {
-			ge->copybuf = malloc(ge->v1.ErrorBlockLength,
-			    M_DEVBUF, M_WAITOK | M_ZERO);
+			ge->copybuf = malloc(ge->v1.ErrorBlockLength, M_DEVBUF,
+			    M_WAITOK | M_ZERO);
 			TAILQ_INSERT_TAIL(&sc->nges.ges, ge, nlink);
 			if (sc->nges.swi_ih == NULL) {
 				swi_add(&clk_intr_event, "apei", apei_nmi_swi,
@@ -767,12 +771,12 @@ apei_detach(device_t dev)
 	while ((ge = TAILQ_FIRST(&sc->ges)) != NULL) {
 		TAILQ_REMOVE(&sc->ges, ge, link);
 		if (ge->res) {
-			bus_release_resource(dev, ge->res_type,
-			    ge->res_rid, ge->res);
+			bus_release_resource(dev, ge->res_type, ge->res_rid,
+			    ge->res);
 		}
 		if (ge->res2) {
-			bus_release_resource(dev, ge->res2_type,
-			    ge->res2_rid, ge->res2);
+			bus_release_resource(dev, ge->res2_type, ge->res2_rid,
+			    ge->res2);
 		}
 		if (ge->v1.Notify.Type == ACPI_HEST_NOTIFY_POLLED) {
 			TAILQ_REMOVE(&sc->pges[PGE_ID(ge)].ges, ge, nlink);
@@ -797,11 +801,10 @@ static device_method_t apei_methods[] = {
 	DEVMETHOD(device_identify, apei_identify),
 	DEVMETHOD(device_probe, apei_probe),
 	DEVMETHOD(device_attach, apei_attach),
-	DEVMETHOD(device_detach, apei_detach),
-	DEVMETHOD_END
+	DEVMETHOD(device_detach, apei_detach), DEVMETHOD_END
 };
 
-static driver_t	apei_driver = {
+static driver_t apei_driver = {
 	"apei",
 	apei_methods,
 	sizeof(struct apei_softc),

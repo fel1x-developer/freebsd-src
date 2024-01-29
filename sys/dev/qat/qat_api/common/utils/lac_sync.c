@@ -14,8 +14,8 @@
 * Include public/global header files
 *******************************************************************************
 */
-#include "lac_sync.h"
 #include "lac_common.h"
+#include "lac_sync.h"
 
 /*
 *******************************************************************************
@@ -48,9 +48,8 @@ LacSync_GenWakeupSyncCaller(void *pCallbackTag, CpaStatus status)
  * @ingroup LacSync
  *****************************************************************************/
 void
-LacSync_GenVerifyWakeupSyncCaller(void *pCallbackTag,
-				  CpaStatus status,
-				  CpaBoolean opResult)
+LacSync_GenVerifyWakeupSyncCaller(void *pCallbackTag, CpaStatus status,
+    CpaBoolean opResult)
 {
 	lac_sync_op_data_t *pSc = (lac_sync_op_data_t *)pCallbackTag;
 	if (pSc != NULL) {
@@ -71,10 +70,8 @@ LacSync_GenVerifyWakeupSyncCaller(void *pCallbackTag,
  * @ingroup LacSync
  *****************************************************************************/
 void
-LacSync_GenVerifyCb(void *pCallbackTag,
-		    CpaStatus status,
-		    void *pOpData,
-		    CpaBoolean opResult)
+LacSync_GenVerifyCb(void *pCallbackTag, CpaStatus status, void *pOpData,
+    CpaBoolean opResult)
 {
 	LacSync_GenVerifyWakeupSyncCaller(pCallbackTag, status, opResult);
 }
@@ -84,10 +81,8 @@ LacSync_GenVerifyCb(void *pCallbackTag,
  * @ingroup LacSync
  *****************************************************************************/
 void
-LacSync_GenFlatBufCb(void *pCallbackTag,
-		     CpaStatus status,
-		     void *pOpData,
-		     CpaFlatBuffer *pOut)
+LacSync_GenFlatBufCb(void *pCallbackTag, CpaStatus status, void *pOpData,
+    CpaFlatBuffer *pOut)
 {
 	LacSync_GenWakeupSyncCaller(pCallbackTag, status);
 }
@@ -97,11 +92,8 @@ LacSync_GenFlatBufCb(void *pCallbackTag,
  * @ingroup LacSync
  *****************************************************************************/
 void
-LacSync_GenFlatBufVerifyCb(void *pCallbackTag,
-			   CpaStatus status,
-			   void *pOpData,
-			   CpaBoolean opResult,
-			   CpaFlatBuffer *pOut)
+LacSync_GenFlatBufVerifyCb(void *pCallbackTag, CpaStatus status, void *pOpData,
+    CpaBoolean opResult, CpaFlatBuffer *pOut)
 {
 	LacSync_GenVerifyWakeupSyncCaller(pCallbackTag, status, opResult);
 }
@@ -111,12 +103,9 @@ LacSync_GenFlatBufVerifyCb(void *pCallbackTag,
  * @ingroup LacSync
  *****************************************************************************/
 void
-LacSync_GenDualFlatBufVerifyCb(void *pCallbackTag,
-			       CpaStatus status,
-			       void *pOpdata,
-			       CpaBoolean opResult,
-			       CpaFlatBuffer *pOut0,
-			       CpaFlatBuffer *pOut1)
+LacSync_GenDualFlatBufVerifyCb(void *pCallbackTag, CpaStatus status,
+    void *pOpdata, CpaBoolean opResult, CpaFlatBuffer *pOut0,
+    CpaFlatBuffer *pOut1)
 {
 	LacSync_GenVerifyWakeupSyncCaller(pCallbackTag, status, opResult);
 }

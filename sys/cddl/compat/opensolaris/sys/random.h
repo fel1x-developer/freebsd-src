@@ -25,11 +25,11 @@
  */
 
 #ifndef _OPENSOLARIS_SYS_RANDOM_H_
-#define	_OPENSOLARIS_SYS_RANDOM_H_
+#define _OPENSOLARIS_SYS_RANDOM_H_
 
 #include_next <sys/random.h>
 
-#define	random_get_bytes(p, s)		read_random((p), (int)(s))
-#define	random_get_pseudo_bytes(p, s)	arc4rand((p), (int)(s), 0)
+#define random_get_bytes(p, s) read_random((p), (int)(s))
+#define random_get_pseudo_bytes(p, s) arc4rand((p), (int)(s), 0)
 
-#endif	/* !_OPENSOLARIS_SYS_RANDOM_H_ */
+#endif /* !_OPENSOLARIS_SYS_RANDOM_H_ */

@@ -35,6 +35,7 @@
 #include <sys/cdefs.h>
 
 #include <string.h>
+
 #include "rtld_paths.h"
 #include "rtld_printf.h"
 
@@ -42,16 +43,17 @@ void debug_printf(const char *, ...) __printflike(1, 2);
 extern int debug;
 
 #ifndef NO_LD_DEBUG
-#define dbg(...)	debug_printf(__VA_ARGS__)
+#define dbg(...) debug_printf(__VA_ARGS__)
 #else
-#define dbg(...)	((void) 0)
+#define dbg(...) ((void)0)
 #endif
 
-#define assert(cond)	((cond) ? (void) 0 :			\
-    (msg(_BASENAME_RTLD ": assert failed: " __FILE__ ":"	\
-      __XSTRING(__LINE__) "\n"), abort()))
-#define msg(s)		rtld_putstr(s)
-#define trace()		msg(_BASENAME_RTLD ": " __XSTRING(__LINE__) "\n")
-
+#define assert(cond)                                                 \
+	((cond) ? (void)0 :                                          \
+		  (msg(_BASENAME_RTLD ": assert failed: " __FILE__   \
+				      ":" __XSTRING(__LINE__) "\n"), \
+		      abort()))
+#define msg(s) rtld_putstr(s)
+#define trace() msg(_BASENAME_RTLD ": " __XSTRING(__LINE__) "\n")
 
 #endif /* DEBUG_H */

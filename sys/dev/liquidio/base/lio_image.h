@@ -34,20 +34,20 @@
 #ifndef _LIO_IMAGE_H_
 #define _LIO_IMAGE_H_
 
-#define LIO_MAX_FW_FILENAME_LEN		256
-#define LIO_FW_BASE_NAME		"lio_"
-#define LIO_FW_NAME_SUFFIX		".bin"
-#define LIO_FW_NAME_TYPE_NIC		"nic"
-#define LIO_FW_NAME_TYPE_NONE		"none"
-#define LIO_MAX_FIRMWARE_VERSION_LEN	16
+#define LIO_MAX_FW_FILENAME_LEN 256
+#define LIO_FW_BASE_NAME "lio_"
+#define LIO_FW_NAME_SUFFIX ".bin"
+#define LIO_FW_NAME_TYPE_NIC "nic"
+#define LIO_FW_NAME_TYPE_NONE "none"
+#define LIO_MAX_FIRMWARE_VERSION_LEN 16
 
-#define LIO_MAX_BOOTCMD_LEN		1024
-#define LIO_MAX_IMAGES			16
-#define LIO_NIC_MAGIC			0x434E4943	/* "CNIC" */
+#define LIO_MAX_BOOTCMD_LEN 1024
+#define LIO_MAX_IMAGES 16
+#define LIO_NIC_MAGIC 0x434E4943 /* "CNIC" */
 struct lio_firmware_desc {
-	__be64	addr;
-	__be32	len;
-	__be32	crc32;	/* crc32 of image */
+	__be64 addr;
+	__be32 len;
+	__be32 crc32; /* crc32 of image */
 };
 
 /*
@@ -56,13 +56,13 @@ struct lio_firmware_desc {
  * Numeric fields are in network byte order.
  */
 struct lio_firmware_file_header {
-	__be32				magic;
-	char				version[LIO_MAX_FIRMWARE_VERSION_LEN];
-	char				bootcmd[LIO_MAX_BOOTCMD_LEN];
-	__be32				num_images;
-	struct lio_firmware_desc	desc[LIO_MAX_IMAGES];
-	__be32				pad;
-	__be32				crc32;	/* header checksum */
+	__be32 magic;
+	char version[LIO_MAX_FIRMWARE_VERSION_LEN];
+	char bootcmd[LIO_MAX_BOOTCMD_LEN];
+	__be32 num_images;
+	struct lio_firmware_desc desc[LIO_MAX_IMAGES];
+	__be32 pad;
+	__be32 crc32; /* header checksum */
 };
 
-#endif	/* _LIO_IMAGE_H_ */
+#endif /* _LIO_IMAGE_H_ */

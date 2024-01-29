@@ -34,15 +34,15 @@
 #include "pci_lpc.h"
 
 static int
-post_data_handler(struct vmctx *ctx __unused, int in,
-    int port __unused, int bytes, uint32_t *eax, void *arg __unused)
+post_data_handler(struct vmctx *ctx __unused, int in, int port __unused,
+    int bytes, uint32_t *eax, void *arg __unused)
 {
 	assert(in == 1);
 
 	if (bytes != 1)
 		return (-1);
 
-	*eax = 0xff;		/* return some garbage */
+	*eax = 0xff; /* return some garbage */
 	return (0);
 }
 

@@ -108,33 +108,33 @@ sqrtl(long double x)
 	 * u.e is a normal number, so break it into u.e = e*2^n where
 	 * u.e = (2*e)*2^2k for odd n and u.e = (4*e)*2^2k for even n.
 	 */
-	if ((u.bits.exp - 0x3ffe) & 1) {	/* n is odd.     */
-		k += u.bits.exp - 0x3fff;	/* 2k = n - 1.   */
-		u.bits.exp = 0x3fff;		/* u.e in [1,2). */
+	if ((u.bits.exp - 0x3ffe) & 1) {  /* n is odd.     */
+		k += u.bits.exp - 0x3fff; /* 2k = n - 1.   */
+		u.bits.exp = 0x3fff;	  /* u.e in [1,2). */
 	} else {
-		k += u.bits.exp - 0x4000;	/* 2k = n - 2.   */
-		u.bits.exp = 0x4000;		/* u.e in [2,4). */
+		k += u.bits.exp - 0x4000; /* 2k = n - 2.   */
+		u.bits.exp = 0x4000;	  /* u.e in [2,4). */
 	}
 
 	/*
 	 * Newton's iteration.
 	 * Split u.e into a high and low part to achieve additional precision.
 	 */
-	xn = sqrt(u.e);			/* 53-bit estimate of sqrtl(x). */
+	xn = sqrt(u.e); /* 53-bit estimate of sqrtl(x). */
 #if LDBL_MANT_DIG > 100
-	xn = (xn + (u.e / xn)) * 0.5;	/* 106-bit estimate. */
+	xn = (xn + (u.e / xn)) * 0.5; /* 106-bit estimate. */
 #endif
 	lo = u.e;
-	u.bits.manl = 0;		/* Zero out lower bits. */
-	lo = (lo - u.e) / xn;		/* Low bits divided by xn. */
-	xn = xn + (u.e / xn);		/* High portion of estimate. */
-	u.e = xn + lo;			/* Combine everything. */
+	u.bits.manl = 0;      /* Zero out lower bits. */
+	lo = (lo - u.e) / xn; /* Low bits divided by xn. */
+	xn = xn + (u.e / xn); /* High portion of estimate. */
+	u.e = xn + lo;	      /* Combine everything. */
 	u.bits.exp += (k >> 1) - 1;
 
 	feclearexcept(FE_INEXACT);
 	r = fegetround();
-	fesetround(FE_TOWARDZERO);	/* Set to round-toward-zero. */
-	xn = x / u.e;			/* Chopped quotient (inexact?). */
+	fesetround(FE_TOWARDZERO); /* Set to round-toward-zero. */
+	xn = x / u.e;		   /* Chopped quotient (inexact?). */
 
 	if (!fetestexcept(FE_INEXACT)) { /* Quotient is exact. */
 		if (xn == u.e) {
@@ -142,17 +142,17 @@ sqrtl(long double x)
 			return (u.e);
 		}
 		/* Round correctly for inputs like x = y**2 - ulp. */
-		xn = dec(xn);		/* xn = xn - ulp. */
+		xn = dec(xn); /* xn = xn - ulp. */
 	}
 
 	if (r == FE_TONEAREST) {
-		xn = inc(xn);		/* xn = xn + ulp. */
+		xn = inc(xn); /* xn = xn + ulp. */
 	} else if (r == FE_UPWARD) {
-		u.e = inc(u.e);		/* u.e = u.e + ulp. */
-		xn = inc(xn);		/* xn  = xn + ulp. */
+		u.e = inc(u.e); /* u.e = u.e + ulp. */
+		xn = inc(xn);	/* xn  = xn + ulp. */
 	}
-	u.e = u.e + xn;				/* Chopped sum. */
-	feupdateenv(&env);	/* Restore env and raise inexact */
+	u.e = u.e + xn;	   /* Chopped sum. */
+	feupdateenv(&env); /* Restore env and raise inexact */
 	u.bits.exp--;
 	return (u.e);
 }

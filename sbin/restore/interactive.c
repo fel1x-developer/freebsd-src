@@ -32,8 +32,6 @@
 #include <sys/param.h>
 #include <sys/stat.h>
 
-#include <ufs/ufs/dinode.h>
-#include <ufs/ufs/dir.h>
 #include <protocols/dumprestore.h>
 
 #include <ctype.h>
@@ -44,9 +42,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ufs/ufs/dinode.h>
+#include <ufs/ufs/dir.h>
 
-#include "restore.h"
 #include "extern.h"
+#include "restore.h"
 
 /*
  * Things to handle interruptions.
@@ -59,27 +59,27 @@ static char *nextarg = NULL;
  * Structure and routines associated with listing directories.
  */
 struct afile {
-	ino_t	fnum;		/* inode number of file */
-	char	*fname;		/* file name */
-	short	len;		/* name length */
-	char	prefix;		/* prefix character */
-	char	postfix;	/* postfix character */
+	ino_t fnum;   /* inode number of file */
+	char *fname;  /* file name */
+	short len;    /* name length */
+	char prefix;  /* prefix character */
+	char postfix; /* postfix character */
 };
 struct arglist {
-	int	freeglob;	/* glob structure needs to be freed */
-	int	argcnt;		/* next globbed argument to return */
-	glob_t	glob;		/* globbing information */
-	char	*cmd;		/* the current command */
+	int freeglob; /* glob structure needs to be freed */
+	int argcnt;   /* next globbed argument to return */
+	glob_t glob;  /* globbing information */
+	char *cmd;    /* the current command */
 };
 
-static char	*copynext(char *, char *);
-static int	 fcmp(const void *, const void *);
-static void	 formatf(struct afile *, int);
-static void	 getcmd(char *, char *, char *, size_t, struct arglist *);
-struct dirent	*glob_readdir(void *);
-static int	 glob_stat(const char *, struct stat *);
-static void	 mkentry(char *, struct direct *, struct afile *);
-static void	 printlist(char *, char *);
+static char *copynext(char *, char *);
+static int fcmp(const void *, const void *);
+static void formatf(struct afile *, int);
+static void getcmd(char *, char *, char *, size_t, struct arglist *);
+struct dirent *glob_readdir(void *);
+static int glob_stat(const char *, struct stat *);
+static void mkentry(char *, struct direct *, struct afile *);
+static void printlist(char *, char *);
 
 /*
  * Read and execute commands from the terminal.
@@ -142,7 +142,7 @@ loop:
 			fprintf(stderr, "%s: not a directory\n", name);
 			break;
 		}
-		(void) strcpy(curdir, name);
+		(void)strcpy(curdir, name);
 		break;
 	/*
 	 * Delete elements from the extraction list.
@@ -178,23 +178,23 @@ loop:
 			goto bad;
 	case '?':
 		fprintf(stderr, "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s",
-			"Available commands are:\n",
-			"\tls [arg] - list directory\n",
-			"\tcd arg - change directory\n",
-			"\tpwd - print current directory\n",
-			"\tadd [arg] - add `arg' to list of",
-			" files to be extracted\n",
-			"\tdelete [arg] - delete `arg' from",
-			" list of files to be extracted\n",
-			"\textract - extract requested files\n",
-			"\tsetmodes - set modes of requested directories\n",
-			"\tquit - immediately exit program\n",
-			"\twhat - list dump header information\n",
-			"\tverbose - toggle verbose flag",
-			" (useful with ``ls'')\n",
-			"\thelp or `?' - print this list\n",
-			"If no `arg' is supplied, the current",
-			" directory is used\n");
+		    "Available commands are:\n",
+		    "\tls [arg] - list directory\n",
+		    "\tcd arg - change directory\n",
+		    "\tpwd - print current directory\n",
+		    "\tadd [arg] - add `arg' to list of",
+		    " files to be extracted\n",
+		    "\tdelete [arg] - delete `arg' from",
+		    " list of files to be extracted\n",
+		    "\textract - extract requested files\n",
+		    "\tsetmodes - set modes of requested directories\n",
+		    "\tquit - immediately exit program\n",
+		    "\twhat - list dump header information\n",
+		    "\tverbose - toggle verbose flag",
+		    " (useful with ``ls'')\n",
+		    "\thelp or `?' - print this list\n",
+		    "If no `arg' is supplied, the current",
+		    " directory is used\n");
 		break;
 	/*
 	 * List a directory.
@@ -298,7 +298,7 @@ getcmd(char *curdir, char *cmd, char *name, size_t size, struct arglist *ap)
 	char *cp;
 	static char input[BUFSIZ];
 	char output[BUFSIZ];
-#	define rawname input	/* save space by reusing input buffer */
+#define rawname input /* save space by reusing input buffer */
 
 	/*
 	 * Check to see if still processing arguments.
@@ -310,9 +310,9 @@ getcmd(char *curdir, char *cmd, char *name, size_t size, struct arglist *ap)
 	/*
 	 * Read a command line and trim off trailing white space.
 	 */
-	do	{
+	do {
 		fprintf(stderr, "restore > ");
-		(void) fflush(stderr);
+		(void)fflush(stderr);
 		if (fgets(input, BUFSIZ, terminal) == NULL) {
 			strcpy(cmd, "quit");
 			return;
@@ -330,7 +330,7 @@ getcmd(char *curdir, char *cmd, char *name, size_t size, struct arglist *ap)
 	 * If no argument, use curdir as the default.
 	 */
 	if (*cp == '\0') {
-		(void) strncpy(name, curdir, size);
+		(void)strncpy(name, curdir, size);
 		name[size - 1] = '\0';
 		return;
 	}
@@ -362,7 +362,8 @@ getnext:
 		fprintf(stderr, "%s: out of memory\n", ap->cmd);
 		break;
 	case GLOB_NOMATCH:
-		fprintf(stderr, "%s %s: no such file or directory\n", ap->cmd, name);
+		fprintf(stderr, "%s %s: no such file or directory\n", ap->cmd,
+		    name);
 		break;
 	}
 	if (ap->glob.gl_pathc == 0)
@@ -377,7 +378,7 @@ retnext:
 		ap->freeglob = 0;
 		globfree(&ap->glob);
 	}
-#	undef rawname
+#undef rawname
 }
 
 /*
@@ -399,7 +400,7 @@ copynext(char *input, char *output)
 		if (*cp == '\\') {
 			if (*++cp == '\0') {
 				fprintf(stderr,
-					"command lines cannot be continued\n");
+				    "command lines cannot be continued\n");
 				continue;
 			}
 			*bp++ = *cp++;
@@ -438,17 +439,17 @@ canon(char *rawname, char *canonname, size_t len)
 	char *cp, *np;
 
 	if (strcmp(rawname, ".") == 0 || strncmp(rawname, "./", 2) == 0)
-		(void) strcpy(canonname, "");
+		(void)strcpy(canonname, "");
 	else if (rawname[0] == '/')
-		(void) strcpy(canonname, ".");
+		(void)strcpy(canonname, ".");
 	else
-		(void) strcpy(canonname, "./");
+		(void)strcpy(canonname, "./");
 	if (strlen(canonname) + strlen(rawname) >= len) {
 		fprintf(stderr, "canonname: not enough buffer space\n");
 		done(1);
 	}
-		
-	(void) strcat(canonname, rawname);
+
+	(void)strcat(canonname, rawname);
 	/*
 	 * Eliminate multiple and trailing '/'s
 	 */
@@ -463,21 +464,21 @@ canon(char *rawname, char *canonname, size_t len)
 	/*
 	 * Eliminate extraneous "." and ".." from pathnames.
 	 */
-	for (np = canonname; *np != '\0'; ) {
+	for (np = canonname; *np != '\0';) {
 		np++;
 		cp = np;
 		while (*np != '/' && *np != '\0')
 			np++;
 		if (np - cp == 1 && *cp == '.') {
 			cp--;
-			(void) strcpy(cp, np);
+			(void)strcpy(cp, np);
 			np = cp;
 		}
 		if (np - cp == 2 && strncmp(cp, "..", 2) == 0) {
 			cp--;
 			while (cp > &canonname[1] && *--cp != '/')
 				/* find beginning of name */;
-			(void) strcpy(cp, np);
+			(void)strcpy(cp, np);
 			np = cp;
 		}
 	}
@@ -533,14 +534,15 @@ printlist(char *name, char *basename)
 				break;
 			if (!dflag && TSTINO(dp->d_ino, dumpmap) == 0)
 				continue;
-			if (!vflag && (dp->d_ino == UFS_WINO ||
-			     strcmp(dp->d_name, ".") == 0 ||
-			     strcmp(dp->d_name, "..") == 0))
+			if (!vflag &&
+			    (dp->d_ino == UFS_WINO ||
+				strcmp(dp->d_name, ".") == 0 ||
+				strcmp(dp->d_name, "..") == 0))
 				continue;
 			locname[namelen] = '\0';
 			if (namelen + dp->d_namlen >= MAXPATHLEN) {
 				fprintf(stderr, "%s%s: name exceeds %d char\n",
-					locname, dp->d_name, MAXPATHLEN);
+				    locname, dp->d_name, MAXPATHLEN);
 			} else {
 				(void)strlcat(locname, dp->d_name, MAXPATHLEN);
 				mkentry(locname, dp, listp++);
@@ -585,7 +587,7 @@ mkentry(char *name, struct direct *dp, struct afile *fp)
 		fp->prefix = '*';
 	else
 		fp->prefix = ' ';
-	switch(dp->d_type) {
+	switch (dp->d_type) {
 
 	default:
 		fprintf(stderr, "Warning: undefined file type %d\n",
@@ -667,8 +669,8 @@ formatf(struct afile *list, int nentry)
 		for (j = 0; j < columns; j++) {
 			fp = &list[j * lines + i];
 			if (vflag) {
-				fprintf(stderr, "%*ju ",
-				    precision, (uintmax_t)fp->fnum);
+				fprintf(stderr, "%*ju ", precision,
+				    (uintmax_t)fp->fnum);
 				fp->len += precision + 1;
 			}
 			if (haveprefix) {
@@ -744,8 +746,8 @@ glob_stat(const char *name, struct stat *stp)
 static int
 fcmp(const void *f1, const void *f2)
 {
-	return (strcoll(((struct afile *)f1)->fname,
-	    ((struct afile *)f2)->fname));
+	return (
+	    strcoll(((struct afile *)f1)->fname, ((struct afile *)f2)->fname));
 }
 
 /*

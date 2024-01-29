@@ -38,7 +38,6 @@
  * SUCH DAMAGE.
  */
 
-#include "lp.cdefs.h"		/* A cross-platform version of <sys/cdefs.h> */
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -46,18 +45,19 @@
 #include <sys/uio.h>
 
 #include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
 
-#include <dirent.h>		/* required for lp.h, not used here */
+#include <arpa/inet.h>
+#include <dirent.h> /* required for lp.h, not used here */
 #include <err.h>
 #include <errno.h>
+#include <netdb.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
+#include "lp.cdefs.h" /* A cross-platform version of <sys/cdefs.h> */
 #include "lp.h"
 #include "lp.local.h"
 #include "pathnames.h"
@@ -68,14 +68,14 @@
  * or points at a different buffer when receiving a job from a remote
  * machine (and that buffer has the hostname of that remote machine).
  */
-char		 local_host[MAXHOSTNAMELEN];	/* host running lpd/lpr */
-const char	*from_host = local_host;	/* client's machine name */
-const char	*from_ip = "";		/* client machine's IP address */
+char local_host[MAXHOSTNAMELEN];    /* host running lpd/lpr */
+const char *from_host = local_host; /* client's machine name */
+const char *from_ip = "";	    /* client machine's IP address */
 
 #ifdef INET6
-u_char	family = PF_UNSPEC;
+u_char family = PF_UNSPEC;
 #else
-u_char	family = PF_INET;
+u_char family = PF_INET;
 #endif
 
 /*
@@ -99,12 +99,12 @@ getport(const struct printer *pp, const char *rhost, int rport)
 	hints.ai_family = family;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_protocol = 0;
-	error = getaddrinfo(rhost, (rport == 0 ? "printer" : NULL),
-			  &hints, &res);
+	error = getaddrinfo(rhost, (rport == 0 ? "printer" : NULL), &hints,
+	    &res);
 	if (error)
 		fatal(pp, "%s\n", gai_strerror(error));
 	if (rport != 0)
-		((struct sockaddr_in *) res->ai_addr)->sin_port = htons(rport);
+		((struct sockaddr_in *)res->ai_addr)->sin_port = htons(rport);
 
 	/*
 	 * Try connecting to the server.
@@ -129,11 +129,11 @@ retry:
 			}
 		}
 		freeaddrinfo(res);
-		return(-1);
+		return (-1);
 	}
 	if (connect(s, ai->ai_addr, ai->ai_addrlen) < 0) {
 		error = errno;
-		(void) close(s);
+		(void)close(s);
 		errno = error;
 		/*
 		 * This used to decrement lport, but the current semantics
@@ -160,10 +160,10 @@ retry:
 			goto retry;
 		}
 		freeaddrinfo(res);
-		return(-1);
+		return (-1);
 	}
 	freeaddrinfo(res);
-	return(s);
+	return (s);
 }
 
 /*
@@ -190,7 +190,7 @@ checkremote(struct printer *pp)
 		return NULL;
 	}
 
-	pp->remote = 0;	/* assume printer is local */
+	pp->remote = 0; /* assume printer is local */
 	if (pp->remote_host == NULL)
 		return NULL;
 
@@ -203,9 +203,10 @@ checkremote(struct printer *pp)
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
 	if ((errno = getaddrinfo(lclhost, NULL, &hints, &local_res)) != 0) {
-		asprintf(&error, "unable to get official name "
-			 "for local machine %s: %s",
-			 lclhost, gai_strerror(errno));
+		asprintf(&error,
+		    "unable to get official name "
+		    "for local machine %s: %s",
+		    lclhost, gai_strerror(errno));
 		return error;
 	}
 
@@ -214,11 +215,12 @@ checkremote(struct printer *pp)
 	hints.ai_family = family;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
-	if ((errno = getaddrinfo(pp->remote_host, NULL,
-				 &hints, &remote_res)) != 0) {
-		asprintf(&error, "unable to get address list for "
-			 "remote machine %s: %s",
-			 pp->remote_host, gai_strerror(errno));
+	if ((errno = getaddrinfo(pp->remote_host, NULL, &hints, &remote_res)) !=
+	    0) {
+		asprintf(&error,
+		    "unable to get address list for "
+		    "remote machine %s: %s",
+		    pp->remote_host, gai_strerror(errno));
 		freeaddrinfo(local_res);
 		return error;
 	}
@@ -227,19 +229,18 @@ checkremote(struct printer *pp)
 	for (lr = local_res; lr; lr = lr->ai_next) {
 		h1[0] = '\0';
 		if (getnameinfo(lr->ai_addr, lr->ai_addrlen, h1, sizeof(h1),
-				NULL, 0, NI_NUMERICHOST) != 0)
+			NULL, 0, NI_NUMERICHOST) != 0)
 			continue;
 		for (rr = remote_res; rr; rr = rr->ai_next) {
 			h2[0] = '\0';
-			if (getnameinfo(rr->ai_addr, rr->ai_addrlen,
-					h2, sizeof(h2), NULL, 0,
-					NI_NUMERICHOST) != 0)
+			if (getnameinfo(rr->ai_addr, rr->ai_addrlen, h2,
+				sizeof(h2), NULL, 0, NI_NUMERICHOST) != 0)
 				continue;
 			if (strcmp(h1, h2) == 0)
 				ncommonaddrs++;
 		}
 	}
-			
+
 	/*
 	 * if the two hosts do not share at least one IP address
 	 * then the printer must be remote.
@@ -274,7 +275,7 @@ writel(int strm, ...)
 		n++;
 	} while (cp);
 	va_end(ap);
-	n--;			/* correct for count of trailing null */
+	n--; /* correct for count of trailing null */
 
 	if (n > NIOV) {
 		iovp = malloc(n * sizeof *iovp);

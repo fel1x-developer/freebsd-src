@@ -36,175 +36,168 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
-#include <sys/kernel.h>
 #include <sys/condvar.h>
+#include <sys/kernel.h>
 #include <sys/module.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-
-#include <dev/usb/usb_core.h>
-#include <dev/usb/usb_busdma.h>
-#include <dev/usb/usb_process.h>
-#include <dev/usb/usb_util.h>
-
-#include <dev/usb/usb_controller.h>
-#include <dev/usb/usb_bus.h>
-#include <dev/usb/controller/musb_otg.h>
-
 #include <dev/clk/clk.h>
 #include <dev/hwreset/hwreset.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
 #include <dev/phy/phy.h>
 #include <dev/phy/phy_usb.h>
+#include <dev/usb/controller/musb_otg.h>
+#include <dev/usb/usb.h>
+#include <dev/usb/usb_bus.h>
+#include <dev/usb/usb_busdma.h>
+#include <dev/usb/usb_controller.h>
+#include <dev/usb/usb_core.h>
+#include <dev/usb/usb_process.h>
+#include <dev/usb/usb_util.h>
+#include <dev/usb/usbdi.h>
 
 #ifdef __arm__
-#include <arm/allwinner/aw_machdep.h>
 #include <arm/allwinner/a10_sramc.h>
+#include <arm/allwinner/aw_machdep.h>
 #endif
 
-#define	DRD_EP_MAX		5
-#define	DRD_EP_MAX_H3		4
+#define DRD_EP_MAX 5
+#define DRD_EP_MAX_H3 4
 
-#define	MUSB2_REG_AWIN_VEND0	0x0043
-#define	VEND0_PIO_MODE		0
+#define MUSB2_REG_AWIN_VEND0 0x0043
+#define VEND0_PIO_MODE 0
 
 #if defined(__arm__)
-#define	bs_parent_space(bs)	((bs)->bs_parent)
-typedef bus_space_tag_t	awusb_bs_tag;
+#define bs_parent_space(bs) ((bs)->bs_parent)
+typedef bus_space_tag_t awusb_bs_tag;
 #elif defined(__aarch64__)
-#define	bs_parent_space(bs)	(bs)
-typedef void *		awusb_bs_tag;
+#define bs_parent_space(bs) (bs)
+typedef void *awusb_bs_tag;
 #endif
 
-#define	AWUSB_OKAY		0x01
-#define	AWUSB_NO_CONFDATA	0x02
-static struct ofw_compat_data compat_data[] = {
-	{ "allwinner,sun4i-a10-musb",	AWUSB_OKAY },
-	{ "allwinner,sun6i-a31-musb",	AWUSB_OKAY },
-	{ "allwinner,sun8i-a33-musb",	AWUSB_OKAY | AWUSB_NO_CONFDATA },
-	{ "allwinner,sun8i-h3-musb",	AWUSB_OKAY | AWUSB_NO_CONFDATA },
-	{ NULL,				0 }
-};
+#define AWUSB_OKAY 0x01
+#define AWUSB_NO_CONFDATA 0x02
+static struct ofw_compat_data compat_data[] = { { "allwinner,sun4i-a10-musb",
+						    AWUSB_OKAY },
+	{ "allwinner,sun6i-a31-musb", AWUSB_OKAY },
+	{ "allwinner,sun8i-a33-musb", AWUSB_OKAY | AWUSB_NO_CONFDATA },
+	{ "allwinner,sun8i-h3-musb", AWUSB_OKAY | AWUSB_NO_CONFDATA },
+	{ NULL, 0 } };
 
 static const struct musb_otg_ep_cfg musbotg_ep_allwinner[] = {
 	{
-		.ep_end = DRD_EP_MAX,
-		.ep_fifosz_shift = 9,
-		.ep_fifosz_reg = MUSB2_VAL_FIFOSZ_512,
+	    .ep_end = DRD_EP_MAX,
+	    .ep_fifosz_shift = 9,
+	    .ep_fifosz_reg = MUSB2_VAL_FIFOSZ_512,
 	},
 	{
-		.ep_end = -1,
+	    .ep_end = -1,
 	},
 };
 
 static const struct musb_otg_ep_cfg musbotg_ep_allwinner_h3[] = {
 	{
-		.ep_end = DRD_EP_MAX_H3,
-		.ep_fifosz_shift = 9,
-		.ep_fifosz_reg = MUSB2_VAL_FIFOSZ_512,
+	    .ep_end = DRD_EP_MAX_H3,
+	    .ep_fifosz_shift = 9,
+	    .ep_fifosz_reg = MUSB2_VAL_FIFOSZ_512,
 	},
 	{
-		.ep_end = -1,
+	    .ep_end = -1,
 	},
 };
 
 struct awusbdrd_softc {
-	struct musbotg_softc	sc;
-	struct resource		*res[2];
-	clk_t			clk;
-	hwreset_t		reset;
-	phy_t			phy;
-	struct bus_space	bs;
-	int			flags;
+	struct musbotg_softc sc;
+	struct resource *res[2];
+	clk_t clk;
+	hwreset_t reset;
+	phy_t phy;
+	struct bus_space bs;
+	int flags;
 };
 
-static struct resource_spec awusbdrd_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ SYS_RES_IRQ,		0,	RF_ACTIVE },
-	{ -1, 0 }
-};
+static struct resource_spec awusbdrd_spec[] = { { SYS_RES_MEMORY, 0,
+						    RF_ACTIVE },
+	{ SYS_RES_IRQ, 0, RF_ACTIVE }, { -1, 0 } };
 
-#define	REMAPFLAG	0x8000
-#define	REGDECL(a, b)	[(a)] = ((b) | REMAPFLAG)
+#define REMAPFLAG 0x8000
+#define REGDECL(a, b) [(a)] = ((b) | REMAPFLAG)
 
 /* Allwinner USB DRD register mappings */
 static const uint16_t awusbdrd_regmap[] = {
-	REGDECL(MUSB2_REG_EPFIFO(0),	0x0000),
-	REGDECL(MUSB2_REG_EPFIFO(1),	0x0004),
-	REGDECL(MUSB2_REG_EPFIFO(2),	0x0008),
-	REGDECL(MUSB2_REG_EPFIFO(3),	0x000c),
-	REGDECL(MUSB2_REG_EPFIFO(4),	0x0010),
-	REGDECL(MUSB2_REG_EPFIFO(5),	0x0014),
-	REGDECL(MUSB2_REG_POWER,	0x0040),
-	REGDECL(MUSB2_REG_DEVCTL,	0x0041),
-	REGDECL(MUSB2_REG_EPINDEX,	0x0042),
-	REGDECL(MUSB2_REG_INTTX,	0x0044),
-	REGDECL(MUSB2_REG_INTRX,	0x0046),
-	REGDECL(MUSB2_REG_INTTXE,	0x0048),
-	REGDECL(MUSB2_REG_INTRXE,	0x004a),
-	REGDECL(MUSB2_REG_INTUSB,	0x004c),
-	REGDECL(MUSB2_REG_INTUSBE,	0x0050),
-	REGDECL(MUSB2_REG_FRAME,	0x0054),
-	REGDECL(MUSB2_REG_TESTMODE,	0x007c),
-	REGDECL(MUSB2_REG_TXMAXP,	0x0080),
-	REGDECL(MUSB2_REG_TXCSRL,	0x0082),
-	REGDECL(MUSB2_REG_TXCSRH,	0x0083),
-	REGDECL(MUSB2_REG_RXMAXP,	0x0084),
-	REGDECL(MUSB2_REG_RXCSRL,	0x0086),
-	REGDECL(MUSB2_REG_RXCSRH,	0x0087),
-	REGDECL(MUSB2_REG_RXCOUNT,	0x0088),
-	REGDECL(MUSB2_REG_TXTI,		0x008c),
-	REGDECL(MUSB2_REG_TXNAKLIMIT,	0x008d),
-	REGDECL(MUSB2_REG_RXNAKLIMIT,	0x008f),
-	REGDECL(MUSB2_REG_RXTI,		0x008e),
-	REGDECL(MUSB2_REG_TXFIFOSZ,	0x0090),
-	REGDECL(MUSB2_REG_TXFIFOADD,	0x0092),
-	REGDECL(MUSB2_REG_RXFIFOSZ,	0x0094),
-	REGDECL(MUSB2_REG_RXFIFOADD,	0x0096),
-	REGDECL(MUSB2_REG_FADDR,	0x0098),
-	REGDECL(MUSB2_REG_TXFADDR(0),	0x0098),
-	REGDECL(MUSB2_REG_TXHADDR(0),	0x009a),
-	REGDECL(MUSB2_REG_TXHUBPORT(0),	0x009b),
-	REGDECL(MUSB2_REG_RXFADDR(0),	0x009c),
-	REGDECL(MUSB2_REG_RXHADDR(0),	0x009e),
-	REGDECL(MUSB2_REG_RXHUBPORT(0),	0x009f),
-	REGDECL(MUSB2_REG_TXFADDR(1),	0x0098),
-	REGDECL(MUSB2_REG_TXHADDR(1),	0x009a),
-	REGDECL(MUSB2_REG_TXHUBPORT(1),	0x009b),
-	REGDECL(MUSB2_REG_RXFADDR(1),	0x009c),
-	REGDECL(MUSB2_REG_RXHADDR(1),	0x009e),
-	REGDECL(MUSB2_REG_RXHUBPORT(1),	0x009f),
-	REGDECL(MUSB2_REG_TXFADDR(2),	0x0098),
-	REGDECL(MUSB2_REG_TXHADDR(2),	0x009a),
-	REGDECL(MUSB2_REG_TXHUBPORT(2),	0x009b),
-	REGDECL(MUSB2_REG_RXFADDR(2),	0x009c),
-	REGDECL(MUSB2_REG_RXHADDR(2),	0x009e),
-	REGDECL(MUSB2_REG_RXHUBPORT(2),	0x009f),
-	REGDECL(MUSB2_REG_TXFADDR(3),	0x0098),
-	REGDECL(MUSB2_REG_TXHADDR(3),	0x009a),
-	REGDECL(MUSB2_REG_TXHUBPORT(3),	0x009b),
-	REGDECL(MUSB2_REG_RXFADDR(3),	0x009c),
-	REGDECL(MUSB2_REG_RXHADDR(3),	0x009e),
-	REGDECL(MUSB2_REG_RXHUBPORT(3),	0x009f),
-	REGDECL(MUSB2_REG_TXFADDR(4),	0x0098),
-	REGDECL(MUSB2_REG_TXHADDR(4),	0x009a),
-	REGDECL(MUSB2_REG_TXHUBPORT(4),	0x009b),
-	REGDECL(MUSB2_REG_RXFADDR(4),	0x009c),
-	REGDECL(MUSB2_REG_RXHADDR(4),	0x009e),
-	REGDECL(MUSB2_REG_RXHUBPORT(4),	0x009f),
-	REGDECL(MUSB2_REG_TXFADDR(5),	0x0098),
-	REGDECL(MUSB2_REG_TXHADDR(5),	0x009a),
-	REGDECL(MUSB2_REG_TXHUBPORT(5),	0x009b),
-	REGDECL(MUSB2_REG_RXFADDR(5),	0x009c),
-	REGDECL(MUSB2_REG_RXHADDR(5),	0x009e),
-	REGDECL(MUSB2_REG_RXHUBPORT(5),	0x009f),
-	REGDECL(MUSB2_REG_CONFDATA,	0x00c0),
+	REGDECL(MUSB2_REG_EPFIFO(0), 0x0000),
+	REGDECL(MUSB2_REG_EPFIFO(1), 0x0004),
+	REGDECL(MUSB2_REG_EPFIFO(2), 0x0008),
+	REGDECL(MUSB2_REG_EPFIFO(3), 0x000c),
+	REGDECL(MUSB2_REG_EPFIFO(4), 0x0010),
+	REGDECL(MUSB2_REG_EPFIFO(5), 0x0014),
+	REGDECL(MUSB2_REG_POWER, 0x0040),
+	REGDECL(MUSB2_REG_DEVCTL, 0x0041),
+	REGDECL(MUSB2_REG_EPINDEX, 0x0042),
+	REGDECL(MUSB2_REG_INTTX, 0x0044),
+	REGDECL(MUSB2_REG_INTRX, 0x0046),
+	REGDECL(MUSB2_REG_INTTXE, 0x0048),
+	REGDECL(MUSB2_REG_INTRXE, 0x004a),
+	REGDECL(MUSB2_REG_INTUSB, 0x004c),
+	REGDECL(MUSB2_REG_INTUSBE, 0x0050),
+	REGDECL(MUSB2_REG_FRAME, 0x0054),
+	REGDECL(MUSB2_REG_TESTMODE, 0x007c),
+	REGDECL(MUSB2_REG_TXMAXP, 0x0080),
+	REGDECL(MUSB2_REG_TXCSRL, 0x0082),
+	REGDECL(MUSB2_REG_TXCSRH, 0x0083),
+	REGDECL(MUSB2_REG_RXMAXP, 0x0084),
+	REGDECL(MUSB2_REG_RXCSRL, 0x0086),
+	REGDECL(MUSB2_REG_RXCSRH, 0x0087),
+	REGDECL(MUSB2_REG_RXCOUNT, 0x0088),
+	REGDECL(MUSB2_REG_TXTI, 0x008c),
+	REGDECL(MUSB2_REG_TXNAKLIMIT, 0x008d),
+	REGDECL(MUSB2_REG_RXNAKLIMIT, 0x008f),
+	REGDECL(MUSB2_REG_RXTI, 0x008e),
+	REGDECL(MUSB2_REG_TXFIFOSZ, 0x0090),
+	REGDECL(MUSB2_REG_TXFIFOADD, 0x0092),
+	REGDECL(MUSB2_REG_RXFIFOSZ, 0x0094),
+	REGDECL(MUSB2_REG_RXFIFOADD, 0x0096),
+	REGDECL(MUSB2_REG_FADDR, 0x0098),
+	REGDECL(MUSB2_REG_TXFADDR(0), 0x0098),
+	REGDECL(MUSB2_REG_TXHADDR(0), 0x009a),
+	REGDECL(MUSB2_REG_TXHUBPORT(0), 0x009b),
+	REGDECL(MUSB2_REG_RXFADDR(0), 0x009c),
+	REGDECL(MUSB2_REG_RXHADDR(0), 0x009e),
+	REGDECL(MUSB2_REG_RXHUBPORT(0), 0x009f),
+	REGDECL(MUSB2_REG_TXFADDR(1), 0x0098),
+	REGDECL(MUSB2_REG_TXHADDR(1), 0x009a),
+	REGDECL(MUSB2_REG_TXHUBPORT(1), 0x009b),
+	REGDECL(MUSB2_REG_RXFADDR(1), 0x009c),
+	REGDECL(MUSB2_REG_RXHADDR(1), 0x009e),
+	REGDECL(MUSB2_REG_RXHUBPORT(1), 0x009f),
+	REGDECL(MUSB2_REG_TXFADDR(2), 0x0098),
+	REGDECL(MUSB2_REG_TXHADDR(2), 0x009a),
+	REGDECL(MUSB2_REG_TXHUBPORT(2), 0x009b),
+	REGDECL(MUSB2_REG_RXFADDR(2), 0x009c),
+	REGDECL(MUSB2_REG_RXHADDR(2), 0x009e),
+	REGDECL(MUSB2_REG_RXHUBPORT(2), 0x009f),
+	REGDECL(MUSB2_REG_TXFADDR(3), 0x0098),
+	REGDECL(MUSB2_REG_TXHADDR(3), 0x009a),
+	REGDECL(MUSB2_REG_TXHUBPORT(3), 0x009b),
+	REGDECL(MUSB2_REG_RXFADDR(3), 0x009c),
+	REGDECL(MUSB2_REG_RXHADDR(3), 0x009e),
+	REGDECL(MUSB2_REG_RXHUBPORT(3), 0x009f),
+	REGDECL(MUSB2_REG_TXFADDR(4), 0x0098),
+	REGDECL(MUSB2_REG_TXHADDR(4), 0x009a),
+	REGDECL(MUSB2_REG_TXHUBPORT(4), 0x009b),
+	REGDECL(MUSB2_REG_RXFADDR(4), 0x009c),
+	REGDECL(MUSB2_REG_RXHADDR(4), 0x009e),
+	REGDECL(MUSB2_REG_RXHUBPORT(4), 0x009f),
+	REGDECL(MUSB2_REG_TXFADDR(5), 0x0098),
+	REGDECL(MUSB2_REG_TXHADDR(5), 0x009a),
+	REGDECL(MUSB2_REG_TXHUBPORT(5), 0x009b),
+	REGDECL(MUSB2_REG_RXFADDR(5), 0x009c),
+	REGDECL(MUSB2_REG_RXHADDR(5), 0x009e),
+	REGDECL(MUSB2_REG_RXHUBPORT(5), 0x009f),
+	REGDECL(MUSB2_REG_CONFDATA, 0x00c0),
 };
 
 static bus_size_t
@@ -219,8 +212,8 @@ awusbdrd_reg(bus_size_t o)
 
 	v = awusbdrd_regmap[o];
 
-	KASSERT((v & REMAPFLAG) != 0, ("%s: reg %#lx not in regmap",
-	    __func__, o));
+	KASSERT((v & REMAPFLAG) != 0,
+	    ("%s: reg %#lx not in regmap", __func__, o));
 
 	return (v & ~REMAPFLAG);
 }
@@ -245,7 +238,7 @@ awusbdrd_bs_r_1(awusb_bs_tag t, bus_space_handle_t h, bus_size_t o)
 
 	switch (o) {
 	case MUSB2_REG_HWVERS:
-		return (0);	/* no known equivalent */
+		return (0); /* no known equivalent */
 	}
 
 	return (bus_space_read_1(bs_parent_space(bs), h, awusbdrd_reg(o)));
@@ -265,7 +258,6 @@ awusbdrd_bs_r_1_noconf(awusb_bs_tag t, bus_space_handle_t h, bus_size_t o)
 	return (awusbdrd_bs_r_1(t, h, o));
 }
 
-
 static uint16_t
 awusbdrd_bs_r_2(awusb_bs_tag t, bus_space_handle_t h, bus_size_t o)
 {
@@ -277,8 +269,7 @@ awusbdrd_bs_r_2(awusb_bs_tag t, bus_space_handle_t h, bus_size_t o)
 }
 
 static void
-awusbdrd_bs_w_1(awusb_bs_tag t, bus_space_handle_t h, bus_size_t o,
-    uint8_t v)
+awusbdrd_bs_w_1(awusb_bs_tag t, bus_space_handle_t h, bus_size_t o, uint8_t v)
 {
 	struct bus_space *bs = t;
 
@@ -289,8 +280,7 @@ awusbdrd_bs_w_1(awusb_bs_tag t, bus_space_handle_t h, bus_size_t o,
 }
 
 static void
-awusbdrd_bs_w_2(awusb_bs_tag t, bus_space_handle_t h, bus_size_t o,
-    uint16_t v)
+awusbdrd_bs_w_2(awusb_bs_tag t, bus_space_handle_t h, bus_size_t o, uint16_t v)
 {
 	struct bus_space *bs = t;
 
@@ -301,8 +291,8 @@ awusbdrd_bs_w_2(awusb_bs_tag t, bus_space_handle_t h, bus_size_t o,
 }
 
 static void
-awusbdrd_bs_rm_1(awusb_bs_tag t, bus_space_handle_t h, bus_size_t o,
-    uint8_t *d, bus_size_t c)
+awusbdrd_bs_rm_1(awusb_bs_tag t, bus_space_handle_t h, bus_size_t o, uint8_t *d,
+    bus_size_t c)
 {
 	struct bus_space *bs = t;
 
@@ -394,10 +384,10 @@ awusbdrd_attach(device_t dev)
 	if (error != 0)
 		return (error);
 
-	musb_mode = MUSB2_HOST_MODE;	/* default */
+	musb_mode = MUSB2_HOST_MODE; /* default */
 	phy_mode = PHY_USB_MODE_HOST;
-	if (OF_getprop(ofw_bus_get_node(dev), "dr_mode",
-	    &usb_mode, sizeof(usb_mode)) > 0) {
+	if (OF_getprop(ofw_bus_get_node(dev), "dr_mode", &usb_mode,
+		sizeof(usb_mode)) > 0) {
 		usb_mode[sizeof(usb_mode) - 1] = 0;
 		if (strcasecmp(usb_mode, "host") == 0) {
 			musb_mode = MUSB2_HOST_MODE;
@@ -537,7 +527,7 @@ awusbdrd_attach(device_t dev)
 	if (error != 0)
 		goto fail;
 
-	musbotg_vbus_interrupt(&sc->sc, 1);	/* XXX VBUS */
+	musbotg_vbus_interrupt(&sc->sc, 1); /* XXX VBUS */
 
 	return (0);
 
@@ -601,12 +591,12 @@ awusbdrd_detach(device_t dev)
 
 static device_method_t awusbdrd_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		awusbdrd_probe),
-	DEVMETHOD(device_attach,	awusbdrd_attach),
-	DEVMETHOD(device_detach,	awusbdrd_detach),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	bus_generic_resume),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
+	DEVMETHOD(device_probe, awusbdrd_probe),
+	DEVMETHOD(device_attach, awusbdrd_attach),
+	DEVMETHOD(device_detach, awusbdrd_detach),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
 
 	DEVMETHOD_END
 };

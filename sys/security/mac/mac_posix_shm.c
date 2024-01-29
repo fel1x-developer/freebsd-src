@@ -12,7 +12,7 @@
  * N66001-04-C-6019 ("SEFOS"). *
  *
  * This software was developed at the University of Cambridge Computer
- * Laboratory with support from a grant from Google, Inc. 
+ * Laboratory with support from a grant from Google, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,16 +36,16 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_mac.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/kernel.h>
-#include <sys/mman.h>
 #include <sys/malloc.h>
+#include <sys/mman.h>
 #include <sys/module.h>
 #include <sys/sdt.h>
-#include <sys/systm.h>
 #include <sys/sysctl.h>
 
 #include <security/mac/mac_framework.h>
@@ -112,8 +112,8 @@ mac_posixshm_check_create(struct ucred *cred, const char *path)
 	return (error);
 }
 
-MAC_CHECK_PROBE_DEFINE4(posixshm_check_mmap, "struct ucred *",
-    "struct shmfd *", "int", "int");
+MAC_CHECK_PROBE_DEFINE4(posixshm_check_mmap, "struct ucred *", "struct shmfd *",
+    "int", "int");
 
 int
 mac_posixshm_check_mmap(struct ucred *cred, struct shmfd *shmfd, int prot,
@@ -123,14 +123,13 @@ mac_posixshm_check_mmap(struct ucred *cred, struct shmfd *shmfd, int prot,
 
 	MAC_POLICY_CHECK_NOSLEEP(posixshm_check_mmap, cred, shmfd,
 	    shmfd->shm_label, prot, flags);
-	MAC_CHECK_PROBE4(posixshm_check_mmap, error, cred, shmfd, prot,
-	    flags);
+	MAC_CHECK_PROBE4(posixshm_check_mmap, error, cred, shmfd, prot, flags);
 
 	return (error);
 }
 
-MAC_CHECK_PROBE_DEFINE3(posixshm_check_open, "struct ucred *",
-    "struct shmfd *", "accmode_t");
+MAC_CHECK_PROBE_DEFINE3(posixshm_check_open, "struct ucred *", "struct shmfd *",
+    "accmode_t");
 
 int
 mac_posixshm_check_open(struct ucred *cred, struct shmfd *shmfd,
@@ -145,8 +144,8 @@ mac_posixshm_check_open(struct ucred *cred, struct shmfd *shmfd,
 	return (error);
 }
 
-MAC_CHECK_PROBE_DEFINE3(posixshm_check_stat, "struct ucred *",
-    "struct ucred *", "struct shmfd *");
+MAC_CHECK_PROBE_DEFINE3(posixshm_check_stat, "struct ucred *", "struct ucred *",
+    "struct shmfd *");
 
 int
 mac_posixshm_check_stat(struct ucred *active_cred, struct ucred *file_cred,
@@ -173,8 +172,8 @@ mac_posixshm_check_truncate(struct ucred *active_cred, struct ucred *file_cred,
 
 	MAC_POLICY_CHECK_NOSLEEP(posixshm_check_truncate, active_cred,
 	    file_cred, shmfd, shmfd->shm_label);
-	MAC_CHECK_PROBE3(posixshm_check_truncate, error, active_cred,
-	    file_cred, shmfd);
+	MAC_CHECK_PROBE3(posixshm_check_truncate, error, active_cred, file_cred,
+	    shmfd);
 
 	return (error);
 }
@@ -220,14 +219,13 @@ mac_posixshm_check_setowner(struct ucred *cred, struct shmfd *shmfd, uid_t uid,
 
 	MAC_POLICY_CHECK_NOSLEEP(posixshm_check_setowner, cred, shmfd,
 	    shmfd->shm_label, uid, gid);
-	MAC_CHECK_PROBE4(posixshm_check_setowner, error, cred, shmfd,
-	    uid, gid);
+	MAC_CHECK_PROBE4(posixshm_check_setowner, error, cred, shmfd, uid, gid);
 
 	return (error);
 }
 
-MAC_CHECK_PROBE_DEFINE3(posixshm_check_read, "struct ucred *",
-    "struct ucred *", "struct shmfd *");
+MAC_CHECK_PROBE_DEFINE3(posixshm_check_read, "struct ucred *", "struct ucred *",
+    "struct shmfd *");
 
 int
 mac_posixshm_check_read(struct ucred *active_cred, struct ucred *file_cred,
@@ -235,10 +233,10 @@ mac_posixshm_check_read(struct ucred *active_cred, struct ucred *file_cred,
 {
 	int error;
 
-	MAC_POLICY_CHECK_NOSLEEP(posixshm_check_read, active_cred,
-	    file_cred, shmfd, shmfd->shm_label);
-	MAC_CHECK_PROBE3(posixshm_check_read, error, active_cred,
-	    file_cred, shmfd);
+	MAC_POLICY_CHECK_NOSLEEP(posixshm_check_read, active_cred, file_cred,
+	    shmfd, shmfd->shm_label);
+	MAC_CHECK_PROBE3(posixshm_check_read, error, active_cred, file_cred,
+	    shmfd);
 
 	return (error);
 }
@@ -252,10 +250,10 @@ mac_posixshm_check_write(struct ucred *active_cred, struct ucred *file_cred,
 {
 	int error;
 
-	MAC_POLICY_CHECK_NOSLEEP(posixshm_check_write, active_cred,
-	    file_cred, shmfd, shmfd->shm_label);
-	MAC_CHECK_PROBE3(posixshm_check_write, error, active_cred,
-	    file_cred, shmfd);
+	MAC_POLICY_CHECK_NOSLEEP(posixshm_check_write, active_cred, file_cred,
+	    shmfd, shmfd->shm_label);
+	MAC_CHECK_PROBE3(posixshm_check_write, error, active_cred, file_cred,
+	    shmfd);
 
 	return (error);
 }

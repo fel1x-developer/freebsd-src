@@ -25,29 +25,28 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
 #include <sys/param.h>
-#include <sys/diskmbr.h>
 #include <sys/disklabel.h>
+#include <sys/diskmbr.h>
 #include <sys/endian.h>
 #include <sys/gpt.h>
-#include <sys/stddef.h>
 #include <sys/queue.h>
+#include <sys/stddef.h>
 
 #include <fs/cd9660/iso.h>
-
-#include <zlib.h>
 #include <part.h>
+#include <stand.h>
 #include <uuid.h>
+#include <zlib.h>
 
 #ifdef PART_DEBUG
-#define	DPRINTF(fmt, args...) printf("%s: " fmt "\n", __func__, ## args)
+#define DPRINTF(fmt, args...) printf("%s: " fmt "\n", __func__, ##args)
 #else
-#define	DPRINTF(fmt, args...)	((void)0)
+#define DPRINTF(fmt, args...) ((void)0)
 #endif
 
 #ifdef LOADER_GPT_SUPPORT
-#define	MAXTBLSZ	64
+#define MAXTBLSZ 64
 static const uuid_t gpt_uuid_unused = GPT_ENT_TYPE_UNUSED;
 static const uuid_t gpt_uuid_ms_basic_data = GPT_ENT_TYPE_MS_BASIC_DATA;
 static const uuid_t gpt_uuid_freebsd_ufs = GPT_ENT_TYPE_FREEBSD_UFS;
@@ -61,41 +60,41 @@ static const uuid_t gpt_uuid_apple_apfs = GPT_ENT_TYPE_APPLE_APFS;
 #endif
 
 struct pentry {
-	struct ptable_entry	part;
-	uint64_t		flags;
+	struct ptable_entry part;
+	uint64_t flags;
 	union {
 		uint8_t bsd;
-		uint8_t	mbr;
-		uuid_t	gpt;
+		uint8_t mbr;
+		uuid_t gpt;
 	} type;
-	STAILQ_ENTRY(pentry)	entry;
+	STAILQ_ENTRY(pentry) entry;
 };
 
 struct ptable {
-	enum ptable_type	type;
-	uint16_t		sectorsize;
-	uint64_t		sectors;
+	enum ptable_type type;
+	uint16_t sectorsize;
+	uint64_t sectors;
 
-	STAILQ_HEAD(, pentry)	entries;
+	STAILQ_HEAD(, pentry) entries;
 };
 
 static struct parttypes {
-	enum partition_type	type;
-	const char		*desc;
+	enum partition_type type;
+	const char *desc;
 } ptypes[] = {
-	{ PART_UNKNOWN,		"Unknown" },
-	{ PART_EFI,		"EFI" },
-	{ PART_FREEBSD,		"FreeBSD" },
-	{ PART_FREEBSD_BOOT,	"FreeBSD boot" },
-	{ PART_FREEBSD_UFS,	"FreeBSD UFS" },
-	{ PART_FREEBSD_ZFS,	"FreeBSD ZFS" },
-	{ PART_FREEBSD_SWAP,	"FreeBSD swap" },
-	{ PART_FREEBSD_VINUM,	"FreeBSD vinum" },
-	{ PART_LINUX,		"Linux" },
-	{ PART_LINUX_SWAP,	"Linux swap" },
-	{ PART_DOS,		"DOS/Windows" },
-	{ PART_ISO9660,		"ISO9660" },
-	{ PART_APFS,		"APFS" },
+	{ PART_UNKNOWN, "Unknown" },
+	{ PART_EFI, "EFI" },
+	{ PART_FREEBSD, "FreeBSD" },
+	{ PART_FREEBSD_BOOT, "FreeBSD boot" },
+	{ PART_FREEBSD_UFS, "FreeBSD UFS" },
+	{ PART_FREEBSD_ZFS, "FreeBSD ZFS" },
+	{ PART_FREEBSD_SWAP, "FreeBSD swap" },
+	{ PART_FREEBSD_VINUM, "FreeBSD vinum" },
+	{ PART_LINUX, "Linux" },
+	{ PART_LINUX_SWAP, "Linux swap" },
+	{ PART_DOS, "DOS/Windows" },
+	{ PART_ISO9660, "ISO9660" },
+	{ PART_APFS, "APFS" },
 };
 
 const char *
@@ -183,8 +182,7 @@ gpt_checkhdr(struct gpt_hdr *hdr, uint64_t lba_self, uint64_t lba_last,
 	}
 	hdr->hdr_entries = le32toh(hdr->hdr_entries);
 	hdr->hdr_entsz = le32toh(hdr->hdr_entsz);
-	if (hdr->hdr_entries == 0 ||
-	    hdr->hdr_entsz < sizeof(struct gpt_ent) ||
+	if (hdr->hdr_entries == 0 || hdr->hdr_entsz < sizeof(struct gpt_ent) ||
 	    sectorsize % hdr->hdr_entsz != 0) {
 		DPRINTF("invalid entry size or number of entries");
 		return (NULL);
@@ -258,15 +256,15 @@ ptable_gptread(struct ptable *table, void *dev, diskread_t dread)
 		/* Read the primary GPT table. */
 		size = MIN(MAXTBLSZ,
 		    howmany(phdr->hdr_entries * phdr->hdr_entsz,
-		        table->sectorsize));
+			table->sectorsize));
 		if (dread(dev, tbl, size, phdr->hdr_lba_table) == 0 &&
 		    gpt_checktbl(phdr, tbl, size * table->sectorsize,
-		    table->sectors - 1) == 0) {
+			table->sectors - 1) == 0) {
 			memcpy(&hdr, phdr, sizeof(hdr));
 			pri = 1;
 		}
 	}
-	offset = pri ? hdr.hdr_lba_alt: table->sectors - 1;
+	offset = pri ? hdr.hdr_lba_alt : table->sectors - 1;
 	/* Read the backup GPT header. */
 	if (dread(dev, buf, 1, offset) != 0)
 		phdr = NULL;
@@ -291,11 +289,11 @@ ptable_gptread(struct ptable *table, void *dev, diskread_t dread)
 		    hdr.hdr_crc_table != phdr->hdr_crc_table) {
 			/* Read the backup GPT table. */
 			size = MIN(MAXTBLSZ,
-				   howmany(phdr->hdr_entries * phdr->hdr_entsz,
-				       table->sectorsize));
+			    howmany(phdr->hdr_entries * phdr->hdr_entsz,
+				table->sectorsize));
 			if (dread(dev, tbl, size, phdr->hdr_lba_table) == 0 &&
 			    gpt_checktbl(phdr, tbl, size * table->sectorsize,
-			    table->sectors - 1) == 0) {
+				table->sectors - 1) == 0) {
 				memcpy(&hdr, phdr, sizeof(hdr));
 				sec = 1;
 			}
@@ -353,7 +351,7 @@ out:
 
 #ifdef LOADER_MBR_SUPPORT
 /* We do not need to support too many EBR partitions in the loader */
-#define	MAXEBRENTRIES		8
+#define MAXEBRENTRIES 8
 static enum partition_type
 mbr_parttype(uint8_t type)
 {
@@ -386,7 +384,7 @@ ptable_ebrread(struct ptable *table, void *dev, diskread_t dread)
 	u_char *buf;
 	int i, index;
 
-	STAILQ_FOREACH(e1, &table->entries, entry) {
+	STAILQ_FOREACH (e1, &table->entries, entry) {
 		if (e1->type.mbr == DOSPTYP_EXT ||
 		    e1->type.mbr == DOSPTYP_EXTLBA)
 			break;
@@ -400,7 +398,7 @@ ptable_ebrread(struct ptable *table, void *dev, diskread_t dread)
 		return (table);
 	DPRINTF("EBR detected");
 	for (i = 0; i < MAXEBRENTRIES; i++) {
-#if 0	/* Some BIOSes return an incorrect number of sectors */
+#if 0 /* Some BIOSes return an incorrect number of sectors */
 		if (offset >= table->sectors)
 			break;
 #endif
@@ -410,8 +408,7 @@ ptable_ebrread(struct ptable *table, void *dev, diskread_t dread)
 		if (dp[0].dp_typ == 0)
 			break;
 		start = le32toh(dp[0].dp_start);
-		if (dp[0].dp_typ == DOSPTYP_EXT &&
-		    dp[1].dp_typ == 0) {
+		if (dp[0].dp_typ == DOSPTYP_EXT && dp[1].dp_typ == 0) {
 			offset = e1->part.start + start;
 			continue;
 		}
@@ -501,8 +498,7 @@ ptable_bsdread(struct ptable *table, void *dev, diskread_t dread)
 		if (entry == NULL)
 			break;
 		entry->part.start = le32toh(part->p_offset) - raw_offset;
-		entry->part.end = entry->part.start +
-		    le32toh(part->p_size) - 1;
+		entry->part.end = entry->part.start + le32toh(part->p_size) - 1;
 		entry->part.type = bsd_parttype(part->p_fstype);
 		entry->part.index = i; /* starts from zero */
 		entry->type.bsd = part->p_fstype;
@@ -515,7 +511,7 @@ out:
 	return (table);
 }
 
-#define cdb2devb(bno)   ((bno) * ISO_DEFAULT_BLOCK_SIZE / table->sectorsize)
+#define cdb2devb(bno) ((bno) * ISO_DEFAULT_BLOCK_SIZE / table->sectorsize)
 
 static struct ptable *
 ptable_iso9660read(struct ptable *table, void *dev, diskread_t dread)
@@ -527,7 +523,7 @@ ptable_iso9660read(struct ptable *table, void *dev, diskread_t dread)
 	buf = malloc(table->sectorsize);
 	if (buf == NULL)
 		return (table);
-		
+
 	if (dread(dev, buf, 1, cdb2devb(16)) != 0) {
 		DPRINTF("read failed");
 		ptable_close(table);
@@ -555,8 +551,7 @@ out:
 }
 
 struct ptable *
-ptable_open(void *dev, uint64_t sectors, uint16_t sectorsize,
-    diskread_t *dread)
+ptable_open(void *dev, uint64_t sectors, uint16_t sectorsize, diskread_t *dread)
 {
 	struct dos_partition *dp;
 	struct ptable *table;
@@ -601,8 +596,7 @@ ptable_open(void *dev, uint64_t sectors, uint16_t sectorsize,
 
 #if defined(LOADER_GPT_SUPPORT) || defined(LOADER_MBR_SUPPORT)
 	/* Check the MBR magic. */
-	if (buf[DOSMAGICOFFSET] != 0x55 ||
-	    buf[DOSMAGICOFFSET + 1] != 0xaa) {
+	if (buf[DOSMAGICOFFSET] != 0x55 || buf[DOSMAGICOFFSET + 1] != 0xaa) {
 		DPRINTF("magic sequence not found");
 #if defined(LOADER_GPT_SUPPORT)
 		/* There is no PMBR, check that we have backup GPT */
@@ -652,7 +646,7 @@ ptable_open(void *dev, uint64_t sectors, uint16_t sectorsize,
 		end = le32dec(&(dp[i].dp_size));
 		if (start == 0 || end == 0)
 			continue;
-#if 0	/* Some BIOSes return an incorrect number of sectors */
+#if 0 /* Some BIOSes return an incorrect number of sectors */
 		if (start + end - 1 >= sectors)
 			continue;	/* XXX: ignore */
 #endif
@@ -727,7 +721,7 @@ ptable_getpart(const struct ptable *table, struct ptable_entry *part, int index)
 	if (part == NULL || table == NULL)
 		return (EINVAL);
 
-	STAILQ_FOREACH(entry, &table->entries, entry) {
+	STAILQ_FOREACH (entry, &table->entries, entry) {
 		if (entry->part.index != index)
 			continue;
 		memcpy(part, &entry->part, sizeof(*part));
@@ -746,14 +740,14 @@ ptable_getpart(const struct ptable *table, struct ptable_entry *part, int index)
  * 5: Active FAT/FAT32 slice
  * 6: non-active FAT/FAT32 slice
  */
-#define	PREF_RAWDISK	0
-#define	PREF_FBSD_ACT	1
-#define	PREF_FBSD	2
-#define	PREF_LINUX_ACT	3
-#define	PREF_LINUX	4
-#define	PREF_DOS_ACT	5
-#define	PREF_DOS	6
-#define	PREF_NONE	7
+#define PREF_RAWDISK 0
+#define PREF_FBSD_ACT 1
+#define PREF_FBSD 2
+#define PREF_LINUX_ACT 3
+#define PREF_LINUX 4
+#define PREF_DOS_ACT 5
+#define PREF_DOS 6
+#define PREF_NONE 7
 int
 ptable_getbestpart(const struct ptable *table, struct ptable_entry *part)
 {
@@ -765,26 +759,26 @@ ptable_getbestpart(const struct ptable *table, struct ptable_entry *part)
 
 	best = NULL;
 	preflevel = pref = PREF_NONE;
-	STAILQ_FOREACH(entry, &table->entries, entry) {
+	STAILQ_FOREACH (entry, &table->entries, entry) {
 #ifdef LOADER_MBR_SUPPORT
 		if (table->type == PTABLE_MBR) {
 			switch (entry->type.mbr) {
 			case DOSPTYP_386BSD:
-				pref = entry->flags & 0x80 ? PREF_FBSD_ACT:
-				    PREF_FBSD;
+				pref = entry->flags & 0x80 ? PREF_FBSD_ACT :
+							     PREF_FBSD;
 				break;
 			case DOSPTYP_LINUX:
-				pref = entry->flags & 0x80 ? PREF_LINUX_ACT:
-				    PREF_LINUX;
+				pref = entry->flags & 0x80 ? PREF_LINUX_ACT :
+							     PREF_LINUX;
 				break;
-			case 0x01:		/* DOS/Windows */
+			case 0x01: /* DOS/Windows */
 			case 0x04:
 			case 0x06:
 			case 0x0c:
 			case 0x0e:
 			case DOSPTYP_FAT32:
-				pref = entry->flags & 0x80 ? PREF_DOS_ACT:
-				    PREF_DOS;
+				pref = entry->flags & 0x80 ? PREF_DOS_ACT :
+							     PREF_DOS;
 				break;
 			default:
 				pref = PREF_NONE;
@@ -822,20 +816,19 @@ ptable_iterate(const struct ptable *table, void *arg, ptable_iterate_t *iter)
 	int ret = 0;
 
 	name[0] = '\0';
-	STAILQ_FOREACH(entry, &table->entries, entry) {
+	STAILQ_FOREACH (entry, &table->entries, entry) {
 #ifdef LOADER_MBR_SUPPORT
 		if (table->type == PTABLE_MBR)
 			sprintf(name, "s%d", entry->part.index);
 		else
 #endif
 #ifdef LOADER_GPT_SUPPORT
-		if (table->type == PTABLE_GPT)
+		    if (table->type == PTABLE_GPT)
 			sprintf(name, "p%d", entry->part.index);
 		else
 #endif
-		if (table->type == PTABLE_BSD)
-			sprintf(name, "%c", (uint8_t) 'a' +
-			    entry->part.index);
+		    if (table->type == PTABLE_BSD)
+			sprintf(name, "%c", (uint8_t)'a' + entry->part.index);
 		if ((ret = iter(arg, name, &entry->part)) != 0)
 			return (ret);
 	}

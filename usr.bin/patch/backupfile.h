@@ -1,9 +1,9 @@
 /*-
  * Copyright (C) 1990 Free Software Foundation, Inc.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify it
  * without restriction.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE.
@@ -32,7 +32,7 @@ enum backup_type {
 };
 
 extern enum backup_type backup_type;
-extern const char	*simple_backup_suffix;
+extern const char *simple_backup_suffix;
 
-char		*find_backup_file_name(const char *file);
+char *find_backup_file_name(const char *file);
 enum backup_type get_version(const char *version);

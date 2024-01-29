@@ -41,7 +41,6 @@
 #include <netinet/in.h>
 
 #include <arpa/tftp.h>
-
 #include <assert.h>
 #include <err.h>
 #include <netdb.h>
@@ -50,12 +49,12 @@
 #include <string.h>
 #include <syslog.h>
 
-#include "tftp.h"
 #include "tftp-file.h"
-#include "tftp-utils.h"
 #include "tftp-io.h"
-#include "tftp-transfer.h"
 #include "tftp-options.h"
+#include "tftp-transfer.h"
+#include "tftp-utils.h"
+#include "tftp.h"
 
 /*
  * Send the requested file.
@@ -66,7 +65,7 @@ xmitfile(int peer, char *port, int fd, char *name, char *mode)
 	struct tftphdr *rp;
 	int n, i, ret = 0;
 	uint16_t block;
-	struct sockaddr_storage serv;	/* valid server port number */
+	struct sockaddr_storage serv; /* valid server port number */
 	char recvbuffer[MAXPKTSIZE];
 	struct tftp_stats tftp_stats;
 
@@ -81,8 +80,8 @@ xmitfile(int peer, char *port, int fd, char *name, char *mode)
 		assert(se != NULL);
 		((struct sockaddr_in *)&peer_sock)->sin_port = se->s_port;
 	} else
-		((struct sockaddr_in *)&peer_sock)->sin_port =
-		    htons(atoi(port));
+		((struct sockaddr_in *)&peer_sock)->sin_port = htons(
+		    atoi(port));
 
 	for (i = 0; i < 12; i++) {
 		struct sockaddr_storage from;
@@ -101,8 +100,8 @@ xmitfile(int peer, char *port, int fd, char *name, char *mode)
 		 * The first packet we receive has the new destination port
 		 * we have to send the next packets to.
 		 */
-		n = receive_packet(peer, recvbuffer,
-		    MAXPKTSIZE, &from, timeoutpacket);
+		n = receive_packet(peer, recvbuffer, MAXPKTSIZE, &from,
+		    timeoutpacket);
 
 		/* We got some data! */
 		if (n >= 0) {
@@ -181,8 +180,8 @@ recvfile(int peer, char *port, int fd, char *name, char *mode)
 		assert(se != NULL);
 		((struct sockaddr_in *)&peer_sock)->sin_port = se->s_port;
 	} else
-		((struct sockaddr_in *)&peer_sock)->sin_port =
-		    htons(atoi(port));
+		((struct sockaddr_in *)&peer_sock)->sin_port = htons(
+		    atoi(port));
 
 	for (i = 0; i < 12; i++) {
 		struct sockaddr_storage from;
@@ -201,8 +200,8 @@ recvfile(int peer, char *port, int fd, char *name, char *mode)
 		 * The first packet we receive has the new destination port
 		 * we have to send the next packets to.
 		 */
-		n = receive_packet(peer, recvbuffer,
-		    MAXPKTSIZE, &from, timeoutpacket);
+		n = receive_packet(peer, recvbuffer, MAXPKTSIZE, &from,
+		    timeoutpacket);
 
 		/* We got something useful! */
 		if (n >= 0) {

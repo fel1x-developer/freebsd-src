@@ -35,11 +35,13 @@
  */
 
 #include <sys/param.h>
-#include <sys/stat.h>
 #include <sys/mount.h>
+#include <sys/stat.h>
 #include <sys/sysctl.h>
+
 #include <getopt.h>
 #include <libutil.h>
+#include <libxo/xo.h>
 #include <locale.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -47,36 +49,35 @@
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
-#include <libxo/xo.h>
 
-#define UNITS_SI	1
-#define UNITS_2		2
+#define UNITS_SI 1
+#define UNITS_2 2
 
 /* Maximum widths of various fields. */
 struct maxwidths {
-	int	mntfrom;
-	int	fstype;
-	int	total;
-	int	used;
-	int	avail;
-	int	iused;
-	int	ifree;
+	int mntfrom;
+	int fstype;
+	int total;
+	int used;
+	int avail;
+	int iused;
+	int ifree;
 };
 
-static void	  addstat(struct statfs *, struct statfs *);
-static char	 *getmntpt(const char *);
+static void addstat(struct statfs *, struct statfs *);
+static char *getmntpt(const char *);
 static const char **makevfslist(char *fslist, int *skip);
-static int	  checkvfsname(const char *vfsname, const char **vfslist, int skip);
-static int	  checkvfsselected(char *);
-static int	  int64width(int64_t);
-static char	 *makenetvfslist(void);
-static void	  prthuman(const struct statfs *, int64_t);
-static void	  prthumanval(const char *, int64_t);
-static intmax_t	  fsbtoblk(int64_t, uint64_t, u_long);
-static void	  prtstat(struct statfs *, struct maxwidths *);
-static size_t	  regetmntinfo(struct statfs **, long);
-static void	  update_maxwidths(struct maxwidths *, const struct statfs *);
-static void	  usage(void);
+static int checkvfsname(const char *vfsname, const char **vfslist, int skip);
+static int checkvfsselected(char *);
+static int int64width(int64_t);
+static char *makenetvfslist(void);
+static void prthuman(const struct statfs *, int64_t);
+static void prthumanval(const char *, int64_t);
+static intmax_t fsbtoblk(int64_t, uint64_t, u_long);
+static void prtstat(struct statfs *, struct maxwidths *);
+static size_t regetmntinfo(struct statfs **, long);
+static void update_maxwidths(struct maxwidths *, const struct statfs *);
+static void usage(void);
 
 static __inline int
 imax(int a, int b)
@@ -84,13 +85,12 @@ imax(int a, int b)
 	return (a > b ? a : b);
 }
 
-static int	  aflag = 0, cflag, hflag, iflag, kflag, lflag = 0, nflag, Tflag;
-static int	  thousands;
-static int	  skipvfs_l, skipvfs_t;
+static int aflag = 0, cflag, hflag, iflag, kflag, lflag = 0, nflag, Tflag;
+static int thousands;
+static int skipvfs_l, skipvfs_t;
 static const char **vfslist_l, **vfslist_t;
 
-static const struct option long_options[] =
-{
+static const struct option long_options[] = {
 	{ "si", no_argument, NULL, 'H' },
 	{ NULL, no_argument, NULL, 0 },
 };
@@ -117,13 +117,13 @@ main(int argc, char *argv[])
 		exit(1);
 
 	while ((ch = getopt_long(argc, argv, "+abcgHhiklmnPt:T,", long_options,
-	    NULL)) != -1)
+		    NULL)) != -1)
 		switch (ch) {
 		case 'a':
 			aflag = 1;
 			break;
 		case 'b':
-				/* FALLTHROUGH */
+			/* FALLTHROUGH */
 		case 'P':
 			/*
 			 * POSIX specifically discusses the behavior of
@@ -173,7 +173,8 @@ main(int argc, char *argv[])
 			break;
 		case 't':
 			if (vfslist_t != NULL)
-				xo_errx(1, "only one -t option may be specified");
+				xo_errx(1,
+				    "only one -t option may be specified");
 			vfslist_t = makevfslist(optarg, &skipvfs_t);
 			break;
 		case 'T':
@@ -352,7 +353,8 @@ checkvfsselected(char *fstypename)
 		result = checkvfsname(fstypename, vfslist_t, skipvfs_t);
 		if (vfslist_l) {
 			/* if -l option then adjust selection */
-			if (checkvfsname(fstypename, vfslist_l, skipvfs_l) == skipvfs_t)
+			if (checkvfsname(fstypename, vfslist_l, skipvfs_l) ==
+			    skipvfs_t)
 				result = skipvfs_t;
 		}
 	} else {
@@ -418,10 +420,10 @@ prthumanval(const char *fmt, int64_t bytes)
 	if (hflag == UNITS_SI)
 		flags |= HN_DIVISOR_1000;
 
-	humanize_number(buf, sizeof(buf) - (bytes < 0 ? 0 : 1),
-	    bytes, "", HN_AUTOSCALE, flags);
+	humanize_number(buf, sizeof(buf) - (bytes < 0 ? 0 : 1), bytes, "",
+	    HN_AUTOSCALE, flags);
 
-	xo_attr("value", "%lld", (long long) bytes);
+	xo_attr("value", "%lld", (long long)bytes);
 	xo_emit(fmt, buf);
 }
 
@@ -436,10 +438,10 @@ prthumanvalinode(const char *fmt, int64_t bytes)
 
 	flags = HN_NOSPACE | HN_DECIMAL | HN_DIVISOR_1000;
 
-	humanize_number(buf, sizeof(buf) - (bytes < 0 ? 0 : 1),
-	    bytes, "", HN_AUTOSCALE, flags);
+	humanize_number(buf, sizeof(buf) - (bytes < 0 ? 0 : 1), bytes, "",
+	    HN_AUTOSCALE, flags);
 
-	xo_attr("value", "%lld", (long long) bytes);
+	xo_attr("value", "%lld", (long long)bytes);
 	xo_emit(fmt, buf);
 }
 
@@ -449,7 +451,7 @@ prthumanvalinode(const char *fmt, int64_t bytes)
 static intmax_t
 fsbtoblk(int64_t num, uint64_t fsbs, u_long bs)
 {
-	return (num * (intmax_t) fsbs / (int64_t) bs);
+	return (num * (intmax_t)fsbs / (int64_t)bs);
 }
 
 /*
@@ -467,17 +469,17 @@ prtstat(struct statfs *sfsp, struct maxwidths *mwp)
 	if (++timesthrough == 1) {
 		mwp->mntfrom = imax(mwp->mntfrom, (int)strlen("Filesystem"));
 		mwp->fstype = imax(mwp->fstype, (int)strlen("Type"));
-		if (thousands) {		/* make space for commas */
-		    mwp->total += (mwp->total - 1) / 3;
-		    mwp->used  += (mwp->used - 1) / 3;
-		    mwp->avail += (mwp->avail - 1) / 3;
-		    mwp->iused += (mwp->iused - 1) / 3;
-		    mwp->ifree += (mwp->ifree - 1) / 3;
+		if (thousands) { /* make space for commas */
+			mwp->total += (mwp->total - 1) / 3;
+			mwp->used += (mwp->used - 1) / 3;
+			mwp->avail += (mwp->avail - 1) / 3;
+			mwp->iused += (mwp->iused - 1) / 3;
+			mwp->ifree += (mwp->ifree - 1) / 3;
 		}
 		if (hflag) {
 			header = "   Size";
-			mwp->total = mwp->used = mwp->avail =
-			    (int)strlen(header);
+			mwp->total = mwp->used = mwp->avail = (int)strlen(
+			    header);
 		} else {
 			header = getbsize(&headerlen, &blocksize);
 			mwp->total = imax(mwp->total, headerlen);
@@ -488,9 +490,8 @@ prtstat(struct statfs *sfsp, struct maxwidths *mwp)
 		xo_emit("{T:/%-*s}", mwp->mntfrom, "Filesystem");
 		if (Tflag)
 			xo_emit("  {T:/%-*s}", mwp->fstype, "Type");
-		xo_emit(" {T:/%*s} {T:/%*s} {T:/%*s} {T:Capacity}",
-			mwp->total, header,
-			mwp->used, "Used", mwp->avail, "Avail");
+		xo_emit(" {T:/%*s} {T:/%*s} {T:/%*s} {T:Capacity}", mwp->total,
+		    header, mwp->used, "Used", mwp->avail, "Avail");
 		if (iflag) {
 			mwp->iused = imax(hflag ? 0 : mwp->iused,
 			    (int)strlen("  iused"));
@@ -505,7 +506,8 @@ prtstat(struct statfs *sfsp, struct maxwidths *mwp)
 	xo_open_instance("filesystem");
 	/* Check for 0 block size.  Can this happen? */
 	if (sfsp->f_bsize == 0) {
-		xo_warnx ("File system %s does not have a block size, assuming 512.",
+		xo_warnx(
+		    "File system %s does not have a block size, assuming 512.",
 		    sfsp->f_mntonname);
 		sfsp->f_bsize = 512;
 	}
@@ -518,17 +520,17 @@ prtstat(struct statfs *sfsp, struct maxwidths *mwp)
 		prthuman(sfsp, used);
 	} else {
 		if (thousands)
-		    format = " {t:total-blocks/%*j'd} {t:used-blocks/%*j'd} "
-			"{t:available-blocks/%*j'd}";
+			format =
+			    " {t:total-blocks/%*j'd} {t:used-blocks/%*j'd} "
+			    "{t:available-blocks/%*j'd}";
 		else
-		    format = " {t:total-blocks/%*jd} {t:used-blocks/%*jd} "
-			"{t:available-blocks/%*jd}";
-		xo_emit(format,
-		    mwp->total, fsbtoblk(sfsp->f_blocks,
-		    sfsp->f_bsize, blocksize),
+			format = " {t:total-blocks/%*jd} {t:used-blocks/%*jd} "
+				 "{t:available-blocks/%*jd}";
+		xo_emit(format, mwp->total,
+		    fsbtoblk(sfsp->f_blocks, sfsp->f_bsize, blocksize),
 		    mwp->used, fsbtoblk(used, sfsp->f_bsize, blocksize),
-		    mwp->avail, fsbtoblk(sfsp->f_bavail,
-		    sfsp->f_bsize, blocksize));
+		    mwp->avail,
+		    fsbtoblk(sfsp->f_bavail, sfsp->f_bsize, blocksize));
 	}
 	xo_emit(" {:used-percent/%5.0f}{U:%%}",
 	    availblks == 0 ? 100.0 : (double)used / (double)availblks * 100.0);
@@ -541,17 +543,19 @@ prtstat(struct statfs *sfsp, struct maxwidths *mwp)
 			prthumanvalinode(" {:inodes-free/%5s}", sfsp->f_ffree);
 		} else {
 			if (thousands)
-			    format = " {:inodes-used/%*j'd} {:inodes-free/%*j'd}";
+				format =
+				    " {:inodes-used/%*j'd} {:inodes-free/%*j'd}";
 			else
-			    format = " {:inodes-used/%*jd} {:inodes-free/%*jd}";
-			xo_emit(format, mwp->iused, (intmax_t)used,
-			    mwp->ifree, (intmax_t)sfsp->f_ffree);
+				format =
+				    " {:inodes-used/%*jd} {:inodes-free/%*jd}";
+			xo_emit(format, mwp->iused, (intmax_t)used, mwp->ifree,
+			    (intmax_t)sfsp->f_ffree);
 		}
 		if (inodes == 0)
 			xo_emit(" {:inodes-used-percent/    -}{U:} ");
 		else {
 			xo_emit(" {:inodes-used-percent/%4.0f}{U:%%} ",
-				(double)used / (double)inodes * 100.0);
+			    (double)used / (double)inodes * 100.0);
 		}
 	} else
 		xo_emit("  ");
@@ -589,15 +593,17 @@ update_maxwidths(struct maxwidths *mwp, const struct statfs *sfsp)
 
 	mwp->mntfrom = imax(mwp->mntfrom, (int)strlen(sfsp->f_mntfromname));
 	mwp->fstype = imax(mwp->fstype, (int)strlen(sfsp->f_fstypename));
-	mwp->total = imax(mwp->total, int64width(
-	    fsbtoblk((int64_t)sfsp->f_blocks, sfsp->f_bsize, blocksize)));
+	mwp->total = imax(mwp->total,
+	    int64width(
+		fsbtoblk((int64_t)sfsp->f_blocks, sfsp->f_bsize, blocksize)));
 	mwp->used = imax(mwp->used,
-	    int64width(fsbtoblk((int64_t)sfsp->f_blocks -
-	    (int64_t)sfsp->f_bfree, sfsp->f_bsize, blocksize)));
-	mwp->avail = imax(mwp->avail, int64width(fsbtoblk(sfsp->f_bavail,
-	    sfsp->f_bsize, blocksize)));
-	mwp->iused = imax(mwp->iused, int64width((int64_t)sfsp->f_files -
-	    sfsp->f_ffree));
+	    int64width(
+		fsbtoblk((int64_t)sfsp->f_blocks - (int64_t)sfsp->f_bfree,
+		    sfsp->f_bsize, blocksize)));
+	mwp->avail = imax(mwp->avail,
+	    int64width(fsbtoblk(sfsp->f_bavail, sfsp->f_bsize, blocksize)));
+	mwp->iused = imax(mwp->iused,
+	    int64width((int64_t)sfsp->f_files - sfsp->f_ffree));
 	mwp->ifree = imax(mwp->ifree, int64width(sfsp->f_ffree));
 }
 
@@ -626,8 +632,8 @@ usage(void)
 {
 
 	xo_error(
-"usage: df [-b | -g | -H | -h | -k | -m | -P] [-acilnT] [-t type] [-,]\n"
-"          [file | filesystem ...]\n");
+	    "usage: df [-b | -g | -H | -h | -k | -m | -P] [-acilnT] [-t type] [-,]\n"
+	    "          [file | filesystem ...]\n");
 	exit(EX_USAGE);
 }
 
@@ -656,7 +662,7 @@ makenetvfslist(void)
 	}
 	maxvfsconf = buflen / sizeof(struct xvfsconf);
 
-	if ((listptr = malloc(sizeof(char*) * maxvfsconf)) == NULL) {
+	if ((listptr = malloc(sizeof(char *) * maxvfsconf)) == NULL) {
 		xo_warnx("malloc failed");
 		free(keep_xvfsp);
 		return (NULL);
@@ -665,7 +671,7 @@ makenetvfslist(void)
 	for (cnt = 0, i = 0; i < maxvfsconf; i++) {
 		if (xvfsp->vfc_flags & VFCF_NETWORK) {
 			listptr[cnt++] = strdup(xvfsp->vfc_name);
-			if (listptr[cnt-1] == NULL) {
+			if (listptr[cnt - 1] == NULL) {
 				xo_warnx("malloc failed");
 				free(listptr);
 				free(keep_xvfsp);
@@ -684,7 +690,8 @@ makenetvfslist(void)
 		return (NULL);
 	}
 
-	*str = 'n'; *(str + 1) = 'o';
+	*str = 'n';
+	*(str + 1) = 'o';
 	for (i = 0, strptr = str + 2; i < cnt; i++, strptr++) {
 		strlcpy(strptr, listptr[i], 32);
 		strptr += strlen(listptr[i]);

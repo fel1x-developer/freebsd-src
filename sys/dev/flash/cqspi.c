@@ -33,9 +33,9 @@
  * 4B-addressing mode supported only.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bio.h>
@@ -44,23 +44,23 @@
 #include <sys/kernel.h>
 #include <sys/kthread.h>
 #include <sys/lock.h>
-#include <sys/mbuf.h>
 #include <sys/malloc.h>
+#include <sys/mbuf.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
-#include <geom/geom_disk.h>
 
 #include <machine/bus.h>
 
-#include <dev/fdt/simplebus.h>
 #include <dev/fdt/fdt_common.h>
-#include <dev/ofw/ofw_bus_subr.h>
-#include <dev/ofw/openfirm.h>
-
+#include <dev/fdt/simplebus.h>
 #include <dev/flash/cqspi.h>
 #include <dev/flash/mx25lreg.h>
+#include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
 #include <dev/xdma/xdma.h>
+
+#include <geom/geom_disk.h>
 
 #include "qspi_if.h"
 
@@ -68,75 +68,69 @@
 #undef CQSPI_DEBUG
 
 #ifdef CQSPI_DEBUG
-#define dprintf(fmt, ...)  printf(fmt, ##__VA_ARGS__)
+#define dprintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
 #define dprintf(fmt, ...)
 #endif
 
-#define	CQSPI_SECTORSIZE	512
-#define	TX_QUEUE_SIZE		16
-#define	RX_QUEUE_SIZE		16
+#define CQSPI_SECTORSIZE 512
+#define TX_QUEUE_SIZE 16
+#define RX_QUEUE_SIZE 16
 
-#define	READ4(_sc, _reg) bus_read_4((_sc)->res[0], _reg)
-#define	READ2(_sc, _reg) bus_read_2((_sc)->res[0], _reg)
-#define	READ1(_sc, _reg) bus_read_1((_sc)->res[0], _reg)
-#define	WRITE4(_sc, _reg, _val) bus_write_4((_sc)->res[0], _reg, _val)
-#define	WRITE2(_sc, _reg, _val) bus_write_2((_sc)->res[0], _reg, _val)
-#define	WRITE1(_sc, _reg, _val) bus_write_1((_sc)->res[0], _reg, _val)
-#define	READ_DATA_4(_sc, _reg) bus_read_4((_sc)->res[1], _reg)
-#define	READ_DATA_1(_sc, _reg) bus_read_1((_sc)->res[1], _reg)
-#define	WRITE_DATA_4(_sc, _reg, _val) bus_write_4((_sc)->res[1], _reg, _val)
-#define	WRITE_DATA_1(_sc, _reg, _val) bus_write_1((_sc)->res[1], _reg, _val)
+#define READ4(_sc, _reg) bus_read_4((_sc)->res[0], _reg)
+#define READ2(_sc, _reg) bus_read_2((_sc)->res[0], _reg)
+#define READ1(_sc, _reg) bus_read_1((_sc)->res[0], _reg)
+#define WRITE4(_sc, _reg, _val) bus_write_4((_sc)->res[0], _reg, _val)
+#define WRITE2(_sc, _reg, _val) bus_write_2((_sc)->res[0], _reg, _val)
+#define WRITE1(_sc, _reg, _val) bus_write_1((_sc)->res[0], _reg, _val)
+#define READ_DATA_4(_sc, _reg) bus_read_4((_sc)->res[1], _reg)
+#define READ_DATA_1(_sc, _reg) bus_read_1((_sc)->res[1], _reg)
+#define WRITE_DATA_4(_sc, _reg, _val) bus_write_4((_sc)->res[1], _reg, _val)
+#define WRITE_DATA_1(_sc, _reg, _val) bus_write_1((_sc)->res[1], _reg, _val)
 
 struct cqspi_softc {
-	device_t		dev;
+	device_t dev;
 
-	struct resource		*res[3];
-	bus_space_tag_t		bst;
-	bus_space_handle_t	bsh;
-	void			*ih;
-	uint8_t			read_op_done;
-	uint8_t			write_op_done;
+	struct resource *res[3];
+	bus_space_tag_t bst;
+	bus_space_handle_t bsh;
+	void *ih;
+	uint8_t read_op_done;
+	uint8_t write_op_done;
 
-	uint32_t		fifo_depth;
-	uint32_t		fifo_width;
-	uint32_t		trigger_address;
-	uint32_t		sram_phys;
+	uint32_t fifo_depth;
+	uint32_t fifo_width;
+	uint32_t trigger_address;
+	uint32_t sram_phys;
 
 	/* xDMA */
-	xdma_controller_t	*xdma_tx;
-	xdma_channel_t		*xchan_tx;
-	void			*ih_tx;
+	xdma_controller_t *xdma_tx;
+	xdma_channel_t *xchan_tx;
+	void *ih_tx;
 
-	xdma_controller_t	*xdma_rx;
-	xdma_channel_t		*xchan_rx;
-	void			*ih_rx;
+	xdma_controller_t *xdma_rx;
+	xdma_channel_t *xchan_rx;
+	void *ih_rx;
 
-	struct intr_config_hook	config_intrhook;
-	struct mtx		sc_mtx;
+	struct intr_config_hook config_intrhook;
+	struct mtx sc_mtx;
 };
 
-#define	CQSPI_LOCK(_sc)		mtx_lock(&(_sc)->sc_mtx)
-#define	CQSPI_UNLOCK(_sc)	mtx_unlock(&(_sc)->sc_mtx)
-#define CQSPI_LOCK_INIT(_sc)					\
-	mtx_init(&_sc->sc_mtx, device_get_nameunit(_sc->dev),	\
-	    "cqspi", MTX_DEF)
-#define CQSPI_LOCK_DESTROY(_sc)	mtx_destroy(&_sc->sc_mtx);
-#define CQSPI_ASSERT_LOCKED(_sc)				\
-	mtx_assert(&_sc->sc_mtx, MA_OWNED);
-#define CQSPI_ASSERT_UNLOCKED(_sc)				\
-	mtx_assert(&_sc->sc_mtx, MA_NOTOWNED);
+#define CQSPI_LOCK(_sc) mtx_lock(&(_sc)->sc_mtx)
+#define CQSPI_UNLOCK(_sc) mtx_unlock(&(_sc)->sc_mtx)
+#define CQSPI_LOCK_INIT(_sc) \
+	mtx_init(&_sc->sc_mtx, device_get_nameunit(_sc->dev), "cqspi", MTX_DEF)
+#define CQSPI_LOCK_DESTROY(_sc) mtx_destroy(&_sc->sc_mtx);
+#define CQSPI_ASSERT_LOCKED(_sc) mtx_assert(&_sc->sc_mtx, MA_OWNED);
+#define CQSPI_ASSERT_UNLOCKED(_sc) mtx_assert(&_sc->sc_mtx, MA_NOTOWNED);
 
-static struct resource_spec cqspi_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ SYS_RES_MEMORY,	1,	RF_ACTIVE },
-	{ SYS_RES_IRQ,		0,	RF_ACTIVE },
-	{ -1, 0 }
-};
+static struct resource_spec cqspi_spec[] = { { SYS_RES_MEMORY, 0, RF_ACTIVE },
+	{ SYS_RES_MEMORY, 1, RF_ACTIVE }, { SYS_RES_IRQ, 0, RF_ACTIVE },
+	{ -1, 0 } };
 
 static struct ofw_compat_data compat_data[] = {
-	{ "cdns,qspi-nor",	1 },
-	{ NULL,			0 },
+	{ "cdns,qspi-nor", 1 },
+	{ NULL, 0 },
 };
 
 static void
@@ -151,8 +145,8 @@ cqspi_intr(void *arg)
 
 	dprintf("%s: IRQSTAT %x\n", __func__, pending);
 
-	if (pending & (IRQMASK_INDOPDONE | IRQMASK_INDXFRLVL |
-	    IRQMASK_INDSRAMFULL)) {
+	if (pending &
+	    (IRQMASK_INDOPDONE | IRQMASK_INDXFRLVL | IRQMASK_INDSRAMFULL)) {
 		/* TODO: PIO operation done */
 	}
 
@@ -240,8 +234,8 @@ cqspi_wait_for_completion(struct cqspi_softc *sc)
 	}
 
 	if (i == 0) {
-		device_printf(sc->dev, "%s: cmd timed out: %x\n",
-		    __func__, READ4(sc, CQSPI_FLASHCMD));
+		device_printf(sc->dev, "%s: cmd timed out: %x\n", __func__,
+		    READ4(sc, CQSPI_FLASHCMD));
 		return (-1);
 	}
 
@@ -249,8 +243,8 @@ cqspi_wait_for_completion(struct cqspi_softc *sc)
 }
 
 static int
-cqspi_cmd_write_addr(struct cqspi_softc *sc, uint8_t cmd,
-    uint32_t addr, uint32_t len)
+cqspi_cmd_write_addr(struct cqspi_softc *sc, uint8_t cmd, uint32_t addr,
+    uint32_t len)
 {
 	uint32_t reg;
 	int ret;
@@ -272,8 +266,8 @@ cqspi_cmd_write_addr(struct cqspi_softc *sc, uint8_t cmd,
 }
 
 static int
-cqspi_cmd_write(struct cqspi_softc *sc, uint8_t cmd,
-    uint8_t *addr, uint32_t len)
+cqspi_cmd_write(struct cqspi_softc *sc, uint8_t cmd, uint8_t *addr,
+    uint32_t len)
 {
 	uint32_t reg;
 	int ret;
@@ -289,8 +283,7 @@ cqspi_cmd_write(struct cqspi_softc *sc, uint8_t cmd,
 }
 
 static int
-cqspi_cmd_read(struct cqspi_softc *sc, uint8_t cmd,
-    uint8_t *addr, uint32_t len)
+cqspi_cmd_read(struct cqspi_softc *sc, uint8_t cmd, uint8_t *addr, uint32_t len)
 {
 	uint32_t data;
 	uint32_t reg;
@@ -317,8 +310,7 @@ cqspi_cmd_read(struct cqspi_softc *sc, uint8_t cmd,
 
 	ret = cqspi_wait_for_completion(sc);
 	if (ret != 0) {
-		device_printf(sc->dev, "%s: cmd failed: %x\n",
-		    __func__, cmd);
+		device_printf(sc->dev, "%s: cmd failed: %x\n", __func__, cmd);
 		return (ret);
 	}
 
@@ -343,8 +335,8 @@ cqspi_wait_ready(struct cqspi_softc *sc)
 }
 
 static int
-cqspi_write_reg(device_t dev, device_t child,
-    uint8_t opcode, uint8_t *addr, uint32_t len)
+cqspi_write_reg(device_t dev, device_t child, uint8_t opcode, uint8_t *addr,
+    uint32_t len)
 {
 	struct cqspi_softc *sc;
 	int ret;
@@ -357,8 +349,8 @@ cqspi_write_reg(device_t dev, device_t child,
 }
 
 static int
-cqspi_read_reg(device_t dev, device_t child,
-    uint8_t opcode, uint8_t *addr, uint32_t len)
+cqspi_read_reg(device_t dev, device_t child, uint8_t opcode, uint8_t *addr,
+    uint32_t len)
 {
 	struct cqspi_softc *sc;
 	int ret;
@@ -406,14 +398,14 @@ cqspi_erase(device_t dev, device_t child, off_t offset)
 }
 
 static int
-cqspi_write(device_t dev, device_t child, struct bio *bp,
-    off_t offset, caddr_t data, off_t count)
+cqspi_write(device_t dev, device_t child, struct bio *bp, off_t offset,
+    caddr_t data, off_t count)
 {
 	struct cqspi_softc *sc;
 	uint32_t reg;
 
-	dprintf("%s: offset 0x%llx count %lld bytes\n",
-	    __func__, offset, count);
+	dprintf("%s: offset 0x%llx count %lld bytes\n", __func__, offset,
+	    count);
 
 	sc = device_get_softc(dev);
 
@@ -446,8 +438,8 @@ cqspi_write(device_t dev, device_t child, struct bio *bp,
 	reg |= DEVRD_INST_WIDTH_SINGLE;
 	WRITE4(sc, CQSPI_DEVRD, reg);
 
-	xdma_enqueue_bio(sc->xchan_tx, &bp,
-	    sc->sram_phys, 4, 4, XDMA_MEM_TO_DEV);
+	xdma_enqueue_bio(sc->xchan_tx, &bp, sc->sram_phys, 4, 4,
+	    XDMA_MEM_TO_DEV);
 	xdma_queue_submit(sc->xchan_tx);
 
 	sc->write_op_done = 0;
@@ -455,7 +447,7 @@ cqspi_write(device_t dev, device_t child, struct bio *bp,
 	WRITE4(sc, CQSPI_INDWR, INDRD_START);
 
 	while (sc->write_op_done == 0)
-		tsleep(&sc->xdma_tx, PCATCH | PZERO, "spi", hz/2);
+		tsleep(&sc->xdma_tx, PCATCH | PZERO, "spi", hz / 2);
 
 	cqspi_wait_idle(sc);
 
@@ -463,16 +455,16 @@ cqspi_write(device_t dev, device_t child, struct bio *bp,
 }
 
 static int
-cqspi_read(device_t dev, device_t child, struct bio *bp,
-    off_t offset, caddr_t data, off_t count)
+cqspi_read(device_t dev, device_t child, struct bio *bp, off_t offset,
+    caddr_t data, off_t count)
 {
 	struct cqspi_softc *sc;
 	uint32_t reg;
 
 	sc = device_get_softc(dev);
 
-	dprintf("%s: offset 0x%llx count %lld bytes\n",
-	    __func__, offset, count);
+	dprintf("%s: offset 0x%llx count %lld bytes\n", __func__, offset,
+	    count);
 
 	cqspi_wait_idle(sc);
 
@@ -507,7 +499,7 @@ cqspi_read(device_t dev, device_t child, struct bio *bp,
 	WRITE4(sc, CQSPI_INDRD, INDRD_START);
 
 	while (sc->read_op_done == 0)
-		tsleep(&sc->xdma_rx, PCATCH | PZERO, "spi", hz/2);
+		tsleep(&sc->xdma_rx, PCATCH | PZERO, "spi", hz / 2);
 
 	cqspi_wait_idle(sc);
 
@@ -522,8 +514,7 @@ cqspi_init(struct cqspi_softc *sc)
 	uint32_t reg;
 	int len;
 
-	device_printf(sc->dev, "Module ID %x\n",
-	    READ4(sc, CQSPI_MODULEID));
+	device_printf(sc->dev, "Module ID %x\n", READ4(sc, CQSPI_MODULEID));
 
 	if ((node = ofw_bus_get_node(sc->dev)) == -1) {
 		return (ENXIO);
@@ -557,7 +548,7 @@ cqspi_init(struct cqspi_softc *sc)
 	reg |= ((4 - 1) - DEVSZ_NUMADDRBYTES_S);
 	WRITE4(sc, CQSPI_DEVSZ, reg);
 
-	WRITE4(sc, CQSPI_SRAMPART, sc->fifo_depth/2);
+	WRITE4(sc, CQSPI_SRAMPART, sc->fifo_depth / 2);
 
 	/* TODO: calculate baud rate and delay values. */
 
@@ -569,7 +560,7 @@ cqspi_init(struct cqspi_softc *sc)
 	WRITE4(sc, CQSPI_CFG, reg);
 
 	reg = (3 << DELAY_NSS_S);
-	reg |= (3  << DELAY_BTWN_S);
+	reg |= (3 << DELAY_BTWN_S);
 	reg |= (1 << DELAY_AFTER_S);
 	reg |= (1 << DELAY_INIT_S);
 	WRITE4(sc, CQSPI_DELAY, reg);
@@ -597,8 +588,7 @@ cqspi_add_devices(device_t dev)
 	node = ofw_bus_get_node(dev);
 
 	for (child = OF_child(node); child != 0; child = OF_peer(child)) {
-		child_dev =
-		    simplebus_add_device(dev, child, 0, NULL, -1, NULL);
+		child_dev = simplebus_add_device(dev, child, 0, NULL, -1, NULL);
 		if (child_dev == NULL) {
 			return (ENXIO);
 		}
@@ -665,7 +655,7 @@ cqspi_attach(device_t dev)
 
 	/* Setup interrupt handlers */
 	if (bus_setup_intr(sc->dev, sc->res[2], INTR_TYPE_BIO | INTR_MPSAFE,
-	    NULL, cqspi_intr, sc, &sc->ih)) {
+		NULL, cqspi_intr, sc, &sc->ih)) {
 		device_printf(sc->dev, "Unable to setup intr\n");
 		return (ENXIO);
 	}
@@ -701,19 +691,17 @@ cqspi_attach(device_t dev)
 	}
 
 	/* Setup xDMA interrupt handlers. */
-	error = xdma_setup_intr(sc->xchan_tx, 0, cqspi_xdma_tx_intr,
-	    sc, &sc->ih_tx);
+	error = xdma_setup_intr(sc->xchan_tx, 0, cqspi_xdma_tx_intr, sc,
+	    &sc->ih_tx);
 	if (error) {
-		device_printf(sc->dev,
-		    "Can't setup xDMA interrupt handler.\n");
+		device_printf(sc->dev, "Can't setup xDMA interrupt handler.\n");
 		return (ENXIO);
 	}
 
-	error = xdma_setup_intr(sc->xchan_rx, 0, cqspi_xdma_rx_intr,
-	    sc, &sc->ih_rx);
+	error = xdma_setup_intr(sc->xchan_rx, 0, cqspi_xdma_rx_intr, sc,
+	    &sc->ih_rx);
 	if (error) {
-		device_printf(sc->dev,
-		    "Can't setup xDMA interrupt handler.\n");
+		device_printf(sc->dev, "Can't setup xDMA interrupt handler.\n");
 		return (ENXIO);
 	}
 
@@ -743,21 +731,20 @@ cqspi_detach(device_t dev)
 
 static device_method_t cqspi_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		cqspi_probe),
-	DEVMETHOD(device_attach,	cqspi_attach),
-	DEVMETHOD(device_detach,	cqspi_detach),
+	DEVMETHOD(device_probe, cqspi_probe),
+	DEVMETHOD(device_attach, cqspi_attach),
+	DEVMETHOD(device_detach, cqspi_detach),
 
 	/* Quad SPI Flash Interface */
-	DEVMETHOD(qspi_read_reg,	cqspi_read_reg),
-	DEVMETHOD(qspi_write_reg,	cqspi_write_reg),
-	DEVMETHOD(qspi_read,		cqspi_read),
-	DEVMETHOD(qspi_write,		cqspi_write),
-	DEVMETHOD(qspi_erase,		cqspi_erase),
+	DEVMETHOD(qspi_read_reg, cqspi_read_reg),
+	DEVMETHOD(qspi_write_reg, cqspi_write_reg),
+	DEVMETHOD(qspi_read, cqspi_read), DEVMETHOD(qspi_write, cqspi_write),
+	DEVMETHOD(qspi_erase, cqspi_erase),
 
 	{ 0, 0 }
 };
 
-DEFINE_CLASS_1(cqspi, cqspi_driver, cqspi_methods,
-    sizeof(struct cqspi_softc), simplebus_driver);
+DEFINE_CLASS_1(cqspi, cqspi_driver, cqspi_methods, sizeof(struct cqspi_softc),
+    simplebus_driver);
 
 DRIVER_MODULE(cqspi, simplebus, cqspi_driver, 0, 0);

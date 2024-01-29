@@ -27,10 +27,9 @@
 #include <sys/systm.h>
 #include <sys/bus.h>
 
-#include <dev/clk/clk.h>
-
 #include <dev/clk/allwinner/aw_clk.h>
 #include <dev/clk/allwinner/aw_clk_nkmp.h>
+#include <dev/clk/clk.h>
 
 #include "clkdev_if.h"
 
@@ -42,33 +41,30 @@
  */
 
 struct aw_clk_nkmp_sc {
-	uint32_t	offset;
+	uint32_t offset;
 
-	struct aw_clk_factor	n;
-	struct aw_clk_factor	k;
-	struct aw_clk_factor	m;
-	struct aw_clk_factor	p;
+	struct aw_clk_factor n;
+	struct aw_clk_factor k;
+	struct aw_clk_factor m;
+	struct aw_clk_factor p;
 
-	uint32_t	mux_shift;
-	uint32_t	mux_mask;
-	uint32_t	gate_shift;
-	uint32_t	lock_shift;
-	uint32_t	lock_retries;
-	uint32_t	update_shift;
+	uint32_t mux_shift;
+	uint32_t mux_mask;
+	uint32_t gate_shift;
+	uint32_t lock_shift;
+	uint32_t lock_retries;
+	uint32_t update_shift;
 
-	uint32_t	flags;
+	uint32_t flags;
 };
 
-#define	WRITE4(_clk, off, val)						\
+#define WRITE4(_clk, off, val) \
 	CLKDEV_WRITE_4(clknode_get_device(_clk), off, val)
-#define	READ4(_clk, off, val)						\
-	CLKDEV_READ_4(clknode_get_device(_clk), off, val)
-#define	MODIFY4(_clk, off, clr, set )					\
+#define READ4(_clk, off, val) CLKDEV_READ_4(clknode_get_device(_clk), off, val)
+#define MODIFY4(_clk, off, clr, set) \
 	CLKDEV_MODIFY_4(clknode_get_device(_clk), off, clr, set)
-#define	DEVICE_LOCK(_clk)							\
-	CLKDEV_DEVICE_LOCK(clknode_get_device(_clk))
-#define	DEVICE_UNLOCK(_clk)						\
-	CLKDEV_DEVICE_UNLOCK(clknode_get_device(_clk))
+#define DEVICE_LOCK(_clk) CLKDEV_DEVICE_LOCK(clknode_get_device(_clk))
+#define DEVICE_UNLOCK(_clk) CLKDEV_DEVICE_UNLOCK(clknode_get_device(_clk))
 
 static int
 aw_clk_nkmp_init(struct clknode *clk, device_t dev)
@@ -136,8 +132,9 @@ aw_clk_nkmp_set_mux(struct clknode *clk, int index)
 }
 
 static uint64_t
-aw_clk_nkmp_find_best(struct aw_clk_nkmp_sc *sc, uint64_t fparent, uint64_t *fout,
-    uint32_t *factor_n, uint32_t *factor_k, uint32_t *factor_m, uint32_t *factor_p)
+aw_clk_nkmp_find_best(struct aw_clk_nkmp_sc *sc, uint64_t fparent,
+    uint64_t *fout, uint32_t *factor_n, uint32_t *factor_k, uint32_t *factor_m,
+    uint32_t *factor_p)
 {
 	uint64_t cur, best;
 	uint32_t n, k, m, p;
@@ -148,10 +145,14 @@ aw_clk_nkmp_find_best(struct aw_clk_nkmp_sc *sc, uint64_t fparent, uint64_t *fou
 	*factor_m = 0;
 	*factor_p = 0;
 
-	for (n = aw_clk_factor_get_min(&sc->n); n <= aw_clk_factor_get_max(&sc->n); ) {
-		for (k = aw_clk_factor_get_min(&sc->k); k <= aw_clk_factor_get_max(&sc->k); ) {
-			for (m = aw_clk_factor_get_min(&sc->m); m <= aw_clk_factor_get_max(&sc->m); ) {
-				for (p = aw_clk_factor_get_min(&sc->p); p <= aw_clk_factor_get_max(&sc->p); ) {
+	for (n = aw_clk_factor_get_min(&sc->n);
+	     n <= aw_clk_factor_get_max(&sc->n);) {
+		for (k = aw_clk_factor_get_min(&sc->k);
+		     k <= aw_clk_factor_get_max(&sc->k);) {
+			for (m = aw_clk_factor_get_min(&sc->m);
+			     m <= aw_clk_factor_get_max(&sc->m);) {
+				for (p = aw_clk_factor_get_min(&sc->p);
+				     p <= aw_clk_factor_get_max(&sc->p);) {
 					cur = (fparent * n * k) / (m * p);
 					if ((*fout - cur) < (*fout - best)) {
 						best = cur;
@@ -162,12 +163,15 @@ aw_clk_nkmp_find_best(struct aw_clk_nkmp_sc *sc, uint64_t fparent, uint64_t *fou
 					}
 					if (best == *fout)
 						return (best);
-					if ((sc->p.flags & AW_CLK_FACTOR_POWER_OF_TWO) != 0)
+					if ((sc->p.flags &
+						AW_CLK_FACTOR_POWER_OF_TWO) !=
+					    0)
 						p <<= 1;
 					else
 						p++;
 				}
-				if ((sc->m.flags & AW_CLK_FACTOR_POWER_OF_TWO) != 0)
+				if ((sc->m.flags &
+					AW_CLK_FACTOR_POWER_OF_TWO) != 0)
 					m <<= 1;
 				else
 					m++;
@@ -257,28 +261,26 @@ aw_clk_nkmp_set_freq(struct clknode *clk, uint64_t fparent, uint64_t *fout,
 
 	sc = clknode_get_softc(clk);
 
-	best = aw_clk_nkmp_find_best(sc, fparent, fout,
-	    &best_n, &best_k, &best_m, &best_p);
+	best = aw_clk_nkmp_find_best(sc, fparent, fout, &best_n, &best_k,
+	    &best_m, &best_p);
 	if ((flags & CLK_SET_DRYRUN) != 0) {
 		*fout = best;
 		*stop = 1;
 		return (0);
 	}
 
-	if ((best < *fout) &&
-	  ((flags & CLK_SET_ROUND_DOWN) != 0)) {
+	if ((best < *fout) && ((flags & CLK_SET_ROUND_DOWN) != 0)) {
 		*stop = 1;
 		return (ERANGE);
 	}
-	if ((best > *fout) &&
-	  ((flags & CLK_SET_ROUND_UP) != 0)) {
+	if ((best > *fout) && ((flags & CLK_SET_ROUND_UP) != 0)) {
 		*stop = 1;
 		return (ERANGE);
 	}
 
 	if ((sc->flags & AW_CLK_SCALE_CHANGE) != 0)
-		aw_clk_nkmp_set_freq_scale(clk, sc,
-		    best_n, best_k, best_m, best_p);
+		aw_clk_nkmp_set_freq_scale(clk, sc, best_n, best_k, best_m,
+		    best_p);
 	else {
 		DEVICE_LOCK(clk);
 		READ4(clk, sc->offset, &val);
@@ -343,12 +345,11 @@ aw_clk_nkmp_recalc(struct clknode *clk, uint64_t *freq)
 
 static clknode_method_t aw_nkmp_clknode_methods[] = {
 	/* Device interface */
-	CLKNODEMETHOD(clknode_init,		aw_clk_nkmp_init),
-	CLKNODEMETHOD(clknode_set_gate,		aw_clk_nkmp_set_gate),
-	CLKNODEMETHOD(clknode_set_mux,		aw_clk_nkmp_set_mux),
-	CLKNODEMETHOD(clknode_recalc_freq,	aw_clk_nkmp_recalc),
-	CLKNODEMETHOD(clknode_set_freq,		aw_clk_nkmp_set_freq),
-	CLKNODEMETHOD_END
+	CLKNODEMETHOD(clknode_init, aw_clk_nkmp_init),
+	CLKNODEMETHOD(clknode_set_gate, aw_clk_nkmp_set_gate),
+	CLKNODEMETHOD(clknode_set_mux, aw_clk_nkmp_set_mux),
+	CLKNODEMETHOD(clknode_recalc_freq, aw_clk_nkmp_recalc),
+	CLKNODEMETHOD(clknode_set_freq, aw_clk_nkmp_set_freq), CLKNODEMETHOD_END
 };
 
 DEFINE_CLASS_1(aw_nkmp_clknode, aw_nkmp_clknode_class, aw_nkmp_clknode_methods,

@@ -32,10 +32,11 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <stdio.h>
-#include "un-namespace.h"
+
 #include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 #undef ferror
 #undef ferror_unlocked
@@ -43,7 +44,7 @@
 int
 ferror(FILE *fp)
 {
-	int	ret;
+	int ret;
 
 	FLOCKFILE(fp);
 	ret = __sferror(fp);

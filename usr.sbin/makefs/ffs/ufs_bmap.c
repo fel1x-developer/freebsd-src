@@ -43,15 +43,13 @@
 #include <assert.h>
 #include <errno.h>
 #include <strings.h>
-
-#include "makefs.h"
-
-#include <ufs/ufs/dinode.h>
 #include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
 
+#include "ffs/ffs_extern.h"
 #include "ffs/ufs_bswap.h"
 #include "ffs/ufs_inode.h"
-#include "ffs/ffs_extern.h"
+#include "makefs.h"
 
 /*
  * Create an array of logical block number/offset pairs which represent the
@@ -79,9 +77,9 @@ ufs_getlbns(struct inode *ip, daddr_t bn, struct indir *ap, int *nump)
 	if ((long)bn < 0)
 		bn = -(long)bn;
 
-	assert (bn >= UFS_NDADDR);
+	assert(bn >= UFS_NDADDR);
 
-	/* 
+	/*
 	 * Determine the number of levels of indirection.  After this loop
 	 * is done, blockcnt indicates the number of data blocks possible
 	 * at the given level of indirection, and UFS_NIADDR - i is the number
@@ -106,7 +104,7 @@ ufs_getlbns(struct inode *ip, daddr_t bn, struct indir *ap, int *nump)
 	else
 		metalbn = -(-realbn - bn + UFS_NIADDR - i);
 
-	/* 
+	/*
 	 * At each iteration, off is the offset into the bap array which is
 	 * an array of disk addresses at the current level of indirection.
 	 * The logical block number and the offset in that block are stored

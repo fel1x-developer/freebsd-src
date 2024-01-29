@@ -30,6 +30,7 @@
 
 #include <sys/types.h>
 #include <sys/wait.h>
+
 #include <assert.h>
 #include <err.h>
 #include <fenv.h>
@@ -43,7 +44,7 @@
 
 #include "test-utils.h"
 
-#define	NEXCEPTS	(sizeof(std_excepts) / sizeof(std_excepts[0]))
+#define NEXCEPTS (sizeof(std_excepts) / sizeof(std_excepts[0]))
 
 static const int std_excepts[] = {
 	FE_INVALID,
@@ -191,13 +192,13 @@ ATF_TC_BODY(dfl_env, tc)
 	 * 2. http://www.intel.com/Assets/en_US/PDF/manual/253666.pdf
 	 */
 	ATF_CHECK(memcmp(&env.__mxcsr, &FE_DFL_ENV->__mxcsr,
-	    sizeof(env.__mxcsr)) == 0);
+		      sizeof(env.__mxcsr)) == 0);
 	ATF_CHECK(memcmp(&env.__x87.__control, &FE_DFL_ENV->__x87.__control,
-	    sizeof(env.__x87.__control)) == 0);
+		      sizeof(env.__x87.__control)) == 0);
 	ATF_CHECK(memcmp(&env.__x87.__status, &FE_DFL_ENV->__x87.__status,
-	    sizeof(env.__x87.__status)) == 0);
+		      sizeof(env.__x87.__status)) == 0);
 	ATF_CHECK(memcmp(&env.__x87.__tag, &FE_DFL_ENV->__x87.__tag,
-	    sizeof(env.__x87.__tag)) == 0);
+		      sizeof(env.__x87.__tag)) == 0);
 #else
 	ATF_CHECK_EQ(0, memcmp(&env, FE_DFL_ENV, sizeof(env)));
 #endif
@@ -229,7 +230,8 @@ ATF_TC_BODY(fetestclearexcept, tc)
 		ATF_CHECK_EQ(excepts, fetestexcept(excepts));
 		if ((excepts & (FE_UNDERFLOW | FE_OVERFLOW)) != 0) {
 			excepts |= FE_INEXACT;
-			ATF_CHECK_EQ(excepts, (fetestexcept(ALL_STD_EXCEPT) | FE_INEXACT));
+			ATF_CHECK_EQ(excepts,
+			    (fetestexcept(ALL_STD_EXCEPT) | FE_INEXACT));
 		} else {
 			ATF_CHECK_EQ(excepts, fetestexcept(ALL_STD_EXCEPT));
 		}
@@ -256,14 +258,17 @@ ATF_TC_BODY(fegsetexceptflag, tc)
 		ATF_CHECK_EQ(0, fegetexceptflag(&flag, excepts));
 		raiseexcept(ALL_STD_EXCEPT);
 		ATF_CHECK_EQ(0, fesetexceptflag(&flag, excepts));
-		ATF_CHECK_EQ((ALL_STD_EXCEPT ^ excepts), fetestexcept(ALL_STD_EXCEPT));
+		ATF_CHECK_EQ((ALL_STD_EXCEPT ^ excepts),
+		    fetestexcept(ALL_STD_EXCEPT));
 
 		ATF_CHECK_EQ(0, fegetexceptflag(&flag, FE_ALL_EXCEPT));
 		ATF_REQUIRE_EQ(0, feclearexcept(FE_ALL_EXCEPT));
 		ATF_CHECK_EQ(0, fesetexceptflag(&flag, excepts));
 		ATF_CHECK_EQ(0, fetestexcept(ALL_STD_EXCEPT));
-		ATF_CHECK_EQ(0, fesetexceptflag(&flag, ALL_STD_EXCEPT ^ excepts));
-		ATF_CHECK_EQ((ALL_STD_EXCEPT ^ excepts), fetestexcept(ALL_STD_EXCEPT));
+		ATF_CHECK_EQ(0,
+		    fesetexceptflag(&flag, ALL_STD_EXCEPT ^ excepts));
+		ATF_CHECK_EQ((ALL_STD_EXCEPT ^ excepts),
+		    fetestexcept(ALL_STD_EXCEPT));
 
 		ATF_REQUIRE_EQ(0, feclearexcept(FE_ALL_EXCEPT));
 	}
@@ -286,7 +291,8 @@ ATF_TC_BODY(feraiseexcept, tc)
 		ATF_CHECK_EQ(0, feraiseexcept(excepts));
 		if ((excepts & (FE_UNDERFLOW | FE_OVERFLOW)) != 0) {
 			excepts |= FE_INEXACT;
-			ATF_CHECK_EQ(excepts, (fetestexcept(ALL_STD_EXCEPT) | FE_INEXACT));
+			ATF_CHECK_EQ(excepts,
+			    (fetestexcept(ALL_STD_EXCEPT) | FE_INEXACT));
 		} else {
 			ATF_CHECK_EQ(excepts, fetestexcept(ALL_STD_EXCEPT));
 		}
@@ -368,11 +374,13 @@ ATF_TC_BODY(fegsetenv, tc)
 
 		ATF_CHECK_EQ(0, fesetenv(&env2));
 
-		/* 
-		 * Some platforms like powerpc may set extra exception bits. Since
-		 * only standard exceptions are tested, mask against ALL_STD_EXCEPT 
+		/*
+		 * Some platforms like powerpc may set extra exception bits.
+		 * Since only standard exceptions are tested, mask against
+		 * ALL_STD_EXCEPT
 		 */
-		ATF_CHECK_EQ(excepts, (fetestexcept(FE_ALL_EXCEPT) & ALL_STD_EXCEPT));
+		ATF_CHECK_EQ(excepts,
+		    (fetestexcept(FE_ALL_EXCEPT) & ALL_STD_EXCEPT));
 
 		ATF_CHECK_EQ(FE_DOWNWARD, fegetround());
 		ATF_CHECK_EQ(0, fesetenv(&env1));
@@ -406,19 +414,24 @@ ATF_TC_BODY(masking, tc)
 	except = fegetexcept();
 	if (except == 0) {
 		atf_tc_skip("CPU does not support trapping on floating point "
-		    "exceptions.");
+			    "exceptions.");
 	} else if ((except & ALL_STD_EXCEPT) != ALL_STD_EXCEPT) {
 		atf_tc_expect_fail("Not all floating point exceptions can be "
-		    "set to trap: %#x vs %#x", except, ALL_STD_EXCEPT);
+				   "set to trap: %#x vs %#x",
+		    except, ALL_STD_EXCEPT);
 	}
 	fedisableexcept(FE_ALL_EXCEPT);
 
-
-	ATF_CHECK_EQ(0, (feenableexcept(FE_INVALID|FE_OVERFLOW) & ALL_STD_EXCEPT));
-	ATF_CHECK_EQ((FE_INVALID | FE_OVERFLOW), (feenableexcept(FE_UNDERFLOW) & ALL_STD_EXCEPT));
-	ATF_CHECK_EQ((FE_INVALID | FE_OVERFLOW | FE_UNDERFLOW), (fedisableexcept(FE_OVERFLOW) & ALL_STD_EXCEPT));
-	ATF_CHECK_EQ((FE_INVALID | FE_UNDERFLOW), (fegetexcept() & ALL_STD_EXCEPT));
-	ATF_CHECK_EQ((FE_INVALID | FE_UNDERFLOW), (fedisableexcept(FE_ALL_EXCEPT) & ALL_STD_EXCEPT));
+	ATF_CHECK_EQ(0,
+	    (feenableexcept(FE_INVALID | FE_OVERFLOW) & ALL_STD_EXCEPT));
+	ATF_CHECK_EQ((FE_INVALID | FE_OVERFLOW),
+	    (feenableexcept(FE_UNDERFLOW) & ALL_STD_EXCEPT));
+	ATF_CHECK_EQ((FE_INVALID | FE_OVERFLOW | FE_UNDERFLOW),
+	    (fedisableexcept(FE_OVERFLOW) & ALL_STD_EXCEPT));
+	ATF_CHECK_EQ((FE_INVALID | FE_UNDERFLOW),
+	    (fegetexcept() & ALL_STD_EXCEPT));
+	ATF_CHECK_EQ((FE_INVALID | FE_UNDERFLOW),
+	    (fedisableexcept(FE_ALL_EXCEPT) & ALL_STD_EXCEPT));
 	ATF_CHECK_EQ(0, (fegetexcept() & ALL_STD_EXCEPT));
 
 	sigemptyset(&act.sa_mask);
@@ -438,14 +451,17 @@ ATF_TC_BODY(masking, tc)
 			 * there isn't a portable way to recover from
 			 * a floating-point exception.
 			 */
-			switch(fork()) {
-			case 0:		/* child */
-				ATF_CHECK_EQ(0, (fegetexcept() & ALL_STD_EXCEPT));
-				ATF_REQUIRE_EQ(0, (feenableexcept(except) & ALL_STD_EXCEPT));
+			switch (fork()) {
+			case 0: /* child */
+				ATF_CHECK_EQ(0,
+				    (fegetexcept() & ALL_STD_EXCEPT));
+				ATF_REQUIRE_EQ(0,
+				    (feenableexcept(except) & ALL_STD_EXCEPT));
 				ATF_CHECK_EQ(except, fegetexcept());
 				raiseexcept(raise);
 				ATF_CHECK_EQ(0, feraiseexcept(raise));
-				ATF_CHECK_EQ(raise, fetestexcept(ALL_STD_EXCEPT));
+				ATF_CHECK_EQ(raise,
+				    fetestexcept(ALL_STD_EXCEPT));
 
 				ATF_CHECK_EQ(0, sigaction(SIGFPE, &act, NULL));
 				switch (pass) {
@@ -457,7 +473,7 @@ ATF_TC_BODY(masking, tc)
 					ATF_REQUIRE(0);
 				}
 				ATF_REQUIRE(0);
-			default:	/* parent */
+			default: /* parent */
 				ATF_REQUIRE(wait(&status) > 0);
 				/*
 				 * Avoid assert() here so that it's possible
@@ -467,7 +483,7 @@ ATF_TC_BODY(masking, tc)
 					errx(1, "child aborted\n");
 				ATF_CHECK_EQ(0, WEXITSTATUS(status));
 				break;
-			case -1:	/* error */
+			case -1: /* error */
 				ATF_REQUIRE(0);
 			}
 		}
@@ -507,15 +523,17 @@ ATF_TC_BODY(feholdupdate, tc)
 			 * there isn't a portable way to recover from
 			 * a floating-point exception.
 			 */
-			switch(fork()) {
-			case 0:		/* child */
+			switch (fork()) {
+			case 0: /* child */
 				/*
 				 * We don't want to cause a fatal exception in
 				 * the child until the second pass, so we can
 				 * check other properties of feupdateenv().
 				 */
 				if (pass == 1)
-					ATF_REQUIRE_EQ(0, feenableexcept(except) & ALL_STD_EXCEPT);
+					ATF_REQUIRE_EQ(0,
+					    feenableexcept(except) &
+						ALL_STD_EXCEPT);
 				raiseexcept(raise);
 				ATF_CHECK_EQ(0, fesetround(FE_DOWNWARD));
 				ATF_CHECK_EQ(0, feholdexcept(&env));
@@ -524,14 +542,16 @@ ATF_TC_BODY(feholdupdate, tc)
 				ATF_CHECK_EQ(0, fesetround(FE_UPWARD));
 
 				if (pass == 1)
-					ATF_CHECK_EQ(0, sigaction(SIGFPE, &act, NULL));
+					ATF_CHECK_EQ(0,
+					    sigaction(SIGFPE, &act, NULL));
 				ATF_CHECK_EQ(0, feupdateenv(&env));
 				ATF_CHECK_EQ(FE_DOWNWARD, fegetround());
-				ATF_CHECK_EQ((except | raise), fetestexcept(ALL_STD_EXCEPT));
+				ATF_CHECK_EQ((except | raise),
+				    fetestexcept(ALL_STD_EXCEPT));
 
 				ATF_CHECK_EQ(0, pass);
 				_exit(0);
-			default:	/* parent */
+			default: /* parent */
 				ATF_REQUIRE(wait(&status) > 0);
 				/*
 				 * Avoid assert() here so that it's possible
@@ -541,7 +561,7 @@ ATF_TC_BODY(feholdupdate, tc)
 					errx(1, "child aborted\n");
 				ATF_CHECK_EQ(0, WEXITSTATUS(status));
 				break;
-			case -1:	/* error */
+			case -1: /* error */
 				ATF_REQUIRE(0);
 			}
 		}

@@ -104,45 +104,43 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/sockio.h>
+#include <sys/bus.h>
 #include <sys/endian.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
 #include <sys/module.h>
+#include <sys/rman.h>
 #include <sys/socket.h>
+#include <sys/sockio.h>
 #include <sys/taskqueue.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
-
-#include <net/bpf.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/bus.h>
-#include <sys/rman.h>
 
 #include <dev/mii/mii.h>
 #include <dev/mii/mii_bitbang.h>
 #include <dev/mii/miivar.h>
-
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
+
+#include <net/bpf.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
 
 MODULE_DEPEND(xl, pci, 1, 1, 1);
 MODULE_DEPEND(xl, ether, 1, 1, 1);
 MODULE_DEPEND(xl, miibus, 1, 1, 1);
 
 /* "device miibus" required.  See GENERIC if you get errors here. */
-#include "miibus_if.h"
-
 #include <dev/xl/if_xlreg.h>
+
+#include "miibus_if.h"
 
 /*
  * TX Checksumming is disabled by default for two reasons:
@@ -152,76 +150,75 @@ MODULE_DEPEND(xl, miibus, 1, 1, 1);
  * Only 905B/C cards were reported to have this problem, it is possible
  * that later chips _may_ be immune.
  */
-#define	XL905B_TXCSUM_BROKEN	1
+#define XL905B_TXCSUM_BROKEN 1
 
 #ifdef XL905B_TXCSUM_BROKEN
-#define XL905B_CSUM_FEATURES	0
+#define XL905B_CSUM_FEATURES 0
 #else
-#define XL905B_CSUM_FEATURES	(CSUM_IP | CSUM_TCP | CSUM_UDP)
+#define XL905B_CSUM_FEATURES (CSUM_IP | CSUM_TCP | CSUM_UDP)
 #endif
 
 /*
  * Various supported device vendors/types and their names.
  */
-static const struct xl_type xl_devs[] = {
-	{ TC_VENDORID, TC_DEVICEID_BOOMERANG_10BT,
-		"3Com 3c900-TPO Etherlink XL" },
+static const struct xl_type xl_devs[] = { { TC_VENDORID,
+					      TC_DEVICEID_BOOMERANG_10BT,
+					      "3Com 3c900-TPO Etherlink XL" },
 	{ TC_VENDORID, TC_DEVICEID_BOOMERANG_10BT_COMBO,
-		"3Com 3c900-COMBO Etherlink XL" },
+	    "3Com 3c900-COMBO Etherlink XL" },
 	{ TC_VENDORID, TC_DEVICEID_BOOMERANG_10_100BT,
-		"3Com 3c905-TX Fast Etherlink XL" },
+	    "3Com 3c905-TX Fast Etherlink XL" },
 	{ TC_VENDORID, TC_DEVICEID_BOOMERANG_100BT4,
-		"3Com 3c905-T4 Fast Etherlink XL" },
+	    "3Com 3c905-T4 Fast Etherlink XL" },
 	{ TC_VENDORID, TC_DEVICEID_KRAKATOA_10BT,
-		"3Com 3c900B-TPO Etherlink XL" },
+	    "3Com 3c900B-TPO Etherlink XL" },
 	{ TC_VENDORID, TC_DEVICEID_KRAKATOA_10BT_COMBO,
-		"3Com 3c900B-COMBO Etherlink XL" },
+	    "3Com 3c900B-COMBO Etherlink XL" },
 	{ TC_VENDORID, TC_DEVICEID_KRAKATOA_10BT_TPC,
-		"3Com 3c900B-TPC Etherlink XL" },
+	    "3Com 3c900B-TPC Etherlink XL" },
 	{ TC_VENDORID, TC_DEVICEID_CYCLONE_10FL,
-		"3Com 3c900B-FL Etherlink XL" },
+	    "3Com 3c900B-FL Etherlink XL" },
 	{ TC_VENDORID, TC_DEVICEID_HURRICANE_10_100BT,
-		"3Com 3c905B-TX Fast Etherlink XL" },
+	    "3Com 3c905B-TX Fast Etherlink XL" },
 	{ TC_VENDORID, TC_DEVICEID_CYCLONE_10_100BT4,
-		"3Com 3c905B-T4 Fast Etherlink XL" },
+	    "3Com 3c905B-T4 Fast Etherlink XL" },
 	{ TC_VENDORID, TC_DEVICEID_CYCLONE_10_100FX,
-		"3Com 3c905B-FX/SC Fast Etherlink XL" },
+	    "3Com 3c905B-FX/SC Fast Etherlink XL" },
 	{ TC_VENDORID, TC_DEVICEID_CYCLONE_10_100_COMBO,
-		"3Com 3c905B-COMBO Fast Etherlink XL" },
+	    "3Com 3c905B-COMBO Fast Etherlink XL" },
 	{ TC_VENDORID, TC_DEVICEID_TORNADO_10_100BT,
-		"3Com 3c905C-TX Fast Etherlink XL" },
+	    "3Com 3c905C-TX Fast Etherlink XL" },
 	{ TC_VENDORID, TC_DEVICEID_TORNADO_10_100BT_920B,
-		"3Com 3c920B-EMB Integrated Fast Etherlink XL" },
+	    "3Com 3c920B-EMB Integrated Fast Etherlink XL" },
 	{ TC_VENDORID, TC_DEVICEID_TORNADO_10_100BT_920B_WNM,
-		"3Com 3c920B-EMB-WNM Integrated Fast Etherlink XL" },
+	    "3Com 3c920B-EMB-WNM Integrated Fast Etherlink XL" },
 	{ TC_VENDORID, TC_DEVICEID_HURRICANE_10_100BT_SERV,
-		"3Com 3c980 Fast Etherlink XL" },
+	    "3Com 3c980 Fast Etherlink XL" },
 	{ TC_VENDORID, TC_DEVICEID_TORNADO_10_100BT_SERV,
-		"3Com 3c980C Fast Etherlink XL" },
+	    "3Com 3c980C Fast Etherlink XL" },
 	{ TC_VENDORID, TC_DEVICEID_HURRICANE_SOHO100TX,
-		"3Com 3cSOHO100-TX OfficeConnect" },
+	    "3Com 3cSOHO100-TX OfficeConnect" },
 	{ TC_VENDORID, TC_DEVICEID_TORNADO_HOMECONNECT,
-		"3Com 3c450-TX HomeConnect" },
+	    "3Com 3c450-TX HomeConnect" },
 	{ TC_VENDORID, TC_DEVICEID_HURRICANE_555,
-		"3Com 3c555 Fast Etherlink XL" },
+	    "3Com 3c555 Fast Etherlink XL" },
 	{ TC_VENDORID, TC_DEVICEID_HURRICANE_556,
-		"3Com 3c556 Fast Etherlink XL" },
+	    "3Com 3c556 Fast Etherlink XL" },
 	{ TC_VENDORID, TC_DEVICEID_HURRICANE_556B,
-		"3Com 3c556B Fast Etherlink XL" },
+	    "3Com 3c556B Fast Etherlink XL" },
 	{ TC_VENDORID, TC_DEVICEID_HURRICANE_575A,
-		"3Com 3c575TX Fast Etherlink XL" },
+	    "3Com 3c575TX Fast Etherlink XL" },
 	{ TC_VENDORID, TC_DEVICEID_HURRICANE_575B,
-		"3Com 3c575B Fast Etherlink XL" },
+	    "3Com 3c575B Fast Etherlink XL" },
 	{ TC_VENDORID, TC_DEVICEID_HURRICANE_575C,
-		"3Com 3c575C Fast Etherlink XL" },
+	    "3Com 3c575C Fast Etherlink XL" },
 	{ TC_VENDORID, TC_DEVICEID_HURRICANE_656,
-		"3Com 3c656 Fast Etherlink XL" },
+	    "3Com 3c656 Fast Etherlink XL" },
 	{ TC_VENDORID, TC_DEVICEID_HURRICANE_656B,
-		"3Com 3c656B Fast Etherlink XL" },
+	    "3Com 3c656B Fast Etherlink XL" },
 	{ TC_VENDORID, TC_DEVICEID_TORNADO_656C,
-		"3Com 3c656C Fast Etherlink XL" },
-	{ 0, 0, NULL }
-};
+	    "3Com 3c656C Fast Etherlink XL" },
+	{ 0, 0, NULL } };
 
 static int xl_probe(device_t);
 static int xl_attach(device_t);
@@ -291,41 +288,34 @@ static void xl_miibus_mediainit(device_t);
 static uint32_t xl_mii_bitbang_read(device_t);
 static void xl_mii_bitbang_write(device_t, uint32_t);
 
-static const struct mii_bitbang_ops xl_mii_bitbang_ops = {
-	xl_mii_bitbang_read,
+static const struct mii_bitbang_ops xl_mii_bitbang_ops = { xl_mii_bitbang_read,
 	xl_mii_bitbang_write,
 	{
-		XL_MII_DATA,		/* MII_BIT_MDO */
-		XL_MII_DATA,		/* MII_BIT_MDI */
-		XL_MII_CLK,		/* MII_BIT_MDC */
-		XL_MII_DIR,		/* MII_BIT_DIR_HOST_PHY */
-		0,			/* MII_BIT_DIR_PHY_HOST */
-	}
-};
+	    XL_MII_DATA, /* MII_BIT_MDO */
+	    XL_MII_DATA, /* MII_BIT_MDI */
+	    XL_MII_CLK,	 /* MII_BIT_MDC */
+	    XL_MII_DIR,	 /* MII_BIT_DIR_HOST_PHY */
+	    0,		 /* MII_BIT_DIR_PHY_HOST */
+	} };
 
 static device_method_t xl_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		xl_probe),
-	DEVMETHOD(device_attach,	xl_attach),
-	DEVMETHOD(device_detach,	xl_detach),
-	DEVMETHOD(device_shutdown,	xl_shutdown),
-	DEVMETHOD(device_suspend,	xl_suspend),
-	DEVMETHOD(device_resume,	xl_resume),
+	DEVMETHOD(device_probe, xl_probe), DEVMETHOD(device_attach, xl_attach),
+	DEVMETHOD(device_detach, xl_detach),
+	DEVMETHOD(device_shutdown, xl_shutdown),
+	DEVMETHOD(device_suspend, xl_suspend),
+	DEVMETHOD(device_resume, xl_resume),
 
 	/* MII interface */
-	DEVMETHOD(miibus_readreg,	xl_miibus_readreg),
-	DEVMETHOD(miibus_writereg,	xl_miibus_writereg),
-	DEVMETHOD(miibus_statchg,	xl_miibus_statchg),
-	DEVMETHOD(miibus_mediainit,	xl_miibus_mediainit),
+	DEVMETHOD(miibus_readreg, xl_miibus_readreg),
+	DEVMETHOD(miibus_writereg, xl_miibus_writereg),
+	DEVMETHOD(miibus_statchg, xl_miibus_statchg),
+	DEVMETHOD(miibus_mediainit, xl_miibus_mediainit),
 
 	DEVMETHOD_END
 };
 
-static driver_t xl_driver = {
-	"xl",
-	xl_methods,
-	sizeof(struct xl_softc)
-};
+static driver_t xl_driver = { "xl", xl_methods, sizeof(struct xl_softc) };
 
 DRIVER_MODULE_ORDERED(xl, pci, xl_driver, NULL, NULL, SI_ORDER_ANY);
 DRIVER_MODULE(miibus, xl, miibus_driver, NULL, NULL);
@@ -352,7 +342,7 @@ xl_dma_map_addr(void *arg, bus_dma_segment_t *segs, int nseg, int error)
 static void
 xl_wait(struct xl_softc *sc)
 {
-	int			i;
+	int i;
 
 	for (i = 0; i < XL_TIMEOUT; i++) {
 		if ((CSR_READ_2(sc, XL_STATUS) & XL_STAT_CMDBUSY) == 0)
@@ -379,8 +369,8 @@ xl_wait(struct xl_softc *sc)
 static uint32_t
 xl_mii_bitbang_read(device_t dev)
 {
-	struct xl_softc		*sc;
-	uint32_t		val;
+	struct xl_softc *sc;
+	uint32_t val;
 
 	sc = device_get_softc(dev);
 
@@ -398,12 +388,12 @@ xl_mii_bitbang_read(device_t dev)
 static void
 xl_mii_bitbang_write(device_t dev, uint32_t val)
 {
-	struct xl_softc		*sc;
+	struct xl_softc *sc;
 
 	sc = device_get_softc(dev);
 
 	/* We're already in window 4. */
-	CSR_WRITE_2(sc, XL_W4_PHY_MGMT,	val);
+	CSR_WRITE_2(sc, XL_W4_PHY_MGMT, val);
 	CSR_BARRIER(sc, XL_W4_PHY_MGMT, 2,
 	    BUS_SPACE_BARRIER_READ | BUS_SPACE_BARRIER_WRITE);
 }
@@ -411,7 +401,7 @@ xl_mii_bitbang_write(device_t dev, uint32_t val)
 static int
 xl_miibus_readreg(device_t dev, int phy, int reg)
 {
-	struct xl_softc		*sc;
+	struct xl_softc *sc;
 
 	sc = device_get_softc(dev);
 
@@ -424,7 +414,7 @@ xl_miibus_readreg(device_t dev, int phy, int reg)
 static int
 xl_miibus_writereg(device_t dev, int phy, int reg, int data)
 {
-	struct xl_softc		*sc;
+	struct xl_softc *sc;
 
 	sc = device_get_softc(dev);
 
@@ -439,9 +429,9 @@ xl_miibus_writereg(device_t dev, int phy, int reg, int data)
 static void
 xl_miibus_statchg(device_t dev)
 {
-	struct xl_softc		*sc;
-	struct mii_data		*mii;
-	uint8_t			macctl;
+	struct xl_softc *sc;
+	struct mii_data *mii;
+	uint8_t macctl;
 
 	sc = device_get_softc(dev);
 	mii = device_get_softc(sc->xl_miibus);
@@ -455,7 +445,7 @@ xl_miibus_statchg(device_t dev)
 		macctl |= XL_MACCTRL_DUPLEX;
 		if (sc->xl_type == XL_TYPE_905B) {
 			if ((IFM_OPTIONS(mii->mii_media_active) &
-			    IFM_ETH_RXPAUSE) != 0)
+				IFM_ETH_RXPAUSE) != 0)
 				macctl |= XL_MACCTRL_FLOW_CONTROL_ENB;
 			else
 				macctl &= ~XL_MACCTRL_FLOW_CONTROL_ENB;
@@ -481,9 +471,9 @@ xl_miibus_statchg(device_t dev)
 static void
 xl_miibus_mediainit(device_t dev)
 {
-	struct xl_softc		*sc;
-	struct mii_data		*mii;
-	struct ifmedia		*ifm;
+	struct xl_softc *sc;
+	struct mii_data *mii;
+	struct ifmedia *ifm;
 
 	sc = device_get_softc(dev);
 	mii = device_get_softc(sc->xl_miibus);
@@ -498,7 +488,7 @@ xl_miibus_mediainit(device_t dev)
 			if (bootverbose)
 				device_printf(sc->xl_dev, "found 10baseFL\n");
 			ifmedia_add(ifm, IFM_ETHER | IFM_10_FL, 0, NULL);
-			ifmedia_add(ifm, IFM_ETHER | IFM_10_FL|IFM_HDX, 0,
+			ifmedia_add(ifm, IFM_ETHER | IFM_10_FL | IFM_HDX, 0,
 			    NULL);
 			if (sc->xl_caps & XL_CAPS_FULL_DUPLEX)
 				ifmedia_add(ifm,
@@ -524,7 +514,7 @@ xl_miibus_mediainit(device_t dev)
 static int
 xl_eeprom_wait(struct xl_softc *sc)
 {
-	int			i;
+	int i;
 
 	for (i = 0; i < 100; i++) {
 		if (CSR_READ_2(sc, XL_W0_EE_CMD) & XL_EE_BUSY)
@@ -548,8 +538,8 @@ xl_eeprom_wait(struct xl_softc *sc)
 static int
 xl_read_eeprom(struct xl_softc *sc, caddr_t dest, int off, int cnt, int swap)
 {
-	int			err = 0, i;
-	u_int16_t		word = 0, *ptr;
+	int err = 0, i;
+	u_int16_t word = 0, *ptr;
 
 #define EEPROM_5BIT_OFFSET(A) ((((A) << 2) & 0x7F00) | ((A) & 0x003F))
 #define EEPROM_8BIT_OFFSET(A) ((A) & 0x003F)
@@ -614,8 +604,8 @@ xl_check_maddr_90x(void *arg, struct sockaddr_dl *sdl, u_int cnt)
 static void
 xl_rxfilter_90x(struct xl_softc *sc)
 {
-	if_t			ifp;
-	u_int8_t		rxfilt;
+	if_t ifp;
+	u_int8_t rxfilt;
 
 	XL_LOCK_ASSERT(sc);
 
@@ -673,9 +663,9 @@ xl_check_maddr_90xB(void *arg, struct sockaddr_dl *sdl, u_int count)
 static void
 xl_rxfilter_90xB(struct xl_softc *sc)
 {
-	if_t			ifp;
-	int			i;
-	u_int8_t		rxfilt;
+	if_t ifp;
+	int i;
+	u_int8_t rxfilt;
 
 	XL_LOCK_ASSERT(sc);
 
@@ -716,15 +706,14 @@ xl_rxfilter_90xB(struct xl_softc *sc)
 static void
 xl_setcfg(struct xl_softc *sc)
 {
-	u_int32_t		icfg;
+	u_int32_t icfg;
 
 	/*XL_LOCK_ASSERT(sc);*/
 
 	XL_SEL_WIN(3);
 	icfg = CSR_READ_4(sc, XL_W3_INTERNAL_CFG);
 	icfg &= ~XL_ICFG_CONNECTOR_MASK;
-	if (sc->xl_media & XL_MEDIAOPT_MII ||
-		sc->xl_media & XL_MEDIAOPT_BT4)
+	if (sc->xl_media & XL_MEDIAOPT_MII || sc->xl_media & XL_MEDIAOPT_BT4)
 		icfg |= (XL_XCVR_MII << XL_ICFG_CONNECTOR_BITS);
 	if (sc->xl_media & XL_MEDIAOPT_BTX)
 		icfg |= (XL_XCVR_AUTO << XL_ICFG_CONNECTOR_BITS);
@@ -736,9 +725,9 @@ xl_setcfg(struct xl_softc *sc)
 static void
 xl_setmode(struct xl_softc *sc, int media)
 {
-	u_int32_t		icfg;
-	u_int16_t		mediastat;
-	char			*pmsg = "", *dmsg = "";
+	u_int32_t icfg;
+	u_int16_t mediastat;
+	char *pmsg = "", *dmsg = "";
 
 	XL_LOCK_ASSERT(sc);
 
@@ -770,14 +759,14 @@ xl_setmode(struct xl_softc *sc, int media)
 		}
 	}
 
-	if (sc->xl_media & (XL_MEDIAOPT_AUI|XL_MEDIAOPT_10FL)) {
+	if (sc->xl_media & (XL_MEDIAOPT_AUI | XL_MEDIAOPT_10FL)) {
 		if (IFM_SUBTYPE(media) == IFM_10_5) {
 			pmsg = "AUI port";
 			sc->xl_xcvr = XL_XCVR_AUI;
 			icfg &= ~XL_ICFG_CONNECTOR_MASK;
 			icfg |= (XL_XCVR_AUI << XL_ICFG_CONNECTOR_BITS);
-			mediastat &= ~(XL_MEDIASTAT_LINKBEAT |
-			    XL_MEDIASTAT_JABGUARD);
+			mediastat &= ~(
+			    XL_MEDIASTAT_LINKBEAT | XL_MEDIASTAT_JABGUARD);
 			mediastat |= ~XL_MEDIASTAT_SQEENB;
 		}
 		if (IFM_SUBTYPE(media) == IFM_10_FL) {
@@ -785,8 +774,8 @@ xl_setmode(struct xl_softc *sc, int media)
 			sc->xl_xcvr = XL_XCVR_AUI;
 			icfg &= ~XL_ICFG_CONNECTOR_MASK;
 			icfg |= (XL_XCVR_AUI << XL_ICFG_CONNECTOR_BITS);
-			mediastat &= ~(XL_MEDIASTAT_LINKBEAT |
-			    XL_MEDIASTAT_JABGUARD);
+			mediastat &= ~(
+			    XL_MEDIASTAT_LINKBEAT | XL_MEDIASTAT_JABGUARD);
 			mediastat |= ~XL_MEDIASTAT_SQEENB;
 		}
 	}
@@ -803,7 +792,7 @@ xl_setmode(struct xl_softc *sc, int media)
 	}
 
 	if ((media & IFM_GMASK) == IFM_FDX ||
-			IFM_SUBTYPE(media) == IFM_100_FX) {
+	    IFM_SUBTYPE(media) == IFM_100_FX) {
 		dmsg = "full";
 		XL_SEL_WIN(3);
 		CSR_WRITE_1(sc, XL_W3_MAC_CTRL, XL_MACCTRL_DUPLEX);
@@ -811,7 +800,7 @@ xl_setmode(struct xl_softc *sc, int media)
 		dmsg = "half";
 		XL_SEL_WIN(3);
 		CSR_WRITE_1(sc, XL_W3_MAC_CTRL,
-			(CSR_READ_1(sc, XL_W3_MAC_CTRL) & ~XL_MACCTRL_DUPLEX));
+		    (CSR_READ_1(sc, XL_W3_MAC_CTRL) & ~XL_MACCTRL_DUPLEX));
 	}
 
 	if (IFM_SUBTYPE(media) == IFM_10_2)
@@ -832,14 +821,15 @@ xl_setmode(struct xl_softc *sc, int media)
 static void
 xl_reset(struct xl_softc *sc)
 {
-	int			i;
+	int i;
 
 	XL_LOCK_ASSERT(sc);
 
 	XL_SEL_WIN(0);
-	CSR_WRITE_2(sc, XL_COMMAND, XL_CMD_RESET |
-	    ((sc->xl_flags & XL_FLAG_WEIRDRESET) ?
-	     XL_RESETOPT_DISADVFD:0));
+	CSR_WRITE_2(sc, XL_COMMAND,
+	    XL_CMD_RESET |
+		((sc->xl_flags & XL_FLAG_WEIRDRESET) ? XL_RESETOPT_DISADVFD :
+						       0));
 
 	/*
 	 * If we're using memory mapped register mode, pause briefly
@@ -878,10 +868,12 @@ xl_reset(struct xl_softc *sc)
 		XL_SEL_WIN(2);
 		CSR_WRITE_2(sc, XL_W2_RESET_OPTIONS,
 		    CSR_READ_2(sc, XL_W2_RESET_OPTIONS) |
-		    ((sc->xl_flags & XL_FLAG_INVERT_LED_PWR) ?
-		    XL_RESETOPT_INVERT_LED : 0) |
-		    ((sc->xl_flags & XL_FLAG_INVERT_MII_PWR) ?
-		    XL_RESETOPT_INVERT_MII : 0));
+			((sc->xl_flags & XL_FLAG_INVERT_LED_PWR) ?
+				XL_RESETOPT_INVERT_LED :
+				0) |
+			((sc->xl_flags & XL_FLAG_INVERT_MII_PWR) ?
+				XL_RESETOPT_INVERT_MII :
+				0));
 	}
 
 	/* Wait a little while for the chip to get its brains in order. */
@@ -895,7 +887,7 @@ xl_reset(struct xl_softc *sc)
 static int
 xl_probe(device_t dev)
 {
-	const struct xl_type	*t;
+	const struct xl_type *t;
 
 	t = xl_devs;
 
@@ -951,11 +943,11 @@ xl_mediacheck(struct xl_softc *sc)
 		    sc->xl_media & XL_MEDIAOPT_10FL)
 			return;
 		device_printf(sc->xl_dev,
-"WARNING: no media options bits set in the media options register!!\n");
+		    "WARNING: no media options bits set in the media options register!!\n");
 		device_printf(sc->xl_dev,
-"this could be a manufacturing defect in your adapter or system\n");
+		    "this could be a manufacturing defect in your adapter or system\n");
 		device_printf(sc->xl_dev,
-"attempting to guess media type; you should probably consult your vendor\n");
+		    "attempting to guess media type; you should probably consult your vendor\n");
 	}
 
 	xl_choose_xcvr(sc, 1);
@@ -964,7 +956,7 @@ xl_mediacheck(struct xl_softc *sc)
 static void
 xl_choose_xcvr(struct xl_softc *sc, int verbose)
 {
-	u_int16_t		devid;
+	u_int16_t devid;
 
 	/*
 	 * Read the device ID from the EEPROM.
@@ -974,71 +966,73 @@ xl_choose_xcvr(struct xl_softc *sc, int verbose)
 	xl_read_eeprom(sc, (caddr_t)&devid, XL_EE_PRODID, 1, 0);
 
 	switch (devid) {
-	case TC_DEVICEID_BOOMERANG_10BT:	/* 3c900-TPO */
-	case TC_DEVICEID_KRAKATOA_10BT:		/* 3c900B-TPO */
+	case TC_DEVICEID_BOOMERANG_10BT: /* 3c900-TPO */
+	case TC_DEVICEID_KRAKATOA_10BT:	 /* 3c900B-TPO */
 		sc->xl_media = XL_MEDIAOPT_BT;
 		sc->xl_xcvr = XL_XCVR_10BT;
 		if (verbose)
 			device_printf(sc->xl_dev,
 			    "guessing 10BaseT transceiver\n");
 		break;
-	case TC_DEVICEID_BOOMERANG_10BT_COMBO:	/* 3c900-COMBO */
-	case TC_DEVICEID_KRAKATOA_10BT_COMBO:	/* 3c900B-COMBO */
-		sc->xl_media = XL_MEDIAOPT_BT|XL_MEDIAOPT_BNC|XL_MEDIAOPT_AUI;
+	case TC_DEVICEID_BOOMERANG_10BT_COMBO: /* 3c900-COMBO */
+	case TC_DEVICEID_KRAKATOA_10BT_COMBO:  /* 3c900B-COMBO */
+		sc->xl_media = XL_MEDIAOPT_BT | XL_MEDIAOPT_BNC |
+		    XL_MEDIAOPT_AUI;
 		sc->xl_xcvr = XL_XCVR_10BT;
 		if (verbose)
 			device_printf(sc->xl_dev,
 			    "guessing COMBO (AUI/BNC/TP)\n");
 		break;
-	case TC_DEVICEID_KRAKATOA_10BT_TPC:	/* 3c900B-TPC */
-		sc->xl_media = XL_MEDIAOPT_BT|XL_MEDIAOPT_BNC;
+	case TC_DEVICEID_KRAKATOA_10BT_TPC: /* 3c900B-TPC */
+		sc->xl_media = XL_MEDIAOPT_BT | XL_MEDIAOPT_BNC;
 		sc->xl_xcvr = XL_XCVR_10BT;
 		if (verbose)
 			device_printf(sc->xl_dev, "guessing TPC (BNC/TP)\n");
 		break;
-	case TC_DEVICEID_CYCLONE_10FL:		/* 3c900B-FL */
+	case TC_DEVICEID_CYCLONE_10FL: /* 3c900B-FL */
 		sc->xl_media = XL_MEDIAOPT_10FL;
 		sc->xl_xcvr = XL_XCVR_AUI;
 		if (verbose)
 			device_printf(sc->xl_dev, "guessing 10baseFL\n");
 		break;
-	case TC_DEVICEID_BOOMERANG_10_100BT:	/* 3c905-TX */
-	case TC_DEVICEID_HURRICANE_555:		/* 3c555 */
-	case TC_DEVICEID_HURRICANE_556:		/* 3c556 */
-	case TC_DEVICEID_HURRICANE_556B:	/* 3c556B */
-	case TC_DEVICEID_HURRICANE_575A:	/* 3c575TX */
-	case TC_DEVICEID_HURRICANE_575B:	/* 3c575B */
-	case TC_DEVICEID_HURRICANE_575C:	/* 3c575C */
-	case TC_DEVICEID_HURRICANE_656:		/* 3c656 */
-	case TC_DEVICEID_HURRICANE_656B:	/* 3c656B */
-	case TC_DEVICEID_TORNADO_656C:		/* 3c656C */
-	case TC_DEVICEID_TORNADO_10_100BT_920B:	/* 3c920B-EMB */
-	case TC_DEVICEID_TORNADO_10_100BT_920B_WNM:	/* 3c920B-EMB-WNM */
+	case TC_DEVICEID_BOOMERANG_10_100BT:	    /* 3c905-TX */
+	case TC_DEVICEID_HURRICANE_555:		    /* 3c555 */
+	case TC_DEVICEID_HURRICANE_556:		    /* 3c556 */
+	case TC_DEVICEID_HURRICANE_556B:	    /* 3c556B */
+	case TC_DEVICEID_HURRICANE_575A:	    /* 3c575TX */
+	case TC_DEVICEID_HURRICANE_575B:	    /* 3c575B */
+	case TC_DEVICEID_HURRICANE_575C:	    /* 3c575C */
+	case TC_DEVICEID_HURRICANE_656:		    /* 3c656 */
+	case TC_DEVICEID_HURRICANE_656B:	    /* 3c656B */
+	case TC_DEVICEID_TORNADO_656C:		    /* 3c656C */
+	case TC_DEVICEID_TORNADO_10_100BT_920B:	    /* 3c920B-EMB */
+	case TC_DEVICEID_TORNADO_10_100BT_920B_WNM: /* 3c920B-EMB-WNM */
 		sc->xl_media = XL_MEDIAOPT_MII;
 		sc->xl_xcvr = XL_XCVR_MII;
 		if (verbose)
 			device_printf(sc->xl_dev, "guessing MII\n");
 		break;
-	case TC_DEVICEID_BOOMERANG_100BT4:	/* 3c905-T4 */
-	case TC_DEVICEID_CYCLONE_10_100BT4:	/* 3c905B-T4 */
+	case TC_DEVICEID_BOOMERANG_100BT4:  /* 3c905-T4 */
+	case TC_DEVICEID_CYCLONE_10_100BT4: /* 3c905B-T4 */
 		sc->xl_media = XL_MEDIAOPT_BT4;
 		sc->xl_xcvr = XL_XCVR_MII;
 		if (verbose)
 			device_printf(sc->xl_dev, "guessing 100baseT4/MII\n");
 		break;
-	case TC_DEVICEID_HURRICANE_10_100BT:	/* 3c905B-TX */
-	case TC_DEVICEID_HURRICANE_10_100BT_SERV:/*3c980-TX */
-	case TC_DEVICEID_TORNADO_10_100BT_SERV:	/* 3c980C-TX */
-	case TC_DEVICEID_HURRICANE_SOHO100TX:	/* 3cSOHO100-TX */
-	case TC_DEVICEID_TORNADO_10_100BT:	/* 3c905C-TX */
-	case TC_DEVICEID_TORNADO_HOMECONNECT:	/* 3c450-TX */
+	case TC_DEVICEID_HURRICANE_10_100BT:	  /* 3c905B-TX */
+	case TC_DEVICEID_HURRICANE_10_100BT_SERV: /*3c980-TX */
+	case TC_DEVICEID_TORNADO_10_100BT_SERV:	  /* 3c980C-TX */
+	case TC_DEVICEID_HURRICANE_SOHO100TX:	  /* 3cSOHO100-TX */
+	case TC_DEVICEID_TORNADO_10_100BT:	  /* 3c905C-TX */
+	case TC_DEVICEID_TORNADO_HOMECONNECT:	  /* 3c450-TX */
 		sc->xl_media = XL_MEDIAOPT_BTX;
 		sc->xl_xcvr = XL_XCVR_AUTO;
 		if (verbose)
 			device_printf(sc->xl_dev, "guessing 10/100 internal\n");
 		break;
-	case TC_DEVICEID_CYCLONE_10_100_COMBO:	/* 3c905B-COMBO */
-		sc->xl_media = XL_MEDIAOPT_BTX|XL_MEDIAOPT_BNC|XL_MEDIAOPT_AUI;
+	case TC_DEVICEID_CYCLONE_10_100_COMBO: /* 3c905B-COMBO */
+		sc->xl_media = XL_MEDIAOPT_BTX | XL_MEDIAOPT_BNC |
+		    XL_MEDIAOPT_AUI;
 		sc->xl_xcvr = XL_XCVR_AUTO;
 		if (verbose)
 			device_printf(sc->xl_dev,
@@ -1059,13 +1053,13 @@ xl_choose_xcvr(struct xl_softc *sc, int verbose)
 static int
 xl_attach(device_t dev)
 {
-	u_char			eaddr[ETHER_ADDR_LEN];
-	u_int16_t		sinfo2, xcvr[2];
-	struct xl_softc		*sc;
-	if_t			ifp;
-	int			media, pmcap;
-	int			error = 0, phy, rid, res;
-	uint16_t		did;
+	u_char eaddr[ETHER_ADDR_LEN];
+	u_int16_t sinfo2, xcvr[2];
+	struct xl_softc *sc;
+	if_t ifp;
+	int media, pmcap;
+	int error = 0, phy, rid, res;
+	uint16_t did;
 
 	sc = device_get_softc(dev);
 	sc->xl_dev = dev;
@@ -1101,7 +1095,7 @@ xl_attach(device_t dev)
 	    did == TC_DEVICEID_HURRICANE_656B ||
 	    did == TC_DEVICEID_TORNADO_656C)
 		sc->xl_flags |= XL_FLAG_PHYOK | XL_FLAG_EEPROM_OFFSET_30 |
-		  XL_FLAG_8BITROM;
+		    XL_FLAG_8BITROM;
 	if (did == TC_DEVICEID_HURRICANE_656)
 		sc->xl_flags |= XL_FLAG_FUNCREG | XL_FLAG_PHYOK;
 	if (did == TC_DEVICEID_HURRICANE_575B)
@@ -1112,14 +1106,13 @@ xl_attach(device_t dev)
 		sc->xl_flags |= XL_FLAG_INVERT_MII_PWR;
 	if (did == TC_DEVICEID_HURRICANE_656 ||
 	    did == TC_DEVICEID_HURRICANE_656B)
-		sc->xl_flags |= XL_FLAG_INVERT_MII_PWR |
-		    XL_FLAG_INVERT_LED_PWR;
+		sc->xl_flags |= XL_FLAG_INVERT_MII_PWR | XL_FLAG_INVERT_LED_PWR;
 	if (did == TC_DEVICEID_TORNADO_10_100BT_920B ||
 	    did == TC_DEVICEID_TORNADO_10_100BT_920B_WNM)
 		sc->xl_flags |= XL_FLAG_PHYOK;
 
 	switch (did) {
-	case TC_DEVICEID_BOOMERANG_10_100BT:	/* 3c905-TX */
+	case TC_DEVICEID_BOOMERANG_10_100BT: /* 3c905-TX */
 	case TC_DEVICEID_HURRICANE_575A:
 	case TC_DEVICEID_HURRICANE_575B:
 	case TC_DEVICEID_HURRICANE_575C:
@@ -1230,8 +1223,9 @@ xl_attach(device_t dev)
 	}
 
 	error = bus_dmamem_alloc(sc->xl_ldata.xl_rx_tag,
-	    (void **)&sc->xl_ldata.xl_rx_list, BUS_DMA_NOWAIT |
-	    BUS_DMA_COHERENT | BUS_DMA_ZERO, &sc->xl_ldata.xl_rx_dmamap);
+	    (void **)&sc->xl_ldata.xl_rx_list,
+	    BUS_DMA_NOWAIT | BUS_DMA_COHERENT | BUS_DMA_ZERO,
+	    &sc->xl_ldata.xl_rx_dmamap);
 	if (error) {
 		device_printf(dev, "no memory for rx list buffers!\n");
 		bus_dma_tag_destroy(sc->xl_ldata.xl_rx_tag);
@@ -1240,9 +1234,8 @@ xl_attach(device_t dev)
 	}
 
 	error = bus_dmamap_load(sc->xl_ldata.xl_rx_tag,
-	    sc->xl_ldata.xl_rx_dmamap, sc->xl_ldata.xl_rx_list,
-	    XL_RX_LIST_SZ, xl_dma_map_addr,
-	    &sc->xl_ldata.xl_rx_dmaaddr, BUS_DMA_NOWAIT);
+	    sc->xl_ldata.xl_rx_dmamap, sc->xl_ldata.xl_rx_list, XL_RX_LIST_SZ,
+	    xl_dma_map_addr, &sc->xl_ldata.xl_rx_dmaaddr, BUS_DMA_NOWAIT);
 	if (error) {
 		device_printf(dev, "cannot get dma address of the rx ring!\n");
 		bus_dmamem_free(sc->xl_ldata.xl_rx_tag, sc->xl_ldata.xl_rx_list,
@@ -1262,8 +1255,9 @@ xl_attach(device_t dev)
 	}
 
 	error = bus_dmamem_alloc(sc->xl_ldata.xl_tx_tag,
-	    (void **)&sc->xl_ldata.xl_tx_list, BUS_DMA_NOWAIT |
-	    BUS_DMA_COHERENT | BUS_DMA_ZERO, &sc->xl_ldata.xl_tx_dmamap);
+	    (void **)&sc->xl_ldata.xl_tx_list,
+	    BUS_DMA_NOWAIT | BUS_DMA_COHERENT | BUS_DMA_ZERO,
+	    &sc->xl_ldata.xl_tx_dmamap);
 	if (error) {
 		device_printf(dev, "no memory for list buffers!\n");
 		bus_dma_tag_destroy(sc->xl_ldata.xl_tx_tag);
@@ -1272,9 +1266,8 @@ xl_attach(device_t dev)
 	}
 
 	error = bus_dmamap_load(sc->xl_ldata.xl_tx_tag,
-	    sc->xl_ldata.xl_tx_dmamap, sc->xl_ldata.xl_tx_list,
-	    XL_TX_LIST_SZ, xl_dma_map_addr,
-	    &sc->xl_ldata.xl_tx_dmaaddr, BUS_DMA_NOWAIT);
+	    sc->xl_ldata.xl_tx_dmamap, sc->xl_ldata.xl_tx_list, XL_TX_LIST_SZ,
+	    xl_dma_map_addr, &sc->xl_ldata.xl_tx_dmaaddr, BUS_DMA_NOWAIT);
 	if (error) {
 		device_printf(dev, "cannot get dma address of the tx ring!\n");
 		bus_dmamem_free(sc->xl_ldata.xl_tx_tag, sc->xl_ldata.xl_tx_list,
@@ -1289,8 +1282,8 @@ xl_attach(device_t dev)
 	 */
 	error = bus_dma_tag_create(bus_get_dma_tag(dev), 1, 0,
 	    BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR, NULL, NULL,
-	    MCLBYTES * XL_MAXFRAGS, XL_MAXFRAGS, MCLBYTES, 0, NULL,
-	    NULL, &sc->xl_mtag);
+	    MCLBYTES * XL_MAXFRAGS, XL_MAXFRAGS, MCLBYTES, 0, NULL, NULL,
+	    &sc->xl_mtag);
 	if (error) {
 		device_printf(dev, "failed to allocate mbuf dma tag\n");
 		goto fail;
@@ -1372,8 +1365,7 @@ xl_attach(device_t dev)
 
 	xl_mediacheck(sc);
 
-	if (sc->xl_media & XL_MEDIAOPT_MII ||
-	    sc->xl_media & XL_MEDIAOPT_BTX ||
+	if (sc->xl_media & XL_MEDIAOPT_MII || sc->xl_media & XL_MEDIAOPT_BTX ||
 	    sc->xl_media & XL_MEDIAOPT_BT4) {
 		if (bootverbose)
 			device_printf(dev, "found MII/AUTO\n");
@@ -1411,14 +1403,15 @@ xl_attach(device_t dev)
 	if (sc->xl_media & XL_MEDIAOPT_BT) {
 		if (bootverbose)
 			device_printf(dev, "found 10baseT\n");
-		ifmedia_add(&sc->ifmedia, IFM_ETHER|IFM_10_T, 0, NULL);
-		ifmedia_add(&sc->ifmedia, IFM_ETHER|IFM_10_T|IFM_HDX, 0, NULL);
+		ifmedia_add(&sc->ifmedia, IFM_ETHER | IFM_10_T, 0, NULL);
+		ifmedia_add(&sc->ifmedia, IFM_ETHER | IFM_10_T | IFM_HDX, 0,
+		    NULL);
 		if (sc->xl_caps & XL_CAPS_FULL_DUPLEX)
 			ifmedia_add(&sc->ifmedia,
-			    IFM_ETHER|IFM_10_T|IFM_FDX, 0, NULL);
+			    IFM_ETHER | IFM_10_T | IFM_FDX, 0, NULL);
 	}
 
-	if (sc->xl_media & (XL_MEDIAOPT_AUI|XL_MEDIAOPT_10FL)) {
+	if (sc->xl_media & (XL_MEDIAOPT_AUI | XL_MEDIAOPT_10FL)) {
 		/*
 		 * Check for a 10baseFL board in disguise.
 		 */
@@ -1426,32 +1419,34 @@ xl_attach(device_t dev)
 		    sc->xl_media == XL_MEDIAOPT_10FL) {
 			if (bootverbose)
 				device_printf(dev, "found 10baseFL\n");
-			ifmedia_add(&sc->ifmedia, IFM_ETHER|IFM_10_FL, 0, NULL);
-			ifmedia_add(&sc->ifmedia, IFM_ETHER|IFM_10_FL|IFM_HDX,
-			    0, NULL);
+			ifmedia_add(&sc->ifmedia, IFM_ETHER | IFM_10_FL, 0,
+			    NULL);
+			ifmedia_add(&sc->ifmedia,
+			    IFM_ETHER | IFM_10_FL | IFM_HDX, 0, NULL);
 			if (sc->xl_caps & XL_CAPS_FULL_DUPLEX)
 				ifmedia_add(&sc->ifmedia,
-				    IFM_ETHER|IFM_10_FL|IFM_FDX, 0, NULL);
+				    IFM_ETHER | IFM_10_FL | IFM_FDX, 0, NULL);
 		} else {
 			if (bootverbose)
 				device_printf(dev, "found AUI\n");
-			ifmedia_add(&sc->ifmedia, IFM_ETHER|IFM_10_5, 0, NULL);
+			ifmedia_add(&sc->ifmedia, IFM_ETHER | IFM_10_5, 0,
+			    NULL);
 		}
 	}
 
 	if (sc->xl_media & XL_MEDIAOPT_BNC) {
 		if (bootverbose)
 			device_printf(dev, "found BNC\n");
-		ifmedia_add(&sc->ifmedia, IFM_ETHER|IFM_10_2, 0, NULL);
+		ifmedia_add(&sc->ifmedia, IFM_ETHER | IFM_10_2, 0, NULL);
 	}
 
 	if (sc->xl_media & XL_MEDIAOPT_BFX) {
 		if (bootverbose)
 			device_printf(dev, "found 100baseFX\n");
-		ifmedia_add(&sc->ifmedia, IFM_ETHER|IFM_100_FX, 0, NULL);
+		ifmedia_add(&sc->ifmedia, IFM_ETHER | IFM_100_FX, 0, NULL);
 	}
 
-	media = IFM_ETHER|IFM_100_TX|IFM_FDX;
+	media = IFM_ETHER | IFM_100_TX | IFM_FDX;
 	xl_choose_media(sc, &media);
 
 	if (sc->xl_miibus == NULL)
@@ -1497,21 +1492,21 @@ xl_choose_media(struct xl_softc *sc, int *media)
 
 	switch (sc->xl_xcvr) {
 	case XL_XCVR_10BT:
-		*media = IFM_ETHER|IFM_10_T;
+		*media = IFM_ETHER | IFM_10_T;
 		xl_setmode(sc, *media);
 		break;
 	case XL_XCVR_AUI:
 		if (sc->xl_type == XL_TYPE_905B &&
 		    sc->xl_media == XL_MEDIAOPT_10FL) {
-			*media = IFM_ETHER|IFM_10_FL;
+			*media = IFM_ETHER | IFM_10_FL;
 			xl_setmode(sc, *media);
 		} else {
-			*media = IFM_ETHER|IFM_10_5;
+			*media = IFM_ETHER | IFM_10_5;
 			xl_setmode(sc, *media);
 		}
 		break;
 	case XL_XCVR_COAX:
-		*media = IFM_ETHER|IFM_10_2;
+		*media = IFM_ETHER | IFM_10_2;
 		xl_setmode(sc, *media);
 		break;
 	case XL_XCVR_AUTO:
@@ -1520,7 +1515,7 @@ xl_choose_media(struct xl_softc *sc, int *media)
 		/* Chosen by miibus */
 		break;
 	case XL_XCVR_100BFX:
-		*media = IFM_ETHER|IFM_100_FX;
+		*media = IFM_ETHER | IFM_100_FX;
 		break;
 	default:
 		device_printf(sc->xl_dev, "unknown XCVR type: %d\n",
@@ -1529,7 +1524,7 @@ xl_choose_media(struct xl_softc *sc, int *media)
 		 * This will probably be wrong, but it prevents
 		 * the ifmedia code from panicking.
 		 */
-		*media = IFM_ETHER|IFM_10_T;
+		*media = IFM_ETHER | IFM_10_T;
 		break;
 	}
 
@@ -1546,9 +1541,9 @@ xl_choose_media(struct xl_softc *sc, int *media)
 static int
 xl_detach(device_t dev)
 {
-	struct xl_softc		*sc;
-	if_t			ifp;
-	int			rid, res;
+	struct xl_softc *sc;
+	if_t ifp;
+	int rid, res;
 
 	sc = device_get_softc(dev);
 	ifp = sc->xl_ifp;
@@ -1587,8 +1582,8 @@ xl_detach(device_t dev)
 	if (sc->xl_irq)
 		bus_release_resource(dev, SYS_RES_IRQ, 0, sc->xl_irq);
 	if (sc->xl_fres != NULL)
-		bus_release_resource(dev, SYS_RES_MEMORY,
-		    XL_PCI_FUNCMEM, sc->xl_fres);
+		bus_release_resource(dev, SYS_RES_MEMORY, XL_PCI_FUNCMEM,
+		    sc->xl_fres);
 	if (sc->xl_res)
 		bus_release_resource(dev, res, rid, sc->xl_res);
 
@@ -1625,9 +1620,9 @@ xl_detach(device_t dev)
 static int
 xl_list_tx_init(struct xl_softc *sc)
 {
-	struct xl_chain_data	*cd;
-	struct xl_list_data	*ld;
-	int			error, i;
+	struct xl_chain_data *cd;
+	struct xl_list_data *ld;
+	int error, i;
 
 	XL_LOCK_ASSERT(sc);
 
@@ -1660,9 +1655,9 @@ xl_list_tx_init(struct xl_softc *sc)
 static int
 xl_list_tx_init_90xB(struct xl_softc *sc)
 {
-	struct xl_chain_data	*cd;
-	struct xl_list_data	*ld;
-	int			error, i;
+	struct xl_chain_data *cd;
+	struct xl_list_data *ld;
+	int error, i;
 
 	XL_LOCK_ASSERT(sc);
 
@@ -1684,8 +1679,7 @@ xl_list_tx_init_90xB(struct xl_softc *sc)
 			cd->xl_tx_chain[i].xl_prev =
 			    &cd->xl_tx_chain[XL_TX_LIST_CNT - 1];
 		else
-			cd->xl_tx_chain[i].xl_prev =
-			    &cd->xl_tx_chain[i - 1];
+			cd->xl_tx_chain[i].xl_prev = &cd->xl_tx_chain[i - 1];
 	}
 
 	bzero(ld->xl_tx_list, XL_TX_LIST_SZ);
@@ -1707,10 +1701,10 @@ xl_list_tx_init_90xB(struct xl_softc *sc)
 static int
 xl_list_rx_init(struct xl_softc *sc)
 {
-	struct xl_chain_data	*cd;
-	struct xl_list_data	*ld;
-	int			error, i, next;
-	u_int32_t		nextptr;
+	struct xl_chain_data *cd;
+	struct xl_list_data *ld;
+	int error, i, next;
+	u_int32_t nextptr;
 
 	XL_LOCK_ASSERT(sc);
 
@@ -1750,10 +1744,10 @@ xl_list_rx_init(struct xl_softc *sc)
 static int
 xl_newbuf(struct xl_softc *sc, struct xl_chain_onefrag *c)
 {
-	struct mbuf		*m_new = NULL;
-	bus_dmamap_t		map;
-	bus_dma_segment_t	segs[1];
-	int			error, nseg;
+	struct mbuf *m_new = NULL;
+	bus_dmamap_t map;
+	bus_dma_segment_t segs[1];
+	int error, nseg;
 
 	XL_LOCK_ASSERT(sc);
 
@@ -1766,16 +1760,14 @@ xl_newbuf(struct xl_softc *sc, struct xl_chain_onefrag *c)
 	/* Force longword alignment for packet payload. */
 	m_adj(m_new, ETHER_ALIGN);
 
-	error = bus_dmamap_load_mbuf_sg(sc->xl_mtag, sc->xl_tmpmap, m_new,
-	    segs, &nseg, BUS_DMA_NOWAIT);
+	error = bus_dmamap_load_mbuf_sg(sc->xl_mtag, sc->xl_tmpmap, m_new, segs,
+	    &nseg, BUS_DMA_NOWAIT);
 	if (error) {
 		m_freem(m_new);
-		device_printf(sc->xl_dev, "can't map mbuf (error %d)\n",
-		    error);
+		device_printf(sc->xl_dev, "can't map mbuf (error %d)\n", error);
 		return (error);
 	}
-	KASSERT(nseg == 1,
-	    ("%s: too many DMA segments (%d)", __func__, nseg));
+	KASSERT(nseg == 1, ("%s: too many DMA segments (%d)", __func__, nseg));
 
 	bus_dmamap_unload(sc->xl_mtag, c->xl_map);
 	map = c->xl_map;
@@ -1792,8 +1784,8 @@ xl_newbuf(struct xl_softc *sc, struct xl_chain_onefrag *c)
 static int
 xl_rx_resync(struct xl_softc *sc)
 {
-	struct xl_chain_onefrag	*pos;
-	int			i;
+	struct xl_chain_onefrag *pos;
+	int i;
 
 	XL_LOCK_ASSERT(sc);
 
@@ -1820,12 +1812,12 @@ xl_rx_resync(struct xl_softc *sc)
 static int
 xl_rxeof(struct xl_softc *sc)
 {
-	struct mbuf		*m;
-	if_t			ifp = sc->xl_ifp;
-	struct xl_chain_onefrag	*cur_rx;
-	int			total_len;
-	int			rx_npkts = 0;
-	u_int32_t		rxstat;
+	struct mbuf *m;
+	if_t ifp = sc->xl_ifp;
+	struct xl_chain_onefrag *cur_rx;
+	int total_len;
+	int rx_npkts = 0;
+	u_int32_t rxstat;
 
 	XL_LOCK_ASSERT(sc);
 again:
@@ -1851,7 +1843,7 @@ again:
 		 * frames with VLAN tags.
 		 */
 		if (total_len > XL_MAX_FRAMELEN)
-			rxstat |= (XL_RXSTAT_UP_ERROR|XL_RXSTAT_OVERSIZE);
+			rxstat |= (XL_RXSTAT_UP_ERROR | XL_RXSTAT_OVERSIZE);
 
 		/*
 		 * If an error occurs, update stats, clear the
@@ -1915,11 +1907,11 @@ again:
 			if (!(rxstat & XL_RXSTAT_IPCKERR))
 				m->m_pkthdr.csum_flags |= CSUM_IP_VALID;
 			if ((rxstat & XL_RXSTAT_TCPCOK &&
-			     !(rxstat & XL_RXSTAT_TCPCKERR)) ||
+				!(rxstat & XL_RXSTAT_TCPCKERR)) ||
 			    (rxstat & XL_RXSTAT_UDPCKOK &&
-			     !(rxstat & XL_RXSTAT_UDPCKERR))) {
-				m->m_pkthdr.csum_flags |=
-					CSUM_DATA_VALID|CSUM_PSEUDO_HDR;
+				!(rxstat & XL_RXSTAT_UDPCKERR))) {
+				m->m_pkthdr.csum_flags |= CSUM_DATA_VALID |
+				    CSUM_PSEUDO_HDR;
 				m->m_pkthdr.csum_data = 0xffff;
 			}
 		}
@@ -1950,7 +1942,7 @@ again:
 	 * to avoid the use of a goto here.
 	 */
 	if (CSR_READ_4(sc, XL_UPLIST_PTR) == 0 ||
-		CSR_READ_4(sc, XL_UPLIST_STATUS) & XL_PKTSTAT_UP_STALLED) {
+	    CSR_READ_4(sc, XL_UPLIST_STATUS) & XL_PKTSTAT_UP_STALLED) {
 		CSR_WRITE_2(sc, XL_COMMAND, XL_CMD_UP_STALL);
 		xl_wait(sc);
 		CSR_WRITE_4(sc, XL_UPLIST_PTR, sc->xl_ldata.xl_rx_dmaaddr);
@@ -1982,8 +1974,8 @@ xl_rxeof_task(void *arg, int pending)
 static void
 xl_txeof(struct xl_softc *sc)
 {
-	struct xl_chain		*cur_tx;
-	if_t			ifp = sc->xl_ifp;
+	struct xl_chain *cur_tx;
+	if_t ifp = sc->xl_ifp;
 
 	XL_LOCK_ASSERT(sc);
 
@@ -2020,9 +2012,9 @@ xl_txeof(struct xl_softc *sc)
 		sc->xl_cdata.xl_tx_tail = NULL;
 	} else {
 		if (CSR_READ_4(sc, XL_DMACTL) & XL_DMACTL_DOWN_STALLED ||
-			!CSR_READ_4(sc, XL_DOWNLIST_PTR)) {
+		    !CSR_READ_4(sc, XL_DOWNLIST_PTR)) {
 			CSR_WRITE_4(sc, XL_DOWNLIST_PTR,
-				sc->xl_cdata.xl_tx_head->xl_phys);
+			    sc->xl_cdata.xl_tx_head->xl_phys);
 			CSR_WRITE_2(sc, XL_COMMAND, XL_CMD_DOWN_UNSTALL);
 		}
 	}
@@ -2031,9 +2023,9 @@ xl_txeof(struct xl_softc *sc)
 static void
 xl_txeof_90xB(struct xl_softc *sc)
 {
-	struct xl_chain		*cur_tx = NULL;
-	if_t			ifp = sc->xl_ifp;
-	int			idx;
+	struct xl_chain *cur_tx = NULL;
+	if_t ifp = sc->xl_ifp;
+	int idx;
 
 	XL_LOCK_ASSERT(sc);
 
@@ -2044,7 +2036,7 @@ xl_txeof_90xB(struct xl_softc *sc)
 		cur_tx = &sc->xl_cdata.xl_tx_chain[idx];
 
 		if (!(le32toh(cur_tx->xl_ptr->xl_status) &
-		      XL_TXSTAT_DL_COMPLETE))
+			XL_TXSTAT_DL_COMPLETE))
 			break;
 
 		if (cur_tx->xl_mbuf != NULL) {
@@ -2077,22 +2069,22 @@ xl_txeof_90xB(struct xl_softc *sc)
 static void
 xl_txeoc(struct xl_softc *sc)
 {
-	u_int8_t		txstat;
+	u_int8_t txstat;
 
 	XL_LOCK_ASSERT(sc);
 
 	while ((txstat = CSR_READ_1(sc, XL_TX_STATUS))) {
 		if (txstat & XL_TXSTATUS_UNDERRUN ||
-			txstat & XL_TXSTATUS_JABBER ||
-			txstat & XL_TXSTATUS_RECLAIM) {
+		    txstat & XL_TXSTATUS_JABBER ||
+		    txstat & XL_TXSTATUS_RECLAIM) {
 			device_printf(sc->xl_dev,
 			    "transmission error: 0x%02x\n", txstat);
 			CSR_WRITE_2(sc, XL_COMMAND, XL_CMD_TX_RESET);
 			xl_wait(sc);
 			if (sc->xl_type == XL_TYPE_905B) {
 				if (sc->xl_cdata.xl_tx_cnt) {
-					int			i;
-					struct xl_chain		*c;
+					int i;
+					struct xl_chain *c;
 
 					i = sc->xl_cdata.xl_tx_cons;
 					c = &sc->xl_cdata.xl_tx_chain[i];
@@ -2117,13 +2109,15 @@ xl_txeoc(struct xl_softc *sc)
 			    sc->xl_tx_thresh < XL_PACKET_SIZE) {
 				sc->xl_tx_thresh += XL_MIN_FRAMELEN;
 				device_printf(sc->xl_dev,
-"tx underrun, increasing tx start threshold to %d bytes\n", sc->xl_tx_thresh);
+				    "tx underrun, increasing tx start threshold to %d bytes\n",
+				    sc->xl_tx_thresh);
 			}
 			CSR_WRITE_2(sc, XL_COMMAND,
-			    XL_CMD_TX_SET_START|sc->xl_tx_thresh);
+			    XL_CMD_TX_SET_START | sc->xl_tx_thresh);
 			if (sc->xl_type == XL_TYPE_905B) {
 				CSR_WRITE_2(sc, XL_COMMAND,
-				XL_CMD_SET_TX_RECLAIM|(XL_PACKET_SIZE >> 4));
+				    XL_CMD_SET_TX_RECLAIM |
+					(XL_PACKET_SIZE >> 4));
 			}
 			CSR_WRITE_2(sc, XL_COMMAND, XL_CMD_TX_ENABLE);
 			CSR_WRITE_2(sc, XL_COMMAND, XL_CMD_DOWN_UNSTALL);
@@ -2142,9 +2136,9 @@ xl_txeoc(struct xl_softc *sc)
 static void
 xl_intr(void *arg)
 {
-	struct xl_softc		*sc = arg;
-	if_t			ifp = sc->xl_ifp;
-	u_int16_t		status;
+	struct xl_softc *sc = arg;
+	if_t ifp = sc->xl_ifp;
+	u_int16_t status;
 
 	XL_LOCK(sc);
 
@@ -2160,7 +2154,7 @@ xl_intr(void *arg)
 		if ((status & XL_INTRS) == 0 || status == 0xFFFF)
 			break;
 		CSR_WRITE_2(sc, XL_COMMAND,
-		    XL_CMD_INTR_ACK|(status & XL_INTRS));
+		    XL_CMD_INTR_ACK | (status & XL_INTRS));
 		if ((if_getdrvflags(ifp) & IFF_DRV_RUNNING) == 0)
 			break;
 
@@ -2193,8 +2187,7 @@ xl_intr(void *arg)
 			xl_stats_update(sc);
 	}
 
-	if (!if_sendq_empty(ifp) &&
-	    if_getdrvflags(ifp) & IFF_DRV_RUNNING) {
+	if (!if_sendq_empty(ifp) && if_getdrvflags(ifp) & IFF_DRV_RUNNING) {
 		if (sc->xl_type == XL_TYPE_905B)
 			xl_start_90xB_locked(ifp);
 		else
@@ -2246,7 +2239,7 @@ xl_poll_locked(if_t ifp, enum poll_cmd cmd, int count)
 		status = CSR_READ_2(sc, XL_STATUS);
 		if (status & XL_INTRS && status != 0xFFFF) {
 			CSR_WRITE_2(sc, XL_COMMAND,
-			    XL_CMD_INTR_ACK|(status & XL_INTRS));
+			    XL_CMD_INTR_ACK | (status & XL_INTRS));
 
 			if (status & XL_STAT_TX_COMPLETE) {
 				if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
@@ -2289,10 +2282,10 @@ xl_tick(void *xsc)
 static void
 xl_stats_update(struct xl_softc *sc)
 {
-	if_t			ifp = sc->xl_ifp;
-	struct xl_stats		xl_stats;
-	u_int8_t		*p;
-	int			i;
+	if_t ifp = sc->xl_ifp;
+	struct xl_stats xl_stats;
+	u_int8_t *p;
+	int i;
 
 	XL_LOCK_ASSERT(sc);
 
@@ -2309,9 +2302,8 @@ xl_stats_update(struct xl_softc *sc)
 	if_inc_counter(ifp, IFCOUNTER_IERRORS, xl_stats.xl_rx_overrun);
 
 	if_inc_counter(ifp, IFCOUNTER_COLLISIONS,
-	    xl_stats.xl_tx_multi_collision +
-	    xl_stats.xl_tx_single_collision +
-	    xl_stats.xl_tx_late_collision);
+	    xl_stats.xl_tx_multi_collision + xl_stats.xl_tx_single_collision +
+		xl_stats.xl_tx_late_collision);
 
 	/*
 	 * Boomerang and cyclone chips have an extra stats counter
@@ -2331,10 +2323,10 @@ xl_stats_update(struct xl_softc *sc)
 static int
 xl_encap(struct xl_softc *sc, struct xl_chain *c, struct mbuf **m_head)
 {
-	struct mbuf		*m_new;
-	if_t			ifp = sc->xl_ifp;
-	int			error, i, nseg, total_len;
-	u_int32_t		status;
+	struct mbuf *m_new;
+	if_t ifp = sc->xl_ifp;
+	int error, i, nseg, total_len;
+	u_int32_t status;
 
 	XL_LOCK_ASSERT(sc);
 
@@ -2363,8 +2355,8 @@ xl_encap(struct xl_softc *sc, struct xl_chain *c, struct mbuf **m_head)
 		}
 		*m_head = m_new;
 
-		error = bus_dmamap_load_mbuf_sg(sc->xl_mtag, c->xl_map,
-		    *m_head, sc->xl_cdata.xl_tx_segs, &nseg, BUS_DMA_NOWAIT);
+		error = bus_dmamap_load_mbuf_sg(sc->xl_mtag, c->xl_map, *m_head,
+		    sc->xl_cdata.xl_tx_segs, &nseg, BUS_DMA_NOWAIT);
 		if (error) {
 			m_freem(*m_head);
 			*m_head = NULL;
@@ -2386,10 +2378,10 @@ xl_encap(struct xl_softc *sc, struct xl_chain *c, struct mbuf **m_head)
 	for (i = 0; i < nseg; i++) {
 		KASSERT(sc->xl_cdata.xl_tx_segs[i].ds_len <= MCLBYTES,
 		    ("segment size too large"));
-		c->xl_ptr->xl_frag[i].xl_addr =
-		    htole32(sc->xl_cdata.xl_tx_segs[i].ds_addr);
-		c->xl_ptr->xl_frag[i].xl_len =
-		    htole32(sc->xl_cdata.xl_tx_segs[i].ds_len);
+		c->xl_ptr->xl_frag[i].xl_addr = htole32(
+		    sc->xl_cdata.xl_tx_segs[i].ds_addr);
+		c->xl_ptr->xl_frag[i].xl_len = htole32(
+		    sc->xl_cdata.xl_tx_segs[i].ds_len);
 		total_len += sc->xl_cdata.xl_tx_segs[i].ds_len;
 	}
 	c->xl_ptr->xl_frag[nseg - 1].xl_len |= htole32(XL_LAST_FRAG);
@@ -2426,7 +2418,7 @@ xl_encap(struct xl_softc *sc, struct xl_chain *c, struct mbuf **m_head)
 static void
 xl_start(if_t ifp)
 {
-	struct xl_softc		*sc = if_getsoftc(ifp);
+	struct xl_softc *sc = if_getsoftc(ifp);
 
 	XL_LOCK(sc);
 
@@ -2441,11 +2433,11 @@ xl_start(if_t ifp)
 static void
 xl_start_locked(if_t ifp)
 {
-	struct xl_softc		*sc = if_getsoftc(ifp);
-	struct mbuf		*m_head;
-	struct xl_chain		*prev = NULL, *cur_tx = NULL, *start_tx;
-	struct xl_chain		*prev_tx;
-	int			error;
+	struct xl_softc *sc = if_getsoftc(ifp);
+	struct mbuf *m_head;
+	struct xl_chain *prev = NULL, *cur_tx = NULL, *start_tx;
+	struct xl_chain *prev_tx;
+	int error;
 
 	XL_LOCK_ASSERT(sc);
 
@@ -2467,8 +2459,7 @@ xl_start_locked(if_t ifp)
 
 	start_tx = sc->xl_cdata.xl_tx_free;
 
-	for (; !if_sendq_empty(ifp) &&
-	    sc->xl_cdata.xl_tx_free != NULL;) {
+	for (; !if_sendq_empty(ifp) && sc->xl_cdata.xl_tx_free != NULL;) {
 		m_head = if_dequeue(ifp);
 		if (m_head == NULL)
 			break;
@@ -2529,10 +2520,10 @@ xl_start_locked(if_t ifp)
 
 	if (sc->xl_cdata.xl_tx_head != NULL) {
 		sc->xl_cdata.xl_tx_tail->xl_next = start_tx;
-		sc->xl_cdata.xl_tx_tail->xl_ptr->xl_next =
-		    htole32(start_tx->xl_phys);
-		sc->xl_cdata.xl_tx_tail->xl_ptr->xl_status &=
-		    htole32(~XL_TXSTAT_DL_INTR);
+		sc->xl_cdata.xl_tx_tail->xl_ptr->xl_next = htole32(
+		    start_tx->xl_phys);
+		sc->xl_cdata.xl_tx_tail->xl_ptr->xl_status &= htole32(
+		    ~XL_TXSTAT_DL_INTR);
 		sc->xl_cdata.xl_tx_tail = cur_tx;
 	} else {
 		sc->xl_cdata.xl_tx_head = start_tx;
@@ -2573,11 +2564,11 @@ xl_start_locked(if_t ifp)
 static void
 xl_start_90xB_locked(if_t ifp)
 {
-	struct xl_softc		*sc = if_getsoftc(ifp);
-	struct mbuf		*m_head;
-	struct xl_chain		*prev = NULL, *cur_tx = NULL, *start_tx;
-	struct xl_chain		*prev_tx;
-	int			error, idx;
+	struct xl_softc *sc = if_getsoftc(ifp);
+	struct mbuf *m_head;
+	struct xl_chain *prev = NULL, *cur_tx = NULL, *start_tx;
+	struct xl_chain *prev_tx;
+	int error, idx;
 
 	XL_LOCK_ASSERT(sc);
 
@@ -2589,7 +2580,7 @@ xl_start_90xB_locked(if_t ifp)
 	start_tx = &sc->xl_cdata.xl_tx_chain[idx];
 
 	for (; !if_sendq_empty(ifp) &&
-	    sc->xl_cdata.xl_tx_chain[idx].xl_mbuf == NULL;) {
+	     sc->xl_cdata.xl_tx_chain[idx].xl_mbuf == NULL;) {
 		if ((XL_TX_LIST_CNT - sc->xl_cdata.xl_tx_cnt) < 3) {
 			if_setdrvflagbits(ifp, IFF_DRV_OACTIVE, 0);
 			break;
@@ -2658,7 +2649,7 @@ xl_start_90xB_locked(if_t ifp)
 static void
 xl_init(void *xsc)
 {
-	struct xl_softc		*sc = xsc;
+	struct xl_softc *sc = xsc;
 
 	XL_LOCK(sc);
 	xl_init_locked(sc);
@@ -2668,9 +2659,9 @@ xl_init(void *xsc)
 static void
 xl_init_locked(struct xl_softc *sc)
 {
-	if_t			ifp = sc->xl_ifp;
-	int			error, i;
-	struct mii_data		*mii = NULL;
+	if_t ifp = sc->xl_ifp;
+	int error, i;
+	struct mii_data *mii = NULL;
 
 	XL_LOCK_ASSERT(sc);
 
@@ -2708,7 +2699,7 @@ xl_init_locked(struct xl_softc *sc)
 	XL_SEL_WIN(2);
 	for (i = 0; i < ETHER_ADDR_LEN; i++) {
 		CSR_WRITE_1(sc, XL_W2_STATION_ADDR_LO + i,
-				if_getlladdr(sc->xl_ifp)[i]);
+		    if_getlladdr(sc->xl_ifp)[i]);
 	}
 
 	/* Clear the station mask. */
@@ -2724,8 +2715,8 @@ xl_init_locked(struct xl_softc *sc)
 	/* Init circular RX list. */
 	error = xl_list_rx_init(sc);
 	if (error) {
-		device_printf(sc->xl_dev, "initialization of the rx ring failed (%d)\n",
-		    error);
+		device_printf(sc->xl_dev,
+		    "initialization of the rx ring failed (%d)\n", error);
 		xl_stop(sc);
 		return;
 	}
@@ -2736,8 +2727,8 @@ xl_init_locked(struct xl_softc *sc)
 	else
 		error = xl_list_tx_init(sc);
 	if (error) {
-		device_printf(sc->xl_dev, "initialization of the tx ring failed (%d)\n",
-		    error);
+		device_printf(sc->xl_dev,
+		    "initialization of the tx ring failed (%d)\n", error);
 		xl_stop(sc);
 		return;
 	}
@@ -2751,7 +2742,7 @@ xl_init_locked(struct xl_softc *sc)
 	CSR_WRITE_1(sc, XL_TX_FREETHRESH, XL_PACKET_SIZE >> 8);
 
 	/* Set the TX start threshold for best performance. */
-	CSR_WRITE_2(sc, XL_COMMAND, XL_CMD_TX_SET_START|sc->xl_tx_thresh);
+	CSR_WRITE_2(sc, XL_COMMAND, XL_CMD_TX_SET_START | sc->xl_tx_thresh);
 
 	/*
 	 * If this is a 3c905B, also set the tx reclaim threshold.
@@ -2764,7 +2755,7 @@ xl_init_locked(struct xl_softc *sc)
 	 */
 	if (sc->xl_type == XL_TYPE_905B) {
 		CSR_WRITE_2(sc, XL_COMMAND,
-		    XL_CMD_SET_TX_RECLAIM|(XL_PACKET_SIZE >> 4));
+		    XL_CMD_SET_TX_RECLAIM | (XL_PACKET_SIZE >> 4));
 	}
 
 	/* Set RX filter bits. */
@@ -2834,20 +2825,21 @@ xl_init_locked(struct xl_softc *sc)
 	/*
 	 * Enable interrupts.
 	 */
-	CSR_WRITE_2(sc, XL_COMMAND, XL_CMD_INTR_ACK|0xFF);
-	CSR_WRITE_2(sc, XL_COMMAND, XL_CMD_STAT_ENB|XL_INTRS);
+	CSR_WRITE_2(sc, XL_COMMAND, XL_CMD_INTR_ACK | 0xFF);
+	CSR_WRITE_2(sc, XL_COMMAND, XL_CMD_STAT_ENB | XL_INTRS);
 #ifdef DEVICE_POLLING
 	/* Disable interrupts if we are polling. */
 	if (if_getcapenable(ifp) & IFCAP_POLLING)
-		CSR_WRITE_2(sc, XL_COMMAND, XL_CMD_INTR_ENB|0);
+		CSR_WRITE_2(sc, XL_COMMAND, XL_CMD_INTR_ENB | 0);
 	else
 #endif
-	CSR_WRITE_2(sc, XL_COMMAND, XL_CMD_INTR_ENB|XL_INTRS);
+		CSR_WRITE_2(sc, XL_COMMAND, XL_CMD_INTR_ENB | XL_INTRS);
 	if (sc->xl_flags & XL_FLAG_FUNCREG)
-	    bus_space_write_4(sc->xl_ftag, sc->xl_fhandle, 4, 0x8000);
+		bus_space_write_4(sc->xl_ftag, sc->xl_fhandle, 4, 0x8000);
 
 	/* Set the RX early threshold */
-	CSR_WRITE_2(sc, XL_COMMAND, XL_CMD_RX_SET_THRESH|(XL_PACKET_SIZE >>2));
+	CSR_WRITE_2(sc, XL_COMMAND,
+	    XL_CMD_RX_SET_THRESH | (XL_PACKET_SIZE >> 2));
 	CSR_WRITE_4(sc, XL_DMACTL, XL_DMACTL_UP_RX_EARLY);
 
 	/* Enable receiver and transmitter. */
@@ -2876,9 +2868,9 @@ xl_init_locked(struct xl_softc *sc)
 static int
 xl_ifmedia_upd(if_t ifp)
 {
-	struct xl_softc		*sc = if_getsoftc(ifp);
-	struct ifmedia		*ifm = NULL;
-	struct mii_data		*mii = NULL;
+	struct xl_softc *sc = if_getsoftc(ifp);
+	struct ifmedia *ifm = NULL;
+	struct mii_data *mii = NULL;
 
 	XL_LOCK(sc);
 
@@ -2899,8 +2891,7 @@ xl_ifmedia_upd(if_t ifp)
 		return (0);
 	}
 
-	if (sc->xl_media & XL_MEDIAOPT_MII ||
-	    sc->xl_media & XL_MEDIAOPT_BTX ||
+	if (sc->xl_media & XL_MEDIAOPT_MII || sc->xl_media & XL_MEDIAOPT_BTX ||
 	    sc->xl_media & XL_MEDIAOPT_BT4) {
 		if_setdrvflagbits(ifp, 0, IFF_DRV_RUNNING);
 		xl_init_locked(sc);
@@ -2919,10 +2910,10 @@ xl_ifmedia_upd(if_t ifp)
 static void
 xl_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr)
 {
-	struct xl_softc		*sc = if_getsoftc(ifp);
-	u_int32_t		icfg;
-	u_int16_t		status = 0;
-	struct mii_data		*mii = NULL;
+	struct xl_softc *sc = if_getsoftc(ifp);
+	u_int32_t icfg;
+	u_int16_t status = 0;
+	struct mii_data *mii = NULL;
 
 	XL_LOCK(sc);
 
@@ -2944,7 +2935,7 @@ xl_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr)
 
 	switch (icfg) {
 	case XL_XCVR_10BT:
-		ifmr->ifm_active = IFM_ETHER|IFM_10_T;
+		ifmr->ifm_active = IFM_ETHER | IFM_10_T;
 		if (CSR_READ_1(sc, XL_W3_MAC_CTRL) & XL_MACCTRL_DUPLEX)
 			ifmr->ifm_active |= IFM_FDX;
 		else
@@ -2953,20 +2944,20 @@ xl_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr)
 	case XL_XCVR_AUI:
 		if (sc->xl_type == XL_TYPE_905B &&
 		    sc->xl_media == XL_MEDIAOPT_10FL) {
-			ifmr->ifm_active = IFM_ETHER|IFM_10_FL;
+			ifmr->ifm_active = IFM_ETHER | IFM_10_FL;
 			if (CSR_READ_1(sc, XL_W3_MAC_CTRL) & XL_MACCTRL_DUPLEX)
 				ifmr->ifm_active |= IFM_FDX;
 			else
 				ifmr->ifm_active |= IFM_HDX;
 		} else
-			ifmr->ifm_active = IFM_ETHER|IFM_10_5;
+			ifmr->ifm_active = IFM_ETHER | IFM_10_5;
 		break;
 	case XL_XCVR_COAX:
-		ifmr->ifm_active = IFM_ETHER|IFM_10_2;
+		ifmr->ifm_active = IFM_ETHER | IFM_10_2;
 		break;
-	/*
-	 * XXX MII and BTX/AUTO should be separate cases.
-	 */
+		/*
+		 * XXX MII and BTX/AUTO should be separate cases.
+		 */
 
 	case XL_XCVR_100BTX:
 	case XL_XCVR_AUTO:
@@ -2978,7 +2969,7 @@ xl_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr)
 		}
 		break;
 	case XL_XCVR_100BFX:
-		ifmr->ifm_active = IFM_ETHER|IFM_100_FX;
+		ifmr->ifm_active = IFM_ETHER | IFM_100_FX;
 		break;
 	default:
 		if_printf(ifp, "unknown XCVR type: %d\n", icfg);
@@ -2991,10 +2982,10 @@ xl_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr)
 static int
 xl_ioctl(if_t ifp, u_long command, caddr_t data)
 {
-	struct xl_softc		*sc = if_getsoftc(ifp);
-	struct ifreq		*ifr = (struct ifreq *) data;
-	int			error = 0, mask;
-	struct mii_data		*mii = NULL;
+	struct xl_softc *sc = if_getsoftc(ifp);
+	struct ifreq *ifr = (struct ifreq *)data;
+	int error = 0, mask;
+	struct mii_data *mii = NULL;
 
 	switch (command) {
 	case SIOCSIFFLAGS:
@@ -3002,7 +2993,7 @@ xl_ioctl(if_t ifp, u_long command, caddr_t data)
 		if (if_getflags(ifp) & IFF_UP) {
 			if (if_getdrvflags(ifp) & IFF_DRV_RUNNING &&
 			    (if_getflags(ifp) ^ sc->xl_if_flags) &
-			    (IFF_PROMISC | IFF_ALLMULTI))
+				(IFF_PROMISC | IFF_ALLMULTI))
 				xl_rxfilter(sc);
 			else
 				xl_init_locked(sc);
@@ -3026,11 +3017,10 @@ xl_ioctl(if_t ifp, u_long command, caddr_t data)
 		if (sc->xl_miibus != NULL)
 			mii = device_get_softc(sc->xl_miibus);
 		if (mii == NULL)
-			error = ifmedia_ioctl(ifp, ifr,
-			    &sc->ifmedia, command);
+			error = ifmedia_ioctl(ifp, ifr, &sc->ifmedia, command);
 		else
-			error = ifmedia_ioctl(ifp, ifr,
-			    &mii->mii_media, command);
+			error = ifmedia_ioctl(ifp, ifr, &mii->mii_media,
+			    command);
 		break;
 	case SIOCSIFCAP:
 		mask = ifr->ifr_reqcap ^ if_getcapenable(ifp);
@@ -3044,7 +3034,8 @@ xl_ioctl(if_t ifp, u_long command, caddr_t data)
 					break;
 				XL_LOCK(sc);
 				/* Disable interrupts */
-				CSR_WRITE_2(sc, XL_COMMAND, XL_CMD_INTR_ENB|0);
+				CSR_WRITE_2(sc, XL_COMMAND,
+				    XL_CMD_INTR_ENB | 0);
 				if_setcapenablebit(ifp, IFCAP_POLLING, 0);
 				XL_UNLOCK(sc);
 			} else {
@@ -3067,9 +3058,11 @@ xl_ioctl(if_t ifp, u_long command, caddr_t data)
 		    (if_getcapabilities(ifp) & IFCAP_TXCSUM) != 0) {
 			if_togglecapenable(ifp, IFCAP_TXCSUM);
 			if ((if_getcapenable(ifp) & IFCAP_TXCSUM) != 0)
-				if_sethwassistbits(ifp, XL905B_CSUM_FEATURES, 0);
+				if_sethwassistbits(ifp, XL905B_CSUM_FEATURES,
+				    0);
 			else
-				if_sethwassistbits(ifp, 0, XL905B_CSUM_FEATURES);
+				if_sethwassistbits(ifp, 0,
+				    XL905B_CSUM_FEATURES);
 		}
 		if ((mask & IFCAP_RXCSUM) != 0 &&
 		    (if_getcapabilities(ifp) & IFCAP_RXCSUM) != 0)
@@ -3090,9 +3083,9 @@ xl_ioctl(if_t ifp, u_long command, caddr_t data)
 static int
 xl_watchdog(struct xl_softc *sc)
 {
-	if_t			ifp = sc->xl_ifp;
-	u_int16_t		status = 0;
-	int			misintr;
+	if_t ifp = sc->xl_ifp;
+	u_int16_t status = 0;
+	int misintr;
 
 	XL_LOCK_ASSERT(sc);
 
@@ -3146,8 +3139,8 @@ xl_watchdog(struct xl_softc *sc)
 static void
 xl_stop(struct xl_softc *sc)
 {
-	int			i;
-	if_t			ifp = sc->xl_ifp;
+	int i;
+	if_t ifp = sc->xl_ifp;
 
 	XL_LOCK_ASSERT(sc);
 
@@ -3169,9 +3162,9 @@ xl_stop(struct xl_softc *sc)
 	xl_wait(sc);
 #endif
 
-	CSR_WRITE_2(sc, XL_COMMAND, XL_CMD_INTR_ACK|XL_STAT_INTLATCH);
-	CSR_WRITE_2(sc, XL_COMMAND, XL_CMD_STAT_ENB|0);
-	CSR_WRITE_2(sc, XL_COMMAND, XL_CMD_INTR_ENB|0);
+	CSR_WRITE_2(sc, XL_COMMAND, XL_CMD_INTR_ACK | XL_STAT_INTLATCH);
+	CSR_WRITE_2(sc, XL_COMMAND, XL_CMD_STAT_ENB | 0);
+	CSR_WRITE_2(sc, XL_COMMAND, XL_CMD_INTR_ENB | 0);
 	if (sc->xl_flags & XL_FLAG_FUNCREG)
 		bus_space_write_4(sc->xl_ftag, sc->xl_fhandle, 4, 0x8000);
 
@@ -3226,7 +3219,7 @@ xl_shutdown(device_t dev)
 static int
 xl_suspend(device_t dev)
 {
-	struct xl_softc		*sc;
+	struct xl_softc *sc;
 
 	sc = device_get_softc(dev);
 
@@ -3241,8 +3234,8 @@ xl_suspend(device_t dev)
 static int
 xl_resume(device_t dev)
 {
-	struct xl_softc		*sc;
-	if_t			ifp;
+	struct xl_softc *sc;
+	if_t ifp;
 
 	sc = device_get_softc(dev);
 	ifp = sc->xl_ifp;
@@ -3262,8 +3255,8 @@ xl_resume(device_t dev)
 static void
 xl_setwol(struct xl_softc *sc)
 {
-	if_t			ifp;
-	u_int16_t		cfg, pmstat;
+	if_t ifp;
+	u_int16_t cfg, pmstat;
 
 	if ((sc->xl_flags & XL_FLAG_WOL) == 0)
 		return;
@@ -3280,12 +3273,12 @@ xl_setwol(struct xl_softc *sc)
 	if ((if_getcapenable(ifp) & IFCAP_WOL_MAGIC) != 0)
 		CSR_WRITE_2(sc, XL_COMMAND, XL_CMD_RX_ENABLE);
 	/* Request PME. */
-	pmstat = pci_read_config(sc->xl_dev,
-	    sc->xl_pmcap + PCIR_POWER_STATUS, 2);
+	pmstat = pci_read_config(sc->xl_dev, sc->xl_pmcap + PCIR_POWER_STATUS,
+	    2);
 	if ((if_getcapenable(ifp) & IFCAP_WOL_MAGIC) != 0)
 		pmstat |= PCIM_PSTAT_PMEENABLE;
 	else
 		pmstat &= ~PCIM_PSTAT_PMEENABLE;
-	pci_write_config(sc->xl_dev,
-	    sc->xl_pmcap + PCIR_POWER_STATUS, pmstat, 2);
+	pci_write_config(sc->xl_dev, sc->xl_pmcap + PCIR_POWER_STATUS, pmstat,
+	    2);
 }

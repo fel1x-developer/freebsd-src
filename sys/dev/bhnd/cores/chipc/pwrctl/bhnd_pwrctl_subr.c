@@ -2,14 +2,14 @@
  * Copyright (c) 2016 Landon Fuller <landonf@FreeBSD.org>
  * Copyright (c) 2010, Broadcom Corporation.
  * All rights reserved.
- * 
+ *
  * This file is derived from the siutils.c source distributed with the
  * Asus RT-N16 firmware source code release.
- * 
+ *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
@@ -22,27 +22,24 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/limits.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
-#include <sys/systm.h>
 
 #include <dev/bhnd/bhnd.h>
 #include <dev/bhnd/bhndb/bhndb_pcireg.h>
-
 #include <dev/bhnd/cores/chipc/chipc.h>
 #include <dev/bhnd/cores/chipc/chipcreg.h>
-
-#include <dev/bhnd/cores/pmu/bhnd_pmuvar.h>
 #include <dev/bhnd/cores/pmu/bhnd_pmureg.h>
+#include <dev/bhnd/cores/pmu/bhnd_pmuvar.h>
 
 #include "bhnd_chipc_if.h"
-
 #include "bhnd_pwrctl_private.h"
 
-static uint32_t	bhnd_pwrctl_factor6(uint32_t x);
+static uint32_t bhnd_pwrctl_factor6(uint32_t x);
 
 /**
  * Return the factor value corresponding to a given N3M clock control magic
@@ -52,13 +49,13 @@ static uint32_t
 bhnd_pwrctl_factor6(uint32_t x)
 {
 	switch (x) {
-	case CHIPC_F6_2:	
+	case CHIPC_F6_2:
 		return (2);
-	case CHIPC_F6_3:	
+	case CHIPC_F6_3:
 		return (3);
-	case CHIPC_F6_4:	
+	case CHIPC_F6_4:
 		return (4);
-	case CHIPC_F6_5:	
+	case CHIPC_F6_5:
 		return (5);
 	case CHIPC_F6_6:
 		return (6);
@@ -79,8 +76,8 @@ bhnd_pwrctl_factor6(uint32_t x)
  * speed for this device.
  */
 bus_size_t
-bhnd_pwrctl_si_clkreg_m(const struct bhnd_chipid *cid,
-    uint8_t pll_type, uint32_t *fixed_hz)
+bhnd_pwrctl_si_clkreg_m(const struct bhnd_chipid *cid, uint8_t pll_type,
+    uint32_t *fixed_hz)
 {
 	switch (pll_type) {
 	case CHIPC_PLL_TYPE6:
@@ -95,15 +92,15 @@ bhnd_pwrctl_si_clkreg_m(const struct bhnd_chipid *cid,
 /**
  * Calculate the backplane clock speed (in Hz) for a given a set of clock
  * control values.
- * 
+ *
  * @param cid Chip identification.
  * @param pll_type PLL type (CHIPC_PLL_TYPE*)
  * @param n clock control N register value.
  * @param m clock control M register value.
  */
 uint32_t
-bhnd_pwrctl_si_clock_rate(const struct bhnd_chipid *cid,
-    uint32_t pll_type, uint32_t n, uint32_t m)
+bhnd_pwrctl_si_clock_rate(const struct bhnd_chipid *cid, uint32_t pll_type,
+    uint32_t n, uint32_t m)
 {
 	uint32_t rate;
 
@@ -120,15 +117,15 @@ bhnd_pwrctl_si_clock_rate(const struct bhnd_chipid *cid,
 /**
  * Return the CPU clock's chipc 'M' register offset for a given PLL type,
  * or 0 if a fixed clock speed should be used.
- * 
+ *
  * @param cid Chip identification.
  * @param pll_type PLL type (CHIPC_PLL_TYPE*)
  * @param[out] fixed_hz If 0 is returned, will be set to the fixed clock
  * speed for this device.
  */
 bus_size_t
-bhnd_pwrctl_cpu_clkreg_m(const struct bhnd_chipid *cid,
-    uint8_t pll_type, uint32_t *fixed_hz)
+bhnd_pwrctl_cpu_clkreg_m(const struct bhnd_chipid *cid, uint8_t pll_type,
+    uint32_t *fixed_hz)
 {
 	switch (pll_type) {
 	case CHIPC_PLL_TYPE2:
@@ -161,15 +158,15 @@ bhnd_pwrctl_cpu_clkreg_m(const struct bhnd_chipid *cid,
 /**
  * Calculate the CPU clock speed (in Hz) for a given a set of clock control
  * values.
- * 
+ *
  * @param cid Chip identification.
  * @param pll_type PLL type (CHIPC_PLL_TYPE*)
  * @param n clock control N register value.
  * @param m clock control M register value.
  */
 uint32_t
-bhnd_pwrctl_cpu_clock_rate(const struct bhnd_chipid *cid,
-    uint32_t pll_type, uint32_t n, uint32_t m)
+bhnd_pwrctl_cpu_clock_rate(const struct bhnd_chipid *cid, uint32_t pll_type,
+    uint32_t n, uint32_t m)
 {
 	KASSERT(bhnd_pwrctl_cpu_clkreg_m(cid, pll_type, NULL) != 0,
 	    ("can't compute clock rate on fixed clock"));
@@ -180,7 +177,7 @@ bhnd_pwrctl_cpu_clock_rate(const struct bhnd_chipid *cid,
 /**
  * Calculate the clock speed (in Hz) for a given a set of clockcontrol
  * values.
- * 
+ *
  * @param pll_type PLL type (CHIPC_PLL_TYPE*)
  * @param n clock control N register value.
  * @param m clock control M register value.
@@ -209,7 +206,7 @@ bhnd_pwrctl_clock_rate(uint32_t pll_type, uint32_t n, uint32_t m)
 		KASSERT(n1 >= 2 && n1 <= 7, ("invalid n1 value"));
 		KASSERT(n2 >= 5 && n2 <= 23, ("invalid n2 value"));
 		break;
-		
+
 	case CHIPC_PLL_TYPE5:
 		return (100000000);
 
@@ -255,11 +252,11 @@ bhnd_pwrctl_clock_rate(uint32_t pll_type, uint32_t n, uint32_t m)
 		m3 = bhnd_pwrctl_factor6(m3);
 
 		switch (mc) {
-		case CHIPC_MC_BYPASS:	
+		case CHIPC_MC_BYPASS:
 			return (clock);
-		case CHIPC_MC_M1:	
+		case CHIPC_MC_M1:
 			return (clock / m1);
-		case CHIPC_MC_M1M2:	
+		case CHIPC_MC_M1M2:
 			return (clock / (m1 * m2));
 		case CHIPC_MC_M1M2M3:
 			return (clock / (m1 * m2 * m3));
@@ -292,17 +289,17 @@ bhnd_pwrctl_clock_rate(uint32_t pll_type, uint32_t n, uint32_t m)
 
 /**
  * Return the backplane clock speed in Hz.
- * 
+ *
  * @param sc driver instance state.
  */
 uint32_t
 bhnd_pwrctl_getclk_speed(struct bhnd_pwrctl_softc *sc)
 {
-	const struct bhnd_chipid	*cid;
-	struct chipc_caps		*ccaps;
-	bus_size_t			 creg;
-	uint32_t 			 n, m;
-	uint32_t 			 rate;
+	const struct bhnd_chipid *cid;
+	struct chipc_caps *ccaps;
+	bus_size_t creg;
+	uint32_t n, m;
+	uint32_t rate;
 
 	PWRCTL_LOCK_ASSERT(sc, MA_OWNED);
 
@@ -357,9 +354,9 @@ bhnd_pwrctl_slowclk_src(struct bhnd_pwrctl_softc *sc)
 static uint32_t
 bhnd_pwrctl_slowclk_freq(struct bhnd_pwrctl_softc *sc, bool max_freq)
 {
-	bhnd_clksrc	slowclk;
-	uint32_t	div;
-	uint32_t	hz;
+	bhnd_clksrc slowclk;
+	uint32_t div;
+	uint32_t hz;
 
 	slowclk = bhnd_pwrctl_slowclk_src(sc);
 
@@ -411,10 +408,10 @@ bhnd_pwrctl_slowclk_freq(struct bhnd_pwrctl_softc *sc, bool max_freq)
 int
 bhnd_pwrctl_init(struct bhnd_pwrctl_softc *sc)
 {
-	uint32_t	clkctl;
-	uint32_t	pll_delay, slowclk, slowmaxfreq;
-	uint32_t 	pll_on_delay, fref_sel_delay;
-	int		error;
+	uint32_t clkctl;
+	uint32_t pll_delay, slowclk, slowmaxfreq;
+	uint32_t pll_on_delay, fref_sel_delay;
+	int error;
 
 	pll_delay = CHIPC_PLL_DELAY;
 
@@ -425,9 +422,9 @@ bhnd_pwrctl_init(struct bhnd_pwrctl_softc *sc)
 		bhnd_bus_write_4(sc->res, CHIPC_SYS_CLK_CTL, clkctl);
 	}
 
-	/* 
+	/*
 	 * Initialize PLL/FREF delays.
-	 * 
+	 *
 	 * If the slow clock is not sourced by the xtal, include the
 	 * delay required to bring it up.
 	 */
@@ -478,10 +475,10 @@ bhnd_pwrctl_fast_pwrup_delay(struct bhnd_pwrctl_softc *sc)
 
 /**
  * Distribute @p clock on backplane.
- * 
+ *
  * @param sc Driver instance state.
  * @param clock Clock to enable.
- * 
+ *
  * @retval 0 success
  * @retval ENODEV If @p clock is unsupported, or if the device does not
  * 		  support dynamic clock control.
@@ -489,7 +486,7 @@ bhnd_pwrctl_fast_pwrup_delay(struct bhnd_pwrctl_softc *sc)
 int
 bhnd_pwrctl_setclk(struct bhnd_pwrctl_softc *sc, bhnd_clock clock)
 {
-	uint32_t	scc;
+	uint32_t scc;
 
 	PWRCTL_LOCK_ASSERT(sc, MA_OWNED);
 
@@ -528,7 +525,7 @@ bhnd_pwrctl_setclk(struct bhnd_pwrctl_softc *sc, bhnd_clock clock)
 			bhnd_bus_write_4(sc->res, CHIPC_SYS_CLK_CTL, scc);
 		DELAY(CHIPC_PLL_DELAY);
 
-		break;		
+		break;
 
 	case BHND_CLOCK_DYN:
 		/* enable dynamic clock control */

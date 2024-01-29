@@ -6,31 +6,31 @@
  * Copyright (c) 2009, Sun Microsystems, Inc.
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
+ * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * - Redistributions of source code must retain the above copyright notice, 
+ * - Redistributions of source code must retain the above copyright notice,
  *   this list of conditions and the following disclaimer.
- * - Redistributions in binary form must reproduce the above copyright notice, 
- *   this list of conditions and the following disclaimer in the documentation 
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
  *   and/or other materials provided with the distribution.
- * - Neither the name of Sun Microsystems, Inc. nor the names of its 
- *   contributors may be used to endorse or promote products derived 
+ * - Neither the name of Sun Microsystems, Inc. nor the names of its
+ *   contributors may be used to endorse or promote products derived
  *   from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*
- * Copyright (c) 1986-1991 by Sun Microsystems Inc. 
+ * Copyright (c) 1986-1991 by Sun Microsystems Inc.
  */
 
 #include <sys/cdefs.h>
@@ -42,6 +42,7 @@
 #include "opt_inet6.h"
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
@@ -49,66 +50,54 @@
 #include <sys/proc.h>
 #include <sys/protosw.h>
 #include <sys/sbuf.h>
-#include <sys/systm.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 #include <sys/syslog.h>
-
-#include <net/vnet.h>
-
-#include <rpc/rpc.h>
-#include <rpc/nettype.h>
-#include <rpc/rpcsec_gss.h>
-#include <rpc/rpcsec_tls.h>
-
-#include <rpc/rpc_com.h>
-#include <rpc/krpc.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
 #include <vm/vm_param.h>
 
-extern	u_long sb_max_adj;	/* not defined in socketvar.h */
+#include <net/vnet.h>
+
+#include <rpc/krpc.h>
+#include <rpc/nettype.h>
+#include <rpc/rpc.h>
+#include <rpc/rpc_com.h>
+#include <rpc/rpcsec_gss.h>
+#include <rpc/rpcsec_tls.h>
+
+extern u_long sb_max_adj; /* not defined in socketvar.h */
 
 /* Provide an entry point hook for the rpcsec_gss module. */
-struct rpc_gss_entries	rpc_gss_entries;
+struct rpc_gss_entries rpc_gss_entries;
 
 struct handle {
 	NCONF_HANDLE *nhandle;
-	int nflag;		/* Whether NETPATH or NETCONFIG */
+	int nflag; /* Whether NETPATH or NETCONFIG */
 	int nettype;
 };
 
 static const struct _rpcnettype {
 	const char *name;
 	const int type;
-} _rpctypelist[] = {
-	{ "netpath", _RPC_NETPATH },
-	{ "visible", _RPC_VISIBLE },
-	{ "circuit_v", _RPC_CIRCUIT_V },
-	{ "datagram_v", _RPC_DATAGRAM_V },
-	{ "circuit_n", _RPC_CIRCUIT_N },
-	{ "datagram_n", _RPC_DATAGRAM_N },
-	{ "tcp", _RPC_TCP },
-	{ "udp", _RPC_UDP },
-	{ 0, _RPC_NONE }
-};
+} _rpctypelist[] = { { "netpath", _RPC_NETPATH }, { "visible", _RPC_VISIBLE },
+	{ "circuit_v", _RPC_CIRCUIT_V }, { "datagram_v", _RPC_DATAGRAM_V },
+	{ "circuit_n", _RPC_CIRCUIT_N }, { "datagram_n", _RPC_DATAGRAM_N },
+	{ "tcp", _RPC_TCP }, { "udp", _RPC_UDP }, { 0, _RPC_NONE } };
 
 struct netid_af {
-	const char	*netid;
-	int		af;
-	int		protocol;
+	const char *netid;
+	int af;
+	int protocol;
 };
 
-static const struct netid_af na_cvt[] = {
-	{ "udp",  AF_INET,  IPPROTO_UDP },
-	{ "tcp",  AF_INET,  IPPROTO_TCP },
+static const struct netid_af na_cvt[] = { { "udp", AF_INET, IPPROTO_UDP },
+	{ "tcp", AF_INET, IPPROTO_TCP },
 #ifdef INET6
-	{ "udp6", AF_INET6, IPPROTO_UDP },
-	{ "tcp6", AF_INET6, IPPROTO_TCP },
+	{ "udp6", AF_INET6, IPPROTO_UDP }, { "tcp6", AF_INET6, IPPROTO_TCP },
 #endif
-	{ "local", AF_LOCAL, 0 }
-};
+	{ "local", AF_LOCAL, 0 } };
 
 struct rpc_createerr rpc_createerr;
 
@@ -123,7 +112,7 @@ __rpc_get_t_size(int af, int proto, int size)
 
 	switch (proto) {
 	case IPPROTO_TCP:
-		defsize = 64 * 1024;	/* XXX */
+		defsize = 64 * 1024; /* XXX */
 		break;
 	case IPPROTO_UDP:
 		defsize = UDPMSGSIZE;
@@ -147,13 +136,13 @@ __rpc_get_a_size(int af)
 {
 	switch (af) {
 	case AF_INET:
-		return sizeof (struct sockaddr_in);
+		return sizeof(struct sockaddr_in);
 #ifdef INET6
 	case AF_INET6:
-		return sizeof (struct sockaddr_in6);
+		return sizeof(struct sockaddr_in6);
 #endif
 	case AF_LOCAL:
-		return sizeof (struct sockaddr_un);
+		return sizeof(struct sockaddr_un);
 	default:
 		break;
 	}
@@ -233,14 +222,14 @@ __rpc_nconf2sockinfo(const struct netconfig *nconf, struct __rpc_sockinfo *sip)
 {
 	int i;
 
-	for (i = 0; i < (sizeof na_cvt) / (sizeof (struct netid_af)); i++)
-		if (strcmp(na_cvt[i].netid, nconf->nc_netid) == 0 || (
-		    strcmp(nconf->nc_netid, "unix") == 0 &&
-		    strcmp(na_cvt[i].netid, "local") == 0)) {
+	for (i = 0; i < (sizeof na_cvt) / (sizeof(struct netid_af)); i++)
+		if (strcmp(na_cvt[i].netid, nconf->nc_netid) == 0 ||
+		    (strcmp(nconf->nc_netid, "unix") == 0 &&
+			strcmp(na_cvt[i].netid, "local") == 0)) {
 			sip->si_af = na_cvt[i].af;
 			sip->si_proto = na_cvt[i].protocol;
-			sip->si_socktype =
-			    __rpc_seman2socktype((int)nconf->nc_semantics);
+			sip->si_socktype = __rpc_seman2socktype(
+			    (int)nconf->nc_semantics);
 			if (sip->si_socktype == -1)
 				return 0;
 			sip->si_alen = __rpc_get_a_size(sip->si_af);
@@ -261,7 +250,7 @@ __rpc_nconf2socket(const struct netconfig *nconf)
 		return 0;
 
 	so = NULL;
-	error =  socreate(si.si_af, &so, si.si_socktype, si.si_proto,
+	error = socreate(si.si_af, &so, si.si_socktype, si.si_proto,
 	    curthread->td_ucred, curthread);
 
 	if (error)
@@ -284,7 +273,7 @@ struct netbuf *
 uaddr2taddr(const struct netconfig *nconf, const char *uaddr)
 {
 	struct __rpc_sockinfo si;
-	
+
 	if (!__rpc_nconf2sockinfo(nconf, &si))
 		return NULL;
 	return __rpc_uaddr2taddr_af(si.si_af, uaddr);
@@ -311,12 +300,11 @@ __rpc_taddr2uaddr_af(int af, const struct netbuf *nbuf)
 		if (nbuf->len < sizeof(*sin))
 			return NULL;
 		sin = nbuf->buf;
-		if (inet_ntop(af, &sin->sin_addr, namebuf, sizeof namebuf)
-		    == NULL)
+		if (inet_ntop(af, &sin->sin_addr, namebuf, sizeof namebuf) ==
+		    NULL)
 			return NULL;
 		port = ntohs(sin->sin_port);
-		if (sbuf_printf(&sb, "%s.%u.%u", namebuf,
-			((uint32_t)port) >> 8,
+		if (sbuf_printf(&sb, "%s.%u.%u", namebuf, ((uint32_t)port) >> 8,
 			port & 0xff) < 0)
 			return NULL;
 		break;
@@ -325,19 +313,19 @@ __rpc_taddr2uaddr_af(int af, const struct netbuf *nbuf)
 		if (nbuf->len < sizeof(*sin6))
 			return NULL;
 		sin6 = nbuf->buf;
-		if (inet_ntop(af, &sin6->sin6_addr, namebuf6, sizeof namebuf6)
-		    == NULL)
+		if (inet_ntop(af, &sin6->sin6_addr, namebuf6,
+			sizeof namebuf6) == NULL)
 			return NULL;
 		port = ntohs(sin6->sin6_port);
 		if (sbuf_printf(&sb, "%s.%u.%u", namebuf6,
-			((uint32_t)port) >> 8,
-			port & 0xff) < 0)
+			((uint32_t)port) >> 8, port & 0xff) < 0)
 			return NULL;
 		break;
 #endif
 	case AF_LOCAL:
 		sun = nbuf->buf;
-		if (sbuf_printf(&sb, "%.*s", (int)(sun->sun_len -
+		if (sbuf_printf(&sb, "%.*s",
+			(int)(sun->sun_len -
 			    offsetof(struct sockaddr_un, sun_path)),
 			sun->sun_path) < 0)
 			return (NULL);
@@ -395,7 +383,7 @@ __rpc_uaddr2taddr_af(int af, const char *uaddr)
 	}
 
 	ret = (struct netbuf *)malloc(sizeof *ret, M_RPC, M_WAITOK);
-	
+
 	switch (af) {
 	case AF_INET:
 		sin = (struct sockaddr_in *)malloc(sizeof *sin, M_RPC,
@@ -490,7 +478,7 @@ getnettype(const char *nettype)
 	int i;
 
 	if ((nettype == NULL) || (nettype[0] == 0)) {
-		return (_RPC_NETPATH);	/* Default */
+		return (_RPC_NETPATH); /* Default */
 	}
 
 #if 0
@@ -511,8 +499,8 @@ struct netconfig *
 __rpc_getconfip(const char *nettype)
 {
 	char *netid;
-	static char *netid_tcp = (char *) NULL;
-	static char *netid_udp = (char *) NULL;
+	static char *netid_tcp = (char *)NULL;
+	static char *netid_udp = (char *)NULL;
 	struct netconfig *dummy;
 
 	if (!netid_udp && !netid_tcp) {
@@ -528,8 +516,8 @@ __rpc_getconfip(const char *nettype)
 				if (strcmp(nconf->nc_proto, NC_TCP) == 0) {
 					netid_tcp = strdup(nconf->nc_netid,
 					    M_RPC);
-				} else
-				if (strcmp(nconf->nc_proto, NC_UDP) == 0) {
+				} else if (strcmp(nconf->nc_proto, NC_UDP) ==
+				    0) {
 					netid_udp = strdup(nconf->nc_netid,
 					    M_RPC);
 				}
@@ -564,8 +552,8 @@ __rpc_setconf(const char *nettype)
 {
 	struct handle *handle;
 
-	handle = (struct handle *) malloc(sizeof (struct handle),
-	    M_RPC, M_WAITOK);
+	handle = (struct handle *)malloc(sizeof(struct handle), M_RPC,
+	    M_WAITOK);
 	switch (handle->nettype = getnettype(nettype)) {
 	case _RPC_NETPATH:
 	case _RPC_CIRCUIT_N:
@@ -580,7 +568,7 @@ __rpc_setconf(const char *nettype)
 	case _RPC_TCP:
 	case _RPC_UDP:
 		if (!(handle->nhandle = setnetconfig())) {
-		        log(LOG_ERR, "rpc: failed to open " NETCONFIG);
+			log(LOG_ERR, "rpc: failed to open " NETCONFIG);
 			goto failed;
 		}
 		handle->nflag = FALSE;
@@ -621,15 +609,15 @@ __rpc_getconf(void *vhandle)
 		if (nconf == NULL)
 			break;
 		if ((nconf->nc_semantics != NC_TPI_CLTS) &&
-			(nconf->nc_semantics != NC_TPI_COTS) &&
-			(nconf->nc_semantics != NC_TPI_COTS_ORD))
+		    (nconf->nc_semantics != NC_TPI_COTS) &&
+		    (nconf->nc_semantics != NC_TPI_COTS_ORD))
 			continue;
 		switch (handle->nettype) {
 		case _RPC_VISIBLE:
 			if (!(nconf->nc_flag & NC_VISIBLE))
 				continue;
 			/* FALLTHROUGH */
-		case _RPC_NETPATH:	/* Be happy */
+		case _RPC_NETPATH: /* Be happy */
 			break;
 		case _RPC_CIRCUIT_V:
 			if (!(nconf->nc_flag & NC_VISIBLE))
@@ -637,7 +625,7 @@ __rpc_getconf(void *vhandle)
 			/* FALLTHROUGH */
 		case _RPC_CIRCUIT_N:
 			if ((nconf->nc_semantics != NC_TPI_COTS) &&
-				(nconf->nc_semantics != NC_TPI_COTS_ORD))
+			    (nconf->nc_semantics != NC_TPI_COTS_ORD))
 				continue;
 			break;
 		case _RPC_DATAGRAM_V:
@@ -651,26 +639,24 @@ __rpc_getconf(void *vhandle)
 		case _RPC_TCP:
 			if (((nconf->nc_semantics != NC_TPI_COTS) &&
 				(nconf->nc_semantics != NC_TPI_COTS_ORD)) ||
-				(strcmp(nconf->nc_protofmly, NC_INET)
+			    (strcmp(nconf->nc_protofmly, NC_INET)
 #ifdef INET6
-				 && strcmp(nconf->nc_protofmly, NC_INET6))
+				&& strcmp(nconf->nc_protofmly, NC_INET6))
 #else
-				)
+				    )
 #endif
-				||
-				strcmp(nconf->nc_proto, NC_TCP))
+			    || strcmp(nconf->nc_proto, NC_TCP))
 				continue;
 			break;
 		case _RPC_UDP:
 			if ((nconf->nc_semantics != NC_TPI_CLTS) ||
-				(strcmp(nconf->nc_protofmly, NC_INET)
+			    (strcmp(nconf->nc_protofmly, NC_INET)
 #ifdef INET6
 				&& strcmp(nconf->nc_protofmly, NC_INET6))
 #else
-				)
+				    )
 #endif
-				||
-				strcmp(nconf->nc_proto, NC_UDP))
+			    || strcmp(nconf->nc_proto, NC_UDP))
 				continue;
 			break;
 		}
@@ -684,7 +670,7 @@ __rpc_endconf(void *vhandle)
 {
 	struct handle *handle;
 
-	handle = (struct handle *) vhandle;
+	handle = (struct handle *)vhandle;
 	if (handle == NULL) {
 		return;
 	}
@@ -703,21 +689,21 @@ __rpc_sockisbound(struct socket *so)
 		return (0);
 
 	switch (ss.ss_family) {
-		case AF_INET:
-			bound = (((struct sockaddr_in *)&ss)->sin_port != 0);
-			break;
+	case AF_INET:
+		bound = (((struct sockaddr_in *)&ss)->sin_port != 0);
+		break;
 #ifdef INET6
-		case AF_INET6:
-			bound = (((struct sockaddr_in6 *)&ss)->sin6_port != 0);
-			break;
+	case AF_INET6:
+		bound = (((struct sockaddr_in6 *)&ss)->sin6_port != 0);
+		break;
 #endif
-		case AF_LOCAL:
-			/* XXX check this */
-			bound = (((struct sockaddr_un *)&ss)->sun_path[0] != '\0');
-			break;
-		default:
-			bound = FALSE;
-			break;
+	case AF_LOCAL:
+		/* XXX check this */
+		bound = (((struct sockaddr_un *)&ss)->sun_path[0] != '\0');
+		break;
+	default:
+		bound = FALSE;
+		break;
 	}
 
 	return bound;
@@ -727,15 +713,14 @@ __rpc_sockisbound(struct socket *so)
  * Implement XDR-style API for RPC call.
  */
 enum clnt_stat
-clnt_call_private(
-	CLIENT		*cl,		/* client handle */
-	struct rpc_callextra *ext,	/* call metadata */
-	rpcproc_t	proc,		/* procedure number */
-	xdrproc_t	xargs,		/* xdr routine for args */
-	void		*argsp,		/* pointer to args */
-	xdrproc_t	xresults,	/* xdr routine for results */
-	void		*resultsp,	/* pointer to results */
-	struct timeval	utimeout)	/* seconds to wait before giving up */
+clnt_call_private(CLIENT *cl,  /* client handle */
+    struct rpc_callextra *ext, /* call metadata */
+    rpcproc_t proc,	       /* procedure number */
+    xdrproc_t xargs,	       /* xdr routine for args */
+    void *argsp,	       /* pointer to args */
+    xdrproc_t xresults,	       /* xdr routine for results */
+    void *resultsp,	       /* pointer to results */
+    struct timeval utimeout)   /* seconds to wait before giving up */
 {
 	XDR xdrs;
 	struct mbuf *mreq;
@@ -870,9 +855,9 @@ _rpc_copym_into_ext_pgs(struct mbuf *mp, int maxextsiz)
 	struct mbuf *m, *m2, *m3, *mhead;
 	int tlen;
 
-	KASSERT((mp->m_flags & (M_EXT | M_EXTPG)) !=
-	    (M_EXT | M_EXTPG), ("_rpc_copym_into_ext_pgs:"
-	    " first mbuf is an ext_pgs"));
+	KASSERT((mp->m_flags & (M_EXT | M_EXTPG)) != (M_EXT | M_EXTPG),
+	    ("_rpc_copym_into_ext_pgs:"
+	     " first mbuf is an ext_pgs"));
 	/*
 	 * Find the last non-ext_pgs mbuf and the total
 	 * length of the non-ext_pgs mbuf(s).
@@ -893,8 +878,7 @@ _rpc_copym_into_ext_pgs(struct mbuf *mp, int maxextsiz)
 	 * mbuf list.
 	 */
 	m2->m_next = NULL;
-	mhead = mb_mapped_to_unmapped(mp, tlen, maxextsiz,
-	    M_WAITOK, &m2);
+	mhead = mb_mapped_to_unmapped(mp, tlen, maxextsiz, M_WAITOK, &m2);
 
 	/*
 	 * Link the ext_pgs list onto the newly copied
@@ -913,11 +897,12 @@ _rpc_copym_into_ext_pgs(struct mbuf *mp, int maxextsiz)
 	m2 = mhead;
 	tlen = 0;
 	while (m2 != NULL) {
-		KASSERT(m2->m_len >= 0, ("_rpc_copym_into_ext_pgs:"
-		    " negative m_len"));
-		KASSERT((m2->m_flags & (M_EXT | M_EXTPG)) ==
-		    (M_EXT | M_EXTPG), ("_rpc_copym_into_ext_pgs:"
-			    " non-nomap mbuf in list"));
+		KASSERT(m2->m_len >= 0,
+		    ("_rpc_copym_into_ext_pgs:"
+		     " negative m_len"));
+		KASSERT((m2->m_flags & (M_EXT | M_EXTPG)) == (M_EXT | M_EXTPG),
+		    ("_rpc_copym_into_ext_pgs:"
+		     " non-nomap mbuf in list"));
 		if (m2->m_len == 0) {
 			if (m3 != NULL)
 				m3->m_next = m2->m_next;

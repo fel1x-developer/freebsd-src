@@ -26,8 +26,8 @@
  * SUCH DAMAGE.
  */
 
-#include "opt_platform.h"
 #include "opt_ddb.h"
+#include "opt_platform.h"
 
 #include <sys/param.h>
 #include <sys/systm.h>
@@ -44,11 +44,12 @@
 #include <machine/cpu.h>
 #include <machine/machdep.h>
 #include <machine/metadata.h>
-#include <machine/vmparam.h>	/* For KERNVIRTADDR */
+#include <machine/vmparam.h> /* For KERNVIRTADDR */
 
 #ifdef FDT
-#include <contrib/libfdt/libfdt.h>
 #include <dev/fdt/fdt_common.h>
+
+#include <contrib/libfdt/libfdt.h>
 #endif
 
 #ifdef EFI
@@ -60,9 +61,9 @@
 #endif
 
 #ifdef DEBUG
-#define	debugf(fmt, args...) printf(fmt, ##args)
+#define debugf(fmt, args...) printf(fmt, ##args)
 #else
-#define	debugf(fmt, args...)
+#define debugf(fmt, args...)
 #endif
 
 #ifdef LINUX_BOOT_ABI
@@ -77,7 +78,7 @@ static char board_serial[32];
 static char *loader_envp;
 
 #if defined(LINUX_BOOT_ABI)
-#define LBABI_MAX_BANKS	10
+#define LBABI_MAX_BANKS 10
 #define CMDLINE_GUARD "FreeBSD:"
 static uint32_t board_id;
 static struct arm_lbabi_tag *atag_list;
@@ -87,21 +88,20 @@ static char atags[LBABI_MAX_COMMAND_LINE * 2];
 
 SYSCTL_NODE(_hw, OID_AUTO, board, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
     "Board attributes");
-SYSCTL_UINT(_hw_board, OID_AUTO, revision, CTLFLAG_RD,
-    &board_revision, 0, "Board revision");
-SYSCTL_STRING(_hw_board, OID_AUTO, serial, CTLFLAG_RD,
-    board_serial, 0, "Board serial");
+SYSCTL_UINT(_hw_board, OID_AUTO, revision, CTLFLAG_RD, &board_revision, 0,
+    "Board revision");
+SYSCTL_STRING(_hw_board, OID_AUTO, serial, CTLFLAG_RD, board_serial, 0,
+    "Board serial");
 
 int vfp_exists;
-SYSCTL_INT(_hw, HW_FLOATINGPT, floatingpoint, CTLFLAG_RD,
-    &vfp_exists, 0, "Floating point support enabled");
+SYSCTL_INT(_hw, HW_FLOATINGPT, floatingpoint, CTLFLAG_RD, &vfp_exists, 0,
+    "Floating point support enabled");
 
 void
 board_set_serial(uint64_t serial)
 {
 
-	snprintf(board_serial, sizeof(board_serial)-1,
-		    "%016jx", serial);
+	snprintf(board_serial, sizeof(board_serial) - 1, "%016jx", serial);
 }
 
 void
@@ -155,7 +155,7 @@ cmdline_set_env(char *cmdline, const char *guard)
 
 	/* Test and remove guard. */
 	if (guard != NULL && guard[0] != '\0') {
-		guard_len  =  strlen(guard);
+		guard_len = strlen(guard);
 		if (strncasecmp(cmdline, guard, guard_len) != 0)
 			return;
 		cmdline += guard_len;
@@ -167,12 +167,14 @@ cmdline_set_env(char *cmdline, const char *guard)
 /*
  * Called for armv6 and newer.
  */
-void arm_parse_fdt_bootargs(void)
+void
+arm_parse_fdt_bootargs(void)
 {
 
 #ifdef FDT
-	if (loader_envp == NULL && fdt_get_chosen_bootargs(linux_command_line,
-	    LBABI_MAX_COMMAND_LINE) == 0) {
+	if (loader_envp == NULL &&
+	    fdt_get_chosen_bootargs(linux_command_line,
+		LBABI_MAX_COMMAND_LINE) == 0) {
 		init_static_kenv(static_kenv, sizeof(static_kenv));
 		cmdline_set_env(linux_command_line, CMDLINE_GUARD);
 	}
@@ -355,11 +357,11 @@ fake_preload_metadata(struct arm_boot_params *abp __unused, void *dtb_ptr,
 
 	fake_preload[i++] = MODINFO_NAME;
 	fake_preload[i++] = strlen("kernel") + 1;
-	strcpy((char*)&fake_preload[i++], "kernel");
+	strcpy((char *)&fake_preload[i++], "kernel");
 	i += 1;
 	fake_preload[i++] = MODINFO_TYPE;
 	fake_preload[i++] = strlen("elf kernel") + 1;
-	strcpy((char*)&fake_preload[i++], "elf kernel");
+	strcpy((char *)&fake_preload[i++], "elf kernel");
 	i += 2;
 	fake_preload[i++] = MODINFO_ADDR;
 	fake_preload[i++] = sizeof(vm_offset_t);
@@ -396,23 +398,11 @@ arm_add_efi_map_entries(struct efi_map_header *efihdr, struct mem_region *mr,
 	size_t efisz;
 	int ndesc, i, j;
 
-	static const char *types[] = {
-		"Reserved",
-		"LoaderCode",
-		"LoaderData",
-		"BootServicesCode",
-		"BootServicesData",
-		"RuntimeServicesCode",
-		"RuntimeServicesData",
-		"ConventionalMemory",
-		"UnusableMemory",
-		"ACPIReclaimMemory",
-		"ACPIMemoryNVS",
-		"MemoryMappedIO",
-		"MemoryMappedIOPortSpace",
-		"PalCode",
-		"PersistentMemory"
-	};
+	static const char *types[] = { "Reserved", "LoaderCode", "LoaderData",
+		"BootServicesCode", "BootServicesData", "RuntimeServicesCode",
+		"RuntimeServicesData", "ConventionalMemory", "UnusableMemory",
+		"ACPIReclaimMemory", "ACPIMemoryNVS", "MemoryMappedIO",
+		"MemoryMappedIOPortSpace", "PalCode", "PersistentMemory" };
 
 	*mrcnt = 0;
 
@@ -428,11 +418,11 @@ arm_add_efi_map_entries(struct efi_map_header *efihdr, struct mem_region *mr,
 	ndesc = efihdr->memory_size / efihdr->descriptor_size;
 
 	if (boothowto & RB_VERBOSE)
-		printf("%23s %12s %12s %8s %4s\n",
-		    "Type", "Physical", "Virtual", "#Pages", "Attr");
+		printf("%23s %12s %12s %8s %4s\n", "Type", "Physical",
+		    "Virtual", "#Pages", "Attr");
 
-	for (i = 0, j = 0, p = map; i < ndesc; i++,
-	    p = efi_next_descriptor(p, efihdr->descriptor_size)) {
+	for (i = 0, j = 0, p = map; i < ndesc;
+	     i++, p = efi_next_descriptor(p, efihdr->descriptor_size)) {
 		if (boothowto & RB_VERBOSE) {
 			if (p->md_type < nitems(types))
 				type = types[p->md_type];

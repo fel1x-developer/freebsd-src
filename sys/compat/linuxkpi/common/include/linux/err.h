@@ -26,14 +26,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef	_LINUXKPI_LINUX_ERR_H_
-#define	_LINUXKPI_LINUX_ERR_H_
+#ifndef _LINUXKPI_LINUX_ERR_H_
+#define _LINUXKPI_LINUX_ERR_H_
 
 #include <sys/types.h>
 
 #include <linux/compiler.h>
 
-#define MAX_ERRNO	4095
+#define MAX_ERRNO 4095
 
 #define IS_ERR_VALUE(x) unlikely((x) >= (uintptr_t)-MAX_ERRNO)
 
@@ -78,4 +78,4 @@ PTR_ERR_OR_ZERO(const void *ptr)
 
 #define PTR_RET(p) PTR_ERR_OR_ZERO(p)
 
-#endif	/* _LINUXKPI_LINUX_ERR_H_ */
+#endif /* _LINUXKPI_LINUX_ERR_H_ */

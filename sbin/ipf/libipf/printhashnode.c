@@ -7,10 +7,9 @@
 
 #include "ipf.h"
 
-
 iphtent_t *
 printhashnode(iphtable_t *iph, iphtent_t *ipep, copyfunc_t copyfunc, int opts,
-	wordtab_t *fields)
+    wordtab_t *fields)
 {
 	iphtent_t ipe;
 	u_int hv;
@@ -20,7 +19,7 @@ printhashnode(iphtable_t *iph, iphtent_t *ipep, copyfunc_t copyfunc, int opts,
 		return (NULL);
 
 	hv = IPE_V4_HASH_FN(ipe.ipe_addr.i6[0], ipe.ipe_mask.i6[0],
-			    iph->iph_size);
+	    iph->iph_size);
 
 	if (fields != NULL) {
 		for (i = 0; fields[i].w_value != 0; i++) {
@@ -36,51 +35,51 @@ printhashnode(iphtable_t *iph, iphtent_t *ipep, copyfunc_t copyfunc, int opts,
 			const char *str;
 
 			buf[0] = '\0';
-			str = inet_ntop(AF_INET6, &ipe.ipe_addr.in6,
-				buf, sizeof(buf) - 1);
+			str = inet_ntop(AF_INET6, &ipe.ipe_addr.in6, buf,
+			    sizeof(buf) - 1);
 			if (str == NULL)
 				str = "???";
 			PRINTF("\t%d\tAddress: %s", hv, str);
-			printmask(ipe.ipe_family, (u_32_t *)&ipe.ipe_mask.in4_addr);
+			printmask(ipe.ipe_family,
+			    (u_32_t *)&ipe.ipe_mask.in4_addr);
 			PRINTF("\tRef. Count: %d\tGroup: %s\n", ipe.ipe_ref,
-				ipe.ipe_group);
+			    ipe.ipe_group);
 #ifdef USE_QUAD_T
-			PRINTF("\tHits: %"PRIu64"\tBytes: %"PRIu64"\n",
-			       ipe.ipe_hits, ipe.ipe_bytes);
+			PRINTF("\tHits: %" PRIu64 "\tBytes: %" PRIu64 "\n",
+			    ipe.ipe_hits, ipe.ipe_bytes);
 #else
-			PRINTF("\tHits: %lu\tBytes: %lu\n",
-			       ipe.ipe_hits, ipe.ipe_bytes);
+			PRINTF("\tHits: %lu\tBytes: %lu\n", ipe.ipe_hits,
+			    ipe.ipe_bytes);
 #endif /* USE_QUAD_T */
 		} else if (ipe.ipe_family == AF_INET) {
 #else
 		if (ipe.ipe_family == AF_INET) {
 #endif /* USE_INET6 */
 			PRINTF("\t%d\tAddress: %s", hv,
-				inet_ntoa(ipe.ipe_addr.in4));
-			printmask(ipe.ipe_family, (u_32_t *)&ipe.ipe_mask.in4_addr);
+			    inet_ntoa(ipe.ipe_addr.in4));
+			printmask(ipe.ipe_family,
+			    (u_32_t *)&ipe.ipe_mask.in4_addr);
 			PRINTF("\tRef. Count: %d\tGroup: %s\n", ipe.ipe_ref,
-				ipe.ipe_group);
+			    ipe.ipe_group);
 #ifdef USE_QUAD_T
-			PRINTF("\tHits: %"PRIu64"\tBytes: %"PRIu64"\n",
-			       ipe.ipe_hits, ipe.ipe_bytes);
+			PRINTF("\tHits: %" PRIu64 "\tBytes: %" PRIu64 "\n",
+			    ipe.ipe_hits, ipe.ipe_bytes);
 #else
-			PRINTF("\tHits: %lu\tBytes: %lu\n",
-			       ipe.ipe_hits, ipe.ipe_bytes);
+			PRINTF("\tHits: %lu\tBytes: %lu\n", ipe.ipe_hits,
+			    ipe.ipe_bytes);
 #endif /* USE_QUAD_T */
 		} else {
-			PRINTF("\tAddress: family: %d\n",
-				ipe.ipe_family);
+			PRINTF("\tAddress: family: %d\n", ipe.ipe_family);
 		}
 	} else {
 		putchar(' ');
 		printip(ipe.ipe_family, (u_32_t *)&ipe.ipe_addr.in4_addr);
 		printmask(ipe.ipe_family, (u_32_t *)&ipe.ipe_mask.in4_addr);
 		if (ipe.ipe_value != 0) {
-			switch (iph->iph_type & ~IPHASH_ANON)
-			{
-			case IPHASH_GROUPMAP :
+			switch (iph->iph_type & ~IPHASH_ANON) {
+			case IPHASH_GROUPMAP:
 				if (strncmp(ipe.ipe_group, iph->iph_name,
-					    FR_GROUPLEN))
+					FR_GROUPLEN))
 					PRINTF(", group=%s", ipe.ipe_group);
 				break;
 			}

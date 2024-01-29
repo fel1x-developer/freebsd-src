@@ -31,16 +31,16 @@
  */
 
 /* EXROM offsets for reading CIS */
-#define	CARDBUS_EXROM_SIGNATURE	0x00
-#define	CARDBUS_EXROM_DATA_PTR	0x18
+#define CARDBUS_EXROM_SIGNATURE 0x00
+#define CARDBUS_EXROM_DATA_PTR 0x18
 
-#define	CARDBUS_EXROM_DATA_SIGNATURE	0x00 /* Signature ("PCIR") */
-#define	CARDBUS_EXROM_DATA_VENDOR_ID	0x04 /* Vendor Identification */
-#define	CARDBUS_EXROM_DATA_DEVICE_ID	0x06 /* Device Identification */
-#define	CARDBUS_EXROM_DATA_LENGTH	0x0a /* PCI Data Structure Length */
-#define	CARDBUS_EXROM_DATA_REV		0x0c /* PCI Data Structure Revision */
-#define	CARDBUS_EXROM_DATA_CLASS_CODE	0x0d /* Class Code */
-#define	CARDBUS_EXROM_DATA_IMAGE_LENGTH	0x10 /* Image Length */
-#define	CARDBUS_EXROM_DATA_DATA_REV	0x12 /* Revision Level of Code/Data */
-#define	CARDBUS_EXROM_DATA_CODE_TYPE	0x14 /* Code Type */
-#define	CARDBUS_EXROM_DATA_INDICATOR	0x15 /* Indicator */
+#define CARDBUS_EXROM_DATA_SIGNATURE 0x00    /* Signature ("PCIR") */
+#define CARDBUS_EXROM_DATA_VENDOR_ID 0x04    /* Vendor Identification */
+#define CARDBUS_EXROM_DATA_DEVICE_ID 0x06    /* Device Identification */
+#define CARDBUS_EXROM_DATA_LENGTH 0x0a	     /* PCI Data Structure Length */
+#define CARDBUS_EXROM_DATA_REV 0x0c	     /* PCI Data Structure Revision */
+#define CARDBUS_EXROM_DATA_CLASS_CODE 0x0d   /* Class Code */
+#define CARDBUS_EXROM_DATA_IMAGE_LENGTH 0x10 /* Image Length */
+#define CARDBUS_EXROM_DATA_DATA_REV 0x12     /* Revision Level of Code/Data */
+#define CARDBUS_EXROM_DATA_CODE_TYPE 0x14    /* Code Type */
+#define CARDBUS_EXROM_DATA_INDICATOR 0x15    /* Indicator */

@@ -63,13 +63,12 @@
 #include <dev/isci/scil/sati_translator_sequence.h>
 
 #if !defined(DISABLE_SATI_REPORT_LUNS)
-SATI_STATUS sati_report_luns_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+SATI_STATUS
+sati_report_luns_translate_command(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io);
 #else // !(defined)DISABLE_SATI_REPORT_LUNS
-#define sati_report_luns_translate_command(sequence, scsi_io, ata_io) SATI_FAILURE
+#define sati_report_luns_translate_command(sequence, scsi_io, ata_io) \
+	SATI_FAILURE
 #endif // !(defined)DISABLE_SATI_REPORT_LUNS
 
 #endif // _SATI_REPORT_LUNS_H_

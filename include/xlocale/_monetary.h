@@ -30,7 +30,7 @@
 
 #ifndef _LOCALE_T_DEFINED
 #define _LOCALE_T_DEFINED
-typedef struct	_xlocale *locale_t;
+typedef struct _xlocale *locale_t;
 #endif
 
 #if __POSIX_VISIBLE >= 200809 || defined(_XLOCALE_H_)

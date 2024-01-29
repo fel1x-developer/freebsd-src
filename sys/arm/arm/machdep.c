@@ -1,4 +1,5 @@
-/*	$NetBSD: arm32_machdep.c,v 1.44 2004/03/24 15:34:47 atatat Exp $	*/
+/*	$NetBSD: arm32_machdep.c,v 1.44 2004/03/24 15:34:47 atatat Exp $
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-4-Clause
@@ -87,14 +88,15 @@
 #include <machine/vmparam.h>
 
 #ifdef FDT
-#include <dev/fdt/fdt_common.h>
 #include <machine/ofw_machdep.h>
+
+#include <dev/fdt/fdt_common.h>
 #endif
 
 #ifdef DEBUG
-#define	debugf(fmt, args...) printf(fmt, ##args)
+#define debugf(fmt, args...) printf(fmt, ##args)
 #else
-#define	debugf(fmt, args...)
+#define debugf(fmt, args...)
 #endif
 
 #if defined(COMPAT_FREEBSD4) || defined(COMPAT_FREEBSD5) || \
@@ -102,7 +104,6 @@
     defined(COMPAT_FREEBSD9)
 #error FreeBSD/arm doesn't provide compatibility with releases prior to 10
 #endif
-
 
 #if __ARM_ARCH < 6
 #error FreeBSD requires ARMv6 or later
@@ -149,7 +150,7 @@ extern unsigned int page0[], page0_data[];
 void
 arm_vector_init(vm_offset_t va, int which)
 {
-	unsigned int *vectors = (int *) va;
+	unsigned int *vectors = (int *)va;
 	unsigned int *vectors_data = vectors + (page0_data - page0);
 	int vec;
 
@@ -185,8 +186,7 @@ cpu_startup(void *dummy)
 	/*
 	 * Display the RAM layout.
 	 */
-	printf("real memory  = %ju (%ju MB)\n",
-	    (uintmax_t)arm32_ptob(realmem),
+	printf("real memory  = %ju (%ju MB)\n", (uintmax_t)arm32_ptob(realmem),
 	    (uintmax_t)arm32_ptob(realmem) / mbyte);
 	printf("avail memory = %ju (%ju MB)\n",
 	    (uintmax_t)arm32_ptob(vm_free_count()),
@@ -198,8 +198,7 @@ cpu_startup(void *dummy)
 
 	bufinit();
 	vm_pager_bufferinit();
-	pcb->pcb_regs.sf_sp = (u_int)thread0.td_kstack +
-	    USPACE_SVC_STACK_TOP;
+	pcb->pcb_regs.sf_sp = (u_int)thread0.td_kstack + USPACE_SVC_STACK_TOP;
 	pmap_set_pcb_pagedir(kernel_pmap, pcb);
 }
 
@@ -372,7 +371,8 @@ init_proc0(vm_offset_t kstack)
 	thread0.td_kstack = kstack;
 	thread0.td_kstack_pages = kstack_pages;
 	thread0.td_pcb = (struct pcb *)(thread0.td_kstack +
-	    thread0.td_kstack_pages * PAGE_SIZE) - 1;
+			     thread0.td_kstack_pages * PAGE_SIZE) -
+	    1;
 	thread0.td_pcb->pcb_flags = 0;
 	thread0.td_pcb->pcb_fpflags = 0;
 	thread0.td_pcb->pcb_vfpcpu = -1;
@@ -461,7 +461,8 @@ initarm(struct arm_boot_params *abp)
 #endif
 	{
 		/* Grab physical memory regions information from device tree. */
-		if (fdt_get_mem_regions(mem_regions, &mem_regions_sz,NULL) != 0)
+		if (fdt_get_mem_regions(mem_regions, &mem_regions_sz, NULL) !=
+		    0)
 			panic("Cannot get physical memory regions");
 	}
 	physmem_hardware_regions(mem_regions, mem_regions_sz);
@@ -486,8 +487,9 @@ initarm(struct arm_boot_params *abp)
 	 * Early printf does not work between the time pmap_set_tex() does
 	 * cp15_prrr_set() and this code remaps the VA.
 	 */
-#if defined(EARLY_PRINTF) && defined(SOCDEV_PA) && defined(SOCDEV_VA) && SOCDEV_VA < KERNBASE
-	pmap_preboot_map_attr(SOCDEV_PA, SOCDEV_VA, 1024 * 1024, 
+#if defined(EARLY_PRINTF) && defined(SOCDEV_PA) && defined(SOCDEV_VA) && \
+    SOCDEV_VA < KERNBASE
+	pmap_preboot_map_attr(SOCDEV_PA, SOCDEV_VA, 1024 * 1024,
 	    VM_PROT_READ | VM_PROT_WRITE, VM_MEMATTR_DEVICE);
 #endif
 
@@ -512,7 +514,7 @@ initarm(struct arm_boot_params *abp)
 	systempage = pmap_preboot_get_pages(1);
 
 	/* Map the vector page. */
-	pmap_preboot_map_pages(systempage, ARM_VECTORS_HIGH,  1);
+	pmap_preboot_map_pages(systempage, ARM_VECTORS_HIGH, 1);
 	if (virtual_end >= ARM_VECTORS_HIGH)
 		virtual_end = ARM_VECTORS_HIGH - 1;
 
@@ -521,9 +523,9 @@ initarm(struct arm_boot_params *abp)
 	dpcpu_init((void *)dpcpu, 0);
 
 	/* Allocate stacks for all modes */
-	irqstack    = pmap_preboot_get_vpages(IRQ_STACK_SIZE * MAXCPU);
-	abtstack    = pmap_preboot_get_vpages(ABT_STACK_SIZE * MAXCPU);
-	undstack    = pmap_preboot_get_vpages(UND_STACK_SIZE * MAXCPU );
+	irqstack = pmap_preboot_get_vpages(IRQ_STACK_SIZE * MAXCPU);
+	abtstack = pmap_preboot_get_vpages(ABT_STACK_SIZE * MAXCPU);
+	undstack = pmap_preboot_get_vpages(UND_STACK_SIZE * MAXCPU);
 	kernelstack = pmap_preboot_get_vpages(kstack_pages);
 
 	/* Allocate message buffer. */
@@ -558,7 +560,8 @@ initarm(struct arm_boot_params *abp)
 	 * If we made a mapping for EARLY_PRINTF after pmap_bootstrap_prepare(),
 	 * undo it now that the normal console printf works.
 	 */
-#if defined(EARLY_PRINTF) && defined(SOCDEV_PA) && defined(SOCDEV_VA) && SOCDEV_VA < KERNBASE
+#if defined(EARLY_PRINTF) && defined(SOCDEV_PA) && defined(SOCDEV_VA) && \
+    SOCDEV_VA < KERNBASE
 	pmap_kremove(SOCDEV_VA);
 #endif
 
@@ -580,15 +583,16 @@ initarm(struct arm_boot_params *abp)
 	platform_late_init();
 
 	root = OF_finddevice("/");
-	if (OF_getprop(root, "freebsd,dts-version", dts_version, sizeof(dts_version)) > 0) {
+	if (OF_getprop(root, "freebsd,dts-version", dts_version,
+		sizeof(dts_version)) > 0) {
 		if (strcmp(LINUX_DTS_VERSION, dts_version) != 0)
-			printf("WARNING: DTB version is %s while kernel expects %s, "
+			printf(
+			    "WARNING: DTB version is %s while kernel expects %s, "
 			    "please update the DTB in the ESP\n",
-			    dts_version,
-			    LINUX_DTS_VERSION);
+			    dts_version, LINUX_DTS_VERSION);
 	} else {
 		printf("WARNING: Cannot find freebsd,dts-version property, "
-		    "cannot check DTB compliance\n");
+		       "cannot check DTB compliance\n");
 	}
 
 	/*
@@ -616,7 +620,7 @@ initarm(struct arm_boot_params *abp)
 	 * Prepare the list of physical memory available to the vm subsystem.
 	 */
 	physmem_exclude_region(abp->abp_physaddr,
-		pmap_preboot_get_pages(0) - abp->abp_physaddr, EXFLAG_NOALLOC);
+	    pmap_preboot_get_pages(0) - abp->abp_physaddr, EXFLAG_NOALLOC);
 	physmem_init_kernel_globals();
 
 	init_param2(physmem);
@@ -627,6 +631,5 @@ initarm(struct arm_boot_params *abp)
 	/* Apply possible BP hardening. */
 	cpuinfo_init_bp_hardening();
 	return ((void *)STACKALIGN(thread0.td_pcb));
-
 }
 #endif /* FDT */

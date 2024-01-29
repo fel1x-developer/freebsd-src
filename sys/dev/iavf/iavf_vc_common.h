@@ -41,8 +41,8 @@
 
 #include "iavf_iflib.h"
 
-int iavf_send_pf_msg(struct iavf_sc *sc,
-	enum virtchnl_ops op, u8 *msg, u16 len);
+int iavf_send_pf_msg(struct iavf_sc *sc, enum virtchnl_ops op, u8 *msg,
+    u16 len);
 int iavf_verify_api_ver(struct iavf_sc *);
 int iavf_send_api_ver(struct iavf_sc *sc);
 int iavf_enable_queues(struct iavf_sc *sc);
@@ -60,21 +60,19 @@ int iavf_config_rss_key(struct iavf_sc *sc);
 int iavf_set_rss_hena(struct iavf_sc *sc);
 int iavf_config_rss_lut(struct iavf_sc *sc);
 int iavf_config_promisc_mode(struct iavf_sc *sc);
-void	*iavf_vc_get_op_chan(struct iavf_sc *sc, uint32_t request);
-int	iavf_vc_send_cmd(struct iavf_sc *sc, uint32_t request);
-const char * iavf_vc_stat_str(struct iavf_hw *hw,
+void *iavf_vc_get_op_chan(struct iavf_sc *sc, uint32_t request);
+int iavf_vc_send_cmd(struct iavf_sc *sc, uint32_t request);
+const char *iavf_vc_stat_str(struct iavf_hw *hw,
     enum virtchnl_status_code stat_err);
-const char *
-    iavf_vc_speed_to_string(enum virtchnl_link_speed link_speed);
-const char * iavf_vc_opcode_str(uint16_t op);
-void
-iavf_vc_completion(struct iavf_sc *sc,
-    enum virtchnl_ops v_opcode,
+const char *iavf_vc_speed_to_string(enum virtchnl_link_speed link_speed);
+const char *iavf_vc_opcode_str(uint16_t op);
+void iavf_vc_completion(struct iavf_sc *sc, enum virtchnl_ops v_opcode,
     enum virtchnl_status_code v_retval, u8 *msg, u16 msglen);
 enum iavf_ext_link_speed iavf_adv_speed_to_ext_speed(u32 adv_link_speed);
 u32 iavf_ext_speed_to_ifmedia(enum iavf_ext_link_speed link_speed);
-enum iavf_ext_link_speed iavf_vc_speed_to_ext_speed(enum virtchnl_link_speed link_speed);
-const char * iavf_ext_speed_to_str(enum iavf_ext_link_speed link_speed);
+enum iavf_ext_link_speed iavf_vc_speed_to_ext_speed(
+    enum virtchnl_link_speed link_speed);
+const char *iavf_ext_speed_to_str(enum iavf_ext_link_speed link_speed);
 
 int iavf_configure_queues(struct iavf_sc *sc);
 int iavf_map_queues(struct iavf_sc *sc);

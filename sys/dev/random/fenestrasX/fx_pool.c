@@ -26,37 +26,36 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/domainset.h>
 #include <sys/fail.h>
+#include <sys/kernel.h>
 #include <sys/limits.h>
 #include <sys/lock.h>
-#include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
 #include <sys/queue.h>
 #include <sys/random.h>
 #include <sys/sdt.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 #include <sys/taskqueue.h>
 
 #include <machine/atomic.h>
 #include <machine/smp.h>
-
-#include <dev/random/randomdev.h>
-#include <dev/random/random_harvestq.h>
 
 #include <dev/random/fenestrasX/fx_brng.h>
 #include <dev/random/fenestrasX/fx_hash.h>
 #include <dev/random/fenestrasX/fx_pool.h>
 #include <dev/random/fenestrasX/fx_priv.h>
 #include <dev/random/fenestrasX/fx_pub.h>
+#include <dev/random/random_harvestq.h>
+#include <dev/random/randomdev.h>
 
 /*
  * Timer-based reseed interval growth factor and limit in seconds. (§ 3.2)
  */
-#define	FXENT_RESSED_INTVL_GFACT	3
-#define	FXENT_RESEED_INTVL_MAX		3600
+#define FXENT_RESSED_INTVL_GFACT 3
+#define FXENT_RESEED_INTVL_MAX 3600
 
 /*
  * Pool reseed schedule.  Initially, only pool 0 is active.  Until the timer
@@ -67,13 +66,13 @@
  *
  * (Entropy harvesting only round robins across active pools.)
  */
-#define	FXENT_RESEED_BASE		3
+#define FXENT_RESEED_BASE 3
 
 /*
  * Number of bytes from high quality sources to allocate to pool 0 before
  * normal round-robin allocation after each timer reseed. (§ 3.4)
  */
-#define	FXENT_HI_SRC_POOL0_BYTES	32
+#define FXENT_HI_SRC_POOL0_BYTES 32
 
 /*
  * § 3.1
@@ -99,8 +98,8 @@ enum fxrng_ent_source_cls {
 	FXRNG_GARBAGE,
 };
 struct fxrng_ent_cls {
-	enum fxrng_ent_access_cls	entc_axx_cls;
-	enum fxrng_ent_source_cls	entc_src_cls;
+	enum fxrng_ent_access_cls entc_axx_cls;
+	enum fxrng_ent_source_cls entc_src_cls;
 };
 
 static const struct fxrng_ent_cls fxrng_hi_pull = {
@@ -126,7 +125,7 @@ static const struct fxrng_ent_cls fxrng_garbage = {
  * make more sense to pull this up into the abstraction layer instead.
  */
 static const struct fxrng_ent_char {
-	const struct fxrng_ent_cls	*entc_cls;
+	const struct fxrng_ent_cls *entc_cls;
 } fxrng_ent_char[ENTROPYSOURCE] = {
 	[RANDOM_CACHED] = {
 		.entc_cls = &fxrng_hi_push,
@@ -210,11 +209,11 @@ BITSET_DEFINE(fxrng_bits, ENTROPYSOURCE);
 
 /* XXX Borrowed from not-yet-committed D22702. */
 #ifndef BIT_TEST_SET_ATOMIC_ACQ
-#define	BIT_TEST_SET_ATOMIC_ACQ(_s, n, p)	\
-	(atomic_testandset_acq_long(		\
-	    &(p)->__bits[__bitset_word((_s), (n))], (n)) != 0)
+#define BIT_TEST_SET_ATOMIC_ACQ(_s, n, p)                                   \
+	(atomic_testandset_acq_long(&(p)->__bits[__bitset_word((_s), (n))], \
+	     (n)) != 0)
 #endif
-#define	FXENT_TEST_SET_ATOMIC_ACQ(n, p) \
+#define FXENT_TEST_SET_ATOMIC_ACQ(n, p) \
 	BIT_TEST_SET_ATOMIC_ACQ(ENTROPYSOURCE, n, p)
 
 /* For special behavior on first-time entropy sources. (§ 3.1) */
@@ -227,10 +226,10 @@ static uint8_t __read_mostly fxrng_reseed_seen[ENTROPYSOURCE];
 /* Entropy pools.  Lock order is ENT -> RNG(root) -> RNG(leaf). */
 static struct mtx fxent_pool_lk;
 MTX_SYSINIT(fx_pool, &fxent_pool_lk, "fx entropy pool lock", MTX_DEF);
-#define	FXENT_LOCK()		mtx_lock(&fxent_pool_lk)
-#define	FXENT_UNLOCK()		mtx_unlock(&fxent_pool_lk)
-#define	FXENT_ASSERT(rng)	mtx_assert(&fxent_pool_lk, MA_OWNED)
-#define	FXENT_ASSERT_NOT(rng)	mtx_assert(&fxent_pool_lk, MA_NOTOWNED)
+#define FXENT_LOCK() mtx_lock(&fxent_pool_lk)
+#define FXENT_UNLOCK() mtx_unlock(&fxent_pool_lk)
+#define FXENT_ASSERT(rng) mtx_assert(&fxent_pool_lk, MA_OWNED)
+#define FXENT_ASSERT_NOT(rng) mtx_assert(&fxent_pool_lk, MA_NOTOWNED)
 static struct fxrng_hash fxent_pool[FXRNG_NPOOLS];
 static unsigned __read_mostly fxent_nactpools = 1;
 static struct timeout_task fxent_reseed_timer;
@@ -371,8 +370,7 @@ fxrng_event_processor(struct harvest_event *event)
 	 * The first-32-byte tracking data in fxrng_reseed_seen is reset in
 	 * fxent_timer_reseed_npools() below.
 	 */
-	first_32 = event->he_size > 0 &&
-	    fxrng_hi_source(src) &&
+	first_32 = event->he_size > 0 && fxrng_hi_source(src) &&
 	    atomic_load_acq_int(&fxent_nactpools) > 1 &&
 	    fxrng_hi_pool0_eligible_racy(src);
 	if (__predict_false(first_32)) {
@@ -393,10 +391,10 @@ fxrng_event_processor(struct harvest_event *event)
 		 * round-robin'd across other pools.
 		 */
 		fxrng_hash_update(&fxent_pool[0],
-		    ((uint8_t *)event->he_entropy) + event->he_size - rem,
-		    rem);
+		    ((uint8_t *)event->he_entropy) + event->he_size - rem, rem);
 		if (rem == event->he_size) {
-			fxrng_hash_update(&fxent_pool[0], &event->he_somecounter,
+			fxrng_hash_update(&fxent_pool[0],
+			    &event->he_somecounter,
 			    sizeof(event->he_somecounter));
 			FXENT_UNLOCK();
 			return;
@@ -417,13 +415,12 @@ fxrng_event_processor(struct harvest_event *event)
 round_robin:
 	FXENT_ASSERT();
 	pool = event->he_destination % fxent_nactpools;
-	fxrng_hash_update(&fxent_pool[pool], event->he_entropy,
-	    event->he_size);
+	fxrng_hash_update(&fxent_pool[pool], event->he_entropy, event->he_size);
 	fxrng_hash_update(&fxent_pool[pool], &event->he_somecounter,
 	    sizeof(event->he_somecounter));
 
 	if (__predict_false(fxrng_hi_source(src) &&
-	    atomic_load_acq_64(&fxrng_root_generation) == 0)) {
+		atomic_load_acq_64(&fxrng_root_generation) == 0)) {
 		/* Prevent overflow. */
 		if (fxrng_preseed_ent <= ULONG_MAX - event->he_size)
 			fxrng_preseed_ent += event->he_size;
@@ -560,8 +557,8 @@ fxent_timer_reseed(void *ctx __unused, int pending __unused)
 		next_ival = reseed_intvl_sec;
 
 		/*
-		 * Pool 0 is used every reseed; pool 1..0 every 3rd reseed; and in
-		 * general, pool n..0 every 3^n reseeds.
+		 * Pool 0 is used every reseed; pool 1..0 every 3rd reseed; and
+		 * in general, pool n..0 every 3^n reseeds.
 		 */
 		k = reseed_number;
 		reseed_number++;

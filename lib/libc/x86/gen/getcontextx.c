@@ -28,21 +28,24 @@
 
 #include <sys/types.h>
 #include <sys/ucontext.h>
-#include <errno.h>
-#include <stdarg.h>
-#include <stdlib.h>
+
 #include <machine/cpufunc.h>
 #include <machine/specialreg.h>
 #include <machine/sysarch.h>
-#include <x86/ifunc.h>
+
 #include <x86/fpu.h>
+#include <x86/ifunc.h>
+
+#include <errno.h>
+#include <stdarg.h>
+#include <stdlib.h>
 
 #if defined __i386__
-#define	X86_GET_XFPUSTATE	I386_GET_XFPUSTATE
-typedef struct savexmm savex86_t ;
+#define X86_GET_XFPUSTATE I386_GET_XFPUSTATE
+typedef struct savexmm savex86_t;
 typedef struct i386_get_xfpustate x86_get_xfpustate_t;
 #elif defined __amd64__
-#define	X86_GET_XFPUSTATE	AMD64_GET_XFPUSTATE
+#define X86_GET_XFPUSTATE AMD64_GET_XFPUSTATE
 typedef struct savefpu savex86_t;
 typedef struct amd64_get_xfpustate x86_get_xfpustate_t;
 #else
@@ -100,8 +103,8 @@ __fillcontextx2_noxfpu(char *ctx)
 DEFINE_UIFUNC(, int, __fillcontextx2, (char *))
 {
 
-	return ((cpu_feature2 & CPUID2_OSXSAVE) != 0 ? __fillcontextx2_xfpu : 
-	    __fillcontextx2_noxfpu);
+	return ((cpu_feature2 & CPUID2_OSXSAVE) != 0 ? __fillcontextx2_xfpu :
+						       __fillcontextx2_noxfpu);
 }
 
 int

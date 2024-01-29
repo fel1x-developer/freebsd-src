@@ -12,7 +12,7 @@
  * no representations about the suitability of this software for any
  * purpose.  It is provided "as is" without express or implied
  * warranty.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY M.I.T. ``AS IS''.  M.I.T. DISCLAIMS
  * ALL EXPRESS OR IMPLIED WARRANTIES WITH REGARD TO THIS SOFTWARE,
  * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
@@ -28,35 +28,35 @@
  */
 
 static const char copyright[] =
-	"Copyright (C) 1997, Massachusetts Institute of Technology\r\n";
+    "Copyright (C) 1997, Massachusetts Institute of Technology\r\n";
 
-#include "lp.cdefs.h"		/* A cross-platform version of <sys/cdefs.h> */
 #include <sys/types.h>
+#include <sys/param.h> /* needed for lp.h but not used here */
 #include <sys/queue.h>
 #include <sys/stat.h>
 
+#include <dirent.h> /* ditto */
 #include <err.h>
 #include <errno.h>
 #include <grp.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
-#include <sys/param.h>		/* needed for lp.h but not used here */
-#include <dirent.h>		/* ditto */
+#include "lp.cdefs.h" /* A cross-platform version of <sys/cdefs.h> */
 #include "lp.h"
 #include "lp.local.h"
 #include "pathnames.h"
 #include "skimprintcap.h"
 
-static	void check_spool_dirs(void);
-static	int interpret_error(const struct printer *pp, int error);
-static	void make_spool_dir(const struct printer *pp);
-static	void note_spool_dir(const struct printer *pp, const struct stat *st);
-static	void usage(void) __dead2;
+static void check_spool_dirs(void);
+static int interpret_error(const struct printer *pp, int error);
+static void make_spool_dir(const struct printer *pp);
+static void note_spool_dir(const struct printer *pp, const struct stat *st);
+static void usage(void) __dead2;
 
-static	int problems;		/* number of problems encountered */
+static int problems; /* number of problems encountered */
 
 /*
  * chkprintcap - check the printcap file for syntactic and semantic errors
@@ -109,7 +109,7 @@ main(int argc, char **argv)
 	 * only generate warning messages.  The (fatal-) problem count will
 	 * only be incremented if there is a system problem trying to read
 	 * the printcap file.
-	*/
+	 */
 	skres = skim_printcap(pcap_fname, verbosity);
 	if (skres == NULL) {
 		problems = 1;
@@ -122,7 +122,7 @@ main(int argc, char **argv)
 	/*
 	 * Now use the standard capability-db routines to check the values
 	 * in each of the queues defined in the printcap file.
-	*/
+	 */
 	more = firstprinter(pp, &error);
 	if (interpret_error(pp, error) && more)
 		goto next;
@@ -145,7 +145,7 @@ main(int argc, char **argv)
 
 		/* Make other queue-specific validity checks here... */
 
-next:
+	next:
 		more = nextprinter(pp, &error);
 		if (interpret_error(pp, error) && more)
 			goto next;
@@ -173,7 +173,7 @@ main_ret:
 static int
 interpret_error(const struct printer *pp, int error)
 {
-	switch(error) {
+	switch (error) {
 	case PCAPERR_OSERR:
 		err(++problems, "reading printer database");
 	case PCAPERR_TCLOOP:
@@ -198,14 +198,14 @@ interpret_error(const struct printer *pp, int error)
  * st_ino, so that the problem spool directories can be noted in
  * a single loop.
  */
-struct	dirlist {
+struct dirlist {
 	LIST_ENTRY(dirlist) link;
 	struct stat stab;
 	char *path;
 	char *printer;
 };
 
-static	LIST_HEAD(, dirlist) dirlist;
+static LIST_HEAD(, dirlist) dirlist;
 
 static int
 lessp(const struct dirlist *a, const struct dirlist *b)
@@ -218,8 +218,8 @@ lessp(const struct dirlist *a, const struct dirlist *b)
 static int
 equal(const struct dirlist *a, const struct dirlist *b)
 {
-	return ((a->stab.st_dev == b->stab.st_dev)
-		&& (a->stab.st_ino == b->stab.st_ino));
+	return ((a->stab.st_dev == b->stab.st_dev) &&
+	    (a->stab.st_ino == b->stab.st_ino));
 }
 
 static void
@@ -230,7 +230,7 @@ note_spool_dir(const struct printer *pp, const struct stat *st)
 	dp = malloc(sizeof *dp);
 	if (dp == NULL)
 		err(++problems, "malloc(%lu)", (u_long)sizeof *dp);
-	
+
 	dp->stab = *st;
 	dp->printer = strdup(pp->printer);
 	if (dp->printer == 0)
@@ -238,10 +238,10 @@ note_spool_dir(const struct printer *pp, const struct stat *st)
 	dp->path = strdup(pp->spool_dir);
 	if (dp->path == 0)
 		err(++problems, "malloc(%lu)", strlen(pp->spool_dir) + 1UL);
-	
+
 	last = NULL;
-	LIST_FOREACH(dp2, &dirlist, link) {
-		if(!lessp(dp, dp2))
+	LIST_FOREACH (dp2, &dirlist, link) {
+		if (!lessp(dp, dp2))
 			break;
 		last = dp2;
 	}
@@ -265,11 +265,12 @@ check_spool_dirs(void)
 			++problems;
 			if (strcmp(dp->path, dp2->path) == 0) {
 				warnx("%s and %s share the same spool, %s",
-				      dp->printer, dp2->printer, dp->path);
+				    dp->printer, dp2->printer, dp->path);
 			} else {
 				warnx("%s (%s) and %s (%s) are the same "
-				      "directory", dp->path, dp->printer,
-				      dp2->path, dp2->printer);
+				      "directory",
+				    dp->path, dp->printer, dp2->path,
+				    dp2->printer);
 			}
 			continue;
 		}
@@ -278,8 +279,8 @@ check_spool_dirs(void)
 }
 
 #ifndef SPOOL_DIR_MODE
-#define	SPOOL_DIR_MODE	(S_IRUSR | S_IWUSR | S_IXUSR \
-			 | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)
+#define SPOOL_DIR_MODE \
+	(S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)
 #endif
 
 static void
@@ -301,7 +302,7 @@ make_spool_dir(const struct printer *pp)
 	if (chown(sd, pp->daemon_user, gr->gr_gid) < 0) {
 		++problems;
 		warn("%s: cannot change ownership to %ld:%ld", sd,
-		     (long)pp->daemon_user, (long)gr->gr_gid);
+		    (long)pp->daemon_user, (long)gr->gr_gid);
 		return;
 	}
 

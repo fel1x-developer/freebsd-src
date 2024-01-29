@@ -27,6 +27,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/callout.h>
 #include <sys/kernel.h>
@@ -35,96 +36,87 @@
 #include <sys/mutex.h>
 #include <sys/smp.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
-
-#include <machine/atomic.h>
-#include <machine/stdarg.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
 #include <vm/vm_extern.h>
 
+#include <machine/atomic.h>
+#include <machine/stdarg.h>
+
 #include <dev/hyperv/include/vmbus_xact.h>
 #include <dev/hyperv/vmbus/hyperv_var.h>
-#include <dev/hyperv/vmbus/vmbus_reg.h>
-#include <dev/hyperv/vmbus/vmbus_var.h>
 #include <dev/hyperv/vmbus/vmbus_brvar.h>
 #include <dev/hyperv/vmbus/vmbus_chanvar.h>
+#include <dev/hyperv/vmbus/vmbus_reg.h>
+#include <dev/hyperv/vmbus/vmbus_var.h>
 
 struct vmbus_chan_pollarg {
-	struct vmbus_channel	*poll_chan;
-	u_int			poll_hz;
+	struct vmbus_channel *poll_chan;
+	u_int poll_hz;
 };
 
-static void			vmbus_chan_update_evtflagcnt(
-				    struct vmbus_softc *,
-				    const struct vmbus_channel *);
-static int			vmbus_chan_close_internal(
-				    struct vmbus_channel *);
-static int			vmbus_chan_sysctl_mnf(SYSCTL_HANDLER_ARGS);
-static void			vmbus_chan_sysctl_create(
-				    struct vmbus_channel *);
-static struct vmbus_channel	*vmbus_chan_alloc(struct vmbus_softc *);
-static void			vmbus_chan_free(struct vmbus_channel *);
-static int			vmbus_chan_add(struct vmbus_channel *);
-static void			vmbus_chan_cpu_default(struct vmbus_channel *);
-static int			vmbus_chan_release(struct vmbus_channel *);
-static void			vmbus_chan_set_chmap(struct vmbus_channel *);
-static void			vmbus_chan_clear_chmap(struct vmbus_channel *);
-static void			vmbus_chan_detach(struct vmbus_channel *);
-static bool			vmbus_chan_wait_revoke(
-				    const struct vmbus_channel *, bool);
-static void			vmbus_chan_poll_timeout(void *);
-static bool			vmbus_chan_poll_cancel_intq(
-				    struct vmbus_channel *);
-static void			vmbus_chan_poll_cancel(struct vmbus_channel *);
+static void vmbus_chan_update_evtflagcnt(struct vmbus_softc *,
+    const struct vmbus_channel *);
+static int vmbus_chan_close_internal(struct vmbus_channel *);
+static int vmbus_chan_sysctl_mnf(SYSCTL_HANDLER_ARGS);
+static void vmbus_chan_sysctl_create(struct vmbus_channel *);
+static struct vmbus_channel *vmbus_chan_alloc(struct vmbus_softc *);
+static void vmbus_chan_free(struct vmbus_channel *);
+static int vmbus_chan_add(struct vmbus_channel *);
+static void vmbus_chan_cpu_default(struct vmbus_channel *);
+static int vmbus_chan_release(struct vmbus_channel *);
+static void vmbus_chan_set_chmap(struct vmbus_channel *);
+static void vmbus_chan_clear_chmap(struct vmbus_channel *);
+static void vmbus_chan_detach(struct vmbus_channel *);
+static bool vmbus_chan_wait_revoke(const struct vmbus_channel *, bool);
+static void vmbus_chan_poll_timeout(void *);
+static bool vmbus_chan_poll_cancel_intq(struct vmbus_channel *);
+static void vmbus_chan_poll_cancel(struct vmbus_channel *);
 
-static void			vmbus_chan_ins_prilist(struct vmbus_softc *,
-				    struct vmbus_channel *);
-static void			vmbus_chan_rem_prilist(struct vmbus_softc *,
-				    struct vmbus_channel *);
-static void			vmbus_chan_ins_list(struct vmbus_softc *,
-				    struct vmbus_channel *);
-static void			vmbus_chan_rem_list(struct vmbus_softc *,
-				    struct vmbus_channel *);
-static void			vmbus_chan_ins_sublist(struct vmbus_channel *,
-				    struct vmbus_channel *);
-static void			vmbus_chan_rem_sublist(struct vmbus_channel *,
-				    struct vmbus_channel *);
+static void vmbus_chan_ins_prilist(struct vmbus_softc *,
+    struct vmbus_channel *);
+static void vmbus_chan_rem_prilist(struct vmbus_softc *,
+    struct vmbus_channel *);
+static void vmbus_chan_ins_list(struct vmbus_softc *, struct vmbus_channel *);
+static void vmbus_chan_rem_list(struct vmbus_softc *, struct vmbus_channel *);
+static void vmbus_chan_ins_sublist(struct vmbus_channel *,
+    struct vmbus_channel *);
+static void vmbus_chan_rem_sublist(struct vmbus_channel *,
+    struct vmbus_channel *);
 
-static void			vmbus_chan_task(void *, int);
-static void			vmbus_chan_task_nobatch(void *, int);
-static void			vmbus_chan_poll_task(void *, int);
-static void			vmbus_chan_clrchmap_task(void *, int);
-static void			vmbus_chan_pollcfg_task(void *, int);
-static void			vmbus_chan_polldis_task(void *, int);
-static void			vmbus_chan_poll_cancel_task(void *, int);
-static void			vmbus_prichan_attach_task(void *, int);
-static void			vmbus_subchan_attach_task(void *, int);
-static void			vmbus_prichan_detach_task(void *, int);
-static void			vmbus_subchan_detach_task(void *, int);
+static void vmbus_chan_task(void *, int);
+static void vmbus_chan_task_nobatch(void *, int);
+static void vmbus_chan_poll_task(void *, int);
+static void vmbus_chan_clrchmap_task(void *, int);
+static void vmbus_chan_pollcfg_task(void *, int);
+static void vmbus_chan_polldis_task(void *, int);
+static void vmbus_chan_poll_cancel_task(void *, int);
+static void vmbus_prichan_attach_task(void *, int);
+static void vmbus_subchan_attach_task(void *, int);
+static void vmbus_prichan_detach_task(void *, int);
+static void vmbus_subchan_detach_task(void *, int);
 
-static void			vmbus_chan_msgproc_choffer(struct vmbus_softc *,
-				    const struct vmbus_message *);
-static void			vmbus_chan_msgproc_chrescind(
-				    struct vmbus_softc *,
-				    const struct vmbus_message *);
+static void vmbus_chan_msgproc_choffer(struct vmbus_softc *,
+    const struct vmbus_message *);
+static void vmbus_chan_msgproc_chrescind(struct vmbus_softc *,
+    const struct vmbus_message *);
 
-static int			vmbus_chan_printf(const struct vmbus_channel *,
-				    const char *, ...) __printflike(2, 3);
+static int vmbus_chan_printf(const struct vmbus_channel *, const char *, ...)
+    __printflike(2, 3);
 
 /*
  * Vmbus channel message processing.
  */
 static const vmbus_chanmsg_proc_t
-vmbus_chan_msgprocs[VMBUS_CHANMSG_TYPE_MAX] = {
-	VMBUS_CHANMSG_PROC(CHOFFER,	vmbus_chan_msgproc_choffer),
-	VMBUS_CHANMSG_PROC(CHRESCIND,	vmbus_chan_msgproc_chrescind),
+    vmbus_chan_msgprocs[VMBUS_CHANMSG_TYPE_MAX] = {
+	    VMBUS_CHANMSG_PROC(CHOFFER, vmbus_chan_msgproc_choffer),
+	    VMBUS_CHANMSG_PROC(CHRESCIND, vmbus_chan_msgproc_chrescind),
 
-	VMBUS_CHANMSG_PROC_WAKEUP(CHOPEN_RESP),
-	VMBUS_CHANMSG_PROC_WAKEUP(GPADL_CONNRESP),
-	VMBUS_CHANMSG_PROC_WAKEUP(GPADL_DISCONNRESP)
-};
+	    VMBUS_CHANMSG_PROC_WAKEUP(CHOPEN_RESP),
+	    VMBUS_CHANMSG_PROC_WAKEUP(GPADL_CONNRESP),
+	    VMBUS_CHANMSG_PROC_WAKEUP(GPADL_DISCONNRESP)
+    };
 
 /*
  * Notify host that there are data pending on our TX bufring or
@@ -137,14 +129,14 @@ vmbus_chan_signal(const struct vmbus_channel *chan)
 	if (chan->ch_txflags & VMBUS_CHAN_TXF_HASMNF)
 		atomic_set_int(chan->ch_montrig, chan->ch_montrig_mask);
 	else
-		hypercall_signal_event(pmap_kextract(
-		    (vm_offset_t)chan->ch_monprm));
+		hypercall_signal_event(
+		    pmap_kextract((vm_offset_t)chan->ch_monprm));
 }
 
 static __inline void
 vmbus_chan_signal_tx(struct vmbus_channel *chan)
 {
-	chan->ch_txbr.txbr_intrcnt ++;
+	chan->ch_txbr.txbr_intrcnt++;
 
 	vmbus_chan_signal(chan);
 }
@@ -152,7 +144,7 @@ vmbus_chan_signal_tx(struct vmbus_channel *chan)
 static __inline void
 vmbus_chan_signal_rx(struct vmbus_channel *chan)
 {
-	chan->ch_rxbr.rxbr_intrcnt ++;
+	chan->ch_rxbr.rxbr_intrcnt++;
 
 	vmbus_chan_signal(chan);
 }
@@ -163,7 +155,7 @@ vmbus_chan_ins_prilist(struct vmbus_softc *sc, struct vmbus_channel *chan)
 
 	mtx_assert(&sc->vmbus_prichan_lock, MA_OWNED);
 	if (atomic_testandset_int(&chan->ch_stflags,
-	    VMBUS_CHAN_ST_ONPRIL_SHIFT))
+		VMBUS_CHAN_ST_ONPRIL_SHIFT))
 		panic("channel is already on the prilist");
 	TAILQ_INSERT_TAIL(&sc->vmbus_prichans, chan, ch_prilink);
 }
@@ -174,7 +166,7 @@ vmbus_chan_rem_prilist(struct vmbus_softc *sc, struct vmbus_channel *chan)
 
 	mtx_assert(&sc->vmbus_prichan_lock, MA_OWNED);
 	if (atomic_testandclear_int(&chan->ch_stflags,
-	    VMBUS_CHAN_ST_ONPRIL_SHIFT) == 0)
+		VMBUS_CHAN_ST_ONPRIL_SHIFT) == 0)
 		panic("channel is not on the prilist");
 	TAILQ_REMOVE(&sc->vmbus_prichans, chan, ch_prilink);
 }
@@ -187,7 +179,7 @@ vmbus_chan_ins_sublist(struct vmbus_channel *prichan,
 	mtx_assert(&prichan->ch_subchan_lock, MA_OWNED);
 
 	if (atomic_testandset_int(&chan->ch_stflags,
-	    VMBUS_CHAN_ST_ONSUBL_SHIFT))
+		VMBUS_CHAN_ST_ONSUBL_SHIFT))
 		panic("channel is already on the sublist");
 	TAILQ_INSERT_TAIL(&prichan->ch_subchans, chan, ch_sublink);
 
@@ -207,7 +199,7 @@ vmbus_chan_rem_sublist(struct vmbus_channel *prichan,
 	prichan->ch_subchan_cnt--;
 
 	if (atomic_testandclear_int(&chan->ch_stflags,
-	    VMBUS_CHAN_ST_ONSUBL_SHIFT) == 0)
+		VMBUS_CHAN_ST_ONSUBL_SHIFT) == 0)
 		panic("channel is not on the sublist");
 	TAILQ_REMOVE(&prichan->ch_subchans, chan, ch_sublink);
 }
@@ -218,7 +210,7 @@ vmbus_chan_ins_list(struct vmbus_softc *sc, struct vmbus_channel *chan)
 
 	mtx_assert(&sc->vmbus_chan_lock, MA_OWNED);
 	if (atomic_testandset_int(&chan->ch_stflags,
-	    VMBUS_CHAN_ST_ONLIST_SHIFT))
+		VMBUS_CHAN_ST_ONLIST_SHIFT))
 		panic("channel is already on the list");
 	TAILQ_INSERT_TAIL(&sc->vmbus_chans, chan, ch_link);
 }
@@ -229,7 +221,7 @@ vmbus_chan_rem_list(struct vmbus_softc *sc, struct vmbus_channel *chan)
 
 	mtx_assert(&sc->vmbus_chan_lock, MA_OWNED);
 	if (atomic_testandclear_int(&chan->ch_stflags,
-	    VMBUS_CHAN_ST_ONLIST_SHIFT) == 0)
+		VMBUS_CHAN_ST_ONLIST_SHIFT) == 0)
 		panic("channel is not on the list");
 	TAILQ_REMOVE(&sc->vmbus_chans, chan, ch_link);
 }
@@ -266,8 +258,8 @@ vmbus_chan_sysctl_create(struct vmbus_channel *chan)
 	 * Create dev.NAME.UNIT.channel tree.
 	 */
 	ch_tree = SYSCTL_ADD_NODE(ctx,
-	    SYSCTL_CHILDREN(device_get_sysctl_tree(chan->ch_dev)),
-	    OID_AUTO, "channel", CTLFLAG_RD | CTLFLAG_MPSAFE, 0, "");
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(chan->ch_dev)), OID_AUTO,
+	    "channel", CTLFLAG_RD | CTLFLAG_MPSAFE, 0, "");
 	if (ch_tree == NULL)
 		return;
 
@@ -279,8 +271,8 @@ vmbus_chan_sysctl_create(struct vmbus_channel *chan)
 	else
 		ch_id = chan->ch_prichan->ch_id;
 	snprintf(name, sizeof(name), "%d", ch_id);
-	chid_tree = SYSCTL_ADD_NODE(ctx, SYSCTL_CHILDREN(ch_tree),
-	    OID_AUTO, name, CTLFLAG_RD | CTLFLAG_MPSAFE, 0, "");
+	chid_tree = SYSCTL_ADD_NODE(ctx, SYSCTL_CHILDREN(ch_tree), OID_AUTO,
+	    name, CTLFLAG_RD | CTLFLAG_MPSAFE, 0, "");
 	if (chid_tree == NULL)
 		return;
 
@@ -309,12 +301,11 @@ vmbus_chan_sysctl_create(struct vmbus_channel *chan)
 		    "chanid", CTLFLAG_RD, &chan->ch_id, 0, "channel id");
 	}
 
-	SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(chid_tree), OID_AUTO,
-	    "cpu", CTLFLAG_RD, &chan->ch_cpuid, 0, "owner CPU id");
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(chid_tree), OID_AUTO,
-	    "mnf", CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE,
-	    chan, 0, vmbus_chan_sysctl_mnf, "I",
-	    "has monitor notification facilities");
+	SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(chid_tree), OID_AUTO, "cpu",
+	    CTLFLAG_RD, &chan->ch_cpuid, 0, "owner CPU id");
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(chid_tree), OID_AUTO, "mnf",
+	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, chan, 0,
+	    vmbus_chan_sysctl_mnf, "I", "has monitor notification facilities");
 
 	br_tree = SYSCTL_ADD_NODE(ctx, SYSCTL_CHILDREN(chid_tree), OID_AUTO,
 	    "br", CTLFLAG_RD | CTLFLAG_MPSAFE, 0, "");
@@ -363,10 +354,11 @@ vmbus_chan_open(struct vmbus_channel *chan, int txbr_size, int rxbr_size,
 			 * this bufring, instead of having mysterious
 			 * crash or trashed data later on.
 			 */
-			vmbus_chan_printf(chan, "chan%u bufring GPADL "
+			vmbus_chan_printf(chan,
+			    "chan%u bufring GPADL "
 			    "is still connected upon channel open error; "
-			    "leak %d bytes memory\n", chan->ch_id,
-			    txbr_size + rxbr_size);
+			    "leak %d bytes memory\n",
+			    chan->ch_id, txbr_size + rxbr_size);
 		} else {
 			contigfree(chan->ch_bufring, chan->ch_bufring_size,
 			    M_DEVBUF);
@@ -390,8 +382,8 @@ vmbus_chan_open_br(struct vmbus_channel *chan, const struct vmbus_chan_br *cbr,
 	uint8_t *br;
 
 	if (udlen > VMBUS_CHANMSG_CHOPEN_UDATA_SIZE) {
-		vmbus_chan_printf(chan,
-		    "invalid udata len %d for chan%u\n", udlen, chan->ch_id);
+		vmbus_chan_printf(chan, "invalid udata len %d for chan%u\n",
+		    udlen, chan->ch_id);
 		return (EINVAL);
 	}
 
@@ -411,7 +403,7 @@ vmbus_chan_open_br(struct vmbus_channel *chan, const struct vmbus_chan_br *cbr,
 	memset(br, 0, txbr_size + rxbr_size);
 
 	if (atomic_testandset_int(&chan->ch_stflags,
-	    VMBUS_CHAN_ST_OPENED_SHIFT))
+		VMBUS_CHAN_ST_OPENED_SHIFT))
 		panic("double-open chan%u", chan->ch_id);
 
 	chan->ch_cb = cb;
@@ -505,7 +497,7 @@ vmbus_chan_open_br(struct vmbus_channel *chan, const struct vmbus_chan_br *cbr,
 			 * CHRESCIND and CHOPEN_RESP races on the
 			 * hypervisor side.
 			 */
-#define REVOKE_LINGER	100
+#define REVOKE_LINGER 100
 			for (i = 0; i < REVOKE_LINGER; ++i) {
 				msg = vmbus_msghc_poll_result(sc, mh);
 				if (msg != NULL)
@@ -520,8 +512,9 @@ vmbus_chan_open_br(struct vmbus_channel *chan, const struct vmbus_chan_br *cbr,
 		pause("chopen", 1);
 	}
 	if (msg != NULL) {
-		status = ((const struct vmbus_chanmsg_chopen_resp *)
-		    msg->msg_data)->chm_status;
+		status =
+		    ((const struct vmbus_chanmsg_chopen_resp *)msg->msg_data)
+			->chm_status;
 	} else {
 		/* XXX any non-0 value is ok here. */
 		status = 0xff;
@@ -560,8 +553,8 @@ failed:
 }
 
 int
-vmbus_chan_gpadl_connect(struct vmbus_channel *chan, bus_addr_t paddr,
-    int size, uint32_t *gpadl0)
+vmbus_chan_gpadl_connect(struct vmbus_channel *chan, bus_addr_t paddr, int size,
+    uint32_t *gpadl0)
 {
 	struct vmbus_softc *sc = chan->ch_vmbus;
 	struct vmbus_msghc *mh;
@@ -669,8 +662,8 @@ vmbus_chan_gpadl_connect(struct vmbus_channel *chan, bus_addr_t paddr,
 	KASSERT(page_count == 0, ("invalid page count %d", page_count));
 
 	msg = vmbus_msghc_wait_result(sc, mh);
-	status = ((const struct vmbus_chanmsg_gpadl_connresp *)
-	    msg->msg_data)->chm_status;
+	status = ((const struct vmbus_chanmsg_gpadl_connresp *)msg->msg_data)
+		     ->chm_status;
 
 	vmbus_msghc_put(sc, mh);
 
@@ -692,7 +685,7 @@ vmbus_chan_gpadl_connect(struct vmbus_channel *chan, bus_addr_t paddr,
 static bool
 vmbus_chan_wait_revoke(const struct vmbus_channel *chan, bool can_sleep)
 {
-#define WAIT_COUNT	200	/* 200ms */
+#define WAIT_COUNT 200 /* 200ms */
 
 	int i;
 
@@ -746,7 +739,8 @@ vmbus_chan_gpadl_disconnect(struct vmbus_channel *chan, uint32_t gpadl)
 			 */
 			vmbus_chan_printf(chan,
 			    "gpadl_disconn(revoked chan%u) msg hypercall "
-			    "exec failed: %d\n", chan->ch_id, error);
+			    "exec failed: %d\n",
+			    chan->ch_id, error);
 			return (0);
 		}
 		vmbus_chan_printf(chan,
@@ -767,13 +761,14 @@ vmbus_chan_detach(struct vmbus_channel *chan)
 {
 	int refs;
 
-	KASSERT(chan->ch_refs > 0, ("chan%u: invalid refcnt %d",
-	    chan->ch_id, chan->ch_refs));
+	KASSERT(chan->ch_refs > 0,
+	    ("chan%u: invalid refcnt %d", chan->ch_id, chan->ch_refs));
 	refs = atomic_fetchadd_int(&chan->ch_refs, -1);
 #ifdef INVARIANTS
 	if (VMBUS_CHAN_ISPRIMARY(chan)) {
-		KASSERT(refs == 1, ("chan%u: invalid refcnt %d for prichan",
-		    chan->ch_id, refs + 1));
+		KASSERT(refs == 1,
+		    ("chan%u: invalid refcnt %d for prichan", chan->ch_id,
+			refs + 1));
 	}
 #endif
 	if (refs == 1) {
@@ -845,7 +840,7 @@ vmbus_chan_close_internal(struct vmbus_channel *chan)
 	for (;;) {
 		old_stflags = chan->ch_stflags;
 		if (atomic_cmpset_int(&chan->ch_stflags, old_stflags,
-		    old_stflags & ~VMBUS_CHAN_ST_OPENED))
+			old_stflags & ~VMBUS_CHAN_ST_OPENED))
 			break;
 	}
 	if ((old_stflags & VMBUS_CHAN_ST_OPENED) == 0) {
@@ -923,8 +918,10 @@ disconnect:
 			 * this bufring, instead of having mysterious
 			 * crash or trashed data later on.
 			 */
-			vmbus_chan_printf(chan, "chan%u bufring GPADL "
-			    "is still connected after close\n", chan->ch_id);
+			vmbus_chan_printf(chan,
+			    "chan%u bufring GPADL "
+			    "is still connected after close\n",
+			    chan->ch_id);
 			chan->ch_bufring = NULL;
 			/*
 			 * Give caller a hint that the bufring GPADL is
@@ -959,11 +956,11 @@ vmbus_chan_close_direct(struct vmbus_channel *chan)
 		 * opened at all.
 		 */
 		mtx_lock(&chan->ch_subchan_lock);
-		TAILQ_FOREACH(subchan, &chan->ch_subchans, ch_sublink) {
-			KASSERT(
-			   (subchan->ch_stflags & VMBUS_CHAN_ST_OPENED) == 0,
-			   ("chan%u: subchan%u is still opened",
-			    chan->ch_id, subchan->ch_subidx));
+		TAILQ_FOREACH (subchan, &chan->ch_subchans, ch_sublink) {
+			KASSERT((subchan->ch_stflags & VMBUS_CHAN_ST_OPENED) ==
+				0,
+			    ("chan%u: subchan%u is still opened", chan->ch_id,
+				subchan->ch_subidx));
 		}
 		mtx_unlock(&chan->ch_subchan_lock);
 	}
@@ -1037,8 +1034,7 @@ vmbus_chan_write_available(struct vmbus_channel *chan)
 }
 
 bool
-vmbus_chan_write_signal(struct vmbus_channel *chan,
-    int32_t min_signal_size)
+vmbus_chan_write_signal(struct vmbus_channel *chan, int32_t min_signal_size)
 {
 	if (min_signal_size >= 0 &&
 	    vmbus_chan_write_available(chan) > min_signal_size) {
@@ -1055,17 +1051,15 @@ vmbus_chan_write_signal(struct vmbus_channel *chan,
 }
 
 void
-vmbus_chan_set_pending_send_size(struct vmbus_channel *chan,
-    uint32_t size)
+vmbus_chan_set_pending_send_size(struct vmbus_channel *chan, uint32_t size)
 {
 	if (chan)
 		vmbus_txbr_set_pending_snd_sz(&chan->ch_txbr, size);
 }
 
 int
-vmbus_chan_iov_send(struct vmbus_channel *chan,
-    const struct iovec iov[], int iovlen,
-    vmbus_br_copy_callback_t cb, void *cbarg)
+vmbus_chan_iov_send(struct vmbus_channel *chan, const struct iovec iov[],
+    int iovlen, vmbus_br_copy_callback_t cb, void *cbarg)
 {
 	int error;
 	boolean_t send_evt;
@@ -1073,8 +1067,8 @@ vmbus_chan_iov_send(struct vmbus_channel *chan,
 	if (iovlen == 0)
 		return (0);
 
-	error = vmbus_txbr_write_call(&chan->ch_txbr, iov, iovlen,
-	    cb, cbarg, &send_evt);
+	error = vmbus_txbr_write_call(&chan->ch_txbr, iov, iovlen, cb, cbarg,
+	    &send_evt);
 
 	if (!error && send_evt) {
 		vmbus_chan_signal_tx(chan);
@@ -1119,8 +1113,8 @@ vmbus_chan_send(struct vmbus_channel *chan, uint16_t type, uint16_t flags,
 }
 
 int
-vmbus_chan_send_sglist(struct vmbus_channel *chan,
-    struct vmbus_gpa sg[], int sglen, void *data, int dlen, uint64_t xactid)
+vmbus_chan_send_sglist(struct vmbus_channel *chan, struct vmbus_gpa sg[],
+    int sglen, void *data, int dlen, uint64_t xactid)
 {
 	struct vmbus_chanpkt_sglist pkt;
 	int pktlen, pad_pktlen, hlen, error;
@@ -1158,9 +1152,8 @@ vmbus_chan_send_sglist(struct vmbus_channel *chan,
 }
 
 int
-vmbus_chan_send_prplist(struct vmbus_channel *chan,
-    struct vmbus_gpa_range *prp, int prp_cnt, void *data, int dlen,
-    uint64_t xactid)
+vmbus_chan_send_prplist(struct vmbus_channel *chan, struct vmbus_gpa_range *prp,
+    int prp_cnt, void *data, int dlen, uint64_t xactid)
 {
 	struct vmbus_chanpkt_prplist pkt;
 	int pktlen, pad_pktlen, hlen, error;
@@ -1245,8 +1238,8 @@ vmbus_chan_recv(struct vmbus_channel *chan, void *data, int *dlen0,
 }
 
 int
-vmbus_chan_recv_pkt(struct vmbus_channel *chan,
-    struct vmbus_chanpkt_hdr *pkt, int *pktlen0)
+vmbus_chan_recv_pkt(struct vmbus_channel *chan, struct vmbus_chanpkt_hdr *pkt,
+    int *pktlen0)
 {
 	int error, pktlen, pkt_hlen;
 	boolean_t sig_event;
@@ -1280,8 +1273,8 @@ vmbus_chan_recv_pkt(struct vmbus_channel *chan,
 	 * Skip the fixed-size packet header, which has been filled
 	 * by the above vmbus_rxbr_peek().
 	 */
-	error = vmbus_rxbr_read(&chan->ch_rxbr, pkt + 1,
-	    pktlen - pkt_hlen, pkt_hlen, &sig_event);
+	error = vmbus_rxbr_read(&chan->ch_rxbr, pkt + 1, pktlen - pkt_hlen,
+	    pkt_hlen, &sig_event);
 	KASSERT(!error, ("vmbus_rxbr_read failed"));
 
 	if (!error && sig_event)
@@ -1305,8 +1298,8 @@ vmbus_chan_read_available(struct vmbus_channel *chan)
  * channel read index is not advanced at all.
  */
 int
-vmbus_chan_recv_peek(struct vmbus_channel *chan,
-    void *data, int data_len, uint32_t advance)
+vmbus_chan_recv_peek(struct vmbus_channel *chan, void *data, int data_len,
+    uint32_t advance)
 {
 	int error;
 	boolean_t sig_event;
@@ -1314,8 +1307,8 @@ vmbus_chan_recv_peek(struct vmbus_channel *chan,
 	if (data == NULL || data_len <= 0)
 		return (EINVAL);
 
-	error = vmbus_rxbr_idxadv_peek(&chan->ch_rxbr,
-	    data, data_len, advance, &sig_event);
+	error = vmbus_rxbr_idxadv_peek(&chan->ch_rxbr, data, data_len, advance,
+	    &sig_event);
 
 	if (!error && sig_event) {
 		vmbus_chan_signal_rx(chan);
@@ -1346,7 +1339,6 @@ vmbus_chan_recv_idxadv(struct vmbus_channel *chan, uint32_t advance)
 	return (error);
 }
 
-
 /*
  * Caller should hold its own lock to serialize the ring buffer
  * copy.
@@ -1358,8 +1350,8 @@ vmbus_chan_recv_peek_call(struct vmbus_channel *chan, int data_len,
 	if (!chan || data_len <= 0 || cb == NULL)
 		return (EINVAL);
 
-	return (vmbus_rxbr_peek_call(&chan->ch_rxbr, data_len, skip,
-	    cb, cbarg));
+	return (
+	    vmbus_rxbr_peek_call(&chan->ch_rxbr, data_len, skip, cb, cbarg));
 }
 
 static void
@@ -1668,16 +1660,15 @@ vmbus_chan_free(struct vmbus_channel *chan)
 	KASSERT(TAILQ_EMPTY(&chan->ch_subchans) && chan->ch_subchan_cnt == 0,
 	    ("still owns sub-channels"));
 	KASSERT((chan->ch_stflags &
-	    (VMBUS_CHAN_ST_OPENED |
-	     VMBUS_CHAN_ST_ONPRIL |
-	     VMBUS_CHAN_ST_ONSUBL |
-	     VMBUS_CHAN_ST_ONLIST)) == 0, ("free busy channel"));
+		    (VMBUS_CHAN_ST_OPENED | VMBUS_CHAN_ST_ONPRIL |
+			VMBUS_CHAN_ST_ONSUBL | VMBUS_CHAN_ST_ONLIST)) == 0,
+	    ("free busy channel"));
 	KASSERT(chan->ch_orphan_xact == NULL,
 	    ("still has orphan xact installed"));
-	KASSERT(chan->ch_refs == 0, ("chan%u: invalid refcnt %d",
-	    chan->ch_id, chan->ch_refs));
-	KASSERT(chan->ch_poll_intvl == 0, ("chan%u: polling is activated",
-	    chan->ch_id));
+	KASSERT(chan->ch_refs == 0,
+	    ("chan%u: invalid refcnt %d", chan->ch_id, chan->ch_refs));
+	KASSERT(chan->ch_poll_intvl == 0,
+	    ("chan%u: polling is activated", chan->ch_id));
 
 	contigfree(chan->ch_monprm, sizeof(struct hyperv_mon_param), M_DEVBUF);
 	mtx_destroy(&chan->ch_subchan_lock);
@@ -1708,15 +1699,15 @@ vmbus_chan_add(struct vmbus_channel *newchan)
 	}
 
 	mtx_lock(&sc->vmbus_prichan_lock);
-	TAILQ_FOREACH(prichan, &sc->vmbus_prichans, ch_prilink) {
+	TAILQ_FOREACH (prichan, &sc->vmbus_prichans, ch_prilink) {
 		/*
 		 * Sub-channel will have the same type GUID and instance
 		 * GUID as its primary channel.
 		 */
 		if (memcmp(&prichan->ch_guid_type, &newchan->ch_guid_type,
-		    sizeof(struct hyperv_guid)) == 0 &&
+			sizeof(struct hyperv_guid)) == 0 &&
 		    memcmp(&prichan->ch_guid_inst, &newchan->ch_guid_inst,
-		    sizeof(struct hyperv_guid)) == 0)
+			sizeof(struct hyperv_guid)) == 0)
 			break;
 	}
 	if (VMBUS_CHAN_ISPRIMARY(newchan)) {
@@ -1758,8 +1749,8 @@ vmbus_chan_add(struct vmbus_channel *newchan)
 	 * Reference count this sub-channel; it will be dereferenced
 	 * when this sub-channel is closed.
 	 */
-	KASSERT(newchan->ch_refs == 1, ("chan%u: invalid refcnt %d",
-	    newchan->ch_id, newchan->ch_refs));
+	KASSERT(newchan->ch_refs == 1,
+	    ("chan%u: invalid refcnt %d", newchan->ch_id, newchan->ch_refs));
 	atomic_add_int(&newchan->ch_refs, 1);
 
 	newchan->ch_prichan = prichan;
@@ -1807,8 +1798,7 @@ vmbus_chan_cpu_set(struct vmbus_channel *chan, int cpu)
 	chan->ch_vcpuid = VMBUS_PCPU_GET(chan->ch_vmbus, vcpuid, cpu);
 
 	if (bootverbose) {
-		vmbus_chan_printf(chan,
-		    "chan%u assigned to cpu%u [vcpu%u]\n",
+		vmbus_chan_printf(chan, "chan%u assigned to cpu%u [vcpu%u]\n",
 		    chan->ch_id, chan->ch_cpuid, chan->ch_vcpuid);
 	}
 }
@@ -1878,24 +1868,22 @@ vmbus_chan_msgproc_choffer(struct vmbus_softc *sc,
 		chan->ch_montrig =
 		    &sc->vmbus_mnf2->mnf_trigs[trig_idx].mt_pending;
 
-		chan->ch_montrig_mask =
-		    1 << (offer->chm_montrig % VMBUS_MONTRIG_LEN);
+		chan->ch_montrig_mask = 1
+		    << (offer->chm_montrig % VMBUS_MONTRIG_LEN);
 	}
 
 	if (offer->chm_chflags & VMBUS_CHAN_TLNPI_PROVIDER_OFFER) {
 		/* This is HyperV socket channel */
 		chan->ch_is_hvs = true;
 		/* The first byte != 0 means the host initiated connection. */
-		chan->ch_hvs_conn_from_host =
-		    offer->chm_udata.pipe.user_def[0];
+		chan->ch_hvs_conn_from_host = offer->chm_udata.pipe.user_def[0];
 
 		if (bootverbose) {
 			device_printf(sc->vmbus_dev,
 			    "chan%u is hyperv socket channel "
 			    "connected %s host\n",
 			    chan->ch_id,
-			    (chan->ch_hvs_conn_from_host != 0) ?
-			    "from" : "to");
+			    (chan->ch_hvs_conn_from_host != 0) ? "from" : "to");
 		}
 	} else {
 		chan->ch_is_hvs = false;
@@ -1952,7 +1940,7 @@ vmbus_chan_msgproc_chrescind(struct vmbus_softc *sc,
 	 * Find and remove the target channel from the channel list.
 	 */
 	mtx_lock(&sc->vmbus_chan_lock);
-	TAILQ_FOREACH(chan, &sc->vmbus_chans, ch_link) {
+	TAILQ_FOREACH (chan, &sc->vmbus_chans, ch_link) {
 		if (chan->ch_id == note->chm_chanid)
 			break;
 	}
@@ -1985,7 +1973,7 @@ vmbus_chan_msgproc_chrescind(struct vmbus_softc *sc,
 	 */
 
 	if (atomic_testandset_int(&chan->ch_stflags,
-	    VMBUS_CHAN_ST_REVOKED_SHIFT))
+		VMBUS_CHAN_ST_REVOKED_SHIFT))
 		panic("channel has already been revoked");
 
 	sx_xlock(&chan->ch_orphan_lock);
@@ -2102,7 +2090,7 @@ vmbus_chan_destroy_all(struct vmbus_softc *sc)
 		struct vmbus_channel *chan;
 
 		mtx_lock(&sc->vmbus_chan_lock);
-		TAILQ_FOREACH(chan, &sc->vmbus_chans, ch_link) {
+		TAILQ_FOREACH (chan, &sc->vmbus_chans, ch_link) {
 			if (VMBUS_CHAN_ISPRIMARY(chan))
 				break;
 		}
@@ -2139,7 +2127,7 @@ vmbus_subchan_get(struct vmbus_channel *pri_chan, int subchan_cnt)
 		mtx_sleep(pri_chan, &pri_chan->ch_subchan_lock, 0, "subch", 0);
 
 	i = 0;
-	TAILQ_FOREACH(chan, &pri_chan->ch_subchans, ch_sublink) {
+	TAILQ_FOREACH (chan, &pri_chan->ch_subchans, ch_sublink) {
 		/* TODO: refcnt chan */
 		ret[i] = chan;
 
@@ -2147,8 +2135,9 @@ vmbus_subchan_get(struct vmbus_channel *pri_chan, int subchan_cnt)
 		if (i == subchan_cnt)
 			break;
 	}
-	KASSERT(i == subchan_cnt, ("invalid subchan count %d, should be %d",
-	    pri_chan->ch_subchan_cnt, subchan_cnt));
+	KASSERT(i == subchan_cnt,
+	    ("invalid subchan count %d, should be %d", pri_chan->ch_subchan_cnt,
+		subchan_cnt));
 
 	mtx_unlock(&pri_chan->ch_subchan_lock);
 
@@ -2335,8 +2324,8 @@ vmbus_chan_unset_orphan(struct vmbus_channel *chan)
 }
 
 const void *
-vmbus_chan_xact_wait(const struct vmbus_channel *chan,
-    struct vmbus_xact *xact, size_t *resp_len, bool can_sleep)
+vmbus_chan_xact_wait(const struct vmbus_channel *chan, struct vmbus_xact *xact,
+    size_t *resp_len, bool can_sleep)
 {
 	const void *ret;
 
@@ -2377,7 +2366,8 @@ vmbus_chan_poll_enable(struct vmbus_channel *chan, u_int pollhz)
 	KASSERT(chan->ch_flags & VMBUS_CHAN_FLAG_BATCHREAD,
 	    ("enable polling on non-batch chan%u", chan->ch_id));
 	KASSERT(pollhz >= VMBUS_CHAN_POLLHZ_MIN &&
-	    pollhz <= VMBUS_CHAN_POLLHZ_MAX, ("invalid pollhz %u", pollhz));
+		pollhz <= VMBUS_CHAN_POLLHZ_MAX,
+	    ("invalid pollhz %u", pollhz));
 
 	arg.poll_chan = chan;
 	arg.poll_hz = pollhz;

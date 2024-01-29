@@ -1,7 +1,7 @@
 /*-
-* SPDX-License-Identifier: BSD-2-Clause
-* Copyright (c) 2022 Aymeric Wibo <obiwac@gmail.com>
-*/
+ * SPDX-License-Identifier: BSD-2-Clause
+ * Copyright (c) 2022 Aymeric Wibo <obiwac@gmail.com>
+ */
 
 #include <ctype.h>
 #include <stddef.h>

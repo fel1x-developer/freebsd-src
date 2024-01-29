@@ -37,29 +37,28 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/uio.h>
 #include <sys/bus.h>
-#include <sys/malloc.h>
-#include <sys/kernel.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/sx.h>
-#include <sys/selinfo.h>
-#include <sys/poll.h>
 #include <sys/conf.h>
 #include <sys/fcntl.h>
-#include <sys/ioccom.h>
-#include <sys/rman.h>
-#include <sys/tree.h>
-#include <sys/module.h>
 #include <sys/filio.h>
+#include <sys/ioccom.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/poll.h>
+#include <sys/rman.h>
+#include <sys/selinfo.h>
+#include <sys/sx.h>
+#include <sys/tree.h>
+#include <sys/uio.h>
 #include <sys/vnode.h>
 
-#include <xen/xen-os.h>
 #include <xen/evtchn.h>
-#include <xen/xen_intr.h>
-
 #include <xen/evtchn/evtchnvar.h>
+#include <xen/xen-os.h>
+#include <xen/xen_intr.h>
 
 MALLOC_DEFINE(M_EVTCHN, "evtchn_dev", "Xen event channel user-space device");
 
@@ -74,11 +73,11 @@ struct per_user_data {
 	struct evtchn_tree evtchns;
 
 	/* Notification ring, accessed via /dev/xen/evtchn. */
-#define EVTCHN_RING_SIZE     (PAGE_SIZE / sizeof(evtchn_port_t))
-#define EVTCHN_RING_MASK(_i) ((_i)&(EVTCHN_RING_SIZE-1))
+#define EVTCHN_RING_SIZE (PAGE_SIZE / sizeof(evtchn_port_t))
+#define EVTCHN_RING_MASK(_i) ((_i) & (EVTCHN_RING_SIZE - 1))
 	evtchn_port_t *ring;
 	unsigned int ring_cons, ring_prod, ring_overflow;
-	struct sx ring_cons_mutex; /* protect against concurrent readers */
+	struct sx ring_cons_mutex;  /* protect against concurrent readers */
 	struct mtx ring_prod_mutex; /* product against concurrent interrupts */
 	struct selinfo ev_rsel;
 };
@@ -95,11 +94,11 @@ RB_GENERATE_STATIC(evtchn_tree, user_evtchn, node, evtchn_cmp);
 
 static device_t evtchn_dev;
 
-static d_read_t      evtchn_read;
-static d_write_t     evtchn_write;
-static d_ioctl_t     evtchn_ioctl;
-static d_poll_t      evtchn_poll;
-static d_open_t      evtchn_open;
+static d_read_t evtchn_read;
+static d_write_t evtchn_write;
+static d_ioctl_t evtchn_ioctl;
+static d_poll_t evtchn_poll;
+static d_open_t evtchn_open;
 
 static void evtchn_release(void *arg);
 
@@ -218,7 +217,7 @@ evtchn_release(void *arg)
 
 	seldrain(&u->ev_rsel);
 
-	RB_FOREACH_SAFE(evtchn, evtchn_tree, &u->evtchns, tmp) {
+	RB_FOREACH_SAFE (evtchn, evtchn_tree, &u->evtchns, tmp) {
 		xen_intr_unbind(&evtchn->handle);
 
 		RB_REMOVE(evtchn_tree, &u->evtchns, evtchn);
@@ -245,7 +244,7 @@ evtchn_read(struct cdev *dev, struct uio *uio, int ioflag)
 
 	/* Whole number of ports. */
 	count = uio->uio_resid;
-	count &= ~(sizeof(evtchn_port_t)-1);
+	count &= ~(sizeof(evtchn_port_t) - 1);
 
 	if (count == 0)
 		return (0);
@@ -323,7 +322,7 @@ evtchn_write(struct cdev *dev, struct uio *uio, int ioflag)
 
 	count = uio->uio_resid;
 	/* Whole number of ports. */
-	count &= ~(sizeof(evtchn_port_t)-1);
+	count &= ~(sizeof(evtchn_port_t) - 1);
 
 	error = 0;
 	if (count == 0)
@@ -338,7 +337,7 @@ evtchn_write(struct cdev *dev, struct uio *uio, int ioflag)
 
 	mtx_lock(&u->bind_mutex);
 
-	for (i = 0; i < (count/sizeof(evtchn_port_t)); i++) {
+	for (i = 0; i < (count / sizeof(evtchn_port_t)); i++) {
 		evtchn_port_t port = kbuf[i];
 		struct user_evtchn *evtchn;
 
@@ -382,8 +381,8 @@ evtchn_bind_user_port(struct per_user_data *u, struct user_evtchn *evtchn)
 }
 
 static int
-evtchn_ioctl(struct cdev *dev, unsigned long cmd, caddr_t arg,
-    int mode, struct thread *td __unused)
+evtchn_ioctl(struct cdev *dev, unsigned long cmd, caddr_t arg, int mode,
+    struct thread *td __unused)
 {
 	struct per_user_data *u;
 	int error;
@@ -401,8 +400,8 @@ evtchn_ioctl(struct cdev *dev, unsigned long cmd, caddr_t arg,
 
 		bind = (struct ioctl_evtchn_bind_virq *)arg;
 
-		error = xen_intr_bind_virq(evtchn_dev, bind->virq, 0,
-		    NULL, NULL, NULL, 0, &evtchn->handle);
+		error = xen_intr_bind_virq(evtchn_dev, bind->virq, 0, NULL,
+		    NULL, NULL, 0, &evtchn->handle);
 		if (error != 0) {
 			free(evtchn, M_EVTCHN);
 			break;
@@ -423,8 +422,8 @@ evtchn_ioctl(struct cdev *dev, unsigned long cmd, caddr_t arg,
 		bind = (struct ioctl_evtchn_bind_interdomain *)arg;
 
 		error = xen_intr_bind_remote_port(evtchn_dev,
-		    bind->remote_domain, bind->remote_port, NULL,
-		    NULL, NULL, 0, &evtchn->handle);
+		    bind->remote_domain, bind->remote_port, NULL, NULL, NULL, 0,
+		    &evtchn->handle);
 		if (error != 0) {
 			free(evtchn, M_EVTCHN);
 			break;
@@ -580,13 +579,12 @@ evtchn_attach(device_t dev)
 }
 
 /*-------------------- Private Device Attachment Data  -----------------------*/
-static device_method_t evtchn_methods[] = {
-	DEVMETHOD(device_identify, evtchn_identify),
+static device_method_t evtchn_methods[] = { DEVMETHOD(device_identify,
+						evtchn_identify),
 	DEVMETHOD(device_probe, evtchn_probe),
 	DEVMETHOD(device_attach, evtchn_attach),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 static driver_t evtchn_driver = {
 	"evtchn",

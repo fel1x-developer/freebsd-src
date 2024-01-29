@@ -33,42 +33,36 @@
  */
 
 #include <sys/param.h>
+
 #include <machine/atomic.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <string.h>
 
 #include <spinlock.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
+#include "glue.h"
 #include "libc_private.h"
 #include "local.h"
-#include "glue.h"
 
-int	__sdidinit;
+int __sdidinit;
 
-#define	NDYNAMIC 10		/* add ten more whenever necessary */
+#define NDYNAMIC 10 /* add ten more whenever necessary */
 
-#define	std(flags, file) {		\
-	._flags = (flags),		\
-	._file = (file),		\
-	._cookie = __sF + (file),	\
-	._close = __sclose,		\
-	._read = __sread,		\
-	._seek = __sseek,		\
-	._write = __swrite,		\
-	._fl_mutex = PTHREAD_MUTEX_INITIALIZER, \
-}
-				/* the usual - (stdin + stdout + stderr) */
+#define std(flags, file)                                                      \
+	{                                                                     \
+		._flags = (flags), ._file = (file), ._cookie = __sF + (file), \
+		._close = __sclose, ._read = __sread, ._seek = __sseek,       \
+		._write = __swrite, ._fl_mutex = PTHREAD_MUTEX_INITIALIZER,   \
+	}
+/* the usual - (stdin + stdout + stderr) */
 static FILE usual[FOPEN_MAX - 3];
 static struct glue uglue = { NULL, FOPEN_MAX - 3, usual };
 
-static FILE __sF[3] = {
-	std(__SRD, STDIN_FILENO),
-	std(__SWR, STDOUT_FILENO),
-	std(__SWR|__SNBF, STDERR_FILENO)
-};
+static FILE __sF[3] = { std(__SRD, STDIN_FILENO), std(__SWR, STDOUT_FILENO),
+	std(__SWR | __SNBF, STDERR_FILENO) };
 
 FILE *__stdinp = &__sF[0];
 FILE *__stdoutp = &__sF[1];
@@ -77,14 +71,14 @@ FILE *__stderrp = &__sF[2];
 struct glue __sglue = { &uglue, 3, __sF };
 static struct glue *lastglue = &uglue;
 
-static struct glue *	moreglue(int);
+static struct glue *moreglue(int);
 
 spinlock_t __stdio_thread_lock = _SPINLOCK_INITIALIZER;
 
 #if NOT_YET
-#define	SET_GLUE_PTR(ptr, val)	atomic_set_rel_ptr(&(ptr), (uintptr_t)(val))
+#define SET_GLUE_PTR(ptr, val) atomic_set_rel_ptr(&(ptr), (uintptr_t)(val))
 #else
-#define	SET_GLUE_PTR(ptr, val)	ptr = val
+#define SET_GLUE_PTR(ptr, val) ptr = val
 #endif
 
 static struct glue *
@@ -114,8 +108,8 @@ moreglue(int n)
 FILE *
 __sfp(void)
 {
-	FILE	*fp;
-	int	n;
+	FILE *fp;
+	int n;
 	struct glue *g;
 
 	if (!__sdidinit)
@@ -129,29 +123,30 @@ __sfp(void)
 			if (fp->_flags == 0)
 				goto found;
 	}
-	STDIO_THREAD_UNLOCK();	/* don't hold lock while malloc()ing. */
+	STDIO_THREAD_UNLOCK(); /* don't hold lock while malloc()ing. */
 	if ((g = moreglue(NDYNAMIC)) == NULL)
 		return (NULL);
-	STDIO_THREAD_LOCK();	/* reacquire the lock */
+	STDIO_THREAD_LOCK();		 /* reacquire the lock */
 	SET_GLUE_PTR(lastglue->next, g); /* atomically append glue to list */
-	lastglue = g;		/* not atomic; only accessed when locked */
+	lastglue = g; /* not atomic; only accessed when locked */
 	fp = g->iobs;
 found:
-	fp->_flags = 1;		/* reserve this slot; caller sets real flags */
+	fp->_flags = 1; /* reserve this slot; caller sets real flags */
 	STDIO_THREAD_UNLOCK();
-	fp->_p = NULL;		/* no current pointer */
-	fp->_w = 0;		/* nothing to read or write */
+	fp->_p = NULL; /* no current pointer */
+	fp->_w = 0;    /* nothing to read or write */
 	fp->_r = 0;
-	fp->_bf._base = NULL;	/* no buffer */
+	fp->_bf._base = NULL; /* no buffer */
 	fp->_bf._size = 0;
-	fp->_lbfsize = 0;	/* not line buffered */
-	fp->_file = -1;		/* no file */
-/*	fp->_cookie = <any>; */	/* caller sets cookie, _read/_write etc */
-	fp->_ub._base = NULL;	/* no ungetc buffer */
+	fp->_lbfsize = 0;		/* not line buffered */
+	fp->_file = -1;			/* no file */
+	/*	fp->_cookie = <any>; */ /* caller sets cookie, _read/_write etc
+					 */
+	fp->_ub._base = NULL;		/* no ungetc buffer */
 	fp->_ub._size = 0;
-	fp->_lb._base = NULL;	/* no line buffer */
+	fp->_lb._base = NULL; /* no line buffer */
 	fp->_lb._size = 0;
-/*	fp->_fl_mutex = NULL; */ /* once set always set (reused) */
+	/*	fp->_fl_mutex = NULL; */ /* once set always set (reused) */
 	fp->_orientation = 0;
 	memset(&fp->_mbstate, 0, sizeof(mbstate_t));
 	fp->_flags2 = 0;
@@ -162,8 +157,8 @@ found:
  * XXX.  Force immediate allocation of internal memory.  Not used by stdio,
  * but documented historically for certain applications.  Bad applications.
  */
-__warn_references(f_prealloc, 
-	"warning: this program uses f_prealloc(), which is not recommended.");
+__warn_references(f_prealloc,
+    "warning: this program uses f_prealloc(), which is not recommended.");
 void f_prealloc(void);
 
 void
@@ -172,7 +167,7 @@ f_prealloc(void)
 	struct glue *g;
 	int n;
 
-	n = getdtablesize() - FOPEN_MAX + 20;		/* 20 for slop. */
+	n = getdtablesize() - FOPEN_MAX + 20; /* 20 for slop. */
 	/*
 	 * It should be safe to walk the list without locking it;
 	 * new nodes are only added to the end and none are ever
@@ -199,7 +194,7 @@ void
 _cleanup(void)
 {
 	/* (void) _fwalk(fclose); */
-	(void) _fwalk(__sflush);		/* `cheating' */
+	(void)_fwalk(__sflush); /* `cheating' */
 }
 
 /*
@@ -210,6 +205,6 @@ __sinit(void)
 {
 
 	/* Make sure we clean up on exit. */
-	__cleanup = _cleanup;		/* conservative */
+	__cleanup = _cleanup; /* conservative */
 	__sdidinit = 1;
 }

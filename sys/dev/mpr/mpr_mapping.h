@@ -41,13 +41,13 @@
  * @is_SATA_SSD: 1 if this is a SATA device AND an SSD, 0 otherwise
  */
 struct _map_phy_change {
-	uint64_t	physical_id;
-	uint32_t	device_info;
-	uint16_t	dev_handle;
-	uint16_t	slot;
-	uint8_t	reason;
-	uint8_t	is_processed;
-	uint8_t	is_SATA_SSD;
+	uint64_t physical_id;
+	uint32_t device_info;
+	uint16_t dev_handle;
+	uint16_t slot;
+	uint8_t reason;
+	uint8_t is_processed;
+	uint8_t is_SATA_SSD;
 	uint8_t reserved;
 };
 
@@ -62,14 +62,14 @@ struct _map_phy_change {
  * @is_processed: Flag to indicate whether this entry is processed or not
  */
 struct _map_port_change {
-	uint64_t	physical_id;
-	uint32_t	device_info;
-	uint32_t	MDTS;
-	uint16_t	dev_handle;
-	uint16_t	slot;
-	uint8_t		reason;
-	uint8_t		is_processed;
-	uint8_t		reserved[2];
+	uint64_t physical_id;
+	uint32_t device_info;
+	uint32_t MDTS;
+	uint16_t dev_handle;
+	uint16_t slot;
+	uint8_t reason;
+	uint8_t is_processed;
+	uint8_t reserved[2];
 };
 
 /**
@@ -84,12 +84,12 @@ struct _map_port_change {
  * @phy_details: more details about each PHY in the event data
  */
 struct _map_topology_change {
-	uint16_t	enc_handle;
-	uint16_t	exp_handle;
-	uint8_t	num_entries;
-	uint8_t	start_phy_num;
-	uint8_t	num_phys;
-	uint8_t	exp_status;
+	uint16_t enc_handle;
+	uint16_t exp_handle;
+	uint8_t num_entries;
+	uint8_t start_phy_num;
+	uint8_t num_phys;
+	uint8_t exp_status;
 	struct _map_phy_change *phy_details;
 };
 
@@ -105,17 +105,16 @@ struct _map_topology_change {
  * @port_details: more details about each Port in the event data
  */
 struct _map_pcie_topology_change {
-	uint16_t	enc_handle;
-	uint16_t	switch_dev_handle;
-	uint8_t	num_entries;
-	uint8_t	start_port_num;
-	uint8_t	num_ports;
+	uint16_t enc_handle;
+	uint16_t switch_dev_handle;
+	uint8_t num_entries;
+	uint8_t start_port_num;
+	uint8_t num_ports;
 	uint8_t switch_status;
 	struct _map_port_change *port_details;
 };
 
-extern int
-mprsas_get_sas_address_for_sata_disk(struct mpr_softc *ioc,
+extern int mprsas_get_sas_address_for_sata_disk(struct mpr_softc *ioc,
     u64 *sas_address, u16 handle, u32 device_info, u8 *is_SATA_SSD);
 
 #endif

@@ -37,41 +37,40 @@
  * is greatly appreciated.
  */
 
-#include "opt_inet.h"
 #include "opt_ath.h"
+#include "opt_inet.h"
 #include "opt_wlan.h"
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/sysctl.h>
-#include <sys/mbuf.h>
-#include <sys/malloc.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
+#include <sys/bus.h>
+#include <sys/callout.h>
+#include <sys/endian.h>
+#include <sys/errno.h>
 #include <sys/kernel.h>
+#include <sys/kthread.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/priv.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
-#include <sys/errno.h>
-#include <sys/callout.h>
-#include <sys/bus.h>
-#include <sys/endian.h>
-#include <sys/kthread.h>
+#include <sys/sysctl.h>
 #include <sys/taskqueue.h>
-#include <sys/priv.h>
 
 #include <machine/bus.h>
 
+#include <net/ethernet.h>
 #include <net/if.h>
-#include <net/if_var.h>
+#include <net/if_arp.h>
 #include <net/if_dl.h>
+#include <net/if_llc.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_llc.h>
-
-#include <net80211/ieee80211_var.h>
+#include <net/if_var.h>
 #include <net80211/ieee80211_regdomain.h>
+#include <net80211/ieee80211_var.h>
 #ifdef IEEE80211_SUPPORT_SUPERG
 #include <net80211/ieee80211_superg.h>
 #endif
@@ -82,25 +81,24 @@
 #include <net/bpf.h>
 
 #ifdef INET
-#include <netinet/in.h>
 #include <netinet/if_ether.h>
+#include <netinet/in.h>
 #endif
 
-#include <dev/ath/if_athvar.h>
-#include <dev/ath/ath_hal/ah_devid.h>		/* XXX for softled */
+#include <dev/ath/ath_hal/ah_devid.h> /* XXX for softled */
 #include <dev/ath/ath_hal/ah_diagcodes.h>
-
 #include <dev/ath/if_ath_debug.h>
 #include <dev/ath/if_ath_led.h>
 #include <dev/ath/if_ath_misc.h>
-#include <dev/ath/if_ath_tx.h>
 #include <dev/ath/if_ath_sysctl.h>
+#include <dev/ath/if_ath_tx.h>
+#include <dev/ath/if_athvar.h>
 
 #ifdef ATH_TX99_DIAG
 #include <dev/ath/ath_tx99/ath_tx99.h>
 #endif
 
-#ifdef	ATH_DEBUG_ALQ
+#ifdef ATH_DEBUG_ALQ
 #include <dev/ath/if_ath_alq.h>
 #endif
 
@@ -259,7 +257,8 @@ ath_sysctl_txantenna(SYSCTL_HANDLER_ARGS)
 	error = sysctl_handle_int(oidp, &txantenna, 0, req);
 	if (!error && req->newptr) {
 		/* XXX assumes 2 antenna ports */
-		if (txantenna < HAL_ANT_VARIABLE || txantenna > HAL_ANT_FIXED_B) {
+		if (txantenna < HAL_ANT_VARIABLE ||
+		    txantenna > HAL_ANT_FIXED_B) {
 			error = EINVAL;
 			goto finish;
 		}
@@ -374,14 +373,16 @@ ath_sysctl_tpscale(SYSCTL_HANDLER_ARGS)
 	ath_power_set_power_state(sc, HAL_PM_AWAKE);
 	ATH_UNLOCK(sc);
 
-	(void) ath_hal_gettpscale(sc->sc_ah, &scale);
+	(void)ath_hal_gettpscale(sc->sc_ah, &scale);
 	error = sysctl_handle_int(oidp, &scale, 0, req);
 	if (error || !req->newptr)
 		goto finish;
 
-	error = !ath_hal_settpscale(sc->sc_ah, scale) ? EINVAL :
-	    (sc->sc_running) ? ath_reset(sc, ATH_RESET_NOLOSS,
-	    HAL_RESET_NORMAL) : 0;
+	error = !ath_hal_settpscale(sc->sc_ah, scale) ?
+	    EINVAL :
+	    (sc->sc_running) ?
+	    ath_reset(sc, ATH_RESET_NOLOSS, HAL_RESET_NORMAL) :
+	    0;
 
 finish:
 	ATH_LOCK(sc);
@@ -434,7 +435,7 @@ ath_sysctl_rfkill(SYSCTL_HANDLER_ARGS)
 	error = sysctl_handle_int(oidp, &rfkill, 0, req);
 	if (error || !req->newptr)
 		goto finish;
-	if (rfkill == ath_hal_getrfkill(ah)) {	/* unchanged */
+	if (rfkill == ath_hal_getrfkill(ah)) { /* unchanged */
 		error = 0;
 		goto finish;
 	}
@@ -442,8 +443,9 @@ ath_sysctl_rfkill(SYSCTL_HANDLER_ARGS)
 		error = EINVAL;
 		goto finish;
 	}
-	error = sc->sc_running ? ath_reset(sc, ATH_RESET_FULL,
-	    HAL_RESET_NORMAL) : 0;
+	error = sc->sc_running ?
+	    ath_reset(sc, ATH_RESET_FULL, HAL_RESET_NORMAL) :
+	    0;
 
 finish:
 	ATH_LOCK(sc);
@@ -471,20 +473,16 @@ ath_sysctl_txagg(SYSCTL_HANDLER_ARGS)
 	printf("no tx bufs (empty list): %d\n", sc->sc_stats.ast_tx_getnobuf);
 	printf("no tx bufs (was busy): %d\n", sc->sc_stats.ast_tx_getbusybuf);
 
-	printf("aggr single packet: %d\n",
-	    sc->sc_aggr_stats.aggr_single_pkt);
+	printf("aggr single packet: %d\n", sc->sc_aggr_stats.aggr_single_pkt);
 	printf("aggr single packet w/ BAW closed: %d\n",
 	    sc->sc_aggr_stats.aggr_baw_closed_single_pkt);
-	printf("aggr non-baw packet: %d\n",
-	    sc->sc_aggr_stats.aggr_nonbaw_pkt);
-	printf("aggr aggregate packet: %d\n",
-	    sc->sc_aggr_stats.aggr_aggr_pkt);
+	printf("aggr non-baw packet: %d\n", sc->sc_aggr_stats.aggr_nonbaw_pkt);
+	printf("aggr aggregate packet: %d\n", sc->sc_aggr_stats.aggr_aggr_pkt);
 	printf("aggr single packet low hwq: %d\n",
 	    sc->sc_aggr_stats.aggr_low_hwq_single_pkt);
 	printf("aggr single packet RTS aggr limited: %d\n",
 	    sc->sc_aggr_stats.aggr_rts_aggr_limited);
-	printf("aggr sched, no work: %d\n",
-	    sc->sc_aggr_stats.aggr_sched_nopkt);
+	printf("aggr sched, no work: %d\n", sc->sc_aggr_stats.aggr_sched_nopkt);
 	for (i = 0; i < 64; i++) {
 		printf("%2d: %10d ", i, sc->sc_aggr_stats.aggr_pkts[i]);
 		if (i % 4 == 3)
@@ -495,9 +493,8 @@ ath_sysctl_txagg(SYSCTL_HANDLER_ARGS)
 	for (i = 0; i < HAL_NUM_TX_QUEUES; i++) {
 		if (ATH_TXQ_SETUP(sc, i)) {
 			printf("HW TXQ %d: axq_depth=%d, axq_aggr_depth=%d, "
-			    "axq_fifo_depth=%d, holdingbf=%p\n",
-			    i,
-			    sc->sc_txq[i].axq_depth,
+			       "axq_fifo_depth=%d, holdingbf=%p\n",
+			    i, sc->sc_txq[i].axq_depth,
 			    sc->sc_txq[i].axq_aggr_depth,
 			    sc->sc_txq[i].axq_fifo_depth,
 			    sc->sc_txq[i].axq_holdingbf);
@@ -506,7 +503,7 @@ ath_sysctl_txagg(SYSCTL_HANDLER_ARGS)
 
 	i = t = 0;
 	ATH_TXBUF_LOCK(sc);
-	TAILQ_FOREACH(bf, &sc->sc_txbuf, bf_list) {
+	TAILQ_FOREACH (bf, &sc->sc_txbuf, bf_list) {
 		if (bf->bf_flags & ATH_BUF_BUSY) {
 			printf("Busy: %d\n", t);
 			i++;
@@ -514,12 +511,12 @@ ath_sysctl_txagg(SYSCTL_HANDLER_ARGS)
 		t++;
 	}
 	ATH_TXBUF_UNLOCK(sc);
-	printf("Total TX buffers: %d; Total TX buffers busy: %d (%d)\n",
-	    t, i, sc->sc_txbuf_cnt);
+	printf("Total TX buffers: %d; Total TX buffers busy: %d (%d)\n", t, i,
+	    sc->sc_txbuf_cnt);
 
 	i = t = 0;
 	ATH_TXBUF_LOCK(sc);
-	TAILQ_FOREACH(bf, &sc->sc_txbuf_mgmt, bf_list) {
+	TAILQ_FOREACH (bf, &sc->sc_txbuf_mgmt, bf_list) {
 		if (bf->bf_flags & ATH_BUF_BUSY) {
 			printf("Busy: %d\n", t);
 			i++;
@@ -527,26 +524,23 @@ ath_sysctl_txagg(SYSCTL_HANDLER_ARGS)
 		t++;
 	}
 	ATH_TXBUF_UNLOCK(sc);
-	printf("Total mgmt TX buffers: %d; Total mgmt TX buffers busy: %d\n",
-	    t, i);
+	printf("Total mgmt TX buffers: %d; Total mgmt TX buffers busy: %d\n", t,
+	    i);
 
 	ATH_RX_LOCK(sc);
 	for (i = 0; i < 2; i++) {
-		printf("%d: fifolen: %d/%d; head=%d; tail=%d; m_pending=%p, m_holdbf=%p\n",
-		    i,
-		    sc->sc_rxedma[i].m_fifo_depth,
-		    sc->sc_rxedma[i].m_fifolen,
-		    sc->sc_rxedma[i].m_fifo_head,
-		    sc->sc_rxedma[i].m_fifo_tail,
-		    sc->sc_rxedma[i].m_rxpending,
+		printf(
+		    "%d: fifolen: %d/%d; head=%d; tail=%d; m_pending=%p, m_holdbf=%p\n",
+		    i, sc->sc_rxedma[i].m_fifo_depth,
+		    sc->sc_rxedma[i].m_fifolen, sc->sc_rxedma[i].m_fifo_head,
+		    sc->sc_rxedma[i].m_fifo_tail, sc->sc_rxedma[i].m_rxpending,
 		    sc->sc_rxedma[i].m_holdbf);
 	}
 	i = 0;
-	TAILQ_FOREACH(bf, &sc->sc_rxbuf, bf_list) {
+	TAILQ_FOREACH (bf, &sc->sc_rxbuf, bf_list) {
 		i++;
 	}
-	printf("Total RX buffers in free list: %d buffers\n",
-	    i);
+	printf("Total RX buffers in free list: %d buffers\n", i);
 	ATH_RX_UNLOCK(sc);
 
 	return 0;
@@ -563,7 +557,7 @@ ath_sysctl_rfsilent(SYSCTL_HANDLER_ARGS)
 	ath_power_set_power_state(sc, HAL_PM_AWAKE);
 	ATH_UNLOCK(sc);
 
-	(void) ath_hal_getrfsilent(sc->sc_ah, &rfsilent);
+	(void)ath_hal_getrfsilent(sc->sc_ah, &rfsilent);
 	error = sysctl_handle_int(oidp, &rfsilent, 0, req);
 	if (error || !req->newptr)
 		goto finish;
@@ -602,7 +596,7 @@ ath_sysctl_tpack(SYSCTL_HANDLER_ARGS)
 	ath_power_set_power_state(sc, HAL_PM_AWAKE);
 	ATH_UNLOCK(sc);
 
-	(void) ath_hal_gettpack(sc->sc_ah, &tpack);
+	(void)ath_hal_gettpack(sc->sc_ah, &tpack);
 	error = sysctl_handle_int(oidp, &tpack, 0, req);
 	if (error || !req->newptr)
 		goto finish;
@@ -627,7 +621,7 @@ ath_sysctl_tpcts(SYSCTL_HANDLER_ARGS)
 	ath_power_set_power_state(sc, HAL_PM_AWAKE);
 	ATH_UNLOCK(sc);
 
-	(void) ath_hal_gettpcts(sc->sc_ah, &tpcts);
+	(void)ath_hal_gettpcts(sc->sc_ah, &tpcts);
 	error = sysctl_handle_int(oidp, &tpcts, 0, req);
 	if (error || !req->newptr)
 		goto finish;
@@ -659,7 +653,7 @@ ath_sysctl_intmit(SYSCTL_HANDLER_ARGS)
 
 	/* reusing error; 1 here means "good"; 0 means "fail" */
 	error = ath_hal_setintmit(sc->sc_ah, intmit);
-	if (! error) {
+	if (!error) {
 		error = EINVAL;
 		goto finish;
 	}
@@ -738,9 +732,8 @@ ath_sysctl_hangcheck(SYSCTL_HANDLER_ARGS)
 	ATH_UNLOCK(sc);
 
 	/* Do a hang check */
-	if (!ath_hal_getdiagstate(ah, HAL_DIAG_CHECK_HANGS,
-	    &mask, sizeof(mask),
-	    (void *) &sp, &rsize)) {
+	if (!ath_hal_getdiagstate(ah, HAL_DIAG_CHECK_HANGS, &mask, sizeof(mask),
+		(void *)&sp, &rsize)) {
 		error = 0;
 		goto finish;
 	}
@@ -791,20 +784,18 @@ ath_sysctl_alq_attach(struct ath_softc *sc)
 	    "Atheros ALQ logging parameters");
 	child = SYSCTL_CHILDREN(tree);
 
-	SYSCTL_ADD_STRING(ctx, child, OID_AUTO, "filename",
-	    CTLFLAG_RW, sc->sc_alq.sc_alq_filename, 0, "ALQ filename");
+	SYSCTL_ADD_STRING(ctx, child, OID_AUTO, "filename", CTLFLAG_RW,
+	    sc->sc_alq.sc_alq_filename, 0, "ALQ filename");
 
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "enable", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "enable",
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
 	    ath_sysctl_alq_log, "I", "");
 
-	SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		"debugmask", CTLFLAG_RW, &sc->sc_alq.sc_alq_debug, 0,
-		"ALQ debug mask");
+	SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "debugmask",
+	    CTLFLAG_RW, &sc->sc_alq.sc_alq_debug, 0, "ALQ debug mask");
 
-	SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		"numlost", CTLFLAG_RW, &sc->sc_alq.sc_alq_numlost, 0,
-		"number lost");
+	SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "numlost",
+	    CTLFLAG_RW, &sc->sc_alq.sc_alq_numlost, 0, "number lost");
 }
 #endif /* ATH_DEBUG_ALQ */
 
@@ -815,156 +806,146 @@ ath_sysctlattach(struct ath_softc *sc)
 	struct sysctl_oid *tree = device_get_sysctl_tree(sc->sc_dev);
 	struct ath_hal *ah = sc->sc_ah;
 
-	SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		"countrycode", CTLFLAG_RD, &sc->sc_eecc, 0,
-		"EEPROM country code");
-	SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		"regdomain", CTLFLAG_RD, &sc->sc_eerd, 0,
-		"EEPROM regdomain code");
-#ifdef	ATH_DEBUG
-	SYSCTL_ADD_QUAD(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		"debug", CTLFLAG_RW, &sc->sc_debug,
-		"control debugging printfs");
+	SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "countrycode",
+	    CTLFLAG_RD, &sc->sc_eecc, 0, "EEPROM country code");
+	SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "regdomain",
+	    CTLFLAG_RD, &sc->sc_eerd, 0, "EEPROM regdomain code");
+#ifdef ATH_DEBUG
+	SYSCTL_ADD_QUAD(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "debug",
+	    CTLFLAG_RW, &sc->sc_debug, "control debugging printfs");
 #endif
-#ifdef	ATH_DEBUG_ALQ
-	SYSCTL_ADD_QUAD(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		"ktrdebug", CTLFLAG_RW, &sc->sc_ktrdebug,
-		"control debugging KTR");
+#ifdef ATH_DEBUG_ALQ
+	SYSCTL_ADD_QUAD(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "ktrdebug",
+	    CTLFLAG_RW, &sc->sc_ktrdebug, "control debugging KTR");
 #endif /* ATH_DEBUG_ALQ */
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "slottime", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "slottime",
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
 	    ath_sysctl_slottime, "I", "802.11 slot time (us)");
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "acktimeout", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "acktimeout",
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
 	    ath_sysctl_acktimeout, "I", "802.11 ACK timeout (us)");
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "ctstimeout", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "ctstimeout",
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
 	    ath_sysctl_ctstimeout, "I", "802.11 CTS timeout (us)");
 
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "softled", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "softled",
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
 	    ath_sysctl_softled, "I", "enable/disable software LED support");
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "ledpin", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "ledpin",
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
 	    ath_sysctl_ledpin, "I", "GPIO pin connected to LED");
-	SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		"ledon", CTLFLAG_RW, &sc->sc_ledon, 0,
-		"setting to turn LED on");
-	SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		"ledidle", CTLFLAG_RW, &sc->sc_ledidle, 0,
-		"idle time for inactivity LED (ticks)");
+	SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "ledon",
+	    CTLFLAG_RW, &sc->sc_ledon, 0, "setting to turn LED on");
+	SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "ledidle",
+	    CTLFLAG_RW, &sc->sc_ledidle, 0,
+	    "idle time for inactivity LED (ticks)");
 
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "hardled", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "hardled",
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
 	    ath_sysctl_hardled, "I", "enable/disable hardware LED support");
 	/* XXX Laziness - configure pins, then flip hardled off/on */
-	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		"led_net_pin", CTLFLAG_RW, &sc->sc_led_net_pin, 0,
-		"MAC Network LED pin, or -1 to disable");
-	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		"led_pwr_pin", CTLFLAG_RW, &sc->sc_led_pwr_pin, 0,
-		"MAC Power LED pin, or -1 to disable");
+	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "led_net_pin",
+	    CTLFLAG_RW, &sc->sc_led_net_pin, 0,
+	    "MAC Network LED pin, or -1 to disable");
+	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "led_pwr_pin",
+	    CTLFLAG_RW, &sc->sc_led_pwr_pin, 0,
+	    "MAC Power LED pin, or -1 to disable");
 
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "txantenna", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "txantenna",
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
 	    ath_sysctl_txantenna, "I", "antenna switch");
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "rxantenna", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "rxantenna",
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
 	    ath_sysctl_rxantenna, "I", "default/rx antenna");
 	if (ath_hal_hasdiversity(ah))
 		SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
 		    "diversity", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT,
 		    sc, 0, ath_sysctl_diversity, "I", "antenna diversity");
 	sc->sc_txintrperiod = ATH_TXINTR_PERIOD;
-	SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		"txintrperiod", CTLFLAG_RW, &sc->sc_txintrperiod, 0,
-		"tx descriptor batching");
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "diag", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+	SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "txintrperiod",
+	    CTLFLAG_RW, &sc->sc_txintrperiod, 0, "tx descriptor batching");
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "diag",
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
 	    ath_sysctl_diag, "I", "h/w diagnostic control");
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "tpscale", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "tpscale",
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
 	    ath_sysctl_tpscale, "I", "tx power scaling");
 	if (ath_hal_hastpc(ah)) {
-		SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		    "tpc", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+		SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "tpc",
+		    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
 		    ath_sysctl_tpc, "I", "enable/disable per-packet TPC");
-		SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		    "tpack", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc,
-		    0, ath_sysctl_tpack, "I", "tx power for ack frames");
-		SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		    "tpcts", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc,
-		    0, ath_sysctl_tpcts, "I", "tx power for cts frames");
+		SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "tpack",
+		    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+		    ath_sysctl_tpack, "I", "tx power for ack frames");
+		SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "tpcts",
+		    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+		    ath_sysctl_tpcts, "I", "tx power for cts frames");
 	}
 	if (ath_hal_hasrfsilent(ah)) {
 		SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
 		    "rfsilent", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT,
 		    sc, 0, ath_sysctl_rfsilent, "I", "h/w RF silent config");
-		SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		    "rfkill", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc,
-		    0, ath_sysctl_rfkill, "I", "enable/disable RF kill switch");
+		SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "rfkill",
+		    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+		    ath_sysctl_rfkill, "I", "enable/disable RF kill switch");
 	}
 
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "txagg", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "txagg",
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
 	    ath_sysctl_txagg, "I", "");
 
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "forcebstuck", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc,
-	    0, ath_sysctl_forcebstuck, "I", "");
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "forcebstuck",
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+	    ath_sysctl_forcebstuck, "I", "");
 
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "hangcheck", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "hangcheck",
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
 	    ath_sysctl_hangcheck, "I", "");
 
 	if (ath_hal_hasintmit(ah)) {
-		SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		    "intmit", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc,
-		    0, ath_sysctl_intmit, "I", "interference mitigation");
+		SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "intmit",
+		    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+		    ath_sysctl_intmit, "I", "interference mitigation");
 	}
 	sc->sc_monpass = HAL_RXERR_DECRYPT | HAL_RXERR_MIC;
-	SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		"monpass", CTLFLAG_RW, &sc->sc_monpass, 0,
-		"mask of error frames to pass when monitoring");
+	SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "monpass",
+	    CTLFLAG_RW, &sc->sc_monpass, 0,
+	    "mask of error frames to pass when monitoring");
 
 	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		"hwq_limit_nonaggr", CTLFLAG_RW, &sc->sc_hwq_limit_nonaggr, 0,
-		"Hardware non-AMPDU queue depth before software-queuing TX frames");
-	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		"hwq_limit_aggr", CTLFLAG_RW, &sc->sc_hwq_limit_aggr, 0,
-		"Hardware AMPDU queue depth before software-queuing TX frames");
-	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		"tid_hwq_lo", CTLFLAG_RW, &sc->sc_tid_hwq_lo, 0,
-		"");
-	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		"tid_hwq_hi", CTLFLAG_RW, &sc->sc_tid_hwq_hi, 0,
-		"");
+	    "hwq_limit_nonaggr", CTLFLAG_RW, &sc->sc_hwq_limit_nonaggr, 0,
+	    "Hardware non-AMPDU queue depth before software-queuing TX frames");
+	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "hwq_limit_aggr",
+	    CTLFLAG_RW, &sc->sc_hwq_limit_aggr, 0,
+	    "Hardware AMPDU queue depth before software-queuing TX frames");
+	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "tid_hwq_lo",
+	    CTLFLAG_RW, &sc->sc_tid_hwq_lo, 0, "");
+	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "tid_hwq_hi",
+	    CTLFLAG_RW, &sc->sc_tid_hwq_hi, 0, "");
 
 	/* Aggregate length twiddles */
-	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		"aggr_limit", CTLFLAG_RW, &sc->sc_aggr_limit, 0,
-		"Maximum A-MPDU size, or 0 for 'default'");
-	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		"rts_aggr_limit", CTLFLAG_RW, &sc->sc_rts_aggr_limit, 0,
-		"Maximum A-MPDU size for RTS-protected frames, or '0' "
-		"for default");
-	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		"delim_min_pad", CTLFLAG_RW, &sc->sc_delim_min_pad, 0,
-		"Enforce a minimum number of delimiters per A-MPDU "
-		" sub-frame");
+	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "aggr_limit",
+	    CTLFLAG_RW, &sc->sc_aggr_limit, 0,
+	    "Maximum A-MPDU size, or 0 for 'default'");
+	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "rts_aggr_limit",
+	    CTLFLAG_RW, &sc->sc_rts_aggr_limit, 0,
+	    "Maximum A-MPDU size for RTS-protected frames, or '0' "
+	    "for default");
+	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "delim_min_pad",
+	    CTLFLAG_RW, &sc->sc_delim_min_pad, 0,
+	    "Enforce a minimum number of delimiters per A-MPDU "
+	    " sub-frame");
 
+	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "txq_data_minfree",
+	    CTLFLAG_RW, &sc->sc_txq_data_minfree, 0,
+	    "Minimum free buffers before adding a data frame"
+	    " to the TX queue");
 	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		"txq_data_minfree", CTLFLAG_RW, &sc->sc_txq_data_minfree,
-		0, "Minimum free buffers before adding a data frame"
-		" to the TX queue");
+	    "txq_mcastq_maxdepth", CTLFLAG_RW, &sc->sc_txq_mcastq_maxdepth, 0,
+	    "Maximum buffer depth for multicast/broadcast frames");
 	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		"txq_mcastq_maxdepth", CTLFLAG_RW,
-		&sc->sc_txq_mcastq_maxdepth, 0,
-		"Maximum buffer depth for multicast/broadcast frames");
-	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		"txq_node_maxdepth", CTLFLAG_RW,
-		&sc->sc_txq_node_maxdepth, 0,
-		"Maximum buffer depth for a single node");
+	    "txq_node_maxdepth", CTLFLAG_RW, &sc->sc_txq_node_maxdepth, 0,
+	    "Maximum buffer depth for a single node");
 
 #if 0
 	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
@@ -976,26 +957,26 @@ ath_sysctlattach(struct ath_softc *sc)
 #ifdef IEEE80211_SUPPORT_TDMA
 	if (ath_hal_macversion(ah) > 0x78) {
 		sc->sc_tdmadbaprep = 2;
-		SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-			"dbaprep", CTLFLAG_RW, &sc->sc_tdmadbaprep, 0,
-			"TDMA DBA preparation time");
+		SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "dbaprep",
+		    CTLFLAG_RW, &sc->sc_tdmadbaprep, 0,
+		    "TDMA DBA preparation time");
 		sc->sc_tdmaswbaprep = 10;
 		SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-			"swbaprep", CTLFLAG_RW, &sc->sc_tdmaswbaprep, 0,
-			"TDMA SWBA preparation time");
+		    "swbaprep", CTLFLAG_RW, &sc->sc_tdmaswbaprep, 0,
+		    "TDMA SWBA preparation time");
 		SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-			"guardtime", CTLFLAG_RW, &sc->sc_tdmaguard, 0,
-			"TDMA slot guard time");
+		    "guardtime", CTLFLAG_RW, &sc->sc_tdmaguard, 0,
+		    "TDMA slot guard time");
 		SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-			"superframe", CTLFLAG_RD, &sc->sc_tdmabintval, 0,
-			"TDMA calculated super frame");
-		SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		    "setcca", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT,
-		    sc, 0, ath_sysctl_setcca, "I", "enable CCA control");
+		    "superframe", CTLFLAG_RD, &sc->sc_tdmabintval, 0,
+		    "TDMA calculated super frame");
+		SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "setcca",
+		    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+		    ath_sysctl_setcca, "I", "enable CCA control");
 	}
 #endif
 
-#ifdef	ATH_DEBUG_ALQ
+#ifdef ATH_DEBUG_ALQ
 	ath_sysctl_alq_attach(sc);
 #endif
 }
@@ -1011,7 +992,7 @@ ath_sysctl_clearstats(SYSCTL_HANDLER_ARGS)
 	if (error || !req->newptr)
 		return error;
 	if (val == 0)
-		return 0;       /* Not clearing the stats is still valid */
+		return 0; /* Not clearing the stats is still valid */
 	memset(&sc->sc_stats, 0, sizeof(sc->sc_stats));
 	memset(&sc->sc_aggr_stats, 0, sizeof(sc->sc_aggr_stats));
 	memset(&sc->sc_intr_stats, 0, sizeof(sc->sc_intr_stats));
@@ -1021,7 +1002,8 @@ ath_sysctl_clearstats(SYSCTL_HANDLER_ARGS)
 }
 
 static void
-ath_sysctl_stats_attach_rxphyerr(struct ath_softc *sc, struct sysctl_oid_list *parent)
+ath_sysctl_stats_attach_rxphyerr(struct ath_softc *sc,
+    struct sysctl_oid_list *parent)
 {
 	struct sysctl_ctx_list *ctx = device_get_sysctl_ctx(sc->sc_dev);
 	struct sysctl_oid *tree = device_get_sysctl_tree(sc->sc_dev);
@@ -1034,7 +1016,8 @@ ath_sysctl_stats_attach_rxphyerr(struct ath_softc *sc, struct sysctl_oid_list *p
 	child = SYSCTL_CHILDREN(tree);
 	for (i = 0; i < 64; i++) {
 		snprintf(sn, sizeof(sn), "%d", i);
-		SYSCTL_ADD_UINT(ctx, child, OID_AUTO, sn, CTLFLAG_RD, &sc->sc_stats.ast_rx_phy[i], 0, "");
+		SYSCTL_ADD_UINT(ctx, child, OID_AUTO, sn, CTLFLAG_RD,
+		    &sc->sc_stats.ast_rx_phy[i], 0, "");
 	}
 }
 
@@ -1066,9 +1049,9 @@ ath_sysctl_stats_attach(struct ath_softc *sc)
 	struct sysctl_oid_list *child = SYSCTL_CHILDREN(tree);
 
 	/* Create "clear" node */
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "clear_stats", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc,
-	    0, ath_sysctl_clearstats, "I", "clear stats");
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "clear_stats",
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+	    ath_sysctl_clearstats, "I", "clear stats");
 
 	/* Create stats node */
 	tree = SYSCTL_ADD_NODE(ctx, child, OID_AUTO, "stats",
@@ -1120,7 +1103,8 @@ ath_sysctl_stats_attach(struct ath_softc *sc)
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tx_busdma", CTLFLAG_RD,
 	    &sc->sc_stats.ast_tx_busdma, 0, "tx failed for dma resrcs");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tx_xretries", CTLFLAG_RD,
-	    &sc->sc_stats.ast_tx_xretries, 0, "tx failed 'cuz too many retries");
+	    &sc->sc_stats.ast_tx_xretries, 0,
+	    "tx failed 'cuz too many retries");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tx_fifoerr", CTLFLAG_RD,
 	    &sc->sc_stats.ast_tx_fifoerr, 0, "tx failed 'cuz FIFO underrun");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tx_filtered", CTLFLAG_RD,
@@ -1144,7 +1128,8 @@ ath_sysctl_stats_attach(struct ath_softc *sc)
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tx_protect", CTLFLAG_RD,
 	    &sc->sc_stats.ast_tx_protect, 0, "tx frames with protection");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tx_ctsburst", CTLFLAG_RD,
-	    &sc->sc_stats.ast_tx_ctsburst, 0, "tx frames with cts and bursting");
+	    &sc->sc_stats.ast_tx_ctsburst, 0,
+	    "tx frames with cts and bursting");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tx_ctsext", CTLFLAG_RD,
 	    &sc->sc_stats.ast_tx_ctsext, 0, "tx frames with cts extension");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_rx_nombuf", CTLFLAG_RD,
@@ -1164,9 +1149,11 @@ ath_sysctl_stats_attach(struct ath_softc *sc)
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_rx_phyerr", CTLFLAG_RD,
 	    &sc->sc_stats.ast_rx_phyerr, 0, "rx failed 'cuz of PHY err");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_rx_tooshort", CTLFLAG_RD,
-	    &sc->sc_stats.ast_rx_tooshort, 0, "rx discarded 'cuz frame too short");
+	    &sc->sc_stats.ast_rx_tooshort, 0,
+	    "rx discarded 'cuz frame too short");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_rx_toobig", CTLFLAG_RD,
-	    &sc->sc_stats.ast_rx_toobig, 0, "rx discarded 'cuz frame too large");
+	    &sc->sc_stats.ast_rx_toobig, 0,
+	    "rx discarded 'cuz frame too large");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_rx_packets", CTLFLAG_RD,
 	    &sc->sc_stats.ast_rx_packets, 0, "packet recv on the interface");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_rx_mgt", CTLFLAG_RD,
@@ -1182,7 +1169,8 @@ ath_sysctl_stats_attach(struct ath_softc *sc)
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_per_calfail", CTLFLAG_RD,
 	    &sc->sc_stats.ast_per_calfail, 0, "periodic calibration failed");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_per_rfgain", CTLFLAG_RD,
-	    &sc->sc_stats.ast_per_rfgain, 0, "periodic calibration rfgain reset");
+	    &sc->sc_stats.ast_per_rfgain, 0,
+	    "periodic calibration rfgain reset");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_rate_calls", CTLFLAG_RD,
 	    &sc->sc_stats.ast_rate_calls, 0, "rate control checks");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_rate_raise", CTLFLAG_RD,
@@ -1206,7 +1194,8 @@ ath_sysctl_stats_attach(struct ath_softc *sc)
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_ff_rx", CTLFLAG_RD,
 	    &sc->sc_stats.ast_ff_rx, 0, "fast frames rx'd");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_ff_flush", CTLFLAG_RD,
-	    &sc->sc_stats.ast_ff_flush, 0, "fast frames flushed from staging q");
+	    &sc->sc_stats.ast_ff_flush, 0,
+	    "fast frames flushed from staging q");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tx_qfull", CTLFLAG_RD,
 	    &sc->sc_stats.ast_tx_qfull, 0, "tx dropped 'cuz of queue limit");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tx_nobuf", CTLFLAG_RD,
@@ -1214,7 +1203,8 @@ ath_sysctl_stats_attach(struct ath_softc *sc)
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tdma_update", CTLFLAG_RD,
 	    &sc->sc_stats.ast_tdma_update, 0, "TDMA slot timing updates");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tdma_timers", CTLFLAG_RD,
-	    &sc->sc_stats.ast_tdma_timers, 0, "TDMA slot update set beacon timers");
+	    &sc->sc_stats.ast_tdma_timers, 0,
+	    "TDMA slot update set beacon timers");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tdma_tsf", CTLFLAG_RD,
 	    &sc->sc_stats.ast_tdma_tsf, 0, "TDMA slot update set TSF");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tdma_ack", CTLFLAG_RD,
@@ -1222,7 +1212,8 @@ ath_sysctl_stats_attach(struct ath_softc *sc)
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tx_raw_fail", CTLFLAG_RD,
 	    &sc->sc_stats.ast_tx_raw_fail, 0, "raw tx failed 'cuz h/w down");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tx_nofrag", CTLFLAG_RD,
-	    &sc->sc_stats.ast_tx_nofrag, 0, "tx dropped 'cuz no ath frag buffer");
+	    &sc->sc_stats.ast_tx_nofrag, 0,
+	    "tx dropped 'cuz no ath frag buffer");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_be_missed", CTLFLAG_RD,
 	    &sc->sc_stats.ast_be_missed, 0, "number of -missed- beacons");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_ani_cal", CTLFLAG_RD,
@@ -1231,15 +1222,19 @@ ath_sysctl_stats_attach(struct ath_softc *sc)
 	    &sc->sc_stats.ast_rx_agg, 0, "number of aggregate frames received");
 
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_rx_halfgi", CTLFLAG_RD,
-	    &sc->sc_stats.ast_rx_halfgi, 0, "number of frames received with half-GI");
+	    &sc->sc_stats.ast_rx_halfgi, 0,
+	    "number of frames received with half-GI");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_rx_2040", CTLFLAG_RD,
 	    &sc->sc_stats.ast_rx_2040, 0, "number of HT/40 frames received");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_rx_pre_crc_err", CTLFLAG_RD,
-	    &sc->sc_stats.ast_rx_pre_crc_err, 0, "number of delimiter-CRC errors detected");
+	    &sc->sc_stats.ast_rx_pre_crc_err, 0,
+	    "number of delimiter-CRC errors detected");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_rx_post_crc_err", CTLFLAG_RD,
-	    &sc->sc_stats.ast_rx_post_crc_err, 0, "number of post-delimiter CRC errors detected");
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_rx_decrypt_busy_err", CTLFLAG_RD,
-	    &sc->sc_stats.ast_rx_decrypt_busy_err, 0, "number of frames received w/ busy decrypt engine");
+	    &sc->sc_stats.ast_rx_post_crc_err, 0,
+	    "number of post-delimiter CRC errors detected");
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_rx_decrypt_busy_err",
+	    CTLFLAG_RD, &sc->sc_stats.ast_rx_decrypt_busy_err, 0,
+	    "number of frames received w/ busy decrypt engine");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_rx_hi_rx_chain", CTLFLAG_RD,
 	    &sc->sc_stats.ast_rx_hi_rx_chain, 0, "");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tx_htprotect", CTLFLAG_RD,
@@ -1253,18 +1248,20 @@ ath_sysctl_stats_attach(struct ath_softc *sc)
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tx_xtxop", CTLFLAG_RD,
 	    &sc->sc_stats.ast_tx_xtxop, 0, "TX exceeded TXOP");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tx_timerexpired", CTLFLAG_RD,
-	    &sc->sc_stats.ast_tx_timerexpired, 0, "TX exceeded TX_TIMER register");
+	    &sc->sc_stats.ast_tx_timerexpired, 0,
+	    "TX exceeded TX_TIMER register");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tx_desccfgerr", CTLFLAG_RD,
 	    &sc->sc_stats.ast_tx_desccfgerr, 0, "TX Descriptor Cfg Error");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tx_swretries", CTLFLAG_RD,
 	    &sc->sc_stats.ast_tx_swretries, 0, "TX software retry count");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tx_swretrymax", CTLFLAG_RD,
-	    &sc->sc_stats.ast_tx_swretrymax, 0, "TX software retry max reached");
+	    &sc->sc_stats.ast_tx_swretrymax, 0,
+	    "TX software retry max reached");
 
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tx_data_underrun", CTLFLAG_RD,
-	    &sc->sc_stats.ast_tx_data_underrun, 0, "");
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tx_delim_underrun", CTLFLAG_RD,
-	    &sc->sc_stats.ast_tx_delim_underrun, 0, "");
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tx_data_underrun",
+	    CTLFLAG_RD, &sc->sc_stats.ast_tx_data_underrun, 0, "");
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tx_delim_underrun",
+	    CTLFLAG_RD, &sc->sc_stats.ast_tx_delim_underrun, 0, "");
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tx_aggr_failall", CTLFLAG_RD,
 	    &sc->sc_stats.ast_tx_aggr_failall, 0,
 	    "Number of aggregate TX failures (whole frame)");
@@ -1289,18 +1286,15 @@ ath_sysctl_stats_attach(struct ath_softc *sc)
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tx_nodeq_overflow",
 	    CTLFLAG_RD, &sc->sc_stats.ast_tx_nodeq_overflow, 0,
 	    "tx dropped 'cuz nodeq overflow");
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_rx_stbc",
-	    CTLFLAG_RD, &sc->sc_stats.ast_rx_stbc, 0,
-	    "Number of STBC frames received");
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tx_stbc",
-	    CTLFLAG_RD, &sc->sc_stats.ast_tx_stbc, 0,
-	    "Number of STBC frames transmitted");
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tx_ldpc",
-	    CTLFLAG_RD, &sc->sc_stats.ast_tx_ldpc, 0,
-	    "Number of LDPC frames transmitted");
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_rx_stbc", CTLFLAG_RD,
+	    &sc->sc_stats.ast_rx_stbc, 0, "Number of STBC frames received");
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tx_stbc", CTLFLAG_RD,
+	    &sc->sc_stats.ast_tx_stbc, 0, "Number of STBC frames transmitted");
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tx_ldpc", CTLFLAG_RD,
+	    &sc->sc_stats.ast_tx_ldpc, 0, "Number of LDPC frames transmitted");
 
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tsfoor",
-	    CTLFLAG_RD, &sc->sc_stats.ast_tsfoor, 0,
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "ast_tsfoor", CTLFLAG_RD,
+	    &sc->sc_stats.ast_tsfoor, 0,
 	    "Number of TSF out of range interrupts/resets");
 
 	/* Attach the RX phy error array */

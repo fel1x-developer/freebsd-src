@@ -46,10 +46,9 @@ __fixdfdi(double x)
 		if (x <= (double)QUAD_MIN)
 			return (QUAD_MIN);
 		else
-			return ((quad_t)-(u_quad_t)-x);
+			return ((quad_t) - (u_quad_t)-x);
+	else if (x >= (double)QUAD_MAX)
+		return (QUAD_MAX);
 	else
-		if (x >= (double)QUAD_MAX)
-			return (QUAD_MAX);
-		else
-			return ((quad_t)(u_quad_t)x);
+		return ((quad_t)(u_quad_t)x);
 }

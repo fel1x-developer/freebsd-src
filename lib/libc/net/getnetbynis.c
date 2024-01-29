@@ -27,18 +27,20 @@
 
 #include <sys/param.h>
 #include <sys/socket.h>
+
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
-#include <netdb.h>
-#include <resolv.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <arpa/nameser.h>
 #include <ctype.h>
 #include <errno.h>
-#include <string.h>
-#include <stdarg.h>
+#include <netdb.h>
 #include <nsswitch.h>
-#include <arpa/nameser.h>
+#include <resolv.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #ifdef YP
 #include <rpc/rpc.h>
 #include <rpcsvc/yp_prot.h>
@@ -57,7 +59,7 @@ _getnetbynis(const char *name, char *map, int af, struct netent *ne,
 	int resultlen, len;
 	char *ypbuf;
 
-	switch(af) {
+	switch (af) {
 	case AF_INET:
 		break;
 	default:
@@ -67,11 +69,11 @@ _getnetbynis(const char *name, char *map, int af, struct netent *ne,
 	}
 
 	if (ned->yp_domain == (char *)NULL)
-		if (yp_get_default_domain (&ned->yp_domain))
+		if (yp_get_default_domain(&ned->yp_domain))
 			return (-1);
 
 	if (yp_match(ned->yp_domain, map, name, strlen(name), &result,
-	    &resultlen))
+		&resultlen))
 		return (-1);
 
 	ypbuf = alloca(resultlen + 2);
@@ -170,7 +172,6 @@ _nis_getnetbyname(void *rval, void *cb_data, va_list ap)
 #else
 	return (NS_UNAVAIL);
 #endif
-
 }
 
 int
@@ -213,30 +214,30 @@ _nis_getnetbyaddr(void *rval, void *cb_data, va_list ap)
 		return (NS_UNAVAIL);
 	}
 
-        for (nn = 4, net2 = addr; net2; net2 >>= 8) {
-                netbr[--nn] = net2 & 0xff;
+	for (nn = 4, net2 = addr; net2; net2 >>= 8) {
+		netbr[--nn] = net2 & 0xff;
 	}
 
 	switch (nn) {
-	case 3:		/* Class A */
+	case 3: /* Class A */
 		sprintf(buf, "%u", netbr[3]);
 		break;
-        case 2:		/* Class B */
+	case 2: /* Class B */
 		sprintf(buf, "%u.%u", netbr[2], netbr[3]);
 		break;
-        case 1:		/* Class C */
+	case 1: /* Class C */
 		sprintf(buf, "%u.%u.%u", netbr[1], netbr[2], netbr[3]);
-                break;
-        case 0:		/* Class D - E */
-		sprintf(buf, "%u.%u.%u.%u", netbr[0], netbr[1],
-			netbr[2], netbr[3]);
+		break;
+	case 0: /* Class D - E */
+		sprintf(buf, "%u.%u.%u.%u", netbr[0], netbr[1], netbr[2],
+		    netbr[3]);
 		break;
 	}
 
 	str = (char *)&buf;
 	cp = str + (strlen(str) - 2);
 
-	while(!strcmp(cp, ".0")) {
+	while (!strcmp(cp, ".0")) {
 		*cp = '\0';
 		cp = str + (strlen(str) - 2);
 	}

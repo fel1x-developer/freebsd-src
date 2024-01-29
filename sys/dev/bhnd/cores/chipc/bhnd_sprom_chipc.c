@@ -35,30 +35,29 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/limits.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
-#include <sys/systm.h>
 
 #include <dev/bhnd/bhnd.h>
+#include <dev/bhnd/cores/chipc/chipc.h>
 #include <dev/bhnd/nvram/bhnd_nvram.h>
 #include <dev/bhnd/nvram/bhnd_spromvar.h>
 
-#include <dev/bhnd/cores/chipc/chipc.h>
-
 #include "bhnd_nvram_if.h"
 
-#define	CHIPC_VALID_SPROM_SRC(_src)	\
+#define CHIPC_VALID_SPROM_SRC(_src) \
 	((_src) == BHND_NVRAM_SRC_SPROM || (_src) == BHND_NVRAM_SRC_OTP)
 
 static int
 chipc_sprom_probe(device_t dev)
 {
-	struct chipc_caps	*caps;
-	device_t		 chipc;
-	int			 error;
+	struct chipc_caps *caps;
+	device_t chipc;
+	int error;
 
 	chipc = device_get_parent(dev);
 	caps = BHND_CHIPC_GET_CAPS(chipc);
@@ -77,9 +76,9 @@ chipc_sprom_probe(device_t dev)
 static int
 chipc_sprom_attach(device_t dev)
 {
-	struct chipc_caps	*caps;
-	device_t		 chipc;
-	int			 error;
+	struct chipc_caps *caps;
+	device_t chipc;
+	int error;
 
 	chipc = device_get_parent(dev);
 	caps = BHND_CHIPC_GET_CAPS(chipc);
@@ -96,12 +95,12 @@ chipc_sprom_attach(device_t dev)
 
 static device_method_t chipc_sprom_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,			chipc_sprom_probe),
-	DEVMETHOD(device_attach,		chipc_sprom_attach),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, chipc_sprom_probe),
+	DEVMETHOD(device_attach, chipc_sprom_attach), DEVMETHOD_END
 };
 
-DEFINE_CLASS_1(bhnd_nvram, chipc_sprom_driver, chipc_sprom_methods, sizeof(struct bhnd_sprom_softc), bhnd_sprom_driver);
+DEFINE_CLASS_1(bhnd_nvram, chipc_sprom_driver, chipc_sprom_methods,
+    sizeof(struct bhnd_sprom_softc), bhnd_sprom_driver);
 DRIVER_MODULE(bhnd_chipc_sprom, bhnd_chipc, chipc_sprom_driver, NULL, NULL);
 
 MODULE_DEPEND(bhnd_chipc_sprom, bhnd, 1, 1, 1);

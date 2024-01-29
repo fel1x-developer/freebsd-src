@@ -31,29 +31,28 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 
-#include <dev/fdt/simplebus.h>
 #include <dev/fdt/fdt_common.h>
+#include <dev/fdt/simplebus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
 #include "mmio_sram_if.h"
 
-#define	dprintf(fmt, ...)
+#define dprintf(fmt, ...)
 
 static struct resource_spec mmio_sram_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ -1, 0 }
+	{ SYS_RES_MEMORY, 0, RF_ACTIVE }, { -1, 0 }
 };
 
 struct mmio_sram_softc {
-	struct simplebus_softc	simplebus_sc;
-	struct resource		*res[1];
-	device_t		dev;
+	struct simplebus_softc simplebus_sc;
+	struct resource *res[1];
+	device_t dev;
 };
 
 static int
@@ -143,14 +142,13 @@ mmio_sram_write_1(device_t dev, bus_size_t offset, uint8_t val)
 
 static device_method_t mmio_sram_methods[] = {
 	/* Device Interface */
-	DEVMETHOD(device_probe,		mmio_sram_probe),
-	DEVMETHOD(device_attach,	mmio_sram_attach),
-	DEVMETHOD(device_detach,	mmio_sram_detach),
+	DEVMETHOD(device_probe, mmio_sram_probe),
+	DEVMETHOD(device_attach, mmio_sram_attach),
+	DEVMETHOD(device_detach, mmio_sram_detach),
 
 	/* MMIO interface */
-	DEVMETHOD(mmio_sram_read_1,	mmio_sram_read_1),
-	DEVMETHOD(mmio_sram_write_1,	mmio_sram_write_1),
-	DEVMETHOD_END
+	DEVMETHOD(mmio_sram_read_1, mmio_sram_read_1),
+	DEVMETHOD(mmio_sram_write_1, mmio_sram_write_1), DEVMETHOD_END
 };
 
 DEFINE_CLASS_1(mmio_sram, mmio_sram_driver, mmio_sram_methods,

@@ -22,10 +22,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 #include "opt_spi.h"
 
+#include <sys/cdefs.h>
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -34,12 +35,11 @@
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mman.h>
-#include <sys/mutex.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/rwlock.h>
 #include <sys/spigenio.h>
-#include <sys/types.h>
 
 #include <vm/vm.h>
 #include <vm/vm_extern.h>
@@ -53,10 +53,8 @@
 #ifdef FDT
 #include <dev/ofw/ofw_bus_subr.h>
 
-static struct ofw_compat_data compat_data[] = {
-	{"freebsd,spigen", true},
-	{NULL,             false}
-};
+static struct ofw_compat_data compat_data[] = { { "freebsd,spigen", true },
+	{ NULL, false } };
 
 #endif
 
@@ -66,7 +64,7 @@ struct spigen_softc {
 	device_t sc_dev;
 	struct cdev *sc_cdev;
 #ifdef SPIGEN_LEGACY_CDEVNAME
-	struct cdev *sc_adev;           /* alias device */
+	struct cdev *sc_adev; /* alias device */
 #endif
 	struct mtx sc_mtx;
 };
@@ -74,7 +72,7 @@ struct spigen_softc {
 struct spigen_mmap {
 	vm_object_t bufobj;
 	vm_offset_t kvaddr;
-	size_t      bufsize;
+	size_t bufsize;
 };
 
 static int
@@ -92,7 +90,7 @@ spigen_probe(device_t dev)
 #ifdef FDT
 	if (ofw_bus_status_okay(dev) &&
 	    ofw_bus_search_compatible(dev, compat_data)->ocd_data)
-                rv = BUS_PROBE_DEFAULT;
+		rv = BUS_PROBE_DEFAULT;
 #endif
 
 	device_set_desc(dev, "SPI Generic IO");
@@ -105,14 +103,12 @@ static int spigen_ioctl(struct cdev *, u_long, caddr_t, int, struct thread *);
 static int spigen_close(struct cdev *, int, int, struct thread *);
 static d_mmap_single_t spigen_mmap_single;
 
-static struct cdevsw spigen_cdevsw = {
-	.d_version =     D_VERSION,
-	.d_name =        "spigen",
-	.d_open =        spigen_open,
-	.d_ioctl =       spigen_ioctl,
+static struct cdevsw spigen_cdevsw = { .d_version = D_VERSION,
+	.d_name = "spigen",
+	.d_open = spigen_open,
+	.d_ioctl = spigen_ioctl,
 	.d_mmap_single = spigen_mmap_single,
-	.d_close =       spigen_close
-};
+	.d_close = spigen_close };
 
 static int
 spigen_attach(device_t dev)
@@ -160,7 +156,7 @@ spigen_attach(device_t dev)
 	return (0);
 }
 
-static int 
+static int
 spigen_open(struct cdev *cdev, int oflags, int devtype, struct thread *td)
 {
 	device_t dev;
@@ -194,18 +190,17 @@ spigen_transfer(struct cdev *cdev, struct spigen_transfer *st)
 	transfer.tx_cmd = transfer.rx_cmd = malloc(st->st_command.iov_len,
 	    M_DEVBUF, M_WAITOK);
 	if (st->st_data.iov_len > 0) {
-		transfer.tx_data = transfer.rx_data = malloc(st->st_data.iov_len,
-		    M_DEVBUF, M_WAITOK);
-	}
-	else
+		transfer.tx_data = transfer.rx_data =
+		    malloc(st->st_data.iov_len, M_DEVBUF, M_WAITOK);
+	} else
 		transfer.tx_data = transfer.rx_data = NULL;
 
 	error = copyin(st->st_command.iov_base, transfer.tx_cmd,
-	    transfer.tx_cmd_sz = transfer.rx_cmd_sz = st->st_command.iov_len);	
+	    transfer.tx_cmd_sz = transfer.rx_cmd_sz = st->st_command.iov_len);
 	if ((error == 0) && (st->st_data.iov_len > 0))
 		error = copyin(st->st_data.iov_base, transfer.tx_data,
 		    transfer.tx_data_sz = transfer.rx_data_sz =
-		                          st->st_data.iov_len);	
+			st->st_data.iov_len);
 	if (error == 0)
 		error = SPIBUS_TRANSFER(device_get_parent(dev), dev, &transfer);
 	if (error == 0) {
@@ -237,8 +232,8 @@ spigen_transfer_mmapped(struct cdev *cdev, struct spigen_transfer_mmapped *stm)
 
 	transfer.tx_cmd = transfer.rx_cmd = (void *)((uintptr_t)mmap->kvaddr);
 	transfer.tx_cmd_sz = transfer.rx_cmd_sz = stm->stm_command_length;
-	transfer.tx_data = transfer.rx_data =
-	    (void *)((uintptr_t)mmap->kvaddr + stm->stm_command_length);
+	transfer.tx_data = transfer.rx_data = (void *)((uintptr_t)mmap->kvaddr +
+	    stm->stm_command_length);
 	transfer.tx_data_sz = transfer.rx_data_sz = stm->stm_data_length;
 	error = SPIBUS_TRANSFER(device_get_parent(dev), dev, &transfer);
 
@@ -257,7 +252,8 @@ spigen_ioctl(struct cdev *cdev, u_long cmd, caddr_t data, int fflag,
 		error = spigen_transfer(cdev, (struct spigen_transfer *)data);
 		break;
 	case SPIGENIOC_TRANSFER_MMAPPED:
-		error = spigen_transfer_mmapped(cdev, (struct spigen_transfer_mmapped *)data);
+		error = spigen_transfer_mmapped(cdev,
+		    (struct spigen_transfer_mmapped *)data);
 		break;
 	case SPIGENIOC_GET_CLOCK_SPEED:
 		error = spibus_get_clock(dev, (uint32_t *)data);
@@ -291,8 +287,8 @@ spigen_mmap_cleanup(void *arg)
 }
 
 static int
-spigen_mmap_single(struct cdev *cdev, vm_ooffset_t *offset,
-    vm_size_t size, struct vm_object **object, int nprot)
+spigen_mmap_single(struct cdev *cdev, vm_ooffset_t *offset, vm_size_t size,
+    struct vm_object **object, int nprot)
 {
 	struct spigen_mmap *mmap;
 	vm_page_t *m;
@@ -300,8 +296,8 @@ spigen_mmap_single(struct cdev *cdev, vm_ooffset_t *offset,
 	int error;
 
 	if (size == 0 ||
-	    (nprot & (PROT_EXEC | PROT_READ | PROT_WRITE))
-	    != (PROT_READ | PROT_WRITE))
+	    (nprot & (PROT_EXEC | PROT_READ | PROT_WRITE)) !=
+		(PROT_READ | PROT_WRITE))
 		return (EINVAL);
 	size = roundup2(size, PAGE_SIZE);
 	pages = size / PAGE_SIZE;
@@ -342,7 +338,7 @@ spigen_mmap_single(struct cdev *cdev, vm_ooffset_t *offset,
 	return (0);
 }
 
-static int 
+static int
 spigen_close(struct cdev *cdev, int fflag, int devtype, struct thread *td)
 {
 	device_t dev = cdev->si_drv1;
@@ -376,10 +372,9 @@ spigen_detach(device_t dev)
 
 static device_method_t spigen_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		spigen_probe),
-	DEVMETHOD(device_attach,	spigen_attach),
-	DEVMETHOD(device_detach,	spigen_detach),
-	{ 0, 0 }
+	DEVMETHOD(device_probe, spigen_probe),
+	DEVMETHOD(device_attach, spigen_attach),
+	DEVMETHOD(device_detach, spigen_detach), { 0, 0 }
 };
 
 static driver_t spigen_driver = {

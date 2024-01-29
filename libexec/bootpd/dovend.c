@@ -5,18 +5,18 @@
 #include <sys/types.h>
 
 #include <netinet/in.h>
-#include <arpa/inet.h>			/* inet_ntoa */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include <arpa/inet.h> /* inet_ntoa */
 #include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
 
 #include "bootp.h"
 #include "bootpd.h"
-#include "report.h"
 #include "dovend.h"
+#include "report.h"
 
 PRIVATE int insert_generic(struct shared_bindata *, byte **, int *);
 
@@ -40,12 +40,13 @@ dovend_rfc1497(struct host *hp, byte *buf, int len)
 	byte *vp = buf;
 
 	static const char noroom[] = "%s: No room for \"%s\" option";
-#define	NEED(LEN, MSG) do                       \
-		if (bytesleft < (LEN)) {         	    \
-			report(LOG_NOTICE, noroom,          \
-				   hp->hostname->string, MSG);  \
-			return (vp - buf);                  \
-		} while (0)
+#define NEED(LEN, MSG)                                                         \
+	do                                                                     \
+		if (bytesleft < (LEN)) {                                       \
+			report(LOG_NOTICE, noroom, hp->hostname->string, MSG); \
+			return (vp - buf);                                     \
+		}                                                              \
+	while (0)
 
 	/*
 	 * Note that the following have already been inserted:
@@ -62,9 +63,9 @@ dovend_rfc1497(struct host *hp, byte *buf, int len)
 
 	if (hp->flags.time_offset) {
 		NEED(6, "to");
-		*vp++ = TAG_TIME_OFFSET;/* -1 byte  */
-		*vp++ = 4;				/* -1 byte  */
-		insert_u_long(htonl(hp->time_offset), &vp);	/* -4 bytes */
+		*vp++ = TAG_TIME_OFFSET;		    /* -1 byte  */
+		*vp++ = 4;				    /* -1 byte  */
+		insert_u_long(htonl(hp->time_offset), &vp); /* -4 bytes */
 		bytesleft -= 6;
 	}
 	/*
@@ -73,10 +74,10 @@ dovend_rfc1497(struct host *hp, byte *buf, int len)
 	if (hp->flags.swap_server) {
 		NEED(6, "sw");
 		/* There is just one SWAP_SERVER, so it is not an iplist. */
-		*vp++ = TAG_SWAP_SERVER;/* -1 byte  */
-		*vp++ = 4;				/* -1 byte  */
-		insert_u_long(hp->swap_server.s_addr, &vp);	/* -4 bytes */
-		bytesleft -= 6;			/* Fix real count */
+		*vp++ = TAG_SWAP_SERVER;		    /* -1 byte  */
+		*vp++ = 4;				    /* -1 byte  */
+		insert_u_long(hp->swap_server.s_addr, &vp); /* -4 bytes */
+		bytesleft -= 6;				    /* Fix real count */
 	}
 	if (hp->flags.root_path) {
 		/*
@@ -86,7 +87,7 @@ dovend_rfc1497(struct host *hp, byte *buf, int len)
 		len = strlen(hp->root_path->string);
 		NEED((len + 2), "rp");
 		*vp++ = TAG_ROOT_PATH;
-		*vp++ = (byte) (len & 0xFF);
+		*vp++ = (byte)(len & 0xFF);
 		bcopy(hp->root_path->string, vp, len);
 		vp += len;
 		bytesleft -= len + 2;
@@ -99,7 +100,7 @@ dovend_rfc1497(struct host *hp, byte *buf, int len)
 		len = strlen(hp->dump_file->string);
 		NEED((len + 2), "df");
 		*vp++ = TAG_DUMP_FILE;
-		*vp++ = (byte) (len & 0xFF);
+		*vp++ = (byte)(len & 0xFF);
 		bcopy(hp->dump_file->string, vp, len);
 		vp += len;
 		bytesleft -= len + 2;
@@ -108,9 +109,8 @@ dovend_rfc1497(struct host *hp, byte *buf, int len)
 	 * DNS server and domain
 	 */
 	if (hp->flags.domain_server) {
-		if (insert_ip(TAG_DOMAIN_SERVER,
-					  hp->domain_server,
-					  &vp, &bytesleft))
+		if (insert_ip(TAG_DOMAIN_SERVER, hp->domain_server, &vp,
+			&bytesleft))
 			NEED(8, "ds");
 	}
 	if (hp->flags.domain_name) {
@@ -121,7 +121,7 @@ dovend_rfc1497(struct host *hp, byte *buf, int len)
 		len = strlen(hp->domain_name->string);
 		NEED((len + 2), "dn");
 		*vp++ = TAG_DOMAIN_NAME;
-		*vp++ = (byte) (len & 0xFF);
+		*vp++ = (byte)(len & 0xFF);
 		bcopy(hp->domain_name->string, vp, len);
 		vp += len;
 		bytesleft -= len + 2;
@@ -130,9 +130,7 @@ dovend_rfc1497(struct host *hp, byte *buf, int len)
 	 * NIS (YP) server and domain
 	 */
 	if (hp->flags.nis_server) {
-		if (insert_ip(TAG_NIS_SERVER,
-					  hp->nis_server,
-					  &vp, &bytesleft))
+		if (insert_ip(TAG_NIS_SERVER, hp->nis_server, &vp, &bytesleft))
 			NEED(8, "ys");
 	}
 	if (hp->flags.nis_domain) {
@@ -143,36 +141,30 @@ dovend_rfc1497(struct host *hp, byte *buf, int len)
 		len = strlen(hp->nis_domain->string);
 		NEED((len + 2), "yn");
 		*vp++ = TAG_NIS_DOMAIN;
-		*vp++ = (byte) (len & 0xFF);
+		*vp++ = (byte)(len & 0xFF);
 		bcopy(hp->nis_domain->string, vp, len);
 		vp += len;
 		bytesleft -= len + 2;
 	}
 	/* IEN 116 name server */
 	if (hp->flags.name_server) {
-		if (insert_ip(TAG_NAME_SERVER,
-					  hp->name_server,
-					  &vp, &bytesleft))
+		if (insert_ip(TAG_NAME_SERVER, hp->name_server, &vp,
+			&bytesleft))
 			NEED(8, "ns");
 	}
 	if (hp->flags.rlp_server) {
-		if (insert_ip(TAG_RLP_SERVER,
-					  hp->rlp_server,
-					  &vp, &bytesleft))
+		if (insert_ip(TAG_RLP_SERVER, hp->rlp_server, &vp, &bytesleft))
 			NEED(8, "rl");
 	}
 	/* Time server (RFC 868) */
 	if (hp->flags.time_server) {
-		if (insert_ip(TAG_TIME_SERVER,
-					  hp->time_server,
-					  &vp, &bytesleft))
+		if (insert_ip(TAG_TIME_SERVER, hp->time_server, &vp,
+			&bytesleft))
 			NEED(8, "ts");
 	}
 	/* NTP (time) Server (RFC 1129) */
 	if (hp->flags.ntp_server) {
-		if (insert_ip(TAG_NTP_SERVER,
-					  hp->ntp_server,
-					  &vp, &bytesleft))
+		if (insert_ip(TAG_NTP_SERVER, hp->ntp_server, &vp, &bytesleft))
 			NEED(8, "nt");
 	}
 	/*
@@ -211,7 +203,7 @@ dovend_rfc1497(struct host *hp, byte *buf, int len)
 #endif
 		NEED((len + 2), "hn");
 		*vp++ = TAG_HOST_NAME;
-		*vp++ = (byte) (len & 0xFF);
+		*vp++ = (byte)(len & 0xFF);
 		bcopy(hp->hostname->string, vp, len);
 		vp += len;
 		bytesleft -= len + 2;
@@ -220,21 +212,16 @@ dovend_rfc1497(struct host *hp, byte *buf, int len)
 	 * The rest of these are less important, so they go last.
 	 */
 	if (hp->flags.lpr_server) {
-		if (insert_ip(TAG_LPR_SERVER,
-					  hp->lpr_server,
-					  &vp, &bytesleft))
+		if (insert_ip(TAG_LPR_SERVER, hp->lpr_server, &vp, &bytesleft))
 			NEED(8, "lp");
 	}
 	if (hp->flags.cookie_server) {
-		if (insert_ip(TAG_COOKIE_SERVER,
-					  hp->cookie_server,
-					  &vp, &bytesleft))
+		if (insert_ip(TAG_COOKIE_SERVER, hp->cookie_server, &vp,
+			&bytesleft))
 			NEED(8, "cs");
 	}
 	if (hp->flags.log_server) {
-		if (insert_ip(TAG_LOG_SERVER,
-					  hp->log_server,
-					  &vp, &bytesleft))
+		if (insert_ip(TAG_LOG_SERVER, hp->log_server, &vp, &bytesleft))
 			NEED(8, "lg");
 	}
 	/*
@@ -248,10 +235,8 @@ dovend_rfc1497(struct host *hp, byte *buf, int len)
 	 * The end marker is inserted by the caller.
 	 */
 	return (vp - buf);
-#undef	NEED
-}								/* dovend_rfc1497 */
-
-
+#undef NEED
+} /* dovend_rfc1497 */
 
 /*
  * Insert a tag value, a length value, and a list of IP addresses into the
@@ -277,24 +262,22 @@ insert_ip(byte tag, struct in_addr_list *iplist, byte **dest, int *bytesleft)
 		return (0);
 
 	if (*bytesleft >= 6) {
-		d = *dest;				/* Save pointer for later */
+		d = *dest; /* Save pointer for later */
 		**dest = tag;
 		(*dest) += 2;
-		(*bytesleft) -= 2;		/* Account for tag and length */
+		(*bytesleft) -= 2; /* Account for tag and length */
 		addrptr = iplist->addr;
 		addrcount = iplist->addrcount;
 		while ((*bytesleft >= 4) && (addrcount > 0)) {
 			insert_u_long(addrptr->s_addr, dest);
 			addrptr++;
 			addrcount--;
-			(*bytesleft) -= 4;	/* Four bytes per address */
+			(*bytesleft) -= 4; /* Four bytes per address */
 		}
-		d[1] = (byte) ((*dest - d - 2) & 0xFF);
+		d[1] = (byte)((*dest - d - 2) & 0xFF);
 	}
 	return (addrcount);
 }
-
-
 
 /*
  * Insert generic data into a bootp packet.  The data is assumed to already
@@ -320,7 +303,7 @@ insert_generic(struct shared_bindata *gendata, byte **buff, int *bytesleft)
 	while ((length > 0) && (*bytesleft > 0)) {
 		switch (*srcptr) {
 		case TAG_END:
-			length = 0;			/* Force an exit on next iteration */
+			length = 0; /* Force an exit on next iteration */
 			break;
 		case TAG_PAD:
 			*(*buff)++ = *srcptr++;
@@ -363,10 +346,10 @@ insert_u_long(u_int32 value, byte **dest)
 	byte *temp;
 	int n;
 
-	value = ntohl(value);		/* Must use host byte order here */
+	value = ntohl(value); /* Must use host byte order here */
 	temp = (*dest += 4);
 	for (n = 4; n > 0; n--) {
-		*--temp = (byte) (value & 0xFF);
+		*--temp = (byte)(value & 0xFF);
 		value >>= 8;
 	}
 	/* Final result is network byte order */

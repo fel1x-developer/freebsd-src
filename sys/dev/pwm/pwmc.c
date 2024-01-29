@@ -25,9 +25,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -42,13 +42,13 @@
 #include "pwmbus_if.h"
 
 #ifdef FDT
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
 
 static struct ofw_compat_data compat_data[] = {
-	{"freebsd,pwmc", true},
-	{NULL,           false},
+	{ "freebsd,pwmc", true },
+	{ NULL, false },
 };
 
 PWMBUS_FDT_PNP_INFO(compat_data);
@@ -56,14 +56,14 @@ PWMBUS_FDT_PNP_INFO(compat_data);
 #endif
 
 struct pwmc_softc {
-	device_t	dev;
-	struct cdev	*cdev;
-	u_int		chan;
+	device_t dev;
+	struct cdev *cdev;
+	u_int chan;
 };
 
 static int
-pwm_ioctl(struct cdev *dev, u_long cmd, caddr_t data,
-    int fflag, struct thread *td)
+pwm_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
+    struct thread *td)
 {
 	struct pwmc_softc *sc;
 	struct pwm_state state;
@@ -76,33 +76,29 @@ pwm_ioctl(struct cdev *dev, u_long cmd, caddr_t data,
 	switch (cmd) {
 	case PWMSETSTATE:
 		bcopy(data, &state, sizeof(state));
-		rv = PWMBUS_CHANNEL_CONFIG(bus, sc->chan,
-		    state.period, state.duty);
+		rv = PWMBUS_CHANNEL_CONFIG(bus, sc->chan, state.period,
+		    state.duty);
 		if (rv != 0)
 			return (rv);
 
-		rv = PWMBUS_CHANNEL_SET_FLAGS(bus,
-		    sc->chan, state.flags);
+		rv = PWMBUS_CHANNEL_SET_FLAGS(bus, sc->chan, state.flags);
 		if (rv != 0 && rv != EOPNOTSUPP)
 			return (rv);
 
-		rv = PWMBUS_CHANNEL_ENABLE(bus, sc->chan,
-		    state.enable);
+		rv = PWMBUS_CHANNEL_ENABLE(bus, sc->chan, state.enable);
 		break;
 	case PWMGETSTATE:
 		bcopy(data, &state, sizeof(state));
-		rv = PWMBUS_CHANNEL_GET_CONFIG(bus, sc->chan,
-		    &state.period, &state.duty);
+		rv = PWMBUS_CHANNEL_GET_CONFIG(bus, sc->chan, &state.period,
+		    &state.duty);
 		if (rv != 0)
 			return (rv);
 
-		rv = PWMBUS_CHANNEL_GET_FLAGS(bus, sc->chan,
-		    &state.flags);
+		rv = PWMBUS_CHANNEL_GET_FLAGS(bus, sc->chan, &state.flags);
 		if (rv != 0)
 			return (rv);
 
-		rv = PWMBUS_CHANNEL_IS_ENABLED(bus, sc->chan,
-		    &state.enable);
+		rv = PWMBUS_CHANNEL_IS_ENABLED(bus, sc->chan, &state.enable);
 		if (rv != 0)
 			return (rv);
 		bcopy(&state, data, sizeof(state));
@@ -112,11 +108,9 @@ pwm_ioctl(struct cdev *dev, u_long cmd, caddr_t data,
 	return (rv);
 }
 
-static struct cdevsw pwm_cdevsw = {
-	.d_version	= D_VERSION,
-	.d_name		= "pwmc",
-	.d_ioctl	= pwm_ioctl
-};
+static struct cdevsw pwm_cdevsw = { .d_version = D_VERSION,
+	.d_name = "pwmc",
+	.d_ioctl = pwm_ioctl };
 
 static void
 pwmc_setup_label(struct pwmc_softc *sc)
@@ -132,7 +126,7 @@ pwmc_setup_label(struct pwmc_softc *sc)
 #endif
 
 	if (resource_string_value(device_get_name(sc->dev),
-	    device_get_unit(sc->dev), "label", &hintlabel) == 0) {
+		device_get_unit(sc->dev), "label", &hintlabel) == 0) {
 		make_dev_alias(sc->cdev, "pwm/%s", hintlabel);
 	}
 }

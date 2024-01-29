@@ -29,20 +29,19 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_METADATA_H_
-#define	_METADATA_H_
-
-#include <stdbool.h>
+#ifndef _METADATA_H_
+#define _METADATA_H_
 
 #include <hast.h>
+#include <stdbool.h>
 
 /*
  * Maximum size of metadata.
  * XXX: We should take sector size into account.
  */
-#define	METADATA_SIZE	4096
+#define METADATA_SIZE 4096
 
 int metadata_read(struct hast_resource *res, bool openrw);
 int metadata_write(struct hast_resource *res);
 
-#endif	/* !_METADATA_H_ */
+#endif /* !_METADATA_H_ */

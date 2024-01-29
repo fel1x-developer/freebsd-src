@@ -28,47 +28,47 @@
  * Bridge MIB implementation for SNMPd.
  */
 
-#ifndef	SNMP_BRIDGE_H
-#define	SNMP_BRIDGE_H
+#ifndef SNMP_BRIDGE_H
+#define SNMP_BRIDGE_H
 
-#define	SNMP_BRIDGE_ID_LEN	8
+#define SNMP_BRIDGE_ID_LEN 8
 
-typedef uint8_t	port_id[2];
-typedef u_char	bridge_id[SNMP_BRIDGE_ID_LEN];
+typedef uint8_t port_id[2];
+typedef u_char bridge_id[SNMP_BRIDGE_ID_LEN];
 
-#define	SNMP_BRIDGE_MAX_PRIORITY	65535
+#define SNMP_BRIDGE_MAX_PRIORITY 65535
 
-#define	SNMP_BRIDGE_MIN_AGE_TIME	10
-#define	SNMP_BRIDGE_MAX_AGE_TIME	1000000
+#define SNMP_BRIDGE_MIN_AGE_TIME 10
+#define SNMP_BRIDGE_MAX_AGE_TIME 1000000
 
-#define	SNMP_BRIDGE_MIN_TXHC		1
-#define	SNMP_BRIDGE_MAX_TXHC		10
+#define SNMP_BRIDGE_MIN_TXHC 1
+#define SNMP_BRIDGE_MAX_TXHC 10
 
-#define	SNMP_BRIDGE_MIN_MAGE		600
-#define	SNMP_BRIDGE_MAX_MAGE		4000
+#define SNMP_BRIDGE_MIN_MAGE 600
+#define SNMP_BRIDGE_MAX_MAGE 4000
 
-#define	SNMP_BRIDGE_MIN_HTIME		100
-#define	SNMP_BRIDGE_MAX_HTIME		1000
+#define SNMP_BRIDGE_MIN_HTIME 100
+#define SNMP_BRIDGE_MAX_HTIME 1000
 
-#define	SNMP_BRIDGE_MIN_FDELAY		400
-#define	SNMP_BRIDGE_MAX_FDELAY		3000
+#define SNMP_BRIDGE_MIN_FDELAY 400
+#define SNMP_BRIDGE_MAX_FDELAY 3000
 
-#define	SNMP_PORT_PATHCOST_OBSOLETE	65535
-#define	SNMP_PORT_MIN_PATHCOST		0
-#define	SNMP_PORT_MAX_PATHCOST		200000000
-#define	SNMP_PORT_PATHCOST_AUTO		0
+#define SNMP_PORT_PATHCOST_OBSOLETE 65535
+#define SNMP_PORT_MIN_PATHCOST 0
+#define SNMP_PORT_MAX_PATHCOST 200000000
+#define SNMP_PORT_PATHCOST_AUTO 0
 
-#define	SNMP_BRIDGE_DATA_MAXAGE		10
-#define	SNMP_BRIDGE_DATA_MAXAGE_MIN	1
-#define	SNMP_BRIDGE_DATA_MAXAGE_MAX	300
+#define SNMP_BRIDGE_DATA_MAXAGE 10
+#define SNMP_BRIDGE_DATA_MAXAGE_MIN 1
+#define SNMP_BRIDGE_DATA_MAXAGE_MAX 300
 
 /* By default poll kernel data every 5 minutes. */
-#define	SNMP_BRIDGE_POLL_INTERVAL	(5 * 60)
-#define	SNMP_BRIDGE_POLL_INTERVAL_MIN	1
-#define	SNMP_BRIDGE_POLL_INTERVAL_MAX	3600
+#define SNMP_BRIDGE_POLL_INTERVAL (5 * 60)
+#define SNMP_BRIDGE_POLL_INTERVAL_MIN 1
+#define SNMP_BRIDGE_POLL_INTERVAL_MAX 3600
 
 /* Poll for a topology change once every 30 seconds. */
-#define	SNMP_BRIDGE_TC_POLL_INTERVAL	30
+#define SNMP_BRIDGE_TC_POLL_INTERVAL 30
 
 struct bridge_if *bridge_get_default(void);
 
@@ -82,12 +82,12 @@ int bridge_get_data_maxage(void);
  * Bridge Addresses Table.
  */
 struct tp_entry {
-	uint32_t		sysindex;	/* The bridge if sysindex. */
-	int32_t			port_no;
-	enum TpFdbStatus	status;
-	uint8_t			tp_addr[ETHER_ADDR_LEN];
-	uint8_t			flags;
-	TAILQ_ENTRY(tp_entry)	tp_e;
+	uint32_t sysindex; /* The bridge if sysindex. */
+	int32_t port_no;
+	enum TpFdbStatus status;
+	uint8_t tp_addr[ETHER_ADDR_LEN];
+	uint8_t flags;
+	TAILQ_ENTRY(tp_entry) tp_e;
 };
 
 /*
@@ -98,43 +98,43 @@ struct tp_entry {
  */
 struct bridge_port {
 	/* dot1dBase subtree objects. */
-	uint32_t	sysindex;	/* The bridge interface sysindex. */
-	int32_t		port_no;	/* The bridge member system index. */
-	int32_t		if_idx;		/* SNMP ifIndex from mibII. */
-	int8_t		span_enable;	/* Span flag set - private MIB. */
-	struct asn_oid	circuit;	/* Unused. */
-	uint32_t	dly_ex_drops;	/* Drops on output. */
-	uint32_t	dly_mtu_drops;	/* MTU exceeded drops. */
-	int32_t		status;		/* The entry status. */
-	enum TruthValue	priv_set;	/* The private flag. */
+	uint32_t sysindex;	  /* The bridge interface sysindex. */
+	int32_t port_no;	  /* The bridge member system index. */
+	int32_t if_idx;		  /* SNMP ifIndex from mibII. */
+	int8_t span_enable;	  /* Span flag set - private MIB. */
+	struct asn_oid circuit;	  /* Unused. */
+	uint32_t dly_ex_drops;	  /* Drops on output. */
+	uint32_t dly_mtu_drops;	  /* MTU exceeded drops. */
+	int32_t status;		  /* The entry status. */
+	enum TruthValue priv_set; /* The private flag. */
 
 	/* dot1dStp subtree objects. */
-	int32_t		path_cost;
-	int32_t		priority;
-	int32_t		design_cost;
-	uint32_t	fwd_trans;
-	char		p_name[IFNAMSIZ]; /* Not in BRIDGE-MIB. */
-	enum StpPortState	state;
-	enum dot1dStpPortEnable	enable;
-	port_id		design_port;
-	bridge_id	design_root;
-	bridge_id	design_bridge;
+	int32_t path_cost;
+	int32_t priority;
+	int32_t design_cost;
+	uint32_t fwd_trans;
+	char p_name[IFNAMSIZ]; /* Not in BRIDGE-MIB. */
+	enum StpPortState state;
+	enum dot1dStpPortEnable enable;
+	port_id design_port;
+	bridge_id design_root;
+	bridge_id design_bridge;
 
 	/* rstpMib extensions. */
-	int32_t		admin_path_cost;
-	enum TruthValue	proto_migr;
-	enum TruthValue	admin_edge;
-	enum TruthValue	oper_edge;
-	enum TruthValue	oper_ptp;
-	enum StpPortAdminPointToPointType	admin_ptp;
+	int32_t admin_path_cost;
+	enum TruthValue proto_migr;
+	enum TruthValue admin_edge;
+	enum TruthValue oper_edge;
+	enum TruthValue oper_ptp;
+	enum StpPortAdminPointToPointType admin_ptp;
 
 	/* dot1dTp subtree objects. */
-	int32_t		max_info;
-	int32_t		in_frames;
-	int32_t		out_frames;
-	int32_t		in_drops;
+	int32_t max_info;
+	int32_t in_frames;
+	int32_t out_frames;
+	int32_t in_drops;
 
-	uint8_t		flags;
+	uint8_t flags;
 	TAILQ_ENTRY(bridge_port) b_p;
 };
 
@@ -146,43 +146,43 @@ struct bridge_port {
  */
 struct bridge_if {
 	/* dot1dBase subtree objects. */
-	uint32_t	sysindex;	/* The system interface index. */
-	int32_t		num_ports;	/* Number of ports. */
-	enum BaseType	br_type;	/* Bridge type. */
-	enum RowStatus	if_status;	/* Bridge status. */
-	char		bif_name[IFNAMSIZ]; /* Bridge interface name. */
-	struct ether_addr br_addr;	/* Bridge address. */
-	struct bridge_port *f_bp;	/* This bridge's first entry
-					 * in the base ports TAILQ. */
+	uint32_t sysindex;	   /* The system interface index. */
+	int32_t num_ports;	   /* Number of ports. */
+	enum BaseType br_type;	   /* Bridge type. */
+	enum RowStatus if_status;  /* Bridge status. */
+	char bif_name[IFNAMSIZ];   /* Bridge interface name. */
+	struct ether_addr br_addr; /* Bridge address. */
+	struct bridge_port *f_bp;  /* This bridge's first entry
+				    * in the base ports TAILQ. */
 	/* dot1dStp subtree objects. */
-	int32_t		priority;
-	int32_t		root_cost;
-	int32_t		root_port;
-	int32_t		max_age;	/* Current max age. */
-	int32_t		hello_time;	/* Current hello time. */
-	int32_t		fwd_delay;	/* Current forward delay. */
-	int32_t		hold_time;
-	int32_t		bridge_max_age;	/* Configured max age. */
-	int32_t		bridge_hello_time; /* Configured hello time. */
-	int32_t		bridge_fwd_delay; /* Configured forward delay. */
-	int32_t		tx_hold_count;
-	uint32_t	top_changes;
-	enum dot1dStpVersion	stp_version;
+	int32_t priority;
+	int32_t root_cost;
+	int32_t root_port;
+	int32_t max_age;    /* Current max age. */
+	int32_t hello_time; /* Current hello time. */
+	int32_t fwd_delay;  /* Current forward delay. */
+	int32_t hold_time;
+	int32_t bridge_max_age;	   /* Configured max age. */
+	int32_t bridge_hello_time; /* Configured hello time. */
+	int32_t bridge_fwd_delay;  /* Configured forward delay. */
+	int32_t tx_hold_count;
+	uint32_t top_changes;
+	enum dot1dStpVersion stp_version;
 	enum dot1dStpProtocolSpecification prot_spec;
-	struct timeval	last_tc_time;
-	bridge_id	design_root;
+	struct timeval last_tc_time;
+	bridge_id design_root;
 
 	/* dot1dTp subtree objects. */
-	int32_t		lrnt_drops;	/* Dropped addresses. */
-	int32_t		age_time;	/* Address entry timeout. */
-	int32_t		num_addrs;	/* Current # of addresses in cache. */
-	int32_t		max_addrs;	/* Max # of addresses in cache. */
-	struct tp_entry	 *f_tpa;	/* This bridge's first entry in
-					 * the tp addresses TAILQ. */
+	int32_t lrnt_drops;	/* Dropped addresses. */
+	int32_t age_time;	/* Address entry timeout. */
+	int32_t num_addrs;	/* Current # of addresses in cache. */
+	int32_t max_addrs;	/* Max # of addresses in cache. */
+	struct tp_entry *f_tpa; /* This bridge's first entry in
+				 * the tp addresses TAILQ. */
 
-	time_t		entry_age;
-	time_t		ports_age;
-	time_t		addrs_age;
+	time_t entry_age;
+	time_t ports_age;
+	time_t addrs_age;
 	TAILQ_ENTRY(bridge_if) b_if;
 };
 
@@ -307,7 +307,7 @@ int bridge_set_tx_hold_count(struct bridge_if *bif, int32_t tx_hc);
 int bridge_set_stp_version(struct bridge_if *bif, int32_t stp_proto);
 
 /* Set the bridge interface status to up/down. */
-int bridge_set_if_up(const char* b_name, int8_t up);
+int bridge_set_if_up(const char *b_name, int8_t up);
 
 /* Create a bridge interface. */
 int bridge_create(const char *b_name);

@@ -32,26 +32,28 @@
 
 #include <sys/param.h>
 #include <sys/errno.h>
+
 #include <ctype.h>
 #include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+
 #include "mptutil.h"
 
 static CONFIG_PAGE_LOG_0 *
 mpt_get_events(int fd, U16 *IOCStatus)
 {
 
-	return (mpt_read_extended_config_page(fd, MPI_CONFIG_EXTPAGETYPE_LOG,
-	    0, 0, 0, IOCStatus));
+	return (mpt_read_extended_config_page(fd, MPI_CONFIG_EXTPAGETYPE_LOG, 0,
+	    0, 0, IOCStatus));
 }
 
 /*
  *          1         2         3         4         5         6         7
  * 1234567890123456789012345678901234567890123456789012345678901234567890
- * < ID> < time > <ty> <X XX XX XX XX XX XX XX XX XX XX XX XX XX |..............|
- *  ID     Time   Type Log Data
+ * < ID> < time > <ty> <X XX XX XX XX XX XX XX XX XX XX XX XX XX
+ * |..............| ID     Time   Type Log Data
  */
 static void
 mpt_print_event(MPI_LOG_0_ENTRY *entry, int verbose)
@@ -64,24 +66,25 @@ mpt_print_event(MPI_LOG_0_ENTRY *entry, int verbose)
 		printf("%02x ", entry->LogData[i]);
 	printf("|");
 	for (i = 0; i < 14; i++)
-		printf("%c", isprint(entry->LogData[i]) ? entry->LogData[i] :
-		    '.');
+		printf("%c",
+		    isprint(entry->LogData[i]) ? entry->LogData[i] : '.');
 	printf("|\n");
 	printf("                    ");
 	for (i = 0; i < 14; i++)
 		printf("%02x ", entry->LogData[i + 14]);
 	printf("|");
 	for (i = 0; i < 14; i++)
-		printf("%c", isprint(entry->LogData[i + 14]) ?
-		    entry->LogData[i + 14] : '.');
+		printf("%c",
+		    isprint(entry->LogData[i + 14]) ? entry->LogData[i + 14] :
+						      '.');
 	printf("|\n");
 }
 
 static int
 event_compare(const void *first, const void *second)
 {
-	MPI_LOG_0_ENTRY * const *one;
-	MPI_LOG_0_ENTRY * const *two;
+	MPI_LOG_0_ENTRY *const *one;
+	MPI_LOG_0_ENTRY *const *two;
 
 	one = first;
 	two = second;
@@ -154,7 +157,7 @@ show_events(int ac, char **av)
 		for (i = 0; i < num_events; i++)
 			mpt_print_event(entries[i], verbose);
 	}
-	
+
 	free(entries);
 	free(log);
 	close(fd);

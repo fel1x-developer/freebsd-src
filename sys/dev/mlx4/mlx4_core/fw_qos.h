@@ -81,8 +81,8 @@ int mlx4_SET_PORT_PRIO2TC(struct mlx4_dev *dev, u8 port, u8 *prio2tc);
  *
  * Returns 0 on success or a negative mlx4_core errno code.
  **/
-int mlx4_SET_PORT_SCHEDULER(struct mlx4_dev *dev, u8 port, u8 *tc_tx_bw,
-			    u8 *pg, u16 *ratelimit);
+int mlx4_SET_PORT_SCHEDULER(struct mlx4_dev *dev, u8 port, u8 *tc_tx_bw, u8 *pg,
+    u16 *ratelimit);
 /**
  * mlx4_ALLOCATE_VPP_get - Query port VPP availible resources and allocation.
  * Before distribution of VPPs to priorities, only availible_vpp is returned.
@@ -95,8 +95,8 @@ int mlx4_SET_PORT_SCHEDULER(struct mlx4_dev *dev, u8 port, u8 *tc_tx_bw,
  *
  * Returns 0 on success or a negative mlx4_core errno code.
  **/
-int mlx4_ALLOCATE_VPP_get(struct mlx4_dev *dev, u8 port,
-			  u16 *availible_vpp, u8 *vpp_p_up);
+int mlx4_ALLOCATE_VPP_get(struct mlx4_dev *dev, u8 port, u16 *availible_vpp,
+    u8 *vpp_p_up);
 /**
  * mlx4_ALLOCATE_VPP_set - Distribution of VPPs among different priorities.
  * The total number of VPPs assigned to all for a port must not exceed
@@ -125,7 +125,7 @@ int mlx4_ALLOCATE_VPP_set(struct mlx4_dev *dev, u8 port, u8 *vpp_p_up);
  * Returns 0 on success or a negative mlx4_core errno code.
  **/
 int mlx4_SET_VPORT_QOS_get(struct mlx4_dev *dev, u8 port, u8 vport,
-			   struct mlx4_vport_qos_param *out_param);
+    struct mlx4_vport_qos_param *out_param);
 
 /**
  * mlx4_SET_VPORT_QOS_set - Set QoS proporties of a Vport.
@@ -140,6 +140,6 @@ int mlx4_SET_VPORT_QOS_get(struct mlx4_dev *dev, u8 port, u8 vport,
  * Returns 0 on success or a negative mlx4_core errno code.
  **/
 int mlx4_SET_VPORT_QOS_set(struct mlx4_dev *dev, u8 port, u8 vport,
-			   struct mlx4_vport_qos_param *in_param);
+    struct mlx4_vport_qos_param *in_param);
 
 #endif /* MLX4_FW_QOS_H */

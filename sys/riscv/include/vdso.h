@@ -24,11 +24,10 @@
  */
 
 #ifndef _MACHINE_VDSO_H_
-#define	_MACHINE_VDSO_H_
+#define _MACHINE_VDSO_H_
 
-#define	VDSO_TIMEHANDS_MD			\
-	uint32_t	th_res[8];
+#define VDSO_TIMEHANDS_MD uint32_t th_res[8];
 
-#define	VDSO_TH_ALGO_RISCV_RDTIME	VDSO_TH_ALGO_1
+#define VDSO_TH_ALGO_RISCV_RDTIME VDSO_TH_ALGO_1
 
 #endif /* !_MACHINE_VDSO_H_ */

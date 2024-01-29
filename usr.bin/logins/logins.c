@@ -29,6 +29,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <err.h>
 #include <grp.h>
 #include <pwd.h>
@@ -39,38 +40,38 @@
 #include <unistd.h>
 
 struct xpasswd {
-	char		*pw_name;
-	char		*pw_passwd;
-	uid_t		 pw_uid;
-	gid_t		 pw_gid;
-	time_t		 pw_change;
-	char		*pw_class;
-	char		*pw_gecos;
-	char		*pw_dir;
-	char		*pw_shell;
-	time_t		 pw_expire;
-	int		 pw_selected;
+	char *pw_name;
+	char *pw_passwd;
+	uid_t pw_uid;
+	gid_t pw_gid;
+	time_t pw_change;
+	char *pw_class;
+	char *pw_gecos;
+	char *pw_dir;
+	char *pw_shell;
+	time_t pw_expire;
+	int pw_selected;
 };
 
 struct xgroup {
-	char		*gr_name;
-	char		*gr_passwd;
-	gid_t		 gr_gid;
-	char		*gr_mem;
+	char *gr_name;
+	char *gr_passwd;
+	gid_t gr_gid;
+	char *gr_mem;
 };
 
-static int		 everything = 1;
-static int		 a_flag;
-static int		 d_flag;
-static const char	*g_args;
-static const char	*l_args;
-static int		 m_flag;
-static int		 o_flag;
-static int		 p_flag;
-static int		 s_flag;
-static int		 t_flag;
-static int		 u_flag;
-static int		 x_flag;
+static int everything = 1;
+static int a_flag;
+static int d_flag;
+static const char *g_args;
+static const char *l_args;
+static int m_flag;
+static int o_flag;
+static int p_flag;
+static int s_flag;
+static int t_flag;
+static int u_flag;
+static int x_flag;
 
 static int
 member(const char *elem, const char *list)
@@ -81,8 +82,7 @@ member(const char *elem, const char *list)
 	p = strstr(list, elem);
 	len = strlen(elem);
 
-	return (p != NULL &&
-	    (p == list || p[-1] == ',') &&
+	return (p != NULL && (p == list || p[-1] == ',') &&
 	    (p[len] == '\0' || p[len] == ','));
 }
 
@@ -116,9 +116,9 @@ xstrdup(const char *str)
 	return (dupstr);
 }
 
-static struct xgroup	*grps;
-static size_t		 grpsz;
-static size_t		 ngrps;
+static struct xgroup *grps;
+static size_t grpsz;
+static size_t ngrps;
 
 static void
 get_groups(void)
@@ -175,9 +175,9 @@ find_group_byname(const char *name)
 }
 #endif
 
-static struct xpasswd	*pwds;
-static size_t		 pwdsz;
-static size_t		 npwds;
+static struct xpasswd *pwds;
+static size_t pwdsz;
+static size_t npwds;
 
 static int
 pwd_cmp_byname(const void *ap, const void *bp)
@@ -304,8 +304,8 @@ display_user(struct xpasswd *pwd)
 			if (grp->gr_gid == pwd->pw_gid ||
 			    !member(pwd->pw_name, grp->gr_mem))
 				continue;
-			printf(o_flag ? "%s:%s:%ld" : "%24s%-15s %-7ld\n",
-			    "", grp->gr_name, (long)grp->gr_gid);
+			printf(o_flag ? "%s:%s:%ld" : "%24s%-15s %-7ld\n", "",
+			    grp->gr_name, (long)grp->gr_gid);
 		}
 	}
 	if (x_flag) {
@@ -342,7 +342,7 @@ usage(void)
 }
 
 int
-main(int argc, char * const argv[])
+main(int argc, char *const argv[])
 {
 	int o;
 

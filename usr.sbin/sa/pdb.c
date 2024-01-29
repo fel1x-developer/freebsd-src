@@ -32,6 +32,7 @@
 
 #include <sys/types.h>
 #include <sys/acct.h>
+
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -39,6 +40,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+
 #include "extern.h"
 #include "pathnames.h"
 
@@ -46,19 +48,19 @@ static int check_junk(const struct cmdinfo *);
 static void add_ci(const struct cmdinfo *, struct cmdinfo *);
 static void print_ci(const struct cmdinfo *, const struct cmdinfo *);
 
-static DB	*pacct_db;
+static DB *pacct_db;
 
 /* Legacy format in AHZV1 units. */
 struct cmdinfov1 {
-	char		ci_comm[MAXCOMLEN+2];	/* command name (+ '*') */
-	uid_t		ci_uid;			/* user id */
-	u_quad_t	ci_calls;		/* number of calls */
-	u_quad_t	ci_etime;		/* elapsed time */
-	u_quad_t	ci_utime;		/* user time */
-	u_quad_t	ci_stime;		/* system time */
-	u_quad_t	ci_mem;			/* memory use */
-	u_quad_t	ci_io;			/* number of disk i/o ops */
-	u_int		ci_flags;		/* flags; see below */
+	char ci_comm[MAXCOMLEN + 2]; /* command name (+ '*') */
+	uid_t ci_uid;		     /* user id */
+	u_quad_t ci_calls;	     /* number of calls */
+	u_quad_t ci_etime;	     /* elapsed time */
+	u_quad_t ci_utime;	     /* user time */
+	u_quad_t ci_stime;	     /* system time */
+	u_quad_t ci_mem;	     /* memory use */
+	u_quad_t ci_io;		     /* number of disk i/o ops */
+	u_int ci_flags;		     /* flags; see below */
 };
 
 /*
@@ -95,8 +97,8 @@ v1_to_v2(DBT *key __unused, DBT *data)
 int
 pacct_init(void)
 {
-	return (db_copy_in(&pacct_db, pdb_file, "process accounting",
-	    NULL, v1_to_v2));
+	return (db_copy_in(&pacct_db, pdb_file, "process accounting", NULL,
+	    v1_to_v2));
 }
 
 void
@@ -121,11 +123,11 @@ pacct_add(const struct cmdinfo *ci)
 	if (rv < 0) {
 		warn("get key %s from process accounting stats", ci->ci_comm);
 		return (-1);
-	} else if (rv == 0) {	/* it's there; copy whole thing */
+	} else if (rv == 0) { /* it's there; copy whole thing */
 		/* XXX compare size if paranoid */
 		/* add the old data to the new data */
 		bcopy(data.data, &newci, data.size);
-	} else {		/* it's not there; zero it and copy the key */
+	} else { /* it's not there; zero it and copy the key */
 		bzero(&newci, sizeof newci);
 		bcopy(key.data, newci.ci_comm, key.size);
 	}
@@ -151,8 +153,7 @@ pacct_add(const struct cmdinfo *ci)
 int
 pacct_update(void)
 {
-	return (db_copy_out(pacct_db, pdb_file, "process accounting",
-	    NULL));
+	return (db_copy_out(pacct_db, pdb_file, "process accounting", NULL));
 }
 
 void
@@ -189,7 +190,7 @@ pacct_print(void)
 	if (rv < 0)
 		warn("retrieving process accounting stats");
 	while (rv == 0) {
-		cip = (struct cmdinfo *) data.data;
+		cip = (struct cmdinfo *)data.data;
 		bcopy(cip, &ci, sizeof ci);
 
 		/* add to total */
@@ -211,7 +212,8 @@ pacct_print(void)
 		if (rv < 0)
 			warn("sorting process accounting stats");
 
-next:		rv = DB_SEQ(pacct_db, &key, &data, R_NEXT);
+	next:
+		rv = DB_SEQ(pacct_db, &key, &data, R_NEXT);
 		if (rv < 0)
 			warn("retrieving process accounting stats");
 	}
@@ -240,7 +242,7 @@ next:		rv = DB_SEQ(pacct_db, &key, &data, R_NEXT);
 	if (rv < 0)
 		warn("retrieving process accounting report");
 	while (rv == 0) {
-		cip = (struct cmdinfo *) data.data;
+		cip = (struct cmdinfo *)data.data;
 		bcopy(cip, &ci, sizeof ci);
 
 		print_ci(&ci, &ci_total);
@@ -293,8 +295,8 @@ print_ci(const struct cmdinfo *cip, const struct cmdinfo *totalcip)
 	printf("%8ju ", (uintmax_t)cip->ci_calls);
 	if (cflag) {
 		if (cip != totalcip)
-			printf(" %4.1f%%  ", cip->ci_calls /
-			    (double)totalcip->ci_calls * 100);
+			printf(" %4.1f%%  ",
+			    cip->ci_calls / (double)totalcip->ci_calls * 100);
 		else
 			printf(" %4s   ", "");
 	}
@@ -305,23 +307,24 @@ print_ci(const struct cmdinfo *cip, const struct cmdinfo *totalcip)
 		printf("%11.3fre ", cip->ci_etime / (60.0 * 1000000));
 	if (cflag) {
 		if (cip != totalcip)
-			printf(" %4.1f%%  ", cip->ci_etime /
-			    totalcip->ci_etime * 100);
+			printf(" %4.1f%%  ",
+			    cip->ci_etime / totalcip->ci_etime * 100);
 		else
 			printf(" %4s   ", "");
 	}
 
 	if (!lflag) {
 		if (jflag)
-			printf("%11.3fcp ", t / (double) cip->ci_calls);
+			printf("%11.3fcp ", t / (double)cip->ci_calls);
 		else
 			printf("%11.2fcp ", t / 60.0);
 		if (cflag) {
 			if (cip != totalcip)
 				printf(" %4.1f%%  ",
 				    (cip->ci_utime + cip->ci_stime) /
-				    (totalcip->ci_utime + totalcip->ci_stime) *
-				    100);
+					(totalcip->ci_utime +
+					    totalcip->ci_stime) *
+					100);
 			else
 				printf(" %4s   ", "");
 		}
@@ -332,8 +335,9 @@ print_ci(const struct cmdinfo *cip, const struct cmdinfo *totalcip)
 			printf("%11.2fu ", cip->ci_utime / (60.0 * 1000000));
 		if (cflag) {
 			if (cip != totalcip)
-				printf(" %4.1f%%  ", cip->ci_utime /
-				    (double)totalcip->ci_utime * 100);
+				printf(" %4.1f%%  ",
+				    cip->ci_utime / (double)totalcip->ci_utime *
+					100);
 			else
 				printf(" %4s   ", "");
 		}
@@ -343,8 +347,9 @@ print_ci(const struct cmdinfo *cip, const struct cmdinfo *totalcip)
 			printf("%11.2fs ", cip->ci_stime / (60.0 * 1000000));
 		if (cflag) {
 			if (cip != totalcip)
-				printf(" %4.1f%%  ", cip->ci_stime /
-				    (double)totalcip->ci_stime * 100);
+				printf(" %4.1f%%  ",
+				    cip->ci_stime / (double)totalcip->ci_stime *
+					100);
 			else
 				printf(" %4s   ", "");
 		}
@@ -353,8 +358,7 @@ print_ci(const struct cmdinfo *cip, const struct cmdinfo *totalcip)
 	if (tflag) {
 		if (!uflow)
 			printf("%8.2fre/cp ",
-			    cip->ci_etime /
-			    (cip->ci_utime + cip->ci_stime));
+			    cip->ci_etime / (cip->ci_utime + cip->ci_stime));
 		else
 			printf("*ignore*      ");
 	}

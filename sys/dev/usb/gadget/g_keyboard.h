@@ -26,11 +26,11 @@
  */
 
 #ifndef _G_KEYBOARD_H_
-#define	_G_KEYBOARD_H_
+#define _G_KEYBOARD_H_
 
-#define	G_KEYBOARD_MAX_STRLEN 32
-#define	G_KEYBOARD_MODE_SILENT 0
-#define	G_KEYBOARD_MODE_PATTERN 1
-#define	G_KEYBOARD_MODE_MAX 2
+#define G_KEYBOARD_MAX_STRLEN 32
+#define G_KEYBOARD_MODE_SILENT 0
+#define G_KEYBOARD_MODE_PATTERN 1
+#define G_KEYBOARD_MODE_MAX 2
 
-#endif					/* _G_KEYBOARD_H_ */
+#endif /* _G_KEYBOARD_H_ */

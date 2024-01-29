@@ -32,8 +32,6 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
-
 #include <ctype.h>
 #include <errno.h>
 #include <netdb.h>
@@ -45,6 +43,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "namespace.h"
 #include "nss_tls.h"
 
 #ifdef YP
@@ -61,7 +60,7 @@
  * if we DB-fied the group and netgroup stuff all in one shot, but
  * for now I'm satisfied just to have something that works well
  * without requiring massive code changes.)
- * 
+ *
  * Therefore, to still permit the use of the local file and maintain
  * optimum NIS performance, we allow for the following conditions:
  *
@@ -87,12 +86,13 @@
  *   NIS (this is the original, pre-NIS behavior).
  */
 
+#include <sys/param.h>
+#include <sys/errno.h>
+#include <sys/stat.h>
+
 #include <rpc/rpc.h>
 #include <rpcsvc/yp_prot.h>
 #include <rpcsvc/ypclnt.h>
-#include <sys/param.h>
-#include <sys/stat.h>
-#include <sys/errno.h>
 static char *_netgr_yp_domain;
 int _use_only_yp;
 static int _netgr_yp_enabled;
@@ -104,8 +104,8 @@ static int _yp_innetgr;
 #endif
 
 enum constants {
-	NGRP_STORAGE_INITIAL	= 1 << 10, /* 1 KByte */
-	NGRP_STORAGE_MAX	= 1 << 20, /* 1 MByte */
+	NGRP_STORAGE_INITIAL = 1 << 10, /* 1 KByte */
+	NGRP_STORAGE_MAX = 1 << 20,	/* 1 MByte */
 };
 
 static const ns_src defaultsrc[] = {
@@ -122,68 +122,65 @@ static const ns_src defaultsrc[] = {
  * - netgrp is the list of entries for the current netgroup
  */
 struct linelist {
-	struct linelist	*l_next;	/* Chain ptr. */
-	int		l_parsed;	/* Flag for cycles */
-	char		*l_groupname;	/* Name of netgroup */
-	char		*l_line;	/* Netgroup entrie(s) to be parsed */
+	struct linelist *l_next; /* Chain ptr. */
+	int l_parsed;		 /* Flag for cycles */
+	char *l_groupname;	 /* Name of netgroup */
+	char *l_line;		 /* Netgroup entrie(s) to be parsed */
 };
 
 struct netgrp {
-	struct netgrp	*ng_next;	/* Chain ptr */
-	char		*ng_str[3];	/* Field pointers, see below */
+	struct netgrp *ng_next; /* Chain ptr */
+	char *ng_str[3];	/* Field pointers, see below */
 };
 
 struct netgr_state {
-	FILE		*st_netf;
-	struct linelist	*st_linehead;
-	struct netgrp	*st_nextgrp;
-	struct netgrp	*st_gr;
-	char		*st_grname;
+	FILE *st_netf;
+	struct linelist *st_linehead;
+	struct netgrp *st_nextgrp;
+	struct netgrp *st_gr;
+	char *st_grname;
 };
 
-#define NG_HOST		0	/* Host name */
-#define NG_USER		1	/* User name */
-#define NG_DOM		2	/* and Domain name */
+#define NG_HOST 0 /* Host name */
+#define NG_USER 1 /* User name */
+#define NG_DOM 2  /* and Domain name */
 
-static void	netgr_endstate(void *);
+static void netgr_endstate(void *);
 NSS_TLS_HANDLING(netgr);
 
-static int	files_endnetgrent(void *, void *, va_list);
-static int	files_getnetgrent_r(void *, void *, va_list);
-static int	files_setnetgrent(void *, void *, va_list);
+static int files_endnetgrent(void *, void *, va_list);
+static int files_getnetgrent_r(void *, void *, va_list);
+static int files_setnetgrent(void *, void *, va_list);
 
-static int	compat_endnetgrent(void *, void *, va_list);
-static int	compat_innetgr(void *, void *, va_list);
-static int	compat_getnetgrent_r(void *, void *, va_list);
-static int	compat_setnetgrent(void *, void *, va_list);
+static int compat_endnetgrent(void *, void *, va_list);
+static int compat_innetgr(void *, void *, va_list);
+static int compat_getnetgrent_r(void *, void *, va_list);
+static int compat_setnetgrent(void *, void *, va_list);
 
-static void	_compat_clearstate(void);
-static int	_getnetgrent_r(char **, char **, char **, char *, size_t, int *,
-		    struct netgr_state *);
-static int	_innetgr_fallback(void *, void *, const char *, const char *,
-		    const char *, const char *);
-static int	innetgr_fallback(void *, void *, va_list);
-static int	parse_netgrp(const char *, struct netgr_state *, int);
+static void _compat_clearstate(void);
+static int _getnetgrent_r(char **, char **, char **, char *, size_t, int *,
+    struct netgr_state *);
+static int _innetgr_fallback(void *, void *, const char *, const char *,
+    const char *, const char *);
+static int innetgr_fallback(void *, void *, va_list);
+static int parse_netgrp(const char *, struct netgr_state *, int);
 static struct linelist *read_for_group(const char *, struct netgr_state *, int);
 
-#define	LINSIZ	1024	/* Length of netgroup file line */
+#define LINSIZ 1024 /* Length of netgroup file line */
 
 static const ns_dtab getnetgrent_dtab[] = {
 	NS_FILES_CB(files_getnetgrent_r, NULL)
-	NS_COMPAT_CB(compat_getnetgrent_r, NULL)
-	{ NULL, NULL, NULL },
+	    NS_COMPAT_CB(compat_getnetgrent_r, NULL) { NULL, NULL, NULL },
 };
 
 static const ns_dtab setnetgrent_dtab[] = {
 	NS_FILES_CB(files_setnetgrent, NULL)
-	NS_COMPAT_CB(compat_setnetgrent, NULL)
-	{ NULL, NULL, NULL },
+	    NS_COMPAT_CB(compat_setnetgrent, NULL) { NULL, NULL, NULL },
 };
 
 static const ns_dtab endnetgrent_dtab[] = {
 	NS_FILES_CB(files_endnetgrent, NULL)
-	NS_COMPAT_CB(compat_endnetgrent, NULL)
-	{ NULL, NULL, NULL },
+	    NS_COMPAT_CB(compat_endnetgrent, NULL) { NULL, NULL, NULL },
 };
 
 static struct netgr_state compat_state;
@@ -346,26 +343,29 @@ compat_setnetgrent(void *retval, void *mdata, va_list ap)
 		 * use NIS exclusively.
 		 */
 		if (((stat(_PATH_NETGROUP, &_yp_statp) < 0) &&
-		    errno == ENOENT) || _yp_statp.st_size == 0)
+			errno == ENOENT) ||
+		    _yp_statp.st_size == 0)
 			_use_only_yp = _netgr_yp_enabled = 1;
-		if ((netf = fopen(_PATH_NETGROUP,"re")) != NULL ||_use_only_yp){
+		if ((netf = fopen(_PATH_NETGROUP, "re")) != NULL ||
+		    _use_only_yp) {
 			compat_state.st_netf = netf;
-		/*
-		 * Icky: grab the first character of the netgroup file
-		 * and turn on NIS if it's a '+'. rewind the stream
-		 * afterwards so we don't goof up read_for_group() later.
-		 */
+			/*
+			 * Icky: grab the first character of the netgroup file
+			 * and turn on NIS if it's a '+'. rewind the stream
+			 * afterwards so we don't goof up read_for_group()
+			 * later.
+			 */
 			if (netf) {
 				fscanf(netf, "%c", &_yp_plus);
 				rewind(netf);
 				if (_yp_plus == '+')
 					_use_only_yp = _netgr_yp_enabled = 1;
 			}
-		/*
-		 * If we were called specifically for an innetgr()
-		 * lookup and we're in NIS-only mode, short-circuit
-		 * parse_netgroup() and cut directly to the chase.
-		 */
+			/*
+			 * If we were called specifically for an innetgr()
+			 * lookup and we're in NIS-only mode, short-circuit
+			 * parse_netgroup() and cut directly to the chase.
+			 */
 			if (_use_only_yp && _yp_innetgr) {
 				/* dohw! */
 				if (netf != NULL)
@@ -418,19 +418,20 @@ _getnetgrent_r(char **hostp, char **userp, char **domp, char *buf,
 	size_t len;
 	int rv;
 
-#define	COPY_NG_ELEM(dstp, i) do {					\
-	src = st->st_nextgrp->ng_str[(i)];				\
-	if (src == NULL)						\
-		src = "";						\
-	len = strlcpy(p, src, bufsize);					\
-	if (len >= bufsize) {						\
-		*errnop = ERANGE;					\
-		return (NS_RETURN);					\
-	}								\
-	*(dstp) = p;							\
-	p += len + 1;							\
-	bufsize -= len + 1;						\
-} while (0)
+#define COPY_NG_ELEM(dstp, i)                      \
+	do {                                       \
+		src = st->st_nextgrp->ng_str[(i)]; \
+		if (src == NULL)                   \
+			src = "";                  \
+		len = strlcpy(p, src, bufsize);    \
+		if (len >= bufsize) {              \
+			*errnop = ERANGE;          \
+			return (NS_RETURN);        \
+		}                                  \
+		*(dstp) = p;                       \
+		p += len + 1;                      \
+		bufsize -= len + 1;                \
+	} while (0)
 
 	p = buf;
 	if (st->st_nextgrp != NULL) {
@@ -461,11 +462,12 @@ _listmatch(const char *list, const char *group, int len)
 
 	while (ptr < list + len) {
 		cptr = ptr;
-		while(*ptr != ','  && *ptr != '\0' && !isspace((unsigned char)*ptr))
+		while (*ptr != ',' && *ptr != '\0' &&
+		    !isspace((unsigned char)*ptr))
 			ptr++;
 		if (strncmp(cptr, group, glen) == 0 && glen == (ptr - cptr))
 			return (1);
-		while (*ptr == ','  || isspace((unsigned char)*ptr))
+		while (*ptr == ',' || isspace((unsigned char)*ptr))
 			ptr++;
 	}
 
@@ -473,15 +475,15 @@ _listmatch(const char *list, const char *group, int len)
 }
 
 static int
-_revnetgr_lookup(char* lookupdom, char* map, const char* str,
-		 const char* dom, const char* group)
+_revnetgr_lookup(char *lookupdom, char *map, const char *str, const char *dom,
+    const char *group)
 {
 	int y, rv, rot;
 	char key[MAXHOSTNAMELEN];
 	char *result;
 	int resultlen;
 
-	for (rot = 0; ; rot++) {
+	for (rot = 0;; rot++) {
 		switch (rot) {
 		case 0:
 			snprintf(key, MAXHOSTNAMELEN, "%s.%s", str,
@@ -549,9 +551,9 @@ compat_innetgr(void *retval, void *mdata, va_list ap)
 	/*
 	 * If we're in NIS-only mode, do the search using
 	 * NIS 'reverse netgroup' lookups.
-	 * 
+	 *
 	 * What happens with 'reverse netgroup' lookups:
-	 * 
+	 *
 	 * 1) try 'reverse netgroup' lookup
 	 *    1.a) if host is specified and user is null:
 	 *         look in netgroup.byhost
@@ -571,11 +573,11 @@ compat_innetgr(void *retval, void *mdata, va_list ap)
 	 */
 	if (_use_only_yp && (host == NULL) != (user == NULL)) {
 		int ret;
-		if(yp_get_default_domain(&_netgr_yp_domain))
+		if (yp_get_default_domain(&_netgr_yp_domain))
 			return (NS_NOTFOUND);
 		ret = _revnetgr_lookup(_netgr_yp_domain,
-				      host?"netgroup.byhost":"netgroup.byuser",
-				      host?host:user, dom, group);
+		    host ? "netgroup.byhost" : "netgroup.byuser",
+		    host ? host : user, dom, group);
 		if (ret == 1) {
 			*(int *)retval = 1;
 			return (NS_SUCCESS);
@@ -590,8 +592,8 @@ compat_innetgr(void *retval, void *mdata, va_list ap)
 }
 
 static int
-_innetgr_fallback(void *retval, void *mdata, const char *group, const char *host,
-    const char *user, const char *dom)
+_innetgr_fallback(void *retval, void *mdata, const char *group,
+    const char *host, const char *user, const char *dom)
 {
 	const ns_src src[] = {
 		{ mdata, NS_SUCCESS },
@@ -741,7 +743,7 @@ parse_netgrp(const char *group, struct netgr_state *st, int niscompat)
 				ng[strpos] = malloc(len + 1);
 				if (ng[strpos] == NULL) {
 					for (freepos = 0; freepos < strpos;
-					    freepos++)
+					     freepos++)
 						free(ng[freepos]);
 					free(grp);
 					return (1);
@@ -759,7 +761,7 @@ parse_netgrp(const char *group, struct netgr_state *st, int niscompat)
 			 */
 			if (fields < 3) {
 				fprintf(stderr,
-				"Bad entry (%s%s%s%s%s) in netgroup \"%s\"\n",
+				    "Bad entry (%s%s%s%s%s) in netgroup \"%s\"\n",
 				    ng[NG_HOST] == NULL ? "" : ng[NG_HOST],
 				    ng[NG_USER] == NULL ? "" : ",",
 				    ng[NG_USER] == NULL ? "" : ng[NG_USER],
@@ -803,11 +805,11 @@ read_for_group(const char *group, struct netgr_state *st, int niscompat)
 	while ((_netgr_yp_enabled && niscompat) ||
 	    fgets(line, LINSIZ, netf) != NULL) {
 		if (_netgr_yp_enabled) {
-			if(!_netgr_yp_domain)
-				if(yp_get_default_domain(&_netgr_yp_domain))
+			if (!_netgr_yp_domain)
+				if (yp_get_default_domain(&_netgr_yp_domain))
 					continue;
 			if (yp_match(_netgr_yp_domain, "netgroup", group,
-			    strlen(group), &result, &resultlen)) {
+				strlen(group), &result, &resultlen)) {
 				free(result);
 				if (_use_only_yp)
 					return ((struct linelist *)0);
@@ -839,14 +841,14 @@ read_for_group(const char *group, struct netgr_state *st, int niscompat)
 		while (*pos == ' ' || *pos == '\t')
 			pos++;
 		spos = pos;
-		while (*pos != ' ' && *pos != '\t' && *pos != '\n' &&
-			*pos != '\0')
+		while (
+		    *pos != ' ' && *pos != '\t' && *pos != '\n' && *pos != '\0')
 			pos++;
 		len = pos - spos;
 		while (*pos == ' ' || *pos == '\t')
 			pos++;
 		if (*pos != '\n' && *pos != '\0') {
-			lp = malloc(sizeof (*lp));
+			lp = malloc(sizeof(*lp));
 			if (lp == NULL)
 				return (NULL);
 			lp->l_parsed = 0;
@@ -922,7 +924,8 @@ read_for_group(const char *group, struct netgr_state *st, int niscompat)
 }
 
 int
-getnetgrent_r(char **hostp, char **userp, char **domp, char *buf, size_t bufsize)
+getnetgrent_r(char **hostp, char **userp, char **domp, char *buf,
+    size_t bufsize)
 {
 	int rv, ret_errno;
 
@@ -1001,8 +1004,7 @@ innetgr(const char *netgroup, const char *host, const char *user,
 {
 	static const ns_dtab dtab[] = {
 		NS_COMPAT_CB(compat_innetgr, NULL)
-		NS_FALLBACK_CB(innetgr_fallback)
-		{ NULL, NULL, NULL },
+		    NS_FALLBACK_CB(innetgr_fallback) { NULL, NULL, NULL },
 	};
 	int result, rv;
 

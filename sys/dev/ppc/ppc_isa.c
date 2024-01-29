@@ -30,21 +30,22 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/bus.h>
-#include <machine/bus.h>
-#include <sys/malloc.h>
 #include <sys/rman.h>
 
-#include <isa/isavar.h>
+#include <machine/bus.h>
 
-#include <dev/ppbus/ppbconf.h>
 #include <dev/ppbus/ppb_msq.h>
-#include <dev/ppc/ppcvar.h>
+#include <dev/ppbus/ppbconf.h>
 #include <dev/ppc/ppcreg.h>
+#include <dev/ppc/ppcvar.h>
+
+#include <isa/isavar.h>
 
 #include "ppbus_if.h"
 
@@ -55,24 +56,23 @@ int ppc_isa_write(device_t, char *, int, int);
 
 static device_method_t ppc_isa_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		ppc_isa_probe),
-	DEVMETHOD(device_attach,	ppc_isa_attach),
-	DEVMETHOD(device_detach,	ppc_detach),
+	DEVMETHOD(device_probe, ppc_isa_probe),
+	DEVMETHOD(device_attach, ppc_isa_attach),
+	DEVMETHOD(device_detach, ppc_detach),
 
 	/* bus interface */
-	DEVMETHOD(bus_read_ivar,	ppc_read_ivar),
-	DEVMETHOD(bus_write_ivar,	ppc_write_ivar),
-	DEVMETHOD(bus_alloc_resource,	ppc_alloc_resource),
-	DEVMETHOD(bus_release_resource,	ppc_release_resource),
+	DEVMETHOD(bus_read_ivar, ppc_read_ivar),
+	DEVMETHOD(bus_write_ivar, ppc_write_ivar),
+	DEVMETHOD(bus_alloc_resource, ppc_alloc_resource),
+	DEVMETHOD(bus_release_resource, ppc_release_resource),
 
 	/* ppbus interface */
-	DEVMETHOD(ppbus_io,		ppc_io),
-	DEVMETHOD(ppbus_exec_microseq,	ppc_exec_microseq),
-	DEVMETHOD(ppbus_reset_epp,	ppc_reset_epp),
-	DEVMETHOD(ppbus_setmode,	ppc_setmode),
-	DEVMETHOD(ppbus_ecp_sync,	ppc_ecp_sync),
-	DEVMETHOD(ppbus_read,		ppc_read),
-	DEVMETHOD(ppbus_write,		ppc_isa_write),
+	DEVMETHOD(ppbus_io, ppc_io),
+	DEVMETHOD(ppbus_exec_microseq, ppc_exec_microseq),
+	DEVMETHOD(ppbus_reset_epp, ppc_reset_epp),
+	DEVMETHOD(ppbus_setmode, ppc_setmode),
+	DEVMETHOD(ppbus_ecp_sync, ppc_ecp_sync),
+	DEVMETHOD(ppbus_read, ppc_read), DEVMETHOD(ppbus_write, ppc_isa_write),
 	{ 0, 0 }
 };
 
@@ -83,8 +83,8 @@ static driver_t ppc_isa_driver = {
 };
 
 static struct isa_pnp_id lpc_ids[] = {
-	{ 0x0004d041, "Standard parallel printer port" },	/* PNP0400 */
-	{ 0x0104d041, "ECP parallel printer port" },		/* PNP0401 */
+	{ 0x0004d041, "Standard parallel printer port" }, /* PNP0400 */
+	{ 0x0104d041, "ECP parallel printer port" },	  /* PNP0401 */
 	{ 0 }
 };
 
@@ -101,7 +101,7 @@ ppc_isa_attach(device_t dev)
 	struct ppc_data *ppc = device_get_softc(dev);
 
 	if ((ppc->ppc_avm & PPB_ECP) && (ppc->ppc_dmachan > 0)) {
-		/* acquire the DMA channel forever */   /* XXX */
+		/* acquire the DMA channel forever */ /* XXX */
 		isa_dma_acquire(ppc->ppc_dmachan);
 		isa_dmainit(ppc->ppc_dmachan, 1024); /* nlpt.BUFSIZE */
 		ppc->ppc_dmadone = ppc_isa_dmadone;
@@ -121,7 +121,7 @@ ppc_isa_probe(device_t dev)
 	error = ISA_PNP_PROBE(parent, dev, lpc_ids);
 	if (error == ENXIO)
 		return (ENXIO);
-	if (error != 0)		/* XXX shall be set after detection */
+	if (error != 0) /* XXX shall be set after detection */
 		device_set_desc(dev, "Parallel port");
 
 	return (ppc_probe(dev, 0));
@@ -196,7 +196,7 @@ ppc_isa_write(device_t dev, char *buf, int len, int how)
 	w_ecr(ppc, ecr);
 
 	isa_dmastart(ppc->ppc_dmaflags, ppc->ppc_dmaddr, ppc->ppc_dmacnt,
-		     ppc->ppc_dmachan);
+	    ppc->ppc_dmachan);
 	ppc->ppc_dmastat = PPC_DMA_STARTED;
 
 #ifdef PPC_DEBUG
@@ -218,8 +218,8 @@ ppc_isa_write(device_t dev, char *buf, int len, int how)
 		printf("i");
 #endif
 		/* stop DMA */
-		isa_dmadone(ppc->ppc_dmaflags, ppc->ppc_dmaddr,
-			    ppc->ppc_dmacnt, ppc->ppc_dmachan);
+		isa_dmadone(ppc->ppc_dmaflags, ppc->ppc_dmaddr, ppc->ppc_dmacnt,
+		    ppc->ppc_dmachan);
 
 		/* no dma, no interrupt, flush the fifo */
 		w_ecr(ppc, PPC_ECR_RESET);
@@ -230,7 +230,7 @@ ppc_isa_write(device_t dev, char *buf, int len, int how)
 
 	/* wait for an empty fifo */
 	while (!(r_ecr(ppc) & PPC_FIFO_EMPTY)) {
-		for (spin=100; spin; spin--)
+		for (spin = 100; spin; spin--)
 			if (r_ecr(ppc) & PPC_FIFO_EMPTY)
 				goto fifo_empty;
 #ifdef PPC_DEBUG

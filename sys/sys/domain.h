@@ -40,49 +40,49 @@
 /*
  * Forward structure declarations for function prototypes [sic].
  */
-struct	mbuf;
-struct	ifnet;
-struct	socket;
-struct	rib_head;
+struct mbuf;
+struct ifnet;
+struct socket;
+struct rib_head;
 
 struct domain {
 	SLIST_ENTRY(domain) dom_next;
-	int	dom_family;		/* AF_xxx */
-	u_int	dom_nprotosw;		/* length of dom_protosw[] */
-	char	*dom_name;
-	int	dom_flags;
-	int	(*dom_probe)(void);	/* check for support (optional) */
-	int	(*dom_externalize)	/* externalize access rights */
-		(struct mbuf *, struct mbuf **, int);
-	struct rib_head *(*dom_rtattach)	/* initialize routing table */
-		(uint32_t);
-	void	(*dom_rtdetach)		/* clean up routing table */
-		(struct rib_head *);
-	void	*(*dom_ifattach)(struct ifnet *);
-	void	(*dom_ifdetach)(struct ifnet *, void *);
-	int	(*dom_ifmtu)(struct ifnet *);
-					/* af-dependent data on ifnet */
-	struct	protosw *dom_protosw[];
+	int dom_family;	    /* AF_xxx */
+	u_int dom_nprotosw; /* length of dom_protosw[] */
+	char *dom_name;
+	int dom_flags;
+	int (*dom_probe)(void); /* check for support (optional) */
+	int(*dom_externalize)	/* externalize access rights */
+	    (struct mbuf *, struct mbuf **, int);
+	struct rib_head *(*dom_rtattach) /* initialize routing table */
+	    (uint32_t);
+	void(*dom_rtdetach) /* clean up routing table */
+	    (struct rib_head *);
+	void *(*dom_ifattach)(struct ifnet *);
+	void (*dom_ifdetach)(struct ifnet *, void *);
+	int (*dom_ifmtu)(struct ifnet *);
+	/* af-dependent data on ifnet */
+	struct protosw *dom_protosw[];
 };
 
 /* dom_flags */
-#define	DOMF_UNLOADABLE	0x0004	/* Can be unloaded */
+#define DOMF_UNLOADABLE 0x0004 /* Can be unloaded */
 
 #ifdef _KERNEL
-extern int	domain_init_status;
+extern int domain_init_status;
 extern SLIST_HEAD(domainhead, domain) domains;
-void		domain_add(struct domain *);
-void		domain_remove(struct domain *);
+void domain_add(struct domain *);
+void domain_remove(struct domain *);
 #ifdef VIMAGE
-void		vnet_domain_init(void *);
-void		vnet_domain_uninit(void *);
+void vnet_domain_init(void *);
+void vnet_domain_uninit(void *);
 #endif
 
-#define	DOMAIN_SET(name)						\
-	SYSINIT(domain_add_ ## name, SI_SUB_PROTO_DOMAIN,		\
-	    SI_ORDER_FIRST, domain_add, & name ## domain);		\
-	SYSUNINIT(domain_remove_ ## name, SI_SUB_PROTO_DOMAIN,		\
-	    SI_ORDER_FIRST, domain_remove, & name ## domain);
+#define DOMAIN_SET(name)                                                     \
+	SYSINIT(domain_add_##name, SI_SUB_PROTO_DOMAIN, SI_ORDER_FIRST,      \
+	    domain_add, &name##domain);                                      \
+	SYSUNINIT(domain_remove_##name, SI_SUB_PROTO_DOMAIN, SI_ORDER_FIRST, \
+	    domain_remove, &name##domain);
 #endif /* _KERNEL */
 
 #endif /* !_SYS_DOMAIN_H_ */

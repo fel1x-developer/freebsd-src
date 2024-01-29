@@ -30,15 +30,15 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include <unistd.h>
 
-#define	CC "/usr/bin/cc"	/* The big kahuna doing the actual work. */
-#define	N_ARGS_PREPENDED (sizeof(args_prepended) / sizeof(args_prepended[0]))
+#define CC "/usr/bin/cc" /* The big kahuna doing the actual work. */
+#define N_ARGS_PREPENDED (sizeof(args_prepended) / sizeof(args_prepended[0]))
 
 /*
  * We do not add -D_POSIX_SOURCE here because any POSIX source is supposed to
@@ -46,12 +46,9 @@
  * benefit of making c89 -D_ANSI_SOURCE do the right thing (or any other
  * -D_FOO_SOURCE feature test macro we support.)
  */
-static const char	*args_prepended[] = {
-	"-std=iso9899:199409",
-	"-pedantic"
-};
+static const char *args_prepended[] = { "-std=iso9899:199409", "-pedantic" };
 
-static void	usage(void);
+static void usage(void);
 
 /*
  * Prepend the strings from args_prepended[] to the arg list; parse options,
@@ -65,7 +62,7 @@ main(int argc, char **argv)
 	size_t j;
 	union {
 		const char **a;
-		char * const *b;
+		char *const *b;
 	} Argv;
 
 	Argc = 0;
@@ -81,7 +78,7 @@ main(int argc, char **argv)
 		if (i == 'l') {
 			if (argv[optind - 1][0] == '-') /* -llib */
 				optind -= 1;
-			else                            /* -l lib */
+			else /* -l lib */
 				optind -= 2;
 			break; /* -llib or -l lib starts the operands. */
 		}
@@ -102,10 +99,10 @@ static void
 usage(void)
 {
 	fprintf(stderr,
-"usage: c89 [-cEgOs] [-D name[=value]] ... [-I directory] ... [-L directory] ...\n"
-"           [-o outfile] [-U name] ... operand ...\n"
-"\n"
-"       where operand is one or more of file.c, file.o, file.a\n"
-"       or -llibrary\n");
+	    "usage: c89 [-cEgOs] [-D name[=value]] ... [-I directory] ... [-L directory] ...\n"
+	    "           [-o outfile] [-U name] ... operand ...\n"
+	    "\n"
+	    "       where operand is one or more of file.c, file.o, file.a\n"
+	    "       or -llibrary\n");
 	exit(1);
 }

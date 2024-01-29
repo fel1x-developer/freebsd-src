@@ -28,51 +28,49 @@
 #ifndef _NETDB_PRIVATE_H_
 #define _NETDB_PRIVATE_H_
 
-#include <stdio.h>				/* XXX: for FILE */
+#include <stdio.h> /* XXX: for FILE */
 
-#define	NETDB_THREAD_ALLOC(name)					\
-static struct name name;						\
-static thread_key_t name##_key;						\
-static once_t name##_init_once = ONCE_INITIALIZER;			\
-static int name##_thr_keycreated = 0;					\
-\
-static void name##_free(void *);					\
-\
-static void								\
-name##_keycreate(void)							\
-{									\
-	name##_thr_keycreated =						\
-	    (thr_keycreate(&name##_key, name##_free) == 0);		\
-}									\
-\
-struct name *								\
-__##name##_init(void)							\
-{									\
-	struct name *he;						\
-									\
-	if (thr_main() != 0)						\
-		return (&name);						\
-	if (thr_once(&name##_init_once, name##_keycreate) != 0 ||	\
-	    !name##_thr_keycreated)					\
-		return (NULL);						\
-	if ((he = thr_getspecific(name##_key)) != NULL)			\
-		return (he);						\
-	if ((he = calloc(1, sizeof(*he))) == NULL)			\
-		return (NULL);						\
-	if (thr_setspecific(name##_key, he) == 0)			\
-		return (he);						\
-	free(he);							\
-	return (NULL);							\
-}
+#define NETDB_THREAD_ALLOC(name)                                          \
+	static struct name name;                                          \
+	static thread_key_t name##_key;                                   \
+	static once_t name##_init_once = ONCE_INITIALIZER;                \
+	static int name##_thr_keycreated = 0;                             \
+                                                                          \
+	static void name##_free(void *);                                  \
+                                                                          \
+	static void name##_keycreate(void)                                \
+	{                                                                 \
+		name##_thr_keycreated = (thr_keycreate(&name##_key,       \
+					     name##_free) == 0);          \
+	}                                                                 \
+                                                                          \
+	struct name *__##name##_init(void)                                \
+	{                                                                 \
+		struct name *he;                                          \
+                                                                          \
+		if (thr_main() != 0)                                      \
+			return (&name);                                   \
+		if (thr_once(&name##_init_once, name##_keycreate) != 0 || \
+		    !name##_thr_keycreated)                               \
+			return (NULL);                                    \
+		if ((he = thr_getspecific(name##_key)) != NULL)           \
+			return (he);                                      \
+		if ((he = calloc(1, sizeof(*he))) == NULL)                \
+			return (NULL);                                    \
+		if (thr_setspecific(name##_key, he) == 0)                 \
+			return (he);                                      \
+		free(he);                                                 \
+		return (NULL);                                            \
+	}
 
-#define	_MAXALIASES	35
-#define	_MAXLINELEN	1024
-#define	_MAXADDRS	35
-#define	_HOSTBUFSIZE	(8 * 1024)
-#define	_NETBUFSIZE	1025
+#define _MAXALIASES 35
+#define _MAXLINELEN 1024
+#define _MAXADDRS 35
+#define _HOSTBUFSIZE (8 * 1024)
+#define _NETBUFSIZE 1025
 
 struct hostent_data {
-	uint32_t host_addr[4];			/* IPv4 or IPv6 */
+	uint32_t host_addr[4]; /* IPv4 or IPv6 */
 	char *h_addr_ptrs[_MAXADDRS + 1];
 	char *host_aliases[_MAXALIASES];
 	char hostbuf[_HOSTBUFSIZE];

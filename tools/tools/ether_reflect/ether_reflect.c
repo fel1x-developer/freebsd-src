@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2008, Neville-Neil Consulting
  * All rights reserved.
  *
@@ -32,13 +32,14 @@
  */
 
 #include <sys/cdefs.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <strings.h>
+
+#include <net/ethernet.h>
 
 #include <pcap-int.h>
 #include <pcap.h>
-#include <net/ethernet.h>
+#include <stdlib.h>
+#include <strings.h>
+#include <unistd.h>
 
 #define ETHER_TYPE_TEST "0x8822"
 #define SNAPLEN 96
@@ -46,20 +47,23 @@
 
 char errbuf[PCAP_ERRBUF_SIZE];
 
-void usage(char* message) {
+void
+usage(char *message)
+{
 	if (message != NULL)
-		printf ("error: %s\n", message);
+		printf("error: %s\n", message);
 	printf("usage: ether_reflect -i interface -e ethertype "
 	       "-a address -t timeout -p -d\n");
 	exit(1);
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
 	int ch;
 	int debug = 0, promisc = 0;
-	int timeout = 100; 
-	bpf_u_int32 localnet=0, netmask=0;
+	int timeout = 100;
+	bpf_u_int32 localnet = 0, netmask = 0;
 	unsigned int error = 0;
 	char *interface = NULL;
 	char *proto = ETHER_TYPE_TEST;
@@ -106,8 +110,8 @@ int main(int argc, char **argv)
 	if (user_addr != NULL)
 		ether_aton_r(user_addr, (struct ether_addr *)&tmp);
 
-	if ((capture = pcap_open_live(interface, SNAPLEN, promisc, timeout, 
-				      &errbuf[0])) == NULL)
+	if ((capture = pcap_open_live(interface, SNAPLEN, promisc, timeout,
+		 &errbuf[0])) == NULL)
 		usage(errbuf);
 
 	snprintf(&in_string[0], MAXPROG, "ether proto %s\n", proto);
@@ -125,8 +129,8 @@ int main(int argc, char **argv)
 		usage(errbuf);
 
 	while (1) {
-		error = pcap_next_ex(capture, &header, 
-				     (const unsigned char **)&packet);
+		error = pcap_next_ex(capture, &header,
+		    (const unsigned char **)&packet);
 		if (error == 0)
 			continue;
 		if (error == -1)
@@ -135,15 +139,14 @@ int main(int argc, char **argv)
 			usage("savefile?  invalid!");
 
 		if (debug) {
-			printf ("got packet of %d length\n", header->len);
-			printf ("header %s\n", 
-				ether_ntoa((const struct ether_addr*)
-					   &packet[0]));
-			printf ("header %s\n", 
-				ether_ntoa((const struct ether_addr*)
-					   &packet[ETHER_ADDR_LEN]));
+			printf("got packet of %d length\n", header->len);
+			printf("header %s\n",
+			    ether_ntoa((const struct ether_addr *)&packet[0]));
+			printf("header %s\n",
+			    ether_ntoa((const struct ether_addr
+				    *)&packet[ETHER_ADDR_LEN]));
 		}
-		
+
 		/*
 		 * If the user did not supply an address then we simply
 		 * reverse the source and destination addresses.

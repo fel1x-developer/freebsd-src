@@ -38,10 +38,12 @@
  *	DELETE - delete invitation
  */
 #include <sys/param.h>
-#include <sys/stat.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
+
 #include <netinet/in.h>
 #include <protocols/talkd.h>
+
 #include <ctype.h>
 #include <err.h>
 #include <netdb.h>
@@ -142,15 +144,15 @@ do_announce(CTL_MSG *mp, CTL_RESPONSE *rp)
 		rp->answer = result;
 		return;
 	}
-#define	satosin(sa)	((struct sockaddr_in *)(void *)(sa))
+#define satosin(sa) ((struct sockaddr_in *)(void *)(sa))
 	hp = gethostbyaddr(&satosin(&mp->ctl_addr)->sin_addr,
-		sizeof (struct in_addr), AF_INET);
+	    sizeof(struct in_addr), AF_INET);
 	if (hp == (struct hostent *)0) {
 		rp->answer = MACHINE_UNKNOWN;
 		return;
 	}
 	ptr = find_request(mp);
-	if (ptr == (CTL_MSG *) 0) {
+	if (ptr == (CTL_MSG *)0) {
 		insert_table(mp, rp);
 		rp->answer = announce(mp, hp->h_name);
 		return;
@@ -184,7 +186,7 @@ find_user(const char *name, char *tty)
 
 	setutxent();
 	status = NOT_HERE;
-	(void) strcpy(ftty, _PATH_DEV);
+	(void)strcpy(ftty, _PATH_DEV);
 	while ((ut = getutxent()) != NULL)
 		if (ut->ut_type == USER_PROCESS &&
 		    strcmp(ut->ut_user, name) == 0) {
@@ -192,14 +194,14 @@ find_user(const char *name, char *tty)
 				if (best == 0)
 					status = PERMISSION_DENIED;
 				/* no particular tty was requested */
-				(void) strcpy(ftty + sizeof(_PATH_DEV) - 1,
+				(void)strcpy(ftty + sizeof(_PATH_DEV) - 1,
 				    ut->ut_line);
 				if (stat(ftty, &statb) == 0) {
 					if (!(statb.st_mode & 020))
 						continue;
 					if (statb.st_atime > best) {
 						best = statb.st_atime;
-						(void) strcpy(tty, ut->ut_line);
+						(void)strcpy(tty, ut->ut_line);
 						status = SUCCESS;
 						continue;
 					}

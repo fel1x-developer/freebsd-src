@@ -7,6 +7,7 @@
 /* This file implements VMCI Event code. */
 
 #include <sys/cdefs.h>
+
 #include "vmci.h"
 #include "vmci_driver.h"
 #include "vmci_event.h"
@@ -14,27 +15,27 @@
 #include "vmci_kernel_defs.h"
 #include "vmci_kernel_if.h"
 
-#define LGPFX		"vmci_event: "
-#define EVENT_MAGIC	0xEABE0000
+#define LGPFX "vmci_event: "
+#define EVENT_MAGIC 0xEABE0000
 
 struct vmci_subscription {
-	vmci_id		id;
-	int		ref_count;
-	bool		run_delayed;
-	vmci_event	destroy_event;
-	vmci_event_type	event;
-	vmci_event_cb	callback;
-	void		*callback_data;
+	vmci_id id;
+	int ref_count;
+	bool run_delayed;
+	vmci_event destroy_event;
+	vmci_event_type event;
+	vmci_event_cb callback;
+	void *callback_data;
 	vmci_list_item(vmci_subscription) subscriber_list_item;
 };
 
-static struct	vmci_subscription *vmci_event_find(vmci_id sub_id);
-static int	vmci_event_deliver(struct vmci_event_msg *event_msg);
-static int	vmci_event_register_subscription(struct vmci_subscription *sub,
-		    vmci_event_type event, uint32_t flags,
-		    vmci_event_cb callback, void *callback_data);
-static struct	vmci_subscription *vmci_event_unregister_subscription(
-		    vmci_id sub_id);
+static struct vmci_subscription *vmci_event_find(vmci_id sub_id);
+static int vmci_event_deliver(struct vmci_event_msg *event_msg);
+static int vmci_event_register_subscription(struct vmci_subscription *sub,
+    vmci_event_type event, uint32_t flags, vmci_event_cb callback,
+    void *callback_data);
+static struct vmci_subscription *vmci_event_unregister_subscription(
+    vmci_id sub_id);
 
 static vmci_list(vmci_subscription) subscriber_array[VMCI_EVENT_MAX];
 static vmci_lock subscriber_lock;
@@ -45,8 +46,8 @@ struct vmci_delayed_event_info {
 };
 
 struct vmci_event_ref {
-	struct vmci_subscription	*sub;
-	vmci_list_item(vmci_event_ref)	list_item;
+	struct vmci_subscription *sub;
+	vmci_list_item(vmci_event_ref) list_item;
 };
 
 /*
@@ -101,7 +102,8 @@ vmci_event_exit(void)
 	/* We free all memory at exit. */
 	for (e = 0; e < VMCI_EVENT_MAX; e++) {
 		vmci_list_scan_safe(iter, &subscriber_array[e],
-		    subscriber_list_item, iter_2) {
+		    subscriber_list_item, iter_2)
+		{
 			/*
 			 * We should never get here because all events should
 			 * have been unregistered before we try to unload the
@@ -222,7 +224,7 @@ vmci_event_release(struct vmci_subscription *entry)
 		vmci_signal_event(&entry->destroy_event);
 }
 
- /*
+/*
  *------------------------------------------------------------------------------
  *
  * event_release_cb --
@@ -276,8 +278,8 @@ vmci_event_find(vmci_id sub_id)
 	vmci_event_type e;
 
 	for (e = 0; e < VMCI_EVENT_MAX; e++) {
-		vmci_list_scan(iter, &subscriber_array[e],
-		    subscriber_list_item) {
+		vmci_list_scan(iter, &subscriber_array[e], subscriber_list_item)
+		{
 			if (iter->id == sub_id) {
 				vmci_event_get(iter);
 				return (iter);
@@ -356,12 +358,13 @@ vmci_event_deliver(struct vmci_event_msg *event_msg)
 
 	vmci_grab_lock_bh(&subscriber_lock);
 	vmci_list_scan(iter, &subscriber_array[event_msg->event_data.event],
-	    subscriber_list_item) {
+	    subscriber_list_item)
+	{
 		if (iter->run_delayed) {
 			struct vmci_delayed_event_info *event_info;
-			if ((event_info =
-			    vmci_alloc_kernel_mem(sizeof(*event_info),
-			    VMCI_MEMORY_ATOMIC)) == NULL) {
+			if ((event_info = vmci_alloc_kernel_mem(
+				 sizeof(*event_info), VMCI_MEMORY_ATOMIC)) ==
+			    NULL) {
 				err = VMCI_ERROR_NO_MEM;
 				goto out;
 			}
@@ -373,13 +376,12 @@ vmci_event_deliver(struct vmci_event_msg *event_msg)
 			    VMCI_DG_PAYLOAD(event_msg),
 			    (size_t)event_msg->hdr.payload_size);
 			event_info->sub = iter;
-			err =
-			    vmci_schedule_delayed_work(
+			err = vmci_schedule_delayed_work(
 			    vmci_event_delayed_dispatch_cb, event_info);
 			if (err != VMCI_SUCCESS) {
 				vmci_event_release(iter);
-				vmci_free_kernel_mem(
-				    event_info, sizeof(*event_info));
+				vmci_free_kernel_mem(event_info,
+				    sizeof(*event_info));
 				goto out;
 			}
 
@@ -392,8 +394,9 @@ vmci_event_deliver(struct vmci_event_msg *event_msg)
 			 * is similar to delayed callbacks, but callbacks are
 			 * invoked right away here.
 			 */
-			if ((event_ref = vmci_alloc_kernel_mem(
-			    sizeof(*event_ref), VMCI_MEMORY_ATOMIC)) == NULL) {
+			if ((event_ref = vmci_alloc_kernel_mem(sizeof(
+								   *event_ref),
+				 VMCI_MEMORY_ATOMIC)) == NULL) {
 				err = VMCI_ERROR_NO_MEM;
 				goto out;
 			}
@@ -412,10 +415,11 @@ out:
 		struct vmci_event_ref *iter;
 		struct vmci_event_ref *iter_2;
 
-		vmci_list_scan_safe(iter, &no_delay_list, list_item, iter_2) {
+		vmci_list_scan_safe(iter, &no_delay_list, list_item, iter_2)
+		{
 			struct vmci_subscription *cur;
-			uint8_t event_payload[sizeof(
-			    struct vmci_event_data_max)];
+			uint8_t
+			    event_payload[sizeof(struct vmci_event_data_max)];
 
 			cur = iter->sub;
 
@@ -461,8 +465,7 @@ vmci_event_dispatch(struct vmci_datagram *msg)
 {
 	struct vmci_event_msg *event_msg = (struct vmci_event_msg *)msg;
 
-	ASSERT(msg &&
-	    msg->src.context == VMCI_HYPERVISOR_CONTEXT_ID &&
+	ASSERT(msg && msg->src.context == VMCI_HYPERVISOR_CONTEXT_ID &&
 	    msg->dst.resource == VMCI_EVENT_HANDLER);
 
 	if (msg->payload_size < sizeof(vmci_event_type) ||
@@ -498,7 +501,7 @@ vmci_event_register_subscription(struct vmci_subscription *sub,
     vmci_event_type event, uint32_t flags, vmci_event_cb callback,
     void *callback_data)
 {
-#define VMCI_EVENT_MAX_ATTEMPTS	10
+#define VMCI_EVENT_MAX_ATTEMPTS 10
 	static vmci_id subscription_id = 0;
 	int result;
 	uint32_t attempts = 0;
@@ -507,8 +510,8 @@ vmci_event_register_subscription(struct vmci_subscription *sub,
 	ASSERT(sub);
 
 	if (!VMCI_EVENT_VALID(event) || callback == NULL) {
-		VMCI_LOG_DEBUG(LGPFX"Failed to subscribe to event"
-		    " (type=%d) (callback=%p) (data=%p).\n",
+		VMCI_LOG_DEBUG(LGPFX "Failed to subscribe to event"
+				     " (type=%d) (callback=%p) (data=%p).\n",
 		    event, callback, callback_data);
 		return (VMCI_ERROR_INVALID_ARGS);
 	}
@@ -526,8 +529,8 @@ vmci_event_register_subscription(struct vmci_subscription *sub,
 		 * The platform supports delayed work callbacks. Honor the
 		 * requested flags
 		 */
-		sub->run_delayed = (flags & VMCI_FLAG_EVENT_DELAYED_CB) ?
-		    true : false;
+		sub->run_delayed = (flags & VMCI_FLAG_EVENT_DELAYED_CB) ? true :
+									  false;
 	}
 
 	sub->ref_count = 1;
@@ -538,8 +541,8 @@ vmci_event_register_subscription(struct vmci_subscription *sub,
 	vmci_grab_lock_bh(&subscriber_lock);
 
 	for (success = false, attempts = 0;
-	    success == false && attempts < VMCI_EVENT_MAX_ATTEMPTS;
-	    attempts++) {
+	     success == false && attempts < VMCI_EVENT_MAX_ATTEMPTS;
+	     attempts++) {
 		struct vmci_subscription *existing_sub = NULL;
 
 		/*
@@ -642,7 +645,7 @@ vmci_event_subscribe(vmci_event_type event, vmci_event_cb callback,
 	struct vmci_subscription *s = NULL;
 
 	if (subscription_id == NULL) {
-		VMCI_LOG_DEBUG(LGPFX"Invalid subscription (NULL).\n");
+		VMCI_LOG_DEBUG(LGPFX "Invalid subscription (NULL).\n");
 		return (VMCI_ERROR_INVALID_ARGS);
 	}
 
@@ -650,8 +653,8 @@ vmci_event_subscribe(vmci_event_type event, vmci_event_cb callback,
 	if (s == NULL)
 		return (VMCI_ERROR_NO_MEM);
 
-	retval = vmci_event_register_subscription(s, event, flags,
-	    callback, callback_data);
+	retval = vmci_event_register_subscription(s, event, flags, callback,
+	    callback_data);
 	if (retval < VMCI_SUCCESS) {
 		vmci_free_kernel_mem(s, sizeof(*s));
 		return (retval);

@@ -25,8 +25,9 @@
  */
 #ifndef _PATHCONV_H
 #define _PATHCONV_H
-char * rel2abs(const char *path, const char *base, char *result, const size_t size);
-char * abs2rel(const char *path, const char *base, char *result, const size_t size);
+char *rel2abs(const char *path, const char *base, char *result,
+    const size_t size);
+char *abs2rel(const char *path, const char *base, char *result,
+    const size_t size);
 
 #endif /*_PATHCONV_H */
-

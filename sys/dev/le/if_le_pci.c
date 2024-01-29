@@ -76,39 +76,38 @@
 #include <sys/rman.h>
 #include <sys/socket.h>
 
+#include <machine/bus.h>
+#include <machine/resource.h>
+
+#include <dev/le/am79900var.h>
+#include <dev/le/lancereg.h>
+#include <dev/le/lancevar.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_media.h>
 
-#include <machine/bus.h>
-#include <machine/resource.h>
-
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
-
-#include <dev/le/lancereg.h>
-#include <dev/le/lancevar.h>
-#include <dev/le/am79900var.h>
-
-#define	AMD_VENDOR	0x1022
-#define	AMD_PCNET_PCI	0x2000
-#define	AMD_PCNET_HOME	0x2001
-#define	PCNET_MEMSIZE	(32*1024)
-#define	PCNET_PCI_RDP	0x10
-#define	PCNET_PCI_RAP	0x12
-#define	PCNET_PCI_BDP	0x16
+#define AMD_VENDOR 0x1022
+#define AMD_PCNET_PCI 0x2000
+#define AMD_PCNET_HOME 0x2001
+#define PCNET_MEMSIZE (32 * 1024)
+#define PCNET_PCI_RDP 0x10
+#define PCNET_PCI_RAP 0x12
+#define PCNET_PCI_BDP 0x16
 
 struct le_pci_softc {
-	struct am79900_softc	sc_am79900;	/* glue to MI code */
+	struct am79900_softc sc_am79900; /* glue to MI code */
 
-	struct resource		*sc_rres;
+	struct resource *sc_rres;
 
-	struct resource		*sc_ires;
-	void			*sc_ih;
+	struct resource *sc_ires;
+	void *sc_ih;
 
-	bus_dma_tag_t		sc_pdmat;
-	bus_dma_tag_t		sc_dmat;
-	bus_dmamap_t		sc_dmam;
+	bus_dma_tag_t sc_pdmat;
+	bus_dma_tag_t sc_dmat;
+	bus_dmamap_t sc_dmam;
 };
 
 static device_probe_t le_pci_probe;
@@ -119,13 +118,13 @@ static device_suspend_t le_pci_suspend;
 
 static device_method_t le_pci_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		le_pci_probe),
-	DEVMETHOD(device_attach,	le_pci_attach),
-	DEVMETHOD(device_detach,	le_pci_detach),
+	DEVMETHOD(device_probe, le_pci_probe),
+	DEVMETHOD(device_attach, le_pci_attach),
+	DEVMETHOD(device_detach, le_pci_detach),
 	/* We can just use the suspend method here. */
-	DEVMETHOD(device_shutdown,	le_pci_suspend),
-	DEVMETHOD(device_suspend,	le_pci_suspend),
-	DEVMETHOD(device_resume,	le_pci_resume),
+	DEVMETHOD(device_shutdown, le_pci_suspend),
+	DEVMETHOD(device_suspend, le_pci_suspend),
+	DEVMETHOD(device_resume, le_pci_resume),
 
 	{ 0, 0 }
 };
@@ -134,18 +133,15 @@ DEFINE_CLASS_0(le, le_pci_driver, le_pci_methods, sizeof(struct le_pci_softc));
 DRIVER_MODULE(le, pci, le_pci_driver, 0, 0);
 MODULE_DEPEND(le, ether, 1, 1, 1);
 
-static const int le_home_supmedia[] = {
-	IFM_MAKEWORD(IFM_ETHER, IFM_HPNA_1, 0, 0)
-};
+static const int le_home_supmedia[] = { IFM_MAKEWORD(IFM_ETHER, IFM_HPNA_1, 0,
+    0) };
 
-static const int le_pci_supmedia[] = {
-	IFM_MAKEWORD(IFM_ETHER, IFM_AUTO, 0, 0),
+static const int le_pci_supmedia[] = { IFM_MAKEWORD(IFM_ETHER, IFM_AUTO, 0, 0),
 	IFM_MAKEWORD(IFM_ETHER, IFM_AUTO, IFM_FDX, 0),
 	IFM_MAKEWORD(IFM_ETHER, IFM_10_T, 0, 0),
 	IFM_MAKEWORD(IFM_ETHER, IFM_10_T, IFM_FDX, 0),
 	IFM_MAKEWORD(IFM_ETHER, IFM_10_5, 0, 0),
-	IFM_MAKEWORD(IFM_ETHER, IFM_10_5, IFM_FDX, 0)
-};
+	IFM_MAKEWORD(IFM_ETHER, IFM_10_5, IFM_FDX, 0) };
 
 static void le_pci_wrbcr(struct lance_softc *, uint16_t, uint16_t);
 static uint16_t le_pci_rdbcr(struct lance_softc *, uint16_t);
@@ -304,8 +300,8 @@ le_pci_attach(device_t dev)
 	pci_enable_busmaster(dev);
 
 	i = PCIR_BAR(0);
-	lesc->sc_rres = bus_alloc_resource_any(dev, SYS_RES_IOPORT,
-	    &i, RF_ACTIVE);
+	lesc->sc_rres = bus_alloc_resource_any(dev, SYS_RES_IOPORT, &i,
+	    RF_ACTIVE);
 	if (lesc->sc_rres == NULL) {
 		device_printf(dev, "cannot allocate registers\n");
 		error = ENXIO;
@@ -313,24 +309,23 @@ le_pci_attach(device_t dev)
 	}
 
 	i = 0;
-	if ((lesc->sc_ires = bus_alloc_resource_any(dev, SYS_RES_IRQ,
-	    &i, RF_SHAREABLE | RF_ACTIVE)) == NULL) {
+	if ((lesc->sc_ires = bus_alloc_resource_any(dev, SYS_RES_IRQ, &i,
+		 RF_SHAREABLE | RF_ACTIVE)) == NULL) {
 		device_printf(dev, "cannot allocate interrupt\n");
 		error = ENXIO;
 		goto fail_rres;
 	}
 
-	error = bus_dma_tag_create(
-	    bus_get_dma_tag(dev),	/* parent */
-	    1, 0,			/* alignment, boundary */
-	    BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    BUS_SPACE_MAXSIZE_32BIT,	/* maxsize */
-	    0,				/* nsegments */
-	    BUS_SPACE_MAXSIZE_32BIT,	/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(bus_get_dma_tag(dev), /* parent */
+	    1, 0,		     /* alignment, boundary */
+	    BUS_SPACE_MAXADDR_32BIT, /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filter, filterarg */
+	    BUS_SPACE_MAXSIZE_32BIT, /* maxsize */
+	    0,			     /* nsegments */
+	    BUS_SPACE_MAXSIZE_32BIT, /* maxsegsize */
+	    0,			     /* flags */
+	    NULL, NULL,		     /* lockfunc, lockarg */
 	    &lesc->sc_pdmat);
 	if (error != 0) {
 		device_printf(dev, "cannot allocate parent DMA tag\n");
@@ -343,17 +338,16 @@ le_pci_attach(device_t dev)
 	 * aligned and the ring descriptors must be 16-byte aligned when using
 	 * a 32-bit software style.
 	 */
-	error = bus_dma_tag_create(
-	    lesc->sc_pdmat,		/* parent */
-	    16, 0,			/* alignment, boundary */
-	    BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    sc->sc_memsize,		/* maxsize */
-	    1,				/* nsegments */
-	    sc->sc_memsize,		/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(lesc->sc_pdmat, /* parent */
+	    16, 0,				   /* alignment, boundary */
+	    BUS_SPACE_MAXADDR_32BIT,		   /* lowaddr */
+	    BUS_SPACE_MAXADDR,			   /* highaddr */
+	    NULL, NULL,				   /* filter, filterarg */
+	    sc->sc_memsize,			   /* maxsize */
+	    1,					   /* nsegments */
+	    sc->sc_memsize,			   /* maxsegsize */
+	    0,					   /* flags */
+	    NULL, NULL,				   /* lockfunc, lockarg */
 	    &lesc->sc_dmat);
 	if (error != 0) {
 		device_printf(dev, "cannot allocate buffer DMA tag\n");
@@ -428,23 +422,23 @@ le_pci_attach(device_t dev)
 
 	return (0);
 
- fail_am79900:
+fail_am79900:
 	am79900_detach(&lesc->sc_am79900);
- fail_dmap:
+fail_dmap:
 	bus_dmamap_unload(lesc->sc_dmat, lesc->sc_dmam);
- fail_dmem:
+fail_dmem:
 	bus_dmamem_free(lesc->sc_dmat, sc->sc_mem, lesc->sc_dmam);
- fail_dtag:
+fail_dtag:
 	bus_dma_tag_destroy(lesc->sc_dmat);
- fail_pdtag:
+fail_pdtag:
 	bus_dma_tag_destroy(lesc->sc_pdmat);
- fail_ires:
-	bus_release_resource(dev, SYS_RES_IRQ,
-	    rman_get_rid(lesc->sc_ires), lesc->sc_ires);
- fail_rres:
-	bus_release_resource(dev, SYS_RES_IOPORT,
-	    rman_get_rid(lesc->sc_rres), lesc->sc_rres);
- fail_mtx:
+fail_ires:
+	bus_release_resource(dev, SYS_RES_IRQ, rman_get_rid(lesc->sc_ires),
+	    lesc->sc_ires);
+fail_rres:
+	bus_release_resource(dev, SYS_RES_IOPORT, rman_get_rid(lesc->sc_rres),
+	    lesc->sc_rres);
+fail_mtx:
 	LE_LOCK_DESTROY(sc);
 	return (error);
 }
@@ -464,10 +458,10 @@ le_pci_detach(device_t dev)
 	bus_dmamem_free(lesc->sc_dmat, sc->sc_mem, lesc->sc_dmam);
 	bus_dma_tag_destroy(lesc->sc_dmat);
 	bus_dma_tag_destroy(lesc->sc_pdmat);
-	bus_release_resource(dev, SYS_RES_IRQ,
-	    rman_get_rid(lesc->sc_ires), lesc->sc_ires);
-	bus_release_resource(dev, SYS_RES_IOPORT,
-	    rman_get_rid(lesc->sc_rres), lesc->sc_rres);
+	bus_release_resource(dev, SYS_RES_IRQ, rman_get_rid(lesc->sc_ires),
+	    lesc->sc_ires);
+	bus_release_resource(dev, SYS_RES_IOPORT, rman_get_rid(lesc->sc_rres),
+	    lesc->sc_rres);
 	LE_LOCK_DESTROY(sc);
 
 	return (0);

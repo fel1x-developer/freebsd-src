@@ -31,15 +31,14 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "efx.h"
 #include "efx_impl.h"
 
 #if EFSYS_OPT_SIENA
 
-static			void
-siena_phy_decode_cap(
-	__in		uint32_t mcdi_cap,
-	__out		uint32_t *maskp)
+static void
+siena_phy_decode_cap(__in uint32_t mcdi_cap, __out uint32_t *maskp)
 {
 	uint32_t mask;
 
@@ -68,19 +67,14 @@ siena_phy_decode_cap(
 	*maskp = mask;
 }
 
-static			void
-siena_phy_decode_link_mode(
-	__in		efx_nic_t *enp,
-	__in		uint32_t link_flags,
-	__in		unsigned int speed,
-	__in		unsigned int fcntl,
-	__out		efx_link_mode_t *link_modep,
-	__out		unsigned int *fcntlp)
+static void
+siena_phy_decode_link_mode(__in efx_nic_t *enp, __in uint32_t link_flags,
+    __in unsigned int speed, __in unsigned int fcntl,
+    __out efx_link_mode_t *link_modep, __out unsigned int *fcntlp)
 {
-	boolean_t fd = !!(link_flags &
-		    (1 << MC_CMD_GET_LINK_OUT_FULL_DUPLEX_LBN));
-	boolean_t up = !!(link_flags &
-		    (1 << MC_CMD_GET_LINK_OUT_LINK_UP_LBN));
+	boolean_t fd = !!(
+	    link_flags & (1 << MC_CMD_GET_LINK_OUT_FULL_DUPLEX_LBN));
+	boolean_t up = !!(link_flags & (1 << MC_CMD_GET_LINK_OUT_LINK_UP_LBN));
 
 	_NOTE(ARGUNUSED(enp))
 
@@ -109,11 +103,9 @@ siena_phy_decode_link_mode(
 	}
 }
 
-			void
-siena_phy_link_ev(
-	__in		efx_nic_t *enp,
-	__in		efx_qword_t *eqp,
-	__out		efx_link_mode_t *link_modep)
+void
+siena_phy_link_ev(__in efx_nic_t *enp, __in efx_qword_t *eqp,
+    __out efx_link_mode_t *link_modep)
 {
 	efx_port_t *epp = &(enp->en_port);
 	unsigned int link_flags;
@@ -143,10 +135,9 @@ siena_phy_link_ev(
 
 	link_flags = MCDI_EV_FIELD(eqp, LINKCHANGE_LINK_FLAGS);
 	siena_phy_decode_link_mode(enp, link_flags, speed,
-				    MCDI_EV_FIELD(eqp, LINKCHANGE_FCNTL),
-				    &link_mode, &fcntl);
+	    MCDI_EV_FIELD(eqp, LINKCHANGE_FCNTL), &link_mode, &fcntl);
 	siena_phy_decode_cap(MCDI_EV_FIELD(eqp, LINKCHANGE_LP_CAP),
-			    &lp_cap_mask);
+	    &lp_cap_mask);
 
 	/*
 	 * It's safe to update ep_lp_cap_mask without the driver's port lock
@@ -166,10 +157,8 @@ siena_phy_link_ev(
 	*link_modep = link_mode;
 }
 
-	__checkReturn	efx_rc_t
-siena_phy_power(
-	__in		efx_nic_t *enp,
-	__in		boolean_t power)
+__checkReturn efx_rc_t
+siena_phy_power(__in efx_nic_t *enp, __in boolean_t power)
 {
 	efx_rc_t rc;
 
@@ -190,14 +179,12 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-siena_phy_get_link(
-	__in		efx_nic_t *enp,
-	__out		siena_link_state_t *slsp)
+__checkReturn efx_rc_t
+siena_phy_get_link(__in efx_nic_t *enp, __out siena_link_state_t *slsp)
 {
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload, MC_CMD_GET_LINK_IN_LEN,
-		MC_CMD_GET_LINK_OUT_LEN);
+	    MC_CMD_GET_LINK_OUT_LEN);
 	efx_rc_t rc;
 
 	req.emr_cmd = MC_CMD_GET_LINK;
@@ -219,14 +206,14 @@ siena_phy_get_link(
 	}
 
 	siena_phy_decode_cap(MCDI_OUT_DWORD(req, GET_LINK_OUT_CAP),
-			    &slsp->sls_adv_cap_mask);
+	    &slsp->sls_adv_cap_mask);
 	siena_phy_decode_cap(MCDI_OUT_DWORD(req, GET_LINK_OUT_LP_CAP),
-			    &slsp->sls_lp_cap_mask);
+	    &slsp->sls_lp_cap_mask);
 
 	siena_phy_decode_link_mode(enp, MCDI_OUT_DWORD(req, GET_LINK_OUT_FLAGS),
-			    MCDI_OUT_DWORD(req, GET_LINK_OUT_LINK_SPEED),
-			    MCDI_OUT_DWORD(req, GET_LINK_OUT_FCNTL),
-			    &slsp->sls_link_mode, &slsp->sls_fcntl);
+	    MCDI_OUT_DWORD(req, GET_LINK_OUT_LINK_SPEED),
+	    MCDI_OUT_DWORD(req, GET_LINK_OUT_FCNTL), &slsp->sls_link_mode,
+	    &slsp->sls_fcntl);
 
 #if EFSYS_OPT_LOOPBACK
 	/* Assert the MC_CMD_LOOPBACK and EFX_LOOPBACK namespace agree */
@@ -250,7 +237,7 @@ siena_phy_get_link(
 	EFX_STATIC_ASSERT(MC_CMD_LOOPBACK_PMAPMD == EFX_LOOPBACK_PMA_PMD);
 
 	slsp->sls_loopback = MCDI_OUT_DWORD(req, GET_LINK_OUT_LOOPBACK_MODE);
-#endif	/* EFSYS_OPT_LOOPBACK */
+#endif /* EFSYS_OPT_LOOPBACK */
 
 	slsp->sls_mac_up = MCDI_OUT_DWORD(req, GET_LINK_OUT_MAC_FAULT) == 0;
 
@@ -264,15 +251,14 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-siena_phy_reconfigure(
-	__in		efx_nic_t *enp)
+__checkReturn efx_rc_t
+siena_phy_reconfigure(__in efx_nic_t *enp)
 {
 	efx_port_t *epp = &(enp->en_port);
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload,
-		MAX(MC_CMD_SET_ID_LED_IN_LEN, MC_CMD_SET_LINK_IN_LEN),
-		MAX(MC_CMD_SET_ID_LED_OUT_LEN, MC_CMD_SET_LINK_OUT_LEN));
+	    MAX(MC_CMD_SET_ID_LED_IN_LEN, MC_CMD_SET_LINK_IN_LEN),
+	    MAX(MC_CMD_SET_ID_LED_OUT_LEN, MC_CMD_SET_LINK_OUT_LEN));
 	uint32_t cap_mask;
 #if EFSYS_OPT_PHY_LED_CONTROL
 	unsigned int led_mode;
@@ -287,21 +273,21 @@ siena_phy_reconfigure(
 	req.emr_out_length = MC_CMD_SET_LINK_OUT_LEN;
 
 	cap_mask = epp->ep_adv_cap_mask;
-	MCDI_IN_POPULATE_DWORD_10(req, SET_LINK_IN_CAP,
-		PHY_CAP_10HDX, (cap_mask >> EFX_PHY_CAP_10HDX) & 0x1,
-		PHY_CAP_10FDX, (cap_mask >> EFX_PHY_CAP_10FDX) & 0x1,
-		PHY_CAP_100HDX, (cap_mask >> EFX_PHY_CAP_100HDX) & 0x1,
-		PHY_CAP_100FDX, (cap_mask >> EFX_PHY_CAP_100FDX) & 0x1,
-		PHY_CAP_1000HDX, (cap_mask >> EFX_PHY_CAP_1000HDX) & 0x1,
-		PHY_CAP_1000FDX, (cap_mask >> EFX_PHY_CAP_1000FDX) & 0x1,
-		PHY_CAP_10000FDX, (cap_mask >> EFX_PHY_CAP_10000FDX) & 0x1,
-		PHY_CAP_PAUSE, (cap_mask >> EFX_PHY_CAP_PAUSE) & 0x1,
-		PHY_CAP_ASYM, (cap_mask >> EFX_PHY_CAP_ASYM) & 0x1,
-		PHY_CAP_AN, (cap_mask >> EFX_PHY_CAP_AN) & 0x1);
+	MCDI_IN_POPULATE_DWORD_10(req, SET_LINK_IN_CAP, PHY_CAP_10HDX,
+	    (cap_mask >> EFX_PHY_CAP_10HDX) & 0x1, PHY_CAP_10FDX,
+	    (cap_mask >> EFX_PHY_CAP_10FDX) & 0x1, PHY_CAP_100HDX,
+	    (cap_mask >> EFX_PHY_CAP_100HDX) & 0x1, PHY_CAP_100FDX,
+	    (cap_mask >> EFX_PHY_CAP_100FDX) & 0x1, PHY_CAP_1000HDX,
+	    (cap_mask >> EFX_PHY_CAP_1000HDX) & 0x1, PHY_CAP_1000FDX,
+	    (cap_mask >> EFX_PHY_CAP_1000FDX) & 0x1, PHY_CAP_10000FDX,
+	    (cap_mask >> EFX_PHY_CAP_10000FDX) & 0x1, PHY_CAP_PAUSE,
+	    (cap_mask >> EFX_PHY_CAP_PAUSE) & 0x1, PHY_CAP_ASYM,
+	    (cap_mask >> EFX_PHY_CAP_ASYM) & 0x1, PHY_CAP_AN,
+	    (cap_mask >> EFX_PHY_CAP_AN) & 0x1);
 
 #if EFSYS_OPT_LOOPBACK
 	MCDI_IN_SET_DWORD(req, SET_LINK_IN_LOOPBACK_MODE,
-		    epp->ep_loopback_type);
+	    epp->ep_loopback_type);
 	switch (epp->ep_loopback_link_mode) {
 	case EFX_LINK_100FDX:
 		speed = 100;
@@ -318,14 +304,14 @@ siena_phy_reconfigure(
 #else
 	MCDI_IN_SET_DWORD(req, SET_LINK_IN_LOOPBACK_MODE, MC_CMD_LOOPBACK_NONE);
 	speed = 0;
-#endif	/* EFSYS_OPT_LOOPBACK */
+#endif /* EFSYS_OPT_LOOPBACK */
 	MCDI_IN_SET_DWORD(req, SET_LINK_IN_LOOPBACK_SPEED, speed);
 
 #if EFSYS_OPT_PHY_FLAGS
 	MCDI_IN_SET_DWORD(req, SET_LINK_IN_FLAGS, epp->ep_phy_flags);
 #else
 	MCDI_IN_SET_DWORD(req, SET_LINK_IN_FLAGS, 0);
-#endif	/* EFSYS_OPT_PHY_FLAGS */
+#endif /* EFSYS_OPT_PHY_FLAGS */
 
 	efx_mcdi_execute(enp, &req);
 
@@ -335,7 +321,7 @@ siena_phy_reconfigure(
 	}
 
 	/* And set the blink mode */
-	(void) memset(payload, 0, sizeof (payload));
+	(void)memset(payload, 0, sizeof(payload));
 	req.emr_cmd = MC_CMD_SET_ID_LED;
 	req.emr_in_buf = payload;
 	req.emr_in_length = MC_CMD_SET_ID_LED_IN_LEN;
@@ -361,7 +347,7 @@ siena_phy_reconfigure(
 	MCDI_IN_SET_DWORD(req, SET_ID_LED_IN_STATE, led_mode);
 #else
 	MCDI_IN_SET_DWORD(req, SET_ID_LED_IN_STATE, MC_CMD_LED_DEFAULT);
-#endif	/* EFSYS_OPT_PHY_LED_CONTROL */
+#endif /* EFSYS_OPT_PHY_LED_CONTROL */
 
 	efx_mcdi_execute(enp, &req);
 
@@ -380,13 +366,12 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-siena_phy_verify(
-	__in		efx_nic_t *enp)
+__checkReturn efx_rc_t
+siena_phy_verify(__in efx_nic_t *enp)
 {
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload, MC_CMD_GET_PHY_STATE_IN_LEN,
-		MC_CMD_GET_PHY_STATE_OUT_LEN);
+	    MC_CMD_GET_PHY_STATE_OUT_LEN);
 	uint32_t state;
 	efx_rc_t rc;
 
@@ -428,10 +413,8 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-siena_phy_oui_get(
-	__in		efx_nic_t *enp,
-	__out		uint32_t *ouip)
+__checkReturn efx_rc_t
+siena_phy_oui_get(__in efx_nic_t *enp, __out uint32_t *ouip)
 {
 	_NOTE(ARGUNUSED(enp, ouip))
 
@@ -440,30 +423,26 @@ siena_phy_oui_get(
 
 #if EFSYS_OPT_PHY_STATS
 
-#define	SIENA_SIMPLE_STAT_SET(_vmask, _esmp, _smask, _stat,		\
-			    _mc_record, _efx_record)			\
-	if ((_vmask) & (1ULL << (_mc_record))) {			\
-		(_smask) |= (1ULL << (_efx_record));			\
-		if ((_stat) != NULL && !EFSYS_MEM_IS_NULL(_esmp)) {	\
-			efx_dword_t dword;				\
-			EFSYS_MEM_READD(_esmp, (_mc_record) * 4, &dword);\
-			(_stat)[_efx_record] =				\
-				EFX_DWORD_FIELD(dword, EFX_DWORD_0);	\
-		}							\
+#define SIENA_SIMPLE_STAT_SET(_vmask, _esmp, _smask, _stat, _mc_record,   \
+    _efx_record)                                                          \
+	if ((_vmask) & (1ULL << (_mc_record))) {                          \
+		(_smask) |= (1ULL << (_efx_record));                      \
+		if ((_stat) != NULL && !EFSYS_MEM_IS_NULL(_esmp)) {       \
+			efx_dword_t dword;                                \
+			EFSYS_MEM_READD(_esmp, (_mc_record) * 4, &dword); \
+			(_stat)[_efx_record] = EFX_DWORD_FIELD(dword,     \
+			    EFX_DWORD_0);                                 \
+		}                                                         \
 	}
 
-#define	SIENA_SIMPLE_STAT_SET2(_vmask, _esmp, _smask, _stat, _record)	\
-	SIENA_SIMPLE_STAT_SET(_vmask, _esmp, _smask, _stat,		\
-			    MC_CMD_ ## _record,				\
-			    EFX_PHY_STAT_ ## _record)
+#define SIENA_SIMPLE_STAT_SET2(_vmask, _esmp, _smask, _stat, _record)         \
+	SIENA_SIMPLE_STAT_SET(_vmask, _esmp, _smask, _stat, MC_CMD_##_record, \
+	    EFX_PHY_STAT_##_record)
 
-						void
-siena_phy_decode_stats(
-	__in					efx_nic_t *enp,
-	__in					uint32_t vmask,
-	__in_opt				efsys_mem_t *esmp,
-	__out_opt				uint64_t *smaskp,
-	__inout_ecount_opt(EFX_PHY_NSTATS)	uint32_t *stat)
+void
+siena_phy_decode_stats(__in efx_nic_t *enp, __in uint32_t vmask,
+    __in_opt efsys_mem_t *esmp, __out_opt uint64_t *smaskp,
+    __inout_ecount_opt(EFX_PHY_NSTATS) uint32_t *stat)
 {
 	uint64_t smask = 0;
 
@@ -475,15 +454,15 @@ siena_phy_decode_stats(
 	SIENA_SIMPLE_STAT_SET2(vmask, esmp, smask, stat, PMA_PMD_TX_FAULT);
 
 	if (vmask & (1 << MC_CMD_PMA_PMD_SIGNAL)) {
-		smask |=   ((1ULL << EFX_PHY_STAT_PMA_PMD_SIGNAL_A) |
-			    (1ULL << EFX_PHY_STAT_PMA_PMD_SIGNAL_B) |
-			    (1ULL << EFX_PHY_STAT_PMA_PMD_SIGNAL_C) |
-			    (1ULL << EFX_PHY_STAT_PMA_PMD_SIGNAL_D));
+		smask |= ((1ULL << EFX_PHY_STAT_PMA_PMD_SIGNAL_A) |
+		    (1ULL << EFX_PHY_STAT_PMA_PMD_SIGNAL_B) |
+		    (1ULL << EFX_PHY_STAT_PMA_PMD_SIGNAL_C) |
+		    (1ULL << EFX_PHY_STAT_PMA_PMD_SIGNAL_D));
 		if (stat != NULL && esmp != NULL && !EFSYS_MEM_IS_NULL(esmp)) {
 			efx_dword_t dword;
 			uint32_t sig;
 			EFSYS_MEM_READD(esmp, 4 * MC_CMD_PMA_PMD_SIGNAL,
-					&dword);
+			    &dword);
 			sig = EFX_DWORD_FIELD(dword, EFX_DWORD_0);
 			stat[EFX_PHY_STAT_PMA_PMD_SIGNAL_A] = (sig >> 1) & 1;
 			stat[EFX_PHY_STAT_PMA_PMD_SIGNAL_B] = (sig >> 2) & 1;
@@ -493,13 +472,13 @@ siena_phy_decode_stats(
 	}
 
 	SIENA_SIMPLE_STAT_SET(vmask, esmp, smask, stat, MC_CMD_PMA_PMD_SNR_A,
-			    EFX_PHY_STAT_SNR_A);
+	    EFX_PHY_STAT_SNR_A);
 	SIENA_SIMPLE_STAT_SET(vmask, esmp, smask, stat, MC_CMD_PMA_PMD_SNR_B,
-			    EFX_PHY_STAT_SNR_B);
+	    EFX_PHY_STAT_SNR_B);
 	SIENA_SIMPLE_STAT_SET(vmask, esmp, smask, stat, MC_CMD_PMA_PMD_SNR_C,
-			    EFX_PHY_STAT_SNR_C);
+	    EFX_PHY_STAT_SNR_C);
 	SIENA_SIMPLE_STAT_SET(vmask, esmp, smask, stat, MC_CMD_PMA_PMD_SNR_D,
-			    EFX_PHY_STAT_SNR_D);
+	    EFX_PHY_STAT_SNR_D);
 
 	SIENA_SIMPLE_STAT_SET2(vmask, esmp, smask, stat, PCS_LINK_UP);
 	SIENA_SIMPLE_STAT_SET2(vmask, esmp, smask, stat, PCS_RX_FAULT);
@@ -508,19 +487,19 @@ siena_phy_decode_stats(
 	SIENA_SIMPLE_STAT_SET2(vmask, esmp, smask, stat, PCS_BLOCK_ERRORS);
 
 	SIENA_SIMPLE_STAT_SET(vmask, esmp, smask, stat, MC_CMD_PHYXS_LINK_UP,
-			    EFX_PHY_STAT_PHY_XS_LINK_UP);
+	    EFX_PHY_STAT_PHY_XS_LINK_UP);
 	SIENA_SIMPLE_STAT_SET(vmask, esmp, smask, stat, MC_CMD_PHYXS_RX_FAULT,
-			    EFX_PHY_STAT_PHY_XS_RX_FAULT);
+	    EFX_PHY_STAT_PHY_XS_RX_FAULT);
 	SIENA_SIMPLE_STAT_SET(vmask, esmp, smask, stat, MC_CMD_PHYXS_TX_FAULT,
-			    EFX_PHY_STAT_PHY_XS_TX_FAULT);
+	    EFX_PHY_STAT_PHY_XS_TX_FAULT);
 	SIENA_SIMPLE_STAT_SET(vmask, esmp, smask, stat, MC_CMD_PHYXS_ALIGN,
-			    EFX_PHY_STAT_PHY_XS_ALIGN);
+	    EFX_PHY_STAT_PHY_XS_ALIGN);
 
 	if (vmask & (1 << MC_CMD_PHYXS_SYNC)) {
-		smask |=   ((1 << EFX_PHY_STAT_PHY_XS_SYNC_A) |
-			    (1 << EFX_PHY_STAT_PHY_XS_SYNC_B) |
-			    (1 << EFX_PHY_STAT_PHY_XS_SYNC_C) |
-			    (1 << EFX_PHY_STAT_PHY_XS_SYNC_D));
+		smask |= ((1 << EFX_PHY_STAT_PHY_XS_SYNC_A) |
+		    (1 << EFX_PHY_STAT_PHY_XS_SYNC_B) |
+		    (1 << EFX_PHY_STAT_PHY_XS_SYNC_C) |
+		    (1 << EFX_PHY_STAT_PHY_XS_SYNC_D));
 		if (stat != NULL && !EFSYS_MEM_IS_NULL(esmp)) {
 			efx_dword_t dword;
 			uint32_t sync;
@@ -537,24 +516,22 @@ siena_phy_decode_stats(
 	SIENA_SIMPLE_STAT_SET2(vmask, esmp, smask, stat, AN_COMPLETE);
 
 	SIENA_SIMPLE_STAT_SET(vmask, esmp, smask, stat, MC_CMD_CL22_LINK_UP,
-			    EFX_PHY_STAT_CL22EXT_LINK_UP);
+	    EFX_PHY_STAT_CL22EXT_LINK_UP);
 
 	if (smaskp != NULL)
 		*smaskp = smask;
 }
 
-	__checkReturn				efx_rc_t
-siena_phy_stats_update(
-	__in					efx_nic_t *enp,
-	__in					efsys_mem_t *esmp,
-	__inout_ecount(EFX_PHY_NSTATS)		uint32_t *stat)
+__checkReturn efx_rc_t
+siena_phy_stats_update(__in efx_nic_t *enp, __in efsys_mem_t *esmp,
+    __inout_ecount(EFX_PHY_NSTATS) uint32_t *stat)
 {
 	efx_nic_cfg_t *encp = &(enp->en_nic_cfg);
 	uint32_t vmask = encp->enc_mcdi_phy_stat_mask;
 	uint64_t smask;
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload, MC_CMD_PHY_STATS_IN_LEN,
-		MC_CMD_PHY_STATS_OUT_DMA_LEN);
+	    MC_CMD_PHY_STATS_OUT_DMA_LEN);
 	efx_rc_t rc;
 
 	if ((esmp == NULL) || (EFSYS_MEM_SIZE(esmp) < EFX_PHY_STATS_SIZE)) {
@@ -569,9 +546,9 @@ siena_phy_stats_update(
 	req.emr_out_length = MC_CMD_PHY_STATS_OUT_DMA_LEN;
 
 	MCDI_IN_SET_DWORD(req, PHY_STATS_IN_DMA_ADDR_LO,
-			    EFSYS_MEM_ADDR(esmp) & 0xffffffff);
+	    EFSYS_MEM_ADDR(esmp) & 0xffffffff);
 	MCDI_IN_SET_DWORD(req, PHY_STATS_IN_DMA_ADDR_HI,
-			    EFSYS_MEM_ADDR(esmp) >> 32);
+	    EFSYS_MEM_ADDR(esmp) >> 32);
 
 	efx_mcdi_execute(enp, &req);
 
@@ -595,14 +572,12 @@ fail1:
 	return (0);
 }
 
-#endif	/* EFSYS_OPT_PHY_STATS */
+#endif /* EFSYS_OPT_PHY_STATS */
 
 #if EFSYS_OPT_BIST
 
-	__checkReturn		efx_rc_t
-siena_phy_bist_start(
-	__in			efx_nic_t *enp,
-	__in			efx_bist_type_t type)
+__checkReturn efx_rc_t
+siena_phy_bist_start(__in efx_nic_t *enp, __in efx_bist_type_t type)
 {
 	efx_rc_t rc;
 
@@ -617,9 +592,8 @@ fail1:
 	return (rc);
 }
 
-static	__checkReturn		unsigned long
-siena_phy_sft9001_bist_status(
-	__in			uint16_t code)
+static __checkReturn unsigned long
+siena_phy_sft9001_bist_status(__in uint16_t code)
 {
 	switch (code) {
 	case MC_CMD_POLL_BIST_SFT9001_PAIR_BUSY:
@@ -637,20 +611,17 @@ siena_phy_sft9001_bist_status(
 	}
 }
 
-	__checkReturn		efx_rc_t
-siena_phy_bist_poll(
-	__in			efx_nic_t *enp,
-	__in			efx_bist_type_t type,
-	__out			efx_bist_result_t *resultp,
-	__out_opt __drv_when(count > 0, __notnull)
-	uint32_t *value_maskp,
-	__out_ecount_opt(count)	__drv_when(count > 0, __notnull)
-	unsigned long *valuesp,
-	__in			size_t count)
+__checkReturn efx_rc_t
+siena_phy_bist_poll(__in efx_nic_t *enp, __in efx_bist_type_t type,
+    __out efx_bist_result_t *resultp,
+    __out_opt __drv_when(count > 0, __notnull) uint32_t *value_maskp,
+    __out_ecount_opt(count)
+	__drv_when(count > 0, __notnull) unsigned long *valuesp,
+    __in size_t count)
 {
 	efx_nic_cfg_t *encp = &(enp->en_nic_cfg);
 	EFX_MCDI_DECLARE_BUF(payload, MC_CMD_POLL_BIST_IN_LEN,
-		MCDI_CTL_SDU_LEN_MAX);
+	    MCDI_CTL_SDU_LEN_MAX);
 	uint32_t value_mask = 0;
 	efx_mcdi_req_t req;
 	uint32_t result;
@@ -675,7 +646,7 @@ siena_phy_bist_poll(
 	}
 
 	if (count > 0)
-		(void) memset(valuesp, '\0', count * sizeof (unsigned long));
+		(void)memset(valuesp, '\0', count * sizeof(unsigned long));
 
 	result = MCDI_OUT_DWORD(req, POLL_BIST_OUT_RESULT);
 
@@ -684,14 +655,14 @@ siena_phy_bist_poll(
 	    encp->enc_phy_type == EFX_PHY_SFT9001B &&
 	    req.emr_out_length_used >= MC_CMD_POLL_BIST_OUT_SFT9001_LEN &&
 	    (type == EFX_BIST_TYPE_PHY_CABLE_SHORT ||
-	    type == EFX_BIST_TYPE_PHY_CABLE_LONG)) {
+		type == EFX_BIST_TYPE_PHY_CABLE_LONG)) {
 		uint16_t word;
 
 		if (count > EFX_BIST_PHY_CABLE_LENGTH_A) {
 			if (valuesp != NULL)
 				valuesp[EFX_BIST_PHY_CABLE_LENGTH_A] =
 				    MCDI_OUT_DWORD(req,
-				    POLL_BIST_OUT_SFT9001_CABLE_LENGTH_A);
+					POLL_BIST_OUT_SFT9001_CABLE_LENGTH_A);
 			value_mask |= (1 << EFX_BIST_PHY_CABLE_LENGTH_A);
 		}
 
@@ -699,7 +670,7 @@ siena_phy_bist_poll(
 			if (valuesp != NULL)
 				valuesp[EFX_BIST_PHY_CABLE_LENGTH_B] =
 				    MCDI_OUT_DWORD(req,
-				    POLL_BIST_OUT_SFT9001_CABLE_LENGTH_B);
+					POLL_BIST_OUT_SFT9001_CABLE_LENGTH_B);
 			value_mask |= (1 << EFX_BIST_PHY_CABLE_LENGTH_B);
 		}
 
@@ -707,7 +678,7 @@ siena_phy_bist_poll(
 			if (valuesp != NULL)
 				valuesp[EFX_BIST_PHY_CABLE_LENGTH_C] =
 				    MCDI_OUT_DWORD(req,
-				    POLL_BIST_OUT_SFT9001_CABLE_LENGTH_C);
+					POLL_BIST_OUT_SFT9001_CABLE_LENGTH_C);
 			value_mask |= (1 << EFX_BIST_PHY_CABLE_LENGTH_C);
 		}
 
@@ -715,7 +686,7 @@ siena_phy_bist_poll(
 			if (valuesp != NULL)
 				valuesp[EFX_BIST_PHY_CABLE_LENGTH_D] =
 				    MCDI_OUT_DWORD(req,
-				    POLL_BIST_OUT_SFT9001_CABLE_LENGTH_D);
+					POLL_BIST_OUT_SFT9001_CABLE_LENGTH_D);
 			value_mask |= (1 << EFX_BIST_PHY_CABLE_LENGTH_D);
 		}
 
@@ -760,12 +731,12 @@ siena_phy_bist_poll(
 		}
 
 	} else if (result == MC_CMD_POLL_BIST_FAILED &&
-		    encp->enc_phy_type == EFX_PHY_QLX111V &&
-		    req.emr_out_length >= MC_CMD_POLL_BIST_OUT_MRSFP_LEN &&
-		    count > EFX_BIST_FAULT_CODE) {
+	    encp->enc_phy_type == EFX_PHY_QLX111V &&
+	    req.emr_out_length >= MC_CMD_POLL_BIST_OUT_MRSFP_LEN &&
+	    count > EFX_BIST_FAULT_CODE) {
 		if (valuesp != NULL)
-			valuesp[EFX_BIST_FAULT_CODE] =
-			    MCDI_OUT_DWORD(req, POLL_BIST_OUT_MRSFP_TEST);
+			valuesp[EFX_BIST_FAULT_CODE] = MCDI_OUT_DWORD(req,
+			    POLL_BIST_OUT_MRSFP_TEST);
 		value_mask |= 1 << EFX_BIST_FAULT_CODE;
 	}
 
@@ -790,15 +761,13 @@ fail1:
 	return (rc);
 }
 
-			void
-siena_phy_bist_stop(
-	__in		efx_nic_t *enp,
-	__in		efx_bist_type_t type)
+void
+siena_phy_bist_stop(__in efx_nic_t *enp, __in efx_bist_type_t type)
 {
 	/* There is no way to stop BIST on Siena */
 	_NOTE(ARGUNUSED(enp, type))
 }
 
-#endif	/* EFSYS_OPT_BIST */
+#endif /* EFSYS_OPT_BIST */
 
-#endif	/* EFSYS_OPT_SIENA */
+#endif /* EFSYS_OPT_SIENA */

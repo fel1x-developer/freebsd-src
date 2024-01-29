@@ -31,30 +31,30 @@
  * SUCH DAMAGE.
  */
 
-#define	SSBUFLEN	1024
+#define SSBUFLEN 1024
 
-#define TS_CMP(tsp, usp, cmp)						\
-	(((tsp)->tv_sec == (usp)->tv_sec) ?				\
-	    ((tsp)->tv_nsec cmp (usp)->tv_nsec) :			\
-	    ((tsp)->tv_sec cmp (usp)->tv_sec))
-#define TS_ADD(tsp, usp, vsp)						\
-	do {								\
-		(vsp)->tv_sec = (tsp)->tv_sec + (usp)->tv_sec;		\
-		(vsp)->tv_nsec = (tsp)->tv_nsec + (usp)->tv_nsec;	\
-		if ((vsp)->tv_nsec >= 1000000000L) {			\
-			(vsp)->tv_sec++;				\
-			(vsp)->tv_nsec -= 1000000000L;			\
-		}							\
+#define TS_CMP(tsp, usp, cmp)                        \
+	(((tsp)->tv_sec == (usp)->tv_sec) ?          \
+		((tsp)->tv_nsec cmp(usp)->tv_nsec) : \
+		((tsp)->tv_sec cmp(usp)->tv_sec))
+#define TS_ADD(tsp, usp, vsp)                                     \
+	do {                                                      \
+		(vsp)->tv_sec = (tsp)->tv_sec + (usp)->tv_sec;    \
+		(vsp)->tv_nsec = (tsp)->tv_nsec + (usp)->tv_nsec; \
+		if ((vsp)->tv_nsec >= 1000000000L) {              \
+			(vsp)->tv_sec++;                          \
+			(vsp)->tv_nsec -= 1000000000L;            \
+		}                                                 \
 	} while (0)
-#define TS_SUB(tsp, usp, vsp)						\
-	do {								\
-		(vsp)->tv_sec = (tsp)->tv_sec - (usp)->tv_sec;		\
-		(vsp)->tv_nsec = (tsp)->tv_nsec - (usp)->tv_nsec;	\
-		if ((vsp)->tv_nsec < 0) {				\
-			(vsp)->tv_sec--;				\
-			(vsp)->tv_nsec += 1000000000L;			\
-		}							\
+#define TS_SUB(tsp, usp, vsp)                                     \
+	do {                                                      \
+		(vsp)->tv_sec = (tsp)->tv_sec - (usp)->tv_sec;    \
+		(vsp)->tv_nsec = (tsp)->tv_nsec - (usp)->tv_nsec; \
+		if ((vsp)->tv_nsec < 0) {                         \
+			(vsp)->tv_sec--;                          \
+			(vsp)->tv_nsec += 1000000000L;            \
+		}                                                 \
 	} while (0)
 
 struct timespec *rtadvd_timer_rest(struct rtadvd_timer *);
-char		*sec2str(uint32_t, char *buf);
+char *sec2str(uint32_t, char *buf);

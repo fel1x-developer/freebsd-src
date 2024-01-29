@@ -10,7 +10,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -37,7 +37,7 @@
 #include "figpar.h"
 #include "string_m.h"
 
-struct figpar_config figpar_dummy_config = {0, NULL, {0}, NULL};
+struct figpar_config figpar_dummy_config = { 0, NULL, { 0 }, NULL };
 
 /*
  * Search for config option (struct figpar_config) in the array of config
@@ -63,10 +63,10 @@ get_config_option(struct figpar_config options[], const char *directive)
 			return (&(options[n]));
 
 	/* Re-initialize the dummy variable in case it was written to */
-	figpar_dummy_config.directive	= NULL;
-	figpar_dummy_config.type	= 0;
-	figpar_dummy_config.action	= NULL;
-	figpar_dummy_config.value.u_num	= 0;
+	figpar_dummy_config.directive = NULL;
+	figpar_dummy_config.type = 0;
+	figpar_dummy_config.action = NULL;
+	figpar_dummy_config.value.u_num = 0;
 
 	return (&figpar_dummy_config);
 }
@@ -80,11 +80,12 @@ get_config_option(struct figpar_config options[], const char *directive)
  * call-back function for the third argument to be called for unknowns.
  *
  * Returns zero on success; otherwise returns -1 and errno should be consulted.
-*/
+ */
 int
 parse_config(struct figpar_config options[], const char *path,
-    int (*unknown)(struct figpar_config *option, uint32_t line,
-    char *directive, char *value), uint16_t processing_options)
+    int (*unknown)(struct figpar_config *option, uint32_t line, char *directive,
+	char *value),
+    uint16_t processing_options)
 {
 	uint8_t bequals;
 	uint8_t bsemicolon;
@@ -118,14 +119,14 @@ parse_config(struct figpar_config options[], const char *path,
 
 	/* Processing options */
 	bequals = (processing_options & FIGPAR_BREAK_ON_EQUALS) == 0 ? 0 : 1;
-	bsemicolon =
-		(processing_options & FIGPAR_BREAK_ON_SEMICOLON) == 0 ? 0 : 1;
-	case_sensitive =
-		(processing_options & FIGPAR_CASE_SENSITIVE) == 0 ? 0 : 1;
-	require_equals =
-		(processing_options & FIGPAR_REQUIRE_EQUALS) == 0 ? 0 : 1;
-	strict_equals =
-		(processing_options & FIGPAR_STRICT_EQUALS) == 0 ? 0 : 1;
+	bsemicolon = (processing_options & FIGPAR_BREAK_ON_SEMICOLON) == 0 ? 0 :
+									     1;
+	case_sensitive = (processing_options & FIGPAR_CASE_SENSITIVE) == 0 ? 0 :
+									     1;
+	require_equals = (processing_options & FIGPAR_REQUIRE_EQUALS) == 0 ? 0 :
+									     1;
+	strict_equals = (processing_options & FIGPAR_STRICT_EQUALS) == 0 ? 0 :
+									   1;
 
 	/* Initialize strings */
 	directive = value = 0;
@@ -144,8 +145,9 @@ parse_config(struct figpar_config options[], const char *path,
 		r = read(fd, p, 1);
 
 		/* skip to the beginning of a directive */
-		while (r != 0 && (isspace(*p) || *p == '#' || comment ||
-		    (bsemicolon && *p == ';'))) {
+		while (r != 0 &&
+		    (isspace(*p) || *p == '#' || comment ||
+			(bsemicolon && *p == ';'))) {
 			if (*p == '#')
 				comment = 1;
 			else if (*p == '\n') {
@@ -316,7 +318,7 @@ parse_config(struct figpar_config options[], const char *path,
 				switch (*p) {
 				case '\"':
 					/*
-				 	 * Flag current sequence of characters
+					 * Flag current sequence of characters
 					 * to follow as being quoted (hashes
 					 * are not considered comments).
 					 */
@@ -414,7 +416,7 @@ parse_config(struct figpar_config options[], const char *path,
 		/* Resolve escape sequences */
 		strexpand(value); /* in string_m.c */
 
-call_function:
+	call_function:
 		/* Abort if we're seeking only assignments */
 		if (require_equals && !have_equals)
 			return (-1);
@@ -439,8 +441,7 @@ call_function:
 				found = 1;
 				/* Call function for array index item */
 				if (options[n].action != NULL) {
-					error = options[n].action(
-					    &options[n],
+					error = options[n].action(&options[n],
 					    line, directive, value);
 					if (error != 0) {
 						close(fd);

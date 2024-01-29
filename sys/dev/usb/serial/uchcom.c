@@ -63,95 +63,95 @@
  * world.
  */
 
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
+
 #include "usbdevs.h"
 
-#define	USB_DEBUG_VAR uchcom_debug
+#define USB_DEBUG_VAR uchcom_debug
+#include <dev/usb/serial/usb_serial.h>
 #include <dev/usb/usb_debug.h>
 #include <dev/usb/usb_process.h>
-
-#include <dev/usb/serial/usb_serial.h>
 
 #ifdef USB_DEBUG
 static int uchcom_debug = 0;
 
 static SYSCTL_NODE(_hw_usb, OID_AUTO, uchcom, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "USB uchcom");
-SYSCTL_INT(_hw_usb_uchcom, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &uchcom_debug, 0, "uchcom debug level");
+SYSCTL_INT(_hw_usb_uchcom, OID_AUTO, debug, CTLFLAG_RWTUN, &uchcom_debug, 0,
+    "uchcom debug level");
 #endif
 
-#define	UCHCOM_IFACE_INDEX	0
-#define	UCHCOM_CONFIG_INDEX	0
+#define UCHCOM_IFACE_INDEX 0
+#define UCHCOM_CONFIG_INDEX 0
 
-#define	UCHCOM_REV_CH340	0x0250
-#define	UCHCOM_INPUT_BUF_SIZE	8
+#define UCHCOM_REV_CH340 0x0250
+#define UCHCOM_INPUT_BUF_SIZE 8
 
-#define	UCHCOM_REQ_GET_VERSION	0x5F
-#define	UCHCOM_REQ_READ_REG	0x95
-#define	UCHCOM_REQ_WRITE_REG	0x9A
-#define	UCHCOM_REQ_RESET	0xA1
-#define	UCHCOM_REQ_SET_DTRRTS	0xA4
+#define UCHCOM_REQ_GET_VERSION 0x5F
+#define UCHCOM_REQ_READ_REG 0x95
+#define UCHCOM_REQ_WRITE_REG 0x9A
+#define UCHCOM_REQ_RESET 0xA1
+#define UCHCOM_REQ_SET_DTRRTS 0xA4
 
-#define	UCHCOM_REG_STAT1	0x06
-#define	UCHCOM_REG_STAT2	0x07
-#define	UCHCOM_REG_BPS_PRE	0x12
-#define	UCHCOM_REG_BPS_DIV	0x13
-#define	UCHCOM_REG_BPS_MOD	0x14
-#define	UCHCOM_REG_BPS_PAD	0x0F
-#define	UCHCOM_REG_BREAK1	0x05
-#define	UCHCOM_REG_LCR1		0x18
-#define	UCHCOM_REG_LCR2		0x25
+#define UCHCOM_REG_STAT1 0x06
+#define UCHCOM_REG_STAT2 0x07
+#define UCHCOM_REG_BPS_PRE 0x12
+#define UCHCOM_REG_BPS_DIV 0x13
+#define UCHCOM_REG_BPS_MOD 0x14
+#define UCHCOM_REG_BPS_PAD 0x0F
+#define UCHCOM_REG_BREAK1 0x05
+#define UCHCOM_REG_LCR1 0x18
+#define UCHCOM_REG_LCR2 0x25
 
-#define	UCHCOM_VER_20		0x20
-#define	UCHCOM_VER_30		0x30
+#define UCHCOM_VER_20 0x20
+#define UCHCOM_VER_30 0x30
 
-#define	UCHCOM_BASE_UNKNOWN	0
-#define	UCHCOM_BPS_MOD_BASE	20000000
-#define	UCHCOM_BPS_MOD_BASE_OFS	1100
+#define UCHCOM_BASE_UNKNOWN 0
+#define UCHCOM_BPS_MOD_BASE 20000000
+#define UCHCOM_BPS_MOD_BASE_OFS 1100
 
-#define	UCHCOM_DTR_MASK		0x20
-#define	UCHCOM_RTS_MASK		0x40
+#define UCHCOM_DTR_MASK 0x20
+#define UCHCOM_RTS_MASK 0x40
 
-#define	UCHCOM_BRK_MASK		0x01
+#define UCHCOM_BRK_MASK 0x01
 
-#define	UCHCOM_LCR1_MASK	0xAF
-#define	UCHCOM_LCR2_MASK	0x07
-#define	UCHCOM_LCR1_RX		0x80
-#define	UCHCOM_LCR1_TX		0x40
-#define	UCHCOM_LCR1_PARENB	0x08
-#define	UCHCOM_LCR1_CS8		0x03
-#define	UCHCOM_LCR2_PAREVEN	0x07
-#define	UCHCOM_LCR2_PARODD	0x06
-#define	UCHCOM_LCR2_PARMARK	0x05
-#define	UCHCOM_LCR2_PARSPACE	0x04
+#define UCHCOM_LCR1_MASK 0xAF
+#define UCHCOM_LCR2_MASK 0x07
+#define UCHCOM_LCR1_RX 0x80
+#define UCHCOM_LCR1_TX 0x40
+#define UCHCOM_LCR1_PARENB 0x08
+#define UCHCOM_LCR1_CS8 0x03
+#define UCHCOM_LCR2_PAREVEN 0x07
+#define UCHCOM_LCR2_PARODD 0x06
+#define UCHCOM_LCR2_PARMARK 0x05
+#define UCHCOM_LCR2_PARSPACE 0x04
 
-#define	UCHCOM_INTR_STAT1	0x02
-#define	UCHCOM_INTR_STAT2	0x03
-#define	UCHCOM_INTR_LEAST	4
+#define UCHCOM_INTR_STAT1 0x02
+#define UCHCOM_INTR_STAT2 0x03
+#define UCHCOM_INTR_LEAST 4
 
-#define	UCHCOM_BULK_BUF_SIZE 1024	/* bytes */
+#define UCHCOM_BULK_BUF_SIZE 1024 /* bytes */
 
 enum {
 	UCHCOM_BULK_DT_WR,
@@ -168,17 +168,17 @@ struct uchcom_softc {
 	struct usb_device *sc_udev;
 	struct mtx sc_mtx;
 
-	uint8_t	sc_dtr;			/* local copy */
-	uint8_t	sc_rts;			/* local copy */
-	uint8_t	sc_version;
-	uint8_t	sc_msr;
-	uint8_t	sc_lsr;			/* local status register */
+	uint8_t sc_dtr; /* local copy */
+	uint8_t sc_rts; /* local copy */
+	uint8_t sc_version;
+	uint8_t sc_msr;
+	uint8_t sc_lsr; /* local status register */
 };
 
 struct uchcom_divider {
-	uint8_t	dv_prescaler;
-	uint8_t	dv_div;
-	uint8_t	dv_mod;
+	uint8_t dv_prescaler;
+	uint8_t dv_div;
+	uint8_t dv_mod;
 };
 
 struct uchcom_divider_record {
@@ -188,47 +188,45 @@ struct uchcom_divider_record {
 	struct uchcom_divider dvr_divider;
 };
 
-static const struct uchcom_divider_record dividers[] =
-{
-	{307200, 307200, UCHCOM_BASE_UNKNOWN, {7, 0xD9, 0}},
-	{921600, 921600, UCHCOM_BASE_UNKNOWN, {7, 0xF3, 0}},
-	{2999999, 23530, 6000000, {3, 0, 0}},
-	{23529, 2942, 750000, {2, 0, 0}},
-	{2941, 368, 93750, {1, 0, 0}},
-	{367, 1, 11719, {0, 0, 0}},
+static const struct uchcom_divider_record dividers[] = {
+	{ 307200, 307200, UCHCOM_BASE_UNKNOWN, { 7, 0xD9, 0 } },
+	{ 921600, 921600, UCHCOM_BASE_UNKNOWN, { 7, 0xF3, 0 } },
+	{ 2999999, 23530, 6000000, { 3, 0, 0 } },
+	{ 23529, 2942, 750000, { 2, 0, 0 } },
+	{ 2941, 368, 93750, { 1, 0, 0 } },
+	{ 367, 1, 11719, { 0, 0, 0 } },
 };
 
-#define	NUM_DIVIDERS	nitems(dividers)
+#define NUM_DIVIDERS nitems(dividers)
 
 static const STRUCT_USB_HOST_ID uchcom_devs[] = {
-	{USB_VPI(USB_VENDOR_WCH, USB_PRODUCT_WCH_CH341SER, 0)},
-	{USB_VPI(USB_VENDOR_WCH2, USB_PRODUCT_WCH2_CH341SER, 0)},
-	{USB_VPI(USB_VENDOR_WCH2, USB_PRODUCT_WCH2_CH341SER_2, 0)},
-	{USB_VPI(USB_VENDOR_WCH2, USB_PRODUCT_WCH2_CH341SER_3, 0)},
+	{ USB_VPI(USB_VENDOR_WCH, USB_PRODUCT_WCH_CH341SER, 0) },
+	{ USB_VPI(USB_VENDOR_WCH2, USB_PRODUCT_WCH2_CH341SER, 0) },
+	{ USB_VPI(USB_VENDOR_WCH2, USB_PRODUCT_WCH2_CH341SER_2, 0) },
+	{ USB_VPI(USB_VENDOR_WCH2, USB_PRODUCT_WCH2_CH341SER_3, 0) },
 };
 
 /* protypes */
 
-static void	uchcom_free(struct ucom_softc *);
-static int	uchcom_pre_param(struct ucom_softc *, struct termios *);
-static void	uchcom_cfg_get_status(struct ucom_softc *, uint8_t *,
-		    uint8_t *);
-static void	uchcom_cfg_open(struct ucom_softc *ucom);
-static void	uchcom_cfg_param(struct ucom_softc *, struct termios *);
-static void	uchcom_cfg_set_break(struct ucom_softc *, uint8_t);
-static void	uchcom_cfg_set_dtr(struct ucom_softc *, uint8_t);
-static void	uchcom_cfg_set_rts(struct ucom_softc *, uint8_t);
-static void	uchcom_start_read(struct ucom_softc *);
-static void	uchcom_start_write(struct ucom_softc *);
-static void	uchcom_stop_read(struct ucom_softc *);
-static void	uchcom_stop_write(struct ucom_softc *);
-static void	uchcom_update_version(struct uchcom_softc *);
-static void	uchcom_convert_status(struct uchcom_softc *, uint8_t);
-static void	uchcom_update_status(struct uchcom_softc *);
-static void	uchcom_set_dtr_rts(struct uchcom_softc *);
-static int	uchcom_calc_divider_settings(struct uchcom_divider *, uint32_t);
-static void	uchcom_set_baudrate(struct uchcom_softc *, uint32_t);
-static void	uchcom_poll(struct ucom_softc *ucom);
+static void uchcom_free(struct ucom_softc *);
+static int uchcom_pre_param(struct ucom_softc *, struct termios *);
+static void uchcom_cfg_get_status(struct ucom_softc *, uint8_t *, uint8_t *);
+static void uchcom_cfg_open(struct ucom_softc *ucom);
+static void uchcom_cfg_param(struct ucom_softc *, struct termios *);
+static void uchcom_cfg_set_break(struct ucom_softc *, uint8_t);
+static void uchcom_cfg_set_dtr(struct ucom_softc *, uint8_t);
+static void uchcom_cfg_set_rts(struct ucom_softc *, uint8_t);
+static void uchcom_start_read(struct ucom_softc *);
+static void uchcom_start_write(struct ucom_softc *);
+static void uchcom_stop_read(struct ucom_softc *);
+static void uchcom_stop_write(struct ucom_softc *);
+static void uchcom_update_version(struct uchcom_softc *);
+static void uchcom_convert_status(struct uchcom_softc *, uint8_t);
+static void uchcom_update_status(struct uchcom_softc *);
+static void uchcom_set_dtr_rts(struct uchcom_softc *);
+static int uchcom_calc_divider_settings(struct uchcom_divider *, uint32_t);
+static void uchcom_set_baudrate(struct uchcom_softc *, uint32_t);
+static void uchcom_poll(struct ucom_softc *ucom);
 
 static device_probe_t uchcom_probe;
 static device_attach_t uchcom_attach;
@@ -338,13 +336,13 @@ uchcom_attach(device_t dev)
 	}
 
 	iface_index = UCHCOM_IFACE_INDEX;
-	error = usbd_transfer_setup(uaa->device,
-	    &iface_index, sc->sc_xfer, uchcom_config_data,
-	    UCHCOM_N_TRANSFER, sc, &sc->sc_mtx);
+	error = usbd_transfer_setup(uaa->device, &iface_index, sc->sc_xfer,
+	    uchcom_config_data, UCHCOM_N_TRANSFER, sc, &sc->sc_mtx);
 
 	if (error) {
 		DPRINTF("one or more missing USB endpoints, "
-		    "error=%s\n", usbd_errstr(error));
+			"error=%s\n",
+		    usbd_errstr(error));
 		goto detach;
 	}
 
@@ -407,8 +405,8 @@ uchcom_free(struct ucom_softc *ucom)
  */
 
 static void
-uchcom_ctrl_write(struct uchcom_softc *sc, uint8_t reqno,
-    uint16_t value, uint16_t index)
+uchcom_ctrl_write(struct uchcom_softc *sc, uint8_t reqno, uint16_t value,
+    uint16_t index)
 {
 	struct usb_device_request req;
 
@@ -418,15 +416,13 @@ uchcom_ctrl_write(struct uchcom_softc *sc, uint8_t reqno,
 	USETW(req.wIndex, index);
 	USETW(req.wLength, 0);
 
-	DPRINTF("WR REQ 0x%02X VAL 0x%04X IDX 0x%04X\n",
-	    reqno, value, index);
-	ucom_cfg_do_request(sc->sc_udev,
-	    &sc->sc_ucom, &req, NULL, 0, 1000);
+	DPRINTF("WR REQ 0x%02X VAL 0x%04X IDX 0x%04X\n", reqno, value, index);
+	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, NULL, 0, 1000);
 }
 
 static void
-uchcom_ctrl_read(struct uchcom_softc *sc, uint8_t reqno,
-    uint16_t value, uint16_t index, void *buf, uint16_t buflen)
+uchcom_ctrl_read(struct uchcom_softc *sc, uint8_t reqno, uint16_t value,
+    uint16_t index, void *buf, uint16_t buflen)
 {
 	struct usb_device_request req;
 
@@ -436,37 +432,33 @@ uchcom_ctrl_read(struct uchcom_softc *sc, uint8_t reqno,
 	USETW(req.wIndex, index);
 	USETW(req.wLength, buflen);
 
-	DPRINTF("RD REQ 0x%02X VAL 0x%04X IDX 0x%04X LEN %d\n",
-	    reqno, value, index, buflen);
-	ucom_cfg_do_request(sc->sc_udev,
-	    &sc->sc_ucom, &req, buf, USB_SHORT_XFER_OK, 1000);
+	DPRINTF("RD REQ 0x%02X VAL 0x%04X IDX 0x%04X LEN %d\n", reqno, value,
+	    index, buflen);
+	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, buf,
+	    USB_SHORT_XFER_OK, 1000);
 }
 
 static void
-uchcom_write_reg(struct uchcom_softc *sc,
-    uint8_t reg1, uint8_t val1, uint8_t reg2, uint8_t val2)
+uchcom_write_reg(struct uchcom_softc *sc, uint8_t reg1, uint8_t val1,
+    uint8_t reg2, uint8_t val2)
 {
-	DPRINTF("0x%02X<-0x%02X, 0x%02X<-0x%02X\n",
-	    (unsigned)reg1, (unsigned)val1,
-	    (unsigned)reg2, (unsigned)val2);
-	uchcom_ctrl_write(
-	    sc, UCHCOM_REQ_WRITE_REG,
+	DPRINTF("0x%02X<-0x%02X, 0x%02X<-0x%02X\n", (unsigned)reg1,
+	    (unsigned)val1, (unsigned)reg2, (unsigned)val2);
+	uchcom_ctrl_write(sc, UCHCOM_REQ_WRITE_REG,
 	    reg1 | ((uint16_t)reg2 << 8), val1 | ((uint16_t)val2 << 8));
 }
 
 static void
-uchcom_read_reg(struct uchcom_softc *sc,
-    uint8_t reg1, uint8_t *rval1, uint8_t reg2, uint8_t *rval2)
+uchcom_read_reg(struct uchcom_softc *sc, uint8_t reg1, uint8_t *rval1,
+    uint8_t reg2, uint8_t *rval2)
 {
 	uint8_t buf[UCHCOM_INPUT_BUF_SIZE];
 
-	uchcom_ctrl_read(
-	    sc, UCHCOM_REQ_READ_REG,
-	    reg1 | ((uint16_t)reg2 << 8), 0, buf, sizeof(buf));
+	uchcom_ctrl_read(sc, UCHCOM_REQ_READ_REG, reg1 | ((uint16_t)reg2 << 8),
+	    0, buf, sizeof(buf));
 
-	DPRINTF("0x%02X->0x%02X, 0x%02X->0x%02X\n",
-	    (unsigned)reg1, (unsigned)buf[0],
-	    (unsigned)reg2, (unsigned)buf[1]);
+	DPRINTF("0x%02X->0x%02X, 0x%02X->0x%02X\n", (unsigned)reg1,
+	    (unsigned)buf[0], (unsigned)reg2, (unsigned)buf[1]);
 
 	if (rval1)
 		*rval1 = buf[0];
@@ -622,12 +614,10 @@ uchcom_set_baudrate(struct uchcom_softc *sc, uint32_t rate)
 	 * According to linux code we need to set bit 7 of UCHCOM_REG_BPS_PRE,
 	 * otherwise the chip will buffer data.
 	 */
-	uchcom_write_reg(sc,
-	    UCHCOM_REG_BPS_PRE, dv.dv_prescaler | 0x80,
+	uchcom_write_reg(sc, UCHCOM_REG_BPS_PRE, dv.dv_prescaler | 0x80,
 	    UCHCOM_REG_BPS_DIV, dv.dv_div);
-	uchcom_write_reg(sc,
-	    UCHCOM_REG_BPS_MOD, dv.dv_mod,
-	    UCHCOM_REG_BPS_PAD, 0);
+	uchcom_write_reg(sc, UCHCOM_REG_BPS_MOD, dv.dv_mod, UCHCOM_REG_BPS_PAD,
+	    0);
 }
 
 /* ----------------------------------------------------------------------
@@ -697,7 +687,7 @@ uchcom_pre_param(struct ucom_softc *ucom, struct termios *t)
 	if (uchcom_calc_divider_settings(&dv, t->c_ospeed)) {
 		return (EIO);
 	}
-	return (0);			/* success */
+	return (0); /* success */
 }
 
 static void
@@ -709,10 +699,10 @@ uchcom_cfg_param(struct ucom_softc *ucom, struct termios *t)
 	uchcom_ctrl_write(sc, UCHCOM_REQ_RESET, 0, 0);
 	uchcom_set_baudrate(sc, t->c_ospeed);
 	if (sc->sc_version < UCHCOM_VER_30) {
-		uchcom_read_reg(sc, UCHCOM_REG_LCR1, NULL,
-		    UCHCOM_REG_LCR2, NULL);
-		uchcom_write_reg(sc, UCHCOM_REG_LCR1, 0x50,
-		    UCHCOM_REG_LCR2, 0x00);
+		uchcom_read_reg(sc, UCHCOM_REG_LCR1, NULL, UCHCOM_REG_LCR2,
+		    NULL);
+		uchcom_write_reg(sc, UCHCOM_REG_LCR1, 0x50, UCHCOM_REG_LCR2,
+		    0x00);
 	} else {
 		/*
 		 * Set up line control:
@@ -720,8 +710,7 @@ uchcom_cfg_param(struct ucom_softc *ucom, struct termios *t)
 		 * - set 8n1 mode
 		 * To do: support other sizes, parity, stop bits.
 		 */
-		uchcom_write_reg(sc,
-		    UCHCOM_REG_LCR1,
+		uchcom_write_reg(sc, UCHCOM_REG_LCR1,
 		    UCHCOM_LCR1_RX | UCHCOM_LCR1_TX | UCHCOM_LCR1_CS8,
 		    UCHCOM_REG_LCR2, 0x00);
 	}
@@ -802,12 +791,12 @@ uchcom_intr_callback(struct usb_xfer *xfer, usb_error_t error)
 			ucom_status_change(&sc->sc_ucom);
 		}
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		break;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -827,10 +816,10 @@ uchcom_write_callback(struct usb_xfer *xfer, usb_error_t error)
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_SETUP:
 	case USB_ST_TRANSFERRED:
-tr_setup:
+	tr_setup:
 		pc = usbd_xfer_get_frame(xfer, 0);
-		if (ucom_get_data(&sc->sc_ucom, pc, 0,
-		    usbd_xfer_max_len(xfer), &actlen)) {
+		if (ucom_get_data(&sc->sc_ucom, pc, 0, usbd_xfer_max_len(xfer),
+			&actlen)) {
 			DPRINTF("actlen = %d\n", actlen);
 
 			usbd_xfer_set_frame_len(xfer, 0, actlen);
@@ -838,7 +827,7 @@ tr_setup:
 		}
 		break;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -866,12 +855,12 @@ uchcom_read_callback(struct usb_xfer *xfer, usb_error_t error)
 		}
 
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		break;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -892,15 +881,12 @@ static device_method_t uchcom_methods[] = {
 	/* Device interface */
 	DEVMETHOD(device_probe, uchcom_probe),
 	DEVMETHOD(device_attach, uchcom_attach),
-	DEVMETHOD(device_detach, uchcom_detach),
-	DEVMETHOD_END
+	DEVMETHOD(device_detach, uchcom_detach), DEVMETHOD_END
 };
 
-static driver_t uchcom_driver = {
-	.name = "uchcom",
+static driver_t uchcom_driver = { .name = "uchcom",
 	.methods = uchcom_methods,
-	.size = sizeof(struct uchcom_softc)
-};
+	.size = sizeof(struct uchcom_softc) };
 
 DRIVER_MODULE(uchcom, uhub, uchcom_driver, NULL, NULL);
 MODULE_DEPEND(uchcom, ucom, 1, 1, 1);

@@ -28,42 +28,39 @@
  * SUCH DAMAGE.
  */
 
-#define READ2(_sc, _reg) \
-	bus_read_2((_sc)->res[0], _reg)
-#define READ4(_sc, _reg) \
-	bus_read_4((_sc)->res[0], _reg)
-#define WRITE2(_sc, _reg, _val) \
-	bus_write_2((_sc)->res[0], _reg, _val)
-#define WRITE4(_sc, _reg, _val) \
-	bus_write_4((_sc)->res[0], _reg, _val)
+#define READ2(_sc, _reg) bus_read_2((_sc)->res[0], _reg)
+#define READ4(_sc, _reg) bus_read_4((_sc)->res[0], _reg)
+#define WRITE2(_sc, _reg, _val) bus_write_2((_sc)->res[0], _reg, _val)
+#define WRITE4(_sc, _reg, _val) bus_write_4((_sc)->res[0], _reg, _val)
 
-#define	PAGE_SHIFT		12
-#define	VRING_ALIGN		4096
+#define PAGE_SHIFT 12
+#define VRING_ALIGN 4096
 
-#define	VQ_ALLOC		0x01	/* set once we have a pfn */
-#define	VQ_MAX_DESCRIPTORS	512
+#define VQ_ALLOC 0x01 /* set once we have a pfn */
+#define VQ_MAX_DESCRIPTORS 512
 
 struct vqueue_info {
-	uint16_t vq_qsize;	/* size of this queue (a power of 2) */
+	uint16_t vq_qsize; /* size of this queue (a power of 2) */
 	uint16_t vq_num;
 	uint16_t vq_flags;
-	uint16_t vq_last_avail;	/* a recent value of vq_avail->va_idx */
+	uint16_t vq_last_avail; /* a recent value of vq_avail->va_idx */
 	uint16_t vq_save_used;	/* saved vq_used->vu_idx; see vq_endchains */
 	uint32_t vq_pfn;	/* PFN of virt queue (not shifted!) */
 
-	volatile struct vring_desc *vq_desc;	/* descriptor array */
-	volatile struct vring_avail *vq_avail;	/* the "avail" ring */
-	volatile struct vring_used *vq_used;	/* the "used" ring */
+	volatile struct vring_desc *vq_desc;   /* descriptor array */
+	volatile struct vring_avail *vq_avail; /* the "avail" ring */
+	volatile struct vring_used *vq_used;   /* the "used" ring */
 };
 
 int vq_ring_ready(struct vqueue_info *vq);
 int vq_has_descs(struct vqueue_info *vq);
-void * paddr_map(uint32_t offset, uint32_t phys, uint32_t size);
+void *paddr_map(uint32_t offset, uint32_t phys, uint32_t size);
 void paddr_unmap(void *phys, uint32_t size);
 int vq_getchain(uint32_t beri_mem_offset, struct vqueue_info *vq,
-		struct iovec *iov, int n_iov, uint16_t *flags);
-void vq_relchain(struct vqueue_info *vq, struct iovec *iov, int n, uint32_t iolen);
-struct iovec * getcopy(struct iovec *iov, int n);
+    struct iovec *iov, int n_iov, uint16_t *flags);
+void vq_relchain(struct vqueue_info *vq, struct iovec *iov, int n,
+    uint32_t iolen);
+struct iovec *getcopy(struct iovec *iov, int n);
 
 int setup_pio(device_t dev, char *name, device_t *pio_dev);
 int setup_offset(device_t dev, uint32_t *offset);

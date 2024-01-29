@@ -10,7 +10,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -32,26 +32,25 @@
 #include "dpv.h"
 
 /* Display characteristics */
-#define ENV_MSG_DONE	"msg_done"
-#define ENV_MSG_FAIL	"msg_fail"
-#define ENV_MSG_PENDING	"msg_pending"
+#define ENV_MSG_DONE "msg_done"
+#define ENV_MSG_FAIL "msg_fail"
+#define ENV_MSG_PENDING "msg_pending"
 extern int display_limit;
 extern int label_size;
 extern int pbar_size;
 
 __BEGIN_DECLS
-void	dprompt_clear(void);
-void	dprompt_dprint(int _fd, const char *_prefix, const char *_append,
-	    int _overall);
-void	dprompt_free(void);
-void	dprompt_init(struct dpv_file_node *_file_list);
-void	dprompt_libprint(const char *_prefix, const char *_append,
-	    int _overall);
-void	dprompt_recreate(struct dpv_file_node *_file_list,
-	    struct dpv_file_node *_curfile, int _pct);
-int	dprompt_add(const char *_format, ...);
-int	dprompt_sprint(char * restrict _str, const char *_prefix,
-	    const char *_append);
+void dprompt_clear(void);
+void dprompt_dprint(int _fd, const char *_prefix, const char *_append,
+    int _overall);
+void dprompt_free(void);
+void dprompt_init(struct dpv_file_node *_file_list);
+void dprompt_libprint(const char *_prefix, const char *_append, int _overall);
+void dprompt_recreate(struct dpv_file_node *_file_list,
+    struct dpv_file_node *_curfile, int _pct);
+int dprompt_add(const char *_format, ...);
+int dprompt_sprint(char *restrict _str, const char *_prefix,
+    const char *_append);
 __END_DECLS
 
 #endif /* !_DPROMPT_H_ */

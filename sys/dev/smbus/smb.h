@@ -36,38 +36,38 @@ struct smbcmd {
 	u_char reserved;
 	u_short op;
 	union {
-		char	byte;
-		char	buf[2];
-		short	word;
+		char byte;
+		char buf[2];
+		short word;
 	} wdata;
 	union {
-		char	byte;
-		char	buf[2];
-		short	word;
+		char byte;
+		char buf[2];
+		short word;
 	} rdata;
-	int  slave;
-	char *wbuf;	/* use wdata if NULL */
-	int  wcount;
-	char *rbuf;	/* use rdata if NULL */
-	int  rcount;
+	int slave;
+	char *wbuf; /* use wdata if NULL */
+	int wcount;
+	char *rbuf; /* use rdata if NULL */
+	int rcount;
 };
 
 /*
  * SMBus spec 2.0 says block transfers may be at most 32 bytes.
  */
-#define SMB_MAXBLOCKSIZE	32
+#define SMB_MAXBLOCKSIZE 32
 
-#define SMB_QUICK_WRITE	_IOW('i', 1, struct smbcmd)
-#define SMB_QUICK_READ	_IOW('i', 2, struct smbcmd)
-#define SMB_SENDB	_IOW('i', 3, struct smbcmd)
-#define SMB_RECVB	_IOWR('i', 4, struct smbcmd)
-#define SMB_WRITEB	_IOW('i', 5, struct smbcmd)
-#define SMB_WRITEW	_IOW('i', 6, struct smbcmd)
-#define SMB_READB	_IOWR('i', 7, struct smbcmd)
-#define SMB_READW	_IOWR('i', 8, struct smbcmd)
-#define SMB_PCALL	_IOWR('i', 9, struct smbcmd)
-#define SMB_BWRITE	_IOW('i', 10, struct smbcmd)
-#define SMB_BREAD	_IOWR('i', 11, struct smbcmd)
-#define SMB_OLD_TRANS	_IOWR('i', 12, struct smbcmd)
+#define SMB_QUICK_WRITE _IOW('i', 1, struct smbcmd)
+#define SMB_QUICK_READ _IOW('i', 2, struct smbcmd)
+#define SMB_SENDB _IOW('i', 3, struct smbcmd)
+#define SMB_RECVB _IOWR('i', 4, struct smbcmd)
+#define SMB_WRITEB _IOW('i', 5, struct smbcmd)
+#define SMB_WRITEW _IOW('i', 6, struct smbcmd)
+#define SMB_READB _IOWR('i', 7, struct smbcmd)
+#define SMB_READW _IOWR('i', 8, struct smbcmd)
+#define SMB_PCALL _IOWR('i', 9, struct smbcmd)
+#define SMB_BWRITE _IOW('i', 10, struct smbcmd)
+#define SMB_BREAD _IOWR('i', 11, struct smbcmd)
+#define SMB_OLD_TRANS _IOWR('i', 12, struct smbcmd)
 
 #endif

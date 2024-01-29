@@ -30,23 +30,23 @@
 #include <dev/rtwn/rtl8192e/r92e_rom_defs.h>
 
 struct r92e_softc {
-	uint8_t	chip;
-	uint8_t	rs_flags;
+	uint8_t chip;
+	uint8_t rs_flags;
 
-	uint8_t	regulatory;
-	uint8_t	crystalcap;
+	uint8_t regulatory;
+	uint8_t crystalcap;
 
-	int8_t	cck_tx_pwr[R92E_MAX_RF_PATH][R92E_GROUP_2G];
-	int8_t	ht40_tx_pwr_2g[R92E_MAX_RF_PATH][R92E_GROUP_2G];
+	int8_t cck_tx_pwr[R92E_MAX_RF_PATH][R92E_GROUP_2G];
+	int8_t ht40_tx_pwr_2g[R92E_MAX_RF_PATH][R92E_GROUP_2G];
 
-	int8_t	cck_tx_pwr_diff_2g[R92E_MAX_RF_PATH][R92E_MAX_TX_COUNT];
-	int8_t	ofdm_tx_pwr_diff_2g[R92E_MAX_RF_PATH][R92E_MAX_TX_COUNT];
-	int8_t	bw20_tx_pwr_diff_2g[R92E_MAX_RF_PATH][R92E_MAX_TX_COUNT];
-	int8_t	bw40_tx_pwr_diff_2g[R92E_MAX_RF_PATH][R92E_MAX_TX_COUNT];
+	int8_t cck_tx_pwr_diff_2g[R92E_MAX_RF_PATH][R92E_MAX_TX_COUNT];
+	int8_t ofdm_tx_pwr_diff_2g[R92E_MAX_RF_PATH][R92E_MAX_TX_COUNT];
+	int8_t bw20_tx_pwr_diff_2g[R92E_MAX_RF_PATH][R92E_MAX_TX_COUNT];
+	int8_t bw40_tx_pwr_diff_2g[R92E_MAX_RF_PATH][R92E_MAX_TX_COUNT];
 
-	int		ac_usb_dma_size;
-	int		ac_usb_dma_time;
-	uint32_t	rf_chnlbw[R92E_MAX_RF_PATH];
+	int ac_usb_dma_size;
+	int ac_usb_dma_time;
+	uint32_t rf_chnlbw[R92E_MAX_RF_PATH];
 };
 
-#endif	/* R92E_VAR_H */
+#endif /* R92E_VAR_H */

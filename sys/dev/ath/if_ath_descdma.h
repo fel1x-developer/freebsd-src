@@ -26,19 +26,17 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
-#ifndef	__IF_ATH_DESCDMA_H__
-#define	__IF_ATH_DESCDMA_H__
+#ifndef __IF_ATH_DESCDMA_H__
+#define __IF_ATH_DESCDMA_H__
 
-extern  int ath_descdma_alloc_desc(struct ath_softc *sc,
-	    struct ath_descdma *dd, ath_bufhead *head, const char *name,
-	    int ds_size, int ndesc);
-extern  int ath_descdma_setup(struct ath_softc *sc, struct ath_descdma *dd,
-	    ath_bufhead *head, const char *name, int ds_size, int nbuf,
-	    int ndesc);
-extern  int ath_descdma_setup_rx_edma(struct ath_softc *sc,
-	    struct ath_descdma *dd, ath_bufhead *head, const char *name,
-	    int nbuf, int desclen);
-extern  void ath_descdma_cleanup(struct ath_softc *sc,
-	    struct ath_descdma *dd, ath_bufhead *head);
+extern int ath_descdma_alloc_desc(struct ath_softc *sc, struct ath_descdma *dd,
+    ath_bufhead *head, const char *name, int ds_size, int ndesc);
+extern int ath_descdma_setup(struct ath_softc *sc, struct ath_descdma *dd,
+    ath_bufhead *head, const char *name, int ds_size, int nbuf, int ndesc);
+extern int ath_descdma_setup_rx_edma(struct ath_softc *sc,
+    struct ath_descdma *dd, ath_bufhead *head, const char *name, int nbuf,
+    int desclen);
+extern void ath_descdma_cleanup(struct ath_softc *sc, struct ath_descdma *dd,
+    ath_bufhead *head);
 
 #endif

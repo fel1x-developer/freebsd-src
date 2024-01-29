@@ -27,6 +27,7 @@
  *
  */
 
+#include <sys/cdefs.h>
 #include <sys/disk.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
@@ -43,13 +44,12 @@
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
-
-#include <sys/cdefs.h>
-static bool	candelete(int fd);
-static off_t	getsize(const char *path);
-static int	opendev(const char *path, int flags);
-static int	trim(const char *path, off_t offset, off_t length, bool dryrun, bool verbose);
-static void	usage(const char *name);
+static bool candelete(int fd);
+static off_t getsize(const char *path);
+static int opendev(const char *path, int flags);
+static int trim(const char *path, off_t offset, off_t length, bool dryrun,
+    bool verbose);
+static void usage(const char *name);
 
 int
 main(int argc, char **argv)
@@ -77,11 +77,9 @@ main(int argc, char **argv)
 		case 'l':
 		case 'o':
 			if (expand_number(optarg, &usz) == -1 ||
-					(off_t)usz < 0 || (usz == 0 && ch == 'l'))
-				errx(EX_USAGE,
-					"invalid %s of the region: %s",
-					ch == 'o' ? "offset" : "length",
-					optarg);
+			    (off_t)usz < 0 || (usz == 0 && ch == 'l'))
+				errx(EX_USAGE, "invalid %s of the region: %s",
+				    ch == 'o' ? "offset" : "length", optarg);
 			if (ch == 'o')
 				offset = (off_t)usz;
 			else
@@ -93,8 +91,9 @@ main(int argc, char **argv)
 		case 'r':
 			if ((length = getsize(optarg)) == 0)
 				errx(EX_USAGE,
-					"invalid zero length reference file"
-					" for the region: %s", optarg);
+				    "invalid zero length reference file"
+				    " for the region: %s",
+				    optarg);
 			break;
 		case 'v':
 			verbose = true;
@@ -114,8 +113,8 @@ main(int argc, char **argv)
 	 *
 	 *	trim -f -- /dev/da0 -r rfile
 	 */
-	
-	if (strcmp(argv[optind-1], "--") != 0) {
+
+	if (strcmp(argv[optind - 1], "--") != 0) {
 		for (ch = optind; ch < argc; ch++)
 			if (argv[ch][0] == '-')
 				usage(name);
@@ -187,14 +186,15 @@ getsize(const char *path)
 
 	if (!S_ISCHR(sb.st_mode) && !S_ISBLK(sb.st_mode))
 		errx(EX_DATAERR,
-			"invalid type of the file "
-			"(not regular, directory nor special device): %s",
-			path);
+		    "invalid type of the file "
+		    "(not regular, directory nor special device): %s",
+		    path);
 
 	if (ioctl(fd, DIOCGMEDIASIZE, &mediasize) < 0)
 		err(EX_UNAVAILABLE,
-			"ioctl(DIOCGMEDIASIZE) failed, probably not a disk: "
-			"%s", path);
+		    "ioctl(DIOCGMEDIASIZE) failed, probably not a disk: "
+		    "%s",
+		    path);
 
 	close(fd);
 	return (mediasize);
@@ -210,8 +210,8 @@ trim(const char *path, off_t offset, off_t length, bool dryrun, bool verbose)
 		length = getsize(path);
 
 	if (verbose)
-		printf("trim %s offset %ju length %ju\n",
-		    path, (uintmax_t)offset, (uintmax_t)length);
+		printf("trim %s offset %ju length %ju\n", path,
+		    (uintmax_t)offset, (uintmax_t)length);
 
 	if (dryrun) {
 		printf("dry run: add -f to actually perform the operation\n");

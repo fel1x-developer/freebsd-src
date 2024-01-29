@@ -28,18 +28,18 @@
  *	from: FreeBSD: src/sys/i386/include/proc.h,v 1.11 2001/06/29
  */
 
-#ifndef	_MACHINE_PROC_H_
-#define	_MACHINE_PROC_H_
+#ifndef _MACHINE_PROC_H_
+#define _MACHINE_PROC_H_
 
 struct mdthread {
-	int	md_spinlock_count;	/* (k) */
-	register_t md_saved_sstatus_ie;	/* (k) */
+	int md_spinlock_count;		/* (k) */
+	register_t md_saved_sstatus_ie; /* (k) */
 };
 
 struct mdproc {
 	int dummy;
 };
 
-#define	KINFO_PROC_SIZE	1088
+#define KINFO_PROC_SIZE 1088
 
 #endif /* !_MACHINE_PROC_H_ */

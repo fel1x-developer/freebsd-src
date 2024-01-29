@@ -24,38 +24,35 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <dev/rtwn/if_rtwnvar.h>
-
 #include <dev/rtwn/rtl8812a/r12a.h>
-#include <dev/rtwn/rtl8812a/r12a_var.h>
 #include <dev/rtwn/rtl8812a/r12a_rom_image.h>
-
+#include <dev/rtwn/rtl8812a/r12a_var.h>
 #include <dev/rtwn/rtl8821a/r21a.h>
 #include <dev/rtwn/rtl8821a/r21a_reg.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 void
 r21a_parse_rom(struct rtwn_softc *sc, uint8_t *buf)
@@ -75,8 +72,8 @@ r21a_parse_rom(struct rtwn_softc *sc, uint8_t *buf)
 	rs->ext_lna_5g = R21A_ROM_IS_LNA_EXT(lna_type_5g);
 
 	RTWN_LOCK(sc);
-	rs->bt_coex =
-	    !!(rtwn_read_4(sc, R92C_MULTI_FUNC_CTRL) & R92C_MULTI_BT_FUNC_EN);
+	rs->bt_coex = !!(
+	    rtwn_read_4(sc, R92C_MULTI_FUNC_CTRL) & R92C_MULTI_BT_FUNC_EN);
 	RTWN_UNLOCK(sc);
 	rs->bt_ant_num = (rom->rf_bt_opt & R12A_RF_BT_OPT_ANT_NUM);
 

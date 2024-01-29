@@ -36,20 +36,19 @@
 #include <sys/param.h>
 #include <sys/socket.h>
 
-#include <string.h>
-
 #include <net/if.h>
-#include <netinet/in.h>
 #include <netinet/if_ether.h>
+#include <netinet/in.h>
 #include <netinet/in_systm.h>
-
 #include <netinet/ip.h>
 #include <netinet/ip_var.h>
 #include <netinet/udp.h>
 #include <netinet/udp_var.h>
 
-#include "stand.h"
+#include <string.h>
+
 #include "net.h"
+#include "stand.h"
 
 /*
  * Maximum wait time for sending and receiving before we give up and timeout.
@@ -58,7 +57,7 @@
  * timeout is hit.
  */
 #ifndef MAXWAIT
-#define MAXWAIT 300	/* seconds */
+#define MAXWAIT 300 /* seconds */
 #endif
 
 #if MAXWAIT < 0
@@ -77,8 +76,7 @@
  * zero errno to indicate it isn't done yet.
  */
 ssize_t
-sendrecv(struct iodesc *d,
-    ssize_t (*sproc)(struct iodesc *, void *, size_t),
+sendrecv(struct iodesc *d, ssize_t (*sproc)(struct iodesc *, void *, size_t),
     void *sbuf, size_t ssize,
     ssize_t (*rproc)(struct iodesc *, void **, void **, time_t, void *),
     void **pkt, void **payload, void *recv_extra)
@@ -109,8 +107,8 @@ sendrecv(struct iodesc *d,
 			}
 			cc = (*sproc)(d, sbuf, ssize);
 			if (cc != -1 && cc < ssize)
-				panic("sendrecv: short write! (%zd < %zd)",
-				    cc, ssize);
+				panic("sendrecv: short write! (%zd < %zd)", cc,
+				    ssize);
 
 			tleft = tmo;
 			tmo += MINTMO;
@@ -195,22 +193,22 @@ inet_addr(char *cp)
 	n = pp - parts + 1;
 	switch (n) {
 
-	case 1:				/* a -- 32 bits */
+	case 1: /* a -- 32 bits */
 		break;
 
-	case 2:				/* a.b -- 8.24 bits */
+	case 2: /* a.b -- 8.24 bits */
 		if (val > 0xffffff)
 			goto bad;
 		val |= parts[0] << 24;
 		break;
 
-	case 3:				/* a.b.c -- 8.8.16 bits */
+	case 3: /* a.b.c -- 8.8.16 bits */
 		if (val > 0xffff)
 			goto bad;
 		val |= (parts[0] << 24) | (parts[1] << 16);
 		break;
 
-	case 4:				/* a.b.c.d -- 8.8.8.8 bits */
+	case 4: /* a.b.c.d -- 8.8.8.8 bits */
 		if (val > 0xff)
 			goto bad;
 		val |= (parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8);
@@ -218,7 +216,7 @@ inet_addr(char *cp)
 	}
 
 	return (htonl(val));
- bad:
+bad:
 	return (htonl(INADDR_NONE));
 }
 
@@ -235,7 +233,7 @@ intoa(n_long addr)
 	char *cp;
 	u_int byte;
 	int n;
-	static char buf[17];	/* strlen(".255.255.255.255") + 1 */
+	static char buf[17]; /* strlen(".255.255.255.255") + 1 */
 
 	addr = ntohl(addr);
 	cp = &buf[sizeof buf];
@@ -256,7 +254,7 @@ intoa(n_long addr)
 		addr >>= 8;
 	} while (--n > 0);
 
-	return (cp+1);
+	return (cp + 1);
 }
 
 static char *
@@ -270,7 +268,7 @@ number(char *s, n_long *n)
 n_long
 ip_convertaddr(char *p)
 {
-#define IP_ANYADDR	0
+#define IP_ANYADDR 0
 	n_long addr = 0, n;
 
 	if (p == NULL || *p == '\0')

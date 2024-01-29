@@ -32,11 +32,11 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_MACHINE_INTR_MACHDEP_H_
-#define	_MACHINE_INTR_MACHDEP_H_
+#ifndef _MACHINE_INTR_MACHDEP_H_
+#define _MACHINE_INTR_MACHDEP_H_
 
-#ifndef	NIRQ
-#define	NIRQ			1024
+#ifndef NIRQ
+#define NIRQ 1024
 #endif
 
 #include <sys/intr.h>

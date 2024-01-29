@@ -29,7 +29,7 @@
  * SUCH DAMAGE.
  */
 
-#include "lp.cdefs.h"		/* A cross-platform version of <sys/cdefs.h> */
+#include "lp.cdefs.h" /* A cross-platform version of <sys/cdefs.h> */
 /*
  * 	filter which reads the output of nroff and converts lines
  *	with ^H's to overwritten lines.  Thus this works like 'ul'
@@ -40,25 +40,25 @@
  */
 
 #include <signal.h>
-#include <unistd.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
-#define MAXWIDTH  132
-#define MAXREP    10
+#define MAXWIDTH 132
+#define MAXREP 10
 
-static char	buf[MAXREP][MAXWIDTH];
-static int	maxcol[MAXREP] = {-1};
-static int	lineno;
-static int	width = 132;	/* default line length */
-static int	length = 66;	/* page length */
-static int	indent;		/* indentation length */
-static int	npages = 1;
-static int	literal;	/* print control characters */
-static char	*name;		/* user's login name */
-static char	*host;		/* user's machine name */
-static char	*acctfile;	/* accounting information file */
+static char buf[MAXREP][MAXWIDTH];
+static int maxcol[MAXREP] = { -1 };
+static int lineno;
+static int width = 132; /* default line length */
+static int length = 66; /* page length */
+static int indent;	/* indentation length */
+static int npages = 1;
+static int literal;    /* print control characters */
+static char *name;     /* user's login name */
+static char *host;     /* user's machine name */
+static char *acctfile; /* accounting information file */
 
 int
 main(int argc, char *argv[])
@@ -96,7 +96,7 @@ main(int argc, char *argv[])
 				indent = atoi(&cp[2]);
 				break;
 
-			case 'c':	/* Print control chars */
+			case 'c': /* Print control chars */
 				literal++;
 				break;
 			}
@@ -178,7 +178,8 @@ main(int argc, char *argv[])
 
 		/* print out lines */
 		for (i = 0; i <= maxrep; i++) {
-			for (cp = buf[i], limit = cp+maxcol[i]; cp <= limit;) {
+			for (cp = buf[i], limit = cp + maxcol[i];
+			     cp <= limit;) {
 				putc(*cp, o);
 				*cp++ = ' ';
 			}
@@ -194,7 +195,7 @@ main(int argc, char *argv[])
 			maxcol[i] = -1;
 		}
 	}
-	if (lineno) {		/* be sure to end on a page boundary */
+	if (lineno) { /* be sure to end on a page boundary */
 		putchar('\f');
 		npages++;
 	}

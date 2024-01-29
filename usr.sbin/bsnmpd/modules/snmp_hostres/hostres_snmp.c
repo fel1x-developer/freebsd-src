@@ -50,8 +50,8 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include "hostres_snmp.h"
 #include "hostres_oid.h"
+#include "hostres_snmp.h"
 #include "hostres_tree.h"
 
 /* Internal id got after we'll register this module with the agent */
@@ -112,7 +112,7 @@ hostres_init(struct lmodule *mod, int argc __unused, char *argv[] __unused)
 	 * NOTE: order of these calls is important here!
 	 */
 	if ((hr_kd = kvm_open(NULL, _PATH_DEVNULL, NULL, O_RDONLY,
-	    "kvm_open")) == NULL) {
+		 "kvm_open")) == NULL) {
 		syslog(LOG_ERR, "kvm_open failed: %m ");
 		return (-1);
 	}
@@ -137,7 +137,6 @@ hostres_init(struct lmodule *mod, int argc __unused, char *argv[] __unused)
 	 */
 	init_storage_tbl();
 
-
 	/* also the hrSWRunPerfTable's support is initialized here */
 	init_swrun_tbl();
 	init_swins_tbl();
@@ -156,8 +155,7 @@ hostres_start(void)
 {
 
 	host_registration_id = or_register(&oid_host,
-	    "The MIB module for Host Resource MIB (RFC 2790).",
-	    hostres_module);
+	    "The MIB module for Host Resource MIB (RFC 2790).", hostres_module);
 
 	start_device_tbl(hostres_module);
 	start_processor_tbl(hostres_module);
@@ -168,16 +166,11 @@ hostres_start(void)
 
 /* this identifies the HOST RESOURCES mib module */
 const struct snmp_module config = {
-	"This module implements the host resource mib (rfc 2790)",
-	hostres_init,
-	hostres_fini,
-	NULL,			/* idle function, do not use it */
-	NULL,
-	NULL,
-	hostres_start,
-	NULL,		   /* proxy a PDU */
-	hostres_ctree,	  /* see the generated hostres_tree.h */
-	hostres_CTREE_SIZE,     /* see the generated hostres_tree.h */
+	"This module implements the host resource mib (rfc 2790)", hostres_init,
+	hostres_fini, NULL,		 /* idle function, do not use it */
+	NULL, NULL, hostres_start, NULL, /* proxy a PDU */
+	hostres_ctree,			 /* see the generated hostres_tree.h */
+	hostres_CTREE_SIZE,		 /* see the generated hostres_tree.h */
 	NULL
 };
 

@@ -47,9 +47,12 @@
 static int ice_recovery_txd_encap(void *arg, if_pkt_info_t pi);
 static int ice_recovery_rxd_pkt_get(void *arg, if_rxd_info_t ri);
 static void ice_recovery_txd_flush(void *arg, uint16_t txqid, qidx_t pidx);
-static int ice_recovery_txd_credits_update(void *arg, uint16_t txqid, bool clear);
-static int ice_recovery_rxd_available(void *arg, uint16_t rxqid, qidx_t pidx, qidx_t budget);
-static void ice_recovery_rxd_flush(void *arg, uint16_t rxqid, uint8_t flidx, qidx_t pidx);
+static int ice_recovery_txd_credits_update(void *arg, uint16_t txqid,
+    bool clear);
+static int ice_recovery_rxd_available(void *arg, uint16_t rxqid, qidx_t pidx,
+    qidx_t budget);
+static void ice_recovery_rxd_flush(void *arg, uint16_t rxqid, uint8_t flidx,
+    qidx_t pidx);
 static void ice_recovery_rxd_refill(void *arg, if_rxd_update_t iru);
 
 /**
@@ -97,7 +100,7 @@ ice_recovery_txd_encap(void __unused *arg, if_pkt_info_t __unused pi)
  */
 static void
 ice_recovery_txd_flush(void __unused *arg, uint16_t __unused txqid,
-		       qidx_t __unused pidx)
+    qidx_t __unused pidx)
 {
 	;
 }
@@ -115,7 +118,7 @@ ice_recovery_txd_flush(void __unused *arg, uint16_t __unused txqid,
  */
 static int
 ice_recovery_txd_credits_update(void __unused *arg, uint16_t __unused txqid,
-				bool __unused clear)
+    bool __unused clear)
 {
 	return (0);
 }
@@ -134,7 +137,7 @@ ice_recovery_txd_credits_update(void __unused *arg, uint16_t __unused txqid,
  */
 static int
 ice_recovery_rxd_available(void __unused *arg, uint16_t __unused rxqid,
-			   qidx_t __unused pidx, qidx_t __unused budget)
+    qidx_t __unused pidx, qidx_t __unused budget)
 {
 	return (0);
 }
@@ -181,7 +184,7 @@ ice_recovery_rxd_refill(void __unused *arg, if_rxd_update_t __unused iru)
  */
 static void
 ice_recovery_rxd_flush(void __unused *arg, uint16_t __unused rxqid,
-		       uint8_t flidx __unused, qidx_t __unused pidx)
+    uint8_t flidx __unused, qidx_t __unused pidx)
 {
 	;
 }

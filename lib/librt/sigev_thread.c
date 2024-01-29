@@ -28,44 +28,44 @@
  */
 
 #include <sys/types.h>
+#include <sys/thr.h>
 
-#include "namespace.h"
 #include <err.h>
 #include <errno.h>
-#include <ucontext.h>
-#include <sys/thr.h>
+#include <pthread.h>
+#include <signal.h>
 #include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <signal.h>
-#include <pthread.h>
+#include <ucontext.h>
+
+#include "namespace.h"
+#include "sigev_thread.h"
 #include "un-namespace.h"
 
-#include "sigev_thread.h"
-
 LIST_HEAD(sigev_list_head, sigev_node);
-#define HASH_QUEUES		17
-#define	HASH(t, id)		((((id) << 3) + (t)) % HASH_QUEUES)
+#define HASH_QUEUES 17
+#define HASH(t, id) ((((id) << 3) + (t)) % HASH_QUEUES)
 
-static struct sigev_list_head	sigev_hash[HASH_QUEUES];
-static struct sigev_list_head	sigev_all;
-static LIST_HEAD(,sigev_thread)	sigev_threads;
-static atomic_int		sigev_generation;
-static pthread_mutex_t		*sigev_list_mtx;
-static pthread_once_t		sigev_once = PTHREAD_ONCE_INIT;
-static pthread_once_t		sigev_once_default = PTHREAD_ONCE_INIT;
-static struct sigev_thread	*sigev_default_thread;
-static pthread_attr_t		sigev_default_attr;
-static int			atfork_registered;
+static struct sigev_list_head sigev_hash[HASH_QUEUES];
+static struct sigev_list_head sigev_all;
+static LIST_HEAD(, sigev_thread) sigev_threads;
+static atomic_int sigev_generation;
+static pthread_mutex_t *sigev_list_mtx;
+static pthread_once_t sigev_once = PTHREAD_ONCE_INIT;
+static pthread_once_t sigev_once_default = PTHREAD_ONCE_INIT;
+static struct sigev_thread *sigev_default_thread;
+static pthread_attr_t sigev_default_attr;
+static int atfork_registered;
 
-static void	__sigev_fork_prepare(void);
-static void	__sigev_fork_parent(void);
-static void	__sigev_fork_child(void);
-static struct sigev_thread	*sigev_thread_create(int);
-static void	*sigev_service_loop(void *);
-static void	*worker_routine(void *);
-static void	worker_cleanup(void *);
+static void __sigev_fork_prepare(void);
+static void __sigev_fork_parent(void);
+static void __sigev_fork_child(void);
+static struct sigev_thread *sigev_thread_create(int);
+static void *sigev_service_loop(void *);
+static void *worker_routine(void *);
+static void worker_cleanup(void *);
 
 #pragma weak _pthread_create
 
@@ -124,18 +124,16 @@ __sigev_thread_init(void)
 	LIST_INIT(&sigev_threads);
 	sigev_default_thread = NULL;
 	if (atfork_registered == 0) {
-		_pthread_atfork(
-			__sigev_fork_prepare,
-			__sigev_fork_parent,
-			__sigev_fork_child);
+		_pthread_atfork(__sigev_fork_prepare, __sigev_fork_parent,
+		    __sigev_fork_child);
 		atfork_registered = 1;
 	}
 	if (!inited) {
 		_pthread_attr_init(&sigev_default_attr);
 		_pthread_attr_setscope(&sigev_default_attr,
-			PTHREAD_SCOPE_SYSTEM);
+		    PTHREAD_SCOPE_SYSTEM);
 		_pthread_attr_setdetachstate(&sigev_default_attr,
-			PTHREAD_CREATE_DETACHED);
+		    PTHREAD_CREATE_DETACHED);
 		inited = 1;
 	}
 	sigev_default_thread = sigev_thread_create(0);
@@ -188,19 +186,20 @@ __sigev_list_unlock(void)
 
 struct sigev_node *
 __sigev_alloc(int type, const struct sigevent *evp, struct sigev_node *prev,
-	int usedefault)
+    int usedefault)
 {
 	struct sigev_node *sn;
 
 	sn = calloc(1, sizeof(*sn));
 	if (sn != NULL) {
 		sn->sn_value = evp->sigev_value;
-		sn->sn_func  = evp->sigev_notify_function;
-		sn->sn_gen   = atomic_fetch_add_explicit(&sigev_generation, 1,
+		sn->sn_func = evp->sigev_notify_function;
+		sn->sn_gen = atomic_fetch_add_explicit(&sigev_generation, 1,
 		    memory_order_relaxed);
-		sn->sn_type  = type;
+		sn->sn_type = type;
 		_pthread_attr_init(&sn->sn_attr);
-		_pthread_attr_setdetachstate(&sn->sn_attr, PTHREAD_CREATE_DETACHED);
+		_pthread_attr_setdetachstate(&sn->sn_attr,
+		    PTHREAD_CREATE_DETACHED);
 		if (evp->sigev_notify_attributes)
 			attrcopy(evp->sigev_notify_attributes, &sn->sn_attr);
 		if (prev) {
@@ -222,14 +221,14 @@ __sigev_alloc(int type, const struct sigevent *evp, struct sigev_node *prev,
 
 void
 __sigev_get_sigevent(struct sigev_node *sn, struct sigevent *newevp,
-	sigev_id_t id)
+    sigev_id_t id)
 {
 	/*
 	 * Build a new sigevent, and tell kernel to deliver SIGLIBRT
 	 * signal to the new thread.
 	 */
 	newevp->sigev_notify = SIGEV_THREAD_ID;
-	newevp->sigev_signo  = SIGLIBRT;
+	newevp->sigev_signo = SIGLIBRT;
 	newevp->sigev_notify_thread_id = (lwpid_t)sn->sn_tn->tn_lwpid;
 	newevp->sigev_value.sival_ptr = (void *)id;
 }
@@ -247,7 +246,7 @@ __sigev_find(int type, sigev_id_t id)
 	struct sigev_node *sn;
 	int chain = HASH(type, id);
 
-	LIST_FOREACH(sn, &sigev_hash[chain], sn_link) {
+	LIST_FOREACH (sn, &sigev_hash[chain], sn_link) {
 		if (sn->sn_type == type && sn->sn_id == id)
 			break;
 	}
@@ -291,7 +290,7 @@ __sigev_delete_node(struct sigev_node *sn)
 static sigev_id_t
 sigev_get_id(siginfo_t *si)
 {
-	switch(si->si_code) {
+	switch (si->si_code) {
 	case SI_TIMER:
 		return (si->si_timerid);
 	case SI_MESGQ:
@@ -313,7 +312,7 @@ sigev_thread_create(int usedefault)
 		__sigev_list_lock();
 		sigev_default_thread->tn_refcount++;
 		__sigev_list_unlock();
-		return (sigev_default_thread);	
+		return (sigev_default_thread);
 	}
 
 	tn = malloc(sizeof(*tn));
@@ -327,7 +326,7 @@ sigev_thread_create(int usedefault)
 	LIST_INSERT_HEAD(&sigev_threads, tn, tn_link);
 	__sigev_list_unlock();
 
-	sigfillset(&set);	/* SIGLIBRT is masked. */
+	sigfillset(&set); /* SIGLIBRT is masked. */
 	sigdelset(&set, SIGBUS);
 	sigdelset(&set, SIGILL);
 	sigdelset(&set, SIGFPE);
@@ -335,7 +334,7 @@ sigev_thread_create(int usedefault)
 	sigdelset(&set, SIGTRAP);
 	_sigprocmask(SIG_SETMASK, &set, &oset);
 	ret = _pthread_create(&tn->tn_thread, &sigev_default_attr,
-		 sigev_service_loop, tn);
+	    sigev_service_loop, tn);
 	_sigprocmask(SIG_SETMASK, &oset, NULL);
 
 	if (ret != 0) {
@@ -402,7 +401,7 @@ sigev_service_loop(void *arg)
 			__sigev_list_unlock();
 			continue;
 		}
-	
+
 		sn->sn_info = si;
 		if (sn->sn_flags & SNF_SYNC)
 			tn->tn_cur = sn;
@@ -415,7 +414,7 @@ sigev_service_loop(void *arg)
 		if (ret != 0) {
 			if (failure++ < 5)
 				warnc(ret, "%s:%s failed to create thread.\n",
-					__FILE__, __func__);
+				    __FILE__, __func__);
 
 			__sigev_list_lock();
 			sn->sn_flags &= ~SNF_WORKING;

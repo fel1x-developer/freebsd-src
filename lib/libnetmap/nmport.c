@@ -28,18 +28,20 @@
  */
 
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
+
+#include <net/netmap_user.h>
+
+#include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <errno.h>
-#include <net/netmap_user.h>
 #define LIBNETMAP_NOTHREADSAFE
 #include "libnetmap.h"
 
@@ -66,7 +68,8 @@ nmport_pop_cleanup(struct nmport_d *d)
 	nmctx_free(d->ctx, top);
 }
 
-void nmport_do_cleanup(struct nmport_d *d)
+void
+nmport_do_cleanup(struct nmport_d *d)
 {
 	while (d->clist != NULL) {
 		nmport_pop_cleanup(d);
@@ -102,7 +105,6 @@ nmport_new(void)
 	return nmport_new_with_ctx(ctx);
 }
 
-
 void
 nmport_delete(struct nmport_d *d)
 {
@@ -122,7 +124,6 @@ nmport_extmem_cleanup(struct nmport_cleanup_d *c, struct nmport_d *d)
 	d->extmem = NULL;
 }
 
-
 int
 nmport_extmem(struct nmport_d *d, void *base, size_t size)
 {
@@ -130,7 +131,9 @@ nmport_extmem(struct nmport_d *d, void *base, size_t size)
 	struct nmport_cleanup_d *clnup = NULL;
 
 	if (d->register_done) {
-		nmctx_ferror(ctx, "%s: cannot set extmem of an already registered port", d->hdr.nr_name);
+		nmctx_ferror(ctx,
+		    "%s: cannot set extmem of an already registered port",
+		    d->hdr.nr_name);
 		errno = EINVAL;
 		return -1;
 	}
@@ -150,7 +153,8 @@ nmport_extmem(struct nmport_d *d, void *base, size_t size)
 
 	d->extmem = nmctx_malloc(ctx, sizeof(*d->extmem));
 	if (d->extmem == NULL) {
-		nmctx_ferror(ctx, "%s: cannot allocate extmem option", d->hdr.nr_name);
+		nmctx_ferror(ctx, "%s: cannot allocate extmem option",
+		    d->hdr.nr_name);
 		nmctx_free(ctx, clnup);
 		errno = ENOMEM;
 		return -1;
@@ -173,12 +177,12 @@ struct nmport_extmem_from_file_cleanup_d {
 	size_t size;
 };
 
-void nmport_extmem_from_file_cleanup(struct nmport_cleanup_d *c,
-		struct nmport_d *d)
+void
+nmport_extmem_from_file_cleanup(struct nmport_cleanup_d *c, struct nmport_d *d)
 {
 	(void)d;
 	struct nmport_extmem_from_file_cleanup_d *cc =
-		(struct nmport_extmem_from_file_cleanup_d *)c;
+	    (struct nmport_extmem_from_file_cleanup_d *)c;
 
 	munmap(cc->p, cc->size);
 }
@@ -201,17 +205,20 @@ nmport_extmem_from_file(struct nmport_d *d, const char *fname)
 
 	fd = open(fname, O_RDWR);
 	if (fd < 0) {
-		nmctx_ferror(ctx, "cannot open '%s': %s", fname, strerror(errno));
+		nmctx_ferror(ctx, "cannot open '%s': %s", fname,
+		    strerror(errno));
 		goto fail;
 	}
 	mapsize = lseek(fd, 0, SEEK_END);
 	if (mapsize < 0) {
-		nmctx_ferror(ctx, "failed to obtain filesize of '%s': %s", fname, strerror(errno));
+		nmctx_ferror(ctx, "failed to obtain filesize of '%s': %s",
+		    fname, strerror(errno));
 		goto fail;
 	}
 	p = mmap(0, mapsize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	if (p == MAP_FAILED) {
-		nmctx_ferror(ctx, "cannot mmap '%s': %s", fname, strerror(errno));
+		nmctx_ferror(ctx, "cannot mmap '%s': %s", fname,
+		    strerror(errno));
 		goto fail;
 	}
 	close(fd);
@@ -238,7 +245,7 @@ fail:
 	return -1;
 }
 
-struct nmreq_pools_info*
+struct nmreq_pools_info *
 nmport_extmem_getinfo(struct nmport_d *d)
 {
 	if (d->extmem == NULL)
@@ -252,19 +259,18 @@ struct nmport_offset_cleanup_d {
 };
 
 static void
-nmport_offset_cleanup(struct nmport_cleanup_d *c,
-		struct nmport_d *d)
+nmport_offset_cleanup(struct nmport_cleanup_d *c, struct nmport_d *d)
 {
-	struct nmport_offset_cleanup_d *cc =
-		(struct nmport_offset_cleanup_d *)c;
+	struct nmport_offset_cleanup_d *cc = (struct nmport_offset_cleanup_d *)
+	    c;
 
 	nmreq_remove_option(&d->hdr, &cc->opt->nro_opt);
 	nmctx_free(d->ctx, cc->opt);
 }
 
 int
-nmport_offset(struct nmport_d *d, uint64_t initial,
-		uint64_t maxoff, uint64_t bits, uint64_t mingap)
+nmport_offset(struct nmport_d *d, uint64_t initial, uint64_t maxoff,
+    uint64_t bits, uint64_t mingap)
 {
 	struct nmctx *ctx = d->ctx;
 	struct nmreq_opt_offsets *opt;
@@ -279,7 +285,8 @@ nmport_offset(struct nmport_d *d, uint64_t initial,
 
 	opt = nmctx_malloc(ctx, sizeof(*opt));
 	if (opt == NULL) {
-		nmctx_ferror(ctx, "%s: cannot allocate offset option", d->hdr.nr_name);
+		nmctx_ferror(ctx, "%s: cannot allocate offset option",
+		    d->hdr.nr_name);
 		nmctx_free(ctx, clnup);
 		errno = ENOMEM;
 		return -1;
@@ -302,25 +309,24 @@ nmport_offset(struct nmport_d *d, uint64_t initial,
 /* head of the list of options */
 static struct nmreq_opt_parser *nmport_opt_parsers;
 
-#define NPOPT_PARSER(o)		nmport_opt_##o##_parser
-#define NPOPT_DESC(o)		nmport_opt_##o##_desc
-#define NPOPT_NRKEYS(o)		(NPOPT_DESC(o).nr_keys)
-#define NPOPT_DECL(o, f)						\
-static int NPOPT_PARSER(o)(struct nmreq_parse_ctx *);			\
-static struct nmreq_opt_parser NPOPT_DESC(o) = {			\
-	.prefix = #o,							\
-	.parse = NPOPT_PARSER(o),					\
-	.flags = (f),							\
-	.default_key = -1,						\
-	.nr_keys = 0,							\
-	.next = NULL,							\
-};									\
-static void __attribute__((constructor))				\
-nmport_opt_##o##_ctor(void)						\
-{									\
-	NPOPT_DESC(o).next = nmport_opt_parsers;			\
-	nmport_opt_parsers = &NPOPT_DESC(o);				\
-}
+#define NPOPT_PARSER(o) nmport_opt_##o##_parser
+#define NPOPT_DESC(o) nmport_opt_##o##_desc
+#define NPOPT_NRKEYS(o) (NPOPT_DESC(o).nr_keys)
+#define NPOPT_DECL(o, f)                                                     \
+	static int NPOPT_PARSER(o)(struct nmreq_parse_ctx *);                \
+	static struct nmreq_opt_parser NPOPT_DESC(o) = {                     \
+		.prefix = #o,                                                \
+		.parse = NPOPT_PARSER(o),                                    \
+		.flags = (f),                                                \
+		.default_key = -1,                                           \
+		.nr_keys = 0,                                                \
+		.next = NULL,                                                \
+	};                                                                   \
+	static void __attribute__((constructor)) nmport_opt_##o##_ctor(void) \
+	{                                                                    \
+		NPOPT_DESC(o).next = nmport_opt_parsers;                     \
+		nmport_opt_parsers = &NPOPT_DESC(o);                         \
+	}
 struct nmport_key_desc {
 	struct nmreq_opt_parser *option;
 	const char *key;
@@ -342,47 +348,46 @@ nmport_opt_key_ctor(struct nmport_key_desc *k)
 	if (ok->flags & NMREQ_OPTK_DEFAULT)
 		o->default_key = ok->id;
 }
-#define NPKEY_DESC(o, k)	nmport_opt_##o##_key_##k##_desc
-#define NPKEY_ID(o, k)		(NPKEY_DESC(o, k).id)
-#define NPKEY_DECL(o, k, f)						\
-static struct nmport_key_desc NPKEY_DESC(o, k) = {			\
-	.option = &NPOPT_DESC(o),					\
-	.key = #k,							\
-	.flags = (f),							\
-	.id = -1,							\
-};									\
-static void __attribute__((constructor))				\
-nmport_opt_##o##_key_##k##_ctor(void)					\
-{									\
-	nmport_opt_key_ctor(&NPKEY_DESC(o, k));				\
-}
-#define nmport_key(p, o, k)	((p)->keys[NPKEY_ID(o, k)])
-#define nmport_defkey(p, o)	((p)->keys[NPOPT_DESC(o).default_key])
+#define NPKEY_DESC(o, k) nmport_opt_##o##_key_##k##_desc
+#define NPKEY_ID(o, k) (NPKEY_DESC(o, k).id)
+#define NPKEY_DECL(o, k, f)                                \
+	static struct nmport_key_desc NPKEY_DESC(o, k) = { \
+		.option = &NPOPT_DESC(o),                  \
+		.key = #k,                                 \
+		.flags = (f),                              \
+		.id = -1,                                  \
+	};                                                 \
+	static void __attribute__((constructor))           \
+	nmport_opt_##o##_key_##k##_ctor(void)              \
+	{                                                  \
+		nmport_opt_key_ctor(&NPKEY_DESC(o, k));    \
+	}
+#define nmport_key(p, o, k) ((p)->keys[NPKEY_ID(o, k)])
+#define nmport_defkey(p, o) ((p)->keys[NPOPT_DESC(o).default_key])
 
 NPOPT_DECL(share, 0)
-	NPKEY_DECL(share, port, NMREQ_OPTK_DEFAULT|NMREQ_OPTK_MUSTSET)
+NPKEY_DECL(share, port, NMREQ_OPTK_DEFAULT | NMREQ_OPTK_MUSTSET)
 NPOPT_DECL(extmem, 0)
-	NPKEY_DECL(extmem, file, NMREQ_OPTK_DEFAULT|NMREQ_OPTK_MUSTSET)
-	NPKEY_DECL(extmem, if_num, 0)
-	NPKEY_DECL(extmem, if_size, 0)
-	NPKEY_DECL(extmem, ring_num, 0)
-	NPKEY_DECL(extmem, ring_size, 0)
-	NPKEY_DECL(extmem, buf_num, 0)
-	NPKEY_DECL(extmem, buf_size, 0)
+NPKEY_DECL(extmem, file, NMREQ_OPTK_DEFAULT | NMREQ_OPTK_MUSTSET)
+NPKEY_DECL(extmem, if_num, 0)
+NPKEY_DECL(extmem, if_size, 0)
+NPKEY_DECL(extmem, ring_num, 0)
+NPKEY_DECL(extmem, ring_size, 0)
+NPKEY_DECL(extmem, buf_num, 0)
+NPKEY_DECL(extmem, buf_size, 0)
 NPOPT_DECL(conf, 0)
-	NPKEY_DECL(conf, rings, 0)
-	NPKEY_DECL(conf, host_rings, 0)
-	NPKEY_DECL(conf, slots, 0)
-	NPKEY_DECL(conf, tx_rings, 0)
-	NPKEY_DECL(conf, rx_rings, 0)
-	NPKEY_DECL(conf, host_tx_rings, 0)
-	NPKEY_DECL(conf, host_rx_rings, 0)
-	NPKEY_DECL(conf, tx_slots, 0)
-	NPKEY_DECL(conf, rx_slots, 0)
+NPKEY_DECL(conf, rings, 0)
+NPKEY_DECL(conf, host_rings, 0)
+NPKEY_DECL(conf, slots, 0)
+NPKEY_DECL(conf, tx_rings, 0)
+NPKEY_DECL(conf, rx_rings, 0)
+NPKEY_DECL(conf, host_tx_rings, 0)
+NPKEY_DECL(conf, host_rx_rings, 0)
+NPKEY_DECL(conf, tx_slots, 0)
+NPKEY_DECL(conf, rx_slots, 0)
 NPOPT_DECL(offset, NMREQ_OPTF_DISABLED)
-	NPKEY_DECL(offset, initial, NMREQ_OPTK_DEFAULT|NMREQ_OPTK_MUSTSET)
-	NPKEY_DECL(offset, bits, 0)
-
+NPKEY_DECL(offset, initial, NMREQ_OPTK_DEFAULT | NMREQ_OPTK_MUSTSET)
+NPKEY_DECL(offset, bits, 0)
 
 static int
 NPOPT_PARSER(share)(struct nmreq_parse_ctx *p)
@@ -396,8 +401,10 @@ NPOPT_PARSER(share)(struct nmreq_parse_ctx *p)
 	if (mem_id < 0)
 		return -1;
 	if (d->reg.nr_mem_id && d->reg.nr_mem_id != mem_id) {
-		nmctx_ferror(ctx, "cannot set mem_id to %"PRId32", already set to %"PRIu16"",
-				mem_id, d->reg.nr_mem_id);
+		nmctx_ferror(ctx,
+		    "cannot set mem_id to %" PRId32 ", already set to %" PRIu16
+		    "",
+		    mem_id, d->reg.nr_mem_id);
 		errno = EINVAL;
 		return -1;
 	}
@@ -419,7 +426,7 @@ NPOPT_PARSER(extmem)(struct nmreq_parse_ctx *p)
 
 	pi = &d->extmem->nro_info;
 
-	for  (i = 0; i < NPOPT_NRKEYS(extmem); i++) {
+	for (i = 0; i < NPOPT_NRKEYS(extmem); i++) {
 		const char *k = p->keys[i];
 		uint32_t v;
 
@@ -473,10 +480,12 @@ NPOPT_PARSER(conf)(struct nmreq_parse_ctx *p)
 		d->reg.nr_rx_rings = atoi(nmport_key(p, conf, rx_rings));
 	}
 	if (nmport_key(p, conf, host_tx_rings) != NULL) {
-		d->reg.nr_host_tx_rings = atoi(nmport_key(p, conf, host_tx_rings));
+		d->reg.nr_host_tx_rings = atoi(
+		    nmport_key(p, conf, host_tx_rings));
 	}
 	if (nmport_key(p, conf, host_rx_rings) != NULL) {
-		d->reg.nr_host_rx_rings = atoi(nmport_key(p, conf, host_rx_rings));
+		d->reg.nr_host_rx_rings = atoi(
+		    nmport_key(p, conf, host_rx_rings));
 	}
 	if (nmport_key(p, conf, tx_slots) != NULL) {
 		d->reg.nr_tx_slots = atoi(nmport_key(p, conf, tx_slots));
@@ -502,7 +511,6 @@ NPOPT_PARSER(offset)(struct nmreq_parse_ctx *p)
 
 	return nmport_offset(d, initial, initial, bits, 0);
 }
-
 
 void
 nmport_disable_option(const char *opt)
@@ -530,7 +538,6 @@ nmport_enable_option(const char *opt)
 	errno = EOPNOTSUPP;
 	return -1;
 }
-
 
 int
 nmport_parse(struct nmport_d *d, const char *ifname)
@@ -616,18 +623,19 @@ nmport_register(struct nmport_d *d)
 		struct nmreq_option *o;
 		int option_errors = 0;
 
-		nmreq_foreach_option(&d->hdr, o) {
+		nmreq_foreach_option(&d->hdr, o)
+		{
 			if (o->nro_status) {
 				nmctx_ferror(ctx, "%s: option %s: %s",
-						d->hdr.nr_name,
-						nmreq_option_name(o->nro_reqtype),
-						strerror(o->nro_status));
+				    d->hdr.nr_name,
+				    nmreq_option_name(o->nro_reqtype),
+				    strerror(o->nro_status));
 				option_errors++;
 			}
-
 		}
 		if (!option_errors)
-			nmctx_ferror(ctx, "%s: %s", d->hdr.nr_name, strerror(errno));
+			nmctx_ferror(ctx, "%s: %s", d->hdr.nr_name,
+			    strerror(errno));
 		goto err;
 	}
 
@@ -690,8 +698,8 @@ nmport_mmap(struct nmport_d *d)
 			m->size = d->extmem->nro_info.nr_memsize;
 			m->is_extmem = 1;
 		} else {
-			m->mem = mmap(NULL, d->reg.nr_memsize, PROT_READ|PROT_WRITE,
-					MAP_SHARED, d->fd, 0);
+			m->mem = mmap(NULL, d->reg.nr_memsize,
+			    PROT_READ | PROT_WRITE, MAP_SHARED, d->fd, 0);
 			if (m->mem == MAP_FAILED) {
 				nmctx_ferror(ctx, "mmap: %s", strerror(errno));
 				goto err;
@@ -716,7 +724,7 @@ nmport_mmap(struct nmport_d *d)
 	for (i = 0; i < num_tx && !d->nifp->ring_ofs[i]; i++)
 		;
 	d->cur_tx_ring = d->first_tx_ring = i;
-	for ( ; i < num_tx && d->nifp->ring_ofs[i]; i++)
+	for (; i < num_tx && d->nifp->ring_ofs[i]; i++)
 		;
 	d->last_tx_ring = i - 1;
 
@@ -724,7 +732,7 @@ nmport_mmap(struct nmport_d *d)
 	for (i = 0; i < num_rx && !d->nifp->ring_ofs[i + num_tx]; i++)
 		;
 	d->cur_rx_ring = d->first_rx_ring = i;
-	for ( ; i < num_rx && d->nifp->ring_ofs[i + num_tx]; i++)
+	for (; i < num_rx && d->nifp->ring_ofs[i + num_tx]; i++)
 		;
 	d->last_rx_ring = i - 1;
 
@@ -796,7 +804,6 @@ nmport_undo_open_desc(struct nmport_d *d)
 	nmport_undo_register(d);
 }
 
-
 struct nmport_d *
 nmport_open(const char *ifname)
 {
@@ -837,7 +844,8 @@ nmport_clone(struct nmport_d *d)
 
 	if (d->extmem != NULL && !d->register_done) {
 		errno = EINVAL;
-		nmctx_ferror(ctx, "cannot clone unregistered port that is using extmem");
+		nmctx_ferror(ctx,
+		    "cannot clone unregistered port that is using extmem");
 		return NULL;
 	}
 
@@ -872,9 +880,9 @@ int
 nmport_inject(struct nmport_d *d, const void *buf, size_t size)
 {
 	u_int c, n = d->last_tx_ring - d->first_tx_ring + 1,
-		ri = d->cur_tx_ring;
+		 ri = d->cur_tx_ring;
 
-	for (c = 0; c < n ; c++, ri++) {
+	for (c = 0; c < n; c++, ri++) {
 		/* compute current ring to use */
 		struct netmap_ring *ring;
 		uint32_t i, j, idx;
@@ -896,7 +904,8 @@ nmport_inject(struct nmport_d *d, const void *buf, size_t size)
 			idx = ring->slot[i].buf_idx;
 			ring->slot[i].len = ring->nr_buf_size;
 			ring->slot[i].flags = NS_MOREFRAG;
-			nm_pkt_copy(buf, NETMAP_BUF(ring, idx), ring->nr_buf_size);
+			nm_pkt_copy(buf, NETMAP_BUF(ring, idx),
+			    ring->nr_buf_size);
 			i = nm_ring_next(ring, i);
 			buf = (char *)buf + ring->nr_buf_size;
 		}

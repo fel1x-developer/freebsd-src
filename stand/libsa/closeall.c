@@ -27,6 +27,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "stand.h"
 
 void

@@ -31,45 +31,39 @@
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
-#include <machine/bus.h>
 
-#include <dev/fdt/simplebus.h>
+#include <machine/bus.h>
 
 #include <dev/clk/clk.h>
 #include <dev/clk/clk_fixed.h>
-#include <dev/syscon/syscon.h>
-
+#include <dev/fdt/simplebus.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/syscon/syscon.h>
 
 #include "syscon_if.h"
 
-#define BIT(x)			(1 << (x))
+#define BIT(x) (1 << (x))
 
-#define NB_GPIO1_PIN_LT_L	0x8
-#define NB_GPIO1_MPP1_9		BIT(9)
+#define NB_GPIO1_PIN_LT_L 0x8
+#define NB_GPIO1_MPP1_9 BIT(9)
 
 struct a37x0_xtal_softc {
-	device_t 		dev;
-	struct clkdom		*clkdom;
+	device_t dev;
+	struct clkdom *clkdom;
 };
 
 static int a37x0_xtal_attach(device_t dev);
 static int a37x0_xtal_detach(device_t dev);
 static int a37x0_xtal_probe(device_t dev);
 
-static device_method_t a37x0_xtal_methods [] = {
-	DEVMETHOD(device_probe, 	a37x0_xtal_probe),
-	DEVMETHOD(device_attach, 	a37x0_xtal_attach),
-	DEVMETHOD(device_detach, 	a37x0_xtal_detach),
-	DEVMETHOD_END
-};
+static device_method_t a37x0_xtal_methods[] = { DEVMETHOD(device_probe,
+						    a37x0_xtal_probe),
+	DEVMETHOD(device_attach, a37x0_xtal_attach),
+	DEVMETHOD(device_detach, a37x0_xtal_detach), DEVMETHOD_END };
 
-static driver_t a37x0_xtal_driver = {
-	"a37x0-xtal",
-	a37x0_xtal_methods,
-	sizeof(struct a37x0_xtal_softc)
-};
+static driver_t a37x0_xtal_driver = { "a37x0-xtal", a37x0_xtal_methods,
+	sizeof(struct a37x0_xtal_softc) };
 
 EARLY_DRIVER_MODULE(a37x0_xtal, simplebus, a37x0_xtal_driver, 0, 0,
     BUS_PASS_TIMER + BUS_PASS_ORDER_EARLY);
@@ -92,7 +86,7 @@ a37x0_xtal_attach(device_t dev)
 	def.mult = 0;
 	def.div = 0;
 
-	if (SYSCON_GET_HANDLE(dev, &syscon) != 0 || syscon == NULL){
+	if (SYSCON_GET_HANDLE(dev, &syscon) != 0 || syscon == NULL) {
 		device_printf(dev, "Cannot get syscon driver handle\n");
 		return (ENXIO);
 	}
@@ -105,14 +99,15 @@ a37x0_xtal_attach(device_t dev)
 
 	sc->clkdom = clkdom_create(dev);
 	error = clknode_fixed_register(sc->clkdom, &def);
-	if (error){
+	if (error) {
 		device_printf(dev, "Cannot register clock node\n");
 		return (ENXIO);
 	}
 
 	error = clkdom_finit(sc->clkdom);
-	if (error){
-		device_printf(dev, "Cannot finalize clock domain initialization\n");
+	if (error) {
+		device_printf(dev,
+		    "Cannot finalize clock domain initialization\n");
 		return (ENXIO);
 	}
 

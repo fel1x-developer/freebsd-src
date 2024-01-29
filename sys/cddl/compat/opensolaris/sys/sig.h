@@ -25,19 +25,19 @@
  */
 
 #ifndef _OPENSOLARIS_SYS_SIG_H_
-#define	_OPENSOLARIS_SYS_SIG_H_
+#define _OPENSOLARIS_SYS_SIG_H_
 
 #ifdef _KERNEL
 
 #include <sys/param.h>
+#include <sys/debug.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/signalvar.h>
-#include <sys/debug.h>
 
-#define	FORREAL		0
-#define	JUSTLOOKING	1
+#define FORREAL 0
+#define JUSTLOOKING 1
 
 static __inline int
 issig(int why)
@@ -62,6 +62,6 @@ issig(int why)
 	return (0);
 }
 
-#endif	/* _KERNEL */
+#endif /* _KERNEL */
 
-#endif	/* _OPENSOLARIS_SYS_SIG_H_ */
+#endif /* _OPENSOLARIS_SYS_SIG_H_ */

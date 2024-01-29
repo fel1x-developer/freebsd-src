@@ -27,7 +27,7 @@
  */
 
 #ifndef _PS2KBD_H_
-#define	_PS2KBD_H_
+#define _PS2KBD_H_
 
 struct atkbdc_softc;
 struct vm_snapshot_meta;

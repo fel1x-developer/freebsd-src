@@ -26,7 +26,7 @@
  */
 #pragma once
 
-#define	FXRNG_NPOOLS	8
+#define FXRNG_NPOOLS 8
 
 bool fxrng_alg_seeded(void);
 struct harvest_event;

@@ -31,8 +31,8 @@
  */
 
 #include <sys/cdefs.h>
-#include <dev/isci/isci.h>
 
+#include <dev/isci/isci.h>
 #include <dev/isci/scil/scif_controller.h>
 #include <dev/isci/scil/scif_user_callback.h>
 
@@ -80,7 +80,7 @@ scif_cb_task_request_complete(SCI_CONTROLLER_HANDLE_T controller,
  * @todo This should be U64?
  */
 uint32_t
-scif_cb_task_request_get_lun(void * scif_user_task_request)
+scif_cb_task_request_get_lun(void *scif_user_task_request)
 {
 
 	/* Currently we are only doing hard resets, not LUN resets.  So
@@ -106,7 +106,8 @@ scif_cb_task_request_get_lun(void * scif_user_task_request)
  * @return This method returns an unsigned byte representing the task
  *         management function to be performed.
  */
-uint8_t scif_cb_task_request_get_function(void * scif_user_task_request)
+uint8_t
+scif_cb_task_request_get_function(void *scif_user_task_request)
 {
 	/* SCIL supports many types of task management functions, but this
 	 *  driver only uses HARD_RESET.
@@ -127,7 +128,7 @@ uint8_t scif_cb_task_request_get_function(void * scif_user_task_request)
  *         tag to be managed.
  */
 uint16_t
-scif_cb_task_request_get_io_tag_to_manage(void * scif_user_task_request)
+scif_cb_task_request_get_io_tag_to_manage(void *scif_user_task_request)
 {
 
 	return (0);
@@ -145,10 +146,10 @@ scif_cb_task_request_get_io_tag_to_manage(void * scif_user_task_request)
  *         associated with this IO request.
  */
 void *
-scif_cb_task_request_get_response_data_address(void * scif_user_task_request)
+scif_cb_task_request_get_response_data_address(void *scif_user_task_request)
 {
-	struct ISCI_TASK_REQUEST *task_request =
-	    (struct ISCI_TASK_REQUEST *)scif_user_task_request;
+	struct ISCI_TASK_REQUEST *task_request = (struct ISCI_TASK_REQUEST *)
+	    scif_user_task_request;
 
 	return (&task_request->sense_data);
 }
@@ -165,7 +166,7 @@ scif_cb_task_request_get_response_data_address(void * scif_user_task_request)
  *         associated with this IO request.
  */
 uint32_t
-scif_cb_task_request_get_response_data_length(void * scif_user_task_request)
+scif_cb_task_request_get_response_data_length(void *scif_user_task_request)
 {
 
 	return (sizeof(struct scsi_sense_data));
@@ -177,11 +178,13 @@ isci_task_request_complete(SCI_CONTROLLER_HANDLE_T scif_controller,
     SCI_TASK_REQUEST_HANDLE_T task_request, SCI_TASK_STATUS completion_status)
 {
 	struct ISCI_TASK_REQUEST *isci_task_request =
-		(struct ISCI_TASK_REQUEST *)sci_object_get_association(task_request);
-	struct ISCI_CONTROLLER *isci_controller =
-		(struct ISCI_CONTROLLER *)sci_object_get_association(scif_controller);
+	    (struct ISCI_TASK_REQUEST *)sci_object_get_association(
+		task_request);
+	struct ISCI_CONTROLLER *isci_controller = (struct ISCI_CONTROLLER *)
+	    sci_object_get_association(scif_controller);
 	struct ISCI_REMOTE_DEVICE *isci_remote_device =
-		(struct ISCI_REMOTE_DEVICE *)sci_object_get_association(remote_device);
+	    (struct ISCI_REMOTE_DEVICE *)sci_object_get_association(
+		remote_device);
 	struct ISCI_REMOTE_DEVICE *pending_remote_device;
 	BOOL retry_task = FALSE;
 	union ccb *ccb = isci_task_request->ccb;
@@ -274,4 +277,3 @@ isci_task_request_complete(SCI_CONTROLLER_HANDLE_T scif_controller,
 		}
 	}
 }
-

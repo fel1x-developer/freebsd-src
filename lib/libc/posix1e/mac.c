@@ -35,6 +35,7 @@
  */
 
 #include <sys/types.h>
+#include <sys/mac.h>
 #include <sys/queue.h>
 #include <sys/sysctl.h>
 
@@ -46,9 +47,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <sys/mac.h>
-
-static int	internal_initialized;
+static int internal_initialized;
 
 /*
  * Maintain a list of default label preparations for various object
@@ -58,9 +57,9 @@ static int	internal_initialized;
  */
 static LIST_HEAD(, label_default) label_default_head;
 struct label_default {
-	char				*ld_name;
-	char				*ld_labels;
-	LIST_ENTRY(label_default)	 ld_entries;
+	char *ld_name;
+	char *ld_labels;
+	LIST_ENTRY(label_default) ld_entries;
 };
 
 static void
@@ -119,7 +118,7 @@ mac_add_type(const char *name, const char *labels)
 	 * rather than add a new instance.
 	 */
 	for (ld = LIST_FIRST(&label_default_head); ld != NULL;
-	    ld = LIST_NEXT(ld, ld_entries)) {
+	     ld = LIST_NEXT(ld, ld_entries)) {
 		if (strcmp(name, ld->ld_name) == 0)
 			break;
 	}
@@ -184,8 +183,8 @@ mac_init_internal(int ignore_errors)
 	while (fgets(line, LINE_MAX, file)) {
 		char *comment, *parse, *statement;
 
-		if (line[strlen(line)-1] == '\n')
-			line[strlen(line)-1] = '\0';
+		if (line[strlen(line) - 1] == '\n')
+			line[strlen(line) - 1] = '\0';
 		else {
 			if (ignore_errors)
 				continue;
@@ -304,7 +303,7 @@ int
 mac_from_text(struct mac **mac, const char *text)
 {
 
-	*mac = (struct mac *) malloc(sizeof(**mac));
+	*mac = (struct mac *)malloc(sizeof(**mac));
 	if (*mac == NULL)
 		return (ENOMEM);
 
@@ -315,7 +314,7 @@ mac_from_text(struct mac **mac, const char *text)
 		return (ENOMEM);
 	}
 
-	(*mac)->m_buflen = strlen((*mac)->m_string)+1;
+	(*mac)->m_buflen = strlen((*mac)->m_string) + 1;
 
 	return (0);
 }
@@ -337,7 +336,7 @@ mac_prepare(struct mac **mac, const char *elements)
 	if (strlen(elements) >= MAC_MAX_LABEL_BUF_LEN)
 		return (EINVAL);
 
-	*mac = (struct mac *) malloc(sizeof(**mac));
+	*mac = (struct mac *)malloc(sizeof(**mac));
 	if (*mac == NULL)
 		return (ENOMEM);
 
@@ -365,13 +364,13 @@ mac_prepare_type(struct mac **mac, const char *name)
 		return (error);
 
 	for (ld = LIST_FIRST(&label_default_head); ld != NULL;
-	    ld = LIST_NEXT(ld, ld_entries)) {
+	     ld = LIST_NEXT(ld, ld_entries)) {
 		if (strcmp(name, ld->ld_name) == 0)
 			return (mac_prepare(mac, ld->ld_labels));
 	}
 
 	errno = ENOENT;
-	return (-1);		/* XXXMAC: ENOLABEL */
+	return (-1); /* XXXMAC: ENOLABEL */
 }
 
 int

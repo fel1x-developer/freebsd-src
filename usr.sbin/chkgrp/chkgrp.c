@@ -29,17 +29,18 @@
  */
 
 #include <sys/cdefs.h>
+
+#include <ctype.h>
 #include <err.h>
 #include <errno.h>
-#include <ctype.h>
 #include <inttypes.h>
 #include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <sysexits.h>
+#include <unistd.h>
 
 static void __dead2
 usage(void)
@@ -94,12 +95,13 @@ main(int argc, char *argv[])
 			warnx("%s: line %d: no newline character", gfn, n);
 			e = 1;
 		}
-		while (len && isspace(line[len-1]))
+		while (len && isspace(line[len - 1]))
 			len--;
 
 		/* ignore blank lines and comments */
 		for (p = line; p < line + len; p++)
-			if (!isspace(*p)) break;
+			if (!isspace(*p))
+				break;
 		if (!len || *p == '#')
 			continue;
 
@@ -117,7 +119,7 @@ main(int argc, char *argv[])
 		 */
 		for (i = k = 0; k < 4; k++) {
 			for (f[k] = line + i; i < len && line[i] != ':'; i++)
-				/* nothing */ ;
+				/* nothing */;
 			if (k < 3 && line[i] != ':')
 				break;
 			line[i++] = 0;
@@ -130,7 +132,7 @@ main(int argc, char *argv[])
 			e = 1;
 		}
 
-		for (cp = f[0] ; *cp ; cp++) {
+		for (cp = f[0]; *cp; cp++) {
 			if (!isalnum(*cp) && *cp != '.' && *cp != '_' &&
 			    *cp != '-' && (cp > f[0] || *cp != '+')) {
 				warnx("%s: line %d: '%c' invalid character",
@@ -139,7 +141,7 @@ main(int argc, char *argv[])
 			}
 		}
 
-		for (cp = f[3] ; *cp ; cp++) {
+		for (cp = f[3]; *cp; cp++) {
 			if (!isalnum(*cp) && *cp != '.' && *cp != '_' &&
 			    *cp != '-' && *cp != ',') {
 				warnx("%s: line %d: '%c' invalid character",
@@ -153,12 +155,13 @@ main(int argc, char *argv[])
 			warnx("%s: line %d: too many fields", gfn, n);
 			e = 1;
 		}
-	
+
 		/* check that none of the fields contain whitespace */
 		for (k = 0; k < 4; k++) {
 			if (strcspn(f[k], " \t") != strlen(f[k])) {
-				warnx("%s: line %d: field %d contains whitespace",
-				    gfn, n, k+1);
+				warnx(
+				    "%s: line %d: field %d contains whitespace",
+				    gfn, n, k + 1);
 				e = 1;
 			}
 		}

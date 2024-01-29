@@ -30,7 +30,7 @@
  */
 
 #ifndef DRM_GEM_NAMES_H
-#define	DRM_GEM_NAMES_H
+#define DRM_GEM_NAMES_H
 
 #include <sys/types.h>
 #include <sys/lock.h>

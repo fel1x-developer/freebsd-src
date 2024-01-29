@@ -25,25 +25,25 @@
  */
 
 #ifndef _MKIMG_MKIMG_H_
-#define	_MKIMG_MKIMG_H_
+#define _MKIMG_MKIMG_H_
 
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/queue.h>
 
 struct part {
 	TAILQ_ENTRY(part) link;
-	char	*alias;		/* Partition type alias. */
-	char	*contents;	/* Contents/size specification. */
-	u_int	kind;		/* Content kind. */
-#define	PART_UNDEF	0
-#define	PART_KIND_FILE	1
-#define	PART_KIND_PIPE	2
-#define	PART_KIND_SIZE	3
-	u_int	index;		/* Partition index (0-based). */
-	uintptr_t type;		/* Scheme-specific partition type. */
-	lba_t	block;		/* Block-offset of partition in image. */
-	lba_t	size;		/* Size in blocks of partition. */
-	char	*label;		/* Partition label. */
+	char *alias;	/* Partition type alias. */
+	char *contents; /* Contents/size specification. */
+	u_int kind;	/* Content kind. */
+#define PART_UNDEF 0
+#define PART_KIND_FILE 1
+#define PART_KIND_PIPE 2
+#define PART_KIND_SIZE 3
+	u_int index;	/* Partition index (0-based). */
+	uintptr_t type; /* Scheme-specific partition type. */
+	lba_t block;	/* Block-offset of partition in image. */
+	lba_t size;	/* Size in blocks of partition. */
+	char *label;	/* Partition label. */
 };
 
 extern TAILQ_HEAD(partlisthead, part) partlist;
@@ -55,8 +55,8 @@ extern u_int verbose;
 extern u_int ncyls;
 extern u_int nheads;
 extern u_int nsecs;
-extern u_int secsz;	/* Logical block size. */
-extern u_int blksz;	/* Physical block size. */
+extern u_int secsz; /* Logical block size. */
+extern u_int blksz; /* Physical block size. */
 extern uint32_t active_partition;
 
 static inline lba_t
@@ -82,7 +82,7 @@ round_track(lba_t n)
 }
 
 #if !defined(SPARSE_WRITE)
-#define	sparse_write	write
+#define sparse_write write
 #else
 ssize_t sparse_write(int, const void *, size_t);
 #endif
@@ -90,12 +90,12 @@ ssize_t sparse_write(int, const void *, size_t);
 void mkimg_chs(lba_t, u_int, u_int *, u_int *, u_int *);
 
 struct mkimg_uuid {
-	uint32_t	time_low;
-	uint16_t	time_mid;
-	uint16_t	time_hi_and_version;
-	uint8_t		clock_seq_hi_and_reserved;
-	uint8_t		clock_seq_low;
-	uint8_t		node[6];
+	uint32_t time_low;
+	uint16_t time_mid;
+	uint16_t time_hi_and_version;
+	uint8_t clock_seq_hi_and_reserved;
+	uint8_t clock_seq_low;
+	uint8_t node[6];
 };
 typedef struct mkimg_uuid mkimg_uuid_t;
 
@@ -103,9 +103,9 @@ void mkimg_uuid(mkimg_uuid_t *);
 void mkimg_uuid_enc(void *, const mkimg_uuid_t *);
 
 #ifdef __linux__
-# if !defined(__unused)
-#   define __unused __attribute__ ((__unused__))
-# endif
+#if !defined(__unused)
+#define __unused __attribute__((__unused__))
+#endif
 #endif
 
 #endif /* _MKIMG_MKIMG_H_ */

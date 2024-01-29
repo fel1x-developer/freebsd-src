@@ -32,15 +32,14 @@
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/lock.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 
-#include <dev/ofw/openfirm.h>
+#include <dev/gpio/gpiobusvar.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/gpio/gpiobusvar.h>
+#include <dev/ofw/openfirm.h>
 
 #include "pl061.h"
 
@@ -78,8 +77,8 @@ pl061_fdt_attach(device_t dev)
 
 static device_method_t pl061_fdt_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		pl061_fdt_probe),
-	DEVMETHOD(device_attach,	pl061_fdt_attach),
+	DEVMETHOD(device_probe, pl061_fdt_probe),
+	DEVMETHOD(device_attach, pl061_fdt_attach),
 
 	DEVMETHOD_END
 };

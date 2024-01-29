@@ -40,18 +40,17 @@
  * that rint won't raise any floating-point exceptions. Declaring ret volatile
  * is sufficient to trick the compiler into doing the right thing.
  */
-#define	DECL(type, fn, rint)	\
-type				\
-fn(type x)			\
-{				\
-	volatile type ret;	\
-	fenv_t env;		\
-				\
-	fegetenv(&env);		\
-	ret = rint(x);		\
-	fesetenv(&env);		\
-	return (ret);		\
-}
+#define DECL(type, fn, rint)       \
+	type fn(type x)            \
+	{                          \
+		volatile type ret; \
+		fenv_t env;        \
+                                   \
+		fegetenv(&env);    \
+		ret = rint(x);     \
+		fesetenv(&env);    \
+		return (ret);      \
+	}
 
 DECL(double, nearbyint, rint)
 DECL(float, nearbyintf, rintf)

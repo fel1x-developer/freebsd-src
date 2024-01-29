@@ -33,17 +33,20 @@
  */
 #include <sys/types.h>
 #include <sys/mman.h>
+
 #include <machine/atomic.h>
+
 #include <dlfcn.h>
 #include <link.h>
+#include <pthread.h>
 #include <stddef.h>
 #include <string.h>
-#include "namespace.h"
-#include <pthread.h>
-#include "un-namespace.h"
-#include "rtld.h"
+
 #include "libc_private.h"
+#include "namespace.h"
 #include "reentrant.h"
+#include "rtld.h"
+#include "un-namespace.h"
 
 static const char sorry[] = "Service unavailable";
 
@@ -95,8 +98,7 @@ dlerror(void)
 
 #pragma weak dllockinit
 void
-dllockinit(void *context,
-    void *(*lock_create)(void *context) __unused,
+dllockinit(void *context, void *(*lock_create)(void *context)__unused,
     void (*rlock_acquire)(void *lock) __unused,
     void (*wlock_acquire)(void *lock) __unused,
     void (*lock_release)(void *lock) __unused,
@@ -119,7 +121,7 @@ dlopen(const char *name __unused, int mode __unused)
 
 #pragma weak dlsym
 void *
-dlsym(void * __restrict handle __unused, const char * __restrict name __unused)
+dlsym(void *__restrict handle __unused, const char *__restrict name __unused)
 {
 
 	_rtld_error(sorry);
@@ -128,7 +130,7 @@ dlsym(void * __restrict handle __unused, const char * __restrict name __unused)
 
 #pragma weak dlfunc
 dlfunc_t
-dlfunc(void * __restrict handle __unused, const char * __restrict name __unused)
+dlfunc(void *__restrict handle __unused, const char *__restrict name __unused)
 {
 
 	_rtld_error(sorry);
@@ -137,8 +139,8 @@ dlfunc(void * __restrict handle __unused, const char * __restrict name __unused)
 
 #pragma weak dlvsym
 void *
-dlvsym(void * __restrict handle __unused, const char * __restrict name __unused,
-    const char * __restrict version __unused)
+dlvsym(void *__restrict handle __unused, const char *__restrict name __unused,
+    const char *__restrict version __unused)
 {
 
 	_rtld_error(sorry);
@@ -147,8 +149,8 @@ dlvsym(void * __restrict handle __unused, const char * __restrict name __unused,
 
 #pragma weak dlinfo
 int
-dlinfo(void * __restrict handle __unused, int request __unused,
-    void * __restrict p __unused)
+dlinfo(void *__restrict handle __unused, int request __unused,
+    void *__restrict p __unused)
 {
 
 	_rtld_error(sorry);
@@ -185,8 +187,8 @@ dl_init_phdr_info(void)
 			phdr_info.dlpi_name = (const char *)auxp->a_un.a_ptr;
 			break;
 		case AT_PHDR:
-			phdr_info.dlpi_phdr =
-			    (const Elf_Phdr *)auxp->a_un.a_ptr;
+			phdr_info.dlpi_phdr = (const Elf_Phdr *)
+						  auxp->a_un.a_ptr;
 			break;
 		case AT_PHNUM:
 			phdr_info.dlpi_phnum = (Elf_Half)auxp->a_un.a_val;
@@ -273,8 +275,8 @@ _rtld_addr_phdr_cb(struct dl_phdr_info *dli, size_t sz, void *arg)
 		ph = &dli->dlpi_phdr[i];
 		if (ph->p_type == PT_LOAD &&
 		    dli->dlpi_addr + ph->p_vaddr <= (uintptr_t)rd->addr &&
-		    (uintptr_t)rd->addr < dli->dlpi_addr + ph->p_vaddr +
-		    ph->p_memsz) {
+		    (uintptr_t)rd->addr <
+			dli->dlpi_addr + ph->p_vaddr + ph->p_memsz) {
 			memcpy(rd->dli, dli, sz);
 			return (1);
 		}

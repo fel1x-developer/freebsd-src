@@ -30,9 +30,9 @@
  */
 
 #include <sys/param.h>
+#include <sys/file.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/file.h>
 #include <sys/wait.h>
 
 #include <netinet/in.h>
@@ -43,26 +43,28 @@
 #include <netdb.h>
 #include <paths.h>
 #include <pwd.h>
-#include <termios.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
+#include <termios.h>
 #include <unistd.h>
 #include <utmpx.h>
 
-static int	debug = 0;
-#define	dsyslog	if (debug) syslog
+static int debug = 0;
+#define dsyslog    \
+	if (debug) \
+	syslog
 
-#define MAXIDLE	120
+#define MAXIDLE 120
 
-static char	hostname[MAXHOSTNAMELEN];
+static char hostname[MAXHOSTNAMELEN];
 
-static void	jkfprintf(FILE *, char[], char[], off_t);
-static void	mailfor(char *);
-static void	notify(struct utmpx *, char[], off_t, int);
-static void	reapchildren(int);
+static void jkfprintf(FILE *, char[], char[], off_t);
+static void mailfor(char *);
+static void notify(struct utmpx *, char[], off_t, int);
+static void reapchildren(int);
 
 int
 main(int argc __unused, char *argv[] __unused)
@@ -79,7 +81,7 @@ main(int argc __unused, char *argv[] __unused)
 	openlog("comsat", LOG_PID, LOG_DAEMON);
 	if (chdir(_PATH_MAILDIR)) {
 		syslog(LOG_ERR, "chdir: %s: %m", _PATH_MAILDIR);
-		(void) recv(0, msgbuf, sizeof(msgbuf) - 1, 0);
+		(void)recv(0, msgbuf, sizeof(msgbuf) - 1, 0);
 		exit(1);
 	}
 	(void)gethostname(hostname, sizeof(hostname));
@@ -102,7 +104,8 @@ main(int argc __unused, char *argv[] __unused)
 static void
 reapchildren(int signo __unused)
 {
-	while (wait3(NULL, WNOHANG, NULL) > 0);
+	while (wait3(NULL, WNOHANG, NULL) > 0)
+		;
 }
 
 static void
@@ -124,8 +127,7 @@ mailfor(char *name)
 		file = name;
 	else
 		file = cp + 1;
-	sprintf(buf, "%s/%.*s", _PATH_MAILDIR, (int)sizeof(utp->ut_user),
-	    name);
+	sprintf(buf, "%s/%.*s", _PATH_MAILDIR, (int)sizeof(utp->ut_user), name);
 	if (*file != '/') {
 		sprintf(buf2, "%s/%.*s", _PATH_MAILDIR,
 		    (int)sizeof(utp->ut_user), file);
@@ -158,8 +160,8 @@ notify(struct utmpx *utp, char file[], off_t offset, int folder)
 		    utp->ut_line);
 		return;
 	}
-	(void)snprintf(tty, sizeof(tty), "%s%.*s",
-	    _PATH_DEV, (int)sizeof(utp->ut_line), utp->ut_line);
+	(void)snprintf(tty, sizeof(tty), "%s%.*s", _PATH_DEV,
+	    (int)sizeof(utp->ut_line), utp->ut_line);
 	if (stat(tty, &stb) == -1 || !(stb.st_mode & (S_IXUSR | S_IXGRP))) {
 		dsyslog(LOG_DEBUG, "%s: wrong mode on %s", utp->ut_user, tty);
 		return;
@@ -179,11 +181,12 @@ notify(struct utmpx *utp, char file[], off_t offset, int folder)
 		_exit(1);
 	}
 	(void)tcgetattr(fileno(tp), &tio);
-	cr = ((tio.c_oflag & (OPOST|ONLCR)) == (OPOST|ONLCR)) ?  "\n" : "\n\r";
+	cr = ((tio.c_oflag & (OPOST | ONLCR)) == (OPOST | ONLCR)) ? "\n" :
+								    "\n\r";
 	switch (stb.st_mode & (S_IXUSR | S_IXGRP)) {
 	case S_IXUSR:
 	case (S_IXUSR | S_IXGRP):
-		(void)fprintf(tp, 
+		(void)fprintf(tp,
 		    "%s\007New mail for %s@%.*s\007 has arrived%s%s%s:%s----%s",
 		    cr, utp->ut_user, (int)sizeof(hostname), hostname,
 		    folder ? cr : "", folder ? "to " : "", folder ? file : "",
@@ -192,13 +195,13 @@ notify(struct utmpx *utp, char file[], off_t offset, int folder)
 		break;
 	case S_IXGRP:
 		(void)fprintf(tp, "\007");
-		(void)fflush(tp);      
+		(void)fflush(tp);
 		(void)sleep(1);
 		(void)fprintf(tp, "\007");
 		break;
 	default:
 		break;
-	}	
+	}
 	(void)fclose(tp);
 	_exit(0);
 }
@@ -214,7 +217,7 @@ jkfprintf(FILE *tp, char user[], char file[], off_t offset)
 
 	/* Set effective uid to user in case mail drop is on nfs */
 	if ((p = getpwnam(user)) != NULL)
-		(void) setuid(p->pw_uid);
+		(void)setuid(p->pw_uid);
 
 	if ((fi = fopen(file, "r")) == NULL)
 		return;
@@ -236,7 +239,7 @@ jkfprintf(FILE *tp, char user[], char file[], off_t offset)
 			}
 			if (line[0] == ' ' || line[0] == '\t' ||
 			    (strncmp(line, "From:", 5) &&
-			    strncmp(line, "Subject:", 8)))
+				strncmp(line, "Subject:", 8)))
 				continue;
 		}
 		if (linecnt <= 0 || charcnt <= 0) {
@@ -250,9 +253,8 @@ jkfprintf(FILE *tp, char user[], char file[], off_t offset)
 			   8bit codes due to lack of locale knowledge
 			 */
 			if (((ch & 0x80) && ch < 0xA0) ||
-			    (!(ch & 0x80) && !isprint(ch) &&
-			     !isspace(ch) && ch != '\a' && ch != '\b')
-			   ) {
+			    (!(ch & 0x80) && !isprint(ch) && !isspace(ch) &&
+				ch != '\a' && ch != '\b')) {
 				if (ch & 0x80) {
 					ch &= ~0x80;
 					(void)fputs("M-", tp);

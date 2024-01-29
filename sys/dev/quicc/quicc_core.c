@@ -36,25 +36,22 @@
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/queue.h>
+#include <sys/rman.h>
 #include <sys/serial.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
 
 #include <dev/ic/quicc.h>
-
 #include <dev/quicc/quicc_bfe.h>
 #include <dev/quicc/quicc_bus.h>
 
-#define	quicc_read2(r, o)	\
-	bus_space_read_2((r)->r_bustag, (r)->r_bushandle, o)
-#define	quicc_read4(r, o)	\
-	bus_space_read_4((r)->r_bustag, (r)->r_bushandle, o)
+#define quicc_read2(r, o) bus_space_read_2((r)->r_bustag, (r)->r_bushandle, o)
+#define quicc_read4(r, o) bus_space_read_4((r)->r_bustag, (r)->r_bushandle, o)
 
-#define	quicc_write2(r, o, v)	\
+#define quicc_write2(r, o, v) \
 	bus_space_write_2((r)->r_bustag, (r)->r_bushandle, o, v)
-#define	quicc_write4(r, o, v)	\
+#define quicc_write4(r, o, v) \
 	bus_space_write_4((r)->r_bustag, (r)->r_bushandle, o, v)
 
 char quicc_driver_name[] = "quicc";
@@ -62,13 +59,13 @@ char quicc_driver_name[] = "quicc";
 static MALLOC_DEFINE(M_QUICC, "QUICC", "QUICC driver");
 
 struct quicc_device {
-	struct rman	*qd_rman;
+	struct rman *qd_rman;
 	struct resource_list qd_rlist;
-	device_t	qd_dev;
-	int		qd_devtype;
+	device_t qd_dev;
+	int qd_devtype;
 
-	driver_filter_t	*qd_ih;
-	void		*qd_ih_arg;
+	driver_filter_t *qd_ih;
+	void *qd_ih_arg;
 };
 
 static int
@@ -138,8 +135,8 @@ quicc_bfe_attach(device_t dev)
 	    RF_ACTIVE | RF_SHAREABLE);
 
 	if (sc->sc_ires != NULL) {
-		error = bus_setup_intr(dev, sc->sc_ires,
-		    INTR_TYPE_TTY, quicc_bfe_intr, NULL, sc, &sc->sc_icookie);
+		error = bus_setup_intr(dev, sc->sc_ires, INTR_TYPE_TTY,
+		    quicc_bfe_intr, NULL, sc, &sc->sc_icookie);
 		if (error) {
 			error = bus_setup_intr(dev, sc->sc_ires,
 			    INTR_TYPE_TTY | INTR_MPSAFE, NULL,

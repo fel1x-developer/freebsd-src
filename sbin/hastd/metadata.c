@@ -30,16 +30,16 @@
  */
 
 #include <sys/cdefs.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <string.h>
-#include <strings.h>
-#include <unistd.h>
 
 #include <ebuf.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <nv.h>
 #include <pjdlog.h>
+#include <string.h>
+#include <strings.h>
 #include <subr.h>
+#include <unistd.h>
 
 #include "metadata.h"
 
@@ -71,7 +71,8 @@ metadata_read(struct hast_resource *res, bool openrw)
 			if (flock(res->hr_localfd, LOCK_EX | LOCK_NB) == -1) {
 				rerrno = errno;
 				if (errno == EOPNOTSUPP) {
-					pjdlog_warning("Unable to lock %s (operation not supported), but continuing.",
+					pjdlog_warning(
+					    "Unable to lock %s (operation not supported), but continuing.",
 					    res->hr_localpath);
 				} else {
 					pjdlog_errno(LOG_ERR,

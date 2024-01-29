@@ -43,20 +43,24 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
+#include <netconfig.h>
 #include <rpc/rpc.h>
 #include <stdio.h>
-#include <netconfig.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
+
 #include "rpcbind.h"
 
 static void *rpcbproc_getaddr_4_local(void *, struct svc_req *, SVCXPRT *,
-				      rpcvers_t);
-static void *rpcbproc_getversaddr_4_local(void *, struct svc_req *, SVCXPRT *, rpcvers_t);
-static void *rpcbproc_getaddrlist_4_local
-	(void *, struct svc_req *, SVCXPRT *, rpcvers_t);
+    rpcvers_t);
+static void *rpcbproc_getversaddr_4_local(void *, struct svc_req *, SVCXPRT *,
+    rpcvers_t);
+static void *rpcbproc_getaddrlist_4_local(void *, struct svc_req *, SVCXPRT *,
+    rpcvers_t);
 static void free_rpcb_entry_list(rpcb_entry_list_ptr *);
-static void *rpcbproc_dump_4_local(void *, struct svc_req *, SVCXPRT *, rpcvers_t);
+static void *rpcbproc_dump_4_local(void *, struct svc_req *, SVCXPRT *,
+    rpcvers_t);
 
 /*
  * Called by svc_getreqset. There is a separate server handle for
@@ -88,8 +92,7 @@ rpcb_service_4(struct svc_req *rqstp, SVCXPRT *transp)
 			fprintf(stderr, "RPCBPROC_NULL\n");
 #endif
 		check_access(transp, rqstp->rq_proc, NULL, RPCBVERS4);
-		(void) svc_sendreply(transp, (xdrproc_t) xdr_void,
-					(char *)NULL);
+		(void)svc_sendreply(transp, (xdrproc_t)xdr_void, (char *)NULL);
 		return;
 
 	case RPCBPROC_SET:
@@ -146,7 +149,7 @@ rpcb_service_4(struct svc_req *rqstp, SVCXPRT *transp)
 		rpcbproc_callit_com(rqstp, transp, rqstp->rq_proc, RPCBVERS4);
 		return;
 
-/*	case RPCBPROC_CALLIT: */
+		/*	case RPCBPROC_CALLIT: */
 	case RPCBPROC_BCAST:
 #ifdef RPCBIND_DEBUG
 		if (debugging)
@@ -209,12 +212,11 @@ rpcb_service_4(struct svc_req *rqstp, SVCXPRT *transp)
 		svcerr_noproc(transp);
 		return;
 	}
-	memset((char *)&argument, 0, sizeof (argument));
-	if (!svc_getargs(transp, (xdrproc_t) xdr_argument,
-		(char *)&argument)) {
+	memset((char *)&argument, 0, sizeof(argument));
+	if (!svc_getargs(transp, (xdrproc_t)xdr_argument, (char *)&argument)) {
 		svcerr_decode(transp);
 		if (debugging)
-			(void) fprintf(stderr, "rpcbind: could not decode\n");
+			(void)fprintf(stderr, "rpcbind: could not decode\n");
 		return;
 	}
 	if (!check_access(transp, rqstp->rq_proc, &argument, RPCBVERS4)) {
@@ -222,21 +224,20 @@ rpcb_service_4(struct svc_req *rqstp, SVCXPRT *transp)
 		goto done;
 	}
 	result = (*local)(&argument, rqstp, transp, RPCBVERS4);
-	if (result != NULL && !svc_sendreply(transp, (xdrproc_t) xdr_result,
-						result)) {
+	if (result != NULL &&
+	    !svc_sendreply(transp, (xdrproc_t)xdr_result, result)) {
 		svcerr_systemerr(transp);
 		if (debugging) {
-			(void) fprintf(stderr, "rpcbind: svc_sendreply\n");
+			(void)fprintf(stderr, "rpcbind: svc_sendreply\n");
 			if (doabort) {
 				rpcbind_abort();
 			}
 		}
 	}
 done:
-	if (!svc_freeargs(transp, (xdrproc_t) xdr_argument,
-				(char *)&argument)) {
+	if (!svc_freeargs(transp, (xdrproc_t)xdr_argument, (char *)&argument)) {
 		if (debugging) {
-			(void) fprintf(stderr, "unable to free arguments\n");
+			(void)fprintf(stderr, "unable to free arguments\n");
 			if (doabort) {
 				rpcbind_abort();
 			}
@@ -257,23 +258,23 @@ done:
 /* ARGSUSED */
 static void *
 rpcbproc_getaddr_4_local(void *arg, struct svc_req *rqstp, SVCXPRT *transp,
-			 rpcvers_t rpcbversnum __unused)
+    rpcvers_t rpcbversnum __unused)
 {
 	RPCB *regp = (RPCB *)arg;
 #ifdef RPCBIND_DEBUG
 	if (debugging) {
 		char *uaddr;
 
-		uaddr =	taddr2uaddr(rpcbind_get_conf(transp->xp_netid),
-			    svc_getrpccaller(transp));
+		uaddr = taddr2uaddr(rpcbind_get_conf(transp->xp_netid),
+		    svc_getrpccaller(transp));
 		fprintf(stderr, "RPCB_GETADDR req for (%lu, %lu, %s) from %s: ",
 		    (unsigned long)regp->r_prog, (unsigned long)regp->r_vers,
 		    regp->r_netid, uaddr);
 		free(uaddr);
 	}
 #endif
-	return (rpcbproc_getaddr_com(regp, rqstp, transp, RPCBVERS4,
-					RPCB_ALLVERS));
+	return (
+	    rpcbproc_getaddr_com(regp, rqstp, transp, RPCBVERS4, RPCB_ALLVERS));
 }
 
 /*
@@ -287,7 +288,7 @@ rpcbproc_getaddr_4_local(void *arg, struct svc_req *rqstp, SVCXPRT *transp,
 /* ARGSUSED */
 static void *
 rpcbproc_getversaddr_4_local(void *arg, struct svc_req *rqstp, SVCXPRT *transp,
-			     rpcvers_t versnum __unused)
+    rpcvers_t versnum __unused)
 {
 	RPCB *regp = (RPCB *)arg;
 #ifdef RPCBIND_DEBUG
@@ -295,16 +296,17 @@ rpcbproc_getversaddr_4_local(void *arg, struct svc_req *rqstp, SVCXPRT *transp,
 		char *uaddr;
 
 		uaddr = taddr2uaddr(rpcbind_get_conf(transp->xp_netid),
-			    svc_getrpccaller(transp));
-		fprintf(stderr, "RPCB_GETVERSADDR rqst for (%lu, %lu, %s)"
-				" from %s : ",
+		    svc_getrpccaller(transp));
+		fprintf(stderr,
+		    "RPCB_GETVERSADDR rqst for (%lu, %lu, %s)"
+		    " from %s : ",
 		    (unsigned long)regp->r_prog, (unsigned long)regp->r_vers,
 		    regp->r_netid, uaddr);
 		free(uaddr);
 	}
 #endif
-	return (rpcbproc_getaddr_com(regp, rqstp, transp, RPCBVERS4,
-					RPCB_ONEVERS));
+	return (
+	    rpcbproc_getaddr_com(regp, rqstp, transp, RPCBVERS4, RPCB_ONEVERS));
 }
 
 /*
@@ -315,7 +317,7 @@ rpcbproc_getversaddr_4_local(void *arg, struct svc_req *rqstp, SVCXPRT *transp,
 /* ARGSUSED */
 static void *
 rpcbproc_getaddrlist_4_local(void *arg, struct svc_req *rqstp __unused,
-			     SVCXPRT *transp, rpcvers_t versnum __unused)
+    SVCXPRT *transp, rpcvers_t versnum __unused)
 {
 	RPCB *regp = (RPCB *)arg;
 	static rpcb_entry_list_ptr rlist;
@@ -347,68 +349,70 @@ rpcbproc_getaddrlist_4_local(void *arg, struct svc_req *rqstp __unused,
 	}
 #endif
 	for (rbl = list_rbl; rbl != NULL; rbl = rbl->rpcb_next) {
-	    if ((rbl->rpcb_map.r_prog == prog) &&
-		(rbl->rpcb_map.r_vers == vers)) {
-		nconf = rpcbind_get_conf(rbl->rpcb_map.r_netid);
-		if (nconf == NULL)
-			goto fail;
-		if (strcmp(nconf->nc_protofmly, reg_nconf->nc_protofmly)
-				!= 0) {
-			continue;	/* not same proto family */
+		if ((rbl->rpcb_map.r_prog == prog) &&
+		    (rbl->rpcb_map.r_vers == vers)) {
+			nconf = rpcbind_get_conf(rbl->rpcb_map.r_netid);
+			if (nconf == NULL)
+				goto fail;
+			if (strcmp(nconf->nc_protofmly,
+				reg_nconf->nc_protofmly) != 0) {
+				continue; /* not same proto family */
+			}
+#ifdef RPCBIND_DEBUG
+			if (debugging)
+				fprintf(stderr, "\tmerge with: %s\n",
+				    rbl->rpcb_map.r_addr);
+#endif
+			if ((maddr = mergeaddr(transp, rbl->rpcb_map.r_netid,
+				 rbl->rpcb_map.r_addr, saddr)) == NULL) {
+#ifdef RPCBIND_DEBUG
+				if (debugging)
+					fprintf(stderr, " FAILED\n");
+#endif
+				continue;
+			} else if (!maddr[0]) {
+#ifdef RPCBIND_DEBUG
+				if (debugging)
+					fprintf(stderr,
+					    " SUCCEEDED, but port died -  maddr: nullstring\n");
+#endif
+				/* The server died. Unset this combination */
+				delete_prog(regp->r_prog);
+				continue;
+			}
+#ifdef RPCBIND_DEBUG
+			if (debugging)
+				fprintf(stderr, " SUCCEEDED maddr: %s\n",
+				    maddr);
+#endif
+			/*
+			 * Add it to rlist.
+			 */
+			rp = malloc(sizeof(rpcb_entry_list));
+			if (rp == NULL)
+				goto fail;
+			a = &rp->rpcb_entry_map;
+			a->r_maddr = maddr;
+			a->r_nc_netid = nconf->nc_netid;
+			a->r_nc_semantics = nconf->nc_semantics;
+			a->r_nc_protofmly = nconf->nc_protofmly;
+			a->r_nc_proto = nconf->nc_proto;
+			rp->rpcb_entry_next = NULL;
+			if (rlist == NULL) {
+				rlist = rp;
+				tail = rp;
+			} else {
+				tail->rpcb_entry_next = rp;
+				tail = rp;
+			}
+			rp = NULL;
 		}
-#ifdef RPCBIND_DEBUG
-		if (debugging)
-			fprintf(stderr, "\tmerge with: %s\n",
-			    rbl->rpcb_map.r_addr);
-#endif
-		if ((maddr = mergeaddr(transp, rbl->rpcb_map.r_netid,
-				rbl->rpcb_map.r_addr, saddr)) == NULL) {
-#ifdef RPCBIND_DEBUG
-		if (debugging)
-			fprintf(stderr, " FAILED\n");
-#endif
-			continue;
-		} else if (!maddr[0]) {
-#ifdef RPCBIND_DEBUG
-	if (debugging)
-		fprintf(stderr, " SUCCEEDED, but port died -  maddr: nullstring\n");
-#endif
-			/* The server died. Unset this combination */
-			delete_prog(regp->r_prog);
-			continue;
-		}
-#ifdef RPCBIND_DEBUG
-		if (debugging)
-			fprintf(stderr, " SUCCEEDED maddr: %s\n", maddr);
-#endif
-		/*
-		 * Add it to rlist.
-		 */
-		rp = malloc(sizeof (rpcb_entry_list));
-		if (rp == NULL)
-			goto fail;
-		a = &rp->rpcb_entry_map;
-		a->r_maddr = maddr;
-		a->r_nc_netid = nconf->nc_netid;
-		a->r_nc_semantics = nconf->nc_semantics;
-		a->r_nc_protofmly = nconf->nc_protofmly;
-		a->r_nc_proto = nconf->nc_proto;
-		rp->rpcb_entry_next = NULL;
-		if (rlist == NULL) {
-			rlist = rp;
-			tail = rp;
-		} else {
-			tail->rpcb_entry_next = rp;
-			tail = rp;
-		}
-		rp = NULL;
-	    }
 	}
 #ifdef RPCBIND_DEBUG
 	if (debugging) {
 		for (rp = rlist; rp; rp = rp->rpcb_entry_next) {
 			fprintf(stderr, "\t%s %s\n", rp->rpcb_entry_map.r_maddr,
-				rp->rpcb_entry_map.r_nc_proto);
+			    rp->rpcb_entry_map.r_nc_proto);
 		}
 	}
 #endif
@@ -419,7 +423,8 @@ rpcbproc_getaddrlist_4_local(void *arg, struct svc_req *rqstp __unused,
 	rpcbs_getaddr(RPCBVERS4 - 2, prog, vers, transp->xp_netid, maddr);
 	return (void *)&rlist;
 
-fail:	free_rpcb_entry_list(&rlist);
+fail:
+	free_rpcb_entry_list(&rlist);
 	return (NULL);
 }
 
@@ -432,7 +437,7 @@ free_rpcb_entry_list(rpcb_entry_list_ptr *rlistp)
 {
 	register rpcb_entry_list_ptr rbl, tmp;
 
-	for (rbl = *rlistp; rbl != NULL; ) {
+	for (rbl = *rlistp; rbl != NULL;) {
 		tmp = rbl;
 		rbl = rbl->rpcb_entry_next;
 		free((char *)tmp->rpcb_entry_map.r_maddr);
@@ -444,7 +449,7 @@ free_rpcb_entry_list(rpcb_entry_list_ptr *rlistp)
 /* ARGSUSED */
 static void *
 rpcbproc_dump_4_local(void *arg __unused, struct svc_req *req __unused,
-    		      SVCXPRT *xprt __unused, rpcvers_t versnum __unused)
+    SVCXPRT *xprt __unused, rpcvers_t versnum __unused)
 {
 	return ((void *)&list_rbl);
 }

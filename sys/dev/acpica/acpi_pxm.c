@@ -27,9 +27,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_vm.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -38,24 +38,25 @@
 #include <sys/mutex.h>
 #include <sys/smp.h>
 #include <sys/vmmeter.h>
+
 #include <vm/vm.h>
 #include <vm/pmap.h>
-#include <vm/vm_param.h>
 #include <vm/vm_page.h>
+#include <vm/vm_param.h>
 #include <vm/vm_phys.h>
-
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/aclocal.h>
-#include <contrib/dev/acpica/include/actables.h>
 
 #include <machine/md_var.h>
 
 #include <dev/acpica/acpivar.h>
 
+#include <contrib/dev/acpica/include/aclocal.h>
+#include <contrib/dev/acpica/include/acpi.h>
+#include <contrib/dev/acpica/include/actables.h>
+
 #if MAXMEMDOM > 1
 static struct cpu_info {
-	bool enabled:1;
-	bool has_memory:1;
+	bool enabled : 1;
+	bool has_memory : 1;
 	int domain;
 	int id;
 } *cpus;
@@ -77,7 +78,7 @@ static ACPI_TABLE_SLIT *slit;
 static vm_paddr_t slit_physaddr;
 static int vm_locality_table[MAXMEMDOM * MAXMEMDOM];
 
-static void	srat_walk_table(acpi_subtable_handler *handler, void *arg);
+static void srat_walk_table(acpi_subtable_handler *handler, void *arg);
 
 /*
  * SLIT parsing.
@@ -102,7 +103,7 @@ slit_parse_table(ACPI_TABLE_SLIT *s)
 	 */
 
 	if (bootverbose)
-		printf("SLIT.Localities: %d\n", (int) s->LocalityCount);
+		printf("SLIT.Localities: %d\n", (int)s->LocalityCount);
 	for (i = 0; i < s->LocalityCount; i++) {
 		i_domain = acpi_map_pxm_to_vm_domainid(i);
 		if (i_domain < 0)
@@ -116,7 +117,7 @@ slit_parse_table(ACPI_TABLE_SLIT *s)
 				continue;
 			e = s->Entry[i * s->LocalityCount + j];
 			if (bootverbose)
-				printf("%d ", (int) e);
+				printf("%d ", (int)e);
 			/* 255 == "no locality information" */
 			if (e == 255)
 				vm_locality_table[offset] = -1;
@@ -276,8 +277,8 @@ srat_parse_entry(ACPI_SUBTABLE_HEADER *entry, void *arg)
 		if (bootverbose)
 			printf("SRAT: Found CPU APIC ID %u domain %d: %s\n",
 			    cpu->ApicId, domain,
-			    (cpu->Flags & ACPI_SRAT_CPU_ENABLED) ?
-			    "enabled" : "disabled");
+			    (cpu->Flags & ACPI_SRAT_CPU_ENABLED) ? "enabled" :
+								   "disabled");
 		if (!(cpu->Flags & ACPI_SRAT_CPU_ENABLED))
 			break;
 		cpup = cpu_find(cpu->ApicId);
@@ -298,7 +299,8 @@ srat_parse_entry(ACPI_SUBTABLE_HEADER *entry, void *arg)
 			printf("SRAT: Found CPU APIC ID %u domain %d: %s\n",
 			    x2apic->ApicId, x2apic->ProximityDomain,
 			    (x2apic->Flags & ACPI_SRAT_CPU_ENABLED) ?
-			    "enabled" : "disabled");
+				"enabled" :
+				"disabled");
 		if (!(x2apic->Flags & ACPI_SRAT_CPU_ENABLED))
 			break;
 		KASSERT(cpu_find(x2apic->ApicId) == NULL,
@@ -314,7 +316,8 @@ srat_parse_entry(ACPI_SUBTABLE_HEADER *entry, void *arg)
 			printf("SRAT: Found CPU UID %u domain %d: %s\n",
 			    gicc->AcpiProcessorUid, gicc->ProximityDomain,
 			    (gicc->Flags & ACPI_SRAT_GICC_ENABLED) ?
-			    "enabled" : "disabled");
+				"enabled" :
+				"disabled");
 		if (!(gicc->Flags & ACPI_SRAT_GICC_ENABLED))
 			break;
 		KASSERT(cpu_find(gicc->AcpiProcessorUid) == NULL,
@@ -332,10 +335,10 @@ srat_parse_entry(ACPI_SUBTABLE_HEADER *entry, void *arg)
 
 		if (bootverbose)
 			printf(
-		    "SRAT: Found memory domain %d addr 0x%jx len 0x%jx: %s\n",
+			    "SRAT: Found memory domain %d addr 0x%jx len 0x%jx: %s\n",
 			    domain, (uintmax_t)base, (uintmax_t)length,
-			    (mem->Flags & ACPI_SRAT_MEM_ENABLED) ?
-			    "enabled" : "disabled");
+			    (mem->Flags & ACPI_SRAT_MEM_ENABLED) ? "enabled" :
+								   "disabled");
 		if (!(mem->Flags & ACPI_SRAT_MEM_ENABLED))
 			break;
 		if (base >= maxphyaddr ||
@@ -546,11 +549,12 @@ acpi_pxm_init(int ncpus, vm_paddr_t maxphys)
 	 * it. This is done because at this point in the boot process
 	 * malloc is still not usable.
 	 */
-	for (idx = 0; phys_avail[idx + 1] != 0; idx += 2);
+	for (idx = 0; phys_avail[idx + 1] != 0; idx += 2)
+		;
 	KASSERT(idx != 0, ("phys_avail is empty!"));
 	idx -= 2;
 
-	size =  sizeof(*cpus) * max_cpus;
+	size = sizeof(*cpus) * max_cpus;
 	addr = trunc_page(phys_avail[idx + 1] - size);
 	KASSERT(addr >= phys_avail[idx],
 	    ("Not enough memory for SRAT table items"));

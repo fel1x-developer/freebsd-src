@@ -25,8 +25,8 @@
  * Use is subject to license terms.
  */
 
-#ifndef	_SYS_ISA_DEFS_H
-#define	_SYS_ISA_DEFS_H
+#ifndef _SYS_ISA_DEFS_H
+#define _SYS_ISA_DEFS_H
 
 /*
  * This header file serves to group a set of well known defines and to
@@ -214,7 +214,7 @@
  *	from the file /etc/hostid, rather than from hardware.
  */
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -225,64 +225,64 @@ extern "C" {
 #if defined(__x86_64) || defined(__amd64)
 
 #if !defined(__amd64)
-#define	__amd64		/* preferred guard */
+#define __amd64 /* preferred guard */
 #endif
 
 #if !defined(__x86)
-#define	__x86
+#define __x86
 #endif
 
 /*
  * Define the appropriate "processor characteristics"
  */
 #ifdef illumos
-#define	_LITTLE_ENDIAN
+#define _LITTLE_ENDIAN
 #endif
-#define	_STACK_GROWS_DOWNWARD
-#define	_LONG_LONG_LTOH
-#define	_BIT_FIELDS_LTOH
-#define	_IEEE_754
-#define	_CHAR_IS_SIGNED
-#define	_BOOL_ALIGNMENT			1
-#define	_CHAR_ALIGNMENT			1
-#define	_SHORT_ALIGNMENT		2
-#define	_INT_ALIGNMENT			4
-#define	_FLOAT_ALIGNMENT		4
-#define	_FLOAT_COMPLEX_ALIGNMENT	4
-#define	_LONG_ALIGNMENT			8
-#define	_LONG_LONG_ALIGNMENT		8
-#define	_DOUBLE_ALIGNMENT		8
-#define	_DOUBLE_COMPLEX_ALIGNMENT	8
-#define	_LONG_DOUBLE_ALIGNMENT		16
-#define	_LONG_DOUBLE_COMPLEX_ALIGNMENT	16
-#define	_POINTER_ALIGNMENT		8
-#define	_MAX_ALIGNMENT			16
-#define	_ALIGNMENT_REQUIRED		1
+#define _STACK_GROWS_DOWNWARD
+#define _LONG_LONG_LTOH
+#define _BIT_FIELDS_LTOH
+#define _IEEE_754
+#define _CHAR_IS_SIGNED
+#define _BOOL_ALIGNMENT 1
+#define _CHAR_ALIGNMENT 1
+#define _SHORT_ALIGNMENT 2
+#define _INT_ALIGNMENT 4
+#define _FLOAT_ALIGNMENT 4
+#define _FLOAT_COMPLEX_ALIGNMENT 4
+#define _LONG_ALIGNMENT 8
+#define _LONG_LONG_ALIGNMENT 8
+#define _DOUBLE_ALIGNMENT 8
+#define _DOUBLE_COMPLEX_ALIGNMENT 8
+#define _LONG_DOUBLE_ALIGNMENT 16
+#define _LONG_DOUBLE_COMPLEX_ALIGNMENT 16
+#define _POINTER_ALIGNMENT 8
+#define _MAX_ALIGNMENT 16
+#define _ALIGNMENT_REQUIRED 1
 
 /*
  * Different alignment constraints for the i386 ABI in compatibility mode
  */
-#define	_LONG_LONG_ALIGNMENT_32		4
+#define _LONG_LONG_ALIGNMENT_32 4
 
 /*
  * Define the appropriate "implementation choices".
  */
 #if !defined(_LP64)
-#define	_LP64
+#define _LP64
 #endif
 #if !defined(_I32LPx) && defined(_KERNEL)
-#define	_I32LPx
+#define _I32LPx
 #endif
-#define	_MULTI_DATAMODEL
-#define	_SUNOS_VTOC_16
-#define	_DMA_USES_PHYSADDR
-#define	_FIRMWARE_NEEDS_FDISK
-#define	__i386_COMPAT
-#define	_PSM_MODULES
-#define	_RTC_CONFIG
-#define	_SOFT_HOSTID
-#define	_DONT_USE_1275_GENERIC_NAMES
-#define	_HAVE_CPUID_INSN
+#define _MULTI_DATAMODEL
+#define _SUNOS_VTOC_16
+#define _DMA_USES_PHYSADDR
+#define _FIRMWARE_NEEDS_FDISK
+#define __i386_COMPAT
+#define _PSM_MODULES
+#define _RTC_CONFIG
+#define _SOFT_HOSTID
+#define _DONT_USE_1275_GENERIC_NAMES
+#define _HAVE_CPUID_INSN
 
 /*
  * The feature test macro __i386 is generic for all processors implementing
@@ -292,253 +292,253 @@ extern "C" {
 #elif defined(__i386) || defined(__i386__)
 
 #if !defined(__i386)
-#define	__i386
+#define __i386
 #endif
 
 #if !defined(__x86)
-#define	__x86
+#define __x86
 #endif
 
 /*
  * Define the appropriate "processor characteristics"
  */
 #ifdef illumos
-#define	_LITTLE_ENDIAN
+#define _LITTLE_ENDIAN
 #endif
-#define	_STACK_GROWS_DOWNWARD
-#define	_LONG_LONG_LTOH
-#define	_BIT_FIELDS_LTOH
-#define	_IEEE_754
-#define	_CHAR_IS_SIGNED
-#define	_BOOL_ALIGNMENT			1
-#define	_CHAR_ALIGNMENT			1
-#define	_SHORT_ALIGNMENT		2
-#define	_INT_ALIGNMENT			4
-#define	_FLOAT_ALIGNMENT		4
-#define	_FLOAT_COMPLEX_ALIGNMENT	4
-#define	_LONG_ALIGNMENT			4
-#define	_LONG_LONG_ALIGNMENT		4
-#define	_DOUBLE_ALIGNMENT		4
-#define	_DOUBLE_COMPLEX_ALIGNMENT	4
-#define	_LONG_DOUBLE_ALIGNMENT		4
-#define	_LONG_DOUBLE_COMPLEX_ALIGNMENT	4
-#define	_POINTER_ALIGNMENT		4
-#define	_MAX_ALIGNMENT			4
-#define	_ALIGNMENT_REQUIRED		0
+#define _STACK_GROWS_DOWNWARD
+#define _LONG_LONG_LTOH
+#define _BIT_FIELDS_LTOH
+#define _IEEE_754
+#define _CHAR_IS_SIGNED
+#define _BOOL_ALIGNMENT 1
+#define _CHAR_ALIGNMENT 1
+#define _SHORT_ALIGNMENT 2
+#define _INT_ALIGNMENT 4
+#define _FLOAT_ALIGNMENT 4
+#define _FLOAT_COMPLEX_ALIGNMENT 4
+#define _LONG_ALIGNMENT 4
+#define _LONG_LONG_ALIGNMENT 4
+#define _DOUBLE_ALIGNMENT 4
+#define _DOUBLE_COMPLEX_ALIGNMENT 4
+#define _LONG_DOUBLE_ALIGNMENT 4
+#define _LONG_DOUBLE_COMPLEX_ALIGNMENT 4
+#define _POINTER_ALIGNMENT 4
+#define _MAX_ALIGNMENT 4
+#define _ALIGNMENT_REQUIRED 0
 
-#define	_LONG_LONG_ALIGNMENT_32		_LONG_LONG_ALIGNMENT
+#define _LONG_LONG_ALIGNMENT_32 _LONG_LONG_ALIGNMENT
 
 /*
  * Define the appropriate "implementation choices".
  */
 #if !defined(_ILP32)
-#define	_ILP32
+#define _ILP32
 #endif
 #if !defined(_I32LPx) && defined(_KERNEL)
-#define	_I32LPx
+#define _I32LPx
 #endif
-#define	_SUNOS_VTOC_16
-#define	_DMA_USES_PHYSADDR
-#define	_FIRMWARE_NEEDS_FDISK
-#define	_PSM_MODULES
-#define	_RTC_CONFIG
-#define	_SOFT_HOSTID
-#define	_DONT_USE_1275_GENERIC_NAMES
-#define	_HAVE_CPUID_INSN
+#define _SUNOS_VTOC_16
+#define _DMA_USES_PHYSADDR
+#define _FIRMWARE_NEEDS_FDISK
+#define _PSM_MODULES
+#define _RTC_CONFIG
+#define _SOFT_HOSTID
+#define _DONT_USE_1275_GENERIC_NAMES
+#define _HAVE_CPUID_INSN
 
 #elif defined(__aarch64__)
 
 /*
  * Define the appropriate "processor characteristics"
  */
-#define	_STACK_GROWS_DOWNWARD
-#define	_LONG_LONG_LTOH
-#define	_BIT_FIELDS_LTOH
-#define	_IEEE_754
-#define	_CHAR_IS_UNSIGNED
-#define	_BOOL_ALIGNMENT			1
-#define	_CHAR_ALIGNMENT			1
-#define	_SHORT_ALIGNMENT		2
-#define	_INT_ALIGNMENT			4
-#define	_FLOAT_ALIGNMENT		4
-#define	_FLOAT_COMPLEX_ALIGNMENT	4
-#define	_LONG_ALIGNMENT			8
-#define	_LONG_LONG_ALIGNMENT		8
-#define	_DOUBLE_ALIGNMENT		8
-#define	_DOUBLE_COMPLEX_ALIGNMENT	8
-#define	_LONG_DOUBLE_ALIGNMENT		16
-#define	_LONG_DOUBLE_COMPLEX_ALIGNMENT	16
-#define	_POINTER_ALIGNMENT		8
-#define	_MAX_ALIGNMENT			16
-#define	_ALIGNMENT_REQUIRED		1
+#define _STACK_GROWS_DOWNWARD
+#define _LONG_LONG_LTOH
+#define _BIT_FIELDS_LTOH
+#define _IEEE_754
+#define _CHAR_IS_UNSIGNED
+#define _BOOL_ALIGNMENT 1
+#define _CHAR_ALIGNMENT 1
+#define _SHORT_ALIGNMENT 2
+#define _INT_ALIGNMENT 4
+#define _FLOAT_ALIGNMENT 4
+#define _FLOAT_COMPLEX_ALIGNMENT 4
+#define _LONG_ALIGNMENT 8
+#define _LONG_LONG_ALIGNMENT 8
+#define _DOUBLE_ALIGNMENT 8
+#define _DOUBLE_COMPLEX_ALIGNMENT 8
+#define _LONG_DOUBLE_ALIGNMENT 16
+#define _LONG_DOUBLE_COMPLEX_ALIGNMENT 16
+#define _POINTER_ALIGNMENT 8
+#define _MAX_ALIGNMENT 16
+#define _ALIGNMENT_REQUIRED 1
 
-#define	_LONG_LONG_ALIGNMENT_32		_LONG_LONG_ALIGNMENT
+#define _LONG_LONG_ALIGNMENT_32 _LONG_LONG_ALIGNMENT
 
 /*
  * Define the appropriate "implementation choices"
  */
 #if !defined(_LP64)
-#define	_LP64
+#define _LP64
 #endif
-#define	_SUNOS_VTOC_16
-#define	_DMA_USES_PHYSADDR
-#define	_FIRMWARE_NEEDS_FDISK
-#define	_PSM_MODULES
-#define	_RTC_CONFIG
-#define	_DONT_USE_1275_GENERIC_NAMES
-#define	_HAVE_CPUID_INSN
+#define _SUNOS_VTOC_16
+#define _DMA_USES_PHYSADDR
+#define _FIRMWARE_NEEDS_FDISK
+#define _PSM_MODULES
+#define _RTC_CONFIG
+#define _DONT_USE_1275_GENERIC_NAMES
+#define _HAVE_CPUID_INSN
 
 #elif defined(__riscv)
 
 /*
  * Define the appropriate "processor characteristics"
  */
-#define	_STACK_GROWS_DOWNWARD
-#define	_LONG_LONG_LTOH
-#define	_BIT_FIELDS_LTOH
-#define	_IEEE_754
-#define	_CHAR_IS_UNSIGNED
-#define	_BOOL_ALIGNMENT			1
-#define	_CHAR_ALIGNMENT			1
-#define	_SHORT_ALIGNMENT		2
-#define	_INT_ALIGNMENT			4
-#define	_FLOAT_ALIGNMENT		4
-#define	_FLOAT_COMPLEX_ALIGNMENT	4
-#define	_LONG_ALIGNMENT			8
-#define	_LONG_LONG_ALIGNMENT		8
-#define	_DOUBLE_ALIGNMENT		8
-#define	_DOUBLE_COMPLEX_ALIGNMENT	8
-#define	_LONG_DOUBLE_ALIGNMENT		16
-#define	_LONG_DOUBLE_COMPLEX_ALIGNMENT	16
-#define	_POINTER_ALIGNMENT		8
-#define	_MAX_ALIGNMENT			16
-#define	_ALIGNMENT_REQUIRED		1
+#define _STACK_GROWS_DOWNWARD
+#define _LONG_LONG_LTOH
+#define _BIT_FIELDS_LTOH
+#define _IEEE_754
+#define _CHAR_IS_UNSIGNED
+#define _BOOL_ALIGNMENT 1
+#define _CHAR_ALIGNMENT 1
+#define _SHORT_ALIGNMENT 2
+#define _INT_ALIGNMENT 4
+#define _FLOAT_ALIGNMENT 4
+#define _FLOAT_COMPLEX_ALIGNMENT 4
+#define _LONG_ALIGNMENT 8
+#define _LONG_LONG_ALIGNMENT 8
+#define _DOUBLE_ALIGNMENT 8
+#define _DOUBLE_COMPLEX_ALIGNMENT 8
+#define _LONG_DOUBLE_ALIGNMENT 16
+#define _LONG_DOUBLE_COMPLEX_ALIGNMENT 16
+#define _POINTER_ALIGNMENT 8
+#define _MAX_ALIGNMENT 16
+#define _ALIGNMENT_REQUIRED 1
 
-#define	_LONG_LONG_ALIGNMENT_32		_LONG_LONG_ALIGNMENT
+#define _LONG_LONG_ALIGNMENT_32 _LONG_LONG_ALIGNMENT
 
 /*
  * Define the appropriate "implementation choices"
  */
 #if !defined(_LP64)
-#define	_LP64
+#define _LP64
 #endif
-#define	_SUNOS_VTOC_16
-#define	_DMA_USES_PHYSADDR
-#define	_FIRMWARE_NEEDS_FDISK
-#define	_PSM_MODULES
-#define	_RTC_CONFIG
-#define	_DONT_USE_1275_GENERIC_NAMES
-#define	_HAVE_CPUID_INSN
+#define _SUNOS_VTOC_16
+#define _DMA_USES_PHYSADDR
+#define _FIRMWARE_NEEDS_FDISK
+#define _PSM_MODULES
+#define _RTC_CONFIG
+#define _DONT_USE_1275_GENERIC_NAMES
+#define _HAVE_CPUID_INSN
 
 #elif defined(__arm__)
 
 /*
  * Define the appropriate "processor characteristics"
  */
-#define	_STACK_GROWS_DOWNWARD
-#define	_LONG_LONG_LTOH
-#define	_BIT_FIELDS_LTOH
-#define	_IEEE_754
-#define	_CHAR_IS_SIGNED
-#define	_BOOL_ALIGNMENT			1
-#define	_CHAR_ALIGNMENT			1
-#define	_SHORT_ALIGNMENT		2
-#define	_INT_ALIGNMENT			4
-#define	_FLOAT_ALIGNMENT		4
-#define	_FLOAT_COMPLEX_ALIGNMENT	4
-#define	_LONG_ALIGNMENT			4
-#define	_LONG_LONG_ALIGNMENT		4
-#define	_DOUBLE_ALIGNMENT		4
-#define	_DOUBLE_COMPLEX_ALIGNMENT	4
-#define	_LONG_DOUBLE_ALIGNMENT		4
-#define	_LONG_DOUBLE_COMPLEX_ALIGNMENT	4
-#define	_POINTER_ALIGNMENT		4
-#define	_MAX_ALIGNMENT			4
-#define	_ALIGNMENT_REQUIRED		0
+#define _STACK_GROWS_DOWNWARD
+#define _LONG_LONG_LTOH
+#define _BIT_FIELDS_LTOH
+#define _IEEE_754
+#define _CHAR_IS_SIGNED
+#define _BOOL_ALIGNMENT 1
+#define _CHAR_ALIGNMENT 1
+#define _SHORT_ALIGNMENT 2
+#define _INT_ALIGNMENT 4
+#define _FLOAT_ALIGNMENT 4
+#define _FLOAT_COMPLEX_ALIGNMENT 4
+#define _LONG_ALIGNMENT 4
+#define _LONG_LONG_ALIGNMENT 4
+#define _DOUBLE_ALIGNMENT 4
+#define _DOUBLE_COMPLEX_ALIGNMENT 4
+#define _LONG_DOUBLE_ALIGNMENT 4
+#define _LONG_DOUBLE_COMPLEX_ALIGNMENT 4
+#define _POINTER_ALIGNMENT 4
+#define _MAX_ALIGNMENT 4
+#define _ALIGNMENT_REQUIRED 0
 
-#define	_LONG_LONG_ALIGNMENT_32		_LONG_LONG_ALIGNMENT
+#define _LONG_LONG_ALIGNMENT_32 _LONG_LONG_ALIGNMENT
 
 /*
  * Define the appropriate "implementation choices".
  */
 #if !defined(_ILP32)
-#define	_ILP32
+#define _ILP32
 #endif
 #if !defined(_I32LPx) && defined(_KERNEL)
-#define	_I32LPx
+#define _I32LPx
 #endif
-#define	_SUNOS_VTOC_16
-#define	_DMA_USES_PHYSADDR
-#define	_FIRMWARE_NEEDS_FDISK
-#define	_PSM_MODULES
-#define	_RTC_CONFIG
-#define	_DONT_USE_1275_GENERIC_NAMES
-#define	_HAVE_CPUID_INSN
+#define _SUNOS_VTOC_16
+#define _DMA_USES_PHYSADDR
+#define _FIRMWARE_NEEDS_FDISK
+#define _PSM_MODULES
+#define _RTC_CONFIG
+#define _DONT_USE_1275_GENERIC_NAMES
+#define _HAVE_CPUID_INSN
 
 #elif defined(__mips__)
 
 /*
  * Define the appropriate "processor characteristics"
  */
-#define	_STACK_GROWS_DOWNWARD
-#define	_LONG_LONG_LTOH
-#define	_BIT_FIELDS_LTOH
-#define	_IEEE_754
-#define	_CHAR_IS_SIGNED
-#define	_BOOL_ALIGNMENT			1
-#define	_CHAR_ALIGNMENT			1
-#define	_SHORT_ALIGNMENT		2
-#define	_INT_ALIGNMENT			4
-#define	_FLOAT_ALIGNMENT		4
-#define	_FLOAT_COMPLEX_ALIGNMENT	4
+#define _STACK_GROWS_DOWNWARD
+#define _LONG_LONG_LTOH
+#define _BIT_FIELDS_LTOH
+#define _IEEE_754
+#define _CHAR_IS_SIGNED
+#define _BOOL_ALIGNMENT 1
+#define _CHAR_ALIGNMENT 1
+#define _SHORT_ALIGNMENT 2
+#define _INT_ALIGNMENT 4
+#define _FLOAT_ALIGNMENT 4
+#define _FLOAT_COMPLEX_ALIGNMENT 4
 #if defined(__mips_n64)
-#define	_LONG_ALIGNMENT			8
-#define	_LONG_LONG_ALIGNMENT		8
-#define	_DOUBLE_ALIGNMENT		8
-#define	_DOUBLE_COMPLEX_ALIGNMENT	8
-#define	_LONG_DOUBLE_ALIGNMENT		8
-#define	_LONG_DOUBLE_COMPLEX_ALIGNMENT	8
-#define	_POINTER_ALIGNMENT		8
-#define	_MAX_ALIGNMENT			8
-#define	_ALIGNMENT_REQUIRED		0
+#define _LONG_ALIGNMENT 8
+#define _LONG_LONG_ALIGNMENT 8
+#define _DOUBLE_ALIGNMENT 8
+#define _DOUBLE_COMPLEX_ALIGNMENT 8
+#define _LONG_DOUBLE_ALIGNMENT 8
+#define _LONG_DOUBLE_COMPLEX_ALIGNMENT 8
+#define _POINTER_ALIGNMENT 8
+#define _MAX_ALIGNMENT 8
+#define _ALIGNMENT_REQUIRED 0
 
-#define	_LONG_LONG_ALIGNMENT_32		_INT_ALIGNMENT
+#define _LONG_LONG_ALIGNMENT_32 _INT_ALIGNMENT
 /*
  * Define the appropriate "implementation choices".
  */
 #if !defined(_LP64)
-#define	_LP64
+#define _LP64
 #endif
 #else
-#define	_LONG_ALIGNMENT			4
-#define	_LONG_LONG_ALIGNMENT		4
-#define	_DOUBLE_ALIGNMENT		4
-#define	_DOUBLE_COMPLEX_ALIGNMENT	4
-#define	_LONG_DOUBLE_ALIGNMENT		4
-#define	_LONG_DOUBLE_COMPLEX_ALIGNMENT	4
-#define	_POINTER_ALIGNMENT		4
-#define	_MAX_ALIGNMENT			4
-#define	_ALIGNMENT_REQUIRED		0
+#define _LONG_ALIGNMENT 4
+#define _LONG_LONG_ALIGNMENT 4
+#define _DOUBLE_ALIGNMENT 4
+#define _DOUBLE_COMPLEX_ALIGNMENT 4
+#define _LONG_DOUBLE_ALIGNMENT 4
+#define _LONG_DOUBLE_COMPLEX_ALIGNMENT 4
+#define _POINTER_ALIGNMENT 4
+#define _MAX_ALIGNMENT 4
+#define _ALIGNMENT_REQUIRED 0
 
-#define	_LONG_LONG_ALIGNMENT_32		_LONG_LONG_ALIGNMENT
+#define _LONG_LONG_ALIGNMENT_32 _LONG_LONG_ALIGNMENT
 
 /*
  * Define the appropriate "implementation choices".
  */
 #if !defined(_ILP32)
-#define	_ILP32
+#define _ILP32
 #endif
 #if !defined(_I32LPx) && defined(_KERNEL)
-#define	_I32LPx
+#define _I32LPx
 #endif
 #endif
-#define	_SUNOS_VTOC_16
-#define	_DMA_USES_PHYSADDR
-#define	_FIRMWARE_NEEDS_FDISK
-#define	_PSM_MODULES
-#define	_RTC_CONFIG
-#define	_DONT_USE_1275_GENERIC_NAMES
-#define	_HAVE_CPUID_INSN
+#define _SUNOS_VTOC_16
+#define _DMA_USES_PHYSADDR
+#define _FIRMWARE_NEEDS_FDISK
+#define _PSM_MODULES
+#define _RTC_CONFIG
+#define _DONT_USE_1275_GENERIC_NAMES
+#define _HAVE_CPUID_INSN
 
 #elif defined(__powerpc__)
 
@@ -570,14 +570,14 @@ extern "C" {
  */
 #elif defined(__sparc) || defined(__sparcv9) || defined(__sparc__)
 #if !defined(__sparc)
-#define	__sparc
+#define __sparc
 #endif
 
 /*
  * You can be 32-bit or 64-bit, but not both at the same time.
  */
 #if defined(__sparcv8) && defined(__sparcv9)
-#error	"SPARC Versions 8 and 9 are mutually exclusive choices"
+#error "SPARC Versions 8 and 9 are mutually exclusive choices"
 #endif
 
 /*
@@ -587,7 +587,7 @@ extern "C" {
  * if you haven't asked for SPARC V9, then you must've meant SPARC V8.
  */
 #if !defined(__sparcv9) && !defined(__sparcv8)
-#define	__sparcv8
+#define __sparcv8
 #endif
 
 /*
@@ -595,32 +595,32 @@ extern "C" {
  * all Solaris on SPARC systems.
  */
 #ifdef illumos
-#define	_BIG_ENDIAN
+#define _BIG_ENDIAN
 #endif
-#define	_STACK_GROWS_DOWNWARD
-#define	_LONG_LONG_HTOL
-#define	_BIT_FIELDS_HTOL
-#define	_IEEE_754
-#define	_CHAR_IS_SIGNED
-#define	_BOOL_ALIGNMENT			1
-#define	_CHAR_ALIGNMENT			1
-#define	_SHORT_ALIGNMENT		2
-#define	_INT_ALIGNMENT			4
-#define	_FLOAT_ALIGNMENT		4
-#define	_FLOAT_COMPLEX_ALIGNMENT	4
-#define	_LONG_LONG_ALIGNMENT		8
-#define	_DOUBLE_ALIGNMENT		8
-#define	_DOUBLE_COMPLEX_ALIGNMENT	8
-#define	_ALIGNMENT_REQUIRED		1
+#define _STACK_GROWS_DOWNWARD
+#define _LONG_LONG_HTOL
+#define _BIT_FIELDS_HTOL
+#define _IEEE_754
+#define _CHAR_IS_SIGNED
+#define _BOOL_ALIGNMENT 1
+#define _CHAR_ALIGNMENT 1
+#define _SHORT_ALIGNMENT 2
+#define _INT_ALIGNMENT 4
+#define _FLOAT_ALIGNMENT 4
+#define _FLOAT_COMPLEX_ALIGNMENT 4
+#define _LONG_LONG_ALIGNMENT 8
+#define _DOUBLE_ALIGNMENT 8
+#define _DOUBLE_COMPLEX_ALIGNMENT 8
+#define _ALIGNMENT_REQUIRED 1
 
 /*
  * Define the appropriate "implementation choices" shared between versions.
  */
-#define	_SUNOS_VTOC_8
-#define	_DMA_USES_VIRTADDR
-#define	_NO_FDISK_PRESENT
-#define	_HAVE_TEM_FIRMWARE
-#define	_OBP
+#define _SUNOS_VTOC_8
+#define _DMA_USES_VIRTADDR
+#define _NO_FDISK_PRESENT
+#define _HAVE_TEM_FIRMWARE
+#define _OBP
 
 /*
  * The following set of definitions characterize the implementation of
@@ -631,20 +631,20 @@ extern "C" {
 /*
  * Define the appropriate "processor characteristics"
  */
-#define	_LONG_ALIGNMENT			4
-#define	_LONG_DOUBLE_ALIGNMENT		8
-#define	_LONG_DOUBLE_COMPLEX_ALIGNMENT	8
-#define	_POINTER_ALIGNMENT		4
-#define	_MAX_ALIGNMENT			8
+#define _LONG_ALIGNMENT 4
+#define _LONG_DOUBLE_ALIGNMENT 8
+#define _LONG_DOUBLE_COMPLEX_ALIGNMENT 8
+#define _POINTER_ALIGNMENT 4
+#define _MAX_ALIGNMENT 8
 
-#define	_LONG_LONG_ALIGNMENT_32		_LONG_LONG_ALIGNMENT
+#define _LONG_LONG_ALIGNMENT_32 _LONG_LONG_ALIGNMENT
 
 /*
  * Define the appropriate "implementation choices"
  */
-#define	_ILP32
+#define _ILP32
 #if !defined(_I32LPx) && defined(_KERNEL)
-#define	_I32LPx
+#define _I32LPx
 #endif
 
 /*
@@ -656,27 +656,27 @@ extern "C" {
 /*
  * Define the appropriate "processor characteristics"
  */
-#define	_LONG_ALIGNMENT			8
-#define	_LONG_DOUBLE_ALIGNMENT		16
-#define	_LONG_DOUBLE_COMPLEX_ALIGNMENT	16
-#define	_POINTER_ALIGNMENT		8
-#define	_MAX_ALIGNMENT			16
+#define _LONG_ALIGNMENT 8
+#define _LONG_DOUBLE_ALIGNMENT 16
+#define _LONG_DOUBLE_COMPLEX_ALIGNMENT 16
+#define _POINTER_ALIGNMENT 8
+#define _MAX_ALIGNMENT 16
 
-#define	_LONG_LONG_ALIGNMENT_32		_LONG_LONG_ALIGNMENT
+#define _LONG_LONG_ALIGNMENT_32 _LONG_LONG_ALIGNMENT
 
 /*
  * Define the appropriate "implementation choices"
  */
 #if !defined(_LP64)
-#define	_LP64
+#define _LP64
 #endif
 #if !defined(_I32LPx)
-#define	_I32LPx
+#define _I32LPx
 #endif
-#define	_MULTI_DATAMODEL
+#define _MULTI_DATAMODEL
 
 #else
-#error	"unknown SPARC version"
+#error "unknown SPARC version"
 #endif
 
 /*
@@ -690,8 +690,8 @@ extern "C" {
 #error "Both _ILP32 and _LP64 are defined"
 #endif
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* _SYS_ISA_DEFS_H */
+#endif /* _SYS_ISA_DEFS_H */

@@ -40,31 +40,34 @@ extern "C" {
 using namespace testing;
 
 class Getattr : public FuseTest {
-public:
-void expect_lookup(const char *relpath, uint64_t ino, mode_t mode,
-	uint64_t size, int times, uint64_t attr_valid, uint32_t attr_valid_nsec)
-{
-	EXPECT_LOOKUP(FUSE_ROOT_ID, relpath)
-	.Times(times)
-	.WillRepeatedly(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = mode;
-		out.body.entry.nodeid = ino;
-		out.body.entry.attr.nlink = 1;
-		out.body.entry.attr_valid = attr_valid;
-		out.body.entry.attr_valid_nsec = attr_valid_nsec;
-		out.body.entry.attr.size = size;
-		out.body.entry.entry_valid = UINT64_MAX;
-	})));
-}
+    public:
+	void expect_lookup(const char *relpath, uint64_t ino, mode_t mode,
+	    uint64_t size, int times, uint64_t attr_valid,
+	    uint32_t attr_valid_nsec)
+	{
+		EXPECT_LOOKUP(FUSE_ROOT_ID, relpath)
+		    .Times(times)
+		    .WillRepeatedly(Invoke(ReturnImmediate([=](auto in __unused,
+							       auto &out) {
+			    SET_OUT_HEADER_LEN(out, entry);
+			    out.body.entry.attr.mode = mode;
+			    out.body.entry.nodeid = ino;
+			    out.body.entry.attr.nlink = 1;
+			    out.body.entry.attr_valid = attr_valid;
+			    out.body.entry.attr_valid_nsec = attr_valid_nsec;
+			    out.body.entry.attr.size = size;
+			    out.body.entry.entry_valid = UINT64_MAX;
+		    })));
+	}
 };
 
-class Getattr_7_8: public FuseTest {
-public:
-virtual void SetUp() {
-	m_kernel_minor_version = 8;
-	FuseTest::SetUp();
-}
+class Getattr_7_8 : public FuseTest {
+    public:
+	virtual void SetUp()
+	{
+		m_kernel_minor_version = 8;
+		FuseTest::SetUp();
+	}
 };
 
 /*
@@ -79,24 +82,27 @@ TEST_F(Getattr, attr_cache)
 	struct stat sb;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.WillRepeatedly(Invoke(ReturnImmediate([=](auto i __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFREG | 0644;
-		out.body.entry.nodeid = ino;
-		out.body.entry.entry_valid = UINT64_MAX;
-	})));
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([](auto in) {
-			return (in.header.opcode == FUSE_GETATTR &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([](auto i __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr_valid = UINT64_MAX;
-		out.body.attr.attr.ino = ino;	// Must match nodeid
-		out.body.attr.attr.mode = S_IFREG | 0644;
-	})));
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto i __unused, auto &out) {
+			SET_OUT_HEADER_LEN(out, entry);
+			out.body.entry.attr.mode = S_IFREG | 0644;
+			out.body.entry.nodeid = ino;
+			out.body.entry.entry_valid = UINT64_MAX;
+		})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[](auto in) {
+				return (in.header.opcode == FUSE_GETATTR &&
+				    in.header.nodeid == ino);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([](auto i __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, attr);
+		    out.body.attr.attr_valid = UINT64_MAX;
+		    out.body.attr.attr.ino = ino; // Must match nodeid
+		    out.body.attr.attr.mode = S_IFREG | 0644;
+	    })));
 	EXPECT_EQ(0, stat(FULLPATH, &sb));
 	/* The second stat(2) should use cached attributes */
 	EXPECT_EQ(0, stat(FULLPATH, &sb));
@@ -115,20 +121,23 @@ TEST_F(Getattr, attr_cache_timeout)
 	struct stat sb;
 
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, 0, 1, 0, 0);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([](auto in) {
-			return (in.header.opcode == FUSE_GETATTR &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).Times(2)
-	.WillRepeatedly(Invoke(ReturnImmediate([=](auto i __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr_valid_nsec = NAP_NS / 2;
-		out.body.attr.attr_valid = 0;
-		out.body.attr.attr.ino = ino;	// Must match nodeid
-		out.body.attr.attr.mode = S_IFREG | 0644;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[](auto in) {
+				return (in.header.opcode == FUSE_GETATTR &&
+				    in.header.nodeid == ino);
+			},
+			Eq(true)),
+		_))
+	    .Times(2)
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto i __unused, auto &out) {
+			SET_OUT_HEADER_LEN(out, attr);
+			out.body.attr.attr_valid_nsec = NAP_NS / 2;
+			out.body.attr.attr_valid = 0;
+			out.body.attr.attr.ino = ino; // Must match nodeid
+			out.body.attr.attr.mode = S_IFREG | 0644;
+		})));
 
 	EXPECT_EQ(0, stat(FULLPATH, &sb));
 	nap();
@@ -136,7 +145,7 @@ TEST_F(Getattr, attr_cache_timeout)
 	EXPECT_EQ(0, stat(FULLPATH, &sb));
 }
 
-/* 
+/*
  * If attr.blksize is zero, then the kernel should use a default value for
  * st_blksize
  */
@@ -148,19 +157,21 @@ TEST_F(Getattr, blksize_zero)
 	struct stat sb;
 
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, 1, 1, 0, 0);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([](auto in) {
-			return (in.header.opcode == FUSE_GETATTR &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([](auto i __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr.mode = S_IFREG | 0644;
-		out.body.attr.attr.ino = ino;	// Must match nodeid
-		out.body.attr.attr.blksize = 0;
-		out.body.attr.attr.size = 1;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[](auto in) {
+				return (in.header.opcode == FUSE_GETATTR &&
+				    in.header.nodeid == ino);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([](auto i __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, attr);
+		    out.body.attr.attr.mode = S_IFREG | 0644;
+		    out.body.attr.attr.ino = ino; // Must match nodeid
+		    out.body.attr.attr.blksize = 0;
+		    out.body.attr.attr.size = 1;
+	    })));
 
 	ASSERT_EQ(0, stat(FULLPATH, &sb)) << strerror(errno);
 	EXPECT_EQ((blksize_t)PAGE_SIZE, sb.st_blksize);
@@ -177,13 +188,15 @@ TEST_F(Getattr, enoent)
 	ASSERT_EQ(0, sem_init(&sem, 0, 0)) << strerror(errno);
 
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, 0, 1, 0, 0);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([](auto in) {
-			return (in.header.opcode == FUSE_GETATTR &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(ENOENT)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[](auto in) {
+				return (in.header.opcode == FUSE_GETATTR &&
+				    in.header.nodeid == ino);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
 	// Since FUSE_GETATTR returns ENOENT, the kernel will reclaim the vnode
 	// and send a FUSE_FORGET
 	expect_forget(ino, 1, &sem);
@@ -203,31 +216,33 @@ TEST_F(Getattr, ok)
 	struct stat sb;
 
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, 1, 1, 0, 0);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([](auto in) {
-			return (in.header.opcode == FUSE_GETATTR &&
-				in.body.getattr.getattr_flags == 0 &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([](auto i __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr.ino = ino;	// Must match nodeid
-		out.body.attr.attr.mode = S_IFREG | 0644;
-		out.body.attr.attr.size = 1;
-		out.body.attr.attr.blocks = 2;
-		out.body.attr.attr.atime = 3;
-		out.body.attr.attr.mtime = 4;
-		out.body.attr.attr.ctime = 5;
-		out.body.attr.attr.atimensec = 6;
-		out.body.attr.attr.mtimensec = 7;
-		out.body.attr.attr.ctimensec = 8;
-		out.body.attr.attr.nlink = 9;
-		out.body.attr.attr.uid = 10;
-		out.body.attr.attr.gid = 11;
-		out.body.attr.attr.rdev = 12;
-		out.body.attr.attr.blksize = 12345;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[](auto in) {
+				return (in.header.opcode == FUSE_GETATTR &&
+				    in.body.getattr.getattr_flags == 0 &&
+				    in.header.nodeid == ino);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([](auto i __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, attr);
+		    out.body.attr.attr.ino = ino; // Must match nodeid
+		    out.body.attr.attr.mode = S_IFREG | 0644;
+		    out.body.attr.attr.size = 1;
+		    out.body.attr.attr.blocks = 2;
+		    out.body.attr.attr.atime = 3;
+		    out.body.attr.attr.mtime = 4;
+		    out.body.attr.attr.ctime = 5;
+		    out.body.attr.attr.atimensec = 6;
+		    out.body.attr.attr.mtimensec = 7;
+		    out.body.attr.attr.ctimensec = 8;
+		    out.body.attr.attr.nlink = 9;
+		    out.body.attr.attr.uid = 10;
+		    out.body.attr.attr.gid = 11;
+		    out.body.attr.attr.rdev = 12;
+		    out.body.attr.attr.blksize = 12345;
+	    })));
 
 	ASSERT_EQ(0, stat(FULLPATH, &sb)) << strerror(errno);
 	EXPECT_EQ(1, sb.st_size);
@@ -246,12 +261,12 @@ TEST_F(Getattr, ok)
 	EXPECT_EQ(ino, sb.st_ino);
 	EXPECT_EQ(S_IFREG | 0644, sb.st_mode);
 
-	//st_birthtim and st_flags are not supported by protocol 7.8.  They're
-	//only supported as OS-specific extensions to OSX.
-	//EXPECT_EQ(, sb.st_birthtim);
-	//EXPECT_EQ(, sb.st_flags);
-	
-	//FUSE can't set st_blksize until protocol 7.9
+	// st_birthtim and st_flags are not supported by protocol 7.8.  They're
+	// only supported as OS-specific extensions to OSX.
+	// EXPECT_EQ(, sb.st_birthtim);
+	// EXPECT_EQ(, sb.st_flags);
+
+	// FUSE can't set st_blksize until protocol 7.9
 }
 
 /*
@@ -272,28 +287,29 @@ TEST_F(Getattr, vtyp_conflict)
 	ASSERT_EQ(0, sem_init(&sem, 0, 0)) << strerror(errno);
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.WillOnce(Invoke(
-		ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFREG | 0644;
-		out.body.entry.nodeid = ino;
-		out.body.entry.attr.nlink = 1;
-		out.body.entry.attr_valid = 0;
-		out.body.entry.entry_valid = UINT64_MAX;
-	})));
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([](auto in) {
-			return (in.header.opcode == FUSE_GETATTR &&
-				in.body.getattr.getattr_flags == 0 &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([](auto i __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr.ino = ino;	// Must match nodeid
-		out.body.attr.attr.mode = S_IFDIR | 0755;	// Changed!
-		out.body.attr.attr.nlink = 2;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = S_IFREG | 0644;
+		    out.body.entry.nodeid = ino;
+		    out.body.entry.attr.nlink = 1;
+		    out.body.entry.attr_valid = 0;
+		    out.body.entry.entry_valid = UINT64_MAX;
+	    })));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[](auto in) {
+				return (in.header.opcode == FUSE_GETATTR &&
+				    in.body.getattr.getattr_flags == 0 &&
+				    in.header.nodeid == ino);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([](auto i __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, attr);
+		    out.body.attr.attr.ino = ino; // Must match nodeid
+		    out.body.attr.attr.mode = S_IFDIR | 0755; // Changed!
+		    out.body.attr.attr.nlink = 2;
+	    })));
 	// We should reclaim stale vnodes
 	expect_forget(ino, 1, &sem);
 
@@ -312,36 +328,38 @@ TEST_F(Getattr_7_8, ok)
 	struct stat sb;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry_7_8);
-		out.body.entry.attr.mode = S_IFREG | 0644;
-		out.body.entry.nodeid = ino;
-		out.body.entry.attr.nlink = 1;
-		out.body.entry.attr.size = 1;
-	})));
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([](auto in) {
-			return (in.header.opcode == FUSE_GETATTR &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([](auto i __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr_7_8);
-		out.body.attr.attr.ino = ino;	// Must match nodeid
-		out.body.attr.attr.mode = S_IFREG | 0644;
-		out.body.attr.attr.size = 1;
-		out.body.attr.attr.blocks = 2;
-		out.body.attr.attr.atime = 3;
-		out.body.attr.attr.mtime = 4;
-		out.body.attr.attr.ctime = 5;
-		out.body.attr.attr.atimensec = 6;
-		out.body.attr.attr.mtimensec = 7;
-		out.body.attr.attr.ctimensec = 8;
-		out.body.attr.attr.nlink = 9;
-		out.body.attr.attr.uid = 10;
-		out.body.attr.attr.gid = 11;
-		out.body.attr.attr.rdev = 12;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry_7_8);
+		    out.body.entry.attr.mode = S_IFREG | 0644;
+		    out.body.entry.nodeid = ino;
+		    out.body.entry.attr.nlink = 1;
+		    out.body.entry.attr.size = 1;
+	    })));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[](auto in) {
+				return (in.header.opcode == FUSE_GETATTR &&
+				    in.header.nodeid == ino);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([](auto i __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, attr_7_8);
+		    out.body.attr.attr.ino = ino; // Must match nodeid
+		    out.body.attr.attr.mode = S_IFREG | 0644;
+		    out.body.attr.attr.size = 1;
+		    out.body.attr.attr.blocks = 2;
+		    out.body.attr.attr.atime = 3;
+		    out.body.attr.attr.mtime = 4;
+		    out.body.attr.attr.ctime = 5;
+		    out.body.attr.attr.atimensec = 6;
+		    out.body.attr.attr.mtimensec = 7;
+		    out.body.attr.attr.ctimensec = 8;
+		    out.body.attr.attr.nlink = 9;
+		    out.body.attr.attr.uid = 10;
+		    out.body.attr.attr.gid = 11;
+		    out.body.attr.attr.rdev = 12;
+	    })));
 
 	ASSERT_EQ(0, stat(FULLPATH, &sb)) << strerror(errno);
 	EXPECT_EQ(1, sb.st_size);
@@ -359,6 +377,6 @@ TEST_F(Getattr_7_8, ok)
 	EXPECT_EQ(ino, sb.st_ino);
 	EXPECT_EQ(S_IFREG | 0644, sb.st_mode);
 
-	//st_birthtim and st_flags are not supported by protocol 7.8.  They're
-	//only supported as OS-specific extensions to OSX.
+	// st_birthtim and st_flags are not supported by protocol 7.8.  They're
+	// only supported as OS-specific extensions to OSX.
 }

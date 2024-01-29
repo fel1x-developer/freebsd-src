@@ -41,7 +41,7 @@
 #if !defined(__MD5_INCLUDE__) && !defined(_SYS_MD5_H)
 
 #ifndef __P
-#  define	__P(x)	x
+#define __P(x) x
 #endif
 
 /* typedef a 32-bit type */
@@ -49,10 +49,10 @@ typedef unsigned int UINT4;
 
 /* Data structure for MD5 (Message-Digest) computation */
 typedef struct {
-  UINT4 i[2];                   /* number of _bits_ handled mod 2^64 */
-  UINT4 buf[4];                                    /* scratch buffer */
-  unsigned char in[64];                              /* input buffer */
-  unsigned char digest[16];     /* actual digest after MD5Final call */
+	UINT4 i[2];		  /* number of _bits_ handled mod 2^64 */
+	UINT4 buf[4];		  /* scratch buffer */
+	unsigned char in[64];	  /* input buffer */
+	unsigned char digest[16]; /* actual digest after MD5Final call */
 } MD5_CTX;
 
 extern void MD5Init(MD5_CTX *);

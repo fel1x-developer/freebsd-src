@@ -33,10 +33,10 @@
  *
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 
+#include <sys/cdefs.h>
 #include <sys/capsicum.h>
 
 /*
@@ -46,31 +46,32 @@
 #include <sys/fail.h>
 #include <sys/hash.h>
 #include <sys/sysctl.h>
-#include <fs/nfs/nfsport.h>
-#include <netinet/in_fib.h>
-#include <netinet/if_ether.h>
-#include <netinet6/ip6_var.h>
+
 #include <net/if_types.h>
 #include <net/route/nhop.h>
+#include <netinet/if_ether.h>
+#include <netinet/in_fib.h>
+#include <netinet6/ip6_var.h>
 
+#include <fs/nfs/nfsport.h>
 #include <fs/nfsclient/nfs_kdtrace.h>
 
 #ifdef KDTRACE_HOOKS
 dtrace_nfsclient_attrcache_flush_probe_func_t
-		dtrace_nfscl_attrcache_flush_done_probe;
-uint32_t	nfscl_attrcache_flush_done_id;
+    dtrace_nfscl_attrcache_flush_done_probe;
+uint32_t nfscl_attrcache_flush_done_id;
 
 dtrace_nfsclient_attrcache_get_hit_probe_func_t
-		dtrace_nfscl_attrcache_get_hit_probe;
-uint32_t	nfscl_attrcache_get_hit_id;
+    dtrace_nfscl_attrcache_get_hit_probe;
+uint32_t nfscl_attrcache_get_hit_id;
 
 dtrace_nfsclient_attrcache_get_miss_probe_func_t
-		dtrace_nfscl_attrcache_get_miss_probe;
-uint32_t	nfscl_attrcache_get_miss_id;
+    dtrace_nfscl_attrcache_get_miss_probe;
+uint32_t nfscl_attrcache_get_miss_id;
 
 dtrace_nfsclient_attrcache_load_probe_func_t
-		dtrace_nfscl_attrcache_load_done_probe;
-uint32_t	nfscl_attrcache_load_done_id;
+    dtrace_nfscl_attrcache_load_done_probe;
+uint32_t nfscl_attrcache_load_done_id;
 #endif /* !KDTRACE_HOOKS */
 
 extern u_int32_t newnfs_true, newnfs_false, newnfs_xdrneg1;
@@ -145,15 +146,15 @@ nfscl_nget(struct mount *mntp, struct vnode *dvp, struct nfsfh *nfhp,
 	    nmp->nm_fhsize > 0 && nmp->nm_fhsize == nfhp->nfh_len &&
 	    !NFSBCMP(nmp->nm_fh, nfhp->nfh_fh, nmp->nm_fhsize)) {
 		free(nfhp, M_NFSFH);
-		nfhp = malloc(sizeof(struct nfsfh) + NFSX_FHMAX + 1,
-		    M_NFSFH, M_WAITOK | M_ZERO);
+		nfhp = malloc(sizeof(struct nfsfh) + NFSX_FHMAX + 1, M_NFSFH,
+		    M_WAITOK | M_ZERO);
 		nfhp->nfh_len = NFSX_FHMAX + 1;
 	}
 
 	hash = fnv_32_buf(nfhp->nfh_fh, nfhp->nfh_len, FNV1_32_INIT);
 
-	error = vfs_hash_get(mntp, hash, lkflags,
-	    td, &nvp, newnfs_vncmpf, nfhp);
+	error = vfs_hash_get(mntp, hash, lkflags, td, &nvp, newnfs_vncmpf,
+	    nfhp);
 	if (error == 0 && nvp != NULL) {
 		/*
 		 * I believe there is a slight chance that vgonel() could
@@ -188,33 +189,34 @@ nfscl_nget(struct mount *mntp, struct vnode *dvp, struct nfsfh *nfhp,
 		if ((nmp->nm_flag & NFSMNT_NFSV4) && np->n_v4 != NULL &&
 		    nvp->v_type == VREG &&
 		    (np->n_v4->n4_namelen != cnp->cn_namelen ||
-		     NFSBCMP(cnp->cn_nameptr, NFS4NODENAME(np->n_v4),
-		     cnp->cn_namelen) ||
-		     dnp->n_fhp->nfh_len != np->n_v4->n4_fhlen ||
-		     NFSBCMP(dnp->n_fhp->nfh_fh, np->n_v4->n4_data,
-		     dnp->n_fhp->nfh_len))) {
-		    newd = malloc(
-			sizeof (struct nfsv4node) + dnp->n_fhp->nfh_len +
-			+ cnp->cn_namelen - 1, M_NFSV4NODE, M_WAITOK);
-		    NFSLOCKNODE(np);
-		    if (newd != NULL && np->n_v4 != NULL && nvp->v_type == VREG
-			&& (np->n_v4->n4_namelen != cnp->cn_namelen ||
-			 NFSBCMP(cnp->cn_nameptr, NFS4NODENAME(np->n_v4),
-			 cnp->cn_namelen) ||
-			 dnp->n_fhp->nfh_len != np->n_v4->n4_fhlen ||
-			 NFSBCMP(dnp->n_fhp->nfh_fh, np->n_v4->n4_data,
-			 dnp->n_fhp->nfh_len))) {
-			oldd = np->n_v4;
-			np->n_v4 = newd;
-			newd = NULL;
-			np->n_v4->n4_fhlen = dnp->n_fhp->nfh_len;
-			np->n_v4->n4_namelen = cnp->cn_namelen;
-			NFSBCOPY(dnp->n_fhp->nfh_fh, np->n_v4->n4_data,
-			    dnp->n_fhp->nfh_len);
-			NFSBCOPY(cnp->cn_nameptr, NFS4NODENAME(np->n_v4),
-			    cnp->cn_namelen);
-		    }
-		    NFSUNLOCKNODE(np);
+			NFSBCMP(cnp->cn_nameptr, NFS4NODENAME(np->n_v4),
+			    cnp->cn_namelen) ||
+			dnp->n_fhp->nfh_len != np->n_v4->n4_fhlen ||
+			NFSBCMP(dnp->n_fhp->nfh_fh, np->n_v4->n4_data,
+			    dnp->n_fhp->nfh_len))) {
+			newd = malloc(sizeof(struct nfsv4node) +
+				dnp->n_fhp->nfh_len + +cnp->cn_namelen - 1,
+			    M_NFSV4NODE, M_WAITOK);
+			NFSLOCKNODE(np);
+			if (newd != NULL && np->n_v4 != NULL &&
+			    nvp->v_type == VREG &&
+			    (np->n_v4->n4_namelen != cnp->cn_namelen ||
+				NFSBCMP(cnp->cn_nameptr, NFS4NODENAME(np->n_v4),
+				    cnp->cn_namelen) ||
+				dnp->n_fhp->nfh_len != np->n_v4->n4_fhlen ||
+				NFSBCMP(dnp->n_fhp->nfh_fh, np->n_v4->n4_data,
+				    dnp->n_fhp->nfh_len))) {
+				oldd = np->n_v4;
+				np->n_v4 = newd;
+				newd = NULL;
+				np->n_v4->n4_fhlen = dnp->n_fhp->nfh_len;
+				np->n_v4->n4_namelen = cnp->cn_namelen;
+				NFSBCOPY(dnp->n_fhp->nfh_fh, np->n_v4->n4_data,
+				    dnp->n_fhp->nfh_len);
+				NFSBCOPY(cnp->cn_nameptr,
+				    NFS4NODENAME(np->n_v4), cnp->cn_namelen);
+			}
+			NFSUNLOCKNODE(np);
 		}
 		if (newd != NULL)
 			free(newd, M_NFSV4NODE);
@@ -236,23 +238,23 @@ nfscl_nget(struct mount *mntp, struct vnode *dvp, struct nfsfh *nfhp,
 	KASSERT(vp->v_bufobj.bo_bsize != 0, ("nfscl_nget: bo_bsize == 0"));
 	vp->v_data = np;
 	np->n_vnode = vp;
-	/* 
+	/*
 	 * Initialize the mutex even if the vnode is going to be a loser.
 	 * This simplifies the logic in reclaim, which can then unconditionally
 	 * destroy the mutex (in the case of the loser, or if hash_insert
 	 * happened to return an error no special casing is needed).
 	 */
 	mtx_init(&np->n_mtx, "NEWNFSnode lock", NULL, MTX_DEF | MTX_DUPOK);
-	lockinit(&np->n_excl, PVFS, "nfsupg", VLKTIMEOUT, LK_NOSHARE |
-	    LK_CANRECURSE);
+	lockinit(&np->n_excl, PVFS, "nfsupg", VLKTIMEOUT,
+	    LK_NOSHARE | LK_CANRECURSE);
 
-	/* 
+	/*
 	 * Are we getting the root? If so, make sure the vnode flags
-	 * are correct 
+	 * are correct
 	 */
 	if (nfhp->nfh_len == NFSX_FHMAX + 1 ||
 	    (nfhp->nfh_len == nmp->nm_fhsize &&
-	     !bcmp(nfhp->nfh_fh, nmp->nm_fh, nfhp->nfh_len))) {
+		!bcmp(nfhp->nfh_fh, nmp->nm_fh, nfhp->nfh_len))) {
 		if (vp->v_type == VNON)
 			vp->v_type = VDIR;
 		vp->v_vflag |= VV_ROOT;
@@ -266,9 +268,9 @@ nfscl_nget(struct mount *mntp, struct vnode *dvp, struct nfsfh *nfhp,
 	 * file name, so that Open Ops can be done later.
 	 */
 	if (NFSHASNFSV4(nmp) && !NFSHASNFSV4N(nmp)) {
-		np->n_v4 = malloc(sizeof (struct nfsv4node)
-		    + dnp->n_fhp->nfh_len + cnp->cn_namelen - 1, M_NFSV4NODE,
-		    M_WAITOK);
+		np->n_v4 = malloc(sizeof(struct nfsv4node) +
+			dnp->n_fhp->nfh_len + cnp->cn_namelen - 1,
+		    M_NFSV4NODE, M_WAITOK);
 		np->n_v4->n4_fhlen = dnp->n_fhp->nfh_len;
 		np->n_v4->n4_namelen = cnp->cn_namelen;
 		NFSBCOPY(dnp->n_fhp->nfh_fh, np->n_v4->n4_data,
@@ -297,8 +299,8 @@ nfscl_nget(struct mount *mntp, struct vnode *dvp, struct nfsfh *nfhp,
 		return (error);
 	}
 	vn_set_state(vp, VSTATE_CONSTRUCTED);
-	error = vfs_hash_insert(vp, hash, lkflags, 
-	    td, &nvp, newnfs_vncmpf, nfhp);
+	error = vfs_hash_insert(vp, hash, lkflags, td, &nvp, newnfs_vncmpf,
+	    nfhp);
 	if (error)
 		return (error);
 	if (nvp != NULL) {
@@ -335,8 +337,7 @@ nfscl_ngetreopen(struct mount *mntp, u_int8_t *fhp, int fhsize,
 	/* For forced dismounts, just return error. */
 	if (NFSCL_FORCEDISM(mntp))
 		return (EINTR);
-	nfhp = malloc(sizeof (struct nfsfh) + fhsize,
-	    M_NFSFH, M_WAITOK);
+	nfhp = malloc(sizeof(struct nfsfh) + fhsize, M_NFSFH, M_WAITOK);
 	bcopy(fhp, &nfhp->nfh_fh[0], fhsize);
 	nfhp->nfh_len = fhsize;
 
@@ -396,19 +397,17 @@ nfscl_warn_fileid(struct nfsmount *nmp, struct nfsvattr *oldnap,
 	}
 
 	printf("newnfs: server '%s' error: fileid changed. "
-	    "fsid %jx:%jx: expected fileid %#jx, got %#jx. "
-	    "(BROKEN NFS SERVER OR MIDDLEWARE)\n",
-	    nmp->nm_com.nmcom_hostname,
-	    (uintmax_t)nmp->nm_fsid[0],
-	    (uintmax_t)nmp->nm_fsid[1],
-	    (uintmax_t)oldnap->na_fileid,
+	       "fsid %jx:%jx: expected fileid %#jx, got %#jx. "
+	       "(BROKEN NFS SERVER OR MIDDLEWARE)\n",
+	    nmp->nm_com.nmcom_hostname, (uintmax_t)nmp->nm_fsid[0],
+	    (uintmax_t)nmp->nm_fsid[1], (uintmax_t)oldnap->na_fileid,
 	    (uintmax_t)newnap->na_fileid);
 
 	if (off)
 		printf("newnfs: Logged %d times about fileid corruption; "
-		    "going quiet to avoid spamming logs excessively. (Limit "
-		    "is: %d).\n", ncl_fileid_nwarnings,
-		    ncl_fileid_maxwarnings);
+		       "going quiet to avoid spamming logs excessively. (Limit "
+		       "is: %d).\n",
+		    ncl_fileid_nwarnings, ncl_fileid_maxwarnings);
 }
 
 void
@@ -458,7 +457,7 @@ nfscl_loadattrcache(struct vnode **vpp, struct nfsvattr *nap, void *nvaper,
 
 	/*
 	 * If v_type == VNON it is a new node, so fill in the v_type,
-	 * n_mtime fields. Check to see if it represents a special 
+	 * n_mtime fields. Check to see if it represents a special
 	 * device, and if so, check for a possible alias. Once the
 	 * correct vnode has been obtained, fill in the rest of the
 	 * information.
@@ -509,16 +508,16 @@ nfscl_loadattrcache(struct vnode **vpp, struct nfsvattr *nap, void *nvaper,
 		 * be replacing the fake attributes with correct ones.
 		 */
 		if ((np->n_vattr.na_fileid != 0 &&
-		     np->n_vattr.na_fileid != nap->na_fileid &&
-		     (np->n_vattr.na_fileid != 2 || !NFSHASSYSKRB5(nmp) ||
-		      np->n_fhp->nfh_len != NFSX_FHMAX + 1)) ||
+			np->n_vattr.na_fileid != nap->na_fileid &&
+			(np->n_vattr.na_fileid != 2 || !NFSHASSYSKRB5(nmp) ||
+			    np->n_fhp->nfh_len != NFSX_FHMAX + 1)) ||
 		    force_fid_err) {
 			nfscl_warn_fileid(nmp, &np->n_vattr, nap);
 			error = EIDRM;
 			goto out;
 		}
 		NFSBCOPY((caddr_t)nap, (caddr_t)&np->n_vattr,
-		    sizeof (struct nfsvattr));
+		    sizeof(struct nfsvattr));
 	}
 
 	/*
@@ -537,7 +536,7 @@ nfscl_loadattrcache(struct vnode **vpp, struct nfsvattr *nap, void *nvaper,
 	vn_fsid(vp, vap);
 	if (NFSHASNFSV4(nmp) && NFSHASHASSETFSID(nmp) &&
 	    (nmp->nm_fsid[0] != np->n_vattr.na_filesid[0] ||
-	     nmp->nm_fsid[1] != np->n_vattr.na_filesid[1])) {
+		nmp->nm_fsid[1] != np->n_vattr.na_filesid[1])) {
 		topfsid = vap->va_fsid;
 		vap->va_fsid = FNV1_64_INIT;
 		do {
@@ -579,14 +578,14 @@ nfscl_loadattrcache(struct vnode **vpp, struct nfsvattr *nap, void *nvaper,
 	}
 	/*
 	 * The following checks are added to prevent a race between (say)
-	 * a READDIR+ and a WRITE. 
+	 * a READDIR+ and a WRITE.
 	 * READDIR+, WRITE requests sent out.
 	 * READDIR+ resp, WRITE resp received on client.
 	 * However, the WRITE resp was handled before the READDIR+ resp
 	 * causing the post op attrs from the write to be loaded first
-	 * and the attrs from the READDIR+ to be loaded later. If this 
+	 * and the attrs from the READDIR+ to be loaded later. If this
 	 * happens, we have stale attrs loaded into the attrcache.
-	 * We detect this by for the mtime moving back. We invalidate the 
+	 * We detect this by for the mtime moving back. We invalidate the
 	 * attrcache when this happens.
 	 */
 	if (timespeccmp(&mtime_save, &vap->va_mtime, >)) {
@@ -675,10 +674,10 @@ nfscl_fillclid(u_int64_t clval, char *uuid, u_int8_t *cp, u_int16_t idlen)
 	/*
 	 * First, put in the 64bit mount point identifier.
 	 */
-	if (idlen >= sizeof (u_int64_t)) {
-		NFSBCOPY((caddr_t)&clval, cp, sizeof (u_int64_t));
-		cp += sizeof (u_int64_t);
-		idlen -= sizeof (u_int64_t);
+	if (idlen >= sizeof(u_int64_t)) {
+		NFSBCOPY((caddr_t)&clval, cp, sizeof(u_int64_t));
+		cp += sizeof(u_int64_t);
+		idlen -= sizeof(u_int64_t);
 	}
 
 	/*
@@ -707,8 +706,8 @@ void
 nfscl_filllockowner(void *id, u_int8_t *cp, int flags)
 {
 	union {
-		u_int32_t	lval;
-		u_int8_t	cval[4];
+		u_int32_t lval;
+		u_int8_t cval[4];
 	} tl;
 	struct proc *p;
 
@@ -815,20 +814,19 @@ nfscl_wcc_data(struct nfsrv_descript *nd, struct vnode *vp,
 			if (wccflagp != NULL) {
 				NFSLOCKNODE(np);
 				*wccflagp = (np->n_mtime.tv_sec ==
-				    fxdr_unsigned(u_int32_t, *(tl + 2)) &&
+					fxdr_unsigned(u_int32_t, *(tl + 2)) &&
 				    np->n_mtime.tv_nsec ==
-				    fxdr_unsigned(u_int32_t, *(tl + 3)));
+					fxdr_unsigned(u_int32_t, *(tl + 3)));
 				NFSUNLOCKNODE(np);
 			}
 		}
 		error = nfscl_postop_attr(nd, nap, flagp);
 		if (wccflagp != NULL && *flagp == 0)
 			*wccflagp = 0;
-	} else if ((nd->nd_flag & (ND_NOMOREDATA | ND_NFSV4 | ND_V4WCCATTR))
-	    == (ND_NFSV4 | ND_V4WCCATTR)) {
-		error = nfsv4_loadattr(nd, NULL, &nfsva, NULL,
-		    NULL, 0, NULL, NULL, NULL, NULL, NULL, 0,
-		    NULL, NULL, NULL, NULL, NULL);
+	} else if ((nd->nd_flag & (ND_NOMOREDATA | ND_NFSV4 | ND_V4WCCATTR)) ==
+	    (ND_NFSV4 | ND_V4WCCATTR)) {
+		error = nfsv4_loadattr(nd, NULL, &nfsva, NULL, NULL, 0, NULL,
+		    NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL);
 		if (error)
 			return (error);
 		/*
@@ -839,13 +837,12 @@ nfscl_wcc_data(struct nfsrv_descript *nd, struct vnode *vp,
 			nd->nd_flag |= ND_NOMOREDATA;
 		if (repsizep != NULL)
 			*repsizep = nfsva.na_size;
-		if (wccflagp != NULL &&
-		    nfsva.na_vattr.va_mtime.tv_sec != 0) {
+		if (wccflagp != NULL && nfsva.na_vattr.va_mtime.tv_sec != 0) {
 			NFSLOCKNODE(np);
 			*wccflagp = (np->n_mtime.tv_sec ==
-			    nfsva.na_vattr.va_mtime.tv_sec &&
+				nfsva.na_vattr.va_mtime.tv_sec &&
 			    np->n_mtime.tv_nsec ==
-			    nfsva.na_vattr.va_mtime.tv_sec);
+				nfsva.na_vattr.va_mtime.tv_sec);
 			NFSUNLOCKNODE(np);
 		}
 	}
@@ -912,7 +909,7 @@ nfscl_request(struct nfsrv_descript *nd, struct vnode *vp, NFSPROC_T *p,
 	else
 		vers = NFS_VER2;
 	ret = newnfs_request(nd, nmp, NULL, &nmp->nm_sockreq, vp, p, cred,
-		NFS_PROG, vers, NULL, 1, NULL, NULL);
+	    NFS_PROG, vers, NULL, 1, NULL, NULL);
 	return (ret);
 }
 
@@ -988,8 +985,9 @@ nfscl_loadfsinfo(struct nfsmount *nmp, struct nfsfsinfo *fsp)
 	}
 	if (nmp->nm_rsize < NFS_FABLKSIZE)
 		nmp->nm_rsize = NFS_FABLKSIZE;
-	if ((nmp->nm_readdirsize == 0 || fsp->fs_dtpref < nmp->nm_readdirsize)
-	    && fsp->fs_dtpref >= NFS_DIRBLKSIZ)
+	if ((nmp->nm_readdirsize == 0 ||
+		fsp->fs_dtpref < nmp->nm_readdirsize) &&
+	    fsp->fs_dtpref >= NFS_DIRBLKSIZ)
 		nmp->nm_readdirsize = (fsp->fs_dtpref + NFS_DIRBLKSIZ - 1) &
 		    ~(NFS_DIRBLKSIZ - 1);
 	if (fsp->fs_rtmax < nmp->nm_readdirsize && fsp->fs_rtmax > 0) {
@@ -1176,8 +1174,8 @@ nfscl_maperr(struct thread *td, int error, uid_t uid, gid_t gid)
 	switch (error) {
 	case NFSERR_BADOWNER:
 		tprintf(p, LOG_INFO,
-		    "No name and/or group mapping for uid,gid:(%d,%d)\n",
-		    uid, gid);
+		    "No name and/or group mapping for uid,gid:(%d,%d)\n", uid,
+		    gid);
 		return (EPERM);
 	case NFSERR_BADNAME:
 	case NFSERR_BADCHAR:
@@ -1203,15 +1201,15 @@ nfscl_maperr(struct thread *td, int error, uid_t uid, gid_t gid)
 	case NFSERR_RECLAIMBAD:
 	case NFSERR_BADXDR:
 	case NFSERR_OPILLEGAL:
-		printf("nfsv4 client/server protocol prob err=%d\n",
-		    error);
+		printf("nfsv4 client/server protocol prob err=%d\n", error);
 		return (EIO);
 	case NFSERR_NOFILEHANDLE:
 		printf("nfsv4 no file handle: usually means the file "
-		    "system is not exported on the NFSv4 server\n");
+		       "system is not exported on the NFSv4 server\n");
 		return (EIO);
 	case NFSERR_WRONGSEC:
-		tprintf(p, LOG_INFO, "NFSv4 error WrongSec: You probably need a"
+		tprintf(p, LOG_INFO,
+		    "NFSv4 error WrongSec: You probably need a"
 		    " Kerberos TGT\n");
 		return (EIO);
 	default:
@@ -1228,8 +1226,8 @@ int
 nfscl_procdoesntexist(u_int8_t *own)
 {
 	union {
-		u_int32_t	lval;
-		u_int8_t	cval[4];
+		u_int32_t lval;
+		u_int8_t cval[4];
 	} tl;
 	struct proc *p;
 	pid_t pid;
@@ -1294,7 +1292,8 @@ nfssvc_nfscl(struct thread *td, struct nfssvc_args *uap)
 
 	NFSD_CURVNET_SET(NFSD_TD_TO_VNET(td));
 	if (uap->flag & NFSSVC_CBADDSOCK) {
-		error = copyin(uap->argp, (caddr_t)&nfscbdarg, sizeof(nfscbdarg));
+		error = copyin(uap->argp, (caddr_t)&nfscbdarg,
+		    sizeof(nfscbdarg));
 		if (error)
 			goto out;
 		/*
@@ -1329,20 +1328,21 @@ nfssvc_nfscl(struct thread *td, struct nfssvc_args *uap)
 		error = nfscbd_nfsd(td, &nfscbdarg2);
 	} else if (uap->flag & NFSSVC_DUMPMNTOPTS) {
 		error = copyin(uap->argp, &dumpmntopts, sizeof(dumpmntopts));
-		if (error == 0 && (dumpmntopts.ndmnt_blen < 256 ||
-		    dumpmntopts.ndmnt_blen > 1024))
+		if (error == 0 &&
+		    (dumpmntopts.ndmnt_blen < 256 ||
+			dumpmntopts.ndmnt_blen > 1024))
 			error = EINVAL;
 		if (error == 0)
 			error = nfsrv_lookupfilename(&nd,
 			    dumpmntopts.ndmnt_fname, td);
-		if (error == 0 && strcmp(nd.ni_vp->v_mount->mnt_vfc->vfc_name,
-		    "nfs") != 0) {
+		if (error == 0 &&
+		    strcmp(nd.ni_vp->v_mount->mnt_vfc->vfc_name, "nfs") != 0) {
 			vput(nd.ni_vp);
 			error = EINVAL;
 		}
 		if (error == 0) {
-			buf = malloc(dumpmntopts.ndmnt_blen, M_TEMP, M_WAITOK |
-			    M_ZERO);
+			buf = malloc(dumpmntopts.ndmnt_blen, M_TEMP,
+			    M_WAITOK | M_ZERO);
 			nfscl_retopts(VFSTONFS(nd.ni_vp->v_mount), buf,
 			    dumpmntopts.ndmnt_blen);
 			vput(nd.ni_vp);
@@ -1356,10 +1356,12 @@ nfssvc_nfscl(struct thread *td, struct nfssvc_args *uap)
 		if (error == 0) {
 			nmp = NULL;
 			mtx_lock(&mountlist_mtx);
-			TAILQ_FOREACH(mp, &mountlist, mnt_list) {
+			TAILQ_FOREACH (mp, &mountlist, mnt_list) {
 				if (strcmp(mp->mnt_stat.f_mntonname, buf) ==
-				    0 && strcmp(mp->mnt_stat.f_fstypename,
-				    "nfs") == 0 && mp->mnt_data != NULL) {
+					0 &&
+				    strcmp(mp->mnt_stat.f_fstypename, "nfs") ==
+					0 &&
+				    mp->mnt_data != NULL) {
 					nmp = VFSTONFS(mp);
 					NFSDDSLOCK();
 					if (nfsv4_findmirror(nmp) != NULL) {
@@ -1370,10 +1372,10 @@ nfssvc_nfscl(struct thread *td, struct nfssvc_args *uap)
 					}
 					mtx_lock(&nmp->nm_mtx);
 					if ((nmp->nm_privflag &
-					    NFSMNTP_FORCEDISM) == 0) {
-						nmp->nm_privflag |= 
-						   (NFSMNTP_FORCEDISM |
-						    NFSMNTP_CANCELRPCS);
+						NFSMNTP_FORCEDISM) == 0) {
+						nmp->nm_privflag |=
+						    (NFSMNTP_FORCEDISM |
+							NFSMNTP_CANCELRPCS);
 						mtx_unlock(&nmp->nm_mtx);
 					} else {
 						mtx_unlock(&nmp->nm_mtx);

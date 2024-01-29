@@ -28,10 +28,9 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-
 #include <sys/conf.h>
 #include <sys/elf.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
 #include <sys/malloc.h>
 #include <sys/mman.h>
@@ -44,78 +43,76 @@
 #include <sys/sx.h>
 #include <sys/uio.h>
 
-#include <machine/elf.h>
-
-#include <vm/pmap.h>
 #include <vm/vm.h>
+#include <vm/pmap.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_object.h>
 #include <vm/vm_page.h>
 #include <vm/vm_pager.h>
 
+#include <machine/elf.h>
+
 #include "linker_if.h"
 
-#define SHDR_NULL	0
-#define SHDR_SYMTAB	1
-#define SHDR_STRTAB	2
-#define SHDR_SHSTRTAB	3
+#define SHDR_NULL 0
+#define SHDR_SYMTAB 1
+#define SHDR_STRTAB 2
+#define SHDR_SHSTRTAB 3
 
-#define SHDR_NUM	4
+#define SHDR_NUM 4
 
-#define STR_SYMTAB	".symtab"
-#define STR_STRTAB	".strtab"
-#define STR_SHSTRTAB	".shstrtab"
+#define STR_SYMTAB ".symtab"
+#define STR_STRTAB ".strtab"
+#define STR_SHSTRTAB ".shstrtab"
 
-#define KSYMS_DNAME	"ksyms"
+#define KSYMS_DNAME "ksyms"
 
 static d_open_t ksyms_open;
 static d_read_t ksyms_read;
 static d_mmap_single_t ksyms_mmap_single;
 
-static struct cdevsw ksyms_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_flags =	0,
-	.d_open =	ksyms_open,
-	.d_read =	ksyms_read,
+static struct cdevsw ksyms_cdevsw = { .d_version = D_VERSION,
+	.d_flags = 0,
+	.d_open = ksyms_open,
+	.d_read = ksyms_read,
 	.d_mmap_single = ksyms_mmap_single,
-	.d_name =	KSYMS_DNAME
-};
+	.d_name = KSYMS_DNAME };
 
 struct ksyms_softc {
-	LIST_ENTRY(ksyms_softc)	sc_list;
-	vm_offset_t		sc_uaddr;
-	size_t			sc_usize;
-	vm_object_t		sc_obj;
-	vm_size_t		sc_objsz;
-	struct proc	       *sc_proc;
+	LIST_ENTRY(ksyms_softc) sc_list;
+	vm_offset_t sc_uaddr;
+	size_t sc_usize;
+	vm_object_t sc_obj;
+	vm_size_t sc_objsz;
+	struct proc *sc_proc;
 };
 
-static struct sx		 ksyms_mtx;
-static struct cdev		*ksyms_dev;
-static LIST_HEAD(, ksyms_softc)	 ksyms_list = LIST_HEAD_INITIALIZER(ksyms_list);
+static struct sx ksyms_mtx;
+static struct cdev *ksyms_dev;
+static LIST_HEAD(, ksyms_softc) ksyms_list = LIST_HEAD_INITIALIZER(ksyms_list);
 
-static const char	ksyms_shstrtab[] =
-	"\0" STR_SYMTAB "\0" STR_STRTAB "\0" STR_SHSTRTAB "\0";
+static const char ksyms_shstrtab[] = "\0" STR_SYMTAB "\0" STR_STRTAB
+				     "\0" STR_SHSTRTAB "\0";
 
 struct ksyms_hdr {
-	Elf_Ehdr	kh_ehdr;
-	Elf_Phdr	kh_txtphdr;
-	Elf_Phdr	kh_datphdr;
-	Elf_Shdr	kh_shdr[SHDR_NUM];
-	char		kh_shstrtab[sizeof(ksyms_shstrtab)];
+	Elf_Ehdr kh_ehdr;
+	Elf_Phdr kh_txtphdr;
+	Elf_Phdr kh_datphdr;
+	Elf_Shdr kh_shdr[SHDR_NUM];
+	char kh_shstrtab[sizeof(ksyms_shstrtab)];
 };
 
 struct tsizes {
-	size_t		ts_symsz;
-	size_t		ts_strsz;
+	size_t ts_symsz;
+	size_t ts_strsz;
 };
 
 struct toffsets {
 	struct ksyms_softc *to_sc;
-	vm_offset_t	to_symoff;
-	vm_offset_t	to_stroff;
-	unsigned	to_stridx;
-	size_t		to_resid;
+	vm_offset_t to_symoff;
+	vm_offset_t to_stroff;
+	unsigned to_stridx;
+	size_t to_resid;
 };
 
 static MALLOC_DEFINE(M_KSYMS, "KSYMS", "Kernel Symbol Table");
@@ -174,7 +171,7 @@ ksyms_emit(struct ksyms_softc *sc, void *buf, off_t off, size_t sz)
 	return (uiomove_object(sc->sc_obj, sc->sc_objsz, &uio));
 }
 
-#define SYMBLKSZ	(256 * sizeof(Elf_Sym))
+#define SYMBLKSZ (256 * sizeof(Elf_Sym))
 
 /*
  * For a kernel module, add the symbol and string tables into the
@@ -199,7 +196,7 @@ ksyms_add(linker_file_t lf, void *arg)
 	sc = to->to_sc;
 
 	MOD_SLOCK;
-	numsyms =  LINKER_SYMTAB_GET(lf, &symtab);
+	numsyms = LINKER_SYMTAB_GET(lf, &symtab);
 	strsz = LINKER_STRTAB_GET(lf, &strtab);
 	symsz = numsyms * sizeof(Elf_Sym);
 
@@ -218,12 +215,13 @@ ksyms_add(linker_file_t lf, void *arg)
 		 *   string offsets need adjusted
 		 *   symbol values made absolute
 		 */
-		symp = (Elf_Sym *) buf;
+		symp = (Elf_Sym *)buf;
 		nsyms = len / sizeof(Elf_Sym);
 		for (i = 0; i < nsyms; i++) {
 			symp[i].st_name += to->to_stridx;
-			if (fixup && LINKER_SYMBOL_VALUES(lf,
-			    (c_linker_sym_t)&symtab[i], &symval) == 0) {
+			if (fixup &&
+			    LINKER_SYMBOL_VALUES(lf, (c_linker_sym_t)&symtab[i],
+				&symval) == 0) {
 				symp[i].st_value = (uintptr_t)symval.value;
 			}
 		}
@@ -266,7 +264,7 @@ ksyms_add(linker_file_t lf, void *arg)
 static int
 ksyms_snapshot(struct ksyms_softc *sc, struct tsizes *ts)
 {
-	struct toffsets	to;
+	struct toffsets to;
 	struct ksyms_hdr *hdr;
 	int error;
 
@@ -294,7 +292,7 @@ ksyms_snapshot(struct ksyms_softc *sc, struct tsizes *ts)
 	hdr->kh_ehdr.e_flags = 0;
 	hdr->kh_ehdr.e_ehsize = sizeof(Elf_Ehdr);
 	hdr->kh_ehdr.e_phentsize = sizeof(Elf_Phdr);
-	hdr->kh_ehdr.e_phnum = 2;	/* Text and Data */
+	hdr->kh_ehdr.e_phnum = 2; /* Text and Data */
 	hdr->kh_ehdr.e_shentsize = sizeof(Elf_Shdr);
 	hdr->kh_ehdr.e_shnum = SHDR_NUM;
 	hdr->kh_ehdr.e_shstrndx = SHDR_SHSTRTAB;
@@ -351,8 +349,8 @@ ksyms_snapshot(struct ksyms_softc *sc, struct tsizes *ts)
 	hdr->kh_shdr[SHDR_SHSTRTAB].sh_type = SHT_STRTAB;
 	hdr->kh_shdr[SHDR_SHSTRTAB].sh_flags = 0;
 	hdr->kh_shdr[SHDR_SHSTRTAB].sh_addr = 0;
-	hdr->kh_shdr[SHDR_SHSTRTAB].sh_offset =
-	    offsetof(struct ksyms_hdr, kh_shstrtab);
+	hdr->kh_shdr[SHDR_SHSTRTAB].sh_offset = offsetof(struct ksyms_hdr,
+	    kh_shstrtab);
 	hdr->kh_shdr[SHDR_SHSTRTAB].sh_size = sizeof(ksyms_shstrtab);
 	hdr->kh_shdr[SHDR_SHSTRTAB].sh_link = 0;
 	hdr->kh_shdr[SHDR_SHSTRTAB].sh_info = 0;
@@ -414,7 +412,7 @@ ksyms_open(struct cdev *dev, int flags, int fmt __unused, struct thread *td)
 	 * before open()'ing again.
 	 */
 	sx_xlock(&ksyms_mtx);
-	LIST_FOREACH(sc, &ksyms_list, sc_list) {
+	LIST_FOREACH (sc, &ksyms_list, sc_list) {
 		if (sc->sc_proc == td->td_proc) {
 			sx_xunlock(&ksyms_mtx);
 			return (EBUSY);

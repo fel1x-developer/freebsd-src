@@ -5,27 +5,25 @@
  */
 
 #include <assert.h>
+#include <atf-c.h>
 #include <limits.h>
 #include <locale.h>
 #include <stdint.h>
 #include <stdio.h>
 
-#include <atf-c.h>
-
 #ifndef nitems
 #define nitems(a) (sizeof(a) / sizeof(a[0]))
 #endif
 
-#define SNPRINTF_TEST(output, format, ...)				\
-	do {								\
-		char buf[256];						\
-		assert(strlen(output) < nitems(buf));			\
-		int ret = snprintf(buf, nitems(buf), format,		\
-		    __VA_ARGS__);					\
-		ATF_CHECK_EQ(strlen(output), ret);			\
-		if (ret > 0) {						\
-			ATF_CHECK_EQ(0, strcmp(output, buf));		\
-		}							\
+#define SNPRINTF_TEST(output, format, ...)                                 \
+	do {                                                               \
+		char buf[256];                                             \
+		assert(strlen(output) < nitems(buf));                      \
+		int ret = snprintf(buf, nitems(buf), format, __VA_ARGS__); \
+		ATF_CHECK_EQ(strlen(output), ret);                         \
+		if (ret > 0) {                                             \
+			ATF_CHECK_EQ(0, strcmp(output, buf));              \
+		}                                                          \
 	} while (0)
 
 ATF_TC_WITHOUT_HEAD(snprintf_b);
@@ -181,10 +179,12 @@ ATF_TC_BODY(snprintf_wfN, tc)
 	SNPRINTF_TEST("4294967295", "%wf32u", (uint_fast32_t)UINT_MAX);
 
 	SNPRINTF_TEST("0", "%wf64d", (int_fast64_t)0);
-	SNPRINTF_TEST("-9223372036854775808", "%wf64d", (int_fast64_t)LLONG_MIN);
+	SNPRINTF_TEST("-9223372036854775808", "%wf64d",
+	    (int_fast64_t)LLONG_MIN);
 	SNPRINTF_TEST("9223372036854775807", "%wf64d", (int_fast64_t)LLONG_MAX);
 	SNPRINTF_TEST("0", "%wf64u", (uint64_t)0);
-	SNPRINTF_TEST("18446744073709551615", "%wf64u", (uint_fast64_t)ULLONG_MAX);
+	SNPRINTF_TEST("18446744073709551615", "%wf64u",
+	    (uint_fast64_t)ULLONG_MAX);
 
 	SNPRINTF_TEST("wfd", "%wfd", 0);
 	SNPRINTF_TEST("wf1d", "%wf1d", 0);

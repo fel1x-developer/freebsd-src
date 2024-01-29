@@ -32,18 +32,18 @@
 
 ******************************************************************************/
 
-#include "ixgbe_x540.h"
-#include "ixgbe_type.h"
 #include "ixgbe_api.h"
 #include "ixgbe_common.h"
 #include "ixgbe_phy.h"
+#include "ixgbe_type.h"
+#include "ixgbe_x540.h"
 
-#define IXGBE_X540_MAX_TX_QUEUES	128
-#define IXGBE_X540_MAX_RX_QUEUES	128
-#define IXGBE_X540_RAR_ENTRIES		128
-#define IXGBE_X540_MC_TBL_SIZE		128
-#define IXGBE_X540_VFT_TBL_SIZE		128
-#define IXGBE_X540_RX_PB_SIZE		384
+#define IXGBE_X540_MAX_TX_QUEUES 128
+#define IXGBE_X540_MAX_RX_QUEUES 128
+#define IXGBE_X540_RAR_ENTRIES 128
+#define IXGBE_X540_MC_TBL_SIZE 128
+#define IXGBE_X540_VFT_TBL_SIZE 128
+#define IXGBE_X540_RX_PB_SIZE 384
 
 static s32 ixgbe_poll_flash_update_done_X540(struct ixgbe_hw *hw);
 static s32 ixgbe_get_swfw_sync_semaphore(struct ixgbe_hw *hw);
@@ -56,7 +56,8 @@ static void ixgbe_release_swfw_sync_semaphore(struct ixgbe_hw *hw);
  * Initialize the function pointers and assign the MAC type for X540.
  * Does not touch the hardware.
  **/
-s32 ixgbe_init_ops_X540(struct ixgbe_hw *hw)
+s32
+ixgbe_init_ops_X540(struct ixgbe_hw *hw)
 {
 	struct ixgbe_mac_info *mac = &hw->mac;
 	struct ixgbe_phy_info *phy = &hw->phy;
@@ -67,7 +68,6 @@ s32 ixgbe_init_ops_X540(struct ixgbe_hw *hw)
 
 	ret_val = ixgbe_init_phy_ops_generic(hw);
 	ret_val = ixgbe_init_ops_generic(hw);
-
 
 	/* EEPROM */
 	eeprom->ops.init_params = ixgbe_init_eeprom_params_X540;
@@ -89,7 +89,7 @@ s32 ixgbe_init_ops_X540(struct ixgbe_hw *hw)
 	mac->ops.enable_relaxed_ordering = ixgbe_enable_relaxed_ordering_gen2;
 	mac->ops.get_media_type = ixgbe_get_media_type_X540;
 	mac->ops.get_supported_physical_layer =
-				    ixgbe_get_supported_physical_layer_X540;
+	    ixgbe_get_supported_physical_layer_X540;
 	mac->ops.read_analog_reg8 = NULL;
 	mac->ops.write_analog_reg8 = NULL;
 	mac->ops.start_hw = ixgbe_start_hw_X540;
@@ -119,7 +119,7 @@ s32 ixgbe_init_ops_X540(struct ixgbe_hw *hw)
 
 	/* Link */
 	mac->ops.get_link_capabilities =
-				ixgbe_get_copper_link_capabilities_generic;
+	    ixgbe_get_copper_link_capabilities_generic;
 	mac->ops.setup_link = ixgbe_setup_mac_link_X540;
 	mac->ops.setup_rxpba = ixgbe_set_rxpba_generic;
 	mac->ops.check_link = ixgbe_check_mac_link_generic;
@@ -128,22 +128,21 @@ s32 ixgbe_init_ops_X540(struct ixgbe_hw *hw)
 	mac->ops.bypass_set = ixgbe_bypass_set_generic;
 	mac->ops.bypass_rd_eep = ixgbe_bypass_rd_eep_generic;
 
-
-	mac->mcft_size		= IXGBE_X540_MC_TBL_SIZE;
-	mac->vft_size		= IXGBE_X540_VFT_TBL_SIZE;
-	mac->num_rar_entries	= IXGBE_X540_RAR_ENTRIES;
-	mac->rx_pb_size		= IXGBE_X540_RX_PB_SIZE;
-	mac->max_rx_queues	= IXGBE_X540_MAX_RX_QUEUES;
-	mac->max_tx_queues	= IXGBE_X540_MAX_TX_QUEUES;
-	mac->max_msix_vectors	= ixgbe_get_pcie_msix_count_generic(hw);
+	mac->mcft_size = IXGBE_X540_MC_TBL_SIZE;
+	mac->vft_size = IXGBE_X540_VFT_TBL_SIZE;
+	mac->num_rar_entries = IXGBE_X540_RAR_ENTRIES;
+	mac->rx_pb_size = IXGBE_X540_RX_PB_SIZE;
+	mac->max_rx_queues = IXGBE_X540_MAX_RX_QUEUES;
+	mac->max_tx_queues = IXGBE_X540_MAX_TX_QUEUES;
+	mac->max_msix_vectors = ixgbe_get_pcie_msix_count_generic(hw);
 
 	/*
 	 * FWSM register
 	 * ARC supported; valid only if manageability features are
 	 * enabled.
 	 */
-	mac->arc_subsystem_valid = !!(IXGBE_READ_REG(hw, IXGBE_FWSM_BY_MAC(hw))
-				     & IXGBE_FWSM_MODE_MASK);
+	mac->arc_subsystem_valid = !!(
+	    IXGBE_READ_REG(hw, IXGBE_FWSM_BY_MAC(hw)) & IXGBE_FWSM_MODE_MASK);
 
 	hw->mbx.ops.init_params = ixgbe_init_mbx_params_pf;
 
@@ -167,9 +166,9 @@ s32 ixgbe_init_ops_X540(struct ixgbe_hw *hw)
  *
  * Determines the link capabilities by reading the AUTOC register.
  **/
-s32 ixgbe_get_link_capabilities_X540(struct ixgbe_hw *hw,
-				     ixgbe_link_speed *speed,
-				     bool *autoneg)
+s32
+ixgbe_get_link_capabilities_X540(struct ixgbe_hw *hw, ixgbe_link_speed *speed,
+    bool *autoneg)
 {
 	ixgbe_get_copper_link_capabilities_generic(hw, speed, autoneg);
 
@@ -182,7 +181,8 @@ s32 ixgbe_get_link_capabilities_X540(struct ixgbe_hw *hw,
  *
  * Returns the media type (fiber, copper, backplane)
  **/
-enum ixgbe_media_type ixgbe_get_media_type_X540(struct ixgbe_hw *hw)
+enum ixgbe_media_type
+ixgbe_get_media_type_X540(struct ixgbe_hw *hw)
 {
 	UNREFERENCED_1PARAMETER(hw);
 	return ixgbe_media_type_copper;
@@ -194,12 +194,13 @@ enum ixgbe_media_type ixgbe_get_media_type_X540(struct ixgbe_hw *hw)
  * @speed: new link speed
  * @autoneg_wait_to_complete: true when waiting for completion is needed
  **/
-s32 ixgbe_setup_mac_link_X540(struct ixgbe_hw *hw,
-			      ixgbe_link_speed speed,
-			      bool autoneg_wait_to_complete)
+s32
+ixgbe_setup_mac_link_X540(struct ixgbe_hw *hw, ixgbe_link_speed speed,
+    bool autoneg_wait_to_complete)
 {
 	DEBUGFUNC("ixgbe_setup_mac_link_X540");
-	return hw->phy.ops.setup_link_speed(hw, speed, autoneg_wait_to_complete);
+	return hw->phy.ops.setup_link_speed(hw, speed,
+	    autoneg_wait_to_complete);
 }
 
 /**
@@ -209,7 +210,8 @@ s32 ixgbe_setup_mac_link_X540(struct ixgbe_hw *hw,
  * Resets the hardware by resetting the transmit and receive units, masks
  * and clears all interrupts, and perform a reset.
  **/
-s32 ixgbe_reset_hw_X540(struct ixgbe_hw *hw)
+s32
+ixgbe_reset_hw_X540(struct ixgbe_hw *hw)
 {
 	s32 status;
 	u32 ctrl, i;
@@ -228,8 +230,8 @@ s32 ixgbe_reset_hw_X540(struct ixgbe_hw *hw)
 mac_reset_top:
 	status = hw->mac.ops.acquire_swfw_sync(hw, swfw_mask);
 	if (status != IXGBE_SUCCESS) {
-		ERROR_REPORT2(IXGBE_ERROR_CAUTION,
-			"semaphore failed with %d", status);
+		ERROR_REPORT2(IXGBE_ERROR_CAUTION, "semaphore failed with %d",
+		    status);
 		return IXGBE_ERR_SWFW_SYNC;
 	}
 	ctrl = IXGBE_CTRL_RST;
@@ -249,7 +251,7 @@ mac_reset_top:
 	if (ctrl & IXGBE_CTRL_RST_MASK) {
 		status = IXGBE_ERR_RESET_FAILED;
 		ERROR_REPORT1(IXGBE_ERROR_POLLING,
-			     "Reset polling failed to complete.\n");
+		    "Reset polling failed to complete.\n");
 	}
 	msec_delay(100);
 
@@ -286,11 +288,11 @@ mac_reset_top:
 		hw->mac.san_mac_rar_index = hw->mac.num_rar_entries - 1;
 
 		hw->mac.ops.set_rar(hw, hw->mac.san_mac_rar_index,
-				    hw->mac.san_addr, 0, IXGBE_RAH_AV);
+		    hw->mac.san_addr, 0, IXGBE_RAH_AV);
 
 		/* clear VMDq pool/queue selection for this RAR */
 		hw->mac.ops.clear_vmdq(hw, hw->mac.san_mac_rar_index,
-				       IXGBE_CLEAR_VMDQ_ALL);
+		    IXGBE_CLEAR_VMDQ_ALL);
 
 		/* Reserve the last RAR for the SAN MAC address */
 		hw->mac.num_rar_entries--;
@@ -298,7 +300,7 @@ mac_reset_top:
 
 	/* Store the alternative WWNN/WWPN prefix */
 	hw->mac.ops.get_wwn_prefix(hw, &hw->mac.wwnn_prefix,
-				   &hw->mac.wwpn_prefix);
+	    &hw->mac.wwpn_prefix);
 
 reset_hw_out:
 	return status;
@@ -312,7 +314,8 @@ reset_hw_out:
  * and the generation start_hw function.
  * Then performs revision-specific operations, if any.
  **/
-s32 ixgbe_start_hw_X540(struct ixgbe_hw *hw)
+s32
+ixgbe_start_hw_X540(struct ixgbe_hw *hw)
 {
 	s32 ret_val = IXGBE_SUCCESS;
 
@@ -334,7 +337,8 @@ out:
  *
  * Determines physical layer capabilities of the current configuration.
  **/
-u64 ixgbe_get_supported_physical_layer_X540(struct ixgbe_hw *hw)
+u64
+ixgbe_get_supported_physical_layer_X540(struct ixgbe_hw *hw)
 {
 	u64 physical_layer = IXGBE_PHYSICAL_LAYER_UNKNOWN;
 	u16 ext_ability = 0;
@@ -342,7 +346,7 @@ u64 ixgbe_get_supported_physical_layer_X540(struct ixgbe_hw *hw)
 	DEBUGFUNC("ixgbe_get_supported_physical_layer_X540");
 
 	hw->phy.ops.read_reg(hw, IXGBE_MDIO_PHY_EXT_ABILITY,
-	IXGBE_MDIO_PMA_PMD_DEV_TYPE, &ext_ability);
+	    IXGBE_MDIO_PMA_PMD_DEV_TYPE, &ext_ability);
 	if (ext_ability & IXGBE_MDIO_PHY_10GBASET_ABILITY)
 		physical_layer |= IXGBE_PHYSICAL_LAYER_10GBASE_T;
 	if (ext_ability & IXGBE_MDIO_PHY_1000BASET_ABILITY)
@@ -360,7 +364,8 @@ u64 ixgbe_get_supported_physical_layer_X540(struct ixgbe_hw *hw)
  * Initializes the EEPROM parameters ixgbe_eeprom_info within the
  * ixgbe_hw struct in order to set up EEPROM access.
  **/
-s32 ixgbe_init_eeprom_params_X540(struct ixgbe_hw *hw)
+s32
+ixgbe_init_eeprom_params_X540(struct ixgbe_hw *hw)
 {
 	struct ixgbe_eeprom_info *eeprom = &hw->eeprom;
 	u32 eec;
@@ -374,12 +379,12 @@ s32 ixgbe_init_eeprom_params_X540(struct ixgbe_hw *hw)
 
 		eec = IXGBE_READ_REG(hw, IXGBE_EEC_BY_MAC(hw));
 		eeprom_size = (u16)((eec & IXGBE_EEC_SIZE) >>
-				    IXGBE_EEC_SIZE_SHIFT);
-		eeprom->word_size = 1 << (eeprom_size +
-					  IXGBE_EEPROM_WORD_SIZE_SHIFT);
+		    IXGBE_EEC_SIZE_SHIFT);
+		eeprom->word_size = 1
+		    << (eeprom_size + IXGBE_EEPROM_WORD_SIZE_SHIFT);
 
-		DEBUGOUT2("Eeprom params: type = %d, size = %d\n",
-			  eeprom->type, eeprom->word_size);
+		DEBUGOUT2("Eeprom params: type = %d, size = %d\n", eeprom->type,
+		    eeprom->word_size);
 	}
 
 	return IXGBE_SUCCESS;
@@ -393,7 +398,8 @@ s32 ixgbe_init_eeprom_params_X540(struct ixgbe_hw *hw)
  *
  * Reads a 16 bit word from the EEPROM using the EERD register.
  **/
-s32 ixgbe_read_eerd_X540(struct ixgbe_hw *hw, u16 offset, u16 *data)
+s32
+ixgbe_read_eerd_X540(struct ixgbe_hw *hw, u16 offset, u16 *data)
 {
 	s32 status = IXGBE_SUCCESS;
 
@@ -418,16 +424,17 @@ s32 ixgbe_read_eerd_X540(struct ixgbe_hw *hw, u16 offset, u16 *data)
  *
  * Reads a 16 bit word(s) from the EEPROM using the EERD register.
  **/
-s32 ixgbe_read_eerd_buffer_X540(struct ixgbe_hw *hw,
-				u16 offset, u16 words, u16 *data)
+s32
+ixgbe_read_eerd_buffer_X540(struct ixgbe_hw *hw, u16 offset, u16 words,
+    u16 *data)
 {
 	s32 status = IXGBE_SUCCESS;
 
 	DEBUGFUNC("ixgbe_read_eerd_buffer_X540");
 	if (hw->mac.ops.acquire_swfw_sync(hw, IXGBE_GSSR_EEP_SM) ==
 	    IXGBE_SUCCESS) {
-		status = ixgbe_read_eerd_buffer_generic(hw, offset,
-							words, data);
+		status = ixgbe_read_eerd_buffer_generic(hw, offset, words,
+		    data);
 		hw->mac.ops.release_swfw_sync(hw, IXGBE_GSSR_EEP_SM);
 	} else {
 		status = IXGBE_ERR_SWFW_SYNC;
@@ -444,7 +451,8 @@ s32 ixgbe_read_eerd_buffer_X540(struct ixgbe_hw *hw,
  *
  * Write a 16 bit word to the EEPROM using the EEWR register.
  **/
-s32 ixgbe_write_eewr_X540(struct ixgbe_hw *hw, u16 offset, u16 data)
+s32
+ixgbe_write_eewr_X540(struct ixgbe_hw *hw, u16 offset, u16 data)
 {
 	s32 status = IXGBE_SUCCESS;
 
@@ -469,16 +477,17 @@ s32 ixgbe_write_eewr_X540(struct ixgbe_hw *hw, u16 offset, u16 data)
  *
  * Write a 16 bit word(s) to the EEPROM using the EEWR register.
  **/
-s32 ixgbe_write_eewr_buffer_X540(struct ixgbe_hw *hw,
-				 u16 offset, u16 words, u16 *data)
+s32
+ixgbe_write_eewr_buffer_X540(struct ixgbe_hw *hw, u16 offset, u16 words,
+    u16 *data)
 {
 	s32 status = IXGBE_SUCCESS;
 
 	DEBUGFUNC("ixgbe_write_eewr_buffer_X540");
 	if (hw->mac.ops.acquire_swfw_sync(hw, IXGBE_GSSR_EEP_SM) ==
 	    IXGBE_SUCCESS) {
-		status = ixgbe_write_eewr_buffer_generic(hw, offset,
-							 words, data);
+		status = ixgbe_write_eewr_buffer_generic(hw, offset, words,
+		    data);
 		hw->mac.ops.release_swfw_sync(hw, IXGBE_GSSR_EEP_SM);
 	} else {
 		status = IXGBE_ERR_SWFW_SYNC;
@@ -497,7 +506,8 @@ s32 ixgbe_write_eewr_buffer_X540(struct ixgbe_hw *hw,
  *
  * Returns a negative error code on error, or the 16-bit checksum
  **/
-s32 ixgbe_calc_eeprom_checksum_X540(struct ixgbe_hw *hw)
+s32
+ixgbe_calc_eeprom_checksum_X540(struct ixgbe_hw *hw)
 {
 	u16 i, j;
 	u16 checksum = 0;
@@ -573,8 +583,8 @@ s32 ixgbe_calc_eeprom_checksum_X540(struct ixgbe_hw *hw)
  * Performs checksum calculation and validates the EEPROM checksum.  If the
  * caller does not need checksum_val, the value can be NULL.
  **/
-s32 ixgbe_validate_eeprom_checksum_X540(struct ixgbe_hw *hw,
-					u16 *checksum_val)
+s32
+ixgbe_validate_eeprom_checksum_X540(struct ixgbe_hw *hw, u16 *checksum_val)
 {
 	s32 status;
 	u16 checksum;
@@ -605,7 +615,7 @@ s32 ixgbe_validate_eeprom_checksum_X540(struct ixgbe_hw *hw,
 	 * the synchronization semaphores twice here.
 	 */
 	status = ixgbe_read_eerd_generic(hw, IXGBE_EEPROM_CHECKSUM,
-					 &read_checksum);
+	    &read_checksum);
 	if (status)
 		goto out;
 
@@ -614,7 +624,7 @@ s32 ixgbe_validate_eeprom_checksum_X540(struct ixgbe_hw *hw,
 	 */
 	if (read_checksum != checksum) {
 		ERROR_REPORT1(IXGBE_ERROR_INVALID_STATE,
-			     "Invalid EEPROM checksum");
+		    "Invalid EEPROM checksum");
 		status = IXGBE_ERR_EEPROM_CHECKSUM;
 	}
 
@@ -636,7 +646,8 @@ out:
  * checksum and updates the EEPROM and instructs the hardware to update
  * the flash.
  **/
-s32 ixgbe_update_eeprom_checksum_X540(struct ixgbe_hw *hw)
+s32
+ixgbe_update_eeprom_checksum_X540(struct ixgbe_hw *hw)
 {
 	s32 status;
 	u16 checksum;
@@ -684,7 +695,8 @@ out:
  * Set FLUP (bit 23) of the EEC register to instruct Hardware to copy
  * EEPROM from shadow RAM to the flash device.
  **/
-s32 ixgbe_update_flash_X540(struct ixgbe_hw *hw)
+s32
+ixgbe_update_flash_X540(struct ixgbe_hw *hw)
 {
 	u32 flup;
 	s32 status;
@@ -731,7 +743,8 @@ out:
  * Polls the FLUDONE (bit 26) of the EEC Register to determine when the
  * flash update is done.
  **/
-static s32 ixgbe_poll_flash_update_done_X540(struct ixgbe_hw *hw)
+static s32
+ixgbe_poll_flash_update_done_X540(struct ixgbe_hw *hw)
 {
 	u32 i;
 	u32 reg;
@@ -750,7 +763,7 @@ static s32 ixgbe_poll_flash_update_done_X540(struct ixgbe_hw *hw)
 
 	if (i == IXGBE_FLUDONE_ATTEMPTS)
 		ERROR_REPORT1(IXGBE_ERROR_POLLING,
-			     "Flash update status polling timed out");
+		    "Flash update status polling timed out");
 
 	return status;
 }
@@ -763,7 +776,8 @@ static s32 ixgbe_poll_flash_update_done_X540(struct ixgbe_hw *hw)
  * Acquires the SWFW semaphore thought the SW_FW_SYNC register for
  * the specified function (CSR, PHY0, PHY1, NVM, Flash)
  **/
-s32 ixgbe_acquire_swfw_sync_X540(struct ixgbe_hw *hw, u32 mask)
+s32
+ixgbe_acquire_swfw_sync_X540(struct ixgbe_hw *hw, u32 mask)
 {
 	u32 swmask = mask & IXGBE_GSSR_NVM_PHY_MASK;
 	u32 fwmask = swmask << 5;
@@ -792,7 +806,8 @@ s32 ixgbe_acquire_swfw_sync_X540(struct ixgbe_hw *hw, u32 mask)
 		 * SW_FW_SYNC bits (not just NVM)
 		 */
 		if (ixgbe_get_swfw_sync_semaphore(hw)) {
-			DEBUGOUT("Failed to get NVM access and register semaphore, returning IXGBE_ERR_SWFW_SYNC\n");
+			DEBUGOUT(
+			    "Failed to get NVM access and register semaphore, returning IXGBE_ERR_SWFW_SYNC\n");
 			return IXGBE_ERR_SWFW_SYNC;
 		}
 
@@ -800,7 +815,7 @@ s32 ixgbe_acquire_swfw_sync_X540(struct ixgbe_hw *hw, u32 mask)
 		if (!(swfw_sync & (fwmask | swmask | hwmask))) {
 			swfw_sync |= swmask;
 			IXGBE_WRITE_REG(hw, IXGBE_SWFW_SYNC_BY_MAC(hw),
-					swfw_sync);
+			    swfw_sync);
 			ixgbe_release_swfw_sync_semaphore(hw);
 			return IXGBE_SUCCESS;
 		}
@@ -818,7 +833,8 @@ s32 ixgbe_acquire_swfw_sync_X540(struct ixgbe_hw *hw, u32 mask)
 	 * bits in the SW_FW_SYNC register.
 	 */
 	if (ixgbe_get_swfw_sync_semaphore(hw)) {
-		DEBUGOUT("Failed to get NVM semaphore and register semaphore while forcefully ignoring FW semaphore bit(s) and setting SW semaphore bit(s), returning IXGBE_ERR_SWFW_SYNC\n");
+		DEBUGOUT(
+		    "Failed to get NVM semaphore and register semaphore while forcefully ignoring FW semaphore bit(s) and setting SW semaphore bit(s), returning IXGBE_ERR_SWFW_SYNC\n");
 		return IXGBE_ERR_SWFW_SYNC;
 	}
 	swfw_sync = IXGBE_READ_REG(hw, IXGBE_SWFW_SYNC_BY_MAC(hw));
@@ -836,14 +852,15 @@ s32 ixgbe_acquire_swfw_sync_X540(struct ixgbe_hw *hw, u32 mask)
 	 */
 	if (swfw_sync & swmask) {
 		u32 rmask = IXGBE_GSSR_EEP_SM | IXGBE_GSSR_PHY0_SM |
-			    IXGBE_GSSR_PHY1_SM | IXGBE_GSSR_MAC_CSR_SM |
-			    IXGBE_GSSR_SW_MNG_SM;
+		    IXGBE_GSSR_PHY1_SM | IXGBE_GSSR_MAC_CSR_SM |
+		    IXGBE_GSSR_SW_MNG_SM;
 
 		if (swi2c_mask)
 			rmask |= IXGBE_GSSR_I2C_MASK;
 		ixgbe_release_swfw_sync_X540(hw, rmask);
 		ixgbe_release_swfw_sync_semaphore(hw);
-		DEBUGOUT("Resource not released by other SW, returning IXGBE_ERR_SWFW_SYNC\n");
+		DEBUGOUT(
+		    "Resource not released by other SW, returning IXGBE_ERR_SWFW_SYNC\n");
 		return IXGBE_ERR_SWFW_SYNC;
 	}
 	ixgbe_release_swfw_sync_semaphore(hw);
@@ -860,7 +877,8 @@ s32 ixgbe_acquire_swfw_sync_X540(struct ixgbe_hw *hw, u32 mask)
  * Releases the SWFW semaphore through the SW_FW_SYNC register
  * for the specified function (CSR, PHY0, PHY1, EVM, Flash)
  **/
-void ixgbe_release_swfw_sync_X540(struct ixgbe_hw *hw, u32 mask)
+void
+ixgbe_release_swfw_sync_X540(struct ixgbe_hw *hw, u32 mask)
 {
 	u32 swmask = mask & (IXGBE_GSSR_NVM_PHY_MASK | IXGBE_GSSR_SW_MNG_SM);
 	u32 swfw_sync;
@@ -885,7 +903,8 @@ void ixgbe_release_swfw_sync_X540(struct ixgbe_hw *hw, u32 mask)
  *
  * Sets the hardware semaphores so SW/FW can gain control of shared resources
  **/
-static s32 ixgbe_get_swfw_sync_semaphore(struct ixgbe_hw *hw)
+static s32
+ixgbe_get_swfw_sync_semaphore(struct ixgbe_hw *hw)
 {
 	s32 status = IXGBE_ERR_EEPROM;
 	u32 timeout = 2000;
@@ -924,14 +943,14 @@ static s32 ixgbe_get_swfw_sync_semaphore(struct ixgbe_hw *hw)
 		 */
 		if (i >= timeout) {
 			ERROR_REPORT1(IXGBE_ERROR_POLLING,
-				"REGSMP Software NVM semaphore not granted.\n");
+			    "REGSMP Software NVM semaphore not granted.\n");
 			ixgbe_release_swfw_sync_semaphore(hw);
 			status = IXGBE_ERR_EEPROM;
 		}
 	} else {
 		ERROR_REPORT1(IXGBE_ERROR_POLLING,
-			     "Software semaphore SMBI between device drivers "
-			     "not granted.\n");
+		    "Software semaphore SMBI between device drivers "
+		    "not granted.\n");
 	}
 
 	return status;
@@ -943,7 +962,8 @@ static s32 ixgbe_get_swfw_sync_semaphore(struct ixgbe_hw *hw)
  *
  * This function clears hardware semaphore bits.
  **/
-static void ixgbe_release_swfw_sync_semaphore(struct ixgbe_hw *hw)
+static void
+ixgbe_release_swfw_sync_semaphore(struct ixgbe_hw *hw)
 {
 	u32 swsm;
 
@@ -969,7 +989,8 @@ static void ixgbe_release_swfw_sync_semaphore(struct ixgbe_hw *hw)
  * This function reset hardware semaphore bits for a semaphore that may
  * have be left locked due to a catastrophic failure.
  **/
-void ixgbe_init_swfw_sync_X540(struct ixgbe_hw *hw)
+void
+ixgbe_init_swfw_sync_X540(struct ixgbe_hw *hw)
 {
 	u32 rmask;
 
@@ -983,9 +1004,8 @@ void ixgbe_init_swfw_sync_X540(struct ixgbe_hw *hw)
 	ixgbe_release_swfw_sync_semaphore(hw);
 
 	/* Acquire and release all software resources. */
-	rmask = IXGBE_GSSR_EEP_SM | IXGBE_GSSR_PHY0_SM |
-		IXGBE_GSSR_PHY1_SM | IXGBE_GSSR_MAC_CSR_SM |
-		IXGBE_GSSR_SW_MNG_SM;
+	rmask = IXGBE_GSSR_EEP_SM | IXGBE_GSSR_PHY0_SM | IXGBE_GSSR_PHY1_SM |
+	    IXGBE_GSSR_MAC_CSR_SM | IXGBE_GSSR_SW_MNG_SM;
 
 	rmask |= IXGBE_GSSR_I2C_MASK;
 	ixgbe_acquire_swfw_sync_X540(hw, rmask);
@@ -1000,7 +1020,8 @@ void ixgbe_init_swfw_sync_X540(struct ixgbe_hw *hw)
  * Devices that implement the version 2 interface:
  *  X540
  **/
-s32 ixgbe_blink_led_start_X540(struct ixgbe_hw *hw, u32 index)
+s32
+ixgbe_blink_led_start_X540(struct ixgbe_hw *hw, u32 index)
 {
 	u32 macc_reg;
 	u32 ledctl_reg;
@@ -1041,7 +1062,8 @@ s32 ixgbe_blink_led_start_X540(struct ixgbe_hw *hw, u32 index)
  * Devices that implement the version 2 interface:
  *  X540
  **/
-s32 ixgbe_blink_led_stop_X540(struct ixgbe_hw *hw, u32 index)
+s32
+ixgbe_blink_led_stop_X540(struct ixgbe_hw *hw, u32 index)
 {
 	u32 macc_reg;
 	u32 ledctl_reg;

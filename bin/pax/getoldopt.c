@@ -12,6 +12,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -21,14 +22,14 @@ int getoldopt(int, char **, const char *);
 int
 getoldopt(int argc, char **argv, const char *optstring)
 {
-	static char	*key;		/* Points to next keyletter */
-	static char	use_getopt;	/* !=0 if argv[1][0] was '-' */
-	char		c;
-	char		*place;
+	static char *key;	/* Points to next keyletter */
+	static char use_getopt; /* !=0 if argv[1][0] was '-' */
+	char c;
+	char *place;
 
 	optarg = NULL;
 
-	if (key == NULL) {		/* First time */
+	if (key == NULL) { /* First time */
 		if (argc < 2)
 			return (-1);
 		key = argv[1];
@@ -59,8 +60,8 @@ getoldopt(int argc, char **argv, const char *optstring)
 			optarg = argv[optind];
 			optind++;
 		} else {
-			fprintf(stderr, "%s: %c argument missing\n",
-				argv[0], c);
+			fprintf(stderr, "%s: %c argument missing\n", argv[0],
+			    c);
 			return ('?');
 		}
 	}

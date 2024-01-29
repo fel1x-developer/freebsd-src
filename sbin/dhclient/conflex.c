@@ -43,6 +43,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <ctype.h>
 
 #include "dhcpd.h"
@@ -118,9 +119,9 @@ get_char(FILE *cfile)
 static int
 get_token(FILE *cfile)
 {
-	int		c, ttok;
-	static char	tb[2];
-	int		l, p;
+	int c, ttok;
+	static char tb[2];
+	int l, p;
 
 	do {
 		l = line;
@@ -166,7 +167,7 @@ get_token(FILE *cfile)
 int
 next_token(char **rval, FILE *cfile)
 {
-	int	rv;
+	int rv;
 
 	if (token) {
 		if (lexline != tline)
@@ -188,7 +189,7 @@ next_token(char **rval, FILE *cfile)
 int
 peek_token(char **rval, FILE *cfile)
 {
-	int	x;
+	int x;
 
 	if (!token) {
 		tlpos = lexchar;
@@ -212,7 +213,7 @@ peek_token(char **rval, FILE *cfile)
 static void
 skip_to_eol(FILE *cfile)
 {
-	int	c;
+	int c;
 
 	do {
 		c = get_char(cfile);
@@ -226,7 +227,7 @@ skip_to_eol(FILE *cfile)
 static int
 read_string(FILE *cfile)
 {
-	int	c, bs = 0;
+	int c, bs = 0;
 	unsigned i;
 
 	for (i = 0; i < sizeof(tokbuf); i++) {
@@ -262,7 +263,7 @@ read_string(FILE *cfile)
 static int
 read_number(int c, FILE *cfile)
 {
-	int	seenx = 0, _token = NUMBER;
+	int seenx = 0, _token = NUMBER;
 	unsigned i = 0;
 
 	tokbuf[i++] = c;
@@ -291,7 +292,7 @@ static int
 read_num_or_name(int c, FILE *cfile)
 {
 	unsigned i = 0;
-	int	rv = NUMBER_OR_NAME;
+	int rv = NUMBER_OR_NAME;
 
 	tokbuf[i++] = c;
 	for (; i < sizeof(tokbuf); i++) {
@@ -512,7 +513,7 @@ intern(char *atom, int dfv)
 			if (!strcasecmp(atom + 3, "-host-decl-names"))
 				return (USE_HOST_DECL_NAMES);
 			if (!strcasecmp(atom + 3,
-					 "-lease-addr-for-default-route"))
+				"-lease-addr-for-default-route"))
 				return (USE_LEASE_ADDR_FOR_DEFAULT_ROUTE);
 			break;
 		}

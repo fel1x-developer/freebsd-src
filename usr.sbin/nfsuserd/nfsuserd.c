@@ -41,21 +41,17 @@
 #include <netinet/in.h>
 
 #include <arpa/inet.h>
-
-#include <nfs/nfssvc.h>
-
-#include <rpc/rpc.h>
-
-#include <fs/nfs/rpcv2.h>
-#include <fs/nfs/nfsproto.h>
-#include <fs/nfs/nfskpiport.h>
-#include <fs/nfs/nfs.h>
-
 #include <ctype.h>
 #include <err.h>
+#include <fs/nfs/nfs.h>
+#include <fs/nfs/nfskpiport.h>
+#include <fs/nfs/nfsproto.h>
+#include <fs/nfs/rpcv2.h>
 #include <grp.h>
 #include <netdb.h>
+#include <nfs/nfssvc.h>
 #include <pwd.h>
+#include <rpc/rpc.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -68,25 +64,25 @@
  * for NFS V4.
  */
 
-static void	cleanup_term(int);
-static void	usage(void);
-static void	nfsuserdsrv(struct svc_req *, SVCXPRT *);
-static bool_t	xdr_getid(XDR *, caddr_t);
-static bool_t	xdr_getname(XDR *, caddr_t);
-static bool_t	xdr_retval(XDR *, caddr_t);
-static int	nfsbind_localhost(void);
+static void cleanup_term(int);
+static void usage(void);
+static void nfsuserdsrv(struct svc_req *, SVCXPRT *);
+static bool_t xdr_getid(XDR *, caddr_t);
+static bool_t xdr_getname(XDR *, caddr_t);
+static bool_t xdr_retval(XDR *, caddr_t);
+static int nfsbind_localhost(void);
 
-#define	MAXNAME		1024
-#define	MAXNFSUSERD	20
-#define	DEFNFSUSERD	4
-#define	MAXUSERMAX	100000
-#define	MINUSERMAX	10
-#define	DEFUSERMAX	200
-#define	DEFUSERTIMEOUT	(1 * 60)
+#define MAXNAME 1024
+#define MAXNFSUSERD 20
+#define DEFNFSUSERD 4
+#define MAXUSERMAX 100000
+#define MINUSERMAX 10
+#define DEFUSERMAX 200
+#define DEFUSERTIMEOUT (1 * 60)
 struct info {
-	long	id;
-	long	retval;
-	char	name[MAXNAME + 1];
+	long id;
+	long retval;
+	char name[MAXNAME + 1];
 };
 
 u_char *dnsname = "default.domain";
@@ -130,8 +126,7 @@ main(int argc, char *argv[])
 
 	if (modfind("nfscommon") < 0) {
 		/* Not present in kernel, try loading it */
-		if (kldload("nfscommon") < 0 ||
-		    modfind("nfscommon") < 0)
+		if (kldload("nfscommon") < 0 || modfind("nfscommon") < 0)
 			errx(1, "Experimental nfs subsystem is not available");
 	}
 
@@ -140,17 +135,17 @@ main(int argc, char *argv[])
 	 * seem to be. Command line args may override these later.
 	 */
 	if (gethostname(hostname, MAXHOSTNAMELEN) == 0) {
-		if ((cp = strchr(hostname, '.')) != NULL &&
-		    *(cp + 1) != '\0') {
+		if ((cp = strchr(hostname, '.')) != NULL && *(cp + 1) != '\0') {
 			dnsname = cp + 1;
 		} else {
-			memset((void *)&hints, 0, sizeof (hints));
+			memset((void *)&hints, 0, sizeof(hints));
 			hints.ai_flags = AI_CANONNAME;
 			error = getaddrinfo(hostname, NULL, &hints, &aip);
 			if (error == 0) {
-			    if (aip->ai_canonname != NULL &&
-				(cp = strchr(aip->ai_canonname, '.')) != NULL
-				&& *(cp + 1) != '\0') {
+				if (aip->ai_canonname != NULL &&
+				    (cp = strchr(aip->ai_canonname, '.')) !=
+					NULL &&
+				    *(cp + 1) != '\0') {
 					dnsname = cp + 1;
 					mustfreeai = 1;
 				} else {
@@ -174,7 +169,7 @@ main(int argc, char *argv[])
 		sin6->sin6_addr = in6loopback;
 		close(s);
 	}
-#endif	/* INET6 */
+#endif /* INET6 */
 #ifdef INET
 	if (s < 0) {
 		s = socket(PF_INET, SOCK_DGRAM, 0);
@@ -186,7 +181,7 @@ main(int argc, char *argv[])
 			close(s);
 		}
 	}
-#endif	/* INET */
+#endif /* INET */
 	if (s < 0)
 		err(1, "Can't create a inet/inet6 socket");
 
@@ -285,8 +280,8 @@ main(int argc, char *argv[])
 
 	if (verbose)
 		fprintf(stderr,
-		    "nfsuserd: domain=%s usermax=%d usertimeout=%d\n",
-		    dnsname, nid.nid_usermax, nid.nid_usertimeout);
+		    "nfsuserd: domain=%s usermax=%d usertimeout=%d\n", dnsname,
+		    nid.nid_usermax, nid.nid_usertimeout);
 
 	for (i = 0; i < nfsuserdcnt; i++)
 		servers[i] = (pid_t)-1;
@@ -303,7 +298,7 @@ main(int argc, char *argv[])
 	 * Not sure what this does, so I'll leave it here for now.
 	 */
 	setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-	
+
 	if ((udptransp = svcudp_create(sock)) == NULL)
 		err(1, "Can't set up socket");
 
@@ -313,7 +308,7 @@ main(int argc, char *argv[])
 	 * which is just what I want.
 	 */
 	if (!svc_register(udptransp, RPCPROG_NFSUSERD, RPCNFSUSERD_VERS,
-	    nfsuserdsrv, 0))
+		nfsuserdsrv, 0))
 		err(1, "Can't register nfsuserd");
 
 	/*
@@ -330,12 +325,15 @@ main(int argc, char *argv[])
 			sysctlbyname("security.jail.jailed", &jailed,
 			    &jailed_size, NULL, 0);
 			if (jailed != 0) {
-				fprintf(stderr, "Cannot start nfsuserd. "
+				fprintf(stderr,
+				    "Cannot start nfsuserd. "
 				    "allow.nfsd might not be configured\n");
 			} else {
-				fprintf(stderr, "Cannot start nfsuserd "
+				fprintf(stderr,
+				    "Cannot start nfsuserd "
 				    "when already running.");
-				fprintf(stderr, " If not running, "
+				fprintf(stderr,
+				    " If not running, "
 				    "use the -force option.\n");
 			}
 		} else {
@@ -361,7 +359,7 @@ main(int argc, char *argv[])
 	nid.nid_grps = NULL;
 	nid.nid_flag = NFSID_INITIALIZE;
 #ifdef DEBUG
-	printf("Initialize uid=%d gid=%d dns=%s\n", nid.nid_uid, nid.nid_gid, 
+	printf("Initialize uid=%d gid=%d dns=%s\n", nid.nid_uid, nid.nid_gid,
 	    nid.nid_name);
 #else
 	error = nfssvc(NFSSVC_IDNAME | NFSSVC_NEWSTRUCT, &nid);
@@ -421,7 +419,7 @@ main(int argc, char *argv[])
 			/* Get the group list for this user. */
 			ngroup = NGROUPS;
 			if (getgrouplist(pwd->pw_name, pwd->pw_gid, grps,
-			    &ngroup) < 0)
+				&ngroup) < 0)
 				syslog(LOG_ERR, "Group list too small");
 			nid.nid_ngroup = ngroup;
 			nid.nid_grps = grps;
@@ -558,15 +556,15 @@ nfsuserdsrv(struct svc_req *rqstp, SVCXPRT *transp)
 			ret = 1;
 			if (sin->sin_addr.s_addr != fromsin->sin_addr.s_addr)
 				ret = nfsbind_localhost();
-			if (ret == 0 || sin->sin_addr.s_addr !=
-			    fromsin->sin_addr.s_addr) {
+			if (ret == 0 ||
+			    sin->sin_addr.s_addr != fromsin->sin_addr.s_addr) {
 				syslog(LOG_ERR, "bad from ip %s",
 				    inet_ntoa(sin->sin_addr));
 				svcerr_weakauth(transp);
 				return;
 			}
 			break;
-#endif	/* INET */
+#endif /* INET */
 #ifdef INET6
 		case AF_INET6:
 			if (transp->xp_rtaddr.len < sizeof(*sin6)) {
@@ -584,12 +582,13 @@ nfsuserdsrv(struct svc_req *rqstp, SVCXPRT *transp)
 			}
 			ret = 1;
 			if (!IN6_ARE_ADDR_EQUAL(&sin6->sin6_addr,
-			    &fromsin6->sin6_addr))
+				&fromsin6->sin6_addr))
 				ret = nfsbind_localhost();
-			if (ret == 0 || !IN6_ARE_ADDR_EQUAL(&sin6->sin6_addr,
-			    &fromsin6->sin6_addr)) {
+			if (ret == 0 ||
+			    !IN6_ARE_ADDR_EQUAL(&sin6->sin6_addr,
+				&fromsin6->sin6_addr)) {
 				if (inet_ntop(AF_INET6, &sin6->sin6_addr, buf,
-				    INET6_ADDRSTRLEN) != NULL)
+					INET6_ADDRSTRLEN) != NULL)
 					syslog(LOG_ERR, "bad from ip %s", buf);
 				else
 					syslog(LOG_ERR, "bad from ip6 addr");
@@ -597,7 +596,7 @@ nfsuserdsrv(struct svc_req *rqstp, SVCXPRT *transp)
 				return;
 			}
 			break;
-#endif	/* INET6 */
+#endif /* INET6 */
 		}
 	}
 	switch (rqstp->rq_proc) {
@@ -607,7 +606,7 @@ nfsuserdsrv(struct svc_req *rqstp, SVCXPRT *transp)
 		return;
 	case RPCNFSUSERD_GETUID:
 		if (!svc_getargs(transp, (xdrproc_t)xdr_getid,
-		    (caddr_t)&info)) {
+			(caddr_t)&info)) {
 			svcerr_decode(transp);
 			return;
 		}
@@ -621,7 +620,7 @@ nfsuserdsrv(struct svc_req *rqstp, SVCXPRT *transp)
 				/* Get the group list for this user. */
 				ngroup = NGROUPS;
 				if (getgrouplist(pwd->pw_name, pwd->pw_gid,
-				    grps, &ngroup) < 0)
+					grps, &ngroup) < 0)
 					syslog(LOG_ERR, "Group list too small");
 				nid.nid_ngroup = ngroup;
 				nid.nid_grps = grps;
@@ -643,16 +642,16 @@ nfsuserdsrv(struct svc_req *rqstp, SVCXPRT *transp)
 			info.retval = error;
 			syslog(LOG_ERR, "Can't add user %s\n", pwd->pw_name);
 		} else if (verbose) {
-			syslog(LOG_ERR,"Added uid=%d name=%s\n",
-			    nid.nid_uid, nid.nid_name);
+			syslog(LOG_ERR, "Added uid=%d name=%s\n", nid.nid_uid,
+			    nid.nid_name);
 		}
 		if (!svc_sendreply(transp, (xdrproc_t)xdr_retval,
-		    (caddr_t)&info))
+			(caddr_t)&info))
 			syslog(LOG_ERR, "Can't send reply");
 		return;
 	case RPCNFSUSERD_GETGID:
 		if (!svc_getargs(transp, (xdrproc_t)xdr_getid,
-		    (caddr_t)&info)) {
+			(caddr_t)&info)) {
 			svcerr_decode(transp);
 			return;
 		}
@@ -674,19 +673,18 @@ nfsuserdsrv(struct svc_req *rqstp, SVCXPRT *transp)
 		error = nfssvc(NFSSVC_IDNAME | NFSSVC_NEWSTRUCT, &nid);
 		if (error) {
 			info.retval = error;
-			syslog(LOG_ERR, "Can't add group %s\n",
-			    grp->gr_name);
+			syslog(LOG_ERR, "Can't add group %s\n", grp->gr_name);
 		} else if (verbose) {
-			syslog(LOG_ERR,"Added gid=%d name=%s\n",
-			    nid.nid_gid, nid.nid_name);
+			syslog(LOG_ERR, "Added gid=%d name=%s\n", nid.nid_gid,
+			    nid.nid_name);
 		}
 		if (!svc_sendreply(transp, (xdrproc_t)xdr_retval,
-		    (caddr_t)&info))
+			(caddr_t)&info))
 			syslog(LOG_ERR, "Can't send reply");
 		return;
 	case RPCNFSUSERD_GETUSER:
 		if (!svc_getargs(transp, (xdrproc_t)xdr_getname,
-		    (caddr_t)&info)) {
+			(caddr_t)&info)) {
 			svcerr_decode(transp);
 			return;
 		}
@@ -710,16 +708,16 @@ nfsuserdsrv(struct svc_req *rqstp, SVCXPRT *transp)
 			info.retval = error;
 			syslog(LOG_ERR, "Can't add user %s\n", pwd->pw_name);
 		} else if (verbose) {
-			syslog(LOG_ERR,"Added uid=%d name=%s\n",
-			    nid.nid_uid, nid.nid_name);
+			syslog(LOG_ERR, "Added uid=%d name=%s\n", nid.nid_uid,
+			    nid.nid_name);
 		}
 		if (!svc_sendreply(transp, (xdrproc_t)xdr_retval,
-		    (caddr_t)&info))
+			(caddr_t)&info))
 			syslog(LOG_ERR, "Can't send reply");
 		return;
 	case RPCNFSUSERD_GETGROUP:
 		if (!svc_getargs(transp, (xdrproc_t)xdr_getname,
-		    (caddr_t)&info)) {
+			(caddr_t)&info)) {
 			svcerr_decode(transp);
 			return;
 		}
@@ -741,14 +739,13 @@ nfsuserdsrv(struct svc_req *rqstp, SVCXPRT *transp)
 		error = nfssvc(NFSSVC_IDNAME | NFSSVC_NEWSTRUCT, &nid);
 		if (error) {
 			info.retval = error;
-			syslog(LOG_ERR, "Can't add group %s\n",
-			    grp->gr_name);
+			syslog(LOG_ERR, "Can't add group %s\n", grp->gr_name);
 		} else if (verbose) {
-			syslog(LOG_ERR,"Added gid=%d name=%s\n",
-			    nid.nid_gid, nid.nid_name);
+			syslog(LOG_ERR, "Added gid=%d name=%s\n", nid.nid_gid,
+			    nid.nid_name);
 		}
 		if (!svc_sendreply(transp, (xdrproc_t)xdr_retval,
-		    (caddr_t)&info))
+			(caddr_t)&info))
 			syslog(LOG_ERR, "Can't send reply");
 		return;
 	default:
@@ -872,7 +869,7 @@ nfsbind_localhost(void)
 			return (0);
 		}
 		break;
-#endif	/* INET6 */
+#endif /* INET6 */
 #ifdef INET
 	case AF_INET:
 		s = socket(PF_INET, SOCK_DGRAM, 0);
@@ -889,7 +886,7 @@ nfsbind_localhost(void)
 			return (0);
 		}
 		break;
-#endif	/* INET */
+#endif /* INET */
 	}
 	memset(&fromip, 0, sizeof(fromip));
 	slen = sizeof(fromip);

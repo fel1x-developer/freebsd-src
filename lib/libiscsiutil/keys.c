@@ -92,8 +92,8 @@ keys_load(struct keys *keys, const char *data, size_t len)
 			log_errx(1, "malformed keys");
 		keys->keys_names[i] = checked_strdup(name);
 		keys->keys_values[i] = checked_strdup(value);
-		log_debugx("key received: \"%s=%s\"",
-		    keys->keys_names[i], keys->keys_values[i]);
+		log_debugx("key received: \"%s=%s\"", keys->keys_names[i],
+		    keys->keys_values[i]);
 
 		pair += pair_len + 1; /* +1 to skip the terminating '\0'. */
 		if (pair == keys_data + len)

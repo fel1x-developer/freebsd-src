@@ -24,12 +24,11 @@
  * SUCH DAMAGE.
  */
 
+#include <atf-c.h>
 #include <fcntl.h>
 #include <paths.h>
 #include <stdio.h>
 #include <string.h>
-
-#include <atf-c.h>
 
 /*
  * O_ACCMODE is currently defined incorrectly. This is what it should be.
@@ -44,8 +43,8 @@ runtest(const char *fname, const char *mode)
 	int exp_fget_ret, fget_ret, fd, flags, wantedflags;
 
 	fp = fopen(fname, mode);
-	ATF_REQUIRE_MSG(fp != NULL,
-	    "fopen(\"%s\", \"%s\") failed", fname, mode);
+	ATF_REQUIRE_MSG(fp != NULL, "fopen(\"%s\", \"%s\") failed", fname,
+	    mode);
 	fd = fileno(fp);
 	ATF_REQUIRE_MSG(fd >= 0, "fileno() failed for fopen");
 	exp_fget_ret = strchr(mode, 'e') != NULL ? FD_CLOEXEC : 0;

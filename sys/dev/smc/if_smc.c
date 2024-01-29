@@ -35,31 +35,30 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
-#include <sys/sockio.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
+#include <sys/module.h>
 #include <sys/queue.h>
+#include <sys/rman.h>
 #include <sys/socket.h>
+#include <sys/sockio.h>
 #include <sys/syslog.h>
 #include <sys/taskqueue.h>
 
-#include <sys/module.h>
-#include <sys/bus.h>
-
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
 
 #include <net/ethernet.h>
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_arp.h>
 #include <net/if_dl.h>
-#include <net/if_types.h>
-#include <net/if_mib.h>
 #include <net/if_media.h>
+#include <net/if_mib.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
 
 #ifdef INET
 #include <netinet/in.h>
@@ -68,61 +67,57 @@
 #include <netinet/ip.h>
 #endif
 
-#include <net/bpf.h>
-#include <net/bpfdesc.h>
-
-#include <dev/smc/if_smcreg.h>
-#include <dev/smc/if_smcvar.h>
-
 #include <dev/mii/mii.h>
 #include <dev/mii/mii_bitbang.h>
 #include <dev/mii/miivar.h>
+#include <dev/smc/if_smcreg.h>
+#include <dev/smc/if_smcvar.h>
+
+#include <net/bpf.h>
+#include <net/bpfdesc.h>
 
 #include "miibus_if.h"
 
-#define	SMC_LOCK(sc)		mtx_lock(&(sc)->smc_mtx)
-#define	SMC_UNLOCK(sc)		mtx_unlock(&(sc)->smc_mtx)
-#define	SMC_ASSERT_LOCKED(sc)	mtx_assert(&(sc)->smc_mtx, MA_OWNED)
+#define SMC_LOCK(sc) mtx_lock(&(sc)->smc_mtx)
+#define SMC_UNLOCK(sc) mtx_unlock(&(sc)->smc_mtx)
+#define SMC_ASSERT_LOCKED(sc) mtx_assert(&(sc)->smc_mtx, MA_OWNED)
 
-#define	SMC_INTR_PRIORITY	0
-#define	SMC_RX_PRIORITY		5
-#define	SMC_TX_PRIORITY		10
+#define SMC_INTR_PRIORITY 0
+#define SMC_RX_PRIORITY 5
+#define SMC_TX_PRIORITY 10
 
-static const char *smc_chip_ids[16] = {
-	NULL, NULL, NULL,
+static const char *smc_chip_ids[16] = { NULL, NULL, NULL,
 	/* 3 */ "SMSC LAN91C90 or LAN91C92",
 	/* 4 */ "SMSC LAN91C94",
 	/* 5 */ "SMSC LAN91C95",
 	/* 6 */ "SMSC LAN91C96",
 	/* 7 */ "SMSC LAN91C100",
-	/* 8 */	"SMSC LAN91C100FD",
-	/* 9 */ "SMSC LAN91C110FD or LAN91C111FD",
-	NULL, NULL, NULL,
-	NULL, NULL, NULL
-};
+	/* 8 */ "SMSC LAN91C100FD",
+	/* 9 */ "SMSC LAN91C110FD or LAN91C111FD", NULL, NULL, NULL, NULL, NULL,
+	NULL };
 
-static void	smc_init(void *);
-static void	smc_start(if_t);
-static void	smc_stop(struct smc_softc *);
-static int	smc_ioctl(if_t, u_long, caddr_t);
+static void smc_init(void *);
+static void smc_start(if_t);
+static void smc_stop(struct smc_softc *);
+static int smc_ioctl(if_t, u_long, caddr_t);
 
-static void	smc_init_locked(struct smc_softc *);
-static void	smc_start_locked(if_t);
-static void	smc_reset(struct smc_softc *);
-static int	smc_mii_ifmedia_upd(if_t);
-static void	smc_mii_ifmedia_sts(if_t, struct ifmediareq *);
-static void	smc_mii_tick(void *);
-static void	smc_mii_mediachg(struct smc_softc *);
-static int	smc_mii_mediaioctl(struct smc_softc *, struct ifreq *, u_long);
+static void smc_init_locked(struct smc_softc *);
+static void smc_start_locked(if_t);
+static void smc_reset(struct smc_softc *);
+static int smc_mii_ifmedia_upd(if_t);
+static void smc_mii_ifmedia_sts(if_t, struct ifmediareq *);
+static void smc_mii_tick(void *);
+static void smc_mii_mediachg(struct smc_softc *);
+static int smc_mii_mediaioctl(struct smc_softc *, struct ifreq *, u_long);
 
-static void	smc_task_intr(void *, int);
-static void	smc_task_rx(void *, int);
-static void	smc_task_tx(void *, int);
+static void smc_task_intr(void *, int);
+static void smc_task_rx(void *, int);
+static void smc_task_tx(void *, int);
 
-static driver_filter_t	smc_intr;
-static callout_func_t	smc_watchdog;
+static driver_filter_t smc_intr;
+static callout_func_t smc_watchdog;
 #ifdef DEVICE_POLLING
-static poll_handler_t	smc_poll;
+static poll_handler_t smc_poll;
 #endif
 
 /*
@@ -132,14 +127,13 @@ static uint32_t smc_mii_bitbang_read(device_t);
 static void smc_mii_bitbang_write(device_t, uint32_t);
 
 static const struct mii_bitbang_ops smc_mii_bitbang_ops = {
-	smc_mii_bitbang_read,
-	smc_mii_bitbang_write,
+	smc_mii_bitbang_read, smc_mii_bitbang_write,
 	{
-		MGMT_MDO,	/* MII_BIT_MDO */
-		MGMT_MDI,	/* MII_BIT_MDI */
-		MGMT_MCLK,	/* MII_BIT_MDC */
-		MGMT_MDOE,	/* MII_BIT_DIR_HOST_PHY */
-		0,		/* MII_BIT_DIR_PHY_HOST */
+	    MGMT_MDO,  /* MII_BIT_MDO */
+	    MGMT_MDI,  /* MII_BIT_MDI */
+	    MGMT_MCLK, /* MII_BIT_MDC */
+	    MGMT_MDOE, /* MII_BIT_DIR_HOST_PHY */
+	    0,	       /* MII_BIT_DIR_PHY_HOST */
 	}
 };
 
@@ -159,9 +153,9 @@ static __inline void
 smc_mmu_wait(struct smc_softc *sc)
 {
 
-	KASSERT((bus_read_2(sc->smc_reg, BSR) &
-	    BSR_BANK_MASK) == 2, ("%s: smc_mmu_wait called when not in bank 2",
-	    device_get_nameunit(sc->smc_dev)));
+	KASSERT((bus_read_2(sc->smc_reg, BSR) & BSR_BANK_MASK) == 2,
+	    ("%s: smc_mmu_wait called when not in bank 2",
+		device_get_nameunit(sc->smc_dev)));
 	while (bus_read_2(sc->smc_reg, MMUCR) & MMUCR_BUSY)
 		;
 }
@@ -221,10 +215,10 @@ smc_barrier(struct smc_softc *sc, bus_size_t offset, bus_size_t length,
 int
 smc_probe(device_t dev)
 {
-	int			rid, type, error;
-	uint16_t		val;
-	struct smc_softc	*sc;
-	struct resource		*reg;
+	int rid, type, error;
+	uint16_t val;
+	struct smc_softc *sc;
+	struct resource *reg;
 
 	sc = device_get_softc(dev);
 	rid = 0;
@@ -301,11 +295,11 @@ done:
 int
 smc_attach(device_t dev)
 {
-	int			type, error;
-	uint16_t		val;
-	u_char			eaddr[ETHER_ADDR_LEN];
-	struct smc_softc	*sc;
-	if_t			ifp;
+	int type, error;
+	uint16_t val;
+	u_char eaddr[ETHER_ADDR_LEN];
+	struct smc_softc *sc;
+	if_t ifp;
 
 	sc = device_get_softc(dev);
 	error = 0;
@@ -356,9 +350,9 @@ smc_attach(device_t dev)
 	callout_init_mtx(&sc->smc_mii_tick_ch, &sc->smc_mtx,
 	    CALLOUT_RETURNUNLOCKED);
 	if (sc->smc_chip >= REV_CHIP_91110FD) {
-		(void)mii_attach(dev, &sc->smc_miibus, ifp,
-		    smc_mii_ifmedia_upd, smc_mii_ifmedia_sts, BMSR_DEFCAPMASK,
-		    MII_PHY_ANY, MII_OFFSET_ANY, 0);
+		(void)mii_attach(dev, &sc->smc_miibus, ifp, smc_mii_ifmedia_upd,
+		    smc_mii_ifmedia_sts, BMSR_DEFCAPMASK, MII_PHY_ANY,
+		    MII_OFFSET_ANY, 0);
 		if (sc->smc_miibus != NULL) {
 			sc->smc_mii_tick = smc_mii_tick;
 			sc->smc_mii_mediachg = smc_mii_mediachg;
@@ -383,7 +377,7 @@ smc_attach(device_t dev)
 	if_setsendqlen(ifp, ifqmaxlen);
 	if_setsendqready(ifp);
 
-	if_setcapabilities(ifp, if_getcapenable(ifp) );
+	if_setcapabilities(ifp, if_getcapenable(ifp));
 
 #ifdef DEVICE_POLLING
 	if_setcapabilitiesbit(ifp, IFCAP_POLLING, 0);
@@ -405,8 +399,8 @@ smc_attach(device_t dev)
 	smc_write_1(sc, MSK, 0);
 
 	/* Wire up interrupt */
-	error = bus_setup_intr(dev, sc->smc_irq,
-	    INTR_TYPE_NET|INTR_MPSAFE, smc_intr, NULL, sc, &sc->smc_ih);
+	error = bus_setup_intr(dev, sc->smc_irq, INTR_TYPE_NET | INTR_MPSAFE,
+	    smc_intr, NULL, sc, &sc->smc_ih);
 	if (error != 0)
 		goto done;
 
@@ -419,8 +413,8 @@ done:
 int
 smc_detach(device_t dev)
 {
-	int			type;
-	struct smc_softc	*sc;
+	int type;
+	struct smc_softc *sc;
 
 	sc = device_get_softc(dev);
 	SMC_LOCK(sc);
@@ -470,7 +464,7 @@ smc_detach(device_t dev)
 
 	if (sc->smc_irq != NULL)
 		bus_release_resource(sc->smc_dev, SYS_RES_IRQ, sc->smc_irq_rid,
-		   sc->smc_irq);
+		    sc->smc_irq);
 
 	if (mtx_initialized(&sc->smc_mtx))
 		mtx_destroy(&sc->smc_mtx);
@@ -480,14 +474,13 @@ smc_detach(device_t dev)
 
 static device_method_t smc_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_attach,	smc_attach),
-	DEVMETHOD(device_detach,	smc_detach),
+	DEVMETHOD(device_attach, smc_attach),
+	DEVMETHOD(device_detach, smc_detach),
 
 	/* MII interface */
-	DEVMETHOD(miibus_readreg,	smc_miibus_readreg),
-	DEVMETHOD(miibus_writereg,	smc_miibus_writereg),
-	DEVMETHOD(miibus_statchg,	smc_miibus_statchg),
-	{ 0, 0 }
+	DEVMETHOD(miibus_readreg, smc_miibus_readreg),
+	DEVMETHOD(miibus_writereg, smc_miibus_writereg),
+	DEVMETHOD(miibus_statchg, smc_miibus_statchg), { 0, 0 }
 };
 
 driver_t smc_driver = {
@@ -501,7 +494,7 @@ DRIVER_MODULE(miibus, smc, miibus_driver, 0, 0);
 static void
 smc_start(if_t ifp)
 {
-	struct smc_softc	*sc;
+	struct smc_softc *sc;
 
 	sc = if_getsoftc(ifp);
 	SMC_LOCK(sc);
@@ -512,9 +505,9 @@ smc_start(if_t ifp)
 static void
 smc_start_locked(if_t ifp)
 {
-	struct smc_softc	*sc;
-	struct mbuf		*m;
-	u_int			len, npages, spin_count;
+	struct smc_softc *sc;
+	struct mbuf *m;
+	u_int len, npages, spin_count;
 
 	sc = if_getsoftc(ifp);
 	SMC_ASSERT_LOCKED(sc);
@@ -586,12 +579,12 @@ smc_start_locked(if_t ifp)
 static void
 smc_task_tx(void *context, int pending)
 {
-	if_t			ifp;
-	struct smc_softc	*sc;
-	struct mbuf		*m, *m0;
-	u_int			packet, len;
-	int			last_len;
-	uint8_t			*data;
+	if_t ifp;
+	struct smc_softc *sc;
+	struct mbuf *m, *m0;
+	u_int packet, len;
+	int last_len;
+	uint8_t *data;
 
 	(void)pending;
 	ifp = (if_t)context;
@@ -691,11 +684,11 @@ next_packet:
 static void
 smc_task_rx(void *context, int pending)
 {
-	u_int			packet, status, len;
-	uint8_t			*data;
-	if_t			ifp;
-	struct smc_softc	*sc;
-	struct mbuf		*m, *mhead, *mtail;
+	u_int packet, status, len;
+	uint8_t *data;
+	if_t ifp;
+	struct smc_softc *sc;
+	struct mbuf *m, *mhead, *mtail;
 
 	(void)pending;
 	ifp = (if_t)context;
@@ -737,7 +730,8 @@ smc_task_rx(void *context, int pending)
 		/*
 		 * Check for errors.
 		 */
-		if (status & (RX_TOOSHORT | RX_TOOLNG | RX_BADCRC | RX_ALGNERR)) {
+		if (status &
+		    (RX_TOOSHORT | RX_TOOLNG | RX_BADCRC | RX_ALGNERR)) {
 			smc_mmu_wait(sc);
 			smc_write_2(sc, MMUCR, MMUCR_CMD_RELEASE);
 			if_inc_counter(ifp, IFCOUNTER_IERRORS, 1);
@@ -775,7 +769,7 @@ smc_task_rx(void *context, int pending)
 		if (m == NULL) {
 			break;
 		}
-		
+
 		if (mhead == NULL) {
 			mhead = mtail = m;
 			m->m_next = NULL;
@@ -805,7 +799,7 @@ smc_task_rx(void *context, int pending)
 static int
 smc_poll(if_t ifp, enum poll_cmd cmd, int count)
 {
-	struct smc_softc	*sc;
+	struct smc_softc *sc;
 
 	sc = if_getsoftc(ifp);
 
@@ -818,14 +812,14 @@ smc_poll(if_t ifp, enum poll_cmd cmd, int count)
 
 	if (cmd == POLL_AND_CHECK_STATUS)
 		taskqueue_enqueue(sc->smc_tq, &sc->smc_intr);
-        return (0);
+	return (0);
 }
 #endif
 
 static int
 smc_intr(void *context)
 {
-	struct smc_softc	*sc;
+	struct smc_softc *sc;
 	uint32_t curbank;
 
 	sc = (struct smc_softc *)context;
@@ -851,9 +845,9 @@ smc_intr(void *context)
 static void
 smc_task_intr(void *context, int pending)
 {
-	struct smc_softc	*sc;
-	if_t			ifp;
-	u_int			status, packet, counter, tcr;
+	struct smc_softc *sc;
+	if_t ifp;
+	u_int status, packet, counter, tcr;
 
 	(void)pending;
 	ifp = (if_t)context;
@@ -880,8 +874,7 @@ smc_task_intr(void *context, int pending)
 			callout_stop(&sc->smc_watchdog);
 			smc_select_bank(sc, 2);
 			smc_write_1(sc, PNR, packet);
-			smc_write_2(sc, PTR, 0 | PTR_READ | 
-			    PTR_AUTO_INCR);
+			smc_write_2(sc, PTR, 0 | PTR_READ | PTR_AUTO_INCR);
 			smc_select_bank(sc, 0);
 			tcr = smc_read_2(sc, EPHSR);
 #if 0
@@ -949,7 +942,7 @@ smc_task_intr(void *context, int pending)
 		smc_select_bank(sc, 2);
 		if_inc_counter(ifp, IFCOUNTER_COLLISIONS,
 		    ((counter & ECR_SNGLCOL_MASK) >> ECR_SNGLCOL_SHIFT) +
-		    ((counter & ECR_MULCOL_MASK) >> ECR_MULCOL_SHIFT));
+			((counter & ECR_MULCOL_MASK) >> ECR_MULCOL_SHIFT));
 
 		/*
 		 * See if there are any packets to transmit.
@@ -970,16 +963,16 @@ smc_task_intr(void *context, int pending)
 static uint32_t
 smc_mii_bitbang_read(device_t dev)
 {
-	struct smc_softc	*sc;
-	uint32_t		val;
+	struct smc_softc *sc;
+	uint32_t val;
 
 	sc = device_get_softc(dev);
 
 	SMC_ASSERT_LOCKED(sc);
 	KASSERT((smc_read_2(sc, BSR) & BSR_BANK_MASK) == 3,
 	    ("%s: smc_mii_bitbang_read called with bank %d (!= 3)",
-	    device_get_nameunit(sc->smc_dev),
-	    smc_read_2(sc, BSR) & BSR_BANK_MASK));
+		device_get_nameunit(sc->smc_dev),
+		smc_read_2(sc, BSR) & BSR_BANK_MASK));
 
 	val = smc_read_2(sc, MGMT);
 	smc_barrier(sc, MGMT, 2,
@@ -991,15 +984,15 @@ smc_mii_bitbang_read(device_t dev)
 static void
 smc_mii_bitbang_write(device_t dev, uint32_t val)
 {
-	struct smc_softc	*sc;
+	struct smc_softc *sc;
 
 	sc = device_get_softc(dev);
 
 	SMC_ASSERT_LOCKED(sc);
 	KASSERT((smc_read_2(sc, BSR) & BSR_BANK_MASK) == 3,
 	    ("%s: smc_mii_bitbang_write called with bank %d (!= 3)",
-	    device_get_nameunit(sc->smc_dev),
-	    smc_read_2(sc, BSR) & BSR_BANK_MASK));
+		device_get_nameunit(sc->smc_dev),
+		smc_read_2(sc, BSR) & BSR_BANK_MASK));
 
 	smc_write_2(sc, MGMT, val);
 	smc_barrier(sc, MGMT, 2,
@@ -1009,8 +1002,8 @@ smc_mii_bitbang_write(device_t dev, uint32_t val)
 int
 smc_miibus_readreg(device_t dev, int phy, int reg)
 {
-	struct smc_softc	*sc;
-	int			val;
+	struct smc_softc *sc;
+	int val;
 
 	sc = device_get_softc(dev);
 
@@ -1027,7 +1020,7 @@ smc_miibus_readreg(device_t dev, int phy, int reg)
 int
 smc_miibus_writereg(device_t dev, int phy, int reg, int data)
 {
-	struct smc_softc	*sc;
+	struct smc_softc *sc;
 
 	sc = device_get_softc(dev);
 
@@ -1044,9 +1037,9 @@ smc_miibus_writereg(device_t dev, int phy, int reg, int data)
 void
 smc_miibus_statchg(device_t dev)
 {
-	struct smc_softc	*sc;
-	struct mii_data		*mii;
-	uint16_t		tcr;
+	struct smc_softc *sc;
+	struct mii_data *mii;
+	uint16_t tcr;
 
 	sc = device_get_softc(dev);
 	mii = device_get_softc(sc->smc_miibus);
@@ -1069,8 +1062,8 @@ smc_miibus_statchg(device_t dev)
 static int
 smc_mii_ifmedia_upd(if_t ifp)
 {
-	struct smc_softc	*sc;
-	struct mii_data		*mii;
+	struct smc_softc *sc;
+	struct mii_data *mii;
 
 	sc = if_getsoftc(ifp);
 	if (sc->smc_miibus == NULL)
@@ -1083,8 +1076,8 @@ smc_mii_ifmedia_upd(if_t ifp)
 static void
 smc_mii_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr)
 {
-	struct smc_softc	*sc;
-	struct mii_data		*mii;
+	struct smc_softc *sc;
+	struct mii_data *mii;
 
 	sc = if_getsoftc(ifp);
 	if (sc->smc_miibus == NULL)
@@ -1099,7 +1092,7 @@ smc_mii_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr)
 static void
 smc_mii_tick(void *context)
 {
-	struct smc_softc	*sc;
+	struct smc_softc *sc;
 
 	sc = (struct smc_softc *)context;
 
@@ -1124,7 +1117,7 @@ smc_mii_mediachg(struct smc_softc *sc)
 static int
 smc_mii_mediaioctl(struct smc_softc *sc, struct ifreq *ifr, u_long command)
 {
-	struct mii_data	*mii;
+	struct mii_data *mii;
 
 	if (sc->smc_miibus == NULL)
 		return (EINVAL);
@@ -1136,7 +1129,7 @@ smc_mii_mediaioctl(struct smc_softc *sc, struct ifreq *ifr, u_long command)
 static void
 smc_reset(struct smc_softc *sc)
 {
-	u_int	ctr;
+	u_int ctr;
 
 	SMC_ASSERT_LOCKED(sc);
 
@@ -1186,7 +1179,7 @@ smc_reset(struct smc_softc *sc)
 static void
 smc_enable(struct smc_softc *sc)
 {
-	if_t	ifp;
+	if_t ifp;
 
 	SMC_ASSERT_LOCKED(sc);
 	ifp = sc->smc_ifp;
@@ -1195,8 +1188,9 @@ smc_enable(struct smc_softc *sc)
 	 * Set up the receive/PHY control register.
 	 */
 	smc_select_bank(sc, 0);
-	smc_write_2(sc, RPCR, RPCR_ANEG | (RPCR_LED_LINK_ANY << RPCR_LSA_SHIFT)
-	    | (RPCR_LED_ACT_ANY << RPCR_LSB_SHIFT));
+	smc_write_2(sc, RPCR,
+	    RPCR_ANEG | (RPCR_LED_LINK_ANY << RPCR_LSA_SHIFT) |
+		(RPCR_LED_ACT_ANY << RPCR_LSB_SHIFT));
 
 	/*
 	 * Set up the transmit and receive control registers.
@@ -1249,7 +1243,7 @@ smc_stop(struct smc_softc *sc)
 static void
 smc_watchdog(void *arg)
 {
-	struct smc_softc	*sc;
+	struct smc_softc *sc;
 
 	sc = (struct smc_softc *)arg;
 	device_printf(sc->smc_dev, "watchdog timeout\n");
@@ -1259,7 +1253,7 @@ smc_watchdog(void *arg)
 static void
 smc_init(void *context)
 {
-	struct smc_softc	*sc;
+	struct smc_softc *sc;
 
 	sc = (struct smc_softc *)context;
 	SMC_LOCK(sc);
@@ -1270,7 +1264,7 @@ smc_init(void *context)
 static void
 smc_init_locked(struct smc_softc *sc)
 {
-	if_t	ifp;
+	if_t ifp;
 
 	SMC_ASSERT_LOCKED(sc);
 	ifp = sc->smc_ifp;
@@ -1299,8 +1293,8 @@ smc_init_locked(struct smc_softc *sc)
 static int
 smc_ioctl(if_t ifp, u_long cmd, caddr_t data)
 {
-	struct smc_softc	*sc;
-	int			error;
+	struct smc_softc *sc;
+	int error;
 
 	sc = if_getsoftc(ifp);
 	error = 0;

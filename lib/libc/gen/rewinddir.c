@@ -29,16 +29,17 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/types.h>
+
 #include <dirent.h>
 #include <pthread.h>
 #include <unistd.h>
-#include "un-namespace.h"
 
-#include "libc_private.h"
 #include "gen-private.h"
+#include "libc_private.h"
+#include "namespace.h"
 #include "telldir.h"
+#include "un-namespace.h"
 
 void
 rewinddir(DIR *dirp)
@@ -50,7 +51,7 @@ rewinddir(DIR *dirp)
 	if (dirp->dd_flags & __DTF_READALL)
 		_filldir(dirp, false);
 	else {
-		(void) lseek(dirp->dd_fd, 0, SEEK_SET);
+		(void)lseek(dirp->dd_fd, 0, SEEK_SET);
 		dirp->dd_seek = 0;
 	}
 	dirp->dd_loc = 0;

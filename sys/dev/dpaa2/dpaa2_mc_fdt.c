@@ -36,35 +36,34 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
-#include <sys/module.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
 
+#include <dev/fdt/simplebus.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-#include <dev/fdt/simplebus.h>
 
-#include "pcib_if.h"
-#include "pci_if.h"
-#include "ofw_bus_if.h"
-
-#include "dpaa2_mcp.h"
 #include "dpaa2_mc.h"
 #include "dpaa2_mc_if.h"
+#include "dpaa2_mcp.h"
+#include "ofw_bus_if.h"
+#include "pci_if.h"
+#include "pcib_if.h"
 
 struct dpaa2_mac_fdt_softc {
-	uint32_t			reg;
-	phandle_t			sfp;
-	phandle_t			pcs_handle;
-	phandle_t			phy_handle;
-	char				managed[64];
-	char				phy_conn_type[64];
+	uint32_t reg;
+	phandle_t sfp;
+	phandle_t pcs_handle;
+	phandle_t phy_handle;
+	char managed[64];
+	char phy_conn_type[64];
 };
 
 #if 0
@@ -145,11 +144,12 @@ dpaa2_mac_fdt_attach(device_t dev)
 	    sizeof(sc->phy_handle), DEVICE_PROP_HANDLE);
 
 	if (bootverbose)
-		device_printf(dev, "node %#x '%s': reg %#x sfp %#x pcs-handle "
+		device_printf(dev,
+		    "node %#x '%s': reg %#x sfp %#x pcs-handle "
 		    "%#x phy-handle %#x managed '%s' phy-conn-type '%s'\n",
-		    node, ofw_bus_get_name(dev),
-		    sc->reg, sc->sfp, sc->pcs_handle, sc->phy_handle,
-		    sc->managed, sc->phy_conn_type);
+		    node, ofw_bus_get_name(dev), sc->reg, sc->sfp,
+		    sc->pcs_handle, sc->phy_handle, sc->managed,
+		    sc->phy_conn_type);
 
 	return (0);
 }
@@ -181,7 +181,7 @@ dpaa2_mac_fdt_get_phy_dev(device_t dev)
 	if (sc->phy_handle == 0 && sc->sfp == 0)
 		return (NULL);
 
-#ifdef __not_yet__	/* No sff,sfp support yet. */
+#ifdef __not_yet__ /* No sff,sfp support yet. */
 	if (sc->sfp != 0) {
 		device_t xdev;
 
@@ -195,9 +195,9 @@ dpaa2_mac_fdt_get_phy_dev(device_t dev)
 
 static device_method_t dpaa2_mac_fdt_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		dpaa2_mac_dev_probe),
-	DEVMETHOD(device_attach,	dpaa2_mac_fdt_attach),
-	DEVMETHOD(device_detach,	bus_generic_detach),
+	DEVMETHOD(device_probe, dpaa2_mac_dev_probe),
+	DEVMETHOD(device_attach, dpaa2_mac_fdt_attach),
+	DEVMETHOD(device_detach, bus_generic_detach),
 
 	DEVMETHOD_END
 };
@@ -318,15 +318,18 @@ dpaa2_mc_fdt_get_phy_dev(device_t dev, device_t *phy_dev, uint32_t id)
 
 	mdev = dpaa2_mc_fdt_find_dpaa2_mac_dev(dev, id);
 	if (mdev == NULL) {
-		device_printf(dev, "%s: error finding dpmac device with id=%u\n",
-		    __func__, id);
+		device_printf(dev,
+		    "%s: error finding dpmac device with id=%u\n", __func__,
+		    id);
 		return (ENXIO);
 	}
 
 	pdev = dpaa2_mac_fdt_get_phy_dev(mdev);
 	if (pdev == NULL) {
-		device_printf(dev, "%s: error getting MDIO device for dpamc %s "
-		    "(id=%u)\n", __func__, device_get_nameunit(mdev), id);
+		device_printf(dev,
+		    "%s: error getting MDIO device for dpamc %s "
+		    "(id=%u)\n",
+		    __func__, device_get_nameunit(mdev), id);
 		return (ENXIO);
 	}
 
@@ -335,8 +338,8 @@ dpaa2_mc_fdt_get_phy_dev(device_t dev, device_t *phy_dev, uint32_t id)
 
 	if (bootverbose)
 		device_printf(dev, "dpmac_id %u mdev %p (%s) pdev %p (%s)\n",
-		    id, mdev, device_get_nameunit(mdev),
-		    pdev, device_get_nameunit(pdev));
+		    id, mdev, device_get_nameunit(mdev), pdev,
+		    device_get_nameunit(pdev));
 
 	return (0);
 }
@@ -350,41 +353,41 @@ dpaa2_mc_simplebus_get_devinfo(device_t bus, device_t child)
 
 static device_method_t dpaa2_mc_fdt_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		dpaa2_mc_fdt_probe),
-	DEVMETHOD(device_attach,	dpaa2_mc_fdt_attach),
-	DEVMETHOD(device_detach,	dpaa2_mc_detach),
+	DEVMETHOD(device_probe, dpaa2_mc_fdt_probe),
+	DEVMETHOD(device_attach, dpaa2_mc_fdt_attach),
+	DEVMETHOD(device_detach, dpaa2_mc_detach),
 
 	/* Bus interface */
-	DEVMETHOD(bus_alloc_resource,	dpaa2_mc_alloc_resource),
-	DEVMETHOD(bus_adjust_resource,	dpaa2_mc_adjust_resource),
-	DEVMETHOD(bus_release_resource,	dpaa2_mc_release_resource),
+	DEVMETHOD(bus_alloc_resource, dpaa2_mc_alloc_resource),
+	DEVMETHOD(bus_adjust_resource, dpaa2_mc_adjust_resource),
+	DEVMETHOD(bus_release_resource, dpaa2_mc_release_resource),
 	DEVMETHOD(bus_activate_resource, dpaa2_mc_activate_resource),
 	DEVMETHOD(bus_deactivate_resource, dpaa2_mc_deactivate_resource),
-	DEVMETHOD(bus_setup_intr,	bus_generic_setup_intr),
-	DEVMETHOD(bus_teardown_intr,	bus_generic_teardown_intr),
+	DEVMETHOD(bus_setup_intr, bus_generic_setup_intr),
+	DEVMETHOD(bus_teardown_intr, bus_generic_teardown_intr),
 
 	/* Pseudo-PCIB interface */
-	DEVMETHOD(pcib_alloc_msi,	dpaa2_mc_alloc_msi),
-	DEVMETHOD(pcib_release_msi,	dpaa2_mc_release_msi),
-	DEVMETHOD(pcib_map_msi,		dpaa2_mc_map_msi),
-	DEVMETHOD(pcib_get_id,		dpaa2_mc_get_id),
+	DEVMETHOD(pcib_alloc_msi, dpaa2_mc_alloc_msi),
+	DEVMETHOD(pcib_release_msi, dpaa2_mc_release_msi),
+	DEVMETHOD(pcib_map_msi, dpaa2_mc_map_msi),
+	DEVMETHOD(pcib_get_id, dpaa2_mc_get_id),
 
 	/* DPAA2 MC bus interface */
-	DEVMETHOD(dpaa2_mc_manage_dev,	dpaa2_mc_manage_dev),
-	DEVMETHOD(dpaa2_mc_get_free_dev,dpaa2_mc_get_free_dev),
-	DEVMETHOD(dpaa2_mc_get_dev,	dpaa2_mc_get_dev),
+	DEVMETHOD(dpaa2_mc_manage_dev, dpaa2_mc_manage_dev),
+	DEVMETHOD(dpaa2_mc_get_free_dev, dpaa2_mc_get_free_dev),
+	DEVMETHOD(dpaa2_mc_get_dev, dpaa2_mc_get_dev),
 	DEVMETHOD(dpaa2_mc_get_shared_dev, dpaa2_mc_get_shared_dev),
-	DEVMETHOD(dpaa2_mc_reserve_dev,	dpaa2_mc_reserve_dev),
+	DEVMETHOD(dpaa2_mc_reserve_dev, dpaa2_mc_reserve_dev),
 	DEVMETHOD(dpaa2_mc_release_dev, dpaa2_mc_release_dev),
-	DEVMETHOD(dpaa2_mc_get_phy_dev,	dpaa2_mc_fdt_get_phy_dev),
+	DEVMETHOD(dpaa2_mc_get_phy_dev, dpaa2_mc_fdt_get_phy_dev),
 
 	/* OFW/simplebus */
-	DEVMETHOD(ofw_bus_get_devinfo,	dpaa2_mc_simplebus_get_devinfo),
-	DEVMETHOD(ofw_bus_get_compat,	ofw_bus_gen_get_compat),
-	DEVMETHOD(ofw_bus_get_model,	ofw_bus_gen_get_model),
-	DEVMETHOD(ofw_bus_get_name,	ofw_bus_gen_get_name),
-	DEVMETHOD(ofw_bus_get_node,	ofw_bus_gen_get_node),
-	DEVMETHOD(ofw_bus_get_type,	ofw_bus_gen_get_type),
+	DEVMETHOD(ofw_bus_get_devinfo, dpaa2_mc_simplebus_get_devinfo),
+	DEVMETHOD(ofw_bus_get_compat, ofw_bus_gen_get_compat),
+	DEVMETHOD(ofw_bus_get_model, ofw_bus_gen_get_model),
+	DEVMETHOD(ofw_bus_get_name, ofw_bus_gen_get_name),
+	DEVMETHOD(ofw_bus_get_node, ofw_bus_gen_get_node),
+	DEVMETHOD(ofw_bus_get_type, ofw_bus_gen_get_type),
 
 	DEVMETHOD_END
 };

@@ -29,11 +29,11 @@
  * SUCH DAMAGE.
  */
 
-#define APMD_CONFIGFILE		"/etc/apmd.conf"
-#define APM_CTL_DEVICEFILE	"/dev/apmctl"
-#define APM_NORM_DEVICEFILE	"/dev/apm"
-#define APMD_PIDFILE		"/var/run/apmd.pid"
-#define NICE_INCR		-20
+#define APMD_CONFIGFILE "/etc/apmd.conf"
+#define APM_CTL_DEVICEFILE "/dev/apmctl"
+#define APM_NORM_DEVICEFILE "/dev/apm"
+#define APMD_PIDFILE "/var/run/apmd.pid"
+#define NICE_INCR -20
 
 enum {
 	EVENT_NOEVENT,
@@ -53,20 +53,20 @@ enum {
 };
 
 struct event_cmd_op {
-	int (* act)(void *this);
-	void (* dump)(void *this, FILE * fp);
-	struct event_cmd * (* clone)(void *this);
-	void (* free)(void *this);
+	int (*act)(void *this);
+	void (*dump)(void *this, FILE *fp);
+	struct event_cmd *(*clone)(void *this);
+	void (*free)(void *this);
 };
 struct event_cmd {
-	struct event_cmd * next;
+	struct event_cmd *next;
 	size_t len;
-	char * name;
-	struct event_cmd_op * op;
+	char *name;
+	struct event_cmd_op *op;
 };
 struct event_cmd_exec {
 	struct event_cmd evcmd;
-	char * line;		/* Command line */
+	char *line; /* Command line */
 };
 struct event_cmd_reject {
 	struct event_cmd evcmd;
@@ -74,43 +74,34 @@ struct event_cmd_reject {
 
 struct event_config {
 	const char *name;
-	struct event_cmd * cmdlist;
+	struct event_cmd *cmdlist;
 	int rejectable;
 };
 
 struct battery_watch_event {
 	struct battery_watch_event *next;
 	int level;
-	enum {
-		BATTERY_CHARGING,
-		BATTERY_DISCHARGING
-	} direction;
-	enum {
-		BATTERY_MINUTES,
-		BATTERY_PERCENT
-	} type;
+	enum { BATTERY_CHARGING, BATTERY_DISCHARGING } direction;
+	enum { BATTERY_MINUTES, BATTERY_PERCENT } type;
 	int done;
 	struct event_cmd *cmdlist;
 };
 
-	
 extern struct event_cmd_op event_cmd_exec_ops;
 extern struct event_cmd_op event_cmd_reject_ops;
 extern struct event_config events[EVENT_MAX];
 extern struct battery_watch_event *battery_watch_list;
 
-extern int register_battery_handlers(
-	int level, int direction,
-	struct event_cmd *cmdlist);
-extern int register_apm_event_handlers(
-	bitstr_t bit_decl(evlist, EVENT_MAX),
-	struct event_cmd *cmdlist);
+extern int register_battery_handlers(int level, int direction,
+    struct event_cmd *cmdlist);
+extern int register_apm_event_handlers(bitstr_t bit_decl(evlist, EVENT_MAX),
+    struct event_cmd *cmdlist);
 extern void free_event_cmd_list(struct event_cmd *p);
 
-extern int	yyparse(void);
+extern int yyparse(void);
 
-void	yyerror(const char *);
-int	yylex(void);
+void yyerror(const char *);
+int yylex(void);
 
 struct event_cmd *event_cmd_default_clone(void *);
 int event_cmd_exec_act(void *);

@@ -52,78 +52,76 @@
  * - Jumbo frame support
  */
 
-#include <sys/cdefs.h>
 #include "opt_device_polling.h"
 
+#include <sys/cdefs.h>
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
 #include <sys/jail.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
+#include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
-#include <sys/types.h>
-
-#include <net/ethernet.h>
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
-#include <net/if_vlan_var.h>
-
-#include <net/bpf.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
-
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
 
 #include <dev/altera/atse/if_atsereg.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
 #include <dev/xdma/xdma.h>
 
-#define	RX_QUEUE_SIZE		4096
-#define	TX_QUEUE_SIZE		4096
-#define	NUM_RX_MBUF		512
-#define	BUFRING_SIZE		8192
+#include <net/bpf.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+#include <net/if_vlan_var.h>
+
+#define RX_QUEUE_SIZE 4096
+#define TX_QUEUE_SIZE 4096
+#define NUM_RX_MBUF 512
+#define BUFRING_SIZE 8192
 
 #include <machine/cache.h>
 
 /* XXX once we'd do parallel attach, we need a global lock for this. */
-#define	ATSE_ETHERNET_OPTION_BITS_UNDEF	0
-#define	ATSE_ETHERNET_OPTION_BITS_READ	1
+#define ATSE_ETHERNET_OPTION_BITS_UNDEF 0
+#define ATSE_ETHERNET_OPTION_BITS_READ 1
 static int atse_ethernet_option_bits_flag = ATSE_ETHERNET_OPTION_BITS_UNDEF;
 static uint8_t atse_ethernet_option_bits[ALTERA_ETHERNET_OPTION_BITS_LEN];
 
 /*
  * Softc and critical resource locking.
  */
-#define	ATSE_LOCK(_sc)		mtx_lock(&(_sc)->atse_mtx)
-#define	ATSE_UNLOCK(_sc)	mtx_unlock(&(_sc)->atse_mtx)
-#define	ATSE_LOCK_ASSERT(_sc)	mtx_assert(&(_sc)->atse_mtx, MA_OWNED)
+#define ATSE_LOCK(_sc) mtx_lock(&(_sc)->atse_mtx)
+#define ATSE_UNLOCK(_sc) mtx_unlock(&(_sc)->atse_mtx)
+#define ATSE_LOCK_ASSERT(_sc) mtx_assert(&(_sc)->atse_mtx, MA_OWNED)
 
 #define ATSE_DEBUG
 #undef ATSE_DEBUG
 
 #ifdef ATSE_DEBUG
-#define	DPRINTF(format, ...)	printf(format, __VA_ARGS__)
+#define DPRINTF(format, ...) printf(format, __VA_ARGS__)
 #else
-#define	DPRINTF(format, ...)
+#define DPRINTF(format, ...)
 #endif
 
 /*
  * Register space access macros.
  */
 static inline void
-csr_write_4(struct atse_softc *sc, uint32_t reg, uint32_t val4,
-    const char *f, const int l)
+csr_write_4(struct atse_softc *sc, uint32_t reg, uint32_t val4, const char *f,
+    const int l)
 {
 
 	val4 = htole32(val4);
@@ -138,7 +136,7 @@ csr_read_4(struct atse_softc *sc, uint32_t reg, const char *f, const int l)
 	uint32_t val4;
 
 	val4 = le32toh(bus_read_4(sc->atse_mem_res, reg * 4));
-	DPRINTF("[%s:%d] CSR R %s 0x%08x (0x%08x) = 0x%08x\n", f, l, 
+	DPRINTF("[%s:%d] CSR R %s 0x%08x (0x%08x) = 0x%08x\n", f, l,
 	    "atse_mem_res", reg, reg * 4, val4);
 
 	return (val4);
@@ -175,19 +173,18 @@ pxx_read_2(struct atse_softc *sc, bus_addr_t bmcr, uint32_t reg, const char *f,
 	return (val);
 }
 
-#define	CSR_WRITE_4(sc, reg, val)	\
+#define CSR_WRITE_4(sc, reg, val) \
 	csr_write_4((sc), (reg), (val), __func__, __LINE__)
-#define	CSR_READ_4(sc, reg)		\
-	csr_read_4((sc), (reg), __func__, __LINE__)
-#define	PCS_WRITE_2(sc, reg, val)	\
+#define CSR_READ_4(sc, reg) csr_read_4((sc), (reg), __func__, __LINE__)
+#define PCS_WRITE_2(sc, reg, val)                                           \
 	pxx_write_2((sc), sc->atse_bmcr0, (reg), (val), __func__, __LINE__, \
 	    "PCS")
-#define	PCS_READ_2(sc, reg)		\
+#define PCS_READ_2(sc, reg) \
 	pxx_read_2((sc), sc->atse_bmcr0, (reg), __func__, __LINE__, "PCS")
-#define	PHY_WRITE_2(sc, reg, val)	\
+#define PHY_WRITE_2(sc, reg, val)                                           \
 	pxx_write_2((sc), sc->atse_bmcr1, (reg), (val), __func__, __LINE__, \
 	    "PHY")
-#define	PHY_READ_2(sc, reg)		\
+#define PHY_READ_2(sc, reg) \
 	pxx_read_2((sc), sc->atse_bmcr1, (reg), __func__, __LINE__, "PHY")
 
 static void atse_tick(void *);
@@ -202,8 +199,8 @@ atse_rx_enqueue(struct atse_softc *sc, uint32_t n)
 	for (i = 0; i < n; i++) {
 		m = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
 		if (m == NULL) {
-			device_printf(sc->dev,
-			    "%s: Can't alloc rx mbuf\n", __func__);
+			device_printf(sc->dev, "%s: Can't alloc rx mbuf\n",
+			    __func__);
 			return (-1);
 		}
 
@@ -310,7 +307,8 @@ atse_transmit_locked(if_t ifp)
 	enq = 0;
 
 	while ((m = drbr_peek(ifp, br)) != NULL) {
-		error = xdma_enqueue_mbuf(sc->xchan_tx, &m, 0, 4, 4, XDMA_MEM_TO_DEV);
+		error = xdma_enqueue_mbuf(sc->xchan_tx, &m, 0, 4, 4,
+		    XDMA_MEM_TO_DEV);
 		if (error != 0) {
 			/* No space in request queue available yet. */
 			drbr_putback(ifp, br, m);
@@ -324,7 +322,7 @@ atse_transmit_locked(if_t ifp)
 
 		/* If anyone is interested give them a copy. */
 		ETHER_BPF_MTAP(ifp, m);
-        }
+	}
 
 	if (enq > 0)
 		xdma_queue_submit(sc->xchan_tx);
@@ -346,7 +344,8 @@ atse_transmit(if_t ifp, struct mbuf *m)
 
 	mtx_lock(&sc->br_mtx);
 
-	if ((if_getdrvflags(ifp) & (IFF_DRV_RUNNING | IFF_DRV_OACTIVE)) != IFF_DRV_RUNNING) {
+	if ((if_getdrvflags(ifp) & (IFF_DRV_RUNNING | IFF_DRV_OACTIVE)) !=
+	    IFF_DRV_RUNNING) {
 		error = drbr_enqueue(ifp, sc->br, m);
 		mtx_unlock(&sc->br_mtx);
 		ATSE_UNLOCK(sc);
@@ -399,7 +398,7 @@ atse_stop_locked(struct atse_softc *sc)
 	if_setdrvflagbits(ifp, 0, (IFF_DRV_RUNNING | IFF_DRV_OACTIVE));
 
 	/* Disable MAC transmit and receive datapath. */
-	mask = BASE_CFG_COMMAND_CONFIG_TX_ENA|BASE_CFG_COMMAND_CONFIG_RX_ENA;
+	mask = BASE_CFG_COMMAND_CONFIG_TX_ENA | BASE_CFG_COMMAND_CONFIG_RX_ENA;
 	val4 = CSR_READ_4(sc, BASE_CFG_COMMAND_CONFIG);
 	val4 &= ~mask;
 	CSR_WRITE_4(sc, BASE_CFG_COMMAND_CONFIG, val4);
@@ -556,8 +555,8 @@ atse_get_eth_address(struct atse_softc *sc)
 		return (0);
 	}
 
-	if ((atse_ethernet_option_bits_flag &
-	    ATSE_ETHERNET_OPTION_BITS_READ) == 0) {
+	if ((atse_ethernet_option_bits_flag & ATSE_ETHERNET_OPTION_BITS_READ) ==
+	    0) {
 		goto get_random;
 	}
 
@@ -567,9 +566,10 @@ atse_get_eth_address(struct atse_softc *sc)
 	val4 |= atse_ethernet_option_bits[3];
 	/* They chose "safe". */
 	if (val4 != le32toh(0x00005afe)) {
-		device_printf(sc->atse_dev, "Magic '5afe' is not safe: 0x%08x. "
+		device_printf(sc->atse_dev,
+		    "Magic '5afe' is not safe: 0x%08x. "
 		    "Falling back to random numbers for hardware address.\n",
-		     val4);
+		    val4);
 		goto get_random;
 	}
 
@@ -584,7 +584,8 @@ atse_get_eth_address(struct atse_softc *sc)
 	if (sc->atse_eth_addr[0] == 0x00 && sc->atse_eth_addr[1] == 0x07 &&
 	    sc->atse_eth_addr[2] == 0xed && sc->atse_eth_addr[3] == 0xff &&
 	    sc->atse_eth_addr[4] == 0xed && sc->atse_eth_addr[5] == 0x15) {
-		device_printf(sc->atse_dev, "Factory programmed Ethernet "
+		device_printf(sc->atse_dev,
+		    "Factory programmed Ethernet "
 		    "hardware address blacklisted.  Falling back to random "
 		    "address to avoid collisions.\n");
 		device_printf(sc->atse_dev, "Please re-program your flash.\n");
@@ -594,14 +595,16 @@ atse_get_eth_address(struct atse_softc *sc)
 	if (sc->atse_eth_addr[0] == 0x00 && sc->atse_eth_addr[1] == 0x00 &&
 	    sc->atse_eth_addr[2] == 0x00 && sc->atse_eth_addr[3] == 0x00 &&
 	    sc->atse_eth_addr[4] == 0x00 && sc->atse_eth_addr[5] == 0x00) {
-		device_printf(sc->atse_dev, "All zero's Ethernet hardware "
+		device_printf(sc->atse_dev,
+		    "All zero's Ethernet hardware "
 		    "address blacklisted.  Falling back to random address.\n");
 		device_printf(sc->atse_dev, "Please re-program your flash.\n");
 		goto get_random;
 	}
 
 	if (ETHER_IS_MULTICAST(sc->atse_eth_addr)) {
-		device_printf(sc->atse_dev, "Multicast Ethernet hardware "
+		device_printf(sc->atse_dev,
+		    "Multicast Ethernet hardware "
 		    "address blacklisted.  Falling back to random address.\n");
 		device_printf(sc->atse_dev, "Please re-program your flash.\n");
 		goto get_random;
@@ -618,7 +621,8 @@ atse_get_eth_address(struct atse_softc *sc)
 	}
 
 	if (unit > 0x0f) {
-		device_printf(sc->atse_dev, "We do not support Ethernet "
+		device_printf(sc->atse_dev,
+		    "We do not support Ethernet "
 		    "addresses for more than 16 MACs. Falling back to "
 		    "random hadware address.\n");
 		goto get_random;
@@ -626,7 +630,8 @@ atse_get_eth_address(struct atse_softc *sc)
 	if ((sc->atse_eth_addr[0] & ~0x2) != 0 ||
 	    sc->atse_eth_addr[1] != 0x07 || sc->atse_eth_addr[2] != 0xed ||
 	    (sc->atse_eth_addr[5] & 0x0f) != 0x0) {
-		device_printf(sc->atse_dev, "Ethernet address not meeting our "
+		device_printf(sc->atse_dev,
+		    "Ethernet address not meeting our "
 		    "multi-MAC standards. Falling back to random hadware "
 		    "address.\n");
 		goto get_random;
@@ -642,15 +647,15 @@ get_random:
 	getcredhostid(curthread->td_ucred, &hostid);
 	if (hostid == 0) {
 		arc4rand(sc->atse_eth_addr, ETHER_ADDR_LEN, 1);
-		sc->atse_eth_addr[0] &= ~1;/* clear multicast bit */
-		sc->atse_eth_addr[0] |= 2; /* set the LAA bit */
+		sc->atse_eth_addr[0] &= ~1; /* clear multicast bit */
+		sc->atse_eth_addr[0] |= 2;  /* set the LAA bit */
 	} else {
 		sc->atse_eth_addr[0] = 0x2;
-		sc->atse_eth_addr[1] = (hostid >> 24)	& 0xff;
-		sc->atse_eth_addr[2] = (hostid >> 16)	& 0xff;
-		sc->atse_eth_addr[3] = (hostid >> 8 )	& 0xff;
-		sc->atse_eth_addr[4] = hostid		& 0xff;
-		sc->atse_eth_addr[5] = sc->atse_unit	& 0xff;
+		sc->atse_eth_addr[1] = (hostid >> 24) & 0xff;
+		sc->atse_eth_addr[2] = (hostid >> 16) & 0xff;
+		sc->atse_eth_addr[3] = (hostid >> 8) & 0xff;
+		sc->atse_eth_addr[4] = hostid & 0xff;
+		sc->atse_eth_addr[5] = sc->atse_unit & 0xff;
 	}
 
 	return (0);
@@ -708,14 +713,14 @@ atse_reset(struct atse_softc *sc)
 	PCS_WRITE_2(sc, PCS_EXT_LINK_TIMER_1, 0x0003);
 
 	/* b. Configure SGMII. */
-	val = PCS_EXT_IF_MODE_SGMII_ENA|PCS_EXT_IF_MODE_USE_SGMII_AN;
+	val = PCS_EXT_IF_MODE_SGMII_ENA | PCS_EXT_IF_MODE_USE_SGMII_AN;
 	PCS_WRITE_2(sc, PCS_EXT_IF_MODE, val);
 
 	/* c. Enable auto negotiation. */
 	/* Ignore Bits 6,8,13; should be set,set,unset. */
 	val = PCS_READ_2(sc, PCS_CONTROL);
-	val &= ~(PCS_CONTROL_ISOLATE|PCS_CONTROL_POWERDOWN);
-	val &= ~PCS_CONTROL_LOOPBACK;		/* Make this a -link1 option? */
+	val &= ~(PCS_CONTROL_ISOLATE | PCS_CONTROL_POWERDOWN);
+	val &= ~PCS_CONTROL_LOOPBACK; /* Make this a -link1 option? */
 	val |= PCS_CONTROL_AUTO_NEGOTIATION_ENABLE;
 	PCS_WRITE_2(sc, PCS_CONTROL, val);
 
@@ -740,7 +745,7 @@ atse_reset(struct atse_softc *sc)
 
 	/* 3. MAC Configuration Register Initialization. */
 	/* a. Disable MAC transmit and receive datapath. */
-	mask = BASE_CFG_COMMAND_CONFIG_TX_ENA|BASE_CFG_COMMAND_CONFIG_RX_ENA;
+	mask = BASE_CFG_COMMAND_CONFIG_TX_ENA | BASE_CFG_COMMAND_CONFIG_RX_ENA;
 	val4 = CSR_READ_4(sc, BASE_CFG_COMMAND_CONFIG);
 	val4 &= ~mask;
 	/* Samples in the manual do have the SW_RESET bit set here, why? */
@@ -779,7 +784,7 @@ atse_reset(struct atse_softc *sc)
 	atse_set_eth_address(sc, ATSE_ETH_ADDR_ALL);
 
 	/* d. MAC function configuration. */
-	CSR_WRITE_4(sc, BASE_CFG_FRM_LENGTH, 1518);	/* Default. */
+	CSR_WRITE_4(sc, BASE_CFG_FRM_LENGTH, 1518); /* Default. */
 	CSR_WRITE_4(sc, BASE_CFG_TX_IPG_LENGTH, 12);
 	CSR_WRITE_4(sc, BASE_CFG_PAUSE_QUANT, 0xFFFF);
 
@@ -813,7 +818,7 @@ atse_reset(struct atse_softc *sc)
 #if 1
 	val4 |= BASE_CFG_COMMAND_CONFIG_RX_ERR_DISC;
 #endif
-	val &= ~BASE_CFG_COMMAND_CONFIG_LOOP_ENA;		/* link0? */
+	val &= ~BASE_CFG_COMMAND_CONFIG_LOOP_ENA; /* link0? */
 	CSR_WRITE_4(sc, BASE_CFG_COMMAND_CONFIG, val4);
 
 	/*
@@ -822,7 +827,7 @@ atse_reset(struct atse_softc *sc)
 	 * Also make sure we get the CRC appended.
 	 */
 	val4 = CSR_READ_4(sc, TX_CMD_STAT);
-	val4 &= ~(TX_CMD_STAT_OMIT_CRC|TX_CMD_STAT_TX_SHIFT16);
+	val4 &= ~(TX_CMD_STAT_OMIT_CRC | TX_CMD_STAT_TX_SHIFT16);
 	CSR_WRITE_4(sc, TX_CMD_STAT, val4);
 
 	val4 = CSR_READ_4(sc, RX_CMD_STAT);
@@ -848,7 +853,7 @@ atse_reset(struct atse_softc *sc)
 	}
 
 	/* f. Enable MAC transmit and receive datapath. */
-	mask = BASE_CFG_COMMAND_CONFIG_TX_ENA|BASE_CFG_COMMAND_CONFIG_RX_ENA;
+	mask = BASE_CFG_COMMAND_CONFIG_TX_ENA | BASE_CFG_COMMAND_CONFIG_RX_ENA;
 	val4 = CSR_READ_4(sc, BASE_CFG_COMMAND_CONFIG);
 	val4 |= mask;
 	CSR_WRITE_4(sc, BASE_CFG_COMMAND_CONFIG, val4);
@@ -898,7 +903,7 @@ atse_init_locked(struct atse_softc *sc)
 	/* ... and fire up the engine again. */
 	atse_rxfilter_locked(sc);
 
-	sc->atse_flags &= ATSE_FLAGS_LINK;	/* Preserve. */
+	sc->atse_flags &= ATSE_FLAGS_LINK; /* Preserve. */
 
 	mii = device_get_softc(sc->atse_miibus);
 
@@ -944,7 +949,7 @@ atse_ioctl(if_t ifp, u_long command, caddr_t data)
 		if (if_getflags(ifp) & IFF_UP) {
 			if ((if_getdrvflags(ifp) & IFF_DRV_RUNNING) != 0 &&
 			    ((if_getflags(ifp) ^ sc->atse_if_flags) &
-			    (IFF_PROMISC | IFF_ALLMULTI)) != 0)
+				(IFF_PROMISC | IFF_ALLMULTI)) != 0)
 				atse_rxfilter_locked(sc);
 			else
 				atse_init_locked(sc);
@@ -965,8 +970,7 @@ atse_ioctl(if_t ifp, u_long command, caddr_t data)
 		ATSE_UNLOCK(sc);
 		break;
 	case SIOCGIFMEDIA:
-	case SIOCSIFMEDIA:
-	{
+	case SIOCSIFMEDIA: {
 		struct mii_data *mii;
 		struct ifreq *ifr;
 
@@ -1018,7 +1022,7 @@ atse_ifmedia_upd(if_t ifp)
 
 	ATSE_LOCK(sc);
 	mii = device_get_softc(sc->atse_miibus);
-	LIST_FOREACH(miisc, &mii->mii_phys, mii_list) {
+	LIST_FOREACH (miisc, &mii->mii_phys, mii_list) {
 		PHY_RESET(miisc);
 	}
 	error = mii_mediachg(mii);
@@ -1048,10 +1052,9 @@ atse_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr)
 
 static struct atse_mac_stats_regs {
 	const char *name;
-	const char *descr;	/* Mostly copied from Altera datasheet. */
+	const char *descr; /* Mostly copied from Altera datasheet. */
 } atse_mac_stats_regs[] = {
-	[0x1a] =
-	{ "aFramesTransmittedOK",
+	[0x1a] = { "aFramesTransmittedOK",
 	    "The number of frames that are successfully transmitted including "
 	    "the pause frames." },
 	{ "aFramesReceivedOK",
@@ -1067,18 +1070,15 @@ static struct atse_mac_stats_regs {
 	{ "aOctetsReceivedOK",
 	    "The lower 32 bits of the number of data and padding octets that "
 	    " are successfully received." },
-	{ "aTxPAUSEMACCtrlFrames",
-	    "The number of pause frames transmitted." },
+	{ "aTxPAUSEMACCtrlFrames", "The number of pause frames transmitted." },
 	{ "aRxPAUSEMACCtrlFrames",
 	    "The number received pause frames received." },
-	{ "ifInErrors",
-	    "The number of errored frames received." },
+	{ "ifInErrors", "The number of errored frames received." },
 	{ "ifOutErrors",
 	    "The number of transmit frames with either a FIFO overflow error, "
 	    "a FIFO underflow error, or a error defined by the user "
 	    "application." },
-	{ "ifInUcastPkts",
-	    "The number of valid unicast frames received." },
+	{ "ifInUcastPkts", "The number of valid unicast frames received." },
 	{ "ifInMulticastPkts",
 	    "The number of valid multicast frames received. The count does "
 	    "not include pause frames." },
@@ -1088,8 +1088,7 @@ static struct atse_mac_stats_regs {
 	    "This statistics counter is not in use.  The MAC function does not "
 	    "discard frames that are written to the FIFO buffer by the user "
 	    "application." },
-	{ "ifOutUcastPkts",
-	    "The number of valid unicast frames transmitted." },
+	{ "ifOutUcastPkts", "The number of valid unicast frames transmitted." },
 	{ "ifOutMulticastPkts",
 	    "The number of valid multicast frames transmitted, excluding pause "
 	    "frames." },
@@ -1132,13 +1131,11 @@ static struct atse_mac_stats_regs {
 	    "The number of received good and errored frames between the length "
 	    "of 1519 and the maximum frame length configured in the frm_length "
 	    "register." },
-	{ "etherStatsJabbers",
-	    "Too long frames with CRC error." },
-	{ "etherStatsFragments",
-	    "Too short frames with CRC error." },
+	{ "etherStatsJabbers", "Too long frames with CRC error." },
+	{ "etherStatsFragments", "Too short frames with CRC error." },
 	/* 0x39 unused, 0x3a/b non-stats. */
 	[0x3c] =
-	/* Extended Statistics Counters */
+	    /* Extended Statistics Counters */
 	{ "msb_aOctetsTransmittedOK",
 	    "Upper 32 bits of the number of data and padding octets that are "
 	    "successfully transmitted." },
@@ -1172,25 +1169,20 @@ static struct atse_rx_err_stats_regs {
 	const char *name;
 	const char *descr;
 } atse_rx_err_stats_regs[] = {
-#define	ATSE_RX_ERR_FIFO_THRES_EOP	0 /* FIFO threshold reached, on EOP. */
-#define	ATSE_RX_ERR_ELEN		1 /* Frame/payload length not valid. */
-#define	ATSE_RX_ERR_CRC32		2 /* CRC-32 error. */
-#define	ATSE_RX_ERR_FIFO_THRES_TRUNC	3 /* FIFO thresh., truncated frame. */
-#define	ATSE_RX_ERR_4			4 /* ? */
-#define	ATSE_RX_ERR_5			5 /* / */
+#define ATSE_RX_ERR_FIFO_THRES_EOP 0   /* FIFO threshold reached, on EOP. */
+#define ATSE_RX_ERR_ELEN 1	       /* Frame/payload length not valid. */
+#define ATSE_RX_ERR_CRC32 2	       /* CRC-32 error. */
+#define ATSE_RX_ERR_FIFO_THRES_TRUNC 3 /* FIFO thresh., truncated frame. */
+#define ATSE_RX_ERR_4 4		       /* ? */
+#define ATSE_RX_ERR_5 5		       /* / */
 
-	{ "rx_err_fifo_thres_eop",
-	    "FIFO threshold reached, reported on EOP." },
-	{ "rx_err_fifo_elen",
-	    "Frame or payload length not valid." },
-	{ "rx_err_fifo_crc32",
-	    "CRC-32 error." },
+	{ "rx_err_fifo_thres_eop", "FIFO threshold reached, reported on EOP." },
+	{ "rx_err_fifo_elen", "Frame or payload length not valid." },
+	{ "rx_err_fifo_crc32", "CRC-32 error." },
 	{ "rx_err_fifo_thres_trunc",
 	    "FIFO threshold reached, truncated frame" },
-	{ "rx_err_4",
-	    "?" },
-	{ "rx_err_5",
-	    "?" },
+	{ "rx_err_4", "?" },
+	{ "rx_err_5", "?" },
 };
 
 static int
@@ -1232,8 +1224,8 @@ atse_sysctl_stats_attach(device_t dev)
 
 		SYSCTL_ADD_PROC(sctx, SYSCTL_CHILDREN(soid), OID_AUTO,
 		    atse_mac_stats_regs[i].name,
-		    CTLTYPE_UINT | CTLFLAG_RD | CTLFLAG_NEEDGIANT,
-		    sc, i, sysctl_atse_mac_stats_proc, "IU",
+		    CTLTYPE_UINT | CTLFLAG_RD | CTLFLAG_NEEDGIANT, sc, i,
+		    sysctl_atse_mac_stats_proc, "IU",
 		    atse_mac_stats_regs[i].descr);
 	}
 
@@ -1246,8 +1238,8 @@ atse_sysctl_stats_attach(device_t dev)
 
 		SYSCTL_ADD_PROC(sctx, SYSCTL_CHILDREN(soid), OID_AUTO,
 		    atse_rx_err_stats_regs[i].name,
-		    CTLTYPE_UINT | CTLFLAG_RD | CTLFLAG_NEEDGIANT,
-		    sc, i, sysctl_atse_rx_err_stats_proc, "IU",
+		    CTLTYPE_UINT | CTLFLAG_RD | CTLFLAG_NEEDGIANT, sc, i,
+		    sysctl_atse_rx_err_stats_proc, "IU",
 		    atse_rx_err_stats_regs[i].descr);
 	}
 }
@@ -1289,22 +1281,20 @@ atse_attach(device_t dev)
 	}
 
 	/* Setup interrupt handler. */
-	error = xdma_setup_intr(sc->xchan_tx, 0,
-	    atse_xdma_tx_intr, sc, &sc->ih_tx);
+	error = xdma_setup_intr(sc->xchan_tx, 0, atse_xdma_tx_intr, sc,
+	    &sc->ih_tx);
 	if (error) {
-		device_printf(sc->dev,
-		    "Can't setup xDMA interrupt handler.\n");
+		device_printf(sc->dev, "Can't setup xDMA interrupt handler.\n");
 		return (ENXIO);
 	}
 
 	xdma_prep_sg(sc->xchan_tx,
-	    TX_QUEUE_SIZE,	/* xchan requests queue size */
-	    MCLBYTES,	/* maxsegsize */
-	    8,		/* maxnsegs */
-	    16,		/* alignment */
-	    0,		/* boundary */
-	    BUS_SPACE_MAXADDR_32BIT,
-	    BUS_SPACE_MAXADDR);
+	    TX_QUEUE_SIZE, /* xchan requests queue size */
+	    MCLBYTES,	   /* maxsegsize */
+	    8,		   /* maxnsegs */
+	    16,		   /* alignment */
+	    0,		   /* boundary */
+	    BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR);
 
 	/* Get RX xDMA controller */
 	sc->xdma_rx = xdma_ofw_get(sc->dev, "rx");
@@ -1321,26 +1311,23 @@ atse_attach(device_t dev)
 	}
 
 	/* Setup interrupt handler. */
-	error = xdma_setup_intr(sc->xchan_rx, XDMA_INTR_NET,
-	    atse_xdma_rx_intr, sc, &sc->ih_rx);
+	error = xdma_setup_intr(sc->xchan_rx, XDMA_INTR_NET, atse_xdma_rx_intr,
+	    sc, &sc->ih_rx);
 	if (error) {
-		device_printf(sc->dev,
-		    "Can't setup xDMA interrupt handler.\n");
+		device_printf(sc->dev, "Can't setup xDMA interrupt handler.\n");
 		return (ENXIO);
 	}
 
 	xdma_prep_sg(sc->xchan_rx,
-	    RX_QUEUE_SIZE,	/* xchan requests queue size */
-	    MCLBYTES,		/* maxsegsize */
-	    1,			/* maxnsegs */
-	    16,			/* alignment */
-	    0,			/* boundary */
-	    BUS_SPACE_MAXADDR_32BIT,
-	    BUS_SPACE_MAXADDR);
+	    RX_QUEUE_SIZE, /* xchan requests queue size */
+	    MCLBYTES,	   /* maxsegsize */
+	    1,		   /* maxnsegs */
+	    16,		   /* alignment */
+	    0,		   /* boundary */
+	    BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR);
 
 	mtx_init(&sc->br_mtx, "buf ring mtx", NULL, MTX_DEF);
-	sc->br = buf_ring_alloc(BUFRING_SIZE, M_DEVBUF,
-	    M_NOWAIT, &sc->br_mtx);
+	sc->br = buf_ring_alloc(BUFRING_SIZE, M_DEVBUF, M_NOWAIT, &sc->br_mtx);
 	if (sc->br == NULL) {
 		return (ENOMEM);
 	}
@@ -1358,7 +1345,7 @@ atse_attach(device_t dev)
 	 * 1st PHY address (0) apart from the fact that BMCR0 is always
 	 * the PCS mapping, so we always use BMCR1. See Table 5-1 0xA0-0xBF.
 	 */
-#if 0	/* Always PCS. */
+#if 0 /* Always PCS. */
 	sc->atse_bmcr0 = MDIO_0_START;
 	CSR_WRITE_4(sc, BASE_CFG_MDIO_ADDR0, 0x00);
 #endif
@@ -1425,8 +1412,8 @@ atse_detach(device_t dev)
 	if_t ifp;
 
 	sc = device_get_softc(dev);
-	KASSERT(mtx_initialized(&sc->atse_mtx), ("%s: mutex not initialized",
-	    device_get_nameunit(dev)));
+	KASSERT(mtx_initialized(&sc->atse_mtx),
+	    ("%s: mutex not initialized", device_get_nameunit(dev)));
 	ifp = sc->atse_ifp;
 
 	/* Only cleanup if attach succeeded. */

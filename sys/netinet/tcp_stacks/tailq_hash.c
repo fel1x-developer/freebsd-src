@@ -1,42 +1,43 @@
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 #include "opt_ipsec.h"
-#include "opt_ratelimit.h"
 #include "opt_kern_tls.h"
+#include "opt_ratelimit.h"
+
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/arb.h>
-#include <sys/module.h>
 #include <sys/kernel.h>
+#include <sys/module.h>
 #ifdef TCP_HHOOK
 #include <sys/hhook.h>
 #endif
+#include <sys/systm.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
 #include <sys/mbuf.h>
-#include <sys/proc.h>		/* for proc0 declaration */
+#include <sys/mutex.h>
+#include <sys/proc.h> /* for proc0 declaration */
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 #ifdef STATS
 #include <sys/qmath.h>
-#include <sys/tree.h>
 #include <sys/stats.h> /* Must come after qmath.h and tree.h */
+#include <sys/tree.h>
 #else
 #include <sys/tree.h>
 #endif
-#include <sys/refcount.h>
-#include <sys/queue.h>
-#include <sys/tim_filter.h>
-#include <sys/smp.h>
-#include <sys/kthread.h>
 #include <sys/kern_prefetch.h>
+#include <sys/kthread.h>
 #include <sys/protosw.h>
+#include <sys/queue.h>
+#include <sys/refcount.h>
+#include <sys/smp.h>
+#include <sys/tim_filter.h>
 #ifdef TCP_ACCOUNTING
 #include <sys/sched.h>
+
 #include <machine/cpu.h>
 #endif
 #include <vm/uma.h>
@@ -45,33 +46,33 @@
 #include <net/route/nhop.h>
 #include <net/vnet.h>
 
-#define TCPSTATES		/* for logging */
+#define TCPSTATES /* for logging */
 
+#include <netinet/cc/cc.h>
+#include <netinet/cc/cc_newreno.h>
+#include <netinet/icmp_var.h> /* for ICMP_BANDLIM */
 #include <netinet/in.h>
 #include <netinet/in_kdtrace.h>
 #include <netinet/in_pcb.h>
 #include <netinet/ip.h>
-#include <netinet/ip_icmp.h>	/* required for icmp_var.h */
-#include <netinet/icmp_var.h>	/* for ICMP_BANDLIM */
-#include <netinet/ip_var.h>
 #include <netinet/ip6.h>
-#include <netinet6/in6_pcb.h>
-#include <netinet6/ip6_var.h>
+#include <netinet/ip_icmp.h> /* required for icmp_var.h */
+#include <netinet/ip_var.h>
 #include <netinet/tcp.h>
+#include <netinet/tcp_accounting.h>
+#include <netinet/tcp_fastopen.h>
 #include <netinet/tcp_fsm.h>
+#include <netinet/tcp_hpts.h>
+#include <netinet/tcp_log_buf.h>
+#include <netinet/tcp_lro.h>
+#include <netinet/tcp_ratelimit.h>
 #include <netinet/tcp_seq.h>
+#include <netinet/tcp_syncache.h>
 #include <netinet/tcp_timer.h>
 #include <netinet/tcp_var.h>
-#include <netinet/tcp_log_buf.h>
-#include <netinet/tcp_syncache.h>
-#include <netinet/tcp_hpts.h>
-#include <netinet/tcp_ratelimit.h>
-#include <netinet/tcp_accounting.h>
 #include <netinet/tcpip.h>
-#include <netinet/cc/cc.h>
-#include <netinet/cc/cc_newreno.h>
-#include <netinet/tcp_fastopen.h>
-#include <netinet/tcp_lro.h>
+#include <netinet6/in6_pcb.h>
+#include <netinet6/ip6_var.h>
 #ifdef NETFLIX_SHARED_CWND
 #include <netinet/tcp_shared_cwnd.h>
 #endif
@@ -82,25 +83,24 @@
 #include <netinet6/tcp6_var.h>
 #endif
 #include <netinet/tcp_ecn.h>
-
 #include <netipsec/ipsec_support.h>
 
 #if defined(IPSEC) || defined(IPSEC_SUPPORT)
 #include <netipsec/ipsec.h>
 #include <netipsec/ipsec6.h>
-#endif				/* IPSEC */
+#endif /* IPSEC */
+
+#include <machine/in_cksum.h>
 
 #include <netinet/udp.h>
 #include <netinet/udp_var.h>
-#include <machine/in_cksum.h>
 
 #ifdef MAC
 #include <security/mac/mac_framework.h>
 #endif
 #include "sack_filter.h"
-#include "tcp_rack.h"
 #include "tailq_hash.h"
-
+#include "tcp_rack.h"
 
 struct rack_sendmap *
 tqhash_min(struct tailq_hash *hs)
@@ -108,7 +108,7 @@ tqhash_min(struct tailq_hash *hs)
 	struct rack_sendmap *rsm;
 
 	rsm = tqhash_find(hs, hs->min);
-	return(rsm);
+	return (rsm);
 }
 
 struct rack_sendmap *
@@ -124,8 +124,8 @@ int
 tqhash_empty(struct tailq_hash *hs)
 {
 	if (hs->count == 0)
-		return(1);
-	return(0);
+		return (1);
+	return (0);
 }
 
 struct rack_sendmap *
@@ -134,8 +134,7 @@ tqhash_find(struct tailq_hash *hs, uint32_t seq)
 	struct rack_sendmap *e;
 	int bindex, pbucket, fc = 1;
 
-	if ((SEQ_LT(seq, hs->min)) ||
-	    (hs->count == 0) ||
+	if ((SEQ_LT(seq, hs->min)) || (hs->count == 0) ||
 	    (SEQ_GEQ(seq, hs->max))) {
 		/* Not here */
 		return (NULL);
@@ -146,7 +145,7 @@ tqhash_find(struct tailq_hash *hs, uint32_t seq)
 	if (TAILQ_EMPTY(&hs->ht[bindex])) {
 		goto look_backwards;
 	}
-	TAILQ_FOREACH(e, &hs->ht[bindex], next) {
+	TAILQ_FOREACH (e, &hs->ht[bindex], next) {
 		if (fc == 1) {
 			/*
 			 * Special check for when a cum-ack
@@ -160,8 +159,7 @@ tqhash_find(struct tailq_hash *hs, uint32_t seq)
 			}
 			fc = 0;
 		}
-		if (SEQ_GEQ(seq, e->r_start) &&
-		    (SEQ_LT(seq, e->r_end))) {
+		if (SEQ_GEQ(seq, e->r_start) && (SEQ_LT(seq, e->r_end))) {
 			/* Its in this block */
 			return (e);
 		}
@@ -173,9 +171,8 @@ look_backwards:
 		pbucket = MAX_HASH_ENTRIES - 1;
 	else
 		pbucket = bindex - 1;
-	TAILQ_FOREACH_REVERSE(e, &hs->ht[pbucket], rack_head, next) {
-		if (SEQ_GEQ(seq, e->r_start) &&
-		    (SEQ_LT(seq, e->r_end))) {
+	TAILQ_FOREACH_REVERSE (e, &hs->ht[pbucket], rack_head, next) {
+		if (SEQ_GEQ(seq, e->r_start) && (SEQ_LT(seq, e->r_end))) {
 			/* Its in this block */
 			return (e);
 		}
@@ -200,7 +197,7 @@ tqhash_next(struct tailq_hash *hs, struct rack_sendmap *rsm)
 			nxt = 0;
 		e = TAILQ_FIRST(&hs->ht[nxt]);
 	}
-	return(e);
+	return (e);
 }
 
 struct rack_sendmap *
@@ -241,7 +238,7 @@ tqhash_insert(struct tailq_hash *hs, struct rack_sendmap *rsm)
 	uint32_t ebucket;
 
 	if (hs->count > 0) {
-		if ((rsm->r_end - hs->min) >  MAX_ALLOWED_SEQ_RANGE) {
+		if ((rsm->r_end - hs->min) > MAX_ALLOWED_SEQ_RANGE) {
 			return (-1);
 		}
 		e = tqhash_find(hs, rsm->r_start);
@@ -277,7 +274,7 @@ tqhash_insert(struct tailq_hash *hs, struct rack_sendmap *rsm)
 		TAILQ_INSERT_TAIL(&hs->ht[rsm->bindex], rsm, next);
 		return (0);
 	}
-	TAILQ_FOREACH(e, &hs->ht[rsm->bindex], next) {
+	TAILQ_FOREACH (e, &hs->ht[rsm->bindex], next) {
 		if (SEQ_LEQ(rsm->r_start, e->r_start)) {
 			inserted = 1;
 			TAILQ_INSERT_BEFORE(e, rsm, next);
@@ -295,7 +292,7 @@ tqhash_init(struct tailq_hash *hs)
 {
 	int i;
 
-	for(i = 0; i < MAX_HASH_ENTRIES; i++) {
+	for (i = 0; i < MAX_HASH_ENTRIES; i++) {
 		TAILQ_INIT(&hs->ht[i]);
 	}
 	hs->min = hs->max = 0;
@@ -328,7 +325,7 @@ tqhash_trim(struct tailq_hash *hs, uint32_t th_ack)
 		return (-4);
 	}
 	if (SEQ_GT(th_ack, hs->min))
-	    hs->min = th_ack;
+		hs->min = th_ack;
 	/*
 	 * Should we trim it for the caller?
 	 * they may have already which is ok...
@@ -338,4 +335,3 @@ tqhash_trim(struct tailq_hash *hs, uint32_t th_ack)
 	}
 	return (0);
 }
-

@@ -23,7 +23,9 @@
  * SUCH DAMAGE.
  */
 
-{# THIS IS A TEMPLATE PROCESSED BY lib/libifconfig/sfp.lua #}
+{
+#THIS IS A TEMPLATE PROCESSED BY lib / libifconfig / sfp.lua #
+}
 
 #pragma once
 
@@ -32,17 +34,16 @@
 {%
 for _, ent in ipairs(enums) do
     if type(ent) == "string" then
-%}
+%
+}
 /*
  * {*ent*}
  */
 
-{%
-    else
-        local enum = ent
-        local name = "sfp_"..enum.name
-        local num, sym, desc, disp
-%}
+{
+	% else local enum = ent local name = "sfp_"..enum.name local num, sym,
+		     desc, disp %
+}
 /** {*enum.description*} */
 enum {*name*} {
 {%
@@ -57,22 +58,20 @@ enum {*name*} {
 };
 
 /** Get the symbolic name of a given {*name*} value */
-const char *ifconfig_{*name*}_symbol(enum {*name*});
+const char *ifconfig_ { *name * } _symbol(enum { *name * });
 
 /** Get a brief description of a given {*name*} value */
-const char *ifconfig_{*name*}_description(enum {*name*});
+const char *ifconfig_ { *name * } _description(enum { *name * });
 
-{%
-        if disp then
-%}
+{
+	% if disp then %
+}
 /** Get a shortened user-friendly display name for a given {*name*} value */
-const char *ifconfig_{*name*}_display(enum {*name*});
+const char *ifconfig_ { *name * } _display(enum { *name * });
 
-{%
-        end
-    end
-end
-%}
+{
+	% end end end %
+}
 /*
  * Descriptions of each enum
  */
@@ -82,47 +81,49 @@ for _, ent in ipairs(enums) do
     if type(ent) == "table" then
         local enum = ent
         local name = "sfp_"..enum.name
-%}
+%
+}
 /** Get a brief description of the {*name*} enum */
-static inline const char *
-ifconfig_enum_{*name*}_description(void)
+static inline const char *ifconfig_enum_ { *name * } _description(void)
 {
 	return ("{*enum.description*}");
 }
 
-{%
-    end
-end
-%}
+{
+	% end end %
+}
 /*
  * Info struct definitions
  */
 
 struct ifconfig_sfp_info {
-{%
+	{%
 for _, ent in ipairs(enums) do
     if type(ent) == "table" then
         local enum = ent
         local name = "sfp_"..enum.name
         local t = string.format("uint%d_t", enum.bits)
-%}
-	{*t*} {*name*}; /**< {*enum.description*} */
-{%
-    end
-end
-%}
+%
+	}
+	{
+		*t *
+	}
+	{ *name * }; /**< {*enum.description*} */
+	{
+		% end end %
+	}
 };
 
 struct ifconfig_sfp_info_strings {
-{%
+	{%
 for _, ent in ipairs(enums) do
     if type(ent) == "table" then
         local enum = ent
         local name = "sfp_"..enum.name
-%}
-	const char *{*name*}; /**< {*enum.description*} */
-{%
-    end
-end
-%}
+%
+	}
+	const char * { *name * }; /**< {*enum.description*} */
+	{
+		% end end %
+	}
 };

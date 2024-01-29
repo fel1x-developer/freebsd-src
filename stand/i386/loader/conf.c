@@ -25,8 +25,10 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
+
 #include <bootstrap.h>
+#include <stand.h>
+
 #include "libi386/libi386.h"
 #if defined(LOADER_ZFS_SUPPORT)
 #include "libzfs.h"
@@ -46,84 +48,74 @@
 extern struct devsw vdisk_dev;
 
 /* Exported for libsa */
-struct devsw *devsw[] = {
-    &biosfd,
-    &bioscd,
-    &bioshd,
+struct devsw *devsw[] = { &biosfd, &bioscd, &bioshd,
 #if defined(LOADER_NFS_SUPPORT) || defined(LOADER_TFTP_SUPPORT)
-    &pxedisk,
+	&pxedisk,
 #endif
-    &vdisk_dev,
+	&vdisk_dev,
 #if defined(LOADER_ZFS_SUPPORT)
-    &zfs_dev,
+	&zfs_dev,
 #endif
-    NULL
-};
+	NULL };
 
 struct fs_ops *file_system[] = {
 #if defined(LOADER_ZFS_SUPPORT)
-    &zfs_fsops,
+	&zfs_fsops,
 #endif
 #if defined(LOADER_UFS_SUPPORT)
-    &ufs_fsops,
+	&ufs_fsops,
 #endif
 #if defined(LOADER_EXT2FS_SUPPORT)
-    &ext2fs_fsops,
+	&ext2fs_fsops,
 #endif
 #if defined(LOADER_MSDOS_SUPPORT)
-    &dosfs_fsops,
+	&dosfs_fsops,
 #endif
 #if defined(LOADER_CD9660_SUPPORT)
-    &cd9660_fsops,
+	&cd9660_fsops,
 #endif
-#ifdef LOADER_NFS_SUPPORT 
-    &nfs_fsops,
+#ifdef LOADER_NFS_SUPPORT
+	&nfs_fsops,
 #endif
 #ifdef LOADER_TFTP_SUPPORT
-    &tftp_fsops,
+	&tftp_fsops,
 #endif
 #ifdef LOADER_GZIP_SUPPORT
-    &gzipfs_fsops,
+	&gzipfs_fsops,
 #endif
 #ifdef LOADER_BZIP2_SUPPORT
-    &bzipfs_fsops,
+	&bzipfs_fsops,
 #endif
 #ifdef LOADER_SPLIT_SUPPORT
-    &splitfs_fsops,
+	&splitfs_fsops,
 #endif
-    NULL
+	NULL
 };
 
 /* Exported for i386 only */
-/* 
+/*
  * Sort formats so that those that can detect based on arguments
  * rather than reading the file go first.
  */
-extern struct file_format	i386_elf;
-extern struct file_format	i386_elf_obj;
-extern struct file_format	amd64_elf;
-extern struct file_format	amd64_elf_obj;
-extern struct file_format	multiboot;
-extern struct file_format	multiboot_obj;
+extern struct file_format i386_elf;
+extern struct file_format i386_elf_obj;
+extern struct file_format amd64_elf;
+extern struct file_format amd64_elf_obj;
+extern struct file_format multiboot;
+extern struct file_format multiboot_obj;
 
-struct file_format *file_formats[] = {
-	&multiboot,
-	&multiboot_obj,
+struct file_format *file_formats[] = { &multiboot, &multiboot_obj,
 #ifdef LOADER_PREFER_AMD64
-    &amd64_elf,
-    &amd64_elf_obj,
+	&amd64_elf, &amd64_elf_obj,
 #endif
-    &i386_elf,
-    &i386_elf_obj,
+	&i386_elf, &i386_elf_obj,
 #ifndef LOADER_PREFER_AMD64
-    &amd64_elf,
-    &amd64_elf_obj,
+	&amd64_elf, &amd64_elf_obj,
 #endif
-    NULL
-};
+	NULL };
 
-/* 
- * Consoles 
+/*
+ * Consoles
  *
  * We don't prototype these in libi386.h because they require
  * data structures from bootstrap.h as well.
@@ -133,21 +125,14 @@ extern struct console comconsole;
 extern struct console nullconsole;
 extern struct console spinconsole;
 
-struct console *consoles[] = {
-    &vidconsole,
-    &comconsole,
-    &nullconsole,
-    &spinconsole,
-    NULL
-};
+struct console *consoles[] = { &vidconsole, &comconsole, &nullconsole,
+	&spinconsole, NULL };
 
 extern struct pnphandler isapnphandler;
 extern struct pnphandler biospnphandler;
 extern struct pnphandler biospcihandler;
 
 struct pnphandler *pnphandlers[] = {
-    &biospnphandler,		/* should go first, as it may set isapnp_readport */
-    &isapnphandler,
-    &biospcihandler,
-    NULL
+	&biospnphandler, /* should go first, as it may set isapnp_readport */
+	&isapnphandler, &biospcihandler, NULL
 };

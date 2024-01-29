@@ -1,9 +1,9 @@
 /******************************************************************************
  * evtchn.h
- * 
+ *
  * Data structures and definitions private to the FreeBSD implementation
  * of the Xen event channel API.
- * 
+ *
  * Copyright (c) 2004, K A Fraser
  * Copyright (c) 2012, Spectra Logic Corporation
  * Copyright © 2022, Elliott Mitchell
@@ -17,10 +17,10 @@
  * merge, publish, distribute, sublicense, and/or sell copies of the Software,
  * and to permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -34,13 +34,14 @@
 #define __XEN_EVTCHN_EVTCHNVAR_H__
 
 #include <xen/hypervisor.h>
+
 #include <contrib/xen/event_channel.h>
 
 /* Macros for accessing event channel values */
-#define	EVTCHN_PTR(type, port) \
+#define EVTCHN_PTR(type, port) \
 	(HYPERVISOR_shared_info->evtchn_##type + ((port) / __LONG_BIT))
-#define	EVTCHN_BIT(port)	((port) & (__LONG_BIT - 1))
-#define	EVTCHN_MASK(port)	(1UL << EVTCHN_BIT(port))
+#define EVTCHN_BIT(port) ((port) & (__LONG_BIT - 1))
+#define EVTCHN_MASK(port) (1UL << EVTCHN_BIT(port))
 
 /**
  * Disable signal delivery for an event channel port, returning its
@@ -63,7 +64,7 @@ evtchn_test_and_set_mask(evtchn_port_t port)
  *
  * \param port  The event channel port to clear.
  */
-static inline void 
+static inline void
 evtchn_clear_port(evtchn_port_t port)
 {
 

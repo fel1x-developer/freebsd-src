@@ -25,59 +25,64 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/socket.h>
 
 #include <net/if.h>
+#include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
-#include <netinet/if_ether.h>
 #include <netinet/ip.h>
 
-#include <stand.h>
 #include <net.h>
 #include <netif.h>
+#include <stand.h>
 
 #include "api_public.h"
+#include "dev_net.h"
 #include "glue.h"
 #include "libuboot.h"
-#include "dev_net.h"
 
-static int	net_probe(struct netif *, void *);
-static int	net_match(struct netif *, void *);
-static void	net_init(struct iodesc *, void *);
-static ssize_t	net_get(struct iodesc *, void **, time_t);
-static ssize_t	net_put(struct iodesc *, void *, size_t);
-static void	net_end(struct netif *);
+static int net_probe(struct netif *, void *);
+static int net_match(struct netif *, void *);
+static void net_init(struct iodesc *, void *);
+static ssize_t net_get(struct iodesc *, void **, time_t);
+static ssize_t net_put(struct iodesc *, void *, size_t);
+static void net_end(struct netif *);
 
 extern struct netif_stats net_stats[];
 
 struct netif_dif net_ifs[] = {
 	/*	dif_unit	dif_nsel	dif_stats	dif_private */
-	{	0,		1,		&net_stats[0],	0,	},
+	{
+	    0,
+	    1,
+	    &net_stats[0],
+	    0,
+	},
 };
 
 struct netif_stats net_stats[nitems(net_ifs)];
 
 struct netif_driver uboot_net = {
-	"uboot_eth",		/* netif_bname */
-	net_match,		/* netif_match */
-	net_probe,		/* netif_probe */
-	net_init,		/* netif_init */
-	net_get,		/* netif_get */
-	net_put,		/* netif_put */
-	net_end,		/* netif_end */
-	net_ifs,		/* netif_ifs */
-	nitems(net_ifs)		/* netif_nifs */
+	"uboot_eth",	/* netif_bname */
+	net_match,	/* netif_match */
+	net_probe,	/* netif_probe */
+	net_init,	/* netif_init */
+	net_get,	/* netif_get */
+	net_put,	/* netif_put */
+	net_end,	/* netif_end */
+	net_ifs,	/* netif_ifs */
+	nitems(net_ifs) /* netif_nifs */
 };
 
 struct uboot_softc {
-	uint32_t	sc_pad;
-	uint8_t		sc_rxbuf[ETHER_MAX_LEN];
-	uint8_t		sc_txbuf[ETHER_MAX_LEN + PKTALIGN];
-	uint8_t		*sc_txbufp;
-	int		sc_handle;	/* device handle for ub_dev_xxx */
+	uint32_t sc_pad;
+	uint8_t sc_rxbuf[ETHER_MAX_LEN];
+	uint8_t sc_txbuf[ETHER_MAX_LEN + PKTALIGN];
+	uint8_t *sc_txbufp;
+	int sc_handle; /* device handle for ub_dev_xxx */
 };
 
 static struct uboot_softc uboot_softc;
@@ -153,7 +158,7 @@ get_env_net_params(void)
 	 */
 	serveraddr = INADDR_NONE;
 	if ((envstr = ub_env_get("serverip")) != NULL) {
-		if ((serveraddr = inet_addr(envstr)) == INADDR_NONE) 
+		if ((serveraddr = inet_addr(envstr)) == INADDR_NONE)
 			printf("Could not parse serverip '%s'\n", envstr);
 	}
 
@@ -178,9 +183,9 @@ get_env_net_params(void)
 	 */
 	envstr = ub_env_get("gatewayip");
 	if (!SAMENET(myip, rootip, netmask)) {
-		if (envstr == NULL)  {
+		if (envstr == NULL) {
 			printf("Need gatewayip for a root server on a "
-			    "different network.\n");
+			       "different network.\n");
 			rootip.s_addr = 0;
 			return;
 		}
@@ -217,7 +222,7 @@ net_probe(struct netif *nif, void *machdep_hint)
 
 	if (i == devs_no) {
 		printf("net_probe: no network devices found, maybe not"
-		    " enumerated yet..?\n");
+		       " enumerated yet..?\n");
 		return (-1);
 	}
 
@@ -327,7 +332,7 @@ net_init(struct iodesc *desc, void *machdep_hint)
 	/* Get MAC address */
 	di = ub_dev_get(sc->sc_handle);
 	memcpy(desc->myea, di->di_net.hwaddr, 6);
-	if (memcmp (desc->myea, "\0\0\0\0\0\0", 6) == 0) {
+	if (memcmp(desc->myea, "\0\0\0\0\0\0", 6) == 0) {
 		panic("%s%d: empty ethernet address!",
 		    nif->nif_driver->netif_bname, nif->nif_unit);
 	}

@@ -30,16 +30,16 @@
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/condvar.h>
+#include <sys/efi.h>
 #include <sys/eventhandler.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/rman.h>
 #include <sys/selinfo.h>
-#include <sys/efi.h>
 
+#include <dev/smbus/smb.h>
 #include <dev/smbus/smbconf.h>
 #include <dev/smbus/smbus.h>
-#include <dev/smbus/smb.h>
 
 #include "smbus_if.h"
 
@@ -114,18 +114,14 @@ bad:
 
 static device_method_t ipmi_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,	ipmi_smbus_identify),
-	DEVMETHOD(device_probe,		ipmi_smbus_probe),
-	DEVMETHOD(device_attach,	ipmi_smbus_attach),
-	DEVMETHOD(device_detach,	ipmi_detach),
-	{ 0, 0 }
+	DEVMETHOD(device_identify, ipmi_smbus_identify),
+	DEVMETHOD(device_probe, ipmi_smbus_probe),
+	DEVMETHOD(device_attach, ipmi_smbus_attach),
+	DEVMETHOD(device_detach, ipmi_detach), { 0, 0 }
 };
 
-static driver_t ipmi_smbus_driver = {
-	"ipmi",
-	ipmi_methods,
-	sizeof(struct ipmi_softc)
-};
+static driver_t ipmi_smbus_driver = { "ipmi", ipmi_methods,
+	sizeof(struct ipmi_softc) };
 
 DRIVER_MODULE(ipmi_smbus, smbus, ipmi_smbus_driver, 0, 0);
 MODULE_DEPEND(ipmi_smbus, smbus, SMBUS_MINVER, SMBUS_PREFVER, SMBUS_MAXVER);

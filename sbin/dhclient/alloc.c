@@ -43,6 +43,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "dhcpd.h"
 
 struct string_list *
@@ -61,9 +62,10 @@ new_hash_table(int count)
 {
 	struct hash_table *rval;
 
-	rval = calloc(1, sizeof(struct hash_table) -
-	    (DEFAULT_HASH_SIZE * sizeof(struct hash_bucket *)) +
-	    (count * sizeof(struct hash_bucket *)));
+	rval = calloc(1,
+	    sizeof(struct hash_table) -
+		(DEFAULT_HASH_SIZE * sizeof(struct hash_bucket *)) +
+		(count * sizeof(struct hash_bucket *)));
 	if (rval == NULL)
 		return (NULL);
 	rval->hash_count = count;

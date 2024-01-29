@@ -37,36 +37,36 @@
 char *usage = "bootptest [-h] server-name [vendor-data-template-file]";
 
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
 #include <sys/file.h>
-#include <sys/time.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/utsname.h>
 
 #include <net/if.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>			/* inet_ntoa */
 
-#ifndef	NO_UNISTD
+#include <arpa/inet.h> /* inet_ntoa */
+
+#ifndef NO_UNISTD
 #include <unistd.h>
 #endif
 
+#include <assert.h>
+#include <ctype.h>
 #include <err.h>
-#include <stdlib.h>
+#include <errno.h>
+#include <netdb.h>
 #include <signal.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <errno.h>
-#include <ctype.h>
-#include <netdb.h>
-#include <assert.h>
 
 #include "bootp.h"
 #include "bootptest.h"
-#include "getif.h"
 #include "getether.h"
-
+#include "getif.h"
 #include "patchlevel.h"
 
 static void send_request(int s);
@@ -74,7 +74,7 @@ static void send_request(int s);
 #define LOG_ERR 1
 #define BUFLEN 1024
 #define WAITSECS 1
-#define MAXWAIT  10
+#define MAXWAIT 10
 
 int vflag = 1;
 int tflag = 0;
@@ -84,30 +84,28 @@ unsigned char *packetp;
 unsigned char *snapend;
 int snaplen;
 
-
 /*
  * IP port numbers for client and server obtained from /etc/services
  */
 
 u_short bootps_port, bootpc_port;
 
-
 /*
  * Internet socket and interface config structures
  */
 
-struct sockaddr_in sin_server;	/* where to send requests */
-struct sockaddr_in sin_client;	/* for bind and listen */
-struct sockaddr_in sin_from;	/* Packet source */
-u_char eaddr[16];				/* Ethernet address */
+struct sockaddr_in sin_server; /* where to send requests */
+struct sockaddr_in sin_client; /* for bind and listen */
+struct sockaddr_in sin_from;   /* Packet source */
+u_char eaddr[16];	       /* Ethernet address */
 
 /*
  * General
  */
 
-int debug = 1;					/* Debugging flag (level) */
-char *sndbuf;					/* Send packet buffer */
-char *rcvbuf;					/* Receive packet buffer */
+int debug = 1; /* Debugging flag (level) */
+char *sndbuf;  /* Send packet buffer */
+char *rcvbuf;  /* Receive packet buffer */
 
 struct utsname my_uname;
 char *hostname;
@@ -118,7 +116,7 @@ char *hostname;
 
 unsigned char vm_cmu[4] = VM_CMU;
 unsigned char vm_rfc1048[4] = VM_RFC1048;
-short secs;						/* How long client has waited */
+short secs; /* How long client has waited */
 
 /*
  * Initialization such as command-line processing is done, then
@@ -135,8 +133,8 @@ main(int argc, char **argv)
 	char *servername = NULL;
 	char *vendor_file = NULL;
 	char *bp_file = NULL;
-	int32 server_addr;			/* inet addr, network order */
-	int s;						/* Socket file descriptor */
+	int32 server_addr; /* inet addr, network order */
+	int s;		   /* Socket file descriptor */
 	int n, fromlen, recvcnt;
 	int use_hwa = 0;
 	int32 vend_magic;
@@ -171,7 +169,7 @@ main(int argc, char **argv)
 	}
 
 	/* default magic number */
-	bcopy(vm_rfc1048, (char*)&vend_magic, 4);
+	bcopy(vm_rfc1048, (char *)&vend_magic, 4);
 
 	/* Handle option switches. */
 	while (argc > 0) {
@@ -179,21 +177,23 @@ main(int argc, char **argv)
 			break;
 		switch (argv[0][1]) {
 
-		case 'f':				/* File name to request. */
+		case 'f': /* File name to request. */
 			if (argc < 2)
 				goto error;
-			argc--; argv++;
+			argc--;
+			argv++;
 			bp_file = *argv;
 			break;
 
-		case 'h':				/* Use hardware address. */
+		case 'h': /* Use hardware address. */
 			use_hwa = 1;
 			break;
 
-		case 'm':				/* Magic number value. */
+		case 'm': /* Magic number value. */
 			if (argc < 2)
 				goto error;
-			argc--; argv++;
+			argc--;
+			argv++;
 			vend_magic = inet_addr(*argv);
 			break;
 
@@ -201,7 +201,6 @@ main(int argc, char **argv)
 		default:
 			puts(usage);
 			exit(1);
-
 		}
 		argc--;
 		argv++;
@@ -236,11 +235,11 @@ main(int argc, char **argv)
 	 */
 	sep = getservbyname("bootps", "udp");
 	if (sep) {
-		bootps_port = ntohs((u_short) sep->s_port);
+		bootps_port = ntohs((u_short)sep->s_port);
 	} else {
 		warnx("bootps/udp: unknown service -- using port %d",
-				IPPORT_BOOTPS);
-		bootps_port = (u_short) IPPORT_BOOTPS;
+		    IPPORT_BOOTPS);
+		bootps_port = (u_short)IPPORT_BOOTPS;
 	}
 
 	/*
@@ -272,8 +271,8 @@ main(int argc, char **argv)
 		bootpc_port = ntohs(sep->s_port);
 	} else {
 		warnx("bootpc/udp: unknown service -- using port %d",
-				IPPORT_BOOTPC);
-		bootpc_port = (u_short) IPPORT_BOOTPC;
+		    IPPORT_BOOTPC);
+		bootpc_port = (u_short)IPPORT_BOOTPC;
 	}
 
 	/*
@@ -286,22 +285,21 @@ main(int argc, char **argv)
 	/*
 	 * Bind client socket to BOOTPC port.
 	 */
-	if (bind(s, (struct sockaddr *) &sin_client, sizeof(sin_client)) < 0) {
+	if (bind(s, (struct sockaddr *)&sin_client, sizeof(sin_client)) < 0) {
 		if (errno == EACCES) {
 			warn("bind BOOTPC port");
 			errx(1, "you need to run this as root");
-		}
-		else
+		} else
 			err(1, "bind BOOTPC port");
 	}
 	/*
 	 * Build a request.
 	 */
-	bp = (struct bootp *) sndbuf;
+	bp = (struct bootp *)sndbuf;
 	bzero(bp, sizeof(*bp));
 	bp->bp_op = BOOTREQUEST;
-	xid = (int32) getpid();
-	bp->bp_xid = (u_int32) htonl(xid);
+	xid = (int32)getpid();
+	bp->bp_xid = (u_int32)htonl(xid);
 	if (bp_file)
 		strncpy(bp->bp_file, bp_file, BP_FILE_LEN);
 
@@ -316,8 +314,9 @@ main(int argc, char **argv)
 			printf("No interface for %s\n", servername);
 			exit(1);
 		}
-		if (getether(ifr->ifr_name, (char*)eaddr)) {
-			printf("Can not get ether addr for %s\n", ifr->ifr_name);
+		if (getether(ifr->ifr_name, (char *)eaddr)) {
+			printf("Can not get ether addr for %s\n",
+			    ifr->ifr_name);
 			exit(1);
 		}
 		/* Copy Ethernet address into request packet. */
@@ -337,7 +336,7 @@ main(int argc, char **argv)
 	/*
 	 * Copy in the default vendor data.
 	 */
-	bcopy((char*)&vend_magic, bp->bp_vend, 4);
+	bcopy((char *)&vend_magic, bp->bp_vend, 4);
 	if (vend_magic)
 		bp->bp_vend[4] = TAG_END;
 
@@ -363,7 +362,7 @@ main(int argc, char **argv)
 		printf("read %d bytes of vendor template\n", n);
 		if (n > BP_VEND_LEN) {
 			printf("warning: extended options in use (len > %d)\n",
-				   BP_VEND_LEN);
+			    BP_VEND_LEN);
 			snaplen += (n - BP_VEND_LEN);
 		}
 	}
@@ -371,8 +370,8 @@ main(int argc, char **argv)
 	 * Set globals needed by print_bootp
 	 * (called by send_request)
 	 */
-	packetp = (unsigned char *) eaddr;
-	snapend = (unsigned char *) sndbuf + snaplen;
+	packetp = (unsigned char *)eaddr;
+	snapend = (unsigned char *)sndbuf + snaplen;
 
 	/* Send a request once per second while waiting for replies. */
 	recvcnt = 0;
@@ -385,7 +384,7 @@ main(int argc, char **argv)
 		tv.tv_sec = WAITSECS;
 		tv.tv_usec = 0L;
 		readfds = (1 << s);
-		n = select(s + 1, (fd_set *) & readfds, NULL, NULL, &tv);
+		n = select(s + 1, (fd_set *)&readfds, NULL, NULL, &tv);
 		if (n < 0) {
 			perror("select");
 			break;
@@ -406,8 +405,8 @@ main(int argc, char **argv)
 			continue;
 		}
 		fromlen = sizeof(sin_from);
-		n = recvfrom(s, rcvbuf, BUFLEN, 0,
-					 (struct sockaddr *) &sin_from, &fromlen);
+		n = recvfrom(s, rcvbuf, BUFLEN, 0, (struct sockaddr *)&sin_from,
+		    &fromlen);
 		if (n <= 0) {
 			continue;
 		}
@@ -421,7 +420,7 @@ main(int argc, char **argv)
 		printf("Recvd from %s", inet_ntoa(sin_from.sin_addr));
 		/* set globals needed by bootp_print() */
 		snaplen = n;
-		snapend = (unsigned char *) rcvbuf + snaplen;
+		snapend = (unsigned char *)rcvbuf + snaplen;
 		bootp_print((struct bootp *)rcvbuf, n, sin_from.sin_port, 0);
 		putchar('\n');
 		/*
@@ -443,10 +442,8 @@ send_request(int s)
 	putchar('\n');
 
 	/* Send the request packet. */
-	if (sendto(s, sndbuf, snaplen, 0,
-			   (struct sockaddr *) &sin_server,
-			   sizeof(sin_server)) < 0)
-	{
+	if (sendto(s, sndbuf, snaplen, 0, (struct sockaddr *)&sin_server,
+		sizeof(sin_server)) < 0) {
 		perror("sendto server");
 		exit(1);
 	}
@@ -473,7 +470,7 @@ printfn(u_char *s, u_char *ep)
 			putchar('-');
 		}
 		if (!isprint(c)) {
-			c ^= 0x40;			/* DEL to ?, others to alpha */
+			c ^= 0x40; /* DEL to ?, others to alpha */
 			putchar('^');
 		}
 		putchar(c);
@@ -492,7 +489,7 @@ ipaddr_string(struct in_addr *ina)
 	static char b[24];
 	u_char *p;
 
-	p = (u_char *) ina;
+	p = (u_char *)ina;
 	snprintf(b, sizeof(b), "%d.%d.%d.%d", p[0], p[1], p[2], p[3]);
 	return (b);
 }

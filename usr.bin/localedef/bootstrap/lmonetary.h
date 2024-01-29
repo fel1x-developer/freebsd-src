@@ -34,6 +34,6 @@
  * SUCH DAMAGE.
  */
 #include "namespace.h"
-#define	lc_numeric_T	localedef_bootstrap_lc_numeric_T
+#define lc_numeric_T localedef_bootstrap_lc_numeric_T
 #include "../../../lib/libc/locale/lmonetary.h"
 #include "un-namespace.h"

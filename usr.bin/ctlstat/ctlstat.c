@@ -47,34 +47,35 @@
 #include <sys/socket.h>
 #include <sys/sysctl.h>
 #include <sys/time.h>
+
 #include <assert.h>
+#include <bitstring.h>
 #include <bsdxml.h>
+#include <cam/ctl/ctl.h>
+#include <cam/ctl/ctl_backend.h>
+#include <cam/ctl/ctl_io.h>
+#include <cam/ctl/ctl_ioctl.h>
+#include <cam/ctl/ctl_scsi_all.h>
+#include <cam/ctl/ctl_util.h>
+#include <cam/scsi/scsi_all.h>
+#include <ctype.h>
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <getopt.h>
+#include <inttypes.h>
 #include <malloc_np.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <inttypes.h>
-#include <getopt.h>
 #include <string.h>
-#include <errno.h>
-#include <err.h>
-#include <ctype.h>
-#include <bitstring.h>
-#include <cam/scsi/scsi_all.h>
-#include <cam/ctl/ctl.h>
-#include <cam/ctl/ctl_io.h>
-#include <cam/ctl/ctl_scsi_all.h>
-#include <cam/ctl/ctl_util.h>
-#include <cam/ctl/ctl_backend.h>
-#include <cam/ctl/ctl_ioctl.h>
+#include <unistd.h>
 
 /*
  * The default amount of space we allocate for stats storage space.
  * We dynamically allocate more if needed.
  */
-#define	CTL_STAT_NUM_ITEMS	256
+#define CTL_STAT_NUM_ITEMS 256
 
 static int ctl_stat_bits;
 
@@ -97,24 +98,24 @@ typedef enum {
 	CTLSTAT_MODE_PROMETHEUS,
 } ctlstat_mode_types;
 
-#define	CTLSTAT_FLAG_CPU		(1 << 0)
-#define	CTLSTAT_FLAG_HEADER		(1 << 1)
-#define	CTLSTAT_FLAG_FIRST_RUN		(1 << 2)
-#define	CTLSTAT_FLAG_TOTALS		(1 << 3)
-#define	CTLSTAT_FLAG_DMA_TIME		(1 << 4)
-#define	CTLSTAT_FLAG_TIME_VALID		(1 << 5)
-#define	CTLSTAT_FLAG_MASK		(1 << 6)
-#define	CTLSTAT_FLAG_LUNS		(1 << 7)
-#define	CTLSTAT_FLAG_PORTS		(1 << 8)
-#define	F_CPU(ctx) ((ctx)->flags & CTLSTAT_FLAG_CPU)
-#define	F_HDR(ctx) ((ctx)->flags & CTLSTAT_FLAG_HEADER)
-#define	F_FIRST(ctx) ((ctx)->flags & CTLSTAT_FLAG_FIRST_RUN)
-#define	F_TOTALS(ctx) ((ctx)->flags & CTLSTAT_FLAG_TOTALS)
-#define	F_DMA(ctx) ((ctx)->flags & CTLSTAT_FLAG_DMA_TIME)
-#define	F_TIMEVAL(ctx) ((ctx)->flags & CTLSTAT_FLAG_TIME_VALID)
-#define	F_MASK(ctx) ((ctx)->flags & CTLSTAT_FLAG_MASK)
-#define	F_LUNS(ctx) ((ctx)->flags & CTLSTAT_FLAG_LUNS)
-#define	F_PORTS(ctx) ((ctx)->flags & CTLSTAT_FLAG_PORTS)
+#define CTLSTAT_FLAG_CPU (1 << 0)
+#define CTLSTAT_FLAG_HEADER (1 << 1)
+#define CTLSTAT_FLAG_FIRST_RUN (1 << 2)
+#define CTLSTAT_FLAG_TOTALS (1 << 3)
+#define CTLSTAT_FLAG_DMA_TIME (1 << 4)
+#define CTLSTAT_FLAG_TIME_VALID (1 << 5)
+#define CTLSTAT_FLAG_MASK (1 << 6)
+#define CTLSTAT_FLAG_LUNS (1 << 7)
+#define CTLSTAT_FLAG_PORTS (1 << 8)
+#define F_CPU(ctx) ((ctx)->flags & CTLSTAT_FLAG_CPU)
+#define F_HDR(ctx) ((ctx)->flags & CTLSTAT_FLAG_HEADER)
+#define F_FIRST(ctx) ((ctx)->flags & CTLSTAT_FLAG_FIRST_RUN)
+#define F_TOTALS(ctx) ((ctx)->flags & CTLSTAT_FLAG_TOTALS)
+#define F_DMA(ctx) ((ctx)->flags & CTLSTAT_FLAG_DMA_TIME)
+#define F_TIMEVAL(ctx) ((ctx)->flags & CTLSTAT_FLAG_TIME_VALID)
+#define F_MASK(ctx) ((ctx)->flags & CTLSTAT_FLAG_MASK)
+#define F_LUNS(ctx) ((ctx)->flags & CTLSTAT_FLAG_LUNS)
+#define F_PORTS(ctx) ((ctx)->flags & CTLSTAT_FLAG_PORTS)
 
 struct ctlstat_context {
 	ctlstat_mode_types mode;
@@ -143,7 +144,7 @@ struct cctl_portlist_data {
 };
 
 #ifndef min
-#define	min(x,y)	(((x) < (y)) ? (x) : (y))
+#define min(x, y) (((x) < (y)) ? (x) : (y))
 #endif
 
 static void usage(int error);
@@ -152,13 +153,10 @@ static int getstats(int fd, int *alloc_items, int *num_items,
     bool ports);
 static int getcpu(struct ctl_cpu_stats *cpu_stats);
 static void compute_stats(struct ctl_io_stats *cur_stats,
-			  struct ctl_io_stats *prev_stats,
-			  long double etime, long double *mbsec,
-			  long double *kb_per_transfer,
-			  long double *transfers_per_second,
-			  long double *ms_per_transfer,
-			  long double *ms_per_dma,
-			  long double *dmas_per_second);
+    struct ctl_io_stats *prev_stats, long double etime, long double *mbsec,
+    long double *kb_per_transfer, long double *transfers_per_second,
+    long double *ms_per_transfer, long double *ms_per_dma,
+    long double *dmas_per_second);
 
 static void
 usage(int error)
@@ -168,7 +166,7 @@ usage(int error)
 
 static int
 getstats(int fd, int *alloc_items, int *num_items, struct ctl_io_stats **stats,
-	 struct timespec *cur_time, int *flags, bool ports)
+    struct timespec *cur_time, int *flags, bool ports)
 {
 	struct ctl_get_io_stats get_stats;
 	int more_space_count = 0;
@@ -185,7 +183,7 @@ retry:
 	get_stats.stats = *stats;
 
 	if (ioctl(fd, ports ? CTL_GET_PORT_STATS : CTL_GET_LUN_STATS,
-	    &get_stats) == -1)
+		&get_stats) == -1)
 		err(1, "CTL_GET_*_STATS ioctl returned error");
 
 	switch (get_stats.status) {
@@ -196,7 +194,8 @@ retry:
 		break;
 	case CTL_SS_NEED_MORE_SPACE:
 		if (more_space_count >= 2)
-			errx(1, "CTL_GET_*_STATS returned NEED_MORE_SPACE again");
+			errx(1,
+			    "CTL_GET_*_STATS returned NEED_MORE_SPACE again");
 		*alloc_items = get_stats.num_items * 5 / 4;
 		free(*stats);
 		*stats = NULL;
@@ -205,7 +204,7 @@ retry:
 		break; /* NOTREACHED */
 	default:
 		errx(1, "CTL_GET_*_STATS ioctl returned unknown status %d",
-		     get_stats.status);
+		    get_stats.status);
 		break;
 	}
 
@@ -243,11 +242,10 @@ getcpu(struct ctl_cpu_stats *cpu_stats)
 }
 
 static void
-compute_stats(struct ctl_io_stats *cur_stats,
-	      struct ctl_io_stats *prev_stats, long double etime,
-	      long double *mbsec, long double *kb_per_transfer,
-	      long double *transfers_per_second, long double *ms_per_transfer,
-	      long double *ms_per_dma, long double *dmas_per_second)
+compute_stats(struct ctl_io_stats *cur_stats, struct ctl_io_stats *prev_stats,
+    long double etime, long double *mbsec, long double *kb_per_transfer,
+    long double *transfers_per_second, long double *ms_per_transfer,
+    long double *ms_per_dma, long double *dmas_per_second)
 {
 	uint64_t total_bytes = 0, total_operations = 0, total_dmas = 0;
 	struct bintime total_time_bt, total_dma_bt;
@@ -323,10 +321,10 @@ compute_stats(struct ctl_io_stats *cur_stats,
  * conducive to programming, however.
  */
 
-#define	PRINT_BINTIME(bt) \
+#define PRINT_BINTIME(bt)                       \
 	printf("%jd.%06ju", (intmax_t)(bt).sec, \
-	       (uintmax_t)(((bt).frac >> 32) * 1000000 >> 32))
-static const char *iotypes[] = {"NO IO", "READ", "WRITE"};
+	    (uintmax_t)(((bt).frac >> 32) * 1000000 >> 32))
+static const char *iotypes[] = { "NO IO", "READ", "WRITE" };
 
 static void
 ctlstat_dump(struct ctlstat_context *ctx)
@@ -334,19 +332,19 @@ ctlstat_dump(struct ctlstat_context *ctx)
 	int iotype, i, n;
 	struct ctl_io_stats *stats = ctx->cur_stats;
 
-	for (i = n = 0; i < ctx->cur_items;i++) {
-		if (F_MASK(ctx) && bit_test(ctx->item_mask,
-		    (int)stats[i].item) == 0)
+	for (i = n = 0; i < ctx->cur_items; i++) {
+		if (F_MASK(ctx) &&
+		    bit_test(ctx->item_mask, (int)stats[i].item) == 0)
 			continue;
 		printf("%s %d\n", F_PORTS(ctx) ? "port" : "lun", stats[i].item);
 		for (iotype = 0; iotype < CTL_STATS_NUM_TYPES; iotype++) {
 			printf("  io type %d (%s)\n", iotype, iotypes[iotype]);
-			printf("   bytes %ju\n", (uintmax_t)
-			    stats[i].bytes[iotype]);
-			printf("   operations %ju\n", (uintmax_t)
-			    stats[i].operations[iotype]);
-			printf("   dmas %ju\n", (uintmax_t)
-			    stats[i].dmas[iotype]);
+			printf("   bytes %ju\n",
+			    (uintmax_t)stats[i].bytes[iotype]);
+			printf("   operations %ju\n",
+			    (uintmax_t)stats[i].operations[iotype]);
+			printf("   dmas %ju\n",
+			    (uintmax_t)stats[i].dmas[iotype]);
 			printf("   io time ");
 			PRINT_BINTIME(stats[i].time[iotype]);
 			printf("\n   dma time ");
@@ -359,25 +357,25 @@ ctlstat_dump(struct ctlstat_context *ctx)
 }
 
 static void
-ctlstat_json(struct ctlstat_context *ctx) {
+ctlstat_json(struct ctlstat_context *ctx)
+{
 	int iotype, i, n;
 	struct ctl_io_stats *stats = ctx->cur_stats;
 
 	printf("{\"%s\":[", F_PORTS(ctx) ? "ports" : "luns");
 	for (i = n = 0; i < ctx->cur_items; i++) {
-		if (F_MASK(ctx) && bit_test(ctx->item_mask,
-		    (int)stats[i].item) == 0)
+		if (F_MASK(ctx) &&
+		    bit_test(ctx->item_mask, (int)stats[i].item) == 0)
 			continue;
-		printf("{\"num\":%d,\"io\":[",
-		    stats[i].item);
+		printf("{\"num\":%d,\"io\":[", stats[i].item);
 		for (iotype = 0; iotype < CTL_STATS_NUM_TYPES; iotype++) {
 			printf("{\"type\":\"%s\",", iotypes[iotype]);
-			printf("\"bytes\":%ju,", (uintmax_t)
-			    stats[i].bytes[iotype]);
-			printf("\"operations\":%ju,", (uintmax_t)
-			    stats[i].operations[iotype]);
-			printf("\"dmas\":%ju,", (uintmax_t)
-			    stats[i].dmas[iotype]);
+			printf("\"bytes\":%ju,",
+			    (uintmax_t)stats[i].bytes[iotype]);
+			printf("\"operations\":%ju,",
+			    (uintmax_t)stats[i].operations[iotype]);
+			printf("\"dmas\":%ju,",
+			    (uintmax_t)stats[i].dmas[iotype]);
 			printf("\"io time\":");
 			PRINT_BINTIME(stats[i].time[iotype]);
 			printf(",\"dma time\":");
@@ -395,71 +393,68 @@ ctlstat_json(struct ctlstat_context *ctx) {
 	printf("]}");
 }
 
-#define CTLSTAT_PROMETHEUS_LOOP(field, collector) \
-	for (i = n = 0; i < ctx->cur_items; i++) { \
-		if (F_MASK(ctx) && bit_test(ctx->item_mask, \
-		    (int)stats[i].item) == 0) \
-			continue; \
-		for (iotype = 0; iotype < CTL_STATS_NUM_TYPES; iotype++) { \
-			int idx = stats[i].item; \
-			/* \
-			 * Note that Prometheus considers a label value of "" \
-			 * to be the same as no label at all \
-			 */ \
-			const char *target = ""; \
-			if (strcmp(collector, "port") == 0 && \
-				targdata.targets[idx] != NULL) \
-			{ \
-				target = targdata.targets[idx]; \
-			} \
-			printf("iscsi_%s_" #field "{" \
-			    "%s=\"%u\",target=\"%s\",type=\"%s\"} %" PRIu64 \
-			    "\n", \
-			    collector, collector, \
-			    idx, target, iotypes[iotype], \
-			    stats[i].field[iotype]); \
-		} \
-	} \
+#define CTLSTAT_PROMETHEUS_LOOP(field, collector)                              \
+	for (i = n = 0; i < ctx->cur_items; i++) {                             \
+		if (F_MASK(ctx) &&                                             \
+		    bit_test(ctx->item_mask, (int)stats[i].item) == 0)         \
+			continue;                                              \
+		for (iotype = 0; iotype < CTL_STATS_NUM_TYPES; iotype++) {     \
+			int idx = stats[i].item;                               \
+			/*                                                     \
+			 * Note that Prometheus considers a label value of ""  \
+			 * to be the same as no label at all                   \
+			 */                                                    \
+			const char *target = "";                               \
+			if (strcmp(collector, "port") == 0 &&                  \
+			    targdata.targets[idx] != NULL) {                   \
+				target = targdata.targets[idx];                \
+			}                                                      \
+			printf("iscsi_%s_" #field "{"                          \
+			       "%s=\"%u\",target=\"%s\",type=\"%s\"} %" PRIu64 \
+			       "\n",                                           \
+			    collector, collector, idx, target,                 \
+			    iotypes[iotype], stats[i].field[iotype]);          \
+		}                                                              \
+	}
 
-#define CTLSTAT_PROMETHEUS_TIMELOOP(field, collector) \
-	for (i = n = 0; i < ctx->cur_items; i++) { \
-		if (F_MASK(ctx) && bit_test(ctx->item_mask, \
-		    (int)stats[i].item) == 0) \
-			continue; \
-		for (iotype = 0; iotype < CTL_STATS_NUM_TYPES; iotype++) { \
-			uint64_t us; \
-			struct timespec ts; \
-			int idx = stats[i].item; \
-			/* \
-			 * Note that Prometheus considers a label value of "" \
-			 * to be the same as no label at all \
-			 */ \
-			const char *target = ""; \
-			if (strcmp(collector, "port") == 0 && \
-				targdata.targets[idx] != NULL) \
-			{ \
-				target = targdata.targets[idx]; \
-			} \
-			bintime2timespec(&stats[i].field[iotype], &ts); \
-			us = ts.tv_sec * 1000000 + ts.tv_nsec / 1000; \
-			printf("iscsi_%s_" #field "{" \
-			    "%s=\"%u\",target=\"%s\",type=\"%s\"} %" PRIu64 \
-			    "\n", \
-			    collector, collector, \
-			    idx, target, iotypes[iotype], us); \
-		} \
-	} \
+#define CTLSTAT_PROMETHEUS_TIMELOOP(field, collector)                          \
+	for (i = n = 0; i < ctx->cur_items; i++) {                             \
+		if (F_MASK(ctx) &&                                             \
+		    bit_test(ctx->item_mask, (int)stats[i].item) == 0)         \
+			continue;                                              \
+		for (iotype = 0; iotype < CTL_STATS_NUM_TYPES; iotype++) {     \
+			uint64_t us;                                           \
+			struct timespec ts;                                    \
+			int idx = stats[i].item;                               \
+			/*                                                     \
+			 * Note that Prometheus considers a label value of ""  \
+			 * to be the same as no label at all                   \
+			 */                                                    \
+			const char *target = "";                               \
+			if (strcmp(collector, "port") == 0 &&                  \
+			    targdata.targets[idx] != NULL) {                   \
+				target = targdata.targets[idx];                \
+			}                                                      \
+			bintime2timespec(&stats[i].field[iotype], &ts);        \
+			us = ts.tv_sec * 1000000 + ts.tv_nsec / 1000;          \
+			printf("iscsi_%s_" #field "{"                          \
+			       "%s=\"%u\",target=\"%s\",type=\"%s\"} %" PRIu64 \
+			       "\n",                                           \
+			    collector, collector, idx, target,                 \
+			    iotypes[iotype], us);                              \
+		}                                                              \
+	}
 
 static void
 cctl_start_pelement(void *user_data, const char *name, const char **attr)
 {
-	struct cctl_portlist_data* targdata = user_data;
+	struct cctl_portlist_data *targdata = user_data;
 
 	targdata->level++;
-	if ((u_int)targdata->level >= (sizeof(targdata->cur_sb) /
-	    sizeof(targdata->cur_sb[0])))
+	if ((u_int)targdata->level >=
+	    (sizeof(targdata->cur_sb) / sizeof(targdata->cur_sb[0])))
 		errx(1, "%s: too many nesting levels, %zd max", __func__,
-		     sizeof(targdata->cur_sb) / sizeof(targdata->cur_sb[0]));
+		    sizeof(targdata->cur_sb) / sizeof(targdata->cur_sb[0]));
 
 	targdata->cur_sb[targdata->level] = sbuf_new_auto();
 	if (targdata->cur_sb[targdata->level] == NULL)
@@ -483,7 +478,6 @@ cctl_start_pelement(void *user_data, const char *name, const char **attr)
 			}
 			i += 2;
 		}
-
 	}
 }
 
@@ -498,12 +492,12 @@ cctl_char_phandler(void *user_data, const XML_Char *str, int len)
 static void
 cctl_end_pelement(void *user_data, const char *name)
 {
-	struct cctl_portlist_data* targdata = user_data;
+	struct cctl_portlist_data *targdata = user_data;
 	char *str;
 
 	if (targdata->cur_sb[targdata->level] == NULL)
 		errx(1, "%s: no valid sbuf at level %d (name %s)", __func__,
-		     targdata->level, name);
+		    targdata->level, name);
 
 	if (sbuf_finish(targdata->cur_sb[targdata->level]) != 0)
 		err(1, "%s: sbuf_finish", __func__);
@@ -527,11 +521,11 @@ cctl_end_pelement(void *user_data, const char *name)
 				 * targets with no LUNs.
 				 */
 				targdata->ntargets = MAX(targdata->ntargets * 2,
-					targdata->id + 1);
+				    targdata->id + 1);
 				size_t newsize = targdata->ntargets *
-					sizeof(char*);
+				    sizeof(char *);
 				targdata->targets = rallocx(targdata->targets,
-					newsize, MALLOCX_ZERO);
+				    newsize, MALLOCX_ZERO);
 			}
 			free(targdata->targets[targdata->id]);
 			targdata->targets[targdata->id] = targdata->target;
@@ -544,7 +538,8 @@ cctl_end_pelement(void *user_data, const char *name)
 }
 
 static void
-ctlstat_prometheus(int fd, struct ctlstat_context *ctx, bool ports) {
+ctlstat_prometheus(int fd, struct ctlstat_context *ctx, bool ports)
+{
 	struct ctl_io_stats *stats = ctx->cur_stats;
 	struct ctl_lun_list list;
 	struct cctl_portlist_data targdata;
@@ -556,7 +551,7 @@ ctlstat_prometheus(int fd, struct ctlstat_context *ctx, bool ports) {
 
 	bzero(&targdata, sizeof(targdata));
 	targdata.ntargets = ctx->cur_items;
-	targdata.targets = calloc(targdata.ntargets, sizeof(char*));
+	targdata.targets = calloc(targdata.ntargets, sizeof(char *));
 retry:
 	port_str = (char *)realloc(port_str, port_len);
 	bzero(&list, sizeof(list));
@@ -567,7 +562,7 @@ retry:
 		err(1, "%s: error issuing CTL_PORT_LIST ioctl", __func__);
 	if (list.status == CTL_LUN_LIST_ERROR) {
 		warnx("%s: error returned from CTL_PORT_LIST ioctl:\n%s",
-		      __func__, list.error_str);
+		    __func__, list.error_str);
 	} else if (list.status == CTL_LUN_LIST_NEED_MORE_SPACE) {
 		port_len <<= 1;
 		goto retry;
@@ -590,19 +585,24 @@ retry:
 	collector = ports ? "port" : "lun";
 
 	printf("# HELP iscsi_%s_bytes Number of bytes\n"
-	       "# TYPE iscsi_%s_bytes counter\n", collector, collector);
+	       "# TYPE iscsi_%s_bytes counter\n",
+	    collector, collector);
 	CTLSTAT_PROMETHEUS_LOOP(bytes, collector);
 	printf("# HELP iscsi_%s_dmas Number of DMA\n"
-	       "# TYPE iscsi_%s_dmas counter\n", collector, collector);
+	       "# TYPE iscsi_%s_dmas counter\n",
+	    collector, collector);
 	CTLSTAT_PROMETHEUS_LOOP(dmas, collector);
 	printf("# HELP iscsi_%s_operations Number of operations\n"
-	       "# TYPE iscsi_%s_operations counter\n", collector, collector);
+	       "# TYPE iscsi_%s_operations counter\n",
+	    collector, collector);
 	CTLSTAT_PROMETHEUS_LOOP(operations, collector);
 	printf("# HELP iscsi_%s_time Cumulative operation time in us\n"
-	       "# TYPE iscsi_%s_time counter\n", collector, collector);
+	       "# TYPE iscsi_%s_time counter\n",
+	    collector, collector);
 	CTLSTAT_PROMETHEUS_TIMELOOP(time, collector);
 	printf("# HELP iscsi_%s_dma_time Cumulative DMA time in us\n"
-	       "# TYPE iscsi_%s_dma_time counter\n", collector, collector);
+	       "# TYPE iscsi_%s_dma_time counter\n",
+	    collector, collector);
 	CTLSTAT_PROMETHEUS_TIMELOOP(dma_time, collector);
 
 	for (i = 0; i < targdata.ntargets; i++)
@@ -614,7 +614,8 @@ retry:
 }
 
 static void
-ctlstat_standard(struct ctlstat_context *ctx) {
+ctlstat_standard(struct ctlstat_context *ctx)
+{
 	long double etime;
 	uint64_t delta_jiffies, delta_idle;
 	long double cpu_percentage;
@@ -630,9 +631,8 @@ ctlstat_standard(struct ctlstat_context *ctx) {
 
 	if (F_CPU(ctx)) {
 		ctx->prev_total_jiffies = ctx->cur_total_jiffies;
-		ctx->cur_total_jiffies = ctx->cur_cpu.user +
-		    ctx->cur_cpu.nice + ctx->cur_cpu.system +
-		    ctx->cur_cpu.intr + ctx->cur_cpu.idle;
+		ctx->cur_total_jiffies = ctx->cur_cpu.user + ctx->cur_cpu.nice +
+		    ctx->cur_cpu.system + ctx->cur_cpu.intr + ctx->cur_cpu.idle;
 		delta_jiffies = ctx->cur_total_jiffies;
 		if (F_FIRST(ctx) == 0)
 			delta_jiffies -= ctx->prev_total_jiffies;
@@ -651,15 +651,17 @@ ctlstat_standard(struct ctlstat_context *ctx) {
 			if (F_CPU(ctx))
 				fprintf(stdout, " CPU");
 			if (F_TOTALS(ctx)) {
-				fprintf(stdout, "%s     Read       %s"
-					"    Write       %s    Total\n",
-					(F_TIMEVAL(ctx) != 0) ? "      " : "",
-					(F_TIMEVAL(ctx) != 0) ? "      " : "",
-					(F_TIMEVAL(ctx) != 0) ? "      " : "");
+				fprintf(stdout,
+				    "%s     Read       %s"
+				    "    Write       %s    Total\n",
+				    (F_TIMEVAL(ctx) != 0) ? "      " : "",
+				    (F_TIMEVAL(ctx) != 0) ? "      " : "",
+				    (F_TIMEVAL(ctx) != 0) ? "      " : "");
 				n = 3;
 			} else {
-				for (i = n = 0; i < min(ctl_stat_bits,
-				     ctx->cur_items); i++) {
+				for (i = n = 0;
+				     i < min(ctl_stat_bits, ctx->cur_items);
+				     i++) {
 					int item;
 
 					/*
@@ -674,7 +676,8 @@ ctlstat_standard(struct ctlstat_context *ctx) {
 						continue;
 					fprintf(stdout, "%15.6s%d %s",
 					    F_PORTS(ctx) ? "port" : "lun", item,
-					    (F_TIMEVAL(ctx) != 0) ? "     " : "");
+					    (F_TIMEVAL(ctx) != 0) ? "     " :
+								    "");
 					if (++n >= ctx->numdevs)
 						break;
 				}
@@ -684,8 +687,8 @@ ctlstat_standard(struct ctlstat_context *ctx) {
 				fprintf(stdout, "    ");
 			for (i = 0; i < n; i++)
 				fprintf(stdout, "%s KB/t   %s MB/s",
-					(F_TIMEVAL(ctx) != 0) ? "    ms" : "",
-					(F_DMA(ctx) == 0) ? "tps" : "dps");
+				    (F_TIMEVAL(ctx) != 0) ? "    ms" : "",
+				    (F_DMA(ctx) == 0) ? "tps" : "dps");
 			fprintf(stdout, "\n");
 			ctx->header_interval = 20;
 		}
@@ -701,31 +704,30 @@ ctlstat_standard(struct ctlstat_context *ctx) {
 		long double ms_per_dma[3];
 		long double dmas_per_sec[3];
 
-		for (i = 0; i < 3; i++) 
+		for (i = 0; i < 3; i++)
 			ctx->prev_total_stats[i] = ctx->cur_total_stats[i];
 
 		memset(&ctx->cur_total_stats, 0, sizeof(ctx->cur_total_stats));
 
 		/* Use macros to make the next loop more readable. */
-#define	ADD_STATS_BYTES(st, i, j) \
-	ctx->cur_total_stats[st].bytes[j] += \
-	    ctx->cur_stats[i].bytes[j]
-#define	ADD_STATS_OPERATIONS(st, i, j) \
+#define ADD_STATS_BYTES(st, i, j) \
+	ctx->cur_total_stats[st].bytes[j] += ctx->cur_stats[i].bytes[j]
+#define ADD_STATS_OPERATIONS(st, i, j)            \
 	ctx->cur_total_stats[st].operations[j] += \
 	    ctx->cur_stats[i].operations[j]
-#define	ADD_STATS_DMAS(st, i, j) \
-	ctx->cur_total_stats[st].dmas[j] += \
-	    ctx->cur_stats[i].dmas[j]
-#define	ADD_STATS_TIME(st, i, j) \
+#define ADD_STATS_DMAS(st, i, j) \
+	ctx->cur_total_stats[st].dmas[j] += ctx->cur_stats[i].dmas[j]
+#define ADD_STATS_TIME(st, i, j)                       \
 	bintime_add(&ctx->cur_total_stats[st].time[j], \
 	    &ctx->cur_stats[i].time[j])
-#define	ADD_STATS_DMA_TIME(st, i, j) \
+#define ADD_STATS_DMA_TIME(st, i, j)                       \
 	bintime_add(&ctx->cur_total_stats[st].dma_time[j], \
 	    &ctx->cur_stats[i].dma_time[j])
 
 		for (i = 0; i < ctx->cur_items; i++) {
-			if (F_MASK(ctx) && bit_test(ctx->item_mask,
-			    (int)ctx->cur_stats[i].item) == 0)
+			if (F_MASK(ctx) &&
+			    bit_test(ctx->item_mask,
+				(int)ctx->cur_stats[i].item) == 0)
 				continue;
 			for (j = 0; j < CTL_STATS_NUM_TYPES; j++) {
 				ADD_STATS_BYTES(2, i, j);
@@ -749,21 +751,19 @@ ctlstat_standard(struct ctlstat_context *ctx) {
 
 		for (i = 0; i < 3; i++) {
 			compute_stats(&ctx->cur_total_stats[i],
-				F_FIRST(ctx) ? NULL : &ctx->prev_total_stats[i],
-				etime, &mbsec[i], &kb_per_transfer[i],
-				&transfers_per_sec[i],
-				&ms_per_transfer[i], &ms_per_dma[i],
-				&dmas_per_sec[i]);
+			    F_FIRST(ctx) ? NULL : &ctx->prev_total_stats[i],
+			    etime, &mbsec[i], &kb_per_transfer[i],
+			    &transfers_per_sec[i], &ms_per_transfer[i],
+			    &ms_per_dma[i], &dmas_per_sec[i]);
 			if (F_DMA(ctx) != 0)
-				fprintf(stdout, " %5.1Lf",
-					ms_per_dma[i]);
+				fprintf(stdout, " %5.1Lf", ms_per_dma[i]);
 			else if (F_TIMEVAL(ctx) != 0)
-				fprintf(stdout, " %5.1Lf",
-					ms_per_transfer[i]);
+				fprintf(stdout, " %5.1Lf", ms_per_transfer[i]);
 			fprintf(stdout, " %4.0Lf %5.0Lf %4.0Lf",
-				kb_per_transfer[i],
-				(F_DMA(ctx) == 0) ? transfers_per_sec[i] :
-				dmas_per_sec[i], mbsec[i]);
+			    kb_per_transfer[i],
+			    (F_DMA(ctx) == 0) ? transfers_per_sec[i] :
+						dmas_per_sec[i],
+			    mbsec[i]);
 		}
 	} else {
 		for (i = n = 0; i < min(ctl_stat_bits, ctx->cur_items); i++) {
@@ -773,8 +773,9 @@ ctlstat_standard(struct ctlstat_context *ctx) {
 			long double ms_per_dma;
 			long double dmas_per_sec;
 
-			if (F_MASK(ctx) && bit_test(ctx->item_mask,
-			    (int)ctx->cur_stats[i].item) == 0)
+			if (F_MASK(ctx) &&
+			    bit_test(ctx->item_mask,
+				(int)ctx->cur_stats[i].item) == 0)
 				continue;
 			for (j = 0; j < ctx->prev_items; j++) {
 				if (ctx->prev_stats[j].item ==
@@ -784,19 +785,18 @@ ctlstat_standard(struct ctlstat_context *ctx) {
 			if (j >= ctx->prev_items)
 				j = -1;
 			compute_stats(&ctx->cur_stats[i],
-			    j >= 0 ? &ctx->prev_stats[j] : NULL,
-			    etime, &mbsec, &kb_per_transfer,
-			    &transfers_per_sec, &ms_per_transfer,
-			    &ms_per_dma, &dmas_per_sec);
+			    j >= 0 ? &ctx->prev_stats[j] : NULL, etime, &mbsec,
+			    &kb_per_transfer, &transfers_per_sec,
+			    &ms_per_transfer, &ms_per_dma, &dmas_per_sec);
 			if (F_DMA(ctx))
-				fprintf(stdout, " %5.1Lf",
-					ms_per_dma);
+				fprintf(stdout, " %5.1Lf", ms_per_dma);
 			else if (F_TIMEVAL(ctx) != 0)
-				fprintf(stdout, " %5.1Lf",
-					ms_per_transfer);
+				fprintf(stdout, " %5.1Lf", ms_per_transfer);
 			fprintf(stdout, " %4.0Lf %5.0Lf %4.0Lf",
-				kb_per_transfer, (F_DMA(ctx) == 0) ?
-				transfers_per_sec : dmas_per_sec, mbsec);
+			    kb_per_transfer,
+			    (F_DMA(ctx) == 0) ? transfers_per_sec :
+						dmas_per_sec,
+			    mbsec);
 			if (++n >= ctx->numdevs)
 				break;
 		}
@@ -820,11 +820,11 @@ get_and_print_stats(int fd, struct ctlstat_context *ctx, bool ports)
 	ctx->cur_items = c;
 	ctx->prev_time = ctx->cur_time;
 	ctx->prev_cpu = ctx->cur_cpu;
-	if (getstats(fd, &ctx->cur_alloc, &ctx->cur_items,
-	    &ctx->cur_stats, &ctx->cur_time, &ctx->flags, ports) != 0)
+	if (getstats(fd, &ctx->cur_alloc, &ctx->cur_items, &ctx->cur_stats,
+		&ctx->cur_time, &ctx->flags, ports) != 0)
 		errx(1, "error returned from getstats()");
 
-	switch(ctx->mode) {
+	switch (ctx->mode) {
 	case CTLSTAT_MODE_STANDARD:
 		ctlstat_standard(ctx);
 		break;
@@ -864,7 +864,7 @@ main(int argc, char **argv)
 
 	size = sizeof(ctl_stat_bits);
 	if (sysctlbyname("kern.cam.ctl.max_luns", &ctl_stat_bits, &size, NULL,
-	    0) == -1) {
+		0) == -1) {
 		/* Backward compatibility for where the sysctl wasn't exposed */
 		ctl_stat_bits = 1024;
 	}
@@ -950,13 +950,11 @@ main(int argc, char **argv)
 		errx(1, "Options -p and -l are exclusive.");
 
 	if (ctx.mode == CTLSTAT_MODE_PROMETHEUS) {
-		if ((count != -1) ||
-			(waittime != 1) ||
-			(F_PORTS(&ctx)) ||
-			/* NB: -P could be compatible with -t in the future */
-			(ctx.flags & CTLSTAT_FLAG_TOTALS))
-		{
-			errx(1, "Option -P is exclusive with -p, -c, -w, and -t");
+		if ((count != -1) || (waittime != 1) || (F_PORTS(&ctx)) ||
+		    /* NB: -P could be compatible with -t in the future */
+		    (ctx.flags & CTLSTAT_FLAG_TOTALS)) {
+			errx(1,
+			    "Option -P is exclusive with -p, -c, -w, and -t");
 		}
 		count = 1;
 	}
@@ -983,7 +981,7 @@ main(int argc, char **argv)
 		       "\r\n");
 	}
 
-	for (;count != 0;) {
+	for (; count != 0;) {
 		bool ports;
 
 		if (ctx.mode == CTLSTAT_MODE_PROMETHEUS) {
@@ -1003,7 +1001,7 @@ main(int argc, char **argv)
 			count--;
 	}
 
-	exit (retval);
+	exit(retval);
 }
 
 /*

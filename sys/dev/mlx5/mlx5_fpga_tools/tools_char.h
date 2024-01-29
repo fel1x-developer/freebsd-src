@@ -41,4 +41,4 @@ void mlx5_fpga_tools_char_deinit(void);
 int mlx5_fpga_tools_char_add_one(struct mlx5_fpga_tools_dev *tdev);
 void mlx5_fpga_tools_char_remove_one(struct mlx5_fpga_tools_dev *tdev);
 
-#endif	/* __TOOLS_CHAR_H__ */
+#endif /* __TOOLS_CHAR_H__ */

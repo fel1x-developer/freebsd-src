@@ -61,42 +61,40 @@
  */
 
 #include <dev/isci/scil/intel_scsi.h>
-#include <dev/isci/scil/sati_types.h>
 #include <dev/isci/scil/sati_translator_sequence.h>
+#include <dev/isci/scil/sati_types.h>
 
-#define SATI_START_STOP_UNIT_POWER_CONDITION(cdb) \
-   (( sati_get_cdb_byte(cdb, 4) & SCSI_START_STOP_UNIT_POWER_CONDITION_MASK ) \
-    >> SCSI_START_STOP_UNIT_POWER_CONDITION_SHIFT)
+#define SATI_START_STOP_UNIT_POWER_CONDITION(cdb)          \
+	((sati_get_cdb_byte(cdb, 4) &                      \
+	     SCSI_START_STOP_UNIT_POWER_CONDITION_MASK) >> \
+	    SCSI_START_STOP_UNIT_POWER_CONDITION_SHIFT)
 
-#define SATI_START_STOP_UNIT_START_BIT(cdb) \
-   (( sati_get_cdb_byte(cdb, 4) & SCSI_START_STOP_UNIT_START_BIT_MASK ) \
-    >> SCSI_START_STOP_UNIT_START_BIT_SHIFT)
+#define SATI_START_STOP_UNIT_START_BIT(cdb)                                   \
+	((sati_get_cdb_byte(cdb, 4) & SCSI_START_STOP_UNIT_START_BIT_MASK) >> \
+	    SCSI_START_STOP_UNIT_START_BIT_SHIFT)
 
-#define SATI_START_STOP_UNIT_LOEJ_BIT(cdb) \
-   (( sati_get_cdb_byte(cdb, 4) & SCSI_START_STOP_UNIT_LOEJ_BIT_MASK ) \
-    >> SCSI_START_STOP_UNIT_LOEJ_BIT_SHIFT)
+#define SATI_START_STOP_UNIT_LOEJ_BIT(cdb)                                   \
+	((sati_get_cdb_byte(cdb, 4) & SCSI_START_STOP_UNIT_LOEJ_BIT_MASK) >> \
+	    SCSI_START_STOP_UNIT_LOEJ_BIT_SHIFT)
 
-#define SATI_START_STOP_UNIT_NO_FLUSH_BIT(cdb) \
-   (( sati_get_cdb_byte(cdb, 4) & SCSI_START_STOP_UNIT_NO_FLUSH_MASK ) \
-    >> SCSI_START_STOP_UNIT_NO_FLUSH_SHIFT)
+#define SATI_START_STOP_UNIT_NO_FLUSH_BIT(cdb)                               \
+	((sati_get_cdb_byte(cdb, 4) & SCSI_START_STOP_UNIT_NO_FLUSH_MASK) >> \
+	    SCSI_START_STOP_UNIT_NO_FLUSH_SHIFT)
 
-#define SATI_START_STOP_UNIT_IMMED_BIT(cdb) \
-   (( sati_get_cdb_byte(cdb, 1) & SCSI_START_STOP_UNIT_IMMED_MASK ) \
-    >> SCSI_START_STOP_UNIT_IMMED_SHIFT)
+#define SATI_START_STOP_UNIT_IMMED_BIT(cdb)                               \
+	((sati_get_cdb_byte(cdb, 1) & SCSI_START_STOP_UNIT_IMMED_MASK) >> \
+	    SCSI_START_STOP_UNIT_IMMED_SHIFT)
 
-#define SATI_START_STOP_UNIT_POWER_CONDITION_MODIFIER(cdb) \
-   (( sati_get_cdb_byte(cdb, 3) & SCSI_START_STOP_UNIT_POWER_CONDITION_MODIFIER_MASK) \
-   >> SCSI_START_STOP_UNIT_POWER_CONDITION_MODIFIER_SHIFT)
+#define SATI_START_STOP_UNIT_POWER_CONDITION_MODIFIER(cdb)          \
+	((sati_get_cdb_byte(cdb, 3) &                               \
+	     SCSI_START_STOP_UNIT_POWER_CONDITION_MODIFIER_MASK) >> \
+	    SCSI_START_STOP_UNIT_POWER_CONDITION_MODIFIER_SHIFT)
 
-SATI_STATUS sati_start_stop_unit_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+SATI_STATUS
+sati_start_stop_unit_translate_command(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io);
 
-SATI_STATUS sati_start_stop_unit_translate_response(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+SATI_STATUS
+sati_start_stop_unit_translate_response(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io);
 #endif // _SATI_START_STOP_UNIT_H_

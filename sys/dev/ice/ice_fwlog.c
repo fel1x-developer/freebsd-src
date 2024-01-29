@@ -37,7 +37,8 @@
  * @hw: pointer to the HW structure
  * @cfg: config to cache
  */
-static void cache_cfg(struct ice_hw *hw, struct ice_fwlog_cfg *cfg)
+static void
+cache_cfg(struct ice_hw *hw, struct ice_fwlog_cfg *cfg)
 {
 	hw->fwlog_cfg = *cfg;
 }
@@ -50,12 +51,13 @@ static void cache_cfg(struct ice_hw *hw, struct ice_fwlog_cfg *cfg)
  */
 static bool
 valid_module_entries(struct ice_hw *hw, struct ice_fwlog_module_entry *entries,
-		     u16 num_entries)
+    u16 num_entries)
 {
 	u16 i;
 
 	if (!entries) {
-		ice_debug(hw, ICE_DBG_FW_LOG, "Null ice_fwlog_module_entry array\n");
+		ice_debug(hw, ICE_DBG_FW_LOG,
+		    "Null ice_fwlog_module_entry array\n");
 		return false;
 	}
 
@@ -68,15 +70,16 @@ valid_module_entries(struct ice_hw *hw, struct ice_fwlog_module_entry *entries,
 		struct ice_fwlog_module_entry *entry = &entries[i];
 
 		if (entry->module_id >= ICE_AQC_FW_LOG_ID_MAX) {
-			ice_debug(hw, ICE_DBG_FW_LOG, "Invalid module_id %u, max valid module_id is %u\n",
-				  entry->module_id, ICE_AQC_FW_LOG_ID_MAX - 1);
+			ice_debug(hw, ICE_DBG_FW_LOG,
+			    "Invalid module_id %u, max valid module_id is %u\n",
+			    entry->module_id, ICE_AQC_FW_LOG_ID_MAX - 1);
 			return false;
 		}
 
 		if (entry->log_level >= ICE_FWLOG_LEVEL_INVALID) {
-			ice_debug(hw, ICE_DBG_FW_LOG, "Invalid log_level %u, max valid log_level is %u\n",
-				  entry->log_level,
-				  ICE_AQC_FW_LOG_ID_MAX - 1);
+			ice_debug(hw, ICE_DBG_FW_LOG,
+			    "Invalid log_level %u, max valid log_level is %u\n",
+			    entry->log_level, ICE_AQC_FW_LOG_ID_MAX - 1);
 			return false;
 		}
 	}
@@ -89,7 +92,8 @@ valid_module_entries(struct ice_hw *hw, struct ice_fwlog_module_entry *entries,
  * @hw: pointer to the HW structure
  * @cfg: config to validate
  */
-static bool valid_cfg(struct ice_hw *hw, struct ice_fwlog_cfg *cfg)
+static bool
+valid_cfg(struct ice_hw *hw, struct ice_fwlog_cfg *cfg)
 {
 	if (!cfg) {
 		ice_debug(hw, ICE_DBG_FW_LOG, "Null ice_fwlog_cfg\n");
@@ -98,14 +102,15 @@ static bool valid_cfg(struct ice_hw *hw, struct ice_fwlog_cfg *cfg)
 
 	if (cfg->log_resolution < ICE_AQC_FW_LOG_MIN_RESOLUTION ||
 	    cfg->log_resolution > ICE_AQC_FW_LOG_MAX_RESOLUTION) {
-		ice_debug(hw, ICE_DBG_FW_LOG, "Unsupported log_resolution %u, must be between %u and %u\n",
-			  cfg->log_resolution, ICE_AQC_FW_LOG_MIN_RESOLUTION,
-			  ICE_AQC_FW_LOG_MAX_RESOLUTION);
+		ice_debug(hw, ICE_DBG_FW_LOG,
+		    "Unsupported log_resolution %u, must be between %u and %u\n",
+		    cfg->log_resolution, ICE_AQC_FW_LOG_MIN_RESOLUTION,
+		    ICE_AQC_FW_LOG_MAX_RESOLUTION);
 		return false;
 	}
 
 	if (!valid_module_entries(hw, cfg->module_entries,
-				  ICE_AQC_FW_LOG_ID_MAX))
+		ICE_AQC_FW_LOG_ID_MAX))
 		return false;
 
 	return true;
@@ -141,7 +146,7 @@ ice_fwlog_init(struct ice_hw *hw, struct ice_fwlog_cfg *cfg)
  */
 static enum ice_status
 ice_aq_fwlog_set(struct ice_hw *hw, struct ice_fwlog_module_entry *entries,
-		 u16 num_entries, u16 options, u16 log_resolution)
+    u16 num_entries, u16 options, u16 log_resolution)
 {
 	struct ice_aqc_fw_log_cfg_resp *fw_modules;
 	struct ice_aqc_fw_log *cmd;
@@ -149,14 +154,14 @@ ice_aq_fwlog_set(struct ice_hw *hw, struct ice_fwlog_module_entry *entries,
 	enum ice_status status;
 	u16 i;
 
-	fw_modules = (struct ice_aqc_fw_log_cfg_resp *)
-		ice_calloc(hw, num_entries, sizeof(*fw_modules));
+	fw_modules = (struct ice_aqc_fw_log_cfg_resp *)ice_calloc(hw,
+	    num_entries, sizeof(*fw_modules));
 	if (!fw_modules)
 		return ICE_ERR_NO_MEMORY;
 
 	for (i = 0; i < num_entries; i++) {
-		fw_modules[i].module_identifier =
-			CPU_TO_LE16(entries[i].module_id);
+		fw_modules[i].module_identifier = CPU_TO_LE16(
+		    entries[i].module_id);
 		fw_modules[i].log_level = entries[i].log_level;
 	}
 
@@ -175,8 +180,7 @@ ice_aq_fwlog_set(struct ice_hw *hw, struct ice_fwlog_module_entry *entries,
 		cmd->cmd_flags |= ICE_AQC_FW_LOG_CONF_UART_EN;
 
 	status = ice_aq_send_cmd(hw, &desc, fw_modules,
-				 sizeof(*fw_modules) * num_entries,
-				 NULL);
+	    sizeof(*fw_modules) * num_entries, NULL);
 
 	ice_free(hw, fw_modules);
 
@@ -190,7 +194,8 @@ ice_aq_fwlog_set(struct ice_hw *hw, struct ice_fwlog_module_entry *entries,
  * This will always return false if called before ice_init_hw(), so it must be
  * called after ice_init_hw().
  */
-bool ice_fwlog_supported(struct ice_hw *hw)
+bool
+ice_fwlog_supported(struct ice_hw *hw)
 {
 	return hw->fwlog_support_ena;
 }
@@ -220,8 +225,7 @@ ice_fwlog_set(struct ice_hw *hw, struct ice_fwlog_cfg *cfg)
 		return ICE_ERR_PARAM;
 
 	status = ice_aq_fwlog_set(hw, cfg->module_entries,
-				  ICE_AQC_FW_LOG_ID_MAX, cfg->options,
-				  cfg->log_resolution);
+	    ICE_AQC_FW_LOG_ID_MAX, cfg->options, cfg->log_resolution);
 	if (!status)
 		cache_cfg(hw, cfg);
 
@@ -236,7 +240,7 @@ ice_fwlog_set(struct ice_hw *hw, struct ice_fwlog_cfg *cfg)
  */
 static void
 update_cached_entries(struct ice_hw *hw, struct ice_fwlog_module_entry *entries,
-		      u16 num_entries)
+    u16 num_entries)
 {
 	u16 i;
 
@@ -246,7 +250,7 @@ update_cached_entries(struct ice_hw *hw, struct ice_fwlog_module_entry *entries,
 
 		for (j = 0; j < ICE_AQC_FW_LOG_ID_MAX; j++) {
 			struct ice_fwlog_module_entry *cached =
-				&hw->fwlog_cfg.module_entries[j];
+			    &hw->fwlog_cfg.module_entries[j];
 
 			if (cached->module_id == updated->module_id) {
 				cached->log_level = updated->log_level;
@@ -270,8 +274,7 @@ update_cached_entries(struct ice_hw *hw, struct ice_fwlog_module_entry *entries,
  */
 enum ice_status
 ice_fwlog_update_modules(struct ice_hw *hw,
-			 struct ice_fwlog_module_entry *entries,
-			 u16 num_entries)
+    struct ice_fwlog_module_entry *entries, u16 num_entries)
 {
 	struct ice_fwlog_cfg *cfg;
 	enum ice_status status;
@@ -291,7 +294,7 @@ ice_fwlog_update_modules(struct ice_hw *hw,
 		goto status_out;
 
 	status = ice_aq_fwlog_set(hw, entries, num_entries, cfg->options,
-				  cfg->log_resolution);
+	    cfg->log_resolution);
 	if (!status)
 		update_cached_entries(hw, entries, num_entries);
 
@@ -305,7 +308,8 @@ status_out:
  * @hw: pointer to the HW structure
  * @reg: true to register and false to unregister
  */
-static enum ice_status ice_aq_fwlog_register(struct ice_hw *hw, bool reg)
+static enum ice_status
+ice_aq_fwlog_register(struct ice_hw *hw, bool reg)
 {
 	struct ice_aq_desc desc;
 
@@ -324,7 +328,8 @@ static enum ice_status ice_aq_fwlog_register(struct ice_hw *hw, bool reg)
  * After this call the PF will start to receive firmware logging based on the
  * configuration set in ice_fwlog_set.
  */
-enum ice_status ice_fwlog_register(struct ice_hw *hw)
+enum ice_status
+ice_fwlog_register(struct ice_hw *hw)
 {
 	enum ice_status status;
 
@@ -333,7 +338,8 @@ enum ice_status ice_fwlog_register(struct ice_hw *hw)
 
 	status = ice_aq_fwlog_register(hw, true);
 	if (status)
-		ice_debug(hw, ICE_DBG_FW_LOG, "Failed to register for firmware logging events over ARQ\n");
+		ice_debug(hw, ICE_DBG_FW_LOG,
+		    "Failed to register for firmware logging events over ARQ\n");
 	else
 		hw->fwlog_cfg.options |= ICE_FWLOG_OPTION_IS_REGISTERED;
 
@@ -344,7 +350,8 @@ enum ice_status ice_fwlog_register(struct ice_hw *hw)
  * ice_fwlog_unregister - Unregister the PF from firmware logging
  * @hw: pointer to the HW structure
  */
-enum ice_status ice_fwlog_unregister(struct ice_hw *hw)
+enum ice_status
+ice_fwlog_unregister(struct ice_hw *hw)
 {
 	enum ice_status status;
 
@@ -353,7 +360,8 @@ enum ice_status ice_fwlog_unregister(struct ice_hw *hw)
 
 	status = ice_aq_fwlog_register(hw, false);
 	if (status)
-		ice_debug(hw, ICE_DBG_FW_LOG, "Failed to unregister from firmware logging events over ARQ\n");
+		ice_debug(hw, ICE_DBG_FW_LOG,
+		    "Failed to unregister from firmware logging events over ARQ\n");
 	else
 		hw->fwlog_cfg.options &= ~ICE_FWLOG_OPTION_IS_REGISTERED;
 
@@ -388,17 +396,20 @@ ice_aq_fwlog_get(struct ice_hw *hw, struct ice_fwlog_cfg *cfg)
 
 	status = ice_aq_send_cmd(hw, &desc, buf, ICE_AQ_MAX_BUF_LEN, NULL);
 	if (status) {
-		ice_debug(hw, ICE_DBG_FW_LOG, "Failed to get FW log configuration\n");
+		ice_debug(hw, ICE_DBG_FW_LOG,
+		    "Failed to get FW log configuration\n");
 		goto status_out;
 	}
 
 	module_id_cnt = LE16_TO_CPU(cmd->ops.cfg.mdl_cnt);
 	if (module_id_cnt < ICE_AQC_FW_LOG_ID_MAX) {
-		ice_debug(hw, ICE_DBG_FW_LOG, "FW returned less than the expected number of FW log module IDs\n");
+		ice_debug(hw, ICE_DBG_FW_LOG,
+		    "FW returned less than the expected number of FW log module IDs\n");
 	} else {
 		if (module_id_cnt > ICE_AQC_FW_LOG_ID_MAX)
-			ice_debug(hw, ICE_DBG_FW_LOG, "FW returned more than expected number of FW log module IDs, setting module_id_cnt to software expected max %u\n",
-				  ICE_AQC_FW_LOG_ID_MAX);
+			ice_debug(hw, ICE_DBG_FW_LOG,
+			    "FW returned more than expected number of FW log module IDs, setting module_id_cnt to software expected max %u\n",
+			    ICE_AQC_FW_LOG_ID_MAX);
 		module_id_cnt = ICE_AQC_FW_LOG_ID_MAX;
 	}
 
@@ -415,8 +426,8 @@ ice_aq_fwlog_get(struct ice_hw *hw, struct ice_fwlog_cfg *cfg)
 	for (i = 0; i < module_id_cnt; i++) {
 		struct ice_aqc_fw_log_cfg_resp *fw_module = &fw_modules[i];
 
-		cfg->module_entries[i].module_id =
-			LE16_TO_CPU(fw_module->module_identifier);
+		cfg->module_entries[i].module_id = LE16_TO_CPU(
+		    fw_module->module_identifier);
 		cfg->module_entries[i].log_level = fw_module->log_level;
 	}
 
@@ -435,7 +446,8 @@ status_out:
  * This function is only meant to be called during driver init to determine if
  * the FW support FW logging.
  */
-void ice_fwlog_set_support_ena(struct ice_hw *hw)
+void
+ice_fwlog_set_support_ena(struct ice_hw *hw)
 {
 	struct ice_fwlog_cfg *cfg;
 	enum ice_status status;
@@ -452,8 +464,9 @@ void ice_fwlog_set_support_ena(struct ice_hw *hw)
 	 */
 	status = ice_aq_fwlog_get(hw, cfg);
 	if (status)
-		ice_debug(hw, ICE_DBG_FW_LOG, "ice_fwlog_get failed, FW logging is not supported on this version of FW, status %d\n",
-			  status);
+		ice_debug(hw, ICE_DBG_FW_LOG,
+		    "ice_fwlog_get failed, FW logging is not supported on this version of FW, status %d\n",
+		    status);
 	else
 		hw->fwlog_support_ena = true;
 
@@ -502,4 +515,3 @@ ice_fwlog_event_dump(struct ice_hw *hw, struct ice_aq_desc *desc, void *buf)
 
 	ice_info_fwlog(hw, 32, 1, (u8 *)buf, LE16_TO_CPU(desc->datalen));
 }
-

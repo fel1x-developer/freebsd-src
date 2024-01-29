@@ -25,13 +25,12 @@
  */
 
 #include <assert.h>
+#include <atf-c.h>
 #include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <wchar.h>
 #include <wctype.h>
-
-#include <atf-c.h>
 
 ATF_TC_WITHOUT_HEAD(nul);
 ATF_TC_BODY(nul, tc)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018 Cavium, Inc. 
+ * Copyright (c) 2017-2018 Cavium, Inc.
  * All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -32,10 +32,10 @@
 #include "common_hsi.h"
 
 #ifndef __EXTRACT__LINUX__
-#define ECORE_SB_IDX		0x0002
+#define ECORE_SB_IDX 0x0002
 
-#define RX_PI		0
-#define TX_PI(tc)	(RX_PI + 1 + tc)
+#define RX_PI 0
+#define TX_PI(tc) (RX_PI + 1 + tc)
 
 #ifndef ECORE_INT_MODE
 #define ECORE_INT_MODE
@@ -54,8 +54,8 @@ struct ecore_sb_info {
 	u16 igu_sb_id;
 	void OSAL_IOMEM *igu_addr;
 	u8 flags;
-#define ECORE_SB_INFO_INIT 	0x1
-#define ECORE_SB_INFO_SETUP 	0x2
+#define ECORE_SB_INFO_INIT 0x1
+#define ECORE_SB_INFO_SETUP 0x2
 
 #ifdef ECORE_CONFIG_DIRECT_HWFN
 	struct ecore_hwfn *p_hwfn;
@@ -81,15 +81,16 @@ struct ecore_sb_cnt_info {
 	int free_cnt_iov;
 };
 
-static OSAL_INLINE u16 ecore_sb_update_sb_idx(struct ecore_sb_info *sb_info)
+static OSAL_INLINE u16
+ecore_sb_update_sb_idx(struct ecore_sb_info *sb_info)
 {
 	u32 prod = 0;
-	u16 rc   = 0;
+	u16 rc = 0;
 
 	// barrier(); /* status block is written to by the chip */
 	// FIXME: need some sort of barrier.
 	prod = OSAL_LE32_TO_CPU(sb_info->sb_virt->prod_index) &
-	       STATUS_BLOCK_E4_PROD_INDEX_MASK;
+	    STATUS_BLOCK_E4_PROD_INDEX_MASK;
 	if (sb_info->sb_ack != prod) {
 		sb_info->sb_ack = prod;
 		rc |= ECORE_SB_IDX;
@@ -112,8 +113,9 @@ static OSAL_INLINE u16 ecore_sb_update_sb_idx(struct ecore_sb_info *sb_info)
  *
  * @return OSAL_INLINE void
  */
-static OSAL_INLINE void ecore_sb_ack(struct ecore_sb_info *sb_info,
-				     enum igu_int_cmd int_cmd, u8 upd_flg)
+static OSAL_INLINE void
+ecore_sb_ack(struct ecore_sb_info *sb_info, enum igu_int_cmd int_cmd,
+    u8 upd_flg)
 {
 	struct igu_prod_cons_update igu_ack = { 0 };
 
@@ -125,17 +127,15 @@ static OSAL_INLINE void ecore_sb_ack(struct ecore_sb_info *sb_info,
 	if (sb_info->p_dev->int_mode == ECORE_INT_MODE_POLL)
 		return;
 #endif
-	igu_ack.sb_id_and_flags =
-		 OSAL_CPU_TO_LE32((sb_info->sb_ack <<
-		 IGU_PROD_CONS_UPDATE_SB_INDEX_SHIFT) |
-		 (upd_flg << IGU_PROD_CONS_UPDATE_UPDATE_FLAG_SHIFT) |
-		 (int_cmd << IGU_PROD_CONS_UPDATE_ENABLE_INT_SHIFT) |
-		 (IGU_SEG_ACCESS_REG <<
-		 IGU_PROD_CONS_UPDATE_SEGMENT_ACCESS_SHIFT));
+	igu_ack.sb_id_and_flags = OSAL_CPU_TO_LE32(
+	    (sb_info->sb_ack << IGU_PROD_CONS_UPDATE_SB_INDEX_SHIFT) |
+	    (upd_flg << IGU_PROD_CONS_UPDATE_UPDATE_FLAG_SHIFT) |
+	    (int_cmd << IGU_PROD_CONS_UPDATE_ENABLE_INT_SHIFT) |
+	    (IGU_SEG_ACCESS_REG << IGU_PROD_CONS_UPDATE_SEGMENT_ACCESS_SHIFT));
 
 #ifdef ECORE_CONFIG_DIRECT_HWFN
 	DIRECT_REG_WR(sb_info->p_hwfn, sb_info->igu_addr,
-		      igu_ack.sb_id_and_flags);
+	    igu_ack.sb_id_and_flags);
 #else
 	val = OSAL_LE32_TO_CPU(igu_ack.sb_id_and_flags);
 	DIRECT_REG_WR(OSAL_NULL, sb_info->igu_addr, val);
@@ -148,13 +148,12 @@ static OSAL_INLINE void ecore_sb_ack(struct ecore_sb_info *sb_info,
 }
 
 #ifdef ECORE_CONFIG_DIRECT_HWFN
-static OSAL_INLINE void __internal_ram_wr(struct ecore_hwfn *p_hwfn,
-					  void OSAL_IOMEM *addr,
-					  int size, u32 *data)
+static OSAL_INLINE void
+__internal_ram_wr(struct ecore_hwfn *p_hwfn, void OSAL_IOMEM *addr, int size,
+    u32 *data)
 #else
-static OSAL_INLINE void __internal_ram_wr(void *p_hwfn,
-					  void OSAL_IOMEM *addr,
-					  int size, u32 *data)
+static OSAL_INLINE void
+__internal_ram_wr(void *p_hwfn, void OSAL_IOMEM *addr, int size, u32 *data)
 
 #endif
 {
@@ -165,15 +164,15 @@ static OSAL_INLINE void __internal_ram_wr(void *p_hwfn,
 }
 
 #ifdef ECORE_CONFIG_DIRECT_HWFN
-static OSAL_INLINE void internal_ram_wr(struct ecore_hwfn *p_hwfn,
-					void OSAL_IOMEM *addr,
-					int size, u32 *data)
+static OSAL_INLINE void
+internal_ram_wr(struct ecore_hwfn *p_hwfn, void OSAL_IOMEM *addr, int size,
+    u32 *data)
 {
 	__internal_ram_wr(p_hwfn, addr, size, data);
 }
 #else
-static OSAL_INLINE void internal_ram_wr(void OSAL_IOMEM *addr,
-					int size, u32 *data)
+static OSAL_INLINE void
+internal_ram_wr(void OSAL_IOMEM *addr, int size, u32 *data)
 {
 	__internal_ram_wr(OSAL_NULL, addr, size, data);
 }
@@ -186,7 +185,7 @@ struct ecore_ptt;
 enum ecore_coalescing_fsm {
 	ECORE_COAL_RX_STATE_MACHINE,
 	ECORE_COAL_TX_STATE_MACHINE
-}; 
+};
 
 /**
  * @brief ecore_int_cau_conf_pi - configure cau for a given
@@ -199,12 +198,9 @@ enum ecore_coalescing_fsm {
  * @param state
  * @param timeset
  */
-void ecore_int_cau_conf_pi(struct ecore_hwfn		*p_hwfn,
-			   struct ecore_ptt		*p_ptt,
-			   struct ecore_sb_info		*p_sb,
-			   u32				pi_index,
-			   enum ecore_coalescing_fsm	coalescing_fsm,
-			   u8				timeset);
+void ecore_int_cau_conf_pi(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
+    struct ecore_sb_info *p_sb, u32 pi_index,
+    enum ecore_coalescing_fsm coalescing_fsm, u8 timeset);
 
 /**
  * @brief ecore_int_igu_enable_int - enable device interrupts
@@ -214,8 +210,7 @@ void ecore_int_cau_conf_pi(struct ecore_hwfn		*p_hwfn,
  * @param int_mode - interrupt mode to use
  */
 void ecore_int_igu_enable_int(struct ecore_hwfn *p_hwfn,
-			      struct ecore_ptt *p_ptt,
-			      enum ecore_int_mode int_mode);
+    struct ecore_ptt *p_ptt, enum ecore_int_mode int_mode);
 
 /**
  * @brief ecore_int_igu_disable_int - disable device interrupts
@@ -224,7 +219,7 @@ void ecore_int_igu_enable_int(struct ecore_hwfn *p_hwfn,
  * @param p_ptt
  */
 void ecore_int_igu_disable_int(struct ecore_hwfn *p_hwfn,
-			       struct ecore_ptt	*p_ptt); 
+    struct ecore_ptt *p_ptt);
 
 /**
  * @brief ecore_int_igu_read_sisr_reg - Reads the single isr multiple dpc
@@ -234,7 +229,7 @@ void ecore_int_igu_disable_int(struct ecore_hwfn *p_hwfn,
  *
  * @return u64
  */
-u64 ecore_int_igu_read_sisr_reg(struct ecore_hwfn *p_hwfn); 
+u64 ecore_int_igu_read_sisr_reg(struct ecore_hwfn *p_hwfn);
 
 #define ECORE_SP_SB_ID 0xffff
 
@@ -254,12 +249,9 @@ u64 ecore_int_igu_read_sisr_reg(struct ecore_hwfn *p_hwfn);
  *
  * @return enum _ecore_status_t
  */
-enum _ecore_status_t ecore_int_sb_init(struct ecore_hwfn	*p_hwfn,
-				       struct ecore_ptt		*p_ptt,
-				       struct ecore_sb_info	*sb_info,
-				       void			*sb_virt_addr,
-				       dma_addr_t		sb_phy_addr,
-				       u16			sb_id);
+enum _ecore_status_t ecore_int_sb_init(struct ecore_hwfn *p_hwfn,
+    struct ecore_ptt *p_ptt, struct ecore_sb_info *sb_info, void *sb_virt_addr,
+    dma_addr_t sb_phy_addr, u16 sb_id);
 /**
  * @brief ecore_int_sb_setup - Setup the sb.
  *
@@ -267,10 +259,8 @@ enum _ecore_status_t ecore_int_sb_init(struct ecore_hwfn	*p_hwfn,
  * @param p_ptt
  * @param sb_info	initialized sb_info structure
  */
-void ecore_int_sb_setup(
-		struct ecore_hwfn	*p_hwfn,
-		struct ecore_ptt		*p_ptt,
-		struct ecore_sb_info	*sb_info);
+void ecore_int_sb_setup(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
+    struct ecore_sb_info *sb_info);
 
 /**
  * @brief ecore_int_sb_release - releases the sb_info structure.
@@ -285,9 +275,8 @@ void ecore_int_sb_setup(
  *
  * @return enum _ecore_status_t
  */
-enum _ecore_status_t ecore_int_sb_release(struct ecore_hwfn	*p_hwfn,
-					  struct ecore_sb_info	*sb_info,
-					  u16			sb_id);
+enum _ecore_status_t ecore_int_sb_release(struct ecore_hwfn *p_hwfn,
+    struct ecore_sb_info *sb_info, u16 sb_id);
 
 /**
  * @brief ecore_int_sp_dpc - To be called when an interrupt is received on the
@@ -299,16 +288,16 @@ enum _ecore_status_t ecore_int_sb_release(struct ecore_hwfn	*p_hwfn,
 void ecore_int_sp_dpc(osal_int_ptr_t hwfn_cookie);
 
 /**
- * @brief ecore_int_get_num_sbs - get the number of status 
+ * @brief ecore_int_get_num_sbs - get the number of status
  *        blocks configured for this funciton in the igu.
- * 
+ *
  * @param p_hwfn
  * @param p_sb_cnt_info
- * 
+ *
  * @return
  */
-void ecore_int_get_num_sbs(struct ecore_hwfn	    *p_hwfn,
-			   struct ecore_sb_cnt_info *p_sb_cnt_info);
+void ecore_int_get_num_sbs(struct ecore_hwfn *p_hwfn,
+    struct ecore_sb_cnt_info *p_sb_cnt_info);
 
 /**
  * @brief ecore_int_disable_post_isr_release - performs the cleanup post ISR
@@ -342,9 +331,8 @@ void ecore_int_attn_clr_enable(struct ecore_dev *p_dev, bool clr_enable);
  * @return ECORE_SUCCESS if pointer is filled; failure otherwise.
  */
 enum _ecore_status_t ecore_int_get_sb_dbg(struct ecore_hwfn *p_hwfn,
-					  struct ecore_ptt *p_ptt,
-					  struct ecore_sb_info *p_sb,
-					  struct ecore_sb_info_dbg *p_info);
+    struct ecore_ptt *p_ptt, struct ecore_sb_info *p_sb,
+    struct ecore_sb_info_dbg *p_info);
 
 /**
  * @brief - Move a free Status block between PF and child VF
@@ -357,7 +345,6 @@ enum _ecore_status_t ecore_int_get_sb_dbg(struct ecore_hwfn *p_hwfn,
  *
  * @return ECORE_SUCCESS if SB successfully moved.
  */
-enum _ecore_status_t
-ecore_int_igu_relocate_sb(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
-			  u16 sb_id, bool b_to_vf);
+enum _ecore_status_t ecore_int_igu_relocate_sb(struct ecore_hwfn *p_hwfn,
+    struct ecore_ptt *p_ptt, u16 sb_id, bool b_to_vf);
 #endif

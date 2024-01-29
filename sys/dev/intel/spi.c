@@ -39,93 +39,95 @@
 #include <machine/bus.h>
 #include <machine/resource.h>
 
+#include <dev/intel/spi.h>
 #include <dev/spibus/spi.h>
 #include <dev/spibus/spibusvar.h>
-
-#include <dev/intel/spi.h>
 
 /**
  *	Macros for driver mutex locking
  */
-#define	INTELSPI_IN_POLLING_MODE()	(SCHEDULER_STOPPED() || kdb_active)
-#define	INTELSPI_LOCK(_sc)		do {		\
-	if(!INTELSPI_IN_POLLING_MODE())			\
-		mtx_lock(&(_sc)->sc_mtx);		\
-} while (0)
-#define	INTELSPI_UNLOCK(_sc)		do {		\
-	if(!INTELSPI_IN_POLLING_MODE())			\
-		mtx_unlock(&(_sc)->sc_mtx);		\
-} while (0)
-#define	INTELSPI_LOCK_INIT(_sc)		\
-	mtx_init(&_sc->sc_mtx, device_get_nameunit((_sc)->sc_dev), \
-	    "intelspi", MTX_DEF)
-#define	INTELSPI_LOCK_DESTROY(_sc)	mtx_destroy(&(_sc)->sc_mtx)
-#define	INTELSPI_ASSERT_LOCKED(_sc)	do {		\
-	if(!INTELSPI_IN_POLLING_MODE())			\
-		mtx_assert(&(_sc)->sc_mtx, MA_OWNED);	\
-} while (0)
-#define	INTELSPI_ASSERT_UNLOCKED(_sc)	do {		\
-	if(!INTELSPI_IN_POLLING_MODE())			\
-		mtx_assert(&(_sc)->sc_mtx, MA_NOTOWNED);\
-} while (0)
+#define INTELSPI_IN_POLLING_MODE() (SCHEDULER_STOPPED() || kdb_active)
+#define INTELSPI_LOCK(_sc)                        \
+	do {                                      \
+		if (!INTELSPI_IN_POLLING_MODE())  \
+			mtx_lock(&(_sc)->sc_mtx); \
+	} while (0)
+#define INTELSPI_UNLOCK(_sc)                        \
+	do {                                        \
+		if (!INTELSPI_IN_POLLING_MODE())    \
+			mtx_unlock(&(_sc)->sc_mtx); \
+	} while (0)
+#define INTELSPI_LOCK_INIT(_sc)                                                \
+	mtx_init(&_sc->sc_mtx, device_get_nameunit((_sc)->sc_dev), "intelspi", \
+	    MTX_DEF)
+#define INTELSPI_LOCK_DESTROY(_sc) mtx_destroy(&(_sc)->sc_mtx)
+#define INTELSPI_ASSERT_LOCKED(_sc)                           \
+	do {                                                  \
+		if (!INTELSPI_IN_POLLING_MODE())              \
+			mtx_assert(&(_sc)->sc_mtx, MA_OWNED); \
+	} while (0)
+#define INTELSPI_ASSERT_UNLOCKED(_sc)                            \
+	do {                                                     \
+		if (!INTELSPI_IN_POLLING_MODE())                 \
+			mtx_assert(&(_sc)->sc_mtx, MA_NOTOWNED); \
+	} while (0)
 
-#define INTELSPI_WRITE(_sc, _off, _val)		\
-    bus_write_4((_sc)->sc_mem_res, (_off), (_val))
-#define INTELSPI_READ(_sc, _off)			\
-    bus_read_4((_sc)->sc_mem_res, (_off))
+#define INTELSPI_WRITE(_sc, _off, _val) \
+	bus_write_4((_sc)->sc_mem_res, (_off), (_val))
+#define INTELSPI_READ(_sc, _off) bus_read_4((_sc)->sc_mem_res, (_off))
 
-#define	INTELSPI_BUSY		0x1
-#define	TX_FIFO_THRESHOLD	2
-#define	RX_FIFO_THRESHOLD	2
-#define	CLOCK_DIV_10MHZ		5
-#define	DATA_SIZE_8BITS		8
-#define	MAX_CLOCK_RATE		50000000
+#define INTELSPI_BUSY 0x1
+#define TX_FIFO_THRESHOLD 2
+#define RX_FIFO_THRESHOLD 2
+#define CLOCK_DIV_10MHZ 5
+#define DATA_SIZE_8BITS 8
+#define MAX_CLOCK_RATE 50000000
 
-#define	CS_LOW		0
-#define	CS_HIGH		1
+#define CS_LOW 0
+#define CS_HIGH 1
 
-#define	INTELSPI_SSPREG_SSCR0	 	0x0
-#define	 SSCR0_SCR(n)				((((n) - 1) & 0xfff) << 8)
-#define	 SSCR0_SSE				(1 << 7)
-#define	 SSCR0_FRF_SPI				(0 << 4)
-#define	 SSCR0_DSS(n)				(((n) - 1) << 0)
-#define	INTELSPI_SSPREG_SSCR1	 	0x4
-#define	 SSCR1_TINTE				(1 << 19)
-#define	 SSCR1_RFT(n)				(((n) - 1) << 10)
-#define	 SSCR1_RFT_MASK				(0xf << 10)
-#define	 SSCR1_TFT(n)				(((n) - 1) << 6)
-#define	 SSCR1_SPI_SPH				(1 << 4)
-#define	 SSCR1_SPI_SPO				(1 << 3)
-#define	 SSCR1_MODE_MASK				(SSCR1_SPI_SPO | SSCR1_SPI_SPH)
-#define	 SSCR1_TIE				(1 << 1)
-#define	 SSCR1_RIE				(1 << 0)
-#define	INTELSPI_SSPREG_SSSR	 	0x8
-#define	 SSSR_RFL_MASK				(0xf << 12)
-#define	 SSSR_TFL_MASK				(0xf << 8)
-#define	 SSSR_RNE				(1 << 3)
-#define	 SSSR_TNF				(1 << 2)
-#define	INTELSPI_SSPREG_SSITR	 	0xC
-#define	INTELSPI_SSPREG_SSDR	 	0x10
-#define	INTELSPI_SSPREG_SSTO	 	0x28
-#define	INTELSPI_SSPREG_SSPSP	 	0x2C
-#define	INTELSPI_SSPREG_SSTSA	 	0x30
-#define	INTELSPI_SSPREG_SSRSA	 	0x34
-#define	INTELSPI_SSPREG_SSTSS	 	0x38
-#define	INTELSPI_SSPREG_SSACD	 	0x3C
-#define	INTELSPI_SSPREG_ITF	 	0x40
-#define	INTELSPI_SSPREG_SITF	 	0x44
-#define	INTELSPI_SSPREG_SIRF	 	0x48
-#define SPI_CS_CTRL(sc) \
+#define INTELSPI_SSPREG_SSCR0 0x0
+#define SSCR0_SCR(n) ((((n)-1) & 0xfff) << 8)
+#define SSCR0_SSE (1 << 7)
+#define SSCR0_FRF_SPI (0 << 4)
+#define SSCR0_DSS(n) (((n)-1) << 0)
+#define INTELSPI_SSPREG_SSCR1 0x4
+#define SSCR1_TINTE (1 << 19)
+#define SSCR1_RFT(n) (((n)-1) << 10)
+#define SSCR1_RFT_MASK (0xf << 10)
+#define SSCR1_TFT(n) (((n)-1) << 6)
+#define SSCR1_SPI_SPH (1 << 4)
+#define SSCR1_SPI_SPO (1 << 3)
+#define SSCR1_MODE_MASK (SSCR1_SPI_SPO | SSCR1_SPI_SPH)
+#define SSCR1_TIE (1 << 1)
+#define SSCR1_RIE (1 << 0)
+#define INTELSPI_SSPREG_SSSR 0x8
+#define SSSR_RFL_MASK (0xf << 12)
+#define SSSR_TFL_MASK (0xf << 8)
+#define SSSR_RNE (1 << 3)
+#define SSSR_TNF (1 << 2)
+#define INTELSPI_SSPREG_SSITR 0xC
+#define INTELSPI_SSPREG_SSDR 0x10
+#define INTELSPI_SSPREG_SSTO 0x28
+#define INTELSPI_SSPREG_SSPSP 0x2C
+#define INTELSPI_SSPREG_SSTSA 0x30
+#define INTELSPI_SSPREG_SSRSA 0x34
+#define INTELSPI_SSPREG_SSTSS 0x38
+#define INTELSPI_SSPREG_SSACD 0x3C
+#define INTELSPI_SSPREG_ITF 0x40
+#define INTELSPI_SSPREG_SITF 0x44
+#define INTELSPI_SSPREG_SIRF 0x48
+#define SPI_CS_CTRL(sc)                              \
 	(intelspi_infos[sc->sc_vers].reg_lpss_base + \
-	 intelspi_infos[sc->sc_vers].reg_cs_ctrl)
-#define	 SPI_CS_CTRL_CS_MASK			(3)
-#define	 SPI_CS_CTRL_SW_MODE			(1 << 0)
-#define	 SPI_CS_CTRL_HW_MODE			(1 << 0)
-#define	 SPI_CS_CTRL_CS_HIGH			(1 << 1)
+	    intelspi_infos[sc->sc_vers].reg_cs_ctrl)
+#define SPI_CS_CTRL_CS_MASK (3)
+#define SPI_CS_CTRL_SW_MODE (1 << 0)
+#define SPI_CS_CTRL_HW_MODE (1 << 0)
+#define SPI_CS_CTRL_CS_HIGH (1 << 1)
 
-#define	INTELSPI_RESETS			0x204
-#define	 INTELSPI_RESET_HOST			(1 << 0) | (1 << 1)
-#define	 INTELSPI_RESET_DMA			(1 << 2)
+#define INTELSPI_RESETS 0x204
+#define INTELSPI_RESET_HOST (1 << 0) | (1 << 1)
+#define INTELSPI_RESET_DMA (1 << 2)
 
 /* Same order as intelspi_vers */
 static const struct intelspi_info {
@@ -150,7 +152,7 @@ static const struct intelspi_info {
 	},
 };
 
-static void	intelspi_intr(void *);
+static void intelspi_intr(void *);
 
 static int
 intelspi_txfifo_full(struct intelspi_softc *sc)
@@ -190,8 +192,7 @@ intelspi_fill_tx_fifo(struct intelspi_softc *sc)
 	INTELSPI_ASSERT_LOCKED(sc);
 
 	cmd = sc->sc_cmd;
-	while (sc->sc_written < sc->sc_len &&
-	    !intelspi_txfifo_full(sc)) {
+	while (sc->sc_written < sc->sc_len && !intelspi_txfifo_full(sc)) {
 		data = (uint8_t *)cmd->tx_cmd;
 		written = sc->sc_written++;
 
@@ -207,14 +208,13 @@ static void
 intelspi_drain_rx_fifo(struct intelspi_softc *sc)
 {
 	struct spi_command *cmd;
-	uint32_t  read;
+	uint32_t read;
 	uint8_t *data;
 
 	INTELSPI_ASSERT_LOCKED(sc);
 
 	cmd = sc->sc_cmd;
-	while (sc->sc_read < sc->sc_len &&
-	    !intelspi_rxfifo_empty(sc)) {
+	while (sc->sc_read < sc->sc_len && !intelspi_rxfifo_empty(sc)) {
 		data = (uint8_t *)cmd->rx_cmd;
 		read = sc->sc_read++;
 		if (read >= cmd->rx_cmd_sz) {
@@ -233,13 +233,11 @@ intelspi_transaction_done(struct intelspi_softc *sc)
 
 	INTELSPI_ASSERT_LOCKED(sc);
 
-	if (sc->sc_written != sc->sc_len ||
-	    sc->sc_read != sc->sc_len)
+	if (sc->sc_written != sc->sc_len || sc->sc_read != sc->sc_len)
 		return (0);
 
 	sssr = INTELSPI_READ(sc, INTELSPI_SSPREG_SSSR);
-	txfifo_empty = ((sssr & SSSR_TFL_MASK) == 0) &&
-		(sssr & SSSR_TNF);
+	txfifo_empty = ((sssr & SSSR_TFL_MASK) == 0) && (sssr & SSSR_TNF);
 
 	if (txfifo_empty && !(sssr & SSSR_RNE))
 		return (1);
@@ -349,9 +347,9 @@ intelspi_transfer(device_t dev, device_t child, struct spi_command *cmd)
 	sc = device_get_softc(dev);
 	err = 0;
 
-	KASSERT(cmd->tx_cmd_sz == cmd->rx_cmd_sz, 
+	KASSERT(cmd->tx_cmd_sz == cmd->rx_cmd_sz,
 	    ("TX/RX command sizes should be equal"));
-	KASSERT(cmd->tx_data_sz == cmd->rx_data_sz, 
+	KASSERT(cmd->tx_data_sz == cmd->rx_data_sz,
 	    ("TX/RX data sizes should be equal"));
 
 	INTELSPI_LOCK(sc);
@@ -398,7 +396,8 @@ intelspi_transfer(device_t dev, device_t child, struct spi_command *cmd)
 		if (clock == 0)
 			sscr0 |= SSCR0_SCR(CLOCK_DIV_10MHZ);
 		else
-			sscr0 |= SSCR0_SCR(howmany(MAX_CLOCK_RATE, min(MAX_CLOCK_RATE, clock)));
+			sscr0 |= SSCR0_SCR(howmany(MAX_CLOCK_RATE,
+			    min(MAX_CLOCK_RATE, clock)));
 		INTELSPI_WRITE(sc, INTELSPI_SSPREG_SSCR0, sscr0);
 		sc->sc_clock = clock;
 	}
@@ -435,13 +434,15 @@ intelspi_transfer(device_t dev, device_t child, struct spi_command *cmd)
 
 	/* Transfer as much as possible to FIFOs */
 	if ((cmd->flags & SPI_FLAG_NO_SLEEP) != 0 ||
-	     INTELSPI_IN_POLLING_MODE() || cold) {
-		/* We cannot wait with mtx_sleep if we're called from e.g. an ithread */
+	    INTELSPI_IN_POLLING_MODE() || cold) {
+		/* We cannot wait with mtx_sleep if we're called from e.g. an
+		 * ithread */
 		poll_limit = 2000;
 		while (!intelspi_transact(sc) && poll_limit-- > 0)
 			DELAY(1000);
 		if (poll_limit == 0) {
-			device_printf(dev, "polling was stuck, transaction not finished\n");
+			device_printf(dev,
+			    "polling was stuck, transaction not finished\n");
 			err = EIO;
 		}
 	} else {
@@ -452,7 +453,8 @@ intelspi_transfer(device_t dev, device_t child, struct spi_command *cmd)
 			INTELSPI_WRITE(sc, INTELSPI_SSPREG_SSCR1, sscr1);
 
 			/* and wait for transaction to complete */
-			err = mtx_sleep(dev, &sc->sc_mtx, 0, "intelspi", hz * 2);
+			err = mtx_sleep(dev, &sc->sc_mtx, 0, "intelspi",
+			    hz * 2);
 		}
 	}
 
@@ -492,15 +494,15 @@ intelspi_transfer(device_t dev, device_t child, struct spi_command *cmd)
 int
 intelspi_attach(device_t dev)
 {
-	struct intelspi_softc	*sc;
+	struct intelspi_softc *sc;
 
 	sc = device_get_softc(dev);
 	sc->sc_dev = dev;
 
 	INTELSPI_LOCK_INIT(sc);
 
-	sc->sc_mem_res = bus_alloc_resource_any(sc->sc_dev,
-	    SYS_RES_MEMORY, &sc->sc_mem_rid, RF_ACTIVE);
+	sc->sc_mem_res = bus_alloc_resource_any(sc->sc_dev, SYS_RES_MEMORY,
+	    &sc->sc_mem_rid, RF_ACTIVE);
 	if (sc->sc_mem_res == NULL) {
 		device_printf(dev, "can't allocate memory resource\n");
 		goto error;
@@ -511,8 +513,8 @@ intelspi_attach(device_t dev)
 		INTELSPI_WRITE(sc, INTELSPI_RESETS,
 		    (INTELSPI_RESET_HOST | INTELSPI_RESET_DMA));
 
-	sc->sc_irq_res = bus_alloc_resource_any(sc->sc_dev,
-	    SYS_RES_IRQ, &sc->sc_irq_rid, RF_ACTIVE | RF_SHAREABLE);
+	sc->sc_irq_res = bus_alloc_resource_any(sc->sc_dev, SYS_RES_IRQ,
+	    &sc->sc_irq_rid, RF_ACTIVE | RF_SHAREABLE);
 	if (sc->sc_irq_res == NULL) {
 		device_printf(dev, "can't allocate IRQ resource\n");
 		goto error;
@@ -520,7 +522,7 @@ intelspi_attach(device_t dev)
 
 	/* Hook up our interrupt handler. */
 	if (bus_setup_intr(dev, sc->sc_irq_res, INTR_TYPE_MISC | INTR_MPSAFE,
-	    NULL, intelspi_intr, sc, &sc->sc_irq_ih)) {
+		NULL, intelspi_intr, sc, &sc->sc_irq_ih)) {
 		device_printf(dev, "cannot setup the interrupt handler\n");
 		goto error;
 	}
@@ -535,12 +537,12 @@ error:
 	INTELSPI_LOCK_DESTROY(sc);
 
 	if (sc->sc_mem_res != NULL)
-		bus_release_resource(dev, SYS_RES_MEMORY,
-		    sc->sc_mem_rid, sc->sc_mem_res);
+		bus_release_resource(dev, SYS_RES_MEMORY, sc->sc_mem_rid,
+		    sc->sc_mem_res);
 
 	if (sc->sc_irq_res != NULL)
-		bus_release_resource(dev, SYS_RES_IRQ,
-		    sc->sc_irq_rid, sc->sc_irq_res);
+		bus_release_resource(dev, SYS_RES_IRQ, sc->sc_irq_rid,
+		    sc->sc_irq_res);
 
 	return (ENXIO);
 }
@@ -548,7 +550,7 @@ error:
 int
 intelspi_detach(device_t dev)
 {
-	struct intelspi_softc	*sc;
+	struct intelspi_softc *sc;
 
 	sc = device_get_softc(dev);
 
@@ -558,12 +560,12 @@ intelspi_detach(device_t dev)
 		bus_teardown_intr(dev, sc->sc_irq_res, sc->sc_irq_ih);
 
 	if (sc->sc_mem_res != NULL)
-		bus_release_resource(dev, SYS_RES_MEMORY,
-		    sc->sc_mem_rid, sc->sc_mem_res);
+		bus_release_resource(dev, SYS_RES_MEMORY, sc->sc_mem_rid,
+		    sc->sc_mem_res);
 
 	if (sc->sc_irq_res != NULL)
-		bus_release_resource(dev, SYS_RES_IRQ,
-		    sc->sc_irq_rid, sc->sc_irq_res);
+		bus_release_resource(dev, SYS_RES_IRQ, sc->sc_irq_rid,
+		    sc->sc_irq_res);
 
 	return (device_delete_children(dev));
 }
@@ -571,7 +573,7 @@ intelspi_detach(device_t dev)
 int
 intelspi_suspend(device_t dev)
 {
-	struct intelspi_softc        *sc;
+	struct intelspi_softc *sc;
 	int err, i;
 
 	sc = device_get_softc(dev);
@@ -595,7 +597,7 @@ intelspi_suspend(device_t dev)
 int
 intelspi_resume(device_t dev)
 {
-	struct intelspi_softc   *sc;
+	struct intelspi_softc *sc;
 	int i;
 
 	sc = device_get_softc(dev);

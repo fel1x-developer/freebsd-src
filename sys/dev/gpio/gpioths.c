@@ -32,7 +32,7 @@
  * This is driver for Temperature & Humidity sensor which provides digital
  * output over single-wire protocol from embedded 8-bit microcontroller.
  * Note that it uses a custom single-wire protocol, it is not 1-wire(tm).
- * 
+ *
  * This driver supports the following chips:
  *   DHT11:  Temp   0c to 50c +-2.0c, Humidity 20% to  90% +-5%
  *   DHT12:  Temp -20c to 60c +-0.5c, Humidity 20% to  95% +-5%
@@ -50,12 +50,12 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
-#include <sys/bus.h>
-#include <sys/gpio.h>
-#include <sys/module.h>
-#include <sys/errno.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/errno.h>
+#include <sys/gpio.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
 #include <sys/sysctl.h>
 #include <sys/taskqueue.h>
 
@@ -65,31 +65,29 @@
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-static struct ofw_compat_data compat_data[] = {
-	{"dht11",  true},
-	{NULL,     false}
-};
+static struct ofw_compat_data compat_data[] = { { "dht11", true },
+	{ NULL, false } };
 OFWBUS_PNP_INFO(compat_data);
 SIMPLEBUS_PNP_INFO(compat_data);
 #endif /* FDT */
 
-#define	PIN_IDX 0			/* Use the first/only configured pin. */
+#define PIN_IDX 0 /* Use the first/only configured pin. */
 
-#define	GPIOTHS_POLLTIME	5	/* in seconds */
+#define GPIOTHS_POLLTIME 5 /* in seconds */
 
-#define	GPIOTHS_DHT_STARTCYCLE	20000	/* 20ms = 20000us */
-#define	GPIOTHS_DHT_TIMEOUT	1000	/* 1ms = 1000us */
-#define	GPIOTHS_DHT_CYCLES	41
-#define	GPIOTHS_DHT_ONEBYTEMASK	0xFF
+#define GPIOTHS_DHT_STARTCYCLE 20000 /* 20ms = 20000us */
+#define GPIOTHS_DHT_TIMEOUT 1000     /* 1ms = 1000us */
+#define GPIOTHS_DHT_CYCLES 41
+#define GPIOTHS_DHT_ONEBYTEMASK 0xFF
 
 struct gpioths_softc {
-	device_t		 dev;
-	gpio_pin_t		 pin;
-	int			 temp;
-	int			 hum;
-	int			 fails;
-	struct timeout_task	 task;
-	bool			 detaching;
+	device_t dev;
+	gpio_pin_t pin;
+	int temp;
+	int hum;
+	int fails;
+	struct timeout_task task;
+	bool detaching;
 };
 
 static int
@@ -118,8 +116,8 @@ gpioths_probe(device_t dev)
 static int
 gpioths_dht_timeuntil(struct gpioths_softc *sc, bool lev, uint32_t *time)
 {
-	bool		cur_level;
-	int		i;
+	bool cur_level;
+	int i;
 
 	for (i = 0; i < GPIOTHS_DHT_TIMEOUT; i++) {
 		gpio_pin_is_active(sc->pin, &cur_level);
@@ -155,14 +153,14 @@ gpioths_dht_initread(struct gpioths_softc *sc)
 static int
 gpioths_dht_readbytes(struct gpioths_softc *sc)
 {
-	uint32_t		 calibrations[GPIOTHS_DHT_CYCLES];
-	uint32_t		 intervals[GPIOTHS_DHT_CYCLES];
-	uint32_t		 err, avglen, value;
-	uint8_t			 crc, calc;
-	int			 i, negmul, offset, size, tmphi, tmplo;
+	uint32_t calibrations[GPIOTHS_DHT_CYCLES];
+	uint32_t intervals[GPIOTHS_DHT_CYCLES];
+	uint32_t err, avglen, value;
+	uint8_t crc, calc;
+	int i, negmul, offset, size, tmphi, tmplo;
 
 	gpioths_dht_initread(sc);
-	
+
 	err = gpioths_dht_timeuntil(sc, false, NULL);
 	if (err) {
 		device_printf(sc->dev, "err(START) = %d\n", err);
@@ -178,7 +176,8 @@ gpioths_dht_readbytes(struct gpioths_softc *sc)
 		}
 		err = gpioths_dht_timeuntil(sc, false, &intervals[i]);
 		if (err) {
-			device_printf(sc->dev, "err(INTERVAL, %d) = %d\n", i, err);
+			device_printf(sc->dev, "err(INTERVAL, %d) = %d\n", i,
+			    err);
 			goto error;
 		}
 	}
@@ -204,7 +203,7 @@ gpioths_dht_readbytes(struct gpioths_softc *sc)
 	crc = 0;
 	offset = sizeof(value) * 8 + 1;
 	size = sizeof(crc) * 8;
-	for (i = offset;  i < size + offset; i++) {
+	for (i = offset; i < size + offset; i++) {
 		crc <<= 1;
 		if (intervals[i] > avglen)
 			crc += 1;
@@ -212,7 +211,7 @@ gpioths_dht_readbytes(struct gpioths_softc *sc)
 
 	calc = 0;
 	for (i = 0; i < sizeof(value); i++)
-		calc += (value >> (8*i)) & GPIOTHS_DHT_ONEBYTEMASK;
+		calc += (value >> (8 * i)) & GPIOTHS_DHT_ONEBYTEMASK;
 
 #ifdef GPIOTHS_DEBUG
 	/* Debug bits */
@@ -220,8 +219,8 @@ gpioths_dht_readbytes(struct gpioths_softc *sc)
 		device_printf(sc->dev, "%d: %d %d\n", i, calibrations[i],
 		    intervals[i]);
 
-	device_printf(sc->dev, "len=%d, data=%x, crc=%x/%x\n", avglen, value, crc,
-	    calc);
+	device_printf(sc->dev, "len=%d, data=%x, crc=%x/%x\n", avglen, value,
+	    crc, calc);
 #endif /* GPIOTHS_DEBUG */
 
 	/* CRC check */
@@ -254,7 +253,7 @@ gpioths_dht_readbytes(struct gpioths_softc *sc)
 	 * the difference and say if the value is greater than 10 it must be a
 	 * DHT11/12 (that would be a humidity over 256% on a DHT21/22).
 	 */
-#define	DK_OFFSET 2731 /* Offset between K and C, in decikelvins. */
+#define DK_OFFSET 2731 /* Offset between K and C, in decikelvins. */
 	if ((value >> 24) > 10) {
 		/* DHT11 or DHT12 */
 		tmphi = (value >> 8) & 0x3f;
@@ -263,7 +262,7 @@ gpioths_dht_readbytes(struct gpioths_softc *sc)
 		sc->temp = DK_OFFSET + (negmul * (tmphi * 10 + tmplo));
 		sc->hum = (value >> 24) & 0x7f;
 	} else {
-                /* DHT21 or DHT22 */
+		/* DHT21 or DHT22 */
 		negmul = (value & 0x8000) ? -1 : 1;
 		sc->temp = DK_OFFSET + (negmul * (value & 0x03ff));
 		sc->hum = ((value >> 16) & 0x03ff) / 10;
@@ -273,8 +272,8 @@ gpioths_dht_readbytes(struct gpioths_softc *sc)
 
 #ifdef GPIOTHS_DEBUG
 	/* Debug bits */
-	device_printf(dev, "fails=%d, temp=%d, hum=%d\n", sc->fails,
-	    sc->temp, sc->hum);
+	device_printf(dev, "fails=%d, temp=%d, hum=%d\n", sc->fails, sc->temp,
+	    sc->hum);
 #endif /* GPIOTHS_DEBUG */
 
 	return (0);
@@ -286,7 +285,7 @@ error:
 static void
 gpioths_poll(void *arg, int pending __unused)
 {
-	struct gpioths_softc	*sc;
+	struct gpioths_softc *sc;
 
 	sc = (struct gpioths_softc *)arg;
 
@@ -299,9 +298,9 @@ gpioths_poll(void *arg, int pending __unused)
 static int
 gpioths_attach(device_t dev)
 {
-	struct gpioths_softc	*sc;
-	struct sysctl_ctx_list	*ctx;
-	struct sysctl_oid	*tree;
+	struct gpioths_softc *sc;
+	struct sysctl_ctx_list *ctx;
+	struct sysctl_oid *tree;
 	int err;
 
 	sc = device_get_softc(dev);
@@ -356,7 +355,7 @@ gpioths_attach(device_t dev)
 		return (err);
 	}
 
-	/* 
+	/*
 	 * Do an initial read so we have correct values for reporting before
 	 * registering the sysctls that can access those values.  This also
 	 * schedules the periodic polling the driver does every few seconds to
@@ -364,16 +363,15 @@ gpioths_attach(device_t dev)
 	 */
 	gpioths_poll(sc, 0);
 
-	sysctl_add_oid(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "temperature",				\
-	    CTLFLAG_RD | CTLTYPE_INT | CTLFLAG_MPSAFE,
-	    &sc->temp, 0, sysctl_handle_int, "IK", "temperature", NULL);
+	sysctl_add_oid(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "temperature",
+	    CTLFLAG_RD | CTLTYPE_INT | CTLFLAG_MPSAFE, &sc->temp, 0,
+	    sysctl_handle_int, "IK", "temperature", NULL);
 
 	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "humidity",
 	    CTLFLAG_RD, &sc->hum, 0, "relative humidity(%)");
 
 	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "fails",
-	    CTLFLAG_RD, &sc->fails, 0,
-	    "failures since last successful read");
+	    CTLFLAG_RD, &sc->fails, 0, "failures since last successful read");
 
 	return (0);
 }
@@ -381,7 +379,7 @@ gpioths_attach(device_t dev)
 static int
 gpioths_detach(device_t dev)
 {
-	struct gpioths_softc	*sc;
+	struct gpioths_softc *sc;
 
 	sc = device_get_softc(dev);
 	gpio_pin_release(sc->pin);
@@ -395,14 +393,15 @@ gpioths_detach(device_t dev)
 /* Driver bits */
 static device_method_t gpioths_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,			gpioths_probe),
-	DEVMETHOD(device_attach,		gpioths_attach),
-	DEVMETHOD(device_detach,		gpioths_detach),
+	DEVMETHOD(device_probe, gpioths_probe),
+	DEVMETHOD(device_attach, gpioths_attach),
+	DEVMETHOD(device_detach, gpioths_detach),
 
 	DEVMETHOD_END
 };
 
-DEFINE_CLASS_0(gpioths, gpioths_driver, gpioths_methods, sizeof(struct gpioths_softc));
+DEFINE_CLASS_0(gpioths, gpioths_driver, gpioths_methods,
+    sizeof(struct gpioths_softc));
 
 #ifdef FDT
 DRIVER_MODULE(gpioths, simplebus, gpioths_driver, 0, 0);

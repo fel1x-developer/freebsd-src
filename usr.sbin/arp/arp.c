@@ -38,25 +38,25 @@
 
 #include <sys/param.h>
 #include <sys/file.h>
+#include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/ioctl.h>
 #include <sys/time.h>
 
 #include <net/if.h>
 #include <net/if_dl.h>
 #include <net/if_types.h>
 #include <net/route.h>
-
-#include <netinet/in.h>
 #include <netinet/if_ether.h>
+#include <netinet/in.h>
 
 #include <arpa/inet.h>
-
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
+#include <ifaddrs.h>
+#include <libxo/xo.h>
 #include <netdb.h>
 #include <nlist.h>
 #include <paths.h>
@@ -66,11 +66,10 @@
 #include <string.h>
 #include <strings.h>
 #include <unistd.h>
-#include <ifaddrs.h>
-#include <libxo/xo.h>
+
 #include "arp.h"
 
-typedef void (action_fn)(struct sockaddr_dl *sdl, struct sockaddr_in *s_in,
+typedef void(action_fn)(struct sockaddr_dl *sdl, struct sockaddr_in *s_in,
     struct rt_msghdr *rtm);
 static void nuke_entries(uint32_t ifindex, struct in_addr addr);
 static int print_entries(uint32_t ifindex, struct in_addr addr);
@@ -80,8 +79,8 @@ static void usage(void) __dead2;
 static int set(int argc, char **argv);
 static int get(char *host);
 static int file(char *name);
-static struct rt_msghdr *rtmsg(int cmd,
-    struct sockaddr_in *dst, struct sockaddr_dl *sdl);
+static struct rt_msghdr *rtmsg(int cmd, struct sockaddr_in *dst,
+    struct sockaddr_dl *sdl);
 static int get_ether_addr(in_addr_t ipaddr, struct ether_addr *hwaddr);
 static int set_rtsock(struct sockaddr_in *dst, struct sockaddr_dl *sdl_m,
     char *host);
@@ -91,15 +90,20 @@ struct if_nameindex *ifnameindex;
 struct arp_opts opts = {};
 
 /* which function we're supposed to do */
-#define F_GET		1
-#define F_SET		2
-#define F_FILESET	3
-#define F_REPLACE	4
-#define F_DELETE	5
+#define F_GET 1
+#define F_SET 2
+#define F_FILESET 3
+#define F_REPLACE 4
+#define F_DELETE 5
 
-#define SETFUNC(f)	{ if (func) usage(); func = (f); }
+#define SETFUNC(f)               \
+	{                        \
+		if (func)        \
+			usage(); \
+		func = (f);      \
+	}
 
-#define ARP_XO_VERSION	"1"
+#define ARP_XO_VERSION "1"
 
 int
 main(int argc, char *argv[])
@@ -112,7 +116,7 @@ main(int argc, char *argv[])
 		exit(1);
 
 	while ((ch = getopt(argc, argv, "andfsSi:")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case 'a':
 			opts.aflag = true;
 			break;
@@ -128,7 +132,7 @@ main(int argc, char *argv[])
 		case 's':
 			SETFUNC(F_SET);
 			break;
-		case 'f' :
+		case 'f':
 			SETFUNC(F_FILESET);
 			break;
 		case 'i':
@@ -181,7 +185,7 @@ main(int argc, char *argv[])
 		if (argc < 2 || argc > 6)
 			usage();
 		if (func == F_REPLACE)
-			(void)delete(argv[0]);
+			(void)delete (argv[0]);
 		rtn = set(argc, argv) ? 1 : 0;
 		break;
 	case F_DELETE:
@@ -193,7 +197,7 @@ main(int argc, char *argv[])
 		} else {
 			if (argc != 1)
 				usage();
-			rtn = delete(argv[0]);
+			rtn = delete (argv[0]);
 		}
 		break;
 	case F_FILESET:
@@ -227,10 +231,11 @@ file(char *name)
 	args[3] = &arg[3][0];
 	args[4] = &arg[4][0];
 	retval = 0;
-	while(fgets(line, sizeof(line), fp) != NULL) {
+	while (fgets(line, sizeof(line), fp) != NULL) {
 		if ((p = strchr(line, '#')) != NULL)
 			*p = '\0';
-		for (p = line; isblank(*p); p++);
+		for (p = line; isblank(*p); p++)
+			;
 		if (*p == '\n' || *p == '\0')
 			continue;
 		i = sscanf(p, "%49s %49s %49s %49s %49s", arg[0], arg[1],
@@ -268,7 +273,7 @@ getaddr(char *host)
 			return (NULL);
 		}
 		bcopy((char *)hp->h_addr, (char *)&reply.sin_addr,
-			sizeof reply.sin_addr);
+		    sizeof reply.sin_addr);
 	}
 	return (&reply);
 }
@@ -302,7 +307,7 @@ valid_type(int type)
 static int
 set(int argc, char **argv)
 {
-	struct sockaddr_in *dst;	/* what are we looking for */
+	struct sockaddr_in *dst; /* what are we looking for */
 	struct ether_addr *ea;
 	char *host = argv[0], *eaddr = argv[1];
 	struct sockaddr_dl sdl_m;
@@ -323,7 +328,7 @@ set(int argc, char **argv)
 			size_t len = sizeof(max_age);
 
 			if (sysctlbyname("net.link.ether.inet.max_age",
-			    &max_age, &len, NULL, 0) != 0)
+				&max_age, &len, NULL, 0) != 0)
 				xo_err(1, "sysctlbyname");
 			opts.expire_time = max_age;
 		} else if (strcmp(argv[0], "pub") == 0) {
@@ -335,17 +340,20 @@ set(int argc, char **argv)
 				 * an ARP entry should be announced, but
 				 * not installed into routing table.
 				 */
-				argc--; argv++;
+				argc--;
+				argv++;
 			}
 		} else if (strcmp(argv[0], "blackhole") == 0) {
 			if (opts.flags & RTF_REJECT) {
-				xo_errx(1, "Choose one of blackhole or reject, "
+				xo_errx(1,
+				    "Choose one of blackhole or reject, "
 				    "not both.");
 			}
 			opts.flags |= RTF_BLACKHOLE;
 		} else if (strcmp(argv[0], "reject") == 0) {
 			if (opts.flags & RTF_BLACKHOLE) {
-				xo_errx(1, "Choose one of blackhole or reject, "
+				xo_errx(1,
+				    "Choose one of blackhole or reject, "
 				    "not both.");
 			}
 			opts.flags |= RTF_REJECT;
@@ -359,7 +367,7 @@ set(int argc, char **argv)
 	if ((opts.flags & RTF_ANNOUNCE) && !strcmp(eaddr, "auto")) {
 		if (!get_ether_addr(dst->sin_addr.s_addr, ea)) {
 			xo_warnx("no interface found for %s",
-			       inet_ntoa(dst->sin_addr));
+			    inet_ntoa(dst->sin_addr));
 			return (1);
 		}
 		sdl_m.sdl_alen = ETHER_ADDR_LEN;
@@ -405,8 +413,7 @@ set_rtsock(struct sockaddr_in *dst, struct sockaddr_dl *sdl_m, char *host)
 	addr = (struct sockaddr_in *)(rtm + 1);
 	sdl = (struct sockaddr_dl *)(SA_SIZE(addr) + (char *)addr);
 
-	if ((sdl->sdl_family != AF_LINK) ||
-	    (rtm->rtm_flags & RTF_GATEWAY) ||
+	if ((sdl->sdl_family != AF_LINK) || (rtm->rtm_flags & RTF_GATEWAY) ||
 	    !valid_type(sdl->sdl_type)) {
 		xo_warnx("cannot intuit interface index and type for %s", host);
 		return (1);
@@ -437,8 +444,8 @@ get(char *host)
 	found = print_entries(opts.rifindex, addr->sin_addr);
 
 	if (found == 0) {
-		xo_emit("{d:hostname/%s} ({d:ip-address/%s}) -- no entry",
-		    host, inet_ntoa(addr->sin_addr));
+		xo_emit("{d:hostname/%s} ({d:ip-address/%s}) -- no entry", host,
+		    inet_ntoa(addr->sin_addr));
 		if (opts.rifname)
 			xo_emit(" on {d:interface/%s}", opts.rifname);
 		xo_emit("\n");
@@ -471,7 +478,7 @@ delete_rtsock(char *host)
 	 */
 	opts.flags &= ~RTF_ANNOUNCE;
 
-	for (;;) {	/* try twice */
+	for (;;) { /* try twice */
 		rtm = rtmsg(RTM_GET, dst, NULL);
 		if (rtm == NULL) {
 			xo_warn("%s", host);
@@ -490,7 +497,7 @@ delete_rtsock(char *host)
 		 */
 		if (sdl->sdl_family == AF_LINK &&
 		    !(rtm->rtm_flags & RTF_GATEWAY) &&
-		    valid_type(sdl->sdl_type) ) {
+		    valid_type(sdl->sdl_type)) {
 			addr->sin_addr.s_addr = dst->sin_addr.s_addr;
 			break;
 		}
@@ -515,8 +522,7 @@ delete_rtsock(char *host)
 }
 #endif
 
-static int
-delete(char *host)
+static int delete(char *host)
 {
 #ifdef WITHOUT_NETLINK
 	return (delete_rtsock(host));
@@ -524,7 +530,6 @@ delete(char *host)
 	return (delete_nl(0, host));
 #endif
 }
-
 
 /*
  * Search the arp table and do some action on matching entries
@@ -552,7 +557,7 @@ search(u_long addr, action_fn *action)
 #endif
 	if (sysctl(mib, 6, NULL, &needed, NULL, 0) < 0)
 		xo_err(1, "route-sysctl-estimate");
-	if (needed == 0)	/* empty table */
+	if (needed == 0) /* empty table */
 		return 0;
 	buf = NULL;
 	for (;;) {
@@ -571,11 +576,9 @@ search(u_long addr, action_fn *action)
 		rtm = (struct rt_msghdr *)next;
 		sin2 = (struct sockaddr_in *)(rtm + 1);
 		sdl = (struct sockaddr_dl *)((char *)sin2 + SA_SIZE(sin2));
-		if (opts.rifindex &&
-		    (opts.rifindex != sdl->sdl_index))
+		if (opts.rifindex && (opts.rifindex != sdl->sdl_index))
 			continue;
-		if (addr &&
-		    (addr != sin2->sin_addr.s_addr))
+		if (addr && (addr != sin2->sin_addr.s_addr))
 			continue;
 		found_entry = 1;
 		(*action)(sdl, sin2, rtm);
@@ -589,8 +592,8 @@ search(u_long addr, action_fn *action)
  */
 
 static void
-print_entry(struct sockaddr_dl *sdl,
-	struct sockaddr_in *addr, struct rt_msghdr *rtm)
+print_entry(struct sockaddr_dl *sdl, struct sockaddr_in *addr,
+    struct rt_msghdr *rtm)
 {
 	const char *host;
 	struct hostent *hp;
@@ -603,7 +606,7 @@ print_entry(struct sockaddr_dl *sdl,
 	xo_open_instance("arp-cache");
 
 	if (!opts.nflag)
-		hp = gethostbyaddr((caddr_t)&(addr->sin_addr),
+		hp = gethostbyaddr((caddr_t) & (addr->sin_addr),
 		    sizeof addr->sin_addr, AF_INET);
 	else
 		hp = 0;
@@ -618,8 +621,8 @@ print_entry(struct sockaddr_dl *sdl,
 	    inet_ntoa(addr->sin_addr));
 	if (sdl->sdl_alen) {
 		if ((sdl->sdl_type == IFT_ETHER ||
-		    sdl->sdl_type == IFT_L2VLAN ||
-		    sdl->sdl_type == IFT_BRIDGE) &&
+			sdl->sdl_type == IFT_L2VLAN ||
+			sdl->sdl_type == IFT_BRIDGE) &&
 		    sdl->sdl_alen == ETHER_ADDR_LEN)
 			xo_emit("{:mac-address/%s}",
 			    ether_ntoa((struct ether_addr *)LLADDR(sdl)));
@@ -656,7 +659,7 @@ print_entry(struct sockaddr_dl *sdl,
 	if (rtm->rtm_flags & RTF_ANNOUNCE)
 		xo_emit("{d:/ published}{en:published/true}");
 
-	switch(sdl->sdl_type) {
+	switch (sdl->sdl_type) {
 	case IFT_ETHER:
 		xo_emit(" [{:type/ethernet}]");
 		break;
@@ -697,13 +700,12 @@ print_entries(uint32_t ifindex, struct in_addr addr)
 #endif
 }
 
-
 /*
  * Nuke an arp entry
  */
 static void
-nuke_entry(struct sockaddr_dl *sdl __unused,
-	struct sockaddr_in *addr, struct rt_msghdr *rtm)
+nuke_entry(struct sockaddr_dl *sdl __unused, struct sockaddr_in *addr,
+    struct rt_msghdr *rtm)
 {
 	char ip[20];
 
@@ -711,7 +713,7 @@ nuke_entry(struct sockaddr_dl *sdl __unused,
 		return;
 
 	snprintf(ip, sizeof(ip), "%s", inet_ntoa(addr->sin_addr));
-	delete(ip);
+	delete (ip);
 }
 
 static void
@@ -725,8 +727,7 @@ usage(void)
 {
 	fprintf(stderr, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n",
 	    "usage: arp [-n] [-i interface] hostname",
-	    "       arp [-n] [-i interface] -a",
-	    "       arp -d hostname [pub]",
+	    "       arp [-n] [-i interface] -a", "       arp -d hostname [pub]",
 	    "       arp -d [-i interface] -a",
 	    "       arp -s hostname ether_addr [temp] [reject | blackhole] [pub [only]]",
 	    "       arp -S hostname ether_addr [temp] [reject | blackhole] [pub [only]]",
@@ -743,15 +744,15 @@ rtmsg(int cmd, struct sockaddr_in *dst, struct sockaddr_dl *sdl)
 	static int s = -1;
 	static pid_t pid;
 
-	static struct	{
-		struct	rt_msghdr m_rtm;
-		char	m_space[512];
-	}	m_rtmsg;
+	static struct {
+		struct rt_msghdr m_rtm;
+		char m_space[512];
+	} m_rtmsg;
 
 	struct rt_msghdr *rtm = &m_rtmsg.m_rtm;
 	char *cp = m_rtmsg.m_space;
 
-	if (s < 0) {	/* first time: open socket, get pid */
+	if (s < 0) { /* first time: open socket, get pid */
 		s = socket(PF_ROUTE, SOCK_RAW, 0);
 		if (s < 0)
 			xo_err(1, "socket");
@@ -786,12 +787,12 @@ rtmsg(int cmd, struct sockaddr_in *dst, struct sockaddr_dl *sdl)
 	case RTM_GET:
 		rtm->rtm_addrs |= RTA_DST;
 	}
-#define NEXTADDR(w, s)						\
-	do {							\
-		if ((s) != NULL && rtm->rtm_addrs & (w)) {	\
-			bcopy((s), cp, sizeof(*(s)));		\
-			cp += SA_SIZE(s);			\
-		}						\
+#define NEXTADDR(w, s)                                     \
+	do {                                               \
+		if ((s) != NULL && rtm->rtm_addrs & (w)) { \
+			bcopy((s), cp, sizeof(*(s)));      \
+			cp += SA_SIZE(s);                  \
+		}                                          \
 	} while (0)
 
 	NEXTADDR(RTA_DST, dst);
@@ -810,8 +811,9 @@ doit:
 	}
 	do {
 		l = read(s, (char *)&m_rtmsg, sizeof(m_rtmsg));
-	} while (l > 0 && (rtm->rtm_type != cmd || rtm->rtm_seq != seq ||
-	    rtm->rtm_pid != pid));
+	} while (l > 0 &&
+	    (rtm->rtm_type != cmd || rtm->rtm_seq != seq ||
+		rtm->rtm_pid != pid));
 	if (l < 0)
 		xo_warn("read from routing socket");
 	return (rtm);
@@ -848,14 +850,14 @@ get_ether_addr(in_addr_t ipaddr, struct ether_addr *hwaddr)
 		 * and not point-to-point or loopback.
 		 */
 		if ((ifa->ifa_flags &
-		    (IFF_UP|IFF_BROADCAST|IFF_POINTOPOINT|
-		    IFF_LOOPBACK|IFF_NOARP)) != (IFF_UP|IFF_BROADCAST))
+			(IFF_UP | IFF_BROADCAST | IFF_POINTOPOINT |
+			    IFF_LOOPBACK | IFF_NOARP)) !=
+		    (IFF_UP | IFF_BROADCAST))
 			continue;
 		/* Get its netmask and check that it's on the right subnet. */
-		mask = ((struct sockaddr_in *)
-			ifa->ifa_netmask)->sin_addr.s_addr;
-		ina = ((struct sockaddr_in *)
-			ifa->ifa_addr)->sin_addr.s_addr;
+		mask =
+		    ((struct sockaddr_in *)ifa->ifa_netmask)->sin_addr.s_addr;
+		ina = ((struct sockaddr_in *)ifa->ifa_addr)->sin_addr.s_addr;
 		if ((ipaddr & mask) == (ina & mask))
 			break; /* ok, we got it! */
 	}
@@ -879,7 +881,7 @@ get_ether_addr(in_addr_t ipaddr, struct ether_addr *hwaddr)
 	 * Found the link-level address - copy it out
 	 */
 	dla = (struct sockaddr_dl *)ifd->ifa_addr;
-	memcpy(hwaddr,  LLADDR(dla), dla->sdl_alen);
+	memcpy(hwaddr, LLADDR(dla), dla->sdl_alen);
 	printf("using interface %s for proxy with address %s\n", ifa->ifa_name,
 	    ether_ntoa(hwaddr));
 	retval = dla->sdl_alen;

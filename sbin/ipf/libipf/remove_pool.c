@@ -7,12 +7,13 @@
  * $Id$
  */
 
-#include <fcntl.h>
 #include <sys/ioctl.h>
-#include "ipf.h"
-#include "netinet/ip_lookup.h"
-#include "netinet/ip_htable.h"
 
+#include <fcntl.h>
+
+#include "ipf.h"
+#include "netinet/ip_htable.h"
+#include "netinet/ip_lookup.h"
 
 int
 remove_pool(ip_pool_t *poolp, ioctlfunc_t iocfunc)
@@ -37,7 +38,7 @@ remove_pool(ip_pool_t *poolp, ioctlfunc_t iocfunc)
 	if (pool_ioctl(iocfunc, SIOCLOOKUPDELTABLE, &op)) {
 		if ((opts & OPT_DONOTHING) == 0) {
 			return (ipf_perror_fd(pool_fd(), iocfunc,
-					     "delete lookup pool"));
+			    "delete lookup pool"));
 		}
 	}
 	return (0);

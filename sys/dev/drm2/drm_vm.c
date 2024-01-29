@@ -38,13 +38,13 @@
  * Support code for mmaping of DRM maps.
  */
 
-#include <dev/drm2/drmP.h>
 #include <dev/drm2/drm.h>
+#include <dev/drm2/drmP.h>
 
 #ifdef FREEBSD_NOTYET
 int
-drm_mmap(struct cdev *kdev, vm_ooffset_t offset, vm_paddr_t *paddr,
-    int prot, vm_memattr_t *memattr)
+drm_mmap(struct cdev *kdev, vm_ooffset_t offset, vm_paddr_t *paddr, int prot,
+    vm_memattr_t *memattr)
 {
 	struct drm_device *dev = drm_get_device_from_kdev(kdev);
 	struct drm_file *file_priv = NULL;
@@ -94,7 +94,7 @@ drm_mmap(struct cdev *kdev, vm_ooffset_t offset, vm_paddr_t *paddr,
 	   bit longer.
 	*/
 	DRM_LOCK(dev);
-	TAILQ_FOREACH(map, &dev->maplist, link) {
+	TAILQ_FOREACH (map, &dev->maplist, link) {
 		if (offset >> DRM_MAP_HANDLE_SHIFT ==
 		    (unsigned long)map->handle >> DRM_MAP_HANDLE_SHIFT)
 			break;
@@ -102,7 +102,7 @@ drm_mmap(struct cdev *kdev, vm_ooffset_t offset, vm_paddr_t *paddr,
 
 	if (map == NULL) {
 		DRM_DEBUG("Can't find map, request offset = %016jx\n", offset);
-		TAILQ_FOREACH(map, &dev->maplist, link) {
+		TAILQ_FOREACH (map, &dev->maplist, link) {
 			DRM_DEBUG("map offset = %016lx, handle = %016lx\n",
 			    map->offset, (unsigned long)map->handle);
 		}
@@ -136,7 +136,7 @@ drm_mmap(struct cdev *kdev, vm_ooffset_t offset, vm_paddr_t *paddr,
 		break;
 	default:
 		DRM_ERROR("bad map type %d\n", type);
-		return -1;	/* This should never happen. */
+		return -1; /* This should never happen. */
 	}
 
 	*paddr = phys;

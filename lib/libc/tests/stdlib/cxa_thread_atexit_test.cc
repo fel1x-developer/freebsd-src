@@ -24,8 +24,9 @@
  * SUCH DAMAGE.
  */
 
-#include <dlfcn.h>
 #include <atf-c++.hpp>
+#include <dlfcn.h>
+
 #include <cstdio>
 #include <cstdlib>
 #include <thread>
@@ -39,12 +40,13 @@ struct Foo {
 };
 
 struct Bar {
-	Bar() {}
-	~Bar() {
+	Bar() { }
+	~Bar()
+	{
 		thread_local static Foo foo;
 		ATF_REQUIRE(fprintf(output, "DIED\n") > 0);
 	}
-	void use() {}
+	void use() { }
 };
 
 extern "C" int __cxa_thread_atexit(void (*)(void *), void *, void *);
@@ -57,11 +59,9 @@ again(void *arg)
 }
 
 struct Baz {
-	Baz() {}
-	~Baz() {
-		again(NULL);
-	}
-	void use() {}
+	Baz() { }
+	~Baz() { again(NULL); }
+	void use() { }
 };
 
 static thread_local Foo f;
@@ -80,8 +80,8 @@ ATF_TEST_CASE_BODY(cxx__thr)
 	/* Avoid coredump during f construction. */
 	output = stderr;
 
-	libthr_handle = dlopen("libthr.so.3", RTLD_LAZY | RTLD_GLOBAL |
-	    RTLD_NOLOAD);
+	libthr_handle = dlopen("libthr.so.3",
+	    RTLD_LAZY | RTLD_GLOBAL | RTLD_NOLOAD);
 	ATF_REQUIRE(libthr_handle != NULL);
 	dlclose(libthr_handle);
 }
@@ -94,7 +94,8 @@ ATF_TEST_CASE_BODY(cxx__thr)
 ATF_TEST_CASE_WITHOUT_HEAD(cxx__thread_local_before);
 ATF_TEST_CASE_BODY(cxx__thread_local_before)
 {
-	static const char out_log[] = "Created\nCreated\nUsed\nCreated\n"
+	static const char out_log[] =
+	    "Created\nCreated\nUsed\nCreated\n"
 	    "Created\nUsed\nCreated\nDIED\nDestroyed\nDestroyed\nDestroyed\n";
 
 	ATF_REQUIRE((output = fopen("test_before.txt", "w")) != NULL);
@@ -115,7 +116,8 @@ ATF_TEST_CASE_BODY(cxx__thread_local_before)
 ATF_TEST_CASE_WITHOUT_HEAD(cxx__thread_local_after);
 ATF_TEST_CASE_BODY(cxx__thread_local_after)
 {
-	static const char out_log[] = "Created\nCreated\nUsed\nCreated\n"
+	static const char out_log[] =
+	    "Created\nCreated\nUsed\nCreated\n"
 	    "DIED\nDestroyed\nDestroyed\nDestroyed\nCreated\nCreated\nUsed\n";
 
 	ATF_REQUIRE((output = fopen("test_after.txt", "w")) != NULL);
@@ -138,7 +140,7 @@ ATF_TEST_CASE_WITHOUT_HEAD(cxx__thread_local_add_while_calling_dtors);
 ATF_TEST_CASE_BODY(cxx__thread_local_add_while_calling_dtors)
 {
 	static const char out_log[] = "Created\nCreated\nCreated\nDIED\n"
-	    "Destroyed\nDestroyed\nDestroyed\n";
+				      "Destroyed\nDestroyed\nDestroyed\n";
 
 	ATF_REQUIRE((output = fopen("test_add_meanwhile.txt", "w")) != NULL);
 
@@ -148,7 +150,8 @@ ATF_TEST_CASE_BODY(cxx__thread_local_add_while_calling_dtors)
 
 	fflush(output);
 
-	ATF_REQUIRE(atf::utils::compare_file("test_add_meanwhile.txt", out_log));
+	ATF_REQUIRE(
+	    atf::utils::compare_file("test_add_meanwhile.txt", out_log));
 }
 
 ATF_TEST_CASE_WITHOUT_HEAD(cxx__thread_inf_dtors);

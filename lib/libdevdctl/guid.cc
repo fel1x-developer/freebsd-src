@@ -37,18 +37,17 @@
  */
 #include <sys/cdefs.h>
 
-#include <stdlib.h>
-#include <limits.h>
 #include <inttypes.h>
+#include <limits.h>
+#include <stdlib.h>
+
+#include "guid.h"
 
 #include <iostream>
 #include <string>
-
-#include "guid.h"
 /*============================ Namespace Control =============================*/
 using std::string;
-namespace DevdCtl
-{
+namespace DevdCtl {
 
 /*=========================== Class Implementations ==========================*/
 /*----------------------------------- Guid -----------------------------------*/
@@ -65,8 +64,8 @@ Guid::Guid(const string &guidString)
 	}
 }
 
-std::ostream&
-operator<< (std::ostream& out, Guid g)
+std::ostream &
+operator<<(std::ostream &out, Guid g)
 {
 	if (g.IsValid())
 		out << (uint64_t)g;

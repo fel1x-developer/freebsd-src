@@ -25,24 +25,23 @@
 
 #include <sys/param.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 
+#include <netinet/in.h>
+
+#include <arpa/inet.h>
+#include <atf-c.h>
+#include <casper/cap_net.h>
 #include <errno.h>
+#include <libcasper.h>
 #include <netdb.h>
 
-#include <atf-c.h>
-
-#include <libcasper.h>
-#include <casper/cap_net.h>
-
-#define	TEST_DOMAIN_0	"example.com"
-#define	TEST_DOMAIN_1	"freebsd.org"
-#define	TEST_IPV4	"1.1.1.1"
-#define	TEST_IPV6	"2001:4860:4860::8888"
-#define	TEST_BIND_IPV4	"127.0.0.1"
-#define	TEST_PORT	80
-#define	TEST_PORT_STR	"80"
+#define TEST_DOMAIN_0 "example.com"
+#define TEST_DOMAIN_1 "freebsd.org"
+#define TEST_IPV4 "1.1.1.1"
+#define TEST_IPV6 "2001:4860:4860::8888"
+#define TEST_BIND_IPV4 "127.0.0.1"
+#define TEST_PORT 80
+#define TEST_PORT_STR "80"
 
 static cap_channel_t *
 create_network_service(void)
@@ -71,16 +70,16 @@ test_getnameinfo_v4(cap_channel_t *chan, int family, const char *ip)
 	ipaddr.sin_family = family;
 	inet_pton(family, ip, &ipaddr.sin_addr);
 
-	capret = cap_getnameinfo(chan, (struct sockaddr *)&ipaddr, sizeof(ipaddr),
-	    capfn, sizeof(capfn), NULL, 0, NI_NAMEREQD);
+	capret = cap_getnameinfo(chan, (struct sockaddr *)&ipaddr,
+	    sizeof(ipaddr), capfn, sizeof(capfn), NULL, 0, NI_NAMEREQD);
 	if (capret != 0 && capret == ENOTCAPABLE)
 		return (ENOTCAPABLE);
 
 	sysret = getnameinfo((struct sockaddr *)&ipaddr, sizeof(ipaddr), origfn,
 	    sizeof(origfn), NULL, 0, NI_NAMEREQD);
 	if (sysret != 0) {
-		atf_tc_skip("getnameinfo(%s) failed: %s",
-		    ip, gai_strerror(sysret));
+		atf_tc_skip("getnameinfo(%s) failed: %s", ip,
+		    gai_strerror(sysret));
 	}
 	ATF_REQUIRE(capret == 0);
 	ATF_REQUIRE(strcmp(origfn, capfn) == 0);
@@ -100,16 +99,16 @@ test_getnameinfo_v6(cap_channel_t *chan, const char *ip)
 	ipaddr.sin6_family = AF_INET6;
 	inet_pton(AF_INET6, ip, &ipaddr.sin6_addr);
 
-	capret = cap_getnameinfo(chan, (struct sockaddr *)&ipaddr, sizeof(ipaddr),
-	    capfn, sizeof(capfn), NULL, 0, NI_NAMEREQD);
+	capret = cap_getnameinfo(chan, (struct sockaddr *)&ipaddr,
+	    sizeof(ipaddr), capfn, sizeof(capfn), NULL, 0, NI_NAMEREQD);
 	if (capret != 0 && capret == ENOTCAPABLE)
 		return (ENOTCAPABLE);
 
 	sysret = getnameinfo((struct sockaddr *)&ipaddr, sizeof(ipaddr), origfn,
 	    sizeof(origfn), NULL, 0, NI_NAMEREQD);
 	if (sysret != 0) {
-		atf_tc_skip("getnameinfo(%s) failed: %s",
-		    ip, gai_strerror(sysret));
+		atf_tc_skip("getnameinfo(%s) failed: %s", ip,
+		    gai_strerror(sysret));
 	}
 	ATF_REQUIRE(capret == 0);
 	ATF_REQUIRE(strcmp(origfn, capfn) == 0);
@@ -201,8 +200,8 @@ test_getaddrinfo(cap_channel_t *chan, int family, const char *domain,
 
 	sysret = getaddrinfo(domain, servname, &hints, &origres);
 	if (sysret != 0)
-		atf_tc_skip("getaddrinfo(%s) failed: %s",
-		    domain, gai_strerror(sysret));
+		atf_tc_skip("getaddrinfo(%s) failed: %s", domain,
+		    gai_strerror(sysret));
 	ATF_REQUIRE(capret == 0);
 
 	for (res0 = capres; res0 != NULL; res0 = res0->ai_next) {
@@ -210,7 +209,7 @@ test_getaddrinfo(cap_channel_t *chan, int family, const char *domain,
 		for (res1 = origres; res1 != NULL; res1 = res1->ai_next) {
 			if (res1->ai_addrlen == res0->ai_addrlen &&
 			    memcmp(res1->ai_addr, res0->ai_addr,
-			    res0->ai_addrlen) == 0) {
+				res0->ai_addrlen) == 0) {
 				found = true;
 				break;
 			}
@@ -296,11 +295,11 @@ test_connect(cap_channel_t *chan, const char *ip, unsigned short port)
 		inet_pton(AF_INET, ip, &ipv4.sin_addr);
 		ret = connect(sd, (struct sockaddr *)&ipv4, sizeof(ipv4));
 		ATF_REQUIRE(ret < 0);
-		ATF_REQUIRE_MSG(errno == serrno, "errno %d != serrno %d",
-		    errno, serrno);
+		ATF_REQUIRE_MSG(errno == serrno, "errno %d != serrno %d", errno,
+		    serrno);
 		ATF_REQUIRE(close(sd) == 0);
-		atf_tc_skip("connect(%s:%d) failed: %s",
-		    ip, port, strerror(serrno));
+		atf_tc_skip("connect(%s:%d) failed: %s", ip, port,
+		    strerror(serrno));
 	}
 
 	return (ret < 0 ? serrno : 0);
@@ -310,15 +309,9 @@ static void
 test_extend_mode(cap_channel_t *capnet, int current)
 {
 	cap_net_limit_t *limit;
-	const int rights[] = {
-		CAPNET_ADDR2NAME,
-		CAPNET_NAME2ADDR,
-		CAPNET_DEPRECATED_ADDR2NAME,
-		CAPNET_DEPRECATED_NAME2ADDR,
-		CAPNET_CONNECT,
-		CAPNET_BIND,
-		CAPNET_CONNECTDNS
-	};
+	const int rights[] = { CAPNET_ADDR2NAME, CAPNET_NAME2ADDR,
+		CAPNET_DEPRECATED_ADDR2NAME, CAPNET_DEPRECATED_NAME2ADDR,
+		CAPNET_CONNECT, CAPNET_BIND, CAPNET_CONNECTDNS };
 	size_t i;
 
 	for (i = 0; i < nitems(rights); i++) {
@@ -380,8 +373,8 @@ ATF_TC_BODY(capnet__getaddrinfo, tc)
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 
-	ATF_REQUIRE(cap_getaddrinfo(capnet, TEST_IPV4, "80", &hints, &capres) ==
-	    0);
+	ATF_REQUIRE(
+	    cap_getaddrinfo(capnet, TEST_IPV4, "80", &hints, &capres) == 0);
 
 	cap_close(capnet);
 }
@@ -434,9 +427,8 @@ ATF_TC_BODY(capnet__getnameinfo_buffer, tc)
 
 	chan = create_network_service();
 	ret = cap_getnameinfo(chan, (struct sockaddr *)&sin, sizeof(sin),
-	    buffers.host, sizeof(buffers.host),
-	    buffers.serv, sizeof(buffers.serv),
-	    NI_NUMERICHOST | NI_NUMERICSERV);
+	    buffers.host, sizeof(buffers.host), buffers.serv,
+	    sizeof(buffers.serv), NI_NUMERICHOST | NI_NUMERICSERV);
 	ATF_REQUIRE_EQ_MSG(0, ret, "%d", ret);
 
 	// Verify that cap_getnameinfo worked with minimally sized buffers.
@@ -467,10 +459,10 @@ ATF_TC_BODY(capnet__limits_addr2name_mode, tc)
 	ATF_REQUIRE(test_getnameinfo(capnet, AF_INET, TEST_IPV4) == 0);
 
 	/* DISALLOWED */
-	ATF_REQUIRE(test_gethostbyname(capnet, AF_INET, TEST_DOMAIN_0) ==
-	    ENOTCAPABLE);
-	ATF_REQUIRE(test_gethostbyaddr(capnet, AF_INET, TEST_IPV4) ==
-	    ENOTCAPABLE);
+	ATF_REQUIRE(
+	    test_gethostbyname(capnet, AF_INET, TEST_DOMAIN_0) == ENOTCAPABLE);
+	ATF_REQUIRE(
+	    test_gethostbyaddr(capnet, AF_INET, TEST_IPV4) == ENOTCAPABLE);
 	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, NULL) ==
 	    ENOTCAPABLE);
 	ATF_REQUIRE(test_bind(capnet, TEST_BIND_IPV4) == ENOTCAPABLE);
@@ -515,8 +507,8 @@ ATF_TC_BODY(capnet__limits_addr2name_family, tc)
 	cap_net_limit_addr2name_family(limit, family, 1);
 	ATF_REQUIRE(cap_net_limit(limit) == 0);
 
-	ATF_REQUIRE(test_getnameinfo(capnet, AF_INET, TEST_IPV4) ==
-	    ENOTCAPABLE);
+	ATF_REQUIRE(
+	    test_getnameinfo(capnet, AF_INET, TEST_IPV4) == ENOTCAPABLE);
 	ATF_REQUIRE(test_getnameinfo(capnet, AF_INET6, TEST_IPV6) == 0);
 
 	/* Unable to set empty limits. Empty limits means full access. */
@@ -557,8 +549,8 @@ ATF_TC_BODY(capnet__limits_addr2name, tc)
 
 	ATF_REQUIRE(test_getnameinfo(capnet, AF_INET, TEST_IPV4) == 0);
 	ATF_REQUIRE(test_getnameinfo(capnet, AF_INET6, TEST_IPV6) == 0);
-	ATF_REQUIRE(test_getnameinfo(capnet, AF_INET, "127.0.0.1") ==
-	    ENOTCAPABLE);
+	ATF_REQUIRE(
+	    test_getnameinfo(capnet, AF_INET, "127.0.0.1") == ENOTCAPABLE);
 
 	/* Limit to AF_INET. */
 	limit = cap_net_limit_init(capnet, CAPNET_ADDR2NAME);
@@ -568,10 +560,10 @@ ATF_TC_BODY(capnet__limits_addr2name, tc)
 	ATF_REQUIRE(cap_net_limit(limit) == 0);
 
 	ATF_REQUIRE(test_getnameinfo(capnet, AF_INET, TEST_IPV4) == 0);
-	ATF_REQUIRE(test_getnameinfo(capnet, AF_INET6, TEST_IPV6) ==
-	    ENOTCAPABLE);
-	ATF_REQUIRE(test_getnameinfo(capnet, AF_INET, "127.0.0.1") ==
-	    ENOTCAPABLE);
+	ATF_REQUIRE(
+	    test_getnameinfo(capnet, AF_INET6, TEST_IPV6) == ENOTCAPABLE);
+	ATF_REQUIRE(
+	    test_getnameinfo(capnet, AF_INET, "127.0.0.1") == ENOTCAPABLE);
 
 	/* Unable to set empty limits. Empty limits means full access. */
 	limit = cap_net_limit_init(capnet, CAPNET_ADDR2NAME);
@@ -597,10 +589,10 @@ ATF_TC_BODY(capnet__limits_deprecated_addr2name_mode, tc)
 	ATF_REQUIRE(test_gethostbyaddr(capnet, AF_INET, TEST_IPV4) == 0);
 
 	/* DISALLOWED */
-	ATF_REQUIRE(test_gethostbyname(capnet, AF_INET, TEST_DOMAIN_0) ==
-	    ENOTCAPABLE);
-	ATF_REQUIRE(test_getnameinfo(capnet, AF_INET, TEST_IPV4) ==
-	    ENOTCAPABLE);
+	ATF_REQUIRE(
+	    test_gethostbyname(capnet, AF_INET, TEST_DOMAIN_0) == ENOTCAPABLE);
+	ATF_REQUIRE(
+	    test_getnameinfo(capnet, AF_INET, TEST_IPV4) == ENOTCAPABLE);
 	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, NULL) ==
 	    ENOTCAPABLE);
 	ATF_REQUIRE(test_bind(capnet, TEST_BIND_IPV4) == ENOTCAPABLE);
@@ -626,8 +618,8 @@ ATF_TC_BODY(capnet__limits_deprecated_addr2name_family, tc)
 
 	ATF_REQUIRE(test_gethostbyaddr(capnet, AF_INET, TEST_IPV4) == 0);
 	ATF_REQUIRE(test_gethostbyaddr(capnet, AF_INET6, TEST_IPV6) == 0);
-	ATF_REQUIRE(test_gethostbyaddr(capnet, PF_LINK, TEST_IPV4) ==
-	    ENOTCAPABLE);
+	ATF_REQUIRE(
+	    test_gethostbyaddr(capnet, PF_LINK, TEST_IPV4) == ENOTCAPABLE);
 
 	/* Limit to AF_INET6 and AF_INET. */
 	limit = cap_net_limit_init(capnet, CAPNET_DEPRECATED_ADDR2NAME);
@@ -638,8 +630,8 @@ ATF_TC_BODY(capnet__limits_deprecated_addr2name_family, tc)
 
 	ATF_REQUIRE(test_gethostbyaddr(capnet, AF_INET, TEST_IPV4) == 0);
 	ATF_REQUIRE(test_gethostbyaddr(capnet, AF_INET6, TEST_IPV6) == 0);
-	ATF_REQUIRE(test_gethostbyaddr(capnet, PF_LINK, TEST_IPV4) ==
-	    ENOTCAPABLE);
+	ATF_REQUIRE(
+	    test_gethostbyaddr(capnet, PF_LINK, TEST_IPV4) == ENOTCAPABLE);
 
 	/* Limit to AF_INET6. */
 	limit = cap_net_limit_init(capnet, CAPNET_DEPRECATED_ADDR2NAME);
@@ -647,11 +639,11 @@ ATF_TC_BODY(capnet__limits_deprecated_addr2name_family, tc)
 	cap_net_limit_addr2name_family(limit, family, 1);
 	ATF_REQUIRE(cap_net_limit(limit) == 0);
 
-	ATF_REQUIRE(test_gethostbyaddr(capnet, AF_INET, TEST_IPV4) ==
-	    ENOTCAPABLE);
+	ATF_REQUIRE(
+	    test_gethostbyaddr(capnet, AF_INET, TEST_IPV4) == ENOTCAPABLE);
 	ATF_REQUIRE(test_gethostbyaddr(capnet, AF_INET6, TEST_IPV6) == 0);
-	ATF_REQUIRE(test_gethostbyaddr(capnet, PF_LINK, TEST_IPV4) ==
-	    ENOTCAPABLE);
+	ATF_REQUIRE(
+	    test_gethostbyaddr(capnet, PF_LINK, TEST_IPV4) == ENOTCAPABLE);
 
 	/* Unable to set empty limits. Empty limits means full access. */
 	limit = cap_net_limit_init(capnet, CAPNET_DEPRECATED_ADDR2NAME);
@@ -688,8 +680,8 @@ ATF_TC_BODY(capnet__limits_deprecated_addr2name, tc)
 
 	ATF_REQUIRE(test_gethostbyaddr(capnet, AF_INET, TEST_IPV4) == 0);
 	ATF_REQUIRE(test_gethostbyaddr(capnet, AF_INET6, TEST_IPV6) == 0);
-	ATF_REQUIRE(test_gethostbyaddr(capnet, AF_INET, "127.0.0.1") ==
-	    ENOTCAPABLE);
+	ATF_REQUIRE(
+	    test_gethostbyaddr(capnet, AF_INET, "127.0.0.1") == ENOTCAPABLE);
 
 	/* Limit to AF_INET. */
 	limit = cap_net_limit_init(capnet, CAPNET_DEPRECATED_ADDR2NAME);
@@ -699,10 +691,10 @@ ATF_TC_BODY(capnet__limits_deprecated_addr2name, tc)
 	ATF_REQUIRE(cap_net_limit(limit) == 0);
 
 	ATF_REQUIRE(test_gethostbyaddr(capnet, AF_INET, TEST_IPV4) == 0);
-	ATF_REQUIRE(test_gethostbyaddr(capnet, AF_INET6, TEST_IPV6) ==
-	    ENOTCAPABLE);
-	ATF_REQUIRE(test_gethostbyaddr(capnet, AF_INET, "127.0.0.1") ==
-	    ENOTCAPABLE);
+	ATF_REQUIRE(
+	    test_gethostbyaddr(capnet, AF_INET6, TEST_IPV6) == ENOTCAPABLE);
+	ATF_REQUIRE(
+	    test_gethostbyaddr(capnet, AF_INET, "127.0.0.1") == ENOTCAPABLE);
 
 	/* Unable to set empty limits. Empty limits means full access. */
 	limit = cap_net_limit_init(capnet, CAPNET_DEPRECATED_ADDR2NAME);
@@ -710,7 +702,6 @@ ATF_TC_BODY(capnet__limits_deprecated_addr2name, tc)
 
 	cap_close(capnet);
 }
-
 
 ATF_TC_WITHOUT_HEAD(capnet__limits_name2addr_mode);
 ATF_TC_BODY(capnet__limits_name2addr_mode, tc)
@@ -726,16 +717,16 @@ ATF_TC_BODY(capnet__limits_name2addr_mode, tc)
 	ATF_REQUIRE(cap_net_limit(limit) == 0);
 
 	/* ALLOWED */
-	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, NULL) ==
-	    0);
+	ATF_REQUIRE(
+	    test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, NULL) == 0);
 
 	/* DISALLOWED */
 	ATF_REQUIRE(
 	    test_gethostbyname(capnet, AF_INET, TEST_DOMAIN_0) == ENOTCAPABLE);
-	ATF_REQUIRE(test_getnameinfo(capnet, AF_INET, TEST_IPV4) ==
-	    ENOTCAPABLE);
-	ATF_REQUIRE(test_gethostbyaddr(capnet, AF_INET, TEST_IPV4) ==
-	    ENOTCAPABLE);
+	ATF_REQUIRE(
+	    test_getnameinfo(capnet, AF_INET, TEST_IPV4) == ENOTCAPABLE);
+	ATF_REQUIRE(
+	    test_gethostbyaddr(capnet, AF_INET, TEST_IPV4) == ENOTCAPABLE);
 	ATF_REQUIRE(test_bind(capnet, TEST_BIND_IPV4) == ENOTCAPABLE);
 	ATF_REQUIRE(test_connect(capnet, TEST_IPV4, 80) == ENOTCAPABLE);
 
@@ -759,8 +750,8 @@ ATF_TC_BODY(capnet__limits_name2addr_hosts, tc)
 	cap_net_limit_name2addr(limit, "localhost", NULL);
 	ATF_REQUIRE(cap_net_limit(limit) == 0);
 
-	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, NULL) ==
-	    0);
+	ATF_REQUIRE(
+	    test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, NULL) == 0);
 	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET, "localhost", NULL) == 0);
 	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_1, NULL) ==
 	    ENOTCAPABLE);
@@ -775,8 +766,8 @@ ATF_TC_BODY(capnet__limits_name2addr_hosts, tc)
 	    ENOTCAPABLE);
 	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_1, NULL) ==
 	    ENOTCAPABLE);
-	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, NULL) ==
-	    0);
+	ATF_REQUIRE(
+	    test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, NULL) == 0);
 
 	/* Unable to set empty limits. Empty limits means full access. */
 	limit = cap_net_limit_init(capnet, CAPNET_NAME2ADDR);
@@ -813,8 +804,8 @@ ATF_TC_BODY(capnet__limits_name2addr_hosts_servnames_strict, tc)
 	cap_net_limit_name2addr(limit, TEST_DOMAIN_0, "http");
 	ATF_REQUIRE(cap_net_limit(limit) == 0);
 
-	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, "http") ==
-	    0);
+	ATF_REQUIRE(
+	    test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, "http") == 0);
 	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, NULL) ==
 	    ENOTCAPABLE);
 	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, "snmp") ==
@@ -847,14 +838,14 @@ ATF_TC_BODY(capnet__limits_name2addr_hosts_servnames_mix, tc)
 	cap_net_limit_name2addr(limit, NULL, "http");
 	ATF_REQUIRE(cap_net_limit(limit) == 0);
 
-	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, "http") ==
-	    0);
-	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, NULL) ==
-	    0);
-	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_1, "http") ==
-	    0);
-	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, NULL) ==
-	    0);
+	ATF_REQUIRE(
+	    test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, "http") == 0);
+	ATF_REQUIRE(
+	    test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, NULL) == 0);
+	ATF_REQUIRE(
+	    test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_1, "http") == 0);
+	ATF_REQUIRE(
+	    test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, NULL) == 0);
 	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_1, "snmp") ==
 	    ENOTCAPABLE);
 
@@ -864,12 +855,12 @@ ATF_TC_BODY(capnet__limits_name2addr_hosts_servnames_mix, tc)
 	cap_net_limit_name2addr(limit, NULL, "http");
 	ATF_REQUIRE(cap_net_limit(limit) == 0);
 
-	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, "http") ==
-	    0);
+	ATF_REQUIRE(
+	    test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, "http") == 0);
 	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, NULL) ==
 	    ENOTCAPABLE);
-	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_1, "http") ==
-	    0);
+	ATF_REQUIRE(
+	    test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_1, "http") == 0);
 	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, NULL) ==
 	    ENOTCAPABLE);
 	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_1, "snmp") ==
@@ -898,10 +889,10 @@ ATF_TC_BODY(capnet__limits_name2addr_family, tc)
 	cap_net_limit_name2addr_family(limit, family, nitems(family));
 	ATF_REQUIRE(cap_net_limit(limit) == 0);
 
-	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, NULL) ==
-	    0);
-	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET6, TEST_DOMAIN_0, NULL) ==
-	    0);
+	ATF_REQUIRE(
+	    test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, NULL) == 0);
+	ATF_REQUIRE(
+	    test_getaddrinfo(capnet, AF_INET6, TEST_DOMAIN_0, NULL) == 0);
 	ATF_REQUIRE(test_getaddrinfo(capnet, PF_LINK, TEST_DOMAIN_0, NULL) ==
 	    ENOTCAPABLE);
 
@@ -913,10 +904,10 @@ ATF_TC_BODY(capnet__limits_name2addr_family, tc)
 	cap_net_limit_name2addr_family(limit, &family[1], 1);
 	ATF_REQUIRE(cap_net_limit(limit) == 0);
 
-	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, NULL) ==
-	    0);
-	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET6, TEST_DOMAIN_0, NULL) ==
-	    0);
+	ATF_REQUIRE(
+	    test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, NULL) == 0);
+	ATF_REQUIRE(
+	    test_getaddrinfo(capnet, AF_INET6, TEST_DOMAIN_0, NULL) == 0);
 	ATF_REQUIRE(test_getaddrinfo(capnet, PF_LINK, TEST_DOMAIN_0, NULL) ==
 	    ENOTCAPABLE);
 
@@ -929,8 +920,8 @@ ATF_TC_BODY(capnet__limits_name2addr_family, tc)
 
 	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, NULL) ==
 	    ENOTCAPABLE);
-	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET6, TEST_DOMAIN_0, NULL) ==
-	    0);
+	ATF_REQUIRE(
+	    test_getaddrinfo(capnet, AF_INET6, TEST_DOMAIN_0, NULL) == 0);
 	ATF_REQUIRE(test_getaddrinfo(capnet, PF_LINK, TEST_DOMAIN_0, NULL) ==
 	    ENOTCAPABLE);
 
@@ -958,10 +949,10 @@ ATF_TC_BODY(capnet__limits_deprecated_name2addr_mode, tc)
 	ATF_REQUIRE(test_gethostbyname(capnet, AF_INET, TEST_DOMAIN_0) == 0);
 
 	/* DISALLOWED */
-	ATF_REQUIRE(test_getnameinfo(capnet, AF_INET, TEST_IPV4) ==
-	    ENOTCAPABLE);
-	ATF_REQUIRE(test_gethostbyaddr(capnet, AF_INET, TEST_IPV4) ==
-	    ENOTCAPABLE);
+	ATF_REQUIRE(
+	    test_getnameinfo(capnet, AF_INET, TEST_IPV4) == ENOTCAPABLE);
+	ATF_REQUIRE(
+	    test_gethostbyaddr(capnet, AF_INET, TEST_IPV4) == ENOTCAPABLE);
 	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, NULL) ==
 	    ENOTCAPABLE);
 	ATF_REQUIRE(test_bind(capnet, TEST_BIND_IPV4) == ENOTCAPABLE);
@@ -1084,10 +1075,10 @@ ATF_TC_BODY(capnet__limits_bind_mode, tc)
 	/* DISALLOWED */
 	ATF_REQUIRE(
 	    test_gethostbyname(capnet, AF_INET, TEST_DOMAIN_0) == ENOTCAPABLE);
-	ATF_REQUIRE(test_getnameinfo(capnet, AF_INET, TEST_IPV4) ==
-	    ENOTCAPABLE);
-	ATF_REQUIRE(test_gethostbyaddr(capnet, AF_INET, TEST_IPV4) ==
-	    ENOTCAPABLE);
+	ATF_REQUIRE(
+	    test_getnameinfo(capnet, AF_INET, TEST_IPV4) == ENOTCAPABLE);
+	ATF_REQUIRE(
+	    test_gethostbyaddr(capnet, AF_INET, TEST_IPV4) == ENOTCAPABLE);
 	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, NULL) ==
 	    ENOTCAPABLE);
 	ATF_REQUIRE(test_connect(capnet, TEST_IPV4, 80) == ENOTCAPABLE);
@@ -1141,10 +1132,10 @@ ATF_TC_BODY(capnet__limits_connect_mode, tc)
 	/* DISALLOWED */
 	ATF_REQUIRE(
 	    test_gethostbyname(capnet, AF_INET, TEST_DOMAIN_0) == ENOTCAPABLE);
-	ATF_REQUIRE(test_getnameinfo(capnet, AF_INET, TEST_IPV4) ==
-	    ENOTCAPABLE);
-	ATF_REQUIRE(test_gethostbyaddr(capnet, AF_INET, TEST_IPV4) ==
-	    ENOTCAPABLE);
+	ATF_REQUIRE(
+	    test_getnameinfo(capnet, AF_INET, TEST_IPV4) == ENOTCAPABLE);
+	ATF_REQUIRE(
+	    test_gethostbyaddr(capnet, AF_INET, TEST_IPV4) == ENOTCAPABLE);
 	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, NULL) ==
 	    ENOTCAPABLE);
 	ATF_REQUIRE(test_bind(capnet, TEST_BIND_IPV4) == ENOTCAPABLE);
@@ -1173,10 +1164,10 @@ ATF_TC_BODY(capnet__limits_connect_dns_mode, tc)
 	/* DISALLOWED */
 	ATF_REQUIRE(
 	    test_gethostbyname(capnet, AF_INET, TEST_DOMAIN_0) == ENOTCAPABLE);
-	ATF_REQUIRE(test_getnameinfo(capnet, AF_INET, TEST_IPV4) ==
-	    ENOTCAPABLE);
-	ATF_REQUIRE(test_gethostbyaddr(capnet, AF_INET, TEST_IPV4) ==
-	    ENOTCAPABLE);
+	ATF_REQUIRE(
+	    test_getnameinfo(capnet, AF_INET, TEST_IPV4) == ENOTCAPABLE);
+	ATF_REQUIRE(
+	    test_gethostbyaddr(capnet, AF_INET, TEST_IPV4) == ENOTCAPABLE);
 	ATF_REQUIRE(test_getaddrinfo(capnet, AF_INET, TEST_DOMAIN_0, NULL) ==
 	    ENOTCAPABLE);
 	ATF_REQUIRE(test_bind(capnet, TEST_BIND_IPV4) == ENOTCAPABLE);
@@ -1241,8 +1232,8 @@ ATF_TC_BODY(capnet__limits_connecttodns, tc)
 
 	capnet = create_network_service();
 
-	limit = cap_net_limit_init(capnet, CAPNET_CONNECTDNS |
-	    CAPNET_NAME2ADDR);
+	limit = cap_net_limit_init(capnet,
+	    CAPNET_CONNECTDNS | CAPNET_NAME2ADDR);
 	ATF_REQUIRE(limit != NULL);
 	cap_net_limit_name2addr(limit, TEST_IPV4, "80");
 	cap_net_limit_name2addr_family(limit, family, 1);
@@ -1253,8 +1244,8 @@ ATF_TC_BODY(capnet__limits_connecttodns, tc)
 	hints.ai_socktype = SOCK_STREAM;
 
 	ATF_REQUIRE(test_connect(capnet, "8.8.8.8", 433) == ENOTCAPABLE);
-	ATF_REQUIRE(cap_getaddrinfo(capnet, TEST_IPV4, "80", &hints, &capres) ==
-	    0);
+	ATF_REQUIRE(
+	    cap_getaddrinfo(capnet, TEST_IPV4, "80", &hints, &capres) == 0);
 	ATF_REQUIRE(test_connect(capnet, "8.8.8.8", 433) == ENOTCAPABLE);
 
 	for (res = capres; res != NULL; res = res->ai_next) {
@@ -1266,8 +1257,7 @@ ATF_TC_BODY(capnet__limits_connecttodns, tc)
 		s = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 		ATF_REQUIRE(s >= 0);
 
-		error = cap_connect(capnet, s, res->ai_addr,
-		    res->ai_addrlen);
+		error = cap_connect(capnet, s, res->ai_addr, res->ai_addrlen);
 		if (error != 0 && errno != ENOTCAPABLE)
 			atf_tc_skip("unable to connect: %s", strerror(errno));
 		ATF_REQUIRE(error == 0);
@@ -1277,7 +1267,6 @@ ATF_TC_BODY(capnet__limits_connecttodns, tc)
 	freeaddrinfo(capres);
 	cap_close(capnet);
 }
-
 
 ATF_TC_WITHOUT_HEAD(capnet__limits_deprecated_connecttodns);
 ATF_TC_BODY(capnet__limits_deprecated_connecttodns, tc)
@@ -1292,8 +1281,8 @@ ATF_TC_BODY(capnet__limits_deprecated_connecttodns, tc)
 
 	capnet = create_network_service();
 
-	limit = cap_net_limit_init(capnet, CAPNET_CONNECTDNS |
-	    CAPNET_DEPRECATED_NAME2ADDR);
+	limit = cap_net_limit_init(capnet,
+	    CAPNET_CONNECTDNS | CAPNET_DEPRECATED_NAME2ADDR);
 	ATF_REQUIRE(limit != NULL);
 	cap_net_limit_name2addr(limit, TEST_IPV4, NULL);
 	cap_net_limit_name2addr_family(limit, family, 1);

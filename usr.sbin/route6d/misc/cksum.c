@@ -35,12 +35,13 @@ unsigned short buf[BUFSIZ];
 
 main()
 {
-	int	i;
+	int i;
 	unsigned short *p = buf, *q = &buf[4];
 	unsigned long sum, sum2;
 
 	while (scanf("%x", &i) != EOF) {
-		*p++ = i; printf("%d ", i);
+		*p++ = i;
+		printf("%d ", i);
 	}
 	printf("\n");
 

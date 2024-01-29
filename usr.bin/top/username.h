@@ -11,11 +11,11 @@
 
 #include <stdbool.h>
 
-int	 enter_user(int uid, char *name, bool wecare);
-int	 get_user(int uid);
-void	 init_hash(void);
-char 	*username(int uid);
-int 	 userid(char *username);
+int enter_user(int uid, char *name, bool wecare);
+int get_user(int uid);
+void init_hash(void);
+char *username(int uid);
+int userid(char *username);
 
 /*
  *  "Table_size" defines the size of the hash tables used to map uid to
@@ -25,6 +25,6 @@ int 	 userid(char *username);
  *  work best if the number is a prime number that is about twice the number
  *  of lines in /etc/passwd.
  */
-#define Table_size	20011
+#define Table_size 20011
 
 #endif /* USERNAME_H */

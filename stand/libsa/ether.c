@@ -35,17 +35,18 @@
 
 #include <sys/param.h>
 #include <sys/socket.h>
-#include <string.h>
 
 #include <net/if.h>
-#include <netinet/in.h>
 #include <netinet/if_ether.h>
+#include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
 
-#include "stand.h"
+#include <string.h>
+
 #include "net.h"
 #include "netif.h"
+#include "stand.h"
 
 /* Caller must leave room for ethernet header in front!! */
 ssize_t
@@ -55,15 +56,15 @@ sendether(struct iodesc *d, void *pkt, size_t len, uint8_t *dea, int etype)
 	struct ether_header *eh;
 
 #ifdef ETHER_DEBUG
- 	if (debug)
+	if (debug)
 		printf("sendether: called\n");
 #endif
 
 	eh = (struct ether_header *)pkt - 1;
 	len += sizeof(*eh);
 
-	MACPY(d->myea, eh->ether_shost);		/* by byte */
-	MACPY(dea, eh->ether_dhost);			/* by byte */
+	MACPY(d->myea, eh->ether_shost); /* by byte */
+	MACPY(dea, eh->ether_dhost);	 /* by byte */
 	eh->ether_type = htons(etype);
 
 	n = netif_put(d, eh, len);
@@ -89,7 +90,7 @@ readether(struct iodesc *d, void **pkt, void **payload, time_t tleft,
 	void *ptr;
 
 #ifdef ETHER_DEBUG
- 	if (debug)
+	if (debug)
 		printf("readether: called\n");
 #endif
 

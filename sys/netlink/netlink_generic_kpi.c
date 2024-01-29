@@ -40,30 +40,30 @@
 #include <netlink/netlink_generic.h>
 #include <netlink/netlink_var.h>
 
-#define	DEBUG_MOD_NAME	nl_generic_kpi
-#define	DEBUG_MAX_LEVEL	LOG_DEBUG3
+#define DEBUG_MOD_NAME nl_generic_kpi
+#define DEBUG_MAX_LEVEL LOG_DEBUG3
 #include <netlink/netlink_debug.h>
 _DECLARE_DEBUG(LOG_INFO);
-
 
 /*
  * NETLINK_GENERIC families/groups registration logic
  */
 
-#define	GENL_LOCK()		sx_xlock(&sx_lock)
-#define	GENL_UNLOCK()		sx_xunlock(&sx_lock)
+#define GENL_LOCK() sx_xlock(&sx_lock)
+#define GENL_UNLOCK() sx_xunlock(&sx_lock)
 static struct sx sx_lock;
 SX_SYSINIT(genl_lock, &sx_lock, "genetlink lock");
 
-static struct genl_family	families[MAX_FAMILIES];
-static struct genl_group	groups[MAX_GROUPS];
+static struct genl_family families[MAX_FAMILIES];
+static struct genl_group groups[MAX_GROUPS];
 
 static struct genl_family *
 find_family(const char *family_name)
 {
 	for (int i = 0; i < MAX_FAMILIES; i++) {
 		struct genl_family *gf = &families[i];
-		if (gf->family_name != NULL && !strcmp(gf->family_name, family_name))
+		if (gf->family_name != NULL &&
+		    !strcmp(gf->family_name, family_name))
 			return (gf);
 	}
 
@@ -93,8 +93,8 @@ find_empty_family_id(const char *family_name)
 }
 
 uint32_t
-genl_register_family(const char *family_name, size_t hdrsize, int family_version,
-    int max_attr_idx)
+genl_register_family(const char *family_name, size_t hdrsize,
+    int family_version, int max_attr_idx)
 {
 	uint32_t family_id = 0;
 
@@ -111,7 +111,8 @@ genl_register_family(const char *family_name, size_t hdrsize, int family_version
 	gf->family_version = family_version;
 	gf->family_hdrsize = hdrsize;
 	gf->family_attr_max = max_attr_idx;
-	NL_LOG(LOG_DEBUG2, "Registered family %s id %d", gf->family_name, gf->family_id);
+	NL_LOG(LOG_DEBUG2, "Registered family %s id %d", gf->family_name,
+	    gf->family_id);
 	family_id = gf->family_id;
 	EVENTHANDLER_INVOKE(genl_family_event, gf, CTRL_CMD_NEWFAMILY);
 
@@ -168,7 +169,8 @@ genl_unregister_family(const char *family_name)
 }
 
 bool
-genl_register_cmds(const char *family_name, const struct genl_cmd *cmds, int count)
+genl_register_cmds(const char *family_name, const struct genl_cmd *cmds,
+    int count)
 {
 	GENL_LOCK();
 	struct genl_family *gf = find_family(family_name);
@@ -190,7 +192,8 @@ genl_register_cmds(const char *family_name, const struct genl_cmd *cmds, int cou
 		size_t sz = cmd_size * sizeof(struct genl_cmd);
 		void *data = malloc(sz, M_NETLINK, M_WAITOK | M_ZERO);
 
-		memcpy(data, gf->family_cmds, gf->family_cmd_size * sizeof(struct genl_cmd));
+		memcpy(data, gf->family_cmds,
+		    gf->family_cmd_size * sizeof(struct genl_cmd));
 		void *old_data = gf->family_cmds;
 		gf->family_cmds = data;
 		gf->family_cmd_size = cmd_size;
@@ -213,7 +216,8 @@ find_group(const struct genl_family *gf, const char *group_name)
 {
 	for (int i = 0; i < MAX_GROUPS; i++) {
 		struct genl_group *gg = &groups[i];
-		if (gg->group_family == gf && !strcmp(gg->group_name, group_name))
+		if (gg->group_family == gf &&
+		    !strcmp(gg->group_name, group_name))
 			return (gg);
 	}
 	return (NULL);
@@ -274,4 +278,3 @@ genl_get_group(uint32_t group_id)
 {
 	return ((group_id < MAX_GROUPS) ? &groups[group_id] : NULL);
 }
-

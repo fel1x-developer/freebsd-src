@@ -32,13 +32,12 @@
 #include <sys/conf.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-
-#include <dev/quicc/quicc_bus.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
-#include <sys/rman.h>
 #include <machine/resource.h>
 
+#include <dev/quicc/quicc_bus.h>
 #include <dev/scc/scc_bfe.h>
 
 static int
@@ -75,16 +74,16 @@ scc_quicc_attach(device_t dev)
 
 static device_method_t scc_quicc_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		scc_quicc_probe),
-	DEVMETHOD(device_attach,	scc_quicc_attach),
-	DEVMETHOD(device_detach,	scc_bfe_detach),
+	DEVMETHOD(device_probe, scc_quicc_probe),
+	DEVMETHOD(device_attach, scc_quicc_attach),
+	DEVMETHOD(device_detach, scc_bfe_detach),
 
-	DEVMETHOD(bus_alloc_resource,	scc_bus_alloc_resource),
-	DEVMETHOD(bus_release_resource,	scc_bus_release_resource),
-	DEVMETHOD(bus_get_resource,	scc_bus_get_resource),
-	DEVMETHOD(bus_read_ivar,	scc_bus_read_ivar),
-	DEVMETHOD(bus_setup_intr,	scc_bus_setup_intr),
-	DEVMETHOD(bus_teardown_intr,	scc_bus_teardown_intr),
+	DEVMETHOD(bus_alloc_resource, scc_bus_alloc_resource),
+	DEVMETHOD(bus_release_resource, scc_bus_release_resource),
+	DEVMETHOD(bus_get_resource, scc_bus_get_resource),
+	DEVMETHOD(bus_read_ivar, scc_bus_read_ivar),
+	DEVMETHOD(bus_setup_intr, scc_bus_setup_intr),
+	DEVMETHOD(bus_teardown_intr, scc_bus_teardown_intr),
 
 	DEVMETHOD_END
 };

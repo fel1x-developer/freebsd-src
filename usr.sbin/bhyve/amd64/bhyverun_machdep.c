@@ -30,7 +30,6 @@
 #include <err.h>
 #include <stdbool.h>
 #include <stdlib.h>
-
 #include <vmmapi.h>
 
 #include "acpi.h"
@@ -40,8 +39,8 @@
 #include "debug.h"
 #include "e820.h"
 #include "fwctl.h"
-#include "ioapic.h"
 #include "inout.h"
+#include "ioapic.h"
 #include "kernemu_dev.h"
 #include "mptbl.h"
 #include "pci_irq.h"
@@ -115,7 +114,8 @@ bhyve_start_vcpu(struct vcpu *vcpu, bool bsp)
 			error = vm_set_capability(vcpu,
 			    VM_CAP_UNRESTRICTED_GUEST, 1);
 			if (error != 0) {
-				err(4, "ROM boot failed: unrestricted guest "
+				err(4,
+				    "ROM boot failed: unrestricted guest "
 				    "capability not available");
 			}
 			error = vcpu_reset(vcpu);

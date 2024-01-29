@@ -26,16 +26,16 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef	_LINUXKPI_LINUX_NET_H_
-#define	_LINUXKPI_LINUX_NET_H_
+#ifndef _LINUXKPI_LINUX_NET_H_
+#define _LINUXKPI_LINUX_NET_H_
 
 #include <sys/types.h>
+#include <sys/errno.h>
 #include <sys/malloc.h>
 #include <sys/proc.h>
 #include <sys/protosw.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
-#include <sys/errno.h>
 
 static inline int
 sock_create_kern(int family, int type, int proto, struct socket **res)
@@ -56,7 +56,7 @@ sock_getname(struct socket *so, struct sockaddr *sa, int *sockaddr_len,
 	 * length.  Such notion doesn't even exist in Linux KPI.
 	 */
 	if (peer) {
-		if ((so->so_state & (SS_ISCONNECTED|SS_ISCONFIRMING)) == 0)
+		if ((so->so_state & (SS_ISCONNECTED | SS_ISCONFIRMING)) == 0)
 			return (-ENOTCONN);
 
 		error = so->so_proto->pr_peeraddr(so, sa);
@@ -75,7 +75,6 @@ sock_release(struct socket *so)
 	soclose(so);
 }
 
-
 int linuxkpi_net_ratelimit(void);
 
 static inline int
@@ -85,4 +84,4 @@ net_ratelimit(void)
 	return (linuxkpi_net_ratelimit());
 }
 
-#endif	/* _LINUXKPI_LINUX_NET_H_ */
+#endif /* _LINUXKPI_LINUX_NET_H_ */

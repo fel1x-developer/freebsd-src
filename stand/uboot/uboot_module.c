@@ -51,5 +51,5 @@ uboot_autoload(void)
 	}
 #endif
 
-	return(0);
+	return (0);
 }

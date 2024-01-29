@@ -31,51 +31,54 @@
 #ifndef __T4_ADAPTER_H__
 #define __T4_ADAPTER_H__
 
-#include <sys/kernel.h>
+#include <sys/types.h>
 #include <sys/bus.h>
 #include <sys/counter.h>
-#include <sys/rman.h>
-#include <sys/types.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/rman.h>
 #include <sys/rwlock.h>
 #include <sys/seqc.h>
-#include <sys/sx.h>
-#include <sys/vmem.h>
-#include <vm/uma.h>
-
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
-#include <machine/bus.h>
 #include <sys/socket.h>
+#include <sys/sx.h>
 #include <sys/sysctl.h>
 #include <sys/taskqueue.h>
+#include <sys/vmem.h>
+
+#include <vm/uma.h>
+
+#include <machine/bus.h>
+
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
 #include <net/ethernet.h>
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_media.h>
+#include <net/if_var.h>
 #include <net/pfil.h>
 #include <netinet/in.h>
 #include <netinet/tcp_lro.h>
 
-#include "offload.h"
-#include "t4_ioctl.h"
 #include "common/t4_msg.h"
 #include "firmware/t4fw_interface.h"
+#include "offload.h"
+#include "t4_ioctl.h"
 
-#define KTR_CXGBE	KTR_SPARE3
+#define KTR_CXGBE KTR_SPARE3
 MALLOC_DECLARE(M_CXGBE);
 #define CXGBE_UNIMPLEMENTED(s) \
-    panic("%s (%s, line %d) not implemented yet.", s, __FILE__, __LINE__)
+	panic("%s (%s, line %d) not implemented yet.", s, __FILE__, __LINE__)
 
 /*
  * Same as LIST_HEAD from queue.h.  This is to avoid conflict with LinuxKPI's
  * LIST_HEAD when building iw_cxgbe.
  */
-#define	CXGBE_LIST_HEAD(name, type)					\
-struct name {								\
-	struct type *lh_first;	/* first element */			\
-}
+#define CXGBE_LIST_HEAD(name, type)                        \
+	struct name {                                      \
+		struct type *lh_first; /* first element */ \
+	}
 
 #ifndef SYSCTL_ADD_UQUAD
 #define SYSCTL_ADD_UQUAD SYSCTL_ADD_QUAD
@@ -107,7 +110,7 @@ enum {
 	CTRL_EQ_QSIZE = 1024,
 	TX_EQ_QSIZE = 1024,
 
-	SW_ZONE_SIZES = 4,	/* cluster, jumbop, jumbo9k, jumbo16k */
+	SW_ZONE_SIZES = 4, /* cluster, jumbop, jumbo9k, jumbo16k */
 	CL_METADATA_SIZE = CACHE_LINE_SIZE,
 
 	SGE_MAX_WR_NDESC = SGE_MAX_WR_LEN / EQ_ESIZE, /* max WR size in desc */
@@ -115,81 +118,94 @@ enum {
 	TX_SGL_SEGS_TSO = 38,
 	TX_SGL_SEGS_VM = 38,
 	TX_SGL_SEGS_VM_TSO = 37,
-	TX_SGL_SEGS_EO_TSO = 30,	/* XXX: lower for IPv6. */
+	TX_SGL_SEGS_EO_TSO = 30, /* XXX: lower for IPv6. */
 	TX_SGL_SEGS_VXLAN_TSO = 37,
 	TX_WR_FLITS = SGE_MAX_WR_LEN / 8
 };
 
 enum {
 	/* adapter intr_type */
-	INTR_INTX	= (1 << 0),
-	INTR_MSI	= (1 << 1),
-	INTR_MSIX	= (1 << 2)
+	INTR_INTX = (1 << 0),
+	INTR_MSI = (1 << 1),
+	INTR_MSIX = (1 << 2)
 };
 
 enum {
-	XGMAC_MTU	= (1 << 0),
-	XGMAC_PROMISC	= (1 << 1),
-	XGMAC_ALLMULTI	= (1 << 2),
-	XGMAC_VLANEX	= (1 << 3),
-	XGMAC_UCADDR	= (1 << 4),
-	XGMAC_MCADDRS	= (1 << 5),
+	XGMAC_MTU = (1 << 0),
+	XGMAC_PROMISC = (1 << 1),
+	XGMAC_ALLMULTI = (1 << 2),
+	XGMAC_VLANEX = (1 << 3),
+	XGMAC_UCADDR = (1 << 4),
+	XGMAC_MCADDRS = (1 << 5),
 
-	XGMAC_ALL	= 0xffff
+	XGMAC_ALL = 0xffff
 };
 
 enum {
 	/* flags understood by begin_synchronized_op */
-	HOLD_LOCK	= (1 << 0),
-	SLEEP_OK	= (1 << 1),
-	INTR_OK		= (1 << 2),
+	HOLD_LOCK = (1 << 0),
+	SLEEP_OK = (1 << 1),
+	INTR_OK = (1 << 2),
 
 	/* flags understood by end_synchronized_op */
-	LOCK_HELD	= HOLD_LOCK,
+	LOCK_HELD = HOLD_LOCK,
 };
 
 enum {
 	/* adapter flags.  synch_op or adapter_lock. */
-	FULL_INIT_DONE	= (1 << 0),
-	FW_OK		= (1 << 1),
-	CHK_MBOX_ACCESS	= (1 << 2),
-	MASTER_PF	= (1 << 3),
-	BUF_PACKING_OK	= (1 << 6),
-	IS_VF		= (1 << 7),
-	KERN_TLS_ON	= (1 << 8),	/* HW is configured for KERN_TLS */
-	CXGBE_BUSY	= (1 << 9),
+	FULL_INIT_DONE = (1 << 0),
+	FW_OK = (1 << 1),
+	CHK_MBOX_ACCESS = (1 << 2),
+	MASTER_PF = (1 << 3),
+	BUF_PACKING_OK = (1 << 6),
+	IS_VF = (1 << 7),
+	KERN_TLS_ON = (1 << 8), /* HW is configured for KERN_TLS */
+	CXGBE_BUSY = (1 << 9),
 
-	/* adapter error_flags.  reg_lock for HW_OFF_LIMITS, atomics for the rest. */
-	ADAP_STOPPED	= (1 << 0),	/* Adapter has been stopped. */
-	ADAP_FATAL_ERR	= (1 << 1),	/* Encountered a fatal error. */
-	HW_OFF_LIMITS	= (1 << 2),	/* off limits to all except reset_thread */
-	ADAP_CIM_ERR	= (1 << 3),	/* Error was related to FW/CIM. */
+	/* adapter error_flags.  reg_lock for HW_OFF_LIMITS, atomics for the
+	   rest. */
+	ADAP_STOPPED = (1 << 0),   /* Adapter has been stopped. */
+	ADAP_FATAL_ERR = (1 << 1), /* Encountered a fatal error. */
+	HW_OFF_LIMITS = (1 << 2),  /* off limits to all except reset_thread */
+	ADAP_CIM_ERR = (1 << 3),   /* Error was related to FW/CIM. */
 
 	/* port flags */
-	HAS_TRACEQ	= (1 << 3),
-	FIXED_IFMEDIA	= (1 << 4),	/* ifmedia list doesn't change. */
+	HAS_TRACEQ = (1 << 3),
+	FIXED_IFMEDIA = (1 << 4), /* ifmedia list doesn't change. */
 
 	/* VI flags */
-	VI_DETACHING	= (1 << 0),
-	VI_INIT_DONE	= (1 << 1),
+	VI_DETACHING = (1 << 0),
+	VI_INIT_DONE = (1 << 1),
 	/* 1 << 2 is unused, was VI_SYSCTL_CTX */
-	TX_USES_VM_WR	= (1 << 3),
-	VI_SKIP_STATS	= (1 << 4),
+	TX_USES_VM_WR = (1 << 3),
+	VI_SKIP_STATS = (1 << 4),
 
 	/* adapter debug_flags */
-	DF_DUMP_MBOX		= (1 << 0),	/* Log all mbox cmd/rpl. */
-	DF_LOAD_FW_ANYTIME	= (1 << 1),	/* Allow LOAD_FW after init */
-	DF_DISABLE_TCB_CACHE	= (1 << 2),	/* Disable TCB cache (T6+) */
-	DF_DISABLE_CFG_RETRY	= (1 << 3),	/* Disable fallback config */
-	DF_VERBOSE_SLOWINTR	= (1 << 4),	/* Chatty slow intr handler */
+	DF_DUMP_MBOX = (1 << 0),	 /* Log all mbox cmd/rpl. */
+	DF_LOAD_FW_ANYTIME = (1 << 1),	 /* Allow LOAD_FW after init */
+	DF_DISABLE_TCB_CACHE = (1 << 2), /* Disable TCB cache (T6+) */
+	DF_DISABLE_CFG_RETRY = (1 << 3), /* Disable fallback config */
+	DF_VERBOSE_SLOWINTR = (1 << 4),	 /* Chatty slow intr handler */
 };
 
-#define IS_DETACHING(vi)	((vi)->flags & VI_DETACHING)
-#define SET_DETACHING(vi)	do {(vi)->flags |= VI_DETACHING;} while (0)
-#define CLR_DETACHING(vi)	do {(vi)->flags &= ~VI_DETACHING;} while (0)
-#define IS_BUSY(sc)	((sc)->flags & CXGBE_BUSY)
-#define SET_BUSY(sc)	do {(sc)->flags |= CXGBE_BUSY;} while (0)
-#define CLR_BUSY(sc)	do {(sc)->flags &= ~CXGBE_BUSY;} while (0)
+#define IS_DETACHING(vi) ((vi)->flags & VI_DETACHING)
+#define SET_DETACHING(vi)                    \
+	do {                                 \
+		(vi)->flags |= VI_DETACHING; \
+	} while (0)
+#define CLR_DETACHING(vi)                     \
+	do {                                  \
+		(vi)->flags &= ~VI_DETACHING; \
+	} while (0)
+#define IS_BUSY(sc) ((sc)->flags & CXGBE_BUSY)
+#define SET_BUSY(sc)                       \
+	do {                               \
+		(sc)->flags |= CXGBE_BUSY; \
+	} while (0)
+#define CLR_BUSY(sc)                        \
+	do {                                \
+		(sc)->flags &= ~CXGBE_BUSY; \
+	} while (0)
 
 struct vi_info {
 	device_t dev;
@@ -203,11 +219,11 @@ struct vi_info {
 	int if_flags;
 
 	uint16_t *rss, *nm_rss;
-	uint16_t viid;		/* opaque VI identifier */
+	uint16_t viid; /* opaque VI identifier */
 	uint16_t smt_idx;
 	uint16_t vin;
 	uint8_t vfvld;
-	int16_t  xact_addr_filt;/* index of exact MAC address filter */
+	int16_t xact_addr_filt; /* index of exact MAC address filter */
 	uint16_t rss_size;	/* size of VI's RSS table slice */
 	uint16_t rss_base;	/* start of VI's RSS table slice */
 	int hashen;
@@ -216,15 +232,15 @@ struct vi_info {
 	int first_intr;
 
 	/* These need to be int as they are used in sysctl */
-	int ntxq;		/* # of tx queues */
-	int first_txq;		/* index of first tx queue */
-	int rsrv_noflowq;	/* Reserve queue 0 for non-flowid packets */
-	int nrxq;		/* # of rx queues */
-	int first_rxq;		/* index of first rx queue */
-	int nofldtxq;		/* # of offload tx queues */
-	int first_ofld_txq;	/* index of first offload tx queue */
-	int nofldrxq;		/* # of offload rx queues */
-	int first_ofld_rxq;	/* index of first offload rx queue */
+	int ntxq;	    /* # of tx queues */
+	int first_txq;	    /* index of first tx queue */
+	int rsrv_noflowq;   /* Reserve queue 0 for non-flowid packets */
+	int nrxq;	    /* # of rx queues */
+	int first_rxq;	    /* index of first rx queue */
+	int nofldtxq;	    /* # of offload tx queues */
+	int first_ofld_txq; /* index of first offload tx queue */
+	int nofldrxq;	    /* # of offload rx queues */
+	int first_ofld_rxq; /* index of first offload rx queue */
 	int nnmtxq;
 	int first_nm_txq;
 	int nnmrxq;
@@ -255,31 +271,31 @@ struct vi_info {
 };
 
 struct tx_ch_rl_params {
-	enum fw_sched_params_rate ratemode;	/* %port (REL) or kbps (ABS) */
+	enum fw_sched_params_rate ratemode; /* %port (REL) or kbps (ABS) */
 	uint32_t maxrate;
 };
 
 /* CLRL state */
 enum clrl_state {
 	CS_UNINITIALIZED = 0,
-	CS_PARAMS_SET,			/* sw parameters have been set. */
-	CS_HW_UPDATE_REQUESTED,		/* async HW update requested. */
-	CS_HW_UPDATE_IN_PROGRESS,	/* sync hw update in progress. */
-	CS_HW_CONFIGURED		/* configured in the hardware. */
+	CS_PARAMS_SET,		  /* sw parameters have been set. */
+	CS_HW_UPDATE_REQUESTED,	  /* async HW update requested. */
+	CS_HW_UPDATE_IN_PROGRESS, /* sync hw update in progress. */
+	CS_HW_CONFIGURED	  /* configured in the hardware. */
 };
 
 /* CLRL flags */
 enum {
-	CF_USER		= (1 << 0),	/* was configured by driver ioctl. */
+	CF_USER = (1 << 0), /* was configured by driver ioctl. */
 };
 
 struct tx_cl_rl_params {
 	enum clrl_state state;
 	int refcount;
 	uint8_t flags;
-	enum fw_sched_params_rate ratemode;	/* %port REL or ABS value */
-	enum fw_sched_params_unit rateunit;	/* kbps or pps (when ABS) */
-	enum fw_sched_params_mode mode;		/* aggr or per-flow */
+	enum fw_sched_params_rate ratemode; /* %port REL or ABS value */
+	enum fw_sched_params_unit rateunit; /* kbps or pps (when ABS) */
+	enum fw_sched_params_mode mode;	    /* aggr or per-flow */
 	uint32_t maxrate;
 	uint16_t pktsize;
 	uint16_t burstsize;
@@ -315,15 +331,15 @@ struct port_info {
 	char lockname[16];
 	unsigned long flags;
 
-	uint8_t  lport;		/* associated offload logical port */
-	int8_t   mdio_addr;
-	uint8_t  port_type;
-	uint8_t  mod_type;
-	uint8_t  port_id;
-	uint8_t  tx_chan;
-	uint8_t  mps_bg_map;	/* rx MPS buffer group bitmap */
-	uint8_t  rx_e_chan_map;	/* rx TP e-channel bitmap */
-	uint8_t  rx_c_chan;	/* rx TP c-channel */
+	uint8_t lport; /* associated offload logical port */
+	int8_t mdio_addr;
+	uint8_t port_type;
+	uint8_t mod_type;
+	uint8_t port_id;
+	uint8_t tx_chan;
+	uint8_t mps_bg_map;    /* rx MPS buffer group bitmap */
+	uint8_t rx_e_chan_map; /* rx TP e-channel bitmap */
+	uint8_t rx_c_chan;     /* rx TP c-channel */
 
 	struct link_config link_cfg;
 	struct ifmedia media;
@@ -337,7 +353,7 @@ struct port_info {
 	struct sysctl_ctx_list ctx;
 };
 
-#define	IS_MAIN_VI(vi)		((vi) == &((vi)->pi->vi[0]))
+#define IS_MAIN_VI(vi) ((vi) == &((vi)->pi->vi[0]))
 
 struct cluster_metadata {
 	uma_zone_t zone;
@@ -347,7 +363,7 @@ struct cluster_metadata {
 
 struct fl_sdesc {
 	caddr_t cl;
-	uint16_t nmbuf;	/* # of driver originated mbufs with ref on cluster */
+	uint16_t nmbuf; /* # of driver originated mbufs with ref on cluster */
 	int16_t moff;	/* offset of metadata from cl */
 	uint8_t zidx;
 };
@@ -357,10 +373,9 @@ struct tx_desc {
 };
 
 struct tx_sdesc {
-	struct mbuf *m;		/* m_nextpkt linked chain of frames */
-	uint8_t desc_used;	/* # of hardware descriptors used by the WR */
+	struct mbuf *m;	   /* m_nextpkt linked chain of frames */
+	uint8_t desc_used; /* # of hardware descriptors used by the WR */
 };
-
 
 #define IQ_PAD (IQ_ESIZE - sizeof(struct rsp_ctrl) - sizeof(struct rss_header))
 struct iq_desc {
@@ -373,27 +388,27 @@ CTASSERT(sizeof(struct iq_desc) == IQ_ESIZE);
 
 enum {
 	/* iq type */
-	IQ_OTHER	= FW_IQ_IQTYPE_OTHER,
-	IQ_ETH		= FW_IQ_IQTYPE_NIC,
-	IQ_OFLD		= FW_IQ_IQTYPE_OFLD,
+	IQ_OTHER = FW_IQ_IQTYPE_OTHER,
+	IQ_ETH = FW_IQ_IQTYPE_NIC,
+	IQ_OFLD = FW_IQ_IQTYPE_OFLD,
 
 	/* iq flags */
-	IQ_SW_ALLOCATED	= (1 << 0),	/* sw resources allocated */
-	IQ_HAS_FL	= (1 << 1),	/* iq associated with a freelist */
-	IQ_RX_TIMESTAMP	= (1 << 2),	/* provide the SGE rx timestamp */
-	IQ_LRO_ENABLED	= (1 << 3),	/* iq is an eth rxq with LRO enabled */
-	IQ_ADJ_CREDIT	= (1 << 4),	/* hw is off by 1 credit for this iq */
-	IQ_HW_ALLOCATED	= (1 << 5),	/* fw/hw resources allocated */
+	IQ_SW_ALLOCATED = (1 << 0), /* sw resources allocated */
+	IQ_HAS_FL = (1 << 1),	    /* iq associated with a freelist */
+	IQ_RX_TIMESTAMP = (1 << 2), /* provide the SGE rx timestamp */
+	IQ_LRO_ENABLED = (1 << 3),  /* iq is an eth rxq with LRO enabled */
+	IQ_ADJ_CREDIT = (1 << 4),   /* hw is off by 1 credit for this iq */
+	IQ_HW_ALLOCATED = (1 << 5), /* fw/hw resources allocated */
 
 	/* iq state */
-	IQS_DISABLED	= 0,
-	IQS_BUSY	= 1,
-	IQS_IDLE	= 2,
+	IQS_DISABLED = 0,
+	IQS_BUSY = 1,
+	IQS_IDLE = 2,
 
 	/* netmap related flags */
-	NM_OFF	= 0,
-	NM_ON	= 1,
-	NM_BUSY	= 2,
+	NM_OFF = 0,
+	NM_ON = 1,
+	NM_BUSY = 2,
 };
 
 enum {
@@ -406,13 +421,13 @@ enum {
 	CPL_COOKIE_ETHOFLD,
 	CPL_COOKIE_KERN_TLS,
 
-	NUM_CPL_COOKIES = 8	/* Limited by M_COOKIE.  Do not increase. */
+	NUM_CPL_COOKIES = 8 /* Limited by M_COOKIE.  Do not increase. */
 };
 
 struct sge_iq;
 struct rss_header;
-typedef int (*cpl_handler_t)(struct sge_iq *, const struct rss_header *,
-    struct mbuf *);
+typedef int (
+    *cpl_handler_t)(struct sge_iq *, const struct rss_header *, struct mbuf *);
 typedef int (*an_handler_t)(struct sge_iq *, const struct rsp_ctrl *);
 typedef int (*fw_msg_handler_t)(struct adapter *, const __be64 *);
 
@@ -424,40 +439,40 @@ struct sge_iq {
 	uint8_t qtype;
 	volatile int state;
 	struct adapter *adapter;
-	struct iq_desc  *desc;	/* KVA of descriptor ring */
-	int8_t   intr_pktc_idx;	/* packet count threshold index */
-	uint8_t  gen;		/* generation bit */
-	uint8_t  intr_params;	/* interrupt holdoff parameters */
-	int8_t   cong_drop;	/* congestion drop settings for the queue */
-	uint16_t qsize;		/* size (# of entries) of the queue */
-	uint16_t sidx;		/* index of the entry with the status page */
-	uint16_t cidx;		/* consumer index */
-	uint16_t cntxt_id;	/* SGE context id for the iq */
-	uint16_t abs_id;	/* absolute SGE id for the iq */
-	int16_t intr_idx;	/* interrupt used by the queue */
+	struct iq_desc *desc; /* KVA of descriptor ring */
+	int8_t intr_pktc_idx; /* packet count threshold index */
+	uint8_t gen;	      /* generation bit */
+	uint8_t intr_params;  /* interrupt holdoff parameters */
+	int8_t cong_drop;     /* congestion drop settings for the queue */
+	uint16_t qsize;	      /* size (# of entries) of the queue */
+	uint16_t sidx;	      /* index of the entry with the status page */
+	uint16_t cidx;	      /* consumer index */
+	uint16_t cntxt_id;    /* SGE context id for the iq */
+	uint16_t abs_id;      /* absolute SGE id for the iq */
+	int16_t intr_idx;     /* interrupt used by the queue */
 
 	STAILQ_ENTRY(sge_iq) link;
 
 	bus_dma_tag_t desc_tag;
 	bus_dmamap_t desc_map;
-	bus_addr_t ba;		/* bus address of descriptor ring */
+	bus_addr_t ba; /* bus address of descriptor ring */
 };
 
 enum {
 	/* eq type */
-	EQ_CTRL		= 1,
-	EQ_ETH		= 2,
-	EQ_OFLD		= 3,
+	EQ_CTRL = 1,
+	EQ_ETH = 2,
+	EQ_OFLD = 3,
 
 	/* eq flags */
-	EQ_SW_ALLOCATED	= (1 << 0),	/* sw resources allocated */
-	EQ_HW_ALLOCATED	= (1 << 1),	/* hw/fw resources allocated */
-	EQ_ENABLED	= (1 << 3),	/* open for business */
-	EQ_QFLUSH	= (1 << 4),	/* if_qflush in progress */
+	EQ_SW_ALLOCATED = (1 << 0), /* sw resources allocated */
+	EQ_HW_ALLOCATED = (1 << 1), /* hw/fw resources allocated */
+	EQ_ENABLED = (1 << 3),	    /* open for business */
+	EQ_QFLUSH = (1 << 4),	    /* if_qflush in progress */
 };
 
 /* Listed in order of preference.  Update t4_sysctls too if you change these */
-enum {DOORBELL_UDB, DOORBELL_WCWR, DOORBELL_UDBWC, DOORBELL_KDB};
+enum { DOORBELL_UDB, DOORBELL_WCWR, DOORBELL_UDBWC, DOORBELL_KDB };
 
 /*
  * Egress Queue: driver is producer, T4 is consumer.
@@ -466,16 +481,16 @@ enum {DOORBELL_UDB, DOORBELL_WCWR, DOORBELL_UDBWC, DOORBELL_KDB};
  * consumes them) but it's special enough to have its own struct (see sge_fl).
  */
 struct sge_eq {
-	unsigned int flags;	/* MUST be first */
-	unsigned int cntxt_id;	/* SGE context id for the eq */
-	unsigned int abs_id;	/* absolute SGE id for the eq */
-	uint8_t type;		/* EQ_CTRL/EQ_ETH/EQ_OFLD */
+	unsigned int flags;    /* MUST be first */
+	unsigned int cntxt_id; /* SGE context id for the eq */
+	unsigned int abs_id;   /* absolute SGE id for the eq */
+	uint8_t type;	       /* EQ_CTRL/EQ_ETH/EQ_OFLD */
 	uint8_t doorbells;
-	uint8_t tx_chan;	/* tx channel used by the eq */
+	uint8_t tx_chan; /* tx channel used by the eq */
 	struct mtx eq_lock;
 
 	struct tx_desc *desc;	/* KVA of descriptor ring */
-	volatile uint32_t *udb;	/* KVA of doorbell (lies within BAR2) */
+	volatile uint32_t *udb; /* KVA of doorbell (lies within BAR2) */
 	u_int udb_qid;		/* relative qid within the doorbell page */
 	uint16_t sidx;		/* index of the entry with the status page */
 	uint16_t cidx;		/* consumer idx (desc idx) */
@@ -488,81 +503,81 @@ struct sge_eq {
 
 	bus_dma_tag_t desc_tag;
 	bus_dmamap_t desc_map;
-	bus_addr_t ba;		/* bus address of descriptor ring */
+	bus_addr_t ba; /* bus address of descriptor ring */
 	char lockname[16];
 };
 
 struct rx_buf_info {
-	uma_zone_t zone;	/* zone that this cluster comes from */
-	uint16_t size1;		/* same as size of cluster: 2K/4K/9K/16K.
-				 * hwsize[hwidx1] = size1.  No spare. */
-	uint16_t size2;		/* hwsize[hwidx2] = size2.
-				 * spare in cluster = size1 - size2. */
-	int8_t hwidx1;		/* SGE bufsize idx for size1 */
-	int8_t hwidx2;		/* SGE bufsize idx for size2 */
-	uint8_t type;		/* EXT_xxx type of the cluster */
+	uma_zone_t zone; /* zone that this cluster comes from */
+	uint16_t size1;	 /* same as size of cluster: 2K/4K/9K/16K.
+			  * hwsize[hwidx1] = size1.  No spare. */
+	uint16_t size2;	 /* hwsize[hwidx2] = size2.
+			  * spare in cluster = size1 - size2. */
+	int8_t hwidx1;	 /* SGE bufsize idx for size1 */
+	int8_t hwidx2;	 /* SGE bufsize idx for size2 */
+	uint8_t type;	 /* EXT_xxx type of the cluster */
 };
 
 enum {
 	NUM_MEMWIN = 3,
 
 	MEMWIN0_APERTURE = 2048,
-	MEMWIN0_BASE     = 0x1b800,
+	MEMWIN0_BASE = 0x1b800,
 
 	MEMWIN1_APERTURE = 32768,
-	MEMWIN1_BASE     = 0x28000,
+	MEMWIN1_BASE = 0x28000,
 
 	MEMWIN2_APERTURE_T4 = 65536,
-	MEMWIN2_BASE_T4     = 0x30000,
+	MEMWIN2_BASE_T4 = 0x30000,
 
 	MEMWIN2_APERTURE_T5 = 128 * 1024,
-	MEMWIN2_BASE_T5     = 0x60000,
+	MEMWIN2_BASE_T5 = 0x60000,
 };
 
 struct memwin {
 	struct rwlock mw_lock __aligned(CACHE_LINE_SIZE);
-	uint32_t mw_base;	/* constant after setup_memwin */
-	uint32_t mw_aperture;	/* ditto */
-	uint32_t mw_curpos;	/* protected by mw_lock */
+	uint32_t mw_base;     /* constant after setup_memwin */
+	uint32_t mw_aperture; /* ditto */
+	uint32_t mw_curpos;   /* protected by mw_lock */
 };
 
 enum {
-	FL_STARVING	= (1 << 0), /* on the adapter's list of starving fl's */
-	FL_DOOMED	= (1 << 1), /* about to be destroyed */
-	FL_BUF_PACKING	= (1 << 2), /* buffer packing enabled */
-	FL_BUF_RESUME	= (1 << 3), /* resume from the middle of the frame */
+	FL_STARVING = (1 << 0),	   /* on the adapter's list of starving fl's */
+	FL_DOOMED = (1 << 1),	   /* about to be destroyed */
+	FL_BUF_PACKING = (1 << 2), /* buffer packing enabled */
+	FL_BUF_RESUME = (1 << 3),  /* resume from the middle of the frame */
 };
 
 #define FL_RUNNING_LOW(fl) \
-    (IDXDIFF(fl->dbidx * 8, fl->cidx, fl->sidx * 8) <= fl->lowat)
+	(IDXDIFF(fl->dbidx * 8, fl->cidx, fl->sidx * 8) <= fl->lowat)
 #define FL_NOT_RUNNING_LOW(fl) \
-    (IDXDIFF(fl->dbidx * 8, fl->cidx, fl->sidx * 8) >= 2 * fl->lowat)
+	(IDXDIFF(fl->dbidx * 8, fl->cidx, fl->sidx * 8) >= 2 * fl->lowat)
 
 struct sge_fl {
 	struct mtx fl_lock;
 	__be64 *desc;		/* KVA of descriptor ring, ptr to addresses */
-	struct fl_sdesc *sdesc;	/* KVA of software descriptor ring */
+	struct fl_sdesc *sdesc; /* KVA of software descriptor ring */
 	uint16_t zidx;		/* refill zone idx */
 	uint16_t safe_zidx;
-	uint16_t lowat;		/* # of buffers <= this means fl needs help */
+	uint16_t lowat; /* # of buffers <= this means fl needs help */
 	int flags;
 	uint16_t buf_boundary;
 
 	/* The 16b idx all deal with hw descriptors */
-	uint16_t dbidx;		/* hw pidx after last doorbell */
-	uint16_t sidx;		/* index of status page */
+	uint16_t dbidx; /* hw pidx after last doorbell */
+	uint16_t sidx;	/* index of status page */
 	volatile uint16_t hw_cidx;
 
 	/* The 32b idx are all buffer idx, not hardware descriptor idx */
-	uint32_t cidx;		/* consumer index */
-	uint32_t pidx;		/* producer index */
+	uint32_t cidx; /* consumer index */
+	uint32_t pidx; /* producer index */
 
 	uint32_t dbval;
-	u_int rx_offset;	/* offset in fl buf (when buffer packing) */
+	u_int rx_offset; /* offset in fl buf (when buffer packing) */
 	volatile uint32_t *udb;
 
-	uint64_t cl_allocated;	/* # of clusters allocated */
-	uint64_t cl_recycled;	/* # of clusters recycled */
+	uint64_t cl_allocated;	   /* # of clusters allocated */
+	uint64_t cl_recycled;	   /* # of clusters recycled */
 	uint64_t cl_fast_recycled; /* # of clusters recycled (fast) */
 
 	/* These 3 are valid when FL_BUF_RESUME is set, stale otherwise. */
@@ -570,28 +585,28 @@ struct sge_fl {
 	struct mbuf **pnext;
 	u_int remaining;
 
-	uint16_t qsize;		/* # of hw descriptors (status page included) */
-	uint16_t cntxt_id;	/* SGE context id for the freelist */
+	uint16_t qsize;	   /* # of hw descriptors (status page included) */
+	uint16_t cntxt_id; /* SGE context id for the freelist */
 	TAILQ_ENTRY(sge_fl) link; /* All starving freelists */
 	bus_dma_tag_t desc_tag;
 	bus_dmamap_t desc_map;
 	char lockname[16];
-	bus_addr_t ba;		/* bus address of descriptor ring */
+	bus_addr_t ba; /* bus address of descriptor ring */
 };
 
 struct mp_ring;
 
 struct txpkts {
-	uint8_t wr_type;	/* type 0 or type 1 */
-	uint8_t npkt;		/* # of packets in this work request */
-	uint8_t len16;		/* # of 16B pieces used by this work request */
+	uint8_t wr_type; /* type 0 or type 1 */
+	uint8_t npkt;	 /* # of packets in this work request */
+	uint8_t len16;	 /* # of 16B pieces used by this work request */
 	uint8_t score;
-	uint8_t max_npkt;	/* maximum number of packets allowed */
-	uint16_t plen;		/* total payload (sum of all packets) */
+	uint8_t max_npkt; /* maximum number of packets allowed */
+	uint16_t plen;	  /* total payload (sum of all packets) */
 
 	/* straight from fw_eth_tx_pkts_vm_wr. */
-	__u8   ethmacdst[6];
-	__u8   ethmacsrc[6];
+	__u8 ethmacdst[6];
+	__u8 ethmacsrc[6];
 	__be16 ethtype;
 	__be16 vlantci;
 
@@ -600,33 +615,33 @@ struct txpkts {
 
 /* txq: SGE egress queue + what's needed for Ethernet NIC */
 struct sge_txq {
-	struct sge_eq eq;	/* MUST be first */
+	struct sge_eq eq; /* MUST be first */
 
 	if_t ifp;		/* the interface this txq belongs to */
 	struct mp_ring *r;	/* tx software ring */
-	struct tx_sdesc *sdesc;	/* KVA of software descriptor ring */
+	struct tx_sdesc *sdesc; /* KVA of software descriptor ring */
 	struct sglist *gl;
-	__be32 cpl_ctrl0;	/* for convenience */
-	int tc_idx;		/* traffic class */
-	uint64_t last_tx;	/* cycle count when eth_tx was last called */
+	__be32 cpl_ctrl0; /* for convenience */
+	int tc_idx;	  /* traffic class */
+	uint64_t last_tx; /* cycle count when eth_tx was last called */
 	struct txpkts txp;
 
 	struct task tx_reclaim_task;
 	/* stats for common events first */
 
-	uint64_t txcsum;	/* # of times hardware assisted with checksum */
-	uint64_t tso_wrs;	/* # of TSO work requests */
-	uint64_t vlan_insertion;/* # of times VLAN tag was inserted */
-	uint64_t imm_wrs;	/* # of work requests with immediate data */
-	uint64_t sgl_wrs;	/* # of work requests with direct SGL */
-	uint64_t txpkt_wrs;	/* # of txpkt work requests (not coalesced) */
-	uint64_t txpkts0_wrs;	/* # of type0 coalesced tx work requests */
-	uint64_t txpkts1_wrs;	/* # of type1 coalesced tx work requests */
-	uint64_t txpkts0_pkts;	/* # of frames in type0 coalesced tx WRs */
-	uint64_t txpkts1_pkts;	/* # of frames in type1 coalesced tx WRs */
+	uint64_t txcsum;  /* # of times hardware assisted with checksum */
+	uint64_t tso_wrs; /* # of TSO work requests */
+	uint64_t vlan_insertion; /* # of times VLAN tag was inserted */
+	uint64_t imm_wrs;	 /* # of work requests with immediate data */
+	uint64_t sgl_wrs;	 /* # of work requests with direct SGL */
+	uint64_t txpkt_wrs;	 /* # of txpkt work requests (not coalesced) */
+	uint64_t txpkts0_wrs;	 /* # of type0 coalesced tx work requests */
+	uint64_t txpkts1_wrs;	 /* # of type1 coalesced tx work requests */
+	uint64_t txpkts0_pkts;	 /* # of frames in type0 coalesced tx WRs */
+	uint64_t txpkts1_pkts;	 /* # of frames in type1 coalesced tx WRs */
 	uint64_t txpkts_flush;	/* # of times txp had to be sent by tx_update */
 	uint64_t raw_wrs;	/* # of raw work requests (alloc_wr_mbuf) */
-	uint64_t vxlan_tso_wrs;	/* # of VXLAN TSO work requests */
+	uint64_t vxlan_tso_wrs; /* # of VXLAN TSO work requests */
 	uint64_t vxlan_txcsum;
 
 	uint64_t kern_tls_records;
@@ -650,16 +665,16 @@ struct sge_txq {
 
 /* rxq: SGE ingress queue + SGE free list + miscellaneous items */
 struct sge_rxq {
-	struct sge_iq iq;	/* MUST be first */
-	struct sge_fl fl;	/* MUST follow iq */
+	struct sge_iq iq; /* MUST be first */
+	struct sge_fl fl; /* MUST follow iq */
 
-	if_t ifp;		/* the interface this rxq belongs to */
-	struct lro_ctrl lro;	/* LRO state */
+	if_t ifp;	     /* the interface this rxq belongs to */
+	struct lro_ctrl lro; /* LRO state */
 
 	/* stats for common events first */
 
-	uint64_t rxcsum;	/* # of times hardware assisted with checksum */
-	uint64_t vlan_extraction;/* # of times VLAN tag was extracted */
+	uint64_t rxcsum; /* # of times hardware assisted with checksum */
+	uint64_t vlan_extraction; /* # of times VLAN tag was extracted */
 	uint64_t vxlan_rxcsum;
 
 	/* stats for not-that-common events */
@@ -675,8 +690,8 @@ iq_to_rxq(struct sge_iq *iq)
 
 /* ofld_rxq: SGE ingress queue + SGE free list + miscellaneous items */
 struct sge_ofld_rxq {
-	struct sge_iq iq;	/* MUST be first */
-	struct sge_fl fl;	/* MUST follow iq */
+	struct sge_iq iq; /* MUST be first */
+	struct sge_fl fl; /* MUST follow iq */
 	counter_u64_t rx_iscsi_ddp_setup_ok;
 	counter_u64_t rx_iscsi_ddp_setup_error;
 	uint64_t rx_iscsi_ddp_pdus;
@@ -686,8 +701,8 @@ struct sge_ofld_rxq {
 	uint64_t rx_iscsi_padding_errors;
 	uint64_t rx_iscsi_header_digest_errors;
 	uint64_t rx_iscsi_data_digest_errors;
-	u_long	rx_toe_tls_records;
-	u_long	rx_toe_tls_octets;
+	u_long rx_toe_tls_records;
+	u_long rx_toe_tls_octets;
 } __aligned(CACHE_LINE_SIZE);
 
 static inline struct sge_ofld_rxq *
@@ -715,13 +730,13 @@ struct wrq_cookie {
  * are of this type.
  */
 struct sge_wrq {
-	struct sge_eq eq;	/* MUST be first */
+	struct sge_eq eq; /* MUST be first */
 
 	struct adapter *adapter;
 	struct task wrq_tx_task;
 
 	/* Tx desc reserved but WR not "committed" yet. */
-	TAILQ_HEAD(wrq_incomplete_wrs , wrq_cookie) incomplete_wrs;
+	TAILQ_HEAD(wrq_incomplete_wrs, wrq_cookie) incomplete_wrs;
 
 	/* List of WRs ready to go out as soon as descriptors are available. */
 	STAILQ_HEAD(, wrqe) wr_list;
@@ -730,9 +745,9 @@ struct sge_wrq {
 
 	/* stats for common events first */
 
-	uint64_t tx_wrs_direct;	/* # of WRs written directly to desc ring. */
+	uint64_t tx_wrs_direct; /* # of WRs written directly to desc ring. */
 	uint64_t tx_wrs_ss;	/* # of WRs copied from scratch space. */
-	uint64_t tx_wrs_copied;	/* # of WRs queued and copied to desc ring. */
+	uint64_t tx_wrs_copied; /* # of WRs queued and copied to desc ring. */
 
 	/* stats for not-that-common events */
 
@@ -759,8 +774,9 @@ struct sge_ofld_txq {
 #define INVALID_NM_RXQ_CNTXT_ID ((uint16_t)(-1))
 struct sge_nm_rxq {
 	/* Items used by the driver rx ithread are in this cacheline. */
-	volatile int nm_state __aligned(CACHE_LINE_SIZE);	/* NM_OFF, NM_ON, or NM_BUSY */
-	u_int nid;		/* netmap ring # for this queue */
+	volatile int nm_state __aligned(
+	    CACHE_LINE_SIZE); /* NM_OFF, NM_ON, or NM_BUSY */
+	u_int nid;	      /* netmap ring # for this queue */
 	struct vi_info *vi;
 
 	struct iq_desc *iq_desc;
@@ -772,14 +788,14 @@ struct sge_nm_rxq {
 	uint32_t fl_sidx;
 
 	/* Items used by netmap rxsync are in this cacheline. */
-	__be64  *fl_desc __aligned(CACHE_LINE_SIZE);
+	__be64 *fl_desc __aligned(CACHE_LINE_SIZE);
 	uint16_t fl_cntxt_id;
 	uint32_t fl_pidx;
-	uint32_t fl_sidx2;	/* copy of fl_sidx */
+	uint32_t fl_sidx2; /* copy of fl_sidx */
 	uint32_t fl_db_val;
 	u_int fl_db_saved;
-	u_int fl_db_threshold;	/* in descriptors */
-	u_int fl_hwidx:4;
+	u_int fl_db_threshold; /* in descriptors */
+	u_int fl_hwidx : 4;
 
 	/*
 	 * fl_cidx is used by both the ithread and rxsync, the rest are not used
@@ -803,16 +819,16 @@ struct sge_nm_txq {
 	uint16_t cidx;
 	uint16_t pidx;
 	uint16_t sidx;
-	uint16_t equiqidx;	/* EQUIQ last requested at this pidx */
-	uint16_t equeqidx;	/* EQUEQ last requested at this pidx */
-	uint16_t dbidx;		/* pidx of the most recent doorbell */
+	uint16_t equiqidx; /* EQUIQ last requested at this pidx */
+	uint16_t equeqidx; /* EQUEQ last requested at this pidx */
+	uint16_t dbidx;	   /* pidx of the most recent doorbell */
 	uint8_t doorbells;
 	volatile uint32_t *udb;
 	u_int udb_qid;
 	u_int cntxt_id;
-	__be32 cpl_ctrl0;	/* for convenience */
-	__be32 op_pkd;		/* ditto */
-	u_int nid;		/* netmap ring # for this queue */
+	__be32 cpl_ctrl0; /* for convenience */
+	__be32 op_pkd;	  /* ditto */
+	u_int nid;	  /* netmap ring # for this queue */
 
 	/* infrequently used items after this */
 
@@ -823,32 +839,32 @@ struct sge_nm_txq {
 } __aligned(CACHE_LINE_SIZE);
 
 struct sge {
-	int nrxq;	/* total # of Ethernet rx queues */
-	int ntxq;	/* total # of Ethernet tx queues */
-	int nofldrxq;	/* total # of TOE rx queues */
-	int nofldtxq;	/* total # of TOE tx queues */
-	int nnmrxq;	/* total # of netmap rx queues */
-	int nnmtxq;	/* total # of netmap tx queues */
-	int niq;	/* total # of ingress queues */
-	int neq;	/* total # of egress queues */
+	int nrxq;     /* total # of Ethernet rx queues */
+	int ntxq;     /* total # of Ethernet tx queues */
+	int nofldrxq; /* total # of TOE rx queues */
+	int nofldtxq; /* total # of TOE tx queues */
+	int nnmrxq;   /* total # of netmap rx queues */
+	int nnmtxq;   /* total # of netmap tx queues */
+	int niq;      /* total # of ingress queues */
+	int neq;      /* total # of egress queues */
 
-	struct sge_iq fwq;	/* Firmware event queue */
-	struct sge_wrq *ctrlq;	/* Control queues */
-	struct sge_txq *txq;	/* NIC tx queues */
-	struct sge_rxq *rxq;	/* NIC rx queues */
-	struct sge_ofld_txq *ofld_txq;	/* TOE tx queues */
-	struct sge_ofld_rxq *ofld_rxq;	/* TOE rx queues */
-	struct sge_nm_txq *nm_txq;	/* netmap tx queues */
-	struct sge_nm_rxq *nm_rxq;	/* netmap rx queues */
+	struct sge_iq fwq;	       /* Firmware event queue */
+	struct sge_wrq *ctrlq;	       /* Control queues */
+	struct sge_txq *txq;	       /* NIC tx queues */
+	struct sge_rxq *rxq;	       /* NIC rx queues */
+	struct sge_ofld_txq *ofld_txq; /* TOE tx queues */
+	struct sge_ofld_rxq *ofld_rxq; /* TOE rx queues */
+	struct sge_nm_txq *nm_txq;     /* netmap tx queues */
+	struct sge_nm_rxq *nm_rxq;     /* netmap rx queues */
 
-	uint16_t iq_start;	/* first cntxt_id */
-	uint16_t iq_base;	/* first abs_id */
-	int eq_start;		/* first cntxt_id */
-	int eq_base;		/* first abs_id */
+	uint16_t iq_start; /* first cntxt_id */
+	uint16_t iq_base;  /* first abs_id */
+	int eq_start;	   /* first cntxt_id */
+	int eq_base;	   /* first abs_id */
 	int iqmap_sz;
 	int eqmap_sz;
-	struct sge_iq **iqmap;	/* iq->cntxt_id to iq mapping */
-	struct sge_eq **eqmap;	/* eq->cntxt_id to eq mapping */
+	struct sge_iq **iqmap; /* iq->cntxt_id to iq mapping */
+	struct sge_eq **eqmap; /* eq->cntxt_id to eq mapping */
 
 	int8_t safe_zidx;
 	struct rx_buf_info rx_buf_info[SW_ZONE_SIZES];
@@ -906,11 +922,11 @@ struct adapter {
 		void *tag;
 		struct sge_rxq *rxq;
 		struct sge_nm_rxq *nm_rxq;
-	} __aligned(CACHE_LINE_SIZE) *irq;
+	} __aligned(CACHE_LINE_SIZE) * irq;
 	int sge_gts_reg;
 	int sge_kdoorbell_reg;
 
-	bus_dma_tag_t dmat;	/* Parent DMA tag */
+	bus_dma_tag_t dmat; /* Parent DMA tag */
 
 	struct sge sge;
 	int lro_timeout;
@@ -921,45 +937,45 @@ struct adapter {
 	int rawf_base;
 	int nrawf;
 
-	struct taskqueue *tq[MAX_NCHAN];	/* General purpose taskqueues */
+	struct taskqueue *tq[MAX_NCHAN]; /* General purpose taskqueues */
 	struct port_info *port[MAX_NPORTS];
-	uint8_t chan_map[MAX_NCHAN];		/* channel -> port */
+	uint8_t chan_map[MAX_NCHAN]; /* channel -> port */
 
-	CXGBE_LIST_HEAD(, clip_entry) *clip_table;
-	TAILQ_HEAD(, clip_entry) clip_pending;	/* these need hw update. */
+	CXGBE_LIST_HEAD(, clip_entry) * clip_table;
+	TAILQ_HEAD(, clip_entry) clip_pending; /* these need hw update. */
 	u_long clip_mask;
 	int clip_gen;
 	struct timeout_task clip_task;
 
-	void *tom_softc;	/* (struct tom_data *) */
+	void *tom_softc; /* (struct tom_data *) */
 	struct tom_tunables tt;
 	struct t4_offload_policy *policy;
 	struct rwlock policy_lock;
 
-	void *iwarp_softc;	/* (struct c4iw_dev *) */
+	void *iwarp_softc; /* (struct c4iw_dev *) */
 	struct iw_tunables iwt;
-	void *iscsi_ulp_softc;	/* (struct cxgbei_data *) */
-	struct l2t_data *l2t;	/* L2 table */
-	struct smt_data *smt;	/* Source MAC Table */
+	void *iscsi_ulp_softc; /* (struct cxgbei_data *) */
+	struct l2t_data *l2t;  /* L2 table */
+	struct smt_data *smt;  /* Source MAC Table */
 	struct tid_info tids;
 	vmem_t *key_map;
 	struct tls_tunables tlst;
 
 	uint8_t doorbells;
-	int offload_map;	/* port_id's with IFCAP_TOE enabled */
-	int bt_map;		/* tx_chan's with BASE-T */
-	int active_ulds;	/* ULDs activated on this adapter */
+	int offload_map; /* port_id's with IFCAP_TOE enabled */
+	int bt_map;	 /* tx_chan's with BASE-T */
+	int active_ulds; /* ULDs activated on this adapter */
 	int flags;
 	int debug_flags;
-	int error_flags;	/* Used by error handler and live reset. */
+	int error_flags; /* Used by error handler and live reset. */
 
 	char ifp_lockname[16];
 	struct mtx ifp_lock;
-	if_t ifp;		/* tracer ifp */
+	if_t ifp; /* tracer ifp */
 	struct ifmedia media;
-	int traceq;		/* iq used by all tracers, -1 if none */
-	int tracer_valid;	/* bitmap of valid tracers */
-	int tracer_enabled;	/* bitmap of enabled tracers */
+	int traceq;	    /* iq used by all tracers, -1 if none */
+	int tracer_valid;   /* bitmap of valid tracers */
+	int tracer_enabled; /* bitmap of enabled tracers */
 
 	char fw_version[16];
 	char tp_version[16];
@@ -989,7 +1005,7 @@ struct adapter {
 	char lockname[16];
 
 	/* Starving free lists */
-	struct mtx sfl_lock;	/* same cache-line as sc_lock? but that's ok */
+	struct mtx sfl_lock; /* same cache-line as sc_lock? but that's ok */
 	TAILQ_HEAD(, sge_fl) sfl;
 	struct callout sfl_callout;
 	struct callout cal_callout;
@@ -1008,7 +1024,7 @@ struct adapter {
 	 */
 	struct mtx reg_lock;
 
-	struct memwin memwin[NUM_MEMWIN];	/* memory windows */
+	struct memwin memwin[NUM_MEMWIN]; /* memory windows */
 
 	struct mtx tc_lock;
 	struct task tc_task;
@@ -1029,69 +1045,70 @@ struct adapter {
 	struct callout ktls_tick;
 };
 
-#define ADAPTER_LOCK(sc)		mtx_lock(&(sc)->sc_lock)
-#define ADAPTER_UNLOCK(sc)		mtx_unlock(&(sc)->sc_lock)
-#define ADAPTER_LOCK_ASSERT_OWNED(sc)	mtx_assert(&(sc)->sc_lock, MA_OWNED)
+#define ADAPTER_LOCK(sc) mtx_lock(&(sc)->sc_lock)
+#define ADAPTER_UNLOCK(sc) mtx_unlock(&(sc)->sc_lock)
+#define ADAPTER_LOCK_ASSERT_OWNED(sc) mtx_assert(&(sc)->sc_lock, MA_OWNED)
 #define ADAPTER_LOCK_ASSERT_NOTOWNED(sc) mtx_assert(&(sc)->sc_lock, MA_NOTOWNED)
 
-#define ASSERT_SYNCHRONIZED_OP(sc)	\
-    KASSERT(IS_BUSY(sc) && \
-	(mtx_owned(&(sc)->sc_lock) || sc->last_op_thr == curthread), \
-	("%s: operation not synchronized.", __func__))
+#define ASSERT_SYNCHRONIZED_OP(sc)                                           \
+	KASSERT(IS_BUSY(sc) &&                                               \
+		(mtx_owned(&(sc)->sc_lock) || sc->last_op_thr == curthread), \
+	    ("%s: operation not synchronized.", __func__))
 
-#define PORT_LOCK(pi)			mtx_lock(&(pi)->pi_lock)
-#define PORT_UNLOCK(pi)			mtx_unlock(&(pi)->pi_lock)
-#define PORT_LOCK_ASSERT_OWNED(pi)	mtx_assert(&(pi)->pi_lock, MA_OWNED)
-#define PORT_LOCK_ASSERT_NOTOWNED(pi)	mtx_assert(&(pi)->pi_lock, MA_NOTOWNED)
+#define PORT_LOCK(pi) mtx_lock(&(pi)->pi_lock)
+#define PORT_UNLOCK(pi) mtx_unlock(&(pi)->pi_lock)
+#define PORT_LOCK_ASSERT_OWNED(pi) mtx_assert(&(pi)->pi_lock, MA_OWNED)
+#define PORT_LOCK_ASSERT_NOTOWNED(pi) mtx_assert(&(pi)->pi_lock, MA_NOTOWNED)
 
-#define FL_LOCK(fl)			mtx_lock(&(fl)->fl_lock)
-#define FL_TRYLOCK(fl)			mtx_trylock(&(fl)->fl_lock)
-#define FL_UNLOCK(fl)			mtx_unlock(&(fl)->fl_lock)
-#define FL_LOCK_ASSERT_OWNED(fl)	mtx_assert(&(fl)->fl_lock, MA_OWNED)
-#define FL_LOCK_ASSERT_NOTOWNED(fl)	mtx_assert(&(fl)->fl_lock, MA_NOTOWNED)
+#define FL_LOCK(fl) mtx_lock(&(fl)->fl_lock)
+#define FL_TRYLOCK(fl) mtx_trylock(&(fl)->fl_lock)
+#define FL_UNLOCK(fl) mtx_unlock(&(fl)->fl_lock)
+#define FL_LOCK_ASSERT_OWNED(fl) mtx_assert(&(fl)->fl_lock, MA_OWNED)
+#define FL_LOCK_ASSERT_NOTOWNED(fl) mtx_assert(&(fl)->fl_lock, MA_NOTOWNED)
 
-#define RXQ_FL_LOCK(rxq)		FL_LOCK(&(rxq)->fl)
-#define RXQ_FL_UNLOCK(rxq)		FL_UNLOCK(&(rxq)->fl)
-#define RXQ_FL_LOCK_ASSERT_OWNED(rxq)	FL_LOCK_ASSERT_OWNED(&(rxq)->fl)
+#define RXQ_FL_LOCK(rxq) FL_LOCK(&(rxq)->fl)
+#define RXQ_FL_UNLOCK(rxq) FL_UNLOCK(&(rxq)->fl)
+#define RXQ_FL_LOCK_ASSERT_OWNED(rxq) FL_LOCK_ASSERT_OWNED(&(rxq)->fl)
 #define RXQ_FL_LOCK_ASSERT_NOTOWNED(rxq) FL_LOCK_ASSERT_NOTOWNED(&(rxq)->fl)
 
-#define EQ_LOCK(eq)			mtx_lock(&(eq)->eq_lock)
-#define EQ_TRYLOCK(eq)			mtx_trylock(&(eq)->eq_lock)
-#define EQ_UNLOCK(eq)			mtx_unlock(&(eq)->eq_lock)
-#define EQ_LOCK_ASSERT_OWNED(eq)	mtx_assert(&(eq)->eq_lock, MA_OWNED)
-#define EQ_LOCK_ASSERT_NOTOWNED(eq)	mtx_assert(&(eq)->eq_lock, MA_NOTOWNED)
+#define EQ_LOCK(eq) mtx_lock(&(eq)->eq_lock)
+#define EQ_TRYLOCK(eq) mtx_trylock(&(eq)->eq_lock)
+#define EQ_UNLOCK(eq) mtx_unlock(&(eq)->eq_lock)
+#define EQ_LOCK_ASSERT_OWNED(eq) mtx_assert(&(eq)->eq_lock, MA_OWNED)
+#define EQ_LOCK_ASSERT_NOTOWNED(eq) mtx_assert(&(eq)->eq_lock, MA_NOTOWNED)
 
-#define TXQ_LOCK(txq)			EQ_LOCK(&(txq)->eq)
-#define TXQ_TRYLOCK(txq)		EQ_TRYLOCK(&(txq)->eq)
-#define TXQ_UNLOCK(txq)			EQ_UNLOCK(&(txq)->eq)
-#define TXQ_LOCK_ASSERT_OWNED(txq)	EQ_LOCK_ASSERT_OWNED(&(txq)->eq)
-#define TXQ_LOCK_ASSERT_NOTOWNED(txq)	EQ_LOCK_ASSERT_NOTOWNED(&(txq)->eq)
+#define TXQ_LOCK(txq) EQ_LOCK(&(txq)->eq)
+#define TXQ_TRYLOCK(txq) EQ_TRYLOCK(&(txq)->eq)
+#define TXQ_UNLOCK(txq) EQ_UNLOCK(&(txq)->eq)
+#define TXQ_LOCK_ASSERT_OWNED(txq) EQ_LOCK_ASSERT_OWNED(&(txq)->eq)
+#define TXQ_LOCK_ASSERT_NOTOWNED(txq) EQ_LOCK_ASSERT_NOTOWNED(&(txq)->eq)
 
-#define for_each_txq(vi, iter, q) \
+#define for_each_txq(vi, iter, q)                                \
 	for (q = &vi->adapter->sge.txq[vi->first_txq], iter = 0; \
-	    iter < vi->ntxq; ++iter, ++q)
-#define for_each_rxq(vi, iter, q) \
+	     iter < vi->ntxq; ++iter, ++q)
+#define for_each_rxq(vi, iter, q)                                \
 	for (q = &vi->adapter->sge.rxq[vi->first_rxq], iter = 0; \
-	    iter < vi->nrxq; ++iter, ++q)
-#define for_each_ofld_txq(vi, iter, q) \
+	     iter < vi->nrxq; ++iter, ++q)
+#define for_each_ofld_txq(vi, iter, q)                                     \
 	for (q = &vi->adapter->sge.ofld_txq[vi->first_ofld_txq], iter = 0; \
-	    iter < vi->nofldtxq; ++iter, ++q)
-#define for_each_ofld_rxq(vi, iter, q) \
+	     iter < vi->nofldtxq; ++iter, ++q)
+#define for_each_ofld_rxq(vi, iter, q)                                     \
 	for (q = &vi->adapter->sge.ofld_rxq[vi->first_ofld_rxq], iter = 0; \
-	    iter < vi->nofldrxq; ++iter, ++q)
-#define for_each_nm_txq(vi, iter, q) \
+	     iter < vi->nofldrxq; ++iter, ++q)
+#define for_each_nm_txq(vi, iter, q)                                   \
 	for (q = &vi->adapter->sge.nm_txq[vi->first_nm_txq], iter = 0; \
-	    iter < vi->nnmtxq; ++iter, ++q)
-#define for_each_nm_rxq(vi, iter, q) \
+	     iter < vi->nnmtxq; ++iter, ++q)
+#define for_each_nm_rxq(vi, iter, q)                                   \
 	for (q = &vi->adapter->sge.nm_rxq[vi->first_nm_rxq], iter = 0; \
-	    iter < vi->nnmrxq; ++iter, ++q)
-#define for_each_vi(_pi, _iter, _vi) \
+	     iter < vi->nnmrxq; ++iter, ++q)
+#define for_each_vi(_pi, _iter, _vi)                               \
 	for ((_vi) = (_pi)->vi, (_iter) = 0; (_iter) < (_pi)->nvi; \
 	     ++(_iter), ++(_vi))
 
-#define IDXINCR(idx, incr, wrap) do { \
-	idx = wrap - idx > incr ? idx + incr : incr - (wrap - idx); \
-} while (0)
+#define IDXINCR(idx, incr, wrap)                                            \
+	do {                                                                \
+		idx = wrap - idx > incr ? idx + incr : incr - (wrap - idx); \
+	} while (0)
 #define IDXDIFF(head, tail, wrap) \
 	((head) >= (tail) ? (head) - (tail) : (wrap) - (tail) + (head))
 
@@ -1135,9 +1152,9 @@ set_mbuf_nsegs(struct mbuf *m, uint8_t nsegs)
 }
 
 /* Internal mbuf flags stored in PH_loc.eight[1]. */
-#define	MC_NOMAP		0x01
-#define	MC_RAW_WR		0x02
-#define	MC_TLS			0x04
+#define MC_NOMAP 0x01
+#define MC_RAW_WR 0x02
+#define MC_TLS 0x04
 
 static inline int
 mbuf_cflags(struct mbuf *m)
@@ -1214,7 +1231,7 @@ t4_write_reg64(struct adapter *sc, uint32_t reg, uint64_t val)
 	bus_space_write_8(sc->bt, sc->bh, reg, val);
 #else
 	bus_space_write_4(sc->bt, sc->bh, reg, val);
-	bus_space_write_4(sc->bt, sc->bh, reg + 4, val>> 32);
+	bus_space_write_4(sc->bt, sc->bh, reg + 4, val >> 32);
 #endif
 }
 
@@ -1301,8 +1318,8 @@ t4_use_ldst(struct adapter *sc)
 }
 
 static inline void
-CH_DUMP_MBOX(struct adapter *sc, int mbox, const int reg,
-    const char *msg, const __be64 *const p, const bool err)
+CH_DUMP_MBOX(struct adapter *sc, int mbox, const int reg, const char *msg,
+    const __be64 *const p, const bool err)
 {
 
 	if (!(sc->debug_flags & DF_DUMP_MBOX) && !err)
@@ -1503,9 +1520,12 @@ int get_filter(struct adapter *, struct t4_filter *);
 int set_filter(struct adapter *, struct t4_filter *);
 int del_filter(struct adapter *, struct t4_filter *);
 int t4_filter_rpl(struct sge_iq *, const struct rss_header *, struct mbuf *);
-int t4_hashfilter_ao_rpl(struct sge_iq *, const struct rss_header *, struct mbuf *);
-int t4_hashfilter_tcb_rpl(struct sge_iq *, const struct rss_header *, struct mbuf *);
-int t4_del_hashfilter_rpl(struct sge_iq *, const struct rss_header *, struct mbuf *);
+int t4_hashfilter_ao_rpl(struct sge_iq *, const struct rss_header *,
+    struct mbuf *);
+int t4_hashfilter_tcb_rpl(struct sge_iq *, const struct rss_header *,
+    struct mbuf *);
+int t4_del_hashfilter_rpl(struct sge_iq *, const struct rss_header *,
+    struct mbuf *);
 void free_hftid_hash(struct tid_info *);
 
 static inline struct wrqe *

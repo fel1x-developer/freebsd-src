@@ -24,29 +24,29 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/uio.h>
 
+#include <ctype.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <fcntl.h>
-#include <limits.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/uio.h>
 #include <unistd.h>
-#include <ctype.h>
-#include <errno.h>
 
-#define	MKFILE_WBUF	((size_t)(1048576))	/* Is 1M a reasonable value? */
+#define MKFILE_WBUF ((size_t)(1048576)) /* Is 1M a reasonable value? */
 
 /* SunOS's mkfile(8) sets "sticky bit." */
-#define	MKFILE_FLAG	(O_WRONLY | O_CREAT | O_TRUNC)
-#define	MKFILE_MODE	(S_IRUSR | S_IWUSR | S_ISVTX)
+#define MKFILE_FLAG (O_WRONLY | O_CREAT | O_TRUNC)
+#define MKFILE_MODE (S_IRUSR | S_IWUSR | S_ISVTX)
 
-static char	buf[MKFILE_WBUF];
-static int	nofill = 0;
-static int	verbose = 0;
+static char buf[MKFILE_WBUF];
+static int nofill = 0;
+static int verbose = 0;
 
 static void
 usage()
@@ -71,30 +71,30 @@ getsize(char *s)
 	length = strtoull(s, &suffix, 10);
 	sh = 0;
 	switch (tolower(*suffix)) {
-	case 'e':	/* Exabytes. */
+	case 'e': /* Exabytes. */
 		sh = 60;
 		break;
-	case 'p':	/* Petabytes. */
+	case 'p': /* Petabytes. */
 		sh = 50;
 		break;
-	case 't':	/* Terabytes. */
+	case 't': /* Terabytes. */
 		sh = 40;
 		break;
-	case 'g':	/* Gigabytes. */
+	case 'g': /* Gigabytes. */
 		sh = 30;
 		break;
-	case 'm':	/* Megabytes. */
+	case 'm': /* Megabytes. */
 		sh = 20;
 		break;
-	case 'k':	/* Kilobytes. */
+	case 'k': /* Kilobytes. */
 		sh = 10;
 		break;
-	case 'b':	/* Blocks. */
+	case 'b': /* Blocks. */
 		sh = 9;
 		break;
-	case '\0':	/* Bytes. */
+	case '\0': /* Bytes. */
 		break;
-	default:	/* Unknown... */
+	default: /* Unknown... */
 		errno = EINVAL;
 		return 0;
 	}

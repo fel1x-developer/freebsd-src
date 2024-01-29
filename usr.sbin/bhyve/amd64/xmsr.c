@@ -29,14 +29,13 @@
 #include <sys/types.h>
 
 #include <machine/cpufunc.h>
-#include <machine/vmm.h>
 #include <machine/specialreg.h>
+#include <machine/vmm.h>
 
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include <vmmapi.h>
 
 #include "debug.h"
@@ -50,7 +49,7 @@ emulate_wrmsr(struct vcpu *vcpu __unused, uint32_t num, uint64_t val __unused)
 
 	if (cpu_vendor_intel) {
 		switch (num) {
-		case 0xd04:		/* Sandy Bridge uncore PMCs */
+		case 0xd04: /* Sandy Bridge uncore PMCs */
 		case 0xc24:
 			return (0);
 		case MSR_BIOS_UPDT_TRIG:
@@ -71,7 +70,7 @@ emulate_wrmsr(struct vcpu *vcpu __unused, uint32_t num, uint64_t val __unused)
 		case MSR_NB_CFG1:
 		case MSR_LS_CFG:
 		case MSR_IC_CFG:
-			return (0);	/* Ignore writes */
+			return (0); /* Ignore writes */
 
 		case MSR_PERFEVSEL0:
 		case MSR_PERFEVSEL1:
@@ -143,8 +142,8 @@ emulate_rdmsr(struct vcpu *vcpu __unused, uint32_t num, uint64_t *val)
 			 * Bios and Kernel Developer's Guides for AMD Families
 			 * 12H, 14H, 15H and 16H.
 			 */
-			*val = 0x01000010;	/* Reset value */
-			*val |= 1 << 9;		/* MONITOR/MWAIT disable */
+			*val = 0x01000010; /* Reset value */
+			*val |= 1 << 9;	   /* MONITOR/MWAIT disable */
 			break;
 
 		case MSR_NB_CFG1:
@@ -191,7 +190,7 @@ emulate_rdmsr(struct vcpu *vcpu __unused, uint32_t num, uint64_t *val)
 		case MSR_P_STATE_LIMIT:
 		case MSR_P_STATE_CONTROL:
 		case MSR_P_STATE_STATUS:
-		case MSR_P_STATE_CONFIG(0):	/* P0 configuration */
+		case MSR_P_STATE_CONFIG(0): /* P0 configuration */
 			*val = 0;
 			break;
 

@@ -32,30 +32,43 @@
 #include <net/if.h>
 #include <netinet/ip_carp.h>
 #include <netinet/ip_carp_nl.h>
-
 #include <netlink/netlink.h>
 #include <netlink/netlink_generic.h>
 #include <netlink/netlink_snl.h>
 #include <netlink/netlink_snl_generic.h>
 #include <netlink/netlink_snl_route.h>
 
+#include <stdio.h>
 #include <string.h>
 #include <strings.h>
 
 #include "libifconfig.h"
 #include "libifconfig_internal.h"
 
-#include <stdio.h>
-
-#define	_OUT(_field)	offsetof(struct ifconfig_carp, _field)
+#define _OUT(_field) offsetof(struct ifconfig_carp, _field)
 static struct snl_attr_parser ap_carp_get[] = {
-	{ .type = CARP_NL_VHID, .off = _OUT(carpr_vhid), .cb = snl_attr_get_uint32 },
-	{ .type = CARP_NL_STATE, .off = _OUT(carpr_state), .cb = snl_attr_get_uint32 },
-	{ .type = CARP_NL_ADVBASE, .off = _OUT(carpr_advbase), .cb = snl_attr_get_int32 },
-	{ .type = CARP_NL_ADVSKEW, .off = _OUT(carpr_advskew), .cb = snl_attr_get_int32 },
-	{ .type = CARP_NL_KEY, .off = _OUT(carpr_key), .cb = snl_attr_copy_string, .arg_u32 = CARP_KEY_LEN },
-	{ .type = CARP_NL_ADDR, .off = _OUT(carpr_addr), .cb = snl_attr_get_in_addr },
-	{ .type = CARP_NL_ADDR6, .off = _OUT(carpr_addr6), .cb = snl_attr_get_in6_addr },
+	{ .type = CARP_NL_VHID,
+	    .off = _OUT(carpr_vhid),
+	    .cb = snl_attr_get_uint32 },
+	{ .type = CARP_NL_STATE,
+	    .off = _OUT(carpr_state),
+	    .cb = snl_attr_get_uint32 },
+	{ .type = CARP_NL_ADVBASE,
+	    .off = _OUT(carpr_advbase),
+	    .cb = snl_attr_get_int32 },
+	{ .type = CARP_NL_ADVSKEW,
+	    .off = _OUT(carpr_advskew),
+	    .cb = snl_attr_get_int32 },
+	{ .type = CARP_NL_KEY,
+	    .off = _OUT(carpr_key),
+	    .cb = snl_attr_copy_string,
+	    .arg_u32 = CARP_KEY_LEN },
+	{ .type = CARP_NL_ADDR,
+	    .off = _OUT(carpr_addr),
+	    .cb = snl_attr_get_in_addr },
+	{ .type = CARP_NL_ADDR6,
+	    .off = _OUT(carpr_addr6),
+	    .cb = snl_attr_get_in6_addr },
 };
 #undef _OUT
 
@@ -77,7 +90,7 @@ _ifconfig_carp_get(ifconfig_handle_t *h, const char *name,
 
 	bzero(carp, sizeof(*carp) * ncarp);
 
-	if (! snl_init(&ss, NETLINK_GENERIC)) {
+	if (!snl_init(&ss, NETLINK_GENERIC)) {
 		ifconfig_error(h, NETLINK, ENOTSUP);
 		return (-1);
 	}
@@ -104,7 +117,7 @@ _ifconfig_carp_get(ifconfig_handle_t *h, const char *name,
 		goto out;
 	}
 	seq_id = hdr->nlmsg_seq;
-	if (! snl_send_message(&ss, hdr)) {
+	if (!snl_send_message(&ss, hdr)) {
 		ifconfig_error(h, NETLINK, EIO);
 		goto out;
 	}
@@ -121,7 +134,7 @@ _ifconfig_carp_get(ifconfig_handle_t *h, const char *name,
 		}
 
 		memset(&carp[i], 0, sizeof(carp[0]));
-		if (! snl_parse_nlmsg(&ss, hdr, &carp_get_parser, &carp[i]))
+		if (!snl_parse_nlmsg(&ss, hdr, &carp_get_parser, &carp[i]))
 			continue;
 
 		i++;
@@ -151,7 +164,7 @@ ifconfig_carp_set_info(ifconfig_handle_t *h, const char *name,
 
 	ifconfig_error_clear(h);
 
-	if (! snl_init(&ss, NETLINK_GENERIC)) {
+	if (!snl_init(&ss, NETLINK_GENERIC)) {
 		ifconfig_error(h, NETLINK, ENOTSUP);
 		return (-1);
 	}
@@ -183,13 +196,13 @@ ifconfig_carp_set_info(ifconfig_handle_t *h, const char *name,
 	}
 
 	seq_id = hdr->nlmsg_seq;
-	if (! snl_send_message(&ss, hdr)) {
+	if (!snl_send_message(&ss, hdr)) {
 		ifconfig_error(h, NETLINK, EIO);
 		goto out;
 	}
 
-	struct snl_errmsg_data e = { };
-	if (! snl_read_reply_code(&ss, seq_id, &e))
+	struct snl_errmsg_data e = {};
+	if (!snl_read_reply_code(&ss, seq_id, &e))
 		ifconfig_error(h, NETLINK, e.error);
 
 out:

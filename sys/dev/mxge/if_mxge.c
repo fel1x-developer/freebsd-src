@@ -30,69 +30,68 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/linker.h>
-#include <sys/firmware.h>
+#include <sys/bus.h>
 #include <sys/endian.h>
-#include <sys/sockio.h>
-#include <sys/mbuf.h>
-#include <sys/malloc.h>
+#include <sys/firmware.h>
 #include <sys/kdb.h>
 #include <sys/kernel.h>
+#include <sys/linker.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
 #include <sys/module.h>
+#include <sys/rman.h>
+#include <sys/smp.h>
 #include <sys/socket.h>
-#include <sys/sysctl.h>
+#include <sys/sockio.h>
 #include <sys/sx.h>
+#include <sys/sysctl.h>
 #include <sys/taskqueue.h>
-#include <contrib/zlib/zlib.h>
+
+#include <vm/vm.h> /* for pmap_mapdev() */
+#include <vm/pmap.h>
+
+#include <machine/bus.h>
+#include <machine/in_cksum.h>
+#include <machine/resource.h>
+
+#include <dev/pci/pci_private.h> /* XXX for pci_cfg_restore */
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 #include <dev/zlib/zcalloc.h>
 
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
+#include <net/bpf.h>
 #include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
-
-#include <net/bpf.h>
-
 #include <net/if_types.h>
+#include <net/if_var.h>
 #include <net/if_vlan_var.h>
-
-#include <netinet/in_systm.h>
 #include <netinet/in.h>
+#include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
 #include <netinet/tcp.h>
 #include <netinet/tcp_lro.h>
 #include <netinet6/ip6_var.h>
 
-#include <machine/bus.h>
-#include <machine/in_cksum.h>
-#include <machine/resource.h>
-#include <sys/bus.h>
-#include <sys/rman.h>
-#include <sys/smp.h>
-
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pci_private.h> /* XXX for pci_cfg_restore */
-
-#include <vm/vm.h>		/* for pmap_mapdev() */
-#include <vm/pmap.h>
+#include <contrib/zlib/zlib.h>
 
 #if defined(__i386) || defined(__amd64)
 #include <machine/specialreg.h>
 #endif
 
-#include <dev/mxge/mxge_mcp.h>
 #include <dev/mxge/mcp_gen_header.h>
+#include <dev/mxge/mxge_mcp.h>
 /*#define MXGE_FAKE_IFP*/
-#include <dev/mxge/if_mxge_var.h>
-#include <sys/buf_ring.h>
-
 #include "opt_inet.h"
 #include "opt_inet6.h"
+
+#include <sys/buf_ring.h>
+
+#include <dev/mxge/if_mxge_var.h>
 
 /* tunable params */
 static int mxge_nvidia_ecrc_enable = 1;
@@ -118,22 +117,20 @@ static int mxge_detach(device_t dev);
 static int mxge_shutdown(device_t dev);
 static void mxge_intr(void *arg);
 
-static device_method_t mxge_methods[] =
-{
-  /* Device interface */
-  DEVMETHOD(device_probe, mxge_probe),
-  DEVMETHOD(device_attach, mxge_attach),
-  DEVMETHOD(device_detach, mxge_detach),
-  DEVMETHOD(device_shutdown, mxge_shutdown),
+static device_method_t mxge_methods[] = {
+	/* Device interface */
+	DEVMETHOD(device_probe, mxge_probe),
+	DEVMETHOD(device_attach, mxge_attach),
+	DEVMETHOD(device_detach, mxge_detach),
+	DEVMETHOD(device_shutdown, mxge_shutdown),
 
-  DEVMETHOD_END
+	DEVMETHOD_END
 };
 
-static driver_t mxge_driver =
-{
-  "mxge",
-  mxge_methods,
-  sizeof(mxge_softc_t),
+static driver_t mxge_driver = {
+	"mxge",
+	mxge_methods,
+	sizeof(mxge_softc_t),
 };
 
 /* Declare ourselves to be a child of the PCI bus.*/
@@ -154,7 +151,7 @@ mxge_probe(device_t dev)
 
 	if ((pci_get_vendor(dev) == MXGE_PCI_VENDOR_MYRICOM) &&
 	    ((pci_get_device(dev) == MXGE_PCI_DEVICE_Z8E) ||
-	     (pci_get_device(dev) == MXGE_PCI_DEVICE_Z8E_9))) {
+		(pci_get_device(dev) == MXGE_PCI_DEVICE_Z8E_9))) {
 		rev = pci_get_revid(dev);
 		switch (rev) {
 		case MXGE_PCI_REV_Z8E:
@@ -165,9 +162,8 @@ mxge_probe(device_t dev)
 			break;
 		default:
 			device_set_desc(dev, "Myri10G-PCIE-8??");
-			device_printf(dev, "Unrecognized rev %d NIC\n",
-				      rev);
-			break;	
+			device_printf(dev, "Unrecognized rev %d NIC\n", rev);
+			break;
 		}
 		return 0;
 	}
@@ -183,29 +179,26 @@ mxge_enable_wc(mxge_softc_t *sc)
 
 	sc->wc = 1;
 	len = rman_get_size(sc->mem_res);
-	err = pmap_change_attr((vm_offset_t) sc->sram,
-			       len, PAT_WRITE_COMBINING);
+	err = pmap_change_attr((vm_offset_t)sc->sram, len, PAT_WRITE_COMBINING);
 	if (err != 0) {
-		device_printf(sc->dev, "pmap_change_attr failed, %d\n",
-			      err);
+		device_printf(sc->dev, "pmap_change_attr failed, %d\n", err);
 		sc->wc = 0;
 	}
-#endif		
+#endif
 }
 
 /* callback to get our DMA address */
 static void
-mxge_dmamap_callback(void *arg, bus_dma_segment_t *segs, int nsegs,
-			 int error)
+mxge_dmamap_callback(void *arg, bus_dma_segment_t *segs, int nsegs, int error)
 {
 	if (error == 0) {
-		*(bus_addr_t *) arg = segs->ds_addr;
+		*(bus_addr_t *)arg = segs->ds_addr;
 	}
 }
 
 static int
 mxge_dma_alloc(mxge_softc_t *sc, mxge_dma_t *dma, size_t bytes,
-		   bus_size_t alignment)
+    bus_size_t alignment)
 {
 	int err;
 	device_t dev = sc->dev;
@@ -220,18 +213,18 @@ mxge_dma_alloc(mxge_softc_t *sc, mxge_dma_t *dma, size_t bytes,
 	}
 
 	/* allocate DMAable memory tags */
-	err = bus_dma_tag_create(sc->parent_dmat,	/* parent */
-				 alignment,		/* alignment */
-				 boundary,		/* boundary */
-				 BUS_SPACE_MAXADDR,	/* low */
-				 BUS_SPACE_MAXADDR,	/* high */
-				 NULL, NULL,		/* filter */
-				 bytes,			/* maxsize */
-				 1,			/* num segs */
-				 maxsegsize,		/* maxsegsize */
-				 BUS_DMA_COHERENT,	/* flags */
-				 NULL, NULL,		/* lock */
-				 &dma->dmat);		/* tag */
+	err = bus_dma_tag_create(sc->parent_dmat, /* parent */
+	    alignment,				  /* alignment */
+	    boundary,				  /* boundary */
+	    BUS_SPACE_MAXADDR,			  /* low */
+	    BUS_SPACE_MAXADDR,			  /* high */
+	    NULL, NULL,				  /* filter */
+	    bytes,				  /* maxsize */
+	    1,					  /* num segs */
+	    maxsegsize,				  /* maxsegsize */
+	    BUS_DMA_COHERENT,			  /* flags */
+	    NULL, NULL,				  /* lock */
+	    &dma->dmat);			  /* tag */
 	if (err != 0) {
 		device_printf(dev, "couldn't alloc tag (err = %d)\n", err);
 		return err;
@@ -239,8 +232,7 @@ mxge_dma_alloc(mxge_softc_t *sc, mxge_dma_t *dma, size_t bytes,
 
 	/* allocate DMAable memory & map */
 	err = bus_dmamem_alloc(dma->dmat, &dma->addr,
-			       (BUS_DMA_WAITOK | BUS_DMA_COHERENT
-				| BUS_DMA_ZERO),  &dma->map);
+	    (BUS_DMA_WAITOK | BUS_DMA_COHERENT | BUS_DMA_ZERO), &dma->map);
 	if (err != 0) {
 		device_printf(dev, "couldn't alloc mem (err = %d)\n", err);
 		goto abort_with_dmat;
@@ -248,8 +240,7 @@ mxge_dma_alloc(mxge_softc_t *sc, mxge_dma_t *dma, size_t bytes,
 
 	/* load the memory */
 	err = bus_dmamap_load(dma->dmat, dma->map, dma->addr, bytes,
-			      mxge_dmamap_callback,
-			      (void *)&dma->bus_addr, 0);
+	    mxge_dmamap_callback, (void *)&dma->bus_addr, 0);
 	if (err != 0) {
 		device_printf(dev, "couldn't load map (err = %d)\n", err);
 		goto abort_with_mem;
@@ -317,13 +308,14 @@ mxge_parse_strings(mxge_softc_t *sc)
 			strlcpy(sc->serial_number_string, ptr,
 			    sizeof(sc->serial_number_string));
 		}
-		while (*ptr++ != '\0') {}
+		while (*ptr++ != '\0') {
+		}
 	}
 
 	if (found_mac)
 		return 0;
 
- abort:
+abort:
 	device_printf(sc->dev, "failed to parse eeprom_strings\n");
 
 	return ENXIO;
@@ -363,8 +355,7 @@ mxge_enable_nvidia_ecrc(mxge_softc_t *sc)
 	} else if (device_id >= 0x0374 && device_id <= 0x378) {
 		/* mcp55, base address stored in chipset */
 		mcp55 = pci_find_bsf(0, 0, 0);
-		if (mcp55 &&
-		    0x10de == pci_read_config(mcp55, PCIR_VENDOR, 2) &&
+		if (mcp55 && 0x10de == pci_read_config(mcp55, PCIR_VENDOR, 2) &&
 		    0x0369 == pci_read_config(mcp55, PCIR_DEVICE, 2)) {
 			word = pci_read_config(mcp55, 0x90, 2);
 			base = ((unsigned long)word & 0x7ffeU) << 25;
@@ -373,13 +364,13 @@ mxge_enable_nvidia_ecrc(mxge_softc_t *sc)
 	if (!base)
 		return;
 
-	/* XXXX
-	   Test below is commented because it is believed that doing
-	   config read/write beyond 0xff will access the config space
-	   for the next larger function.  Uncomment this and remove
-	   the hacky pmap_mapdev() way of accessing config space when
-	   FreeBSD grows support for extended pcie config space access
-	*/
+		/* XXXX
+		   Test below is commented because it is believed that doing
+		   config read/write beyond 0xff will access the config space
+		   for the next larger function.  Uncomment this and remove
+		   the hacky pmap_mapdev() way of accessing config space when
+		   FreeBSD grows support for extended pcie config space access
+		*/
 #if 0	
 	/* See if we can, by some miracle, access the extended
 	   config space */
@@ -398,21 +389,14 @@ mxge_enable_nvidia_ecrc(mxge_softc_t *sc)
 	 * and things behind them are not visible by this method.
 	 */
 
-	BUS_READ_IVAR(device_get_parent(pdev), pdev,
-		      PCI_IVAR_BUS, &bus);
-	BUS_READ_IVAR(device_get_parent(pdev), pdev,
-		      PCI_IVAR_SLOT, &slot);
-	BUS_READ_IVAR(device_get_parent(pdev), pdev,
-		      PCI_IVAR_FUNCTION, &func);
-	BUS_READ_IVAR(device_get_parent(pdev), pdev,
-		      PCI_IVAR_VENDOR, &ivend);
-	BUS_READ_IVAR(device_get_parent(pdev), pdev,
-		      PCI_IVAR_DEVICE, &idev);
-					
-	off =  base
-		+ 0x00100000UL * (unsigned long)bus
-		+ 0x00001000UL * (unsigned long)(func
-						 + 8 * slot);
+	BUS_READ_IVAR(device_get_parent(pdev), pdev, PCI_IVAR_BUS, &bus);
+	BUS_READ_IVAR(device_get_parent(pdev), pdev, PCI_IVAR_SLOT, &slot);
+	BUS_READ_IVAR(device_get_parent(pdev), pdev, PCI_IVAR_FUNCTION, &func);
+	BUS_READ_IVAR(device_get_parent(pdev), pdev, PCI_IVAR_VENDOR, &ivend);
+	BUS_READ_IVAR(device_get_parent(pdev), pdev, PCI_IVAR_DEVICE, &idev);
+
+	off = base + 0x00100000UL * (unsigned long)bus +
+	    0x00001000UL * (unsigned long)(func + 8 * slot);
 
 	/* map it into the kernel */
 	va = pmap_mapdev(trunc_page((vm_paddr_t)off), PAGE_SIZE);
@@ -427,14 +411,14 @@ mxge_enable_nvidia_ecrc(mxge_softc_t *sc)
 	/* make sure that we can really access it */
 	vendor_id = *(uint16_t *)(cfgptr + PCIR_VENDOR);
 	device_id = *(uint16_t *)(cfgptr + PCIR_DEVICE);
-	if (! (vendor_id == ivend && device_id == idev)) {
-		device_printf(sc->dev, "mapping failed: 0x%x:0x%x\n",
-			      vendor_id, device_id);
+	if (!(vendor_id == ivend && device_id == idev)) {
+		device_printf(sc->dev, "mapping failed: 0x%x:0x%x\n", vendor_id,
+		    device_id);
 		pmap_unmapdev(va, PAGE_SIZE);
 		return;
 	}
 
-	ptr32 = (uint32_t*)(cfgptr + 0x178);
+	ptr32 = (uint32_t *)(cfgptr + 0x178);
 	val = *ptr32;
 
 	if (val == 0xffffffff) {
@@ -446,17 +430,16 @@ mxge_enable_nvidia_ecrc(mxge_softc_t *sc)
 	pmap_unmapdev(va, PAGE_SIZE);
 	if (mxge_verbose)
 		device_printf(sc->dev,
-			      "Enabled ECRC on upstream Nvidia bridge "
-			      "at %d:%d:%d\n",
-			      (int)bus, (int)slot, (int)func);
+		    "Enabled ECRC on upstream Nvidia bridge "
+		    "at %d:%d:%d\n",
+		    (int)bus, (int)slot, (int)func);
 	return;
 }
 #else
 static void
 mxge_enable_nvidia_ecrc(mxge_softc_t *sc)
 {
-	device_printf(sc->dev,
-		      "Nforce 4 chipset on non-x86/amd64!?!?!\n");
+	device_printf(sc->dev, "Nforce 4 chipset on non-x86/amd64!?!?!\n");
 	return;
 }
 #endif
@@ -489,8 +472,7 @@ mxge_dma_test(mxge_softc_t *sc, int test_type)
 		test = "read";
 		goto abort;
 	}
-	sc->read_dma = ((cmd.data0>>16) * len * 2) /
-		(cmd.data0 & 0xffff);
+	sc->read_dma = ((cmd.data0 >> 16) * len * 2) / (cmd.data0 & 0xffff);
 	cmd.data0 = MXGE_LOWPART_TO_U32(dmatest_bus);
 	cmd.data1 = MXGE_HIGHPART_TO_U32(dmatest_bus);
 	cmd.data2 = len * 0x1;
@@ -499,8 +481,7 @@ mxge_dma_test(mxge_softc_t *sc, int test_type)
 		test = "write";
 		goto abort;
 	}
-	sc->write_dma = ((cmd.data0>>16) * len * 2) /
-		(cmd.data0 & 0xffff);
+	sc->write_dma = ((cmd.data0 >> 16) * len * 2) / (cmd.data0 & 0xffff);
 
 	cmd.data0 = MXGE_LOWPART_TO_U32(dmatest_bus);
 	cmd.data1 = MXGE_HIGHPART_TO_U32(dmatest_bus);
@@ -510,13 +491,13 @@ mxge_dma_test(mxge_softc_t *sc, int test_type)
 		test = "read/write";
 		goto abort;
 	}
-	sc->read_write_dma = ((cmd.data0>>16) * len * 2 * 2) /
-		(cmd.data0 & 0xffff);
+	sc->read_write_dma = ((cmd.data0 >> 16) * len * 2 * 2) /
+	    (cmd.data0 & 0xffff);
 
 abort:
 	if (status != 0 && test_type != MXGEFW_CMD_UNALIGNED_TEST)
-		device_printf(sc->dev, "DMA %s benchmark failed: %d\n",
-			      test, status);
+		device_printf(sc->dev, "DMA %s benchmark failed: %d\n", test,
+		    status);
 
 	return status;
 }
@@ -556,7 +537,7 @@ mxge_firmware_probe(mxge_softc_t *sc)
 		pectl = pci_read_config(dev, reg + 0x8, 2);
 		if ((pectl & (5 << 12)) != (5 << 12)) {
 			device_printf(dev, "Max Read Req. size != 4k (0x%x\n",
-				      pectl);
+			    pectl);
 			sc->tx_boundary = 2048;
 		}
 	}
@@ -589,8 +570,9 @@ mxge_firmware_probe(mxge_softc_t *sc)
 	if (status != E2BIG)
 		device_printf(dev, "DMA test failed: %d\n", status);
 	if (status == ENOSYS)
-		device_printf(dev, "Falling back to ethp! "
-			      "Please install up to date fw\n");
+		device_printf(dev,
+		    "Falling back to ethp! "
+		    "Please install up to date fw\n");
 	return status;
 }
 
@@ -610,8 +592,8 @@ mxge_select_firmware(mxge_softc_t *sc)
 			aligned = 0;
 		if (mxge_verbose)
 			device_printf(sc->dev,
-				      "Assuming %s completions (forced)\n",
-				      aligned ? "aligned" : "unaligned");
+			    "Assuming %s completions (forced)\n",
+			    aligned ? "aligned" : "unaligned");
 		goto abort;
 	}
 
@@ -619,8 +601,8 @@ mxge_select_firmware(mxge_softc_t *sc)
 	   firmware and skip any checks */
 	if (sc->link_width != 0 && sc->link_width <= 4) {
 		device_printf(sc->dev,
-			      "PCIe x%d Link, expect reduced performance\n",
-			      sc->link_width);
+		    "PCIe x%d Link, expect reduced performance\n",
+		    sc->link_width);
 		aligned = 1;
 		goto abort;
 	}
@@ -645,7 +627,7 @@ mxge_validate_firmware(mxge_softc_t *sc, const mcp_gen_header_t *hdr)
 
 	if (be32toh(hdr->mcp_type) != MCP_TYPE_ETH) {
 		device_printf(sc->dev, "Bad firmware type: 0x%x\n",
-			      be32toh(hdr->mcp_type));
+		    be32toh(hdr->mcp_type));
 		return EIO;
 	}
 
@@ -654,19 +636,18 @@ mxge_validate_firmware(mxge_softc_t *sc, const mcp_gen_header_t *hdr)
 	if (mxge_verbose)
 		device_printf(sc->dev, "firmware id: %s\n", hdr->version);
 
-	sscanf(sc->fw_version, "%d.%d.%d", &sc->fw_ver_major,
-	       &sc->fw_ver_minor, &sc->fw_ver_tiny);
+	sscanf(sc->fw_version, "%d.%d.%d", &sc->fw_ver_major, &sc->fw_ver_minor,
+	    &sc->fw_ver_tiny);
 
-	if (!(sc->fw_ver_major == MXGEFW_VERSION_MAJOR
-	      && sc->fw_ver_minor == MXGEFW_VERSION_MINOR)) {
+	if (!(sc->fw_ver_major == MXGEFW_VERSION_MAJOR &&
+		sc->fw_ver_minor == MXGEFW_VERSION_MINOR)) {
 		device_printf(sc->dev, "Found firmware version %s\n",
-			      sc->fw_version);
+		    sc->fw_version);
 		device_printf(sc->dev, "Driver needs %d.%d\n",
-			      MXGEFW_VERSION_MAJOR, MXGEFW_VERSION_MINOR);
+		    MXGEFW_VERSION_MAJOR, MXGEFW_VERSION_MINOR);
 		return EINVAL;
 	}
 	return 0;
-
 }
 
 static int
@@ -684,12 +665,12 @@ mxge_load_firmware_helper(mxge_softc_t *sc, uint32_t *limit)
 	fw = firmware_get(sc->fw_name);
 	if (fw == NULL) {
 		device_printf(sc->dev, "Could not find firmware image %s\n",
-			      sc->fw_name);
+		    sc->fw_name);
 		return ENOENT;
 	}
 
 	/* setup zlib and decompress f/w */
-	bzero(&zs, sizeof (zs));
+	bzero(&zs, sizeof(zs));
 	zs.zalloc = zcalloc_nowait;
 	zs.zfree = zcfree;
 	status = inflateInit(&zs);
@@ -700,7 +681,7 @@ mxge_load_firmware_helper(mxge_softc_t *sc, uint32_t *limit)
 
 	/* the uncompressed size is stored as the firmware version,
 	   which would otherwise go unused */
-	fw_len = (size_t) fw->version;
+	fw_len = (size_t)fw->version;
 	inflate_buffer = malloc(fw_len, M_TEMP, M_NOWAIT);
 	if (inflate_buffer == NULL)
 		goto abort_with_zs;
@@ -716,14 +697,14 @@ mxge_load_firmware_helper(mxge_softc_t *sc, uint32_t *limit)
 	}
 
 	/* check id */
-	hdr_offset = htobe32(*(const uint32_t *)
-			     (inflate_buffer + MCP_HEADER_PTR_OFFSET));
+	hdr_offset = htobe32(
+	    *(const uint32_t *)(inflate_buffer + MCP_HEADER_PTR_OFFSET));
 	if ((hdr_offset & 3) || hdr_offset + sizeof(*hdr) > fw_len) {
 		device_printf(sc->dev, "Bad firmware file");
 		status = EIO;
 		goto abort_with_buffer;
 	}
-	hdr = (const void*)(inflate_buffer + hdr_offset);
+	hdr = (const void *)(inflate_buffer + hdr_offset);
 
 	status = mxge_validate_firmware(sc, hdr);
 	if (status != 0)
@@ -731,9 +712,8 @@ mxge_load_firmware_helper(mxge_softc_t *sc, uint32_t *limit)
 
 	/* Copy the inflated firmware to NIC SRAM. */
 	for (i = 0; i < fw_len; i += 256) {
-		mxge_pio_copy(sc->sram + MXGE_FW_OFFSET + i,
-			      inflate_buffer + i,
-			      min(256U, (unsigned)(fw_len - i)));
+		mxge_pio_copy(sc->sram + MXGE_FW_OFFSET + i, inflate_buffer + i,
+		    min(256U, (unsigned)(fw_len - i)));
 		wmb();
 		(void)*sc->sram;
 		wmb();
@@ -778,14 +758,14 @@ mxge_dummy_rdma(mxge_softc_t *sc, int enable)
 
 	dma_low = MXGE_LOWPART_TO_U32(sc->cmd_dma.bus_addr);
 	dma_high = MXGE_HIGHPART_TO_U32(sc->cmd_dma.bus_addr);
-	buf[0] = htobe32(dma_high);		/* confirm addr MSW */
-	buf[1] = htobe32(dma_low);		/* confirm addr LSW */
-	buf[2] = htobe32(0xffffffff);		/* confirm data */
+	buf[0] = htobe32(dma_high);   /* confirm addr MSW */
+	buf[1] = htobe32(dma_low);    /* confirm addr LSW */
+	buf[2] = htobe32(0xffffffff); /* confirm data */
 	dma_low = MXGE_LOWPART_TO_U32(sc->zeropad_dma.bus_addr);
 	dma_high = MXGE_HIGHPART_TO_U32(sc->zeropad_dma.bus_addr);
-	buf[3] = htobe32(dma_high); 		/* dummy addr MSW */
-	buf[4] = htobe32(dma_low); 		/* dummy addr LSW */
-	buf[5] = htobe32(enable);			/* enable? */
+	buf[3] = htobe32(dma_high); /* dummy addr MSW */
+	buf[4] = htobe32(dma_low);  /* dummy addr LSW */
+	buf[5] = htobe32(enable);   /* enable? */
 
 	submit = (volatile char *)(sc->sram + MXGEFW_BOOT_DUMMY_RDMA);
 
@@ -800,8 +780,7 @@ mxge_dummy_rdma(mxge_softc_t *sc, int enable)
 	}
 	if (*confirm != 0xffffffff) {
 		device_printf(sc->dev, "dummy rdma %s failed (%p = 0x%x)",
-			      (enable ? "enable" : "disable"), confirm,
-			      *confirm);
+		    (enable ? "enable" : "disable"), confirm, *confirm);
 	}
 	return;
 }
@@ -831,13 +810,13 @@ mxge_send_cmd(mxge_softc_t *sc, uint32_t cmd, mxge_cmd_t *data)
 	mtx_lock(&sc->cmd_mtx);
 	response->result = 0xffffffff;
 	wmb();
-	mxge_pio_copy((volatile void *)cmd_addr, buf, sizeof (*buf));
+	mxge_pio_copy((volatile void *)cmd_addr, buf, sizeof(*buf));
 
 	/* wait up to 20ms */
 	err = EAGAIN;
-	for (sleep_total = 0; sleep_total <  20; sleep_total++) {
-		bus_dmamap_sync(sc->cmd_dma.dmat,
-				sc->cmd_dma.map, BUS_DMASYNC_POSTREAD);
+	for (sleep_total = 0; sleep_total < 20; sleep_total++) {
+		bus_dmamap_sync(sc->cmd_dma.dmat, sc->cmd_dma.map,
+		    BUS_DMASYNC_POSTREAD);
 		wmb();
 		switch (be32toh(response->result)) {
 		case 0:
@@ -861,9 +840,9 @@ mxge_send_cmd(mxge_softc_t *sc, uint32_t cmd, mxge_cmd_t *data)
 			break;
 		default:
 			device_printf(sc->dev,
-				      "mxge: command %d "
-				      "failed, result = %d\n",
-				      cmd, be32toh(response->result));
+			    "mxge: command %d "
+			    "failed, result = %d\n",
+			    cmd, be32toh(response->result));
 			err = ENXIO;
 			break;
 		}
@@ -871,9 +850,10 @@ mxge_send_cmd(mxge_softc_t *sc, uint32_t cmd, mxge_cmd_t *data)
 			break;
 	}
 	if (err == EAGAIN)
-		device_printf(sc->dev, "mxge: command %d timed out"
-			      "result = %d\n",
-			      cmd, be32toh(response->result));
+		device_printf(sc->dev,
+		    "mxge: command %d timed out"
+		    "result = %d\n",
+		    cmd, be32toh(response->result));
 	mtx_unlock(&sc->cmd_mtx);
 	return err;
 }
@@ -882,18 +862,18 @@ static int
 mxge_adopt_running_firmware(mxge_softc_t *sc)
 {
 	struct mcp_gen_header *hdr;
-	const size_t bytes = sizeof (struct mcp_gen_header);
+	const size_t bytes = sizeof(struct mcp_gen_header);
 	size_t hdr_offset;
 	int status;
 
 	/* find running firmware header */
-	hdr_offset = htobe32(*(volatile uint32_t *)
-			     (sc->sram + MCP_HEADER_PTR_OFFSET));
+	hdr_offset = htobe32(
+	    *(volatile uint32_t *)(sc->sram + MCP_HEADER_PTR_OFFSET));
 
 	if ((hdr_offset & 3) || hdr_offset + sizeof(*hdr) > sc->sram_size) {
 		device_printf(sc->dev,
-			      "Running firmware has bad header offset (%d)\n",
-			      (int)hdr_offset);
+		    "Running firmware has bad header offset (%d)\n",
+		    (int)hdr_offset);
 		return EIO;
 	}
 
@@ -905,8 +885,7 @@ mxge_adopt_running_firmware(mxge_softc_t *sc)
 		return ENOMEM;
 	}
 	bus_space_read_region_1(rman_get_bustag(sc->mem_res),
-				rman_get_bushandle(sc->mem_res),
-				hdr_offset, (char *)hdr, bytes);
+	    rman_get_bushandle(sc->mem_res), hdr_offset, (char *)hdr, bytes);
 	status = mxge_validate_firmware(sc, hdr);
 	free(hdr, M_DEVBUF);
 
@@ -918,10 +897,10 @@ mxge_adopt_running_firmware(mxge_softc_t *sc)
 	if (sc->fw_ver_major == 1 && sc->fw_ver_minor == 4 &&
 	    sc->fw_ver_tiny >= 4 && sc->fw_ver_tiny <= 11) {
 		sc->adopted_rx_filter_bug = 1;
-		device_printf(sc->dev, "Adopting fw %d.%d.%d: "
-			      "working around rx filter bug\n",
-			      sc->fw_ver_major, sc->fw_ver_minor,
-			      sc->fw_ver_tiny);
+		device_printf(sc->dev,
+		    "Adopting fw %d.%d.%d: "
+		    "working around rx filter bug\n",
+		    sc->fw_ver_major, sc->fw_ver_minor, sc->fw_ver_tiny);
 	}
 
 	return status;
@@ -948,18 +927,18 @@ mxge_load_firmware(mxge_softc_t *sc, int adopt)
 		status = mxge_adopt_running_firmware(sc);
 		if (status) {
 			device_printf(sc->dev,
-				      "failed to adopt running firmware\n");
+			    "failed to adopt running firmware\n");
 			return status;
 		}
 		device_printf(sc->dev,
-			      "Successfully adopted running firmware\n");
+		    "Successfully adopted running firmware\n");
 		if (sc->tx_boundary == 4096) {
 			device_printf(sc->dev,
-				"Using firmware currently running on NIC"
-				 ".  For optimal\n");
+			    "Using firmware currently running on NIC"
+			    ".  For optimal\n");
 			device_printf(sc->dev,
-				 "performance consider loading optimized "
-				 "firmware\n");
+			    "performance consider loading optimized "
+			    "firmware\n");
 		}
 		sc->fw_name = mxge_fw_unaligned;
 		sc->tx_boundary = 2048;
@@ -977,19 +956,19 @@ mxge_load_firmware(mxge_softc_t *sc, int adopt)
 	dma_low = MXGE_LOWPART_TO_U32(sc->cmd_dma.bus_addr);
 	dma_high = MXGE_HIGHPART_TO_U32(sc->cmd_dma.bus_addr);
 
-	buf[0] = htobe32(dma_high);	/* confirm addr MSW */
-	buf[1] = htobe32(dma_low);	/* confirm addr LSW */
-	buf[2] = htobe32(0xffffffff);	/* confirm data */
+	buf[0] = htobe32(dma_high);   /* confirm addr MSW */
+	buf[1] = htobe32(dma_low);    /* confirm addr LSW */
+	buf[2] = htobe32(0xffffffff); /* confirm data */
 
 	/* FIX: All newest firmware should un-protect the bottom of
 	   the sram before handoff. However, the very first interfaces
 	   do not. Therefore the handoff copy must skip the first 8 bytes
 	*/
-					/* where the code starts*/
+	/* where the code starts*/
 	buf[3] = htobe32(MXGE_FW_OFFSET + 8);
-	buf[4] = htobe32(size - 8); 	/* length of code */
-	buf[5] = htobe32(8);		/* where to copy to */
-	buf[6] = htobe32(0);		/* where to jump to */
+	buf[4] = htobe32(size - 8); /* length of code */
+	buf[5] = htobe32(8);	    /* where to copy to */
+	buf[6] = htobe32(0);	    /* where to jump to */
 
 	submit = (volatile char *)(sc->sram + MXGEFW_BOOT_HANDOFF);
 	mxge_pio_copy(submit, buf, 64);
@@ -998,15 +977,15 @@ mxge_load_firmware(mxge_softc_t *sc, int adopt)
 	wmb();
 	i = 0;
 	while (*confirm != 0xffffffff && i < 20) {
-		DELAY(1000*10);
+		DELAY(1000 * 10);
 		i++;
-		bus_dmamap_sync(sc->cmd_dma.dmat,
-				sc->cmd_dma.map, BUS_DMASYNC_POSTREAD);
+		bus_dmamap_sync(sc->cmd_dma.dmat, sc->cmd_dma.map,
+		    BUS_DMASYNC_POSTREAD);
 	}
 	if (*confirm != 0xffffffff) {
-		device_printf(sc->dev,"handoff failed (%p = 0x%x)",
-			confirm, *confirm);
-		
+		device_printf(sc->dev, "handoff failed (%p = 0x%x)", confirm,
+		    *confirm);
+
 		return ENXIO;
 	}
 	return 0;
@@ -1019,8 +998,8 @@ mxge_update_mac_address(mxge_softc_t *sc)
 	uint8_t *addr = sc->mac_addr;
 	int status;
 
-	cmd.data0 = ((addr[0] << 24) | (addr[1] << 16)
-		     | (addr[2] << 8) | addr[3]);
+	cmd.data0 = ((addr[0] << 24) | (addr[1] << 16) | (addr[2] << 8) |
+	    addr[3]);
 
 	cmd.data1 = ((addr[4] << 8) | (addr[5]));
 
@@ -1030,16 +1009,14 @@ mxge_update_mac_address(mxge_softc_t *sc)
 
 static int
 mxge_change_pause(mxge_softc_t *sc, int pause)
-{	
+{
 	mxge_cmd_t cmd;
 	int status;
 
 	if (pause)
-		status = mxge_send_cmd(sc, MXGEFW_ENABLE_FLOW_CONTROL,
-				       &cmd);
+		status = mxge_send_cmd(sc, MXGEFW_ENABLE_FLOW_CONTROL, &cmd);
 	else
-		status = mxge_send_cmd(sc, MXGEFW_DISABLE_FLOW_CONTROL,
-				       &cmd);
+		status = mxge_send_cmd(sc, MXGEFW_DISABLE_FLOW_CONTROL, &cmd);
 
 	if (status) {
 		device_printf(sc->dev, "Failed to set flow control mode\n");
@@ -1051,7 +1028,7 @@ mxge_change_pause(mxge_softc_t *sc, int pause)
 
 static void
 mxge_change_promisc(mxge_softc_t *sc, int promisc)
-{	
+{
 	mxge_cmd_t cmd;
 	int status;
 
@@ -1059,11 +1036,9 @@ mxge_change_promisc(mxge_softc_t *sc, int promisc)
 		promisc = 1;
 
 	if (promisc)
-		status = mxge_send_cmd(sc, MXGEFW_ENABLE_PROMISC,
-				       &cmd);
+		status = mxge_send_cmd(sc, MXGEFW_ENABLE_PROMISC, &cmd);
 	else
-		status = mxge_send_cmd(sc, MXGEFW_DISABLE_PROMISC,
-				       &cmd);
+		status = mxge_send_cmd(sc, MXGEFW_DISABLE_PROMISC, &cmd);
 
 	if (status) {
 		device_printf(sc->dev, "Failed to set promisc mode\n");
@@ -1108,8 +1083,10 @@ mxge_set_multicast_list(mxge_softc_t *sc)
 	/* Disable multicast filtering while we play with the lists*/
 	err = mxge_send_cmd(sc, MXGEFW_ENABLE_ALLMULTI, &cmd);
 	if (err != 0) {
-		device_printf(sc->dev, "Failed MXGEFW_ENABLE_ALLMULTI,"
-		       " error status: %d\n", err);
+		device_printf(sc->dev,
+		    "Failed MXGEFW_ENABLE_ALLMULTI,"
+		    " error status: %d\n",
+		    err);
 		return;
 	}
 
@@ -1125,8 +1102,9 @@ mxge_set_multicast_list(mxge_softc_t *sc)
 	err = mxge_send_cmd(sc, MXGEFW_LEAVE_ALL_MULTICAST_GROUPS, &cmd);
 	if (err != 0) {
 		device_printf(sc->dev,
-			      "Failed MXGEFW_LEAVE_ALL_MULTICAST_GROUPS"
-			      ", error status: %d\n", err);
+		    "Failed MXGEFW_LEAVE_ALL_MULTICAST_GROUPS"
+		    ", error status: %d\n",
+		    err);
 		return;
 	}
 
@@ -1135,8 +1113,11 @@ mxge_set_multicast_list(mxge_softc_t *sc)
 	ctx.error = 0;
 	if_foreach_llmaddr(ifp, mxge_add_maddr, &ctx);
 	if (ctx.error != 0) {
-		device_printf(sc->dev, "Failed MXGEFW_JOIN_MULTICAST_GROUP, "
-		    "error status:" "%d\t", ctx.error);
+		device_printf(sc->dev,
+		    "Failed MXGEFW_JOIN_MULTICAST_GROUP, "
+		    "error status:"
+		    "%d\t",
+		    ctx.error);
 		/* abort, leaving multicast filtering off */
 		return;
 	}
@@ -1144,8 +1125,10 @@ mxge_set_multicast_list(mxge_softc_t *sc)
 	/* Enable multicast filtering */
 	err = mxge_send_cmd(sc, MXGEFW_DISABLE_ALLMULTI, &cmd);
 	if (err != 0) {
-		device_printf(sc->dev, "Failed MXGEFW_DISABLE_ALLMULTI"
-		       ", error status: %d\n", err);
+		device_printf(sc->dev,
+		    "Failed MXGEFW_DISABLE_ALLMULTI"
+		    ", error status: %d\n",
+		    err);
 	}
 }
 
@@ -1155,16 +1138,15 @@ mxge_max_mtu(mxge_softc_t *sc)
 	mxge_cmd_t cmd;
 	int status;
 
-	if (MJUMPAGESIZE - MXGEFW_PAD >  MXGEFW_MAX_MTU)
-		return  MXGEFW_MAX_MTU - MXGEFW_PAD;
+	if (MJUMPAGESIZE - MXGEFW_PAD > MXGEFW_MAX_MTU)
+		return MXGEFW_MAX_MTU - MXGEFW_PAD;
 
 	/* try to set nbufs to see if it we can
 	   use virtually contiguous jumbos */
 	cmd.data0 = 0;
-	status = mxge_send_cmd(sc, MXGEFW_CMD_ALWAYS_USE_N_BIG_BUFFERS,
-			       &cmd);
+	status = mxge_send_cmd(sc, MXGEFW_CMD_ALWAYS_USE_N_BIG_BUFFERS, &cmd);
 	if (status == 0)
-		return  MXGEFW_MAX_MTU - MXGEFW_PAD;
+		return MXGEFW_MAX_MTU - MXGEFW_PAD;
 
 	/* otherwise, we're limited to MJUMPAGESIZE */
 	return MJUMPAGESIZE - MXGEFW_PAD;
@@ -1181,7 +1163,7 @@ mxge_reset(mxge_softc_t *sc, int interrupts_setup)
 
 	/* try to send a reset command to the card to see if it
 	   is alive */
-	memset(&cmd, 0, sizeof (cmd));
+	memset(&cmd, 0, sizeof(cmd));
 	status = mxge_send_cmd(sc, MXGEFW_CMD_RESET, &cmd);
 	if (status != 0) {
 		device_printf(sc->dev, "failed reset\n");
@@ -1207,11 +1189,10 @@ mxge_reset(mxge_softc_t *sc, int interrupts_setup)
 
 	if (sc->num_slices > 1) {
 		/* ask the maximum number of slices it supports */
-		status = mxge_send_cmd(sc, MXGEFW_CMD_GET_MAX_RSS_QUEUES,
-					   &cmd);
+		status = mxge_send_cmd(sc, MXGEFW_CMD_GET_MAX_RSS_QUEUES, &cmd);
 		if (status != 0) {
 			device_printf(sc->dev,
-				      "failed to get number of slices\n");
+			    "failed to get number of slices\n");
 			return status;
 		}
 		/*
@@ -1221,11 +1202,10 @@ mxge_reset(mxge_softc_t *sc, int interrupts_setup)
 		cmd.data0 = sc->num_slices;
 		cmd.data1 = MXGEFW_SLICE_INTR_MODE_ONE_PER_SLICE;
 		cmd.data1 |= MXGEFW_SLICE_ENABLE_MULTIPLE_TX_QUEUES;
-		status = mxge_send_cmd(sc, MXGEFW_CMD_ENABLE_RSS_QUEUES,
-					   &cmd);
+		status = mxge_send_cmd(sc, MXGEFW_CMD_ENABLE_RSS_QUEUES, &cmd);
 		if (status != 0) {
 			device_printf(sc->dev,
-				      "failed to set number of slices\n");
+			    "failed to set number of slices\n");
 			return status;
 		}
 	}
@@ -1238,22 +1218,20 @@ mxge_reset(mxge_softc_t *sc, int interrupts_setup)
 			cmd.data0 = MXGE_LOWPART_TO_U32(rx_done->dma.bus_addr);
 			cmd.data1 = MXGE_HIGHPART_TO_U32(rx_done->dma.bus_addr);
 			cmd.data2 = slice;
-			status |= mxge_send_cmd(sc,
-						MXGEFW_CMD_SET_INTRQ_DMA,
-						&cmd);
+			status |= mxge_send_cmd(sc, MXGEFW_CMD_SET_INTRQ_DMA,
+			    &cmd);
 		}
 	}
 
-	status |= mxge_send_cmd(sc,
-				MXGEFW_CMD_GET_INTR_COAL_DELAY_OFFSET, &cmd);
+	status |= mxge_send_cmd(sc, MXGEFW_CMD_GET_INTR_COAL_DELAY_OFFSET,
+	    &cmd);
 
 	sc->intr_coal_delay_ptr = (volatile uint32_t *)(sc->sram + cmd.data0);
 
 	status |= mxge_send_cmd(sc, MXGEFW_CMD_GET_IRQ_ACK_OFFSET, &cmd);
 	irq_claim = (volatile uint32_t *)(sc->sram + cmd.data0);
 
-	status |= mxge_send_cmd(sc,  MXGEFW_CMD_GET_IRQ_DEASSERT_OFFSET,
-				&cmd);
+	status |= mxge_send_cmd(sc, MXGEFW_CMD_GET_IRQ_DEASSERT_OFFSET, &cmd);
 	sc->irq_deassert = (volatile uint32_t *)(sc->sram + cmd.data0);
 	if (status != 0) {
 		device_printf(sc->dev, "failed set interrupt parameters\n");
@@ -1263,7 +1241,7 @@ mxge_reset(mxge_softc_t *sc, int interrupts_setup)
 	*sc->intr_coal_delay_ptr = htobe32(sc->intr_coal_delay);
 
 	/* run a DMA benchmark */
-	(void) mxge_dma_test(sc, MXGEFW_DMA_TEST);
+	(void)mxge_dma_test(sc, MXGEFW_DMA_TEST);
 
 	for (slice = 0; slice < sc->num_slices; slice++) {
 		ss = &sc->ss[slice];
@@ -1297,10 +1275,8 @@ mxge_reset(mxge_softc_t *sc, int interrupts_setup)
 	mxge_set_multicast_list(sc);
 	if (sc->throttle) {
 		cmd.data0 = sc->throttle;
-		if (mxge_send_cmd(sc, MXGEFW_CMD_SET_THROTTLE_FACTOR,
-				  &cmd)) {
-			device_printf(sc->dev,
-				      "can't enable throttle\n");
+		if (mxge_send_cmd(sc, MXGEFW_CMD_SET_THROTTLE_FACTOR, &cmd)) {
+			device_printf(sc->dev, "can't enable throttle\n");
 		}
 	}
 	return status;
@@ -1332,7 +1308,7 @@ mxge_change_throttle(SYSCTL_HANDLER_ARGS)
 	err = mxge_send_cmd(sc, MXGEFW_CMD_SET_THROTTLE_FACTOR, &cmd);
 	if (err == 0)
 		sc->throttle = throttle;
-	mtx_unlock(&sc->driver_mtx);	
+	mtx_unlock(&sc->driver_mtx);
 	return err;
 }
 
@@ -1352,7 +1328,7 @@ mxge_change_intr_coal(SYSCTL_HANDLER_ARGS)
 	if (intr_coal_delay == sc->intr_coal_delay)
 		return 0;
 
-	if (intr_coal_delay == 0 || intr_coal_delay > 1000*1000)
+	if (intr_coal_delay == 0 || intr_coal_delay > 1000 * 1000)
 		return EINVAL;
 
 	mtx_lock(&sc->driver_mtx);
@@ -1434,138 +1410,103 @@ mxge_add_sysctls(mxge_softc_t *sc)
 	fw = sc->ss[0].fw_stats;
 
 	/* random information */
-	SYSCTL_ADD_STRING(ctx, children, OID_AUTO,
-		       "firmware_version",
-		       CTLFLAG_RD, sc->fw_version,
-		       0, "firmware version");
-	SYSCTL_ADD_STRING(ctx, children, OID_AUTO,
-		       "serial_number",
-		       CTLFLAG_RD, sc->serial_number_string,
-		       0, "serial number");
-	SYSCTL_ADD_STRING(ctx, children, OID_AUTO,
-		       "product_code",
-		       CTLFLAG_RD, sc->product_code_string,
-		       0, "product_code");
-	SYSCTL_ADD_INT(ctx, children, OID_AUTO,
-		       "pcie_link_width",
-		       CTLFLAG_RD, &sc->link_width,
-		       0, "tx_boundary");
-	SYSCTL_ADD_INT(ctx, children, OID_AUTO,
-		       "tx_boundary",
-		       CTLFLAG_RD, &sc->tx_boundary,
-		       0, "tx_boundary");
-	SYSCTL_ADD_INT(ctx, children, OID_AUTO,
-		       "write_combine",
-		       CTLFLAG_RD, &sc->wc,
-		       0, "write combining PIO?");
-	SYSCTL_ADD_INT(ctx, children, OID_AUTO,
-		       "read_dma_MBs",
-		       CTLFLAG_RD, &sc->read_dma,
-		       0, "DMA Read speed in MB/s");
-	SYSCTL_ADD_INT(ctx, children, OID_AUTO,
-		       "write_dma_MBs",
-		       CTLFLAG_RD, &sc->write_dma,
-		       0, "DMA Write speed in MB/s");
-	SYSCTL_ADD_INT(ctx, children, OID_AUTO,
-		       "read_write_dma_MBs",
-		       CTLFLAG_RD, &sc->read_write_dma,
-		       0, "DMA concurrent Read/Write speed in MB/s");
-	SYSCTL_ADD_INT(ctx, children, OID_AUTO,
-		       "watchdog_resets",
-		       CTLFLAG_RD, &sc->watchdog_resets,
-		       0, "Number of times NIC was reset");
+	SYSCTL_ADD_STRING(ctx, children, OID_AUTO, "firmware_version",
+	    CTLFLAG_RD, sc->fw_version, 0, "firmware version");
+	SYSCTL_ADD_STRING(ctx, children, OID_AUTO, "serial_number", CTLFLAG_RD,
+	    sc->serial_number_string, 0, "serial number");
+	SYSCTL_ADD_STRING(ctx, children, OID_AUTO, "product_code", CTLFLAG_RD,
+	    sc->product_code_string, 0, "product_code");
+	SYSCTL_ADD_INT(ctx, children, OID_AUTO, "pcie_link_width", CTLFLAG_RD,
+	    &sc->link_width, 0, "tx_boundary");
+	SYSCTL_ADD_INT(ctx, children, OID_AUTO, "tx_boundary", CTLFLAG_RD,
+	    &sc->tx_boundary, 0, "tx_boundary");
+	SYSCTL_ADD_INT(ctx, children, OID_AUTO, "write_combine", CTLFLAG_RD,
+	    &sc->wc, 0, "write combining PIO?");
+	SYSCTL_ADD_INT(ctx, children, OID_AUTO, "read_dma_MBs", CTLFLAG_RD,
+	    &sc->read_dma, 0, "DMA Read speed in MB/s");
+	SYSCTL_ADD_INT(ctx, children, OID_AUTO, "write_dma_MBs", CTLFLAG_RD,
+	    &sc->write_dma, 0, "DMA Write speed in MB/s");
+	SYSCTL_ADD_INT(ctx, children, OID_AUTO, "read_write_dma_MBs",
+	    CTLFLAG_RD, &sc->read_write_dma, 0,
+	    "DMA concurrent Read/Write speed in MB/s");
+	SYSCTL_ADD_INT(ctx, children, OID_AUTO, "watchdog_resets", CTLFLAG_RD,
+	    &sc->watchdog_resets, 0, "Number of times NIC was reset");
 
 	/* performance related tunables */
-	SYSCTL_ADD_PROC(ctx, children, OID_AUTO,
-	    "intr_coal_delay", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE,
-	    sc, 0, mxge_change_intr_coal, "I",
-	    "interrupt coalescing delay in usecs");
+	SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "intr_coal_delay",
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, sc, 0,
+	    mxge_change_intr_coal, "I", "interrupt coalescing delay in usecs");
 
-	SYSCTL_ADD_PROC(ctx, children, OID_AUTO,
-	    "throttle", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, sc, 0,
+	SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "throttle",
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, sc, 0,
 	    mxge_change_throttle, "I", "transmit throttling");
 
-	SYSCTL_ADD_PROC(ctx, children, OID_AUTO,
-	    "flow_control_enabled",
+	SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "flow_control_enabled",
 	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, sc, 0,
 	    mxge_change_flow_control, "I",
 	    "interrupt coalescing delay in usecs");
 
-	SYSCTL_ADD_INT(ctx, children, OID_AUTO,
-		       "deassert_wait",
-		       CTLFLAG_RW, &mxge_deassert_wait,
-		       0, "Wait for IRQ line to go low in ihandler");
+	SYSCTL_ADD_INT(ctx, children, OID_AUTO, "deassert_wait", CTLFLAG_RW,
+	    &mxge_deassert_wait, 0, "Wait for IRQ line to go low in ihandler");
 
 	/* stats block from firmware is in network byte order.
 	   Need to swap it */
-	SYSCTL_ADD_PROC(ctx, children, OID_AUTO,
-	    "link_up", CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE,
-	    &fw->link_up, 0, mxge_handle_be32, "I", "link up");
-	SYSCTL_ADD_PROC(ctx, children, OID_AUTO,
-	    "rdma_tags_available", CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE,
-	    &fw->rdma_tags_available, 0, mxge_handle_be32, "I",
-	    "rdma_tags_available");
-	SYSCTL_ADD_PROC(ctx, children, OID_AUTO,
-	    "dropped_bad_crc32", CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE,
-	    &fw->dropped_bad_crc32, 0, mxge_handle_be32, "I",
-	    "dropped_bad_crc32");
-	SYSCTL_ADD_PROC(ctx, children, OID_AUTO,
-	    "dropped_bad_phy", CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE,
-	    &fw->dropped_bad_phy, 0, mxge_handle_be32, "I", "dropped_bad_phy");
+	SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "link_up",
+	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, &fw->link_up, 0,
+	    mxge_handle_be32, "I", "link up");
+	SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "rdma_tags_available",
+	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, &fw->rdma_tags_available,
+	    0, mxge_handle_be32, "I", "rdma_tags_available");
+	SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "dropped_bad_crc32",
+	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, &fw->dropped_bad_crc32,
+	    0, mxge_handle_be32, "I", "dropped_bad_crc32");
+	SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "dropped_bad_phy",
+	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, &fw->dropped_bad_phy, 0,
+	    mxge_handle_be32, "I", "dropped_bad_phy");
 	SYSCTL_ADD_PROC(ctx, children, OID_AUTO,
 	    "dropped_link_error_or_filtered",
 	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE,
 	    &fw->dropped_link_error_or_filtered, 0, mxge_handle_be32, "I",
 	    "dropped_link_error_or_filtered");
-	SYSCTL_ADD_PROC(ctx, children, OID_AUTO,
-	    "dropped_link_overflow",
+	SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "dropped_link_overflow",
 	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE,
 	    &fw->dropped_link_overflow, 0, mxge_handle_be32, "I",
 	    "dropped_link_overflow");
-	SYSCTL_ADD_PROC(ctx, children, OID_AUTO,
-	    "dropped_multicast_filtered",
+	SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "dropped_multicast_filtered",
 	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE,
 	    &fw->dropped_multicast_filtered, 0, mxge_handle_be32, "I",
 	    "dropped_multicast_filtered");
-	SYSCTL_ADD_PROC(ctx, children, OID_AUTO,
-	    "dropped_no_big_buffer",
+	SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "dropped_no_big_buffer",
 	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE,
 	    &fw->dropped_no_big_buffer, 0, mxge_handle_be32, "I",
 	    "dropped_no_big_buffer");
-	SYSCTL_ADD_PROC(ctx, children, OID_AUTO,
-	    "dropped_no_small_buffer",
+	SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "dropped_no_small_buffer",
 	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE,
 	    &fw->dropped_no_small_buffer, 0, mxge_handle_be32, "I",
 	    "dropped_no_small_buffer");
-	SYSCTL_ADD_PROC(ctx, children, OID_AUTO,
-	    "dropped_overrun",
-	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE,
-	    &fw->dropped_overrun, 0, mxge_handle_be32, "I",
-	    "dropped_overrun");
-	SYSCTL_ADD_PROC(ctx, children, OID_AUTO,
-	    "dropped_pause", CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE,
-	    &fw->dropped_pause, 0, mxge_handle_be32, "I", "dropped_pause");
-	SYSCTL_ADD_PROC(ctx, children, OID_AUTO,
-	    "dropped_runt", CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE,
-	    &fw->dropped_runt, 0, mxge_handle_be32, "I", "dropped_runt");
+	SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "dropped_overrun",
+	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, &fw->dropped_overrun, 0,
+	    mxge_handle_be32, "I", "dropped_overrun");
+	SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "dropped_pause",
+	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, &fw->dropped_pause, 0,
+	    mxge_handle_be32, "I", "dropped_pause");
+	SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "dropped_runt",
+	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, &fw->dropped_runt, 0,
+	    mxge_handle_be32, "I", "dropped_runt");
 
-	SYSCTL_ADD_PROC(ctx, children, OID_AUTO,
-	    "dropped_unicast_filtered",
+	SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "dropped_unicast_filtered",
 	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE,
 	    &fw->dropped_unicast_filtered, 0, mxge_handle_be32, "I",
 	    "dropped_unicast_filtered");
 
 	/* verbose printing? */
-	SYSCTL_ADD_INT(ctx, children, OID_AUTO,
-		       "verbose",
-		       CTLFLAG_RW, &mxge_verbose,
-		       0, "verbose printing");
+	SYSCTL_ADD_INT(ctx, children, OID_AUTO, "verbose", CTLFLAG_RW,
+	    &mxge_verbose, 0, "verbose printing");
 
 	/* add counters exported for debugging from all slices */
 	sysctl_ctx_init(&sc->slice_sysctl_ctx);
-	sc->slice_sysctl_tree =
-		SYSCTL_ADD_NODE(&sc->slice_sysctl_ctx, children, OID_AUTO,
-		    "slice", CTLFLAG_RD | CTLFLAG_MPSAFE, 0, "");
+	sc->slice_sysctl_tree = SYSCTL_ADD_NODE(&sc->slice_sysctl_ctx, children,
+	    OID_AUTO, "slice", CTLFLAG_RD | CTLFLAG_MPSAFE, 0, "");
 
 	for (slice = 0; slice < sc->num_slices; slice++) {
 		ss = &sc->ss[slice];
@@ -1573,68 +1514,45 @@ mxge_add_sysctls(mxge_softc_t *sc)
 		ctx = &ss->sysctl_ctx;
 		children = SYSCTL_CHILDREN(sc->slice_sysctl_tree);
 		sprintf(slice_num, "%d", slice);
-		ss->sysctl_tree =
-			SYSCTL_ADD_NODE(ctx, children, OID_AUTO, slice_num,
-			    CTLFLAG_RD | CTLFLAG_MPSAFE, 0, "");
+		ss->sysctl_tree = SYSCTL_ADD_NODE(ctx, children, OID_AUTO,
+		    slice_num, CTLFLAG_RD | CTLFLAG_MPSAFE, 0, "");
 		children = SYSCTL_CHILDREN(ss->sysctl_tree);
-		SYSCTL_ADD_INT(ctx, children, OID_AUTO,
-			       "rx_small_cnt",
-			       CTLFLAG_RD, &ss->rx_small.cnt,
-			       0, "rx_small_cnt");
-		SYSCTL_ADD_INT(ctx, children, OID_AUTO,
-			       "rx_big_cnt",
-			       CTLFLAG_RD, &ss->rx_big.cnt,
-			       0, "rx_small_cnt");
-		SYSCTL_ADD_U64(ctx, children, OID_AUTO,
-			       "lro_flushed", CTLFLAG_RD, &ss->lc.lro_flushed,
-			       0, "number of lro merge queues flushed");
+		SYSCTL_ADD_INT(ctx, children, OID_AUTO, "rx_small_cnt",
+		    CTLFLAG_RD, &ss->rx_small.cnt, 0, "rx_small_cnt");
+		SYSCTL_ADD_INT(ctx, children, OID_AUTO, "rx_big_cnt",
+		    CTLFLAG_RD, &ss->rx_big.cnt, 0, "rx_small_cnt");
+		SYSCTL_ADD_U64(ctx, children, OID_AUTO, "lro_flushed",
+		    CTLFLAG_RD, &ss->lc.lro_flushed, 0,
+		    "number of lro merge queues flushed");
 
-		SYSCTL_ADD_U64(ctx, children, OID_AUTO,
-			       "lro_bad_csum", CTLFLAG_RD, &ss->lc.lro_bad_csum,
-			       0, "number of bad csums preventing LRO");
+		SYSCTL_ADD_U64(ctx, children, OID_AUTO, "lro_bad_csum",
+		    CTLFLAG_RD, &ss->lc.lro_bad_csum, 0,
+		    "number of bad csums preventing LRO");
 
-		SYSCTL_ADD_U64(ctx, children, OID_AUTO,
-			       "lro_queued", CTLFLAG_RD, &ss->lc.lro_queued,
-			       0, "number of frames appended to lro merge"
-			       "queues");
+		SYSCTL_ADD_U64(ctx, children, OID_AUTO, "lro_queued",
+		    CTLFLAG_RD, &ss->lc.lro_queued, 0,
+		    "number of frames appended to lro merge"
+		    "queues");
 
-		SYSCTL_ADD_INT(ctx, children, OID_AUTO,
-			       "tx_req",
-			       CTLFLAG_RD, &ss->tx.req,
-			       0, "tx_req");
+		SYSCTL_ADD_INT(ctx, children, OID_AUTO, "tx_req", CTLFLAG_RD,
+		    &ss->tx.req, 0, "tx_req");
 
-		SYSCTL_ADD_INT(ctx, children, OID_AUTO,
-			       "tx_done",
-			       CTLFLAG_RD, &ss->tx.done,
-			       0, "tx_done");
-		SYSCTL_ADD_INT(ctx, children, OID_AUTO,
-			       "tx_pkt_done",
-			       CTLFLAG_RD, &ss->tx.pkt_done,
-			       0, "tx_done");
-		SYSCTL_ADD_INT(ctx, children, OID_AUTO,
-			       "tx_stall",
-			       CTLFLAG_RD, &ss->tx.stall,
-			       0, "tx_stall");
-		SYSCTL_ADD_INT(ctx, children, OID_AUTO,
-			       "tx_wake",
-			       CTLFLAG_RD, &ss->tx.wake,
-			       0, "tx_wake");
-		SYSCTL_ADD_INT(ctx, children, OID_AUTO,
-			       "tx_defrag",
-			       CTLFLAG_RD, &ss->tx.defrag,
-			       0, "tx_defrag");
-		SYSCTL_ADD_INT(ctx, children, OID_AUTO,
-			       "tx_queue_active",
-			       CTLFLAG_RD, &ss->tx.queue_active,
-			       0, "tx_queue_active");
-		SYSCTL_ADD_INT(ctx, children, OID_AUTO,
-			       "tx_activate",
-			       CTLFLAG_RD, &ss->tx.activate,
-			       0, "tx_activate");
-		SYSCTL_ADD_INT(ctx, children, OID_AUTO,
-			       "tx_deactivate",
-			       CTLFLAG_RD, &ss->tx.deactivate,
-			       0, "tx_deactivate");
+		SYSCTL_ADD_INT(ctx, children, OID_AUTO, "tx_done", CTLFLAG_RD,
+		    &ss->tx.done, 0, "tx_done");
+		SYSCTL_ADD_INT(ctx, children, OID_AUTO, "tx_pkt_done",
+		    CTLFLAG_RD, &ss->tx.pkt_done, 0, "tx_done");
+		SYSCTL_ADD_INT(ctx, children, OID_AUTO, "tx_stall", CTLFLAG_RD,
+		    &ss->tx.stall, 0, "tx_stall");
+		SYSCTL_ADD_INT(ctx, children, OID_AUTO, "tx_wake", CTLFLAG_RD,
+		    &ss->tx.wake, 0, "tx_wake");
+		SYSCTL_ADD_INT(ctx, children, OID_AUTO, "tx_defrag", CTLFLAG_RD,
+		    &ss->tx.defrag, 0, "tx_defrag");
+		SYSCTL_ADD_INT(ctx, children, OID_AUTO, "tx_queue_active",
+		    CTLFLAG_RD, &ss->tx.queue_active, 0, "tx_queue_active");
+		SYSCTL_ADD_INT(ctx, children, OID_AUTO, "tx_activate",
+		    CTLFLAG_RD, &ss->tx.activate, 0, "tx_activate");
+		SYSCTL_ADD_INT(ctx, children, OID_AUTO, "tx_deactivate",
+		    CTLFLAG_RD, &ss->tx.deactivate, 0, "tx_deactivate");
 	}
 }
 
@@ -1642,16 +1560,15 @@ mxge_add_sysctls(mxge_softc_t *sc)
    backwards one at a time and handle ring wraps */
 
 static inline void
-mxge_submit_req_backwards(mxge_tx_ring_t *tx,
-			    mcp_kreq_ether_send_t *src, int cnt)
+mxge_submit_req_backwards(mxge_tx_ring_t *tx, mcp_kreq_ether_send_t *src,
+    int cnt)
 {
 	int idx, starting_slot;
 	starting_slot = tx->req;
 	while (cnt > 1) {
 		cnt--;
 		idx = (starting_slot + cnt) & tx->mask;
-		mxge_pio_copy(&tx->lanai[idx],
-			      &src[cnt], sizeof(*src));
+		mxge_pio_copy(&tx->lanai[idx], &src[cnt], sizeof(*src));
 		wmb();
 	}
 }
@@ -1664,8 +1581,7 @@ mxge_submit_req_backwards(mxge_tx_ring_t *tx,
  */
 
 static inline void
-mxge_submit_req(mxge_tx_ring_t *tx, mcp_kreq_ether_send_t *src,
-		  int cnt)
+mxge_submit_req(mxge_tx_ring_t *tx, mcp_kreq_ether_send_t *src, int cnt)
 {
 	int idx, i;
 	uint32_t *src_ints;
@@ -1704,10 +1620,10 @@ mxge_submit_req(mxge_tx_ring_t *tx, mcp_kreq_ether_send_t *src,
 	/* re-write the last 32-bits with the valid flags */
 	src->flags = last_flags;
 	src_ints = (uint32_t *)src;
-	src_ints+=3;
+	src_ints += 3;
 	dst_ints = (volatile uint32_t *)dst;
-	dst_ints+=3;
-	*dst_ints =  *src_ints;
+	dst_ints += 3;
+	*dst_ints = *src_ints;
 	tx->req += cnt;
 	wmb();
 }
@@ -1749,10 +1665,11 @@ mxge_parse_tx(struct mxge_slice_state *ss, struct mbuf *m,
 		if (!tso)
 			return 0;
 
-		if (__predict_false(m->m_len < pi->ip_off + pi->ip_hlen +
-		    sizeof(struct tcphdr))) {
-			m_copydata(m, 0, pi->ip_off + pi->ip_hlen +
-			    sizeof(struct tcphdr), ss->scratch);
+		if (__predict_false(m->m_len <
+			pi->ip_off + pi->ip_hlen + sizeof(struct tcphdr))) {
+			m_copydata(m, 0,
+			    pi->ip_off + pi->ip_hlen + sizeof(struct tcphdr),
+			    ss->scratch);
 			pi->ip = (struct ip *)(ss->scratch + pi->ip_off);
 		}
 		pi->tcp = (struct tcphdr *)((char *)pi->ip + pi->ip_hlen);
@@ -1777,10 +1694,11 @@ mxge_parse_tx(struct mxge_slice_state *ss, struct mbuf *m,
 		if (pi->ip_off + pi->ip_hlen > ss->sc->max_tso6_hlen)
 			return EINVAL;
 
-		if (__predict_false(m->m_len < pi->ip_off + pi->ip_hlen +
-		    sizeof(struct tcphdr))) {
-			m_copydata(m, 0, pi->ip_off + pi->ip_hlen +
-			    sizeof(struct tcphdr), ss->scratch);
+		if (__predict_false(m->m_len <
+			pi->ip_off + pi->ip_hlen + sizeof(struct tcphdr))) {
+			m_copydata(m, 0,
+			    pi->ip_off + pi->ip_hlen + sizeof(struct tcphdr),
+			    ss->scratch);
 			pi->ip6 = (struct ip6_hdr *)(ss->scratch + pi->ip_off);
 		}
 		pi->tcp = (struct tcphdr *)((char *)pi->ip6 + pi->ip_hlen);
@@ -1795,8 +1713,8 @@ mxge_parse_tx(struct mxge_slice_state *ss, struct mbuf *m,
 #if IFCAP_TSO4
 
 static void
-mxge_encap_tso(struct mxge_slice_state *ss, struct mbuf *m,
-	       int busdma_seg_cnt, struct mxge_pkt_info *pi)
+mxge_encap_tso(struct mxge_slice_state *ss, struct mbuf *m, int busdma_seg_cnt,
+    struct mxge_pkt_info *pi)
 {
 	mxge_tx_ring_t *tx;
 	mcp_kreq_ether_send_t *req;
@@ -1819,7 +1737,8 @@ mxge_encap_tso(struct mxge_slice_state *ss, struct mbuf *m,
 	cum_len = -(cksum_offset + (pi->tcp->th_off << 2));
 
 	/* TSO implies checksum offload on this hardware */
-	if (__predict_false((m->m_pkthdr.csum_flags & (CSUM_TCP|CSUM_TCP_IPV6)) == 0)) {
+	if (__predict_false(
+		(m->m_pkthdr.csum_flags & (CSUM_TCP | CSUM_TCP_IPV6)) == 0)) {
 		/*
 		 * If packet has full TCP csum, replace it with pseudo hdr
 		 * sum that the NIC expects, otherwise the NIC will emit
@@ -1830,20 +1749,19 @@ mxge_encap_tso(struct mxge_slice_state *ss, struct mbuf *m,
 #if (CSUM_TCP_IPV6 != 0) && defined(INET6)
 			m->m_pkthdr.csum_flags |= CSUM_TCP_IPV6;
 			sum = in6_cksum_pseudo(pi->ip6,
-			    m->m_pkthdr.len - cksum_offset,
-			    IPPROTO_TCP, 0);
+			    m->m_pkthdr.len - cksum_offset, IPPROTO_TCP, 0);
 #endif
 		} else {
 #ifdef INET
 			m->m_pkthdr.csum_flags |= CSUM_TCP;
 			sum = in_pseudo(pi->ip->ip_src.s_addr,
 			    pi->ip->ip_dst.s_addr,
-			    htons(IPPROTO_TCP + (m->m_pkthdr.len -
-				    cksum_offset)));
+			    htons(IPPROTO_TCP +
+				(m->m_pkthdr.len - cksum_offset)));
 #endif
 		}
-		m_copyback(m, offsetof(struct tcphdr, th_sum) +
-		    cksum_offset, sizeof(sum), (caddr_t)&sum);
+		m_copyback(m, offsetof(struct tcphdr, th_sum) + cksum_offset,
+		    sizeof(sum), (caddr_t)&sum);
 	}
 	flags = MXGEFW_FLAGS_TSO_HDR | MXGEFW_FLAGS_FIRST;
 
@@ -1886,14 +1804,14 @@ mxge_encap_tso(struct mxge_slice_state *ss, struct mbuf *m,
 	while (busdma_seg_cnt) {
 		/* Break the busdma segment up into pieces*/
 		low = MXGE_LOWPART_TO_U32(seg->ds_addr);
-		high_swapped = 	htobe32(MXGE_HIGHPART_TO_U32(seg->ds_addr));
+		high_swapped = htobe32(MXGE_HIGHPART_TO_U32(seg->ds_addr));
 		len = seg->ds_len;
 
 		while (len) {
 			flags_next = flags & ~MXGEFW_FLAGS_FIRST;
 			seglen = len;
 			cum_len_next = cum_len + seglen;
-			(req-rdma_count)->rdma_count = rdma_count + 1;
+			(req - rdma_count)->rdma_count = rdma_count + 1;
 			if (__predict_true(cum_len >= 0)) {
 				/* payload */
 				chop = (cum_len_next > mss);
@@ -1901,7 +1819,7 @@ mxge_encap_tso(struct mxge_slice_state *ss, struct mbuf *m,
 				next_is_first = (cum_len_next == 0);
 				flags |= chop * MXGEFW_FLAGS_TSO_CHOP;
 				flags_next |= next_is_first *
-					MXGEFW_FLAGS_FIRST;
+				    MXGEFW_FLAGS_FIRST;
 				rdma_count |= -(chop | next_is_first);
 				rdma_count += chop & !next_is_first;
 			} else if (cum_len_next >= 0) {
@@ -1911,10 +1829,10 @@ mxge_encap_tso(struct mxge_slice_state *ss, struct mbuf *m,
 				seglen = -cum_len;
 				small = (mss <= MXGEFW_SEND_SMALL_SIZE);
 				flags_next = MXGEFW_FLAGS_TSO_PLD |
-					MXGEFW_FLAGS_FIRST |
-					(small * MXGEFW_FLAGS_SMALL);
-			    }
-			
+				    MXGEFW_FLAGS_FIRST |
+				    (small * MXGEFW_FLAGS_SMALL);
+			}
+
 			req->addr_high = high_swapped;
 			req->addr_low = htobe32(low);
 			req->pseudo_hdr_offset = pseudo_hdr_offset;
@@ -1922,8 +1840,8 @@ mxge_encap_tso(struct mxge_slice_state *ss, struct mbuf *m,
 			req->rdma_count = 1;
 			req->length = htobe16(seglen);
 			req->cksum_offset = cksum_offset;
-			req->flags = flags | ((cum_len & 1) *
-					      MXGEFW_FLAGS_ALIGN_ODD);
+			req->flags = flags |
+			    ((cum_len & 1) * MXGEFW_FLAGS_ALIGN_ODD);
 			low += seglen;
 			len -= seglen;
 			cum_len = cum_len_next;
@@ -1943,7 +1861,7 @@ mxge_encap_tso(struct mxge_slice_state *ss, struct mbuf *m,
 		busdma_seg_cnt--;
 		seg++;
 	}
-	(req-rdma_count)->rdma_count = rdma_count;
+	(req - rdma_count)->rdma_count = rdma_count;
 
 	do {
 		req--;
@@ -1970,11 +1888,10 @@ drop:
 	if (!once) {
 		printf("tx->max_desc exceeded via TSO!\n");
 		printf("mss = %d, %ld, %d!\n", mss,
-		       (long)seg - (long)tx->seg_list, tx->max_desc);
+		    (long)seg - (long)tx->seg_list, tx->max_desc);
 		once = 1;
 	}
 	return;
-
 }
 
 #endif /* IFCAP_TSO4 */
@@ -2004,8 +1921,8 @@ mxge_vlan_tag_insert(struct mbuf *m)
 	 * with 802.1Q encapsulation.
 	 */
 	evl = mtod(m, struct ether_vlan_header *);
-	bcopy((char *)evl + ETHER_VLAN_ENCAP_LEN,
-	      (char *)evl, ETHER_HDR_LEN - ETHER_TYPE_LEN);
+	bcopy((char *)evl + ETHER_VLAN_ENCAP_LEN, (char *)evl,
+	    ETHER_HDR_LEN - ETHER_TYPE_LEN);
 	evl->evl_encap_proto = htons(ETHERTYPE_VLAN);
 	evl->evl_tag = htons(m->m_pkthdr.ether_vtag);
 	m->m_flags &= ~M_VLANTAG;
@@ -2016,7 +1933,7 @@ mxge_vlan_tag_insert(struct mbuf *m)
 static void
 mxge_encap(struct mxge_slice_state *ss, struct mbuf *m)
 {
-	struct mxge_pkt_info pi = {0,0,0,0};
+	struct mxge_pkt_info pi = { 0, 0, 0, 0 };
 	mxge_softc_t *sc;
 	mcp_kreq_ether_send_t *req;
 	bus_dma_segment_t *seg;
@@ -2044,9 +1961,8 @@ mxge_encap(struct mxge_slice_state *ss, struct mbuf *m)
 
 	/* (try to) map the frame for DMA */
 	idx = tx->req & tx->mask;
-	err = bus_dmamap_load_mbuf_sg(tx->dmat, tx->info[idx].map,
-				      m, tx->seg_list, &cnt,
-				      BUS_DMA_NOWAIT);
+	err = bus_dmamap_load_mbuf_sg(tx->dmat, tx->info[idx].map, m,
+	    tx->seg_list, &cnt, BUS_DMA_NOWAIT);
 	if (__predict_false(err == EFBIG)) {
 		/* Too many segments in the chain.  Try
 		   to defrag */
@@ -2056,18 +1972,17 @@ mxge_encap(struct mxge_slice_state *ss, struct mbuf *m)
 		}
 		ss->tx.defrag++;
 		m = m_tmp;
-		err = bus_dmamap_load_mbuf_sg(tx->dmat,
-					      tx->info[idx].map,
-					      m, tx->seg_list, &cnt,
-					      BUS_DMA_NOWAIT);
+		err = bus_dmamap_load_mbuf_sg(tx->dmat, tx->info[idx].map, m,
+		    tx->seg_list, &cnt, BUS_DMA_NOWAIT);
 	}
 	if (__predict_false(err != 0)) {
-		device_printf(sc->dev, "bus_dmamap_load_mbuf_sg returned %d"
-			      " packet len = %d\n", err, m->m_pkthdr.len);
+		device_printf(sc->dev,
+		    "bus_dmamap_load_mbuf_sg returned %d"
+		    " packet len = %d\n",
+		    err, m->m_pkthdr.len);
 		goto drop;
 	}
-	bus_dmamap_sync(tx->dmat, tx->info[idx].map,
-			BUS_DMASYNC_PREWRITE);
+	bus_dmamap_sync(tx->dmat, tx->info[idx].map, BUS_DMASYNC_PREWRITE);
 	tx->info[idx].m = m;
 
 #if IFCAP_TSO4
@@ -2084,12 +1999,11 @@ mxge_encap(struct mxge_slice_state *ss, struct mbuf *m)
 	flags = MXGEFW_FLAGS_NO_TSO;
 
 	/* checksum offloading? */
-	if (m->m_pkthdr.csum_flags &
-	    (CSUM_DELAY_DATA | CSUM_DELAY_DATA_IPV6)) {
+	if (m->m_pkthdr.csum_flags & (CSUM_DELAY_DATA | CSUM_DELAY_DATA_IPV6)) {
 		/* ensure ip header is in first mbuf, copy
 		   it to a scratch buffer if not */
 		cksum_offset = pi.ip_off + pi.ip_hlen;
-		pseudo_hdr_offset = cksum_offset +  m->m_pkthdr.csum_data;
+		pseudo_hdr_offset = cksum_offset + m->m_pkthdr.csum_data;
 		pseudo_hdr_offset = htobe16(pseudo_hdr_offset);
 		req->cksum_offset = cksum_offset;
 		flags |= MXGEFW_FLAGS_CKSUM;
@@ -2105,10 +2019,8 @@ mxge_encap(struct mxge_slice_state *ss, struct mbuf *m)
 	seg = tx->seg_list;
 	req->flags = MXGEFW_FLAGS_FIRST;
 	for (i = 0; i < cnt; i++) {
-		req->addr_low =
-			htobe32(MXGE_LOWPART_TO_U32(seg->ds_addr));
-		req->addr_high =
-			htobe32(MXGE_HIGHPART_TO_U32(seg->ds_addr));
+		req->addr_low = htobe32(MXGE_LOWPART_TO_U32(seg->ds_addr));
+		req->addr_high = htobe32(MXGE_HIGHPART_TO_U32(seg->ds_addr));
 		req->length = htobe16(seg->ds_len);
 		req->cksum_offset = cksum_offset;
 		if (cksum_offset > seg->ds_len)
@@ -2128,10 +2040,10 @@ mxge_encap(struct mxge_slice_state *ss, struct mbuf *m)
 	/* pad runts to 60 bytes */
 	if (cum_len < 60) {
 		req++;
-		req->addr_low =
-			htobe32(MXGE_LOWPART_TO_U32(sc->zeropad_dma.bus_addr));
-		req->addr_high =
-			htobe32(MXGE_HIGHPART_TO_U32(sc->zeropad_dma.bus_addr));
+		req->addr_low = htobe32(
+		    MXGE_LOWPART_TO_U32(sc->zeropad_dma.bus_addr));
+		req->addr_high = htobe32(
+		    MXGE_HIGHPART_TO_U32(sc->zeropad_dma.bus_addr));
 		req->length = htobe16(60 - cum_len);
 		req->cksum_offset = 0;
 		req->pseudo_hdr_offset = pseudo_hdr_offset;
@@ -2218,8 +2130,8 @@ mxge_start_locked(struct mxge_slice_state *ss)
 		mxge_encap(ss, m);
 	}
 	/* ran out of transmit slots */
-	if (((ss->if_drv_flags & IFF_DRV_OACTIVE) == 0)
-	    && (!drbr_empty(ifp, tx->br))) {
+	if (((ss->if_drv_flags & IFF_DRV_OACTIVE) == 0) &&
+	    (!drbr_empty(ifp, tx->br))) {
 		ss->if_drv_flags |= IFF_DRV_OACTIVE;
 		tx->stall++;
 	}
@@ -2237,7 +2149,7 @@ mxge_transmit_locked(struct mxge_slice_state *ss, struct mbuf *m)
 	ifp = sc->ifp;
 	tx = &ss->tx;
 
-	if ((ss->if_drv_flags & (IFF_DRV_RUNNING|IFF_DRV_OACTIVE)) !=
+	if ((ss->if_drv_flags & (IFF_DRV_RUNNING | IFF_DRV_OACTIVE)) !=
 	    IFF_DRV_RUNNING) {
 		err = drbr_enqueue(ifp, tx->br, m);
 		return (err);
@@ -2267,7 +2179,7 @@ mxge_transmit(if_t ifp, struct mbuf *m)
 	int slice;
 
 	slice = m->m_pkthdr.flowid;
-	slice &= (sc->num_slices - 1);  /* num_slices always power of 2 */
+	slice &= (sc->num_slices - 1); /* num_slices always power of 2 */
 
 	ss = &sc->ss[slice];
 	tx = &ss->tx;
@@ -2292,7 +2204,7 @@ mxge_start(if_t ifp)
 	ss = &sc->ss[0];
 	mtx_lock(&ss->tx.mtx);
 	mxge_start_locked(ss);
-	mtx_unlock(&ss->tx.mtx);		
+	mtx_unlock(&ss->tx.mtx);
 }
 
 /*
@@ -2303,16 +2215,15 @@ mxge_start(if_t ifp)
  * in a burst
  */
 static inline void
-mxge_submit_8rx(volatile mcp_kreq_ether_recv_t *dst,
-		mcp_kreq_ether_recv_t *src)
+mxge_submit_8rx(volatile mcp_kreq_ether_recv_t *dst, mcp_kreq_ether_recv_t *src)
 {
 	uint32_t low;
 
 	low = src->addr_low;
 	src->addr_low = 0xffffffff;
-	mxge_pio_copy(dst, src, 4 * sizeof (*src));
+	mxge_pio_copy(dst, src, 4 * sizeof(*src));
 	wmb();
-	mxge_pio_copy(dst + 4, src + 4, 4 * sizeof (*src));
+	mxge_pio_copy(dst + 4, src + 4, 4 * sizeof(*src));
 	wmb();
 	src->addr_low = low;
 	dst->addr_low = low;
@@ -2334,17 +2245,15 @@ mxge_get_buf_small(struct mxge_slice_state *ss, bus_dmamap_t map, int idx)
 		goto done;
 	}
 	m->m_len = MHLEN;
-	err = bus_dmamap_load_mbuf_sg(rx->dmat, map, m,
-				      &seg, &cnt, BUS_DMA_NOWAIT);
+	err = bus_dmamap_load_mbuf_sg(rx->dmat, map, m, &seg, &cnt,
+	    BUS_DMA_NOWAIT);
 	if (err != 0) {
 		m_free(m);
 		goto done;
 	}
 	rx->info[idx].m = m;
-	rx->shadow[idx].addr_low =
-		htobe32(MXGE_LOWPART_TO_U32(seg.ds_addr));
-	rx->shadow[idx].addr_high =
-		htobe32(MXGE_HIGHPART_TO_U32(seg.ds_addr));
+	rx->shadow[idx].addr_low = htobe32(MXGE_LOWPART_TO_U32(seg.ds_addr));
+	rx->shadow[idx].addr_high = htobe32(MXGE_HIGHPART_TO_U32(seg.ds_addr));
 
 done:
 	if ((idx & 7) == 7)
@@ -2367,23 +2276,21 @@ mxge_get_buf_big(struct mxge_slice_state *ss, bus_dmamap_t map, int idx)
 		goto done;
 	}
 	m->m_len = rx->mlen;
-	err = bus_dmamap_load_mbuf_sg(rx->dmat, map, m,
-				      seg, &cnt, BUS_DMA_NOWAIT);
+	err = bus_dmamap_load_mbuf_sg(rx->dmat, map, m, seg, &cnt,
+	    BUS_DMA_NOWAIT);
 	if (err != 0) {
 		m_free(m);
 		goto done;
 	}
 	rx->info[idx].m = m;
-	rx->shadow[idx].addr_low =
-		htobe32(MXGE_LOWPART_TO_U32(seg->ds_addr));
-	rx->shadow[idx].addr_high =
-		htobe32(MXGE_HIGHPART_TO_U32(seg->ds_addr));
+	rx->shadow[idx].addr_low = htobe32(MXGE_LOWPART_TO_U32(seg->ds_addr));
+	rx->shadow[idx].addr_high = htobe32(MXGE_HIGHPART_TO_U32(seg->ds_addr));
 
 done:
-       for (i = 0; i < rx->nbufs; i++) {
+	for (i = 0; i < rx->nbufs; i++) {
 		if ((idx & 7) == 7) {
 			mxge_submit_8rx(&rx->lanai[idx - 7],
-					&rx->shadow[idx - 7]);
+			    &rx->shadow[idx - 7]);
 		}
 		idx++;
 	}
@@ -2417,10 +2324,10 @@ mxge_rx_csum6(void *p, struct mbuf *m, uint32_t csum)
 	uint16_t c;
 
 	nxt = ip6->ip6_nxt;
-	cksum_offset = sizeof (*ip6) + ETHER_HDR_LEN;
+	cksum_offset = sizeof(*ip6) + ETHER_HDR_LEN;
 	if (nxt != IPPROTO_TCP && nxt != IPPROTO_UDP) {
-		cksum_offset = ip6_lasthdr(m, ETHER_HDR_LEN,
-					   IPPROTO_IPV6, &nxt);
+		cksum_offset = ip6_lasthdr(m, ETHER_HDR_LEN, IPPROTO_IPV6,
+		    &nxt);
 		if (nxt != IPPROTO_TCP && nxt != IPPROTO_UDP)
 			return (1);
 	}
@@ -2433,14 +2340,13 @@ mxge_rx_csum6(void *p, struct mbuf *m, uint32_t csum)
 	 * subtracting the checksum of the IPv6 header.
 	 */
 
-	partial = mxge_csum_generic((uint16_t *)ip6, cksum_offset -
-				    ETHER_HDR_LEN);
+	partial = mxge_csum_generic((uint16_t *)ip6,
+	    cksum_offset - ETHER_HDR_LEN);
 	csum += ~partial;
-	csum +=	 (csum < ~partial);
+	csum += (csum < ~partial);
 	csum = (csum >> 16) + (csum & 0xFFFF);
 	csum = (csum >> 16) + (csum & 0xFFFF);
-	c = in6_cksum_pseudo(ip6, m->m_pkthdr.len - cksum_offset, nxt,
-			     csum);
+	c = in6_cksum_pseudo(ip6, m->m_pkthdr.len - cksum_offset, nxt, csum);
 	c ^= 0xffff;
 	return (c);
 }
@@ -2477,8 +2383,8 @@ mxge_rx_csum(struct mbuf *m, int csum)
 		if (ip->ip_p != IPPROTO_TCP && ip->ip_p != IPPROTO_UDP)
 			return (1);
 		c = in_pseudo(ip->ip_src.s_addr, ip->ip_dst.s_addr,
-			      htonl(ntohs(csum) + ntohs(ip->ip_len) -
-				    (ip->ip_hl << 2) + ip->ip_p));
+		    htonl(ntohs(csum) + ntohs(ip->ip_len) - (ip->ip_hl << 2) +
+			ip->ip_p));
 		c ^= 0xffff;
 		break;
 #endif
@@ -2513,7 +2419,7 @@ mxge_vlan_tag_remove(struct mbuf *m, uint32_t *csum)
 	*csum = ntohs(*csum);
 	partial = ntohl(*(uint32_t *)(mtod(m, char *) + ETHER_HDR_LEN));
 	(*csum) += ~partial;
-	(*csum) +=  ((*csum) < ~partial);
+	(*csum) += ((*csum) < ~partial);
 	(*csum) = ((*csum) >> 16) + ((*csum) & 0xFFFF);
 	(*csum) = ((*csum) >> 16) + ((*csum) & 0xFFFF);
 
@@ -2522,13 +2428,13 @@ mxge_vlan_tag_remove(struct mbuf *m, uint32_t *csum)
 	*csum = htons(*csum);
 
 	/* save the tag */
-#ifdef MXGE_NEW_VLAN_API	
+#ifdef MXGE_NEW_VLAN_API
 	m->m_pkthdr.ether_vtag = ntohs(evl->evl_tag);
 #else
 	{
 		struct m_tag *mtag;
 		mtag = m_tag_alloc(MTAG_VLAN, MTAG_VLAN_TAG, sizeof(u_int),
-				   M_NOWAIT);
+		    M_NOWAIT);
 		if (mtag == NULL)
 			return;
 		VLAN_TAG_VALUE(mtag) = ntohs(evl->evl_tag);
@@ -2545,13 +2451,13 @@ mxge_vlan_tag_remove(struct mbuf *m, uint32_t *csum)
 	 * type field is already in place.
 	 */
 	bcopy((char *)evl, (char *)evl + ETHER_VLAN_ENCAP_LEN,
-	      ETHER_HDR_LEN - ETHER_TYPE_LEN);
+	    ETHER_HDR_LEN - ETHER_TYPE_LEN);
 	m_adj(m, ETHER_VLAN_ENCAP_LEN);
 }
 
 static inline void
-mxge_rx_done_big(struct mxge_slice_state *ss, uint32_t len,
-		 uint32_t csum, int lro)
+mxge_rx_done_big(struct mxge_slice_state *ss, uint32_t len, uint32_t csum,
+    int lro)
 {
 	mxge_softc_t *sc;
 	if_t ifp;
@@ -2605,10 +2511,9 @@ mxge_rx_done_big(struct mxge_slice_state *ss, uint32_t len,
 	    (0 == mxge_rx_csum(m, csum))) {
 		/* Tell the stack that the  checksum is good */
 		m->m_pkthdr.csum_data = 0xffff;
-		m->m_pkthdr.csum_flags = CSUM_PSEUDO_HDR |
-			CSUM_DATA_VALID;
+		m->m_pkthdr.csum_flags = CSUM_PSEUDO_HDR | CSUM_DATA_VALID;
 
-#if defined(INET) || defined (INET6)
+#if defined(INET) || defined(INET6)
 		if (lro && (0 == tcp_lro_rx(&ss->lc, m, 0)))
 			return;
 #endif
@@ -2618,8 +2523,8 @@ mxge_rx_done_big(struct mxge_slice_state *ss, uint32_t len,
 }
 
 static inline void
-mxge_rx_done_small(struct mxge_slice_state *ss, uint32_t len,
-		   uint32_t csum, int lro)
+mxge_rx_done_small(struct mxge_slice_state *ss, uint32_t len, uint32_t csum,
+    int lro)
 {
 	mxge_softc_t *sc;
 	if_t ifp;
@@ -2673,10 +2578,9 @@ mxge_rx_done_small(struct mxge_slice_state *ss, uint32_t len,
 	    (0 == mxge_rx_csum(m, csum))) {
 		/* Tell the stack that the  checksum is good */
 		m->m_pkthdr.csum_data = 0xffff;
-		m->m_pkthdr.csum_flags = CSUM_PSEUDO_HDR |
-			CSUM_DATA_VALID;
+		m->m_pkthdr.csum_flags = CSUM_PSEUDO_HDR | CSUM_DATA_VALID;
 
-#if defined(INET) || defined (INET6)
+#if defined(INET) || defined(INET6)
 		if (lro && (0 == tcp_lro_rx(&ss->lc, m, csum)))
 			return;
 #endif
@@ -2710,7 +2614,7 @@ mxge_clean_rx_done(struct mxge_slice_state *ss)
 		if (__predict_false(++limit > rx_done->mask / 2))
 			break;
 	}
-#if defined(INET)  || defined (INET6)
+#if defined(INET) || defined(INET6)
 	tcp_lro_flush_all(&ss->lc);
 #endif
 }
@@ -2754,7 +2658,7 @@ mxge_tx_done(struct mxge_slice_state *ss, uint32_t mcp_idx)
 	flags = &ss->if_drv_flags;
 	mtx_lock(&ss->tx.mtx);
 	if ((*flags) & IFF_DRV_OACTIVE &&
-	    tx->req - tx->done < (tx->mask + 1)/4) {
+	    tx->req - tx->done < (tx->mask + 1) / 4) {
 		*(flags) &= ~IFF_DRV_OACTIVE;
 		ss->tx.wake++;
 		mxge_start_locked(ss);
@@ -2772,34 +2676,26 @@ mxge_tx_done(struct mxge_slice_state *ss, uint32_t mcp_idx)
 	mtx_unlock(&ss->tx.mtx);
 }
 
-static struct mxge_media_type mxge_xfp_media_types[] =
-{
-	{IFM_10G_CX4,	0x7f, 		"10GBASE-CX4 (module)"},
-	{IFM_10G_SR, 	(1 << 7),	"10GBASE-SR"},
-	{IFM_10G_LR, 	(1 << 6),	"10GBASE-LR"},
-	{0,		(1 << 5),	"10GBASE-ER"},
-	{IFM_10G_LRM,	(1 << 4),	"10GBASE-LRM"},
-	{0,		(1 << 3),	"10GBASE-SW"},
-	{0,		(1 << 2),	"10GBASE-LW"},
-	{0,		(1 << 1),	"10GBASE-EW"},
-	{0,		(1 << 0),	"Reserved"}
+static struct mxge_media_type mxge_xfp_media_types[] = {
+	{ IFM_10G_CX4, 0x7f, "10GBASE-CX4 (module)" },
+	{ IFM_10G_SR, (1 << 7), "10GBASE-SR" },
+	{ IFM_10G_LR, (1 << 6), "10GBASE-LR" }, { 0, (1 << 5), "10GBASE-ER" },
+	{ IFM_10G_LRM, (1 << 4), "10GBASE-LRM" }, { 0, (1 << 3), "10GBASE-SW" },
+	{ 0, (1 << 2), "10GBASE-LW" }, { 0, (1 << 1), "10GBASE-EW" },
+	{ 0, (1 << 0), "Reserved" }
 };
-static struct mxge_media_type mxge_sfp_media_types[] =
-{
-	{IFM_10G_TWINAX,      0,	"10GBASE-Twinax"},
-	{0,		(1 << 7),	"Reserved"},
-	{IFM_10G_LRM,	(1 << 6),	"10GBASE-LRM"},
-	{IFM_10G_LR, 	(1 << 5),	"10GBASE-LR"},
-	{IFM_10G_SR,	(1 << 4),	"10GBASE-SR"},
-	{IFM_10G_TWINAX,(1 << 0),	"10GBASE-Twinax"}
-};
+static struct mxge_media_type mxge_sfp_media_types[] = { { IFM_10G_TWINAX, 0,
+							     "10GBASE-Twinax" },
+	{ 0, (1 << 7), "Reserved" }, { IFM_10G_LRM, (1 << 6), "10GBASE-LRM" },
+	{ IFM_10G_LR, (1 << 5), "10GBASE-LR" },
+	{ IFM_10G_SR, (1 << 4), "10GBASE-SR" },
+	{ IFM_10G_TWINAX, (1 << 0), "10GBASE-Twinax" } };
 
 static void
 mxge_media_set(mxge_softc_t *sc, int media_type)
 {
 
-	ifmedia_add(&sc->media, IFM_ETHER | IFM_FDX | media_type,
-		    0, NULL);
+	ifmedia_add(&sc->media, IFM_ETHER | IFM_FDX | media_type, 0, NULL);
 	ifmedia_set(&sc->media, IFM_ETHER | IFM_FDX | media_type);
 	sc->current_media = media_type;
 	sc->media.ifm_media = sc->media.ifm_cur->ifm_media;
@@ -2829,12 +2725,11 @@ mxge_media_init(mxge_softc_t *sc)
 	for (i = 0; i < 3; i++, ptr++) {
 		ptr = strchr(ptr, '-');
 		if (ptr == NULL) {
-			device_printf(sc->dev,
-				      "only %d dashes in PC?!?\n", i);
+			device_printf(sc->dev, "only %d dashes in PC?!?\n", i);
 			return;
 		}
 	}
-	if (*ptr == 'C' || *(ptr +1) == 'C') {
+	if (*ptr == 'C' || *(ptr + 1) == 'C') {
 		/* -C is CX4 */
 		sc->connector = MXGE_CX4;
 		mxge_media_set(sc, IFM_10G_CX4);
@@ -2846,7 +2741,7 @@ mxge_media_init(mxge_softc_t *sc)
 	} else if (*ptr == 'R') {
 		/* -R is XFP */
 		sc->connector = MXGE_XFP;
-	} else if (*ptr == 'S' || *(ptr +1) == 'S') {
+	} else if (*ptr == 'S' || *(ptr + 1) == 'S') {
 		/* -S or -2S is SFP+ */
 		sc->connector = MXGE_SFP;
 	} else {
@@ -2876,15 +2771,13 @@ mxge_media_probe(mxge_softc_t *sc)
 	if (sc->connector == MXGE_XFP) {
 		/* -R is XFP */
 		mxge_media_types = mxge_xfp_media_types;
-		mxge_media_type_entries =
-			nitems(mxge_xfp_media_types);
+		mxge_media_type_entries = nitems(mxge_xfp_media_types);
 		byte = MXGE_XFP_COMPLIANCE_BYTE;
 		cage_type = "XFP";
-	} else 	if (sc->connector == MXGE_SFP) {
+	} else if (sc->connector == MXGE_SFP) {
 		/* -S or -2S is SFP+ */
 		mxge_media_types = mxge_sfp_media_types;
-		mxge_media_type_entries =
-			nitems(mxge_sfp_media_types);
+		mxge_media_type_entries = nitems(mxge_sfp_media_types);
 		cage_type = "SFP+";
 		byte = 3;
 	} else {
@@ -2900,7 +2793,7 @@ mxge_media_probe(mxge_softc_t *sc)
 	 * a millisecond
 	 */
 
-	cmd.data0 = 0;	 /* just fetch 1 byte, not all 256 */
+	cmd.data0 = 0; /* just fetch 1 byte, not all 256 */
 	cmd.data1 = byte;
 	err = mxge_send_cmd(sc, MXGEFW_CMD_I2C_READ, &cmd);
 	if (err == MXGEFW_CMD_ERROR_I2C_FAILURE) {
@@ -2923,14 +2816,14 @@ mxge_media_probe(mxge_softc_t *sc)
 	}
 	if (err != MXGEFW_CMD_OK) {
 		device_printf(sc->dev, "failed to read %s (%d, %dms)\n",
-			      cage_type, err, ms);
+		    cage_type, err, ms);
 		return;
 	}
-		
+
 	if (cmd.data0 == mxge_media_types[0].bitmask) {
 		if (mxge_verbose)
 			device_printf(sc->dev, "%s:%s\n", cage_type,
-				      mxge_media_types[0].name);
+			    mxge_media_types[0].name);
 		if (sc->current_media != mxge_media_types[0].flag) {
 			mxge_media_init(sc);
 			mxge_media_set(sc, mxge_media_types[0].flag);
@@ -2940,9 +2833,8 @@ mxge_media_probe(mxge_softc_t *sc)
 	for (i = 1; i < mxge_media_type_entries; i++) {
 		if (cmd.data0 & mxge_media_types[i].bitmask) {
 			if (mxge_verbose)
-				device_printf(sc->dev, "%s:%s\n",
-					      cage_type,
-					      mxge_media_types[i].name);
+				device_printf(sc->dev, "%s:%s\n", cage_type,
+				    mxge_media_types[i].name);
 
 			if (sc->current_media != mxge_media_types[i].flag) {
 				mxge_media_init(sc);
@@ -2952,8 +2844,8 @@ mxge_media_probe(mxge_softc_t *sc)
 		}
 	}
 	if (mxge_verbose)
-		device_printf(sc->dev, "%s media 0x%x unknown\n",
-			      cage_type, cmd.data0);
+		device_printf(sc->dev, "%s media 0x%x unknown\n", cage_type,
+		    cmd.data0);
 
 	return;
 }
@@ -2990,7 +2882,7 @@ mxge_intr(void *arg)
 		/* check for transmit completes and receives */
 		send_done_count = be32toh(stats->send_done_count);
 		while ((send_done_count != tx->pkt_done) ||
-		       (rx_done->entry[rx_done->idx].length != 0)) {
+		    (rx_done->entry[rx_done->idx].length != 0)) {
 			if (send_done_count != tx->pkt_done)
 				mxge_tx_done(ss, (int)send_done_count);
 			mxge_clean_rx_done(ss);
@@ -2998,7 +2890,7 @@ mxge_intr(void *arg)
 		}
 		if (sc->legacy_irq && mxge_deassert_wait)
 			wmb();
-	} while (*((volatile uint8_t *) &stats->valid));
+	} while (*((volatile uint8_t *)&stats->valid));
 
 	/* fw link & error stats meaningful only on the first slice */
 	if (__predict_false((ss == sc->ss) && stats->stats_updated)) {
@@ -3017,10 +2909,12 @@ mxge_intr(void *arg)
 		}
 		if (sc->rdma_tags_available !=
 		    be32toh(stats->rdma_tags_available)) {
-			sc->rdma_tags_available =
-				be32toh(stats->rdma_tags_available);
-			device_printf(sc->dev, "RDMA timed out! %d tags "
-				      "left\n", sc->rdma_tags_available);
+			sc->rdma_tags_available = be32toh(
+			    stats->rdma_tags_available);
+			device_printf(sc->dev,
+			    "RDMA timed out! %d tags "
+			    "left\n",
+			    sc->rdma_tags_available);
 		}
 
 		if (stats->link_down) {
@@ -3032,7 +2926,7 @@ mxge_intr(void *arg)
 
 	/* check to see if we have rx token to pass back */
 	if (valid & 0x1)
-	    *ss->irq_claim = be32toh(3);
+		*ss->irq_claim = be32toh(3);
 	*(ss->irq_claim + 1) = be32toh(3);
 }
 
@@ -3044,7 +2938,7 @@ mxge_init(void *arg)
 
 	mtx_lock(&sc->driver_mtx);
 	if ((if_getdrvflags(ifp) & IFF_DRV_RUNNING) == 0)
-		(void) mxge_open(sc);
+		(void)mxge_open(sc);
 	mtx_unlock(&sc->driver_mtx);
 }
 
@@ -3059,8 +2953,7 @@ mxge_free_slice_mbufs(struct mxge_slice_state *ss)
 	for (i = 0; i <= ss->rx_big.mask; i++) {
 		if (ss->rx_big.info[i].m == NULL)
 			continue;
-		bus_dmamap_unload(ss->rx_big.dmat,
-				  ss->rx_big.info[i].map);
+		bus_dmamap_unload(ss->rx_big.dmat, ss->rx_big.info[i].map);
 		m_freem(ss->rx_big.info[i].m);
 		ss->rx_big.info[i].m = NULL;
 	}
@@ -3068,8 +2961,7 @@ mxge_free_slice_mbufs(struct mxge_slice_state *ss)
 	for (i = 0; i <= ss->rx_small.mask; i++) {
 		if (ss->rx_small.info[i].m == NULL)
 			continue;
-		bus_dmamap_unload(ss->rx_small.dmat,
-				  ss->rx_small.info[i].map);
+		bus_dmamap_unload(ss->rx_small.dmat, ss->rx_small.info[i].map);
 		m_freem(ss->rx_small.info[i].m);
 		ss->rx_small.info[i].m = NULL;
 	}
@@ -3082,8 +2974,7 @@ mxge_free_slice_mbufs(struct mxge_slice_state *ss)
 		ss->tx.info[i].flag = 0;
 		if (ss->tx.info[i].m == NULL)
 			continue;
-		bus_dmamap_unload(ss->tx.dmat,
-				  ss->tx.info[i].map);
+		bus_dmamap_unload(ss->tx.dmat, ss->tx.info[i].map);
 		m_freem(ss->tx.info[i].m);
 		ss->tx.info[i].m = NULL;
 	}
@@ -3127,7 +3018,7 @@ mxge_free_slice_rings(struct mxge_slice_state *ss)
 		if (ss->tx.dmat != NULL) {
 			for (i = 0; i <= ss->tx.mask; i++) {
 				bus_dmamap_destroy(ss->tx.dmat,
-						   ss->tx.info[i].map);
+				    ss->tx.info[i].map);
 			}
 			bus_dma_tag_destroy(ss->tx.dmat);
 		}
@@ -3139,10 +3030,10 @@ mxge_free_slice_rings(struct mxge_slice_state *ss)
 		if (ss->rx_small.dmat != NULL) {
 			for (i = 0; i <= ss->rx_small.mask; i++) {
 				bus_dmamap_destroy(ss->rx_small.dmat,
-						   ss->rx_small.info[i].map);
+				    ss->rx_small.info[i].map);
 			}
 			bus_dmamap_destroy(ss->rx_small.dmat,
-					   ss->rx_small.extra_map);
+			    ss->rx_small.extra_map);
 			bus_dma_tag_destroy(ss->rx_small.dmat);
 		}
 		free(ss->rx_small.info, M_DEVBUF);
@@ -3153,10 +3044,10 @@ mxge_free_slice_rings(struct mxge_slice_state *ss)
 		if (ss->rx_big.dmat != NULL) {
 			for (i = 0; i <= ss->rx_big.mask; i++) {
 				bus_dmamap_destroy(ss->rx_big.dmat,
-						   ss->rx_big.info[i].map);
+				    ss->rx_big.info[i].map);
 			}
 			bus_dmamap_destroy(ss->rx_big.dmat,
-					   ss->rx_big.extra_map);
+			    ss->rx_big.extra_map);
 			bus_dma_tag_destroy(ss->rx_big.dmat);
 		}
 		free(ss->rx_big.info, M_DEVBUF);
@@ -3175,7 +3066,7 @@ mxge_free_rings(mxge_softc_t *sc)
 
 static int
 mxge_alloc_slice_rings(struct mxge_slice_state *ss, int rx_ring_entries,
-		       int tx_ring_entries)
+    int tx_ring_entries)
 {
 	mxge_softc_t *sc = ss->sc;
 	size_t bytes;
@@ -3187,86 +3078,80 @@ mxge_alloc_slice_rings(struct mxge_slice_state *ss, int rx_ring_entries,
 	ss->rx_done.mask = (2 * rx_ring_entries) - 1;
 
 	/* allocate the rx shadow rings */
-	bytes = rx_ring_entries * sizeof (*ss->rx_small.shadow);
-	ss->rx_small.shadow = malloc(bytes, M_DEVBUF, M_ZERO|M_WAITOK);
+	bytes = rx_ring_entries * sizeof(*ss->rx_small.shadow);
+	ss->rx_small.shadow = malloc(bytes, M_DEVBUF, M_ZERO | M_WAITOK);
 
-	bytes = rx_ring_entries * sizeof (*ss->rx_big.shadow);
-	ss->rx_big.shadow = malloc(bytes, M_DEVBUF, M_ZERO|M_WAITOK);
+	bytes = rx_ring_entries * sizeof(*ss->rx_big.shadow);
+	ss->rx_big.shadow = malloc(bytes, M_DEVBUF, M_ZERO | M_WAITOK);
 
 	/* allocate the rx host info rings */
-	bytes = rx_ring_entries * sizeof (*ss->rx_small.info);
-	ss->rx_small.info = malloc(bytes, M_DEVBUF, M_ZERO|M_WAITOK);
+	bytes = rx_ring_entries * sizeof(*ss->rx_small.info);
+	ss->rx_small.info = malloc(bytes, M_DEVBUF, M_ZERO | M_WAITOK);
 
-	bytes = rx_ring_entries * sizeof (*ss->rx_big.info);
-	ss->rx_big.info = malloc(bytes, M_DEVBUF, M_ZERO|M_WAITOK);
+	bytes = rx_ring_entries * sizeof(*ss->rx_big.info);
+	ss->rx_big.info = malloc(bytes, M_DEVBUF, M_ZERO | M_WAITOK);
 
 	/* allocate the rx busdma resources */
-	err = bus_dma_tag_create(sc->parent_dmat,	/* parent */
-				 1,			/* alignment */
-				 4096,			/* boundary */
-				 BUS_SPACE_MAXADDR,	/* low */
-				 BUS_SPACE_MAXADDR,	/* high */
-				 NULL, NULL,		/* filter */
-				 MHLEN,			/* maxsize */
-				 1,			/* num segs */
-				 MHLEN,			/* maxsegsize */
-				 BUS_DMA_ALLOCNOW,	/* flags */
-				 NULL, NULL,		/* lock */
-				 &ss->rx_small.dmat);	/* tag */
+	err = bus_dma_tag_create(sc->parent_dmat, /* parent */
+	    1,					  /* alignment */
+	    4096,				  /* boundary */
+	    BUS_SPACE_MAXADDR,			  /* low */
+	    BUS_SPACE_MAXADDR,			  /* high */
+	    NULL, NULL,				  /* filter */
+	    MHLEN,				  /* maxsize */
+	    1,					  /* num segs */
+	    MHLEN,				  /* maxsegsize */
+	    BUS_DMA_ALLOCNOW,			  /* flags */
+	    NULL, NULL,				  /* lock */
+	    &ss->rx_small.dmat);		  /* tag */
 	if (err != 0) {
 		device_printf(sc->dev, "Err %d allocating rx_small dmat\n",
-			      err);
+		    err);
 		return err;
 	}
 
-	err = bus_dma_tag_create(sc->parent_dmat,	/* parent */
-				 1,			/* alignment */
-				 0,			/* boundary */
-				 BUS_SPACE_MAXADDR,	/* low */
-				 BUS_SPACE_MAXADDR,	/* high */
-				 NULL, NULL,		/* filter */
-				 3*4096,		/* maxsize */
-				 1,			/* num segs */
-				 MJUM9BYTES,		/* maxsegsize*/
-				 BUS_DMA_ALLOCNOW,	/* flags */
-				 NULL, NULL,		/* lock */
-				 &ss->rx_big.dmat);	/* tag */
+	err = bus_dma_tag_create(sc->parent_dmat, /* parent */
+	    1,					  /* alignment */
+	    0,					  /* boundary */
+	    BUS_SPACE_MAXADDR,			  /* low */
+	    BUS_SPACE_MAXADDR,			  /* high */
+	    NULL, NULL,				  /* filter */
+	    3 * 4096,				  /* maxsize */
+	    1,					  /* num segs */
+	    MJUM9BYTES,				  /* maxsegsize*/
+	    BUS_DMA_ALLOCNOW,			  /* flags */
+	    NULL, NULL,				  /* lock */
+	    &ss->rx_big.dmat);			  /* tag */
 	if (err != 0) {
-		device_printf(sc->dev, "Err %d allocating rx_big dmat\n",
-			      err);
+		device_printf(sc->dev, "Err %d allocating rx_big dmat\n", err);
 		return err;
 	}
 	for (i = 0; i <= ss->rx_small.mask; i++) {
 		err = bus_dmamap_create(ss->rx_small.dmat, 0,
-					&ss->rx_small.info[i].map);
+		    &ss->rx_small.info[i].map);
 		if (err != 0) {
 			device_printf(sc->dev, "Err %d  rx_small dmamap\n",
-				      err);
+			    err);
 			return err;
 		}
 	}
-	err = bus_dmamap_create(ss->rx_small.dmat, 0,
-				&ss->rx_small.extra_map);
+	err = bus_dmamap_create(ss->rx_small.dmat, 0, &ss->rx_small.extra_map);
 	if (err != 0) {
-		device_printf(sc->dev, "Err %d extra rx_small dmamap\n",
-			      err);
+		device_printf(sc->dev, "Err %d extra rx_small dmamap\n", err);
 		return err;
 	}
 
 	for (i = 0; i <= ss->rx_big.mask; i++) {
 		err = bus_dmamap_create(ss->rx_big.dmat, 0,
-					&ss->rx_big.info[i].map);
+		    &ss->rx_big.info[i].map);
 		if (err != 0) {
-			device_printf(sc->dev, "Err %d  rx_big dmamap\n",
-				      err);
+			device_printf(sc->dev, "Err %d  rx_big dmamap\n", err);
 			return err;
 		}
 	}
-	err = bus_dmamap_create(ss->rx_big.dmat, 0,
-				&ss->rx_big.extra_map);
+	err = bus_dmamap_create(ss->rx_big.dmat, 0, &ss->rx_big.extra_map);
 	if (err != 0) {
-		device_printf(sc->dev, "Err %d extra rx_big dmamap\n",
-			      err);
+		device_printf(sc->dev, "Err %d extra rx_big dmamap\n", err);
 		return err;
 	}
 
@@ -3276,55 +3161,50 @@ mxge_alloc_slice_rings(struct mxge_slice_state *ss, int rx_ring_entries,
 	ss->tx.max_desc = MIN(MXGE_MAX_SEND_DESC, tx_ring_entries / 4);
 
 	/* allocate the tx request copy block */
-	bytes = 8 +
-		sizeof (*ss->tx.req_list) * (ss->tx.max_desc + 4);
+	bytes = 8 + sizeof(*ss->tx.req_list) * (ss->tx.max_desc + 4);
 	ss->tx.req_bytes = malloc(bytes, M_DEVBUF, M_WAITOK);
 	/* ensure req_list entries are aligned to 8 bytes */
-	ss->tx.req_list = (mcp_kreq_ether_send_t *)
-		((uintptr_t)(ss->tx.req_bytes + 7) & ~7UL);
+	ss->tx.req_list =
+	    (mcp_kreq_ether_send_t *)((uintptr_t)(ss->tx.req_bytes + 7) & ~7UL);
 
 	/* allocate the tx busdma segment list */
-	bytes = sizeof (*ss->tx.seg_list) * ss->tx.max_desc;
-	ss->tx.seg_list = (bus_dma_segment_t *)
-		malloc(bytes, M_DEVBUF, M_WAITOK);
+	bytes = sizeof(*ss->tx.seg_list) * ss->tx.max_desc;
+	ss->tx.seg_list = (bus_dma_segment_t *)malloc(bytes, M_DEVBUF,
+	    M_WAITOK);
 
 	/* allocate the tx host info ring */
-	bytes = tx_ring_entries * sizeof (*ss->tx.info);
-	ss->tx.info = malloc(bytes, M_DEVBUF, M_ZERO|M_WAITOK);
+	bytes = tx_ring_entries * sizeof(*ss->tx.info);
+	ss->tx.info = malloc(bytes, M_DEVBUF, M_ZERO | M_WAITOK);
 
 	/* allocate the tx busdma resources */
-	err = bus_dma_tag_create(sc->parent_dmat,	/* parent */
-				 1,			/* alignment */
-				 sc->tx_boundary,	/* boundary */
-				 BUS_SPACE_MAXADDR,	/* low */
-				 BUS_SPACE_MAXADDR,	/* high */
-				 NULL, NULL,		/* filter */
-				 65536 + 256,		/* maxsize */
-				 ss->tx.max_desc - 2,	/* num segs */
-				 sc->tx_boundary,	/* maxsegsz */
-				 BUS_DMA_ALLOCNOW,	/* flags */
-				 NULL, NULL,		/* lock */
-				 &ss->tx.dmat);		/* tag */
+	err = bus_dma_tag_create(sc->parent_dmat, /* parent */
+	    1,					  /* alignment */
+	    sc->tx_boundary,			  /* boundary */
+	    BUS_SPACE_MAXADDR,			  /* low */
+	    BUS_SPACE_MAXADDR,			  /* high */
+	    NULL, NULL,				  /* filter */
+	    65536 + 256,			  /* maxsize */
+	    ss->tx.max_desc - 2,		  /* num segs */
+	    sc->tx_boundary,			  /* maxsegsz */
+	    BUS_DMA_ALLOCNOW,			  /* flags */
+	    NULL, NULL,				  /* lock */
+	    &ss->tx.dmat);			  /* tag */
 
 	if (err != 0) {
-		device_printf(sc->dev, "Err %d allocating tx dmat\n",
-			      err);
+		device_printf(sc->dev, "Err %d allocating tx dmat\n", err);
 		return err;
 	}
 
 	/* now use these tags to setup dmamaps for each slot
 	   in the ring */
 	for (i = 0; i <= ss->tx.mask; i++) {
-		err = bus_dmamap_create(ss->tx.dmat, 0,
-					&ss->tx.info[i].map);
+		err = bus_dmamap_create(ss->tx.dmat, 0, &ss->tx.info[i].map);
 		if (err != 0) {
-			device_printf(sc->dev, "Err %d  tx dmamap\n",
-				      err);
+			device_printf(sc->dev, "Err %d  tx dmamap\n", err);
 			return err;
 		}
 	}
 	return 0;
-
 }
 
 static int
@@ -3343,15 +3223,14 @@ mxge_alloc_rings(mxge_softc_t *sc)
 		goto abort;
 	}
 
-	tx_ring_entries = tx_ring_size / sizeof (mcp_kreq_ether_send_t);
-	rx_ring_entries = sc->rx_ring_size / sizeof (mcp_dma_addr_t);
+	tx_ring_entries = tx_ring_size / sizeof(mcp_kreq_ether_send_t);
+	rx_ring_entries = sc->rx_ring_size / sizeof(mcp_dma_addr_t);
 	if_setsendqlen(sc->ifp, tx_ring_entries - 1);
 	if_setsendqready(sc->ifp);
 
 	for (slice = 0; slice < sc->num_slices; slice++) {
-		err = mxge_alloc_slice_rings(&sc->ss[slice],
-					     rx_ring_entries,
-					     tx_ring_entries);
+		err = mxge_alloc_slice_rings(&sc->ss[slice], rx_ring_entries,
+		    tx_ring_entries);
 		if (err != 0)
 			goto abort;
 	}
@@ -3360,7 +3239,6 @@ mxge_alloc_rings(mxge_softc_t *sc)
 abort:
 	mxge_free_rings(sc);
 	return err;
-
 }
 
 static void
@@ -3410,26 +3288,24 @@ mxge_slice_open(struct mxge_slice_state *ss, int nbufs, int cl_size)
 
 	cmd.data0 = slice;
 	err = mxge_send_cmd(sc, MXGEFW_CMD_GET_SEND_OFFSET, &cmd);
-	ss->tx.lanai =
-		(volatile mcp_kreq_ether_send_t *)(sc->sram + cmd.data0);
-	ss->tx.send_go = (volatile uint32_t *)
-		(sc->sram + MXGEFW_ETH_SEND_GO + 64 * slice);
-	ss->tx.send_stop = (volatile uint32_t *)
-	(sc->sram + MXGEFW_ETH_SEND_STOP + 64 * slice);
+	ss->tx.lanai = (volatile mcp_kreq_ether_send_t *)(sc->sram + cmd.data0);
+	ss->tx.send_go = (volatile uint32_t *)(sc->sram + MXGEFW_ETH_SEND_GO +
+	    64 * slice);
+	ss->tx.send_stop = (volatile uint32_t *)(sc->sram +
+	    MXGEFW_ETH_SEND_STOP + 64 * slice);
 
 	cmd.data0 = slice;
-	err |= mxge_send_cmd(sc,
-			     MXGEFW_CMD_GET_SMALL_RX_OFFSET, &cmd);
-	ss->rx_small.lanai =
-		(volatile mcp_kreq_ether_recv_t *)(sc->sram + cmd.data0);
+	err |= mxge_send_cmd(sc, MXGEFW_CMD_GET_SMALL_RX_OFFSET, &cmd);
+	ss->rx_small.lanai = (volatile mcp_kreq_ether_recv_t *)(sc->sram +
+	    cmd.data0);
 	cmd.data0 = slice;
 	err |= mxge_send_cmd(sc, MXGEFW_CMD_GET_BIG_RX_OFFSET, &cmd);
-	ss->rx_big.lanai =
-		(volatile mcp_kreq_ether_recv_t *)(sc->sram + cmd.data0);
+	ss->rx_big.lanai = (volatile mcp_kreq_ether_recv_t *)(sc->sram +
+	    cmd.data0);
 
 	if (err != 0) {
 		device_printf(sc->dev,
-			      "failed to get ring sizes or locations\n");
+		    "failed to get ring sizes or locations\n");
 		return EIO;
 	}
 
@@ -3438,8 +3314,8 @@ mxge_slice_open(struct mxge_slice_state *ss, int nbufs, int cl_size)
 		map = ss->rx_small.info[i].map;
 		err = mxge_get_buf_small(ss, map, i);
 		if (err) {
-			device_printf(sc->dev, "alloced %d/%d smalls\n",
-				      i, ss->rx_small.mask + 1);
+			device_printf(sc->dev, "alloced %d/%d smalls\n", i,
+			    ss->rx_small.mask + 1);
 			return ENOMEM;
 		}
 	}
@@ -3450,13 +3326,13 @@ mxge_slice_open(struct mxge_slice_state *ss, int nbufs, int cl_size)
 	ss->rx_big.nbufs = nbufs;
 	ss->rx_big.cl_size = cl_size;
 	ss->rx_big.mlen = if_getmtu(ss->sc->ifp) + ETHER_HDR_LEN +
-		ETHER_VLAN_ENCAP_LEN + MXGEFW_PAD;
+	    ETHER_VLAN_ENCAP_LEN + MXGEFW_PAD;
 	for (i = 0; i <= ss->rx_big.mask; i += ss->rx_big.nbufs) {
 		map = ss->rx_big.info[i].map;
 		err = mxge_get_buf_big(ss, map, i);
 		if (err) {
-			device_printf(sc->dev, "alloced %d/%d bigs\n",
-				      i, ss->rx_big.mask + 1);
+			device_printf(sc->dev, "alloced %d/%d bigs\n", i,
+			    ss->rx_big.mask + 1);
 			return ENOMEM;
 		}
 	}
@@ -3484,14 +3360,11 @@ mxge_open(mxge_softc_t *sc)
 	if (sc->num_slices > 1) {
 		/* setup the indirection table */
 		cmd.data0 = sc->num_slices;
-		err = mxge_send_cmd(sc, MXGEFW_CMD_SET_RSS_TABLE_SIZE,
-				    &cmd);
+		err = mxge_send_cmd(sc, MXGEFW_CMD_SET_RSS_TABLE_SIZE, &cmd);
 
-		err |= mxge_send_cmd(sc, MXGEFW_CMD_GET_RSS_TABLE_OFFSET,
-				     &cmd);
+		err |= mxge_send_cmd(sc, MXGEFW_CMD_GET_RSS_TABLE_OFFSET, &cmd);
 		if (err != 0) {
-			device_printf(sc->dev,
-				      "failed to setup rss tables\n");
+			device_printf(sc->dev, "failed to setup rss tables\n");
 			return err;
 		}
 
@@ -3512,14 +3385,12 @@ mxge_open(mxge_softc_t *sc)
 	mxge_choose_params(if_getmtu(sc->ifp), &big_bytes, &cl_size, &nbufs);
 
 	cmd.data0 = nbufs;
-	err = mxge_send_cmd(sc, MXGEFW_CMD_ALWAYS_USE_N_BIG_BUFFERS,
-			    &cmd);
+	err = mxge_send_cmd(sc, MXGEFW_CMD_ALWAYS_USE_N_BIG_BUFFERS, &cmd);
 	/* error is only meaningful if we're trying to set
 	   MXGEFW_CMD_ALWAYS_USE_N_BIG_BUFFERS > 1 */
 	if (err && nbufs > 1) {
-		device_printf(sc->dev,
-			      "Failed to set alway-use-n to %d\n",
-			      nbufs);
+		device_printf(sc->dev, "Failed to set alway-use-n to %d\n",
+		    nbufs);
 		return EIO;
 	}
 	/* Give the firmware the mtu and the big and small buffer
@@ -3528,8 +3399,7 @@ mxge_open(mxge_softc_t *sc)
 	cmd.data0 = if_getmtu(sc->ifp) + ETHER_HDR_LEN + ETHER_VLAN_ENCAP_LEN;
 	err = mxge_send_cmd(sc, MXGEFW_CMD_SET_MTU, &cmd);
 	cmd.data0 = MHLEN - MXGEFW_PAD;
-	err |= mxge_send_cmd(sc, MXGEFW_CMD_SET_SMALL_BUFFER_SIZE,
-			     &cmd);
+	err |= mxge_send_cmd(sc, MXGEFW_CMD_SET_SMALL_BUFFER_SIZE, &cmd);
 	cmd.data0 = big_bytes;
 	err |= mxge_send_cmd(sc, MXGEFW_CMD_SET_BIG_BUFFER_SIZE, &cmd);
 
@@ -3541,10 +3411,8 @@ mxge_open(mxge_softc_t *sc)
 	/* Now give him the pointer to the stats block */
 	for (slice = 0; slice < sc->num_slices; slice++) {
 		ss = &sc->ss[slice];
-		cmd.data0 =
-			MXGE_LOWPART_TO_U32(ss->fw_stats_dma.bus_addr);
-		cmd.data1 =
-			MXGE_HIGHPART_TO_U32(ss->fw_stats_dma.bus_addr);
+		cmd.data0 = MXGE_LOWPART_TO_U32(ss->fw_stats_dma.bus_addr);
+		cmd.data1 = MXGE_HIGHPART_TO_U32(ss->fw_stats_dma.bus_addr);
 		cmd.data2 = sizeof(struct mcp_irq_data);
 		cmd.data2 |= (slice << 16);
 		err |= mxge_send_cmd(sc, MXGEFW_CMD_SET_STATS_DMA_V2, &cmd);
@@ -3555,9 +3423,8 @@ mxge_open(mxge_softc_t *sc)
 		bus += offsetof(struct mcp_irq_data, send_done_count);
 		cmd.data0 = MXGE_LOWPART_TO_U32(bus);
 		cmd.data1 = MXGE_HIGHPART_TO_U32(bus);
-		err = mxge_send_cmd(sc,
-				    MXGEFW_CMD_SET_STATS_DMA_OBSOLETE,
-				    &cmd);
+		err = mxge_send_cmd(sc, MXGEFW_CMD_SET_STATS_DMA_OBSOLETE,
+		    &cmd);
 		/* Firmware cannot support multicast without STATS_DMA_V2 */
 		sc->fw_multicast_support = 0;
 	} else {
@@ -3573,7 +3440,7 @@ mxge_open(mxge_softc_t *sc)
 		err = mxge_slice_open(&sc->ss[slice], nbufs, cl_size);
 		if (err != 0) {
 			device_printf(sc->dev, "couldn't open slice %d\n",
-				      slice);
+			    slice);
 			goto abort;
 		}
 	}
@@ -3605,7 +3472,7 @@ mxge_close(mxge_softc_t *sc, int down)
 {
 	mxge_cmd_t cmd;
 	int err, old_down_cnt;
-	struct mxge_slice_state *ss;	
+	struct mxge_slice_state *ss;
 	int slice;
 
 	for (slice = 0; slice < sc->num_slices; slice++) {
@@ -3618,8 +3485,7 @@ mxge_close(mxge_softc_t *sc, int down)
 		wmb();
 		err = mxge_send_cmd(sc, MXGEFW_CMD_ETHERNET_DOWN, &cmd);
 		if (err) {
-			device_printf(sc->dev,
-				      "Couldn't bring down link\n");
+			device_printf(sc->dev, "Couldn't bring down link\n");
 		}
 		if (old_down_cnt == sc->down_cnt) {
 			/* wait for down irq */
@@ -3671,7 +3537,7 @@ mxge_read_reboot(mxge_softc_t *sc)
 	/* find the vendor specific offset */
 	if (pci_find_cap(dev, PCIY_VENDOR, &vs) != 0) {
 		device_printf(sc->dev,
-			      "could not find vendor specific offset\n");
+		    "could not find vendor specific offset\n");
 		return (uint32_t)-1;
 	}
 	/* enable read32 mode */
@@ -3708,7 +3574,7 @@ mxge_watchdog_reset(mxge_softc_t *sc)
 		 * up to 100ms for it to finish.  If it does not come
 		 * back, then give up
 		 */
-		DELAY(1000*100);
+		DELAY(1000 * 100);
 		cmd = pci_read_config(sc->dev, PCIR_COMMAND, 2);
 		if (cmd == 0xffff) {
 			device_printf(sc->dev, "NIC disappeared!\n");
@@ -3717,8 +3583,7 @@ mxge_watchdog_reset(mxge_softc_t *sc)
 	if ((cmd & PCIM_CMD_BUSMASTEREN) == 0) {
 		/* print the reboot status */
 		reboot = mxge_read_reboot(sc);
-		device_printf(sc->dev, "NIC rebooted, status = 0x%x\n",
-			      reboot);
+		device_printf(sc->dev, "NIC rebooted, status = 0x%x\n", reboot);
 		running = if_getdrvflags(sc->ifp) & IFF_DRV_RUNNING;
 		if (running) {
 			/*
@@ -3729,8 +3594,7 @@ mxge_watchdog_reset(mxge_softc_t *sc)
 			/* Mark the link as down */
 			if (sc->link_state) {
 				sc->link_state = 0;
-				if_link_state_change(sc->ifp,
-						     LINK_STATE_DOWN);
+				if_link_state_change(sc->ifp, LINK_STATE_DOWN);
 			}
 
 			num_tx_slices = sc->num_slices;
@@ -3752,8 +3616,7 @@ mxge_watchdog_reset(mxge_softc_t *sc)
 		/* reload f/w */
 		err = mxge_load_firmware(sc, 0);
 		if (err) {
-			device_printf(sc->dev,
-				      "Unable to re-load f/w\n");
+			device_printf(sc->dev, "Unable to re-load f/w\n");
 		}
 		if (running) {
 			if (!err)
@@ -3767,8 +3630,7 @@ mxge_watchdog_reset(mxge_softc_t *sc)
 		}
 		sc->watchdog_resets++;
 	} else {
-		device_printf(sc->dev,
-			      "NIC did not reboot, not resetting\n");
+		device_printf(sc->dev, "NIC did not reboot, not resetting\n");
 		err = 0;
 	}
 	if (err) {
@@ -3795,14 +3657,12 @@ mxge_warn_stuck(mxge_softc_t *sc, mxge_tx_ring_t *tx, int slice)
 {
 	tx = &sc->ss[slice].tx;
 	device_printf(sc->dev, "slice %d struck? ring state:\n", slice);
-	device_printf(sc->dev,
-		      "tx.req=%d tx.done=%d, tx.queue_active=%d\n",
-		      tx->req, tx->done, tx->queue_active);
+	device_printf(sc->dev, "tx.req=%d tx.done=%d, tx.queue_active=%d\n",
+	    tx->req, tx->done, tx->queue_active);
 	device_printf(sc->dev, "tx.activate=%d tx.deactivate=%d\n",
-			      tx->activate, tx->deactivate);
-	device_printf(sc->dev, "pkt_done=%d fw=%d\n",
-		      tx->pkt_done,
-		      be32toh(sc->ss->fw_stats->send_done_count));
+	    tx->activate, tx->deactivate);
+	device_printf(sc->dev, "pkt_done=%d fw=%d\n", tx->pkt_done,
+	    be32toh(sc->ss->fw_stats->send_done_count));
 }
 
 static int
@@ -3815,7 +3675,7 @@ mxge_watchdog(mxge_softc_t *sc)
 	/* see if we have outstanding transmits, which
 	   have been pending for more than mxge_ticks */
 	for (i = 0; (i < sc->num_slices) && (err == 0); i++) {
-		tx = &sc->ss[i].tx;		
+		tx = &sc->ss[i].tx;
 		if (tx->req != tx->done &&
 		    tx->watchdog_req != tx->watchdog_done &&
 		    tx->done == tx->watchdog_done) {
@@ -3824,10 +3684,10 @@ mxge_watchdog(mxge_softc_t *sc)
 				mxge_warn_stuck(sc, tx, i);
 				taskqueue_enqueue(sc->tq, &sc->watchdog_task);
 				return (ENXIO);
-			}
-			else
-				device_printf(sc->dev, "Flow control blocking "
-					      "xmits, check link partner\n");
+			} else
+				device_printf(sc->dev,
+				    "Flow control blocking "
+				    "xmits, check link partner\n");
 		}
 
 		tx->watchdog_req = tx->req;
@@ -3899,7 +3759,7 @@ mxge_tick(void *arg)
 	}
 	if (pkts == 0) {
 		/* ensure NIC did not suffer h/w fault while idle */
-		cmd = pci_read_config(sc->dev, PCIR_COMMAND, 2);		
+		cmd = pci_read_config(sc->dev, PCIR_COMMAND, 2);
 		if ((cmd & PCIM_CMD_BUSMASTEREN) == 0) {
 			sc->dying = 2;
 			taskqueue_enqueue(sc->tq, &sc->watchdog_task);
@@ -3911,7 +3771,6 @@ mxge_tick(void *arg)
 
 	if (err == 0)
 		callout_reset(&sc->co_hdl, ticks, mxge_tick, sc);
-
 }
 
 static int
@@ -3939,12 +3798,12 @@ mxge_change_mtu(mxge_softc_t *sc, int mtu)
 		if (err != 0) {
 			if_setmtu(ifp, old_mtu);
 			mxge_close(sc, 0);
-			(void) mxge_open(sc);
+			(void)mxge_open(sc);
 		}
 	}
 	mtx_unlock(&sc->driver_mtx);
 	return err;
-}	
+}
 
 static void
 mxge_media_status(if_t ifp, struct ifmediareq *ifmr)
@@ -3966,8 +3825,7 @@ mxge_fetch_i2c(mxge_softc_t *sc, struct ifi2creq *i2c)
 	uint32_t i2c_args;
 	int i, ms, err;
 
-	if (i2c->dev_addr != 0xA0 &&
-	    i2c->dev_addr != 0xA2)
+	if (i2c->dev_addr != 0xA0 && i2c->dev_addr != 0xA2)
 		return (EINVAL);
 	if (i2c->len > sizeof(i2c->data))
 		return (EINVAL);
@@ -3975,7 +3833,7 @@ mxge_fetch_i2c(mxge_softc_t *sc, struct ifi2creq *i2c)
 	for (i = 0; i < i2c->len; i++) {
 		i2c_args = i2c->dev_addr << 0x8;
 		i2c_args |= i2c->offset + i;
-		cmd.data0 = 0;	 /* just fetch 1 byte, not all 256 */
+		cmd.data0 = 0; /* just fetch 1 byte, not all 256 */
 		cmd.data1 = i2c_args;
 		err = mxge_send_cmd(sc, MXGEFW_CMD_I2C_READ, &cmd);
 
@@ -4024,7 +3882,7 @@ mxge_ioctl(if_t ifp, u_long command, caddr_t data)
 				/* take care of promis can allmulti
 				   flag chages */
 				mxge_change_promisc(sc,
-						    if_getflags(ifp) & IFF_PROMISC);
+				    if_getflags(ifp) & IFF_PROMISC);
 				mxge_set_multicast_list(sc);
 			}
 		} else {
@@ -4052,11 +3910,14 @@ mxge_ioctl(if_t ifp, u_long command, caddr_t data)
 		if (mask & IFCAP_TXCSUM) {
 			if (IFCAP_TXCSUM & if_getcapenable(ifp)) {
 				mask &= ~IFCAP_TSO4;
-				if_setcapenablebit(ifp, 0, (IFCAP_TXCSUM|IFCAP_TSO4));
-				if_sethwassistbits(ifp, 0, (CSUM_TCP | CSUM_UDP));
+				if_setcapenablebit(ifp, 0,
+				    (IFCAP_TXCSUM | IFCAP_TSO4));
+				if_sethwassistbits(ifp, 0,
+				    (CSUM_TCP | CSUM_UDP));
 			} else {
 				if_setcapenablebit(ifp, IFCAP_TXCSUM, 0);
-				if_sethwassistbits(ifp, (CSUM_TCP | CSUM_UDP), 0);
+				if_sethwassistbits(ifp, (CSUM_TCP | CSUM_UDP),
+				    0);
 			}
 		}
 		if (mask & IFCAP_RXCSUM) {
@@ -4137,13 +3998,12 @@ mxge_ioctl(if_t ifp, u_long command, caddr_t data)
 		}
 		mxge_media_probe(sc);
 		mtx_unlock(&sc->driver_mtx);
-		err = ifmedia_ioctl(ifp, (struct ifreq *)data,
-				    &sc->media, command);
+		err = ifmedia_ioctl(ifp, (struct ifreq *)data, &sc->media,
+		    command);
 		break;
 
 	case SIOCGI2C:
-		if (sc->connector != MXGE_XFP &&
-		    sc->connector != MXGE_SFP) {
+		if (sc->connector != MXGE_XFP && sc->connector != MXGE_SFP) {
 			err = ENXIO;
 			break;
 		}
@@ -4158,8 +4018,7 @@ mxge_ioctl(if_t ifp, u_long command, caddr_t data)
 		err = mxge_fetch_i2c(sc, &i2c);
 		mtx_unlock(&sc->driver_mtx);
 		if (err == 0)
-			err = copyout(&i2c, ifr_data_get_ptr(ifr),
-			    sizeof(i2c));
+			err = copyout(&i2c, ifr_data_get_ptr(ifr), sizeof(i2c));
 		break;
 	default:
 		err = ether_ioctl(ifp, command, data);
@@ -4173,18 +4032,13 @@ mxge_fetch_tunables(mxge_softc_t *sc)
 {
 
 	TUNABLE_INT_FETCH("hw.mxge.max_slices", &mxge_max_slices);
-	TUNABLE_INT_FETCH("hw.mxge.flow_control_enabled",
-			  &mxge_flow_control);
-	TUNABLE_INT_FETCH("hw.mxge.intr_coal_delay",
-			  &mxge_intr_coal_delay);	
+	TUNABLE_INT_FETCH("hw.mxge.flow_control_enabled", &mxge_flow_control);
+	TUNABLE_INT_FETCH("hw.mxge.intr_coal_delay", &mxge_intr_coal_delay);
 	TUNABLE_INT_FETCH("hw.mxge.nvidia_ecrc_enable",
-			  &mxge_nvidia_ecrc_enable);	
-	TUNABLE_INT_FETCH("hw.mxge.force_firmware",
-			  &mxge_force_firmware);	
-	TUNABLE_INT_FETCH("hw.mxge.deassert_wait",
-			  &mxge_deassert_wait);	
-	TUNABLE_INT_FETCH("hw.mxge.verbose",
-			  &mxge_verbose);	
+	    &mxge_nvidia_ecrc_enable);
+	TUNABLE_INT_FETCH("hw.mxge.force_firmware", &mxge_force_firmware);
+	TUNABLE_INT_FETCH("hw.mxge.deassert_wait", &mxge_deassert_wait);
+	TUNABLE_INT_FETCH("hw.mxge.verbose", &mxge_verbose);
 	TUNABLE_INT_FETCH("hw.mxge.ticks", &mxge_ticks);
 	TUNABLE_INT_FETCH("hw.mxge.always_promisc", &mxge_always_promisc);
 	TUNABLE_INT_FETCH("hw.mxge.rss_hash_type", &mxge_rss_hash_type);
@@ -4194,13 +4048,13 @@ mxge_fetch_tunables(mxge_softc_t *sc)
 
 	if (bootverbose)
 		mxge_verbose = 1;
-	if (mxge_intr_coal_delay < 0 || mxge_intr_coal_delay > 10*1000)
+	if (mxge_intr_coal_delay < 0 || mxge_intr_coal_delay > 10 * 1000)
 		mxge_intr_coal_delay = 30;
 	if (mxge_ticks == 0)
 		mxge_ticks = hz / 2;
 	sc->pause = mxge_flow_control;
-	if (mxge_rss_hash_type < MXGEFW_RSS_HASH_TYPE_IPV4
-	    || mxge_rss_hash_type > MXGEFW_RSS_HASH_TYPE_MAX) {
+	if (mxge_rss_hash_type < MXGEFW_RSS_HASH_TYPE_IPV4 ||
+	    mxge_rss_hash_type > MXGEFW_RSS_HASH_TYPE_MAX) {
 		mxge_rss_hash_type = MXGEFW_RSS_HASH_TYPE_SRC_DST_PORT;
 	}
 	if (mxge_initial_mtu > ETHERMTU_JUMBO ||
@@ -4257,9 +4111,9 @@ mxge_alloc_slices(mxge_softc_t *sc)
 		return err;
 	}
 	sc->rx_ring_size = cmd.data0;
-	max_intr_slots = 2 * (sc->rx_ring_size / sizeof (mcp_dma_addr_t));
+	max_intr_slots = 2 * (sc->rx_ring_size / sizeof(mcp_dma_addr_t));
 
-	bytes = sizeof (*sc->ss) * sc->num_slices;
+	bytes = sizeof(*sc->ss) * sc->num_slices;
 	sc->ss = malloc(bytes, M_DEVBUF, M_NOWAIT | M_ZERO);
 	if (sc->ss == NULL)
 		return (ENOMEM);
@@ -4269,8 +4123,8 @@ mxge_alloc_slices(mxge_softc_t *sc)
 		ss->sc = sc;
 
 		/* allocate per-slice rx interrupt queues */
-		
-		bytes = max_intr_slots * sizeof (*ss->rx_done.entry);
+
+		bytes = max_intr_slots * sizeof(*ss->rx_done.entry);
 		err = mxge_dma_alloc(sc, &ss->rx_done.dma, bytes, 4096);
 		if (err != 0)
 			goto abort;
@@ -4283,17 +4137,17 @@ mxge_alloc_slices(mxge_softc_t *sc)
 		 * slice for now
 		 */
 
-		bytes = sizeof (*ss->fw_stats);
+		bytes = sizeof(*ss->fw_stats);
 		err = mxge_dma_alloc(sc, &ss->fw_stats_dma,
-				     sizeof (*ss->fw_stats), 64);
+		    sizeof(*ss->fw_stats), 64);
 		if (err != 0)
 			goto abort;
 		ss->fw_stats = (mcp_irq_data_t *)ss->fw_stats_dma.addr;
-		snprintf(ss->tx.mtx_name, sizeof(ss->tx.mtx_name),
-			 "%s:tx(%d)", device_get_nameunit(sc->dev), i);
+		snprintf(ss->tx.mtx_name, sizeof(ss->tx.mtx_name), "%s:tx(%d)",
+		    device_get_nameunit(sc->dev), i);
 		mtx_init(&ss->tx.mtx, ss->tx.mtx_name, NULL, MTX_DEF);
 		ss->tx.br = buf_ring_alloc(2048, M_DEVBUF, M_WAITOK,
-					   &ss->tx.mtx);
+		    &ss->tx.mtx);
 	}
 
 	return (0);
@@ -4338,7 +4192,7 @@ mxge_slice_probe(mxge_softc_t *sc)
 
 	/* try to send a reset command to the card to see if it
 	   is alive */
-	memset(&cmd, 0, sizeof (cmd));
+	memset(&cmd, 0, sizeof(cmd));
 	status = mxge_send_cmd(sc, MXGEFW_CMD_RESET, &cmd);
 	if (status != 0) {
 		device_printf(sc->dev, "failed reset\n");
@@ -4351,10 +4205,10 @@ mxge_slice_probe(mxge_softc_t *sc)
 		device_printf(sc->dev, "Cannot determine rx ring size\n");
 		goto abort_with_fw;
 	}
-	max_intr_slots = 2 * (cmd.data0 / sizeof (mcp_dma_addr_t));
+	max_intr_slots = 2 * (cmd.data0 / sizeof(mcp_dma_addr_t));
 
 	/* tell it the size of the interrupt queues */
-	cmd.data0 = max_intr_slots * sizeof (struct mcp_slot);
+	cmd.data0 = max_intr_slots * sizeof(struct mcp_slot);
 	status = mxge_send_cmd(sc, MXGEFW_CMD_SET_INTRQ_SIZE, &cmd);
 	if (status != 0) {
 		device_printf(sc->dev, "failed MXGEFW_CMD_SET_INTRQ_SIZE\n");
@@ -4365,7 +4219,7 @@ mxge_slice_probe(mxge_softc_t *sc)
 	status = mxge_send_cmd(sc, MXGEFW_CMD_GET_MAX_RSS_QUEUES, &cmd);
 	if (status != 0) {
 		device_printf(sc->dev,
-			      "failed MXGEFW_CMD_GET_MAX_RSS_QUEUES\n");
+		    "failed MXGEFW_CMD_GET_MAX_RSS_QUEUES\n");
 		goto abort_with_fw;
 	}
 	sc->num_slices = cmd.data0;
@@ -4385,14 +4239,13 @@ mxge_slice_probe(mxge_softc_t *sc)
 		sc->num_slices--;
 
 	if (mxge_verbose)
-		device_printf(sc->dev, "using %d slices\n",
-			      sc->num_slices);
+		device_printf(sc->dev, "using %d slices\n", sc->num_slices);
 
 	return;
 
 abort_with_fw:
 	sc->fw_name = old_fw;
-	(void) mxge_load_firmware(sc, 0);
+	(void)mxge_load_firmware(sc, 0);
 }
 
 static int
@@ -4403,7 +4256,7 @@ mxge_add_msix_irqs(mxge_softc_t *sc)
 
 	rid = PCIR_BAR(2);
 	sc->msix_table_res = bus_alloc_resource_any(sc->dev, SYS_RES_MEMORY,
-						    &rid, RF_ACTIVE);
+	    &rid, RF_ACTIVE);
 
 	if (sc->msix_table_res == NULL) {
 		device_printf(sc->dev, "couldn't alloc MSIX table res\n");
@@ -4413,21 +4266,22 @@ mxge_add_msix_irqs(mxge_softc_t *sc)
 	count = sc->num_slices;
 	err = pci_alloc_msix(sc->dev, &count);
 	if (err != 0) {
-		device_printf(sc->dev, "pci_alloc_msix: failed, wanted %d"
-			      "err = %d \n", sc->num_slices, err);
+		device_printf(sc->dev,
+		    "pci_alloc_msix: failed, wanted %d"
+		    "err = %d \n",
+		    sc->num_slices, err);
 		goto abort_with_msix_table;
 	}
 	if (count < sc->num_slices) {
 		device_printf(sc->dev, "pci_alloc_msix: need %d, got %d\n",
-			      count, sc->num_slices);
-		device_printf(sc->dev,
-			      "Try setting hw.mxge.max_slices to %d\n",
-			      count);
+		    count, sc->num_slices);
+		device_printf(sc->dev, "Try setting hw.mxge.max_slices to %d\n",
+		    count);
 		err = ENOSPC;
 		goto abort_with_msix;
 	}
-	bytes = sizeof (*sc->msix_irq_res) * sc->num_slices;
-	sc->msix_irq_res = malloc(bytes, M_DEVBUF, M_NOWAIT|M_ZERO);
+	bytes = sizeof(*sc->msix_irq_res) * sc->num_slices;
+	sc->msix_irq_res = malloc(bytes, M_DEVBUF, M_NOWAIT | M_ZERO);
 	if (sc->msix_irq_res == NULL) {
 		err = ENOMEM;
 		goto abort_with_msix;
@@ -4436,35 +4290,37 @@ mxge_add_msix_irqs(mxge_softc_t *sc)
 	for (i = 0; i < sc->num_slices; i++) {
 		rid = i + 1;
 		sc->msix_irq_res[i] = bus_alloc_resource_any(sc->dev,
-							  SYS_RES_IRQ,
-							  &rid, RF_ACTIVE);
+		    SYS_RES_IRQ, &rid, RF_ACTIVE);
 		if (sc->msix_irq_res[i] == NULL) {
-			device_printf(sc->dev, "couldn't allocate IRQ res"
-				      " for message %d\n", i);
+			device_printf(sc->dev,
+			    "couldn't allocate IRQ res"
+			    " for message %d\n",
+			    i);
 			err = ENXIO;
 			goto abort_with_res;
 		}
 	}
 
-	bytes = sizeof (*sc->msix_ih) * sc->num_slices;
-	sc->msix_ih =  malloc(bytes, M_DEVBUF, M_NOWAIT|M_ZERO);
+	bytes = sizeof(*sc->msix_ih) * sc->num_slices;
+	sc->msix_ih = malloc(bytes, M_DEVBUF, M_NOWAIT | M_ZERO);
 
 	for (i = 0; i < sc->num_slices; i++) {
 		err = bus_setup_intr(sc->dev, sc->msix_irq_res[i],
-				     INTR_TYPE_NET | INTR_MPSAFE, NULL,
-				     mxge_intr, &sc->ss[i], &sc->msix_ih[i]);
+		    INTR_TYPE_NET | INTR_MPSAFE, NULL, mxge_intr, &sc->ss[i],
+		    &sc->msix_ih[i]);
 		if (err != 0) {
-			device_printf(sc->dev, "couldn't setup intr for "
-				      "message %d\n", i);
+			device_printf(sc->dev,
+			    "couldn't setup intr for "
+			    "message %d\n",
+			    i);
 			goto abort_with_intr;
 		}
-		bus_describe_intr(sc->dev, sc->msix_irq_res[i],
-				  sc->msix_ih[i], "s%d", i);
+		bus_describe_intr(sc->dev, sc->msix_irq_res[i], sc->msix_ih[i],
+		    "s%d", i);
 	}
 
 	if (mxge_verbose) {
-		device_printf(sc->dev, "using %d msix IRQs:",
-			      sc->num_slices);
+		device_printf(sc->dev, "using %d msix IRQs:", sc->num_slices);
 		for (i = 0; i < sc->num_slices; i++)
 			printf(" %jd", rman_get_start(sc->msix_irq_res[i]));
 		printf("\n");
@@ -4475,7 +4331,7 @@ abort_with_intr:
 	for (i = 0; i < sc->num_slices; i++) {
 		if (sc->msix_ih[i] != NULL) {
 			bus_teardown_intr(sc->dev, sc->msix_irq_res[i],
-					  sc->msix_ih[i]);
+			    sc->msix_ih[i]);
 			sc->msix_ih[i] = NULL;
 		}
 	}
@@ -4486,7 +4342,7 @@ abort_with_res:
 		rid = i + 1;
 		if (sc->msix_irq_res[i] != NULL)
 			bus_release_resource(sc->dev, SYS_RES_IRQ, rid,
-					     sc->msix_irq_res[i]);
+			    sc->msix_irq_res[i]);
 		sc->msix_irq_res[i] = NULL;
 	}
 	free(sc->msix_irq_res, M_DEVBUF);
@@ -4496,7 +4352,7 @@ abort_with_msix:
 
 abort_with_msix_table:
 	bus_release_resource(sc->dev, SYS_RES_MEMORY, PCIR_BAR(2),
-			     sc->msix_table_res);
+	    sc->msix_table_res);
 
 	return err;
 }
@@ -4514,21 +4370,20 @@ mxge_add_single_irq(mxge_softc_t *sc)
 		sc->legacy_irq = 1;
 	}
 	sc->irq_res = bus_alloc_resource_any(sc->dev, SYS_RES_IRQ, &rid,
-					     RF_SHAREABLE | RF_ACTIVE);
+	    RF_SHAREABLE | RF_ACTIVE);
 	if (sc->irq_res == NULL) {
 		device_printf(sc->dev, "could not alloc interrupt\n");
 		return ENXIO;
 	}
 	if (mxge_verbose)
 		device_printf(sc->dev, "using %s irq %jd\n",
-			      sc->legacy_irq ? "INTx" : "MSI",
-			      rman_get_start(sc->irq_res));
-	err = bus_setup_intr(sc->dev, sc->irq_res,
-			     INTR_TYPE_NET | INTR_MPSAFE, NULL,
-			     mxge_intr, &sc->ss[0], &sc->ih);
+		    sc->legacy_irq ? "INTx" : "MSI",
+		    rman_get_start(sc->irq_res));
+	err = bus_setup_intr(sc->dev, sc->irq_res, INTR_TYPE_NET | INTR_MPSAFE,
+	    NULL, mxge_intr, &sc->ss[0], &sc->ih);
 	if (err != 0) {
 		bus_release_resource(sc->dev, SYS_RES_IRQ,
-				     sc->legacy_irq ? 0 : 1, sc->irq_res);
+		    sc->legacy_irq ? 0 : 1, sc->irq_res);
 		if (!sc->legacy_irq)
 			pci_release_msi(sc->dev);
 	}
@@ -4543,7 +4398,7 @@ mxge_rem_msix_irqs(mxge_softc_t *sc)
 	for (i = 0; i < sc->num_slices; i++) {
 		if (sc->msix_ih[i] != NULL) {
 			bus_teardown_intr(sc->dev, sc->msix_irq_res[i],
-					  sc->msix_ih[i]);
+			    sc->msix_ih[i]);
 			sc->msix_ih[i] = NULL;
 		}
 	}
@@ -4553,13 +4408,13 @@ mxge_rem_msix_irqs(mxge_softc_t *sc)
 		rid = i + 1;
 		if (sc->msix_irq_res[i] != NULL)
 			bus_release_resource(sc->dev, SYS_RES_IRQ, rid,
-					     sc->msix_irq_res[i]);
+			    sc->msix_irq_res[i]);
 		sc->msix_irq_res[i] = NULL;
 	}
 	free(sc->msix_irq_res, M_DEVBUF);
 
 	bus_release_resource(sc->dev, SYS_RES_MEMORY, PCIR_BAR(2),
-			     sc->msix_table_res);
+	    sc->msix_table_res);
 
 	pci_release_msi(sc->dev);
 	return;
@@ -4569,8 +4424,8 @@ static void
 mxge_rem_single_irq(mxge_softc_t *sc)
 {
 	bus_teardown_intr(sc->dev, sc->irq_res, sc->ih);
-	bus_release_resource(sc->dev, SYS_RES_IRQ,
-			     sc->legacy_irq ? 0 : 1, sc->irq_res);
+	bus_release_resource(sc->dev, SYS_RES_IRQ, sc->legacy_irq ? 0 : 1,
+	    sc->irq_res);
 	if (!sc->legacy_irq)
 		pci_release_msi(sc->dev);
 }
@@ -4614,28 +4469,27 @@ mxge_attach(device_t dev)
 
 	TASK_INIT(&sc->watchdog_task, 1, mxge_watchdog_task, sc);
 	sc->tq = taskqueue_create("mxge_taskq", M_WAITOK,
-				  taskqueue_thread_enqueue, &sc->tq);
+	    taskqueue_thread_enqueue, &sc->tq);
 	if (sc->tq == NULL) {
 		err = ENOMEM;
 		goto abort_with_nothing;
 	}
 
-	err = bus_dma_tag_create(bus_get_dma_tag(dev),	/* parent */
-				 1,			/* alignment */
-				 0,			/* boundary */
-				 BUS_SPACE_MAXADDR,	/* low */
-				 BUS_SPACE_MAXADDR,	/* high */
-				 NULL, NULL,		/* filter */
-				 65536 + 256,		/* maxsize */
-				 MXGE_MAX_SEND_DESC, 	/* num segs */
-				 65536,			/* maxsegsize */
-				 0,			/* flags */
-				 NULL, NULL,		/* lock */
-				 &sc->parent_dmat);	/* tag */
+	err = bus_dma_tag_create(bus_get_dma_tag(dev), /* parent */
+	    1,					       /* alignment */
+	    0,					       /* boundary */
+	    BUS_SPACE_MAXADDR,			       /* low */
+	    BUS_SPACE_MAXADDR,			       /* high */
+	    NULL, NULL,				       /* filter */
+	    65536 + 256,			       /* maxsize */
+	    MXGE_MAX_SEND_DESC,			       /* num segs */
+	    65536,				       /* maxsegsize */
+	    0,					       /* flags */
+	    NULL, NULL,				       /* lock */
+	    &sc->parent_dmat);			       /* tag */
 
 	if (err != 0) {
-		device_printf(sc->dev, "Err %d allocating parent dmat\n",
-			      err);
+		device_printf(sc->dev, "Err %d allocating parent dmat\n", err);
 		goto abort_with_tq;
 	}
 
@@ -4648,12 +4502,12 @@ mxge_attach(device_t dev)
 	if_initname(ifp, device_get_name(dev), device_get_unit(dev));
 
 	snprintf(sc->cmd_mtx_name, sizeof(sc->cmd_mtx_name), "%s:cmd",
-		 device_get_nameunit(dev));
+	    device_get_nameunit(dev));
 	mtx_init(&sc->cmd_mtx, sc->cmd_mtx_name, NULL, MTX_DEF);
-	snprintf(sc->driver_mtx_name, sizeof(sc->driver_mtx_name),
-		 "%s:drv", device_get_nameunit(dev));
-	mtx_init(&sc->driver_mtx, sc->driver_mtx_name,
-		 MTX_NETWORK_LOCK, MTX_DEF);
+	snprintf(sc->driver_mtx_name, sizeof(sc->driver_mtx_name), "%s:drv",
+	    device_get_nameunit(dev));
+	mtx_init(&sc->driver_mtx, sc->driver_mtx_name, MTX_NETWORK_LOCK,
+	    MTX_DEF);
 
 	callout_init_mtx(&sc->co_hdl, &sc->driver_mtx, 0);
 
@@ -4662,17 +4516,18 @@ mxge_attach(device_t dev)
 	/* Map the board into the kernel */
 	rid = PCIR_BARS;
 	sc->mem_res = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
-					     RF_ACTIVE);
+	    RF_ACTIVE);
 	if (sc->mem_res == NULL) {
 		device_printf(dev, "could not map memory\n");
 		err = ENXIO;
 		goto abort_with_lock;
 	}
 	sc->sram = rman_get_virtual(sc->mem_res);
-	sc->sram_size = 2*1024*1024 - (2*(48*1024)+(32*1024)) - 0x100;
+	sc->sram_size = 2 * 1024 * 1024 - (2 * (48 * 1024) + (32 * 1024)) -
+	    0x100;
 	if (sc->sram_size > rman_get_size(sc->mem_res)) {
 		device_printf(dev, "impossible memory region size %jd\n",
-			      rman_get_size(sc->mem_res));
+		    rman_get_size(sc->mem_res));
 		err = ENXIO;
 		goto abort_with_mem_res;
 	}
@@ -4681,10 +4536,9 @@ mxge_attach(device_t dev)
 	   lanai SRAM */
 	bzero(sc->eeprom_strings, MXGE_EEPROM_STRINGS_SIZE);
 	bus_space_read_region_1(rman_get_bustag(sc->mem_res),
-				rman_get_bushandle(sc->mem_res),
-				sc->sram_size - MXGE_EEPROM_STRINGS_SIZE,
-				sc->eeprom_strings,
-				MXGE_EEPROM_STRINGS_SIZE - 2);
+	    rman_get_bushandle(sc->mem_res),
+	    sc->sram_size - MXGE_EEPROM_STRINGS_SIZE, sc->eeprom_strings,
+	    MXGE_EEPROM_STRINGS_SIZE - 2);
 	err = mxge_parse_strings(sc);
 	if (err != 0)
 		goto abort_with_mem_res;
@@ -4693,11 +4547,10 @@ mxge_attach(device_t dev)
 	mxge_enable_wc(sc);
 
 	/* Allocate the out of band dma memory */
-	err = mxge_dma_alloc(sc, &sc->cmd_dma,
-			     sizeof (mxge_cmd_t), 64);
+	err = mxge_dma_alloc(sc, &sc->cmd_dma, sizeof(mxge_cmd_t), 64);
 	if (err != 0)
 		goto abort_with_mem_res;
-	sc->cmd = (mcp_cmd_response_t *) sc->cmd_dma.addr;
+	sc->cmd = (mcp_cmd_response_t *)sc->cmd_dma.addr;
 	err = mxge_dma_alloc(sc, &sc->zeropad_dma, 64, 64);
 	if (err != 0)
 		goto abort_with_cmd_dma;
@@ -4734,9 +4587,9 @@ mxge_attach(device_t dev)
 	}
 
 	if_setbaudrate(ifp, IF_Gbps(10));
-	if_setcapabilities(ifp, IFCAP_RXCSUM | IFCAP_TXCSUM | IFCAP_TSO4 |
-		IFCAP_VLAN_MTU | IFCAP_LINKSTATE | IFCAP_TXCSUM_IPV6 |
-		IFCAP_RXCSUM_IPV6);
+	if_setcapabilities(ifp,
+	    IFCAP_RXCSUM | IFCAP_TXCSUM | IFCAP_TSO4 | IFCAP_VLAN_MTU |
+		IFCAP_LINKSTATE | IFCAP_TXCSUM_IPV6 | IFCAP_RXCSUM_IPV6);
 #if defined(INET) || defined(INET6)
 	if_setcapabilitiesbit(ifp, IFCAP_LRO, 0);
 #endif
@@ -4753,17 +4606,17 @@ mxge_attach(device_t dev)
 	if (sc->max_mtu >= 9000)
 		if_setcapabilitiesbit(ifp, IFCAP_JUMBO_MTU, 0);
 	else
-		device_printf(dev, "MTU limited to %d.  Install "
-			      "latest firmware for 9000 byte jumbo support\n",
-			      sc->max_mtu - ETHER_HDR_LEN);
+		device_printf(dev,
+		    "MTU limited to %d.  Install "
+		    "latest firmware for 9000 byte jumbo support\n",
+		    sc->max_mtu - ETHER_HDR_LEN);
 	if_sethwassist(ifp, CSUM_TCP | CSUM_UDP | CSUM_TSO);
 	if_sethwassistbits(ifp, CSUM_TCP_IPV6 | CSUM_UDP_IPV6, 0);
 	/* check to see if f/w supports TSO for IPv6 */
 	if (!mxge_send_cmd(sc, MXGEFW_CMD_GET_MAX_TSO6_HDR_SIZE, &cmd)) {
 		if (CSUM_TCP_IPV6)
 			if_setcapabilitiesbit(ifp, IFCAP_TSO6, 0);
-		sc->max_tso6_hlen = min(cmd.data0,
-					sizeof (sc->ss[0].scratch));
+		sc->max_tso6_hlen = min(cmd.data0, sizeof(sc->ss[0].scratch));
 	}
 	if_setcapenable(ifp, if_getcapabilities(ifp));
 	if (sc->lro_cnt == 0)
@@ -4774,12 +4627,12 @@ mxge_attach(device_t dev)
 	if_setioctlfn(ifp, mxge_ioctl);
 	if_setstartfn(ifp, mxge_start);
 	if_setgetcounterfn(ifp, mxge_get_counter);
-	if_sethwtsomax(ifp, IP_MAXPACKET - (ETHER_HDR_LEN + ETHER_VLAN_ENCAP_LEN));
+	if_sethwtsomax(ifp,
+	    IP_MAXPACKET - (ETHER_HDR_LEN + ETHER_VLAN_ENCAP_LEN));
 	if_sethwtsomaxsegcount(ifp, sc->ss[0].tx.max_desc);
 	if_sethwtsomaxsegsize(ifp, IP_MAXPACKET);
 	/* Initialise the ifmedia structure */
-	ifmedia_init(&sc->media, 0, mxge_media_change,
-		     mxge_media_status);
+	ifmedia_init(&sc->media, 0, mxge_media_change, mxge_media_status);
 	mxge_media_init(sc);
 	mxge_media_probe(sc);
 	sc->dying = 0;
@@ -4792,7 +4645,7 @@ mxge_attach(device_t dev)
 	if_settransmitfn(ifp, mxge_transmit);
 	if_setqflushfn(ifp, mxge_qflush);
 	taskqueue_start_threads(&sc->tq, 1, PI_NET, "%s taskq",
-				device_get_nameunit(sc->dev));
+	    device_get_nameunit(sc->dev));
 	callout_reset(&sc->co_hdl, mxge_ticks, mxge_tick, sc);
 	return 0;
 
@@ -4831,8 +4684,7 @@ mxge_detach(device_t dev)
 	mxge_softc_t *sc = device_get_softc(dev);
 
 	if (mxge_vlans_active(sc)) {
-		device_printf(sc->dev,
-			      "Detach vlans before removing module\n");
+		device_printf(sc->dev, "Detach vlans before removing module\n");
 		return EBUSY;
 	}
 	mtx_lock(&sc->driver_mtx);

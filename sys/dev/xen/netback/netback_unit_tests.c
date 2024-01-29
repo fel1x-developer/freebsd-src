@@ -35,6 +35,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <netinet/tcp.h>
 /**
  * \file netback_unit_tests.c
@@ -46,31 +47,35 @@
  */
 
 /** Helper macro used to snprintf to a buffer and update the buffer pointer */
-#define	SNCATF(buffer, buflen, ...) do {				\
-	size_t new_chars = snprintf(buffer, buflen, __VA_ARGS__);	\
-	buffer += new_chars;						\
-	/* be careful; snprintf's return value can be  > buflen */	\
-	buflen -= MIN(buflen, new_chars);				\
-} while (0)
+#define SNCATF(buffer, buflen, ...)                                        \
+	do {                                                               \
+		size_t new_chars = snprintf(buffer, buflen, __VA_ARGS__);  \
+		buffer += new_chars;                                       \
+		/* be careful; snprintf's return value can be  > buflen */ \
+		buflen -= MIN(buflen, new_chars);                          \
+	} while (0)
 
 /* STRINGIFY and TOSTRING are used only to help turn __LINE__ into a string */
-#define	STRINGIFY(x) #x
-#define	TOSTRING(x) STRINGIFY(x)
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
 
 /**
  * Writes an error message to buffer if cond is false
  * Note the implied parameters buffer and
  * buflen
  */
-#define	XNB_ASSERT(cond) ({						\
-	int passed = (cond);						\
-	char *_buffer = (buffer);					\
-	size_t _buflen = (buflen);					\
-	if (! passed) {							\
-		strlcat(_buffer, __func__, _buflen);			\
-		strlcat(_buffer, ":" TOSTRING(__LINE__) 		\
-		  " Assertion Error: " #cond "\n", _buflen);		\
-	}								\
+#define XNB_ASSERT(cond)                                                      \
+	({                                                                    \
+		int passed = (cond);                                          \
+		char *_buffer = (buffer);                                     \
+		size_t _buflen = (buflen);                                    \
+		if (!passed) {                                                \
+			strlcat(_buffer, __func__, _buflen);                  \
+			strlcat(_buffer,                                      \
+			    ":" TOSTRING(__LINE__) " Assertion Error: " #cond \
+						   "\n",                      \
+			    _buflen);                                         \
+		}                                                             \
 	})
 
 /**
@@ -103,15 +108,20 @@ struct test_fixture {
 
 typedef struct test_fixture test_fixture_t;
 
-static int	xnb_get1pkt(struct xnb_pkt *pkt, size_t size, uint16_t flags);
-static int	xnb_unit_test_runner(test_fixture_t const tests[], int ntests,
-				     char *buffer, size_t buflen);
+static int xnb_get1pkt(struct xnb_pkt *pkt, size_t size, uint16_t flags);
+static int xnb_unit_test_runner(test_fixture_t const tests[], int ntests,
+    char *buffer, size_t buflen);
 
 static int __unused
-null_setup(void) { return 0; }
+null_setup(void)
+{
+	return 0;
+}
 
 static void __unused
-null_teardown(void) { }
+null_teardown(void)
+{
+}
 
 static setup_t setup_pvt_data;
 static teardown_t teardown_pvt_data;
@@ -171,25 +181,26 @@ static testcase_t xnb_add_mbuf_cksum_tcp;
 static testcase_t xnb_add_mbuf_cksum_udp;
 static testcase_t xnb_add_mbuf_cksum_icmp;
 static testcase_t xnb_add_mbuf_cksum_tcp_swcksum;
-static void	xnb_fill_eh_and_ip(struct mbuf *m, uint16_t ip_len,
-				   uint16_t ip_id, uint16_t ip_p,
-				   uint16_t ip_off, uint16_t ip_sum);
-static void	xnb_fill_tcp(struct mbuf *m);
+static void xnb_fill_eh_and_ip(struct mbuf *m, uint16_t ip_len, uint16_t ip_id,
+    uint16_t ip_p, uint16_t ip_off, uint16_t ip_sum);
+static void xnb_fill_tcp(struct mbuf *m);
 #endif /* INET || INET6 */
 
 /** Private data used by unit tests */
 static struct {
-	gnttab_copy_table 	gnttab;
-	netif_rx_back_ring_t	rxb;
-	netif_rx_front_ring_t	rxf;
-	netif_tx_back_ring_t	txb;
-	netif_tx_front_ring_t	txf;
-	struct ifnet*		ifp;
-	netif_rx_sring_t*	rxs;
-	netif_tx_sring_t*	txs;
+	gnttab_copy_table gnttab;
+	netif_rx_back_ring_t rxb;
+	netif_rx_front_ring_t rxf;
+	netif_tx_back_ring_t txb;
+	netif_tx_front_ring_t txf;
+	struct ifnet *ifp;
+	netif_rx_sring_t *rxs;
+	netif_tx_sring_t *txs;
 } xnb_unit_pvt;
 
-static inline void safe_m_freem(struct mbuf **ppMbuf) {
+static inline void
+safe_m_freem(struct mbuf **ppMbuf)
+{
 	if (*ppMbuf != NULL) {
 		m_freem(*ppMbuf);
 		*ppMbuf = NULL;
@@ -207,7 +218,7 @@ static inline void safe_m_freem(struct mbuf **ppMbuf) {
  */
 static int
 xnb_unit_test_runner(test_fixture_t const tests[], int ntests, char *buffer,
-    		     size_t buflen)
+    size_t buflen)
 {
 	int i;
 	int n_passes;
@@ -216,8 +227,8 @@ xnb_unit_test_runner(test_fixture_t const tests[], int ntests, char *buffer,
 	for (i = 0; i < ntests; i++) {
 		int error = tests[i].setup();
 		if (error != 0) {
-			SNCATF(buffer, buflen,
-			    "Setup failed for test idx %d\n", i);
+			SNCATF(buffer, buflen, "Setup failed for test idx %d\n",
+			    i);
 			n_failures++;
 		} else {
 			size_t new_chars;
@@ -246,12 +257,12 @@ xnb_unit_test_runner(test_fixture_t const tests[], int ntests, char *buffer,
 }
 
 /** Number of unit tests.  Must match the length of the tests array below */
-#define	TOTAL_TESTS	(53)
+#define TOTAL_TESTS (53)
 /**
  * Max memory available for returning results.  400 chars/test should give
  * enough space for a five line error message for every test
  */
-#define	TOTAL_BUFLEN	(400 * TOTAL_TESTS + 2)
+#define TOTAL_BUFLEN (400 * TOTAL_TESTS + 2)
 
 /**
  * Called from userspace by a sysctl.  Runs all internal unit tests, and
@@ -264,63 +275,67 @@ xnb_unit_test_runner(test_fixture_t const tests[], int ntests, char *buffer,
  */
 
 static int
-xnb_unit_test_main(SYSCTL_HANDLER_ARGS) {
+xnb_unit_test_main(SYSCTL_HANDLER_ARGS)
+{
 	test_fixture_t const tests[TOTAL_TESTS] = {
-		{setup_pvt_data, xnb_ring2pkt_emptyring, teardown_pvt_data},
-		{setup_pvt_data, xnb_ring2pkt_1req, teardown_pvt_data},
-		{setup_pvt_data, xnb_ring2pkt_2req, teardown_pvt_data},
-		{setup_pvt_data, xnb_ring2pkt_3req, teardown_pvt_data},
-		{setup_pvt_data, xnb_ring2pkt_extra, teardown_pvt_data},
-		{setup_pvt_data, xnb_ring2pkt_partial, teardown_pvt_data},
-		{setup_pvt_data, xnb_ring2pkt_wraps, teardown_pvt_data},
-		{setup_pvt_data, xnb_txpkt2rsp_emptypkt, teardown_pvt_data},
-		{setup_pvt_data, xnb_txpkt2rsp_1req, teardown_pvt_data},
-		{setup_pvt_data, xnb_txpkt2rsp_extra, teardown_pvt_data},
-		{setup_pvt_data, xnb_txpkt2rsp_long, teardown_pvt_data},
-		{setup_pvt_data, xnb_txpkt2rsp_invalid, teardown_pvt_data},
-		{setup_pvt_data, xnb_txpkt2rsp_error, teardown_pvt_data},
-		{setup_pvt_data, xnb_txpkt2rsp_wraps, teardown_pvt_data},
-		{setup_pvt_data, xnb_pkt2mbufc_empty, teardown_pvt_data},
-		{setup_pvt_data, xnb_pkt2mbufc_short, teardown_pvt_data},
-		{setup_pvt_data, xnb_pkt2mbufc_csum, teardown_pvt_data},
-		{setup_pvt_data, xnb_pkt2mbufc_1cluster, teardown_pvt_data},
-		{setup_pvt_data, xnb_pkt2mbufc_largecluster, teardown_pvt_data},
-		{setup_pvt_data, xnb_pkt2mbufc_2cluster, teardown_pvt_data},
-		{setup_pvt_data, xnb_txpkt2gnttab_empty, teardown_pvt_data},
-		{setup_pvt_data, xnb_txpkt2gnttab_short, teardown_pvt_data},
-		{setup_pvt_data, xnb_txpkt2gnttab_2req, teardown_pvt_data},
-		{setup_pvt_data, xnb_txpkt2gnttab_2cluster, teardown_pvt_data},
-		{setup_pvt_data, xnb_update_mbufc_short, teardown_pvt_data},
-		{setup_pvt_data, xnb_update_mbufc_2req, teardown_pvt_data},
-		{setup_pvt_data, xnb_update_mbufc_2cluster, teardown_pvt_data},
-		{setup_pvt_data, xnb_mbufc2pkt_empty, teardown_pvt_data},
-		{setup_pvt_data, xnb_mbufc2pkt_short, teardown_pvt_data},
-		{setup_pvt_data, xnb_mbufc2pkt_1cluster, teardown_pvt_data},
-		{setup_pvt_data, xnb_mbufc2pkt_2short, teardown_pvt_data},
-		{setup_pvt_data, xnb_mbufc2pkt_long, teardown_pvt_data},
-		{setup_pvt_data, xnb_mbufc2pkt_extra, teardown_pvt_data},
-		{setup_pvt_data, xnb_mbufc2pkt_nospace, teardown_pvt_data},
-		{setup_pvt_data, xnb_rxpkt2gnttab_empty, teardown_pvt_data},
-		{setup_pvt_data, xnb_rxpkt2gnttab_short, teardown_pvt_data},
-		{setup_pvt_data, xnb_rxpkt2gnttab_2req, teardown_pvt_data},
-		{setup_pvt_data, xnb_rxpkt2rsp_empty, teardown_pvt_data},
-		{setup_pvt_data, xnb_rxpkt2rsp_short, teardown_pvt_data},
-		{setup_pvt_data, xnb_rxpkt2rsp_extra, teardown_pvt_data},
-		{setup_pvt_data, xnb_rxpkt2rsp_2short, teardown_pvt_data},
-		{setup_pvt_data, xnb_rxpkt2rsp_2slots, teardown_pvt_data},
-		{setup_pvt_data, xnb_rxpkt2rsp_copyerror, teardown_pvt_data},
+		{ setup_pvt_data, xnb_ring2pkt_emptyring, teardown_pvt_data },
+		{ setup_pvt_data, xnb_ring2pkt_1req, teardown_pvt_data },
+		{ setup_pvt_data, xnb_ring2pkt_2req, teardown_pvt_data },
+		{ setup_pvt_data, xnb_ring2pkt_3req, teardown_pvt_data },
+		{ setup_pvt_data, xnb_ring2pkt_extra, teardown_pvt_data },
+		{ setup_pvt_data, xnb_ring2pkt_partial, teardown_pvt_data },
+		{ setup_pvt_data, xnb_ring2pkt_wraps, teardown_pvt_data },
+		{ setup_pvt_data, xnb_txpkt2rsp_emptypkt, teardown_pvt_data },
+		{ setup_pvt_data, xnb_txpkt2rsp_1req, teardown_pvt_data },
+		{ setup_pvt_data, xnb_txpkt2rsp_extra, teardown_pvt_data },
+		{ setup_pvt_data, xnb_txpkt2rsp_long, teardown_pvt_data },
+		{ setup_pvt_data, xnb_txpkt2rsp_invalid, teardown_pvt_data },
+		{ setup_pvt_data, xnb_txpkt2rsp_error, teardown_pvt_data },
+		{ setup_pvt_data, xnb_txpkt2rsp_wraps, teardown_pvt_data },
+		{ setup_pvt_data, xnb_pkt2mbufc_empty, teardown_pvt_data },
+		{ setup_pvt_data, xnb_pkt2mbufc_short, teardown_pvt_data },
+		{ setup_pvt_data, xnb_pkt2mbufc_csum, teardown_pvt_data },
+		{ setup_pvt_data, xnb_pkt2mbufc_1cluster, teardown_pvt_data },
+		{ setup_pvt_data, xnb_pkt2mbufc_largecluster,
+		    teardown_pvt_data },
+		{ setup_pvt_data, xnb_pkt2mbufc_2cluster, teardown_pvt_data },
+		{ setup_pvt_data, xnb_txpkt2gnttab_empty, teardown_pvt_data },
+		{ setup_pvt_data, xnb_txpkt2gnttab_short, teardown_pvt_data },
+		{ setup_pvt_data, xnb_txpkt2gnttab_2req, teardown_pvt_data },
+		{ setup_pvt_data, xnb_txpkt2gnttab_2cluster,
+		    teardown_pvt_data },
+		{ setup_pvt_data, xnb_update_mbufc_short, teardown_pvt_data },
+		{ setup_pvt_data, xnb_update_mbufc_2req, teardown_pvt_data },
+		{ setup_pvt_data, xnb_update_mbufc_2cluster,
+		    teardown_pvt_data },
+		{ setup_pvt_data, xnb_mbufc2pkt_empty, teardown_pvt_data },
+		{ setup_pvt_data, xnb_mbufc2pkt_short, teardown_pvt_data },
+		{ setup_pvt_data, xnb_mbufc2pkt_1cluster, teardown_pvt_data },
+		{ setup_pvt_data, xnb_mbufc2pkt_2short, teardown_pvt_data },
+		{ setup_pvt_data, xnb_mbufc2pkt_long, teardown_pvt_data },
+		{ setup_pvt_data, xnb_mbufc2pkt_extra, teardown_pvt_data },
+		{ setup_pvt_data, xnb_mbufc2pkt_nospace, teardown_pvt_data },
+		{ setup_pvt_data, xnb_rxpkt2gnttab_empty, teardown_pvt_data },
+		{ setup_pvt_data, xnb_rxpkt2gnttab_short, teardown_pvt_data },
+		{ setup_pvt_data, xnb_rxpkt2gnttab_2req, teardown_pvt_data },
+		{ setup_pvt_data, xnb_rxpkt2rsp_empty, teardown_pvt_data },
+		{ setup_pvt_data, xnb_rxpkt2rsp_short, teardown_pvt_data },
+		{ setup_pvt_data, xnb_rxpkt2rsp_extra, teardown_pvt_data },
+		{ setup_pvt_data, xnb_rxpkt2rsp_2short, teardown_pvt_data },
+		{ setup_pvt_data, xnb_rxpkt2rsp_2slots, teardown_pvt_data },
+		{ setup_pvt_data, xnb_rxpkt2rsp_copyerror, teardown_pvt_data },
 #if defined(INET) || defined(INET6)
-		{null_setup, xnb_add_mbuf_cksum_arp, null_teardown},
-		{null_setup, xnb_add_mbuf_cksum_icmp, null_teardown},
-		{null_setup, xnb_add_mbuf_cksum_tcp, null_teardown},
-		{null_setup, xnb_add_mbuf_cksum_tcp_swcksum, null_teardown},
-		{null_setup, xnb_add_mbuf_cksum_udp, null_teardown},
+		{ null_setup, xnb_add_mbuf_cksum_arp, null_teardown },
+		{ null_setup, xnb_add_mbuf_cksum_icmp, null_teardown },
+		{ null_setup, xnb_add_mbuf_cksum_tcp, null_teardown },
+		{ null_setup, xnb_add_mbuf_cksum_tcp_swcksum, null_teardown },
+		{ null_setup, xnb_add_mbuf_cksum_udp, null_teardown },
 #endif
-		{null_setup, xnb_sscanf_hhd, null_teardown},
-		{null_setup, xnb_sscanf_hhu, null_teardown},
-		{null_setup, xnb_sscanf_lld, null_teardown},
-		{null_setup, xnb_sscanf_llu, null_teardown},
-		{null_setup, xnb_sscanf_hhn, null_teardown},
+		{ null_setup, xnb_sscanf_hhd, null_teardown },
+		{ null_setup, xnb_sscanf_hhu, null_teardown },
+		{ null_setup, xnb_sscanf_lld, null_teardown },
+		{ null_setup, xnb_sscanf_llu, null_teardown },
+		{ null_setup, xnb_sscanf_hhn, null_teardown },
 	};
 	/**
 	 * results is static so that the data will persist after this function
@@ -344,7 +359,7 @@ setup_pvt_data(void)
 
 	bzero(xnb_unit_pvt.gnttab, sizeof(xnb_unit_pvt.gnttab));
 
-	xnb_unit_pvt.txs = malloc(PAGE_SIZE, M_XENNETBACK, M_WAITOK|M_ZERO);
+	xnb_unit_pvt.txs = malloc(PAGE_SIZE, M_XENNETBACK, M_WAITOK | M_ZERO);
 	if (xnb_unit_pvt.txs != NULL) {
 		SHARED_RING_INIT(xnb_unit_pvt.txs);
 		BACK_RING_INIT(&xnb_unit_pvt.txb, xnb_unit_pvt.txs, PAGE_SIZE);
@@ -358,7 +373,7 @@ setup_pvt_data(void)
 		error = 1;
 	}
 
-	xnb_unit_pvt.rxs = malloc(PAGE_SIZE, M_XENNETBACK, M_WAITOK|M_ZERO);
+	xnb_unit_pvt.rxs = malloc(PAGE_SIZE, M_XENNETBACK, M_WAITOK | M_ZERO);
 	if (xnb_unit_pvt.rxs != NULL) {
 		SHARED_RING_INIT(xnb_unit_pvt.rxs);
 		BACK_RING_INIT(&xnb_unit_pvt.rxb, xnb_unit_pvt.rxs, PAGE_SIZE);
@@ -394,7 +409,7 @@ xnb_ring2pkt_emptyring(char *buffer, size_t buflen)
 	int num_consumed;
 
 	num_consumed = xnb_ring2pkt(&pkt, &xnb_unit_pvt.txb,
-	                            xnb_unit_pvt.txb.req_cons);
+	    xnb_unit_pvt.txb.req_cons);
 	XNB_ASSERT(num_consumed == 0);
 }
 
@@ -412,13 +427,13 @@ xnb_ring2pkt_1req(char *buffer, size_t buflen)
 	    xnb_unit_pvt.txf.req_prod_pvt);
 
 	req->flags = 0;
-	req->size = 69;	/* arbitrary number for test */
+	req->size = 69; /* arbitrary number for test */
 	xnb_unit_pvt.txf.req_prod_pvt++;
 
 	RING_PUSH_REQUESTS(&xnb_unit_pvt.txf);
 
 	num_consumed = xnb_ring2pkt(&pkt, &xnb_unit_pvt.txb,
-	                            xnb_unit_pvt.txb.req_cons);
+	    xnb_unit_pvt.txb.req_cons);
 	XNB_ASSERT(num_consumed == 1);
 	XNB_ASSERT(pkt.size == 69);
 	XNB_ASSERT(pkt.car_size == 69);
@@ -455,7 +470,7 @@ xnb_ring2pkt_2req(char *buffer, size_t buflen)
 	RING_PUSH_REQUESTS(&xnb_unit_pvt.txf);
 
 	num_consumed = xnb_ring2pkt(&pkt, &xnb_unit_pvt.txb,
-	                            xnb_unit_pvt.txb.req_cons);
+	    xnb_unit_pvt.txb.req_cons);
 	XNB_ASSERT(num_consumed == 2);
 	XNB_ASSERT(pkt.size == 100);
 	XNB_ASSERT(pkt.car_size == 60);
@@ -498,7 +513,7 @@ xnb_ring2pkt_3req(char *buffer, size_t buflen)
 	RING_PUSH_REQUESTS(&xnb_unit_pvt.txf);
 
 	num_consumed = xnb_ring2pkt(&pkt, &xnb_unit_pvt.txb,
-	                            xnb_unit_pvt.txb.req_cons);
+	    xnb_unit_pvt.txb.req_cons);
 	XNB_ASSERT(num_consumed == 3);
 	XNB_ASSERT(pkt.size == 200);
 	XNB_ASSERT(pkt.car_size == 110);
@@ -528,7 +543,7 @@ xnb_ring2pkt_extra(char *buffer, size_t buflen)
 	req->size = 150;
 	xnb_unit_pvt.txf.req_prod_pvt++;
 
-	ext = (struct netif_extra_info*) RING_GET_REQUEST(&xnb_unit_pvt.txf,
+	ext = (struct netif_extra_info *)RING_GET_REQUEST(&xnb_unit_pvt.txf,
 	    xnb_unit_pvt.txf.req_prod_pvt);
 	ext->flags = 0;
 	ext->type = XEN_NETIF_EXTRA_TYPE_GSO;
@@ -546,7 +561,7 @@ xnb_ring2pkt_extra(char *buffer, size_t buflen)
 	RING_PUSH_REQUESTS(&xnb_unit_pvt.txf);
 
 	num_consumed = xnb_ring2pkt(&pkt, &xnb_unit_pvt.txb,
-	                            xnb_unit_pvt.txb.req_cons);
+	    xnb_unit_pvt.txb.req_cons);
 	XNB_ASSERT(num_consumed == 3);
 	XNB_ASSERT(pkt.extra.flags == 0);
 	XNB_ASSERT(pkt.extra.type == XEN_NETIF_EXTRA_TYPE_GSO);
@@ -582,9 +597,9 @@ xnb_ring2pkt_partial(char *buffer, size_t buflen)
 	RING_PUSH_REQUESTS(&xnb_unit_pvt.txf);
 
 	num_consumed = xnb_ring2pkt(&pkt, &xnb_unit_pvt.txb,
-	                            xnb_unit_pvt.txb.req_cons);
+	    xnb_unit_pvt.txb.req_cons);
 	XNB_ASSERT(num_consumed == 0);
-	XNB_ASSERT(! xnb_pkt_is_valid(&pkt));
+	XNB_ASSERT(!xnb_pkt_is_valid(&pkt));
 }
 
 /**
@@ -634,7 +649,7 @@ xnb_ring2pkt_wraps(char *buffer, size_t buflen)
 	RING_PUSH_REQUESTS(&xnb_unit_pvt.txf);
 
 	num_consumed = xnb_ring2pkt(&pkt, &xnb_unit_pvt.txb,
-	                            xnb_unit_pvt.txb.req_cons);
+	    xnb_unit_pvt.txb.req_cons);
 	XNB_ASSERT(num_consumed == 3);
 	XNB_ASSERT(xnb_pkt_is_valid(&pkt));
 	XNB_ASSERT(pkt.list_len == 3);
@@ -681,14 +696,13 @@ xnb_txpkt2rsp_1req(char *buffer, size_t buflen)
 	RING_PUSH_REQUESTS(&xnb_unit_pvt.txf);
 
 	num_consumed = xnb_ring2pkt(&pkt, &xnb_unit_pvt.txb,
-	                            xnb_unit_pvt.txb.req_cons);
+	    xnb_unit_pvt.txb.req_cons);
 	xnb_unit_pvt.txb.req_cons += num_consumed;
 
 	xnb_txpkt2rsp(&pkt, &xnb_unit_pvt.txb, 0);
 	rsp = RING_GET_RESPONSE(&xnb_unit_pvt.txb, xnb_unit_pvt.txf.rsp_cons);
 
-	XNB_ASSERT(
-	    xnb_unit_pvt.txb.rsp_prod_pvt == xnb_unit_pvt.txs->req_prod);
+	XNB_ASSERT(xnb_unit_pvt.txb.rsp_prod_pvt == xnb_unit_pvt.txs->req_prod);
 	XNB_ASSERT(rsp->id == req->id);
 	XNB_ASSERT(rsp->status == NETIF_RSP_OKAY);
 };
@@ -712,7 +726,7 @@ xnb_txpkt2rsp_extra(char *buffer, size_t buflen)
 	req->id = 69;
 	xnb_unit_pvt.txf.req_prod_pvt++;
 
-	ext = (netif_extra_info_t*) RING_GET_REQUEST(&xnb_unit_pvt.txf,
+	ext = (netif_extra_info_t *)RING_GET_REQUEST(&xnb_unit_pvt.txf,
 	    xnb_unit_pvt.txf.req_prod_pvt);
 	ext->type = XEN_NETIF_EXTRA_TYPE_GSO;
 	ext->flags = 0;
@@ -721,13 +735,12 @@ xnb_txpkt2rsp_extra(char *buffer, size_t buflen)
 	RING_PUSH_REQUESTS(&xnb_unit_pvt.txf);
 
 	num_consumed = xnb_ring2pkt(&pkt, &xnb_unit_pvt.txb,
-	                            xnb_unit_pvt.txb.req_cons);
+	    xnb_unit_pvt.txb.req_cons);
 	xnb_unit_pvt.txb.req_cons += num_consumed;
 
 	xnb_txpkt2rsp(&pkt, &xnb_unit_pvt.txb, 0);
 
-	XNB_ASSERT(
-	    xnb_unit_pvt.txb.rsp_prod_pvt == xnb_unit_pvt.txs->req_prod);
+	XNB_ASSERT(xnb_unit_pvt.txb.rsp_prod_pvt == xnb_unit_pvt.txs->req_prod);
 
 	rsp = RING_GET_RESPONSE(&xnb_unit_pvt.txb, xnb_unit_pvt.txf.rsp_cons);
 	XNB_ASSERT(rsp->id == req->id);
@@ -757,7 +770,7 @@ xnb_txpkt2rsp_long(char *buffer, size_t buflen)
 	req->id = 254;
 	xnb_unit_pvt.txf.req_prod_pvt++;
 
-	ext = (netif_extra_info_t*) RING_GET_REQUEST(&xnb_unit_pvt.txf,
+	ext = (netif_extra_info_t *)RING_GET_REQUEST(&xnb_unit_pvt.txf,
 	    xnb_unit_pvt.txf.req_prod_pvt);
 	ext->type = XEN_NETIF_EXTRA_TYPE_GSO;
 	ext->flags = 0;
@@ -780,17 +793,15 @@ xnb_txpkt2rsp_long(char *buffer, size_t buflen)
 	RING_PUSH_REQUESTS(&xnb_unit_pvt.txf);
 
 	num_consumed = xnb_ring2pkt(&pkt, &xnb_unit_pvt.txb,
-	                            xnb_unit_pvt.txb.req_cons);
+	    xnb_unit_pvt.txb.req_cons);
 	xnb_unit_pvt.txb.req_cons += num_consumed;
 
 	xnb_txpkt2rsp(&pkt, &xnb_unit_pvt.txb, 0);
 
-	XNB_ASSERT(
-	    xnb_unit_pvt.txb.rsp_prod_pvt == xnb_unit_pvt.txs->req_prod);
+	XNB_ASSERT(xnb_unit_pvt.txb.rsp_prod_pvt == xnb_unit_pvt.txs->req_prod);
 
 	rsp = RING_GET_RESPONSE(&xnb_unit_pvt.txb, xnb_unit_pvt.txf.rsp_cons);
-	XNB_ASSERT(rsp->id ==
-	    RING_GET_REQUEST(&xnb_unit_pvt.txf, 0)->id);
+	XNB_ASSERT(rsp->id == RING_GET_REQUEST(&xnb_unit_pvt.txf, 0)->id);
 	XNB_ASSERT(rsp->status == NETIF_RSP_OKAY);
 
 	rsp = RING_GET_RESPONSE(&xnb_unit_pvt.txb,
@@ -799,14 +810,12 @@ xnb_txpkt2rsp_long(char *buffer, size_t buflen)
 
 	rsp = RING_GET_RESPONSE(&xnb_unit_pvt.txb,
 	    xnb_unit_pvt.txf.rsp_cons + 2);
-	XNB_ASSERT(rsp->id ==
-	    RING_GET_REQUEST(&xnb_unit_pvt.txf, 2)->id);
+	XNB_ASSERT(rsp->id == RING_GET_REQUEST(&xnb_unit_pvt.txf, 2)->id);
 	XNB_ASSERT(rsp->status == NETIF_RSP_OKAY);
 
 	rsp = RING_GET_RESPONSE(&xnb_unit_pvt.txb,
 	    xnb_unit_pvt.txf.rsp_cons + 3);
-	XNB_ASSERT(rsp->id ==
-	    RING_GET_REQUEST(&xnb_unit_pvt.txf, 3)->id);
+	XNB_ASSERT(rsp->id == RING_GET_REQUEST(&xnb_unit_pvt.txf, 3)->id);
 	XNB_ASSERT(rsp->status == NETIF_RSP_OKAY);
 }
 
@@ -832,23 +841,22 @@ xnb_txpkt2rsp_invalid(char *buffer, size_t buflen)
 	req->id = 69;
 	xnb_unit_pvt.txf.req_prod_pvt++;
 
-	ext = (netif_extra_info_t*) RING_GET_REQUEST(&xnb_unit_pvt.txf,
+	ext = (netif_extra_info_t *)RING_GET_REQUEST(&xnb_unit_pvt.txf,
 	    xnb_unit_pvt.txf.req_prod_pvt);
-	ext->type = 0xFF;	/* Invalid extra type */
+	ext->type = 0xFF; /* Invalid extra type */
 	ext->flags = 0;
 	xnb_unit_pvt.txf.req_prod_pvt++;
 
 	RING_PUSH_REQUESTS(&xnb_unit_pvt.txf);
 
 	num_consumed = xnb_ring2pkt(&pkt, &xnb_unit_pvt.txb,
-	                            xnb_unit_pvt.txb.req_cons);
+	    xnb_unit_pvt.txb.req_cons);
 	xnb_unit_pvt.txb.req_cons += num_consumed;
-	XNB_ASSERT(! xnb_pkt_is_valid(&pkt));
+	XNB_ASSERT(!xnb_pkt_is_valid(&pkt));
 
 	xnb_txpkt2rsp(&pkt, &xnb_unit_pvt.txb, 0);
 
-	XNB_ASSERT(
-	    xnb_unit_pvt.txb.rsp_prod_pvt == xnb_unit_pvt.txs->req_prod);
+	XNB_ASSERT(xnb_unit_pvt.txb.rsp_prod_pvt == xnb_unit_pvt.txs->req_prod);
 
 	rsp = RING_GET_RESPONSE(&xnb_unit_pvt.txb, xnb_unit_pvt.txf.rsp_cons);
 	XNB_ASSERT(rsp->id == req->id);
@@ -879,14 +887,13 @@ xnb_txpkt2rsp_error(char *buffer, size_t buflen)
 	RING_PUSH_REQUESTS(&xnb_unit_pvt.txf);
 
 	num_consumed = xnb_ring2pkt(&pkt, &xnb_unit_pvt.txb,
-	                            xnb_unit_pvt.txb.req_cons);
+	    xnb_unit_pvt.txb.req_cons);
 	xnb_unit_pvt.txb.req_cons += num_consumed;
 
 	xnb_txpkt2rsp(&pkt, &xnb_unit_pvt.txb, 1);
 	rsp = RING_GET_RESPONSE(&xnb_unit_pvt.txb, xnb_unit_pvt.txf.rsp_cons);
 
-	XNB_ASSERT(
-	    xnb_unit_pvt.txb.rsp_prod_pvt == xnb_unit_pvt.txs->req_prod);
+	XNB_ASSERT(xnb_unit_pvt.txb.rsp_prod_pvt == xnb_unit_pvt.txs->req_prod);
 	XNB_ASSERT(rsp->id == req->id);
 	XNB_ASSERT(rsp->status == NETIF_RSP_ERROR);
 };
@@ -943,8 +950,7 @@ xnb_txpkt2rsp_wraps(char *buffer, size_t buflen)
 
 	xnb_txpkt2rsp(&pkt, &xnb_unit_pvt.txb, 0);
 
-	XNB_ASSERT(
-	    xnb_unit_pvt.txb.rsp_prod_pvt == xnb_unit_pvt.txs->req_prod);
+	XNB_ASSERT(xnb_unit_pvt.txb.rsp_prod_pvt == xnb_unit_pvt.txs->req_prod);
 	rsp = RING_GET_RESPONSE(&xnb_unit_pvt.txb,
 	    xnb_unit_pvt.txf.rsp_cons + 2);
 	XNB_ASSERT(rsp->id == req->id);
@@ -971,8 +977,7 @@ xnb_get1pkt(struct xnb_pkt *pkt, size_t size, uint16_t flags)
 
 	RING_PUSH_REQUESTS(&xnb_unit_pvt.txf);
 
-	return xnb_ring2pkt(pkt, &xnb_unit_pvt.txb,
-	                            xnb_unit_pvt.txb.req_cons);
+	return xnb_ring2pkt(pkt, &xnb_unit_pvt.txb, xnb_unit_pvt.txb.req_cons);
 }
 
 /**
@@ -1141,10 +1146,10 @@ xnb_txpkt2gnttab_short(char *buffer, size_t buflen)
 	XNB_ASSERT(xnb_unit_pvt.gnttab[0].flags & GNTCOPY_source_gref);
 	XNB_ASSERT(xnb_unit_pvt.gnttab[0].source.offset == req->offset);
 	XNB_ASSERT(xnb_unit_pvt.gnttab[0].source.domid == DOMID_SELF);
-	XNB_ASSERT(xnb_unit_pvt.gnttab[0].dest.offset == virt_to_offset(
-	      mtod(pMbuf, vm_offset_t)));
+	XNB_ASSERT(xnb_unit_pvt.gnttab[0].dest.offset ==
+	    virt_to_offset(mtod(pMbuf, vm_offset_t)));
 	XNB_ASSERT(xnb_unit_pvt.gnttab[0].dest.u.gmfn ==
-		virt_to_mfn(mtod(pMbuf, vm_offset_t)));
+	    virt_to_mfn(mtod(pMbuf, vm_offset_t)));
 	XNB_ASSERT(xnb_unit_pvt.gnttab[0].dest.domid == DOMID_FIRST_RESERVED);
 	safe_m_freem(&pMbuf);
 }
@@ -1186,12 +1191,12 @@ xnb_txpkt2gnttab_2req(char *buffer, size_t buflen)
 
 	XNB_ASSERT(n_entries == 2);
 	XNB_ASSERT(xnb_unit_pvt.gnttab[0].len == 1400);
-	XNB_ASSERT(xnb_unit_pvt.gnttab[0].dest.offset == virt_to_offset(
-	      mtod(pMbuf, vm_offset_t)));
+	XNB_ASSERT(xnb_unit_pvt.gnttab[0].dest.offset ==
+	    virt_to_offset(mtod(pMbuf, vm_offset_t)));
 
 	XNB_ASSERT(xnb_unit_pvt.gnttab[1].len == 500);
-	XNB_ASSERT(xnb_unit_pvt.gnttab[1].dest.offset == virt_to_offset(
-	      mtod(pMbuf, vm_offset_t) + 1400));
+	XNB_ASSERT(xnb_unit_pvt.gnttab[1].dest.offset ==
+	    virt_to_offset(mtod(pMbuf, vm_offset_t) + 1400));
 	safe_m_freem(&pMbuf);
 }
 
@@ -1204,7 +1209,7 @@ xnb_txpkt2gnttab_2cluster(char *buffer, size_t buflen)
 	int n_entries;
 	struct xnb_pkt pkt;
 	struct mbuf *pMbuf;
-	const uint16_t data_this_transaction = (MCLBYTES*2) + 1;
+	const uint16_t data_this_transaction = (MCLBYTES * 2) + 1;
 
 	struct netif_tx_request *req = RING_GET_REQUEST(&xnb_unit_pvt.txf,
 	    xnb_unit_pvt.txf.req_prod_pvt);
@@ -1229,36 +1234,31 @@ xnb_txpkt2gnttab_2cluster(char *buffer, size_t buflen)
 		/* there should be three mbufs and three gnttab entries */
 		XNB_ASSERT(n_entries == 3);
 		XNB_ASSERT(xnb_unit_pvt.gnttab[0].len == MCLBYTES);
-		XNB_ASSERT(
-		    xnb_unit_pvt.gnttab[0].dest.offset == virt_to_offset(
-		      mtod(pMbuf, vm_offset_t)));
+		XNB_ASSERT(xnb_unit_pvt.gnttab[0].dest.offset ==
+		    virt_to_offset(mtod(pMbuf, vm_offset_t)));
 		XNB_ASSERT(xnb_unit_pvt.gnttab[0].source.offset == 0);
 
 		XNB_ASSERT(xnb_unit_pvt.gnttab[1].len == MCLBYTES);
-		XNB_ASSERT(
-		    xnb_unit_pvt.gnttab[1].dest.offset == virt_to_offset(
-		      mtod(pMbuf->m_next, vm_offset_t)));
+		XNB_ASSERT(xnb_unit_pvt.gnttab[1].dest.offset ==
+		    virt_to_offset(mtod(pMbuf->m_next, vm_offset_t)));
 		XNB_ASSERT(xnb_unit_pvt.gnttab[1].source.offset == MCLBYTES);
 
 		XNB_ASSERT(xnb_unit_pvt.gnttab[2].len == 1);
+		XNB_ASSERT(xnb_unit_pvt.gnttab[2].dest.offset ==
+		    virt_to_offset(mtod(pMbuf->m_next, vm_offset_t)));
 		XNB_ASSERT(
-		    xnb_unit_pvt.gnttab[2].dest.offset == virt_to_offset(
-		      mtod(pMbuf->m_next, vm_offset_t)));
-		XNB_ASSERT(xnb_unit_pvt.gnttab[2].source.offset == 2 *
-			    MCLBYTES);
+		    xnb_unit_pvt.gnttab[2].source.offset == 2 * MCLBYTES);
 	} else if (M_TRAILINGSPACE(pMbuf) == 2 * MCLBYTES) {
 		/* there should be two mbufs and two gnttab entries */
 		XNB_ASSERT(n_entries == 2);
 		XNB_ASSERT(xnb_unit_pvt.gnttab[0].len == 2 * MCLBYTES);
-		XNB_ASSERT(
-		    xnb_unit_pvt.gnttab[0].dest.offset == virt_to_offset(
-		      mtod(pMbuf, vm_offset_t)));
+		XNB_ASSERT(xnb_unit_pvt.gnttab[0].dest.offset ==
+		    virt_to_offset(mtod(pMbuf, vm_offset_t)));
 		XNB_ASSERT(xnb_unit_pvt.gnttab[0].source.offset == 0);
 
 		XNB_ASSERT(xnb_unit_pvt.gnttab[1].len == 1);
-		XNB_ASSERT(
-		    xnb_unit_pvt.gnttab[1].dest.offset == virt_to_offset(
-		      mtod(pMbuf->m_next, vm_offset_t)));
+		XNB_ASSERT(xnb_unit_pvt.gnttab[1].dest.offset ==
+		    virt_to_offset(mtod(pMbuf->m_next, vm_offset_t)));
 		XNB_ASSERT(
 		    xnb_unit_pvt.gnttab[1].source.offset == 2 * MCLBYTES);
 
@@ -1362,7 +1362,7 @@ xnb_update_mbufc_2cluster(char *buffer, size_t buflen)
 	int n_entries;
 	struct xnb_pkt pkt;
 	struct mbuf *pMbuf;
-	const uint16_t data_this_transaction = (MCLBYTES*2) + 1;
+	const uint16_t data_this_transaction = (MCLBYTES * 2) + 1;
 
 	struct netif_tx_request *req = RING_GET_REQUEST(&xnb_unit_pvt.txf,
 	    xnb_unit_pvt.txf.req_prod_pvt);
@@ -1406,7 +1406,8 @@ xnb_update_mbufc_2cluster(char *buffer, size_t buflen)
 
 /** xnb_mbufc2pkt on an empty mbufc */
 static void
-xnb_mbufc2pkt_empty(char *buffer, size_t buflen) {
+xnb_mbufc2pkt_empty(char *buffer, size_t buflen)
+{
 	struct xnb_pkt pkt;
 	int free_slots = 64;
 	struct mbuf *mbuf;
@@ -1419,14 +1420,15 @@ xnb_mbufc2pkt_empty(char *buffer, size_t buflen) {
 	XNB_ASSERT(mbuf->m_len == 0);
 
 	xnb_mbufc2pkt(mbuf, &pkt, 0, free_slots);
-	XNB_ASSERT(! xnb_pkt_is_valid(&pkt));
+	XNB_ASSERT(!xnb_pkt_is_valid(&pkt));
 
 	safe_m_freem(&mbuf);
 }
 
 /** xnb_mbufc2pkt on a short mbufc */
 static void
-xnb_mbufc2pkt_short(char *buffer, size_t buflen) {
+xnb_mbufc2pkt_short(char *buffer, size_t buflen)
+{
 	struct xnb_pkt pkt;
 	size_t size = 128;
 	int free_slots = 64;
@@ -1442,8 +1444,7 @@ xnb_mbufc2pkt_short(char *buffer, size_t buflen) {
 	XNB_ASSERT(xnb_pkt_is_valid(&pkt));
 	XNB_ASSERT(pkt.size == size);
 	XNB_ASSERT(pkt.car_size == size);
-	XNB_ASSERT(! (pkt.flags &
-	      (NETRXF_more_data | NETRXF_extra_info)));
+	XNB_ASSERT(!(pkt.flags & (NETRXF_more_data | NETRXF_extra_info)));
 	XNB_ASSERT(pkt.list_len == 1);
 	XNB_ASSERT(pkt.car == start);
 
@@ -1452,7 +1453,8 @@ xnb_mbufc2pkt_short(char *buffer, size_t buflen) {
 
 /** xnb_mbufc2pkt on a single mbuf with an mbuf cluster */
 static void
-xnb_mbufc2pkt_1cluster(char *buffer, size_t buflen) {
+xnb_mbufc2pkt_1cluster(char *buffer, size_t buflen)
+{
 	struct xnb_pkt pkt;
 	size_t size = MCLBYTES;
 	int free_slots = 32;
@@ -1468,8 +1470,7 @@ xnb_mbufc2pkt_1cluster(char *buffer, size_t buflen) {
 	XNB_ASSERT(xnb_pkt_is_valid(&pkt));
 	XNB_ASSERT(pkt.size == size);
 	XNB_ASSERT(pkt.car_size == size);
-	XNB_ASSERT(! (pkt.flags &
-	      (NETRXF_more_data | NETRXF_extra_info)));
+	XNB_ASSERT(!(pkt.flags & (NETRXF_more_data | NETRXF_extra_info)));
 	XNB_ASSERT(pkt.list_len == 1);
 	XNB_ASSERT(pkt.car == start);
 
@@ -1478,7 +1479,8 @@ xnb_mbufc2pkt_1cluster(char *buffer, size_t buflen) {
 
 /** xnb_mbufc2pkt on a two-mbuf chain with short data regions */
 static void
-xnb_mbufc2pkt_2short(char *buffer, size_t buflen) {
+xnb_mbufc2pkt_2short(char *buffer, size_t buflen)
+{
 	struct xnb_pkt pkt;
 	size_t size1 = MHLEN - 5;
 	size_t size2 = MHLEN - 15;
@@ -1520,7 +1522,8 @@ xnb_mbufc2pkt_2short(char *buffer, size_t buflen) {
 
 /** xnb_mbufc2pkt on a mbuf chain with >1 mbuf cluster */
 static void
-xnb_mbufc2pkt_long(char *buffer, size_t buflen) {
+xnb_mbufc2pkt_long(char *buffer, size_t buflen)
+{
 	struct xnb_pkt pkt;
 	size_t size = 14 * MCLBYTES / 3;
 	size_t size_remaining;
@@ -1550,7 +1553,7 @@ xnb_mbufc2pkt_long(char *buffer, size_t buflen) {
 	 * There should be >1 response in the packet, and there is no
 	 * extra info.
 	 */
-	XNB_ASSERT(! (pkt.flags & NETRXF_extra_info));
+	XNB_ASSERT(!(pkt.flags & NETRXF_extra_info));
 	XNB_ASSERT(pkt.cdr == pkt.car + 1);
 
 	safe_m_freem(&mbufc);
@@ -1558,7 +1561,8 @@ xnb_mbufc2pkt_long(char *buffer, size_t buflen) {
 
 /** xnb_mbufc2pkt on a mbuf chain with >1 mbuf cluster and extra info */
 static void
-xnb_mbufc2pkt_extra(char *buffer, size_t buflen) {
+xnb_mbufc2pkt_extra(char *buffer, size_t buflen)
+{
 	struct xnb_pkt pkt;
 	size_t size = 14 * MCLBYTES / 3;
 	size_t size_remaining;
@@ -1592,14 +1596,15 @@ xnb_mbufc2pkt_extra(char *buffer, size_t buflen) {
 	XNB_ASSERT(pkt.cdr == pkt.car + 2);
 	XNB_ASSERT(pkt.extra.u.gso.size = mbufc->m_pkthdr.tso_segsz);
 	XNB_ASSERT(pkt.extra.type == XEN_NETIF_EXTRA_TYPE_GSO);
-	XNB_ASSERT(! (pkt.extra.flags & XEN_NETIF_EXTRA_FLAG_MORE));
+	XNB_ASSERT(!(pkt.extra.flags & XEN_NETIF_EXTRA_FLAG_MORE));
 
 	safe_m_freem(&mbufc);
 }
 
 /** xnb_mbufc2pkt with insufficient space in the ring */
 static void
-xnb_mbufc2pkt_nospace(char *buffer, size_t buflen) {
+xnb_mbufc2pkt_nospace(char *buffer, size_t buflen)
+{
 	struct xnb_pkt pkt;
 	size_t size = 14 * MCLBYTES / 3;
 	size_t size_remaining;
@@ -1623,7 +1628,7 @@ xnb_mbufc2pkt_nospace(char *buffer, size_t buflen) {
 
 	error = xnb_mbufc2pkt(mbufc, &pkt, start, free_slots);
 	XNB_ASSERT(error == EAGAIN);
-	XNB_ASSERT(! xnb_pkt_is_valid(&pkt));
+	XNB_ASSERT(!xnb_pkt_is_valid(&pkt));
 
 	safe_m_freem(&mbufc);
 }
@@ -1643,7 +1648,7 @@ xnb_rxpkt2gnttab_empty(char *buffer, size_t buflen)
 
 	xnb_mbufc2pkt(mbuf, &pkt, 0, free_slots);
 	nr_entries = xnb_rxpkt2gnttab(&pkt, mbuf, xnb_unit_pvt.gnttab,
-			&xnb_unit_pvt.rxb, DOMID_FIRST_RESERVED);
+	    &xnb_unit_pvt.rxb, DOMID_FIRST_RESERVED);
 
 	XNB_ASSERT(nr_entries == 0);
 
@@ -1652,7 +1657,8 @@ xnb_rxpkt2gnttab_empty(char *buffer, size_t buflen)
 
 /** xnb_rxpkt2gnttab on a short packet without extra data */
 static void
-xnb_rxpkt2gnttab_short(char *buffer, size_t buflen) {
+xnb_rxpkt2gnttab_short(char *buffer, size_t buflen)
+{
 	struct xnb_pkt pkt;
 	int nr_entries;
 	size_t size = 128;
@@ -1668,11 +1674,11 @@ xnb_rxpkt2gnttab_short(char *buffer, size_t buflen) {
 
 	xnb_mbufc2pkt(mbuf, &pkt, start, free_slots);
 	req = RING_GET_REQUEST(&xnb_unit_pvt.rxf,
-			       xnb_unit_pvt.txf.req_prod_pvt);
+	    xnb_unit_pvt.txf.req_prod_pvt);
 	req->gref = 7;
 
 	nr_entries = xnb_rxpkt2gnttab(&pkt, mbuf, xnb_unit_pvt.gnttab,
-				      &xnb_unit_pvt.rxb, DOMID_FIRST_RESERVED);
+	    &xnb_unit_pvt.rxb, DOMID_FIRST_RESERVED);
 
 	XNB_ASSERT(nr_entries == 1);
 	XNB_ASSERT(xnb_unit_pvt.gnttab[0].len == size);
@@ -1680,10 +1686,10 @@ xnb_rxpkt2gnttab_short(char *buffer, size_t buflen) {
 	XNB_ASSERT(xnb_unit_pvt.gnttab[0].flags & GNTCOPY_dest_gref);
 	XNB_ASSERT(xnb_unit_pvt.gnttab[0].dest.offset == 0);
 	XNB_ASSERT(xnb_unit_pvt.gnttab[0].source.domid == DOMID_SELF);
-	XNB_ASSERT(xnb_unit_pvt.gnttab[0].source.offset == virt_to_offset(
-		   mtod(mbuf, vm_offset_t)));
+	XNB_ASSERT(xnb_unit_pvt.gnttab[0].source.offset ==
+	    virt_to_offset(mtod(mbuf, vm_offset_t)));
 	XNB_ASSERT(xnb_unit_pvt.gnttab[0].source.u.gmfn ==
-		   virt_to_mfn(mtod(mbuf, vm_offset_t)));
+	    virt_to_mfn(mtod(mbuf, vm_offset_t)));
 	XNB_ASSERT(xnb_unit_pvt.gnttab[0].dest.domid == DOMID_FIRST_RESERVED);
 
 	safe_m_freem(&mbuf);
@@ -1712,7 +1718,7 @@ xnb_rxpkt2gnttab_2req(char *buffer, size_t buflen)
 
 	xnb_mbufc2pkt(mbuf, &pkt, start, free_slots);
 
-	for (i = 0, m=mbuf; m != NULL; i++, m = m->m_next) {
+	for (i = 0, m = mbuf; m != NULL; i++, m = m->m_next) {
 		req = RING_GET_REQUEST(&xnb_unit_pvt.rxf,
 		    xnb_unit_pvt.txf.req_prod_pvt);
 		req->gref = i;
@@ -1721,12 +1727,12 @@ xnb_rxpkt2gnttab_2req(char *buffer, size_t buflen)
 	num_mbufs = i;
 
 	nr_entries = xnb_rxpkt2gnttab(&pkt, mbuf, xnb_unit_pvt.gnttab,
-			&xnb_unit_pvt.rxb, DOMID_FIRST_RESERVED);
+	    &xnb_unit_pvt.rxb, DOMID_FIRST_RESERVED);
 
 	XNB_ASSERT(nr_entries >= num_mbufs);
 	for (i = 0; i < nr_entries; i++) {
 		int end_offset = xnb_unit_pvt.gnttab[i].len +
-			xnb_unit_pvt.gnttab[i].dest.offset;
+		    xnb_unit_pvt.gnttab[i].dest.offset;
 		XNB_ASSERT(end_offset <= PAGE_SIZE);
 		total_granted_size += xnb_unit_pvt.gnttab[i].len;
 	}
@@ -1751,7 +1757,7 @@ xnb_rxpkt2rsp_empty(char *buffer, size_t buflen)
 
 	xnb_mbufc2pkt(mbuf, &pkt, 0, free_slots);
 	nr_entries = xnb_rxpkt2gnttab(&pkt, mbuf, xnb_unit_pvt.gnttab,
-			&xnb_unit_pvt.rxb, DOMID_FIRST_RESERVED);
+	    &xnb_unit_pvt.rxb, DOMID_FIRST_RESERVED);
 
 	nr_reqs = xnb_rxpkt2rsp(&pkt, xnb_unit_pvt.gnttab, nr_entries,
 	    &xnb_unit_pvt.rxb);
@@ -1793,7 +1799,7 @@ xnb_rxpkt2rsp_short(char *buffer, size_t buflen)
 	xnb_unit_pvt.rxs->rsp_prod = start;
 
 	nr_entries = xnb_rxpkt2gnttab(&pkt, mbuf, xnb_unit_pvt.gnttab,
-			&xnb_unit_pvt.rxb, DOMID_FIRST_RESERVED);
+	    &xnb_unit_pvt.rxb, DOMID_FIRST_RESERVED);
 
 	nr_reqs = xnb_rxpkt2rsp(&pkt, xnb_unit_pvt.gnttab, nr_entries,
 	    &xnb_unit_pvt.rxb);
@@ -1852,7 +1858,7 @@ xnb_rxpkt2rsp_extra(char *buffer, size_t buflen)
 	xnb_unit_pvt.rxs->rsp_prod = start;
 
 	nr_entries = xnb_rxpkt2gnttab(&pkt, mbufc, xnb_unit_pvt.gnttab,
-			&xnb_unit_pvt.rxb, DOMID_FIRST_RESERVED);
+	    &xnb_unit_pvt.rxb, DOMID_FIRST_RESERVED);
 
 	nr_reqs = xnb_rxpkt2rsp(&pkt, xnb_unit_pvt.gnttab, nr_entries,
 	    &xnb_unit_pvt.rxb);
@@ -1867,10 +1873,10 @@ xnb_rxpkt2rsp_extra(char *buffer, size_t buflen)
 	XNB_ASSERT((rsp->flags & NETRXF_csum_blank));
 	XNB_ASSERT(rsp->status == size);
 
-	ext = (struct netif_extra_info*)
-		RING_GET_RESPONSE(&xnb_unit_pvt.rxb, start + 1);
+	ext = (struct netif_extra_info *)RING_GET_RESPONSE(&xnb_unit_pvt.rxb,
+	    start + 1);
 	XNB_ASSERT(ext->type == XEN_NETIF_EXTRA_TYPE_GSO);
-	XNB_ASSERT(! (ext->flags & XEN_NETIF_EXTRA_FLAG_MORE));
+	XNB_ASSERT(!(ext->flags & XEN_NETIF_EXTRA_FLAG_MORE));
 	XNB_ASSERT(ext->u.gso.size == mss);
 	XNB_ASSERT(ext->u.gso.type == XEN_NETIF_EXTRA_TYPE_GSO);
 
@@ -1922,7 +1928,7 @@ xnb_rxpkt2rsp_2slots(char *buffer, size_t buflen)
 	xnb_unit_pvt.rxs->rsp_prod = start;
 
 	nr_entries = xnb_rxpkt2gnttab(&pkt, mbuf, xnb_unit_pvt.gnttab,
-			&xnb_unit_pvt.rxb, DOMID_FIRST_RESERVED);
+	    &xnb_unit_pvt.rxb, DOMID_FIRST_RESERVED);
 
 	nr_reqs = xnb_rxpkt2rsp(&pkt, xnb_unit_pvt.gnttab, nr_entries,
 	    &xnb_unit_pvt.rxb);
@@ -1940,7 +1946,7 @@ xnb_rxpkt2rsp_2slots(char *buffer, size_t buflen)
 	XNB_ASSERT(rsp->id == id2);
 	XNB_ASSERT(rsp->offset == 0);
 	XNB_ASSERT((rsp->flags & NETRXF_extra_info) == 0);
-	XNB_ASSERT(! (rsp->flags & NETRXF_more_data));
+	XNB_ASSERT(!(rsp->flags & NETRXF_more_data));
 	XNB_ASSERT(rsp->status == size - PAGE_SIZE);
 
 	safe_m_freem(&mbuf);
@@ -1948,7 +1954,8 @@ xnb_rxpkt2rsp_2slots(char *buffer, size_t buflen)
 
 /** xnb_rxpkt2rsp on a grant table with two sub-page entries */
 static void
-xnb_rxpkt2rsp_2short(char *buffer, size_t buflen) {
+xnb_rxpkt2rsp_2short(char *buffer, size_t buflen)
+{
 	struct xnb_pkt pkt;
 	int nr_reqs, nr_entries;
 	size_t size1 = MHLEN - 5;
@@ -1984,7 +1991,7 @@ xnb_rxpkt2rsp_2short(char *buffer, size_t buflen) {
 	xnb_unit_pvt.rxs->rsp_prod = start;
 
 	nr_entries = xnb_rxpkt2gnttab(&pkt, mbufc, xnb_unit_pvt.gnttab,
-			&xnb_unit_pvt.rxb, DOMID_FIRST_RESERVED);
+	    &xnb_unit_pvt.rxb, DOMID_FIRST_RESERVED);
 
 	nr_reqs = xnb_rxpkt2rsp(&pkt, xnb_unit_pvt.gnttab, nr_entries,
 	    &xnb_unit_pvt.rxb);
@@ -1995,7 +2002,7 @@ xnb_rxpkt2rsp_2short(char *buffer, size_t buflen) {
 	XNB_ASSERT(rsp->id == id);
 	XNB_ASSERT(rsp->status == size1 + size2);
 	XNB_ASSERT(rsp->offset == 0);
-	XNB_ASSERT(! (rsp->flags & (NETRXF_more_data | NETRXF_extra_info)));
+	XNB_ASSERT(!(rsp->flags & (NETRXF_more_data | NETRXF_extra_info)));
 
 	safe_m_freem(&mbufc);
 }
@@ -2039,7 +2046,7 @@ xnb_rxpkt2rsp_copyerror(char *buffer, size_t buflen)
 	req->id = canary;
 
 	nr_entries = xnb_rxpkt2gnttab(&pkt, mbuf, xnb_unit_pvt.gnttab,
-			&xnb_unit_pvt.rxb, DOMID_FIRST_RESERVED);
+	    &xnb_unit_pvt.rxb, DOMID_FIRST_RESERVED);
 	/* Inject the error*/
 	xnb_unit_pvt.gnttab[2].status = GNTST_general_error;
 
@@ -2066,7 +2073,7 @@ static void
 xnb_add_mbuf_cksum_arp(char *buffer, size_t buflen)
 {
 	const size_t pkt_len = sizeof(struct ether_header) +
-		sizeof(struct ether_arp);
+	    sizeof(struct ether_arp);
 	struct mbuf *mbufc;
 	struct ether_header *eh;
 	struct ether_arp *ep;
@@ -2074,7 +2081,7 @@ xnb_add_mbuf_cksum_arp(char *buffer, size_t buflen)
 
 	mbufc = m_getm(NULL, pkt_len, M_WAITOK, MT_DATA);
 	/* Fill in an example arp request */
-	eh = mtod(mbufc, struct ether_header*);
+	eh = mtod(mbufc, struct ether_header *);
 	eh->ether_dhost[0] = 0xff;
 	eh->ether_dhost[1] = 0xff;
 	eh->ether_dhost[2] = 0xff;
@@ -2088,7 +2095,7 @@ xnb_add_mbuf_cksum_arp(char *buffer, size_t buflen)
 	eh->ether_shost[4] = 0x30;
 	eh->ether_shost[5] = 0x68;
 	eh->ether_type = htons(ETHERTYPE_ARP);
-	ep = (struct ether_arp*)(eh + 1);
+	ep = (struct ether_arp *)(eh + 1);
 	ep->ea_hdr.ar_hrd = htons(ARPHRD_ETHER);
 	ep->ea_hdr.ar_pro = htons(ETHERTYPE_IP);
 	ep->ea_hdr.ar_hln = 6;
@@ -2114,17 +2121,17 @@ xnb_add_mbuf_cksum_arp(char *buffer, size_t buflen)
 	mbufc->m_len = pkt_len;
 	mbufc->m_pkthdr.len = pkt_len;
 	/* indicate that the netfront uses hw-assisted checksums */
-	mbufc->m_pkthdr.csum_flags = CSUM_IP_CHECKED | CSUM_IP_VALID   |
-				CSUM_DATA_VALID | CSUM_PSEUDO_HDR;
+	mbufc->m_pkthdr.csum_flags = CSUM_IP_CHECKED | CSUM_IP_VALID |
+	    CSUM_DATA_VALID | CSUM_PSEUDO_HDR;
 
 	/* Make a backup copy of the packet */
-	bcopy(mtod(mbufc, const void*), pkt_orig, pkt_len);
+	bcopy(mtod(mbufc, const void *), pkt_orig, pkt_len);
 
 	/* Function under test */
 	xnb_add_mbuf_cksum(mbufc);
 
 	/* Verify that the packet's data did not change */
-	XNB_ASSERT(bcmp(mtod(mbufc, const void*), pkt_orig, pkt_len) == 0);
+	XNB_ASSERT(bcmp(mtod(mbufc, const void *), pkt_orig, pkt_len) == 0);
 	m_freem(mbufc);
 }
 
@@ -2135,12 +2142,12 @@ xnb_add_mbuf_cksum_arp(char *buffer, size_t buflen)
  */
 static void
 xnb_fill_eh_and_ip(struct mbuf *m, uint16_t ip_len, uint16_t ip_id,
-		   uint16_t ip_p, uint16_t ip_off, uint16_t ip_sum)
+    uint16_t ip_p, uint16_t ip_off, uint16_t ip_sum)
 {
 	struct ether_header *eh;
 	struct ip *iph;
 
-	eh = mtod(m, struct ether_header*);
+	eh = mtod(m, struct ether_header *);
 	eh->ether_dhost[0] = 0x00;
 	eh->ether_dhost[1] = 0x16;
 	eh->ether_dhost[2] = 0x3e;
@@ -2154,9 +2161,9 @@ xnb_fill_eh_and_ip(struct mbuf *m, uint16_t ip_len, uint16_t ip_id,
 	eh->ether_shost[4] = 0x00;
 	eh->ether_shost[5] = 0x00;
 	eh->ether_type = htons(ETHERTYPE_IP);
-	iph = (struct ip*)(eh + 1);
-	iph->ip_hl = 0x5;	/* 5 dwords == 20 bytes */
-	iph->ip_v = 4;		/* IP v4 */
+	iph = (struct ip *)(eh + 1);
+	iph->ip_hl = 0x5; /* 5 dwords == 20 bytes */
+	iph->ip_v = 4;	  /* IP v4 */
 	iph->ip_tos = 0;
 	iph->ip_len = htons(ip_len);
 	iph->ip_id = htons(ip_id);
@@ -2175,9 +2182,9 @@ xnb_fill_eh_and_ip(struct mbuf *m, uint16_t ip_len, uint16_t ip_id,
 static void
 xnb_add_mbuf_cksum_icmp(char *buffer, size_t buflen)
 {
-	const size_t icmp_len = 64;	/* set by ping(1) */
-	const size_t pkt_len = sizeof(struct ether_header) +
-		sizeof(struct ip) + icmp_len;
+	const size_t icmp_len = 64; /* set by ping(1) */
+	const size_t pkt_len = sizeof(struct ether_header) + sizeof(struct ip) +
+	    icmp_len;
 	struct mbuf *mbufc;
 	struct ether_header *eh;
 	struct ip *iph;
@@ -2191,10 +2198,10 @@ xnb_add_mbuf_cksum_icmp(char *buffer, size_t buflen)
 
 	mbufc = m_getm(NULL, pkt_len, M_WAITOK, MT_DATA);
 	/* Fill in an example ICMP ping request */
-	eh = mtod(mbufc, struct ether_header*);
+	eh = mtod(mbufc, struct ether_header *);
 	xnb_fill_eh_and_ip(mbufc, 84, 28, IPPROTO_ICMP, 0, 0);
-	iph = (struct ip*)(eh + 1);
-	icmph = (struct icmp*)(iph + 1);
+	iph = (struct ip *)(eh + 1);
+	icmph = (struct icmp *)(iph + 1);
 	icmph->icmp_type = ICMP_ECHO;
 	icmph->icmp_code = 0;
 	icmph->icmp_cksum = htons(ICMP_CSUM);
@@ -2204,13 +2211,13 @@ xnb_add_mbuf_cksum_icmp(char *buffer, size_t buflen)
 	 * ping(1) uses bcopy to insert a native-endian timeval after icmp_seq.
 	 * For this test, we will set the bytes individually for portability.
 	 */
-	tv_field = (uint32_t*)(&(icmph->icmp_hun));
+	tv_field = (uint32_t *)(&(icmph->icmp_hun));
 	tv_field[0] = 0x4f02cfac;
 	tv_field[1] = 0x0007c46a;
 	/*
 	 * Remainder of packet is an incrmenting 8 bit integer, starting with 8
 	 */
-	data_payload = (uint8_t*)(&tv_field[2]);
+	data_payload = (uint8_t *)(&tv_field[2]);
 	for (i = 8; i < 37; i++) {
 		*data_payload++ = i;
 	}
@@ -2219,10 +2226,10 @@ xnb_add_mbuf_cksum_icmp(char *buffer, size_t buflen)
 	mbufc->m_len = pkt_len;
 	mbufc->m_pkthdr.len = pkt_len;
 	/* indicate that the netfront uses hw-assisted checksums */
-	mbufc->m_pkthdr.csum_flags = CSUM_IP_CHECKED | CSUM_IP_VALID   |
-				CSUM_DATA_VALID | CSUM_PSEUDO_HDR;
+	mbufc->m_pkthdr.csum_flags = CSUM_IP_CHECKED | CSUM_IP_VALID |
+	    CSUM_DATA_VALID | CSUM_PSEUDO_HDR;
 
-	bcopy(mtod(mbufc, const void*), pkt_orig, icmp_len);
+	bcopy(mtod(mbufc, const void *), pkt_orig, icmp_len);
 	/* Function under test */
 	xnb_add_mbuf_cksum(mbufc);
 
@@ -2242,8 +2249,8 @@ static void
 xnb_add_mbuf_cksum_udp(char *buffer, size_t buflen)
 {
 	const size_t udp_len = 16;
-	const size_t pkt_len = sizeof(struct ether_header) +
-		sizeof(struct ip) + udp_len;
+	const size_t pkt_len = sizeof(struct ether_header) + sizeof(struct ip) +
+	    udp_len;
 	struct mbuf *mbufc;
 	struct ether_header *eh;
 	struct ip *iph;
@@ -2254,15 +2261,15 @@ xnb_add_mbuf_cksum_udp(char *buffer, size_t buflen)
 
 	mbufc = m_getm(NULL, pkt_len, M_WAITOK, MT_DATA);
 	/* Fill in an example UDP packet made by 'uname | nc -u <host> 2222 */
-	eh = mtod(mbufc, struct ether_header*);
+	eh = mtod(mbufc, struct ether_header *);
 	xnb_fill_eh_and_ip(mbufc, 36, 4, IPPROTO_UDP, 0, 0xbaad);
-	iph = (struct ip*)(eh + 1);
-	udp = (struct udphdr*)(iph + 1);
+	iph = (struct ip *)(eh + 1);
+	udp = (struct udphdr *)(iph + 1);
 	udp->uh_sport = htons(0x51ae);
 	udp->uh_dport = htons(0x08ae);
 	udp->uh_ulen = htons(udp_len);
-	udp->uh_sum = htons(0xbaad);  /* xnb_add_mbuf_cksum will fill this in */
-	data_payload = (uint8_t*)(udp + 1);
+	udp->uh_sum = htons(0xbaad); /* xnb_add_mbuf_cksum will fill this in */
+	data_payload = (uint8_t *)(udp + 1);
 	data_payload[0] = 'F';
 	data_payload[1] = 'r';
 	data_payload[2] = 'e';
@@ -2276,8 +2283,8 @@ xnb_add_mbuf_cksum_udp(char *buffer, size_t buflen)
 	mbufc->m_len = pkt_len;
 	mbufc->m_pkthdr.len = pkt_len;
 	/* indicate that the netfront uses hw-assisted checksums */
-	mbufc->m_pkthdr.csum_flags = CSUM_IP_CHECKED | CSUM_IP_VALID   |
-				CSUM_DATA_VALID | CSUM_PSEUDO_HDR;
+	mbufc->m_pkthdr.csum_flags = CSUM_IP_CHECKED | CSUM_IP_VALID |
+	    CSUM_DATA_VALID | CSUM_PSEUDO_HDR;
 
 	/* Function under test */
 	xnb_add_mbuf_cksum(mbufc);
@@ -2304,10 +2311,10 @@ xnb_fill_tcp(struct mbuf *m)
 	uint8_t *data_payload;
 
 	/* Fill in an example TCP packet made by 'uname | nc <host> 2222' */
-	eh = mtod(m, struct ether_header*);
+	eh = mtod(m, struct ether_header *);
 	xnb_fill_eh_and_ip(m, 60, 8, IPPROTO_TCP, IP_DF, 0);
-	iph = (struct ip*)(eh + 1);
-	tcp = (struct tcphdr*)(iph + 1);
+	iph = (struct ip *)(eh + 1);
+	tcp = (struct tcphdr *)(iph + 1);
 	tcp->th_sport = htons(0x9cd9);
 	tcp->th_dport = htons(2222);
 	tcp->th_seq = htonl(0x00f72b10);
@@ -2322,11 +2329,11 @@ xnb_fill_tcp(struct mbuf *m)
 	 * The following 12 bytes of options encode:
 	 * [nop, nop, TS val 33247 ecr 3457687679]
 	 */
-	options = (uint32_t*)(tcp + 1);
+	options = (uint32_t *)(tcp + 1);
 	options[0] = htonl(0x0101080a);
 	options[1] = htonl(0x000081df);
 	options[2] = htonl(0xce18207f);
-	data_payload = (uint8_t*)(&options[3]);
+	data_payload = (uint8_t *)(&options[3]);
 	data_payload[0] = 'F';
 	data_payload[1] = 'r';
 	data_payload[2] = 'e';
@@ -2358,16 +2365,16 @@ xnb_add_mbuf_cksum_tcp(char *buffer, size_t buflen)
 	mbufc = m_getm(NULL, pkt_len, M_WAITOK, MT_DATA);
 	/* Fill in an example TCP packet made by 'uname | nc <host> 2222' */
 	xnb_fill_tcp(mbufc);
-	eh = mtod(mbufc, struct ether_header*);
-	iph = (struct ip*)(eh + 1);
-	tcp = (struct tcphdr*)(iph + 1);
+	eh = mtod(mbufc, struct ether_header *);
+	iph = (struct ip *)(eh + 1);
+	tcp = (struct tcphdr *)(iph + 1);
 
 	/* fill in the length field */
 	mbufc->m_len = pkt_len;
 	mbufc->m_pkthdr.len = pkt_len;
 	/* indicate that the netfront uses hw-assisted checksums */
-	mbufc->m_pkthdr.csum_flags = CSUM_IP_CHECKED | CSUM_IP_VALID   |
-				CSUM_DATA_VALID | CSUM_PSEUDO_HDR;
+	mbufc->m_pkthdr.csum_flags = CSUM_IP_CHECKED | CSUM_IP_VALID |
+	    CSUM_DATA_VALID | CSUM_PSEUDO_HDR;
 
 	/* Function under test */
 	xnb_add_mbuf_cksum(mbufc);
@@ -2401,10 +2408,10 @@ xnb_add_mbuf_cksum_tcp_swcksum(char *buffer, size_t buflen)
 	mbufc = m_getm(NULL, pkt_len, M_WAITOK, MT_DATA);
 	/* Fill in an example TCP packet made by 'uname | nc <host> 2222' */
 	xnb_fill_tcp(mbufc);
-	eh = mtod(mbufc, struct ether_header*);
-	iph = (struct ip*)(eh + 1);
+	eh = mtod(mbufc, struct ether_header *);
+	iph = (struct ip *)(eh + 1);
 	iph->ip_sum = htons(IP_CSUM);
-	tcp = (struct tcphdr*)(iph + 1);
+	tcp = (struct tcphdr *)(iph + 1);
 	tcp->th_sum = htons(TCP_CSUM);
 
 	/* fill in the length field */
@@ -2466,7 +2473,7 @@ xnb_sscanf_hhd(char *buffer, size_t buflen)
 static void
 xnb_sscanf_lld(char *buffer, size_t buflen)
 {
-	const char mystr[] = "-123456789012345";	/* about -2**47 */
+	const char mystr[] = "-123456789012345"; /* about -2**47 */
 	long long dest[3];
 	int i;
 
@@ -2475,8 +2482,9 @@ xnb_sscanf_lld(char *buffer, size_t buflen)
 
 	XNB_ASSERT(sscanf(mystr, "%lld", &dest[1]) == 1);
 	for (i = 0; i < 3; i++)
-		XNB_ASSERT(dest[i] == (i != 1 ? (long long)0xdeadbeefdeadbeef :
-		    -123456789012345));
+		XNB_ASSERT(dest[i] ==
+		    (i != 1 ? (long long)0xdeadbeefdeadbeef :
+			      -123456789012345));
 }
 
 /**
@@ -2494,8 +2502,9 @@ xnb_sscanf_llu(char *buffer, size_t buflen)
 
 	XNB_ASSERT(sscanf(mystr, "%llu", &dest[1]) == 1);
 	for (i = 0; i < 3; i++)
-		XNB_ASSERT(dest[i] == (i != 1 ? (long long)0xdeadbeefdeadbeef :
-		    12802747070103273189ull));
+		XNB_ASSERT(dest[i] ==
+		    (i != 1 ? (long long)0xdeadbeefdeadbeef :
+			      12802747070103273189ull));
 }
 
 /**
@@ -2514,10 +2523,12 @@ xnb_sscanf_hhn(char *buffer, size_t buflen)
 	for (i = 0; i < 12; i++)
 		dest[i] = (unsigned char)'X';
 
-	XNB_ASSERT(sscanf(mystr,
-	    "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
-	    "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"
-	    "404142434445464748494a4b4c4d4e4f%hhn", &dest[4]) == 0);
+	XNB_ASSERT(
+	    sscanf(mystr,
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+		"202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"
+		"404142434445464748494a4b4c4d4e4f%hhn",
+		&dest[4]) == 0);
 	for (i = 0; i < 12; i++)
 		XNB_ASSERT(dest[i] == (i == 4 ? 160 : 'X'));
 }

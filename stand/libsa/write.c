@@ -59,6 +59,7 @@
  */
 
 #include <sys/param.h>
+
 #include "stand.h"
 
 ssize_t

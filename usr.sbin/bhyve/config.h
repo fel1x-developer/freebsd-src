@@ -26,7 +26,7 @@
  */
 
 #ifndef __CONFIG_H__
-#define	__CONFIG_H__
+#define __CONFIG_H__
 
 #include <sys/nv.h>
 
@@ -65,7 +65,7 @@ const char *get_config_value_node(const nvlist_t *parent, const char *name);
 const char *get_config_value(const char *path);
 
 /* Initializes the tree to an empty state. */
-void	init_config(void);
+void init_config(void);
 
 /*
  * Creates an existing configuration node via a dot-separated OID
@@ -94,36 +94,35 @@ nvlist_t *find_relative_config_node(nvlist_t *parent, const char *path);
  *
  * If 'parent' is NULL, 'name' is assumed to be a top-level variable.
  */
-void	set_config_value_node(nvlist_t *parent, const char *name,
+void set_config_value_node(nvlist_t *parent, const char *name,
     const char *value);
 
 /*
  * Similar to set_config_value_node but only sets value if it's unset yet.
  */
-void 	set_config_value_node_if_unset(nvlist_t *const parent,
+void set_config_value_node_if_unset(nvlist_t *const parent,
     const char *const name, const char *const value);
 
 /*
  * Similar to set_config_value_node but expects a full path to the
  * leaf node.
  */
-void	set_config_value(const char *path, const char *value);
+void set_config_value(const char *path, const char *value);
 
 /*
  * Similar to set_config_value but only sets the value if it's unset yet.
  */
-void 	set_config_value_if_unset(const char *const path,
-    const char *const value);
+void set_config_value_if_unset(const char *const path, const char *const value);
 
 /* Convenience wrappers for boolean variables. */
-bool	get_config_bool(const char *path);
-bool	get_config_bool_node(const nvlist_t *parent, const char *name);
-bool	get_config_bool_default(const char *path, bool def);
-bool	get_config_bool_node_default(const nvlist_t *parent, const char *name,
+bool get_config_bool(const char *path);
+bool get_config_bool_node(const nvlist_t *parent, const char *name);
+bool get_config_bool_default(const char *path, bool def);
+bool get_config_bool_node_default(const nvlist_t *parent, const char *name,
     bool def);
-void	set_config_bool(const char *path, bool value);
-void	set_config_bool_node(nvlist_t *parent, const char *name, bool value);
+void set_config_bool(const char *path, bool value);
+void set_config_bool_node(nvlist_t *parent, const char *name, bool value);
 
-void	dump_config(void);
+void dump_config(void);
 
 #endif /* !__CONFIG_H__ */

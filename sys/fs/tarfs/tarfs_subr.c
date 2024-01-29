@@ -29,7 +29,6 @@
 #include "opt_tarfs.h"
 
 #include <sys/param.h>
-#include <sys/stat.h>
 #include <sys/systm.h>
 #include <sys/buf.h>
 #include <sys/fcntl.h>
@@ -40,6 +39,7 @@
 #include <sys/namei.h>
 #include <sys/proc.h>
 #include <sys/queue.h>
+#include <sys/stat.h>
 #include <sys/sysctl.h>
 #include <sys/vnode.h>
 
@@ -79,15 +79,15 @@ tarfs_sysctl_handle_ioshift(SYSCTL_HANDLER_ARGS)
 }
 
 SYSCTL_PROC(_vfs_tarfs, OID_AUTO, ioshift,
-    CTLTYPE_UINT | CTLFLAG_MPSAFE | CTLFLAG_RWTUN,
-    &tarfs_ioshift, 0, tarfs_sysctl_handle_ioshift, "IU",
+    CTLTYPE_UINT | CTLFLAG_MPSAFE | CTLFLAG_RWTUN, &tarfs_ioshift, 0,
+    tarfs_sysctl_handle_ioshift, "IU",
     "Tar filesystem preferred I/O size (log 2)");
 
 #ifdef TARFS_DEBUG
 int tarfs_debug;
-SYSCTL_INT(_vfs_tarfs, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &tarfs_debug, 0, "Tar filesystem debug mask");
-#endif	/* TARFS_DEBUG */
+SYSCTL_INT(_vfs_tarfs, OID_AUTO, debug, CTLFLAG_RWTUN, &tarfs_debug, 0,
+    "Tar filesystem debug mask");
+#endif /* TARFS_DEBUG */
 
 struct tarfs_node *
 tarfs_lookup_node(struct tarfs_node *tnp, struct tarfs_node *f,
@@ -100,13 +100,12 @@ tarfs_lookup_node(struct tarfs_node *tnp, struct tarfs_node *f,
 	    cnp->cn_nameptr);
 
 	found = false;
-	TAILQ_FOREACH(entry, &tnp->dir.dirhead, dirents) {
+	TAILQ_FOREACH (entry, &tnp->dir.dirhead, dirents) {
 		if (f != NULL && entry != f)
 			continue;
 
 		if (entry->namelen == cnp->cn_namelen &&
-		    bcmp(entry->name, cnp->cn_nameptr,
-		    entry->namelen) == 0) {
+		    bcmp(entry->name, cnp->cn_nameptr, entry->namelen) == 0) {
 			found = 1;
 			break;
 		}
@@ -118,8 +117,7 @@ tarfs_lookup_node(struct tarfs_node *tnp, struct tarfs_node *f,
 			    __func__, entry);
 			entry = entry->other;
 		}
-		TARFS_DPF(LOOKUP, "%s: found tarfs_node %p\n", __func__,
-		    entry);
+		TARFS_DPF(LOOKUP, "%s: found tarfs_node %p\n", __func__, entry);
 		return (entry);
 	}
 
@@ -137,23 +135,24 @@ tarfs_lookup_dir(struct tarfs_node *tnp, off_t cookie)
 	TARFS_DPF(LOOKUP, "%s: name: %s\n", __func__,
 	    (tnp->name == NULL) ? "<<root>>" : tnp->name);
 
-	if (cookie == tnp->dir.lastcookie &&
-	    tnp->dir.lastnode != NULL) {
-		TARFS_DPF(LOOKUP, "%s: Using cached entry: tarfs_node %p, "
-		    "cookie %jd\n", __func__, tnp->dir.lastnode,
-		    tnp->dir.lastcookie);
+	if (cookie == tnp->dir.lastcookie && tnp->dir.lastnode != NULL) {
+		TARFS_DPF(LOOKUP,
+		    "%s: Using cached entry: tarfs_node %p, "
+		    "cookie %jd\n",
+		    __func__, tnp->dir.lastnode, tnp->dir.lastcookie);
 		return (tnp->dir.lastnode);
 	}
 
-	TAILQ_FOREACH(current, &tnp->dir.dirhead, dirents) {
+	TAILQ_FOREACH (current, &tnp->dir.dirhead, dirents) {
 		TARFS_DPF(LOOKUP, "%s: tarfs_node %p, current %p, ino %lu\n",
 		    __func__, tnp, current, current->ino);
-		TARFS_DPF_IFF(LOOKUP, current->name != NULL,
-		    "%s: name: %s\n", __func__, current->name);
+		TARFS_DPF_IFF(LOOKUP, current->name != NULL, "%s: name: %s\n",
+		    __func__, current->name);
 		if (current->ino == cookie) {
-			TARFS_DPF(LOOKUP, "%s: Found entry: tarfs_node %p, "
-			    "cookie %lu\n", __func__, current,
-			    current->ino);
+			TARFS_DPF(LOOKUP,
+			    "%s: Found entry: tarfs_node %p, "
+			    "cookie %lu\n",
+			    __func__, current, current->ino);
 			break;
 		}
 	}
@@ -163,9 +162,9 @@ tarfs_lookup_dir(struct tarfs_node *tnp, off_t cookie)
 
 int
 tarfs_alloc_node(struct tarfs_mount *tmp, const char *name, size_t namelen,
-    __enum_uint8(vtype) type, off_t off, size_t sz, time_t mtime, uid_t uid, gid_t gid,
-    mode_t mode, unsigned int flags, const char *linkname, dev_t rdev,
-    struct tarfs_node *parent, struct tarfs_node **retnode)
+    __enum_uint8(vtype) type, off_t off, size_t sz, time_t mtime, uid_t uid,
+    gid_t gid, mode_t mode, unsigned int flags, const char *linkname,
+    dev_t rdev, struct tarfs_node *parent, struct tarfs_node **retnode)
 {
 	struct tarfs_node *tnp;
 
@@ -209,8 +208,7 @@ tarfs_alloc_node(struct tarfs_mount *tmp, const char *name, size_t namelen,
 		tnp->physize = 0;
 		break;
 	case VLNK:
-		tnp->link.name = malloc(sz + 1, M_TARFSNAME,
-		    M_WAITOK);
+		tnp->link.name = malloc(sz + 1, M_TARFSNAME, M_WAITOK);
 		tnp->link.namelen = sz;
 		memcpy(tnp->link.name, linkname, sz);
 		tnp->link.name[sz] = '\0';
@@ -325,8 +323,8 @@ tarfs_load_blockmap(struct tarfs_node *tnp, size_t realsize)
 			goto syntax;
 		p = q + 1;
 		blk[i].l = n;
-		TARFS_DPF(MAP, "%s: %3d %12zu %12zu %12zu\n", __func__,
-		    i, blk[i].i, blk[i].o, blk[i].l);
+		TARFS_DPF(MAP, "%s: %3d %12zu %12zu %12zu\n", __func__, i,
+		    blk[i].i, blk[i].o, blk[i].l);
 		/*
 		 * Check block alignment if the block is of non-zero
 		 * length (a zero-length block indicates the end of a
@@ -346,7 +344,8 @@ tarfs_load_blockmap(struct tarfs_node *tnp, size_t realsize)
 		 * previous one.
 		 */
 		if (i > 0 && blk[i].o < blk[i - 1].o + blk[i - 1].l) {
-			TARFS_DPF(MAP, "%s: overlapping map entries\n", __func__);
+			TARFS_DPF(MAP, "%s: overlapping map entries\n",
+			    __func__);
 			goto bad;
 		}
 		/*
@@ -423,15 +422,14 @@ tarfs_read_file(struct tarfs_node *tnp, size_t len, struct uio *uiop)
 	unsigned int i;
 	int error;
 
-	TARFS_DPF(VNODE, "%s(%s, %zu, %zu)\n", __func__,
-	    tnp->name, uiop->uio_offset, resid);
+	TARFS_DPF(VNODE, "%s(%s, %zu, %zu)\n", __func__, tnp->name,
+	    uiop->uio_offset, resid);
 	for (i = 0; i < tnp->nblk && resid > 0; ++i) {
 		if (uiop->uio_offset > tnp->blk[i].o + tnp->blk[i].l) {
 			/* skip this block */
 			continue;
 		}
-		while (resid > 0 &&
-		    uiop->uio_offset < tnp->blk[i].o) {
+		while (resid > 0 && uiop->uio_offset < tnp->blk[i].o) {
 			/* move out some zeroes... */
 			copylen = tnp->blk[i].o - uiop->uio_offset;
 			if (copylen > resid)
@@ -441,8 +439,8 @@ tarfs_read_file(struct tarfs_node *tnp, size_t len, struct uio *uiop)
 			auio = *uiop;
 			auio.uio_offset = 0;
 			auio.uio_resid = copylen;
-			error = uiomove(__DECONST(void *, zero_region),
-			    copylen, &auio);
+			error = uiomove(__DECONST(void *, zero_region), copylen,
+			    &auio);
 			if (error != 0)
 				return (error);
 			TARFS_DPF(MAP, "%s(%s) = zero %zu\n", __func__,
@@ -471,8 +469,7 @@ tarfs_read_file(struct tarfs_node *tnp, size_t len, struct uio *uiop)
 			resid -= copylen - auio.uio_resid;
 		}
 	}
-	TARFS_DPF(VNODE, "%s(%s) = %zu\n", __func__,
-	    tnp->name, len - resid);
+	TARFS_DPF(VNODE, "%s(%s) = %zu\n", __func__, tnp->name, len - resid);
 	return (0);
 }
 
@@ -487,15 +484,15 @@ static const struct tarfs_flag {
 	const char *name;
 	unsigned int flag;
 } tarfs_flags[] = {
-	{ "nodump",	UF_NODUMP },
-	{ "uchg",	UF_IMMUTABLE },
-	{ "uappnd",	UF_APPEND },
-	{ "opaque",	UF_OPAQUE },
-	{ "uunlnk",	UF_NOUNLINK },
-	{ "arch",	SF_ARCHIVED },
-	{ "schg",	SF_IMMUTABLE },
-	{ "sappnd",	SF_APPEND },
-	{ "sunlnk",	SF_NOUNLINK },
+	{ "nodump", UF_NODUMP },
+	{ "uchg", UF_IMMUTABLE },
+	{ "uappnd", UF_APPEND },
+	{ "opaque", UF_OPAQUE },
+	{ "uunlnk", UF_NOUNLINK },
+	{ "arch", SF_ARCHIVED },
+	{ "schg", SF_IMMUTABLE },
+	{ "sappnd", SF_APPEND },
+	{ "sunlnk", SF_NOUNLINK },
 	{ NULL, 0 },
 };
 
@@ -517,15 +514,15 @@ tarfs_strtofflags(const char *str, char **end)
 		for (tf = tarfs_flags; tf->name != NULL; tf++) {
 			if (strncmp(tf->name, p, q - p) == 0 &&
 			    tf->name[q - p] == '\0') {
-				TARFS_DPF(ALLOC, "%s: %.*s = 0x%06x\n", __func__,
-				    (int)(q - p), p, tf->flag);
+				TARFS_DPF(ALLOC, "%s: %.*s = 0x%06x\n",
+				    __func__, (int)(q - p), p, tf->flag);
 				ret |= tf->flag;
 				break;
 			}
 		}
 		if (tf->name == NULL) {
-			TARFS_DPF(ALLOC, "%s: %.*s = 0x??????\n",
-			    __func__, (int)(q - p), p);
+			TARFS_DPF(ALLOC, "%s: %.*s = 0x??????\n", __func__,
+			    (int)(q - p), p);
 			goto end;
 		}
 	}

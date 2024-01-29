@@ -36,22 +36,21 @@
 
 #include <dev/bhnd/bhnd.h>
 
-#include "bhnd_nvram_private.h"
-
 #include "bhnd_nvram_io.h"
 #include "bhnd_nvram_iovar.h"
+#include "bhnd_nvram_private.h"
 
 /**
  * BHND resource-backed NVRAM I/O context.
  */
 struct bhnd_nvram_iores {
-	struct bhnd_nvram_io	 io;		/**< common I/O instance state */
-	struct bhnd_resource	*res;		/**< backing resource (borrowed ref) */
-	size_t			 offset;	/**< offset within res */
-	size_t			 size;		/**< size relative to the base offset */
-	u_int			 bus_width;	/**< data type byte width to be used
-						     when performing bus operations
-						     on res. (1, 2, or 4 bytes) */
+	struct bhnd_nvram_io io;   /**< common I/O instance state */
+	struct bhnd_resource *res; /**< backing resource (borrowed ref) */
+	size_t offset;		   /**< offset within res */
+	size_t size;		   /**< size relative to the base offset */
+	u_int bus_width;	   /**< data type byte width to be used
+					when performing bus operations
+					on res. (1, 2, or 4 bytes) */
 };
 
 BHND_NVRAM_IOPS_DEFN(iores);
@@ -61,13 +60,13 @@ BHND_NVRAM_IOPS_DEFN(iores);
  *
  * The caller is responsible for deallocating the returned I/O context via
  * bhnd_nvram_io_free().
- * 
+ *
  * @param	r		The resource to be mapped by the returned I/O
  *				context.
- * @param	offset		Offset 
+ * @param	offset		Offset
  * @param	bus_width	The required I/O width (1, 2, or 4 bytes) to be
  *				used when reading from @p r.
- * 
+ *
  * @retval	bhnd_nvram_io	success.
  * @retval	NULL		if allocation fails, or an invalid argument
  *				is supplied.
@@ -76,8 +75,8 @@ struct bhnd_nvram_io *
 bhnd_nvram_iores_new(struct bhnd_resource *r, bus_size_t offset,
     bus_size_t size, u_int bus_width)
 {
-	struct bhnd_nvram_iores	*iores;
-	rman_res_t		 r_start, r_size;
+	struct bhnd_nvram_iores *iores;
+	rman_res_t r_start, r_size;
 
 	/* Verify the bus width */
 	switch (bus_width) {
@@ -100,8 +99,7 @@ bhnd_nvram_iores_new(struct bhnd_resource *r, bus_size_t offset,
 		return (NULL);
 	}
 
-	if (size > BUS_SPACE_MAXSIZE || offset > BUS_SPACE_MAXSIZE)
-	{
+	if (size > BUS_SPACE_MAXSIZE || offset > BUS_SPACE_MAXSIZE) {
 		BHND_NV_LOG("offset %#jx+%#jx exceeds BUS_SPACE_MAXSIZE\n",
 		    (uintmax_t)offset, (uintmax_t)offset);
 		return (NULL);
@@ -116,7 +114,8 @@ bhnd_nvram_iores_new(struct bhnd_resource *r, bus_size_t offset,
 	/* offset/size must be bus_width aligned  */
 	if ((r_start + offset) % bus_width != 0) {
 		BHND_NV_LOG("base address %#jx+%#jx not aligned to bus width "
-		    "%u\n", (uintmax_t)r_start, (uintmax_t)offset, bus_width);
+			    "%u\n",
+		    (uintmax_t)r_start, (uintmax_t)offset, bus_width);
 		return (NULL);
 	}
 
@@ -146,7 +145,7 @@ bhnd_nvram_iores_free(struct bhnd_nvram_io *io)
 static size_t
 bhnd_nvram_iores_getsize(struct bhnd_nvram_io *io)
 {
-	struct bhnd_nvram_iores	*iores = (struct bhnd_nvram_iores *)io;
+	struct bhnd_nvram_iores *iores = (struct bhnd_nvram_iores *)io;
 	return (iores->size);
 }
 
@@ -166,8 +165,8 @@ bhnd_nvram_iores_read_ptr(struct bhnd_nvram_io *io, size_t offset,
 }
 
 static int
-bhnd_nvram_iores_write_ptr(struct bhnd_nvram_io *io, size_t offset,
-    void **ptr, size_t nbytes, size_t *navail)
+bhnd_nvram_iores_write_ptr(struct bhnd_nvram_io *io, size_t offset, void **ptr,
+    size_t nbytes, size_t *navail)
 {
 	/* unsupported */
 	return (ENODEV);
@@ -175,7 +174,7 @@ bhnd_nvram_iores_write_ptr(struct bhnd_nvram_io *io, size_t offset,
 
 /**
  * Validate @p offset and @p nbytes:
- * 
+ *
  * - Verify that @p offset is mapped by the backing resource.
  * - If less than @p nbytes are available at @p offset, write the actual number
  *   of bytes available to @p nbytes.
@@ -211,10 +210,10 @@ static int
 bhnd_nvram_iores_read(struct bhnd_nvram_io *io, size_t offset, void *buffer,
     size_t nbytes)
 {
-	struct bhnd_nvram_iores	*iores;
-	bus_size_t		 r_offset;
-	size_t			 navail;
-	int			 error;
+	struct bhnd_nvram_iores *iores;
+	bus_size_t r_offset;
+	size_t navail;
+	int error;
 
 	iores = (struct bhnd_nvram_iores *)io;
 
@@ -255,13 +254,13 @@ bhnd_nvram_iores_read(struct bhnd_nvram_io *io, size_t offset, void *buffer,
 }
 
 static int
-bhnd_nvram_iores_write(struct bhnd_nvram_io *io, size_t offset,
-    void *buffer, size_t nbytes)
+bhnd_nvram_iores_write(struct bhnd_nvram_io *io, size_t offset, void *buffer,
+    size_t nbytes)
 {
-	struct bhnd_nvram_iores	*iores;
-	size_t			 navail;
-	bus_size_t		 r_offset;
-	int			 error;
+	struct bhnd_nvram_iores *iores;
+	size_t navail;
+	bus_size_t r_offset;
+	int error;
 
 	iores = (struct bhnd_nvram_iores *)io;
 

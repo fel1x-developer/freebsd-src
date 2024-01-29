@@ -31,14 +31,14 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "efx.h"
 #include "efx_impl.h"
 
 #if EFSYS_OPT_SIENA
 
-			void
-siena_sram_init(
-	__in		efx_nic_t *enp)
+void
+siena_sram_init(__in efx_nic_t *enp)
 {
 	efx_nic_cfg_t *encp = &(enp->en_nic_cfg);
 	efx_oword_t oword;
@@ -48,8 +48,8 @@ siena_sram_init(
 	EFSYS_ASSERT(enp->en_family == EFX_FAMILY_SIENA);
 
 	rx_base = encp->enc_buftbl_limit;
-	tx_base = rx_base + (encp->enc_rxq_limit *
-	    EFX_RXQ_DC_NDESCS(EFX_RXQ_DC_SIZE));
+	tx_base = rx_base +
+	    (encp->enc_rxq_limit * EFX_RXQ_DC_NDESCS(EFX_RXQ_DC_SIZE));
 
 	/* Initialize the transmit descriptor cache */
 	EFX_POPULATE_OWORD_1(oword, FRF_AZ_SRM_TX_DC_BASE_ADR, tx_base);
@@ -76,10 +76,8 @@ siena_sram_init(
 
 #if EFSYS_OPT_DIAG
 
-	__checkReturn	efx_rc_t
-siena_sram_test(
-	__in		efx_nic_t *enp,
-	__in		efx_sram_pattern_fn_t func)
+__checkReturn efx_rc_t
+siena_sram_test(__in efx_nic_t *enp, __in efx_sram_pattern_fn_t func)
 {
 	efx_oword_t oword;
 	efx_qword_t qword;
@@ -176,6 +174,6 @@ fail1:
 	return (rc);
 }
 
-#endif	/* EFSYS_OPT_DIAG */
+#endif /* EFSYS_OPT_DIAG */
 
-#endif	/* EFSYS_OPT_SIENA */
+#endif /* EFSYS_OPT_SIENA */

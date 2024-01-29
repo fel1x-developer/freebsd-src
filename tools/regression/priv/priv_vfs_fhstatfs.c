@@ -50,8 +50,8 @@ int
 priv_vfs_fhstatfs_setup(int asroot, int injail, struct test *test)
 {
 
-	setup_file("priv_vfs_fhstatfs_setup: fpath", fpath, UID_ROOT,
-	    GID_WHEEL, 0644);
+	setup_file("priv_vfs_fhstatfs_setup: fpath", fpath, UID_ROOT, GID_WHEEL,
+	    0644);
 	fpath_initialized = 1;
 	if (getfh(fpath, &fh) < 0) {
 		warn("priv_vfs_fhstatfs_setup: getfh(%s)", fpath);
@@ -68,16 +68,13 @@ priv_vfs_fhstatfs(int asroot, int injail, struct test *test)
 
 	error = fhstatfs(&fh, &sf);
 	if (asroot && injail)
-		expect("priv_vfs_fhstatfs(asroot, injail)", error, -1,
-		    EPERM);
+		expect("priv_vfs_fhstatfs(asroot, injail)", error, -1, EPERM);
 	if (asroot && !injail)
 		expect("priv_vfs_fhstatfs(asroot, !injail)", error, 0, 0);
 	if (!asroot && injail)
-		expect("priv_vfs_fhstatfs(!asroot, injail)", error, -1,
-		    EPERM);
+		expect("priv_vfs_fhstatfs(!asroot, injail)", error, -1, EPERM);
 	if (!asroot && !injail)
-		expect("priv_vfs_fhstatfs(!asroot, !injail)", error, -1,
-		    EPERM);
+		expect("priv_vfs_fhstatfs(!asroot, !injail)", error, -1, EPERM);
 }
 
 void

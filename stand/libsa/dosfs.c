@@ -32,34 +32,34 @@
  */
 
 #include <sys/types.h>
-#include <string.h>
-#include <stddef.h>
 
-#include "stand.h"
+#include <stddef.h>
+#include <string.h>
 
 #include "dosfs.h"
+#include "stand.h"
 
 typedef struct dos_mnt {
-	char			*dos_dev;
-	DOS_FS			*dos_fs;
-	int			dos_fd;
-	STAILQ_ENTRY(dos_mnt)	dos_link;
+	char *dos_dev;
+	DOS_FS *dos_fs;
+	int dos_fd;
+	STAILQ_ENTRY(dos_mnt) dos_link;
 } dos_mnt_t;
 
 typedef STAILQ_HEAD(dos_mnt_list, dos_mnt) dos_mnt_list_t;
 static dos_mnt_list_t mnt_list = STAILQ_HEAD_INITIALIZER(mnt_list);
 
-static int	dos_open(const char *path, struct open_file *fd);
-static int	dos_close(struct open_file *fd);
-static int	dos_read(struct open_file *fd, void *buf, size_t size, size_t *resid);
-static off_t	dos_seek(struct open_file *fd, off_t offset, int whence);
-static int	dos_stat(struct open_file *fd, struct stat *sb);
-static int	dos_readdir(struct open_file *fd, struct dirent *d);
-static int	dos_mount(const char *dev, const char *path, void **data);
-static int	dos_unmount(const char *dev, void *data);
+static int dos_open(const char *path, struct open_file *fd);
+static int dos_close(struct open_file *fd);
+static int dos_read(struct open_file *fd, void *buf, size_t size,
+    size_t *resid);
+static off_t dos_seek(struct open_file *fd, off_t offset, int whence);
+static int dos_stat(struct open_file *fd, struct stat *sb);
+static int dos_readdir(struct open_file *fd, struct dirent *d);
+static int dos_mount(const char *dev, const char *path, void **data);
+static int dos_unmount(const char *dev, void *data);
 
-struct fs_ops dosfs_fsops = {
-	.fs_name = "dosfs",
+struct fs_ops dosfs_fsops = { .fs_name = "dosfs",
 	.fo_open = dos_open,
 	.fo_close = dos_close,
 	.fo_read = dos_read,
@@ -68,81 +68,79 @@ struct fs_ops dosfs_fsops = {
 	.fo_stat = dos_stat,
 	.fo_readdir = dos_readdir,
 	.fo_mount = dos_mount,
-	.fo_unmount = dos_unmount
-};
+	.fo_unmount = dos_unmount };
 
-#define SECSIZ  512             /* sector size */
-#define SSHIFT    9             /* SECSIZ shift */
-#define DEPSEC   16             /* directory entries per sector */
-#define DSHIFT    4             /* DEPSEC shift */
-#define LOCLUS    2             /* lowest cluster number */
-#define FATBLKSZ  0x20000       /* size of block in the FAT cache buffer */
+#define SECSIZ 512	 /* sector size */
+#define SSHIFT 9	 /* SECSIZ shift */
+#define DEPSEC 16	 /* directory entries per sector */
+#define DSHIFT 4	 /* DEPSEC shift */
+#define LOCLUS 2	 /* lowest cluster number */
+#define FATBLKSZ 0x20000 /* size of block in the FAT cache buffer */
 
 /* DOS "BIOS Parameter Block" */
 typedef struct {
-	u_char secsiz[2];           /* sector size */
-	u_char spc;                 /* sectors per cluster */
-	u_char ressec[2];           /* reserved sectors */
-	u_char fats;                /* FATs */
-	u_char dirents[2];          /* root directory entries */
-	u_char secs[2];             /* total sectors */
-	u_char media;               /* media descriptor */
-	u_char spf[2];              /* sectors per FAT */
-	u_char spt[2];              /* sectors per track */
-	u_char heads[2];            /* drive heads */
-	u_char hidsec[4];           /* hidden sectors */
-	u_char lsecs[4];            /* huge sectors */
-	u_char lspf[4];             /* huge sectors per FAT */
-	u_char xflg[2];             /* flags */
-	u_char vers[2];             /* filesystem version */
-	u_char rdcl[4];             /* root directory start cluster */
-	u_char infs[2];             /* filesystem info sector */
-	u_char bkbs[2];             /* backup boot sector */
+	u_char secsiz[2];  /* sector size */
+	u_char spc;	   /* sectors per cluster */
+	u_char ressec[2];  /* reserved sectors */
+	u_char fats;	   /* FATs */
+	u_char dirents[2]; /* root directory entries */
+	u_char secs[2];	   /* total sectors */
+	u_char media;	   /* media descriptor */
+	u_char spf[2];	   /* sectors per FAT */
+	u_char spt[2];	   /* sectors per track */
+	u_char heads[2];   /* drive heads */
+	u_char hidsec[4];  /* hidden sectors */
+	u_char lsecs[4];   /* huge sectors */
+	u_char lspf[4];	   /* huge sectors per FAT */
+	u_char xflg[2];	   /* flags */
+	u_char vers[2];	   /* filesystem version */
+	u_char rdcl[4];	   /* root directory start cluster */
+	u_char infs[2];	   /* filesystem info sector */
+	u_char bkbs[2];	   /* backup boot sector */
 } DOS_BPB;
 
 /* Initial portion of DOS boot sector */
 typedef struct {
-	u_char jmp[3];              /* usually 80x86 'jmp' opcode */
-	u_char oem[8];              /* OEM name and version */
-	DOS_BPB bpb;                /* BPB */
+	u_char jmp[3]; /* usually 80x86 'jmp' opcode */
+	u_char oem[8]; /* OEM name and version */
+	DOS_BPB bpb;   /* BPB */
 } DOS_BS;
 
 /* Supply missing "." and ".." root directory entries */
-static const char *const dotstr[2] = {".", ".."};
-static DOS_DE dot[2] = {
-	{".       ", "   ", FA_DIR, {0, 0, {0, 0}, {0, 0}, {0, 0}, {0, 0}},
-	    {0, 0}, {0x21, 0}, {0, 0}, {0, 0, 0, 0}},
-	{"..      ", "   ", FA_DIR, {0, 0, {0, 0}, {0, 0}, {0, 0}, {0, 0}},
-	    {0, 0}, {0x21, 0}, {0, 0}, {0, 0, 0, 0}}
-};
+static const char *const dotstr[2] = { ".", ".." };
+static DOS_DE dot[2] = { { ".       ", "   ", FA_DIR,
+			     { 0, 0, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 } },
+			     { 0, 0 }, { 0x21, 0 }, { 0, 0 }, { 0, 0, 0, 0 } },
+	{ "..      ", "   ", FA_DIR,
+	    { 0, 0, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 } }, { 0, 0 },
+	    { 0x21, 0 }, { 0, 0 }, { 0, 0, 0, 0 } } };
 
 /* The usual conversion macros to avoid multiplication and division */
-#define bytsec(n)      ((n) >> SSHIFT)
-#define secbyt(s)      ((s) << SSHIFT)
-#define entsec(e)      ((e) >> DSHIFT)
-#define bytblk(fs, n)  ((n) >> (fs)->bshift)
-#define blkbyt(fs, b)  ((b) << (fs)->bshift)
-#define secblk(fs, s)  ((s) >> ((fs)->bshift - SSHIFT))
-#define blksec(fs, b)  ((b) << ((fs)->bshift - SSHIFT))
+#define bytsec(n) ((n) >> SSHIFT)
+#define secbyt(s) ((s) << SSHIFT)
+#define entsec(e) ((e) >> DSHIFT)
+#define bytblk(fs, n) ((n) >> (fs)->bshift)
+#define blkbyt(fs, b) ((b) << (fs)->bshift)
+#define secblk(fs, s) ((s) >> ((fs)->bshift - SSHIFT))
+#define blksec(fs, b) ((b) << ((fs)->bshift - SSHIFT))
 
 /* Convert cluster number to offset within filesystem */
-#define blkoff(fs, b) (secbyt((fs)->lsndta) + blkbyt(fs, (b) - LOCLUS))
+#define blkoff(fs, b) (secbyt((fs)->lsndta) + blkbyt(fs, (b)-LOCLUS))
 
 /* Convert cluster number to logical sector number */
-#define blklsn(fs, b)  ((fs)->lsndta + blksec(fs, (b) - LOCLUS))
+#define blklsn(fs, b) ((fs)->lsndta + blksec(fs, (b)-LOCLUS))
 
 /* Convert cluster number to offset within FAT */
-#define fatoff(sz, c)  ((sz) == 12 ? (c) + ((c) >> 1) :  \
-                        (sz) == 16 ? (c) << 1 :          \
-			(c) << 2)
+#define fatoff(sz, c) \
+	((sz) == 12 ? (c) + ((c) >> 1) : (sz) == 16 ? (c) << 1 : (c) << 2)
 
 /* Does cluster number reference a valid data cluster? */
-#define okclus(fs, c)  ((c) >= LOCLUS && (c) <= (fs)->xclus)
+#define okclus(fs, c) ((c) >= LOCLUS && (c) <= (fs)->xclus)
 
 /* Get start cluster from directory entry */
-#define stclus(sz, de)  ((sz) != 32 ? cv2((de)->clus) :          \
-                         ((u_int)cv2((de)->dex.h_clus) << 16) |  \
-			 cv2((de)->clus))
+#define stclus(sz, de)                  \
+	((sz) != 32 ? cv2((de)->clus) : \
+		      ((u_int)cv2((de)->dex.h_clus) << 16) | cv2((de)->clus))
 
 static int parsebs(DOS_FS *, DOS_BS *);
 static int namede(DOS_FS *, const char *, DOS_DE **);
@@ -172,8 +170,8 @@ dos_read_fatblk(DOS_FS *fs, struct open_file *fd, u_int blknum)
 		io_size = ((size_t)(max_offset_in_fat - offset_in_fat));
 
 	if (io_size != 0) {
-		err = ioget(fd, fs->lsnfat + bytsec(offset_in_fat),
-		    fs->fatbuf, io_size);
+		err = ioget(fd, fs->lsnfat + bytsec(offset_in_fat), fs->fatbuf,
+		    io_size);
 		if (err != 0) {
 			fs->fatbuf_blknum = ((u_int)(-1));
 			return (err);
@@ -256,7 +254,7 @@ dos_mount(const char *dev, const char *path, void **data)
 		mnt->dos_fs = df->fs;
 		STAILQ_INSERT_TAIL(&mnt_list, mnt, dos_link);
 	} else {
-                errno = ENXIO;
+		errno = ENXIO;
 	}
 
 done:
@@ -312,7 +310,7 @@ dos_open(const char *path, struct open_file *fd)
 	int err;
 
 	dev = devformat((struct devdesc *)fd->f_devdata);
-	STAILQ_FOREACH(mnt, &mnt_list, dos_link) {
+	STAILQ_FOREACH (mnt, &mnt_list, dos_link) {
 		if (strcmp(dev, mnt->dos_dev) == 0)
 			break;
 	}
@@ -339,8 +337,7 @@ dos_open(const char *path, struct open_file *fd)
 	size = cv4(de->size);
 
 	if ((!(de->attr & FA_DIR) && (!clus != !size)) ||
-	    ((de->attr & FA_DIR) && size) ||
-	    (clus && !okclus(fs, clus))) {
+	    ((de->attr & FA_DIR) && size) || (clus && !okclus(fs, clus))) {
 		if (mnt == NULL)
 			dos_unmount_impl(fs);
 		return (EINVAL);
@@ -403,8 +400,9 @@ dos_read(struct open_file *fd, void *buf, size_t nbyte, size_t *resid)
 		}
 		if (!clus || (n = f->fs->bsize - off) > cnt)
 			n = cnt;
-		if ((err = ioread(f->fs, (c ? blkoff(f->fs, c) :
-		    secbyt(f->fs->lsndir)) + off, buf, n)))
+		if ((err = ioread(f->fs,
+			 (c ? blkoff(f->fs, c) : secbyt(f->fs->lsndir)) + off,
+			 buf, n)))
 			goto out;
 		f->offset += n;
 		f->c = c;
@@ -493,7 +491,7 @@ dos_checksum(unsigned char *name, unsigned char *ext)
 	char buf[11];
 
 	bcopy(name, buf, 8);
-	bcopy(ext, buf+8, 3);
+	bcopy(ext, buf + 8, 3);
 	x = 0;
 	for (i = 0; i < 11; i++) {
 		x = ((x & 1) << 7) | (x >> 1);
@@ -584,9 +582,8 @@ parsebs(DOS_FS *fs, DOS_BS *bs)
 {
 	u_int sc;
 
-	if ((bs->jmp[0] != 0x69 &&
-	    bs->jmp[0] != 0xe9 &&
-	    (bs->jmp[0] != 0xeb || bs->jmp[2] != 0x90)) ||
+	if ((bs->jmp[0] != 0x69 && bs->jmp[0] != 0xe9 &&
+		(bs->jmp[0] != 0xeb || bs->jmp[2] != 0x90)) ||
 	    bs->bpb.media < 0xf0)
 		return (EINVAL);
 	if (cv2(bs->bpb.secsiz) != SECSIZ)
@@ -677,7 +674,7 @@ lookup(DOS_FS *fs, u_int clus, const char *name, DOS_DE **dep)
 			if (!strcasecmp(name, dotstr[ent])) {
 				*dep = dot + ent;
 				return (0);
-		}
+			}
 	if (!clus && fs->fatsz == 32)
 		clus = fs->rdcl;
 	nsec = !clus ? entsec(fs->dirents) : fs->spc;
@@ -700,27 +697,34 @@ lookup(DOS_FS *fs, u_int clus, const char *name, DOS_DE **dep)
 					if ((dir[ent].de.attr & FA_MASK) ==
 					    FA_XDE) {
 						x = dir[ent].xde.seq;
-						if (x & 0x40 || (x + 1 == xdn &&
-						    dir[ent].xde.chk == chk)) {
+						if (x & 0x40 ||
+						    (x + 1 == xdn &&
+							dir[ent].xde.chk ==
+							    chk)) {
 							if (x & 0x40) {
-								chk = dir[ent].xde.chk;
+								chk = dir[ent]
+									  .xde
+									  .chk;
 								x &= ~0x40;
 							}
 							if (x >= 1 && x <= 20) {
-								cp_xdnm(lfn, &dir[ent].xde);
+								cp_xdnm(lfn,
+								    &dir[ent]
+									 .xde);
 								xdn = x;
 								continue;
 							}
 						}
 					} else if (!(dir[ent].de.attr &
-					    FA_LABEL)) {
+						       FA_LABEL)) {
 						if ((ok = xdn == 1)) {
 							x = dos_checksum(
 							    dir[ent].de.name,
 							    dir[ent].de.ext);
 							ok = chk == x &&
-							!strcasecmp(name,
-							    (const char *)lfn);
+							    !strcasecmp(name,
+								(const char *)
+								    lfn);
 						}
 						if (!ok) {
 							cp_sfn(sfn,
@@ -756,18 +760,16 @@ cp_xdnm(u_char *lfn, DOS_XDE *xde)
 	static struct {
 		u_int off;
 		u_int dim;
-	} ix[3] = {
-		{offsetof(DOS_XDE, name1), sizeof(xde->name1) / 2},
-		{offsetof(DOS_XDE, name2), sizeof(xde->name2) / 2},
-		{offsetof(DOS_XDE, name3), sizeof(xde->name3) / 2}
-	};
+	} ix[3] = { { offsetof(DOS_XDE, name1), sizeof(xde->name1) / 2 },
+		{ offsetof(DOS_XDE, name2), sizeof(xde->name2) / 2 },
+		{ offsetof(DOS_XDE, name3), sizeof(xde->name3) / 2 } };
 	u_char *p;
 	u_int n, x, c;
 
 	lfn += 13 * ((xde->seq & ~0x40) - 1);
 	for (n = 0; n < 3; n++)
 		for (p = (u_char *)xde + ix[n].off, x = ix[n].dim; x;
-		    p += 2, x--) {
+		     p += 2, x--) {
 			if ((c = cv2(p)) && (c < 32 || c > 127))
 				c = '?';
 			if (!(*lfn++ = c))
@@ -958,8 +960,8 @@ ioget(struct open_file *fd, daddr_t lsec, void *buf, size_t size)
 
 	/* Make sure we get full read or error. */
 	rsize = 0;
-	rv = (fd->f_dev->dv_strategy)(fd->f_devdata, F_READ, lsec,
-	    size, buf, &rsize);
+	rv = (fd->f_dev->dv_strategy)(fd->f_devdata, F_READ, lsec, size, buf,
+	    &rsize);
 	if ((rv == 0) && (size != rsize))
 		rv = EIO;
 	return (rv);

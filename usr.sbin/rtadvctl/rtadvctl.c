@@ -27,82 +27,83 @@
  *
  */
 
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/queue.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/un.h>
 #include <sys/uio.h>
+#include <sys/un.h>
+
+#include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_dl.h>
 #include <net/if_types.h>
-#include <net/ethernet.h>
+#include <netinet/icmp6.h>
 #include <netinet/in.h>
 #include <netinet/ip6.h>
-#include <netinet/icmp6.h>
 #include <netinet6/in6_var.h>
 #include <netinet6/nd6.h>
+
 #include <arpa/inet.h>
-#include <fcntl.h>
+#include <err.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <inttypes.h>
 #include <netdb.h>
-#include <unistd.h>
-#include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
+#include <string.h>
 #include <syslog.h>
 #include <time.h>
-#include <err.h>
+#include <unistd.h>
 
-#include "pathnames.h"
-#include "rtadvd.h"
-#include "if.h"
-#include "timer_subr.h"
-#include "timer.h"
 #include "control.h"
 #include "control_client.h"
+#include "if.h"
+#include "pathnames.h"
+#include "rtadvd.h"
+#include "timer.h"
+#include "timer_subr.h"
 
-#define RA_IFSTATUS_INACTIVE	0
-#define RA_IFSTATUS_RA_RECV	1
-#define RA_IFSTATUS_RA_SEND	2
+#define RA_IFSTATUS_INACTIVE 0
+#define RA_IFSTATUS_RA_RECV 1
+#define RA_IFSTATUS_RA_SEND 2
 
 static int vflag = LOG_ERR;
 
-static void	usage(void);
+static void usage(void);
 
-static int	action_propset(char *);
-static int	action_propget(char *, struct ctrl_msg_pl *);
-static int	action_plgeneric(int, char *, char *);
+static int action_propset(char *);
+static int action_propget(char *, struct ctrl_msg_pl *);
+static int action_plgeneric(int, char *, char *);
 
-static int	action_enable(int, char **);
-static int	action_disable(int, char **);
-static int	action_reload(int, char **);
-static int	action_echo(int, char **);
-static int	action_version(int, char **);
-static int	action_shutdown(int, char **);
+static int action_enable(int, char **);
+static int action_disable(int, char **);
+static int action_reload(int, char **);
+static int action_echo(int, char **);
+static int action_version(int, char **);
+static int action_shutdown(int, char **);
 
-static int	action_show(int, char **);
-static int	action_show_prefix(struct prefix *);
-static int	action_show_rtinfo(struct rtinfo *);
-static int	action_show_rdnss(void *);
-static int	action_show_dnssl(void *);
+static int action_show(int, char **);
+static int action_show_prefix(struct prefix *);
+static int action_show_rtinfo(struct rtinfo *);
+static int action_show_rdnss(void *);
+static int action_show_dnssl(void *);
 
-static int	csock_client_open(struct sockinfo *);
-static size_t	dname_labeldec(char *, size_t, const char *);
-static void	mysyslog(int, const char *, ...);
+static int csock_client_open(struct sockinfo *);
+static size_t dname_labeldec(char *, size_t, const char *);
+static void mysyslog(int, const char *, ...);
 
 static const char *rtpref_str[] = {
-	"medium",		/* 00 */
-	"high",			/* 01 */
-	"rsv",			/* 10 */
-	"low"			/* 11 */
+	"medium", /* 00 */
+	"high",	  /* 01 */
+	"rsv",	  /* 10 */
+	"low"	  /* 11 */
 };
 
 static struct dispatch_table {
-	const char	*dt_comm;
+	const char *dt_comm;
 	int (*dt_act)(int, char **);
 } dtable[] = {
 	{ "show", action_show },
@@ -120,7 +121,7 @@ static char errmsgbuf[1024];
 static char *errmsg = NULL;
 
 static void
-mysyslog(int priority, const char * restrict fmt, ...)
+mysyslog(int priority, const char *restrict fmt, ...)
 {
 	va_list ap;
 
@@ -137,7 +138,7 @@ usage(void)
 {
 	int i;
 
-	for (i = 0; (size_t)i < sizeof(dtable)/sizeof(dtable[0]); i++) {
+	for (i = 0; (size_t)i < sizeof(dtable) / sizeof(dtable[0]); i++) {
 		if (dtable[i].dt_comm == NULL)
 			break;
 		printf("%s\n", dtable[i].dt_comm);
@@ -172,7 +173,7 @@ main(int argc, char *argv[])
 	if (argc == 0)
 		usage();
 
-	for (i = 0; (size_t)i < sizeof(dtable)/sizeof(dtable[0]); i++) {
+	for (i = 0; (size_t)i < sizeof(dtable) / sizeof(dtable[0]); i++) {
 		if (dtable[i].dt_comm == NULL ||
 		    strcmp(dtable[i].dt_comm, argv[0]) == 0) {
 			action = dtable[i].dt_act;
@@ -210,8 +211,7 @@ csock_client_open(struct sockinfo *s)
 	if (connect(s->si_fd, (struct sockaddr *)&sun, sizeof(sun)) == -1)
 		err(1, "connect: %s", s->si_name);
 
-	mysyslog(LOG_DEBUG,
-	    "<%s> connected to %s", __func__, sun.sun_path);
+	mysyslog(LOG_DEBUG, "<%s> connected to %s", __func__, sun.sun_path);
 
 	return (0);
 }
@@ -243,10 +243,10 @@ action_plgeneric(int action, char *plstr, char *buf)
 		if (p != NULL && q != NULL && p > q)
 			return (1);
 
-		if (p == NULL) {		/* No : */
+		if (p == NULL) { /* No : */
 			cp.cp_ifname = NULL;
 			cp.cp_key = plstr;
-		} else if  (p == plstr) {	/* empty */
+		} else if (p == plstr) { /* empty */
 			cp.cp_ifname = NULL;
 			cp.cp_key = plstr + 1;
 		} else {
@@ -263,7 +263,7 @@ action_plgeneric(int action, char *plstr, char *buf)
 		cm->cm_len += cm_pl2bin(msg, &cp);
 
 		mysyslog(LOG_DEBUG, "<%s> key=%s, val_len=%d, ifname=%s",
-		    __func__,cp.cp_key, cp.cp_val_len, cp.cp_ifname);
+		    __func__, cp.cp_key, cp.cp_val_len, cp.cp_ifname);
 	}
 
 	return (cm_handler_client(s->si_fd, CM_STATE_MSG_DISPATCH, buf));
@@ -286,10 +286,10 @@ action_propget(char *argv, struct ctrl_msg_pl *cp)
 		return (1);
 
 	cm_bin2pl(msg, cp);
-	mysyslog(LOG_DEBUG, "<%s> type=%d, len=%d",
-	    __func__, cm->cm_type, cm->cm_len);
-	mysyslog(LOG_DEBUG, "<%s> key=%s, val_len=%d, ifname=%s",
-	    __func__,cp->cp_key, cp->cp_val_len, cp->cp_ifname);
+	mysyslog(LOG_DEBUG, "<%s> type=%d, len=%d", __func__, cm->cm_type,
+	    cm->cm_len);
+	mysyslog(LOG_DEBUG, "<%s> key=%s, val_len=%d, ifname=%s", __func__,
+	    cp->cp_key, cp->cp_val_len, cp->cp_ifname);
 
 	return (0);
 }
@@ -469,7 +469,7 @@ action_show(int argc, char **argv)
 	clock_gettime(CLOCK_MONOTONIC_FAST, &ts);
 	TS_SUB(&now, &ts, &ts0);
 
-	TAILQ_FOREACH(ifi, &ifl, ifi_next) {
+	TAILQ_FOREACH (ifi, &ifl, ifi_next) {
 		struct ifinfo *ifi_s;
 		struct rtadvd_timer *rat;
 		struct rainfo *rai;
@@ -494,8 +494,8 @@ action_show(int argc, char **argv)
 		if (ifi_s->ifi_ifindex == 0)
 			c += printf("NONEXISTENT");
 		else
-			c += printf("%s", (ifi_s->ifi_flags & IFF_UP) ?
-			    "UP" : "DOWN");
+			c += printf("%s",
+			    (ifi_s->ifi_flags & IFF_UP) ? "UP" : "DOWN");
 		switch (ifi_s->ifi_state) {
 		case IFI_STATE_CONFIGURED:
 			c += printf("%s%s", (c) ? "," : "", "CONFIGURED");
@@ -587,17 +587,16 @@ action_show(int argc, char **argv)
 		printf("\tReachableTime: %s, ",
 		    sec2str(rai->rai_reachabletime, ssbuf));
 		printf("RetransTimer: %s, "
-		    "CurHopLimit: %d\n",
-		    sec2str(rai->rai_retranstimer, ssbuf),
-		    rai->rai_hoplimit);
+		       "CurHopLimit: %d\n",
+		    sec2str(rai->rai_retranstimer, ssbuf), rai->rai_hoplimit);
 		printf("\tAdvIfPrefixes: %s\n",
 		    rai->rai_advifprefix ? "yes" : "no");
 
 		/* RA timer */
 		rat = NULL;
 		if (ifi_s->ifi_ra_timer != NULL) {
-			sprintf(argv_ifi_ra_timer, "%s:ifi_ra_timer=",
-			    ifi->ifi_ifname);
+			sprintf(argv_ifi_ra_timer,
+			    "%s:ifi_ra_timer=", ifi->ifi_ifname);
 			action_argv = argv_ifi_ra_timer;
 
 			error = action_propget(action_argv, &cp);
@@ -697,26 +696,26 @@ action_show(int argc, char **argv)
 		printf("\n");
 
 		printf("\tCounters\n"
-		    "\t RA burst counts: %" PRIu16 " (interval: %s)\n"
-		    "\t RS wait counts: %" PRIu16 "\n",
+		       "\t RA burst counts: %" PRIu16 " (interval: %s)\n"
+		       "\t RS wait counts: %" PRIu16 "\n",
 		    ifi_s->ifi_burstcount,
 		    sec2str(ifi_s->ifi_burstinterval, ssbuf),
 		    ifi_s->ifi_rs_waitcount);
 
 		printf("\tOutputs\n"
-		    "\t RA: %" PRIu64 "\n", ifi_s->ifi_raoutput);
+		       "\t RA: %" PRIu64 "\n",
+		    ifi_s->ifi_raoutput);
 
 		printf("\tInputs\n"
-		    "\t RA: %" PRIu64 " (normal)\n"
-		    "\t RA: %" PRIu64 " (inconsistent)\n"
-		    "\t RS: %" PRIu64 "\n",
-		    ifi_s->ifi_rainput,
-		    ifi_s->ifi_rainconsistent,
+		       "\t RA: %" PRIu64 " (normal)\n"
+		       "\t RA: %" PRIu64 " (inconsistent)\n"
+		       "\t RS: %" PRIu64 "\n",
+		    ifi_s->ifi_rainput, ifi_s->ifi_rainconsistent,
 		    ifi_s->ifi_rsinput);
 
 		printf("\n");
 
-#if 0	/* Not implemented yet */
+#if 0 /* Not implemented yet */
 		printf("\tReceived RAs:\n");
 #endif
 	}
@@ -731,12 +730,11 @@ action_show_rtinfo(struct rtinfo *rti)
 	char ssbuf[SSBUFLEN];
 
 	printf("\t  %s/%d (pref: %s, ltime: %s)\n",
-	    inet_ntop(AF_INET6, &rti->rti_prefix,
-		ntopbuf, sizeof(ntopbuf)),
-	    rti->rti_prefixlen,
-	    rtpref_str[0xff & (rti->rti_rtpref >> 3)],
+	    inet_ntop(AF_INET6, &rti->rti_prefix, ntopbuf, sizeof(ntopbuf)),
+	    rti->rti_prefixlen, rtpref_str[0xff & (rti->rti_rtpref >> 3)],
 	    (rti->rti_ltime == ND6_INFINITE_LIFETIME) ?
-	    "infinity" : sec2str(rti->rti_ltime, ssbuf));
+		"infinity" :
+		sec2str(rti->rti_ltime, ssbuf));
 
 	return (0);
 }
@@ -749,8 +747,9 @@ action_show_prefix(struct prefix *pfx)
 	struct timespec now;
 
 	clock_gettime(CLOCK_MONOTONIC_FAST, &now);
-	printf("\t  %s/%d", inet_ntop(AF_INET6, &pfx->pfx_prefix,
-		ntopbuf, sizeof(ntopbuf)), pfx->pfx_prefixlen);
+	printf("\t  %s/%d",
+	    inet_ntop(AF_INET6, &pfx->pfx_prefix, ntopbuf, sizeof(ntopbuf)),
+	    pfx->pfx_prefixlen);
 
 	printf(" (");
 	switch (pfx->pfx_origin) {
@@ -769,25 +768,27 @@ action_show_prefix(struct prefix *pfx)
 
 	printf(" vltime=%s",
 	    (pfx->pfx_validlifetime == ND6_INFINITE_LIFETIME) ?
-	    "infinity" : sec2str(pfx->pfx_validlifetime, ssbuf));
+		"infinity" :
+		sec2str(pfx->pfx_validlifetime, ssbuf));
 
 	if (pfx->pfx_vltimeexpire > 0)
 		printf("(expire: %s)",
 		    ((long)pfx->pfx_vltimeexpire > now.tv_sec) ?
-		    sec2str(pfx->pfx_vltimeexpire - now.tv_sec, ssbuf) :
-		    "0");
+			sec2str(pfx->pfx_vltimeexpire - now.tv_sec, ssbuf) :
+			"0");
 
 	printf(",");
 
 	printf(" pltime=%s",
 	    (pfx->pfx_preflifetime == ND6_INFINITE_LIFETIME) ?
-	    "infinity" : sec2str(pfx->pfx_preflifetime, ssbuf));
+		"infinity" :
+		sec2str(pfx->pfx_preflifetime, ssbuf));
 
 	if (pfx->pfx_pltimeexpire > 0)
 		printf("(expire %s)",
 		    ((long)pfx->pfx_pltimeexpire > now.tv_sec) ?
-		    sec2str(pfx->pfx_pltimeexpire - now.tv_sec, ssbuf) :
-		    "0");
+			sec2str(pfx->pfx_pltimeexpire - now.tv_sec, ssbuf) :
+			"0");
 
 	printf(",");
 
@@ -822,7 +823,7 @@ action_show_rdnss(void *msg)
 	int i;
 	int j;
 	char *p;
-	uint32_t	ltime;
+	uint32_t ltime;
 	char ntopbuf[INET6_ADDRSTRLEN];
 	char ssbuf[SSBUFLEN];
 
@@ -842,10 +843,8 @@ action_show_rdnss(void *msg)
 				for (j = 0; j < *rda_cnt; j++) {
 					rda = (struct rdnss_addr *)p;
 					printf("\t  %s (ltime=%s)\n",
-					    inet_ntop(AF_INET6,
-						&rda->ra_dns,
-						ntopbuf,
-						sizeof(ntopbuf)),
+					    inet_ntop(AF_INET6, &rda->ra_dns,
+						ntopbuf, sizeof(ntopbuf)),
 					    sec2str(ltime, ssbuf));
 					p += sizeof(*rda);
 				}
@@ -886,8 +885,8 @@ action_show_dnssl(void *msg)
 					dna = (struct dnssl_addr *)p;
 					dname_labeldec(hbuf, sizeof(hbuf),
 					    dna->da_dom);
-					printf("\t  %s (ltime=%s)\n",
-					    hbuf, sec2str(ltime, ssbuf));
+					printf("\t  %s (ltime=%s)\n", hbuf,
+					    sec2str(ltime, ssbuf));
 					p += sizeof(*dna);
 				}
 		}

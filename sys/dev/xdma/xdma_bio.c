@@ -28,11 +28,12 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
+
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/conf.h>
 #include <sys/bus.h>
+#include <sys/conf.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
@@ -50,7 +51,7 @@ xdma_dequeue_bio(xdma_channel_t *xchan, struct bio **bp,
 	struct xdma_request *xr;
 
 	QUEUE_OUT_LOCK(xchan);
-	TAILQ_FOREACH_SAFE(xr, &xchan->queue_out, xr_next, xr_tmp) {
+	TAILQ_FOREACH_SAFE (xr, &xchan->queue_out, xr_next, xr_tmp) {
 		TAILQ_REMOVE(&xchan->queue_out, xr, xr_next);
 		break;
 	}
@@ -70,9 +71,8 @@ xdma_dequeue_bio(xdma_channel_t *xchan, struct bio **bp,
 }
 
 int
-xdma_enqueue_bio(xdma_channel_t *xchan, struct bio **bp,
-    bus_addr_t addr, uint8_t src_width, uint8_t dst_width,
-    enum xdma_direction dir)
+xdma_enqueue_bio(xdma_channel_t *xchan, struct bio **bp, bus_addr_t addr,
+    uint8_t src_width, uint8_t dst_width, enum xdma_direction dir)
 {
 	struct xdma_request *xr;
 

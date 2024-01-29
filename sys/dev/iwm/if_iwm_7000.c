@@ -69,26 +69,26 @@
  *
  *****************************************************************************/
 
-#include <sys/cdefs.h>
-#include "opt_wlan.h"
 #include "opt_iwm.h"
+#include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 
 #include "if_iwm_config.h"
 
-#define IWM7260_FW	"iwm7260fw"
-#define IWM3160_FW	"iwm3160fw"
-#define IWM3168_FW	"iwm3168fw"
-#define IWM7265_FW	"iwm7265fw"
-#define IWM7265D_FW	"iwm7265Dfw"
+#define IWM7260_FW "iwm7260fw"
+#define IWM3160_FW "iwm3160fw"
+#define IWM3168_FW "iwm3168fw"
+#define IWM7265_FW "iwm7265fw"
+#define IWM7265D_FW "iwm7265Dfw"
 
-#define IWM_NVM_HW_SECTION_NUM_FAMILY_7000	0
+#define IWM_NVM_HW_SECTION_NUM_FAMILY_7000 0
 
-#define IWM_DEVICE_7000_COMMON						\
-	.device_family = IWM_DEVICE_FAMILY_7000,			\
-	.eeprom_size = IWM_OTP_LOW_IMAGE_SIZE_FAMILY_7000,		\
-	.nvm_hw_section_num = IWM_NVM_HW_SECTION_NUM_FAMILY_7000,	\
+#define IWM_DEVICE_7000_COMMON                                    \
+	.device_family = IWM_DEVICE_FAMILY_7000,                  \
+	.eeprom_size = IWM_OTP_LOW_IMAGE_SIZE_FAMILY_7000,        \
+	.nvm_hw_section_num = IWM_NVM_HW_SECTION_NUM_FAMILY_7000, \
 	.apmg_wake_up_wa = 1
 
 const struct iwm_cfg iwm7260_cfg = {
@@ -133,4 +133,3 @@ const struct iwm_cfg iwm7265d_cfg = {
 	IWM_DEVICE_7000_COMMON,
 	.host_interrupt_operation_mode = 0,
 };
-

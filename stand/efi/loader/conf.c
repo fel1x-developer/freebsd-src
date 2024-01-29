@@ -25,11 +25,12 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
+
 #include <bootstrap.h>
 #include <efi.h>
 #include <efilib.h>
 #include <efizfs.h>
+#include <stand.h>
 
 extern struct devsw vdisk_dev;
 
@@ -37,10 +38,7 @@ extern struct devsw vdisk_dev;
 extern struct devsw md_dev;
 #endif
 
-struct devsw *devsw[] = {
-	&efipart_fddev,
-	&efipart_cddev,
-	&efipart_hddev,
+struct devsw *devsw[] = { &efipart_fddev, &efipart_cddev, &efipart_hddev,
 	&efihttp_dev, /* ordering with efinet_dev matters */
 #if defined(LOADER_NET_SUPPORT)
 	&efinet_dev,
@@ -52,22 +50,14 @@ struct devsw *devsw[] = {
 #ifdef MD_IMAGE_SIZE
 	&md_dev,
 #endif
-	NULL
-};
+	NULL };
 
 struct fs_ops *file_system[] = {
 #ifdef EFI_ZFS_BOOT
 	&zfs_fsops,
 #endif
-	&dosfs_fsops,
-	&ufs_fsops,
-	&cd9660_fsops,
-	&efihttp_fsops,
-	&tftp_fsops,
-	&nfs_fsops,
-	&gzipfs_fsops,
-	&bzipfs_fsops,
-	NULL
+	&dosfs_fsops, &ufs_fsops, &cd9660_fsops, &efihttp_fsops, &tftp_fsops,
+	&nfs_fsops, &gzipfs_fsops, &bzipfs_fsops, NULL
 };
 
 struct netif_driver *netif_drivers[] = {
@@ -89,16 +79,11 @@ extern struct console nullconsole;
 extern struct console spinconsole;
 #endif
 
-struct console *consoles[] = {
-	&efi_console,
-	&eficom,
+struct console *consoles[] = { &efi_console, &eficom,
 #if defined(__aarch64__) && __FreeBSD_version < 1500000
 	&comconsole,
 #endif
 #if defined(__amd64__)
-	&comconsole,
-	&nullconsole,
-	&spinconsole,
+	&comconsole, &nullconsole, &spinconsole,
 #endif
-	NULL
-};
+	NULL };

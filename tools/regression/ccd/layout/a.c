@@ -1,6 +1,6 @@
 #include <unistd.h>
 
-static uint32_t buf[512/4];
+static uint32_t buf[512 / 4];
 main()
 {
 	u_int u = 0;
@@ -11,5 +11,5 @@ main()
 		if (512 != write(1, buf, sizeof buf))
 			break;
 	}
-	exit (0);
+	exit(0);
 }

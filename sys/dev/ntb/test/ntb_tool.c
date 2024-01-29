@@ -165,13 +165,14 @@
  *
  * # Write/read data to/from inbound memory window with specific pattern/random
  * data.
- * root@local# sysctl dev.ntb_tool.0.peer0.mw0="W offset 0 nbytes 100 pattern ab"
- * root@local# sysctl dev.ntb_tool.0.peer0.mw0="R offset 0 nbytes 100"
+ * root@local# sysctl dev.ntb_tool.0.peer0.mw0="W offset 0 nbytes 100 pattern
+ *ab" root@local# sysctl dev.ntb_tool.0.peer0.mw0="R offset 0 nbytes 100"
  *
  * # Write/read data to/from outbound memory window on the local device with
  * specific pattern/random (on peer device)
- * root@local# sysctl dev.ntb_tool.0.peer0.peer_mw0="W offset 0 nbytes 100 pattern ab"
- * root@local# sysctl dev.ntb_tool.0.peer0.peer_mw0="R offset 0 nbytes 100"
+ * root@local# sysctl dev.ntb_tool.0.peer0.peer_mw0="W offset 0 nbytes 100
+ *pattern ab" root@local# sysctl dev.ntb_tool.0.peer0.peer_mw0="R offset 0
+ *nbytes 100"
  *-----------------------------------------------------------------------------
  * NOTE: *Message registers are not supported*
  *-----------------------------------------------------------------------------
@@ -184,23 +185,23 @@
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/mbuf.h>
-#include <sys/sysctl.h>
+#include <sys/module.h>
 #include <sys/sbuf.h>
-
-#include <machine/bus.h>
+#include <sys/sysctl.h>
 
 #include <vm/vm.h>
+
+#include <machine/bus.h>
 
 #include "../ntb.h"
 
 /* Buffer length for User input */
-#define	TOOL_BUF_LEN 48
+#define TOOL_BUF_LEN 48
 /* Memory window default command read and write offset. */
-#define	DEFAULT_MW_OFF  0
+#define DEFAULT_MW_OFF 0
 /* Memory window default size and also max command read size. */
-#define	DEFAULT_MW_SIZE 1024
+#define DEFAULT_MW_SIZE 1024
 
 MALLOC_DEFINE(M_NTB_TOOL, "ntb_tool", "ntb_tool driver memory allocation");
 
@@ -208,74 +209,74 @@ MALLOC_DEFINE(M_NTB_TOOL, "ntb_tool", "ntb_tool driver memory allocation");
  * Memory windows descriptor structure
  */
 struct tool_mw {
-	struct tool_ctx    *tc;
-	int                widx;
-	int                pidx;
+	struct tool_ctx *tc;
+	int widx;
+	int pidx;
 
 	/* Rx buff is off virt_addr / dma_base */
-	bus_addr_t         dma_base;
-	caddr_t            virt_addr;
-	bus_dmamap_t       dma_map;
-	bus_dma_tag_t      dma_tag;
+	bus_addr_t dma_base;
+	caddr_t virt_addr;
+	bus_dmamap_t dma_map;
+	bus_dma_tag_t dma_tag;
 
 	/* Tx buff is off vbase / phys_addr */
-	caddr_t            mm_base;
-	vm_paddr_t         phys_addr;
-	bus_addr_t         addr_limit;
-	size_t             phys_size;
-	size_t             xlat_align;
-	size_t             xlat_align_size;
+	caddr_t mm_base;
+	vm_paddr_t phys_addr;
+	bus_addr_t addr_limit;
+	size_t phys_size;
+	size_t xlat_align;
+	size_t xlat_align_size;
 
 	/* Memory window configured size and limits */
-	size_t             size;
-	ssize_t            mw_buf_size;
-	ssize_t            mw_buf_offset;
-	ssize_t            mw_peer_buf_size;
-	ssize_t            mw_peer_buf_offset;
+	size_t size;
+	ssize_t mw_buf_size;
+	ssize_t mw_buf_offset;
+	ssize_t mw_peer_buf_size;
+	ssize_t mw_peer_buf_offset;
 
 	/* options to handle sysctl out */
-	int                mw_cmd_rw;
-	int                mw_peer_cmd_rw;
+	int mw_cmd_rw;
+	int mw_peer_cmd_rw;
 };
 
 struct tool_spad {
-	int                sidx;
-	int                pidx;
-	struct tool_ctx    *tc;
+	int sidx;
+	int pidx;
+	struct tool_ctx *tc;
 };
 
 struct tool_peer {
-	int                 pidx;
-	struct tool_ctx     *tc;
-	int                 inmw_cnt;
-	struct tool_mw      *inmws;
-	int                 outspad_cnt;
-	struct tool_spad    *outspads;
-	unsigned int        port_no;
+	int pidx;
+	struct tool_ctx *tc;
+	int inmw_cnt;
+	struct tool_mw *inmws;
+	int outspad_cnt;
+	struct tool_spad *outspads;
+	unsigned int port_no;
 };
 
 struct tool_ctx {
-	device_t            dev;
-	struct callout      link_event_timer;
-	struct callout      db_event_timer;
-	int                 peer_cnt;
-	struct tool_peer    *peers;
-	int                 inmsg_cnt;
-	struct tool_msg     *inmsgs;
-	int                 inspad_cnt;
-	struct tool_spad    *inspads;
-	unsigned int        unsafe;
+	device_t dev;
+	struct callout link_event_timer;
+	struct callout db_event_timer;
+	int peer_cnt;
+	struct tool_peer *peers;
+	int inmsg_cnt;
+	struct tool_msg *inmsgs;
+	int inspad_cnt;
+	struct tool_spad *inspads;
+	unsigned int unsafe;
 
 	/* sysctl read out variables */
-	char                link_status;
-	uint64_t            link_bits;
-	uint64_t            link_mask;
-	uint64_t            db_valid_mask;
-	uint64_t            db_mask_val;
-	uint64_t            db_event_val;
-	uint64_t            peer_db_val;
-	uint64_t            peer_db_mask_val;
-	unsigned int        port_no;
+	char link_status;
+	uint64_t link_bits;
+	uint64_t link_mask;
+	uint64_t db_valid_mask;
+	uint64_t db_mask_val;
+	uint64_t db_event_val;
+	uint64_t peer_db_val;
+	uint64_t peer_db_mask_val;
+	unsigned int port_no;
 };
 
 /* structure to save dma_addr after dma load */
@@ -314,8 +315,8 @@ tool_db_event(void *ctx, uint32_t vec)
 	db_mask = ntb_db_vector_mask(tc->dev, vec);
 	db_bits = ntb_db_read(tc->dev);
 
-	device_printf(tc->dev, "doorbell vec %d mask %#llx bits %#llx\n",
-	    vec, (unsigned long long)db_mask, (unsigned long long)db_bits);
+	device_printf(tc->dev, "doorbell vec %d mask %#llx bits %#llx\n", vec,
+	    (unsigned long long)db_mask, (unsigned long long)db_bits);
 }
 
 static const struct ntb_ctx_ops tool_ops = {
@@ -335,12 +336,15 @@ tool_link_event_handler(void *arg)
 	val = ntb_link_is_up(tc->dev, NULL, NULL) & tc->link_mask;
 
 	if (val == tc->link_bits) {
-		device_printf(tc->dev, "link_event successful for link val="
-		    "0x%jx\n", tc->link_bits);
+		device_printf(tc->dev,
+		    "link_event successful for link val="
+		    "0x%jx\n",
+		    tc->link_bits);
 		tc->link_bits = 0x0;
 		tc->link_mask = 0x0;
 	} else
-		callout_reset(&tc->link_event_timer, 1, tool_link_event_handler, tc);
+		callout_reset(&tc->link_event_timer, 1, tool_link_event_handler,
+		    tc);
 }
 
 static void
@@ -356,7 +360,8 @@ tool_db_event_handler(void *arg)
 		    tc->db_event_val);
 		tc->db_event_val = 0x0;
 	} else
-		callout_reset(&tc->db_event_timer, 1, tool_db_event_handler, tc);
+		callout_reset(&tc->db_event_timer, 1, tool_db_event_handler,
+		    tc);
 }
 
 /*
@@ -391,7 +396,7 @@ read_out(struct sysctl_req *req, uint64_t val)
 
 static int
 tool_fn_read(struct tool_ctx *tc, struct sysctl_req *req,
-    uint64_t (*fn_read)(device_t ), uint64_t val)
+    uint64_t (*fn_read)(device_t), uint64_t val)
 {
 	if (fn_read == NULL)
 		return read_out(req, val);
@@ -404,14 +409,15 @@ tool_fn_read(struct tool_ctx *tc, struct sysctl_req *req,
 static int
 tool_fn_write(struct tool_ctx *tc, struct sysctl_oid *oidp,
     struct sysctl_req *req, char *ubuf, uint64_t *val, bool db_mask_sflag,
-    void (*fn_set)(device_t , uint64_t), void (*fn_clear)(device_t , uint64_t))
+    void (*fn_set)(device_t, uint64_t), void (*fn_clear)(device_t, uint64_t))
 {
 	uint64_t db_valid_mask = tc->db_valid_mask;
 	uint64_t bits;
 	char cmd;
 
 	if (fn_set == NULL && fn_clear == NULL) {
-		device_printf(tc->dev, "ERR: Set & Clear both are not supported\n");
+		device_printf(tc->dev,
+		    "ERR: Set & Clear both are not supported\n");
 		return (EINVAL);
 	}
 
@@ -422,7 +428,8 @@ tool_fn_write(struct tool_ctx *tc, struct sysctl_oid *oidp,
 	sscanf(ubuf, "%c %jx", &cmd, &bits);
 	if (cmd == 's') {
 		if ((bits | db_valid_mask) > db_valid_mask) {
-			device_printf(tc->dev, "0x%jx value is not supported\n", bits);
+			device_printf(tc->dev, "0x%jx value is not supported\n",
+			    bits);
 			return (EINVAL);
 		}
 		if (fn_set)
@@ -433,7 +440,8 @@ tool_fn_write(struct tool_ctx *tc, struct sysctl_oid *oidp,
 			*val |= bits;
 	} else if (cmd == 'c') {
 		if ((bits | db_valid_mask) > db_valid_mask) {
-			device_printf(tc->dev, "0x%jx value is not supported\n", bits);
+			device_printf(tc->dev, "0x%jx value is not supported\n",
+			    bits);
 			return (EINVAL);
 		}
 		if (fn_clear)
@@ -458,8 +466,8 @@ parse_mw_buf(char *buf, char *cmd, ssize_t *offset, ssize_t *buf_size,
 	int rc = 0;
 
 	vs1 = vs2 = vs3 = false;
-	sscanf(buf, "%c %s %jx %s %jx %s %jx",
-	    cmd, op1, &val1, op2, &val2, op3, &val3);
+	sscanf(buf, "%c %s %jx %s %jx %s %jx", cmd, op1, &val1, op2, &val2, op3,
+	    &val3);
 
 	if (*cmd != 'W' && *cmd != 'R')
 		return (EINVAL);
@@ -468,7 +476,7 @@ parse_mw_buf(char *buf, char *cmd, ssize_t *offset, ssize_t *buf_size,
 		*offset = val1 ? val1 : DEFAULT_MW_OFF;
 		vs1 = true;
 	} else if (!strcmp(op1, "nbytes")) {
-		*buf_size = val1 ? val1: DEFAULT_MW_SIZE;
+		*buf_size = val1 ? val1 : DEFAULT_MW_SIZE;
 		vs2 = true;
 	} else if (!strcmp(op1, "pattern")) {
 		*pattern = val1;
@@ -479,7 +487,7 @@ parse_mw_buf(char *buf, char *cmd, ssize_t *offset, ssize_t *buf_size,
 		*offset = val2 ? val2 : DEFAULT_MW_OFF;
 		vs1 = true;
 	} else if (!vs2 && !strcmp(op2, "nbytes")) {
-		*buf_size = val2 ? val2: DEFAULT_MW_SIZE;
+		*buf_size = val2 ? val2 : DEFAULT_MW_SIZE;
 		vs2 = true;
 	} else if (!vs3 && !strcmp(op2, "pattern")) {
 		*pattern = val2;
@@ -489,7 +497,7 @@ parse_mw_buf(char *buf, char *cmd, ssize_t *offset, ssize_t *buf_size,
 	if (!vs1 && !strcmp(op3, "offset")) {
 		*offset = val3 ? val3 : DEFAULT_MW_OFF;
 	} else if (!vs2 && !strcmp(op3, "nbytes")) {
-		*buf_size = val3 ? val3: DEFAULT_MW_SIZE;
+		*buf_size = val3 ? val3 : DEFAULT_MW_SIZE;
 	} else if (!vs3 && !strcmp(op3, "pattern")) {
 		*pattern = val3;
 		vs3 = true;
@@ -498,7 +506,7 @@ parse_mw_buf(char *buf, char *cmd, ssize_t *offset, ssize_t *buf_size,
 	*s_pflag = vs3;
 	if (vs3 && *cmd == 'R')
 		printf("NTB_TOOL_WARN: pattern is not supported with read "
-		    "command\n");
+		       "command\n");
 
 	return (rc);
 }
@@ -521,7 +529,8 @@ tool_mw_read_fn(struct sysctl_req *req, struct tool_mw *inmw, char *read_addr,
 	tmp = read_addr;
 	tmp += index;
 	loop = ((buf_size == 0) || (buf_size > DEFAULT_MW_SIZE)) ?
-	    DEFAULT_MW_SIZE : buf_size;
+	    DEFAULT_MW_SIZE :
+	    buf_size;
 	/*
 	 * 256 bytes of extra buffer has been allocated to print details like
 	 * summary, size, notes, i.e., excluding data part.
@@ -538,8 +547,10 @@ tool_mw_read_fn(struct sysctl_req *req, struct tool_mw *inmw, char *read_addr,
 	else if (!strcmp(type, "peer_mw"))
 		sbuf_printf(sb, "\nConfigured Peer MW size\t: %zu\n",
 		    inmw->size);
-	sbuf_printf(sb, "R/W size\t\t: %zi\nR/W Offset\t\t: %zi\n\nData\n----"
-	    "->", buf_size, buf_off);
+	sbuf_printf(sb,
+	    "R/W size\t\t: %zi\nR/W Offset\t\t: %zi\n\nData\n----"
+	    "->",
+	    buf_size, buf_off);
 
 	/*
 	 * Data will be read based on MW size provided by the user using nbytes,
@@ -549,18 +560,20 @@ tool_mw_read_fn(struct sysctl_req *req, struct tool_mw *inmw, char *read_addr,
 	 * and after each 8 bytes of data we used four spaces which ensures one
 	 * data block.
 	 */
-	for (i = 0 ; i < loop; i++) {
+	for (i = 0; i < loop; i++) {
 		if ((i % 32) == 0) {
 			sbuf_printf(sb, "\n%08zx:", index);
 			index += 32;
 		}
 		if ((i % 8) == 0)
 			sbuf_printf(sb, "    ");
-		sbuf_printf(sb, "%02hhx", *(tmp+i));
+		sbuf_printf(sb, "%02hhx", *(tmp + i));
 	}
 	if (buf_size > DEFAULT_MW_SIZE)
-		sbuf_printf(sb, "\n\nNOTE: Truncating read size %zi->1024 "
-		    "bytes\n", buf_size);
+		sbuf_printf(sb,
+		    "\n\nNOTE: Truncating read size %zi->1024 "
+		    "bytes\n",
+		    buf_size);
 
 	/* cmd_op is set to zero after completion of each R/W command. */
 	*cmd_op -= 1;
@@ -597,9 +610,10 @@ tool_mw_write_fn(struct sysctl_oid *oidp, struct sysctl_req *req,
 
 	/* Check for req size and buffer limit */
 	if ((*buf_offset + *buf_size) > inmw->size) {
-		device_printf(inmw->tc->dev, "%s: configured mw size :%zi and "
-		    "requested size :%zi.\n", __func__, inmw->size,
-		    (*buf_offset + *buf_size));
+		device_printf(inmw->tc->dev,
+		    "%s: configured mw size :%zi and "
+		    "requested size :%zi.\n",
+		    __func__, inmw->size, (*buf_offset + *buf_size));
 		*buf_offset = DEFAULT_MW_OFF;
 		*buf_size = DEFAULT_MW_SIZE;
 		rc = EINVAL;
@@ -645,8 +659,10 @@ sysctl_peer_port_number(SYSCTL_HANDLER_ARGS)
 	peer_port = ntb_peer_port_number(tc->dev, pidx);
 	rc = sysctl_handle_int(oidp, &peer_port, 0, req);
 	if (rc)
-		device_printf(tc->dev, "Peer port sysctl set failed with err="
-		    "(%d).\n", rc);
+		device_printf(tc->dev,
+		    "Peer port sysctl set failed with err="
+		    "(%d).\n",
+		    rc);
 	else
 		tc->peers[pidx].port_no = peer_port;
 
@@ -662,8 +678,10 @@ sysctl_local_port_number(SYSCTL_HANDLER_ARGS)
 	local_port = ntb_port_number(tc->dev);
 	rc = sysctl_handle_int(oidp, &local_port, 0, req);
 	if (rc)
-		device_printf(tc->dev, "Local port sysctl set failed with err="
-		    "(%d).\n", rc);
+		device_printf(tc->dev,
+		    "Local port sysctl set failed with err="
+		    "(%d).\n",
+		    rc);
 	else
 		tc->port_no = local_port;
 
@@ -815,26 +833,33 @@ tool_setup_mw(struct tool_ctx *tc, unsigned int pidx, unsigned int widx,
 	    inmw->phys_size, req_size, inmw->size);
 
 	if (bus_dma_tag_create(bus_get_dma_tag(tc->dev), inmw->xlat_align, 0,
-	    inmw->addr_limit, BUS_SPACE_MAXADDR, NULL, NULL, inmw->size, 1,
-	    inmw->size, 0, NULL, NULL, &inmw->dma_tag)) {
-		device_printf(tc->dev, "Unable to create MW tag of size "
-		    "%zu/%zu\n", inmw->phys_size, inmw->size);
+		inmw->addr_limit, BUS_SPACE_MAXADDR, NULL, NULL, inmw->size, 1,
+		inmw->size, 0, NULL, NULL, &inmw->dma_tag)) {
+		device_printf(tc->dev,
+		    "Unable to create MW tag of size "
+		    "%zu/%zu\n",
+		    inmw->phys_size, inmw->size);
 		rc = ENOMEM;
 		goto err_free_dma_var;
 	}
 
 	if (bus_dmamem_alloc(inmw->dma_tag, (void **)&inmw->virt_addr,
-	    BUS_DMA_WAITOK | BUS_DMA_ZERO, &inmw->dma_map)) {
-		device_printf(tc->dev, "Unable to allocate MW buffer of size "
-		    "%zu/%zu\n", inmw->phys_size, inmw->size);
+		BUS_DMA_WAITOK | BUS_DMA_ZERO, &inmw->dma_map)) {
+		device_printf(tc->dev,
+		    "Unable to allocate MW buffer of size "
+		    "%zu/%zu\n",
+		    inmw->phys_size, inmw->size);
 		rc = ENOMEM;
 		goto err_free_tag_rem;
 	}
 
 	if (bus_dmamap_load(inmw->dma_tag, inmw->dma_map, inmw->virt_addr,
-	    inmw->size, ntb_tool_load_cb, &cba, BUS_DMA_NOWAIT) || cba.error) {
-		device_printf(tc->dev, "Unable to load MW buffer of size "
-		    "%zu/%zu\n", inmw->phys_size, inmw->size);
+		inmw->size, ntb_tool_load_cb, &cba, BUS_DMA_NOWAIT) ||
+	    cba.error) {
+		device_printf(tc->dev,
+		    "Unable to load MW buffer of size "
+		    "%zu/%zu\n",
+		    inmw->phys_size, inmw->size);
 		rc = ENOMEM;
 		goto err_free_dma;
 	}
@@ -904,7 +929,8 @@ tool_mw_trans_read(struct tool_mw *inmw, struct sysctl_req *req)
 	sbuf_printf(sb, "Port           \t%d (%d)\n",
 	    ntb_peer_port_number(inmw->tc->dev, inmw->pidx), inmw->pidx);
 	sbuf_printf(sb, "Window Address \t%p\n", inmw->mm_base);
-	sbuf_printf(sb, "DMA Address    \t0x%016llx\n", (long long)inmw->dma_base);
+	sbuf_printf(sb, "DMA Address    \t0x%016llx\n",
+	    (long long)inmw->dma_base);
 	sbuf_printf(sb, "Window Size    \t0x%016zx[p]\n", inmw->size);
 	sbuf_printf(sb, "Alignment      \t0x%016zx[p]\n", inmw->xlat_align);
 	sbuf_printf(sb, "Size Alignment \t0x%016zx[p]\n",
@@ -981,7 +1007,8 @@ sysctl_peer_mw_handle(SYSCTL_HANDLER_ARGS)
 	return (rc);
 }
 
-static void tool_clear_mws(struct tool_ctx *tc)
+static void
+tool_clear_mws(struct tool_ctx *tc)
 {
 	int widx, pidx;
 
@@ -1003,8 +1030,8 @@ tool_init_mws(struct tool_ctx *tc)
 	for (pidx = 0; pidx < tc->peer_cnt; pidx++) {
 		tc->peers[pidx].inmw_cnt = ntb_mw_count(tc->dev);
 		tc->peers[pidx].inmws = malloc(tc->peers[pidx].inmw_cnt *
-		    sizeof(*tc->peers[pidx].inmws), M_NTB_TOOL,
-		    M_WAITOK | M_ZERO);
+			sizeof(*tc->peers[pidx].inmws),
+		    M_NTB_TOOL, M_WAITOK | M_ZERO);
 
 		for (widx = 0; widx < tc->peers[pidx].inmw_cnt; widx++) {
 			mw = &tc->peers[pidx].inmws[widx];
@@ -1014,7 +1041,8 @@ tool_init_mws(struct tool_ctx *tc)
 			mw->pidx = pidx;
 			mw->mw_buf_offset = DEFAULT_MW_OFF;
 			mw->mw_buf_size = DEFAULT_MW_SIZE;
-			/* get the tx buff details for each mw attached with each peer */
+			/* get the tx buff details for each mw attached with
+			 * each peer */
 			rc = ntb_mw_get_range(tc->dev, widx, &mw->phys_addr,
 			    &mw->mm_base, &mw->phys_size, &mw->xlat_align,
 			    &mw->xlat_align_size, &mw->addr_limit);
@@ -1061,7 +1089,8 @@ sysctl_db_valid_mask_handle(SYSCTL_HANDLER_ARGS)
 
 	tc->db_valid_mask = ntb_db_valid_mask(tc->dev);
 	if (!tc->db_valid_mask) {
-		device_printf(tc->dev, "Error getting db_valid_mask from "
+		device_printf(tc->dev,
+		    "Error getting db_valid_mask from "
 		    "hw driver\n");
 		return (EINVAL);
 	} else {
@@ -1078,7 +1107,7 @@ sysctl_db_mask_handle(SYSCTL_HANDLER_ARGS)
 
 	if (req->newptr == NULL) {
 		if (tc->db_mask_val == 0)
-		     ntb_db_valid_mask(tc->dev);
+			ntb_db_valid_mask(tc->dev);
 		return tool_fn_read(tc, req, NULL, tc->db_mask_val);
 	}
 
@@ -1115,7 +1144,7 @@ sysctl_peer_db_mask_handle(SYSCTL_HANDLER_ARGS)
 	char buf[TOOL_BUF_LEN];
 	int rc;
 
-	if (req->newptr == NULL){
+	if (req->newptr == NULL) {
 		if (tc->peer_db_mask_val == 0)
 			ntb_db_valid_mask(tc->dev);
 		return tool_fn_read(tc, req, NULL, tc->peer_db_mask_val);
@@ -1168,7 +1197,7 @@ sysctl_spad_handle(SYSCTL_HANDLER_ARGS)
 		if (rc)
 			return (rc);
 		else
-			return read_out(req, (uint64_t )bits);
+			return read_out(req, (uint64_t)bits);
 	}
 
 	rc = get_ubuf(req, buf);
@@ -1194,7 +1223,7 @@ sysctl_peer_spad_handle(SYSCTL_HANDLER_ARGS)
 		if (rc)
 			return (rc);
 		else
-			return read_out(req, (uint64_t )bits);
+			return read_out(req, (uint64_t)bits);
 	}
 
 	rc = get_ubuf(req, buf);
@@ -1225,9 +1254,9 @@ tool_init_spads(struct tool_ctx *tc)
 	/* Initialize outbound scratchpad structures */
 	for (pidx = 0; pidx < tc->peer_cnt; pidx++) {
 		tc->peers[pidx].outspad_cnt = ntb_spad_count(tc->dev);
-		tc->peers[pidx].outspads =  malloc(tc->peers[pidx].outspad_cnt *
-		    sizeof(*tc->peers[pidx].outspads), M_NTB_TOOL, M_WAITOK |
-		    M_ZERO);
+		tc->peers[pidx].outspads = malloc(tc->peers[pidx].outspad_cnt *
+			sizeof(*tc->peers[pidx].outspads),
+		    M_NTB_TOOL, M_WAITOK | M_ZERO);
 
 		for (sidx = 0; sidx < tc->peers[pidx].outspad_cnt; sidx++) {
 			tc->peers[pidx].outspads[sidx].sidx = sidx;
@@ -1314,37 +1343,37 @@ tool_setup_sysctl(struct tool_ctx *tc)
 	parent = device_get_sysctl_tree(tc->dev);
 	top = SYSCTL_CHILDREN(parent);
 
-	SYSCTL_ADD_PROC(clist, top, OID_AUTO, "port", CTLTYPE_UINT |
-	    CTLFLAG_RDTUN | CTLFLAG_MPSAFE, tc, 0, sysctl_local_port_number,
-	    "IU", "local port number");
+	SYSCTL_ADD_PROC(clist, top, OID_AUTO, "port",
+	    CTLTYPE_UINT | CTLFLAG_RDTUN | CTLFLAG_MPSAFE, tc, 0,
+	    sysctl_local_port_number, "IU", "local port number");
 
-	SYSCTL_ADD_PROC(clist, top, OID_AUTO, "link", CTLTYPE_STRING |
-	    CTLFLAG_RWTUN | CTLFLAG_MPSAFE, tc, 0, sysctl_link_handle,
-	    "IU", "link info");
+	SYSCTL_ADD_PROC(clist, top, OID_AUTO, "link",
+	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, tc, 0,
+	    sysctl_link_handle, "IU", "link info");
 
-	SYSCTL_ADD_PROC(clist, top, OID_AUTO, "db", CTLTYPE_STRING |
-	    CTLFLAG_RWTUN | CTLFLAG_MPSAFE, tc, 0, sysctl_db_handle,
-	    "A", "db info");
+	SYSCTL_ADD_PROC(clist, top, OID_AUTO, "db",
+	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, tc, 0,
+	    sysctl_db_handle, "A", "db info");
 
-	SYSCTL_ADD_PROC(clist, top, OID_AUTO, "db_valid_mask", CTLTYPE_STRING |
-	    CTLFLAG_RD | CTLFLAG_MPSAFE, tc, 0, sysctl_db_valid_mask_handle,
-	    "A", "db valid mask");
+	SYSCTL_ADD_PROC(clist, top, OID_AUTO, "db_valid_mask",
+	    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, tc, 0,
+	    sysctl_db_valid_mask_handle, "A", "db valid mask");
 
-	SYSCTL_ADD_PROC(clist, top, OID_AUTO, "db_mask", CTLTYPE_STRING |
-	    CTLFLAG_RWTUN | CTLFLAG_MPSAFE, tc, 0, sysctl_db_mask_handle,
-	    "A", "db mask");
+	SYSCTL_ADD_PROC(clist, top, OID_AUTO, "db_mask",
+	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, tc, 0,
+	    sysctl_db_mask_handle, "A", "db mask");
 
-	SYSCTL_ADD_PROC(clist, top, OID_AUTO, "db_event", CTLTYPE_STRING |
-	    CTLFLAG_WR | CTLFLAG_MPSAFE, tc, 0, sysctl_db_event_handle,
-	    "A", "db event");
+	SYSCTL_ADD_PROC(clist, top, OID_AUTO, "db_event",
+	    CTLTYPE_STRING | CTLFLAG_WR | CTLFLAG_MPSAFE, tc, 0,
+	    sysctl_db_event_handle, "A", "db event");
 
-	SYSCTL_ADD_PROC(clist, top, OID_AUTO, "peer_db", CTLTYPE_STRING |
-	    CTLFLAG_RWTUN | CTLFLAG_MPSAFE, tc, 0, sysctl_peer_db_handle,
-	    "A", "peer db");
+	SYSCTL_ADD_PROC(clist, top, OID_AUTO, "peer_db",
+	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, tc, 0,
+	    sysctl_peer_db_handle, "A", "peer db");
 
-	SYSCTL_ADD_PROC(clist, top, OID_AUTO, "peer_db_mask", CTLTYPE_STRING |
-	    CTLFLAG_RWTUN | CTLFLAG_MPSAFE, tc, 0, sysctl_peer_db_mask_handle,
-	    "IU", "peer db mask info");
+	SYSCTL_ADD_PROC(clist, top, OID_AUTO, "peer_db_mask",
+	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, tc, 0,
+	    sysctl_peer_db_mask_handle, "IU", "peer db mask info");
 
 	if (tc->inspad_cnt != 0) {
 		for (sidx = 0; sidx < tc->inspad_cnt; sidx++) {
@@ -1352,8 +1381,8 @@ tool_setup_sysctl(struct tool_ctx *tc)
 			snprintf(desc, sizeof(desc), "spad%d info", sidx);
 
 			SYSCTL_ADD_PROC(clist, top, OID_AUTO, buf,
-			    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-			    tc, sidx, sysctl_spad_handle, "IU", desc);
+			    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, tc,
+			    sidx, sysctl_spad_handle, "IU", desc);
 		}
 	}
 
@@ -1390,8 +1419,8 @@ tool_setup_sysctl(struct tool_ctx *tc)
 
 			SYSCTL_ADD_PROC(clist, peer_top, OID_AUTO, buf,
 			    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-			    &tc->peers[pidx].inmws[widx], 0,
-			    sysctl_mw_handle, "IU", desc);
+			    &tc->peers[pidx].inmws[widx], 0, sysctl_mw_handle,
+			    "IU", desc);
 
 			snprintf(buf, sizeof(buf), "peer_mw%d", widx);
 			snprintf(desc, sizeof(desc), "peer_mw%d info", widx);
@@ -1407,8 +1436,8 @@ tool_setup_sysctl(struct tool_ctx *tc)
 			snprintf(desc, sizeof(desc), "spad%d info", sidx);
 
 			SYSCTL_ADD_PROC(clist, peer_top, OID_AUTO, buf,
-			    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-			    tc, sidx, sysctl_peer_spad_handle, "IU", desc);
+			    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, tc,
+			    sidx, sysctl_peer_spad_handle, "IU", desc);
 		}
 	}
 }
@@ -1478,10 +1507,9 @@ ntb_tool_detach(device_t dev)
 
 static device_method_t ntb_tool_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,     ntb_tool_probe),
-	DEVMETHOD(device_attach,    ntb_tool_attach),
-	DEVMETHOD(device_detach,    ntb_tool_detach),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, ntb_tool_probe),
+	DEVMETHOD(device_attach, ntb_tool_attach),
+	DEVMETHOD(device_detach, ntb_tool_detach), DEVMETHOD_END
 };
 
 static DEFINE_CLASS_0(ntb_tool, ntb_tool_driver, ntb_tool_methods,

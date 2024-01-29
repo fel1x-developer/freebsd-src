@@ -34,14 +34,15 @@
 #include <sys/sx.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
-#include <vm/vm_extern.h>
 #include <vm/pmap.h>
+#include <vm/vm_extern.h>
+#include <vm/vm_param.h>
 
 #include <machine/atomic.h>
 #include <machine/md_var.h>
 
 #include <i386/linux/linux.h>
+
 #include <compat/linux/linux_emul.h>
 #include <compat/linux/linux_futex.h>
 
@@ -67,7 +68,7 @@ futex_xchgl(int oparg, uint32_t *uaddr, int *oldval)
 	st.oparg = oparg;
 	st.oldval = oldval;
 	if (cp_slow0((vm_offset_t)uaddr, sizeof(uint32_t), true,
-	    futex_xchgl_slow0, &st) != 0)
+		futex_xchgl_slow0, &st) != 0)
 		return (EFAULT);
 	return (0);
 }
@@ -89,7 +90,7 @@ futex_addl(int oparg, uint32_t *uaddr, int *oldval)
 	st.oparg = oparg;
 	st.oldval = oldval;
 	if (cp_slow0((vm_offset_t)uaddr, sizeof(uint32_t), true,
-	    futex_addl_slow0, &st) != 0)
+		futex_addl_slow0, &st) != 0)
 		return (EFAULT);
 	return (0);
 }
@@ -115,7 +116,7 @@ futex_orl(int oparg, uint32_t *uaddr, int *oldval)
 	st.oparg = oparg;
 	st.oldval = oldval;
 	if (cp_slow0((vm_offset_t)uaddr, sizeof(uint32_t), true,
-	    futex_orl_slow0, &st) != 0)
+		futex_orl_slow0, &st) != 0)
 		return (EFAULT);
 	return (0);
 }
@@ -141,7 +142,7 @@ futex_andl(int oparg, uint32_t *uaddr, int *oldval)
 	st.oparg = oparg;
 	st.oldval = oldval;
 	if (cp_slow0((vm_offset_t)uaddr, sizeof(uint32_t), true,
-	    futex_andl_slow0, &st) != 0)
+		futex_andl_slow0, &st) != 0)
 		return (EFAULT);
 	return (0);
 }
@@ -167,7 +168,7 @@ futex_xorl(int oparg, uint32_t *uaddr, int *oldval)
 	st.oparg = oparg;
 	st.oldval = oldval;
 	if (cp_slow0((vm_offset_t)uaddr, sizeof(uint32_t), true,
-	    futex_xorl_slow0, &st) != 0)
+		futex_xorl_slow0, &st) != 0)
 		return (EFAULT);
 	return (0);
 }

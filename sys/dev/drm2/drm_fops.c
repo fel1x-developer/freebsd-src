@@ -35,12 +35,14 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <dev/drm2/drmP.h>
 
 static int drm_open_helper(struct cdev *kdev, int flags, int fmt,
-			   DRM_STRUCTPROC *p, struct drm_device *dev);
+    DRM_STRUCTPROC *p, struct drm_device *dev);
 
-static int drm_setup(struct drm_device * dev)
+static int
+drm_setup(struct drm_device *dev)
 {
 	int i;
 	int ret;
@@ -117,7 +119,8 @@ static int drm_setup(struct drm_device * dev)
  * increments the device open count. If the open count was previous at zero,
  * i.e., it's the first that the device is open, then calls setup().
  */
-int drm_open(struct cdev *kdev, int flags, int fmt, DRM_STRUCTPROC *p)
+int
+drm_open(struct cdev *kdev, int flags, int fmt, DRM_STRUCTPROC *p)
 {
 	struct drm_device *dev = NULL;
 	struct drm_minor *minor;
@@ -173,14 +176,15 @@ EXPORT_SYMBOL(drm_open);
  * Creates and initializes a drm_file structure for the file private data in \p
  * filp and add it into the double linked list in \p dev.
  */
-static int drm_open_helper(struct cdev *kdev, int flags, int fmt,
-			   DRM_STRUCTPROC *p, struct drm_device *dev)
+static int
+drm_open_helper(struct cdev *kdev, int flags, int fmt, DRM_STRUCTPROC *p,
+    struct drm_device *dev)
 {
 	struct drm_file *priv;
 	int ret;
 
 	if (flags & O_EXCL)
-		return -EBUSY;	/* No exclusive opens */
+		return -EBUSY; /* No exclusive opens */
 	if (dev->switch_power_state != DRM_SWITCH_POWER_ON)
 		return -EINVAL;
 
@@ -216,7 +220,6 @@ static int drm_open_helper(struct cdev *kdev, int flags, int fmt,
 		if (ret < 0)
 			goto out_free;
 	}
-
 
 	/* if there is no current master make this fd it */
 	DRM_LOCK(dev);
@@ -276,23 +279,28 @@ static int drm_open_helper(struct cdev *kdev, int flags, int fmt,
 		drm_release(priv);
 
 	return ret;
-      out_free:
+out_free:
 	free(priv, DRM_MEM_FILES);
 	return ret;
 }
 
-static void drm_master_release(struct drm_device *dev, struct drm_file *file_priv)
+static void
+drm_master_release(struct drm_device *dev, struct drm_file *file_priv)
 {
 
 	if (drm_i_have_hw_lock(dev, file_priv)) {
 		DRM_DEBUG("File %p released, freeing lock for context %d\n",
-			  file_priv, _DRM_LOCKING_CONTEXT(file_priv->master->lock.hw_lock->lock));
+		    file_priv,
+		    _DRM_LOCKING_CONTEXT(
+			file_priv->master->lock.hw_lock->lock));
 		drm_lock_free(&file_priv->master->lock,
-			      _DRM_LOCKING_CONTEXT(file_priv->master->lock.hw_lock->lock));
+		    _DRM_LOCKING_CONTEXT(
+			file_priv->master->lock.hw_lock->lock));
 	}
 }
 
-static void drm_events_release(struct drm_file *file_priv)
+static void
+drm_events_release(struct drm_file *file_priv)
 {
 	struct drm_device *dev = file_priv->minor->dev;
 	struct drm_pending_event *e, *et;
@@ -302,16 +310,17 @@ static void drm_events_release(struct drm_file *file_priv)
 	DRM_SPINLOCK_IRQSAVE(&dev->event_lock, flags);
 
 	/* Remove pending flips */
-	list_for_each_entry_safe(v, vt, &dev->vblank_event_list, base.link)
-		if (v->base.file_priv == file_priv) {
-			list_del(&v->base.link);
-			drm_vblank_put(dev, v->pipe);
-			v->base.destroy(&v->base);
-		}
+	list_for_each_entry_safe(v, vt, &dev->vblank_event_list,
+	    base.link) if (v->base.file_priv == file_priv)
+	{
+		list_del(&v->base.link);
+		drm_vblank_put(dev, v->pipe);
+		v->base.destroy(&v->base);
+	}
 
 	/* Remove unconsumed events */
 	list_for_each_entry_safe(e, et, &file_priv->event_list, link)
-		e->destroy(e);
+	    e->destroy(e);
 
 	DRM_SPINUNLOCK_IRQRESTORE(&dev->event_lock, flags);
 }
@@ -328,7 +337,8 @@ static void drm_events_release(struct drm_file *file_priv)
  * data from its list and free it. Decreases the open count and if it reaches
  * zero calls drm_lastclose().
  */
-void drm_release(void *data)
+void
+drm_release(void *data)
 {
 	struct drm_file *file_priv = data;
 	struct drm_device *dev = file_priv->minor->dev;
@@ -344,15 +354,13 @@ void drm_release(void *data)
 	 * Begin inline drm_release
 	 */
 
-	DRM_DEBUG("pid = %d, device = 0x%lx, open_count = %d\n",
-		  DRM_CURRENTPID,
-		  (long)file_priv->minor->device,
-		  dev->open_count);
+	DRM_DEBUG("pid = %d, device = 0x%lx, open_count = %d\n", DRM_CURRENTPID,
+	    (long)file_priv->minor->device, dev->open_count);
 
 	/* Release any auth tokens that might point to this file_priv,
 	   (do that under the drm_global_mutex) */
 	if (file_priv->magic)
-		(void) drm_remove_magic(file_priv->master, file_priv->magic);
+		(void)drm_remove_magic(file_priv->master, file_priv->magic);
 
 	/* if the master has gone away we can't do anything with the lock */
 	if (file_priv->minor->master)
@@ -376,12 +384,13 @@ void drm_release(void *data)
 	if (!list_empty(&dev->ctxlist)) {
 		struct drm_ctx_list *pos, *n;
 
-		list_for_each_entry_safe(pos, n, &dev->ctxlist, head) {
+		list_for_each_entry_safe(pos, n, &dev->ctxlist, head)
+		{
 			if (pos->tag == file_priv &&
 			    pos->handle != DRM_KERNEL_CONTEXT) {
 				if (dev->driver->context_dtor)
 					dev->driver->context_dtor(dev,
-								  pos->handle);
+					    pos->handle);
 
 				drm_ctxbitmap_free(dev, pos->handle);
 
@@ -399,7 +408,8 @@ void drm_release(void *data)
 	if (file_priv->is_master) {
 		struct drm_master *master = file_priv->master;
 		struct drm_file *temp;
-		list_for_each_entry(temp, &dev->filelist, lhead) {
+		list_for_each_entry(temp, &dev->filelist, lhead)
+		{
 			if ((temp->master == file_priv->master) &&
 			    (temp != file_priv))
 				temp->authenticated = 0;
@@ -451,7 +461,7 @@ void drm_release(void *data)
 	if (!--dev->open_count) {
 		if (atomic_read(&dev->ioctl_count)) {
 			DRM_ERROR("Device busy: %d\n",
-				  atomic_read(&dev->ioctl_count));
+			    atomic_read(&dev->ioctl_count));
 		} else
 			drm_lastclose(dev);
 	}
@@ -472,8 +482,8 @@ drm_dequeue_event(struct drm_file *file_priv, struct uio *uio,
 	*out = NULL;
 	if (list_empty(&file_priv->event_list))
 		goto out;
-	e = list_first_entry(&file_priv->event_list,
-			     struct drm_pending_event, link);
+	e = list_first_entry(&file_priv->event_list, struct drm_pending_event,
+	    link);
 	if (e->event->length > uio->uio_resid)
 		goto out;
 
@@ -509,9 +519,9 @@ drm_read(struct cdev *kdev, struct uio *uio, int ioflag)
 			goto out;
 		}
 		error = msleep(&file_priv->event_space, &dev->event_lock,
-	           PCATCH, "drmrea", 0);
-	       if (error != 0)
-		       goto out;
+		    PCATCH, "drmrea", 0);
+		if (error != 0)
+			goto out;
 	}
 
 	while (drm_dequeue_event(file_priv, uio, &e)) {
@@ -588,7 +598,8 @@ drm_mmap_single(struct cdev *kdev, vm_ooffset_t *offset, vm_size_t size,
 		return (-ttm_bo_mmap_single(dev->drm_ttm_bdev, offset, size,
 		    obj_res, nprot));
 	} else if ((dev->driver->driver_features & DRIVER_GEM) != 0) {
-		return (-drm_gem_mmap_single(dev, offset, size, obj_res, nprot));
+		return (
+		    -drm_gem_mmap_single(dev, offset, size, obj_res, nprot));
 	} else {
 		return (ENODEV);
 	}

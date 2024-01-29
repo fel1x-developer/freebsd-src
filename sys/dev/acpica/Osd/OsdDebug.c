@@ -29,21 +29,23 @@
  * 6.8 : Debugging support
  */
 
-#include <sys/cdefs.h>
 #include "opt_ddb.h"
+
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/bus.h>
 #include <sys/kdb.h>
 #include <sys/kernel.h>
-#include <sys/bus.h>
-#include <machine/bus.h>
-#include <ddb/ddb.h>
-#include <ddb/db_output.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
-#include <contrib/dev/acpica/include/acdebug.h>
+#include <machine/bus.h>
 
 #include <dev/acpica/acpivar.h>
+
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acdebug.h>
+#include <contrib/dev/acpica/include/acpi.h>
+#include <ddb/db_output.h>
+#include <ddb/ddb.h>
 
 ACPI_STATUS
 AcpiOsGetLine(char *Buffer, UINT32 BufferLength, UINT32 *BytesRead)
@@ -68,44 +70,44 @@ AcpiOsGetLine(char *Buffer, UINT32 BufferLength, UINT32 *BytesRead)
 ACPI_STATUS
 AcpiOsSignal(UINT32 Function, void *Info)
 {
-    ACPI_SIGNAL_FATAL_INFO	*fatal;
+	ACPI_SIGNAL_FATAL_INFO *fatal;
 
-    switch (Function) {
-    case ACPI_SIGNAL_FATAL:
-	fatal = (ACPI_SIGNAL_FATAL_INFO *)Info;
-	printf("ACPI fatal signal, type 0x%x code 0x%x argument 0x%x",
-	      fatal->Type, fatal->Code, fatal->Argument);
+	switch (Function) {
+	case ACPI_SIGNAL_FATAL:
+		fatal = (ACPI_SIGNAL_FATAL_INFO *)Info;
+		printf("ACPI fatal signal, type 0x%x code 0x%x argument 0x%x",
+		    fatal->Type, fatal->Code, fatal->Argument);
 #ifdef ACPI_DEBUG
-	kdb_enter(KDB_WHY_ACPI, "AcpiOsSignal");
+		kdb_enter(KDB_WHY_ACPI, "AcpiOsSignal");
 #endif
-	break;
+		break;
 
-    case ACPI_SIGNAL_BREAKPOINT:
+	case ACPI_SIGNAL_BREAKPOINT:
 #ifdef ACPI_DEBUG
-	kdb_enter(KDB_WHY_ACPI, (char *)Info);
+		kdb_enter(KDB_WHY_ACPI, (char *)Info);
 #endif
-	break;
+		break;
 
-    default:
-	return (AE_BAD_PARAMETER);
-    }
+	default:
+		return (AE_BAD_PARAMETER);
+	}
 
-    return (AE_OK);
+	return (AE_OK);
 }
 
 #ifdef ACPI_DEBUGGER
 void
 acpi_EnterDebugger(void)
 {
-    static int		initted = 0;
+	static int initted = 0;
 
-    if (!initted) {
-	printf("Initialising ACPICA debugger...\n");
-	AcpiInitializeDebugger();
-	initted = 1;
-    }
+	if (!initted) {
+		printf("Initialising ACPICA debugger...\n");
+		AcpiInitializeDebugger();
+		initted = 1;
+	}
 
-    printf("Entering ACPICA debugger...\n");
-    AcpiDbUserCommands();
+	printf("Entering ACPICA debugger...\n");
+	AcpiDbUserCommands();
 }
 #endif /* ACPI_DEBUGGER */

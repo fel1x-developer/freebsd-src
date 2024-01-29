@@ -24,20 +24,18 @@
  * Include private header files
  *******************************************************************************
  */
-#include "lac_common.h"
-#include "icp_accel_devices.h"
-#include "qat_utils.h"
-
 #include "cpa_cy_sym.h"
-#include "lac_mem.h"
-#include "lac_mem_pools.h"
-#include "lac_list.h"
+#include "icp_accel_devices.h"
 #include "icp_adf_transport.h"
 #include "icp_adf_transport_dp.h"
-
-#include "icp_qat_hw.h"
 #include "icp_qat_fw.h"
 #include "icp_qat_fw_la.h"
+#include "icp_qat_hw.h"
+#include "lac_common.h"
+#include "lac_list.h"
+#include "lac_mem.h"
+#include "lac_mem_pools.h"
+#include "qat_utils.h"
 
 /**
  ******************************************************************************
@@ -78,8 +76,7 @@ typedef struct sal_qat_content_desc_info_s {
  *
  *****************************************************************************/
 typedef void (*sal_qat_resp_handler_func_t)(icp_qat_fw_la_cmd_id_t lacCmdId,
-					    void *pOpaqueData,
-					    icp_qat_fw_comn_flags cmnRespFlags);
+    void *pOpaqueData, icp_qat_fw_comn_flags cmnRespFlags);
 
 /********************************************************************
  * @ingroup SalQatMsg_CmnHdrWrite
@@ -100,10 +97,9 @@ typedef void (*sal_qat_resp_handler_func_t)(icp_qat_fw_la_cmd_id_t lacCmdId,
  *
  *****************************************/
 void SalQatMsg_CmnHdrWrite(icp_qat_fw_comn_req_t *pMsg,
-			   icp_qat_fw_comn_request_id_t serviceType,
-			   uint8_t serviceCmdId,
-			   icp_qat_fw_comn_flags cmnFlags,
-			   icp_qat_fw_serv_specif_flags serviceCmdFlags);
+    icp_qat_fw_comn_request_id_t serviceType, uint8_t serviceCmdId,
+    icp_qat_fw_comn_flags cmnFlags,
+    icp_qat_fw_serv_specif_flags serviceCmdFlags);
 
 /********************************************************************
  * @ingroup SalQatMsg_CmnMidWrite
@@ -131,12 +127,8 @@ void SalQatMsg_CmnHdrWrite(icp_qat_fw_comn_req_t *pMsg,
  *
  *****************************************/
 void SalQatMsg_CmnMidWrite(icp_qat_fw_la_bulk_req_t *pReq,
-			   const void *pOpaqueData,
-			   Cpa8U bufferFormat,
-			   Cpa64U srcBuffer,
-			   Cpa64U dstBuffer,
-			   Cpa32U srcLength,
-			   Cpa32U dstLength);
+    const void *pOpaqueData, Cpa8U bufferFormat, Cpa64U srcBuffer,
+    Cpa64U dstBuffer, Cpa32U srcLength, Cpa32U dstLength);
 
 /********************************************************************
  * @ingroup SalQatMsg_ContentDescHdrWrite
@@ -153,8 +145,7 @@ void SalQatMsg_CmnMidWrite(icp_qat_fw_la_bulk_req_t *pReq,
  *      none
  *
  *****************************************/
-void SalQatMsg_ContentDescHdrWrite(
-    icp_qat_fw_comn_req_t *pMsg,
+void SalQatMsg_ContentDescHdrWrite(icp_qat_fw_comn_req_t *pMsg,
     const sal_qat_content_desc_info_t *pContentDescInfo);
 
 /********************************************************************
@@ -187,9 +178,7 @@ void SalQatMsg_CtrlBlkSetToReserved(icp_qat_fw_comn_req_t *_pMsg);
  *
  *****************************************/
 CpaStatus SalQatMsg_transPutMsg(icp_comms_trans_handle trans_handle,
-				void *pqat_msg,
-				Cpa32U size_in_lws,
-				Cpa8U service);
+    void *pqat_msg, Cpa32U size_in_lws, Cpa8U service);
 
 /********************************************************************
  * @ingroup SalQatMsg_updateQueueTail

@@ -36,39 +36,34 @@
 
 #include <gssapi/gssapi.h>
 
-#include "mech_switch.h"
 #include "context.h"
+#include "mech_switch.h"
 #include "utils.h"
 
 OM_uint32
-gss_pseudo_random(OM_uint32 *minor_status,
-		  gss_ctx_id_t context,
-		  int prf_key,
-		  const gss_buffer_t prf_in,
-		  ssize_t desired_output_len,
-		  gss_buffer_t prf_out)
+gss_pseudo_random(OM_uint32 *minor_status, gss_ctx_id_t context, int prf_key,
+    const gss_buffer_t prf_in, ssize_t desired_output_len, gss_buffer_t prf_out)
 {
-    struct _gss_context *ctx = (struct _gss_context *) context;
-    struct _gss_mech_switch *m;
-    OM_uint32 major_status;
+	struct _gss_context *ctx = (struct _gss_context *)context;
+	struct _gss_mech_switch *m;
+	OM_uint32 major_status;
 
-    _gss_buffer_zero(prf_out);
-    *minor_status = 0;
-
-    if (ctx == NULL) {
+	_gss_buffer_zero(prf_out);
 	*minor_status = 0;
-	return GSS_S_NO_CONTEXT;
-    }
-    m = ctx->gc_mech;
 
-    if (m->gm_pseudo_random == NULL)
-	return GSS_S_UNAVAILABLE;
+	if (ctx == NULL) {
+		*minor_status = 0;
+		return GSS_S_NO_CONTEXT;
+	}
+	m = ctx->gc_mech;
 
-    major_status = (*m->gm_pseudo_random)(minor_status, ctx->gc_ctx,
-					  prf_key, prf_in, desired_output_len,
-					  prf_out);
-    if (major_status != GSS_S_COMPLETE)
-	    _gss_mg_error(m, major_status, *minor_status);
+	if (m->gm_pseudo_random == NULL)
+		return GSS_S_UNAVAILABLE;
 
-    return major_status;
+	major_status = (*m->gm_pseudo_random)(minor_status, ctx->gc_ctx,
+	    prf_key, prf_in, desired_output_len, prf_out);
+	if (major_status != GSS_S_COMPLETE)
+		_gss_mg_error(m, major_status, *minor_status);
+
+	return major_status;
 }

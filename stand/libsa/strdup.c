@@ -29,9 +29,10 @@
 
 #include <sys/cdefs.h>
 
-#include "stand.h"
 #include <stddef.h>
 #include <string.h>
+
+#include "stand.h"
 
 char *
 strdup(const char *str)
@@ -40,10 +41,10 @@ strdup(const char *str)
 	char *copy = NULL;
 
 	if (str != NULL) {
-	    len = strlen(str) + 1;
-	    if ((copy = malloc(len)) == NULL)
-		return (NULL);
-	    memcpy(copy, str, len);
+		len = strlen(str) + 1;
+		if ((copy = malloc(len)) == NULL)
+			return (NULL);
+		memcpy(copy, str, len);
 	}
 	return (copy);
 }

@@ -26,10 +26,10 @@
  */
 
 #include <sys/cdefs.h>
-#include <errno.h>
-#include <libutil.h>
 
 #include <atf-c.h>
+#include <errno.h>
+#include <libutil.h>
 
 ATF_TC_WITHOUT_HEAD(positivetests);
 ATF_TC_BODY(positivetests, tc)
@@ -37,11 +37,12 @@ ATF_TC_BODY(positivetests, tc)
 	int retval;
 	uint64_t num;
 
-#define positive_tc(string, value) 							\
-	do {										\
-		ATF_CHECK_ERRNO(0, (retval = expand_number((string), &num)) == 0);	\
-		ATF_CHECK_EQ(retval, 0);						\
-		ATF_CHECK_EQ(num, (value));						\
+#define positive_tc(string, value)                                  \
+	do {                                                        \
+		ATF_CHECK_ERRNO(0,                                  \
+		    (retval = expand_number((string), &num)) == 0); \
+		ATF_CHECK_EQ(retval, 0);                            \
+		ATF_CHECK_EQ(num, (value));                         \
 	} while (0)
 
 	positive_tc("123456", 123456);

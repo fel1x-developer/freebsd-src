@@ -33,25 +33,22 @@
 #include <geom/eli/g_eli.h>
 
 #ifndef DEV_BSIZE
-#define DEV_BSIZE 			512
+#define DEV_BSIZE 512
 #endif
 #ifndef DEV_GELIBOOT_BSIZE
-#define DEV_GELIBOOT_BSIZE		4096
+#define DEV_GELIBOOT_BSIZE 4096
 #endif
 
 #ifndef MIN
-#define    MIN(a,b) (((a) < (b)) ? (a) : (b))
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
 
-#define	GELI_MAX_KEYS			64
-#define	GELI_PW_MAXLEN			256
-#define	GELI_KEYBUF_SIZE		(sizeof(struct keybuf) + \
-    (GELI_MAX_KEYS * sizeof(struct keybuf_ent)))
+#define GELI_MAX_KEYS 64
+#define GELI_PW_MAXLEN 256
+#define GELI_KEYBUF_SIZE \
+	(sizeof(struct keybuf) + (GELI_MAX_KEYS * sizeof(struct keybuf_ent)))
 
-typedef enum geli_op {
-	GELI_DECRYPT,
-	GELI_ENCRYPT
-} geli_op_t;
+typedef enum geli_op { GELI_DECRYPT, GELI_ENCRYPT } geli_op_t;
 
 extern void pwgets(char *buf, int n, int hide);
 

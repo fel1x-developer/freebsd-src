@@ -42,6 +42,7 @@
 
 #include <sys/param.h>
 #include <sys/time.h>
+
 #include <netinet/in.h>
 
 #include <fcntl.h>
@@ -52,6 +53,7 @@
 #include <syslog.h>
 #include <time.h>
 #include <unistd.h>
+
 #include "defs.h"
 
 /*
@@ -70,7 +72,8 @@
 void
 DispPkt(RMPCONN *rconn, int direct)
 {
-	static const char BootFmt[] = "\t\tRetCode:%u SeqNo:%x SessID:%x Vers:%u";
+	static const char BootFmt[] =
+	    "\t\tRetCode:%u SeqNo:%x SessID:%x Vers:%u";
 	static const char ReadFmt[] = "\t\tRetCode:%u Offset:%x SessID:%x\n";
 
 	struct tm *tmp;
@@ -82,20 +85,23 @@ DispPkt(RMPCONN *rconn, int direct)
 	 *  Since we will be working with RmpConns as well as DbgFp, we
 	 *  must block signals that can affect either.
 	 */
-	omask = sigblock(sigmask(SIGHUP)|sigmask(SIGUSR1)|sigmask(SIGUSR2));
+	omask = sigblock(sigmask(SIGHUP) | sigmask(SIGUSR1) | sigmask(SIGUSR2));
 
-	if (DbgFp == NULL) {			/* sanity */
-		(void) sigsetmask(omask);
+	if (DbgFp == NULL) { /* sanity */
+		(void)sigsetmask(omask);
 		return;
 	}
 
 	/* display direction packet is going using '>>>' or '<<<' */
-	fputs((direct==DIR_RCVD)?"<<< ":(direct==DIR_SENT)?">>> ":"", DbgFp);
+	fputs((direct == DIR_RCVD)   ? "<<< " :
+		(direct == DIR_SENT) ? ">>> " :
+				       "",
+	    DbgFp);
 
 	/* display packet timestamp */
 	tmp = localtime((time_t *)&rconn->tstamp.tv_sec);
 	fprintf(DbgFp, "%02d:%02d:%02d.%06ld   ", tmp->tm_hour, tmp->tm_min,
-	        tmp->tm_sec, rconn->tstamp.tv_usec);
+	    tmp->tm_sec, rconn->tstamp.tv_usec);
 
 	/* display src or dst addr and information about network interface */
 	fprintf(DbgFp, "Addr: %s   Intf: %s\n", EnetStr(rconn), IntfName);
@@ -103,76 +109,73 @@ DispPkt(RMPCONN *rconn, int direct)
 	rmp = &rconn->rmp;
 
 	/* display IEEE 802.2 Logical Link Control header */
-	(void) fprintf(DbgFp, "\t802.2 LLC: DSAP:%x SSAP:%x CTRL:%x\n",
-               rmp->hp_llc.dsap, rmp->hp_llc.ssap, ntohs(rmp->hp_llc.cntrl));
+	(void)fprintf(DbgFp, "\t802.2 LLC: DSAP:%x SSAP:%x CTRL:%x\n",
+	    rmp->hp_llc.dsap, rmp->hp_llc.ssap, ntohs(rmp->hp_llc.cntrl));
 
 	/* display HP extensions to 802.2 Logical Link Control header */
-	(void) fprintf(DbgFp, "\tHP Ext:    DXSAP:%x SXSAP:%x\n",
-	               ntohs(rmp->hp_llc.dxsap), ntohs(rmp->hp_llc.sxsap));
+	(void)fprintf(DbgFp, "\tHP Ext:    DXSAP:%x SXSAP:%x\n",
+	    ntohs(rmp->hp_llc.dxsap), ntohs(rmp->hp_llc.sxsap));
 
 	/*
 	 *  Display information about RMP packet using type field to
 	 *  determine what kind of packet this is.
 	 */
-	switch(rmp->r_type) {
-		case RMP_BOOT_REQ:		/* boot request */
-			(void) fprintf(DbgFp, "\tBoot Request:");
-			GETWORD(rmp->r_brq.rmp_seqno, t);
-			if (ntohs(rmp->r_brq.rmp_session) == RMP_PROBESID) {
-				if (WORDZE(rmp->r_brq.rmp_seqno))
-					fputs(" (Send Server ID)", DbgFp);
-				else
-					fprintf(DbgFp," (Send Filename #%u)",t);
-			}
-			(void) fputc('\n', DbgFp);
-			(void) fprintf(DbgFp, BootFmt, rmp->r_brq.rmp_retcode,
-			        t, ntohs(rmp->r_brq.rmp_session),
-			        ntohs(rmp->r_brq.rmp_version));
-			(void) fprintf(DbgFp, "\n\t\tMachine Type: ");
-			for (i = 0; i < RMP_MACHLEN; i++)
-				(void) fputc(rmp->r_brq.rmp_machtype[i], DbgFp);
-			DspFlnm(rmp->r_brq.rmp_flnmsize, &rmp->r_brq.rmp_flnm);
-			break;
-		case RMP_BOOT_REPL:		/* boot reply */
-			fprintf(DbgFp, "\tBoot Reply:\n");
-			GETWORD(rmp->r_brpl.rmp_seqno, t);
-			(void) fprintf(DbgFp, BootFmt, rmp->r_brpl.rmp_retcode,
-			        t, ntohs(rmp->r_brpl.rmp_session),
-			        ntohs(rmp->r_brpl.rmp_version));
-			DspFlnm(rmp->r_brpl.rmp_flnmsize,&rmp->r_brpl.rmp_flnm);
-			break;
-		case RMP_READ_REQ:		/* read request */
-			(void) fprintf(DbgFp, "\tRead Request:\n");
-			GETWORD(rmp->r_rrq.rmp_offset, t);
-			(void) fprintf(DbgFp, ReadFmt, rmp->r_rrq.rmp_retcode,
-			        t, ntohs(rmp->r_rrq.rmp_session));
-			(void) fprintf(DbgFp, "\t\tNoOfBytes: %u\n",
-			        ntohs(rmp->r_rrq.rmp_size));
-			break;
-		case RMP_READ_REPL:		/* read reply */
-			(void) fprintf(DbgFp, "\tRead Reply:\n");
-			GETWORD(rmp->r_rrpl.rmp_offset, t);
-			(void) fprintf(DbgFp, ReadFmt, rmp->r_rrpl.rmp_retcode,
-			        t, ntohs(rmp->r_rrpl.rmp_session));
-			(void) fprintf(DbgFp, "\t\tNoOfBytesSent: %zu\n",
-			        rconn->rmplen - RMPREADSIZE(0));
-			break;
-		case RMP_BOOT_DONE:		/* boot complete */
-			(void) fprintf(DbgFp, "\tBoot Complete:\n");
-			(void) fprintf(DbgFp, "\t\tRetCode:%u SessID:%x\n",
-			        rmp->r_done.rmp_retcode,
-			        ntohs(rmp->r_done.rmp_session));
-			break;
-		default:			/* ??? */
-			(void) fprintf(DbgFp, "\tUnknown Type:(%d)\n",
-				rmp->r_type);
+	switch (rmp->r_type) {
+	case RMP_BOOT_REQ: /* boot request */
+		(void)fprintf(DbgFp, "\tBoot Request:");
+		GETWORD(rmp->r_brq.rmp_seqno, t);
+		if (ntohs(rmp->r_brq.rmp_session) == RMP_PROBESID) {
+			if (WORDZE(rmp->r_brq.rmp_seqno))
+				fputs(" (Send Server ID)", DbgFp);
+			else
+				fprintf(DbgFp, " (Send Filename #%u)", t);
+		}
+		(void)fputc('\n', DbgFp);
+		(void)fprintf(DbgFp, BootFmt, rmp->r_brq.rmp_retcode, t,
+		    ntohs(rmp->r_brq.rmp_session),
+		    ntohs(rmp->r_brq.rmp_version));
+		(void)fprintf(DbgFp, "\n\t\tMachine Type: ");
+		for (i = 0; i < RMP_MACHLEN; i++)
+			(void)fputc(rmp->r_brq.rmp_machtype[i], DbgFp);
+		DspFlnm(rmp->r_brq.rmp_flnmsize, &rmp->r_brq.rmp_flnm);
+		break;
+	case RMP_BOOT_REPL: /* boot reply */
+		fprintf(DbgFp, "\tBoot Reply:\n");
+		GETWORD(rmp->r_brpl.rmp_seqno, t);
+		(void)fprintf(DbgFp, BootFmt, rmp->r_brpl.rmp_retcode, t,
+		    ntohs(rmp->r_brpl.rmp_session),
+		    ntohs(rmp->r_brpl.rmp_version));
+		DspFlnm(rmp->r_brpl.rmp_flnmsize, &rmp->r_brpl.rmp_flnm);
+		break;
+	case RMP_READ_REQ: /* read request */
+		(void)fprintf(DbgFp, "\tRead Request:\n");
+		GETWORD(rmp->r_rrq.rmp_offset, t);
+		(void)fprintf(DbgFp, ReadFmt, rmp->r_rrq.rmp_retcode, t,
+		    ntohs(rmp->r_rrq.rmp_session));
+		(void)fprintf(DbgFp, "\t\tNoOfBytes: %u\n",
+		    ntohs(rmp->r_rrq.rmp_size));
+		break;
+	case RMP_READ_REPL: /* read reply */
+		(void)fprintf(DbgFp, "\tRead Reply:\n");
+		GETWORD(rmp->r_rrpl.rmp_offset, t);
+		(void)fprintf(DbgFp, ReadFmt, rmp->r_rrpl.rmp_retcode, t,
+		    ntohs(rmp->r_rrpl.rmp_session));
+		(void)fprintf(DbgFp, "\t\tNoOfBytesSent: %zu\n",
+		    rconn->rmplen - RMPREADSIZE(0));
+		break;
+	case RMP_BOOT_DONE: /* boot complete */
+		(void)fprintf(DbgFp, "\tBoot Complete:\n");
+		(void)fprintf(DbgFp, "\t\tRetCode:%u SessID:%x\n",
+		    rmp->r_done.rmp_retcode, ntohs(rmp->r_done.rmp_session));
+		break;
+	default: /* ??? */
+		(void)fprintf(DbgFp, "\tUnknown Type:(%d)\n", rmp->r_type);
 	}
-	(void) fputc('\n', DbgFp);
-	(void) fflush(DbgFp);
+	(void)fputc('\n', DbgFp);
+	(void)fflush(DbgFp);
 
-	(void) sigsetmask(omask);		/* reset old signal mask */
+	(void)sigsetmask(omask); /* reset old signal mask */
 }
-
 
 /*
 **  GetEtherAddr -- convert an RMP (Ethernet) address into a string.
@@ -198,7 +201,7 @@ char *
 GetEtherAddr(u_int8_t *addr)
 {
 	static char Hex[] = "0123456789abcdef";
-	static char etherstr[RMP_ADDRLEN*3];
+	static char etherstr[RMP_ADDRLEN * 3];
 	int i;
 	char *cp;
 
@@ -208,7 +211,7 @@ GetEtherAddr(u_int8_t *addr)
 	 */
 	i = 0;
 	cp = etherstr;
-	for(;;) {
+	for (;;) {
 		*cp++ = Hex[*addr >> 4 & 0xf];
 		*cp++ = Hex[*addr++ & 0xf];
 		if (++i == RMP_ADDRLEN)
@@ -217,9 +220,8 @@ GetEtherAddr(u_int8_t *addr)
 	}
 	*cp = '\0';
 
-	return(etherstr);
+	return (etherstr);
 }
-
 
 /*
 **  DispFlnm -- Print a string of bytes to DbgFp (often, a file name).
@@ -239,12 +241,11 @@ DspFlnm(u_int size, char *flnm)
 {
 	int i;
 
-	(void) fprintf(DbgFp, "\n\t\tFile Name (%u): <", size);
+	(void)fprintf(DbgFp, "\n\t\tFile Name (%u): <", size);
 	for (i = 0; i < size; i++)
-		(void) fputc(*flnm++, DbgFp);
-	(void) fputs(">\n", DbgFp);
+		(void)fputc(*flnm++, DbgFp);
+	(void)fputs(">\n", DbgFp);
 }
-
 
 /*
 **  NewClient -- allocate memory for a new CLIENT.
@@ -264,15 +265,15 @@ NewClient(u_int8_t *addr)
 {
 	CLIENT *ctmp;
 
-	if ((ctmp = (CLIENT *) malloc(sizeof(CLIENT))) == NULL) {
+	if ((ctmp = (CLIENT *)malloc(sizeof(CLIENT))) == NULL) {
 		syslog(LOG_ERR, "NewClient: out of memory (%s)",
-		       GetEtherAddr(addr));
-		return(NULL);
+		    GetEtherAddr(addr));
+		return (NULL);
 	}
 
 	memset(ctmp, 0, sizeof(CLIENT));
 	memmove(&ctmp->addr[0], addr, RMP_ADDRLEN);
-	return(ctmp);
+	return (ctmp);
 }
 
 /*
@@ -321,13 +322,13 @@ NewStr(char *str)
 {
 	char *stmp;
 
-	if ((stmp = (char *)malloc((unsigned) (strlen(str)+1))) == NULL) {
+	if ((stmp = (char *)malloc((unsigned)(strlen(str) + 1))) == NULL) {
 		syslog(LOG_ERR, "NewStr: out of memory (%s)", str);
-		return(NULL);
+		return (NULL);
 	}
 
-	(void) strcpy(stmp, str);
-	return(stmp);
+	(void)strcpy(stmp, str);
+	return (stmp);
 }
 
 /*
@@ -355,13 +356,13 @@ NewConn(RMPCONN *rconn)
 {
 	RMPCONN *rtmp;
 
-	if (LastFree == NULL) {		/* nothing cached; make a new one */
-		if ((rtmp = (RMPCONN *) malloc(sizeof(RMPCONN))) == NULL) {
+	if (LastFree == NULL) { /* nothing cached; make a new one */
+		if ((rtmp = (RMPCONN *)malloc(sizeof(RMPCONN))) == NULL) {
 			syslog(LOG_ERR, "NewConn: out of memory (%s)",
-			       EnetStr(rconn));
-			return(NULL);
+			    EnetStr(rconn));
+			return (NULL);
 		}
-	} else {			/* use the cached RMPCONN */
+	} else { /* use the cached RMPCONN */
 		rtmp = LastFree;
 		LastFree = NULL;
 	}
@@ -374,7 +375,7 @@ NewConn(RMPCONN *rconn)
 	rtmp->bootfd = -1;
 	rtmp->next = NULL;
 
-	return(rtmp);
+	return (rtmp);
 }
 
 /*
@@ -397,13 +398,13 @@ FreeConn(RMPCONN *rtmp)
 	 *  If the file descriptor is in use, close the file.
 	 */
 	if (rtmp->bootfd >= 0) {
-		(void) close(rtmp->bootfd);
+		(void)close(rtmp->bootfd);
 		rtmp->bootfd = -1;
 	}
 
-	if (LastFree == NULL)		/* cache for next time */
+	if (LastFree == NULL) /* cache for next time */
 		rtmp = LastFree;
-	else				/* already one cached; free this one */
+	else /* already one cached; free this one */
 		free((char *)rtmp);
 }
 
@@ -490,10 +491,10 @@ FindConn(RMPCONN *rconn)
 
 	for (rtmp = RmpConns; rtmp != NULL; rtmp = rtmp->next)
 		if (bcmp((char *)&rconn->rmp.hp_hdr.saddr[0],
-		         (char *)&rtmp->rmp.hp_hdr.saddr[0], RMP_ADDRLEN) == 0)
+			(char *)&rtmp->rmp.hp_hdr.saddr[0], RMP_ADDRLEN) == 0)
 			break;
 
-	return(rtmp);
+	return (rtmp);
 }
 
 /*
@@ -517,14 +518,14 @@ RemoveConn(RMPCONN *rconn)
 {
 	RMPCONN *thisrconn, *lastrconn;
 
-	if (RmpConns == rconn) {		/* easy case */
+	if (RmpConns == rconn) { /* easy case */
 		RmpConns = RmpConns->next;
 		FreeConn(rconn);
-	} else {				/* must traverse linked list */
-		lastrconn = RmpConns;			/* set back ptr */
-		thisrconn = lastrconn->next;		/* set current ptr */
+	} else {			     /* must traverse linked list */
+		lastrconn = RmpConns;	     /* set back ptr */
+		thisrconn = lastrconn->next; /* set current ptr */
 		while (thisrconn != NULL) {
-			if (rconn == thisrconn) {		/* found it */
+			if (rconn == thisrconn) { /* found it */
 				lastrconn->next = thisrconn->next;
 				FreeConn(thisrconn);
 				break;

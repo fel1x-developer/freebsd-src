@@ -36,64 +36,63 @@
 #ifdef USB_GLOBAL_INCLUDE_FILE
 #include USB_GLOBAL_INCLUDE_FILE
 #else
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 
-#define	USB_DEBUG_VAR uss820dcidebug
+#define USB_DEBUG_VAR uss820dcidebug
 
+#include <dev/usb/usb_bus.h>
+#include <dev/usb/usb_busdma.h>
+#include <dev/usb/usb_controller.h>
 #include <dev/usb/usb_core.h>
 #include <dev/usb/usb_debug.h>
-#include <dev/usb/usb_busdma.h>
-#include <dev/usb/usb_process.h>
-#include <dev/usb/usb_transfer.h>
 #include <dev/usb/usb_device.h>
 #include <dev/usb/usb_hub.h>
+#include <dev/usb/usb_process.h>
+#include <dev/usb/usb_transfer.h>
 #include <dev/usb/usb_util.h>
-
-#include <dev/usb/usb_controller.h>
-#include <dev/usb/usb_bus.h>
-#endif			/* USB_GLOBAL_INCLUDE_FILE */
+#endif /* USB_GLOBAL_INCLUDE_FILE */
 
 #include <dev/usb/controller/uss820dci.h>
 
-#define	USS820_DCI_BUS2SC(bus) \
-    __containerof(bus, struct uss820dci_softc, sc_bus)
+#define USS820_DCI_BUS2SC(bus) \
+	__containerof(bus, struct uss820dci_softc, sc_bus)
 
-#define	USS820_DCI_PC2SC(pc) \
-   USS820_DCI_BUS2SC(USB_DMATAG_TO_XROOT((pc)->tag_parent)->bus)
+#define USS820_DCI_PC2SC(pc) \
+	USS820_DCI_BUS2SC(USB_DMATAG_TO_XROOT((pc)->tag_parent)->bus)
 
-#define	USS820_DCI_THREAD_IRQ \
-    (USS820_SSR_SUSPEND | USS820_SSR_RESUME | USS820_SSR_RESET)
+#define USS820_DCI_THREAD_IRQ \
+	(USS820_SSR_SUSPEND | USS820_SSR_RESUME | USS820_SSR_RESET)
 
 #ifdef USB_DEBUG
 static int uss820dcidebug = 0;
 
 static SYSCTL_NODE(_hw_usb, OID_AUTO, uss820dci, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "USB uss820dci");
-SYSCTL_INT(_hw_usb_uss820dci, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &uss820dcidebug, 0, "uss820dci debug level");
+SYSCTL_INT(_hw_usb_uss820dci, OID_AUTO, debug, CTLFLAG_RWTUN, &uss820dcidebug,
+    0, "uss820dci debug level");
 #endif
 
-#define	USS820_DCI_INTR_ENDPT 1
+#define USS820_DCI_INTR_ENDPT 1
 
 /* prototypes */
 
@@ -107,13 +106,13 @@ static uss820dci_cmd_t uss820dci_setup_rx;
 static uss820dci_cmd_t uss820dci_data_rx;
 static uss820dci_cmd_t uss820dci_data_tx;
 static uss820dci_cmd_t uss820dci_data_tx_sync;
-static void	uss820dci_device_done(struct usb_xfer *, usb_error_t);
-static void	uss820dci_do_poll(struct usb_bus *);
-static void	uss820dci_standard_done(struct usb_xfer *);
-static void	uss820dci_intr_set(struct usb_xfer *, uint8_t);
-static void	uss820dci_update_shared_1(struct uss820dci_softc *, uint8_t,
-		    uint8_t, uint8_t);
-static void	uss820dci_root_intr(struct uss820dci_softc *);
+static void uss820dci_device_done(struct usb_xfer *, usb_error_t);
+static void uss820dci_do_poll(struct usb_bus *);
+static void uss820dci_standard_done(struct usb_xfer *);
+static void uss820dci_intr_set(struct usb_xfer *, uint8_t);
+static void uss820dci_update_shared_1(struct uss820dci_softc *, uint8_t,
+    uint8_t, uint8_t);
+static void uss820dci_root_intr(struct uss820dci_softc *);
 
 /*
  * Here is a list of what the USS820D chip can support. The main
@@ -197,8 +196,7 @@ uss820dci_pull_up(struct uss820dci_softc *sc)
 
 	/* pullup D+, if possible */
 
-	if (!sc->sc_flags.d_pulled_up &&
-	    sc->sc_flags.port_powered) {
+	if (!sc->sc_flags.d_pulled_up && sc->sc_flags.port_powered) {
 		sc->sc_flags.d_pulled_up = 1;
 
 		DPRINTF("\n");
@@ -268,14 +266,14 @@ uss820dci_setup_rx(struct uss820dci_softc *sc, struct uss820dci_td *td)
 
 	/* clear stall and all I/O */
 	uss820dci_update_shared_1(sc, USS820_EPCON,
-	    0xFF ^ (USS820_EPCON_TXSTL |
-	    USS820_EPCON_RXSTL |
-	    USS820_EPCON_RXIE |
-	    USS820_EPCON_TXOE), 0);
+	    0xFF ^
+		(USS820_EPCON_TXSTL | USS820_EPCON_RXSTL | USS820_EPCON_RXIE |
+		    USS820_EPCON_TXOE),
+	    0);
 
 	/* clear end overwrite flag */
-	uss820dci_update_shared_1(sc, USS820_RXSTAT,
-	    0xFF ^ USS820_RXSTAT_EDOVW, 0);
+	uss820dci_update_shared_1(sc, USS820_RXSTAT, 0xFF ^ USS820_RXSTAT_EDOVW,
+	    0);
 
 	/* get the packet byte count */
 	count = USS820_READ_1(sc, USS820_RXCNTL);
@@ -284,13 +282,17 @@ uss820dci_setup_rx(struct uss820dci_softc *sc, struct uss820dci_td *td)
 
 	/* verify data length */
 	if (count != td->remainder) {
-		DPRINTFN(0, "Invalid SETUP packet "
-		    "length, %d bytes\n", count);
+		DPRINTFN(0,
+		    "Invalid SETUP packet "
+		    "length, %d bytes\n",
+		    count);
 		goto setup_not_complete;
 	}
 	if (count != sizeof(req)) {
-		DPRINTFN(0, "Unsupported SETUP packet "
-		    "length, %d bytes\n", count);
+		DPRINTFN(0,
+		    "Unsupported SETUP packet "
+		    "length, %d bytes\n",
+		    count);
 		goto setup_not_complete;
 	}
 	/* receive data */
@@ -300,16 +302,16 @@ uss820dci_setup_rx(struct uss820dci_softc *sc, struct uss820dci_td *td)
 	/* read out FIFO status */
 	rx_stat = USS820_READ_1(sc, USS820_RXSTAT);
 
-	if (rx_stat & (USS820_RXSTAT_EDOVW |
-	    USS820_RXSTAT_STOVW)) {
+	if (rx_stat & (USS820_RXSTAT_EDOVW | USS820_RXSTAT_STOVW)) {
 		DPRINTF("new SETUP packet received\n");
-		return (1);		/* not complete */
+		return (1); /* not complete */
 	}
 	/* clear receive setup bit */
 	uss820dci_update_shared_1(sc, USS820_RXSTAT,
-	    0xFF ^ (USS820_RXSTAT_RXSETUP |
-	    USS820_RXSTAT_EDOVW |
-	    USS820_RXSTAT_STOVW), 0);
+	    0xFF ^
+		(USS820_RXSTAT_RXSETUP | USS820_RXSTAT_EDOVW |
+		    USS820_RXSTAT_STOVW),
+	    0);
 
 	/* set RXFFRC bit */
 	temp = USS820_READ_1(sc, USS820_RXCON);
@@ -337,7 +339,7 @@ uss820dci_setup_rx(struct uss820dci_softc *sc, struct uss820dci_td *td)
 	temp &= ~USS820_TXCON_TXCLR;
 	USS820_WRITE_1(sc, USS820_TXCON, temp);
 
-	return (0);			/* complete */
+	return (0); /* complete */
 
 setup_not_complete:
 
@@ -362,11 +364,12 @@ not_complete:
 	/* clear end overwrite flag, if any */
 	if (rx_stat & USS820_RXSTAT_RXSETUP) {
 		uss820dci_update_shared_1(sc, USS820_RXSTAT,
-		    0xFF ^ (USS820_RXSTAT_EDOVW |
-		    USS820_RXSTAT_STOVW |
-		    USS820_RXSTAT_RXSETUP), 0);
+		    0xFF ^
+			(USS820_RXSTAT_EDOVW | USS820_RXSTAT_STOVW |
+			    USS820_RXSTAT_RXSETUP),
+		    0);
 	}
-	return (1);			/* not complete */
+	return (1); /* not complete */
 }
 
 static uint8_t
@@ -380,7 +383,7 @@ uss820dci_data_rx(struct uss820dci_softc *sc, struct uss820dci_td *td)
 	uint8_t to;
 	uint8_t got_short;
 
-	to = 2;				/* don't loop forever! */
+	to = 2; /* don't loop forever! */
 	got_short = 0;
 
 	/* select the correct endpoint */
@@ -393,37 +396,35 @@ repeat:
 	/* read out FIFO status */
 	rx_stat = USS820_READ_1(sc, USS820_RXSTAT);
 
-	DPRINTFN(5, "rx_stat=0x%02x rx_flag=0x%02x rem=%u\n",
-	    rx_stat, rx_flag, td->remainder);
+	DPRINTFN(5, "rx_stat=0x%02x rx_flag=0x%02x rem=%u\n", rx_stat, rx_flag,
+	    td->remainder);
 
-	if (rx_stat & (USS820_RXSTAT_RXSETUP |
-	    USS820_RXSTAT_RXSOVW |
-	    USS820_RXSTAT_EDOVW)) {
+	if (rx_stat &
+	    (USS820_RXSTAT_RXSETUP | USS820_RXSTAT_RXSOVW |
+		USS820_RXSTAT_EDOVW)) {
 		if (td->remainder == 0 && td->ep_index == 0) {
 			/*
 			 * We are actually complete and have
 			 * received the next SETUP
 			 */
 			DPRINTFN(5, "faking complete\n");
-			return (0);	/* complete */
+			return (0); /* complete */
 		}
 		/*
-	         * USB Host Aborted the transfer.
-	         */
+		 * USB Host Aborted the transfer.
+		 */
 		td->error = 1;
-		return (0);		/* complete */
+		return (0); /* complete */
 	}
 	/* check for errors */
-	if (rx_flag & (USS820_RXFLG_RXOVF |
-	    USS820_RXFLG_RXURF)) {
+	if (rx_flag & (USS820_RXFLG_RXOVF | USS820_RXFLG_RXURF)) {
 		DPRINTFN(5, "overflow or underflow\n");
 		/* should not happen */
 		td->error = 1;
-		return (0);		/* complete */
+		return (0); /* complete */
 	}
 	/* check status */
-	if (!(rx_flag & (USS820_RXFLG_RXFIF0 |
-	    USS820_RXFLG_RXFIF1))) {
+	if (!(rx_flag & (USS820_RXFLG_RXFIF0 | USS820_RXFLG_RXFIF1))) {
 		/* read out EPCON register */
 		/* enable RX input */
 		if (!td->did_enable) {
@@ -431,7 +432,7 @@ repeat:
 			    USS820_EPCON, 0xFF, USS820_EPCON_RXIE);
 			td->did_enable = 1;
 		}
-		return (1);		/* not complete */
+		return (1); /* not complete */
 	}
 	/* get the packet byte count */
 	count = USS820_READ_1(sc, USS820_RXCNTL);
@@ -449,14 +450,14 @@ repeat:
 		} else {
 			/* invalid USB packet */
 			td->error = 1;
-			return (0);	/* we are complete */
+			return (0); /* we are complete */
 		}
 	}
 	/* verify the packet byte count */
 	if (count > td->remainder) {
 		/* invalid USB packet */
 		td->error = 1;
-		return (0);		/* we are complete */
+		return (0); /* we are complete */
 	}
 	while (count > 0) {
 		usbd_get_page(td->pc, td->offset, &buf_res);
@@ -467,7 +468,8 @@ repeat:
 		}
 		/* receive data */
 		bus_space_read_multi_1(sc->sc_io_tag, sc->sc_io_hdl,
-		    USS820_RXDAT * USS820_REG_STRIDE, buf_res.buffer, buf_res.length);
+		    USS820_RXDAT * USS820_REG_STRIDE, buf_res.buffer,
+		    buf_res.length);
 
 		/* update counters */
 		count -= buf_res.length;
@@ -491,7 +493,7 @@ repeat:
 	if (--to) {
 		goto repeat;
 	}
-	return (1);			/* not complete */
+	return (1); /* not complete */
 }
 
 static uint8_t
@@ -507,7 +509,7 @@ uss820dci_data_tx(struct uss820dci_softc *sc, struct uss820dci_td *td)
 	/* select the correct endpoint */
 	USS820_WRITE_1(sc, USS820_EPINDEX, td->ep_index);
 
-	to = 2;				/* don't loop forever! */
+	to = 2; /* don't loop forever! */
 
 repeat:
 	/* read out TX FIFO flags */
@@ -521,31 +523,29 @@ repeat:
 
 		DPRINTFN(5, "rx_stat=0x%02x\n", rx_stat);
 
-		if (rx_stat & (USS820_RXSTAT_RXSETUP |
-		    USS820_RXSTAT_RXSOVW |
-		    USS820_RXSTAT_EDOVW)) {
+		if (rx_stat &
+		    (USS820_RXSTAT_RXSETUP | USS820_RXSTAT_RXSOVW |
+			USS820_RXSTAT_EDOVW)) {
 			/*
 			 * The current transfer was aborted by the USB
 			 * Host:
 			 */
 			td->error = 1;
-			return (0);		/* complete */
+			return (0); /* complete */
 		}
 	}
-	if (tx_flag & (USS820_TXFLG_TXOVF |
-	    USS820_TXFLG_TXURF)) {
+	if (tx_flag & (USS820_TXFLG_TXOVF | USS820_TXFLG_TXURF)) {
 		td->error = 1;
-		return (0);		/* complete */
+		return (0); /* complete */
 	}
 	if (tx_flag & USS820_TXFLG_TXFIF0) {
 		if (tx_flag & USS820_TXFLG_TXFIF1) {
-			return (1);	/* not complete */
+			return (1); /* not complete */
 		}
 	}
 	if ((!td->support_multi_buffer) &&
-	    (tx_flag & (USS820_TXFLG_TXFIF0 |
-	    USS820_TXFLG_TXFIF1))) {
-		return (1);		/* not complete */
+	    (tx_flag & (USS820_TXFLG_TXFIF0 | USS820_TXFLG_TXFIF1))) {
+		return (1); /* not complete */
 	}
 	count = td->max_packet_size;
 	if (td->remainder < count) {
@@ -563,7 +563,8 @@ repeat:
 		}
 		/* transmit data */
 		bus_space_write_multi_1(sc->sc_io_tag, sc->sc_io_hdl,
-		    USS820_TXDAT * USS820_REG_STRIDE, buf_res.buffer, buf_res.length);
+		    USS820_TXDAT * USS820_REG_STRIDE, buf_res.buffer,
+		    buf_res.length);
 
 		/* update counters */
 		count -= buf_res.length;
@@ -589,14 +590,14 @@ repeat:
 	/* check remainder */
 	if (td->remainder == 0) {
 		if (td->short_pkt) {
-			return (0);	/* complete */
+			return (0); /* complete */
 		}
 		/* else we need to transmit a short packet */
 	}
 	if (--to) {
 		goto repeat;
 	}
-	return (1);			/* not complete */
+	return (1); /* not complete */
 }
 
 static uint8_t
@@ -617,30 +618,28 @@ uss820dci_data_tx_sync(struct uss820dci_softc *sc, struct uss820dci_td *td)
 
 		DPRINTFN(5, "rx_stat=0x%02x rem=%u\n", rx_stat, td->remainder);
 
-		if (rx_stat & (USS820_RXSTAT_RXSETUP |
-		    USS820_RXSTAT_RXSOVW |
-		    USS820_RXSTAT_EDOVW)) {
+		if (rx_stat &
+		    (USS820_RXSTAT_RXSETUP | USS820_RXSTAT_RXSOVW |
+			USS820_RXSTAT_EDOVW)) {
 			DPRINTFN(5, "faking complete\n");
 			/* Race condition */
-			return (0);		/* complete */
+			return (0); /* complete */
 		}
 	}
 	DPRINTFN(5, "tx_flag=0x%02x rem=%u\n", tx_flag, td->remainder);
 
-	if (tx_flag & (USS820_TXFLG_TXOVF |
-	    USS820_TXFLG_TXURF)) {
+	if (tx_flag & (USS820_TXFLG_TXOVF | USS820_TXFLG_TXURF)) {
 		td->error = 1;
-		return (0);		/* complete */
+		return (0); /* complete */
 	}
-	if (tx_flag & (USS820_TXFLG_TXFIF0 |
-	    USS820_TXFLG_TXFIF1)) {
-		return (1);		/* not complete */
+	if (tx_flag & (USS820_TXFLG_TXFIF0 | USS820_TXFLG_TXFIF1)) {
+		return (1); /* not complete */
 	}
 	if (td->ep_index == 0 && sc->sc_dv_addr != 0xFF) {
 		/* write function address */
 		uss820dci_set_address(sc, sc->sc_dv_addr);
 	}
-	return (0);			/* complete */
+	return (0); /* complete */
 }
 
 static void
@@ -656,7 +655,7 @@ uss820dci_xfer_do_fifo(struct usb_xfer *xfer)
 		return;
 
 	while (1) {
-		if ((td->func) (sc, td)) {
+		if ((td->func)(sc, td)) {
 			/* operation in progress */
 			break;
 		}
@@ -699,7 +698,7 @@ uss820dci_xfer_do_complete(struct usb_xfer *xfer)
 	if (td == NULL) {
 		/* compute all actual lengths */
 		uss820dci_standard_done(xfer);
-		return(1);
+		return (1);
 	}
 	return (0);
 }
@@ -709,7 +708,7 @@ uss820dci_interrupt_poll_locked(struct uss820dci_softc *sc)
 {
 	struct usb_xfer *xfer;
 
-	TAILQ_FOREACH(xfer, &sc->sc_bus.intr_q.head, wait_entry)
+	TAILQ_FOREACH (xfer, &sc->sc_bus.intr_q.head, wait_entry)
 		uss820dci_xfer_do_fifo(xfer);
 }
 
@@ -718,7 +717,7 @@ uss820dci_interrupt_complete_locked(struct uss820dci_softc *sc)
 {
 	struct usb_xfer *xfer;
 repeat:
-	TAILQ_FOREACH(xfer, &sc->sc_bus.intr_q.head, wait_entry) {
+	TAILQ_FOREACH (xfer, &sc->sc_bus.intr_q.head, wait_entry) {
 		if (uss820dci_xfer_do_complete(xfer))
 			goto repeat;
 	}
@@ -804,11 +803,11 @@ uss820dci_interrupt(void *arg)
 			event = 1;
 		}
 		/*
-	         * If "RESUME" and "SUSPEND" is set at the same time
-	         * we interpret that like "RESUME". Resume is set when
-	         * there is at least 3 milliseconds of inactivity on
-	         * the USB BUS.
-	         */
+		 * If "RESUME" and "SUSPEND" is set at the same time
+		 * we interpret that like "RESUME". Resume is set when
+		 * there is at least 3 milliseconds of inactivity on
+		 * the USB BUS.
+		 */
 		if (ssr & USS820_SSR_RESUME) {
 			if (sc->sc_flags.status_suspend) {
 				sc->sc_flags.status_suspend = 0;
@@ -880,9 +879,9 @@ uss820dci_setup_standard_chain(struct usb_xfer *xfer)
 	struct uss820dci_td *td;
 	uint32_t x;
 
-	DPRINTFN(9, "addr=%d endpt=%d sumlen=%d speed=%d\n",
-	    xfer->address, UE_GET_ADDR(xfer->endpointno),
-	    xfer->sumlen, usbd_get_speed(xfer->xroot->udev));
+	DPRINTFN(9, "addr=%d endpt=%d sumlen=%d speed=%d\n", xfer->address,
+	    UE_GET_ADDR(xfer->endpointno), xfer->sumlen,
+	    usbd_get_speed(xfer->xroot->udev));
 
 	temp.max_frame_size = xfer->max_frame_size;
 
@@ -1042,9 +1041,9 @@ uss820dci_intr_set(struct usb_xfer *xfer, uint8_t set)
 
 	if (xfer->flags_int.control_xfr) {
 		if (xfer->flags_int.control_hdr) {
-			ep_no <<= 1;	/* RX interrupt only */
+			ep_no <<= 1; /* RX interrupt only */
 		} else {
-			ep_no |= (ep_no << 1);	/* RX and TX interrupt */
+			ep_no |= (ep_no << 1); /* RX and TX interrupt */
 		}
 	} else {
 		if (!(xfer->endpointno & UE_DIR_IN)) {
@@ -1085,8 +1084,8 @@ uss820dci_start_standard_chain(struct usb_xfer *xfer)
 
 		/* start timeout, if any */
 		if (xfer->timeout != 0) {
-			usbd_transfer_timeout_ms(xfer,
-			    &uss820dci_timeout, xfer->timeout);
+			usbd_transfer_timeout_ms(xfer, &uss820dci_timeout,
+			    xfer->timeout);
 		}
 	}
 	USB_BUS_SPIN_UNLOCK(&sc->sc_bus);
@@ -1100,10 +1099,9 @@ uss820dci_root_intr(struct uss820dci_softc *sc)
 	USB_BUS_LOCK_ASSERT(&sc->sc_bus, MA_OWNED);
 
 	/* set port bit */
-	sc->sc_hub_idata[0] = 0x02;	/* we only have one port */
+	sc->sc_hub_idata[0] = 0x02; /* we only have one port */
 
-	uhub_root_intr(&sc->sc_bus, sc->sc_hub_idata,
-	    sizeof(sc->sc_hub_idata));
+	uhub_root_intr(&sc->sc_bus, sc->sc_hub_idata, sizeof(sc->sc_hub_idata));
 }
 
 static usb_error_t
@@ -1122,9 +1120,9 @@ uss820dci_standard_done_sub(struct usb_xfer *xfer)
 
 		if (xfer->aframes != xfer->nframes) {
 			/*
-		         * Verify the length and subtract
-		         * the remainder from "frlengths[]":
-		         */
+			 * Verify the length and subtract
+			 * the remainder from "frlengths[]":
+			 */
 			if (len > xfer->frlengths[xfer->aframes]) {
 				td->error = 1;
 			} else {
@@ -1167,8 +1165,7 @@ uss820dci_standard_done_sub(struct usb_xfer *xfer)
 
 	xfer->td_transfer_cache = td;
 
-	return (error ?
-	    USB_ERR_STALLED : USB_ERR_NORMAL_COMPLETION);
+	return (error ? USB_ERR_STALLED : USB_ERR_NORMAL_COMPLETION);
 }
 
 static void
@@ -1176,8 +1173,8 @@ uss820dci_standard_done(struct usb_xfer *xfer)
 {
 	usb_error_t err = 0;
 
-	DPRINTFN(13, "xfer=%p endpoint=%p transfer done\n",
-	    xfer, xfer->endpoint);
+	DPRINTFN(13, "xfer=%p endpoint=%p transfer done\n", xfer,
+	    xfer->endpoint);
 
 	/* reset scanner */
 
@@ -1202,8 +1199,7 @@ uss820dci_standard_done(struct usb_xfer *xfer)
 		}
 	}
 
-	if (xfer->flags_int.control_xfr &&
-	    !xfer->flags_int.control_act) {
+	if (xfer->flags_int.control_xfr && !xfer->flags_int.control_act) {
 		err = uss820dci_standard_done_sub(xfer);
 	}
 done:
@@ -1223,8 +1219,8 @@ uss820dci_device_done(struct usb_xfer *xfer, usb_error_t error)
 
 	USB_BUS_LOCK_ASSERT(xfer->xroot->bus, MA_OWNED);
 
-	DPRINTFN(2, "xfer=%p, endpoint=%p, error=%d\n",
-	    xfer, xfer->endpoint, error);
+	DPRINTFN(2, "xfer=%p, endpoint=%p, error=%d\n", xfer, xfer->endpoint,
+	    error);
 
 	USB_BUS_SPIN_LOCK(&sc->sc_bus);
 
@@ -1244,8 +1240,8 @@ uss820dci_xfer_stall(struct usb_xfer *xfer)
 }
 
 static void
-uss820dci_set_stall(struct usb_device *udev,
-    struct usb_endpoint *ep, uint8_t *did_stall)
+uss820dci_set_stall(struct usb_device *udev, struct usb_endpoint *ep,
+    uint8_t *did_stall)
 {
 	struct uss820dci_softc *sc;
 	uint8_t ep_no;
@@ -1280,8 +1276,8 @@ uss820dci_set_stall(struct usb_device *udev,
 }
 
 static void
-uss820dci_clear_stall_sub(struct uss820dci_softc *sc,
-    uint8_t ep_no, uint8_t ep_type, uint8_t ep_dir)
+uss820dci_clear_stall_sub(struct uss820dci_softc *sc, uint8_t ep_no,
+    uint8_t ep_type, uint8_t ep_dir)
 {
 	uint8_t temp;
 
@@ -1296,18 +1292,15 @@ uss820dci_clear_stall_sub(struct uss820dci_softc *sc,
 
 	/* clear stall and disable I/O transfers */
 	if (ep_dir == UE_DIR_IN) {
-		temp = 0xFF ^ (USS820_EPCON_TXOE |
-		    USS820_EPCON_TXSTL);
+		temp = 0xFF ^ (USS820_EPCON_TXOE | USS820_EPCON_TXSTL);
 	} else {
-		temp = 0xFF ^ (USS820_EPCON_RXIE |
-		    USS820_EPCON_RXSTL);
+		temp = 0xFF ^ (USS820_EPCON_RXIE | USS820_EPCON_RXSTL);
 	}
 	uss820dci_update_shared_1(sc, USS820_EPCON, temp, 0);
 
 	if (ep_dir == UE_DIR_IN) {
 		/* reset data toggle */
-		USS820_WRITE_1(sc, USS820_TXSTAT,
-		    USS820_TXSTAT_TXSOVW);
+		USS820_WRITE_1(sc, USS820_TXSTAT, USS820_TXSTAT_TXSOVW);
 
 		/* reset FIFO */
 		temp = USS820_READ_1(sc, USS820_TXCON);
@@ -1317,8 +1310,8 @@ uss820dci_clear_stall_sub(struct uss820dci_softc *sc,
 		USS820_WRITE_1(sc, USS820_TXCON, temp);
 	} else {
 		/* reset data toggle */
-		uss820dci_update_shared_1(sc, USS820_RXSTAT,
-		    0, USS820_RXSTAT_RXSOVW);
+		uss820dci_update_shared_1(sc, USS820_RXSTAT, 0,
+		    USS820_RXSTAT_RXSOVW);
 
 		/* reset FIFO */
 		temp = USS820_READ_1(sc, USS820_RXCON);
@@ -1353,8 +1346,7 @@ uss820dci_clear_stall(struct usb_device *udev, struct usb_endpoint *ep)
 	ed = ep->edesc;
 
 	/* reset endpoint */
-	uss820dci_clear_stall_sub(sc,
-	    (ed->bEndpointAddress & UE_ADDR),
+	uss820dci_clear_stall_sub(sc, (ed->bEndpointAddress & UE_ADDR),
 	    (ed->bmAttributes & UE_XFERTYPE),
 	    (ed->bEndpointAddress & (UE_DIR_IN | UE_DIR_OUT)));
 }
@@ -1412,20 +1404,15 @@ uss820dci_init(struct uss820dci_softc *sc)
 	}
 	/* enable interrupts */
 	USS820_WRITE_1(sc, USS820_SCR,
-	    USS820_SCR_T_IRQ |
-	    USS820_SCR_IE_RESET |
-	/* USS820_SCR_RWUPE | */
-	    USS820_SCR_IE_SUSP |
-	    USS820_SCR_IRQPOL);
+	    USS820_SCR_T_IRQ | USS820_SCR_IE_RESET |
+		/* USS820_SCR_RWUPE | */
+		USS820_SCR_IE_SUSP | USS820_SCR_IRQPOL);
 
 	/* enable interrupts */
-	USS820_WRITE_1(sc, USS820_SCRATCH,
-	    USS820_SCRATCH_IE_RESUME);
+	USS820_WRITE_1(sc, USS820_SCRATCH, USS820_SCRATCH_IE_RESUME);
 
 	/* enable features */
-	USS820_WRITE_1(sc, USS820_MCSR,
-	    USS820_MCSR_BDFEAT |
-	    USS820_MCSR_FEAT);
+	USS820_WRITE_1(sc, USS820_MCSR, USS820_MCSR_BDFEAT | USS820_MCSR_FEAT);
 
 	sc->sc_flags.mcsr_feat = 1;
 
@@ -1459,20 +1446,16 @@ uss820dci_init(struct uss820dci_softc *sc)
 		if (pf->support_isochronous) {
 			if (pf->max_in_frame_size <= 64) {
 				temp = (USS820_TXCON_FFSZ_16_64 |
-				    USS820_TXCON_TXISO |
-				    USS820_TXCON_ATM);
+				    USS820_TXCON_TXISO | USS820_TXCON_ATM);
 			} else if (pf->max_in_frame_size <= 256) {
 				temp = (USS820_TXCON_FFSZ_64_256 |
-				    USS820_TXCON_TXISO |
-				    USS820_TXCON_ATM);
+				    USS820_TXCON_TXISO | USS820_TXCON_ATM);
 			} else if (pf->max_in_frame_size <= 512) {
 				temp = (USS820_TXCON_FFSZ_8_512 |
-				    USS820_TXCON_TXISO |
-				    USS820_TXCON_ATM);
-			} else {	/* 1024 bytes */
+				    USS820_TXCON_TXISO | USS820_TXCON_ATM);
+			} else { /* 1024 bytes */
 				temp = (USS820_TXCON_FFSZ_32_1024 |
-				    USS820_TXCON_TXISO |
-				    USS820_TXCON_ATM);
+				    USS820_TXCON_TXISO | USS820_TXCON_ATM);
 			}
 		} else {
 			if ((pf->max_in_frame_size <= 8) &&
@@ -1486,7 +1469,7 @@ uss820dci_init(struct uss820dci_softc *sc)
 			    (sc->sc_flags.mcsr_feat)) {
 				temp = (USS820_TXCON_FFSZ_32_1024 |
 				    USS820_TXCON_ATM);
-			} else {	/* 64 bytes */
+			} else { /* 64 bytes */
 				temp = (USS820_TXCON_FFSZ_64_256 |
 				    USS820_TXCON_ATM);
 			}
@@ -1499,12 +1482,9 @@ uss820dci_init(struct uss820dci_softc *sc)
 		USS820_WRITE_1(sc, USS820_RXCON, temp);
 
 		if (pf->support_control) {
-			temp = USS820_EPCON_CTLEP |
-			    USS820_EPCON_RXSPM |
-			    USS820_EPCON_RXIE |
-			    USS820_EPCON_RXEPEN |
-			    USS820_EPCON_TXOE |
-			    USS820_EPCON_TXEPEN;
+			temp = USS820_EPCON_CTLEP | USS820_EPCON_RXSPM |
+			    USS820_EPCON_RXIE | USS820_EPCON_RXEPEN |
+			    USS820_EPCON_TXOE | USS820_EPCON_TXEPEN;
 		} else {
 			temp = USS820_EPCON_RXEPEN | USS820_EPCON_TXEPEN;
 		}
@@ -1518,7 +1498,7 @@ uss820dci_init(struct uss820dci_softc *sc)
 
 	uss820dci_do_poll(&sc->sc_bus);
 
-	return (0);			/* success */
+	return (0); /* success */
 }
 
 void
@@ -1598,8 +1578,7 @@ uss820dci_device_bulk_start(struct usb_xfer *xfer)
 	uss820dci_start_standard_chain(xfer);
 }
 
-static const struct usb_pipe_methods uss820dci_device_bulk_methods =
-{
+static const struct usb_pipe_methods uss820dci_device_bulk_methods = {
 	.open = uss820dci_device_bulk_open,
 	.close = uss820dci_device_bulk_close,
 	.enter = uss820dci_device_bulk_enter,
@@ -1635,8 +1614,7 @@ uss820dci_device_ctrl_start(struct usb_xfer *xfer)
 	uss820dci_start_standard_chain(xfer);
 }
 
-static const struct usb_pipe_methods uss820dci_device_ctrl_methods =
-{
+static const struct usb_pipe_methods uss820dci_device_ctrl_methods = {
 	.open = uss820dci_device_ctrl_open,
 	.close = uss820dci_device_ctrl_close,
 	.enter = uss820dci_device_ctrl_enter,
@@ -1672,8 +1650,7 @@ uss820dci_device_intr_start(struct usb_xfer *xfer)
 	uss820dci_start_standard_chain(xfer);
 }
 
-static const struct usb_pipe_methods uss820dci_device_intr_methods =
-{
+static const struct usb_pipe_methods uss820dci_device_intr_methods = {
 	.open = uss820dci_device_intr_open,
 	.close = uss820dci_device_intr_close,
 	.enter = uss820dci_device_intr_enter,
@@ -1701,15 +1678,15 @@ uss820dci_device_isoc_fs_enter(struct usb_xfer *xfer)
 	struct uss820dci_softc *sc = USS820_DCI_BUS2SC(xfer->xroot->bus);
 	uint32_t nframes;
 
-	DPRINTFN(6, "xfer=%p next=%d nframes=%d\n",
-	    xfer, xfer->endpoint->isoc_next, xfer->nframes);
+	DPRINTFN(6, "xfer=%p next=%d nframes=%d\n", xfer,
+	    xfer->endpoint->isoc_next, xfer->nframes);
 
 	/* get the current frame index - we don't need the high bits */
 
 	nframes = USS820_READ_1(sc, USS820_SOFL);
 
-	if (usbd_xfer_get_isochronous_start_frame(
-	    xfer, nframes, 0, 1, USS820_SOFL_MASK, NULL))
+	if (usbd_xfer_get_isochronous_start_frame(xfer, nframes, 0, 1,
+		USS820_SOFL_MASK, NULL))
 		DPRINTFN(3, "start next=%d\n", xfer->endpoint->isoc_next);
 
 	/* setup TDs */
@@ -1723,8 +1700,7 @@ uss820dci_device_isoc_fs_start(struct usb_xfer *xfer)
 	uss820dci_start_standard_chain(xfer);
 }
 
-static const struct usb_pipe_methods uss820dci_device_isoc_fs_methods =
-{
+static const struct usb_pipe_methods uss820dci_device_isoc_fs_methods = {
 	.open = uss820dci_device_isoc_fs_open,
 	.close = uss820dci_device_isoc_fs_close,
 	.enter = uss820dci_device_isoc_fs_enter,
@@ -1740,12 +1716,12 @@ static const struct usb_pipe_methods uss820dci_device_isoc_fs_methods =
 static const struct usb_device_descriptor uss820dci_devd = {
 	.bLength = sizeof(struct usb_device_descriptor),
 	.bDescriptorType = UDESC_DEVICE,
-	.bcdUSB = {0x00, 0x02},
+	.bcdUSB = { 0x00, 0x02 },
 	.bDeviceClass = UDCLASS_HUB,
 	.bDeviceSubClass = UDSUBCLASS_HUB,
 	.bDeviceProtocol = UDPROTO_FSHUB,
 	.bMaxPacketSize = 64,
-	.bcdDevice = {0x00, 0x01},
+	.bcdDevice = { 0x00, 0x01 },
 	.iManufacturer = 1,
 	.iProduct = 2,
 	.bNumConfigurations = 1,
@@ -1754,7 +1730,7 @@ static const struct usb_device_descriptor uss820dci_devd = {
 static const struct usb_device_qualifier uss820dci_odevd = {
 	.bLength = sizeof(struct usb_device_qualifier),
 	.bDescriptorType = UDESC_DEVICE_QUALIFIER,
-	.bcdUSB = {0x00, 0x02},
+	.bcdUSB = { 0x00, 0x02 },
 	.bDeviceClass = UDCLASS_HUB,
 	.bDeviceSubClass = UDSUBCLASS_HUB,
 	.bDeviceProtocol = UDPROTO_FSHUB,
@@ -1791,7 +1767,7 @@ static const struct uss820dci_config_desc uss820dci_confd = {
 		.bInterval = 255,
 	},
 };
-#define	HSETW(ptr, val) ptr = { (uint8_t)(val), (uint8_t)((val) >> 8) }
+#define HSETW(ptr, val) ptr = { (uint8_t)(val), (uint8_t)((val) >> 8) }
 
 static const struct usb_hub_descriptor_min uss820dci_hubd = {
 	.bDescLength = sizeof(uss820dci_hubd),
@@ -1800,21 +1776,19 @@ static const struct usb_hub_descriptor_min uss820dci_hubd = {
 	HSETW(.wHubCharacteristics, (UHD_PWR_NO_SWITCH | UHD_OC_INDIVIDUAL)),
 	.bPwrOn2PwrGood = 50,
 	.bHubContrCurrent = 0,
-	.DeviceRemovable = {0},		/* port is removable */
+	.DeviceRemovable = { 0 }, /* port is removable */
 };
 
-#define	STRING_VENDOR \
-  "A\0G\0E\0R\0E"
+#define STRING_VENDOR "A\0G\0E\0R\0E"
 
-#define	STRING_PRODUCT \
-  "D\0C\0I\0 \0R\0o\0o\0t\0 \0H\0U\0B"
+#define STRING_PRODUCT "D\0C\0I\0 \0R\0o\0o\0t\0 \0H\0U\0B"
 
 USB_MAKE_STRING_DESC(STRING_VENDOR, uss820dci_vendor);
 USB_MAKE_STRING_DESC(STRING_PRODUCT, uss820dci_product);
 
 static usb_error_t
-uss820dci_roothub_exec(struct usb_device *udev,
-    struct usb_device_request *req, const void **pptr, uint16_t *plength)
+uss820dci_roothub_exec(struct usb_device *udev, struct usb_device_request *req,
+    const void **pptr, uint16_t *plength)
 {
 	struct uss820dci_softc *sc = USS820_DCI_BUS2SC(udev->bus);
 	const void *ptr;
@@ -1856,9 +1830,9 @@ uss820dci_roothub_exec(struct usb_device *udev,
 		case UR_SET_CONFIG:
 			goto tr_handle_set_config;
 		case UR_CLEAR_FEATURE:
-			goto tr_valid;	/* nop */
+			goto tr_valid; /* nop */
 		case UR_SET_DESCRIPTOR:
-			goto tr_valid;	/* nop */
+			goto tr_valid; /* nop */
 		case UR_SET_FEATURE:
 		default:
 			goto tr_stalled;
@@ -1888,7 +1862,7 @@ uss820dci_roothub_exec(struct usb_device *udev,
 			}
 			break;
 		case UR_SYNCH_FRAME:
-			goto tr_valid;	/* nop */
+			goto tr_valid; /* nop */
 		default:
 			goto tr_stalled;
 		}
@@ -1908,7 +1882,7 @@ uss820dci_roothub_exec(struct usb_device *udev,
 		case UR_SET_INTERFACE:
 			goto tr_handle_set_interface;
 		case UR_CLEAR_FEATURE:
-			goto tr_valid;	/* nop */
+			goto tr_valid; /* nop */
 		case UR_SET_FEATURE:
 		default:
 			goto tr_stalled;
@@ -2016,17 +1990,17 @@ tr_handle_get_descriptor:
 		goto tr_valid;
 	case UDESC_STRING:
 		switch (value & 0xff) {
-		case 0:		/* Language table */
+		case 0: /* Language table */
 			len = sizeof(usb_string_lang_en);
 			ptr = (const void *)&usb_string_lang_en;
 			goto tr_valid;
 
-		case 1:		/* Vendor */
+		case 1: /* Vendor */
 			len = sizeof(uss820dci_vendor);
 			ptr = (const void *)&uss820dci_vendor;
 			goto tr_valid;
 
-		case 2:		/* Product */
+		case 2: /* Product */
 			len = sizeof(uss820dci_product);
 			ptr = (const void *)&uss820dci_product;
 			goto tr_valid;
@@ -2169,8 +2143,7 @@ tr_handle_get_port_status:
 	if (sc->sc_flags.port_enabled) {
 		value |= UPS_PORT_ENABLED;
 	}
-	if (sc->sc_flags.status_vbus &&
-	    sc->sc_flags.status_bus_reset) {
+	if (sc->sc_flags.status_vbus && sc->sc_flags.status_bus_reset) {
 		value |= UPS_CURRENT_CONNECT_STATUS;
 	}
 	if (sc->sc_flags.status_suspend) {
@@ -2234,16 +2207,16 @@ uss820dci_xfer_setup(struct usb_setup_params *parm)
 	 * compute maximum number of TDs
 	 */
 	if (parm->methods == &uss820dci_device_ctrl_methods) {
-		ntd = xfer->nframes + 1 /* STATUS */ + 1 /* SYNC */ ;
+		ntd = xfer->nframes + 1 /* STATUS */ + 1 /* SYNC */;
 
 	} else if (parm->methods == &uss820dci_device_bulk_methods) {
-		ntd = xfer->nframes + 1 /* SYNC */ ;
+		ntd = xfer->nframes + 1 /* SYNC */;
 
 	} else if (parm->methods == &uss820dci_device_intr_methods) {
-		ntd = xfer->nframes + 1 /* SYNC */ ;
+		ntd = xfer->nframes + 1 /* SYNC */;
 
 	} else if (parm->methods == &uss820dci_device_isoc_fs_methods) {
-		ntd = xfer->nframes + 1 /* SYNC */ ;
+		ntd = xfer->nframes + 1 /* SYNC */;
 
 	} else {
 		ntd = 0;
@@ -2310,14 +2283,13 @@ uss820dci_xfer_unsetup(struct usb_xfer *xfer)
 }
 
 static void
-uss820dci_ep_init(struct usb_device *udev, struct usb_endpoint_descriptor *edesc,
-    struct usb_endpoint *ep)
+uss820dci_ep_init(struct usb_device *udev,
+    struct usb_endpoint_descriptor *edesc, struct usb_endpoint *ep)
 {
 	struct uss820dci_softc *sc = USS820_DCI_BUS2SC(udev->bus);
 
-	DPRINTFN(2, "endpoint=%p, addr=%d, endpt=%d, mode=%d (%d)\n",
-	    ep, udev->address,
-	    edesc->bEndpointAddress, udev->flags.usb_mode,
+	DPRINTFN(2, "endpoint=%p, addr=%d, endpt=%d, mode=%d (%d)\n", ep,
+	    udev->address, edesc->bEndpointAddress, udev->flags.usb_mode,
 	    sc->sc_rt_addr);
 
 	if (udev->device_index != sc->sc_rt_addr) {
@@ -2365,8 +2337,7 @@ uss820dci_set_hw_power_sleep(struct usb_bus *bus, uint32_t state)
 	}
 }
 
-static const struct usb_bus_methods uss820dci_bus_methods =
-{
+static const struct usb_bus_methods uss820dci_bus_methods = {
 	.endpoint_init = &uss820dci_ep_init,
 	.xfer_setup = &uss820dci_xfer_setup,
 	.xfer_unsetup = &uss820dci_xfer_unsetup,

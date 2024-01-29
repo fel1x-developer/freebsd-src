@@ -27,11 +27,11 @@
  */
 
 struct tun_data {
-  union {
-    u_int32_t family;
-    u_int32_t timeout;
-  } header;
-  u_char data[MAX_MRU];
+	union {
+		u_int32_t family;
+		u_int32_t timeout;
+	} header;
+	u_char data[MAX_MRU];
 };
 
 struct bundle;

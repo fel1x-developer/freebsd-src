@@ -31,6 +31,7 @@
 #include <sys/mman.h>
 #include <sys/queue.h>
 #include <sys/stat.h>
+
 #include <archive.h>
 #include <archive_entry.h>
 #include <assert.h>
@@ -45,30 +46,29 @@
 
 #include "ar.h"
 
-#define _ARMAG_LEN 8		/* length of ar magic string */
-#define _ARHDR_LEN 60		/* length of ar header */
-#define _INIT_AS_CAP 128	/* initial archive string table size */
-#define _INIT_SYMOFF_CAP (256*(sizeof(uint64_t))) /* initial so table size */
-#define _INIT_SYMNAME_CAP 1024			  /* initial sn table size */
-#define _MAXNAMELEN_SVR4 15	/* max member name length in svr4 variant */
-#define _TRUNCATE_LEN 15	/* number of bytes to keep for member name */
+#define _ARMAG_LEN 8	 /* length of ar magic string */
+#define _ARHDR_LEN 60	 /* length of ar header */
+#define _INIT_AS_CAP 128 /* initial archive string table size */
+#define _INIT_SYMOFF_CAP (256 * (sizeof(uint64_t))) /* initial so table size \
+						     */
+#define _INIT_SYMNAME_CAP 1024			    /* initial sn table size */
+#define _MAXNAMELEN_SVR4 15 /* max member name length in svr4 variant */
+#define _TRUNCATE_LEN 15    /* number of bytes to keep for member name */
 
-static void	add_to_ar_str_table(struct bsdar *bsdar, const char *name);
-static void	add_to_ar_sym_table(struct bsdar *bsdar, const char *name);
-static struct ar_obj	*create_obj_from_file(struct bsdar *bsdar,
-		    const char *name, time_t mtime);
-static void	create_symtab_entry(struct bsdar *bsdar, void *maddr,
-		    size_t size);
-static void	free_obj(struct bsdar *bsdar, struct ar_obj *obj);
-static void	insert_obj(struct bsdar *bsdar, struct ar_obj *obj,
-		    struct ar_obj *pos);
-static void	prefault_buffer(const char *buf, size_t s);
-static void	read_objs(struct bsdar *bsdar, const char *archive,
-		    int checkargv);
-static void	write_cleanup(struct bsdar *bsdar);
-static void	write_data(struct bsdar *bsdar, struct archive *a,
-		    const void *buf, size_t s);
-static void	write_objs(struct bsdar *bsdar);
+static void add_to_ar_str_table(struct bsdar *bsdar, const char *name);
+static void add_to_ar_sym_table(struct bsdar *bsdar, const char *name);
+static struct ar_obj *create_obj_from_file(struct bsdar *bsdar,
+    const char *name, time_t mtime);
+static void create_symtab_entry(struct bsdar *bsdar, void *maddr, size_t size);
+static void free_obj(struct bsdar *bsdar, struct ar_obj *obj);
+static void insert_obj(struct bsdar *bsdar, struct ar_obj *obj,
+    struct ar_obj *pos);
+static void prefault_buffer(const char *buf, size_t s);
+static void read_objs(struct bsdar *bsdar, const char *archive, int checkargv);
+static void write_cleanup(struct bsdar *bsdar);
+static void write_data(struct bsdar *bsdar, struct archive *a, const void *buf,
+    size_t s);
+static void write_objs(struct bsdar *bsdar);
 
 /*
  * Create object from file, return created obj upon success, or NULL
@@ -78,10 +78,10 @@ static void	write_objs(struct bsdar *bsdar);
 static struct ar_obj *
 create_obj_from_file(struct bsdar *bsdar, const char *name, time_t mtime)
 {
-	struct ar_obj		*obj;
-	struct stat		 sb;
-	const char		*bname;
-	char			*tmpname;
+	struct ar_obj *obj;
+	struct stat sb;
+	const char *bname;
+	char *tmpname;
 
 	if (name == NULL)
 		return (NULL);
@@ -105,9 +105,8 @@ create_obj_from_file(struct bsdar *bsdar, const char *name, time_t mtime)
 			bsdar_errc(bsdar, errno, "malloc failed");
 		(void)strncpy(obj->name, bname, _TRUNCATE_LEN);
 		obj->name[_TRUNCATE_LEN] = '\0';
-	} else
-		if ((obj->name = strdup(bname)) == NULL)
-		    bsdar_errc(bsdar, errno, "strdup failed");
+	} else if ((obj->name = strdup(bname)) == NULL)
+		bsdar_errc(bsdar, errno, "strdup failed");
 	free(tmpname);
 
 	if (fstat(obj->fd, &sb) < 0) {
@@ -154,21 +153,19 @@ create_obj_from_file(struct bsdar *bsdar, const char *name, time_t mtime)
 		return (obj);
 	}
 
-	if ((obj->maddr = mmap(NULL, obj->size, PROT_READ,
-	    MAP_PRIVATE, obj->fd, (off_t)0)) == MAP_FAILED) {
+	if ((obj->maddr = mmap(NULL, obj->size, PROT_READ, MAP_PRIVATE, obj->fd,
+		 (off_t)0)) == MAP_FAILED) {
 		bsdar_warnc(bsdar, errno, "can't mmap file: %s", obj->name);
 		goto giveup;
 	}
 	if (close(obj->fd) < 0)
-		bsdar_errc(bsdar, errno, "close failed: %s",
-		    obj->name);
+		bsdar_errc(bsdar, errno, "close failed: %s", obj->name);
 
 	return (obj);
 
 giveup:
 	if (close(obj->fd) < 0)
-		bsdar_errc(bsdar, errno, "close failed: %s",
-		    obj->name);
+		bsdar_errc(bsdar, errno, "close failed: %s", obj->name);
 	free(obj->name);
 	free(obj);
 	return (NULL);
@@ -182,10 +179,8 @@ free_obj(struct bsdar *bsdar, struct ar_obj *obj)
 {
 	if (obj->fd == -1)
 		free(obj->maddr);
-	else
-		if (obj->maddr != NULL && munmap(obj->maddr, obj->size))
-			bsdar_warnc(bsdar, errno,
-			    "can't munmap file: %s", obj->name);
+	else if (obj->maddr != NULL && munmap(obj->maddr, obj->size))
+		bsdar_warnc(bsdar, errno, "can't munmap file: %s", obj->name);
 	free(obj->name);
 	free(obj);
 }
@@ -217,7 +212,6 @@ insert_obj(struct bsdar *bsdar, struct ar_obj *obj, struct ar_obj *pos)
 
 tail:
 	TAILQ_INSERT_TAIL(&bsdar->v_obj, obj, objs);
-
 }
 
 /*
@@ -229,15 +223,15 @@ tail:
 static void
 read_objs(struct bsdar *bsdar, const char *archive, int checkargv)
 {
-	struct archive		 *a;
-	struct archive_entry	 *entry;
-	struct ar_obj		 *obj;
-	const char		 *name;
-	const char		 *bname;
-	char			 *buff;
-	char			**av;
-	size_t			  size;
-	int			  i, r, find;
+	struct archive *a;
+	struct archive_entry *entry;
+	struct ar_obj *obj;
+	const char *name;
+	const char *bname;
+	char *buff;
+	char **av;
+	size_t size;
+	int i, r, find;
 
 	if ((a = archive_read_new()) == NULL)
 		bsdar_errc(bsdar, 0, "archive_read_new failed");
@@ -272,7 +266,7 @@ read_objs(struct bsdar *bsdar, const char *archive, int checkargv)
 		 */
 		if (checkargv && bsdar->argc > 0) {
 			find = 0;
-			for(i = 0; i < bsdar->argc; i++) {
+			for (i = 0; i < bsdar->argc; i++) {
 				av = &bsdar->argv[i];
 				if (*av == NULL)
 					continue;
@@ -335,11 +329,11 @@ read_objs(struct bsdar *bsdar, const char *archive, int checkargv)
 int
 ar_write_archive(struct bsdar *bsdar, int mode)
 {
-	struct ar_obj		 *nobj, *obj, *obj_temp, *pos;
-	struct stat		  sb;
-	const char		 *bname;
-	char			**av;
-	int			  exitcode, i;
+	struct ar_obj *nobj, *obj, *obj_temp, *pos;
+	struct stat sb;
+	const char *bname;
+	char **av;
+	int exitcode, i;
 
 	TAILQ_INIT(&bsdar->v_obj);
 	exitcode = EXIT_SUCCESS;
@@ -413,7 +407,7 @@ ar_write_archive(struct bsdar *bsdar, int mode)
 	 * Try to find the position member specified by user.
 	 */
 	if (bsdar->options & AR_A || bsdar->options & AR_B) {
-		TAILQ_FOREACH(obj, &bsdar->v_obj, objs) {
+		TAILQ_FOREACH (obj, &bsdar->v_obj, objs) {
 			if (strcmp(obj->name, bsdar->posarg) == 0) {
 				pos = obj;
 				break;
@@ -431,15 +425,14 @@ ar_write_archive(struct bsdar *bsdar, int mode)
 	for (i = 0; i < bsdar->argc; i++) {
 		av = &bsdar->argv[i];
 
-		TAILQ_FOREACH_SAFE(obj, &bsdar->v_obj, objs, obj_temp) {
+		TAILQ_FOREACH_SAFE (obj, &bsdar->v_obj, objs, obj_temp) {
 			if ((bname = basename(*av)) == NULL)
 				bsdar_errc(bsdar, errno, "basename failed");
 			if (bsdar->options & AR_TR) {
 				if (strncmp(bname, obj->name, _TRUNCATE_LEN))
 					continue;
-			} else
-				if (strcmp(bname, obj->name) != 0)
-					continue;
+			} else if (strcmp(bname, obj->name) != 0)
+				continue;
 
 			if (mode == 'r') {
 				/*
@@ -455,8 +448,7 @@ ar_write_archive(struct bsdar *bsdar, int mode)
 			}
 
 			if (bsdar->options & AR_V)
-				(void)fprintf(stdout, "%c - %s\n", mode,
-				    *av);
+				(void)fprintf(stdout, "%c - %s\n", mode, *av);
 
 			TAILQ_REMOVE(&bsdar->v_obj, obj, objs);
 			if (mode == 'd' || mode == 'r')
@@ -471,7 +463,6 @@ ar_write_archive(struct bsdar *bsdar, int mode)
 			*av = NULL;
 			break;
 		}
-
 	}
 
 new_archive:
@@ -510,9 +501,9 @@ write_objs:
 static void
 write_cleanup(struct bsdar *bsdar)
 {
-	struct ar_obj		*obj, *obj_temp;
+	struct ar_obj *obj, *obj_temp;
 
-	TAILQ_FOREACH_SAFE(obj, &bsdar->v_obj, objs, obj_temp) {
+	TAILQ_FOREACH_SAFE (obj, &bsdar->v_obj, objs, obj_temp) {
 		TAILQ_REMOVE(&bsdar->v_obj, obj, objs);
 		free_obj(bsdar, obj);
 	}
@@ -574,15 +565,15 @@ write_data(struct bsdar *bsdar, struct archive *a, const void *buf, size_t s)
 static void
 write_objs(struct bsdar *bsdar)
 {
-	struct ar_obj		*obj;
-	struct archive		*a;
-	struct archive_entry	*entry;
-	size_t s_sz;		/* size of archive symbol table. */
-	size_t pm_sz;		/* size of pseudo members */
-	size_t w_sz;		/* size of words in symbol table */
-	size_t			 i;
-	uint64_t		 nr;
-	uint32_t		 nr32;
+	struct ar_obj *obj;
+	struct archive *a;
+	struct archive_entry *entry;
+	size_t s_sz;  /* size of archive symbol table. */
+	size_t pm_sz; /* size of pseudo members */
+	size_t w_sz;  /* size of words in symbol table */
+	size_t i;
+	uint64_t nr;
+	uint32_t nr32;
 
 	if (elf_version(EV_CURRENT) == EV_NONE)
 		bsdar_errc(bsdar, 0, "ELF library initialization failed: %s",
@@ -591,7 +582,7 @@ write_objs(struct bsdar *bsdar)
 	bsdar->rela_off = 0;
 
 	/* Create archive symbol table and archive string table, if need. */
-	TAILQ_FOREACH(obj, &bsdar->v_obj, objs) {
+	TAILQ_FOREACH (obj, &bsdar->v_obj, objs) {
 		if (!(bsdar->options & AR_SS) && obj->maddr != NULL)
 			create_symtab_entry(bsdar, obj->maddr, obj->size);
 		if (strlen(obj->name) > _MAXNAMELEN_SVR4)
@@ -637,16 +628,16 @@ write_objs(struct bsdar *bsdar)
 			pm_sz += s_sz;
 			/* Convert to big-endian. */
 			for (i = 0; i < bsdar->s_cnt; i++)
-				bsdar->s_so[i] =
-				    htobe64(bsdar->s_so[i] + pm_sz);
+				bsdar->s_so[i] = htobe64(
+				    bsdar->s_so[i] + pm_sz);
 		} else {
 			/*
 			 * Convert to big-endian and shuffle in-place to
 			 * the front of the allocation. XXX UB
 			 */
 			for (i = 0; i < bsdar->s_cnt; i++)
-				((uint32_t *)(bsdar->s_so))[i] =
-				    htobe32(bsdar->s_so[i] + pm_sz);
+				((uint32_t *)(bsdar->s_so))[i] = htobe32(
+				    bsdar->s_so[i] + pm_sz);
 		}
 	}
 
@@ -673,8 +664,8 @@ write_objs(struct bsdar *bsdar)
 			archive_entry_copy_pathname(entry, "/");
 		if ((bsdar->options & AR_D) == 0)
 			archive_entry_set_mtime(entry, time(NULL), 0);
-		archive_entry_set_size(entry, (bsdar->s_cnt + 1) * w_sz +
-		    bsdar->s_sn_sz);
+		archive_entry_set_size(entry,
+		    (bsdar->s_cnt + 1) * w_sz + bsdar->s_sn_sz);
 		AC(archive_write_header(a, entry));
 		if (w_sz == sizeof(uint64_t)) {
 			nr = htobe64(bsdar->s_cnt);
@@ -701,7 +692,7 @@ write_objs(struct bsdar *bsdar)
 	}
 
 	/* write normal members. */
-	TAILQ_FOREACH(obj, &bsdar->v_obj, objs) {
+	TAILQ_FOREACH (obj, &bsdar->v_obj, objs) {
 		entry = archive_entry_new();
 		if (entry == NULL)
 			bsdar_errc(bsdar, 0, "archive_entry_new failed");
@@ -729,18 +720,18 @@ write_objs(struct bsdar *bsdar)
 static void
 create_symtab_entry(struct bsdar *bsdar, void *maddr, size_t size)
 {
-	Elf		*e;
-	Elf_Scn		*scn;
-	GElf_Shdr	 shdr;
-	GElf_Sym	 sym;
-	Elf_Data	*data;
-	char		*name;
-	size_t		 n, shstrndx;
-	int		 elferr, tabndx, len, i;
+	Elf *e;
+	Elf_Scn *scn;
+	GElf_Shdr shdr;
+	GElf_Sym sym;
+	Elf_Data *data;
+	char *name;
+	size_t n, shstrndx;
+	int elferr, tabndx, len, i;
 
 	if ((e = elf_memory(maddr, size)) == NULL) {
 		bsdar_warnc(bsdar, 0, "elf_memory() failed: %s",
-		     elf_errmsg(-1));
+		    elf_errmsg(-1));
 		return;
 	}
 	if (elf_kind(e) != ELF_K_ELF) {
@@ -750,7 +741,7 @@ create_symtab_entry(struct bsdar *bsdar, void *maddr, size_t size)
 	}
 	if (elf_getshstrndx(e, &shstrndx) == 0) {
 		bsdar_warnc(bsdar, 0, "elf_getshstrndx failed: %s",
-		     elf_errmsg(-1));
+		    elf_errmsg(-1));
 		elf_end(e);
 		return;
 	}
@@ -759,13 +750,13 @@ create_symtab_entry(struct bsdar *bsdar, void *maddr, size_t size)
 	scn = NULL;
 	while ((scn = elf_nextscn(e, scn)) != NULL) {
 		if (gelf_getshdr(scn, &shdr) != &shdr) {
-			bsdar_warnc(bsdar, 0,
-			    "elf_getshdr failed: %s", elf_errmsg(-1));
+			bsdar_warnc(bsdar, 0, "elf_getshdr failed: %s",
+			    elf_errmsg(-1));
 			continue;
 		}
 		if ((name = elf_strptr(e, shstrndx, shdr.sh_name)) == NULL) {
-			bsdar_warnc(bsdar, 0,
-			    "elf_strptr failed: %s", elf_errmsg(-1));
+			bsdar_warnc(bsdar, 0, "elf_strptr failed: %s",
+			    elf_errmsg(-1));
 			continue;
 		}
 		if (strcmp(name, ".strtab") == 0) {
@@ -776,7 +767,7 @@ create_symtab_entry(struct bsdar *bsdar, void *maddr, size_t size)
 	elferr = elf_errno();
 	if (elferr != 0)
 		bsdar_warnc(bsdar, 0, "elf_nextscn failed: %s",
-		     elf_errmsg(elferr));
+		    elf_errmsg(elferr));
 	if (tabndx == -1) {
 		bsdar_warnc(bsdar, 0, "can't find .strtab section");
 		elf_end(e);
@@ -802,7 +793,7 @@ create_symtab_entry(struct bsdar *bsdar, void *maddr, size_t size)
 				if (gelf_getsym(data, i, &sym) != &sym) {
 					bsdar_warnc(bsdar, 0,
 					    "gelf_getsym failed: %s",
-					     elf_errmsg(-1));
+					    elf_errmsg(-1));
 					continue;
 				}
 
@@ -816,10 +807,10 @@ create_symtab_entry(struct bsdar *bsdar, void *maddr, size_t size)
 					continue;
 
 				if ((name = elf_strptr(e, tabndx,
-				    sym.st_name)) == NULL) {
+					 sym.st_name)) == NULL) {
 					bsdar_warnc(bsdar, 0,
 					    "elf_strptr failed: %s",
-					     elf_errmsg(-1));
+					    elf_errmsg(-1));
 					continue;
 				}
 
@@ -830,7 +821,7 @@ create_symtab_entry(struct bsdar *bsdar, void *maddr, size_t size)
 	elferr = elf_errno();
 	if (elferr != 0)
 		bsdar_warnc(bsdar, 0, "elf_nextscn failed: %s",
-		     elf_errmsg(elferr));
+		    elf_errmsg(elferr));
 
 	elf_end(e);
 }
@@ -873,8 +864,7 @@ add_to_ar_sym_table(struct bsdar *bsdar, const char *name)
 {
 
 	if (bsdar->s_so == NULL) {
-		if ((bsdar->s_so = malloc(_INIT_SYMOFF_CAP)) ==
-		    NULL)
+		if ((bsdar->s_so = malloc(_INIT_SYMOFF_CAP)) == NULL)
 			bsdar_errc(bsdar, errno, "malloc failed");
 		bsdar->s_so_cap = _INIT_SYMOFF_CAP;
 		bsdar->s_cnt = 0;

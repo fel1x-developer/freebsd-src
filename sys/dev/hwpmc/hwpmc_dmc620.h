@@ -32,17 +32,17 @@
 
 /* MD extension for 'struct pmc' */
 struct pmc_md_dmc620_pmc {
-	uint64_t	pm_control;
-	uint64_t	pm_match;
-	uint64_t	pm_mask;
+	uint64_t pm_control;
+	uint64_t pm_match;
+	uint64_t pm_mask;
 };
 
 #endif /* _KERNEL */
 
 struct pmc_md_dmc620_pmu_op_pmcallocate {
-	uint64_t	pm_dmc620_match;
-	uint64_t	pm_dmc620_mask;
-	uint32_t	pm_dmc620_config;
+	uint64_t pm_dmc620_match;
+	uint64_t pm_dmc620_mask;
+	uint32_t pm_dmc620_config;
 };
 
 #endif /* _DEV_HWPMC_DMC620_H_ */

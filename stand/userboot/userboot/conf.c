@@ -28,10 +28,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- *	$NetBSD: conf.c,v 1.2 1997/03/22 09:03:29 thorpej Exp $	 
+ *	$NetBSD: conf.c,v 1.2 1997/03/22 09:03:29 thorpej Exp $
  */
 
 #include <sys/cdefs.h>
+
 #include <stand.h>
 
 #include "libuserboot.h"
@@ -52,53 +53,36 @@ extern struct devsw vdisk_dev;
  */
 
 /* Exported for libsa */
-struct devsw *devsw[] = {
-	&host_dev,
-	&userboot_disk,
-	&vdisk_dev,
+struct devsw *devsw[] = { &host_dev, &userboot_disk, &vdisk_dev,
 #if defined(USERBOOT_ZFS_SUPPORT)
 	&zfs_dev,
 #endif
-	NULL
-};
+	NULL };
 
-struct fs_ops *file_system[] = {
-	&host_fsops,
-	&ufs_fsops,
-	&cd9660_fsops,
+struct fs_ops *file_system[] = { &host_fsops, &ufs_fsops, &cd9660_fsops,
 #if defined(USERBOOT_ZFS_SUPPORT)
 	&zfs_fsops,
 #endif
-	&gzipfs_fsops,
-	&bzipfs_fsops,
-	NULL
-};
+	&gzipfs_fsops, &bzipfs_fsops, NULL };
 
 /* to keep libsa happy */
-struct netif_driver *netif_drivers[] = {
-	NULL
-};
+struct netif_driver *netif_drivers[] = { NULL };
 
 /* Exported for i386 only */
-/* 
+/*
  * Sort formats so that those that can detect based on arguments
  * rather than reading the file go first.
  */
-extern struct file_format	i386_elf;
-extern struct file_format	i386_elf_obj;
-extern struct file_format	amd64_elf;
-extern struct file_format	amd64_elf_obj;
+extern struct file_format i386_elf;
+extern struct file_format i386_elf_obj;
+extern struct file_format amd64_elf;
+extern struct file_format amd64_elf_obj;
 
-struct file_format *file_formats[] = {
-    &i386_elf,
-    &i386_elf_obj,
-    &amd64_elf,
-    &amd64_elf_obj,
-    NULL
-};
+struct file_format *file_formats[] = { &i386_elf, &i386_elf_obj, &amd64_elf,
+	&amd64_elf_obj, NULL };
 
-/* 
- * Consoles 
+/*
+ * Consoles
  *
  * We don't prototype these in libuserboot.h because they require
  * data structures from bootstrap.h as well.
@@ -106,8 +90,4 @@ struct file_format *file_formats[] = {
 extern struct console userboot_console;
 extern struct console userboot_comconsole;
 
-struct console *consoles[] = {
-	&userboot_console,
-	&userboot_comconsole,
-	NULL
-};
+struct console *consoles[] = { &userboot_console, &userboot_comconsole, NULL };

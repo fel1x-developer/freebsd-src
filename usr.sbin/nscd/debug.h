@@ -30,25 +30,25 @@
 #define TRACE_WANTED 32
 
 #ifndef NDEBUG
-#define TRACE_IN(x)	nscd_trace_in(#x, __FILE__, __LINE__)
-#define TRACE_POINT()	nscd_trace_point(__FILE__, __LINE__)
-#define TRACE_MSG(x)	nscd_trace_msg(x, __FILE__, __LINE__)
-#define TRACE_PTR(p)	nscd_trace_ptr(#p, p, __FILE__, __LINE__)
-#define TRACE_INT(i)	nscd_trace_int(#i, i, __FILE__, __LINE__)
-#define TRACE_STR(s)	nscd_trace_str(#s, s, __FILE__, __LINE__)
-#define TRACE_OUT(x)	nscd_trace_out(#x, __FILE__, __LINE__)
-#define TRACE_ON()	nscd_trace_on()
-#define TRACE_OFF()	nscd_trace_off()
+#define TRACE_IN(x) nscd_trace_in(#x, __FILE__, __LINE__)
+#define TRACE_POINT() nscd_trace_point(__FILE__, __LINE__)
+#define TRACE_MSG(x) nscd_trace_msg(x, __FILE__, __LINE__)
+#define TRACE_PTR(p) nscd_trace_ptr(#p, p, __FILE__, __LINE__)
+#define TRACE_INT(i) nscd_trace_int(#i, i, __FILE__, __LINE__)
+#define TRACE_STR(s) nscd_trace_str(#s, s, __FILE__, __LINE__)
+#define TRACE_OUT(x) nscd_trace_out(#x, __FILE__, __LINE__)
+#define TRACE_ON() nscd_trace_on()
+#define TRACE_OFF() nscd_trace_off()
 #else
-#define TRACE_IN(x)	(void)0
-#define TRACE_POINT()	(void)0
-#define TRACE_MSG(x)	(void)0
-#define TRACE_PTR(p)	(void)0
-#define TRACE_INT(i)	(void)0
-#define TRACE_STR(s)	(void)0
-#define TRACE_OUT(x)	(void)0
-#define TRACE_ON()	(void)0
-#define TRACE_OFF()	(void)0
+#define TRACE_IN(x) (void)0
+#define TRACE_POINT() (void)0
+#define TRACE_MSG(x) (void)0
+#define TRACE_PTR(p) (void)0
+#define TRACE_INT(i) (void)0
+#define TRACE_STR(s) (void)0
+#define TRACE_OUT(x) (void)0
+#define TRACE_ON() (void)0
+#define TRACE_OFF() (void)0
 #endif
 
 void nscd_trace_in(const char *, const char *, int);

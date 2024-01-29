@@ -29,7 +29,7 @@
  * SUCH DAMAGE.
  */
 
-#define	PFLAGS_FULL	0x01
+#define PFLAGS_FULL 0x01
 
 struct dumpers {
 	int (*ident)(int efd, pid_t pid, char *binfile);

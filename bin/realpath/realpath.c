@@ -60,7 +60,7 @@ main(int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 	path = *argv != NULL ? *argv++ : ".";
-	rval  = 0;
+	rval = 0;
 	do {
 		if ((p = realpath(path, buf)) == NULL) {
 			if (!qflag)
@@ -77,5 +77,5 @@ usage(void)
 {
 
 	(void)fprintf(stderr, "usage: realpath [-q] [path ...]\n");
-  	exit(1);
+	exit(1);
 }

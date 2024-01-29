@@ -26,26 +26,26 @@
  */
 
 #include <sys/cdefs.h>
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <err.h>
-
 #include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
-#include <sys/ioctl.h>
-#include <sys/ioccom.h>
 #include <sys/cpuctl.h>
+#include <sys/ioccom.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 
 #include <machine/cpufunc.h>
 #include <machine/specialreg.h>
 
-#include "cpucontrol.h"
+#include <assert.h>
+#include <err.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
 #include "amd.h"
+#include "cpucontrol.h"
 
 int
 amd_probe(int fd)
@@ -53,7 +53,7 @@ amd_probe(int fd)
 	char vendor[13];
 	int error;
 	cpuctl_cpuid_args_t idargs = {
-		.level  = 0,
+		.level = 0,
 	};
 
 	error = ioctl(fd, CPUCTL_CPUID, &idargs);
@@ -83,7 +83,7 @@ amd_update(const struct ucode_update_params *params)
 	const uint32_t *fw_data;
 	size_t fw_size;
 	cpuctl_cpuid_args_t idargs = {
-		.level  = 1,	/* Request signature. */
+		.level = 1, /* Request signature. */
 	};
 	cpuctl_update_args_t args;
 	int error;
@@ -102,7 +102,8 @@ amd_update(const struct ucode_update_params *params)
 		goto fail;
 	}
 	signature = idargs.data[0];
-	WARNX(2, "found cpu family %#x model %#x "
+	WARNX(2,
+	    "found cpu family %#x model %#x "
 	    "stepping %#x extfamily %#x extmodel %#x.",
 	    (signature >> 8) & 0x0f, (signature >> 4) & 0x0f,
 	    (signature >> 0) & 0x0f, (signature >> 20) & 0xff,

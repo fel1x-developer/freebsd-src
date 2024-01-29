@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018 Cavium, Inc. 
+ * Copyright (c) 2017-2018 Cavium, Inc.
  * All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -32,17 +32,17 @@
 #include "ecore.h"
 #include "ecore_chain.h"
 #include "ecore_hsi_common.h"
-#include "tcp_common.h"
 #include "ecore_hsi_iscsi.h"
-#include "ecore_sp_commands.h"
 #include "ecore_iscsi_api.h"
+#include "ecore_sp_commands.h"
+#include "tcp_common.h"
 
 #ifndef __EXTRACT__LINUX__H__
 struct ecore_iscsi_info {
-	osal_spinlock_t	 lock;
-	osal_list_t	 free_list;
-	u16		 max_num_outstanding_tasks;
-	void		 *event_context;
+	osal_spinlock_t lock;
+	osal_list_t free_list;
+	u16 max_num_outstanding_tasks;
+	void *event_context;
 	iscsi_event_cb_t event_cb;
 };
 
@@ -60,15 +60,19 @@ ecore_iscsi_alloc(struct ecore_hwfn OSAL_UNUSED *p_hwfn)
 }
 
 static inline void
-ecore_iscsi_setup(struct ecore_hwfn OSAL_UNUSED *p_hwfn) {}
+ecore_iscsi_setup(struct ecore_hwfn OSAL_UNUSED *p_hwfn)
+{
+}
 
 static inline void
-ecore_iscsi_free(struct ecore_hwfn OSAL_UNUSED *p_hwfn) {}
+ecore_iscsi_free(struct ecore_hwfn OSAL_UNUSED *p_hwfn)
+{
+}
 #endif
 #endif
 
 void ecore_iscsi_free_connection(struct ecore_hwfn *p_hwfn,
-				 struct ecore_iscsi_conn *p_conn);
+    struct ecore_iscsi_conn *p_conn);
 
 /**
  * @brief ecore_sp_iscsi_conn_offload - iSCSI connection offload
@@ -82,11 +86,9 @@ void ecore_iscsi_free_connection(struct ecore_hwfn *p_hwfn,
  *
  * @return enum _ecore_status_t
  */
-enum _ecore_status_t
-ecore_sp_iscsi_conn_offload(struct ecore_hwfn *p_hwfn,
-			    struct ecore_iscsi_conn *p_conn,
-			    enum spq_mode comp_mode,
-			    struct ecore_spq_comp_cb *p_comp_addr);
+enum _ecore_status_t ecore_sp_iscsi_conn_offload(struct ecore_hwfn *p_hwfn,
+    struct ecore_iscsi_conn *p_conn, enum spq_mode comp_mode,
+    struct ecore_spq_comp_cb *p_comp_addr);
 
 /**
  * @brief ecore_sp_iscsi_conn_update - iSCSI connection update
@@ -100,11 +102,9 @@ ecore_sp_iscsi_conn_offload(struct ecore_hwfn *p_hwfn,
  *
  * @return enum _ecore_status_t
  */
-enum _ecore_status_t
-ecore_sp_iscsi_conn_update(struct ecore_hwfn *p_hwfn,
-			   struct ecore_iscsi_conn *p_conn,
-			   enum spq_mode comp_mode,
-			   struct ecore_spq_comp_cb *p_comp_addr);
+enum _ecore_status_t ecore_sp_iscsi_conn_update(struct ecore_hwfn *p_hwfn,
+    struct ecore_iscsi_conn *p_conn, enum spq_mode comp_mode,
+    struct ecore_spq_comp_cb *p_comp_addr);
 
 /**
  * @brief ecore_sp_iscsi_mac_update - iSCSI connection's MAC update
@@ -118,13 +118,11 @@ ecore_sp_iscsi_conn_update(struct ecore_hwfn *p_hwfn,
  *
  * @return enum _ecore_status_t
  */
-enum _ecore_status_t
-ecore_sp_iscsi_mac_update(struct ecore_hwfn *p_hwfn,
-			  struct ecore_iscsi_conn *p_conn,
-			  enum spq_mode comp_mode,
-			  struct ecore_spq_comp_cb *p_comp_addr);
+enum _ecore_status_t ecore_sp_iscsi_mac_update(struct ecore_hwfn *p_hwfn,
+    struct ecore_iscsi_conn *p_conn, enum spq_mode comp_mode,
+    struct ecore_spq_comp_cb *p_comp_addr);
 
-  /**
+/**
  * @brief ecore_sp_iscsi_mac_update - iSCSI connection's MAC update
  *
  * This ramrod updates remote MAC for iSCSI offloaded connection in FW
@@ -137,12 +135,9 @@ ecore_sp_iscsi_mac_update(struct ecore_hwfn *p_hwfn,
  *
  * @return enum _ecore_status_t
  */
-enum _ecore_status_t
-ecore_sp_iscsi_stats_tcp_update(struct ecore_hwfn *p_hwfn,
-				struct ecore_iscsi_conn *p_conn,
-				bool reset,
-				enum spq_mode comp_mode,
-				struct ecore_spq_comp_cb *p_comp_addr);
+enum _ecore_status_t ecore_sp_iscsi_stats_tcp_update(struct ecore_hwfn *p_hwfn,
+    struct ecore_iscsi_conn *p_conn, bool reset, enum spq_mode comp_mode,
+    struct ecore_spq_comp_cb *p_comp_addr);
 
 /**
  * @brief ecore_sp_iscsi_conn_terminate - iSCSI connection
@@ -157,11 +152,9 @@ ecore_sp_iscsi_stats_tcp_update(struct ecore_hwfn *p_hwfn,
  *
  * @return enum _ecore_status_t
  */
-enum _ecore_status_t
-ecore_sp_iscsi_conn_terminate(struct ecore_hwfn *p_hwfn,
-			      struct ecore_iscsi_conn *p_conn,
-			      enum spq_mode comp_mode,
-			      struct ecore_spq_comp_cb *p_comp_addr);
+enum _ecore_status_t ecore_sp_iscsi_conn_terminate(struct ecore_hwfn *p_hwfn,
+    struct ecore_iscsi_conn *p_conn, enum spq_mode comp_mode,
+    struct ecore_spq_comp_cb *p_comp_addr);
 
 /**
  * @brief ecore_sp_iscsi_conn_clear_sq - iSCSI connection
@@ -176,10 +169,8 @@ ecore_sp_iscsi_conn_terminate(struct ecore_hwfn *p_hwfn,
  *
  * @return enum _ecore_status_t
  */
-enum _ecore_status_t
-ecore_sp_iscsi_conn_clear_sq(struct ecore_hwfn *p_hwfn,
-			     struct ecore_iscsi_conn *p_conn,
-			     enum spq_mode comp_mode,
-			     struct ecore_spq_comp_cb *p_comp_addr);
+enum _ecore_status_t ecore_sp_iscsi_conn_clear_sq(struct ecore_hwfn *p_hwfn,
+    struct ecore_iscsi_conn *p_conn, enum spq_mode comp_mode,
+    struct ecore_spq_comp_cb *p_comp_addr);
 
-#endif  /*__ECORE_ISCSI_H__*/
+#endif /*__ECORE_ISCSI_H__*/

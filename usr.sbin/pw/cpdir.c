@@ -36,15 +36,15 @@
 #include "pw.h"
 
 void
-copymkdir(int rootfd, char const * dir, int skelfd, mode_t mode, uid_t uid,
+copymkdir(int rootfd, char const *dir, int skelfd, mode_t mode, uid_t uid,
     gid_t gid, int flags)
 {
-	char		*p, lnk[MAXPATHLEN], copybuf[4096];
-	int		len, homefd, srcfd, destfd;
-	ssize_t		sz;
-	struct stat     st;
-	struct dirent  *e;
-	DIR		*d;
+	char *p, lnk[MAXPATHLEN], copybuf[4096];
+	int len, homefd, srcfd, destfd;
+	ssize_t sz;
+	struct stat st;
+	struct dirent *e;
+	DIR *d;
 
 	if (*dir == '/')
 		dir++;
@@ -75,18 +75,19 @@ copymkdir(int rootfd, char const * dir, int skelfd, mode_t mode, uid_t uid,
 		if (fstatat(skelfd, p, &st, AT_SYMLINK_NOFOLLOW) == -1)
 			continue;
 
-		if (strncmp(p, "dot.", 4) == 0)	/* Conversion */
+		if (strncmp(p, "dot.", 4) == 0) /* Conversion */
 			p += 3;
 
 		if (S_ISDIR(st.st_mode)) {
-			copymkdir(homefd, p, openat(skelfd, e->d_name, O_DIRECTORY),
+			copymkdir(homefd, p,
+			    openat(skelfd, e->d_name, O_DIRECTORY),
 			    st.st_mode & _DEF_DIRMODE, uid, gid, st.st_flags);
 			continue;
 		}
 
 		if (S_ISLNK(st.st_mode) &&
-		    (len = readlinkat(skelfd, e->d_name, lnk, sizeof(lnk) -1))
-		    != -1) {
+		    (len = readlinkat(skelfd, e->d_name, lnk,
+			 sizeof(lnk) - 1)) != -1) {
 			lnk[len] = '\0';
 			symlinkat(lnk, homefd, p);
 			fchownat(homefd, p, uid, gid, AT_SYMLINK_NOFOLLOW);

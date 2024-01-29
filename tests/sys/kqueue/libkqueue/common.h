@@ -20,54 +20,58 @@
 #include "config.h" /* Needed for HAVE_* defines */
 
 #if HAVE_ERR_H
-# include <err.h>
+#include <err.h>
 #else
-# define err(rc,msg,...) do { perror(msg); exit(rc); } while (0)
-# define errx(rc,msg,...) do { puts(msg); exit(rc); } while (0)
+#define err(rc, msg, ...)    \
+	do {                 \
+		perror(msg); \
+		exit(rc);    \
+	} while (0)
+#define errx(rc, msg, ...) \
+	do {               \
+		puts(msg); \
+		exit(rc);  \
+	} while (0)
 #endif
+#include <sys/types.h>
+#include <sys/event.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include <stdint.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/wait.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
-
-#include <sys/event.h>
 
 extern int vnode_fd;
 extern int kqfd;
 
-char * kevent_to_str(struct kevent *);
-struct kevent * kevent_get(int);
-struct kevent * kevent_get_timeout(int, int);
+char *kevent_to_str(struct kevent *);
+struct kevent *kevent_get(int);
+struct kevent *kevent_get_timeout(int, int);
 
-#define kevent_cmp(a,b) _kevent_cmp(a,b, __FILE__, __LINE__)
-void _kevent_cmp(struct kevent *expected, struct kevent *got, const char *file, int line);
+#define kevent_cmp(a, b) _kevent_cmp(a, b, __FILE__, __LINE__)
+void _kevent_cmp(struct kevent *expected, struct kevent *got, const char *file,
+    int line);
 
-void
-kevent_add(int kqfd, struct kevent *kev, 
-        uintptr_t ident,
-        short     filter,
-        u_short   flags,
-        u_int     fflags,
-        intptr_t  data,
-        void      *udata);
+void kevent_add(int kqfd, struct kevent *kev, uintptr_t ident, short filter,
+    u_short flags, u_int fflags, intptr_t data, void *udata);
 
 /* DEPRECATED: */
-#define KEV_CMP(kev,_ident,_filter,_flags) do {                 \
-    if (kev.ident != (_ident) ||                                \
-            kev.filter != (_filter) ||                          \
-            kev.flags != (_flags)) \
-        err(1, "kevent mismatch: got [%d,%d,%d] but expecting [%d,%d,%d]", \
-                (int)_ident, (int)_filter, (int)_flags,\
-                (int)kev.ident, kev.filter, kev.flags);\
-} while (0);
+#define KEV_CMP(kev, _ident, _filter, _flags)                                           \
+	do {                                                                            \
+		if (kev.ident != (_ident) || kev.filter != (_filter) ||                 \
+		    kev.flags != (_flags))                                              \
+			err(1,                                                          \
+			    "kevent mismatch: got [%d,%d,%d] but expecting [%d,%d,%d]", \
+			    (int)_ident, (int)_filter, (int)_flags,                     \
+			    (int)kev.ident, kev.filter, kev.flags);                     \
+	} while (0);
 
 /* Checks if any events are pending, which is an error. */
 #define test_no_kevents() _test_no_kevents(__FILE__, __LINE__)
@@ -86,4 +90,4 @@ void test_evfilt_proc(void);
 void test_evfilt_user(void);
 #endif
 
-#endif  /* _COMMON_H */
+#endif /* _COMMON_H */

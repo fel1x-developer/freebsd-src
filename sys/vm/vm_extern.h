@@ -30,7 +30,7 @@
  */
 
 #ifndef _VM_EXTERN_H_
-#define	_VM_EXTERN_H_
+#define _VM_EXTERN_H_
 
 struct pmap;
 struct proc;
@@ -55,19 +55,18 @@ vm_offset_t kmap_alloc_wait(vm_map_t, vm_size_t);
 void kmap_free_wakeup(vm_map_t, vm_offset_t, vm_size_t);
 
 /* These operate on virtual addresses backed by memory. */
-void *kmem_alloc_attr(vm_size_t size, int flags,
+void *kmem_alloc_attr(vm_size_t size, int flags, vm_paddr_t low,
+    vm_paddr_t high, vm_memattr_t memattr);
+void *kmem_alloc_attr_domainset(struct domainset *ds, vm_size_t size, int flags,
     vm_paddr_t low, vm_paddr_t high, vm_memattr_t memattr);
-void *kmem_alloc_attr_domainset(struct domainset *ds, vm_size_t size,
-    int flags, vm_paddr_t low, vm_paddr_t high, vm_memattr_t memattr);
-void *kmem_alloc_contig(vm_size_t size, int flags,
-    vm_paddr_t low, vm_paddr_t high, u_long alignment, vm_paddr_t boundary,
+void *kmem_alloc_contig(vm_size_t size, int flags, vm_paddr_t low,
+    vm_paddr_t high, u_long alignment, vm_paddr_t boundary,
     vm_memattr_t memattr);
 void *kmem_alloc_contig_domainset(struct domainset *ds, vm_size_t size,
     int flags, vm_paddr_t low, vm_paddr_t high, u_long alignment,
     vm_paddr_t boundary, vm_memattr_t memattr);
 void *kmem_malloc(vm_size_t size, int flags);
-void *kmem_malloc_domainset(struct domainset *ds, vm_size_t size,
-    int flags);
+void *kmem_malloc_domainset(struct domainset *ds, vm_size_t size, int flags);
 void kmem_free(void *addr, vm_size_t size);
 
 /* This provides memory for previously allocated address space. */
@@ -100,11 +99,11 @@ int vm_forkproc(struct thread *, struct proc *, struct thread *,
 void vm_waitproc(struct proc *);
 int vm_mmap(vm_map_t, vm_offset_t *, vm_size_t, vm_prot_t, vm_prot_t, int,
     objtype_t, void *, vm_ooffset_t);
-int vm_mmap_object(vm_map_t, vm_offset_t *, vm_size_t, vm_prot_t,
-    vm_prot_t, int, vm_object_t, vm_ooffset_t, boolean_t, struct thread *);
+int vm_mmap_object(vm_map_t, vm_offset_t *, vm_size_t, vm_prot_t, vm_prot_t,
+    int, vm_object_t, vm_ooffset_t, boolean_t, struct thread *);
 int vm_mmap_to_errno(int rv);
-int vm_mmap_cdev(struct thread *, vm_size_t, vm_prot_t, vm_prot_t *,
-    int *, struct cdev *, struct cdevsw *, vm_ooffset_t *, vm_object_t *);
+int vm_mmap_cdev(struct thread *, vm_size_t, vm_prot_t, vm_prot_t *, int *,
+    struct cdev *, struct cdevsw *, vm_ooffset_t *, vm_object_t *);
 int vm_mmap_vnode(struct thread *, vm_size_t, vm_prot_t, vm_prot_t *, int *,
     struct vnode *, vm_ooffset_t *, vm_object_t *, boolean_t *);
 void vm_set_page_size(void);
@@ -140,8 +139,8 @@ u_int vm_wait_count(void);
 static inline bool
 vm_addr_align_ok(vm_paddr_t pa, u_long alignment)
 {
-	KASSERT(powerof2(alignment), ("%s: alignment is not a power of 2: %#lx",
-	    __func__, alignment));
+	KASSERT(powerof2(alignment),
+	    ("%s: alignment is not a power of 2: %#lx", __func__, alignment));
 	return ((pa & (alignment - 1)) == 0);
 }
 
@@ -152,8 +151,9 @@ vm_addr_align_ok(vm_paddr_t pa, u_long alignment)
 static inline bool
 vm_addr_bound_ok(vm_paddr_t pa, vm_paddr_t size, vm_paddr_t boundary)
 {
-	KASSERT(powerof2(boundary), ("%s: boundary is not a power of 2: %#jx",
-	    __func__, (uintmax_t)boundary));
+	KASSERT(powerof2(boundary),
+	    ("%s: boundary is not a power of 2: %#jx", __func__,
+		(uintmax_t)boundary));
 	return (((pa ^ (pa + size - 1)) & -boundary) == 0);
 }
 
@@ -164,5 +164,5 @@ vm_addr_ok(vm_paddr_t pa, vm_paddr_t size, u_long alignment,
 	return (vm_addr_align_ok(pa, alignment) &&
 	    vm_addr_bound_ok(pa, size, boundary));
 }
-#endif				/* _KERNEL */
-#endif				/* !_VM_EXTERN_H_ */
+#endif /* _KERNEL */
+#endif /* !_VM_EXTERN_H_ */

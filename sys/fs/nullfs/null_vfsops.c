@@ -40,6 +40,7 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/fcntl.h>
+#include <sys/jail.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
@@ -47,21 +48,20 @@
 #include <sys/namei.h>
 #include <sys/proc.h>
 #include <sys/vnode.h>
-#include <sys/jail.h>
 
 #include <fs/nullfs/null.h>
 
 static MALLOC_DEFINE(M_NULLFSMNT, "nullfs_mount", "NULLFS mount structure");
 
-static vfs_fhtovp_t	nullfs_fhtovp;
-static vfs_mount_t	nullfs_mount;
-static vfs_quotactl_t	nullfs_quotactl;
-static vfs_root_t	nullfs_root;
-static vfs_sync_t	nullfs_sync;
-static vfs_statfs_t	nullfs_statfs;
-static vfs_unmount_t	nullfs_unmount;
-static vfs_vget_t	nullfs_vget;
-static vfs_extattrctl_t	nullfs_extattrctl;
+static vfs_fhtovp_t nullfs_fhtovp;
+static vfs_mount_t nullfs_mount;
+static vfs_quotactl_t nullfs_quotactl;
+static vfs_root_t nullfs_root;
+static vfs_sync_t nullfs_sync;
+static vfs_statfs_t nullfs_statfs;
+static vfs_unmount_t nullfs_unmount;
+static vfs_vget_t nullfs_vget;
+static vfs_extattrctl_t nullfs_extattrctl;
 
 /*
  * Mount null layer
@@ -101,7 +101,8 @@ nullfs_mount(struct mount *mp)
 	 */
 	error = vfs_getopt(mp->mnt_optnew, "from", (void **)&target, &len);
 	if (error != 0)
-		error = vfs_getopt(mp->mnt_optnew, "target", (void **)&target, &len);
+		error = vfs_getopt(mp->mnt_optnew, "target", (void **)&target,
+		    &len);
 	if (error || target[len - 1] != '\0')
 		return (EINVAL);
 
@@ -120,7 +121,7 @@ nullfs_mount(struct mount *mp)
 	 * Find lower node
 	 */
 	ndp = &nd;
-	NDINIT(ndp, LOOKUP, FOLLOW|LOCKLEAF, UIO_SYSSPACE, target);
+	NDINIT(ndp, LOOKUP, FOLLOW | LOCKLEAF, UIO_SYSSPACE, target);
 	error = namei(ndp);
 
 	/*
@@ -162,7 +163,7 @@ nullfs_mount(struct mount *mp)
 		return (EINVAL);
 	}
 
-	xmp = (struct null_mount *) malloc(sizeof(struct null_mount),
+	xmp = (struct null_mount *)malloc(sizeof(struct null_mount),
 	    M_NULLFSMNT, M_WAITOK | M_ZERO);
 
 	/*
@@ -217,7 +218,7 @@ nullfs_mount(struct mount *mp)
 	if ((xmp->nullm_flags & NULLM_CACHE) != 0) {
 		mp->mnt_kern_flag |= lowerrootvp->v_mount->mnt_kern_flag &
 		    (MNTK_SHARED_WRITES | MNTK_LOOKUP_SHARED |
-		    MNTK_EXTENDED_SHARED);
+			MNTK_EXTENDED_SHARED);
 	}
 	mp->mnt_kern_flag |= MNTK_NOMSYNC | MNTK_UNLOCKED_INSMNTQUE;
 	mp->mnt_kern_flag |= lowerrootvp->v_mount->mnt_kern_flag &
@@ -228,7 +229,7 @@ nullfs_mount(struct mount *mp)
 	vput(nullm_rootvp);
 
 	NULLFSDEBUG("nullfs_mount: lower %s, alias at %s\n",
-		mp->mnt_stat.f_mntfromname, mp->mnt_stat.f_mntonname);
+	    mp->mnt_stat.f_mntfromname, mp->mnt_stat.f_mntonname);
 	return (0);
 }
 
@@ -272,7 +273,8 @@ nullfs_unmount(struct mount *mp, int mntflags)
 		    &mntdata->notify_node);
 	}
 	if (mntdata->nullm_lowerrootvp == mp->mnt_vnodecovered) {
-		vn_lock(mp->mnt_vnodecovered, LK_EXCLUSIVE | LK_RETRY | LK_CANRECURSE);
+		vn_lock(mp->mnt_vnodecovered,
+		    LK_EXCLUSIVE | LK_RETRY | LK_CANRECURSE);
 		mp->mnt_vnodecovered->v_vflag &= ~VV_CROSSLOCK;
 		VOP_UNLOCK(mp->mnt_vnodecovered);
 	}
@@ -355,8 +357,10 @@ nullfs_statfs(struct mount *mp, struct statfs *sbp)
 
 	/* now copy across the "interesting" information and fake the rest */
 	sbp->f_type = mstat->f_type;
-	sbp->f_flags = (sbp->f_flags & (MNT_RDONLY | MNT_NOEXEC | MNT_NOSUID |
-	    MNT_UNION | MNT_NOSYMFOLLOW | MNT_AUTOMOUNTED | MNT_IGNORE)) |
+	sbp->f_flags = (sbp->f_flags &
+			   (MNT_RDONLY | MNT_NOEXEC | MNT_NOSUID | MNT_UNION |
+			       MNT_NOSYMFOLLOW | MNT_AUTOMOUNTED |
+			       MNT_IGNORE)) |
 	    (mstat->f_flags & ~(MNT_ROOTFS | MNT_AUTOMOUNTED));
 	sbp->f_bsize = mstat->f_bsize;
 	sbp->f_iosize = mstat->f_iosize;
@@ -398,8 +402,7 @@ nullfs_fhtovp(struct mount *mp, struct fid *fidp, int flags, struct vnode **vpp)
 {
 	int error;
 
-	error = VFS_FHTOVP(MOUNTTONULLMOUNT(mp)->nullm_vfs, fidp, flags,
-	    vpp);
+	error = VFS_FHTOVP(MOUNTTONULLMOUNT(mp)->nullm_vfs, fidp, flags, vpp);
 	if (error != 0)
 		return (error);
 	return (null_nodeget(mp, *vpp, vpp));
@@ -460,27 +463,26 @@ nullfs_unlink_lowervp(struct mount *mp, struct vnode *lowervp)
 		 * relevant for future reclamations.
 		 */
 		ASSERT_VOP_ELOCKED(vp, "unlink_lowervp");
-		KASSERT(!VN_IS_DOOMED(vp),
-		    ("reclaimed nullfs vnode %p", vp));
+		KASSERT(!VN_IS_DOOMED(vp), ("reclaimed nullfs vnode %p", vp));
 		xp->null_flags &= ~NULLV_NOUNLOCK;
 	}
 	vdrop(vp);
 }
 
 static struct vfsops null_vfsops = {
-	.vfs_extattrctl =	nullfs_extattrctl,
-	.vfs_fhtovp =		nullfs_fhtovp,
-	.vfs_init =		nullfs_init,
-	.vfs_mount =		nullfs_mount,
-	.vfs_quotactl =		nullfs_quotactl,
-	.vfs_root =		nullfs_root,
-	.vfs_statfs =		nullfs_statfs,
-	.vfs_sync =		nullfs_sync,
-	.vfs_uninit =		nullfs_uninit,
-	.vfs_unmount =		nullfs_unmount,
-	.vfs_vget =		nullfs_vget,
-	.vfs_reclaim_lowervp =	nullfs_reclaim_lowervp,
-	.vfs_unlink_lowervp =	nullfs_unlink_lowervp,
+	.vfs_extattrctl = nullfs_extattrctl,
+	.vfs_fhtovp = nullfs_fhtovp,
+	.vfs_init = nullfs_init,
+	.vfs_mount = nullfs_mount,
+	.vfs_quotactl = nullfs_quotactl,
+	.vfs_root = nullfs_root,
+	.vfs_statfs = nullfs_statfs,
+	.vfs_sync = nullfs_sync,
+	.vfs_uninit = nullfs_uninit,
+	.vfs_unmount = nullfs_unmount,
+	.vfs_vget = nullfs_vget,
+	.vfs_reclaim_lowervp = nullfs_reclaim_lowervp,
+	.vfs_unlink_lowervp = nullfs_unlink_lowervp,
 };
 
 VFS_SET(null_vfsops, nullfs, VFCF_LOOPBACK | VFCF_JAIL | VFCF_FILEMOUNT);

@@ -65,8 +65,8 @@
 extern "C" {
 #endif // __cplusplus
 
-#include <dev/isci/scil/sci_base_object.h>
 #include <dev/isci/scil/sci_base_logger.h>
+#include <dev/isci/scil/sci_base_object.h>
 #include <dev/isci/scil/sci_base_state_machine.h>
 #include <dev/isci/scil/sci_base_state_machine_logger.h>
 
@@ -76,46 +76,45 @@ extern "C" {
  * @brief This enumeration depicts all the states for the common port
  *        state machine.
  */
-typedef enum _SCI_BASE_PORT_STATES
-{
-   /**
-    * This state indicates that the port has successfully been stopped.
-    * In this state no new IO operations are permitted.
-    * This state is entered from the STOPPING state.
-    */
-   SCI_BASE_PORT_STATE_STOPPED,
+typedef enum _SCI_BASE_PORT_STATES {
+	/**
+	 * This state indicates that the port has successfully been stopped.
+	 * In this state no new IO operations are permitted.
+	 * This state is entered from the STOPPING state.
+	 */
+	SCI_BASE_PORT_STATE_STOPPED,
 
-   /**
-    * This state indicates that the port is in the process of stopping.
-    * In this state no new IO operations are permitted, but existing IO
-    * operations are allowed to complete.
-    * This state is entered from the READY state.
-    */
-   SCI_BASE_PORT_STATE_STOPPING,
+	/**
+	 * This state indicates that the port is in the process of stopping.
+	 * In this state no new IO operations are permitted, but existing IO
+	 * operations are allowed to complete.
+	 * This state is entered from the READY state.
+	 */
+	SCI_BASE_PORT_STATE_STOPPING,
 
-   /**
-    * This state indicates the port is now ready.  Thus, the user is
-    * able to perform IO operations on this port.
-    * This state is entered from the STARTING state.
-    */
-   SCI_BASE_PORT_STATE_READY,
+	/**
+	 * This state indicates the port is now ready.  Thus, the user is
+	 * able to perform IO operations on this port.
+	 * This state is entered from the STARTING state.
+	 */
+	SCI_BASE_PORT_STATE_READY,
 
-   /**
-    * This state indicates the port is in the process of performing a hard
-    * reset.  Thus, the user is unable to perform IO operations on this
-    * port.
-    * This state is entered from the READY state.
-    */
-   SCI_BASE_PORT_STATE_RESETTING,
+	/**
+	 * This state indicates the port is in the process of performing a hard
+	 * reset.  Thus, the user is unable to perform IO operations on this
+	 * port.
+	 * This state is entered from the READY state.
+	 */
+	SCI_BASE_PORT_STATE_RESETTING,
 
-   /**
-    * This state indicates the port has failed a reset request.  This state
-    * is entered when a port reset request times out.
-    * This state is entered from the RESETTING state.
-    */
-   SCI_BASE_PORT_STATE_FAILED,
+	/**
+	 * This state indicates the port has failed a reset request.  This state
+	 * is entered when a port reset request times out.
+	 * This state is entered from the RESETTING state.
+	 */
+	SCI_BASE_PORT_STATE_FAILED,
 
-   SCI_BASE_PORT_MAX_STATES
+	SCI_BASE_PORT_MAX_STATES
 
 } SCI_BASE_PORT_STATES;
 
@@ -125,40 +124,33 @@ typedef enum _SCI_BASE_PORT_STATES
  * @brief The base port object abstracts the fields common to all SCI
  *        port objects.
  */
-typedef struct SCI_BASE_PORT
-{
-   /**
-    * The field specifies that the parent object for the base controller
-    * is the base object itself.
-    */
-   SCI_BASE_OBJECT_T parent;
+typedef struct SCI_BASE_PORT {
+	/**
+	 * The field specifies that the parent object for the base controller
+	 * is the base object itself.
+	 */
+	SCI_BASE_OBJECT_T parent;
 
-   /**
-    * This field contains the information for the base port state machine.
-    */
-   SCI_BASE_STATE_MACHINE_T state_machine;
+	/**
+	 * This field contains the information for the base port state machine.
+	 */
+	SCI_BASE_STATE_MACHINE_T state_machine;
 
-   #ifdef SCI_LOGGING
-   SCI_BASE_STATE_MACHINE_LOGGER_T state_machine_logger;
-   #endif // SCI_LOGGING
+#ifdef SCI_LOGGING
+	SCI_BASE_STATE_MACHINE_LOGGER_T state_machine_logger;
+#endif // SCI_LOGGING
 
 } SCI_BASE_PORT_T;
 
 struct SCI_BASE_PHY;
 
-typedef SCI_STATUS (*SCI_BASE_PORT_HANDLER_T)(
-   SCI_BASE_PORT_T *
-);
+typedef SCI_STATUS (*SCI_BASE_PORT_HANDLER_T)(SCI_BASE_PORT_T *);
 
-typedef SCI_STATUS (*SCI_BASE_PORT_PHY_HANDLER_T)(
-   SCI_BASE_PORT_T *,
-   struct SCI_BASE_PHY *
-);
+typedef SCI_STATUS (
+    *SCI_BASE_PORT_PHY_HANDLER_T)(SCI_BASE_PORT_T *, struct SCI_BASE_PHY *);
 
-typedef SCI_STATUS (*SCI_BASE_PORT_RESET_HANDLER_T)(
-   SCI_BASE_PORT_T *,
-   U32 timeout
-);
+typedef SCI_STATUS (
+    *SCI_BASE_PORT_RESET_HANDLER_T)(SCI_BASE_PORT_T *, U32 timeout);
 
 /**
  * @struct SCI_BASE_PORT_STATE_HANDLER
@@ -168,43 +160,42 @@ typedef SCI_STATUS (*SCI_BASE_PORT_RESET_HANDLER_T)(
  *        to change the behavior for user requests or transitions depending
  *        on the state the machine is in.
  */
-typedef struct SCI_BASE_PORT_STATE_HANDLER
-{
-   /**
-    * The start_handler specifies the method invoked when a user attempts to
-    * start a port.
-    */
-   SCI_BASE_PORT_HANDLER_T start_handler;
+typedef struct SCI_BASE_PORT_STATE_HANDLER {
+	/**
+	 * The start_handler specifies the method invoked when a user attempts
+	 * to start a port.
+	 */
+	SCI_BASE_PORT_HANDLER_T start_handler;
 
-   /**
-    * The stop_handler specifies the method invoked when a user attempts to
-    * stop a port.
-    */
-   SCI_BASE_PORT_HANDLER_T stop_handler;
+	/**
+	 * The stop_handler specifies the method invoked when a user attempts to
+	 * stop a port.
+	 */
+	SCI_BASE_PORT_HANDLER_T stop_handler;
 
-   /**
-    * The destruct_handler specifies the method invoked when attempting to
-    * destruct a port.
-    */
-   SCI_BASE_PORT_HANDLER_T destruct_handler;
+	/**
+	 * The destruct_handler specifies the method invoked when attempting to
+	 * destruct a port.
+	 */
+	SCI_BASE_PORT_HANDLER_T destruct_handler;
 
-   /**
-    * The reset_handler specifies the method invoked when a user attempts to
-    * hard reset a port.
-    */
-   SCI_BASE_PORT_RESET_HANDLER_T reset_handler;
+	/**
+	 * The reset_handler specifies the method invoked when a user attempts
+	 * to hard reset a port.
+	 */
+	SCI_BASE_PORT_RESET_HANDLER_T reset_handler;
 
-   /**
-    * The add_phy_handler specifies the method invoked when a user attempts to
-    * add another phy into the port.
-    */
-   SCI_BASE_PORT_PHY_HANDLER_T add_phy_handler;
+	/**
+	 * The add_phy_handler specifies the method invoked when a user attempts
+	 * to add another phy into the port.
+	 */
+	SCI_BASE_PORT_PHY_HANDLER_T add_phy_handler;
 
-   /**
-    * The remove_phy_handler specifies the method invoked when a user
-    * attempts to remove a phy from the port.
-    */
-   SCI_BASE_PORT_PHY_HANDLER_T remove_phy_handler;
+	/**
+	 * The remove_phy_handler specifies the method invoked when a user
+	 * attempts to remove a phy from the port.
+	 */
+	SCI_BASE_PORT_PHY_HANDLER_T remove_phy_handler;
 
 } SCI_BASE_PORT_STATE_HANDLER_T;
 
@@ -220,11 +211,8 @@ typedef struct SCI_BASE_PORT_STATE_HANDLER
  *
  * @return none
  */
-void sci_base_port_construct(
-   SCI_BASE_PORT_T   * this_port,
-   SCI_BASE_LOGGER_T * logger,
-   SCI_BASE_STATE_T  * state_table
-);
+void sci_base_port_construct(SCI_BASE_PORT_T *this_port,
+    SCI_BASE_LOGGER_T *logger, SCI_BASE_STATE_T *state_table);
 
 #ifdef __cplusplus
 }

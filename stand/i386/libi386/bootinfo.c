@@ -25,16 +25,18 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
 #include <sys/param.h>
-#include <sys/reboot.h>
 #include <sys/boot.h>
 #include <sys/linker.h>
+#include <sys/reboot.h>
+
 #include <gfx_fb.h>
+#include <stand.h>
+
 #include "bootstrap.h"
+#include "btxv86.h"
 #include "libi386.h"
 #include "vbe.h"
-#include "btxv86.h"
 
 void
 bi_load_vbe_data(struct preloaded_file *kfp)
@@ -50,54 +52,54 @@ bi_load_vbe_data(struct preloaded_file *kfp)
 	}
 
 	if (vbe_available()) {
-		file_addmetadata(kfp, MODINFOMD_VBE_FB,
-		    sizeof(gfx_state.tg_fb), &gfx_state.tg_fb);
+		file_addmetadata(kfp, MODINFOMD_VBE_FB, sizeof(gfx_state.tg_fb),
+		    &gfx_state.tg_fb);
 	}
 }
 
 int
 bi_getboothowto(char *kargs)
 {
-    char	*curpos, *next, *string;
-    int		howto;
-    int		vidconsole;
+	char *curpos, *next, *string;
+	int howto;
+	int vidconsole;
 
-    howto = boot_parse_cmdline(kargs);
-    howto |= boot_env_to_howto();
+	howto = boot_parse_cmdline(kargs);
+	howto |= boot_env_to_howto();
 
-    /* Enable selected consoles */
-    string = next = strdup(getenv("console"));
-    vidconsole = 0;
-    while (next != NULL) {
-	curpos = strsep(&next, " ,");
-	if (*curpos == '\0')
-		continue;
-	if (!strcmp(curpos, "vidconsole"))
-	    vidconsole = 1;
-	else if (!strcmp(curpos, "comconsole"))
-	    howto |= RB_SERIAL;
-	else if (!strcmp(curpos, "nullconsole"))
-	    howto |= RB_MUTE;
-    }
+	/* Enable selected consoles */
+	string = next = strdup(getenv("console"));
+	vidconsole = 0;
+	while (next != NULL) {
+		curpos = strsep(&next, " ,");
+		if (*curpos == '\0')
+			continue;
+		if (!strcmp(curpos, "vidconsole"))
+			vidconsole = 1;
+		else if (!strcmp(curpos, "comconsole"))
+			howto |= RB_SERIAL;
+		else if (!strcmp(curpos, "nullconsole"))
+			howto |= RB_MUTE;
+	}
 
-    if (vidconsole && (howto & RB_SERIAL))
-	howto |= RB_MULTIPLE;
+	if (vidconsole && (howto & RB_SERIAL))
+		howto |= RB_MULTIPLE;
 
-    /*
-     * XXX: Note that until the kernel is ready to respect multiple consoles
-     * for the boot messages, the first named console is the primary console
-     */
-    if (!strcmp(string, "vidconsole"))
-	howto &= ~RB_SERIAL;
+	/*
+	 * XXX: Note that until the kernel is ready to respect multiple consoles
+	 * for the boot messages, the first named console is the primary console
+	 */
+	if (!strcmp(string, "vidconsole"))
+		howto &= ~RB_SERIAL;
 
-    free(string);
+	free(string);
 
-    return(howto);
+	return (howto);
 }
 
 void
 bi_setboothowto(int howto)
 {
 
-    boot_howto_to_env(howto);
+	boot_howto_to_env(howto);
 }

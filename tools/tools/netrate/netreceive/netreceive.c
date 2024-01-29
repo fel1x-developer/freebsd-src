@@ -25,29 +25,29 @@
  */
 
 #include <sys/types.h>
+#include <sys/poll.h>
 #include <sys/socket.h>
 #include <sys/time.h>
-#include <sys/poll.h>
 
 #include <netinet/in.h>
-#include <netdb.h>          /* getaddrinfo */
 
 #include <arpa/inet.h>
-
+#include <netdb.h> /* getaddrinfo */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>         /* close */
+#include <unistd.h> /* close */
 
 #define MAXSOCK 20
 
-#include <pthread.h>
 #include <fcntl.h>
-#include <time.h>	/* clock_getres() */
+#include <pthread.h>
+#include <time.h> /* clock_getres() */
 
-static int round_to(int n, int l)
+static int
+round_to(int n, int l)
 {
-	return ((n + l - 1)/l)*l;
+	return ((n + l - 1) / l) * l;
 }
 
 /*
@@ -56,8 +56,8 @@ static int round_to(int n, int l)
  */
 struct td_desc {
 	pthread_t td_id;
-	uint64_t count;	/* rx counter */
-	uint64_t byte_count;	/* rx byte counter */
+	uint64_t count;	     /* rx counter */
+	uint64_t byte_count; /* rx byte counter */
 	int fd;
 	char *buf;
 	int buflen;
@@ -75,24 +75,24 @@ static __inline void
 timespec_add(struct timespec *tsa, struct timespec *tsb)
 {
 
-        tsa->tv_sec += tsb->tv_sec;
-        tsa->tv_nsec += tsb->tv_nsec;
-        if (tsa->tv_nsec >= 1000000000) {
-                tsa->tv_sec++;
-                tsa->tv_nsec -= 1000000000;
-        }
+	tsa->tv_sec += tsb->tv_sec;
+	tsa->tv_nsec += tsb->tv_nsec;
+	if (tsa->tv_nsec >= 1000000000) {
+		tsa->tv_sec++;
+		tsa->tv_nsec -= 1000000000;
+	}
 }
 
 static __inline void
 timespec_sub(struct timespec *tsa, struct timespec *tsb)
 {
 
-        tsa->tv_sec -= tsb->tv_sec;
-        tsa->tv_nsec -= tsb->tv_nsec;
-        if (tsa->tv_nsec < 0) {
-                tsa->tv_sec--;
-                tsa->tv_nsec += 1000000000;
-        }
+	tsa->tv_sec -= tsb->tv_sec;
+	tsa->tv_nsec -= tsb->tv_nsec;
+	if (tsa->tv_nsec < 0) {
+		tsa->tv_sec--;
+		tsa->tv_nsec += 1000000000;
+	}
 }
 
 static void *
@@ -106,7 +106,7 @@ rx_body(void *data)
 	fds.events = POLLIN;
 
 	for (;;) {
-		if (poll(&fds, 1, -1) < 0) 
+		if (poll(&fds, 1, -1) < 0)
 			perror("poll on thread");
 		if (!(fds.revents & POLLIN))
 			continue;
@@ -125,19 +125,19 @@ static struct td_desc **
 make_threads(int *s, int nsock, int nthreads)
 {
 	int i, si, nt = nsock * nthreads;
-	int lb = round_to(nt * sizeof (struct td_desc *), 64);
+	int lb = round_to(nt * sizeof(struct td_desc *), 64);
 	int td_len = round_to(sizeof(struct td_desc), 64); // cache align
 	char *m = calloc(1, lb + td_len * nt);
 	struct td_desc **tp;
 
-	printf("td len %d -> %d\n", (int)sizeof(struct td_desc) , td_len);
+	printf("td len %d -> %d\n", (int)sizeof(struct td_desc), td_len);
 	/* pointers plus the structs */
 	if (m == NULL) {
 		perror("no room for pointers!");
 		exit(1);
 	}
 	tp = (struct td_desc **)m;
-	m += lb;	/* skip the pointers */
+	m += lb; /* skip the pointers */
 	for (si = i = 0; i < nt; i++, m += td_len) {
 		tp[i] = (struct td_desc *)m;
 		tp[i]->fd = s[si];
@@ -167,7 +167,7 @@ main_thread(struct td_desc **tp, int nsock, int nthreads)
 		int64_t dn;
 		uint64_t pps, bps;
 
-		if (poll(NULL, 0, 500) < 0) 
+		if (poll(NULL, 0, 500) < 0)
 			perror("poll");
 		c0 = bc0 = 0;
 		for (i = 0; i < nt; i++) {
@@ -180,11 +180,14 @@ main_thread(struct td_desc **tp, int nsock, int nthreads)
 		timespec_sub(&delta, &then);
 		then = now;
 		pps = dn;
-		pps = (pps * 1000000000) / (delta.tv_sec*1000000000 + delta.tv_nsec + 1);
-		bps = ((bc0 - bc1) * 8000000000) / (delta.tv_sec*1000000000 + delta.tv_nsec + 1);
-		fprintf(stderr, " %9ld pps %8.3f Mbps", (long)pps, .000001*bps);
-		fprintf(stderr, " - %d pkts in %ld.%09ld ns\n",
-			(int)dn, delta.tv_sec, delta.tv_nsec);
+		pps = (pps * 1000000000) /
+		    (delta.tv_sec * 1000000000 + delta.tv_nsec + 1);
+		bps = ((bc0 - bc1) * 8000000000) /
+		    (delta.tv_sec * 1000000000 + delta.tv_nsec + 1);
+		fprintf(stderr, " %9ld pps %8.3f Mbps", (long)pps,
+		    .000001 * bps);
+		fprintf(stderr, " - %d pkts in %ld.%09ld ns\n", (int)dn,
+		    delta.tv_sec, delta.tv_nsec);
 		c1 = c0;
 		bc1 = bc0;
 	}
@@ -235,14 +238,15 @@ main(int argc, char *argv[])
 	nsock = 0;
 	for (res = res0; res && nsock < MAXSOCK; res = res->ai_next) {
 		s[nsock] = socket(res->ai_family, res->ai_socktype,
-		res->ai_protocol);
+		    res->ai_protocol);
 		if (s[nsock] < 0) {
 			cause = "socket";
 			continue;
 		}
 
 		v = 128 * 1024;
-		if (setsockopt(s[nsock], SOL_SOCKET, SO_RCVBUF, &v, sizeof(v)) < 0) {
+		if (setsockopt(s[nsock], SOL_SOCKET, SO_RCVBUF, &v, sizeof(v)) <
+		    0) {
 			cause = "SO_RCVBUF";
 			close(s[nsock]);
 			continue;
@@ -252,7 +256,7 @@ main(int argc, char *argv[])
 			close(s[nsock]);
 			continue;
 		}
-		(void) listen(s[nsock], 5);
+		(void)listen(s[nsock], 5);
 		nsock++;
 	}
 	if (nsock == 0) {
@@ -262,7 +266,7 @@ main(int argc, char *argv[])
 	}
 
 	printf("netreceive %d sockets x %d threads listening on UDP port %d\n",
-		nsock, nthreads, (u_short)port);
+	    nsock, nthreads, (u_short)port);
 
 	tp = make_threads(s, nsock, nthreads);
 	main_thread(tp, nsock, nthreads);

@@ -30,7 +30,7 @@
 
 struct uboot_devdesc {
 	union {
-		struct devdesc      dd;
+		struct devdesc dd;
 		struct disk_devdesc d_disk;
 	};
 };
@@ -40,11 +40,11 @@ struct uboot_devdesc {
  * aligned to cacheline boundaries.
  */
 #if defined(__aarch64__)
-#define	PKTALIGN	128
+#define PKTALIGN 128
 #elif defined(__arm__)
-#define	PKTALIGN	64
+#define PKTALIGN 64
 #else
-#define	PKTALIGN	32
+#define PKTALIGN 32
 #endif
 
 int uboot_getdev(void **vdev, const char *devspec, const char **path);
@@ -58,9 +58,9 @@ extern uintptr_t uboot_heap_start;
 extern uintptr_t uboot_heap_end;
 
 uint64_t uboot_loadaddr(u_int type, void *data, uint64_t addr);
-ssize_t	uboot_copyin(const void *src, vm_offset_t dest, const size_t len);
-ssize_t	uboot_copyout(const vm_offset_t src, void *dest, const size_t len);
-ssize_t	uboot_readin(readin_handle_t fd, vm_offset_t dest, const size_t len);
+ssize_t uboot_copyin(const void *src, vm_offset_t dest, const size_t len);
+ssize_t uboot_copyout(const vm_offset_t src, void *dest, const size_t len);
+ssize_t uboot_readin(readin_handle_t fd, vm_offset_t dest, const size_t len);
 extern int uboot_autoload(void);
 
 struct preloaded_file;
@@ -71,4 +71,3 @@ extern struct file_format uboot_elf;
 void reboot(void);
 
 int uboot_diskgetunit(int type, int type_unit);
-

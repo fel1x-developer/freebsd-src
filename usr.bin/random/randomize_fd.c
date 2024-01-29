@@ -31,9 +31,9 @@
 #include <err.h>
 #include <errno.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -54,7 +54,7 @@ rand_node_allocate(void)
 	n->len = 0;
 	n->cp = NULL;
 	n->next = NULL;
-	return(n);
+	return (n);
 }
 
 static void
@@ -133,17 +133,21 @@ randomize_fd(int fd, int type, int unique, double denom)
 			if (i == buflen) {
 				if (fndstr) {
 					if (!eof) {
-						memmove(buf, &buf[bufc], i - bufc);
+						memmove(buf, &buf[bufc],
+						    i - bufc);
 						i -= bufc;
 						bufc = 0;
-						len = read(fd, &buf[i], buflen - i);
+						len = read(fd, &buf[i],
+						    buflen - i);
 						if (len == -1)
 							err(1, "read");
 						else if (len == 0) {
 							eof++;
 							break;
-						} else if (len < (ssize_t)(buflen - i))
-							buflen = i + (size_t)len;
+						} else if (len <
+						    (ssize_t)(buflen - i))
+							buflen = i +
+							    (size_t)len;
 
 						bufleft = (int)len;
 						fndstr = 0;
@@ -155,25 +159,27 @@ randomize_fd(int fd, int type, int unique, double denom)
 						err(1, "realloc");
 
 					if (!eof) {
-						len = read(fd, &buf[i], buflen - i);
+						len = read(fd, &buf[i],
+						    buflen - i);
 						if (len == -1)
 							err(1, "read");
 						else if (len == 0) {
 							eof++;
 							break;
-						} else if (len < (ssize_t)(buflen - i))
-							buflen = i + (size_t)len;
+						} else if (len <
+						    (ssize_t)(buflen - i))
+							buflen = i +
+							    (size_t)len;
 
 						bufleft = (int)len;
 					}
-
 				}
 			}
 
 			if ((type == RANDOM_TYPE_LINES && buf[i] == '\n') ||
 			    (type == RANDOM_TYPE_WORDS && isspace(buf[i])) ||
 			    (eof && i == buflen - 1)) {
-make_token:
+			make_token:
 				if (numnode == UINT32_MAX - 1) {
 					errno = EFBIG;
 					err(1, "too many delimiters");
@@ -198,7 +204,8 @@ make_token:
 		}
 	}
 
-	/* Necessary evil to compensate for files that don't end with a newline */
+	/* Necessary evil to compensate for files that don't end with a newline
+	 */
 	if (bufc != i) {
 		i--;
 		goto make_token;
@@ -211,14 +218,15 @@ make_token:
 	for (i = numnode; i > 0; i--) {
 		selected = arc4random_uniform(numnode);
 
-		for (j = 0, prev = n = rand_root; n != NULL; j++, prev = n, n = n->next) {
+		for (j = 0, prev = n = rand_root; n != NULL;
+		     j++, prev = n, n = n->next) {
 			if (j == selected) {
 				if (n->cp == NULL)
 					break;
 
 				if (random_uniform_denom(denom)) {
-					ret = printf("%.*s",
-						(int)n->len - 1, n->cp);
+					ret = printf("%.*s", (int)n->len - 1,
+					    n->cp);
 					if (ret < 0)
 						err(1, "printf");
 				}
@@ -242,5 +250,5 @@ make_token:
 	if (!unique)
 		rand_node_free_rec(rand_root);
 
-	return(0);
+	return (0);
 }

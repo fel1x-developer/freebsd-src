@@ -30,10 +30,11 @@
 #include <sys/systm.h>
 #include <sys/capsicum.h>
 #include <sys/conf.h>
+#include <sys/file.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/file.h>
 #include <sys/proc.h>
+
 #include <machine/bus.h>
 
 #if defined(__amd64__) /* Assume amd64 wants 32 bit Linux */
@@ -43,33 +44,32 @@
 #include <machine/../linux/linux.h>
 #include <machine/../linux/linux_proto.h>
 #endif
+#include <dev/mfi/mfi_ioctl.h>
+#include <dev/mfi/mfireg.h>
+
 #include <compat/linux/linux_ioctl.h>
 #include <compat/linux/linux_util.h>
 
-#include <dev/mfi/mfireg.h>
-#include <dev/mfi/mfi_ioctl.h>
-
 /* There are multiple ioctl number ranges that need to be handled */
-#define MFI_LINUX_IOCTL_MIN  0x4d00
-#define MFI_LINUX_IOCTL_MAX  0x4d04
+#define MFI_LINUX_IOCTL_MIN 0x4d00
+#define MFI_LINUX_IOCTL_MAX 0x4d04
 
 static linux_ioctl_function_t mfi_linux_ioctl;
-static struct linux_ioctl_handler mfi_linux_handler = {mfi_linux_ioctl,
-						       MFI_LINUX_IOCTL_MIN,
-						       MFI_LINUX_IOCTL_MAX};
+static struct linux_ioctl_handler mfi_linux_handler = { mfi_linux_ioctl,
+	MFI_LINUX_IOCTL_MIN, MFI_LINUX_IOCTL_MAX };
 
-SYSINIT  (mfi_register,   SI_SUB_KLD, SI_ORDER_MIDDLE,
-	  linux_ioctl_register_handler, &mfi_linux_handler);
+SYSINIT(mfi_register, SI_SUB_KLD, SI_ORDER_MIDDLE, linux_ioctl_register_handler,
+    &mfi_linux_handler);
 SYSUNINIT(mfi_unregister, SI_SUB_KLD, SI_ORDER_MIDDLE,
-	  linux_ioctl_unregister_handler, &mfi_linux_handler);
+    linux_ioctl_unregister_handler, &mfi_linux_handler);
 
-static struct linux_device_handler mfi_device_handler =
-	{ "mfi", "megaraid_sas", "mfi0", "megaraid_sas_ioctl_node", -1, 0, 1};
+static struct linux_device_handler mfi_device_handler = { "mfi", "megaraid_sas",
+	"mfi0", "megaraid_sas_ioctl_node", -1, 0, 1 };
 
-SYSINIT  (mfi_register2,   SI_SUB_KLD, SI_ORDER_MIDDLE,
-	  linux_device_register_handler, &mfi_device_handler);
+SYSINIT(mfi_register2, SI_SUB_KLD, SI_ORDER_MIDDLE,
+    linux_device_register_handler, &mfi_device_handler);
 SYSUNINIT(mfi_unregister2, SI_SUB_KLD, SI_ORDER_MIDDLE,
-	  linux_device_unregister_handler, &mfi_device_handler);
+    linux_device_unregister_handler, &mfi_device_handler);
 
 static int
 mfi_linux_modevent(module_t mod, int cmd, void *data)

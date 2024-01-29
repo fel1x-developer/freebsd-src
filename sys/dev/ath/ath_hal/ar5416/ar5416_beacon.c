@@ -20,13 +20,12 @@
 
 #include "ah.h"
 #include "ah_internal.h"
-
 #include "ar5416/ar5416.h"
-#include "ar5416/ar5416reg.h"
 #include "ar5416/ar5416phy.h"
+#include "ar5416/ar5416reg.h"
 
-#define TU_TO_USEC(_tu)		((_tu) << 10)
-#define	ONE_EIGHTH_TU_TO_USEC(_tu8)	((_tu8) << 7)
+#define TU_TO_USEC(_tu) ((_tu) << 10)
+#define ONE_EIGHTH_TU_TO_USEC(_tu8) ((_tu8) << 7)
 
 /*
  * Return the hardware NextTBTT in TSF
@@ -69,7 +68,8 @@ ar5416SetBeaconTimers(struct ath_hal *ah, const HAL_BEACON_TIMERS *bt)
 	/* enable timers */
 	/* NB: flags == 0 handled specially for backwards compatibility */
 	OS_REG_SET_BIT(ah, AR_TIMER_MODE,
-	    bt->bt_flags != 0 ? bt->bt_flags :
+	    bt->bt_flags != 0 ?
+		bt->bt_flags :
 		AR_TIMER_MODE_TBTT | AR_TIMER_MODE_DBA | AR_TIMER_MODE_SWBA);
 }
 
@@ -79,13 +79,13 @@ ar5416SetBeaconTimers(struct ath_hal *ah, const HAL_BEACON_TIMERS *bt)
  * driver calls ar5212SetStaBeaconTimers instead.
  */
 void
-ar5416BeaconInit(struct ath_hal *ah,
-	uint32_t next_beacon, uint32_t beacon_period)
+ar5416BeaconInit(struct ath_hal *ah, uint32_t next_beacon,
+    uint32_t beacon_period)
 {
 	HAL_BEACON_TIMERS bt;
 
 	bt.bt_nexttbtt = next_beacon;
-	/* 
+	/*
 	 * TIMER1: in AP/adhoc mode this controls the DMA beacon
 	 * alert timer; otherwise it controls the next wakeup time.
 	 * TIMER2: in AP mode, it controls the SBA beacon alert
@@ -104,40 +104,41 @@ ar5416BeaconInit(struct ath_hal *ah,
 		bt.bt_flags |= AR_TIMER_MODE_NDP;
 		/* fall thru... */
 	case HAL_M_HOSTAP:
-		bt.bt_nextdba = (next_beacon -
-		    ah->ah_config.ah_dma_beacon_response_time) << 3;	/* 1/8 TU */
-		bt.bt_nextswba = (next_beacon -
-		    ah->ah_config.ah_sw_beacon_response_time) << 3;	/* 1/8 TU */
-		bt.bt_flags |= AR_TIMER_MODE_TBTT
-			    |  AR_TIMER_MODE_DBA
-			    |  AR_TIMER_MODE_SWBA;
+		bt.bt_nextdba =
+		    (next_beacon - ah->ah_config.ah_dma_beacon_response_time)
+		    << 3; /* 1/8 TU */
+		bt.bt_nextswba =
+		    (next_beacon - ah->ah_config.ah_sw_beacon_response_time)
+		    << 3; /* 1/8 TU */
+		bt.bt_flags |= AR_TIMER_MODE_TBTT | AR_TIMER_MODE_DBA |
+		    AR_TIMER_MODE_SWBA;
 		break;
 	}
 	/*
-	 * Set the ATIM window 
+	 * Set the ATIM window
 	 * Our hardware does not support an ATIM window of 0
 	 * (beacons will not work).  If the ATIM windows is 0,
 	 * force it to 1.
 	 */
 	bt.bt_nextatim = next_beacon + 1;
 	bt.bt_intval = beacon_period &
-		(AR_BEACON_PERIOD | AR_BEACON_RESET_TSF | AR_BEACON_EN);
+	    (AR_BEACON_PERIOD | AR_BEACON_RESET_TSF | AR_BEACON_EN);
 	ar5416SetBeaconTimers(ah, &bt);
 }
 
-#define AR_BEACON_PERIOD_MAX	0xffff
+#define AR_BEACON_PERIOD_MAX 0xffff
 
 void
 ar5416ResetStaBeaconTimers(struct ath_hal *ah)
 {
 	uint32_t val;
 
-	OS_REG_WRITE(ah, AR_NEXT_TBTT, 0);		/* no beacons */
+	OS_REG_WRITE(ah, AR_NEXT_TBTT, 0); /* no beacons */
 	val = OS_REG_READ(ah, AR_STA_ID1);
-	val |= AR_STA_ID1_PWR_SAV;		/* XXX */
+	val |= AR_STA_ID1_PWR_SAV; /* XXX */
 	/* tell the h/w that the associated AP is not PCF capable */
 	OS_REG_WRITE(ah, AR_STA_ID1,
-		val & ~(AR_STA_ID1_USE_DEFANT | AR_STA_ID1_PCF));
+	    val & ~(AR_STA_ID1_USE_DEFANT | AR_STA_ID1_PCF));
 	OS_REG_WRITE(ah, AR5416_BEACON_PERIOD, AR_BEACON_PERIOD_MAX);
 	OS_REG_WRITE(ah, AR_DBA_PERIOD, AR_BEACON_PERIOD_MAX);
 }
@@ -150,7 +151,7 @@ ar5416ResetStaBeaconTimers(struct ath_hal *ah)
 void
 ar5416SetStaBeaconTimers(struct ath_hal *ah, const HAL_BEACON_STATE *bs)
 {
-	uint32_t nextTbtt, nextdtim,beaconintval, dtimperiod;
+	uint32_t nextTbtt, nextdtim, beaconintval, dtimperiod;
 
 	HALASSERT(bs->bs_intval != 0);
 
@@ -164,9 +165,9 @@ ar5416SetStaBeaconTimers(struct ath_hal *ah, const HAL_BEACON_STATE *bs)
 	 * h/w parses IEs.
 	 */
 	OS_REG_WRITE(ah, AR5416_BEACON_PERIOD,
-			 TU_TO_USEC(bs->bs_intval & HAL_BEACON_PERIOD));
+	    TU_TO_USEC(bs->bs_intval & HAL_BEACON_PERIOD));
 	OS_REG_WRITE(ah, AR_DBA_PERIOD,
-			 TU_TO_USEC(bs->bs_intval & HAL_BEACON_PERIOD));
+	    TU_TO_USEC(bs->bs_intval & HAL_BEACON_PERIOD));
 
 	/*
 	 * Configure the BMISS interrupt.  Note that we
@@ -174,9 +175,9 @@ ar5416SetStaBeaconTimers(struct ath_hal *ah, const HAL_BEACON_STATE *bs)
 	 * the threshold.
 	 */
 	HALASSERT(bs->bs_bmissthreshold <=
-		(AR_RSSI_THR_BM_THR >> AR_RSSI_THR_BM_THR_S));
-	OS_REG_RMW_FIELD(ah, AR_RSSI_THR,
-		AR_RSSI_THR_BM_THR, bs->bs_bmissthreshold);
+	    (AR_RSSI_THR_BM_THR >> AR_RSSI_THR_BM_THR_S));
+	OS_REG_RMW_FIELD(ah, AR_RSSI_THR, AR_RSSI_THR_BM_THR,
+	    bs->bs_bmissthreshold);
 
 	/*
 	 * Program the sleep registers to correlate with the beacon setup.
@@ -216,9 +217,9 @@ ar5416SetStaBeaconTimers(struct ath_hal *ah, const HAL_BEACON_STATE *bs)
  * errors causing the jitter to actually be a much bigger problem.
  * I'll have to investigate that with a fine tooth comb.
  */
-#define CAB_TIMEOUT_VAL     10 /* in TU */
-#define BEACON_TIMEOUT_VAL  10 /* in TU */
-#define SLEEP_SLOP          3  /* in TU */
+#define CAB_TIMEOUT_VAL 10    /* in TU */
+#define BEACON_TIMEOUT_VAL 10 /* in TU */
+#define SLEEP_SLOP 3	      /* in TU */
 
 	/*
 	 * For max powersave mode we may want to sleep for longer than a
@@ -230,14 +231,14 @@ ar5416SetStaBeaconTimers(struct ath_hal *ah, const HAL_BEACON_STATE *bs)
 	HALASSERT(beaconintval != 0);
 	if (bs->bs_sleepduration > beaconintval) {
 		HALASSERT(roundup(bs->bs_sleepduration, beaconintval) ==
-				bs->bs_sleepduration);
+		    bs->bs_sleepduration);
 		beaconintval = bs->bs_sleepduration;
 	}
 	dtimperiod = bs->bs_dtimperiod;
 	if (bs->bs_sleepduration > dtimperiod) {
 		HALASSERT(dtimperiod == 0 ||
-			roundup(bs->bs_sleepduration, dtimperiod) ==
-				bs->bs_sleepduration);
+		    roundup(bs->bs_sleepduration, dtimperiod) ==
+			bs->bs_sleepduration);
 		dtimperiod = bs->bs_sleepduration;
 	}
 	HALASSERT(beaconintval <= dtimperiod);
@@ -248,40 +249,40 @@ ar5416SetStaBeaconTimers(struct ath_hal *ah, const HAL_BEACON_STATE *bs)
 	nextdtim = bs->bs_nextdtim;
 
 	OS_REG_WRITE(ah, AR_NEXT_DTIM,
-		TU_TO_USEC(bs->bs_nextdtim - SLEEP_SLOP));
+	    TU_TO_USEC(bs->bs_nextdtim - SLEEP_SLOP));
 	OS_REG_WRITE(ah, AR_NEXT_TIM, TU_TO_USEC(nextTbtt - SLEEP_SLOP));
 
 	/* cab timeout is now in 1/8 TU */
 	OS_REG_WRITE(ah, AR5416_SLEEP1,
-		SM((CAB_TIMEOUT_VAL << 3), AR5416_SLEEP1_CAB_TIMEOUT)
-		| AR5416_SLEEP1_ASSUME_DTIM);
+	    SM((CAB_TIMEOUT_VAL << 3), AR5416_SLEEP1_CAB_TIMEOUT) |
+		AR5416_SLEEP1_ASSUME_DTIM);
 
 	/* XXX autosleep? Use min beacon timeout; check ath9k -adrian */
 	/* beacon timeout is now in 1/8 TU */
 	OS_REG_WRITE(ah, AR5416_SLEEP2,
-		SM((BEACON_TIMEOUT_VAL << 3), AR5416_SLEEP2_BEACON_TIMEOUT));
+	    SM((BEACON_TIMEOUT_VAL << 3), AR5416_SLEEP2_BEACON_TIMEOUT));
 
 	/* TIM_PERIOD and DTIM_PERIOD are now in uS. */
 	OS_REG_WRITE(ah, AR_TIM_PERIOD, TU_TO_USEC(beaconintval));
 	OS_REG_WRITE(ah, AR_DTIM_PERIOD, TU_TO_USEC(dtimperiod));
 
 	OS_REG_SET_BIT(ah, AR_TIMER_MODE,
-	     AR_TIMER_MODE_TBTT | AR_TIMER_MODE_TIM | AR_TIMER_MODE_DTIM);
+	    AR_TIMER_MODE_TBTT | AR_TIMER_MODE_TIM | AR_TIMER_MODE_DTIM);
 
-#define	HAL_TSFOOR_THRESHOLD	0x00004240 /* TSF OOR threshold (16k us) */
+#define HAL_TSFOOR_THRESHOLD 0x00004240 /* TSF OOR threshold (16k us) */
 
 	/* TSF out of range threshold */
-//	OS_REG_WRITE(ah, AR_TSFOOR_THRESHOLD, bs->bs_tsfoor_threshold);
+	//	OS_REG_WRITE(ah, AR_TSFOOR_THRESHOLD, bs->bs_tsfoor_threshold);
 	OS_REG_WRITE(ah, AR_TSFOOR_THRESHOLD, HAL_TSFOOR_THRESHOLD);
 
-	HALDEBUG(ah, HAL_DEBUG_BEACON, "%s: next DTIM %d\n",
-	    __func__, bs->bs_nextdtim);
-	HALDEBUG(ah, HAL_DEBUG_BEACON, "%s: next beacon %d\n",
-	    __func__, nextTbtt);
-	HALDEBUG(ah, HAL_DEBUG_BEACON, "%s: beacon period %d\n",
-	    __func__, beaconintval);
-	HALDEBUG(ah, HAL_DEBUG_BEACON, "%s: DTIM period %d\n",
-	    __func__, dtimperiod);
+	HALDEBUG(ah, HAL_DEBUG_BEACON, "%s: next DTIM %d\n", __func__,
+	    bs->bs_nextdtim);
+	HALDEBUG(ah, HAL_DEBUG_BEACON, "%s: next beacon %d\n", __func__,
+	    nextTbtt);
+	HALDEBUG(ah, HAL_DEBUG_BEACON, "%s: beacon period %d\n", __func__,
+	    beaconintval);
+	HALDEBUG(ah, HAL_DEBUG_BEACON, "%s: DTIM period %d\n", __func__,
+	    dtimperiod);
 #undef CAB_TIMEOUT_VAL
 #undef BEACON_TIMEOUT_VAL
 #undef SLEEP_SLOP

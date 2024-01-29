@@ -28,10 +28,10 @@
 
 #include <sys/types.h>
 #include <sys/eui64.h>
-#include <stdio.h>
-#include <string.h>
 
 #include <atf-c.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "test-eui64.h"
 

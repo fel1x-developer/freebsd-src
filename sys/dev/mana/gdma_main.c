@@ -31,6 +31,7 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/eventhandler.h>
 #include <sys/kernel.h>
 #include <sys/kthread.h>
 #include <sys/malloc.h>
@@ -42,33 +43,30 @@
 #include <sys/sysctl.h>
 #include <sys/taskqueue.h>
 #include <sys/time.h>
-#include <sys/eventhandler.h>
 
 #include <machine/bus.h>
-#include <machine/resource.h>
 #include <machine/in_cksum.h>
+#include <machine/resource.h>
+
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include <net/if.h>
 #include <net/if_var.h>
 
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
-
 #include "gdma_util.h"
 #include "mana.h"
 
-
-static mana_vendor_id_t mana_id_table[] = {
-    { PCI_VENDOR_ID_MICROSOFT, PCI_DEV_ID_MANA_VF},
-    /* Last entry */
-    { 0, 0}
-};
+static mana_vendor_id_t mana_id_table[] = { { PCI_VENDOR_ID_MICROSOFT,
+						PCI_DEV_ID_MANA_VF },
+	/* Last entry */
+	{ 0, 0 } };
 
 static inline uint32_t
 mana_gd_r32(struct gdma_context *g, uint64_t offset)
 {
-	uint32_t v = bus_space_read_4(g->gd_bus.bar0_t,
-	    g->gd_bus.bar0_h, offset);
+	uint32_t v = bus_space_read_4(g->gd_bus.bar0_t, g->gd_bus.bar0_h,
+	    offset);
 	rmb();
 	return (v);
 }
@@ -77,8 +75,8 @@ mana_gd_r32(struct gdma_context *g, uint64_t offset)
 static inline uint64_t
 mana_gd_r64(struct gdma_context *g, uint64_t offset)
 {
-	uint64_t v = bus_space_read_8(g->gd_bus.bar0_t,
-	    g->gd_bus.bar0_h, offset);
+	uint64_t v = bus_space_read_8(g->gd_bus.bar0_t, g->gd_bus.bar0_h,
+	    offset);
 	rmb();
 	return (v);
 }
@@ -89,7 +87,7 @@ mana_gd_r64(struct gdma_context *g, uint64_t offset)
 	uint64_t v;
 	uint32_t *vp = (uint32_t *)&v;
 
-	*vp =  mana_gd_r32(g, offset);
+	*vp = mana_gd_r32(g, offset);
 	*(vp + 1) = mana_gd_r32(g, offset + 4);
 	rmb();
 	return (v);
@@ -104,21 +102,21 @@ mana_gd_query_max_resources(device_t dev)
 	struct gdma_general_req req = {};
 	int err;
 
-	mana_gd_init_req_hdr(&req.hdr, GDMA_QUERY_MAX_RESOURCES,
-	    sizeof(req), sizeof(resp));
+	mana_gd_init_req_hdr(&req.hdr, GDMA_QUERY_MAX_RESOURCES, sizeof(req),
+	    sizeof(resp));
 
 	err = mana_gd_send_request(gc, sizeof(req), &req, sizeof(resp), &resp);
 	if (err || resp.hdr.status) {
 		device_printf(gc->dev,
-		   "Failed to query resource info: %d, 0x%x\n",
-		   err, resp.hdr.status);
+		    "Failed to query resource info: %d, 0x%x\n", err,
+		    resp.hdr.status);
 		return err ? err : EPROTO;
 	}
 
-	mana_dbg(NULL, "max_msix %u, max_eq %u, max_cq %u, "
+	mana_dbg(NULL,
+	    "max_msix %u, max_eq %u, max_cq %u, "
 	    "max_sq %u, max_rq %u\n",
-	    resp.max_msix, resp.max_eq, resp.max_cq,
-	    resp.max_sq, resp.max_rq);
+	    resp.max_msix, resp.max_eq, resp.max_cq, resp.max_sq, resp.max_rq);
 
 	if (gc->num_msix_usable > resp.max_msix)
 		gc->num_msix_usable = resp.max_msix;
@@ -161,9 +159,8 @@ mana_gd_detect_devices(device_t dev)
 
 	err = mana_gd_send_request(gc, sizeof(req), &req, sizeof(resp), &resp);
 	if (err || resp.hdr.status) {
-		device_printf(gc->dev,
-		    "Failed to detect devices: %d, 0x%x\n", err,
-		    resp.hdr.status);
+		device_printf(gc->dev, "Failed to detect devices: %d, 0x%x\n",
+		    err, resp.hdr.status);
 		return err ? err : EPROTO;
 	}
 
@@ -173,8 +170,7 @@ mana_gd_detect_devices(device_t dev)
 		gd_dev = resp.devs[i];
 		dev_type = gd_dev.type;
 
-		mana_dbg(NULL, "gdma dev %d, type %u\n",
-		    i, dev_type);
+		mana_dbg(NULL, "gdma dev %d, type %u\n", i, dev_type);
 
 		/* HWC is already detected in mana_hwc_create_channel(). */
 		if (dev_type == GDMA_DEVICE_HWC)
@@ -190,8 +186,8 @@ mana_gd_detect_devices(device_t dev)
 }
 
 int
-mana_gd_send_request(struct gdma_context *gc, uint32_t req_len,
-    const void *req, uint32_t resp_len, void *resp)
+mana_gd_send_request(struct gdma_context *gc, uint32_t req_len, const void *req,
+    uint32_t resp_len, void *resp)
 {
 	struct hw_channel_context *hwc = gc->hwc.driver_data;
 
@@ -224,20 +220,20 @@ mana_gd_alloc_memory(struct gdma_context *gc, unsigned int length,
 	if (length < PAGE_SIZE || (length != roundup_pow_of_two(length)))
 		return EINVAL;
 
-	err = bus_dma_tag_create(bus_get_dma_tag(gc->dev),	/* parent */
-	    PAGE_SIZE, 0,		/* alignment, boundary	*/
-	    BUS_SPACE_MAXADDR,		/* lowaddr		*/
-	    BUS_SPACE_MAXADDR,		/* highaddr		*/
-	    NULL, NULL,			/* filter, filterarg	*/
-	    length,			/* maxsize		*/
-	    1,				/* nsegments		*/
-	    length,			/* maxsegsize		*/
-	    0,				/* flags		*/
-	    NULL, NULL,			/* lockfunc, lockfuncarg*/
+	err = bus_dma_tag_create(bus_get_dma_tag(gc->dev), /* parent */
+	    PAGE_SIZE, 0,      /* alignment, boundary	*/
+	    BUS_SPACE_MAXADDR, /* lowaddr		*/
+	    BUS_SPACE_MAXADDR, /* highaddr		*/
+	    NULL, NULL,	       /* filter, filterarg	*/
+	    length,	       /* maxsize		*/
+	    1,		       /* nsegments		*/
+	    length,	       /* maxsegsize		*/
+	    0,		       /* flags		*/
+	    NULL, NULL,	       /* lockfunc, lockfuncarg*/
 	    &gmi->dma_tag);
 	if (err) {
-		device_printf(gc->dev,
-		    "failed to create dma tag, err: %d\n", err);
+		device_printf(gc->dev, "failed to create dma tag, err: %d\n",
+		    err);
 		return (err);
 	}
 
@@ -249,17 +245,17 @@ mana_gd_alloc_memory(struct gdma_context *gc, unsigned int length,
 	err = bus_dmamem_alloc(gmi->dma_tag, &buf,
 	    BUS_DMA_NOWAIT | BUS_DMA_COHERENT | BUS_DMA_ZERO, &gmi->dma_map);
 	if (err) {
-		device_printf(gc->dev,
-		    "failed to alloc dma mem, err: %d\n", err);
+		device_printf(gc->dev, "failed to alloc dma mem, err: %d\n",
+		    err);
 		bus_dma_tag_destroy(gmi->dma_tag);
 		return (err);
 	}
 
-	err = bus_dmamap_load(gmi->dma_tag, gmi->dma_map, buf,
-	    length, mana_gd_dma_map_paddr, &dma_handle, BUS_DMA_NOWAIT);
+	err = bus_dmamap_load(gmi->dma_tag, gmi->dma_map, buf, length,
+	    mana_gd_dma_map_paddr, &dma_handle, BUS_DMA_NOWAIT);
 	if (err) {
-		device_printf(gc->dev,
-		    "failed to load dma mem, err: %d\n", err);
+		device_printf(gc->dev, "failed to load dma mem, err: %d\n",
+		    err);
 		bus_dmamem_free(gmi->dma_tag, buf, gmi->dma_map);
 		bus_dma_tag_destroy(gmi->dma_tag);
 		return (err);
@@ -288,8 +284,8 @@ mana_gd_destroy_doorbell_page(struct gdma_context *gc, int doorbell_page)
 	struct gdma_resp_hdr resp = {};
 	int err;
 
-	mana_gd_init_req_hdr(&req.hdr, GDMA_DESTROY_RESOURCE_RANGE,
-	    sizeof(req), sizeof(resp));
+	mana_gd_init_req_hdr(&req.hdr, GDMA_DESTROY_RESOURCE_RANGE, sizeof(req),
+	    sizeof(resp));
 
 	req.resource_type = GDMA_RESOURCE_DOORBELL_PAGE;
 	req.num_resources = 1;
@@ -298,8 +294,8 @@ mana_gd_destroy_doorbell_page(struct gdma_context *gc, int doorbell_page)
 	err = mana_gd_send_request(gc, sizeof(req), &req, sizeof(resp), &resp);
 	if (err || resp.status) {
 		device_printf(gc->dev,
-		    "Failed to destroy doorbell page: ret %d, 0x%x\n",
-		    err, resp.status);
+		    "Failed to destroy doorbell page: ret %d, 0x%x\n", err,
+		    resp.status);
 		return err ? err : EPROTO;
 	}
 
@@ -326,8 +322,8 @@ mana_gd_allocate_doorbell_page(struct gdma_context *gc, int *doorbell_page)
 	err = mana_gd_send_request(gc, sizeof(req), &req, sizeof(resp), &resp);
 	if (err || resp.hdr.status) {
 		device_printf(gc->dev,
-		    "Failed to allocate doorbell page: ret %d, 0x%x\n",
-		    err, resp.hdr.status);
+		    "Failed to allocate doorbell page: ret %d, 0x%x\n", err,
+		    resp.hdr.status);
 		return err ? err : EPROTO;
 	}
 
@@ -337,8 +333,7 @@ mana_gd_allocate_doorbell_page(struct gdma_context *gc, int *doorbell_page)
 }
 
 static int
-mana_gd_create_hw_eq(struct gdma_context *gc,
-    struct gdma_queue *queue)
+mana_gd_create_hw_eq(struct gdma_context *gc, struct gdma_queue *queue)
 {
 	struct gdma_create_queue_resp resp = {};
 	struct gdma_create_queue_req req = {};
@@ -347,8 +342,8 @@ mana_gd_create_hw_eq(struct gdma_context *gc,
 	if (queue->type != GDMA_EQ)
 		return EINVAL;
 
-	mana_gd_init_req_hdr(&req.hdr, GDMA_CREATE_QUEUE,
-			     sizeof(req), sizeof(resp));
+	mana_gd_init_req_hdr(&req.hdr, GDMA_CREATE_QUEUE, sizeof(req),
+	    sizeof(resp));
 
 	req.hdr.dev_id = queue->gdma_dev->dev_id;
 	req.type = queue->type;
@@ -361,8 +356,7 @@ mana_gd_create_hw_eq(struct gdma_context *gc,
 
 	err = mana_gd_send_request(gc, sizeof(req), &req, sizeof(resp), &resp);
 	if (err || resp.hdr.status) {
-		device_printf(gc->dev,
-		    "Failed to create queue: %d, 0x%x\n",
+		device_printf(gc->dev, "Failed to create queue: %d, 0x%x\n",
 		    err, resp.hdr.status);
 		return err ? err : EPROTO;
 	}
@@ -373,8 +367,8 @@ mana_gd_create_hw_eq(struct gdma_context *gc,
 	return 0;
 }
 
-static
-int mana_gd_disable_queue(struct gdma_queue *queue)
+static int
+mana_gd_disable_queue(struct gdma_queue *queue)
 {
 	struct gdma_context *gc = queue->gdma_dev->gdma_context;
 	struct gdma_disable_queue_req req = {};
@@ -382,37 +376,35 @@ int mana_gd_disable_queue(struct gdma_queue *queue)
 	int err;
 
 	if (queue->type != GDMA_EQ)
-		mana_warn(NULL, "Not event queue type 0x%x\n",
-		    queue->type);
+		mana_warn(NULL, "Not event queue type 0x%x\n", queue->type);
 
-	mana_gd_init_req_hdr(&req.hdr, GDMA_DISABLE_QUEUE,
-	    sizeof(req), sizeof(resp));
+	mana_gd_init_req_hdr(&req.hdr, GDMA_DISABLE_QUEUE, sizeof(req),
+	    sizeof(resp));
 
 	req.hdr.dev_id = queue->gdma_dev->dev_id;
 	req.type = queue->type;
-	req.queue_index =  queue->id;
+	req.queue_index = queue->id;
 	req.alloc_res_id_on_creation = 1;
 
 	err = mana_gd_send_request(gc, sizeof(req), &req, sizeof(resp), &resp);
 	if (err || resp.hdr.status) {
-		device_printf(gc->dev,
-		    "Failed to disable queue: %d, 0x%x\n", err,
-		    resp.hdr.status);
+		device_printf(gc->dev, "Failed to disable queue: %d, 0x%x\n",
+		    err, resp.hdr.status);
 		return err ? err : EPROTO;
 	}
 
 	return 0;
 }
 
-#define DOORBELL_OFFSET_SQ	0x0
-#define DOORBELL_OFFSET_RQ	0x400
-#define DOORBELL_OFFSET_CQ	0x800
-#define DOORBELL_OFFSET_EQ	0xFF8
+#define DOORBELL_OFFSET_SQ 0x0
+#define DOORBELL_OFFSET_RQ 0x400
+#define DOORBELL_OFFSET_CQ 0x800
+#define DOORBELL_OFFSET_EQ 0xFF8
 
 static void
 mana_gd_ring_doorbell(struct gdma_context *gc, uint32_t db_index,
-    enum gdma_queue_type q_type, uint32_t qid,
-    uint32_t tail_ptr, uint8_t num_req)
+    enum gdma_queue_type q_type, uint32_t qid, uint32_t tail_ptr,
+    uint8_t num_req)
 {
 	union gdma_doorbell_entry e = {};
 	void __iomem *addr;
@@ -508,16 +500,14 @@ mana_gd_process_eqe(struct gdma_queue *eq)
 	case GDMA_EQE_COMPLETION:
 		cq_id = eqe->details[0] & 0xFFFFFF;
 		if (cq_id >= gc->max_num_cqs) {
-			mana_warn(NULL,
-			    "failed: cq_id %u > max_num_cqs %u\n",
+			mana_warn(NULL, "failed: cq_id %u > max_num_cqs %u\n",
 			    cq_id, gc->max_num_cqs);
 			break;
 		}
 
 		cq = gc->cq_table[cq_id];
 		if (!cq || cq->type != GDMA_CQ || cq->id != cq_id) {
-			mana_warn(NULL,
-			    "failed: invalid cq_id %u\n", cq_id);
+			mana_warn(NULL, "failed: invalid cq_id %u\n", cq_id);
 			break;
 		}
 
@@ -529,8 +519,7 @@ mana_gd_process_eqe(struct gdma_queue *eq)
 	case GDMA_EQE_TEST_EVENT:
 		gc->test_event_eq_id = eq->id;
 
-		mana_dbg(NULL,
-		    "EQE TEST EVENT received for EQ %u\n", eq->id);
+		mana_dbg(NULL, "EQE TEST EVENT received for EQ %u\n", eq->id);
 
 		complete(&gc->eq_test_event);
 		break;
@@ -593,18 +582,17 @@ mana_gd_process_eq_events(void *arg)
 			    "eqe addr %p, eqe->eqe_info 0x%x, "
 			    "eqe type = %x, reserved1 = %x, client_id = %x, "
 			    "reserved2 = %x, owner_bits = %x\n",
-			    eq->id, i, eq->head,
-			    owner_bits, new_bits,
-			    eqe, eqe->eqe_info,
-			    eqe_info.type, eqe_info.reserved1,
+			    eq->id, i, eq->head, owner_bits, new_bits, eqe,
+			    eqe->eqe_info, eqe_info.type, eqe_info.reserved1,
 			    eqe_info.client_id, eqe_info.reserved2,
 			    eqe_info.owner_bits);
 
-			uint32_t *eqe_dump = (uint32_t *) eq_eqe_ptr;
+			uint32_t *eqe_dump = (uint32_t *)eq_eqe_ptr;
 			for (j = 0; j < 20; j++) {
 				device_printf(gc->dev, "%p: %x\t%x\t%x\t%x\n",
-				    &eqe_dump[j * 4], eqe_dump[j * 4], eqe_dump[j * 4 + 1],
-				    eqe_dump[j * 4 + 2], eqe_dump[j * 4 + 3]);
+				    &eqe_dump[j * 4], eqe_dump[j * 4],
+				    eqe_dump[j * 4 + 1], eqe_dump[j * 4 + 2],
+				    eqe_dump[j * 4 + 3]);
 			}
 			break;
 		}
@@ -657,8 +645,8 @@ mana_gd_register_irq(struct gdma_queue *queue,
 
 	if (unlikely(msi_index >= gc->num_msix_usable)) {
 		device_printf(gc->dev,
-		    "chose an invalid msix index %d, usable %d\n",
-		    msi_index, gc->num_msix_usable);
+		    "chose an invalid msix index %d, usable %d\n", msi_index,
+		    gc->num_msix_usable);
 		return ENOSPC;
 	}
 
@@ -667,7 +655,8 @@ mana_gd_register_irq(struct gdma_queue *queue,
 	if (unlikely(gic->handler || gic->arg)) {
 		device_printf(gc->dev,
 		    "interrupt handler or arg already assigned, "
-		    "msix index: %d\n", msi_index);
+		    "msix index: %d\n",
+		    msi_index);
 	}
 
 	gic->arg = queue;
@@ -724,14 +713,13 @@ mana_gd_test_eq(struct gdma_context *gc, struct gdma_queue *eq)
 	init_completion(&gc->eq_test_event);
 	gc->test_event_eq_id = INVALID_QUEUE_ID;
 
-	mana_gd_init_req_hdr(&req.hdr, GDMA_GENERATE_TEST_EQE,
-			     sizeof(req), sizeof(resp));
+	mana_gd_init_req_hdr(&req.hdr, GDMA_GENERATE_TEST_EQE, sizeof(req),
+	    sizeof(resp));
 
 	req.hdr.dev_id = eq->gdma_dev->dev_id;
 	req.queue_index = eq->id;
 
-	err = mana_gd_send_request(gc, sizeof(req), &req,
-	    sizeof(resp), &resp);
+	err = mana_gd_send_request(gc, sizeof(req), &req, sizeof(resp), &resp);
 	if (err) {
 		device_printf(dev, "test_eq failed: %d\n", err);
 		goto out;
@@ -740,14 +728,12 @@ mana_gd_test_eq(struct gdma_context *gc, struct gdma_queue *eq)
 	err = EPROTO;
 
 	if (resp.hdr.status) {
-		device_printf(dev, "test_eq failed: 0x%x\n",
-		    resp.hdr.status);
+		device_printf(dev, "test_eq failed: 0x%x\n", resp.hdr.status);
 		goto out;
 	}
 
 	if (wait_for_completion_timeout(&gc->eq_test_event, 30 * hz)) {
-		device_printf(dev, "test_eq timed out on queue %d\n",
-		    eq->id);
+		device_printf(dev, "test_eq timed out on queue %d\n", eq->id);
 		goto out;
 	}
 
@@ -773,8 +759,7 @@ mana_gd_destroy_eq(struct gdma_context *gc, bool flush_evenets,
 	if (flush_evenets) {
 		err = mana_gd_test_eq(gc, queue);
 		if (err)
-			device_printf(gc->dev,
-			    "Failed to flush EQ: %d\n", err);
+			device_printf(gc->dev, "Failed to flush EQ: %d\n", err);
 	}
 
 	mana_gd_deregiser_irq(queue);
@@ -783,8 +768,8 @@ mana_gd_destroy_eq(struct gdma_context *gc, bool flush_evenets,
 		mana_gd_disable_queue(queue);
 }
 
-static int mana_gd_create_eq(struct gdma_dev *gd,
-    const struct gdma_queue_spec *spec,
+static int
+mana_gd_create_eq(struct gdma_dev *gd, const struct gdma_queue_spec *spec,
     bool create_hwq, struct gdma_queue *queue)
 {
 	struct gdma_context *gc = gd->gdma_context;
@@ -832,8 +817,7 @@ out:
 }
 
 static void
-mana_gd_create_cq(const struct gdma_queue_spec *spec,
-    struct gdma_queue *queue)
+mana_gd_create_cq(const struct gdma_queue_spec *spec, struct gdma_queue *queue)
 {
 	uint32_t log2_num_entries = ilog2(spec->queue_size / GDMA_CQE_SIZE);
 
@@ -844,8 +828,7 @@ mana_gd_create_cq(const struct gdma_queue_spec *spec,
 }
 
 static void
-mana_gd_destroy_cq(struct gdma_context *gc,
-    struct gdma_queue *queue)
+mana_gd_destroy_cq(struct gdma_context *gc, struct gdma_queue *queue)
 {
 	uint32_t id = queue->id;
 
@@ -858,9 +841,9 @@ mana_gd_destroy_cq(struct gdma_context *gc,
 	gc->cq_table[id] = NULL;
 }
 
-int mana_gd_create_hwc_queue(struct gdma_dev *gd,
-    const struct gdma_queue_spec *spec,
-    struct gdma_queue **queue_ptr)
+int
+mana_gd_create_hwc_queue(struct gdma_dev *gd,
+    const struct gdma_queue_spec *spec, struct gdma_queue **queue_ptr)
 {
 	struct gdma_context *gc = gd->gdma_context;
 	struct gdma_mem_info *gmi;
@@ -916,12 +899,11 @@ mana_gd_destroy_dma_region(struct gdma_context *gc,
 	    sizeof(resp));
 	req.dma_region_handle = dma_region_handle;
 
-	err = mana_gd_send_request(gc, sizeof(req), &req, sizeof(resp),
-	    &resp);
+	err = mana_gd_send_request(gc, sizeof(req), &req, sizeof(resp), &resp);
 	if (err || resp.hdr.status) {
 		device_printf(gc->dev,
-		    "Failed to destroy DMA region: %d, 0x%x\n",
-		    err, resp.hdr.status);
+		    "Failed to destroy DMA region: %d, 0x%x\n", err,
+		    resp.hdr.status);
 		return EPROTO;
 	}
 
@@ -929,8 +911,7 @@ mana_gd_destroy_dma_region(struct gdma_context *gc,
 }
 
 static int
-mana_gd_create_dma_region(struct gdma_dev *gd,
-    struct gdma_mem_info *gmi)
+mana_gd_create_dma_region(struct gdma_dev *gd, struct gdma_mem_info *gmi)
 {
 	unsigned int num_page = gmi->length / PAGE_SIZE;
 	struct gdma_create_dma_region_req *req = NULL;
@@ -948,16 +929,15 @@ mana_gd_create_dma_region(struct gdma_dev *gd,
 	}
 
 	if (offset_in_page((uintptr_t)gmi->virt_addr) != 0) {
-		mana_err(NULL, "gmi not page aligned: %p\n",
-		    gmi->virt_addr);
+		mana_err(NULL, "gmi not page aligned: %p\n", gmi->virt_addr);
 		return EINVAL;
 	}
 
 	hwc = gc->hwc.driver_data;
 	req_msg_size = sizeof(*req) + num_page * sizeof(uint64_t);
 	if (req_msg_size > hwc->max_req_msg_size) {
-		mana_err(NULL, "req msg size too large: %u, %u\n",
-		    req_msg_size, hwc->max_req_msg_size);
+		mana_err(NULL, "req msg size too large: %u, %u\n", req_msg_size,
+		    hwc->max_req_msg_size);
 		return EINVAL;
 	}
 
@@ -965,8 +945,8 @@ mana_gd_create_dma_region(struct gdma_dev *gd,
 	if (!req)
 		return ENOMEM;
 
-	mana_gd_init_req_hdr(&req->hdr, GDMA_CREATE_DMA_REGION,
-	    req_msg_size, sizeof(resp));
+	mana_gd_init_req_hdr(&req->hdr, GDMA_CREATE_DMA_REGION, req_msg_size,
+	    sizeof(resp));
 	req->length = length;
 	req->offset_in_page = 0;
 	req->gdma_page_type = GDMA_PAGE_TYPE_4K;
@@ -974,7 +954,7 @@ mana_gd_create_dma_region(struct gdma_dev *gd,
 	req->page_addr_list_len = num_page;
 
 	for (i = 0; i < num_page; i++)
-		req->page_addr_list[i] = gmi->dma_handle +  i * PAGE_SIZE;
+		req->page_addr_list[i] = gmi->dma_handle + i * PAGE_SIZE;
 
 	err = mana_gd_send_request(gc, req_msg_size, req, sizeof(resp), &resp);
 	if (err)
@@ -983,7 +963,7 @@ mana_gd_create_dma_region(struct gdma_dev *gd,
 	if (resp.hdr.status ||
 	    resp.dma_region_handle == GDMA_INVALID_DMA_REGION) {
 		device_printf(gc->dev, "Failed to create DMA region: 0x%x\n",
-			resp.hdr.status);
+		    resp.hdr.status);
 		err = EPROTO;
 		goto out;
 	}
@@ -995,8 +975,7 @@ out:
 }
 
 int
-mana_gd_create_mana_eq(struct gdma_dev *gd,
-    const struct gdma_queue_spec *spec,
+mana_gd_create_mana_eq(struct gdma_dev *gd, const struct gdma_queue_spec *spec,
     struct gdma_queue **queue_ptr)
 {
 	struct gdma_context *gc = gd->gdma_context;
@@ -1007,7 +986,7 @@ mana_gd_create_mana_eq(struct gdma_dev *gd,
 	if (spec->type != GDMA_EQ)
 		return EINVAL;
 
-	queue = malloc(sizeof(*queue),  M_DEVBUF, M_WAITOK | M_ZERO);
+	queue = malloc(sizeof(*queue), M_DEVBUF, M_WAITOK | M_ZERO);
 	if (!queue)
 		return ENOMEM;
 
@@ -1042,9 +1021,9 @@ free_q:
 	return err;
 }
 
-int mana_gd_create_mana_wq_cq(struct gdma_dev *gd,
-    const struct gdma_queue_spec *spec,
-    struct gdma_queue **queue_ptr)
+int
+mana_gd_create_mana_wq_cq(struct gdma_dev *gd,
+    const struct gdma_queue_spec *spec, struct gdma_queue **queue_ptr)
 {
 	struct gdma_context *gc = gd->gdma_context;
 	struct gdma_mem_info *gmi;
@@ -1111,8 +1090,7 @@ mana_gd_destroy_queue(struct gdma_context *gc, struct gdma_queue *queue)
 
 	default:
 		device_printf(gc->dev,
-		    "Can't destroy unknown queue: type = %d\n",
-		    queue->type);
+		    "Can't destroy unknown queue: type = %d\n", queue->type);
 		return;
 	}
 
@@ -1121,8 +1099,8 @@ mana_gd_destroy_queue(struct gdma_context *gc, struct gdma_queue *queue)
 	free(queue, M_DEVBUF);
 }
 
-#define OS_MAJOR_DIV		100000
-#define OS_BUILD_MOD		1000
+#define OS_MAJOR_DIV 100000
+#define OS_BUILD_MOD 1000
 
 int
 mana_gd_verify_vf_version(device_t dev)
@@ -1138,8 +1116,8 @@ mana_gd_verify_vf_version(device_t dev)
 	req.protocol_ver_min = GDMA_PROTOCOL_FIRST;
 	req.protocol_ver_max = GDMA_PROTOCOL_LAST;
 
-	req.drv_ver = 0;	/* Unused */
-	req.os_type = 0x30;	/* Other */
+	req.drv_ver = 0;    /* Unused */
+	req.os_type = 0x30; /* Other */
 	req.os_ver_major = osreldate / OS_MAJOR_DIV;
 	req.os_ver_minor = (osreldate % OS_MAJOR_DIV) / OS_BUILD_MOD;
 	req.os_ver_build = osreldate % OS_BUILD_MOD;
@@ -1149,8 +1127,8 @@ mana_gd_verify_vf_version(device_t dev)
 	err = mana_gd_send_request(gc, sizeof(req), &req, sizeof(resp), &resp);
 	if (err || resp.hdr.status) {
 		device_printf(gc->dev,
-		    "VfVerifyVersionOutput: %d, status=0x%x\n",
-		    err, resp.hdr.status);
+		    "VfVerifyVersionOutput: %d, status=0x%x\n", err,
+		    resp.hdr.status);
 		return err ? err : EPROTO;
 	}
 
@@ -1177,8 +1155,8 @@ mana_gd_register_device(struct gdma_dev *gd)
 	err = mana_gd_send_request(gc, sizeof(req), &req, sizeof(resp), &resp);
 	if (err || resp.hdr.status) {
 		device_printf(gc->dev,
-		    "gdma_register_device_resp failed: %d, 0x%x\n",
-		    err, resp.hdr.status);
+		    "gdma_register_device_resp failed: %d, 0x%x\n", err,
+		    resp.hdr.status);
 		return err ? err : -EPROTO;
 	}
 
@@ -1211,8 +1189,8 @@ mana_gd_deregister_device(struct gdma_dev *gd)
 	err = mana_gd_send_request(gc, sizeof(req), &req, sizeof(resp), &resp);
 	if (err || resp.hdr.status) {
 		device_printf(gc->dev,
-		    "Failed to deregister device: %d, 0x%x\n",
-		    err, resp.hdr.status);
+		    "Failed to deregister device: %d, 0x%x\n", err,
+		    resp.hdr.status);
 		if (!err)
 			err = EPROTO;
 	}
@@ -1241,11 +1219,12 @@ mana_gd_wq_avail_space(struct gdma_queue *wq)
 uint8_t *
 mana_gd_get_wqe_ptr(const struct gdma_queue *wq, uint32_t wqe_offset)
 {
-	uint32_t offset =
-	    (wqe_offset * GDMA_WQE_BU_SIZE) & (wq->queue_size - 1);
+	uint32_t offset = (wqe_offset * GDMA_WQE_BU_SIZE) &
+	    (wq->queue_size - 1);
 
 	if ((offset + GDMA_WQE_BU_SIZE) > wq->queue_size) {
-		mana_warn(NULL, "failed: write end out of queue bound %u, "
+		mana_warn(NULL,
+		    "failed: write end out of queue bound %u, "
 		    "queue size %u\n",
 		    offset + GDMA_WQE_BU_SIZE, wq->queue_size);
 	}
@@ -1255,9 +1234,8 @@ mana_gd_get_wqe_ptr(const struct gdma_queue *wq, uint32_t wqe_offset)
 
 static uint32_t
 mana_gd_write_client_oob(const struct gdma_wqe_request *wqe_req,
-    enum gdma_queue_type q_type,
-    uint32_t client_oob_size, uint32_t sgl_data_size,
-    uint8_t *wqe_ptr)
+    enum gdma_queue_type q_type, uint32_t client_oob_size,
+    uint32_t sgl_data_size, uint8_t *wqe_ptr)
 {
 	bool oob_in_sgl = !!(wqe_req->flags & GDMA_WR_OOB_IN_SGL);
 	bool pad_data = !!(wqe_req->flags & GDMA_WR_PAD_BY_SGE0);
@@ -1294,7 +1272,7 @@ mana_gd_write_client_oob(const struct gdma_wqe_request *wqe_req,
 
 		if (client_oob_size > wqe_req->inline_oob_size)
 			memset(ptr + wqe_req->inline_oob_size, 0,
-			       client_oob_size - wqe_req->inline_oob_size);
+			    client_oob_size - wqe_req->inline_oob_size);
 	}
 
 	return sizeof(header) + client_oob_size;
@@ -1356,7 +1334,8 @@ mana_gd_post_work_request(struct gdma_queue *wq,
 
 	sgl_data_size = sizeof(struct gdma_sge) * wqe_req->num_sge;
 	wqe_size = ALIGN(sizeof(struct gdma_wqe) + client_oob_size +
-	    sgl_data_size, GDMA_WQE_BU_SIZE);
+		sgl_data_size,
+	    GDMA_WQE_BU_SIZE);
 	if (wqe_size > max_wqe_size)
 		return EINVAL;
 
@@ -1473,21 +1452,19 @@ mana_gd_intr(void *arg)
 }
 
 int
-mana_gd_alloc_res_map(uint32_t res_avail,
-    struct gdma_resource *r, const char *lock_name)
+mana_gd_alloc_res_map(uint32_t res_avail, struct gdma_resource *r,
+    const char *lock_name)
 {
 	int n = howmany(res_avail, BITS_PER_LONG);
 
-	r->map =
-	    malloc(n * sizeof(unsigned long), M_DEVBUF, M_WAITOK | M_ZERO);
+	r->map = malloc(n * sizeof(unsigned long), M_DEVBUF, M_WAITOK | M_ZERO);
 	if (!r->map)
 		return ENOMEM;
 
 	r->size = res_avail;
 	mtx_init(&r->lock_spin, lock_name, NULL, MTX_SPIN);
 
-	mana_dbg(NULL,
-	    "total res %u, total number of unsigned longs %u\n",
+	mana_dbg(NULL, "total res %u, total number of unsigned longs %u\n",
 	    r->size, n);
 	return (0);
 }
@@ -1511,18 +1488,19 @@ mana_gd_init_registers(struct gdma_context *gc)
 
 	gc->db_page_size = mana_gd_r32(gc, GDMA_REG_DB_PAGE_SIZE) & 0xFFFF;
 
-	gc->db_page_base =
-	    (void *)(bar0_va + (size_t)mana_gd_r64(gc, GDMA_REG_DB_PAGE_OFFSET));
+	gc->db_page_base = (void *)(bar0_va +
+	    (size_t)mana_gd_r64(gc, GDMA_REG_DB_PAGE_OFFSET));
 
-	gc->phys_db_page_base =
-	    bar0_pa + mana_gd_r64(gc, GDMA_REG_DB_PAGE_OFFSET);
+	gc->phys_db_page_base = bar0_pa +
+	    mana_gd_r64(gc, GDMA_REG_DB_PAGE_OFFSET);
 
-	gc->shm_base =
-	    (void *)(bar0_va + (size_t)mana_gd_r64(gc, GDMA_REG_SHM_OFFSET));
+	gc->shm_base = (void *)(bar0_va +
+	    (size_t)mana_gd_r64(gc, GDMA_REG_SHM_OFFSET));
 
-	mana_dbg(NULL, "db_page_size 0x%xx, db_page_base %p,"
-		    " shm_base %p\n",
-		    gc->db_page_size, gc->db_page_base, gc->shm_base);
+	mana_dbg(NULL,
+	    "db_page_size 0x%xx, db_page_base %p,"
+	    " shm_base %p\n",
+	    gc->db_page_size, gc->db_page_base, gc->shm_base);
 }
 
 static struct resource *
@@ -1550,7 +1528,8 @@ mana_gd_alloc_bar(device_t dev, int bar)
 	res = bus_alloc_resource_any(dev, type, &rid, RF_ACTIVE);
 #if defined(__amd64__)
 	if (res)
-		mana_dbg(NULL, "bar %d: rid 0x%x, type 0x%jx,"
+		mana_dbg(NULL,
+		    "bar %d: rid 0x%x, type 0x%jx,"
 		    " handle 0x%jx\n",
 		    bar, rid, res->r_bustag, res->r_bushandle);
 #endif
@@ -1571,8 +1550,8 @@ mana_gd_free_pci_res(struct gdma_context *gc)
 	}
 
 	if (gc->msix != NULL) {
-		bus_release_resource(gc->dev, SYS_RES_MEMORY,
-		    gc->msix_rid, gc->msix);
+		bus_release_resource(gc->dev, SYS_RES_MEMORY, gc->msix_rid,
+		    gc->msix);
 	}
 }
 
@@ -1596,8 +1575,8 @@ mana_gd_setup_irqs(device_t dev)
 	rc = pci_alloc_msix(dev, &nvec);
 	if (unlikely(rc != 0)) {
 		device_printf(dev,
-		    "Failed to allocate MSIX, vectors %d, error: %d\n",
-		    nvec, rc);
+		    "Failed to allocate MSIX, vectors %d, error: %d\n", nvec,
+		    rc);
 		rc = ENOSPC;
 		goto err_setup_irq_alloc;
 	}
@@ -1605,8 +1584,7 @@ mana_gd_setup_irqs(device_t dev)
 	if (nvec != max_irqs) {
 		if (nvec == 1) {
 			device_printf(dev,
-			    "Not enough number of MSI-x allocated: %d\n",
-			    nvec);
+			    "Not enough number of MSI-x allocated: %d\n", nvec);
 			rc = ENOSPC;
 			goto err_setup_irq_release;
 		}
@@ -1633,16 +1611,18 @@ mana_gd_setup_irqs(device_t dev)
 		    &gic->msix_e.vector, RF_ACTIVE | RF_SHAREABLE);
 		if (unlikely(gic->res == NULL)) {
 			rc = ENOMEM;
-			device_printf(dev, "could not allocate resource "
-			    "for irq vector %d\n", gic->msix_e.vector);
+			device_printf(dev,
+			    "could not allocate resource "
+			    "for irq vector %d\n",
+			    gic->msix_e.vector);
 			goto err_setup_irq;
 		}
 
-		rc = bus_setup_intr(dev, gic->res,
-		    INTR_TYPE_NET | INTR_MPSAFE, NULL, mana_gd_intr,
-		    gic, &gic->cookie);
+		rc = bus_setup_intr(dev, gic->res, INTR_TYPE_NET | INTR_MPSAFE,
+		    NULL, mana_gd_intr, gic, &gic->cookie);
 		if (unlikely(rc != 0)) {
-			device_printf(dev, "failed to register interrupt "
+			device_printf(dev,
+			    "failed to register interrupt "
 			    "handler for irq %ju vector %d: error %d\n",
 			    rman_get_start(gic->res), gic->msix_e.vector, rc);
 			goto err_setup_irq;
@@ -1656,7 +1636,8 @@ mana_gd_setup_irqs(device_t dev)
 	rc = mana_gd_alloc_res_map(nvec, &gc->msix_resource,
 	    "gdma msix res lock");
 	if (rc != 0) {
-		device_printf(dev, "failed to allocate memory "
+		device_printf(dev,
+		    "failed to allocate memory "
 		    "for msix bitmap\n");
 		goto err_setup_irq;
 	}
@@ -1680,7 +1661,8 @@ err_setup_irq:
 		if (gic->requested)
 			rcc = bus_teardown_intr(dev, gic->res, gic->cookie);
 		if (unlikely(rcc != 0))
-			device_printf(dev, "could not release "
+			device_printf(dev,
+			    "could not release "
 			    "irq vector %d, error: %d\n",
 			    gic->msix_e.vector, rcc);
 
@@ -1690,7 +1672,8 @@ err_setup_irq:
 			    gic->msix_e.vector, gic->res);
 		}
 		if (unlikely(rcc != 0))
-			device_printf(dev, "dev has no parent while "
+			device_printf(dev,
+			    "dev has no parent while "
 			    "releasing resource for irq vector %d\n",
 			    gic->msix_e.vector);
 		gic->requested = false;
@@ -1719,7 +1702,8 @@ mana_gd_remove_irqs(device_t dev)
 		if (gic->requested) {
 			rc = bus_teardown_intr(dev, gic->res, gic->cookie);
 			if (unlikely(rc != 0)) {
-				device_printf(dev, "failed to tear down "
+				device_printf(dev,
+				    "failed to tear down "
 				    "irq vector %d, error: %d\n",
 				    gic->msix_e.vector, rc);
 			}
@@ -1730,7 +1714,8 @@ mana_gd_remove_irqs(device_t dev)
 			rc = bus_release_resource(dev, SYS_RES_IRQ,
 			    gic->msix_e.vector, gic->res);
 			if (unlikely(rc != 0)) {
-				device_printf(dev, "dev has no parent while "
+				device_printf(dev,
+				    "dev has no parent while "
 				    "releasing resource for irq vector %d\n",
 				    gic->msix_e.vector);
 			}
@@ -1750,9 +1735,9 @@ static int
 mana_gd_probe(device_t dev)
 {
 	mana_vendor_id_t *ent;
-	char		adapter_name[60];
-	uint16_t	pci_vendor_id = 0;
-	uint16_t	pci_device_id = 0;
+	char adapter_name[60];
+	uint16_t pci_vendor_id = 0;
+	uint16_t pci_device_id = 0;
 
 	pci_vendor_id = pci_get_vendor(dev);
 	pci_device_id = pci_get_device(dev);
@@ -1761,8 +1746,8 @@ mana_gd_probe(device_t dev)
 	while (ent->vendor_id != 0) {
 		if ((pci_vendor_id == ent->vendor_id) &&
 		    (pci_device_id == ent->device_id)) {
-			mana_dbg(NULL, "vendor=%x device=%x\n",
-			    pci_vendor_id, pci_device_id);
+			mana_dbg(NULL, "vendor=%x device=%x\n", pci_vendor_id,
+			    pci_device_id);
 
 			sprintf(adapter_name, DEVICE_DESC);
 			device_set_desc_copy(dev, adapter_name);
@@ -1815,8 +1800,8 @@ mana_gd_attach(device_t dev)
 
 	mana_dbg(NULL, "msix_rid 0x%x\n", msix_rid);
 
-	gc->msix = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-	    &msix_rid, RF_ACTIVE);
+	gc->msix = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &msix_rid,
+	    RF_ACTIVE);
 	if (unlikely(gc->msix == NULL)) {
 		device_printf(dev,
 		    "unable to allocate bus resource for msix!\n");
@@ -1825,7 +1810,7 @@ mana_gd_attach(device_t dev)
 	}
 	gc->msix_rid = msix_rid;
 
-	if (unlikely(gc->gd_bus.bar0_h  == 0)) {
+	if (unlikely(gc->gd_bus.bar0_h == 0)) {
 		device_printf(dev, "failed to map bar0!\n");
 		rc = ENXIO;
 		goto err_free_pci_res;
@@ -1886,7 +1871,7 @@ err_free_pci_res:
 err_disable_dev:
 	pci_disable_busmaster(dev);
 
-	return(rc);
+	return (rc);
 }
 
 /**
@@ -1914,21 +1899,21 @@ mana_gd_detach(device_t dev)
 	return (bus_generic_detach(dev));
 }
 
-
 /*********************************************************************
  *  FreeBSD Device Interface Entry Points
  *********************************************************************/
 
 static device_method_t mana_methods[] = {
-    /* Device interface */
-    DEVMETHOD(device_probe, mana_gd_probe),
-    DEVMETHOD(device_attach, mana_gd_attach),
-    DEVMETHOD(device_detach, mana_gd_detach),
-    DEVMETHOD_END
+	/* Device interface */
+	DEVMETHOD(device_probe, mana_gd_probe),
+	DEVMETHOD(device_attach, mana_gd_attach),
+	DEVMETHOD(device_detach, mana_gd_detach), DEVMETHOD_END
 };
 
 static driver_t mana_driver = {
-    "mana", mana_methods, sizeof(struct gdma_context),
+	"mana",
+	mana_methods,
+	sizeof(struct gdma_context),
 };
 
 DRIVER_MODULE(mana, pci, mana_driver, 0, 0);

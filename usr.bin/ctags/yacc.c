@@ -30,6 +30,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <ctype.h>
 #include <limits.h>
 #include <stdio.h>
@@ -43,10 +44,10 @@
 void
 y_entries(void)
 {
-	int	c;
-	char	*sp;
-	bool	in_rule;
-	char	tok[MAXTOKEN];
+	int c;
+	char *sp;
+	bool in_rule;
+	char tok[MAXTOKEN];
 
 	in_rule = NO;
 
@@ -92,7 +93,7 @@ y_entries(void)
 			while (GETC(!=, EOF) && (intoken(c) || c == '.'))
 				*sp++ = c;
 			*sp = EOS;
-			get_line();		/* may change before ':' */
+			get_line(); /* may change before ':' */
 			while (iswhite(c)) {
 				if (c == '\n')
 					SETLINE;
@@ -102,8 +103,7 @@ y_entries(void)
 			if (c == ':') {
 				pfnote(tok, lineno);
 				in_rule = YES;
-			}
-			else
+			} else
 				(void)ungetc(c, inf);
 		}
 }
@@ -115,8 +115,8 @@ y_entries(void)
 void
 toss_yysec(void)
 {
-	int	c;			/* read character */
-	int	state;
+	int c; /* read character */
+	int state;
 
 	/*
 	 * state == 0 : waiting
@@ -130,16 +130,16 @@ toss_yysec(void)
 		case '\n':
 			++lineno;
 			lineftell = ftell(inf);
-			if (state == 3)		/* done! */
+			if (state == 3) /* done! */
 				return;
-			state = 1;		/* start over */
+			state = 1; /* start over */
 			break;
 		case '%':
-			if (state)		/* if 1 or 2 */
-				++state;	/* goto 3 */
+			if (state)	 /* if 1 or 2 */
+				++state; /* goto 3 */
 			break;
 		default:
-			state = 0;		/* reset */
+			state = 0; /* reset */
 			break;
 		}
 }

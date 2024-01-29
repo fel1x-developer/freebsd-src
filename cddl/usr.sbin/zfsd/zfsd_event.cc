@@ -35,39 +35,38 @@
  */
 #include <sys/cdefs.h>
 #include <sys/byteorder.h>
-#include <sys/time.h>
 #include <sys/fs/zfs.h>
+#include <sys/time.h>
 #include <sys/vdev_impl.h>
-
-#include <syslog.h>
 
 #include <libzfs.h>
 #include <libzutil.h>
-/* 
+#include <syslog.h>
+/*
  * Undefine flush, defined by cpufunc.h on sparc64, because it conflicts with
  * C++ flush methods
  */
-#undef   flush
-#undef	__init
+#undef flush
+#undef __init
+#include <devdctl/consumer.h>
+#include <devdctl/event.h>
+#include <devdctl/event_factory.h>
+#include <devdctl/exception.h>
+#include <devdctl/guid.h>
+
+#include "callout.h"
+#include "case_file.h"
+#include "vdev.h"
+#include "vdev_iterator.h"
+#include "zfsd.h"
+#include "zfsd_event.h"
+#include "zfsd_exception.h"
+#include "zpool_list.h"
+
 #include <list>
 #include <map>
 #include <sstream>
 #include <string>
-
-#include <devdctl/guid.h>
-#include <devdctl/event.h>
-#include <devdctl/event_factory.h>
-#include <devdctl/exception.h>
-#include <devdctl/consumer.h>
-
-#include "callout.h"
-#include "vdev_iterator.h"
-#include "zfsd_event.h"
-#include "case_file.h"
-#include "vdev.h"
-#include "zfsd.h"
-#include "zfsd_exception.h"
-#include "zpool_list.h"
 /*============================ Namespace Control =============================*/
 using DevdCtl::Event;
 using DevdCtl::Guid;
@@ -80,9 +79,8 @@ using std::stringstream;
 
 //- GeomEvent Static Public Methods -------------------------------------------
 Event *
-GeomEvent::Builder(Event::Type type,
-		   NVPairMap &nvPairs,
-		   const string &eventString)
+GeomEvent::Builder(Event::Type type, NVPairMap &nvPairs,
+    const string &eventString)
 {
 	return (new GeomEvent(type, nvPairs, eventString));
 }
@@ -93,7 +91,7 @@ GeomEvent::DeepCopy() const
 {
 	return (new GeomEvent(*this));
 }
- 
+
 bool
 GeomEvent::Process() const
 {
@@ -128,7 +126,7 @@ GeomEvent::Process() const
 	nvlist_t *devLabel(ReadLabel(devFd, inUse, degraded));
 
 	string physPath;
-        bool havePhysPath(PhysicalPath(physPath));
+	bool havePhysPath(PhysicalPath(physPath));
 
 	string devName;
 	DevName(devName);
@@ -137,23 +135,24 @@ GeomEvent::Process() const
 	if (inUse && devLabel != NULL) {
 		OnlineByLabel(devPath, physPath, devLabel);
 	} else if (degraded) {
-		syslog(LOG_INFO, "%s is marked degraded.  Ignoring "
-		       "as a replace by physical path candidate.\n",
-		       devName.c_str());
+		syslog(LOG_INFO,
+		    "%s is marked degraded.  Ignoring "
+		    "as a replace by physical path candidate.\n",
+		    devName.c_str());
 	} else if (havePhysPath) {
-		/* 
+		/*
 		 * TODO: attempt to resolve events using every casefile
 		 * that matches this physpath
 		 */
 		CaseFile *caseFile(CaseFile::Find(physPath));
 		if (caseFile != NULL) {
 			syslog(LOG_INFO,
-			       "Found CaseFile(%s:%s:%s) - ReEvaluating\n",
-			       caseFile->PoolGUIDString().c_str(),
-			       caseFile->VdevGUIDString().c_str(),
-			       zpool_state_to_name(caseFile->VdevState(),
-						   VDEV_AUX_NONE));
-			caseFile->ReEvaluate(devPath, physPath, /*vdev*/NULL);
+			    "Found CaseFile(%s:%s:%s) - ReEvaluating\n",
+			    caseFile->PoolGUIDString().c_str(),
+			    caseFile->VdevGUIDString().c_str(),
+			    zpool_state_to_name(caseFile->VdevState(),
+				VDEV_AUX_NONE));
+			caseFile->ReEvaluate(devPath, physPath, /*vdev*/ NULL);
 		}
 	}
 	return (false);
@@ -161,13 +160,13 @@ GeomEvent::Process() const
 
 //- GeomEvent Protected Methods -----------------------------------------------
 GeomEvent::GeomEvent(Event::Type type, NVPairMap &nvpairs,
-			       const string &eventString)
- : DevdCtl::GeomEvent(type, nvpairs, eventString)
+    const string &eventString)
+    : DevdCtl::GeomEvent(type, nvpairs, eventString)
 {
 }
 
 GeomEvent::GeomEvent(const GeomEvent &src)
- : DevdCtl::GeomEvent::GeomEvent(src)
+    : DevdCtl::GeomEvent::GeomEvent(src)
 {
 }
 
@@ -175,15 +174,15 @@ nvlist_t *
 GeomEvent::ReadLabel(int devFd, bool &inUse, bool &degraded)
 {
 	pool_state_t poolState;
-	char        *poolName;
-	boolean_t    b_inuse;
-	int          nlabels;
+	char *poolName;
+	boolean_t b_inuse;
+	int nlabels;
 
-	inUse    = false;
+	inUse = false;
 	degraded = false;
 	poolName = NULL;
-	if (zpool_in_use(g_zfsHandle, devFd, &poolState,
-			 &poolName, &b_inuse) == 0) {
+	if (zpool_in_use(g_zfsHandle, devFd, &poolState, &poolName, &b_inuse) ==
+	    0) {
 		nvlist_t *devLabel = NULL;
 
 		inUse = b_inuse == B_TRUE;
@@ -212,8 +211,8 @@ GeomEvent::ReadLabel(int devFd, bool &inUse, bool &degraded)
 		} catch (ZfsdException &exp) {
 			string devName = fdevname(devFd);
 			string devPath = _PATH_DEV + devName;
-			string context("GeomEvent::ReadLabel: "
-				     + devPath + ": ");
+			string context(
+			    "GeomEvent::ReadLabel: " + devPath + ": ");
 
 			exp.GetString().insert(0, context);
 			exp.Log();
@@ -224,8 +223,8 @@ GeomEvent::ReadLabel(int devFd, bool &inUse, bool &degraded)
 }
 
 bool
-GeomEvent::OnlineByLabel(const string &devPath, const string& physPath,
-			      nvlist_t *devConfig)
+GeomEvent::OnlineByLabel(const string &devPath, const string &physPath,
+    nvlist_t *devConfig)
 {
 	bool ret = false;
 	try {
@@ -236,11 +235,11 @@ GeomEvent::OnlineByLabel(const string &devPath, const string& physPath,
 		 * have a case, see if we can solve that case.
 		 */
 		syslog(LOG_INFO, "Interrogating VDEV label for %s\n",
-		       devPath.c_str());
+		    devPath.c_str());
 		Vdev vdev(devConfig);
-		CaseFile::Find(vdev.PoolGUID(),vdev.GUID(), case_list);
+		CaseFile::Find(vdev.PoolGUID(), vdev.GUID(), case_list);
 		for (CaseFileList::iterator curr = case_list.begin();
-		    curr != case_list.end(); curr++) {
+		     curr != case_list.end(); curr++) {
 			ret |= (*curr)->ReEvaluate(devPath, physPath, &vdev);
 		}
 		return (ret);
@@ -254,12 +253,11 @@ GeomEvent::OnlineByLabel(const string &devPath, const string& physPath,
 	return (ret);
 }
 
-
 /*--------------------------------- ZfsEvent ---------------------------------*/
 //- ZfsEvent Static Public Methods ---------------------------------------------
 DevdCtl::Event *
 ZfsEvent::Builder(Event::Type type, NVPairMap &nvpairs,
-		  const string &eventString)
+    const string &eventString)
 {
 	return (new ZfsEvent(type, nvpairs, eventString));
 }
@@ -278,7 +276,7 @@ ZfsEvent::Process() const
 
 	if (!Contains("class") && !Contains("type")) {
 		syslog(LOG_ERR,
-		       "ZfsEvent::Process: Missing class or type data.");
+		    "ZfsEvent::Process: Missing class or type data.");
 		return (false);
 	}
 
@@ -290,7 +288,7 @@ ZfsEvent::Process() const
 		 * consumed are probably referring to vdevs or pools that
 		 * no longer exist.
 		 */
-		ZfsDaemon::Get().ReplayUnconsumedEvents(/*discard*/true);
+		ZfsDaemon::Get().ReplayUnconsumedEvents(/*discard*/ true);
 		CaseFile::ReEvaluateByGuid(PoolGUID(), *this);
 	}
 
@@ -318,7 +316,7 @@ ZfsEvent::Process() const
 	/* If there are no replicas for a pool, then it's not manageable. */
 	if (Value("class").find("fs.zfs.vdev.no_replicas") == 0) {
 		stringstream msg;
-		msg << "No replicas available for pool "  << poolGUID;
+		msg << "No replicas available for pool " << poolGUID;
 		msg << ", ignoring";
 		Log(LOG_INFO);
 		syslog(LOG_INFO, "%s", msg.str().c_str());
@@ -371,13 +369,13 @@ ZfsEvent::Process() const
 
 //- ZfsEvent Protected Methods -------------------------------------------------
 ZfsEvent::ZfsEvent(Event::Type type, NVPairMap &nvpairs,
-			   const string &eventString)
- : DevdCtl::ZfsEvent(type, nvpairs, eventString)
+    const string &eventString)
+    : DevdCtl::ZfsEvent(type, nvpairs, eventString)
 {
 }
 
 ZfsEvent::ZfsEvent(const ZfsEvent &src)
- : DevdCtl::ZfsEvent(src)
+    : DevdCtl::ZfsEvent(src)
 {
 }
 
@@ -394,10 +392,10 @@ ZfsEvent::CleanupSpares() const
 	Guid poolGUID(PoolGUID());
 	ZpoolList zpl(ZpoolList::ZpoolByGUID, &poolGUID);
 	if (!zpl.empty()) {
-		zpool_handle_t* hdl;
+		zpool_handle_t *hdl;
 
 		hdl = zpl.front();
-		VdevIterator(hdl).Each(TryDetach, (void*)hdl);
+		VdevIterator(hdl).Each(TryDetach, (void *)hdl);
 	}
 }
 
@@ -415,15 +413,13 @@ ZfsEvent::ProcessPoolEvent() const
 
 	CaseFile *caseFile(CaseFile::Find(PoolGUID(), VdevGUID()));
 	if (caseFile != NULL) {
-		if (caseFile->VdevState() != VDEV_STATE_UNKNOWN
-		 && caseFile->VdevState() < VDEV_STATE_HEALTHY)
+		if (caseFile->VdevState() != VDEV_STATE_UNKNOWN &&
+		    caseFile->VdevState() < VDEV_STATE_HEALTHY)
 			degradedDevice = true;
 
 		Log(LOG_INFO);
 		caseFile->ReEvaluate(*this);
-	}
-	else if (Value("type") == "sysevent.fs.zfs.resilver_finish")
-	{
+	} else if (Value("type") == "sysevent.fs.zfs.resilver_finish") {
 		/*
 		 * It's possible to get a resilver_finish event with no
 		 * corresponding casefile.  For example, if a damaged pool were
@@ -433,8 +429,8 @@ ZfsEvent::ProcessPoolEvent() const
 		CleanupSpares();
 	}
 
-	if (Value("type") == "sysevent.fs.zfs.vdev_remove"
-	 && degradedDevice == false) {
+	if (Value("type") == "sysevent.fs.zfs.vdev_remove" &&
+	    degradedDevice == false) {
 
 		/* See if any other cases can make use of this device. */
 		Log(LOG_INFO);
@@ -450,7 +446,7 @@ ZfsEvent::TryDetach(Vdev &vdev, void *cbArg)
 	 * if this device is a spare, and its parent includes one healthy,
 	 * non-spare child, then detach this device.
 	 */
-	zpool_handle_t *hdl(static_cast<zpool_handle_t*>(cbArg));
+	zpool_handle_t *hdl(static_cast<zpool_handle_t *>(cbArg));
 
 	if (vdev.IsSpare()) {
 		std::list<Vdev> siblings;
@@ -462,12 +458,11 @@ ZfsEvent::TryDetach(Vdev &vdev, void *cbArg)
 
 		/* Determine whether the parent should be cleaned up */
 		for (siblings_it = siblings.begin();
-		     siblings_it != siblings.end();
-		     siblings_it++) {
+		     siblings_it != siblings.end(); siblings_it++) {
 			Vdev sibling = *siblings_it;
 
 			if (!sibling.IsSpare() &&
-			     sibling.State() == VDEV_STATE_HEALTHY) {
+			    sibling.State() == VDEV_STATE_HEALTHY) {
 				cleanup = B_TRUE;
 				break;
 			}
@@ -475,10 +470,9 @@ ZfsEvent::TryDetach(Vdev &vdev, void *cbArg)
 
 		if (cleanup) {
 			syslog(LOG_INFO, "Detaching spare vdev %s from pool %s",
-			       vdev.Path().c_str(), zpool_get_name(hdl));
+			    vdev.Path().c_str(), zpool_get_name(hdl));
 			zpool_vdev_detach(hdl, vdev.Path().c_str());
 		}
-
 	}
 
 	/* Always return false, because there may be other spares to detach */

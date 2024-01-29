@@ -25,7 +25,7 @@
  */
 
 #ifndef IMX6_MACHDEP_H
-#define	IMX6_MACHDEP_H
+#define IMX6_MACHDEP_H
 
 struct pl310_softc;
 

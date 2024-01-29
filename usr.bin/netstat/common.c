@@ -38,22 +38,23 @@
 
 #include <net/if.h>
 #include <net/if_dl.h>
+
 #include <arpa/inet.h>
+#include <err.h>
 #include <ifaddrs.h>
 #include <libutil.h>
+#include <libxo/xo.h>
 #include <netdb.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
-#include <err.h>
-#include <libxo/xo.h>
-#include "netstat.h"
+
 #include "common.h"
+#include "netstat.h"
 
 const char *
 fmt_flags(const struct bits *p, int f)
@@ -116,8 +117,7 @@ prepare_ifmap(size_t *pifmap_size)
 			if ((ifmap = realloc(ifmap, size)) == NULL)
 				errx(2, "realloc(%d) failed", size);
 			memset(&ifmap[ifmap_size], 0,
-			    size - ifmap_size *
-			    sizeof(struct ifmap_entry));
+			    size - ifmap_size * sizeof(struct ifmap_entry));
 
 			ifmap_size = roundup2(ifindex + 1, 32);
 		}
@@ -134,4 +134,3 @@ prepare_ifmap(size_t *pifmap_size)
 
 	return (ifmap);
 }
-

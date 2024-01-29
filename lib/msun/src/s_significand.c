@@ -21,5 +21,5 @@
 double
 significand(double x)
 {
-	return scalb(x,(double) -ilogb(x));
+	return scalb(x, (double)-ilogb(x));
 }

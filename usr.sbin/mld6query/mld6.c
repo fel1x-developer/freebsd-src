@@ -5,7 +5,7 @@
  *
  * Copyright (C) 1998 WIDE Project.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -17,7 +17,7 @@
  * 3. Neither the name of the project nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE PROJECT AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -31,45 +31,43 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
-#include <sys/uio.h>
-#include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/param.h>
+#include <sys/socket.h>
 #include <sys/time.h>
-#include <ifaddrs.h>
-#include <unistd.h>
-#include <signal.h>
+#include <sys/uio.h>
 
 #include <net/if.h>
-
+#include <netinet/icmp6.h>
 #include <netinet/in.h>
 #include <netinet/ip6.h>
-#include <netinet/icmp6.h>
 
-#include  <arpa/inet.h>
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include <arpa/inet.h>
 #include <err.h>
+#include <ifaddrs.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 /* portability with older KAME headers */
 #ifndef MLD_LISTENER_QUERY
-#define MLD_LISTENER_QUERY	MLD6_LISTENER_QUERY
-#define MLD_LISTENER_REPORT	MLD6_LISTENER_REPORT
-#define MLD_LISTENER_DONE	MLD6_LISTENER_DONE
-#define MLD_MTRACE_RESP		MLD6_MTRACE_RESP
-#define MLD_MTRACE		MLD6_MTRACE
-#define mld_hdr		mld6_hdr
-#define mld_type	mld6_type
-#define mld_code	mld6_code
-#define mld_cksum	mld6_cksum
-#define mld_maxdelay	mld6_maxdelay
-#define mld_reserved	mld6_reserved
-#define mld_addr	mld6_addr
+#define MLD_LISTENER_QUERY MLD6_LISTENER_QUERY
+#define MLD_LISTENER_REPORT MLD6_LISTENER_REPORT
+#define MLD_LISTENER_DONE MLD6_LISTENER_DONE
+#define MLD_MTRACE_RESP MLD6_MTRACE_RESP
+#define MLD_MTRACE MLD6_MTRACE
+#define mld_hdr mld6_hdr
+#define mld_type mld6_type
+#define mld_code mld6_code
+#define mld_cksum mld6_cksum
+#define mld_maxdelay mld6_maxdelay
+#define mld_reserved mld6_reserved
+#define mld_addr mld6_addr
 #endif
 #ifndef IP6OPT_ROUTER_ALERT
-#define IP6OPT_ROUTER_ALERT	IP6OPT_RTALERT
+#define IP6OPT_ROUTER_ALERT IP6OPT_RTALERT
 #endif
 
 struct msghdr m;
@@ -82,7 +80,8 @@ int s;
 
 #define QUERY_RESPONSE_INTERVAL 10000
 
-void make_msg(int index, struct in6_addr *addr, u_int type, struct in6_addr *qaddr);
+void make_msg(int index, struct in6_addr *addr, u_int type,
+    struct in6_addr *qaddr);
 void usage(void);
 void dump(int);
 void quit(int);
@@ -127,7 +126,7 @@ main(int argc, char *argv[])
 
 	argv += optind;
 	argc -= optind;
-	
+
 	if (argc != 1 && argc != 2)
 		usage();
 
@@ -145,7 +144,7 @@ main(int argc, char *argv[])
 		err(1, "socket");
 
 	if (setsockopt(s, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, &hlim,
-		       sizeof(hlim)) == -1)
+		sizeof(hlim)) == -1)
 		err(1, "setsockopt(IPV6_MULTICAST_HOPS)");
 
 	if (IN6_IS_ADDR_UNSPECIFIED(&maddr)) {
@@ -155,16 +154,16 @@ main(int argc, char *argv[])
 
 	mreq.ipv6mr_multiaddr = maddr;
 	mreq.ipv6mr_interface = ifindex;
-	if (setsockopt(s, IPPROTO_IPV6, IPV6_JOIN_GROUP, &mreq,
-		       sizeof(mreq)) == -1)
+	if (setsockopt(s, IPPROTO_IPV6, IPV6_JOIN_GROUP, &mreq, sizeof(mreq)) ==
+	    -1)
 		err(1, "setsockopt(IPV6_JOIN_GROUP)");
 
 	ICMP6_FILTER_SETBLOCKALL(&filt);
 	ICMP6_FILTER_SETPASS(ICMP6_MEMBERSHIP_QUERY, &filt);
 	ICMP6_FILTER_SETPASS(ICMP6_MEMBERSHIP_REPORT, &filt);
 	ICMP6_FILTER_SETPASS(ICMP6_MEMBERSHIP_REDUCTION, &filt);
-	if (setsockopt(s, IPPROTO_ICMPV6, ICMP6_FILTER, &filt,
-			sizeof(filt)) < 0)
+	if (setsockopt(s, IPPROTO_ICMPV6, ICMP6_FILTER, &filt, sizeof(filt)) <
+	    0)
 		err(1, "setsockopt(ICMP6_FILTER)");
 
 	make_msg(ifindex, &maddr, type, qaddr);
@@ -172,7 +171,7 @@ main(int argc, char *argv[])
 	if (sendmsg(s, &m, 0) < 0)
 		err(1, "sendmsg");
 
-	itimer.it_value.tv_sec =  QUERY_RESPONSE_INTERVAL / 1000;
+	itimer.it_value.tv_sec = QUERY_RESPONSE_INTERVAL / 1000;
 	itimer.it_interval.tv_sec = 0;
 	itimer.it_interval.tv_usec = 0;
 	itimer.it_value.tv_usec = 0;
@@ -231,15 +230,15 @@ make_msg(int index, struct in6_addr *addr, u_int type, struct in6_addr *qaddr)
 
 		if (ifap->ifa_addr->sa_family != AF_INET6)
 			continue;
-		if (!IN6_IS_ADDR_LINKLOCAL(&((struct sockaddr_in6 *)
-					    ifap->ifa_addr)->sin6_addr))
+		if (!IN6_IS_ADDR_LINKLOCAL(
+			&((struct sockaddr_in6 *)ifap->ifa_addr)->sin6_addr))
 			continue;
 		break;
 	}
 	if (ifap == NULL)
 		errx(1, "no linklocal address is available");
 	memcpy(&src, &((struct sockaddr_in6 *)ifap->ifa_addr)->sin6_addr,
-	       sizeof(src));
+	    sizeof(src));
 	freeifaddrs(ifa);
 #ifdef __KAME__
 	/* remove embedded ifindex */
@@ -249,7 +248,7 @@ make_msg(int index, struct in6_addr *addr, u_int type, struct in6_addr *qaddr)
 	if ((hbhlen = inet6_opt_init(NULL, 0)) == -1)
 		errx(1, "inet6_opt_init(0) failed");
 	if ((hbhlen = inet6_opt_append(NULL, 0, hbhlen, IP6OPT_ROUTER_ALERT, 2,
-				       2, NULL)) == -1)
+		 2, NULL)) == -1)
 		errx(1, "inet6_opt_append(0) failed");
 	if ((hbhlen = inet6_opt_finish(NULL, 0, hbhlen)) == -1)
 		errx(1, "inet6_opt_finish(0) failed");
@@ -276,10 +275,9 @@ make_msg(int index, struct in6_addr *addr, u_int type, struct in6_addr *qaddr)
 	if ((currentlen = inet6_opt_init(hbhbuf, hbhlen)) == -1)
 		errx(1, "inet6_opt_init(len = %d) failed", hbhlen);
 	if ((currentlen = inet6_opt_append(hbhbuf, hbhlen, currentlen,
-					   IP6OPT_ROUTER_ALERT, 2,
-					   2, &optp)) == -1)
+		 IP6OPT_ROUTER_ALERT, 2, 2, &optp)) == -1)
 		errx(1, "inet6_opt_append(currentlen = %d, hbhlen = %d) failed",
-		     currentlen, hbhlen);
+		    currentlen, hbhlen);
 	(void)inet6_opt_set_val(optp, 0, &rtalert_code, sizeof(rtalert_code));
 	if ((currentlen = inet6_opt_finish(hbhbuf, hbhlen, currentlen)) == -1)
 		errx(1, "inet6_opt_finish(buf) failed");
@@ -295,9 +293,8 @@ dump(int s)
 	int from_len = sizeof(from);
 	char ntop_buf[256];
 
-	if ((i = recvfrom(s, buf, sizeof(buf), 0,
-			  (struct sockaddr *)&from,
-			  &from_len)) < 0)
+	if ((i = recvfrom(s, buf, sizeof(buf), 0, (struct sockaddr *)&from,
+		 &from_len)) < 0)
 		return;
 
 	if (i < sizeof(struct mld_hdr)) {
@@ -307,8 +304,8 @@ dump(int s)
 
 	mld = (struct mld_hdr *)buf;
 
-	printf("from %s, ", inet_ntop(AF_INET6, &from.sin6_addr,
-				      ntop_buf, sizeof(ntop_buf)));
+	printf("from %s, ",
+	    inet_ntop(AF_INET6, &from.sin6_addr, ntop_buf, sizeof(ntop_buf)));
 
 	switch (mld->mld_type) {
 	case ICMP6_MEMBERSHIP_QUERY:
@@ -321,9 +318,9 @@ dump(int s)
 		printf("type=Multicast Listener Done, ");
 		break;
 	}
-	printf("addr=%s\n", inet_ntop(AF_INET6, &mld->mld_addr,
-				    ntop_buf, sizeof(ntop_buf)));
-	
+	printf("addr=%s\n",
+	    inet_ntop(AF_INET6, &mld->mld_addr, ntop_buf, sizeof(ntop_buf)));
+
 	fflush(stdout);
 }
 
@@ -333,7 +330,7 @@ quit(int signum __unused)
 	mreq.ipv6mr_multiaddr = maddr;
 	mreq.ipv6mr_interface = ifindex;
 	if (setsockopt(s, IPPROTO_IPV6, IPV6_LEAVE_GROUP, &mreq,
-		       sizeof(mreq)) == -1)
+		sizeof(mreq)) == -1)
 		err(1, "setsockopt(IPV6_LEAVE_GROUP)");
 
 	exit(0);

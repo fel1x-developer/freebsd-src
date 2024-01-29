@@ -25,16 +25,16 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
 #include <machine/bus.h>
 
@@ -42,86 +42,77 @@
 #include <dev/iicbus/iiconf.h>
 
 #ifdef FDT
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
 #endif
 
 /* LM75 registers. */
-#define	LM75_TEMP	0x0
-#define	LM75_CONF	0x1
-#define	LM75_CONF_FSHIFT	3
-#define	LM75_CONF_FAULT		0x18
-#define	LM75_CONF_POL		0x04
-#define	LM75_CONF_MODE		0x02
-#define	LM75_CONF_SHUTD		0x01
-#define	LM75_CONF_MASK		0x1f
-#define	LM75_THYST	0x2
-#define	LM75_TOS	0x3
+#define LM75_TEMP 0x0
+#define LM75_CONF 0x1
+#define LM75_CONF_FSHIFT 3
+#define LM75_CONF_FAULT 0x18
+#define LM75_CONF_POL 0x04
+#define LM75_CONF_MODE 0x02
+#define LM75_CONF_SHUTD 0x01
+#define LM75_CONF_MASK 0x1f
+#define LM75_THYST 0x2
+#define LM75_TOS 0x3
 
 /* LM75 constants. */
-#define	LM75_TEST_PATTERN	0xa
-#define	LM75_MIN_TEMP		-55
-#define	LM75_MAX_TEMP		125
-#define	TZ_ZEROC		27315
-#define	TZ_ZEROC_DIVIDER	100
+#define LM75_TEST_PATTERN 0xa
+#define LM75_MIN_TEMP -55
+#define LM75_MAX_TEMP 125
+#define TZ_ZEROC 27315
+#define TZ_ZEROC_DIVIDER 100
 
-enum max_resolution{
-	BITS_9 = 1,
-	BITS_11
-};
+enum max_resolution { BITS_9 = 1, BITS_11 };
 
 /* Regular bus attachment functions */
-static int  lm75_probe(device_t);
-static int  lm75_attach(device_t);
+static int lm75_probe(device_t);
+static int lm75_attach(device_t);
 
 struct lm75_softc {
-	device_t		sc_dev;
+	device_t sc_dev;
 	struct intr_config_hook enum_hook;
-	uint32_t		sc_addr;
-	uint32_t		sc_conf;
-	uint8_t			sc_resolution;
-	uint8_t			sc_max_resolution;
-	uint16_t		sc_multiplier;
+	uint32_t sc_addr;
+	uint32_t sc_conf;
+	uint8_t sc_resolution;
+	uint8_t sc_max_resolution;
+	uint16_t sc_multiplier;
 };
 
 /* Utility functions */
-static int  lm75_conf_read(struct lm75_softc *);
-static int  lm75_conf_write(struct lm75_softc *);
-static int  lm75_temp_read(struct lm75_softc *, uint8_t, int *);
-static int  lm75_temp_write(struct lm75_softc *, uint8_t, int);
+static int lm75_conf_read(struct lm75_softc *);
+static int lm75_conf_write(struct lm75_softc *);
+static int lm75_temp_read(struct lm75_softc *, uint8_t, int *);
+static int lm75_temp_write(struct lm75_softc *, uint8_t, int);
 static void lm75_start(void *);
-static int  lm75_read(device_t, uint32_t, uint8_t, uint8_t *, size_t);
-static int  lm75_write(device_t, uint32_t, uint8_t *, size_t);
-static int  lm75_str_mode(char *);
-static int  lm75_str_pol(char *);
-static int  lm75_temp_sysctl(SYSCTL_HANDLER_ARGS);
-static int  lm75_faults_sysctl(SYSCTL_HANDLER_ARGS);
-static int  lm75_mode_sysctl(SYSCTL_HANDLER_ARGS);
-static int  lm75_pol_sysctl(SYSCTL_HANDLER_ARGS);
-static int  lm75_shutdown_sysctl(SYSCTL_HANDLER_ARGS);
-static int  lm75_resolution_sysctl(SYSCTL_HANDLER_ARGS);
+static int lm75_read(device_t, uint32_t, uint8_t, uint8_t *, size_t);
+static int lm75_write(device_t, uint32_t, uint8_t *, size_t);
+static int lm75_str_mode(char *);
+static int lm75_str_pol(char *);
+static int lm75_temp_sysctl(SYSCTL_HANDLER_ARGS);
+static int lm75_faults_sysctl(SYSCTL_HANDLER_ARGS);
+static int lm75_mode_sysctl(SYSCTL_HANDLER_ARGS);
+static int lm75_pol_sysctl(SYSCTL_HANDLER_ARGS);
+static int lm75_shutdown_sysctl(SYSCTL_HANDLER_ARGS);
+static int lm75_resolution_sysctl(SYSCTL_HANDLER_ARGS);
 
-static device_method_t  lm75_methods[] = {
+static device_method_t lm75_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		lm75_probe),
-	DEVMETHOD(device_attach,	lm75_attach),
+	DEVMETHOD(device_probe, lm75_probe),
+	DEVMETHOD(device_attach, lm75_attach),
 
 	DEVMETHOD_END
 };
 
-static driver_t lm75_driver = {
-	"lm75",
-	lm75_methods,
-	sizeof(struct lm75_softc)
-};
+static driver_t lm75_driver = { "lm75", lm75_methods,
+	sizeof(struct lm75_softc) };
 
 #ifdef FDT
-static struct ofw_compat_data compat_data[] = {
-	{"national,lm75",	BITS_9},
-	{"ti,lm75",		BITS_9},
-	{0,0}
-};
+static struct ofw_compat_data compat_data[] = { { "national,lm75", BITS_9 },
+	{ "ti,lm75", BITS_9 }, { 0, 0 } };
 #endif
 
 DRIVER_MODULE(lm75, iicbus, lm75_driver, 0, 0);
@@ -130,8 +121,8 @@ static int
 lm75_read(device_t dev, uint32_t addr, uint8_t reg, uint8_t *data, size_t len)
 {
 	struct iic_msg msg[2] = {
-	    { addr, IIC_M_WR | IIC_M_NOSTOP, 1, &reg },
-	    { addr, IIC_M_RD, len, data },
+		{ addr, IIC_M_WR | IIC_M_NOSTOP, 1, &reg },
+		{ addr, IIC_M_RD, len, data },
 	};
 
 	if (iicbus_transfer(dev, msg, nitems(msg)) != 0)
@@ -144,7 +135,7 @@ static int
 lm75_write(device_t dev, uint32_t addr, uint8_t *data, size_t len)
 {
 	struct iic_msg msg[1] = {
-	    { addr, IIC_M_WR, len, data },
+		{ addr, IIC_M_WR, len, data },
 	};
 
 	if (iicbus_transfer(dev, msg, nitems(msg)) != 0)
@@ -170,7 +161,7 @@ lm75_probe(device_t dev)
 
 	compat_ptr = ofw_bus_search_compatible(dev, compat_data);
 
-	switch (compat_ptr->ocd_data){
+	switch (compat_ptr->ocd_data) {
 	case BITS_9:
 		sc->sc_max_resolution = 9;
 		break;
@@ -260,15 +251,15 @@ lm75_type_detect(struct lm75_softc *sc)
 	 */
 	lm75a = 0;
 	for (i = 4; i <= 6; i++) {
-		if (lm75_read(sc->sc_dev, sc->sc_addr, i,
-		    &buf8, sizeof(buf8)) < 0)
+		if (lm75_read(sc->sc_dev, sc->sc_addr, i, &buf8, sizeof(buf8)) <
+		    0)
 			return (-1);
 		if (buf8 != LM75_TEST_PATTERN && buf8 != 0xff)
 			return (-1);
 		if (buf8 == 0xff)
 			lm75a++;
 	}
-	if (lm75a == 3){
+	if (lm75a == 3) {
 		sc->sc_multiplier = 1000;
 		sc->sc_resolution = 11;
 		sc->sc_max_resolution = 11;
@@ -311,8 +302,8 @@ lm75_start(void *xdev)
 #endif
 	}
 
-	device_printf(dev,"%d bit resolution sensor attached.\n",
-			sc->sc_resolution);
+	device_printf(dev, "%d bit resolution sensor attached.\n",
+	    sc->sc_resolution);
 
 	if (sc->sc_multiplier == 1000)
 		mult_format = "IK3";
@@ -353,8 +344,8 @@ lm75_conf_read(struct lm75_softc *sc)
 {
 	uint8_t buf8;
 
-	if (lm75_read(sc->sc_dev, sc->sc_addr, LM75_CONF,
-	    &buf8, sizeof(buf8)) < 0)
+	if (lm75_read(sc->sc_dev, sc->sc_addr, LM75_CONF, &buf8, sizeof(buf8)) <
+	    0)
 		return (-1);
 	sc->sc_conf = (uint32_t)buf8;
 
@@ -624,7 +615,7 @@ lm75_resolution_sysctl(SYSCTL_HANDLER_ARGS)
 	if (resolution > sc->sc_max_resolution || resolution < 9)
 		return (EINVAL);
 
-	sc->sc_resolution = (uint8_t) resolution;
+	sc->sc_resolution = (uint8_t)resolution;
 
 	return (0);
 }

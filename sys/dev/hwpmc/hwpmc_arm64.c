@@ -27,28 +27,28 @@
  * SUCH DAMAGE.
  */
 
+#include "opt_acpi.h"
+
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/pmc.h>
 #include <sys/pmckern.h>
 
-#include <machine/pmc_mdep.h>
 #include <machine/cpu.h>
-
-#include "opt_acpi.h"
+#include <machine/pmc_mdep.h>
 
 static int arm64_npmcs;
 
 struct arm64_event_code_map {
-	enum pmc_event	pe_ev;
-	uint8_t		pe_code;
+	enum pmc_event pe_ev;
+	uint8_t pe_code;
 };
 
 /*
  * Per-processor information.
  */
 struct arm64_cpu {
-	struct pmc_hw   *pc_arm64pmcs;
+	struct pmc_hw *pc_arm64pmcs;
 };
 
 static struct arm64_cpu **arm64_pcpu;
@@ -138,7 +138,8 @@ static uint32_t
 arm64_pmcn_read(unsigned int pmc)
 {
 
-	KASSERT(pmc < arm64_npmcs, ("%s: illegal PMC number %d", __func__, pmc));
+	KASSERT(pmc < arm64_npmcs,
+	    ("%s: illegal PMC number %d", __func__, pmc));
 
 	WRITE_SPECIALREG(pmselr_el0, pmc);
 
@@ -151,7 +152,8 @@ static void
 arm64_pmcn_write(unsigned int pmc, uint32_t reg)
 {
 
-	KASSERT(pmc < arm64_npmcs, ("%s: illegal PMC number %d", __func__, pmc));
+	KASSERT(pmc < arm64_npmcs,
+	    ("%s: illegal PMC number %d", __func__, pmc));
 
 	WRITE_SPECIALREG(pmselr_el0, pmc);
 	WRITE_SPECIALREG(pmxevcntr_el0, reg);
@@ -161,7 +163,7 @@ arm64_pmcn_write(unsigned int pmc, uint32_t reg)
 
 static int
 arm64_allocate_pmc(int cpu, int ri, struct pmc *pm,
-  const struct pmc_op_pmcallocate *a)
+    const struct pmc_op_pmcallocate *a)
 {
 	uint32_t config;
 	enum pmc_event pe;
@@ -205,7 +207,6 @@ arm64_allocate_pmc(int cpu, int ri, struct pmc *pm,
 
 	return (0);
 }
-
 
 static int
 arm64_read_pmc(int cpu, int ri, struct pmc *pm, pmc_value_t *v)
@@ -288,8 +289,8 @@ arm64_config_pmc(int cpu, int ri, struct pmc *pm)
 	phw = &arm64_pcpu[cpu]->pc_arm64pmcs[ri];
 
 	KASSERT(pm == NULL || phw->phw_pmc == NULL,
-	    ("[arm64,%d] pm=%p phw->pm=%p hwpmc not unconfigured",
-	    __LINE__, pm, phw->phw_pmc));
+	    ("[arm64,%d] pm=%p phw->pm=%p hwpmc not unconfigured", __LINE__, pm,
+		phw->phw_pmc));
 
 	phw->phw_pmc = pm;
 
@@ -361,7 +362,7 @@ arm64_intr(struct trapframe *tf)
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[arm64,%d] CPU %d out of range", __LINE__, cpu));
 
-	PMCDBG3(MDP,INT,1, "cpu=%d tf=%p um=%d", cpu, (void *)tf,
+	PMCDBG3(MDP, INT, 1, "cpu=%d tf=%p um=%d", cpu, (void *)tf,
 	    TRAPF_USERMODE(tf));
 
 	retval = 0;
@@ -439,7 +440,7 @@ static int
 arm64_pcpu_init(struct pmc_mdep *md, int cpu)
 {
 	struct arm64_cpu *pac;
-	struct pmc_hw  *phw;
+	struct pmc_hw *phw;
 	struct pmc_cpu *pc;
 	uint64_t pmcr;
 	int first_ri;
@@ -452,16 +453,16 @@ arm64_pcpu_init(struct pmc_mdep *md, int cpu)
 	arm64_pcpu[cpu] = pac = malloc(sizeof(struct arm64_cpu), M_PMC,
 	    M_WAITOK | M_ZERO);
 
-	pac->pc_arm64pmcs = malloc(sizeof(struct pmc_hw) * arm64_npmcs,
-	    M_PMC, M_WAITOK | M_ZERO);
+	pac->pc_arm64pmcs = malloc(sizeof(struct pmc_hw) * arm64_npmcs, M_PMC,
+	    M_WAITOK | M_ZERO);
 	pc = pmc_pcpu[cpu];
 	first_ri = md->pmd_classdep[PMC_MDEP_CLASS_INDEX_ARMV8].pcd_ri;
 	KASSERT(pc != NULL, ("[arm64,%d] NULL per-cpu pointer", __LINE__));
 
 	for (i = 0, phw = pac->pc_arm64pmcs; i < arm64_npmcs; i++, phw++) {
-		phw->phw_state    = PMC_PHW_FLAG_IS_ENABLED |
+		phw->phw_state = PMC_PHW_FLAG_IS_ENABLED |
 		    PMC_PHW_CPU_TO_STATE(cpu) | PMC_PHW_INDEX_TO_STATE(i);
-		phw->phw_pmc      = NULL;
+		phw->phw_pmc = NULL;
 		pc->pc_hwpmcs[i + first_ri] = phw;
 	}
 
@@ -533,8 +534,8 @@ pmc_arm64_initialize(void)
 	 * Allocate space for pointers to PMC HW descriptors and for
 	 * the MDEP structure used by MI code.
 	 */
-	arm64_pcpu = malloc(sizeof(struct arm64_cpu *) * pmc_cpu_max(),
-		M_PMC, M_WAITOK | M_ZERO);
+	arm64_pcpu = malloc(sizeof(struct arm64_cpu *) * pmc_cpu_max(), M_PMC,
+	    M_WAITOK | M_ZERO);
 
 	/* One AArch64 CPU class */
 	classes = 1;
@@ -549,7 +550,7 @@ pmc_arm64_initialize(void)
 
 	pmc_mdep = pmc_mdep_alloc(classes);
 
-	switch(impcode) {
+	switch (impcode) {
 	case PMCR_IMP_ARM:
 		switch (idcode) {
 		case PMCR_IDCODE_CORTEX_A76:
@@ -572,23 +573,23 @@ pmc_arm64_initialize(void)
 	}
 
 	pcd = &pmc_mdep->pmd_classdep[PMC_MDEP_CLASS_INDEX_ARMV8];
-	pcd->pcd_caps  = ARMV8_PMC_CAPS;
+	pcd->pcd_caps = ARMV8_PMC_CAPS;
 	pcd->pcd_class = PMC_CLASS_ARMV8;
-	pcd->pcd_num   = arm64_npmcs;
-	pcd->pcd_ri    = pmc_mdep->pmd_npmc;
+	pcd->pcd_num = arm64_npmcs;
+	pcd->pcd_ri = pmc_mdep->pmd_npmc;
 	pcd->pcd_width = 32;
 
-	pcd->pcd_allocate_pmc   = arm64_allocate_pmc;
-	pcd->pcd_config_pmc     = arm64_config_pmc;
-	pcd->pcd_pcpu_fini      = arm64_pcpu_fini;
-	pcd->pcd_pcpu_init      = arm64_pcpu_init;
-	pcd->pcd_describe       = arm64_describe;
-	pcd->pcd_get_config     = arm64_get_config;
-	pcd->pcd_read_pmc       = arm64_read_pmc;
-	pcd->pcd_release_pmc    = arm64_release_pmc;
-	pcd->pcd_start_pmc      = arm64_start_pmc;
-	pcd->pcd_stop_pmc       = arm64_stop_pmc;
-	pcd->pcd_write_pmc      = arm64_write_pmc;
+	pcd->pcd_allocate_pmc = arm64_allocate_pmc;
+	pcd->pcd_config_pmc = arm64_config_pmc;
+	pcd->pcd_pcpu_fini = arm64_pcpu_fini;
+	pcd->pcd_pcpu_init = arm64_pcpu_init;
+	pcd->pcd_describe = arm64_describe;
+	pcd->pcd_get_config = arm64_get_config;
+	pcd->pcd_read_pmc = arm64_read_pmc;
+	pcd->pcd_release_pmc = arm64_release_pmc;
+	pcd->pcd_start_pmc = arm64_start_pmc;
+	pcd->pcd_stop_pmc = arm64_stop_pmc;
+	pcd->pcd_write_pmc = arm64_write_pmc;
 
 	pmc_mdep->pmd_intr = arm64_intr;
 	pmc_mdep->pmd_npmc += arm64_npmcs;

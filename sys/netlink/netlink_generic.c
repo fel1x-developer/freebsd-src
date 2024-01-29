@@ -29,8 +29,8 @@
 #include <sys/ck.h>
 #include <sys/epoch.h>
 #include <sys/eventhandler.h>
-#include <sys/kernel.h>
 #include <sys/jail.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/priv.h>
@@ -42,8 +42,8 @@
 #include <netlink/netlink_generic.h>
 #include <netlink/netlink_var.h>
 
-#define	DEBUG_MOD_NAME	nl_generic
-#define	DEBUG_MAX_LEVEL	LOG_DEBUG3
+#define DEBUG_MOD_NAME nl_generic
+#define DEBUG_MAX_LEVEL LOG_DEBUG3
 #include <netlink/netlink_debug.h>
 _DECLARE_DEBUG(LOG_INFO);
 
@@ -62,19 +62,23 @@ genl_handle_message(struct nlmsghdr *hdr, struct nl_pstate *npt)
 
 	int family_id = (int)hdr->nlmsg_type - GENL_MIN_ID;
 
-	if (__predict_false(family_id < 0 || (gf = genl_get_family(family_id)) == NULL)) {
-		NLP_LOG(LOG_DEBUG, nlp, "invalid message type: %d", hdr->nlmsg_type);
+	if (__predict_false(
+		family_id < 0 || (gf = genl_get_family(family_id)) == NULL)) {
+		NLP_LOG(LOG_DEBUG, nlp, "invalid message type: %d",
+		    hdr->nlmsg_type);
 		return (ENOTSUP);
 	}
 
 	if (__predict_false(hdr->nlmsg_len < sizeof(hdr) + GENL_HDRLEN)) {
-		NLP_LOG(LOG_DEBUG, nlp, "invalid message size: %d", hdr->nlmsg_len);
+		NLP_LOG(LOG_DEBUG, nlp, "invalid message size: %d",
+		    hdr->nlmsg_len);
 		return (EINVAL);
 	}
 
 	struct genlmsghdr *ghdr = (struct genlmsghdr *)(hdr + 1);
 
-	if (ghdr->cmd >= gf->family_cmd_size || gf->family_cmds[ghdr->cmd].cmd_cb == NULL) {
+	if (ghdr->cmd >= gf->family_cmd_size ||
+	    gf->family_cmds[ghdr->cmd].cmd_cb == NULL) {
 		NLP_LOG(LOG_DEBUG, nlp, "family %s: invalid cmd %d",
 		    gf->family_name, ghdr->cmd);
 		return (ENOTSUP);
@@ -112,22 +116,23 @@ dump_family(struct nlmsghdr *hdr, struct genlmsghdr *ghdr,
 	if (!nlmsg_reply(nw, hdr, sizeof(struct genlmsghdr)))
 		goto enomem;
 
-	struct genlmsghdr *ghdr_new = nlmsg_reserve_object(nw, struct genlmsghdr);
+	struct genlmsghdr *ghdr_new = nlmsg_reserve_object(nw,
+	    struct genlmsghdr);
 	ghdr_new->cmd = ghdr->cmd;
 	ghdr_new->version = gf->family_version;
 	ghdr_new->reserved = 0;
 
-        nlattr_add_string(nw, CTRL_ATTR_FAMILY_NAME, gf->family_name);
-        nlattr_add_u16(nw, CTRL_ATTR_FAMILY_ID, gf->family_id);
-        nlattr_add_u32(nw, CTRL_ATTR_VERSION, gf->family_version);
-        nlattr_add_u32(nw, CTRL_ATTR_HDRSIZE, gf->family_hdrsize);
-        nlattr_add_u32(nw, CTRL_ATTR_MAXATTR, gf->family_attr_max);
+	nlattr_add_string(nw, CTRL_ATTR_FAMILY_NAME, gf->family_name);
+	nlattr_add_u16(nw, CTRL_ATTR_FAMILY_ID, gf->family_id);
+	nlattr_add_u32(nw, CTRL_ATTR_VERSION, gf->family_version);
+	nlattr_add_u32(nw, CTRL_ATTR_HDRSIZE, gf->family_hdrsize);
+	nlattr_add_u32(nw, CTRL_ATTR_MAXATTR, gf->family_attr_max);
 
 	if (gf->family_cmd_size > 0) {
 		int off = nlattr_add_nested(nw, CTRL_ATTR_OPS);
 		if (off == 0)
 			goto enomem;
-		for (int i = 0, cnt=0; i < gf->family_cmd_size; i++) {
+		for (int i = 0, cnt = 0; i < gf->family_cmd_size; i++) {
 			struct genl_cmd *cmd = &gf->family_cmds[i];
 			if (cmd->cmd_cb == NULL)
 				continue;
@@ -136,7 +141,8 @@ dump_family(struct nlmsghdr *hdr, struct genlmsghdr *ghdr,
 				goto enomem;
 
 			nlattr_add_u32(nw, CTRL_ATTR_OP_ID, cmd->cmd_num);
-			nlattr_add_u32(nw, CTRL_ATTR_OP_FLAGS, get_cmd_flags(cmd));
+			nlattr_add_u32(nw, CTRL_ATTR_OP_FLAGS,
+			    get_cmd_flags(cmd));
 			nlattr_set_len(nw, cmd_off);
 		}
 		nlattr_set_len(nw, off);
@@ -153,8 +159,10 @@ dump_family(struct nlmsghdr *hdr, struct genlmsghdr *ghdr,
 			int cmd_off = nlattr_add_nested(nw, ++cnt);
 			if (cmd_off == 0)
 				goto enomem;
-			nlattr_add_u32(nw, CTRL_ATTR_MCAST_GRP_ID, i + MIN_GROUP_NUM);
-			nlattr_add_string(nw, CTRL_ATTR_MCAST_GRP_NAME, gg->group_name);
+			nlattr_add_u32(nw, CTRL_ATTR_MCAST_GRP_ID,
+			    i + MIN_GROUP_NUM);
+			nlattr_add_string(nw, CTRL_ATTR_MCAST_GRP_NAME,
+			    gg->group_name);
 			nlattr_set_len(nw, cmd_off);
 		}
 		nlattr_set_len(nw, off);
@@ -162,11 +170,11 @@ dump_family(struct nlmsghdr *hdr, struct genlmsghdr *ghdr,
 	if (nlmsg_end(nw))
 		return (0);
 enomem:
-        NL_LOG(LOG_DEBUG, "unable to dump family %s state (ENOMEM)", gf->family_name);
-        nlmsg_abort(nw);
+	NL_LOG(LOG_DEBUG, "unable to dump family %s state (ENOMEM)",
+	    gf->family_name);
+	nlmsg_abort(nw);
 	return (ENOMEM);
 }
-
 
 /* Declare ourself as a user */
 static void nlctrl_notify(void *arg, const struct genl_family *gf, int action);
@@ -176,20 +184,24 @@ static uint32_t ctrl_family_id;
 static uint32_t ctrl_group_id;
 
 struct nl_parsed_family {
-	uint32_t	family_id;
-	char		*family_name;
-	uint8_t		version;
+	uint32_t family_id;
+	char *family_name;
+	uint8_t version;
 };
 
-#define	_IN(_field)	offsetof(struct genlmsghdr, _field)
-#define	_OUT(_field)	offsetof(struct nl_parsed_family, _field)
+#define _IN(_field) offsetof(struct genlmsghdr, _field)
+#define _OUT(_field) offsetof(struct nl_parsed_family, _field)
 static const struct nlfield_parser nlf_p_generic[] = {
 	{ .off_in = _IN(version), .off_out = _OUT(version), .cb = nlf_get_u8 },
 };
 
 static struct nlattr_parser nla_p_generic[] = {
-	{ .type = CTRL_ATTR_FAMILY_ID , .off = _OUT(family_id), .cb = nlattr_get_uint16 },
-	{ .type = CTRL_ATTR_FAMILY_NAME , .off = _OUT(family_name), .cb = nlattr_get_string },
+	{ .type = CTRL_ATTR_FAMILY_ID,
+	    .off = _OUT(family_id),
+	    .cb = nlattr_get_uint16 },
+	{ .type = CTRL_ATTR_FAMILY_NAME,
+	    .off = _OUT(family_name),
+	    .cb = nlattr_get_string },
 };
 #undef _IN
 #undef _OUT
@@ -202,7 +214,8 @@ match_family(const struct genl_family *gf, const struct nl_parsed_family *attrs)
 		return (false);
 	if (attrs->family_id != 0 && attrs->family_id != gf->family_id)
 		return (false);
-	if (attrs->family_name != NULL && strcmp(attrs->family_name, gf->family_name))
+	if (attrs->family_name != NULL &&
+	    strcmp(attrs->family_name, gf->family_name))
 		return (false);
 	return (true);
 }
@@ -244,9 +257,9 @@ nlctrl_handle_getfamily(struct nlmsghdr *hdr, struct nl_pstate *npt)
 	}
 
 	if (!nlmsg_end_dump(npt->nw, error, hdr)) {
-                NL_LOG(LOG_DEBUG, "Unable to finalize the dump");
-                return (ENOMEM);
-        }
+		NL_LOG(LOG_DEBUG, "Unable to finalize the dump");
+		return (ENOMEM);
+	}
 
 	return (error);
 }
@@ -254,11 +267,12 @@ nlctrl_handle_getfamily(struct nlmsghdr *hdr, struct nl_pstate *npt)
 static void
 nlctrl_notify(void *arg __unused, const struct genl_family *gf, int cmd)
 {
-	struct nlmsghdr hdr = {.nlmsg_type = NETLINK_GENERIC };
+	struct nlmsghdr hdr = { .nlmsg_type = NETLINK_GENERIC };
 	struct genlmsghdr ghdr = { .cmd = cmd };
 	struct nl_writer nw = {};
 
-	if (nlmsg_get_group_writer(&nw, NLMSG_SMALL, NETLINK_GENERIC, ctrl_group_id)) {
+	if (nlmsg_get_group_writer(&nw, NLMSG_SMALL, NETLINK_GENERIC,
+		ctrl_group_id)) {
 		dump_family(&hdr, &ghdr, gf, &nw);
 		nlmsg_flush(&nw);
 		return;
@@ -268,10 +282,11 @@ nlctrl_notify(void *arg __unused, const struct genl_family *gf, int cmd)
 
 static const struct genl_cmd nlctrl_cmds[] = {
 	{
-		.cmd_num = CTRL_CMD_GETFAMILY,
-		.cmd_name = "GETFAMILY",
-		.cmd_cb = nlctrl_handle_getfamily,
-		.cmd_flags = GENL_CMD_CAP_DO | GENL_CMD_CAP_DUMP | GENL_CMD_CAP_HASPOL,
+	    .cmd_num = CTRL_CMD_GETFAMILY,
+	    .cmd_name = "GETFAMILY",
+	    .cmd_cb = nlctrl_handle_getfamily,
+	    .cmd_flags = GENL_CMD_CAP_DO | GENL_CMD_CAP_DUMP |
+		GENL_CMD_CAP_HASPOL,
 	},
 };
 
@@ -281,14 +296,18 @@ static void
 genl_load_all(void *u __unused)
 {
 	NL_VERIFY_PARSERS(all_parsers);
-	ctrl_family_id = genl_register_family(CTRL_FAMILY_NAME, 0, 2, CTRL_ATTR_MAX);
-	genl_register_cmds(CTRL_FAMILY_NAME, nlctrl_cmds, NL_ARRAY_LEN(nlctrl_cmds));
+	ctrl_family_id = genl_register_family(CTRL_FAMILY_NAME, 0, 2,
+	    CTRL_ATTR_MAX);
+	genl_register_cmds(CTRL_FAMILY_NAME, nlctrl_cmds,
+	    NL_ARRAY_LEN(nlctrl_cmds));
 	ctrl_group_id = genl_register_group(CTRL_FAMILY_NAME, "notify");
-	family_event_tag = EVENTHANDLER_REGISTER(genl_family_event, nlctrl_notify, NULL,
-	    EVENTHANDLER_PRI_ANY);
-	netlink_register_proto(NETLINK_GENERIC, "NETLINK_GENERIC", genl_handle_message);
+	family_event_tag = EVENTHANDLER_REGISTER(genl_family_event,
+	    nlctrl_notify, NULL, EVENTHANDLER_PRI_ANY);
+	netlink_register_proto(NETLINK_GENERIC, "NETLINK_GENERIC",
+	    genl_handle_message);
 }
-SYSINIT(genl_load_all, SI_SUB_PROTO_DOMAIN, SI_ORDER_THIRD, genl_load_all, NULL);
+SYSINIT(genl_load_all, SI_SUB_PROTO_DOMAIN, SI_ORDER_THIRD, genl_load_all,
+    NULL);
 
 static void
 genl_unload(void *u __unused)

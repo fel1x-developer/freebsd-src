@@ -1,7 +1,8 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
-#include "qat_utils.h"
 #include <sys/sx.h>
+
+#include "qat_utils.h"
 
 CpaStatus
 qatUtilsLockInit(struct mtx *pLock)

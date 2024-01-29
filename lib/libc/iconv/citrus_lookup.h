@@ -31,22 +31,20 @@
 #ifndef _CITRUS_LOOKUP_H_
 #define _CITRUS_LOOKUP_H_
 
-#define _CITRUS_LOOKUP_CASE_SENSITIVE	0
-#define _CITRUS_LOOKUP_CASE_IGNORE	1
+#define _CITRUS_LOOKUP_CASE_SENSITIVE 0
+#define _CITRUS_LOOKUP_CASE_IGNORE 1
 
 struct _citrus_lookup;
 __BEGIN_DECLS
-char		*_citrus_lookup_simple(const char *, const char *, char *,
-		    size_t, int);
-int		 _citrus_lookup_seq_open(struct _citrus_lookup **,
-		    const char *, int);
-void		 _citrus_lookup_seq_rewind(struct _citrus_lookup *);
-int		 _citrus_lookup_seq_next(struct _citrus_lookup *,
-			    struct _region *, struct _region *);
-int		 _citrus_lookup_seq_lookup(struct _citrus_lookup *,
-		    const char *, struct _region *);
-int		 _citrus_lookup_get_number_of_entries(struct _citrus_lookup *);
-void		 _citrus_lookup_seq_close(struct _citrus_lookup *);
+char *_citrus_lookup_simple(const char *, const char *, char *, size_t, int);
+int _citrus_lookup_seq_open(struct _citrus_lookup **, const char *, int);
+void _citrus_lookup_seq_rewind(struct _citrus_lookup *);
+int _citrus_lookup_seq_next(struct _citrus_lookup *, struct _region *,
+    struct _region *);
+int _citrus_lookup_seq_lookup(struct _citrus_lookup *, const char *,
+    struct _region *);
+int _citrus_lookup_get_number_of_entries(struct _citrus_lookup *);
+void _citrus_lookup_seq_close(struct _citrus_lookup *);
 __END_DECLS
 
 static __inline const char *

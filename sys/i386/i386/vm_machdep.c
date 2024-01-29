@@ -40,12 +40,12 @@
  *	Utah $Hdr: vm_machdep.c 1.16.1.1 89/06/23$
  */
 
-#include <sys/cdefs.h>
+#include "opt_cpu.h"
 #include "opt_isa.h"
 #include "opt_npx.h"
 #include "opt_reset.h"
-#include "opt_cpu.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bio.h>
@@ -57,14 +57,21 @@
 #include <sys/mbuf.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
-#include <sys/sysent.h>
+#include <sys/sched.h>
 #include <sys/sf_buf.h>
 #include <sys/smp.h>
-#include <sys/sched.h>
 #include <sys/sysctl.h>
+#include <sys/sysent.h>
 #include <sys/unistd.h>
-#include <sys/vnode.h>
 #include <sys/vmmeter.h>
+#include <sys/vnode.h>
+
+#include <vm/vm.h>
+#include <vm/vm_extern.h>
+#include <vm/vm_kern.h>
+#include <vm/vm_map.h>
+#include <vm/vm_page.h>
+#include <vm/vm_param.h>
 
 #include <machine/cpu.h>
 #include <machine/cputypes.h>
@@ -73,13 +80,6 @@
 #include <machine/pcb_ext.h>
 #include <machine/smp.h>
 #include <machine/vm86.h>
-
-#include <vm/vm.h>
-#include <vm/vm_extern.h>
-#include <vm/vm_kern.h>
-#include <vm/vm_page.h>
-#include <vm/vm_map.h>
-#include <vm/vm_param.h>
 
 _Static_assert(__OFFSETOF_MONITORBUF == offsetof(struct pcpu, pc_monitorbuf),
     "__OFFSETOF_MONITORBUF does not correspond with offset of pc_monitorbuf.");
@@ -175,10 +175,11 @@ copy_thread(struct thread *td1, struct thread *td2)
 	 * return address on stack.  These are the kernel mode register values.
 	 */
 	pcb2->pcb_edi = 0;
-	pcb2->pcb_esi = (int)fork_return;		    /* trampoline arg */
+	pcb2->pcb_esi = (int)fork_return; /* trampoline arg */
 	pcb2->pcb_ebp = 0;
-	pcb2->pcb_esp = (int)td2->td_frame - sizeof(void *); /* trampoline arg */
-	pcb2->pcb_ebx = (int)td2;			    /* trampoline arg */
+	pcb2->pcb_esp = (int)td2->td_frame -
+	    sizeof(void *);	  /* trampoline arg */
+	pcb2->pcb_ebx = (int)td2; /* trampoline arg */
 	pcb2->pcb_eip = (int)fork_trampoline + setidt_disp;
 	/*
 	 * If we didn't copy the pcb, we'd need to do the following registers:
@@ -251,7 +252,8 @@ cpu_fork(struct thread *td1, struct proc *p2, struct thread *td2, int flags)
 	 * if we go to vm86.
 	 */
 	td2->td_frame = (struct trapframe *)((caddr_t)td2->td_pcb -
-	    VM86_STACK_SPACE) - 1;
+			    VM86_STACK_SPACE) -
+	    1;
 	bcopy(td1->td_frame, td2->td_frame, sizeof(struct trapframe));
 
 	/* Set child return values. */
@@ -300,11 +302,11 @@ cpu_fork(struct thread *td1, struct proc *p2, struct thread *td2, int flags)
 void
 x86_set_fork_retval(struct thread *td)
 {
-	struct trapframe * frame = td->td_frame;
+	struct trapframe *frame = td->td_frame;
 
-	frame->tf_eax = 0;		/* Child returns zero */
-	frame->tf_eflags &= ~PSL_C;	/* success */
-	frame->tf_edx = 1;		/* System V emulation */
+	frame->tf_eax = 0;	    /* Child returns zero */
+	frame->tf_eflags &= ~PSL_C; /* success */
+	frame->tf_edx = 1;	    /* System V emulation */
 }
 
 /*
@@ -320,8 +322,8 @@ cpu_fork_kthread_handler(struct thread *td, void (*func)(void *), void *arg)
 	 * Note that the trap frame follows the args, so the function
 	 * is really called like this:  func(arg, frame);
 	 */
-	td->td_pcb->pcb_esi = (int) func;	/* function */
-	td->td_pcb->pcb_ebx = (int) arg;	/* first arg */
+	td->td_pcb->pcb_esi = (int)func; /* function */
+	td->td_pcb->pcb_ebx = (int)arg;	 /* first arg */
 }
 
 void
@@ -362,7 +364,7 @@ cpu_thread_clean(struct thread *td)
 {
 	struct pcb *pcb;
 
-	pcb = td->td_pcb; 
+	pcb = td->td_pcb;
 	if (pcb->pcb_ext != NULL) {
 		/* if (pcb->pcb_ext->ext_refcount-- == 1) ?? */
 		/*
@@ -391,9 +393,9 @@ cpu_thread_alloc(struct thread *td)
 	struct xstate_hdr *xhdr;
 
 	td->td_pcb = pcb = get_pcb_td(td);
-	td->td_frame = (struct trapframe *)((caddr_t)pcb -
-	    VM86_STACK_SPACE) - 1;
-	pcb->pcb_ext = NULL; 
+	td->td_frame = (struct trapframe *)((caddr_t)pcb - VM86_STACK_SPACE) -
+	    1;
+	pcb->pcb_ext = NULL;
 	pcb->pcb_save = get_pcb_user_save_pcb(pcb);
 	if (use_xsave) {
 		xhdr = (struct xstate_hdr *)(pcb->pcb_save + 1);
@@ -491,7 +493,7 @@ cpu_set_upcall(struct thread *td, void (*entry)(void *), void *arg,
     stack_t *stack)
 {
 
-	/* 
+	/*
 	 * Do any extra cleaning that needs to be done.
 	 * The thread may have optional components
 	 * that are not present in a fresh thread.
@@ -504,9 +506,10 @@ cpu_set_upcall(struct thread *td, void (*entry)(void *), void *arg,
 	 * Set the trap frame to point at the beginning of the entry
 	 * function.
 	 */
-	td->td_frame->tf_ebp = 0; 
-	td->td_frame->tf_esp =
-	    (((int)stack->ss_sp + stack->ss_size - 4) & ~0x0f) - 4;
+	td->td_frame->tf_ebp = 0;
+	td->td_frame->tf_esp = (((int)stack->ss_sp + stack->ss_size - 4) &
+				   ~0x0f) -
+	    4;
 	td->td_frame->tf_eip = (int)entry;
 
 	/* Return address sentinel value to stop stack unwinding. */
@@ -514,8 +517,8 @@ cpu_set_upcall(struct thread *td, void (*entry)(void *), void *arg,
 		return (EFAULT);
 
 	/* Pass the argument to the entry point. */
-	if (suword((void *)(td->td_frame->tf_esp + sizeof(void *)),
-	    (int)arg) != 0)
+	if (suword((void *)(td->td_frame->tf_esp + sizeof(void *)), (int)arg) !=
+	    0)
 		return (EFAULT);
 	return (0);
 }
@@ -535,14 +538,14 @@ cpu_set_user_tls(struct thread *td, void *tls_base)
 	base = (uint32_t)tls_base;
 	sd.sd_lobase = base & 0xffffff;
 	sd.sd_hibase = (base >> 24) & 0xff;
-	sd.sd_lolimit = 0xffff;	/* 4GB limit, wraps around */
+	sd.sd_lolimit = 0xffff; /* 4GB limit, wraps around */
 	sd.sd_hilimit = 0xf;
-	sd.sd_type  = SDT_MEMRWA;
-	sd.sd_dpl   = SEL_UPL;
-	sd.sd_p     = 1;
-	sd.sd_xx    = 0;
+	sd.sd_type = SDT_MEMRWA;
+	sd.sd_dpl = SEL_UPL;
+	sd.sd_p = 1;
+	sd.sd_xx = 0;
 	sd.sd_def32 = 1;
-	sd.sd_gran  = 1;
+	sd.sd_gran = 1;
 	critical_enter();
 	/* set %gs */
 	td->td_pcb->pcb_gsd = sd;
@@ -583,8 +586,8 @@ sf_buf_map(struct sf_buf *sf, int flags)
 
 #ifdef SMP
 static void
-sf_buf_shootdown_curcpu_cb(pmap_t pmap __unused,
-    vm_offset_t addr1 __unused, vm_offset_t addr2 __unused)
+sf_buf_shootdown_curcpu_cb(pmap_t pmap __unused, vm_offset_t addr1 __unused,
+    vm_offset_t addr2 __unused)
 {
 }
 

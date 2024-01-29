@@ -34,49 +34,50 @@
  * ------+---------+---------+---------+---------+---------+---------+---------*
  */
 
-#include "lp.cdefs.h"		/* A cross-platform version of <sys/cdefs.h> */
+#include "lp.cdefs.h" /* A cross-platform version of <sys/cdefs.h> */
 /*
  * movejobs.c - The lpc commands which move jobs around.
  */
 
-#include <sys/file.h>
 #include <sys/param.h>
+#include <sys/file.h>
 #include <sys/queue.h>
-#include <sys/time.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 
 #include <ctype.h>
-#include <dirent.h>	/* just for MAXNAMLEN, for job_cfname in lp.h! */
+#include <dirent.h> /* just for MAXNAMLEN, for job_cfname in lp.h! */
 #include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+#include "extern.h"
 #include "lp.h"
 #include "lpc.h"
 #include "matchjobs.h"
-#include "extern.h"
 
 /* Values for origcmd in tqbq_common() */
-#define IS_TOPQ		1
-#define IS_BOTQ 	2
+#define IS_TOPQ 1
+#define IS_BOTQ 2
 
-static int	 process_jobs(int _argc, char *_argv[], process_jqe
-		    _process_rtn, void *myinfo);
+static int process_jobs(int _argc, char *_argv[], process_jqe _process_rtn,
+    void *myinfo);
 static process_jqe touch_jqe;
-static void 	 tqbq_common(int _argc, char *_argv[], int _origcmd);
+static void tqbq_common(int _argc, char *_argv[], int _origcmd);
 
 /*
  * isdigit is defined to work on an 'int', in the range 0 to 255, plus EOF.
  * Define a wrapper which can take 'char', either signed or unsigned.
  */
-#define isdigitch(Anychar)    isdigit(((int) Anychar) & 255)
+#define isdigitch(Anychar) isdigit(((int)Anychar) & 255)
 
-struct touchjqe_info {			/* for topq/bottomq */
-	time_t	 newtime;
+struct touchjqe_info { /* for topq/bottomq */
+	time_t newtime;
 };
 
-static int	 nitems;
+static int nitems;
 static struct jobqueue **queue;
 
 /*
@@ -173,7 +174,7 @@ bottomq_cmd(int argc, char *argv[])
 		printf("usage: bottomq printer [jobspec ...]\n");
 		return;
 	}
-	--argc;			/* First argv was the command name */
+	--argc; /* First argv was the command name */
 	++argv;
 
 	tqbq_common(argc, argv, IS_BOTQ);
@@ -190,11 +191,11 @@ topq_cmd(int argc, char *argv[])
 		printf("usage: topq printer [jobspec ...]\n");
 		return;
 	}
-	--argc;			/* First argv was the command name */
+	--argc; /* First argv was the command name */
 	++argv;
 
 	tqbq_common(argc, argv, IS_TOPQ);
-} 
+}
 
 /*
  * Processing in common between topq and bottomq commands.
@@ -209,7 +210,7 @@ tqbq_common(int argc, char *argv[], int origcmd)
 	pp = setup_myprinter(*argv, &myprinter, SUMP_CHDIR_SD);
 	if (pp == NULL)
 		return;
-	--argc;			/* Second argv was the printer name */
+	--argc; /* Second argv was the printer name */
 	++argv;
 
 	nitems = getq(pp, &queue);
@@ -229,7 +230,7 @@ tqbq_common(int argc, char *argv[], int origcmd)
 		 * When moving jobs to the bottom of the queue, pick a
 		 * starting value which is one second after the last job
 		 * in the queue.
-		*/
+		 */
 		touch_info.newtime = queue[nitems - 1]->job_time + 1;
 		break;
 	case IS_TOPQ:
@@ -251,7 +252,7 @@ tqbq_common(int argc, char *argv[], int origcmd)
 	/*
 	 * If any jobs were moved, then chmod the lock file to notify any
 	 * active process for this queue that the queue has changed, so
-	 * it will rescan the queue to find out the new job order. 
+	 * it will rescan the queue to find out the new job order.
 	 */
 	if (movecnt == 0)
 		printf("\tqueue order unchanged\n");
@@ -259,7 +260,7 @@ tqbq_common(int argc, char *argv[], int origcmd)
 		setres = set_qstate(SQS_QCHANGED, pp->lock_file);
 		if (setres < 0)
 			printf("\t* queue order changed for %s, but the\n"
-			    "\t* attempt to set_qstate() failed [%d]!\n",
+			       "\t* attempt to set_qstate() failed [%d]!\n",
 			    pp->printer, setres);
 	}
 
@@ -267,5 +268,4 @@ tqbq_common(int argc, char *argv[], int origcmd)
 		free(queue[i]);
 	free(queue);
 	free_printer(pp);
-} 
-
+}

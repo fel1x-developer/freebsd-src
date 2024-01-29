@@ -39,20 +39,18 @@
 #include <sys/byteorder.h>
 #include <sys/fs/zfs.h>
 
-#include <stdint.h>
-#include <syslog.h>
-
-#include <libzfs.h>
-
-#include <list>
-#include <string>
-
 #include <devdctl/exception.h>
 #include <devdctl/guid.h>
+#include <libzfs.h>
+#include <stdint.h>
+#include <syslog.h>
 
 #include "vdev.h"
 #include "vdev_iterator.h"
 #include "zfsd_exception.h"
+
+#include <list>
+#include <string>
 
 /*============================ Namespace Control =============================*/
 using DevdCtl::Guid;
@@ -60,13 +58,13 @@ using DevdCtl::Guid;
 /*=========================== Class Implementations ==========================*/
 /*------------------------------- VdevIterator -------------------------------*/
 VdevIterator::VdevIterator(zpool_handle_t *pool)
- : m_poolConfig(zpool_get_config(pool, NULL))
+    : m_poolConfig(zpool_get_config(pool, NULL))
 {
 	Reset();
 }
 
 VdevIterator::VdevIterator(nvlist_t *poolConfig)
- : m_poolConfig(poolConfig)
+    : m_poolConfig(poolConfig)
 {
 	Reset();
 }
@@ -74,31 +72,27 @@ VdevIterator::VdevIterator(nvlist_t *poolConfig)
 void
 VdevIterator::Reset()
 {
-	nvlist_t  *rootVdev;
-	nvlist	  **cache_child;
-	nvlist	  **spare_child;
-	int	   result;
-	uint_t   cache_children;
-	uint_t	 spare_children;
+	nvlist_t *rootVdev;
+	nvlist **cache_child;
+	nvlist **spare_child;
+	int result;
+	uint_t cache_children;
+	uint_t spare_children;
 
-	result = nvlist_lookup_nvlist(m_poolConfig,
-				      ZPOOL_CONFIG_VDEV_TREE,
-				      &rootVdev);
+	result = nvlist_lookup_nvlist(m_poolConfig, ZPOOL_CONFIG_VDEV_TREE,
+	    &rootVdev);
 	if (result != 0)
-		throw ZfsdException(m_poolConfig, "Unable to extract "
-				    "ZPOOL_CONFIG_VDEV_TREE from pool.");
+		throw ZfsdException(m_poolConfig,
+		    "Unable to extract "
+		    "ZPOOL_CONFIG_VDEV_TREE from pool.");
 	m_vdevQueue.assign(1, rootVdev);
-	result = nvlist_lookup_nvlist_array(rootVdev,
-				      	    ZPOOL_CONFIG_L2CACHE,
-				      	    &cache_child,
-					    &cache_children);
+	result = nvlist_lookup_nvlist_array(rootVdev, ZPOOL_CONFIG_L2CACHE,
+	    &cache_child, &cache_children);
 	if (result == 0)
 		for (uint_t c = 0; c < cache_children; c++)
 			m_vdevQueue.push_back(cache_child[c]);
-	result = nvlist_lookup_nvlist_array(rootVdev,
-					    ZPOOL_CONFIG_SPARES,
-					    &spare_child,
-					    &spare_children);
+	result = nvlist_lookup_nvlist_array(rootVdev, ZPOOL_CONFIG_SPARES,
+	    &spare_child, &spare_children);
 	if (result == 0)
 		for (uint_t c = 0; c < spare_children; c++)
 			m_vdevQueue.push_back(spare_child[c]);
@@ -111,16 +105,15 @@ VdevIterator::Next()
 
 	for (vdevConfig = NULL; !m_vdevQueue.empty();) {
 		nvlist_t **vdevChildren;
-		int        result;
-		u_int      numChildren;
+		int result;
+		u_int numChildren;
 
 		vdevConfig = m_vdevQueue.front();
 		m_vdevQueue.pop_front();
 
 		/* Expand non-leaf vdevs. */
 		result = nvlist_lookup_nvlist_array(vdevConfig,
-						    ZPOOL_CONFIG_CHILDREN,
-						   &vdevChildren, &numChildren);
+		    ZPOOL_CONFIG_CHILDREN, &vdevChildren, &numChildren);
 		if (result != 0) {
 			/* leaf vdev */
 			break;
@@ -131,7 +124,7 @@ VdevIterator::Next()
 		 * depth first traversal of the tree.
 		 */
 		m_vdevQueue.insert(m_vdevQueue.begin(), vdevChildren,
-				   vdevChildren + numChildren);
+		    vdevChildren + numChildren);
 	}
 
 	return (vdevConfig);

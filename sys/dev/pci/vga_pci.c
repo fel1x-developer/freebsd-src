@@ -35,12 +35,12 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/rman.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
 #if defined(__amd64__) || defined(__i386__)
 #include <vm/vm.h>
@@ -53,12 +53,12 @@
 #include <compat/x86bios/x86bios.h> /* To re-POST the card. */
 
 struct vga_resource {
-	struct resource	*vr_res;
-	int	vr_refs;
+	struct resource *vr_res;
+	int vr_refs;
 };
 
 struct vga_pci_softc {
-	device_t	vga_msi_child;	/* Child driver using MSI. */
+	device_t vga_msi_child; /* Child driver using MSI. */
 	struct vga_resource vga_bars[PCIR_MAX_BAR_0 + 1];
 	struct vga_resource vga_bios;
 };
@@ -69,7 +69,7 @@ static struct vga_resource *lookup_res(struct vga_pci_softc *sc, int rid);
 static struct resource *vga_pci_alloc_resource(device_t dev, device_t child,
     int type, int *rid, rman_res_t start, rman_res_t end, rman_res_t count,
     u_int flags);
-static int	vga_pci_release_resource(device_t dev, device_t child, int type,
+static int vga_pci_release_resource(device_t dev, device_t child, int type,
     int rid, struct resource *r);
 
 int vga_pci_default_unit = -1;
@@ -85,8 +85,8 @@ vga_pci_is_boot_display(device_t dev)
 
 	/* Check that the given device is a video card */
 	if ((pci_get_class(dev) != PCIC_DISPLAY &&
-	    (pci_get_class(dev) != PCIC_OLD ||
-	     pci_get_subclass(dev) != PCIS_OLD_VGA)))
+		(pci_get_class(dev) != PCIC_OLD ||
+		    pci_get_subclass(dev) != PCIS_OLD_VGA)))
 		return (0);
 
 	unit = device_get_unit(dev);
@@ -145,10 +145,10 @@ vga_pci_reset(device_t dev)
 {
 	int ps;
 	/*
-	 * FLR is unsupported on GPUs so attempt a power-management reset by cycling
-	 * the device in/out of D3 state.
-	 * PCI spec says we can only go into D3 state from D0 state.
-	 * Transition from D[12] into D0 before going to D3 state.
+	 * FLR is unsupported on GPUs so attempt a power-management reset by
+	 * cycling the device in/out of D3 state. PCI spec says we can only go
+	 * into D3 state from D0 state. Transition from D[12] into D0 before
+	 * going to D3 state.
 	 */
 	ps = pci_get_powerstate(dev);
 	if (ps != PCI_POWERSTATE_D0 && ps != PCI_POWERSTATE_D3)
@@ -199,7 +199,7 @@ vga_pci_map_bios(device_t dev, size_t *size)
 		}
 	}
 
-	switch(pci_read_config(dev, PCIR_HDRTYPE, 1)) {
+	switch (pci_read_config(dev, PCIR_HDRTYPE, 1)) {
 	case PCIM_HDRTYPE_BRIDGE:
 		rid = PCIR_BIOS_1;
 		break;
@@ -212,8 +212,8 @@ vga_pci_map_bios(device_t dev, size_t *size)
 	}
 	if (rid == 0)
 		return (NULL);
-	res = vga_pci_alloc_resource(dev, NULL, SYS_RES_MEMORY, &rid, 0,
-	    ~0, 1, RF_ACTIVE);
+	res = vga_pci_alloc_resource(dev, NULL, SYS_RES_MEMORY, &rid, 0, ~0, 1,
+	    RF_ACTIVE);
 
 	if (res == NULL) {
 		device_printf(dev, "vga_pci_alloc_resource failed\n");
@@ -241,21 +241,20 @@ vga_pci_map_bios(device_t dev, size_t *size)
 	rom_addr |= rman_get_start(res) | 0x1;
 	pci_write_config(dev, rid, rom_addr, 4);
 	vr = lookup_res(device_get_softc(dev), rid);
-	vga_pci_release_resource(dev, NULL, SYS_RES_MEMORY, rid,
-	    vr->vr_res);
+	vga_pci_release_resource(dev, NULL, SYS_RES_MEMORY, rid, vr->vr_res);
 
 	/*
 	 * re-allocate
 	 */
-	res = vga_pci_alloc_resource(dev, NULL, SYS_RES_MEMORY, &rid, 0,
-	    ~0, 1, RF_ACTIVE);
+	res = vga_pci_alloc_resource(dev, NULL, SYS_RES_MEMORY, &rid, 0, ~0, 1,
+	    RF_ACTIVE);
 	if (res == NULL) {
 		device_printf(dev, "vga_pci_alloc_resource failed\n");
 		return (NULL);
 	}
 	bios = rman_get_virtual(res);
 	*size = rman_get_size(res);
-	for (found = i = 0; i < 3*hz; i++) {
+	for (found = i = 0; i < 3 * hz; i++) {
 		found = (bios[0] == 0x55 && bios[1] == 0xaa);
 		if (found)
 			break;
@@ -265,8 +264,7 @@ vga_pci_map_bios(device_t dev, size_t *size)
 		return (__DEVOLATILE(void *, bios));
 	device_printf(dev, "ROM mapping failed\n");
 	vr = lookup_res(device_get_softc(dev), rid);
-	vga_pci_release_resource(dev, NULL, SYS_RES_MEMORY, rid,
-	    vr->vr_res);
+	vga_pci_release_resource(dev, NULL, SYS_RES_MEMORY, rid, vr->vr_res);
 	return (NULL);
 }
 
@@ -288,7 +286,7 @@ vga_pci_unmap_bios(device_t dev, void *bios)
 		return;
 	}
 #endif
-	switch(pci_read_config(dev, PCIR_HDRTYPE, 1)) {
+	switch (pci_read_config(dev, PCIR_HDRTYPE, 1)) {
 	case PCIM_HDRTYPE_BRIDGE:
 		rid = PCIR_BIOS_1;
 		break;
@@ -309,8 +307,7 @@ vga_pci_unmap_bios(device_t dev, void *bios)
 	KASSERT(vr->vr_res != NULL, ("vga_pci_unmap_bios: bios not mapped"));
 	KASSERT(rman_get_virtual(vr->vr_res) == bios,
 	    ("vga_pci_unmap_bios: mismatch"));
-	vga_pci_release_resource(dev, NULL, SYS_RES_MEMORY, rid,
-	    vr->vr_res);
+	vga_pci_release_resource(dev, NULL, SYS_RES_MEMORY, rid, vr->vr_res);
 }
 
 int
@@ -391,7 +388,7 @@ vga_pci_suspend(device_t dev)
 static int
 vga_pci_detach(device_t dev)
 {
-	int error; 
+	int error;
 
 	error = bus_generic_detach(dev);
 	if (error == 0)
@@ -427,8 +424,8 @@ vga_pci_setup_intr(device_t dev, device_t child, struct resource *irq,
     int flags, driver_filter_t *filter, driver_intr_t *intr, void *arg,
     void **cookiep)
 {
-	return (BUS_SETUP_INTR(device_get_parent(dev), dev, irq, flags,
-	    filter, intr, arg, cookiep));
+	return (BUS_SETUP_INTR(device_get_parent(dev), dev, irq, flags, filter,
+	    intr, arg, cookiep));
 }
 
 static int
@@ -524,8 +521,8 @@ vga_pci_read_config(device_t dev, device_t child, int reg, int width)
 }
 
 static void
-vga_pci_write_config(device_t dev, device_t child, int reg,
-    uint32_t val, int width)
+vga_pci_write_config(device_t dev, device_t child, int reg, uint32_t val,
+    int width)
 {
 
 	pci_write_config(dev, reg, val, width);
@@ -606,24 +603,22 @@ vga_pci_assign_interrupt(device_t dev, device_t child)
 }
 
 static int
-vga_pci_find_cap(device_t dev, device_t child, int capability,
-    int *capreg)
+vga_pci_find_cap(device_t dev, device_t child, int capability, int *capreg)
 {
 
 	return (pci_find_cap(dev, capability, capreg));
 }
 
 static int
-vga_pci_find_next_cap(device_t dev, device_t child, int capability,
-    int start, int *capreg)
+vga_pci_find_next_cap(device_t dev, device_t child, int capability, int start,
+    int *capreg)
 {
 
 	return (pci_find_next_cap(dev, capability, start, capreg));
 }
 
 static int
-vga_pci_find_extcap(device_t dev, device_t child, int capability,
-    int *capreg)
+vga_pci_find_extcap(device_t dev, device_t child, int capability, int *capreg)
 {
 
 	return (pci_find_extcap(dev, capability, capreg));
@@ -638,16 +633,15 @@ vga_pci_find_next_extcap(device_t dev, device_t child, int capability,
 }
 
 static int
-vga_pci_find_htcap(device_t dev, device_t child, int capability,
-    int *capreg)
+vga_pci_find_htcap(device_t dev, device_t child, int capability, int *capreg)
 {
 
 	return (pci_find_htcap(dev, capability, capreg));
 }
 
 static int
-vga_pci_find_next_htcap(device_t dev, device_t child, int capability,
-    int start, int *capreg)
+vga_pci_find_next_htcap(device_t dev, device_t child, int capability, int start,
+    int *capreg)
 {
 
 	return (pci_find_next_htcap(dev, capability, start, capreg));
@@ -733,49 +727,48 @@ vga_pci_get_dma_tag(device_t bus, device_t child)
 
 static device_method_t vga_pci_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		vga_pci_probe),
-	DEVMETHOD(device_attach,	vga_pci_attach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD(device_suspend,	vga_pci_suspend),
-	DEVMETHOD(device_detach,	vga_pci_detach),
-	DEVMETHOD(device_resume,	vga_pci_resume),
+	DEVMETHOD(device_probe, vga_pci_probe),
+	DEVMETHOD(device_attach, vga_pci_attach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
+	DEVMETHOD(device_suspend, vga_pci_suspend),
+	DEVMETHOD(device_detach, vga_pci_detach),
+	DEVMETHOD(device_resume, vga_pci_resume),
 
 	/* Bus interface */
-	DEVMETHOD(bus_read_ivar,	vga_pci_read_ivar),
-	DEVMETHOD(bus_write_ivar,	vga_pci_write_ivar),
-	DEVMETHOD(bus_setup_intr,	vga_pci_setup_intr),
-	DEVMETHOD(bus_teardown_intr,	vga_pci_teardown_intr),
-	DEVMETHOD(bus_alloc_resource,	vga_pci_alloc_resource),
-	DEVMETHOD(bus_release_resource,	vga_pci_release_resource),
+	DEVMETHOD(bus_read_ivar, vga_pci_read_ivar),
+	DEVMETHOD(bus_write_ivar, vga_pci_write_ivar),
+	DEVMETHOD(bus_setup_intr, vga_pci_setup_intr),
+	DEVMETHOD(bus_teardown_intr, vga_pci_teardown_intr),
+	DEVMETHOD(bus_alloc_resource, vga_pci_alloc_resource),
+	DEVMETHOD(bus_release_resource, vga_pci_release_resource),
 	DEVMETHOD(bus_activate_resource, bus_generic_activate_resource),
 	DEVMETHOD(bus_deactivate_resource, bus_generic_deactivate_resource),
-	DEVMETHOD(bus_get_dma_tag,	vga_pci_get_dma_tag),
+	DEVMETHOD(bus_get_dma_tag, vga_pci_get_dma_tag),
 
 	/* PCI interface */
-	DEVMETHOD(pci_read_config,	vga_pci_read_config),
-	DEVMETHOD(pci_write_config,	vga_pci_write_config),
-	DEVMETHOD(pci_enable_busmaster,	vga_pci_enable_busmaster),
+	DEVMETHOD(pci_read_config, vga_pci_read_config),
+	DEVMETHOD(pci_write_config, vga_pci_write_config),
+	DEVMETHOD(pci_enable_busmaster, vga_pci_enable_busmaster),
 	DEVMETHOD(pci_disable_busmaster, vga_pci_disable_busmaster),
-	DEVMETHOD(pci_enable_io,	vga_pci_enable_io),
-	DEVMETHOD(pci_disable_io,	vga_pci_disable_io),
-	DEVMETHOD(pci_get_vpd_ident,	vga_pci_get_vpd_ident),
-	DEVMETHOD(pci_get_vpd_readonly,	vga_pci_get_vpd_readonly),
-	DEVMETHOD(pci_get_powerstate,	vga_pci_get_powerstate),
-	DEVMETHOD(pci_set_powerstate,	vga_pci_set_powerstate),
-	DEVMETHOD(pci_assign_interrupt,	vga_pci_assign_interrupt),
-	DEVMETHOD(pci_find_cap,		vga_pci_find_cap),
-	DEVMETHOD(pci_find_next_cap,	vga_pci_find_next_cap),
-	DEVMETHOD(pci_find_extcap,	vga_pci_find_extcap),
-	DEVMETHOD(pci_find_next_extcap,	vga_pci_find_next_extcap),
-	DEVMETHOD(pci_find_htcap,	vga_pci_find_htcap),
-	DEVMETHOD(pci_find_next_htcap,	vga_pci_find_next_htcap),
-	DEVMETHOD(pci_alloc_msi,	vga_pci_alloc_msi),
-	DEVMETHOD(pci_alloc_msix,	vga_pci_alloc_msix),
-	DEVMETHOD(pci_remap_msix,	vga_pci_remap_msix),
-	DEVMETHOD(pci_release_msi,	vga_pci_release_msi),
-	DEVMETHOD(pci_msi_count,	vga_pci_msi_count),
-	DEVMETHOD(pci_msix_count,	vga_pci_msix_count),
-	{ 0, 0 }
+	DEVMETHOD(pci_enable_io, vga_pci_enable_io),
+	DEVMETHOD(pci_disable_io, vga_pci_disable_io),
+	DEVMETHOD(pci_get_vpd_ident, vga_pci_get_vpd_ident),
+	DEVMETHOD(pci_get_vpd_readonly, vga_pci_get_vpd_readonly),
+	DEVMETHOD(pci_get_powerstate, vga_pci_get_powerstate),
+	DEVMETHOD(pci_set_powerstate, vga_pci_set_powerstate),
+	DEVMETHOD(pci_assign_interrupt, vga_pci_assign_interrupt),
+	DEVMETHOD(pci_find_cap, vga_pci_find_cap),
+	DEVMETHOD(pci_find_next_cap, vga_pci_find_next_cap),
+	DEVMETHOD(pci_find_extcap, vga_pci_find_extcap),
+	DEVMETHOD(pci_find_next_extcap, vga_pci_find_next_extcap),
+	DEVMETHOD(pci_find_htcap, vga_pci_find_htcap),
+	DEVMETHOD(pci_find_next_htcap, vga_pci_find_next_htcap),
+	DEVMETHOD(pci_alloc_msi, vga_pci_alloc_msi),
+	DEVMETHOD(pci_alloc_msix, vga_pci_alloc_msix),
+	DEVMETHOD(pci_remap_msix, vga_pci_remap_msix),
+	DEVMETHOD(pci_release_msi, vga_pci_release_msi),
+	DEVMETHOD(pci_msi_count, vga_pci_msi_count),
+	DEVMETHOD(pci_msix_count, vga_pci_msix_count), { 0, 0 }
 };
 
 static driver_t vga_pci_driver = {

@@ -100,7 +100,7 @@ be_mount_iter(zfs_handle_t *zfs_hdl, void *data)
 			return (0);
 
 		if (zfs_prop_get(zfs_hdl, ZFS_PROP_MOUNTPOINT, zfs_mnt,
-		    BE_MAXPATHLEN, NULL, NULL, 0, 1))
+			BE_MAXPATHLEN, NULL, NULL, 0, 1))
 			return (1);
 
 		/*
@@ -144,7 +144,6 @@ skipmount:
 	return (err);
 }
 
-
 static int
 be_umount_iter(zfs_handle_t *zfs_hdl, void *data)
 {
@@ -156,7 +155,7 @@ be_umount_iter(zfs_handle_t *zfs_hdl, void *data)
 	info = (struct be_mount_info *)data;
 
 	++info->depth;
-	if((err = zfs_iter_filesystems(zfs_hdl, be_umount_iter, info)) != 0) {
+	if ((err = zfs_iter_filesystems(zfs_hdl, be_umount_iter, info)) != 0) {
 		return (err);
 	}
 	--info->depth;
@@ -197,8 +196,8 @@ be_mounted_at(libbe_handle_t *lbh, const char *path, nvlist_t *details)
 	prop_data_t propinfo;
 
 	bzero(&be, BE_MAXPATHLEN);
-	if ((root_hdl = zfs_open(lbh->lzh, lbh->root,
-	    ZFS_TYPE_FILESYSTEM)) == NULL)
+	if ((root_hdl = zfs_open(lbh->lzh, lbh->root, ZFS_TYPE_FILESYSTEM)) ==
+	    NULL)
 		return (BE_ERR_ZFSOPEN);
 
 	info.path = path;
@@ -209,7 +208,7 @@ be_mounted_at(libbe_handle_t *lbh, const char *path, nvlist_t *details)
 	if (info.name != NULL) {
 		if (details != NULL) {
 			if ((root_hdl = zfs_open(lbh->lzh, info.name,
-			    ZFS_TYPE_FILESYSTEM)) == NULL) {
+				 ZFS_TYPE_FILESYSTEM)) == NULL) {
 				free(info.name);
 				return (BE_ERR_ZFSOPEN);
 			}
@@ -270,7 +269,7 @@ be_mount(libbe_handle_t *lbh, const char *bootenv, const char *mountpoint,
 	info.deepmount = mntdeep;
 	info.depth = 0;
 
-	if((err = be_mount_iter(zhdl, &info) != 0)) {
+	if ((err = be_mount_iter(zhdl, &info) != 0)) {
 		zfs_close(zhdl);
 		return (err);
 	}

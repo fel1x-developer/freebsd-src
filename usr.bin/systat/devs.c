@@ -57,8 +57,6 @@
  * SUCH DAMAGE.
  */
 
-
-
 #include <sys/types.h>
 #include <sys/devicestat.h>
 #include <sys/resource.h>
@@ -68,9 +66,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "systat.h"
-#include "extern.h"
 #include "devs.h"
+#include "extern.h"
+#include "systat.h"
 
 typedef enum {
 	DS_MATCHTYPE_NONE,
@@ -92,9 +90,9 @@ static char **specified_devices;
 static int num_devices_specified = 0;
 
 static int dsmatchselect(const char *args, devstat_select_mode select_mode,
-			 int maxshowdevs, struct statinfo *s1);
+    int maxshowdevs, struct statinfo *s1);
 static int dsselect(const char *args, devstat_select_mode select_mode,
-		    int maxshowdevs, struct statinfo *s1);
+    int maxshowdevs, struct statinfo *s1);
 
 int
 dsinit(int maxshowdevs)
@@ -107,12 +105,12 @@ dsinit(int maxshowdevs)
 	if (devstat_checkversion(NULL) < 0)
 		errx(1, "%s", devstat_errbuf);
 
-	if( cur_dev.dinfo ) // init was alreay ran
-		return(1);
+	if (cur_dev.dinfo) // init was alreay ran
+		return (1);
 
 	if ((num_devices = devstat_getnumdevs(NULL)) < 0) {
 		warnx("%s", devstat_errbuf);
-		return(0);
+		return (0);
 	}
 
 	cur_dev.dinfo = calloc(1, sizeof(struct devinfo));
@@ -140,16 +138,16 @@ dsinit(int maxshowdevs)
 	 * or 1.  If we get back -1, though, there is an error.
 	 */
 	if (devstat_selectdevs(&dev_select, &num_selected, &num_selections,
-	    &select_generation, generation, cur_dev.dinfo->devices, num_devices,
-	    NULL, 0, NULL, 0, DS_SELECT_ADD, maxshowdevs, 0) == -1)
+		&select_generation, generation, cur_dev.dinfo->devices,
+		num_devices, NULL, 0, NULL, 0, DS_SELECT_ADD, maxshowdevs,
+		0) == -1)
 		errx(1, "%d %s", __LINE__, devstat_errbuf);
 
-	return(1);
+	return (1);
 }
 
-
 void
-dsgetinfo(struct statinfo* dev)
+dsgetinfo(struct statinfo *dev)
 {
 	switch (devstat_getdevs(NULL, dev)) {
 	case -1:
@@ -171,28 +169,30 @@ dscmd(const char *cmd, const char *args, int maxshowdevs, struct statinfo *s1)
 	int retval;
 
 	if (prefix(cmd, "display") || prefix(cmd, "add"))
-		return(dsselect(args, DS_SELECT_ADDONLY, maxshowdevs, s1));
+		return (dsselect(args, DS_SELECT_ADDONLY, maxshowdevs, s1));
 	if (prefix(cmd, "ignore") || prefix(cmd, "delete"))
-		return(dsselect(args, DS_SELECT_REMOVE, maxshowdevs, s1));
+		return (dsselect(args, DS_SELECT_REMOVE, maxshowdevs, s1));
 	if (prefix(cmd, "show") || prefix(cmd, "only"))
-		return(dsselect(args, DS_SELECT_ONLY, maxshowdevs, s1));
+		return (dsselect(args, DS_SELECT_ONLY, maxshowdevs, s1));
 	if (prefix(cmd, "type") || prefix(cmd, "match"))
-		return(dsmatchselect(args, DS_SELECT_ONLY, maxshowdevs, s1));
+		return (dsmatchselect(args, DS_SELECT_ONLY, maxshowdevs, s1));
 	if (prefix(cmd, "refresh")) {
 		retval = devstat_selectdevs(&dev_select, &num_selected,
 		    &num_selections, &select_generation, generation,
 		    s1->dinfo->devices, num_devices,
-		    (last_type ==DS_MATCHTYPE_PATTERN) ?  matches : NULL,
-		    (last_type ==DS_MATCHTYPE_PATTERN) ?  num_matches : 0,
-		    (last_type == DS_MATCHTYPE_SPEC) ?specified_devices : NULL,
-		    (last_type == DS_MATCHTYPE_SPEC) ?num_devices_specified : 0,
-		    (last_type == DS_MATCHTYPE_NONE) ?  DS_SELECT_ADD :
-		    DS_SELECT_ADDONLY, maxshowdevs, 0);
+		    (last_type == DS_MATCHTYPE_PATTERN) ? matches : NULL,
+		    (last_type == DS_MATCHTYPE_PATTERN) ? num_matches : 0,
+		    (last_type == DS_MATCHTYPE_SPEC) ? specified_devices : NULL,
+		    (last_type == DS_MATCHTYPE_SPEC) ? num_devices_specified :
+						       0,
+		    (last_type == DS_MATCHTYPE_NONE) ? DS_SELECT_ADD :
+						       DS_SELECT_ADDONLY,
+		    maxshowdevs, 0);
 		if (retval == -1) {
 			warnx("%s", devstat_errbuf);
-			return(0);
+			return (0);
 		} else if (retval == 1)
-			return(2);
+			return (2);
 	}
 	if (prefix(cmd, "drives")) {
 		int i;
@@ -200,16 +200,16 @@ dscmd(const char *cmd, const char *args, int maxshowdevs, struct statinfo *s1)
 		clrtoeol();
 		for (i = 0; i < num_devices; i++) {
 			printw("%s%d ", s1->dinfo->devices[i].device_name,
-			       s1->dinfo->devices[i].unit_number);
+			    s1->dinfo->devices[i].unit_number);
 		}
-		return(1);
+		return (1);
 	}
-	return(0);
+	return (0);
 }
 
 static int
-dsmatchselect(const char *args, devstat_select_mode select_mode, int maxshowdevs,
-	      struct statinfo *s1)
+dsmatchselect(const char *args, devstat_select_mode select_mode,
+    int maxshowdevs, struct statinfo *s1)
 {
 	char **tempstr, *tmpstr, *tmpstr1;
 	char *tstr[100];
@@ -219,7 +219,7 @@ dsmatchselect(const char *args, devstat_select_mode select_mode, int maxshowdevs
 
 	if (!args) {
 		warnx("dsmatchselect: no arguments");
-		return(1);
+		return (1);
 	}
 
 	/*
@@ -227,7 +227,7 @@ dsmatchselect(const char *args, devstat_select_mode select_mode, int maxshowdevs
 	 * strings.
 	 */
 	tmpstr = tmpstr1 = strdup(args);
-	for (tempstr = tstr, num_args  = 0;
+	for (tempstr = tstr, num_args = 0;
 	     (*tempstr = strsep(&tmpstr1, "|")) != NULL && (num_args < 100);
 	     num_args++)
 		if (**tempstr != '\0')
@@ -237,7 +237,7 @@ dsmatchselect(const char *args, devstat_select_mode select_mode, int maxshowdevs
 
 	if (num_args > 99) {
 		warnx("dsmatchselect: too many match arguments");
-		return(0);
+		return (0);
 	}
 
 	/*
@@ -253,7 +253,7 @@ dsmatchselect(const char *args, devstat_select_mode select_mode, int maxshowdevs
 	for (i = 0; i < num_args; i++) {
 		if (devstat_buildmatch(tstr[i], &matches, &num_matches) != 0) {
 			warnx("%s", devstat_errbuf);
-			return(0);
+			return (0);
 		}
 	}
 	if (num_args > 0) {
@@ -262,19 +262,19 @@ dsmatchselect(const char *args, devstat_select_mode select_mode, int maxshowdevs
 
 		retval = devstat_selectdevs(&dev_select, &num_selected,
 		    &num_selections, &select_generation, generation,
-		    s1->dinfo->devices, num_devices, matches, num_matches,
-		    NULL, 0, select_mode, maxshowdevs, 0);
+		    s1->dinfo->devices, num_devices, matches, num_matches, NULL,
+		    0, select_mode, maxshowdevs, 0);
 		if (retval == -1)
 			err(1, "device selection error");
 		else if (retval == 1)
-			return(2);
+			return (2);
 	}
-	return(1);
+	return (1);
 }
 
 static int
 dsselect(const char *args, devstat_select_mode select_mode, int maxshowdevs,
-	 struct statinfo *s1)
+    struct statinfo *s1)
 {
 	char *cp, *tmpstr, *tmpstr1, *buffer;
 	int i;
@@ -282,7 +282,7 @@ dsselect(const char *args, devstat_select_mode select_mode, int maxshowdevs,
 
 	if (!args) {
 		warnx("dsselect: no argument");
-		return(1);
+		return (1);
 	}
 
 	/*
@@ -316,22 +316,20 @@ dsselect(const char *args, devstat_select_mode select_mode, int maxshowdevs,
 			break;
 		for (i = 0; i < num_devices; i++) {
 			asprintf(&buffer, "%s%d", dev_select[i].device_name,
-				dev_select[i].unit_number);
+			    dev_select[i].unit_number);
 			if (strcmp(buffer, tmpstr1) == 0) {
 
 				num_devices_specified++;
 
-				specified_devices =(char **)realloc(
-						specified_devices,
-						sizeof(char *) *
-						num_devices_specified);
-				specified_devices[num_devices_specified -1]=
-					strdup(tmpstr1);
+				specified_devices = (char **)
+				    realloc(specified_devices,
+					sizeof(char *) * num_devices_specified);
+				specified_devices[num_devices_specified - 1] =
+				    strdup(tmpstr1);
 				free(buffer);
 
 				break;
-			}
-			else
+			} else
 				free(buffer);
 		}
 		if (i >= num_devices)
@@ -345,17 +343,15 @@ dsselect(const char *args, devstat_select_mode select_mode, int maxshowdevs,
 
 		retval = devstat_selectdevs(&dev_select, &num_selected,
 		    &num_selections, &select_generation, generation,
-		    s1->dinfo->devices, num_devices, NULL, 0,
-		    specified_devices, num_devices_specified,
-		    select_mode, maxshowdevs, 0);
+		    s1->dinfo->devices, num_devices, NULL, 0, specified_devices,
+		    num_devices_specified, select_mode, maxshowdevs, 0);
 		if (retval == -1)
 			err(1, "%s", devstat_errbuf);
 		else if (retval == 1)
-			return(2);
+			return (2);
 	}
-	return(1);
+	return (1);
 }
-
 
 void
 dslabel(int maxdrives, int diskcol, int diskrow)
@@ -378,15 +374,16 @@ dslabel(int maxdrives, int diskcol, int diskrow)
 		if (dev_select[i].selected) {
 			char tmpstr[80];
 			sprintf(tmpstr, "%s%d", dev_select[i].device_name,
-				dev_select[i].unit_number);
-			mvprintw(diskrow, diskcol + 5 + 6 * j,
-				" %5.5s", tmpstr);
+			    dev_select[i].unit_number);
+			mvprintw(diskrow, diskcol + 5 + 6 * j, " %5.5s",
+			    tmpstr);
 			j++;
 		}
 }
 
 static void
-dsshow2(int diskcol, int diskrow, int dn, int lc, struct statinfo *now, struct statinfo *then)
+dsshow2(int diskcol, int diskrow, int dn, int lc, struct statinfo *now,
+    struct statinfo *then)
 {
 	long double transfers_per_second;
 	long double kb_per_transfer, mb_per_second;
@@ -400,17 +397,16 @@ dsshow2(int diskcol, int diskrow, int dn, int lc, struct statinfo *now, struct s
 		elapsed_time = now->snap_time - then->snap_time;
 	} else {
 		/* Calculate relative to device creation */
-		elapsed_time = now->snap_time - devstat_compute_etime(
-		    &now->dinfo->devices[di].creation_time, NULL);
+		elapsed_time = now->snap_time -
+		    devstat_compute_etime(
+			&now->dinfo->devices[di].creation_time, NULL);
 	}
 
-	if (devstat_compute_statistics(&now->dinfo->devices[di], then ?
-	    &then->dinfo->devices[di] : NULL, elapsed_time,
-	    DSM_KB_PER_TRANSFER, &kb_per_transfer,
-	    DSM_TRANSFERS_PER_SECOND, &transfers_per_second,
-	    DSM_MB_PER_SECOND, &mb_per_second,
-	    DSM_BUSY_PCT, &device_busy,
-	    DSM_NONE) != 0)
+	if (devstat_compute_statistics(&now->dinfo->devices[di],
+		then ? &then->dinfo->devices[di] : NULL, elapsed_time,
+		DSM_KB_PER_TRANSFER, &kb_per_transfer, DSM_TRANSFERS_PER_SECOND,
+		&transfers_per_second, DSM_MB_PER_SECOND, &mb_per_second,
+		DSM_BUSY_PCT, &device_busy, DSM_NONE) != 0)
 		errx(1, "%s", devstat_errbuf);
 
 	lc = diskcol + lc * 6;
@@ -421,7 +417,8 @@ dsshow2(int diskcol, int diskrow, int dn, int lc, struct statinfo *now, struct s
 }
 
 void
-dsshow(int maxdrives, int diskcol, int diskrow, struct statinfo *now, struct statinfo *then)
+dsshow(int maxdrives, int diskcol, int diskrow, struct statinfo *now,
+    struct statinfo *then)
 {
 	int i, lc;
 

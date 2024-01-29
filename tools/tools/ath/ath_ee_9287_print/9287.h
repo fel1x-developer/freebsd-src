@@ -1,6 +1,6 @@
 
-#ifndef	__9287_H__
-#define	__9287_H__
+#ifndef __9287_H__
+#define __9287_H__
 
 extern void eeprom_9287_base_print(uint16_t *buf);
 extern void eeprom_9287_custdata_print(uint16_t *buf);

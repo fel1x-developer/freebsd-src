@@ -1,11 +1,11 @@
 /*-
  * Copyright 1986, Larry Wall
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following condition is met:
  * 1. Redistributions of source code must retain the above copyright notice,
  * this condition and the following disclaimer.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND ANY
  * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -17,7 +17,7 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- * 
+ *
  * patch - a program to apply diffs to original files
  *
  * -C option added in 1998, original code by Marc Espie, based on FreeBSD
@@ -28,8 +28,8 @@
 
 #include <sys/types.h>
 #include <sys/file.h>
-#include <sys/stat.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
 
 #include <ctype.h>
@@ -45,32 +45,31 @@
 #include <unistd.h>
 
 #include "common.h"
-#include "util.h"
-#include "pch.h"
 #include "inp.h"
-
+#include "pch.h"
+#include "util.h"
 
 /* Input-file-with-indexable-lines abstract type */
 
-static size_t	i_size;		/* size of the input file */
-static char	*i_womp;	/* plan a buffer for entire file */
-static char	**i_ptr;	/* pointers to lines in i_womp */
-static char	empty_line[] = { '\0' };
+static size_t i_size; /* size of the input file */
+static char *i_womp;  /* plan a buffer for entire file */
+static char **i_ptr;  /* pointers to lines in i_womp */
+static char empty_line[] = { '\0' };
 
-static int	tifd = -1;	/* plan b virtual string array */
-static char	*tibuf[2];	/* plan b buffers */
-static LINENUM	tiline[2] = {-1, -1};	/* 1st line in each buffer */
-static size_t	lines_per_buf;	/* how many lines per buffer */
-static size_t	tibuflen;	/* plan b buffer length */
-static size_t	tireclen;	/* length of records in tmp file */
+static int tifd = -1;		       /* plan b virtual string array */
+static char *tibuf[2];		       /* plan b buffers */
+static LINENUM tiline[2] = { -1, -1 }; /* 1st line in each buffer */
+static size_t lines_per_buf;	       /* how many lines per buffer */
+static size_t tibuflen;		       /* plan b buffer length */
+static size_t tireclen;		       /* length of records in tmp file */
 
-static bool	rev_in_string(const char *);
-static bool	reallocate_lines(size_t *);
+static bool rev_in_string(const char *);
+static bool reallocate_lines(size_t *);
 
 /* returns false if insufficient memory */
-static bool	plan_a(const char *);
+static bool plan_a(const char *);
 
-static void	plan_b(const char *);
+static void plan_b(const char *);
 
 /* New patch--prepare to edit another file. */
 
@@ -86,7 +85,7 @@ re_input(void)
 		}
 		i_size = 0;
 	} else {
-		using_plan_a = true;	/* maybe the next one is smaller */
+		using_plan_a = true; /* maybe the next one is smaller */
 		close(tifd);
 		tifd = -1;
 		free(tibuf[0]);
@@ -113,12 +112,12 @@ scan_input(const char *filename)
 static bool
 reallocate_lines(size_t *lines_allocated)
 {
-	char	**p;
-	size_t	new_size;
+	char **p;
+	size_t new_size;
 
 	new_size = *lines_allocated * 3 / 2;
 	p = reallocarray(i_ptr, new_size + 2, sizeof(char *));
-	if (p == NULL) {	/* shucks, it was a near thing */
+	if (p == NULL) { /* shucks, it was a near thing */
 		munmap(i_womp, i_size);
 		i_womp = NULL;
 		free(i_ptr);
@@ -136,12 +135,12 @@ reallocate_lines(size_t *lines_allocated)
 static bool
 plan_a(const char *filename)
 {
-	int		ifd, statfailed;
-	char		*p, *s;
-	struct stat	filestat;
-	ptrdiff_t	sz;
-	size_t		i;
-	size_t		iline, lines_allocated;
+	int ifd, statfailed;
+	char *p, *s;
+	struct stat filestat;
+	ptrdiff_t sz;
+	size_t i;
+	size_t iline, lines_allocated;
 
 #ifdef DEBUGGING
 	if (debug & 8)
@@ -178,9 +177,9 @@ plan_a(const char *filename)
 	}
 	i_size = (size_t)filestat.st_size;
 	if (out_of_mem) {
-		set_hunkmax();	/* make sure dynamic arrays are allocated */
+		set_hunkmax(); /* make sure dynamic arrays are allocated */
 		out_of_mem = false;
-		return false;	/* force plan b because plan a bombed */
+		return false; /* force plan b because plan a bombed */
 	}
 	if ((ifd = open(filename, O_RDONLY)) < 0)
 		pfatal("can't open file %s", filename);
@@ -261,7 +260,7 @@ plan_a(const char *filename)
 					    revision);
 			} else if (batch) {
 				fatal("this file doesn't appear to be the "
-				    "%s version--aborting.\n",
+				      "%s version--aborting.\n",
 				    revision);
 			} else {
 				ask("This file doesn't appear to be the "
@@ -274,7 +273,7 @@ plan_a(const char *filename)
 			say("Good.  This file appears to be the %s version.\n",
 			    revision);
 	}
-	return true;		/* plan a will work */
+	return true; /* plan a will work */
 }
 
 /* Keep (virtually) nothing in memory. */
@@ -282,10 +281,10 @@ plan_a(const char *filename)
 static void
 plan_b(const char *filename)
 {
-	FILE	*ifp;
-	size_t	i, j, len, maxlen;
-	char	*lbuf = NULL, *p;
-	bool	found_revision = (revision == NULL);
+	FILE *ifp;
+	size_t i, j, len, maxlen;
+	char *lbuf = NULL, *p;
+	bool found_revision = (revision == NULL);
 
 	using_plan_a = false;
 	if ((ifp = fopen(filename, "r")) == NULL)
@@ -312,7 +311,7 @@ plan_b(const char *filename)
 		if (revision != NULL && !found_revision && rev_in_string(p))
 			found_revision = true;
 		if (len > maxlen)
-			maxlen = len;   /* find longest line */
+			maxlen = len; /* find longest line */
 	}
 	free(lbuf);
 	if (ferror(ifp))
@@ -327,7 +326,7 @@ plan_b(const char *filename)
 					    revision);
 			} else if (batch) {
 				fatal("this file doesn't appear to be the "
-				    "%s version--aborting.\n",
+				      "%s version--aborting.\n",
 				    revision);
 			} else {
 				ask("This file doesn't appear to be the %s "
@@ -340,7 +339,7 @@ plan_b(const char *filename)
 			say("Good.  This file appears to be the %s version.\n",
 			    revision);
 	}
-	fseek(ifp, 0L, SEEK_SET);	/* rewind file */
+	fseek(ifp, 0L, SEEK_SET); /* rewind file */
 	tireclen = maxlen;
 	tibuflen = maxlen > BUFFERSIZE ? maxlen : BUFFERSIZE;
 	lines_per_buf = tibuflen / maxlen;
@@ -352,15 +351,15 @@ plan_b(const char *filename)
 		fatal("out of memory\n");
 	for (i = 1;; i++) {
 		p = tibuf[0] + maxlen * (i % lines_per_buf);
-		if (i % lines_per_buf == 0)	/* new block */
+		if (i % lines_per_buf == 0) /* new block */
 			if (write(tifd, tibuf[0], tibuflen) !=
-			    (ssize_t) tibuflen)
+			    (ssize_t)tibuflen)
 				pfatal("can't write temp file");
 		if (fgets(p, maxlen + 1, ifp) == NULL) {
 			input_lines = i - 1;
 			if (i % lines_per_buf != 0)
 				if (write(tifd, tibuf[0], tibuflen) !=
-				    (ssize_t) tibuflen)
+				    (ssize_t)tibuflen)
 					pfatal("can't write temp file");
 			break;
 		}
@@ -391,8 +390,8 @@ ifetch(LINENUM line, int whichbuf)
 	if (using_plan_a)
 		return i_ptr[line];
 	else {
-		LINENUM	offline = line % lines_per_buf;
-		LINENUM	baseline = line - offline;
+		LINENUM offline = line % lines_per_buf;
+		LINENUM baseline = line - offline;
 
 		if (tiline[0] == baseline)
 			whichbuf = 0;
@@ -401,12 +400,14 @@ ifetch(LINENUM line, int whichbuf)
 		else {
 			tiline[whichbuf] = baseline;
 
-			if (lseek(tifd, (off_t) (baseline / lines_per_buf *
-			    tibuflen), SEEK_SET) < 0)
-				pfatal("cannot seek in the temporary input file");
+			if (lseek(tifd,
+				(off_t)(baseline / lines_per_buf * tibuflen),
+				SEEK_SET) < 0)
+				pfatal(
+				    "cannot seek in the temporary input file");
 
 			if (read(tifd, tibuf[whichbuf], tibuflen) !=
-			    (ssize_t) tibuflen)
+			    (ssize_t)tibuflen)
 				pfatal("error reading tmp file %s", TMPINNAME);
 		}
 		return tibuf[whichbuf] + (tireclen * offline);
@@ -419,16 +420,18 @@ ifetch(LINENUM line, int whichbuf)
 static bool
 rev_in_string(const char *string)
 {
-	const char	*s;
-	size_t		patlen;
+	const char *s;
+	size_t patlen;
 
 	if (revision == NULL)
 		return true;
 	patlen = strlen(revision);
-	if (strnEQ(string, revision, patlen) && isspace((unsigned char)string[patlen]))
+	if (strnEQ(string, revision, patlen) &&
+	    isspace((unsigned char)string[patlen]))
 		return true;
 	for (s = string; *s; s++) {
-		if (isspace((unsigned char)*s) && strnEQ(s + 1, revision, patlen) &&
+		if (isspace((unsigned char)*s) &&
+		    strnEQ(s + 1, revision, patlen) &&
 		    isspace((unsigned char)s[patlen + 1])) {
 			return true;
 		}

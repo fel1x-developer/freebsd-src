@@ -30,7 +30,7 @@
 
 #include "tpm20.h"
 
-#define TPM_HARVEST_SIZE     16
+#define TPM_HARVEST_SIZE 16
 /*
  * Perform a harvest every 10 seconds.
  * Since discrete TPMs are painfully slow
@@ -45,13 +45,13 @@ static void tpm20_discard_buffer(void *arg);
 #ifdef TPM_HARVEST
 static void tpm20_harvest(void *arg, int unused);
 #endif
-static int  tpm20_save_state(device_t dev, bool suspend);
+static int tpm20_save_state(device_t dev, bool suspend);
 
-static d_open_t		tpm20_open;
-static d_close_t	tpm20_close;
-static d_read_t		tpm20_read;
-static d_write_t	tpm20_write;
-static d_ioctl_t	tpm20_ioctl;
+static d_open_t tpm20_open;
+static d_close_t tpm20_close;
+static d_read_t tpm20_read;
+static d_write_t tpm20_write;
+static d_ioctl_t tpm20_ioctl;
 
 static struct cdevsw tpm20_cdevsw = {
 	.d_version = D_VERSION,
@@ -81,7 +81,7 @@ tpm20_read(struct cdev *dev, struct uio *uio, int flags)
 
 	bytes_to_transfer = MIN(sc->pending_data_length, uio->uio_resid);
 	if (bytes_to_transfer > 0) {
-		result = uiomove((caddr_t) sc->buf, bytes_to_transfer, uio);
+		result = uiomove((caddr_t)sc->buf, bytes_to_transfer, uio);
 		memset(sc->buf, 0, TPM_BUFSIZE);
 		sc->pending_data_length = 0;
 		cv_signal(&sc->buf_cv);
@@ -105,14 +105,12 @@ tpm20_write(struct cdev *dev, struct uio *uio, int flags)
 
 	byte_count = uio->uio_resid;
 	if (byte_count < TPM_HEADER_SIZE) {
-		device_printf(sc->dev,
-		    "Requested transfer is too small\n");
+		device_printf(sc->dev, "Requested transfer is too small\n");
 		return (EINVAL);
 	}
 
 	if (byte_count > TPM_BUFSIZE) {
-		device_printf(sc->dev,
-		    "Requested transfer is too large\n");
+		device_printf(sc->dev, "Requested transfer is too large\n");
 		return (E2BIG);
 	}
 
@@ -156,8 +154,7 @@ tpm20_discard_buffer(void *arg)
 	cv_signal(&sc->buf_cv);
 	sx_xunlock(&sc->dev_lock);
 
-	device_printf(sc->dev,
-	    "User failed to read buffer in time\n");
+	device_printf(sc->dev, "User failed to read buffer in time\n");
 }
 
 int
@@ -175,8 +172,8 @@ tpm20_close(struct cdev *dev, int flag, int mode, struct thread *td)
 }
 
 int
-tpm20_ioctl(struct cdev *dev, u_long cmd, caddr_t data,
-    int flags, struct thread *td)
+tpm20_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int flags,
+    struct thread *td)
 {
 
 	return (ENOTTY);
@@ -203,13 +200,12 @@ tpm20_init(struct tpm_sc *sc)
 		tpm20_release(sc);
 
 #ifdef TPM_HARVEST
-	TIMEOUT_TASK_INIT(taskqueue_thread, &sc->harvest_task, 0,
-	    tpm20_harvest, sc);
+	TIMEOUT_TASK_INIT(taskqueue_thread, &sc->harvest_task, 0, tpm20_harvest,
+	    sc);
 	taskqueue_enqueue_timeout(taskqueue_thread, &sc->harvest_task, 0);
 #endif
 
 	return (result);
-
 }
 
 void
@@ -256,9 +252,9 @@ tpm20_harvest(void *arg, int unused)
 	int result;
 	uint8_t cmd[] = {
 		0x80, 0x01,		/* TPM_ST_NO_SESSIONS tag*/
-		0x00, 0x00, 0x00, 0x0c,	/* cmd length */
-		0x00, 0x00, 0x01, 0x7b,	/* cmd TPM_CC_GetRandom */
-		0x00, TPM_HARVEST_SIZE 	/* number of bytes requested */
+		0x00, 0x00, 0x00, 0x0c, /* cmd length */
+		0x00, 0x00, 0x01, 0x7b, /* cmd TPM_CC_GetRandom */
+		0x00, TPM_HARVEST_SIZE	/* number of bytes requested */
 	};
 
 	sc = arg;
@@ -277,12 +273,11 @@ tpm20_harvest(void *arg, int unused)
 	sc->pending_data_length = 0;
 
 	/* The number of random bytes we got is placed right after the header */
-	entropy_size = (uint16_t) sc->buf[TPM_HEADER_SIZE + 1];
+	entropy_size = (uint16_t)sc->buf[TPM_HEADER_SIZE + 1];
 	if (entropy_size > 0) {
 		entropy_size = MIN(entropy_size, TPM_HARVEST_SIZE);
-		memcpy(entropy,
-			sc->buf + TPM_HEADER_SIZE + sizeof(uint16_t),
-			entropy_size);
+		memcpy(entropy, sc->buf + TPM_HEADER_SIZE + sizeof(uint16_t),
+		    entropy_size);
 	}
 
 	sx_xunlock(&sc->dev_lock);
@@ -292,17 +287,17 @@ tpm20_harvest(void *arg, int unused)
 	taskqueue_enqueue_timeout(taskqueue_thread, &sc->harvest_task,
 	    hz * TPM_HARVEST_INTERVAL);
 }
-#endif	/* TPM_HARVEST */
+#endif /* TPM_HARVEST */
 
 static int
 tpm20_save_state(device_t dev, bool suspend)
 {
 	struct tpm_sc *sc;
 	uint8_t save_cmd[] = {
-		0x80, 0x01,             /* TPM_ST_NO_SESSIONS tag*/
+		0x80, 0x01,		/* TPM_ST_NO_SESSIONS tag*/
 		0x00, 0x00, 0x00, 0x0C, /* cmd length */
 		0x00, 0x00, 0x01, 0x45, /* cmd TPM_CC_Shutdown */
-		0x00, 0x00              /* TPM_SU_STATE */
+		0x00, 0x00		/* TPM_SU_STATE */
 	};
 
 	sc = device_get_softc(dev);
@@ -332,23 +327,23 @@ tpm20_get_timeout(uint32_t command)
 	int32_t timeout;
 
 	switch (command) {
-		case TPM_CC_CreatePrimary:
-		case TPM_CC_Create:
-		case TPM_CC_CreateLoaded:
-			timeout = TPM_TIMEOUT_LONG;
-			break;
-		case TPM_CC_SequenceComplete:
-		case TPM_CC_Startup:
-		case TPM_CC_SequenceUpdate:
-		case TPM_CC_GetCapability:
-		case TPM_CC_PCR_Extend:
-		case TPM_CC_EventSequenceComplete:
-		case TPM_CC_HashSequenceStart:
-			timeout = TPM_TIMEOUT_C;
-			break;
-		default:
-			timeout = TPM_TIMEOUT_B;
-			break;
+	case TPM_CC_CreatePrimary:
+	case TPM_CC_Create:
+	case TPM_CC_CreateLoaded:
+		timeout = TPM_TIMEOUT_LONG;
+		break;
+	case TPM_CC_SequenceComplete:
+	case TPM_CC_Startup:
+	case TPM_CC_SequenceUpdate:
+	case TPM_CC_GetCapability:
+	case TPM_CC_PCR_Extend:
+	case TPM_CC_EventSequenceComplete:
+	case TPM_CC_HashSequenceStart:
+		timeout = TPM_TIMEOUT_C;
+		break;
+	default:
+		timeout = TPM_TIMEOUT_B;
+		break;
 	}
 	return timeout;
 }

@@ -72,23 +72,33 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
+#include <openssl/crypto.h>
+#include <openssl/err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <openssl/crypto.h>
-#include <openssl/err.h>
-
 #include "mp.h"
 
-#define MPERR(s)	do { warn s; abort(); } while (0)
-#define MPERRX(s)	do { warnx s; abort(); } while (0)
-#define BN_ERRCHECK(msg, expr) do {		\
-	if (!(expr)) _bnerr(msg);		\
-} while (0)
+#define MPERR(s)         \
+	do {             \
+		warn s;  \
+		abort(); \
+	} while (0)
+#define MPERRX(s)        \
+	do {             \
+		warnx s; \
+		abort(); \
+	} while (0)
+#define BN_ERRCHECK(msg, expr)       \
+	do {                         \
+		if (!(expr))         \
+			_bnerr(msg); \
+	} while (0)
 
 static void _bnerr(const char *);
 static MINT *_dtom(const char *, const char *);
@@ -96,7 +106,7 @@ static MINT *_itom(const char *, short);
 static void _madd(const char *, const MINT *, const MINT *, MINT *);
 static int _mcmpa(const char *, const MINT *, const MINT *);
 static void _mdiv(const char *, const MINT *, const MINT *, MINT *, MINT *,
-		BN_CTX *);
+    BN_CTX *);
 static void _mfree(const char *, MINT *);
 static void _moveb(const char *, const BIGNUM *, MINT *);
 static void _movem(const char *, const MINT *, MINT *);
@@ -328,7 +338,6 @@ mp_move(const MINT *smp, MINT *tmp)
 
 	_movem("move", smp, tmp);
 }
-
 
 /*
  * Internal routine to set the value of tmp to that of sbp.

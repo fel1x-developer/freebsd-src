@@ -45,4 +45,4 @@ int sched_getcpu(void);
 #endif /* __BSD_VISIBLE */
 __END_DECLS
 
-#endif	/* __SCHED_H__ */
+#endif /* __SCHED_H__ */

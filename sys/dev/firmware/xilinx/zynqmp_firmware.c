@@ -26,25 +26,22 @@
  */
 
 #include <sys/cdefs.h>
-
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/malloc.h>
 #include <sys/bus.h>
 #include <sys/cpu.h>
+#include <sys/kernel.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+
 #include <machine/bus.h>
 
 #include <dev/fdt/simplebus.h>
-
-#include <dev/ofw/openfirm.h>
+#include <dev/firmware/xilinx/pm_defs.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
+#include <dev/ofw/openfirm.h>
 #include <dev/psci/smccc.h>
-
-#include <dev/firmware/xilinx/pm_defs.h>
 
 #include "zynqmp_firmware_if.h"
 
@@ -57,7 +54,7 @@ enum {
 	IOCTL_SET_SGMII_MODE = 5,
 	IOCTL_SD_DLL_RESET = 6,
 	IOCTL_SET_SD_TAPDELAY = 7,
-	 /* Ioctl for clock driver */
+	/* Ioctl for clock driver */
 	IOCTL_SET_PLL_FRAC_MODE = 8,
 	IOCTL_GET_PLL_FRAC_MODE = 9,
 	IOCTL_SET_PLL_FRAC_DATA = 10,
@@ -85,19 +82,21 @@ enum {
 	IOCTL_REGISTER_SGI = 25,
 };
 
-typedef int (*zynqmp_callfn_t)(register_t, register_t, register_t, uint32_t *payload);
+typedef int (
+    *zynqmp_callfn_t)(register_t, register_t, register_t, uint32_t *payload);
 
 struct zynqmp_firmware_softc {
-	struct simplebus_softc	sc;
-	device_t		dev;
-	zynqmp_callfn_t		callfn;
+	struct simplebus_softc sc;
+	device_t dev;
+	zynqmp_callfn_t callfn;
 };
 
 /* SMC calling methods */
-#define	PM_SIP_SVC	0xC2000000
+#define PM_SIP_SVC 0xC2000000
 
 static int
-zynqmp_call_smc(uint32_t id, uint32_t a0, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t *payload, bool ignore_error)
+zynqmp_call_smc(uint32_t id, uint32_t a0, uint32_t a1, uint32_t a2, uint32_t a3,
+    uint32_t *payload, bool ignore_error)
 {
 	struct arm_smccc_res res;
 	uint64_t args[3];
@@ -131,8 +130,8 @@ zynqmp_get_api_version(struct zynqmp_firmware_softc *sc)
 		device_printf(sc->dev, "SMC Call fail %d\n", rv);
 		goto out;
 	}
-	device_printf(sc->dev, "API version = %d.%d\n",
-	    payload[1] >> 16, payload[1] & 0xFFFF);
+	device_printf(sc->dev, "API version = %d.%d\n", payload[1] >> 16,
+	    payload[1] & 0xFFFF);
 out:
 	return (rv);
 }
@@ -148,8 +147,8 @@ zynqmp_get_chipid(struct zynqmp_firmware_softc *sc)
 		device_printf(sc->dev, "SMC Call fail %d\n", rv);
 		goto out;
 	}
-	device_printf(sc->dev, "ID Code = %x Version = %x\n",
-	    payload[1], payload[2]);
+	device_printf(sc->dev, "ID Code = %x Version = %x\n", payload[1],
+	    payload[2]);
 out:
 	return (rv);
 }
@@ -160,13 +159,13 @@ zynqmp_get_trustzone_version(struct zynqmp_firmware_softc *sc)
 	uint32_t payload[4];
 	int rv;
 
-	rv = zynqmp_call_smc(PM_GET_TRUSTZONE_VERSION, 0, 0, 0, 0, payload, false);
+	rv = zynqmp_call_smc(PM_GET_TRUSTZONE_VERSION, 0, 0, 0, 0, payload,
+	    false);
 	if (rv != 0) {
 		device_printf(sc->dev, "SMC Call fail %d\n", rv);
 		goto out;
 	}
-	device_printf(sc->dev, "Trustzone Version = %x\n",
-	    payload[1]);
+	device_printf(sc->dev, "Trustzone Version = %x\n", payload[1]);
 out:
 	return (rv);
 }
@@ -227,7 +226,8 @@ zynqmp_firmware_clock_setdivider(device_t dev, uint32_t clkid, uint32_t div)
 	int rv;
 
 	sc = device_get_softc(dev);
-	rv = zynqmp_call_smc(PM_CLOCK_SETDIVIDER, clkid, div, 0, 0, payload, false);
+	rv = zynqmp_call_smc(PM_CLOCK_SETDIVIDER, clkid, div, 0, 0, payload,
+	    false);
 	if (rv != 0)
 		device_printf(sc->dev, "SMC Call fail %d\n", rv);
 	return (rv);
@@ -241,7 +241,8 @@ zynqmp_firmware_clock_getdivider(device_t dev, uint32_t clkid, uint32_t *div)
 	int rv;
 
 	sc = device_get_softc(dev);
-	rv = zynqmp_call_smc(PM_CLOCK_GETDIVIDER, clkid, 0, 0, 0, payload, false);
+	rv = zynqmp_call_smc(PM_CLOCK_GETDIVIDER, clkid, 0, 0, 0, payload,
+	    false);
 	if (rv != 0) {
 		device_printf(sc->dev, "SMC Call fail %d\n", rv);
 		goto out;
@@ -260,21 +261,24 @@ zynqmp_firmware_clock_setparent(device_t dev, uint32_t clkid, uint32_t parentid)
 	int rv;
 
 	sc = device_get_softc(dev);
-	rv = zynqmp_call_smc(PM_CLOCK_SETPARENT, clkid, parentid, 0, 0, payload, false);
+	rv = zynqmp_call_smc(PM_CLOCK_SETPARENT, clkid, parentid, 0, 0, payload,
+	    false);
 	if (rv != 0)
 		device_printf(sc->dev, "SMC Call fail %d\n", rv);
 	return (rv);
 }
 
 static int
-zynqmp_firmware_clock_getparent(device_t dev, uint32_t clkid, uint32_t *parentid)
+zynqmp_firmware_clock_getparent(device_t dev, uint32_t clkid,
+    uint32_t *parentid)
 {
 	struct zynqmp_firmware_softc *sc;
 	uint32_t payload[4];
 	int rv;
 
 	sc = device_get_softc(dev);
-	rv = zynqmp_call_smc(PM_CLOCK_GETPARENT, clkid, 0, 0, 0, payload, false);
+	rv = zynqmp_call_smc(PM_CLOCK_GETPARENT, clkid, 0, 0, 0, payload,
+	    false);
 	if (rv != 0) {
 		device_printf(sc->dev, "SMC Call fail %d\n", rv);
 		goto out;
@@ -292,7 +296,8 @@ zynqmp_firmware_pll_get_mode(device_t dev, uint32_t pllid, uint32_t *mode)
 	int rv;
 
 	sc = device_get_softc(dev);
-	rv = zynqmp_call_smc(PM_IOCTL, 0, IOCTL_GET_PLL_FRAC_MODE, pllid, 0, payload, false);
+	rv = zynqmp_call_smc(PM_IOCTL, 0, IOCTL_GET_PLL_FRAC_MODE, pllid, 0,
+	    payload, false);
 	if (rv != 0) {
 		device_printf(sc->dev, "SMC Call fail %d\n", rv);
 		goto out;
@@ -310,7 +315,8 @@ zynqmp_firmware_pll_get_frac_data(device_t dev, uint32_t pllid, uint32_t *data)
 	int rv;
 
 	sc = device_get_softc(dev);
-	rv = zynqmp_call_smc(PM_IOCTL, 0, IOCTL_GET_PLL_FRAC_DATA, pllid, 0, payload, false);
+	rv = zynqmp_call_smc(PM_IOCTL, 0, IOCTL_GET_PLL_FRAC_DATA, pllid, 0,
+	    payload, false);
 	if (rv != 0) {
 		device_printf(sc->dev, "SMC Call fail %d\n", rv);
 		goto out;
@@ -321,14 +327,16 @@ out:
 }
 
 static int
-zynqmp_firmware_clock_get_fixedfactor(device_t dev, uint32_t clkid, uint32_t *mult, uint32_t *div)
+zynqmp_firmware_clock_get_fixedfactor(device_t dev, uint32_t clkid,
+    uint32_t *mult, uint32_t *div)
 {
 	struct zynqmp_firmware_softc *sc;
 	uint32_t payload[4];
 	int rv;
 
 	sc = device_get_softc(dev);
-	rv = zynqmp_call_smc(PM_QUERY_DATA, PM_QID_CLOCK_GET_FIXEDFACTOR_PARAMS, clkid, 0, 0, payload, true);
+	rv = zynqmp_call_smc(PM_QUERY_DATA, PM_QID_CLOCK_GET_FIXEDFACTOR_PARAMS,
+	    clkid, 0, 0, payload, true);
 	if (rv != 0) {
 		device_printf(sc->dev, "SMC Call fail %d\n", rv);
 		goto out;
@@ -340,7 +348,8 @@ out:
 }
 
 static int
-zynqmp_firmware_query_data(device_t dev, uint32_t qid, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t *data)
+zynqmp_firmware_query_data(device_t dev, uint32_t qid, uint32_t arg1,
+    uint32_t arg2, uint32_t arg3, uint32_t *data)
 {
 	struct zynqmp_firmware_softc *sc;
 	int rv;
@@ -365,7 +374,8 @@ zynqmp_firmware_reset_assert(device_t dev, uint32_t resetid, bool enable)
 	int rv;
 
 	sc = device_get_softc(dev);
-	rv = zynqmp_call_smc(PM_RESET_ASSERT, resetid, enable, 0, 0, NULL, true);
+	rv = zynqmp_call_smc(PM_RESET_ASSERT, resetid, enable, 0, 0, NULL,
+	    true);
 	if (rv != 0)
 		device_printf(sc->dev, "SMC Call fail %d\n", rv);
 
@@ -380,7 +390,8 @@ zynqmp_firmware_reset_get_status(device_t dev, uint32_t resetid, bool *status)
 	int rv;
 
 	sc = device_get_softc(dev);
-	rv = zynqmp_call_smc(PM_RESET_GET_STATUS, resetid, 0, 0, 0, payload, true);
+	rv = zynqmp_call_smc(PM_RESET_GET_STATUS, resetid, 0, 0, 0, payload,
+	    true);
 	if (rv != 0) {
 		device_printf(sc->dev, "SMC Call fail %d\n", rv);
 		return (rv);
@@ -409,9 +420,11 @@ zynqmp_firmware_setup_dinfo(device_t dev, phandle_t node,
 		return (NULL);
 	}
 
-	/* reg resources is from the parent but interrupts is on the node itself */
+	/* reg resources is from the parent but interrupts is on the node itself
+	 */
 	resource_list_init(&ndi->rl);
-	ofw_bus_reg_to_rl(dev, OF_parent(node), sc->acells, sc->scells, &ndi->rl);
+	ofw_bus_reg_to_rl(dev, OF_parent(node), sc->acells, sc->scells,
+	    &ndi->rl);
 	ofw_bus_intr_to_rl(dev, node, &ndi->rl, NULL);
 
 	return (ndi);
@@ -438,7 +451,7 @@ zynqmp_firmware_add_device(device_t dev, phandle_t node, u_int order,
 	}
 	device_set_ivars(cdev, ndi);
 
-	return(cdev);
+	return (cdev);
 }
 
 static int
@@ -472,7 +485,8 @@ zynqmp_firmware_attach(device_t dev)
 	/* Attach children */
 	node = ofw_bus_get_node(dev);
 	for (child = OF_child(node); child != 0; child = OF_peer(child)) {
-		cdev = zynqmp_firmware_add_device(dev, child, 0, NULL, -1, NULL);
+		cdev = zynqmp_firmware_add_device(dev, child, 0, NULL, -1,
+		    NULL);
 		if (cdev != NULL)
 			device_probe_and_attach(cdev);
 	}
@@ -482,29 +496,37 @@ zynqmp_firmware_attach(device_t dev)
 
 static device_method_t zynqmp_firmware_methods[] = {
 	/* device_if */
-	DEVMETHOD(device_probe, 	zynqmp_firmware_probe),
-	DEVMETHOD(device_attach, 	zynqmp_firmware_attach),
+	DEVMETHOD(device_probe, zynqmp_firmware_probe),
+	DEVMETHOD(device_attach, zynqmp_firmware_attach),
 
 	/* zynqmp_firmware_if */
 	DEVMETHOD(zynqmp_firmware_clock_enable, zynqmp_firmware_clock_enable),
 	DEVMETHOD(zynqmp_firmware_clock_disable, zynqmp_firmware_clock_disable),
-	DEVMETHOD(zynqmp_firmware_clock_getstate, zynqmp_firmware_clock_getstate),
-	DEVMETHOD(zynqmp_firmware_clock_setdivider, zynqmp_firmware_clock_setdivider),
-	DEVMETHOD(zynqmp_firmware_clock_getdivider, zynqmp_firmware_clock_getdivider),
-	DEVMETHOD(zynqmp_firmware_clock_setparent, zynqmp_firmware_clock_setparent),
-	DEVMETHOD(zynqmp_firmware_clock_getparent, zynqmp_firmware_clock_getparent),
+	DEVMETHOD(zynqmp_firmware_clock_getstate,
+	    zynqmp_firmware_clock_getstate),
+	DEVMETHOD(zynqmp_firmware_clock_setdivider,
+	    zynqmp_firmware_clock_setdivider),
+	DEVMETHOD(zynqmp_firmware_clock_getdivider,
+	    zynqmp_firmware_clock_getdivider),
+	DEVMETHOD(zynqmp_firmware_clock_setparent,
+	    zynqmp_firmware_clock_setparent),
+	DEVMETHOD(zynqmp_firmware_clock_getparent,
+	    zynqmp_firmware_clock_getparent),
 	DEVMETHOD(zynqmp_firmware_pll_get_mode, zynqmp_firmware_pll_get_mode),
-	DEVMETHOD(zynqmp_firmware_pll_get_frac_data, zynqmp_firmware_pll_get_frac_data),
-	DEVMETHOD(zynqmp_firmware_clock_get_fixedfactor, zynqmp_firmware_clock_get_fixedfactor),
+	DEVMETHOD(zynqmp_firmware_pll_get_frac_data,
+	    zynqmp_firmware_pll_get_frac_data),
+	DEVMETHOD(zynqmp_firmware_clock_get_fixedfactor,
+	    zynqmp_firmware_clock_get_fixedfactor),
 	DEVMETHOD(zynqmp_firmware_query_data, zynqmp_firmware_query_data),
 	DEVMETHOD(zynqmp_firmware_reset_assert, zynqmp_firmware_reset_assert),
-	DEVMETHOD(zynqmp_firmware_reset_get_status, zynqmp_firmware_reset_get_status),
+	DEVMETHOD(zynqmp_firmware_reset_get_status,
+	    zynqmp_firmware_reset_get_status),
 
 	DEVMETHOD_END
 };
 
 DEFINE_CLASS_1(zynqmp_firmware, zynqmp_firmware_driver, zynqmp_firmware_methods,
-  sizeof(struct zynqmp_firmware_softc), simplebus_driver);
+    sizeof(struct zynqmp_firmware_softc), simplebus_driver);
 
 EARLY_DRIVER_MODULE(zynqmp_firmware, simplebus, zynqmp_firmware_driver, 0, 0,
     BUS_PASS_BUS + BUS_PASS_ORDER_LATE);

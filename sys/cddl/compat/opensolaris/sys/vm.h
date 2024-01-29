@@ -25,7 +25,7 @@
  */
 
 #ifndef _OPENSOLARIS_SYS_VM_H_
-#define	_OPENSOLARIS_SYS_VM_H_
+#define _OPENSOLARIS_SYS_VM_H_
 
 #ifdef _KERNEL
 
@@ -37,9 +37,9 @@ extern const int zfs_vm_pagerret_ok;
 extern const int zfs_vm_pagerput_sync;
 extern const int zfs_vm_pagerput_inval;
 
-void	zfs_vmobject_assert_wlocked(vm_object_t object);
-void	zfs_vmobject_wlock(vm_object_t object);
-void	zfs_vmobject_wunlock(vm_object_t object);
+void zfs_vmobject_assert_wlocked(vm_object_t object);
+void zfs_vmobject_wlock(vm_object_t object);
+void zfs_vmobject_wunlock(vm_object_t object);
 
 static inline caddr_t
 zfs_map_page(vm_page_t pp, struct sf_buf **sfp)
@@ -54,6 +54,6 @@ zfs_unmap_page(struct sf_buf *sf)
 	sf_buf_free(sf);
 }
 
-#endif	/* _KERNEL */
+#endif /* _KERNEL */
 
-#endif	/* _OPENSOLARIS_SYS_VM_H_ */
+#endif /* _OPENSOLARIS_SYS_VM_H_ */

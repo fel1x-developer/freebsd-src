@@ -35,56 +35,53 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/condvar.h>
 #include <sys/conf.h>
-#include <sys/lock.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
-#include <sys/mutex.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/queue.h>
 #include <sys/sbuf.h>
 #include <sys/socket.h>
-#include <sys/sysctl.h>
-#include <sys/systm.h>
 #include <sys/sx.h>
+#include <sys/sysctl.h>
 
 #include <dev/iscsi/icl.h>
+
 #include <icl_conn_if.h>
 
 struct icl_module {
-	TAILQ_ENTRY(icl_module)		im_next;
-	char				*im_name;
-	bool				im_iser;
-	int				im_priority;
-	int				(*im_limits)(struct icl_drv_limits *idl,
-					    int socket);
-	struct icl_conn			*(*im_new_conn)(const char *name,
-					    struct mtx *lock);
+	TAILQ_ENTRY(icl_module) im_next;
+	char *im_name;
+	bool im_iser;
+	int im_priority;
+	int (*im_limits)(struct icl_drv_limits *idl, int socket);
+	struct icl_conn *(*im_new_conn)(const char *name, struct mtx *lock);
 };
 
 struct icl_softc {
-	struct sx			sc_lock;
-	TAILQ_HEAD(, icl_module)	sc_modules;
+	struct sx sc_lock;
+	TAILQ_HEAD(, icl_module) sc_modules;
 };
 
 static int sysctl_kern_icl_offloads(SYSCTL_HANDLER_ARGS);
 static MALLOC_DEFINE(M_ICL, "icl", "iSCSI Common Layer");
-static struct icl_softc	*sc;
+static struct icl_softc *sc;
 
 SYSCTL_NODE(_kern, OID_AUTO, icl, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
     "iSCSI Common Layer");
 int icl_debug = 1;
-SYSCTL_INT(_kern_icl, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &icl_debug, 0, "Enable debug messages");
+SYSCTL_INT(_kern_icl, OID_AUTO, debug, CTLFLAG_RWTUN, &icl_debug, 0,
+    "Enable debug messages");
 SYSCTL_PROC(_kern_icl, OID_AUTO, offloads,
-    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE,
-    NULL, false, sysctl_kern_icl_offloads, "A",
-    "List of ICL modules");
+    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, false,
+    sysctl_kern_icl_offloads, "A", "List of ICL modules");
 SYSCTL_PROC(_kern_icl, OID_AUTO, iser_offloads,
-    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE,
-    NULL, true, sysctl_kern_icl_offloads, "A",
-    "List of iSER ICL modules");
+    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, true,
+    sysctl_kern_icl_offloads, "A", "List of iSER ICL modules");
 
 static int
 sysctl_kern_icl_offloads(SYSCTL_HANDLER_ARGS)
@@ -97,7 +94,7 @@ sysctl_kern_icl_offloads(SYSCTL_HANDLER_ARGS)
 	sbuf_new(&sb, NULL, 256, SBUF_AUTOEXTEND | SBUF_INCLUDENUL);
 
 	sx_slock(&sc->sc_lock);
-	TAILQ_FOREACH(im, &sc->sc_modules, im_next) {
+	TAILQ_FOREACH (im, &sc->sc_modules, im_next) {
 		if (im->im_iser != iser)
 			continue;
 		if (im != TAILQ_FIRST(&sc->sc_modules))
@@ -126,7 +123,7 @@ icl_find(const char *name, bool iser, bool quiet)
 	 */
 	if (name == NULL || name[0] == '\0') {
 		im_max = NULL;
-		TAILQ_FOREACH(im, &sc->sc_modules, im_next) {
+		TAILQ_FOREACH (im, &sc->sc_modules, im_next) {
 			if (im->im_iser != iser)
 				continue;
 			if (im_max == NULL ||
@@ -140,7 +137,7 @@ icl_find(const char *name, bool iser, bool quiet)
 		return (im_max);
 	}
 
-	TAILQ_FOREACH(im, &sc->sc_modules, im_next) {
+	TAILQ_FOREACH (im, &sc->sc_modules, im_next) {
 		if (strcasecmp(im->im_name, name) != 0)
 			continue;
 
@@ -208,10 +205,12 @@ icl_limits(const char *offload, bool iser, int socket,
 	 */
 #define OUT_OF_RANGE(x, lo, hi) ((x) != 0 && ((x) < (lo) || (x) > (hi)))
 	if (error == 0 &&
-	    (OUT_OF_RANGE(idl->idl_max_recv_data_segment_length, 512, 16777215) ||
-	    OUT_OF_RANGE(idl->idl_max_send_data_segment_length, 512, 16777215) ||
-	    OUT_OF_RANGE(idl->idl_max_burst_length, 512, 16777215) ||
-	    OUT_OF_RANGE(idl->idl_first_burst_length, 512, 16777215))) {
+	    (OUT_OF_RANGE(idl->idl_max_recv_data_segment_length, 512,
+		 16777215) ||
+		OUT_OF_RANGE(idl->idl_max_send_data_segment_length, 512,
+		    16777215) ||
+		OUT_OF_RANGE(idl->idl_max_burst_length, 512, 16777215) ||
+		OUT_OF_RANGE(idl->idl_first_burst_length, 512, 16777215))) {
 		error = EINVAL;
 	}
 #undef OUT_OF_RANGE
@@ -320,11 +319,7 @@ icl_modevent(module_t mod, int what, void *arg)
 	}
 }
 
-moduledata_t icl_data = {
-	"icl",
-	icl_modevent,
-	0
-};
+moduledata_t icl_data = { "icl", icl_modevent, 0 };
 
 DECLARE_MODULE(icl, icl_data, SI_SUB_DRIVERS, SI_ORDER_FIRST);
 MODULE_VERSION(icl, 1);

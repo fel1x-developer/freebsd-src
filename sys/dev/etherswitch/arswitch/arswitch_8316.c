@@ -28,6 +28,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
@@ -35,33 +36,31 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
+#include <machine/bus.h>
+
+#include <dev/etherswitch/arswitch/arswitch_8316.h>
+#include <dev/etherswitch/arswitch/arswitch_reg.h>
+#include <dev/etherswitch/arswitch/arswitchreg.h>
+#include <dev/etherswitch/arswitch/arswitchvar.h>
+#include <dev/etherswitch/etherswitch.h>
+#include <dev/iicbus/iic.h>
+#include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
+#include <dev/mdio/mdio.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
+
+#include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_arp.h>
-#include <net/ethernet.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
 
-#include <machine/bus.h>
-#include <dev/iicbus/iic.h>
-#include <dev/iicbus/iiconf.h>
-#include <dev/iicbus/iicbus.h>
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include <dev/mdio/mdio.h>
-
-#include <dev/etherswitch/etherswitch.h>
-
-#include <dev/etherswitch/arswitch/arswitchreg.h>
-#include <dev/etherswitch/arswitch/arswitchvar.h>
-#include <dev/etherswitch/arswitch/arswitch_reg.h>
-#include <dev/etherswitch/arswitch/arswitch_8316.h>
-
+#include "etherswitch_if.h"
 #include "mdio_if.h"
 #include "miibus_if.h"
-#include "etherswitch_if.h"
 
 /*
  * AR8316 specific functions
@@ -86,8 +85,7 @@ ar8316_hw_setup(struct arswitch_softc *sc)
 		arswitch_writereg(sc->sc_dev, AR8X16_REG_MODE,
 		    AR8X16_MODE_RGMII_PORT4_SWITCH);
 		device_printf(sc->sc_dev,
-		    "%s: MAC port == RGMII, port 4 = switch port\n",
-		    __func__);
+		    "%s: MAC port == RGMII, port 4 = switch port\n", __func__);
 	} else if (sc->is_gmii) {
 		arswitch_writereg(sc->sc_dev, AR8X16_REG_MODE,
 		    AR8X16_MODE_GMII);
@@ -98,14 +96,13 @@ ar8316_hw_setup(struct arswitch_softc *sc)
 		return (ENXIO);
 	}
 
-	DELAY(1000);	/* 1ms wait for things to settle */
+	DELAY(1000); /* 1ms wait for things to settle */
 
 	/*
 	 * If port 4 is RGMII, force workaround
 	 */
 	if (sc->is_rgmii && sc->phy4cpu) {
-		device_printf(sc->sc_dev,
-		    "%s: port 4 RGMII workaround\n",
+		device_printf(sc->sc_dev, "%s: port 4 RGMII workaround\n",
 		    __func__);
 
 		/* work around for phy4 rgmii mode */
@@ -114,7 +111,7 @@ ar8316_hw_setup(struct arswitch_softc *sc)
 		arswitch_writedbg(sc->sc_dev, 4, 0x0, 0x824e);
 		/* tx delay */
 		arswitch_writedbg(sc->sc_dev, 4, 0x5, 0x3d47);
-		DELAY(1000);	/* 1ms, again to let things settle */
+		DELAY(1000); /* 1ms, again to let things settle */
 	}
 
 	return (0);
@@ -165,7 +162,7 @@ ar8316_attach(struct arswitch_softc *sc)
 	sc->hal.arswitch_hw_global_setup = ar8316_hw_global_setup;
 
 	/* Set the switch vlan capabilities. */
-	sc->info.es_vlan_caps = ETHERSWITCH_VLAN_DOT1Q |
-	    ETHERSWITCH_VLAN_PORT | ETHERSWITCH_VLAN_DOUBLE_TAG;
+	sc->info.es_vlan_caps = ETHERSWITCH_VLAN_DOT1Q | ETHERSWITCH_VLAN_PORT |
+	    ETHERSWITCH_VLAN_DOUBLE_TAG;
 	sc->info.es_nvlangroups = AR8X16_MAX_VLANS;
 }

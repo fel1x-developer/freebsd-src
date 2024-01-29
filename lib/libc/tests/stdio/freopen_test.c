@@ -24,13 +24,12 @@
  * SUCH DAMAGE.
  */
 
+#include <atf-c.h>
 #include <errno.h>
 #include <paths.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
-
-#include <atf-c.h>
 
 static void
 runtest(const char *fname1, const char *mode1, const char *fname2,
@@ -41,13 +40,14 @@ runtest(const char *fname1, const char *mode1, const char *fname2,
 
 	fname2_print = fname2 != NULL ? fname2 : "<NULL>";
 	fp1 = fopen(fname1, mode1);
-	ATF_REQUIRE_MSG(fp1 != NULL,
-	    "fopen(\"%s\", \"%s\") failed; errno=%d", fname1, mode1, errno);
+	ATF_REQUIRE_MSG(fp1 != NULL, "fopen(\"%s\", \"%s\") failed; errno=%d",
+	    fname1, mode1, errno);
 	fp2 = freopen(fname2, mode2, fp1);
 	if (fp2 == NULL) {
 		ATF_REQUIRE_MSG(success == false,
 		    "freopen(\"%s\", \"%s\", fopen(\"%s\", \"%s\")) succeeded "
-		    "unexpectedly", fname2_print, mode2, fname1, mode1);
+		    "unexpectedly",
+		    fname2_print, mode2, fname1, mode1);
 		return;
 	}
 	ATF_REQUIRE_MSG(success == true,

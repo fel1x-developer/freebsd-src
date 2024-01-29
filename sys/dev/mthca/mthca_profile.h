@@ -34,8 +34,8 @@
 #ifndef MTHCA_PROFILE_H
 #define MTHCA_PROFILE_H
 
-#include "mthca_dev.h"
 #include "mthca_cmd.h"
+#include "mthca_dev.h"
 
 struct mthca_profile {
 	int num_qp;
@@ -51,9 +51,7 @@ struct mthca_profile {
 	int fmr_reserved_mtts;
 };
 
-s64 mthca_make_profile(struct mthca_dev *mdev,
-		       struct mthca_profile *request,
-		       struct mthca_dev_lim *dev_lim,
-		       struct mthca_init_hca_param *init_hca);
+s64 mthca_make_profile(struct mthca_dev *mdev, struct mthca_profile *request,
+    struct mthca_dev_lim *dev_lim, struct mthca_init_hca_param *init_hca);
 
 #endif /* MTHCA_PROFILE_H */

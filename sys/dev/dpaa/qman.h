@@ -31,7 +31,6 @@
 
 #include <contrib/ncsw/inc/Peripherals/qm_ext.h>
 
-
 /**
  * @group QMan private defines/declarations
  * @{
@@ -39,47 +38,46 @@
 /**
  * Maximum number of frame queues in all QMans.
  */
-#define		QMAN_MAX_FQIDS			16
+#define QMAN_MAX_FQIDS 16
 
 /**
  * Pool channel common to all software portals.
  * @note Value of 0 reflects the e_QM_FQ_CHANNEL_POOL1 from e_QmFQChannel
  *       type used in qman_fqr_create().
  */
-#define		QMAN_COMMON_POOL_CHANNEL	0
+#define QMAN_COMMON_POOL_CHANNEL 0
 
-#define		QMAN_FQID_BASE			1
+#define QMAN_FQID_BASE 1
 
-#define		QMAN_CCSR_SIZE			0x1000
+#define QMAN_CCSR_SIZE 0x1000
 
 /*
  * Portal defines
  */
-#define QMAN_CE_PA(base)	(base)
-#define QMAN_CI_PA(base)	((base) + 0x100000)
+#define QMAN_CE_PA(base) (base)
+#define QMAN_CI_PA(base) ((base) + 0x100000)
 
-#define QMAN_PORTAL_CE_PA(base, n)	\
-    (QMAN_CE_PA(base) + ((n) * QMAN_PORTAL_CE_SIZE))
-#define QMAN_PORTAL_CI_PA(base, n)	\
-    (QMAN_CI_PA(base) + ((n) * QMAN_PORTAL_CI_SIZE))
+#define QMAN_PORTAL_CE_PA(base, n) \
+	(QMAN_CE_PA(base) + ((n) * QMAN_PORTAL_CE_SIZE))
+#define QMAN_PORTAL_CI_PA(base, n) \
+	(QMAN_CI_PA(base) + ((n) * QMAN_PORTAL_CI_SIZE))
 
 struct qman_softc {
-	device_t	sc_dev;			/* device handle */
-	int		sc_rrid;		/* register rid */
-	struct resource	*sc_rres;		/* register resource */
-	int		sc_irid;		/* interrupt rid */
-	struct resource	*sc_ires;		/* interrupt resource */
+	device_t sc_dev;	  /* device handle */
+	int sc_rrid;		  /* register rid */
+	struct resource *sc_rres; /* register resource */
+	int sc_irid;		  /* interrupt rid */
+	struct resource *sc_ires; /* interrupt resource */
 
-	bool		sc_regs_mapped[MAXCPU];
+	bool sc_regs_mapped[MAXCPU];
 
-	t_Handle	sc_qh;			/* QMAN handle */
-	t_Handle	sc_qph[MAXCPU];		/* QMAN portal handles */
-	vm_paddr_t	sc_qp_pa;		/* QMAN portal PA */
+	t_Handle sc_qh;		 /* QMAN handle */
+	t_Handle sc_qph[MAXCPU]; /* QMAN portal handles */
+	vm_paddr_t sc_qp_pa;	 /* QMAN portal PA */
 
-	int		sc_fqr_cpu[QMAN_MAX_FQIDS];
+	int sc_fqr_cpu[QMAN_MAX_FQIDS];
 };
 /** @> */
-
 
 /**
  * @group QMan bus interface
@@ -91,7 +89,6 @@ int qman_suspend(device_t dev);
 int qman_resume(device_t dev);
 int qman_shutdown(device_t dev);
 /** @> */
-
 
 /**
  * @group QMan API
@@ -150,10 +147,9 @@ int qman_shutdown(device_t dev);
  * @return				A handle to newly created FQR object.
  */
 t_Handle qman_fqr_create(uint32_t fqids_num, e_QmFQChannel channel, uint8_t wq,
-    bool force_fqid, uint32_t fqid_or_align, bool init_parked,
-    bool hold_active, bool prefer_in_cache, bool congst_avoid_ena,
-    t_Handle congst_group, int8_t overhead_accounting_len,
-    uint32_t tail_drop_threshold);
+    bool force_fqid, uint32_t fqid_or_align, bool init_parked, bool hold_active,
+    bool prefer_in_cache, bool congst_avoid_ena, t_Handle congst_group,
+    int8_t overhead_accounting_len, uint32_t tail_drop_threshold);
 
 /**
  * Free Frame Queue Range.
@@ -172,7 +168,7 @@ t_Error qman_fqr_free(t_Handle fqr);
  * @param app		A pointer to the user's data.
  * @return		E_OK on success; error code otherwise.
  */
-t_Error	qman_fqr_register_cb(t_Handle fqr, t_QmReceivedFrameCallback *callback,
+t_Error qman_fqr_register_cb(t_Handle fqr, t_QmReceivedFrameCallback *callback,
     t_Handle app);
 
 /**

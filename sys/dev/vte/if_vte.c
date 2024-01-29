@@ -44,30 +44,27 @@
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
 
+#include <machine/bus.h>
+
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+#include <dev/vte/if_vtereg.h>
+#include <dev/vte/if_vtevar.h>
+
 #include <net/bpf.h>
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
 #include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
 #include <net/if_dl.h>
 #include <net/if_llc.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
+#include <net/if_var.h>
 #include <net/if_vlan_var.h>
-
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
-
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
-
-#include <machine/bus.h>
-
-#include <dev/vte/if_vtereg.h>
-#include <dev/vte/if_vtevar.h>
 
 /* "device miibus" required.  See GENERIC if you get errors here. */
 #include "miibus_if.h"
@@ -84,82 +81,75 @@ TUNABLE_INT("hw.vte.tx_deep_copy", &tx_deep_copy);
  * Devices supported by this driver.
  */
 static const struct vte_ident vte_ident_table[] = {
-	{ VENDORID_RDC, DEVICEID_RDC_R6040, "RDC R6040 FastEthernet"},
-	{ 0, 0, NULL}
+	{ VENDORID_RDC, DEVICEID_RDC_R6040, "RDC R6040 FastEthernet" },
+	{ 0, 0, NULL }
 };
 
-static int	vte_attach(device_t);
-static int	vte_detach(device_t);
-static int	vte_dma_alloc(struct vte_softc *);
-static void	vte_dma_free(struct vte_softc *);
-static void	vte_dmamap_cb(void *, bus_dma_segment_t *, int, int);
-static struct vte_txdesc *
-		vte_encap(struct vte_softc *, struct mbuf **);
-static const struct vte_ident *
-		vte_find_ident(device_t);
+static int vte_attach(device_t);
+static int vte_detach(device_t);
+static int vte_dma_alloc(struct vte_softc *);
+static void vte_dma_free(struct vte_softc *);
+static void vte_dmamap_cb(void *, bus_dma_segment_t *, int, int);
+static struct vte_txdesc *vte_encap(struct vte_softc *, struct mbuf **);
+static const struct vte_ident *vte_find_ident(device_t);
 #ifndef __NO_STRICT_ALIGNMENT
-static struct mbuf *
-		vte_fixup_rx(if_t, struct mbuf *);
+static struct mbuf *vte_fixup_rx(if_t, struct mbuf *);
 #endif
-static void	vte_get_macaddr(struct vte_softc *);
-static void	vte_init(void *);
-static void	vte_init_locked(struct vte_softc *);
-static int	vte_init_rx_ring(struct vte_softc *);
-static int	vte_init_tx_ring(struct vte_softc *);
-static void	vte_intr(void *);
-static int	vte_ioctl(if_t, u_long, caddr_t);
-static uint64_t	vte_get_counter(if_t, ift_counter);
-static void	vte_mac_config(struct vte_softc *);
-static int	vte_miibus_readreg(device_t, int, int);
-static void	vte_miibus_statchg(device_t);
-static int	vte_miibus_writereg(device_t, int, int, int);
-static int	vte_mediachange(if_t);
-static int	vte_mediachange_locked(if_t);
-static void	vte_mediastatus(if_t, struct ifmediareq *);
-static int	vte_newbuf(struct vte_softc *, struct vte_rxdesc *);
-static int	vte_probe(device_t);
-static void	vte_reset(struct vte_softc *);
-static int	vte_resume(device_t);
-static void	vte_rxeof(struct vte_softc *);
-static void	vte_rxfilter(struct vte_softc *);
-static int	vte_shutdown(device_t);
-static void	vte_start(if_t);
-static void	vte_start_locked(struct vte_softc *);
-static void	vte_start_mac(struct vte_softc *);
-static void	vte_stats_clear(struct vte_softc *);
-static void	vte_stats_update(struct vte_softc *);
-static void	vte_stop(struct vte_softc *);
-static void	vte_stop_mac(struct vte_softc *);
-static int	vte_suspend(device_t);
-static void	vte_sysctl_node(struct vte_softc *);
-static void	vte_tick(void *);
-static void	vte_txeof(struct vte_softc *);
-static void	vte_watchdog(struct vte_softc *);
-static int	sysctl_int_range(SYSCTL_HANDLER_ARGS, int, int);
-static int	sysctl_hw_vte_int_mod(SYSCTL_HANDLER_ARGS);
+static void vte_get_macaddr(struct vte_softc *);
+static void vte_init(void *);
+static void vte_init_locked(struct vte_softc *);
+static int vte_init_rx_ring(struct vte_softc *);
+static int vte_init_tx_ring(struct vte_softc *);
+static void vte_intr(void *);
+static int vte_ioctl(if_t, u_long, caddr_t);
+static uint64_t vte_get_counter(if_t, ift_counter);
+static void vte_mac_config(struct vte_softc *);
+static int vte_miibus_readreg(device_t, int, int);
+static void vte_miibus_statchg(device_t);
+static int vte_miibus_writereg(device_t, int, int, int);
+static int vte_mediachange(if_t);
+static int vte_mediachange_locked(if_t);
+static void vte_mediastatus(if_t, struct ifmediareq *);
+static int vte_newbuf(struct vte_softc *, struct vte_rxdesc *);
+static int vte_probe(device_t);
+static void vte_reset(struct vte_softc *);
+static int vte_resume(device_t);
+static void vte_rxeof(struct vte_softc *);
+static void vte_rxfilter(struct vte_softc *);
+static int vte_shutdown(device_t);
+static void vte_start(if_t);
+static void vte_start_locked(struct vte_softc *);
+static void vte_start_mac(struct vte_softc *);
+static void vte_stats_clear(struct vte_softc *);
+static void vte_stats_update(struct vte_softc *);
+static void vte_stop(struct vte_softc *);
+static void vte_stop_mac(struct vte_softc *);
+static int vte_suspend(device_t);
+static void vte_sysctl_node(struct vte_softc *);
+static void vte_tick(void *);
+static void vte_txeof(struct vte_softc *);
+static void vte_watchdog(struct vte_softc *);
+static int sysctl_int_range(SYSCTL_HANDLER_ARGS, int, int);
+static int sysctl_hw_vte_int_mod(SYSCTL_HANDLER_ARGS);
 
 static device_method_t vte_methods[] = {
 	/* Device interface. */
-	DEVMETHOD(device_probe,		vte_probe),
-	DEVMETHOD(device_attach,	vte_attach),
-	DEVMETHOD(device_detach,	vte_detach),
-	DEVMETHOD(device_shutdown,	vte_shutdown),
-	DEVMETHOD(device_suspend,	vte_suspend),
-	DEVMETHOD(device_resume,	vte_resume),
+	DEVMETHOD(device_probe, vte_probe),
+	DEVMETHOD(device_attach, vte_attach),
+	DEVMETHOD(device_detach, vte_detach),
+	DEVMETHOD(device_shutdown, vte_shutdown),
+	DEVMETHOD(device_suspend, vte_suspend),
+	DEVMETHOD(device_resume, vte_resume),
 
 	/* MII interface. */
-	DEVMETHOD(miibus_readreg,	vte_miibus_readreg),
-	DEVMETHOD(miibus_writereg,	vte_miibus_writereg),
-	DEVMETHOD(miibus_statchg,	vte_miibus_statchg),
+	DEVMETHOD(miibus_readreg, vte_miibus_readreg),
+	DEVMETHOD(miibus_writereg, vte_miibus_writereg),
+	DEVMETHOD(miibus_statchg, vte_miibus_statchg),
 
 	DEVMETHOD_END
 };
 
-static driver_t vte_driver = {
-	"vte",
-	vte_methods,
-	sizeof(struct vte_softc)
-};
+static driver_t vte_driver = { "vte", vte_methods, sizeof(struct vte_softc) };
 
 DRIVER_MODULE(vte, pci, vte_driver, 0, 0);
 DRIVER_MODULE(miibus, vte, miibus_driver, 0, 0);
@@ -172,8 +162,9 @@ vte_miibus_readreg(device_t dev, int phy, int reg)
 
 	sc = device_get_softc(dev);
 
-	CSR_WRITE_2(sc, VTE_MMDIO, MMDIO_READ |
-	    (phy << MMDIO_PHY_ADDR_SHIFT) | (reg << MMDIO_REG_ADDR_SHIFT));
+	CSR_WRITE_2(sc, VTE_MMDIO,
+	    MMDIO_READ | (phy << MMDIO_PHY_ADDR_SHIFT) |
+		(reg << MMDIO_REG_ADDR_SHIFT));
 	for (i = VTE_PHY_TIMEOUT; i > 0; i--) {
 		DELAY(5);
 		if ((CSR_READ_2(sc, VTE_MMDIO) & MMDIO_READ) == 0)
@@ -197,8 +188,9 @@ vte_miibus_writereg(device_t dev, int phy, int reg, int val)
 	sc = device_get_softc(dev);
 
 	CSR_WRITE_2(sc, VTE_MMWD, val);
-	CSR_WRITE_2(sc, VTE_MMDIO, MMDIO_WRITE |
-	    (phy << MMDIO_PHY_ADDR_SHIFT) | (reg << MMDIO_REG_ADDR_SHIFT));
+	CSR_WRITE_2(sc, VTE_MMDIO,
+	    MMDIO_WRITE | (phy << MMDIO_PHY_ADDR_SHIFT) |
+		(reg << MMDIO_REG_ADDR_SHIFT));
 	for (i = VTE_PHY_TIMEOUT; i > 0; i--) {
 		DELAY(5);
 		if ((CSR_READ_2(sc, VTE_MMDIO) & MMDIO_WRITE) == 0)
@@ -311,7 +303,7 @@ vte_mediachange_locked(if_t ifp)
 
 	sc = if_getsoftc(ifp);
 	mii = device_get_softc(sc->vte_miibus);
-	LIST_FOREACH(miisc, &mii->mii_phys, mii_list)
+	LIST_FOREACH (miisc, &mii->mii_phys, mii_list)
 		PHY_RESET(miisc);
 	error = mii_mediachg(mii);
 
@@ -541,8 +533,8 @@ vte_detach(device_t dev)
 	return (0);
 }
 
-#define	VTE_SYSCTL_STAT_ADD32(c, h, n, p, d)	\
-	    SYSCTL_ADD_UINT(c, h, OID_AUTO, n, CTLFLAG_RD, p, 0, d)
+#define VTE_SYSCTL_STAT_ADD32(c, h, n, p, d) \
+	SYSCTL_ADD_UINT(c, h, OID_AUTO, n, CTLFLAG_RD, p, 0, d)
 
 static void
 vte_sysctl_node(struct vte_softc *sc)
@@ -558,13 +550,11 @@ vte_sysctl_node(struct vte_softc *sc)
 	child = SYSCTL_CHILDREN(device_get_sysctl_tree(sc->vte_dev));
 
 	SYSCTL_ADD_PROC(ctx, child, OID_AUTO, "int_rx_mod",
-	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT,
-	    &sc->vte_int_rx_mod, 0, sysctl_hw_vte_int_mod, "I",
-	    "vte RX interrupt moderation");
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, &sc->vte_int_rx_mod,
+	    0, sysctl_hw_vte_int_mod, "I", "vte RX interrupt moderation");
 	SYSCTL_ADD_PROC(ctx, child, OID_AUTO, "int_tx_mod",
-	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT,
-	    &sc->vte_int_tx_mod, 0, sysctl_hw_vte_int_mod, "I",
-	    "vte TX interrupt moderation");
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, &sc->vte_int_tx_mod,
+	    0, sysctl_hw_vte_int_mod, "I", "vte TX interrupt moderation");
 	/* Pull in device tunables. */
 	sc->vte_int_rx_mod = VTE_IM_RX_BUNDLE_DEFAULT;
 	error = resource_int_value(device_get_name(sc->vte_dev),
@@ -572,7 +562,8 @@ vte_sysctl_node(struct vte_softc *sc)
 	if (error == 0) {
 		if (sc->vte_int_rx_mod < VTE_IM_BUNDLE_MIN ||
 		    sc->vte_int_rx_mod > VTE_IM_BUNDLE_MAX) {
-			device_printf(sc->vte_dev, "int_rx_mod value out of "
+			device_printf(sc->vte_dev,
+			    "int_rx_mod value out of "
 			    "range; using default: %d\n",
 			    VTE_IM_RX_BUNDLE_DEFAULT);
 			sc->vte_int_rx_mod = VTE_IM_RX_BUNDLE_DEFAULT;
@@ -585,7 +576,8 @@ vte_sysctl_node(struct vte_softc *sc)
 	if (error == 0) {
 		if (sc->vte_int_tx_mod < VTE_IM_BUNDLE_MIN ||
 		    sc->vte_int_tx_mod > VTE_IM_BUNDLE_MAX) {
-			device_printf(sc->vte_dev, "int_tx_mod value out of "
+			device_printf(sc->vte_dev,
+			    "int_tx_mod value out of "
 			    "range; using default: %d\n",
 			    VTE_IM_TX_BUNDLE_DEFAULT);
 			sc->vte_int_tx_mod = VTE_IM_TX_BUNDLE_DEFAULT;
@@ -600,21 +592,20 @@ vte_sysctl_node(struct vte_softc *sc)
 	tree = SYSCTL_ADD_NODE(ctx, parent, OID_AUTO, "rx",
 	    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "RX MAC statistics");
 	child = SYSCTL_CHILDREN(tree);
-	VTE_SYSCTL_STAT_ADD32(ctx, child, "good_frames",
-	    &stats->rx_frames, "Good frames");
+	VTE_SYSCTL_STAT_ADD32(ctx, child, "good_frames", &stats->rx_frames,
+	    "Good frames");
 	VTE_SYSCTL_STAT_ADD32(ctx, child, "good_bcast_frames",
 	    &stats->rx_bcast_frames, "Good broadcast frames");
 	VTE_SYSCTL_STAT_ADD32(ctx, child, "good_mcast_frames",
 	    &stats->rx_mcast_frames, "Good multicast frames");
-	VTE_SYSCTL_STAT_ADD32(ctx, child, "runt",
-	    &stats->rx_runts, "Too short frames");
-	VTE_SYSCTL_STAT_ADD32(ctx, child, "crc_errs",
-	    &stats->rx_crcerrs, "CRC errors");
-	VTE_SYSCTL_STAT_ADD32(ctx, child, "long_frames",
-	    &stats->rx_long_frames,
+	VTE_SYSCTL_STAT_ADD32(ctx, child, "runt", &stats->rx_runts,
+	    "Too short frames");
+	VTE_SYSCTL_STAT_ADD32(ctx, child, "crc_errs", &stats->rx_crcerrs,
+	    "CRC errors");
+	VTE_SYSCTL_STAT_ADD32(ctx, child, "long_frames", &stats->rx_long_frames,
 	    "Frames that have longer length than maximum packet length");
-	VTE_SYSCTL_STAT_ADD32(ctx, child, "fifo_full",
-	    &stats->rx_fifo_full, "FIFO full");
+	VTE_SYSCTL_STAT_ADD32(ctx, child, "fifo_full", &stats->rx_fifo_full,
+	    "FIFO full");
 	VTE_SYSCTL_STAT_ADD32(ctx, child, "desc_unavail",
 	    &stats->rx_desc_unavail, "Descriptor unavailable frames");
 	VTE_SYSCTL_STAT_ADD32(ctx, child, "pause_frames",
@@ -624,12 +615,12 @@ vte_sysctl_node(struct vte_softc *sc)
 	tree = SYSCTL_ADD_NODE(ctx, parent, OID_AUTO, "tx",
 	    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "TX MAC statistics");
 	child = SYSCTL_CHILDREN(tree);
-	VTE_SYSCTL_STAT_ADD32(ctx, child, "good_frames",
-	    &stats->tx_frames, "Good frames");
-	VTE_SYSCTL_STAT_ADD32(ctx, child, "underruns",
-	    &stats->tx_underruns, "FIFO underruns");
-	VTE_SYSCTL_STAT_ADD32(ctx, child, "late_colls",
-	    &stats->tx_late_colls, "Late collisions");
+	VTE_SYSCTL_STAT_ADD32(ctx, child, "good_frames", &stats->tx_frames,
+	    "Good frames");
+	VTE_SYSCTL_STAT_ADD32(ctx, child, "underruns", &stats->tx_underruns,
+	    "FIFO underruns");
+	VTE_SYSCTL_STAT_ADD32(ctx, child, "late_colls", &stats->tx_late_colls,
+	    "Late collisions");
 	VTE_SYSCTL_STAT_ADD32(ctx, child, "pause_frames",
 	    &stats->tx_pause_frames, "Pause control frames");
 }
@@ -637,7 +628,7 @@ vte_sysctl_node(struct vte_softc *sc)
 #undef VTE_SYSCTL_STAT_ADD32
 
 struct vte_dmamap_arg {
-	bus_addr_t	vte_busaddr;
+	bus_addr_t vte_busaddr;
 };
 
 static void
@@ -663,17 +654,16 @@ vte_dma_alloc(struct vte_softc *sc)
 	int error, i;
 
 	/* Create parent DMA tag. */
-	error = bus_dma_tag_create(
-	    bus_get_dma_tag(sc->vte_dev), /* parent */
-	    1, 0,			/* alignment, boundary */
-	    BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    BUS_SPACE_MAXSIZE_32BIT,	/* maxsize */
-	    0,				/* nsegments */
-	    BUS_SPACE_MAXSIZE_32BIT,	/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(bus_get_dma_tag(sc->vte_dev), /* parent */
+	    1, 0,		     /* alignment, boundary */
+	    BUS_SPACE_MAXADDR_32BIT, /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filter, filterarg */
+	    BUS_SPACE_MAXSIZE_32BIT, /* maxsize */
+	    0,			     /* nsegments */
+	    BUS_SPACE_MAXSIZE_32BIT, /* maxsegsize */
+	    0,			     /* flags */
+	    NULL, NULL,		     /* lockfunc, lockarg */
 	    &sc->vte_cdata.vte_parent_tag);
 	if (error != 0) {
 		device_printf(sc->vte_dev,
@@ -682,17 +672,16 @@ vte_dma_alloc(struct vte_softc *sc)
 	}
 
 	/* Create DMA tag for TX descriptor ring. */
-	error = bus_dma_tag_create(
-	    sc->vte_cdata.vte_parent_tag, /* parent */
-	    VTE_TX_RING_ALIGN, 0,	/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    VTE_TX_RING_SZ,		/* maxsize */
-	    1,				/* nsegments */
-	    VTE_TX_RING_SZ,		/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(sc->vte_cdata.vte_parent_tag, /* parent */
+	    VTE_TX_RING_ALIGN, 0, /* alignment, boundary */
+	    BUS_SPACE_MAXADDR,	  /* lowaddr */
+	    BUS_SPACE_MAXADDR,	  /* highaddr */
+	    NULL, NULL,		  /* filter, filterarg */
+	    VTE_TX_RING_SZ,	  /* maxsize */
+	    1,			  /* nsegments */
+	    VTE_TX_RING_SZ,	  /* maxsegsize */
+	    0,			  /* flags */
+	    NULL, NULL,		  /* lockfunc, lockarg */
 	    &sc->vte_cdata.vte_tx_ring_tag);
 	if (error != 0) {
 		device_printf(sc->vte_dev,
@@ -701,17 +690,16 @@ vte_dma_alloc(struct vte_softc *sc)
 	}
 
 	/* Create DMA tag for RX free descriptor ring. */
-	error = bus_dma_tag_create(
-	    sc->vte_cdata.vte_parent_tag, /* parent */
-	    VTE_RX_RING_ALIGN, 0,	/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    VTE_RX_RING_SZ,		/* maxsize */
-	    1,				/* nsegments */
-	    VTE_RX_RING_SZ,		/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(sc->vte_cdata.vte_parent_tag, /* parent */
+	    VTE_RX_RING_ALIGN, 0, /* alignment, boundary */
+	    BUS_SPACE_MAXADDR,	  /* lowaddr */
+	    BUS_SPACE_MAXADDR,	  /* highaddr */
+	    NULL, NULL,		  /* filter, filterarg */
+	    VTE_RX_RING_SZ,	  /* maxsize */
+	    1,			  /* nsegments */
+	    VTE_RX_RING_SZ,	  /* maxsegsize */
+	    0,			  /* flags */
+	    NULL, NULL,		  /* lockfunc, lockarg */
 	    &sc->vte_cdata.vte_rx_ring_tag);
 	if (error != 0) {
 		device_printf(sc->vte_dev,
@@ -762,17 +750,16 @@ vte_dma_alloc(struct vte_softc *sc)
 	sc->vte_cdata.vte_rx_ring_paddr = ctx.vte_busaddr;
 
 	/* Create TX buffer parent tag. */
-	error = bus_dma_tag_create(
-	    bus_get_dma_tag(sc->vte_dev), /* parent */
-	    1, 0,			/* alignment, boundary */
-	    BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    BUS_SPACE_MAXSIZE_32BIT,	/* maxsize */
-	    0,				/* nsegments */
-	    BUS_SPACE_MAXSIZE_32BIT,	/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(bus_get_dma_tag(sc->vte_dev), /* parent */
+	    1, 0,		     /* alignment, boundary */
+	    BUS_SPACE_MAXADDR_32BIT, /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filter, filterarg */
+	    BUS_SPACE_MAXSIZE_32BIT, /* maxsize */
+	    0,			     /* nsegments */
+	    BUS_SPACE_MAXSIZE_32BIT, /* maxsegsize */
+	    0,			     /* flags */
+	    NULL, NULL,		     /* lockfunc, lockarg */
 	    &sc->vte_cdata.vte_buffer_tag);
 	if (error != 0) {
 		device_printf(sc->vte_dev,
@@ -781,17 +768,16 @@ vte_dma_alloc(struct vte_softc *sc)
 	}
 
 	/* Create DMA tag for TX buffers. */
-	error = bus_dma_tag_create(
-	    sc->vte_cdata.vte_buffer_tag, /* parent */
-	    1, 0,			/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    MCLBYTES,			/* maxsize */
-	    1,				/* nsegments */
-	    MCLBYTES,			/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(sc->vte_cdata.vte_buffer_tag, /* parent */
+	    1, 0,	       /* alignment, boundary */
+	    BUS_SPACE_MAXADDR, /* lowaddr */
+	    BUS_SPACE_MAXADDR, /* highaddr */
+	    NULL, NULL,	       /* filter, filterarg */
+	    MCLBYTES,	       /* maxsize */
+	    1,		       /* nsegments */
+	    MCLBYTES,	       /* maxsegsize */
+	    0,		       /* flags */
+	    NULL, NULL,	       /* lockfunc, lockarg */
 	    &sc->vte_cdata.vte_tx_tag);
 	if (error != 0) {
 		device_printf(sc->vte_dev, "could not create TX DMA tag.\n");
@@ -799,17 +785,16 @@ vte_dma_alloc(struct vte_softc *sc)
 	}
 
 	/* Create DMA tag for RX buffers. */
-	error = bus_dma_tag_create(
-	    sc->vte_cdata.vte_buffer_tag, /* parent */
-	    VTE_RX_BUF_ALIGN, 0,	/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    MCLBYTES,			/* maxsize */
-	    1,				/* nsegments */
-	    MCLBYTES,			/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(sc->vte_cdata.vte_buffer_tag, /* parent */
+	    VTE_RX_BUF_ALIGN, 0, /* alignment, boundary */
+	    BUS_SPACE_MAXADDR,	 /* lowaddr */
+	    BUS_SPACE_MAXADDR,	 /* highaddr */
+	    NULL, NULL,		 /* filter, filterarg */
+	    MCLBYTES,		 /* maxsize */
+	    1,			 /* nsegments */
+	    MCLBYTES,		 /* maxsegsize */
+	    0,			 /* flags */
+	    NULL, NULL,		 /* lockfunc, lockarg */
 	    &sc->vte_cdata.vte_rx_tag);
 	if (error != 0) {
 		device_printf(sc->vte_dev, "could not create RX DMA tag.\n");
@@ -830,7 +815,7 @@ vte_dma_alloc(struct vte_softc *sc)
 	}
 	/* Create DMA maps for RX buffers. */
 	if ((error = bus_dmamap_create(sc->vte_cdata.vte_rx_tag, 0,
-	    &sc->vte_cdata.vte_rx_sparemap)) != 0) {
+		 &sc->vte_cdata.vte_rx_sparemap)) != 0) {
 		device_printf(sc->vte_dev,
 		    "could not create spare RX dmamap.\n");
 		goto fail;
@@ -1010,12 +995,13 @@ vte_encap(struct vte_softc *sc, struct mbuf **m_head)
 		copy = 0;
 		if (m->m_next != NULL)
 			copy++;
-		if (padlen > 0 && (M_WRITABLE(m) == 0 ||
-		    padlen > M_TRAILINGSPACE(m)))
+		if (padlen > 0 &&
+		    (M_WRITABLE(m) == 0 || padlen > M_TRAILINGSPACE(m)))
 			copy++;
 		if (copy != 0) {
 			/* Avoid expensive m_defrag(9) and do deep copy. */
-			n = sc->vte_cdata.vte_txmbufs[sc->vte_cdata.vte_tx_prod];
+			n = sc->vte_cdata
+				.vte_txmbufs[sc->vte_cdata.vte_tx_prod];
 			m_copydata(m, 0, m->m_pkthdr.len, mtod(n, char *));
 			n->m_pkthdr.len = m->m_pkthdr.len;
 			n->m_len = m->m_pkthdr.len;
@@ -1116,10 +1102,11 @@ vte_start_locked(struct vte_softc *sc)
 	ifp = sc->vte_ifp;
 
 	if ((if_getdrvflags(ifp) & (IFF_DRV_RUNNING | IFF_DRV_OACTIVE)) !=
-	    IFF_DRV_RUNNING || (sc->vte_flags & VTE_FLAG_LINK) == 0)
+		IFF_DRV_RUNNING ||
+	    (sc->vte_flags & VTE_FLAG_LINK) == 0)
 		return;
 
-	for (enq = 0; !if_sendq_empty(ifp); ) {
+	for (enq = 0; !if_sendq_empty(ifp);) {
 		/* Reserve one free TX descriptor. */
 		if (sc->vte_cdata.vte_tx_cnt >= VTE_TX_RING_CNT - 1) {
 			if_setdrvflagbits(ifp, IFF_DRV_OACTIVE, 0);
@@ -1152,8 +1139,8 @@ vte_start_locked(struct vte_softc *sc)
 
 	if (enq > 0) {
 		bus_dmamap_sync(sc->vte_cdata.vte_tx_ring_tag,
-		    sc->vte_cdata.vte_tx_ring_map, BUS_DMASYNC_PREREAD |
-		    BUS_DMASYNC_PREWRITE);
+		    sc->vte_cdata.vte_tx_ring_map,
+		    BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
 		CSR_WRITE_2(sc, VTE_TX_POLL, TX_POLL_START);
 		sc->vte_watchdog_timer = VTE_TX_TIMEOUT;
 	}
@@ -1195,7 +1182,7 @@ vte_ioctl(if_t ifp, u_long cmd, caddr_t data)
 		if ((if_getflags(ifp) & IFF_UP) != 0) {
 			if ((if_getdrvflags(ifp) & IFF_DRV_RUNNING) != 0 &&
 			    ((if_getflags(ifp) ^ sc->vte_if_flags) &
-			    (IFF_PROMISC | IFF_ALLMULTI)) != 0)
+				(IFF_PROMISC | IFF_ALLMULTI)) != 0)
 				vte_rxfilter(sc);
 			else
 				vte_init_locked(sc);
@@ -1355,8 +1342,9 @@ vte_intr(void *arg)
 	for (n = 8; (status & VTE_INTRS) != 0;) {
 		if ((if_getdrvflags(ifp) & IFF_DRV_RUNNING) == 0)
 			break;
-		if ((status & (MISR_RX_DONE | MISR_RX_DESC_UNAVAIL |
-		    MISR_RX_FIFO_FULL)) != 0)
+		if ((status &
+			(MISR_RX_DONE | MISR_RX_DESC_UNAVAIL |
+			    MISR_RX_FIFO_FULL)) != 0)
 			vte_rxeof(sc);
 		if ((status & MISR_TX_DONE) != 0)
 			vte_txeof(sc);
@@ -1392,8 +1380,8 @@ vte_txeof(struct vte_softc *sc)
 	if (sc->vte_cdata.vte_tx_cnt == 0)
 		return;
 	bus_dmamap_sync(sc->vte_cdata.vte_tx_ring_tag,
-	    sc->vte_cdata.vte_tx_ring_map, BUS_DMASYNC_POSTREAD |
-	    BUS_DMASYNC_POSTWRITE);
+	    sc->vte_cdata.vte_tx_ring_map,
+	    BUS_DMASYNC_POSTREAD | BUS_DMASYNC_POSTWRITE);
 	cons = sc->vte_cdata.vte_tx_cons;
 	/*
 	 * Go through our TX list and free mbufs for those
@@ -1444,7 +1432,7 @@ vte_newbuf(struct vte_softc *sc, struct vte_rxdesc *rxd)
 	m_adj(m, sizeof(uint32_t));
 
 	if (bus_dmamap_load_mbuf_sg(sc->vte_cdata.vte_rx_tag,
-	    sc->vte_cdata.vte_rx_sparemap, m, segs, &nsegs, 0) != 0) {
+		sc->vte_cdata.vte_rx_sparemap, m, segs, &nsegs, 0) != 0) {
 		m_freem(m);
 		return (ENOBUFS);
 	}
@@ -1476,8 +1464,8 @@ vte_newbuf(struct vte_softc *sc, struct vte_rxdesc *rxd)
 static struct mbuf *
 vte_fixup_rx(if_t ifp, struct mbuf *m)
 {
-        uint16_t *src, *dst;
-        int i;
+	uint16_t *src, *dst;
+	int i;
 
 	src = mtod(m, uint16_t *);
 	dst = src - 1;
@@ -1499,12 +1487,12 @@ vte_rxeof(struct vte_softc *sc)
 	int cons, prog;
 
 	bus_dmamap_sync(sc->vte_cdata.vte_rx_ring_tag,
-	    sc->vte_cdata.vte_rx_ring_map, BUS_DMASYNC_POSTREAD |
-	    BUS_DMASYNC_POSTWRITE);
+	    sc->vte_cdata.vte_rx_ring_map,
+	    BUS_DMASYNC_POSTREAD | BUS_DMASYNC_POSTWRITE);
 	cons = sc->vte_cdata.vte_rx_cons;
 	ifp = sc->vte_ifp;
-	for (prog = 0; (if_getdrvflags(ifp) & IFF_DRV_RUNNING) != 0; prog++,
-	    VTE_DESC_INC(cons, VTE_RX_RING_CNT)) {
+	for (prog = 0; (if_getdrvflags(ifp) & IFF_DRV_RUNNING) != 0;
+	     prog++, VTE_DESC_INC(cons, VTE_RX_RING_CNT)) {
 		rxd = &sc->vte_cdata.vte_rxdesc[cons];
 		status = le16toh(rxd->rx_desc->drst);
 		if ((status & VTE_DRST_RX_OWN) != 0)
@@ -1513,15 +1501,15 @@ vte_rxeof(struct vte_softc *sc)
 		m = rxd->rx_m;
 		if ((status & VTE_DRST_RX_OK) == 0) {
 			/* Discard errored frame. */
-			rxd->rx_desc->drlen =
-			    htole16(MCLBYTES - sizeof(uint32_t));
+			rxd->rx_desc->drlen = htole16(
+			    MCLBYTES - sizeof(uint32_t));
 			rxd->rx_desc->drst = htole16(VTE_DRST_RX_OWN);
 			continue;
 		}
 		if (vte_newbuf(sc, rxd) != 0) {
 			if_inc_counter(ifp, IFCOUNTER_IQDROPS, 1);
-			rxd->rx_desc->drlen =
-			    htole16(MCLBYTES - sizeof(uint32_t));
+			rxd->rx_desc->drlen = htole16(
+			    MCLBYTES - sizeof(uint32_t));
 			rxd->rx_desc->drst = htole16(VTE_DRST_RX_OWN);
 			continue;
 		}
@@ -1571,9 +1559,10 @@ vte_rxeof(struct vte_softc *sc)
 		 * is one of reason why vendor recommends not to
 		 * enable flow control on R6040 controller.
 		 */
-		CSR_WRITE_2(sc, VTE_MRDCR, prog |
-		    (((VTE_RX_RING_CNT * 2) / 10) <<
-		    VTE_MRDCR_RX_PAUSE_THRESH_SHIFT));
+		CSR_WRITE_2(sc, VTE_MRDCR,
+		    prog |
+			(((VTE_RX_RING_CNT * 2) / 10)
+			    << VTE_MRDCR_RX_PAUSE_THRESH_SHIFT));
 #endif
 	}
 }
@@ -1701,8 +1690,10 @@ vte_init_locked(struct vte_softc *sc)
 	 * See comments on vte_rxeof() for details on flow control
 	 * issues.
 	 */
-	CSR_WRITE_2(sc, VTE_MRDCR, (VTE_RX_RING_CNT & VTE_MRDCR_RESIDUE_MASK) |
-	    (((VTE_RX_RING_CNT * 2) / 10) << VTE_MRDCR_RX_PAUSE_THRESH_SHIFT));
+	CSR_WRITE_2(sc, VTE_MRDCR,
+	    (VTE_RX_RING_CNT & VTE_MRDCR_RESIDUE_MASK) |
+		(((VTE_RX_RING_CNT * 2) / 10)
+		    << VTE_MRDCR_RX_PAUSE_THRESH_SHIFT));
 
 	/*
 	 * Always use maximum frame size that controller can
@@ -1717,9 +1708,9 @@ vte_init_locked(struct vte_softc *sc)
 	CSR_WRITE_2(sc, VTE_MRBSR, VTE_RX_BUF_SIZE_MAX);
 
 	/* Configure FIFO. */
-	CSR_WRITE_2(sc, VTE_MBCR, MBCR_FIFO_XFER_LENGTH_16 |
-	    MBCR_TX_FIFO_THRESH_64 | MBCR_RX_FIFO_THRESH_16 |
-	    MBCR_SDRAM_BUS_REQ_TIMER_DEFAULT);
+	CSR_WRITE_2(sc, VTE_MBCR,
+	    MBCR_FIFO_XFER_LENGTH_16 | MBCR_TX_FIFO_THRESH_64 |
+		MBCR_RX_FIFO_THRESH_16 | MBCR_SDRAM_BUS_REQ_TIMER_DEFAULT);
 
 	/*
 	 * Configure TX/RX MACs.  Actual resolved duplex and flow
@@ -1735,8 +1726,8 @@ vte_init_locked(struct vte_softc *sc)
 	 * duplex configuration can be automatically reflected to
 	 * MCR0.
 	 */
-	CSR_WRITE_2(sc, VTE_MCR1, MCR1_PKT_LENGTH_1537 |
-	    MCR1_EXCESS_COL_RETRY_16);
+	CSR_WRITE_2(sc, VTE_MCR1,
+	    MCR1_PKT_LENGTH_1537 | MCR1_EXCESS_COL_RETRY_16);
 
 	/* Initialize RX filter. */
 	vte_rxfilter(sc);
@@ -1919,8 +1910,8 @@ vte_init_tx_ring(struct vte_softc *sc)
 	}
 
 	bus_dmamap_sync(sc->vte_cdata.vte_tx_ring_tag,
-	    sc->vte_cdata.vte_tx_ring_map, BUS_DMASYNC_PREREAD |
-	    BUS_DMASYNC_PREWRITE);
+	    sc->vte_cdata.vte_tx_ring_map,
+	    BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
 	return (0);
 }
 
@@ -1954,8 +1945,8 @@ vte_init_rx_ring(struct vte_softc *sc)
 	}
 
 	bus_dmamap_sync(sc->vte_cdata.vte_rx_ring_tag,
-	    sc->vte_cdata.vte_rx_ring_map, BUS_DMASYNC_PREREAD |
-	    BUS_DMASYNC_PREWRITE);
+	    sc->vte_cdata.vte_rx_ring_map,
+	    BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
 
 	return (0);
 }
@@ -2030,8 +2021,8 @@ vte_rxfilter(struct vte_softc *sc)
 	}
 
 	if_foreach_llmaddr(ifp, vte_hash_maddr, &ctx);
-	if (ctx.mchash[0] != 0 || ctx.mchash[1] != 0 ||
-	    ctx.mchash[2] != 0 || ctx.mchash[3] != 0)
+	if (ctx.mchash[0] != 0 || ctx.mchash[1] != 0 || ctx.mchash[2] != 0 ||
+	    ctx.mchash[3] != 0)
 		mcr |= MCR0_MULTICAST;
 
 chipit:
@@ -2075,6 +2066,6 @@ static int
 sysctl_hw_vte_int_mod(SYSCTL_HANDLER_ARGS)
 {
 
-	return (sysctl_int_range(oidp, arg1, arg2, req,
-	    VTE_IM_BUNDLE_MIN, VTE_IM_BUNDLE_MAX));
+	return (sysctl_int_range(oidp, arg1, arg2, req, VTE_IM_BUNDLE_MIN,
+	    VTE_IM_BUNDLE_MAX));
 }

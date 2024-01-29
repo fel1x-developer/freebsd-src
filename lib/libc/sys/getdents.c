@@ -24,11 +24,13 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/param.h>
 #include <sys/syscall.h>
+
 #include <dirent.h>
+
 #include "libc_private.h"
+#include "namespace.h"
 
 ssize_t
 getdents(int fd, char *buf, size_t nbytes)

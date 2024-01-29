@@ -28,15 +28,16 @@
  */
 
 #ifndef _LINUXKPI_LINUX_IO_MAPPING_H_
-#define	_LINUXKPI_LINUX_IO_MAPPING_H_
+#define _LINUXKPI_LINUX_IO_MAPPING_H_
 
 #include <sys/types.h>
+
 #include <machine/vm.h>
 
-#include <linux/types.h>
 #include <linux/io.h>
 #include <linux/mm.h>
 #include <linux/slab.h>
+#include <linux/types.h>
 
 struct io_mapping {
 	unsigned long base;
@@ -45,7 +46,8 @@ struct io_mapping {
 	vm_memattr_t attr;
 };
 
-struct io_mapping *io_mapping_create_wc(resource_size_t base, unsigned long size);
+struct io_mapping *io_mapping_create_wc(resource_size_t base,
+    unsigned long size);
 
 static inline struct io_mapping *
 io_mapping_init_wc(struct io_mapping *mapping, resource_size_t base,

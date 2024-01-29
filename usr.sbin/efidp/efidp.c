@@ -24,9 +24,10 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <ctype.h>
-#include <efivar.h>
 #include <efivar-dp.h>
+#include <efivar.h>
 #include <err.h>
 #include <errno.h>
 #include <getopt.h>
@@ -36,17 +37,14 @@
 #include <string.h>
 #include <unistd.h>
 
-#define MAXSIZE 65536	/* Everything will be smaller than this, most 1000x smaller */
+#define MAXSIZE \
+	65536 /* Everything will be smaller than this, most 1000x smaller */
 
 /* options descriptor */
-static struct option longopts[] = {
-	{ "to-unix",		no_argument,		NULL,	'u' },
-	{ "to-efi",		no_argument,		NULL,	'e' },
-	{ "format",		no_argument,		NULL,	'f' },
-	{ "parse",		no_argument,		NULL,	'p' },
-	{ NULL,			0,			NULL,	0 }
-};
-
+static struct option longopts[] = { { "to-unix", no_argument, NULL, 'u' },
+	{ "to-efi", no_argument, NULL, 'e' },
+	{ "format", no_argument, NULL, 'f' },
+	{ "parse", no_argument, NULL, 'p' }, { NULL, 0, NULL, 0 } };
 
 static int flag_format, flag_parse, flag_unix, flag_efi;
 
@@ -58,7 +56,7 @@ usage(void)
 }
 
 static ssize_t
-read_file(int fd, void **rv) 
+read_file(int fd, void **rv)
 {
 	uint8_t *retval;
 	size_t len;
@@ -86,8 +84,7 @@ parse_args(int argc, char **argv)
 {
 	int ch;
 
-	while ((ch = getopt_long(argc, argv, "efpu",
-		    longopts, NULL)) != -1) {
+	while ((ch = getopt_long(argc, argv, "efpu", longopts, NULL)) != -1) {
 		switch (ch) {
 		case 'e':
 			flag_efi++;
@@ -110,10 +107,10 @@ parse_args(int argc, char **argv)
 
 	if (argc >= 1)
 		usage();
-	
+
 	if (flag_parse + flag_format + flag_efi + flag_unix != 1) {
 		warnx("Can only use one of -p (--parse), "
-		    "and -f (--format)");
+		      "and -f (--format)");
 		usage();
 	}
 }
@@ -142,7 +139,7 @@ unix_to_efi(void)
 
 	dp = NULL;
 	while (fgets(buffer, sizeof(buffer), stdin)) {
-		walker= trim(buffer);
+		walker = trim(buffer);
 		free(dp);
 		dp = NULL;
 		rv = efivar_unix_path_to_device_path(walker, &dp);
@@ -151,8 +148,8 @@ unix_to_efi(void)
 			warn("Can't convert '%s' to efi", walker);
 			continue;
 		}
-		if (efidp_format_device_path(efi, sizeof(efi),
-		    dp, efidp_size(dp)) < 0) {
+		if (efidp_format_device_path(efi, sizeof(efi), dp,
+			efidp_size(dp)) < 0) {
 			warnx("Can't format dp for '%s'", walker);
 			continue;
 		}
@@ -172,9 +169,10 @@ efi_to_unix(void)
 
 	dp = (efidp)dpbuf;
 	while (fgets(buffer, sizeof(buffer), stdin)) {
-		walker= trim(buffer);
+		walker = trim(buffer);
 		efidp_parse_device_path(walker, dp, sizeof(dpbuf));
-		rv = efivar_device_path_to_unix_path(dp, &dev, &relpath, &abspath);
+		rv = efivar_device_path_to_unix_path(dp, &dev, &relpath,
+		    &abspath);
 		if (rv == 0)
 			printf("%s:%s %s\n", dev, relpath, abspath);
 		else {
@@ -200,8 +198,8 @@ format(void)
 	dp = (const_efidp)data;
 	while (len > 0) {
 		dplen = efidp_size(dp);
-		fmtlen = efidp_format_device_path(buffer, sizeof(buffer),
-		    dp, dplen);
+		fmtlen = efidp_format_device_path(buffer, sizeof(buffer), dp,
+		    dplen);
 		if (fmtlen > 0)
 			printf("%s\n", buffer);
 		len -= dplen;
@@ -223,7 +221,7 @@ parse(void)
 	if (dp == NULL)
 		errx(1, "Can't allocate memory.");
 	while (fgets(buffer, sizeof(buffer), stdin)) {
-		walker= trim(buffer);
+		walker = trim(buffer);
 		dplen = efidp_parse_device_path(walker, dp, dplen);
 		if (dplen == -1)
 			errx(1, "Can't parse %s", walker);

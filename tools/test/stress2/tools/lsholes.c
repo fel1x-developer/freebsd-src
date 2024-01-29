@@ -45,20 +45,20 @@ main(int argc, char *argv[])
 	int fd, n;
 	char *name;
 
-        if (argc != 2) {
-                fprintf(stderr, "Usage: %s <file>\n", argv[0]);
-                exit(1);
-        }
+	if (argc != 2) {
+		fprintf(stderr, "Usage: %s <file>\n", argv[0]);
+		exit(1);
+	}
 
-        name = argv[1];
-        if ((fd = open(name, O_RDONLY)) == -1)
-                err(1, "open(%s)", name);
-        if (fstat(fd, &st))
-                err(1, "fstat()");
+	name = argv[1];
+	if ((fd = open(name, O_RDONLY)) == -1)
+		err(1, "open(%s)", name);
+	if (fstat(fd, &st))
+		err(1, "fstat()");
 	if ((mn = fpathconf(fd, _PC_MIN_HOLE_SIZE)) == -1)
 		err(1, "fpathconf()");
-	fprintf(stderr, "Min hole size is %ld, file size is %jd.\n",
-	    mn, (intmax_t)st.st_size);
+	fprintf(stderr, "Min hole size is %ld, file size is %jd.\n", mn,
+	    (intmax_t)st.st_size);
 	n = 1;
 	pos = 0;
 
@@ -72,30 +72,29 @@ main(int argc, char *argv[])
 
 		if (hole >= 0 && data >= 0 && hole > data) {
 			siz = hole - data;
-			printf("data #%d @ %ld, size=%jd)\n",
-			    n, (intmax_t)data, siz);
+			printf("data #%d @ %ld, size=%jd)\n", n, (intmax_t)data,
+			    siz);
 			n++;
 			pos += siz;
 		}
 		if (hole >= 0 && data >= 0 && hole < data) {
 			siz = data - hole;
-			printf("hole #%d @ %ld, size=%jd\n",
-			    n, (intmax_t)hole, siz);
+			printf("hole #%d @ %ld, size=%jd\n", n, (intmax_t)hole,
+			    siz);
 			n++;
 			pos += siz;
 		}
 		if (hole >= 0 && data == -1) {
 			siz = st.st_size - hole;
-			printf("hole #%d @ %ld, size=%jd\n",
-			    n, (intmax_t)hole, siz);
+			printf("hole #%d @ %ld, size=%jd\n", n, (intmax_t)hole,
+			    siz);
 			n++;
 			pos += siz;
 		}
-        }
+	}
 	if (hole == st.st_size) {
 		/* EOF */
-		printf("hole #%d @ %ld, size=%jd\n",
-		    n, (intmax_t)hole, 0L);
+		printf("hole #%d @ %ld, size=%jd\n", n, (intmax_t)hole, 0L);
 	}
-        close(fd);
+	close(fd);
 }

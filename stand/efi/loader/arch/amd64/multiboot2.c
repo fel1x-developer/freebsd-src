@@ -35,7 +35,6 @@
  */
 
 #include <sys/cdefs.h>
-
 #include <sys/param.h>
 #include <sys/exec.h>
 #include <sys/linker.h>
@@ -44,15 +43,15 @@
 #define _MACHINE_ELF_WANT_32BIT
 #include <machine/elf.h>
 #include <machine/metadata.h>
-#include <string.h>
-#include <stand.h>
 
 #include <efi.h>
 #include <efilib.h>
+#include <stand.h>
+#include <string.h>
 
 #include "bootstrap.h"
-#include "multiboot2.h"
 #include "loader_efi.h"
+#include "multiboot2.h"
 
 extern int elf32_loadfile_raw(char *filename, uint64_t dest,
     struct preloaded_file **result, int multiboot);
@@ -76,15 +75,15 @@ struct mb2hdr {
 static int
 loadfile(char *filename, uint64_t dest, struct preloaded_file **result)
 {
-	unsigned int		 i;
-	int			 error, fd;
-	void			*header_search = NULL;
-	void			*multiboot = NULL;
-	ssize_t			 search_size;
-	struct multiboot_header	*header;
-	char			*cmdline;
-	struct mb2hdr		 hdr;
-	bool			 keep_bs = false;
+	unsigned int i;
+	int error, fd;
+	void *header_search = NULL;
+	void *multiboot = NULL;
+	ssize_t search_size;
+	struct multiboot_header *header;
+	char *cmdline;
+	struct mb2hdr hdr;
+	bool keep_bs = false;
 
 	/*
 	 * Read MULTIBOOT_SEARCH size in order to search for the
@@ -114,9 +113,10 @@ loadfile(char *filename, uint64_t dest, struct preloaded_file **result)
 
 	/* Valid multiboot header has been found, validate checksum */
 	if (header->magic + header->architecture + header->header_length +
-	    header->checksum != 0) {
+		header->checksum !=
+	    0) {
 		printf("Multiboot checksum failed, magic: %#x "
-		    "architecture: %#x header_length %#x checksum: %#x\n",
+		       "architecture: %#x header_length %#x checksum: %#x\n",
 		    header->magic, header->architecture, header->header_length,
 		    header->checksum);
 		error = EFTYPE;
@@ -124,8 +124,7 @@ loadfile(char *filename, uint64_t dest, struct preloaded_file **result)
 	}
 
 	if (header->architecture != MULTIBOOT2_ARCHITECTURE_I386) {
-		printf("Unsupported architecture: %#x\n",
-		    header->architecture);
+		printf("Unsupported architecture: %#x\n", header->architecture);
 		error = EFTYPE;
 		goto out;
 	}
@@ -141,7 +140,7 @@ loadfile(char *filename, uint64_t dest, struct preloaded_file **result)
 	    header->header_length - sizeof(*header));
 
 	bzero(&hdr, sizeof(hdr));
-	for (i = 0; i < search_size; ) {
+	for (i = 0; i < search_size;) {
 		struct multiboot_header_tag *tag;
 		struct multiboot_header_tag_entry_address *entry;
 		struct multiboot_header_tag_information_request *req;
@@ -149,12 +148,12 @@ loadfile(char *filename, uint64_t dest, struct preloaded_file **result)
 
 		tag = multiboot + i;
 
-		switch(tag->type) {
+		switch (tag->type) {
 		case MULTIBOOT_HEADER_TAG_INFORMATION_REQUEST:
 			req = (void *)tag;
 			for (j = 0;
-			    j < (tag->size - sizeof(*tag)) / sizeof(uint32_t);
-			    j++) {
+			     j < (tag->size - sizeof(*tag)) / sizeof(uint32_t);
+			     j++) {
 				switch (req->requests[j]) {
 				case MULTIBOOT_TAG_TYPE_MMAP:
 				case MULTIBOOT_TAG_TYPE_BASIC_MEMINFO:
@@ -173,7 +172,7 @@ loadfile(char *filename, uint64_t dest, struct preloaded_file **result)
 						break;
 
 					printf(
-				"Unknown non-optional information request %u\n",
+					    "Unknown non-optional information request %u\n",
 					    req->requests[j]);
 					error = EINVAL;
 					goto out;
@@ -224,7 +223,7 @@ loadfile(char *filename, uint64_t dest, struct preloaded_file **result)
 	error = elf32_loadfile_raw(filename, dest, result, 1);
 	if (error != 0) {
 		printf(
-	"elf32_loadfile_raw failed: %d unable to load multiboot kernel\n",
+		    "elf32_loadfile_raw failed: %d unable to load multiboot kernel\n",
 		    error);
 		goto out;
 	}
@@ -248,7 +247,8 @@ out:
 	return (error);
 }
 
-static unsigned int add_string(void *buf, unsigned int type, const char *str)
+static unsigned int
+add_string(void *buf, unsigned int type, const char *str)
 {
 	struct multiboot_tag *tag;
 
@@ -259,7 +259,8 @@ static unsigned int add_string(void *buf, unsigned int type, const char *str)
 	return (roundup2(tag->size, MULTIBOOT_TAG_ALIGN));
 }
 
-static unsigned int add_efi(void *buf)
+static unsigned int
+add_efi(void *buf)
 {
 	struct multiboot_tag *bs;
 	struct multiboot_tag_efi64 *efi64;
@@ -286,8 +287,8 @@ static unsigned int add_efi(void *buf)
 	return (len + roundup2(ih->size, MULTIBOOT_TAG_ALIGN));
 }
 
-static unsigned int add_module(void *buf, vm_offset_t start, vm_offset_t end,
-    const char *cmdline)
+static unsigned int
+add_module(void *buf, vm_offset_t start, vm_offset_t end, const char *cmdline)
 {
 	struct multiboot_tag_module *mod;
 
@@ -296,8 +297,7 @@ static unsigned int add_module(void *buf, vm_offset_t start, vm_offset_t end,
 	mod->size = sizeof(*mod);
 	mod->mod_start = start;
 	mod->mod_end = end;
-	if (cmdline != NULL)
-	{
+	if (cmdline != NULL) {
 		strcpy(buf + sizeof(*mod), cmdline);
 		mod->size += strlen(cmdline) + 1;
 	}
@@ -305,7 +305,8 @@ static unsigned int add_module(void *buf, vm_offset_t start, vm_offset_t end,
 	return (roundup2(mod->size, MULTIBOOT_TAG_ALIGN));
 }
 
-static unsigned int add_end(void *buf)
+static unsigned int
+add_end(void *buf)
 {
 	struct multiboot_tag *tag;
 
@@ -319,27 +320,25 @@ static unsigned int add_end(void *buf)
 static int
 exec(struct preloaded_file *fp)
 {
-	EFI_PHYSICAL_ADDRESS		 addr = 0;
-	EFI_PHYSICAL_ADDRESS		 stack = 0;
-	EFI_STATUS			 status;
-	void				*multiboot_space;
-	vm_offset_t			 modulep, kernend, kern_base,
-					 payload_base;
-	char				*cmdline = NULL;
-	size_t				 len;
-	int				 error;
-	uint32_t			*total_size;
-	struct file_metadata		*md;
-	struct xen_header		 header;
-	struct mb2hdr			*hdr;
-
+	EFI_PHYSICAL_ADDRESS addr = 0;
+	EFI_PHYSICAL_ADDRESS stack = 0;
+	EFI_STATUS status;
+	void *multiboot_space;
+	vm_offset_t modulep, kernend, kern_base, payload_base;
+	char *cmdline = NULL;
+	size_t len;
+	int error;
+	uint32_t *total_size;
+	struct file_metadata *md;
+	struct xen_header header;
+	struct mb2hdr *hdr;
 
 	CTASSERT(sizeof(header) <= PAGE_SIZE);
 
-	if ((md = file_findmetadata(fp,
-	    MODINFOMD_NOCOPY | MODINFOMD_MB2HDR)) == NULL) {
+	if ((md = file_findmetadata(fp, MODINFOMD_NOCOPY | MODINFOMD_MB2HDR)) ==
+	    NULL) {
 		printf("Missing Multiboot2 EFI64 entry point\n");
-		return(EFTYPE);
+		return (EFTYPE);
 	}
 	hdr = (void *)&md->md_data;
 
@@ -497,9 +496,9 @@ error:
 static int
 obj_loadfile(char *filename, uint64_t dest, struct preloaded_file **result)
 {
-	struct preloaded_file	*mfp, *kfp, *rfp;
-	struct kernel_module	*kmp;
-	int			 error;
+	struct preloaded_file *mfp, *kfp, *rfp;
+	struct kernel_module *kmp;
+	int error;
 
 	/* See if there's a multiboot kernel loaded */
 	mfp = file_findfile(NULL, "elf multiboot kernel");
@@ -520,8 +519,8 @@ obj_loadfile(char *filename, uint64_t dest, struct preloaded_file **result)
 		rfp = file_loadraw(filename, "elf kernel", 0);
 		if (rfp == NULL) {
 			printf(
-			"Unable to load %s as a multiboot payload kernel\n",
-			filename);
+			    "Unable to load %s as a multiboot payload kernel\n",
+			    filename);
 			return (EINVAL);
 		}
 
@@ -533,7 +532,6 @@ obj_loadfile(char *filename, uint64_t dest, struct preloaded_file **result)
 			    rfp->f_name, error);
 			return (EINVAL);
 		}
-
 
 		/*
 		 * Reserve one page at the end of the kernel to place some

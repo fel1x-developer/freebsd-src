@@ -30,24 +30,27 @@
  * commands.
  */
 
-#include <stand.h>
-#include <stddef.h>
-#include <string.h>
+#include <sys/disk.h>
+#include <sys/reboot.h>
+
 #include <machine/bootinfo.h>
 #include <machine/cpufunc.h>
 #include <machine/psl.h>
-#include <sys/disk.h>
-#include <sys/reboot.h>
+
 #include <common/drv.h>
+#include <smbios.h>
+#include <stand.h>
+#include <stddef.h>
+#include <string.h>
 
 #include "bootstrap.h"
+#include "btxv86.h"
 #include "common/bootargs.h"
 #include "libi386/libi386.h"
-#include <smbios.h>
-#include "btxv86.h"
 
 #ifdef LOADER_ZFS_SUPPORT
 #include <sys/zfs_bootenv.h>
+
 #include "libzfs.h"
 #endif
 
@@ -59,24 +62,24 @@ CTASSERT(offsetof(struct bootinfo, bi_size) == BI_SIZE);
 /* Arguments passed in from the boot1/boot2 loader */
 static struct bootargs *kargs;
 
-static uint32_t		initial_howto;
-static uint32_t		initial_bootdev;
-static struct bootinfo	*initial_bootinfo;
+static uint32_t initial_howto;
+static uint32_t initial_bootdev;
+static struct bootinfo *initial_bootinfo;
 
-struct arch_switch	archsw;		/* MI/MD interface boundary */
+struct arch_switch archsw; /* MI/MD interface boundary */
 
-static void		extract_currdev(void);
-static int		isa_inb(int port);
-static void		isa_outb(int port, int value);
-void			exit(int code);
+static void extract_currdev(void);
+static int isa_inb(int port);
+static void isa_outb(int port, int value);
+void exit(int code);
 #ifdef LOADER_GELI_SUPPORT
 #include "geliboot.h"
-struct geli_boot_args	*gargs;
-struct geli_boot_data	*gbdata;
+struct geli_boot_args *gargs;
+struct geli_boot_data *gbdata;
 #endif
 #ifdef LOADER_ZFS_SUPPORT
-struct zfs_boot_args	*zargs;
-static void		i386_zfs_probe(void);
+struct zfs_boot_args *zargs;
+static void i386_zfs_probe(void);
 #endif
 
 /* XXX debugging */
@@ -99,20 +102,21 @@ main(void)
 	initial_howto = kargs->howto;
 	initial_bootdev = kargs->bootdev;
 	initial_bootinfo = kargs->bootinfo ?
-	    (struct bootinfo *)PTOV(kargs->bootinfo) : NULL;
+	    (struct bootinfo *)PTOV(kargs->bootinfo) :
+	    NULL;
 
 	/* Initialize the v86 register set to a known-good state. */
 	bzero(&v86, sizeof(v86));
 	v86.efl = PSL_RESERVED_DEFAULT | PSL_I;
 
-	/* 
+	/*
 	 * Initialise the heap as early as possible.
 	 * Once this is done, malloc() is usable.
 	 */
 	bios_getmem();
 
-#if defined(LOADER_BZIP2_SUPPORT) || \
-    defined(LOADER_GPT_SUPPORT) || defined(LOADER_ZFS_SUPPORT)
+#if defined(LOADER_BZIP2_SUPPORT) || defined(LOADER_GPT_SUPPORT) || \
+    defined(LOADER_ZFS_SUPPORT)
 	if (high_heap_size > 0) {
 		heap_top = PTOV(high_heap_base + high_heap_size);
 		heap_bottom = PTOV(high_heap_base);
@@ -161,8 +165,8 @@ main(void)
 	cons_probe();
 
 	/* Set up currdev variable to have hooks in place. */
-	env_setenv("currdev", EV_VOLATILE | EV_NOHOOK, "",
-	    gen_setcurrdev, env_nounset);
+	env_setenv("currdev", EV_VOLATILE | EV_NOHOOK, "", gen_setcurrdev,
+	    env_nounset);
 
 	/*
 	 * Initialise the block cache. Set the upper limit.
@@ -178,8 +182,8 @@ main(void)
 		 * walk through devsw if we actually booted off of PXE.
 		 */
 		if (kargs->bootflags & KARGS_FLAGS_PXE)
-			pxe_enable(kargs->pxeinfo ?
-			    PTOV(kargs->pxeinfo) : NULL);
+			pxe_enable(
+			    kargs->pxeinfo ? PTOV(kargs->pxeinfo) : NULL);
 		else if (kargs->bootflags & KARGS_FLAGS_CD)
 			bc_add(initial_bootdev);
 	}
@@ -200,7 +204,7 @@ main(void)
 	 * so if that is set along with KARGS_FLAGS_EXTARG we know we
 	 * can interpret the extarg data as a struct zfs_boot_args.
 	 */
-#define	KARGS_EXTARGS_ZFS	(KARGS_FLAGS_EXTARG | KARGS_FLAGS_ZFS)
+#define KARGS_EXTARGS_ZFS (KARGS_FLAGS_EXTARG | KARGS_FLAGS_ZFS)
 
 	if ((kargs->bootflags & KARGS_EXTARGS_ZFS) == KARGS_EXTARGS_ZFS) {
 		zargs = (struct zfs_boot_args *)(kargs + 1);
@@ -219,7 +223,7 @@ main(void)
 	 * have if the extarg size exactly matches the size of the
 	 * geli_boot_args struct during that pre-flag era.
 	 */
-#define	LEGACY_GELI_ARGS_SIZE	260	/* This can never change */
+#define LEGACY_GELI_ARGS_SIZE 260 /* This can never change */
 
 #ifdef LOADER_ZFS_SUPPORT
 	if (zargs != NULL) {
@@ -228,13 +232,13 @@ main(void)
 		}
 	} else
 #endif /* LOADER_ZFS_SUPPORT */
-	if ((kargs->bootflags & KARGS_FLAGS_EXTARG) != 0) {
-		gargs = (struct geli_boot_args *)(kargs + 1);
-		if ((kargs->bootflags & KARGS_FLAGS_GELI) ||
-		    gargs->size == LEGACY_GELI_ARGS_SIZE) {
-			gbdata = &gargs->gelidata;
+		if ((kargs->bootflags & KARGS_FLAGS_EXTARG) != 0) {
+			gargs = (struct geli_boot_args *)(kargs + 1);
+			if ((kargs->bootflags & KARGS_FLAGS_GELI) ||
+			    gargs->size == LEGACY_GELI_ARGS_SIZE) {
+				gbdata = &gargs->gelidata;
+			}
 		}
-	}
 
 	if (gbdata != NULL)
 		import_geli_boot_data(gbdata);
@@ -257,9 +261,9 @@ main(void)
 
 	printf("\n%s", bootprog_info);
 
-	extract_currdev();		/* set $currdev and $loaddev */
+	extract_currdev(); /* set $currdev and $loaddev */
 	autoload_font(true);
-    
+
 	bios_getsmap();
 
 	interact();
@@ -269,7 +273,7 @@ main(void)
 }
 
 /*
- * Set the 'current device' by (if possible) recovering the boot device as 
+ * Set the 'current device' by (if possible) recovering the boot device as
  * supplied by the initial bootstrap.
  *
  * XXX should be extended for netbooting.
@@ -277,12 +281,12 @@ main(void)
 static void
 extract_currdev(void)
 {
-	struct i386_devdesc	new_currdev;
+	struct i386_devdesc new_currdev;
 #ifdef LOADER_ZFS_SUPPORT
-	char			buf[20];
-	char			*bootonce;
+	char buf[20];
+	char *bootonce;
 #endif
-	int			biosdev = -1;
+	int biosdev = -1;
 
 	/* Assume we are booting from a BIOS disk by default */
 	new_currdev.dd.d_dev = &bioshd;
@@ -311,7 +315,7 @@ extract_currdev(void)
 		 */
 		if (zargs != NULL &&
 		    zargs->size >=
-		    offsetof(struct zfs_boot_args, primary_pool)) {
+			offsetof(struct zfs_boot_args, primary_pool)) {
 			/* sufficient data is provided */
 			new_currdev.zfs.pool_guid = zargs->pool;
 			new_currdev.zfs.root_guid = zargs->root;
@@ -331,11 +335,11 @@ extract_currdev(void)
 
 		if ((bootonce = malloc(VDEV_PAD_SIZE)) != NULL) {
 			if (zfs_get_bootonce(&new_currdev, OS_BOOTONCE_USED,
-			    bootonce, VDEV_PAD_SIZE) == 0) {
+				bootonce, VDEV_PAD_SIZE) == 0) {
 				setenv("zfs-bootonce", bootonce, 1);
 			}
 			free(bootonce);
-			(void) zfs_attach_nvstore(&new_currdev);
+			(void)zfs_attach_nvstore(&new_currdev);
 		}
 
 #endif
@@ -371,8 +375,9 @@ extract_currdev(void)
 	if ((new_currdev.dd.d_dev->dv_type == bioshd.dv_type) &&
 	    ((new_currdev.dd.d_unit = bd_bios2unit(biosdev)) == -1)) {
 		printf("Can't work out which disk we are booting "
-		    "from.\nGuessed BIOS device 0x%x not found by "
-		    "probes, defaulting to disk0:\n", biosdev);
+		       "from.\nGuessed BIOS device 0x%x not found by "
+		       "probes, defaulting to disk0:\n",
+		    biosdev);
 		new_currdev.dd.d_unit = 0;
 	}
 

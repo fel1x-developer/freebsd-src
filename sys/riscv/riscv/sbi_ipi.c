@@ -37,18 +37,18 @@
 #include <machine/sbi.h>
 #include <machine/smp.h>
 
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
 
 #include "pic_if.h"
 
 struct sbi_ipi_softc {
-	device_t		dev;
-	struct resource		*irq_res;
-	void			*ih;
-	struct intr_irqsrc	isrc;
-	uint32_t		pending_ipis[MAXCPU];
+	device_t dev;
+	struct resource *irq_res;
+	void *ih;
+	struct intr_irqsrc isrc;
+	uint32_t pending_ipis[MAXCPU];
 };
 
 static void
@@ -67,7 +67,7 @@ sbi_ipi_pic_ipi_send(device_t dev, struct intr_irqsrc *isrc, cpuset_t cpus,
 	    ("%s: not a valid IPI: %u", __func__, ipi));
 
 	mask = 0;
-	STAILQ_FOREACH(pc, &cpuhead, pc_allcpu) {
+	STAILQ_FOREACH (pc, &cpuhead, pc_allcpu) {
 		cpu = pc->pc_cpuid;
 		if (CPU_ISSET(cpu, &cpus)) {
 			atomic_set_32(&sc->pending_ipis[cpu], 1u << ipi);
@@ -90,7 +90,6 @@ sbi_ipi_pic_ipi_setup(device_t dev, u_int ipi, struct intr_irqsrc **isrcp)
 	*isrcp = &sc->isrc;
 
 	return (0);
-
 }
 
 static int
@@ -148,8 +147,8 @@ sbi_ipi_attach(device_t dev)
 	memset(sc->pending_ipis, 0, sizeof(sc->pending_ipis));
 
 	name = device_get_nameunit(dev);
-	error = intr_isrc_register(&sc->isrc, sc->dev, INTR_ISRCF_IPI,
-	    "%s,ipi", name);
+	error = intr_isrc_register(&sc->isrc, sc->dev, INTR_ISRCF_IPI, "%s,ipi",
+	    name);
 	if (error != 0) {
 		device_printf(dev, "Can't register interrupt: %d\n", error);
 		return (ENXIO);
@@ -172,8 +171,8 @@ sbi_ipi_attach(device_t dev)
 		return (ENXIO);
 	}
 
-	error = bus_setup_intr(dev, sc->irq_res, INTR_TYPE_CLK,
-	    sbi_ipi_intr, NULL, sc, &sc->ih);
+	error = bus_setup_intr(dev, sc->irq_res, INTR_TYPE_CLK, sbi_ipi_intr,
+	    NULL, sc, &sc->ih);
 	if (error != 0) {
 		device_printf(dev, "Unable to setup IRQ resource\n");
 		return (ENXIO);
@@ -191,12 +190,12 @@ sbi_ipi_attach(device_t dev)
 
 static device_method_t sbi_ipi_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		sbi_ipi_probe),
-	DEVMETHOD(device_attach,	sbi_ipi_attach),
+	DEVMETHOD(device_probe, sbi_ipi_probe),
+	DEVMETHOD(device_attach, sbi_ipi_attach),
 
 	/* Interrupt controller interface */
-	DEVMETHOD(pic_ipi_send,		sbi_ipi_pic_ipi_send),
-	DEVMETHOD(pic_ipi_setup,	sbi_ipi_pic_ipi_setup),
+	DEVMETHOD(pic_ipi_send, sbi_ipi_pic_ipi_send),
+	DEVMETHOD(pic_ipi_setup, sbi_ipi_pic_ipi_setup),
 
 	DEVMETHOD_END
 };

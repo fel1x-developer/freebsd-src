@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: BSD-2-Clause
  *
  * Copyright (c) 2005 Jean-Sebastien Pedron
- * Copyright (c) 2005 Csaba Henk 
+ * Copyright (c) 2005 Csaba Henk
  * All rights reserved.
  *
  * Copyright (c) 2019 The FreeBSD Foundation
@@ -35,68 +35,62 @@
 
 #include <sys/param.h>
 #include <sys/mount.h>
-#include <sys/uio.h>
 #include <sys/stat.h>
 #include <sys/sysctl.h>
+#include <sys/uio.h>
 
 #include <err.h>
+#include <fcntl.h>
+#include <getopt.h>
+#include <limits.h>
+#include <osreldate.h>
+#include <paths.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <signal.h>
-#include <getopt.h>
-#include <limits.h>
-#include <osreldate.h>
-#include <paths.h>
 
 #include "mntopts.h"
 
 #ifndef FUSE4BSD_VERSION
-#define	FUSE4BSD_VERSION	"0.3.9-pre1"
+#define FUSE4BSD_VERSION "0.3.9-pre1"
 #endif
 
-void	__usage_short(void);
-void	usage(void);
-void	helpmsg(void);
-void	showversion(void);
+void __usage_short(void);
+void usage(void);
+void helpmsg(void);
+void showversion(void);
 
 static struct mntopt mopts[] = {
-	#define ALTF_PRIVATE 0x01
-	{ "private",             0, ALTF_PRIVATE, 1 },
-	{ "neglect_shares",      0, 0x02, 1 },
-	{ "push_symlinks_in",    0, 0x04, 1 },
-	{ "allow_other",         0, 0x08, 1 },
+#define ALTF_PRIVATE 0x01
+	{ "private", 0, ALTF_PRIVATE, 1 }, { "neglect_shares", 0, 0x02, 1 },
+	{ "push_symlinks_in", 0, 0x04, 1 }, { "allow_other", 0, 0x08, 1 },
 	{ "default_permissions", 0, 0x10, 1 },
-	#define ALTF_MAXREAD 0x20
-	{ "max_read=",           0, ALTF_MAXREAD, 1 },
-	#define ALTF_SUBTYPE 0x40
-	{ "subtype=",            0, ALTF_SUBTYPE, 1 },
-	#define ALTF_FSNAME 0x80
-	{ "fsname=",             0, ALTF_FSNAME, 1 },
-	/*
-	 * MOPT_AUTOMOUNTED, included by MOPT_STDOPTS, does not fit into
-	 * the 'flags' argument to nmount(2).  We have to abuse altflags
-	 * to pass it, as string, via iovec.
-	 */
-	#define ALTF_AUTOMOUNTED 0x100
-	{ "automounted",	0, ALTF_AUTOMOUNTED, 1 },
-	#define ALTF_INTR 0x200
-	{ "intr",		0, ALTF_INTR, 1 },
+#define ALTF_MAXREAD 0x20
+	{ "max_read=", 0, ALTF_MAXREAD, 1 },
+#define ALTF_SUBTYPE 0x40
+	{ "subtype=", 0, ALTF_SUBTYPE, 1 },
+#define ALTF_FSNAME 0x80
+	{ "fsname=", 0, ALTF_FSNAME, 1 },
+/*
+ * MOPT_AUTOMOUNTED, included by MOPT_STDOPTS, does not fit into
+ * the 'flags' argument to nmount(2).  We have to abuse altflags
+ * to pass it, as string, via iovec.
+ */
+#define ALTF_AUTOMOUNTED 0x100
+	{ "automounted", 0, ALTF_AUTOMOUNTED, 1 },
+#define ALTF_INTR 0x200
+	{ "intr", 0, ALTF_INTR, 1 },
 	/* Linux specific options, we silently ignore them */
-	{ "fd=",                 0, 0x00, 1 },
-	{ "rootmode=",           0, 0x00, 1 },
-	{ "user_id=",            0, 0x00, 1 },
-	{ "group_id=",           0, 0x00, 1 },
-	{ "large_read",          0, 0x00, 1 },
-	/* "nonempty", just the first two chars are stripped off during parsing */
-	{ "nempty",              0, 0x00, 1 },
-	{ "async",               0, MNT_ASYNC, 0},
-	{ "noasync",             1, MNT_ASYNC, 0},
-	MOPT_STDOPTS,
-	MOPT_END
+	{ "fd=", 0, 0x00, 1 }, { "rootmode=", 0, 0x00, 1 },
+	{ "user_id=", 0, 0x00, 1 }, { "group_id=", 0, 0x00, 1 },
+	{ "large_read", 0, 0x00, 1 },
+	/* "nonempty", just the first two chars are stripped off during parsing
+	 */
+	{ "nempty", 0, 0x00, 1 }, { "async", 0, MNT_ASYNC, 0 },
+	{ "noasync", 1, MNT_ASYNC, 0 }, MOPT_STDOPTS, MOPT_END
 };
 
 struct mntval {
@@ -105,12 +99,8 @@ struct mntval {
 	int mv_len;
 };
 
-static struct mntval mvals[] = {
-	{ ALTF_MAXREAD, NULL, 0 },
-	{ ALTF_SUBTYPE, NULL, 0 },
-	{ ALTF_FSNAME, NULL, 0 },
-	{ 0, NULL, 0 }
-};
+static struct mntval mvals[] = { { ALTF_MAXREAD, NULL, 0 },
+	{ ALTF_SUBTYPE, NULL, 0 }, { ALTF_FSNAME, NULL, 0 }, { 0, NULL, 0 } };
 
 #define DEFAULT_MOUNT_FLAGS ALTF_PRIVATE
 
@@ -128,17 +118,15 @@ main(int argc, char *argv[])
 	int ch = 0;
 	struct mntopt *mo;
 	struct mntval *mv;
-	static struct option longopts[] = {
-		{"reject-allow_other", no_argument, NULL, 'A'},
-		{"safe", no_argument, NULL, 'S'},
-		{"daemon", required_argument, NULL, 'D'},
-		{"daemon_opts", required_argument, NULL, 'O'},
-		{"special", required_argument, NULL, 's'},
-		{"mountpath", required_argument, NULL, 'm'},
-		{"version", no_argument, NULL, 'V'},
-		{"help", no_argument, NULL, 'h'},
-		{0,0,0,0}
-	};
+	static struct option longopts[] = { { "reject-allow_other", no_argument,
+						NULL, 'A' },
+		{ "safe", no_argument, NULL, 'S' },
+		{ "daemon", required_argument, NULL, 'D' },
+		{ "daemon_opts", required_argument, NULL, 'O' },
+		{ "special", required_argument, NULL, 's' },
+		{ "mountpath", required_argument, NULL, 'm' },
+		{ "version", no_argument, NULL, 'V' },
+		{ "help", no_argument, NULL, 'h' }, { 0, 0, 0, 0 } };
 	int pid = 0;
 	int fd = -1, fdx;
 	char *ep;
@@ -176,7 +164,7 @@ main(int argc, char *argv[])
 				optind++;
 			}
 		}
-		switch(ch) {
+		switch (ch) {
 		case 'A':
 			reject_allow_other = 1;
 			break;
@@ -196,7 +184,7 @@ main(int argc, char *argv[])
 		case 'o':
 			getmntopts(optarg, mopts, &mntflags, &altflags);
 			for (mv = mvals; mv->mv_flag; ++mv) {
-				if (! (altflags & mv->mv_flag))
+				if (!(altflags & mv->mv_flag))
 					continue;
 				for (mo = mopts; mo->m_flag; ++mo) {
 					char *p, *q;
@@ -210,11 +198,15 @@ main(int argc, char *argv[])
 						while (*q != '\0' && *q != ',')
 							q++;
 						mv->mv_len = q - p + 1;
-						mv->mv_value = malloc(mv->mv_len);
+						mv->mv_value = malloc(
+						    mv->mv_len);
 						if (mv->mv_value == NULL)
 							err(1, "malloc");
-						memcpy(mv->mv_value, p, mv->mv_len - 1);
-						((char *)mv->mv_value)[mv->mv_len - 1] = '\0';
+						memcpy(mv->mv_value, p,
+						    mv->mv_len - 1);
+						((char *)mv
+							->mv_value)[mv->mv_len -
+						    1] = '\0';
 						break;
 					}
 				}
@@ -230,7 +222,7 @@ main(int argc, char *argv[])
 				errx(1, "mount path specified inconsistently");
 			diro = optarg;
 			break;
-		case 'v': 
+		case 'v':
 			verbose = 1;
 			break;
 		case 'h':
@@ -247,7 +239,8 @@ main(int argc, char *argv[])
 		}
 		if (done)
 			break;
-	} while ((ch = getopt_long(argc, argv, "AvVho:SD:O:s:m:", longopts, NULL)) != -1);
+	} while ((ch = getopt_long(argc, argv, "AvVho:SD:O:s:m:", longopts,
+		      NULL)) != -1);
 
 	argc -= optind;
 	argv += optind;
@@ -257,7 +250,8 @@ main(int argc, char *argv[])
 			errx(1, "special specified inconsistently");
 		dev = devo;
 	} else if (diro)
-		errx(1, "if mountpoint is given via an option, special should also be given via an option"); 
+		errx(1,
+		    "if mountpoint is given via an option, special should also be given via an option");
 
 	if (diro) {
 		if (dir)
@@ -265,17 +259,17 @@ main(int argc, char *argv[])
 		dir = diro;
 	}
 
-	if ((! dev) && argc > 0) {
+	if ((!dev) && argc > 0) {
 		dev = *argv++;
 		argc--;
 	}
 
-	if ((! dir) && argc > 0) {
+	if ((!dir) && argc > 0) {
 		dir = *argv++;
 		argc--;
 	}
 
-	if (! (dev && dir))
+	if (!(dev && dir))
 		errx(1, "missing special and/or mountpoint");
 
 	for (mo = mopts; mo->m_flag; ++mo) {
@@ -289,18 +283,20 @@ main(int argc, char *argv[])
 				 * negative of allow_other: if this is set,
 				 * allow_other is blocked, period.
 				 */
-				errx(1, "\"allow_other\" usage is banned by respective option");
+				errx(1,
+				    "\"allow_other\" usage is banned by respective option");
 
 			for (mv = mvals; mv->mv_flag; ++mv) {
 				if (mo->m_flag != mv->mv_flag)
 					continue;
 				if (mv->mv_value) {
-					build_iovec(&iov, &iovlen, mo->m_option, mv->mv_value, mv->mv_len);
+					build_iovec(&iov, &iovlen, mo->m_option,
+					    mv->mv_value, mv->mv_len);
 					iov_done = 1;
 					break;
 				}
 			}
-			if (! iov_done)
+			if (!iov_done)
 				build_iovec(&iov, &iovlen, mo->m_option,
 				    __DECONST(void *, ""), -1);
 		}
@@ -322,7 +318,7 @@ main(int argc, char *argv[])
 		errx(1, "safe mode, spawning daemon not allowed");
 
 	if ((argc > 0 && (daemon_str || daemon_opts)) ||
-	    (daemon_opts && ! daemon_str))
+	    (daemon_opts && !daemon_str))
 		errx(1, "daemon specified inconsistently");
 
 	/*
@@ -337,8 +333,9 @@ main(int argc, char *argv[])
 		dev = __DECONST(char *, "/dev/fuse");
 
 	if (strcmp(dev, "/dev/fuse") == 0) {
-		if (! (argc > 0 || daemon_str)) {
-			fprintf(stderr, "Please also specify the fuse daemon to run when mounting via the multiplexer!\n");
+		if (!(argc > 0 || daemon_str)) {
+			fprintf(stderr,
+			    "Please also specify the fuse daemon to run when mounting via the multiplexer!\n");
 			usage();
 		}
 		if ((fd = open(dev, O_RDWR)) < 0)
@@ -360,7 +357,7 @@ main(int argc, char *argv[])
 		strcpy(ndev, _PATH_DEV);
 		ndevbas = ndev + strlen(_PATH_DEV);
 		devname_r(sbuf.st_rdev, S_IFCHR, ndevbas,
-		          sizeof(ndev) - strlen(_PATH_DEV));
+		    sizeof(ndev) - strlen(_PATH_DEV));
 
 		if (strncmp(ndevbas, "fuse", 4))
 			errx(1, "mounting inappropriate device");
@@ -377,7 +374,7 @@ main(int argc, char *argv[])
 
 		if (fd < 0 && (fd = open(dev, O_RDWR)) < 0)
 			err(1, "failed to open fuse device");
-	
+
 		if (asprintf(&fds, "%d", fd) == -1)
 			err(1, "failed to allocate memory");
 		setenv("FUSE_DEV_FD", fds, 1);
@@ -388,14 +385,14 @@ main(int argc, char *argv[])
 			char *bgdaemon;
 			int len;
 
-			if (! daemon_opts)
+			if (!daemon_opts)
 				daemon_opts = __DECONST(char *, "");
 
-			len =  strlen(daemon_str) + 1 + strlen(daemon_opts) +
-			    2 + 1;
+			len = strlen(daemon_str) + 1 + strlen(daemon_opts) + 2 +
+			    1;
 			bgdaemon = calloc(1, len);
 
-			if (! bgdaemon)
+			if (!bgdaemon)
 				err(1, "failed to allocate memory");
 
 			strlcpy(bgdaemon, daemon_str, len);
@@ -434,7 +431,8 @@ main(int argc, char *argv[])
 }
 
 void
-__usage_short(void) {
+__usage_short(void)
+{
 	fprintf(stderr,
 	    "usage:\n%s [-A|-S|-v|-V|-h|-D daemon|-O args|-s special|-m node|-o option...] special node [daemon args...]\n\n",
 	    getprogname());
@@ -451,39 +449,40 @@ usage(void)
 	for (mo = mopts; mo->m_flag; ++mo)
 		fprintf(stderr, "\t%s\n", mo->m_option);
 
-	fprintf(stderr, "\n(use -h for a detailed description of these options)\n");
+	fprintf(stderr,
+	    "\n(use -h for a detailed description of these options)\n");
 	exit(EX_USAGE);
 }
 
 void
 helpmsg(void)
 {
-	if (! getenv("MOUNT_FUSEFS_CALL_BY_LIB")) {
+	if (!getenv("MOUNT_FUSEFS_CALL_BY_LIB")) {
 		__usage_short();
 		fprintf(stderr, "description of options:\n");
 	}
 
 	/*
 	 * The main use case of this function is giving info embedded in general
-	 * FUSE lib help output. Therefore the style and the content of the output
-	 * tries to fit there as much as possible.
+	 * FUSE lib help output. Therefore the style and the content of the
+	 * output tries to fit there as much as possible.
 	 */
 	fprintf(stderr,
-	        "    -o allow_other         allow access to other users\n"
-	        /* "    -o nonempty            allow mounts over non-empty file/dir\n" */
-	        "    -o default_permissions enable permission checking by kernel\n"
-		"    -o intr                interruptible mount\n"
-	        "    -o fsname=NAME         set filesystem name\n"
-		/*
-	        "    -o large_read          issue large read requests (2.4 only)\n"
-		 */
-	        "    -o subtype=NAME        set filesystem type\n"
-	        "    -o max_read=N          set maximum size of read requests\n"
-	        "    -o noprivate           allow secondary mounting of the filesystem\n"
-	        "    -o neglect_shares      don't report EBUSY when unmount attempted\n"
-	        "                           in presence of secondary mounts\n" 
-	        "    -o push_symlinks_in    prefix absolute symlinks with mountpoint\n"
-	        );
+	    "    -o allow_other         allow access to other users\n"
+	    /* "    -o nonempty            allow mounts over non-empty
+	       file/dir\n" */
+	    "    -o default_permissions enable permission checking by kernel\n"
+	    "    -o intr                interruptible mount\n"
+	    "    -o fsname=NAME         set filesystem name\n"
+	    /*
+	    "    -o large_read          issue large read requests (2.4 only)\n"
+	     */
+	    "    -o subtype=NAME        set filesystem type\n"
+	    "    -o max_read=N          set maximum size of read requests\n"
+	    "    -o noprivate           allow secondary mounting of the filesystem\n"
+	    "    -o neglect_shares      don't report EBUSY when unmount attempted\n"
+	    "                           in presence of secondary mounts\n"
+	    "    -o push_symlinks_in    prefix absolute symlinks with mountpoint\n");
 	exit(EX_USAGE);
 }
 

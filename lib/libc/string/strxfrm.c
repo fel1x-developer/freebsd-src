@@ -33,30 +33,32 @@
  * SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 #include <wchar.h>
+
 #include "collate.h"
 
+size_t strxfrm_l(char *__restrict dest, const char *__restrict src, size_t len,
+    locale_t loc);
 size_t
-strxfrm_l(char * __restrict dest, const char * __restrict src, size_t len, locale_t loc);
-size_t
-strxfrm(char * __restrict dest, const char * __restrict src, size_t len)
+strxfrm(char *__restrict dest, const char *__restrict src, size_t len)
 {
 	return strxfrm_l(dest, src, len, __get_locale());
 }
 
 size_t
-strxfrm_l(char * __restrict dest, const char * __restrict src, size_t len, locale_t locale)
+strxfrm_l(char *__restrict dest, const char *__restrict src, size_t len,
+    locale_t locale)
 {
 	size_t slen;
 	size_t xlen;
 	wchar_t *wcs = NULL;
 
 	FIX_LOCALE(locale);
-	struct xlocale_collate *table =
-		(struct xlocale_collate*)locale->components[XLC_COLLATE];
+	struct xlocale_collate *table = (struct xlocale_collate *)
+					    locale->components[XLC_COLLATE];
 
 	if (!*src) {
 		if (len > 0)
@@ -74,7 +76,7 @@ strxfrm_l(char * __restrict dest, const char * __restrict src, size_t len, local
 	if (table->__collate_load_error)
 		goto error;
 
-	if ((wcs = malloc((slen + 1) * sizeof (wchar_t))) == NULL)
+	if ((wcs = malloc((slen + 1) * sizeof(wchar_t))) == NULL)
 		goto error;
 
 	if (mbstowcs_l(wcs, src, slen + 1, locale) == (size_t)-1)
@@ -88,7 +90,7 @@ strxfrm_l(char * __restrict dest, const char * __restrict src, size_t len, local
 	if (len > xlen) {
 		dest[xlen] = 0;
 	} else if (len) {
-		dest[len-1] = 0;
+		dest[len - 1] = 0;
 	}
 
 	return (xlen);

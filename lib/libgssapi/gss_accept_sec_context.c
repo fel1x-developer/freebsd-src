@@ -26,14 +26,14 @@
  * SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <gssapi/gssapi.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 
-#include "mech_switch.h"
 #include "context.h"
 #include "cred.h"
+#include "mech_switch.h"
 #include "name.h"
 #include "utils.h"
 
@@ -69,13 +69,13 @@ parse_header(const gss_buffer_t input_token, gss_OID mech_oid)
 		p++;
 		len--;
 		if (len < b)
-		    return (GSS_S_DEFECTIVE_TOKEN);
+			return (GSS_S_DEFECTIVE_TOKEN);
 		a = 0;
 		while (b) {
-		    a = (a << 8) | *p;
-		    p++;
-		    len--;
-		    b--;
+			a = (a << 8) | *p;
+			p++;
+			len--;
+			b--;
 		}
 	}
 	if (a != len)
@@ -97,12 +97,12 @@ parse_header(const gss_buffer_t input_token, gss_OID mech_oid)
 	return (GSS_S_COMPLETE);
 }
 
-static gss_OID_desc krb5_mechanism =
-{9, __DECONST(void *, "\x2a\x86\x48\x86\xf7\x12\x01\x02\x02")};
-static gss_OID_desc ntlm_mechanism =
-{10, __DECONST(void *, "\x2b\x06\x01\x04\x01\x82\x37\x02\x02\x0a")};
-static gss_OID_desc spnego_mechanism =
-{6, __DECONST(void *, "\x2b\x06\x01\x05\x05\x02")};
+static gss_OID_desc krb5_mechanism = { 9,
+	__DECONST(void *, "\x2a\x86\x48\x86\xf7\x12\x01\x02\x02") };
+static gss_OID_desc ntlm_mechanism = { 10,
+	__DECONST(void *, "\x2b\x06\x01\x04\x01\x82\x37\x02\x02\x0a") };
+static gss_OID_desc spnego_mechanism = { 6,
+	__DECONST(void *, "\x2b\x06\x01\x05\x05\x02") };
 
 static OM_uint32
 choose_mech(const gss_buffer_t input, gss_OID mech_oid)
@@ -123,13 +123,11 @@ choose_mech(const gss_buffer_t input, gss_OID mech_oid)
 	 */
 
 	if (input->length > 8 &&
-	    memcmp((const char *)input->value, "NTLMSSP\x00", 8) == 0)
-	{
+	    memcmp((const char *)input->value, "NTLMSSP\x00", 8) == 0) {
 		*mech_oid = ntlm_mechanism;
 		return (GSS_S_COMPLETE);
 	} else if (input->length != 0 &&
-	    ((const char *)input->value)[0] == 0x6E)
-	{
+	    ((const char *)input->value)[0] == 0x6E) {
 		/* Could be a raw AP-REQ (check for APPLICATION tag) */
 		*mech_oid = krb5_mechanism;
 		return (GSS_S_COMPLETE);
@@ -146,22 +144,17 @@ choose_mech(const gss_buffer_t input, gss_OID mech_oid)
 	return (status);
 }
 
-OM_uint32 gss_accept_sec_context(OM_uint32 *minor_status,
-    gss_ctx_id_t *context_handle,
-    const gss_cred_id_t acceptor_cred_handle,
-    const gss_buffer_t input_token,
-    const gss_channel_bindings_t input_chan_bindings,
-    gss_name_t *src_name,
-    gss_OID *mech_type,
-    gss_buffer_t output_token,
-    OM_uint32 *ret_flags,
-    OM_uint32 *time_rec,
-    gss_cred_id_t *delegated_cred_handle)
+OM_uint32
+gss_accept_sec_context(OM_uint32 *minor_status, gss_ctx_id_t *context_handle,
+    const gss_cred_id_t acceptor_cred_handle, const gss_buffer_t input_token,
+    const gss_channel_bindings_t input_chan_bindings, gss_name_t *src_name,
+    gss_OID *mech_type, gss_buffer_t output_token, OM_uint32 *ret_flags,
+    OM_uint32 *time_rec, gss_cred_id_t *delegated_cred_handle)
 {
 	OM_uint32 major_status, mech_ret_flags;
 	struct _gss_mech_switch *m;
-	struct _gss_context *ctx = (struct _gss_context *) *context_handle;
-	struct _gss_cred *cred = (struct _gss_cred *) acceptor_cred_handle;
+	struct _gss_context *ctx = (struct _gss_context *)*context_handle;
+	struct _gss_cred *cred = (struct _gss_cred *)acceptor_cred_handle;
 	struct _gss_mechanism_cred *mc;
 	gss_cred_id_t acceptor_mc, delegated_mc;
 	gss_name_t src_mn;
@@ -209,7 +202,7 @@ OM_uint32 gss_accept_sec_context(OM_uint32 *minor_status,
 		m = ctx->gc_mech;
 
 	if (cred) {
-		SLIST_FOREACH(mc, &cred->gc_mc, gmc_link)
+		SLIST_FOREACH (mc, &cred->gc_mc, gmc_link)
 			if (mc->gmc_mech == m)
 				break;
 		if (!mc)
@@ -221,17 +214,9 @@ OM_uint32 gss_accept_sec_context(OM_uint32 *minor_status,
 	delegated_mc = GSS_C_NO_CREDENTIAL;
 
 	mech_ret_flags = 0;
-	major_status = m->gm_accept_sec_context(minor_status,
-	    &ctx->gc_ctx,
-	    acceptor_mc,
-	    input_token,
-	    input_chan_bindings,
-	    &src_mn,
-	    mech_type,
-	    output_token,
-	    &mech_ret_flags,
-	    time_rec,
-	    &delegated_mc);
+	major_status = m->gm_accept_sec_context(minor_status, &ctx->gc_ctx,
+	    acceptor_mc, input_token, input_chan_bindings, &src_mn, mech_type,
+	    output_token, &mech_ret_flags, time_rec, &delegated_mc);
 	if (major_status != GSS_S_COMPLETE &&
 	    major_status != GSS_S_CONTINUE_NEEDED) {
 		_gss_mg_error(m, major_status, *minor_status);
@@ -248,7 +233,7 @@ OM_uint32 gss_accept_sec_context(OM_uint32 *minor_status,
 			m->gm_release_name(minor_status, &src_mn);
 			return (GSS_S_FAILURE);
 		}
-		*src_name = (gss_name_t) name;
+		*src_name = (gss_name_t)name;
 	} else if (src_mn) {
 		m->gm_release_name(minor_status, &src_mn);
 	}
@@ -281,12 +266,12 @@ OM_uint32 gss_accept_sec_context(OM_uint32 *minor_status,
 			dmc->gmc_cred = delegated_mc;
 			SLIST_INSERT_HEAD(&dcred->gc_mc, dmc, gmc_link);
 
-			*delegated_cred_handle = (gss_cred_id_t) dcred;
+			*delegated_cred_handle = (gss_cred_id_t)dcred;
 		}
 	}
 
 	if (ret_flags)
 		*ret_flags = mech_ret_flags;
-	*context_handle = (gss_ctx_id_t) ctx;
+	*context_handle = (gss_ctx_id_t)ctx;
 	return (major_status);
 }

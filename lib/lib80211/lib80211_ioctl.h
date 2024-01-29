@@ -55,15 +55,15 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef	__LIB80211_IOCTL_H__
-#define	__LIB80211_IOCTL_H__
+#ifndef __LIB80211_IOCTL_H__
+#define __LIB80211_IOCTL_H__
 
-extern	int lib80211_get80211(int s, const char *name, int type, void *data,
-	    int len);
-extern	int lib80211_get80211len(int s, const char *name, int type, void *data,
-	    int len, int *plen);
-extern	int lib80211_get80211val(int s, const char *name, int type, int *val);
-extern	int lib80211_set80211(int s, const char *name, int type, int val,
-	    int len, void *data);
+extern int lib80211_get80211(int s, const char *name, int type, void *data,
+    int len);
+extern int lib80211_get80211len(int s, const char *name, int type, void *data,
+    int len, int *plen);
+extern int lib80211_get80211val(int s, const char *name, int type, int *val);
+extern int lib80211_set80211(int s, const char *name, int type, int val,
+    int len, void *data);
 
-#endif	/* __LIB80211_IOCTL_H__ */
+#endif /* __LIB80211_IOCTL_H__ */

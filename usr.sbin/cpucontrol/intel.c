@@ -26,29 +26,29 @@
  */
 
 #include <sys/cdefs.h>
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <err.h>
-#include <errno.h>
-
 #include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
-#include <sys/ioctl.h>
-#include <sys/ioccom.h>
 #include <sys/cpuctl.h>
+#include <sys/ioccom.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 
 #include <machine/cpufunc.h>
 #include <machine/specialreg.h>
 
+#include <assert.h>
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
 #include "cpucontrol.h"
 #include "intel.h"
 
-#define	DEFAULT_UCODE_SIZE	2000 /* Size of update data if not specified. */
+#define DEFAULT_UCODE_SIZE 2000 /* Size of update data if not specified. */
 
 int
 intel_probe(int fd)
@@ -56,7 +56,7 @@ intel_probe(int fd)
 	char vendor[13];
 	int error;
 	cpuctl_cpuid_args_t idargs = {
-		.level  = 0,
+		.level = 0,
 	};
 
 	error = ioctl(fd, CPUCTL_CPUID, &idargs);
@@ -97,7 +97,7 @@ intel_update(const struct ucode_update_params *params)
 		.data = 0,
 	};
 	cpuctl_cpuid_args_t idargs = {
-		.level  = 1,	/* Signature. */
+		.level = 1, /* Signature. */
 	};
 	cpuctl_update_args_t args;
 	int error;
@@ -195,8 +195,9 @@ intel_update(const struct ucode_update_params *params)
 	have_ext_table = 0;
 
 	if (ext_size > (signed)sizeof(*ext_header)) {
-		ext_header = (const intel_ext_header_t *)
-		    ((const char *)fw_image + payload_size);
+		ext_header =
+		    (const intel_ext_header_t *)((const char *)fw_image +
+			payload_size);
 		ext_table = (const intel_cpu_signature_t *)(ext_header + 1);
 
 		/*
@@ -245,12 +246,12 @@ no_table:
 
 matched:
 	if (revision >= fw_header->revision) {
-		WARNX(1, "skipping %s of rev %#x: up to date",
-		    path, fw_header->revision);
+		WARNX(1, "skipping %s of rev %#x: up to date", path,
+		    fw_header->revision);
 		goto fail;
 	}
-	fprintf(stderr, "%s: updating cpu %s from rev %#x to rev %#x... ",
-	    path, dev, revision, fw_header->revision);
+	fprintf(stderr, "%s: updating cpu %s from rev %#x to rev %#x... ", path,
+	    dev, revision, fw_header->revision);
 	args.data = __DECONST(void *, fw_data);
 	args.size = data_size;
 	error = ioctl(devfd, CPUCTL_UPDATE, &args);

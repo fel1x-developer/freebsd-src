@@ -26,8 +26,8 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/jail.h>
 #include <sys/queue.h>
 #include <sys/time.h>
@@ -35,87 +35,90 @@
 #include <jail.h>
 #include <stdio.h>
 
-#define CONF_FILE	"/etc/jail.conf"
+#define CONF_FILE "/etc/jail.conf"
 
-#define DEP_FROM	0
-#define DEP_TO		1
+#define DEP_FROM 0
+#define DEP_TO 1
 
-#define DF_SEEN		0x01	/* Dependency has been followed */
-#define DF_LIGHT	0x02	/* Implied dependency on jail existence only */
-#define DF_NOFAIL	0x04	/* Don't propagate failed jails */
+#define DF_SEEN 0x01   /* Dependency has been followed */
+#define DF_LIGHT 0x02  /* Implied dependency on jail existence only */
+#define DF_NOFAIL 0x04 /* Don't propagate failed jails */
 
-#define PF_VAR		0x0001	/* This is a variable, not a true parameter */
-#define PF_APPEND	0x0002	/* Append to existing parameter list */
-#define PF_BAD		0x0004	/* Unable to resolve parameter value */
-#define PF_INTERNAL	0x0008	/* Internal parameter, not passed to kernel */
-#define PF_BOOL		0x0010	/* Boolean parameter */
-#define PF_INT		0x0020	/* Integer parameter */
-#define PF_CONV		0x0040	/* Parameter duplicated in converted form */
-#define PF_REV		0x0080	/* Run commands in reverse order on stopping */
-#define	PF_IMMUTABLE	0x0100	/* Immutable parameter */
-#define	PF_NAMEVAL	0x0200	/* Parameter is in "name value" form */
+#define PF_VAR 0x0001	    /* This is a variable, not a true parameter */
+#define PF_APPEND 0x0002    /* Append to existing parameter list */
+#define PF_BAD 0x0004	    /* Unable to resolve parameter value */
+#define PF_INTERNAL 0x0008  /* Internal parameter, not passed to kernel */
+#define PF_BOOL 0x0010	    /* Boolean parameter */
+#define PF_INT 0x0020	    /* Integer parameter */
+#define PF_CONV 0x0040	    /* Parameter duplicated in converted form */
+#define PF_REV 0x0080	    /* Run commands in reverse order on stopping */
+#define PF_IMMUTABLE 0x0100 /* Immutable parameter */
+#define PF_NAMEVAL 0x0200   /* Parameter is in "name value" form */
 
-#define JF_START	0x0001	/* -c */
-#define JF_SET		0x0002	/* -m */
-#define JF_STOP		0x0004	/* -r */
-#define JF_DEPEND	0x0008	/* Operation required by dependency */
-#define JF_WILD		0x0010	/* Not specified on the command line */
-#define JF_FAILED	0x0020	/* Operation failed */
-#define JF_PARAMS	0x0040	/* Parameters checked and imported */
-#define JF_RDTUN	0x0080	/* Create-only parameter check has been done */
-#define JF_PERSIST	0x0100	/* Jail is temporarily persistent */
-#define JF_TIMEOUT	0x0200	/* A command (or process kill) timed out */
-#define JF_SLEEPQ	0x0400	/* Waiting on a command and/or timeout */
-#define JF_FROM_RUNQ	0x0800	/* Has already been on the run queue */
+#define JF_START 0x0001	    /* -c */
+#define JF_SET 0x0002	    /* -m */
+#define JF_STOP 0x0004	    /* -r */
+#define JF_DEPEND 0x0008    /* Operation required by dependency */
+#define JF_WILD 0x0010	    /* Not specified on the command line */
+#define JF_FAILED 0x0020    /* Operation failed */
+#define JF_PARAMS 0x0040    /* Parameters checked and imported */
+#define JF_RDTUN 0x0080	    /* Create-only parameter check has been done */
+#define JF_PERSIST 0x0100   /* Jail is temporarily persistent */
+#define JF_TIMEOUT 0x0200   /* A command (or process kill) timed out */
+#define JF_SLEEPQ 0x0400    /* Waiting on a command and/or timeout */
+#define JF_FROM_RUNQ 0x0800 /* Has already been on the run queue */
 
-#define JF_OP_MASK		(JF_START | JF_SET | JF_STOP)
-#define JF_RESTART		(JF_START | JF_STOP)
-#define JF_START_SET		(JF_START | JF_SET)
-#define JF_SET_RESTART		(JF_SET | JF_STOP)
-#define JF_START_SET_RESTART	(JF_START | JF_SET | JF_STOP)
-#define JF_DO_STOP(js)		(((js) & (JF_SET | JF_STOP)) == JF_STOP)
+#define JF_OP_MASK (JF_START | JF_SET | JF_STOP)
+#define JF_RESTART (JF_START | JF_STOP)
+#define JF_START_SET (JF_START | JF_SET)
+#define JF_SET_RESTART (JF_SET | JF_STOP)
+#define JF_START_SET_RESTART (JF_START | JF_SET | JF_STOP)
+#define JF_DO_STOP(js) (((js) & (JF_SET | JF_STOP)) == JF_STOP)
 
 enum intparam {
-	IP__NULL = 0,		/* Null command */
-	IP_ALLOW_DYING,		/* Allow making changes to a dying jail */
-	IP_COMMAND,		/* Command run inside jail at creation */
-	IP_DEPEND,		/* Jail starts after (stops before) another */
-	IP_EXEC_CLEAN,		/* Run commands in a clean environment */
-	IP_EXEC_CONSOLELOG,	/* Redirect optput for commands run in jail */
-	IP_EXEC_FIB,		/* Run jailed commands with this FIB */
-	IP_EXEC_JAIL_USER,	/* Run jailed commands as this user */
-	IP_EXEC_POSTSTART,	/* Commands run outside jail after creating */
-	IP_EXEC_POSTSTOP,	/* Commands run outside jail after removing */
-	IP_EXEC_PREPARE,	/* Commands run outside jail before addrs and mounting */
-	IP_EXEC_PRESTART,	/* Commands run outside jail before creating */
-	IP_EXEC_PRESTOP,	/* Commands run outside jail before removing */
-	IP_EXEC_RELEASE,	/* Commands run outside jail after addrs and unmounted */
-	IP_EXEC_CREATED,	/* Commands run outside jail right after it was started */
-	IP_EXEC_START,		/* Commands run inside jail on creation */
-	IP_EXEC_STOP,		/* Commands run inside jail on removal */
-	IP_EXEC_SYSTEM_JAIL_USER,/* Get jail_user from system passwd file */
-	IP_EXEC_SYSTEM_USER,	/* Run non-jailed commands as this user */
-	IP_EXEC_TIMEOUT,	/* Time to wait for a command to complete */
+	IP__NULL = 0,	    /* Null command */
+	IP_ALLOW_DYING,	    /* Allow making changes to a dying jail */
+	IP_COMMAND,	    /* Command run inside jail at creation */
+	IP_DEPEND,	    /* Jail starts after (stops before) another */
+	IP_EXEC_CLEAN,	    /* Run commands in a clean environment */
+	IP_EXEC_CONSOLELOG, /* Redirect optput for commands run in jail */
+	IP_EXEC_FIB,	    /* Run jailed commands with this FIB */
+	IP_EXEC_JAIL_USER,  /* Run jailed commands as this user */
+	IP_EXEC_POSTSTART,  /* Commands run outside jail after creating */
+	IP_EXEC_POSTSTOP,   /* Commands run outside jail after removing */
+	IP_EXEC_PREPARE,  /* Commands run outside jail before addrs and mounting
+			   */
+	IP_EXEC_PRESTART, /* Commands run outside jail before creating */
+	IP_EXEC_PRESTOP,  /* Commands run outside jail before removing */
+	IP_EXEC_RELEASE,  /* Commands run outside jail after addrs and unmounted
+			   */
+	IP_EXEC_CREATED, /* Commands run outside jail right after it was started
+			  */
+	IP_EXEC_START,	 /* Commands run inside jail on creation */
+	IP_EXEC_STOP,	 /* Commands run inside jail on removal */
+	IP_EXEC_SYSTEM_JAIL_USER, /* Get jail_user from system passwd file */
+	IP_EXEC_SYSTEM_USER,	  /* Run non-jailed commands as this user */
+	IP_EXEC_TIMEOUT,	  /* Time to wait for a command to complete */
 #if defined(INET) || defined(INET6)
-	IP_INTERFACE,		/* Add IP addresses to this interface */
-	IP_IP_HOSTNAME,		/* Get jail IP address(es) from hostname */
+	IP_INTERFACE,	/* Add IP addresses to this interface */
+	IP_IP_HOSTNAME, /* Get jail IP address(es) from hostname */
 #endif
-	IP_MOUNT,		/* Mount points in fstab(5) form */
-	IP_MOUNT_DEVFS,		/* Mount /dev under prison root */
-	IP_MOUNT_FDESCFS,	/* Mount /dev/fd under prison root */
-	IP_MOUNT_PROCFS,	/* Mount /proc under prison root */
-	IP_MOUNT_FSTAB,		/* A standard fstab(5) file */
-	IP_STOP_TIMEOUT,	/* Time to wait after sending SIGTERM */
-	IP_VNET_INTERFACE,	/* Assign interface(s) to vnet jail */
-	IP_ZFS_DATASET,		/* Jail ZFS datasets */
+	IP_MOUNT,	   /* Mount points in fstab(5) form */
+	IP_MOUNT_DEVFS,	   /* Mount /dev under prison root */
+	IP_MOUNT_FDESCFS,  /* Mount /dev/fd under prison root */
+	IP_MOUNT_PROCFS,   /* Mount /proc under prison root */
+	IP_MOUNT_FSTAB,	   /* A standard fstab(5) file */
+	IP_STOP_TIMEOUT,   /* Time to wait after sending SIGTERM */
+	IP_VNET_INTERFACE, /* Assign interface(s) to vnet jail */
+	IP_ZFS_DATASET,	   /* Jail ZFS datasets */
 #ifdef INET
-	IP__IP4_IFADDR,		/* Copy of ip4.addr with interface/netmask */
+	IP__IP4_IFADDR, /* Copy of ip4.addr with interface/netmask */
 #endif
 #ifdef INET6
-	IP__IP6_IFADDR,		/* Copy of ip6.addr with interface/prefixlen */
+	IP__IP6_IFADDR, /* Copy of ip6.addr with interface/prefixlen */
 #endif
-	IP__MOUNT_FROM_FSTAB,	/* Line from mount.fstab file */
-	IP__OP,			/* Placeholder for requested operation */
+	IP__MOUNT_FROM_FSTAB, /* Line from mount.fstab file */
+	IP__OP,		      /* Placeholder for requested operation */
 	KP_ALLOW_CHFLAGS,
 	KP_ALLOW_MOUNT,
 	KP_ALLOW_RAW_SOCKETS,
@@ -142,64 +145,64 @@ enum intparam {
 STAILQ_HEAD(cfvars, cfvar);
 
 struct cfvar {
-	STAILQ_ENTRY(cfvar)	tq;
-	char			*name;
-	size_t			pos;
+	STAILQ_ENTRY(cfvar) tq;
+	char *name;
+	size_t pos;
 };
 
 TAILQ_HEAD(cfstrings, cfstring);
 
 struct cfstring {
-	TAILQ_ENTRY(cfstring)	tq;
-	char			*s;
-	size_t			len;
-	struct cfvars		vars;
+	TAILQ_ENTRY(cfstring) tq;
+	char *s;
+	size_t len;
+	struct cfvars vars;
 };
 
 TAILQ_HEAD(cfparams, cfparam);
 
 struct cfparam {
-	TAILQ_ENTRY(cfparam)	tq;
-	char			*name;
-	struct cfstrings	val;
-	unsigned		flags;
-	int			gen;
+	TAILQ_ENTRY(cfparam) tq;
+	char *name;
+	struct cfstrings val;
+	unsigned flags;
+	int gen;
 };
 
 TAILQ_HEAD(cfjails, cfjail);
 STAILQ_HEAD(cfdepends, cfdepend);
 
 struct cfjail {
-	TAILQ_ENTRY(cfjail)	tq;
-	char			*name;
-	char			*comline;
-	struct cfparams		params;
-	struct cfdepends	dep[2];
-	struct cfjails		*queue;
-	struct cfjail		*cfparent;
-	struct cfparam		*intparams[IP_NPARAM];
-	struct cfstring		*comstring;
-	struct jailparam	*jp;
-	struct timespec		timeout;
-	const enum intparam	*comparam;
-	unsigned		flags;
-	int			jid;
-	int			seq;
-	int			pstatus;
-	int			ndeps;
-	int			njp;
-	int			nprocs;
+	TAILQ_ENTRY(cfjail) tq;
+	char *name;
+	char *comline;
+	struct cfparams params;
+	struct cfdepends dep[2];
+	struct cfjails *queue;
+	struct cfjail *cfparent;
+	struct cfparam *intparams[IP_NPARAM];
+	struct cfstring *comstring;
+	struct jailparam *jp;
+	struct timespec timeout;
+	const enum intparam *comparam;
+	unsigned flags;
+	int jid;
+	int seq;
+	int pstatus;
+	int ndeps;
+	int njp;
+	int nprocs;
 };
 
 struct cfdepend {
-	STAILQ_ENTRY(cfdepend)	tq[2];
-	struct cfjail		*j[2];
-	unsigned		flags;
+	STAILQ_ENTRY(cfdepend) tq[2];
+	struct cfjail *j[2];
+	unsigned flags;
 };
 
 struct cflex {
-	const char		*cfname;
-	int			error;
+	const char *cfname;
+	int error;
 };
 
 extern void *emalloc(size_t);

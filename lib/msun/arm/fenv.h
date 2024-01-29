@@ -26,62 +26,62 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_FENV_H_
-#define	_FENV_H_
+#ifndef _FENV_H_
+#define _FENV_H_
 
 #include <sys/_types.h>
 
-#ifndef	__fenv_static
-#define	__fenv_static	static
+#ifndef __fenv_static
+#define __fenv_static static
 #endif
 
-typedef	__uint32_t	fenv_t;
-typedef	__uint32_t	fexcept_t;
+typedef __uint32_t fenv_t;
+typedef __uint32_t fexcept_t;
 
 /* Exception flags */
-#define	FE_INVALID	0x0001
-#define	FE_DIVBYZERO	0x0002
-#define	FE_OVERFLOW	0x0004
-#define	FE_UNDERFLOW	0x0008
-#define	FE_INEXACT	0x0010
+#define FE_INVALID 0x0001
+#define FE_DIVBYZERO 0x0002
+#define FE_OVERFLOW 0x0004
+#define FE_UNDERFLOW 0x0008
+#define FE_INEXACT 0x0010
 #ifdef __ARM_PCS_VFP
-#define	FE_DENORMAL	0x0080
-#define	FE_ALL_EXCEPT	(FE_DIVBYZERO | FE_INEXACT | \
-			 FE_INVALID | FE_OVERFLOW | FE_UNDERFLOW | FE_DENORMAL)
+#define FE_DENORMAL 0x0080
+#define FE_ALL_EXCEPT                                                          \
+	(FE_DIVBYZERO | FE_INEXACT | FE_INVALID | FE_OVERFLOW | FE_UNDERFLOW | \
+	    FE_DENORMAL)
 #else
-#define	FE_ALL_EXCEPT	(FE_DIVBYZERO | FE_INEXACT | \
-			 FE_INVALID | FE_OVERFLOW | FE_UNDERFLOW)
+#define FE_ALL_EXCEPT \
+	(FE_DIVBYZERO | FE_INEXACT | FE_INVALID | FE_OVERFLOW | FE_UNDERFLOW)
 #endif
 
 /* Rounding modes */
-#define	VFP_FE_TONEAREST	0x00000000
-#define	VFP_FE_UPWARD		0x00400000
-#define	VFP_FE_DOWNWARD		0x00800000
-#define	VFP_FE_TOWARDZERO	0x00c00000
+#define VFP_FE_TONEAREST 0x00000000
+#define VFP_FE_UPWARD 0x00400000
+#define VFP_FE_DOWNWARD 0x00800000
+#define VFP_FE_TOWARDZERO 0x00c00000
 
 #ifdef __ARM_PCS_VFP
-#define	FE_TONEAREST	VFP_FE_TONEAREST
-#define	FE_UPWARD	VFP_FE_UPWARD
-#define	FE_DOWNWARD	VFP_FE_DOWNWARD
-#define	FE_TOWARDZERO	VFP_FE_TOWARDZERO
+#define FE_TONEAREST VFP_FE_TONEAREST
+#define FE_UPWARD VFP_FE_UPWARD
+#define FE_DOWNWARD VFP_FE_DOWNWARD
+#define FE_TOWARDZERO VFP_FE_TOWARDZERO
 #else
-#define	FE_TONEAREST	0x0000
-#define	FE_TOWARDZERO	0x0001
-#define	FE_UPWARD	0x0002
-#define	FE_DOWNWARD	0x0003
+#define FE_TONEAREST 0x0000
+#define FE_TOWARDZERO 0x0001
+#define FE_UPWARD 0x0002
+#define FE_DOWNWARD 0x0003
 #endif
-#define	_ROUND_MASK	(FE_TONEAREST | FE_DOWNWARD | \
-			 FE_UPWARD | FE_TOWARDZERO)
+#define _ROUND_MASK (FE_TONEAREST | FE_DOWNWARD | FE_UPWARD | FE_TOWARDZERO)
 __BEGIN_DECLS
 
 /* Default floating-point environment */
-extern const fenv_t	__fe_dfl_env;
-#define	FE_DFL_ENV	(&__fe_dfl_env)
+extern const fenv_t __fe_dfl_env;
+#define FE_DFL_ENV (&__fe_dfl_env)
 
 /* We need to be able to map status flag positions to mask flag positions */
 #ifndef __ARM_PCS_VFP
-#define	_FPUSW_SHIFT	16
-#define	_ENABLE_MASK	(FE_ALL_EXCEPT << _FPUSW_SHIFT)
+#define _FPUSW_SHIFT 16
+#define _ENABLE_MASK (FE_ALL_EXCEPT << _FPUSW_SHIFT)
 #endif
 
 #ifndef __ARM_PCS_VFP
@@ -103,12 +103,12 @@ int fedisableexcept(int __mask);
 int fegetexcept(void);
 #endif
 
-#else	/* __ARM_PCS_VFP */
+#else /* __ARM_PCS_VFP */
 
-#define	vmrs_fpscr(__r)	__asm __volatile("vmrs %0, fpscr" : "=&r"(__r))
-#define	vmsr_fpscr(__r)	__asm __volatile("vmsr fpscr, %0" : : "r"(__r))
+#define vmrs_fpscr(__r) __asm __volatile("vmrs %0, fpscr" : "=&r"(__r))
+#define vmsr_fpscr(__r) __asm __volatile("vmsr fpscr, %0" : : "r"(__r))
 
-#define _FPU_MASK_SHIFT	8
+#define _FPU_MASK_SHIFT 8
 
 __fenv_static inline int
 feclearexcept(int __excepts)
@@ -148,7 +148,7 @@ feraiseexcept(int __excepts)
 {
 	fexcept_t __ex = __excepts;
 
-	fesetexceptflag(&__ex, __excepts);	/* XXX */
+	fesetexceptflag(&__ex, __excepts); /* XXX */
 	return (0);
 }
 
@@ -231,8 +231,7 @@ feenableexcept(int __mask)
 	fenv_t __old_fpsr, __new_fpsr;
 
 	vmrs_fpscr(__old_fpsr);
-	__new_fpsr = __old_fpsr |
-	    ((__mask & FE_ALL_EXCEPT) << _FPU_MASK_SHIFT);
+	__new_fpsr = __old_fpsr | ((__mask & FE_ALL_EXCEPT) << _FPU_MASK_SHIFT);
 	vmsr_fpscr(__new_fpsr);
 	return ((__old_fpsr >> _FPU_MASK_SHIFT) & FE_ALL_EXCEPT);
 }
@@ -260,8 +259,8 @@ fegetexcept(void)
 
 #endif /* __BSD_VISIBLE */
 
-#endif	/* __ARM_PCS_VFP */
+#endif /* __ARM_PCS_VFP */
 
 __END_DECLS
 
-#endif	/* !_FENV_H_ */
+#endif /* !_FENV_H_ */

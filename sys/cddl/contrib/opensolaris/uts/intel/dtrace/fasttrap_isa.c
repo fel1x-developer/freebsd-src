@@ -26,31 +26,33 @@
  * Use is subject to license terms.
  */
 
-#include <sys/fasttrap_isa.h>
-#include <sys/fasttrap_impl.h>
-#include <sys/dtrace.h>
-#include <sys/dtrace_impl.h>
-#include <sys/cmn_err.h>
 #include <sys/types.h>
+#include <sys/cmn_err.h>
+#include <sys/dtrace.h>
 #include <sys/dtrace_bsd.h>
+#include <sys/dtrace_impl.h>
+#include <sys/fasttrap_impl.h>
+#include <sys/fasttrap_isa.h>
 #include <sys/proc.h>
+#include <sys/ptrace.h>
 #include <sys/reg.h>
 #include <sys/rmlock.h>
+#include <sys/sysmacros.h>
+
+#include <machine/pcb.h>
+#include <machine/segments.h>
+#include <machine/trap.h>
+
 #include <cddl/dev/dtrace/dtrace_cddl.h>
 #include <cddl/dev/dtrace/x86/regset.h>
-#include <machine/segments.h>
-#include <machine/pcb.h>
-#include <machine/trap.h>
-#include <sys/sysmacros.h>
-#include <sys/ptrace.h>
 
 #ifdef __i386__
-#define	r_rax	r_eax
-#define	r_rbx	r_ebx
-#define	r_rip	r_eip
-#define	r_rflags r_eflags
-#define	r_rsp	r_esp
-#define	r_rbp	r_ebp
+#define r_rax r_eax
+#define r_rbx r_ebx
+#define r_rip r_eip
+#define r_rflags r_eflags
+#define r_rsp r_esp
+#define r_rbp r_ebp
 #endif
 
 /*
@@ -81,111 +83,111 @@
  * FASTTRAP_T_COMMON (under the header: Generic Instruction Tracing).
  */
 
-#define	FASTTRAP_MODRM_MOD(modrm)	(((modrm) >> 6) & 0x3)
-#define	FASTTRAP_MODRM_REG(modrm)	(((modrm) >> 3) & 0x7)
-#define	FASTTRAP_MODRM_RM(modrm)	((modrm) & 0x7)
-#define	FASTTRAP_MODRM(mod, reg, rm)	(((mod) << 6) | ((reg) << 3) | (rm))
+#define FASTTRAP_MODRM_MOD(modrm) (((modrm) >> 6) & 0x3)
+#define FASTTRAP_MODRM_REG(modrm) (((modrm) >> 3) & 0x7)
+#define FASTTRAP_MODRM_RM(modrm) ((modrm) & 0x7)
+#define FASTTRAP_MODRM(mod, reg, rm) (((mod) << 6) | ((reg) << 3) | (rm))
 
-#define	FASTTRAP_SIB_SCALE(sib)		(((sib) >> 6) & 0x3)
-#define	FASTTRAP_SIB_INDEX(sib)		(((sib) >> 3) & 0x7)
-#define	FASTTRAP_SIB_BASE(sib)		((sib) & 0x7)
+#define FASTTRAP_SIB_SCALE(sib) (((sib) >> 6) & 0x3)
+#define FASTTRAP_SIB_INDEX(sib) (((sib) >> 3) & 0x7)
+#define FASTTRAP_SIB_BASE(sib) ((sib) & 0x7)
 
-#define	FASTTRAP_REX_W(rex)		(((rex) >> 3) & 1)
-#define	FASTTRAP_REX_R(rex)		(((rex) >> 2) & 1)
-#define	FASTTRAP_REX_X(rex)		(((rex) >> 1) & 1)
-#define	FASTTRAP_REX_B(rex)		((rex) & 1)
-#define	FASTTRAP_REX(w, r, x, b)	\
+#define FASTTRAP_REX_W(rex) (((rex) >> 3) & 1)
+#define FASTTRAP_REX_R(rex) (((rex) >> 2) & 1)
+#define FASTTRAP_REX_X(rex) (((rex) >> 1) & 1)
+#define FASTTRAP_REX_B(rex) ((rex) & 1)
+#define FASTTRAP_REX(w, r, x, b) \
 	(0x40 | ((w) << 3) | ((r) << 2) | ((x) << 1) | (b))
 
 /*
  * Single-byte op-codes.
  */
-#define	FASTTRAP_PUSHL_EBP	0x55
+#define FASTTRAP_PUSHL_EBP 0x55
 
-#define	FASTTRAP_JO		0x70
-#define	FASTTRAP_JNO		0x71
-#define	FASTTRAP_JB		0x72
-#define	FASTTRAP_JAE		0x73
-#define	FASTTRAP_JE		0x74
-#define	FASTTRAP_JNE		0x75
-#define	FASTTRAP_JBE		0x76
-#define	FASTTRAP_JA		0x77
-#define	FASTTRAP_JS		0x78
-#define	FASTTRAP_JNS		0x79
-#define	FASTTRAP_JP		0x7a
-#define	FASTTRAP_JNP		0x7b
-#define	FASTTRAP_JL		0x7c
-#define	FASTTRAP_JGE		0x7d
-#define	FASTTRAP_JLE		0x7e
-#define	FASTTRAP_JG		0x7f
+#define FASTTRAP_JO 0x70
+#define FASTTRAP_JNO 0x71
+#define FASTTRAP_JB 0x72
+#define FASTTRAP_JAE 0x73
+#define FASTTRAP_JE 0x74
+#define FASTTRAP_JNE 0x75
+#define FASTTRAP_JBE 0x76
+#define FASTTRAP_JA 0x77
+#define FASTTRAP_JS 0x78
+#define FASTTRAP_JNS 0x79
+#define FASTTRAP_JP 0x7a
+#define FASTTRAP_JNP 0x7b
+#define FASTTRAP_JL 0x7c
+#define FASTTRAP_JGE 0x7d
+#define FASTTRAP_JLE 0x7e
+#define FASTTRAP_JG 0x7f
 
-#define	FASTTRAP_NOP		0x90
+#define FASTTRAP_NOP 0x90
 
-#define	FASTTRAP_MOV_EAX	0xb8
-#define	FASTTRAP_MOV_ECX	0xb9
+#define FASTTRAP_MOV_EAX 0xb8
+#define FASTTRAP_MOV_ECX 0xb9
 
-#define	FASTTRAP_RET16		0xc2
-#define	FASTTRAP_RET		0xc3
+#define FASTTRAP_RET16 0xc2
+#define FASTTRAP_RET 0xc3
 
-#define	FASTTRAP_LOOPNZ		0xe0
-#define	FASTTRAP_LOOPZ		0xe1
-#define	FASTTRAP_LOOP		0xe2
-#define	FASTTRAP_JCXZ		0xe3
+#define FASTTRAP_LOOPNZ 0xe0
+#define FASTTRAP_LOOPZ 0xe1
+#define FASTTRAP_LOOP 0xe2
+#define FASTTRAP_JCXZ 0xe3
 
-#define	FASTTRAP_CALL		0xe8
-#define	FASTTRAP_JMP32		0xe9
-#define	FASTTRAP_JMP8		0xeb
+#define FASTTRAP_CALL 0xe8
+#define FASTTRAP_JMP32 0xe9
+#define FASTTRAP_JMP8 0xeb
 
-#define	FASTTRAP_INT3		0xcc
-#define	FASTTRAP_INT		0xcd
+#define FASTTRAP_INT3 0xcc
+#define FASTTRAP_INT 0xcd
 
-#define	FASTTRAP_2_BYTE_OP	0x0f
-#define	FASTTRAP_GROUP5_OP	0xff
+#define FASTTRAP_2_BYTE_OP 0x0f
+#define FASTTRAP_GROUP5_OP 0xff
 
 /*
  * Two-byte op-codes (second byte only).
  */
-#define	FASTTRAP_0F_JO		0x80
-#define	FASTTRAP_0F_JNO		0x81
-#define	FASTTRAP_0F_JB		0x82
-#define	FASTTRAP_0F_JAE		0x83
-#define	FASTTRAP_0F_JE		0x84
-#define	FASTTRAP_0F_JNE		0x85
-#define	FASTTRAP_0F_JBE		0x86
-#define	FASTTRAP_0F_JA		0x87
-#define	FASTTRAP_0F_JS		0x88
-#define	FASTTRAP_0F_JNS		0x89
-#define	FASTTRAP_0F_JP		0x8a
-#define	FASTTRAP_0F_JNP		0x8b
-#define	FASTTRAP_0F_JL		0x8c
-#define	FASTTRAP_0F_JGE		0x8d
-#define	FASTTRAP_0F_JLE		0x8e
-#define	FASTTRAP_0F_JG		0x8f
+#define FASTTRAP_0F_JO 0x80
+#define FASTTRAP_0F_JNO 0x81
+#define FASTTRAP_0F_JB 0x82
+#define FASTTRAP_0F_JAE 0x83
+#define FASTTRAP_0F_JE 0x84
+#define FASTTRAP_0F_JNE 0x85
+#define FASTTRAP_0F_JBE 0x86
+#define FASTTRAP_0F_JA 0x87
+#define FASTTRAP_0F_JS 0x88
+#define FASTTRAP_0F_JNS 0x89
+#define FASTTRAP_0F_JP 0x8a
+#define FASTTRAP_0F_JNP 0x8b
+#define FASTTRAP_0F_JL 0x8c
+#define FASTTRAP_0F_JGE 0x8d
+#define FASTTRAP_0F_JLE 0x8e
+#define FASTTRAP_0F_JG 0x8f
 
-#define	FASTTRAP_EFLAGS_OF	0x800
-#define	FASTTRAP_EFLAGS_DF	0x400
-#define	FASTTRAP_EFLAGS_SF	0x080
-#define	FASTTRAP_EFLAGS_ZF	0x040
-#define	FASTTRAP_EFLAGS_AF	0x010
-#define	FASTTRAP_EFLAGS_PF	0x004
-#define	FASTTRAP_EFLAGS_CF	0x001
+#define FASTTRAP_EFLAGS_OF 0x800
+#define FASTTRAP_EFLAGS_DF 0x400
+#define FASTTRAP_EFLAGS_SF 0x080
+#define FASTTRAP_EFLAGS_ZF 0x040
+#define FASTTRAP_EFLAGS_AF 0x010
+#define FASTTRAP_EFLAGS_PF 0x004
+#define FASTTRAP_EFLAGS_CF 0x001
 
 /*
  * Instruction prefixes.
  */
-#define	FASTTRAP_PREFIX_OPERAND	0x66
-#define	FASTTRAP_PREFIX_ADDRESS	0x67
-#define	FASTTRAP_PREFIX_CS	0x2E
-#define	FASTTRAP_PREFIX_DS	0x3E
-#define	FASTTRAP_PREFIX_ES	0x26
-#define	FASTTRAP_PREFIX_FS	0x64
-#define	FASTTRAP_PREFIX_GS	0x65
-#define	FASTTRAP_PREFIX_SS	0x36
-#define	FASTTRAP_PREFIX_LOCK	0xF0
-#define	FASTTRAP_PREFIX_REP	0xF3
-#define	FASTTRAP_PREFIX_REPNE	0xF2
+#define FASTTRAP_PREFIX_OPERAND 0x66
+#define FASTTRAP_PREFIX_ADDRESS 0x67
+#define FASTTRAP_PREFIX_CS 0x2E
+#define FASTTRAP_PREFIX_DS 0x3E
+#define FASTTRAP_PREFIX_ES 0x26
+#define FASTTRAP_PREFIX_FS 0x64
+#define FASTTRAP_PREFIX_GS 0x65
+#define FASTTRAP_PREFIX_SS 0x36
+#define FASTTRAP_PREFIX_LOCK 0xF0
+#define FASTTRAP_PREFIX_REP 0xF3
+#define FASTTRAP_PREFIX_REPNE 0xF2
 
-#define	FASTTRAP_NOREG	0xff
+#define FASTTRAP_NOREG 0xff
 
 /*
  * Map between instruction register encodings and the kernel constants which
@@ -193,13 +195,25 @@
  */
 #ifdef __amd64
 static const uint8_t regmap[16] = {
-	REG_RAX, REG_RCX, REG_RDX, REG_RBX, REG_RSP, REG_RBP, REG_RSI, REG_RDI,
-	REG_R8, REG_R9, REG_R10, REG_R11, REG_R12, REG_R13, REG_R14, REG_R15,
+	REG_RAX,
+	REG_RCX,
+	REG_RDX,
+	REG_RBX,
+	REG_RSP,
+	REG_RBP,
+	REG_RSI,
+	REG_RDI,
+	REG_R8,
+	REG_R9,
+	REG_R10,
+	REG_R11,
+	REG_R12,
+	REG_R13,
+	REG_R14,
+	REG_R15,
 };
 #else
-static const uint8_t regmap[8] = {
-	EAX, ECX, EDX, EBX, UESP, EBP, ESI, EDI
-};
+static const uint8_t regmap[8] = { EAX, ECX, EDX, EBX, UESP, EBP, ESI, EDI };
 #endif
 
 static ulong_t fasttrap_getreg(struct reg *, uint_t);
@@ -445,7 +459,7 @@ fasttrap_tracepoint_init(proc_t *p, fasttrap_tracepoint_t *tp, uintptr_t pc,
 #endif
 						tp->ftt_base = FASTTRAP_NOREG;
 					sz = 4;
-				} else  {
+				} else {
 					uint8_t base = rm |
 					    (FASTTRAP_REX_B(rex) << 3);
 
@@ -608,18 +622,18 @@ fasttrap_tracepoint_init(proc_t *p, fasttrap_tracepoint_t *tp, uintptr_t pc,
 				if (reg != 0) {
 					tp->ftt_ripmode = FASTTRAP_RIP_1 |
 					    (FASTTRAP_RIP_X *
-					    FASTTRAP_REX_B(rex));
+						FASTTRAP_REX_B(rex));
 					rm = 0;
 				} else {
 					tp->ftt_ripmode = FASTTRAP_RIP_2 |
 					    (FASTTRAP_RIP_X *
-					    FASTTRAP_REX_B(rex));
+						FASTTRAP_REX_B(rex));
 					rm = 1;
 				}
 
 				tp->ftt_modrm = tp->ftt_instr[rmindex];
-				tp->ftt_instr[rmindex] =
-				    FASTTRAP_MODRM(2, reg, rm);
+				tp->ftt_instr[rmindex] = FASTTRAP_MODRM(2, reg,
+				    rm);
 			}
 		}
 	}
@@ -719,12 +733,11 @@ fasttrap_return_common(struct reg *rp, uintptr_t pc, pid_t pid,
 		if (tp->ftt_type != FASTTRAP_T_RET &&
 		    tp->ftt_type != FASTTRAP_T_RET16 &&
 		    new_pc - id->fti_probe->ftp_faddr <
-		    id->fti_probe->ftp_fsize)
+			id->fti_probe->ftp_fsize)
 			continue;
 
 		dtrace_probe(id->fti_probe->ftp_id,
-		    pc - id->fti_probe->ftp_faddr,
-		    rp->r_rax, rp->r_rbx, 0, 0);
+		    pc - id->fti_probe->ftp_faddr, rp->r_rax, rp->r_rbx, 0, 0);
 	}
 
 	rm_runlock(&fasttrap_tp_lock, &tracker);
@@ -836,14 +849,14 @@ fasttrap_do_seg(fasttrap_tracepoint_t *tp, struct reg *rp, uintptr_t *addr)
 		if (ndx > p->p_md.md_ldt->ldt_len)
 			return (-1);
 
-		desc = (struct segment_descriptor *)
-		    p->p_md.md_ldt[ndx].ldt_base;
+		desc =
+		    (struct segment_descriptor *)p->p_md.md_ldt[ndx].ldt_base;
 #else
 		if (ndx > max_ldt_segment)
 			return (-1);
 
-		desc = (struct user_segment_descriptor *)
-		    p->p_md.md_ldt[ndx].ldt_base;
+		desc = (struct user_segment_descriptor *)p->p_md.md_ldt[ndx]
+			   .ldt_base;
 #endif
 
 	} else {
@@ -1073,7 +1086,7 @@ fasttrap_pid_probe(struct trapframe *tf)
 					uintptr_t t[5];
 
 					fasttrap_usdt_args64(probe, rp,
-					    sizeof (t) / sizeof (t[0]), t);
+					    sizeof(t) / sizeof(t[0]), t);
 
 					dtrace_probe(probe->ftp_id, t[0], t[1],
 					    t[2], t[3], t[4]);
@@ -1109,8 +1122,8 @@ fasttrap_pid_probe(struct trapframe *tf)
 					 */
 					cookie = dtrace_interrupt_disable();
 					DTRACE_CPUFLAG_SET(CPU_DTRACE_ENTRY);
-					dtrace_probe(probe->ftp_id, s1, s2,
-					    s3, s4, s5);
+					dtrace_probe(probe->ftp_id, s1, s2, s3,
+					    s4, s5);
 					DTRACE_CPUFLAG_CLEAR(CPU_DTRACE_ENTRY);
 					dtrace_interrupt_enable(cookie);
 				} else if (id->fti_ptype == DTFTP_IS_ENABLED) {
@@ -1123,13 +1136,13 @@ fasttrap_pid_probe(struct trapframe *tf)
 					 */
 					is_enabled = 1;
 				} else if (probe->ftp_argmap == NULL) {
-					dtrace_probe(probe->ftp_id, s0, s1,
-					    s2, s3, s4);
+					dtrace_probe(probe->ftp_id, s0, s1, s2,
+					    s3, s4);
 				} else {
 					uint32_t t[5];
 
 					fasttrap_usdt_args32(probe, rp,
-					    sizeof (t) / sizeof (t[0]), t);
+					    sizeof(t) / sizeof(t[0]), t);
 
 					dtrace_probe(probe->ftp_id, t[0], t[1],
 					    t[2], t[3], t[4]);
@@ -1181,8 +1194,7 @@ fasttrap_pid_probe(struct trapframe *tf)
 	 */
 	switch (tp->ftt_type) {
 	case FASTTRAP_T_RET:
-	case FASTTRAP_T_RET16:
-	{
+	case FASTTRAP_T_RET16: {
 		uintptr_t dst = 0;
 		uintptr_t addr = 0;
 		int ret = 0;
@@ -1195,13 +1207,13 @@ fasttrap_pid_probe(struct trapframe *tf)
 #ifdef __amd64
 		if (p->p_model == DATAMODEL_NATIVE) {
 			ret = dst = fasttrap_fulword((void *)rp->r_rsp);
-			addr = rp->r_rsp + sizeof (uintptr_t);
+			addr = rp->r_rsp + sizeof(uintptr_t);
 		} else {
 #endif
 			uint32_t dst32;
 			ret = dst32 = fasttrap_fuword32((void *)rp->r_rsp);
 			dst = dst32;
-			addr = rp->r_rsp + sizeof (uint32_t);
+			addr = rp->r_rsp + sizeof(uint32_t);
 #ifdef __amd64
 		}
 #endif
@@ -1220,8 +1232,7 @@ fasttrap_pid_probe(struct trapframe *tf)
 		break;
 	}
 
-	case FASTTRAP_T_JCC:
-	{
+	case FASTTRAP_T_JCC: {
 		uint_t taken = 0;
 
 		switch (tp->ftt_code) {
@@ -1274,14 +1285,13 @@ fasttrap_pid_probe(struct trapframe *tf)
 		case FASTTRAP_JLE:
 			taken = (rp->r_rflags & FASTTRAP_EFLAGS_ZF) != 0 ||
 			    ((rp->r_rflags & FASTTRAP_EFLAGS_SF) == 0) !=
-			    ((rp->r_rflags & FASTTRAP_EFLAGS_OF) == 0);
+				((rp->r_rflags & FASTTRAP_EFLAGS_OF) == 0);
 			break;
 		case FASTTRAP_JG:
 			taken = (rp->r_rflags & FASTTRAP_EFLAGS_ZF) == 0 &&
 			    ((rp->r_rflags & FASTTRAP_EFLAGS_SF) == 0) ==
-			    ((rp->r_rflags & FASTTRAP_EFLAGS_OF) == 0);
+				((rp->r_rflags & FASTTRAP_EFLAGS_OF) == 0);
 			break;
-
 		}
 
 		if (taken)
@@ -1291,8 +1301,7 @@ fasttrap_pid_probe(struct trapframe *tf)
 		break;
 	}
 
-	case FASTTRAP_T_LOOP:
-	{
+	case FASTTRAP_T_LOOP: {
 		uint_t taken = 0;
 #ifdef __amd64
 		greg_t cx = rp->r_rcx--;
@@ -1321,8 +1330,7 @@ fasttrap_pid_probe(struct trapframe *tf)
 		break;
 	}
 
-	case FASTTRAP_T_JCXZ:
-	{
+	case FASTTRAP_T_JCXZ: {
 #ifdef __amd64
 		greg_t cx = rp->r_rcx;
 #else
@@ -1336,17 +1344,16 @@ fasttrap_pid_probe(struct trapframe *tf)
 		break;
 	}
 
-	case FASTTRAP_T_PUSHL_EBP:
-	{
+	case FASTTRAP_T_PUSHL_EBP: {
 		int ret = 0;
 
 #ifdef __amd64
 		if (p->p_model == DATAMODEL_NATIVE) {
-			rp->r_rsp -= sizeof (uintptr_t);
+			rp->r_rsp -= sizeof(uintptr_t);
 			ret = fasttrap_sulword((void *)rp->r_rsp, rp->r_rbp);
 		} else {
 #endif
-			rp->r_rsp -= sizeof (uint32_t);
+			rp->r_rsp -= sizeof(uint32_t);
 			ret = fasttrap_suword32((void *)rp->r_rsp, rp->r_rbp);
 #ifdef __amd64
 		}
@@ -1376,8 +1383,8 @@ fasttrap_pid_probe(struct trapframe *tf)
 			if (tp->ftt_base != FASTTRAP_NOREG)
 				addr += fasttrap_getreg(rp, tp->ftt_base);
 			if (tp->ftt_index != FASTTRAP_NOREG)
-				addr += fasttrap_getreg(rp, tp->ftt_index) <<
-				    tp->ftt_scale;
+				addr += fasttrap_getreg(rp, tp->ftt_index)
+				    << tp->ftt_scale;
 
 			if (tp->ftt_code == 1) {
 				/*
@@ -1396,8 +1403,8 @@ fasttrap_pid_probe(struct trapframe *tf)
 #ifdef __amd64
 				if (p->p_model == DATAMODEL_NATIVE) {
 #endif
-					if ((value = fasttrap_fulword((void *)addr))
-					     == -1) {
+					if ((value = fasttrap_fulword(
+						 (void *)addr)) == -1) {
 						fasttrap_sigsegv(p, curthread,
 						    addr);
 						new_pc = pc;
@@ -1408,8 +1415,8 @@ fasttrap_pid_probe(struct trapframe *tf)
 				} else {
 					uint32_t value32;
 					addr = (uintptr_t)(uint32_t)addr;
-					if ((value32 = fasttrap_fuword32((void *)addr))
-					    == -1) {
+					if ((value32 = fasttrap_fuword32(
+						 (void *)addr)) == -1) {
 						fasttrap_sigsegv(p, curthread,
 						    addr);
 						new_pc = pc;
@@ -1434,12 +1441,12 @@ fasttrap_pid_probe(struct trapframe *tf)
 			uintptr_t addr = 0, pcps;
 #ifdef __amd64
 			if (p->p_model == DATAMODEL_NATIVE) {
-				addr = rp->r_rsp - sizeof (uintptr_t);
+				addr = rp->r_rsp - sizeof(uintptr_t);
 				pcps = pc + tp->ftt_size;
 				ret = fasttrap_sulword((void *)addr, pcps);
 			} else {
 #endif
-				addr = rp->r_rsp - sizeof (uint32_t);
+				addr = rp->r_rsp - sizeof(uint32_t);
 				pcps = (uint32_t)(pc + tp->ftt_size);
 				ret = fasttrap_suword32((void *)addr, pcps);
 #ifdef __amd64
@@ -1457,8 +1464,7 @@ fasttrap_pid_probe(struct trapframe *tf)
 
 		break;
 
-	case FASTTRAP_T_COMMON:
-	{
+	case FASTTRAP_T_COMMON: {
 		uintptr_t addr;
 #if defined(__amd64)
 		uint8_t scratch[2 * FASTTRAP_MAX_INSTR_SIZE + 22];
@@ -1475,7 +1481,7 @@ fasttrap_pid_probe(struct trapframe *tf)
 			 * reset the pc.
 			 */
 			if (fasttrap_copyout(tp->ftt_instr, (void *)pc,
-			    tp->ftt_size))
+				tp->ftt_size))
 				fasttrap_sigtrap(p, curthread, pc);
 			new_pc = pc;
 			break;
@@ -1621,7 +1627,7 @@ fasttrap_pid_probe(struct trapframe *tf)
 			*(uint64_t *)&scratch[i] = *reg;
 			curthread->t_dtrace_regv = *reg;
 			*reg = pc + tp->ftt_size;
-			i += sizeof (uint64_t);
+			i += sizeof(uint64_t);
 		}
 #endif
 
@@ -1638,10 +1644,10 @@ fasttrap_pid_probe(struct trapframe *tf)
 			scratch[i++] = FASTTRAP_MODRM(0, 4, 5);
 			/* LINTED - alignment */
 			*(uint32_t *)&scratch[i] = 0;
-			i += sizeof (uint32_t);
+			i += sizeof(uint32_t);
 			/* LINTED - alignment */
 			*(uint64_t *)&scratch[i] = pc + tp->ftt_size;
-			i += sizeof (uint64_t);
+			i += sizeof(uint64_t);
 		} else {
 #endif
 			/*
@@ -1651,7 +1657,7 @@ fasttrap_pid_probe(struct trapframe *tf)
 			scratch[i++] = FASTTRAP_JMP32;
 			/* LINTED - alignment */
 			*(uint32_t *)&scratch[i] = pc - addr - 5;
-			i += sizeof (uint32_t);
+			i += sizeof(uint32_t);
 #ifdef __amd64
 		}
 #endif
@@ -1662,7 +1668,7 @@ fasttrap_pid_probe(struct trapframe *tf)
 		scratch[i++] = FASTTRAP_INT;
 		scratch[i++] = T_DTRACE_RET;
 
-		ASSERT(i <= sizeof (scratch));
+		ASSERT(i <= sizeof(scratch));
 
 		if (uwrite(curproc, scratch, i, addr) != 0) {
 			fasttrap_sigtrap(p, curthread, pc);
@@ -1797,34 +1803,62 @@ fasttrap_getreg(struct reg *rp, uint_t reg)
 {
 #ifdef __amd64
 	switch (reg) {
-	case REG_R15:		return (rp->r_r15);
-	case REG_R14:		return (rp->r_r14);
-	case REG_R13:		return (rp->r_r13);
-	case REG_R12:		return (rp->r_r12);
-	case REG_R11:		return (rp->r_r11);
-	case REG_R10:		return (rp->r_r10);
-	case REG_R9:		return (rp->r_r9);
-	case REG_R8:		return (rp->r_r8);
-	case REG_RDI:		return (rp->r_rdi);
-	case REG_RSI:		return (rp->r_rsi);
-	case REG_RBP:		return (rp->r_rbp);
-	case REG_RBX:		return (rp->r_rbx);
-	case REG_RDX:		return (rp->r_rdx);
-	case REG_RCX:		return (rp->r_rcx);
-	case REG_RAX:		return (rp->r_rax);
-	case REG_TRAPNO:	return (rp->r_trapno);
-	case REG_ERR:		return (rp->r_err);
-	case REG_RIP:		return (rp->r_rip);
-	case REG_CS:		return (rp->r_cs);
-	case REG_RFL:		return (rp->r_rflags);
-	case REG_RSP:		return (rp->r_rsp);
-	case REG_SS:		return (rp->r_ss);
-	case REG_FS:		return (rp->r_fs);
-	case REG_GS:		return (rp->r_gs);
-	case REG_DS:		return (rp->r_ds);
-	case REG_ES:		return (rp->r_es);
-	case REG_FSBASE:	return (rdmsr(MSR_FSBASE));
-	case REG_GSBASE:	return (rdmsr(MSR_GSBASE));
+	case REG_R15:
+		return (rp->r_r15);
+	case REG_R14:
+		return (rp->r_r14);
+	case REG_R13:
+		return (rp->r_r13);
+	case REG_R12:
+		return (rp->r_r12);
+	case REG_R11:
+		return (rp->r_r11);
+	case REG_R10:
+		return (rp->r_r10);
+	case REG_R9:
+		return (rp->r_r9);
+	case REG_R8:
+		return (rp->r_r8);
+	case REG_RDI:
+		return (rp->r_rdi);
+	case REG_RSI:
+		return (rp->r_rsi);
+	case REG_RBP:
+		return (rp->r_rbp);
+	case REG_RBX:
+		return (rp->r_rbx);
+	case REG_RDX:
+		return (rp->r_rdx);
+	case REG_RCX:
+		return (rp->r_rcx);
+	case REG_RAX:
+		return (rp->r_rax);
+	case REG_TRAPNO:
+		return (rp->r_trapno);
+	case REG_ERR:
+		return (rp->r_err);
+	case REG_RIP:
+		return (rp->r_rip);
+	case REG_CS:
+		return (rp->r_cs);
+	case REG_RFL:
+		return (rp->r_rflags);
+	case REG_RSP:
+		return (rp->r_rsp);
+	case REG_SS:
+		return (rp->r_ss);
+	case REG_FS:
+		return (rp->r_fs);
+	case REG_GS:
+		return (rp->r_gs);
+	case REG_DS:
+		return (rp->r_ds);
+	case REG_ES:
+		return (rp->r_es);
+	case REG_FSBASE:
+		return (rdmsr(MSR_FSBASE));
+	case REG_GSBASE:
+		return (rdmsr(MSR_GSBASE));
 	}
 
 	panic("dtrace: illegal register constant");

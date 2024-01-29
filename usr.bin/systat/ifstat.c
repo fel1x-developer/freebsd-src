@@ -29,44 +29,45 @@
  */
 
 #include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/queue.h>
+#include <sys/socket.h>
 #include <sys/sysctl.h>
+
 #include <net/if.h>
 #include <net/if_mib.h>
 
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
 #include <err.h>
 #include <errno.h>
 #include <fnmatch.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "systat.h"
-#include "extern.h"
 #include "convtbl.h"
+#include "extern.h"
+#include "systat.h"
 
-				/* Column numbers */
+/* Column numbers */
 
-#define C1	0		/*  0-19 */
-#define C2	20		/* 20-39 */
-#define C3	40		/* 40-59 */
-#define C4	60		/* 60-80 */
-#define C5	80		/* Used for label positioning. */
+#define C1 0  /*  0-19 */
+#define C2 20 /* 20-39 */
+#define C3 40 /* 40-59 */
+#define C4 60 /* 60-80 */
+#define C5 80 /* Used for label positioning. */
 
 static const int col2 = C2;
 static const int col3 = C3;
 static const int col4 = C4;
 
-static SLIST_HEAD(, if_stat)		curlist;
+static SLIST_HEAD(, if_stat) curlist;
 
 struct if_stat {
-	SLIST_ENTRY(if_stat)	 link;
-	char	display_name[IF_NAMESIZE];
-	char	dev_name[IFNAMSIZ]; 	/* copied from ifmibdata */
-	struct	ifmibdata if_mib;
-	struct	timeval tv;
-	struct	timeval tv_lastchanged;
+	SLIST_ENTRY(if_stat) link;
+	char display_name[IF_NAMESIZE];
+	char dev_name[IFNAMSIZ]; /* copied from ifmibdata */
+	struct ifmibdata if_mib;
+	struct timeval tv;
+	struct timeval tv_lastchanged;
 	uint64_t if_in_curtraffic;
 	uint64_t if_out_curtraffic;
 	uint64_t if_in_traffic_peak;
@@ -75,104 +76,106 @@ struct if_stat {
 	uint64_t if_out_curpps;
 	uint64_t if_in_pps_peak;
 	uint64_t if_out_pps_peak;
-	u_int	if_row;			/* Index into ifmib sysctl */
-	int 	if_ypos;		/* -1 if not being displayed */
-	bool	display;
-	u_int	match;
+	u_int if_row; /* Index into ifmib sysctl */
+	int if_ypos;  /* -1 if not being displayed */
+	bool display;
+	u_int match;
 };
 
-static	 int needclear = 0;
-static	 bool displayall = false;
+static int needclear = 0;
+static bool displayall = false;
 
-static	 void  format_device_name(struct if_stat *);
-static	 int   getifmibdata(const int, struct ifmibdata *);
-static	 void  sort_interface_list(void);
-static	 u_int getifnum(void);
-static	 void  clearifstat(void);
+static void format_device_name(struct if_stat *);
+static int getifmibdata(const int, struct ifmibdata *);
+static void sort_interface_list(void);
+static u_int getifnum(void);
+static void clearifstat(void);
 
-#define IFSTAT_ERR(n, s)	do {					\
-	putchar('\014');						\
-	closeifstat(wnd);						\
-	err((n), (s));							\
-} while (0)
+#define IFSTAT_ERR(n, s)          \
+	do {                      \
+		putchar('\014');  \
+		closeifstat(wnd); \
+		err((n), (s));    \
+	} while (0)
 
 #define TOPLINE 3
 #define TOPLABEL \
-"      Interface           Traffic               Peak                Total"
+	"      Interface           Traffic               Peak                Total"
 
-#define STARTING_ROW	(TOPLINE + 1)
-#define ROW_SPACING	(3)
+#define STARTING_ROW (TOPLINE + 1)
+#define ROW_SPACING (3)
 
-#define IN_col2		(showpps ? ifp->if_in_curpps : ifp->if_in_curtraffic)
-#define OUT_col2	(showpps ? ifp->if_out_curpps : ifp->if_out_curtraffic)
-#define IN_col3		(showpps ? \
-		ifp->if_in_pps_peak : ifp->if_in_traffic_peak)
-#define OUT_col3	(showpps ? \
-		ifp->if_out_pps_peak : ifp->if_out_traffic_peak)
-#define IN_col4		(showpps ? \
-	ifp->if_mib.ifmd_data.ifi_ipackets : ifp->if_mib.ifmd_data.ifi_ibytes)
-#define OUT_col4	(showpps ? \
-	ifp->if_mib.ifmd_data.ifi_opackets : ifp->if_mib.ifmd_data.ifi_obytes)
+#define IN_col2 (showpps ? ifp->if_in_curpps : ifp->if_in_curtraffic)
+#define OUT_col2 (showpps ? ifp->if_out_curpps : ifp->if_out_curtraffic)
+#define IN_col3 (showpps ? ifp->if_in_pps_peak : ifp->if_in_traffic_peak)
+#define OUT_col3 (showpps ? ifp->if_out_pps_peak : ifp->if_out_traffic_peak)
+#define IN_col4                                         \
+	(showpps ? ifp->if_mib.ifmd_data.ifi_ipackets : \
+		   ifp->if_mib.ifmd_data.ifi_ibytes)
+#define OUT_col4                                        \
+	(showpps ? ifp->if_mib.ifmd_data.ifi_opackets : \
+		   ifp->if_mib.ifmd_data.ifi_obytes)
 
-#define EMPTY_COLUMN 	"                    "
-#define CLEAR_COLUMN(y, x)	mvprintw((y), (x), "%20s", EMPTY_COLUMN);
+#define EMPTY_COLUMN "                    "
+#define CLEAR_COLUMN(y, x) mvprintw((y), (x), "%20s", EMPTY_COLUMN);
 
-#define DOPUTRATE(c, r, d)	do {					\
-	CLEAR_COLUMN(r, c);						\
-	if (showpps) {							\
-		mvprintw(r, (c), "%10.3f %cp%s  ",			\
-			 convert(d##_##c, curscale),			\
-			 *get_string(d##_##c, curscale),		\
-			 "/s");						\
-	}								\
-	else {								\
-		mvprintw(r, (c), "%10.3f %s%s  ",			\
-			 convert(d##_##c, curscale),			\
-			 get_string(d##_##c, curscale),			\
-			 "/s");						\
-	}								\
-} while (0)
+#define DOPUTRATE(c, r, d)                                         \
+	do {                                                       \
+		CLEAR_COLUMN(r, c);                                \
+		if (showpps) {                                     \
+			mvprintw(r, (c), "%10.3f %cp%s  ",         \
+			    convert(d##_##c, curscale),            \
+			    *get_string(d##_##c, curscale), "/s"); \
+		} else {                                           \
+			mvprintw(r, (c), "%10.3f %s%s  ",          \
+			    convert(d##_##c, curscale),            \
+			    get_string(d##_##c, curscale), "/s");  \
+		}                                                  \
+	} while (0)
 
-#define DOPUTTOTAL(c, r, d)	do {					\
-	CLEAR_COLUMN((r), (c));						\
-	if (showpps) {							\
-		mvprintw((r), (c), "%12.3f %cp  ",			\
-			 convert(d##_##c, SC_AUTO),			\
-			 *get_string(d##_##c, SC_AUTO));		\
-	}								\
-	else {								\
-		mvprintw((r), (c), "%12.3f %s  ",			\
-			 convert(d##_##c, SC_AUTO),			\
-			 get_string(d##_##c, SC_AUTO));			\
-	}								\
-} while (0)
+#define DOPUTTOTAL(c, r, d)                                 \
+	do {                                                \
+		CLEAR_COLUMN((r), (c));                     \
+		if (showpps) {                              \
+			mvprintw((r), (c), "%12.3f %cp  ",  \
+			    convert(d##_##c, SC_AUTO),      \
+			    *get_string(d##_##c, SC_AUTO)); \
+		} else {                                    \
+			mvprintw((r), (c), "%12.3f %s  ",   \
+			    convert(d##_##c, SC_AUTO),      \
+			    get_string(d##_##c, SC_AUTO));  \
+		}                                           \
+	} while (0)
 
-#define PUTRATE(c, r)	do {						\
-	DOPUTRATE(c, (r), IN);						\
-	DOPUTRATE(c, (r)+1, OUT);					\
-} while (0)
+#define PUTRATE(c, r)                       \
+	do {                                \
+		DOPUTRATE(c, (r), IN);      \
+		DOPUTRATE(c, (r) + 1, OUT); \
+	} while (0)
 
-#define PUTTOTAL(c, r)	do {						\
-	DOPUTTOTAL(c, (r), IN);						\
-	DOPUTTOTAL(c, (r)+1, OUT);					\
-} while (0)
+#define PUTTOTAL(c, r)                       \
+	do {                                 \
+		DOPUTTOTAL(c, (r), IN);      \
+		DOPUTTOTAL(c, (r) + 1, OUT); \
+	} while (0)
 
-#define PUTNAME(p) do {							\
-	mvprintw(p->if_ypos, 0, "%s", p->display_name);			\
-	mvprintw(p->if_ypos, col2-3, "%s", (const char *)"in");		\
-	mvprintw(p->if_ypos+1, col2-3, "%s", (const char *)"out");	\
-} while (0)
+#define PUTNAME(p)                                                             \
+	do {                                                                   \
+		mvprintw(p->if_ypos, 0, "%s", p->display_name);                \
+		mvprintw(p->if_ypos, col2 - 3, "%s", (const char *)"in");      \
+		mvprintw(p->if_ypos + 1, col2 - 3, "%s", (const char *)"out"); \
+	} while (0)
 
 WINDOW *
 openifstat(void)
 {
-	return (subwin(stdscr, LINES-3-1, 0, MAINWIN_ROW, 0));
+	return (subwin(stdscr, LINES - 3 - 1, 0, MAINWIN_ROW, 0));
 }
 
 void
 closeifstat(WINDOW *w)
 {
-	struct if_stat	*node = NULL;
+	struct if_stat *node = NULL;
 
 	while (!SLIST_EMPTY(&curlist)) {
 		node = SLIST_FIRST(&curlist);
@@ -203,15 +206,15 @@ labelifstat(void)
 void
 showifstat(void)
 {
-	struct	if_stat *ifp = NULL;
-	
-	SLIST_FOREACH(ifp, &curlist, link) {
+	struct if_stat *ifp = NULL;
+
+	SLIST_FOREACH (ifp, &curlist, link) {
 		if (ifp->if_ypos < LINES - 3 && ifp->if_ypos != -1) {
 			if (!ifp->display || ifp->match == 0) {
-					wmove(wnd, ifp->if_ypos, 0);
-					wclrtoeol(wnd);
-					wmove(wnd, ifp->if_ypos + 1, 0);
-					wclrtoeol(wnd);
+				wmove(wnd, ifp->if_ypos, 0);
+				wclrtoeol(wnd);
+				wmove(wnd, ifp->if_ypos + 1, 0);
+				wclrtoeol(wnd);
 			} else {
 				PUTNAME(ifp);
 				PUTRATE(col2, ifp->if_ypos);
@@ -227,8 +230,8 @@ showifstat(void)
 int
 initifstat(void)
 {
-	struct   if_stat *p = NULL;
-	u_int	 n, i;
+	struct if_stat *p = NULL;
+	u_int n, i;
 
 	n = getifnum();
 	if (n <= 0)
@@ -240,7 +243,7 @@ initifstat(void)
 		p = (struct if_stat *)calloc(1, sizeof(struct if_stat));
 		if (p == NULL)
 			IFSTAT_ERR(1, "out of memory");
-		p->if_row = i+1;
+		p->if_row = i + 1;
 		if (getifmibdata(p->if_row, &p->if_mib) == -1) {
 			free(p);
 			continue;
@@ -265,13 +268,13 @@ initifstat(void)
 void
 fetchifstat(void)
 {
-	struct	if_stat *ifp = NULL, *temp_var;
-	struct	timeval tv, new_tv, old_tv;
-	double	elapsed = 0.0;
+	struct if_stat *ifp = NULL, *temp_var;
+	struct timeval tv, new_tv, old_tv;
+	double elapsed = 0.0;
 	uint64_t new_inb, new_outb, old_inb, old_outb = 0;
 	uint64_t new_inp, new_outp, old_inp, old_outp = 0;
 
-	SLIST_FOREACH_SAFE(ifp, &curlist, link, temp_var) {
+	SLIST_FOREACH_SAFE (ifp, &curlist, link, temp_var) {
 		/*
 		 * Grab a copy of the old input/output values before we
 		 * call getifmibdata().
@@ -283,13 +286,13 @@ fetchifstat(void)
 		ifp->tv_lastchanged = ifp->if_mib.ifmd_data.ifi_lastchange;
 
 		(void)gettimeofday(&new_tv, NULL);
-		if (getifmibdata(ifp->if_row, &ifp->if_mib) == -1 ) {
+		if (getifmibdata(ifp->if_row, &ifp->if_mib) == -1) {
 			/* if a device was removed */
 			SLIST_REMOVE(&curlist, ifp, if_stat, link);
 			free(ifp);
 			needsort = 1;
 			continue;
-		} else if (strcmp(ifp->dev_name, ifp->if_mib.ifmd_name) != 0 ) {
+		} else if (strcmp(ifp->dev_name, ifp->if_mib.ifmd_name) != 0) {
 			/* a device was removed and another one was added */
 			format_device_name(ifp);
 			/* clear to the current value for the new device */
@@ -350,7 +353,6 @@ fetchifstat(void)
 
 		ifp->tv.tv_sec = new_tv.tv_sec;
 		ifp->tv.tv_usec = new_tv.tv_usec;
-
 	}
 
 	if (needsort)
@@ -369,15 +371,15 @@ static void
 format_device_name(struct if_stat *ifp)
 {
 
-	if (ifp != NULL ) {
-		snprintf(ifp->display_name, IF_NAMESIZE, "%*s", IF_NAMESIZE-1,
+	if (ifp != NULL) {
+		snprintf(ifp->display_name, IF_NAMESIZE, "%*s", IF_NAMESIZE - 1,
 		    ifp->if_mib.ifmd_name);
 		strcpy(ifp->dev_name, ifp->if_mib.ifmd_name);
 	}
 }
 
 static int
-check_match(const char *ifname) 
+check_match(const char *ifname)
 {
 	char *p = matchline, *ch, t;
 	int match = 0, mlen;
@@ -387,7 +389,7 @@ check_match(const char *ifname)
 
 	/* Strip leading whitespaces */
 	while (*p == ' ')
-		p ++;
+		p++;
 
 	ch = p;
 	while ((mlen = strcspn(ch, " ;,")) != 0) {
@@ -401,8 +403,7 @@ check_match(const char *ifname)
 			}
 			*p = t;
 			ch = p + strspn(p, " ;,");
-		}
-		else {
+		} else {
 			ch = p + strspn(p, " ;,");
 		}
 	}
@@ -422,11 +423,11 @@ check_match(const char *ifname)
 void
 sort_interface_list(void)
 {
-	struct	if_stat	*ifp = NULL;
-	u_int	y = 0;
+	struct if_stat *ifp = NULL;
+	u_int y = 0;
 
 	y = STARTING_ROW;
-	SLIST_FOREACH(ifp, &curlist, link) {
+	SLIST_FOREACH (ifp, &curlist, link) {
 		if (matchline && !check_match(ifp->if_mib.ifmd_name))
 			ifp->match = 0;
 		else
@@ -434,30 +435,25 @@ sort_interface_list(void)
 		if (ifp->display && ifp->match) {
 			ifp->if_ypos = y;
 			y += ROW_SPACING;
-		}
-		else
+		} else
 			ifp->if_ypos = -1;
 	}
-	
+
 	needsort = 0;
 	needclear = 1;
 }
 
-static
-unsigned int
+static unsigned int
 getifnum(void)
 {
-	u_int	data    = 0;
-	size_t	datalen = 0;
-	static	int name[] = { CTL_NET,
-			       PF_LINK,
-			       NETLINK_GENERIC,
-			       IFMIB_SYSTEM,
-			       IFMIB_IFCOUNT };
+	u_int data = 0;
+	size_t datalen = 0;
+	static int name[] = { CTL_NET, PF_LINK, NETLINK_GENERIC, IFMIB_SYSTEM,
+		IFMIB_IFCOUNT };
 
 	datalen = sizeof(data);
 	if (sysctl(name, 5, (void *)&data, (size_t *)&datalen, (void *)NULL,
-	    (size_t)0) != 0)
+		(size_t)0) != 0)
 		IFSTAT_ERR(1, "sysctl error");
 	return (data);
 }
@@ -465,14 +461,10 @@ getifnum(void)
 static int
 getifmibdata(int row, struct ifmibdata *data)
 {
-	int	ret = 0;
-	size_t	datalen = 0;
-	static	int name[] = { CTL_NET,
-			       PF_LINK,
-			       NETLINK_GENERIC,
-			       IFMIB_IFDATA,
-			       0,
-			       IFDATA_GENERAL };
+	int ret = 0;
+	size_t datalen = 0;
+	static int name[] = { CTL_NET, PF_LINK, NETLINK_GENERIC, IFMIB_IFDATA,
+		0, IFDATA_GENERAL };
 	datalen = sizeof(*data);
 	name[4] = row;
 
@@ -487,15 +479,14 @@ getifmibdata(int row, struct ifmibdata *data)
 int
 cmdifstat(const char *cmd, const char *args)
 {
-	int	retval = 0;
+	int retval = 0;
 
 	retval = ifcmd(cmd, args);
 	/* ifcmd() returns 1 on success */
 	if (retval == 1) {
 		if (needclear)
 			clearifstat();
-	}
-	else if (prefix(cmd, "all")) {
+	} else if (prefix(cmd, "all")) {
 		retval = 1;
 		displayall = true;
 	}

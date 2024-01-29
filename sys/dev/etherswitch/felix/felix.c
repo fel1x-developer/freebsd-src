@@ -30,31 +30,28 @@
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
+#include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/rman.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
 
-#include <net/if.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
-
 #include <dev/enetc/enetc_mdio.h>
-
 #include <dev/etherswitch/etherswitch.h>
+#include <dev/etherswitch/felix/felix_reg.h>
+#include <dev/etherswitch/felix/felix_var.h>
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
 
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/etherswitch/felix/felix_var.h>
-#include <dev/etherswitch/felix/felix_reg.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
 
 #include "etherswitch_if.h"
 #include "miibus_if.h"
@@ -66,7 +63,7 @@ static device_probe_t felix_probe;
 static device_attach_t felix_attach;
 static device_detach_t felix_detach;
 
-static etherswitch_info_t* felix_getinfo(device_t);
+static etherswitch_info_t *felix_getinfo(device_t);
 static int felix_getconf(device_t, etherswitch_conf_t *);
 static int felix_setconf(device_t, etherswitch_conf_t *);
 static void felix_lock(device_t);
@@ -95,57 +92,55 @@ static bool felix_is_phyport(felix_softc_t, int);
 static struct mii_data *felix_miiforport(felix_softc_t, unsigned int);
 
 static struct felix_pci_id felix_pci_ids[] = {
-	{PCI_VENDOR_FREESCALE, FELIX_DEV_ID, FELIX_DEV_NAME},
-	{0, 0, NULL}
+	{ PCI_VENDOR_FREESCALE, FELIX_DEV_ID, FELIX_DEV_NAME }, { 0, 0, NULL }
 };
 
 static device_method_t felix_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,			felix_probe),
-	DEVMETHOD(device_attach,		felix_attach),
-	DEVMETHOD(device_detach,		felix_detach),
+	DEVMETHOD(device_probe, felix_probe),
+	DEVMETHOD(device_attach, felix_attach),
+	DEVMETHOD(device_detach, felix_detach),
 
 	/* bus interface */
-	DEVMETHOD(bus_add_child,		device_add_child_ordered),
-	DEVMETHOD(bus_setup_intr,		bus_generic_setup_intr),
-	DEVMETHOD(bus_teardown_intr,		bus_generic_teardown_intr),
-	DEVMETHOD(bus_release_resource,		bus_generic_release_resource),
-	DEVMETHOD(bus_activate_resource,	bus_generic_activate_resource),
-	DEVMETHOD(bus_deactivate_resource,	bus_generic_deactivate_resource),
-	DEVMETHOD(bus_adjust_resource,		bus_generic_adjust_resource),
-	DEVMETHOD(bus_alloc_resource,		bus_generic_alloc_resource),
+	DEVMETHOD(bus_add_child, device_add_child_ordered),
+	DEVMETHOD(bus_setup_intr, bus_generic_setup_intr),
+	DEVMETHOD(bus_teardown_intr, bus_generic_teardown_intr),
+	DEVMETHOD(bus_release_resource, bus_generic_release_resource),
+	DEVMETHOD(bus_activate_resource, bus_generic_activate_resource),
+	DEVMETHOD(bus_deactivate_resource, bus_generic_deactivate_resource),
+	DEVMETHOD(bus_adjust_resource, bus_generic_adjust_resource),
+	DEVMETHOD(bus_alloc_resource, bus_generic_alloc_resource),
 
 	/* etherswitch interface */
-	DEVMETHOD(etherswitch_getinfo,		felix_getinfo),
-	DEVMETHOD(etherswitch_getconf,		felix_getconf),
-	DEVMETHOD(etherswitch_setconf,		felix_setconf),
-	DEVMETHOD(etherswitch_lock,		felix_lock),
-	DEVMETHOD(etherswitch_unlock,		felix_unlock),
-	DEVMETHOD(etherswitch_getport,		felix_getport),
-	DEVMETHOD(etherswitch_setport,		felix_setport),
-	DEVMETHOD(etherswitch_readreg,		felix_readreg_wrapper),
-	DEVMETHOD(etherswitch_writereg,		felix_writereg_wrapper),
-	DEVMETHOD(etherswitch_readphyreg,	felix_readphy),
-	DEVMETHOD(etherswitch_writephyreg,	felix_writephy),
-	DEVMETHOD(etherswitch_setvgroup,	felix_setvgroup),
-	DEVMETHOD(etherswitch_getvgroup,	felix_getvgroup),
+	DEVMETHOD(etherswitch_getinfo, felix_getinfo),
+	DEVMETHOD(etherswitch_getconf, felix_getconf),
+	DEVMETHOD(etherswitch_setconf, felix_setconf),
+	DEVMETHOD(etherswitch_lock, felix_lock),
+	DEVMETHOD(etherswitch_unlock, felix_unlock),
+	DEVMETHOD(etherswitch_getport, felix_getport),
+	DEVMETHOD(etherswitch_setport, felix_setport),
+	DEVMETHOD(etherswitch_readreg, felix_readreg_wrapper),
+	DEVMETHOD(etherswitch_writereg, felix_writereg_wrapper),
+	DEVMETHOD(etherswitch_readphyreg, felix_readphy),
+	DEVMETHOD(etherswitch_writephyreg, felix_writephy),
+	DEVMETHOD(etherswitch_setvgroup, felix_setvgroup),
+	DEVMETHOD(etherswitch_getvgroup, felix_getvgroup),
 
 	/* miibus interface */
-	DEVMETHOD(miibus_readreg,		felix_readphy),
-	DEVMETHOD(miibus_writereg,		felix_writephy),
+	DEVMETHOD(miibus_readreg, felix_readphy),
+	DEVMETHOD(miibus_writereg, felix_writephy),
 
 	DEVMETHOD_END
 };
 
-DEFINE_CLASS_0(felix, felix_driver, felix_methods,
-    sizeof(struct felix_softc));
+DEFINE_CLASS_0(felix, felix_driver, felix_methods, sizeof(struct felix_softc));
 
 DRIVER_MODULE_ORDERED(felix, pci, felix_driver, NULL, NULL, SI_ORDER_ANY);
 DRIVER_MODULE(miibus, felix, miibus_fdt_driver, NULL, NULL);
 DRIVER_MODULE(etherswitch, felix, etherswitch_driver, NULL, NULL);
 MODULE_VERSION(felix, 1);
-MODULE_PNP_INFO("U16:vendor;U16:device;D:#", pci, felix,
-    felix_pci_ids, nitems(felix_pci_ids) - 1);
+MODULE_PNP_INFO("U16:vendor;U16:device;D:#", pci, felix, felix_pci_ids,
+    nitems(felix_pci_ids) - 1);
 
 static int
 felix_probe(device_t dev)
@@ -200,7 +195,7 @@ felix_parse_port_fdt(felix_softc_t sc, phandle_t child, int *pport)
 		device_printf(sc->dev,
 		    "Port has fixed-link node without link speed specified\n");
 		return (ENXIO);
-        }
+	}
 
 	switch (status) {
 	case 2500:
@@ -216,8 +211,7 @@ felix_parse_port_fdt(felix_softc_t sc, phandle_t child, int *pport)
 		status = IFM_10_T;
 		break;
 	default:
-		device_printf(sc->dev,
-		    "Unsupported link speed value of %d\n",
+		device_printf(sc->dev, "Unsupported link speed value of %d\n",
 		    status);
 		return (ENXIO);
 	}
@@ -244,8 +238,9 @@ felix_init_interface(felix_softc_t sc, int port)
 		return (ENOMEM);
 
 	if_setsoftc(sc->ports[port].ifp, sc);
-	if_setflags(sc->ports[port].ifp, IFF_UP | IFF_BROADCAST | IFF_MULTICAST |
-	    IFF_DRV_RUNNING | IFF_SIMPLEX);
+	if_setflags(sc->ports[port].ifp,
+	    IFF_UP | IFF_BROADCAST | IFF_MULTICAST | IFF_DRV_RUNNING |
+		IFF_SIMPLEX);
 	sc->ports[port].ifname = malloc(strlen(name) + 1, M_FELIX, M_NOWAIT);
 	if (sc->ports[port].ifname == NULL) {
 		if_free(sc->ports[port].ifp);
@@ -277,9 +272,8 @@ felix_setup_port(felix_softc_t sc, int port)
 	 * MTU don't touch it for now.
 	 */
 	FELIX_DEVGMII_PORT_WR4(sc, port, FELIX_DEVGMII_VLAN_CFG,
-	    FELIX_DEVGMII_VLAN_CFG_ENA |
-	    FELIX_DEVGMII_VLAN_CFG_LEN_ENA |
-	    FELIX_DEVGMII_VLAN_CFG_DOUBLE_ENA);
+	    FELIX_DEVGMII_VLAN_CFG_ENA | FELIX_DEVGMII_VLAN_CFG_LEN_ENA |
+		FELIX_DEVGMII_VLAN_CFG_DOUBLE_ENA);
 }
 
 static int
@@ -367,23 +361,21 @@ felix_attach(device_t dev)
 	strlcpy(sc->info.es_name, "Felix TSN Switch", sizeof(sc->info.es_name));
 
 	rid = PCIR_BAR(FELIX_BAR_MDIO);
-	sc->mdio = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
-	    RF_ACTIVE);
+	sc->mdio = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid, RF_ACTIVE);
 	if (sc->mdio == NULL) {
 		device_printf(dev, "Failed to allocate MDIO registers.\n");
 		return (ENXIO);
 	}
 
 	rid = PCIR_BAR(FELIX_BAR_REGS);
-	sc->regs = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
-	    RF_ACTIVE);
+	sc->regs = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid, RF_ACTIVE);
 	if (sc->regs == NULL) {
 		device_printf(dev, "Failed to allocate registers BAR.\n");
 		error = ENXIO;
 		goto out_fail;
 	}
 
-	mtx_init(&sc->mtx, "felix lock",  NULL, MTX_DEF);
+	mtx_init(&sc->mtx, "felix lock", NULL, MTX_DEF);
 	callout_init_mtx(&sc->tick_callout, &sc->mtx, 0);
 
 	node = ofw_bus_get_node(dev);
@@ -440,9 +432,9 @@ felix_attach(device_t dev)
 
 		sc->ports[port].phyaddr = phy_addr;
 		sc->ports[port].miibus = NULL;
-		error = mii_attach(dev, &sc->ports[port].miibus, sc->ports[port].ifp,
-		    felix_ifmedia_upd, felix_ifmedia_sts, BMSR_DEFCAPMASK,
-		    phy_addr, MII_OFFSET_ANY, 0);
+		error = mii_attach(dev, &sc->ports[port].miibus,
+		    sc->ports[port].ifp, felix_ifmedia_upd, felix_ifmedia_sts,
+		    BMSR_DEFCAPMASK, phy_addr, MII_OFFSET_ANY, 0);
 		if (error != 0)
 			goto out_fail;
 
@@ -453,12 +445,11 @@ felix_attach(device_t dev)
 	if (error != 0)
 		goto out_fail;
 
-	sc->timer_ticks = hz;	/* Default to 1s. */
+	sc->timer_ticks = hz; /* Default to 1s. */
 	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev),
-	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)),
-	    OID_AUTO, "timer_ticks", CTLTYPE_INT | CTLFLAG_RW,
-	    sc, 0, felix_timer_rate, "I",
-	    "Number of ticks between timer invocations");
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO,
+	    "timer_ticks", CTLTYPE_INT | CTLFLAG_RW, sc, 0, felix_timer_rate,
+	    "I", "Number of ticks between timer invocations");
 
 	/* The tick routine has to be called with the lock held. */
 	FELIX_LOCK(sc);
@@ -494,7 +485,8 @@ felix_detach(device_t dev)
 
 	/*
 	 * If we have been fully attached do a soft reset.
-	 * This way after when driver is unloaded switch is left in unmanaged mode.
+	 * This way after when driver is unloaded switch is left in unmanaged
+	 * mode.
 	 */
 	if (device_is_attached(dev))
 		felix_setup(sc);
@@ -519,7 +511,7 @@ felix_detach(device_t dev)
 	return (error);
 }
 
-static etherswitch_info_t*
+static etherswitch_info_t *
 felix_getinfo(device_t dev)
 {
 	felix_softc_t sc;
@@ -557,8 +549,7 @@ felix_init_vlan(felix_softc_t sc)
 			break;
 	} while (timeout-- > 0);
 	if (timeout == 0) {
-		device_printf(sc->dev,
-		    "Timeout during VLAN table reset.\n");
+		device_printf(sc->dev, "Timeout during VLAN table reset.\n");
 		return (ETIMEDOUT);
 	}
 
@@ -683,8 +674,8 @@ felix_getport(device_t dev, etherswitch_port_t *p)
 		ifmr->ifm_mask = 0;
 	} else {
 		mii = felix_miiforport(sc, p->es_port);
-		error = ifmedia_ioctl(mii->mii_ifp, &p->es_ifr,
-		    &mii->mii_media, SIOCGIFMEDIA);
+		error = ifmedia_ioctl(mii->mii_ifp, &p->es_ifr, &mii->mii_media,
+		    SIOCGIFMEDIA);
 	}
 	FELIX_UNLOCK(sc);
 	return (error);
@@ -771,7 +762,7 @@ felix_readreg_wrapper(device_t dev, int addr_reg)
 
 	sc = device_get_softc(dev);
 	if (addr_reg > rman_get_size(sc->regs))
-		return (UINT32_MAX);	/* Can't return errors here. */
+		return (UINT32_MAX); /* Can't return errors here. */
 
 	return (FELIX_RD4(sc, addr_reg));
 }
@@ -957,7 +948,8 @@ felix_tick(void *arg)
 		mii_tick(mii);
 	}
 	if (sc->timer_ticks != 0)
-		callout_reset(&sc->tick_callout, sc->timer_ticks, felix_tick, sc);
+		callout_reset(&sc->tick_callout, sc->timer_ticks, felix_tick,
+		    sc);
 }
 
 static int
@@ -991,14 +983,14 @@ felix_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr)
 	ifmr->ifm_status = mii->mii_media_status;
 }
 
-static  bool
+static bool
 felix_is_phyport(felix_softc_t sc, int port)
 {
 
 	return (!sc->ports[port].fixed_port);
 }
 
-static  struct mii_data*
+static struct mii_data *
 felix_miiforport(felix_softc_t sc, unsigned int port)
 {
 

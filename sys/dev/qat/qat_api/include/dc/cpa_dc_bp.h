@@ -1,14 +1,14 @@
 /****************************************************************************
  *
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2007-2023 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -18,7 +18,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -30,7 +30,7 @@
  *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ *
  *
  ***************************************************************************/
 
@@ -60,9 +60,8 @@
 #define CPA_DC_BP_H
 
 #ifdef __cplusplus
-extern"C" {
+extern "C" {
 #endif
-
 
 #include "cpa_dc.h"
 
@@ -76,18 +75,18 @@ extern"C" {
  *
  *
  ****************************************************************************/
-typedef struct _CpaDcBatchOpData  {
-        CpaDcOpData opData;
-        /**< Compression input parameters */
-        CpaBufferList *pSrcBuff;
-        /**< Input buffer list containing the data to be compressed. */
-        CpaBoolean resetSessionState;
-        /**< Reset the session state at the beginning of this request within
-         * the batch. Only applies to stateful sessions. When this flag is
-         * set, the history from previous requests in this session will not be
-         * used when compressing the input data for this request in the batch.
-         * */
-} CpaDcBatchOpData ;
+typedef struct _CpaDcBatchOpData {
+	CpaDcOpData opData;
+	/**< Compression input parameters */
+	CpaBufferList *pSrcBuff;
+	/**< Input buffer list containing the data to be compressed. */
+	CpaBoolean resetSessionState;
+	/**< Reset the session state at the beginning of this request within
+	 * the batch. Only applies to stateful sessions. When this flag is
+	 * set, the history from previous requests in this session will not be
+	 * used when compressing the input data for this request in the batch.
+	 * */
+} CpaDcBatchOpData;
 
 /**
  *****************************************************************************
@@ -123,15 +122,13 @@ typedef struct _CpaDcBatchOpData  {
  * @param[in,out]   pSessionHandle      Session handle.
  * @param[in]       numRequests         Number of requests in the batch.
  * @param[in]       pBatchOpData        Pointer to an array of CpaDcBatchOpData
- *                                      structures which contain the input buffers
- *                                      and parameters for each request in the
- *                                      batch. There should be numRequests entries
- *                                      in the array.
+ *                                      structures which contain the input
+ *buffers and parameters for each request in the batch. There should be
+ *numRequests entries in the array.
  * @param[in]       pDestBuff           Pointer to buffer space for data after
  *                                      compression.
- * @param[in,out]   pResults            Pointer to an array of results structures.
- *                                      There should be numRequests entries in the
- *                                      array.
+ * @param[in,out]   pResults            Pointer to an array of results
+ *structures. There should be numRequests entries in the array.
  * @param[in]       callbackTag         User supplied value to help correlate
  *                                      the callback with its associated
  *                                      request.
@@ -250,14 +247,10 @@ typedef struct _CpaDcBatchOpData  {
  *      None
  *
  *****************************************************************************/
-CpaStatus
-cpaDcBPCompressData( CpaInstanceHandle dcInstance,
-        CpaDcSessionHandle  pSessionHandle,
-        const Cpa32U        numRequests,
-        CpaDcBatchOpData    *pBatchOpData,
-        CpaBufferList       *pDestBuff,
-        CpaDcRqResults      *pResults,
-        void                *callbackTag );
+CpaStatus cpaDcBPCompressData(CpaInstanceHandle dcInstance,
+    CpaDcSessionHandle pSessionHandle, const Cpa32U numRequests,
+    CpaDcBatchOpData *pBatchOpData, CpaBufferList *pDestBuff,
+    CpaDcRqResults *pResults, void *callbackTag);
 
 /**
 *****************************************************************************
@@ -287,11 +280,12 @@ cpaDcBPCompressData( CpaInstanceHandle dcInstance,
 *      Yes
 *
 * @param[in]  instanceHandle      Handle to an instance of this API.
-* @param[in]  numJobs             The number of jobs defined in the CpaDcBatchOpData
-*                                 table.
+* @param[in]  numJobs             The number of jobs defined in the
+*CpaDcBatchOpData table.
 * @param[out] pSizeInBytes        Pointer to the size in bytes of memory to be
 *                                 allocated when the client wishes to allocate
-*                                 a cpaFlatBuffer and the Batch and Pack OP data.
+*                                 a cpaFlatBuffer and the Batch and Pack OP
+*data.
 *
 * @retval CPA_STATUS_SUCCESS        Function executed successfully.
 * @retval CPA_STATUS_FAIL           Function failed.
@@ -307,11 +301,8 @@ cpaDcBPCompressData( CpaInstanceHandle dcInstance,
 *      cpaDcBPCompressData()
 *
 *****************************************************************************/
-CpaStatus
-cpaDcBnpBufferListGetMetaSize(const CpaInstanceHandle instanceHandle,
-        Cpa32U numJobs,
-        Cpa32U *pSizeInBytes);
-
+CpaStatus cpaDcBnpBufferListGetMetaSize(const CpaInstanceHandle instanceHandle,
+    Cpa32U numJobs, Cpa32U *pSizeInBytes);
 
 #ifdef __cplusplus
 } /* close the extern "C" { */

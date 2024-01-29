@@ -17,23 +17,26 @@
  * OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "port_before.h"
 #include <sys/param.h>
 #include <sys/socket.h>
+
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
 #include <arpa/nameser.h>
-#include <string.h>
 #include <errno.h>
+#include <string.h>
+
 #include "port_after.h"
+#include "port_before.h"
 
 /*%
  * WARNING: Don't even consider trying to compile this on a system where
  * sizeof(int) < 4.  sizeof(int) > 4 is fine; all the world's not a VAX.
  */
 
-static int	inet_pton4(const char *src, u_char *dst);
-static int	inet_pton6(const char *src, u_char *dst);
+static int inet_pton4(const char *src, u_char *dst);
+static int inet_pton6(const char *src, u_char *dst);
 
 /* int
  * inet_pton(af, src, dst)
@@ -47,7 +50,7 @@ static int	inet_pton6(const char *src, u_char *dst);
  *	Paul Vixie, 1996.
  */
 int
-inet_pton(int af, const char * __restrict src, void * __restrict dst)
+inet_pton(int af, const char *__restrict src, void *__restrict dst)
 {
 	switch (af) {
 	case AF_INET:
@@ -168,8 +171,8 @@ inet_pton6(const char *src, u_char *dst)
 			}
 			if (tp + NS_INT16SZ > endp)
 				return (0);
-			*tp++ = (u_char) (val >> 8) & 0xff;
-			*tp++ = (u_char) val & 0xff;
+			*tp++ = (u_char)(val >> 8) & 0xff;
+			*tp++ = (u_char)val & 0xff;
 			seen_xdigits = 0;
 			val = 0;
 			continue;
@@ -178,15 +181,15 @@ inet_pton6(const char *src, u_char *dst)
 		    inet_pton4(curtok, tp) > 0) {
 			tp += NS_INADDRSZ;
 			seen_xdigits = 0;
-			break;	/*%< '\\0' was seen by inet_pton4(). */
+			break; /*%< '\\0' was seen by inet_pton4(). */
 		}
 		return (0);
 	}
 	if (seen_xdigits) {
 		if (tp + NS_INT16SZ > endp)
 			return (0);
-		*tp++ = (u_char) (val >> 8) & 0xff;
-		*tp++ = (u_char) val & 0xff;
+		*tp++ = (u_char)(val >> 8) & 0xff;
+		*tp++ = (u_char)val & 0xff;
 	}
 	if (colonp != NULL) {
 		/*
@@ -199,7 +202,7 @@ inet_pton6(const char *src, u_char *dst)
 		if (tp == endp)
 			return (0);
 		for (i = 1; i <= n; i++) {
-			endp[- i] = colonp[n - i];
+			endp[-i] = colonp[n - i];
 			colonp[n - i] = 0;
 		}
 		tp = endp;

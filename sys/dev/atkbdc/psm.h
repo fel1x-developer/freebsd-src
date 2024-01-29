@@ -24,8 +24,8 @@
  */
 
 #ifndef _DEV_ATKBDC_PSM_H_
-#define	_DEV_ATKBDC_PSM_H_
+#define _DEV_ATKBDC_PSM_H_
 
-#define	PSM_DRIVER_NAME	"psm"
+#define PSM_DRIVER_NAME "psm"
 
 #endif /* !_DEV_ATKBDC_PSM_H_ */

@@ -43,7 +43,7 @@
  * We leave synflood mode when the number of half-open states - including
  * in-flight syncookies - drops far enough again
  */
- 
+
 /*
  * syncookie enabled Initial Sequence Number:
  *  24 bit MAC
@@ -58,69 +58,65 @@
  *  http://cr.yp.to/syncookies/archive (details)
  */
 
-//#include "pflog.h"
+// #include "pflog.h"
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/mbuf.h>
 #include <sys/filio.h>
-#include <sys/socket.h>
-#include <sys/socketvar.h>
 #include <sys/kernel.h>
-#include <sys/time.h>
+#include <sys/mbuf.h>
 #include <sys/proc.h>
 #include <sys/rwlock.h>
+#include <sys/socket.h>
+#include <sys/socketvar.h>
 #include <sys/syslog.h>
-
-#include <crypto/siphash/siphash.h>
+#include <sys/time.h>
 
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_types.h>
+#include <net/if_var.h>
+#include <net/pfvar.h>
 #include <net/route.h>
-
 #include <netinet/in.h>
 #include <netinet/in_pcb.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
 #include <netinet/tcp_var.h>
-
-#include <net/pfvar.h>
 #include <netpfil/pf/pf_nv.h>
 
-#define	DPFPRINTF(n, x)	if (V_pf_status.debug >= (n)) printf x
+#include <crypto/siphash/siphash.h>
+
+#define DPFPRINTF(n, x)               \
+	if (V_pf_status.debug >= (n)) \
+	printf x
 
 union pf_syncookie {
-	uint8_t		cookie;
+	uint8_t cookie;
 	struct {
-		uint8_t	oddeven:1,
-			sack_ok:1,
-			wscale_idx:3,
-			mss_idx:3;
+		uint8_t oddeven : 1, sack_ok : 1, wscale_idx : 3, mss_idx : 3;
 	} flags;
 };
 
-#define	PF_SYNCOOKIE_SECRET_SIZE	SIPHASH_KEY_LENGTH
-#define	PF_SYNCOOKIE_SECRET_LIFETIME	15 /* seconds */
+#define PF_SYNCOOKIE_SECRET_SIZE SIPHASH_KEY_LENGTH
+#define PF_SYNCOOKIE_SECRET_LIFETIME 15 /* seconds */
 
 /* Protected by PF_RULES_xLOCK. */
 struct pf_syncookie_status {
-	struct callout	keytimeout;
-	uint8_t		oddeven;
-	uint8_t		key[2][SIPHASH_KEY_LENGTH];
-	uint32_t	hiwat;	/* absolute; # of states */
-	uint32_t	lowat;
+	struct callout keytimeout;
+	uint8_t oddeven;
+	uint8_t key[2][SIPHASH_KEY_LENGTH];
+	uint32_t hiwat; /* absolute; # of states */
+	uint32_t lowat;
 };
 VNET_DEFINE_STATIC(struct pf_syncookie_status, pf_syncookie_status);
-#define V_pf_syncookie_status	VNET(pf_syncookie_status)
+#define V_pf_syncookie_status VNET(pf_syncookie_status)
 
-static int	pf_syncookies_setmode(u_int8_t);
-void		pf_syncookie_rotate(void *);
-void		pf_syncookie_newkey(void);
-uint32_t	pf_syncookie_mac(struct pf_pdesc *, union pf_syncookie,
-		    uint32_t);
-uint32_t	pf_syncookie_generate(struct mbuf *m, int off, struct pf_pdesc *,
-		    uint16_t);
+static int pf_syncookies_setmode(u_int8_t);
+void pf_syncookie_rotate(void *);
+void pf_syncookie_newkey(void);
+uint32_t pf_syncookie_mac(struct pf_pdesc *, union pf_syncookie, uint32_t);
+uint32_t pf_syncookie_generate(struct mbuf *m, int off, struct pf_pdesc *,
+    uint16_t);
 
 void
 pf_syncookies_init(void)
@@ -146,11 +142,11 @@ pf_syncookies_cleanup(void)
 int
 pf_get_syncookies(struct pfioc_nv *nv)
 {
-	nvlist_t	*nvl = NULL;
-	void		*nvlpacked = NULL;
-	int		 error;
+	nvlist_t *nvl = NULL;
+	void *nvlpacked = NULL;
+	int error;
 
-#define ERROUT(x)	ERROUT_FUNCTION(errout, x)
+#define ERROUT(x) ERROUT_FUNCTION(errout, x)
 
 	nvl = nvlist_create(0);
 	if (nvl == NULL)
@@ -188,14 +184,14 @@ errout:
 int
 pf_set_syncookies(struct pfioc_nv *nv)
 {
-	nvlist_t	*nvl = NULL;
-	void		*nvlpacked = NULL;
-	int		 error;
-	bool		 enabled, adaptive;
-	uint32_t	 hiwat, lowat;
-	uint8_t		 newmode;
+	nvlist_t *nvl = NULL;
+	void *nvlpacked = NULL;
+	int error;
+	bool enabled, adaptive;
+	uint32_t hiwat, lowat;
+	uint8_t newmode;
 
-#define ERROUT(x)	ERROUT_FUNCTION(errout, x)
+#define ERROUT(x) ERROUT_FUNCTION(errout, x)
 
 	if (nv->len > pf_ioctl_maxcount)
 		return (ENOMEM);
@@ -212,8 +208,8 @@ pf_set_syncookies(struct pfioc_nv *nv)
 	if (nvl == NULL)
 		ERROUT(EBADMSG);
 
-	if (! nvlist_exists_bool(nvl, "enabled")
-	    || ! nvlist_exists_bool(nvl, "adaptive"))
+	if (!nvlist_exists_bool(nvl, "enabled") ||
+	    !nvlist_exists_bool(nvl, "adaptive"))
 		ERROUT(EBADMSG);
 
 	enabled = nvlist_get_bool(nvl, "enabled");
@@ -228,7 +224,8 @@ pf_set_syncookies(struct pfioc_nv *nv)
 
 	newmode = PF_SYNCOOKIES_NEVER;
 	if (enabled)
-		newmode = adaptive ? PF_SYNCOOKIES_ADAPTIVE : PF_SYNCOOKIES_ALWAYS;
+		newmode = adaptive ? PF_SYNCOOKIES_ADAPTIVE :
+				     PF_SYNCOOKIES_ALWAYS;
 
 	PF_RULES_WLOCK();
 	error = pf_syncookies_setmode(newmode);
@@ -269,7 +266,8 @@ pf_synflood_check(struct pf_pdesc *pd)
 	MPASS(pd->proto == IPPROTO_TCP);
 	PF_RULES_RASSERT();
 
-	if (pd->pf_mtag && (pd->pf_mtag->flags & PF_MTAG_FLAG_SYNCOOKIE_RECREATED))
+	if (pd->pf_mtag &&
+	    (pd->pf_mtag->flags & PF_MTAG_FLAG_SYNCOOKIE_RECREATED))
 		return (0);
 
 	if (V_pf_status.syncookies_mode != PF_SYNCOOKIES_ADAPTIVE)
@@ -277,7 +275,7 @@ pf_synflood_check(struct pf_pdesc *pd)
 
 	if (!V_pf_status.syncookies_active &&
 	    atomic_load_32(&V_pf_status.states_halfopen) >
-	    V_pf_syncookie_status.hiwat) {
+		V_pf_syncookie_status.hiwat) {
 		/* We'd want to 'pf_syncookie_newkey()' here, but that requires
 		 * the rules write lock, which we can't get with the read lock
 		 * held. */
@@ -295,25 +293,26 @@ pf_synflood_check(struct pf_pdesc *pd)
 void
 pf_syncookie_send(struct mbuf *m, int off, struct pf_pdesc *pd)
 {
-	uint16_t	mss;
-	uint32_t	iss;
+	uint16_t mss;
+	uint32_t iss;
 
-	mss = max(V_tcp_mssdflt, pf_get_mss(m, off, pd->hdr.tcp.th_off, pd->af));
+	mss = max(V_tcp_mssdflt,
+	    pf_get_mss(m, off, pd->hdr.tcp.th_off, pd->af));
 	iss = pf_syncookie_generate(m, off, pd, mss);
-	pf_send_tcp(NULL, pd->af, pd->dst, pd->src, *pd->dport, *pd->sport,
-	    iss, ntohl(pd->hdr.tcp.th_seq) + 1, TH_SYN|TH_ACK, 0, mss,
-	    0, true, 0, 0, pd->act.rtableid);
+	pf_send_tcp(NULL, pd->af, pd->dst, pd->src, *pd->dport, *pd->sport, iss,
+	    ntohl(pd->hdr.tcp.th_seq) + 1, TH_SYN | TH_ACK, 0, mss, 0, true, 0,
+	    0, pd->act.rtableid);
 	counter_u64_add(V_pf_status.lcounters[KLCNT_SYNCOOKIES_SENT], 1);
 	/* XXX Maybe only in adaptive mode? */
-	atomic_add_64(&V_pf_status.syncookies_inflight[V_pf_syncookie_status.oddeven],
-	    1);
+	atomic_add_64(
+	    &V_pf_status.syncookies_inflight[V_pf_syncookie_status.oddeven], 1);
 }
 
 bool
 pf_syncookie_check(struct pf_pdesc *pd)
 {
-	uint32_t		 hash, ack, seq;
-	union pf_syncookie	 cookie;
+	uint32_t hash, ack, seq;
+	union pf_syncookie cookie;
 
 	MPASS(pd->proto == IPPROTO_TCP);
 	PF_RULES_RASSERT();
@@ -323,8 +322,8 @@ pf_syncookie_check(struct pf_pdesc *pd)
 	cookie.cookie = (ack & 0xff) ^ (ack >> 24);
 
 	/* we don't know oddeven before setting the cookie (union) */
-	if (atomic_load_64(&V_pf_status.syncookies_inflight[cookie.flags.oddeven])
-	    == 0)
+	if (atomic_load_64(
+		&V_pf_status.syncookies_inflight[cookie.flags.oddeven]) == 0)
 		return (0);
 
 	hash = pf_syncookie_mac(pd, cookie, seq);
@@ -337,17 +336,18 @@ pf_syncookie_check(struct pf_pdesc *pd)
 uint8_t
 pf_syncookie_validate(struct pf_pdesc *pd)
 {
-	uint32_t		 ack;
-	union pf_syncookie	 cookie;
+	uint32_t ack;
+	union pf_syncookie cookie;
 
-	if (! pf_syncookie_check(pd))
+	if (!pf_syncookie_check(pd))
 		return (0);
 
 	ack = ntohl(pd->hdr.tcp.th_ack) - 1;
 	cookie.cookie = (ack & 0xff) ^ (ack >> 24);
 
 	counter_u64_add(V_pf_status.lcounters[KLCNT_SYNCOOKIES_VALID], 1);
-	atomic_add_64(&V_pf_status.syncookies_inflight[cookie.flags.oddeven], -1);
+	atomic_add_64(&V_pf_status.syncookies_inflight[cookie.flags.oddeven],
+	    -1);
 
 	return (1);
 }
@@ -363,12 +363,11 @@ pf_syncookie_rotate(void *arg)
 	/* do we want to disable syncookies? */
 	if (V_pf_status.syncookies_active &&
 	    ((V_pf_status.syncookies_mode == PF_SYNCOOKIES_ADAPTIVE &&
-	    (atomic_load_32(&V_pf_status.states_halfopen) +
-	    atomic_load_64(&V_pf_status.syncookies_inflight[0]) +
-	    atomic_load_64(&V_pf_status.syncookies_inflight[1])) <
-	    V_pf_syncookie_status.lowat) ||
-	    V_pf_status.syncookies_mode == PF_SYNCOOKIES_NEVER)
-			) {
+		 (atomic_load_32(&V_pf_status.states_halfopen) +
+		     atomic_load_64(&V_pf_status.syncookies_inflight[0]) +
+		     atomic_load_64(&V_pf_status.syncookies_inflight[1])) <
+		     V_pf_syncookie_status.lowat) ||
+		V_pf_status.syncookies_mode == PF_SYNCOOKIES_NEVER)) {
 		V_pf_status.syncookies_active = false;
 		DPFPRINTF(PF_DEBUG_MISC, ("syncookies disabled\n"));
 	}
@@ -399,8 +398,10 @@ pf_syncookie_newkey(void)
 	PF_RULES_WASSERT();
 
 	MPASS(V_pf_syncookie_status.oddeven < 2);
-	V_pf_syncookie_status.oddeven = (V_pf_syncookie_status.oddeven + 1) & 0x1;
-	atomic_store_64(&V_pf_status.syncookies_inflight[V_pf_syncookie_status.oddeven], 0);
+	V_pf_syncookie_status.oddeven = (V_pf_syncookie_status.oddeven + 1) &
+	    0x1;
+	atomic_store_64(
+	    &V_pf_status.syncookies_inflight[V_pf_syncookie_status.oddeven], 0);
 	arc4random_buf(V_pf_syncookie_status.key[V_pf_syncookie_status.oddeven],
 	    PF_SYNCOOKIE_SECRET_SIZE);
 	callout_reset(&V_pf_syncookie_status.keytimeout,
@@ -413,8 +414,8 @@ pf_syncookie_newkey(void)
  * [An Analysis of TCP Maximum Segment Sizes, S. Alcock and R. Nelson, 2011]
  *   .2%  .3%   5%    7%    7%    20%   15%   45%
  */
-static int pf_syncookie_msstab[] =
-    { 216, 536, 1200, 1360, 1400, 1440, 1452, 1460 };
+static int pf_syncookie_msstab[] = { 216, 536, 1200, 1360, 1400, 1440, 1452,
+	1460 };
 
 /*
  * Distribution and probability of certain WSCALE values.
@@ -428,8 +429,8 @@ static int pf_syncookie_wstab[] = { 0, 0, 1, 2, 4, 6, 7, 8 };
 uint32_t
 pf_syncookie_mac(struct pf_pdesc *pd, union pf_syncookie cookie, uint32_t seq)
 {
-	SIPHASH_CTX	ctx;
-	uint32_t	siphash[2];
+	SIPHASH_CTX ctx;
+	uint32_t siphash[2];
 
 	PF_RULES_RASSERT();
 	MPASS(pd->proto == IPPROTO_TCP);
@@ -463,9 +464,9 @@ uint32_t
 pf_syncookie_generate(struct mbuf *m, int off, struct pf_pdesc *pd,
     uint16_t mss)
 {
-	uint8_t			 i, wscale;
-	uint32_t		 iss, hash;
-	union pf_syncookie	 cookie;
+	uint8_t i, wscale;
+	uint32_t iss, hash;
+	union pf_syncookie cookie;
 
 	PF_RULES_RASSERT();
 
@@ -473,17 +474,17 @@ pf_syncookie_generate(struct mbuf *m, int off, struct pf_pdesc *pd,
 
 	/* map MSS */
 	for (i = nitems(pf_syncookie_msstab) - 1;
-	    pf_syncookie_msstab[i] > mss && i > 0; i--)
+	     pf_syncookie_msstab[i] > mss && i > 0; i--)
 		/* nada */;
 	cookie.flags.mss_idx = i;
 
 	/* map WSCALE */
 	wscale = pf_get_wscale(m, off, pd->hdr.tcp.th_off, pd->af);
 	for (i = nitems(pf_syncookie_wstab) - 1;
-	    pf_syncookie_wstab[i] > wscale && i > 0; i--)
+	     pf_syncookie_wstab[i] > wscale && i > 0; i--)
 		/* nada */;
 	cookie.flags.wscale_idx = i;
-	cookie.flags.sack_ok = 0;	/* XXX */
+	cookie.flags.sack_ok = 0; /* XXX */
 
 	cookie.flags.oddeven = V_pf_syncookie_status.oddeven;
 	hash = pf_syncookie_mac(pd, cookie, ntohl(pd->hdr.tcp.th_seq));
@@ -503,10 +504,10 @@ pf_syncookie_generate(struct mbuf *m, int off, struct pf_pdesc *pd,
 struct mbuf *
 pf_syncookie_recreate_syn(uint8_t ttl, int off, struct pf_pdesc *pd)
 {
-	uint8_t			 wscale;
-	uint16_t		 mss;
-	uint32_t		 ack, seq;
-	union pf_syncookie	 cookie;
+	uint8_t wscale;
+	uint16_t mss;
+	uint32_t ack, seq;
+	union pf_syncookie cookie;
 
 	seq = ntohl(pd->hdr.tcp.th_seq) - 1;
 	ack = ntohl(pd->hdr.tcp.th_ack) - 1;

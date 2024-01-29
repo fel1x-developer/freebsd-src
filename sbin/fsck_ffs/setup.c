@@ -37,26 +37,25 @@
 #include <sys/file.h>
 #include <sys/sysctl.h>
 
-#include <ufs/ufs/dinode.h>
-#include <ufs/ffs/fs.h>
-
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <limits.h>
 #include <stdint.h>
 #include <string.h>
+#include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
 
 #include "fsck.h"
 
-struct inohash *inphash;	       /* hash list of directory inode info */
-struct inoinfo **inpsort;	       /* disk order list of directory inodes */
-struct inode snaplist[FSMAXSNAP + 1];  /* list of active snapshots */
-int snapcnt;			       /* number of active snapshots */
-char *copybuf;			       /* buffer to copy snapshot blocks */
+struct inohash *inphash;	      /* hash list of directory inode info */
+struct inoinfo **inpsort;	      /* disk order list of directory inodes */
+struct inode snaplist[FSMAXSNAP + 1]; /* list of active snapshots */
+int snapcnt;			      /* number of active snapshots */
+char *copybuf;			      /* buffer to copy snapshot blocks */
 
 static int sbhashfailed;
-#define POWEROF2(num)	(((num) & ((num) - 1)) == 0)
+#define POWEROF2(num) (((num) & ((num)-1)) == 0)
 
 static int calcsb(char *dev, int devfd, struct fs *fs);
 static void saverecovery(int readfd, int writefd);
@@ -127,7 +126,7 @@ setup(char *dev)
 	}
 	if ((sblock.fs_minfree < 0 || sblock.fs_minfree > 99)) {
 		pfatal("IMPOSSIBLE MINFREE=%d IN SUPERBLOCK",
-			sblock.fs_minfree);
+		    sblock.fs_minfree);
 		if (reply("SET TO DEFAULT") == 1) {
 			sblock.fs_minfree = 10;
 			sbdirty();
@@ -149,7 +148,7 @@ setup(char *dev)
 	 */
 	bufinit();
 	bmapsize = roundup(howmany(maxfsblock, CHAR_BIT), sizeof(short));
-	blockmap = Calloc((unsigned)bmapsize, sizeof (char));
+	blockmap = Calloc((unsigned)bmapsize, sizeof(char));
 	if (blockmap == NULL) {
 		printf("cannot alloc %u bytes for blockmap\n",
 		    (unsigned)bmapsize);
@@ -209,7 +208,8 @@ setup(char *dev)
 	if (snapcnt > 0 && copybuf == NULL) {
 		copybuf = Balloc(sblock.fs_bsize);
 		if (copybuf == NULL)
-			errx(EEXIT, "cannot allocate space for snapshot "
+			errx(EEXIT,
+			    "cannot allocate space for snapshot "
 			    "copy buffer");
 	}
 	return (1);
@@ -242,31 +242,29 @@ badsb:
  * summary group information, and any remaining cylinder group maps that
  * follow it. We skip over any other entries in the list.
  */
-#define CHKBLKINLIST(chkblk)						\
-	/* All UFS_NDADDR blocks are copied */				\
-	if ((chkblk) >= UFS_NDADDR) {					\
-		/* Skip over blocks that are not of interest */		\
-		while (*blkp < (chkblk) && blkp < lastblkp)		\
-			blkp++;						\
-		/* Fail if end of list and not all blocks found */	\
-		if (blkp >= lastblkp) {					\
-			pwarn("UFS%d snapshot inode %jd failed: "	\
-			    "improper block list length (%jd)\n",	\
-			    sblock.fs_magic == FS_UFS1_MAGIC ? 1 : 2,	\
-			    (intmax_t)snapip->i_number,			\
-			    (intmax_t)(lastblkp - &snapblklist[0]));	\
-			status = 0;					\
-		}							\
-		/* Fail if block we seek is missing */			\
-		else if (*blkp++ != (chkblk)) {				\
-			pwarn("UFS%d snapshot inode %jd failed: "	\
-			    "block list (%jd) != %s (%jd)\n",		\
-			    sblock.fs_magic == FS_UFS1_MAGIC ? 1 : 2,	\
-			    (intmax_t)snapip->i_number,			\
-			    (intmax_t)blkp[-1],	#chkblk,		\
-			    (intmax_t)chkblk);				\
-			status = 0;					\
-		}							\
+#define CHKBLKINLIST(chkblk)                                                \
+	/* All UFS_NDADDR blocks are copied */                              \
+	if ((chkblk) >= UFS_NDADDR) {                                       \
+		/* Skip over blocks that are not of interest */             \
+		while (*blkp < (chkblk) && blkp < lastblkp)                 \
+			blkp++;                                             \
+		/* Fail if end of list and not all blocks found */          \
+		if (blkp >= lastblkp) {                                     \
+			pwarn("UFS%d snapshot inode %jd failed: "           \
+			      "improper block list length (%jd)\n",         \
+			    sblock.fs_magic == FS_UFS1_MAGIC ? 1 : 2,       \
+			    (intmax_t)snapip->i_number,                     \
+			    (intmax_t)(lastblkp - &snapblklist[0]));        \
+			status = 0;                                         \
+		} /* Fail if block we seek is missing */                    \
+		else if (*blkp++ != (chkblk)) {                             \
+			pwarn("UFS%d snapshot inode %jd failed: "           \
+			      "block list (%jd) != %s (%jd)\n",             \
+			    sblock.fs_magic == FS_UFS1_MAGIC ? 1 : 2,       \
+			    (intmax_t)snapip->i_number, (intmax_t)blkp[-1], \
+			    #chkblk, (intmax_t)chkblk);                     \
+			status = 0;                                         \
+		}                                                           \
 	}
 
 static int
@@ -286,7 +284,7 @@ checksnapinfo(struct inode *snapip)
 	idesc.id_func = getlbnblkno;
 	idesc.id_number = snapip->i_number;
 	lbn = howmany(fs->fs_size, fs->fs_frag);
-	idesc.id_parent = lbn;		/* sought after blkno */
+	idesc.id_parent = lbn; /* sought after blkno */
 	if ((ckinode(snapip->i_dp, &idesc) & FOUND) == 0)
 		return (0);
 	size = fragroundup(fs,
@@ -445,9 +443,9 @@ readsb(void)
 		goto goodsb;
 	case ENOENT:
 		printf("SEARCH FOR ALTERNATE SUPER-BLOCK FAILED. "
-		    "YOU MUST USE THE\n-b OPTION TO FSCK TO SPECIFY "
-		    "THE LOCATION OF AN ALTERNATE\nSUPER-BLOCK TO "
-		    "SUPPLY NEEDED INFORMATION; SEE fsck_ffs(8).\n");
+		       "YOU MUST USE THE\n-b OPTION TO FSCK TO SPECIFY "
+		       "THE LOCATION OF AN ALTERNATE\nSUPER-BLOCK TO "
+		       "SUPPLY NEEDED INFORMATION; SEE fsck_ffs(8).\n");
 		return (0);
 	case EIO:
 	default:
@@ -526,8 +524,8 @@ calcsb(char *dev, int devfd, struct fs *fs)
 	fsrbuf = Balloc(secsize);
 	if (fsrbuf == NULL)
 		errx(EEXIT, "calcsb: cannot allocate recovery buffer");
-	if (blread(devfd, fsrbuf,
-	    (SBLOCK_UFS2 - secsize) / dev_bsize, secsize) != 0) {
+	if (blread(devfd, fsrbuf, (SBLOCK_UFS2 - secsize) / dev_bsize,
+		secsize) != 0) {
 		free(fsrbuf);
 		return (0);
 	}
@@ -565,10 +563,9 @@ chkrecovery(int devfd)
 	fsrbuf = NULL;
 	rdsize = sblock.fs_fsize;
 	if (ioctl(devfd, DIOCGSECTORSIZE, &secsize) == -1 ||
-	    rdsize % secsize != 0 ||
-	    (fsrbuf = Balloc(rdsize)) == NULL ||
-	    blread(devfd, fsrbuf, (SBLOCK_UFS2 - rdsize) / dev_bsize,
-	      rdsize) != 0) {
+	    rdsize % secsize != 0 || (fsrbuf = Balloc(rdsize)) == NULL ||
+	    blread(devfd, fsrbuf, (SBLOCK_UFS2 - rdsize) / dev_bsize, rdsize) !=
+		0) {
 		free(fsrbuf);
 		return (1);
 	}
@@ -604,10 +601,9 @@ saverecovery(int readfd, int writefd)
 	rdsize = sblock.fs_fsize;
 	if (sblock.fs_magic != FS_UFS2_MAGIC ||
 	    ioctl(readfd, DIOCGSECTORSIZE, &secsize) == -1 ||
-	    rdsize % secsize != 0 ||
-	    (fsrbuf = Balloc(rdsize)) == NULL ||
+	    rdsize % secsize != 0 || (fsrbuf = Balloc(rdsize)) == NULL ||
 	    blread(readfd, fsrbuf, (SBLOCK_UFS2 - rdsize) / dev_bsize,
-	      rdsize) != 0) {
+		rdsize) != 0) {
 		printf("RECOVERY DATA COULD NOT BE CREATED\n");
 		free(fsrbuf);
 		return;

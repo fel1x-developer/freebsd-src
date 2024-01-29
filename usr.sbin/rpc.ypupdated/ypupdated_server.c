@@ -39,14 +39,16 @@
  */
 
 #include <sys/cdefs.h>
-#include <stdio.h>
-#include <rpc/rpc.h>
-#include <rpc/key_prot.h>
 #include <sys/param.h>
+
+#include <rpc/key_prot.h>
+#include <rpc/rpc.h>
 #include <rpcsvc/yp.h>
+#include <stdio.h>
+
+#include "yp_extern.h"
 #include "ypupdate_prot.h"
 #include "ypupdated_extern.h"
-#include "yp_extern.h"
 #include "ypxfr_extern.h"
 
 int children = 0;
@@ -60,7 +62,7 @@ int forked = 0;
  * value.
  */
 #ifndef WINDOW
-#define WINDOW (60*60)
+#define WINDOW (60 * 60)
 #endif
 
 static enum auth_stat
@@ -70,22 +72,22 @@ yp_checkauth(struct svc_req *svcreq)
 
 	switch (svcreq->rq_cred.oa_flavor) {
 	case AUTH_DES:
-		des_cred = (struct authdes_cred *) svcreq->rq_clntcred;
+		des_cred = (struct authdes_cred *)svcreq->rq_clntcred;
 		if (des_cred->adc_fullname.window > WINDOW) {
 			yp_error("warning: client-specified window size \
 was too large -- possible spoof attempt");
-			return(AUTH_BADCRED);
+			return (AUTH_BADCRED);
 		}
-		return(AUTH_OK);
+		return (AUTH_OK);
 		break;
 	case AUTH_UNIX:
 	case AUTH_NONE:
 		yp_error("warning: client didn't use DES authentication");
-		return(AUTH_TOOWEAK);
+		return (AUTH_TOOWEAK);
 		break;
 	default:
 		yp_error("client used unknown auth flavor");
-		return(AUTH_REJECTEDCRED);
+		return (AUTH_REJECTEDCRED);
 		break;
 	}
 }
@@ -104,22 +106,22 @@ ypu_change_1_svc(struct ypupdate_args *args, struct svc_req *svcreq)
 
 	if (astat != AUTH_OK) {
 		svcerr_auth(svcreq->rq_xprt, astat);
-		return(&res);
+		return (&res);
 	}
 
-	des_cred = (struct authdes_cred *) svcreq->rq_clntcred;
+	des_cred = (struct authdes_cred *)svcreq->rq_clntcred;
 	netname = des_cred->adc_fullname.name;
 
 	res = localupdate(netname, "/etc/publickey", YPOP_CHANGE,
-		args->key.yp_buf_len, args->key.yp_buf_val,
-		args->datum.yp_buf_len, args->datum.yp_buf_val);
+	    args->key.yp_buf_len, args->key.yp_buf_val, args->datum.yp_buf_len,
+	    args->datum.yp_buf_val);
 
 	if (res)
 		return (&res);
 
 	res = ypmap_update(netname, args->mapname, YPOP_CHANGE,
-		args->key.yp_buf_len, args->key.yp_buf_val,
-		args->datum.yp_buf_len, args->datum.yp_buf_val);
+	    args->key.yp_buf_len, args->key.yp_buf_val, args->datum.yp_buf_len,
+	    args->datum.yp_buf_val);
 
 	return (&res);
 }
@@ -138,22 +140,22 @@ ypu_insert_1_svc(struct ypupdate_args *args, struct svc_req *svcreq)
 
 	if (astat != AUTH_OK) {
 		svcerr_auth(svcreq->rq_xprt, astat);
-		return(&res);
+		return (&res);
 	}
 
-	des_cred = (struct authdes_cred *) svcreq->rq_clntcred;
+	des_cred = (struct authdes_cred *)svcreq->rq_clntcred;
 	netname = des_cred->adc_fullname.name;
 
 	res = localupdate(netname, "/etc/publickey", YPOP_INSERT,
-		args->key.yp_buf_len, args->key.yp_buf_val,
-		args->datum.yp_buf_len, args->datum.yp_buf_val);
+	    args->key.yp_buf_len, args->key.yp_buf_val, args->datum.yp_buf_len,
+	    args->datum.yp_buf_val);
 
 	if (res)
 		return (&res);
 
 	res = ypmap_update(netname, args->mapname, YPOP_INSERT,
-		args->key.yp_buf_len, args->key.yp_buf_val,
-		args->datum.yp_buf_len, args->datum.yp_buf_val);
+	    args->key.yp_buf_len, args->key.yp_buf_val, args->datum.yp_buf_len,
+	    args->datum.yp_buf_val);
 
 	return (&res);
 }
@@ -172,22 +174,20 @@ ypu_delete_1_svc(struct ypdelete_args *args, struct svc_req *svcreq)
 
 	if (astat != AUTH_OK) {
 		svcerr_auth(svcreq->rq_xprt, astat);
-		return(&res);
+		return (&res);
 	}
 
-	des_cred = (struct authdes_cred *) svcreq->rq_clntcred;
+	des_cred = (struct authdes_cred *)svcreq->rq_clntcred;
 	netname = des_cred->adc_fullname.name;
 
 	res = localupdate(netname, "/etc/publickey", YPOP_DELETE,
-		args->key.yp_buf_len, args->key.yp_buf_val,
-		0,			NULL);
+	    args->key.yp_buf_len, args->key.yp_buf_val, 0, NULL);
 
 	if (res)
 		return (&res);
 
 	res = ypmap_update(netname, args->mapname, YPOP_DELETE,
-		args->key.yp_buf_len, args->key.yp_buf_val,
-		0,			NULL);
+	    args->key.yp_buf_len, args->key.yp_buf_val, 0, NULL);
 
 	return (&res);
 }
@@ -206,22 +206,22 @@ ypu_store_1_svc(struct ypupdate_args *args, struct svc_req *svcreq)
 
 	if (astat != AUTH_OK) {
 		svcerr_auth(svcreq->rq_xprt, astat);
-		return(&res);
+		return (&res);
 	}
 
-	des_cred = (struct authdes_cred *) svcreq->rq_clntcred;
+	des_cred = (struct authdes_cred *)svcreq->rq_clntcred;
 	netname = des_cred->adc_fullname.name;
 
 	res = localupdate(netname, "/etc/publickey", YPOP_STORE,
-		args->key.yp_buf_len, args->key.yp_buf_val,
-		args->datum.yp_buf_len, args->datum.yp_buf_val);
+	    args->key.yp_buf_len, args->key.yp_buf_val, args->datum.yp_buf_len,
+	    args->datum.yp_buf_val);
 
 	if (res)
 		return (&res);
 
 	res = ypmap_update(netname, args->mapname, YPOP_STORE,
-		args->key.yp_buf_len, args->key.yp_buf_val,
-		args->datum.yp_buf_len, args->datum.yp_buf_val);
+	    args->key.yp_buf_len, args->key.yp_buf_val, args->datum.yp_buf_len,
+	    args->datum.yp_buf_val);
 
 	return (&res);
 }

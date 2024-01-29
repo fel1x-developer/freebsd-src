@@ -28,9 +28,6 @@
 #include <sys/param.h>
 #include <sys/mount.h>
 
-#include <ufs/ufs/dinode.h>
-#include <ufs/ffs/fs.h>
-
 #include <errno.h>
 #include <ftw.h>
 #include <libufs.h>
@@ -38,17 +35,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
 #include <unistd.h>
 
-static void	find_inum(char *path);
-static void	usage(void);
-static int	compare_function(const char *, const struct stat *,
-		    int, struct FTW *);
-static int	find_snapshot(struct statfs *sfs);
+static void find_inum(char *path);
+static void usage(void);
+static int compare_function(const char *, const struct stat *, int,
+    struct FTW *);
+static int find_snapshot(struct statfs *sfs);
 
-static int	verbose;
-static int	cont_search;
-static uint32_t	inode;
+static int verbose;
+static int cont_search;
+static uint32_t inode;
 
 int
 main(int argc, char **argv)
@@ -64,7 +63,7 @@ main(int argc, char **argv)
 			all++;
 			break;
 		case 'd':
-			/* continue to search when matching inode is found 
+			/* continue to search when matching inode is found
 			 * this feature is not documented */
 			cont_search++;
 			break;
@@ -90,9 +89,10 @@ main(int argc, char **argv)
 		 * mount(8) use realpath(3) before mounting file system,
 		 * so let's do the same with the given path.
 		 */
-		if (realpath(path, resolved) == NULL ||	/* can create full path */
-		    stat(resolved, &st) == -1 ||	/* is it stat'able */
-		    !S_ISDIR(st.st_mode)) {		/* is it a directory */
+		if (realpath(path, resolved) ==
+			NULL ||			 /* can create full path */
+		    stat(resolved, &st) == -1 || /* is it stat'able */
+		    !S_ISDIR(st.st_mode)) {	 /* is it a directory */
 			usage();
 		}
 		path = resolved;
@@ -136,13 +136,13 @@ find_snapshot(struct statfs *sfs)
 
 	if (!snapcount && verbose)
 		printf("\tno snapshots found\n");
-				
+
 	return 0;
 }
 
 static int
 compare_function(const char *path, const struct stat *st, int flags,
-    struct FTW * ftwv __unused)
+    struct FTW *ftwv __unused)
 {
 
 	if (flags == FTW_F && st->st_ino == inode) {
@@ -164,7 +164,7 @@ find_inum(char *path)
 {
 	int ret;
 
-	ret = nftw(path, compare_function, 1, FTW_PHYS|FTW_MOUNT);
+	ret = nftw(path, compare_function, 1, FTW_PHYS | FTW_MOUNT);
 	if (ret != EEXIST && ret != 0) {
 		perror("ftw");
 		exit(ret);

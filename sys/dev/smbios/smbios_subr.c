@@ -40,27 +40,27 @@
 #include <dev/smbios/smbios.h>
 
 static const struct {
-	const char	*vm_bname;
-	int		vm_guest;
+	const char *vm_bname;
+	int vm_guest;
 } vm_bnames[] = {
-	{ "QEMU",	VM_GUEST_VM },		/* QEMU */
-	{ "Plex86",	VM_GUEST_VM },		/* Plex86 */
-	{ "Bochs",	VM_GUEST_VM },		/* Bochs */
-	{ "Xen",	VM_GUEST_XEN },		/* Xen */
-	{ "BHYVE",	VM_GUEST_BHYVE },	/* bhyve */
-	{ "Seabios",	VM_GUEST_KVM },		/* KVM */
+	{ "QEMU", VM_GUEST_VM },     /* QEMU */
+	{ "Plex86", VM_GUEST_VM },   /* Plex86 */
+	{ "Bochs", VM_GUEST_VM },    /* Bochs */
+	{ "Xen", VM_GUEST_XEN },     /* Xen */
+	{ "BHYVE", VM_GUEST_BHYVE }, /* bhyve */
+	{ "Seabios", VM_GUEST_KVM }, /* KVM */
 };
 
 static const struct {
-	const char	*vm_pname;
-	int		vm_guest;
+	const char *vm_pname;
+	int vm_guest;
 } vm_pnames[] = {
-	{ "VMware Virtual Platform",	VM_GUEST_VMWARE },
-	{ "Virtual Machine",		VM_GUEST_VM }, /* Microsoft VirtualPC */
-	{ "QEMU Virtual Machine",	VM_GUEST_VM },
-	{ "VirtualBox",			VM_GUEST_VBOX },
-	{ "Parallels Virtual Platform",	VM_GUEST_PARALLELS },
-	{ "KVM",			VM_GUEST_KVM },
+	{ "VMware Virtual Platform", VM_GUEST_VMWARE },
+	{ "Virtual Machine", VM_GUEST_VM }, /* Microsoft VirtualPC */
+	{ "QEMU Virtual Machine", VM_GUEST_VM },
+	{ "VirtualBox", VM_GUEST_VBOX },
+	{ "Parallels Virtual Platform", VM_GUEST_PARALLELS },
+	{ "KVM", VM_GUEST_KVM },
 };
 
 void

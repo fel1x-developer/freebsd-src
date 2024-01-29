@@ -19,5 +19,5 @@ long
 lrand48(void)
 {
 	_dorand48(_rand48_seed);
-	return ((long) _rand48_seed[2] << 15) + ((long) _rand48_seed[1] >> 1);
+	return ((long)_rand48_seed[2] << 15) + ((long)_rand48_seed[1] >> 1);
 }

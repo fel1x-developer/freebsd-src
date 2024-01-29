@@ -39,12 +39,12 @@
 #include <netlink/netlink_route.h>
 #include <netlink/route/route_var.h>
 
-#define	DEBUG_MOD_NAME	nl_route_core
-#define	DEBUG_MAX_LEVEL	LOG_DEBUG3
+#define DEBUG_MOD_NAME nl_route_core
+#define DEBUG_MAX_LEVEL LOG_DEBUG3
 #include <netlink/netlink_debug.h>
 _DECLARE_DEBUG(LOG_INFO);
 
-#define	HANDLER_MAX_NUM	(NL_RTM_MAX + 10)
+#define HANDLER_MAX_NUM (NL_RTM_MAX + 10)
 static const struct rtnl_cmd_handler *rtnl_handler[HANDLER_MAX_NUM] = {};
 
 bool
@@ -72,13 +72,15 @@ rtnl_handle_message(struct nlmsghdr *hdr, struct nl_pstate *npt)
 	int error = 0;
 
 	if (__predict_false(hdr->nlmsg_type >= HANDLER_MAX_NUM)) {
-		NLMSG_REPORT_ERR_MSG(npt, "unknown message type: %d", hdr->nlmsg_type);
+		NLMSG_REPORT_ERR_MSG(npt, "unknown message type: %d",
+		    hdr->nlmsg_type);
 		return (ENOTSUP);
 	}
 
 	cmd = rtnl_handler[hdr->nlmsg_type];
 	if (__predict_false(cmd == NULL)) {
-		NLMSG_REPORT_ERR_MSG(npt, "unknown message type: %d", hdr->nlmsg_type);
+		NLMSG_REPORT_ERR_MSG(npt, "unknown message type: %d",
+		    hdr->nlmsg_type);
 		return (ENOTSUP);
 	}
 
@@ -86,13 +88,17 @@ rtnl_handle_message(struct nlmsghdr *hdr, struct nl_pstate *npt)
 	    hdr->nlmsg_type, hdr->nlmsg_len);
 
 	if (cmd->priv != 0 && !nlp_has_priv(nlp, cmd->priv)) {
-		NLP_LOG(LOG_DEBUG2, nlp, "priv %d check failed for msg %s", cmd->priv, cmd->name);
+		NLP_LOG(LOG_DEBUG2, nlp, "priv %d check failed for msg %s",
+		    cmd->priv, cmd->name);
 		return (EPERM);
 	} else if (cmd->priv != 0)
-		NLP_LOG(LOG_DEBUG3, nlp, "priv %d check passed for msg %s", cmd->priv, cmd->name);
+		NLP_LOG(LOG_DEBUG3, nlp, "priv %d check passed for msg %s",
+		    cmd->priv, cmd->name);
 
-	if (!nlp_unconstrained_vnet(nlp) && (cmd->flags & RTNL_F_ALLOW_NONVNET_JAIL) == 0) {
-		NLP_LOG(LOG_DEBUG2, nlp, "jail check failed for msg %s", cmd->name);
+	if (!nlp_unconstrained_vnet(nlp) &&
+	    (cmd->flags & RTNL_F_ALLOW_NONVNET_JAIL) == 0) {
+		NLP_LOG(LOG_DEBUG2, nlp, "jail check failed for msg %s",
+		    cmd->name);
 		return (EPERM);
 	}
 
@@ -125,7 +131,8 @@ rtnl_load(void *u __unused)
 	rtnl_ifaces_init();
 	rtnl_nexthops_init();
 	rtnl_routes_init();
-	netlink_register_proto(NETLINK_ROUTE, "NETLINK_ROUTE", rtnl_handle_message);
+	netlink_register_proto(NETLINK_ROUTE, "NETLINK_ROUTE",
+	    rtnl_handle_message);
 }
 SYSINIT(rtnl_load, SI_SUB_PROTO_DOMAIN, SI_ORDER_THIRD, rtnl_load, NULL);
 

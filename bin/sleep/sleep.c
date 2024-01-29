@@ -66,7 +66,7 @@ main(int argc, char *argv[])
 	for (i = 1; i < argc; i++) {
 		matches = sscanf(argv[i], "%lf%c%1s", &d, &unit, buf);
 		if (matches == 2)
-			switch(unit) {
+			switch (unit) {
 			case 'd':
 				d *= 24;
 				/* FALLTHROUGH */
@@ -81,9 +81,8 @@ main(int argc, char *argv[])
 			default:
 				usage();
 			}
-		else
-			if (matches != 1)
-				usage();
+		else if (matches != 1)
+			usage();
 		seconds += d;
 	}
 	if (seconds > INT_MAX)
@@ -117,7 +116,8 @@ usage(void)
 {
 
 	fprintf(stderr, "usage: sleep number[unit] ...\n");
-	fprintf(stderr, "Unit can be 's' (seconds, the default), "
-			"m (minutes), h (hours), or d (days).\n");
+	fprintf(stderr,
+	    "Unit can be 's' (seconds, the default), "
+	    "m (minutes), h (hours), or d (days).\n");
 	exit(1);
 }

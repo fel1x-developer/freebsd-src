@@ -27,13 +27,13 @@
 #ifndef _VSS_H
 #define _VSS_H
 #include <sys/ioccom.h>
-#define FS_VSS_DEV_NAME		"hv_fsvss_dev"
-#define APP_VSS_DEV_NAME	"hv_appvss_dev"
+#define FS_VSS_DEV_NAME "hv_fsvss_dev"
+#define APP_VSS_DEV_NAME "hv_appvss_dev"
 
-#define VSS_DEV(VSS)		"/dev/"VSS
+#define VSS_DEV(VSS) "/dev/" VSS
 
-#define VSS_SUCCESS		0x00000000
-#define VSS_FAIL		0x00000001
+#define VSS_SUCCESS 0x00000000
+#define VSS_FAIL 0x00000001
 
 enum hv_vss_op_t {
 	HV_VSS_NONE = 0,
@@ -44,11 +44,11 @@ enum hv_vss_op_t {
 };
 
 struct hv_vss_opt_msg {
-	uint32_t	opt;		/* operation */
-	uint32_t	status;		/* 0 for success, 1 for error */
-	uint64_t	msgid;		/* an ID used to identify the transaction */
-	uint8_t		reserved[48];	/* reserved values are all zeroes */
+	uint32_t opt;	      /* operation */
+	uint32_t status;      /* 0 for success, 1 for error */
+	uint64_t msgid;	      /* an ID used to identify the transaction */
+	uint8_t reserved[48]; /* reserved values are all zeroes */
 };
-#define IOCHVVSSREAD		_IOR('v', 2, struct hv_vss_opt_msg)
-#define IOCHVVSSWRITE		_IOW('v', 3, struct hv_vss_opt_msg)
+#define IOCHVVSSREAD _IOR('v', 2, struct hv_vss_opt_msg)
+#define IOCHVVSSWRITE _IOW('v', 3, struct hv_vss_opt_msg)
 #endif

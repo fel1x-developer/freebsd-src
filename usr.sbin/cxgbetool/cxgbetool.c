@@ -32,32 +32,32 @@
 #include <sys/stat.h>
 #include <sys/sysctl.h>
 
-#include <arpa/inet.h>
 #include <net/ethernet.h>
 #include <net/sff8472.h>
 #include <netinet/in.h>
 
+#include <arpa/inet.h>
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <pcap.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <pcap.h>
 
 #include "t4_ioctl.h"
 #include "tcb_common.h"
 
-#define in_range(val, lo, hi) ( val < 0 || (val <= hi && val >= lo))
-#define	max(x, y) ((x) > (y) ? (x) : (y))
+#define in_range(val, lo, hi) (val < 0 || (val <= hi && val >= lo))
+#define max(x, y) ((x) > (y) ? (x) : (y))
 
 static const char *progname, *nexus;
-static int chip_id;	/* 4 for T4, 5 for T5, and so on. */
-static int inst;	/* instance of nexus device */
+static int chip_id; /* 4 for T4, 5 for T5, and so on. */
+static int inst;    /* instance of nexus device */
 
 struct reg_info {
 	const char *name;
@@ -80,9 +80,9 @@ struct field_desc {
 };
 
 #include "reg_defs_t4.c"
+#include "reg_defs_t4vf.c"
 #include "reg_defs_t5.c"
 #include "reg_defs_t6.c"
-#include "reg_defs_t4vf.c"
 
 static void
 usage(FILE *fp)
@@ -123,8 +123,7 @@ usage(FILE *fp)
 	    "\ttcb <tid>                           read TCB\n"
 	    "\ttracer <idx> tx<n>|rx<n>|lo<n>      set and enable a tracer\n"
 	    "\ttracer <idx> disable|enable         disable or enable a tracer\n"
-	    "\ttracer list                         list all tracers\n"
-	    );
+	    "\ttracer list                         list all tracers\n");
 }
 
 static inline unsigned int
@@ -181,8 +180,8 @@ read_reg(long addr, int size, long long *val)
 	struct t4_reg reg;
 	int rc;
 
-	reg.addr = (uint32_t) addr;
-	reg.size = (uint32_t) size;
+	reg.addr = (uint32_t)addr;
+	reg.size = (uint32_t)size;
 	reg.val = 0;
 
 	rc = doit(CHELSIO_T4_GETREG, &reg);
@@ -197,9 +196,9 @@ write_reg(long addr, int size, long long val)
 {
 	struct t4_reg reg;
 
-	reg.addr = (uint32_t) addr;
-	reg.size = (uint32_t) size;
-	reg.val = (uint64_t) val;
+	reg.addr = (uint32_t)addr;
+	reg.size = (uint32_t)size;
+	reg.val = (uint64_t)val;
 
 	return doit(CHELSIO_T4_SETREG, &reg);
 }
@@ -275,19 +274,19 @@ dump_block_regs(const struct reg_info *reg_array, const uint32_t *regs)
 {
 	uint32_t reg_val = 0;
 
-	for ( ; reg_array->name; ++reg_array)
+	for (; reg_array->name; ++reg_array)
 		if (!reg_array->len) {
 			reg_val = regs[reg_array->addr / 4];
 			printf("[%#7x] %-47s %#-10x %u\n", reg_array->addr,
-			       reg_array->name, reg_val, reg_val);
+			    reg_array->name, reg_val, reg_val);
 		} else {
 			uint32_t v = xtract(reg_val, reg_array->addr,
-					    reg_array->len);
+			    reg_array->len);
 
 			printf("    %*u:%u %-47s %#-10x %u\n",
-			       reg_array->addr < 10 ? 3 : 2,
-			       reg_array->addr + reg_array->len - 1,
-			       reg_array->addr, reg_array->name, v, v);
+			    reg_array->addr < 10 ? 3 : 2,
+			    reg_array->addr + reg_array->len - 1,
+			    reg_array->addr, reg_array->name, v, v);
 		}
 
 	return (1);
@@ -308,14 +307,14 @@ dump_regs_table(int argc, const char *argv[], const uint32_t *regs,
 		if (j == nmodules) {
 			warnx("invalid register block \"%s\"", argv[i]);
 			fprintf(stderr, "\nAvailable blocks:");
-			for ( ; nmodules; nmodules--, modtab++)
+			for (; nmodules; nmodules--, modtab++)
 				fprintf(stderr, " %s", modtab->name);
 			fprintf(stderr, "\n");
 			return (EINVAL);
 		}
 	}
 
-	for ( ; nmodules; nmodules--, modtab++) {
+	for (; nmodules; nmodules--, modtab++) {
 
 		match = argc == 0 ? 1 : 0;
 		for (i = 0; !match && i < argc; i++) {
@@ -330,112 +329,71 @@ dump_regs_table(int argc, const char *argv[], const uint32_t *regs,
 	return (0);
 }
 
-#define T4_MODREGS(name) { #name, t4_##name##_regs }
+#define T4_MODREGS(name)                \
+	{                               \
+		#name, t4_##name##_regs \
+	}
 static int
 dump_regs_t4(int argc, const char *argv[], const uint32_t *regs)
 {
-	static struct mod_regs t4_mod[] = {
-		T4_MODREGS(sge),
-		{ "pci", t4_pcie_regs },
-		T4_MODREGS(dbg),
-		T4_MODREGS(mc),
-		T4_MODREGS(ma),
-		{ "edc0", t4_edc_0_regs },
-		{ "edc1", t4_edc_1_regs },
-		T4_MODREGS(cim),
-		T4_MODREGS(tp),
-		T4_MODREGS(ulp_rx),
-		T4_MODREGS(ulp_tx),
-		{ "pmrx", t4_pm_rx_regs },
-		{ "pmtx", t4_pm_tx_regs },
-		T4_MODREGS(mps),
-		{ "cplsw", t4_cpl_switch_regs },
-		T4_MODREGS(smb),
-		{ "i2c", t4_i2cm_regs },
-		T4_MODREGS(mi),
-		T4_MODREGS(uart),
-		T4_MODREGS(pmu),
-		T4_MODREGS(sf),
-		T4_MODREGS(pl),
-		T4_MODREGS(le),
-		T4_MODREGS(ncsi),
-		T4_MODREGS(xgmac)
-	};
+	static struct mod_regs t4_mod[] = { T4_MODREGS(sge),
+		{ "pci", t4_pcie_regs }, T4_MODREGS(dbg), T4_MODREGS(mc),
+		T4_MODREGS(ma), { "edc0", t4_edc_0_regs },
+		{ "edc1", t4_edc_1_regs }, T4_MODREGS(cim), T4_MODREGS(tp),
+		T4_MODREGS(ulp_rx), T4_MODREGS(ulp_tx),
+		{ "pmrx", t4_pm_rx_regs }, { "pmtx", t4_pm_tx_regs },
+		T4_MODREGS(mps), { "cplsw", t4_cpl_switch_regs },
+		T4_MODREGS(smb), { "i2c", t4_i2cm_regs }, T4_MODREGS(mi),
+		T4_MODREGS(uart), T4_MODREGS(pmu), T4_MODREGS(sf),
+		T4_MODREGS(pl), T4_MODREGS(le), T4_MODREGS(ncsi),
+		T4_MODREGS(xgmac) };
 
 	return dump_regs_table(argc, argv, regs, t4_mod, nitems(t4_mod));
 }
 #undef T4_MODREGS
 
-#define T5_MODREGS(name) { #name, t5_##name##_regs }
+#define T5_MODREGS(name)                \
+	{                               \
+		#name, t5_##name##_regs \
+	}
 static int
 dump_regs_t5(int argc, const char *argv[], const uint32_t *regs)
 {
-	static struct mod_regs t5_mod[] = {
-		T5_MODREGS(sge),
-		{ "pci", t5_pcie_regs },
-		T5_MODREGS(dbg),
-		{ "mc0", t5_mc_0_regs },
-		{ "mc1", t5_mc_1_regs },
-		T5_MODREGS(ma),
-		{ "edc0", t5_edc_t50_regs },
-		{ "edc1", t5_edc_t51_regs },
-		T5_MODREGS(cim),
-		T5_MODREGS(tp),
-		{ "ulprx", t5_ulp_rx_regs },
-		{ "ulptx", t5_ulp_tx_regs },
-		{ "pmrx", t5_pm_rx_regs },
-		{ "pmtx", t5_pm_tx_regs },
-		T5_MODREGS(mps),
-		{ "cplsw", t5_cpl_switch_regs },
-		T5_MODREGS(smb),
-		{ "i2c", t5_i2cm_regs },
-		T5_MODREGS(mi),
-		T5_MODREGS(uart),
-		T5_MODREGS(pmu),
-		T5_MODREGS(sf),
-		T5_MODREGS(pl),
-		T5_MODREGS(le),
-		T5_MODREGS(ncsi),
-		T5_MODREGS(mac),
-		{ "hma", t5_hma_t5_regs }
-	};
+	static struct mod_regs t5_mod[] = { T5_MODREGS(sge),
+		{ "pci", t5_pcie_regs }, T5_MODREGS(dbg),
+		{ "mc0", t5_mc_0_regs }, { "mc1", t5_mc_1_regs },
+		T5_MODREGS(ma), { "edc0", t5_edc_t50_regs },
+		{ "edc1", t5_edc_t51_regs }, T5_MODREGS(cim), T5_MODREGS(tp),
+		{ "ulprx", t5_ulp_rx_regs }, { "ulptx", t5_ulp_tx_regs },
+		{ "pmrx", t5_pm_rx_regs }, { "pmtx", t5_pm_tx_regs },
+		T5_MODREGS(mps), { "cplsw", t5_cpl_switch_regs },
+		T5_MODREGS(smb), { "i2c", t5_i2cm_regs }, T5_MODREGS(mi),
+		T5_MODREGS(uart), T5_MODREGS(pmu), T5_MODREGS(sf),
+		T5_MODREGS(pl), T5_MODREGS(le), T5_MODREGS(ncsi),
+		T5_MODREGS(mac), { "hma", t5_hma_t5_regs } };
 
 	return dump_regs_table(argc, argv, regs, t5_mod, nitems(t5_mod));
 }
 #undef T5_MODREGS
 
-#define T6_MODREGS(name) { #name, t6_##name##_regs }
+#define T6_MODREGS(name)                \
+	{                               \
+		#name, t6_##name##_regs \
+	}
 static int
 dump_regs_t6(int argc, const char *argv[], const uint32_t *regs)
 {
-	static struct mod_regs t6_mod[] = {
-		T6_MODREGS(sge),
-		{ "pci", t6_pcie_regs },
-		T6_MODREGS(dbg),
-		{ "mc0", t6_mc_0_regs },
-		T6_MODREGS(ma),
-		{ "edc0", t6_edc_t60_regs },
-		{ "edc1", t6_edc_t61_regs },
-		T6_MODREGS(cim),
-		T6_MODREGS(tp),
-		{ "ulprx", t6_ulp_rx_regs },
-		{ "ulptx", t6_ulp_tx_regs },
-		{ "pmrx", t6_pm_rx_regs },
-		{ "pmtx", t6_pm_tx_regs },
-		T6_MODREGS(mps),
-		{ "cplsw", t6_cpl_switch_regs },
-		T6_MODREGS(smb),
-		{ "i2c", t6_i2cm_regs },
-		T6_MODREGS(mi),
-		T6_MODREGS(uart),
-		T6_MODREGS(pmu),
-		T6_MODREGS(sf),
-		T6_MODREGS(pl),
-		T6_MODREGS(le),
-		T6_MODREGS(ncsi),
-		T6_MODREGS(mac),
-		{ "hma", t6_hma_t6_regs }
-	};
+	static struct mod_regs t6_mod[] = { T6_MODREGS(sge),
+		{ "pci", t6_pcie_regs }, T6_MODREGS(dbg),
+		{ "mc0", t6_mc_0_regs }, T6_MODREGS(ma),
+		{ "edc0", t6_edc_t60_regs }, { "edc1", t6_edc_t61_regs },
+		T6_MODREGS(cim), T6_MODREGS(tp), { "ulprx", t6_ulp_rx_regs },
+		{ "ulptx", t6_ulp_tx_regs }, { "pmrx", t6_pm_rx_regs },
+		{ "pmtx", t6_pm_tx_regs }, T6_MODREGS(mps),
+		{ "cplsw", t6_cpl_switch_regs }, T6_MODREGS(smb),
+		{ "i2c", t6_i2cm_regs }, T6_MODREGS(mi), T6_MODREGS(uart),
+		T6_MODREGS(pmu), T6_MODREGS(sf), T6_MODREGS(pl), T6_MODREGS(le),
+		T6_MODREGS(ncsi), T6_MODREGS(mac), { "hma", t6_hma_t6_regs } };
 
 	return dump_regs_table(argc, argv, regs, t6_mod, nitems(t6_mod));
 }
@@ -521,8 +479,8 @@ dump_regs(int argc, const char *argv[])
 		else
 			rc = dump_regs_t6(argc, argv, regs.data);
 	} else {
-		warnx("%s (type %d, rev %d) is not a known card.",
-		    nexus, vers, revision);
+		warnx("%s (type %d, rev %d) is not a known card.", nexus, vers,
+		    revision);
 		return (ENOTSUP);
 	}
 
@@ -576,8 +534,8 @@ do_show_info_header(uint32_t mode)
 			break;
 		}
 	}
-	printf(" %20s %20s %9s %9s %s\n",
-	    "DIP", "SIP", "DPORT", "SPORT", "Action");
+	printf(" %20s %20s %9s %9s %s\n", "DIP", "SIP", "DPORT", "SPORT",
+	    "Action");
 }
 
 /*
@@ -614,7 +572,8 @@ parse_val_mask(const char *param, const char *args[], uint32_t *val,
 			if (p[0] == ':' && p[1] != 0) {
 				if (hashfilter) {
 					warnx("param %s: mask not allowed for "
-					    "hashfilter or nat params", param);
+					      "hashfilter or nat params",
+					    param);
 					return (EINVAL);
 				}
 				p = str_to_number(p + 1, &l, NULL);
@@ -626,8 +585,7 @@ parse_val_mask(const char *param, const char *args[], uint32_t *val,
 		}
 	}
 
-	warnx("parameter \"%s\" has bad \"value[:mask]\" %s",
-	    args[0], args[1]);
+	warnx("parameter \"%s\" has bad \"value[:mask]\" %s", args[0], args[1]);
 
 	return (EINVAL);
 }
@@ -686,8 +644,8 @@ parse_ipaddr(const char *param, const char *args[], int *afp, uint8_t addr[],
 	if (*afp == AF_UNSPEC)
 		*afp = af;
 	else if (*afp != af) {
-		warnx("address %s is not of expected family %s",
-		    args[1], *afp == AF_INET ? "IP" : "IPv6");
+		warnx("address %s is not of expected family %s", args[1],
+		    *afp == AF_INET ? "IP" : "IPv6");
 		return (EINVAL);
 	}
 
@@ -714,7 +672,8 @@ parse_ipaddr(const char *param, const char *args[], int *afp, uint8_t addr[],
 		unsigned int prefix = strtoul(slash + 1, &p, 10);
 
 		if (maskless) {
-			warnx("mask cannot be provided for maskless specification");
+			warnx(
+			    "mask cannot be provided for maskless specification");
 			return (EINVAL);
 		}
 
@@ -727,8 +686,8 @@ parse_ipaddr(const char *param, const char *args[], int *afp, uint8_t addr[],
 			return (EINVAL);
 		}
 		if (prefix > masksize) {
-			warnx("prefix %u is too long for an %s address",
-			     prefix, afn);
+			warnx("prefix %u is too long for an %s address", prefix,
+			    afn);
 			return (EINVAL);
 		}
 		memset(mask, 0, masksize / 8);
@@ -766,7 +725,8 @@ parse_val(const char *param, const char *args[], uint32_t *val)
 
 	p = str_to_number(args[1], &l, NULL);
 	if (*p || l < 0 || l > UINT32_MAX) {
-		warnx("parameter \"%s\" has bad \"value\" %s", args[0], args[1]);
+		warnx("parameter \"%s\" has bad \"value\" %s", args[0],
+		    args[1]);
 		return (EINVAL);
 	}
 
@@ -784,7 +744,7 @@ filters_show_ipaddr(int type, uint8_t *addr, uint8_t *addrm)
 		noctets = 4;
 		printf("%3s", " ");
 	} else
-	noctets = 16;
+		noctets = 16;
 
 	for (octet = 0; octet < noctets; octet++)
 		printf("%02x", addr[octet]);
@@ -831,9 +791,9 @@ do_show_one_filter_info(struct t4_filter *t, uint32_t mode)
 			}
 			break;
 		case T4_FILTER_VLAN:
-			printf(" %1d:%04x/%1d:%04x",
-			    t->fs.val.vlan_vld, t->fs.val.vlan,
-			    t->fs.mask.vlan_vld, t->fs.mask.vlan);
+			printf(" %1d:%04x/%1d:%04x", t->fs.val.vlan_vld,
+			    t->fs.val.vlan, t->fs.mask.vlan_vld,
+			    t->fs.mask.vlan);
 			break;
 		case T4_FILTER_IP_TOS:
 			printf(" %02x/%02x", t->fs.val.tos, t->fs.mask.tos);
@@ -867,9 +827,8 @@ do_show_one_filter_info(struct t4_filter *t, uint32_t mode)
 	 */
 	filters_show_ipaddr(t->fs.type, t->fs.val.dip, t->fs.mask.dip);
 	filters_show_ipaddr(t->fs.type, t->fs.val.sip, t->fs.mask.sip);
-	printf(" %04x/%04x %04x/%04x",
-		 t->fs.val.dport, t->fs.mask.dport,
-		 t->fs.val.sport, t->fs.mask.sport);
+	printf(" %04x/%04x %04x/%04x", t->fs.val.dport, t->fs.mask.dport,
+	    t->fs.val.sport, t->fs.mask.sport);
 
 	/*
 	 * Variable length filter action.
@@ -878,28 +837,24 @@ do_show_one_filter_info(struct t4_filter *t, uint32_t mode)
 		printf(" Drop");
 	else if (t->fs.action == FILTER_SWITCH) {
 		printf(" Switch: port=%d", t->fs.eport);
-	if (t->fs.newdmac)
-		printf(
-			", dmac=%02x:%02x:%02x:%02x:%02x:%02x "
-			", l2tidx=%d",
-			t->fs.dmac[0], t->fs.dmac[1],
-			t->fs.dmac[2], t->fs.dmac[3],
-			t->fs.dmac[4], t->fs.dmac[5],
-			t->l2tidx);
-	if (t->fs.newsmac)
-		printf(
-			", smac=%02x:%02x:%02x:%02x:%02x:%02x "
-			", smtidx=%d",
-			t->fs.smac[0], t->fs.smac[1],
-			t->fs.smac[2], t->fs.smac[3],
-			t->fs.smac[4], t->fs.smac[5],
-			t->smtidx);
-	if (t->fs.newvlan == VLAN_REMOVE)
-		printf(", vlan=none");
-	else if (t->fs.newvlan == VLAN_INSERT)
-		printf(", vlan=insert(%x)", t->fs.vlan);
-	else if (t->fs.newvlan == VLAN_REWRITE)
-		printf(", vlan=rewrite(%x)", t->fs.vlan);
+		if (t->fs.newdmac)
+			printf(", dmac=%02x:%02x:%02x:%02x:%02x:%02x "
+			       ", l2tidx=%d",
+			    t->fs.dmac[0], t->fs.dmac[1], t->fs.dmac[2],
+			    t->fs.dmac[3], t->fs.dmac[4], t->fs.dmac[5],
+			    t->l2tidx);
+		if (t->fs.newsmac)
+			printf(", smac=%02x:%02x:%02x:%02x:%02x:%02x "
+			       ", smtidx=%d",
+			    t->fs.smac[0], t->fs.smac[1], t->fs.smac[2],
+			    t->fs.smac[3], t->fs.smac[4], t->fs.smac[5],
+			    t->smtidx);
+		if (t->fs.newvlan == VLAN_REMOVE)
+			printf(", vlan=none");
+		else if (t->fs.newvlan == VLAN_INSERT)
+			printf(", vlan=insert(%x)", t->fs.vlan);
+		else if (t->fs.newvlan == VLAN_REWRITE)
+			printf(", vlan=rewrite(%x)", t->fs.vlan);
 	} else {
 		printf(" Pass: Q=");
 		if (t->fs.dirsteer == 0) {
@@ -935,11 +890,11 @@ show_filters(int hash)
 
 	if (!hash && chip_id >= 6) {
 		header = 0;
-		bzero(&t, sizeof (t));
+		bzero(&t, sizeof(t));
 		t.idx = 0;
 		t.fs.hash = 0;
 		t.fs.prio = 1;
-		for (t.idx = 0; ; t.idx++) {
+		for (t.idx = 0;; t.idx++) {
 			rc = doit(CHELSIO_T4_GET_FILTER, &t);
 			if (rc != 0 || t.idx == 0xffffffff)
 				break;
@@ -955,10 +910,10 @@ show_filters(int hash)
 	}
 
 	header = 0;
-	bzero(&t, sizeof (t));
+	bzero(&t, sizeof(t));
 	t.idx = 0;
 	t.fs.hash = hash;
-	for (t.idx = 0; ; t.idx++) {
+	for (t.idx = 0;; t.idx++) {
 		rc = doit(CHELSIO_T4_GET_FILTER, &t);
 		if (rc != 0 || t.idx == 0xffffffff)
 			break;
@@ -1118,7 +1073,7 @@ set_filter(uint32_t idx, int argc, const char *argv[], int hash)
 		warnc(EINVAL, "%s", __func__);
 		return (EINVAL);
 	};
-	bzero(&t, sizeof (t));
+	bzero(&t, sizeof(t));
 	t.idx = idx;
 	t.fs.hitcnts = 1;
 	t.fs.hash = hash;
@@ -1135,7 +1090,7 @@ set_filter(uint32_t idx, int argc, const char *argv[], int hash)
 				newaf = AF_INET6;
 			else {
 				warnx("invalid type \"%s\"; "
-				    "must be one of \"ipv4\" or \"ipv6\"",
+				      "must be one of \"ipv4\" or \"ipv6\"",
 				    argv[start_arg + 1]);
 				return (EINVAL);
 			}
@@ -1181,13 +1136,15 @@ set_filter(uint32_t idx, int argc, const char *argv[], int hash)
 		} else if (!parse_val_mask("proto", args, &val, &mask, hash)) {
 			t.fs.val.proto = val;
 			t.fs.mask.proto = mask;
-		} else if (!parse_val_mask("ethtype", args, &val, &mask, hash)) {
+		} else if (!parse_val_mask("ethtype", args, &val, &mask,
+			       hash)) {
 			t.fs.val.ethtype = val;
 			t.fs.mask.ethtype = mask;
 		} else if (!parse_val_mask("macidx", args, &val, &mask, hash)) {
 			t.fs.val.macidx = val;
 			t.fs.mask.macidx = mask;
-		} else if (!parse_val_mask("matchtype", args, &val, &mask, hash)) {
+		} else if (!parse_val_mask("matchtype", args, &val, &mask,
+			       hash)) {
 			t.fs.val.matchtype = val;
 			t.fs.mask.matchtype = mask;
 		} else if (!parse_val_mask("frag", args, &val, &mask, hash)) {
@@ -1200,14 +1157,16 @@ set_filter(uint32_t idx, int argc, const char *argv[], int hash)
 			t.fs.val.sport = val;
 			t.fs.mask.sport = mask;
 		} else if (!parse_ipaddr("dip", args, &af, t.fs.val.dip,
-		    t.fs.mask.dip, hash)) {
+			       t.fs.mask.dip, hash)) {
 			/* nada */;
 		} else if (!parse_ipaddr("sip", args, &af, t.fs.val.sip,
-		    t.fs.mask.sip, hash)) {
+			       t.fs.mask.sip, hash)) {
 			/* nada */;
-		} else if (!parse_ipaddr("nat_dip", args, &af, t.fs.nat_dip, NULL, 1)) {
+		} else if (!parse_ipaddr("nat_dip", args, &af, t.fs.nat_dip,
+			       NULL, 1)) {
 			/*nada*/;
-		} else if (!parse_ipaddr("nat_sip", args, &af, t.fs.nat_sip, NULL, 1)) {
+		} else if (!parse_ipaddr("nat_sip", args, &af, t.fs.nat_sip,
+			       NULL, 1)) {
 			/*nada*/
 		} else if (!parse_val_mask("nat_dport", args, &val, &mask, 1)) {
 			t.fs.nat_dport = val;
@@ -1222,8 +1181,8 @@ set_filter(uint32_t idx, int argc, const char *argv[], int hash)
 				t.fs.action = FILTER_SWITCH;
 			else {
 				warnx("invalid action \"%s\"; must be one of"
-				     " \"pass\", \"drop\" or \"switch\"",
-				     argv[start_arg + 1]);
+				      " \"pass\", \"drop\" or \"switch\"",
+				    argv[start_arg + 1]);
 				return (EINVAL);
 			}
 		} else if (!parse_val("hitcnts", args, &val)) {
@@ -1235,24 +1194,26 @@ set_filter(uint32_t idx, int argc, const char *argv[], int hash)
 			}
 			if (val != 0 && val != 1) {
 				warnx("invalid priority \"%s\"; must be"
-				     " \"0\" or \"1\"", argv[start_arg + 1]);
+				      " \"0\" or \"1\"",
+				    argv[start_arg + 1]);
 				return (EINVAL);
 			}
 			t.fs.prio = val;
 		} else if (!parse_val("rpttid", args, &val)) {
 			t.fs.rpttid = 1;
 		} else if (!parse_val("queue", args, &val)) {
-			t.fs.dirsteer = 1;	/* direct steer */
-			t.fs.iq = val;		/* to the iq with this cntxt_id */
+			t.fs.dirsteer = 1; /* direct steer */
+			t.fs.iq = val;	   /* to the iq with this cntxt_id */
 		} else if (!parse_val("tcbhash", args, &val)) {
-			t.fs.dirsteerhash = 1;	/* direct steer */
+			t.fs.dirsteerhash = 1; /* direct steer */
 			/* XXX: use (val << 1) as the rss_hash? */
 			t.fs.iq = val;
 		} else if (!parse_val("tcbrss", args, &val)) {
-			t.fs.maskhash = 1;	/* steer to RSS region */
+			t.fs.maskhash = 1; /* steer to RSS region */
 			/*
 			 * val = start idx of the region but the internal TCB
-			 * field is 10b only and is left shifted by 1 before use.
+			 * field is 10b only and is left shifted by 1 before
+			 * use.
 			 */
 			t.fs.iq = val >> 1;
 		} else if (!parse_val("eport", args, &val)) {
@@ -1275,9 +1236,11 @@ set_filter(uint32_t idx, int argc, const char *argv[], int hash)
 			else if (!strcmp(argv[start_arg + 1], "all"))
 				t.fs.nat_mode = NAT_MODE_ALL;
 			else {
-				warnx("unknown nat type \"%s\"; known types are dip, "
-				      "dip-dp, dip-dp-sip, dip-dp-sp, sip-sp, "
-				      "dip-sip-sp, and all", argv[start_arg + 1]);
+				warnx(
+				    "unknown nat type \"%s\"; known types are dip, "
+				    "dip-dp, dip-dp-sip, dip-dp-sp, sip-sp, "
+				    "dip-sip-sp, and all",
+				    argv[start_arg + 1]);
 				return (EINVAL);
 			}
 		} else if (!parse_val("natseq", args, &val)) {
@@ -1316,18 +1279,19 @@ set_filter(uint32_t idx, int argc, const char *argv[], int hash)
 				t.fs.newvlan = VLAN_INSERT;
 			} else {
 				warnx("unknown vlan parameter \"%s\"; must"
-				     " be one of \"none\", \"=<vlan>\", "
-				     " \"+<vlan>\"", argv[start_arg + 1]);
+				      " be one of \"none\", \"=<vlan>\", "
+				      " \"+<vlan>\"",
+				    argv[start_arg + 1]);
 				return (EINVAL);
 			}
 			if (t.fs.newvlan == VLAN_REWRITE ||
 			    t.fs.newvlan == VLAN_INSERT) {
-				t.fs.vlan = strtoul(argv[start_arg + 1] + 1,
-				    &p, 0);
+				t.fs.vlan = strtoul(argv[start_arg + 1] + 1, &p,
+				    0);
 				if (p == argv[start_arg + 1] + 1 || p[0] != 0 ||
 				    t.fs.vlan > MAX_VLANID) {
 					warnx("invalid vlan \"%s\"",
-					     argv[start_arg + 1]);
+					    argv[start_arg + 1]);
 					return (EINVAL);
 				}
 			}
@@ -1346,20 +1310,21 @@ set_filter(uint32_t idx, int argc, const char *argv[], int hash)
 	 */
 	if (t.fs.action != FILTER_SWITCH &&
 	    (t.fs.eport || t.fs.newdmac || t.fs.newsmac || t.fs.newvlan ||
-	    t.fs.swapmac || t.fs.nat_mode)) {
+		t.fs.swapmac || t.fs.nat_mode)) {
 		warnx("port, dmac, smac, vlan, and nat only make sense with"
-		     " \"action switch\"");
+		      " \"action switch\"");
 		return (EINVAL);
 	}
-	if (!t.fs.nat_mode && (t.fs.nat_seq_chk || t.fs.nat_flag_chk ||
-	    *t.fs.nat_dip || *t.fs.nat_sip || t.fs.nat_dport || t.fs.nat_sport)) {
+	if (!t.fs.nat_mode &&
+	    (t.fs.nat_seq_chk || t.fs.nat_flag_chk || *t.fs.nat_dip ||
+		*t.fs.nat_sip || t.fs.nat_dport || t.fs.nat_sport)) {
 		warnx("nat params only make sense with valid nat mode");
 		return (EINVAL);
 	}
 	if (t.fs.action != FILTER_PASS &&
 	    (t.fs.rpttid || t.fs.dirsteer || t.fs.maskhash)) {
 		warnx("rpttid, queue and tcbhash don't make sense with"
-		     " action \"drop\" or \"switch\"");
+		      " action \"drop\" or \"switch\"");
 		return (EINVAL);
 	}
 	if (t.fs.val.ovlan_vld && t.fs.val.pfvf_vld) {
@@ -1411,14 +1376,14 @@ filter_cmd(int argc, const char *argv[], int hashfilter)
 			 * create a new hashfilter and we are already at the
 			 * parameter/value list.
 			 */
-			idx = (uint32_t) -1;
+			idx = (uint32_t)-1;
 			goto setf;
 		}
 		warnx("\"%s\" is neither an index nor a filter subcommand.",
 		    argv[0]);
 		return (EINVAL);
 	}
-	idx = (uint32_t) val;
+	idx = (uint32_t)val;
 
 	/* <idx> delete|clear [prio 0|1] */
 	if ((argc == 2 || argc == 4) &&
@@ -1433,7 +1398,7 @@ filter_cmd(int argc, const char *argv[], int hashfilter)
 
 			if (strcmp(argv[2], "prio") != 0) {
 				warnx("\"prio\" is the only valid keyword "
-				    "after \"%s\", found \"%s\" instead.",
+				      "after \"%s\", found \"%s\" instead.",
 				    argv[1], argv[2]);
 				return (EINVAL);
 			}
@@ -1481,9 +1446,10 @@ show_struct(const uint32_t *words, int nwords, const struct field_desc *fd)
 		unsigned long long mask = (1ULL << width) - 1;
 
 		data = (words[first_word] >> shift) |
-		       ((uint64_t)words[first_word + 1] << (32 - shift));
+		    ((uint64_t)words[first_word + 1] << (32 - shift));
 		if (shift)
-		       data |= ((uint64_t)words[first_word + 2] << (64 - shift));
+			data |= ((uint64_t)words[first_word + 2]
+			    << (64 - shift));
 		data &= mask;
 		if (fd->islog2)
 			data = 1 << data;
@@ -1493,244 +1459,150 @@ show_struct(const uint32_t *words, int nwords, const struct field_desc *fd)
 	}
 }
 
-#define FIELD(name, start, end) { name, start, end, 0, 0, 0 }
+#define FIELD(name, start, end)           \
+	{                                 \
+		name, start, end, 0, 0, 0 \
+	}
 #define FIELD1(name, start) FIELD(name, start, start)
 
 static void
 show_t5t6_ctxt(const struct t4_sge_context *p, int vers)
 {
-	static struct field_desc egress_t5[] = {
-		FIELD("DCA_ST:", 181, 191),
-		FIELD1("StatusPgNS:", 180),
-		FIELD1("StatusPgRO:", 179),
-		FIELD1("FetchNS:", 178),
-		FIELD1("FetchRO:", 177),
-		FIELD1("Valid:", 176),
-		FIELD("PCIeDataChannel:", 174, 175),
+	static struct field_desc egress_t5[] = { FIELD("DCA_ST:", 181, 191),
+		FIELD1("StatusPgNS:", 180), FIELD1("StatusPgRO:", 179),
+		FIELD1("FetchNS:", 178), FIELD1("FetchRO:", 177),
+		FIELD1("Valid:", 176), FIELD("PCIeDataChannel:", 174, 175),
 		FIELD1("StatusPgTPHintEn:", 173),
 		FIELD("StatusPgTPHint:", 171, 172),
-		FIELD1("FetchTPHintEn:", 170),
-		FIELD("FetchTPHint:", 168, 169),
+		FIELD1("FetchTPHintEn:", 170), FIELD("FetchTPHint:", 168, 169),
 		FIELD1("FCThreshOverride:", 167),
 		{ "WRLength:", 162, 166, 9, 0, 1 },
 		FIELD1("WRLengthKnown:", 161),
-		FIELD1("ReschedulePending:", 160),
-		FIELD1("OnChipQueue:", 159),
+		FIELD1("ReschedulePending:", 160), FIELD1("OnChipQueue:", 159),
 		FIELD1("FetchSizeMode:", 158),
 		{ "FetchBurstMin:", 156, 157, 4, 0, 1 },
-		FIELD1("FLMPacking:", 155),
-		FIELD("FetchBurstMax:", 153, 154),
-		FIELD("uPToken:", 133, 152),
-		FIELD1("uPTokenEn:", 132),
-		FIELD1("UserModeIO:", 131),
-		FIELD("uPFLCredits:", 123, 130),
-		FIELD1("uPFLCreditEn:", 122),
-		FIELD("FID:", 111, 121),
-		FIELD("HostFCMode:", 109, 110),
-		FIELD1("HostFCOwner:", 108),
+		FIELD1("FLMPacking:", 155), FIELD("FetchBurstMax:", 153, 154),
+		FIELD("uPToken:", 133, 152), FIELD1("uPTokenEn:", 132),
+		FIELD1("UserModeIO:", 131), FIELD("uPFLCredits:", 123, 130),
+		FIELD1("uPFLCreditEn:", 122), FIELD("FID:", 111, 121),
+		FIELD("HostFCMode:", 109, 110), FIELD1("HostFCOwner:", 108),
 		{ "CIDXFlushThresh:", 105, 107, 0, 0, 1 },
-		FIELD("CIDX:", 89, 104),
-		FIELD("PIDX:", 73, 88),
-		{ "BaseAddress:", 18, 72, 9, 1 },
-		FIELD("QueueSize:", 2, 17),
-		FIELD1("QueueType:", 1),
-		FIELD1("CachePriority:", 0),
-		{ NULL }
-	};
-	static struct field_desc egress_t6[] = {
-		FIELD("DCA_ST:", 181, 191),
-		FIELD1("StatusPgNS:", 180),
-		FIELD1("StatusPgRO:", 179),
-		FIELD1("FetchNS:", 178),
-		FIELD1("FetchRO:", 177),
-		FIELD1("Valid:", 176),
-		FIELD1("ReschedulePending_1:", 175),
+		FIELD("CIDX:", 89, 104), FIELD("PIDX:", 73, 88),
+		{ "BaseAddress:", 18, 72, 9, 1 }, FIELD("QueueSize:", 2, 17),
+		FIELD1("QueueType:", 1), FIELD1("CachePriority:", 0),
+		{ NULL } };
+	static struct field_desc egress_t6[] = { FIELD("DCA_ST:", 181, 191),
+		FIELD1("StatusPgNS:", 180), FIELD1("StatusPgRO:", 179),
+		FIELD1("FetchNS:", 178), FIELD1("FetchRO:", 177),
+		FIELD1("Valid:", 176), FIELD1("ReschedulePending_1:", 175),
 		FIELD1("PCIeDataChannel:", 174),
 		FIELD1("StatusPgTPHintEn:", 173),
 		FIELD("StatusPgTPHint:", 171, 172),
-		FIELD1("FetchTPHintEn:", 170),
-		FIELD("FetchTPHint:", 168, 169),
+		FIELD1("FetchTPHintEn:", 170), FIELD("FetchTPHint:", 168, 169),
 		FIELD1("FCThreshOverride:", 167),
 		{ "WRLength:", 162, 166, 9, 0, 1 },
 		FIELD1("WRLengthKnown:", 161),
-		FIELD1("ReschedulePending:", 160),
-		FIELD("TimerIx:", 157, 159),
-		FIELD1("FetchBurstMin:", 156),
-		FIELD1("FLMPacking:", 155),
-		FIELD("FetchBurstMax:", 153, 154),
-		FIELD("uPToken:", 133, 152),
-		FIELD1("uPTokenEn:", 132),
-		FIELD1("UserModeIO:", 131),
-		FIELD("uPFLCredits:", 123, 130),
-		FIELD1("uPFLCreditEn:", 122),
-		FIELD("FID:", 111, 121),
-		FIELD("HostFCMode:", 109, 110),
+		FIELD1("ReschedulePending:", 160), FIELD("TimerIx:", 157, 159),
+		FIELD1("FetchBurstMin:", 156), FIELD1("FLMPacking:", 155),
+		FIELD("FetchBurstMax:", 153, 154), FIELD("uPToken:", 133, 152),
+		FIELD1("uPTokenEn:", 132), FIELD1("UserModeIO:", 131),
+		FIELD("uPFLCredits:", 123, 130), FIELD1("uPFLCreditEn:", 122),
+		FIELD("FID:", 111, 121), FIELD("HostFCMode:", 109, 110),
 		FIELD1("HostFCOwner:", 108),
 		{ "CIDXFlushThresh:", 105, 107, 0, 0, 1 },
-		FIELD("CIDX:", 89, 104),
-		FIELD("PIDX:", 73, 88),
-		{ "BaseAddress:", 18, 72, 9, 1 },
-		FIELD("QueueSize:", 2, 17),
-		FIELD1("QueueType:", 1),
-		FIELD1("FetchSizeMode:", 0),
-		{ NULL }
-	};
-	static struct field_desc fl_t5[] = {
-		FIELD("DCA_ST:", 181, 191),
-		FIELD1("StatusPgNS:", 180),
-		FIELD1("StatusPgRO:", 179),
-		FIELD1("FetchNS:", 178),
-		FIELD1("FetchRO:", 177),
-		FIELD1("Valid:", 176),
-		FIELD("PCIeDataChannel:", 174, 175),
+		FIELD("CIDX:", 89, 104), FIELD("PIDX:", 73, 88),
+		{ "BaseAddress:", 18, 72, 9, 1 }, FIELD("QueueSize:", 2, 17),
+		FIELD1("QueueType:", 1), FIELD1("FetchSizeMode:", 0),
+		{ NULL } };
+	static struct field_desc fl_t5[] = { FIELD("DCA_ST:", 181, 191),
+		FIELD1("StatusPgNS:", 180), FIELD1("StatusPgRO:", 179),
+		FIELD1("FetchNS:", 178), FIELD1("FetchRO:", 177),
+		FIELD1("Valid:", 176), FIELD("PCIeDataChannel:", 174, 175),
 		FIELD1("StatusPgTPHintEn:", 173),
 		FIELD("StatusPgTPHint:", 171, 172),
-		FIELD1("FetchTPHintEn:", 170),
-		FIELD("FetchTPHint:", 168, 169),
+		FIELD1("FetchTPHintEn:", 170), FIELD("FetchTPHint:", 168, 169),
 		FIELD1("FCThreshOverride:", 167),
-		FIELD1("ReschedulePending:", 160),
-		FIELD1("OnChipQueue:", 159),
+		FIELD1("ReschedulePending:", 160), FIELD1("OnChipQueue:", 159),
 		FIELD1("FetchSizeMode:", 158),
 		{ "FetchBurstMin:", 156, 157, 4, 0, 1 },
-		FIELD1("FLMPacking:", 155),
-		FIELD("FetchBurstMax:", 153, 154),
-		FIELD1("FLMcongMode:", 152),
-		FIELD("MaxuPFLCredits:", 144, 151),
-		FIELD("FLMcontextID:", 133, 143),
-		FIELD1("uPTokenEn:", 132),
-		FIELD1("UserModeIO:", 131),
-		FIELD("uPFLCredits:", 123, 130),
-		FIELD1("uPFLCreditEn:", 122),
-		FIELD("FID:", 111, 121),
-		FIELD("HostFCMode:", 109, 110),
-		FIELD1("HostFCOwner:", 108),
+		FIELD1("FLMPacking:", 155), FIELD("FetchBurstMax:", 153, 154),
+		FIELD1("FLMcongMode:", 152), FIELD("MaxuPFLCredits:", 144, 151),
+		FIELD("FLMcontextID:", 133, 143), FIELD1("uPTokenEn:", 132),
+		FIELD1("UserModeIO:", 131), FIELD("uPFLCredits:", 123, 130),
+		FIELD1("uPFLCreditEn:", 122), FIELD("FID:", 111, 121),
+		FIELD("HostFCMode:", 109, 110), FIELD1("HostFCOwner:", 108),
 		{ "CIDXFlushThresh:", 105, 107, 0, 0, 1 },
-		FIELD("CIDX:", 89, 104),
-		FIELD("PIDX:", 73, 88),
-		{ "BaseAddress:", 18, 72, 9, 1 },
-		FIELD("QueueSize:", 2, 17),
-		FIELD1("QueueType:", 1),
-		FIELD1("CachePriority:", 0),
-		{ NULL }
-	};
-	static struct field_desc ingress_t5[] = {
-		FIELD("DCA_ST:", 143, 153),
-		FIELD1("ISCSICoalescing:", 142),
-		FIELD1("Queue_Valid:", 141),
-		FIELD1("TimerPending:", 140),
-		FIELD1("DropRSS:", 139),
+		FIELD("CIDX:", 89, 104), FIELD("PIDX:", 73, 88),
+		{ "BaseAddress:", 18, 72, 9, 1 }, FIELD("QueueSize:", 2, 17),
+		FIELD1("QueueType:", 1), FIELD1("CachePriority:", 0),
+		{ NULL } };
+	static struct field_desc ingress_t5[] = { FIELD("DCA_ST:", 143, 153),
+		FIELD1("ISCSICoalescing:", 142), FIELD1("Queue_Valid:", 141),
+		FIELD1("TimerPending:", 140), FIELD1("DropRSS:", 139),
 		FIELD("PCIeChannel:", 137, 138),
 		FIELD1("SEInterruptArmed:", 136),
-		FIELD1("CongestionMgtEnable:", 135),
-		FIELD1("NoSnoop:", 134),
-		FIELD1("RelaxedOrdering:", 133),
-		FIELD1("GTSmode:", 132),
-		FIELD1("TPHintEn:", 131),
-		FIELD("TPHint:", 129, 130),
+		FIELD1("CongestionMgtEnable:", 135), FIELD1("NoSnoop:", 134),
+		FIELD1("RelaxedOrdering:", 133), FIELD1("GTSmode:", 132),
+		FIELD1("TPHintEn:", 131), FIELD("TPHint:", 129, 130),
 		FIELD1("UpdateScheduling:", 128),
 		FIELD("UpdateDelivery:", 126, 127),
-		FIELD1("InterruptSent:", 125),
-		FIELD("InterruptIDX:", 114, 124),
+		FIELD1("InterruptSent:", 125), FIELD("InterruptIDX:", 114, 124),
 		FIELD1("InterruptDestination:", 113),
 		FIELD1("InterruptArmed:", 112),
 		FIELD("RxIntCounter:", 106, 111),
 		FIELD("RxIntCounterThreshold:", 104, 105),
-		FIELD1("Generation:", 103),
-		{ "BaseAddress:", 48, 102, 9, 1 },
-		FIELD("PIDX:", 32, 47),
-		FIELD("CIDX:", 16, 31),
+		FIELD1("Generation:", 103), { "BaseAddress:", 48, 102, 9, 1 },
+		FIELD("PIDX:", 32, 47), FIELD("CIDX:", 16, 31),
 		{ "QueueSize:", 4, 15, 4, 0 },
 		{ "QueueEntrySize:", 2, 3, 4, 0, 1 },
-		FIELD1("QueueEntryOverride:", 1),
-		FIELD1("CachePriority:", 0),
-		{ NULL }
-	};
-	static struct field_desc ingress_t6[] = {
-		FIELD1("SP_NS:", 158),
-		FIELD1("SP_RO:", 157),
-		FIELD1("SP_TPHintEn:", 156),
-		FIELD("SP_TPHint:", 154, 155),
-		FIELD("DCA_ST:", 143, 153),
-		FIELD1("ISCSICoalescing:", 142),
-		FIELD1("Queue_Valid:", 141),
-		FIELD1("TimerPending:", 140),
-		FIELD1("DropRSS:", 139),
+		FIELD1("QueueEntryOverride:", 1), FIELD1("CachePriority:", 0),
+		{ NULL } };
+	static struct field_desc ingress_t6[] = { FIELD1("SP_NS:", 158),
+		FIELD1("SP_RO:", 157), FIELD1("SP_TPHintEn:", 156),
+		FIELD("SP_TPHint:", 154, 155), FIELD("DCA_ST:", 143, 153),
+		FIELD1("ISCSICoalescing:", 142), FIELD1("Queue_Valid:", 141),
+		FIELD1("TimerPending:", 140), FIELD1("DropRSS:", 139),
 		FIELD("PCIeChannel:", 137, 138),
 		FIELD1("SEInterruptArmed:", 136),
-		FIELD1("CongestionMgtEnable:", 135),
-		FIELD1("NoSnoop:", 134),
-		FIELD1("RelaxedOrdering:", 133),
-		FIELD1("GTSmode:", 132),
-		FIELD1("TPHintEn:", 131),
-		FIELD("TPHint:", 129, 130),
+		FIELD1("CongestionMgtEnable:", 135), FIELD1("NoSnoop:", 134),
+		FIELD1("RelaxedOrdering:", 133), FIELD1("GTSmode:", 132),
+		FIELD1("TPHintEn:", 131), FIELD("TPHint:", 129, 130),
 		FIELD1("UpdateScheduling:", 128),
 		FIELD("UpdateDelivery:", 126, 127),
-		FIELD1("InterruptSent:", 125),
-		FIELD("InterruptIDX:", 114, 124),
+		FIELD1("InterruptSent:", 125), FIELD("InterruptIDX:", 114, 124),
 		FIELD1("InterruptDestination:", 113),
 		FIELD1("InterruptArmed:", 112),
 		FIELD("RxIntCounter:", 106, 111),
 		FIELD("RxIntCounterThreshold:", 104, 105),
-		FIELD1("Generation:", 103),
-		{ "BaseAddress:", 48, 102, 9, 1 },
-		FIELD("PIDX:", 32, 47),
-		FIELD("CIDX:", 16, 31),
+		FIELD1("Generation:", 103), { "BaseAddress:", 48, 102, 9, 1 },
+		FIELD("PIDX:", 32, 47), FIELD("CIDX:", 16, 31),
 		{ "QueueSize:", 4, 15, 4, 0 },
 		{ "QueueEntrySize:", 2, 3, 4, 0, 1 },
-		FIELD1("QueueEntryOverride:", 1),
-		FIELD1("CachePriority:", 0),
-		{ NULL }
-	};
-	static struct field_desc flm_t5[] = {
-		FIELD1("Valid:", 89),
-		FIELD("SplitLenMode:", 87, 88),
-		FIELD1("TPHintEn:", 86),
-		FIELD("TPHint:", 84, 85),
-		FIELD1("NoSnoop:", 83),
-		FIELD1("RelaxedOrdering:", 82),
-		FIELD("DCA_ST:", 71, 81),
-		FIELD("EQid:", 54, 70),
-		FIELD("SplitEn:", 52, 53),
-		FIELD1("PadEn:", 51),
-		FIELD1("PackEn:", 50),
-		FIELD1("Cache_Lock :", 49),
-		FIELD1("CongDrop:", 48),
-		FIELD("PackOffset:", 16, 47),
-		FIELD("CIDX:", 8, 15),
-		FIELD("PIDX:", 0, 7),
-		{ NULL }
-	};
-	static struct field_desc flm_t6[] = {
-		FIELD1("Valid:", 89),
-		FIELD("SplitLenMode:", 87, 88),
-		FIELD1("TPHintEn:", 86),
-		FIELD("TPHint:", 84, 85),
-		FIELD1("NoSnoop:", 83),
-		FIELD1("RelaxedOrdering:", 82),
-		FIELD("DCA_ST:", 71, 81),
-		FIELD("EQid:", 54, 70),
-		FIELD("SplitEn:", 52, 53),
-		FIELD1("PadEn:", 51),
-		FIELD1("PackEn:", 50),
-		FIELD1("Cache_Lock :", 49),
-		FIELD1("CongDrop:", 48),
-		FIELD1("Inflight:", 47),
-		FIELD1("CongEn:", 46),
-		FIELD1("CongMode:", 45),
-		FIELD("PackOffset:", 20, 39),
-		FIELD("CIDX:", 8, 15),
-		FIELD("PIDX:", 0, 7),
-		{ NULL }
-	};
-	static struct field_desc conm_t5[] = {
-		FIELD1("CngMPSEnable:", 21),
-		FIELD("CngTPMode:", 19, 20),
-		FIELD1("CngDBPHdr:", 18),
-		FIELD1("CngDBPData:", 17),
-		FIELD1("CngIMSG:", 16),
-		{ "CngChMap:", 0, 15, 0, 1, 0 },
-		{ NULL }
-	};
+		FIELD1("QueueEntryOverride:", 1), FIELD1("CachePriority:", 0),
+		{ NULL } };
+	static struct field_desc flm_t5[] = { FIELD1("Valid:", 89),
+		FIELD("SplitLenMode:", 87, 88), FIELD1("TPHintEn:", 86),
+		FIELD("TPHint:", 84, 85), FIELD1("NoSnoop:", 83),
+		FIELD1("RelaxedOrdering:", 82), FIELD("DCA_ST:", 71, 81),
+		FIELD("EQid:", 54, 70), FIELD("SplitEn:", 52, 53),
+		FIELD1("PadEn:", 51), FIELD1("PackEn:", 50),
+		FIELD1("Cache_Lock :", 49), FIELD1("CongDrop:", 48),
+		FIELD("PackOffset:", 16, 47), FIELD("CIDX:", 8, 15),
+		FIELD("PIDX:", 0, 7), { NULL } };
+	static struct field_desc flm_t6[] = { FIELD1("Valid:", 89),
+		FIELD("SplitLenMode:", 87, 88), FIELD1("TPHintEn:", 86),
+		FIELD("TPHint:", 84, 85), FIELD1("NoSnoop:", 83),
+		FIELD1("RelaxedOrdering:", 82), FIELD("DCA_ST:", 71, 81),
+		FIELD("EQid:", 54, 70), FIELD("SplitEn:", 52, 53),
+		FIELD1("PadEn:", 51), FIELD1("PackEn:", 50),
+		FIELD1("Cache_Lock :", 49), FIELD1("CongDrop:", 48),
+		FIELD1("Inflight:", 47), FIELD1("CongEn:", 46),
+		FIELD1("CongMode:", 45), FIELD("PackOffset:", 20, 39),
+		FIELD("CIDX:", 8, 15), FIELD("PIDX:", 0, 7), { NULL } };
+	static struct field_desc conm_t5[] = { FIELD1("CngMPSEnable:", 21),
+		FIELD("CngTPMode:", 19, 20), FIELD1("CngDBPHdr:", 18),
+		FIELD1("CngDBPData:", 17), FIELD1("CngIMSG:", 16),
+		{ "CngChMap:", 0, 15, 0, 1, 0 }, { NULL } };
 
 	if (p->mem_id == SGE_CONTEXT_EGRESS) {
 		if (p->data[0] & 2)
@@ -1750,128 +1622,75 @@ show_t5t6_ctxt(const struct t4_sge_context *p, int vers)
 static void
 show_t4_ctxt(const struct t4_sge_context *p)
 {
-	static struct field_desc egress_t4[] = {
-		FIELD1("StatusPgNS:", 180),
-		FIELD1("StatusPgRO:", 179),
-		FIELD1("FetchNS:", 178),
-		FIELD1("FetchRO:", 177),
-		FIELD1("Valid:", 176),
-		FIELD("PCIeDataChannel:", 174, 175),
-		FIELD1("DCAEgrQEn:", 173),
-		FIELD("DCACPUID:", 168, 172),
-		FIELD1("FCThreshOverride:", 167),
-		FIELD("WRLength:", 162, 166),
-		FIELD1("WRLengthKnown:", 161),
-		FIELD1("ReschedulePending:", 160),
-		FIELD1("OnChipQueue:", 159),
+	static struct field_desc egress_t4[] = { FIELD1("StatusPgNS:", 180),
+		FIELD1("StatusPgRO:", 179), FIELD1("FetchNS:", 178),
+		FIELD1("FetchRO:", 177), FIELD1("Valid:", 176),
+		FIELD("PCIeDataChannel:", 174, 175), FIELD1("DCAEgrQEn:", 173),
+		FIELD("DCACPUID:", 168, 172), FIELD1("FCThreshOverride:", 167),
+		FIELD("WRLength:", 162, 166), FIELD1("WRLengthKnown:", 161),
+		FIELD1("ReschedulePending:", 160), FIELD1("OnChipQueue:", 159),
 		FIELD1("FetchSizeMode", 158),
 		{ "FetchBurstMin:", 156, 157, 4, 0, 1 },
 		{ "FetchBurstMax:", 153, 154, 6, 0, 1 },
-		FIELD("uPToken:", 133, 152),
-		FIELD1("uPTokenEn:", 132),
-		FIELD1("UserModeIO:", 131),
-		FIELD("uPFLCredits:", 123, 130),
-		FIELD1("uPFLCreditEn:", 122),
-		FIELD("FID:", 111, 121),
-		FIELD("HostFCMode:", 109, 110),
-		FIELD1("HostFCOwner:", 108),
+		FIELD("uPToken:", 133, 152), FIELD1("uPTokenEn:", 132),
+		FIELD1("UserModeIO:", 131), FIELD("uPFLCredits:", 123, 130),
+		FIELD1("uPFLCreditEn:", 122), FIELD("FID:", 111, 121),
+		FIELD("HostFCMode:", 109, 110), FIELD1("HostFCOwner:", 108),
 		{ "CIDXFlushThresh:", 105, 107, 0, 0, 1 },
-		FIELD("CIDX:", 89, 104),
-		FIELD("PIDX:", 73, 88),
-		{ "BaseAddress:", 18, 72, 9, 1 },
-		FIELD("QueueSize:", 2, 17),
-		FIELD1("QueueType:", 1),
-		FIELD1("CachePriority:", 0),
-		{ NULL }
-	};
-	static struct field_desc fl_t4[] = {
-		FIELD1("StatusPgNS:", 180),
-		FIELD1("StatusPgRO:", 179),
-		FIELD1("FetchNS:", 178),
-		FIELD1("FetchRO:", 177),
-		FIELD1("Valid:", 176),
-		FIELD("PCIeDataChannel:", 174, 175),
-		FIELD1("DCAEgrQEn:", 173),
-		FIELD("DCACPUID:", 168, 172),
-		FIELD1("FCThreshOverride:", 167),
-		FIELD1("ReschedulePending:", 160),
-		FIELD1("OnChipQueue:", 159),
+		FIELD("CIDX:", 89, 104), FIELD("PIDX:", 73, 88),
+		{ "BaseAddress:", 18, 72, 9, 1 }, FIELD("QueueSize:", 2, 17),
+		FIELD1("QueueType:", 1), FIELD1("CachePriority:", 0),
+		{ NULL } };
+	static struct field_desc fl_t4[] = { FIELD1("StatusPgNS:", 180),
+		FIELD1("StatusPgRO:", 179), FIELD1("FetchNS:", 178),
+		FIELD1("FetchRO:", 177), FIELD1("Valid:", 176),
+		FIELD("PCIeDataChannel:", 174, 175), FIELD1("DCAEgrQEn:", 173),
+		FIELD("DCACPUID:", 168, 172), FIELD1("FCThreshOverride:", 167),
+		FIELD1("ReschedulePending:", 160), FIELD1("OnChipQueue:", 159),
 		FIELD1("FetchSizeMode", 158),
 		{ "FetchBurstMin:", 156, 157, 4, 0, 1 },
 		{ "FetchBurstMax:", 153, 154, 6, 0, 1 },
-		FIELD1("FLMcongMode:", 152),
-		FIELD("MaxuPFLCredits:", 144, 151),
-		FIELD("FLMcontextID:", 133, 143),
-		FIELD1("uPTokenEn:", 132),
-		FIELD1("UserModeIO:", 131),
-		FIELD("uPFLCredits:", 123, 130),
-		FIELD1("uPFLCreditEn:", 122),
-		FIELD("FID:", 111, 121),
-		FIELD("HostFCMode:", 109, 110),
-		FIELD1("HostFCOwner:", 108),
+		FIELD1("FLMcongMode:", 152), FIELD("MaxuPFLCredits:", 144, 151),
+		FIELD("FLMcontextID:", 133, 143), FIELD1("uPTokenEn:", 132),
+		FIELD1("UserModeIO:", 131), FIELD("uPFLCredits:", 123, 130),
+		FIELD1("uPFLCreditEn:", 122), FIELD("FID:", 111, 121),
+		FIELD("HostFCMode:", 109, 110), FIELD1("HostFCOwner:", 108),
 		{ "CIDXFlushThresh:", 105, 107, 0, 0, 1 },
-		FIELD("CIDX:", 89, 104),
-		FIELD("PIDX:", 73, 88),
-		{ "BaseAddress:", 18, 72, 9, 1 },
-		FIELD("QueueSize:", 2, 17),
-		FIELD1("QueueType:", 1),
-		FIELD1("CachePriority:", 0),
-		{ NULL }
-	};
-	static struct field_desc ingress_t4[] = {
-		FIELD1("NoSnoop:", 145),
-		FIELD1("RelaxedOrdering:", 144),
-		FIELD1("GTSmode:", 143),
-		FIELD1("ISCSICoalescing:", 142),
-		FIELD1("Valid:", 141),
-		FIELD1("TimerPending:", 140),
-		FIELD1("DropRSS:", 139),
+		FIELD("CIDX:", 89, 104), FIELD("PIDX:", 73, 88),
+		{ "BaseAddress:", 18, 72, 9, 1 }, FIELD("QueueSize:", 2, 17),
+		FIELD1("QueueType:", 1), FIELD1("CachePriority:", 0),
+		{ NULL } };
+	static struct field_desc ingress_t4[] = { FIELD1("NoSnoop:", 145),
+		FIELD1("RelaxedOrdering:", 144), FIELD1("GTSmode:", 143),
+		FIELD1("ISCSICoalescing:", 142), FIELD1("Valid:", 141),
+		FIELD1("TimerPending:", 140), FIELD1("DropRSS:", 139),
 		FIELD("PCIeChannel:", 137, 138),
 		FIELD1("SEInterruptArmed:", 136),
 		FIELD1("CongestionMgtEnable:", 135),
-		FIELD1("DCAIngQEnable:", 134),
-		FIELD("DCACPUID:", 129, 133),
+		FIELD1("DCAIngQEnable:", 134), FIELD("DCACPUID:", 129, 133),
 		FIELD1("UpdateScheduling:", 128),
 		FIELD("UpdateDelivery:", 126, 127),
-		FIELD1("InterruptSent:", 125),
-		FIELD("InterruptIDX:", 114, 124),
+		FIELD1("InterruptSent:", 125), FIELD("InterruptIDX:", 114, 124),
 		FIELD1("InterruptDestination:", 113),
 		FIELD1("InterruptArmed:", 112),
 		FIELD("RxIntCounter:", 106, 111),
 		FIELD("RxIntCounterThreshold:", 104, 105),
-		FIELD1("Generation:", 103),
-		{ "BaseAddress:", 48, 102, 9, 1 },
-		FIELD("PIDX:", 32, 47),
-		FIELD("CIDX:", 16, 31),
+		FIELD1("Generation:", 103), { "BaseAddress:", 48, 102, 9, 1 },
+		FIELD("PIDX:", 32, 47), FIELD("CIDX:", 16, 31),
 		{ "QueueSize:", 4, 15, 4, 0 },
 		{ "QueueEntrySize:", 2, 3, 4, 0, 1 },
-		FIELD1("QueueEntryOverride:", 1),
-		FIELD1("CachePriority:", 0),
-		{ NULL }
-	};
-	static struct field_desc flm_t4[] = {
-		FIELD1("NoSnoop:", 79),
-		FIELD1("RelaxedOrdering:", 78),
-		FIELD1("Valid:", 77),
-		FIELD("DCACPUID:", 72, 76),
-		FIELD1("DCAFLEn:", 71),
-		FIELD("EQid:", 54, 70),
-		FIELD("SplitEn:", 52, 53),
-		FIELD1("PadEn:", 51),
-		FIELD1("PackEn:", 50),
-		FIELD1("DBpriority:", 48),
-		FIELD("PackOffset:", 16, 47),
-		FIELD("CIDX:", 8, 15),
-		FIELD("PIDX:", 0, 7),
-		{ NULL }
-	};
-	static struct field_desc conm_t4[] = {
-		FIELD1("CngDBPHdr:", 6),
-		FIELD1("CngDBPData:", 5),
-		FIELD1("CngIMSG:", 4),
-		{ "CngChMap:", 0, 3, 0, 1, 0},
-		{ NULL }
-	};
+		FIELD1("QueueEntryOverride:", 1), FIELD1("CachePriority:", 0),
+		{ NULL } };
+	static struct field_desc flm_t4[] = { FIELD1("NoSnoop:", 79),
+		FIELD1("RelaxedOrdering:", 78), FIELD1("Valid:", 77),
+		FIELD("DCACPUID:", 72, 76), FIELD1("DCAFLEn:", 71),
+		FIELD("EQid:", 54, 70), FIELD("SplitEn:", 52, 53),
+		FIELD1("PadEn:", 51), FIELD1("PackEn:", 50),
+		FIELD1("DBpriority:", 48), FIELD("PackOffset:", 16, 47),
+		FIELD("CIDX:", 8, 15), FIELD("PIDX:", 0, 7), { NULL } };
+	static struct field_desc conm_t4[] = { FIELD1("CngDBPHdr:", 6),
+		FIELD1("CngDBPData:", 5), FIELD1("CngIMSG:", 4),
+		{ "CngChMap:", 0, 3, 0, 1, 0 }, { NULL } };
 
 	if (p->mem_id == SGE_CONTEXT_EGRESS)
 		show_struct(p->data, 6, (p->data[0] & 2) ? fl_t4 : egress_t4);
@@ -1892,7 +1711,7 @@ get_sge_context(int argc, const char *argv[])
 	int rc;
 	char *p;
 	long cid;
-	struct t4_sge_context cntxt = {0};
+	struct t4_sge_context cntxt = { 0 };
 
 	if (argc != 2) {
 		warnx("sge_context: incorrect number of arguments.");
@@ -1909,7 +1728,8 @@ get_sge_context(int argc, const char *argv[])
 		cntxt.mem_id = SGE_CONTEXT_CNM;
 	else {
 		warnx("unknown context type \"%s\"; known types are egress, "
-		    "ingress, fl, and cong.", argv[0]);
+		      "ingress, fl, and cong.",
+		    argv[0]);
 		return (EINVAL);
 	}
 
@@ -1936,9 +1756,9 @@ static int
 loadfw(int argc, const char *argv[])
 {
 	int rc, fd;
-	struct t4_data data = {0};
+	struct t4_data data = { 0 };
 	const char *fname = argv[0];
-	struct stat st = {0};
+	struct stat st = { 0 };
 
 	if (argc != 1) {
 		warnx("loadfw: incorrect number of arguments.");
@@ -1975,9 +1795,9 @@ static int
 loadcfg(int argc, const char *argv[])
 {
 	int rc, fd;
-	struct t4_data data = {0};
+	struct t4_data data = { 0 };
 	const char *fname = argv[0];
-	struct stat st = {0};
+	struct stat st = { 0 };
 
 	if (argc != 1) {
 		warnx("loadcfg: incorrect number of arguments.");
@@ -2000,7 +1820,7 @@ loadcfg(int argc, const char *argv[])
 	}
 
 	data.len = st.st_size;
-	data.len &= ~3;		/* Clip off to make it a multiple of 4 */
+	data.len &= ~3; /* Clip off to make it a multiple of 4 */
 	data.data = mmap(0, data.len, PROT_READ, MAP_PRIVATE, fd, 0);
 	if (data.data == MAP_FAILED) {
 		warn("mmap");
@@ -2018,7 +1838,7 @@ static int
 dumpstate(int argc, const char *argv[])
 {
 	int rc, fd;
-	struct t4_cudbg_dump dump = {0};
+	struct t4_cudbg_dump dump = { 0 };
 	const char *fname = argv[0];
 
 	if (argc != 1) {
@@ -2084,9 +1904,9 @@ loadboot(int argc, const char *argv[])
 	int rc, fd;
 	long l;
 	char *p;
-	struct t4_bootrom br = {0};
+	struct t4_bootrom br = { 0 };
 	const char *fname = argv[0];
-	struct stat st = {0};
+	struct stat st = { 0 };
 
 	if (argc == 1) {
 		br.pf_offset = 0;
@@ -2141,9 +1961,9 @@ static int
 loadbootcfg(int argc, const char *argv[])
 {
 	int rc, fd;
-	struct t4_data bc = {0};
+	struct t4_data bc = { 0 };
 	const char *fname = argv[0];
-	struct stat st = {0};
+	struct stat st = { 0 };
 
 	if (argc != 1) {
 		warnx("loadbootcfg: incorrect number of arguments.");
@@ -2373,7 +2193,7 @@ show_tracers(void)
 	printf("tracing is %s\n", val & 2 ? "ENABLED" : "DISABLED");
 
 	t.idx = 0;
-	for (t.idx = 0; ; t.idx++) {
+	for (t.idx = 0;; t.idx++) {
 		rc = doit(CHELSIO_T4_GET_TRACER, &t);
 		if (rc != 0 || t.idx == 0xff)
 			break;
@@ -2446,10 +2266,9 @@ tracer_onoff(uint8_t idx, int enabled)
 static void
 create_tracing_ifnet()
 {
-	char *cmd[] = {
-		"/sbin/ifconfig", __DECONST(char *, nexus), "create", NULL
-	};
-	char *env[] = {NULL};
+	char *cmd[] = { "/sbin/ifconfig", __DECONST(char *, nexus), "create",
+		NULL };
+	char *env[] = { NULL };
 
 	if (vfork() == 0) {
 		close(STDERR_FILENO);
@@ -2469,7 +2288,7 @@ set_tracer(uint8_t idx, int argc, const char *argv[])
 	struct t4_tracer t;
 	int len, port;
 
-	bzero(&t, sizeof (t));
+	bzero(&t, sizeof(t));
 	t.idx = idx;
 	t.enabled = 1;
 	t.valid = 1;
@@ -2685,8 +2504,8 @@ modinfo(int argc, const char *argv[])
 	if ((rc = doit(CHELSIO_T4_GET_I2C, &i2cd)) != 0)
 		goto fail;
 
-	if ((char )i2cd.data[0] & (SFF_8472_DIAG_IMPL |
-				   SFF_8472_DIAG_INTERNAL)) {
+	if ((char)i2cd.data[0] &
+	    (SFF_8472_DIAG_IMPL | SFF_8472_DIAG_INTERNAL)) {
 
 		/* Switch to reading from the Diagnostic address. */
 		i2cd.dev_addr = SFF_8472_DIAG;
@@ -2701,8 +2520,8 @@ modinfo(int argc, const char *argv[])
 			printf("-");
 		else
 			printf("+");
-		printf("%dC\n", (temp & SFF_8472_TEMP_MSK) >>
-		    SFF_8472_TEMP_SHIFT);
+		printf("%dC\n",
+		    (temp & SFF_8472_TEMP_MSK) >> SFF_8472_TEMP_SHIFT);
 
 		i2cd.offset = SFF_8472_VCC;
 		if ((rc = doit(CHELSIO_T4_GET_I2C, &i2cd)) != 0)
@@ -2731,13 +2550,12 @@ modinfo(int argc, const char *argv[])
 	} else
 		printf("Diagnostics not supported.\n");
 
-	return(0);
+	return (0);
 
 fail:
 	if (rc == EPERM)
 		warnx("No module/cable in port %ld", port);
 	return (rc);
-
 }
 
 /* XXX: pass in a low/high and do range checks as well */
@@ -2779,8 +2597,9 @@ sched_class(int argc, const char *argv[])
 		op.subcmd = SCHED_CLASS_SUBCMD_PARAMS;
 		op.u.params.level = op.u.params.mode = op.u.params.rateunit =
 		    op.u.params.ratemode = op.u.params.channel =
-		    op.u.params.cl = op.u.params.minrate = op.u.params.maxrate =
-		    op.u.params.weight = op.u.params.pktsize = -1;
+			op.u.params.cl = op.u.params.minrate =
+			    op.u.params.maxrate = op.u.params.weight =
+				op.u.params.pktsize = -1;
 	} else {
 		warnx("invalid scheduling sub-command \"%s\"", argv[0]);
 		return (EINVAL);
@@ -2810,11 +2629,12 @@ sched_class(int argc, const char *argv[])
 		}
 
 		if (op.subcmd == SCHED_CLASS_SUBCMD_CONFIG) {
-			if(!get_sched_param("minmax", args, &l))
+			if (!get_sched_param("minmax", args, &l))
 				op.u.config.minmax = (int8_t)l;
 			else {
 				warnx("unknown scheduler config parameter "
-				    "\"%s\"", args[0]);
+				      "\"%s\"",
+				    args[0]);
 				errs++;
 			}
 
@@ -2848,9 +2668,11 @@ sched_class(int argc, const char *argv[])
 			}
 		} else if (!strcmp(args[0], "rate-unit")) {
 			if (!strcmp(args[1], "bits"))
-				op.u.params.rateunit = SCHED_CLASS_RATEUNIT_BITS;
+				op.u.params.rateunit =
+				    SCHED_CLASS_RATEUNIT_BITS;
 			else if (!strcmp(args[1], "pkts"))
-				op.u.params.rateunit = SCHED_CLASS_RATEUNIT_PKTS;
+				op.u.params.rateunit =
+				    SCHED_CLASS_RATEUNIT_PKTS;
 			else {
 				warnx("invalid rate-unit parameter \"%s\"",
 				    args[1]);
@@ -2913,13 +2735,13 @@ sched_class(int argc, const char *argv[])
 		}
 		if (op.u.params.rateunit < 0 &&
 		    (op.u.params.level == SCHED_CLASS_LEVEL_CL_RL ||
-		    op.u.params.level == SCHED_CLASS_LEVEL_CH_RL)) {
+			op.u.params.level == SCHED_CLASS_LEVEL_CH_RL)) {
 			warnx("sched params \"rate-unit\" parameter missing");
 			errs++;
 		}
 		if (op.u.params.ratemode < 0 &&
 		    (op.u.params.level == SCHED_CLASS_LEVEL_CL_RL ||
-		    op.u.params.level == SCHED_CLASS_LEVEL_CH_RL)) {
+			op.u.params.level == SCHED_CLASS_LEVEL_CH_RL)) {
 			warnx("sched params \"rate-mode\" parameter missing");
 			errs++;
 		}
@@ -2929,52 +2751,53 @@ sched_class(int argc, const char *argv[])
 		}
 		if (op.u.params.cl < 0 &&
 		    (op.u.params.level == SCHED_CLASS_LEVEL_CL_RL ||
-		    op.u.params.level == SCHED_CLASS_LEVEL_CL_WRR)) {
+			op.u.params.level == SCHED_CLASS_LEVEL_CL_WRR)) {
 			warnx("sched params \"class\" missing");
 			errs++;
 		}
 		if (op.u.params.maxrate < 0 &&
 		    (op.u.params.level == SCHED_CLASS_LEVEL_CL_RL ||
-		    op.u.params.level == SCHED_CLASS_LEVEL_CH_RL)) {
+			op.u.params.level == SCHED_CLASS_LEVEL_CH_RL)) {
 			warnx("sched params \"max-rate\" missing for "
-			    "rate-limit level");
+			      "rate-limit level");
 			errs++;
 		}
 		if (op.u.params.level == SCHED_CLASS_LEVEL_CL_WRR &&
 		    (op.u.params.weight < 1 || op.u.params.weight > 99)) {
 			warnx("sched params \"weight\" missing or invalid "
-			    "(not 1-99) for weighted-round-robin level");
+			      "(not 1-99) for weighted-round-robin level");
 			errs++;
 		}
 		if (op.u.params.pktsize < 0 &&
 		    op.u.params.level == SCHED_CLASS_LEVEL_CL_RL) {
 			warnx("sched params \"pkt-size\" missing for "
-			    "rate-limit level");
+			      "rate-limit level");
 			errs++;
 		}
 		if (op.u.params.mode == SCHED_CLASS_MODE_FLOW &&
 		    op.u.params.ratemode != SCHED_CLASS_RATEMODE_ABS) {
-			warnx("sched params mode flow needs rate-mode absolute");
+			warnx(
+			    "sched params mode flow needs rate-mode absolute");
 			errs++;
 		}
 		if (op.u.params.ratemode == SCHED_CLASS_RATEMODE_REL &&
 		    !in_range(op.u.params.maxrate, 1, 100)) {
-                        warnx("sched params \"max-rate\" takes "
-			    "percentage value(1-100) for rate-mode relative");
-                        errs++;
-                }
-                if (op.u.params.ratemode == SCHED_CLASS_RATEMODE_ABS &&
+			warnx("sched params \"max-rate\" takes "
+			      "percentage value(1-100) for rate-mode relative");
+			errs++;
+		}
+		if (op.u.params.ratemode == SCHED_CLASS_RATEMODE_ABS &&
 		    !in_range(op.u.params.maxrate, 1, 100000000)) {
-                        warnx("sched params \"max-rate\" takes "
-			    "value(1-100000000) for rate-mode absolute");
-                        errs++;
-                }
-                if (op.u.params.maxrate > 0 &&
+			warnx("sched params \"max-rate\" takes "
+			      "value(1-100000000) for rate-mode absolute");
+			errs++;
+		}
+		if (op.u.params.maxrate > 0 &&
 		    op.u.params.maxrate < op.u.params.minrate) {
-                        warnx("sched params \"max-rate\" is less than "
-			    "\"min-rate\"");
-                        errs++;
-                }
+			warnx("sched params \"max-rate\" is less than "
+			      "\"min-rate\"");
+			errs++;
+		}
 	}
 
 	if (errs > 0) {
@@ -2989,7 +2812,7 @@ sched_class(int argc, const char *argv[])
 static int
 sched_queue(int argc, const char *argv[])
 {
-	struct t4_sched_queue op = {0};
+	struct t4_sched_queue op = { 0 };
 	char *p;
 	long val;
 
@@ -3049,7 +2872,7 @@ parse_offload_settings_word(const char *s, char **pnext, const char *ws,
 	if (!strcmp(s, "offload")) {
 		os->offload = (*pneg + 1) & 1;
 		*pneg = 0;
-	} else if (!strcmp(s , "coalesce")) {
+	} else if (!strcmp(s, "coalesce")) {
 		os->rx_coalesce = (*pneg + 1) & 1;
 		*pneg = 0;
 	} else if (!strcmp(s, "timestamp") || !strcmp(s, "tstamp")) {
@@ -3078,7 +2901,8 @@ parse_offload_settings_word(const char *s, char **pnext, const char *ws,
 
 		if (*pneg) {
 			warnx("\"%s\" is not a valid keyword, or it does not "
-			    "support negation.", s);
+			      "support negation.",
+			    s);
 			return (EINVAL);
 		}
 
@@ -3088,7 +2912,8 @@ parse_offload_settings_word(const char *s, char **pnext, const char *ws,
 		}
 		if (param == NULL) {
 			warnx("\"%s\" is not a valid keyword, or it requires a "
-			    "parameter that has not been provided.", s);
+			      "parameter that has not been provided.",
+			    s);
 			return (EINVAL);
 		}
 
@@ -3102,7 +2927,8 @@ parse_offload_settings_word(const char *s, char **pnext, const char *ws,
 			else if (!strcmp(param, "highspeed"))
 				os->cong_algo = 3;
 			else {
-				warnx("unknown congestion algorithm \"%s\".", s);
+				warnx("unknown congestion algorithm \"%s\".",
+				    s);
 				return (EINVAL);
 			}
 		} else if (!strcmp(s, "class")) {
@@ -3111,8 +2937,9 @@ parse_offload_settings_word(const char *s, char **pnext, const char *ws,
 			/* (nsched_cls - 1) is spelled 15 here. */
 			if (*p || val < 0 || val > 15) {
 				warnx("invalid scheduling class \"%s\".  "
-				    "\"class\" needs an integer value where "
-				    "0 <= value <= 15", param);
+				      "\"class\" needs an integer value where "
+				      "0 <= value <= 15",
+				    param);
 				return (EINVAL);
 			}
 			os->sched_class = val;
@@ -3126,9 +2953,10 @@ parse_offload_settings_word(const char *s, char **pnext, const char *ws,
 				p = str_to_number(param, &val, NULL);
 				if (*p || val < 0 || val > 0xffff) {
 					warnx("invalid queue specification "
-					    "\"%s\".  \"%s\" needs an integer"
-					    " value, \"random\", or "
-					    "\"roundrobin\".", param, s);
+					      "\"%s\".  \"%s\" needs an integer"
+					      " value, \"random\", or "
+					      "\"roundrobin\".",
+					    param, s);
 					return (EINVAL);
 				}
 			}
@@ -3147,12 +2975,12 @@ parse_offload_settings_word(const char *s, char **pnext, const char *ws,
 			p = str_to_number(param, &val, NULL);
 			if (*p || val <= 0) {
 				warnx("invalid MSS specification \"%s\".  "
-				    "\"mss\" needs a positive integer value",
+				      "\"mss\" needs a positive integer value",
 				    param);
 				return (EINVAL);
 			}
 			os->mss = val;
-		} else  {
+		} else {
 			warnx("unknown settings keyword: \"%s\"", s);
 			return (EINVAL);
 		}
@@ -3168,7 +2996,7 @@ parse_offload_settings(const char *settings_ro, struct offload_settings *os)
 	char *settings, *s, *next;
 	int rc, nsettings, neg;
 	static const struct offload_settings default_settings = {
-		.offload = 0,	/* No settings imply !offload */
+		.offload = 0, /* No settings imply !offload */
 		.rx_coalesce = -1,
 		.cong_algo = -1,
 		.sched_class = -1,
@@ -3187,7 +3015,7 @@ parse_offload_settings(const char *settings_ro, struct offload_settings *os)
 
 	next = settings = strdup(settings_ro);
 	if (settings == NULL) {
-		warn (NULL);
+		warn(NULL);
 		return (errno);
 	}
 
@@ -3299,8 +3127,8 @@ parse_offload_policy_line(size_t lno, char *line, size_t llen, pcap_t *pd,
 	}
 	line++;
 	if (*line++ != ']') {
-		warnx("missing \"]\" after \"[%c\" on line %zd",
-		    r->open_type, lno);
+		warnx("missing \"]\" after \"[%c\" on line %zd", r->open_type,
+		    lno);
 		return (EINVAL);
 	}
 
@@ -3326,7 +3154,7 @@ parse_offload_policy_line(size_t lno, char *line, size_t llen, pcap_t *pd,
 	 */
 	if (!special_offload_rule(expr)) {
 		if (pcap_compile(pd, &r->bpf_prog, expr, 1,
-		    PCAP_NETMASK_UNKNOWN) < 0) {
+			PCAP_NETMASK_UNKNOWN) < 0) {
 			warnx("failed to compile \"%s\" on line %zd: %s", expr,
 			    lno, pcap_geterr(pd));
 			return (EINVAL);
@@ -3342,7 +3170,6 @@ parse_offload_policy_line(size_t lno, char *line, size_t llen, pcap_t *pd,
 	}
 
 	return (0);
-
 }
 
 /*
@@ -3432,8 +3259,8 @@ parse_offload_policy(const char *fname, struct t4_offload_policy *op)
 	free(line);
 
 	if (!feof(fp)) {
-		warn("Error while reading from file \"%s\" at line %d",
-		    fname, lno);
+		warn("Error while reading from file \"%s\" at line %d", fname,
+		    lno);
 		rc = errno;
 		goto done;
 	}
@@ -3457,7 +3284,7 @@ load_offload_policy(int argc, const char *argv[])
 {
 	int rc = 0;
 	const char *fname = argv[0];
-	struct t4_offload_policy op = {0};
+	struct t4_offload_policy op = { 0 };
 
 	if (argc != 1) {
 		warnx("incorrect number of arguments.");
@@ -3511,7 +3338,7 @@ static int
 clip_cmd(int argc, const char *argv[])
 {
 	int rc, af = AF_INET6, add;
-	struct t4_clip_addr ca = {0};
+	struct t4_clip_addr ca = { 0 };
 
 	if (argc == 1 && !strcmp(argv[0], "list")) {
 		rc = display_clip();
@@ -3624,7 +3451,7 @@ run_cmd_loop(void)
 		if (buf == NULL) {
 			if (ferror(stdin)) {
 				warn("stdin error");
-				rc = errno;	/* errno from fgets */
+				rc = errno; /* errno from fgets */
 			}
 			break;
 		}
@@ -3637,7 +3464,7 @@ run_cmd_loop(void)
 		args[i] = 0;
 
 		if (i == 0)
-			continue;	/* skip empty line */
+			continue; /* skip empty line */
 
 		if (!strcmp(args[0], "quit") || !strcmp(args[0], "exit"))
 			break;

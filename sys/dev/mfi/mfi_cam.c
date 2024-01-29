@@ -26,25 +26,33 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_mfi.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/malloc.h>
-#include <sys/module.h>
-#include <sys/selinfo.h>
+#include <sys/bio.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/eventhandler.h>
-#include <sys/rman.h>
-#include <sys/bio.h>
 #include <sys/ioccom.h>
-#include <sys/uio.h>
+#include <sys/kernel.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/proc.h>
+#include <sys/rman.h>
+#include <sys/selinfo.h>
 #include <sys/signalvar.h>
 #include <sys/sysctl.h>
+#include <sys/uio.h>
+
+#include <machine/bus.h>
+#include <machine/md_var.h>
+#include <machine/resource.h>
+
+#include <dev/mfi/mfi_ioctl.h>
+#include <dev/mfi/mfireg.h>
+#include <dev/mfi/mfivar.h>
 
 #include <cam/cam.h>
 #include <cam/cam_ccb.h>
@@ -56,55 +64,38 @@
 #include <cam/scsi/scsi_all.h>
 #include <cam/scsi/scsi_message.h>
 
-#include <machine/md_var.h>
-#include <machine/bus.h>
-#include <machine/resource.h>
-
-#include <dev/mfi/mfireg.h>
-#include <dev/mfi/mfi_ioctl.h>
-#include <dev/mfi/mfivar.h>
-
-enum mfip_state {
-	MFIP_STATE_NONE,
-	MFIP_STATE_DETACH,
-	MFIP_STATE_RESCAN
-};
+enum mfip_state { MFIP_STATE_NONE, MFIP_STATE_DETACH, MFIP_STATE_RESCAN };
 
 struct mfip_softc {
-	device_t	dev;
+	device_t dev;
 	struct mfi_softc *mfi_sc;
 	struct cam_devq *devq;
-	struct cam_sim	*sim;
-	struct cam_path	*path;
-	enum mfip_state	state;
+	struct cam_sim *sim;
+	struct cam_path *path;
+	enum mfip_state state;
 };
 
-static int	mfip_probe(device_t);
-static int	mfip_attach(device_t);
-static int	mfip_detach(device_t);
-static void	mfip_cam_action(struct cam_sim *, union ccb *);
-static void	mfip_cam_poll(struct cam_sim *);
-static void	mfip_cam_rescan(struct mfi_softc *, uint32_t tid);
-static struct mfi_command * mfip_start(void *);
-static void	mfip_done(struct mfi_command *cm);
+static int mfip_probe(device_t);
+static int mfip_attach(device_t);
+static int mfip_detach(device_t);
+static void mfip_cam_action(struct cam_sim *, union ccb *);
+static void mfip_cam_poll(struct cam_sim *);
+static void mfip_cam_rescan(struct mfi_softc *, uint32_t tid);
+static struct mfi_command *mfip_start(void *);
+static void mfip_done(struct mfi_command *cm);
 
 static int mfi_allow_disks = 0;
 SYSCTL_INT(_hw_mfi, OID_AUTO, allow_cam_disk_passthrough, CTLFLAG_RDTUN,
     &mfi_allow_disks, 0, "event message locale");
 
-static device_method_t	mfip_methods[] = {
-	DEVMETHOD(device_probe,		mfip_probe),
-	DEVMETHOD(device_attach,	mfip_attach),
-	DEVMETHOD(device_detach,	mfip_detach),
+static device_method_t mfip_methods[] = { DEVMETHOD(device_probe, mfip_probe),
+	DEVMETHOD(device_attach, mfip_attach),
+	DEVMETHOD(device_detach, mfip_detach),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
-static driver_t mfip_driver = {
-	"mfip",
-	mfip_methods,
-	sizeof(struct mfip_softc)
-};
+static driver_t mfip_driver = { "mfip", mfip_methods,
+	sizeof(struct mfip_softc) };
 
 DRIVER_MODULE(mfip, mfi, mfip_driver, 0, 0);
 MODULE_DEPEND(mfip, cam, 1, 1, 1);
@@ -140,8 +131,8 @@ mfip_attach(device_t dev)
 		return (ENOMEM);
 
 	sc->sim = cam_sim_alloc(mfip_cam_action, mfip_cam_poll, "mfi", sc,
-				device_get_unit(dev), &mfisc->mfi_io_lock, 1,
-				MFI_SCSI_MAX_CMDS, sc->devq);
+	    device_get_unit(dev), &mfisc->mfi_io_lock, 1, MFI_SCSI_MAX_CMDS,
+	    sc->devq);
 	if (sc->sim == NULL) {
 		cam_simq_free(sc->devq);
 		sc->devq = NULL;
@@ -210,8 +201,7 @@ mfip_cam_action(struct cam_sim *sim, union ccb *ccb)
 	mtx_assert(&mfisc->mfi_io_lock, MA_OWNED);
 
 	switch (ccb->ccb_h.func_code) {
-	case XPT_PATH_INQ:
-	{
+	case XPT_PATH_INQ: {
 		struct ccb_pathinq *cpi = &ccb->cpi;
 
 		cpi->version_num = 1;
@@ -241,8 +231,7 @@ mfip_cam_action(struct cam_sim *sim, union ccb *ccb)
 	case XPT_RESET_DEV:
 		ccb->ccb_h.status = CAM_REQ_CMP;
 		break;
-	case XPT_GET_TRAN_SETTINGS:
-	{
+	case XPT_GET_TRAN_SETTINGS: {
 		struct ccb_trans_settings_scsi *scsi =
 		    &ccb->cts.proto_specific.scsi;
 		struct ccb_trans_settings_sas *sas =
@@ -265,10 +254,9 @@ mfip_cam_action(struct cam_sim *sim, union ccb *ccb)
 	case XPT_SET_TRAN_SETTINGS:
 		ccb->ccb_h.status = CAM_FUNC_NOTAVAIL;
 		break;
-	case XPT_SCSI_IO:
-	{
-		struct ccb_hdr		*ccbh = &ccb->ccb_h;
-		struct ccb_scsiio	*csio = &ccb->csio;
+	case XPT_SCSI_IO: {
+		struct ccb_hdr *ccbh = &ccb->ccb_h;
+		struct ccb_scsiio *csio = &ccb->csio;
 
 		ccbh->status = CAM_REQ_INPROG;
 		if (csio->cdb_len > MFI_SCSI_MAX_CDB_LEN) {
@@ -301,7 +289,8 @@ mfip_cam_rescan(struct mfi_softc *sc, uint32_t tid)
 	mfip_dev = device_find_child(sc->mfi_dev, "mfip", -1);
 	bus_topo_unlock();
 	if (mfip_dev == NULL) {
-		device_printf(sc->mfi_dev, "Couldn't find mfip child device!\n");
+		device_printf(sc->mfi_dev,
+		    "Couldn't find mfip child device!\n");
 		return;
 	}
 
@@ -322,8 +311,8 @@ mfip_cam_rescan(struct mfi_softc *sc, uint32_t tid)
 	}
 
 	sim = camsc->sim;
-	if (xpt_create_path(&ccb->ccb_h.path, NULL, cam_sim_path(sim),
-	    tid, CAM_LUN_WILDCARD) != CAM_REQ_CMP) {
+	if (xpt_create_path(&ccb->ccb_h.path, NULL, cam_sim_path(sim), tid,
+		CAM_LUN_WILDCARD) != CAM_REQ_CMP) {
 		xpt_free_ccb(ccb);
 		mtx_unlock(&sc->mfi_io_lock);
 		device_printf(sc->mfi_dev,
@@ -410,8 +399,7 @@ mfip_done(struct mfi_command *cm)
 	pt = &cm->cm_frame->pass;
 
 	switch (pt->header.cmd_status) {
-	case MFI_STAT_OK:
-	{
+	case MFI_STAT_OK: {
 		uint8_t command, device;
 
 		ccbh->status = CAM_REQ_CMP;
@@ -424,13 +412,12 @@ mfip_done(struct mfi_command *cm)
 			device = csio->data_ptr[0] & 0x1f;
 			if ((!mfi_allow_disks && device == T_DIRECT) ||
 			    (device == T_PROCESSOR))
-				csio->data_ptr[0] =
-				     (csio->data_ptr[0] & 0xe0) | T_NODEVICE;
+				csio->data_ptr[0] = (csio->data_ptr[0] & 0xe0) |
+				    T_NODEVICE;
 		}
 		break;
 	}
-	case MFI_STAT_SCSI_DONE_WITH_ERROR:
-	{
+	case MFI_STAT_SCSI_DONE_WITH_ERROR: {
 		int sense_len;
 
 		ccbh->status = CAM_SCSI_STATUS_ERROR | CAM_AUTOSNS_VALID;

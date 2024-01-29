@@ -35,7 +35,7 @@ struct query_state;
 struct configuration;
 struct configuration_entry;
 
-typedef	int (*query_process_func)(struct query_state *);
+typedef int (*query_process_func)(struct query_state *);
 typedef void (*query_destroy_func)(struct query_state *);
 typedef ssize_t (*query_read_func)(struct query_state *, void *, size_t);
 typedef ssize_t (*query_write_func)(struct query_state *, const void *, size_t);
@@ -51,41 +51,41 @@ struct query_state {
 	struct comm_element request;
 	struct comm_element response;
 	struct configuration_entry *config_entry;
-	void	*mdata;
+	void *mdata;
 
-	query_process_func process_func;	/* called on each event */
-	query_destroy_func destroy_func;	/* called on destroy */
+	query_process_func process_func; /* called on each event */
+	query_destroy_func destroy_func; /* called on destroy */
 
 	/*
 	 * By substituting these functions we can opaquely send and received
 	 * very large buffers
 	 */
-	query_write_func write_func;		/* data write function */
-	query_read_func read_func;		/* data read function */
+	query_write_func write_func; /* data write function */
+	query_read_func read_func;   /* data read function */
 
-	char	*eid_str;	/* the user-identifying string (euid_egid_) */
-	size_t	eid_str_length;
+	char *eid_str; /* the user-identifying string (euid_egid_) */
+	size_t eid_str_length;
 
-	uid_t	euid;	/* euid of the caller, received via getpeereid */
-	uid_t	uid;	/* uid of the caller, received via credentials */
-	gid_t	egid;	/* egid of the caller, received via getpeereid */
-	gid_t	gid;	/* gid of the caller received via credentials */
+	uid_t euid; /* euid of the caller, received via getpeereid */
+	uid_t uid;  /* uid of the caller, received via credentials */
+	gid_t egid; /* egid of the caller, received via getpeereid */
+	gid_t gid;  /* gid of the caller received via credentials */
 
-	size_t	io_buffer_size;
-	size_t	io_buffer_watermark;
-	size_t	kevent_watermark;	/* bytes to be sent/received */
-	int	sockfd;			/* the unix socket to read/write */
-	int	kevent_filter;	/* EVFILT_READ or EVFILT_WRITE */
+	size_t io_buffer_size;
+	size_t io_buffer_watermark;
+	size_t kevent_watermark; /* bytes to be sent/received */
+	int sockfd;		 /* the unix socket to read/write */
+	int kevent_filter;	 /* EVFILT_READ or EVFILT_WRITE */
 	int socket_failed; /* set to 1 if the socket doesn't work correctly */
 
 	/*
 	 * These fields are used to opaquely proceed sending/receiving of
 	 * the large buffers
 	 */
-	char	*io_buffer;
-	char	*io_buffer_p;
-	int	io_buffer_filter;
-	int	use_alternate_io;
+	char *io_buffer;
+	char *io_buffer_p;
+	int io_buffer_filter;
+	int use_alternate_io;
 };
 
 int check_query_eids(struct query_state *);

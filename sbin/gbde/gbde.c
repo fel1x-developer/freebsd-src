@@ -65,37 +65,43 @@
  */
 
 #include <sys/types.h>
-#include <sys/queue.h>
-#include <sys/mutex.h>
-#include <md5.h>
-#include <readpassphrase.h>
-#include <string.h>
-#include <stdint.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <paths.h>
-#include <strings.h>
-#include <stdlib.h>
-#include <err.h>
-#include <stdio.h>
-#include <libutil.h>
-#include <libgeom.h>
-#include <sys/errno.h>
+#include <sys/param.h>
 #include <sys/disk.h>
+#include <sys/errno.h>
+#include <sys/linker.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
 #include <sys/stat.h>
+
 #include <crypto/rijndael/rijndael-api-fst.h>
 #include <crypto/sha2/sha512.h>
-#include <sys/param.h>
-#include <sys/linker.h>
+#include <err.h>
+#include <fcntl.h>
+#include <libgeom.h>
+#include <libutil.h>
+#include <md5.h>
+#include <paths.h>
+#include <readpassphrase.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+#include <unistd.h>
 
 #define GBDEMOD "geom_bde"
-#define KASSERT(foo, bar) do { if(!(foo)) { warn bar ; exit (1); } } while (0)
+#define KASSERT(foo, bar)         \
+	do {                      \
+		if (!(foo)) {     \
+			warn bar; \
+			exit(1);  \
+		}                 \
+	} while (0)
 
-#include <geom/geom.h>
 #include <geom/bde/g_bde.h>
+#include <geom/geom.h>
 
 extern const char template[];
-
 
 #if 0
 static void
@@ -134,16 +140,16 @@ usage(void)
 {
 
 	(void)fprintf(stderr,
-"usage: gbde attach destination [-k keyfile] [-l lockfile] [-p pass-phrase]\n"
-"       gbde detach destination\n"
-"       gbde init destination [-i] [-f filename] [-K new-keyfile]\n"
-"            [-L new-lockfile] [-P new-pass-phrase]\n"
-"       gbde setkey destination [-n key]\n"
-"            [-k keyfile] [-l lockfile] [-p pass-phrase]\n"
-"            [-K new-keyfile] [-L new-lockfile] [-P new-pass-phrase]\n"
-"       gbde nuke destination [-n key]\n"
-"            [-k keyfile] [-l lockfile] [-p pass-phrase]\n"
-"       gbde destroy destination [-k keyfile] [-l lockfile] [-p pass-phrase]\n");
+	    "usage: gbde attach destination [-k keyfile] [-l lockfile] [-p pass-phrase]\n"
+	    "       gbde detach destination\n"
+	    "       gbde init destination [-i] [-f filename] [-K new-keyfile]\n"
+	    "            [-L new-lockfile] [-P new-pass-phrase]\n"
+	    "       gbde setkey destination [-n key]\n"
+	    "            [-k keyfile] [-l lockfile] [-p pass-phrase]\n"
+	    "            [-K new-keyfile] [-L new-lockfile] [-P new-pass-phrase]\n"
+	    "       gbde nuke destination [-n key]\n"
+	    "            [-k keyfile] [-l lockfile] [-p pass-phrase]\n"
+	    "       gbde destroy destination [-k keyfile] [-l lockfile] [-p pass-phrase]\n");
 	exit(1);
 }
 
@@ -221,8 +227,8 @@ setup_passphrase(struct g_bde_softc *sc, int sure, const char *input,
 		return;
 	}
 	for (;;) {
-		p = readpassphrase(
-		    sure ? "Enter new passphrase:" : "Enter passphrase: ",
+		p = readpassphrase(sure ? "Enter new passphrase:" :
+					  "Enter passphrase: ",
 		    buf1 + bpos, sizeof buf1 - bpos,
 		    RPP_ECHO_OFF | RPP_REQUIRE_TTY);
 		if (p == NULL)
@@ -293,7 +299,7 @@ cmd_attach(const struct g_bde_softc *sc, const char *dest, const char *lfile)
 	if (errstr != NULL)
 		errx(1, "Attach to %s failed: %s", dest, errstr);
 
-	exit (0);
+	exit(0);
 }
 
 static void
@@ -312,11 +318,11 @@ cmd_detach(const char *dest)
 	errstr = gctl_issue(r);
 	if (errstr != NULL)
 		errx(1, "Detach of %s failed: %s", dest, errstr);
-	exit (0);
+	exit(0);
 }
 
 static void
-cmd_open(struct g_bde_softc *sc, int dfd , const char *l_opt, u_int *nkey)
+cmd_open(struct g_bde_softc *sc, int dfd, const char *l_opt, u_int *nkey)
 {
 	int error;
 	int ffd;
@@ -348,8 +354,8 @@ cmd_open(struct g_bde_softc *sc, int dfd , const char *l_opt, u_int *nkey)
 		memset(keyloc, 0, sizeof keyloc);
 	}
 
-	error = g_bde_decrypt_lock(sc, sc->sha2, keyloc, mediasize,
-	    sectorsize, nkey);
+	error = g_bde_decrypt_lock(sc, sc->sha2, keyloc, mediasize, sectorsize,
+	    nkey);
 	if (error == ENOENT)
 		errx(1, "Lock was destroyed.");
 	if (error == ESRCH)
@@ -364,7 +370,7 @@ cmd_open(struct g_bde_softc *sc, int dfd , const char *l_opt, u_int *nkey)
 }
 
 static void
-cmd_nuke(struct g_bde_key *gl, int dfd , int key)
+cmd_nuke(struct g_bde_key *gl, int dfd, int key)
 {
 	int i;
 	u_char *sbuf;
@@ -384,7 +390,8 @@ cmd_nuke(struct g_bde_key *gl, int dfd , int key)
 }
 
 static void
-cmd_write(struct g_bde_key *gl, struct g_bde_softc *sc, int dfd , int key, const char *l_opt)
+cmd_write(struct g_bde_key *gl, struct g_bde_softc *sc, int dfd, int key,
+    const char *l_opt)
 {
 	int i, ffd;
 	uint64_t off[2];
@@ -398,7 +405,7 @@ cmd_write(struct g_bde_key *gl, struct g_bde_softc *sc, int dfd , int key, const
 	 * data structure.  We can put it any random place as long as the
 	 * structure fits.
 	 */
-	for(;;) {
+	for (;;) {
 		random_bits(off, sizeof off);
 		off[0] &= (gl->sectorsize - 1);
 		if (off[0] + G_BDE_LOCKSIZE > gl->sectorsize)
@@ -503,21 +510,22 @@ sorthelp(const void *a, const void *b)
 }
 
 static void
-cmd_init(struct g_bde_key *gl, int dfd, const char *f_opt, int i_opt, const char *l_opt)
+cmd_init(struct g_bde_key *gl, int dfd, const char *f_opt, int i_opt,
+    const char *l_opt)
 {
 	int i;
 	u_char *buf;
 	unsigned sector_size;
-	uint64_t	first_sector;
-	uint64_t	last_sector;
-	uint64_t	total_sectors;
-	off_t	off, off2;
+	uint64_t first_sector;
+	uint64_t last_sector;
+	uint64_t total_sectors;
+	off_t off, off2;
 	unsigned nkeys;
 	const char *p;
 	char *q, cbuf[BUFSIZ];
 	unsigned u, u2;
 	uint64_t o;
-	properties	params;
+	properties params;
 
 	bzero(gl, sizeof *gl);
 	if (f_opt != NULL) {
@@ -525,7 +533,7 @@ cmd_init(struct g_bde_key *gl, int dfd, const char *f_opt, int i_opt, const char
 		if (i < 0)
 			err(1, "%s", f_opt);
 		params = properties_read(i);
-		close (i);
+		close(i);
 	} else if (i_opt) {
 		/* XXX: Polish */
 		asprintf(&q, "%stemp.XXXXXXXXXX", _PATH_TMP);
@@ -535,7 +543,7 @@ cmd_init(struct g_bde_key *gl, int dfd, const char *f_opt, int i_opt, const char
 		if (i < 0)
 			err(1, "%s", q);
 		write(i, template, strlen(template));
-		close (i);
+		close(i);
 		p = getenv("EDITOR");
 		if (p == NULL)
 			p = "vi";
@@ -549,7 +557,7 @@ cmd_init(struct g_bde_key *gl, int dfd, const char *f_opt, int i_opt, const char
 		if (i < 0)
 			err(1, "%s", f_opt);
 		params = properties_read(i);
-		close (i);
+		close(i);
 		unlink(q);
 		free(q);
 	} else {
@@ -558,7 +566,7 @@ cmd_init(struct g_bde_key *gl, int dfd, const char *f_opt, int i_opt, const char
 		if (i < 0)
 			err(1, "%s", _PATH_DEVNULL);
 		params = properties_read(i);
-		close (i);
+		close(i);
 	}
 
 	/* <sector_size> */
@@ -632,7 +640,8 @@ cmd_init(struct g_bde_key *gl, int dfd, const char *f_opt, int i_opt, const char
 	gl->sector0 = first_sector * gl->sectorsize;
 
 	if (total_sectors != (last_sector - first_sector) + 1)
-		errx(1, "total_sectors disagree with first_sector and last_sector");
+		errx(1,
+		    "total_sectors disagree with first_sector and last_sector");
 	if (total_sectors == 0)
 		errx(1, "missing last_sector or total_sectors");
 
@@ -656,12 +665,12 @@ cmd_init(struct g_bde_key *gl, int dfd, const char *f_opt, int i_opt, const char
 		nkeys = 4;
 	}
 	for (u = 0; u < nkeys; u++) {
-		for(;;) {
+		for (;;) {
 			do {
 				random_bits(&o, sizeof o);
 				o %= gl->sectorN;
 				o &= ~(gl->sectorsize - 1);
-			} while(o < gl->sector0);
+			} while (o < gl->sector0);
 			for (u2 = 0; u2 < u; u2++)
 				if (o == gl->lsector[u2])
 					break;
@@ -715,8 +724,12 @@ cmd_init(struct g_bde_key *gl, int dfd, const char *f_opt, int i_opt, const char
 
 static enum action {
 	ACT_HUH,
-	ACT_ATTACH, ACT_DETACH,
-	ACT_INIT, ACT_SETKEY, ACT_DESTROY, ACT_NUKE
+	ACT_ATTACH,
+	ACT_DETACH,
+	ACT_INIT,
+	ACT_SETKEY,
+	ACT_DESTROY,
+	ACT_NUKE
 } action;
 
 int
@@ -791,7 +804,7 @@ main(int argc, char **argv)
 	n_opt = 0;
 	i_opt = 0;
 
-	while((ch = getopt(argc, argv, opts)) != -1)
+	while ((ch = getopt(argc, argv, opts)) != -1)
 		switch (ch) {
 		case 'f':
 			f_opt = optarg;
@@ -831,8 +844,8 @@ main(int argc, char **argv)
 	if (doopen) {
 		dfd = open(dest, O_RDWR);
 		if (dfd < 0 && dest[0] != '/') {
-			if (snprintf(buf, sizeof(buf), "%s%s",
-			    _PATH_DEV, dest) >= (ssize_t)sizeof(buf))
+			if (snprintf(buf, sizeof(buf), "%s%s", _PATH_DEV,
+				dest) >= (ssize_t)sizeof(buf))
 				errno = ENAMETOOLONG;
 			else
 				dfd = open(buf, O_RDWR);
@@ -847,7 +860,7 @@ main(int argc, char **argv)
 	memset(&sc, 0, sizeof sc);
 	sc.consumer = (void *)&dfd;
 	gl = &sc.key;
-	switch(action) {
+	switch (action) {
 	case ACT_ATTACH:
 		setup_passphrase(&sc, 0, p_opt, k_opt);
 		cmd_attach(&sc, dest, l_opt);
@@ -881,15 +894,15 @@ main(int argc, char **argv)
 		if (n_opt == 0)
 			n_opt = nkey + 1;
 		if (n_opt == -1) {
-			for(i = 0; i < G_BDE_MAXKEYS; i++)
+			for (i = 0; i < G_BDE_MAXKEYS; i++)
 				cmd_nuke(gl, dfd, i);
 		} else {
-				cmd_nuke(gl, dfd, n_opt - 1);
+			cmd_nuke(gl, dfd, n_opt - 1);
 		}
 		break;
 	default:
 		errx(1, "internal error");
 	}
 
-	return(0);
+	return (0);
 }

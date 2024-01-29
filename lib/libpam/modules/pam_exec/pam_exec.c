@@ -43,16 +43,18 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <security/openpam.h>
+#include <security/pam_appl.h>
+#include <security/pam_modules.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <security/pam_appl.h>
-#include <security/pam_modules.h>
-#include <security/openpam.h>
-
-#define PAM_ITEM_ENV(n) { (n), #n }
+#define PAM_ITEM_ENV(n) \
+	{               \
+		(n), #n \
+	}
 static struct {
 	int item;
 	const char *name;
@@ -103,11 +105,11 @@ static const char *pam_err_env[] = {
 #define NUM_PAM_ERR_ENV (sizeof(pam_err_env) / sizeof(pam_err_env[0]))
 
 struct pe_opts {
-	int	return_prog_exit_status;
-	int	capture_stdout;
-	int	capture_stderr;
-	int	expose_authtok;
-	int	use_first_pass;
+	int return_prog_exit_status;
+	int capture_stdout;
+	int capture_stderr;
+	int expose_authtok;
+	int use_first_pass;
 };
 
 static int
@@ -146,8 +148,8 @@ parse_options(const char *func, int *argc, const char **argv[],
 			}
 			break;
 		}
-		openpam_log(PAM_LOG_DEBUG, "%s: option \"%s\" enabled",
-		    func, (*argv)[i]);
+		openpam_log(PAM_LOG_DEBUG, "%s: option \"%s\" enabled", func,
+		    (*argv)[i]);
 	}
 
 	(*argc) -= i;
@@ -157,9 +159,8 @@ parse_options(const char *func, int *argc, const char **argv[],
 }
 
 static int
-_pam_exec(pam_handle_t *pamh,
-    const char *func, int flags __unused, int argc, const char *argv[],
-    struct pe_opts *options)
+_pam_exec(pam_handle_t *pamh, const char *func, int flags __unused, int argc,
+    const char *argv[], struct pe_opts *options)
 {
 	char buf[PAM_MAX_MSG_SIZE];
 	struct pollfd pfd[4];
@@ -180,7 +181,11 @@ _pam_exec(pam_handle_t *pamh,
 	chin[0] = chin[1] = chout[0] = chout[1] = cherr[0] = cherr[1] = -1;
 	envlist = NULL;
 
-#define OUT(ret) do { pam_err = (ret); goto out; } while (0)
+#define OUT(ret)                 \
+	do {                     \
+		pam_err = (ret); \
+		goto out;        \
+	} while (0)
 
 	/* Check there's a program name left after parsing options. */
 	if (argc < 1) {
@@ -199,13 +204,13 @@ _pam_exec(pam_handle_t *pamh,
 	/* compute the final size of the environment. */
 	envlist = pam_getenvlist(pamh);
 	for (envlen = 0; envlist[envlen] != NULL; ++envlen)
-		/* nothing */ ;
+		/* nothing */;
 	extralen = NUM_PAM_ITEM_ENV + 1;
 	if (options->return_prog_exit_status)
 		extralen += NUM_PAM_ERR_ENV;
 	tmp = reallocarray(envlist, envlen + extralen + 1, sizeof(*envlist));
-	openpam_log(PAM_LOG_DEBUG, "envlen = %d extralen = %d tmp = %p",
-	    envlen, extralen, tmp);
+	openpam_log(PAM_LOG_DEBUG, "envlen = %d extralen = %d tmp = %p", envlen,
+	    extralen, tmp);
 	if (tmp == NULL)
 		OUT(PAM_BUF_ERR);
 	envlist = tmp;
@@ -217,7 +222,7 @@ _pam_exec(pam_handle_t *pamh,
 		if (pam_err != PAM_SUCCESS || item == NULL)
 			continue;
 		if (asprintf(&envstr, "%s=%s", pam_item_env[i].name,
-		    (const char *)item) < 0)
+			(const char *)item) < 0)
 			OUT(PAM_BUF_ERR);
 		envlist[envlen++] = envstr;
 		envlist[envlen] = NULL;
@@ -259,9 +264,9 @@ _pam_exec(pam_handle_t *pamh,
 			rc = pam_get_item(pamh, PAM_AUTHTOK, &item);
 			authtok = item;
 			if (authtok == NULL && rc == PAM_SUCCESS) {
-				openpam_log(PAM_LOG_ERROR, 
-				    "%s: pam_get_authtok(): %s",
-				    func, "authentication token not available");
+				openpam_log(PAM_LOG_ERROR,
+				    "%s: pam_get_authtok(): %s", func,
+				    "authentication token not available");
 				OUT(PAM_SYSTEM_ERR);
 			}
 
@@ -312,20 +317,20 @@ _pam_exec(pam_handle_t *pamh,
 	if ((pid = pdfork(&pd, 0)) == 0) {
 		/* child */
 		if ((chin[1] >= 0 && close(chin[1]) != 0) ||
-			(chout[0] >= 0 && close(chout[0]) != 0) ||
+		    (chout[0] >= 0 && close(chout[0]) != 0) ||
 		    (cherr[0] >= 0 && close(cherr[0]) != 0)) {
 			openpam_log(PAM_LOG_ERROR, "%s: close(): %m", func);
 		} else if (chin[0] >= 0 &&
-			dup2(chin[0], STDIN_FILENO) != STDIN_FILENO) {
+		    dup2(chin[0], STDIN_FILENO) != STDIN_FILENO) {
 			openpam_log(PAM_LOG_ERROR, "%s: dup2(): %m", func);
 		} else if (dup2(chout[1], STDOUT_FILENO) != STDOUT_FILENO ||
 		    dup2(cherr[1], STDERR_FILENO) != STDERR_FILENO) {
 			openpam_log(PAM_LOG_ERROR, "%s: dup2(): %m", func);
 		} else {
-			execve(argv[0], (char * const *)argv,
-			    (char * const *)envlist);
-			openpam_log(PAM_LOG_ERROR, "%s: execve(%s): %m",
-			    func, argv[0]);
+			execve(argv[0], (char *const *)argv,
+			    (char *const *)envlist);
+			openpam_log(PAM_LOG_ERROR, "%s: execve(%s): %m", func,
+			    argv[0]);
 		}
 		_exit(1);
 	}
@@ -348,19 +353,19 @@ _pam_exec(pam_handle_t *pamh,
 	nreadfds = 0;
 	if (options->capture_stdout) {
 		pfd[nfds].fd = chout[0];
-		pfd[nfds].events = POLLIN|POLLERR|POLLHUP;
+		pfd[nfds].events = POLLIN | POLLERR | POLLHUP;
 		nfds++;
 		nreadfds++;
 	}
 	if (options->capture_stderr) {
 		pfd[nfds].fd = cherr[0];
-		pfd[nfds].events = POLLIN|POLLERR|POLLHUP;
+		pfd[nfds].events = POLLIN | POLLERR | POLLHUP;
 		nfds++;
 		nreadfds++;
 	}
 	if (options->expose_authtok) {
 		pfd[nfds].fd = chin[1];
-		pfd[nfds].events = POLLOUT|POLLERR|POLLHUP;
+		pfd[nfds].events = POLLOUT | POLLERR | POLLHUP;
 		nfds++;
 	}
 
@@ -374,7 +379,8 @@ _pam_exec(pam_handle_t *pamh,
 		for (i = 1; i < 1 + nreadfds; ++i) {
 			if ((pfd[i].revents & POLLIN) == 0)
 				continue;
-			if ((rlen = read(pfd[i].fd, buf, sizeof(buf) - 1)) < 0) {
+			if ((rlen = read(pfd[i].fd, buf, sizeof(buf) - 1)) <
+			    0) {
 				openpam_log(PAM_LOG_ERROR, "%s: read(): %m",
 				    func);
 				OUT(PAM_SYSTEM_ERR);
@@ -382,13 +388,16 @@ _pam_exec(pam_handle_t *pamh,
 				continue;
 			}
 			buf[rlen] = '\0';
-			(void)pam_prompt(pamh, pfd[i].fd == chout[0] ?
-			    PAM_TEXT_INFO : PAM_ERROR_MSG, &resp, "%s", buf);
+			(void)pam_prompt(pamh,
+			    pfd[i].fd == chout[0] ? PAM_TEXT_INFO :
+						    PAM_ERROR_MSG,
+			    &resp, "%s", buf);
 		}
 		/* is the stdin pipe ready for writing? */
 		if (options->expose_authtok && authtok_size > 0 &&
-			(pfd[nfds - 1].revents & POLLOUT) != 0) {
-			if ((wlen = write(chin[1], authtok, authtok_size)) < 0) {
+		    (pfd[nfds - 1].revents & POLLOUT) != 0) {
+			if ((wlen = write(chin[1], authtok, authtok_size)) <
+			    0) {
 				if (errno == EAGAIN)
 					continue;
 				openpam_log(PAM_LOG_ERROR, "%s: write(): %m",
@@ -398,7 +407,8 @@ _pam_exec(pam_handle_t *pamh,
 				authtok += wlen;
 				authtok_size -= wlen;
 				if (authtok_size == 0) {
-					/* finished writing; close and forget the pipe */
+					/* finished writing; close and forget
+					 * the pipe */
 					close(chin[1]);
 					chin[1] = -1;
 					nfds--;
@@ -417,21 +427,21 @@ _pam_exec(pam_handle_t *pamh,
 
 	/* check exit code */
 	if (WIFSIGNALED(status)) {
-		openpam_log(PAM_LOG_ERROR, "%s: %s caught signal %d%s",
-		    func, argv[0], WTERMSIG(status),
+		openpam_log(PAM_LOG_ERROR, "%s: %s caught signal %d%s", func,
+		    argv[0], WTERMSIG(status),
 		    WCOREDUMP(status) ? " (core dumped)" : "");
 		OUT(PAM_SERVICE_ERR);
 	}
 	if (!WIFEXITED(status)) {
-		openpam_log(PAM_LOG_ERROR, "%s: unknown status 0x%x",
-		    func, status);
+		openpam_log(PAM_LOG_ERROR, "%s: unknown status 0x%x", func,
+		    status);
 		OUT(PAM_SERVICE_ERR);
 	}
 
 	if (options->return_prog_exit_status) {
 		openpam_log(PAM_LOG_DEBUG,
-		    "%s: Use program exit status as return value: %d",
-		    func, WEXITSTATUS(status));
+		    "%s: Use program exit status as return value: %d", func,
+		    WEXITSTATUS(status));
 		OUT(WEXITSTATUS(status));
 	} else {
 		OUT(WEXITSTATUS(status) == 0 ? PAM_SUCCESS : PAM_PERM_DENIED);
@@ -456,12 +466,11 @@ out:
 	if (envlist != NULL)
 		openpam_free_envlist(envlist);
 	errno = serrno;
-	return (pam_err);	
+	return (pam_err);
 }
 
 PAM_EXTERN int
-pam_sm_authenticate(pam_handle_t *pamh, int flags,
-    int argc, const char *argv[])
+pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char *argv[])
 {
 	int ret;
 	struct pe_opts options;
@@ -501,8 +510,7 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags,
 }
 
 PAM_EXTERN int
-pam_sm_setcred(pam_handle_t *pamh, int flags,
-    int argc, const char *argv[])
+pam_sm_setcred(pam_handle_t *pamh, int flags, int argc, const char *argv[])
 {
 	int ret;
 	struct pe_opts options;
@@ -541,8 +549,7 @@ pam_sm_setcred(pam_handle_t *pamh, int flags,
 }
 
 PAM_EXTERN int
-pam_sm_acct_mgmt(pam_handle_t *pamh, int flags,
-    int argc, const char *argv[])
+pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const char *argv[])
 {
 	int ret;
 	struct pe_opts options;
@@ -581,8 +588,7 @@ pam_sm_acct_mgmt(pam_handle_t *pamh, int flags,
 }
 
 PAM_EXTERN int
-pam_sm_open_session(pam_handle_t *pamh, int flags,
-    int argc, const char *argv[])
+pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char *argv[])
 {
 	int ret;
 	struct pe_opts options;
@@ -618,8 +624,8 @@ pam_sm_open_session(pam_handle_t *pamh, int flags,
 }
 
 PAM_EXTERN int
-pam_sm_close_session(pam_handle_t *pamh, int flags,
-    int argc, const char *argv[])
+pam_sm_close_session(pam_handle_t *pamh, int flags, int argc,
+    const char *argv[])
 {
 	int ret;
 	struct pe_opts options;
@@ -655,8 +661,7 @@ pam_sm_close_session(pam_handle_t *pamh, int flags,
 }
 
 PAM_EXTERN int
-pam_sm_chauthtok(pam_handle_t *pamh, int flags,
-    int argc, const char *argv[])
+pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, const char *argv[])
 {
 	int ret;
 	struct pe_opts options;

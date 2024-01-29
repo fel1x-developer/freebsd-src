@@ -30,9 +30,10 @@
  */
 
 #include <sys/types.h>
-#include <stddef.h>
+
 #include <pthread.h>
 #include <rtld.h>
+#include <stddef.h>
 
 #include "thr_private.h"
 

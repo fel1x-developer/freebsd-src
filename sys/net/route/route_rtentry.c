@@ -25,42 +25,42 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 #include "opt_route.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/socket.h>
 #include <sys/jail.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
 #include <sys/rmlock.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/vnet.h>
-#include <net/route.h>
-#include <net/route/route_ctl.h>
-#include <net/route/route_var.h>
-#include <net/route/nhop.h>
-#include <netinet/in.h>
-#include <netinet6/scope6_var.h>
+#include <sys/socket.h>
 
 #include <vm/uma.h>
 
+#include <net/if.h>
+#include <net/if_var.h>
+#include <net/route.h>
+#include <net/route/nhop.h>
+#include <net/route/route_ctl.h>
+#include <net/route/route_var.h>
+#include <net/vnet.h>
+#include <netinet/in.h>
+#include <netinet6/scope6_var.h>
+
 /* Routing table UMA zone */
 VNET_DEFINE_STATIC(uma_zone_t, rtzone);
-#define	V_rtzone	VNET(rtzone)
+#define V_rtzone VNET(rtzone)
 
 void
 vnet_rtzone_init(void)
 {
 
-	V_rtzone = uma_zcreate("rtentry", sizeof(struct rtentry),
-		NULL, NULL, NULL, NULL, UMA_ALIGN_PTR, 0);
+	V_rtzone = uma_zcreate("rtentry", sizeof(struct rtentry), NULL, NULL,
+	    NULL, NULL, UMA_ALIGN_PTR, 0);
 }
 
 #ifdef VIMAGE
@@ -76,7 +76,8 @@ vnet_rtzone_destroy(void)
  * Creates rtentry and based on @dst/@netmask data.
  * Return 0 and fills in rtentry into @prt on success,
  * Note: rtentry mask ptr will be set to @netmask , thus its pointer is required
- *  to be stable till the end of the operation (radix rt insertion/change/removal).
+ *  to be stable till the end of the operation (radix rt
+ * insertion/change/removal).
  */
 struct rtentry *
 rt_alloc(struct rib_head *rnh, const struct sockaddr *dst,
@@ -95,7 +96,8 @@ rt_alloc(struct rib_head *rnh, const struct sockaddr *dst,
 	} else
 		bcopy(dst, &rt->rt_dst, dst->sa_len);
 	rt_key(rt) = &rt->rt_dst;
-	/* Set netmask to the storage from info. It will be updated upon insertion */
+	/* Set netmask to the storage from info. It will be updated upon
+	 * insertion */
 	rt_mask(rt) = netmask;
 
 	return (rt);
@@ -273,8 +275,9 @@ static int
 inet6_get_plen(const struct in6_addr *addr)
 {
 
-	return (bitcount32(addr->s6_addr32[0]) + bitcount32(addr->s6_addr32[1]) +
-	    bitcount32(addr->s6_addr32[2]) + bitcount32(addr->s6_addr32[3]));
+	return (bitcount32(addr->s6_addr32[0]) +
+	    bitcount32(addr->s6_addr32[1]) + bitcount32(addr->s6_addr32[2]) +
+	    bitcount32(addr->s6_addr32[3]));
 }
 
 /*
@@ -327,5 +330,3 @@ rt_get_inet6_prefix_pmask(const struct rtentry *rt, struct in6_addr *paddr,
 		*pmask = dst->sin6_addr;
 }
 #endif
-
-

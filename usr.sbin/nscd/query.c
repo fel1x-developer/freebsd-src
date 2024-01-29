@@ -40,41 +40,41 @@
 
 #include "config.h"
 #include "debug.h"
-#include "query.h"
 #include "log.h"
-#include "mp_ws_query.h"
 #include "mp_rs_query.h"
+#include "mp_ws_query.h"
+#include "query.h"
 #include "singletons.h"
 
 static const char negative_data[1] = { 0 };
 
-extern	void get_time_func(struct timeval *);
+extern void get_time_func(struct timeval *);
 
-static 	void clear_config_entry(struct configuration_entry *);
-static 	void clear_config_entry_part(struct configuration_entry *,
-	const char *, size_t);
+static void clear_config_entry(struct configuration_entry *);
+static void clear_config_entry_part(struct configuration_entry *, const char *,
+    size_t);
 
-static	int on_query_startup(struct query_state *);
-static	void on_query_destroy(struct query_state *);
+static int on_query_startup(struct query_state *);
+static void on_query_destroy(struct query_state *);
 
-static	int on_read_request_read1(struct query_state *);
-static	int on_read_request_read2(struct query_state *);
-static	int on_read_request_process(struct query_state *);
-static	int on_read_response_write1(struct query_state *);
-static	int on_read_response_write2(struct query_state *);
+static int on_read_request_read1(struct query_state *);
+static int on_read_request_read2(struct query_state *);
+static int on_read_request_process(struct query_state *);
+static int on_read_response_write1(struct query_state *);
+static int on_read_response_write2(struct query_state *);
 
-static	int on_rw_mapper(struct query_state *);
+static int on_rw_mapper(struct query_state *);
 
-static	int on_transform_request_read1(struct query_state *);
-static	int on_transform_request_read2(struct query_state *);
-static	int on_transform_request_process(struct query_state *);
-static	int on_transform_response_write1(struct query_state *);
+static int on_transform_request_read1(struct query_state *);
+static int on_transform_request_read2(struct query_state *);
+static int on_transform_request_process(struct query_state *);
+static int on_transform_response_write1(struct query_state *);
 
-static	int on_write_request_read1(struct query_state *);
-static	int on_write_request_read2(struct query_state *);
-static	int on_negative_write_request_process(struct query_state *);
-static	int on_write_request_process(struct query_state *);
-static	int on_write_response_write1(struct query_state *);
+static int on_write_request_read1(struct query_state *);
+static int on_write_request_read2(struct query_state *);
+static int on_negative_write_request_process(struct query_state *);
+static int on_write_request_process(struct query_state *);
+static int on_write_response_write1(struct query_state *);
 
 /*
  * Clears the specified configuration entry (clears the cache for positive and
@@ -88,23 +88,20 @@ clear_config_entry(struct configuration_entry *config_entry)
 	TRACE_IN(clear_config_entry);
 	configuration_lock_entry(config_entry, CELT_POSITIVE);
 	if (config_entry->positive_cache_entry != NULL)
-		transform_cache_entry(
-			config_entry->positive_cache_entry,
-			CTT_CLEAR);
+		transform_cache_entry(config_entry->positive_cache_entry,
+		    CTT_CLEAR);
 	configuration_unlock_entry(config_entry, CELT_POSITIVE);
 
 	configuration_lock_entry(config_entry, CELT_NEGATIVE);
 	if (config_entry->negative_cache_entry != NULL)
-		transform_cache_entry(
-			config_entry->negative_cache_entry,
-			CTT_CLEAR);
+		transform_cache_entry(config_entry->negative_cache_entry,
+		    CTT_CLEAR);
 	configuration_unlock_entry(config_entry, CELT_NEGATIVE);
 
 	configuration_lock_entry(config_entry, CELT_MULTIPART);
 	for (i = 0; i < config_entry->mp_cache_entries_size; ++i)
-		transform_cache_entry(
-			config_entry->mp_cache_entries[i],
-			CTT_CLEAR);
+		transform_cache_entry(config_entry->mp_cache_entries[i],
+		    CTT_CLEAR);
 	configuration_unlock_entry(config_entry, CELT_MULTIPART);
 
 	TRACE_OUT(clear_config_entry);
@@ -116,27 +113,25 @@ clear_config_entry(struct configuration_entry *config_entry)
  */
 static void
 clear_config_entry_part(struct configuration_entry *config_entry,
-	const char *eid_str, size_t eid_str_length)
+    const char *eid_str, size_t eid_str_length)
 {
 	cache_entry *start, *finish, *mp_entry;
 	TRACE_IN(clear_config_entry_part);
 	configuration_lock_entry(config_entry, CELT_POSITIVE);
 	if (config_entry->positive_cache_entry != NULL)
-		transform_cache_entry_part(
-			config_entry->positive_cache_entry,
-			CTT_CLEAR, eid_str, eid_str_length, KPPT_LEFT);
+		transform_cache_entry_part(config_entry->positive_cache_entry,
+		    CTT_CLEAR, eid_str, eid_str_length, KPPT_LEFT);
 	configuration_unlock_entry(config_entry, CELT_POSITIVE);
 
 	configuration_lock_entry(config_entry, CELT_NEGATIVE);
 	if (config_entry->negative_cache_entry != NULL)
-		transform_cache_entry_part(
-			config_entry->negative_cache_entry,
-			CTT_CLEAR, eid_str, eid_str_length, KPPT_LEFT);
+		transform_cache_entry_part(config_entry->negative_cache_entry,
+		    CTT_CLEAR, eid_str, eid_str_length, KPPT_LEFT);
 	configuration_unlock_entry(config_entry, CELT_NEGATIVE);
 
 	configuration_lock_entry(config_entry, CELT_MULTIPART);
-	if (configuration_entry_find_mp_cache_entries(config_entry,
-		eid_str, &start, &finish) == 0) {
+	if (configuration_entry_find_mp_cache_entries(config_entry, eid_str,
+		&start, &finish) == 0) {
 		for (mp_entry = start; mp_entry != finish; ++mp_entry)
 			transform_cache_entry(*mp_entry, CTT_CLEAR);
 	}
@@ -192,10 +187,10 @@ on_query_startup(struct query_state *qstate)
 	qstate->gid = cred->cmcred_gid;
 
 #if defined(NS_NSCD_EID_CHECKING) || defined(NS_STRICT_NSCD_EID_CHECKING)
-/*
- * This check is probably a bit redundant - per-user cache is always separated
- * by the euid/egid pair
- */
+	/*
+	 * This check is probably a bit redundant - per-user cache is always
+	 * separated by the euid/egid pair
+	 */
 	if (check_query_eids(qstate) != 0) {
 #ifdef NS_STRICT_NSCD_EID_CHECKING
 		TRACE_OUT(on_query_startup);
@@ -247,8 +242,8 @@ on_query_startup(struct query_state *qstate)
 static int
 on_rw_mapper(struct query_state *qstate)
 {
-	ssize_t	result;
-	int	elem_type;
+	ssize_t result;
+	int elem_type;
 
 	TRACE_IN(on_rw_mapper);
 	if (qstate->kevent_watermark == 0) {
@@ -264,15 +259,15 @@ on_rw_mapper(struct query_state *qstate)
 		case CET_WRITE_REQUEST:
 			qstate->kevent_watermark = sizeof(size_t);
 			qstate->process_func = on_write_request_read1;
-		break;
+			break;
 		case CET_READ_REQUEST:
 			qstate->kevent_watermark = sizeof(size_t);
 			qstate->process_func = on_read_request_read1;
-		break;
+			break;
 		default:
 			TRACE_OUT(on_rw_mapper);
 			return (-1);
-		break;
+			break;
 		}
 	}
 	TRACE_OUT(on_rw_mapper);
@@ -302,8 +297,8 @@ on_query_destroy(struct query_state *qstate)
 static int
 on_write_request_read1(struct query_state *qstate)
 {
-	struct cache_write_request	*write_request;
-	ssize_t	result;
+	struct cache_write_request *write_request;
+	ssize_t result;
 
 	TRACE_IN(on_write_request_read1);
 	if (qstate->kevent_watermark == 0)
@@ -313,11 +308,11 @@ on_write_request_read1(struct query_state *qstate)
 		write_request = get_cache_write_request(&qstate->request);
 
 		result = qstate->read_func(qstate, &write_request->entry_length,
-	    		sizeof(size_t));
+		    sizeof(size_t));
 		result += qstate->read_func(qstate,
-	    		&write_request->cache_key_size, sizeof(size_t));
-		result += qstate->read_func(qstate,
-	    		&write_request->data_size, sizeof(size_t));
+		    &write_request->cache_key_size, sizeof(size_t));
+		result += qstate->read_func(qstate, &write_request->data_size,
+		    sizeof(size_t));
 
 		if (result != sizeof(size_t) * 3) {
 			TRACE_OUT(on_write_request_read1);
@@ -325,33 +320,31 @@ on_write_request_read1(struct query_state *qstate)
 		}
 
 		if (BUFSIZE_INVALID(write_request->entry_length) ||
-			BUFSIZE_INVALID(write_request->cache_key_size) ||
-			(BUFSIZE_INVALID(write_request->data_size) &&
+		    BUFSIZE_INVALID(write_request->cache_key_size) ||
+		    (BUFSIZE_INVALID(write_request->data_size) &&
 			(write_request->data_size != 0))) {
 			TRACE_OUT(on_write_request_read1);
 			return (-1);
 		}
 
 		write_request->entry = calloc(1,
-			write_request->entry_length + 1);
+		    write_request->entry_length + 1);
 		assert(write_request->entry != NULL);
 
 		write_request->cache_key = calloc(1,
-			write_request->cache_key_size +
-			qstate->eid_str_length);
+		    write_request->cache_key_size + qstate->eid_str_length);
 		assert(write_request->cache_key != NULL);
 		memcpy(write_request->cache_key, qstate->eid_str,
-			qstate->eid_str_length);
+		    qstate->eid_str_length);
 
 		if (write_request->data_size != 0) {
 			write_request->data = calloc(1,
-				write_request->data_size);
+			    write_request->data_size);
 			assert(write_request->data != NULL);
 		}
 
 		qstate->kevent_watermark = write_request->entry_length +
-			write_request->cache_key_size +
-			write_request->data_size;
+		    write_request->cache_key_size + write_request->data_size;
 		qstate->process_func = on_write_request_read2;
 	}
 
@@ -362,19 +355,20 @@ on_write_request_read1(struct query_state *qstate)
 static int
 on_write_request_read2(struct query_state *qstate)
 {
-	struct cache_write_request	*write_request;
-	ssize_t	result;
+	struct cache_write_request *write_request;
+	ssize_t result;
 
 	TRACE_IN(on_write_request_read2);
 	write_request = get_cache_write_request(&qstate->request);
 
 	result = qstate->read_func(qstate, write_request->entry,
-		write_request->entry_length);
-	result += qstate->read_func(qstate, write_request->cache_key +
-		qstate->eid_str_length, write_request->cache_key_size);
+	    write_request->entry_length);
+	result += qstate->read_func(qstate,
+	    write_request->cache_key + qstate->eid_str_length,
+	    write_request->cache_key_size);
 	if (write_request->data_size != 0)
 		result += qstate->read_func(qstate, write_request->data,
-			write_request->data_size);
+		    write_request->data_size);
 
 	if (result != (ssize_t)qstate->kevent_watermark) {
 		TRACE_OUT(on_write_request_read2);
@@ -386,16 +380,16 @@ on_write_request_read2(struct query_state *qstate)
 	if (write_request->data_size != 0)
 		qstate->process_func = on_write_request_process;
 	else
-	    	qstate->process_func = on_negative_write_request_process;
+		qstate->process_func = on_negative_write_request_process;
 	TRACE_OUT(on_write_request_read2);
 	return (0);
 }
 
-static	int
+static int
 on_write_request_process(struct query_state *qstate)
 {
-	struct cache_write_request	*write_request;
-	struct cache_write_response	*write_response;
+	struct cache_write_request *write_request;
+	struct cache_write_response *write_response;
 	cache_entry c_entry;
 
 	TRACE_IN(on_write_request_process);
@@ -403,14 +397,16 @@ on_write_request_process(struct query_state *qstate)
 	write_response = get_cache_write_response(&qstate->response);
 	write_request = get_cache_write_request(&qstate->request);
 
-	qstate->config_entry = configuration_find_entry(
-		s_configuration, write_request->entry);
+	qstate->config_entry = configuration_find_entry(s_configuration,
+	    write_request->entry);
 
 	if (qstate->config_entry == NULL) {
 		write_response->error_code = ENOENT;
 
-		LOG_ERR_2("write_request", "can't find configuration"
-		    " entry '%s'. aborting request", write_request->entry);
+		LOG_ERR_2("write_request",
+		    "can't find configuration"
+		    " entry '%s'. aborting request",
+		    write_request->entry);
 		goto fin;
 	}
 
@@ -418,8 +414,8 @@ on_write_request_process(struct query_state *qstate)
 		write_response->error_code = EACCES;
 
 		LOG_ERR_2("write_request",
-			"configuration entry '%s' is disabled",
-			write_request->entry);
+		    "configuration entry '%s' is disabled",
+		    write_request->entry);
 		goto fin;
 	}
 
@@ -427,30 +423,29 @@ on_write_request_process(struct query_state *qstate)
 		write_response->error_code = EOPNOTSUPP;
 
 		LOG_ERR_2("write_request",
-			"entry '%s' performs lookups by itself: "
-			"can't write to it", write_request->entry);
+		    "entry '%s' performs lookups by itself: "
+		    "can't write to it",
+		    write_request->entry);
 		goto fin;
 	}
 
 	configuration_lock_rdlock(s_configuration);
 	c_entry = find_cache_entry(s_cache,
-		qstate->config_entry->positive_cache_params.cep.entry_name);
+	    qstate->config_entry->positive_cache_params.cep.entry_name);
 	configuration_unlock(s_configuration);
 	if (c_entry != NULL) {
 		configuration_lock_entry(qstate->config_entry, CELT_POSITIVE);
 		qstate->config_entry->positive_cache_entry = c_entry;
 		write_response->error_code = cache_write(c_entry,
-			write_request->cache_key,
-	    		write_request->cache_key_size,
-	    		write_request->data,
-			write_request->data_size);
+		    write_request->cache_key, write_request->cache_key_size,
+		    write_request->data, write_request->data_size);
 		configuration_unlock_entry(qstate->config_entry, CELT_POSITIVE);
 
 		if ((qstate->config_entry->common_query_timeout.tv_sec != 0) ||
 		    (qstate->config_entry->common_query_timeout.tv_usec != 0))
 			memcpy(&qstate->timeout,
-				&qstate->config_entry->common_query_timeout,
-				sizeof(struct timeval));
+			    &qstate->config_entry->common_query_timeout,
+			    sizeof(struct timeval));
 
 	} else
 		write_response->error_code = -1;
@@ -467,8 +462,8 @@ fin:
 static int
 on_negative_write_request_process(struct query_state *qstate)
 {
-	struct cache_write_request	*write_request;
-	struct cache_write_response	*write_response;
+	struct cache_write_request *write_request;
+	struct cache_write_response *write_response;
 	cache_entry c_entry;
 
 	TRACE_IN(on_negative_write_request_process);
@@ -476,15 +471,16 @@ on_negative_write_request_process(struct query_state *qstate)
 	write_response = get_cache_write_response(&qstate->response);
 	write_request = get_cache_write_request(&qstate->request);
 
-	qstate->config_entry = configuration_find_entry	(
-		s_configuration, write_request->entry);
+	qstate->config_entry = configuration_find_entry(s_configuration,
+	    write_request->entry);
 
 	if (qstate->config_entry == NULL) {
 		write_response->error_code = ENOENT;
 
 		LOG_ERR_2("negative_write_request",
-			"can't find configuration"
-		   	" entry '%s'. aborting request", write_request->entry);
+		    "can't find configuration"
+		    " entry '%s'. aborting request",
+		    write_request->entry);
 		goto fin;
 	}
 
@@ -492,8 +488,8 @@ on_negative_write_request_process(struct query_state *qstate)
 		write_response->error_code = EACCES;
 
 		LOG_ERR_2("negative_write_request",
-			"configuration entry '%s' is disabled",
-			write_request->entry);
+		    "configuration entry '%s' is disabled",
+		    write_request->entry);
 		goto fin;
 	}
 
@@ -501,8 +497,9 @@ on_negative_write_request_process(struct query_state *qstate)
 		write_response->error_code = EOPNOTSUPP;
 
 		LOG_ERR_2("negative_write_request",
-			"entry '%s' performs lookups by itself: "
-			"can't write to it", write_request->entry);
+		    "entry '%s' performs lookups by itself: "
+		    "can't write to it",
+		    write_request->entry);
 		goto fin;
 	} else {
 #ifdef NS_NSCD_EID_CHECKING
@@ -515,23 +512,21 @@ on_negative_write_request_process(struct query_state *qstate)
 
 	configuration_lock_rdlock(s_configuration);
 	c_entry = find_cache_entry(s_cache,
-		qstate->config_entry->negative_cache_params.cep.entry_name);
+	    qstate->config_entry->negative_cache_params.cep.entry_name);
 	configuration_unlock(s_configuration);
 	if (c_entry != NULL) {
 		configuration_lock_entry(qstate->config_entry, CELT_NEGATIVE);
 		qstate->config_entry->negative_cache_entry = c_entry;
 		write_response->error_code = cache_write(c_entry,
-			write_request->cache_key,
-	    		write_request->cache_key_size,
-	    		negative_data,
-			sizeof(negative_data));
+		    write_request->cache_key, write_request->cache_key_size,
+		    negative_data, sizeof(negative_data));
 		configuration_unlock_entry(qstate->config_entry, CELT_NEGATIVE);
 
 		if ((qstate->config_entry->common_query_timeout.tv_sec != 0) ||
 		    (qstate->config_entry->common_query_timeout.tv_usec != 0))
 			memcpy(&qstate->timeout,
-				&qstate->config_entry->common_query_timeout,
-				sizeof(struct timeval));
+			    &qstate->config_entry->common_query_timeout,
+			    sizeof(struct timeval));
 	} else
 		write_response->error_code = -1;
 
@@ -547,13 +542,13 @@ fin:
 static int
 on_write_response_write1(struct query_state *qstate)
 {
-	struct cache_write_response	*write_response;
-	ssize_t	result;
+	struct cache_write_response *write_response;
+	ssize_t result;
 
 	TRACE_IN(on_write_response_write1);
 	write_response = get_cache_write_response(&qstate->response);
 	result = qstate->write_func(qstate, &write_response->error_code,
-		sizeof(int));
+	    sizeof(int));
 	if (result != sizeof(int)) {
 		TRACE_OUT(on_write_response_write1);
 		return (-1);
@@ -580,7 +575,7 @@ static int
 on_read_request_read1(struct query_state *qstate)
 {
 	struct cache_read_request *read_request;
-	ssize_t	result;
+	ssize_t result;
 
 	TRACE_IN(on_read_request_read1);
 	if (qstate->kevent_watermark == 0)
@@ -589,10 +584,10 @@ on_read_request_read1(struct query_state *qstate)
 		init_comm_element(&qstate->request, CET_READ_REQUEST);
 		read_request = get_cache_read_request(&qstate->request);
 
-		result = qstate->read_func(qstate,
-	    		&read_request->entry_length, sizeof(size_t));
+		result = qstate->read_func(qstate, &read_request->entry_length,
+		    sizeof(size_t));
 		result += qstate->read_func(qstate,
-	    		&read_request->cache_key_size, sizeof(size_t));
+		    &read_request->cache_key_size, sizeof(size_t));
 
 		if (result != sizeof(size_t) * 2) {
 			TRACE_OUT(on_read_request_read1);
@@ -600,24 +595,22 @@ on_read_request_read1(struct query_state *qstate)
 		}
 
 		if (BUFSIZE_INVALID(read_request->entry_length) ||
-			BUFSIZE_INVALID(read_request->cache_key_size)) {
+		    BUFSIZE_INVALID(read_request->cache_key_size)) {
 			TRACE_OUT(on_read_request_read1);
 			return (-1);
 		}
 
-		read_request->entry = calloc(1,
-			read_request->entry_length + 1);
+		read_request->entry = calloc(1, read_request->entry_length + 1);
 		assert(read_request->entry != NULL);
 
 		read_request->cache_key = calloc(1,
-			read_request->cache_key_size +
-			qstate->eid_str_length);
+		    read_request->cache_key_size + qstate->eid_str_length);
 		assert(read_request->cache_key != NULL);
 		memcpy(read_request->cache_key, qstate->eid_str,
-			qstate->eid_str_length);
+		    qstate->eid_str_length);
 
 		qstate->kevent_watermark = read_request->entry_length +
-			read_request->cache_key_size;
+		    read_request->cache_key_size;
 		qstate->process_func = on_read_request_read2;
 	}
 
@@ -628,17 +621,17 @@ on_read_request_read1(struct query_state *qstate)
 static int
 on_read_request_read2(struct query_state *qstate)
 {
-	struct cache_read_request	*read_request;
-	ssize_t	result;
+	struct cache_read_request *read_request;
+	ssize_t result;
 
 	TRACE_IN(on_read_request_read2);
 	read_request = get_cache_read_request(&qstate->request);
 
 	result = qstate->read_func(qstate, read_request->entry,
-		read_request->entry_length);
+	    read_request->entry_length);
 	result += qstate->read_func(qstate,
-		read_request->cache_key + qstate->eid_str_length,
-		read_request->cache_key_size);
+	    read_request->cache_key + qstate->eid_str_length,
+	    read_request->cache_key_size);
 
 	if (result != (ssize_t)qstate->kevent_watermark) {
 		TRACE_OUT(on_read_request_read2);
@@ -658,9 +651,9 @@ on_read_request_process(struct query_state *qstate)
 {
 	struct cache_read_request *read_request;
 	struct cache_read_response *read_response;
-	cache_entry	c_entry, neg_c_entry;
+	cache_entry c_entry, neg_c_entry;
 
-	struct agent	*lookup_agent;
+	struct agent *lookup_agent;
 	struct common_agent *c_agent;
 	int res;
 
@@ -669,23 +662,24 @@ on_read_request_process(struct query_state *qstate)
 	read_response = get_cache_read_response(&qstate->response);
 	read_request = get_cache_read_request(&qstate->request);
 
-	qstate->config_entry = configuration_find_entry(
-		s_configuration, read_request->entry);
+	qstate->config_entry = configuration_find_entry(s_configuration,
+	    read_request->entry);
 	if (qstate->config_entry == NULL) {
 		read_response->error_code = ENOENT;
 
 		LOG_ERR_2("read_request",
-			"can't find configuration "
-	    		"entry '%s'. aborting request", read_request->entry);
-	    	goto fin;
+		    "can't find configuration "
+		    "entry '%s'. aborting request",
+		    read_request->entry);
+		goto fin;
 	}
 
 	if (qstate->config_entry->enabled == 0) {
 		read_response->error_code = EACCES;
 
 		LOG_ERR_2("read_request",
-			"configuration entry '%s' is disabled",
-			read_request->entry);
+		    "configuration entry '%s' is disabled",
+		    read_request->entry);
 		goto fin;
 	}
 
@@ -698,7 +692,8 @@ on_read_request_process(struct query_state *qstate)
 	else {
 #ifdef NS_NSCD_EID_CHECKING
 		if (check_query_eids(qstate) != 0) {
-		/* if the lookup is not self-performing, we check for clients euid/egid */
+			/* if the lookup is not self-performing, we check for
+			 * clients euid/egid */
 			read_response->error_code = EPERM;
 			goto fin;
 		}
@@ -707,27 +702,24 @@ on_read_request_process(struct query_state *qstate)
 
 	configuration_lock_rdlock(s_configuration);
 	c_entry = find_cache_entry(s_cache,
-		qstate->config_entry->positive_cache_params.cep.entry_name);
+	    qstate->config_entry->positive_cache_params.cep.entry_name);
 	neg_c_entry = find_cache_entry(s_cache,
-		qstate->config_entry->negative_cache_params.cep.entry_name);
+	    qstate->config_entry->negative_cache_params.cep.entry_name);
 	configuration_unlock(s_configuration);
 	if ((c_entry != NULL) && (neg_c_entry != NULL)) {
 		configuration_lock_entry(qstate->config_entry, CELT_POSITIVE);
 		qstate->config_entry->positive_cache_entry = c_entry;
 		read_response->error_code = cache_read(c_entry,
-	    		read_request->cache_key,
-	    		read_request->cache_key_size, NULL,
-	    		&read_response->data_size);
+		    read_request->cache_key, read_request->cache_key_size, NULL,
+		    &read_response->data_size);
 
 		if (read_response->error_code == -2) {
-			read_response->data = malloc(
-				read_response->data_size);
+			read_response->data = malloc(read_response->data_size);
 			assert(read_response->data != NULL);
 			read_response->error_code = cache_read(c_entry,
-				read_request->cache_key,
-		    		read_request->cache_key_size,
-		    		read_response->data,
-		    		&read_response->data_size);
+			    read_request->cache_key,
+			    read_request->cache_key_size, read_response->data,
+			    &read_response->data_size);
 		}
 		configuration_unlock_entry(qstate->config_entry, CELT_POSITIVE);
 
@@ -735,69 +727,69 @@ on_read_request_process(struct query_state *qstate)
 		qstate->config_entry->negative_cache_entry = neg_c_entry;
 		if (read_response->error_code == -1) {
 			read_response->error_code = cache_read(neg_c_entry,
-				read_request->cache_key,
-				read_request->cache_key_size, NULL,
-				&read_response->data_size);
+			    read_request->cache_key,
+			    read_request->cache_key_size, NULL,
+			    &read_response->data_size);
 
 			if (read_response->error_code == -2) {
 				read_response->data = malloc(
-					read_response->data_size);
+				    read_response->data_size);
 				assert(read_response->data != NULL);
-				read_response->error_code = cache_read(neg_c_entry,
-					read_request->cache_key,
-		    			read_request->cache_key_size,
-		    			read_response->data,
-		    			&read_response->data_size);
+				read_response->error_code = cache_read(
+				    neg_c_entry, read_request->cache_key,
+				    read_request->cache_key_size,
+				    read_response->data,
+				    &read_response->data_size);
 			}
 		}
 		configuration_unlock_entry(qstate->config_entry, CELT_NEGATIVE);
 
 		if ((read_response->error_code == -1) &&
-			(qstate->config_entry->perform_actual_lookups != 0)) {
+		    (qstate->config_entry->perform_actual_lookups != 0)) {
 			free(read_response->data);
 			read_response->data = NULL;
 			read_response->data_size = 0;
 
 			lookup_agent = find_agent(s_agent_table,
-				read_request->entry, COMMON_AGENT);
+			    read_request->entry, COMMON_AGENT);
 
 			if ((lookup_agent != NULL) &&
-			(lookup_agent->type == COMMON_AGENT)) {
+			    (lookup_agent->type == COMMON_AGENT)) {
 				c_agent = (struct common_agent *)lookup_agent;
 				res = c_agent->lookup_func(
-					read_request->cache_key +
-						qstate->eid_str_length,
-					read_request->cache_key_size -
-						qstate->eid_str_length,
-					&read_response->data,
-					&read_response->data_size);
+				    read_request->cache_key +
+					qstate->eid_str_length,
+				    read_request->cache_key_size -
+					qstate->eid_str_length,
+				    &read_response->data,
+				    &read_response->data_size);
 
 				if (res == NS_SUCCESS) {
 					read_response->error_code = 0;
 					configuration_lock_entry(
-						qstate->config_entry,
-						CELT_POSITIVE);
+					    qstate->config_entry,
+					    CELT_POSITIVE);
 					cache_write(c_entry,
-						read_request->cache_key,
-	    					read_request->cache_key_size,
-	    					read_response->data,
-						read_response->data_size);
+					    read_request->cache_key,
+					    read_request->cache_key_size,
+					    read_response->data,
+					    read_response->data_size);
 					configuration_unlock_entry(
-						qstate->config_entry,
-						CELT_POSITIVE);
+					    qstate->config_entry,
+					    CELT_POSITIVE);
 				} else if ((res == NS_NOTFOUND) ||
-					  (res == NS_RETURN)) {
+				    (res == NS_RETURN)) {
 					configuration_lock_entry(
-						  qstate->config_entry,
-						  CELT_NEGATIVE);
+					    qstate->config_entry,
+					    CELT_NEGATIVE);
 					cache_write(neg_c_entry,
-						read_request->cache_key,
-						read_request->cache_key_size,
-						negative_data,
-						sizeof(negative_data));
+					    read_request->cache_key,
+					    read_request->cache_key_size,
+					    negative_data,
+					    sizeof(negative_data));
 					configuration_unlock_entry(
-						  qstate->config_entry,
-						  CELT_NEGATIVE);
+					    qstate->config_entry,
+					    CELT_NEGATIVE);
 
 					read_response->error_code = 0;
 					read_response->data = NULL;
@@ -809,8 +801,8 @@ on_read_request_process(struct query_state *qstate)
 		if ((qstate->config_entry->common_query_timeout.tv_sec != 0) ||
 		    (qstate->config_entry->common_query_timeout.tv_usec != 0))
 			memcpy(&qstate->timeout,
-				&qstate->config_entry->common_query_timeout,
-				sizeof(struct timeval));
+			    &qstate->config_entry->common_query_timeout,
+			    sizeof(struct timeval));
 	} else
 		read_response->error_code = -1;
 
@@ -829,18 +821,18 @@ fin:
 static int
 on_read_response_write1(struct query_state *qstate)
 {
-	struct cache_read_response	*read_response;
-	ssize_t	result;
+	struct cache_read_response *read_response;
+	ssize_t result;
 
 	TRACE_IN(on_read_response_write1);
 	read_response = get_cache_read_response(&qstate->response);
 
 	result = qstate->write_func(qstate, &read_response->error_code,
-		sizeof(int));
+	    sizeof(int));
 
 	if (read_response->error_code == 0) {
 		result += qstate->write_func(qstate, &read_response->data_size,
-			sizeof(size_t));
+		    sizeof(size_t));
 		if (result != (ssize_t)qstate->kevent_watermark) {
 			TRACE_OUT(on_read_response_write1);
 			return (-1);
@@ -865,14 +857,14 @@ on_read_response_write1(struct query_state *qstate)
 static int
 on_read_response_write2(struct query_state *qstate)
 {
-	struct cache_read_response	*read_response;
-	ssize_t	result;
+	struct cache_read_response *read_response;
+	ssize_t result;
 
 	TRACE_IN(on_read_response_write2);
 	read_response = get_cache_read_response(&qstate->response);
 	if (read_response->data_size > 0) {
 		result = qstate->write_func(qstate, read_response->data,
-			read_response->data_size);
+		    read_response->data_size);
 		if (result != (ssize_t)qstate->kevent_watermark) {
 			TRACE_OUT(on_read_response_write2);
 			return (-1);
@@ -900,20 +892,20 @@ static int
 on_transform_request_read1(struct query_state *qstate)
 {
 	struct cache_transform_request *transform_request;
-	ssize_t	result;
+	ssize_t result;
 
 	TRACE_IN(on_transform_request_read1);
 	if (qstate->kevent_watermark == 0)
 		qstate->kevent_watermark = sizeof(size_t) + sizeof(int);
 	else {
 		init_comm_element(&qstate->request, CET_TRANSFORM_REQUEST);
-		transform_request =
-			get_cache_transform_request(&qstate->request);
+		transform_request = get_cache_transform_request(
+		    &qstate->request);
 
 		result = qstate->read_func(qstate,
-	    		&transform_request->entry_length, sizeof(size_t));
+		    &transform_request->entry_length, sizeof(size_t));
 		result += qstate->read_func(qstate,
-	    		&transform_request->transformation_type, sizeof(int));
+		    &transform_request->transformation_type, sizeof(int));
 
 		if (result != sizeof(size_t) + sizeof(int)) {
 			TRACE_OUT(on_transform_request_read1);
@@ -933,7 +925,7 @@ on_transform_request_read1(struct query_state *qstate)
 			}
 
 			transform_request->entry = calloc(1,
-				transform_request->entry_length + 1);
+			    transform_request->entry_length + 1);
 			assert(transform_request->entry != NULL);
 
 			qstate->process_func = on_transform_request_read2;
@@ -950,14 +942,14 @@ on_transform_request_read1(struct query_state *qstate)
 static int
 on_transform_request_read2(struct query_state *qstate)
 {
-	struct cache_transform_request	*transform_request;
-	ssize_t	result;
+	struct cache_transform_request *transform_request;
+	ssize_t result;
 
 	TRACE_IN(on_transform_request_read2);
 	transform_request = get_cache_transform_request(&qstate->request);
 
 	result = qstate->read_func(qstate, transform_request->entry,
-		transform_request->entry_length);
+	    transform_request->entry_length);
 
 	if (result != (ssize_t)qstate->kevent_watermark) {
 		TRACE_OUT(on_transform_request_read2);
@@ -977,7 +969,7 @@ on_transform_request_process(struct query_state *qstate)
 	struct cache_transform_request *transform_request;
 	struct cache_transform_response *transform_response;
 	struct configuration_entry *config_entry;
-	size_t	i, size;
+	size_t i, size;
 
 	TRACE_IN(on_transform_request_process);
 	init_comm_element(&qstate->response, CET_TRANSFORM_RESPONSE);
@@ -989,37 +981,38 @@ on_transform_request_process(struct query_state *qstate)
 		if (transform_request->entry == NULL) {
 			size = configuration_get_entries_size(s_configuration);
 			for (i = 0; i < size; ++i) {
-			    config_entry = configuration_get_entry(
-				s_configuration, i);
+				config_entry =
+				    configuration_get_entry(s_configuration, i);
 
-			    if (config_entry->perform_actual_lookups == 0)
-			    	clear_config_entry_part(config_entry,
-				    qstate->eid_str, qstate->eid_str_length);
+				if (config_entry->perform_actual_lookups == 0)
+					clear_config_entry_part(config_entry,
+					    qstate->eid_str,
+					    qstate->eid_str_length);
 			}
 		} else {
 			qstate->config_entry = configuration_find_entry(
-				s_configuration, transform_request->entry);
+			    s_configuration, transform_request->entry);
 
 			if (qstate->config_entry == NULL) {
 				LOG_ERR_2("transform_request",
-					"can't find configuration"
-		   			" entry '%s'. aborting request",
-					transform_request->entry);
+				    "can't find configuration"
+				    " entry '%s'. aborting request",
+				    transform_request->entry);
 				transform_response->error_code = -1;
 				goto fin;
 			}
 
 			if (qstate->config_entry->perform_actual_lookups != 0) {
 				LOG_ERR_2("transform_request",
-					"can't transform the cache entry %s"
-					", because it ised for actual lookups",
-					transform_request->entry);
+				    "can't transform the cache entry %s"
+				    ", because it ised for actual lookups",
+				    transform_request->entry);
 				transform_response->error_code = -1;
 				goto fin;
 			}
 
 			clear_config_entry_part(qstate->config_entry,
-				qstate->eid_str, qstate->eid_str_length);
+			    qstate->eid_str, qstate->eid_str_length);
 		}
 		break;
 	case TT_ALL:
@@ -1028,22 +1021,21 @@ on_transform_request_process(struct query_state *qstate)
 		else {
 			if (transform_request->entry == NULL) {
 				size = configuration_get_entries_size(
-					s_configuration);
+				    s_configuration);
 				for (i = 0; i < size; ++i) {
-				    clear_config_entry(
-					configuration_get_entry(
+					clear_config_entry(
+					    configuration_get_entry(
 						s_configuration, i));
 				}
 			} else {
 				qstate->config_entry = configuration_find_entry(
-					s_configuration,
-					transform_request->entry);
+				    s_configuration, transform_request->entry);
 
 				if (qstate->config_entry == NULL) {
 					LOG_ERR_2("transform_request",
-						"can't find configuration"
-		   				" entry '%s'. aborting request",
-						transform_request->entry);
+					    "can't find configuration"
+					    " entry '%s'. aborting request",
+					    transform_request->entry);
 					transform_response->error_code = -1;
 					goto fin;
 				}
@@ -1066,13 +1058,13 @@ fin:
 static int
 on_transform_response_write1(struct query_state *qstate)
 {
-	struct cache_transform_response	*transform_response;
-	ssize_t	result;
+	struct cache_transform_response *transform_response;
+	ssize_t result;
 
 	TRACE_IN(on_transform_response_write1);
 	transform_response = get_cache_transform_response(&qstate->response);
 	result = qstate->write_func(qstate, &transform_response->error_code,
-		sizeof(int));
+	    sizeof(int));
 	if (result != sizeof(int)) {
 		TRACE_OUT(on_transform_response_write1);
 		return (-1);
@@ -1095,7 +1087,9 @@ int
 check_query_eids(struct query_state *qstate)
 {
 
-	return ((qstate->uid != qstate->euid) || (qstate->gid != qstate->egid) ? -1 : 0);
+	return ((qstate->uid != qstate->euid) || (qstate->gid != qstate->egid) ?
+		-1 :
+		0);
 }
 
 /*
@@ -1106,16 +1100,16 @@ ssize_t
 query_io_buffer_read(struct query_state *qstate, void *buf, size_t nbytes)
 {
 	size_t remaining;
-	ssize_t	result;
+	ssize_t result;
 
 	TRACE_IN(query_io_buffer_read);
 	if ((qstate->io_buffer_size == 0) || (qstate->io_buffer == NULL))
 		return (-1);
 
-	assert(qstate->io_buffer_p <=
-		qstate->io_buffer + qstate->io_buffer_size);
+	assert(
+	    qstate->io_buffer_p <= qstate->io_buffer + qstate->io_buffer_size);
 	remaining = qstate->io_buffer + qstate->io_buffer_size -
-		qstate->io_buffer_p;
+	    qstate->io_buffer_p;
 	if (nbytes < remaining)
 		result = nbytes;
 	else
@@ -1142,19 +1136,19 @@ query_io_buffer_read(struct query_state *qstate, void *buf, size_t nbytes)
  */
 ssize_t
 query_io_buffer_write(struct query_state *qstate, const void *buf,
-	size_t nbytes)
+    size_t nbytes)
 {
 	size_t remaining;
-	ssize_t	result;
+	ssize_t result;
 
 	TRACE_IN(query_io_buffer_write);
 	if ((qstate->io_buffer_size == 0) || (qstate->io_buffer == NULL))
 		return (-1);
 
-	assert(qstate->io_buffer_p <=
-		qstate->io_buffer + qstate->io_buffer_size);
+	assert(
+	    qstate->io_buffer_p <= qstate->io_buffer + qstate->io_buffer_size);
 	remaining = qstate->io_buffer + qstate->io_buffer_size -
-		qstate->io_buffer_p;
+	    qstate->io_buffer_p;
 	if (nbytes < remaining)
 		result = nbytes;
 	else
@@ -1181,7 +1175,7 @@ query_io_buffer_write(struct query_state *qstate, const void *buf,
 ssize_t
 query_socket_read(struct query_state *qstate, void *buf, size_t nbytes)
 {
-	ssize_t	result;
+	ssize_t result;
 
 	TRACE_IN(query_socket_read);
 	if (qstate->socket_failed != 0) {
@@ -1203,7 +1197,7 @@ query_socket_read(struct query_state *qstate, void *buf, size_t nbytes)
 ssize_t
 query_socket_write(struct query_state *qstate, const void *buf, size_t nbytes)
 {
-	ssize_t	result;
+	ssize_t result;
 
 	TRACE_IN(query_socket_write);
 	if (qstate->socket_failed != 0) {
@@ -1225,7 +1219,7 @@ query_socket_write(struct query_state *qstate, const void *buf, size_t nbytes)
 struct query_state *
 init_query_state(int sockfd, size_t kevent_watermark, uid_t euid, gid_t egid)
 {
-	struct query_state	*retval;
+	struct query_state *retval;
 
 	TRACE_IN(init_query_state);
 	retval = calloc(1, sizeof(*retval));
@@ -1239,8 +1233,8 @@ init_query_state(int sockfd, size_t kevent_watermark, uid_t euid, gid_t egid)
 	retval->egid = egid;
 	retval->uid = retval->gid = -1;
 
-	if (asprintf(&retval->eid_str, "%d_%d_", retval->euid,
-		retval->egid) == -1) {
+	if (asprintf(&retval->eid_str, "%d_%d_", retval->euid, retval->egid) ==
+	    -1) {
 		free(retval);
 		return (NULL);
 	}
@@ -1268,7 +1262,7 @@ destroy_query_state(struct query_state *qstate)
 
 	TRACE_IN(destroy_query_state);
 	if (qstate->eid_str != NULL)
-	    free(qstate->eid_str);
+		free(qstate->eid_str);
 
 	if (qstate->io_buffer != NULL)
 		free(qstate->io_buffer);

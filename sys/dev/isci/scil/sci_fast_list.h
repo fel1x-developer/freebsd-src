@@ -85,22 +85,22 @@
  * Initialize the double linked list anchor.  The other macros require the list
  * anchor to be set up using this macro.
  */
-#define sci_fast_list_init(anchor)                                            \
-{                                                                             \
-   (anchor)->list_head = NULL;                                                \
-   (anchor)->list_tail = NULL;                                                \
-   (anchor)->element_count = 0;                                               \
-}
+#define sci_fast_list_init(anchor)           \
+	{                                    \
+		(anchor)->list_head = NULL;  \
+		(anchor)->list_tail = NULL;  \
+		(anchor)->element_count = 0; \
+	}
 
 /**
  * Initialize the sci_fast_list_element to point to its owning object
  */
-#define sci_fast_list_element_init(list_object, element)                      \
-{                                                                             \
-   (element)->object = (list_object);                                         \
-   (element)->next = (element)->prev = NULL;                                  \
-   (element)->owning_list = NULL;                                             \
-}
+#define sci_fast_list_element_init(list_object, element)  \
+	{                                                 \
+		(element)->object = (list_object);        \
+		(element)->next = (element)->prev = NULL; \
+		(element)->owning_list = NULL;            \
+	}
 
 /**
  * See if there is anything on the list by checking the list anchor.
@@ -117,8 +117,8 @@
  * element - A pointer into which to save the address of the structure
  *           containing the SCI_FAST_LIST at the list head.
  */
-#define sci_fast_list_get_head(anchor)                                        \
-   ((anchor)->list_head == NULL ? NULL: (anchor)->list_head->object)
+#define sci_fast_list_get_head(anchor) \
+	((anchor)->list_head == NULL ? NULL : (anchor)->list_head->object)
 
 /**
  * Return a pointer to the element at the tail of the sci_fast_list.  The item
@@ -130,8 +130,8 @@
  * element - A pointer into which to save the address of the structure
  *           containing the SCI_FAST_LIST at the list head.
  */
-#define sci_fast_list_get_tail(anchor)                                        \
-   ((anchor)->list_tail == NULL ? NULL: (anchor)->list_head->object)
+#define sci_fast_list_get_tail(anchor) \
+	((anchor)->list_tail == NULL ? NULL : (anchor)->list_head->object)
 
 /**
  * This method will get the next dListField in the SCI_FAST_LIST.  This method
@@ -144,7 +144,6 @@
  * returns a pointer to a SCI_FAST_LIST object.
  */
 #define sci_fast_list_get_prev(element) ((element)->prev)
-
 
 /**
  * This method returns the object that is represented by this
@@ -171,7 +170,7 @@
  *          FALSE - item is not on the list.
  */
 #define sci_fast_list_is_on_this_list(anchor, element) \
-   ((element)->owning_list == (anchor))
+	((element)->owning_list == (anchor))
 
 //******************************************************************************
 //*
@@ -185,11 +184,10 @@
  * @brief the list owner or list anchor for a set of SCI_FAST_LIST
  *        elements.
  */
-typedef struct SCI_FAST_LIST
-{
-   struct SCI_FAST_LIST_ELEMENT *list_head;
-   struct SCI_FAST_LIST_ELEMENT *list_tail;
-   int                           element_count;
+typedef struct SCI_FAST_LIST {
+	struct SCI_FAST_LIST_ELEMENT *list_head;
+	struct SCI_FAST_LIST_ELEMENT *list_tail;
+	int element_count;
 } SCI_FAST_LIST_T;
 
 /**
@@ -197,14 +195,12 @@ typedef struct SCI_FAST_LIST
  *
  * @brief This structure defines what a doubly linked list element contains.
  */
-typedef struct SCI_FAST_LIST_ELEMENT
-{
-   struct SCI_FAST_LIST_ELEMENT *next;
-   struct SCI_FAST_LIST_ELEMENT *prev;
-   struct SCI_FAST_LIST         *owning_list;
-   void                         *object;
+typedef struct SCI_FAST_LIST_ELEMENT {
+	struct SCI_FAST_LIST_ELEMENT *next;
+	struct SCI_FAST_LIST_ELEMENT *prev;
+	struct SCI_FAST_LIST *owning_list;
+	void *object;
 } SCI_FAST_LIST_ELEMENT_T;
-
 
 /**
  * Insert an element to be the new head of the list hanging off of the list
@@ -216,20 +212,19 @@ typedef struct SCI_FAST_LIST_ELEMENT
  *                           the new list head.
  */
 INLINE
-static void sci_fast_list_insert_head(
-    SCI_FAST_LIST_T *anchor,
-    SCI_FAST_LIST_ELEMENT_T *element
-)
+static void
+sci_fast_list_insert_head(SCI_FAST_LIST_T *anchor,
+    SCI_FAST_LIST_ELEMENT_T *element)
 {
-    element->owning_list = anchor;
-    element->prev = NULL;
-    if ( anchor->list_head == NULL )
-        anchor->list_tail = element;
-    else
-        anchor->list_head->prev = element;
-    element->next = anchor->list_head;
-    anchor->list_head = element;
-    anchor->element_count++;
+	element->owning_list = anchor;
+	element->prev = NULL;
+	if (anchor->list_head == NULL)
+		anchor->list_tail = element;
+	else
+		anchor->list_head->prev = element;
+	element->next = anchor->list_head;
+	anchor->list_head = element;
+	anchor->element_count++;
 }
 
 /**
@@ -243,21 +238,20 @@ static void sci_fast_list_insert_head(
  *                           the new list head.
  */
 INLINE
-static void sci_fast_list_insert_tail(
-    SCI_FAST_LIST_T *anchor,
-    SCI_FAST_LIST_ELEMENT_T *element
-)
+static void
+sci_fast_list_insert_tail(SCI_FAST_LIST_T *anchor,
+    SCI_FAST_LIST_ELEMENT_T *element)
 {
-    element->owning_list = anchor;
-    element->next = NULL;
-    if ( anchor->list_tail == NULL ) {
-        anchor->list_head = element;
-    } else {
-        anchor->list_tail->next = element;
-    }
-    element->prev = anchor->list_tail;
-    anchor->list_tail = element;
-    anchor->element_count++;
+	element->owning_list = anchor;
+	element->next = NULL;
+	if (anchor->list_tail == NULL) {
+		anchor->list_head = element;
+	} else {
+		anchor->list_tail->next = element;
+	}
+	element->prev = anchor->list_tail;
+	anchor->list_tail = element;
+	anchor->element_count++;
 }
 
 /**
@@ -270,70 +264,64 @@ static void sci_fast_list_insert_tail(
  *           containing the SCI_FAST_LIST at the list head.
  */
 INLINE
-static void *sci_fast_list_remove_head(
-    SCI_FAST_LIST_T *anchor
-)
+static void *
+sci_fast_list_remove_head(SCI_FAST_LIST_T *anchor)
 {
-    void *object = NULL;
-    SCI_FAST_LIST_ELEMENT_T *element;
-    if ( anchor->list_head != NULL )
-    {
-        element = anchor->list_head;
-        object = anchor->list_head->object;
-        anchor->list_head = anchor->list_head->next;
-        if ( anchor->list_head == NULL )
-        {
-            anchor->list_tail = NULL;
-        }
-        anchor->element_count--;
-        element->next = element->prev = NULL;
-        element->owning_list = NULL;
-    }
-    return object;
+	void *object = NULL;
+	SCI_FAST_LIST_ELEMENT_T *element;
+	if (anchor->list_head != NULL) {
+		element = anchor->list_head;
+		object = anchor->list_head->object;
+		anchor->list_head = anchor->list_head->next;
+		if (anchor->list_head == NULL) {
+			anchor->list_tail = NULL;
+		}
+		anchor->element_count--;
+		element->next = element->prev = NULL;
+		element->owning_list = NULL;
+	}
+	return object;
 }
 
 INLINE
-static void *sci_fast_list_remove_tail(
-    SCI_FAST_LIST_T *anchor
-)
+static void *
+sci_fast_list_remove_tail(SCI_FAST_LIST_T *anchor)
 {
-    void *object = NULL;
-    SCI_FAST_LIST_ELEMENT_T *element;
-    if ( anchor->list_tail != NULL )
-    {
-        element = anchor->list_tail;
-        object = element->object;
-        anchor->list_tail = element->prev;
-        if ( anchor->list_tail == NULL )
-            anchor->list_head = NULL;
-        anchor->element_count--;
-        element->next = element->prev = NULL;
-        element->owning_list = NULL;
-    }
-    return object;
+	void *object = NULL;
+	SCI_FAST_LIST_ELEMENT_T *element;
+	if (anchor->list_tail != NULL) {
+		element = anchor->list_tail;
+		object = element->object;
+		anchor->list_tail = element->prev;
+		if (anchor->list_tail == NULL)
+			anchor->list_head = NULL;
+		anchor->element_count--;
+		element->next = element->prev = NULL;
+		element->owning_list = NULL;
+	}
+	return object;
 }
 
 /**
  * Remove an element from anywhere in the list referenced by name.
  */
 INLINE
-static void sci_fast_list_remove_element(
-    SCI_FAST_LIST_ELEMENT_T *element
-)
+static void
+sci_fast_list_remove_element(SCI_FAST_LIST_ELEMENT_T *element)
 {
-    if ( element->next == NULL )
-        element->owning_list->list_tail = element->prev;
-    else
-        element->next->prev = element->prev;
+	if (element->next == NULL)
+		element->owning_list->list_tail = element->prev;
+	else
+		element->next->prev = element->prev;
 
-    if ( element->prev == NULL )
-        element->owning_list->list_head = element->next;
-    else
-        element->prev->next = element->next;
+	if (element->prev == NULL)
+		element->owning_list->list_head = element->next;
+	else
+		element->prev->next = element->next;
 
-    element->owning_list->element_count--;
-    element->next = element->prev = NULL;
-    element->owning_list = NULL;
+	element->owning_list->element_count--;
+	element->next = element->prev = NULL;
+	element->owning_list = NULL;
 }
 
 #endif // _SCI_FAST_LIST_HEADER_

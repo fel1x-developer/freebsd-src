@@ -27,7 +27,9 @@
 
 #include <sys/param.h>
 #include <sys/socket.h>
+
 #include <netinet/in.h>
+
 #include <err.h>
 #include <errno.h>
 #include <netdb.h>
@@ -46,36 +48,39 @@ static int bufsize;
 static int sv[2];
 
 static void
-reader(void) {
+reader(void)
+{
 	int n, *buf;
 
 	if ((buf = malloc(bufsize)) == NULL)
-			err(1, "malloc(%d), %s:%d", bufsize, __FILE__, __LINE__);
+		err(1, "malloc(%d), %s:%d", bufsize, __FILE__, __LINE__);
 	while (done_testing == 0) {
 		if ((n = read(sv[0], buf, bufsize)) < 0)
 			err(1, "read(), %s:%d", __FILE__, __LINE__);
-		if (n == 0) break;
+		if (n == 0)
+			break;
 	}
 	close(sv[0]);
 	return;
 }
 
 static void
-writer(void) {
+writer(void)
+{
 	int i, *buf;
 
 	if ((buf = malloc(bufsize)) == NULL)
-			err(1, "malloc(%d), %s:%d", bufsize, __FILE__, __LINE__);
+		err(1, "malloc(%d), %s:%d", bufsize, __FILE__, __LINE__);
 	for (i = 0; i < bufsize / (int)sizeof(int); i++)
 		buf[i] = i;
 
 	for (;;) {
-		for (i = 0; i < NB; i+= bufsize) {
+		for (i = 0; i < NB; i += bufsize) {
 			if (write(sv[1], buf, bufsize) < 0) {
 				if (errno == EPIPE)
 					return;
-				err(1, "write(%d), %s:%d", sv[1],
-						__FILE__, __LINE__);
+				err(1, "write(%d), %s:%d", sv[1], __FILE__,
+				    __LINE__);
 			}
 		}
 	}
@@ -110,7 +115,7 @@ test(void)
 		reader();
 		kill(pid, SIGINT);
 	} else
-		err(1, "fork(), %s:%d",  __FILE__, __LINE__);
+		err(1, "fork(), %s:%d", __FILE__, __LINE__);
 
 	return (0);
 }

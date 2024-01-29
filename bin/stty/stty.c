@@ -38,8 +38,8 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "stty.h"
 #include "extern.h"
+#include "stty.h"
 
 int
 main(int argc, char *argv[])
@@ -57,8 +57,8 @@ main(int argc, char *argv[])
 	while (optind < argc &&
 	    strspn(argv[optind], "-aefg") == strlen(argv[optind]) &&
 	    (ch = getopt(argc, argv, "aef:g")) != -1)
-		switch(ch) {
-		case 'a':		/* undocumented: POSIX compatibility */
+		switch (ch) {
+		case 'a': /* undocumented: POSIX compatibility */
 			fmt = POSIX;
 			break;
 		case 'e':
@@ -77,7 +77,8 @@ main(int argc, char *argv[])
 			goto args;
 		}
 
-args:	argc -= optind;
+args:
+	argc -= optind;
 	argv += optind;
 
 	if (tcgetattr(i.fd, &i.t) < 0)
@@ -87,9 +88,9 @@ args:	argc -= optind;
 	if (ioctl(i.fd, TIOCGWINSZ, &i.win) < 0)
 		warn("TIOCGWINSZ");
 
-	checkredirect();			/* conversion aid */
+	checkredirect(); /* conversion aid */
 
-	switch(fmt) {
+	switch (fmt) {
 	case NOTSET:
 		if (*argv)
 			break;
@@ -148,5 +149,5 @@ usage(void)
 
 	(void)fprintf(stderr,
 	    "usage: stty [-a | -e | -g] [-f file] [arguments]\n");
-	exit (1);
+	exit(1);
 }

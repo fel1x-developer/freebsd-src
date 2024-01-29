@@ -30,24 +30,25 @@
 #include <sys/param.h>
 #include <sys/exec.h>
 #include <sys/linker.h>
-#include <string.h>
-#include <machine/elf.h>
-#include <stand.h>
+
 #include <vm/vm.h>
 #include <vm/pmap.h>
 
+#include <machine/elf.h>
+
 #include <efi.h>
 #include <efilib.h>
+#include <stand.h>
+#include <string.h>
 
 #include "bootstrap.h"
-
 #include "loader_efi.h"
 
 extern int bi_load(char *args, vm_offset_t *modulep, vm_offset_t *kernendp,
     bool exit_bs);
 
-static int	elf64_exec(struct preloaded_file *amp);
-static int	elf64_obj_exec(struct preloaded_file *amp);
+static int elf64_exec(struct preloaded_file *amp);
+static int elf64_obj_exec(struct preloaded_file *amp);
 
 static struct file_format amd64_elf = {
 	.l_load = elf64_loadfile,
@@ -61,13 +62,8 @@ static struct file_format amd64_elf_obj = {
 extern struct file_format multiboot2;
 extern struct file_format multiboot2_obj;
 
-struct file_format *file_formats[] = {
-	&multiboot2,
-	&multiboot2_obj,
-	&amd64_elf,
-	&amd64_elf_obj,
-	NULL
-};
+struct file_format *file_formats[] = { &multiboot2, &multiboot2_obj, &amd64_elf,
+	&amd64_elf_obj, NULL };
 
 static pml4_entry_t *PT4;
 static pdp_entry_t *PT3;
@@ -91,16 +87,17 @@ extern uint32_t amd64_tramp_size;
 static int
 elf64_exec(struct preloaded_file *fp)
 {
-	struct file_metadata	*md;
-	Elf_Ehdr 		*ehdr;
-	vm_offset_t		modulep, kernend, trampcode, trampstack;
-	int			err, i;
-	bool			copy_auto;
+	struct file_metadata *md;
+	Elf_Ehdr *ehdr;
+	vm_offset_t modulep, kernend, trampcode, trampstack;
+	int err, i;
+	bool copy_auto;
 
 	copy_auto = copy_staging == COPY_STAGING_AUTO;
 	if (copy_auto)
 		copy_staging = fp->f_kernphys_relocatable ?
-		    COPY_STAGING_DISABLE : COPY_STAGING_ENABLE;
+		    COPY_STAGING_DISABLE :
+		    COPY_STAGING_ENABLE;
 
 	if ((md = file_findmetadata(fp, MODINFOMD_ELFHDR)) == NULL)
 		return (EFTYPE);
@@ -108,7 +105,8 @@ elf64_exec(struct preloaded_file *fp)
 
 	trampcode = copy_staging == COPY_STAGING_ENABLE ?
 	    (vm_offset_t)0x0000000040000000 /* 1G */ :
-	    (vm_offset_t)0x0000000100000000; /* 4G */;
+	    (vm_offset_t)0x0000000100000000; /* 4G */
+	;
 	err = BS->AllocatePages(AllocateMaxAddress, EfiLoaderData, 1,
 	    (EFI_PHYSICAL_ADDRESS *)&trampcode);
 	if (EFI_ERROR(err)) {
@@ -193,8 +191,8 @@ elf64_exec(struct preloaded_file *fp)
 		PT3_l[2] = (pdp_entry_t)PT2_l2 | PG_V | PG_RW;
 		PT3_l[3] = (pdp_entry_t)PT2_l3 | PG_V | PG_RW;
 		for (i = 0; i < 4 * NPDEPG; i++) {
-			PT2_l0[i] = ((pd_entry_t)i << PDRSHIFT) | PG_V |
-			    PG_RW | PG_PS;
+			PT2_l0[i] = ((pd_entry_t)i << PDRSHIFT) | PG_V | PG_RW |
+			    PG_PS;
 		}
 
 		/* mapping of kernel 2G below top */
@@ -206,14 +204,13 @@ elf64_exec(struct preloaded_file *fp)
 		/* this maps past staging area */
 		for (i = 1; i < 2 * NPDEPG; i++) {
 			PT2_u0[i] = ((pd_entry_t)staging +
-			    ((pd_entry_t)i - 1) * NBPDR) |
+					((pd_entry_t)i - 1) * NBPDR) |
 			    PG_V | PG_RW | PG_PS;
 		}
 	}
 
-	printf("staging %#lx (%scopying) tramp %p PT4 %p\n",
-	    staging, copy_staging == COPY_STAGING_ENABLE ? "" : "not ",
-	    trampoline, PT4);
+	printf("staging %#lx (%scopying) tramp %p PT4 %p\n", staging,
+	    copy_staging == COPY_STAGING_ENABLE ? "" : "not ", trampoline, PT4);
 	printf("Start @ 0x%lx ...\n", ehdr->e_entry);
 
 	efi_time_fini();
@@ -227,9 +224,10 @@ elf64_exec(struct preloaded_file *fp)
 
 	dev_cleanup();
 
-	trampoline(trampstack, copy_staging == COPY_STAGING_ENABLE ?
-	    efi_copy_finish : efi_copy_finish_nop, kernend, modulep,
-	    PT4, ehdr->e_entry);
+	trampoline(trampstack,
+	    copy_staging == COPY_STAGING_ENABLE ? efi_copy_finish :
+						  efi_copy_finish_nop,
+	    kernend, modulep, PT4, ehdr->e_entry);
 
 	panic("exec returned");
 }

@@ -28,13 +28,13 @@
  */
 
 #ifndef _SYS_HASH_H_
-#define	_SYS_HASH_H_
+#define _SYS_HASH_H_
 #include <sys/types.h>
 
 /* Convenience */
-#ifndef	HASHINIT
-#define	HASHINIT	5381
-#define	HASHSTEP(x,c)	(((x << 5) + x) + (c))
+#ifndef HASHINIT
+#define HASHINIT 5381
+#define HASHSTEP(x, c) (((x << 5) + x) + (c))
 #endif
 
 /*

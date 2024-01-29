@@ -27,12 +27,12 @@
  */
 
 #include <sys/param.h>
-#include <sys/proc.h>
-#include <sys/module.h>
-#include <sys/sysproto.h>
-#include <sys/sysent.h>
-#include <sys/kernel.h>
 #include <sys/systm.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
+#include <sys/proc.h>
+#include <sys/sysent.h>
+#include <sys/sysproto.h>
 
 /*
  * The function for implementing the syscall.
@@ -48,10 +48,7 @@ hello(struct thread *td, void *arg)
 /*
  * The `sysent' for the new syscall
  */
-static struct sysent hello_sysent = {
-	.sy_narg = 0,
-	.sy_call = hello
-};
+static struct sysent hello_sysent = { .sy_narg = 0, .sy_call = hello };
 
 /*
  * The offset in sysent where the syscall is allocated.
@@ -67,13 +64,13 @@ load(struct module *module, int cmd, void *arg)
 	int error = 0;
 
 	switch (cmd) {
-	case MOD_LOAD :
+	case MOD_LOAD:
 		printf("syscall loaded at %d\n", offset);
 		break;
-	case MOD_UNLOAD :
+	case MOD_UNLOAD:
 		printf("syscall unloaded from %d\n", offset);
 		break;
-	default :
+	default:
 		error = EOPNOTSUPP;
 		break;
 	}

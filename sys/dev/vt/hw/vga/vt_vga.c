@@ -33,54 +33,55 @@
 #include "opt_acpi.h"
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/rman.h>
 
-#include <dev/vt/vt.h>
+#include <machine/bus.h>
+
+#include <dev/pci/pcivar.h>
 #include <dev/vt/colors/vt_termcolors.h>
 #include <dev/vt/hw/vga/vt_vga_reg.h>
-#include <dev/pci/pcivar.h>
-
-#include <machine/bus.h>
+#include <dev/vt/vt.h>
 #if defined(__amd64__) || defined(__i386__)
-#include <contrib/dev/acpica/include/acpi.h>
 #include <machine/md_var.h>
+
+#include <contrib/dev/acpica/include/acpi.h>
 #endif
 
 struct vga_softc {
-	bus_space_tag_t		 vga_fb_tag;
-	bus_space_handle_t	 vga_fb_handle;
-	bus_space_tag_t		 vga_reg_tag;
-	bus_space_handle_t	 vga_reg_handle;
-	int			 vga_wmode;
-	term_color_t		 vga_curfg, vga_curbg;
-	boolean_t		 vga_enabled;
+	bus_space_tag_t vga_fb_tag;
+	bus_space_handle_t vga_fb_handle;
+	bus_space_tag_t vga_reg_tag;
+	bus_space_handle_t vga_reg_handle;
+	int vga_wmode;
+	term_color_t vga_curfg, vga_curbg;
+	boolean_t vga_enabled;
 };
 
 /* Convenience macros. */
-#define	MEM_READ1(sc, ofs) \
+#define MEM_READ1(sc, ofs) \
 	bus_space_read_1(sc->vga_fb_tag, sc->vga_fb_handle, ofs)
-#define	MEM_WRITE1(sc, ofs, val) \
+#define MEM_WRITE1(sc, ofs, val) \
 	bus_space_write_1(sc->vga_fb_tag, sc->vga_fb_handle, ofs, val)
-#define	MEM_WRITE2(sc, ofs, val) \
+#define MEM_WRITE2(sc, ofs, val) \
 	bus_space_write_2(sc->vga_fb_tag, sc->vga_fb_handle, ofs, val)
-#define	REG_READ1(sc, reg) \
+#define REG_READ1(sc, reg) \
 	bus_space_read_1(sc->vga_reg_tag, sc->vga_reg_handle, reg)
-#define	REG_WRITE1(sc, reg, val) \
+#define REG_WRITE1(sc, reg, val) \
 	bus_space_write_1(sc->vga_reg_tag, sc->vga_reg_handle, reg, val)
 
-#define	VT_VGA_WIDTH	640
-#define	VT_VGA_HEIGHT	480
-#define	VT_VGA_MEMSIZE	(VT_VGA_WIDTH * VT_VGA_HEIGHT / 8)
+#define VT_VGA_WIDTH 640
+#define VT_VGA_HEIGHT 480
+#define VT_VGA_MEMSIZE (VT_VGA_WIDTH * VT_VGA_HEIGHT / 8)
 
 /*
  * VGA is designed to handle 8 pixels at a time (8 pixels in one byte of
  * memory).
  */
-#define	VT_VGA_PIXELS_BLOCK	8
+#define VT_VGA_PIXELS_BLOCK 8
 
 /*
  * We use an off-screen addresses to:
@@ -88,30 +89,30 @@ struct vga_softc {
  *     o  store pixels pattern.
  * Those addresses are then loaded in the latches once.
  */
-#define	VT_VGA_BGCOLOR_OFFSET	VT_VGA_MEMSIZE
+#define VT_VGA_BGCOLOR_OFFSET VT_VGA_MEMSIZE
 
-static vd_probe_t	vga_probe;
-static vd_init_t	vga_init;
-static vd_blank_t	vga_blank;
-static vd_bitblt_text_t	vga_bitblt_text;
-static vd_invalidate_text_t	vga_invalidate_text;
-static vd_bitblt_bmp_t	vga_bitblt_bitmap;
-static vd_drawrect_t	vga_drawrect;
-static vd_setpixel_t	vga_setpixel;
-static vd_postswitch_t	vga_postswitch;
+static vd_probe_t vga_probe;
+static vd_init_t vga_init;
+static vd_blank_t vga_blank;
+static vd_bitblt_text_t vga_bitblt_text;
+static vd_invalidate_text_t vga_invalidate_text;
+static vd_bitblt_bmp_t vga_bitblt_bitmap;
+static vd_drawrect_t vga_drawrect;
+static vd_setpixel_t vga_setpixel;
+static vd_postswitch_t vga_postswitch;
 
 static const struct vt_driver vt_vga_driver = {
-	.vd_name	= "vga",
-	.vd_probe	= vga_probe,
-	.vd_init	= vga_init,
-	.vd_blank	= vga_blank,
-	.vd_bitblt_text	= vga_bitblt_text,
+	.vd_name = "vga",
+	.vd_probe = vga_probe,
+	.vd_init = vga_init,
+	.vd_blank = vga_blank,
+	.vd_bitblt_text = vga_bitblt_text,
 	.vd_invalidate_text = vga_invalidate_text,
-	.vd_bitblt_bmp	= vga_bitblt_bitmap,
-	.vd_drawrect	= vga_drawrect,
-	.vd_setpixel	= vga_setpixel,
-	.vd_postswitch	= vga_postswitch,
-	.vd_priority	= VD_PRIORITY_GENERIC,
+	.vd_bitblt_bmp = vga_bitblt_bitmap,
+	.vd_drawrect = vga_drawrect,
+	.vd_setpixel = vga_setpixel,
+	.vd_postswitch = vga_postswitch,
+	.vd_priority = VD_PRIORITY_GENERIC,
 };
 
 /*
@@ -137,8 +138,9 @@ vga_setwmode(struct vt_device *vd, int wmode)
 	case 3:
 		/* Re-enable all planes. */
 		REG_WRITE1(sc, VGA_SEQ_ADDRESS, VGA_SEQ_MAP_MASK);
-		REG_WRITE1(sc, VGA_SEQ_DATA, VGA_SEQ_MM_EM3 | VGA_SEQ_MM_EM2 |
-		    VGA_SEQ_MM_EM1 | VGA_SEQ_MM_EM0);
+		REG_WRITE1(sc, VGA_SEQ_DATA,
+		    VGA_SEQ_MM_EM3 | VGA_SEQ_MM_EM2 | VGA_SEQ_MM_EM1 |
+			VGA_SEQ_MM_EM0);
 		break;
 	}
 }
@@ -186,8 +188,8 @@ vga_setbg(struct vt_device *vd, term_color_t color)
 	sc->vga_curbg = color;
 
 	/*
-         * The Set/Reset register doesn't contain the fg color anymore,
-         * store an invalid color.
+	 * The Set/Reset register doesn't contain the fg color anymore,
+	 * store an invalid color.
 	 */
 	sc->vga_curfg = 0xff;
 }
@@ -197,100 +199,186 @@ vga_setbg(struct vt_device *vd, term_color_t color)
  */
 
 struct unicp437 {
-	uint16_t	unicode_base;
-	uint8_t		cp437_base;
-	uint8_t		length;
+	uint16_t unicode_base;
+	uint8_t cp437_base;
+	uint8_t length;
 };
 
 static const struct unicp437 cp437table[] = {
-	{ 0x0020, 0x20, 0x5e }, { 0x00a0, 0x20, 0x00 },
-	{ 0x00a1, 0xad, 0x00 }, { 0x00a2, 0x9b, 0x00 },
-	{ 0x00a3, 0x9c, 0x00 }, { 0x00a5, 0x9d, 0x00 },
+	{ 0x0020, 0x20, 0x5e },
+	{ 0x00a0, 0x20, 0x00 },
+	{ 0x00a1, 0xad, 0x00 },
+	{ 0x00a2, 0x9b, 0x00 },
+	{ 0x00a3, 0x9c, 0x00 },
+	{ 0x00a5, 0x9d, 0x00 },
 	{ 0x00a6, 0x7c, 0x00 },
-	{ 0x00a7, 0x15, 0x00 }, { 0x00aa, 0xa6, 0x00 },
-	{ 0x00ab, 0xae, 0x00 }, { 0x00ac, 0xaa, 0x00 },
-	{ 0x00b0, 0xf8, 0x00 }, { 0x00b1, 0xf1, 0x00 },
-	{ 0x00b2, 0xfd, 0x00 }, { 0x00b5, 0xe6, 0x00 },
-	{ 0x00b6, 0x14, 0x00 }, { 0x00b7, 0xfa, 0x00 },
-	{ 0x00ba, 0xa7, 0x00 }, { 0x00bb, 0xaf, 0x00 },
-	{ 0x00bc, 0xac, 0x00 }, { 0x00bd, 0xab, 0x00 },
-	{ 0x00bf, 0xa8, 0x00 }, { 0x00c4, 0x8e, 0x01 },
-	{ 0x00c6, 0x92, 0x00 }, { 0x00c7, 0x80, 0x00 },
-	{ 0x00c9, 0x90, 0x00 }, { 0x00d1, 0xa5, 0x00 },
-	{ 0x00d6, 0x99, 0x00 }, { 0x00dc, 0x9a, 0x00 },
-	{ 0x00df, 0xe1, 0x00 }, { 0x00e0, 0x85, 0x00 },
-	{ 0x00e1, 0xa0, 0x00 }, { 0x00e2, 0x83, 0x00 },
-	{ 0x00e4, 0x84, 0x00 }, { 0x00e5, 0x86, 0x00 },
-	{ 0x00e6, 0x91, 0x00 }, { 0x00e7, 0x87, 0x00 },
-	{ 0x00e8, 0x8a, 0x00 }, { 0x00e9, 0x82, 0x00 },
-	{ 0x00ea, 0x88, 0x01 }, { 0x00ec, 0x8d, 0x00 },
-	{ 0x00ed, 0xa1, 0x00 }, { 0x00ee, 0x8c, 0x00 },
-	{ 0x00ef, 0x8b, 0x00 }, { 0x00f0, 0xeb, 0x00 },
-	{ 0x00f1, 0xa4, 0x00 }, { 0x00f2, 0x95, 0x00 },
-	{ 0x00f3, 0xa2, 0x00 }, { 0x00f4, 0x93, 0x00 },
-	{ 0x00f6, 0x94, 0x00 }, { 0x00f7, 0xf6, 0x00 },
-	{ 0x00f8, 0xed, 0x00 }, { 0x00f9, 0x97, 0x00 },
-	{ 0x00fa, 0xa3, 0x00 }, { 0x00fb, 0x96, 0x00 },
-	{ 0x00fc, 0x81, 0x00 }, { 0x00ff, 0x98, 0x00 },
-	{ 0x0192, 0x9f, 0x00 }, { 0x0393, 0xe2, 0x00 },
-	{ 0x0398, 0xe9, 0x00 }, { 0x03a3, 0xe4, 0x00 },
-	{ 0x03a6, 0xe8, 0x00 }, { 0x03a9, 0xea, 0x00 },
-	{ 0x03b1, 0xe0, 0x01 }, { 0x03b4, 0xeb, 0x00 },
-	{ 0x03b5, 0xee, 0x00 }, { 0x03bc, 0xe6, 0x00 },
-	{ 0x03c0, 0xe3, 0x00 }, { 0x03c3, 0xe5, 0x00 },
-	{ 0x03c4, 0xe7, 0x00 }, { 0x03c6, 0xed, 0x00 },
-	{ 0x03d5, 0xed, 0x00 }, { 0x2010, 0x2d, 0x00 },
+	{ 0x00a7, 0x15, 0x00 },
+	{ 0x00aa, 0xa6, 0x00 },
+	{ 0x00ab, 0xae, 0x00 },
+	{ 0x00ac, 0xaa, 0x00 },
+	{ 0x00b0, 0xf8, 0x00 },
+	{ 0x00b1, 0xf1, 0x00 },
+	{ 0x00b2, 0xfd, 0x00 },
+	{ 0x00b5, 0xe6, 0x00 },
+	{ 0x00b6, 0x14, 0x00 },
+	{ 0x00b7, 0xfa, 0x00 },
+	{ 0x00ba, 0xa7, 0x00 },
+	{ 0x00bb, 0xaf, 0x00 },
+	{ 0x00bc, 0xac, 0x00 },
+	{ 0x00bd, 0xab, 0x00 },
+	{ 0x00bf, 0xa8, 0x00 },
+	{ 0x00c4, 0x8e, 0x01 },
+	{ 0x00c6, 0x92, 0x00 },
+	{ 0x00c7, 0x80, 0x00 },
+	{ 0x00c9, 0x90, 0x00 },
+	{ 0x00d1, 0xa5, 0x00 },
+	{ 0x00d6, 0x99, 0x00 },
+	{ 0x00dc, 0x9a, 0x00 },
+	{ 0x00df, 0xe1, 0x00 },
+	{ 0x00e0, 0x85, 0x00 },
+	{ 0x00e1, 0xa0, 0x00 },
+	{ 0x00e2, 0x83, 0x00 },
+	{ 0x00e4, 0x84, 0x00 },
+	{ 0x00e5, 0x86, 0x00 },
+	{ 0x00e6, 0x91, 0x00 },
+	{ 0x00e7, 0x87, 0x00 },
+	{ 0x00e8, 0x8a, 0x00 },
+	{ 0x00e9, 0x82, 0x00 },
+	{ 0x00ea, 0x88, 0x01 },
+	{ 0x00ec, 0x8d, 0x00 },
+	{ 0x00ed, 0xa1, 0x00 },
+	{ 0x00ee, 0x8c, 0x00 },
+	{ 0x00ef, 0x8b, 0x00 },
+	{ 0x00f0, 0xeb, 0x00 },
+	{ 0x00f1, 0xa4, 0x00 },
+	{ 0x00f2, 0x95, 0x00 },
+	{ 0x00f3, 0xa2, 0x00 },
+	{ 0x00f4, 0x93, 0x00 },
+	{ 0x00f6, 0x94, 0x00 },
+	{ 0x00f7, 0xf6, 0x00 },
+	{ 0x00f8, 0xed, 0x00 },
+	{ 0x00f9, 0x97, 0x00 },
+	{ 0x00fa, 0xa3, 0x00 },
+	{ 0x00fb, 0x96, 0x00 },
+	{ 0x00fc, 0x81, 0x00 },
+	{ 0x00ff, 0x98, 0x00 },
+	{ 0x0192, 0x9f, 0x00 },
+	{ 0x0393, 0xe2, 0x00 },
+	{ 0x0398, 0xe9, 0x00 },
+	{ 0x03a3, 0xe4, 0x00 },
+	{ 0x03a6, 0xe8, 0x00 },
+	{ 0x03a9, 0xea, 0x00 },
+	{ 0x03b1, 0xe0, 0x01 },
+	{ 0x03b4, 0xeb, 0x00 },
+	{ 0x03b5, 0xee, 0x00 },
+	{ 0x03bc, 0xe6, 0x00 },
+	{ 0x03c0, 0xe3, 0x00 },
+	{ 0x03c3, 0xe5, 0x00 },
+	{ 0x03c4, 0xe7, 0x00 },
+	{ 0x03c6, 0xed, 0x00 },
+	{ 0x03d5, 0xed, 0x00 },
+	{ 0x2010, 0x2d, 0x00 },
 	{ 0x2013, 0x2d, 0x00 },
-	{ 0x2014, 0x2d, 0x00 }, { 0x2018, 0x60, 0x00 },
-	{ 0x2019, 0x27, 0x00 }, { 0x201c, 0x22, 0x00 },
-	{ 0x201d, 0x22, 0x00 }, { 0x2022, 0x07, 0x00 },
-	{ 0x203c, 0x13, 0x00 }, { 0x207f, 0xfc, 0x00 },
-	{ 0x20a7, 0x9e, 0x00 }, { 0x20ac, 0xee, 0x00 },
-	{ 0x2126, 0xea, 0x00 }, { 0x2190, 0x1b, 0x00 },
-	{ 0x2191, 0x18, 0x00 }, { 0x2192, 0x1a, 0x00 },
-	{ 0x2193, 0x19, 0x00 }, { 0x2194, 0x1d, 0x00 },
-	{ 0x2195, 0x12, 0x00 }, { 0x21a8, 0x17, 0x00 },
-	{ 0x2202, 0xeb, 0x00 }, { 0x2208, 0xee, 0x00 },
-	{ 0x2211, 0xe4, 0x00 }, { 0x2212, 0x2d, 0x00 },
-	{ 0x2219, 0xf9, 0x00 }, { 0x221a, 0xfb, 0x00 },
-	{ 0x221e, 0xec, 0x00 }, { 0x221f, 0x1c, 0x00 },
-	{ 0x2229, 0xef, 0x00 }, { 0x2248, 0xf7, 0x00 },
-	{ 0x2261, 0xf0, 0x00 }, { 0x2264, 0xf3, 0x00 },
-	{ 0x2265, 0xf2, 0x00 }, { 0x2302, 0x7f, 0x00 },
-	{ 0x2310, 0xa9, 0x00 }, { 0x2320, 0xf4, 0x00 },
-	{ 0x2321, 0xf5, 0x00 }, { 0x2500, 0xc4, 0x00 },
-	{ 0x2502, 0xb3, 0x00 }, { 0x250c, 0xda, 0x00 },
-	{ 0x2510, 0xbf, 0x00 }, { 0x2514, 0xc0, 0x00 },
-	{ 0x2518, 0xd9, 0x00 }, { 0x251c, 0xc3, 0x00 },
-	{ 0x2524, 0xb4, 0x00 }, { 0x252c, 0xc2, 0x00 },
-	{ 0x2534, 0xc1, 0x00 }, { 0x253c, 0xc5, 0x00 },
-	{ 0x2550, 0xcd, 0x00 }, { 0x2551, 0xba, 0x00 },
-	{ 0x2552, 0xd5, 0x00 }, { 0x2553, 0xd6, 0x00 },
-	{ 0x2554, 0xc9, 0x00 }, { 0x2555, 0xb8, 0x00 },
-	{ 0x2556, 0xb7, 0x00 }, { 0x2557, 0xbb, 0x00 },
-	{ 0x2558, 0xd4, 0x00 }, { 0x2559, 0xd3, 0x00 },
-	{ 0x255a, 0xc8, 0x00 }, { 0x255b, 0xbe, 0x00 },
-	{ 0x255c, 0xbd, 0x00 }, { 0x255d, 0xbc, 0x00 },
-	{ 0x255e, 0xc6, 0x01 }, { 0x2560, 0xcc, 0x00 },
-	{ 0x2561, 0xb5, 0x00 }, { 0x2562, 0xb6, 0x00 },
-	{ 0x2563, 0xb9, 0x00 }, { 0x2564, 0xd1, 0x01 },
-	{ 0x2566, 0xcb, 0x00 }, { 0x2567, 0xcf, 0x00 },
-	{ 0x2568, 0xd0, 0x00 }, { 0x2569, 0xca, 0x00 },
-	{ 0x256a, 0xd8, 0x00 }, { 0x256b, 0xd7, 0x00 },
-	{ 0x256c, 0xce, 0x00 }, { 0x2580, 0xdf, 0x00 },
-	{ 0x2584, 0xdc, 0x00 }, { 0x2588, 0xdb, 0x00 },
-	{ 0x258c, 0xdd, 0x00 }, { 0x2590, 0xde, 0x00 },
-	{ 0x2591, 0xb0, 0x02 }, { 0x25a0, 0xfe, 0x00 },
-	{ 0x25ac, 0x16, 0x00 }, { 0x25b2, 0x1e, 0x00 },
-	{ 0x25ba, 0x10, 0x00 }, { 0x25bc, 0x1f, 0x00 },
-	{ 0x25c4, 0x11, 0x00 }, { 0x25cb, 0x09, 0x00 },
-	{ 0x25d8, 0x08, 0x00 }, { 0x25d9, 0x0a, 0x00 },
-	{ 0x263a, 0x01, 0x01 }, { 0x263c, 0x0f, 0x00 },
-	{ 0x2640, 0x0c, 0x00 }, { 0x2642, 0x0b, 0x00 },
-	{ 0x2660, 0x06, 0x00 }, { 0x2663, 0x05, 0x00 },
-	{ 0x2665, 0x03, 0x01 }, { 0x266a, 0x0d, 0x00 },
-	{ 0x266c, 0x0e, 0x00 }, { 0x2713, 0xfb, 0x00 },
-	{ 0x27e8, 0x3c, 0x00 }, { 0x27e9, 0x3e, 0x00 },
+	{ 0x2014, 0x2d, 0x00 },
+	{ 0x2018, 0x60, 0x00 },
+	{ 0x2019, 0x27, 0x00 },
+	{ 0x201c, 0x22, 0x00 },
+	{ 0x201d, 0x22, 0x00 },
+	{ 0x2022, 0x07, 0x00 },
+	{ 0x203c, 0x13, 0x00 },
+	{ 0x207f, 0xfc, 0x00 },
+	{ 0x20a7, 0x9e, 0x00 },
+	{ 0x20ac, 0xee, 0x00 },
+	{ 0x2126, 0xea, 0x00 },
+	{ 0x2190, 0x1b, 0x00 },
+	{ 0x2191, 0x18, 0x00 },
+	{ 0x2192, 0x1a, 0x00 },
+	{ 0x2193, 0x19, 0x00 },
+	{ 0x2194, 0x1d, 0x00 },
+	{ 0x2195, 0x12, 0x00 },
+	{ 0x21a8, 0x17, 0x00 },
+	{ 0x2202, 0xeb, 0x00 },
+	{ 0x2208, 0xee, 0x00 },
+	{ 0x2211, 0xe4, 0x00 },
+	{ 0x2212, 0x2d, 0x00 },
+	{ 0x2219, 0xf9, 0x00 },
+	{ 0x221a, 0xfb, 0x00 },
+	{ 0x221e, 0xec, 0x00 },
+	{ 0x221f, 0x1c, 0x00 },
+	{ 0x2229, 0xef, 0x00 },
+	{ 0x2248, 0xf7, 0x00 },
+	{ 0x2261, 0xf0, 0x00 },
+	{ 0x2264, 0xf3, 0x00 },
+	{ 0x2265, 0xf2, 0x00 },
+	{ 0x2302, 0x7f, 0x00 },
+	{ 0x2310, 0xa9, 0x00 },
+	{ 0x2320, 0xf4, 0x00 },
+	{ 0x2321, 0xf5, 0x00 },
+	{ 0x2500, 0xc4, 0x00 },
+	{ 0x2502, 0xb3, 0x00 },
+	{ 0x250c, 0xda, 0x00 },
+	{ 0x2510, 0xbf, 0x00 },
+	{ 0x2514, 0xc0, 0x00 },
+	{ 0x2518, 0xd9, 0x00 },
+	{ 0x251c, 0xc3, 0x00 },
+	{ 0x2524, 0xb4, 0x00 },
+	{ 0x252c, 0xc2, 0x00 },
+	{ 0x2534, 0xc1, 0x00 },
+	{ 0x253c, 0xc5, 0x00 },
+	{ 0x2550, 0xcd, 0x00 },
+	{ 0x2551, 0xba, 0x00 },
+	{ 0x2552, 0xd5, 0x00 },
+	{ 0x2553, 0xd6, 0x00 },
+	{ 0x2554, 0xc9, 0x00 },
+	{ 0x2555, 0xb8, 0x00 },
+	{ 0x2556, 0xb7, 0x00 },
+	{ 0x2557, 0xbb, 0x00 },
+	{ 0x2558, 0xd4, 0x00 },
+	{ 0x2559, 0xd3, 0x00 },
+	{ 0x255a, 0xc8, 0x00 },
+	{ 0x255b, 0xbe, 0x00 },
+	{ 0x255c, 0xbd, 0x00 },
+	{ 0x255d, 0xbc, 0x00 },
+	{ 0x255e, 0xc6, 0x01 },
+	{ 0x2560, 0xcc, 0x00 },
+	{ 0x2561, 0xb5, 0x00 },
+	{ 0x2562, 0xb6, 0x00 },
+	{ 0x2563, 0xb9, 0x00 },
+	{ 0x2564, 0xd1, 0x01 },
+	{ 0x2566, 0xcb, 0x00 },
+	{ 0x2567, 0xcf, 0x00 },
+	{ 0x2568, 0xd0, 0x00 },
+	{ 0x2569, 0xca, 0x00 },
+	{ 0x256a, 0xd8, 0x00 },
+	{ 0x256b, 0xd7, 0x00 },
+	{ 0x256c, 0xce, 0x00 },
+	{ 0x2580, 0xdf, 0x00 },
+	{ 0x2584, 0xdc, 0x00 },
+	{ 0x2588, 0xdb, 0x00 },
+	{ 0x258c, 0xdd, 0x00 },
+	{ 0x2590, 0xde, 0x00 },
+	{ 0x2591, 0xb0, 0x02 },
+	{ 0x25a0, 0xfe, 0x00 },
+	{ 0x25ac, 0x16, 0x00 },
+	{ 0x25b2, 0x1e, 0x00 },
+	{ 0x25ba, 0x10, 0x00 },
+	{ 0x25bc, 0x1f, 0x00 },
+	{ 0x25c4, 0x11, 0x00 },
+	{ 0x25cb, 0x09, 0x00 },
+	{ 0x25d8, 0x08, 0x00 },
+	{ 0x25d9, 0x0a, 0x00 },
+	{ 0x263a, 0x01, 0x01 },
+	{ 0x263c, 0x0f, 0x00 },
+	{ 0x2640, 0x0c, 0x00 },
+	{ 0x2642, 0x0b, 0x00 },
+	{ 0x2660, 0x06, 0x00 },
+	{ 0x2663, 0x05, 0x00 },
+	{ 0x2665, 0x03, 0x01 },
+	{ 0x266a, 0x0d, 0x00 },
+	{ 0x266c, 0x0e, 0x00 },
+	{ 0x2713, 0xfb, 0x00 },
+	{ 0x27e8, 0x3c, 0x00 },
+	{ 0x27e9, 0x3e, 0x00 },
 };
 
 static uint8_t
@@ -309,8 +397,8 @@ vga_get_cp437(term_char_t c)
 		mid = (min + max) / 2;
 		if (c < cp437table[mid].unicode_base)
 			max = mid - 1;
-		else if (c > cp437table[mid].unicode_base +
-		    cp437table[mid].length)
+		else if (c >
+		    cp437table[mid].unicode_base + cp437table[mid].length)
 			min = mid + 1;
 		else
 			return (c - cp437table[mid].unicode_base +
@@ -332,8 +420,7 @@ vga_blank(struct vt_device *vd, term_color_t color)
 }
 
 static inline void
-vga_bitblt_put(struct vt_device *vd, u_long dst, term_color_t color,
-    uint8_t v)
+vga_bitblt_put(struct vt_device *vd, u_long dst, term_color_t color, uint8_t v)
 {
 	struct vga_softc *sc = vd->vd_softc;
 
@@ -402,9 +489,7 @@ vga_compute_shifted_pattern(const uint8_t *src, unsigned int bytes,
 	 * comes from the source bitmap.
 	 */
 	if (mask != NULL) {
-		*mask = (0xff
-		    >> (8 - x_count))
-		    << (8 - x_count - dst_x);
+		*mask = (0xff >> (8 - x_count)) << (8 - x_count - dst_x);
 	}
 
 	if (n == (src_x + x_count - 1) / 8) {
@@ -417,12 +502,10 @@ vga_compute_shifted_pattern(const uint8_t *src, unsigned int bytes,
 	} else {
 		/* The pixels we want are split into two bytes. */
 		if (dst_x >= src_x % 8) {
-			*pattern =
-			    src[n] << (8 - dst_x - src_x % 8) |
+			*pattern = src[n] << (8 - dst_x - src_x % 8) |
 			    src[n + 1] >> (dst_x - src_x % 8);
 		} else {
-			*pattern =
-			    src[n] << (src_x % 8 - dst_x) |
+			*pattern = src[n] << (src_x % 8 - dst_x) |
 			    src[n + 1] >> (8 - src_x % 8 - dst_x);
 		}
 	}
@@ -441,8 +524,8 @@ vga_copy_bitmap_portion(uint8_t *pattern_2colors, uint8_t *pattern_ncolors,
 	bytes = (src_width + 7) / 8;
 
 	for (i = 0; i < y_count; ++i) {
-		vga_compute_shifted_pattern(src + (src_y + i) * bytes,
-		    bytes, src_x, x_count, dst_x, &pattern, &relevant_bits);
+		vga_compute_shifted_pattern(src + (src_y + i) * bytes, bytes,
+		    src_x, x_count, dst_x, &pattern, &relevant_bits);
 
 		if (src_mask == NULL) {
 			/*
@@ -455,10 +538,9 @@ vga_copy_bitmap_portion(uint8_t *pattern_2colors, uint8_t *pattern_ncolors,
 			 * There's an src mask. We shift it the same way
 			 * we shifted the source pattern.
 			 */
-			vga_compute_shifted_pattern(
-			    src_mask + (src_y + i) * bytes,
-			    bytes, src_x, x_count, dst_x,
-			    &mask, NULL);
+			vga_compute_shifted_pattern(src_mask +
+				(src_y + i) * bytes,
+			    bytes, src_x, x_count, dst_x, &mask, NULL);
 
 			/* Now, only keep the wanted bits among them. */
 			mask &= relevant_bits;
@@ -489,8 +571,7 @@ vga_copy_bitmap_portion(uint8_t *pattern_2colors, uint8_t *pattern_ncolors,
 			 * cleared in other colors.
 			 */
 			for (int j = 0; j < 16; ++j)
-				pattern_ncolors[(dst_y + i) * 16 + j] &=
-				    ~mask;
+				pattern_ncolors[(dst_y + i) * 16 + j] &= ~mask;
 		}
 		pattern_ncolors[(dst_y + i) * 16 + fg] |= pattern;
 		pattern_ncolors[(dst_y + i) * 16 + bg] |= (~pattern & mask);
@@ -499,8 +580,8 @@ vga_copy_bitmap_portion(uint8_t *pattern_2colors, uint8_t *pattern_ncolors,
 
 static void
 vga_bitblt_pixels_block_2colors(struct vt_device *vd, const uint8_t *masks,
-    term_color_t fg, term_color_t bg,
-    unsigned int x, unsigned int y, unsigned int height)
+    term_color_t fg, term_color_t bg, unsigned int x, unsigned int y,
+    unsigned int height)
 {
 	unsigned int i, offset;
 	struct vga_softc *sc;
@@ -539,8 +620,8 @@ vga_bitblt_pixels_block_ncolors(struct vt_device *vd, const uint8_t *masks,
 	memset(planes, 0, sizeof(planes));
 
 	/*
-         * To write a group of pixels using 3 or more colors, we select
-         * Write Mode 0 and write one byte to each plane separately.
+	 * To write a group of pixels using 3 or more colors, we select
+	 * Write Mode 0 and write one byte to each plane separately.
 	 */
 
 	/*
@@ -580,7 +661,9 @@ vga_bitblt_pixels_block_ncolors(struct vt_device *vd, const uint8_t *masks,
 				for (plane = 0; plane < 4; ++plane)
 					planes[i * 4 + plane] |=
 					    ((cons_to_vga_colors[color] >>
-					    plane) & 0x1) << (7 - j);
+						 plane) &
+						0x1)
+					    << (7 - j);
 			}
 		}
 	}
@@ -645,8 +728,8 @@ vga_bitblt_one_text_pixels_block(struct vt_device *vd,
 		i = vw->vw_draw_area.tr_begin.tp_col;
 	}
 
-	while (i < x + VT_VGA_PIXELS_BLOCK &&
-	    i < vw->vw_draw_area.tr_end.tp_col) {
+	while (
+	    i < x + VT_VGA_PIXELS_BLOCK && i < vw->vw_draw_area.tr_end.tp_col) {
 		/*
 		 * Find which character is drawn on this pixel in the
 		 * pixels block.
@@ -688,19 +771,17 @@ vga_bitblt_one_text_pixels_block(struct vt_device *vd,
 
 		src_x = i -
 		    (col * vf->vf_width + vw->vw_draw_area.tr_begin.tp_col);
-		x_count = min(min(
-		    (col + 1) * vf->vf_width +
-		    vw->vw_draw_area.tr_begin.tp_col,
-		    x + VT_VGA_PIXELS_BLOCK),
+		x_count = min(min((col + 1) * vf->vf_width +
+				      vw->vw_draw_area.tr_begin.tp_col,
+				  x + VT_VGA_PIXELS_BLOCK),
 		    vw->vw_draw_area.tr_end.tp_col);
 		x_count -= col * vf->vf_width +
 		    vw->vw_draw_area.tr_begin.tp_col;
 		x_count -= src_x;
 
 		/* Copy a portion of the character. */
-		vga_copy_bitmap_portion(pattern_2colors, pattern_ncolors,
-		    src, NULL, vf->vf_width,
-		    src_x, i % VT_VGA_PIXELS_BLOCK, x_count,
+		vga_copy_bitmap_portion(pattern_2colors, pattern_ncolors, src,
+		    NULL, vf->vf_width, src_x, i % VT_VGA_PIXELS_BLOCK, x_count,
 		    0, 0, vf->vf_height, fg, bg, 0);
 
 		/* We move to the next portion. */
@@ -734,10 +815,9 @@ vga_bitblt_one_text_pixels_block(struct vt_device *vd,
 		/* Compute the portion of the cursor we want to copy. */
 		src_x = x > mx ? x - mx : 0;
 		dst_x = mx > x ? mx - x : 0;
-		x_count = min(min(min(
-		    cursor->width - src_x,
-		    x + VT_VGA_PIXELS_BLOCK - mx),
-		    vw->vw_draw_area.tr_end.tp_col - mx),
+		x_count = min(min(min(cursor->width - src_x,
+				      x + VT_VGA_PIXELS_BLOCK - mx),
+				  vw->vw_draw_area.tr_end.tp_col - mx),
 		    VT_VGA_PIXELS_BLOCK);
 
 		/*
@@ -747,15 +827,15 @@ vga_bitblt_one_text_pixels_block(struct vt_device *vd,
 		 */
 		src_y = y > my ? y - my : 0;
 		dst_y = my > y ? my - y : 0;
-		y_count = min(
-		    min(cursor->height - src_y, y + vf->vf_height - my),
+		y_count = min(min(cursor->height - src_y,
+				  y + vf->vf_height - my),
 		    vf->vf_height);
 
 		/* Copy the cursor portion. */
 		vga_copy_bitmap_portion(pattern_2colors, pattern_ncolors,
-		    cursor->map, cursor->mask, cursor->width,
-		    src_x, dst_x, x_count, src_y, dst_y, y_count,
-		    vd->vd_mcursor_fg, vd->vd_mcursor_bg, 1);
+		    cursor->map, cursor->mask, cursor->width, src_x, dst_x,
+		    x_count, src_y, dst_y, y_count, vd->vd_mcursor_fg,
+		    vd->vd_mcursor_bg, 1);
 
 		if ((used_colors_list[vd->vd_mcursor_fg] & 0x1) != 0x1)
 			used_colors++;
@@ -769,11 +849,11 @@ vga_bitblt_one_text_pixels_block(struct vt_device *vd,
 	 * screen.
 	 */
 	if (used_colors == 2)
-		vga_bitblt_pixels_block_2colors(vd, pattern_2colors, fg, bg,
-		    x, y, vf->vf_height);
+		vga_bitblt_pixels_block_2colors(vd, pattern_2colors, fg, bg, x,
+		    y, vf->vf_height);
 	else
-		vga_bitblt_pixels_block_ncolors(vd, pattern_ncolors,
-		    x, y, vf->vf_height);
+		vga_bitblt_pixels_block_ncolors(vd, pattern_ncolors, x, y,
+		    vf->vf_height);
 }
 
 static void
@@ -812,9 +892,9 @@ vga_bitblt_text_gfxmode(struct vt_device *vd, const struct vt_window *vw,
 
 	col = area->tr_begin.tp_col;
 	row = area->tr_begin.tp_row;
-	x1 = (int)((col * vf->vf_width + vw->vw_draw_area.tr_begin.tp_col)
-	     / VT_VGA_PIXELS_BLOCK)
-	    * VT_VGA_PIXELS_BLOCK;
+	x1 = (int)((col * vf->vf_width + vw->vw_draw_area.tr_begin.tp_col) /
+		 VT_VGA_PIXELS_BLOCK) *
+	    VT_VGA_PIXELS_BLOCK;
 	y1 = row * vf->vf_height + vw->vw_draw_area.tr_begin.tp_row;
 
 	/*
@@ -828,8 +908,8 @@ vga_bitblt_text_gfxmode(struct vt_device *vd, const struct vt_window *vw,
 	col = area->tr_end.tp_col;
 	row = area->tr_end.tp_row;
 	x2 = (int)howmany(col * vf->vf_width + vw->vw_draw_area.tr_begin.tp_col,
-	    VT_VGA_PIXELS_BLOCK)
-	    * VT_VGA_PIXELS_BLOCK;
+		 VT_VGA_PIXELS_BLOCK) *
+	    VT_VGA_PIXELS_BLOCK;
 	y2 = row * vf->vf_height + vw->vw_draw_area.tr_begin.tp_row;
 
 	/* Clip the area to the screen size. */
@@ -874,9 +954,8 @@ vga_bitblt_text_txtmode(struct vt_device *vd, const struct vt_window *vw,
 	vb = &vw->vw_buf;
 
 	for (row = area->tr_begin.tp_row; row < area->tr_end.tp_row; ++row) {
-		for (col = area->tr_begin.tp_col;
-		    col < area->tr_end.tp_col;
-		    ++col) {
+		for (col = area->tr_begin.tp_col; col < area->tr_end.tp_col;
+		     ++col) {
 			/*
 			 * Get next character and its associated fg/bg
 			 * colors.
@@ -887,7 +966,7 @@ vga_bitblt_text_txtmode(struct vt_device *vd, const struct vt_window *vw,
 
 			z = row * PIXEL_WIDTH(VT_FB_MAX_WIDTH) + col;
 			if (z >= PIXEL_HEIGHT(VT_FB_MAX_HEIGHT) *
-			    PIXEL_WIDTH(VT_FB_MAX_WIDTH))
+				PIXEL_WIDTH(VT_FB_MAX_WIDTH))
 				continue;
 			if (vd->vd_drawn && (vd->vd_drawn[z] == c) &&
 			    vd->vd_drawnfg && (vd->vd_drawnfg[z] == fg) &&
@@ -902,8 +981,7 @@ vga_bitblt_text_txtmode(struct vt_device *vd, const struct vt_window *vw,
 			ch = vga_get_cp437(TCHAR_CHARACTER(c));
 
 			/* Convert colors to VGA attributes. */
-			attr =
-			    cons_to_vga_colors[bg] << 4 |
+			attr = cons_to_vga_colors[bg] << 4 |
 			    cons_to_vga_colors[fg];
 
 			MEM_WRITE2(sc, (row * 80 + col) * 2 + 0,
@@ -938,12 +1016,11 @@ vga_invalidate_text(struct vt_device *vd, const term_rect_t *area)
 	size_t z;
 
 	for (row = area->tr_begin.tp_row; row < area->tr_end.tp_row; ++row) {
-		for (col = area->tr_begin.tp_col;
-		    col < area->tr_end.tp_col;
-		    ++col) {
+		for (col = area->tr_begin.tp_col; col < area->tr_end.tp_col;
+		     ++col) {
 			z = row * PIXEL_WIDTH(VT_FB_MAX_WIDTH) + col;
 			if (z >= PIXEL_HEIGHT(VT_FB_MAX_HEIGHT) *
-			    PIXEL_WIDTH(VT_FB_MAX_WIDTH))
+				PIXEL_WIDTH(VT_FB_MAX_WIDTH))
 				continue;
 			if (vd->vd_drawn)
 				vd->vd_drawn[z] = 0;
@@ -957,9 +1034,9 @@ vga_invalidate_text(struct vt_device *vd, const term_rect_t *area)
 
 static void
 vga_bitblt_bitmap(struct vt_device *vd, const struct vt_window *vw,
-    const uint8_t *pattern, const uint8_t *mask,
-    unsigned int width, unsigned int height,
-    unsigned int x, unsigned int y, term_color_t fg, term_color_t bg)
+    const uint8_t *pattern, const uint8_t *mask, unsigned int width,
+    unsigned int height, unsigned int x, unsigned int y, term_color_t fg,
+    term_color_t bg)
 {
 	unsigned int x1, y1, x2, y2, i, j, src_x, dst_x, x_count;
 	uint8_t pattern_2colors;
@@ -981,15 +1058,12 @@ vga_bitblt_bitmap(struct vt_device *vd, const struct vt_window *vw,
 		for (i = x1; i < x2; i += VT_VGA_PIXELS_BLOCK) {
 			pattern_2colors = 0;
 
-			vga_copy_bitmap_portion(
-			    &pattern_2colors, NULL,
-			    pattern, mask, width,
-			    src_x, dst_x, x_count,
-			    j - y1, 0, 1, fg, bg, 0);
+			vga_copy_bitmap_portion(&pattern_2colors, NULL, pattern,
+			    mask, width, src_x, dst_x, x_count, j - y1, 0, 1,
+			    fg, bg, 0);
 
-			vga_bitblt_pixels_block_2colors(vd,
-			    &pattern_2colors, fg, bg,
-			    i, j, 1);
+			vga_bitblt_pixels_block_2colors(vd, &pattern_2colors,
+			    fg, bg, i, j, 1);
 
 			src_x += x_count;
 			dst_x = (dst_x + x_count) % VT_VGA_PIXELS_BLOCK;
@@ -1004,8 +1078,9 @@ vga_initialize_graphics(struct vt_device *vd)
 	struct vga_softc *sc = vd->vd_softc;
 
 	/* Clock select. */
-	REG_WRITE1(sc, VGA_GEN_MISC_OUTPUT_W, VGA_GEN_MO_VSP | VGA_GEN_MO_HSP |
-	    VGA_GEN_MO_PB | VGA_GEN_MO_ER | VGA_GEN_MO_IOA);
+	REG_WRITE1(sc, VGA_GEN_MISC_OUTPUT_W,
+	    VGA_GEN_MO_VSP | VGA_GEN_MO_HSP | VGA_GEN_MO_PB | VGA_GEN_MO_ER |
+		VGA_GEN_MO_IOA);
 	/* Set sequencer clocking and memory mode. */
 	REG_WRITE1(sc, VGA_SEQ_ADDRESS, VGA_SEQ_CLOCKING_MODE);
 	REG_WRITE1(sc, VGA_SEQ_DATA, VGA_SEQ_CM_89);
@@ -1017,47 +1092,49 @@ vga_initialize_graphics(struct vt_device *vd)
 	REG_WRITE1(sc, VGA_GC_DATA, 0x04 + VGA_GC_MISC_GA);
 	/* Program the CRT controller. */
 	REG_WRITE1(sc, VGA_CRTC_ADDRESS, VGA_CRTC_HORIZ_TOTAL);
-	REG_WRITE1(sc, VGA_CRTC_DATA, 0x5f);			/* 760 */
+	REG_WRITE1(sc, VGA_CRTC_DATA, 0x5f); /* 760 */
 	REG_WRITE1(sc, VGA_CRTC_ADDRESS, VGA_CRTC_HORIZ_DISP_END);
-	REG_WRITE1(sc, VGA_CRTC_DATA, 0x4f);			/* 640 - 8 */
+	REG_WRITE1(sc, VGA_CRTC_DATA, 0x4f); /* 640 - 8 */
 	REG_WRITE1(sc, VGA_CRTC_ADDRESS, VGA_CRTC_START_HORIZ_BLANK);
-	REG_WRITE1(sc, VGA_CRTC_DATA, 0x50);			/* 640 */
+	REG_WRITE1(sc, VGA_CRTC_DATA, 0x50); /* 640 */
 	REG_WRITE1(sc, VGA_CRTC_ADDRESS, VGA_CRTC_END_HORIZ_BLANK);
 	REG_WRITE1(sc, VGA_CRTC_DATA, VGA_CRTC_EHB_CR + 2);
 	REG_WRITE1(sc, VGA_CRTC_ADDRESS, VGA_CRTC_START_HORIZ_RETRACE);
-	REG_WRITE1(sc, VGA_CRTC_DATA, 0x54);			/* 672 */
+	REG_WRITE1(sc, VGA_CRTC_DATA, 0x54); /* 672 */
 	REG_WRITE1(sc, VGA_CRTC_ADDRESS, VGA_CRTC_END_HORIZ_RETRACE);
 	REG_WRITE1(sc, VGA_CRTC_DATA, VGA_CRTC_EHR_EHB + 0);
 	REG_WRITE1(sc, VGA_CRTC_ADDRESS, VGA_CRTC_VERT_TOTAL);
-	REG_WRITE1(sc, VGA_CRTC_DATA, 0x0b);			/* 523 */
+	REG_WRITE1(sc, VGA_CRTC_DATA, 0x0b); /* 523 */
 	REG_WRITE1(sc, VGA_CRTC_ADDRESS, VGA_CRTC_OVERFLOW);
-	REG_WRITE1(sc, VGA_CRTC_DATA, VGA_CRTC_OF_VT9 | VGA_CRTC_OF_LC8 |
-	    VGA_CRTC_OF_VBS8 | VGA_CRTC_OF_VRS8 | VGA_CRTC_OF_VDE8);
+	REG_WRITE1(sc, VGA_CRTC_DATA,
+	    VGA_CRTC_OF_VT9 | VGA_CRTC_OF_LC8 | VGA_CRTC_OF_VBS8 |
+		VGA_CRTC_OF_VRS8 | VGA_CRTC_OF_VDE8);
 	REG_WRITE1(sc, VGA_CRTC_ADDRESS, VGA_CRTC_MAX_SCAN_LINE);
 	REG_WRITE1(sc, VGA_CRTC_DATA, VGA_CRTC_MSL_LC9);
 	REG_WRITE1(sc, VGA_CRTC_ADDRESS, VGA_CRTC_VERT_RETRACE_START);
-	REG_WRITE1(sc, VGA_CRTC_DATA, 0xea);			/* 480 + 10 */
+	REG_WRITE1(sc, VGA_CRTC_DATA, 0xea); /* 480 + 10 */
 	REG_WRITE1(sc, VGA_CRTC_ADDRESS, VGA_CRTC_VERT_RETRACE_END);
 	REG_WRITE1(sc, VGA_CRTC_DATA, 0x0c);
 	REG_WRITE1(sc, VGA_CRTC_ADDRESS, VGA_CRTC_VERT_DISPLAY_END);
-	REG_WRITE1(sc, VGA_CRTC_DATA, 0xdf);			/* 480 - 1*/
+	REG_WRITE1(sc, VGA_CRTC_DATA, 0xdf); /* 480 - 1*/
 	REG_WRITE1(sc, VGA_CRTC_ADDRESS, VGA_CRTC_OFFSET);
 	REG_WRITE1(sc, VGA_CRTC_DATA, 0x28);
 	REG_WRITE1(sc, VGA_CRTC_ADDRESS, VGA_CRTC_START_VERT_BLANK);
-	REG_WRITE1(sc, VGA_CRTC_DATA, 0xe7);			/* 480 + 7 */
+	REG_WRITE1(sc, VGA_CRTC_DATA, 0xe7); /* 480 + 7 */
 	REG_WRITE1(sc, VGA_CRTC_ADDRESS, VGA_CRTC_END_VERT_BLANK);
 	REG_WRITE1(sc, VGA_CRTC_DATA, 0x04);
 	REG_WRITE1(sc, VGA_CRTC_ADDRESS, VGA_CRTC_MODE_CONTROL);
-	REG_WRITE1(sc, VGA_CRTC_DATA, VGA_CRTC_MC_WB | VGA_CRTC_MC_AW |
-	    VGA_CRTC_MC_SRS | VGA_CRTC_MC_CMS);
+	REG_WRITE1(sc, VGA_CRTC_DATA,
+	    VGA_CRTC_MC_WB | VGA_CRTC_MC_AW | VGA_CRTC_MC_SRS |
+		VGA_CRTC_MC_CMS);
 	REG_WRITE1(sc, VGA_CRTC_ADDRESS, VGA_CRTC_LINE_COMPARE);
-	REG_WRITE1(sc, VGA_CRTC_DATA, 0xff);			/* 480 + 31 */
+	REG_WRITE1(sc, VGA_CRTC_DATA, 0xff); /* 480 + 31 */
 
 	REG_WRITE1(sc, VGA_GEN_FEATURE_CTRL_W, 0);
 
 	REG_WRITE1(sc, VGA_SEQ_ADDRESS, VGA_SEQ_MAP_MASK);
-	REG_WRITE1(sc, VGA_SEQ_DATA, VGA_SEQ_MM_EM3 | VGA_SEQ_MM_EM2 |
-	    VGA_SEQ_MM_EM1 | VGA_SEQ_MM_EM0);
+	REG_WRITE1(sc, VGA_SEQ_DATA,
+	    VGA_SEQ_MM_EM3 | VGA_SEQ_MM_EM2 | VGA_SEQ_MM_EM1 | VGA_SEQ_MM_EM0);
 	REG_WRITE1(sc, VGA_SEQ_ADDRESS, VGA_SEQ_CHAR_MAP_SELECT);
 	REG_WRITE1(sc, VGA_SEQ_DATA, 0);
 
@@ -1171,32 +1248,37 @@ vga_initialize(struct vt_device *vd, int textmode)
 	REG_WRITE1(sc, VGA_AC_WRITE, VGA_AC_PALETTE(6));
 	REG_WRITE1(sc, VGA_AC_WRITE, VGA_AC_PAL_SG | VGA_AC_PAL_R);
 	REG_WRITE1(sc, VGA_AC_WRITE, VGA_AC_PALETTE(7));
-	REG_WRITE1(sc, VGA_AC_WRITE, VGA_AC_PAL_R | VGA_AC_PAL_G | VGA_AC_PAL_B);
+	REG_WRITE1(sc, VGA_AC_WRITE,
+	    VGA_AC_PAL_R | VGA_AC_PAL_G | VGA_AC_PAL_B);
 
 	REG_WRITE1(sc, VGA_AC_WRITE, VGA_AC_PALETTE(8));
-	REG_WRITE1(sc, VGA_AC_WRITE, VGA_AC_PAL_SR | VGA_AC_PAL_SG |
-	    VGA_AC_PAL_SB);
+	REG_WRITE1(sc, VGA_AC_WRITE,
+	    VGA_AC_PAL_SR | VGA_AC_PAL_SG | VGA_AC_PAL_SB);
 	REG_WRITE1(sc, VGA_AC_WRITE, VGA_AC_PALETTE(9));
-	REG_WRITE1(sc, VGA_AC_WRITE, VGA_AC_PAL_SR | VGA_AC_PAL_SG |
-	    VGA_AC_PAL_SB | VGA_AC_PAL_B);
+	REG_WRITE1(sc, VGA_AC_WRITE,
+	    VGA_AC_PAL_SR | VGA_AC_PAL_SG | VGA_AC_PAL_SB | VGA_AC_PAL_B);
 	REG_WRITE1(sc, VGA_AC_WRITE, VGA_AC_PALETTE(10));
-	REG_WRITE1(sc, VGA_AC_WRITE, VGA_AC_PAL_SR | VGA_AC_PAL_SG |
-	    VGA_AC_PAL_SB | VGA_AC_PAL_G);
+	REG_WRITE1(sc, VGA_AC_WRITE,
+	    VGA_AC_PAL_SR | VGA_AC_PAL_SG | VGA_AC_PAL_SB | VGA_AC_PAL_G);
 	REG_WRITE1(sc, VGA_AC_WRITE, VGA_AC_PALETTE(11));
-	REG_WRITE1(sc, VGA_AC_WRITE, VGA_AC_PAL_SR | VGA_AC_PAL_SG |
-	    VGA_AC_PAL_SB | VGA_AC_PAL_G | VGA_AC_PAL_B);
+	REG_WRITE1(sc, VGA_AC_WRITE,
+	    VGA_AC_PAL_SR | VGA_AC_PAL_SG | VGA_AC_PAL_SB | VGA_AC_PAL_G |
+		VGA_AC_PAL_B);
 	REG_WRITE1(sc, VGA_AC_WRITE, VGA_AC_PALETTE(12));
-	REG_WRITE1(sc, VGA_AC_WRITE, VGA_AC_PAL_SR | VGA_AC_PAL_SG |
-	    VGA_AC_PAL_SB | VGA_AC_PAL_R);
+	REG_WRITE1(sc, VGA_AC_WRITE,
+	    VGA_AC_PAL_SR | VGA_AC_PAL_SG | VGA_AC_PAL_SB | VGA_AC_PAL_R);
 	REG_WRITE1(sc, VGA_AC_WRITE, VGA_AC_PALETTE(13));
-	REG_WRITE1(sc, VGA_AC_WRITE, VGA_AC_PAL_SR | VGA_AC_PAL_SG |
-	    VGA_AC_PAL_SB | VGA_AC_PAL_R | VGA_AC_PAL_B);
+	REG_WRITE1(sc, VGA_AC_WRITE,
+	    VGA_AC_PAL_SR | VGA_AC_PAL_SG | VGA_AC_PAL_SB | VGA_AC_PAL_R |
+		VGA_AC_PAL_B);
 	REG_WRITE1(sc, VGA_AC_WRITE, VGA_AC_PALETTE(14));
-	REG_WRITE1(sc, VGA_AC_WRITE, VGA_AC_PAL_SR | VGA_AC_PAL_SG |
-	    VGA_AC_PAL_SB | VGA_AC_PAL_R | VGA_AC_PAL_G);
+	REG_WRITE1(sc, VGA_AC_WRITE,
+	    VGA_AC_PAL_SR | VGA_AC_PAL_SG | VGA_AC_PAL_SB | VGA_AC_PAL_R |
+		VGA_AC_PAL_G);
 	REG_WRITE1(sc, VGA_AC_WRITE, VGA_AC_PALETTE(15));
-	REG_WRITE1(sc, VGA_AC_WRITE, VGA_AC_PAL_SR | VGA_AC_PAL_SG |
-	    VGA_AC_PAL_SB | VGA_AC_PAL_R | VGA_AC_PAL_G | VGA_AC_PAL_B);
+	REG_WRITE1(sc, VGA_AC_WRITE,
+	    VGA_AC_PAL_SR | VGA_AC_PAL_SG | VGA_AC_PAL_SB | VGA_AC_PAL_R |
+		VGA_AC_PAL_G | VGA_AC_PAL_B);
 
 	REG_WRITE1(sc, VGA_AC_WRITE, VGA_AC_OVERSCAN_COLOR);
 	REG_WRITE1(sc, VGA_AC_WRITE, 0);
@@ -1265,7 +1347,7 @@ vga_acpi_disabled(void)
 	ignore = (vm_guest == VM_GUEST_NO);
 	TUNABLE_INT_FETCH("hw.vga.acpi_ignore_no_vga", &ignore);
 	if (ignore || !acpi_get_fadt_bootflags(&flags))
- 		return (false);
+		return (false);
 	return ((flags & ACPI_FADT_NO_VGA) != 0);
 #else
 	return (false);
@@ -1296,7 +1378,7 @@ vga_init(struct vt_device *vd)
 	sc->vga_fb_tag = X86_BUS_SPACE_MEM;
 	sc->vga_reg_tag = X86_BUS_SPACE_IO;
 #else
-# error "Architecture not yet supported!"
+#error "Architecture not yet supported!"
 #endif
 
 	bus_space_map(sc->vga_reg_tag, VGA_REG_BASE, VGA_REG_SIZE, 0,
@@ -1367,9 +1449,9 @@ vtvga_attach(device_t dev)
 	int res_id;
 
 	res_id = 0;
-	pseudo_phys_res = bus_alloc_resource(dev, SYS_RES_MEMORY,
-	    &res_id, VGA_MEM_BASE, VGA_MEM_BASE + VGA_MEM_SIZE - 1,
-	    VGA_MEM_SIZE, RF_ACTIVE);
+	pseudo_phys_res = bus_alloc_resource(dev, SYS_RES_MEMORY, &res_id,
+	    VGA_MEM_BASE, VGA_MEM_BASE + VGA_MEM_SIZE - 1, VGA_MEM_SIZE,
+	    RF_ACTIVE);
 	if (pseudo_phys_res == NULL)
 		panic("Unable to reserve vt_vga memory");
 	return (0);
@@ -1378,9 +1460,9 @@ vtvga_attach(device_t dev)
 /*-------------------- Private Device Attachment Data  -----------------------*/
 static device_method_t vtvga_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,	vtvga_identify),
-	DEVMETHOD(device_probe,         vtvga_probe),
-	DEVMETHOD(device_attach,        vtvga_attach),
+	DEVMETHOD(device_identify, vtvga_identify),
+	DEVMETHOD(device_probe, vtvga_probe),
+	DEVMETHOD(device_attach, vtvga_attach),
 
 	DEVMETHOD_END
 };

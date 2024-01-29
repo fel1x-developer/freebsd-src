@@ -71,17 +71,16 @@
 extern "C" {
 #endif // __cplusplus
 
-#include <dev/isci/scil/sci_types.h>
 #include <dev/isci/scil/sci_base_object.h>
 #include <dev/isci/scil/sci_pool.h>
+#include <dev/isci/scil/sci_types.h>
 #include <dev/isci/scil/scif_sas_domain.h>
 #include <dev/isci/scil/scif_sas_internal_io_request.h>
 
-typedef struct SCIF_SAS_LOCK
-{
-   SCI_BASE_OBJECT_T parent;
+typedef struct SCIF_SAS_LOCK {
+	SCI_BASE_OBJECT_T parent;
 
-   SCI_LOCK_LEVEL    level;
+	SCI_LOCK_LEVEL level;
 
 } SCIF_SAS_LOCK_T;
 
@@ -93,28 +92,25 @@ typedef struct SCIF_SAS_LOCK
  *        to store IO or task requests that need to be completed
  *        in short order.
  */
-typedef struct SCIF_SAS_HIGH_PRIORITY_REQUEST_QUEUE
-{
-   /**
-    * This field specifies the necessary lock information (e.g. level)
-    * that must be taken before items are added or removed from the
-    * queue.
-    */
-   SCIF_SAS_LOCK_T  lock;
+typedef struct SCIF_SAS_HIGH_PRIORITY_REQUEST_QUEUE {
+	/**
+	 * This field specifies the necessary lock information (e.g. level)
+	 * that must be taken before items are added or removed from the
+	 * queue.
+	 */
+	SCIF_SAS_LOCK_T lock;
 
-   SCI_POOL_CREATE(pool, POINTER_UINT, SCIF_SAS_MAX_INTERNAL_REQUEST_COUNT);
+	SCI_POOL_CREATE(pool, POINTER_UINT,
+	    SCIF_SAS_MAX_INTERNAL_REQUEST_COUNT);
 
 } SCIF_SAS_HIGH_PRIORITY_REQUEST_QUEUE_T;
 
 void scif_sas_high_priority_request_queue_construct(
-   SCIF_SAS_HIGH_PRIORITY_REQUEST_QUEUE_T * fw_hprq,
-   SCI_BASE_LOGGER_T                      * logger
-);
+    SCIF_SAS_HIGH_PRIORITY_REQUEST_QUEUE_T *fw_hprq, SCI_BASE_LOGGER_T *logger);
 
 void scif_sas_high_priority_request_queue_purge_domain(
-   SCIF_SAS_HIGH_PRIORITY_REQUEST_QUEUE_T * fw_hprq,
-   SCIF_SAS_DOMAIN_T                      * fw_domain
-);
+    SCIF_SAS_HIGH_PRIORITY_REQUEST_QUEUE_T *fw_hprq,
+    SCIF_SAS_DOMAIN_T *fw_domain);
 
 #ifdef __cplusplus
 }

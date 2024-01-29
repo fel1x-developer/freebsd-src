@@ -27,17 +27,18 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-#include <inttypes.h>
+
 #include <errno.h>
+#include <inttypes.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "uc_common.h"
-#include "t_generic.h"
 #include "t_cmsg_len.h"
+#include "t_generic.h"
+#include "uc_common.h"
 
 #ifndef __LP64__
 static int
@@ -62,8 +63,8 @@ t_cmsg_len_client(int fd)
 		uc_logmsg("malloc");
 		goto done;
 	}
-	uc_msghdr_init_client(&msghdr, iov, cmsg_data, cmsg_size,
-	    SCM_CREDS, sizeof(struct cmsgcred));
+	uc_msghdr_init_client(&msghdr, iov, cmsg_data, cmsg_size, SCM_CREDS,
+	    sizeof(struct cmsgcred));
 	cmsghdr = CMSG_FIRSTHDR(&msghdr);
 
 	if (uc_socket_connect(fd) < 0)

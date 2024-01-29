@@ -41,14 +41,10 @@
 #include "gssd.h"
 
 OM_uint32
-gss_acquire_cred(OM_uint32 *minor_status,
-    const gss_name_t desired_name,
-    OM_uint32 time_req,
-    const gss_OID_set desired_mechs,
-    gss_cred_usage_t cred_usage,
-    gss_cred_id_t *output_cred_handle,
-    gss_OID_set *actual_mechs,
-    OM_uint32 *time_rec)
+gss_acquire_cred(OM_uint32 *minor_status, const gss_name_t desired_name,
+    OM_uint32 time_req, const gss_OID_set desired_mechs,
+    gss_cred_usage_t cred_usage, gss_cred_id_t *output_cred_handle,
+    gss_OID_set *actual_mechs, OM_uint32 *time_rec)
 {
 	OM_uint32 major_status;
 	struct acquire_cred_res res;
@@ -103,7 +99,7 @@ gss_acquire_cred(OM_uint32 *minor_status,
 	if (time_rec)
 		*time_rec = res.time_rec;
 
-	xdr_free((xdrproc_t) xdr_acquire_cred_res, &res);
+	xdr_free((xdrproc_t)xdr_acquire_cred_res, &res);
 
 	return (GSS_S_COMPLETE);
 }

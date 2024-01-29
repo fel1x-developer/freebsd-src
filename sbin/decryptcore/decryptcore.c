@@ -30,23 +30,22 @@
 #include <sys/kerneldump.h>
 #include <sys/wait.h>
 
-#include <ctype.h>
 #include <capsicum_helpers.h>
+#include <ctype.h>
 #include <fcntl.h>
+#include <openssl/engine.h>
+#include <openssl/err.h>
+#include <openssl/evp.h>
+#include <openssl/pem.h>
+#include <openssl/rsa.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <openssl/err.h>
-#include <openssl/evp.h>
-#include <openssl/pem.h>
-#include <openssl/rsa.h>
-#include <openssl/engine.h>
-
 #include "pjdlog.h"
 
-#define	DECRYPTCORE_CRASHDIR	"/var/crash"
+#define DECRYPTCORE_CRASHDIR "/var/crash"
 
 static void
 usage(void)
@@ -95,7 +94,8 @@ read_key(int kfd)
 		kdksize += (size_t)kdk->kdk_encryptedkeysize;
 		kdk = realloc(kdk, kdksize);
 		if (kdk == NULL) {
-			pjdlog_errno(LOG_ERR, "Unable to reallocate kernel dump key");
+			pjdlog_errno(LOG_ERR,
+			    "Unable to reallocate kernel dump key");
 			goto failed;
 		}
 		size += read(kfd, &kdk->kdk_encryptedkey,
@@ -212,7 +212,8 @@ decrypt(int ofd, const char *privkeyfile, const char *keyfile,
 
 	privkeysize = RSA_size(privkey);
 	if (privkeysize != (int)kdk->kdk_encryptedkeysize) {
-		pjdlog_error("RSA modulus size mismatch: equals %db and should be %ub.",
+		pjdlog_error(
+		    "RSA modulus size mismatch: equals %db and should be %ub.",
 		    8 * privkeysize, 8 * kdk->kdk_encryptedkeysize);
 		goto failed;
 	}
@@ -230,12 +231,12 @@ decrypt(int ofd, const char *privkeyfile, const char *keyfile,
 	}
 
 	if (RSA_private_decrypt(kdk->kdk_encryptedkeysize,
-	    kdk->kdk_encryptedkey, key, privkey,
-	    RSA_PKCS1_OAEP_PADDING) != sizeof(key) &&
+		kdk->kdk_encryptedkey, key, privkey,
+		RSA_PKCS1_OAEP_PADDING) != sizeof(key) &&
 	    /* Fallback to deprecated, formerly-used PKCS 1.5 padding. */
 	    RSA_private_decrypt(kdk->kdk_encryptedkeysize,
-	    kdk->kdk_encryptedkey, key, privkey,
-	    RSA_PKCS1_PADDING) != sizeof(key)) {
+		kdk->kdk_encryptedkey, key, privkey,
+		RSA_PKCS1_PADDING) != sizeof(key)) {
 		pjdlog_error("Unable to decrypt key: %s",
 		    ERR_error_string(ERR_get_error(), NULL));
 		goto failed;
@@ -273,8 +274,8 @@ decrypt(int ofd, const char *privkeyfile, const char *keyfile,
 		}
 
 		if (bytes > 0) {
-			if (EVP_DecryptUpdate(ctx, buf, &olen, buf,
-			    bytes) == 0) {
+			if (EVP_DecryptUpdate(ctx, buf, &olen, buf, bytes) ==
+			    0) {
 				pjdlog_error("Unable to decrypt core.");
 				goto failed;
 			}
@@ -340,8 +341,10 @@ main(int argc, char **argv)
 			break;
 		case 'e':
 			if (strlcpy(encryptedcore, optarg,
-			    sizeof(encryptedcore)) >= sizeof(encryptedcore)) {
-				pjdlog_exitx(1, "Encrypted core file path is too long.");
+				sizeof(encryptedcore)) >=
+			    sizeof(encryptedcore)) {
+				pjdlog_exitx(1,
+				    "Encrypted core file path is too long.");
 			}
 			break;
 		case 'f':
@@ -389,12 +392,13 @@ main(int argc, char **argv)
 
 		if (crashdir == NULL)
 			crashdir = DECRYPTCORE_CRASHDIR;
-		PJDLOG_VERIFY(snprintf(keyfile, sizeof(keyfile),
-		    "%s/key.%s", crashdir, dumpnr) > 0);
-		PJDLOG_VERIFY(snprintf(core, sizeof(core),
-		    "%s/vmcore.%s", crashdir, dumpnr) > 0);
-		PJDLOG_VERIFY(snprintf(encryptedcore, sizeof(encryptedcore),
-		    "%s/vmcore_encrypted.%s", crashdir, dumpnr) > 0);
+		PJDLOG_VERIFY(snprintf(keyfile, sizeof(keyfile), "%s/key.%s",
+				  crashdir, dumpnr) > 0);
+		PJDLOG_VERIFY(snprintf(core, sizeof(core), "%s/vmcore.%s",
+				  crashdir, dumpnr) > 0);
+		PJDLOG_VERIFY(
+		    snprintf(encryptedcore, sizeof(encryptedcore),
+			"%s/vmcore_encrypted.%s", crashdir, dumpnr) > 0);
 	}
 
 	if (privatekey == NULL || *keyfile == '\0' || *encryptedcore == '\0' ||

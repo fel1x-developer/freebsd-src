@@ -39,20 +39,20 @@
  *
  */
 
-#ifndef	_RPC_NETTYPE_H
-#define	_RPC_NETTYPE_H
+#ifndef _RPC_NETTYPE_H
+#define _RPC_NETTYPE_H
 
 #include <netconfig.h>
 
-#define	_RPC_NONE	0
-#define	_RPC_NETPATH	1
-#define	_RPC_VISIBLE	2
-#define	_RPC_CIRCUIT_V	3
-#define	_RPC_DATAGRAM_V	4
-#define	_RPC_CIRCUIT_N	5
-#define	_RPC_DATAGRAM_N	6
-#define	_RPC_TCP	7
-#define	_RPC_UDP	8
+#define _RPC_NONE 0
+#define _RPC_NETPATH 1
+#define _RPC_VISIBLE 2
+#define _RPC_CIRCUIT_V 3
+#define _RPC_DATAGRAM_V 4
+#define _RPC_CIRCUIT_N 5
+#define _RPC_DATAGRAM_N 6
+#define _RPC_TCP 7
+#define _RPC_UDP 8
 
 __BEGIN_DECLS
 extern void *__rpc_setconf(const char *);
@@ -61,4 +61,4 @@ extern struct netconfig *__rpc_getconf(void *);
 extern struct netconfig *__rpc_getconfip(const char *);
 __END_DECLS
 
-#endif	/* !_RPC_NETTYPE_H */
+#endif /* !_RPC_NETTYPE_H */

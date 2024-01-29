@@ -26,16 +26,17 @@
  * SUCH DAMAGE.
  */
 
-#include <assert.h>
-#include <errno.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <stdlib.h>
+#include <sys/disk.h>
 #include <sys/endian.h>
 #include <sys/stat.h>
-#include <sys/disk.h>
+
+#include <assert.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "fifolog.h"
 #include "libfifolog.h"
@@ -67,15 +68,14 @@ fifolog_create(const char *fn, off_t size, ssize_t recsize)
 	/* See what we got... */
 	i = fstat(fd, &st);
 	assert(i == 0);
-	if (!S_ISBLK(st.st_mode) &&
-	    !S_ISCHR(st.st_mode) &&
+	if (!S_ISBLK(st.st_mode) && !S_ISCHR(st.st_mode) &&
 	    !S_ISREG(st.st_mode)) {
-		assert(!close (fd));
+		assert(!close(fd));
 		return ("Wrong file type");
 	}
 
-	if(!created && S_ISREG(st.st_mode)) {
-		assert(!close (fd));
+	if (!created && S_ISREG(st.st_mode)) {
+		assert(!close(fd));
 		return ("Wrong file type");
 	}
 
@@ -94,7 +94,7 @@ fifolog_create(const char *fn, off_t size, ssize_t recsize)
 		size = st.st_size;
 
 	if (size == 0)
-		size = recsize * (off_t)(24*60*60);
+		size = recsize * (off_t)(24 * 60 * 60);
 
 	if (S_ISREG(st.st_mode) && ftruncate(fd, size) < 0)
 		return ("Could not ftrunc");
@@ -103,7 +103,7 @@ fifolog_create(const char *fn, off_t size, ssize_t recsize)
 	if (buf == NULL)
 		return ("Could not malloc");
 
-	strcpy(buf, FIFOLOG_FMT_MAGIC);		/*lint !e64 */
+	strcpy(buf, FIFOLOG_FMT_MAGIC); /*lint !e64 */
 	be32enc(buf + FIFOLOG_OFF_BS, recsize);
 	if (recsize != pwrite(fd, buf, recsize, 0)) {
 		i = errno;

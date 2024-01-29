@@ -34,10 +34,10 @@
 
 #include <sys/types.h>
 
-typedef	intptr_t word;		/* "word" used for optimal copy speed */
+typedef intptr_t word; /* "word" used for optimal copy speed */
 
-#define	wsize	sizeof(word)
-#define	wmask	(wsize - 1)
+#define wsize sizeof(word)
+#define wmask (wsize - 1)
 
 /*
  * Copy a block of memory, handling overlap.
@@ -53,7 +53,7 @@ memcpy
 #else
 memmove
 #endif
-(void *dst0, const void *src0, size_t length)
+    (void *dst0, const void *src0, size_t length)
 #else
 #include <strings.h>
 
@@ -65,20 +65,25 @@ bcopy(const void *src0, void *dst0, size_t length)
 	const char *src = src0;
 	size_t t;
 
-	if (length == 0 || dst == src)		/* nothing to do */
+	if (length == 0 || dst == src) /* nothing to do */
 		goto done;
 
-	/*
-	 * Macros: loop-t-times; and loop-t-times, t>0
-	 */
-#define	TLOOP(s) if (t) TLOOP1(s)
-#define	TLOOP1(s) do { s; } while (--t)
+		/*
+		 * Macros: loop-t-times; and loop-t-times, t>0
+		 */
+#define TLOOP(s) \
+	if (t)   \
+	TLOOP1(s)
+#define TLOOP1(s)  \
+	do {       \
+		s; \
+	} while (--t)
 
 	if ((unsigned long)dst < (unsigned long)src) {
 		/*
 		 * Copy forward.
 		 */
-		t = (uintptr_t)src;	/* only need low bits */
+		t = (uintptr_t)src; /* only need low bits */
 		if ((t | (uintptr_t)dst) & wmask) {
 			/*
 			 * Try to align operands.  This cannot be done
@@ -96,7 +101,7 @@ bcopy(const void *src0, void *dst0, size_t length)
 		 */
 		t = length / wsize;
 		TLOOP(*(word *)(void *)dst = *(const word *)(const void *)src;
-		    src += wsize; dst += wsize);
+		      src += wsize; dst += wsize);
 		t = length & wmask;
 		TLOOP(*dst++ = *src++);
 	} else {
@@ -118,7 +123,7 @@ bcopy(const void *src0, void *dst0, size_t length)
 		}
 		t = length / wsize;
 		TLOOP(src -= wsize; dst -= wsize;
-		    *(word *)(void *)dst = *(const word *)(const void *)src);
+		      *(word *)(void *)dst = *(const word *)(const void *)src);
 		t = length & wmask;
 		TLOOP(*--dst = *--src);
 	}

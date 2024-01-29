@@ -38,58 +38,70 @@ extern "C" {
 
 using namespace testing;
 
-class Symlink: public FuseTest {
-public:
-
-void expect_symlink(uint64_t ino, const char *target, const char *relpath)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			const char *name = (const char*)in.body.bytes;
-			const char *linkname = name + strlen(name) + 1;
-			return (in.header.opcode == FUSE_SYMLINK &&
-				(0 == strcmp(linkname, target)) &&
-				(0 == strcmp(name, relpath)));
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFLNK | 0777;
-		out.body.entry.nodeid = ino;
-		out.body.entry.entry_valid = UINT64_MAX;
-		out.body.entry.attr_valid = UINT64_MAX;
-	})));
-}
-
+class Symlink : public FuseTest {
+    public:
+	void expect_symlink(uint64_t ino, const char *target,
+	    const char *relpath)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					const char *name = (const char *)
+							       in.body.bytes;
+					const char *linkname = name +
+					    strlen(name) + 1;
+					return (
+					    in.header.opcode == FUSE_SYMLINK &&
+					    (0 == strcmp(linkname, target)) &&
+					    (0 == strcmp(name, relpath)));
+				},
+				Eq(true)),
+			_))
+		    .WillOnce(Invoke(
+			ReturnImmediate([=](auto in __unused, auto &out) {
+				SET_OUT_HEADER_LEN(out, entry);
+				out.body.entry.attr.mode = S_IFLNK | 0777;
+				out.body.entry.nodeid = ino;
+				out.body.entry.entry_valid = UINT64_MAX;
+				out.body.entry.attr_valid = UINT64_MAX;
+			})));
+	}
 };
 
-class Symlink_7_8: public FuseTest {
-public:
-virtual void SetUp() {
-	m_kernel_minor_version = 8;
-	FuseTest::SetUp();
-}
+class Symlink_7_8 : public FuseTest {
+    public:
+	virtual void SetUp()
+	{
+		m_kernel_minor_version = 8;
+		FuseTest::SetUp();
+	}
 
-void expect_symlink(uint64_t ino, const char *target, const char *relpath)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			const char *name = (const char*)in.body.bytes;
-			const char *linkname = name + strlen(name) + 1;
-			return (in.header.opcode == FUSE_SYMLINK &&
-				(0 == strcmp(linkname, target)) &&
-				(0 == strcmp(name, relpath)));
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry_7_8);
-		out.body.entry.attr.mode = S_IFLNK | 0777;
-		out.body.entry.nodeid = ino;
-		out.body.entry.entry_valid = UINT64_MAX;
-		out.body.entry.attr_valid = UINT64_MAX;
-	})));
-}
-
+	void expect_symlink(uint64_t ino, const char *target,
+	    const char *relpath)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					const char *name = (const char *)
+							       in.body.bytes;
+					const char *linkname = name +
+					    strlen(name) + 1;
+					return (
+					    in.header.opcode == FUSE_SYMLINK &&
+					    (0 == strcmp(linkname, target)) &&
+					    (0 == strcmp(name, relpath)));
+				},
+				Eq(true)),
+			_))
+		    .WillOnce(Invoke(
+			ReturnImmediate([=](auto in __unused, auto &out) {
+				SET_OUT_HEADER_LEN(out, entry_7_8);
+				out.body.entry.attr.mode = S_IFLNK | 0777;
+				out.body.entry.nodeid = ino;
+				out.body.entry.entry_valid = UINT64_MAX;
+				out.body.entry.attr_valid = UINT64_MAX;
+			})));
+	}
 };
 
 /*
@@ -105,20 +117,23 @@ TEST_F(Symlink, clear_attr_cache)
 	struct stat sb;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.WillOnce(Invoke(ReturnErrno(ENOENT)));
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_GETATTR &&
-				in.header.nodeid == FUSE_ROOT_ID);
-		}, Eq(true)),
-		_)
-	).Times(2)
-	.WillRepeatedly(Invoke(ReturnImmediate([=](auto i __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr.ino = FUSE_ROOT_ID;
-		out.body.attr.attr.mode = S_IFDIR | 0755;
-		out.body.attr.attr_valid = UINT64_MAX;
-	})));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_GETATTR &&
+				    in.header.nodeid == FUSE_ROOT_ID);
+			},
+			Eq(true)),
+		_))
+	    .Times(2)
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto i __unused, auto &out) {
+			SET_OUT_HEADER_LEN(out, attr);
+			out.body.attr.attr.ino = FUSE_ROOT_ID;
+			out.body.attr.attr.mode = S_IFDIR | 0755;
+			out.body.attr.attr_valid = UINT64_MAX;
+		})));
 	expect_symlink(ino, dst, RELPATH);
 
 	EXPECT_EQ(0, stat("mountpoint", &sb)) << strerror(errno);
@@ -133,18 +148,20 @@ TEST_F(Symlink, enospc)
 	const char dst[] = "dst";
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
 
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			const char *name = (const char*)in.body.bytes;
-			const char *linkname = name + strlen(name) + 1;
-			return (in.header.opcode == FUSE_SYMLINK &&
-				(0 == strcmp(linkname, dst)) &&
-				(0 == strcmp(name, RELPATH)));
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(ENOSPC)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				const char *name = (const char *)in.body.bytes;
+				const char *linkname = name + strlen(name) + 1;
+				return (in.header.opcode == FUSE_SYMLINK &&
+				    (0 == strcmp(linkname, dst)) &&
+				    (0 == strcmp(name, RELPATH)));
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnErrno(ENOSPC)));
 
 	EXPECT_EQ(-1, symlink(dst, FULLPATH));
 	EXPECT_EQ(ENOSPC, errno);
@@ -158,7 +175,7 @@ TEST_F(Symlink, ok)
 	const uint64_t ino = 42;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
 	expect_symlink(ino, dst, RELPATH);
 
 	EXPECT_EQ(0, symlink(dst, FULLPATH)) << strerror(errno);
@@ -181,8 +198,7 @@ TEST_F(Symlink, parent_ino)
 	ASSERT_EQ(0, sem_init(&sem, 0, 0)) << strerror(errno);
 
 	expect_lookup(PPATH, ino, S_IFDIR | 0755, 0, 1);
-	EXPECT_LOOKUP(ino, RELPATH)
-	.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	EXPECT_LOOKUP(ino, RELPATH).WillOnce(Invoke(ReturnErrno(ENOENT)));
 	expect_symlink(ino, dst, RELPATH);
 	expect_forget(ino, 1, &sem);
 
@@ -201,7 +217,7 @@ TEST_F(Symlink_7_8, ok)
 	const uint64_t ino = 42;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
 	expect_symlink(ino, dst, RELPATH);
 
 	EXPECT_EQ(0, symlink(dst, FULLPATH)) << strerror(errno);

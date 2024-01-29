@@ -28,17 +28,18 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_LINUXKPI_LINUX_CPU_H
-#define	_LINUXKPI_LINUX_CPU_H
+#ifndef _LINUXKPI_LINUX_CPU_H
+#define _LINUXKPI_LINUX_CPU_H
 
 #include <sys/types.h>
 #include <sys/systm.h>
 #include <sys/cpuset.h>
 #include <sys/smp.h>
+
 #include <linux/compiler.h>
 #include <linux/slab.h>
 
-typedef	cpuset_t	cpumask_t;
+typedef cpuset_t cpumask_t;
 
 extern cpumask_t cpu_online_mask;
 
@@ -52,8 +53,8 @@ cpumask_next(int cpuid, cpumask_t mask)
 	 * -1 can be an input to cpuid according to logic in drivers
 	 * but is never a valid cpuid in a set!
 	 */
-	KASSERT((cpuid >= -1 && cpuid <= MAXCPU), ("%s: invalid cpuid %d\n",
-	    __func__, cpuid));
+	KASSERT((cpuid >= -1 && cpuid <= MAXCPU),
+	    ("%s: invalid cpuid %d\n", __func__, cpuid));
 	KASSERT(!CPU_EMPTY(&mask), ("%s: empty CPU mask", __func__));
 
 	do {
@@ -73,6 +74,6 @@ cpumask_set_cpu(int cpu, cpumask_t *mask)
 	CPU_SET(cpu, mask);
 }
 
-#define	cpumask_of(_cpu)	(lkpi_get_static_single_cpu_mask(_cpu))
+#define cpumask_of(_cpu) (lkpi_get_static_single_cpu_mask(_cpu))
 
-#endif	/* _LINUXKPI_LINUX_CPU_H */
+#endif /* _LINUXKPI_LINUX_CPU_H */

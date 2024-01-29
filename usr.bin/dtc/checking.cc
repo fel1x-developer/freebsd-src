@@ -30,87 +30,79 @@
  * SUCH DAMAGE.
  */
 
-#include "checking.hh"
 #include <stdio.h>
+
+#include "checking.hh"
 
 using std::string;
 
-namespace dtc
-{
-namespace fdt
-{
-namespace checking
-{
+namespace dtc { namespace fdt { namespace checking {
 
-namespace
-{
-	struct deleted_node_checker : public checker
+namespace {
+struct deleted_node_checker : public checker {
+	deleted_node_checker(const char *name)
+	    : checker(name)
 	{
-		deleted_node_checker(const char *name) : checker(name) {}
-		virtual bool check_node(device_tree *, const node_ptr &n)
-		{
-			auto &deleted = n->deleted_child_nodes();
-			if (deleted.empty())
-			{
-				return true;
-			}
-			bool plural = deleted.size() > 1;
-			string errmsg("Attempts to delete ");
-			errmsg += plural ? "nodes" : "node";
-			errmsg += " that ";
-			errmsg += plural ? "were" : "was";
-			errmsg += " not added in merge: ";
-			for (auto &d : deleted)
-			{
-				errmsg += d;
-			}
-			report_error(errmsg.c_str());
-			return false;
-		}
-	};
-	/**
-	 * Checker that verifies that every node that has children has
-	 * #address-cells and #size-cells properties.
-	 */
-	struct address_cells_checker : public checker
+	}
+	virtual bool check_node(device_tree *, const node_ptr &n)
 	{
-		address_cells_checker(const char *name) : checker(name) {}
-		virtual bool check_node(device_tree *, const node_ptr &n)
-		{
-			// If this has no children, it trivially meets the
-			// conditions.
-			if (n->child_begin() == n->child_end())
-			{
-				return true;
-			}
-			bool found_address = false;
-			bool found_size = false;
-			for (auto i=n->property_begin(), e=n->property_end() ; i!=e ; ++i)
-			{
-				if (!found_address)
-				{
-					found_address = ((*i)->get_key() == "#address-cells");
-				}
-				if (!found_size)
-				{
-					found_size = ((*i)->get_key() == "#size-cells");
-				}
-				if (found_size && found_address)
-				{
-						break;
-				}
-			}
-			if (!found_address)
-			{
-					report_error("Missing #address-cells property");
-			}
-			if (!found_size)
-			{
-					report_error("Missing #size-cells property");
-			}
-			return found_address && found_size;
+		auto &deleted = n->deleted_child_nodes();
+		if (deleted.empty()) {
+			return true;
 		}
-	};
+		bool plural = deleted.size() > 1;
+		string errmsg("Attempts to delete ");
+		errmsg += plural ? "nodes" : "node";
+		errmsg += " that ";
+		errmsg += plural ? "were" : "was";
+		errmsg += " not added in merge: ";
+		for (auto &d : deleted) {
+			errmsg += d;
+		}
+		report_error(errmsg.c_str());
+		return false;
+	}
+};
+/**
+ * Checker that verifies that every node that has children has
+ * #address-cells and #size-cells properties.
+ */
+struct address_cells_checker : public checker {
+	address_cells_checker(const char *name)
+	    : checker(name)
+	{
+	}
+	virtual bool check_node(device_tree *, const node_ptr &n)
+	{
+		// If this has no children, it trivially meets the
+		// conditions.
+		if (n->child_begin() == n->child_end()) {
+			return true;
+		}
+		bool found_address = false;
+		bool found_size = false;
+		for (auto i = n->property_begin(), e = n->property_end();
+		     i != e; ++i) {
+			if (!found_address) {
+				found_address = ((*i)->get_key() ==
+				    "#address-cells");
+			}
+			if (!found_size) {
+				found_size = ((*i)->get_key() == "#size-cells");
+			}
+			if (found_size && found_address) {
+				break;
+			}
+		}
+		if (!found_address) {
+			report_error("Missing #address-cells property");
+		}
+		if (!found_size) {
+			report_error("Missing #size-cells property");
+		}
+		return found_address && found_size;
+	}
+};
 } // anonymous namespace
 
 bool
@@ -118,24 +110,19 @@ checker::visit_node(device_tree *tree, const node_ptr &n)
 {
 	path.push_back(std::make_pair(n->name, n->unit_address));
 	// Check this node
-	if (!check_node(tree, n))
-	{
+	if (!check_node(tree, n)) {
 		return false;
 	}
 	// Now check its properties
-	for (auto i=n->property_begin(), e=n->property_end() ; i!=e ; ++i)
-	{
-		if (!check_property(tree, n, *i))
-		{
+	for (auto i = n->property_begin(), e = n->property_end(); i != e; ++i) {
+		if (!check_property(tree, n, *i)) {
 			return false;
 		}
 	}
 	// And then recursively check the children
-	for (node::child_iterator i=n->child_begin(), e=n->child_end() ; i!=e ;
-	     ++i)
-	{
-		if (!visit_node(tree, *i))
-		{
+	for (node::child_iterator i = n->child_begin(), e = n->child_end();
+	     i != e; ++i) {
+		if (!visit_node(tree, *i)) {
 			return false;
 		}
 	}
@@ -147,12 +134,10 @@ void
 checker::report_error(const char *errmsg)
 {
 	fprintf(stderr, "Error: %s, while checking node: ", errmsg);
-	for (auto &p : path)
-	{
+	for (auto &p : path) {
 		putc('/', stderr);
 		puts(p.first.c_str());
-		if (!(p.second.empty()))
-		{
+		if (!(p.second.empty())) {
 			putc('@', stderr);
 			puts(p.second.c_str());
 		}
@@ -161,12 +146,11 @@ checker::report_error(const char *errmsg)
 }
 
 bool
-property_checker::check_property(device_tree *tree, const node_ptr &n, property_ptr p)
+property_checker::check_property(device_tree *tree, const node_ptr &n,
+    property_ptr p)
 {
-	if (p->get_key() == key)
-	{
-		if (!check(tree, n, p))
-		{
+	if (p->get_key() == key) {
+		if (!check(tree, n, p)) {
 			report_error("property check failed");
 			return false;
 		}
@@ -178,10 +162,9 @@ bool
 property_size_checker::check(device_tree *, const node_ptr &, property_ptr p)
 {
 	uint32_t psize = 0;
-	for (property::value_iterator i=p->begin(),e=p->end() ; i!=e ; ++i)
-	{
-		if (!i->is_binary())
-		{
+	for (property::value_iterator i = p->begin(), e = p->end(); i != e;
+	     ++i) {
+		if (!i->is_binary()) {
 			return false;
 		}
 		psize += i->byte_data.size();
@@ -189,32 +172,29 @@ property_size_checker::check(device_tree *, const node_ptr &, property_ptr p)
 	return psize == size;
 }
 
-template<property_value::value_type T>
+template <property_value::value_type T>
 void
 check_manager::add_property_type_checker(const char *name, const string &prop)
 {
 	checkers.insert(std::make_pair(string(name),
-		new property_type_checker<T>(name, prop)));
+	    new property_type_checker<T>(name, prop)));
 }
 
 void
-check_manager::add_property_size_checker(const char *name,
-                                         const string &prop,
-                                         uint32_t size)
+check_manager::add_property_size_checker(const char *name, const string &prop,
+    uint32_t size)
 {
 	checkers.insert(std::make_pair(string(name),
-		new property_size_checker(name, prop, size)));
+	    new property_size_checker(name, prop, size)));
 }
 
 check_manager::~check_manager()
 {
-	while (checkers.begin() != checkers.end())
-	{
+	while (checkers.begin() != checkers.end()) {
 		delete checkers.begin()->second;
 		checkers.erase(checkers.begin());
 	}
-	while (disabled_checkers.begin() != disabled_checkers.end())
-	{
+	while (disabled_checkers.begin() != disabled_checkers.end()) {
 		delete disabled_checkers.begin()->second;
 		disabled_checkers.erase(disabled_checkers.begin());
 	}
@@ -225,25 +205,23 @@ check_manager::check_manager()
 	// NOTE: All checks listed here MUST have a corresponding line
 	// in the man page!
 	add_property_type_checker<property_value::STRING_LIST>(
-			"type-compatible", string("compatible"));
-	add_property_type_checker<property_value::STRING>(
-			"type-model", string("model"));
+	    "type-compatible", string("compatible"));
+	add_property_type_checker<property_value::STRING>("type-model",
+	    string("model"));
 	add_property_size_checker("type-phandle", string("phandle"), 4);
 	disabled_checkers.insert(std::make_pair(string("cells-attributes"),
-		new address_cells_checker("cells-attributes")));
+	    new address_cells_checker("cells-attributes")));
 	checkers.insert(std::make_pair(string("deleted-nodes"),
-		new deleted_node_checker("deleted-nodes")));
+	    new deleted_node_checker("deleted-nodes")));
 }
 
 bool
 check_manager::run_checks(device_tree *tree, bool keep_going)
 {
 	bool success = true;
-	for (auto &i : checkers)
-	{
+	for (auto &i : checkers) {
 		success &= i.second->check_tree(tree);
-		if (!(success || keep_going))
-		{
+		if (!(success || keep_going)) {
 			break;
 		}
 	}
@@ -254,10 +232,8 @@ bool
 check_manager::disable_checker(const string &name)
 {
 	auto checker = checkers.find(name);
-	if (checker != checkers.end())
-	{
-		disabled_checkers.insert(std::make_pair(name,
-		                                        checker->second));
+	if (checker != checkers.end()) {
+		disabled_checkers.insert(std::make_pair(name, checker->second));
 		checkers.erase(checker);
 		return true;
 	}
@@ -268,8 +244,7 @@ bool
 check_manager::enable_checker(const string &name)
 {
 	auto checker = disabled_checkers.find(name);
-	if (checker != disabled_checkers.end())
-	{
+	if (checker != disabled_checkers.end()) {
 		checkers.insert(std::make_pair(name, checker->second));
 		disabled_checkers.erase(checker);
 		return true;
@@ -282,4 +257,3 @@ check_manager::enable_checker(const string &name)
 } // namespace fdt
 
 } // namespace dtc
-

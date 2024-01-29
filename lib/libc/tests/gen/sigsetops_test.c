@@ -26,11 +26,10 @@
  * SUCH DAMAGE.
  */
 
+#include <atf-c.h>
 #include <errno.h>
 #include <signal.h>
 #include <stdbool.h>
-
-#include <atf-c.h>
 
 /* Return the status of the specified sig's bit. */
 static bool
@@ -64,8 +63,8 @@ sigcompare(const sigset_t *left, const sigset_t *right)
 
 	for (i = 0; i < _SIG_WORDS; ++i) {
 		ATF_REQUIRE_MSG(left->__bits[i] == right->__bits[i],
-		    "sig comparison failed at %d; left=%x, right=%x",
-		    i, left->__bits[i], right->__bits[i]);
+		    "sig comparison failed at %d; left=%x, right=%x", i,
+		    left->__bits[i], right->__bits[i]);
 	}
 }
 
@@ -120,8 +119,7 @@ ATF_TC_BODY(posix_sigsetop_test, tc)
 	ATF_REQUIRE_MSG(!sigbitstatus(&set, SIGSEGV),
 	    "sigdelset twice changed bit");
 	for (i = 0; i < _SIG_WORDS; ++i) {
-		ATF_REQUIRE_MSG(set.__bits[i] == 0, "set not empty @ %d",
-		    i);
+		ATF_REQUIRE_MSG(set.__bits[i] == 0, "set not empty @ %d", i);
 	}
 	for (i = 1; i < NSIG; ++i) {
 		ATF_REQUIRE(sigismember(&set, i) == 0);

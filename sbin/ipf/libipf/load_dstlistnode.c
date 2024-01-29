@@ -6,16 +6,16 @@
  * $Id: load_dstlistnode.c,v 1.1.2.5 2012/07/22 08:04:24 darren_r Exp $
  */
 
-#include <fcntl.h>
 #include <sys/ioctl.h>
+
+#include <fcntl.h>
+
 #include "ipf.h"
 #include "netinet/ip_lookup.h"
 #include "netinet/ip_pool.h"
 
-
 int
-load_dstlistnode(int role, char *name, ipf_dstnode_t *node,
-	ioctlfunc_t iocfunc)
+load_dstlistnode(int role, char *name, ipf_dstnode_t *node, ioctlfunc_t iocfunc)
 {
 	iplookupop_t op;
 	frdest_t *dst;
@@ -36,14 +36,14 @@ load_dstlistnode(int role, char *name, ipf_dstnode_t *node,
 	op.iplo_size = sizeof(*dst);
 	if (node->ipfd_dest.fd_name >= 0)
 		op.iplo_size += node->ipfd_dest.fd_name;
-	(void) strncpy(op.iplo_name, name, sizeof(op.iplo_name));
+	(void)strncpy(op.iplo_name, name, sizeof(op.iplo_name));
 
 	dst->fd_addr = node->ipfd_dest.fd_addr;
 	dst->fd_type = node->ipfd_dest.fd_type;
 	dst->fd_name = node->ipfd_dest.fd_name;
 	if (node->ipfd_dest.fd_name >= 0)
 		bcopy(node->ipfd_names, (char *)dst + sizeof(*dst),
-		      node->ipfd_dest.fd_name);
+		    node->ipfd_dest.fd_name);
 
 	if ((opts & OPT_REMOVE) == 0) {
 		what = "add";
@@ -58,7 +58,8 @@ load_dstlistnode(int role, char *name, ipf_dstnode_t *node,
 		if ((opts & OPT_DONOTHING) == 0) {
 			char msg[80];
 
-			(void) snprintf(msg, sizeof(msg), "%s lookup node", what);
+			(void)snprintf(msg, sizeof(msg), "%s lookup node",
+			    what);
 			return (ipf_perror_fd(pool_fd(), iocfunc, msg));
 		}
 	}

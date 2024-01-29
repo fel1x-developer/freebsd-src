@@ -35,7 +35,7 @@
 
 #include "extern.h"
 
-static int	  skipvfs;
+static int skipvfs;
 
 int
 checkvfsname(const char *vfsname, const char **vfslist)

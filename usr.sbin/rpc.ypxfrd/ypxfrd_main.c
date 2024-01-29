@@ -33,48 +33,53 @@
  */
 
 #include <sys/cdefs.h>
-#include "ypxfrd.h"
+#include <sys/ttycom.h> /* TIOCNOTTY */
+
 #include <err.h>
 #include <fcntl.h>
 #include <paths.h>
-#include <stdio.h>
-#include <stdlib.h> /* getenv, exit */
-#include <unistd.h>
 #include <rpc/pmap_clnt.h> /* for pmap_unset */
 #include <rpc/rpc_com.h>
-#include <string.h> /* strcmp */
 #include <signal.h>
-#include <sys/ttycom.h> /* TIOCNOTTY */
+#include <stdio.h>
+#include <stdlib.h> /* getenv, exit */
+#include <string.h> /* strcmp */
+#include <unistd.h>
+
+#include "ypxfrd.h"
 #ifdef __cplusplus
 #include <sysent.h> /* getdtablesize, open */
-#endif /* __cplusplus */
-#include <memory.h>
+#endif		    /* __cplusplus */
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <syslog.h>
-#include "ypxfrd_extern.h"
 #include <sys/wait.h>
+
+#include <netinet/in.h>
+
 #include <errno.h>
+#include <memory.h>
+#include <syslog.h>
+
+#include "ypxfrd_extern.h"
 
 #ifndef SIG_PF
-#define	SIG_PF void(*)(int)
+#define SIG_PF void (*)(int)
 #endif
 
 #ifdef DEBUG
-#define	RPC_SVC_FG
+#define RPC_SVC_FG
 #endif
 
-#define	_RPCSVC_CLOSEDOWN 120
-int _rpcpmstart;		/* Started by a port monitor ? */
+#define _RPCSVC_CLOSEDOWN 120
+int _rpcpmstart; /* Started by a port monitor ? */
 static int _rpcfdtype;
-		 /* Whether Stream or Datagram ? */
-	/* States a server can be in wrt request */
+/* Whether Stream or Datagram ? */
+/* States a server can be in wrt request */
 
-#define	_IDLE 0
-#define	_SERVED 1
-#define	_SERVING 2
+#define _IDLE 0
+#define _SERVED 1
+#define _SERVING 2
 
-extern int _rpcsvcstate;	 /* Set when a request is serviced */
+extern int _rpcsvcstate; /* Set when a request is serviced */
 
 int debug;
 
@@ -116,10 +121,9 @@ closedown(int sig)
 	if (_rpcsvcstate == _SERVED)
 		_rpcsvcstate = _IDLE;
 
-	(void) signal(SIGALRM, (SIG_PF) closedown);
-	(void) alarm(_RPCSVC_CLOSEDOWN/2);
+	(void)signal(SIGALRM, (SIG_PF)closedown);
+	(void)alarm(_RPCSVC_CLOSEDOWN / 2);
 }
-
 
 static void
 ypxfrd_svc_run(void)
@@ -143,7 +147,7 @@ ypxfrd_svc_run(void)
 		readfds = svc_fds;
 #endif /* def FD_SETSIZE */
 		switch (select(fd_setsize, &readfds, NULL, NULL,
-			       (struct timeval *)0)) {
+		    (struct timeval *)0)) {
 		case -1:
 			if (errno == EINTR) {
 				continue;
@@ -160,10 +164,11 @@ ypxfrd_svc_run(void)
 	}
 }
 
-static void reaper(int sig)
+static void
+reaper(int sig)
 {
-	int			status;
-	int			saved_errno;
+	int status;
+	int saved_errno;
 
 	saved_errno = errno;
 
@@ -177,7 +182,7 @@ static void reaper(int sig)
 		while (wait3(&status, WNOHANG, NULL) > 0)
 			children--;
 	} else {
-		(void) pmap_unset(YPXFRD_FREEBSD_PROG, YPXFRD_FREEBSD_VERS);
+		(void)pmap_unset(YPXFRD_FREEBSD_PROG, YPXFRD_FREEBSD_VERS);
 		exit(0);
 	}
 
@@ -198,7 +203,7 @@ main(int argc, char *argv[])
 	int sock;
 	int proto = 0;
 	struct sockaddr_in saddr;
-	int asize = sizeof (saddr);
+	int asize = sizeof(saddr);
 	int ch;
 
 	while ((ch = getopt(argc, argv, "p:h")) != -1) {
@@ -215,12 +220,12 @@ main(int argc, char *argv[])
 	load_securenets();
 
 	if (getsockname(0, (struct sockaddr *)&saddr, &asize) == 0) {
-		int ssize = sizeof (int);
+		int ssize = sizeof(int);
 
 		if (saddr.sin_family != AF_INET)
 			exit(1);
-		if (getsockopt(0, SOL_SOCKET, SO_TYPE,
-				(char *)&_rpcfdtype, &ssize) == -1)
+		if (getsockopt(0, SOL_SOCKET, SO_TYPE, (char *)&_rpcfdtype,
+			&ssize) == -1)
 			exit(1);
 		sock = 0;
 		_rpcpmstart = 1;
@@ -238,19 +243,19 @@ main(int argc, char *argv[])
 			exit(0);
 		size = getdtablesize();
 		for (i = 0; i < size; i++)
-			(void) close(i);
+			(void)close(i);
 		i = open(_PATH_CONSOLE, 2);
-		(void) dup2(i, 1);
-		(void) dup2(i, 2);
+		(void)dup2(i, 1);
+		(void)dup2(i, 2);
 		i = open(_PATH_TTY, 2);
 		if (i >= 0) {
-			(void) ioctl(i, TIOCNOTTY, (char *)NULL);
-			(void) close(i);
+			(void)ioctl(i, TIOCNOTTY, (char *)NULL);
+			(void)close(i);
 		}
 		openlog("rpc.ypxfrd", LOG_PID, LOG_DAEMON);
 #endif
 		sock = RPC_ANYSOCK;
-		(void) pmap_unset(YPXFRD_FREEBSD_PROG, YPXFRD_FREEBSD_VERS);
+		(void)pmap_unset(YPXFRD_FREEBSD_PROG, YPXFRD_FREEBSD_VERS);
 	}
 
 	if ((_rpcfdtype == 0) || (_rpcfdtype == SOCK_DGRAM)) {
@@ -261,8 +266,10 @@ main(int argc, char *argv[])
 		}
 		if (!_rpcpmstart)
 			proto = IPPROTO_UDP;
-		if (!svc_register(transp, YPXFRD_FREEBSD_PROG, YPXFRD_FREEBSD_VERS, ypxfrd_freebsd_prog_1, proto)) {
-			_msgout("unable to register (YPXFRD_FREEBSD_PROG, YPXFRD_FREEBSD_VERS, udp).");
+		if (!svc_register(transp, YPXFRD_FREEBSD_PROG,
+			YPXFRD_FREEBSD_VERS, ypxfrd_freebsd_prog_1, proto)) {
+			_msgout(
+			    "unable to register (YPXFRD_FREEBSD_PROG, YPXFRD_FREEBSD_VERS, udp).");
 			exit(1);
 		}
 	}
@@ -275,8 +282,10 @@ main(int argc, char *argv[])
 		}
 		if (!_rpcpmstart)
 			proto = IPPROTO_TCP;
-		if (!svc_register(transp, YPXFRD_FREEBSD_PROG, YPXFRD_FREEBSD_VERS, ypxfrd_freebsd_prog_1, proto)) {
-			_msgout("unable to register (YPXFRD_FREEBSD_PROG, YPXFRD_FREEBSD_VERS, tcp).");
+		if (!svc_register(transp, YPXFRD_FREEBSD_PROG,
+			YPXFRD_FREEBSD_VERS, ypxfrd_freebsd_prog_1, proto)) {
+			_msgout(
+			    "unable to register (YPXFRD_FREEBSD_PROG, YPXFRD_FREEBSD_VERS, tcp).");
 			exit(1);
 		}
 	}
@@ -286,15 +295,15 @@ main(int argc, char *argv[])
 		exit(1);
 	}
 	if (_rpcpmstart) {
-		(void) signal(SIGALRM, (SIG_PF) closedown);
-		(void) alarm(_RPCSVC_CLOSEDOWN/2);
+		(void)signal(SIGALRM, (SIG_PF)closedown);
+		(void)alarm(_RPCSVC_CLOSEDOWN / 2);
 	}
 
-	(void) signal(SIGPIPE, SIG_IGN);
-	(void) signal(SIGCHLD, (SIG_PF) reaper);
-	(void) signal(SIGTERM, (SIG_PF) reaper);
-	(void) signal(SIGINT, (SIG_PF) reaper);
-	(void) signal(SIGHUP, (SIG_PF) reaper);
+	(void)signal(SIGPIPE, SIG_IGN);
+	(void)signal(SIGCHLD, (SIG_PF)reaper);
+	(void)signal(SIGTERM, (SIG_PF)reaper);
+	(void)signal(SIGINT, (SIG_PF)reaper);
+	(void)signal(SIGHUP, (SIG_PF)reaper);
 
 	ypxfrd_svc_run();
 	_msgout("svc_run returned");

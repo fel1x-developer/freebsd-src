@@ -28,7 +28,7 @@
  */
 
 #ifndef _USB_HID_H_
-#define	_USB_HID_H_
+#define _USB_HID_H_
 
 #include <dev/hid/hid.h>
 
@@ -36,42 +36,42 @@
 #include <dev/usb/usb_endian.h>
 #endif
 
-#define	UR_GET_HID_DESCRIPTOR	0x06
-#define	UDESC_HID		0x21
-#define	UDESC_REPORT		0x22
-#define	UDESC_PHYSICAL		0x23
-#define	UR_SET_HID_DESCRIPTOR	0x07
-#define	UR_GET_REPORT		0x01
-#define	UR_SET_REPORT		0x09
-#define	UR_GET_IDLE		0x02
-#define	UR_SET_IDLE		0x0a
-#define	UR_GET_PROTOCOL		0x03
-#define	UR_SET_PROTOCOL		0x0b
+#define UR_GET_HID_DESCRIPTOR 0x06
+#define UDESC_HID 0x21
+#define UDESC_REPORT 0x22
+#define UDESC_PHYSICAL 0x23
+#define UR_SET_HID_DESCRIPTOR 0x07
+#define UR_GET_REPORT 0x01
+#define UR_SET_REPORT 0x09
+#define UR_GET_IDLE 0x02
+#define UR_SET_IDLE 0x0a
+#define UR_GET_PROTOCOL 0x03
+#define UR_SET_PROTOCOL 0x0b
 
 struct usb_hid_descriptor {
-	uByte	bLength;
-	uByte	bDescriptorType;
-	uWord	bcdHID;
-	uByte	bCountryCode;
-	uByte	bNumDescriptors;
+	uByte bLength;
+	uByte bDescriptorType;
+	uWord bcdHID;
+	uByte bCountryCode;
+	uByte bNumDescriptors;
 	struct {
-		uByte	bDescriptorType;
-		uWord	wDescriptorLength;
-	}	descrs[1];
+		uByte bDescriptorType;
+		uWord wDescriptorLength;
+	} descrs[1];
 } __packed;
 
-#define	USB_HID_DESCRIPTOR_SIZE(n) (9+((n)*3))
+#define USB_HID_DESCRIPTOR_SIZE(n) (9 + ((n) * 3))
 
-#define	UHID_INPUT_REPORT	HID_INPUT_REPORT
-#define	UHID_OUTPUT_REPORT	HID_OUTPUT_REPORT
-#define	UHID_FEATURE_REPORT	HID_FEATURE_REPORT
+#define UHID_INPUT_REPORT HID_INPUT_REPORT
+#define UHID_OUTPUT_REPORT HID_OUTPUT_REPORT
+#define UHID_FEATURE_REPORT HID_FEATURE_REPORT
 
 #if defined(_KERNEL) || defined(_STANDALONE)
 struct usb_config_descriptor;
 
 #ifdef COMPAT_USBHID12
 /* FreeBSD <= 12 compat shims */
-#define	hid_report_size(buf, len, kind, id)	\
+#define hid_report_size(buf, len, kind, id) \
 	hid_report_size_max(buf, len, kind, id)
 static __inline uint32_t
 hid_get_data_unsigned(const uint8_t *buf, hid_size_t len,
@@ -87,11 +87,11 @@ hid_put_data_unsigned(uint8_t *buf, hid_size_t len, struct hid_location *loc,
 }
 #endif
 
-struct usb_hid_descriptor *hid_get_descriptor_from_usb(
-	    struct usb_config_descriptor *cd,
-	    struct usb_interface_descriptor *id);
+struct usb_hid_descriptor *
+hid_get_descriptor_from_usb(struct usb_config_descriptor *cd,
+    struct usb_interface_descriptor *id);
 usb_error_t usbd_req_get_hid_desc(struct usb_device *udev, struct mtx *mtx,
-	    void **descp, uint16_t *sizep, struct malloc_type *mem,
-	    uint8_t iface_index);
-#endif	/* _KERNEL || _STANDALONE */
-#endif	/* _USB_HID_H_ */
+    void **descp, uint16_t *sizep, struct malloc_type *mem,
+    uint8_t iface_index);
+#endif /* _KERNEL || _STANDALONE */
+#endif /* _USB_HID_H_ */

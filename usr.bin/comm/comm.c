@@ -46,10 +46,10 @@
 static int iflag;
 static const char *tabs[] = { "", "\t", "\t\t" };
 
-static FILE	*file(const char *);
-static wchar_t	*convert(const char *);
-static void	show(FILE *, const char *, const char *, char **, size_t *);
-static void	usage(void);
+static FILE *file(const char *);
+static wchar_t *convert(const char *);
+static void show(FILE *, const char *, const char *, char **, size_t *);
+static void usage(void);
 
 int
 main(int argc, char *argv[])
@@ -64,12 +64,12 @@ main(int argc, char *argv[])
 	wchar_t *tline1, *tline2;
 	const char **p;
 
-	(void) setlocale(LC_ALL, "");
+	(void)setlocale(LC_ALL, "");
 
 	flag1 = flag2 = flag3 = 1;
 
 	while ((ch = getopt(argc, argv, "123i")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case '1':
 			flag1 = 0;
 			break;
@@ -117,7 +117,6 @@ main(int argc, char *argv[])
 				err(1, "%s", argv[0]);
 			if (n1 > 0 && line1[n1 - 1] == '\n')
 				line1[n1 - 1] = '\0';
-
 		}
 		if (read2) {
 			n2 = getline(&line2, &line2len, fp2);

@@ -31,6 +31,7 @@
 extern "C" {
 #include <sys/param.h>
 #include <sys/mount.h>
+
 #include <semaphore.h>
 }
 
@@ -39,18 +40,20 @@ extern "C" {
 
 using namespace testing;
 
-class Statfs: public FuseTest {};
+class Statfs : public FuseTest { };
 
 TEST_F(Statfs, eio)
 {
 	struct statfs statbuf;
 
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([](auto in) {
-			return (in.header.opcode == FUSE_STATFS);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(EIO)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[](auto in) {
+				return (in.header.opcode == FUSE_STATFS);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnErrno(EIO)));
 
 	ASSERT_NE(0, statfs("mountpoint", &statbuf));
 	ASSERT_EQ(EIO, errno);
@@ -77,15 +80,17 @@ TEST_F(Statfs, enotconn)
 	EXPECT_EQ(0, strcmp(mp, statbuf.f_mntonname));
 }
 
-static void* statfs_th(void* arg) {
+static void *
+statfs_th(void *arg)
+{
 	ssize_t r;
-	struct statfs *sb = (struct statfs*)arg;
+	struct statfs *sb = (struct statfs *)arg;
 
 	r = statfs("mountpoint", sb);
 	if (r >= 0)
 		return 0;
 	else
-		return (void*)(intptr_t)errno;
+		return (void *)(intptr_t)errno;
 }
 
 /*
@@ -102,20 +107,22 @@ TEST_F(Statfs, enotconn_while_blocked)
 
 	ASSERT_EQ(0, sem_init(&sem, 0, 0)) << strerror(errno);
 
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([](auto in) {
-			return (in.header.opcode == FUSE_STATFS);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke([&](auto in __unused, auto &out __unused) {
-		sem_post(&sem);
-		/* Just block until the daemon dies */
-	}));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[](auto in) {
+				return (in.header.opcode == FUSE_STATFS);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke([&](auto in __unused, auto &out __unused) {
+		    sem_post(&sem);
+		    /* Just block until the daemon dies */
+	    }));
 
 	ASSERT_NE(nullptr, getcwd(mp, PATH_MAX)) << strerror(errno);
 	strlcat(mp, "/mountpoint", PATH_MAX);
-	ASSERT_EQ(0, pthread_create(&th0, NULL, statfs_th, (void*)&statbuf))
-		<< strerror(errno);
+	ASSERT_EQ(0, pthread_create(&th0, NULL, statfs_th, (void *)&statbuf))
+	    << strerror(errno);
 
 	ASSERT_EQ(0, sem_wait(&sem)) << strerror(errno);
 	m_mock->kill_daemon();
@@ -134,27 +141,29 @@ TEST_F(Statfs, ok)
 	struct statfs statbuf;
 	char mp[PATH_MAX];
 
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([](auto in) {
-			return (in.header.opcode == FUSE_STATFS);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, statfs);
-		out.body.statfs.st.blocks = 1000;
-		out.body.statfs.st.bfree = 100;
-		out.body.statfs.st.bavail = 200;
-		out.body.statfs.st.files = 5;
-		out.body.statfs.st.ffree = 6;
-		out.body.statfs.st.namelen = 128;
-		out.body.statfs.st.frsize = 1024;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[](auto in) {
+				return (in.header.opcode == FUSE_STATFS);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, statfs);
+		    out.body.statfs.st.blocks = 1000;
+		    out.body.statfs.st.bfree = 100;
+		    out.body.statfs.st.bavail = 200;
+		    out.body.statfs.st.files = 5;
+		    out.body.statfs.st.ffree = 6;
+		    out.body.statfs.st.namelen = 128;
+		    out.body.statfs.st.frsize = 1024;
+	    })));
 
 	ASSERT_NE(nullptr, getcwd(mp, PATH_MAX)) << strerror(errno);
 	strlcat(mp, "/mountpoint", PATH_MAX);
 	ASSERT_EQ(0, statfs("mountpoint", &statbuf)) << strerror(errno);
 	EXPECT_EQ(1024ul, statbuf.f_bsize);
-	/* 
+	/*
 	 * fuse(4) ignores the filesystem's reported optimal transfer size, and
 	 * chooses a size that works well with the rest of the system instead
 	 */

@@ -37,32 +37,50 @@
 
 extern uint32_t dbg_level;
 
-extern void qla_dump_buf8(qla_host_t *ha, char *str, void *dbuf,
-		uint32_t len);
+extern void qla_dump_buf8(qla_host_t *ha, char *str, void *dbuf, uint32_t len);
 extern void qla_dump_buf16(qla_host_t *ha, char *str, void *dbuf,
-		uint32_t len16);
+    uint32_t len16);
 extern void qla_dump_buf32(qla_host_t *ha, char *str, void *dbuf,
-		uint32_t len32);
+    uint32_t len32);
 
 #define DBG 1
 
 #if DBG
 
-#define QL_DPRINT1(x)	if (dbg_level & 0x0001) device_printf x
-#define QL_DPRINT2(x)	if (dbg_level & 0x0002) device_printf x
-#define QL_DPRINT4(x)	if (dbg_level & 0x0004) device_printf x
-#define QL_DPRINT8(x)	if (dbg_level & 0x0008) device_printf x
-#define QL_DPRINT10(x)	if (dbg_level & 0x0010) device_printf x
-#define QL_DPRINT20(x)	if (dbg_level & 0x0020) device_printf x
-#define QL_DPRINT40(x)	if (dbg_level & 0x0040) device_printf x
-#define QL_DPRINT80(x)	if (dbg_level & 0x0080) device_printf x
+#define QL_DPRINT1(x)           \
+	if (dbg_level & 0x0001) \
+	device_printf x
+#define QL_DPRINT2(x)           \
+	if (dbg_level & 0x0002) \
+	device_printf x
+#define QL_DPRINT4(x)           \
+	if (dbg_level & 0x0004) \
+	device_printf x
+#define QL_DPRINT8(x)           \
+	if (dbg_level & 0x0008) \
+	device_printf x
+#define QL_DPRINT10(x)          \
+	if (dbg_level & 0x0010) \
+	device_printf x
+#define QL_DPRINT20(x)          \
+	if (dbg_level & 0x0020) \
+	device_printf x
+#define QL_DPRINT40(x)          \
+	if (dbg_level & 0x0040) \
+	device_printf x
+#define QL_DPRINT80(x)          \
+	if (dbg_level & 0x0080) \
+	device_printf x
 
-#define QL_DUMP_BUFFER8(h, s, b, n) if (dbg_level & 0x08000000)\
-					qla_dump_buf8(h, s, b, n)
-#define QL_DUMP_BUFFER16(h, s, b, n) if (dbg_level & 0x08000000)\
-					qla_dump_buf16(h, s, b, n)
-#define QL_DUMP_BUFFER32(h, s, b, n) if (dbg_level & 0x08000000)\
-					qla_dump_buf32(h, s, b, n)
+#define QL_DUMP_BUFFER8(h, s, b, n) \
+	if (dbg_level & 0x08000000) \
+	qla_dump_buf8(h, s, b, n)
+#define QL_DUMP_BUFFER16(h, s, b, n) \
+	if (dbg_level & 0x08000000)  \
+	qla_dump_buf16(h, s, b, n)
+#define QL_DUMP_BUFFER32(h, s, b, n) \
+	if (dbg_level & 0x08000000)  \
+	qla_dump_buf32(h, s, b, n)
 
 #else
 

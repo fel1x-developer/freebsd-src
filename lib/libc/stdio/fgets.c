@@ -32,13 +32,14 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
-#include "un-namespace.h"
-#include "local.h"
+
 #include "libc_private.h"
+#include "local.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 /*
  * Read at most n-1 characters from the given file.
@@ -46,7 +47,7 @@
  * Return first argument, or NULL if no characters were read.
  */
 char *
-fgets(char * __restrict buf, int n, FILE * __restrict fp)
+fgets(char *__restrict buf, int n, FILE *__restrict fp)
 {
 	size_t len;
 	char *s, *ret;
@@ -55,7 +56,7 @@ fgets(char * __restrict buf, int n, FILE * __restrict fp)
 	FLOCKFILE_CANCELSAFE(fp);
 	ORIENT(fp, -1);
 
-	if (n <= 0) {		/* sanity check */
+	if (n <= 0) { /* sanity check */
 		fp->_flags |= __SERR;
 		errno = EINVAL;
 		ret = NULL;
@@ -63,7 +64,7 @@ fgets(char * __restrict buf, int n, FILE * __restrict fp)
 	}
 
 	s = buf;
-	n--;			/* leave space for NUL */
+	n--; /* leave space for NUL */
 	while (n != 0) {
 		/*
 		 * If the buffer is empty, refill it.

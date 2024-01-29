@@ -38,7 +38,6 @@
 #include <sys/types.h>
 
 #include <bsm/audit.h>
-
 #include <err.h>
 #include <errno.h>
 #include <stdio.h>
@@ -60,27 +59,22 @@ priv_audit_submit_setup(int asroot, int injail, struct test *test)
 void
 priv_audit_submit(int asroot, int injail, struct test *test)
 {
-	char record[MAX_AUDIT_RECORD_SIZE+10];
+	char record[MAX_AUDIT_RECORD_SIZE + 10];
 	int error;
 
 	bzero(record, sizeof(record));
 	error = audit(record, sizeof(record));
 	if (asroot && injail)
-		expect("priv_audit_submit(asroot, injail)", error, -1,
-		    ENOSYS);
+		expect("priv_audit_submit(asroot, injail)", error, -1, ENOSYS);
 	if (asroot && !injail)
-		expect("priv_audit_submit(asroot, !injail)", error, -1,
-		    EINVAL);
+		expect("priv_audit_submit(asroot, !injail)", error, -1, EINVAL);
 	if (!asroot && injail)
-		expect("priv_audit_submit(!asroot, injail)", error, -1,
-		    ENOSYS);
+		expect("priv_audit_submit(!asroot, injail)", error, -1, ENOSYS);
 	if (!asroot && !injail)
-		expect("priv_audit_submit(!asroot, !injail)", error, -1,
-		    EPERM);
+		expect("priv_audit_submit(!asroot, !injail)", error, -1, EPERM);
 }
 
 void
 priv_audit_submit_cleanup(int asroot, int injail, struct test *test)
 {
-
 }

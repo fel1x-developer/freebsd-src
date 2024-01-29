@@ -32,19 +32,19 @@
 #define _SYS_MSAN_H_
 
 #ifdef KMSAN
-#include <sys/_bus_dma.h>
 #include <sys/types.h>
+#include <sys/_bus_dma.h>
 
-#define KMSAN_STATE_UNINIT	0xFF
-#define KMSAN_STATE_INITED	0x00
+#define KMSAN_STATE_UNINIT 0xFF
+#define KMSAN_STATE_INITED 0x00
 
-#define KMSAN_TYPE_STACK	0
-#define KMSAN_TYPE_KMEM		1
-#define KMSAN_TYPE_MALLOC	2
-#define KMSAN_TYPE_UMA		3
-#define KMSAN_TYPE_MAX		3
+#define KMSAN_TYPE_STACK 0
+#define KMSAN_TYPE_KMEM 1
+#define KMSAN_TYPE_MALLOC 2
+#define KMSAN_TYPE_UMA 3
+#define KMSAN_TYPE_MAX 3
 
-#define KMSAN_RET_ADDR		(uintptr_t)__builtin_return_address(0)
+#define KMSAN_RET_ADDR (uintptr_t) __builtin_return_address(0)
 
 union ccb;
 struct bio;
@@ -88,7 +88,7 @@ void kmsan_check_uio(const struct uio *, const char *);
 #define kmsan_check_ccb(c, d)
 #define kmsan_check_mbuf(m, d)
 #define kmsan_check_uio(u, d)
-#define	kmsan_bus_dmamap_sync(d, op)
+#define kmsan_bus_dmamap_sync(d, op)
 #endif
 
 #endif /* !_SYS_MSAN_H_ */

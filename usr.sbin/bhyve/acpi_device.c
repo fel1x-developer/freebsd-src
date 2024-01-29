@@ -38,7 +38,7 @@ struct acpi_resource_list_entry {
  * @param vm_ctx VM context the ACPI device was created in.
  * @param softc  A pointer to the software context of the ACPI device.
  * @param emul   Device emulation struct. It contains some information like the
-                 name of the ACPI device and some device specific functions.
+		 name of the ACPI device and some device specific functions.
  * @param crs    Current resources used by the ACPI device.
  */
 struct acpi_device {
@@ -164,7 +164,7 @@ static int
 acpi_device_write_dsdt_crs(const struct acpi_device *const dev)
 {
 	const struct acpi_resource_list_entry *res;
-	SLIST_FOREACH(res, &dev->crs, chain) {
+	SLIST_FOREACH (res, &dev->crs, chain) {
 		switch (res->type) {
 		case ACPI_RESOURCE_TYPE_FIXED_IO:
 			dsdt_fixed_ioport(res->data.FixedIo.Address,

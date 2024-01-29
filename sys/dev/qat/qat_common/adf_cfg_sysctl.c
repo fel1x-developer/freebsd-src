@@ -1,15 +1,16 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
 #include <sys/types.h>
-#include <sys/sysctl.h>
 #include <sys/systm.h>
-#include "adf_accel_devices.h"
-#include "adf_cfg.h"
-#include "adf_cfg_sysctl.h"
-#include "adf_cfg_device.h"
-#include "adf_common_drv.h"
 #include <sys/mutex.h>
 #include <sys/sbuf.h>
+#include <sys/sysctl.h>
+
+#include "adf_accel_devices.h"
+#include "adf_cfg.h"
+#include "adf_cfg_device.h"
+#include "adf_cfg_sysctl.h"
+#include "adf_common_drv.h"
 
 #define ADF_CFG_SYSCTL_BUF_SZ ADF_CFG_MAX_VAL
 #define ADF_CFG_UP_STR "up"
@@ -24,8 +25,7 @@ adf_cfg_down(struct adf_accel_dev *accel_dev)
 
 	if (!adf_dev_started(accel_dev)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Device qat_dev%d already down\n",
-			      accel_dev->accel_id);
+		    "Device qat_dev%d already down\n", accel_dev->accel_id);
 		return 0;
 	}
 
@@ -35,9 +35,8 @@ adf_cfg_down(struct adf_accel_dev *accel_dev)
 	}
 
 	if (adf_dev_stop(accel_dev)) {
-		device_printf(GET_DEV(accel_dev),
-			      "Failed to stop qat_dev%d\n",
-			      accel_dev->accel_id);
+		device_printf(GET_DEV(accel_dev), "Failed to stop qat_dev%d\n",
+		    accel_dev->accel_id);
 		ret = EFAULT;
 		goto out;
 	}
@@ -61,9 +60,8 @@ adf_cfg_up(struct adf_accel_dev *accel_dev)
 
 	ret = accel_dev->hw_device->config_device(accel_dev);
 	if (ret) {
-		device_printf(GET_DEV(accel_dev),
-			      "Failed to start qat_dev%d\n",
-			      accel_dev->accel_id);
+		device_printf(GET_DEV(accel_dev), "Failed to start qat_dev%d\n",
+		    accel_dev->accel_id);
 		return ret;
 	}
 
@@ -72,9 +70,8 @@ adf_cfg_up(struct adf_accel_dev *accel_dev)
 		ret = adf_dev_start(accel_dev);
 
 	if (ret) {
-		device_printf(GET_DEV(accel_dev),
-			      "Failed to start qat_dev%d\n",
-			      accel_dev->accel_id);
+		device_printf(GET_DEV(accel_dev), "Failed to start qat_dev%d\n",
+		    accel_dev->accel_id);
 		adf_dev_stop(accel_dev);
 		adf_dev_shutdown(accel_dev);
 	}
@@ -91,12 +88,13 @@ adf_cfg_up(struct adf_accel_dev *accel_dev)
 	return 0;
 }
 
-static const char *const cfg_serv[] =
-    { "sym;asym", "sym", "asym", "dc", "sym;dc", "asym;dc", "cy", "cy;dc" };
+static const char *const cfg_serv[] = { "sym;asym", "sym", "asym", "dc",
+	"sym;dc", "asym;dc", "cy", "cy;dc" };
 
 static const char *const cfg_mode[] = { "ks;us", "us", "ks" };
 
-static int adf_cfg_sysctl_services_handle(SYSCTL_HANDLER_ARGS)
+static int
+adf_cfg_sysctl_services_handle(SYSCTL_HANDLER_ARGS)
 {
 	struct adf_cfg_device_data *dev_cfg_data;
 	struct adf_accel_dev *accel_dev;
@@ -121,8 +119,7 @@ static int adf_cfg_sysctl_services_handle(SYSCTL_HANDLER_ARGS)
 
 	/* Handle config change */
 	if (adf_dev_started(accel_dev)) {
-		device_printf(
-		    GET_DEV(accel_dev),
+		device_printf(GET_DEV(accel_dev),
 		    "QAT: configuration could be changed in down state only\n");
 		return EINVAL;
 	}
@@ -131,23 +128,23 @@ static int adf_cfg_sysctl_services_handle(SYSCTL_HANDLER_ARGS)
 
 	for (i = 0; i < ARRAY_SIZE(cfg_serv); i++) {
 		if ((len > 0 && strncasecmp(cfg_serv[i], buf, len) == 0)) {
-			strlcpy(dev_cfg_data->cfg_services,
-				buf,
-				ADF_CFG_MAX_VAL);
+			strlcpy(dev_cfg_data->cfg_services, buf,
+			    ADF_CFG_MAX_VAL);
 			break;
 		}
 	}
 
 	if (i == ARRAY_SIZE(cfg_serv)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Unknown service configuration\n");
+		    "Unknown service configuration\n");
 		ret = EINVAL;
 	}
 
 	return ret;
 }
 
-static int adf_cfg_sysctl_mode_handle(SYSCTL_HANDLER_ARGS)
+static int
+adf_cfg_sysctl_mode_handle(SYSCTL_HANDLER_ARGS)
 {
 	struct adf_cfg_device_data *dev_cfg_data;
 	struct adf_accel_dev *accel_dev;
@@ -172,8 +169,7 @@ static int adf_cfg_sysctl_mode_handle(SYSCTL_HANDLER_ARGS)
 
 	/* Handle config change */
 	if (adf_dev_started(accel_dev)) {
-		device_printf(
-		    GET_DEV(accel_dev),
+		device_printf(GET_DEV(accel_dev),
 		    "QAT: configuration could be changed in down state only\n");
 		return EBUSY;
 	}
@@ -189,14 +185,15 @@ static int adf_cfg_sysctl_mode_handle(SYSCTL_HANDLER_ARGS)
 
 	if (i == ARRAY_SIZE(cfg_mode)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Unknown configuration mode\n");
+		    "Unknown configuration mode\n");
 		ret = EINVAL;
 	}
 
 	return ret;
 }
 
-static int adf_cfg_sysctl_handle(SYSCTL_HANDLER_ARGS)
+static int
+adf_cfg_sysctl_handle(SYSCTL_HANDLER_ARGS)
 {
 	struct adf_cfg_device_data *dev_cfg_data;
 	struct adf_accel_dev *accel_dev;
@@ -238,7 +235,8 @@ static int adf_cfg_sysctl_handle(SYSCTL_HANDLER_ARGS)
 	return ret;
 }
 
-static int adf_cfg_sysctl_num_processes_handle(SYSCTL_HANDLER_ARGS)
+static int
+adf_cfg_sysctl_num_processes_handle(SYSCTL_HANDLER_ARGS)
 {
 	struct adf_cfg_device_data *dev_cfg_data;
 	struct adf_accel_dev *accel_dev;
@@ -260,8 +258,7 @@ static int adf_cfg_sysctl_num_processes_handle(SYSCTL_HANDLER_ARGS)
 		return ret;
 
 	if (adf_dev_started(accel_dev)) {
-		device_printf(
-		    GET_DEV(accel_dev),
+		device_printf(GET_DEV(accel_dev),
 		    "QAT: configuration could be changed in down state only\n");
 		return EBUSY;
 	}
@@ -284,54 +281,30 @@ adf_cfg_sysctl_add(struct adf_accel_dev *accel_dev)
 	if (!accel_dev)
 		return EINVAL;
 
-	qat_sysctl_ctx =
-	    device_get_sysctl_ctx(accel_dev->accel_pci_dev.pci_dev);
-	qat_sysctl_tree =
-	    device_get_sysctl_tree(accel_dev->accel_pci_dev.pci_dev);
+	qat_sysctl_ctx = device_get_sysctl_ctx(
+	    accel_dev->accel_pci_dev.pci_dev);
+	qat_sysctl_tree = device_get_sysctl_tree(
+	    accel_dev->accel_pci_dev.pci_dev);
 
-	SYSCTL_ADD_PROC(qat_sysctl_ctx,
-			SYSCTL_CHILDREN(qat_sysctl_tree),
-			OID_AUTO,
-			"state",
-			CTLTYPE_STRING | CTLFLAG_RW | CTLFLAG_NEEDGIANT,
-			accel_dev,
-			0,
-			adf_cfg_sysctl_handle,
-			"A",
-			"QAT State");
+	SYSCTL_ADD_PROC(qat_sysctl_ctx, SYSCTL_CHILDREN(qat_sysctl_tree),
+	    OID_AUTO, "state", CTLTYPE_STRING | CTLFLAG_RW | CTLFLAG_NEEDGIANT,
+	    accel_dev, 0, adf_cfg_sysctl_handle, "A", "QAT State");
 
-	SYSCTL_ADD_PROC(qat_sysctl_ctx,
-			SYSCTL_CHILDREN(qat_sysctl_tree),
-			OID_AUTO,
-			"cfg_services",
-			CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_NEEDGIANT,
-			accel_dev,
-			0,
-			adf_cfg_sysctl_services_handle,
-			"A",
-			"QAT services confguration");
+	SYSCTL_ADD_PROC(qat_sysctl_ctx, SYSCTL_CHILDREN(qat_sysctl_tree),
+	    OID_AUTO, "cfg_services",
+	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_NEEDGIANT, accel_dev, 0,
+	    adf_cfg_sysctl_services_handle, "A", "QAT services confguration");
 
-	SYSCTL_ADD_PROC(qat_sysctl_ctx,
-			SYSCTL_CHILDREN(qat_sysctl_tree),
-			OID_AUTO,
-			"cfg_mode",
-			CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_NEEDGIANT,
-			accel_dev,
-			0,
-			adf_cfg_sysctl_mode_handle,
-			"A",
-			"QAT mode configuration");
+	SYSCTL_ADD_PROC(qat_sysctl_ctx, SYSCTL_CHILDREN(qat_sysctl_tree),
+	    OID_AUTO, "cfg_mode",
+	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_NEEDGIANT, accel_dev, 0,
+	    adf_cfg_sysctl_mode_handle, "A", "QAT mode configuration");
 
-	SYSCTL_ADD_PROC(qat_sysctl_ctx,
-			SYSCTL_CHILDREN(qat_sysctl_tree),
-			OID_AUTO,
-			"num_user_processes",
-			CTLTYPE_U32 | CTLFLAG_RWTUN | CTLFLAG_NEEDGIANT,
-			accel_dev,
-			0,
-			adf_cfg_sysctl_num_processes_handle,
-			"I",
-			"QAT user processes number ");
+	SYSCTL_ADD_PROC(qat_sysctl_ctx, SYSCTL_CHILDREN(qat_sysctl_tree),
+	    OID_AUTO, "num_user_processes",
+	    CTLTYPE_U32 | CTLFLAG_RWTUN | CTLFLAG_NEEDGIANT, accel_dev, 0,
+	    adf_cfg_sysctl_num_processes_handle, "I",
+	    "QAT user processes number ");
 
 	return 0;
 }

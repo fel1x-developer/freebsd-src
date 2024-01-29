@@ -22,13 +22,12 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "crt.h"
 
 typedef void (*crt_func)(void);
 
-static crt_func __JCR_END__[] __section(".jcr") __used = {
-	(crt_func)0
-};
+static crt_func __JCR_END__[] __section(".jcr") __used = { (crt_func)0 };
 
 #ifdef HAVE_CTORS
 
@@ -38,12 +37,8 @@ static crt_func __JCR_END__[] __section(".jcr") __used = {
  */
 static void __do_global_ctors_aux(void) __used;
 
-static crt_func __CTOR_END__[] __section(".ctors") __used = {
-	(crt_func)0
-};
-static crt_func __DTOR_END__[] __section(".dtors") __used = {
-	(crt_func)0
-};
+static crt_func __CTOR_END__[] __section(".ctors") __used = { (crt_func)0 };
+static crt_func __DTOR_END__[] __section(".dtors") __used = { (crt_func)0 };
 
 static void
 __do_global_ctors_aux(void)
@@ -59,9 +54,7 @@ __do_global_ctors_aux(void)
 	}
 }
 
-asm (
-    ".pushsection .init		\n"
+asm(".pushsection .init		\n"
     "\t" INIT_CALL_SEQ(__do_global_ctors_aux) "\n"
-    ".popsection		\n"
-);
+					      ".popsection		\n");
 #endif

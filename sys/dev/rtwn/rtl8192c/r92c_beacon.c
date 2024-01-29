@@ -14,39 +14,36 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/rtwn/if_rtwnvar.h>
-#include <dev/rtwn/if_rtwnreg.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <dev/rtwn/if_rtwn_ridx.h>
-
+#include <dev/rtwn/if_rtwnreg.h>
+#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/rtl8192c/r92c.h>
-#include <dev/rtwn/rtl8192c/r92c_var.h>
 #include <dev/rtwn/rtl8192c/r92c_reg.h>
 #include <dev/rtwn/rtl8192c/r92c_tx_desc.h>
+#include <dev/rtwn/rtl8192c/r92c_var.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 void
 r92c_beacon_init(struct rtwn_softc *sc, void *buf, int id)
@@ -58,8 +55,7 @@ r92c_beacon_init(struct rtwn_softc *sc, void *buf, int id)
 	 * QSEL_BEACON already implies it.
 	 */
 	txd->flags0 |= R92C_FLAGS0_BMCAST | R92C_FLAGS0_FSG | R92C_FLAGS0_LSG;
-	txd->txdw1 |= htole32(
-	    SM(R92C_TXDW1_QSEL, R92C_TXDW1_QSEL_BEACON) |
+	txd->txdw1 |= htole32(SM(R92C_TXDW1_QSEL, R92C_TXDW1_QSEL_BEACON) |
 	    SM(R92C_TXDW1_RAID, R92C_RAID_11B));
 
 	rtwn_r92c_tx_setup_macid(sc, buf, id);
@@ -74,10 +70,8 @@ r92c_beacon_enable(struct rtwn_softc *sc, int id, int enable)
 {
 
 	if (enable) {
-		rtwn_setbits_1(sc, R92C_BCN_CTRL(id),
-		    0, R92C_BCN_CTRL_EN_BCN);
+		rtwn_setbits_1(sc, R92C_BCN_CTRL(id), 0, R92C_BCN_CTRL_EN_BCN);
 	} else {
-		rtwn_setbits_1(sc, R92C_BCN_CTRL(id),
-		    R92C_BCN_CTRL_EN_BCN, 0);
+		rtwn_setbits_1(sc, R92C_BCN_CTRL(id), R92C_BCN_CTRL_EN_BCN, 0);
 	}
 }

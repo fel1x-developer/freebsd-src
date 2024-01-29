@@ -39,63 +39,59 @@
 
 /* This file is #included by gzip.c */
 
-static int	zread(void *, char *, int);
+static int zread(void *, char *, int);
 
-#define	tab_prefixof(i)	(zs->zs_codetab[i])
-#define	tab_suffixof(i)	((char_type *)(zs->zs_htab))[i]
-#define	de_stack	((char_type *)&tab_suffixof(1 << BITS))
+#define tab_prefixof(i) (zs->zs_codetab[i])
+#define tab_suffixof(i) ((char_type *)(zs->zs_htab))[i]
+#define de_stack ((char_type *)&tab_suffixof(1 << BITS))
 
-#define BITS		16		/* Default bits. */
-#define HSIZE		69001		/* 95% occupancy */ /* XXX may not need HSIZE */
-#define BIT_MASK	0x1f		/* Defines for third byte of header. */
-#define BLOCK_MASK	0x80
-#define CHECK_GAP	10000		/* Ratio check interval. */
-#define BUFSIZE		(64 * 1024)
+#define BITS 16				/* Default bits. */
+#define HSIZE 69001 /* 95% occupancy */ /* XXX may not need HSIZE */
+#define BIT_MASK 0x1f			/* Defines for third byte of header. */
+#define BLOCK_MASK 0x80
+#define CHECK_GAP 10000 /* Ratio check interval. */
+#define BUFSIZE (64 * 1024)
 
-/*                      
+/*
  * Masks 0x40 and 0x20 are free.  I think 0x20 should mean that there is
  * a fourth header byte (for expansion).
- */             
-#define INIT_BITS	9	/* Initial number of bits/code. */
+ */
+#define INIT_BITS 9 /* Initial number of bits/code. */
 
 /*
  * the next two codes should not be changed lightly, as they must not
  * lie within the contiguous general code space.
  */
-#define	FIRST	257		/* First free entry. */
-#define	CLEAR	256		/* Table clear output code. */
+#define FIRST 257 /* First free entry. */
+#define CLEAR 256 /* Table clear output code. */
 
+#define MAXCODE(n_bits) ((1 << (n_bits)) - 1)
 
-#define MAXCODE(n_bits)	((1 << (n_bits)) - 1)
+typedef long code_int;
+typedef long count_int;
+typedef u_char char_type;
 
-typedef long	code_int;
-typedef long	count_int;
-typedef u_char	char_type;
+static char_type magic_header[] = { '\037', '\235' }; /* 1F 9D */
 
-static char_type magic_header[] =
-	{'\037', '\235'};	/* 1F 9D */
-
-static char_type rmask[9] =
-	{0x00, 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f, 0xff};
+static char_type rmask[9] = { 0x00, 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f,
+	0xff };
 
 static off_t total_compressed_bytes;
 static size_t compressed_prelen;
 static char *compressed_pre;
 
 struct s_zstate {
-	FILE *zs_fp;			/* File stream for I/O */
-	char zs_mode;			/* r or w */
-	enum {
-		S_START, S_MIDDLE, S_EOF
-	} zs_state;			/* State of computation */
-	int zs_n_bits;			/* Number of bits/code. */
-	int zs_maxbits;			/* User settable max # bits/code. */
-	code_int zs_maxcode;		/* Maximum code, given n_bits. */
-	code_int zs_maxmaxcode;		/* Should NEVER generate this code. */
-	count_int zs_htab [HSIZE];
-	u_short zs_codetab [HSIZE];
-	code_int zs_hsize;		/* For dynamic table sizing. */
-	code_int zs_free_ent;		/* First unused entry. */
+	FILE *zs_fp;				    /* File stream for I/O */
+	char zs_mode;				    /* r or w */
+	enum { S_START, S_MIDDLE, S_EOF } zs_state; /* State of computation */
+	int zs_n_bits;				    /* Number of bits/code. */
+	int zs_maxbits;		/* User settable max # bits/code. */
+	code_int zs_maxcode;	/* Maximum code, given n_bits. */
+	code_int zs_maxmaxcode; /* Should NEVER generate this code. */
+	count_int zs_htab[HSIZE];
+	u_short zs_codetab[HSIZE];
+	code_int zs_hsize;    /* For dynamic table sizing. */
+	code_int zs_free_ent; /* First unused entry. */
 	/*
 	 * Block compression parameters -- after all codes are used up,
 	 * and compression rate changes, start over.
@@ -105,9 +101,9 @@ struct s_zstate {
 	long zs_ratio;
 	count_int zs_checkpoint;
 	int zs_offset;
-	long zs_in_count;		/* Length of input. */
-	long zs_bytes_out;		/* Length of compressed output. */
-	long zs_out_count;		/* # of codes output (for debugging). */
+	long zs_in_count;  /* Length of input. */
+	long zs_bytes_out; /* Length of compressed output. */
+	long zs_out_count; /* # of codes output (for debugging). */
 	char_type zs_buf[BITS];
 	union {
 		struct {
@@ -115,22 +111,22 @@ struct s_zstate {
 			code_int zs_ent;
 			code_int zs_hsize_reg;
 			int zs_hshift;
-		} w;			/* Write parameters */
+		} w; /* Write parameters */
 		struct {
 			char_type *zs_stackp;
 			int zs_finchar;
 			code_int zs_code, zs_oldcode, zs_incode;
 			int zs_roffset, zs_size;
 			char_type zs_gbuf[BITS];
-		} r;			/* Read parameters */
+		} r; /* Read parameters */
 	} u;
 };
 
-static code_int	getcode(struct s_zstate *zs);
+static code_int getcode(struct s_zstate *zs);
 
 static off_t
 zuncompress(FILE *in, FILE *out, char *pre, size_t prelen,
-	    off_t *compressed_bytes)
+    off_t *compressed_bytes)
 {
 	off_t bin, bout = 0;
 	char *buf;
@@ -180,14 +176,14 @@ zdopen(int fd)
 	zs->zs_state = S_START;
 
 	/* XXX we can get rid of some of these */
-	zs->zs_hsize = HSIZE;			/* For dynamic table sizing. */
-	zs->zs_free_ent = 0;			/* First unused entry. */
+	zs->zs_hsize = HSIZE; /* For dynamic table sizing. */
+	zs->zs_free_ent = 0;  /* First unused entry. */
 	zs->zs_block_compress = BLOCK_MASK;
-	zs->zs_clear_flg = 0;			/* XXX we calloc()'d this structure why = 0? */
+	zs->zs_clear_flg = 0; /* XXX we calloc()'d this structure why = 0? */
 	zs->zs_ratio = 0;
 	zs->zs_checkpoint = CHECK_GAP;
-	zs->zs_in_count = 1;			/* Length of input. */
-	zs->zs_out_count = 0;			/* # of codes output (for debugging). */
+	zs->zs_in_count = 1;  /* Length of input. */
+	zs->zs_out_count = 0; /* # of codes output (for debugging). */
 	zs->u.r.zs_roffset = 0;
 	zs->u.r.zs_size = 0;
 
@@ -233,17 +229,17 @@ zread(void *cookie, char *rbp, int num)
 	}
 
 	/* Check the magic number */
-	for (i = 0; i < 3 && compressed_prelen; i++, compressed_prelen--)  
+	for (i = 0; i < 3 && compressed_prelen; i++, compressed_prelen--)
 		header[i] = *compressed_pre++;
 
 	if (fread(header + i, 1, sizeof(header) - i, zs->zs_fp) !=
-		  sizeof(header) - i ||
+		sizeof(header) - i ||
 	    memcmp(header, magic_header, sizeof(magic_header)) != 0) {
 		errno = EFTYPE;
 		return (-1);
 	}
 	total_compressed_bytes = 0;
-	zs->zs_maxbits = header[2];	/* Set -b from file. */
+	zs->zs_maxbits = header[2]; /* Set -b from file. */
 	zs->zs_block_compress = zs->zs_maxbits & BLOCK_MASK;
 	zs->zs_maxbits &= BIT_MASK;
 	zs->zs_maxmaxcode = 1L << zs->zs_maxbits;
@@ -255,7 +251,7 @@ zread(void *cookie, char *rbp, int num)
 	zs->zs_maxcode = MAXCODE(zs->zs_n_bits = INIT_BITS);
 	for (zs->u.r.zs_code = 255; zs->u.r.zs_code >= 0; zs->u.r.zs_code--) {
 		tab_prefixof(zs->u.r.zs_code) = 0;
-		tab_suffixof(zs->u.r.zs_code) = (char_type) zs->u.r.zs_code;
+		tab_suffixof(zs->u.r.zs_code) = (char_type)zs->u.r.zs_code;
 	}
 	zs->zs_free_ent = zs->zs_block_compress ? FIRST : 256;
 
@@ -266,7 +262,7 @@ zread(void *cookie, char *rbp, int num)
 
 		if ((zs->u.r.zs_code == CLEAR) && zs->zs_block_compress) {
 			for (zs->u.r.zs_code = 255; zs->u.r.zs_code >= 0;
-			    zs->u.r.zs_code--)
+			     zs->u.r.zs_code--)
 				tab_prefixof(zs->u.r.zs_code) = 0;
 			zs->zs_clear_flg = 1;
 			zs->zs_free_ent = FIRST;
@@ -298,10 +294,12 @@ zread(void *cookie, char *rbp, int num)
 			*zs->u.r.zs_stackp++ = tab_suffixof(zs->u.r.zs_code);
 			zs->u.r.zs_code = tab_prefixof(zs->u.r.zs_code);
 		}
-		*zs->u.r.zs_stackp++ = zs->u.r.zs_finchar = tab_suffixof(zs->u.r.zs_code);
+		*zs->u.r.zs_stackp++ = zs->u.r.zs_finchar = tab_suffixof(
+		    zs->u.r.zs_code);
 
 		/* And put them out in forward order.  */
-middle:		do {
+	middle:
+		do {
 			if (count-- == 0)
 				return (num);
 			*bp++ = *--zs->u.r.zs_stackp;
@@ -310,7 +308,8 @@ middle:		do {
 		/* Generate the new entry. */
 		if ((zs->u.r.zs_code = zs->zs_free_ent) < zs->zs_maxmaxcode &&
 		    zs->u.r.zs_oldcode != -1) {
-			tab_prefixof(zs->u.r.zs_code) = (u_short) zs->u.r.zs_oldcode;
+			tab_prefixof(
+			    zs->u.r.zs_code) = (u_short)zs->u.r.zs_oldcode;
 			tab_suffixof(zs->u.r.zs_code) = zs->u.r.zs_finchar;
 			zs->zs_free_ent = zs->u.r.zs_code + 1;
 		}
@@ -319,7 +318,8 @@ middle:		do {
 		zs->u.r.zs_oldcode = zs->u.r.zs_incode;
 	}
 	zs->zs_state = S_EOF;
-eof:	return (num - count);
+eof:
+	return (num - count);
 }
 
 /*-
@@ -346,7 +346,8 @@ getcode(struct s_zstate *zs)
 		 */
 		if (zs->zs_free_ent > zs->zs_maxcode) {
 			zs->zs_n_bits++;
-			if (zs->zs_n_bits == zs->zs_maxbits)	/* Won't get any bigger now. */
+			if (zs->zs_n_bits ==
+			    zs->zs_maxbits) /* Won't get any bigger now. */
 				zs->zs_maxcode = zs->zs_maxmaxcode;
 			else
 				zs->zs_maxcode = MAXCODE(zs->zs_n_bits);
@@ -356,11 +357,13 @@ getcode(struct s_zstate *zs)
 			zs->zs_clear_flg = 0;
 		}
 		/* XXX */
-		for (i = 0; i < zs->zs_n_bits && compressed_prelen; i++, compressed_prelen--)  
+		for (i = 0; i < zs->zs_n_bits && compressed_prelen;
+		     i++, compressed_prelen--)
 			zs->u.r.zs_gbuf[i] = *compressed_pre++;
-		zs->u.r.zs_size = fread(zs->u.r.zs_gbuf + i, 1, zs->zs_n_bits - i, zs->zs_fp);
+		zs->u.r.zs_size = fread(zs->u.r.zs_gbuf + i, 1,
+		    zs->zs_n_bits - i, zs->zs_fp);
 		zs->u.r.zs_size += i;
-		if (zs->u.r.zs_size <= 0)			/* End of file. */
+		if (zs->u.r.zs_size <= 0) /* End of file. */
 			return (-1);
 		zs->u.r.zs_roffset = 0;
 
@@ -379,7 +382,7 @@ getcode(struct s_zstate *zs)
 	/* Get first part (low order bits). */
 	gcode = (*bp++ >> r_off);
 	bits -= (8 - r_off);
-	r_off = 8 - r_off;	/* Now, roffset into gcode word. */
+	r_off = 8 - r_off; /* Now, roffset into gcode word. */
 
 	/* Get any 8 bit parts in the middle (<=1 for up to 16 bits). */
 	if (bits >= 8) {
@@ -394,4 +397,3 @@ getcode(struct s_zstate *zs)
 
 	return (gcode);
 }
-

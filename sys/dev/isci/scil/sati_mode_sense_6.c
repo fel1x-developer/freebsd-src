@@ -61,13 +61,13 @@
 
 #if !defined(DISABLE_SATI_MODE_SENSE)
 
+#include <dev/isci/scil/intel_ata.h>
+#include <dev/isci/scil/intel_scsi.h>
+#include <dev/isci/scil/sati_callbacks.h>
+#include <dev/isci/scil/sati_mode_pages.h>
 #include <dev/isci/scil/sati_mode_sense.h>
 #include <dev/isci/scil/sati_mode_sense_6.h>
-#include <dev/isci/scil/sati_mode_pages.h>
-#include <dev/isci/scil/sati_callbacks.h>
 #include <dev/isci/scil/sati_util.h>
-#include <dev/isci/scil/intel_scsi.h>
-#include <dev/isci/scil/intel_ata.h>
 
 //******************************************************************************
 //* P R I V A T E   M E T H O D S
@@ -88,38 +88,35 @@
  * @return This method returns the number of bytes written into the
  *         data buffer.
  */
-static
-U32 sati_mode_sense_6_build_header(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   ATA_IDENTIFY_DEVICE_DATA_T * identify,
-   U8                           mode_data_length
-)
+static U32
+sati_mode_sense_6_build_header(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, ATA_IDENTIFY_DEVICE_DATA_T *identify, U8 mode_data_length)
 {
-   U8 * cdb = sati_cb_get_cdb_address(scsi_io);
+	U8 *cdb = sati_cb_get_cdb_address(scsi_io);
 
-   // Fill in the length of the mode parameter data returned (do not include
-   // the size of the mode data length field in the total).
-   sati_set_data_byte(sequence, scsi_io, 0, (U8)mode_data_length-1);
+	// Fill in the length of the mode parameter data returned (do not
+	// include the size of the mode data length field in the total).
+	sati_set_data_byte(sequence, scsi_io, 0, (U8)mode_data_length - 1);
 
-   // Medium Type is 0 for SBC devices
-   sati_set_data_byte(sequence, scsi_io, 1, SCSI_MODE_HEADER_MEDIUM_TYPE_SBC);
+	// Medium Type is 0 for SBC devices
+	sati_set_data_byte(sequence, scsi_io, 1,
+	    SCSI_MODE_HEADER_MEDIUM_TYPE_SBC);
 
-   // Write Protect (WP), Rsvd, DPOFUA, Rsvd
-   if (sequence->device->capabilities & SATI_DEVICE_CAP_DMA_FUA_ENABLE)
-      sati_set_data_byte(sequence,scsi_io,2,SCSI_MODE_SENSE_HEADER_FUA_ENABLE);
-   else
-      sati_set_data_byte(sequence, scsi_io, 2, 0);
+	// Write Protect (WP), Rsvd, DPOFUA, Rsvd
+	if (sequence->device->capabilities & SATI_DEVICE_CAP_DMA_FUA_ENABLE)
+		sati_set_data_byte(sequence, scsi_io, 2,
+		    SCSI_MODE_SENSE_HEADER_FUA_ENABLE);
+	else
+		sati_set_data_byte(sequence, scsi_io, 2, 0);
 
-   // Set the block descriptor length if block descriptors are utilized.
-   if (sati_get_cdb_byte(cdb, 1) & SCSI_MODE_SENSE_DBD_ENABLE)
-      sati_set_data_byte(sequence, scsi_io, 3, 0);
-   else
-      sati_set_data_byte(
-         sequence, scsi_io, 3, SCSI_MODE_SENSE_STD_BLOCK_DESCRIPTOR_LENGTH
-      );
+	// Set the block descriptor length if block descriptors are utilized.
+	if (sati_get_cdb_byte(cdb, 1) & SCSI_MODE_SENSE_DBD_ENABLE)
+		sati_set_data_byte(sequence, scsi_io, 3, 0);
+	else
+		sati_set_data_byte(sequence, scsi_io, 3,
+		    SCSI_MODE_SENSE_STD_BLOCK_DESCRIPTOR_LENGTH);
 
-   return SCSI_MODE_SENSE_6_HEADER_LENGTH;
+	return SCSI_MODE_SENSE_6_HEADER_LENGTH;
 }
 
 /**
@@ -137,29 +134,23 @@ U32 sati_mode_sense_6_build_header(
  * @return This method returns the number of bytes written into the user's
  *         mode page data buffer.
  */
-static
-U32 sati_mode_sense_6_translate_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   ATA_IDENTIFY_DEVICE_DATA_T * identify,
-   void                       * scsi_io,
-   U8                           transfer_length
-)
+static U32
+sati_mode_sense_6_translate_data(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    ATA_IDENTIFY_DEVICE_DATA_T *identify, void *scsi_io, U8 transfer_length)
 {
-   U8  * cdb = sati_cb_get_cdb_address(scsi_io);
-   U32   offset;
+	U8 *cdb = sati_cb_get_cdb_address(scsi_io);
+	U32 offset;
 
-   offset = sati_mode_sense_6_build_header(
-               sequence, scsi_io, identify, transfer_length
-            );
+	offset = sati_mode_sense_6_build_header(sequence, scsi_io, identify,
+	    transfer_length);
 
-   // Determine if the caller disabled block descriptors (DBD).  If not,
-   // then generate a block descriptor.
-   if ((sati_get_cdb_byte(cdb, 1) & SCSI_MODE_SENSE_DBD_ENABLE) == 0)
-      offset += sati_mode_sense_build_std_block_descriptor(
-                   sequence, scsi_io, identify, offset
-                );
+	// Determine if the caller disabled block descriptors (DBD).  If not,
+	// then generate a block descriptor.
+	if ((sati_get_cdb_byte(cdb, 1) & SCSI_MODE_SENSE_DBD_ENABLE) == 0)
+		offset += sati_mode_sense_build_std_block_descriptor(sequence,
+		    scsi_io, identify, offset);
 
-   return offset;
+	return offset;
 }
 
 //******************************************************************************
@@ -181,18 +172,16 @@ U32 sati_mode_sense_6_translate_data(
  *         sense data has been created as a result of something specified
  *         in the CDB.
  */
-SATI_STATUS sati_mode_sense_6_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-)
+SATI_STATUS
+sati_mode_sense_6_translate_command(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io)
 {
-   U8 * cdb = sati_cb_get_cdb_address(scsi_io);
+	U8 *cdb = sati_cb_get_cdb_address(scsi_io);
 
-   // Set the data length based on the allocation length field in the CDB.
-   sequence->allocation_length = sati_get_cdb_byte(cdb, 4);
+	// Set the data length based on the allocation length field in the CDB.
+	sequence->allocation_length = sati_get_cdb_byte(cdb, 4);
 
-   return sati_mode_sense_translate_command(sequence, scsi_io, ata_io, 6);
+	return sati_mode_sense_translate_command(sequence, scsi_io, ata_io, 6);
 }
 
 /**
@@ -206,23 +195,19 @@ SATI_STATUS sati_mode_sense_6_translate_command(
  *
  * @return none.
  */
-void sati_mode_sense_6_caching_translate_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * ata_input_data,
-   void                       * scsi_io
-)
+void
+sati_mode_sense_6_caching_translate_data(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *ata_input_data, void *scsi_io)
 {
-   ATA_IDENTIFY_DEVICE_DATA_T * identify = (ATA_IDENTIFY_DEVICE_DATA_T*)
-                                           ata_input_data;
-   U8   data_length = (U8) sati_mode_sense_calculate_page_header(scsi_io, 6)
-                           + SCSI_MODE_PAGE_08_LENGTH;
-   U32  page_offset = sati_mode_sense_6_translate_data(
-                         sequence, identify, scsi_io, data_length
-                      );
+	ATA_IDENTIFY_DEVICE_DATA_T *identify = (ATA_IDENTIFY_DEVICE_DATA_T *)
+	    ata_input_data;
+	U8 data_length = (U8)sati_mode_sense_calculate_page_header(scsi_io, 6) +
+	    SCSI_MODE_PAGE_08_LENGTH;
+	U32 page_offset = sati_mode_sense_6_translate_data(sequence, identify,
+	    scsi_io, data_length);
 
-   sati_mode_sense_caching_translate_data(
-      sequence, scsi_io, identify, page_offset
-   );
+	sati_mode_sense_caching_translate_data(sequence, scsi_io, identify,
+	    page_offset);
 }
 
 /**
@@ -236,157 +221,135 @@ void sati_mode_sense_6_caching_translate_data(
  *
  * @return none.
  */
-void sati_mode_sense_6_informational_excp_control_translate_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * ata_input_data,
-   void                       * scsi_io
-)
+void
+sati_mode_sense_6_informational_excp_control_translate_data(
+    SATI_TRANSLATOR_SEQUENCE_T *sequence, void *ata_input_data, void *scsi_io)
 {
-   ATA_IDENTIFY_DEVICE_DATA_T * identify = (ATA_IDENTIFY_DEVICE_DATA_T*)
-                                           ata_input_data;
-   U8   data_length = (U8) sati_mode_sense_calculate_page_header(scsi_io, 6)
-                           + SCSI_MODE_PAGE_1C_LENGTH;
-   U32  page_offset = sati_mode_sense_6_translate_data(
-                         sequence, identify, scsi_io, data_length
-                      );
+	ATA_IDENTIFY_DEVICE_DATA_T *identify = (ATA_IDENTIFY_DEVICE_DATA_T *)
+	    ata_input_data;
+	U8 data_length = (U8)sati_mode_sense_calculate_page_header(scsi_io, 6) +
+	    SCSI_MODE_PAGE_1C_LENGTH;
+	U32 page_offset = sati_mode_sense_6_translate_data(sequence, identify,
+	    scsi_io, data_length);
 
-   sati_mode_sense_informational_excp_control_translate_data(
-      sequence, scsi_io, identify, page_offset
-   );
+	sati_mode_sense_informational_excp_control_translate_data(sequence,
+	    scsi_io, identify, page_offset);
 }
 
 /**
-* @brief This method will perform data translation from the supplied ATA
-*        input data (i.e. an ATA IDENTIFY DEVICE block) into a DISCONNECT
-*        RECONNECT mode page format.  The data will be written
-*        into the user's mode page data buffer.  This function operates
-*        specifically for MODE SENSE 6 commands.
-*        For more information on the parameters passed to this method,
-*        please reference sati_translate_data().
-*
-* @return none.
-*/
-void sati_mode_sense_6_disconnect_reconnect_translate_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * ata_input_data,
-   void                       * scsi_io
-)
+ * @brief This method will perform data translation from the supplied ATA
+ *        input data (i.e. an ATA IDENTIFY DEVICE block) into a DISCONNECT
+ *        RECONNECT mode page format.  The data will be written
+ *        into the user's mode page data buffer.  This function operates
+ *        specifically for MODE SENSE 6 commands.
+ *        For more information on the parameters passed to this method,
+ *        please reference sati_translate_data().
+ *
+ * @return none.
+ */
+void
+sati_mode_sense_6_disconnect_reconnect_translate_data(
+    SATI_TRANSLATOR_SEQUENCE_T *sequence, void *ata_input_data, void *scsi_io)
 {
-   ATA_IDENTIFY_DEVICE_DATA_T * identify = (ATA_IDENTIFY_DEVICE_DATA_T*)
-      ata_input_data;
+	ATA_IDENTIFY_DEVICE_DATA_T *identify = (ATA_IDENTIFY_DEVICE_DATA_T *)
+	    ata_input_data;
 
-   U8   data_length = (U8) sati_mode_sense_calculate_page_header(scsi_io, 6)
-      + SCSI_MODE_PAGE_02_LENGTH ;
+	U8 data_length = (U8)sati_mode_sense_calculate_page_header(scsi_io, 6) +
+	    SCSI_MODE_PAGE_02_LENGTH;
 
-   U32  page_offset = sati_mode_sense_6_translate_data(
-                         sequence, identify, scsi_io, data_length
-                      );
+	U32 page_offset = sati_mode_sense_6_translate_data(sequence, identify,
+	    scsi_io, data_length);
 
-   sati_mode_sense_disconnect_reconnect_translate_data(
-      sequence, scsi_io, identify, page_offset
-   );
+	sati_mode_sense_disconnect_reconnect_translate_data(sequence, scsi_io,
+	    identify, page_offset);
 }
 
 /**
-* @brief This method will perform data translation from the supplied ATA
-*        input data (i.e. an ATA IDENTIFY DEVICE block) into a READ WRITE ERROR
-*        mode page format.  The data will be written
-*        into the user's mode page data buffer.  This function operates
-*        specifically for MODE SENSE 6 commands.
-*        For more information on the parameters passed to this method,
-*        please reference sati_translate_data().
-*
-* @return none.
-*/
-void sati_mode_sense_6_read_write_error_translate_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * ata_input_data,
-   void                       * scsi_io
-)
+ * @brief This method will perform data translation from the supplied ATA
+ *        input data (i.e. an ATA IDENTIFY DEVICE block) into a READ WRITE ERROR
+ *        mode page format.  The data will be written
+ *        into the user's mode page data buffer.  This function operates
+ *        specifically for MODE SENSE 6 commands.
+ *        For more information on the parameters passed to this method,
+ *        please reference sati_translate_data().
+ *
+ * @return none.
+ */
+void
+sati_mode_sense_6_read_write_error_translate_data(
+    SATI_TRANSLATOR_SEQUENCE_T *sequence, void *ata_input_data, void *scsi_io)
 {
-   ATA_IDENTIFY_DEVICE_DATA_T * identify = (ATA_IDENTIFY_DEVICE_DATA_T*)
-      ata_input_data;
+	ATA_IDENTIFY_DEVICE_DATA_T *identify = (ATA_IDENTIFY_DEVICE_DATA_T *)
+	    ata_input_data;
 
-   U8   data_length = (U8) sati_mode_sense_calculate_page_header(scsi_io, 6)
-      + SCSI_MODE_PAGE_01_LENGTH;
+	U8 data_length = (U8)sati_mode_sense_calculate_page_header(scsi_io, 6) +
+	    SCSI_MODE_PAGE_01_LENGTH;
 
-   U32  page_offset = sati_mode_sense_6_translate_data(
-                         sequence, identify, scsi_io, data_length
-                      );
+	U32 page_offset = sati_mode_sense_6_translate_data(sequence, identify,
+	    scsi_io, data_length);
 
-   sati_mode_sense_read_write_error_translate_data(
-      sequence, scsi_io, identify, page_offset
-   );
+	sati_mode_sense_read_write_error_translate_data(sequence, scsi_io,
+	    identify, page_offset);
 }
 
 /**
-* @brief This method will perform data translation from the supplied ATA
-*        input data (i.e. an ATA IDENTIFY DEVICE block) into a CONTROL
-*        mode page format.  The data will be written
-*        into the user's mode page data buffer.  This function operates
-*        specifically for MODE SENSE 6 commands.
-*        For more information on the parameters passed to this method,
-*        please reference sati_translate_data().
-*
-* @return none.
-*/
-void sati_mode_sense_6_control_translate_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * ata_input_data,
-   void                       * scsi_io
-)
+ * @brief This method will perform data translation from the supplied ATA
+ *        input data (i.e. an ATA IDENTIFY DEVICE block) into a CONTROL
+ *        mode page format.  The data will be written
+ *        into the user's mode page data buffer.  This function operates
+ *        specifically for MODE SENSE 6 commands.
+ *        For more information on the parameters passed to this method,
+ *        please reference sati_translate_data().
+ *
+ * @return none.
+ */
+void
+sati_mode_sense_6_control_translate_data(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *ata_input_data, void *scsi_io)
 {
-   ATA_IDENTIFY_DEVICE_DATA_T * identify = (ATA_IDENTIFY_DEVICE_DATA_T*)
-      ata_input_data;
+	ATA_IDENTIFY_DEVICE_DATA_T *identify = (ATA_IDENTIFY_DEVICE_DATA_T *)
+	    ata_input_data;
 
-   U8   data_length = (U8) sati_mode_sense_calculate_page_header(scsi_io, 6)
-      + SCSI_MODE_PAGE_0A_LENGTH;
+	U8 data_length = (U8)sati_mode_sense_calculate_page_header(scsi_io, 6) +
+	    SCSI_MODE_PAGE_0A_LENGTH;
 
-   U32  page_offset = sati_mode_sense_6_translate_data(
-                         sequence, identify, scsi_io, data_length
-                      );
+	U32 page_offset = sati_mode_sense_6_translate_data(sequence, identify,
+	    scsi_io, data_length);
 
-   sati_mode_sense_control_translate_data(
-      sequence, scsi_io, identify, page_offset
-   );
+	sati_mode_sense_control_translate_data(sequence, scsi_io, identify,
+	    page_offset);
 }
 
 /**
-* @brief This method will perform data translation from the supplied ATA
-*        input data (i.e. an ATA IDENTIFY DEVICE block) into a Power
-*        Condition mode page format.  The data will be written
-*        into the user's mode page data buffer.  This function operates
-*        specifically for MODE SENSE 6 commands.
-*        For more information on the parameters passed to this method,
-*        please reference sati_translate_data().
-*
-* @return none.
-*/
-void sati_mode_sense_6_power_condition_translate_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * ata_input_data,
-   void                       * scsi_io
-)
+ * @brief This method will perform data translation from the supplied ATA
+ *        input data (i.e. an ATA IDENTIFY DEVICE block) into a Power
+ *        Condition mode page format.  The data will be written
+ *        into the user's mode page data buffer.  This function operates
+ *        specifically for MODE SENSE 6 commands.
+ *        For more information on the parameters passed to this method,
+ *        please reference sati_translate_data().
+ *
+ * @return none.
+ */
+void
+sati_mode_sense_6_power_condition_translate_data(
+    SATI_TRANSLATOR_SEQUENCE_T *sequence, void *ata_input_data, void *scsi_io)
 {
-   ATA_IDENTIFY_DEVICE_DATA_T * identify = (ATA_IDENTIFY_DEVICE_DATA_T*)
-      ata_input_data;
+	ATA_IDENTIFY_DEVICE_DATA_T *identify = (ATA_IDENTIFY_DEVICE_DATA_T *)
+	    ata_input_data;
 
-   U8 data_length;
-   U32  page_offset;
+	U8 data_length;
+	U32 page_offset;
 
-   data_length = (U8) sati_mode_sense_calculate_page_header(scsi_io, 6)
-         + SCSI_MODE_PAGE_1A_LENGTH;
+	data_length = (U8)sati_mode_sense_calculate_page_header(scsi_io, 6) +
+	    SCSI_MODE_PAGE_1A_LENGTH;
 
-   page_offset = sati_mode_sense_6_translate_data(
-         sequence, identify, scsi_io, data_length
-   );
+	page_offset = sati_mode_sense_6_translate_data(sequence, identify,
+	    scsi_io, data_length);
 
-   sati_mode_sense_power_condition_translate_data(
-      sequence, scsi_io, identify, page_offset
-   );
+	sati_mode_sense_power_condition_translate_data(sequence, scsi_io,
+	    identify, page_offset);
 }
-
-
 
 /**
  * @brief This method will perform data translation from the supplied ATA
@@ -401,29 +364,22 @@ void sati_mode_sense_6_power_condition_translate_data(
  *
  * @return none.
  */
-void sati_mode_sense_6_all_pages_translate_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * ata_input_data,
-   void                       * scsi_io
-)
+void
+sati_mode_sense_6_all_pages_translate_data(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *ata_input_data, void *scsi_io)
 {
-   ATA_IDENTIFY_DEVICE_DATA_T * identify = (ATA_IDENTIFY_DEVICE_DATA_T*)
-                                           ata_input_data;
-   U8   data_length = (U8) sati_mode_sense_calculate_page_header(scsi_io, 6)
-                           + SCSI_MODE_PAGE_01_LENGTH
-                           + SCSI_MODE_PAGE_02_LENGTH
-                           + SCSI_MODE_PAGE_08_LENGTH
-                           + SCSI_MODE_PAGE_0A_LENGTH
-                           + SCSI_MODE_PAGE_1C_LENGTH;
+	ATA_IDENTIFY_DEVICE_DATA_T *identify = (ATA_IDENTIFY_DEVICE_DATA_T *)
+	    ata_input_data;
+	U8 data_length = (U8)sati_mode_sense_calculate_page_header(scsi_io, 6) +
+	    SCSI_MODE_PAGE_01_LENGTH + SCSI_MODE_PAGE_02_LENGTH +
+	    SCSI_MODE_PAGE_08_LENGTH + SCSI_MODE_PAGE_0A_LENGTH +
+	    SCSI_MODE_PAGE_1C_LENGTH;
 
-   U32  page_offset = sati_mode_sense_6_translate_data(
-                         sequence, identify, scsi_io, data_length
-                      );
+	U32 page_offset = sati_mode_sense_6_translate_data(sequence, identify,
+	    scsi_io, data_length);
 
-   sati_mode_sense_all_pages_translate_data(
-      sequence, scsi_io, identify, page_offset
-   );
+	sati_mode_sense_all_pages_translate_data(sequence, scsi_io, identify,
+	    page_offset);
 }
 
 #endif // !defined(DISABLE_SATI_MODE_SENSE)
-

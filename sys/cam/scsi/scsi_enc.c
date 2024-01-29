@@ -26,8 +26,11 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
+#include "opt_ses.h"
 
+#include <sys/types.h>
+#include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/conf.h>
 #include <sys/errno.h>
 #include <sys/fcntl.h>
@@ -40,10 +43,8 @@
 #include <sys/queue.h>
 #include <sys/sbuf.h>
 #include <sys/sx.h>
-#include <sys/sysent.h>
-#include <sys/systm.h>
 #include <sys/sysctl.h>
-#include <sys/types.h>
+#include <sys/sysent.h>
 
 #include <machine/stdarg.h>
 
@@ -52,25 +53,22 @@
 #include <cam/cam_debug.h>
 #include <cam/cam_periph.h>
 #include <cam/cam_xpt_periph.h>
-
 #include <cam/scsi/scsi_all.h>
-#include <cam/scsi/scsi_message.h>
 #include <cam/scsi/scsi_enc.h>
 #include <cam/scsi/scsi_enc_internal.h>
-
-#include "opt_ses.h"
+#include <cam/scsi/scsi_message.h>
 
 MALLOC_DEFINE(M_SCSIENC, "SCSI ENC", "SCSI ENC buffers");
 
 /* Enclosure type independent driver */
 
-static	d_open_t	enc_open;
-static	d_close_t	enc_close;
-static	d_ioctl_t	enc_ioctl;
-static	periph_init_t	enc_init;
-static  periph_ctor_t	enc_ctor;
-static	periph_oninv_t	enc_oninvalidate;
-static  periph_dtor_t   enc_dtor;
+static d_open_t enc_open;
+static d_close_t enc_close;
+static d_ioctl_t enc_ioctl;
+static periph_init_t enc_init;
+static periph_ctor_t enc_ctor;
+static periph_oninv_t enc_oninvalidate;
+static periph_dtor_t enc_dtor;
 
 static void enc_async(void *, uint32_t, struct cam_path *, void *);
 static enctyp enc_type(struct ccb_getdev *);
@@ -83,26 +81,24 @@ int enc_verbose = 1;
 #else
 int enc_verbose = 0;
 #endif
-SYSCTL_INT(_kern_cam_enc, OID_AUTO, verbose, CTLFLAG_RWTUN,
-           &enc_verbose, 0, "Enable verbose logging");
+SYSCTL_INT(_kern_cam_enc, OID_AUTO, verbose, CTLFLAG_RWTUN, &enc_verbose, 0,
+    "Enable verbose logging");
 
 const char *elm_type_names[] = ELM_TYPE_NAMES;
 CTASSERT(nitems(elm_type_names) - 1 == ELMTYP_LAST);
 
-static struct periph_driver encdriver = {
-	enc_init, "ses",
-	TAILQ_HEAD_INITIALIZER(encdriver.units), /* generation */ 0
-};
+static struct periph_driver encdriver = { enc_init, "ses",
+	TAILQ_HEAD_INITIALIZER(encdriver.units), /* generation */ 0 };
 
 PERIPHDRIVER_DECLARE(enc, encdriver);
 
 static struct cdevsw enc_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_open =	enc_open,
-	.d_close =	enc_close,
-	.d_ioctl =	enc_ioctl,
-	.d_name =	"ses",
-	.d_flags =	D_TRACKCLOSE,
+	.d_version = D_VERSION,
+	.d_open = enc_open,
+	.d_close = enc_close,
+	.d_ioctl = enc_ioctl,
+	.d_name = "ses",
+	.d_flags = D_TRACKCLOSE,
 };
 
 static void
@@ -118,7 +114,8 @@ enc_init(void)
 
 	if (status != CAM_REQ_CMP) {
 		printf("enc: Failed to attach master async callback "
-		       "due to status 0x%x!\n", status);
+		       "due to status 0x%x!\n",
+		    status);
 	}
 }
 
@@ -126,7 +123,7 @@ static void
 enc_devgonecb(void *arg)
 {
 	struct cam_periph *periph;
-	struct enc_softc  *enc;
+	struct enc_softc *enc;
 	struct mtx *mtx;
 	int i;
 
@@ -214,9 +211,8 @@ enc_async(void *callback_arg, uint32_t code, struct cam_path *path, void *arg)
 
 	periph = (struct cam_periph *)callback_arg;
 
-	switch(code) {
-	case AC_FOUND_DEVICE:
-	{
+	switch (code) {
+	case AC_FOUND_DEVICE: {
 		struct ccb_getdev *cgd;
 		cam_status status;
 		path_id_t path_id;
@@ -233,21 +229,22 @@ enc_async(void *callback_arg, uint32_t code, struct cam_path *path, void *arg)
 			 */
 			path_id = xpt_path_path_id(path);
 			xpt_lock_buses();
-			TAILQ_FOREACH(periph, &encdriver.units, unit_links) {
+			TAILQ_FOREACH (periph, &encdriver.units, unit_links) {
 				struct enc_softc *softc;
 
 				softc = (struct enc_softc *)periph->softc;
 
 				/* Check this SEP is ready. */
-				if (softc == NULL || (softc->enc_flags &
-				     ENC_FLAG_INITIALIZED) == 0 ||
+				if (softc == NULL ||
+				    (softc->enc_flags & ENC_FLAG_INITIALIZED) ==
+					0 ||
 				    softc->enc_vec.device_found == NULL)
 					continue;
 
 				/* Check this SEP may manage this device. */
 				if (xpt_path_path_id(periph->path) != path_id &&
 				    (softc->enc_type != ENC_SEMB_SES ||
-				     cgd->protocol != PROTO_ATA))
+					cgd->protocol != PROTO_ATA))
 					continue;
 
 				softc->enc_vec.device_found(softc);
@@ -256,13 +253,14 @@ enc_async(void *callback_arg, uint32_t code, struct cam_path *path, void *arg)
 			return;
 		}
 
-		status = cam_periph_alloc(enc_ctor, enc_oninvalidate,
-		    enc_dtor, NULL, "ses", CAM_PERIPH_BIO,
-		    path, enc_async, AC_FOUND_DEVICE, cgd);
+		status = cam_periph_alloc(enc_ctor, enc_oninvalidate, enc_dtor,
+		    NULL, "ses", CAM_PERIPH_BIO, path, enc_async,
+		    AC_FOUND_DEVICE, cgd);
 
 		if (status != CAM_REQ_CMP && status != CAM_REQ_INPROG) {
 			printf("enc_async: Unable to probe new device due to "
-			    "status 0x%x\n", status);
+			       "status 0x%x\n",
+			    status);
 		}
 		break;
 	}
@@ -310,7 +308,7 @@ static int
 enc_close(struct cdev *dev, int flag, int fmt, struct thread *td)
 {
 	struct cam_periph *periph;
-	struct enc_softc  *enc;
+	struct enc_softc *enc;
 	struct mtx *mtx;
 
 	periph = (struct cam_periph *)dev->si_drv1;
@@ -348,7 +346,7 @@ enc_error(union ccb *ccb, uint32_t cflags, uint32_t sflags)
 
 static int
 enc_ioctl(struct cdev *dev, u_long cmd, caddr_t arg_addr, int flag,
-	 struct thread *td)
+    struct thread *td)
 {
 	struct cam_periph *periph;
 	enc_softc_t *enc;
@@ -356,13 +354,13 @@ enc_ioctl(struct cdev *dev, u_long cmd, caddr_t arg_addr, int flag,
 	void *addr;
 	int error, i;
 
-#ifdef	COMPAT_FREEBSD32
+#ifdef COMPAT_FREEBSD32
 	if (SV_PROC_FLAG(td->td_proc, SV_ILP32))
 		return (ENOTTY);
 #endif
 
 	if (arg_addr)
-		addr = *((caddr_t *) arg_addr);
+		addr = *((caddr_t *)arg_addr);
 	else
 		addr = NULL;
 
@@ -424,9 +422,9 @@ enc_ioctl(struct cdev *dev, u_long cmd, caddr_t arg_addr, int flag,
 	sx_slock(&enc->enc_cache_lock);
 	switch (cmd) {
 	case ENCIOC_GETNELM:
-		error = copyout(&cache->nelms, addr, sizeof (cache->nelms));
+		error = copyout(&cache->nelms, addr, sizeof(cache->nelms));
 		break;
-		
+
 	case ENCIOC_GETELMMAP: {
 		encioc_element_t *uelm;
 
@@ -443,7 +441,7 @@ enc_ioctl(struct cdev *dev, u_long cmd, caddr_t arg_addr, int flag,
 	}
 	case ENCIOC_GETENCSTAT: {
 		error = copyout(&cache->enc_status, addr,
-				sizeof(cache->enc_status));
+		    sizeof(cache->enc_status));
 		break;
 	}
 	case ENCIOC_SETENCSTAT: {
@@ -604,24 +602,21 @@ enc_runcmd(struct enc_softc *enc, char *cdb, int cdbl, char *dptr, int *dlenp)
 		cam_fill_ataio(&ccb->ataio, 0, NULL, ddf, 0, dptr, tdlen,
 		    30 * 1000);
 		if (cdb[0] == RECEIVE_DIAGNOSTIC)
-			ata_28bit_cmd(&ccb->ataio,
-			    ATA_SEP_ATTN, cdb[2], 0x02, tdlen / 4);
+			ata_28bit_cmd(&ccb->ataio, ATA_SEP_ATTN, cdb[2], 0x02,
+			    tdlen / 4);
 		else if (cdb[0] == SEND_DIAGNOSTIC)
-			ata_28bit_cmd(&ccb->ataio,
-			    ATA_SEP_ATTN, dlen > 0 ? dptr[0] : 0,
-			    0x82, tdlen / 4);
+			ata_28bit_cmd(&ccb->ataio, ATA_SEP_ATTN,
+			    dlen > 0 ? dptr[0] : 0, 0x82, tdlen / 4);
 		else if (cdb[0] == READ_BUFFER)
-			ata_28bit_cmd(&ccb->ataio,
-			    ATA_SEP_ATTN, cdb[2], 0x00, tdlen / 4);
+			ata_28bit_cmd(&ccb->ataio, ATA_SEP_ATTN, cdb[2], 0x00,
+			    tdlen / 4);
 		else
-			ata_28bit_cmd(&ccb->ataio,
-			    ATA_SEP_ATTN, dlen > 0 ? dptr[0] : 0,
-			    0x80, tdlen / 4);
+			ata_28bit_cmd(&ccb->ataio, ATA_SEP_ATTN,
+			    dlen > 0 ? dptr[0] : 0, 0x80, tdlen / 4);
 	} else {
 		tdlen = dlen;
-		cam_fill_csio(&ccb->csio, 0, NULL, ddf, MSG_SIMPLE_Q_TAG,
-		    dptr, dlen, sizeof (struct scsi_sense_data), cdbl,
-		    60 * 1000);
+		cam_fill_csio(&ccb->csio, 0, NULL, ddf, MSG_SIMPLE_Q_TAG, dptr,
+		    dlen, sizeof(struct scsi_sense_data), cdbl, 60 * 1000);
 		bcopy(cdb, ccb->csio.cdb_io.cdb_bytes, cdbl);
 	}
 
@@ -669,9 +664,9 @@ enc_log(struct enc_softc *enc, const char *fmt, ...)
  * 0x0D (13), it's an ENCLOSURE device.
  */
 
-#define	SAFTE_START	44
-#define	SAFTE_END	50
-#define	SAFTE_LEN	SAFTE_END-SAFTE_START
+#define SAFTE_START 44
+#define SAFTE_END 50
+#define SAFTE_LEN SAFTE_END - SAFTE_START
 
 static enctyp
 enc_type(struct ccb_getdev *cgd)
@@ -697,7 +692,7 @@ enc_type(struct ccb_getdev *cgd)
 	if ((iqd[0] & 0x1f) == T_ENCLOSURE)
 		return (ENC_SES);
 
-#ifdef	SES_ENABLE_PASSTHROUGH
+#ifdef SES_ENABLE_PASSTHROUGH
 	if ((iqd[6] & 0x40) && (iqd[2] & 0x7) >= 2) {
 		/*
 		 * PassThrough Device.
@@ -733,13 +728,15 @@ enc_update_request(enc_softc_t *enc, uint32_t action)
 {
 	if ((enc->pending_actions & (0x1 << action)) == 0) {
 		enc->pending_actions |= (0x1 << action);
-		ENC_DLOG(enc, "%s: queing requested action %d\n",
-		    __func__, action);
+		ENC_DLOG(enc, "%s: queing requested action %d\n", __func__,
+		    action);
 		if (enc->current_action == ENC_UPDATE_NONE)
 			wakeup(enc->enc_daemon);
 	} else {
-		ENC_DLOG(enc, "%s: ignoring requested action %d - "
-		    "Already queued\n", __func__, action);
+		ENC_DLOG(enc,
+		    "%s: ignoring requested action %d - "
+		    "Already queued\n",
+		    __func__, action);
 	}
 }
 
@@ -752,15 +749,15 @@ enc_update_request(enc_softc_t *enc, uint32_t action)
 static void
 enc_fsm_step(enc_softc_t *enc)
 {
-	union ccb            *ccb;
-	uint8_t              *buf;
+	union ccb *ccb;
+	uint8_t *buf;
 	struct enc_fsm_state *cur_state;
-	int		      error;
-	uint32_t	      xfer_len;
+	int error;
+	uint32_t xfer_len;
 
 	ENC_DLOG(enc, "%s enter %p\n", __func__, enc);
 
-	enc->current_action   = ffs(enc->pending_actions) - 1;
+	enc->current_action = ffs(enc->pending_actions) - 1;
 	enc->pending_actions &= ~(0x1 << enc->current_action);
 
 	cur_state = &enc->enc_fsm_states[enc->current_action];
@@ -768,12 +765,12 @@ enc_fsm_step(enc_softc_t *enc)
 	buf = NULL;
 	if (cur_state->buf_size != 0) {
 		cam_periph_unlock(enc->periph);
-		buf = malloc(cur_state->buf_size, M_SCSIENC, M_WAITOK|M_ZERO);
+		buf = malloc(cur_state->buf_size, M_SCSIENC, M_WAITOK | M_ZERO);
 		cam_periph_lock(enc->periph);
 	}
 
 	error = 0;
-	ccb   = NULL;
+	ccb = NULL;
 	if (cur_state->fill != NULL) {
 		ccb = cam_periph_getccb(enc->periph, CAM_PRIORITY_NORMAL);
 
@@ -781,9 +778,8 @@ enc_fsm_step(enc_softc_t *enc)
 		if (error != 0)
 			goto done;
 
-		error = cam_periph_runccb(ccb, cur_state->error,
-					  ENC_CFLAGS,
-					  ENC_FLAGS|SF_QUIET_IR, NULL);
+		error = cam_periph_runccb(ccb, cur_state->error, ENC_CFLAGS,
+		    ENC_FLAGS | SF_QUIET_IR, NULL);
 	}
 
 	if (ccb != NULL) {
@@ -844,8 +840,8 @@ enc_daemon(void *arg)
 			callout_reset_sbt(&enc->status_updater, 60 * SBT_1S, 0,
 			    enc_status_updater, enc, C_PREL(1));
 
-			cam_periph_sleep(enc->periph, enc->enc_daemon,
-					 PUSER, "idle", 0);
+			cam_periph_sleep(enc->periph, enc->enc_daemon, PUSER,
+			    "idle", 0);
 		} else {
 			enc_fsm_step(enc);
 		}
@@ -866,9 +862,8 @@ enc_kproc_init(enc_softc_t *enc)
 	if (cam_periph_acquire(enc->periph) != 0)
 		return (ENXIO);
 
-	result = kproc_create(enc_daemon, enc, &enc->enc_daemon, /*flags*/0,
-			      /*stackpgs*/0, "enc_daemon%d",
-			      enc->periph->unit_number);
+	result = kproc_create(enc_daemon, enc, &enc->enc_daemon, /*flags*/ 0,
+	    /*stackpgs*/ 0, "enc_daemon%d", enc->periph->unit_number);
 	if (result == 0) {
 		/* Do an initial load of all page data. */
 		cam_periph_lock(enc->periph);
@@ -899,7 +894,7 @@ enc_ctor(struct cam_periph *periph, void *arg)
 	enc = ENC_MALLOCZ(sizeof(*enc));
 	if (enc == NULL) {
 		printf("enc_ctor: Unable to probe new device. "
-		       "Unable to allocate enc\n");				
+		       "Unable to allocate enc\n");
 		goto out;
 	}
 	enc->periph = periph;
@@ -949,7 +944,7 @@ enc_ctor(struct cam_periph *periph, void *arg)
 		err = enc_kproc_init(enc);
 		if (err) {
 			xpt_print(periph->path,
-				  "error %d starting enc_daemon\n", err);
+			    "error %d starting enc_daemon\n", err);
 			goto out;
 		}
 	}
@@ -960,8 +955,10 @@ enc_ctor(struct cam_periph *periph, void *arg)
 	 * instance has been freed.
 	 */
 	if (cam_periph_acquire(periph) != 0) {
-		xpt_print(periph->path, "%s: lost periph during "
-			  "registration!\n", __func__);
+		xpt_print(periph->path,
+		    "%s: lost periph during "
+		    "registration!\n",
+		    __func__);
 		cam_periph_lock(periph);
 
 		return (CAM_REQ_CMP_ERR);
@@ -998,10 +995,10 @@ enc_ctor(struct cam_periph *periph, void *arg)
 	case ENC_SES:
 		tname = "SES Device";
 		break;
-        case ENC_SES_PASSTHROUGH:
+	case ENC_SES_PASSTHROUGH:
 		tname = "SES Passthrough Device";
 		break;
-        case ENC_SAFT:
+	case ENC_SAFT:
 		tname = "SAF-TE Device";
 		break;
 	case ENC_SEMB_SES:

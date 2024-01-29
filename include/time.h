@@ -38,37 +38,37 @@
  */
 
 #ifndef _TIME_H_
-#define	_TIME_H_
+#define _TIME_H_
 
 #include <sys/cdefs.h>
+#include <sys/_clock_id.h>
 #include <sys/_null.h>
 #include <sys/_types.h>
-#include <sys/_clock_id.h>
 
 #if __POSIX_VISIBLE > 0 && __POSIX_VISIBLE < 200112 || __BSD_VISIBLE
 /*
  * Frequency of the clock ticks reported by times().  Deprecated - use
  * sysconf(_SC_CLK_TCK) instead.  (Removed in 1003.1-2001.)
  */
-#define	CLK_TCK		128
+#define CLK_TCK 128
 #endif
 
 /* Frequency of the clock ticks reported by clock().  */
-#define	CLOCKS_PER_SEC	128
+#define CLOCKS_PER_SEC 128
 
 #ifndef _CLOCK_T_DECLARED
-typedef	__clock_t	clock_t;
-#define	_CLOCK_T_DECLARED
+typedef __clock_t clock_t;
+#define _CLOCK_T_DECLARED
 #endif
 
 #ifndef _TIME_T_DECLARED
-typedef	__time_t	time_t;
-#define	_TIME_T_DECLARED
+typedef __time_t time_t;
+#define _TIME_T_DECLARED
 #endif
 
 #ifndef _SIZE_T_DECLARED
-typedef	__size_t	size_t;
-#define	_SIZE_T_DECLARED
+typedef __size_t size_t;
+#define _SIZE_T_DECLARED
 #endif
 
 #if __POSIX_VISIBLE >= 199309
@@ -76,13 +76,13 @@ typedef	__size_t	size_t;
  * New in POSIX 1003.1b-1993.
  */
 #ifndef _CLOCKID_T_DECLARED
-typedef	__clockid_t	clockid_t;
-#define	_CLOCKID_T_DECLARED
+typedef __clockid_t clockid_t;
+#define _CLOCKID_T_DECLARED
 #endif
 
 #ifndef _TIMER_T_DECLARED
-typedef	__timer_t	timer_t;
-#define	_TIMER_T_DECLARED
+typedef __timer_t timer_t;
+#define _TIMER_T_DECLARED
 #endif
 
 #include <sys/timespec.h>
@@ -90,23 +90,23 @@ typedef	__timer_t	timer_t;
 
 #if __POSIX_VISIBLE >= 200112
 #ifndef _PID_T_DECLARED
-typedef	__pid_t		pid_t;
-#define	_PID_T_DECLARED
+typedef __pid_t pid_t;
+#define _PID_T_DECLARED
 #endif
 #endif
 
 struct tm {
-	int	tm_sec;		/* seconds after the minute [0-60] */
-	int	tm_min;		/* minutes after the hour [0-59] */
-	int	tm_hour;	/* hours since midnight [0-23] */
-	int	tm_mday;	/* day of the month [1-31] */
-	int	tm_mon;		/* months since January [0-11] */
-	int	tm_year;	/* years since 1900 */
-	int	tm_wday;	/* days since Sunday [0-6] */
-	int	tm_yday;	/* days since January 1 [0-365] */
-	int	tm_isdst;	/* Daylight Savings Time flag */
-	long	tm_gmtoff;	/* offset from UTC in seconds */
-	char	*tm_zone;	/* timezone abbreviation */
+	int tm_sec;	/* seconds after the minute [0-60] */
+	int tm_min;	/* minutes after the hour [0-59] */
+	int tm_hour;	/* hours since midnight [0-23] */
+	int tm_mday;	/* day of the month [1-31] */
+	int tm_mon;	/* months since January [0-11] */
+	int tm_year;	/* years since 1900 */
+	int tm_wday;	/* days since Sunday [0-6] */
+	int tm_yday;	/* days since January 1 [0-365] */
+	int tm_isdst;	/* Daylight Savings Time flag */
+	long tm_gmtoff; /* offset from UTC in seconds */
+	char *tm_zone;	/* timezone abbreviation */
 };
 
 #if __POSIX_VISIBLE
@@ -124,8 +124,8 @@ double difftime(time_t, time_t);
 struct tm *gmtime(const time_t *);
 struct tm *localtime(const time_t *);
 time_t mktime(struct tm *);
-size_t strftime(char * __restrict, size_t, const char * __restrict,
-    const struct tm * __restrict);
+size_t strftime(char *__restrict, size_t, const char *__restrict,
+    const struct tm *__restrict);
 time_t time(time_t *);
 #if __POSIX_VISIBLE >= 200112
 struct sigevent;
@@ -134,7 +134,7 @@ int timer_delete(timer_t);
 int timer_gettime(timer_t, struct itimerspec *);
 int timer_getoverrun(timer_t);
 int timer_settime(timer_t, int, const struct itimerspec *__restrict,
-	struct itimerspec *__restrict);
+    struct itimerspec *__restrict);
 #endif
 #if __POSIX_VISIBLE
 void tzset(void);
@@ -160,14 +160,14 @@ struct tm *localtime_r(const time_t *, struct tm *);
 #endif
 
 #if __XSI_VISIBLE
-char *strptime(const char * __restrict, const char * __restrict,
-    struct tm * __restrict);
+char *strptime(const char *__restrict, const char *__restrict,
+    struct tm *__restrict);
 #endif
 
 #if __BSD_VISIBLE
-char *timezone(int, int);	/* XXX XSI conflict */
-time_t timelocal(struct tm * const);
-time_t timegm(struct tm * const);
+char *timezone(int, int); /* XXX XSI conflict */
+time_t timelocal(struct tm *const);
+time_t timegm(struct tm *const);
 int timer_oshandle_np(timer_t timerid);
 time_t time2posix(time_t t);
 time_t posix2time(time_t t);
@@ -181,11 +181,11 @@ time_t posix2time(time_t t);
     (defined(__cplusplus) && __cplusplus >= 201703)
 #include <sys/_timespec.h>
 /* ISO/IEC 9899:2011 7.27.2.5 The timespec_get function */
-#define TIME_UTC	1	/* time elapsed since epoch */
+#define TIME_UTC 1 /* time elapsed since epoch */
 int timespec_get(struct timespec *ts, int base);
 #if __BSD_VISIBLE || __ISO_C_VISIBLE >= 2023
 /* ISO/IEC 9899:2024 7.29.1 Components of time */
-#define TIME_MONOTONIC	2	/* monotonic time */
+#define TIME_MONOTONIC 2 /* monotonic time */
 /* ISO/IEC 9899:2024 7.29.2.7 The timespec_getres function */
 int timespec_getres(struct timespec *, int);
 #endif

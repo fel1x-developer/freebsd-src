@@ -28,8 +28,8 @@
 #include <sys/nv.h>
 
 #include <atf-c++.hpp>
-
 #include <errno.h>
+
 #include <limits>
 #include <set>
 #include <sstream>
@@ -53,7 +53,8 @@ ATF_TEST_CASE_BODY(nvlist_create__is_empty)
 	ATF_REQUIRE(nvlist_empty(nvl));
 
 	it = NULL;
-	ATF_REQUIRE_EQ(nvlist_next(nvl, &type, &it), static_cast<const char *>(NULL));
+	ATF_REQUIRE_EQ(nvlist_next(nvl, &type, &it),
+	    static_cast<const char *>(NULL));
 
 	nvlist_destroy(nvl);
 }
@@ -83,7 +84,8 @@ ATF_TEST_CASE_BODY(nvlist_add_null__single_insert)
 	it = NULL;
 	ATF_REQUIRE_EQ(strcmp(nvlist_next(nvl, &type, &it), key), 0);
 	ATF_REQUIRE_EQ(type, NV_TYPE_NULL);
-	ATF_REQUIRE_EQ(nvlist_next(nvl, &type,&it), static_cast<const char *>(NULL));
+	ATF_REQUIRE_EQ(nvlist_next(nvl, &type, &it),
+	    static_cast<const char *>(NULL));
 
 	nvlist_destroy(nvl);
 }
@@ -115,7 +117,8 @@ ATF_TEST_CASE_BODY(nvlist_add_bool__single_insert)
 	it = NULL;
 	ATF_REQUIRE_EQ(strcmp(nvlist_next(nvl, &type, &it), key), 0);
 	ATF_REQUIRE_EQ(type, NV_TYPE_BOOL);
-	ATF_REQUIRE_EQ(nvlist_next(nvl, &type,&it), static_cast<const char *>(NULL));
+	ATF_REQUIRE_EQ(nvlist_next(nvl, &type, &it),
+	    static_cast<const char *>(NULL));
 
 	nvlist_destroy(nvl);
 }
@@ -148,7 +151,8 @@ ATF_TEST_CASE_BODY(nvlist_add_number__single_insert)
 	it = NULL;
 	ATF_REQUIRE_EQ(strcmp(nvlist_next(nvl, &type, &it), key), 0);
 	ATF_REQUIRE_EQ(type, NV_TYPE_NUMBER);
-	ATF_REQUIRE_EQ(nvlist_next(nvl, &type,&it), static_cast<const char *>(NULL));
+	ATF_REQUIRE_EQ(nvlist_next(nvl, &type, &it),
+	    static_cast<const char *>(NULL));
 
 	nvlist_destroy(nvl);
 }
@@ -185,7 +189,8 @@ ATF_TEST_CASE_BODY(nvlist_add_string__single_insert)
 	it = NULL;
 	ATF_REQUIRE_EQ(strcmp(nvlist_next(nvl, &type, &it), key), 0);
 	ATF_REQUIRE_EQ(type, NV_TYPE_STRING);
-	ATF_REQUIRE_EQ(nvlist_next(nvl, &type,&it), static_cast<const char *>(NULL));
+	ATF_REQUIRE_EQ(nvlist_next(nvl, &type, &it),
+	    static_cast<const char *>(NULL));
 
 	nvlist_destroy(nvl);
 }
@@ -227,7 +232,8 @@ ATF_TEST_CASE_BODY(nvlist_add_nvlist__single_insert)
 	it = NULL;
 	ATF_REQUIRE_EQ(strcmp(nvlist_next(nvl, &type, &it), key), 0);
 	ATF_REQUIRE_EQ(type, NV_TYPE_NVLIST);
-	ATF_REQUIRE_EQ(nvlist_next(nvl, &type,&it), static_cast<const char *>(NULL));
+	ATF_REQUIRE_EQ(nvlist_next(nvl, &type, &it),
+	    static_cast<const char *>(NULL));
 
 	nvlist_destroy(sublist);
 	nvlist_destroy(nvl);
@@ -288,7 +294,8 @@ ATF_TEST_CASE_BODY(nvlist_add_binary__single_insert)
 	it = NULL;
 	ATF_REQUIRE_EQ(strcmp(nvlist_next(nvl, &type, &it), key), 0);
 	ATF_REQUIRE_EQ(type, NV_TYPE_BINARY);
-	ATF_REQUIRE_EQ(nvlist_next(nvl, &type,&it), static_cast<const char *>(NULL));
+	ATF_REQUIRE_EQ(nvlist_next(nvl, &type, &it),
+	    static_cast<const char *>(NULL));
 
 	nvlist_destroy(nvl);
 	free(value);
@@ -337,18 +344,19 @@ ATF_TEST_CASE_BODY(nvlist_clone__nonempty_nvlist)
 	it = NULL;
 	ATF_REQUIRE_EQ(strcmp(nvlist_next(clone, &type, &it), key), 0);
 	ATF_REQUIRE_EQ(type, NV_TYPE_NUMBER);
-	ATF_REQUIRE_EQ(nvlist_next(clone, &type, &it), static_cast<const char *>(NULL));
+	ATF_REQUIRE_EQ(nvlist_next(clone, &type, &it),
+	    static_cast<const char *>(NULL));
 
 	nvlist_destroy(clone);
 	nvlist_destroy(nvl);
 }
 
-static const char * const test_subnvlist_key = "nvlist";
+static const char *const test_subnvlist_key = "nvlist";
 
-static const char * const test_string_key = "string";
-static const char * const test_string_val = "59525";
+static const char *const test_string_key = "string";
+static const char *const test_string_val = "59525";
 
-static nvlist_t*
+static nvlist_t *
 create_test_nvlist(void)
 {
 	nvlist_t *nvl, *sublist;
@@ -377,21 +385,26 @@ verify_test_nvlist(const nvlist_t *nvl)
 	value = nvlist_get_nvlist(nvl, test_subnvlist_key);
 
 	ATF_REQUIRE(nvlist_exists_string(value, test_string_key));
-	ATF_REQUIRE_EQ(strcmp(nvlist_get_string(value, test_string_key), test_string_val), 0);
-	ATF_REQUIRE(nvlist_get_string(value, test_string_key) != test_string_val);
+	ATF_REQUIRE_EQ(strcmp(nvlist_get_string(value, test_string_key),
+			   test_string_val),
+	    0);
+	ATF_REQUIRE(
+	    nvlist_get_string(value, test_string_key) != test_string_val);
 
 	/* Iterate over both nvlists; ensure that each has only the one key. */
 	it = NULL;
-	ATF_REQUIRE_EQ(strcmp(nvlist_next(value, &type, &it),
-	    test_string_key), 0);
+	ATF_REQUIRE_EQ(strcmp(nvlist_next(value, &type, &it), test_string_key),
+	    0);
 	ATF_REQUIRE_EQ(type, NV_TYPE_STRING);
-	ATF_REQUIRE_EQ(nvlist_next(value, &type, &it), static_cast<const char *>(NULL));
+	ATF_REQUIRE_EQ(nvlist_next(value, &type, &it),
+	    static_cast<const char *>(NULL));
 
 	it = NULL;
-	ATF_REQUIRE_EQ(strcmp(nvlist_next(nvl, &type, &it),
-	    test_subnvlist_key), 0);
+	ATF_REQUIRE_EQ(strcmp(nvlist_next(nvl, &type, &it), test_subnvlist_key),
+	    0);
 	ATF_REQUIRE_EQ(type, NV_TYPE_NVLIST);
-	ATF_REQUIRE_EQ(nvlist_next(nvl, &type, &it), static_cast<const char *>(NULL));
+	ATF_REQUIRE_EQ(nvlist_next(nvl, &type, &it),
+	    static_cast<const char *>(NULL));
 }
 
 ATF_TEST_CASE_WITHOUT_HEAD(nvlist_clone__nested_nvlist);
@@ -500,7 +513,7 @@ verify_number(const nvlist_t *nvl, const char *name, int type, uint64_t value)
 
 static void
 verify_string(const nvlist_t *nvl, const char *name, int type,
-    const char * value)
+    const char *value)
 {
 
 	ATF_REQUIRE_EQ(type, NV_TYPE_STRING);
@@ -517,7 +530,7 @@ verify_nvlist(const nvlist_t *nvl, const char *name, int type)
 
 static void
 verify_binary(const nvlist_t *nvl, const char *name, int type,
-    const void * value, size_t size)
+    const void *value, size_t size)
 {
 	const void *actual_value;
 	size_t actual_size;
@@ -536,7 +549,7 @@ ATF_TEST_CASE_BODY(nvlist_pack__multiple_values)
 	nvlist_t *nvl, *unpacked, *nvvalue;
 	const char *nullkey, *numkey, *strkey, *nvkey, *binkey, *name;
 	int numvalue;
-	const char * strvalue;
+	const char *strvalue;
 	void *binvalue, *packed, *it;
 	size_t binsize, packed_size;
 	int type;

@@ -38,7 +38,7 @@ __RCSID("$NetBSD: wmemcpy.c,v 1.1 2000/12/23 23:14:37 itojun Exp $");
 #include <wchar.h>
 
 wchar_t *
-wmemcpy(wchar_t * __restrict d, const wchar_t * __restrict s, size_t n)
+wmemcpy(wchar_t *__restrict d, const wchar_t *__restrict s, size_t n)
 {
 	return (wchar_t *)memcpy(d, s, n * sizeof(wchar_t));
 }

@@ -47,7 +47,6 @@ kobject_create(void)
 	return (kobj);
 }
 
-
 int
 kobject_set_name_vargs(struct kobject *kobj, const char *fmt, va_list args)
 {
@@ -193,9 +192,7 @@ linux_kobject_kfree(struct kobject *kobj)
 	kfree(kobj);
 }
 
-const struct kobj_type linux_kfree_type = {
-	.release = linux_kobject_kfree
-};
+const struct kobj_type linux_kfree_type = { .release = linux_kobject_kfree };
 
 void
 linux_kobject_kfree_name(struct kobject *kobj)
@@ -208,8 +205,8 @@ linux_kobject_kfree_name(struct kobject *kobj)
 static ssize_t
 lkpi_kobj_attr_show(struct kobject *kobj, struct attribute *attr, char *buf)
 {
-	struct kobj_attribute *ka =
-	    container_of(attr, struct kobj_attribute, attr);
+	struct kobj_attribute *ka = container_of(attr, struct kobj_attribute,
+	    attr);
 
 	if (ka->show == NULL)
 		return (-EIO);
@@ -221,8 +218,8 @@ static ssize_t
 lkpi_kobj_attr_store(struct kobject *kobj, struct attribute *attr,
     const char *buf, size_t count)
 {
-	struct kobj_attribute *ka =
-	    container_of(attr, struct kobj_attribute, attr);
+	struct kobj_attribute *ka = container_of(attr, struct kobj_attribute,
+	    attr);
 
 	if (ka->store == NULL)
 		return (-EIO);
@@ -231,17 +228,14 @@ lkpi_kobj_attr_store(struct kobject *kobj, struct attribute *attr,
 }
 
 const struct sysfs_ops kobj_sysfs_ops = {
-	.show	= lkpi_kobj_attr_show,
-	.store	= lkpi_kobj_attr_store,
+	.show = lkpi_kobj_attr_show,
+	.store = lkpi_kobj_attr_store,
 };
 
-const struct kobj_type linux_kset_kfree_type = {
-	.release = kset_kfree
-};
+const struct kobj_type linux_kset_kfree_type = { .release = kset_kfree };
 
 static struct kset *
-kset_create(const char *name,
-    const struct kset_uevent_ops *uevent_ops,
+kset_create(const char *name, const struct kset_uevent_ops *uevent_ops,
     struct kobject *parent_kobj)
 {
 	struct kset *kset;

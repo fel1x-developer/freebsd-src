@@ -39,6 +39,7 @@
 #include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
+
 #include "locate.h"
 
 u_char buf1[LOCATE_PATH_MAX] = " ";
@@ -55,14 +56,13 @@ main(void)
 	if (caph_limit_stdio() < 0 || caph_enter() < 0)
 		err(1, "capsicum");
 
-     	while (fgets(path, sizeof(buf2), stdin) != NULL) {
+	while (fgets(path, sizeof(buf2), stdin) != NULL) {
 
-		/* 
+		/*
 		 * We don't need remove newline character '\n'.
 		 * '\n' is less than ASCII_MIN and will be later
 		 * ignored at output.
 		 */
-
 
 		/* skip longest common prefix */
 		for (cp = path; *cp == *oldpath; cp++, oldpath++)
@@ -70,22 +70,21 @@ main(void)
 				break;
 
 		while (*cp != '\0' && *(cp + 1) != '\0') {
-			bigram[(u_char)*cp][(u_char)*(cp + 1)]++;
+			bigram[(u_char)*cp][(u_char) * (cp + 1)]++;
 			cp += 2;
 		}
 
 		/* swap pointers */
-		if (path == buf1) { 
+		if (path == buf1) {
 			path = buf2;
 			oldpath = buf1;
 		} else {
 			path = buf1;
 			oldpath = buf2;
 		}
-   	}
+	}
 	if (!feof(stdin) || ferror(stdin))
 		err(1, "stdin");
-
 
 	/* output, boundary check */
 	for (i = ASCII_MIN; i <= ASCII_MAX; i++)

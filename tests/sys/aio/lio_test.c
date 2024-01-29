@@ -31,17 +31,15 @@
 #include <sys/uio.h>
 
 #include <aio.h>
+#include <atf-c.h>
 #include <fcntl.h>
 #include <semaphore.h>
 #include <stdlib.h>
 
-#include <atf-c.h>
-
-#include "local.h"
 #include "freebsd_test_suite/macros.h"
+#include "local.h"
 
-static sem_t completions; 
-
+static sem_t completions;
 
 static void
 handler(int sig __unused)
@@ -55,7 +53,7 @@ thr_handler(union sigval sv __unused)
 	ATF_REQUIRE_EQ(0, sem_post(&completions));
 }
 
-/* 
+/*
  * If lio_listio is unable to enqueue any requests at all, it should return
  * EAGAIN.
  */
@@ -68,7 +66,7 @@ ATF_TC_BODY(lio_listio_eagain_kevent, tc)
 	struct aiocb **list[2];
 	struct sigevent sev[2];
 	char *buffer;
-	const char *path="tempfile";
+	const char *path = "tempfile";
 	void *udata[2];
 
 	ATF_REQUIRE_KERNEL_MODULE("aio");
@@ -76,10 +74,12 @@ ATF_TC_BODY(lio_listio_eagain_kevent, tc)
 
 	max_queue_per_proc_size = sizeof(max_queue_per_proc);
 	ATF_REQUIRE_EQ(sysctlbyname("vfs.aio.max_aio_queue_per_proc",
-	    &max_queue_per_proc, &max_queue_per_proc_size, NULL, 0), 0);
+			   &max_queue_per_proc, &max_queue_per_proc_size, NULL,
+			   0),
+	    0);
 	ios_per_call = max_queue_per_proc;
 
-	fd = open(path, O_RDWR|O_CREAT, 0666);
+	fd = open(path, O_RDWR | O_CREAT, 0666);
 	ATF_REQUIRE(fd >= 0);
 
 	kq = kqueue();
@@ -95,9 +95,9 @@ ATF_TC_BODY(lio_listio_eagain_kevent, tc)
 	for (i = 0; i < 2; i++) {
 		aiocbs[i] = calloc(ios_per_call, sizeof(struct aiocb));
 		ATF_REQUIRE(aiocbs[i] != NULL);
-		list[i] = calloc(ios_per_call, sizeof(struct aiocb*));
+		list[i] = calloc(ios_per_call, sizeof(struct aiocb *));
 		ATF_REQUIRE(list[i] != NULL);
-		udata[i] = (void*)((caddr_t)0xdead0000 + i);
+		udata[i] = (void *)((caddr_t)0xdead0000 + i);
 		sev[i].sigev_notify = SIGEV_KEVENT;
 		sev[i].sigev_notify_kqueue = kq;
 		sev[i].sigev_value.sival_ptr = udata[i];
@@ -111,8 +111,10 @@ ATF_TC_BODY(lio_listio_eagain_kevent, tc)
 		}
 	}
 
-	ATF_REQUIRE_EQ(0, lio_listio(LIO_NOWAIT, list[0], ios_per_call, &sev[0]));
-	ATF_REQUIRE_EQ(-1, lio_listio(LIO_NOWAIT, list[1], ios_per_call, &sev[1]));
+	ATF_REQUIRE_EQ(0,
+	    lio_listio(LIO_NOWAIT, list[0], ios_per_call, &sev[0]));
+	ATF_REQUIRE_EQ(-1,
+	    lio_listio(LIO_NOWAIT, list[1], ios_per_call, &sev[1]));
 	/*
 	 * The second lio_listio call should fail with EAGAIN.  Bad timing may
 	 * mean that some requests did get enqueued, but the result should
@@ -120,7 +122,6 @@ ATF_TC_BODY(lio_listio_eagain_kevent, tc)
 	 */
 	ATF_REQUIRE_EQ(errno, EAGAIN);
 }
-
 
 /* With LIO_WAIT, an empty lio_listio should return immediately */
 ATF_TC_WITHOUT_HEAD(lio_listio_empty_wait);
@@ -151,10 +152,10 @@ ATF_TC_BODY(lio_listio_empty_nowait_kevent, tc)
 	struct sigevent sev;
 	struct kevent kq_returned;
 	int kq, result;
-	void *udata = (void*)0xdeadbeefdeadbeef;
+	void *udata = (void *)0xdeadbeefdeadbeef;
 
 	atf_tc_expect_timeout("Bug 251515 - lio_listio(2) never sends"
-			" kevent if nent==0");
+			      " kevent if nent==0");
 	kq = kqueue();
 	ATF_REQUIRE(kq > 0);
 	sev.sigev_notify = SIGEV_KEVENT;
@@ -215,7 +216,7 @@ ATF_TC_WITHOUT_HEAD(lio_listio_opcodes);
 ATF_TC_BODY(lio_listio_opcodes, tc)
 {
 	struct aiocb write_cb, read_cb, writev_cb, readv_cb;
-	struct aiocb *list[] = {&write_cb, &read_cb, &writev_cb, &readv_cb};
+	struct aiocb *list[] = { &write_cb, &read_cb, &writev_cb, &readv_cb };
 	struct iovec writev_iov[2];
 	struct iovec readv_iov[2];
 	char buffer[6];
@@ -289,7 +290,6 @@ ATF_TC_BODY(lio_listio_opcodes, tc)
 	close(fd);
 }
 
-
 /*
  * Only select opcodes are allowed with lio_listio
  */
@@ -297,7 +297,7 @@ ATF_TC_WITHOUT_HEAD(lio_listio_invalid_opcode);
 ATF_TC_BODY(lio_listio_invalid_opcode, tc)
 {
 	struct aiocb sync_cb, mlock_cb;
-	struct aiocb *list[] = {&sync_cb, &mlock_cb};
+	struct aiocb *list[] = { &sync_cb, &mlock_cb };
 	int fd;
 
 	fd = open("testfile", O_CREAT | O_RDWR, 0666);
@@ -318,7 +318,6 @@ ATF_TC_BODY(lio_listio_invalid_opcode, tc)
 
 	close(fd);
 }
-
 
 ATF_TP_ADD_TCS(tp)
 {

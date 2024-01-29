@@ -27,6 +27,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <pthread.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -34,8 +35,8 @@
 #include "threads.h"
 
 struct thrd_param {
-	thrd_start_t	 func;
-	void		*arg;
+	thrd_start_t func;
+	void *arg;
 };
 
 static void *

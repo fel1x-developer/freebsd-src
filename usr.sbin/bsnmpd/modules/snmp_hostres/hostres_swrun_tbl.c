@@ -30,10 +30,10 @@
  */
 
 #include <sys/param.h>
+#include <sys/linker.h>
 #include <sys/proc.h>
 #include <sys/sysctl.h>
 #include <sys/user.h>
-#include <sys/linker.h>
 
 #include <assert.h>
 #include <signal.h>
@@ -41,34 +41,34 @@
 #include <string.h>
 #include <syslog.h>
 
-#include "hostres_snmp.h"
 #include "hostres_oid.h"
+#include "hostres_snmp.h"
 #include "hostres_tree.h"
 
 /*
  * Ugly thing: PID_MAX, NO_PID defined only in kernel
  */
-#define	NO_PID		100000
+#define NO_PID 100000
 
 enum SWRunType {
-	SRT_UNKNOWN		= 1,
-	SRT_OPERATING_SYSTEM	= 2,
-	SRT_DEVICE_DRIVER	= 3,
-	SRT_APPLICATION		= 4
+	SRT_UNKNOWN = 1,
+	SRT_OPERATING_SYSTEM = 2,
+	SRT_DEVICE_DRIVER = 3,
+	SRT_APPLICATION = 4
 
 };
 
 enum SWRunStatus {
-	SRS_RUNNING		= 1,
-	SRS_RUNNABLE		= 2,
-	SRS_NOT_RUNNABLE	= 3,
-	SRS_INVALID		= 4
+	SRS_RUNNING = 1,
+	SRS_RUNNABLE = 2,
+	SRS_NOT_RUNNABLE = 3,
+	SRS_INVALID = 4
 };
 
 /* Maximum lengths for the strings according to the MIB */
-#define	SWR_NAME_MLEN	(64 + 1)
-#define	SWR_PATH_MLEN	(128 + 1)
-#define	SWR_PARAM_MLEN	(128 + 1)
+#define SWR_NAME_MLEN (64 + 1)
+#define SWR_PATH_MLEN (128 + 1)
+#define SWR_PARAM_MLEN (128 + 1)
 
 /*
  * This structure is used to hold a SNMP table entry
@@ -76,18 +76,18 @@ enum SWRunStatus {
  * hrSWRunPerfTable AUGMENTS hrSWRunTable
  */
 struct swrun_entry {
-	int32_t		index;
-	u_char		*name;		/* it may be NULL */
+	int32_t index;
+	u_char *name; /* it may be NULL */
 	const struct asn_oid *id;
-	u_char		*path;		/* it may be NULL */
-	u_char		*parameters;	/* it may be NULL */
-	int32_t		type;		/* enum SWRunType */
-	int32_t		status;		/* enum SWRunStatus */
-	int32_t		perfCPU;
-	int32_t		perfMemory;
-#define	HR_SWRUN_FOUND 0x001
-	uint32_t	flags;
-	uint64_t	r_tick;		/* tick when entry refreshed */
+	u_char *path;	    /* it may be NULL */
+	u_char *parameters; /* it may be NULL */
+	int32_t type;	    /* enum SWRunType */
+	int32_t status;	    /* enum SWRunStatus */
+	int32_t perfCPU;
+	int32_t perfMemory;
+#define HR_SWRUN_FOUND 0x001
+	uint32_t flags;
+	uint64_t r_tick; /* tick when entry refreshed */
 	TAILQ_ENTRY(swrun_entry) link;
 };
 TAILQ_HEAD(swrun_tbl, swrun_entry);
@@ -150,7 +150,7 @@ swrun_entry_find_by_index(int32_t idx)
 {
 	struct swrun_entry *entry;
 
-	TAILQ_FOREACH(entry, &swrun_tbl, link)
+	TAILQ_FOREACH (entry, &swrun_tbl, link)
 		if (entry->index == idx)
 			return (entry);
 	return (NULL);
@@ -164,7 +164,7 @@ swrun_OS_get_proc_status(const struct kinfo_proc *kp)
 {
 
 	assert(kp != NULL);
-	if(kp ==  NULL) {
+	if (kp == NULL) {
 		return (SRS_INVALID);
 	}
 
@@ -190,7 +190,7 @@ swrun_OS_get_proc_status(const struct kinfo_proc *kp)
 		return (SRS_RUNNING);
 
 	default:
-		syslog(LOG_ERR,"Unknown process state: %d", kp->ki_stat);
+		syslog(LOG_ERR, "Unknown process state: %d", kp->ki_stat);
 		return (SRS_INVALID);
 	}
 }
@@ -216,7 +216,7 @@ kinfo_proc_to_swrun_entry(const struct kinfo_proc *kp,
 	assert(hr_kd != NULL);
 
 	argv = kvm_getargv(hr_kd, kp, SWR_PARAM_MLEN - 1);
-	if(argv != NULL){
+	if (argv != NULL) {
 		u_char param[SWR_PARAM_MLEN];
 
 		memset(param, '\0', sizeof(param));
@@ -228,7 +228,7 @@ kinfo_proc_to_swrun_entry(const struct kinfo_proc *kp,
 		 * this argv is under control of the program so this info
 		 * is not realiable
 		 */
-		if(*argv != NULL && (*argv)[0] == '/') {
+		if (*argv != NULL && (*argv)[0] == '/') {
 			size_t path_len;
 
 			path_len = strlen(*argv) + 1;
@@ -238,14 +238,14 @@ kinfo_proc_to_swrun_entry(const struct kinfo_proc *kp,
 			entry->path = reallocf(entry->path, path_len);
 			if (entry->path != NULL) {
 				memset(entry->path, '\0', path_len);
-				strlcpy((char*)entry->path, *argv, path_len);
+				strlcpy((char *)entry->path, *argv, path_len);
 			}
 		}
 
 		argv++; /* skip the first one which was used for path */
 
-		while (argv != NULL && *argv != NULL ) {
-			if (param[0] != 0)  {
+		while (argv != NULL && *argv != NULL) {
+			if (param[0] != 0) {
 				/*
 				 * add a space between parameters,
 				 * except before the first one
@@ -265,7 +265,7 @@ kinfo_proc_to_swrun_entry(const struct kinfo_proc *kp,
 	}
 
 	entry->type = (int32_t)(IS_KERNPROC(kp) ? SRT_OPERATING_SYSTEM :
-	    SRT_APPLICATION);
+						  SRT_APPLICATION);
 
 	entry->status = (int32_t)swrun_OS_get_proc_status(kp);
 	cpu_time = kp->ki_runtime / 100000; /* centi-seconds */
@@ -311,8 +311,8 @@ kld_file_stat_to_swrun(const struct kld_file_stat *kfs,
 		entry->type = (int32_t)SRT_DEVICE_DRIVER; /* well, not really */
 	}
 	entry->status = (int32_t)SRS_RUNNING;
-	entry->perfCPU = 0;			/* Info not available */
-	entry->perfMemory = kfs->size / 1024;	/* in kilo-bytes */
+	entry->perfCPU = 0;		      /* Info not available */
+	entry->perfMemory = kfs->size / 1024; /* in kilo-bytes */
 	entry->r_tick = get_ticks();
 }
 
@@ -345,7 +345,7 @@ swrun_OS_get_procs(void)
 			if (entry == NULL)
 				continue;
 		}
-		entry->flags |= HR_SWRUN_FOUND;	/* mark it as found */
+		entry->flags |= HR_SWRUN_FOUND; /* mark it as found */
 
 		kinfo_proc_to_swrun_entry(kp, entry);
 	}
@@ -401,7 +401,7 @@ refresh_swrun_tbl(void)
 	}
 
 	/* mark each entry as missing */
-	TAILQ_FOREACH(entry, &swrun_tbl, link)
+	TAILQ_FOREACH (entry, &swrun_tbl, link)
 		entry->flags &= ~HR_SWRUN_FOUND;
 
 	swrun_OS_get_procs();
@@ -410,7 +410,7 @@ refresh_swrun_tbl(void)
 	/*
 	 * Purge items that disappeared
 	 */
-	TAILQ_FOREACH_SAFE(entry, &swrun_tbl, link, entry_tmp)
+	TAILQ_FOREACH_SAFE (entry, &swrun_tbl, link, entry_tmp)
 		if (!(entry->flags & HR_SWRUN_FOUND))
 			swrun_entry_delete(entry);
 
@@ -429,9 +429,9 @@ fetch_swrun_entry(struct swrun_entry *entry)
 	int nproc;
 	struct kld_file_stat stat;
 
-	assert(entry !=  NULL);
+	assert(entry != NULL);
 
-	if (entry->index >= NO_PID + 1)	{
+	if (entry->index >= NO_PID + 1) {
 		/*
 		 * kernel and kernel files (*.ko) will be indexed
 		 * starting with NO_PID + 1; NO_PID is PID_MAX + 1
@@ -444,8 +444,8 @@ fetch_swrun_entry(struct swrun_entry *entry)
 			 * not found, it's gone. Mark it as invalid for now, it
 			 * will be removed from the list at next global refersh
 			 */
-			 HRDBG("missing item with kid=%d",
-			     entry->index -  NO_PID - 1);
+			HRDBG("missing item with kid=%d",
+			    entry->index - NO_PID - 1);
 			entry->status = (int32_t)SRS_INVALID;
 		} else
 			kld_file_stat_to_swrun(&stat, entry);
@@ -453,8 +453,8 @@ fetch_swrun_entry(struct swrun_entry *entry)
 	} else {
 		/* this is a process */
 		assert(hr_kd != NULL);
-		plist = kvm_getprocs(hr_kd, KERN_PROC_PID,
-		    entry->index - 1, &nproc);
+		plist = kvm_getprocs(hr_kd, KERN_PROC_PID, entry->index - 1,
+		    &nproc);
 		if (plist == NULL || nproc != 1) {
 			HRDBG("missing item with PID=%d", entry->index - 1);
 			entry->status = (int32_t)SRS_INVALID;
@@ -473,12 +473,11 @@ invalidate_swrun_entry(struct swrun_entry *entry, int commit)
 	int nproc;
 	struct kld_file_stat stat;
 
-	assert(entry !=  NULL);
+	assert(entry != NULL);
 
-	if (entry->index >= NO_PID + 1)	{
+	if (entry->index >= NO_PID + 1) {
 		/* this is a kernel item */
-		HRDBG("attempt to unload KLD %d",
-		    entry->index -  NO_PID - 1);
+		HRDBG("attempt to unload KLD %d", entry->index - NO_PID - 1);
 
 		if (entry->index == SWOSIndex) {
 			/* can't invalidate the kernel itself */
@@ -509,7 +508,7 @@ invalidate_swrun_entry(struct swrun_entry *entry, int commit)
 			return (SNMP_ERR_NOERROR);
 		}
 		if (kldunload(stat.id) == -1) {
-			syslog(LOG_ERR,"kldunload for %d/%s failed: %m",
+			syslog(LOG_ERR, "kldunload for %d/%s failed: %m",
 			    stat.id, stat.name);
 			if (errno == EBUSY)
 				return (SNMP_ERR_NOT_WRITEABLE);
@@ -520,8 +519,8 @@ invalidate_swrun_entry(struct swrun_entry *entry, int commit)
 		/* this is a process */
 		assert(hr_kd != NULL);
 
-		plist = kvm_getprocs(hr_kd, KERN_PROC_PID,
-		    entry->index - 1, &nproc);
+		plist = kvm_getprocs(hr_kd, KERN_PROC_PID, entry->index - 1,
+		    &nproc);
 		if (plist == NULL || nproc != 1) {
 			HRDBG("missing item with PID=%d", entry->index - 1);
 			entry->status = (int32_t)SRS_INVALID;
@@ -532,7 +531,7 @@ invalidate_swrun_entry(struct swrun_entry *entry, int commit)
 			return (SNMP_ERR_NOT_WRITEABLE);
 		}
 		if (kill(entry->index - 1, commit ? SIGKILL : 0) < 0) {
-			syslog(LOG_ERR,"kill (%d, SIGKILL) failed: %m",
+			syslog(LOG_ERR, "kill (%d, SIGKILL) failed: %m",
 			    entry->index - 1);
 			if (errno == ESRCH) {
 				/* race: just gone */
@@ -586,23 +585,23 @@ op_hrSWRunTable(struct snmp_context *ctx __unused, struct snmp_value *value,
 
 	switch (curr_op) {
 
-	  case SNMP_OP_GETNEXT:
-		if ((entry = NEXT_OBJECT_INT(&swrun_tbl,
-		    &value->var, sub)) == NULL)
+	case SNMP_OP_GETNEXT:
+		if ((entry = NEXT_OBJECT_INT(&swrun_tbl, &value->var, sub)) ==
+		    NULL)
 			return (SNMP_ERR_NOSUCHNAME);
 		value->var.len = sub + 1;
 		value->var.subs[sub] = entry->index;
 		goto get;
 
-	  case SNMP_OP_GET:
-		if ((entry = FIND_OBJECT_INT(&swrun_tbl,
-		    &value->var, sub)) == NULL)
+	case SNMP_OP_GET:
+		if ((entry = FIND_OBJECT_INT(&swrun_tbl, &value->var, sub)) ==
+		    NULL)
 			return (SNMP_ERR_NOSUCHNAME);
 		goto get;
 
-	  case SNMP_OP_SET:
-		if ((entry = FIND_OBJECT_INT(&swrun_tbl,
-		    &value->var, sub)) == NULL)
+	case SNMP_OP_SET:
+		if ((entry = FIND_OBJECT_INT(&swrun_tbl, &value->var, sub)) ==
+		    NULL)
 			return (SNMP_ERR_NO_CREATION);
 
 		if (entry->r_tick < this_tick)
@@ -629,12 +628,12 @@ op_hrSWRunTable(struct snmp_context *ctx __unused, struct snmp_value *value,
 		}
 		return (SNMP_ERR_NOT_WRITEABLE);
 
-	  case SNMP_OP_ROLLBACK:
+	case SNMP_OP_ROLLBACK:
 		return (SNMP_ERR_NOERROR);
 
-	  case SNMP_OP_COMMIT:
-		if ((entry = FIND_OBJECT_INT(&swrun_tbl,
-		    &value->var, sub)) == NULL)
+	case SNMP_OP_COMMIT:
+		if ((entry = FIND_OBJECT_INT(&swrun_tbl, &value->var, sub)) ==
+		    NULL)
 			return (SNMP_ERR_NOERROR);
 
 		switch (value->var.subs[sub - 1]) {
@@ -649,49 +648,49 @@ op_hrSWRunTable(struct snmp_context *ctx __unused, struct snmp_value *value,
 	}
 	abort();
 
-  get:
+get:
 	ret = SNMP_ERR_NOERROR;
 	switch (value->var.subs[sub - 1]) {
 
-	  case LEAF_hrSWRunIndex:
+	case LEAF_hrSWRunIndex:
 		value->v.integer = entry->index;
 		break;
 
-	  case LEAF_hrSWRunName:
+	case LEAF_hrSWRunName:
 		if (entry->name != NULL)
 			ret = string_get(value, entry->name, -1);
 		else
 			ret = string_get(value, "", -1);
 		break;
 
-	  case LEAF_hrSWRunID:
+	case LEAF_hrSWRunID:
 		assert(entry->id != NULL);
 		value->v.oid = *entry->id;
 		break;
 
-	  case LEAF_hrSWRunPath:
+	case LEAF_hrSWRunPath:
 		if (entry->path != NULL)
 			ret = string_get(value, entry->path, -1);
 		else
 			ret = string_get(value, "", -1);
 		break;
 
-	  case LEAF_hrSWRunParameters:
+	case LEAF_hrSWRunParameters:
 		if (entry->parameters != NULL)
 			ret = string_get(value, entry->parameters, -1);
 		else
 			ret = string_get(value, "", -1);
 		break;
 
-	  case LEAF_hrSWRunType:
+	case LEAF_hrSWRunType:
 		value->v.integer = entry->type;
 		break;
 
-	  case LEAF_hrSWRunStatus:
+	case LEAF_hrSWRunStatus:
 		value->v.integer = entry->status;
 		break;
 
-	  default:
+	default:
 		abort();
 	}
 	return (ret);
@@ -721,7 +720,7 @@ op_hrSWRun(struct snmp_context *ctx __unused, struct snmp_value *value,
 	}
 	abort();
 
-  get:
+get:
 	switch (value->var.subs[sub - 1]) {
 
 	case LEAF_hrSWOSIndex:
@@ -739,9 +738,8 @@ op_hrSWRun(struct snmp_context *ctx __unused, struct snmp_value *value,
  * It handles the SNMP operations for hrSWRunPerfTable
  */
 int
-op_hrSWRunPerfTable(struct snmp_context *ctx __unused,
-    struct snmp_value *value, u_int sub, u_int iidx __unused,
-    enum snmp_op curr_op )
+op_hrSWRunPerfTable(struct snmp_context *ctx __unused, struct snmp_value *value,
+    u_int sub, u_int iidx __unused, enum snmp_op curr_op)
 {
 	struct swrun_entry *entry;
 
@@ -749,40 +747,40 @@ op_hrSWRunPerfTable(struct snmp_context *ctx __unused,
 
 	switch (curr_op) {
 
-	  case SNMP_OP_GETNEXT:
-		if ((entry = NEXT_OBJECT_INT(&swrun_tbl,
-		    &value->var, sub)) == NULL)
+	case SNMP_OP_GETNEXT:
+		if ((entry = NEXT_OBJECT_INT(&swrun_tbl, &value->var, sub)) ==
+		    NULL)
 			return (SNMP_ERR_NOSUCHNAME);
 		value->var.len = sub + 1;
 		value->var.subs[sub] = entry->index;
 		goto get;
 
-	  case SNMP_OP_GET:
-		if ((entry = FIND_OBJECT_INT(&swrun_tbl,
-		    &value->var, sub)) == NULL)
+	case SNMP_OP_GET:
+		if ((entry = FIND_OBJECT_INT(&swrun_tbl, &value->var, sub)) ==
+		    NULL)
 			return (SNMP_ERR_NOSUCHNAME);
 		goto get;
 
-	  case SNMP_OP_SET:
-		if ((entry = FIND_OBJECT_INT(&swrun_tbl,
-		    &value->var, sub)) == NULL)
+	case SNMP_OP_SET:
+		if ((entry = FIND_OBJECT_INT(&swrun_tbl, &value->var, sub)) ==
+		    NULL)
 			return (SNMP_ERR_NO_CREATION);
 		return (SNMP_ERR_NOT_WRITEABLE);
 
-	  case SNMP_OP_ROLLBACK:
-	  case SNMP_OP_COMMIT:
+	case SNMP_OP_ROLLBACK:
+	case SNMP_OP_COMMIT:
 		abort();
 	}
 	abort();
 
-  get:
+get:
 	switch (value->var.subs[sub - 1]) {
 
-	  case LEAF_hrSWRunPerfCPU:
+	case LEAF_hrSWRunPerfCPU:
 		value->v.integer = entry->perfCPU;
 		return (SNMP_ERR_NOERROR);
 
-	  case LEAF_hrSWRunPerfMem:
+	case LEAF_hrSWRunPerfMem:
 		value->v.integer = entry->perfMemory;
 		return (SNMP_ERR_NOERROR);
 	}

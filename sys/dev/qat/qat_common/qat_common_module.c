@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
-#include "qat_freebsd.h"
 #include "adf_common_drv.h"
+#include "qat_freebsd.h"
 
 static int __init
 qat_common_register(void)

@@ -25,8 +25,8 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/queue.h>
 #include <sys/taskqueue.h>
@@ -34,20 +34,17 @@
 #include <machine/bus.h>
 
 #include <dev/mmc/bridge.h>
+#include <dev/mmc/host/dwmmc_reg.h>
+#include <dev/mmc/host/dwmmc_var.h>
 #include <dev/mmc/mmc_fdt_helpers.h>
-
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include <dev/mmc/host/dwmmc_var.h>
-#include <dev/mmc/host/dwmmc_reg.h>
-
-#define	WRITE4(_sc, _reg, _val)		\
-	bus_write_4((_sc)->res[0], _reg, _val)
+#define WRITE4(_sc, _reg, _val) bus_write_4((_sc)->res[0], _reg, _val)
 
 static struct ofw_compat_data compat_data[] = {
-	{"samsung,exynos5420-dw-mshc",	1},
-	{NULL,				0},
+	{ "samsung,exynos5420-dw-mshc", 1 },
+	{ NULL, 0 },
 };
 
 static int
@@ -60,7 +57,8 @@ samsung_dwmmc_probe(device_t dev)
 	if (ofw_bus_search_compatible(dev, compat_data)->ocd_data == 0)
 		return (ENXIO);
 
-	device_set_desc(dev, "Synopsys DesignWare Mobile "
+	device_set_desc(dev,
+	    "Synopsys DesignWare Mobile "
 	    "Storage Host Controller (Samsung)");
 
 	return (BUS_PROBE_VENDOR);
@@ -90,21 +88,20 @@ samsung_dwmmc_attach(device_t dev)
 		return (ENXIO);
 	OF_getencprop(node, "samsung,dw-mshc-sdr-timing", dts_value, len);
 	sc->sdr_timing |= ((dts_value[0] << SDMMC_CLKSEL_SAMPLE_SHIFT) |
-			  (dts_value[1] << SDMMC_CLKSEL_DRIVE_SHIFT));
+	    (dts_value[1] << SDMMC_CLKSEL_DRIVE_SHIFT));
 
 	if ((len = OF_getproplen(node, "samsung,dw-mshc-ddr-timing")) <= 0)
 		return (ENXIO);
 	OF_getencprop(node, "samsung,dw-mshc-ddr-timing", dts_value, len);
 	sc->ddr_timing |= ((dts_value[0] << SDMMC_CLKSEL_SAMPLE_SHIFT) |
-			  (dts_value[1] << SDMMC_CLKSEL_DRIVE_SHIFT));
+	    (dts_value[1] << SDMMC_CLKSEL_DRIVE_SHIFT));
 
 	WRITE4(sc, EMMCP_MPSBEGIN0, 0);
 	WRITE4(sc, EMMCP_SEND0, 0);
-	WRITE4(sc, EMMCP_CTRL0, (MPSCTRL_SECURE_READ_BIT |
-	    MPSCTRL_SECURE_WRITE_BIT |
-	    MPSCTRL_NON_SECURE_READ_BIT |
-	    MPSCTRL_NON_SECURE_WRITE_BIT |
-	    MPSCTRL_VALID));
+	WRITE4(sc, EMMCP_CTRL0,
+	    (MPSCTRL_SECURE_READ_BIT | MPSCTRL_SECURE_WRITE_BIT |
+		MPSCTRL_NON_SECURE_READ_BIT | MPSCTRL_NON_SECURE_WRITE_BIT |
+		MPSCTRL_VALID));
 
 	return (dwmmc_attach(dev));
 }

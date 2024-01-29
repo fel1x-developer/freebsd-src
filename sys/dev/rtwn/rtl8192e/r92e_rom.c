@@ -24,38 +24,35 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/rtwn/if_rtwnreg.h>
-#include <dev/rtwn/if_rtwnvar.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <dev/rtwn/if_rtwn_debug.h>
-
+#include <dev/rtwn/if_rtwnreg.h>
+#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/rtl8192e/r92e.h>
-#include <dev/rtwn/rtl8192e/r92e_var.h>
 #include <dev/rtwn/rtl8192e/r92e_rom_image.h>
+#include <dev/rtwn/rtl8192e/r92e_var.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 void
 r92e_parse_rom(struct rtwn_softc *sc, uint8_t *buf)
@@ -75,12 +72,10 @@ r92e_parse_rom(struct rtwn_softc *sc, uint8_t *buf)
 		    &rom->tx_pwr[i].pwr_diff_2g;
 
 		for (j = 0; j < R92E_GROUP_2G - 1; j++) {
-			rs->cck_tx_pwr[i][j] =
-			    RTWN_GET_ROM_VAR(pwr_2g->cck[j],
-				R92E_DEF_TX_PWR_2G);
-			rs->ht40_tx_pwr_2g[i][j] =
-			    RTWN_GET_ROM_VAR(pwr_2g->ht40[j],
-				R92E_DEF_TX_PWR_2G);
+			rs->cck_tx_pwr[i][j] = RTWN_GET_ROM_VAR(pwr_2g->cck[j],
+			    R92E_DEF_TX_PWR_2G);
+			rs->ht40_tx_pwr_2g[i][j] = RTWN_GET_ROM_VAR(
+			    pwr_2g->ht40[j], R92E_DEF_TX_PWR_2G);
 		}
 		rs->cck_tx_pwr[i][j] = RTWN_GET_ROM_VAR(pwr_2g->cck[j],
 		    R92E_DEF_TX_PWR_2G);
@@ -100,37 +95,37 @@ r92e_parse_rom(struct rtwn_softc *sc, uint8_t *buf)
 			    MS(pwr_diff_2g->ht20_ofdm, HIGH_PART));
 		} else {
 			rs->ofdm_tx_pwr_diff_2g[i][0] =
-			rs->bw20_tx_pwr_diff_2g[i][0] = pwr_diff;
+			    rs->bw20_tx_pwr_diff_2g[i][0] = pwr_diff;
 		}
 
 		for (j = 1, k = 0; k < nitems(pwr_diff_2g->diff123); j++, k++) {
-			pwr_diff = RTWN_GET_ROM_VAR(
-			    pwr_diff_2g->diff123[k].ofdm_cck,
-			    R92E_DEF_TX_PWR_DIFF);
+			pwr_diff =
+			    RTWN_GET_ROM_VAR(pwr_diff_2g->diff123[k].ofdm_cck,
+				R92E_DEF_TX_PWR_DIFF);
 			if (pwr_diff != R92E_DEF_TX_PWR_DIFF) {
 				rs->cck_tx_pwr_diff_2g[i][j] = RTWN_SIGN4TO8(
 				    MS(pwr_diff_2g->diff123[k].ofdm_cck,
-				    LOW_PART));
+					LOW_PART));
 				rs->ofdm_tx_pwr_diff_2g[i][j] = RTWN_SIGN4TO8(
 				    MS(pwr_diff_2g->diff123[k].ofdm_cck,
-				    HIGH_PART));
+					HIGH_PART));
 			} else {
 				rs->cck_tx_pwr_diff_2g[i][j] =
-				rs->ofdm_tx_pwr_diff_2g[i][j] = pwr_diff;
+				    rs->ofdm_tx_pwr_diff_2g[i][j] = pwr_diff;
 			}
-			pwr_diff = RTWN_GET_ROM_VAR(
-			    pwr_diff_2g->diff123[k].ht40_ht20,
-			    R92E_DEF_TX_PWR_DIFF);
+			pwr_diff =
+			    RTWN_GET_ROM_VAR(pwr_diff_2g->diff123[k].ht40_ht20,
+				R92E_DEF_TX_PWR_DIFF);
 			if (pwr_diff != R92E_DEF_TX_PWR_DIFF) {
 				rs->bw20_tx_pwr_diff_2g[i][j] = RTWN_SIGN4TO8(
 				    MS(pwr_diff_2g->diff123[k].ht40_ht20,
-				    LOW_PART));
+					LOW_PART));
 				rs->bw40_tx_pwr_diff_2g[i][j] = RTWN_SIGN4TO8(
 				    MS(pwr_diff_2g->diff123[k].ht40_ht20,
-				    HIGH_PART));
+					HIGH_PART));
 			} else {
 				rs->bw20_tx_pwr_diff_2g[i][j] =
-				rs->bw40_tx_pwr_diff_2g[i][j] = pwr_diff;
+				    rs->bw40_tx_pwr_diff_2g[i][j] = pwr_diff;
 			}
 		}
 	}

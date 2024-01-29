@@ -5,16 +5,17 @@
 /* System headers */
 #include <sys/types.h>
 #include <sys/mbuf.h>
+
 #include <machine/bus_dma.h>
 
 /* Cryptodev headers */
-#include <opencrypto/cryptodev.h>
 #include <crypto/sha2/sha512.h>
+#include <opencrypto/cryptodev.h>
 
 /* QAT specific headers */
-#include "qat_ocf_mem_pool.h"
 #include "cpa.h"
 #include "cpa_cy_sym_dp.h"
+#include "qat_ocf_mem_pool.h"
 
 static inline CpaBoolean
 is_gmac_exception(const struct crypto_session_params *csp)
@@ -55,9 +56,9 @@ is_use_sep_digest(const struct crypto_session_params *csp)
 }
 
 int qat_ocf_handle_session_update(struct qat_ocf_dsession *ocf_dsession,
-				  struct cryptop *crp);
+    struct cryptop *crp);
 
 CpaStatus qat_ocf_wait_for_session(CpaCySymSessionCtx sessionCtx,
-				   Cpa32U timeoutMS);
+    Cpa32U timeoutMS);
 
 #endif /* _QAT_OCF_UTILS_H_ */

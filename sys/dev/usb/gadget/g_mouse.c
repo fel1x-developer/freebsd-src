@@ -30,34 +30,34 @@
  */
 
 #include <sys/param.h>
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/queue.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/linker_set.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/linker_set.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
 #include <dev/usb/usbhid.h>
+
 #include "usb_if.h"
 
-#define	USB_DEBUG_VAR g_mouse_debug
-#include <dev/usb/usb_debug.h>
-
+#define USB_DEBUG_VAR g_mouse_debug
 #include <dev/usb/gadget/g_mouse.h>
+#include <dev/usb/usb_debug.h>
 
 static SYSCTL_NODE(_hw_usb, OID_AUTO, g_mouse, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "USB mouse gadget");
@@ -65,24 +65,26 @@ static SYSCTL_NODE(_hw_usb, OID_AUTO, g_mouse, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
 #ifdef USB_DEBUG
 static int g_mouse_debug = 0;
 
-SYSCTL_INT(_hw_usb_g_mouse, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &g_mouse_debug, 0, "Debug level");
+SYSCTL_INT(_hw_usb_g_mouse, OID_AUTO, debug, CTLFLAG_RWTUN, &g_mouse_debug, 0,
+    "Debug level");
 #endif
 
 static int g_mouse_mode = 0;
 
-SYSCTL_INT(_hw_usb_g_mouse, OID_AUTO, mode, CTLFLAG_RWTUN,
-    &g_mouse_mode, 0, "Mode selection");
+SYSCTL_INT(_hw_usb_g_mouse, OID_AUTO, mode, CTLFLAG_RWTUN, &g_mouse_mode, 0,
+    "Mode selection");
 
 static int g_mouse_button_press_interval = 0;
 
 SYSCTL_INT(_hw_usb_g_mouse, OID_AUTO, button_press_interval, CTLFLAG_RWTUN,
-    &g_mouse_button_press_interval, 0, "Mouse button update interval in milliseconds");
+    &g_mouse_button_press_interval, 0,
+    "Mouse button update interval in milliseconds");
 
 static int g_mouse_cursor_update_interval = 1023;
 
 SYSCTL_INT(_hw_usb_g_mouse, OID_AUTO, cursor_update_interval, CTLFLAG_RWTUN,
-    &g_mouse_cursor_update_interval, 0, "Mouse cursor update interval in milliseconds");
+    &g_mouse_cursor_update_interval, 0,
+    "Mouse cursor update interval in milliseconds");
 
 static int g_mouse_cursor_radius = 128;
 
@@ -91,9 +93,9 @@ SYSCTL_INT(_hw_usb_g_mouse, OID_AUTO, cursor_radius, CTLFLAG_RWTUN,
 
 struct g_mouse_data {
 	uint8_t buttons;
-#define	BUT_0 0x01
-#define	BUT_1 0x02
-#define	BUT_2 0x04
+#define BUT_0 0x01
+#define BUT_1 0x02
+#define BUT_2 0x04
 	int8_t dx;
 	int8_t dy;
 	int8_t dz;
@@ -111,13 +113,13 @@ struct g_mouse_softc {
 	struct g_mouse_data sc_data;
 	struct usb_xfer *sc_xfer[G_MOUSE_N_TRANSFER];
 
-	int	sc_mode;
-	int	sc_radius;
-	int	sc_last_x_state;
-	int	sc_last_y_state;
-	int	sc_curr_x_state;
-	int	sc_curr_y_state;
-	int	sc_tick;
+	int sc_mode;
+	int sc_radius;
+	int sc_last_x_state;
+	int sc_last_y_state;
+	int sc_curr_x_state;
+	int sc_curr_y_state;
+	int sc_tick;
 
 	uint8_t sc_do_cursor_update;
 	uint8_t sc_do_button_update;
@@ -183,7 +185,7 @@ g_mouse_button_press_timeout_reset(struct g_mouse_softc *sc)
 
 	i = USB_MS_TO_TICKS(i);
 
-	usb_callout_reset(&sc->sc_button_press_callout, i, 
+	usb_callout_reset(&sc->sc_button_press_callout, i,
 	    &g_mouse_button_press_timeout, sc);
 }
 
@@ -206,7 +208,7 @@ g_mouse_cursor_update_timeout_reset(struct g_mouse_softc *sc)
 
 	i = USB_MS_TO_TICKS(i);
 
-	usb_callout_reset(&sc->sc_cursor_update_callout, i, 
+	usb_callout_reset(&sc->sc_cursor_update_callout, i,
 	    &g_mouse_cursor_update_timeout, sc);
 }
 
@@ -229,7 +231,8 @@ g_mouse_button_press_timeout(void *arg)
 
 	g_mouse_update_mode_radius(sc);
 
-	DPRINTFN(11, "Timeout %p (button press)\n", sc->sc_xfer[G_MOUSE_INTR_DT]);
+	DPRINTFN(11, "Timeout %p (button press)\n",
+	    sc->sc_xfer[G_MOUSE_INTR_DT]);
 
 	g_mouse_button_press_timeout_reset(sc);
 
@@ -243,7 +246,8 @@ g_mouse_cursor_update_timeout(void *arg)
 
 	g_mouse_update_mode_radius(sc);
 
-	DPRINTFN(11, "Timeout %p (cursor update)\n", sc->sc_xfer[G_MOUSE_INTR_DT]);
+	DPRINTFN(11, "Timeout %p (cursor update)\n",
+	    sc->sc_xfer[G_MOUSE_INTR_DT]);
 
 	g_mouse_cursor_update_timeout_reset(sc);
 
@@ -286,9 +290,8 @@ g_mouse_attach(device_t dev)
 
 	sc->sc_mode = G_MOUSE_MODE_SILENT;
 
-	error = usbd_transfer_setup(uaa->device,
-	    &uaa->info.bIfaceIndex, sc->sc_xfer, g_mouse_config,
-	    G_MOUSE_N_TRANSFER, sc, &sc->sc_mtx);
+	error = usbd_transfer_setup(uaa->device, &uaa->info.bIfaceIndex,
+	    sc->sc_xfer, g_mouse_config, G_MOUSE_N_TRANSFER, sc, &sc->sc_mtx);
 
 	if (error) {
 		DPRINTF("error=%s\n", usbd_errstr(error));
@@ -300,12 +303,12 @@ g_mouse_attach(device_t dev)
 	g_mouse_cursor_update_timeout_reset(sc);
 	mtx_unlock(&sc->sc_mtx);
 
-	return (0);			/* success */
+	return (0); /* success */
 
 detach:
 	g_mouse_detach(dev);
 
-	return (ENXIO);			/* error */
+	return (ENXIO); /* error */
 }
 
 static int
@@ -342,8 +345,8 @@ g_mouse_intr_callback(struct usb_xfer *xfer, usb_error_t error)
 
 	usbd_xfer_status(xfer, &actlen, NULL, &aframes, NULL);
 
-	DPRINTF("st=%d aframes=%d actlen=%d bytes\n",
-	    USB_GET_STATE(xfer), aframes, actlen);
+	DPRINTF("st=%d aframes=%d actlen=%d bytes\n", USB_GET_STATE(xfer),
+	    aframes, actlen);
 
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_TRANSFERRED:
@@ -351,28 +354,28 @@ g_mouse_intr_callback(struct usb_xfer *xfer, usb_error_t error)
 			break;
 
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 
-	  if (sc->sc_do_cursor_update) {
-		sc->sc_do_cursor_update = 0;
-		sc->sc_tick += 80;
-		if ((sc->sc_tick < 0) || (sc->sc_tick > 7999))
-			sc->sc_tick = 0;
-	  }
+		if (sc->sc_do_cursor_update) {
+			sc->sc_do_cursor_update = 0;
+			sc->sc_tick += 80;
+			if ((sc->sc_tick < 0) || (sc->sc_tick > 7999))
+				sc->sc_tick = 0;
+		}
 
-	  if (sc->sc_do_button_update) {
+		if (sc->sc_do_button_update) {
 			sc->sc_do_button_update = 0;
 			sc->sc_data.buttons ^= BUT_0;
-	  }
+		}
 
-	  radius = sc->sc_radius;
+		radius = sc->sc_radius;
 
 		switch (sc->sc_mode) {
 		case G_MOUSE_MODE_SILENT:
 			sc->sc_data.buttons = 0;
 			break;
 		case G_MOUSE_MODE_SPIRAL:
-			radius = (radius * (8000-sc->sc_tick)) / 8000;
+			radius = (radius * (8000 - sc->sc_tick)) / 8000;
 		case G_MOUSE_MODE_CIRCLE:
 			/* TODO */
 			sc->sc_curr_y_state = 0;
@@ -380,17 +383,21 @@ tr_setup:
 			break;
 		case G_MOUSE_MODE_BOX:
 			if (sc->sc_tick < 2000) {
-				sc->sc_curr_x_state = (sc->sc_tick * radius) / 2000;
+				sc->sc_curr_x_state = (sc->sc_tick * radius) /
+				    2000;
 				sc->sc_curr_y_state = 0;
 			} else if (sc->sc_tick < 4000) {
 				sc->sc_curr_x_state = radius;
-				sc->sc_curr_y_state = -(((sc->sc_tick - 2000) * radius) / 2000);
+				sc->sc_curr_y_state = -(
+				    ((sc->sc_tick - 2000) * radius) / 2000);
 			} else if (sc->sc_tick < 6000) {
-				sc->sc_curr_x_state = radius - (((sc->sc_tick - 4000) * radius) / 2000);
+				sc->sc_curr_x_state = radius -
+				    (((sc->sc_tick - 4000) * radius) / 2000);
 				sc->sc_curr_y_state = -radius;
 			} else {
 				sc->sc_curr_x_state = 0;
-				sc->sc_curr_y_state = -radius + (((sc->sc_tick - 6000) * radius) / 2000);
+				sc->sc_curr_y_state = -radius +
+				    (((sc->sc_tick - 6000) * radius) / 2000);
 			}
 			break;
 		default:
@@ -401,14 +408,14 @@ tr_setup:
 		dy = sc->sc_curr_y_state - sc->sc_last_y_state;
 
 		if (dx < -63)
-		  dx = -63;
+			dx = -63;
 		else if (dx > 63)
-		  dx = 63;
+			dx = 63;
 
 		if (dy < -63)
-		  dy = -63;
+			dy = -63;
 		else if (dy > 63)
-		  dy = 63;
+			dy = 63;
 
 		sc->sc_last_x_state += dx;
 		sc->sc_last_y_state += dy;
@@ -416,12 +423,13 @@ tr_setup:
 		sc->sc_data.dx = dx;
 		sc->sc_data.dy = dy;
 
-		usbd_xfer_set_frame_data(xfer, 0, &sc->sc_data, sizeof(sc->sc_data));
+		usbd_xfer_set_frame_data(xfer, 0, &sc->sc_data,
+		    sizeof(sc->sc_data));
 		usbd_xfer_set_frames(xfer, 1);
 		usbd_transfer_submit(xfer);
 		break;
 
-	default:			/* Error */
+	default: /* Error */
 		DPRINTF("error=%s\n", usbd_errstr(error));
 
 		if (error != USB_ERR_CANCELLED) {
@@ -434,9 +442,8 @@ tr_setup:
 }
 
 static int
-g_mouse_handle_request(device_t dev,
-    const void *preq, void **pptr, uint16_t *plen,
-    uint16_t offset, uint8_t *pstate)
+g_mouse_handle_request(device_t dev, const void *preq, void **pptr,
+    uint16_t *plen, uint16_t offset, uint8_t *pstate)
 {
 	const struct usb_device_request *req = preq;
 	uint8_t is_complete = *pstate;
@@ -444,11 +451,10 @@ g_mouse_handle_request(device_t dev,
 	if (!is_complete) {
 		if ((req->bmRequestType == UT_WRITE_CLASS_INTERFACE) &&
 		    (req->bRequest == UR_SET_PROTOCOL) &&
-		    (req->wValue[0] == 0x00) &&
-		    (req->wValue[1] == 0x00)) {
+		    (req->wValue[0] == 0x00) && (req->wValue[1] == 0x00)) {
 			*plen = 0;
 			return (0);
 		}
 	}
-	return (ENXIO);			/* use builtin handler */
+	return (ENXIO); /* use builtin handler */
 }

@@ -41,47 +41,46 @@
 #include "opt_snd.h"
 #endif
 
-#include <dev/sound/pcm/sound.h>
-#include <dev/sound/pcm/ac97.h>
+#include <sys/sysctl.h>
 
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
-#include <sys/sysctl.h>
-
 #include <dev/sound/pci/via8233.h>
+#include <dev/sound/pcm/ac97.h>
+#include <dev/sound/pcm/sound.h>
 
 #define VIA8233_PCI_ID 0x30591106
 
-#define VIA8233_REV_ID_8233PRE	0x10
-#define VIA8233_REV_ID_8233C	0x20
-#define VIA8233_REV_ID_8233	0x30
-#define VIA8233_REV_ID_8233A	0x40
-#define VIA8233_REV_ID_8235	0x50
-#define VIA8233_REV_ID_8237	0x60
-#define VIA8233_REV_ID_8251	0x70
+#define VIA8233_REV_ID_8233PRE 0x10
+#define VIA8233_REV_ID_8233C 0x20
+#define VIA8233_REV_ID_8233 0x30
+#define VIA8233_REV_ID_8233A 0x40
+#define VIA8233_REV_ID_8235 0x50
+#define VIA8233_REV_ID_8237 0x60
+#define VIA8233_REV_ID_8251 0x70
 
-#define SEGS_PER_CHAN	2			/* Segments per channel */
-#define NDXSCHANS	4			/* No of DXS channels */
-#define NMSGDCHANS	1			/* No of multichannel SGD */
-#define NWRCHANS	1			/* No of write channels */
-#define NCHANS		(NWRCHANS + NDXSCHANS + NMSGDCHANS)
-#define	NSEGS		NCHANS * SEGS_PER_CHAN	/* Segments in SGD table */
-#define VIA_SEGS_MIN		2
-#define VIA_SEGS_MAX		64
-#define VIA_SEGS_DEFAULT	2
-#define VIA_BLK_MIN		32
-#define VIA_BLK_ALIGN		(~(VIA_BLK_MIN - 1))
+#define SEGS_PER_CHAN 2 /* Segments per channel */
+#define NDXSCHANS 4	/* No of DXS channels */
+#define NMSGDCHANS 1	/* No of multichannel SGD */
+#define NWRCHANS 1	/* No of write channels */
+#define NCHANS (NWRCHANS + NDXSCHANS + NMSGDCHANS)
+#define NSEGS NCHANS *SEGS_PER_CHAN /* Segments in SGD table */
+#define VIA_SEGS_MIN 2
+#define VIA_SEGS_MAX 64
+#define VIA_SEGS_DEFAULT 2
+#define VIA_BLK_MIN 32
+#define VIA_BLK_ALIGN (~(VIA_BLK_MIN - 1))
 
-#define	VIA_DEFAULT_BUFSZ	0x1000
+#define VIA_DEFAULT_BUFSZ 0x1000
 
 /* we rely on this struct being packed to 64 bits */
 struct via_dma_op {
 	volatile uint32_t ptr;
 	volatile uint32_t flags;
-#define VIA_DMAOP_EOL         0x80000000
-#define VIA_DMAOP_FLAG        0x40000000
-#define VIA_DMAOP_STOP        0x20000000
-#define VIA_DMAOP_COUNT(x)    ((x)&0x00FFFFFF)
+#define VIA_DMAOP_EOL 0x80000000
+#define VIA_DMAOP_FLAG 0x40000000
+#define VIA_DMAOP_STOP 0x20000000
+#define VIA_DMAOP_COUNT(x) ((x) & 0x00FFFFFF)
 };
 
 struct via_info;
@@ -126,13 +125,9 @@ struct via_info {
 	int poll_ticks, polling;
 };
 
-static uint32_t via_fmt[] = {
-	SND_FORMAT(AFMT_U8, 1, 0),
-	SND_FORMAT(AFMT_U8, 2, 0),
-	SND_FORMAT(AFMT_S16_LE, 1, 0),
-	SND_FORMAT(AFMT_S16_LE, 2, 0),
-	0
-};
+static uint32_t via_fmt[] = { SND_FORMAT(AFMT_U8, 1, 0),
+	SND_FORMAT(AFMT_U8, 2, 0), SND_FORMAT(AFMT_S16_LE, 1, 0),
+	SND_FORMAT(AFMT_S16_LE, 2, 0), 0 };
 
 static struct pcmchan_caps via_vracaps = { 4000, 48000, via_fmt, 0 };
 static struct pcmchan_caps via_caps = { 48000, 48000, via_fmt, 0 };
@@ -256,18 +251,18 @@ via_init_sysctls(device_t dev)
 	   as discussed on multimedia@ in msg-id <861wujij2q.fsf@xps.des.no> */
 	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev),
 	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO,
-	    "spdif_enabled", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE,
-	    dev, sizeof(dev), sysctl_via8233_spdif_enable, "I",
+	    "spdif_enabled", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, dev,
+	    sizeof(dev), sysctl_via8233_spdif_enable, "I",
 	    "Enable S/PDIF output on primary playback channel");
 	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev),
-	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO,
-	    "dxs_src", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE,
-	    dev, sizeof(dev), sysctl_via8233_dxs_src, "I",
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO, "dxs_src",
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, dev, sizeof(dev),
+	    sysctl_via8233_dxs_src, "I",
 	    "Enable VIA DXS Sample Rate Converter");
 	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev),
-	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO,
-	    "polling", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE,
-	    dev, sizeof(dev), sysctl_via_polling, "I", "Enable polling mode");
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO, "polling",
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, dev, sizeof(dev),
+	    sysctl_via_polling, "I", "Enable polling mode");
 }
 
 static __inline uint32_t
@@ -344,8 +339,8 @@ via_write_codec(kobj_t obj, void *addr, int reg, uint32_t val)
 		return (-1);
 
 	via_wr(via, VIA_AC97_CONTROL,
-	       VIA_AC97_CODEC00_VALID | VIA_AC97_INDEX(reg) |
-	       VIA_AC97_DATA(val), 4);
+	    VIA_AC97_CODEC00_VALID | VIA_AC97_INDEX(reg) | VIA_AC97_DATA(val),
+	    4);
 
 	return (0);
 }
@@ -358,8 +353,8 @@ via_read_codec(kobj_t obj, void *addr, int reg)
 	if (via_waitready_codec(via))
 		return (-1);
 
-	via_wr(via, VIA_AC97_CONTROL, VIA_AC97_CODEC00_VALID |
-	    VIA_AC97_READ | VIA_AC97_INDEX(reg), 4);
+	via_wr(via, VIA_AC97_CONTROL,
+	    VIA_AC97_CODEC00_VALID | VIA_AC97_READ | VIA_AC97_INDEX(reg), 4);
 
 	if (via_waitready_codec(via))
 		return (-1);
@@ -370,11 +365,9 @@ via_read_codec(kobj_t obj, void *addr, int reg)
 	return (via_rd(via, VIA_AC97_CONTROL, 2));
 }
 
-static kobj_method_t via_ac97_methods[] = {
-	KOBJMETHOD(ac97_read,		via_read_codec),
-	KOBJMETHOD(ac97_write,		via_write_codec),
-	KOBJMETHOD_END
-};
+static kobj_method_t via_ac97_methods[] = { KOBJMETHOD(ac97_read,
+						via_read_codec),
+	KOBJMETHOD(ac97_write, via_write_codec), KOBJMETHOD_END };
 AC97_DECLARE(via_ac97);
 
 /* -------------------------------------------------------------------- */
@@ -447,7 +440,7 @@ via8233msgd_setformat(kobj_t obj, void *data, uint32_t format)
 	struct via_info *via = ch->parent;
 
 	uint32_t s = 0xff000000;
-	uint8_t  v = (format & AFMT_S16_LE) ? MC_SGD_16BIT : MC_SGD_8BIT;
+	uint8_t v = (format & AFMT_S16_LE) ? MC_SGD_16BIT : MC_SGD_8BIT;
 
 	if (AFMT_CHANNEL(format) > 1) {
 		v |= MC_SGD_CHANNELS(2);
@@ -560,8 +553,8 @@ via8233msgd_getcaps(kobj_t obj, void *data)
 /* Common functions */
 
 static int
-via8233chan_setfragments(kobj_t obj, void *data,
-					uint32_t blksz, uint32_t blkcnt)
+via8233chan_setfragments(kobj_t obj, void *data, uint32_t blksz,
+    uint32_t blkcnt)
 {
 	struct via_chinfo *ch = data;
 	struct via_info *via = ch->parent;
@@ -587,7 +580,7 @@ via8233chan_setfragments(kobj_t obj, void *data,
 	}
 
 	if ((sndbuf_getblksz(ch->buffer) != blksz ||
-	    sndbuf_getblkcnt(ch->buffer) != blkcnt) &&
+		sndbuf_getblkcnt(ch->buffer) != blkcnt) &&
 	    sndbuf_resize(ch->buffer, blkcnt, blksz) != 0)
 		device_printf(via->dev, "%s: failed blksz=%u blkcnt=%u\n",
 		    __func__, blksz, blkcnt);
@@ -623,10 +616,10 @@ via8233chan_getptr(kobj_t obj, void *data)
 	} else {
 		v = via_rd(via, ch->rbase + VIA_RP_CURRENT_COUNT, 4);
 		snd_mtxunlock(via->lock);
-		index = v >> 24;		/* Last completed buffer */
-		count = v & 0x00ffffff;	/* Bytes remaining */
+		index = v >> 24;	/* Last completed buffer */
+		count = v & 0x00ffffff; /* Bytes remaining */
 		ptr = (index + 1) * ch->blksz - count;
-		ptr %= ch->blkcnt * ch->blksz;	/* Wrap to available space */
+		ptr %= ch->blkcnt * ch->blksz; /* Wrap to available space */
 	}
 
 	return (ptr);
@@ -637,8 +630,8 @@ via8233chan_reset(struct via_info *via, struct via_chinfo *ch)
 {
 	via_wr(via, ch->rbase + VIA_RP_CONTROL, SGD_CONTROL_STOP, 1);
 	via_wr(via, ch->rbase + VIA_RP_CONTROL, 0x00, 1);
-	via_wr(via, ch->rbase + VIA_RP_STATUS,
-	    SGD_STATUS_EOL | SGD_STATUS_FLAG, 1);
+	via_wr(via, ch->rbase + VIA_RP_STATUS, SGD_STATUS_EOL | SGD_STATUS_FLAG,
+	    1);
 }
 
 /* -------------------------------------------------------------------- */
@@ -648,13 +641,13 @@ static void
 via8233chan_sgdinit(struct via_info *via, struct via_chinfo *ch, int chnum)
 {
 	ch->sgd_table = &via->sgd_table[chnum * VIA_SEGS_MAX];
-	ch->sgd_addr = via->sgd_addr + chnum * VIA_SEGS_MAX *
-	    sizeof(struct via_dma_op);
+	ch->sgd_addr = via->sgd_addr +
+	    chnum * VIA_SEGS_MAX * sizeof(struct via_dma_op);
 }
 
-static void*
+static void *
 via8233wr_init(kobj_t obj, void *devinfo, struct snd_dbuf *b,
-						struct pcm_channel *c, int dir)
+    struct pcm_channel *c, int dir)
 {
 	struct via_info *via = devinfo;
 	struct via_chinfo *ch;
@@ -683,9 +676,9 @@ via8233wr_init(kobj_t obj, void *devinfo, struct snd_dbuf *b,
 	return (ch);
 }
 
-static void*
+static void *
 via8233dxs_init(kobj_t obj, void *devinfo, struct snd_dbuf *b,
-						struct pcm_channel *c, int dir)
+    struct pcm_channel *c, int dir)
 {
 	struct via_info *via = devinfo;
 	struct via_chinfo *ch;
@@ -720,9 +713,9 @@ via8233dxs_init(kobj_t obj, void *devinfo, struct snd_dbuf *b,
 	return (ch);
 }
 
-static void*
+static void *
 via8233msgd_init(kobj_t obj, void *devinfo, struct snd_dbuf *b,
-						struct pcm_channel *c, int dir)
+    struct pcm_channel *c, int dir)
 {
 	struct via_info *via = devinfo;
 	struct via_chinfo *ch;
@@ -763,7 +756,8 @@ via8233chan_mute(struct via_info *via, struct via_chinfo *ch, int muted)
 		if (r != muted)
 			device_printf(via->dev,
 			    "%s: failed to set dxs volume "
-			    "(dxs base 0x%02x).\n", __func__, ch->rbase);
+			    "(dxs base 0x%02x).\n",
+			    __func__, ch->rbase);
 	}
 }
 
@@ -814,15 +808,15 @@ via_poll_callback(void *arg)
 	}
 
 	for (i = 0; i < NDXSCHANS + NMSGDCHANS; i++)
-		ptrigger |= (via_poll_channel(&via->pch[i]) != 0) ?
-		    (1 << i) : 0;
+		ptrigger |= (via_poll_channel(&via->pch[i]) != 0) ? (1 << i) :
+								    0;
 
 	for (i = 0; i < NWRCHANS; i++)
-		rtrigger |= (via_poll_channel(&via->rch[i]) != 0) ?
-		    (1 << i) : 0;
+		rtrigger |= (via_poll_channel(&via->rch[i]) != 0) ? (1 << i) :
+								    0;
 
 	/* XXX */
-	callout_reset(&via->poll_timer, 1/*via->poll_ticks*/,
+	callout_reset(&via->poll_timer, 1 /*via->poll_ticks*/,
 	    via_poll_callback, via);
 
 	snd_mtxunlock(via->lock);
@@ -851,7 +845,7 @@ via_poll_ticks(struct via_info *via)
 			continue;
 		pollticks = ((uint64_t)hz * ch->blksz) /
 		    ((uint64_t)sndbuf_getalign(ch->buffer) *
-		    sndbuf_getspd(ch->buffer));
+			sndbuf_getspd(ch->buffer));
 		pollticks >>= 2;
 		if (pollticks > hz)
 			pollticks = hz;
@@ -867,7 +861,7 @@ via_poll_ticks(struct via_info *via)
 			continue;
 		pollticks = ((uint64_t)hz * ch->blksz) /
 		    ((uint64_t)sndbuf_getalign(ch->buffer) *
-		    sndbuf_getspd(ch->buffer));
+			sndbuf_getspd(ch->buffer));
 		pollticks >>= 2;
 		if (pollticks > hz)
 			pollticks = hz;
@@ -881,7 +875,7 @@ via_poll_ticks(struct via_info *via)
 }
 
 static int
-via8233chan_trigger(kobj_t obj, void* data, int go)
+via8233chan_trigger(kobj_t obj, void *data, int go)
 {
 	struct via_chinfo *ch = data;
 	struct via_info *via = ch->parent;
@@ -891,7 +885,7 @@ via8233chan_trigger(kobj_t obj, void* data, int go)
 		return (0);
 
 	snd_mtxlock(via->lock);
-	switch(go) {
+	switch (go) {
 	case PCMTRIG_START:
 		via_buildsgdt(ch);
 		via8233chan_mute(via, ch, 0);
@@ -901,7 +895,7 @@ via8233chan_trigger(kobj_t obj, void* data, int go)
 			ch->prevptr = 0;
 			pollticks = ((uint64_t)hz * ch->blksz) /
 			    ((uint64_t)sndbuf_getalign(ch->buffer) *
-			    sndbuf_getspd(ch->buffer));
+				sndbuf_getspd(ch->buffer));
 			pollticks >>= 2;
 			if (pollticks > hz)
 				pollticks = hz;
@@ -909,13 +903,13 @@ via8233chan_trigger(kobj_t obj, void* data, int go)
 				pollticks = 1;
 			if (via_chan_active(via) == 0 ||
 			    pollticks < via->poll_ticks) {
-			    	if (bootverbose) {
+				if (bootverbose) {
 					if (via_chan_active(via) == 0)
 						printf("%s: pollticks=%d\n",
 						    __func__, pollticks);
 					else
 						printf("%s: "
-						    "pollticks %d -> %d\n",
+						       "pollticks %d -> %d\n",
 						    __func__, via->poll_ticks,
 						    pollticks);
 				}
@@ -926,8 +920,10 @@ via8233chan_trigger(kobj_t obj, void* data, int go)
 		}
 		via_wr(via, ch->rbase + VIA_RP_CONTROL,
 		    SGD_CONTROL_START | SGD_CONTROL_AUTOSTART |
-		    ((via->polling == 0) ?
-		    (SGD_CONTROL_I_EOL | SGD_CONTROL_I_FLAG) : 0), 1);
+			((via->polling == 0) ?
+				(SGD_CONTROL_I_EOL | SGD_CONTROL_I_FLAG) :
+				0),
+		    1);
 		ch->active = 1;
 		break;
 	case PCMTRIG_STOP:
@@ -945,13 +941,12 @@ via8233chan_trigger(kobj_t obj, void* data, int go)
 				if (pollticks > via->poll_ticks) {
 					if (bootverbose)
 						printf("%s: pollticks "
-						    "%d -> %d\n",
+						       "%d -> %d\n",
 						    __func__, via->poll_ticks,
 						    pollticks);
 					via->poll_ticks = pollticks;
-					callout_reset(&via->poll_timer,
-					    1, via_poll_callback,
-					    via);
+					callout_reset(&via->poll_timer, 1,
+					    via_poll_callback, via);
 				}
 			}
 		}
@@ -963,43 +958,37 @@ via8233chan_trigger(kobj_t obj, void* data, int go)
 	return (0);
 }
 
-static kobj_method_t via8233wr_methods[] = {
-	KOBJMETHOD(channel_init,		via8233wr_init),
-	KOBJMETHOD(channel_setformat,		via8233wr_setformat),
-	KOBJMETHOD(channel_setspeed,		via8233wr_setspeed),
-	KOBJMETHOD(channel_getcaps,		via8233wr_getcaps),
-	KOBJMETHOD(channel_setblocksize,	via8233chan_setblocksize),
-	KOBJMETHOD(channel_setfragments,	via8233chan_setfragments),
-	KOBJMETHOD(channel_trigger,		via8233chan_trigger),
-	KOBJMETHOD(channel_getptr,		via8233chan_getptr),
-	KOBJMETHOD_END
-};
+static kobj_method_t via8233wr_methods[] = { KOBJMETHOD(channel_init,
+						 via8233wr_init),
+	KOBJMETHOD(channel_setformat, via8233wr_setformat),
+	KOBJMETHOD(channel_setspeed, via8233wr_setspeed),
+	KOBJMETHOD(channel_getcaps, via8233wr_getcaps),
+	KOBJMETHOD(channel_setblocksize, via8233chan_setblocksize),
+	KOBJMETHOD(channel_setfragments, via8233chan_setfragments),
+	KOBJMETHOD(channel_trigger, via8233chan_trigger),
+	KOBJMETHOD(channel_getptr, via8233chan_getptr), KOBJMETHOD_END };
 CHANNEL_DECLARE(via8233wr);
 
-static kobj_method_t via8233dxs_methods[] = {
-	KOBJMETHOD(channel_init,		via8233dxs_init),
-	KOBJMETHOD(channel_setformat,		via8233dxs_setformat),
-	KOBJMETHOD(channel_setspeed,		via8233dxs_setspeed),
-	KOBJMETHOD(channel_getcaps,		via8233dxs_getcaps),
-	KOBJMETHOD(channel_setblocksize,	via8233chan_setblocksize),
-	KOBJMETHOD(channel_setfragments,	via8233chan_setfragments),
-	KOBJMETHOD(channel_trigger,		via8233chan_trigger),
-	KOBJMETHOD(channel_getptr,		via8233chan_getptr),
-	KOBJMETHOD_END
-};
+static kobj_method_t via8233dxs_methods[] = { KOBJMETHOD(channel_init,
+						  via8233dxs_init),
+	KOBJMETHOD(channel_setformat, via8233dxs_setformat),
+	KOBJMETHOD(channel_setspeed, via8233dxs_setspeed),
+	KOBJMETHOD(channel_getcaps, via8233dxs_getcaps),
+	KOBJMETHOD(channel_setblocksize, via8233chan_setblocksize),
+	KOBJMETHOD(channel_setfragments, via8233chan_setfragments),
+	KOBJMETHOD(channel_trigger, via8233chan_trigger),
+	KOBJMETHOD(channel_getptr, via8233chan_getptr), KOBJMETHOD_END };
 CHANNEL_DECLARE(via8233dxs);
 
-static kobj_method_t via8233msgd_methods[] = {
-	KOBJMETHOD(channel_init,		via8233msgd_init),
-	KOBJMETHOD(channel_setformat,		via8233msgd_setformat),
-	KOBJMETHOD(channel_setspeed,		via8233msgd_setspeed),
-	KOBJMETHOD(channel_getcaps,		via8233msgd_getcaps),
-	KOBJMETHOD(channel_setblocksize,	via8233chan_setblocksize),
-	KOBJMETHOD(channel_setfragments,	via8233chan_setfragments),
-	KOBJMETHOD(channel_trigger,		via8233chan_trigger),
-	KOBJMETHOD(channel_getptr,		via8233chan_getptr),
-	KOBJMETHOD_END
-};
+static kobj_method_t via8233msgd_methods[] = { KOBJMETHOD(channel_init,
+						   via8233msgd_init),
+	KOBJMETHOD(channel_setformat, via8233msgd_setformat),
+	KOBJMETHOD(channel_setspeed, via8233msgd_setspeed),
+	KOBJMETHOD(channel_getcaps, via8233msgd_getcaps),
+	KOBJMETHOD(channel_setblocksize, via8233chan_setblocksize),
+	KOBJMETHOD(channel_setfragments, via8233chan_setfragments),
+	KOBJMETHOD(channel_trigger, via8233chan_trigger),
+	KOBJMETHOD(channel_getptr, via8233chan_getptr), KOBJMETHOD_END };
 CHANNEL_DECLARE(via8233msgd);
 
 /* -------------------------------------------------------------------- */
@@ -1023,11 +1012,13 @@ via_intr(void *p)
 		reg = via->pch[i].rbase + VIA_RP_STATUS;
 		stat = via_rd(via, reg, 1);
 		if (stat & SGD_STATUS_INTR) {
-			if (via->dma_eol_wake && ((stat & SGD_STATUS_EOL) ||
-			    !(stat & SGD_STATUS_ACTIVE)))
+			if (via->dma_eol_wake &&
+			    ((stat & SGD_STATUS_EOL) ||
+				!(stat & SGD_STATUS_ACTIVE)))
 				via_wr(via, via->pch[i].rbase + VIA_RP_CONTROL,
 				    SGD_CONTROL_START | SGD_CONTROL_AUTOSTART |
-				    SGD_CONTROL_I_EOL | SGD_CONTROL_I_FLAG, 1);
+					SGD_CONTROL_I_EOL | SGD_CONTROL_I_FLAG,
+				    1);
 			via_wr(via, reg, stat, 1);
 			ptrigger |= 1 << i;
 		}
@@ -1039,11 +1030,13 @@ via_intr(void *p)
 		reg = via->rch[i].rbase + VIA_RP_STATUS;
 		stat = via_rd(via, reg, 1);
 		if (stat & SGD_STATUS_INTR) {
-			if (via->dma_eol_wake && ((stat & SGD_STATUS_EOL) ||
-			    !(stat & SGD_STATUS_ACTIVE)))
+			if (via->dma_eol_wake &&
+			    ((stat & SGD_STATUS_EOL) ||
+				!(stat & SGD_STATUS_ACTIVE)))
 				via_wr(via, via->rch[i].rbase + VIA_RP_CONTROL,
 				    SGD_CONTROL_START | SGD_CONTROL_AUTOSTART |
-				    SGD_CONTROL_I_EOL | SGD_CONTROL_I_FLAG, 1);
+					SGD_CONTROL_I_EOL | SGD_CONTROL_I_FLAG,
+				    1);
 			via_wr(via, reg, stat, 1);
 			rtrigger |= 1 << i;
 		}
@@ -1066,9 +1059,9 @@ via_intr(void *p)
 static int
 via_probe(device_t dev)
 {
-	switch(pci_get_devid(dev)) {
+	switch (pci_get_devid(dev)) {
 	case VIA8233_PCI_ID:
-		switch(pci_get_revid(dev)) {
+		switch (pci_get_revid(dev)) {
 		case VIA8233_REV_ID_8233PRE:
 			device_set_desc(dev, "VIA VT8233 (pre)");
 			return (BUS_PROBE_DEFAULT);
@@ -1091,7 +1084,7 @@ via_probe(device_t dev)
 			device_set_desc(dev, "VIA VT8251");
 			return (BUS_PROBE_DEFAULT);
 		default:
-			device_set_desc(dev, "VIA VT8233X");	/* Unknown */
+			device_set_desc(dev, "VIA VT8233X"); /* Unknown */
 			return (BUS_PROBE_DEFAULT);
 		}
 	}
@@ -1116,8 +1109,8 @@ via_chip_init(device_t dev)
 	if ((data & VIA_PCI_ACLINK_C00_READY) == 0) {
 		/* Cold reset per ac97r2.3 spec (page 95) */
 		/* Assert low */
-		pci_write_config(dev, VIA_PCI_ACLINK_CTRL,
-		    VIA_PCI_ACLINK_EN, 1);
+		pci_write_config(dev, VIA_PCI_ACLINK_CTRL, VIA_PCI_ACLINK_EN,
+		    1);
 		/* Wait T_rst_low */
 		DELAY(100);
 		/* Assert high */
@@ -1126,13 +1119,13 @@ via_chip_init(device_t dev)
 		/* Wait T_rst2clk */
 		DELAY(5);
 		/* Assert low */
-		pci_write_config(dev, VIA_PCI_ACLINK_CTRL,
-		    VIA_PCI_ACLINK_EN, 1);
+		pci_write_config(dev, VIA_PCI_ACLINK_CTRL, VIA_PCI_ACLINK_EN,
+		    1);
 	} else {
 		/* Warm reset */
 		/* Force no sync */
-		pci_write_config(dev, VIA_PCI_ACLINK_CTRL,
-		    VIA_PCI_ACLINK_EN, 1);
+		pci_write_config(dev, VIA_PCI_ACLINK_CTRL, VIA_PCI_ACLINK_EN,
+		    1);
 		DELAY(100);
 		/* Sync */
 		pci_write_config(dev, VIA_PCI_ACLINK_CTRL,
@@ -1140,8 +1133,8 @@ via_chip_init(device_t dev)
 		/* Wait T_sync_high */
 		DELAY(5);
 		/* Force no sync */
-		pci_write_config(dev, VIA_PCI_ACLINK_CTRL,
-		    VIA_PCI_ACLINK_EN, 1);
+		pci_write_config(dev, VIA_PCI_ACLINK_CTRL, VIA_PCI_ACLINK_EN,
+		    1);
 		/* Wait T_sync2clk */
 		DELAY(5);
 	}
@@ -1177,8 +1170,9 @@ via_attach(device_t dev)
 	callout_init(&via->poll_timer, 1);
 	via->poll_ticks = 1;
 
-	if (resource_int_value(device_get_name(dev),
-	    device_get_unit(dev), "polling", &i) == 0 && i != 0)
+	if (resource_int_value(device_get_name(dev), device_get_unit(dev),
+		"polling", &i) == 0 &&
+	    i != 0)
 		via->polling = 1;
 	else
 		via->polling = 0;
@@ -1188,7 +1182,7 @@ via_attach(device_t dev)
 
 	via->regid = PCIR_BAR(0);
 	via->reg = bus_alloc_resource_any(dev, SYS_RES_IOPORT, &via->regid,
-					  RF_ACTIVE);
+	    RF_ACTIVE);
 	if (!via->reg) {
 		device_printf(dev, "cannot allocate bus resource.");
 		goto bad;
@@ -1200,15 +1194,16 @@ via_attach(device_t dev)
 	via->irq = bus_alloc_resource_any(dev, SYS_RES_IRQ, &via->irqid,
 	    RF_ACTIVE | RF_SHAREABLE);
 	if (!via->irq ||
-	    snd_setup_intr(dev, via->irq, INTR_MPSAFE,
-	    via_intr, via, &via->ih)) {
+	    snd_setup_intr(dev, via->irq, INTR_MPSAFE, via_intr, via,
+		&via->ih)) {
 		device_printf(dev, "unable to map interrupt\n");
 		goto bad;
 	}
 
 	via->bufsz = pcm_getbuffersize(dev, 4096, VIA_DEFAULT_BUFSZ, 65536);
-	if (resource_int_value(device_get_name(dev),
-	    device_get_unit(dev), "blocksize", &i) == 0 && i > 0) {
+	if (resource_int_value(device_get_name(dev), device_get_unit(dev),
+		"blocksize", &i) == 0 &&
+	    i > 0) {
 		i &= VIA_BLK_ALIGN;
 		if (i < VIA_BLK_MIN)
 			i = VIA_BLK_MIN;
@@ -1248,8 +1243,8 @@ via_attach(device_t dev)
 		 */
 		via_dxs_disabled = 1;
 	} else if (resource_int_value(device_get_name(dev),
-	    device_get_unit(dev), "via_dxs_disabled",
-	    &via_dxs_disabled) == 0)
+		       device_get_unit(dev), "via_dxs_disabled",
+		       &via_dxs_disabled) == 0)
 		via_dxs_disabled = (via_dxs_disabled > 0) ? 1 : 0;
 	else
 		via_dxs_disabled = 0;
@@ -1259,12 +1254,12 @@ via_attach(device_t dev)
 		via_sgd_chnum = 1;
 	} else {
 		if (resource_int_value(device_get_name(dev),
-		    device_get_unit(dev), "via_dxs_channels",
-		    &via_dxs_chnum) != 0)
+			device_get_unit(dev), "via_dxs_channels",
+			&via_dxs_chnum) != 0)
 			via_dxs_chnum = NDXSCHANS;
 		if (resource_int_value(device_get_name(dev),
-		    device_get_unit(dev), "via_sgd_channels",
-		    &via_sgd_chnum) != 0)
+			device_get_unit(dev), "via_sgd_channels",
+			&via_sgd_chnum) != 0)
 			via_sgd_chnum = NMSGDCHANS;
 	}
 	if (via_dxs_chnum > NDXSCHANS)
@@ -1280,8 +1275,9 @@ via_attach(device_t dev)
 		via_dxs_chnum = 1;
 		via_sgd_chnum = 0;
 	}
-	if (via_dxs_chnum > 0 && resource_int_value(device_get_name(dev),
-	    device_get_unit(dev), "via_dxs_src", &via_dxs_src) == 0)
+	if (via_dxs_chnum > 0 &&
+	    resource_int_value(device_get_name(dev), device_get_unit(dev),
+		"via_dxs_src", &via_dxs_src) == 0)
 		via->dxs_src = (via_dxs_src > 0) ? 1 : 0;
 	else
 		via->dxs_src = 0;
@@ -1289,14 +1285,14 @@ via_attach(device_t dev)
 	nsegs = (via_dxs_chnum + via_sgd_chnum + NWRCHANS) * VIA_SEGS_MAX;
 
 	/* DMA tag for buffers */
-	if (bus_dma_tag_create(/*parent*/bus_get_dma_tag(dev), /*alignment*/2,
-		/*boundary*/0,
-		/*lowaddr*/BUS_SPACE_MAXADDR_32BIT,
-		/*highaddr*/BUS_SPACE_MAXADDR,
-		/*filter*/NULL, /*filterarg*/NULL,
-		/*maxsize*/via->bufsz, /*nsegments*/1, /*maxsegz*/0x3ffff,
-		/*flags*/0, /*lockfunc*/NULL,
-		/*lockarg*/NULL, &via->parent_dmat) != 0) {
+	if (bus_dma_tag_create(/*parent*/ bus_get_dma_tag(dev), /*alignment*/ 2,
+		/*boundary*/ 0,
+		/*lowaddr*/ BUS_SPACE_MAXADDR_32BIT,
+		/*highaddr*/ BUS_SPACE_MAXADDR,
+		/*filter*/ NULL, /*filterarg*/ NULL,
+		/*maxsize*/ via->bufsz, /*nsegments*/ 1, /*maxsegz*/ 0x3ffff,
+		/*flags*/ 0, /*lockfunc*/ NULL,
+		/*lockarg*/ NULL, &via->parent_dmat) != 0) {
 		device_printf(dev, "unable to create dma tag\n");
 		goto bad;
 	}
@@ -1306,24 +1302,24 @@ via_attach(device_t dev)
 	 *  requires a list in memory of work to do.  We need only 16 bytes
 	 *  for this list, and it is wasteful to allocate 16K.
 	 */
-	if (bus_dma_tag_create(/*parent*/bus_get_dma_tag(dev), /*alignment*/2,
-		/*boundary*/0,
-		/*lowaddr*/BUS_SPACE_MAXADDR_32BIT,
-		/*highaddr*/BUS_SPACE_MAXADDR,
-		/*filter*/NULL, /*filterarg*/NULL,
-		/*maxsize*/nsegs * sizeof(struct via_dma_op),
-		/*nsegments*/1, /*maxsegz*/0x3ffff,
-		/*flags*/0, /*lockfunc*/NULL,
-		/*lockarg*/NULL, &via->sgd_dmat) != 0) {
+	if (bus_dma_tag_create(/*parent*/ bus_get_dma_tag(dev), /*alignment*/ 2,
+		/*boundary*/ 0,
+		/*lowaddr*/ BUS_SPACE_MAXADDR_32BIT,
+		/*highaddr*/ BUS_SPACE_MAXADDR,
+		/*filter*/ NULL, /*filterarg*/ NULL,
+		/*maxsize*/ nsegs * sizeof(struct via_dma_op),
+		/*nsegments*/ 1, /*maxsegz*/ 0x3ffff,
+		/*flags*/ 0, /*lockfunc*/ NULL,
+		/*lockarg*/ NULL, &via->sgd_dmat) != 0) {
 		device_printf(dev, "unable to create dma tag\n");
 		goto bad;
 	}
 
 	if (bus_dmamem_alloc(via->sgd_dmat, (void **)&via->sgd_table,
-	    BUS_DMA_NOWAIT, &via->sgd_dmamap) == -1)
+		BUS_DMA_NOWAIT, &via->sgd_dmamap) == -1)
 		goto bad;
 	if (bus_dmamap_load(via->sgd_dmat, via->sgd_dmamap, via->sgd_table,
-	    nsegs * sizeof(struct via_dma_op), dma_cb, via, 0))
+		nsegs * sizeof(struct via_dma_op), dma_cb, via, 0))
 		goto bad;
 
 	if (via_chip_init(dev))
@@ -1341,8 +1337,7 @@ via_attach(device_t dev)
 	if (via->codec_caps &
 	    (AC97_EXTCAP_VRA | AC97_EXTCAP_VRM | AC97_EXTCAP_DRA)) {
 		uint16_t ext = ac97_getextmode(via->codec);
-		ext |= (via->codec_caps &
-		    (AC97_EXTCAP_VRA | AC97_EXTCAP_VRM));
+		ext |= (via->codec_caps & (AC97_EXTCAP_VRA | AC97_EXTCAP_VRM));
 		ext &= ~AC97_EXTCAP_DRA;
 		ac97_setextmode(via->codec, ext);
 	}
@@ -1353,13 +1348,13 @@ via_attach(device_t dev)
 
 	/* Register */
 	if (pcm_register(dev, via, via_dxs_chnum + via_sgd_chnum, NWRCHANS))
-	      goto bad;
+		goto bad;
 	for (i = 0; i < via_dxs_chnum; i++)
-	      pcm_addchan(dev, PCMDIR_PLAY, &via8233dxs_class, via);
+		pcm_addchan(dev, PCMDIR_PLAY, &via8233dxs_class, via);
 	for (i = 0; i < via_sgd_chnum; i++)
-	      pcm_addchan(dev, PCMDIR_PLAY, &via8233msgd_class, via);
+		pcm_addchan(dev, PCMDIR_PLAY, &via8233msgd_class, via);
 	for (i = 0; i < NWRCHANS; i++)
-	      pcm_addchan(dev, PCMDIR_REC, &via8233wr_class, via);
+		pcm_addchan(dev, PCMDIR_REC, &via8233wr_class, via);
 	if (via_dxs_chnum > 0)
 		via_init_sysctls(dev);
 	device_printf(dev, "<VIA DXS %sabled: DXS%s %d / SGD %d / REC %d>\n",
@@ -1425,12 +1420,9 @@ via_detach(device_t dev)
 	return (0);
 }
 
-static device_method_t via_methods[] = {
-	DEVMETHOD(device_probe,		via_probe),
-	DEVMETHOD(device_attach,	via_attach),
-	DEVMETHOD(device_detach,	via_detach),
-	{ 0, 0}
-};
+static device_method_t via_methods[] = { DEVMETHOD(device_probe, via_probe),
+	DEVMETHOD(device_attach, via_attach),
+	DEVMETHOD(device_detach, via_detach), { 0, 0 } };
 
 static driver_t via_driver = {
 	"pcm",

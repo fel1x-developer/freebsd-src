@@ -28,9 +28,8 @@
  * SUCH DAMAGE.
  */
 
-
-#if	(defined(_XLOCALE_WCTYPES) && !defined(_XLOCALE_WCTYPE_H)) || \
-	(!defined(_XLOCALE_WCTYPES) && !defined(_XLOCALE_CTYPE_H))
+#if (defined(_XLOCALE_WCTYPES) && !defined(_XLOCALE_WCTYPE_H)) || \
+    (!defined(_XLOCALE_WCTYPES) && !defined(_XLOCALE_CTYPE_H))
 
 #ifdef _XLOCALE_WCTYPES
 #define _XLOCALE_WCTYPE_H
@@ -40,15 +39,15 @@
 
 #ifndef _LOCALE_T_DEFINED
 #define _LOCALE_T_DEFINED
-typedef struct	_xlocale *locale_t;
+typedef struct _xlocale *locale_t;
 #endif
 
 #ifndef _XLOCALE_RUN_FUNCTIONS_DEFINED
 #define _XLOCALE_RUN_FUNCTIONS_DEFINED 1
-unsigned long	 ___runetype_l(__ct_rune_t, locale_t) __pure;
-__ct_rune_t	 ___tolower_l(__ct_rune_t, locale_t) __pure;
-__ct_rune_t	 ___toupper_l(__ct_rune_t, locale_t) __pure;
-_RuneLocale	*__runes_for_locale(locale_t, int*);
+unsigned long ___runetype_l(__ct_rune_t, locale_t) __pure;
+__ct_rune_t ___tolower_l(__ct_rune_t, locale_t) __pure;
+__ct_rune_t ___toupper_l(__ct_rune_t, locale_t) __pure;
+_RuneLocale *__runes_for_locale(locale_t, int *);
 #endif
 
 #ifndef _XLOCALE_INLINE
@@ -67,10 +66,10 @@ _RuneLocale	*__runes_for_locale(locale_t, int*);
 #endif /* _XLOCALE_INLINE */
 
 #ifdef _XLOCALE_WCTYPES
-_XLOCALE_INLINE int
-__maskrune_l(__ct_rune_t __c, unsigned long __f, locale_t __loc);
-_XLOCALE_INLINE int
-__istype_l(__ct_rune_t __c, unsigned long __f, locale_t __loc);
+_XLOCALE_INLINE int __maskrune_l(__ct_rune_t __c, unsigned long __f,
+    locale_t __loc);
+_XLOCALE_INLINE int __istype_l(__ct_rune_t __c, unsigned long __f,
+    locale_t __loc);
 
 _XLOCALE_INLINE int
 __maskrune_l(__ct_rune_t __c, unsigned long __f, locale_t __loc)
@@ -78,7 +77,8 @@ __maskrune_l(__ct_rune_t __c, unsigned long __f, locale_t __loc)
 	int __limit;
 	_RuneLocale *runes = __runes_for_locale(__loc, &__limit);
 	return ((__c < 0 || __c >= _CACHED_RUNES) ? ___runetype_l(__c, __loc) :
-	        runes->__runetype[__c]) & __f;
+						    runes->__runetype[__c]) &
+	    __f;
 }
 
 _XLOCALE_INLINE int
@@ -87,23 +87,24 @@ __istype_l(__ct_rune_t __c, unsigned long __f, locale_t __loc)
 	return (!!__maskrune_l(__c, __f, __loc));
 }
 
-#define XLOCALE_ISCTYPE(fname, cat) \
-		_XLOCALE_INLINE int isw##fname##_l(int, locale_t);\
-		_XLOCALE_INLINE int isw##fname##_l(int __c, locale_t __l)\
-		{ return __istype_l(__c, cat, __l); }
+#define XLOCALE_ISCTYPE(fname, cat)                               \
+	_XLOCALE_INLINE int isw##fname##_l(int, locale_t);        \
+	_XLOCALE_INLINE int isw##fname##_l(int __c, locale_t __l) \
+	{                                                         \
+		return __istype_l(__c, cat, __l);                 \
+	}
 #else
-_XLOCALE_INLINE int
-__sbmaskrune_l(__ct_rune_t __c, unsigned long __f, locale_t __loc);
-_XLOCALE_INLINE int
-__sbistype_l(__ct_rune_t __c, unsigned long __f, locale_t __loc);
+_XLOCALE_INLINE int __sbmaskrune_l(__ct_rune_t __c, unsigned long __f,
+    locale_t __loc);
+_XLOCALE_INLINE int __sbistype_l(__ct_rune_t __c, unsigned long __f,
+    locale_t __loc);
 
 _XLOCALE_INLINE int
 __sbmaskrune_l(__ct_rune_t __c, unsigned long __f, locale_t __loc)
 {
 	int __limit;
 	_RuneLocale *runes = __runes_for_locale(__loc, &__limit);
-	return (__c < 0 || __c >= __limit) ? 0 :
-	       runes->__runetype[__c] & __f;
+	return (__c < 0 || __c >= __limit) ? 0 : runes->__runetype[__c] & __f;
 }
 
 _XLOCALE_INLINE int
@@ -112,13 +113,15 @@ __sbistype_l(__ct_rune_t __c, unsigned long __f, locale_t __loc)
 	return (!!__sbmaskrune_l(__c, __f, __loc));
 }
 
-#define XLOCALE_ISCTYPE(__fname, __cat) \
-		_XLOCALE_INLINE int is##__fname##_l(int, locale_t); \
-		_XLOCALE_INLINE int is##__fname##_l(int __c, locale_t __l)\
-		{ return __sbistype_l(__c, __cat, __l); }
+#define XLOCALE_ISCTYPE(__fname, __cat)                            \
+	_XLOCALE_INLINE int is##__fname##_l(int, locale_t);        \
+	_XLOCALE_INLINE int is##__fname##_l(int __c, locale_t __l) \
+	{                                                          \
+		return __sbistype_l(__c, __cat, __l);              \
+	}
 #endif
 
-XLOCALE_ISCTYPE(alnum, _CTYPE_A|_CTYPE_D|_CTYPE_N)
+XLOCALE_ISCTYPE(alnum, _CTYPE_A | _CTYPE_D | _CTYPE_N)
 XLOCALE_ISCTYPE(alpha, _CTYPE_A)
 XLOCALE_ISCTYPE(blank, _CTYPE_B)
 XLOCALE_ISCTYPE(cntrl, _CTYPE_C)
@@ -127,7 +130,7 @@ XLOCALE_ISCTYPE(graph, _CTYPE_G)
 XLOCALE_ISCTYPE(hexnumber, _CTYPE_X)
 XLOCALE_ISCTYPE(ideogram, _CTYPE_I)
 XLOCALE_ISCTYPE(lower, _CTYPE_L)
-XLOCALE_ISCTYPE(number, _CTYPE_D|_CTYPE_N)
+XLOCALE_ISCTYPE(number, _CTYPE_D | _CTYPE_N)
 XLOCALE_ISCTYPE(phonogram, _CTYPE_Q)
 XLOCALE_ISCTYPE(print, _CTYPE_R)
 XLOCALE_ISCTYPE(punct, _CTYPE_P)
@@ -143,19 +146,21 @@ _XLOCALE_INLINE int towlower_l(int, locale_t);
 _XLOCALE_INLINE int __wcwidth_l(__ct_rune_t, locale_t);
 _XLOCALE_INLINE int towupper_l(int, locale_t);
 
-_XLOCALE_INLINE int towlower_l(int __c, locale_t __l)
+_XLOCALE_INLINE int
+towlower_l(int __c, locale_t __l)
 {
 	int __limit;
 	_RuneLocale *__runes = __runes_for_locale(__l, &__limit);
 	return (__c < 0 || __c >= _CACHED_RUNES) ? ___tolower_l(__c, __l) :
-	       __runes->__maplower[__c];
+						   __runes->__maplower[__c];
 }
-_XLOCALE_INLINE int towupper_l(int __c, locale_t __l)
+_XLOCALE_INLINE int
+towupper_l(int __c, locale_t __l)
 {
 	int __limit;
 	_RuneLocale *__runes = __runes_for_locale(__l, &__limit);
 	return (__c < 0 || __c >= _CACHED_RUNES) ? ___toupper_l(__c, __l) :
-	       __runes->__mapupper[__c];
+						   __runes->__mapupper[__c];
 }
 _XLOCALE_INLINE int
 __wcwidth_l(__ct_rune_t _c, locale_t __l)
@@ -164,7 +169,7 @@ __wcwidth_l(__ct_rune_t _c, locale_t __l)
 
 	if (_c == 0)
 		return (0);
-	_x = (unsigned int)__maskrune_l(_c, _CTYPE_SWM|_CTYPE_R, __l);
+	_x = (unsigned int)__maskrune_l(_c, _CTYPE_SWM | _CTYPE_R, __l);
 	if ((_x & _CTYPE_SWM) != 0)
 		return ((_x & _CTYPE_SWM) >> _CTYPE_SWS);
 	return ((_x & _CTYPE_R) != 0 ? 1 : -1);
@@ -180,22 +185,25 @@ _XLOCALE_INLINE int digittoint_l(int, locale_t);
 _XLOCALE_INLINE int tolower_l(int, locale_t);
 _XLOCALE_INLINE int toupper_l(int, locale_t);
 
-_XLOCALE_INLINE int digittoint_l(int __c, locale_t __l)
-{ return __sbmaskrune_l((__c), 0xFF, __l); }
-
-_XLOCALE_INLINE int tolower_l(int __c, locale_t __l)
+_XLOCALE_INLINE int
+digittoint_l(int __c, locale_t __l)
 {
-	int __limit;
-	_RuneLocale *__runes = __runes_for_locale(__l, &__limit);
-	return (__c < 0 || __c >= __limit) ? __c :
-	       __runes->__maplower[__c];
+	return __sbmaskrune_l((__c), 0xFF, __l);
 }
-_XLOCALE_INLINE int toupper_l(int __c, locale_t __l)
+
+_XLOCALE_INLINE int
+tolower_l(int __c, locale_t __l)
 {
 	int __limit;
 	_RuneLocale *__runes = __runes_for_locale(__l, &__limit);
-	return (__c < 0 || __c >= __limit) ? __c :
-	       __runes->__mapupper[__c];
+	return (__c < 0 || __c >= __limit) ? __c : __runes->__maplower[__c];
+}
+_XLOCALE_INLINE int
+toupper_l(int __c, locale_t __l)
+{
+	int __limit;
+	_RuneLocale *__runes = __runes_for_locale(__l, &__limit);
+	return (__c < 0 || __c >= __limit) ? __c : __runes->__mapupper[__c];
 }
 #endif
 #endif /* (defined(_XLOCALE_WCTYPES) && !defined(_XLOCALE_WCTYPE_H)) || \

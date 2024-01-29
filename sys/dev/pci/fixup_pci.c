@@ -31,14 +31,14 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
-#include <sys/systm.h>
-#include <sys/bus.h>
 
-#include <dev/pci/pcivar.h>
 #include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 /*
  * Chipset fixups.
@@ -48,21 +48,20 @@
  * some cleaning up.
  */
 
-static int	fixup_pci_probe(device_t dev);
-static void	fixwsc_natoma(device_t dev);
-static void	fixc1_nforce2(device_t dev);
+static int fixup_pci_probe(device_t dev);
+static void fixwsc_natoma(device_t dev);
+static void fixc1_nforce2(device_t dev);
 
 static device_method_t fixup_pci_methods[] = {
-    /* Device interface */
-    DEVMETHOD(device_probe,		fixup_pci_probe),
-    DEVMETHOD(device_attach,		bus_generic_attach),
-    { 0, 0 }
+	/* Device interface */
+	DEVMETHOD(device_probe, fixup_pci_probe),
+	DEVMETHOD(device_attach, bus_generic_attach), { 0, 0 }
 };
 
 static driver_t fixup_pci_driver = {
-    "fixup_pci",
-    fixup_pci_methods,
-    0,
+	"fixup_pci",
+	fixup_pci_methods,
+	0,
 };
 
 DRIVER_MODULE(fixup_pci, pci, fixup_pci_driver, 0, 0);
@@ -70,35 +69,35 @@ DRIVER_MODULE(fixup_pci, pci, fixup_pci_driver, 0, 0);
 static int
 fixup_pci_probe(device_t dev)
 {
-    switch (pci_get_devid(dev)) {
-    case 0x12378086:		/* Intel 82440FX (Natoma) */
-	fixwsc_natoma(dev);
-	break;
-    case 0x01e010de:		/* nVidia nForce2 */
-	fixc1_nforce2(dev);
-	break;
-    }
-    return(ENXIO);
+	switch (pci_get_devid(dev)) {
+	case 0x12378086: /* Intel 82440FX (Natoma) */
+		fixwsc_natoma(dev);
+		break;
+	case 0x01e010de: /* nVidia nForce2 */
+		fixc1_nforce2(dev);
+		break;
+	}
+	return (ENXIO);
 }
 
 static void
 fixwsc_natoma(device_t dev)
 {
-    int		pmccfg;
+	int pmccfg;
 
-    pmccfg = pci_read_config(dev, 0x50, 2);
+	pmccfg = pci_read_config(dev, 0x50, 2);
 #if defined(SMP)
-    if (pmccfg & 0x8000) {
-	device_printf(dev, "correcting Natoma config for SMP\n");
-	pmccfg &= ~0x8000;
-	pci_write_config(dev, 0x50, pmccfg, 2);
-    }
+	if (pmccfg & 0x8000) {
+		device_printf(dev, "correcting Natoma config for SMP\n");
+		pmccfg &= ~0x8000;
+		pci_write_config(dev, 0x50, pmccfg, 2);
+	}
 #else
-    if ((pmccfg & 0x8000) == 0) {
-	device_printf(dev, "correcting Natoma config for non-SMP\n");
-	pmccfg |= 0x8000;
-	pci_write_config(dev, 0x50, pmccfg, 2);
-    }
+	if ((pmccfg & 0x8000) == 0) {
+		device_printf(dev, "correcting Natoma config for non-SMP\n");
+		pmccfg |= 0x8000;
+		pci_write_config(dev, 0x50, pmccfg, 2);
+	}
 #endif
 }
 
@@ -129,7 +128,7 @@ fixc1_nforce2(device_t dev)
 	    pci_get_function(dev) == 0) {
 		val = pci_read_config(dev, 0x6c, 4);
 		if (val & 0x000e0000) {
-			device_printf(dev, 
+			device_printf(dev,
 			    "correcting nForce2 C1 CPU disconnect hangs\n");
 			val &= ~0x000e0000;
 			pci_write_config(dev, 0x6c, val, 4);

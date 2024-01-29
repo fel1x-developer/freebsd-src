@@ -26,25 +26,21 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
 #include <sys/callout.h>
 #include <sys/condvar.h>
+#include <sys/kernel.h>
 #include <sys/module.h>
 
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-
-#include <dev/usb/usb_busdma.h>
-#include <dev/usb/usb_process.h>
-
-#include <dev/usb/usb_controller.h>
-#include <dev/usb/usb_bus.h>
-
 #include <dev/usb/controller/dwc_otg.h>
 #include <dev/usb/controller/dwc_otg_fdt.h>
+#include <dev/usb/usb.h>
+#include <dev/usb/usb_bus.h>
+#include <dev/usb/usb_busdma.h>
+#include <dev/usb/usb_controller.h>
+#include <dev/usb/usb_process.h>
+#include <dev/usb/usbdi.h>
 
 static device_probe_t hisi_dwc_otg_probe;
 static device_attach_t hisi_dwc_otg_attach;
@@ -59,7 +55,8 @@ hisi_dwc_otg_probe(device_t dev)
 	if (!ofw_bus_is_compatible(dev, "huawei,hisi-usb"))
 		return (ENXIO);
 
-	device_set_desc(dev, "DWC OTG 2.0 integrated USB controller (hisilicon)");
+	device_set_desc(dev,
+	    "DWC OTG 2.0 integrated USB controller (hisilicon)");
 
 	return (BUS_PROBE_VENDOR);
 }

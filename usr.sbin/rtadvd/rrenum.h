@@ -32,4 +32,4 @@
  */
 
 void rr_input(int, struct icmp6_router_renum *, struct in6_pktinfo *,
-	struct sockaddr_in6 *, struct in6_addr *);
+    struct sockaddr_in6 *, struct in6_addr *);

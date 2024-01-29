@@ -45,7 +45,8 @@ extern int init_module_raid1(void);
 extern int init_module_raid5(void);
 extern int init_module_jbod(void);
 
-int init_config(void)
+int
+init_config(void)
 {
 	init_module_him_rr2310pm();
 	init_module_him_rr174x_rr2210pm();
@@ -66,7 +67,6 @@ int init_config(void)
 char driver_name[] = "hptrr";
 char driver_name_long[] = "RocketRAID 17xx/2xxx SATA controller driver";
 char driver_ver[] = "v1.2";
-int  osm_max_targets = 0xff;
-
+int osm_max_targets = 0xff;
 
 int os_max_cache_size = 0x1000000;

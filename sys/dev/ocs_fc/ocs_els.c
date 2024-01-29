@@ -39,29 +39,36 @@
 */
 
 #include "ocs.h"
+#include "ocs_device.h"
 #include "ocs_els.h"
 #include "ocs_scsi.h"
-#include "ocs_device.h"
 
 #define ELS_IOFMT "[i:%04x t:%04x h:%04x]"
 #define ELS_IOFMT_ARGS(els) els->init_task_tag, els->tgt_task_tag, els->hw_tag
 
-#define node_els_trace()  \
-	do { \
-		if (OCS_LOG_ENABLE_ELS_TRACE(ocs)) \
-			ocs_log_info(ocs, "[%s] %-20s\n", node->display_name, __func__); \
+#define node_els_trace()                                                      \
+	do {                                                                  \
+		if (OCS_LOG_ENABLE_ELS_TRACE(ocs))                            \
+			ocs_log_info(ocs, "[%s] %-20s\n", node->display_name, \
+			    __func__);                                        \
 	} while (0)
 
-#define els_io_printf(els, fmt, ...) \
-	ocs_log_debug(els->node->ocs, "[%s]" ELS_IOFMT " %-8s " fmt, els->node->display_name, ELS_IOFMT_ARGS(els), els->display_name, ##__VA_ARGS__);
+#define els_io_printf(els, fmt, ...)                                         \
+	ocs_log_debug(els->node->ocs, "[%s]" ELS_IOFMT " %-8s " fmt,         \
+	    els->node->display_name, ELS_IOFMT_ARGS(els), els->display_name, \
+	    ##__VA_ARGS__);
 
-static int32_t ocs_els_send(ocs_io_t *els, uint32_t reqlen, uint32_t timeout_sec, ocs_hw_srrs_cb_t cb);
+static int32_t ocs_els_send(ocs_io_t *els, uint32_t reqlen,
+    uint32_t timeout_sec, ocs_hw_srrs_cb_t cb);
 static int32_t ocs_els_send_rsp(ocs_io_t *els, uint32_t rsplen);
-static int32_t ocs_els_acc_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length, int32_t status, uint32_t ext_status, void *arg);
-static ocs_io_t *ocs_bls_send_acc(ocs_io_t *io, uint32_t s_id, uint16_t ox_id, uint16_t rx_id);
-static int32_t ocs_bls_send_acc_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length,
-	int32_t status, uint32_t ext_status, void *app);
-static void ocs_io_transition(ocs_io_t *els, ocs_sm_function_t state, void *data);
+static int32_t ocs_els_acc_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode,
+    uint32_t length, int32_t status, uint32_t ext_status, void *arg);
+static ocs_io_t *ocs_bls_send_acc(ocs_io_t *io, uint32_t s_id, uint16_t ox_id,
+    uint16_t rx_id);
+static int32_t ocs_bls_send_acc_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode,
+    uint32_t length, int32_t status, uint32_t ext_status, void *app);
+static void ocs_io_transition(ocs_io_t *els, ocs_sm_function_t state,
+    void *data);
 static ocs_io_t *ocs_els_abort_io(ocs_io_t *els, int send_abts);
 static void _ocs_els_io_free(void *arg);
 static void ocs_els_delay_timer_cb(void *arg);
@@ -90,7 +97,7 @@ ocs_io_transition(ocs_io_t *els, ocs_sm_function_t state, void *data)
 	/* protect ELS events with node lock */
 	ocs_node_t *node = els->node;
 	ocs_node_lock(node);
-		ocs_sm_transition(&els->els_sm, state, data);
+	ocs_sm_transition(&els->els_sm, state, data);
 	ocs_node_unlock(node);
 }
 
@@ -114,9 +121,9 @@ ocs_els_post_event(ocs_io_t *els, ocs_sm_event_t evt, void *data)
 	/* protect ELS events with node lock */
 	ocs_node_t *node = els->node;
 	ocs_node_lock(node);
-		els->els_evtdepth ++;
-		ocs_sm_post_event(&els->els_sm, evt, data);
-		els->els_evtdepth --;
+	els->els_evtdepth++;
+	ocs_sm_post_event(&els->els_sm, evt, data);
+	els->els_evtdepth--;
 	ocs_node_unlock(node);
 	if (els->els_evtdepth == 0 && els->els_req_free) {
 		ocs_els_io_free(els);
@@ -148,7 +155,8 @@ ocs_els_io_alloc(ocs_node_t *node, uint32_t reqlen, ocs_els_role_e role)
  * @brief Allocate an IO structure for an ELS IO context.
  *
  * <h3 class="desc">Description</h3>
- * Allocate an IO for an ELS context, allowing the caller to specify the size of the response.
+ * Allocate an IO for an ELS context, allowing the caller to specify the size of
+ * the response.
  *
  * @param node node to associate ELS IO with
  * @param reqlen Length of ELS request
@@ -159,7 +167,8 @@ ocs_els_io_alloc(ocs_node_t *node, uint32_t reqlen, ocs_els_role_e role)
  */
 
 ocs_io_t *
-ocs_els_io_alloc_size(ocs_node_t *node, uint32_t reqlen, uint32_t rsplen, ocs_els_role_e role)
+ocs_els_io_alloc_size(ocs_node_t *node, uint32_t reqlen, uint32_t rsplen,
+    ocs_els_role_e role)
 {
 
 	ocs_t *ocs;
@@ -172,81 +181,84 @@ ocs_els_io_alloc_size(ocs_node_t *node, uint32_t reqlen, uint32_t rsplen, ocs_el
 	xport = ocs->xport;
 
 	ocs_lock(&node->active_ios_lock);
-		if (!node->io_alloc_enabled) {
-			ocs_log_debug(ocs, "called with io_alloc_enabled = FALSE\n");
-			ocs_unlock(&node->active_ios_lock);
-			return NULL;
-		}
+	if (!node->io_alloc_enabled) {
+		ocs_log_debug(ocs, "called with io_alloc_enabled = FALSE\n");
+		ocs_unlock(&node->active_ios_lock);
+		return NULL;
+	}
 
-		els = ocs_io_alloc(ocs);
-		if (els == NULL) {
-			ocs_atomic_add_return(&xport->io_alloc_failed_count, 1);
-			ocs_unlock(&node->active_ios_lock);
-			return NULL;
-		}
+	els = ocs_io_alloc(ocs);
+	if (els == NULL) {
+		ocs_atomic_add_return(&xport->io_alloc_failed_count, 1);
+		ocs_unlock(&node->active_ios_lock);
+		return NULL;
+	}
 
-		/* initialize refcount */
-		ocs_ref_init(&els->ref, _ocs_els_io_free, els);
+	/* initialize refcount */
+	ocs_ref_init(&els->ref, _ocs_els_io_free, els);
 
-		switch (role) {
-		case OCS_ELS_ROLE_ORIGINATOR:
-			els->cmd_ini = TRUE;
-			els->cmd_tgt = FALSE;
-			break;
-		case OCS_ELS_ROLE_RESPONDER:
-			els->cmd_ini = FALSE;
-			els->cmd_tgt = TRUE;
-			break;
-		}
+	switch (role) {
+	case OCS_ELS_ROLE_ORIGINATOR:
+		els->cmd_ini = TRUE;
+		els->cmd_tgt = FALSE;
+		break;
+	case OCS_ELS_ROLE_RESPONDER:
+		els->cmd_ini = FALSE;
+		els->cmd_tgt = TRUE;
+		break;
+	}
 
-		/* IO should not have an associated HW IO yet.  Assigned below. */
-		if (els->hio != NULL) {
-			ocs_log_err(ocs, "assertion failed.  HIO is not null\n");
-			ocs_io_free(ocs, els);
-			ocs_unlock(&node->active_ios_lock);
-			return NULL;
-		}
+	/* IO should not have an associated HW IO yet.  Assigned below. */
+	if (els->hio != NULL) {
+		ocs_log_err(ocs, "assertion failed.  HIO is not null\n");
+		ocs_io_free(ocs, els);
+		ocs_unlock(&node->active_ios_lock);
+		return NULL;
+	}
 
-		/* populate generic io fields */
-		els->ocs = ocs;
-		els->node = node;
+	/* populate generic io fields */
+	els->ocs = ocs;
+	els->node = node;
 
-		/* set type and ELS-specific fields */
-		els->io_type = OCS_IO_TYPE_ELS;
-		els->display_name = "pending";
+	/* set type and ELS-specific fields */
+	els->io_type = OCS_IO_TYPE_ELS;
+	els->display_name = "pending";
 
-		if (reqlen > OCS_ELS_REQ_LEN) {
-			ocs_log_err(ocs, "ELS command request len greater than allocated\n");
-			ocs_io_free(ocs, els);
-			ocs_unlock(&node->active_ios_lock);
-			return NULL;
-		}
+	if (reqlen > OCS_ELS_REQ_LEN) {
+		ocs_log_err(ocs,
+		    "ELS command request len greater than allocated\n");
+		ocs_io_free(ocs, els);
+		ocs_unlock(&node->active_ios_lock);
+		return NULL;
+	}
 
-		if (rsplen > OCS_ELS_GID_PT_RSP_LEN) {
-			ocs_log_err(ocs, "ELS command response len: %d "
-				"greater than allocated\n", rsplen);
-			ocs_io_free(ocs, els);
-			ocs_unlock(&node->active_ios_lock);
-			return NULL;
-		}
+	if (rsplen > OCS_ELS_GID_PT_RSP_LEN) {
+		ocs_log_err(ocs,
+		    "ELS command response len: %d "
+		    "greater than allocated\n",
+		    rsplen);
+		ocs_io_free(ocs, els);
+		ocs_unlock(&node->active_ios_lock);
+		return NULL;
+	}
 
-		els->els_req.size = reqlen;
-		els->els_rsp.size = rsplen;
+	els->els_req.size = reqlen;
+	els->els_rsp.size = rsplen;
 
-		if (els != NULL) {
-			ocs_memset(&els->els_sm, 0, sizeof(els->els_sm));
-			els->els_sm.app = els;
+	if (els != NULL) {
+		ocs_memset(&els->els_sm, 0, sizeof(els->els_sm));
+		els->els_sm.app = els;
 
-			/* initialize fields */
-			els->els_retries_remaining = OCS_FC_ELS_DEFAULT_RETRIES;
-			els->els_evtdepth = 0;
-			els->els_pend = 0;
-			els->els_active = 0;
+		/* initialize fields */
+		els->els_retries_remaining = OCS_FC_ELS_DEFAULT_RETRIES;
+		els->els_evtdepth = 0;
+		els->els_pend = 0;
+		els->els_active = 0;
 
-			/* add els structure to ELS IO list */
-			ocs_list_add_tail(&node->els_io_pend_list, els);
-			els->els_pend = 1;
-		}
+		/* add els structure to ELS IO list */
+		ocs_list_add_tail(&node->els_io_pend_list, els);
+		els->els_pend = 1;
+	}
 	ocs_unlock(&node->active_ios_lock);
 	return els;
 }
@@ -298,26 +310,29 @@ _ocs_els_io_free(void *arg)
 	ocs = node->ocs;
 
 	ocs_lock(&node->active_ios_lock);
-		if (els->els_active) {
-			/* if active, remove from active list and check empty */
-			ocs_list_remove(&node->els_io_active_list, els);
-			/* Send list empty event if the IO allocator is disabled, and the list is empty
-			 * If node->io_alloc_enabled was not checked, the event would be posted continually
-			 */
-			send_empty_event = (!node->io_alloc_enabled) && ocs_list_empty(&node->els_io_active_list);
-			els->els_active = 0;
-		} else if (els->els_pend) {
-			/* if pending, remove from pending list; node shutdown isn't
-			 * gated off the pending list (only the active list), so no
-			 * need to check if pending list is empty
-			 */
-			ocs_list_remove(&node->els_io_pend_list, els);
-			els->els_pend = 0;
-		} else {
-			ocs_log_err(ocs, "assertion failed: niether els->els_pend nor els->active set\n");
-			ocs_unlock(&node->active_ios_lock);
-			return;
-		}
+	if (els->els_active) {
+		/* if active, remove from active list and check empty */
+		ocs_list_remove(&node->els_io_active_list, els);
+		/* Send list empty event if the IO allocator is disabled, and
+		 * the list is empty If node->io_alloc_enabled was not checked,
+		 * the event would be posted continually
+		 */
+		send_empty_event = (!node->io_alloc_enabled) &&
+		    ocs_list_empty(&node->els_io_active_list);
+		els->els_active = 0;
+	} else if (els->els_pend) {
+		/* if pending, remove from pending list; node shutdown isn't
+		 * gated off the pending list (only the active list), so no
+		 * need to check if pending list is empty
+		 */
+		ocs_list_remove(&node->els_io_pend_list, els);
+		els->els_pend = 0;
+	} else {
+		ocs_log_err(ocs,
+		    "assertion failed: niether els->els_pend nor els->active set\n");
+		ocs_unlock(&node->active_ios_lock);
+		return;
+	}
 
 	ocs_unlock(&node->active_ios_lock);
 
@@ -346,26 +361,28 @@ ocs_els_make_active(ocs_io_t *els)
 
 	/* move ELS from pending list to active list */
 	ocs_lock(&node->active_ios_lock);
-		if (els->els_pend) {
-			if (els->els_active) {
-				ocs_log_err(node->ocs, "assertion failed: both els->els_pend and els->active set\n");
-				ocs_unlock(&node->active_ios_lock);
-				return;
-			} else {
-				/* remove from pending list */
-				ocs_list_remove(&node->els_io_pend_list, els);
-				els->els_pend = 0;
-
-				/* add els structure to ELS IO list */
-				ocs_list_add_tail(&node->els_io_active_list, els);
-				els->els_active = 1;
-			}
+	if (els->els_pend) {
+		if (els->els_active) {
+			ocs_log_err(node->ocs,
+			    "assertion failed: both els->els_pend and els->active set\n");
+			ocs_unlock(&node->active_ios_lock);
+			return;
 		} else {
-			/* must be retrying; make sure it's already active */
-			if (!els->els_active) {
-				ocs_log_err(node->ocs, "assertion failed: niether els->els_pend nor els->active set\n");
-			}
+			/* remove from pending list */
+			ocs_list_remove(&node->els_io_pend_list, els);
+			els->els_pend = 0;
+
+			/* add els structure to ELS IO list */
+			ocs_list_add_tail(&node->els_io_active_list, els);
+			els->els_active = 1;
 		}
+	} else {
+		/* must be retrying; make sure it's already active */
+		if (!els->els_active) {
+			ocs_log_err(node->ocs,
+			    "assertion failed: niether els->els_pend nor els->active set\n");
+		}
+	}
 	ocs_unlock(&node->active_ios_lock);
 }
 
@@ -374,10 +391,10 @@ ocs_els_make_active(ocs_io_t *els)
  * @brief Send the ELS command.
  *
  * <h3 class="desc">Description</h3>
- * The command, given by the \c els IO context, is sent to the node that the IO was
- * configured with, using ocs_hw_srrs_send(). Upon completion,
- * the \c cb callback is invoked,
- * with the application-specific argument set to the \c els IO context.
+ * The command, given by the \c els IO context, is sent to the node that the IO
+ * was configured with, using ocs_hw_srrs_send(). Upon completion, the \c cb
+ * callback is invoked, with the application-specific argument set to the \c els
+ * IO context.
  *
  * @param els Pointer to the IO context.
  * @param reqlen Byte count in the payload to send.
@@ -388,7 +405,8 @@ ocs_els_make_active(ocs_io_t *els)
  */
 
 static int32_t
-ocs_els_send(ocs_io_t *els, uint32_t reqlen, uint32_t timeout_sec, ocs_hw_srrs_cb_t cb)
+ocs_els_send(ocs_io_t *els, uint32_t reqlen, uint32_t timeout_sec,
+    ocs_hw_srrs_cb_t cb)
 {
 	ocs_node_t *node = els->node;
 
@@ -443,13 +461,15 @@ ocs_els_send_rsp(ocs_io_t *els, uint32_t rsplen)
  * @param length Length of the returned payload data.
  * @param status Status of the completion.
  * @param ext_status Extended status of the completion.
- * @param arg Application-specific argument (generally a pointer to the ELS IO context).
+ * @param arg Application-specific argument (generally a pointer to the ELS IO
+ * context).
  *
  * @return Returns 0 on success; or a negative error value on failure.
  */
 
 static int32_t
-ocs_els_req_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length, int32_t status, uint32_t ext_status, void *arg)
+ocs_els_req_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length,
+    int32_t status, uint32_t ext_status, void *arg)
 {
 	ocs_io_t *els;
 	ocs_node_t *node;
@@ -487,7 +507,7 @@ ocs_els_req_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length, int3
 	 */
 	if (length > els->els_rsp.size) {
 		ocs_log_warn(ocs, "ELS response returned len=%d > buflen=%zu\n",
-				length, els->els_rsp.size);
+		    length, els->els_rsp.size);
 		ocs_els_post_event(els, OCS_EVT_SRRS_ELS_REQ_FAIL, &cbdata);
 		return 0;
 	}
@@ -505,18 +525,23 @@ ocs_els_req_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length, int3
 	case SLI4_FC_WCQE_STATUS_LOCAL_REJECT:
 		switch (ext_status) {
 		case SLI4_FC_LOCAL_REJECT_SEQUENCE_TIMEOUT:
-			ocs_els_post_event(els, OCS_EVT_ELS_REQ_TIMEOUT, &cbdata);
+			ocs_els_post_event(els, OCS_EVT_ELS_REQ_TIMEOUT,
+			    &cbdata);
 			break;
 		case SLI4_FC_LOCAL_REJECT_ABORT_REQUESTED:
-			ocs_els_post_event(els, OCS_EVT_ELS_REQ_ABORTED, &cbdata);
+			ocs_els_post_event(els, OCS_EVT_ELS_REQ_ABORTED,
+			    &cbdata);
 			break;
 		default:
-			ocs_els_post_event(els, OCS_EVT_SRRS_ELS_REQ_FAIL, &cbdata);
+			ocs_els_post_event(els, OCS_EVT_SRRS_ELS_REQ_FAIL,
+			    &cbdata);
 			break;
 		}
 		break;
 	default:
-		ocs_log_warn(ocs, "els req complete: failed status x%x, ext_status, x%x\n", status, ext_status);
+		ocs_log_warn(ocs,
+		    "els req complete: failed status x%x, ext_status, x%x\n",
+		    status, ext_status);
 		ocs_els_post_event(els, OCS_EVT_SRRS_ELS_REQ_FAIL, &cbdata);
 		break;
 	}
@@ -536,13 +561,15 @@ ocs_els_req_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length, int3
  * @param length Length of the returned payload data.
  * @param status Status of the completion.
  * @param ext_status Extended status of the completion.
- * @param arg Application-specific argument (generally a pointer to the ELS IO context).
+ * @param arg Application-specific argument (generally a pointer to the ELS IO
+ * context).
  *
  * @return Returns 0 on success; or a negative error value on failure.
  */
 
 static int32_t
-ocs_els_acc_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length, int32_t status, uint32_t ext_status, void *arg)
+ocs_els_acc_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length,
+    int32_t status, uint32_t ext_status, void *arg)
 {
 	ocs_io_t *els;
 	ocs_node_t *node;
@@ -574,9 +601,12 @@ ocs_els_acc_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length, int3
 		break;
 
 	default:
-		ocs_log_warn(ocs, "[%s] %-8s failed status x%x, ext_status x%x\n",
-			node->display_name, els->display_name, status, ext_status);
-		ocs_log_warn(ocs, "els acc complete: failed status x%x, ext_status, x%x\n", status, ext_status);
+		ocs_log_warn(ocs,
+		    "[%s] %-8s failed status x%x, ext_status x%x\n",
+		    node->display_name, els->display_name, status, ext_status);
+		ocs_log_warn(ocs,
+		    "els acc complete: failed status x%x, ext_status, x%x\n",
+		    status, ext_status);
 		ocs_node_post_event(node, OCS_EVT_SRRS_ELS_CMPL_FAIL, &cbdata);
 		break;
 	}
@@ -610,7 +640,7 @@ ocs_els_acc_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length, int3
 
 ocs_io_t *
 ocs_send_plogi(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
-	void (*cb)(ocs_node_t *node, ocs_node_cb_t *cbdata, void *arg), void *cbarg)
+    void (*cb)(ocs_node_t *node, ocs_node_cb_t *cbdata, void *arg), void *cbarg)
 {
 	ocs_io_t *els;
 	ocs_t *ocs = node->ocs;
@@ -636,7 +666,8 @@ ocs_send_plogi(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
 		plogi->command_code = FC_ELS_CMD_PLOGI;
 		plogi->resv1 = 0;
 
-		ocs_display_sparams(node->display_name, "plogi send req", 0, NULL, plogi->common_service_parameters);
+		ocs_display_sparams(node->display_name, "plogi send req", 0,
+		    NULL, plogi->common_service_parameters);
 
 		els->hio_type = OCS_HW_ELS_REQ;
 		els->iparam.els.timeout = timeout_sec;
@@ -664,7 +695,7 @@ ocs_send_plogi(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
 
 ocs_io_t *
 ocs_send_flogi(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
-	els_cb_t cb, void *cbarg)
+    els_cb_t cb, void *cbarg)
 {
 	ocs_io_t *els;
 	ocs_t *ocs;
@@ -697,7 +728,8 @@ ocs_send_flogi(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
 		/* Priority tagging support */
 		flogi->common_service_parameters[1] |= ocs_htobe32(1U << 23);
 
-		ocs_display_sparams(node->display_name, "flogi send req", 0, NULL, flogi->common_service_parameters);
+		ocs_display_sparams(node->display_name, "flogi send req", 0,
+		    NULL, flogi->common_service_parameters);
 
 		els->hio_type = OCS_HW_ELS_REQ;
 		els->iparam.els.timeout = timeout_sec;
@@ -724,7 +756,7 @@ ocs_send_flogi(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
 
 ocs_io_t *
 ocs_send_fdisc(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
-	els_cb_t cb, void *cbarg)
+    els_cb_t cb, void *cbarg)
 {
 	ocs_io_t *els;
 	ocs_t *ocs;
@@ -753,7 +785,8 @@ ocs_send_fdisc(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
 		fdisc->command_code = FC_ELS_CMD_FDISC;
 		fdisc->resv1 = 0;
 
-		ocs_display_sparams(node->display_name, "fdisc send req", 0, NULL, fdisc->common_service_parameters);
+		ocs_display_sparams(node->display_name, "fdisc send req", 0,
+		    NULL, fdisc->common_service_parameters);
 
 		els->hio_type = OCS_HW_ELS_REQ;
 		els->iparam.els.timeout = timeout_sec;
@@ -780,7 +813,7 @@ ocs_send_fdisc(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
 
 ocs_io_t *
 ocs_send_prli(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
-	els_cb_t cb, void *cbarg)
+    els_cb_t cb, void *cbarg)
 {
 	ocs_t *ocs = node->ocs;
 	ocs_io_t *els;
@@ -810,12 +843,13 @@ ocs_send_prli(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
 		prli->type_ext = 0;
 		prli->flags = ocs_htobe16(FC_PRLI_ESTABLISH_IMAGE_PAIR);
 		prli->service_params = ocs_htobe16(FC_PRLI_READ_XRDY_DISABLED |
-			(node->sport->enable_ini ? FC_PRLI_INITIATOR_FUNCTION : 0) |
-			(node->sport->enable_tgt ? FC_PRLI_TARGET_FUNCTION : 0)); 
+		    (node->sport->enable_ini ? FC_PRLI_INITIATOR_FUNCTION : 0) |
+		    (node->sport->enable_tgt ? FC_PRLI_TARGET_FUNCTION : 0));
 
 		/* For Tape Drive support */
-		prli->service_params |= ocs_htobe16(FC_PRLI_CONFIRMED_COMPLETION | FC_PRLI_RETRY |
-				 FC_PRLI_TASK_RETRY_ID_REQ| FC_PRLI_REC_SUPPORT);
+		prli->service_params |= ocs_htobe16(
+		    FC_PRLI_CONFIRMED_COMPLETION | FC_PRLI_RETRY |
+		    FC_PRLI_TASK_RETRY_ID_REQ | FC_PRLI_REC_SUPPORT);
 
 		els->hio_type = OCS_HW_ELS_REQ;
 		els->iparam.els.timeout = timeout_sec;
@@ -843,7 +877,7 @@ ocs_send_prli(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
 
 ocs_io_t *
 ocs_send_prlo(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
-	els_cb_t cb, void *cbarg)
+    els_cb_t cb, void *cbarg)
 {
 	ocs_t *ocs = node->ocs;
 	ocs_io_t *els;
@@ -896,7 +930,7 @@ ocs_send_prlo(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
 
 ocs_io_t *
 ocs_send_logo(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
-	els_cb_t cb, void *cbarg)
+    els_cb_t cb, void *cbarg)
 {
 	ocs_io_t *els;
 	ocs_t *ocs;
@@ -907,7 +941,7 @@ ocs_send_logo(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
 
 	node_els_trace();
 
-	sparams = (fc_plogi_payload_t*) node->sport->service_params;
+	sparams = (fc_plogi_payload_t *)node->sport->service_params;
 
 	els = ocs_els_io_alloc(node, sizeof(*logo), OCS_ELS_ROLE_ORIGINATOR);
 	if (els == NULL) {
@@ -955,7 +989,7 @@ ocs_send_logo(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
 
 ocs_io_t *
 ocs_send_adisc(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
-	els_cb_t cb, void *cbarg)
+    els_cb_t cb, void *cbarg)
 {
 	ocs_io_t *els;
 	ocs_t *ocs;
@@ -967,7 +1001,7 @@ ocs_send_adisc(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
 
 	node_els_trace();
 
-	sparams = (fc_plogi_payload_t*) node->sport->service_params;
+	sparams = (fc_plogi_payload_t *)node->sport->service_params;
 
 	els = ocs_els_io_alloc(node, sizeof(*adisc), OCS_ELS_ROLE_ORIGINATOR);
 	if (els == NULL) {
@@ -982,7 +1016,7 @@ ocs_send_adisc(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
 		/* Build ADISC request */
 
 		adisc = els->els_req.virt;
-		sparams = (fc_plogi_payload_t*) node->sport->service_params;
+		sparams = (fc_plogi_payload_t *)node->sport->service_params;
 
 		ocs_memset(adisc, 0, sizeof(*adisc));
 		adisc->command_code = FC_ELS_CMD_ADISC;
@@ -1018,7 +1052,7 @@ ocs_send_adisc(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
 
 ocs_io_t *
 ocs_send_pdisc(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
-	els_cb_t cb, void *cbarg)
+    els_cb_t cb, void *cbarg)
 {
 	ocs_io_t *els;
 	ocs_t *ocs = node->ocs;
@@ -1068,7 +1102,7 @@ ocs_send_pdisc(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
 
 ocs_io_t *
 ocs_send_scr(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
-	els_cb_t cb, void *cbarg)
+    els_cb_t cb, void *cbarg)
 {
 	ocs_io_t *els;
 	ocs_t *ocs = node->ocs;
@@ -1117,7 +1151,7 @@ ocs_send_scr(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
 
 ocs_io_t *
 ocs_send_rrq(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
-	els_cb_t cb, void *cbarg)
+    els_cb_t cb, void *cbarg)
 {
 	ocs_io_t *els;
 	ocs_t *ocs = node->ocs;
@@ -1167,13 +1201,14 @@ ocs_send_rrq(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
  */
 ocs_io_t *
 ocs_send_rscn(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
-	void *port_ids, uint32_t port_ids_count, els_cb_t cb, void *cbarg)
+    void *port_ids, uint32_t port_ids_count, els_cb_t cb, void *cbarg)
 {
 	ocs_io_t *els;
 	ocs_t *ocs = node->ocs;
 	fc_rscn_payload_t *req;
-	uint32_t payload_length = sizeof(fc_rscn_affected_port_id_page_t)*(port_ids_count - 1) +
-		sizeof(fc_rscn_payload_t);
+	uint32_t payload_length = sizeof(fc_rscn_affected_port_id_page_t) *
+		(port_ids_count - 1) +
+	    sizeof(fc_rscn_payload_t);
 
 	node_els_trace();
 
@@ -1192,13 +1227,15 @@ ocs_send_rscn(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
 		req->command_code = FC_ELS_CMD_RSCN;
 		req->page_length = sizeof(fc_rscn_affected_port_id_page_t);
 		req->payload_length = ocs_htobe16(sizeof(*req) +
-			sizeof(fc_rscn_affected_port_id_page_t)*(port_ids_count-1));
+		    sizeof(fc_rscn_affected_port_id_page_t) *
+			(port_ids_count - 1));
 
 		els->hio_type = OCS_HW_ELS_REQ;
 		els->iparam.els.timeout = timeout_sec;
 
 		/* copy in the payload */
-		ocs_memcpy(req->port_list, port_ids, port_ids_count*sizeof(fc_rscn_affected_port_id_page_t));
+		ocs_memcpy(req->port_list, port_ids,
+		    port_ids_count * sizeof(fc_rscn_affected_port_id_page_t));
 
 		/* Submit the request */
 		ocs_io_transition(els, __ocs_els_init, NULL);
@@ -1224,8 +1261,8 @@ ocs_send_rscn(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
  */
 
 ocs_io_t *
-ocs_send_ls_rjt(ocs_io_t *io, uint32_t ox_id, uint32_t reason_code, uint32_t reason_code_expl,
-		uint32_t vendor_unique, els_cb_t cb, void *cbarg)
+ocs_send_ls_rjt(ocs_io_t *io, uint32_t ox_id, uint32_t reason_code,
+    uint32_t reason_code_expl, uint32_t vendor_unique, els_cb_t cb, void *cbarg)
 {
 	ocs_node_t *node = io->node;
 	int32_t rc;
@@ -1263,8 +1300,8 @@ ocs_send_ls_rjt(ocs_io_t *io, uint32_t ox_id, uint32_t reason_code, uint32_t rea
  * @brief Send a PLOGI accept response.
  *
  * <h3 class="desc">Description</h3>
- * Construct a PLOGI LS_ACC, and send to the \c node, using the originator exchange ID
- * \c ox_id.
+ * Construct a PLOGI LS_ACC, and send to the \c node, using the originator
+ * exchange ID \c ox_id.
  *
  * @param io Pointer to a SCSI IO object.
  * @param ox_id Originator exchange ID being responsed to.
@@ -1309,7 +1346,8 @@ ocs_send_plogi_acc(ocs_io_t *io, uint32_t ox_id, els_cb_t cb, void *cbarg)
 		plogi->common_service_parameters[1] |= ocs_htobe32(1U << 23);
 	}
 
-	ocs_display_sparams(node->display_name, "plogi send resp", 0, NULL, plogi->common_service_parameters);
+	ocs_display_sparams(node->display_name, "plogi send resp", 0, NULL,
+	    plogi->common_service_parameters);
 
 	io->hio_type = OCS_HW_ELS_RSP;
 	if ((rc = ocs_els_send_rsp(io, sizeof(*plogi)))) {
@@ -1324,8 +1362,9 @@ ocs_send_plogi_acc(ocs_io_t *io, uint32_t ox_id, els_cb_t cb, void *cbarg)
  * @brief Send an FLOGI accept response for point-to-point negotiation.
  *
  * <h3 class="desc">Description</h3>
- * Construct an FLOGI accept response, and send to the \c node using the originator
- * exchange id \c ox_id. The \c s_id is used for the response frame source FC ID.
+ * Construct an FLOGI accept response, and send to the \c node using the
+ * originator exchange id \c ox_id. The \c s_id is used for the response frame
+ * source FC ID.
  *
  * @param io Pointer to a SCSI IO object.
  * @param ox_id Originator exchange ID for the response.
@@ -1336,7 +1375,8 @@ ocs_send_plogi_acc(ocs_io_t *io, uint32_t ox_id, els_cb_t cb, void *cbarg)
  * @return Returns pointer to IO object, or NULL if error.
  */
 ocs_io_t *
-ocs_send_flogi_p2p_acc(ocs_io_t *io, uint32_t ox_id, uint32_t s_id, els_cb_t cb, void *cbarg)
+ocs_send_flogi_p2p_acc(ocs_io_t *io, uint32_t ox_id, uint32_t s_id, els_cb_t cb,
+    void *cbarg)
 {
 	ocs_node_t *node = io->node;
 	int32_t rc;
@@ -1360,10 +1400,14 @@ ocs_send_flogi_p2p_acc(ocs_io_t *io, uint32_t ox_id, uint32_t s_id, els_cb_t cb,
 	ocs_memcpy(flogi, node->sport->service_params, sizeof(*flogi));
 	flogi->command_code = FC_ELS_CMD_ACC;
 	flogi->resv1 = 0;
-	ocs_memset(flogi->class1_service_parameters, 0, sizeof(flogi->class1_service_parameters));
-	ocs_memset(flogi->class2_service_parameters, 0, sizeof(flogi->class1_service_parameters));
-	ocs_memset(flogi->class3_service_parameters, 0, sizeof(flogi->class1_service_parameters));
-	ocs_memset(flogi->class4_service_parameters, 0, sizeof(flogi->class1_service_parameters));
+	ocs_memset(flogi->class1_service_parameters, 0,
+	    sizeof(flogi->class1_service_parameters));
+	ocs_memset(flogi->class2_service_parameters, 0,
+	    sizeof(flogi->class1_service_parameters));
+	ocs_memset(flogi->class3_service_parameters, 0,
+	    sizeof(flogi->class1_service_parameters));
+	ocs_memset(flogi->class4_service_parameters, 0,
+	    sizeof(flogi->class1_service_parameters));
 
 	io->hio_type = OCS_HW_ELS_RSP_SID;
 	if ((rc = ocs_els_send_rsp(io, sizeof(*flogi)))) {
@@ -1375,7 +1419,8 @@ ocs_send_flogi_p2p_acc(ocs_io_t *io, uint32_t ox_id, uint32_t s_id, els_cb_t cb,
 }
 
 ocs_io_t *
-ocs_send_flogi_acc(ocs_io_t *io, uint32_t ox_id, uint32_t is_fport, els_cb_t cb, void *cbarg)
+ocs_send_flogi_acc(ocs_io_t *io, uint32_t ox_id, uint32_t is_fport, els_cb_t cb,
+    void *cbarg)
 {
 	ocs_node_t *node = io->node;
 	int32_t rc;
@@ -1407,12 +1452,17 @@ ocs_send_flogi_acc(ocs_io_t *io, uint32_t ox_id, uint32_t is_fport, els_cb_t cb,
 	flogi->command_code = FC_ELS_CMD_ACC;
 	flogi->resv1 = 0;
 
-	ocs_display_sparams(node->display_name, "flogi send resp", 0, NULL, flogi->common_service_parameters);
+	ocs_display_sparams(node->display_name, "flogi send resp", 0, NULL,
+	    flogi->common_service_parameters);
 
-	ocs_memset(flogi->class1_service_parameters, 0, sizeof(flogi->class1_service_parameters));
-	ocs_memset(flogi->class2_service_parameters, 0, sizeof(flogi->class1_service_parameters));
-	ocs_memset(flogi->class3_service_parameters, 0, sizeof(flogi->class1_service_parameters));
-	ocs_memset(flogi->class4_service_parameters, 0, sizeof(flogi->class1_service_parameters));
+	ocs_memset(flogi->class1_service_parameters, 0,
+	    sizeof(flogi->class1_service_parameters));
+	ocs_memset(flogi->class2_service_parameters, 0,
+	    sizeof(flogi->class1_service_parameters));
+	ocs_memset(flogi->class3_service_parameters, 0,
+	    sizeof(flogi->class1_service_parameters));
+	ocs_memset(flogi->class4_service_parameters, 0,
+	    sizeof(flogi->class1_service_parameters));
 
 	io->hio_type = OCS_HW_ELS_RSP_SID;
 	if ((rc = ocs_els_send_rsp(io, sizeof(*flogi)))) {
@@ -1428,8 +1478,8 @@ ocs_send_flogi_acc(ocs_io_t *io, uint32_t ox_id, uint32_t is_fport, els_cb_t cb,
  * @brief Send a PRLI accept response
  *
  * <h3 class="desc">Description</h3>
- * Construct a PRLI LS_ACC response, and send to the \c node, using the originator
- * \c ox_id exchange ID.
+ * Construct a PRLI LS_ACC response, and send to the \c node, using the
+ * originator \c ox_id exchange ID.
  *
  * @param io Pointer to a SCSI IO object.
  * @param ox_id Originator exchange ID.
@@ -1440,7 +1490,8 @@ ocs_send_flogi_acc(ocs_io_t *io, uint32_t ox_id, uint32_t is_fport, els_cb_t cb,
  */
 
 ocs_io_t *
-ocs_send_prli_acc(ocs_io_t *io, uint32_t ox_id, uint8_t fc_type, els_cb_t cb, void *cbarg)
+ocs_send_prli_acc(ocs_io_t *io, uint32_t ox_id, uint8_t fc_type, els_cb_t cb,
+    void *cbarg)
 {
 	ocs_node_t *node = io->node;
 	int32_t rc;
@@ -1465,11 +1516,12 @@ ocs_send_prli_acc(ocs_io_t *io, uint32_t ox_id, uint8_t fc_type, els_cb_t cb, vo
 	prli->payload_length = ocs_htobe16(sizeof(fc_prli_payload_t));
 	prli->type = fc_type;
 	prli->type_ext = 0;
-	prli->flags = ocs_htobe16(FC_PRLI_ESTABLISH_IMAGE_PAIR | FC_PRLI_REQUEST_EXECUTED);
+	prli->flags = ocs_htobe16(
+	    FC_PRLI_ESTABLISH_IMAGE_PAIR | FC_PRLI_REQUEST_EXECUTED);
 
 	prli->service_params = ocs_htobe16(FC_PRLI_READ_XRDY_DISABLED |
-				(node->sport->enable_ini ? FC_PRLI_INITIATOR_FUNCTION : 0) |
-				(node->sport->enable_tgt ? FC_PRLI_TARGET_FUNCTION : 0)); 
+	    (node->sport->enable_ini ? FC_PRLI_INITIATOR_FUNCTION : 0) |
+	    (node->sport->enable_tgt ? FC_PRLI_TARGET_FUNCTION : 0));
 
 	io->hio_type = OCS_HW_ELS_RSP;
 	if ((rc = ocs_els_send_rsp(io, sizeof(*prli)))) {
@@ -1485,8 +1537,8 @@ ocs_send_prli_acc(ocs_io_t *io, uint32_t ox_id, uint8_t fc_type, els_cb_t cb, vo
  * @brief Send a PRLO accept response.
  *
  * <h3 class="desc">Description</h3>
- * Construct a PRLO LS_ACC response, and send to the \c node, using the originator
- * exchange ID \c ox_id.
+ * Construct a PRLO LS_ACC response, and send to the \c node, using the
+ * originator exchange ID \c ox_id.
  *
  * @param io Pointer to a SCSI IO object.
  * @param ox_id Originator exchange ID.
@@ -1497,7 +1549,8 @@ ocs_send_prli_acc(ocs_io_t *io, uint32_t ox_id, uint8_t fc_type, els_cb_t cb, vo
  */
 
 ocs_io_t *
-ocs_send_prlo_acc(ocs_io_t *io, uint32_t ox_id, uint8_t fc_type, els_cb_t cb, void *cbarg)
+ocs_send_prlo_acc(ocs_io_t *io, uint32_t ox_id, uint8_t fc_type, els_cb_t cb,
+    void *cbarg)
 {
 	ocs_node_t *node = io->node;
 	int32_t rc;
@@ -1538,8 +1591,8 @@ ocs_send_prlo_acc(ocs_io_t *io, uint32_t ox_id, uint8_t fc_type, els_cb_t cb, vo
  * @brief Send a generic LS_ACC response without a payload.
  *
  * <h3 class="desc">Description</h3>
- * A generic LS_ACC response is sent to the \c node using the originator exchange ID
- * \c ox_id.
+ * A generic LS_ACC response is sent to the \c node using the originator
+ * exchange ID \c ox_id.
  *
  * @param io Pointer to a SCSI IO object.
  * @param ox_id Originator exchange id.
@@ -1585,8 +1638,8 @@ ocs_send_ls_acc(ocs_io_t *io, uint32_t ox_id, els_cb_t cb, void *cbarg)
  * @brief Send a LOGO accept response.
  *
  * <h3 class="desc">Description</h3>
- * Construct a LOGO LS_ACC response, and send to the \c node, using the originator
- * exchange ID \c ox_id.
+ * Construct a LOGO LS_ACC response, and send to the \c node, using the
+ * originator exchange ID \c ox_id.
  *
  * @param io Pointer to a SCSI IO object.
  * @param ox_id Originator exchange ID.
@@ -1668,7 +1721,7 @@ ocs_send_adisc_acc(ocs_io_t *io, uint32_t ox_id, els_cb_t cb, void *cbarg)
 	ocs_memset(&io->iparam, 0, sizeof(io->iparam));
 	io->iparam.els.ox_id = ox_id;
 
-	sparams = (fc_plogi_payload_t*) node->sport->service_params;
+	sparams = (fc_plogi_payload_t *)node->sport->service_params;
 	adisc = io->els_req.virt;
 	ocs_memset(adisc, 0, sizeof(fc_adisc_payload_t));
 	adisc->command_code = FC_ELS_CMD_ACC;
@@ -1705,7 +1758,7 @@ ocs_send_adisc_acc(ocs_io_t *io, uint32_t ox_id, els_cb_t cb, void *cbarg)
  */
 ocs_io_t *
 ocs_ns_send_rftid(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
-	els_cb_t cb, void *cbarg)
+    els_cb_t cb, void *cbarg)
 {
 	ocs_io_t *els;
 	ocs_t *ocs = node->ocs;
@@ -1729,9 +1782,11 @@ ocs_ns_send_rftid(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
 		rftid = els->els_req.virt;
 
 		ocs_memset(rftid, 0, sizeof(*rftid));
-		fcct_build_req_header(&rftid->hdr, FC_GS_NAMESERVER_RFT_ID, (OCS_ELS_RSP_LEN - sizeof(rftid->hdr)));
+		fcct_build_req_header(&rftid->hdr, FC_GS_NAMESERVER_RFT_ID,
+		    (OCS_ELS_RSP_LEN - sizeof(rftid->hdr)));
 		rftid->port_id = ocs_htobe32(node->rnode.sport->fc_id);
-		rftid->fc4_types[FC_GS_TYPE_WORD(FC_TYPE_FCP)] = ocs_htobe32(1 << FC_GS_TYPE_BIT(FC_TYPE_FCP));
+		rftid->fc4_types[FC_GS_TYPE_WORD(FC_TYPE_FCP)] = ocs_htobe32(
+		    1 << FC_GS_TYPE_BIT(FC_TYPE_FCP));
 
 		els->hio_type = OCS_HW_FC_CT;
 
@@ -1757,7 +1812,7 @@ ocs_ns_send_rftid(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
  */
 ocs_io_t *
 ocs_ns_send_rffid(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
-	els_cb_t cb, void *cbarg)
+    els_cb_t cb, void *cbarg)
 {
 	ocs_io_t *els;
 	ocs_t *ocs = node->ocs;
@@ -1782,7 +1837,8 @@ ocs_ns_send_rffid(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
 
 		ocs_memset(rffid, 0, sizeof(*rffid));
 
-		fcct_build_req_header(&rffid->hdr, FC_GS_NAMESERVER_RFF_ID, (OCS_ELS_RSP_LEN - sizeof(rffid->hdr)));
+		fcct_build_req_header(&rffid->hdr, FC_GS_NAMESERVER_RFF_ID,
+		    (OCS_ELS_RSP_LEN - sizeof(rffid->hdr)));
 		rffid->port_id = ocs_htobe32(node->rnode.sport->fc_id);
 		if (node->sport->enable_ini) {
 			rffid->fc4_feature_bits |= FC4_FEATURE_INITIATOR;
@@ -1817,7 +1873,7 @@ ocs_ns_send_rffid(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
 
 ocs_io_t *
 ocs_ns_send_gidpt(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
-	els_cb_t cb, void *cbarg)
+    els_cb_t cb, void *cbarg)
 {
 	ocs_io_t *els;
 	ocs_t *ocs = node->ocs;
@@ -1825,7 +1881,8 @@ ocs_ns_send_gidpt(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
 
 	node_els_trace();
 
-	els = ocs_els_io_alloc_size(node, sizeof(*gidpt), OCS_ELS_GID_PT_RSP_LEN, OCS_ELS_ROLE_ORIGINATOR);
+	els = ocs_els_io_alloc_size(node, sizeof(*gidpt),
+	    OCS_ELS_GID_PT_RSP_LEN, OCS_ELS_ROLE_ORIGINATOR);
 	if (els == NULL) {
 		ocs_log_err(ocs, "IO alloc failed\n");
 	} else {
@@ -1841,7 +1898,8 @@ ocs_ns_send_gidpt(ocs_node_t *node, uint32_t timeout_sec, uint32_t retries,
 		gidpt = els->els_req.virt;
 
 		ocs_memset(gidpt, 0, sizeof(*gidpt));
-		fcct_build_req_header(&gidpt->hdr, FC_GS_NAMESERVER_GID_PT, (OCS_ELS_GID_PT_RSP_LEN - sizeof(gidpt->hdr)) );
+		fcct_build_req_header(&gidpt->hdr, FC_GS_NAMESERVER_GID_PT,
+		    (OCS_ELS_GID_PT_RSP_LEN - sizeof(gidpt->hdr)));
 		gidpt->domain_id_scope = 0;
 		gidpt->area_id_scope = 0;
 		gidpt->port_type = 0x7f;
@@ -1884,8 +1942,8 @@ ocs_bls_send_acc_hdr(ocs_io_t *io, fc_header_t *hdr)
  * Construct a BLS BA_ACC response, and send to the \c node.
  *
  * @param io Pointer to a SCSI IO object.
- * @param s_id S_ID to use for the response. If UINT32_MAX, then use our SLI port
- * (sport) S_ID.
+ * @param s_id S_ID to use for the response. If UINT32_MAX, then use our SLI
+ * port (sport) S_ID.
  * @param ox_id Originator exchange ID.
  * @param rx_id Responder exchange ID.
  *
@@ -1927,7 +1985,8 @@ ocs_bls_send_acc(ocs_io_t *io, uint32_t s_id, uint16_t ox_id, uint16_t rx_id)
 
 	acc = (void *)io->iparam.bls_sid.payload;
 
-	ocs_memset(io->iparam.bls_sid.payload, 0, sizeof(io->iparam.bls_sid.payload));
+	ocs_memset(io->iparam.bls_sid.payload, 0,
+	    sizeof(io->iparam.bls_sid.payload));
 	acc->ox_id = io->iparam.bls_sid.ox_id;
 	acc->rx_id = io->iparam.bls_sid.rx_id;
 	acc->high_seq_cnt = UINT16_MAX;
@@ -1957,7 +2016,8 @@ ocs_bls_send_acc(ocs_io_t *io, uint32_t s_id, uint16_t ox_id, uint16_t rx_id)
  */
 
 static int32_t
-ocs_bls_send_acc_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length, int32_t status, uint32_t ext_status, void *app)
+ocs_bls_send_acc_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length,
+    int32_t status, uint32_t ext_status, void *app)
 {
 	ocs_io_t *io = app;
 
@@ -1984,7 +2044,8 @@ ocs_bls_send_acc_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length,
  */
 
 static int32_t
-ocs_els_abort_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length, int32_t status, uint32_t ext_status, void *app)
+ocs_els_abort_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length,
+    int32_t status, uint32_t ext_status, void *app)
 {
 	ocs_io_t *els;
 	ocs_io_t *abort_io = NULL; /* IO structure used to abort ELS */
@@ -2006,7 +2067,8 @@ ocs_els_abort_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length, in
 	ocs_io_free(ocs, abort_io);
 
 	/* send completion event to indicate abort process is complete
-	 * Note: The ELS SM will already be receiving ELS_REQ_OK/FAIL/RJT/ABORTED
+	 * Note: The ELS SM will already be receiving
+	 * ELS_REQ_OK/FAIL/RJT/ABORTED
 	 */
 	ocs_els_post_event(els, OCS_EVT_ELS_ABORT_CMPL, NULL);
 
@@ -2030,7 +2092,8 @@ ocs_els_abort_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length, in
  * completion is not propagated up to node).
  *
  * @param els Pointer to the ELS IO.
- * @param send_abts Boolean to indicate if hardware will automatically generate an ABTS.
+ * @param send_abts Boolean to indicate if hardware will automatically generate
+ * an ABTS.
  *
  * @return Returns pointer to Abort IO object, or NULL if error.
  */
@@ -2077,8 +2140,10 @@ ocs_els_abort_io(ocs_io_t *els, int send_abts)
 		abort_io->send_abts = send_abts;
 
 		/* now dispatch IO */
-		if ((rc = ocs_scsi_io_dispatch_abort(abort_io, ocs_els_abort_cb))) {
-			ocs_log_err(ocs, "ocs_scsi_io_dispatch failed: %d\n", rc);
+		if ((rc = ocs_scsi_io_dispatch_abort(abort_io,
+			 ocs_els_abort_cb))) {
+			ocs_log_err(ocs, "ocs_scsi_io_dispatch failed: %d\n",
+			    rc);
 			ocs_io_free(ocs, abort_io);
 			abort_io = NULL;
 		}
@@ -2095,23 +2160,24 @@ ocs_els_abort_io(ocs_io_t *els, int send_abts)
  * ELS IO State Machine
  */
 
-#define std_els_state_decl(...) \
-	ocs_io_t *els = NULL; \
-	ocs_node_t *node = NULL; \
-	ocs_t *ocs = NULL; \
-	ocs_assert(ctx != NULL, NULL); \
-	els = ctx->app; \
-	ocs_assert(els != NULL, NULL); \
-	node = els->node; \
+#define std_els_state_decl(...)         \
+	ocs_io_t *els = NULL;           \
+	ocs_node_t *node = NULL;        \
+	ocs_t *ocs = NULL;              \
+	ocs_assert(ctx != NULL, NULL);  \
+	els = ctx->app;                 \
+	ocs_assert(els != NULL, NULL);  \
+	node = els->node;               \
 	ocs_assert(node != NULL, NULL); \
-	ocs = node->ocs; \
+	ocs = node->ocs;                \
 	ocs_assert(ocs != NULL, NULL);
 
-#define els_sm_trace(...) \
-	do { \
-		if (OCS_LOG_ENABLE_ELS_TRACE(ocs)) \
-			ocs_log_info(ocs, "[%s] %-8s %-20s %-20s\n", node->display_name, els->display_name, \
-				__func__, ocs_sm_event_name(evt)); \
+#define els_sm_trace(...)                                                    \
+	do {                                                                 \
+		if (OCS_LOG_ENABLE_ELS_TRACE(ocs))                           \
+			ocs_log_info(ocs, "[%s] %-8s %-20s %-20s\n",         \
+			    node->display_name, els->display_name, __func__, \
+			    ocs_sm_event_name(evt));                         \
 	} while (0)
 
 /**
@@ -2162,27 +2228,29 @@ ocs_els_io_cleanup(ocs_io_t *els, ocs_sm_event_t node_evt, void *arg)
  */
 
 void *
-__ocs_els_common(const char *funcname, ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
+__ocs_els_common(const char *funcname, ocs_sm_ctx_t *ctx, ocs_sm_event_t evt,
+    void *arg)
 {
 	std_els_state_decl();
 
-	switch(evt) {
+	switch (evt) {
 	case OCS_EVT_ENTER:
 	case OCS_EVT_REENTER:
 	case OCS_EVT_EXIT:
 		break;
 
-	/* If ELS_REQ_FAIL is not handled in state, then we'll terminate this ELS and
-	 * pass the event to the node
+	/* If ELS_REQ_FAIL is not handled in state, then we'll terminate this
+	 * ELS and pass the event to the node
 	 */
 	case OCS_EVT_SRRS_ELS_REQ_FAIL:
-		ocs_log_warn(els->node->ocs, "[%s] %-20s %-20s not handled - terminating ELS\n", node->display_name, funcname,
-			ocs_sm_event_name(evt));
+		ocs_log_warn(els->node->ocs,
+		    "[%s] %-20s %-20s not handled - terminating ELS\n",
+		    node->display_name, funcname, ocs_sm_event_name(evt));
 		ocs_els_io_cleanup(els, OCS_EVT_SRRS_ELS_REQ_FAIL, arg);
 		break;
 	default:
-		ocs_log_warn(els->node->ocs, "[%s] %-20s %-20s not handled\n", node->display_name, funcname,
-			ocs_sm_event_name(evt));
+		ocs_log_warn(els->node->ocs, "[%s] %-20s %-20s not handled\n",
+		    node->display_name, funcname, ocs_sm_event_name(evt));
 		break;
 	}
 	return NULL;
@@ -2192,8 +2260,8 @@ __ocs_els_common(const char *funcname, ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, vo
  * @brief Initial ELS IO state
  *
  * <h3 class="desc">Description</h3>
- * This is the initial ELS IO state. Upon entry, the requested ELS/CT is submitted to
- * the hardware.
+ * This is the initial ELS IO state. Upon entry, the requested ELS/CT is
+ * submitted to the hardware.
  *
  * @param ctx Remote node SM context.
  * @param evt Event to process.
@@ -2210,15 +2278,17 @@ __ocs_els_init(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 
 	els_sm_trace();
 
-	switch(evt) {
+	switch (evt) {
 	case OCS_EVT_ENTER: {
-		rc = ocs_els_send(els, els->els_req.size, els->els_timeout_sec, ocs_els_req_cb);
+		rc = ocs_els_send(els, els->els_req.size, els->els_timeout_sec,
+		    ocs_els_req_cb);
 		if (rc) {
 			ocs_node_cb_t cbdata;
 			cbdata.status = cbdata.ext_status = (~0);
 			cbdata.els = els;
 			ocs_log_err(ocs, "ocs_els_send failed: %d\n", rc);
-			ocs_els_io_cleanup(els, OCS_EVT_SRRS_ELS_REQ_FAIL, &cbdata);
+			ocs_els_io_cleanup(els, OCS_EVT_SRRS_ELS_REQ_FAIL,
+			    &cbdata);
 		} else {
 			ocs_io_transition(els, __ocs_els_wait_resp, NULL);
 		}
@@ -2254,7 +2324,7 @@ __ocs_els_wait_resp(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 
 	els_sm_trace();
 
-	switch(evt) {
+	switch (evt) {
 	case OCS_EVT_SRRS_ELS_REQ_OK: {
 		ocs_els_io_cleanup(els, OCS_EVT_SRRS_ELS_REQ_OK, arg);
 		break;
@@ -2267,7 +2337,7 @@ __ocs_els_wait_resp(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 
 	case OCS_EVT_ELS_REQ_TIMEOUT: {
 		els_io_printf(els, "Timed out, retry (%d tries remaining)\n",
-				els->els_retries_remaining-1);
+		    els->els_retries_remaining - 1);
 		ocs_io_transition(els, __ocs_els_retry, NULL);
 		break;
 	}
@@ -2280,7 +2350,8 @@ __ocs_els_wait_resp(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 		switch (reason_code) {
 		case FC_REASON_LOGICAL_BUSY:
 			els->node->els_req_cnt--;
-			els_io_printf(els, "LS_RJT Logical Busy response, delay and retry\n");
+			els_io_printf(els,
+			    "LS_RJT Logical Busy response, delay and retry\n");
 			ocs_io_transition(els, __ocs_els_delay_retry, NULL);
 			break;
 		default:
@@ -2293,7 +2364,8 @@ __ocs_els_wait_resp(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 	case OCS_EVT_ABORT_ELS: {
 		/* request to abort this ELS without an ABTS */
 		els_io_printf(els, "ELS abort requested\n");
-		els->els_retries_remaining = 0;		/* Set retries to zero, we are done */
+		els->els_retries_remaining =
+		    0; /* Set retries to zero, we are done */
 		io = ocs_els_abort_io(els, FALSE);
 		if (io == NULL) {
 			ocs_log_err(ocs, "ocs_els_send failed\n");
@@ -2333,40 +2405,47 @@ __ocs_els_retry(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 
 	els_sm_trace();
 
-	switch(evt) {
+	switch (evt) {
 	case OCS_EVT_ENTER: {
 		/* handle event for ABORT_XRI WQE
 		 * once abort is complete, retry if retries left;
-		 * don't need to wait for OCS_EVT_SRRS_ELS_REQ_* event because we got
-		 * by receiving OCS_EVT_ELS_REQ_TIMEOUT
+		 * don't need to wait for OCS_EVT_SRRS_ELS_REQ_* event because
+		 * we got by receiving OCS_EVT_ELS_REQ_TIMEOUT
 		 */
 		ocs_node_cb_t node_cbdata;
 		node_cbdata.status = node_cbdata.ext_status = (~0);
 		node_cbdata.els = els;
-		if (els->els_retries_remaining && --els->els_retries_remaining) {
-			/* Use a different XRI for the retry (would like a new oxid),
-			 * so free the HW IO (dispatch will allocate a new one). It's an
-			 * optimization to only free the HW IO here and not the ocs_io_t;
-			 * Freeing the ocs_io_t object would require copying all the necessary
-			 * info from the old ocs_io_t object to the * new one; and allocating
-			 * a new ocs_io_t could fail.
+		if (els->els_retries_remaining &&
+		    --els->els_retries_remaining) {
+			/* Use a different XRI for the retry (would like a new
+			 * oxid), so free the HW IO (dispatch will allocate a
+			 * new one). It's an optimization to only free the HW IO
+			 * here and not the ocs_io_t; Freeing the ocs_io_t
+			 * object would require copying all the necessary info
+			 * from the old ocs_io_t object to the * new one; and
+			 * allocating a new ocs_io_t could fail.
 			 */
 			ocs_assert(els->hio, NULL);
 			ocs_hw_io_free(&ocs->hw, els->hio);
 			els->hio = NULL;
 
-			/* result isn't propagated up to node sm, need to decrement req cnt */
+			/* result isn't propagated up to node sm, need to
+			 * decrement req cnt */
 			ocs_assert(els->node->els_req_cnt, NULL);
 			els->node->els_req_cnt--;
-			rc = ocs_els_send(els, els->els_req.size, els->els_timeout_sec, ocs_els_req_cb);
+			rc = ocs_els_send(els, els->els_req.size,
+			    els->els_timeout_sec, ocs_els_req_cb);
 			if (rc) {
-				ocs_log_err(ocs, "ocs_els_send failed: %d\n", rc);
-				ocs_els_io_cleanup(els, OCS_EVT_SRRS_ELS_REQ_FAIL, &node_cbdata);
+				ocs_log_err(ocs, "ocs_els_send failed: %d\n",
+				    rc);
+				ocs_els_io_cleanup(els,
+				    OCS_EVT_SRRS_ELS_REQ_FAIL, &node_cbdata);
 			}
 			ocs_io_transition(els, __ocs_els_wait_resp, NULL);
 		} else {
 			els_io_printf(els, "Retries exhausted\n");
-			ocs_els_io_cleanup(els, OCS_EVT_SRRS_ELS_REQ_FAIL, &node_cbdata);
+			ocs_els_io_cleanup(els, OCS_EVT_SRRS_ELS_REQ_FAIL,
+			    &node_cbdata);
 		}
 		break;
 	}
@@ -2398,7 +2477,7 @@ __ocs_els_aborted_delay_retry(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 
 	els_sm_trace();
 
-	switch(evt) {
+	switch (evt) {
 	case OCS_EVT_ENTER:
 		/* mod/resched the timer for a short duration */
 		ocs_mod_timer(&els->delay_timer, 1);
@@ -2435,13 +2514,14 @@ __ocs_els_delay_retry(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 
 	els_sm_trace();
 
-	switch(evt) {
+	switch (evt) {
 	case OCS_EVT_ENTER:
-		ocs_setup_timer(ocs, &els->delay_timer, ocs_els_delay_timer_cb, els, 5000);
+		ocs_setup_timer(ocs, &els->delay_timer, ocs_els_delay_timer_cb,
+		    els, 5000);
 		break;
 	case OCS_EVT_TIMER_EXPIRED:
-		/* Retry delay timer expired, retry the ELS request, Free the HW IO so
-		 * that a new oxid is used.
+		/* Retry delay timer expired, retry the ELS request, Free the HW
+		 * IO so that a new oxid is used.
 		 */
 		if (els->hio != NULL) {
 			ocs_hw_io_free(&ocs->hw, els->hio);
@@ -2481,20 +2561,25 @@ __ocs_els_aborting(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 
 	els_sm_trace();
 
-	switch(evt) {
+	switch (evt) {
 	case OCS_EVT_SRRS_ELS_REQ_OK:
 	case OCS_EVT_SRRS_ELS_REQ_FAIL:
 	case OCS_EVT_SRRS_ELS_REQ_RJT:
 	case OCS_EVT_ELS_REQ_TIMEOUT:
 	case OCS_EVT_ELS_REQ_ABORTED: {
-		/* completion for ELS received first, transition to wait for abort cmpl */
-		els_io_printf(els, "request cmpl evt=%s\n", ocs_sm_event_name(evt));
-		ocs_io_transition(els, __ocs_els_aborting_wait_abort_cmpl, NULL);
+		/* completion for ELS received first, transition to wait for
+		 * abort cmpl */
+		els_io_printf(els, "request cmpl evt=%s\n",
+		    ocs_sm_event_name(evt));
+		ocs_io_transition(els, __ocs_els_aborting_wait_abort_cmpl,
+		    NULL);
 		break;
 	}
 	case OCS_EVT_ELS_ABORT_CMPL: {
-		/* completion for abort was received first, transition to wait for req cmpl */
-		els_io_printf(els, "abort cmpl evt=%s\n", ocs_sm_event_name(evt));
+		/* completion for abort was received first, transition to wait
+		 * for req cmpl */
+		els_io_printf(els, "abort cmpl evt=%s\n",
+		    ocs_sm_event_name(evt));
 		ocs_io_transition(els, __ocs_els_aborting_wait_req_cmpl, NULL);
 		break;
 	}
@@ -2547,13 +2632,14 @@ ocs_els_abort_cleanup(ocs_io_t *els)
  */
 
 void *
-__ocs_els_aborting_wait_req_cmpl(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
+__ocs_els_aborting_wait_req_cmpl(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt,
+    void *arg)
 {
 	std_els_state_decl();
 
 	els_sm_trace();
 
-	switch(evt) {
+	switch (evt) {
 	case OCS_EVT_SRRS_ELS_REQ_OK:
 	case OCS_EVT_SRRS_ELS_REQ_FAIL:
 	case OCS_EVT_SRRS_ELS_REQ_RJT:
@@ -2590,13 +2676,14 @@ __ocs_els_aborting_wait_req_cmpl(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *ar
  */
 
 void *
-__ocs_els_aborting_wait_abort_cmpl(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
+__ocs_els_aborting_wait_abort_cmpl(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt,
+    void *arg)
 {
 	std_els_state_decl();
 
 	els_sm_trace();
 
-	switch(evt) {
+	switch (evt) {
 	case OCS_EVT_ELS_ABORT_CMPL: {
 		ocs_els_abort_cleanup(els);
 		break;
@@ -2652,7 +2739,7 @@ ocs_els_io_list_empty(ocs_node_t *node, ocs_list_t *list)
 {
 	int empty;
 	ocs_lock(&node->active_ios_lock);
-		empty = ocs_list_empty(list);
+	empty = ocs_list_empty(list);
 	ocs_unlock(&node->active_ios_lock);
 	return empty;
 }
@@ -2667,12 +2754,14 @@ ocs_els_io_list_empty(ocs_node_t *node, ocs_list_t *list)
  * @param length Length of the returned payload data.
  * @param status Status of the completion.
  * @param ext_status Extended status of the completion.
- * @param arg Application-specific argument (generally a pointer to the ELS IO context).
+ * @param arg Application-specific argument (generally a pointer to the ELS IO
+ * context).
  *
  * @return returns 0
  */
 static int32_t
-ocs_ct_acc_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length, int32_t status, uint32_t ext_status, void *arg)
+ocs_ct_acc_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length,
+    int32_t status, uint32_t ext_status, void *arg)
 {
 	ocs_io_t *io = arg;
 
@@ -2696,7 +2785,9 @@ ocs_ct_acc_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length, int32
  * @return returns 0 for success, a negative error code value for failure.
  */
 int32_t
-ocs_send_ct_rsp(ocs_io_t *io, uint32_t ox_id, fcct_iu_header_t *ct_hdr, uint32_t cmd_rsp_code, uint32_t reason_code, uint32_t reason_code_explanation)
+ocs_send_ct_rsp(ocs_io_t *io, uint32_t ox_id, fcct_iu_header_t *ct_hdr,
+    uint32_t cmd_rsp_code, uint32_t reason_code,
+    uint32_t reason_code_explanation)
 {
 	fcct_iu_header_t *rsp = io->els_rsp.virt;
 
@@ -2747,8 +2838,8 @@ ocs_els_delay_timer_cb(void *arg)
 	/*
 	 * There is a potential deadlock here since is Linux executes timers
 	 * in a soft IRQ context. The lock may be aready locked by the interrupt
-	 * thread. Handle this case by attempting to take the node lock and reset the
-	 * timer if we fail to acquire the lock.
+	 * thread. Handle this case by attempting to take the node lock and
+	 * reset the timer if we fail to acquire the lock.
 	 *
 	 * Note: This code relies on the fact that the node lock is recursive.
 	 */
@@ -2756,6 +2847,7 @@ ocs_els_delay_timer_cb(void *arg)
 		ocs_els_post_event(els, OCS_EVT_TIMER_EXPIRED, NULL);
 		ocs_node_unlock(node);
 	} else {
-		ocs_setup_timer(els->ocs, &els->delay_timer, ocs_els_delay_timer_cb, els, 1);
+		ocs_setup_timer(els->ocs, &els->delay_timer,
+		    ocs_els_delay_timer_cb, els, 1);
 	}
 }

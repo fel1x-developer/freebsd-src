@@ -26,9 +26,9 @@
  */
 
 #if defined(__i386__) || (defined(__amd64__) && defined(COMPAT_LINUX32))
-#define	__ELF_WORD_SIZE	32
+#define __ELF_WORD_SIZE 32
 #else
-#define	__ELF_WORD_SIZE	64
+#define __ELF_WORD_SIZE 64
 #endif
 
 #include <sys/param.h>
@@ -49,8 +49,8 @@
 
 #include <compat/linux/linux_vdso.h>
 
-SLIST_HEAD(, linux_vdso_sym) __elfN(linux_vdso_syms) =
-    SLIST_HEAD_INITIALIZER(__elfN(linux_vdso_syms));
+SLIST_HEAD(, linux_vdso_sym) __elfN(linux_vdso_syms) = SLIST_HEAD_INITIALIZER(
+    __elfN(linux_vdso_syms));
 
 void
 __elfN(linux_vdso_sym_init)(struct linux_vdso_sym *s)
@@ -70,12 +70,10 @@ __elfN(linux_shared_page_init)(char **mapping, vm_size_t size)
 	pages = size / PAGE_SIZE;
 
 	addr = kva_alloc(size);
-	obj = vm_pager_allocate(OBJT_PHYS, 0, size,
-	    VM_PROT_DEFAULT, 0, NULL);
+	obj = vm_pager_allocate(OBJT_PHYS, 0, size, VM_PROT_DEFAULT, 0, NULL);
 	VM_OBJECT_WLOCK(obj);
 	for (n = 0; n < pages; n++) {
-		m = vm_page_grab(obj, n,
-		    VM_ALLOC_ZERO);
+		m = vm_page_grab(obj, n, VM_ALLOC_ZERO);
 		vm_page_valid(m);
 		vm_page_xunbusy(m);
 		pmap_qenter(addr + n * PAGE_SIZE, &m, 1);
@@ -86,8 +84,7 @@ __elfN(linux_shared_page_init)(char **mapping, vm_size_t size)
 }
 
 void
-__elfN(linux_shared_page_fini)(vm_object_t obj, void *mapping,
-    vm_size_t size)
+__elfN(linux_shared_page_fini)(vm_object_t obj, void *mapping, vm_size_t size)
 {
 	vm_offset_t va;
 
@@ -138,14 +135,13 @@ __elfN(linux_vdso_fixup)(char *base, vm_offset_t offset)
 	 * VDSO is readonly mapped to the process VA and
 	 * can't be relocated by rtld.
 	 */
-	SLIST_FOREACH(lsym, &__elfN(linux_vdso_syms), sym) {
+	SLIST_FOREACH (lsym, &__elfN(linux_vdso_syms), sym) {
 		for (i = 0, sym = dsym; i < symcnt; i++, sym++) {
 			symname = strtab + sym->st_name;
 			if (strncmp(lsym->symname, symname, lsym->size) == 0) {
 				sym->st_value += offset;
 				*lsym->ptr = sym->st_value;
 				break;
-
 			}
 		}
 	}
@@ -167,8 +163,7 @@ linux_map_vdso(struct proc *p, vm_object_t obj, vm_offset_t base,
 
 	vm_object_reference(obj);
 	error = vm_map_fixed(map, obj, 0, base, size,
-	    VM_PROT_READ | VM_PROT_EXECUTE,
-	    VM_PROT_READ | VM_PROT_EXECUTE,
+	    VM_PROT_READ | VM_PROT_EXECUTE, VM_PROT_READ | VM_PROT_EXECUTE,
 	    MAP_INHERIT_SHARE | MAP_ACC_NO_CHARGE);
 	if (error != KERN_SUCCESS) {
 		vm_object_deallocate(obj);

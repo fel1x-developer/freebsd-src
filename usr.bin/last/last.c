@@ -40,6 +40,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <langinfo.h>
+#include <libxo/xo.h>
 #include <locale.h>
 #include <paths.h>
 #include <signal.h>
@@ -51,61 +52,61 @@
 #include <unistd.h>
 #include <utmpx.h>
 
-#include <libxo/xo.h>
-
-#define	NO	0				/* false/no */
-#define	YES	1				/* true/yes */
-#define	ATOI2(ar)	((ar)[0] - '0') * 10 + ((ar)[1] - '0'); (ar) += 2;
+#define NO 0  /* false/no */
+#define YES 1 /* true/yes */
+#define ATOI2(ar)                               \
+	((ar)[0] - '0') * 10 + ((ar)[1] - '0'); \
+	(ar) += 2;
 
 typedef struct arg {
-	char	*name;				/* argument */
-#define	REBOOT_TYPE	-1
-#define	HOST_TYPE	-2
-#define	TTY_TYPE	-3
-#define	USER_TYPE	-4
-	int	type;				/* type of arg */
-	struct arg	*next;			/* linked list pointer */
+	char *name; /* argument */
+#define REBOOT_TYPE -1
+#define HOST_TYPE -2
+#define TTY_TYPE -3
+#define USER_TYPE -4
+	int type;	  /* type of arg */
+	struct arg *next; /* linked list pointer */
 } ARG;
-static ARG	*arglist;			/* head of linked list */
+static ARG *arglist; /* head of linked list */
 
 static SLIST_HEAD(, idtab) idlist;
 
 struct idtab {
-	time_t	logout;				/* log out time */
-	char	id[sizeof ((struct utmpx *)0)->ut_id]; /* identifier */
+	time_t logout;				   /* log out time */
+	char id[sizeof((struct utmpx *)0)->ut_id]; /* identifier */
 	SLIST_ENTRY(idtab) list;
 };
 
-static const	char *crmsg;			/* cause of last reboot */
-static time_t	currentout;			/* current logout value */
-static long	maxrec;				/* records to display */
-static const	char *file = NULL;		/* utx.log file */
-static int	sflag = 0;			/* show delta in seconds */
-static int	width = 5;			/* show seconds in delta */
-static int	yflag;				/* show year */
-static int      d_first;
-static int	snapfound = 0;			/* found snapshot entry? */
-static time_t	snaptime;			/* if != 0, we will only
-						 * report users logged in
-						 * at this snapshot time
-						 */
+static const char *crmsg;	/* cause of last reboot */
+static time_t currentout;	/* current logout value */
+static long maxrec;		/* records to display */
+static const char *file = NULL; /* utx.log file */
+static int sflag = 0;		/* show delta in seconds */
+static int width = 5;		/* show seconds in delta */
+static int yflag;		/* show year */
+static int d_first;
+static int snapfound = 0; /* found snapshot entry? */
+static time_t snaptime;	  /* if != 0, we will only
+			   * report users logged in
+			   * at this snapshot time
+			   */
 
-static void	 addarg(int, char *);
-static time_t	 dateconv(char *);
-static void	 doentry(struct utmpx *);
-static void	 hostconv(char *);
-static void	 printentry(struct utmpx *, struct idtab *);
-static char	*ttyconv(char *);
-static int	 want(struct utmpx *);
-static void	 usage(void);
-static void	 wtmp(void);
+static void addarg(int, char *);
+static time_t dateconv(char *);
+static void doentry(struct utmpx *);
+static void hostconv(char *);
+static void printentry(struct utmpx *, struct idtab *);
+static char *ttyconv(char *);
+static int want(struct utmpx *);
+static void usage(void);
+static void wtmp(void);
 
 static void
 usage(void)
 {
 	xo_error(
-"usage: last [-swy] [-d [[CC]YY][MMDD]hhmm[.SS]] [-f file] [-h host]\n"
-"            [-n maxrec] [-t tty] [user ...]\n");
+	    "usage: last [-swy] [-d [[CC]YY][MMDD]hhmm[.SS]] [-f file] [-h host]\n"
+	    "            [-n maxrec] [-t tty] [user ...]\n");
 	exit(1);
 }
 
@@ -115,7 +116,7 @@ main(int argc, char *argv[])
 	int ch;
 	char *p;
 
-	(void) setlocale(LC_TIME, "");
+	(void)setlocale(LC_TIME, "");
 	d_first = (*nl_langinfo(D_MD_ORDER) == 'd');
 
 	argc = xo_parse_args(argc, argv);
@@ -127,8 +128,16 @@ main(int argc, char *argv[])
 	snaptime = 0;
 	while ((ch = getopt(argc, argv, "0123456789d:f:h:n:st:wy")) != -1)
 		switch (ch) {
-		case '0': case '1': case '2': case '3': case '4':
-		case '5': case '6': case '7': case '8': case '9':
+		case '0':
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
 			/*
 			 * kludge: last was originally designed to take
 			 * a number after a dash.
@@ -160,7 +169,7 @@ main(int argc, char *argv[])
 				xo_errx(1, "%s: bad line count", optarg);
 			break;
 		case 's':
-			sflag++;	/* Show delta as seconds */
+			sflag++; /* Show delta as seconds */
 			break;
 		case 't':
 			addarg(TTY_TYPE, ttyconv(optarg));
@@ -189,15 +198,16 @@ main(int argc, char *argv[])
 	if (caph_enter() < 0)
 		xo_err(1, "cap_enter");
 
-	if (sflag && width == 8) usage();
+	if (sflag && width == 8)
+		usage();
 
 	if (argc) {
 		setlinebuf(stdout);
 		for (argv += optind; *argv; ++argv) {
 			if (strcmp(*argv, "reboot") == 0)
 				addarg(REBOOT_TYPE, *argv);
-#define	COMPATIBILITY
-#ifdef	COMPATIBILITY
+#define COMPATIBILITY
+#ifdef COMPATIBILITY
 			/* code to allow "last p5" to work */
 			addarg(TTY_TYPE, ttyconv(*argv));
 #endif
@@ -247,9 +257,9 @@ wtmp(void)
 	xo_close_list("last");
 	free(buf);
 	tm = localtime(&t);
-	(void) strftime(ct, sizeof(ct), "%+", tm);
+	(void)strftime(ct, sizeof(ct), "%+", tm);
 	xo_emit("\n{:utxdb/%s}", (file == NULL) ? "utx.log" : file);
-	xo_attr("seconds", "%lu", (unsigned long) t);
+	xo_attr("seconds", "%lu", (unsigned long)t);
 	xo_emit(" begins {:begins/%hs}\n", ct);
 	xo_close_container("last-information");
 }
@@ -271,8 +281,7 @@ doentry(struct utmpx *bp)
 			free(tt);
 		}
 		currentout = -bp->ut_tv.tv_sec;
-		crmsg = bp->ut_type != SHUTDOWN_TIME ?
-		    "crash" : "shutdown";
+		crmsg = bp->ut_type != SHUTDOWN_TIME ? "crash" : "shutdown";
 		/*
 		 * if we're in snapshot mode, we want to exit if this
 		 * shutdown/reboot appears while we are tracking the
@@ -298,9 +307,9 @@ doentry(struct utmpx *bp)
 		return;
 
 	/* find associated identifier */
-	SLIST_FOREACH(tt, &idlist, list)
-	    if (!memcmp(tt->id, bp->ut_id, sizeof bp->ut_id))
-		    break;
+	SLIST_FOREACH (tt, &idlist, list)
+		if (!memcmp(tt->id, bp->ut_id, sizeof bp->ut_id))
+			break;
 
 	if (tt == NULL) {
 		/* add new one */
@@ -316,9 +325,10 @@ doentry(struct utmpx *bp)
 	 * print record if not in snapshot mode and wanted
 	 * or in snapshot mode and in snapshot range
 	 */
-	if (bp->ut_type == USER_PROCESS && (want(bp) ||
-	    (bp->ut_tv.tv_sec < snaptime &&
-	    (tt->logout > snaptime || tt->logout < 1)))) {
+	if (bp->ut_type == USER_PROCESS &&
+	    (want(bp) ||
+		(bp->ut_tv.tv_sec < snaptime &&
+		    (tt->logout > snaptime || tt->logout < 1)))) {
 		snapfound = 1;
 		printentry(bp, tt);
 	}
@@ -337,17 +347,18 @@ printentry(struct utmpx *bp, struct idtab *tt)
 {
 	char ct[80];
 	struct tm *tm;
-	time_t	delta;				/* time difference */
-	time_t	t;
+	time_t delta; /* time difference */
+	time_t t;
 
 	if (maxrec != -1 && !maxrec--)
 		exit(0);
 	xo_open_instance("last");
 	t = bp->ut_tv.tv_sec;
 	tm = localtime(&t);
-	(void) strftime(ct, sizeof(ct), d_first ?
-	    (yflag ? "%a %e %b %Y %R" : "%a %e %b %R") :
-	    (yflag ? "%a %b %e %Y %R" : "%a %b %e %R"), tm);
+	(void)strftime(ct, sizeof(ct),
+	    d_first ? (yflag ? "%a %e %b %Y %R" : "%a %e %b %R") :
+		      (yflag ? "%a %b %e %Y %R" : "%a %b %e %R"),
+	    tm);
 	switch (bp->ut_type) {
 	case BOOT_TIME:
 		xo_emit("{:user/%-42s/%s}", "boot time");
@@ -379,7 +390,7 @@ printentry(struct utmpx *bp, struct idtab *tt)
 		xo_emit("- {:logout-reason/%s}", crmsg);
 	} else {
 		tm = localtime(&tt->logout);
-		(void) strftime(ct, sizeof(ct), "%R", tm);
+		(void)strftime(ct, sizeof(ct), "%R", tm);
 		xo_attr("seconds", "%lu", (unsigned long)tt->logout);
 		xo_emit("- {:logout-time/%s}", ct);
 	}
@@ -389,7 +400,7 @@ printentry(struct utmpx *bp, struct idtab *tt)
 		xo_emit("  ({:session-length/%8ld})\n", (long)delta);
 	} else {
 		tm = gmtime(&delta);
-		(void) strftime(ct, sizeof(ct), width >= 8 ? "%T" : "%R", tm);
+		(void)strftime(ct, sizeof(ct), width >= 8 ? "%T" : "%R", tm);
 		if (delta < 86400)
 			xo_emit("  ({:session-length/%s})\n", ct);
 		else
@@ -417,7 +428,7 @@ want(struct utmpx *bp)
 		return (YES);
 
 	for (step = arglist; step; step = step->next)
-		switch(step->type) {
+		switch (step->type) {
 		case REBOOT_TYPE:
 			if (bp->ut_type == BOOT_TIME ||
 			    bp->ut_type == SHUTDOWN_TIME)
@@ -520,65 +531,66 @@ ttyconv(char *arg)
 static time_t
 dateconv(char *arg)
 {
-        time_t timet;
-        struct tm *t;
-        int yearset;
-        char *p;
+	time_t timet;
+	struct tm *t;
+	int yearset;
+	char *p;
 
-        /* Start with the current time. */
-        if (time(&timet) < 0)
-                xo_err(1, "time");
-        if ((t = localtime(&timet)) == NULL)
-                xo_err(1, "localtime");
+	/* Start with the current time. */
+	if (time(&timet) < 0)
+		xo_err(1, "time");
+	if ((t = localtime(&timet)) == NULL)
+		xo_err(1, "localtime");
 
-        /* [[CC]YY]MMDDhhmm[.SS] */
-        if ((p = strchr(arg, '.')) == NULL)
-                t->tm_sec = 0; 		/* Seconds defaults to 0. */
-        else {
-                if (strlen(p + 1) != 2)
-                        goto terr;
-                *p++ = '\0';
-                t->tm_sec = ATOI2(p);
-        }
+	/* [[CC]YY]MMDDhhmm[.SS] */
+	if ((p = strchr(arg, '.')) == NULL)
+		t->tm_sec = 0; /* Seconds defaults to 0. */
+	else {
+		if (strlen(p + 1) != 2)
+			goto terr;
+		*p++ = '\0';
+		t->tm_sec = ATOI2(p);
+	}
 
-        yearset = 0;
-        switch (strlen(arg)) {
-        case 12:                	/* CCYYMMDDhhmm */
-                t->tm_year = ATOI2(arg);
-                t->tm_year *= 100;
-                yearset = 1;
-                /* FALLTHROUGH */
-        case 10:                	/* YYMMDDhhmm */
-                if (yearset) {
-                        yearset = ATOI2(arg);
-                        t->tm_year += yearset;
-                } else {
-                        yearset = ATOI2(arg);
-                        if (yearset < 69)
-                                t->tm_year = yearset + 2000;
-                        else
-                                t->tm_year = yearset + 1900;
-                }
-                t->tm_year -= 1900;     /* Convert to UNIX time. */
-                /* FALLTHROUGH */
-        case 8:				/* MMDDhhmm */
-                t->tm_mon = ATOI2(arg);
-                --t->tm_mon;    	/* Convert from 01-12 to 00-11 */
-                t->tm_mday = ATOI2(arg);
-                t->tm_hour = ATOI2(arg);
-                t->tm_min = ATOI2(arg);
-                break;
-        case 4:				/* hhmm */
-                t->tm_hour = ATOI2(arg);
-                t->tm_min = ATOI2(arg);
-                break;
-        default:
-                goto terr;
-        }
-        t->tm_isdst = -1;       	/* Figure out DST. */
-        timet = mktime(t);
-        if (timet == -1)
-terr:           xo_errx(1,
-        "out of range or illegal time specification: [[CC]YY]MMDDhhmm[.SS]");
-        return timet;
+	yearset = 0;
+	switch (strlen(arg)) {
+	case 12: /* CCYYMMDDhhmm */
+		t->tm_year = ATOI2(arg);
+		t->tm_year *= 100;
+		yearset = 1;
+		/* FALLTHROUGH */
+	case 10: /* YYMMDDhhmm */
+		if (yearset) {
+			yearset = ATOI2(arg);
+			t->tm_year += yearset;
+		} else {
+			yearset = ATOI2(arg);
+			if (yearset < 69)
+				t->tm_year = yearset + 2000;
+			else
+				t->tm_year = yearset + 1900;
+		}
+		t->tm_year -= 1900; /* Convert to UNIX time. */
+		/* FALLTHROUGH */
+	case 8: /* MMDDhhmm */
+		t->tm_mon = ATOI2(arg);
+		--t->tm_mon; /* Convert from 01-12 to 00-11 */
+		t->tm_mday = ATOI2(arg);
+		t->tm_hour = ATOI2(arg);
+		t->tm_min = ATOI2(arg);
+		break;
+	case 4: /* hhmm */
+		t->tm_hour = ATOI2(arg);
+		t->tm_min = ATOI2(arg);
+		break;
+	default:
+		goto terr;
+	}
+	t->tm_isdst = -1; /* Figure out DST. */
+	timet = mktime(t);
+	if (timet == -1)
+	terr:
+		xo_errx(1,
+		    "out of range or illegal time specification: [[CC]YY]MMDDhhmm[.SS]");
+	return timet;
 }

@@ -26,8 +26,8 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/jail.h>
 #include <sys/uio.h>
 
@@ -37,7 +37,6 @@
 #include <string.h>
 
 #include "jail.h"
-
 
 /*
  * Return the JID corresponding to a jail name.

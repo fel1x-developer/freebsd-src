@@ -47,7 +47,7 @@ MALLOC_DECLARE(M_HWRESET);
 
 struct hwreset_array {
 	hwreset_t *rst_array;
-	int	count;
+	int count;
 };
 
 int

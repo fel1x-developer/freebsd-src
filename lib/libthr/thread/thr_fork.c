@@ -59,19 +59,20 @@
 
 #include <sys/cdefs.h>
 #include <sys/syscall.h>
-#include "namespace.h"
+
 #include <errno.h>
 #include <link.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <pthread.h>
 #include <spinlock.h>
-#include "un-namespace.h"
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "libc_private.h"
+#include "namespace.h"
 #include "rtld_lock.h"
 #include "thr_private.h"
+#include "un-namespace.h"
 
 __weak_reference(_thr_atfork, _pthread_atfork);
 __weak_reference(_thr_atfork, pthread_atfork);
@@ -79,8 +80,7 @@ __weak_reference(_thr_atfork, pthread_atfork);
 bool _thr_after_fork = false;
 
 int
-_thr_atfork(void (*prepare)(void), void (*parent)(void),
-    void (*child)(void))
+_thr_atfork(void (*prepare)(void), void (*parent)(void), void (*child)(void))
 {
 	struct pthread *curthread;
 	struct pthread_atfork *af;
@@ -105,7 +105,7 @@ _thr_atfork(void (*prepare)(void), void (*parent)(void),
 void
 __pthread_cxa_finalize(struct dl_phdr_info *phdr_info)
 {
-	atfork_head    temp_list = TAILQ_HEAD_INITIALIZER(temp_list);
+	atfork_head temp_list = TAILQ_HEAD_INITIALIZER(temp_list);
 	struct pthread *curthread;
 	struct pthread_atfork *af, *af1;
 
@@ -114,7 +114,7 @@ __pthread_cxa_finalize(struct dl_phdr_info *phdr_info)
 	curthread = _get_curthread();
 	THR_CRITICAL_ENTER(curthread);
 	_thr_rwl_wrlock(&_thr_atfork_lock);
-	TAILQ_FOREACH_SAFE(af, &_thr_atfork_list, qe, af1) {
+	TAILQ_FOREACH_SAFE (af, &_thr_atfork_list, qe, af1) {
 		if (__elf_phdr_match_addr(phdr_info, af->prepare) ||
 		    __elf_phdr_match_addr(phdr_info, af->parent) ||
 		    __elf_phdr_match_addr(phdr_info, af->child)) {
@@ -171,7 +171,7 @@ thr_fork_impl(const struct thr_fork_args *a)
 	_thr_rwl_rdlock(&_thr_atfork_lock);
 
 	/* Run down atfork prepare handlers. */
-	TAILQ_FOREACH_REVERSE(af, &_thr_atfork_list, atfork_head, qe) {
+	TAILQ_FOREACH_REVERSE (af, &_thr_atfork_list, atfork_head, qe) {
 		if (af->prepare != NULL)
 			af->prepare();
 	}
@@ -221,7 +221,8 @@ thr_fork_impl(const struct thr_fork_args *a)
 		/* Child process */
 		errsave = errno;
 		curthread->cancel_pending = 0;
-		curthread->flags &= ~(THR_FLAGS_NEED_SUSPEND|THR_FLAGS_DETACHED);
+		curthread->flags &= ~(
+		    THR_FLAGS_NEED_SUSPEND | THR_FLAGS_DETACHED);
 
 		/*
 		 * Thread list will be reinitialized, and later we call
@@ -262,11 +263,11 @@ thr_fork_impl(const struct thr_fork_args *a)
 			_thr_setthreaded(0);
 		}
 
-		/* Ready to continue, unblock signals. */ 
+		/* Ready to continue, unblock signals. */
 		_thr_signal_unblock(curthread);
 
 		/* Run down atfork child handlers. */
-		TAILQ_FOREACH(af, &_thr_atfork_list, qe) {
+		TAILQ_FOREACH (af, &_thr_atfork_list, qe) {
 			if (af->child != NULL)
 				af->child();
 		}
@@ -285,11 +286,11 @@ thr_fork_impl(const struct thr_fork_args *a)
 			_malloc_postfork();
 		}
 
-		/* Ready to continue, unblock signals. */ 
+		/* Ready to continue, unblock signals. */
 		_thr_signal_unblock(curthread);
 
 		/* Run down atfork parent handlers. */
-		TAILQ_FOREACH(af, &_thr_atfork_list, qe) {
+		TAILQ_FOREACH (af, &_thr_atfork_list, qe) {
 			if (af->parent != NULL)
 				af->parent();
 		}

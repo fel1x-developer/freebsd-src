@@ -27,46 +27,48 @@
 #include <sys/param.h>
 #include <sys/exec.h>
 #include <sys/linker.h>
+
 #include <string.h>
-#define	_MACHINE_ELF_WANT_32BIT
+#define _MACHINE_ELF_WANT_32BIT
 #include <i386/include/bootinfo.h>
 #include <i386/include/elf.h>
+
 #include <stand.h>
 
 #include "bootstrap.h"
 #include "libuserboot.h"
 
-static int	elf32_exec(struct preloaded_file *amp);
-static int	elf32_obj_exec(struct preloaded_file *amp);
+static int elf32_exec(struct preloaded_file *amp);
+static int elf32_obj_exec(struct preloaded_file *amp);
 
 struct file_format i386_elf = { elf32_loadfile, elf32_exec };
 struct file_format i386_elf_obj = { elf32_obj_loadfile, elf32_obj_exec };
 
-#define	GUEST_STACK	0x1000		/* Initial stack base */
-#define	GUEST_GDT	0x3000		/* Address of initial GDT */
+#define GUEST_STACK 0x1000 /* Initial stack base */
+#define GUEST_GDT 0x3000   /* Address of initial GDT */
 
 /*
- * There is an ELF kernel and one or more ELF modules loaded.  
- * We wish to start executing the kernel image, so make such 
+ * There is an ELF kernel and one or more ELF modules loaded.
+ * We wish to start executing the kernel image, so make such
  * preparations as are required, and do so.
  */
 static int
 elf32_exec(struct preloaded_file *fp)
 {
-	struct file_metadata	*md;
-	Elf_Ehdr 		*ehdr;
-	vm_offset_t		entry, bootinfop, modulep, kernend;
-	int			boothowto, err, bootdev;
-	uint32_t		stack[1024], *sp;
-
+	struct file_metadata *md;
+	Elf_Ehdr *ehdr;
+	vm_offset_t entry, bootinfop, modulep, kernend;
+	int boothowto, err, bootdev;
+	uint32_t stack[1024], *sp;
 
 	if ((md = file_findmetadata(fp, MODINFOMD_ELFHDR)) == NULL)
-		return(EFTYPE);
+		return (EFTYPE);
 	ehdr = (Elf_Ehdr *)&(md->md_data);
 
-	err = bi_load32(fp->f_args, &boothowto, &bootdev, &bootinfop, &modulep, &kernend);
+	err = bi_load32(fp->f_args, &boothowto, &bootdev, &bootinfop, &modulep,
+	    &kernend);
 	if (err != 0)
-		return(err);
+		return (err);
 	entry = ehdr->e_entry & 0xffffff;
 
 #ifdef DEBUG
@@ -99,7 +101,7 @@ elf32_exec(struct preloaded_file *fp)
 
 	CALLBACK(setgdt, GUEST_GDT, 8 * 4 - 1);
 
-        CALLBACK(exec, entry);
+	CALLBACK(exec, entry);
 
 	panic("exec returned");
 }

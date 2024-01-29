@@ -40,25 +40,28 @@
  * Lock structure with room for debugging information.
  */
 struct _spinlock {
-	long	spare1;
-	long	spare2;
-	void	*thr_extra;
-	int	spare3;
+	long spare1;
+	long spare2;
+	void *thr_extra;
+	int spare3;
 };
 typedef struct _spinlock spinlock_t;
 
-#define	_SPINLOCK_INITIALIZER	{ 0, 0, 0, 0 }
+#define _SPINLOCK_INITIALIZER \
+	{                     \
+		0, 0, 0, 0    \
+	}
 
-#define _SPINUNLOCK(_lck)	_spinunlock(_lck);
-#define	_SPINLOCK(_lck)		_spinlock(_lck)
+#define _SPINUNLOCK(_lck) _spinunlock(_lck);
+#define _SPINLOCK(_lck) _spinlock(_lck)
 
 /*
  * Thread function prototype definitions:
  */
 __BEGIN_DECLS
-long	_atomic_lock(volatile long *);
-void	_spinlock(spinlock_t *);
-void	_spinunlock(spinlock_t *);
+long _atomic_lock(volatile long *);
+void _spinlock(spinlock_t *);
+void _spinunlock(spinlock_t *);
 __END_DECLS
 
 #endif /* _SPINLOCK_H_ */

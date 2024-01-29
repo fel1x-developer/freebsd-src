@@ -27,57 +27,54 @@
  */
 
 #ifndef _LIBPTHREAD_DB_H_
-#define	_LIBPTHREAD_DB_H_
+#define _LIBPTHREAD_DB_H_
 
 #include <sys/ucontext.h>
+
 #include <machine/reg.h>
 
 #include "thread_db_int.h"
 
-enum pt_type {
-	PT_NONE,
-	PT_USER,
-	PT_LWP
-};
+enum pt_type { PT_NONE, PT_USER, PT_LWP };
 
 struct pt_map {
-	enum pt_type	type;
+	enum pt_type type;
 	union {
-		lwpid_t		lwp;
-		psaddr_t	thr;
+		lwpid_t lwp;
+		psaddr_t thr;
 	};
 };
 
 struct td_thragent {
 	TD_THRAGENT_FIELDS;
-	psaddr_t	libkse_debug_addr;
-	psaddr_t	thread_list_addr;
-	psaddr_t	thread_listgen_addr;
-	psaddr_t	thread_activated_addr;
-	psaddr_t	thread_active_threads_addr;
-	psaddr_t	thread_keytable_addr;
-	int		thread_activated;
-	int		thread_off_dtv;
-	int		thread_off_kse_locklevel;
-	int		thread_off_kse;
-	int		thread_off_tlsindex;
-	int		thread_off_attr_flags;
-	int		thread_size_key;
-	int		thread_off_tcb;
-	int		thread_off_linkmap;
-	int		thread_off_tmbx;
-	int		thread_off_thr_locklevel;
-	int		thread_off_next;
-	int		thread_off_state;
-	int		thread_max_keys;
-	int		thread_off_key_allocated;
-	int		thread_off_key_destructor;
-	int		thread_state_zoombie;
-	int		thread_state_running;
-	int		thread_off_sigmask;
-	int		thread_off_sigpend;
-	struct pt_map	*map;
-	unsigned int	map_len;
+	psaddr_t libkse_debug_addr;
+	psaddr_t thread_list_addr;
+	psaddr_t thread_listgen_addr;
+	psaddr_t thread_activated_addr;
+	psaddr_t thread_active_threads_addr;
+	psaddr_t thread_keytable_addr;
+	int thread_activated;
+	int thread_off_dtv;
+	int thread_off_kse_locklevel;
+	int thread_off_kse;
+	int thread_off_tlsindex;
+	int thread_off_attr_flags;
+	int thread_size_key;
+	int thread_off_tcb;
+	int thread_off_linkmap;
+	int thread_off_tmbx;
+	int thread_off_thr_locklevel;
+	int thread_off_next;
+	int thread_off_state;
+	int thread_max_keys;
+	int thread_off_key_allocated;
+	int thread_off_key_destructor;
+	int thread_state_zoombie;
+	int thread_state_running;
+	int thread_off_sigmask;
+	int thread_off_sigpend;
+	struct pt_map *map;
+	unsigned int map_len;
 };
 
 void pt_md_init(void);
@@ -89,6 +86,6 @@ void pt_ucontext_to_fpreg(const ucontext_t *, struct fpreg *);
 void pt_fxsave_to_ucontext(const char *, ucontext_t *);
 void pt_ucontext_to_fxsave(const ucontext_t *, char *);
 #endif
-int  pt_reg_sstep(struct reg *reg, int step);
+int pt_reg_sstep(struct reg *reg, int step);
 
 #endif /* _LIBPTHREAD_DB_H_ */

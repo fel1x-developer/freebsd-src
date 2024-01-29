@@ -32,9 +32,8 @@
 #include <sys/mount.h>
 #include <sys/ucred.h>
 
-#include <errno.h>
-
 #include <atf-c.h>
+#include <errno.h>
 
 static void
 check_mntinfo(struct statfs *mntinfo, int n)
@@ -44,7 +43,8 @@ check_mntinfo(struct statfs *mntinfo, int n)
 	for (i = 0; i < n; i++) {
 		ATF_REQUIRE_MSG(mntinfo[i].f_version == STATFS_VERSION, "%ju",
 		    (uintmax_t)mntinfo[i].f_version);
-		ATF_REQUIRE(mntinfo[i].f_namemax <= sizeof(mntinfo[0].f_mntonname));
+		ATF_REQUIRE(
+		    mntinfo[i].f_namemax <= sizeof(mntinfo[0].f_mntonname));
 	}
 }
 

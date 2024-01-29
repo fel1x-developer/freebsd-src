@@ -47,26 +47,28 @@
 #include <sys/resource.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+
 #include <err.h>
 #include <grp.h>
 #include <limits.h>
 #include <signal.h>
-#include <stdlib.h>
-#include <string.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <time.h>
-#include <unistd.h>
+#include <ufs/ffs/fs.h>
 #include <ufs/ufs/dinode.h>
 #include <ufs/ufs/dir.h>
-#include <ufs/ffs/fs.h>
+#include <unistd.h>
+
 #include "newfs.h"
 
 /*
  * make file system for cylinder-group style file systems
  */
-#define UMASK		0755
-#define POWEROF2(num)	(((num) & ((num) - 1)) == 0)
+#define UMASK 0755
+#define POWEROF2(num) (((num) & ((num)-1)) == 0)
 
 /*
  * The definition of "struct cg" used to contain an extra field at the end
@@ -85,17 +87,16 @@
  */
 #define CGSIZEFUDGE 8
 
-static struct	csum *fscs;
-#define	sblock	disk.d_fs
-#define	acg	disk.d_cg
+static struct csum *fscs;
+#define sblock disk.d_fs
+#define acg disk.d_cg
 
 union dinode {
 	struct ufs1_dinode dp1;
 	struct ufs2_dinode dp2;
 };
 #define DIP(dp, field) \
-	((sblock.fs_magic == FS_UFS1_MAGIC) ? \
-	(dp)->dp1.field : (dp)->dp2.field)
+	((sblock.fs_magic == FS_UFS1_MAGIC) ? (dp)->dp1.field : (dp)->dp2.field)
 
 static caddr_t iobuf;
 static long iobufsize;
@@ -122,8 +123,8 @@ mkfs(struct partition *pp, char *fsys)
 	quad_t sizepb;
 	int width;
 	ino_t maxinum;
-	int minfragsperinode;	/* minimum ratio of frags to inodes */
-	char tmpbuf[100];	/* XXX this will break in about 2,500 years */
+	int minfragsperinode; /* minimum ratio of frags to inodes */
+	char tmpbuf[100];     /* XXX this will break in about 2,500 years */
 	struct fsrecovery *fsr;
 	char *fsrbuf;
 	union {
@@ -177,10 +178,12 @@ mkfs(struct partition *pp, char *fsys)
 	sblock.fs_avgfpdir = avgfilesperdir;
 	if (sblock.fs_avgfilesize <= 0)
 		printf("illegal expected average file size %d\n",
-		    sblock.fs_avgfilesize), exit(14);
+		    sblock.fs_avgfilesize),
+		    exit(14);
 	if (sblock.fs_avgfpdir <= 0)
 		printf("illegal expected number of files per directory %d\n",
-		    sblock.fs_avgfpdir), exit(15);
+		    sblock.fs_avgfpdir),
+		    exit(15);
 
 restart:
 	/*
@@ -225,7 +228,7 @@ restart:
 	}
 	if (sblock.fs_fsize * MAXFRAG < sblock.fs_bsize) {
 		printf(
-		"increasing fragment size from %d to block size / %d (%d)\n",
+		    "increasing fragment size from %d to block size / %d (%d)\n",
 		    sblock.fs_fsize, MAXFRAG, sblock.fs_bsize / MAXFRAG);
 		sblock.fs_fsize = sblock.fs_bsize / MAXFRAG;
 	}
@@ -254,7 +257,8 @@ restart:
 		printf("Maxcontig raised to %d\n", sblock.fs_maxbsize);
 	}
 	if (sblock.fs_maxcontig > 1)
-		sblock.fs_contigsumsize = MIN(sblock.fs_maxcontig,FS_MAXCONTIG);
+		sblock.fs_contigsumsize = MIN(sblock.fs_maxcontig,
+		    FS_MAXCONTIG);
 	sblock.fs_bmask = ~(sblock.fs_bsize - 1);
 	sblock.fs_fmask = ~(sblock.fs_fsize - 1);
 	sblock.fs_qbmask = ~sblock.fs_bmask;
@@ -306,9 +310,9 @@ restart:
 		sblock.fs_maxsymlinklen = ((UFS_NDADDR + UFS_NIADDR) *
 		    sizeof(ufs2_daddr_t));
 	}
-	sblock.fs_sblkno =
-	    roundup(howmany(sblock.fs_sblockloc + SBLOCKSIZE, sblock.fs_fsize),
-		sblock.fs_frag);
+	sblock.fs_sblkno = roundup(howmany(sblock.fs_sblockloc + SBLOCKSIZE,
+				       sblock.fs_fsize),
+	    sblock.fs_frag);
 	sblock.fs_cblkno = sblock.fs_sblkno +
 	    roundup(howmany(SBLOCKSIZE, sblock.fs_fsize), sblock.fs_frag);
 	sblock.fs_iblkno = sblock.fs_cblkno + sblock.fs_frag;
@@ -359,7 +363,7 @@ retry:
 			bsize <<= 1;
 			fsize <<= 1;
 			printf("Block size too small for a file system %s %d\n",
-			     "of this size. Increasing blocksize to", bsize);
+			    "of this size. Increasing blocksize to", bsize);
 			goto restart;
 		}
 		minfpg = fragsperinode * INOPB(&sblock);
@@ -367,19 +371,21 @@ retry:
 			minfpg = sblock.fs_size;
 		sblock.fs_ipg = INOPB(&sblock);
 		sblock.fs_fpg = roundup(sblock.fs_iblkno +
-		    sblock.fs_ipg / INOPF(&sblock), sblock.fs_frag);
+			sblock.fs_ipg / INOPF(&sblock),
+		    sblock.fs_frag);
 		if (sblock.fs_fpg < minfpg)
 			sblock.fs_fpg = minfpg;
 		sblock.fs_ipg = roundup(howmany(sblock.fs_fpg, fragsperinode),
 		    INOPB(&sblock));
 		sblock.fs_fpg = roundup(sblock.fs_iblkno +
-		    sblock.fs_ipg / INOPF(&sblock), sblock.fs_frag);
+			sblock.fs_ipg / INOPF(&sblock),
+		    sblock.fs_frag);
 		if (sblock.fs_fpg < minfpg)
 			sblock.fs_fpg = minfpg;
 		sblock.fs_ipg = roundup(howmany(sblock.fs_fpg, fragsperinode),
 		    INOPB(&sblock));
-		if (CGSIZE(&sblock) < (unsigned long)sblock.fs_bsize -
-		    CGSIZEFUDGE)
+		if (CGSIZE(&sblock) <
+		    (unsigned long)sblock.fs_bsize - CGSIZEFUDGE)
 			break;
 		density -= sblock.fs_fsize;
 	}
@@ -392,17 +398,17 @@ retry:
 	 * For UFS1 inodes per cylinder group are stored in an int16_t
 	 * so fs_ipg is limited to 2^15 - 1.
 	 */
-	for ( ; sblock.fs_fpg < maxblkspercg; sblock.fs_fpg += sblock.fs_frag) {
+	for (; sblock.fs_fpg < maxblkspercg; sblock.fs_fpg += sblock.fs_frag) {
 		sblock.fs_ipg = roundup(howmany(sblock.fs_fpg, fragsperinode),
 		    INOPB(&sblock));
 		if (Oflag > 1 || (Oflag == 1 && sblock.fs_ipg <= 0x7fff)) {
 			if (sblock.fs_size / sblock.fs_fpg < MINCYLGRPS)
 				break;
-			if (CGSIZE(&sblock) < (unsigned long)sblock.fs_bsize -
-			    CGSIZEFUDGE)
+			if (CGSIZE(&sblock) <
+			    (unsigned long)sblock.fs_bsize - CGSIZEFUDGE)
 				continue;
-			if (CGSIZE(&sblock) == (unsigned long)sblock.fs_bsize -
-			    CGSIZEFUDGE)
+			if (CGSIZE(&sblock) ==
+			    (unsigned long)sblock.fs_bsize - CGSIZEFUDGE)
 				break;
 		}
 		sblock.fs_fpg -= sblock.fs_frag;
@@ -420,7 +426,8 @@ retry:
 	for (;;) {
 		sblock.fs_ncg = howmany(sblock.fs_size, sblock.fs_fpg);
 		lastminfpg = roundup(sblock.fs_iblkno +
-		    sblock.fs_ipg / INOPF(&sblock), sblock.fs_frag);
+			sblock.fs_ipg / INOPF(&sblock),
+		    sblock.fs_frag);
 		if (sblock.fs_size < lastminfpg) {
 			printf("Filesystem size %jd < minimum size of %d\n",
 			    (intmax_t)sblock.fs_size, lastminfpg);
@@ -435,7 +442,7 @@ retry:
 	}
 	if (optimalfpg != sblock.fs_fpg)
 		printf("Reduced frags per cylinder group from %d to %d %s\n",
-		   optimalfpg, sblock.fs_fpg, "to enlarge last cyl group");
+		    optimalfpg, sblock.fs_fpg, "to enlarge last cyl group");
 	sblock.fs_cgsize = fragroundup(&sblock, CGSIZE(&sblock));
 	sblock.fs_dblkno = sblock.fs_iblkno + sblock.fs_ipg / INOPF(&sblock);
 	if (Oflag == 1) {
@@ -448,8 +455,8 @@ retry:
 	 * fill in remaining fields of the super block
 	 */
 	sblock.fs_csaddr = cgdmin(&sblock, 0);
-	sblock.fs_cssize =
-	    fragroundup(&sblock, sblock.fs_ncg * sizeof(struct csum));
+	sblock.fs_cssize = fragroundup(&sblock,
+	    sblock.fs_ncg * sizeof(struct csum));
 	fscs = (struct csum *)calloc(1, sblock.fs_cssize);
 	if (fscs == NULL)
 		errx(31, "calloc failed");
@@ -483,15 +490,14 @@ retry:
 	csfrags = howmany(sblock.fs_cssize, sblock.fs_fsize);
 	sblock.fs_dsize = sblock.fs_size - sblock.fs_sblkno -
 	    sblock.fs_ncg * (sblock.fs_dblkno - sblock.fs_sblkno);
-	sblock.fs_cstotal.cs_nbfree =
-	    fragstoblks(&sblock, sblock.fs_dsize) -
+	sblock.fs_cstotal.cs_nbfree = fragstoblks(&sblock, sblock.fs_dsize) -
 	    howmany(csfrags, sblock.fs_frag);
-	sblock.fs_cstotal.cs_nffree =
-	    fragnum(&sblock, sblock.fs_size) +
+	sblock.fs_cstotal.cs_nffree = fragnum(&sblock, sblock.fs_size) +
 	    (fragnum(&sblock, csfrags) > 0 ?
-	     sblock.fs_frag - fragnum(&sblock, csfrags) : 0);
-	sblock.fs_cstotal.cs_nifree =
-	    sblock.fs_ncg * sblock.fs_ipg - UFS_ROOTINO;
+		    sblock.fs_frag - fragnum(&sblock, csfrags) :
+		    0);
+	sblock.fs_cstotal.cs_nifree = sblock.fs_ncg * sblock.fs_ipg -
+	    UFS_ROOTINO;
 	sblock.fs_cstotal.cs_ndir = 0;
 	sblock.fs_dsize -= csfrags;
 	sblock.fs_time = utime;
@@ -523,7 +529,7 @@ retry:
 	/*
 	 * Dump out summary information about file system.
 	 */
-#	define B2MBFACTOR (1 / (1024.0 * 1024.0))
+#define B2MBFACTOR (1 / (1024.0 * 1024.0))
 	printf("%s: %.1fMB (%jd sectors) block size %d, fragment size %d\n",
 	    fsys, (float)sblock.fs_size * sblock.fs_fsize * B2MBFACTOR,
 	    (intmax_t)fsbtodb(&sblock, sblock.fs_size), sblock.fs_bsize,
@@ -533,10 +539,10 @@ retry:
 	    sblock.fs_fpg / sblock.fs_frag, sblock.fs_ipg);
 	if (sblock.fs_flags & FS_DOSOFTDEP)
 		printf("\twith soft updates\n");
-#	undef B2MBFACTOR
+#undef B2MBFACTOR
 
 	if (Eflag && !Nflag) {
-		printf("Erasing sectors [%jd...%jd]\n", 
+		printf("Erasing sectors [%jd...%jd]\n",
 		    sblock.fs_sblockloc / disk.d_bsize,
 		    fsbtodb(&sblock, sblock.fs_size) - 1);
 		berase(&disk, sblock.fs_sblockloc / disk.d_bsize,
@@ -560,8 +566,11 @@ retry:
 				if (fsbtodb(&fsdummy, cgsblock(&fsdummy, cg)) >
 				    fssize)
 					break;
-				bwrite(&disk, part_ofs + fsbtodb(&fsdummy,
-				  cgsblock(&fsdummy, cg)), chdummy, SBLOCKSIZE);
+				bwrite(&disk,
+				    part_ofs +
+					fsbtodb(&fsdummy,
+					    cgsblock(&fsdummy, cg)),
+				    chdummy, SBLOCKSIZE);
 			}
 		}
 	}
@@ -603,7 +612,7 @@ retry:
 			initcg(cg, utime);
 		j = snprintf(tmpbuf, sizeof(tmpbuf), " %jd%s",
 		    (intmax_t)fsbtodb(&sblock, cgsblock(&sblock, cg)),
-		    cg < (sblock.fs_ncg-1) ? "," : "");
+		    cg < (sblock.fs_ncg - 1) ? "," : "");
 		if (j < 0)
 			tmpbuf[j = 0] = '\0';
 		if (i + j >= width) {
@@ -643,8 +652,8 @@ retry:
 	 * all of its statistcs on usage are correct.
 	 */
 	if (Oflag == 1 && sblock.fs_bsize == 65536)
-		wtfs(fsbtodb(&sblock, cgsblock(&sblock, 0)),
-		    sblock.fs_bsize, (char *)&sblock);
+		wtfs(fsbtodb(&sblock, cgsblock(&sblock, 0)), sblock.fs_bsize,
+		    (char *)&sblock);
 	/*
 	 * Read the last sector of the boot block, replace the last
 	 * 20 bytes with the recovery information, then write it back.
@@ -652,9 +661,10 @@ retry:
 	 * For UFS1, zero out the area to ensure that an old UFS2
 	 * recovery block is not accidentally found.
 	 */
-	if ((fsrbuf = malloc(realsectorsize)) == NULL || bread(&disk,
-	    part_ofs + (SBLOCK_UFS2 - realsectorsize) / disk.d_bsize,
-	    fsrbuf, realsectorsize) == -1)
+	if ((fsrbuf = malloc(realsectorsize)) == NULL ||
+	    bread(&disk,
+		part_ofs + (SBLOCK_UFS2 - realsectorsize) / disk.d_bsize,
+		fsrbuf, realsectorsize) == -1)
 		err(1, "can't read recovery area: %s", disk.d_error);
 	fsr = (struct fsrecovery *)&fsrbuf[realsectorsize - sizeof *fsr];
 	if (sblock.fs_magic != FS_UFS2_MAGIC) {
@@ -666,8 +676,8 @@ retry:
 		fsr->fsr_sblkno = sblock.fs_sblkno;
 		fsr->fsr_ncg = sblock.fs_ncg;
 	}
-	wtfs((SBLOCK_UFS2 - realsectorsize) / disk.d_bsize,
-	    realsectorsize, fsrbuf);
+	wtfs((SBLOCK_UFS2 - realsectorsize) / disk.d_bsize, realsectorsize,
+	    fsrbuf);
 	free(fsrbuf);
 	/*
 	 * Update information about this partition in pack
@@ -689,7 +699,7 @@ retry:
 		printf("old_cpg %d, size_cg %zu, CGSIZE %zu\n",
 		    sblock.fs_old_cpg, sizeof(struct cg), CGSIZE(&sblock));
 		printf("Please file a FreeBSD bug report and include this "
-		    "output\n");
+		       "output\n");
 		maxblkspercg = fragstoblks(&sblock, sblock.fs_fpg) - 1;
 		density = 0;
 		goto retry;
@@ -752,8 +762,8 @@ initcg(int cylno, time_t utime)
 	acg.cg_freeoff = acg.cg_iusedoff + howmany(sblock.fs_ipg, CHAR_BIT);
 	acg.cg_nextfreeoff = acg.cg_freeoff + howmany(sblock.fs_fpg, CHAR_BIT);
 	if (sblock.fs_contigsumsize > 0) {
-		acg.cg_clustersumoff =
-		    roundup(acg.cg_nextfreeoff, sizeof(u_int32_t));
+		acg.cg_clustersumoff = roundup(acg.cg_nextfreeoff,
+		    sizeof(u_int32_t));
 		acg.cg_clustersumoff -= sizeof(u_int32_t);
 		acg.cg_clusteroff = acg.cg_clustersumoff +
 		    (sblock.fs_contigsumsize + 1) * sizeof(u_int32_t);
@@ -841,8 +851,8 @@ initcg(int cylno, time_t utime)
 	 * group map and two blocks worth of inodes in a single write.
 	 */
 	savedactualloc = sblock.fs_sblockactualloc;
-	sblock.fs_sblockactualloc =
-	    dbtob(fsbtodb(&sblock, cgsblock(&sblock, cylno)));
+	sblock.fs_sblockactualloc = dbtob(
+	    fsbtodb(&sblock, cgsblock(&sblock, cylno)));
 	if (sbwrite(&disk, 0) != 0)
 		err(1, "sbwrite: %s", disk.d_error);
 	sblock.fs_sblockactualloc = savedactualloc;
@@ -865,8 +875,7 @@ initcg(int cylno, time_t utime)
 	 * For the old file system, we have to initialize all the inodes.
 	 */
 	if (Oflag == 1) {
-		for (i = 2 * sblock.fs_frag;
-		     i < sblock.fs_ipg / INOPF(&sblock);
+		for (i = 2 * sblock.fs_frag; i < sblock.fs_ipg / INOPF(&sblock);
 		     i += sblock.fs_frag) {
 			dp1 = (struct ufs1_dinode *)(&iobuf[start]);
 			for (j = 0; j < INOPB(&sblock); j++) {
@@ -912,7 +921,7 @@ fsinit(time_t utime)
 		warnx("Cannot retrieve operator gid, using gid 0.");
 		gid = 0;
 	}
-	entries = (nflag) ? ROOTLINKCNT - 1: ROOTLINKCNT;
+	entries = (nflag) ? ROOTLINKCNT - 1 : ROOTLINKCNT;
 	if (sblock.fs_magic == FS_UFS1_MAGIC) {
 		/*
 		 * initialize the node
@@ -927,8 +936,8 @@ fsinit(time_t utime)
 		node.dp1.di_nlink = entries;
 		node.dp1.di_size = makedir(root_dir, entries);
 		node.dp1.di_db[0] = alloc(sblock.fs_fsize, node.dp1.di_mode);
-		node.dp1.di_blocks =
-		    btodb(fragroundup(&sblock, node.dp1.di_size));
+		node.dp1.di_blocks = btodb(
+		    fragroundup(&sblock, node.dp1.di_size));
 		wtfs(fsbtodb(&sblock, node.dp1.di_db[0]), sblock.fs_fsize,
 		    iobuf);
 		iput(&node, UFS_ROOTINO);
@@ -940,10 +949,10 @@ fsinit(time_t utime)
 			node.dp1.di_gid = gid;
 			node.dp1.di_nlink = SNAPLINKCNT;
 			node.dp1.di_size = makedir(snap_dir, SNAPLINKCNT);
-				node.dp1.di_db[0] =
-				    alloc(sblock.fs_fsize, node.dp1.di_mode);
-			node.dp1.di_blocks =
-			    btodb(fragroundup(&sblock, node.dp1.di_size));
+			node.dp1.di_db[0] = alloc(sblock.fs_fsize,
+			    node.dp1.di_mode);
+			node.dp1.di_blocks = btodb(
+			    fragroundup(&sblock, node.dp1.di_size));
 			node.dp1.di_dirdepth = 1;
 			wtfs(fsbtodb(&sblock, node.dp1.di_db[0]),
 			    sblock.fs_fsize, iobuf);
@@ -964,8 +973,8 @@ fsinit(time_t utime)
 		node.dp2.di_nlink = entries;
 		node.dp2.di_size = makedir(root_dir, entries);
 		node.dp2.di_db[0] = alloc(sblock.fs_fsize, node.dp2.di_mode);
-		node.dp2.di_blocks =
-		    btodb(fragroundup(&sblock, node.dp2.di_size));
+		node.dp2.di_blocks = btodb(
+		    fragroundup(&sblock, node.dp2.di_size));
 		wtfs(fsbtodb(&sblock, node.dp2.di_db[0]), sblock.fs_fsize,
 		    iobuf);
 		iput(&node, UFS_ROOTINO);
@@ -977,12 +986,12 @@ fsinit(time_t utime)
 			node.dp2.di_gid = gid;
 			node.dp2.di_nlink = SNAPLINKCNT;
 			node.dp2.di_size = makedir(snap_dir, SNAPLINKCNT);
-				node.dp2.di_db[0] =
-				    alloc(sblock.fs_fsize, node.dp2.di_mode);
-			node.dp2.di_blocks =
-			    btodb(fragroundup(&sblock, node.dp2.di_size));
+			node.dp2.di_db[0] = alloc(sblock.fs_fsize,
+			    node.dp2.di_mode);
+			node.dp2.di_blocks = btodb(
+			    fragroundup(&sblock, node.dp2.di_size));
 			node.dp2.di_dirdepth = 1;
-			wtfs(fsbtodb(&sblock, node.dp2.di_db[0]), 
+			wtfs(fsbtodb(&sblock, node.dp2.di_db[0]),
 			    sblock.fs_fsize, iobuf);
 			iput(&node, UFS_ROOTINO + 1);
 		}
@@ -1021,8 +1030,8 @@ alloc(int size, int mode)
 	int i, blkno, frag;
 	uint d;
 
-	bread(&disk, part_ofs + fsbtodb(&sblock, cgtod(&sblock, 0)), (char *)&acg,
-	    sblock.fs_cgsize);
+	bread(&disk, part_ofs + fsbtodb(&sblock, cgtod(&sblock, 0)),
+	    (char *)&acg, sblock.fs_cgsize);
 	if (acg.cg_magic != CG_MAGIC) {
 		printf("cg 0: bad magic number\n");
 		exit(38);
@@ -1071,8 +1080,8 @@ iput(union dinode *ip, ino_t ino)
 {
 	union dinodep dp;
 
-	bread(&disk, part_ofs + fsbtodb(&sblock, cgtod(&sblock, 0)), (char *)&acg,
-	    sblock.fs_cgsize);
+	bread(&disk, part_ofs + fsbtodb(&sblock, cgtod(&sblock, 0)),
+	    (char *)&acg, sblock.fs_cgsize);
 	if (acg.cg_magic != CG_MAGIC) {
 		printf("cg 0: bad magic number\n");
 		exit(31);
@@ -1200,7 +1209,7 @@ charsperline(void)
 	if (columns == 0 && (cp = getenv("COLUMNS")))
 		columns = atoi(cp);
 	if (columns == 0)
-		columns = 80;	/* last resort */
+		columns = 80; /* last resort */
 	return (columns);
 }
 

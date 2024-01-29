@@ -28,11 +28,11 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_LINUXKPI_LINUX_PM_H
-#define	_LINUXKPI_LINUX_PM_H
+#ifndef _LINUXKPI_LINUX_PM_H
+#define _LINUXKPI_LINUX_PM_H
 
-#include <linux/kernel.h>	/* pr_debug */
 #include <asm/atomic.h>
+#include <linux/kernel.h> /* pr_debug */
 
 /* Needed but breaks linux_usb.c */
 /* #include <linux/completion.h> */
@@ -44,46 +44,42 @@ typedef struct pm_message {
 	int event;
 } pm_message_t;
 
-struct dev_pm_domain {
-};
+struct dev_pm_domain { };
 
 struct dev_pm_info {
 	atomic_t usage_count;
 };
 
-#define	PM_EVENT_FREEZE		0x0001
-#define	PM_EVENT_SUSPEND	0x0002
+#define PM_EVENT_FREEZE 0x0001
+#define PM_EVENT_SUSPEND 0x0002
 
-#define	pm_sleep_ptr(_p)					\
-    IS_ENABLED(CONFIG_PM_SLEEP) ? (_p) : NULL
+#define pm_sleep_ptr(_p) IS_ENABLED(CONFIG_PM_SLEEP) ? (_p) : NULL
 
 #ifdef CONFIG_PM_SLEEP
-#define	SIMPLE_DEV_PM_OPS(_name, _suspendfunc, _resumefunc)	\
-const struct dev_pm_ops _name = {				\
-	.suspend	= _suspendfunc,		\
-	.resume		= _resumefunc,		\
-	.freeze		= _suspendfunc,		\
-	.thaw		= _resumefunc,		\
-	.poweroff	= _suspendfunc,		\
-	.restore	= _resumefunc,		\
-}
+#define SIMPLE_DEV_PM_OPS(_name, _suspendfunc, _resumefunc) \
+	const struct dev_pm_ops _name = {                   \
+		.suspend = _suspendfunc,                    \
+		.resume = _resumefunc,                      \
+		.freeze = _suspendfunc,                     \
+		.thaw = _resumefunc,                        \
+		.poweroff = _suspendfunc,                   \
+		.restore = _resumefunc,                     \
+	}
 
-#define	DEFINE_SIMPLE_DEV_PM_OPS(_name, _suspendfunc, _resumefunc) \
-const struct dev_pm_ops _name = {				\
-	.suspend	= _suspendfunc,		\
-	.resume		= _resumefunc,		\
-	.freeze		= _suspendfunc,		\
-	.thaw		= _resumefunc,		\
-	.poweroff	= _suspendfunc,		\
-	.restore	= _resumefunc,		\
-}
+#define DEFINE_SIMPLE_DEV_PM_OPS(_name, _suspendfunc, _resumefunc) \
+	const struct dev_pm_ops _name = {                          \
+		.suspend = _suspendfunc,                           \
+		.resume = _resumefunc,                             \
+		.freeze = _suspendfunc,                            \
+		.thaw = _resumefunc,                               \
+		.poweroff = _suspendfunc,                          \
+		.restore = _resumefunc,                            \
+	}
 #else
-#define	SIMPLE_DEV_PM_OPS(_name, _suspendfunc, _resumefunc)	\
-const struct dev_pm_ops _name = {				\
-}
-#define	DEFINE_SIMPLE_DEV_PM_OPS(_name, _suspendfunc, _resumefunc) \
-const struct dev_pm_ops _name = {				\
-}
+#define SIMPLE_DEV_PM_OPS(_name, _suspendfunc, _resumefunc) \
+	const struct dev_pm_ops _name = {}
+#define DEFINE_SIMPLE_DEV_PM_OPS(_name, _suspendfunc, _resumefunc) \
+	const struct dev_pm_ops _name = {}
 #endif
 
 static inline void
@@ -93,4 +89,4 @@ pm_wakeup_event(struct device *dev __unused, unsigned int x __unused)
 	pr_debug("%s: TODO\n", __func__);
 }
 
-#endif	/* _LINUXKPI_LINUX_PM_H */
+#endif /* _LINUXKPI_LINUX_PM_H */

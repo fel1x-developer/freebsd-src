@@ -36,23 +36,22 @@
 #include <sys/mutex.h>
 #include <sys/proc.h>
 
-#include <geom/geom.h>
-
 #include <dev/ofw/openfirm.h>
 
-#define	OFWD_BLOCKSIZE	512
+#include <geom/geom.h>
 
-struct ofwd_softc
-{
+#define OFWD_BLOCKSIZE 512
+
+struct ofwd_softc {
 	struct bio_queue_head ofwd_bio_queue;
-	struct mtx	ofwd_queue_mtx;
-	ihandle_t	ofwd_instance;
-	off_t		ofwd_mediasize;
-	unsigned	ofwd_sectorsize;
-	unsigned	ofwd_fwheads;
-	unsigned	ofwd_fwsectors;
-	struct proc	*ofwd_procp;
-	struct g_geom	*ofwd_gp;
+	struct mtx ofwd_queue_mtx;
+	ihandle_t ofwd_instance;
+	off_t ofwd_mediasize;
+	unsigned ofwd_sectorsize;
+	unsigned ofwd_fwheads;
+	unsigned ofwd_fwsectors;
+	struct proc *ofwd_procp;
+	struct g_geom *ofwd_gp;
 	struct g_provider *ofwd_pp;
 } ofwd_softc;
 
@@ -83,11 +82,11 @@ ofwd_startio(struct ofwd_softc *sc, struct bio *bp)
 	switch (bp->bio_cmd) {
 	case BIO_READ:
 		r = OF_read(sc->ofwd_instance, (void *)bp->bio_data,
-		   bp->bio_length);
+		    bp->bio_length);
 		break;
 	case BIO_WRITE:
 		r = OF_write(sc->ofwd_instance, (void *)bp->bio_data,
-		   bp->bio_length);
+		    bp->bio_length);
 		break;
 	}
 	if (r != bp->bio_length)
@@ -166,8 +165,7 @@ g_ofwd_init(struct g_class *mp __unused)
 	sc->ofwd_sectorsize = OFWD_BLOCKSIZE;
 	sc->ofwd_fwsectors = 0;
 	sc->ofwd_fwheads = 0;
-	error = kproc_create(ofwd_kthread, sc, &sc->ofwd_procp, 0, 0,
-	    "ofwd0");
+	error = kproc_create(ofwd_kthread, sc, &sc->ofwd_procp, 0, 0, "ofwd0");
 	if (error != 0) {
 		free(sc, M_DEVBUF);
 		return;

@@ -25,11 +25,11 @@
  */
 
 #ifndef _LINUXKPI_ASM_MSR_H_
-#define	_LINUXKPI_ASM_MSR_H_
+#define _LINUXKPI_ASM_MSR_H_
 
 #include <machine/cpufunc.h>
 
-#define	rdmsrl(msr, val)	((val) = rdmsr(msr))
-#define	rdmsrl_safe(msr, val)	rdmsr_safe(msr, val)
+#define rdmsrl(msr, val) ((val) = rdmsr(msr))
+#define rdmsrl_safe(msr, val) rdmsr_safe(msr, val)
 
 #endif /* _LINUXKPI_ASM_MSR_H_ */

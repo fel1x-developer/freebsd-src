@@ -30,8 +30,8 @@
 
 extern "C" {
 #include <sys/param.h>
-#include <sys/ioctl.h>
 #include <sys/filio.h>
+#include <sys/ioctl.h>
 
 #include <fcntl.h>
 }
@@ -44,36 +44,42 @@ using namespace testing;
 const static char FULLPATH[] = "mountpoint/foo";
 const static char RELPATH[] = "foo";
 
-class Bmap: public FuseTest {
-public:
-virtual void SetUp() {
-	m_maxreadahead = UINT32_MAX;
-	FuseTest::SetUp();
-}
-void expect_bmap(uint64_t ino, uint64_t lbn, uint32_t blocksize, uint64_t pbn)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_BMAP &&
-				in.header.nodeid == ino &&
-				in.body.bmap.block == lbn &&
-				in.body.bmap.blocksize == blocksize);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto i __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, bmap);
-		out.body.bmap.block = pbn;
-	})));
-}
-	
-void expect_lookup(const char *relpath, uint64_t ino, off_t size)
-{
-	FuseTest::expect_lookup(relpath, ino, S_IFREG | 0644, size, 1,
-		UINT64_MAX);
-}
+class Bmap : public FuseTest {
+    public:
+	virtual void SetUp()
+	{
+		m_maxreadahead = UINT32_MAX;
+		FuseTest::SetUp();
+	}
+	void expect_bmap(uint64_t ino, uint64_t lbn, uint32_t blocksize,
+	    uint64_t pbn)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					return (in.header.opcode == FUSE_BMAP &&
+					    in.header.nodeid == ino &&
+					    in.body.bmap.block == lbn &&
+					    in.body.bmap.blocksize ==
+						blocksize);
+				},
+				Eq(true)),
+			_))
+		    .WillOnce(
+			Invoke(ReturnImmediate([=](auto i __unused, auto &out) {
+				SET_OUT_HEADER_LEN(out, bmap);
+				out.body.bmap.block = pbn;
+			})));
+	}
+
+	void expect_lookup(const char *relpath, uint64_t ino, off_t size)
+	{
+		FuseTest::expect_lookup(relpath, ino, S_IFREG | 0644, size, 1,
+		    UINT64_MAX);
+	}
 };
 
-class BmapEof: public Bmap, public WithParamInterface<int> {};
+class BmapEof : public Bmap, public WithParamInterface<int> { };
 
 /*
  * Test FUSE_BMAP
@@ -111,7 +117,7 @@ TEST_F(Bmap, bmap)
 	leak(fd);
 }
 
-/* 
+/*
  * If the daemon does not implement VOP_BMAP, fusefs should return sensible
  * defaults.
  */
@@ -125,12 +131,14 @@ TEST_F(Bmap, default_)
 
 	expect_lookup(RELPATH, 42, filesize);
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_BMAP);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(ENOSYS)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_BMAP);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnErrno(ENOSYS)));
 
 	fd = open(FULLPATH, O_RDWR);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -197,51 +205,59 @@ TEST_P(BmapEof, eof)
 	expect_open(ino, 0, 1);
 	// Depending on ngetattrs, FUSE_READ could be called with either
 	// filesize or filesize / 2 .
-	EXPECT_CALL(*m_mock, process(
-	ResultOf([=](auto in) {
-		return (in.header.opcode == FUSE_READ &&
-			in.header.nodeid == ino &&
-			in.body.read.offset == 0 &&
-			( in.body.read.size == filesize ||
-			  in.body.read.size == filesize / 2));
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in, auto& out) {
-		size_t osize = in.body.read.size;
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_READ &&
+				    in.header.nodeid == ino &&
+				    in.body.read.offset == 0 &&
+				    (in.body.read.size == filesize ||
+					in.body.read.size == filesize / 2));
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in, auto &out) {
+		    size_t osize = in.body.read.size;
 
-		assert(osize < sizeof(out.body.bytes));
-		out.header.len = sizeof(struct fuse_out_header) + osize;
-		bzero(out.body.bytes, osize);
-	})));
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([](auto in) {
-			return (in.header.opcode == FUSE_GETATTR &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).Times(Between(ngetattrs - 1, ngetattrs))
-	.InSequence(seq)
-	.WillRepeatedly(Invoke(ReturnImmediate([=](auto i __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr_valid = 0;
-		out.body.attr.attr.ino = ino;
-		out.body.attr.attr.mode = S_IFREG | 0644;
-		out.body.attr.attr.size = filesize;
-	})));
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([](auto in) {
-			return (in.header.opcode == FUSE_GETATTR &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).InSequence(seq)
-	.WillRepeatedly(Invoke(ReturnImmediate([=](auto i __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr_valid = 0;
-		out.body.attr.attr.ino = ino;
-		out.body.attr.attr.mode = S_IFREG | 0644;
-		out.body.attr.attr.size = filesize / 2;
-	})));
+		    assert(osize < sizeof(out.body.bytes));
+		    out.header.len = sizeof(struct fuse_out_header) + osize;
+		    bzero(out.body.bytes, osize);
+	    })));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[](auto in) {
+				return (in.header.opcode == FUSE_GETATTR &&
+				    in.header.nodeid == ino);
+			},
+			Eq(true)),
+		_))
+	    .Times(Between(ngetattrs - 1, ngetattrs))
+	    .InSequence(seq)
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto i __unused, auto &out) {
+			SET_OUT_HEADER_LEN(out, attr);
+			out.body.attr.attr_valid = 0;
+			out.body.attr.attr.ino = ino;
+			out.body.attr.attr.mode = S_IFREG | 0644;
+			out.body.attr.attr.size = filesize;
+		})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[](auto in) {
+				return (in.header.opcode == FUSE_GETATTR &&
+				    in.header.nodeid == ino);
+			},
+			Eq(true)),
+		_))
+	    .InSequence(seq)
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto i __unused, auto &out) {
+			SET_OUT_HEADER_LEN(out, attr);
+			out.body.attr.attr_valid = 0;
+			out.body.attr.attr.ino = ino;
+			out.body.attr.attr.mode = S_IFREG | 0644;
+			out.body.attr.attr.size = filesize / 2;
+		})));
 
 	buf = new char[filesize]();
 	fd = open(FULLPATH, O_RDWR);
@@ -252,6 +268,4 @@ TEST_P(BmapEof, eof)
 	leak(fd);
 }
 
-INSTANTIATE_TEST_SUITE_P(BE, BmapEof,
-	Values(1, 2, 3)
-);
+INSTANTIATE_TEST_SUITE_P(BE, BmapEof, Values(1, 2, 3));

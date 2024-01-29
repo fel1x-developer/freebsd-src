@@ -27,16 +27,16 @@
  */
 
 #ifndef _LIBPROCSTAT_INTERNAL_H_
-#define	_LIBPROCSTAT_INTERNAL_H_
+#define _LIBPROCSTAT_INTERNAL_H_
 
 struct procstat {
-	int	type;
-	kvm_t	*kd;
-	void	*vmentries;
-	void	*files;
-	void	*argv;
-	void	*envv;
+	int type;
+	kvm_t *kd;
+	void *vmentries;
+	void *files;
+	void *argv;
+	void *envv;
 	struct procstat_core *core;
 };
 
-#endif	/* !_LIBPROCSTAT_INTERNAL_H_ */
+#endif /* !_LIBPROCSTAT_INTERNAL_H_ */

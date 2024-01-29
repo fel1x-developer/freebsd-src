@@ -30,18 +30,18 @@
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
+#include <sys/fcntl.h>
+#include <sys/filio.h>
 #include <sys/gpio.h>
 #include <sys/ioccom.h>
-#include <sys/filio.h>
-#include <sys/fcntl.h>
-#include <sys/sigio.h>
-#include <sys/signalvar.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
-#include <sys/uio.h>
+#include <sys/module.h>
 #include <sys/poll.h>
 #include <sys/selinfo.h>
-#include <sys/module.h>
+#include <sys/sigio.h>
+#include <sys/signalvar.h>
+#include <sys/uio.h>
 
 #include <dev/gpio/gpiobusvar.h>
 
@@ -58,106 +58,103 @@
 #endif
 
 struct gpioc_softc {
-	device_t		sc_dev;		/* gpiocX dev */
-	device_t		sc_pdev;	/* gpioX dev */
-	struct cdev		*sc_ctl_dev;	/* controller device */
-	int			sc_unit;
-	int			sc_npins;
-	struct gpioc_pin_intr	*sc_pin_intr;
+	device_t sc_dev;	 /* gpiocX dev */
+	device_t sc_pdev;	 /* gpioX dev */
+	struct cdev *sc_ctl_dev; /* controller device */
+	int sc_unit;
+	int sc_npins;
+	struct gpioc_pin_intr *sc_pin_intr;
 };
 
 struct gpioc_pin_intr {
-	struct gpioc_softc				*sc;
-	gpio_pin_t					pin;
-	bool						config_locked;
-	int						intr_rid;
-	struct resource					*intr_res;
-	void						*intr_cookie;
-	struct mtx					mtx;
-	SLIST_HEAD(gpioc_privs_list, gpioc_privs)	privs;
+	struct gpioc_softc *sc;
+	gpio_pin_t pin;
+	bool config_locked;
+	int intr_rid;
+	struct resource *intr_res;
+	void *intr_cookie;
+	struct mtx mtx;
+	SLIST_HEAD(gpioc_privs_list, gpioc_privs) privs;
 };
 
-
 struct gpioc_cdevpriv {
-	struct gpioc_softc			*sc;
-	struct selinfo				selinfo;
-	bool					async;
-	uint8_t					report_option;
-	struct sigio				*sigio;
-	struct mtx				mtx;
-	struct gpioc_pin_event			*events;
-	int					numevents;
-	int					evidx_head;
-	int					evidx_tail;
-	SLIST_HEAD(gpioc_pins_list, gpioc_pins)	pins;
+	struct gpioc_softc *sc;
+	struct selinfo selinfo;
+	bool async;
+	uint8_t report_option;
+	struct sigio *sigio;
+	struct mtx mtx;
+	struct gpioc_pin_event *events;
+	int numevents;
+	int evidx_head;
+	int evidx_tail;
+	SLIST_HEAD(gpioc_pins_list, gpioc_pins) pins;
 };
 
 struct gpioc_privs {
-	struct gpioc_cdevpriv		*priv;
-	SLIST_ENTRY(gpioc_privs)	next;
+	struct gpioc_cdevpriv *priv;
+	SLIST_ENTRY(gpioc_privs) next;
 };
 
 struct gpioc_pins {
-	struct gpioc_pin_intr	*pin;
-	int			eventcount;
-	int			firstevent;
-	SLIST_ENTRY(gpioc_pins)	next;
+	struct gpioc_pin_intr *pin;
+	int eventcount;
+	int firstevent;
+	SLIST_ENTRY(gpioc_pins) next;
 };
 
 struct gpioc_pin_event {
-	struct gpioc_pins	*privpin;
-	sbintime_t		event_time;
-	bool			event_pin_state;
+	struct gpioc_pins *privpin;
+	sbintime_t event_time;
+	bool event_pin_state;
 };
 
 static MALLOC_DEFINE(M_GPIOC, "gpioc", "gpioc device data");
 
-static int	gpioc_allocate_pin_intr(struct gpioc_pin_intr*, uint32_t);
-static int	gpioc_release_pin_intr(struct gpioc_pin_intr*);
-static int	gpioc_attach_priv_pin(struct gpioc_cdevpriv*,
-		    struct gpioc_pin_intr*);
-static int	gpioc_detach_priv_pin(struct gpioc_cdevpriv*,
-		    struct gpioc_pin_intr*);
-static bool	gpioc_intr_reconfig_allowed(struct gpioc_cdevpriv*,
-		    struct gpioc_pin_intr *intr_conf);
-static uint32_t	gpioc_get_intr_config(struct gpioc_softc*,
-		    struct gpioc_cdevpriv*, uint32_t pin);
-static int	gpioc_set_intr_config(struct gpioc_softc*,
-		    struct gpioc_cdevpriv*, uint32_t, uint32_t);
-static void	gpioc_interrupt_handler(void*);
+static int gpioc_allocate_pin_intr(struct gpioc_pin_intr *, uint32_t);
+static int gpioc_release_pin_intr(struct gpioc_pin_intr *);
+static int gpioc_attach_priv_pin(struct gpioc_cdevpriv *,
+    struct gpioc_pin_intr *);
+static int gpioc_detach_priv_pin(struct gpioc_cdevpriv *,
+    struct gpioc_pin_intr *);
+static bool gpioc_intr_reconfig_allowed(struct gpioc_cdevpriv *,
+    struct gpioc_pin_intr *intr_conf);
+static uint32_t gpioc_get_intr_config(struct gpioc_softc *,
+    struct gpioc_cdevpriv *, uint32_t pin);
+static int gpioc_set_intr_config(struct gpioc_softc *, struct gpioc_cdevpriv *,
+    uint32_t, uint32_t);
+static void gpioc_interrupt_handler(void *);
 
-static int	gpioc_kqread(struct knote*, long);
-static void	gpioc_kqdetach(struct knote*);
+static int gpioc_kqread(struct knote *, long);
+static void gpioc_kqdetach(struct knote *);
 
-static int	gpioc_probe(device_t dev);
-static int	gpioc_attach(device_t dev);
-static int	gpioc_detach(device_t dev);
+static int gpioc_probe(device_t dev);
+static int gpioc_attach(device_t dev);
+static int gpioc_detach(device_t dev);
 
-static void	gpioc_cdevpriv_dtor(void*);
+static void gpioc_cdevpriv_dtor(void *);
 
-static d_open_t		gpioc_open;
-static d_read_t		gpioc_read;
-static d_ioctl_t	gpioc_ioctl;
-static d_poll_t		gpioc_poll;
-static d_kqfilter_t	gpioc_kqfilter;
+static d_open_t gpioc_open;
+static d_read_t gpioc_read;
+static d_ioctl_t gpioc_ioctl;
+static d_poll_t gpioc_poll;
+static d_kqfilter_t gpioc_kqfilter;
 
 static struct cdevsw gpioc_cdevsw = {
-	.d_version	= D_VERSION,
-	.d_open		= gpioc_open,
-	.d_read		= gpioc_read,
-	.d_ioctl	= gpioc_ioctl,
-	.d_poll		= gpioc_poll,
-	.d_kqfilter	= gpioc_kqfilter,
-	.d_name		= "gpioc",
+	.d_version = D_VERSION,
+	.d_open = gpioc_open,
+	.d_read = gpioc_read,
+	.d_ioctl = gpioc_ioctl,
+	.d_poll = gpioc_poll,
+	.d_kqfilter = gpioc_kqfilter,
+	.d_name = "gpioc",
 };
 
-static struct filterops gpioc_read_filterops = {
-	.f_isfd =	true,
-	.f_attach =	NULL,
-	.f_detach =	gpioc_kqdetach,
-	.f_event =	gpioc_kqread,
-	.f_touch =	NULL
-};
+static struct filterops gpioc_read_filterops = { .f_isfd = true,
+	.f_attach = NULL,
+	.f_detach = gpioc_kqdetach,
+	.f_event = gpioc_kqread,
+	.f_touch = NULL };
 
 static struct gpioc_pin_event *
 next_head_event(struct gpioc_cdevpriv *priv)
@@ -264,22 +261,22 @@ static int
 gpioc_attach_priv_pin(struct gpioc_cdevpriv *priv,
     struct gpioc_pin_intr *intr_conf)
 {
-	struct gpioc_privs	*priv_link;
-	struct gpioc_pins	*pin_link;
-	unsigned int		consistency_a __diagused;
-	unsigned int		consistency_b __diagused;
+	struct gpioc_privs *priv_link;
+	struct gpioc_pins *pin_link;
+	unsigned int consistency_a __diagused;
+	unsigned int consistency_b __diagused;
 
 	consistency_a = 0;
 	consistency_b = 0;
 	mtx_assert(&intr_conf->mtx, MA_OWNED);
 	mtx_lock(&priv->mtx);
-	SLIST_FOREACH(priv_link, &intr_conf->privs, next) {
+	SLIST_FOREACH (priv_link, &intr_conf->privs, next) {
 		if (priv_link->priv == priv)
 			consistency_a++;
 	}
 	KASSERT(consistency_a <= 1,
 	    ("inconsistent links between pin config and cdevpriv"));
-	SLIST_FOREACH(pin_link, &priv->pins, next) {
+	SLIST_FOREACH (pin_link, &priv->pins, next) {
 		if (pin_link->pin == intr_conf)
 			consistency_b++;
 	}
@@ -291,8 +288,7 @@ gpioc_attach_priv_pin(struct gpioc_cdevpriv *priv,
 	}
 	priv_link = malloc(sizeof(struct gpioc_privs), M_GPIOC,
 	    M_NOWAIT | M_ZERO);
-	if (priv_link == NULL)
-	{
+	if (priv_link == NULL) {
 		mtx_unlock(&priv->mtx);
 		return (ENOMEM);
 	}
@@ -315,16 +311,17 @@ static int
 gpioc_detach_priv_pin(struct gpioc_cdevpriv *priv,
     struct gpioc_pin_intr *intr_conf)
 {
-	struct gpioc_privs	*priv_link, *priv_link_temp;
-	struct gpioc_pins	*pin_link, *pin_link_temp;
-	unsigned int		consistency_a __diagused;
-	unsigned int		consistency_b __diagused;
+	struct gpioc_privs *priv_link, *priv_link_temp;
+	struct gpioc_pins *pin_link, *pin_link_temp;
+	unsigned int consistency_a __diagused;
+	unsigned int consistency_b __diagused;
 
 	consistency_a = 0;
 	consistency_b = 0;
 	mtx_assert(&intr_conf->mtx, MA_OWNED);
 	mtx_lock(&priv->mtx);
-	SLIST_FOREACH_SAFE(priv_link, &intr_conf->privs, next, priv_link_temp) {
+	SLIST_FOREACH_SAFE (priv_link, &intr_conf->privs, next,
+	    priv_link_temp) {
 		if (priv_link->priv == priv) {
 			SLIST_REMOVE(&intr_conf->privs, priv_link, gpioc_privs,
 			    next);
@@ -334,7 +331,7 @@ gpioc_detach_priv_pin(struct gpioc_cdevpriv *priv,
 	}
 	KASSERT(consistency_a <= 1,
 	    ("inconsistent links between pin config and cdevpriv"));
-	SLIST_FOREACH_SAFE(pin_link, &priv->pins, next, pin_link_temp) {
+	SLIST_FOREACH_SAFE (pin_link, &priv->pins, next, pin_link_temp) {
 		if (pin_link->pin == intr_conf) {
 			/*
 			 * If the pin we're removing has events in the priv's
@@ -362,14 +359,14 @@ static bool
 gpioc_intr_reconfig_allowed(struct gpioc_cdevpriv *priv,
     struct gpioc_pin_intr *intr_conf)
 {
-	struct gpioc_privs	*priv_link;
+	struct gpioc_privs *priv_link;
 
 	mtx_assert(&intr_conf->mtx, MA_OWNED);
 
 	if (SLIST_EMPTY(&intr_conf->privs))
 		return (true);
 
-	SLIST_FOREACH(priv_link, &intr_conf->privs, next) {
+	SLIST_FOREACH (priv_link, &intr_conf->privs, next) {
 		if (priv_link->priv != priv)
 			return (false);
 	}
@@ -377,14 +374,13 @@ gpioc_intr_reconfig_allowed(struct gpioc_cdevpriv *priv,
 	return (true);
 }
 
-
 static uint32_t
 gpioc_get_intr_config(struct gpioc_softc *sc, struct gpioc_cdevpriv *priv,
     uint32_t pin)
 {
-	struct gpioc_pin_intr	*intr_conf = &sc->sc_pin_intr[pin];
-	struct gpioc_privs	*priv_link;
-	uint32_t		flags;
+	struct gpioc_pin_intr *intr_conf = &sc->sc_pin_intr[pin];
+	struct gpioc_privs *priv_link;
+	uint32_t flags;
 
 	flags = intr_conf->pin->flags;
 
@@ -392,7 +388,7 @@ gpioc_get_intr_config(struct gpioc_softc *sc, struct gpioc_cdevpriv *priv,
 		return (0);
 
 	mtx_lock(&intr_conf->mtx);
-	SLIST_FOREACH(priv_link, &intr_conf->privs, next) {
+	SLIST_FOREACH (priv_link, &intr_conf->privs, next) {
 		if (priv_link->priv == priv) {
 			flags |= GPIO_INTR_ATTACHED;
 			break;
@@ -494,7 +490,8 @@ gpioc_interrupt_handler(void *arg)
 	mtx_lock(&intr_conf->mtx);
 
 	if (intr_conf->config_locked == true) {
-		ddevice_printf(sc->sc_dev, "Interrupt configuration in "
+		ddevice_printf(sc->sc_dev,
+		    "Interrupt configuration in "
 		    "progress. Discarding interrupt on pin %d.\n",
 		    intr_conf->pin->pin);
 		mtx_unlock(&intr_conf->mtx);
@@ -502,18 +499,20 @@ gpioc_interrupt_handler(void *arg)
 	}
 
 	if (SLIST_EMPTY(&intr_conf->privs)) {
-		ddevice_printf(sc->sc_dev, "No file descriptor associated with "
-		    "occurred interrupt on pin %d.\n", intr_conf->pin->pin);
+		ddevice_printf(sc->sc_dev,
+		    "No file descriptor associated with "
+		    "occurred interrupt on pin %d.\n",
+		    intr_conf->pin->pin);
 		mtx_unlock(&intr_conf->mtx);
 		return;
 	}
 
-	SLIST_FOREACH(privs, &intr_conf->privs, next) {
+	SLIST_FOREACH (privs, &intr_conf->privs, next) {
 		struct gpioc_cdevpriv *priv = privs->priv;
 		struct gpioc_pins *privpin;
 		struct gpioc_pin_event *event;
 		mtx_lock(&priv->mtx);
-		SLIST_FOREACH(privpin, &priv->pins, next) {
+		SLIST_FOREACH (privpin, &priv->pins, next) {
 			if (privpin->pin == intr_conf)
 				break;
 		}
@@ -630,20 +629,20 @@ gpioc_detach(device_t dev)
 static void
 gpioc_cdevpriv_dtor(void *data)
 {
-	struct gpioc_cdevpriv	*priv;
-	struct gpioc_privs	*priv_link, *priv_link_temp;
-	struct gpioc_pins	*pin_link, *pin_link_temp;
-	unsigned int		consistency __diagused;
+	struct gpioc_cdevpriv *priv;
+	struct gpioc_privs *priv_link, *priv_link_temp;
+	struct gpioc_pins *pin_link, *pin_link_temp;
+	unsigned int consistency __diagused;
 
 	priv = data;
 
-	SLIST_FOREACH_SAFE(pin_link, &priv->pins, next, pin_link_temp) {
+	SLIST_FOREACH_SAFE (pin_link, &priv->pins, next, pin_link_temp) {
 		consistency = 0;
 		mtx_lock(&pin_link->pin->mtx);
 		while (pin_link->pin->config_locked == true)
 			mtx_sleep(&pin_link->pin->config_locked,
 			    &pin_link->pin->mtx, 0, "gpicfg", 0);
-		SLIST_FOREACH_SAFE(priv_link, &pin_link->pin->privs, next,
+		SLIST_FOREACH_SAFE (priv_link, &pin_link->pin->privs, next,
 		    priv_link_temp) {
 			if (priv_link->priv == priv) {
 				SLIST_REMOVE(&pin_link->pin->privs, priv_link,
@@ -698,7 +697,8 @@ gpioc_open(struct cdev *dev, int oflags, int devtype, struct thread *td)
 	 * npins isn't a horrible fifo size for that either.
 	 */
 	priv->numevents = priv->sc->sc_npins * 2;
-	priv->events = malloc(priv->numevents * sizeof(struct gpio_event_detail),
+	priv->events = malloc(priv->numevents *
+		sizeof(struct gpio_event_detail),
 	    M_GPIOC, M_WAITOK | M_ZERO);
 
 	return (0);
@@ -711,8 +711,8 @@ gpioc_read(struct cdev *dev, struct uio *uio, int ioflag)
 	struct gpioc_pin_event *event;
 	union {
 		struct gpio_event_summary sum;
-		struct gpio_event_detail  evt;
-		uint8_t 		  data[1];
+		struct gpio_event_detail evt;
+		uint8_t data[1];
 	} recbuf;
 	size_t recsize;
 	int err;
@@ -744,7 +744,7 @@ gpioc_read(struct cdev *dev, struct uio *uio, int ioflag)
 	}
 
 	while (err == 0 && uio->uio_resid >= recsize &&
-           priv->evidx_tail != priv->evidx_head) {
+	    priv->evidx_tail != priv->evidx_head) {
 		event = next_tail_event(priv);
 		if (priv->report_option == GPIO_EVENT_REPORT_SUMMARY) {
 			recbuf.sum.gp_first_time = event->event_time;
@@ -769,8 +769,8 @@ gpioc_read(struct cdev *dev, struct uio *uio, int ioflag)
 	return (err);
 }
 
-static int 
-gpioc_ioctl(struct cdev *cdev, u_long cmd, caddr_t arg, int fflag, 
+static int
+gpioc_ioctl(struct cdev *cdev, u_long cmd, caddr_t arg, int fflag,
     struct thread *td)
 {
 	device_t bus;
@@ -796,16 +796,14 @@ gpioc_ioctl(struct cdev *cdev, u_long cmd, caddr_t arg, int fflag,
 	case GPIOGETCONFIG:
 		bcopy(arg, &pin, sizeof(pin));
 		dprintf("get config pin %d\n", pin.gp_pin);
-		res = GPIO_PIN_GETFLAGS(sc->sc_pdev, pin.gp_pin,
-		    &pin.gp_flags);
+		res = GPIO_PIN_GETFLAGS(sc->sc_pdev, pin.gp_pin, &pin.gp_flags);
 		/* Fail early */
 		if (res)
 			break;
 		res = devfs_get_cdevpriv((void **)&priv);
 		if (res)
 			break;
-		pin.gp_flags |= gpioc_get_intr_config(sc, priv,
-		    pin.gp_pin);
+		pin.gp_flags |= gpioc_get_intr_config(sc, priv, pin.gp_pin);
 		GPIO_PIN_GETCAPS(sc->sc_pdev, pin.gp_pin, &pin.gp_caps);
 		GPIOBUS_PIN_GETNAME(bus, pin.gp_pin, pin.gp_name);
 		bcopy(&pin, arg, sizeof(pin));
@@ -846,35 +844,28 @@ gpioc_ioctl(struct cdev *cdev, u_long cmd, caddr_t arg, int fflag,
 		    (pin.gp_flags & ~GPIO_INTR_MASK));
 		if (res != 0)
 			break;
-		res = gpioc_set_intr_config(sc, priv, pin.gp_pin,
-		    intrflags);
+		res = gpioc_set_intr_config(sc, priv, pin.gp_pin, intrflags);
 		break;
 	case GPIOGET:
 		bcopy(arg, &req, sizeof(req));
-		res = GPIO_PIN_GET(sc->sc_pdev, req.gp_pin,
-		    &req.gp_value);
-		dprintf("read pin %d -> %d\n", 
-		    req.gp_pin, req.gp_value);
+		res = GPIO_PIN_GET(sc->sc_pdev, req.gp_pin, &req.gp_value);
+		dprintf("read pin %d -> %d\n", req.gp_pin, req.gp_value);
 		bcopy(&req, arg, sizeof(req));
 		break;
 	case GPIOSET:
 		bcopy(arg, &req, sizeof(req));
-		res = GPIO_PIN_SET(sc->sc_pdev, req.gp_pin, 
-		    req.gp_value);
-		dprintf("write pin %d -> %d\n", 
-		    req.gp_pin, req.gp_value);
+		res = GPIO_PIN_SET(sc->sc_pdev, req.gp_pin, req.gp_value);
+		dprintf("write pin %d -> %d\n", req.gp_pin, req.gp_value);
 		break;
 	case GPIOTOGGLE:
 		bcopy(arg, &req, sizeof(req));
-		dprintf("toggle pin %d\n", 
-		    req.gp_pin);
+		dprintf("toggle pin %d\n", req.gp_pin);
 		res = GPIO_PIN_TOGGLE(sc->sc_pdev, req.gp_pin);
 		break;
 	case GPIOSETNAME:
 		bcopy(arg, &pin, sizeof(pin));
 		dprintf("set name on pin %d\n", pin.gp_pin);
-		res = GPIOBUS_PIN_SETNAME(bus, pin.gp_pin,
-		    pin.gp_name);
+		res = GPIOBUS_PIN_SETNAME(bus, pin.gp_pin, pin.gp_name);
 		break;
 	case GPIOACCESS32:
 		a32 = (struct gpio_access_32 *)arg;
@@ -908,8 +899,8 @@ gpioc_ioctl(struct cdev *cdev, u_long cmd, caddr_t arg, int fflag,
 			free(priv->events, M_GPIOC);
 			priv->numevents = evcfg->gp_fifo_size;
 			priv->events = malloc(priv->numevents *
-			    sizeof(struct gpio_event_detail), M_GPIOC,
-			    M_WAITOK | M_ZERO);
+				sizeof(struct gpio_event_detail),
+			    M_GPIOC, M_WAITOK | M_ZERO);
 			priv->evidx_head = priv->evidx_tail = 0;
 		}
 		break;
@@ -993,7 +984,7 @@ gpioc_kqfilter(struct cdev *dev, struct knote *kn)
 	if (SLIST_EMPTY(&priv->pins))
 		return (ENXIO);
 
-	switch(kn->kn_filter) {
+	switch (kn->kn_filter) {
 	case EVFILT_READ:
 		kn->kn_fop = &gpioc_read_filterops;
 		kn->kn_hook = (void *)priv;
@@ -1013,7 +1004,6 @@ gpioc_kqread(struct knote *kn, long hint)
 {
 	struct gpioc_cdevpriv *priv = kn->kn_hook;
 	size_t recsize;
-
 
 	if (SLIST_EMPTY(&priv->pins)) {
 		kn->kn_flags |= EV_EOF;
@@ -1042,21 +1032,17 @@ gpioc_kqdetach(struct knote *kn)
 
 static device_method_t gpioc_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		gpioc_probe),
-	DEVMETHOD(device_attach,	gpioc_attach),
-	DEVMETHOD(device_detach,	gpioc_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	bus_generic_resume),
+	DEVMETHOD(device_probe, gpioc_probe),
+	DEVMETHOD(device_attach, gpioc_attach),
+	DEVMETHOD(device_detach, gpioc_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
 
 	DEVMETHOD_END
 };
 
-driver_t gpioc_driver = {
-	"gpioc",
-	gpioc_methods,
-	sizeof(struct gpioc_softc)
-};
+driver_t gpioc_driver = { "gpioc", gpioc_methods, sizeof(struct gpioc_softc) };
 
 DRIVER_MODULE(gpioc, gpio, gpioc_driver, 0, 0);
 MODULE_VERSION(gpioc, 1);

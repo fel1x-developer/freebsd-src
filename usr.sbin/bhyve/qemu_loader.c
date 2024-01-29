@@ -249,7 +249,7 @@ qemu_loader_finish(struct qemu_loader *const loader)
 	struct qemu_loader_entry *data;
 	size_t len = 0;
 
-	STAILQ_FOREACH(element, &loader->list, chain) {
+	STAILQ_FOREACH (element, &loader->list, chain) {
 		len += sizeof(struct qemu_loader_entry);
 	}
 	if (len == 0) {
@@ -264,7 +264,7 @@ qemu_loader_finish(struct qemu_loader *const loader)
 	}
 
 	int i = 0;
-	STAILQ_FOREACH(element, &loader->list, chain) {
+	STAILQ_FOREACH (element, &loader->list, chain) {
 		memcpy(&data[i], &element->entry,
 		    sizeof(struct qemu_loader_entry));
 		++i;

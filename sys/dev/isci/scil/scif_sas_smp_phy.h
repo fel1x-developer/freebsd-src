@@ -65,8 +65,8 @@
 extern "C" {
 #endif // __cplusplus
 
-#include <dev/isci/scil/scif_sas_remote_device.h>
 #include <dev/isci/scil/sci_fast_list.h>
+#include <dev/isci/scil/scif_sas_remote_device.h>
 
 struct SCIF_SAS_CONTROLLER;
 struct SCIF_SAS_SMP_PHY;
@@ -77,107 +77,94 @@ struct SCIF_SAS_REMOTE_DEVICE;
  *
  * @brief This structure stores data for a smp phy of a smp device (expander).
  */
-typedef struct SCIF_SAS_SMP_PHY
-{
-   /**
-    * A smp phy can either connect to a end device or another smp phy,
-    * This two conditions are mutual exclusive.
-    */
-   union{
-      /**
-       * The attached smp phy. This field has valid meaning when
-       * attached_device_type is expander.
-       */
-      struct SCIF_SAS_SMP_PHY       * attached_phy;
+typedef struct SCIF_SAS_SMP_PHY {
+	/**
+	 * A smp phy can either connect to a end device or another smp phy,
+	 * This two conditions are mutual exclusive.
+	 */
+	union {
+		/**
+		 * The attached smp phy. This field has valid meaning when
+		 * attached_device_type is expander.
+		 */
+		struct SCIF_SAS_SMP_PHY *attached_phy;
 
-      /**
-       * The attached end device. This field has valid meaning when
-       * attached_device_type is end_device.
-       */
-      struct SCIF_SAS_REMOTE_DEVICE * end_device;
-   } u;
+		/**
+		 * The attached end device. This field has valid meaning when
+		 * attached_device_type is end_device.
+		 */
+		struct SCIF_SAS_REMOTE_DEVICE *end_device;
+	} u;
 
-   /**
-    * This field records the owning expander device this smp phy belongs to.
-    */
-   struct SCIF_SAS_REMOTE_DEVICE * owning_device;
+	/**
+	 * This field records the owning expander device this smp phy belongs
+	 * to.
+	 */
+	struct SCIF_SAS_REMOTE_DEVICE *owning_device;
 
-   /**
-    * The list element of this smp phy for the smp phy list of the ownig expander.
-    */
-   SCI_FAST_LIST_ELEMENT_T    list_element;
+	/**
+	 * The list element of this smp phy for the smp phy list of the ownig
+	 * expander.
+	 */
+	SCI_FAST_LIST_ELEMENT_T list_element;
 
-   /**
-    * This field records the attached sas address, retrieved from a DISCOVER
-    * response. Zero value is valid.
-    */
-   SCI_SAS_ADDRESS_T          attached_sas_address;
+	/**
+	 * This field records the attached sas address, retrieved from a
+	 * DISCOVER response. Zero value is valid.
+	 */
+	SCI_SAS_ADDRESS_T attached_sas_address;
 
-   /**
-    * This field records the attached device type, retrieved from a DISCOVER
-    * response.
-    */
-   U8                         attached_device_type;
+	/**
+	 * This field records the attached device type, retrieved from a
+	 * DISCOVER response.
+	 */
+	U8 attached_device_type;
 
-   /**
-    * This field records the routing attribute, retrieved from a DISCOVER
-    * response.
-    */
-   U8                         routing_attribute;
+	/**
+	 * This field records the routing attribute, retrieved from a DISCOVER
+	 * response.
+	 */
+	U8 routing_attribute;
 
-   /**
-    * This field records the phy identifier of this smp phy, retrieved from a
-    * DISCOVER response.
-    */
-   U8                         phy_identifier;
+	/**
+	 * This field records the phy identifier of this smp phy, retrieved from
+	 * a DISCOVER response.
+	 */
+	U8 phy_identifier;
 
-   /**
-    * this field stores the last route index for previous round of config
-    * route table activity on a smp phy within one DISCOVER process.
-    */
-   U16                        config_route_table_index_anchor;
+	/**
+	 * this field stores the last route index for previous round of config
+	 * route table activity on a smp phy within one DISCOVER process.
+	 */
+	U16 config_route_table_index_anchor;
 
-}SCIF_SAS_SMP_PHY_T;
+} SCIF_SAS_SMP_PHY_T;
 
+void scif_sas_smp_phy_construct(SCIF_SAS_SMP_PHY_T *this_smp_phy,
+    struct SCIF_SAS_REMOTE_DEVICE *owning_device, U8 expander_phy_id);
 
-void scif_sas_smp_phy_construct(
-   SCIF_SAS_SMP_PHY_T            * this_smp_phy,
-   struct SCIF_SAS_REMOTE_DEVICE * owning_device,
-   U8                              expander_phy_id
-);
+void scif_sas_smp_phy_destruct(SCIF_SAS_SMP_PHY_T *this_smp_phy);
 
-void scif_sas_smp_phy_destruct(
-   SCIF_SAS_SMP_PHY_T       * this_smp_phy
-);
+void scif_sas_smp_phy_save_information(SCIF_SAS_SMP_PHY_T *this_smp_phy,
+    struct SCIF_SAS_REMOTE_DEVICE *attached_device,
+    SMP_RESPONSE_DISCOVER_T *discover_response);
 
-void scif_sas_smp_phy_save_information(
-   SCIF_SAS_SMP_PHY_T            * this_smp_phy,
-   struct SCIF_SAS_REMOTE_DEVICE * attached_device,
-   SMP_RESPONSE_DISCOVER_T       * discover_response
-);
+SCI_STATUS scif_sas_smp_phy_set_attached_phy(SCIF_SAS_SMP_PHY_T *this_smp_phy,
+    U8 attached_phy_identifier,
+    struct SCIF_SAS_REMOTE_DEVICE *attached_remote_device);
 
-SCI_STATUS scif_sas_smp_phy_set_attached_phy(
-   SCIF_SAS_SMP_PHY_T            * this_smp_phy,
-   U8                              attached_phy_identifier,
-   struct SCIF_SAS_REMOTE_DEVICE * attached_remote_device
-);
+SCI_STATUS
+scif_sas_smp_phy_verify_routing_attribute(SCIF_SAS_SMP_PHY_T *this_smp_phy,
+    SCIF_SAS_SMP_PHY_T *attached_smp_phy);
 
-SCI_STATUS scif_sas_smp_phy_verify_routing_attribute(
-   SCIF_SAS_SMP_PHY_T * this_smp_phy,
-   SCIF_SAS_SMP_PHY_T * attached_smp_phy
-);
+SCIF_SAS_SMP_PHY_T *scif_sas_smp_phy_find_next_phy_in_wide_port(
+    SCIF_SAS_SMP_PHY_T *this_smp_phy);
 
-SCIF_SAS_SMP_PHY_T * scif_sas_smp_phy_find_next_phy_in_wide_port(
-   SCIF_SAS_SMP_PHY_T * this_smp_phy
-);
+SCIF_SAS_SMP_PHY_T *scif_sas_smp_phy_find_middle_phy_in_wide_port(
+    SCIF_SAS_SMP_PHY_T *this_smp_phy);
 
-SCIF_SAS_SMP_PHY_T * scif_sas_smp_phy_find_middle_phy_in_wide_port(
-   SCIF_SAS_SMP_PHY_T * this_smp_phy
-);
-
-SCIF_SAS_SMP_PHY_T * scif_sas_smp_phy_find_highest_phy_in_wide_port(
-   SCIF_SAS_SMP_PHY_T * this_smp_phy
-);
+SCIF_SAS_SMP_PHY_T *scif_sas_smp_phy_find_highest_phy_in_wide_port(
+    SCIF_SAS_SMP_PHY_T *this_smp_phy);
 
 #ifdef __cplusplus
 }

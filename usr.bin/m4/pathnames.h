@@ -35,4 +35,4 @@
  * SUCH DAMAGE.
  */
 
-#define _PATH_DIVNAME	"/tmp/m4.0XXXXXXXXXX"	/* unix diversion files */
+#define _PATH_DIVNAME "/tmp/m4.0XXXXXXXXXX" /* unix diversion files */

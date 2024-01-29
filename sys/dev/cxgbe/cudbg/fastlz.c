@@ -24,8 +24,9 @@
    THE SOFTWARE.
    */
 #include <sys/cdefs.h>
-#include "osdep.h"
+
 #include "fastlz.h"
+#include "osdep.h"
 
 #if !defined(FASTLZ__COMPRESSOR) && !defined(FASTLZ_DECOMPRESSOR)
 
@@ -47,18 +48,18 @@
  * Give hints to the compiler for branch prediction optimization.
  */
 #if defined(__GNUC__) && (__GNUC__ > 2)
-#define FASTLZ_EXPECT_CONDITIONAL(c)	(__builtin_expect((c), 1))
-#define FASTLZ_UNEXPECT_CONDITIONAL(c)	(__builtin_expect((c), 0))
+#define FASTLZ_EXPECT_CONDITIONAL(c) (__builtin_expect((c), 1))
+#define FASTLZ_UNEXPECT_CONDITIONAL(c) (__builtin_expect((c), 0))
 #else
-#define FASTLZ_EXPECT_CONDITIONAL(c)	(c)
-#define FASTLZ_UNEXPECT_CONDITIONAL(c)	(c)
+#define FASTLZ_EXPECT_CONDITIONAL(c) (c)
+#define FASTLZ_UNEXPECT_CONDITIONAL(c) (c)
 #endif
 
 /*
  * Use inlined functions for supported systems.
  */
-#if defined(__GNUC__) || defined(__DMC__) || defined(__POCC__) ||\
-	defined(__WATCOMC__) || defined(__SUNPRO_C)
+#if defined(__GNUC__) || defined(__DMC__) || defined(__POCC__) || \
+    defined(__WATCOMC__) || defined(__SUNPRO_C)
 #define FASTLZ_INLINE inline
 #elif defined(__BORLANDC__) || defined(_MSC_VER) || defined(__LCC__)
 #define FASTLZ_INLINE __inline
@@ -71,7 +72,7 @@
  */
 #if !defined(FASTLZ_STRICT_ALIGN)
 #define FASTLZ_STRICT_ALIGN
-#if defined(__i386__) || defined(__386)  /* GNU C, Sun Studio */
+#if defined(__i386__) || defined(__386) /* GNU C, Sun Studio */
 #undef FASTLZ_STRICT_ALIGN
 #elif defined(__i486__) || defined(__i586__) || defined(__i686__) /* GNU C */
 #undef FASTLZ_STRICT_ALIGN
@@ -90,25 +91,25 @@
  * FIXME: use preprocessor magic to set this on different platforms!
  */
 
-#define MAX_COPY       32
-#define MAX_LEN       264  /* 256 + 8 */
+#define MAX_COPY 32
+#define MAX_LEN 264 /* 256 + 8 */
 #define MAX_DISTANCE 8192
 
 #if !defined(FASTLZ_STRICT_ALIGN)
 #define FASTLZ_READU16(p) (*((const unsigned short *)(p)))
 #else
-#define FASTLZ_READU16(p) ((p)[0] | (p)[1]<<8)
+#define FASTLZ_READU16(p) ((p)[0] | (p)[1] << 8)
 #endif
 
-#define HASH_LOG  13
+#define HASH_LOG 13
 #define HASH_SIZE (1 << HASH_LOG)
-#define HASH_MASK  (HASH_SIZE - 1)
-#define HASH_FUNCTION(v, p) {\
-				v = FASTLZ_READU16(p);\
-				v ^= FASTLZ_READU16(p + 1)^\
-				     (v>>(16 - HASH_LOG));\
-				v &= HASH_MASK;\
-			    }
+#define HASH_MASK (HASH_SIZE - 1)
+#define HASH_FUNCTION(v, p)                                          \
+	{                                                            \
+		v = FASTLZ_READU16(p);                               \
+		v ^= FASTLZ_READU16(p + 1) ^ (v >> (16 - HASH_LOG)); \
+		v &= HASH_MASK;                                      \
+	}
 
 #undef FASTLZ_LEVEL
 #define FASTLZ_LEVEL 1
@@ -118,9 +119,9 @@
 #define FASTLZ_COMPRESSOR fastlz1_compress
 #define FASTLZ_DECOMPRESSOR fastlz1_decompress
 static FASTLZ_INLINE int FASTLZ_COMPRESSOR(const void *input, int length,
-					   void *output);
+    void *output);
 static FASTLZ_INLINE int FASTLZ_DECOMPRESSOR(const void *input, int length,
-					     void *output, int maxout);
+    void *output, int maxout);
 #include "fastlz.c"
 
 #undef FASTLZ_LEVEL
@@ -135,12 +136,13 @@ static FASTLZ_INLINE int FASTLZ_DECOMPRESSOR(const void *input, int length,
 #define FASTLZ_COMPRESSOR fastlz2_compress
 #define FASTLZ_DECOMPRESSOR fastlz2_decompress
 static FASTLZ_INLINE int FASTLZ_COMPRESSOR(const void *input, int length,
-					   void *output);
+    void *output);
 static FASTLZ_INLINE int FASTLZ_DECOMPRESSOR(const void *input, int length,
-					     void *output, int maxout);
+    void *output, int maxout);
 #include "fastlz.c"
 
-int fastlz_compress(const void *input, int length, void *output)
+int
+fastlz_compress(const void *input, int length, void *output)
 {
 	/* for short block, choose fastlz1 */
 	if (length < 65536)
@@ -150,7 +152,8 @@ int fastlz_compress(const void *input, int length, void *output)
 	return fastlz2_compress(input, length, output);
 }
 
-int fastlz_decompress(const void *input, int length, void *output, int maxout)
+int
+fastlz_decompress(const void *input, int length, void *output, int maxout)
 {
 	/* magic identifier for compression level */
 	int level = ((*(const unsigned char *)input) >> 5) + 1;
@@ -164,8 +167,8 @@ int fastlz_decompress(const void *input, int length, void *output, int maxout)
 	return 0;
 }
 
-int fastlz_compress_level(int level, const void *input, int length,
-			  void *output)
+int
+fastlz_compress_level(int level, const void *input, int length, void *output)
 {
 	if (level == 1)
 		return fastlz1_compress(input, length, output);
@@ -177,14 +180,13 @@ int fastlz_compress_level(int level, const void *input, int length,
 
 #else /* !defined(FASTLZ_COMPRESSOR) && !defined(FASTLZ_DECOMPRESSOR) */
 
-
-static FASTLZ_INLINE int FASTLZ_COMPRESSOR(const void *input, int length,
-					   void *output)
+static FASTLZ_INLINE int
+FASTLZ_COMPRESSOR(const void *input, int length, void *output)
 {
-	const unsigned char *ip = (const unsigned char *) input;
+	const unsigned char *ip = (const unsigned char *)input;
 	const unsigned char *ip_bound = ip + length - 2;
 	const unsigned char *ip_limit = ip + length - 12;
-	unsigned char *op = (unsigned char *) output;
+	unsigned char *op = (unsigned char *)output;
 	static const unsigned char *g_htab[HASH_SIZE];
 
 	const unsigned char **htab = g_htab;
@@ -254,12 +256,11 @@ static FASTLZ_INLINE int FASTLZ_COMPRESSOR(const void *input, int length,
 		/* is this a match? check the first 3 bytes */
 		if (distance == 0 ||
 #if FASTLZ_LEVEL == 1
-				(distance >= MAX_DISTANCE) ||
+		    (distance >= MAX_DISTANCE) ||
 #else
-				(distance >= MAX_FARDISTANCE) ||
+		    (distance >= MAX_FARDISTANCE) ||
 #endif
-				*ref++ != *ip++ || *ref++ != *ip++ ||
-				*ref++ != *ip++)
+		    *ref++ != *ip++ || *ref++ != *ip++ || *ref++ != *ip++)
 			goto literal;
 
 #if FASTLZ_LEVEL == 2
@@ -270,7 +271,7 @@ static FASTLZ_INLINE int FASTLZ_COMPRESSOR(const void *input, int length,
 			len += 2;
 		}
 
-match:
+	match:
 #endif
 
 		/* last matched byte */
@@ -391,7 +392,7 @@ match:
 
 		continue;
 
-literal:
+	literal:
 		*op++ = *anchor++;
 		ip = anchor;
 		copy++;
@@ -426,12 +427,12 @@ literal:
 	return op - (unsigned char *)output;
 }
 
-static FASTLZ_INLINE int FASTLZ_DECOMPRESSOR(const void *input, int length,
-					     void *output, int maxout)
+static FASTLZ_INLINE int
+FASTLZ_DECOMPRESSOR(const void *input, int length, void *output, int maxout)
 {
-	const unsigned char *ip = (const unsigned char *) input;
-	const unsigned char *ip_limit  = ip + length;
-	unsigned char *op = (unsigned char *) output;
+	const unsigned char *ip = (const unsigned char *)input;
+	const unsigned char *ip_limit = ip + length;
+	unsigned char *op = (unsigned char *)output;
 	unsigned char *op_limit = op + maxout;
 	unsigned int ctrl = (*ip++) & 31;
 	int loop = 1;
@@ -452,17 +453,17 @@ static FASTLZ_INLINE int FASTLZ_DECOMPRESSOR(const void *input, int length,
 				len += *ip++;
 			ref -= *ip++;
 #else
-			do {
-				code = *ip++;
-				len += code;
-			} while (code == 255);
+				do {
+					code = *ip++;
+					len += code;
+				} while (code == 255);
 			code = *ip++;
 			ref -= code;
 
 			/* match from 16-bit distance */
 			if (FASTLZ_UNEXPECT_CONDITIONAL(code == 255))
-				if (FASTLZ_EXPECT_CONDITIONAL(ofs ==
-							      (31 << 8))) {
+				if (FASTLZ_EXPECT_CONDITIONAL(
+					ofs == (31 << 8))) {
 					ofs = (*ip++) << 8;
 					ofs += *ip++;
 					ref = op - ofs - MAX_DISTANCE;
@@ -470,13 +471,12 @@ static FASTLZ_INLINE int FASTLZ_DECOMPRESSOR(const void *input, int length,
 #endif
 
 #ifdef FASTLZ_SAFE
-			if (FASTLZ_UNEXPECT_CONDITIONAL(op + len + 3 >
-							op_limit))
+			if (FASTLZ_UNEXPECT_CONDITIONAL(
+				op + len + 3 > op_limit))
 				return 0;
 
-			if (FASTLZ_UNEXPECT_CONDITIONAL(ref - 1 <
-							(unsigned char *)output)
-						       )
+			if (FASTLZ_UNEXPECT_CONDITIONAL(
+				ref - 1 < (unsigned char *)output))
 				return 0;
 #endif
 
@@ -512,9 +512,9 @@ static FASTLZ_INLINE int FASTLZ_DECOMPRESSOR(const void *input, int length,
 				}
 
 				/* copy 16-bit at once */
-				q = (unsigned short *) op;
+				q = (unsigned short *)op;
 				op += len;
-				p = (const unsigned short *) ref;
+				p = (const unsigned short *)ref;
 				for (len >>= 1; len > 4; len -= 4) {
 					*q++ = *p++;
 					*q++ = *p++;

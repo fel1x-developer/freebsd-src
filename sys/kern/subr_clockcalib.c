@@ -28,6 +28,7 @@
 #include <sys/systm.h>
 #include <sys/timetc.h>
 #include <sys/tslog.h>
+
 #include <machine/cpu.h>
 
 /**
@@ -100,7 +101,7 @@ clockcalib(uint64_t (*clk)(void), const char *clkname)
 	tlast = t0;
 
 	/* Loop until we give up or decide that we're calibrated. */
-	for (n = 1; ; n++) {
+	for (n = 1;; n++) {
 		/* Get a new data point. */
 		clk1 = clk() - clk0;
 		t1 = tc->tc_get_timecount(tc) & tc->tc_counter_mask;
@@ -112,8 +113,8 @@ clockcalib(uint64_t (*clk)(void), const char *clkname)
 		/* If we spent too long, bail. */
 		if (t1 > tc->tc_frequency) {
 			printf("Statistical %s calibration failed!  "
-			    "Clocks might be ticking at variable rates.\n",
-			     clkname);
+			       "Clocks might be ticking at variable rates.\n",
+			    clkname);
 			printf("Falling back to slow %s calibration.\n",
 			    clkname);
 			freq = (double)(tc->tc_frequency) * clk1 / t1;
@@ -143,9 +144,9 @@ clockcalib(uint64_t (*clk)(void), const char *clkname)
 		 * Count low-uncertainty iterations.  This is a rearrangement
 		 * of "relative uncertainty < 1 PPM" avoiding division.
 		 */
-#define TSC_PPM_UNCERTAINTY	1
-#define TSC_UNCERTAINTY		TSC_PPM_UNCERTAINTY * 0.000001
-#define TSC_UNCERTAINTY_SQR	TSC_UNCERTAINTY * TSC_UNCERTAINTY
+#define TSC_PPM_UNCERTAINTY 1
+#define TSC_UNCERTAINTY TSC_PPM_UNCERTAINTY * 0.000001
+#define TSC_UNCERTAINTY_SQR TSC_UNCERTAINTY *TSC_UNCERTAINTY
 		if (TSC_UNCERTAINTY_SQR * (n - 2) * cva * cva >
 		    (va_t + 4) * (va_clk + 4) - cva * cva)
 			passes++;
@@ -157,9 +158,10 @@ clockcalib(uint64_t (*clk)(void), const char *clkname)
 			freq = (double)(tc->tc_frequency) * cva / va_t;
 			if (bootverbose)
 				printf("Statistical %s calibration took"
-				    " %lu us and %lu data points\n",
-				    clkname, (unsigned long)(t1 *
-					1000000.0 / tc->tc_frequency),
+				       " %lu us and %lu data points\n",
+				    clkname,
+				    (unsigned long)(t1 * 1000000.0 /
+					tc->tc_frequency),
 				    (unsigned long)n);
 			break;
 		}

@@ -38,26 +38,28 @@
  */
 
 #ifdef _KERNEL
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/kernel.h>
-#include <sys/types.h>
 #include <sys/malloc.h>
 #else /* __KERNEL__ */
 #include <sys/types.h>
 #include <sys/time.h>
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #endif /* __KERNEL__ */
-#include <sys/sbuf.h>
-#include <sys/queue.h>
 #include <sys/callout.h>
-#include <cam/scsi/scsi_all.h>
+#include <sys/queue.h>
+#include <sys/sbuf.h>
+
 #include <cam/ctl/ctl_io.h>
 #include <cam/ctl/ctl_scsi_all.h>
 #include <cam/ctl/ctl_util.h>
+#include <cam/scsi/scsi_all.h>
 
 struct ctl_status_desc {
 	ctl_io_status status;
@@ -65,34 +67,33 @@ struct ctl_status_desc {
 };
 
 struct ctl_task_desc {
-	ctl_task_type	task_action;
-	const char	*description;
+	ctl_task_type task_action;
+	const char *description;
 };
 static struct ctl_status_desc ctl_status_table[] = {
-	{CTL_STATUS_NONE, "No Status"},
-	{CTL_SUCCESS, "Command Completed Successfully"},
-	{CTL_CMD_TIMEOUT, "Command Timed Out"},
-	{CTL_SEL_TIMEOUT, "Selection Timeout"},
-	{CTL_ERROR, "Command Failed"},
-	{CTL_SCSI_ERROR, "SCSI Error"},
-	{CTL_CMD_ABORTED, "Command Aborted"},
+	{ CTL_STATUS_NONE, "No Status" },
+	{ CTL_SUCCESS, "Command Completed Successfully" },
+	{ CTL_CMD_TIMEOUT, "Command Timed Out" },
+	{ CTL_SEL_TIMEOUT, "Selection Timeout" },
+	{ CTL_ERROR, "Command Failed" },
+	{ CTL_SCSI_ERROR, "SCSI Error" },
+	{ CTL_CMD_ABORTED, "Command Aborted" },
 };
 
-static struct ctl_task_desc ctl_task_table[] = {
-	{CTL_TASK_ABORT_TASK, "Abort Task"},
-	{CTL_TASK_ABORT_TASK_SET, "Abort Task Set"},
-	{CTL_TASK_CLEAR_ACA, "Clear ACA"},
-	{CTL_TASK_CLEAR_TASK_SET, "Clear Task Set"},
-	{CTL_TASK_I_T_NEXUS_RESET, "I_T Nexus Reset"},
-	{CTL_TASK_LUN_RESET, "LUN Reset"},
-	{CTL_TASK_TARGET_RESET, "Target Reset"},
-	{CTL_TASK_BUS_RESET, "Bus Reset"},
-	{CTL_TASK_PORT_LOGIN, "Port Login"},
-	{CTL_TASK_PORT_LOGOUT, "Port Logout"},
-	{CTL_TASK_QUERY_TASK, "Query Task"},
-	{CTL_TASK_QUERY_TASK_SET, "Query Task Set"},
-	{CTL_TASK_QUERY_ASYNC_EVENT, "Query Async Event"}
-};
+static struct ctl_task_desc ctl_task_table[] = { { CTL_TASK_ABORT_TASK,
+						     "Abort Task" },
+	{ CTL_TASK_ABORT_TASK_SET, "Abort Task Set" },
+	{ CTL_TASK_CLEAR_ACA, "Clear ACA" },
+	{ CTL_TASK_CLEAR_TASK_SET, "Clear Task Set" },
+	{ CTL_TASK_I_T_NEXUS_RESET, "I_T Nexus Reset" },
+	{ CTL_TASK_LUN_RESET, "LUN Reset" },
+	{ CTL_TASK_TARGET_RESET, "Target Reset" },
+	{ CTL_TASK_BUS_RESET, "Bus Reset" },
+	{ CTL_TASK_PORT_LOGIN, "Port Login" },
+	{ CTL_TASK_PORT_LOGOUT, "Port Logout" },
+	{ CTL_TASK_QUERY_TASK, "Query Task" },
+	{ CTL_TASK_QUERY_TASK_SET, "Query Task Set" },
+	{ CTL_TASK_QUERY_ASYNC_EVENT, "Query Async Event" } };
 
 void
 ctl_scsi_tur(union ctl_io *io, ctl_tag_type tag_type, uint8_t control)
@@ -120,8 +121,7 @@ ctl_scsi_tur(union ctl_io *io, ctl_tag_type tag_type, uint8_t control)
 
 void
 ctl_scsi_inquiry(union ctl_io *io, uint8_t *data_ptr, int32_t data_len,
-		 uint8_t byte2, uint8_t page_code, ctl_tag_type tag_type,
-		 uint8_t control)
+    uint8_t byte2, uint8_t page_code, ctl_tag_type tag_type, uint8_t control)
 {
 	struct ctl_scsiio *ctsio;
 	struct scsi_inquiry *cdb;
@@ -149,9 +149,8 @@ ctl_scsi_inquiry(union ctl_io *io, uint8_t *data_ptr, int32_t data_len,
 }
 
 void
-ctl_scsi_request_sense(union ctl_io *io, uint8_t *data_ptr,
-		       int32_t data_len, uint8_t byte2, ctl_tag_type tag_type,
-		       uint8_t control)
+ctl_scsi_request_sense(union ctl_io *io, uint8_t *data_ptr, int32_t data_len,
+    uint8_t byte2, ctl_tag_type tag_type, uint8_t control)
 {
 	struct ctl_scsiio *ctsio;
 	struct scsi_request_sense *cdb;
@@ -179,8 +178,7 @@ ctl_scsi_request_sense(union ctl_io *io, uint8_t *data_ptr,
 
 void
 ctl_scsi_report_luns(union ctl_io *io, uint8_t *data_ptr, uint32_t data_len,
-		     uint8_t select_report, ctl_tag_type tag_type,
-		     uint8_t control)
+    uint8_t select_report, ctl_tag_type tag_type, uint8_t control)
 {
 	struct ctl_scsiio *ctsio;
 	struct scsi_report_luns *cdb;
@@ -208,9 +206,8 @@ ctl_scsi_report_luns(union ctl_io *io, uint8_t *data_ptr, uint32_t data_len,
 
 void
 ctl_scsi_read_write_buffer(union ctl_io *io, uint8_t *data_ptr,
-			   uint32_t data_len, int read_buffer, uint8_t mode,
-			   uint8_t buffer_id, uint32_t buffer_offset,
-			   ctl_tag_type tag_type, uint8_t control)
+    uint32_t data_len, int read_buffer, uint8_t mode, uint8_t buffer_id,
+    uint32_t buffer_offset, ctl_tag_type tag_type, uint8_t control)
 {
 	struct ctl_scsiio *ctsio;
 	struct scsi_write_buffer *cdb;
@@ -247,9 +244,8 @@ ctl_scsi_read_write_buffer(union ctl_io *io, uint8_t *data_ptr,
 
 void
 ctl_scsi_read_write(union ctl_io *io, uint8_t *data_ptr, uint32_t data_len,
-		    int read_op, uint8_t byte2, int minimum_cdb_size,
-		    uint64_t lba, uint32_t num_blocks, ctl_tag_type tag_type,
-		    uint8_t control)
+    int read_op, uint8_t byte2, int minimum_cdb_size, uint64_t lba,
+    uint32_t num_blocks, ctl_tag_type tag_type, uint8_t control)
 {
 	struct ctl_scsiio *ctsio;
 
@@ -266,10 +262,8 @@ ctl_scsi_read_write(union ctl_io *io, uint8_t *data_ptr, uint32_t data_len,
 	 * having an array larger than 2TB) and for compatibility -- e.g.
 	 * if your device doesn't support READ_6.  (ATAPI drives don't.)
 	 */
-	if ((minimum_cdb_size < 10)
-	 && ((lba & 0x1fffff) == lba)
-	 && ((num_blocks & 0xff) == num_blocks)
-	 && (byte2 == 0)) {
+	if ((minimum_cdb_size < 10) && ((lba & 0x1fffff) == lba) &&
+	    ((num_blocks & 0xff) == num_blocks) && (byte2 == 0)) {
 		struct scsi_rw_6 *cdb;
 
 		/*
@@ -288,9 +282,9 @@ ctl_scsi_read_write(union ctl_io *io, uint8_t *data_ptr, uint32_t data_len,
 
 		ctsio->cdb_len = sizeof(*cdb);
 
-	} else if ((minimum_cdb_size < 12)
-		&& ((num_blocks & 0xffff) == num_blocks)
-		&& ((lba & 0xffffffff) == lba)) {
+	} else if ((minimum_cdb_size < 12) &&
+	    ((num_blocks & 0xffff) == num_blocks) &&
+	    ((lba & 0xffffffff) == lba)) {
 		struct scsi_rw_10 *cdb;
 
 		cdb = (struct scsi_rw_10 *)ctsio->cdb;
@@ -303,9 +297,9 @@ ctl_scsi_read_write(union ctl_io *io, uint8_t *data_ptr, uint32_t data_len,
 		cdb->control = control;
 
 		ctsio->cdb_len = sizeof(*cdb);
-	} else if ((minimum_cdb_size < 16)
-		&& ((num_blocks & 0xffffffff) == num_blocks)
-		&& ((lba & 0xffffffff) == lba)) {
+	} else if ((minimum_cdb_size < 16) &&
+	    ((num_blocks & 0xffffffff) == num_blocks) &&
+	    ((lba & 0xffffffff) == lba)) {
 		struct scsi_rw_12 *cdb;
 
 		cdb = (struct scsi_rw_12 *)ctsio->cdb;
@@ -348,8 +342,8 @@ ctl_scsi_read_write(union ctl_io *io, uint8_t *data_ptr, uint32_t data_len,
 
 void
 ctl_scsi_write_same(union ctl_io *io, uint8_t *data_ptr, uint32_t data_len,
-		    uint8_t byte2, uint64_t lba, uint32_t num_blocks,
-		    ctl_tag_type tag_type, uint8_t control)
+    uint8_t byte2, uint64_t lba, uint32_t num_blocks, ctl_tag_type tag_type,
+    uint8_t control)
 {
 	struct ctl_scsiio *ctsio;
 	struct scsi_write_same_16 *cdb;
@@ -379,8 +373,7 @@ ctl_scsi_write_same(union ctl_io *io, uint8_t *data_ptr, uint32_t data_len,
 
 void
 ctl_scsi_read_capacity(union ctl_io *io, uint8_t *data_ptr, uint32_t data_len,
-		       uint32_t addr, int reladr, int pmi,
-		       ctl_tag_type tag_type, uint8_t control)
+    uint32_t addr, int reladr, int pmi, ctl_tag_type tag_type, uint8_t control)
 {
 	struct scsi_read_capacity *cdb;
 
@@ -408,8 +401,8 @@ ctl_scsi_read_capacity(union ctl_io *io, uint8_t *data_ptr, uint32_t data_len,
 
 void
 ctl_scsi_read_capacity_16(union ctl_io *io, uint8_t *data_ptr,
-			  uint32_t data_len, uint64_t addr, int reladr,
-			  int pmi, ctl_tag_type tag_type, uint8_t control)
+    uint32_t data_len, uint64_t addr, int reladr, int pmi,
+    ctl_tag_type tag_type, uint8_t control)
 {
 	struct scsi_read_capacity_16 *cdb;
 
@@ -439,16 +432,13 @@ ctl_scsi_read_capacity_16(union ctl_io *io, uint8_t *data_ptr,
 }
 
 void
-ctl_scsi_mode_sense(union ctl_io *io, uint8_t *data_ptr, uint32_t data_len, 
-		    int dbd, int llbaa, uint8_t page_code, uint8_t pc,
-		    uint8_t subpage, int minimum_cdb_size,
-		    ctl_tag_type tag_type, uint8_t control)
+ctl_scsi_mode_sense(union ctl_io *io, uint8_t *data_ptr, uint32_t data_len,
+    int dbd, int llbaa, uint8_t page_code, uint8_t pc, uint8_t subpage,
+    int minimum_cdb_size, ctl_tag_type tag_type, uint8_t control)
 {
 	ctl_scsi_zero_io(io);
 
-	if ((minimum_cdb_size < 10)
-	 && (llbaa == 0)
-	 && (data_len < 256)) {
+	if ((minimum_cdb_size < 10) && (llbaa == 0) && (data_len < 256)) {
 		struct scsi_mode_sense_6 *cdb;
 
 		cdb = (struct scsi_mode_sense_6 *)io->scsiio.cdb;
@@ -517,15 +507,14 @@ ctl_scsi_start_stop(union ctl_io *io, int start, int load_eject, int immediate,
 
 void
 ctl_scsi_sync_cache(union ctl_io *io, int immed, int reladr,
-		    int minimum_cdb_size, uint64_t starting_lba,
-		    uint32_t block_count, ctl_tag_type tag_type,
-		    uint8_t control)
+    int minimum_cdb_size, uint64_t starting_lba, uint32_t block_count,
+    ctl_tag_type tag_type, uint8_t control)
 {
 	ctl_scsi_zero_io(io);
 
-	if ((minimum_cdb_size < 16)
-	 && ((block_count & 0xffff) == block_count)
-	 && ((starting_lba & 0xffffffff) == starting_lba)) {
+	if ((minimum_cdb_size < 16) &&
+	    ((block_count & 0xffff) == block_count) &&
+	    ((starting_lba & 0xffffffff) == starting_lba)) {
 		struct scsi_sync_cache *cdb;
 
 		cdb = (struct scsi_sync_cache *)io->scsiio.cdb;
@@ -568,8 +557,7 @@ ctl_scsi_sync_cache(union ctl_io *io, int immed, int reladr,
 
 void
 ctl_scsi_persistent_res_in(union ctl_io *io, uint8_t *data_ptr,
-			   uint32_t data_len, int action,
-			   ctl_tag_type tag_type, uint8_t control)
+    uint32_t data_len, int action, ctl_tag_type tag_type, uint8_t control)
 {
 
 	struct scsi_per_res_in *cdb;
@@ -594,9 +582,8 @@ ctl_scsi_persistent_res_in(union ctl_io *io, uint8_t *data_ptr,
 
 void
 ctl_scsi_persistent_res_out(union ctl_io *io, uint8_t *data_ptr,
-			    uint32_t data_len, int action, int type,
-			    uint64_t key, uint64_t sa_key,
-			    ctl_tag_type tag_type, uint8_t control)
+    uint32_t data_len, int action, int type, uint64_t key, uint64_t sa_key,
+    ctl_tag_type tag_type, uint8_t control)
 {
 
 	struct scsi_per_res_out *cdb;
@@ -609,29 +596,28 @@ ctl_scsi_persistent_res_out(union ctl_io *io, uint8_t *data_ptr,
 
 	cdb->opcode = PERSISTENT_RES_OUT;
 	if (action == 5)
-	    cdb->action = 6;
+		cdb->action = 6;
 	else
-	    cdb->action = action;
-	switch(type)
-	{
-	    case 0:
-		    cdb->scope_type = 1;
-			break;
-	    case 1:
-		    cdb->scope_type = 3;
-			break;
-	    case 2:
-		    cdb->scope_type = 5;
-			break;
-	    case 3:
-		    cdb->scope_type = 6;
-			break;
-	    case 4:
-		    cdb->scope_type = 7;
-			break;
-	    case 5:
-		    cdb->scope_type = 8;
-			break;
+		cdb->action = action;
+	switch (type) {
+	case 0:
+		cdb->scope_type = 1;
+		break;
+	case 1:
+		cdb->scope_type = 3;
+		break;
+	case 2:
+		cdb->scope_type = 5;
+		break;
+	case 3:
+		cdb->scope_type = 6;
+		break;
+	case 4:
+		cdb->scope_type = 7;
+		break;
+	case 5:
+		cdb->scope_type = 8;
+		break;
 	}
 	scsi_ulto4b(data_len, cdb->length);
 	cdb->control = control;
@@ -647,12 +633,11 @@ ctl_scsi_persistent_res_out(union ctl_io *io, uint8_t *data_ptr,
 	io->scsiio.ext_sg_entries = 0;
 	io->scsiio.ext_data_filled = 0;
 	io->scsiio.sense_len = SSD_FULL_SIZE;
-
 }
 
 void
-ctl_scsi_maintenance_in(union ctl_io *io, uint8_t *data_ptr, uint32_t data_len, 
-			uint8_t action, ctl_tag_type tag_type, uint8_t control)
+ctl_scsi_maintenance_in(union ctl_io *io, uint8_t *data_ptr, uint32_t data_len,
+    uint8_t action, ctl_tag_type tag_type, uint8_t control)
 {
 	struct scsi_maintenance_in *cdb;
 
@@ -715,7 +700,7 @@ ctl_scsi_task_string(struct ctl_taskio *taskio)
 {
 	unsigned int i;
 
-	for (i = 0; i < (sizeof(ctl_task_table)/sizeof(ctl_task_table[0]));
+	for (i = 0; i < (sizeof(ctl_task_table) / sizeof(ctl_task_table[0]));
 	     i++) {
 		if (taskio->task_action == ctl_task_table[i].task_action) {
 			return (ctl_task_table[i].description);
@@ -737,9 +722,8 @@ ctl_io_sbuf(union ctl_io *io, struct sbuf *sb)
 	case CTL_IO_SCSI:
 		sbuf_cat(sb, path_str);
 		ctl_scsi_command_string(&io->scsiio, NULL, sb);
-		sbuf_printf(sb, " Tag: %#jx/%d, Prio: %d\n",
-			    io->scsiio.tag_num, io->scsiio.tag_type,
-			    io->scsiio.priority);
+		sbuf_printf(sb, " Tag: %#jx/%d, Prio: %d\n", io->scsiio.tag_num,
+		    io->scsiio.tag_type, io->scsiio.priority);
 		break;
 	case CTL_IO_TASK:
 		sbuf_cat(sb, path_str);
@@ -751,8 +735,8 @@ ctl_io_sbuf(union ctl_io *io, struct sbuf *sb)
 			sbuf_printf(sb, "Task Action: %s", task_desc);
 		switch (io->taskio.task_action) {
 		case CTL_TASK_ABORT_TASK:
-			sbuf_printf(sb, " Tag: %#jx/%d\n",
-			    io->taskio.tag_num, io->taskio.tag_type);
+			sbuf_printf(sb, " Tag: %#jx/%d\n", io->taskio.tag_num,
+			    io->taskio.tag_type);
 			break;
 		default:
 			sbuf_putc(sb, '\n');
@@ -766,7 +750,7 @@ ctl_io_sbuf(union ctl_io *io, struct sbuf *sb)
 
 void
 ctl_io_error_sbuf(union ctl_io *io, struct scsi_inquiry_data *inq_data,
-		  struct sbuf *sb)
+    struct sbuf *sb)
 {
 	struct ctl_status_desc *status_desc;
 	char path_str[64];
@@ -775,10 +759,11 @@ ctl_io_error_sbuf(union ctl_io *io, struct scsi_inquiry_data *inq_data,
 	ctl_io_sbuf(io, sb);
 
 	status_desc = NULL;
-	for (i = 0; i < (sizeof(ctl_status_table)/sizeof(ctl_status_table[0]));
+	for (i = 0;
+	     i < (sizeof(ctl_status_table) / sizeof(ctl_status_table[0]));
 	     i++) {
 		if ((io->io_hdr.status & CTL_STATUS_MASK) ==
-		     ctl_status_table[i].status) {
+		    ctl_status_table[i].status) {
 			status_desc = &ctl_status_table[i];
 			break;
 		}
@@ -789,19 +774,19 @@ ctl_io_error_sbuf(union ctl_io *io, struct scsi_inquiry_data *inq_data,
 	sbuf_cat(sb, path_str);
 	if (status_desc == NULL)
 		sbuf_printf(sb, "CTL Status: Unknown status %#x\n",
-			    io->io_hdr.status);
+		    io->io_hdr.status);
 	else
 		sbuf_printf(sb, "CTL Status: %s\n", status_desc->description);
 
-	if ((io->io_hdr.io_type == CTL_IO_SCSI)
-	 && ((io->io_hdr.status & CTL_STATUS_MASK) == CTL_SCSI_ERROR)) {
+	if ((io->io_hdr.io_type == CTL_IO_SCSI) &&
+	    ((io->io_hdr.status & CTL_STATUS_MASK) == CTL_SCSI_ERROR)) {
 		sbuf_cat(sb, path_str);
 		sbuf_printf(sb, "SCSI Status: %s\n",
-			    ctl_scsi_status_string(&io->scsiio));
+		    ctl_scsi_status_string(&io->scsiio));
 
 		if (io->scsiio.scsi_status == SCSI_STATUS_CHECK_COND)
-			ctl_scsi_sense_sbuf(&io->scsiio, inq_data,
-					    sb, SSS_FLAG_NONE);
+			ctl_scsi_sense_sbuf(&io->scsiio, inq_data, sb,
+			    SSS_FLAG_NONE);
 	}
 }
 
@@ -818,7 +803,7 @@ ctl_io_string(union ctl_io *io, char *str, int str_len)
 
 char *
 ctl_io_error_string(union ctl_io *io, struct scsi_inquiry_data *inq_data,
-		    char *str, int str_len)
+    char *str, int str_len)
 {
 	struct sbuf sb;
 
@@ -844,7 +829,6 @@ ctl_io_error_print(union ctl_io *io, struct scsi_inquiry_data *inq_data)
 	char str[512];
 
 	printf("%s", ctl_io_error_string(io, inq_data, str, sizeof(str)));
-
 }
 
 void
@@ -859,11 +843,11 @@ ctl_data_print(union ctl_io *io)
 		return;
 	if (io->io_hdr.flags & CTL_FLAG_BUS_ADDR)
 		return;
-	if (io->scsiio.kern_sg_entries > 0)	/* XXX: Implement */
+	if (io->scsiio.kern_sg_entries > 0) /* XXX: Implement */
 		return;
 	ctl_scsi_path_string(io, path_str, sizeof(path_str));
 	len = min(io->scsiio.kern_data_len, 4096);
-	for (i = 0; i < len; ) {
+	for (i = 0; i < len;) {
 		sbuf_new(&sb, str, sizeof(str), SBUF_FIXEDLEN);
 		sbuf_cat(&sb, path_str);
 		sbuf_printf(&sb, " %#jx:%04x:", io->scsiio.tag_num, i);
@@ -882,12 +866,12 @@ ctl_data_print(union ctl_io *io)
 
 void
 ctl_io_error_print(union ctl_io *io, struct scsi_inquiry_data *inq_data,
-		   FILE *ofile)
+    FILE *ofile)
 {
 	char str[512];
 
-	fprintf(ofile, "%s", ctl_io_error_string(io, inq_data, str,
-		sizeof(str)));
+	fprintf(ofile, "%s",
+	    ctl_io_error_string(io, inq_data, str, sizeof(str)));
 }
 
 #endif /* _KERNEL */

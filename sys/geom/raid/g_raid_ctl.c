@@ -28,20 +28,24 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
 #include <sys/bio.h>
-#include <sys/sysctl.h>
-#include <sys/malloc.h>
 #include <sys/bitstring.h>
-#include <vm/uma.h>
-#include <machine/atomic.h>
-#include <geom/geom.h>
-#include <sys/proc.h>
+#include <sys/kernel.h>
 #include <sys/kthread.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/proc.h>
+#include <sys/sysctl.h>
+
+#include <vm/uma.h>
+
+#include <machine/atomic.h>
+
+#include <geom/geom.h>
 #include <geom/raid/g_raid.h>
+
 #include "g_raid_md_if.h"
 
 static struct g_raid_softc *
@@ -53,7 +57,7 @@ g_raid_find_node(struct g_class *mp, const char *name)
 	struct g_raid_volume *vol;
 
 	/* Look for geom with specified name. */
-	LIST_FOREACH(gp, &mp->geom, geom) {
+	LIST_FOREACH (gp, &mp->geom, geom) {
 		sc = gp->softc;
 		if (sc == NULL)
 			continue;
@@ -64,13 +68,13 @@ g_raid_find_node(struct g_class *mp, const char *name)
 	}
 
 	/* Look for provider with specified name. */
-	LIST_FOREACH(gp, &mp->geom, geom) {
+	LIST_FOREACH (gp, &mp->geom, geom) {
 		sc = gp->softc;
 		if (sc == NULL)
 			continue;
 		if (sc->sc_stopping != 0)
 			continue;
-		LIST_FOREACH(pp, &gp->provider, provider) {
+		LIST_FOREACH (pp, &gp->provider, provider) {
 			if (strcmp(pp->name, name) == 0)
 				return (sc);
 			if (strncmp(pp->name, "raid/", 5) == 0 &&
@@ -80,13 +84,13 @@ g_raid_find_node(struct g_class *mp, const char *name)
 	}
 
 	/* Look for volume with specified name. */
-	LIST_FOREACH(gp, &mp->geom, geom) {
+	LIST_FOREACH (gp, &mp->geom, geom) {
 		sc = gp->softc;
 		if (sc == NULL)
 			continue;
 		if (sc->sc_stopping != 0)
 			continue;
-		TAILQ_FOREACH(vol, &sc->sc_volumes, v_next) {
+		TAILQ_FOREACH (vol, &sc->sc_volumes, v_next) {
 			if (strcmp(vol->v_name, name) == 0)
 				return (sc);
 		}

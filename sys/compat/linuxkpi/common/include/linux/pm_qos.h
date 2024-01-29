@@ -25,13 +25,12 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_LINUXKPI_LINUX_PM_QOS_H
-#define	_LINUXKPI_LINUX_PM_QOS_H
+#ifndef _LINUXKPI_LINUX_PM_QOS_H
+#define _LINUXKPI_LINUX_PM_QOS_H
 
-#define	PM_QOS_DEFAULT_VALUE	(-1)
+#define PM_QOS_DEFAULT_VALUE (-1)
 
-struct pm_qos_request {
-};
+struct pm_qos_request { };
 
 static inline void
 cpu_latency_qos_add_request(struct pm_qos_request *qos, int x)
@@ -54,4 +53,4 @@ cpu_latency_qos_request_active(struct pm_qos_request *qos)
 	return (false);
 }
 
-#endif	/* _LINUXKPI_LINUX_PM_QOS_H */
+#endif /* _LINUXKPI_LINUX_PM_QOS_H */

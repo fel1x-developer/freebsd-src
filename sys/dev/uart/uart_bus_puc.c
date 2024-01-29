@@ -32,13 +32,12 @@
 #include <sys/conf.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
-#include <sys/rman.h>
 #include <machine/resource.h>
 
 #include <dev/puc/puc_bus.h>
-
 #include <dev/uart/uart.h>
 #include <dev/uart/uart_bus.h>
 
@@ -46,13 +45,12 @@ static int uart_puc_probe(device_t dev);
 
 static device_method_t uart_puc_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		uart_puc_probe),
-	DEVMETHOD(device_attach,	uart_bus_attach),
-	DEVMETHOD(device_detach,	uart_bus_detach),
+	DEVMETHOD(device_probe, uart_puc_probe),
+	DEVMETHOD(device_attach, uart_bus_attach),
+	DEVMETHOD(device_detach, uart_bus_detach),
 	/* Serdev interface */
-	DEVMETHOD(serdev_ihand,		uart_bus_ihand),
-	DEVMETHOD(serdev_ipend,		uart_bus_ipend),
-	{ 0, 0 }
+	DEVMETHOD(serdev_ihand, uart_bus_ihand),
+	DEVMETHOD(serdev_ipend, uart_bus_ipend), { 0, 0 }
 };
 
 static driver_t uart_puc_driver = {

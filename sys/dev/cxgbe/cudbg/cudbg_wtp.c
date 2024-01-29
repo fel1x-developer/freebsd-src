@@ -30,230 +30,182 @@
 #include "common/common.h"
 #include "common/t4_regs.h"
 #include "cudbg.h"
-#include "cudbg_lib_common.h"
 #include "cudbg_entity.h"
+#include "cudbg_lib_common.h"
 
 int collect_wtp_data(struct cudbg_init *pdbg_init,
-		     struct cudbg_buffer *dbg_buff,
-		     struct cudbg_error *cudbg_err);
+    struct cudbg_buffer *dbg_buff, struct cudbg_error *cudbg_err);
 /*SGE_DEBUG Registers.*/
-#define TP_MIB_SIZE	    0x5e
+#define TP_MIB_SIZE 0x5e
 
 struct sge_debug_reg_data {
 	/*indx0*/
-	u32 reserved1:4;
-	u32 reserved2:4;
-	u32 debug_uP_SOP_cnt:4;
-	u32 debug_uP_EOP_cnt:4;
-	u32 debug_CIM_SOP1_cnt:4;
-	u32 debug_CIM_EOP1_cnt:4;
-	u32 debug_CIM_SOP0_cnt:4;
-	u32 debug_CIM_EOP0_cnt:4;
+	u32 reserved1 : 4;
+	u32 reserved2 : 4;
+	u32 debug_uP_SOP_cnt : 4;
+	u32 debug_uP_EOP_cnt : 4;
+	u32 debug_CIM_SOP1_cnt : 4;
+	u32 debug_CIM_EOP1_cnt : 4;
+	u32 debug_CIM_SOP0_cnt : 4;
+	u32 debug_CIM_EOP0_cnt : 4;
 
 	/*indx1*/
-	u32 reserved3:32;
+	u32 reserved3 : 32;
 
 	/*indx2*/
-	u32 debug_T_Rx_SOP1_cnt:4;
-	u32 debug_T_Rx_EOP1_cnt:4;
-	u32 debug_T_Rx_SOP0_cnt:4;
-	u32 debug_T_Rx_EOP0_cnt:4;
-	u32 debug_U_Rx_SOP1_cnt:4;
-	u32 debug_U_Rx_EOP1_cnt:4;
-	u32 debug_U_Rx_SOP0_cnt:4;
-	u32 debug_U_Rx_EOP0_cnt:4;
+	u32 debug_T_Rx_SOP1_cnt : 4;
+	u32 debug_T_Rx_EOP1_cnt : 4;
+	u32 debug_T_Rx_SOP0_cnt : 4;
+	u32 debug_T_Rx_EOP0_cnt : 4;
+	u32 debug_U_Rx_SOP1_cnt : 4;
+	u32 debug_U_Rx_EOP1_cnt : 4;
+	u32 debug_U_Rx_SOP0_cnt : 4;
+	u32 debug_U_Rx_EOP0_cnt : 4;
 
 	/*indx3*/
-	u32 reserved4:32;
+	u32 reserved4 : 32;
 
 	/*indx4*/
-	u32 debug_UD_Rx_SOP3_cnt:4;
-	u32 debug_UD_Rx_EOP3_cnt:4;
-	u32 debug_UD_Rx_SOP2_cnt:4;
-	u32 debug_UD_Rx_EOP2_cnt:4;
-	u32 debug_UD_Rx_SOP1_cnt:4;
-	u32 debug_UD_Rx_EOP1_cnt:4;
-	u32 debug_UD_Rx_SOP0_cnt:4;
-	u32 debug_UD_Rx_EOP0_cnt:4;
+	u32 debug_UD_Rx_SOP3_cnt : 4;
+	u32 debug_UD_Rx_EOP3_cnt : 4;
+	u32 debug_UD_Rx_SOP2_cnt : 4;
+	u32 debug_UD_Rx_EOP2_cnt : 4;
+	u32 debug_UD_Rx_SOP1_cnt : 4;
+	u32 debug_UD_Rx_EOP1_cnt : 4;
+	u32 debug_UD_Rx_SOP0_cnt : 4;
+	u32 debug_UD_Rx_EOP0_cnt : 4;
 
 	/*indx5*/
-	u32 reserved5:32;
+	u32 reserved5 : 32;
 
 	/*indx6*/
-	u32 debug_U_Tx_SOP3_cnt:4;
-	u32 debug_U_Tx_EOP3_cnt:4;
-	u32 debug_U_Tx_SOP2_cnt:4;
-	u32 debug_U_Tx_EOP2_cnt:4;
-	u32 debug_U_Tx_SOP1_cnt:4;
-	u32 debug_U_Tx_EOP1_cnt:4;
-	u32 debug_U_Tx_SOP0_cnt:4;
-	u32 debug_U_Tx_EOP0_cnt:4;
+	u32 debug_U_Tx_SOP3_cnt : 4;
+	u32 debug_U_Tx_EOP3_cnt : 4;
+	u32 debug_U_Tx_SOP2_cnt : 4;
+	u32 debug_U_Tx_EOP2_cnt : 4;
+	u32 debug_U_Tx_SOP1_cnt : 4;
+	u32 debug_U_Tx_EOP1_cnt : 4;
+	u32 debug_U_Tx_SOP0_cnt : 4;
+	u32 debug_U_Tx_EOP0_cnt : 4;
 
 	/*indx7*/
-	u32 reserved6:32;
+	u32 reserved6 : 32;
 
 	/*indx8*/
-	u32  debug_PC_Rsp_SOP1_cnt:4;
-	u32  debug_PC_Rsp_EOP1_cnt:4;
-	u32  debug_PC_Rsp_SOP0_cnt:4;
-	u32  debug_PC_Rsp_EOP0_cnt:4;
-	u32  debug_PC_Req_SOP1_cnt:4;
-	u32  debug_PC_Req_EOP1_cnt:4;
-	u32  debug_PC_Req_SOP0_cnt:4;
-	u32  debug_PC_Req_EOP0_cnt:4;
+	u32 debug_PC_Rsp_SOP1_cnt : 4;
+	u32 debug_PC_Rsp_EOP1_cnt : 4;
+	u32 debug_PC_Rsp_SOP0_cnt : 4;
+	u32 debug_PC_Rsp_EOP0_cnt : 4;
+	u32 debug_PC_Req_SOP1_cnt : 4;
+	u32 debug_PC_Req_EOP1_cnt : 4;
+	u32 debug_PC_Req_SOP0_cnt : 4;
+	u32 debug_PC_Req_EOP0_cnt : 4;
 
 	/*indx9*/
-	u32 reserved7:32;
+	u32 reserved7 : 32;
 
 	/*indx10*/
-	u32  debug_PD_Req_SOP3_cnt:4;
-	u32  debug_PD_Req_EOP3_cnt:4;
-	u32  debug_PD_Req_SOP2_cnt:4;
-	u32  debug_PD_Req_EOP2_cnt:4;
-	u32  debug_PD_Req_SOP1_cnt:4;
-	u32  debug_PD_Req_EOP1_cnt:4;
-	u32  debug_PD_Req_SOP0_cnt:4;
-	u32  debug_PD_Req_EOP0_cnt:4;
+	u32 debug_PD_Req_SOP3_cnt : 4;
+	u32 debug_PD_Req_EOP3_cnt : 4;
+	u32 debug_PD_Req_SOP2_cnt : 4;
+	u32 debug_PD_Req_EOP2_cnt : 4;
+	u32 debug_PD_Req_SOP1_cnt : 4;
+	u32 debug_PD_Req_EOP1_cnt : 4;
+	u32 debug_PD_Req_SOP0_cnt : 4;
+	u32 debug_PD_Req_EOP0_cnt : 4;
 
 	/*indx11*/
-	u32 reserved8:32;
+	u32 reserved8 : 32;
 
 	/*indx12*/
-	u32  debug_PD_Rsp_SOP3_cnt:4;
-	u32  debug_PD_Rsp_EOP3_cnt:4;
-	u32  debug_PD_Rsp_SOP2_cnt:4;
-	u32  debug_PD_Rsp_EOP2_cnt:4;
-	u32  debug_PD_Rsp_SOP1_cnt:4;
-	u32  debug_PD_Rsp_EOP1_cnt:4;
-	u32  debug_PD_Rsp_SOP0_cnt:4;
-	u32  debug_PD_Rsp_EOP0_cnt:4;
+	u32 debug_PD_Rsp_SOP3_cnt : 4;
+	u32 debug_PD_Rsp_EOP3_cnt : 4;
+	u32 debug_PD_Rsp_SOP2_cnt : 4;
+	u32 debug_PD_Rsp_EOP2_cnt : 4;
+	u32 debug_PD_Rsp_SOP1_cnt : 4;
+	u32 debug_PD_Rsp_EOP1_cnt : 4;
+	u32 debug_PD_Rsp_SOP0_cnt : 4;
+	u32 debug_PD_Rsp_EOP0_cnt : 4;
 
 	/*indx13*/
-	u32 reserved9:32;
+	u32 reserved9 : 32;
 
 	/*indx14*/
-	u32  debug_CPLSW_TP_Rx_SOP1_cnt:4;
-	u32  debug_CPLSW_TP_Rx_EOP1_cnt:4;
-	u32  debug_CPLSW_TP_Rx_SOP0_cnt:4;
-	u32  debug_CPLSW_TP_Rx_EOP0_cnt:4;
-	u32  debug_CPLSW_CIM_SOP1_cnt:4;
-	u32  debug_CPLSW_CIM_EOP1_cnt:4;
-	u32  debug_CPLSW_CIM_SOP0_cnt:4;
-	u32  debug_CPLSW_CIM_EOP0_cnt:4;
+	u32 debug_CPLSW_TP_Rx_SOP1_cnt : 4;
+	u32 debug_CPLSW_TP_Rx_EOP1_cnt : 4;
+	u32 debug_CPLSW_TP_Rx_SOP0_cnt : 4;
+	u32 debug_CPLSW_TP_Rx_EOP0_cnt : 4;
+	u32 debug_CPLSW_CIM_SOP1_cnt : 4;
+	u32 debug_CPLSW_CIM_EOP1_cnt : 4;
+	u32 debug_CPLSW_CIM_SOP0_cnt : 4;
+	u32 debug_CPLSW_CIM_EOP0_cnt : 4;
 
 	/*indx15*/
-	u32 reserved10:32;
+	u32 reserved10 : 32;
 
 	/*indx16*/
-	u32  debug_PD_Req_Rd3_cnt:4;
-	u32  debug_PD_Req_Rd2_cnt:4;
-	u32  debug_PD_Req_Rd1_cnt:4;
-	u32  debug_PD_Req_Rd0_cnt:4;
-	u32  debug_PD_Req_Int3_cnt:4;
-	u32  debug_PD_Req_Int2_cnt:4;
-	u32  debug_PD_Req_Int1_cnt:4;
-	u32  debug_PD_Req_Int0_cnt:4;
-
+	u32 debug_PD_Req_Rd3_cnt : 4;
+	u32 debug_PD_Req_Rd2_cnt : 4;
+	u32 debug_PD_Req_Rd1_cnt : 4;
+	u32 debug_PD_Req_Rd0_cnt : 4;
+	u32 debug_PD_Req_Int3_cnt : 4;
+	u32 debug_PD_Req_Int2_cnt : 4;
+	u32 debug_PD_Req_Int1_cnt : 4;
+	u32 debug_PD_Req_Int0_cnt : 4;
 };
 
-struct tp_mib_type tp_mib[] = {
-	{"tp_mib_mac_in_err_0", 0x0},
-	{"tp_mib_mac_in_err_1", 0x1},
-	{"tp_mib_mac_in_err_2", 0x2},
-	{"tp_mib_mac_in_err_3", 0x3},
-	{"tp_mib_hdr_in_err_0", 0x4},
-	{"tp_mib_hdr_in_err_1", 0x5},
-	{"tp_mib_hdr_in_err_2", 0x6},
-	{"tp_mib_hdr_in_err_3", 0x7},
-	{"tp_mib_tcp_in_err_0", 0x8},
-	{"tp_mib_tcp_in_err_1", 0x9},
-	{"tp_mib_tcp_in_err_2", 0xa},
-	{"tp_mib_tcp_in_err_3", 0xb},
-	{"tp_mib_tcp_out_rst", 0xc},
-	{"tp_mib_tcp_in_seg_hi", 0x10},
-	{"tp_mib_tcp_in_seg_lo", 0x11},
-	{"tp_mib_tcp_out_seg_hi", 0x12},
-	{"tp_mib_tcp_out_seg_lo", 0x13},
-	{"tp_mib_tcp_rxt_seg_hi", 0x14},
-	{"tp_mib_tcp_rxt_seg_lo", 0x15},
-	{"tp_mib_tnl_cng_drop_0", 0x18},
-	{"tp_mib_tnl_cng_drop_1", 0x19},
-	{"tp_mib_tnl_cng_drop_2", 0x1a},
-	{"tp_mib_tnl_cng_drop_3", 0x1b},
-	{"tp_mib_ofd_chn_drop_0", 0x1c},
-	{"tp_mib_ofd_chn_drop_1", 0x1d},
-	{"tp_mib_ofd_chn_drop_2", 0x1e},
-	{"tp_mib_ofd_chn_drop_3", 0x1f},
-	{"tp_mib_tnl_out_pkt_0", 0x20},
-	{"tp_mib_tnl_out_pkt_1", 0x21},
-	{"tp_mib_tnl_out_pkt_2", 0x22},
-	{"tp_mib_tnl_out_pkt_3", 0x23},
-	{"tp_mib_tnl_in_pkt_0", 0x24},
-	{"tp_mib_tnl_in_pkt_1", 0x25},
-	{"tp_mib_tnl_in_pkt_2", 0x26},
-	{"tp_mib_tnl_in_pkt_3", 0x27},
-	{"tp_mib_tcp_v6in_err_0", 0x28},
-	{"tp_mib_tcp_v6in_err_1", 0x29},
-	{"tp_mib_tcp_v6in_err_2", 0x2a},
-	{"tp_mib_tcp_v6in_err_3", 0x2b},
-	{"tp_mib_tcp_v6out_rst", 0x2c},
-	{"tp_mib_tcp_v6in_seg_hi", 0x30},
-	{"tp_mib_tcp_v6in_seg_lo", 0x31},
-	{"tp_mib_tcp_v6out_seg_hi", 0x32},
-	{"tp_mib_tcp_v6out_seg_lo", 0x33},
-	{"tp_mib_tcp_v6rxt_seg_hi", 0x34},
-	{"tp_mib_tcp_v6rxt_seg_lo", 0x35},
-	{"tp_mib_ofd_arp_drop", 0x36},
-	{"tp_mib_ofd_dfr_drop", 0x37},
-	{"tp_mib_cpl_in_req_0", 0x38},
-	{"tp_mib_cpl_in_req_1", 0x39},
-	{"tp_mib_cpl_in_req_2", 0x3a},
-	{"tp_mib_cpl_in_req_3", 0x3b},
-	{"tp_mib_cpl_out_rsp_0", 0x3c},
-	{"tp_mib_cpl_out_rsp_1", 0x3d},
-	{"tp_mib_cpl_out_rsp_2", 0x3e},
-	{"tp_mib_cpl_out_rsp_3", 0x3f},
-	{"tp_mib_tnl_lpbk_0", 0x40},
-	{"tp_mib_tnl_lpbk_1", 0x41},
-	{"tp_mib_tnl_lpbk_2", 0x42},
-	{"tp_mib_tnl_lpbk_3", 0x43},
-	{"tp_mib_tnl_drop_0", 0x44},
-	{"tp_mib_tnl_drop_1", 0x45},
-	{"tp_mib_tnl_drop_2", 0x46},
-	{"tp_mib_tnl_drop_3", 0x47},
-	{"tp_mib_fcoe_ddp_0", 0x48},
-	{"tp_mib_fcoe_ddp_1", 0x49},
-	{"tp_mib_fcoe_ddp_2", 0x4a},
-	{"tp_mib_fcoe_ddp_3", 0x4b},
-	{"tp_mib_fcoe_drop_0", 0x4c},
-	{"tp_mib_fcoe_drop_1", 0x4d},
-	{"tp_mib_fcoe_drop_2", 0x4e},
-	{"tp_mib_fcoe_drop_3", 0x4f},
-	{"tp_mib_fcoe_byte_0_hi", 0x50},
-	{"tp_mib_fcoe_byte_0_lo", 0x51},
-	{"tp_mib_fcoe_byte_1_hi", 0x52},
-	{"tp_mib_fcoe_byte_1_lo", 0x53},
-	{"tp_mib_fcoe_byte_2_hi", 0x54},
-	{"tp_mib_fcoe_byte_2_lo", 0x55},
-	{"tp_mib_fcoe_byte_3_hi", 0x56},
-	{"tp_mib_fcoe_byte_3_lo", 0x57},
-	{"tp_mib_ofd_vln_drop_0", 0x58},
-	{"tp_mib_ofd_vln_drop_1", 0x59},
-	{"tp_mib_ofd_vln_drop_2", 0x5a},
-	{"tp_mib_ofd_vln_drop_3", 0x5b},
-	{"tp_mib_usm_pkts", 0x5c},
-	{"tp_mib_usm_drop", 0x5d},
-	{"tp_mib_usm_bytes_hi", 0x5e},
-	{"tp_mib_usm_bytes_lo", 0x5f},
-	{"tp_mib_tid_del", 0x60},
-	{"tp_mib_tid_inv", 0x61},
-	{"tp_mib_tid_act", 0x62},
-	{"tp_mib_tid_pas", 0x63},
-	{"tp_mib_rqe_dfr_mod", 0x64},
-	{"tp_mib_rqe_dfr_pkt", 0x65}
-};
+struct tp_mib_type tp_mib[] = { { "tp_mib_mac_in_err_0", 0x0 },
+	{ "tp_mib_mac_in_err_1", 0x1 }, { "tp_mib_mac_in_err_2", 0x2 },
+	{ "tp_mib_mac_in_err_3", 0x3 }, { "tp_mib_hdr_in_err_0", 0x4 },
+	{ "tp_mib_hdr_in_err_1", 0x5 }, { "tp_mib_hdr_in_err_2", 0x6 },
+	{ "tp_mib_hdr_in_err_3", 0x7 }, { "tp_mib_tcp_in_err_0", 0x8 },
+	{ "tp_mib_tcp_in_err_1", 0x9 }, { "tp_mib_tcp_in_err_2", 0xa },
+	{ "tp_mib_tcp_in_err_3", 0xb }, { "tp_mib_tcp_out_rst", 0xc },
+	{ "tp_mib_tcp_in_seg_hi", 0x10 }, { "tp_mib_tcp_in_seg_lo", 0x11 },
+	{ "tp_mib_tcp_out_seg_hi", 0x12 }, { "tp_mib_tcp_out_seg_lo", 0x13 },
+	{ "tp_mib_tcp_rxt_seg_hi", 0x14 }, { "tp_mib_tcp_rxt_seg_lo", 0x15 },
+	{ "tp_mib_tnl_cng_drop_0", 0x18 }, { "tp_mib_tnl_cng_drop_1", 0x19 },
+	{ "tp_mib_tnl_cng_drop_2", 0x1a }, { "tp_mib_tnl_cng_drop_3", 0x1b },
+	{ "tp_mib_ofd_chn_drop_0", 0x1c }, { "tp_mib_ofd_chn_drop_1", 0x1d },
+	{ "tp_mib_ofd_chn_drop_2", 0x1e }, { "tp_mib_ofd_chn_drop_3", 0x1f },
+	{ "tp_mib_tnl_out_pkt_0", 0x20 }, { "tp_mib_tnl_out_pkt_1", 0x21 },
+	{ "tp_mib_tnl_out_pkt_2", 0x22 }, { "tp_mib_tnl_out_pkt_3", 0x23 },
+	{ "tp_mib_tnl_in_pkt_0", 0x24 }, { "tp_mib_tnl_in_pkt_1", 0x25 },
+	{ "tp_mib_tnl_in_pkt_2", 0x26 }, { "tp_mib_tnl_in_pkt_3", 0x27 },
+	{ "tp_mib_tcp_v6in_err_0", 0x28 }, { "tp_mib_tcp_v6in_err_1", 0x29 },
+	{ "tp_mib_tcp_v6in_err_2", 0x2a }, { "tp_mib_tcp_v6in_err_3", 0x2b },
+	{ "tp_mib_tcp_v6out_rst", 0x2c }, { "tp_mib_tcp_v6in_seg_hi", 0x30 },
+	{ "tp_mib_tcp_v6in_seg_lo", 0x31 }, { "tp_mib_tcp_v6out_seg_hi", 0x32 },
+	{ "tp_mib_tcp_v6out_seg_lo", 0x33 },
+	{ "tp_mib_tcp_v6rxt_seg_hi", 0x34 },
+	{ "tp_mib_tcp_v6rxt_seg_lo", 0x35 }, { "tp_mib_ofd_arp_drop", 0x36 },
+	{ "tp_mib_ofd_dfr_drop", 0x37 }, { "tp_mib_cpl_in_req_0", 0x38 },
+	{ "tp_mib_cpl_in_req_1", 0x39 }, { "tp_mib_cpl_in_req_2", 0x3a },
+	{ "tp_mib_cpl_in_req_3", 0x3b }, { "tp_mib_cpl_out_rsp_0", 0x3c },
+	{ "tp_mib_cpl_out_rsp_1", 0x3d }, { "tp_mib_cpl_out_rsp_2", 0x3e },
+	{ "tp_mib_cpl_out_rsp_3", 0x3f }, { "tp_mib_tnl_lpbk_0", 0x40 },
+	{ "tp_mib_tnl_lpbk_1", 0x41 }, { "tp_mib_tnl_lpbk_2", 0x42 },
+	{ "tp_mib_tnl_lpbk_3", 0x43 }, { "tp_mib_tnl_drop_0", 0x44 },
+	{ "tp_mib_tnl_drop_1", 0x45 }, { "tp_mib_tnl_drop_2", 0x46 },
+	{ "tp_mib_tnl_drop_3", 0x47 }, { "tp_mib_fcoe_ddp_0", 0x48 },
+	{ "tp_mib_fcoe_ddp_1", 0x49 }, { "tp_mib_fcoe_ddp_2", 0x4a },
+	{ "tp_mib_fcoe_ddp_3", 0x4b }, { "tp_mib_fcoe_drop_0", 0x4c },
+	{ "tp_mib_fcoe_drop_1", 0x4d }, { "tp_mib_fcoe_drop_2", 0x4e },
+	{ "tp_mib_fcoe_drop_3", 0x4f }, { "tp_mib_fcoe_byte_0_hi", 0x50 },
+	{ "tp_mib_fcoe_byte_0_lo", 0x51 }, { "tp_mib_fcoe_byte_1_hi", 0x52 },
+	{ "tp_mib_fcoe_byte_1_lo", 0x53 }, { "tp_mib_fcoe_byte_2_hi", 0x54 },
+	{ "tp_mib_fcoe_byte_2_lo", 0x55 }, { "tp_mib_fcoe_byte_3_hi", 0x56 },
+	{ "tp_mib_fcoe_byte_3_lo", 0x57 }, { "tp_mib_ofd_vln_drop_0", 0x58 },
+	{ "tp_mib_ofd_vln_drop_1", 0x59 }, { "tp_mib_ofd_vln_drop_2", 0x5a },
+	{ "tp_mib_ofd_vln_drop_3", 0x5b }, { "tp_mib_usm_pkts", 0x5c },
+	{ "tp_mib_usm_drop", 0x5d }, { "tp_mib_usm_bytes_hi", 0x5e },
+	{ "tp_mib_usm_bytes_lo", 0x5f }, { "tp_mib_tid_del", 0x60 },
+	{ "tp_mib_tid_inv", 0x61 }, { "tp_mib_tid_act", 0x62 },
+	{ "tp_mib_tid_pas", 0x63 }, { "tp_mib_rqe_dfr_mod", 0x64 },
+	{ "tp_mib_rqe_dfr_pkt", 0x65 } };
 
-static u32 read_sge_debug_data(struct cudbg_init *pdbg_init, u32 *sge_dbg_reg)
+static u32
+read_sge_debug_data(struct cudbg_init *pdbg_init, u32 *sge_dbg_reg)
 {
 	struct adapter *padap = pdbg_init->adap;
 	u32 value;
@@ -271,31 +223,31 @@ static u32 read_sge_debug_data(struct cudbg_init *pdbg_init, u32 *sge_dbg_reg)
 	return 0;
 }
 
-static u32 read_tp_mib_data(struct cudbg_init *pdbg_init,
-			    struct tp_mib_data **ppTp_Mib)
+static u32
+read_tp_mib_data(struct cudbg_init *pdbg_init, struct tp_mib_data **ppTp_Mib)
 {
 	struct adapter *padap = pdbg_init->adap;
 	u32 i = 0;
 
 	for (i = 0; i < TP_MIB_SIZE; i++) {
-		t4_tp_mib_read(padap, &tp_mib[i].value, 1,
-				  (u32)tp_mib[i].addr, true);
+		t4_tp_mib_read(padap, &tp_mib[i].value, 1, (u32)tp_mib[i].addr,
+		    true);
 	}
 	*ppTp_Mib = (struct tp_mib_data *)&tp_mib[0];
 
 	return 0;
 }
 
-static int t5_wtp_data(struct cudbg_init *pdbg_init,
-		       struct cudbg_buffer *dbg_buff,
-		       struct cudbg_error *cudbg_err)
+static int
+t5_wtp_data(struct cudbg_init *pdbg_init, struct cudbg_buffer *dbg_buff,
+    struct cudbg_error *cudbg_err)
 {
 	struct adapter *padap = pdbg_init->adap;
 	struct sge_debug_reg_data *sge_dbg_reg = NULL;
 	struct cudbg_buffer scratch_buff;
 	struct tp_mib_data *ptp_mib = NULL;
 	struct wtp_data *wtp;
-	u32 Sge_Dbg[32] = {0};
+	u32 Sge_Dbg[32] = { 0 };
 	u32 value = 0;
 	u32 i = 0;
 	u32 drop = 0;
@@ -314,7 +266,7 @@ static int t5_wtp_data(struct cudbg_init *pdbg_init,
 	read_sge_debug_data(pdbg_init, Sge_Dbg);
 	read_tp_mib_data(pdbg_init, &ptp_mib);
 
-	sge_dbg_reg = (struct sge_debug_reg_data *) &Sge_Dbg[0];
+	sge_dbg_reg = (struct sge_debug_reg_data *)&Sge_Dbg[0];
 
 	/*#######################################################################*/
 	/*# TX PATH, starting from pcie*/
@@ -322,11 +274,11 @@ static int t5_wtp_data(struct cudbg_init *pdbg_init,
 
 	/* Get Requests of commands from SGE to PCIE*/
 
-	wtp->sge_pcie_cmd_req.sop[0] =	sge_dbg_reg->debug_PC_Req_SOP0_cnt;
-	wtp->sge_pcie_cmd_req.sop[1] =	sge_dbg_reg->debug_PC_Req_SOP1_cnt;
+	wtp->sge_pcie_cmd_req.sop[0] = sge_dbg_reg->debug_PC_Req_SOP0_cnt;
+	wtp->sge_pcie_cmd_req.sop[1] = sge_dbg_reg->debug_PC_Req_SOP1_cnt;
 
-	wtp->sge_pcie_cmd_req.eop[0] =	sge_dbg_reg->debug_PC_Req_EOP0_cnt;
-	wtp->sge_pcie_cmd_req.eop[1] =	sge_dbg_reg->debug_PC_Req_EOP1_cnt;
+	wtp->sge_pcie_cmd_req.eop[0] = sge_dbg_reg->debug_PC_Req_EOP0_cnt;
+	wtp->sge_pcie_cmd_req.eop[1] = sge_dbg_reg->debug_PC_Req_EOP1_cnt;
 
 	/* Get Requests of commands from PCIE to core*/
 	value = t4_read_reg(padap, A_PCIE_CMDR_REQ_CNT);
@@ -392,10 +344,10 @@ static int t5_wtp_data(struct cudbg_init *pdbg_init,
 	/* Get command respones from core to PCIE*/
 	value = t4_read_reg(padap, A_PCIE_CMDR_RSP_CNT);
 
-	wtp->core_pcie_cmd_rsp.sop[0] = ((value >> 0) & 0xFF); /*bit 0:7*/
+	wtp->core_pcie_cmd_rsp.sop[0] = ((value >> 0) & 0xFF);	/*bit 0:7*/
 	wtp->core_pcie_cmd_rsp.sop[1] = ((value >> 16) & 0xFF); /*bit 16:23*/
 
-	wtp->core_pcie_cmd_rsp.eop[0] = ((value >> 8) & 0xFF); /*bit 8:15*/
+	wtp->core_pcie_cmd_rsp.eop[0] = ((value >> 8) & 0xFF);	/*bit 8:15*/
 	wtp->core_pcie_cmd_rsp.eop[1] = ((value >> 24) & 0xFF); /*bit 24:31*/
 
 	/*Get command Resposes from PCIE to SGE*/
@@ -437,28 +389,28 @@ static int t5_wtp_data(struct cudbg_init *pdbg_init,
 	/* Get Requests of data from PCIE to core*/
 	value = t4_read_reg(padap, A_PCIE_DMAR_REQ_CNT);
 
-	wtp->pcie_core_dma_req.sop[0] = ((value >> 0) & 0xFF); /*bit 0:7*/
-	wtp->pcie_core_dma_req.sop[1] = ((value >> 8) & 0xFF); /*bit 8:15*/
+	wtp->pcie_core_dma_req.sop[0] = ((value >> 0) & 0xFF);	/*bit 0:7*/
+	wtp->pcie_core_dma_req.sop[1] = ((value >> 8) & 0xFF);	/*bit 8:15*/
 	wtp->pcie_core_dma_req.sop[2] = ((value >> 16) & 0xFF); /*bit 16:23*/
 	wtp->pcie_core_dma_req.sop[3] = ((value >> 24) & 0xFF); /*bit 24:31*/
 	/* There is no eop so fake it.*/
-	wtp->pcie_core_dma_req.eop[0] = ((value >> 0) & 0xFF); /*bit 0:7*/
-	wtp->pcie_core_dma_req.eop[1] = ((value >> 8) & 0xFF); /*bit 8:15*/
+	wtp->pcie_core_dma_req.eop[0] = ((value >> 0) & 0xFF);	/*bit 0:7*/
+	wtp->pcie_core_dma_req.eop[1] = ((value >> 8) & 0xFF);	/*bit 8:15*/
 	wtp->pcie_core_dma_req.eop[2] = ((value >> 16) & 0xFF); /*bit 16:23*/
 	wtp->pcie_core_dma_req.eop[3] = ((value >> 24) & 0xFF); /*bit 24:31*/
 
 	/* Get data responses from core to PCIE*/
 	value = t4_read_reg(padap, A_PCIE_DMAR_RSP_SOP_CNT);
 
-	wtp->core_pcie_dma_rsp.sop[0] = ((value >> 0) & 0xFF); /*bit 0:7*/
-	wtp->core_pcie_dma_rsp.sop[1] = ((value >> 8) & 0xFF); /*bit 8:15*/
+	wtp->core_pcie_dma_rsp.sop[0] = ((value >> 0) & 0xFF);	/*bit 0:7*/
+	wtp->core_pcie_dma_rsp.sop[1] = ((value >> 8) & 0xFF);	/*bit 8:15*/
 	wtp->core_pcie_dma_rsp.sop[2] = ((value >> 16) & 0xFF); /*bit 16:23*/
 	wtp->core_pcie_dma_rsp.sop[3] = ((value >> 24) & 0xFF); /*bit 24:31*/
 
 	value = t4_read_reg(padap, A_PCIE_DMAR_RSP_EOP_CNT);
 
-	wtp->core_pcie_dma_rsp.eop[0] = ((value >> 0) & 0xFF); /*bit 0:7*/
-	wtp->core_pcie_dma_rsp.eop[1] = ((value >> 8) & 0xFF); /*bit 8:15*/
+	wtp->core_pcie_dma_rsp.eop[0] = ((value >> 0) & 0xFF);	/*bit 0:7*/
+	wtp->core_pcie_dma_rsp.eop[1] = ((value >> 8) & 0xFF);	/*bit 8:15*/
 	wtp->core_pcie_dma_rsp.eop[2] = ((value >> 16) & 0xFF); /*bit 16:23*/
 	wtp->core_pcie_dma_rsp.eop[3] = ((value >> 24) & 0xFF); /*bit 24:31*/
 
@@ -486,7 +438,7 @@ static int t5_wtp_data(struct cudbg_init *pdbg_init,
 
 	/* Get ULP_TX to TP*/
 	for (i = 0; i < 4; i++) {
-		value = t4_read_reg(padap, (A_ULP_TX_SE_CNT_CH0 + (i*4)));
+		value = t4_read_reg(padap, (A_ULP_TX_SE_CNT_CH0 + (i * 4)));
 
 		wtp->utx_tp.sop[i] = ((value >> 28) & 0xF); /*bits 28:31*/
 		wtp->utx_tp.eop[i] = ((value >> 24) & 0xF); /*bits 24:27*/
@@ -495,13 +447,16 @@ static int t5_wtp_data(struct cudbg_init *pdbg_init,
 	/* Get TP_DBG_CSIDE registers*/
 	for (i = 0; i < 4; i++) {
 		t4_tp_pio_read(padap, &value, 1, (u32)(A_TP_DBG_CSIDE_RX0 + i),
-			       true);
+		    true);
 
-		wtp->utx_tpcside.sop[i]   = ((value >> 28) & 0xF);/*bits 28:31*/
-		wtp->utx_tpcside.eop[i]   = ((value >> 24) & 0xF);/*bits 24:27*/
-		wtp->tpcside_rxpld.sop[i] = ((value >> 20) & 0xF);/*bits 20:23*/
-		wtp->tpcside_rxpld.eop[i] = ((value >> 16) & 0xF);/*bits 16:19*/
-		wtp->tpcside_rxarb.sop[i] = ((value >> 12) & 0xF);/*bits 12:15*/
+		wtp->utx_tpcside.sop[i] = ((value >> 28) & 0xF); /*bits 28:31*/
+		wtp->utx_tpcside.eop[i] = ((value >> 24) & 0xF); /*bits 24:27*/
+		wtp->tpcside_rxpld.sop[i] = ((value >> 20) &
+		    0xF); /*bits 20:23*/
+		wtp->tpcside_rxpld.eop[i] = ((value >> 16) &
+		    0xF); /*bits 16:19*/
+		wtp->tpcside_rxarb.sop[i] = ((value >> 12) &
+		    0xF);					  /*bits 12:15*/
 		wtp->tpcside_rxarb.eop[i] = ((value >> 8) & 0xF); /*bits 8:11*/
 		wtp->tpcside_rxcpl.sop[i] = ((value >> 4) & 0xF); /*bits 4:7*/
 		wtp->tpcside_rxcpl.eop[i] = ((value >> 0) & 0xF); /*bits 0:3*/
@@ -510,17 +465,16 @@ static int t5_wtp_data(struct cudbg_init *pdbg_init,
 	/* TP_DBG_ESIDE*/
 	for (i = 0; i < 4; i++) {
 		t4_tp_pio_read(padap, &value, 1, (u32)(A_TP_DBG_ESIDE_PKT0 + i),
-			       true);
+		    true);
 
 		wtp->tpeside_mps.sop[i] = ((value >> 28) & 0xF); /*bits 28:31*/
 		wtp->tpeside_mps.eop[i] = ((value >> 24) & 0xF); /*bits 24:27*/
-		wtp->tpeside_pm.sop[i]	= ((value >> 20) & 0xF); /*bits 20:23*/
-		wtp->tpeside_pm.eop[i]	= ((value >> 16) & 0xF); /*bits 16:19*/
+		wtp->tpeside_pm.sop[i] = ((value >> 20) & 0xF);	 /*bits 20:23*/
+		wtp->tpeside_pm.eop[i] = ((value >> 16) & 0xF);	 /*bits 16:19*/
 		wtp->mps_tpeside.sop[i] = ((value >> 12) & 0xF); /*bits 12:15*/
-		wtp->mps_tpeside.eop[i] = ((value >> 8) & 0xF); /*bits 8:11*/
-		wtp->tpeside_pld.sop[i] = ((value >> 4) & 0xF); /*bits 4:7*/
-		wtp->tpeside_pld.eop[i] = ((value >> 0) & 0xF); /*bits 0:3*/
-
+		wtp->mps_tpeside.eop[i] = ((value >> 8) & 0xF);	 /*bits 8:11*/
+		wtp->tpeside_pld.sop[i] = ((value >> 4) & 0xF);	 /*bits 4:7*/
+		wtp->tpeside_pld.eop[i] = ((value >> 0) & 0xF);	 /*bits 0:3*/
 	}
 
 	/*PCIE CMD STAT2*/
@@ -539,26 +493,30 @@ static int t5_wtp_data(struct cudbg_init *pdbg_init,
 
 	/* ULP_RX input/output*/
 	for (i = 0; i < 2; i++) {
-		value = t4_read_reg(padap, (A_ULP_RX_SE_CNT_CH0 + (i*4)));
+		value = t4_read_reg(padap, (A_ULP_RX_SE_CNT_CH0 + (i * 4)));
 
-		wtp->pmrx_ulprx.sop[i]	  = ((value >> 4) & 0xF); /*bits 4:7*/
-		wtp->pmrx_ulprx.eop[i]	  = ((value >> 0) & 0xF); /*bits 0:3*/
-		wtp->ulprx_tpcside.sop[i] = ((value >> 28) & 0xF);/*bits 28:31*/
-		wtp->ulprx_tpcside.eop[i] = ((value >> 24) & 0xF);/*bits 24:27*/
+		wtp->pmrx_ulprx.sop[i] = ((value >> 4) & 0xF); /*bits 4:7*/
+		wtp->pmrx_ulprx.eop[i] = ((value >> 0) & 0xF); /*bits 0:3*/
+		wtp->ulprx_tpcside.sop[i] = ((value >> 28) &
+		    0xF); /*bits 28:31*/
+		wtp->ulprx_tpcside.eop[i] = ((value >> 24) &
+		    0xF); /*bits 24:27*/
 	}
 
 	/* Get the MPS input from TP*/
 	drop = 0;
 	for (i = 0; i < 2; i++) {
 		value = t4_read_reg(padap, (A_MPS_TX_SE_CNT_TP01 + (i << 2)));
-		wtp->tp_mps.sop[(i*2)]	   = ((value >> 8) & 0xFF); /*bit 8:15*/
-		wtp->tp_mps.eop[(i*2)]	   = ((value >> 0) & 0xFF); /*bit 0:7*/
-		wtp->tp_mps.sop[(i*2) + 1] = ((value >> 24) & 0xFF);/*bit 24:31
-								    */
-		wtp->tp_mps.eop[(i*2) + 1] = ((value >> 16) & 0xFF);/*bit 16:23
-								    */
+		wtp->tp_mps.sop[(i * 2)] = ((value >> 8) & 0xFF); /*bit 8:15*/
+		wtp->tp_mps.eop[(i * 2)] = ((value >> 0) & 0xFF); /*bit 0:7*/
+		wtp->tp_mps.sop[(i * 2) + 1] = ((value >> 24) &
+		    0xFF); /*bit 24:31
+			    */
+		wtp->tp_mps.eop[(i * 2) + 1] = ((value >> 16) &
+		    0xFF); /*bit 16:23
+			    */
 	}
-	drop  = ptp_mib->TP_MIB_OFD_ARP_DROP.value;
+	drop = ptp_mib->TP_MIB_OFD_ARP_DROP.value;
 	drop += ptp_mib->TP_MIB_OFD_DFR_DROP.value;
 
 	drop += ptp_mib->TP_MIB_TNL_DROP_0.value;
@@ -572,17 +530,19 @@ static int t5_wtp_data(struct cudbg_init *pdbg_init,
 	drop = 0;
 	for (i = 0; i < 2; i++) {
 		value = t4_read_reg(padap, (A_MPS_TX_SE_CNT_MAC01 + (i << 2)));
-		wtp->mps_xgm.sop[(i*2)]     = ((value >> 8) & 0xFF);/*bit 8:15*/
-		wtp->mps_xgm.eop[(i*2)]     = ((value >> 0) & 0xFF);/*bit 0:7*/
-		wtp->mps_xgm.sop[(i*2) + 1] = ((value >> 24) & 0xFF);/*bit 24:31
-								     */
-		wtp->mps_xgm.eop[(i*2) + 1] = ((value >> 16) & 0xFF);/*bit 16:23
-								     */
+		wtp->mps_xgm.sop[(i * 2)] = ((value >> 8) & 0xFF); /*bit 8:15*/
+		wtp->mps_xgm.eop[(i * 2)] = ((value >> 0) & 0xFF); /*bit 0:7*/
+		wtp->mps_xgm.sop[(i * 2) + 1] = ((value >> 24) &
+		    0xFF); /*bit 24:31
+			    */
+		wtp->mps_xgm.eop[(i * 2) + 1] = ((value >> 16) &
+		    0xFF); /*bit 16:23
+			    */
 	}
 	for (i = 0; i < 4; i++) {
 		value = t4_read_reg(padap,
-				(T5_PORT0_REG(A_MPS_PORT_STAT_TX_PORT_DROP_L) +
-				(i * T5_PORT_STRIDE)));
+		    (T5_PORT0_REG(A_MPS_PORT_STAT_TX_PORT_DROP_L) +
+			(i * T5_PORT_STRIDE)));
 		drop += value;
 	}
 	wtp->mps_xgm.drops = (drop & 0xFF);
@@ -594,21 +554,21 @@ static int t5_wtp_data(struct cudbg_init *pdbg_init,
 	drop = 0;
 	for (i = 0; i < 4; i++) {
 		value = t4_read_reg(padap,
-				(T5_PORT0_REG(A_MAC_PORT_PKT_COUNT) +
-				(i * T5_PORT_STRIDE)));
+		    (T5_PORT0_REG(A_MAC_PORT_PKT_COUNT) +
+			(i * T5_PORT_STRIDE)));
 
 		wtp->tx_xgm_xgm.sop[i] = ((value >> 24) & 0xFF); /*bit 24:31*/
 		wtp->tx_xgm_xgm.eop[i] = ((value >> 16) & 0xFF); /*bit 16:23*/
-		wtp->rx_xgm_xgm.sop[i] = ((value >> 8) & 0xFF); /*bit 8:15*/
-		wtp->rx_xgm_xgm.eop[i] = ((value >> 0) & 0xFF); /*bit 0:7*/
+		wtp->rx_xgm_xgm.sop[i] = ((value >> 8) & 0xFF);	 /*bit 8:15*/
+		wtp->rx_xgm_xgm.eop[i] = ((value >> 0) & 0xFF);	 /*bit 0:7*/
 	}
 
 	/* Get the MAC's output to the wire*/
 	drop = 0;
 	for (i = 0; i < 4; i++) {
 		value = t4_read_reg(padap,
-				(T5_PORT0_REG(A_MAC_PORT_AFRAMESTRANSMITTEDOK) +
-				(i * T5_PORT_STRIDE)));
+		    (T5_PORT0_REG(A_MAC_PORT_AFRAMESTRANSMITTEDOK) +
+			(i * T5_PORT_STRIDE)));
 		wtp->xgm_wire.sop[i] = (value);
 		wtp->xgm_wire.eop[i] = (value); /* No EOP for XGMAC, so fake
 						   it.*/
@@ -622,8 +582,8 @@ static int t5_wtp_data(struct cudbg_init *pdbg_init,
 	drop = 0;
 	for (i = 0; i < 4; i++) {
 		value = t4_read_reg(padap,
-				(T5_PORT0_REG(A_MAC_PORT_AFRAMESRECEIVEDOK) +
-				(i * T5_PORT_STRIDE)));
+		    (T5_PORT0_REG(A_MAC_PORT_AFRAMESRECEIVEDOK) +
+			(i * T5_PORT_STRIDE)));
 
 		wtp->wire_xgm.sop[i] = (value);
 		wtp->wire_xgm.eop[i] = (value); /* No EOP for XGMAC, so fake
@@ -651,37 +611,29 @@ static int t5_wtp_data(struct cudbg_init *pdbg_init,
 	drop = 0;
 	for (i = 0; i < 4; i++) {
 		value = t4_read_reg(padap,
-				    (A_MPS_STAT_RX_BG_0_MAC_DROP_FRAME_L +
-				     (i << 3)));
+		    (A_MPS_STAT_RX_BG_0_MAC_DROP_FRAME_L + (i << 3)));
 		drop += value;
 		value = t4_read_reg(padap,
-				    (A_MPS_STAT_RX_BG_0_MAC_DROP_FRAME_L +
-				     (i << 2)));
+		    (A_MPS_STAT_RX_BG_0_MAC_DROP_FRAME_L + (i << 2)));
 		value = t4_read_reg(padap,
-				    (A_MPS_STAT_RX_BG_0_LB_DROP_FRAME_L +
-				     (i << 3)));
+		    (A_MPS_STAT_RX_BG_0_LB_DROP_FRAME_L + (i << 3)));
 		drop += value;
 		value = t4_read_reg(padap,
-				    (A_MPS_STAT_RX_BG_0_MAC_DROP_FRAME_L +
-				     (i << 2)));
+		    (A_MPS_STAT_RX_BG_0_MAC_DROP_FRAME_L + (i << 2)));
 
 		value = t4_read_reg(padap,
-				    (A_MPS_STAT_RX_BG_0_MAC_TRUNC_FRAME_L +
-				     (i << 3)));
+		    (A_MPS_STAT_RX_BG_0_MAC_TRUNC_FRAME_L + (i << 3)));
 		drop += value;
 		value = t4_read_reg(padap,
-				    (A_MPS_STAT_RX_BG_0_MAC_TRUNC_FRAME_L +
-				     (i << 3)));
+		    (A_MPS_STAT_RX_BG_0_MAC_TRUNC_FRAME_L + (i << 3)));
 		value = t4_read_reg(padap,
-				    (A_MPS_STAT_RX_BG_0_LB_TRUNC_FRAME_L +
-				     (i << 3)));
+		    (A_MPS_STAT_RX_BG_0_LB_TRUNC_FRAME_L + (i << 3)));
 		drop += value;
 		value = t4_read_reg(padap,
-				    (A_MPS_STAT_RX_BG_0_MAC_TRUNC_FRAME_L +
-				     (i << 3)));
+		    (A_MPS_STAT_RX_BG_0_MAC_TRUNC_FRAME_L + (i << 3)));
 
 		value = t4_read_reg(padap,
-			T5_PORT0_REG(A_MPS_PORT_STAT_LB_PORT_DROP_FRAMES) +
+		    T5_PORT0_REG(A_MPS_PORT_STAT_LB_PORT_DROP_FRAMES) +
 			(i * T5_PORT_STRIDE));
 		drop += value;
 	}
@@ -692,51 +644,51 @@ static int t5_wtp_data(struct cudbg_init *pdbg_init,
 	for (i = 0; i < 4; i++) {
 
 		value = t4_read_reg(padap,
-			(T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_MTU_ERROR_L) +
+		    (T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_MTU_ERROR_L) +
 			(i * T5_PORT_STRIDE)));
 		err += value;
 		value = t4_read_reg(padap,
-			(T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_MTU_ERROR_L) +
+		    (T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_MTU_ERROR_L) +
 			(i * T5_PORT_STRIDE) + 4));
 
 		value = t4_read_reg(padap,
-			(T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_MTU_CRC_ERROR_L) +
+		    (T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_MTU_CRC_ERROR_L) +
 			(i * T5_PORT_STRIDE)));
 		err += value;
 		value = t4_read_reg(padap,
-			(T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_MTU_CRC_ERROR_L) +
+		    (T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_MTU_CRC_ERROR_L) +
 			(i * T5_PORT_STRIDE) + 4));
 
 		value = t4_read_reg(padap,
-			(T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_CRC_ERROR_L) +
+		    (T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_CRC_ERROR_L) +
 			(i * T5_PORT_STRIDE)));
 		err += value;
 		value = t4_read_reg(padap,
-			(T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_CRC_ERROR_L) +
+		    (T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_CRC_ERROR_L) +
 			(i * T5_PORT_STRIDE) + 4));
 
 		value = t4_read_reg(padap,
-			(T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_LEN_ERROR_L) +
+		    (T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_LEN_ERROR_L) +
 			(i * T5_PORT_STRIDE)));
 		err += value;
 		value = t4_read_reg(padap,
-			(T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_LEN_ERROR_L) +
+		    (T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_LEN_ERROR_L) +
 			(i * T5_PORT_STRIDE) + 4));
 
 		value = t4_read_reg(padap,
-			(T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_SYM_ERROR_L) +
+		    (T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_SYM_ERROR_L) +
 			(i * T5_PORT_STRIDE)));
 		err += value;
 		value = t4_read_reg(padap,
-			(T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_SYM_ERROR_L) +
+		    (T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_SYM_ERROR_L) +
 			(i * T5_PORT_STRIDE) + 4));
 
 		value = t4_read_reg(padap,
-			(T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_LESS_64B_L) +
+		    (T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_LESS_64B_L) +
 			(i * T5_PORT_STRIDE)));
 		err += value;
 		value = t4_read_reg(padap,
-			(T5_PORT0_REG((A_MPS_PORT_STAT_RX_PORT_LESS_64B_L) +
+		    (T5_PORT0_REG((A_MPS_PORT_STAT_RX_PORT_LESS_64B_L) +
 			(i * T5_PORT_STRIDE) + 4)));
 	}
 	wtp->xgm_mps.err = (err & 0xFF);
@@ -745,12 +697,14 @@ static int t5_wtp_data(struct cudbg_init *pdbg_init,
 	for (i = 0; i < 2; i++) {
 		value = t4_read_reg(padap, (A_MPS_RX_SE_CNT_OUT01 + (i << 2)));
 
-		wtp->mps_tp.sop[(i*2)]	   = ((value >> 8) & 0xFF); /*bit 8:15*/
-		wtp->mps_tp.eop[(i*2)]	   = ((value >> 0) & 0xFF); /*bit 0:7*/
-		wtp->mps_tp.sop[(i*2) + 1] = ((value >> 24) & 0xFF);/*bit 24:31
-								    */
-		wtp->mps_tp.eop[(i*2) + 1] = ((value >> 16) & 0xFF);/*bit 16:23
-								    */
+		wtp->mps_tp.sop[(i * 2)] = ((value >> 8) & 0xFF); /*bit 8:15*/
+		wtp->mps_tp.eop[(i * 2)] = ((value >> 0) & 0xFF); /*bit 0:7*/
+		wtp->mps_tp.sop[(i * 2) + 1] = ((value >> 24) &
+		    0xFF); /*bit 24:31
+			    */
+		wtp->mps_tp.eop[(i * 2) + 1] = ((value >> 16) &
+		    0xFF); /*bit 16:23
+			    */
 	}
 	drop = ptp_mib->TP_MIB_TNL_CNG_DROP_0.value;
 	drop += ptp_mib->TP_MIB_TNL_CNG_DROP_1.value;
@@ -775,13 +729,14 @@ static int t5_wtp_data(struct cudbg_init *pdbg_init,
 	/* Get TP_DBG_CSIDE_TX registers*/
 	for (i = 0; i < 4; i++) {
 		t4_tp_pio_read(padap, &value, 1, (u32)(A_TP_DBG_CSIDE_RX0 + i),
-			       true);
+		    true);
 
-		wtp->tpcside_csw.sop[i]   = ((value >> 28) & 0xF);/*bits 28:31*/
-		wtp->tpcside_csw.eop[i]   = ((value >> 24) & 0xF);/*bits 24:27*/
-		wtp->tpcside_pm.sop[i]	  = ((value >> 20) & 0xF);/*bits 20:23*/
-		wtp->tpcside_pm.eop[i]	  = ((value >> 16) & 0xF);/*bits 16:19*/
-		wtp->tpcside_uturn.sop[i] = ((value >> 12) & 0xF);/*bits 12:15*/
+		wtp->tpcside_csw.sop[i] = ((value >> 28) & 0xF); /*bits 28:31*/
+		wtp->tpcside_csw.eop[i] = ((value >> 24) & 0xF); /*bits 24:27*/
+		wtp->tpcside_pm.sop[i] = ((value >> 20) & 0xF);	 /*bits 20:23*/
+		wtp->tpcside_pm.eop[i] = ((value >> 16) & 0xF);	 /*bits 16:19*/
+		wtp->tpcside_uturn.sop[i] = ((value >> 12) &
+		    0xF);					  /*bits 12:15*/
 		wtp->tpcside_uturn.eop[i] = ((value >> 8) & 0xF); /*bits 8:11*/
 		wtp->tpcside_txcpl.sop[i] = ((value >> 4) & 0xF); /*bits 4:7*/
 		wtp->tpcside_txcpl.eop[i] = ((value >> 0) & 0xF); /*bits 0:3*/
@@ -858,10 +813,10 @@ static int t5_wtp_data(struct cudbg_init *pdbg_init,
 	/*Get TP debug CSIDE Tx registers*/
 	for (i = 0; i < 2; i++) {
 		t4_tp_pio_read(padap, &value, 1, (u32)(A_TP_DBG_CSIDE_TX0 + i),
-			       true);
+		    true);
 
-		wtp->utx_tpcside_tx.sop[i] = ((value >> 28) & 0xF);/*bits 28:31
-								   */
+		wtp->utx_tpcside_tx.sop[i] = ((value >> 28) & 0xF); /*bits 28:31
+								     */
 		wtp->utx_tpcside_tx.eop[i] = ((value >> 24) & 0xF);
 	}
 
@@ -882,7 +837,7 @@ static int t5_wtp_data(struct cudbg_init *pdbg_init,
 	/*Get TP debug Eside PKTx*/
 	for (i = 0; i < 4; i++) {
 		t4_tp_pio_read(padap, &value, 1, (u32)(A_TP_DBG_ESIDE_PKT0 + i),
-			       true);
+		    true);
 
 		wtp->tp_dbg_eside_pktx.sop[i] = ((value >> 12) & 0xF);
 		wtp->tp_dbg_eside_pktx.eop[i] = ((value >> 8) & 0xF);
@@ -891,27 +846,27 @@ static int t5_wtp_data(struct cudbg_init *pdbg_init,
 	/* Get data responses from core to PCIE*/
 	value = t4_read_reg(padap, A_PCIE_DMAW_SOP_CNT);
 
-	wtp->pcie_core_dmaw.sop[0] = ((value >> 0) & 0xFF); /*bit 0:7*/
-	wtp->pcie_core_dmaw.sop[1] = ((value >> 8) & 0xFF); /*bit 8:15*/
+	wtp->pcie_core_dmaw.sop[0] = ((value >> 0) & 0xFF);  /*bit 0:7*/
+	wtp->pcie_core_dmaw.sop[1] = ((value >> 8) & 0xFF);  /*bit 8:15*/
 	wtp->pcie_core_dmaw.sop[2] = ((value >> 16) & 0xFF); /*bit 16:23*/
 	wtp->pcie_core_dmaw.sop[3] = ((value >> 24) & 0xFF); /*bit 24:31*/
 
 	value = t4_read_reg(padap, A_PCIE_DMAW_EOP_CNT);
 
-	wtp->pcie_core_dmaw.eop[0] = ((value >> 0) & 0xFF); /*bit 0:7*/
-	wtp->pcie_core_dmaw.eop[1] = ((value >> 8) & 0xFF); /*bit 8:15*/
+	wtp->pcie_core_dmaw.eop[0] = ((value >> 0) & 0xFF);  /*bit 0:7*/
+	wtp->pcie_core_dmaw.eop[1] = ((value >> 8) & 0xFF);  /*bit 8:15*/
 	wtp->pcie_core_dmaw.eop[2] = ((value >> 16) & 0xFF); /*bit 16:23*/
 	wtp->pcie_core_dmaw.eop[3] = ((value >> 24) & 0xFF); /*bit 24:31*/
 
 	value = t4_read_reg(padap, A_PCIE_DMAI_CNT);
 
-	wtp->pcie_core_dmai.sop[0] = ((value >> 0) & 0xFF); /*bit 0:7*/
-	wtp->pcie_core_dmai.sop[1] = ((value >> 8) & 0xFF); /*bit 8:15*/
+	wtp->pcie_core_dmai.sop[0] = ((value >> 0) & 0xFF);  /*bit 0:7*/
+	wtp->pcie_core_dmai.sop[1] = ((value >> 8) & 0xFF);  /*bit 8:15*/
 	wtp->pcie_core_dmai.sop[2] = ((value >> 16) & 0xFF); /*bit 16:23*/
 	wtp->pcie_core_dmai.sop[3] = ((value >> 24) & 0xFF); /*bit 24:31*/
 	/* no eop for interrups, just fake it.*/
-	wtp->pcie_core_dmai.eop[0] = ((value >> 0) & 0xFF); /*bit 0:7*/
-	wtp->pcie_core_dmai.eop[1] = ((value >> 8) & 0xFF); /*bit 8:15*/
+	wtp->pcie_core_dmai.eop[0] = ((value >> 0) & 0xFF);  /*bit 0:7*/
+	wtp->pcie_core_dmai.eop[1] = ((value >> 8) & 0xFF);  /*bit 8:15*/
 	wtp->pcie_core_dmai.eop[2] = ((value >> 16) & 0xFF); /*bit 16:23*/
 	wtp->pcie_core_dmai.eop[3] = ((value >> 24) & 0xFF); /*bit 24:31*/
 
@@ -928,16 +883,16 @@ err:
 	return rc;
 }
 
-static int t6_wtp_data(struct cudbg_init *pdbg_init,
-		       struct cudbg_buffer *dbg_buff,
-		       struct cudbg_error *cudbg_err)
+static int
+t6_wtp_data(struct cudbg_init *pdbg_init, struct cudbg_buffer *dbg_buff,
+    struct cudbg_error *cudbg_err)
 {
 	struct adapter *padap = pdbg_init->adap;
 	struct sge_debug_reg_data *sge_dbg_reg = NULL;
 	struct cudbg_buffer scratch_buff;
 	struct tp_mib_data *ptp_mib = NULL;
 	struct wtp_data *wtp;
-	u32 Sge_Dbg[32] = {0};
+	u32 Sge_Dbg[32] = { 0 };
 	u32 value = 0;
 	u32 i = 0;
 	u32 drop = 0;
@@ -956,7 +911,7 @@ static int t6_wtp_data(struct cudbg_init *pdbg_init,
 	read_sge_debug_data(pdbg_init, Sge_Dbg);
 	read_tp_mib_data(pdbg_init, &ptp_mib);
 
-	sge_dbg_reg = (struct sge_debug_reg_data *) &Sge_Dbg[0];
+	sge_dbg_reg = (struct sge_debug_reg_data *)&Sge_Dbg[0];
 
 	/*# TX PATH*/
 
@@ -1018,18 +973,18 @@ static int t6_wtp_data(struct cudbg_init *pdbg_init,
 	/* Get TP_DBG_CSIDE registers*/
 	for (i = 0; i < 4; i++) {
 		t4_tp_pio_read(padap, &value, 1, (u32)(A_TP_DBG_CSIDE_RX0 + i),
-			       true);
+		    true);
 
-		wtp->utx_tpcside.sop[i]   = ((value >> 28) & 0xF);/*bits 28:31*/
-		wtp->utx_tpcside.eop[i]   = ((value >> 24) & 0xF);/*bits 24:27*/
-		wtp->tpcside_rxarb.sop[i] = ((value >> 12) & 0xF);/*bits 12:15*/
+		wtp->utx_tpcside.sop[i] = ((value >> 28) & 0xF); /*bits 28:31*/
+		wtp->utx_tpcside.eop[i] = ((value >> 24) & 0xF); /*bits 24:27*/
+		wtp->tpcside_rxarb.sop[i] = ((value >> 12) &
+		    0xF);					  /*bits 12:15*/
 		wtp->tpcside_rxarb.eop[i] = ((value >> 8) & 0xF); /*bits 8:11*/
 	}
 
 	for (i = 0; i < 4; i++) {
 		t4_tp_pio_read(padap, &value, 1, (u32)(A_TP_DBG_ESIDE_PKT0 + i),
-			       true);
-
+		    true);
 
 		wtp->tpeside_mps.sop[i] = ((value >> 28) & 0xF); /*bits 28:31*/
 		wtp->tpeside_mps.eop[i] = ((value >> 24) & 0xF); /*bits 24:27*/
@@ -1037,22 +992,26 @@ static int t6_wtp_data(struct cudbg_init *pdbg_init,
 
 	for (i = 0; i < 2; i++) {
 		value = t4_read_reg(padap, (A_MPS_TX_SE_CNT_TP01 + (i << 2)));
-		wtp->tp_mps.sop[(i*2)]	   = ((value >> 8) & 0xFF); /*bit 8:15*/
-		wtp->tp_mps.eop[(i*2)]	   = ((value >> 0) & 0xFF); /*bit 0:7*/
-		wtp->tp_mps.sop[(i*2) + 1] = ((value >> 24) & 0xFF);/*bit 24:31
-								    */
-		wtp->tp_mps.eop[(i*2) + 1] = ((value >> 16) & 0xFF);/*bit 16:23
-								    */
+		wtp->tp_mps.sop[(i * 2)] = ((value >> 8) & 0xFF); /*bit 8:15*/
+		wtp->tp_mps.eop[(i * 2)] = ((value >> 0) & 0xFF); /*bit 0:7*/
+		wtp->tp_mps.sop[(i * 2) + 1] = ((value >> 24) &
+		    0xFF); /*bit 24:31
+			    */
+		wtp->tp_mps.eop[(i * 2) + 1] = ((value >> 16) &
+		    0xFF); /*bit 16:23
+			    */
 	}
 
 	for (i = 0; i < 2; i++) {
 		value = t4_read_reg(padap, (A_MPS_TX_SE_CNT_MAC01 + (i << 2)));
-		wtp->mps_xgm.sop[(i*2)]     = ((value >> 8) & 0xFF);/*bit 8:15*/
-		wtp->mps_xgm.eop[(i*2)]     = ((value >> 0) & 0xFF); /*bit 0:7*/
-		wtp->mps_xgm.sop[(i*2) + 1] = ((value >> 24) & 0xFF);/*bit 24:31
-								     */
-		wtp->mps_xgm.eop[(i*2) + 1] = ((value >> 16) & 0xFF);/*bit 16:23
-								     */
+		wtp->mps_xgm.sop[(i * 2)] = ((value >> 8) & 0xFF); /*bit 8:15*/
+		wtp->mps_xgm.eop[(i * 2)] = ((value >> 0) & 0xFF); /*bit 0:7*/
+		wtp->mps_xgm.sop[(i * 2) + 1] = ((value >> 24) &
+		    0xFF); /*bit 24:31
+			    */
+		wtp->mps_xgm.eop[(i * 2) + 1] = ((value >> 16) &
+		    0xFF); /*bit 16:23
+			    */
 	}
 
 	/* Get MAC PORTx PKT COUNT*/
@@ -1102,21 +1061,23 @@ static int t6_wtp_data(struct cudbg_init *pdbg_init,
 
 	for (i = 0; i < 2; i++) {
 		t4_tp_pio_read(padap, &value, 1, (u32)(A_TP_DBG_CSIDE_TX0 + i),
-			       true);
+		    true);
 
-		wtp->utx_tpcside_tx.sop[i] = ((value >> 28) & 0xF);/*bits 28:31
-								   */
-		wtp->utx_tpcside_tx.eop[i]   = ((value >> 24) & 0xF);
+		wtp->utx_tpcside_tx.sop[i] = ((value >> 28) & 0xF); /*bits 28:31
+								     */
+		wtp->utx_tpcside_tx.eop[i] = ((value >> 24) & 0xF);
 	}
 
 	/*ULP_RX input/output*/
 	for (i = 0; i < 2; i++) {
-		value = t4_read_reg(padap, (A_ULP_RX_SE_CNT_CH0 + (i*4)));
+		value = t4_read_reg(padap, (A_ULP_RX_SE_CNT_CH0 + (i * 4)));
 
-		wtp->pmrx_ulprx.sop[i]	  = ((value >> 4) & 0xF); /*bits 4:7*/
-		wtp->pmrx_ulprx.eop[i]	  = ((value >> 0) & 0xF); /*bits 0:3*/
-		wtp->ulprx_tpcside.sop[i] = ((value >> 28) & 0xF);/*bits 28:31*/
-		wtp->ulprx_tpcside.eop[i] = ((value >> 24) & 0xF);/*bits 24:27*/
+		wtp->pmrx_ulprx.sop[i] = ((value >> 4) & 0xF); /*bits 4:7*/
+		wtp->pmrx_ulprx.eop[i] = ((value >> 0) & 0xF); /*bits 0:3*/
+		wtp->ulprx_tpcside.sop[i] = ((value >> 28) &
+		    0xF); /*bits 28:31*/
+		wtp->ulprx_tpcside.eop[i] = ((value >> 24) &
+		    0xF); /*bits 24:27*/
 	}
 
 	/*Get LE DB response count*/
@@ -1127,7 +1088,7 @@ static int t6_wtp_data(struct cudbg_init *pdbg_init,
 	/*Get TP debug Eside PKTx*/
 	for (i = 0; i < 4; i++) {
 		t4_tp_pio_read(padap, &value, 1, (u32)(A_TP_DBG_ESIDE_PKT0 + i),
-			       true);
+		    true);
 
 		wtp->tp_dbg_eside_pktx.sop[i] = ((value >> 12) & 0xF);
 		wtp->tp_dbg_eside_pktx.eop[i] = ((value >> 8) & 0xF);
@@ -1136,8 +1097,8 @@ static int t6_wtp_data(struct cudbg_init *pdbg_init,
 	drop = 0;
 	/*MPS_RX_SE_CNT_OUT01*/
 	value = t4_read_reg(padap, (A_MPS_RX_SE_CNT_OUT01 + (i << 2)));
-	wtp->mps_tp.sop[0] = ((value >> 8) & 0xFF); /*bit 8:15*/
-	wtp->mps_tp.eop[0] = ((value >> 0) & 0xFF); /*bit 0:7*/
+	wtp->mps_tp.sop[0] = ((value >> 8) & 0xFF);  /*bit 8:15*/
+	wtp->mps_tp.eop[0] = ((value >> 0) & 0xFF);  /*bit 0:7*/
 	wtp->mps_tp.sop[1] = ((value >> 24) & 0xFF); /*bit 24:31*/
 	wtp->mps_tp.eop[1] = ((value >> 16) & 0xFF); /*bit 16:23*/
 
@@ -1188,37 +1149,29 @@ static int t6_wtp_data(struct cudbg_init *pdbg_init,
 	drop = 0;
 	for (i = 0; i < 2; i++) {
 		value = t4_read_reg(padap,
-				    (A_MPS_STAT_RX_BG_0_MAC_DROP_FRAME_L +
-				     (i << 3)));
+		    (A_MPS_STAT_RX_BG_0_MAC_DROP_FRAME_L + (i << 3)));
 		drop += value;
 		value = t4_read_reg(padap,
-				    (A_MPS_STAT_RX_BG_0_MAC_DROP_FRAME_L +
-				     (i << 2)));
+		    (A_MPS_STAT_RX_BG_0_MAC_DROP_FRAME_L + (i << 2)));
 		value = t4_read_reg(padap,
-				    (A_MPS_STAT_RX_BG_0_LB_DROP_FRAME_L +
-				     (i << 3)));
+		    (A_MPS_STAT_RX_BG_0_LB_DROP_FRAME_L + (i << 3)));
 		drop += value;
 		value = t4_read_reg(padap,
-				    (A_MPS_STAT_RX_BG_0_MAC_DROP_FRAME_L +
-				     (i << 2)));
+		    (A_MPS_STAT_RX_BG_0_MAC_DROP_FRAME_L + (i << 2)));
 
 		value = t4_read_reg(padap,
-				    (A_MPS_STAT_RX_BG_0_MAC_TRUNC_FRAME_L +
-				     (i << 3)));
+		    (A_MPS_STAT_RX_BG_0_MAC_TRUNC_FRAME_L + (i << 3)));
 		drop += value;
 		value = t4_read_reg(padap,
-				    (A_MPS_STAT_RX_BG_0_MAC_TRUNC_FRAME_L +
-				     (i << 3)));
+		    (A_MPS_STAT_RX_BG_0_MAC_TRUNC_FRAME_L + (i << 3)));
 		value = t4_read_reg(padap,
-				    (A_MPS_STAT_RX_BG_0_LB_TRUNC_FRAME_L +
-				     (i << 3)));
+		    (A_MPS_STAT_RX_BG_0_LB_TRUNC_FRAME_L + (i << 3)));
 		drop += value;
 		value = t4_read_reg(padap,
-				    (A_MPS_STAT_RX_BG_0_MAC_TRUNC_FRAME_L +
-				     (i << 3)));
+		    (A_MPS_STAT_RX_BG_0_MAC_TRUNC_FRAME_L + (i << 3)));
 
 		value = t4_read_reg(padap,
-			(T5_PORT0_REG(A_MPS_PORT_STAT_LB_PORT_DROP_FRAMES) +
+		    (T5_PORT0_REG(A_MPS_PORT_STAT_LB_PORT_DROP_FRAMES) +
 			(i * T5_PORT_STRIDE)));
 		drop += value;
 	}
@@ -1229,51 +1182,51 @@ static int t6_wtp_data(struct cudbg_init *pdbg_init,
 	for (i = 0; i < 2; i++) {
 
 		value = t4_read_reg(padap,
-			(T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_MTU_ERROR_L) +
+		    (T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_MTU_ERROR_L) +
 			(i * T5_PORT_STRIDE)));
 		err += value;
 		value = t4_read_reg(padap,
-			(T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_MTU_ERROR_L) +
+		    (T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_MTU_ERROR_L) +
 			(i * T5_PORT_STRIDE) + 4));
 
 		value = t4_read_reg(padap,
-			(T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_MTU_CRC_ERROR_L) +
+		    (T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_MTU_CRC_ERROR_L) +
 			(i * T5_PORT_STRIDE)));
 		err += value;
 		value = t4_read_reg(padap,
-			(T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_MTU_CRC_ERROR_L) +
+		    (T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_MTU_CRC_ERROR_L) +
 			(i * T5_PORT_STRIDE) + 4));
 
 		value = t4_read_reg(padap,
-			(T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_CRC_ERROR_L) +
-				     (i * T5_PORT_STRIDE)));
-		err += value;
-		value = t4_read_reg(padap,
-			(T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_CRC_ERROR_L) +
-			(i * T5_PORT_STRIDE) + 4));
-
-		value = t4_read_reg(padap,
-			(T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_LEN_ERROR_L) +
+		    (T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_CRC_ERROR_L) +
 			(i * T5_PORT_STRIDE)));
 		err += value;
 		value = t4_read_reg(padap,
-			(T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_LEN_ERROR_L) +
+		    (T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_CRC_ERROR_L) +
 			(i * T5_PORT_STRIDE) + 4));
 
 		value = t4_read_reg(padap,
-			(T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_SYM_ERROR_L) +
+		    (T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_LEN_ERROR_L) +
 			(i * T5_PORT_STRIDE)));
 		err += value;
 		value = t4_read_reg(padap,
-			(T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_SYM_ERROR_L) +
+		    (T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_LEN_ERROR_L) +
 			(i * T5_PORT_STRIDE) + 4));
 
 		value = t4_read_reg(padap,
-			(T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_LESS_64B_L) +
+		    (T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_SYM_ERROR_L) +
 			(i * T5_PORT_STRIDE)));
 		err += value;
 		value = t4_read_reg(padap,
-			(T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_LESS_64B_L) +
+		    (T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_SYM_ERROR_L) +
+			(i * T5_PORT_STRIDE) + 4));
+
+		value = t4_read_reg(padap,
+		    (T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_LESS_64B_L) +
+			(i * T5_PORT_STRIDE)));
+		err += value;
+		value = t4_read_reg(padap,
+		    (T5_PORT0_REG(A_MPS_PORT_STAT_RX_PORT_LESS_64B_L) +
 			(i * T5_PORT_STRIDE) + 4));
 	}
 	wtp->xgm_mps.err = (err & 0xFF);
@@ -1291,9 +1244,9 @@ err:
 	return rc;
 }
 
-int collect_wtp_data(struct cudbg_init *pdbg_init,
-		     struct cudbg_buffer *dbg_buff,
-		     struct cudbg_error *cudbg_err)
+int
+collect_wtp_data(struct cudbg_init *pdbg_init, struct cudbg_buffer *dbg_buff,
+    struct cudbg_error *cudbg_err)
 {
 	struct adapter *padap = pdbg_init->adap;
 	int rc = -1;

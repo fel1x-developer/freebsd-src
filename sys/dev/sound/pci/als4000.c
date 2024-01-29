@@ -39,20 +39,19 @@
 #include "opt_snd.h"
 #endif
 
-#include <dev/sound/pcm/sound.h>
-#include <dev/sound/isa/sb.h>
-#include <dev/sound/pci/als4000.h>
-
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
+#include <dev/sound/isa/sb.h>
+#include <dev/sound/pci/als4000.h>
+#include <dev/sound/pcm/sound.h>
 
 #include "mixer_if.h"
 
 /* Debugging macro's */
 #undef DEB
 #ifndef DEB
-#define DEB(x)  /* x */
-#endif /* DEB */
+#define DEB(x) /* x */
+#endif	       /* DEB */
 
 #define ALS_DEFAULT_BUFSZ 16384
 
@@ -62,38 +61,34 @@
 struct sc_info;
 
 struct sc_chinfo {
-	struct sc_info		*parent;
-	struct pcm_channel	*channel;
-	struct snd_dbuf		*buffer;
-	u_int32_t		format, speed, phys_buf, bps;
-	u_int32_t		dma_active:1, dma_was_active:1;
-	u_int8_t		gcr_fifo_status;
-	int			dir;
+	struct sc_info *parent;
+	struct pcm_channel *channel;
+	struct snd_dbuf *buffer;
+	u_int32_t format, speed, phys_buf, bps;
+	u_int32_t dma_active : 1, dma_was_active : 1;
+	u_int8_t gcr_fifo_status;
+	int dir;
 };
 
 struct sc_info {
-	device_t		dev;
-	bus_space_tag_t		st;
-	bus_space_handle_t	sh;
-	bus_dma_tag_t		parent_dmat;
-	struct resource		*reg, *irq;
-	int			regid, irqid;
-	void			*ih;
-	struct mtx		*lock;
+	device_t dev;
+	bus_space_tag_t st;
+	bus_space_handle_t sh;
+	bus_dma_tag_t parent_dmat;
+	struct resource *reg, *irq;
+	int regid, irqid;
+	void *ih;
+	struct mtx *lock;
 
-	unsigned int		bufsz;
-	struct sc_chinfo	pch, rch;
+	unsigned int bufsz;
+	struct sc_chinfo pch, rch;
 };
 
 /* Channel caps */
 
-static u_int32_t als_format[] = {
-        SND_FORMAT(AFMT_U8, 1, 0),
-        SND_FORMAT(AFMT_U8, 2, 0),
-        SND_FORMAT(AFMT_S16_LE, 1, 0),
-        SND_FORMAT(AFMT_S16_LE, 2, 0),
-        0
-};
+static u_int32_t als_format[] = { SND_FORMAT(AFMT_U8, 1, 0),
+	SND_FORMAT(AFMT_U8, 2, 0), SND_FORMAT(AFMT_S16_LE, 1, 0),
+	SND_FORMAT(AFMT_S16_LE, 2, 0), 0 };
 
 /*
  * I don't believe this rotten soundcard can do 48k, really,
@@ -147,7 +142,7 @@ als_mix_wr(struct sc_info *sc, u_int8_t index, u_int8_t data)
 static void
 als_esp_wr(struct sc_info *sc, u_int8_t data)
 {
-	u_int32_t	tries, v;
+	u_int32_t tries, v;
 
 	tries = 1000;
 	do {
@@ -166,7 +161,7 @@ als_esp_wr(struct sc_info *sc, u_int8_t data)
 static int
 als_esp_reset(struct sc_info *sc)
 {
-	u_int32_t	tries, u, v;
+	u_int32_t tries, u, v;
 
 	bus_space_write_1(sc->st, sc->sh, ALS_ESP_RST, 1);
 	DELAY(10);
@@ -202,11 +197,11 @@ als_ack_read(struct sc_info *sc, u_int8_t addr)
 /* Common pcm channel implementation */
 
 static void *
-alschan_init(kobj_t obj, void *devinfo,
-	     struct snd_dbuf *b, struct pcm_channel *c, int dir)
+alschan_init(kobj_t obj, void *devinfo, struct snd_dbuf *b,
+    struct pcm_channel *c, int dir)
 {
-	struct	sc_info	*sc = devinfo;
-	struct	sc_chinfo *ch;
+	struct sc_info *sc = devinfo;
+	struct sc_chinfo *ch;
 
 	snd_mtxlock(sc->lock);
 	if (dir == PCMDIR_PLAY) {
@@ -234,7 +229,7 @@ alschan_init(kobj_t obj, void *devinfo,
 static int
 alschan_setformat(kobj_t obj, void *data, u_int32_t format)
 {
-	struct	sc_chinfo *ch = data;
+	struct sc_chinfo *ch = data;
 
 	ch->format = format;
 	return 0;
@@ -243,8 +238,8 @@ alschan_setformat(kobj_t obj, void *data, u_int32_t format)
 static u_int32_t
 alschan_setspeed(kobj_t obj, void *data, u_int32_t speed)
 {
-	struct	sc_chinfo *ch = data, *other;
-	struct  sc_info *sc = ch->parent;
+	struct sc_chinfo *ch = data, *other;
+	struct sc_info *sc = ch->parent;
 
 	other = (ch->dir == PCMDIR_PLAY) ? &sc->rch : &sc->pch;
 
@@ -261,8 +256,8 @@ alschan_setspeed(kobj_t obj, void *data, u_int32_t speed)
 static u_int32_t
 alschan_setblocksize(kobj_t obj, void *data, u_int32_t blocksize)
 {
-	struct	sc_chinfo *ch = data;
-	struct	sc_info *sc = ch->parent;
+	struct sc_chinfo *ch = data;
+	struct sc_info *sc = ch->parent;
 
 	if (blocksize > sc->bufsz / 2) {
 		blocksize = sc->bufsz / 2;
@@ -281,11 +276,11 @@ alschan_getptr(kobj_t obj, void *data)
 	snd_mtxlock(sc->lock);
 	pos = als_gcr_rd(ch->parent, ch->gcr_fifo_status) & 0xffff;
 	snd_mtxunlock(sc->lock);
-	sz  = sndbuf_getsize(ch->buffer);
+	sz = sndbuf_getsize(ch->buffer);
 	return (2 * sz - pos - 1) % sz;
 }
 
-static struct pcmchan_caps*
+static struct pcmchan_caps *
 alschan_getcaps(kobj_t obj, void *data)
 {
 	return &als_caps;
@@ -303,21 +298,27 @@ als_set_speed(struct sc_chinfo *ch)
 		als_esp_wr(sc, ch->speed >> 8);
 		als_esp_wr(sc, ch->speed & 0xff);
 	} else {
-		DEB(printf("speed locked at %d (tried %d)\n",
-			   other->speed, ch->speed));
+		DEB(printf("speed locked at %d (tried %d)\n", other->speed,
+		    ch->speed));
 	}
 }
 
 /* ------------------------------------------------------------------------- */
 /* Playback channel implementation */
-#define ALS_8BIT_CMD(x, y)  { (x), (y), DSP_DMA8,  DSP_CMD_DMAPAUSE_8  }
-#define ALS_16BIT_CMD(x, y) { (x), (y),	DSP_DMA16, DSP_CMD_DMAPAUSE_16 }
+#define ALS_8BIT_CMD(x, y)                             \
+	{                                              \
+		(x), (y), DSP_DMA8, DSP_CMD_DMAPAUSE_8 \
+	}
+#define ALS_16BIT_CMD(x, y)                              \
+	{                                                \
+		(x), (y), DSP_DMA16, DSP_CMD_DMAPAUSE_16 \
+	}
 
 struct playback_command {
-	u_int32_t pcm_format;	/* newpcm format */
-	u_int8_t  format_val;	/* sb16 format value */
-	u_int8_t  dma_prog;	/* sb16 dma program */
-	u_int8_t  dma_stop;	/* sb16 stop register */
+	u_int32_t pcm_format; /* newpcm format */
+	u_int8_t format_val;  /* sb16 format value */
+	u_int8_t dma_prog;    /* sb16 dma program */
+	u_int8_t dma_stop;    /* sb16 stop register */
 } static const playback_cmds[] = {
 	ALS_8BIT_CMD(SND_FORMAT(AFMT_U8, 1, 0), DSP_MODE_U8MONO),
 	ALS_8BIT_CMD(SND_FORMAT(AFMT_U8, 2, 0), DSP_MODE_U8STEREO),
@@ -325,7 +326,7 @@ struct playback_command {
 	ALS_16BIT_CMD(SND_FORMAT(AFMT_S16_LE, 2, 0), DSP_MODE_S16STEREO),
 };
 
-static const struct playback_command*
+static const struct playback_command *
 als_get_playback_command(u_int32_t format)
 {
 	u_int32_t i, n;
@@ -337,7 +338,7 @@ als_get_playback_command(u_int32_t format)
 		}
 	}
 	DEB(printf("als_get_playback_command: invalid format 0x%08x\n",
-		   format));
+	    format));
 	return &playback_cmds[0];
 }
 
@@ -345,8 +346,8 @@ static void
 als_playback_start(struct sc_chinfo *ch)
 {
 	const struct playback_command *p;
-	struct	sc_info *sc = ch->parent;
-	u_int32_t	buf, bufsz, count, dma_prog;
+	struct sc_info *sc = ch->parent;
+	u_int32_t buf, bufsz, count, dma_prog;
 
 	buf = sndbuf_getbufaddr(ch->buffer);
 	bufsz = sndbuf_getsize(ch->buffer);
@@ -391,14 +392,14 @@ als_playback_stop(struct sc_chinfo *ch)
 static int
 alspchan_trigger(kobj_t obj, void *data, int go)
 {
-	struct	sc_chinfo *ch = data;
+	struct sc_chinfo *ch = data;
 	struct sc_info *sc = ch->parent;
 
 	if (!PCMTRIG_COMMON(go))
 		return 0;
 
 	snd_mtxlock(sc->lock);
-	switch(go) {
+	switch (go) {
 	case PCMTRIG_START:
 		als_playback_start(ch);
 		break;
@@ -413,16 +414,14 @@ alspchan_trigger(kobj_t obj, void *data, int go)
 	return 0;
 }
 
-static kobj_method_t alspchan_methods[] = {
-	KOBJMETHOD(channel_init,		alschan_init),
-	KOBJMETHOD(channel_setformat,		alschan_setformat),
-	KOBJMETHOD(channel_setspeed,		alschan_setspeed),
-	KOBJMETHOD(channel_setblocksize,	alschan_setblocksize),
-	KOBJMETHOD(channel_trigger,		alspchan_trigger),
-	KOBJMETHOD(channel_getptr,		alschan_getptr),
-	KOBJMETHOD(channel_getcaps,		alschan_getcaps),
-	KOBJMETHOD_END
-};
+static kobj_method_t alspchan_methods[] = { KOBJMETHOD(channel_init,
+						alschan_init),
+	KOBJMETHOD(channel_setformat, alschan_setformat),
+	KOBJMETHOD(channel_setspeed, alschan_setspeed),
+	KOBJMETHOD(channel_setblocksize, alschan_setblocksize),
+	KOBJMETHOD(channel_trigger, alspchan_trigger),
+	KOBJMETHOD(channel_getptr, alschan_getptr),
+	KOBJMETHOD(channel_getcaps, alschan_getcaps), KOBJMETHOD_END };
 CHANNEL_DECLARE(alspchan);
 
 /* ------------------------------------------------------------------------- */
@@ -448,8 +447,8 @@ als_get_fifo_format(struct sc_info *sc, u_int32_t format)
 static void
 als_capture_start(struct sc_chinfo *ch)
 {
-	struct	sc_info *sc = ch->parent;
-	u_int32_t	buf, bufsz, count, dma_prog;
+	struct sc_info *sc = ch->parent;
+	u_int32_t buf, bufsz, count, dma_prog;
 
 	buf = sndbuf_getbufaddr(ch->buffer);
 	bufsz = sndbuf_getsize(ch->buffer);
@@ -490,11 +489,11 @@ als_capture_stop(struct sc_chinfo *ch)
 static int
 alsrchan_trigger(kobj_t obj, void *data, int go)
 {
-	struct	sc_chinfo *ch = data;
+	struct sc_chinfo *ch = data;
 	struct sc_info *sc = ch->parent;
 
 	snd_mtxlock(sc->lock);
-	switch(go) {
+	switch (go) {
 	case PCMTRIG_START:
 		als_capture_start(ch);
 		break;
@@ -507,16 +506,14 @@ alsrchan_trigger(kobj_t obj, void *data, int go)
 	return 0;
 }
 
-static kobj_method_t alsrchan_methods[] = {
-	KOBJMETHOD(channel_init,		alschan_init),
-	KOBJMETHOD(channel_setformat,		alschan_setformat),
-	KOBJMETHOD(channel_setspeed,		alschan_setspeed),
-	KOBJMETHOD(channel_setblocksize,	alschan_setblocksize),
-	KOBJMETHOD(channel_trigger,		alsrchan_trigger),
-	KOBJMETHOD(channel_getptr,		alschan_getptr),
-	KOBJMETHOD(channel_getcaps,		alschan_getcaps),
-	KOBJMETHOD_END
-};
+static kobj_method_t alsrchan_methods[] = { KOBJMETHOD(channel_init,
+						alschan_init),
+	KOBJMETHOD(channel_setformat, alschan_setformat),
+	KOBJMETHOD(channel_setspeed, alschan_setspeed),
+	KOBJMETHOD(channel_setblocksize, alschan_setblocksize),
+	KOBJMETHOD(channel_trigger, alsrchan_trigger),
+	KOBJMETHOD(channel_getptr, alschan_getptr),
+	KOBJMETHOD(channel_getcaps, alschan_getcaps), KOBJMETHOD_END };
 CHANNEL_DECLARE(alsrchan);
 
 /* ------------------------------------------------------------------------- */
@@ -533,20 +530,19 @@ struct sb16props {
 	u_int8_t bits;
 	u_int8_t oselect;
 	u_int8_t iselect; /* left input mask */
-} static const amt[SOUND_MIXER_NRDEVICES] = {
-	[SOUND_MIXER_VOLUME]  = { 0x30, 0x31, 5, 0x00, 0x00 },
-	[SOUND_MIXER_PCM]     = { 0x32, 0x33, 5, 0x00, 0x00 },
-	[SOUND_MIXER_SYNTH]   = { 0x34, 0x35, 5, 0x60, 0x40 },
-	[SOUND_MIXER_CD]      = { 0x36, 0x37, 5, 0x06, 0x04 },
-	[SOUND_MIXER_LINE]    = { 0x38, 0x39, 5, 0x18, 0x10 },
-	[SOUND_MIXER_MIC]     = { 0x3a, 0x00, 5, 0x01, 0x01 },
+} static const amt[SOUND_MIXER_NRDEVICES] = { [SOUND_MIXER_VOLUME] = { 0x30,
+						  0x31, 5, 0x00, 0x00 },
+	[SOUND_MIXER_PCM] = { 0x32, 0x33, 5, 0x00, 0x00 },
+	[SOUND_MIXER_SYNTH] = { 0x34, 0x35, 5, 0x60, 0x40 },
+	[SOUND_MIXER_CD] = { 0x36, 0x37, 5, 0x06, 0x04 },
+	[SOUND_MIXER_LINE] = { 0x38, 0x39, 5, 0x18, 0x10 },
+	[SOUND_MIXER_MIC] = { 0x3a, 0x00, 5, 0x01, 0x01 },
 	[SOUND_MIXER_SPEAKER] = { 0x3b, 0x00, 2, 0x00, 0x00 },
-	[SOUND_MIXER_IGAIN]   = { 0x3f, 0x40, 2, 0x00, 0x00 },
-	[SOUND_MIXER_OGAIN]   = { 0x41, 0x42, 2, 0x00, 0x00 },
+	[SOUND_MIXER_IGAIN] = { 0x3f, 0x40, 2, 0x00, 0x00 },
+	[SOUND_MIXER_OGAIN] = { 0x41, 0x42, 2, 0x00, 0x00 },
 	/* The following have register values but no h/w implementation */
-	[SOUND_MIXER_TREBLE]  = { 0x44, 0x45, 4, 0x00, 0x00 },
-	[SOUND_MIXER_BASS]    = { 0x46, 0x47, 4, 0x00, 0x00 }
-};
+	[SOUND_MIXER_TREBLE] = { 0x44, 0x45, 4, 0x00, 0x00 },
+	[SOUND_MIXER_BASS] = { 0x46, 0x47, 4, 0x00, 0x00 } };
 
 static int
 alsmix_init(struct snd_mixer *m)
@@ -554,12 +550,14 @@ alsmix_init(struct snd_mixer *m)
 	u_int32_t i, v;
 
 	for (i = v = 0; i < SOUND_MIXER_NRDEVICES; i++) {
-		if (amt[i].bits) v |= 1 << i;
+		if (amt[i].bits)
+			v |= 1 << i;
 	}
 	mix_setdevs(m, v);
 
 	for (i = v = 0; i < SOUND_MIXER_NRDEVICES; i++) {
-		if (amt[i].iselect) v |= 1 << i;
+		if (amt[i].iselect)
+			v |= 1 << i;
 	}
 	mix_setrecdevs(m, v);
 	return 0;
@@ -605,7 +603,7 @@ alsmix_setrecsrc(struct snd_mixer *m, u_int32_t src)
 
 	for (i = l = r = 0; i < SOUND_MIXER_NRDEVICES; i++) {
 		if (src & (1 << i)) {
-			if (amt[i].iselect == 1) {	/* microphone */
+			if (amt[i].iselect == 1) { /* microphone */
 				l |= amt[i].iselect;
 				r |= amt[i].iselect;
 			} else {
@@ -621,10 +619,8 @@ alsmix_setrecsrc(struct snd_mixer *m, u_int32_t src)
 }
 
 static kobj_method_t als_mixer_methods[] = {
-	KOBJMETHOD(mixer_init,		alsmix_init),
-	KOBJMETHOD(mixer_set,		alsmix_set),
-	KOBJMETHOD(mixer_setrecsrc,	alsmix_setrecsrc),
-	KOBJMETHOD_END
+	KOBJMETHOD(mixer_init, alsmix_init), KOBJMETHOD(mixer_set, alsmix_set),
+	KOBJMETHOD(mixer_setrecsrc, alsmix_setrecsrc), KOBJMETHOD_END
 };
 MIXER_DECLARE(als_mixer);
 
@@ -695,7 +691,7 @@ als_init(struct sc_info *sc)
 	als_mix_wr(sc, ALS_SB16_CONFIG, v & 0x7f);
 
 	/* Enable interrupts */
-	v  = als_gcr_rd(sc, ALS_GCR_MISC);
+	v = als_gcr_rd(sc, ALS_GCR_MISC);
 	als_gcr_wr(sc, ALS_GCR_MISC, v | 0x28000);
 
 	/* Black out GCR DMA registers */
@@ -760,7 +756,7 @@ als_resource_grab(device_t dev, struct sc_info *sc)
 {
 	sc->regid = PCIR_BAR(0);
 	sc->reg = bus_alloc_resource_any(dev, SYS_RES_IOPORT, &sc->regid,
-					 RF_ACTIVE);
+	    RF_ACTIVE);
 	if (sc->reg == NULL) {
 		device_printf(dev, "unable to allocate register space\n");
 		goto bad;
@@ -769,34 +765,33 @@ als_resource_grab(device_t dev, struct sc_info *sc)
 	sc->sh = rman_get_bushandle(sc->reg);
 
 	sc->irq = bus_alloc_resource_any(dev, SYS_RES_IRQ, &sc->irqid,
-					 RF_ACTIVE | RF_SHAREABLE);
+	    RF_ACTIVE | RF_SHAREABLE);
 	if (sc->irq == NULL) {
 		device_printf(dev, "unable to allocate interrupt\n");
 		goto bad;
 	}
 
-	if (snd_setup_intr(dev, sc->irq, INTR_MPSAFE, als_intr,
-			   sc, &sc->ih)) {
+	if (snd_setup_intr(dev, sc->irq, INTR_MPSAFE, als_intr, sc, &sc->ih)) {
 		device_printf(dev, "unable to setup interrupt\n");
 		goto bad;
 	}
 
 	sc->bufsz = pcm_getbuffersize(dev, 4096, ALS_DEFAULT_BUFSZ, 65536);
 
-	if (bus_dma_tag_create(/*parent*/bus_get_dma_tag(dev),
-			       /*alignment*/2, /*boundary*/0,
-			       /*lowaddr*/BUS_SPACE_MAXADDR_24BIT,
-			       /*highaddr*/BUS_SPACE_MAXADDR,
-			       /*filter*/NULL, /*filterarg*/NULL,
-			       /*maxsize*/sc->bufsz,
-			       /*nsegments*/1, /*maxsegz*/0x3ffff,
-			       /*flags*/0, /*lockfunc*/NULL,
-			       /*lockarg*/NULL, &sc->parent_dmat) != 0) {
+	if (bus_dma_tag_create(/*parent*/ bus_get_dma_tag(dev),
+		/*alignment*/ 2, /*boundary*/ 0,
+		/*lowaddr*/ BUS_SPACE_MAXADDR_24BIT,
+		/*highaddr*/ BUS_SPACE_MAXADDR,
+		/*filter*/ NULL, /*filterarg*/ NULL,
+		/*maxsize*/ sc->bufsz,
+		/*nsegments*/ 1, /*maxsegz*/ 0x3ffff,
+		/*flags*/ 0, /*lockfunc*/ NULL,
+		/*lockarg*/ NULL, &sc->parent_dmat) != 0) {
 		device_printf(dev, "unable to create dma tag\n");
 		goto bad;
 	}
 	return 0;
- bad:
+bad:
 	als_resource_free(dev, sc);
 	return ENXIO;
 }
@@ -814,13 +809,15 @@ als_pci_attach(device_t dev)
 	pci_enable_busmaster(dev);
 	/*
 	 * By default the power to the various components on the
-         * ALS4000 is entirely controlled by the pci powerstate.  We
-         * could attempt finer grained control by setting GCR6.31.
+	 * ALS4000 is entirely controlled by the pci powerstate.  We
+	 * could attempt finer grained control by setting GCR6.31.
 	 */
 	if (pci_get_powerstate(dev) != PCI_POWERSTATE_D0) {
 		/* Reset the power state. */
-		device_printf(dev, "chip is in D%d power mode "
-			      "-- setting to D0\n", pci_get_powerstate(dev));
+		device_printf(dev,
+		    "chip is in D%d power mode "
+		    "-- setting to D0\n",
+		    pci_get_powerstate(dev));
 		pci_set_powerstate(dev, PCI_POWERSTATE_D0);
 	}
 
@@ -845,15 +842,15 @@ als_pci_attach(device_t dev)
 	}
 
 	pcm_addchan(dev, PCMDIR_PLAY, &alspchan_class, sc);
-	pcm_addchan(dev, PCMDIR_REC,  &alsrchan_class, sc);
+	pcm_addchan(dev, PCMDIR_REC, &alsrchan_class, sc);
 
 	snprintf(status, SND_STATUSLEN, "port 0x%jx irq %jd on %s",
-		 rman_get_start(sc->reg), rman_get_start(sc->irq),
-		 device_get_nameunit(device_get_parent(dev)));
+	    rman_get_start(sc->reg), rman_get_start(sc->irq),
+	    device_get_nameunit(device_get_parent(dev)));
 	pcm_setstatus(dev, status);
 	return 0;
 
- bad_attach:
+bad_attach:
 	als_resource_free(dev, sc);
 	free(sc, M_DEVBUF);
 	return ENXIO;
@@ -921,12 +918,11 @@ als_pci_resume(device_t dev)
 
 static device_method_t als_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		als_pci_probe),
-	DEVMETHOD(device_attach,	als_pci_attach),
-	DEVMETHOD(device_detach,	als_pci_detach),
-	DEVMETHOD(device_suspend,	als_pci_suspend),
-	DEVMETHOD(device_resume,	als_pci_resume),
-	{ 0, 0 }
+	DEVMETHOD(device_probe, als_pci_probe),
+	DEVMETHOD(device_attach, als_pci_attach),
+	DEVMETHOD(device_detach, als_pci_detach),
+	DEVMETHOD(device_suspend, als_pci_suspend),
+	DEVMETHOD(device_resume, als_pci_resume), { 0, 0 }
 };
 
 static driver_t als_driver = {

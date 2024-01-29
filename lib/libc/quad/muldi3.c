@@ -100,10 +100,10 @@ __muldi3(quad_t a, quad_t b)
 	union uu u, v, low, prod;
 	u_long high, mid, udiff, vdiff;
 	int negall, negmid;
-#define	u1	u.ul[H]
-#define	u0	u.ul[L]
-#define	v1	v.ul[H]
-#define	v0	v.ul[L]
+#define u1 u.ul[H]
+#define u0 u.ul[L]
+#define v1 v.ul[H]
+#define v0 v.ul[L]
 
 	/*
 	 * Get u and v such that u, v >= 0.  When this is finished,

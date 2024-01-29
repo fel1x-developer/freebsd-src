@@ -34,72 +34,72 @@
 
 /* Base header for all of the relevant messages */
 struct ifinfomsg {
-	unsigned char	ifi_family;	/* not used */
-	unsigned char	__ifi_pad;
-	unsigned short	ifi_type;	/* ARPHRD_* */
-	int		ifi_index;	/* Inteface index */
-	unsigned	ifi_flags;	/* IFF_* flags */
-	unsigned	ifi_change;	/* IFF_* change mask */
+	unsigned char ifi_family; /* not used */
+	unsigned char __ifi_pad;
+	unsigned short ifi_type; /* ARPHRD_* */
+	int ifi_index;		 /* Inteface index */
+	unsigned ifi_flags;	 /* IFF_* flags */
+	unsigned ifi_change;	 /* IFF_* change mask */
 };
 
 /* Linux-specific link-level state flag */
-#define	IFF_LOWER_UP	IFF_NETLINK_1
+#define IFF_LOWER_UP IFF_NETLINK_1
 
 #ifndef _KERNEL
 /* Compatilbility helpers */
-#define	_IFINFO_HDRLEN		((int)sizeof(struct ifinfomsg))
-#define	IFLA_RTA(_ifi)		((struct rtattr *)NL_ITEM_DATA(_ifi, _IFINFO_HDRLEN))
-#define	IFLA_PAYLOAD(_ifi)	NLMSG_PAYLOAD(_ifi, _IFINFO_HDRLEN)
+#define _IFINFO_HDRLEN ((int)sizeof(struct ifinfomsg))
+#define IFLA_RTA(_ifi) ((struct rtattr *)NL_ITEM_DATA(_ifi, _IFINFO_HDRLEN))
+#define IFLA_PAYLOAD(_ifi) NLMSG_PAYLOAD(_ifi, _IFINFO_HDRLEN)
 #endif
 
 enum {
-	IFLA_UNSPEC	= 0,
-	IFLA_ADDRESS	= 1,	/* binary: Link-level address (MAC) */
-#define	IFLA_ADDRESS IFLA_ADDRESS
-	IFLA_BROADCAST	= 2,	/* binary: link-level broadcast address */
-#define	IFLA_BROADCAST IFLA_BROADCAST
-	IFLA_IFNAME	= 3,	/* string: Interface name */
-#define	IFLA_IFNAME IFLA_IFNAME
-	IFLA_MTU	= 4,	/* u32: Current interface L3 mtu */
-#define	IFLA_MTU IFLA_MTU
-	IFLA_LINK	= 5,	/* u32: interface index */
-#define	IFLA_LINK IFLA_LINK
-	IFLA_QDISC	= 6,	/* string: Queing policy (not supported) */
-#define	IFLA_QDISC IFLA_QDISC
-	IFLA_STATS	= 7,	/* Interface counters */
-#define	IFLA_STATS IFLA_STATS
-	IFLA_COST	= 8,	/* not supported */
+	IFLA_UNSPEC = 0,
+	IFLA_ADDRESS = 1, /* binary: Link-level address (MAC) */
+#define IFLA_ADDRESS IFLA_ADDRESS
+	IFLA_BROADCAST = 2, /* binary: link-level broadcast address */
+#define IFLA_BROADCAST IFLA_BROADCAST
+	IFLA_IFNAME = 3, /* string: Interface name */
+#define IFLA_IFNAME IFLA_IFNAME
+	IFLA_MTU = 4, /* u32: Current interface L3 mtu */
+#define IFLA_MTU IFLA_MTU
+	IFLA_LINK = 5, /* u32: interface index */
+#define IFLA_LINK IFLA_LINK
+	IFLA_QDISC = 6, /* string: Queing policy (not supported) */
+#define IFLA_QDISC IFLA_QDISC
+	IFLA_STATS = 7, /* Interface counters */
+#define IFLA_STATS IFLA_STATS
+	IFLA_COST = 8, /* not supported */
 #define IFLA_COST IFLA_COST
-	IFLA_PRIORITY	= 9,	/* not supported */
+	IFLA_PRIORITY = 9, /* not supported */
 #define IFLA_PRIORITY IFLA_PRIORITY
-	IFLA_MASTER	= 10,	/* u32: parent interface ifindex */
+	IFLA_MASTER = 10, /* u32: parent interface ifindex */
 #define IFLA_MASTER IFLA_MASTER
-	IFLA_WIRELESS	= 11,	/* not supported */
+	IFLA_WIRELESS = 11, /* not supported */
 #define IFLA_WIRELESS IFLA_WIRELESS
-	IFLA_PROTINFO	= 12,	/* protocol-specific data */
+	IFLA_PROTINFO = 12, /* protocol-specific data */
 #define IFLA_PROTINFO IFLA_PROTINFO
-	IFLA_TXQLEN	= 13,	/* u32: transmit queue length */
+	IFLA_TXQLEN = 13, /* u32: transmit queue length */
 #define IFLA_TXQLEN IFLA_TXQLEN
-	IFLA_MAP	= 14,	/* not supported */
+	IFLA_MAP = 14, /* not supported */
 #define IFLA_MAP IFLA_MAP
-	IFLA_WEIGHT	= 15,	/* not supported */
+	IFLA_WEIGHT = 15, /* not supported */
 #define IFLA_WEIGHT IFLA_WEIGHT
-	IFLA_OPERSTATE	= 16,	/* u8: ifOperStatus per RFC 2863 */
-#define	IFLA_OPERSTATE IFLA_OPERSTATE
-	IFLA_LINKMODE	= 17,	/* u8: ifmedia (not supported) */
-#define	IFLA_LINKMODE IFLA_LINKMODE
-	IFLA_LINKINFO	= 18,	/* nested: IFLA_INFO_ */
+	IFLA_OPERSTATE = 16, /* u8: ifOperStatus per RFC 2863 */
+#define IFLA_OPERSTATE IFLA_OPERSTATE
+	IFLA_LINKMODE = 17, /* u8: ifmedia (not supported) */
+#define IFLA_LINKMODE IFLA_LINKMODE
+	IFLA_LINKINFO = 18, /* nested: IFLA_INFO_ */
 #define IFLA_LINKINFO IFLA_LINKINFO
-	IFLA_NET_NS_PID	= 19,	/* u32: vnet id (not supported) */
-#define	IFLA_NET_NS_PID IFLA_NET_NS_PID
-	IFLA_IFALIAS	= 20,	/* string: interface description */
-#define	IFLA_IFALIAS IFLA_IFALIAS
-	IFLA_NUM_VF	= 21,	/* not supported */
-#define	IFLA_NUM_VF IFLA_NUM_VF
-	IFLA_VFINFO_LIST= 22,	/* not supported */
-#define	IFLA_VFINFO_LIST IFLA_VFINFO_LIST
-	IFLA_STATS64	= 23,	/* rtnl_link_stats64: iface stats */
-#define	IFLA_STATS64 IFLA_STATS64
+	IFLA_NET_NS_PID = 19, /* u32: vnet id (not supported) */
+#define IFLA_NET_NS_PID IFLA_NET_NS_PID
+	IFLA_IFALIAS = 20, /* string: interface description */
+#define IFLA_IFALIAS IFLA_IFALIAS
+	IFLA_NUM_VF = 21, /* not supported */
+#define IFLA_NUM_VF IFLA_NUM_VF
+	IFLA_VFINFO_LIST = 22, /* not supported */
+#define IFLA_VFINFO_LIST IFLA_VFINFO_LIST
+	IFLA_STATS64 = 23, /* rtnl_link_stats64: iface stats */
+#define IFLA_STATS64 IFLA_STATS64
 	IFLA_VF_PORTS,
 	IFLA_PORT_SELF,
 	IFLA_AF_SPEC,
@@ -148,10 +148,10 @@ enum {
 #define IFLA_MAX (__IFLA_MAX - 1)
 
 enum {
-	IFLAF_UNSPEC		= 0,
-	IFLAF_ORIG_IFNAME	= 1,	/* string, original interface name at creation */
-	IFLAF_ORIG_HWADDR	= 2,	/* binary, original hardware address */
-	IFLAF_CAPS		= 3,	/* bitset, interface capabilities */
+	IFLAF_UNSPEC = 0,
+	IFLAF_ORIG_IFNAME = 1, /* string, original interface name at creation */
+	IFLAF_ORIG_HWADDR = 2, /* binary, original hardware address */
+	IFLAF_CAPS = 3,	       /* bitset, interface capabilities */
 	__IFLAF_MAX
 };
 #define IFLAF_MAX (__IFLAF_MAX - 1)
@@ -169,82 +169,86 @@ enum {
  * states of ifOperStatus defined by RFC 2863
  */
 enum {
-	IF_OPER_UNKNOWN		= 0, /* status can not be determined */
-	IF_OPER_NOTPRESENT	= 1, /* some (hardware) component not present */
-	IF_OPER_DOWN		= 2, /* down */
-	IF_OPER_LOWERLAYERDOWN	= 3, /* some lower-level interface is down */
-	IF_OPER_TESTING		= 4, /* in some test mode */
-	IF_OPER_DORMANT		= 5, /* "up" but waiting for some condition (802.1X) */
-	IF_OPER_UP		= 6, /* ready to pass packets */
+	IF_OPER_UNKNOWN = 0,	    /* status can not be determined */
+	IF_OPER_NOTPRESENT = 1,	    /* some (hardware) component not present */
+	IF_OPER_DOWN = 2,	    /* down */
+	IF_OPER_LOWERLAYERDOWN = 3, /* some lower-level interface is down */
+	IF_OPER_TESTING = 4,	    /* in some test mode */
+	IF_OPER_DORMANT = 5, /* "up" but waiting for some condition (802.1X) */
+	IF_OPER_UP = 6,	     /* ready to pass packets */
 };
 
 /* IFLA_STATS */
 struct rtnl_link_stats {
-	uint32_t rx_packets;	/* total RX packets (IFCOUNTER_IPACKETS) */
-	uint32_t tx_packets;	/* total TX packets (IFCOUNTER_OPACKETS) */
-	uint32_t rx_bytes;	/* total RX bytes (IFCOUNTER_IBYTES) */
-	uint32_t tx_bytes;	/* total TX bytes (IFCOUNTER_OBYTES) */
-	uint32_t rx_errors;	/* RX errors (IFCOUNTER_IERRORS) */
-	uint32_t tx_errors;	/* RX errors (IFCOUNTER_OERRORS) */
-	uint32_t rx_dropped;	/* RX drop (no space in ring/no bufs) (IFCOUNTER_IQDROPS) */
-	uint32_t tx_dropped;	/* TX drop (IFCOUNTER_OQDROPS) */
-	uint32_t multicast;	/* RX multicast packets (IFCOUNTER_IMCASTS) */
-	uint32_t collisions;	/* not supported */
-	uint32_t rx_length_errors;	/* not supported */
-	uint32_t rx_over_errors;	/* not supported */
-	uint32_t rx_crc_errors;		/* not supported */
-	uint32_t rx_frame_errors;	/* not supported */
-	uint32_t rx_fifo_errors;	/* not supported */
-	uint32_t rx_missed_errors;	/* not supported */
-	uint32_t tx_aborted_errors;	/* not supported */
-	uint32_t tx_carrier_errors;	/* not supported */
-	uint32_t tx_fifo_errors;	/* not supported */
-	uint32_t tx_heartbeat_errors;	/* not supported */
-	uint32_t tx_window_errors;	/* not supported */
-	uint32_t rx_compressed;		/* not supported */
-	uint32_t tx_compressed;		/* not supported */
-	uint32_t rx_nohandler;	/* dropped due to no proto handler (IFCOUNTER_NOPROTO) */
+	uint32_t rx_packets; /* total RX packets (IFCOUNTER_IPACKETS) */
+	uint32_t tx_packets; /* total TX packets (IFCOUNTER_OPACKETS) */
+	uint32_t rx_bytes;   /* total RX bytes (IFCOUNTER_IBYTES) */
+	uint32_t tx_bytes;   /* total TX bytes (IFCOUNTER_OBYTES) */
+	uint32_t rx_errors;  /* RX errors (IFCOUNTER_IERRORS) */
+	uint32_t tx_errors;  /* RX errors (IFCOUNTER_OERRORS) */
+	uint32_t rx_dropped; /* RX drop (no space in ring/no bufs)
+				(IFCOUNTER_IQDROPS) */
+	uint32_t tx_dropped; /* TX drop (IFCOUNTER_OQDROPS) */
+	uint32_t multicast;  /* RX multicast packets (IFCOUNTER_IMCASTS) */
+	uint32_t collisions; /* not supported */
+	uint32_t rx_length_errors;    /* not supported */
+	uint32_t rx_over_errors;      /* not supported */
+	uint32_t rx_crc_errors;	      /* not supported */
+	uint32_t rx_frame_errors;     /* not supported */
+	uint32_t rx_fifo_errors;      /* not supported */
+	uint32_t rx_missed_errors;    /* not supported */
+	uint32_t tx_aborted_errors;   /* not supported */
+	uint32_t tx_carrier_errors;   /* not supported */
+	uint32_t tx_fifo_errors;      /* not supported */
+	uint32_t tx_heartbeat_errors; /* not supported */
+	uint32_t tx_window_errors;    /* not supported */
+	uint32_t rx_compressed;	      /* not supported */
+	uint32_t tx_compressed;	      /* not supported */
+	uint32_t rx_nohandler;	      /* dropped due to no proto handler
+					 (IFCOUNTER_NOPROTO) */
 };
 
 /* IFLA_STATS64 */
 struct rtnl_link_stats64 {
-	uint64_t rx_packets;	/* total RX packets (IFCOUNTER_IPACKETS) */
-	uint64_t tx_packets;	/* total TX packets (IFCOUNTER_OPACKETS) */
-	uint64_t rx_bytes;	/* total RX bytes (IFCOUNTER_IBYTES) */
-	uint64_t tx_bytes;	/* total TX bytes (IFCOUNTER_OBYTES) */
-	uint64_t rx_errors;	/* RX errors (IFCOUNTER_IERRORS) */
-	uint64_t tx_errors;	/* RX errors (IFCOUNTER_OERRORS) */
-	uint64_t rx_dropped;	/* RX drop (no space in ring/no bufs) (IFCOUNTER_IQDROPS) */
-	uint64_t tx_dropped;	/* TX drop (IFCOUNTER_OQDROPS) */
-	uint64_t multicast;	/* RX multicast packets (IFCOUNTER_IMCASTS) */
-	uint64_t collisions;	/* not supported */
-	uint64_t rx_length_errors;	/* not supported */
-	uint64_t rx_over_errors;	/* not supported */
-	uint64_t rx_crc_errors;		/* not supported */
-	uint64_t rx_frame_errors;	/* not supported */
-	uint64_t rx_fifo_errors;	/* not supported */
-	uint64_t rx_missed_errors;	/* not supported */
-	uint64_t tx_aborted_errors;	/* not supported */
-	uint64_t tx_carrier_errors;	/* not supported */
-	uint64_t tx_fifo_errors;	/* not supported */
-	uint64_t tx_heartbeat_errors;	/* not supported */
-	uint64_t tx_window_errors;	/* not supported */
-	uint64_t rx_compressed;		/* not supported */
-	uint64_t tx_compressed;		/* not supported */
-	uint64_t rx_nohandler;	/* dropped due to no proto handler (IFCOUNTER_NOPROTO) */
+	uint64_t rx_packets; /* total RX packets (IFCOUNTER_IPACKETS) */
+	uint64_t tx_packets; /* total TX packets (IFCOUNTER_OPACKETS) */
+	uint64_t rx_bytes;   /* total RX bytes (IFCOUNTER_IBYTES) */
+	uint64_t tx_bytes;   /* total TX bytes (IFCOUNTER_OBYTES) */
+	uint64_t rx_errors;  /* RX errors (IFCOUNTER_IERRORS) */
+	uint64_t tx_errors;  /* RX errors (IFCOUNTER_OERRORS) */
+	uint64_t rx_dropped; /* RX drop (no space in ring/no bufs)
+				(IFCOUNTER_IQDROPS) */
+	uint64_t tx_dropped; /* TX drop (IFCOUNTER_OQDROPS) */
+	uint64_t multicast;  /* RX multicast packets (IFCOUNTER_IMCASTS) */
+	uint64_t collisions; /* not supported */
+	uint64_t rx_length_errors;    /* not supported */
+	uint64_t rx_over_errors;      /* not supported */
+	uint64_t rx_crc_errors;	      /* not supported */
+	uint64_t rx_frame_errors;     /* not supported */
+	uint64_t rx_fifo_errors;      /* not supported */
+	uint64_t rx_missed_errors;    /* not supported */
+	uint64_t tx_aborted_errors;   /* not supported */
+	uint64_t tx_carrier_errors;   /* not supported */
+	uint64_t tx_fifo_errors;      /* not supported */
+	uint64_t tx_heartbeat_errors; /* not supported */
+	uint64_t tx_window_errors;    /* not supported */
+	uint64_t rx_compressed;	      /* not supported */
+	uint64_t tx_compressed;	      /* not supported */
+	uint64_t rx_nohandler;	      /* dropped due to no proto handler
+					 (IFCOUNTER_NOPROTO) */
 };
 
 /* IFLA_LINKINFO child nlattr types */
 enum {
 	IFLA_INFO_UNSPEC,
-	IFLA_INFO_KIND		= 1, /* string, link type ("vlan") */
-	IFLA_INFO_DATA		= 2, /* Per-link-type custom data */
-	IFLA_INFO_XSTATS	= 3,
-	IFLA_INFO_SLAVE_KIND	= 4,
-	IFLA_INFO_SLAVE_DATA	= 5,
+	IFLA_INFO_KIND = 1, /* string, link type ("vlan") */
+	IFLA_INFO_DATA = 2, /* Per-link-type custom data */
+	IFLA_INFO_XSTATS = 3,
+	IFLA_INFO_SLAVE_KIND = 4,
+	IFLA_INFO_SLAVE_DATA = 5,
 	__IFLA_INFO_MAX,
 };
-#define IFLA_INFO_MAX	(__IFLA_INFO_MAX - 1)
+#define IFLA_INFO_MAX (__IFLA_INFO_MAX - 1)
 
 /* IFLA_INFO_DATA vlan attributes */
 enum {
@@ -257,7 +261,7 @@ enum {
 	__IFLA_VLAN_MAX,
 };
 
-#define IFLA_VLAN_MAX	(__IFLA_VLAN_MAX - 1)
+#define IFLA_VLAN_MAX (__IFLA_VLAN_MAX - 1)
 struct ifla_vlan_flags {
 	uint32_t flags;
 	uint32_t mask;

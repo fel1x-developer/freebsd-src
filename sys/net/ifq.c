@@ -33,12 +33,12 @@
 #include <sys/socket.h>
 
 #ifndef ALTQ
-#define	ALTQ	/* Needed for ifq.h prototypes only. */
+#define ALTQ /* Needed for ifq.h prototypes only. */
 #endif
 
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_private.h>
+#include <net/if_var.h>
 #include <net/ifq.h>
 
 int
@@ -128,7 +128,7 @@ drbr_advance(struct ifnet *ifp, struct buf_ring *br)
 
 struct mbuf *
 drbr_dequeue_cond(struct ifnet *ifp, struct buf_ring *br,
-    int (*func) (struct mbuf *, void *), void *arg)
+    int (*func)(struct mbuf *, void *), void *arg)
 {
 	struct mbuf *m;
 	if (ALTQ_IS_ENABLED(&ifp->if_snd)) {
@@ -172,4 +172,3 @@ drbr_inuse(struct ifnet *ifp, struct buf_ring *br)
 		return (ifp->if_snd.ifq_len);
 	return (buf_ring_count(br));
 }
-

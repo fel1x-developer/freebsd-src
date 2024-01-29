@@ -28,17 +28,15 @@
 
 #include <net/ethernet.h>
 
+#include <atf-c.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
 
-#include <atf-c.h>
-
 static const char *ether_line_string = "01:23:45:67:89:ab ether_line_hostname";
 static const char *ether_line_hostname = "ether_line_hostname";
-static const struct ether_addr	 ether_line_addr = {
-	{ 0x01, 0x23, 0x45, 0x67, 0x89, 0xab }
-};
+static const struct ether_addr ether_line_addr = { { 0x01, 0x23, 0x45, 0x67,
+    0x89, 0xab } };
 
 ATF_TC_WITHOUT_HEAD(ether_line);
 ATF_TC_BODY(ether_line, tc)
@@ -79,9 +77,8 @@ ATF_TC_BODY(ether_line_bad_2, tc)
 }
 
 static const char *ether_aton_string = "01:23:45:67:89:ab";
-static const struct ether_addr	 ether_aton_addr = {
-	{ 0x01, 0x23, 0x45, 0x67, 0x89, 0xab }
-};
+static const struct ether_addr ether_aton_addr = { { 0x01, 0x23, 0x45, 0x67,
+    0x89, 0xab } };
 
 ATF_TC_WITHOUT_HEAD(ether_aton_r);
 ATF_TC_BODY(ether_aton_r, tc)
@@ -95,7 +92,7 @@ ATF_TC_BODY(ether_aton_r, tc)
 	    "ether_aton_r returned different pointers; %p != %p", ep, &e);
 }
 
-static const char		*ether_aton_bad_string = "x";
+static const char *ether_aton_bad_string = "x";
 
 ATF_TC_WITHOUT_HEAD(ether_aton_r_bad);
 ATF_TC_BODY(ether_aton_r_bad, tc)
@@ -127,9 +124,8 @@ ATF_TC_BODY(ether_aton_bad, tc)
 }
 
 static const char *ether_ntoa_string = "01:23:45:67:89:ab";
-static const struct ether_addr	 ether_ntoa_addr = {
-	{ 0x01, 0x23, 0x45, 0x67, 0x89, 0xab }
-};
+static const struct ether_addr ether_ntoa_addr = { { 0x01, 0x23, 0x45, 0x67,
+    0x89, 0xab } };
 
 ATF_TC_WITHOUT_HEAD(ether_ntoa_r);
 ATF_TC_BODY(ether_ntoa_r, tc)

@@ -34,11 +34,11 @@
 
 #define NOCRED NULL
 
-#define MSDOSFS_DPRINTF(args) do {	\
-	if (debug & DEBUG_MSDOSFS)	\
-		printf args;		\
-} while (0);
-
+#define MSDOSFS_DPRINTF(args)              \
+	do {                               \
+		if (debug & DEBUG_MSDOSFS) \
+			printf args;       \
+	} while (0);
 
 struct denode;
 struct fsnode;

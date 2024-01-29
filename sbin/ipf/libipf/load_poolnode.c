@@ -7,16 +7,17 @@
  * $Id$
  */
 
-#include <fcntl.h>
 #include <sys/ioctl.h>
+
+#include <fcntl.h>
+
 #include "ipf.h"
 #include "netinet/ip_lookup.h"
 #include "netinet/ip_pool.h"
 
-
 int
 load_poolnode(int role, char *name, ip_pool_node_t *node, int ttl,
-	ioctlfunc_t iocfunc)
+    ioctlfunc_t iocfunc)
 {
 	ip_pool_node_t pn;
 	iplookupop_t op;
@@ -35,9 +36,9 @@ load_poolnode(int role, char *name, ip_pool_node_t *node, int ttl,
 
 	bzero((char *)&pn, sizeof(pn));
 	bcopy((char *)&node->ipn_addr, (char *)&pn.ipn_addr,
-	      sizeof(pn.ipn_addr));
+	    sizeof(pn.ipn_addr));
 	bcopy((char *)&node->ipn_mask, (char *)&pn.ipn_mask,
-	      sizeof(pn.ipn_mask));
+	    sizeof(pn.ipn_mask));
 	pn.ipn_info = node->ipn_info;
 	pn.ipn_die = ttl;
 	strncpy(pn.ipn_name, node->ipn_name, sizeof(pn.ipn_name));
@@ -55,7 +56,7 @@ load_poolnode(int role, char *name, ip_pool_node_t *node, int ttl,
 			char msg[80];
 
 			snprintf(msg, sizeof(msg), "%s pool node(%s/", what,
-				inet_ntoa(pn.ipn_addr.adf_addr.in4));
+			    inet_ntoa(pn.ipn_addr.adf_addr.in4));
 			strcat(msg, inet_ntoa(pn.ipn_mask.adf_addr.in4));
 			return (ipf_perror_fd(pool_fd(), iocfunc, msg));
 		}

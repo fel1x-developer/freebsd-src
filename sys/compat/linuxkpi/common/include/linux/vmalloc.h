@@ -27,15 +27,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #ifndef _LINUXKPI_LINUX_VMALLOC_H_
-#define	_LINUXKPI_LINUX_VMALLOC_H_
+#define _LINUXKPI_LINUX_VMALLOC_H_
 
 #include <linux/page.h>
 
-#define	VM_MAP		0x0000
-#define	PAGE_KERNEL	0x0000
+#define VM_MAP 0x0000
+#define PAGE_KERNEL 0x0000
 
 void *vmap(struct page **pages, unsigned int count, unsigned long flags,
     int prot);
 void vunmap(void *addr);
 
-#endif	/* _LINUXKPI_LINUX_VMALLOC_H_ */
+#endif /* _LINUXKPI_LINUX_VMALLOC_H_ */

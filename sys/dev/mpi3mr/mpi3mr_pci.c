@@ -1,7 +1,7 @@
 /*
  * SPDX-License-Identifier: BSD-2-Clause
  *
- * Copyright (c) 2020-2023, Broadcom Inc. All rights reserved. 
+ * Copyright (c) 2020-2023, Broadcom Inc. All rights reserved.
  * Support: <fbsd-storage-driver.pdl@broadcom.com>
  *
  * Authors: Sumit Saxena <sumit.saxena@broadcom.com>
@@ -14,11 +14,11 @@
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation and/or other
- *    materials provided with the distribution.
+ *    this list of conditions and the following disclaimer in the documentation
+ *and/or other materials provided with the distribution.
  * 3. Neither the name of the Broadcom Inc. nor the names of its contributors
- *    may be used to endorse or promote products derived from this software without
- *    specific prior written permission.
+ *    may be used to endorse or promote products derived from this software
+ *without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -42,55 +42,49 @@
  */
 
 #include "mpi3mr.h"
-#include "mpi3mr_cam.h"
 #include "mpi3mr_app.h"
+#include "mpi3mr_cam.h"
 
-static int 	sc_ids;
-static int	mpi3mr_pci_probe(device_t);
-static int	mpi3mr_pci_attach(device_t);
-static int	mpi3mr_pci_detach(device_t);
-static int	mpi3mr_pci_suspend(device_t);
-static int	mpi3mr_pci_resume(device_t);
-static int 	mpi3mr_setup_resources(struct mpi3mr_softc *sc);
-static void	mpi3mr_release_resources(struct mpi3mr_softc *);
-static void	mpi3mr_teardown_irqs(struct mpi3mr_softc *sc);
+static int sc_ids;
+static int mpi3mr_pci_probe(device_t);
+static int mpi3mr_pci_attach(device_t);
+static int mpi3mr_pci_detach(device_t);
+static int mpi3mr_pci_suspend(device_t);
+static int mpi3mr_pci_resume(device_t);
+static int mpi3mr_setup_resources(struct mpi3mr_softc *sc);
+static void mpi3mr_release_resources(struct mpi3mr_softc *);
+static void mpi3mr_teardown_irqs(struct mpi3mr_softc *sc);
 
-extern void	mpi3mr_watchdog_thread(void *arg);
+extern void mpi3mr_watchdog_thread(void *arg);
 
-static device_method_t mpi3mr_methods[] = {
-	DEVMETHOD(device_probe,		mpi3mr_pci_probe),
-	DEVMETHOD(device_attach,	mpi3mr_pci_attach),
-	DEVMETHOD(device_detach,	mpi3mr_pci_detach),
-	DEVMETHOD(device_suspend,	mpi3mr_pci_suspend),
-	DEVMETHOD(device_resume,	mpi3mr_pci_resume),
-	DEVMETHOD(bus_print_child,	bus_generic_print_child),
-	DEVMETHOD(bus_driver_added,	bus_generic_driver_added),
-	{ 0, 0 }
-};
+static device_method_t mpi3mr_methods[] = { DEVMETHOD(device_probe,
+						mpi3mr_pci_probe),
+	DEVMETHOD(device_attach, mpi3mr_pci_attach),
+	DEVMETHOD(device_detach, mpi3mr_pci_detach),
+	DEVMETHOD(device_suspend, mpi3mr_pci_suspend),
+	DEVMETHOD(device_resume, mpi3mr_pci_resume),
+	DEVMETHOD(bus_print_child, bus_generic_print_child),
+	DEVMETHOD(bus_driver_added, bus_generic_driver_added), { 0, 0 } };
 
 char fmt_os_ver[16];
 
 SYSCTL_NODE(_hw, OID_AUTO, mpi3mr, CTLFLAG_RD, 0, "MPI3MR Driver Parameters");
 MALLOC_DEFINE(M_MPI3MR, "mpi3mrbuf", "Buffers for the MPI3MR driver");
 
-static driver_t mpi3mr_pci_driver = {
-	"mpi3mr",
-	mpi3mr_methods,
-	sizeof(struct mpi3mr_softc)
-};
+static driver_t mpi3mr_pci_driver = { "mpi3mr", mpi3mr_methods,
+	sizeof(struct mpi3mr_softc) };
 
 struct mpi3mr_ident {
-	uint16_t	vendor;
-	uint16_t	device;
-	uint16_t	subvendor;
-	uint16_t	subdevice;
-	u_int		flags;
-	const char	*desc;
-} mpi3mr_identifiers[] = {
-	{ MPI3_MFGPAGE_VENDORID_BROADCOM, MPI3_MFGPAGE_DEVID_SAS4116,
-	    0xffff, 0xffff, 0, "Broadcom MPIMR 3.0 controller" },
-	{ 0 }
-};
+	uint16_t vendor;
+	uint16_t device;
+	uint16_t subvendor;
+	uint16_t subdevice;
+	u_int flags;
+	const char *desc;
+} mpi3mr_identifiers[] = { { MPI3_MFGPAGE_VENDORID_BROADCOM,
+			       MPI3_MFGPAGE_DEVID_SAS4116, 0xffff, 0xffff, 0,
+			       "Broadcom MPIMR 3.0 controller" },
+	{ 0 } };
 
 DRIVER_MODULE(mpi3mr, pci, mpi3mr_pci_driver, 0, 0);
 MODULE_PNP_INFO("U16:vendor;U16:device;U16:subvendor;U16:subdevice;D:#", pci,
@@ -117,7 +111,8 @@ mpi3mr_setup_sysctl(struct mpi3mr_softc *sc)
 	 */
 	snprintf(tmpstr, sizeof(tmpstr), "MPI3MR controller %d",
 	    device_get_unit(sc->mpi3mr_dev));
-	snprintf(tmpstr2, sizeof(tmpstr2), "%d", device_get_unit(sc->mpi3mr_dev));
+	snprintf(tmpstr2, sizeof(tmpstr2), "%d",
+	    device_get_unit(sc->mpi3mr_dev));
 
 	sysctl_ctx = device_get_sysctl_ctx(sc->mpi3mr_dev);
 	if (sysctl_ctx != NULL)
@@ -134,30 +129,30 @@ mpi3mr_setup_sysctl(struct mpi3mr_softc *sc)
 		sysctl_tree = sc->sysctl_tree;
 	}
 
-	SYSCTL_ADD_STRING(sysctl_ctx, SYSCTL_CHILDREN(sysctl_tree),
-	    OID_AUTO, "driver_version", CTLFLAG_RD, MPI3MR_DRIVER_VERSION,
+	SYSCTL_ADD_STRING(sysctl_ctx, SYSCTL_CHILDREN(sysctl_tree), OID_AUTO,
+	    "driver_version", CTLFLAG_RD, MPI3MR_DRIVER_VERSION,
 	    strlen(MPI3MR_DRIVER_VERSION), "driver version");
 
-	SYSCTL_ADD_INT(sysctl_ctx, SYSCTL_CHILDREN(sysctl_tree),
-	    OID_AUTO, "fw_outstanding", CTLFLAG_RD,
-	    &sc->fw_outstanding.val_rdonly, 0, "FW outstanding commands");
+	SYSCTL_ADD_INT(sysctl_ctx, SYSCTL_CHILDREN(sysctl_tree), OID_AUTO,
+	    "fw_outstanding", CTLFLAG_RD, &sc->fw_outstanding.val_rdonly, 0,
+	    "FW outstanding commands");
 
-	SYSCTL_ADD_INT(sysctl_ctx, SYSCTL_CHILDREN(sysctl_tree),
-	    OID_AUTO, "io_cmds_highwater", CTLFLAG_RD,
-	    &sc->io_cmds_highwater, 0, "Max FW outstanding commands");
+	SYSCTL_ADD_INT(sysctl_ctx, SYSCTL_CHILDREN(sysctl_tree), OID_AUTO,
+	    "io_cmds_highwater", CTLFLAG_RD, &sc->io_cmds_highwater, 0,
+	    "Max FW outstanding commands");
 
-	SYSCTL_ADD_STRING(sysctl_ctx, SYSCTL_CHILDREN(sysctl_tree),
-	    OID_AUTO, "firmware_version", CTLFLAG_RD, sc->fw_version,
+	SYSCTL_ADD_STRING(sysctl_ctx, SYSCTL_CHILDREN(sysctl_tree), OID_AUTO,
+	    "firmware_version", CTLFLAG_RD, sc->fw_version,
 	    strlen(sc->fw_version), "firmware version");
 
-	SYSCTL_ADD_UINT(sysctl_ctx, SYSCTL_CHILDREN(sysctl_tree),
-	    OID_AUTO, "mpi3mr_debug", CTLFLAG_RW, &sc->mpi3mr_debug, 0,
+	SYSCTL_ADD_UINT(sysctl_ctx, SYSCTL_CHILDREN(sysctl_tree), OID_AUTO,
+	    "mpi3mr_debug", CTLFLAG_RW, &sc->mpi3mr_debug, 0,
 	    "Driver debug level");
-	SYSCTL_ADD_UINT(sysctl_ctx, SYSCTL_CHILDREN(sysctl_tree),
-	    OID_AUTO, "reset", CTLFLAG_RW, &sc->reset.type, 0,
+	SYSCTL_ADD_UINT(sysctl_ctx, SYSCTL_CHILDREN(sysctl_tree), OID_AUTO,
+	    "reset", CTLFLAG_RW, &sc->reset.type, 0,
 	    "Soft reset(1)/Diag reset(2)");
-	SYSCTL_ADD_UINT(sysctl_ctx, SYSCTL_CHILDREN(sysctl_tree),
-	    OID_AUTO, "iot_enable", CTLFLAG_RW, &sc->iot_enable, 0,
+	SYSCTL_ADD_UINT(sysctl_ctx, SYSCTL_CHILDREN(sysctl_tree), OID_AUTO,
+	    "iot_enable", CTLFLAG_RW, &sc->iot_enable, 0,
 	    "IO throttling enable at driver level(for debug purpose)");
 }
 
@@ -172,9 +167,8 @@ mpi3mr_get_tunables(struct mpi3mr_softc *sc)
 {
 	char tmpstr[80];
 
-	sc->mpi3mr_debug =
-		(MPI3MR_ERROR | MPI3MR_INFO | MPI3MR_FAULT);
-	
+	sc->mpi3mr_debug = (MPI3MR_ERROR | MPI3MR_INFO | MPI3MR_FAULT);
+
 	sc->reset_in_progress = 0;
 	sc->reset.type = 0;
 	sc->iot_enable = 1;
@@ -189,11 +183,11 @@ mpi3mr_get_tunables(struct mpi3mr_softc *sc)
 	snprintf(tmpstr, sizeof(tmpstr), "dev.mpi3mr.%d.debug_level",
 	    device_get_unit(sc->mpi3mr_dev));
 	TUNABLE_INT_FETCH(tmpstr, &sc->mpi3mr_debug);
-	
+
 	snprintf(tmpstr, sizeof(tmpstr), "dev.mpi3mr.%d.reset",
 	    device_get_unit(sc->mpi3mr_dev));
 	TUNABLE_INT_FETCH(tmpstr, &sc->reset.type);
-	
+
 	snprintf(tmpstr, sizeof(tmpstr), "dev.mpi3mr.%d.iot_enable",
 	    device_get_unit(sc->mpi3mr_dev));
 	TUNABLE_INT_FETCH(tmpstr, &sc->iot_enable);
@@ -232,7 +226,8 @@ mpi3mr_pci_probe(device_t dev)
 		if (first_ctrl) {
 			first_ctrl = 0;
 			MPI3MR_OS_VERSION(raw_os_ver, fmt_os_ver);
-			printf("mpi3mr: Loading Broadcom mpi3mr driver version: %s  OS version: %s\n",
+			printf(
+			    "mpi3mr: Loading Broadcom mpi3mr driver version: %s  OS version: %s\n",
 			    MPI3MR_DRIVER_VERSION, fmt_os_ver);
 		}
 		device_set_desc(dev, id->desc);
@@ -248,26 +243,28 @@ mpi3mr_release_resources(struct mpi3mr_softc *sc)
 	if (sc->mpi3mr_parent_dmat != NULL) {
 		bus_dma_tag_destroy(sc->mpi3mr_parent_dmat);
 	}
-	
+
 	if (sc->mpi3mr_regs_resource != NULL) {
 		bus_release_resource(sc->mpi3mr_dev, SYS_RES_MEMORY,
 		    sc->mpi3mr_regs_rid, sc->mpi3mr_regs_resource);
 	}
 }
 
-static int mpi3mr_setup_resources(struct mpi3mr_softc *sc)
+static int
+mpi3mr_setup_resources(struct mpi3mr_softc *sc)
 {
 	bus_dma_template_t t;
 	int i;
 	device_t dev = sc->mpi3mr_dev;
-	
+
 	pci_enable_busmaster(dev);
 
 	for (i = 0; i < PCI_MAXMAPS_0; i++) {
 		sc->mpi3mr_regs_rid = PCIR_BAR(i);
 
 		if ((sc->mpi3mr_regs_resource = bus_alloc_resource_any(dev,
-		    SYS_RES_MEMORY, &sc->mpi3mr_regs_rid, RF_ACTIVE)) != NULL)
+			 SYS_RES_MEMORY, &sc->mpi3mr_regs_rid, RF_ACTIVE)) !=
+		    NULL)
 			break;
 	}
 
@@ -292,12 +289,13 @@ static int mpi3mr_setup_resources(struct mpi3mr_softc *sc)
 	/* Allocate the parent DMA tag */
 	bus_dma_template_init(&t, bus_get_dma_tag(dev));
 	if (bus_dma_template_tag(&t, &sc->mpi3mr_parent_dmat)) {
-		mpi3mr_dprint(sc, MPI3MR_ERROR, "Cannot allocate parent DMA tag\n");
+		mpi3mr_dprint(sc, MPI3MR_ERROR,
+		    "Cannot allocate parent DMA tag\n");
 		return (ENOMEM);
 	}
 
 	sc->max_msix_vectors = pci_msix_count(dev);
-	
+
 	return 0;
 }
 
@@ -320,7 +318,7 @@ mpi3mr_ich_startup(void *arg)
 	mpi3mr_dprint(sc, MPI3MR_XINFO, "%s entry\n", __func__);
 
 	mtx_lock(&sc->mpi3mr_mtx);
-	
+
 	mpi3mr_startup(sc);
 
 	mtx_unlock(&sc->mpi3mr_mtx);
@@ -330,7 +328,8 @@ mpi3mr_ich_startup(void *arg)
 	    device_get_unit(sc->mpi3mr_dev));
 
 	if (error)
-		device_printf(sc->mpi3mr_dev, "Error %d starting OCR thread\n", error);
+		device_printf(sc->mpi3mr_dev, "Error %d starting OCR thread\n",
+		    error);
 
 	mpi3mr_dprint(sc, MPI3MR_XINFO, "disestablish config intrhook\n");
 	config_intrhook_disestablish(&sc->mpi3mr_ich);
@@ -355,8 +354,7 @@ mpi3mr_ctrl_security_status(device_t dev)
 	uint32_t cap_data, ctrl_status, debug_status;
 	/* Check if Device serial number extended capability is supported */
 	if (pci_find_extcap(dev, PCIZ_SERNUM, &dev_serial_num) != 0) {
-		device_printf(dev,
-		    "PCIZ_SERNUM is not supported\n");
+		device_printf(dev, "PCIZ_SERNUM is not supported\n");
 		return -1;
 	}
 
@@ -375,7 +373,8 @@ mpi3mr_ctrl_security_status(device_t dev)
 		break;
 	case MPI3MR_CONFIG_SECURE_DEVICE:
 		if (!debug_status)
-			device_printf(dev, "Config secure controller is detected\n");
+			device_printf(dev,
+			    "Config secure controller is detected\n");
 		break;
 	case MPI3MR_HARD_SECURE_DEVICE:
 		device_printf(dev, "Hard secure controller is detected\n");
@@ -389,7 +388,7 @@ mpi3mr_ctrl_security_status(device_t dev)
 		break;
 	default:
 		retval = -1;
-			break;
+		break;
 	}
 
 	if (!retval && debug_status) {
@@ -406,9 +405,9 @@ mpi3mr_ctrl_security_status(device_t dev)
  * mpi3mr_pci_attach - PCI entry point
  * @dev: pointer to device struct
  *
- * This function does the setup of PCI and registers, allocates controller resources,
- * initializes mutexes, linked lists and registers interrupts, CAM and initializes
- * the controller.
+ * This function does the setup of PCI and registers, allocates controller
+ * resources, initializes mutexes, linked lists and registers interrupts, CAM
+ * and initializes the controller.
  *
  * Return: 0 on success and proper error codes on failure
  */
@@ -421,18 +420,18 @@ mpi3mr_pci_attach(device_t dev)
 	sc = device_get_softc(dev);
 	bzero(sc, sizeof(*sc));
 	sc->mpi3mr_dev = dev;
-	
+
 	/* Don't load driver for Non-Secure controllers */
 	if (mpi3mr_ctrl_security_status(dev)) {
 		sc->secure_ctrl = false;
-		return 0; 
+		return 0;
 	}
-	
+
 	sc->secure_ctrl = true;
 
 	if ((error = mpi3mr_setup_resources(sc)) != 0)
 		goto load_failed;
-	
+
 	sc->id = sc_ids++;
 	mpi3mr_atomic_set(&sc->fw_outstanding, 0);
 	mpi3mr_atomic_set(&sc->pend_ioctls, 0);
@@ -443,14 +442,15 @@ mpi3mr_pci_attach(device_t dev)
 
 	sc->mpi3mr_dev = dev;
 	mpi3mr_get_tunables(sc);
-	
+
 	if ((error = mpi3mr_initialize_ioc(sc, MPI3MR_INIT_TYPE_INIT)) != 0) {
 		mpi3mr_dprint(sc, MPI3MR_ERROR, "FW initialization failed\n");
 		goto load_failed;
 	}
-	
+
 	if ((error = mpi3mr_alloc_requests(sc)) != 0) {
-		mpi3mr_dprint(sc, MPI3MR_ERROR, "Command frames allocation failed\n");
+		mpi3mr_dprint(sc, MPI3MR_ERROR,
+		    "Command frames allocation failed\n");
 		goto load_failed;
 	}
 
@@ -458,7 +458,7 @@ mpi3mr_pci_attach(device_t dev)
 		mpi3mr_dprint(sc, MPI3MR_ERROR, "CAM attach failed\n");
 		goto load_failed;
 	}
-	
+
 	sc->mpi3mr_ich.ich_func = mpi3mr_ich_startup;
 	sc->mpi3mr_ich.ich_arg = sc;
 	if (config_intrhook_establish(&sc->mpi3mr_ich) != 0) {
@@ -469,7 +469,7 @@ mpi3mr_pci_attach(device_t dev)
 
 	mpi3mr_dprint(sc, MPI3MR_INFO, "allocating ioctl dma buffers\n");
 	mpi3mr_alloc_ioctl_dma_memory(sc);
-	
+
 	if ((error = mpi3mr_app_attach(sc)) != 0) {
 		mpi3mr_dprint(sc, MPI3MR_ERROR, "APP/IOCTL attach failed\n");
 		goto load_failed;
@@ -489,25 +489,26 @@ load_failed:
 	return error;
 }
 
-void mpi3mr_cleanup_interrupts(struct mpi3mr_softc *sc)
+void
+mpi3mr_cleanup_interrupts(struct mpi3mr_softc *sc)
 {
 	mpi3mr_disable_interrupts(sc);
-	
+
 	mpi3mr_teardown_irqs(sc);
-	
+
 	if (sc->irq_ctx) {
 		free(sc->irq_ctx, M_MPI3MR);
 		sc->irq_ctx = NULL;
 	}
-	
+
 	if (sc->msix_enable)
 		pci_release_msi(sc->mpi3mr_dev);
 
 	sc->msix_count = 0;
-	
 }
 
-int mpi3mr_setup_irqs(struct mpi3mr_softc *sc)
+int
+mpi3mr_setup_irqs(struct mpi3mr_softc *sc)
 {
 	device_t dev;
 	int error;
@@ -539,8 +540,8 @@ int mpi3mr_setup_irqs(struct mpi3mr_softc *sc)
 			break;
 		}
 		error = bus_setup_intr(dev, irq_info->irq,
-		    INTR_MPSAFE | INTR_TYPE_CAM, NULL, mpi3mr_isr,
-		    irq_ctx, &irq_info->intrhand);
+		    INTR_MPSAFE | INTR_TYPE_CAM, NULL, mpi3mr_isr, irq_ctx,
+		    &irq_info->intrhand);
 		if (error) {
 			mpi3mr_dprint(sc, MPI3MR_ERROR,
 			    "Cannot setup interrupt RID %d\n", rid);
@@ -549,10 +550,10 @@ int mpi3mr_setup_irqs(struct mpi3mr_softc *sc)
 		}
 	}
 
-        mpi3mr_dprint(sc, MPI3MR_INFO, "Set up %d MSI-x interrupts\n", sc->msix_count);
+	mpi3mr_dprint(sc, MPI3MR_INFO, "Set up %d MSI-x interrupts\n",
+	    sc->msix_count);
 
 	return (error);
-
 }
 
 static void
@@ -570,7 +571,6 @@ mpi3mr_teardown_irqs(struct mpi3mr_softc *sc)
 			    irq_info->irq_rid, irq_info->irq);
 		}
 	}
-
 }
 
 /*
@@ -594,37 +594,41 @@ mpi3mr_alloc_interrupts(struct mpi3mr_softc *sc, U16 setup_one)
 		msgs = 1;
 	} else {
 		msgs = min(sc->max_msix_vectors, sc->cpu_count);
-		num_queues = min(sc->facts.max_op_reply_q, sc->facts.max_op_req_q);
+		num_queues = min(sc->facts.max_op_reply_q,
+		    sc->facts.max_op_req_q);
 		msgs = min(msgs, num_queues);
 
-		mpi3mr_dprint(sc, MPI3MR_INFO, "Supported MSI-x count: %d "
-			" CPU count: %d Requested MSI-x count: %d\n",
-			sc->max_msix_vectors,
-			sc->cpu_count, msgs);
+		mpi3mr_dprint(sc, MPI3MR_INFO,
+		    "Supported MSI-x count: %d "
+		    " CPU count: %d Requested MSI-x count: %d\n",
+		    sc->max_msix_vectors, sc->cpu_count, msgs);
 	}
 
 	if (msgs != 0) {
 		error = pci_alloc_msix(sc->mpi3mr_dev, &msgs);
 		if (error) {
 			mpi3mr_dprint(sc, MPI3MR_ERROR,
-			    "Could not allocate MSI-x interrupts Error: %x\n", error);
+			    "Could not allocate MSI-x interrupts Error: %x\n",
+			    error);
 			goto out_failed;
 		} else
 			sc->msix_enable = 1;
 	}
 
 	sc->msix_count = msgs;
-	sc->irq_ctx = malloc(sizeof(struct mpi3mr_irq_context) * msgs,
-		M_MPI3MR, M_NOWAIT | M_ZERO);
+	sc->irq_ctx = malloc(sizeof(struct mpi3mr_irq_context) * msgs, M_MPI3MR,
+	    M_NOWAIT | M_ZERO);
 
 	if (!sc->irq_ctx) {
-		mpi3mr_dprint(sc, MPI3MR_ERROR, "Cannot alloc memory for interrupt info\n");
+		mpi3mr_dprint(sc, MPI3MR_ERROR,
+		    "Cannot alloc memory for interrupt info\n");
 		error = -1;
 		goto out_failed;
 	}
 
-	mpi3mr_dprint(sc, MPI3MR_XINFO, "Allocated %d MSI-x interrupts\n", msgs);
-	
+	mpi3mr_dprint(sc, MPI3MR_XINFO, "Allocated %d MSI-x interrupts\n",
+	    msgs);
+
 	return error;
 out_failed:
 	mpi3mr_cleanup_interrupts(sc);
@@ -641,22 +645,22 @@ mpi3mr_pci_detach(device_t dev)
 
 	if (!sc->secure_ctrl)
 		return 0;
-	
-	
+
 	if (sc->sysctl_tree != NULL)
 		sysctl_ctx_free(&sc->sysctl_ctx);
-	
+
 	mtx_lock(&sc->reset_mutex);
 	sc->mpi3mr_flags |= MPI3MR_FLAGS_SHUTDOWN;
 	if (sc->watchdog_thread_active)
 		wakeup(&sc->watchdog_chan);
 	mtx_unlock(&sc->reset_mutex);
-	
+
 	while (sc->reset_in_progress && (i < PEND_IOCTLS_COMP_WAIT_TIME)) {
 		i++;
 		if (!(i % 5)) {
 			mpi3mr_dprint(sc, MPI3MR_INFO,
-			    "[%2d]waiting for reset to be finished from %s\n", i, __func__);
+			    "[%2d]waiting for reset to be finished from %s\n",
+			    i, __func__);
 		}
 		pause("mpi3mr_shutdown", hz);
 	}
@@ -667,8 +671,8 @@ mpi3mr_pci_detach(device_t dev)
 		if (!(i % 5)) {
 			mpi3mr_dprint(sc, MPI3MR_INFO,
 			    "[%2d]waiting for "
-			    "mpi3mr_reset thread to quit reset %d\n", i,
-			    sc->watchdog_thread_active);
+			    "mpi3mr_reset thread to quit reset %d\n",
+			    i, sc->watchdog_thread_active);
 		}
 		pause("mpi3mr_shutdown", hz);
 	}
@@ -678,7 +682,8 @@ mpi3mr_pci_detach(device_t dev)
 		i++;
 		if (!(i % 5)) {
 			mpi3mr_dprint(sc, MPI3MR_INFO,
-			    "[%2d]waiting for IOCTL to be finished from %s\n", i, __func__);
+			    "[%2d]waiting for IOCTL to be finished from %s\n",
+			    i, __func__);
 		}
 		pause("mpi3mr_shutdown", hz);
 	}

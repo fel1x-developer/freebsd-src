@@ -40,8 +40,8 @@
 
 static jmp_buf Sjbuf;
 
-static int	df_dialer(char *, char *, int);
-static void	alrm_timeout(int);
+static int df_dialer(char *, char *, int);
+static void alrm_timeout(int);
 
 int
 df02_dialer(char *num, char *acu)
@@ -76,11 +76,11 @@ df_dialer(char *num, char *acu, int df03)
 	fflush(stdout);
 #ifdef TIOCMSET
 	if (df03) {
-		int st = TIOCM_ST;	/* secondary Transmit flag */
+		int st = TIOCM_ST; /* secondary Transmit flag */
 
 		tcgetattr(f, &cntrl);
 		speed = cfgetospeed(&cntrl);
-		if (speed != B1200) {	/* must dial at 1200 baud */
+		if (speed != B1200) { /* must dial at 1200 baud */
 			cfsetospeed(&cntrl, B1200);
 			cfsetispeed(&cntrl, B1200);
 			tcsetattr(f, TCSAFLUSH, &cntrl);

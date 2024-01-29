@@ -26,9 +26,9 @@
  */
 
 #ifndef __OPENCRYPTO_KTLS_H__
-#define	__OPENCRYPTO_KTLS_H__
+#define __OPENCRYPTO_KTLS_H__
 
-#define	MAX_TLS_PAGES	(1 + btoc(TLS_MAX_MSG_SIZE_V10_2))
+#define MAX_TLS_PAGES (1 + btoc(TLS_MAX_MSG_SIZE_V10_2))
 
 struct ktls_ocf_encrypt_state {
 	struct socket *so;
@@ -59,4 +59,4 @@ int ktls_ocf_recrypt(struct ktls_session *tls,
     const struct tls_record_layer *hdr, struct mbuf *m, uint64_t seqno);
 bool ktls_ocf_recrypt_supported(struct ktls_session *tls);
 
-#endif	/* !__OPENCRYPTO_KTLS_H__ */
+#endif /* !__OPENCRYPTO_KTLS_H__ */

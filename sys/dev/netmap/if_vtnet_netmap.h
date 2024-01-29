@@ -26,11 +26,14 @@
 /*
  */
 
-#include <net/netmap.h>
 #include <sys/selinfo.h>
+
 #include <vm/vm.h>
-#include <vm/pmap.h>    /* vtophys ? */
+#include <vm/pmap.h> /* vtophys ? */
+
 #include <dev/netmap/netmap_kern.h>
+
+#include <net/netmap.h>
 
 /* Register and unregister. */
 static int
@@ -45,13 +48,12 @@ vtnet_netmap_reg(struct netmap_adapter *na, int state)
 	 */
 	VTNET_CORE_LOCK(sc);
 	if_setdrvflagbits(ifp, 0, IFF_DRV_RUNNING);
-	vtnet_init_locked(sc, state ? VTNET_INIT_NETMAP_ENTER
-	    : VTNET_INIT_NETMAP_EXIT);
+	vtnet_init_locked(sc,
+	    state ? VTNET_INIT_NETMAP_ENTER : VTNET_INIT_NETMAP_EXIT);
 	VTNET_CORE_UNLOCK(sc);
 
 	return (0);
 }
-
 
 /* Reconcile kernel and user view of the transmit ring. */
 static int
@@ -61,7 +63,7 @@ vtnet_netmap_txsync(struct netmap_kring *kring, int flags)
 	if_t ifp = na->ifp;
 	struct netmap_ring *ring = kring->ring;
 	u_int ring_nr = kring->ring_id;
-	u_int nm_i;	/* index into the netmap ring */
+	u_int nm_i; /* index into the netmap ring */
 	u_int const lim = kring->nkr_num_slots - 1;
 	u_int const head = kring->rhead;
 
@@ -77,7 +79,7 @@ vtnet_netmap_txsync(struct netmap_kring *kring, int flags)
 	 */
 
 	nm_i = kring->nr_hwcur;
-	if (nm_i != head) {	/* we have new packets to send */
+	if (nm_i != head) { /* we have new packets to send */
 		struct sglist *sg = txq->vtntx_sg;
 
 		for (; nm_i != head; nm_i = nm_next(nm_i, lim)) {
@@ -92,21 +94,23 @@ vtnet_netmap_txsync(struct netmap_kring *kring, int flags)
 			NM_CHECK_ADDR_LEN_OFF(na, len, offset);
 
 			slot->flags &= ~(NS_REPORT | NS_BUF_CHANGED);
-			/* Initialize the scatterlist, expose it to the hypervisor,
-			 * and kick the hypervisor (if necessary).
+			/* Initialize the scatterlist, expose it to the
+			 * hypervisor, and kick the hypervisor (if necessary).
 			 */
 			sglist_reset(sg); // cheap
-			err = sglist_append(sg, &txq->vtntx_shrhdr, sc->vtnet_hdr_size);
+			err = sglist_append(sg, &txq->vtntx_shrhdr,
+			    sc->vtnet_hdr_size);
 			err |= sglist_append_phys(sg, paddr + offset, len);
-			KASSERT(err == 0, ("%s: cannot append to sglist %d",
-						__func__, err));
+			KASSERT(err == 0,
+			    ("%s: cannot append to sglist %d", __func__, err));
 			err = virtqueue_enqueue(vq, /*cookie=*/txq, sg,
-						/*readable=*/sg->sg_nseg,
-						/*writeable=*/0);
+			    /*readable=*/sg->sg_nseg,
+			    /*writeable=*/0);
 			if (unlikely(err)) {
 				if (err != ENOSPC)
-					nm_prerr("virtqueue_enqueue(%s) failed: %d",
-							kring->name, err);
+					nm_prerr(
+					    "virtqueue_enqueue(%s) failed: %d",
+					    kring->name, err);
 				break;
 			}
 		}
@@ -169,7 +173,7 @@ vtnet_netmap_kring_refill(struct netmap_kring *kring, u_int num)
 	struct sglist sg = { ss, 0, 0, 2 };
 
 	for (nm_i = rxq->vtnrx_nm_refill; num > 0;
-	    nm_i = nm_next(nm_i, lim), num--) {
+	     nm_i = nm_next(nm_i, lim), num--) {
 		struct netmap_slot *slot = &ring->slot[nm_i];
 		uint64_t offset = nm_get_offset(kring, slot);
 		uint64_t paddr;
@@ -183,17 +187,18 @@ vtnet_netmap_kring_refill(struct netmap_kring *kring, u_int num)
 
 		slot->flags &= ~NS_BUF_CHANGED;
 		sglist_reset(&sg);
-		err = sglist_append(&sg, &rxq->vtnrx_shrhdr, sc->vtnet_hdr_size);
+		err = sglist_append(&sg, &rxq->vtnrx_shrhdr,
+		    sc->vtnet_hdr_size);
 		err |= sglist_append_phys(&sg, paddr + offset,
 		    NETMAP_BUF_SIZE(na) - offset);
-		KASSERT(err == 0, ("%s: cannot append to sglist %d",
-					__func__, err));
+		KASSERT(err == 0,
+		    ("%s: cannot append to sglist %d", __func__, err));
 		/* writable for the host */
 		err = virtqueue_enqueue(vq, /*cookie=*/rxq, &sg,
-				/*readable=*/0, /*writeable=*/sg.sg_nseg);
+		    /*readable=*/0, /*writeable=*/sg.sg_nseg);
 		if (unlikely(err)) {
 			nm_prerr("virtqueue_enqueue(%s) failed: %d",
-				kring->name, err);
+			    kring->name, err);
 			break;
 		}
 	}
@@ -247,11 +252,11 @@ vtnet_netmap_rxsync(struct netmap_kring *kring, int flags)
 	if_t ifp = na->ifp;
 	struct netmap_ring *ring = kring->ring;
 	u_int ring_nr = kring->ring_id;
-	u_int nm_i;	/* index into the netmap ring */
+	u_int nm_i; /* index into the netmap ring */
 	u_int const lim = kring->nkr_num_slots - 1;
 	u_int const head = kring->rhead;
 	int force_update = (flags & NAF_FORCE_READ) ||
-				(kring->nr_kflags & NKR_PENDINTR);
+	    (kring->nr_kflags & NKR_PENDINTR);
 	int interrupts = !(kring->nr_kflags & NKR_NOINTR);
 
 	/* device-specific */
@@ -296,15 +301,18 @@ vtnet_netmap_rxsync(struct netmap_kring *kring, int flags)
 				nm_prerr("BUG: RX token mismatch");
 			} else {
 				if (nm_i == hwtail_lim) {
-					KASSERT(false, ("hwtail would "
-					    "overrun hwcur"));
+					KASSERT(false,
+					    ("hwtail would "
+					     "overrun hwcur"));
 				}
 
 				/* Skip the virtio-net header. */
 				len -= sc->vtnet_hdr_size;
 				if (unlikely(len < 0)) {
-					nm_prlim(1, "Truncated virtio-net-header, "
-						"missing %d bytes", -len);
+					nm_prlim(1,
+					    "Truncated virtio-net-header, "
+					    "missing %d bytes",
+					    -len);
 					len = 0;
 				}
 				ring->slot[nm_i].len = len;
@@ -337,12 +345,11 @@ vtnet_netmap_rxsync(struct netmap_kring *kring, int flags)
 		virtqueue_notify(vq);
 	}
 
-	nm_prdis("h %d c %d t %d hwcur %d hwtail %d", kring->rhead,
-	    kring->rcur, kring->rtail, kring->nr_hwcur, kring->nr_hwtail);
+	nm_prdis("h %d c %d t %d hwcur %d hwtail %d", kring->rhead, kring->rcur,
+	    kring->rtail, kring->nr_hwcur, kring->nr_hwtail);
 
 	return 0;
 }
-
 
 /* Enable/disable interrupts on all virtqueues. */
 static void
@@ -448,7 +455,6 @@ vtnet_netmap_attach(struct vtnet_softc *sc)
 	netmap_attach(&na);
 
 	nm_prinf("vtnet attached txq=%d, txd=%d rxq=%d, rxd=%d",
-			na.num_tx_rings, na.num_tx_desc,
-			na.num_tx_rings, na.num_rx_desc);
+	    na.num_tx_rings, na.num_tx_desc, na.num_tx_rings, na.num_rx_desc);
 }
 /* end of file */

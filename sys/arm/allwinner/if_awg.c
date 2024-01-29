@@ -32,92 +32,91 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
-#include <sys/kernel.h>
 #include <sys/endian.h>
+#include <sys/gpio.h>
+#include <sys/kernel.h>
 #include <sys/mbuf.h>
+#include <sys/module.h>
+#include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
-#include <sys/module.h>
-#include <sys/gpio.h>
+
+#include <machine/bus.h>
+
+#include <dev/clk/clk.h>
+#include <dev/hwreset/hwreset.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+#include <dev/regulator/regulator.h>
+#include <dev/syscon/syscon.h>
 
 #include <net/bpf.h>
-#include <net/if.h>
 #include <net/ethernet.h>
+#include <net/if.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
 #include <net/if_var.h>
 
-#include <machine/bus.h>
-
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-
-#include <arm/allwinner/if_awgreg.h>
 #include <arm/allwinner/aw_sid.h>
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
+#include <arm/allwinner/if_awgreg.h>
 
-#include <dev/clk/clk.h>
-#include <dev/hwreset/hwreset.h>
-#include <dev/regulator/regulator.h>
-#include <dev/syscon/syscon.h>
-
-#include "syscon_if.h"
-#include "miibus_if.h"
 #include "gpio_if.h"
+#include "miibus_if.h"
+#include "syscon_if.h"
 
-#define	RD4(sc, reg)		bus_read_4((sc)->res[_RES_EMAC], (reg))
-#define	WR4(sc, reg, val)	bus_write_4((sc)->res[_RES_EMAC], (reg), (val))
+#define RD4(sc, reg) bus_read_4((sc)->res[_RES_EMAC], (reg))
+#define WR4(sc, reg, val) bus_write_4((sc)->res[_RES_EMAC], (reg), (val))
 
-#define	AWG_LOCK(sc)		mtx_lock(&(sc)->mtx)
-#define	AWG_UNLOCK(sc)		mtx_unlock(&(sc)->mtx);
-#define	AWG_ASSERT_LOCKED(sc)	mtx_assert(&(sc)->mtx, MA_OWNED)
-#define	AWG_ASSERT_UNLOCKED(sc)	mtx_assert(&(sc)->mtx, MA_NOTOWNED)
+#define AWG_LOCK(sc) mtx_lock(&(sc)->mtx)
+#define AWG_UNLOCK(sc) mtx_unlock(&(sc)->mtx);
+#define AWG_ASSERT_LOCKED(sc) mtx_assert(&(sc)->mtx, MA_OWNED)
+#define AWG_ASSERT_UNLOCKED(sc) mtx_assert(&(sc)->mtx, MA_NOTOWNED)
 
-#define	DESC_ALIGN		4
-#define	TX_DESC_COUNT		1024
-#define	TX_DESC_SIZE		(sizeof(struct emac_desc) * TX_DESC_COUNT)
-#define	RX_DESC_COUNT		256
-#define	RX_DESC_SIZE		(sizeof(struct emac_desc) * RX_DESC_COUNT)
+#define DESC_ALIGN 4
+#define TX_DESC_COUNT 1024
+#define TX_DESC_SIZE (sizeof(struct emac_desc) * TX_DESC_COUNT)
+#define RX_DESC_COUNT 256
+#define RX_DESC_SIZE (sizeof(struct emac_desc) * RX_DESC_COUNT)
 
-#define	DESC_OFF(n)		((n) * sizeof(struct emac_desc))
-#define	TX_NEXT(n)		(((n) + 1) & (TX_DESC_COUNT - 1))
-#define	TX_SKIP(n, o)		(((n) + (o)) & (TX_DESC_COUNT - 1))
-#define	RX_NEXT(n)		(((n) + 1) & (RX_DESC_COUNT - 1))
+#define DESC_OFF(n) ((n) * sizeof(struct emac_desc))
+#define TX_NEXT(n) (((n) + 1) & (TX_DESC_COUNT - 1))
+#define TX_SKIP(n, o) (((n) + (o)) & (TX_DESC_COUNT - 1))
+#define RX_NEXT(n) (((n) + 1) & (RX_DESC_COUNT - 1))
 
-#define	TX_MAX_SEGS		20
+#define TX_MAX_SEGS 20
 
-#define	SOFT_RST_RETRY		1000
-#define	MII_BUSY_RETRY		1000
-#define	MDIO_FREQ		2500000
+#define SOFT_RST_RETRY 1000
+#define MII_BUSY_RETRY 1000
+#define MDIO_FREQ 2500000
 
-#define	BURST_LEN_DEFAULT	8
-#define	RX_TX_PRI_DEFAULT	0
-#define	PAUSE_TIME_DEFAULT	0x400
-#define	TX_INTERVAL_DEFAULT	64
-#define	RX_BATCH_DEFAULT	64
+#define BURST_LEN_DEFAULT 8
+#define RX_TX_PRI_DEFAULT 0
+#define PAUSE_TIME_DEFAULT 0x400
+#define TX_INTERVAL_DEFAULT 64
+#define RX_BATCH_DEFAULT 64
 
 /* syscon EMAC clock register */
-#define	EMAC_CLK_REG		0x30
-#define	EMAC_CLK_EPHY_ADDR	(0x1f << 20)	/* H3 */
-#define	EMAC_CLK_EPHY_ADDR_SHIFT 20
-#define	EMAC_CLK_EPHY_LED_POL	(1 << 17)	/* H3 */
-#define	EMAC_CLK_EPHY_SHUTDOWN	(1 << 16)	/* H3 */
-#define	EMAC_CLK_EPHY_SELECT	(1 << 15)	/* H3 */
-#define	EMAC_CLK_RMII_EN	(1 << 13)
-#define	EMAC_CLK_ETXDC		(0x7 << 10)
-#define	EMAC_CLK_ETXDC_SHIFT	10
-#define	EMAC_CLK_ERXDC		(0x1f << 5)
-#define	EMAC_CLK_ERXDC_SHIFT	5
-#define	EMAC_CLK_PIT		(0x1 << 2)
-#define	 EMAC_CLK_PIT_MII	(0 << 2)
-#define	 EMAC_CLK_PIT_RGMII	(1 << 2)
-#define	EMAC_CLK_SRC		(0x3 << 0)
-#define	 EMAC_CLK_SRC_MII	(0 << 0)
-#define	 EMAC_CLK_SRC_EXT_RGMII	(1 << 0)
-#define	 EMAC_CLK_SRC_RGMII	(2 << 0)
+#define EMAC_CLK_REG 0x30
+#define EMAC_CLK_EPHY_ADDR (0x1f << 20) /* H3 */
+#define EMAC_CLK_EPHY_ADDR_SHIFT 20
+#define EMAC_CLK_EPHY_LED_POL (1 << 17)	 /* H3 */
+#define EMAC_CLK_EPHY_SHUTDOWN (1 << 16) /* H3 */
+#define EMAC_CLK_EPHY_SELECT (1 << 15)	 /* H3 */
+#define EMAC_CLK_RMII_EN (1 << 13)
+#define EMAC_CLK_ETXDC (0x7 << 10)
+#define EMAC_CLK_ETXDC_SHIFT 10
+#define EMAC_CLK_ERXDC (0x1f << 5)
+#define EMAC_CLK_ERXDC_SHIFT 5
+#define EMAC_CLK_PIT (0x1 << 2)
+#define EMAC_CLK_PIT_MII (0 << 2)
+#define EMAC_CLK_PIT_RGMII (1 << 2)
+#define EMAC_CLK_SRC (0x3 << 0)
+#define EMAC_CLK_SRC_MII (0 << 0)
+#define EMAC_CLK_SRC_EXT_RGMII (1 << 0)
+#define EMAC_CLK_SRC_RGMII (2 << 0)
 
 /* Burst length of RX and TX DMA transfers */
 static int awg_burst_len = BURST_LEN_DEFAULT;
@@ -145,71 +144,61 @@ enum awg_type {
 	EMAC_A64,
 };
 
-static struct ofw_compat_data compat_data[] = {
-	{ "allwinner,sun8i-a83t-emac",		EMAC_A83T },
-	{ "allwinner,sun8i-h3-emac",		EMAC_H3 },
-	{ "allwinner,sun50i-a64-emac",		EMAC_A64 },
-	{ NULL,					0 }
-};
+static struct ofw_compat_data compat_data[] = { { "allwinner,sun8i-a83t-emac",
+						    EMAC_A83T },
+	{ "allwinner,sun8i-h3-emac", EMAC_H3 },
+	{ "allwinner,sun50i-a64-emac", EMAC_A64 }, { NULL, 0 } };
 
 struct awg_bufmap {
-	bus_dmamap_t		map;
-	struct mbuf		*mbuf;
+	bus_dmamap_t map;
+	struct mbuf *mbuf;
 };
 
 struct awg_txring {
-	bus_dma_tag_t		desc_tag;
-	bus_dmamap_t		desc_map;
-	struct emac_desc	*desc_ring;
-	bus_addr_t		desc_ring_paddr;
-	bus_dma_tag_t		buf_tag;
-	struct awg_bufmap	buf_map[TX_DESC_COUNT];
-	u_int			cur, next, queued;
-	u_int			segs;
+	bus_dma_tag_t desc_tag;
+	bus_dmamap_t desc_map;
+	struct emac_desc *desc_ring;
+	bus_addr_t desc_ring_paddr;
+	bus_dma_tag_t buf_tag;
+	struct awg_bufmap buf_map[TX_DESC_COUNT];
+	u_int cur, next, queued;
+	u_int segs;
 };
 
 struct awg_rxring {
-	bus_dma_tag_t		desc_tag;
-	bus_dmamap_t		desc_map;
-	struct emac_desc	*desc_ring;
-	bus_addr_t		desc_ring_paddr;
-	bus_dma_tag_t		buf_tag;
-	struct awg_bufmap	buf_map[RX_DESC_COUNT];
-	bus_dmamap_t		buf_spare_map;
-	u_int			cur;
+	bus_dma_tag_t desc_tag;
+	bus_dmamap_t desc_map;
+	struct emac_desc *desc_ring;
+	bus_addr_t desc_ring_paddr;
+	bus_dma_tag_t buf_tag;
+	struct awg_bufmap buf_map[RX_DESC_COUNT];
+	bus_dmamap_t buf_spare_map;
+	u_int cur;
 };
 
-enum {
-	_RES_EMAC,
-	_RES_IRQ,
-	_RES_SYSCON,
-	_RES_NITEMS
-};
+enum { _RES_EMAC, _RES_IRQ, _RES_SYSCON, _RES_NITEMS };
 
 struct awg_softc {
-	struct resource		*res[_RES_NITEMS];
-	struct mtx		mtx;
-	if_t			ifp;
-	device_t		dev;
-	device_t		miibus;
-	struct callout		stat_ch;
-	void			*ih;
-	u_int			mdc_div_ratio_m;
-	int			link;
-	int			if_flags;
-	enum awg_type		type;
-	struct syscon		*syscon;
+	struct resource *res[_RES_NITEMS];
+	struct mtx mtx;
+	if_t ifp;
+	device_t dev;
+	device_t miibus;
+	struct callout stat_ch;
+	void *ih;
+	u_int mdc_div_ratio_m;
+	int link;
+	int if_flags;
+	enum awg_type type;
+	struct syscon *syscon;
 
-	struct awg_txring	tx;
-	struct awg_rxring	rx;
+	struct awg_txring tx;
+	struct awg_rxring rx;
 };
 
-static struct resource_spec awg_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ SYS_RES_IRQ,		0,	RF_ACTIVE },
-	{ SYS_RES_MEMORY,	1,	RF_ACTIVE | RF_OPTIONAL },
-	{ -1, 0 }
-};
+static struct resource_spec awg_spec[] = { { SYS_RES_MEMORY, 0, RF_ACTIVE },
+	{ SYS_RES_IRQ, 0, RF_ACTIVE },
+	{ SYS_RES_MEMORY, 1, RF_ACTIVE | RF_OPTIONAL }, { -1, 0 } };
 
 static void awg_txeof(struct awg_softc *sc);
 static void awg_start_locked(struct awg_softc *sc);
@@ -238,9 +227,8 @@ awg_miibus_readreg(device_t dev, int phy, int reg)
 
 	WR4(sc, EMAC_MII_CMD,
 	    (sc->mdc_div_ratio_m << MDC_DIV_RATIO_M_SHIFT) |
-	    (phy << PHY_ADDR_SHIFT) |
-	    (reg << PHY_REG_ADDR_SHIFT) |
-	    MII_BUSY);
+		(phy << PHY_ADDR_SHIFT) | (reg << PHY_REG_ADDR_SHIFT) |
+		MII_BUSY);
 	for (retry = MII_BUSY_RETRY; retry > 0; retry--) {
 		if ((RD4(sc, EMAC_MII_CMD) & MII_BUSY) == 0) {
 			val = RD4(sc, EMAC_MII_DATA);
@@ -250,8 +238,8 @@ awg_miibus_readreg(device_t dev, int phy, int reg)
 	}
 
 	if (retry == 0)
-		device_printf(dev, "phy read timeout, phy=%d reg=%d\n",
-		    phy, reg);
+		device_printf(dev, "phy read timeout, phy=%d reg=%d\n", phy,
+		    reg);
 
 	return (val);
 }
@@ -267,9 +255,8 @@ awg_miibus_writereg(device_t dev, int phy, int reg, int val)
 	WR4(sc, EMAC_MII_DATA, val);
 	WR4(sc, EMAC_MII_CMD,
 	    (sc->mdc_div_ratio_m << MDC_DIV_RATIO_M_SHIFT) |
-	    (phy << PHY_ADDR_SHIFT) |
-	    (reg << PHY_REG_ADDR_SHIFT) |
-	    MII_WR | MII_BUSY);
+		(phy << PHY_ADDR_SHIFT) | (reg << PHY_REG_ADDR_SHIFT) | MII_WR |
+		MII_BUSY);
 	for (retry = MII_BUSY_RETRY; retry > 0; retry--) {
 		if ((RD4(sc, EMAC_MII_CMD) & MII_BUSY) == 0)
 			break;
@@ -277,8 +264,8 @@ awg_miibus_writereg(device_t dev, int phy, int reg, int val)
 	}
 
 	if (retry == 0)
-		device_printf(dev, "phy write timeout, phy=%d reg=%d\n",
-		    phy, reg);
+		device_printf(dev, "phy write timeout, phy=%d reg=%d\n", phy,
+		    reg);
 
 	return (0);
 }
@@ -340,7 +327,7 @@ awg_miibus_statchg(device_t dev)
 	WR4(sc, EMAC_RX_CTL_0, val);
 
 	val = RD4(sc, EMAC_TX_FLOW_CTL);
-	val &= ~(PAUSE_TIME|TX_FLOW_CTL_EN);
+	val &= ~(PAUSE_TIME | TX_FLOW_CTL_EN);
 	if ((IFM_OPTIONS(mii->mii_media_active) & IFM_ETH_TXPAUSE) != 0)
 		val |= TX_FLOW_CTL_EN;
 	if ((IFM_OPTIONS(mii->mii_media_active) & IFM_FDX) != 0)
@@ -440,7 +427,7 @@ awg_setup_rxfilter(struct awg_softc *sc)
 	eaddr = if_getlladdr(ifp);
 	machi = (eaddr[5] << 8) | eaddr[4];
 	maclo = (eaddr[3] << 24) | (eaddr[2] << 16) | (eaddr[1] << 8) |
-	   (eaddr[0] << 0);
+	    (eaddr[0] << 0);
 	WR4(sc, EMAC_ADDR_HIGH(0), machi);
 	WR4(sc, EMAC_ADDR_LOW(0), maclo);
 
@@ -463,7 +450,6 @@ awg_setup_core(struct awg_softc *sc)
 	if (awg_rx_tx_pri)
 		val |= BASIC_CTL_RX_TX_PRI;
 	WR4(sc, EMAC_BASIC_CTL_1, val);
-
 }
 
 static void
@@ -487,7 +473,7 @@ awg_enable_mac(struct awg_softc *sc, bool enable)
 	WR4(sc, EMAC_RX_CTL_0, rx);
 }
 
-static void 
+static void
 awg_get_eaddr(device_t dev, uint8_t *eaddr)
 {
 	struct awg_softc *sc;
@@ -504,12 +490,12 @@ awg_get_eaddr(device_t dev, uint8_t *eaddr)
 	if (maclo == 0xffffffff && machi == 0xffff) {
 		/* MAC address in hardware is invalid, create one */
 		if (aw_sid_get_fuse(AW_SID_FUSE_ROOTKEY, rootkey,
-		    &rootkey_size) == 0 &&
+			&rootkey_size) == 0 &&
 		    (rootkey[3] | rootkey[12] | rootkey[13] | rootkey[14] |
-		     rootkey[15]) != 0) {
+			rootkey[15]) != 0) {
 			/* MAC address is derived from the root key in SID */
 			maclo = (rootkey[13] << 24) | (rootkey[12] << 16) |
-				(rootkey[3] << 8) | 0x02;
+			    (rootkey[3] << 8) | 0x02;
 			machi = (rootkey[15] << 8) | rootkey[14];
 		} else {
 			/* Create one */
@@ -610,26 +596,28 @@ awg_encap(struct awg_softc *sc, struct mbuf **mp)
 	map = sc->tx.buf_map[first].map;
 
 	m = *mp;
-	error = bus_dmamap_load_mbuf_sg(sc->tx.buf_tag, map, m, segs,
-	    &nsegs, BUS_DMA_NOWAIT);
+	error = bus_dmamap_load_mbuf_sg(sc->tx.buf_tag, map, m, segs, &nsegs,
+	    BUS_DMA_NOWAIT);
 	if (error == EFBIG) {
 		m = m_collapse(m, M_NOWAIT, TX_MAX_SEGS);
 		if (m == NULL) {
-			device_printf(sc->dev, "awg_encap: m_collapse failed\n");
+			device_printf(sc->dev,
+			    "awg_encap: m_collapse failed\n");
 			m_freem(*mp);
 			*mp = NULL;
 			return (ENOMEM);
 		}
 		*mp = m;
-		error = bus_dmamap_load_mbuf_sg(sc->tx.buf_tag, map, m,
-		    segs, &nsegs, BUS_DMA_NOWAIT);
+		error = bus_dmamap_load_mbuf_sg(sc->tx.buf_tag, map, m, segs,
+		    &nsegs, BUS_DMA_NOWAIT);
 		if (error != 0) {
 			m_freem(*mp);
 			*mp = NULL;
 		}
 	}
 	if (error != 0) {
-		device_printf(sc->dev, "awg_encap: bus_dmamap_load_mbuf_sg failed\n");
+		device_printf(sc->dev,
+		    "awg_encap: bus_dmamap_load_mbuf_sg failed\n");
 		return (error);
 	}
 	if (nsegs == 0) {
@@ -648,7 +636,7 @@ awg_encap(struct awg_softc *sc, struct mbuf **mp)
 	flags = TX_FIR_DESC;
 	status = 0;
 	if ((m->m_pkthdr.csum_flags & CSUM_IP) != 0) {
-		if ((m->m_pkthdr.csum_flags & (CSUM_TCP|CSUM_UDP)) != 0)
+		if ((m->m_pkthdr.csum_flags & (CSUM_TCP | CSUM_UDP)) != 0)
 			csum_flags = TX_CHECKSUM_CTL_FULL;
 		else
 			csum_flags = TX_CHECKSUM_CTL_IP;
@@ -753,8 +741,8 @@ awg_newbuf_rx(struct awg_softc *sc, int index)
 	m->m_pkthdr.len = m->m_len = m->m_ext.ext_size;
 	m_adj(m, ETHER_ALIGN);
 
-	if (bus_dmamap_load_mbuf_sg(sc->rx.buf_tag, sc->rx.buf_spare_map,
-	    m, &seg, &nsegs, BUS_DMA_NOWAIT) != 0) {
+	if (bus_dmamap_load_mbuf_sg(sc->rx.buf_tag, sc->rx.buf_spare_map, m,
+		&seg, &nsegs, BUS_DMA_NOWAIT) != 0) {
 		m_freem(m);
 		return (ENOBUFS);
 	}
@@ -793,16 +781,15 @@ awg_setup_dma(device_t dev)
 	sc = device_get_softc(dev);
 
 	/* Setup TX ring */
-	error = bus_dma_tag_create(
-	    bus_get_dma_tag(dev),	/* Parent tag */
-	    DESC_ALIGN, 0,		/* alignment, boundary */
-	    BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    TX_DESC_SIZE, 1,		/* maxsize, nsegs */
-	    TX_DESC_SIZE,		/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(bus_get_dma_tag(dev), /* Parent tag */
+	    DESC_ALIGN, 0,	     /* alignment, boundary */
+	    BUS_SPACE_MAXADDR_32BIT, /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filter, filterarg */
+	    TX_DESC_SIZE, 1,	     /* maxsize, nsegs */
+	    TX_DESC_SIZE,	     /* maxsegsize */
+	    0,			     /* flags */
+	    NULL, NULL,		     /* lockfunc, lockarg */
 	    &sc->tx.desc_tag);
 	if (error != 0) {
 		device_printf(dev, "cannot create TX descriptor ring tag\n");
@@ -825,19 +812,18 @@ awg_setup_dma(device_t dev)
 	}
 
 	for (i = 0; i < TX_DESC_COUNT; i++)
-		sc->tx.desc_ring[i].next =
-		    htole32(sc->tx.desc_ring_paddr + DESC_OFF(TX_NEXT(i)));
+		sc->tx.desc_ring[i].next = htole32(
+		    sc->tx.desc_ring_paddr + DESC_OFF(TX_NEXT(i)));
 
-	error = bus_dma_tag_create(
-	    bus_get_dma_tag(dev),	/* Parent tag */
-	    1, 0,			/* alignment, boundary */
-	    BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    MCLBYTES, TX_MAX_SEGS,	/* maxsize, nsegs */
-	    MCLBYTES,			/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(bus_get_dma_tag(dev), /* Parent tag */
+	    1, 0,		     /* alignment, boundary */
+	    BUS_SPACE_MAXADDR_32BIT, /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filter, filterarg */
+	    MCLBYTES, TX_MAX_SEGS,   /* maxsize, nsegs */
+	    MCLBYTES,		     /* maxsegsize */
+	    0,			     /* flags */
+	    NULL, NULL,		     /* lockfunc, lockarg */
 	    &sc->tx.buf_tag);
 	if (error != 0) {
 		device_printf(dev, "cannot create TX buffer tag\n");
@@ -855,16 +841,15 @@ awg_setup_dma(device_t dev)
 	}
 
 	/* Setup RX ring */
-	error = bus_dma_tag_create(
-	    bus_get_dma_tag(dev),	/* Parent tag */
-	    DESC_ALIGN, 0,		/* alignment, boundary */
-	    BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    RX_DESC_SIZE, 1,		/* maxsize, nsegs */
-	    RX_DESC_SIZE,		/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(bus_get_dma_tag(dev), /* Parent tag */
+	    DESC_ALIGN, 0,	     /* alignment, boundary */
+	    BUS_SPACE_MAXADDR_32BIT, /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filter, filterarg */
+	    RX_DESC_SIZE, 1,	     /* maxsize, nsegs */
+	    RX_DESC_SIZE,	     /* maxsegsize */
+	    0,			     /* flags */
+	    NULL, NULL,		     /* lockfunc, lockarg */
 	    &sc->rx.desc_tag);
 	if (error != 0) {
 		device_printf(dev, "cannot create RX descriptor ring tag\n");
@@ -886,16 +871,15 @@ awg_setup_dma(device_t dev)
 		return (error);
 	}
 
-	error = bus_dma_tag_create(
-	    bus_get_dma_tag(dev),	/* Parent tag */
-	    1, 0,			/* alignment, boundary */
-	    BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    MCLBYTES, 1,		/* maxsize, nsegs */
-	    MCLBYTES,			/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(bus_get_dma_tag(dev), /* Parent tag */
+	    1, 0,		     /* alignment, boundary */
+	    BUS_SPACE_MAXADDR_32BIT, /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filter, filterarg */
+	    MCLBYTES, 1,	     /* maxsize, nsegs */
+	    MCLBYTES,		     /* maxsegsize */
+	    0,			     /* flags */
+	    NULL, NULL,		     /* lockfunc, lockarg */
 	    &sc->rx.buf_tag);
 	if (error != 0) {
 		device_printf(dev, "cannot create RX buffer tag\n");
@@ -904,14 +888,13 @@ awg_setup_dma(device_t dev)
 
 	error = bus_dmamap_create(sc->rx.buf_tag, 0, &sc->rx.buf_spare_map);
 	if (error != 0) {
-		device_printf(dev,
-		    "cannot create RX buffer spare map\n");
+		device_printf(dev, "cannot create RX buffer spare map\n");
 		return (error);
 	}
 
 	for (i = 0; i < RX_DESC_COUNT; i++) {
-		sc->rx.desc_ring[i].next =
-		    htole32(sc->rx.desc_ring_paddr + DESC_OFF(RX_NEXT(i)));
+		sc->rx.desc_ring[i].next = htole32(
+		    sc->rx.desc_ring_paddr + DESC_OFF(RX_NEXT(i)));
 
 		error = bus_dmamap_create(sc->rx.buf_tag, 0,
 		    &sc->rx.buf_map[i].map);
@@ -926,8 +909,7 @@ awg_setup_dma(device_t dev)
 			return (error);
 		}
 	}
-	bus_dmamap_sync(sc->rx.desc_tag, sc->rx.desc_map,
-	    BUS_DMASYNC_PREWRITE);
+	bus_dmamap_sync(sc->rx.desc_tag, sc->rx.desc_map, BUS_DMASYNC_PREWRITE);
 
 	/* Write transmit and receive descriptor base address registers */
 	WR4(sc, EMAC_TX_DMA_LIST, sc->tx.desc_ring_paddr);
@@ -966,11 +948,11 @@ awg_start_locked(struct awg_softc *sc)
 
 	ifp = sc->ifp;
 
-	if ((if_getdrvflags(ifp) & (IFF_DRV_RUNNING|IFF_DRV_OACTIVE)) !=
+	if ((if_getdrvflags(ifp) & (IFF_DRV_RUNNING | IFF_DRV_OACTIVE)) !=
 	    IFF_DRV_RUNNING)
 		return;
 
-	for (cnt = 0; ; cnt++) {
+	for (cnt = 0;; cnt++) {
 		m = if_dequeue(ifp);
 		if (m == NULL)
 			break;
@@ -988,7 +970,7 @@ awg_start_locked(struct awg_softc *sc)
 
 	if (cnt != 0) {
 		bus_dmamap_sync(sc->tx.desc_tag, sc->tx.desc_map,
-		    BUS_DMASYNC_PREREAD|BUS_DMASYNC_PREWRITE);
+		    BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
 
 		awg_dma_start_tx(sc);
 	}
@@ -1084,7 +1066,7 @@ awg_stop(struct awg_softc *sc)
 	bus_dmamap_sync(sc->rx.desc_tag, sc->rx.desc_map,
 	    BUS_DMASYNC_POSTREAD | BUS_DMASYNC_POSTWRITE);
 
-	for (i = sc->rx.cur; ; i = RX_NEXT(i)) {
+	for (i = sc->rx.cur;; i = RX_NEXT(i)) {
 		val = le32toh(sc->rx.desc_ring[i].status);
 		if ((val & RX_DESC_CTL) != 0)
 			break;
@@ -1116,7 +1098,7 @@ awg_ioctl(if_t ifp, u_long cmd, caddr_t data)
 		if (if_getflags(ifp) & IFF_UP) {
 			if (if_getdrvflags(ifp) & IFF_DRV_RUNNING) {
 				flags = if_getflags(ifp) ^ sc->if_flags;
-				if ((flags & (IFF_PROMISC|IFF_ALLMULTI)) != 0)
+				if ((flags & (IFF_PROMISC | IFF_ALLMULTI)) != 0)
 					awg_setup_rxfilter(sc);
 			} else
 				awg_init_locked(sc);
@@ -1167,9 +1149,11 @@ awg_ioctl(if_t ifp, u_long cmd, caddr_t data)
 		if (mask & IFCAP_TXCSUM)
 			if_togglecapenable(ifp, IFCAP_TXCSUM);
 		if ((if_getcapenable(ifp) & IFCAP_TXCSUM) != 0)
-			if_sethwassistbits(ifp, CSUM_IP | CSUM_UDP | CSUM_TCP, 0);
+			if_sethwassistbits(ifp, CSUM_IP | CSUM_UDP | CSUM_TCP,
+			    0);
 		else
-			if_sethwassistbits(ifp, 0, CSUM_IP | CSUM_UDP | CSUM_TCP);
+			if_sethwassistbits(ifp, 0,
+			    CSUM_IP | CSUM_UDP | CSUM_TCP);
 		break;
 	default:
 		error = ether_ioctl(ifp, cmd, data);
@@ -1199,7 +1183,7 @@ awg_rxintr(struct awg_softc *sc)
 	bus_dmamap_sync(sc->rx.desc_tag, sc->rx.desc_map,
 	    BUS_DMASYNC_POSTREAD | BUS_DMASYNC_POSTWRITE);
 
-	for (index = sc->rx.cur; ; index = RX_NEXT(index)) {
+	for (index = sc->rx.cur;; index = RX_NEXT(index)) {
 		status = le32toh(sc->rx.desc_ring[index].status);
 		if ((status & RX_DESC_CTL) != 0)
 			break;
@@ -1207,7 +1191,8 @@ awg_rxintr(struct awg_softc *sc)
 		len = (status & RX_FRM_LEN) >> RX_FRM_LEN_SHIFT;
 
 		if (len == 0) {
-			if ((status & (RX_NO_ENOUGH_BUF_ERR | RX_OVERFLOW_ERR)) != 0)
+			if ((status &
+				(RX_NO_ENOUGH_BUF_ERR | RX_OVERFLOW_ERR)) != 0)
 				if_inc_counter(ifp, IFCOUNTER_IERRORS, 1);
 			awg_reuse_rxdesc(sc, index);
 			continue;
@@ -1233,8 +1218,8 @@ awg_rxintr(struct awg_softc *sc)
 			if ((status & RX_HEADER_ERR) == 0)
 				m->m_pkthdr.csum_flags |= CSUM_IP_VALID;
 			if ((status & RX_PAYLOAD_ERR) == 0) {
-				m->m_pkthdr.csum_flags |=
-				    CSUM_DATA_VALID | CSUM_PSEUDO_HDR;
+				m->m_pkthdr.csum_flags |= CSUM_DATA_VALID |
+				    CSUM_PSEUDO_HDR;
 				m->m_pkthdr.csum_data = 0xffff;
 			}
 		}
@@ -1413,7 +1398,7 @@ awg_get_phy_node(device_t dev)
 
 	node = ofw_bus_get_node(dev);
 	if (OF_getencprop(node, "phy-handle", (void *)&phy_handle,
-	    sizeof(phy_handle)) <= 0)
+		sizeof(phy_handle)) <= 0)
 		return (0);
 
 	return (OF_node_from_xref(phy_handle));
@@ -1430,8 +1415,9 @@ awg_has_internal_phy(device_t dev)
 		return (true);
 
 	phy_node = awg_get_phy_node(dev);
-	return (phy_node != 0 && ofw_bus_node_is_compatible(OF_parent(phy_node),
-	    "allwinner,sun8i-h3-mdio-internal") != 0);
+	return (phy_node != 0 &&
+	    ofw_bus_node_is_compatible(OF_parent(phy_node),
+		"allwinner,sun8i-h3-mdio-internal") != 0);
 }
 
 static int
@@ -1448,9 +1434,10 @@ awg_parse_delay(device_t dev, uint32_t *tx_delay, uint32_t *rx_delay)
 	if (OF_getencprop(node, "tx-delay", &delay, sizeof(delay)) >= 0)
 		*tx_delay = delay;
 	else if (OF_getencprop(node, "allwinner,tx-delay-ps", &delay,
-	    sizeof(delay)) >= 0) {
+		     sizeof(delay)) >= 0) {
 		if ((delay % 100) != 0) {
-			device_printf(dev, "tx-delay-ps is not a multiple of 100\n");
+			device_printf(dev,
+			    "tx-delay-ps is not a multiple of 100\n");
 			return (EDOM);
 		}
 		*tx_delay = delay / 100;
@@ -1463,9 +1450,10 @@ awg_parse_delay(device_t dev, uint32_t *tx_delay, uint32_t *rx_delay)
 	if (OF_getencprop(node, "rx-delay", &delay, sizeof(delay)) >= 0)
 		*rx_delay = delay;
 	else if (OF_getencprop(node, "allwinner,rx-delay-ps", &delay,
-	    sizeof(delay)) >= 0) {
+		     sizeof(delay)) >= 0) {
 		if ((delay % 100) != 0) {
-			device_printf(dev, "rx-delay-ps is not within documented domain\n");
+			device_printf(dev,
+			    "rx-delay-ps is not within documented domain\n");
 			return (EDOM);
 		}
 		*rx_delay = delay / 100;
@@ -1543,7 +1531,7 @@ awg_setup_phy(device_t dev)
 				reg |= EMAC_CLK_EPHY_SELECT;
 				reg &= ~EMAC_CLK_EPHY_SHUTDOWN;
 				if (OF_hasprop(node,
-				    "allwinner,leds-active-low"))
+					"allwinner,leds-active-low"))
 					reg |= EMAC_CLK_EPHY_LED_POL;
 				else
 					reg &= ~EMAC_CLK_EPHY_LED_POL;
@@ -1635,8 +1623,8 @@ awg_setup_extres(device_t dev)
 		goto fail;
 	}
 	if (hwreset_get_by_ofw_name(dev, 0, "ephy", &rst_ephy) != 0)
-		if (phy_node == 0 || hwreset_get_by_ofw_idx(dev, phy_node, 0,
-		    &rst_ephy) != 0)
+		if (phy_node == 0 ||
+		    hwreset_get_by_ofw_idx(dev, phy_node, 0, &rst_ephy) != 0)
 			rst_ephy = NULL;
 	error = clk_get_by_ofw_name(dev, 0, "stmmaceth", &clk_ahb);
 	if (error != 0)
@@ -1646,12 +1634,12 @@ awg_setup_extres(device_t dev)
 		goto fail;
 	}
 	if (clk_get_by_ofw_name(dev, 0, "ephy", &clk_ephy) != 0)
-		if (phy_node == 0 || clk_get_by_ofw_index(dev, phy_node, 0,
-		    &clk_ephy) != 0)
+		if (phy_node == 0 ||
+		    clk_get_by_ofw_index(dev, phy_node, 0, &clk_ephy) != 0)
 			clk_ephy = NULL;
 
-	if (OF_hasprop(node, "syscon") && syscon_get_by_ofw_property(dev, node,
-	    "syscon", &sc->syscon) != 0) {
+	if (OF_hasprop(node, "syscon") &&
+	    syscon_get_by_ofw_property(dev, node, "syscon", &sc->syscon) != 0) {
 		device_printf(dev, "cannot get syscon driver handle\n");
 		goto fail;
 	}
@@ -1788,7 +1776,7 @@ awg_dump_regs(device_t dev)
 }
 #endif
 
-#define	GPIO_ACTIVE_LOW		1
+#define GPIO_ACTIVE_LOW 1
 
 static int
 awg_phy_reset(device_t dev)
@@ -1801,11 +1789,11 @@ awg_phy_reset(device_t dev)
 
 	node = ofw_bus_get_node(dev);
 	if (OF_getencprop(node, "allwinner,reset-gpio", gpio_prop,
-	    sizeof(gpio_prop)) <= 0)
+		sizeof(gpio_prop)) <= 0)
 		return (0);
 
 	if (OF_getencprop(node, "allwinner,reset-delays-us", delay_prop,
-	    sizeof(delay_prop)) <= 0)
+		sizeof(delay_prop)) <= 0)
 		return (ENXIO);
 
 	gpio_node = OF_node_from_xref(gpio_prop[0]);
@@ -1813,7 +1801,7 @@ awg_phy_reset(device_t dev)
 		return (ENXIO);
 
 	if (GPIO_MAP_GPIOS(gpio, node, gpio_node, nitems(gpio_prop) - 1,
-	    gpio_prop + 1, &pin, &flags) != 0)
+		gpio_prop + 1, &pin, &flags) != 0)
 		return (ENXIO);
 
 	pin_value = GPIO_PIN_LOW;
@@ -1993,13 +1981,13 @@ awg_attach(device_t dev)
 
 static device_method_t awg_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		awg_probe),
-	DEVMETHOD(device_attach,	awg_attach),
+	DEVMETHOD(device_probe, awg_probe),
+	DEVMETHOD(device_attach, awg_attach),
 
 	/* MII interface */
-	DEVMETHOD(miibus_readreg,	awg_miibus_readreg),
-	DEVMETHOD(miibus_writereg,	awg_miibus_writereg),
-	DEVMETHOD(miibus_statchg,	awg_miibus_statchg),
+	DEVMETHOD(miibus_readreg, awg_miibus_readreg),
+	DEVMETHOD(miibus_writereg, awg_miibus_writereg),
+	DEVMETHOD(miibus_statchg, awg_miibus_statchg),
 
 	DEVMETHOD_END
 };

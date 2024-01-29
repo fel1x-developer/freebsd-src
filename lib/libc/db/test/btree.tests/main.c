@@ -33,13 +33,15 @@
  */
 
 #include <sys/param.h>
-#include <fcntl.h>
+
+#include <ctype.h>
 #include <db.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
-#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "btree.h"
 
 typedef struct cmd_table {
@@ -72,47 +74,162 @@ void list(DB *, char **);
 void load(DB *, char **);
 void mstat(DB *, char **);
 void next(DB *, char **);
-int  parse(char *, char **, int);
+int parse(char *, char **, int);
 void previous(DB *, char **);
 void show(DB *, char **);
 void usage(void);
 void user(DB *);
 
 cmd_table commands[] = {
-	"?",	0, 0, help, "help", NULL,
-	"a",	2, 1, append, "append key def", "append key with data def",
-	"b",	0, 0, bstat, "bstat", "stat btree",
-	"c",	1, 1, cursor,  "cursor word", "move cursor to word",
-	"delc",	0, 0, delcur, "delcur", "delete key the cursor references",
-	"dele",	1, 1, delete, "delete word", "delete word",
-	"d",	0, 0, dump, "dump", "dump database",
-	"f",	0, 0, first, "first", "move cursor to first record",
-	"g",	1, 1, get, "get key", "locate key",
-	"h",	0, 0, help, "help", "print command summary",
-	"ia",	2, 1, iafter, "iafter key data", "insert data after key",
-	"ib",	2, 1, ibefore, "ibefore key data", "insert data before key",
-	"ic",	2, 1, icursor, "icursor key data", "replace cursor",
-	"in",	2, 1, insert, "insert key def", "insert key with data def",
-	"la",	0, 0, last, "last", "move cursor to last record",
-	"li",	1, 1, list, "list file", "list to a file",
-	"loa",	1, 0, load, "load file", NULL,
-	"loc",	1, 1, get, "get key", NULL,
-	"m",	0, 0, mstat, "mstat", "stat memory pool",
-	"n",	0, 0, next, "next", "move cursor forward one record",
-	"p",	0, 0, previous, "previous", "move cursor back one record",
-	"q",	0, 0, NULL, "quit", "quit",
-	"sh",	1, 0, show, "show page", "dump a page",
+	"?",
+	0,
+	0,
+	help,
+	"help",
+	NULL,
+	"a",
+	2,
+	1,
+	append,
+	"append key def",
+	"append key with data def",
+	"b",
+	0,
+	0,
+	bstat,
+	"bstat",
+	"stat btree",
+	"c",
+	1,
+	1,
+	cursor,
+	"cursor word",
+	"move cursor to word",
+	"delc",
+	0,
+	0,
+	delcur,
+	"delcur",
+	"delete key the cursor references",
+	"dele",
+	1,
+	1,
+	delete,
+	"delete word",
+	"delete word",
+	"d",
+	0,
+	0,
+	dump,
+	"dump",
+	"dump database",
+	"f",
+	0,
+	0,
+	first,
+	"first",
+	"move cursor to first record",
+	"g",
+	1,
+	1,
+	get,
+	"get key",
+	"locate key",
+	"h",
+	0,
+	0,
+	help,
+	"help",
+	"print command summary",
+	"ia",
+	2,
+	1,
+	iafter,
+	"iafter key data",
+	"insert data after key",
+	"ib",
+	2,
+	1,
+	ibefore,
+	"ibefore key data",
+	"insert data before key",
+	"ic",
+	2,
+	1,
+	icursor,
+	"icursor key data",
+	"replace cursor",
+	"in",
+	2,
+	1,
+	insert,
+	"insert key def",
+	"insert key with data def",
+	"la",
+	0,
+	0,
+	last,
+	"last",
+	"move cursor to last record",
+	"li",
+	1,
+	1,
+	list,
+	"list file",
+	"list to a file",
+	"loa",
+	1,
+	0,
+	load,
+	"load file",
+	NULL,
+	"loc",
+	1,
+	1,
+	get,
+	"get key",
+	NULL,
+	"m",
+	0,
+	0,
+	mstat,
+	"mstat",
+	"stat memory pool",
+	"n",
+	0,
+	0,
+	next,
+	"next",
+	"move cursor forward one record",
+	"p",
+	0,
+	0,
+	previous,
+	"previous",
+	"move cursor back one record",
+	"q",
+	0,
+	0,
+	NULL,
+	"quit",
+	"quit",
+	"sh",
+	1,
+	0,
+	show,
+	"show page",
+	"dump a page",
 	{ NULL },
 };
 
-int recno;					/* use record numbers */
-char *dict = "words";				/* default dictionary */
+int recno;	      /* use record numbers */
+char *dict = "words"; /* default dictionary */
 char *progname;
 
 int
 main(argc, argv)
-	int argc;
-	char **argv;
+int argc;
+char **argv;
 {
 	int c;
 	DB *db;
@@ -163,10 +280,10 @@ main(argc, argv)
 	argv += optind;
 
 	if (recno)
-		db = dbopen(*argv == NULL ? NULL : *argv, O_RDWR,
-		    0, DB_RECNO, NULL);
+		db = dbopen(*argv == NULL ? NULL : *argv, O_RDWR, 0, DB_RECNO,
+		    NULL);
 	else
-		db = dbopen(*argv == NULL ? NULL : *argv, O_CREAT|O_RDWR,
+		db = dbopen(*argv == NULL ? NULL : *argv, O_CREAT | O_RDWR,
 		    0600, DB_BTREE, &b);
 
 	if (db == NULL) {
@@ -179,17 +296,14 @@ main(argc, argv)
 	/* NOTREACHED */
 }
 
-void
-user(db)
-	DB *db;
+void user(db) DB *db;
 {
 	FILE *ifp;
 	int argc, i, last;
 	char *lbuf, *argv[4], buf[512];
 
 	if ((ifp = fopen("/dev/tty", "r")) == NULL) {
-		(void)fprintf(stderr,
-		    "/dev/tty: %s\n", strerror(errno));
+		(void)fprintf(stderr, "/dev/tty: %s\n", strerror(errno));
 		exit(1);
 	}
 	for (last = 0;;) {
@@ -212,7 +326,7 @@ user(db)
 
 		for (i = 0; commands[i].cmd != NULL; i++)
 			if (strncmp(commands[i].cmd, argv[0],
-			    strlen(commands[i].cmd)) == 0)
+				strlen(commands[i].cmd)) == 0)
 				break;
 
 		if (commands[i].cmd == NULL) {
@@ -231,7 +345,8 @@ user(db)
 			nlong = atoi(argv[1]);
 			argv[1] = (char *)&nlong;
 		}
-uselast:	last = i;
+	uselast:
+		last = i;
 		(*commands[i].func)(db, argv);
 	}
 	if ((db->sync)(db) == RET_ERROR)
@@ -242,8 +357,8 @@ uselast:	last = i;
 
 int
 parse(lbuf, argv, maxargc)
-	char *lbuf, **argv;
-	int maxargc;
+char *lbuf, **argv;
+int maxargc;
 {
 	int argc = 0;
 	char *c;
@@ -263,10 +378,8 @@ parse(lbuf, argv, maxargc)
 	return (argc);
 }
 
-void
-append(db, argv)
-	DB *db;
-	char **argv;
+void append(db, argv) DB *db;
+char **argv;
 {
 	DBT key, data;
 	int status;
@@ -293,10 +406,8 @@ append(db, argv)
 	}
 }
 
-void
-cursor(db, argv)
-	DB *db;
-	char **argv;
+void cursor(db, argv) DB *db;
+char **argv;
 {
 	DBT data, key;
 	int status;
@@ -320,10 +431,8 @@ cursor(db, argv)
 	}
 }
 
-void
-delcur(db, argv)
-	DB *db;
-	char **argv;
+void delcur(db, argv) DB *db;
+char **argv;
 {
 	int status;
 
@@ -333,10 +442,8 @@ delcur(db, argv)
 		perror("delcur/del");
 }
 
-void
-delete(db, argv)
-	DB *db;
-	char **argv;
+void delete(db, argv)DB *db;
+char **argv;
 {
 	DBT key;
 	int status;
@@ -360,18 +467,14 @@ delete(db, argv)
 	}
 }
 
-void
-dump(db, argv)
-	DB *db;
-	char **argv;
+void dump(db, argv) DB *db;
+char **argv;
 {
 	__bt_dump(db);
 }
 
-void
-first(db, argv)
-	DB *db;
-	char **argv;
+void first(db, argv) DB *db;
+char **argv;
 {
 	DBT data, key;
 	int status;
@@ -391,10 +494,8 @@ first(db, argv)
 	}
 }
 
-void
-get(db, argv)
-	DB *db;
-	char **argv;
+void get(db, argv) DB *db;
+char **argv;
 {
 	DBT data, key;
 	int status;
@@ -420,23 +521,19 @@ get(db, argv)
 	}
 }
 
-void
-help(db, argv)
-	DB *db;
-	char **argv;
+void help(db, argv) DB *db;
+char **argv;
 {
 	int i;
 
 	for (i = 0; commands[i].cmd; i++)
 		if (commands[i].descrip)
-			(void)printf("%s: %s\n",
-			    commands[i].usage, commands[i].descrip);
+			(void)printf("%s: %s\n", commands[i].usage,
+			    commands[i].descrip);
 }
 
-void
-iafter(db, argv)
-	DB *db;
-	char **argv;
+void iafter(db, argv) DB *db;
+char **argv;
 {
 	DBT key, data;
 	int status;
@@ -463,10 +560,8 @@ iafter(db, argv)
 	}
 }
 
-void
-ibefore(db, argv)
-	DB *db;
-	char **argv;
+void ibefore(db, argv) DB *db;
+char **argv;
 {
 	DBT key, data;
 	int status;
@@ -493,10 +588,8 @@ ibefore(db, argv)
 	}
 }
 
-void
-icursor(db, argv)
-	DB *db;
-	char **argv;
+void icursor(db, argv) DB *db;
+char **argv;
 {
 	int status;
 	DBT data, key;
@@ -522,10 +615,8 @@ icursor(db, argv)
 	}
 }
 
-void
-insert(db, argv)
-	DB *db;
-	char **argv;
+void insert(db, argv) DB *db;
+char **argv;
 {
 	int status;
 	DBT data, key;
@@ -551,10 +642,8 @@ insert(db, argv)
 	}
 }
 
-void
-last(db, argv)
-	DB *db;
-	char **argv;
+void last(db, argv) DB *db;
+char **argv;
 {
 	DBT data, key;
 	int status;
@@ -574,10 +663,8 @@ last(db, argv)
 	}
 }
 
-void
-list(db, argv)
-	DB *db;
-	char **argv;
+void list(db, argv) DB *db;
+char **argv;
 {
 	DBT data, key;
 	FILE *fp;
@@ -597,10 +684,8 @@ list(db, argv)
 }
 
 DB *BUGdb;
-void
-load(db, argv)
-	DB *db;
-	char **argv;
+void load(db, argv) DB *db;
+char **argv;
 {
 	char *p, *t;
 	FILE *fp;
@@ -626,7 +711,8 @@ load(db, argv)
 		} else {
 			key.data = lp;
 			key.size = len + 1;
-			for (p = lp + len - 1, t = buf; p >= lp; *t++ = *p--);
+			for (p = lp + len - 1, t = buf; p >= lp; *t++ = *p--)
+				;
 			*t = '\0';
 			data.data = buf;
 			data.size = len + 1;
@@ -639,11 +725,11 @@ load(db, argv)
 			exit(1);
 		case RET_SPECIAL:
 			if (recno)
-				(void)fprintf(stderr,
-				    "duplicate: %ld {%s}\n", cnt, data.data);
+				(void)fprintf(stderr, "duplicate: %ld {%s}\n",
+				    cnt, data.data);
 			else
-				(void)fprintf(stderr,
-				    "duplicate: %ld {%s}\n", cnt, key.data);
+				(void)fprintf(stderr, "duplicate: %ld {%s}\n",
+				    cnt, key.data);
 			exit(1);
 		case RET_SUCCESS:
 			break;
@@ -652,10 +738,8 @@ load(db, argv)
 	(void)fclose(fp);
 }
 
-void
-next(db, argv)
-	DB *db;
-	char **argv;
+void next(db, argv) DB *db;
+char **argv;
 {
 	DBT data, key;
 	int status;
@@ -675,10 +759,8 @@ next(db, argv)
 	}
 }
 
-void
-previous(db, argv)
-	DB *db;
-	char **argv;
+void previous(db, argv) DB *db;
+char **argv;
 {
 	DBT data, key;
 	int status;
@@ -698,10 +780,8 @@ previous(db, argv)
 	}
 }
 
-void
-show(db, argv)
-	DB *db;
-	char **argv;
+void show(db, argv) DB *db;
+char **argv;
 {
 	BTREE *t;
 	PAGE *h;
@@ -720,27 +800,21 @@ show(db, argv)
 	mpool_put(t->bt_mp, h, 0);
 }
 
-void
-bstat(db, argv)
-	DB *db;
-	char **argv;
+void bstat(db, argv) DB *db;
+char **argv;
 {
 	(void)printf("BTREE\n");
 	__bt_stat(db);
 }
 
-void
-mstat(db, argv)
-	DB *db;
-	char **argv;
+void mstat(db, argv) DB *db;
+char **argv;
 {
 	(void)printf("MPOOL\n");
 	mpool_stat(((BTREE *)db->internal)->bt_mp);
 }
 
-void
-keydata(key, data)
-	DBT *key, *data;
+void keydata(key, data) DBT *key, *data;
 {
 	if (!recno && key->size > 0)
 		(void)printf("%s/", key->data);
@@ -755,5 +829,5 @@ usage()
 	(void)fprintf(stderr,
 	    "usage: %s [-bdlu] [-c cache] [-i file] [-p page] [file]\n",
 	    progname);
-	exit (1);
+	exit(1);
 }

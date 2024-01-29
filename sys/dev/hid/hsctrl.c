@@ -38,32 +38,33 @@
 #include <sys/module.h>
 #include <sys/sysctl.h>
 
-#include <dev/evdev/input.h>
 #include <dev/evdev/evdev.h>
-
+#include <dev/evdev/input.h>
 #include <dev/hid/hid.h>
 #include <dev/hid/hidbus.h>
 #include <dev/hid/hidmap.h>
 
-#define	HSCTRL_MAP(usage, code)	\
-	{ HIDMAP_KEY(HUP_GENERIC_DESKTOP, HUG_SYSTEM_##usage, code) }
+#define HSCTRL_MAP(usage, code)                                           \
+	{                                                                 \
+		HIDMAP_KEY(HUP_GENERIC_DESKTOP, HUG_SYSTEM_##usage, code) \
+	}
 
 static const struct hidmap_item hsctrl_map[] = {
-	HSCTRL_MAP(POWER_DOWN,		KEY_POWER),
-	HSCTRL_MAP(SLEEP,		KEY_SLEEP),
-	HSCTRL_MAP(WAKEUP,		KEY_WAKEUP),
-	HSCTRL_MAP(CONTEXT_MENU,	KEY_CONTEXT_MENU),
-	HSCTRL_MAP(MAIN_MENU,		KEY_MENU),
-	HSCTRL_MAP(APP_MENU,		KEY_PROG1),
-	HSCTRL_MAP(MENU_HELP,		KEY_HELP),
-	HSCTRL_MAP(MENU_EXIT,		KEY_EXIT),
-	HSCTRL_MAP(MENU_SELECT,		KEY_SELECT),
-	HSCTRL_MAP(MENU_RIGHT,		KEY_RIGHT),
-	HSCTRL_MAP(MENU_LEFT,		KEY_LEFT),
-	HSCTRL_MAP(MENU_UP,		KEY_UP),
-	HSCTRL_MAP(MENU_DOWN,		KEY_DOWN),
-	HSCTRL_MAP(POWER_UP,		KEY_POWER2),
-	HSCTRL_MAP(RESTART,		KEY_RESTART),
+	HSCTRL_MAP(POWER_DOWN, KEY_POWER),
+	HSCTRL_MAP(SLEEP, KEY_SLEEP),
+	HSCTRL_MAP(WAKEUP, KEY_WAKEUP),
+	HSCTRL_MAP(CONTEXT_MENU, KEY_CONTEXT_MENU),
+	HSCTRL_MAP(MAIN_MENU, KEY_MENU),
+	HSCTRL_MAP(APP_MENU, KEY_PROG1),
+	HSCTRL_MAP(MENU_HELP, KEY_HELP),
+	HSCTRL_MAP(MENU_EXIT, KEY_EXIT),
+	HSCTRL_MAP(MENU_SELECT, KEY_SELECT),
+	HSCTRL_MAP(MENU_RIGHT, KEY_RIGHT),
+	HSCTRL_MAP(MENU_LEFT, KEY_LEFT),
+	HSCTRL_MAP(MENU_UP, KEY_UP),
+	HSCTRL_MAP(MENU_DOWN, KEY_DOWN),
+	HSCTRL_MAP(POWER_UP, KEY_POWER2),
+	HSCTRL_MAP(RESTART, KEY_RESTART),
 };
 
 static const struct hid_device_id hsctrl_devs[] = {
@@ -73,8 +74,8 @@ static const struct hid_device_id hsctrl_devs[] = {
 static int
 hsctrl_probe(device_t dev)
 {
-	return (HIDMAP_PROBE(device_get_softc(dev), dev,
-	    hsctrl_devs, hsctrl_map, "System Control"));
+	return (HIDMAP_PROBE(device_get_softc(dev), dev, hsctrl_devs,
+	    hsctrl_map, "System Control"));
 }
 
 static int
@@ -89,13 +90,12 @@ hsctrl_detach(device_t dev)
 	return (hidmap_detach(device_get_softc(dev)));
 }
 
-static device_method_t hsctrl_methods[] = {
-	DEVMETHOD(device_probe,		hsctrl_probe),
-	DEVMETHOD(device_attach,	hsctrl_attach),
-	DEVMETHOD(device_detach,	hsctrl_detach),
+static device_method_t hsctrl_methods[] = { DEVMETHOD(device_probe,
+						hsctrl_probe),
+	DEVMETHOD(device_attach, hsctrl_attach),
+	DEVMETHOD(device_detach, hsctrl_detach),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 DEFINE_CLASS_0(hsctrl, hsctrl_driver, hsctrl_methods, sizeof(struct hidmap));
 DRIVER_MODULE(hsctrl, hidbus, hsctrl_driver, NULL, NULL);

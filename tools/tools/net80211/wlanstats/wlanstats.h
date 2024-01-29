@@ -28,7 +28,7 @@
  */
 
 #ifndef _WLANSTATS_H_
-#define	_WLANSTATS_H_
+#define _WLANSTATS_H_
 
 #include "bsdstat.h"
 

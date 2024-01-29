@@ -45,21 +45,21 @@
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
 
-#define	FTP_NAMES
+#define FTP_NAMES
 #include <arpa/ftp.h>
 #include <arpa/inet.h>
 #include <arpa/telnet.h>
-
 #include <ctype.h>
 #include <dirent.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <glob.h>
+#include <grp.h>
+#include <libutil.h>
 #include <limits.h>
 #include <netdb.h>
 #include <pwd.h>
-#include <grp.h>
 #include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -68,8 +68,7 @@
 #include <syslog.h>
 #include <time.h>
 #include <unistd.h>
-#include <libutil.h>
-#ifdef	LOGIN_CAP
+#ifdef LOGIN_CAP
 #include <login_cap.h>
 #endif
 
@@ -77,11 +76,11 @@
 #include <security/pam_appl.h>
 #endif
 
-#include "blacklist_client.h"
-#include "pathnames.h"
-#include "extern.h"
-
 #include <stdarg.h>
+
+#include "blacklist_client.h"
+#include "extern.h"
+#include "pathnames.h"
 
 static char version[] = "Version 6.00LS";
 #undef main
@@ -92,83 +91,83 @@ union sockunion data_dest;
 union sockunion his_addr;
 union sockunion pasv_addr;
 
-int	daemon_mode;
-int	data;
-int	dataport;
-int	hostinfo = 1;	/* print host-specific info in messages */
-int	logged_in;
-struct	passwd *pw;
-char	*homedir;
-int	ftpdebug;
-int	timeout = 900;    /* timeout after 15 minutes of inactivity */
-int	maxtimeout = 7200;/* don't allow idle time to be set beyond 2 hours */
-int	logging;
-int	restricted_data_ports = 1;
-int	paranoid = 1;	  /* be extra careful about security */
-int	anon_only = 0;    /* Only anonymous ftp allowed */
-int	assumeutf8 = 0;   /* Assume that server file names are in UTF-8 */
-int	guest;
-int	dochroot;
-char	*chrootdir;
-int	dowtmp = 1;
-int	stats;
-int	statfd = -1;
-int	type;
-int	form;
-int	stru;			/* avoid C keyword */
-int	mode;
-int	usedefault = 1;		/* for data transfers */
-int	pdata = -1;		/* for passive mode */
-int	readonly = 0;		/* Server is in readonly mode.	*/
-int	noepsv = 0;		/* EPSV command is disabled.	*/
-int	noretr = 0;		/* RETR command is disabled.	*/
-int	noguestretr = 0;	/* RETR command is disabled for anon users. */
-int	noguestmkd = 0;		/* MKD command is disabled for anon users. */
-int	noguestmod = 1;		/* anon users may not modify existing files. */
-int	use_blacklist = 0;
+int daemon_mode;
+int data;
+int dataport;
+int hostinfo = 1; /* print host-specific info in messages */
+int logged_in;
+struct passwd *pw;
+char *homedir;
+int ftpdebug;
+int timeout = 900;     /* timeout after 15 minutes of inactivity */
+int maxtimeout = 7200; /* don't allow idle time to be set beyond 2 hours */
+int logging;
+int restricted_data_ports = 1;
+int paranoid = 1;   /* be extra careful about security */
+int anon_only = 0;  /* Only anonymous ftp allowed */
+int assumeutf8 = 0; /* Assume that server file names are in UTF-8 */
+int guest;
+int dochroot;
+char *chrootdir;
+int dowtmp = 1;
+int stats;
+int statfd = -1;
+int type;
+int form;
+int stru; /* avoid C keyword */
+int mode;
+int usedefault = 1;  /* for data transfers */
+int pdata = -1;	     /* for passive mode */
+int readonly = 0;    /* Server is in readonly mode.	*/
+int noepsv = 0;	     /* EPSV command is disabled.	*/
+int noretr = 0;	     /* RETR command is disabled.	*/
+int noguestretr = 0; /* RETR command is disabled for anon users. */
+int noguestmkd = 0;  /* MKD command is disabled for anon users. */
+int noguestmod = 1;  /* anon users may not modify existing files. */
+int use_blacklist = 0;
 
-off_t	file_size;
-off_t	byte_count;
+off_t file_size;
+off_t byte_count;
 #if !defined(CMASK) || CMASK == 0
 #undef CMASK
 #define CMASK 027
 #endif
-int	defumask = CMASK;		/* default umask value */
-char	tmpline[7];
-char	*hostname;
-int	epsvall = 0;
+int defumask = CMASK; /* default umask value */
+char tmpline[7];
+char *hostname;
+int epsvall = 0;
 
 #ifdef VIRTUAL_HOSTING
-char	*ftpuser;
+char *ftpuser;
 
 static struct ftphost {
-	struct ftphost	*next;
+	struct ftphost *next;
 	struct addrinfo *hostinfo;
-	char		*hostname;
-	char		*anonuser;
-	char		*statfile;
-	char		*welcome;
-	char		*loginmsg;
+	char *hostname;
+	char *anonuser;
+	char *statfile;
+	char *welcome;
+	char *loginmsg;
 } *thishost, *firsthost;
 
 #endif
-char	remotehost[NI_MAXHOST];
-char	*ident = NULL;
+char remotehost[NI_MAXHOST];
+char *ident = NULL;
 
-static char	wtmpid[20];
+static char wtmpid[20];
 
 #ifdef USE_PAM
-static int	auth_pam(struct passwd**, const char*);
-pam_handle_t	*pamh = NULL;
+static int auth_pam(struct passwd **, const char *);
+pam_handle_t *pamh = NULL;
 #endif
 
-char	*pid_file = NULL; /* means default location to pidfile(3) */
+char *pid_file = NULL; /* means default location to pidfile(3) */
 
 /*
  * Limit number of pathnames that glob can return.
  * A limit of 0 indicates the number of pathnames is unlimited.
  */
-#define MAXGLOBARGS	16384
+#define MAXGLOBARGS 16384
 #
 
 /*
@@ -176,67 +175,66 @@ char	*pid_file = NULL; /* means default location to pidfile(3) */
  * to hosts that don't accept PORT cmds.  This
  * is a kludge, but given the problems with TCP...
  */
-#define	SWAITMAX	90	/* wait at most 90 seconds */
-#define	SWAITINT	5	/* interval between retries */
+#define SWAITMAX 90 /* wait at most 90 seconds */
+#define SWAITINT 5  /* interval between retries */
 
-int	swaitmax = SWAITMAX;
-int	swaitint = SWAITINT;
+int swaitmax = SWAITMAX;
+int swaitint = SWAITINT;
 
 #ifdef SETPROCTITLE
-char	proctitle[LINE_MAX];	/* initial part of title */
-#endif /* SETPROCTITLE */
+char proctitle[LINE_MAX]; /* initial part of title */
+#endif			  /* SETPROCTITLE */
 
-#define LOGCMD(cmd, file)		logcmd((cmd), (file), NULL, -1)
-#define LOGCMD2(cmd, file1, file2)	logcmd((cmd), (file1), (file2), -1)
-#define LOGBYTES(cmd, file, cnt)	logcmd((cmd), (file), NULL, (cnt))
+#define LOGCMD(cmd, file) logcmd((cmd), (file), NULL, -1)
+#define LOGCMD2(cmd, file1, file2) logcmd((cmd), (file1), (file2), -1)
+#define LOGBYTES(cmd, file, cnt) logcmd((cmd), (file), NULL, (cnt))
 
-static	volatile sig_atomic_t recvurg;
-static	int transflag;		/* NB: for debugging only */
+static volatile sig_atomic_t recvurg;
+static int transflag; /* NB: for debugging only */
 
-#define STARTXFER	flagxfer(1)
-#define ENDXFER		flagxfer(0)
+#define STARTXFER flagxfer(1)
+#define ENDXFER flagxfer(0)
 
-#define START_UNSAFE	maskurg(1)
-#define END_UNSAFE	maskurg(0)
+#define START_UNSAFE maskurg(1)
+#define END_UNSAFE maskurg(0)
 
 /* It's OK to put an `else' clause after this macro. */
-#define CHECKOOB(action)						\
-	if (recvurg) {							\
-		recvurg = 0;						\
-		if (myoob()) {						\
-			ENDXFER;					\
-			action;						\
-		}							\
+#define CHECKOOB(action)         \
+	if (recvurg) {           \
+		recvurg = 0;     \
+		if (myoob()) {   \
+			ENDXFER; \
+			action;  \
+		}                \
 	}
 
 #ifdef VIRTUAL_HOSTING
-static void	 inithosts(int);
-static void	 selecthost(union sockunion *);
+static void inithosts(int);
+static void selecthost(union sockunion *);
 #endif
-static void	 ack(char *);
-static void	 sigurg(int);
-static void	 maskurg(int);
-static void	 flagxfer(int);
-static int	 myoob(void);
-static int	 checkuser(char *, char *, int, char **, int *);
-static FILE	*dataconn(char *, off_t, char *);
-static void	 dolog(struct sockaddr *);
-static void	 end_login(void);
-static FILE	*getdatasock(char *);
-static int	 guniquefd(char *, char **);
-static void	 lostconn(int);
-static void	 sigquit(int);
-static int	 receive_data(FILE *, FILE *);
-static int	 send_data(FILE *, FILE *, size_t, off_t, int);
-static struct passwd *
-		 sgetpwnam(char *);
-static char	*sgetsave(char *);
-static void	 reapchild(int);
-static void	 appendf(char **, char *, ...) __printflike(2, 3);
-static void	 logcmd(char *, char *, char *, off_t);
-static void      logxfer(char *, off_t, time_t);
-static char	*doublequote(char *);
-static int	*socksetup(int, char *, const char *);
+static void ack(char *);
+static void sigurg(int);
+static void maskurg(int);
+static void flagxfer(int);
+static int myoob(void);
+static int checkuser(char *, char *, int, char **, int *);
+static FILE *dataconn(char *, off_t, char *);
+static void dolog(struct sockaddr *);
+static void end_login(void);
+static FILE *getdatasock(char *);
+static int guniquefd(char *, char **);
+static void lostconn(int);
+static void sigquit(int);
+static int receive_data(FILE *, FILE *);
+static int send_data(FILE *, FILE *, size_t, off_t, int);
+static struct passwd *sgetpwnam(char *);
+static char *sgetsave(char *);
+static void reapchild(int);
+static void appendf(char **, char *, ...) __printflike(2, 3);
+static void logcmd(char *, char *, char *, off_t);
+static void logxfer(char *, off_t, time_t);
+static char *doublequote(char *);
+static int *socksetup(int, char *, const char *);
 
 int
 main(int argc, char *argv[], char **envp)
@@ -245,12 +243,12 @@ main(int argc, char *argv[], char **envp)
 	int ch, on = 1, tos, s = STDIN_FILENO;
 	char *cp, line[LINE_MAX];
 	FILE *fd;
-	char	*bindname = NULL;
+	char *bindname = NULL;
 	const char *bindport = "ftp";
-	int	family = AF_UNSPEC;
+	int family = AF_UNSPEC;
 	struct sigaction sa;
 
-	tzset();		/* in case no timezone database in ~ftp */
+	tzset(); /* in case no timezone database in ~ftp */
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = SA_RESTART;
 
@@ -259,7 +257,7 @@ main(int argc, char *argv[], char **envp)
 	 * We run as a daemon or from inetd; in both cases, there's
 	 * more reason in logging to syslog.
 	 */
-	(void) freopen(_PATH_DEVNULL, "w", stderr);
+	(void)freopen(_PATH_DEVNULL, "w", stderr);
 	opterr = 0;
 
 	/*
@@ -268,8 +266,8 @@ main(int argc, char *argv[], char **envp)
 	 */
 	openlog("ftpd", LOG_PID | LOG_NDELAY, LOG_FTP);
 
-	while ((ch = getopt(argc, argv,
-	                    "468a:ABdDEhlmMoOp:P:rRSt:T:u:UvW")) != -1) {
+	while ((ch = getopt(argc, argv, "468a:ABdDEhlmMoOp:P:rRSt:T:u:UvW")) !=
+	    -1) {
 		switch (ch) {
 		case '4':
 			family = (family == AF_INET6) ? AF_UNSPEC : AF_INET;
@@ -295,7 +293,8 @@ main(int argc, char *argv[], char **envp)
 #ifdef USE_BLACKLIST
 			use_blacklist = 1;
 #else
-			syslog(LOG_WARNING, "not compiled with USE_BLACKLIST support");
+			syslog(LOG_WARNING,
+			    "not compiled with USE_BLACKLIST support");
 #endif
 			break;
 
@@ -316,7 +315,7 @@ main(int argc, char *argv[], char **envp)
 			break;
 
 		case 'l':
-			logging++;	/* > 1 == extra logging */
+			logging++; /* > 1 == extra logging */
 			break;
 
 		case 'm':
@@ -367,8 +366,7 @@ main(int argc, char *argv[], char **envp)
 				timeout = maxtimeout;
 			break;
 
-		case 'u':
-		    {
+		case 'u': {
 			long val = 0;
 
 			val = strtol(optarg, &optarg, 8);
@@ -377,7 +375,7 @@ main(int argc, char *argv[], char **envp)
 			else
 				defumask = val;
 			break;
-		    }
+		}
 		case 'U':
 			restricted_data_ports = 0;
 			break;
@@ -409,7 +407,7 @@ main(int argc, char *argv[], char **envp)
 		if ((pfh = pidfile_open(pid_file, 0600, &pid)) == NULL) {
 			if (errno == EEXIST) {
 				syslog(LOG_ERR, "%s already running, pid %d",
-				       getprogname(), (int)pid);
+				    getprogname(), (int)pid);
 				exit(1);
 			}
 			syslog(LOG_WARNING, "pidfile_open: %m");
@@ -466,7 +464,7 @@ main(int argc, char *argv[], char **envp)
 			}
 
 			pid = -1;
-                        for (i = 1; i <= *ctl_sock; i++)
+			for (i = 1; i <= *ctl_sock; i++)
 				if (FD_ISSET(ctl_sock[i], &readfds)) {
 					addrlen = sizeof(his_addr);
 					fd = accept(ctl_sock[i],
@@ -474,15 +472,15 @@ main(int argc, char *argv[], char **envp)
 					    &addrlen);
 					if (fd == -1) {
 						syslog(LOG_WARNING,
-						       "accept: %m");
+						    "accept: %m");
 						continue;
 					}
 					switch (pid = fork()) {
 					case 0:
 						/* child */
-						(void) dup2(fd, s);
-						(void) dup2(fd, STDOUT_FILENO);
-						(void) close(fd);
+						(void)dup2(fd, s);
+						(void)dup2(fd, STDOUT_FILENO);
+						(void)close(fd);
 						for (i = 1; i <= *ctl_sock; i++)
 							close(ctl_sock[i]);
 						if (pfh != NULL)
@@ -498,8 +496,9 @@ main(int argc, char *argv[], char **envp)
 		}
 	} else {
 		addrlen = sizeof(his_addr);
-		if (getpeername(s, (struct sockaddr *)&his_addr, &addrlen) < 0) {
-			syslog(LOG_ERR, "getpeername (%s): %m",argv[0]);
+		if (getpeername(s, (struct sockaddr *)&his_addr, &addrlen) <
+		    0) {
+			syslog(LOG_ERR, "getpeername (%s): %m", argv[0]);
 			exit(1);
 		}
 
@@ -518,10 +517,10 @@ gotchild:
 	(void)sigaction(SIGCHLD, &sa, NULL);
 
 	sa.sa_handler = sigurg;
-	sa.sa_flags = 0;		/* don't restart syscalls for SIGURG */
+	sa.sa_flags = 0; /* don't restart syscalls for SIGURG */
 	(void)sigaction(SIGURG, &sa, NULL);
 
-	sigfillset(&sa.sa_mask);	/* block all signals in handler */
+	sigfillset(&sa.sa_mask); /* block all signals in handler */
 	sa.sa_flags = SA_RESTART;
 	sa.sa_handler = sigquit;
 	(void)sigaction(SIGHUP, &sa, NULL);
@@ -534,7 +533,7 @@ gotchild:
 
 	addrlen = sizeof(ctrl_addr);
 	if (getsockname(s, (struct sockaddr *)&ctrl_addr, &addrlen) < 0) {
-		syslog(LOG_ERR, "getsockname (%s): %m",argv[0]);
+		syslog(LOG_ERR, "getsockname (%s): %m", argv[0]);
 		exit(1);
 	}
 	dataport = ntohs(ctrl_addr.su_port) - 1; /* as per RFC 959 */
@@ -543,12 +542,11 @@ gotchild:
 	selecthost(&ctrl_addr);
 #endif
 #ifdef IP_TOS
-	if (ctrl_addr.su_family == AF_INET)
-      {
-	tos = IPTOS_LOWDELAY;
-	if (setsockopt(s, IPPROTO_IP, IP_TOS, &tos, sizeof(int)) < 0)
-		syslog(LOG_WARNING, "control setsockopt (IP_TOS): %m");
-      }
+	if (ctrl_addr.su_family == AF_INET) {
+		tos = IPTOS_LOWDELAY;
+		if (setsockopt(s, IPPROTO_IP, IP_TOS, &tos, sizeof(int)) < 0)
+			syslog(LOG_WARNING, "control setsockopt (IP_TOS): %m");
+	}
 #endif
 	/*
 	 * Disable Nagle on the control channel so that we don't have to wait
@@ -567,7 +565,7 @@ gotchild:
 		syslog(LOG_WARNING, "control setsockopt (SO_OOBINLINE): %m");
 #endif
 
-#ifdef	F_SETOWN
+#ifdef F_SETOWN
 	if (fcntl(s, F_SETOWN, getpid()) == -1)
 		syslog(LOG_ERR, "fcntl F_SETOWN: %m");
 #endif
@@ -583,14 +581,14 @@ gotchild:
 	tmpline[0] = '\0';
 
 	/* If logins are disabled, print out the message. */
-	if ((fd = fopen(_PATH_NOLOGIN,"r")) != NULL) {
+	if ((fd = fopen(_PATH_NOLOGIN, "r")) != NULL) {
 		while (fgets(line, sizeof(line), fd) != NULL) {
 			if ((cp = strchr(line, '\n')) != NULL)
 				*cp = '\0';
 			lreply(530, "%s", line);
 		}
-		(void) fflush(stdout);
-		(void) fclose(fd);
+		(void)fflush(stdout);
+		(void)fclose(fd);
 		reply(530, "System not available.");
 		exit(0);
 	}
@@ -605,8 +603,8 @@ gotchild:
 				*cp = '\0';
 			lreply(220, "%s", line);
 		}
-		(void) fflush(stdout);
-		(void) fclose(fd);
+		(void)fflush(stdout);
+		(void)fclose(fd);
 		/* reply(220,) must follow */
 	}
 #ifndef VIRTUAL_HOSTING
@@ -622,7 +620,7 @@ gotchild:
 		reply(220, "FTP server ready.");
 	BLACKLIST_INIT();
 	for (;;)
-		(void) yyparse();
+		(void)yyparse();
 	/* NOTREACHED */
 }
 
@@ -680,7 +678,7 @@ inithosts(int family)
 	if (getaddrinfo(hrp->hostname, NULL, &hints, &res) == 0)
 		hrp->hostinfo = res;
 	hrp->statfile = _PATH_FTPDSTATFILE;
-	hrp->welcome  = _PATH_FTPWELCOME;
+	hrp->welcome = _PATH_FTPWELCOME;
 	hrp->loginmsg = _PATH_FTPLOGINMESG;
 	hrp->anonuser = "ftp";
 	hrp->next = NULL;
@@ -691,7 +689,7 @@ inithosts(int family)
 		struct hostent *hp;
 
 		while ((line = fgetln(fp, &len)) != NULL) {
-			int	i, hp_error;
+			int i, hp_error;
 
 			/* skip comments */
 			if (line[0] == '#')
@@ -715,7 +713,7 @@ inithosts(int family)
 			/* set defaults */
 			anonuser = "ftp";
 			statfile = _PATH_FTPDSTATFILE;
-			welcome  = _PATH_FTPWELCOME;
+			welcome = _PATH_FTPWELCOME;
 			loginmsg = _PATH_FTPLOGINMESG;
 
 			/*
@@ -729,14 +727,14 @@ inithosts(int family)
 			for (i = 1; i < 5 && (cp = strtok(NULL, " \t")); i++)
 				if (*cp != '-' && (cp = strdup(cp)))
 					switch (i) {
-					case 1:	/* anon user permissions */
+					case 1: /* anon user permissions */
 						anonuser = cp;
 						break;
 					case 2: /* statistics file */
 						statfile = cp;
 						break;
 					case 3: /* welcome message */
-						welcome  = cp;
+						welcome = cp;
 						break;
 					case 4: /* login message */
 						loginmsg = cp;
@@ -754,112 +752,130 @@ inithosts(int family)
 			for (ai = res; ai != NULL && ai->ai_addr != NULL;
 			     ai = ai->ai_next) {
 
-			gothost = 0;
-			for (hrp = firsthost; hrp != NULL; hrp = hrp->next) {
-				struct addrinfo *hi;
+				gothost = 0;
+				for (hrp = firsthost; hrp != NULL;
+				     hrp = hrp->next) {
+					struct addrinfo *hi;
 
-				for (hi = hrp->hostinfo; hi != NULL;
-				     hi = hi->ai_next)
-					if (hi->ai_addrlen == ai->ai_addrlen &&
-					    memcmp(hi->ai_addr,
-						   ai->ai_addr,
-						   ai->ai_addr->sa_len) == 0) {
-						gothost++;
+					for (hi = hrp->hostinfo; hi != NULL;
+					     hi = hi->ai_next)
+						if (hi->ai_addrlen ==
+							ai->ai_addrlen &&
+						    memcmp(hi->ai_addr,
+							ai->ai_addr,
+							ai->ai_addr->sa_len) ==
+							0) {
+							gothost++;
+							break;
+						}
+					if (gothost)
 						break;
-					}
-				if (gothost)
-					break;
-			}
-			if (hrp == NULL) {
-				if ((hrp = malloc(sizeof(struct ftphost))) == NULL)
-					goto nextline;
-				hrp->hostname = NULL;
-				insert = 1;
-			} else {
-				if (hrp->hostinfo && hrp->hostinfo != res)
-					freeaddrinfo(hrp->hostinfo);
-				insert = 0; /* host already in the chain */
-			}
-			hrp->hostinfo = res;
+				}
+				if (hrp == NULL) {
+					if ((hrp = malloc(sizeof(
+						 struct ftphost))) == NULL)
+						goto nextline;
+					hrp->hostname = NULL;
+					insert = 1;
+				} else {
+					if (hrp->hostinfo &&
+					    hrp->hostinfo != res)
+						freeaddrinfo(hrp->hostinfo);
+					insert =
+					    0; /* host already in the chain */
+				}
+				hrp->hostinfo = res;
 
-			/*
-			 * determine hostname to use.
-			 * force defined name if there is a valid alias
-			 * otherwise fallback to primary hostname
-			 */
-			/* XXX: getaddrinfo() can't do alias check */
-			switch(hrp->hostinfo->ai_family) {
-			case AF_INET:
-				addr = &((struct sockaddr_in *)hrp->hostinfo->ai_addr)->sin_addr;
-				addrsize = sizeof(struct in_addr);
-				break;
-			case AF_INET6:
-				addr = &((struct sockaddr_in6 *)hrp->hostinfo->ai_addr)->sin6_addr;
-				addrsize = sizeof(struct in6_addr);
-				break;
-			default:
-				/* should not reach here */
-				freeaddrinfo(hrp->hostinfo);
-				if (insert)
-					free(hrp); /*not in chain, can free*/
-				else
-					hrp->hostinfo = NULL; /*mark as blank*/
-				goto nextline;
-				/* NOTREACHED */
-			}
-			if ((hp = getipnodebyaddr(addr, addrsize,
-						  hrp->hostinfo->ai_family,
-						  &hp_error)) != NULL) {
-				if (strcmp(vhost, hp->h_name) != 0) {
-					if (hp->h_aliases == NULL)
-						vhost = hp->h_name;
-					else {
-						i = 0;
-						while (hp->h_aliases[i] &&
-						       strcmp(vhost, hp->h_aliases[i]) != 0)
-							++i;
-						if (hp->h_aliases[i] == NULL)
+				/*
+				 * determine hostname to use.
+				 * force defined name if there is a valid alias
+				 * otherwise fallback to primary hostname
+				 */
+				/* XXX: getaddrinfo() can't do alias check */
+				switch (hrp->hostinfo->ai_family) {
+				case AF_INET:
+					addr = &((struct sockaddr_in *)
+						     hrp->hostinfo->ai_addr)
+						    ->sin_addr;
+					addrsize = sizeof(struct in_addr);
+					break;
+				case AF_INET6:
+					addr = &((struct sockaddr_in6 *)
+						     hrp->hostinfo->ai_addr)
+						    ->sin6_addr;
+					addrsize = sizeof(struct in6_addr);
+					break;
+				default:
+					/* should not reach here */
+					freeaddrinfo(hrp->hostinfo);
+					if (insert)
+						free(hrp); /*not in chain, can
+							      free*/
+					else
+						hrp->hostinfo =
+						    NULL; /*mark as blank*/
+					goto nextline;
+					/* NOTREACHED */
+				}
+				if ((hp = getipnodebyaddr(addr, addrsize,
+					 hrp->hostinfo->ai_family,
+					 &hp_error)) != NULL) {
+					if (strcmp(vhost, hp->h_name) != 0) {
+						if (hp->h_aliases == NULL)
 							vhost = hp->h_name;
+						else {
+							i = 0;
+							while (
+							    hp->h_aliases[i] &&
+							    strcmp(vhost,
+								hp->h_aliases
+								    [i]) != 0)
+								++i;
+							if (hp->h_aliases[i] ==
+							    NULL)
+								vhost =
+								    hp->h_name;
+						}
 					}
 				}
-			}
-			if (hrp->hostname &&
-			    strcmp(hrp->hostname, vhost) != 0) {
-				free(hrp->hostname);
-				hrp->hostname = NULL;
-			}
-			if (hrp->hostname == NULL &&
-			    (hrp->hostname = strdup(vhost)) == NULL) {
-				freeaddrinfo(hrp->hostinfo);
-				hrp->hostinfo = NULL; /* mark as blank */
+				if (hrp->hostname &&
+				    strcmp(hrp->hostname, vhost) != 0) {
+					free(hrp->hostname);
+					hrp->hostname = NULL;
+				}
+				if (hrp->hostname == NULL &&
+				    (hrp->hostname = strdup(vhost)) == NULL) {
+					freeaddrinfo(hrp->hostinfo);
+					hrp->hostinfo =
+					    NULL; /* mark as blank */
+					if (hp)
+						freehostent(hp);
+					goto nextline;
+				}
+				hrp->anonuser = anonuser;
+				hrp->statfile = statfile;
+				hrp->welcome = welcome;
+				hrp->loginmsg = loginmsg;
+				if (insert) {
+					hrp->next = NULL;
+					lhrp->next = hrp;
+					lhrp = hrp;
+				}
 				if (hp)
 					freehostent(hp);
-				goto nextline;
 			}
-			hrp->anonuser = anonuser;
-			hrp->statfile = statfile;
-			hrp->welcome  = welcome;
-			hrp->loginmsg = loginmsg;
-			if (insert) {
-				hrp->next  = NULL;
-				lhrp->next = hrp;
-				lhrp = hrp;
-			}
-			if (hp)
-				freehostent(hp);
-		      }
-nextline:
+		nextline:
 			if (mp)
 				free(mp);
 		}
-		(void) fclose(fp);
+		(void)fclose(fp);
 	}
 }
 
 static void
 selecthost(union sockunion *su)
 {
-	struct ftphost	*hrp;
+	struct ftphost *hrp;
 	u_int16_t port;
 #ifdef INET6
 	struct in6_addr *mapped_in6 = NULL;
@@ -876,27 +892,28 @@ selecthost(union sockunion *su)
 		mapped_in6 = &su->su_sin6.sin6_addr;
 #endif
 
-	hrp = thishost = firsthost;	/* default */
+	hrp = thishost = firsthost; /* default */
 	port = su->su_port;
 	su->su_port = 0;
 	while (hrp != NULL) {
-	    for (hi = hrp->hostinfo; hi != NULL; hi = hi->ai_next) {
-		if (memcmp(su, hi->ai_addr, hi->ai_addrlen) == 0) {
-			thishost = hrp;
-			goto found;
-		}
+		for (hi = hrp->hostinfo; hi != NULL; hi = hi->ai_next) {
+			if (memcmp(su, hi->ai_addr, hi->ai_addrlen) == 0) {
+				thishost = hrp;
+				goto found;
+			}
 #ifdef INET6
-		/* XXX IPv4 mapped IPv6 addr consideraton */
-		if (hi->ai_addr->sa_family == AF_INET && mapped_in6 != NULL &&
-		    (memcmp(&mapped_in6->s6_addr[12],
-			    &((struct sockaddr_in *)hi->ai_addr)->sin_addr,
-			    sizeof(struct in_addr)) == 0)) {
-			thishost = hrp;
-			goto found;
-		}
+			/* XXX IPv4 mapped IPv6 addr consideraton */
+			if (hi->ai_addr->sa_family == AF_INET &&
+			    mapped_in6 != NULL &&
+			    (memcmp(&mapped_in6->s6_addr[12],
+				 &((struct sockaddr_in *)hi->ai_addr)->sin_addr,
+				 sizeof(struct in_addr)) == 0)) {
+				thishost = hrp;
+				goto found;
+			}
 #endif
-	    }
-	    hrp = hrp->next;
+		}
+		hrp = hrp->next;
 	}
 found:
 	su->su_port = port;
@@ -919,7 +936,7 @@ sgetsave(char *s)
 		dologout(1);
 		/* NOTREACHED */
 	}
-	(void) strcpy(new, s);
+	(void)strcpy(new, s);
 	return (new);
 }
 
@@ -957,9 +974,9 @@ sgetpwnam(char *name)
 	return (&save);
 }
 
-static int login_attempts;	/* number of failed login attempts */
-static int askpasswd;		/* had user command, ask for passwd */
-static char curname[MAXLOGNAME];	/* current USER name */
+static int login_attempts;	 /* number of failed login attempts */
+static int askpasswd;		 /* had user command, ask for passwd */
+static char curname[MAXLOGNAME]; /* current USER name */
 
 /*
  * USER command.
@@ -999,14 +1016,15 @@ user(char *name)
 		if (checkuser(_PATH_FTPUSERS, "ftp", 0, NULL, &ecode) ||
 		    (ecode != 0 && ecode != ENOENT))
 			reply(530, "User %s access denied.", name);
-		else if (checkuser(_PATH_FTPUSERS, "anonymous", 0, NULL, &ecode) ||
+		else if (checkuser(_PATH_FTPUSERS, "anonymous", 0, NULL,
+			     &ecode) ||
 		    (ecode != 0 && ecode != ENOENT))
 			reply(530, "User %s access denied.", name);
 		else if (pw != NULL) {
 			guest = 1;
 			askpasswd = 1;
 			reply(331,
-			"Guest login ok, send your email address as password.");
+			    "Guest login ok, send your email address as password.");
 		} else
 			reply(530, "User %s unknown.", name);
 		if (!askpasswd && logging)
@@ -1018,7 +1036,7 @@ user(char *name)
 		reply(530, "Sorry, only anonymous ftp allowed.");
 		return;
 	}
-		
+
 	if ((pw = sgetpwnam(name))) {
 		if ((shell = pw->pw_shell) == NULL || *shell == 0)
 			shell = _PATH_BSHELL;
@@ -1028,14 +1046,14 @@ user(char *name)
 				break;
 		endusershell();
 
-		if (cp == NULL || 
+		if (cp == NULL ||
 		    (checkuser(_PATH_FTPUSERS, name, 1, NULL, &ecode) ||
-		    (ecode != 0 && ecode != ENOENT))) {
+			(ecode != 0 && ecode != ENOENT))) {
 			reply(530, "User %s access denied.", name);
 			if (logging)
 				syslog(LOG_NOTICE,
-				    "FTP LOGIN REFUSED FROM %s, %s",
-				    remotehost, name);
+				    "FTP LOGIN REFUSED FROM %s, %s", remotehost,
+				    name);
 			pw = NULL;
 			return;
 		}
@@ -1098,7 +1116,7 @@ checkuser(char *fname, char *name, int pwset, char **residue, int *ecode)
 				if (p[1] == '\0') /* single @ matches anyone */
 					found = 1;
 				else {
-					if ((grp = getgrnam(p+1)) == NULL)
+					if ((grp = getgrnam(p + 1)) == NULL)
 						goto nextline;
 					/*
 					 * Check user's default group
@@ -1110,8 +1128,8 @@ checkuser(char *fname, char *name, int pwset, char **residue, int *ecode)
 					 */
 					while (!found && grp->gr_mem[i])
 						found = strcmp(name,
-							grp->gr_mem[i++])
-							== 0;
+							    grp->gr_mem[i++]) ==
+						    0;
 				}
 			}
 			/*
@@ -1126,16 +1144,17 @@ checkuser(char *fname, char *name, int pwset, char **residue, int *ecode)
 				if ((p = strtok(NULL, "")) != NULL)
 					p += strspn(p, " \t");
 				if (p && *p) {
-				 	if ((*residue = strdup(p)) == NULL)
-						fatalerror("Ran out of memory.");
+					if ((*residue = strdup(p)) == NULL)
+						fatalerror(
+						    "Ran out of memory.");
 				} else
 					*residue = NULL;
 			}
-nextline:
+		nextline:
 			if (mp)
 				free(mp);
 		}
-		(void) fclose(fd);
+		(void)fclose(fd);
 	} else if (ecode != NULL)
 		*ecode = errno;
 	return (found);
@@ -1152,11 +1171,12 @@ end_login(void)
 	int e;
 #endif
 
-	(void) seteuid(0);
-#ifdef	LOGIN_CAP
-	setusercontext(NULL, getpwuid(0), 0, LOGIN_SETALL & ~(LOGIN_SETLOGIN |
-		       LOGIN_SETUSER | LOGIN_SETGROUP | LOGIN_SETPATH |
-		       LOGIN_SETENV));
+	(void)seteuid(0);
+#ifdef LOGIN_CAP
+	setusercontext(NULL, getpwuid(0), 0,
+	    LOGIN_SETALL &
+		~(LOGIN_SETLOGIN | LOGIN_SETUSER | LOGIN_SETGROUP |
+		    LOGIN_SETPATH | LOGIN_SETENV));
 #endif
 	if (logged_in && dowtmp)
 		ftpd_logwtmp(wtmpid, NULL, NULL);
@@ -1164,9 +1184,11 @@ end_login(void)
 #ifdef USE_PAM
 	if (pamh) {
 		if ((e = pam_setcred(pamh, PAM_DELETE_CRED)) != PAM_SUCCESS)
-			syslog(LOG_ERR, "pam_setcred: %s", pam_strerror(pamh, e));
-		if ((e = pam_close_session(pamh,0)) != PAM_SUCCESS)
-			syslog(LOG_ERR, "pam_close_session: %s", pam_strerror(pamh, e));
+			syslog(LOG_ERR, "pam_setcred: %s",
+			    pam_strerror(pamh, e));
+		if ((e = pam_close_session(pamh, 0)) != PAM_SUCCESS)
+			syslog(LOG_ERR, "pam_close_session: %s",
+			    pam_strerror(pamh, e));
 		if ((e = pam_end(pamh, e)) != PAM_SUCCESS)
 			syslog(LOG_ERR, "pam_end: %s", pam_strerror(pamh, e));
 		pamh = NULL;
@@ -1186,17 +1208,17 @@ end_login(void)
 #define COPY_STRING(s) (s ? strdup(s) : NULL)
 
 struct cred_t {
-	const char *uname;		/* user name */
-	const char *pass;		/* password */
+	const char *uname; /* user name */
+	const char *pass;  /* password */
 };
 typedef struct cred_t cred_t;
 
 static int
 auth_conv(int num_msg, const struct pam_message **msg,
-	  struct pam_response **resp, void *appdata)
+    struct pam_response **resp, void *appdata)
 {
 	int i;
-	cred_t *cred = (cred_t *) appdata;
+	cred_t *cred = (cred_t *)appdata;
 	struct pam_response *reply;
 
 	reply = calloc(num_msg, sizeof *reply);
@@ -1205,12 +1227,12 @@ auth_conv(int num_msg, const struct pam_message **msg,
 
 	for (i = 0; i < num_msg; i++) {
 		switch (msg[i]->msg_style) {
-		case PAM_PROMPT_ECHO_ON:	/* assume want user name */
+		case PAM_PROMPT_ECHO_ON: /* assume want user name */
 			reply[i].resp_retcode = PAM_SUCCESS;
 			reply[i].resp = COPY_STRING(cred->uname);
 			/* PAM frees resp. */
 			break;
-		case PAM_PROMPT_ECHO_OFF:	/* assume want password */
+		case PAM_PROMPT_ECHO_OFF: /* assume want password */
 			reply[i].resp_retcode = PAM_SUCCESS;
 			reply[i].resp = COPY_STRING(cred->pass);
 			/* PAM frees resp. */
@@ -1220,7 +1242,7 @@ auth_conv(int num_msg, const struct pam_message **msg,
 			reply[i].resp_retcode = PAM_SUCCESS;
 			reply[i].resp = NULL;
 			break;
-		default:			/* unknown message style */
+		default: /* unknown message style */
 			free(reply);
 			return PAM_CONV_ERR;
 		}
@@ -1260,7 +1282,7 @@ auth_pam(struct passwd **ppw, const char *pass)
 	e = pam_set_item(pamh, PAM_RHOST, remotehost);
 	if (e != PAM_SUCCESS) {
 		syslog(LOG_ERR, "pam_set_item(PAM_RHOST): %s",
-			pam_strerror(pamh, e));
+		    pam_strerror(pamh, e));
 		if ((e = pam_end(pamh, e)) != PAM_SUCCESS) {
 			syslog(LOG_ERR, "pam_end: %s", pam_strerror(pamh, e));
 		}
@@ -1288,9 +1310,8 @@ auth_pam(struct passwd **ppw, const char *pass)
 		 * point of view, the template user is always passed
 		 * back as a changed value of the PAM_USER item.
 		 */
-		if ((e = pam_get_item(pamh, PAM_USER, &item)) ==
-		    PAM_SUCCESS) {
-			tmpl_user = (const char *) item;
+		if ((e = pam_get_item(pamh, PAM_USER, &item)) == PAM_SUCCESS) {
+			tmpl_user = (const char *)item;
 			if (strcmp((*ppw)->pw_name, tmpl_user) != 0)
 				*ppw = getpwnam(tmpl_user);
 		} else
@@ -1315,7 +1336,7 @@ auth_pam(struct passwd **ppw, const char *pass)
 		e = pam_acct_mgmt(pamh, 0);
 		if (e != PAM_SUCCESS) {
 			syslog(LOG_ERR, "pam_acct_mgmt: %s",
-						pam_strerror(pamh, e));
+			    pam_strerror(pamh, e));
 			rval = 1;
 		}
 	}
@@ -1336,7 +1357,7 @@ pass(char *passwd)
 {
 	int rval, ecode;
 	FILE *fd;
-#ifdef	LOGIN_CAP
+#ifdef LOGIN_CAP
 	login_cap_t *lc = NULL;
 #endif
 #ifdef USE_PAM
@@ -1350,9 +1371,9 @@ pass(char *passwd)
 		return;
 	}
 	askpasswd = 0;
-	if (!guest) {		/* "ftp" is only account allowed no password */
+	if (!guest) { /* "ftp" is only account allowed no password */
 		if (pw == NULL) {
-			rval = 1;	/* failure below */
+			rval = 1; /* failure below */
 			goto skip;
 		}
 #ifdef USE_PAM
@@ -1366,8 +1387,8 @@ pass(char *passwd)
 			xpasswd = ":";
 		rval = strcmp(pw->pw_passwd, xpasswd);
 		if (pw->pw_expire && time(NULL) >= pw->pw_expire)
-			rval = 1;	/* failure */
-skip:
+			rval = 1; /* failure */
+	skip:
 		/*
 		 * If rval == 1, the user failed the authentication check
 		 * above.  If rval == 0, either PAM or local authentication
@@ -1375,14 +1396,14 @@ skip:
 		 */
 		if (rval) {
 			reply(530, "Login incorrect.");
-			BLACKLIST_NOTIFY(BLACKLIST_AUTH_FAIL, STDIN_FILENO, "Login incorrect");
+			BLACKLIST_NOTIFY(BLACKLIST_AUTH_FAIL, STDIN_FILENO,
+			    "Login incorrect");
 			if (logging) {
-				syslog(LOG_NOTICE,
-				    "FTP LOGIN FAILED FROM %s",
+				syslog(LOG_NOTICE, "FTP LOGIN FAILED FROM %s",
 				    remotehost);
 				syslog(LOG_AUTHPRIV | LOG_NOTICE,
-				    "FTP LOGIN FAILED FROM %s, %s",
-				    remotehost, curname);
+				    "FTP LOGIN FAILED FROM %s, %s", remotehost,
+				    curname);
 			}
 			pw = NULL;
 			if (login_attempts++ >= 5) {
@@ -1393,27 +1414,28 @@ skip:
 			}
 			return;
 		} else {
-			BLACKLIST_NOTIFY(BLACKLIST_AUTH_OK, STDIN_FILENO, "Login successful");
+			BLACKLIST_NOTIFY(BLACKLIST_AUTH_OK, STDIN_FILENO,
+			    "Login successful");
 		}
 	}
-	login_attempts = 0;		/* this time successful */
+	login_attempts = 0; /* this time successful */
 	if (setegid(pw->pw_gid) < 0) {
 		reply(550, "Can't set gid.");
 		return;
 	}
 	/* May be overridden by login.conf */
-	(void) umask(defumask);
-#ifdef	LOGIN_CAP
+	(void)umask(defumask);
+#ifdef LOGIN_CAP
 	if ((lc = login_getpwclass(pw)) != NULL) {
-		char	remote_ip[NI_MAXHOST];
+		char remote_ip[NI_MAXHOST];
 
 		if (getnameinfo((struct sockaddr *)&his_addr, his_addr.su_len,
 			remote_ip, sizeof(remote_ip) - 1, NULL, 0,
 			NI_NUMERICHOST))
-				*remote_ip = 0;
+			*remote_ip = 0;
 		remote_ip[sizeof(remote_ip) - 1] = 0;
 		if (!auth_hostok(lc, remotehost, remote_ip)) {
-			syslog(LOG_INFO|LOG_AUTH,
+			syslog(LOG_INFO | LOG_AUTH,
 			    "FTP LOGIN FAILED (HOST) as %s: permission denied.",
 			    pw->pw_name);
 			reply(530, "Permission denied.");
@@ -1426,29 +1448,33 @@ skip:
 			return;
 		}
 	}
-	setusercontext(lc, pw, 0, LOGIN_SETALL &
-		       ~(LOGIN_SETRESOURCES | LOGIN_SETUSER | LOGIN_SETPATH | LOGIN_SETENV));
+	setusercontext(lc, pw, 0,
+	    LOGIN_SETALL &
+		~(LOGIN_SETRESOURCES | LOGIN_SETUSER | LOGIN_SETPATH |
+		    LOGIN_SETENV));
 #else
 	setlogin(pw->pw_name);
-	(void) initgroups(pw->pw_name, pw->pw_gid);
+	(void)initgroups(pw->pw_name, pw->pw_gid);
 #endif
 
 #ifdef USE_PAM
 	if (pamh) {
 		if ((e = pam_open_session(pamh, 0)) != PAM_SUCCESS) {
-			syslog(LOG_ERR, "pam_open_session: %s", pam_strerror(pamh, e));
-		} else if ((e = pam_setcred(pamh, PAM_ESTABLISH_CRED)) != PAM_SUCCESS) {
-			syslog(LOG_ERR, "pam_setcred: %s", pam_strerror(pamh, e));
+			syslog(LOG_ERR, "pam_open_session: %s",
+			    pam_strerror(pamh, e));
+		} else if ((e = pam_setcred(pamh, PAM_ESTABLISH_CRED)) !=
+		    PAM_SUCCESS) {
+			syslog(LOG_ERR, "pam_setcred: %s",
+			    pam_strerror(pamh, e));
 		}
 	}
 #endif
 
-	dochroot =
-		checkuser(_PATH_FTPCHROOT, pw->pw_name, 1, &residue, &ecode)
-#ifdef	LOGIN_CAP	/* Allow login.conf configuration as well */
-		|| login_getcapbool(lc, "ftp-chroot", 0)
+	dochroot = checkuser(_PATH_FTPCHROOT, pw->pw_name, 1, &residue, &ecode)
+#ifdef LOGIN_CAP /* Allow login.conf configuration as well */
+	    || login_getcapbool(lc, "ftp-chroot", 0)
 #endif
-	;
+	    ;
 	/*
 	 * It is possible that checkuser() failed to open the chroot file.
 	 * If this is the case, report that logins are un-available, since we
@@ -1465,19 +1491,18 @@ skip:
 	if (dochroot || guest)
 		dowtmp = 0;
 	if (dowtmp)
-		ftpd_logwtmp(wtmpid, pw->pw_name,
-		    (struct sockaddr *)&his_addr);
+		ftpd_logwtmp(wtmpid, pw->pw_name, (struct sockaddr *)&his_addr);
 	logged_in = 1;
 
-#ifdef	LOGIN_CAP
+#ifdef LOGIN_CAP
 	setusercontext(lc, pw, 0, LOGIN_SETRESOURCES);
 #endif
 
 	if (guest && stats && statfd < 0) {
 #ifdef VIRTUAL_HOSTING
-		statfd = open(thishost->statfile, O_WRONLY|O_APPEND);
+		statfd = open(thishost->statfile, O_WRONLY | O_APPEND);
 #else
-		statfd = open(_PATH_FTPDSTATFILE, O_WRONLY|O_APPEND);
+		statfd = open(_PATH_FTPDSTATFILE, O_WRONLY | O_APPEND);
 #endif
 		if (statfd < 0)
 			stats = 0;
@@ -1511,8 +1536,8 @@ skip:
 		 * separate the chroot and home directory pathnames.
 		 */
 		if ((homedir = strstr(chrootdir, "/./")) != NULL) {
-			*(homedir++) = '\0';	/* wipe '/' */
-			homedir++;		/* skip '.' */
+			*(homedir++) = '\0'; /* wipe '/' */
+			homedir++;	     /* skip '.' */
 		} else {
 			/*
 			 * We MUST do a chdir() after the chroot. Otherwise
@@ -1529,7 +1554,7 @@ skip:
 			goto bad;
 		}
 		__FreeBSD_libc_enter_restricted_mode();
-	} else	/* real user w/o chroot */
+	} else /* real user w/o chroot */
 		homedir = pw->pw_dir;
 	/*
 	 * Set euid *before* doing chdir() so
@@ -1579,8 +1604,8 @@ skip:
 				*cp = '\0';
 			lreply(230, "%s", line);
 		}
-		(void) fflush(stdout);
-		(void) fclose(fd);
+		(void)fflush(stdout);
+		(void)fclose(fd);
 	}
 	if (guest) {
 		if (ident != NULL)
@@ -1594,12 +1619,12 @@ skip:
 #ifdef VIRTUAL_HOSTING
 		if (thishost != firsthost)
 			snprintf(proctitle, sizeof(proctitle),
-				 "%s: anonymous(%s)/%s", remotehost, hostname,
-				 passwd);
+			    "%s: anonymous(%s)/%s", remotehost, hostname,
+			    passwd);
 		else
 #endif
 			snprintf(proctitle, sizeof(proctitle),
-				 "%s: anonymous/%s", remotehost, passwd);
+			    "%s: anonymous/%s", remotehost, passwd);
 		setproctitle("%s", proctitle);
 #endif /* SETPROCTITLE */
 		if (logging)
@@ -1607,23 +1632,25 @@ skip:
 			    remotehost, passwd);
 	} else {
 		if (dochroot)
-			reply(230, "User %s logged in, "
-				   "access restrictions apply.", pw->pw_name);
+			reply(230,
+			    "User %s logged in, "
+			    "access restrictions apply.",
+			    pw->pw_name);
 		else
 			reply(230, "User %s logged in.", pw->pw_name);
 
 #ifdef SETPROCTITLE
-		snprintf(proctitle, sizeof(proctitle),
-			 "%s: user/%s", remotehost, pw->pw_name);
+		snprintf(proctitle, sizeof(proctitle), "%s: user/%s",
+		    remotehost, pw->pw_name);
 		setproctitle("%s", proctitle);
 #endif /* SETPROCTITLE */
 		if (logging)
-			syslog(LOG_INFO, "FTP LOGIN FROM %s as %s",
-			    remotehost, pw->pw_name);
+			syslog(LOG_INFO, "FTP LOGIN FROM %s as %s", remotehost,
+			    pw->pw_name);
 	}
 	if (logging && (guest || dochroot))
 		syslog(LOG_INFO, "session root changed to %s", chrootdir);
-#ifdef	LOGIN_CAP
+#ifdef LOGIN_CAP
 	login_close(lc);
 #endif
 	if (residue)
@@ -1631,7 +1658,7 @@ skip:
 	return;
 bad:
 	/* Forget all about it... */
-#ifdef	LOGIN_CAP
+#ifdef LOGIN_CAP
 	login_close(lc);
 #endif
 	if (residue)
@@ -1652,7 +1679,7 @@ retrieve(char *cmd, char *name)
 		fin = fopen(name, "r"), closefunc = fclose;
 		st.st_size = 0;
 	} else {
-		(void) snprintf(line, sizeof(line), cmd, name);
+		(void)snprintf(line, sizeof(line), cmd, name);
 		name = line;
 		fin = ftpd_popen(line, "r"), closefunc = ftpd_pclose;
 		st.st_size = -1;
@@ -1697,7 +1724,7 @@ retrieve(char *cmd, char *name)
 			n = restart_point;
 			i = 0;
 			while (i++ < n) {
-				if ((c=getc(fin)) == EOF) {
+				if ((c = getc(fin)) == EOF) {
 					perror_reply(550, name);
 					goto done;
 				}
@@ -1714,10 +1741,10 @@ retrieve(char *cmd, char *name)
 		goto done;
 	time(&start);
 	send_data(fin, dout, st.st_blksize, st.st_size,
-		  restart_point == 0 && cmd == 0 && S_ISREG(st.st_mode));
+	    restart_point == 0 && cmd == 0 && S_ISREG(st.st_mode));
 	if (cmd == 0 && guest && stats && byte_count > 0)
 		logxfer(name, byte_count, start);
-	(void) fclose(dout);
+	(void)fclose(dout);
 	data = -1;
 	pdata = -1;
 done:
@@ -1733,7 +1760,7 @@ store(char *name, char *mode, int unique)
 	FILE *fout, *din;
 	int (*closefunc)(FILE *);
 
-	if (*mode == 'a') {		/* APPE */
+	if (*mode == 'a') { /* APPE */
 		if (unique) {
 			/* Programming error */
 			syslog(LOG_ERR, "Internal: unique flag to APPE");
@@ -1743,20 +1770,20 @@ store(char *name, char *mode, int unique)
 			reply(550, "Appending to existing file denied.");
 			goto err;
 		}
-		restart_point = 0;	/* not affected by preceding REST */
+		restart_point = 0; /* not affected by preceding REST */
 	}
-	if (unique)			/* STOU overrides REST */
+	if (unique) /* STOU overrides REST */
 		restart_point = 0;
 	if (guest && noguestmod) {
-		if (restart_point) {	/* guest STOR w/REST */
+		if (restart_point) { /* guest STOR w/REST */
 			reply(550, "Modifying existing file denied.");
 			goto err;
-		} else			/* treat guest STOR as STOU */
+		} else /* treat guest STOR as STOU */
 			unique = 1;
 	}
 
 	if (restart_point)
-		mode = "r+";	/* so ASCII manual seek can work */
+		mode = "r+"; /* so ASCII manual seek can work */
 	if (unique) {
 		if ((fd = guniquefd(name, &name)) < 0)
 			goto err;
@@ -1777,7 +1804,7 @@ store(char *name, char *mode, int unique)
 			n = restart_point;
 			i = 0;
 			while (i++ < n) {
-				if ((c=getc(fout)) == EOF) {
+				if ((c = getc(fout)) == EOF) {
 					perror_reply(550, name);
 					goto done;
 				}
@@ -1808,7 +1835,7 @@ store(char *name, char *mode, int unique)
 		else
 			reply(226, "Transfer complete.");
 	}
-	(void) fclose(din);
+	(void)fclose(din);
 	data = -1;
 	pdata = -1;
 done:
@@ -1816,7 +1843,7 @@ done:
 	(*closefunc)(fout);
 	return;
 err:
-	LOGCMD(*mode == 'a' ? "append" : "put" , name);
+	LOGCMD(*mode == 'a' ? "append" : "put", name);
 	return;
 }
 
@@ -1836,8 +1863,8 @@ getdatasock(char *mode)
 	/* anchor socket to avoid multi-homing problems */
 	data_source = ctrl_addr;
 	data_source.su_port = htons(dataport);
-	(void) seteuid(0);
-	for (tries = 1; ; tries++) {
+	(void)seteuid(0);
+	for (tries = 1;; tries++) {
 		/*
 		 * We should loop here since it's possible that
 		 * another ftpd instance has passed this point and is
@@ -1848,20 +1875,19 @@ getdatasock(char *mode)
 		 * and *:* in this case.
 		 */
 		if (bind(s, (struct sockaddr *)&data_source,
-		    data_source.su_len) >= 0)
+			data_source.su_len) >= 0)
 			break;
 		if (errno != EADDRINUSE || tries > 10)
 			goto bad;
 		sleep(tries);
 	}
-	(void) seteuid(pw->pw_uid);
+	(void)seteuid(pw->pw_uid);
 #ifdef IP_TOS
-	if (data_source.su_family == AF_INET)
-      {
-	on = IPTOS_THROUGHPUT;
-	if (setsockopt(s, IPPROTO_IP, IP_TOS, &on, sizeof(int)) < 0)
-		syslog(LOG_WARNING, "data setsockopt (IP_TOS): %m");
-      }
+	if (data_source.su_family == AF_INET) {
+		on = IPTOS_THROUGHPUT;
+		if (setsockopt(s, IPPROTO_IP, IP_TOS, &on, sizeof(int)) < 0)
+			syslog(LOG_WARNING, "data setsockopt (IP_TOS): %m");
+	}
 #endif
 #ifdef TCP_NOPUSH
 	/*
@@ -1876,8 +1902,8 @@ getdatasock(char *mode)
 bad:
 	/* Return the real value of errno (close may change it) */
 	t = errno;
-	(void) seteuid(pw->pw_uid);
-	(void) close(s);
+	(void)seteuid(pw->pw_uid);
+	(void)close(s);
 	errno = t;
 	return (NULL);
 }
@@ -1892,8 +1918,8 @@ dataconn(char *name, off_t size, char *mode)
 	file_size = size;
 	byte_count = 0;
 	if (size != -1)
-		(void) snprintf(sizebuf, sizeof(sizebuf),
-				" (%jd bytes)", (intmax_t)size);
+		(void)snprintf(sizebuf, sizeof(sizebuf), " (%jd bytes)",
+		    (intmax_t)size);
 	else
 		*sizebuf = '\0';
 	if (pdata >= 0) {
@@ -1918,10 +1944,10 @@ dataconn(char *name, off_t size, char *mode)
 		if ((flags = fcntl(pdata, F_GETFL, 0)) == -1 ||
 		    fcntl(pdata, F_SETFL, flags | O_NONBLOCK) == -1)
 			goto pdata_err;
-		if (select(pdata+1, &set, NULL, NULL, &timeout) <= 0 ||
-		    (s = accept(pdata, (struct sockaddr *) &from, &fromlen)) < 0)
+		if (select(pdata + 1, &set, NULL, NULL, &timeout) <= 0 ||
+		    (s = accept(pdata, (struct sockaddr *)&from, &fromlen)) < 0)
 			goto pdata_err;
-		(void) close(pdata);
+		(void)close(pdata);
 		pdata = s;
 		/*
 		 * Unset the inherited non-blocking I/O flag
@@ -1931,25 +1957,26 @@ dataconn(char *name, off_t size, char *mode)
 		    fcntl(pdata, F_SETFL, flags & ~O_NONBLOCK) == -1)
 			goto pdata_err;
 #ifdef IP_TOS
-		if (from.su_family == AF_INET)
-	      {
-		tos = IPTOS_THROUGHPUT;
-		if (setsockopt(s, IPPROTO_IP, IP_TOS, &tos, sizeof(int)) < 0)
-			syslog(LOG_WARNING, "pdata setsockopt (IP_TOS): %m");
-	      }
+		if (from.su_family == AF_INET) {
+			tos = IPTOS_THROUGHPUT;
+			if (setsockopt(s, IPPROTO_IP, IP_TOS, &tos,
+				sizeof(int)) < 0)
+				syslog(LOG_WARNING,
+				    "pdata setsockopt (IP_TOS): %m");
+		}
 #endif
 		reply(150, "Opening %s mode data connection for '%s'%s.",
-		     type == TYPE_A ? "ASCII" : "BINARY", name, sizebuf);
+		    type == TYPE_A ? "ASCII" : "BINARY", name, sizebuf);
 		return (fdopen(pdata, mode));
-pdata_err:
+	pdata_err:
 		reply(425, "Can't open data connection.");
-		(void) close(pdata);
+		(void)close(pdata);
 		pdata = -1;
 		return (NULL);
 	}
 	if (data >= 0) {
-		reply(125, "Using existing data connection for '%s'%s.",
-		    name, sizebuf);
+		reply(125, "Using existing data connection for '%s'%s.", name,
+		    sizebuf);
 		usedefault = 1;
 		return (fdopen(data, mode));
 	}
@@ -1962,24 +1989,24 @@ pdata_err:
 			char hostbuf[NI_MAXHOST], portbuf[NI_MAXSERV];
 
 			if (getnameinfo((struct sockaddr *)&data_source,
-				data_source.su_len,
-				hostbuf, sizeof(hostbuf) - 1,
-				portbuf, sizeof(portbuf) - 1,
-				NI_NUMERICHOST|NI_NUMERICSERV))
-					*hostbuf = *portbuf = 0;
+				data_source.su_len, hostbuf,
+				sizeof(hostbuf) - 1, portbuf,
+				sizeof(portbuf) - 1,
+				NI_NUMERICHOST | NI_NUMERICSERV))
+				*hostbuf = *portbuf = 0;
 			hostbuf[sizeof(hostbuf) - 1] = 0;
 			portbuf[sizeof(portbuf) - 1] = 0;
 			reply(425, "Can't create data socket (%s,%s): %s.",
-				hostbuf, portbuf, strerror(errno));
+			    hostbuf, portbuf, strerror(errno));
 			return (NULL);
 		}
 		data = fileno(file);
 		conerrno = 0;
 		if (connect(data, (struct sockaddr *)&data_dest,
-		    data_dest.su_len) == 0)
+			data_dest.su_len) == 0)
 			break;
 		conerrno = errno;
-		(void) fclose(file);
+		(void)fclose(file);
 		data = -1;
 		if (conerrno == EADDRINUSE) {
 			sleep(swaitint);
@@ -1990,11 +2017,11 @@ pdata_err:
 	} while (retry <= swaitmax);
 	if (conerrno != 0) {
 		reply(425, "Can't build data connection: %s.",
-			   strerror(conerrno));
+		    strerror(conerrno));
 		return (NULL);
 	}
 	reply(150, "Opening %s mode data connection for '%s'%s.",
-	     type == TYPE_A ? "ASCII" : "BINARY", name, sizebuf);
+	    type == TYPE_A ? "ASCII" : "BINARY", name, sizebuf);
 	return (file);
 }
 
@@ -2007,19 +2034,18 @@ pdata_err:
  * the entire buffer contents will be lost as soon as a write()
  * call indicates EINTR to stdio.
  */
-#define FTPD_PUTC(ch, file, label)					\
-	do {								\
-		int ret;						\
-									\
-		do {							\
-			START_UNSAFE;					\
-			ret = putc((ch), (file));			\
-			END_UNSAFE;					\
-			CHECKOOB(return (-1))				\
-			else if (ferror(file))				\
-				goto label;				\
-			clearerr(file);					\
-		} while (ret == EOF);					\
+#define FTPD_PUTC(ch, file, label)                         \
+	do {                                               \
+		int ret;                                   \
+                                                           \
+		do {                                       \
+			START_UNSAFE;                      \
+			ret = putc((ch), (file));          \
+			END_UNSAFE;                        \
+			CHECKOOB(return (-1))              \
+			else if (ferror(file)) goto label; \
+			clearerr(file);                    \
+		} while (ret == EOF);                      \
 	} while (0)
 
 /*
@@ -2043,17 +2069,17 @@ send_data(FILE *instr, FILE *outstr, size_t blksize, off_t filesize, int isreg)
 		for (;;) {
 			c = getc(instr);
 			CHECKOOB(return (-1))
-			else if (c == EOF && ferror(instr))
-				goto file_err;
+			else if (c == EOF && ferror(instr)) goto file_err;
 			if (c == EOF) {
-				if (ferror(instr)) {	/* resume after OOB */
+				if (ferror(instr)) { /* resume after OOB */
 					clearerr(instr);
 					continue;
 				}
-				if (feof(instr))	/* EOF */
+				if (feof(instr)) /* EOF */
 					break;
-				syslog(LOG_ERR, "Internal: impossible condition"
-						" on file after getc()");
+				syslog(LOG_ERR,
+				    "Internal: impossible condition"
+				    " on file after getc()");
 				goto file_err;
 			}
 			if (c == '\n' && cp != '\r') {
@@ -2064,11 +2090,10 @@ send_data(FILE *instr, FILE *outstr, size_t blksize, off_t filesize, int isreg)
 			byte_count++;
 			cp = c;
 		}
-#ifdef notyet	/* BSD stdio isn't ready for that */
+#ifdef notyet /* BSD stdio isn't ready for that */
 		while (fflush(outstr) == EOF) {
 			CHECKOOB(return (-1))
-			else
-				goto data_err;
+			else goto data_err;
 			clearerr(outstr);
 		}
 		ENDXFER;
@@ -2097,8 +2122,8 @@ send_data(FILE *instr, FILE *outstr, size_t blksize, off_t filesize, int isreg)
 			cnt = offset = 0;
 
 			while (filesize > 0) {
-				err = sendfile(filefd, netfd, offset, 0,
-					       NULL, &cnt, 0);
+				err = sendfile(filefd, netfd, offset, 0, NULL,
+				    &cnt, 0);
 				/*
 				 * Calculate byte_count before OOB processing.
 				 * It can be used in myoob() later.
@@ -2107,13 +2132,14 @@ send_data(FILE *instr, FILE *outstr, size_t blksize, off_t filesize, int isreg)
 				offset += cnt;
 				filesize -= cnt;
 				CHECKOOB(return (-1))
-				else if (err == -1) {
-					if (errno != EINTR &&
-					    cnt == 0 && offset == 0)
+				else if (err == -1)
+				{
+					if (errno != EINTR && cnt == 0 &&
+					    offset == 0)
 						goto oldway;
 					goto data_err;
 				}
-				if (err == -1)	/* resume after OOB */
+				if (err == -1) /* resume after OOB */
 					continue;
 				/*
 				 * We hit the EOF prematurely.
@@ -2130,7 +2156,7 @@ send_data(FILE *instr, FILE *outstr, size_t blksize, off_t filesize, int isreg)
 			return (0);
 		}
 
-oldway:
+	oldway:
 		if ((buf = malloc(blksize)) == NULL) {
 			ENDXFER;
 			reply(451, "Ran out of memory.");
@@ -2143,18 +2169,20 @@ oldway:
 
 			cnt = read(filefd, buf, blksize);
 			CHECKOOB(free(buf); return (-1))
-			else if (cnt < 0) {
+			else if (cnt < 0)
+			{
 				free(buf);
 				goto file_err;
 			}
-			if (cnt < 0)	/* resume after OOB */
+			if (cnt < 0) /* resume after OOB */
 				continue;
-			if (cnt == 0)	/* EOF */
+			if (cnt == 0) /* EOF */
 				break;
 			for (len = cnt, bp = buf; len > 0;) {
 				cnt = write(netfd, bp, len);
 				CHECKOOB(free(buf); return (-1))
-				else if (cnt < 0) {
+				else if (cnt < 0)
+				{
 					free(buf);
 					goto data_err;
 				}
@@ -2211,17 +2239,15 @@ receive_data(FILE *instr, FILE *outstr)
 
 			cnt = read(fileno(instr), buf, sizeof(buf));
 			CHECKOOB(return (-1))
-			else if (cnt < 0)
-				goto data_err;
-			if (cnt < 0)	/* resume after OOB */
+			else if (cnt < 0) goto data_err;
+			if (cnt < 0) /* resume after OOB */
 				continue;
-			if (cnt == 0)	/* EOF */
+			if (cnt == 0) /* EOF */
 				break;
 			for (len = cnt, bp = buf; len > 0;) {
 				cnt = write(fileno(outstr), bp, len);
 				CHECKOOB(return (-1))
-				else if (cnt < 0)
-					goto file_err;
+				else if (cnt < 0) goto file_err;
 				if (cnt <= 0)
 					continue;
 				len -= cnt;
@@ -2242,8 +2268,7 @@ receive_data(FILE *instr, FILE *outstr)
 		for (;;) {
 			c = getc(instr);
 			CHECKOOB(return (-1))
-			else if (c == EOF && ferror(instr))
-				goto data_err;
+			else if (c == EOF && ferror(instr)) goto data_err;
 			if (c == EOF && ferror(instr)) { /* resume after OOB */
 				clearerr(instr);
 				continue;
@@ -2252,9 +2277,8 @@ receive_data(FILE *instr, FILE *outstr)
 			if (cp == '\r') {
 				if (c != '\n')
 					FTPD_PUTC('\r', outstr, file_err);
-			} else
-				if (c == '\n')
-					bare_lfs++;
+			} else if (c == '\n')
+				bare_lfs++;
 			if (c == '\r') {
 				byte_count++;
 				cp = c;
@@ -2263,10 +2287,11 @@ receive_data(FILE *instr, FILE *outstr)
 
 			/* Check for EOF here in order not to lose last \r. */
 			if (c == EOF) {
-				if (feof(instr))	/* EOF */
+				if (feof(instr)) /* EOF */
 					break;
-				syslog(LOG_ERR, "Internal: impossible condition"
-						" on data stream after getc()");
+				syslog(LOG_ERR,
+				    "Internal: impossible condition"
+				    " on data stream after getc()");
 				goto data_err;
 			}
 
@@ -2274,11 +2299,10 @@ receive_data(FILE *instr, FILE *outstr)
 			FTPD_PUTC(c, outstr, file_err);
 			cp = c;
 		}
-#ifdef notyet	/* BSD stdio isn't ready for that */
+#ifdef notyet /* BSD stdio isn't ready for that */
 		while (fflush(outstr) == EOF) {
 			CHECKOOB(return (-1))
-			else
-				goto file_err;
+			else goto file_err;
 			clearerr(outstr);
 		}
 		ENDXFER;
@@ -2289,9 +2313,10 @@ receive_data(FILE *instr, FILE *outstr)
 #endif
 		if (bare_lfs) {
 			lreply(226,
-		"WARNING! %d bare linefeeds received in ASCII mode.",
+			    "WARNING! %d bare linefeeds received in ASCII mode.",
 			    bare_lfs);
-		(void)printf("   File may not have transferred correctly.\r\n");
+			(void)printf(
+			    "   File may not have transferred correctly.\r\n");
 		}
 		return (0);
 	default:
@@ -2331,18 +2356,18 @@ statfilecmd(char *filename)
 	atstart = 1;
 	while ((c = getc(fin)) != EOF) {
 		if (c == '\n') {
-			if (ferror(stdout)){
+			if (ferror(stdout)) {
 				perror_reply(421, "Control connection");
-				(void) ftpd_pclose(fin);
+				(void)ftpd_pclose(fin);
 				dologout(1);
 				/* NOTREACHED */
 			}
 			if (ferror(fin)) {
 				perror_reply(551, filename);
-				(void) ftpd_pclose(fin);
+				(void)ftpd_pclose(fin);
 				return;
 			}
-			(void) putc('\r', stdout);
+			(void)putc('\r', stdout);
 		}
 		/*
 		 * RFC 959 says neutral text should be prepended before
@@ -2351,11 +2376,11 @@ statfilecmd(char *filename)
 		 * as a matter of fact.
 		 */
 		if (atstart && isdigit(c))
-			(void) putc(' ', stdout);
-		(void) putc(c, stdout);
+			(void)putc(' ', stdout);
+		(void)putc(c, stdout);
 		atstart = (c == '\n');
 	}
-	(void) ftpd_pclose(fin);
+	(void)ftpd_pclose(fin);
 	reply(code, "End of status.");
 }
 
@@ -2373,8 +2398,8 @@ statcmd(void)
 	} else
 		lreply(211, "FTP server status:");
 	printf("     Connected to %s", remotehost);
-	if (!getnameinfo((struct sockaddr *)&his_addr, his_addr.su_len,
-			 hname, sizeof(hname) - 1, NULL, 0, NI_NUMERICHOST)) {
+	if (!getnameinfo((struct sockaddr *)&his_addr, his_addr.su_len, hname,
+		sizeof(hname) - 1, NULL, 0, NI_NUMERICHOST)) {
 		hname[sizeof(hname) - 1] = 0;
 		if (strcmp(hname, remotehost) != 0)
 			printf(" (%s)", hname);
@@ -2396,10 +2421,10 @@ statcmd(void)
 #if CHAR_BIT == 8
 		printf(" %d", CHAR_BIT);
 #else
-		printf(" %d", bytesize);	/* need definition! */
+		printf(" %d", bytesize); /* need definition! */
 #endif
-	printf("; STRUcture: %s; transfer MODE: %s\r\n",
-	    strunames[stru], modenames[mode]);
+	printf("; STRUcture: %s; transfer MODE: %s\r\n", strunames[stru],
+	    modenames[mode]);
 	if (data != -1)
 		printf("     Data connection open\r\n");
 	else if (pdata != -1) {
@@ -2409,8 +2434,8 @@ statcmd(void)
 	} else if (usedefault == 0) {
 		ispassive = 0;
 		su = &data_dest;
-printaddr:
-#define UC(b) (((int) b) & 0xff)
+	printaddr:
+#define UC(b) (((int)b) & 0xff)
 		if (epsvall) {
 			printf("     EPSV only mode (EPSV ALL)\r\n");
 			goto epsvonly;
@@ -2418,76 +2443,75 @@ printaddr:
 
 		/* PORT/PASV */
 		if (su->su_family == AF_INET) {
-			a = (u_char *) &su->su_sin.sin_addr;
-			p = (u_char *) &su->su_sin.sin_port;
+			a = (u_char *)&su->su_sin.sin_addr;
+			p = (u_char *)&su->su_sin.sin_port;
 			printf("     %s (%d,%d,%d,%d,%d,%d)\r\n",
-				ispassive ? "PASV" : "PORT",
-				UC(a[0]), UC(a[1]), UC(a[2]), UC(a[3]),
-				UC(p[0]), UC(p[1]));
+			    ispassive ? "PASV" : "PORT", UC(a[0]), UC(a[1]),
+			    UC(a[2]), UC(a[3]), UC(p[0]), UC(p[1]));
 		}
 
 		/* LPRT/LPSV */
-	    {
-		int alen, af, i;
+		{
+			int alen, af, i;
 
-		switch (su->su_family) {
-		case AF_INET:
-			a = (u_char *) &su->su_sin.sin_addr;
-			p = (u_char *) &su->su_sin.sin_port;
-			alen = sizeof(su->su_sin.sin_addr);
-			af = 4;
-			break;
-		case AF_INET6:
-			a = (u_char *) &su->su_sin6.sin6_addr;
-			p = (u_char *) &su->su_sin6.sin6_port;
-			alen = sizeof(su->su_sin6.sin6_addr);
-			af = 6;
-			break;
-		default:
-			af = 0;
-			break;
-		}
-		if (af) {
-			printf("     %s (%d,%d,", ispassive ? "LPSV" : "LPRT",
-				af, alen);
-			for (i = 0; i < alen; i++)
-				printf("%d,", UC(a[i]));
-			printf("%d,%d,%d)\r\n", 2, UC(p[0]), UC(p[1]));
-		}
-	    }
-
-epsvonly:;
-		/* EPRT/EPSV */
-	    {
-		int af;
-
-		switch (su->su_family) {
-		case AF_INET:
-			af = 1;
-			break;
-		case AF_INET6:
-			af = 2;
-			break;
-		default:
-			af = 0;
-			break;
-		}
-		if (af) {
-			union sockunion tmp;
-
-			tmp = *su;
-			if (tmp.su_family == AF_INET6)
-				tmp.su_sin6.sin6_scope_id = 0;
-			if (!getnameinfo((struct sockaddr *)&tmp, tmp.su_len,
-					hname, sizeof(hname) - 1, NULL, 0,
-					NI_NUMERICHOST)) {
-				hname[sizeof(hname) - 1] = 0;
-				printf("     %s |%d|%s|%d|\r\n",
-					ispassive ? "EPSV" : "EPRT",
-					af, hname, htons(tmp.su_port));
+			switch (su->su_family) {
+			case AF_INET:
+				a = (u_char *)&su->su_sin.sin_addr;
+				p = (u_char *)&su->su_sin.sin_port;
+				alen = sizeof(su->su_sin.sin_addr);
+				af = 4;
+				break;
+			case AF_INET6:
+				a = (u_char *)&su->su_sin6.sin6_addr;
+				p = (u_char *)&su->su_sin6.sin6_port;
+				alen = sizeof(su->su_sin6.sin6_addr);
+				af = 6;
+				break;
+			default:
+				af = 0;
+				break;
+			}
+			if (af) {
+				printf("     %s (%d,%d,",
+				    ispassive ? "LPSV" : "LPRT", af, alen);
+				for (i = 0; i < alen; i++)
+					printf("%d,", UC(a[i]));
+				printf("%d,%d,%d)\r\n", 2, UC(p[0]), UC(p[1]));
 			}
 		}
-	    }
+
+	epsvonly:;
+		/* EPRT/EPSV */
+		{
+			int af;
+
+			switch (su->su_family) {
+			case AF_INET:
+				af = 1;
+				break;
+			case AF_INET6:
+				af = 2;
+				break;
+			default:
+				af = 0;
+				break;
+			}
+			if (af) {
+				union sockunion tmp;
+
+				tmp = *su;
+				if (tmp.su_family == AF_INET6)
+					tmp.su_sin6.sin6_scope_id = 0;
+				if (!getnameinfo((struct sockaddr *)&tmp,
+					tmp.su_len, hname, sizeof(hname) - 1,
+					NULL, 0, NI_NUMERICHOST)) {
+					hname[sizeof(hname) - 1] = 0;
+					printf("     %s |%d|%s|%d|\r\n",
+					    ispassive ? "EPSV" : "EPRT", af,
+					    hname, htons(tmp.su_port));
+				}
+			}
+		}
 #undef UC
 	} else
 		printf("     No data connection\r\n");
@@ -2562,13 +2586,12 @@ yyerror(char *s)
 {
 	char *cp;
 
-	if ((cp = strchr(cbuf,'\n')))
+	if ((cp = strchr(cbuf, '\n')))
 		*cp = '\0';
 	reply(500, "%s: command not understood.", cbuf);
 }
 
-void
-delete(char *name)
+void delete(char *name)
 {
 	struct stat st;
 
@@ -2692,20 +2715,20 @@ dolog(struct sockaddr *who)
 
 	realhostname_sa(remotehost, sizeof(remotehost) - 1, who, who->sa_len);
 	remotehost[sizeof(remotehost) - 1] = 0;
-	if (getnameinfo(who, who->sa_len,
-		who_name, sizeof(who_name) - 1, NULL, 0, NI_NUMERICHOST))
-			*who_name = 0;
+	if (getnameinfo(who, who->sa_len, who_name, sizeof(who_name) - 1, NULL,
+		0, NI_NUMERICHOST))
+		*who_name = 0;
 	who_name[sizeof(who_name) - 1] = 0;
 
 #ifdef SETPROCTITLE
 #ifdef VIRTUAL_HOSTING
 	if (thishost != firsthost)
 		snprintf(proctitle, sizeof(proctitle), "%s: connected (to %s)",
-			 remotehost, hostname);
+		    remotehost, hostname);
 	else
 #endif
 		snprintf(proctitle, sizeof(proctitle), "%s: connected",
-			 remotehost);
+		    remotehost);
 	setproctitle("%s", proctitle);
 #endif /* SETPROCTITLE */
 
@@ -2713,11 +2736,11 @@ dolog(struct sockaddr *who)
 #ifdef VIRTUAL_HOSTING
 		if (thishost != firsthost)
 			syslog(LOG_INFO, "connection from %s (%s) to %s",
-			       remotehost, who_name, hostname);
+			    remotehost, who_name, hostname);
 		else
 #endif
-			syslog(LOG_INFO, "connection from %s (%s)",
-			       remotehost, who_name);
+			syslog(LOG_INFO, "connection from %s (%s)", remotehost,
+			    who_name);
 	}
 }
 
@@ -2730,11 +2753,12 @@ dologout(int status)
 {
 
 	if (logged_in && dowtmp) {
-		(void) seteuid(0);
-#ifdef		LOGIN_CAP
- 	        setusercontext(NULL, getpwuid(0), 0, LOGIN_SETALL & ~(LOGIN_SETLOGIN |
-		       LOGIN_SETUSER | LOGIN_SETGROUP | LOGIN_SETPATH |
-		       LOGIN_SETENV));
+		(void)seteuid(0);
+#ifdef LOGIN_CAP
+		setusercontext(NULL, getpwuid(0), 0,
+		    LOGIN_SETALL &
+			~(LOGIN_SETLOGIN | LOGIN_SETUSER | LOGIN_SETGROUP |
+			    LOGIN_SETPATH | LOGIN_SETENV));
 #endif
 		ftpd_logwtmp(wtmpid, NULL, NULL);
 	}
@@ -2772,15 +2796,17 @@ flagxfer(int flag)
 
 	if (flag) {
 		if (transflag)
-			syslog(LOG_ERR, "Internal: flagxfer(1): "
-					"transfer already under way");
+			syslog(LOG_ERR,
+			    "Internal: flagxfer(1): "
+			    "transfer already under way");
 		transflag = 1;
 		maskurg(0);
 		recvurg = 0;
 	} else {
 		if (!transflag)
-			syslog(LOG_ERR, "Internal: flagxfer(0): "
-					"no active transfer");
+			syslog(LOG_ERR,
+			    "Internal: flagxfer(0): "
+			    "no active transfer");
 		maskurg(1);
 		transflag = 0;
 	}
@@ -2819,10 +2845,10 @@ myoob(void)
 		tmpline[0] = '\0';
 		if (file_size != -1)
 			reply(213, "Status: %jd of %jd bytes transferred.",
-				   (intmax_t)byte_count, (intmax_t)file_size);
+			    (intmax_t)byte_count, (intmax_t)file_size);
 		else
 			reply(213, "Status: %jd bytes transferred.",
-				   (intmax_t)byte_count);
+			    (intmax_t)byte_count);
 	}
 	return (0);
 }
@@ -2840,7 +2866,7 @@ passive(void)
 	int on;
 	char *p, *a;
 
-	if (pdata >= 0)		/* close old port if one set */
+	if (pdata >= 0) /* close old port if one set */
 		close(pdata);
 
 	pdata = socket(ctrl_addr.su_family, SOCK_STREAM, 0);
@@ -2852,26 +2878,26 @@ passive(void)
 	if (setsockopt(pdata, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0)
 		syslog(LOG_WARNING, "pdata setsockopt (SO_REUSEADDR): %m");
 
-	(void) seteuid(0);
+	(void)seteuid(0);
 
 #ifdef IP_PORTRANGE
 	if (ctrl_addr.su_family == AF_INET) {
-	    on = restricted_data_ports ? IP_PORTRANGE_HIGH
-				       : IP_PORTRANGE_DEFAULT;
+		on = restricted_data_ports ? IP_PORTRANGE_HIGH :
+					     IP_PORTRANGE_DEFAULT;
 
-	    if (setsockopt(pdata, IPPROTO_IP, IP_PORTRANGE,
-			    &on, sizeof(on)) < 0)
-		    goto pasv_error;
+		if (setsockopt(pdata, IPPROTO_IP, IP_PORTRANGE, &on,
+			sizeof(on)) < 0)
+			goto pasv_error;
 	}
 #endif
 #ifdef IPV6_PORTRANGE
 	if (ctrl_addr.su_family == AF_INET6) {
-	    on = restricted_data_ports ? IPV6_PORTRANGE_HIGH
-				       : IPV6_PORTRANGE_DEFAULT;
+		on = restricted_data_ports ? IPV6_PORTRANGE_HIGH :
+					     IPV6_PORTRANGE_DEFAULT;
 
-	    if (setsockopt(pdata, IPPROTO_IPV6, IPV6_PORTRANGE,
-			    &on, sizeof(on)) < 0)
-		    goto pasv_error;
+		if (setsockopt(pdata, IPPROTO_IPV6, IPV6_PORTRANGE, &on,
+			sizeof(on)) < 0)
+			goto pasv_error;
 	}
 #endif
 
@@ -2880,32 +2906,32 @@ passive(void)
 	if (bind(pdata, (struct sockaddr *)&pasv_addr, pasv_addr.su_len) < 0)
 		goto pasv_error;
 
-	(void) seteuid(pw->pw_uid);
+	(void)seteuid(pw->pw_uid);
 
 	len = sizeof(pasv_addr);
-	if (getsockname(pdata, (struct sockaddr *) &pasv_addr, &len) < 0)
+	if (getsockname(pdata, (struct sockaddr *)&pasv_addr, &len) < 0)
 		goto pasv_error;
 	if (listen(pdata, 1) < 0)
 		goto pasv_error;
 	if (pasv_addr.su_family == AF_INET)
-		a = (char *) &pasv_addr.su_sin.sin_addr;
+		a = (char *)&pasv_addr.su_sin.sin_addr;
 	else if (pasv_addr.su_family == AF_INET6 &&
-		 IN6_IS_ADDR_V4MAPPED(&pasv_addr.su_sin6.sin6_addr))
-		a = (char *) &pasv_addr.su_sin6.sin6_addr.s6_addr[12];
+	    IN6_IS_ADDR_V4MAPPED(&pasv_addr.su_sin6.sin6_addr))
+		a = (char *)&pasv_addr.su_sin6.sin6_addr.s6_addr[12];
 	else
 		goto pasv_error;
-		
-	p = (char *) &pasv_addr.su_port;
 
-#define UC(b) (((int) b) & 0xff)
+	p = (char *)&pasv_addr.su_port;
+
+#define UC(b) (((int)b) & 0xff)
 
 	reply(227, "Entering Passive Mode (%d,%d,%d,%d,%d,%d)", UC(a[0]),
-		UC(a[1]), UC(a[2]), UC(a[3]), UC(p[0]), UC(p[1]));
+	    UC(a[1]), UC(a[2]), UC(a[3]), UC(p[0]), UC(p[1]));
 	return;
 
 pasv_error:
-	(void) seteuid(pw->pw_uid);
-	(void) close(pdata);
+	(void)seteuid(pw->pw_uid);
+	(void)close(pdata);
 	pdata = -1;
 	perror_reply(425, "Can't open passive connection");
 	return;
@@ -2924,7 +2950,7 @@ long_passive(char *cmd, int pf)
 	int on;
 	char *p, *a;
 
-	if (pdata >= 0)		/* close old port if one set */
+	if (pdata >= 0) /* close old port if one set */
 		close(pdata);
 
 	if (pf != PF_UNSPEC) {
@@ -2945,15 +2971,18 @@ long_passive(char *cmd, int pf)
 			 * only EPRT/EPSV ready clients will understand this
 			 */
 			if (strcmp(cmd, "EPSV") == 0 && pf) {
-				reply(522, "Network protocol mismatch, "
-					"use (%d)", pf);
+				reply(522,
+				    "Network protocol mismatch, "
+				    "use (%d)",
+				    pf);
 			} else
-				reply(501, "Network protocol mismatch."); /*XXX*/
+				reply(501,
+				    "Network protocol mismatch."); /*XXX*/
 
 			return;
 		}
 	}
-		
+
 	pdata = socket(ctrl_addr.su_family, SOCK_STREAM, 0);
 	if (pdata < 0) {
 		perror_reply(425, "Can't open passive connection");
@@ -2963,7 +2992,7 @@ long_passive(char *cmd, int pf)
 	if (setsockopt(pdata, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0)
 		syslog(LOG_WARNING, "pdata setsockopt (SO_REUSEADDR): %m");
 
-	(void) seteuid(0);
+	(void)seteuid(0);
 
 	pasv_addr = ctrl_addr;
 	pasv_addr.su_port = 0;
@@ -2971,62 +3000,64 @@ long_passive(char *cmd, int pf)
 
 #ifdef IP_PORTRANGE
 	if (ctrl_addr.su_family == AF_INET) {
-	    on = restricted_data_ports ? IP_PORTRANGE_HIGH
-				       : IP_PORTRANGE_DEFAULT;
+		on = restricted_data_ports ? IP_PORTRANGE_HIGH :
+					     IP_PORTRANGE_DEFAULT;
 
-	    if (setsockopt(pdata, IPPROTO_IP, IP_PORTRANGE,
-			    &on, sizeof(on)) < 0)
-		    goto pasv_error;
+		if (setsockopt(pdata, IPPROTO_IP, IP_PORTRANGE, &on,
+			sizeof(on)) < 0)
+			goto pasv_error;
 	}
 #endif
 #ifdef IPV6_PORTRANGE
 	if (ctrl_addr.su_family == AF_INET6) {
-	    on = restricted_data_ports ? IPV6_PORTRANGE_HIGH
-				       : IPV6_PORTRANGE_DEFAULT;
+		on = restricted_data_ports ? IPV6_PORTRANGE_HIGH :
+					     IPV6_PORTRANGE_DEFAULT;
 
-	    if (setsockopt(pdata, IPPROTO_IPV6, IPV6_PORTRANGE,
-			    &on, sizeof(on)) < 0)
-		    goto pasv_error;
+		if (setsockopt(pdata, IPPROTO_IPV6, IPV6_PORTRANGE, &on,
+			sizeof(on)) < 0)
+			goto pasv_error;
 	}
 #endif
 
 	if (bind(pdata, (struct sockaddr *)&pasv_addr, len) < 0)
 		goto pasv_error;
 
-	(void) seteuid(pw->pw_uid);
+	(void)seteuid(pw->pw_uid);
 
-	if (getsockname(pdata, (struct sockaddr *) &pasv_addr, &len) < 0)
+	if (getsockname(pdata, (struct sockaddr *)&pasv_addr, &len) < 0)
 		goto pasv_error;
 	if (listen(pdata, 1) < 0)
 		goto pasv_error;
 
-#define UC(b) (((int) b) & 0xff)
+#define UC(b) (((int)b) & 0xff)
 
 	if (strcmp(cmd, "LPSV") == 0) {
 		p = (char *)&pasv_addr.su_port;
 		switch (pasv_addr.su_family) {
 		case AF_INET:
-			a = (char *) &pasv_addr.su_sin.sin_addr;
+			a = (char *)&pasv_addr.su_sin.sin_addr;
 		v4_reply:
 			reply(228,
-"Entering Long Passive Mode (%d,%d,%d,%d,%d,%d,%d,%d,%d)",
-			      4, 4, UC(a[0]), UC(a[1]), UC(a[2]), UC(a[3]),
-			      2, UC(p[0]), UC(p[1]));
+			    "Entering Long Passive Mode (%d,%d,%d,%d,%d,%d,%d,%d,%d)",
+			    4, 4, UC(a[0]), UC(a[1]), UC(a[2]), UC(a[3]), 2,
+			    UC(p[0]), UC(p[1]));
 			return;
 		case AF_INET6:
-			if (IN6_IS_ADDR_V4MAPPED(&pasv_addr.su_sin6.sin6_addr)) {
-				a = (char *) &pasv_addr.su_sin6.sin6_addr.s6_addr[12];
+			if (IN6_IS_ADDR_V4MAPPED(
+				&pasv_addr.su_sin6.sin6_addr)) {
+				a = (char *)&pasv_addr.su_sin6.sin6_addr
+					.s6_addr[12];
 				goto v4_reply;
 			}
-			a = (char *) &pasv_addr.su_sin6.sin6_addr;
+			a = (char *)&pasv_addr.su_sin6.sin6_addr;
 			reply(228,
-"Entering Long Passive Mode "
-"(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d)",
-			      6, 16, UC(a[0]), UC(a[1]), UC(a[2]), UC(a[3]),
-			      UC(a[4]), UC(a[5]), UC(a[6]), UC(a[7]),
-			      UC(a[8]), UC(a[9]), UC(a[10]), UC(a[11]),
-			      UC(a[12]), UC(a[13]), UC(a[14]), UC(a[15]),
-			      2, UC(p[0]), UC(p[1]));
+			    "Entering Long Passive Mode "
+			    "(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d)",
+			    6, 16, UC(a[0]), UC(a[1]), UC(a[2]), UC(a[3]),
+			    UC(a[4]), UC(a[5]), UC(a[6]), UC(a[7]), UC(a[8]),
+			    UC(a[9]), UC(a[10]), UC(a[11]), UC(a[12]),
+			    UC(a[13]), UC(a[14]), UC(a[15]), 2, UC(p[0]),
+			    UC(p[1]));
 			return;
 		}
 	} else if (strcmp(cmd, "EPSV") == 0) {
@@ -3034,7 +3065,7 @@ long_passive(char *cmd, int pf)
 		case AF_INET:
 		case AF_INET6:
 			reply(229, "Entering Extended Passive Mode (|||%d|)",
-				ntohs(pasv_addr.su_port));
+			    ntohs(pasv_addr.su_port));
 			return;
 		}
 	} else {
@@ -3042,8 +3073,8 @@ long_passive(char *cmd, int pf)
 	}
 
 pasv_error:
-	(void) seteuid(pw->pw_uid);
-	(void) close(pdata);
+	(void)seteuid(pw->pw_uid);
+	(void)close(pdata);
 	pdata = -1;
 	perror_reply(425, "Can't open passive connection");
 	return;
@@ -3086,21 +3117,21 @@ guniquefd(char *local, char **name)
 		*cp = '/';
 	}
 	/* -4 is for the .nn<null> we put on the end below */
-	(void) snprintf(new, sizeof(new) - 4, "%s", local);
+	(void)snprintf(new, sizeof(new) - 4, "%s", local);
 	cp = new + strlen(new);
-	/* 
+	/*
 	 * Don't generate dotfile unless requested explicitly.
 	 * This covers the case when basename gets truncated off
 	 * by buffer size.
 	 */
-	if (cp > new && cp[-1] != '/')
+	if (cp > new &&cp[-1] != '/')
 		*cp++ = '.';
 	for (count = 0; count < 100; count++) {
 		/* At count 0 try unmodified name */
 		if (count)
 			(void)sprintf(cp, "%d", count);
-		if ((fd = open(count ? new : local,
-		    O_RDWR | O_CREAT | O_EXCL, 0666)) >= 0) {
+		if ((fd = open(count ? new : local, O_RDWR | O_CREAT | O_EXCL,
+			 0666)) >= 0) {
 			*name = count ? new : local;
 			return (fd);
 		}
@@ -3123,10 +3154,7 @@ perror_reply(int code, char *string)
 	reply(code, "%s: %s.", string, strerror(errno));
 }
 
-static char *onefile[] = {
-	"",
-	0
-};
+static char *onefile[] = { "", 0 };
 
 void
 send_file_list(char *whichf)
@@ -3141,7 +3169,7 @@ send_file_list(char *whichf)
 	glob_t gl;
 
 	if (strpbrk(whichf, "~{[*?") != NULL) {
-		int flags = GLOB_BRACE|GLOB_NOCHECK|GLOB_TILDE;
+		int flags = GLOB_BRACE | GLOB_NOCHECK | GLOB_TILDE;
 
 		memset(&gl, 0, sizeof(gl));
 		gl.gl_matchc = MAXGLOBARGS;
@@ -3185,12 +3213,12 @@ send_file_list(char *whichf)
 			}
 			START_UNSAFE;
 			fprintf(dout, "%s%s\n", dirname,
-				type == TYPE_A ? "\r" : "");
+			    type == TYPE_A ? "\r" : "");
 			END_UNSAFE;
 			if (ferror(dout))
 				goto data_err;
 			byte_count += strlen(dirname) +
-				      (type == TYPE_A ? 2 : 1);
+			    (type == TYPE_A ? 2 : 1);
 			CHECKOOB(goto abrt);
 			continue;
 		} else if (!S_ISDIR(st.st_mode))
@@ -3210,15 +3238,15 @@ send_file_list(char *whichf)
 			    dir->d_namlen == 2)
 				continue;
 
-			snprintf(nbuf, sizeof(nbuf),
-				"%s/%s", dirname, dir->d_name);
+			snprintf(nbuf, sizeof(nbuf), "%s/%s", dirname,
+			    dir->d_name);
 
 			/*
 			 * We have to do a stat to insure it's
 			 * not a directory or special file.
 			 */
-			if (simple || (stat(nbuf, &st) == 0 &&
-			    S_ISREG(st.st_mode))) {
+			if (simple ||
+			    (stat(nbuf, &st) == 0 && S_ISREG(st.st_mode))) {
 				if (dout == NULL) {
 					dout = dataconn("file list", -1, "w");
 					if (dout == NULL)
@@ -3228,38 +3256,39 @@ send_file_list(char *whichf)
 				START_UNSAFE;
 				if (nbuf[0] == '.' && nbuf[1] == '/')
 					fprintf(dout, "%s%s\n", &nbuf[2],
-						type == TYPE_A ? "\r" : "");
+					    type == TYPE_A ? "\r" : "");
 				else
 					fprintf(dout, "%s%s\n", nbuf,
-						type == TYPE_A ? "\r" : "");
+					    type == TYPE_A ? "\r" : "");
 				END_UNSAFE;
 				if (ferror(dout))
 					goto data_err;
 				byte_count += strlen(nbuf) +
-					      (type == TYPE_A ? 2 : 1);
+				    (type == TYPE_A ? 2 : 1);
 				CHECKOOB(goto abrt);
 			}
 		}
-		(void) closedir(dirp);
+		(void)closedir(dirp);
 		dirp = NULL;
 	}
 
 	if (dout == NULL)
 		reply(550, "No files found.");
 	else if (ferror(dout))
-data_err:	perror_reply(550, "Data connection");
+	data_err:
+		perror_reply(550, "Data connection");
 	else
 		reply(226, "Transfer complete.");
 out:
 	if (dout) {
 		ENDXFER;
-abrt:
-		(void) fclose(dout);
+	abrt:
+		(void)fclose(dout);
 		data = -1;
 		pdata = -1;
 	}
 	if (dirp)
-		(void) closedir(dirp);
+		(void)closedir(dirp);
 	if (freeglob) {
 		freeglob = 0;
 		globfree(&gl);
@@ -3269,7 +3298,8 @@ abrt:
 void
 reapchild(int signo)
 {
-	while (waitpid(-1, NULL, WNOHANG) > 0);
+	while (waitpid(-1, NULL, WNOHANG) > 0)
+		;
 }
 
 static void
@@ -3335,9 +3365,8 @@ logxfer(char *name, off_t size, time_t start)
 			return;
 		}
 		snprintf(buf, sizeof(buf), "%.20s!%s!%s!%s!%jd!%ld\n",
-			ctime(&now)+4, ident, remotehost,
-			path, (intmax_t)size,
-			(long)(now - start + (now == start)));
+		    ctime(&now) + 4, ident, remotehost, path, (intmax_t)size,
+		    (long)(now - start + (now == start)));
 		write(statfd, buf, strlen(buf));
 	}
 }
@@ -3396,7 +3425,7 @@ socksetup(int af, char *bindname, const char *bindport)
 		return NULL;
 	}
 
-	*socks = 0;   /* num of sockets counter at start of array */
+	*socks = 0; /* num of sockets counter at start of array */
 	s = socks + 1;
 	for (r = res; r; r = r->ai_next) {
 		*s = socket(r->ai_family, r->ai_socktype, r->ai_protocol);
@@ -3404,13 +3433,13 @@ socksetup(int af, char *bindname, const char *bindport)
 			syslog(LOG_DEBUG, "control socket: %m");
 			continue;
 		}
-		if (setsockopt(*s, SOL_SOCKET, SO_REUSEADDR,
-		    &on, sizeof(on)) < 0)
+		if (setsockopt(*s, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) <
+		    0)
 			syslog(LOG_WARNING,
 			    "control setsockopt (SO_REUSEADDR): %m");
 		if (r->ai_family == AF_INET6) {
-			if (setsockopt(*s, IPPROTO_IPV6, IPV6_V6ONLY,
-			    &on, sizeof(on)) < 0)
+			if (setsockopt(*s, IPPROTO_IPV6, IPV6_V6ONLY, &on,
+				sizeof(on)) < 0)
 				syslog(LOG_WARNING,
 				    "control setsockopt (IPV6_V6ONLY): %m");
 		}
@@ -3431,5 +3460,5 @@ socksetup(int af, char *bindname, const char *bindport)
 		free(socks);
 		return NULL;
 	}
-	return(socks);
+	return (socks);
 }

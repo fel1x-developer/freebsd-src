@@ -25,39 +25,39 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 #include "opt_route.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
+#include <sys/rmlock.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
 #include <sys/syslog.h>
-#include <sys/kernel.h>
-#include <sys/lock.h>
-#include <sys/rmlock.h>
 
 #include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_private.h>
 #include <net/if_dl.h>
-#include <net/vnet.h>
+#include <net/if_private.h>
+#include <net/if_var.h>
 #include <net/route.h>
+#include <net/route/nhop.h>
+#include <net/route/nhop_utils.h>
+#include <net/route/nhop_var.h>
 #include <net/route/route_ctl.h>
 #include <net/route/route_var.h>
-#include <net/route/nhop_utils.h>
-#include <net/route/nhop.h>
-#include <net/route/nhop_var.h>
+#include <net/vnet.h>
 #include <netinet/in.h>
-#include <netinet6/scope6_var.h>
 #include <netinet6/in6_var.h>
+#include <netinet6/scope6_var.h>
 
-#define	DEBUG_MOD_NAME	route_ctl
-#define	DEBUG_MAX_LEVEL	LOG_DEBUG
+#define DEBUG_MOD_NAME route_ctl
+#define DEBUG_MAX_LEVEL LOG_DEBUG
 #include <net/route/route_debug.h>
 _DECLARE_DEBUG(LOG_INFO);
 
@@ -68,10 +68,10 @@ _DECLARE_DEBUG(LOG_INFO);
  */
 
 union sockaddr_union {
-	struct sockaddr		sa;
-	struct sockaddr_in	sin;
-	struct sockaddr_in6	sin6;
-	char			_buf[32];
+	struct sockaddr sa;
+	struct sockaddr_in sin;
+	struct sockaddr_in6 sin6;
+	char _buf[32];
 };
 
 static int add_route_byinfo(struct rib_head *rnh, struct rt_addrinfo *info,
@@ -106,11 +106,11 @@ static bool rib_can_multipath(struct rib_head *rh);
 
 /* Per-vnet multipath routing configuration */
 SYSCTL_DECL(_net_route);
-#define	V_rib_route_multipath	VNET(rib_route_multipath)
+#define V_rib_route_multipath VNET(rib_route_multipath)
 #ifdef ROUTE_MPATH
-#define _MP_FLAGS	CTLFLAG_RW
+#define _MP_FLAGS CTLFLAG_RW
 #else
-#define _MP_FLAGS	CTLFLAG_RD
+#define _MP_FLAGS CTLFLAG_RD
 #endif
 VNET_DEFINE(u_int, rib_route_multipath) = 1;
 SYSCTL_UINT(_net_route, OID_AUTO, multipath, _MP_FLAGS | CTLFLAG_VNET,
@@ -125,11 +125,46 @@ SYSCTL_UINT(_net_route, OID_AUTO, hash_outbound, CTLFLAG_RD | CTLFLAG_VNET,
 
 /* Default entropy to add to the hash calculation for the outbound connections*/
 uint8_t mpath_entropy_key[MPATH_ENTROPY_KEY_LEN] = {
-	0x6d, 0x5a, 0x56, 0xda, 0x25, 0x5b, 0x0e, 0xc2,
-	0x41, 0x67, 0x25, 0x3d, 0x43, 0xa3, 0x8f, 0xb0,
-	0xd0, 0xca, 0x2b, 0xcb, 0xae, 0x7b, 0x30, 0xb4,
-	0x77, 0xcb, 0x2d, 0xa3, 0x80, 0x30, 0xf2, 0x0c,
-	0x6a, 0x42, 0xb7, 0x3b, 0xbe, 0xac, 0x01, 0xfa,
+	0x6d,
+	0x5a,
+	0x56,
+	0xda,
+	0x25,
+	0x5b,
+	0x0e,
+	0xc2,
+	0x41,
+	0x67,
+	0x25,
+	0x3d,
+	0x43,
+	0xa3,
+	0x8f,
+	0xb0,
+	0xd0,
+	0xca,
+	0x2b,
+	0xcb,
+	0xae,
+	0x7b,
+	0x30,
+	0xb4,
+	0x77,
+	0xcb,
+	0x2d,
+	0xa3,
+	0x80,
+	0x30,
+	0xf2,
+	0x0c,
+	0x6a,
+	0x42,
+	0xb7,
+	0x3b,
+	0xbe,
+	0xac,
+	0x01,
+	0xfa,
 };
 #endif
 
@@ -138,7 +173,8 @@ FEATURE(ipv4_rfc5549_support, "Route IPv4 packets via IPv6 nexthops");
 #define V_rib_route_ipv6_nexthop VNET(rib_route_ipv6_nexthop)
 VNET_DEFINE_STATIC(u_int, rib_route_ipv6_nexthop) = 1;
 SYSCTL_UINT(_net_route, OID_AUTO, ipv6_nexthop, CTLFLAG_RW | CTLFLAG_VNET,
-    &VNET_NAME(rib_route_ipv6_nexthop), 0, "Enable IPv4 route via IPv6 Next Hop address");
+    &VNET_NAME(rib_route_ipv6_nexthop), 0,
+    "Enable IPv4 route via IPv6 Next Hop address");
 #endif
 
 /* Debug bits */
@@ -223,8 +259,8 @@ get_info_weight(const struct rt_addrinfo *info, uint32_t default_weight)
  * File-local concept for distingushing between the normal and
  * RTF_PINNED routes tha can override the "normal" one.
  */
-#define	NH_PRIORITY_HIGH	2
-#define	NH_PRIORITY_NORMAL	1
+#define NH_PRIORITY_HIGH 2
+#define NH_PRIORITY_NORMAL 1
 static int
 get_prio_from_info(const struct rt_addrinfo *info)
 {
@@ -257,27 +293,24 @@ match_nhop_gw(const struct nhop_object *nh, const struct sockaddr *gw)
 	case AF_INET:
 		return (nh->gw4_sa.sin_addr.s_addr ==
 		    ((const struct sockaddr_in *)gw)->sin_addr.s_addr);
-	case AF_INET6:
-		{
-			const struct sockaddr_in6 *gw6;
-			gw6 = (const struct sockaddr_in6 *)gw;
+	case AF_INET6: {
+		const struct sockaddr_in6 *gw6;
+		gw6 = (const struct sockaddr_in6 *)gw;
 
-			/*
-			 * Currently (2020-09) IPv6 gws in kernel have their
-			 * scope embedded. Once this becomes false, this code
-			 * has to be revisited.
-			 */
-			if (IN6_ARE_ADDR_EQUAL(&nh->gw6_sa.sin6_addr,
-			    &gw6->sin6_addr))
-				return (true);
-			return (false);
-		}
-	case AF_LINK:
-		{
-			const struct sockaddr_dl *sdl;
-			sdl = (const struct sockaddr_dl *)gw;
-			return (nh->gwl_sa.sdl_index == sdl->sdl_index);
-		}
+		/*
+		 * Currently (2020-09) IPv6 gws in kernel have their
+		 * scope embedded. Once this becomes false, this code
+		 * has to be revisited.
+		 */
+		if (IN6_ARE_ADDR_EQUAL(&nh->gw6_sa.sin6_addr, &gw6->sin6_addr))
+			return (true);
+		return (false);
+	}
+	case AF_LINK: {
+		const struct sockaddr_dl *sdl;
+		sdl = (const struct sockaddr_dl *)gw;
+		return (nh->gwl_sa.sdl_index == sdl->sdl_index);
+	}
 	default:
 		return (memcmp(&nh->gw_sa, gw, nh->gw_sa.sa_len) == 0);
 	}
@@ -291,7 +324,8 @@ match_nhop_gw(const struct nhop_object *nh, const struct sockaddr *gw)
  * Can be used as rib_filter_f callback.
  */
 int
-rib_match_gw(const struct rtentry *rt, const struct nhop_object *nh, void *gw_sa)
+rib_match_gw(const struct rtentry *rt, const struct nhop_object *nh,
+    void *gw_sa)
 {
 	const struct sockaddr *gw = (const struct sockaddr *)gw_sa;
 
@@ -307,7 +341,8 @@ struct gw_filter_data {
  * Matches first occurence of the gateway provided in @gwd
  */
 static int
-match_gw_one(const struct rtentry *rt, const struct nhop_object *nh, void *_data)
+match_gw_one(const struct rtentry *rt, const struct nhop_object *nh,
+    void *_data)
 {
 	struct gw_filter_data *gwd = (struct gw_filter_data *)_data;
 
@@ -331,10 +366,10 @@ check_info_match_nhop(const struct rt_addrinfo *info, const struct rtentry *rt,
 	const struct sockaddr *gw = info->rti_info[RTAX_GATEWAY];
 
 	if (info->rti_filter != NULL) {
-	    if (info->rti_filter(rt, nh, info->rti_filterdata) == 0)
-		    return (ENOENT);
-	    else
-		    return (0);
+		if (info->rti_filter(rt, nh, info->rti_filterdata) == 0)
+			return (ENOENT);
+		else
+			return (0);
 	}
 	if ((gw != NULL) && !match_nhop_gw(nh, gw))
 		return (ESRCH);
@@ -371,7 +406,8 @@ struct rtentry *
 lookup_prefix_rt(struct rib_head *rnh, const struct rtentry *rt,
     struct route_nhop_data *rnd)
 {
-	return (lookup_prefix_bysa(rnh, rt_key_const(rt), rt_mask_const(rt), rnd));
+	return (
+	    lookup_prefix_bysa(rnh, rt_key_const(rt), rt_mask_const(rt), rnd));
 }
 
 /*
@@ -415,50 +451,46 @@ fill_pxmask_family(int family, int plen, struct sockaddr *_dst,
 
 	switch (family) {
 #ifdef INET
-	case AF_INET:
-		{
-			struct sockaddr_in *mask = (struct sockaddr_in *)(*pmask);
-			struct sockaddr_in *dst= (struct sockaddr_in *)_dst;
+	case AF_INET: {
+		struct sockaddr_in *mask = (struct sockaddr_in *)(*pmask);
+		struct sockaddr_in *dst = (struct sockaddr_in *)_dst;
 
-			memset(mask, 0, sizeof(*mask));
-			mask->sin_family = family;
-			mask->sin_len = sizeof(*mask);
-			if (plen == 32)
-				*pmask = NULL;
-			else if (plen > 32 || plen < 0)
-				return (false);
-			else {
-				uint32_t daddr, maddr;
-				maddr = htonl(plen ? ~((1 << (32 - plen)) - 1) : 0);
-				mask->sin_addr.s_addr = maddr;
-				daddr = dst->sin_addr.s_addr;
-				daddr = htonl(ntohl(daddr) & ntohl(maddr));
-				dst->sin_addr.s_addr = daddr;
-			}
-			return (true);
+		memset(mask, 0, sizeof(*mask));
+		mask->sin_family = family;
+		mask->sin_len = sizeof(*mask);
+		if (plen == 32)
+			*pmask = NULL;
+		else if (plen > 32 || plen < 0)
+			return (false);
+		else {
+			uint32_t daddr, maddr;
+			maddr = htonl(plen ? ~((1 << (32 - plen)) - 1) : 0);
+			mask->sin_addr.s_addr = maddr;
+			daddr = dst->sin_addr.s_addr;
+			daddr = htonl(ntohl(daddr) & ntohl(maddr));
+			dst->sin_addr.s_addr = daddr;
 		}
-		break;
+		return (true);
+	} break;
 #endif
 #ifdef INET6
-	case AF_INET6:
-		{
-			struct sockaddr_in6 *mask = (struct sockaddr_in6 *)(*pmask);
-			struct sockaddr_in6 *dst = (struct sockaddr_in6 *)_dst;
+	case AF_INET6: {
+		struct sockaddr_in6 *mask = (struct sockaddr_in6 *)(*pmask);
+		struct sockaddr_in6 *dst = (struct sockaddr_in6 *)_dst;
 
-			memset(mask, 0, sizeof(*mask));
-			mask->sin6_family = family;
-			mask->sin6_len = sizeof(*mask);
-			if (plen == 128)
-				*pmask = NULL;
-			else if (plen > 128 || plen < 0)
-				return (false);
-			else {
-				ip6_writemask(&mask->sin6_addr, plen);
-				IN6_MASK_ADDR(&dst->sin6_addr, &mask->sin6_addr);
-			}
-			return (true);
+		memset(mask, 0, sizeof(*mask));
+		mask->sin6_family = family;
+		mask->sin6_len = sizeof(*mask);
+		if (plen == 128)
+			*pmask = NULL;
+		else if (plen > 128 || plen < 0)
+			return (false);
+		else {
+			ip6_writemask(&mask->sin6_addr, plen);
+			IN6_MASK_ADDR(&dst->sin6_addr, &mask->sin6_addr);
 		}
-		break;
+		return (true);
+	} break;
 #endif
 	}
 	return (false);
@@ -537,7 +569,8 @@ rib_del_route_px_gw(uint32_t fibnum, struct sockaddr *dst, int plen,
 {
 	struct gw_filter_data gwd = { .gw = gw };
 
-	return (rib_del_route_px(fibnum, dst, plen, match_gw_one, &gwd, op_flags, rc));
+	return (rib_del_route_px(fibnum, dst, plen, match_gw_one, &gwd,
+	    op_flags, rc));
 }
 
 /*
@@ -573,7 +606,8 @@ rib_del_route_px(uint32_t fibnum, struct sockaddr *dst, int plen,
 		return (EAFNOSUPPORT);
 
 	if (dst->sa_len > sizeof(mask_storage)) {
-		FIB_RH_LOG(LOG_DEBUG, rnh, "error: dst->sa_len too big: %d", dst->sa_len);
+		FIB_RH_LOG(LOG_DEBUG, rnh, "error: dst->sa_len too big: %d",
+		    dst->sa_len);
 		return (EINVAL);
 	}
 
@@ -582,7 +616,8 @@ rib_del_route_px(uint32_t fibnum, struct sockaddr *dst, int plen,
 		return (EINVAL);
 	}
 
-	int prio = (op_flags & RTM_F_FORCE) ? NH_PRIORITY_HIGH : NH_PRIORITY_NORMAL;
+	int prio = (op_flags & RTM_F_FORCE) ? NH_PRIORITY_HIGH :
+					      NH_PRIORITY_NORMAL;
 
 	RIB_WLOCK(rnh);
 	struct route_nhop_data rnd;
@@ -633,14 +668,16 @@ rib_copy_route(struct rtentry *rt, const struct route_nhop_data *rnd_src,
 
 	MPASS((nh_src->nh_flags & NHF_MULTIPATH) == 0);
 
-	IF_DEBUG_LEVEL(LOG_DEBUG2) {
+	IF_DEBUG_LEVEL(LOG_DEBUG2)
+	{
 		char nhbuf[NHOP_PRINT_BUFSIZE], rtbuf[NHOP_PRINT_BUFSIZE];
 		nhop_print_buf_any(nh_src, nhbuf, sizeof(nhbuf));
 		rt_print_buf(rt, rtbuf, sizeof(rtbuf));
 		FIB_RH_LOG(LOG_DEBUG2, rh_dst, "copying %s -> %s from fib %u",
 		    rtbuf, nhbuf, nhop_get_fibnum(nh_src));
 	}
-	struct nhop_object *nh = nhop_alloc(rh_dst->rib_fibnum, rh_dst->rib_family);
+	struct nhop_object *nh = nhop_alloc(rh_dst->rib_fibnum,
+	    rh_dst->rib_family);
 	if (nh == NULL) {
 		FIB_RH_LOG(LOG_INFO, rh_dst, "unable to allocate new nexthop");
 		return (ENOMEM);
@@ -662,15 +699,14 @@ rib_copy_route(struct rtentry *rt, const struct route_nhop_data *rnd_src,
 		return (ENOMEM);
 	}
 
-	struct route_nhop_data rnd = {
-		.rnd_nhop = nh,
-		.rnd_weight = rnd_src->rnd_weight
-	};
+	struct route_nhop_data rnd = { .rnd_nhop = nh,
+		.rnd_weight = rnd_src->rnd_weight };
 	int op_flags = RTM_F_CREATE | (NH_IS_PINNED(nh) ? RTM_F_FORCE : 0);
 	error = add_route_flags(rh_dst, rt_new, &rnd, op_flags, rc);
 
 	if (error != 0) {
-		IF_DEBUG_LEVEL(LOG_DEBUG2) {
+		IF_DEBUG_LEVEL(LOG_DEBUG2)
+		{
 			char buf[NHOP_PRINT_BUFSIZE];
 			rt_print_buf(rt_new, buf, sizeof(buf));
 			FIB_RH_LOG(LOG_DEBUG, rh_dst,
@@ -708,7 +744,8 @@ rib_add_route(uint32_t fibnum, struct rt_addrinfo *info,
 	if (info->rti_flags & RTF_HOST)
 		info->rti_info[RTAX_NETMASK] = NULL;
 	else if (info->rti_info[RTAX_NETMASK] == NULL) {
-		FIB_RH_LOG(LOG_DEBUG, rnh, "error: no RTF_HOST and empty netmask");
+		FIB_RH_LOG(LOG_DEBUG, rnh,
+		    "error: no RTF_HOST and empty netmask");
 		return (EINVAL);
 	}
 
@@ -737,10 +774,12 @@ add_route_byinfo(struct rib_head *rnh, struct rt_addrinfo *info,
 	netmask = info->rti_info[RTAX_NETMASK];
 
 	if ((info->rti_flags & RTF_GATEWAY) && !gateway) {
-		FIB_RH_LOG(LOG_DEBUG, rnh, "error: RTF_GATEWAY set with empty gw");
+		FIB_RH_LOG(LOG_DEBUG, rnh,
+		    "error: RTF_GATEWAY set with empty gw");
 		return (EINVAL);
 	}
-	if (dst && gateway && !nhop_check_gateway(dst->sa_family, gateway->sa_family)) {
+	if (dst && gateway &&
+	    !nhop_check_gateway(dst->sa_family, gateway->sa_family)) {
 		FIB_RH_LOG(LOG_DEBUG, rnh,
 		    "error: invalid dst/gateway family combination (%d, %d)",
 		    dst->sa_family, gateway->sa_family);
@@ -777,12 +816,11 @@ add_route_byinfo(struct rib_head *rnh, struct rt_addrinfo *info,
 	else
 		op_flags |= RTM_F_APPEND;
 	return (add_route_flags(rnh, rt, &rnd_add, op_flags, rc));
-
 }
 
 static int
-add_route_flags(struct rib_head *rnh, struct rtentry *rt, struct route_nhop_data *rnd_add,
-    int op_flags, struct rib_cmd_info *rc)
+add_route_flags(struct rib_head *rnh, struct rtentry *rt,
+    struct route_nhop_data *rnd_add, int op_flags, struct rib_cmd_info *rc)
 {
 	struct route_nhop_data rnd_orig;
 	struct nhop_object *nh;
@@ -801,7 +839,8 @@ add_route_flags(struct rib_head *rnh, struct rtentry *rt, struct route_nhop_data
 		if (op_flags & RTM_F_CREATE)
 			error = add_route(rnh, rt, rnd_add, rc);
 		else
-			error = ESRCH; /* no entry but creation was not required */
+			error =
+			    ESRCH; /* no entry but creation was not required */
 		RIB_WUNLOCK(rnh);
 		if (error != 0)
 			goto out;
@@ -809,7 +848,8 @@ add_route_flags(struct rib_head *rnh, struct rtentry *rt, struct route_nhop_data
 	}
 
 	if (op_flags & RTM_F_EXCL) {
-		/* We have existing route in the RIB but not allowed to replace. */
+		/* We have existing route in the RIB but not allowed to replace.
+		 */
 		RIB_WUNLOCK(rnh);
 		error = EEXIST;
 		goto out;
@@ -817,7 +857,8 @@ add_route_flags(struct rib_head *rnh, struct rtentry *rt, struct route_nhop_data
 
 	/* Now either append or replace */
 	if (op_flags & RTM_F_REPLACE) {
-		if (nhop_get_prio(rnd_orig.rnd_nhop) > nhop_get_prio(rnd_add->rnd_nhop)) {
+		if (nhop_get_prio(rnd_orig.rnd_nhop) >
+		    nhop_get_prio(rnd_add->rnd_nhop)) {
 			/* Old path is "better" (e.g. has PINNED flag set) */
 			RIB_WUNLOCK(rnh);
 			error = EEXIST;
@@ -837,8 +878,8 @@ add_route_flags(struct rib_head *rnh, struct rtentry *rt, struct route_nhop_data
 	    nhop_can_multipath(rnd_orig.rnd_nhop)) {
 
 		for (int i = 0; i < RIB_MAX_RETRIES; i++) {
-			error = add_route_flags_mpath(rnh, rt_orig, rnd_add, &rnd_orig,
-			    op_flags, rc);
+			error = add_route_flags_mpath(rnh, rt_orig, rnd_add,
+			    &rnd_orig, op_flags, rc);
 			if (error != EAGAIN)
 				break;
 			RTSTAT_INC(rts_add_retry);
@@ -903,7 +944,8 @@ add_route_flags_mpath(struct rib_head *rnh, struct rtentry *rt,
 		 * outbound connections hashing.
 		 */
 		if (bootverbose)
-			printf("FIB: enabled flowid calculation for locally-originated packets\n");
+			printf(
+			    "FIB: enabled flowid calculation for locally-originated packets\n");
 		V_fib_hash_outbound = 1;
 	}
 
@@ -918,7 +960,8 @@ add_route_flags_mpath(struct rib_head *rnh, struct rtentry *rt,
  * Returns 0 on success and fills in operation metadata into @rc.
  */
 int
-rib_del_route(uint32_t fibnum, struct rt_addrinfo *info, struct rib_cmd_info *rc)
+rib_del_route(uint32_t fibnum, struct rt_addrinfo *info,
+    struct rib_cmd_info *rc)
 {
 	struct rib_head *rnh;
 	struct sockaddr *dst, *netmask;
@@ -940,7 +983,8 @@ rib_del_route(uint32_t fibnum, struct rt_addrinfo *info, struct rib_cmd_info *rc
 	if (netmask != NULL) {
 		/* Ensure @dst is always properly masked */
 		if (dst->sa_len > sizeof(mdst)) {
-			FIB_RH_LOG(LOG_DEBUG, rnh, "error: dst->sa_len too large");
+			FIB_RH_LOG(LOG_DEBUG, rnh,
+			    "error: dst->sa_len too large");
 			return (EINVAL);
 		}
 		rt_maskedcopy(dst, (struct sockaddr *)&mdst, netmask);
@@ -1000,8 +1044,8 @@ rib_del_route(uint32_t fibnum, struct rt_addrinfo *info, struct rib_cmd_info *rc
  * EADDRINUSE - if trying to delete higher priority route.
  */
 static int
-rt_delete_conditional(struct rib_head *rnh, struct rtentry *rt,
-    int prio, rib_filter_f_t *cb, void *cbdata, struct rib_cmd_info *rc)
+rt_delete_conditional(struct rib_head *rnh, struct rtentry *rt, int prio,
+    rib_filter_f_t *cb, void *cbdata, struct rib_cmd_info *rc)
 {
 	struct nhop_object *nh = rt->rt_nhop;
 
@@ -1013,10 +1057,12 @@ rt_delete_conditional(struct rib_head *rnh, struct rtentry *rt,
 
 		if (cb == NULL)
 			return (ESRCH);
-		error = nhgrp_get_filtered_group(rnh, rt, nhg, cb, cbdata, &rnd);
+		error = nhgrp_get_filtered_group(rnh, rt, nhg, cb, cbdata,
+		    &rnd);
 		if (error == 0) {
 			if (rnd.rnd_nhgrp == nhg) {
-				/* No match, unreference new group and return. */
+				/* No match, unreference new group and return.
+				 */
 				nhop_free_any(rnd.rnd_nhop);
 				return (ESRCH);
 			}
@@ -1108,10 +1154,11 @@ change_nhop(struct rib_head *rnh, struct rt_addrinfo *info,
 	 * by ll sockaddr when protocol address is ambiguous
 	 */
 	if (((nh_orig->nh_flags & NHF_GATEWAY) &&
-	    info->rti_info[RTAX_GATEWAY] != NULL) ||
+		info->rti_info[RTAX_GATEWAY] != NULL) ||
 	    info->rti_info[RTAX_IFP] != NULL ||
 	    (info->rti_info[RTAX_IFA] != NULL &&
-	     !sa_equal(info->rti_info[RTAX_IFA], nh_orig->nh_ifa->ifa_addr))) {
+		!sa_equal(info->rti_info[RTAX_IFA],
+		    nh_orig->nh_ifa->ifa_addr))) {
 		error = rt_getifa_fib(info, rnh->rib_fibnum);
 
 		if (error != 0) {
@@ -1155,8 +1202,8 @@ change_mpath_route(struct rib_head *rnh, struct rtentry *rt,
 	if (error != 0)
 		return (error);
 
-	wn_new = mallocarray(num_nhops, sizeof(struct weightened_nhop),
-	    M_TEMP, M_NOWAIT | M_ZERO);
+	wn_new = mallocarray(num_nhops, sizeof(struct weightened_nhop), M_TEMP,
+	    M_NOWAIT | M_ZERO);
 	if (wn_new == NULL) {
 		nhop_free(nh_new);
 		return (EAGAIN);
@@ -1211,8 +1258,8 @@ change_route_byinfo(struct rib_head *rnh, struct rtentry *rt,
  * Returns 0 on success and stores operation results in @rc.
  */
 static int
-add_route(struct rib_head *rnh, struct rtentry *rt,
-    struct route_nhop_data *rnd, struct rib_cmd_info *rc)
+add_route(struct rib_head *rnh, struct rtentry *rt, struct route_nhop_data *rnd,
+    struct rib_cmd_info *rc)
 {
 	struct radix_node *rn;
 
@@ -1220,10 +1267,12 @@ add_route(struct rib_head *rnh, struct rtentry *rt,
 
 	rt->rt_nhop = rnd->rnd_nhop;
 	rt->rt_weight = rnd->rnd_weight;
-	rn = rnh->rnh_addaddr(rt_key(rt), rt_mask_const(rt), &rnh->head, rt->rt_nodes);
+	rn = rnh->rnh_addaddr(rt_key(rt), rt_mask_const(rt), &rnh->head,
+	    rt->rt_nodes);
 
 	if (rn != NULL) {
-		if (!NH_IS_NHGRP(rnd->rnd_nhop) && nhop_get_expire(rnd->rnd_nhop))
+		if (!NH_IS_NHGRP(rnd->rnd_nhop) &&
+		    nhop_get_expire(rnd->rnd_nhop))
 			tmproutes_update(rnh, rt, rnd->rnd_nhop);
 
 		/* Finalize notification */
@@ -1324,10 +1373,13 @@ change_route_conditional(struct rib_head *rnh, struct rtentry *rt,
 	struct rtentry *rt_new;
 	int error = 0;
 
-	IF_DEBUG_LEVEL(LOG_DEBUG2) {
+	IF_DEBUG_LEVEL(LOG_DEBUG2)
+	{
 		char buf_old[NHOP_PRINT_BUFSIZE], buf_new[NHOP_PRINT_BUFSIZE];
-		nhop_print_buf_any(rnd_orig->rnd_nhop, buf_old, NHOP_PRINT_BUFSIZE);
-		nhop_print_buf_any(rnd_new->rnd_nhop, buf_new, NHOP_PRINT_BUFSIZE);
+		nhop_print_buf_any(rnd_orig->rnd_nhop, buf_old,
+		    NHOP_PRINT_BUFSIZE);
+		nhop_print_buf_any(rnd_new->rnd_nhop, buf_new,
+		    NHOP_PRINT_BUFSIZE);
 		FIB_LOG(LOG_DEBUG2, rnh->rib_fibnum, rnh->rib_family,
 		    "trying change %s -> %s", buf_old, buf_new);
 	}
@@ -1410,8 +1462,7 @@ rib_action(uint32_t fibnum, int action, struct rt_addrinfo *info,
 	return (error);
 }
 
-struct rt_delinfo
-{
+struct rt_delinfo {
 	struct rib_head *rnh;
 	struct rtentry *head;
 	rib_filter_f_t *filter_f;
@@ -1430,8 +1481,8 @@ rt_checkdelroute(struct radix_node *rn, void *arg)
 	struct rt_delinfo *di = (struct rt_delinfo *)arg;
 	struct rtentry *rt = (struct rtentry *)rn;
 
-	if (rt_delete_conditional(di->rnh, rt, di->prio,
-	    di->filter_f, di->filter_arg, &di->rc) != 0)
+	if (rt_delete_conditional(di->rnh, rt, di->prio, di->filter_f,
+		di->filter_arg, &di->rc) != 0)
 		return (0);
 
 	/*
@@ -1468,8 +1519,8 @@ rt_checkdelroute(struct radix_node *rn, void *arg)
  * @report: true if rtsock notification is needed.
  */
 void
-rib_walk_del(u_int fibnum, int family, rib_filter_f_t *filter_f, void *filter_arg,
-    bool report)
+rib_walk_del(u_int fibnum, int family, rib_filter_f_t *filter_f,
+    void *filter_arg, bool report)
 {
 	struct rib_head *rnh;
 	struct rtentry *rt;
@@ -1515,10 +1566,11 @@ rib_walk_del(u_int fibnum, int family, rib_filter_f_t *filter_f, void *filter_ar
 				nhg = (struct nhgrp_object *)nh;
 				wn = nhgrp_get_nhops(nhg, &num_nhops);
 				for (int i = 0; i < num_nhops; i++)
-					rt_routemsg(RTM_DELETE, rt, wn[i].nh, fibnum);
+					rt_routemsg(RTM_DELETE, rt, wn[i].nh,
+					    fibnum);
 			} else
 #endif
-			rt_routemsg(RTM_DELETE, rt, nh, fibnum);
+				rt_routemsg(RTM_DELETE, rt, nh, fibnum);
 		}
 		rt_free(rt);
 	}
@@ -1575,4 +1627,3 @@ rib_print_family(int family)
 	}
 	return ("unknown");
 }
-

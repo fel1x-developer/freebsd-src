@@ -29,37 +29,37 @@
 struct ifa_msghdr;
 
 struct iface_addr {
-  unsigned system : 1;		/* System alias ? */
-  struct ncprange ifa;		/* local address/mask */
-  struct ncpaddr peer;		/* peer address */
+	unsigned system : 1; /* System alias ? */
+	struct ncprange ifa; /* local address/mask */
+	struct ncpaddr peer; /* peer address */
 };
 
 struct iface {
-  char *name;			/* Interface name (malloc'd) */
-  char *descr;			/* Interface description (malloc'd) */
-  int index;			/* Interface index */
-  int flags;			/* Interface flags (IFF_*) */
-  unsigned long mtu;		/* struct tuninfo MTU */
+	char *name;	   /* Interface name (malloc'd) */
+	char *descr;	   /* Interface description (malloc'd) */
+	int index;	   /* Interface index */
+	int flags;	   /* Interface flags (IFF_*) */
+	unsigned long mtu; /* struct tuninfo MTU */
 
-  unsigned addrs;		/* How many in_addr's */
-  struct iface_addr *addr;	/* Array of addresses (malloc'd) */
+	unsigned addrs;		 /* How many in_addr's */
+	struct iface_addr *addr; /* Array of addresses (malloc'd) */
 };
 
-#define IFACE_CLEAR_ALL		0	/* Nuke 'em all */
-#define IFACE_CLEAR_ALIASES	1	/* Leave the NCP address */
+#define IFACE_CLEAR_ALL 0     /* Nuke 'em all */
+#define IFACE_CLEAR_ALIASES 1 /* Leave the NCP address */
 
-#define IFACE_ADD_LAST		0	/* Just another alias */
-#define IFACE_ADD_FIRST		1	/* The IPCP address */
-#define IFACE_FORCE_ADD		2	/* OR'd with IFACE_ADD_{FIRST,LAST} */
+#define IFACE_ADD_LAST 0  /* Just another alias */
+#define IFACE_ADD_FIRST 1 /* The IPCP address */
+#define IFACE_FORCE_ADD 2 /* OR'd with IFACE_ADD_{FIRST,LAST} */
 
-#define IFACE_SYSTEM		4	/* Set/clear SYSTEM entries */
+#define IFACE_SYSTEM 4 /* Set/clear SYSTEM entries */
 
 extern struct iface *iface_Create(const char *name);
 extern void iface_Clear(struct iface *, struct ncp *, int, int);
 extern int iface_Name(struct iface *, const char *);
 extern int iface_Descr(struct cmdargs const *);
 extern int iface_Add(struct iface *, struct ncp *, const struct ncprange *,
-                     const struct ncpaddr *, int);
+    const struct ncpaddr *, int);
 extern int iface_Delete(struct iface *, struct ncp *, const struct ncpaddr *);
 extern int iface_Show(struct cmdargs const *);
 extern int iface_SetFlags(const char *, int);

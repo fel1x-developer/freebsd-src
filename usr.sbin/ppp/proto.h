@@ -31,30 +31,30 @@
 /*
  *  Definition of protocol numbers
  */
-#define	PROTO_IP	0x0021	/* IP */
-#define	PROTO_VJUNCOMP	0x002f	/* VJ Uncompressed */
-#define	PROTO_VJCOMP	0x002d	/* VJ Compressed */
-#define	PROTO_MP	0x003d	/* Multilink fragment */
+#define PROTO_IP 0x0021	      /* IP */
+#define PROTO_VJUNCOMP 0x002f /* VJ Uncompressed */
+#define PROTO_VJCOMP 0x002d   /* VJ Compressed */
+#define PROTO_MP 0x003d	      /* Multilink fragment */
 #ifndef NOINET6
-#define	PROTO_IPV6	0x0057	/* IPv6 */
+#define PROTO_IPV6 0x0057 /* IPv6 */
 #endif
-#define	PROTO_ICOMPD	0x00fb	/* Individual link compressed */
-#define	PROTO_COMPD	0x00fd	/* Compressed datagram */
+#define PROTO_ICOMPD 0x00fb /* Individual link compressed */
+#define PROTO_COMPD 0x00fd  /* Compressed datagram */
 
 #define PROTO_COMPRESSIBLE(p) (((p) & 0xff81) == 0x01)
 
-#define	PROTO_IPCP	0x8021
+#define PROTO_IPCP 0x8021
 #ifndef NOINET6
-#define	PROTO_IPV6CP	0x8057
+#define PROTO_IPV6CP 0x8057
 #endif
-#define	PROTO_ICCP	0x80fb
-#define	PROTO_CCP	0x80fd
+#define PROTO_ICCP 0x80fb
+#define PROTO_CCP 0x80fd
 
-#define	PROTO_LCP	0xc021
-#define	PROTO_PAP	0xc023
-#define	PROTO_CBCP	0xc029
-#define	PROTO_LQR	0xc025
-#define	PROTO_CHAP	0xc223
+#define PROTO_LCP 0xc021
+#define PROTO_PAP 0xc023
+#define PROTO_CBCP 0xc029
+#define PROTO_LQR 0xc025
+#define PROTO_CHAP 0xc223
 
 struct lcp;
 

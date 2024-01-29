@@ -32,23 +32,22 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/conf.h>
 #include <sys/bus.h>
+#include <sys/conf.h>
 #include <sys/kernel.h>
 #include <sys/kthread.h>
-#include <sys/module.h>
 #include <sys/lock.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/resource.h>
 #include <sys/rman.h>
 
 #include <machine/bus.h>
 
-#include <dev/xdma/xdma.h>
-
 #include <dev/fdt/fdt_common.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/xdma/xdma.h>
 
 /*
  * To use this test add a compatible node to your dts, e.g.
@@ -62,24 +61,24 @@
  */
 
 struct xdmatest_softc {
-	device_t		dev;
-	xdma_controller_t	*xdma;
-	xdma_channel_t		*xchan;
-	void			*ih;
+	device_t dev;
+	xdma_controller_t *xdma;
+	xdma_channel_t *xchan;
+	void *ih;
 	struct intr_config_hook config_intrhook;
-	char			*src;
-	char			*dst;
-	uint32_t		len;
-	uintptr_t		src_phys;
-	uintptr_t		dst_phys;
-	bus_dma_tag_t		src_dma_tag;
-	bus_dmamap_t		src_dma_map;
-	bus_dma_tag_t		dst_dma_tag;
-	bus_dmamap_t		dst_dma_map;
-	struct mtx		mtx;
-	int			done;
-	struct proc		*newp;
-	struct xdma_request	req;
+	char *src;
+	char *dst;
+	uint32_t len;
+	uintptr_t src_phys;
+	uintptr_t dst_phys;
+	bus_dma_tag_t src_dma_tag;
+	bus_dmamap_t src_dma_map;
+	bus_dma_tag_t dst_dma_tag;
+	bus_dmamap_t dst_dma_map;
+	struct mtx mtx;
+	int done;
+	struct proc *newp;
+	struct xdma_request req;
 };
 
 static int xdmatest_probe(device_t dev);
@@ -110,7 +109,7 @@ xdmatest_dmamap_cb(void *arg, bus_dma_segment_t *segs, int nseg, int err)
 	if (err)
 		return;
 
-	addr = (bus_addr_t*)arg;
+	addr = (bus_addr_t *)arg;
 	*addr = segs[0].ds_addr;
 }
 
@@ -124,69 +123,65 @@ xdmatest_alloc_test_memory(struct xdmatest_softc *sc)
 
 	/* Source memory. */
 
-	err = bus_dma_tag_create(
-	    bus_get_dma_tag(sc->dev),
-	    1024, 0,			/* alignment, boundary */
-	    BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    sc->len, 1,			/* maxsize, nsegments*/
-	    sc->len, 0,			/* maxsegsize, flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	err = bus_dma_tag_create(bus_get_dma_tag(sc->dev), 1024,
+	    0,			     /* alignment, boundary */
+	    BUS_SPACE_MAXADDR_32BIT, /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filter, filterarg */
+	    sc->len, 1,		     /* maxsize, nsegments*/
+	    sc->len, 0,		     /* maxsegsize, flags */
+	    NULL, NULL,		     /* lockfunc, lockarg */
 	    &sc->src_dma_tag);
 	if (err) {
-		device_printf(sc->dev,
-		    "%s: Can't create bus_dma tag.\n", __func__);
+		device_printf(sc->dev, "%s: Can't create bus_dma tag.\n",
+		    __func__);
 		return (-1);
 	}
 
 	err = bus_dmamem_alloc(sc->src_dma_tag, (void **)&sc->src,
 	    BUS_DMA_WAITOK | BUS_DMA_COHERENT, &sc->src_dma_map);
 	if (err) {
-		device_printf(sc->dev,
-		    "%s: Can't allocate memory.\n", __func__);
+		device_printf(sc->dev, "%s: Can't allocate memory.\n",
+		    __func__);
 		return (-1);
 	}
 
 	err = bus_dmamap_load(sc->src_dma_tag, sc->src_dma_map, sc->src,
 	    sc->len, xdmatest_dmamap_cb, &sc->src_phys, BUS_DMA_WAITOK);
 	if (err) {
-		device_printf(sc->dev,
-		    "%s: Can't load DMA map.\n", __func__);
+		device_printf(sc->dev, "%s: Can't load DMA map.\n", __func__);
 		return (-1);
 	}
 
 	/* Destination memory. */
 
-	err = bus_dma_tag_create(
-	    bus_get_dma_tag(sc->dev),
-	    1024, 0,			/* alignment, boundary */
-	    BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    sc->len, 1,			/* maxsize, nsegments*/
-	    sc->len, 0,			/* maxsegsize, flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	err = bus_dma_tag_create(bus_get_dma_tag(sc->dev), 1024,
+	    0,			     /* alignment, boundary */
+	    BUS_SPACE_MAXADDR_32BIT, /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filter, filterarg */
+	    sc->len, 1,		     /* maxsize, nsegments*/
+	    sc->len, 0,		     /* maxsegsize, flags */
+	    NULL, NULL,		     /* lockfunc, lockarg */
 	    &sc->dst_dma_tag);
 	if (err) {
-		device_printf(sc->dev,
-		    "%s: Can't create bus_dma tag.\n", __func__);
+		device_printf(sc->dev, "%s: Can't create bus_dma tag.\n",
+		    __func__);
 		return (-1);
 	}
 
 	err = bus_dmamem_alloc(sc->dst_dma_tag, (void **)&sc->dst,
 	    BUS_DMA_WAITOK | BUS_DMA_COHERENT, &sc->dst_dma_map);
 	if (err) {
-		device_printf(sc->dev,
-		    "%s: Can't allocate memory.\n", __func__);
+		device_printf(sc->dev, "%s: Can't allocate memory.\n",
+		    __func__);
 		return (-1);
 	}
 
 	err = bus_dmamap_load(sc->dst_dma_tag, sc->dst_dma_map, sc->dst,
 	    sc->len, xdmatest_dmamap_cb, &sc->dst_phys, BUS_DMA_WAITOK);
 	if (err) {
-		device_printf(sc->dev,
-		    "%s: Can't load DMA map.\n", __func__);
+		device_printf(sc->dev, "%s: Can't load DMA map.\n", __func__);
 		return (-1);
 	}
 
@@ -259,12 +254,13 @@ xdmatest_verify(struct xdmatest_softc *sc)
 
 	/* We have memory updated by DMA controller. */
 	bus_dmamap_sync(sc->src_dma_tag, sc->src_dma_map, BUS_DMASYNC_POSTREAD);
-	bus_dmamap_sync(sc->dst_dma_tag, sc->dst_dma_map, BUS_DMASYNC_POSTWRITE);
+	bus_dmamap_sync(sc->dst_dma_tag, sc->dst_dma_map,
+	    BUS_DMASYNC_POSTWRITE);
 
 	for (i = 0; i < sc->len; i++) {
 		if (sc->dst[i] != sc->src[i]) {
-			device_printf(sc->dev,
-			    "%s: Test failed: iter %d\n", __func__, i);
+			device_printf(sc->dev, "%s: Test failed: iter %d\n",
+			    __func__, i);
 			return (-1);
 		}
 	}
@@ -305,8 +301,7 @@ xdmatest_worker(void *arg)
 
 		if (xdmatest_test(sc) != 0) {
 			mtx_unlock(&sc->mtx);
-			device_printf(sc->dev,
-			    "%s: Test failed.\n", __func__);
+			device_printf(sc->dev, "%s: Test failed.\n", __func__);
 			break;
 		}
 
@@ -326,8 +321,7 @@ xdmatest_worker(void *arg)
 		}
 
 		mtx_unlock(&sc->mtx);
-		device_printf(sc->dev,
-		    "%s: Test failed.\n", __func__);
+		device_printf(sc->dev, "%s: Test failed.\n", __func__);
 		break;
 	}
 }
@@ -340,9 +334,9 @@ xdmatest_delayed_attach(void *arg)
 	sc = arg;
 
 	if (kproc_create(xdmatest_worker, (void *)sc, &sc->newp, 0, 0,
-            "xdmatest_worker") != 0) {
-		device_printf(sc->dev,
-		    "%s: Failed to create worker thread.\n", __func__);
+		"xdmatest_worker") != 0) {
+		device_printf(sc->dev, "%s: Failed to create worker thread.\n",
+		    __func__);
 	}
 
 	config_intrhook_disestablish(&sc->config_intrhook);
@@ -410,9 +404,9 @@ xdmatest_detach(device_t dev)
 
 static device_method_t xdmatest_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,			xdmatest_probe),
-	DEVMETHOD(device_attach,		xdmatest_attach),
-	DEVMETHOD(device_detach,		xdmatest_detach),
+	DEVMETHOD(device_probe, xdmatest_probe),
+	DEVMETHOD(device_attach, xdmatest_attach),
+	DEVMETHOD(device_detach, xdmatest_detach),
 
 	DEVMETHOD_END
 };

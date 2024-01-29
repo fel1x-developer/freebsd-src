@@ -26,12 +26,14 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/time.h>
+
+#include <assert.h>
 #include <namespace.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <wchar.h>
-#include <stdint.h>
-#include <assert.h>
-#include <sys/time.h>
+
 #include "printf.h"
 
 int
@@ -45,7 +47,8 @@ __printf_arginfo_hexdump(const struct printf_info *pi, size_t n, int *argt)
 }
 
 int
-__printf_render_hexdump(struct __printf_io *io, const struct printf_info *pi, const void *const *arg)
+__printf_render_hexdump(struct __printf_io *io, const struct printf_info *pi,
+    const void *const *arg)
 {
 	unsigned char *p;
 	int i;

@@ -28,7 +28,7 @@
 
 #include <dev/random/fenestrasX/fx_rng.h>
 
-#define	FXRNG_BUFRNG_SZ	128
+#define FXRNG_BUFRNG_SZ 128
 
 /*
  * An object representing a buffered random number generator with forward
@@ -39,19 +39,19 @@
  * in NUMA-local memory, seeded from output of the root generator.
  */
 struct fxrng_buffered_rng {
-	struct fxrng_basic_rng	brng_rng;
-#define	FXRNG_BRNG_LOCK(brng)	mtx_lock(&(brng)->brng_rng.rng_lk)
-#define	FXRNG_BRNG_UNLOCK(brng)	mtx_unlock(&(brng)->brng_rng.rng_lk)
-#define	FXRNG_BRNG_ASSERT(brng)	mtx_assert(&(brng)->brng_rng.rng_lk, MA_OWNED)
-#define	FXRNG_BRNG_ASSERT_NOT(brng) \
+	struct fxrng_basic_rng brng_rng;
+#define FXRNG_BRNG_LOCK(brng) mtx_lock(&(brng)->brng_rng.rng_lk)
+#define FXRNG_BRNG_UNLOCK(brng) mtx_unlock(&(brng)->brng_rng.rng_lk)
+#define FXRNG_BRNG_ASSERT(brng) mtx_assert(&(brng)->brng_rng.rng_lk, MA_OWNED)
+#define FXRNG_BRNG_ASSERT_NOT(brng) \
 	mtx_assert(&(brng)->brng_rng.rng_lk, MA_NOTOWNED)
 
 	/* Entropy reseed generation ("seed version"). */
-	uint64_t	brng_generation;
+	uint64_t brng_generation;
 
 	/* Buffered output for quick access by small requests. */
-	uint8_t		brng_buffer[FXRNG_BUFRNG_SZ];
-	uint8_t		brng_avail_idx;
+	uint8_t brng_buffer[FXRNG_BUFRNG_SZ];
+	uint8_t brng_avail_idx;
 };
 
 void fxrng_brng_init(struct fxrng_buffered_rng *);

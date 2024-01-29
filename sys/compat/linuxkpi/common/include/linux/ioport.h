@@ -31,10 +31,10 @@
 #include <linux/compiler.h>
 #include <linux/types.h>
 
-#define DEFINE_RES_MEM(_start, _size)		\
-	(struct resource) {			\
-		.start = (_start),		\
-		.end = (_start) + (_size) - 1,	\
+#define DEFINE_RES_MEM(_start, _size)                           \
+	(struct resource)                                       \
+	{                                                       \
+		.start = (_start), .end = (_start) + (_size)-1, \
 	}
 
 struct resource {

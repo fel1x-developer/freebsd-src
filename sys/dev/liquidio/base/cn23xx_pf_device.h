@@ -47,24 +47,24 @@
  */
 struct lio_cn23xx_pf {
 	/* PCI interrupt summary register */
-	uint32_t	intr_sum_reg64;
+	uint32_t intr_sum_reg64;
 
 	/* PCI interrupt enable register */
-	uint32_t	intr_enb_reg64;
+	uint32_t intr_enb_reg64;
 
 	/* The PCI interrupt mask used by interrupt handler */
-	uint64_t	intr_mask64;
+	uint64_t intr_mask64;
 
 	struct lio_config *conf;
 };
 
-#define BUSY_READING_REG_PF_LOOP_COUNT	10000
+#define BUSY_READING_REG_PF_LOOP_COUNT 10000
 
-int	lio_cn23xx_pf_setup_device(struct octeon_device *oct);
+int lio_cn23xx_pf_setup_device(struct octeon_device *oct);
 
-uint32_t	lio_cn23xx_pf_get_oq_ticks(struct octeon_device *oct,
-					   uint32_t time_intr_in_us);
+uint32_t lio_cn23xx_pf_get_oq_ticks(struct octeon_device *oct,
+    uint32_t time_intr_in_us);
 
-int	lio_cn23xx_pf_fw_loaded(struct octeon_device *oct);
+int lio_cn23xx_pf_fw_loaded(struct octeon_device *oct);
 
-#endif	/* __CN23XX_PF_DEVICE_H__ */
+#endif /* __CN23XX_PF_DEVICE_H__ */

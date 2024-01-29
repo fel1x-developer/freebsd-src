@@ -30,10 +30,10 @@
 #include <sys/queue.h>
 
 #include <assert.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pthread.h>
 
 #include "usb_emul.h"
 
@@ -44,7 +44,8 @@ usb_emu_finddev(const char *name)
 {
 	struct usb_devemu **udpp, *udp;
 
-	SET_FOREACH(udpp, usb_emu_set) {
+	SET_FOREACH(udpp, usb_emu_set)
+	{
 		udp = *udpp;
 		if (!strcmp(udp->ue_emu, name))
 			return (udp);
@@ -55,7 +56,7 @@ usb_emu_finddev(const char *name)
 
 struct usb_data_xfer_block *
 usb_data_xfer_append(struct usb_data_xfer *xfer, void *buf, int blen,
-                     void *hci_data, int ccs)
+    void *hci_data, int ccs)
 {
 	struct usb_data_xfer_block *xb;
 

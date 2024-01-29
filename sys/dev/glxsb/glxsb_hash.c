@@ -38,8 +38,8 @@
  * Implementation notes.
  *
  * The Geode LX Security Block provides AES-128-CBC acceleration.
- * We implement all HMAC algorithms provided by crypto(9) framework so glxsb can work
- * with ipsec(4)
+ * We implement all HMAC algorithms provided by crypto(9) framework so glxsb can
+ * work with ipsec(4)
  *
  * This code was stolen from crypto/via/padlock_hash.c
  */
@@ -77,7 +77,7 @@ glxsb_authcompute(struct glxsb_session *ses, struct cryptop *crp)
 	    crp->crp_payload_length, axf->Update, &ctx);
 	if (error != 0)
 		return (error);
-	
+
 	axf->Final(hash, &ctx);
 
 	bcopy(ses->ses_octx, &ctx, axf->ctxsize);

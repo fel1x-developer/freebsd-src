@@ -98,18 +98,19 @@
  *        this VM.
  */
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/malloc.h>
-
 #include <sys/bio.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/disk.h>
+#include <sys/eventhandler.h>
 #include <sys/fcntl.h>
 #include <sys/filedesc.h>
 #include <sys/kdb.h>
+#include <sys/kernel.h>
+#include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/mount.h>
 #include <sys/namei.h>
@@ -117,17 +118,14 @@
 #include <sys/reboot.h>
 #include <sys/rman.h>
 #include <sys/sched.h>
-#include <sys/taskqueue.h>
-#include <sys/types.h>
-#include <sys/vnode.h>
-#include <sys/sched.h>
 #include <sys/smp.h>
-#include <sys/eventhandler.h>
+#include <sys/taskqueue.h>
 #include <sys/timetc.h>
-
-#include <geom/geom.h>
+#include <sys/vnode.h>
 
 #include <machine/_inttypes.h>
+
+#include <geom/geom.h>
 #if defined(__amd64__) || defined(__i386__)
 #include <machine/intr_machdep.h>
 
@@ -138,23 +136,21 @@
 #include <vm/vm_extern.h>
 #include <vm/vm_kern.h>
 
-#include <xen/xen-os.h>
 #include <xen/blkif.h>
 #include <xen/evtchn.h>
 #include <xen/gnttab.h>
-#include <xen/xen_intr.h>
-
 #include <xen/hvm.h>
+#include <xen/xen-os.h>
+#include <xen/xen_intr.h>
+#include <xen/xenbus/xenbusvar.h>
 
 #include <contrib/xen/event_channel.h>
 #include <contrib/xen/grant_table.h>
 
-#include <xen/xenbus/xenbusvar.h>
-
 bool xen_suspend_cancelled;
 /*--------------------------- Forward Declarations --------------------------*/
 /** Function signature for shutdown event handlers. */
-typedef	void (xctrl_shutdown_handler_t)(void);
+typedef void(xctrl_shutdown_handler_t)(void);
 
 static xctrl_shutdown_handler_t xctrl_poweroff;
 static xctrl_shutdown_handler_t xctrl_reboot;
@@ -164,28 +160,28 @@ static xctrl_shutdown_handler_t xctrl_crash;
 /*-------------------------- Private Data Structures -------------------------*/
 /** Element type for lookup table of event name to handler. */
 struct xctrl_shutdown_reason {
-	const char		 *name;
+	const char *name;
 	xctrl_shutdown_handler_t *handler;
 };
 
 /** Lookup table for shutdown event name to handler. */
 static const struct xctrl_shutdown_reason xctrl_shutdown_reasons[] = {
 	{ "poweroff", xctrl_poweroff },
-	{ "reboot",   xctrl_reboot   },
-	{ "suspend",  xctrl_suspend  },
-	{ "crash",    xctrl_crash    },
-	{ "halt",     xctrl_poweroff },
+	{ "reboot", xctrl_reboot },
+	{ "suspend", xctrl_suspend },
+	{ "crash", xctrl_crash },
+	{ "halt", xctrl_poweroff },
 };
 
 struct xctrl_softc {
-	struct xs_watch    xctrl_watch;	
+	struct xs_watch xctrl_watch;
 };
 
 /*------------------------------ Event Handlers ------------------------------*/
 static void
 xctrl_poweroff(void)
 {
-	shutdown_nice(RB_POWEROFF|RB_HALT);
+	shutdown_nice(RB_POWEROFF | RB_HALT);
 }
 
 static void
@@ -251,7 +247,7 @@ xctrl_suspend(void)
 	if (!CPU_EMPTY(&cpu_suspend_map))
 		suspend_cpus(cpu_suspend_map);
 #else
-	CPU_ZERO(&cpu_suspend_map);	/* silence gcc */
+	CPU_ZERO(&cpu_suspend_map); /* silence gcc */
 	if (smp_started) {
 		/*
 		 * Suspend other CPUs. This prevents IPIs while we
@@ -334,7 +330,6 @@ xctrl_suspend(void)
 
 	if (bootverbose)
 		printf("System resumed after suspension\n");
-
 }
 #endif /* __amd64__ || __i386__ */
 
@@ -367,11 +362,11 @@ xctrl_on_watch_event(struct xs_watch *watch, const char **vec, unsigned int len)
 	const struct xctrl_shutdown_reason *reason;
 	const struct xctrl_shutdown_reason *last_reason;
 	char *result;
-	int   error;
-	int   result_len;
+	int error;
+	int result_len;
 
-	error = xs_read(XST_NIL, "control", "shutdown",
-			&result_len, (void **)&result);
+	error = xs_read(XST_NIL, "control", "shutdown", &result_len,
+	    (void **)&result);
 	if (error != 0 || result_len == 0)
 		return;
 
@@ -417,7 +412,7 @@ xctrl_identify(driver_t *driver, device_t parent)
  *
  * \return  Always returns 0 indicating success.
  */
-static int 
+static int
 xctrl_probe(device_t dev)
 {
 	device_set_desc(dev, "Xen Control Device");
@@ -480,15 +475,15 @@ xctrl_detach(device_t dev)
 }
 
 /*-------------------- Private Device Attachment Data  -----------------------*/
-static device_method_t xctrl_methods[] = { 
-	/* Device interface */ 
-	DEVMETHOD(device_identify,	xctrl_identify),
-	DEVMETHOD(device_probe,         xctrl_probe), 
-	DEVMETHOD(device_attach,        xctrl_attach), 
-	DEVMETHOD(device_detach,        xctrl_detach), 
+static device_method_t xctrl_methods[] = {
+	/* Device interface */
+	DEVMETHOD(device_identify, xctrl_identify),
+	DEVMETHOD(device_probe, xctrl_probe),
+	DEVMETHOD(device_attach, xctrl_attach),
+	DEVMETHOD(device_detach, xctrl_detach),
 
 	DEVMETHOD_END
-}; 
+};
 
 DEFINE_CLASS_0(xctrl, xctrl_driver, xctrl_methods, sizeof(struct xctrl_softc));
 

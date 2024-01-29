@@ -24,26 +24,26 @@
  * Use is subject to license terms.
  */
 
-#ifndef	_SYS_FASTTRAP_H
-#define	_SYS_FASTTRAP_H
+#ifndef _SYS_FASTTRAP_H
+#define _SYS_FASTTRAP_H
 
-#pragma ident	"%Z%%M%	%I%	%E% SMI"
+#pragma ident "%Z%%M%	%I%	%E% SMI"
 
-#include <sys/fasttrap_isa.h>
-#include <sys/dtrace.h>
 #include <sys/types.h>
+#include <sys/dtrace.h>
+#include <sys/fasttrap_isa.h>
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
 #ifdef illumos
-#define	FASTTRAPIOC		(('m' << 24) | ('r' << 16) | ('f' << 8))
-#define	FASTTRAPIOC_MAKEPROBE	(FASTTRAPIOC | 1)
-#define	FASTTRAPIOC_GETINSTR	(FASTTRAPIOC | 2)
+#define FASTTRAPIOC (('m' << 24) | ('r' << 16) | ('f' << 8))
+#define FASTTRAPIOC_MAKEPROBE (FASTTRAPIOC | 1)
+#define FASTTRAPIOC_GETINSTR (FASTTRAPIOC | 2)
 #else
-#define	FASTTRAPIOC_GETINSTR	_IO('f', 2)
-#define	FASTTRAPIOC_MAKEPROBE	_IO('f', 3)
+#define FASTTRAPIOC_GETINSTR _IO('f', 2)
+#define FASTTRAPIOC_MAKEPROBE _IO('f', 3)
 #endif
 
 typedef enum fasttrap_probe_type {
@@ -56,22 +56,22 @@ typedef enum fasttrap_probe_type {
 } fasttrap_probe_type_t;
 
 typedef struct fasttrap_probe_spec {
-	pid_t			ftps_pid;
-	fasttrap_probe_type_t	ftps_type;
+	pid_t ftps_pid;
+	fasttrap_probe_type_t ftps_type;
 
-	char			ftps_func[DTRACE_FUNCNAMELEN];
-	char			ftps_mod[DTRACE_MODNAMELEN];
+	char ftps_func[DTRACE_FUNCNAMELEN];
+	char ftps_mod[DTRACE_MODNAMELEN];
 
-	uint64_t		ftps_pc;
-	uint64_t		ftps_size;
-	uint64_t		ftps_noffs;
-	uint64_t		ftps_offs[1];
+	uint64_t ftps_pc;
+	uint64_t ftps_size;
+	uint64_t ftps_noffs;
+	uint64_t ftps_offs[1];
 } fasttrap_probe_spec_t;
 
 typedef struct fasttrap_instr_query {
-	uint64_t		ftiq_pc;
-	pid_t			ftiq_pid;
-	fasttrap_instr_t	ftiq_instr;
+	uint64_t ftiq_pc;
+	pid_t ftiq_pid;
+	fasttrap_instr_t ftiq_instr;
 } fasttrap_instr_query_t;
 
 /*
@@ -89,10 +89,10 @@ typedef struct fasttrap_instr_query {
  * elfexec() function only has to look for the latest version of the
  * PT_SUNWDTRACE program header.
  */
-#define	PT_SUNWDTRACE_SIZE	FASTTRAP_SUNWDTRACE_SIZE
+#define PT_SUNWDTRACE_SIZE FASTTRAP_SUNWDTRACE_SIZE
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* _SYS_FASTTRAP_H */
+#endif /* _SYS_FASTTRAP_H */

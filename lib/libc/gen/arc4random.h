@@ -26,8 +26,9 @@
 #include <sys/endian.h>
 #include <sys/mman.h>
 #if ARC4RANDOM_FXRNG != 0
-#include <sys/time.h>	/* for sys/vdso.h only. */
+#include <sys/time.h> /* for sys/vdso.h only. */
 #include <sys/vdso.h>
+
 #include <machine/atomic.h>
 #endif
 
@@ -50,21 +51,21 @@
  * As is, it takes roughly 456,000 years of runtime to overflow the 32-bit
  * version.
  */
-#define	fxrng_load_acq_generation(x)	atomic_load_acq_32(x)
+#define fxrng_load_acq_generation(x) atomic_load_acq_32(x)
 static struct vdso_fxrng_generation_1 *vdso_fxrngp;
 #endif
 
-static pthread_mutex_t	arc4random_mtx = PTHREAD_MUTEX_INITIALIZER;
-#define	_ARC4_LOCK()						\
-	do {							\
-		if (__isthreaded)				\
-			_pthread_mutex_lock(&arc4random_mtx);	\
+static pthread_mutex_t arc4random_mtx = PTHREAD_MUTEX_INITIALIZER;
+#define _ARC4_LOCK()                                          \
+	do {                                                  \
+		if (__isthreaded)                             \
+			_pthread_mutex_lock(&arc4random_mtx); \
 	} while (0)
 
-#define	_ARC4_UNLOCK()						\
-	do {							\
-		if (__isthreaded)				\
-			_pthread_mutex_unlock(&arc4random_mtx);	\
+#define _ARC4_UNLOCK()                                          \
+	do {                                                    \
+		if (__isthreaded)                               \
+			_pthread_mutex_unlock(&arc4random_mtx); \
 	} while (0)
 
 static inline void
@@ -105,10 +106,10 @@ _rs_allocate(struct _rs **rsp, struct _rsx **rsxp)
 		struct _rsx rsx;
 	} *p;
 
-	if ((p = mmap(NULL, sizeof(*p), PROT_READ|PROT_WRITE,
-	    MAP_ANON|MAP_PRIVATE, -1, 0)) == MAP_FAILED)
+	if ((p = mmap(NULL, sizeof(*p), PROT_READ | PROT_WRITE,
+		 MAP_ANON | MAP_PRIVATE, -1, 0)) == MAP_FAILED)
 		return (-1);
-	/* Allow bootstrapping arc4random.c on Linux/macOS */
+		/* Allow bootstrapping arc4random.c on Linux/macOS */
 #ifdef INHERIT_ZERO
 	if (minherit(p, sizeof(*p), INHERIT_ZERO) == -1) {
 		munmap(p, sizeof(*p));
@@ -140,7 +141,7 @@ _rs_forkdetect(void)
 	if (vdso_fxrngp == NULL)
 		return;
 	if (__predict_true(rsx->rs_seed_generation ==
-	    fxrng_load_acq_generation(&vdso_fxrngp->fx_generation32)))
+		fxrng_load_acq_generation(&vdso_fxrngp->fx_generation32)))
 		return;
 #endif
 	/* Invalidate rs_buf to force "stir" (reseed). */

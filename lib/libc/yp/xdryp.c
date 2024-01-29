@@ -45,13 +45,14 @@ extern void *ypresp_data;
  */
 typedef struct {
 	char *dptr;
-	int  dsize;
+	int dsize;
 } datum;
 
 bool_t
 xdr_datum(XDR *xdrs, datum *objp)
 {
-	if (!xdr_bytes(xdrs, (char **)&objp->dptr, (u_int *)&objp->dsize, YPMAXRECORD)) {
+	if (!xdr_bytes(xdrs, (char **)&objp->dptr, (u_int *)&objp->dsize,
+		YPMAXRECORD)) {
 		return (FALSE);
 	}
 	return (TRUE);
@@ -80,16 +81,18 @@ xdr_ypresp_all_seq(XDR *xdrs, u_long *objp)
 		status = out.ypresp_all_u.val.stat;
 		switch (status) {
 		case YP_TRUE:
-			key = (char *)malloc(out.ypresp_all_u.val.key.keydat_len + 1);
+			key = (char *)malloc(
+			    out.ypresp_all_u.val.key.keydat_len + 1);
 			if (key == NULL) {
 				xdr_free((xdrproc_t)xdr_ypresp_all, &out);
 				*objp = YP_YPERR;
 				return (FALSE);
 			}
 			bcopy(out.ypresp_all_u.val.key.keydat_val, key,
-				out.ypresp_all_u.val.key.keydat_len);
+			    out.ypresp_all_u.val.key.keydat_len);
 			key[out.ypresp_all_u.val.key.keydat_len] = '\0';
-			val = (char *)malloc(out.ypresp_all_u.val.val.valdat_len + 1);
+			val = (char *)malloc(
+			    out.ypresp_all_u.val.val.valdat_len + 1);
 			if (val == NULL) {
 				free(key);
 				xdr_free((xdrproc_t)xdr_ypresp_all, &out);
@@ -97,14 +100,13 @@ xdr_ypresp_all_seq(XDR *xdrs, u_long *objp)
 				return (FALSE);
 			}
 			bcopy(out.ypresp_all_u.val.val.valdat_val, val,
-				out.ypresp_all_u.val.val.valdat_len);
+			    out.ypresp_all_u.val.val.valdat_len);
 			val[out.ypresp_all_u.val.val.valdat_len] = '\0';
 			xdr_free((xdrproc_t)xdr_ypresp_all, &out);
 
-			r = (*ypresp_allfn)(status,
-				key, out.ypresp_all_u.val.key.keydat_len,
-				val, out.ypresp_all_u.val.val.valdat_len,
-				ypresp_data);
+			r = (*ypresp_allfn)(status, key,
+			    out.ypresp_all_u.val.key.keydat_len, val,
+			    out.ypresp_all_u.val.val.valdat_len, ypresp_data);
 			*objp = status;
 			free(key);
 			free(val);

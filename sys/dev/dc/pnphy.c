@@ -42,59 +42,51 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
+#include <sys/bus.h>
 #include <sys/errno.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/bus.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
-#include <net/if_media.h>
-
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include "miidevs.h"
+#include <sys/socket.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
 
 #include <dev/dc/if_dcreg.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
+
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_media.h>
+#include <net/if_var.h>
 
 #include "miibus_if.h"
+#include "miidevs.h"
 
 static int pnphy_probe(device_t);
 static int pnphy_attach(device_t);
 
 static device_method_t pnphy_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		pnphy_probe),
-	DEVMETHOD(device_attach,	pnphy_attach),
-	DEVMETHOD(device_detach,	mii_phy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, pnphy_probe),
+	DEVMETHOD(device_attach, pnphy_attach),
+	DEVMETHOD(device_detach, mii_phy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), DEVMETHOD_END
 };
 
-static driver_t pnphy_driver = {
-	"pnphy",
-	pnphy_methods,
-	sizeof(struct mii_softc)
-};
+static driver_t pnphy_driver = { "pnphy", pnphy_methods,
+	sizeof(struct mii_softc) };
 
 DRIVER_MODULE(pnphy, miibus, pnphy_driver, 0, 0);
 
-static int	pnphy_service(struct mii_softc *, struct mii_data *, int);
-static void	pnphy_status(struct mii_softc *);
-static void	pnphy_reset(struct mii_softc *);
+static int pnphy_service(struct mii_softc *, struct mii_data *, int);
+static void pnphy_status(struct mii_softc *);
+static void pnphy_reset(struct mii_softc *);
 
-static const struct mii_phy_funcs pnphy_funcs = {
-	pnphy_service,
-	pnphy_status,
-	pnphy_reset
-};
+static const struct mii_phy_funcs pnphy_funcs = { pnphy_service, pnphy_status,
+	pnphy_reset };
 
 static int
 pnphy_probe(device_t dev)
@@ -107,8 +99,7 @@ pnphy_probe(device_t dev)
 	 * The dc driver will report the 82c168 vendor and device
 	 * ID to let us know that it wants us to attach.
 	 */
-	if (ma->mii_id1 != DC_VENDORID_LO ||
-	    ma->mii_id2 != DC_DEVICEID_82C168)
+	if (ma->mii_id1 != DC_VENDORID_LO || ma->mii_id2 != DC_DEVICEID_82C168)
 		return (ENXIO);
 
 	device_set_desc(dev, "PNIC 82c168 media interface");
@@ -123,11 +114,11 @@ pnphy_attach(device_t dev)
 
 	sc = device_get_softc(dev);
 
-	mii_phy_dev_attach(dev, MIIF_NOISOLATE | MIIF_NOMANPAUSE,
-	    &pnphy_funcs, 0);
+	mii_phy_dev_attach(dev, MIIF_NOISOLATE | MIIF_NOMANPAUSE, &pnphy_funcs,
+	    0);
 
-	sc->mii_capabilities =
-	    BMSR_100TXFDX | BMSR_100TXHDX | BMSR_10TFDX | BMSR_10THDX;
+	sc->mii_capabilities = BMSR_100TXFDX | BMSR_100TXHDX | BMSR_10TFDX |
+	    BMSR_10THDX;
 	sc->mii_capabilities &= sc->mii_capmask;
 	device_printf(dev, " ");
 	mii_phy_add_media(sc);
@@ -197,7 +188,7 @@ pnphy_status(struct mii_softc *sc)
 {
 	struct mii_data *mii = sc->mii_pdata;
 	int reg;
-	struct dc_softc		*dc_sc;
+	struct dc_softc *dc_sc;
 
 	dc_sc = if_getsoftc(mii->mii_ifp);
 
@@ -221,5 +212,4 @@ pnphy_status(struct mii_softc *sc)
 static void
 pnphy_reset(struct mii_softc *sc __unused)
 {
-
 }

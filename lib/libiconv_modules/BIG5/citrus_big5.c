@@ -61,8 +61,8 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/queue.h>
 
 #include <assert.h>
 #include <errno.h>
@@ -74,51 +74,50 @@
 #include <string.h>
 #include <wchar.h>
 
+#include "citrus_bcs.h"
+#include "citrus_big5.h"
+#include "citrus_module.h"
 #include "citrus_namespace.h"
 #include "citrus_prop.h"
-#include "citrus_types.h"
-#include "citrus_bcs.h"
-#include "citrus_module.h"
 #include "citrus_stdenc.h"
-#include "citrus_big5.h"
+#include "citrus_types.h"
 
 /* ----------------------------------------------------------------------
  * private stuffs used by templates
  */
 
 typedef struct {
-	int	 chlen;
-	char	 ch[2];
+	int chlen;
+	char ch[2];
 } _BIG5State;
 
 typedef struct _BIG5Exclude {
-	TAILQ_ENTRY(_BIG5Exclude)	 entry;
-	wint_t				 start;
-	wint_t				 end;
+	TAILQ_ENTRY(_BIG5Exclude) entry;
+	wint_t start;
+	wint_t end;
 } _BIG5Exclude;
 
 typedef TAILQ_HEAD(_BIG5ExcludeList, _BIG5Exclude) _BIG5ExcludeList;
 
 typedef struct {
-	_BIG5ExcludeList	 excludes;
-	int			 cell[0x100];
+	_BIG5ExcludeList excludes;
+	int cell[0x100];
 } _BIG5EncodingInfo;
 
-#define _CEI_TO_EI(_cei_)		(&(_cei_)->ei)
-#define _CEI_TO_STATE(_cei_, _func_)	(_cei_)->states.s_##_func_
+#define _CEI_TO_EI(_cei_) (&(_cei_)->ei)
+#define _CEI_TO_STATE(_cei_, _func_) (_cei_)->states.s_##_func_
 
-#define _FUNCNAME(m)			_citrus_BIG5_##m
-#define _ENCODING_INFO			_BIG5EncodingInfo
-#define _ENCODING_STATE			_BIG5State
-#define _ENCODING_MB_CUR_MAX(_ei_)	2
-#define _ENCODING_IS_STATE_DEPENDENT	0
-#define _STATE_NEEDS_EXPLICIT_INIT(_ps_)	0
-
+#define _FUNCNAME(m) _citrus_BIG5_##m
+#define _ENCODING_INFO _BIG5EncodingInfo
+#define _ENCODING_STATE _BIG5State
+#define _ENCODING_MB_CUR_MAX(_ei_) 2
+#define _ENCODING_IS_STATE_DEPENDENT 0
+#define _STATE_NEEDS_EXPLICIT_INIT(_ps_) 0
 
 static __inline void
 /*ARGSUSED*/
-_citrus_BIG5_init_state(_BIG5EncodingInfo * __restrict ei __unused,
-    _BIG5State * __restrict s)
+_citrus_BIG5_init_state(_BIG5EncodingInfo *__restrict ei __unused,
+    _BIG5State *__restrict s)
 {
 
 	memset(s, 0, sizeof(*s));
@@ -165,7 +164,7 @@ _citrus_BIG5_check_excludes(_BIG5EncodingInfo *ei, wint_t c)
 {
 	_BIG5Exclude *exclude;
 
-	TAILQ_FOREACH(exclude, &ei->excludes, entry) {
+	TAILQ_FOREACH (exclude, &ei->excludes, entry) {
 		if (c >= exclude->start && c <= exclude->end)
 			return (EILSEQ);
 	}
@@ -173,7 +172,7 @@ _citrus_BIG5_check_excludes(_BIG5EncodingInfo *ei, wint_t c)
 }
 
 static int
-_citrus_BIG5_fill_rowcol(void * __restrict ctx, const char * __restrict s,
+_citrus_BIG5_fill_rowcol(void *__restrict ctx, const char *__restrict s,
     uint64_t start, uint64_t end)
 {
 	_BIG5EncodingInfo *ei;
@@ -192,8 +191,8 @@ _citrus_BIG5_fill_rowcol(void * __restrict ctx, const char * __restrict s,
 
 static int
 /*ARGSUSED*/
-_citrus_BIG5_fill_excludes(void * __restrict ctx,
-    const char * __restrict s __unused, uint64_t start, uint64_t end)
+_citrus_BIG5_fill_excludes(void *__restrict ctx,
+    const char *__restrict s __unused, uint64_t start, uint64_t end)
 {
 	_BIG5EncodingInfo *ei;
 	_BIG5Exclude *exclude;
@@ -215,10 +214,10 @@ _citrus_BIG5_fill_excludes(void * __restrict ctx,
 }
 
 static const _citrus_prop_hint_t root_hints[] = {
-    _CITRUS_PROP_HINT_NUM("row", &_citrus_BIG5_fill_rowcol),
-    _CITRUS_PROP_HINT_NUM("col", &_citrus_BIG5_fill_rowcol),
-    _CITRUS_PROP_HINT_NUM("excludes", &_citrus_BIG5_fill_excludes),
-    _CITRUS_PROP_HINT_END
+	_CITRUS_PROP_HINT_NUM("row", &_citrus_BIG5_fill_rowcol),
+	_CITRUS_PROP_HINT_NUM("col", &_citrus_BIG5_fill_rowcol),
+	_CITRUS_PROP_HINT_NUM("excludes", &_citrus_BIG5_fill_excludes),
+	_CITRUS_PROP_HINT_END
 };
 
 static void
@@ -235,8 +234,8 @@ _citrus_BIG5_encoding_module_uninit(_BIG5EncodingInfo *ei)
 
 static int
 /*ARGSUSED*/
-_citrus_BIG5_encoding_module_init(_BIG5EncodingInfo * __restrict ei,
-    const void * __restrict var, size_t lenvar)
+_citrus_BIG5_encoding_module_init(_BIG5EncodingInfo *__restrict ei,
+    const void *__restrict var, size_t lenvar)
 {
 	const char *s;
 	int err;
@@ -247,8 +246,8 @@ _citrus_BIG5_encoding_module_init(_BIG5EncodingInfo * __restrict ei,
 	if (lenvar > 0 && var != NULL) {
 		s = _bcs_skip_ws_len((const char *)var, &lenvar);
 		if (lenvar > 0 && *s != '\0') {
-			err = _citrus_prop_parse_variable(
-			    root_hints, (void *)ei, s, lenvar);
+			err = _citrus_prop_parse_variable(root_hints,
+			    (void *)ei, s, lenvar);
 			if (err == 0)
 				return (0);
 
@@ -268,11 +267,9 @@ _citrus_BIG5_encoding_module_init(_BIG5EncodingInfo * __restrict ei,
 
 static int
 /*ARGSUSED*/
-_citrus_BIG5_mbrtowc_priv(_BIG5EncodingInfo * __restrict ei,
-    wchar_t * __restrict pwc,
-    char ** __restrict s, size_t n,
-    _BIG5State * __restrict psenc,
-    size_t * __restrict nresult)
+_citrus_BIG5_mbrtowc_priv(_BIG5EncodingInfo *__restrict ei,
+    wchar_t *__restrict pwc, char **__restrict s, size_t n,
+    _BIG5State *__restrict psenc, size_t *__restrict nresult)
 {
 	wchar_t wchar;
 	char *s0;
@@ -354,17 +351,15 @@ restart:
 
 static int
 /*ARGSUSED*/
-_citrus_BIG5_wcrtomb_priv(_BIG5EncodingInfo * __restrict ei,
-    char * __restrict s,
-    size_t n, wchar_t wc, _BIG5State * __restrict psenc __unused,
-    size_t * __restrict nresult)
+_citrus_BIG5_wcrtomb_priv(_BIG5EncodingInfo *__restrict ei, char *__restrict s,
+    size_t n, wchar_t wc, _BIG5State *__restrict psenc __unused,
+    size_t *__restrict nresult)
 {
 	size_t l;
 	int ret;
 
 	/* check invalid sequence */
-	if (wc & ~0xffff ||
-	    _citrus_BIG5_check_excludes(ei, (wint_t)wc) != 0) {
+	if (wc & ~0xffff || _citrus_BIG5_check_excludes(ei, (wint_t)wc) != 0) {
 		ret = EILSEQ;
 		goto err;
 	}
@@ -407,9 +402,8 @@ err:
 
 static __inline int
 /*ARGSUSED*/
-_citrus_BIG5_stdenc_wctocs(_BIG5EncodingInfo * __restrict ei __unused,
-    _csid_t * __restrict csid,
-    _index_t * __restrict idx, wchar_t wc)
+_citrus_BIG5_stdenc_wctocs(_BIG5EncodingInfo *__restrict ei __unused,
+    _csid_t *__restrict csid, _index_t *__restrict idx, wchar_t wc)
 {
 
 	*csid = (wc < 0x100) ? 0 : 1;
@@ -420,9 +414,8 @@ _citrus_BIG5_stdenc_wctocs(_BIG5EncodingInfo * __restrict ei __unused,
 
 static __inline int
 /*ARGSUSED*/
-_citrus_BIG5_stdenc_cstowc(_BIG5EncodingInfo * __restrict ei __unused,
-    wchar_t * __restrict wc,
-    _csid_t csid, _index_t idx)
+_citrus_BIG5_stdenc_cstowc(_BIG5EncodingInfo *__restrict ei __unused,
+    wchar_t *__restrict wc, _csid_t csid, _index_t idx)
 {
 
 	switch (csid) {
@@ -439,13 +432,13 @@ _citrus_BIG5_stdenc_cstowc(_BIG5EncodingInfo * __restrict ei __unused,
 
 static __inline int
 /*ARGSUSED*/
-_citrus_BIG5_stdenc_get_state_desc_generic(_BIG5EncodingInfo * __restrict ei __unused,
-    _BIG5State * __restrict psenc,
-    int * __restrict rstate)
+_citrus_BIG5_stdenc_get_state_desc_generic(
+    _BIG5EncodingInfo *__restrict ei __unused, _BIG5State *__restrict psenc,
+    int *__restrict rstate)
 {
 
 	*rstate = (psenc->chlen == 0) ? _STDENC_SDGEN_INITIAL :
-	    _STDENC_SDGEN_INCOMPLETE_CHAR;
+					_STDENC_SDGEN_INCOMPLETE_CHAR;
 	return (0);
 }
 

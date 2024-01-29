@@ -34,77 +34,81 @@
 #include <sys/queue.h>
 #include <sys/sysctl.h>
 #define L2CAP_SOCKET_CHECKED
-#include <bluetooth.h>
 #include <dev/usb/usb.h>
 #include <dev/usb/usbhid.h>
+
+#include <bluetooth.h>
 #include <errno.h>
 #include <sdp.h>
 #include <stdio.h>
 #include <string.h>
 #include <usbhid.h>
+
 #include "bthid_config.h"
 #include "bthidcontrol.h"
 
-static int32_t hid_sdp_query				(bdaddr_t const *local, struct hid_device *hd, int32_t *error);
-static int32_t hid_sdp_parse_protocol_descriptor_list	(sdp_attr_p a);
-static int32_t hid_sdp_parse_hid_descriptor		(sdp_attr_p a);
-static int32_t hid_sdp_parse_boolean			(sdp_attr_p a);
+static int32_t hid_sdp_query(bdaddr_t const *local, struct hid_device *hd,
+    int32_t *error);
+static int32_t hid_sdp_parse_protocol_descriptor_list(sdp_attr_p a);
+static int32_t hid_sdp_parse_hid_descriptor(sdp_attr_p a);
+static int32_t hid_sdp_parse_boolean(sdp_attr_p a);
 
 /*
  * Hard coded attribute IDs taken from the
  * DEVICE IDENTIFICATION PROFILE SPECIFICATION V13 p.12
  */
 
-#define SDP_ATTR_DEVICE_ID_SERVICE_VENDORID  0x0201
+#define SDP_ATTR_DEVICE_ID_SERVICE_VENDORID 0x0201
 #define SDP_ATTR_DEVICE_ID_SERVICE_PRODUCTID 0x0202
-#define SDP_ATTR_DEVICE_ID_SERVICE_VERSION   0x0203
-#define SDP_ATTR_DEVICE_ID_RANGE SDP_ATTR_RANGE( \
- SDP_ATTR_DEVICE_ID_SERVICE_VENDORID, SDP_ATTR_DEVICE_ID_SERVICE_VERSION )
+#define SDP_ATTR_DEVICE_ID_SERVICE_VERSION 0x0203
+#define SDP_ATTR_DEVICE_ID_RANGE                            \
+	SDP_ATTR_RANGE(SDP_ATTR_DEVICE_ID_SERVICE_VENDORID, \
+	    SDP_ATTR_DEVICE_ID_SERVICE_VERSION)
 
-static uint16_t		service = SDP_SERVICE_CLASS_HUMAN_INTERFACE_DEVICE;
-static uint16_t		service_devid = SDP_SERVICE_CLASS_PNP_INFORMATION;
-static uint32_t 	attrs_devid   = SDP_ATTR_DEVICE_ID_RANGE;
+static uint16_t service = SDP_SERVICE_CLASS_HUMAN_INTERFACE_DEVICE;
+static uint16_t service_devid = SDP_SERVICE_CLASS_PNP_INFORMATION;
+static uint32_t attrs_devid = SDP_ATTR_DEVICE_ID_RANGE;
 
-static uint32_t		attrs[] = {
-SDP_ATTR_RANGE(	SDP_ATTR_PROTOCOL_DESCRIPTOR_LIST,
-		SDP_ATTR_PROTOCOL_DESCRIPTOR_LIST),
-SDP_ATTR_RANGE	(SDP_ATTR_ADDITIONAL_PROTOCOL_DESCRIPTOR_LISTS,
-		SDP_ATTR_ADDITIONAL_PROTOCOL_DESCRIPTOR_LISTS),
-SDP_ATTR_RANGE(	0x0205,		/* HIDReconnectInitiate */
-		0x0205),
-SDP_ATTR_RANGE(	0x0206,		/* HIDDescriptorList */
-		0x0206),
-SDP_ATTR_RANGE(	0x0209,		/* HIDBatteryPower */
-		0x0209),
-SDP_ATTR_RANGE(	0x020d,		/* HIDNormallyConnectable */
-		0x020d)
-	};
-#define	nattrs	(sizeof(attrs)/sizeof(attrs[0]))
+static uint32_t attrs[] = { SDP_ATTR_RANGE(SDP_ATTR_PROTOCOL_DESCRIPTOR_LIST,
+				SDP_ATTR_PROTOCOL_DESCRIPTOR_LIST),
+	SDP_ATTR_RANGE(SDP_ATTR_ADDITIONAL_PROTOCOL_DESCRIPTOR_LISTS,
+	    SDP_ATTR_ADDITIONAL_PROTOCOL_DESCRIPTOR_LISTS),
+	SDP_ATTR_RANGE(0x0205, /* HIDReconnectInitiate */
+	    0x0205),
+	SDP_ATTR_RANGE(0x0206, /* HIDDescriptorList */
+	    0x0206),
+	SDP_ATTR_RANGE(0x0209, /* HIDBatteryPower */
+	    0x0209),
+	SDP_ATTR_RANGE(0x020d, /* HIDNormallyConnectable */
+	    0x020d) };
+#define nattrs (sizeof(attrs) / sizeof(attrs[0]))
 
-static sdp_attr_t	values[8];
-#define	nvalues	(sizeof(values)/sizeof(values[0]))
+static sdp_attr_t values[8];
+#define nvalues (sizeof(values) / sizeof(values[0]))
 
-static uint8_t		buffer[nvalues][512];
+static uint8_t buffer[nvalues][512];
 
 /*
  * Query remote device
  */
 
-#undef	hid_sdp_query_exit
-#define	hid_sdp_query_exit(e) {		\
-	if (error != NULL)		\
-		*error = (e);		\
-	if (ss != NULL) {		\
-		sdp_close(ss);		\
-		ss = NULL;		\
-	}				\
-	return (((e) == 0)? 0 : -1);	\
-}
+#undef hid_sdp_query_exit
+#define hid_sdp_query_exit(e)                 \
+	{                                     \
+		if (error != NULL)            \
+			*error = (e);         \
+		if (ss != NULL) {             \
+			sdp_close(ss);        \
+			ss = NULL;            \
+		}                             \
+		return (((e) == 0) ? 0 : -1); \
+	}
 
 static void
-hid_init_return_values() {
+hid_init_return_values()
+{
 	int i;
-	for (i = 0; i < nvalues; i ++) {
+	for (i = 0; i < nvalues; i++) {
 		values[i].flags = SDP_ATTR_INVALID;
 		values[i].attr = 0;
 		values[i].vlen = sizeof(buffer[i]);
@@ -115,15 +119,14 @@ hid_init_return_values() {
 static int32_t
 hid_sdp_query(bdaddr_t const *local, struct hid_device *hd, int32_t *error)
 {
-	void			*ss = NULL;
-	uint8_t			*hid_descriptor = NULL, *v;
-	int32_t			 i, control_psm = -1, interrupt_psm = -1,
-				 reconnect_initiate = -1,
-				 normally_connectable = 0, battery_power = 0,
-				 hid_descriptor_length = -1, type;
-	int16_t 		 vendor_id = 0, product_id = 0, version = 0;
-	bdaddr_t		 sdp_local;
-	char			 devname[HCI_DEVNAME_SIZE];
+	void *ss = NULL;
+	uint8_t *hid_descriptor = NULL, *v;
+	int32_t i, control_psm = -1, interrupt_psm = -1,
+		   reconnect_initiate = -1, normally_connectable = 0,
+		   battery_power = 0, hid_descriptor_length = -1, type;
+	int16_t vendor_id = 0, product_id = 0, version = 0;
+	bdaddr_t sdp_local;
+	char devname[HCI_DEVNAME_SIZE];
 
 	if (local == NULL)
 		local = NG_HCI_BDADDR_ANY;
@@ -137,19 +140,21 @@ hid_sdp_query(bdaddr_t const *local, struct hid_device *hd, int32_t *error)
 	if (sdp_error(ss) != 0)
 		hid_sdp_query_exit(sdp_error(ss));
 	if (sdp_search(ss, 1, &service, nattrs, attrs, nvalues, values) != 0)
-                hid_sdp_query_exit(sdp_error(ss));
+		hid_sdp_query_exit(sdp_error(ss));
 
-	for (i = 0; i < nvalues; i ++) {
+	for (i = 0; i < nvalues; i++) {
 		if (values[i].flags != SDP_ATTR_OK)
 			continue;
 
 		switch (values[i].attr) {
 		case SDP_ATTR_PROTOCOL_DESCRIPTOR_LIST:
-			control_psm = hid_sdp_parse_protocol_descriptor_list(&values[i]);
+			control_psm = hid_sdp_parse_protocol_descriptor_list(
+			    &values[i]);
 			break;
 
 		case SDP_ATTR_ADDITIONAL_PROTOCOL_DESCRIPTOR_LISTS:
-			interrupt_psm = hid_sdp_parse_protocol_descriptor_list(&values[i]);
+			interrupt_psm = hid_sdp_parse_protocol_descriptor_list(
+			    &values[i]);
 			break;
 
 		case 0x0205: /* HIDReconnectInitiate */
@@ -168,27 +173,29 @@ hid_sdp_query(bdaddr_t const *local, struct hid_device *hd, int32_t *error)
 			break;
 
 		case 0x020d: /* HIDNormallyConnectable */
-			normally_connectable = hid_sdp_parse_boolean(&values[i]);
+			normally_connectable = hid_sdp_parse_boolean(
+			    &values[i]);
 			break;
 		}
 	}
 
 	hid_init_return_values();
 
-	if (sdp_search(ss, 1, &service_devid, 1, &attrs_devid, nvalues, values) != 0)
-                hid_sdp_query_exit(sdp_error(ss));
+	if (sdp_search(ss, 1, &service_devid, 1, &attrs_devid, nvalues,
+		values) != 0)
+		hid_sdp_query_exit(sdp_error(ss));
 
 	/* Try extract HCI bdaddr from opened SDP session */
 	if (sdp_get_lcaddr(ss, &sdp_local) != 0 ||
 	    bt_devname(devname, &sdp_local) == 0)
 		hid_sdp_query_exit(ENOATTR);
 
-        sdp_close(ss);
-        ss = NULL;
+	sdp_close(ss);
+	ss = NULL;
 
 	/* If search is successful, scan through return vals */
-	for (i = 0; i < 3; i ++ ) {
-		if (values[i].flags == SDP_ATTR_INVALID )
+	for (i = 0; i < 3; i++) {
+		if (values[i].flags == SDP_ATTR_INVALID)
 			continue;
 
 		/* Expecting tag + uint16_t on all 3 attributes */
@@ -198,27 +205,27 @@ hid_sdp_query(bdaddr_t const *local, struct hid_device *hd, int32_t *error)
 		/* Make sure, we're reading a uint16_t */
 		v = values[i].value;
 		SDP_GET8(type, v);
-		if (type != SDP_DATA_UINT16 )
+		if (type != SDP_DATA_UINT16)
 			continue;
 
 		switch (values[i].attr) {
-			case SDP_ATTR_DEVICE_ID_SERVICE_VENDORID:
-				SDP_GET16(vendor_id, v);
-				break;
-			case SDP_ATTR_DEVICE_ID_SERVICE_PRODUCTID:
-				SDP_GET16(product_id, v);
-				break;
-			case SDP_ATTR_DEVICE_ID_SERVICE_VERSION:
-				SDP_GET16(version, v);
-				break;
-			default:
-				break;
+		case SDP_ATTR_DEVICE_ID_SERVICE_VENDORID:
+			SDP_GET16(vendor_id, v);
+			break;
+		case SDP_ATTR_DEVICE_ID_SERVICE_PRODUCTID:
+			SDP_GET16(product_id, v);
+			break;
+		case SDP_ATTR_DEVICE_ID_SERVICE_VERSION:
+			SDP_GET16(version, v);
+			break;
+		default:
+			break;
 		}
 	}
 
 	if (control_psm == -1 || interrupt_psm == -1 ||
-	    reconnect_initiate == -1 ||
-	    hid_descriptor == NULL || hid_descriptor_length == -1)
+	    reconnect_initiate == -1 || hid_descriptor == NULL ||
+	    hid_descriptor_length == -1)
 		hid_sdp_query_exit(ENOATTR);
 	hd->name = bt_devremote_name_gen(devname, &hd->bdaddr);
 	hd->vendor_id = vendor_id;
@@ -226,9 +233,9 @@ hid_sdp_query(bdaddr_t const *local, struct hid_device *hd, int32_t *error)
 	hd->version = version;
 	hd->control_psm = control_psm;
 	hd->interrupt_psm = interrupt_psm;
-	hd->reconnect_initiate = reconnect_initiate? 1 : 0;
-	hd->battery_power = battery_power? 1 : 0;
-	hd->normally_connectable = normally_connectable? 1 : 0;
+	hd->reconnect_initiate = reconnect_initiate ? 1 : 0;
+	hd->battery_power = battery_power ? 1 : 0;
+	hd->normally_connectable = normally_connectable ? 1 : 0;
 	hd->desc = hid_use_report_desc(hid_descriptor, hid_descriptor_length);
 	if (hd->desc == NULL)
 		hid_sdp_query_exit(ENOMEM);
@@ -248,9 +255,9 @@ hid_sdp_query(bdaddr_t const *local, struct hid_device *hd, int32_t *error)
 static int32_t
 hid_sdp_parse_protocol_descriptor_list(sdp_attr_p a)
 {
-	uint8_t	*ptr = a->value;
-	uint8_t	*end = a->value + a->vlen;
-	int32_t	 type, len, uuid, psm;
+	uint8_t *ptr = a->value;
+	uint8_t *end = a->value + a->vlen;
+	int32_t type, len, uuid, psm;
 
 	if (end - ptr < 15)
 		return (-1);
@@ -356,9 +363,9 @@ hid_sdp_parse_protocol_descriptor_list(sdp_attr_p a)
 static int32_t
 hid_sdp_parse_hid_descriptor(sdp_attr_p a)
 {
-	uint8_t	*ptr = a->value;
-	uint8_t	*end = a->value + a->vlen;
-	int32_t	 type, len, descriptor_type;
+	uint8_t *ptr = a->value;
+	uint8_t *end = a->value + a->vlen;
+	int32_t type, len, descriptor_type;
 
 	if (end - ptr < 9)
 		return (-1);
@@ -473,14 +480,15 @@ hid_sdp_parse_boolean(sdp_attr_p a)
 static int32_t
 hid_query(bdaddr_t *bdaddr, int argc, char **argv)
 {
-	struct hid_device	hd;
-	int			e;
+	struct hid_device hd;
+	int e;
 
 	memcpy(&hd.bdaddr, bdaddr, sizeof(hd.bdaddr));
 	if (hid_sdp_query(NULL, &hd, &e) < 0) {
-		fprintf(stderr, "Could not perform SDP query on the " \
-			"device %s. %s (%d)\n", bt_ntoa(bdaddr, NULL),
-			strerror(e), e);
+		fprintf(stderr,
+		    "Could not perform SDP query on the "
+		    "device %s. %s (%d)\n",
+		    bt_ntoa(bdaddr, NULL), strerror(e), e);
 		return (FAILED);
 	}
 
@@ -489,15 +497,11 @@ hid_query(bdaddr_t *bdaddr, int argc, char **argv)
 	return (OK);
 }
 
-struct bthid_command	sdp_commands[] =
-{
-{
-"Query",
-"Perform SDP query to the specified device and print HID configuration entry\n"\
-"for the device. The configuration entry should be appended to the Bluetooth\n"\
-"HID daemon configuration file and the daemon should be restarted.\n",
-hid_query
-},
-{ NULL, NULL, NULL }
+struct bthid_command sdp_commands[] = {
+	{ "Query",
+	    "Perform SDP query to the specified device and print HID configuration entry\n"
+	    "for the device. The configuration entry should be appended to the Bluetooth\n"
+	    "HID daemon configuration file and the daemon should be restarted.\n",
+	    hid_query },
+	{ NULL, NULL, NULL }
 };
-

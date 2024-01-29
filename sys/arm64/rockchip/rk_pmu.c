@@ -31,19 +31,17 @@
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
+
 #include <machine/bus.h>
 
-#include <dev/ofw/openfirm.h>
+#include <dev/fdt/simple_mfd.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
+#include <dev/ofw/openfirm.h>
 #include <dev/syscon/syscon.h>
-#include <dev/fdt/simple_mfd.h>
 
-static struct ofw_compat_data compat_data[] = {
-	{"rockchip,rk3288-pmu",	1},
-	{NULL,			0}
-};
+static struct ofw_compat_data compat_data[] = { { "rockchip,rk3288-pmu", 1 },
+	{ NULL, 0 } };
 
 static int
 rk_pmu_probe(device_t dev)
@@ -58,12 +56,10 @@ rk_pmu_probe(device_t dev)
 	return (BUS_PROBE_DEFAULT);
 }
 
-static device_method_t rk_pmu_methods[] = {
-	DEVMETHOD(device_probe, rk_pmu_probe),
+static device_method_t rk_pmu_methods[] = { DEVMETHOD(device_probe,
+						rk_pmu_probe),
 
-	DEVMETHOD_END
-};
-
+	DEVMETHOD_END };
 
 DEFINE_CLASS_1(rk_pmu, rk_pmu_driver, rk_pmu_methods,
     sizeof(struct simple_mfd_softc), simple_mfd_driver);

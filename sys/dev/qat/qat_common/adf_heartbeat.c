@@ -1,15 +1,16 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
 #include <sys/types.h>
-#include <linux/random.h>
-#include "qat_freebsd.h"
 
-#include "adf_heartbeat.h"
-#include "adf_common_drv.h"
+#include <linux/random.h>
+
 #include "adf_cfg.h"
 #include "adf_cfg_strings.h"
-#include "icp_qat_fw_init_admin.h"
+#include "adf_common_drv.h"
+#include "adf_heartbeat.h"
 #include "adf_transport_internal.h"
+#include "icp_qat_fw_init_admin.h"
+#include "qat_freebsd.h"
 
 #define MAX_HB_TICKS 0xFFFFFFFF
 
@@ -22,13 +23,10 @@ adf_check_hb_poll_freq(struct adf_accel_dev *accel_dev)
 
 	curr_hb_check_time = adf_clock_get_current_time();
 
-	if (!adf_cfg_get_param_value(accel_dev,
-				     ADF_GENERAL_SEC,
-				     ADF_HEARTBEAT_TIMER,
-				     (char *)timer_str)) {
-		if (compat_strtouint((char *)timer_str,
-				     ADF_CFG_BASE_DEC,
-				     &timer_val))
+	if (!adf_cfg_get_param_value(accel_dev, ADF_GENERAL_SEC,
+		ADF_HEARTBEAT_TIMER, (char *)timer_str)) {
+		if (compat_strtouint((char *)timer_str, ADF_CFG_BASE_DEC,
+			&timer_val))
 			timer_val = ADF_CFG_HB_DEFAULT_VALUE;
 	}
 	if ((curr_hb_check_time - accel_dev->heartbeat->last_hb_check_time) <
@@ -46,8 +44,8 @@ adf_heartbeat_init(struct adf_accel_dev *accel_dev)
 	if (accel_dev->heartbeat)
 		adf_heartbeat_clean(accel_dev);
 
-	accel_dev->heartbeat =
-	    malloc(sizeof(*accel_dev->heartbeat), M_QAT, M_WAITOK | M_ZERO);
+	accel_dev->heartbeat = malloc(sizeof(*accel_dev->heartbeat), M_QAT,
+	    M_WAITOK | M_ZERO);
 
 	return 0;
 }
@@ -77,21 +75,17 @@ adf_get_hb_timer(struct adf_accel_dev *accel_dev, unsigned int *value)
 	}
 
 	/* Get Heartbeat Timer value from the configuration */
-	if (!adf_cfg_get_param_value(accel_dev,
-				     ADF_GENERAL_SEC,
-				     ADF_HEARTBEAT_TIMER,
-				     (char *)timer_str)) {
-		if (compat_strtouint((char *)timer_str,
-				     ADF_CFG_BASE_DEC,
-				     &timer_val))
+	if (!adf_cfg_get_param_value(accel_dev, ADF_GENERAL_SEC,
+		ADF_HEARTBEAT_TIMER, (char *)timer_str)) {
+		if (compat_strtouint((char *)timer_str, ADF_CFG_BASE_DEC,
+			&timer_val))
 			timer_val = ADF_CFG_HB_DEFAULT_VALUE;
 	}
 
 	if (timer_val < ADF_MIN_HB_TIMER_MS) {
 		device_printf(GET_DEV(accel_dev),
-			      "%s value cannot be lesser than %u\n",
-			      ADF_HEARTBEAT_TIMER,
-			      ADF_MIN_HB_TIMER_MS);
+		    "%s value cannot be lesser than %u\n", ADF_HEARTBEAT_TIMER,
+		    ADF_MIN_HB_TIMER_MS);
 		return EINVAL;
 	}
 
@@ -109,8 +103,8 @@ adf_get_heartbeat_status(struct adf_accel_dev *accel_dev)
 	struct adf_hw_device_data *hw_device = accel_dev->hw_device;
 	const size_t max_aes = hw_device->get_num_aes(hw_device);
 	const size_t hb_ctrs = hw_device->heartbeat_ctr_num;
-	const size_t stats_size =
-	    max_aes * hb_ctrs * sizeof(struct icp_qat_fw_init_admin_hb_cnt);
+	const size_t stats_size = max_aes * hb_ctrs *
+	    sizeof(struct icp_qat_fw_init_admin_hb_cnt);
 	int ret = 0;
 	size_t ae, thr;
 	u16 *count_s;
@@ -146,10 +140,10 @@ adf_get_heartbeat_status(struct adf_accel_dev *accel_dev)
 
 	for_each_set_bit(ae, &ae_mask, max_aes)
 	{
-		struct icp_qat_fw_init_admin_hb_cnt *curr =
-		    curr_s + ae * hb_ctrs;
-		struct icp_qat_fw_init_admin_hb_cnt *prev =
-		    last_s + ae * hb_ctrs;
+		struct icp_qat_fw_init_admin_hb_cnt *curr = curr_s +
+		    ae * hb_ctrs;
+		struct icp_qat_fw_init_admin_hb_cnt *prev = last_s +
+		    ae * hb_ctrs;
 		u16 *count = count_s + ae * hb_ctrs;
 
 		for (thr = 0; thr < hb_ctrs; ++thr) {
@@ -178,7 +172,7 @@ adf_get_heartbeat_status(struct adf_accel_dev *accel_dev)
 
 int
 adf_heartbeat_status(struct adf_accel_dev *accel_dev,
-		     enum adf_device_heartbeat_status *hb_status)
+    enum adf_device_heartbeat_status *hb_status)
 {
 	/* Heartbeat is not implemented in VFs at the moment so they do not
 	 * set get_heartbeat_status. Also, in case the device is not up,
@@ -205,7 +199,7 @@ adf_heartbeat_status(struct adf_accel_dev *accel_dev,
 	accel_dev->heartbeat->hb_sent_counter++;
 	if (unlikely(accel_dev->hw_device->get_heartbeat_status(accel_dev))) {
 		device_printf(GET_DEV(accel_dev),
-			      "ERROR: QAT is not responding.\n");
+		    "ERROR: QAT is not responding.\n");
 		*hb_status = DEV_HB_UNRESPONSIVE;
 		accel_dev->heartbeat->last_hb_status = DEV_HB_UNRESPONSIVE;
 		accel_dev->heartbeat->hb_failed_counter++;

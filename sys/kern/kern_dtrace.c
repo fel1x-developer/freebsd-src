@@ -26,22 +26,22 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_kdb.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/dtrace_bsd.h>
 #include <sys/eventhandler.h>
 #include <sys/kdb.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/proc.h>
-#include <sys/dtrace_bsd.h>
 #include <sys/sysctl.h>
 #include <sys/sysent.h>
 
-#define KDTRACE_PROC_SIZE	64
-#define	KDTRACE_THREAD_SIZE	256
+#define KDTRACE_PROC_SIZE 64
+#define KDTRACE_THREAD_SIZE 256
 
 FEATURE(kdtrace_hooks,
     "Kernel DTrace hooks which are required to load DTrace kernel modules");
@@ -49,13 +49,13 @@ FEATURE(kdtrace_hooks,
 static MALLOC_DEFINE(M_KDTRACE, "kdtrace", "DTrace hooks");
 
 /* Hooks used in the machine-dependent trap handlers. */
-dtrace_trap_func_t		dtrace_trap_func;
-dtrace_doubletrap_func_t	dtrace_doubletrap_func;
-dtrace_pid_probe_ptr_t		dtrace_pid_probe_ptr;
-dtrace_return_probe_ptr_t	dtrace_return_probe_ptr;
+dtrace_trap_func_t dtrace_trap_func;
+dtrace_doubletrap_func_t dtrace_doubletrap_func;
+dtrace_pid_probe_ptr_t dtrace_pid_probe_ptr;
+dtrace_return_probe_ptr_t dtrace_return_probe_ptr;
 
-bool __read_frequently		systrace_enabled;
-systrace_probe_func_t 		systrace_probe_func;
+bool __read_frequently systrace_enabled;
+systrace_probe_func_t systrace_probe_func;
 
 /* Return the DTrace process data size compiled in the kernel hooks. */
 size_t
@@ -69,7 +69,7 @@ void
 kdtrace_proc_ctor(struct proc *p)
 {
 
-	p->p_dtrace = malloc(KDTRACE_PROC_SIZE, M_KDTRACE, M_WAITOK|M_ZERO);
+	p->p_dtrace = malloc(KDTRACE_PROC_SIZE, M_KDTRACE, M_WAITOK | M_ZERO);
 }
 
 void
@@ -92,7 +92,8 @@ void
 kdtrace_thread_ctor(struct thread *td)
 {
 
-	td->td_dtrace = malloc(KDTRACE_THREAD_SIZE, M_KDTRACE, M_WAITOK|M_ZERO);
+	td->td_dtrace = malloc(KDTRACE_THREAD_SIZE, M_KDTRACE,
+	    M_WAITOK | M_ZERO);
 }
 
 void

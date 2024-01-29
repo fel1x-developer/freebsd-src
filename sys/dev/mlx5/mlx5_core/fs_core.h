@@ -26,10 +26,11 @@
 #ifndef _MLX5_FS_CORE_
 #define _MLX5_FS_CORE_
 
+#include <dev/mlx5/fs.h>
+
 #include <asm/atomic.h>
 #include <linux/completion.h>
 #include <linux/mutex.h>
-#include <dev/mlx5/fs.h>
 
 enum fs_type {
 	FS_TYPE_NAMESPACE,
@@ -41,12 +42,12 @@ enum fs_type {
 };
 
 enum fs_ft_type {
-	FS_FT_NIC_RX          = 0x0,
-	FS_FT_ESW_EGRESS_ACL  = 0x2,
+	FS_FT_NIC_RX = 0x0,
+	FS_FT_ESW_EGRESS_ACL = 0x2,
 	FS_FT_ESW_INGRESS_ACL = 0x3,
-	FS_FT_FDB             = 0X4,
-	FS_FT_SNIFFER_RX      = 0x5,
-	FS_FT_SNIFFER_TX      = 0x6
+	FS_FT_FDB = 0X4,
+	FS_FT_SNIFFER_RX = 0x5,
+	FS_FT_SNIFFER_TX = 0x6
 };
 
 enum fs_fte_status {
@@ -55,105 +56,103 @@ enum fs_fte_status {
 
 /* Should always be the first variable in the struct */
 struct fs_base {
-	struct list_head			list;
-	struct fs_base			*parent;
-	enum fs_type			type;
-	struct kref			refcount;
+	struct list_head list;
+	struct fs_base *parent;
+	enum fs_type type;
+	struct kref refcount;
 	/* lock the node for writing and traversing */
-	struct mutex		lock;
-	struct completion			complete;
-	atomic_t			users_refcount;
-	const char			*name;
+	struct mutex lock;
+	struct completion complete;
+	atomic_t users_refcount;
+	const char *name;
 };
 
 struct mlx5_flow_rule {
-	struct fs_base				base;
-	struct mlx5_flow_destination		dest_attr;
-	struct list_head			clients_data;
+	struct fs_base base;
+	struct mlx5_flow_destination dest_attr;
+	struct list_head clients_data;
 	/*protect clients lits*/
-	struct mutex			clients_lock;
+	struct mutex clients_lock;
 };
 
 struct fs_fte {
-	struct fs_base				base;
-	u32					val[MLX5_ST_SZ_DW(fte_match_param)];
-	uint32_t				dests_size;
-	struct list_head			dests;
-	uint32_t				index; /* index in ft */
-	struct mlx5_flow_act			flow_act;
-	u32					sw_action; /* enum mlx5_rule_fwd_action */
-	enum fs_fte_status			status;
+	struct fs_base base;
+	u32 val[MLX5_ST_SZ_DW(fte_match_param)];
+	uint32_t dests_size;
+	struct list_head dests;
+	uint32_t index; /* index in ft */
+	struct mlx5_flow_act flow_act;
+	u32 sw_action; /* enum mlx5_rule_fwd_action */
+	enum fs_fte_status status;
 };
 
 struct fs_star_rule {
-	struct	mlx5_flow_group	 *fg;
-	struct	fs_fte		*fte;
+	struct mlx5_flow_group *fg;
+	struct fs_fte *fte;
 };
 
 struct mlx5_flow_table {
-	struct fs_base			base;
+	struct fs_base base;
 	/* sorted list by start_index */
-	struct list_head		fgs;
+	struct list_head fgs;
 	struct {
-		bool			active;
-		unsigned int		max_types;
-		unsigned int		group_size;
-		unsigned int		num_types;
-		unsigned int		max_fte;
+		bool active;
+		unsigned int max_types;
+		unsigned int group_size;
+		unsigned int num_types;
+		unsigned int max_fte;
 	} autogroup;
-	unsigned int			max_fte;
-	unsigned int			level;
-	uint32_t			id;
-	u16                             vport;
-	enum fs_ft_type			type;
-	struct fs_star_rule		star_rule;
-	unsigned int			shared_refcount;
+	unsigned int max_fte;
+	unsigned int level;
+	uint32_t id;
+	u16 vport;
+	enum fs_ft_type type;
+	struct fs_star_rule star_rule;
+	unsigned int shared_refcount;
 };
 
-enum fs_prio_flags {
-	MLX5_CORE_FS_PRIO_SHARED = 1
-};
+enum fs_prio_flags { MLX5_CORE_FS_PRIO_SHARED = 1 };
 
 struct fs_prio {
-	struct fs_base			base;
-	struct list_head		objs; /* each object is a namespace or ft */
-	unsigned int			max_ft;
-	unsigned int			num_ft;
-	unsigned int			max_ns;
-	unsigned int			prio;
+	struct fs_base base;
+	struct list_head objs; /* each object is a namespace or ft */
+	unsigned int max_ft;
+	unsigned int num_ft;
+	unsigned int max_ns;
+	unsigned int prio;
 	/*When create shared flow table, this lock should be taken*/
-	struct mutex		shared_lock;
-	u8				flags;
+	struct mutex shared_lock;
+	u8 flags;
 };
 
 struct mlx5_flow_namespace {
 	/* parent == NULL => root ns */
-	struct	fs_base			base;
+	struct fs_base base;
 	/* sorted by priority number */
-	struct	list_head		prios; /* list of fs_prios */
-	struct  list_head		list_notifiers;
-	struct	rw_semaphore		notifiers_rw_sem;
-	struct  rw_semaphore		dests_rw_sem;
+	struct list_head prios; /* list of fs_prios */
+	struct list_head list_notifiers;
+	struct rw_semaphore notifiers_rw_sem;
+	struct rw_semaphore dests_rw_sem;
 };
 
 struct mlx5_flow_root_namespace {
-	struct mlx5_flow_namespace	ns;
-	struct mlx5_flow_table		*ft_level_0;
-	enum   fs_ft_type		table_type;
-	struct mlx5_core_dev		*dev;
-	struct mlx5_flow_table		*root_ft;
+	struct mlx5_flow_namespace ns;
+	struct mlx5_flow_table *ft_level_0;
+	enum fs_ft_type table_type;
+	struct mlx5_core_dev *dev;
+	struct mlx5_flow_table *root_ft;
 	/* When chaining flow-tables, this lock should be taken */
-	struct mutex		fs_chain_lock;
+	struct mutex fs_chain_lock;
 };
 
 struct mlx5_flow_group {
-	struct fs_base			base;
-	struct list_head		ftes;
-	struct mlx5_core_fs_mask	mask;
-	uint32_t			start_index;
-	uint32_t			max_ftes;
-	uint32_t			num_ftes;
-	uint32_t			id;
+	struct fs_base base;
+	struct list_head ftes;
+	struct mlx5_core_fs_mask mask;
+	uint32_t start_index;
+	uint32_t max_ftes;
+	uint32_t num_ftes;
+	uint32_t id;
 };
 
 struct mlx5_flow_handler {
@@ -167,7 +166,7 @@ struct mlx5_flow_handler {
 struct fs_client_priv_data {
 	struct mlx5_flow_handler *fs_handler;
 	struct list_head list;
-	void   *client_dst_data;
+	void *client_dst_data;
 };
 
 struct mlx5_modify_hdr {
@@ -176,156 +175,163 @@ struct mlx5_modify_hdr {
 };
 
 struct mlx5_pkt_reformat {
-        enum mlx5_flow_namespace_type ns_type;
-        int reformat_type; /* from mlx5_ifc */
+	enum mlx5_flow_namespace_type ns_type;
+	int reformat_type; /* from mlx5_ifc */
 	u32 id;
 };
 
 void _fs_remove_node(struct kref *kref);
-#define fs_get_obj(v, _base)  {v = container_of((_base), typeof(*v), base); }
-#define fs_get_parent(v, child)  {v = (child)->base.parent ?		     \
-				  container_of((child)->base.parent,	     \
-					       typeof(*v), base) : NULL; }
+#define fs_get_obj(v, _base)                                 \
+	{                                                    \
+		v = container_of((_base), typeof(*v), base); \
+	}
+#define fs_get_parent(v, child)                                            \
+	{                                                                  \
+		v = (child)->base.parent ?                                 \
+		    container_of((child)->base.parent, typeof(*v), base) : \
+		    NULL;                                                  \
+	}
 
-#define fs_list_for_each_entry(pos, cond, root)		\
-	list_for_each_entry(pos, root, base.list)	\
-		if (!(cond)) {} else
+#define fs_list_for_each_entry(pos, cond, root)                \
+	list_for_each_entry(pos, root, base.list) if (!(cond)) \
+	{                                                      \
+	}                                                      \
+	else
 
-#define fs_list_for_each_entry_continue(pos, cond, root)	\
-	list_for_each_entry_continue(pos, root, base.list)	\
-		if (!(cond)) {} else
+#define fs_list_for_each_entry_continue(pos, cond, root)                \
+	list_for_each_entry_continue(pos, root, base.list) if (!(cond)) \
+	{                                                               \
+	}                                                               \
+	else
 
-#define fs_list_for_each_entry_reverse(pos, cond, root)		\
-	list_for_each_entry_reverse(pos, root, base.list)	\
-		if (!(cond)) {} else
+#define fs_list_for_each_entry_reverse(pos, cond, root)                \
+	list_for_each_entry_reverse(pos, root, base.list) if (!(cond)) \
+	{                                                              \
+	}                                                              \
+	else
 
-#define fs_list_for_each_entry_continue_reverse(pos, cond, root)	\
-	list_for_each_entry_continue_reverse(pos, root, base.list)	\
-		if (!(cond)) {} else
+#define fs_list_for_each_entry_continue_reverse(pos, cond, root) \
+	list_for_each_entry_continue_reverse(pos, root,          \
+	    base.list) if (!(cond))                              \
+	{                                                        \
+	}                                                        \
+	else
 
-#define fs_for_each_ft(pos, prio)			\
+#define fs_for_each_ft(pos, prio)                                           \
 	fs_list_for_each_entry(pos, (pos)->base.type == FS_TYPE_FLOW_TABLE, \
-			       &(prio)->objs)
+	    &(prio)->objs)
 
-#define fs_for_each_ft_reverse(pos, prio)			\
-	fs_list_for_each_entry_reverse(pos,			\
-				       (pos)->base.type == FS_TYPE_FLOW_TABLE, \
-				       &(prio)->objs)
+#define fs_for_each_ft_reverse(pos, prio)   \
+	fs_list_for_each_entry_reverse(pos, \
+	    (pos)->base.type == FS_TYPE_FLOW_TABLE, &(prio)->objs)
 
-#define fs_for_each_ns(pos, prio)			\
-	fs_list_for_each_entry(pos,			\
-			       (pos)->base.type == FS_TYPE_NAMESPACE, \
-			       &(prio)->objs)
+#define fs_for_each_ns(pos, prio)                                          \
+	fs_list_for_each_entry(pos, (pos)->base.type == FS_TYPE_NAMESPACE, \
+	    &(prio)->objs)
 
-#define fs_for_each_ns_or_ft_reverse(pos, prio)			\
-	list_for_each_entry_reverse(pos, &(prio)->objs, list)		\
-		if (!((pos)->type == FS_TYPE_NAMESPACE ||		\
-		      (pos)->type == FS_TYPE_FLOW_TABLE)) {} else
+#define fs_for_each_ns_or_ft_reverse(pos, prio)               \
+	list_for_each_entry_reverse(pos, &(prio)->objs,       \
+	    list) if (!((pos)->type == FS_TYPE_NAMESPACE ||   \
+			  (pos)->type == FS_TYPE_FLOW_TABLE)) \
+	{                                                     \
+	}                                                     \
+	else
 
-#define fs_for_each_ns_or_ft(pos, prio)			\
-	list_for_each_entry(pos, &(prio)->objs, list)		\
-		if (!((pos)->type == FS_TYPE_NAMESPACE ||	\
-		      (pos)->type == FS_TYPE_FLOW_TABLE)) {} else
+#define fs_for_each_ns_or_ft(pos, prio)                       \
+	list_for_each_entry(pos, &(prio)->objs,               \
+	    list) if (!((pos)->type == FS_TYPE_NAMESPACE ||   \
+			  (pos)->type == FS_TYPE_FLOW_TABLE)) \
+	{                                                     \
+	}                                                     \
+	else
 
-#define fs_for_each_ns_or_ft_continue_reverse(pos, prio)		\
-	list_for_each_entry_continue_reverse(pos, &(prio)->objs, list)	\
-		if (!((pos)->type == FS_TYPE_NAMESPACE ||		\
-		      (pos)->type == FS_TYPE_FLOW_TABLE)) {} else
+#define fs_for_each_ns_or_ft_continue_reverse(pos, prio)         \
+	list_for_each_entry_continue_reverse(pos, &(prio)->objs, \
+	    list) if (!((pos)->type == FS_TYPE_NAMESPACE ||      \
+			  (pos)->type == FS_TYPE_FLOW_TABLE))    \
+	{                                                        \
+	}                                                        \
+	else
 
-#define fs_for_each_ns_or_ft_continue(pos, prio)			\
-	list_for_each_entry_continue(pos, &(prio)->objs, list)		\
-		if (!((pos)->type == FS_TYPE_NAMESPACE ||		\
-		      (pos)->type == FS_TYPE_FLOW_TABLE)) {} else
+#define fs_for_each_ns_or_ft_continue(pos, prio)              \
+	list_for_each_entry_continue(pos, &(prio)->objs,      \
+	    list) if (!((pos)->type == FS_TYPE_NAMESPACE ||   \
+			  (pos)->type == FS_TYPE_FLOW_TABLE)) \
+	{                                                     \
+	}                                                     \
+	else
 
-#define fs_for_each_prio(pos, ns)			\
+#define fs_for_each_prio(pos, ns)                                     \
 	fs_list_for_each_entry(pos, (pos)->base.type == FS_TYPE_PRIO, \
-			       &(ns)->prios)
+	    &(ns)->prios)
 
-#define fs_for_each_prio_reverse(pos, ns)			\
+#define fs_for_each_prio_reverse(pos, ns)                                     \
 	fs_list_for_each_entry_reverse(pos, (pos)->base.type == FS_TYPE_PRIO, \
-				       &(ns)->prios)
+	    &(ns)->prios)
 
-#define fs_for_each_prio_continue(pos, ns)			\
+#define fs_for_each_prio_continue(pos, ns)                                     \
 	fs_list_for_each_entry_continue(pos, (pos)->base.type == FS_TYPE_PRIO, \
-				       &(ns)->prios)
+	    &(ns)->prios)
 
-#define fs_for_each_prio_continue_reverse(pos, ns)			\
-	fs_list_for_each_entry_continue_reverse(pos,			\
-						(pos)->base.type == FS_TYPE_PRIO, \
-						&(ns)->prios)
+#define fs_for_each_prio_continue_reverse(pos, ns)   \
+	fs_list_for_each_entry_continue_reverse(pos, \
+	    (pos)->base.type == FS_TYPE_PRIO, &(ns)->prios)
 
-#define fs_for_each_fg(pos, ft)			\
+#define fs_for_each_fg(pos, ft)                                             \
 	fs_list_for_each_entry(pos, (pos)->base.type == FS_TYPE_FLOW_GROUP, \
-			       &(ft)->fgs)
+	    &(ft)->fgs)
 
-#define fs_for_each_fte(pos, fg)			\
+#define fs_for_each_fte(pos, fg)                                            \
 	fs_list_for_each_entry(pos, (pos)->base.type == FS_TYPE_FLOW_ENTRY, \
-			       &(fg)->ftes)
-#define fs_for_each_dst(pos, fte)			\
+	    &(fg)->ftes)
+#define fs_for_each_dst(pos, fte)                                          \
 	fs_list_for_each_entry(pos, (pos)->base.type == FS_TYPE_FLOW_DEST, \
-			       &(fte)->dests)
+	    &(fte)->dests)
 
-int mlx5_cmd_fs_create_ft(struct mlx5_core_dev *dev,
-			  u16 vport, enum fs_ft_type type, unsigned int level,
-			  unsigned int log_size, const char *name, unsigned int *table_id);
+int mlx5_cmd_fs_create_ft(struct mlx5_core_dev *dev, u16 vport,
+    enum fs_ft_type type, unsigned int level, unsigned int log_size,
+    const char *name, unsigned int *table_id);
 
-int mlx5_cmd_fs_destroy_ft(struct mlx5_core_dev *dev,
-			   u16 vport,
-			   enum fs_ft_type type, unsigned int table_id);
+int mlx5_cmd_fs_destroy_ft(struct mlx5_core_dev *dev, u16 vport,
+    enum fs_ft_type type, unsigned int table_id);
 
-int mlx5_cmd_fs_create_fg(struct mlx5_core_dev *dev,
-			  u32 *in,
-			  u16 vport,
-			  enum fs_ft_type type, unsigned int table_id,
-			  unsigned int *group_id);
+int mlx5_cmd_fs_create_fg(struct mlx5_core_dev *dev, u32 *in, u16 vport,
+    enum fs_ft_type type, unsigned int table_id, unsigned int *group_id);
 
-int mlx5_cmd_fs_destroy_fg(struct mlx5_core_dev *dev,
-			   u16 vport,
-			   enum fs_ft_type type, unsigned int table_id,
-			   unsigned int group_id);
+int mlx5_cmd_fs_destroy_fg(struct mlx5_core_dev *dev, u16 vport,
+    enum fs_ft_type type, unsigned int table_id, unsigned int group_id);
 
+int mlx5_cmd_fs_set_fte(struct mlx5_core_dev *dev, u16 vport,
+    enum fs_fte_status *fte_status, u32 *match_val, enum fs_ft_type type,
+    unsigned int table_id, unsigned int index, unsigned int group_id,
+    struct mlx5_flow_act *flow_act, u32 sw_action, int dest_size,
+    struct list_head *dests); /* mlx5_flow_desination */
 
-int mlx5_cmd_fs_set_fte(struct mlx5_core_dev *dev,
-			u16 vport,
-			enum fs_fte_status *fte_status,
-			u32 *match_val,
-			enum fs_ft_type type, unsigned int table_id,
-			unsigned int index, unsigned int group_id,
-			struct mlx5_flow_act *flow_act,
-			u32 sw_action, int dest_size,
-			struct list_head *dests);  /* mlx5_flow_desination */
+int mlx5_cmd_fs_delete_fte(struct mlx5_core_dev *dev, u16 vport,
+    enum fs_fte_status *fte_status, enum fs_ft_type type, unsigned int table_id,
+    unsigned int index);
 
-int mlx5_cmd_fs_delete_fte(struct mlx5_core_dev *dev,
-			   u16 vport,
-			   enum fs_fte_status *fte_status,
-			   enum fs_ft_type type, unsigned int table_id,
-			   unsigned int index);
-
-int mlx5_cmd_update_root_ft(struct mlx5_core_dev *dev,
-			    enum fs_ft_type type,
-			    unsigned int id);
+int mlx5_cmd_update_root_ft(struct mlx5_core_dev *dev, enum fs_ft_type type,
+    unsigned int id);
 
 int mlx5_init_fs(struct mlx5_core_dev *dev);
 void mlx5_cleanup_fs(struct mlx5_core_dev *dev);
 void mlx5_fc_update_sampling_interval(struct mlx5_core_dev *dev,
-				      unsigned long interval);
+    unsigned long interval);
 
 int mlx5_cmd_modify_header_alloc(struct mlx5_core_dev *dev,
-				 enum mlx5_flow_namespace_type namespace,
-				 u8 num_actions,
-				 void *modify_actions,
-				 struct mlx5_modify_hdr *modify_hdr);
+    enum mlx5_flow_namespace_type namespace, u8 num_actions,
+    void *modify_actions, struct mlx5_modify_hdr *modify_hdr);
 void mlx5_cmd_modify_header_dealloc(struct mlx5_core_dev *dev,
-				    struct mlx5_modify_hdr *modify_hdr);
+    struct mlx5_modify_hdr *modify_hdr);
 int mlx5_cmd_packet_reformat_alloc(struct mlx5_core_dev *dev,
-				   struct mlx5_pkt_reformat_params *params,
-				   enum mlx5_flow_namespace_type namespace,
-				   struct mlx5_pkt_reformat *pkt_reformat);
+    struct mlx5_pkt_reformat_params *params,
+    enum mlx5_flow_namespace_type namespace,
+    struct mlx5_pkt_reformat *pkt_reformat);
 void mlx5_cmd_packet_reformat_dealloc(struct mlx5_core_dev *dev,
-				      struct mlx5_pkt_reformat *pkt_reformat);
+    struct mlx5_pkt_reformat *pkt_reformat);
 int mlx5_init_fc_stats(struct mlx5_core_dev *dev);
 void mlx5_cleanup_fc_stats(struct mlx5_core_dev *dev);
 void mlx5_fc_queue_stats_work(struct mlx5_core_dev *dev,
-			      struct delayed_work *dwork,
-			      unsigned long delay);
+    struct delayed_work *dwork, unsigned long delay);
 #endif

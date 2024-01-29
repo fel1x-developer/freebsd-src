@@ -1,4 +1,5 @@
-/*	$NetBSD: citrus_mapper_646.c,v 1.4 2003/07/14 11:37:49 tshiozak Exp $	*/
+/*	$NetBSD: citrus_mapper_646.c,v 1.4 2003/07/14 11:37:49 tshiozak Exp $
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
@@ -38,16 +39,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "citrus_namespace.h"
-#include "citrus_types.h"
 #include "citrus_bcs.h"
-#include "citrus_module.h"
-#include "citrus_region.h"
-#include "citrus_memstream.h"
-#include "citrus_mmap.h"
 #include "citrus_hash.h"
 #include "citrus_mapper.h"
 #include "citrus_mapper_646.h"
+#include "citrus_memstream.h"
+#include "citrus_mmap.h"
+#include "citrus_module.h"
+#include "citrus_namespace.h"
+#include "citrus_region.h"
+#include "citrus_types.h"
 
 /* ---------------------------------------------------------------------- */
 
@@ -56,31 +57,18 @@ _CITRUS_MAPPER_DEF_OPS(mapper_646);
 
 /* ---------------------------------------------------------------------- */
 
-#define ILSEQ	0xFFFFFFFE
-#define INVALID	0xFFFFFFFF
-#define SPECIALS(x)				\
-	x(0x23)					\
-	x(0x24)					\
-	x(0x40)					\
-	x(0x5B)					\
-	x(0x5C)					\
-	x(0x5D)					\
-	x(0x5E)					\
-	x(0x60)					\
-	x(0x7B)					\
-	x(0x7C)					\
-	x(0x7D)					\
-	x(0x7E)
+#define ILSEQ 0xFFFFFFFE
+#define INVALID 0xFFFFFFFF
+#define SPECIALS(x)                                                     \
+	x(0x23) x(0x24) x(0x40) x(0x5B) x(0x5C) x(0x5D) x(0x5E) x(0x60) \
+	    x(0x7B) x(0x7C) x(0x7D) x(0x7E)
 
 #define INDEX(x) INDEX_##x,
 
-enum {
-	SPECIALS(INDEX)
-	NUM_OF_SPECIALS
-};
+enum { SPECIALS(INDEX) NUM_OF_SPECIALS };
 struct _citrus_mapper_646 {
-	_index_t	 m6_map[NUM_OF_SPECIALS];
-	int		 m6_forward;
+	_index_t m6_map[NUM_OF_SPECIALS];
+	int m6_forward;
 };
 
 int
@@ -110,14 +98,14 @@ parse_file(struct _citrus_mapper_646 *m6, const char *path)
 		return (ret);
 	_memstream_bind(&ms, &r);
 	for (i = 0; i < NUM_OF_SPECIALS; i++) {
-retry:
+	retry:
 		p = _memstream_getln(&ms, &len);
 		if (p == NULL) {
 			ret = EINVAL;
 			break;
 		}
 		p = _bcs_skip_ws_len(p, &len);
-		if (*p == T_COMM || len==0)
+		if (*p == T_COMM || len == 0)
 			goto retry;
 		if (!_bcs_isdigit(*p)) {
 			ret = EINVAL;
@@ -138,8 +126,7 @@ retry:
 };
 
 static int
-parse_var(struct _citrus_mapper_646 *m6, struct _memstream *ms,
-    const char *dir)
+parse_var(struct _citrus_mapper_646 *m6, struct _memstream *ms, const char *dir)
 {
 	struct _region r;
 	char path[PATH_MAX];
@@ -153,19 +140,20 @@ parse_var(struct _citrus_mapper_646 *m6, struct _memstream *ms,
 	}
 	/* get description file path */
 	_memstream_getregion(ms, &r, _memstream_remainder(ms));
-	snprintf(path, sizeof(path), "%s/%.*s",
-		 dir, (int)_region_size(&r), (char *)_region_head(&r));
+	snprintf(path, sizeof(path), "%s/%.*s", dir, (int)_region_size(&r),
+	    (char *)_region_head(&r));
 	/* remove trailing white spaces */
-	path[_bcs_skip_nonws(path)-path] = '\0';
+	path[_bcs_skip_nonws(path) - path] = '\0';
 	return (parse_file(m6, path));
 }
 
 static int
 /*ARGSUSED*/
-_citrus_mapper_646_mapper_init(struct _citrus_mapper_area *__restrict ma __unused,
-    struct _citrus_mapper * __restrict cm, const char * __restrict dir,
-    const void * __restrict var, size_t lenvar,
-    struct _citrus_mapper_traits * __restrict mt, size_t lenmt)
+_citrus_mapper_646_mapper_init(
+    struct _citrus_mapper_area *__restrict ma __unused,
+    struct _citrus_mapper *__restrict cm, const char *__restrict dir,
+    const void *__restrict var, size_t lenvar,
+    struct _citrus_mapper_traits *__restrict mt, size_t lenmt)
 {
 	struct _citrus_mapper_646 *m6;
 	struct _memstream ms;
@@ -188,8 +176,8 @@ _citrus_mapper_646_mapper_init(struct _citrus_mapper_area *__restrict ma __unuse
 	}
 
 	cm->cm_closure = m6;
-	mt->mt_src_max = mt->mt_dst_max = 1;	/* 1:1 converter */
-	mt->mt_state_size = 0;			/* stateless */
+	mt->mt_src_max = mt->mt_dst_max = 1; /* 1:1 converter */
+	mt->mt_state_size = 0;		     /* stateless */
 
 	return (0);
 }
@@ -205,8 +193,8 @@ _citrus_mapper_646_mapper_uninit(struct _citrus_mapper *cm)
 
 static int
 /*ARGSUSED*/
-_citrus_mapper_646_mapper_convert(struct _citrus_mapper * __restrict cm,
-    _index_t * __restrict dst, _index_t src, void * __restrict ps __unused)
+_citrus_mapper_646_mapper_convert(struct _citrus_mapper *__restrict cm,
+    _index_t *__restrict dst, _index_t src, void *__restrict ps __unused)
 {
 	struct _citrus_mapper_646 *m6;
 
@@ -215,24 +203,25 @@ _citrus_mapper_646_mapper_convert(struct _citrus_mapper * __restrict cm,
 		/* forward */
 		if (src >= 0x80)
 			return (_MAPPER_CONVERT_ILSEQ);
-#define FORWARD(x)					\
-if (src == (x))	{					\
-	if (m6->m6_map[INDEX_##x]==INVALID)		\
-		return (_MAPPER_CONVERT_NONIDENTICAL);	\
-	*dst = m6->m6_map[INDEX_##x];			\
-	return (0);					\
-} else
+#define FORWARD(x)                                             \
+	if (src == (x)) {                                      \
+		if (m6->m6_map[INDEX_##x] == INVALID)          \
+			return (_MAPPER_CONVERT_NONIDENTICAL); \
+		*dst = m6->m6_map[INDEX_##x];                  \
+		return (0);                                    \
+	} else
 		SPECIALS(FORWARD);
 		*dst = src;
 	} else {
 		/* backward */
-#define BACKWARD(x)							\
-if (m6->m6_map[INDEX_##x] != INVALID && src == m6->m6_map[INDEX_##x]) {	\
-	*dst = (x);							\
-	return (0);							\
-} else if (src == (x))							\
-	return (_MAPPER_CONVERT_ILSEQ);					\
-else
+#define BACKWARD(x)                             \
+	if (m6->m6_map[INDEX_##x] != INVALID && \
+	    src == m6->m6_map[INDEX_##x]) {     \
+		*dst = (x);                     \
+		return (0);                     \
+	} else if (src == (x))                  \
+		return (_MAPPER_CONVERT_ILSEQ); \
+	else
 		SPECIALS(BACKWARD);
 		if (src >= 0x80)
 			return (_MAPPER_CONVERT_NONIDENTICAL);
@@ -246,5 +235,4 @@ static void
 /*ARGSUSED*/
 _citrus_mapper_646_mapper_init_state(void)
 {
-
 }

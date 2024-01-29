@@ -10,7 +10,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -44,22 +44,22 @@
 
 extern char **environ;
 
-#define TTY_DEFAULT_ROWS	24
-#define TTY_DEFAULT_COLS	80
+#define TTY_DEFAULT_ROWS 24
+#define TTY_DEFAULT_COLS 80
 
 /* [X]dialog(1) characteristics */
-uint8_t dialog_test	= 0;
-uint8_t use_dialog	= 0;
-uint8_t use_libdialog	= 1;
-uint8_t use_xdialog	= 0;
-uint8_t use_color	= 1;
-char dialog[PATH_MAX]	= DIALOG;
+uint8_t dialog_test = 0;
+uint8_t use_dialog = 0;
+uint8_t use_libdialog = 1;
+uint8_t use_xdialog = 0;
+uint8_t use_color = 1;
+char dialog[PATH_MAX] = DIALOG;
 
 /* [X]dialog(1) functionality */
-char *title	= NULL;
-char *backtitle	= NULL;
-int dheight	= 0;
-int dwidth	= 0;
+char *title = NULL;
+char *backtitle = NULL;
+int dheight = 0;
+int dwidth = 0;
 static char *dargv[64] = { NULL };
 
 /* TTY/Screen characteristics */
@@ -157,10 +157,10 @@ x11_maxsize_update(void)
 	}
 
 	/* Convert to unsigned short */
-	maxsize->ws_row = (unsigned short)strtonum(
-	    rows, 0, USHRT_MAX, (const char **)NULL);
-	maxsize->ws_col = (unsigned short)strtonum(
-	    cols, 0, USHRT_MAX, (const char **)NULL);
+	maxsize->ws_row = (unsigned short)strtonum(rows, 0, USHRT_MAX,
+	    (const char **)NULL);
+	maxsize->ws_col = (unsigned short)strtonum(cols, 0, USHRT_MAX,
+	    (const char **)NULL);
 }
 
 /*
@@ -308,7 +308,7 @@ dialog_spawn_gauge(char *init_prompt, pid_t *pid)
 	if (pipe(stdin_pipe) < 0)
 		err(EXIT_FAILURE, "%s: pipe(2)", __func__);
 
-	/* Fork [X]dialog(1) process */
+		/* Fork [X]dialog(1) process */
 #if DIALOG_SPAWN_DEBUG
 	fprintf(stderr, "%s: spawning `", __func__);
 	for (i = 0; i < n; i++) {
@@ -326,7 +326,8 @@ dialog_spawn_gauge(char *init_prompt, pid_t *pid)
 	posix_spawn_file_actions_addclose(&action, stdin_pipe[1]);
 	error = posix_spawnp(pid, dialog, &action,
 	    (const posix_spawnattr_t *)NULL, dargv, environ);
-	if (error != 0) err(EXIT_FAILURE, "%s", dialog);
+	if (error != 0)
+		err(EXIT_FAILURE, "%s", dialog);
 
 	/* NB: Do not free(3) *dargv[], else SIGSEGV */
 

@@ -25,11 +25,12 @@
  *
  *	from: FreeBSD: src/sys/boot/sparc64/loader/metadata.c,v 1.6
  */
-#include <stand.h>
 #include <sys/param.h>
-#include <sys/linker.h>
 #include <sys/boot.h>
+#include <sys/linker.h>
 #include <sys/reboot.h>
+
+#include <stand.h>
 #if defined(LOADER_FDT_SUPPORT)
 #include <fdt_platform.h>
 #endif
@@ -62,69 +63,74 @@
  * in length to the required alignment for the kernel being booted.
  */
 
-#define COPY32(v, a, c) {			\
-    uint32_t	x = (v);			\
-    if (c)					\
-        archsw.arch_copyin(&x, a, sizeof(x));	\
-    a += sizeof(x);				\
-}
+#define COPY32(v, a, c)                                       \
+	{                                                     \
+		uint32_t x = (v);                             \
+		if (c)                                        \
+			archsw.arch_copyin(&x, a, sizeof(x)); \
+		a += sizeof(x);                               \
+	}
 
-#define MOD_STR(t, a, s, c) {			\
-    COPY32(t, a, c);				\
-    COPY32(strlen(s) + 1, a, c)			\
-    if (c)					\
-        archsw.arch_copyin(s, a, strlen(s) + 1);\
-    a += MOD_ALIGN(strlen(s) + 1);		\
-}
+#define MOD_STR(t, a, s, c)                                      \
+	{                                                        \
+		COPY32(t, a, c);                                 \
+		COPY32(strlen(s) + 1, a, c)                      \
+		if (c)                                           \
+			archsw.arch_copyin(s, a, strlen(s) + 1); \
+		a += MOD_ALIGN(strlen(s) + 1);                   \
+	}
 
-#define MOD_NAME(a, s, c)	MOD_STR(MODINFO_NAME, a, s, c)
-#define MOD_TYPE(a, s, c)	MOD_STR(MODINFO_TYPE, a, s, c)
-#define MOD_ARGS(a, s, c)	MOD_STR(MODINFO_ARGS, a, s, c)
+#define MOD_NAME(a, s, c) MOD_STR(MODINFO_NAME, a, s, c)
+#define MOD_TYPE(a, s, c) MOD_STR(MODINFO_TYPE, a, s, c)
+#define MOD_ARGS(a, s, c) MOD_STR(MODINFO_ARGS, a, s, c)
 
-#define MOD_VAR(t, a, s, c) {			\
-    COPY32(t, a, c);				\
-    COPY32(sizeof(s), a, c);			\
-    if (c)					\
-        archsw.arch_copyin(&s, a, sizeof(s));	\
-    a += MOD_ALIGN(sizeof(s));			\
-}
+#define MOD_VAR(t, a, s, c)                                   \
+	{                                                     \
+		COPY32(t, a, c);                              \
+		COPY32(sizeof(s), a, c);                      \
+		if (c)                                        \
+			archsw.arch_copyin(&s, a, sizeof(s)); \
+		a += MOD_ALIGN(sizeof(s));                    \
+	}
 
-#define MOD_ADDR(a, s, c)	MOD_VAR(MODINFO_ADDR, a, s, c)
-#define MOD_SIZE(a, s, c)	MOD_VAR(MODINFO_SIZE, a, s, c)
+#define MOD_ADDR(a, s, c) MOD_VAR(MODINFO_ADDR, a, s, c)
+#define MOD_SIZE(a, s, c) MOD_VAR(MODINFO_SIZE, a, s, c)
 
-#define MOD_METADATA(a, mm, c) {		\
-    COPY32(MODINFO_METADATA | mm->md_type, a, c);\
-    COPY32(mm->md_size, a, c);			\
-    if (c) {					\
-        archsw.arch_copyin(mm->md_data, a, mm->md_size);\
-	mm->md_addr = a;			\
-    }						\
-    a += MOD_ALIGN(mm->md_size);		\
-}
+#define MOD_METADATA(a, mm, c)                                           \
+	{                                                                \
+		COPY32(MODINFO_METADATA | mm->md_type, a, c);            \
+		COPY32(mm->md_size, a, c);                               \
+		if (c) {                                                 \
+			archsw.arch_copyin(mm->md_data, a, mm->md_size); \
+			mm->md_addr = a;                                 \
+		}                                                        \
+		a += MOD_ALIGN(mm->md_size);                             \
+	}
 
-#define MOD_END(a, c) {				\
-    COPY32(MODINFO_END, a, c);			\
-    COPY32(0, a, c);				\
-}
+#define MOD_END(a, c)                      \
+	{                                  \
+		COPY32(MODINFO_END, a, c); \
+		COPY32(0, a, c);           \
+	}
 
-#define MOD_ALIGN(l)	roundup(l, align)
+#define MOD_ALIGN(l) roundup(l, align)
 
 vm_offset_t
 md_copymodules(vm_offset_t addr, bool kern64)
 {
-	struct preloaded_file	*fp;
-	struct file_metadata	*md;
-	uint64_t		scratch64;
-	uint32_t		scratch32;
-	int			c;
-	int			align;
+	struct preloaded_file *fp;
+	struct file_metadata *md;
+	uint64_t scratch64;
+	uint32_t scratch32;
+	int c;
+	int align;
 
 	align = kern64 ? sizeof(uint64_t) : sizeof(uint32_t);
 	c = addr != 0;
 	/* start with the first module on the list, should be the kernel */
 	for (fp = file_findfile(NULL, NULL); fp != NULL; fp = fp->f_next) {
 
-		MOD_NAME(addr, fp->f_name, c);	/* this field must come first */
+		MOD_NAME(addr, fp->f_name, c); /* this field must come first */
 		MOD_TYPE(addr, fp->f_type, c);
 		if (fp->f_args)
 			MOD_ARGS(addr, fp->f_args, c);
@@ -148,7 +154,7 @@ md_copymodules(vm_offset_t addr, bool kern64)
 		}
 	}
 	MOD_END(addr, c);
-	return(addr);
+	return (addr);
 }
 
 /*
@@ -176,7 +182,8 @@ md_copyenv(vm_offset_t start)
 		addr++;
 		if (ep->ev_value != NULL) {
 			len = strlen(ep->ev_value);
-			if ((size_t)archsw.arch_copyin(ep->ev_value, addr, len) != len)
+			if ((size_t)archsw.arch_copyin(ep->ev_value, addr,
+				len) != len)
 				break;
 			addr += len;
 		}
@@ -187,5 +194,5 @@ md_copyenv(vm_offset_t start)
 
 	if (archsw.arch_copyin("", last++, 1) != 1)
 		last = start;
-	return(last);
+	return (last);
 }

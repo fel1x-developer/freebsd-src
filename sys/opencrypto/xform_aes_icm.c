@@ -48,6 +48,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <opencrypto/cbc_mac.h>
 #include <opencrypto/gmac.h>
 #include <opencrypto/xform_enc.h>
@@ -62,19 +63,19 @@ struct aes_ccm_ctx {
 	struct aes_cbc_mac_ctx cbc_mac;
 };
 
-static	int aes_icm_setkey(void *, const uint8_t *, int);
-static	void aes_icm_crypt(void *, const uint8_t *, uint8_t *);
-static	void aes_icm_crypt_multi(void *, const uint8_t *, uint8_t *, size_t);
-static	void aes_icm_crypt_last(void *, const uint8_t *, uint8_t *, size_t);
-static	void aes_icm_reinit(void *, const uint8_t *, size_t);
-static	int aes_gcm_setkey(void *, const uint8_t *, int);
-static	void aes_gcm_reinit(void *, const uint8_t *, size_t);
-static	int aes_gcm_update(void *, const void *, u_int);
-static	void aes_gcm_final(uint8_t *, void *);
-static	int aes_ccm_setkey(void *, const uint8_t *, int);
-static	void aes_ccm_reinit(void *, const uint8_t *, size_t);
-static	int aes_ccm_update(void *, const void *, u_int);
-static	void aes_ccm_final(uint8_t *, void *);
+static int aes_icm_setkey(void *, const uint8_t *, int);
+static void aes_icm_crypt(void *, const uint8_t *, uint8_t *);
+static void aes_icm_crypt_multi(void *, const uint8_t *, uint8_t *, size_t);
+static void aes_icm_crypt_last(void *, const uint8_t *, uint8_t *, size_t);
+static void aes_icm_reinit(void *, const uint8_t *, size_t);
+static int aes_gcm_setkey(void *, const uint8_t *, int);
+static void aes_gcm_reinit(void *, const uint8_t *, size_t);
+static int aes_gcm_update(void *, const void *, u_int);
+static void aes_gcm_final(uint8_t *, void *);
+static int aes_ccm_setkey(void *, const uint8_t *, int);
+static void aes_ccm_reinit(void *, const uint8_t *, size_t);
+static int aes_ccm_update(void *, const void *, u_int);
+static void aes_ccm_final(uint8_t *, void *);
 
 /* Encryption instances */
 const struct enc_xform enc_xform_aes_icm = {
@@ -125,7 +126,8 @@ const struct enc_xform enc_xform_ccm = {
 	.blocksize = 1,
 	.native_blocksize = AES_BLOCK_LEN,
 	.ivsize = AES_CCM_IV_LEN,
-	.minkey = AES_MIN_KEY, .maxkey = AES_MAX_KEY,
+	.minkey = AES_MIN_KEY,
+	.maxkey = AES_MAX_KEY,
 	.macsize = AES_CBC_MAC_HASH_LEN,
 	.setkey = aes_ccm_setkey,
 	.reinit = aes_ccm_reinit,
@@ -158,8 +160,7 @@ aes_gcm_reinit(void *vctx, const uint8_t *iv, size_t ivlen)
 {
 	struct aes_gcm_ctx *ctx = vctx;
 
-	KASSERT(ivlen == AES_GCM_IV_LEN,
-	    ("%s: invalid IV length", __func__));
+	KASSERT(ivlen == AES_GCM_IV_LEN, ("%s: invalid IV length", __func__));
 	aes_icm_reinit(&ctx->cipher, iv, ivlen);
 
 	/* GCM starts with 2 as counter 1 is used for final xor of tag. */
@@ -174,8 +175,7 @@ aes_ccm_reinit(void *vctx, const uint8_t *iv, size_t ivlen)
 {
 	struct aes_ccm_ctx *ctx = vctx;
 
-	KASSERT(ivlen >= 7 && ivlen <= 13,
-	    ("%s: invalid IV length", __func__));
+	KASSERT(ivlen >= 7 && ivlen <= 13, ("%s: invalid IV length", __func__));
 
 	/* CCM has flags, then the IV, then the counter, which starts at 1 */
 	bzero(ctx->cipher.ac_block, sizeof(ctx->cipher.ac_block));
@@ -196,9 +196,8 @@ aes_icm_crypt(void *key, const uint8_t *in, uint8_t *out)
 	aes_icm_crypt_last(key, in, out, AESICM_BLOCKSIZE);
 
 	/* increment counter */
-	for (i = AESICM_BLOCKSIZE - 1;
-	     i >= 0; i--)
-		if (++ctx->ac_block[i])   /* continue on overflow */
+	for (i = AESICM_BLOCKSIZE - 1; i >= 0; i--)
+		if (++ctx->ac_block[i]) /* continue on overflow */
 			break;
 }
 
@@ -211,13 +210,14 @@ aes_icm_crypt_multi(void *key, const uint8_t *in, uint8_t *out, size_t len)
 
 	KASSERT(len % AESICM_BLOCKSIZE == 0, ("%s: invalid length", __func__));
 	while (len > 0) {
-		rijndaelEncrypt(ctx->ac_ek, ctx->ac_nr, ctx->ac_block, keystream);
+		rijndaelEncrypt(ctx->ac_ek, ctx->ac_nr, ctx->ac_block,
+		    keystream);
 		for (i = 0; i < AESICM_BLOCKSIZE; i++)
 			out[i] = in[i] ^ keystream[i];
 
 		/* increment counter */
 		for (i = AESICM_BLOCKSIZE - 1; i >= 0; i--)
-			if (++ctx->ac_block[i])   /* continue on overflow */
+			if (++ctx->ac_block[i]) /* continue on overflow */
 				break;
 
 		out += AESICM_BLOCKSIZE;

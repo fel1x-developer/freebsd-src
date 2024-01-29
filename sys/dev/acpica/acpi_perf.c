@@ -24,27 +24,28 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_acpi.h"
+
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/kernel.h>
-#include <sys/proc.h>
-#include <sys/sched.h>
 #include <sys/bus.h>
 #include <sys/cpu.h>
-#include <sys/power.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
-#include <sys/sbuf.h>
 #include <sys/pcpu.h>
+#include <sys/power.h>
+#include <sys/proc.h>
+#include <sys/rman.h>
+#include <sys/sbuf.h>
+#include <sys/sched.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
-
-#include <contrib/dev/acpica/include/acpi.h>
 
 #include <dev/acpica/acpivar.h>
+
+#include <contrib/dev/acpica/include/acpi.h>
 
 #include "cpufreq_if.h"
 
@@ -54,72 +55,70 @@
  */
 
 struct acpi_px {
-	uint32_t	 core_freq;
-	uint32_t	 power;
-	uint32_t	 trans_lat;
-	uint32_t	 bm_lat;
-	uint32_t	 ctrl_val;
-	uint32_t	 sts_val;
+	uint32_t core_freq;
+	uint32_t power;
+	uint32_t trans_lat;
+	uint32_t bm_lat;
+	uint32_t ctrl_val;
+	uint32_t sts_val;
 };
 
 /* Offsets in struct cf_setting array for storing driver-specific values. */
-#define PX_SPEC_CONTROL	0
-#define PX_SPEC_STATUS	1
+#define PX_SPEC_CONTROL 0
+#define PX_SPEC_STATUS 1
 
-#define MAX_PX_STATES	16
+#define MAX_PX_STATES 16
 
 struct acpi_perf_softc {
-	device_t	 dev;
-	ACPI_HANDLE	 handle;
-	struct resource	*perf_ctrl;	/* Set new performance state. */
-	int		 perf_ctrl_type; /* Resource type for perf_ctrl. */
-	struct resource	*perf_status;	/* Check that transition succeeded. */
-	int		 perf_sts_type;	/* Resource type for perf_status. */
-	struct acpi_px	*px_states;	/* ACPI perf states. */
-	uint32_t	 px_count;	/* Total number of perf states. */
-	uint32_t	 px_max_avail;	/* Lowest index state available. */
-	int		 px_curr_state;	/* Active state index. */
-	int		 px_rid;
-	int		 info_only;	/* Can we set new states? */
+	device_t dev;
+	ACPI_HANDLE handle;
+	struct resource *perf_ctrl;   /* Set new performance state. */
+	int perf_ctrl_type;	      /* Resource type for perf_ctrl. */
+	struct resource *perf_status; /* Check that transition succeeded. */
+	int perf_sts_type;	      /* Resource type for perf_status. */
+	struct acpi_px *px_states;    /* ACPI perf states. */
+	uint32_t px_count;	      /* Total number of perf states. */
+	uint32_t px_max_avail;	      /* Lowest index state available. */
+	int px_curr_state;	      /* Active state index. */
+	int px_rid;
+	int info_only; /* Can we set new states? */
 };
 
-#define PX_GET_REG(reg) 				\
-	(bus_space_read_4(rman_get_bustag((reg)), 	\
-	    rman_get_bushandle((reg)), 0))
-#define PX_SET_REG(reg, val)				\
-	(bus_space_write_4(rman_get_bustag((reg)), 	\
-	    rman_get_bushandle((reg)), 0, (val)))
+#define PX_GET_REG(reg) \
+	(bus_space_read_4(rman_get_bustag((reg)), rman_get_bushandle((reg)), 0))
+#define PX_SET_REG(reg, val)                                                  \
+	(bus_space_write_4(rman_get_bustag((reg)), rman_get_bushandle((reg)), \
+	    0, (val)))
 
-#define ACPI_NOTIFY_PERF_STATES		0x80	/* _PSS changed. */
+#define ACPI_NOTIFY_PERF_STATES 0x80 /* _PSS changed. */
 
-static void	acpi_perf_identify(driver_t *driver, device_t parent);
-static int	acpi_perf_probe(device_t dev);
-static int	acpi_perf_attach(device_t dev);
-static int	acpi_perf_detach(device_t dev);
-static int	acpi_perf_evaluate(device_t dev);
-static int	acpi_px_to_set(device_t dev, struct acpi_px *px,
-		    struct cf_setting *set);
-static void	acpi_px_available(struct acpi_perf_softc *sc);
-static void	acpi_px_startup(void *arg);
-static void	acpi_px_notify(ACPI_HANDLE h, UINT32 notify, void *context);
-static int	acpi_px_settings(device_t dev, struct cf_setting *sets,
-		    int *count);
-static int	acpi_px_set(device_t dev, const struct cf_setting *set);
-static int	acpi_px_get(device_t dev, struct cf_setting *set);
-static int	acpi_px_type(device_t dev, int *type);
+static void acpi_perf_identify(driver_t *driver, device_t parent);
+static int acpi_perf_probe(device_t dev);
+static int acpi_perf_attach(device_t dev);
+static int acpi_perf_detach(device_t dev);
+static int acpi_perf_evaluate(device_t dev);
+static int acpi_px_to_set(device_t dev, struct acpi_px *px,
+    struct cf_setting *set);
+static void acpi_px_available(struct acpi_perf_softc *sc);
+static void acpi_px_startup(void *arg);
+static void acpi_px_notify(ACPI_HANDLE h, UINT32 notify, void *context);
+static int acpi_px_settings(device_t dev, struct cf_setting *sets, int *count);
+static int acpi_px_set(device_t dev, const struct cf_setting *set);
+static int acpi_px_get(device_t dev, struct cf_setting *set);
+static int acpi_px_type(device_t dev, int *type);
 
 static device_method_t acpi_perf_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,	acpi_perf_identify),
-	DEVMETHOD(device_probe,		acpi_perf_probe),
-	DEVMETHOD(device_attach,	acpi_perf_attach),
-	DEVMETHOD(device_detach,	acpi_perf_detach),
+	DEVMETHOD(device_identify, acpi_perf_identify),
+	DEVMETHOD(device_probe, acpi_perf_probe),
+	DEVMETHOD(device_attach, acpi_perf_attach),
+	DEVMETHOD(device_detach, acpi_perf_detach),
 
 	/* cpufreq interface */
-	DEVMETHOD(cpufreq_drv_set,	acpi_px_set),
-	DEVMETHOD(cpufreq_drv_get,	acpi_px_get),
-	DEVMETHOD(cpufreq_drv_type,	acpi_px_type),
-	DEVMETHOD(cpufreq_drv_settings,	acpi_px_settings),
+	DEVMETHOD(cpufreq_drv_set, acpi_px_set),
+	DEVMETHOD(cpufreq_drv_get, acpi_px_get),
+	DEVMETHOD(cpufreq_drv_type, acpi_px_type),
+	DEVMETHOD(cpufreq_drv_settings, acpi_px_settings),
 
 	DEVMETHOD_END
 };
@@ -159,7 +158,7 @@ acpi_perf_identify(driver_t *driver, device_t parent)
 	 * on it (i.e., for info about supported states) will see it.
 	 */
 	if ((dev = BUS_ADD_CHILD(parent, 0, "acpi_perf",
-	    device_get_unit(parent))) != NULL)
+		 device_get_unit(parent))) != NULL)
 		device_probe_and_attach(dev);
 	else
 		device_printf(parent, "add acpi_perf child failed\n");
@@ -356,8 +355,8 @@ acpi_perf_evaluate(device_t dev)
 
 	/* Get our current limit and register for notifies. */
 	acpi_px_available(sc);
-	AcpiInstallNotifyHandler(sc->handle, ACPI_DEVICE_NOTIFY,
-	    acpi_px_notify, sc);
+	AcpiInstallNotifyHandler(sc->handle, ACPI_DEVICE_NOTIFY, acpi_px_notify,
+	    sc);
 	error = 0;
 
 out:

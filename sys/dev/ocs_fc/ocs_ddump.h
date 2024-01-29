@@ -34,25 +34,31 @@
 
 #include "ocs_utils.h"
 
-#define OCS_DDUMP_FLAGS_WQES	(1U << 0)
-#define OCS_DDUMP_FLAGS_CQES	(1U << 1)
-#define OCS_DDUMP_FLAGS_MQES	(1U << 2)
-#define OCS_DDUMP_FLAGS_RQES	(1U << 3)
-#define OCS_DDUMP_FLAGS_EQES	(1U << 4)
+#define OCS_DDUMP_FLAGS_WQES (1U << 0)
+#define OCS_DDUMP_FLAGS_CQES (1U << 1)
+#define OCS_DDUMP_FLAGS_MQES (1U << 2)
+#define OCS_DDUMP_FLAGS_RQES (1U << 3)
+#define OCS_DDUMP_FLAGS_EQES (1U << 4)
 
-extern int ocs_ddump(ocs_t *ocs, ocs_textbuf_t *textbuf, uint32_t flags, uint32_t qentries);
+extern int ocs_ddump(ocs_t *ocs, ocs_textbuf_t *textbuf, uint32_t flags,
+    uint32_t qentries);
 
 extern void ocs_ddump_startfile(ocs_textbuf_t *textbuf);
 extern void ocs_ddump_endfile(ocs_textbuf_t *textbuf);
-extern void ocs_ddump_section(ocs_textbuf_t *textbuf, const char *name, uint32_t instance);
-extern void ocs_ddump_endsection(ocs_textbuf_t *textbuf, const char *name, uint32_t instance);
-__attribute__((format(printf,3,4)))
-extern void ocs_ddump_value(ocs_textbuf_t *textbuf, const char *name, const char *fmt, ...);
-extern void ocs_ddump_buffer(ocs_textbuf_t *textbuf, const char *name, uint32_t instance, void *buffer, uint32_t size);
+extern void ocs_ddump_section(ocs_textbuf_t *textbuf, const char *name,
+    uint32_t instance);
+extern void ocs_ddump_endsection(ocs_textbuf_t *textbuf, const char *name,
+    uint32_t instance);
+__attribute__((format(printf, 3, 4))) extern void
+ocs_ddump_value(ocs_textbuf_t *textbuf, const char *name, const char *fmt, ...);
+extern void ocs_ddump_buffer(ocs_textbuf_t *textbuf, const char *name,
+    uint32_t instance, void *buffer, uint32_t size);
 extern int32_t ocs_save_ddump(ocs_t *ocs, uint32_t flags, uint32_t qentries);
 extern int32_t ocs_get_saved_ddump(ocs_t *ocs, ocs_textbuf_t *textbuf);
-extern int32_t ocs_save_ddump_all(uint32_t flags, uint32_t qentries, uint32_t alloc_flag);
+extern int32_t ocs_save_ddump_all(uint32_t flags, uint32_t qentries,
+    uint32_t alloc_flag);
 extern int32_t ocs_clear_saved_ddump(ocs_t *ocs);
-extern void ocs_ddump_queue_entries(ocs_textbuf_t *textbuf, void *q_addr, uint32_t size, uint32_t length, int32_t index, uint32_t qentries);
+extern void ocs_ddump_queue_entries(ocs_textbuf_t *textbuf, void *q_addr,
+    uint32_t size, uint32_t length, int32_t index, uint32_t qentries);
 
-#endif 
+#endif

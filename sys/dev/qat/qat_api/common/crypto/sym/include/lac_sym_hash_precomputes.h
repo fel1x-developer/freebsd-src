@@ -23,14 +23,14 @@
 #define LAC_SYM_HASH_MSBIT_MASK 0x80 /* Mask to check MSB top bit */
 				     /* zero or one */
 
-#define LAC_SINGLE_BUFFER_HW_META_SIZE                                         \
+#define LAC_SINGLE_BUFFER_HW_META_SIZE \
 	(sizeof(icp_buffer_list_desc_t) + sizeof(icp_flat_buffer_desc_t))
 /**< size of memory to allocate for the HW buffer list that is sent to the
  * QAT */
 
-#define LAC_SYM_HASH_PRECOMP_MAX_WORKING_BUFFER                                \
-	((sizeof(lac_sym_hash_precomp_op_data_t) * 2) +                        \
-	 sizeof(lac_sym_hash_precomp_op_t))
+#define LAC_SYM_HASH_PRECOMP_MAX_WORKING_BUFFER         \
+	((sizeof(lac_sym_hash_precomp_op_data_t) * 2) + \
+	    sizeof(lac_sym_hash_precomp_op_t))
 /**< maximum size of the working data for the HMAC precompute operations
  *
  * Maximum size of lac_sym_hash_precomp_op_data_t is 264 bytes. For hash
@@ -43,7 +43,7 @@
  * carve up for the precomputes.
  */
 
-#define LAC_SYM_HASH_PRECOMP_MAX_AES_ECB_DATA                                  \
+#define LAC_SYM_HASH_PRECOMP_MAX_AES_ECB_DATA \
 	((ICP_QAT_HW_AES_128_KEY_SZ) * (3))
 /**< Maximum size for the data that an AES ECB precompute is generated on */
 

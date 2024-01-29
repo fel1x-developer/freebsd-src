@@ -44,52 +44,52 @@
 #include <dev/mpt/mpt.h>
 
 struct mpt_user_raid_action_result {
-	uint32_t	volume_status;
-	uint32_t	action_data[4];
-	uint16_t	action_status;
+	uint32_t volume_status;
+	uint32_t action_data[4];
+	uint16_t action_status;
 };
 
 struct mpt_page_memory {
-	bus_dma_tag_t	tag;
-	bus_dmamap_t	map;
-	bus_addr_t	paddr;
-	void		*vaddr;
+	bus_dma_tag_t tag;
+	bus_dmamap_t map;
+	bus_addr_t paddr;
+	void *vaddr;
 };
 
-static mpt_probe_handler_t	mpt_user_probe;
-static mpt_attach_handler_t	mpt_user_attach;
-static mpt_enable_handler_t	mpt_user_enable;
-static mpt_ready_handler_t	mpt_user_ready;
-static mpt_event_handler_t	mpt_user_event;
-static mpt_reset_handler_t	mpt_user_reset;
-static mpt_detach_handler_t	mpt_user_detach;
+static mpt_probe_handler_t mpt_user_probe;
+static mpt_attach_handler_t mpt_user_attach;
+static mpt_enable_handler_t mpt_user_enable;
+static mpt_ready_handler_t mpt_user_ready;
+static mpt_event_handler_t mpt_user_event;
+static mpt_reset_handler_t mpt_user_reset;
+static mpt_detach_handler_t mpt_user_detach;
 
 static struct mpt_personality mpt_user_personality = {
-	.name		= "mpt_user",
-	.probe		= mpt_user_probe,
-	.attach		= mpt_user_attach,
-	.enable		= mpt_user_enable,
-	.ready		= mpt_user_ready,
-	.event		= mpt_user_event,
-	.reset		= mpt_user_reset,
-	.detach		= mpt_user_detach,
+	.name = "mpt_user",
+	.probe = mpt_user_probe,
+	.attach = mpt_user_attach,
+	.enable = mpt_user_enable,
+	.ready = mpt_user_ready,
+	.event = mpt_user_event,
+	.reset = mpt_user_reset,
+	.detach = mpt_user_detach,
 };
 
 DECLARE_MPT_PERSONALITY(mpt_user, SI_ORDER_SECOND);
 
-static mpt_reply_handler_t	mpt_user_reply_handler;
+static mpt_reply_handler_t mpt_user_reply_handler;
 
-static d_open_t		mpt_open;
-static d_close_t	mpt_close;
-static d_ioctl_t	mpt_ioctl;
+static d_open_t mpt_open;
+static d_close_t mpt_close;
+static d_ioctl_t mpt_ioctl;
 
 static struct cdevsw mpt_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_flags =	0,
-	.d_open =	mpt_open,
-	.d_close =	mpt_close,
-	.d_ioctl =	mpt_ioctl,
-	.d_name =	"mpt",
+	.d_version = D_VERSION,
+	.d_flags = 0,
+	.d_open = mpt_open,
+	.d_close = mpt_close,
+	.d_ioctl = mpt_ioctl,
+	.d_name = "mpt",
 };
 
 static MALLOC_DEFINE(M_MPTUSER, "mpt_user", "Buffers for mpt(4) ioctls");
@@ -113,7 +113,7 @@ mpt_user_attach(struct mpt_softc *mpt)
 	MPT_LOCK(mpt);
 	handler.reply_handler = mpt_user_reply_handler;
 	error = mpt_register_handler(mpt, MPT_HANDLER_REPLY, handler,
-				     &user_handler_id);
+	    &user_handler_id);
 	MPT_UNLOCK(mpt);
 	if (error != 0) {
 		mpt_prt(mpt, "Unable to register user handler!\n");
@@ -143,7 +143,6 @@ mpt_user_enable(struct mpt_softc *mpt)
 static void
 mpt_user_ready(struct mpt_softc *mpt)
 {
-
 }
 
 static int
@@ -158,7 +157,6 @@ mpt_user_event(struct mpt_softc *mpt, request_t *req,
 static void
 mpt_user_reset(struct mpt_softc *mpt, int type)
 {
-
 }
 
 static void
@@ -203,8 +201,8 @@ mpt_alloc_buffer(struct mpt_softc *mpt, struct mpt_page_memory *page_mem,
 	if (len > 16 * 1024 * 1024)
 		return (ENOSPC);
 	error = mpt_dma_tag_create(mpt, mpt->parent_dmat, 1, 0,
-	    BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR, NULL, NULL,
-	    len, 1, len, 0, &page_mem->tag);
+	    BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR, NULL, NULL, len, 1, len,
+	    0, &page_mem->tag);
 	if (error)
 		return (error);
 	error = bus_dmamem_alloc(page_mem->tag, &page_mem->vaddr,
@@ -244,10 +242,10 @@ static int
 mpt_user_read_cfg_header(struct mpt_softc *mpt,
     struct mpt_cfg_page_req *page_req)
 {
-	request_t  *req;
+	request_t *req;
 	cfgparms_t params;
 	MSG_CONFIG *cfgp;
-	int	    error;
+	int error;
 
 	req = mpt_get_request(mpt, TRUE);
 	if (req == NULL) {
@@ -261,8 +259,8 @@ mpt_user_read_cfg_header(struct mpt_softc *mpt,
 	params.PageNumber = page_req->header.PageNumber;
 	params.PageType = page_req->header.PageType;
 	params.PageAddress = le32toh(page_req->page_address);
-	error = mpt_issue_cfg_req(mpt, req, &params, /*addr*/0, /*len*/0,
-				  TRUE, 5000);
+	error = mpt_issue_cfg_req(mpt, req, &params, /*addr*/ 0, /*len*/ 0,
+	    TRUE, 5000);
 	if (error != 0) {
 		/*
 		 * Leave the request. Without resetting the chip, it's
@@ -289,9 +287,9 @@ mpt_user_read_cfg_page(struct mpt_softc *mpt, struct mpt_cfg_page_req *page_req,
     struct mpt_page_memory *mpt_page)
 {
 	CONFIG_PAGE_HEADER *hdr;
-	request_t    *req;
-	cfgparms_t    params;
-	int	      error;
+	request_t *req;
+	cfgparms_t params;
+	int error;
 
 	req = mpt_get_request(mpt, TRUE);
 	if (req == NULL) {
@@ -327,14 +325,15 @@ static int
 mpt_user_read_extcfg_header(struct mpt_softc *mpt,
     struct mpt_ext_cfg_page_req *ext_page_req)
 {
-	request_t  *req;
+	request_t *req;
 	cfgparms_t params;
 	MSG_CONFIG_REPLY *cfgp;
-	int	    error;
+	int error;
 
 	req = mpt_get_request(mpt, TRUE);
 	if (req == NULL) {
-		mpt_prt(mpt, "mpt_user_read_extcfg_header: Get request failed!\n");
+		mpt_prt(mpt,
+		    "mpt_user_read_extcfg_header: Get request failed!\n");
 		return (ENOMEM);
 	}
 
@@ -346,8 +345,8 @@ mpt_user_read_extcfg_header(struct mpt_softc *mpt,
 	params.PageAddress = le32toh(ext_page_req->page_address);
 	params.ExtPageType = ext_page_req->header.ExtPageType;
 	params.ExtPageLength = 0;
-	error = mpt_issue_cfg_req(mpt, req, &params, /*addr*/0, /*len*/0,
-				  TRUE, 5000);
+	error = mpt_issue_cfg_req(mpt, req, &params, /*addr*/ 0, /*len*/ 0,
+	    TRUE, 5000);
 	if (error != 0) {
 		/*
 		 * Leave the request. Without resetting the chip, it's
@@ -377,13 +376,14 @@ mpt_user_read_extcfg_page(struct mpt_softc *mpt,
     struct mpt_ext_cfg_page_req *ext_page_req, struct mpt_page_memory *mpt_page)
 {
 	CONFIG_EXTENDED_PAGE_HEADER *hdr;
-	request_t    *req;
-	cfgparms_t    params;
-	int	      error;
+	request_t *req;
+	cfgparms_t params;
+	int error;
 
 	req = mpt_get_request(mpt, TRUE);
 	if (req == NULL) {
-		mpt_prt(mpt, "mpt_user_read_extcfg_page: Get request failed!\n");
+		mpt_prt(mpt,
+		    "mpt_user_read_extcfg_page: Get request failed!\n");
 		return (ENOMEM);
 	}
 
@@ -418,21 +418,21 @@ mpt_user_write_cfg_page(struct mpt_softc *mpt,
     struct mpt_cfg_page_req *page_req, struct mpt_page_memory *mpt_page)
 {
 	CONFIG_PAGE_HEADER *hdr;
-	request_t    *req;
-	cfgparms_t    params;
-	u_int	      hdr_attr;
-	int	      error;
+	request_t *req;
+	cfgparms_t params;
+	u_int hdr_attr;
+	int error;
 
 	hdr = mpt_page->vaddr;
 	hdr_attr = hdr->PageType & MPI_CONFIG_PAGEATTR_MASK;
 	if (hdr_attr != MPI_CONFIG_PAGEATTR_CHANGEABLE &&
 	    hdr_attr != MPI_CONFIG_PAGEATTR_PERSISTENT) {
 		mpt_prt(mpt, "page type 0x%x not changeable\n",
-			hdr->PageType & MPI_CONFIG_PAGETYPE_MASK);
+		    hdr->PageType & MPI_CONFIG_PAGETYPE_MASK);
 		return (EINVAL);
 	}
 
-#if	0
+#if 0
 	/*
 	 * We shouldn't mask off other bits here.
 	 */
@@ -443,8 +443,8 @@ mpt_user_write_cfg_page(struct mpt_softc *mpt,
 	if (req == NULL)
 		return (ENOMEM);
 
-	bus_dmamap_sync(mpt_page->tag, mpt_page->map, BUS_DMASYNC_PREREAD |
-	    BUS_DMASYNC_PREWRITE);
+	bus_dmamap_sync(mpt_page->tag, mpt_page->map,
+	    BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
 
 	/*
 	 * There isn't any point in restoring stripped out attributes
@@ -456,7 +456,7 @@ mpt_user_write_cfg_page(struct mpt_softc *mpt,
 	params.PageLength = hdr->PageLength;
 	params.PageNumber = hdr->PageNumber;
 	params.PageAddress = le32toh(page_req->page_address);
-#if	0
+#if 0
 	/* Restore stripped out attributes */
 	hdr->PageType |= hdr_attr;
 	params.PageType = hdr->PageType & MPI_CONFIG_PAGETYPE_MASK;
@@ -471,8 +471,8 @@ mpt_user_write_cfg_page(struct mpt_softc *mpt,
 	}
 
 	page_req->ioc_status = htole16(req->IOCStatus);
-	bus_dmamap_sync(mpt_page->tag, mpt_page->map, BUS_DMASYNC_POSTREAD |
-	    BUS_DMASYNC_POSTWRITE);
+	bus_dmamap_sync(mpt_page->tag, mpt_page->map,
+	    BUS_DMASYNC_POSTREAD | BUS_DMASYNC_POSTWRITE);
 	mpt_free_request(mpt, req);
 	return (0);
 }
@@ -490,8 +490,8 @@ mpt_user_reply_handler(struct mpt_softc *mpt, request_t *req,
 	if (reply_frame != NULL) {
 		reply = (MSG_RAID_ACTION_REPLY *)reply_frame;
 		req->IOCStatus = le16toh(reply->IOCStatus);
-		res = (struct mpt_user_raid_action_result *)
-		    (((uint8_t *)req->req_vbuf) + MPT_RQSL(mpt));
+		res = (struct mpt_user_raid_action_result
+			*)(((uint8_t *)req->req_vbuf) + MPT_RQSL(mpt));
 		res->action_status = reply->ActionStatus;
 		res->volume_status = reply->VolumeStatus;
 		bcopy(&reply->ActionData, res->action_data,
@@ -522,7 +522,7 @@ mpt_user_reply_handler(struct mpt_softc *mpt, request_t *req,
  */
 static int
 mpt_user_raid_action(struct mpt_softc *mpt, struct mpt_raid_action *raid_act,
-	struct mpt_page_memory *mpt_page)
+    struct mpt_page_memory *mpt_page)
 {
 	request_t *req;
 	struct mpt_user_raid_action_result *res;
@@ -547,11 +547,12 @@ mpt_user_raid_action(struct mpt_softc *mpt, struct mpt_raid_action *raid_act,
 		    BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
 		se->Address = htole32(mpt_page->paddr);
 		MPI_pSGE_SET_LENGTH(se, le32toh(raid_act->len));
-		MPI_pSGE_SET_FLAGS(se, (MPI_SGE_FLAGS_SIMPLE_ELEMENT |
-		    MPI_SGE_FLAGS_LAST_ELEMENT | MPI_SGE_FLAGS_END_OF_BUFFER |
-		    MPI_SGE_FLAGS_END_OF_LIST |
-		    (raid_act->write ? MPI_SGE_FLAGS_HOST_TO_IOC :
-		    MPI_SGE_FLAGS_IOC_TO_HOST)));
+		MPI_pSGE_SET_FLAGS(se,
+		    (MPI_SGE_FLAGS_SIMPLE_ELEMENT | MPI_SGE_FLAGS_LAST_ELEMENT |
+			MPI_SGE_FLAGS_END_OF_BUFFER |
+			MPI_SGE_FLAGS_END_OF_LIST |
+			(raid_act->write ? MPI_SGE_FLAGS_HOST_TO_IOC :
+					   MPI_SGE_FLAGS_IOC_TO_HOST)));
 	}
 	se->FlagsLength = htole32(se->FlagsLength);
 	rap->MsgContext = htole32(req->index | user_handler_id);
@@ -575,8 +576,9 @@ mpt_user_raid_action(struct mpt_softc *mpt, struct mpt_raid_action *raid_act,
 		return (0);
 	}
 
-	res = (struct mpt_user_raid_action_result *)
-	    (((uint8_t *)req->req_vbuf) + MPT_RQSL(mpt));
+	res =
+	    (struct mpt_user_raid_action_result *)(((uint8_t *)req->req_vbuf) +
+		MPT_RQSL(mpt));
 	raid_act->volume_status = res->volume_status;
 	raid_act->action_status = res->action_status;
 	bcopy(res->action_data, raid_act->action_data,
@@ -589,7 +591,8 @@ mpt_user_raid_action(struct mpt_softc *mpt, struct mpt_raid_action *raid_act,
 }
 
 static int
-mpt_ioctl(struct cdev *dev, u_long cmd, caddr_t arg, int flag, struct thread *td)
+mpt_ioctl(struct cdev *dev, u_long cmd, caddr_t arg, int flag,
+    struct thread *td)
 {
 	struct mpt_softc *mpt;
 	struct mpt_cfg_page_req *page_req;
@@ -782,7 +785,7 @@ mpt_ioctl(struct cdev *dev, u_long cmd, caddr_t arg, int flag, struct thread *td
 		page_req32->ioc_status = page_req->ioc_status;
 		break;
 	case MPTIO_READ_EXT_CFG_HEADER32:
-	case MPTIO_READ_EXT_CFG_PAGE32:		
+	case MPTIO_READ_EXT_CFG_PAGE32:
 		ext_page_req32->header = ext_page_req->header;
 		ext_page_req32->page_address = ext_page_req->page_address;
 		ext_page_req32->buf = PTROUT(ext_page_req->buf);

@@ -29,8 +29,8 @@
 #include <string.h>
 #include <strings.h>
 
-#include "geliboot_internal.h"
 #include "geliboot.h"
+#include "geliboot_internal.h"
 
 int
 geliboot_crypt(u_int algo, geli_op_t enc, u_char *data, size_t datasize,
@@ -44,7 +44,7 @@ geliboot_crypt(u_int algo, geli_op_t enc, u_char *data, size_t datasize,
 
 	switch (algo) {
 	case CRYPTO_AES_CBC:
-		err = rijndael_makeKey(&aeskey, !enc, keysize, 
+		err = rijndael_makeKey(&aeskey, !enc, keysize,
 		    (const char *)key);
 		if (err < 0) {
 			printf("Failed to setup crypo keys: %d\n", err);
@@ -59,18 +59,17 @@ geliboot_crypt(u_int algo, geli_op_t enc, u_char *data, size_t datasize,
 
 		switch (enc) {
 		case GELI_DECRYPT:
-			blks = rijndael_blockDecrypt(&cipher, &aeskey, data, 
+			blks = rijndael_blockDecrypt(&cipher, &aeskey, data,
 			    datasize * 8, data);
 			break;
 		case GELI_ENCRYPT:
-			blks = rijndael_blockEncrypt(&cipher, &aeskey, data, 
+			blks = rijndael_blockEncrypt(&cipher, &aeskey, data,
 			    datasize * 8, data);
 			break;
 		}
 		if (datasize != (blks / 8)) {
 			printf("Failed to %s the entire input: %u != %zu\n",
-			    enc ? "decrypt" : "encrypt",
-			    blks, datasize);
+			    enc ? "decrypt" : "encrypt", blks, datasize);
 			return (1);
 		}
 		break;

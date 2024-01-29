@@ -24,7 +24,7 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- * 
+ *
  */
 
 #ifndef _IF_BWN_PCIVAR_H_
@@ -34,72 +34,74 @@ struct bwn_pci_devcfg;
 
 /** bwn_pci per-instance state. */
 struct bwn_pci_softc {
-	device_t			 dev;		/**< device */
-	device_t			 bhndb_dev;	/**< bhnd bridge device */
-	const struct bwn_pci_devcfg	*devcfg;	/**< bwn device config */
-	uint32_t			 quirks;	/**< quirk flags */
+	device_t dev;			     /**< device */
+	device_t bhndb_dev;		     /**< bhnd bridge device */
+	const struct bwn_pci_devcfg *devcfg; /**< bwn device config */
+	uint32_t quirks;		     /**< quirk flags */
 };
 
 /* bwn device quirks */
 enum {
 	/** No quirks */
-	BWN_QUIRK_NONE			= 0,
+	BWN_QUIRK_NONE = 0,
 
 	/**
 	 * This model/revision has not been tested and may not work.
 	 */
-	BWN_QUIRK_UNTESTED		= 1<<0,
+	BWN_QUIRK_UNTESTED = 1 << 0,
 
 	/**
 	 * Early dual-band devices did not support accessing multiple PHYs
 	 * from a single WLAN core, and instead used separate 2GHz and 5GHz
 	 * WLAN cores.
-	 * 
+	 *
 	 * However, not all cards with two WLAN cores are fully populated;
 	 * we must whitelist the boards on which a second WLAN core is actually
 	 * usable.
 	 */
-	BWN_QUIRK_WLAN_DUALCORE		= 1<<1,
+	BWN_QUIRK_WLAN_DUALCORE = 1 << 1,
 
 	/**
 	 * Some early devices shipped with unconnected ethernet cores; set
 	 * this quirk to treat these cores as unpopulated.
 	 */
-	BWN_QUIRK_ENET_HW_UNPOPULATED	= 1<<2,
+	BWN_QUIRK_ENET_HW_UNPOPULATED = 1 << 2,
 
 	/**
 	 * Some PCI/PCIe "Intensi-fi" chipsets shipped with floating USB
 	 * host controller cores; set this quirk to treat these cores as
 	 * unpopulated.
 	 */
-	BWN_QUIRK_USBH_UNPOPULATED	= 1<<3,
+	BWN_QUIRK_USBH_UNPOPULATED = 1 << 3,
 
 	/**
 	 * Some early devices (including all BCM4306 chipsets) shipped with
 	 * floating analog softmodem codec cores; set this quirk to treat these
 	 * cores as unpopulated.
 	 */
-	BWN_QUIRK_SOFTMODEM_UNPOPULATED	= 1<<4,
+	BWN_QUIRK_SOFTMODEM_UNPOPULATED = 1 << 4,
 };
 
 /* PCI device descriptor */
 struct bwn_pci_device {
-	uint16_t	vendor;
-	uint16_t	device;
-	const char	*desc;
-	uint32_t	quirks;
+	uint16_t vendor;
+	uint16_t device;
+	const char *desc;
+	uint32_t quirks;
 };
 
-#define	BWN_BCM_DEV(_devid, _desc, _quirks)		\
-    { PCI_VENDOR_BROADCOM, PCI_DEVID_ ## _devid,	\
-        "Broadcom " _desc " Wireless", _quirks }
+#define BWN_BCM_DEV(_devid, _desc, _quirks)                \
+	{                                                  \
+		PCI_VENDOR_BROADCOM, PCI_DEVID_##_devid,   \
+		    "Broadcom " _desc " Wireless", _quirks \
+	}
 
 /* Supported device table */
 struct bwn_pci_devcfg {
-	const struct bhndb_hwcfg	*bridge_hwcfg;
-	const struct bhndb_hw		*bridge_hwtable;
-	const struct bhndb_hw_priority	*bridge_hwprio;
-	const struct bwn_pci_device	*devices;
+	const struct bhndb_hwcfg *bridge_hwcfg;
+	const struct bhndb_hw *bridge_hwtable;
+	const struct bhndb_hw_priority *bridge_hwprio;
+	const struct bwn_pci_device *devices;
 };
 
 #endif /* _IF_BWN_PCIVAR_H_ */

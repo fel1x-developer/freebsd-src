@@ -37,11 +37,11 @@
  * Intended to be called from devd on device discovery.
  */
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/endian.h>
-#include <sys/mman.h>
-
 #include <sys/ioctl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+
 #include <dev/usb/usb.h>
 #include <dev/usb/usb_ioctl.h>
 
@@ -57,30 +57,31 @@
 
 /* all fields are big endian */
 struct uath_fwmsg {
-	uint32_t	flags;
-#define UATH_WRITE_BLOCK	(1 << 4)
+	uint32_t flags;
+#define UATH_WRITE_BLOCK (1 << 4)
 
-	uint32_t	len;
-#define UATH_MAX_FWBLOCK_SIZE	2048
+	uint32_t len;
+#define UATH_MAX_FWBLOCK_SIZE 2048
 
-	uint32_t	total;
-	uint32_t	remain;
-	uint32_t	rxtotal;
-	uint32_t	pad[123];
+	uint32_t total;
+	uint32_t remain;
+	uint32_t rxtotal;
+	uint32_t pad[123];
 } __packed;
 
-#define UATH_DATA_TIMEOUT	10000
-#define UATH_CMD_TIMEOUT	1000
+#define UATH_DATA_TIMEOUT 10000
+#define UATH_CMD_TIMEOUT 1000
 
-#define	VERBOSE(_fmt, ...) do {			\
-	if (verbose) {				\
-		printf(_fmt, __VA_ARGS__);	\
-		fflush(stdout);			\
-	}					\
-} while (0)
+#define VERBOSE(_fmt, ...)                         \
+	do {                                       \
+		if (verbose) {                     \
+			printf(_fmt, __VA_ARGS__); \
+			fflush(stdout);            \
+		}                                  \
+	} while (0)
 
-extern	uint8_t _binary_ar5523_bin_start;
-extern	uint8_t _binary_ar5523_bin_end;
+extern uint8_t _binary_ar5523_bin_start;
+extern uint8_t _binary_ar5523_bin_end;
 
 static int
 getdevname(const char *udevname, char *msgdev, char *datadev)
@@ -174,7 +175,8 @@ main(int argc, char *argv[])
 		err(-1, "open(%s)", msgdev);
 	timeout = UATH_DATA_TIMEOUT;
 	if (ioctl(msg, USB_SET_RX_TIMEOUT, &timeout) < 0)
-		err(-1, "%s: USB_SET_RX_TIMEOUT(%u)", msgdev, UATH_DATA_TIMEOUT);
+		err(-1, "%s: USB_SET_RX_TIMEOUT(%u)", msgdev,
+		    UATH_DATA_TIMEOUT);
 	if (ioctl(msg, USB_SET_RX_BUFFER_SIZE, &bufsize) < 0)
 		err(-1, "%s: USB_SET_RX_BUFFER_SIZE(%u)", msgdev, bufsize);
 
@@ -188,7 +190,7 @@ main(int argc, char *argv[])
 
 	VERBOSE("Load firmware %s to %s\n", fwname, udevname);
 
-	bzero(&txmsg, sizeof (struct uath_fwmsg));
+	bzero(&txmsg, sizeof(struct uath_fwmsg));
 	txmsg.flags = htobe32(UATH_WRITE_BLOCK);
 	txmsg.total = htobe32(len);
 
@@ -227,8 +229,8 @@ main(int argc, char *argv[])
 			break;
 		}
 
-		VERBOSE("flags=0x%x total=%d\n",
-		    be32toh(rxmsg.flags), be32toh(rxmsg.rxtotal));
+		VERBOSE("flags=0x%x total=%d\n", be32toh(rxmsg.flags),
+		    be32toh(rxmsg.rxtotal));
 		len -= mlen;
 		txdata += mlen;
 		b++;

@@ -26,13 +26,11 @@
  */
 
 #ifndef _ZYNQMP_CLK_DIV_H_
-#define	_ZYNQMP_CLK_DIV_H_
+#define _ZYNQMP_CLK_DIV_H_
 
-enum zynqmp_clk_div_type {
-	CLK_DIV_TYPE_DIV0 = 0,
-	CLK_DIV_TYPE_DIV1
-};
+enum zynqmp_clk_div_type { CLK_DIV_TYPE_DIV0 = 0, CLK_DIV_TYPE_DIV1 };
 
-int zynqmp_clk_div_register(struct clkdom *clkdom, device_t fw, struct clknode_init_def *clkdef, enum zynqmp_clk_div_type type);
+int zynqmp_clk_div_register(struct clkdom *clkdom, device_t fw,
+    struct clknode_init_def *clkdef, enum zynqmp_clk_div_type type);
 
 #endif /* _ZYNQMP_CLK_DIV_H_ */

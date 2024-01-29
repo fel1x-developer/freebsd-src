@@ -27,16 +27,15 @@
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
 
-#include "diag.h"
+#include <ctype.h>
+#include <err.h>
+#include <getopt.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "ah.h"
 #include "ah_internal.h"
-
-#include <string.h>
-#include <stdlib.h>
-#include <err.h>
-#include <ctype.h>
-#include <getopt.h>
+#include "diag.h"
 
 const char *progname;
 
@@ -63,28 +62,30 @@ getdata(const char *arg, u_int8_t *data, size_t maxlen)
 		}
 		if (!isxdigit(cp[0])) {
 			fprintf(stderr, "%s: invalid data value %c (not hex)\n",
-				progname, cp[0]);
+			    progname, cp[0]);
 			exit(-1);
 		}
 		b0 = toint(cp[0]);
 		if (cp[1] != '\0') {
 			if (!isxdigit(cp[1])) {
-				fprintf(stderr, "%s: invalid data value %c "
-					"(not hex)\n", progname, cp[1]);
+				fprintf(stderr,
+				    "%s: invalid data value %c "
+				    "(not hex)\n",
+				    progname, cp[1]);
 				exit(-1);
 			}
 			b1 = toint(cp[1]);
 			cp += 2;
-		} else {			/* fake up 0<n> */
+		} else { /* fake up 0<n> */
 			b1 = b0, b0 = 0;
 			cp += 1;
 		}
 		if (len > maxlen) {
 			fprintf(stderr,
-				"%s: too much data in %s, max %llu bytes\n",
-				progname, arg, (unsigned long long) maxlen);
+			    "%s: too much data in %s, max %llu bytes\n",
+			    progname, arg, (unsigned long long)maxlen);
 		}
-		data[len++] = (b0<<4) | b1;
+		data[len++] = (b0 << 4) | b1;
 	}
 	return len;
 }
@@ -94,7 +95,7 @@ getdata(const char *arg, u_int8_t *data, size_t maxlen)
 static int
 getcipher(const char *name)
 {
-#define	streq(a,b)	(strcasecmp(a,b) == 0)
+#define streq(a, b) (strcasecmp(a, b) == 0)
 
 	if (streq(name, "wep"))
 		return HAL_CIPHER_WEP;
@@ -102,8 +103,7 @@ getcipher(const char *name)
 		return HAL_CIPHER_TKIP;
 	if (streq(name, "aes-ocb") || streq(name, "ocb"))
 		return HAL_CIPHER_AES_OCB;
-	if (streq(name, "aes-ccm") || streq(name, "ccm") ||
-	    streq(name, "aes"))
+	if (streq(name, "aes-ccm") || streq(name, "ccm") || streq(name, "aes"))
 		return HAL_CIPHER_AES_CCM;
 	if (streq(name, "ckip"))
 		return HAL_CIPHER_CKIP;
@@ -119,7 +119,7 @@ static void
 usage(void)
 {
 	fprintf(stderr, "usage: %s [-i device] keyix cipher keyval [mac]\n",
-		progname);
+	    progname);
 	exit(-1);
 }
 
@@ -163,17 +163,17 @@ main(int argc, char *argv[])
 	if (argc < 1)
 		usage();
 
-	keyix = (u_int16_t) atoi(argv[0]);
+	keyix = (u_int16_t)atoi(argv[0]);
 	if (keyix > 127)
-		errx(-1, "%s: invalid key index %s, must be [0..127]",
-			progname, argv[0]);
-	strncpy(atd.ad_name, ifname, sizeof (atd.ad_name));
+		errx(-1, "%s: invalid key index %s, must be [0..127]", progname,
+		    argv[0]);
+	strncpy(atd.ad_name, ifname, sizeof(atd.ad_name));
 	atd.ad_id = op | ATH_DIAG_IN | ATH_DIAG_DYN;
 	atd.ad_out_data = NULL;
 	atd.ad_out_size = 0;
 	switch (op) {
 	case HAL_DIAG_RESETKEY:
-		atd.ad_in_data = (caddr_t) &keyix;
+		atd.ad_in_data = (caddr_t)&keyix;
 		atd.ad_in_size = sizeof(u_int16_t);
 		if (ioctl(s, SIOCGATHDIAG, &atd) < 0)
 			err(1, "ioctl: %s", atd.ad_name);
@@ -189,9 +189,9 @@ main(int argc, char *argv[])
 		    setkey.dk_keyval.kv_val, sizeof(setkey.dk_keyval.kv_val));
 		/* XXX MIC */
 		if (argc == 4)
-			(void) getdata(argv[3], setkey.dk_mac,
-				IEEE80211_ADDR_LEN);
-		atd.ad_in_data = (caddr_t) &setkey;
+			(void)getdata(argv[3], setkey.dk_mac,
+			    IEEE80211_ADDR_LEN);
+		atd.ad_in_data = (caddr_t)&setkey;
 		atd.ad_in_size = sizeof(setkey);
 		if (ioctl(s, SIOCGATHDIAG, &atd) < 0)
 			err(1, "ioctl: %s", atd.ad_name);

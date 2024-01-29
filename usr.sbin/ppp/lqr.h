@@ -32,33 +32,33 @@
  *  Structure of LQR packet defined in RFC1989
  */
 struct lqrdata {
-  u_int32_t MagicNumber;
-  u_int32_t LastOutLQRs;	/* most recently received PeerOutLQRs */
-  u_int32_t LastOutPackets;	/* most recently received PeerOutPackets */
-  u_int32_t LastOutOctets;	/* most recently received PeerOutOctets */
-  u_int32_t PeerInLQRs;		/* Peers SaveInLQRs */
-  u_int32_t PeerInPackets;	/* Peers SaveInPackets */
-  u_int32_t PeerInDiscards;	/* Peers SaveInDiscards */
-  u_int32_t PeerInErrors;	/* Peers SaveInErrors */
-  u_int32_t PeerInOctets;	/* Peers SaveInOctets */
-  u_int32_t PeerOutLQRs;	/* Peers OutLQRs (hdlc.h) */
-  u_int32_t PeerOutPackets;	/* Peers OutPackets (hdlc.h) */
-  u_int32_t PeerOutOctets;	/* Peers OutOctets (hdlc.h) */
+	u_int32_t MagicNumber;
+	u_int32_t LastOutLQRs;	  /* most recently received PeerOutLQRs */
+	u_int32_t LastOutPackets; /* most recently received PeerOutPackets */
+	u_int32_t LastOutOctets;  /* most recently received PeerOutOctets */
+	u_int32_t PeerInLQRs;	  /* Peers SaveInLQRs */
+	u_int32_t PeerInPackets;  /* Peers SaveInPackets */
+	u_int32_t PeerInDiscards; /* Peers SaveInDiscards */
+	u_int32_t PeerInErrors;	  /* Peers SaveInErrors */
+	u_int32_t PeerInOctets;	  /* Peers SaveInOctets */
+	u_int32_t PeerOutLQRs;	  /* Peers OutLQRs (hdlc.h) */
+	u_int32_t PeerOutPackets; /* Peers OutPackets (hdlc.h) */
+	u_int32_t PeerOutOctets;  /* Peers OutOctets (hdlc.h) */
 };
 
-struct lqrsavedata {	/* Saved on receipt of an LQR */
-  u_int32_t InLQRs;	/* From ifInLQRs */
-  u_int32_t InPackets;	/* From ifInPackets */
-  u_int32_t InDiscards;	/* From ifInDiscards */
-  u_int32_t InErrors;	/* From ifInErrors */
-  u_int32_t InOctets;	/* From InGoodOctets ! */
+struct lqrsavedata {	      /* Saved on receipt of an LQR */
+	u_int32_t InLQRs;     /* From ifInLQRs */
+	u_int32_t InPackets;  /* From ifInPackets */
+	u_int32_t InDiscards; /* From ifInDiscards */
+	u_int32_t InErrors;   /* From ifInErrors */
+	u_int32_t InOctets;   /* From InGoodOctets ! */
 };
 
 /*
  *  We support LQR and ECHO as LQM method
  */
-#define	LQM_LQR	  1
-#define	LQM_ECHO  2
+#define LQM_LQR 1
+#define LQM_ECHO 2
 
 struct mbuf;
 struct physical;
@@ -70,7 +70,7 @@ struct bundle;
 
 extern void lqr_Dump(const char *, const char *, const struct lqrdata *);
 extern void lqr_Analyse(const struct hdlc *, const struct lqrdata *,
-                        const struct lqrdata *);
+    const struct lqrdata *);
 extern void lqr_ChangeOrder(struct lqrdata *, struct lqrdata *);
 extern void lqr_Start(struct lcp *);
 extern void lqr_reStart(struct lcp *);

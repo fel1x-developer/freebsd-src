@@ -31,24 +31,24 @@
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "cn23xx_pf_device.h"
 #include "lio_bsd.h"
 #include "lio_common.h"
+#include "lio_device.h"
 #include "lio_droq.h"
 #include "lio_iq.h"
-#include "lio_response_manager.h"
-#include "lio_device.h"
 #include "lio_main.h"
-#include "cn23xx_pf_device.h"
 #include "lio_network.h"
+#include "lio_response_manager.h"
 
 struct __dispatch {
-	struct lio_stailq_node	node;
-	struct lio_recv_info	*rinfo;
-	lio_dispatch_fn_t	disp_fn;
+	struct lio_stailq_node node;
+	struct lio_recv_info *rinfo;
+	lio_dispatch_fn_t disp_fn;
 };
 
-void	*lio_get_dispatch_arg(struct octeon_device *oct,
-			      uint16_t opcode, uint16_t subcode);
+void *lio_get_dispatch_arg(struct octeon_device *oct, uint16_t opcode,
+    uint16_t subcode);
 
 /*
  *  Get the argument that the user set when registering dispatch
@@ -62,14 +62,14 @@ void	*lio_get_dispatch_arg(struct octeon_device *oct,
  *  @return  Failure: NULL
  *
  */
-void   *
-lio_get_dispatch_arg(struct octeon_device *octeon_dev,
-		     uint16_t opcode, uint16_t subcode)
+void *
+lio_get_dispatch_arg(struct octeon_device *octeon_dev, uint16_t opcode,
+    uint16_t subcode)
 {
-	struct lio_stailq_node	*dispatch;
-	void			*fn_arg = NULL;
-	int			idx;
-	uint16_t		combined_opcode;
+	struct lio_stailq_node *dispatch;
+	void *fn_arg = NULL;
+	int idx;
+	uint16_t combined_opcode;
 
 	combined_opcode = LIO_OPCODE_SUBCODE(opcode, subcode);
 
@@ -85,8 +85,8 @@ lio_get_dispatch_arg(struct octeon_device *octeon_dev,
 	if (octeon_dev->dispatch.dlist[idx].opcode == combined_opcode) {
 		fn_arg = octeon_dev->dispatch.dlist[idx].arg;
 	} else {
-		STAILQ_FOREACH(dispatch,
-			       &octeon_dev->dispatch.dlist[idx].head, entries) {
+		STAILQ_FOREACH (dispatch, &octeon_dev->dispatch.dlist[idx].head,
+		    entries) {
 			if (((struct lio_dispatch *)dispatch)->opcode ==
 			    combined_opcode) {
 				fn_arg = ((struct lio_dispatch *)dispatch)->arg;
@@ -107,9 +107,9 @@ lio_get_dispatch_arg(struct octeon_device *octeon_dev,
 uint32_t
 lio_droq_check_hw_for_pkts(struct lio_droq *droq)
 {
-	struct octeon_device	*oct = droq->oct_dev;
-	uint32_t		last_count;
-	uint32_t		pkt_count = 0;
+	struct octeon_device *oct = droq->oct_dev;
+	uint32_t last_count;
+	uint32_t pkt_count = 0;
 
 	pkt_count = lio_read_csr32(oct, droq->pkts_sent_reg);
 
@@ -126,7 +126,7 @@ lio_droq_check_hw_for_pkts(struct lio_droq *droq)
 static void
 lio_droq_compute_max_packet_bufs(struct lio_droq *droq)
 {
-	uint32_t	count = 0;
+	uint32_t count = 0;
 
 	/*
 	 * max_empty_descs is the max. no. of descs that can have no buffers.
@@ -155,10 +155,9 @@ lio_droq_reset_indices(struct lio_droq *droq)
 }
 
 static void
-lio_droq_destroy_ring_buffers(struct octeon_device *oct,
-			      struct lio_droq *droq)
+lio_droq_destroy_ring_buffers(struct octeon_device *oct, struct lio_droq *droq)
 {
-	uint32_t	i;
+	uint32_t i;
 
 	for (i = 0; i < droq->max_count; i++) {
 		if (droq->recv_buf_list[i].buffer != NULL) {
@@ -171,19 +170,17 @@ lio_droq_destroy_ring_buffers(struct octeon_device *oct,
 }
 
 static int
-lio_droq_setup_ring_buffers(struct octeon_device *oct,
-			    struct lio_droq *droq)
+lio_droq_setup_ring_buffers(struct octeon_device *oct, struct lio_droq *droq)
 {
-	struct lio_droq_desc	*desc_ring = droq->desc_ring;
-	void			*buf;
-	uint32_t		i;
+	struct lio_droq_desc *desc_ring = droq->desc_ring;
+	void *buf;
+	uint32_t i;
 
 	for (i = 0; i < droq->max_count; i++) {
 		buf = lio_recv_buffer_alloc(droq->buffer_size);
 
 		if (buf == NULL) {
-			lio_dev_err(oct, "%s buffer alloc failed\n",
-				    __func__);
+			lio_dev_err(oct, "%s buffer alloc failed\n", __func__);
 			droq->stats.rx_alloc_failure++;
 			return (-ENOMEM);
 		}
@@ -191,9 +188,8 @@ lio_droq_setup_ring_buffers(struct octeon_device *oct,
 		droq->recv_buf_list[i].buffer = buf;
 		droq->recv_buf_list[i].data = ((struct mbuf *)buf)->m_data;
 		desc_ring[i].info_ptr = 0;
-		desc_ring[i].buffer_ptr =
-			lio_map_ring(oct->device, droq->recv_buf_list[i].buffer,
-				     droq->buffer_size);
+		desc_ring[i].buffer_ptr = lio_map_ring(oct->device,
+		    droq->recv_buf_list[i].buffer, droq->buffer_size);
 	}
 
 	lio_droq_reset_indices(droq);
@@ -206,7 +202,7 @@ lio_droq_setup_ring_buffers(struct octeon_device *oct,
 int
 lio_delete_droq(struct octeon_device *oct, uint32_t q_no)
 {
-	struct lio_droq	*droq = oct->droq[q_no];
+	struct lio_droq *droq = oct->droq[q_no];
 
 	lio_dev_dbg(oct, "%s[%d]\n", __func__, q_no);
 
@@ -221,7 +217,7 @@ lio_delete_droq(struct octeon_device *oct, uint32_t q_no)
 
 	if (droq->desc_ring != NULL)
 		lio_dma_free((droq->max_count * LIO_DROQ_DESC_SIZE),
-			     droq->desc_ring);
+		    droq->desc_ring);
 
 	oct->io_qmask.oq &= ~(1ULL << q_no);
 	bzero(oct->droq[q_no], sizeof(struct lio_droq));
@@ -233,10 +229,10 @@ lio_delete_droq(struct octeon_device *oct, uint32_t q_no)
 void
 lio_droq_bh(void *ptr, int pending __unused)
 {
-	struct lio_droq		*droq = ptr;
-	struct octeon_device	*oct = droq->oct_dev;
-	struct lio_instr_queue	*iq = oct->instr_queue[droq->q_no];
-	int	reschedule, tx_done = 1;
+	struct lio_droq *droq = ptr;
+	struct octeon_device *oct = droq->oct_dev;
+	struct lio_instr_queue *iq = oct->instr_queue[droq->q_no];
+	int reschedule, tx_done = 1;
 
 	reschedule = lio_droq_process_packets(oct, droq, oct->rx_budget);
 
@@ -250,13 +246,13 @@ lio_droq_bh(void *ptr, int pending __unused)
 }
 
 int
-lio_init_droq(struct octeon_device *oct, uint32_t q_no,
-	      uint32_t num_descs, uint32_t desc_size, void *app_ctx)
+lio_init_droq(struct octeon_device *oct, uint32_t q_no, uint32_t num_descs,
+    uint32_t desc_size, void *app_ctx)
 {
-	struct lio_droq	*droq;
-	unsigned long	size;
-	uint32_t	c_buf_size = 0, c_num_descs = 0, c_pkts_per_intr = 0;
-	uint32_t	c_refill_threshold = 0, desc_ring_size = 0;
+	struct lio_droq *droq;
+	unsigned long size;
+	uint32_t c_buf_size = 0, c_num_descs = 0, c_pkts_per_intr = 0;
+	uint32_t c_refill_threshold = 0, desc_ring_size = 0;
 
 	lio_dev_dbg(oct, "%s[%d]\n", __func__, q_no);
 
@@ -275,10 +271,10 @@ lio_init_droq(struct octeon_device *oct, uint32_t q_no,
 	if (LIO_CN23XX_PF(oct)) {
 		struct lio_config *conf23 = LIO_CHIP_CONF(oct, cn23xx_pf);
 
-		c_pkts_per_intr =
-			(uint32_t)LIO_GET_OQ_PKTS_PER_INTR_CFG(conf23);
-		c_refill_threshold =
-			(uint32_t)LIO_GET_OQ_REFILL_THRESHOLD_CFG(conf23);
+		c_pkts_per_intr = (uint32_t)LIO_GET_OQ_PKTS_PER_INTR_CFG(
+		    conf23);
+		c_refill_threshold = (uint32_t)LIO_GET_OQ_REFILL_THRESHOLD_CFG(
+		    conf23);
 	} else {
 		return (1);
 	}
@@ -294,13 +290,12 @@ lio_init_droq(struct octeon_device *oct, uint32_t q_no,
 	}
 
 	lio_dev_dbg(oct, "droq[%d]: desc_ring: virt: 0x%p, dma: %llx\n", q_no,
-		    droq->desc_ring, LIO_CAST64(droq->desc_ring_dma));
+	    droq->desc_ring, LIO_CAST64(droq->desc_ring_dma));
 	lio_dev_dbg(oct, "droq[%d]: num_desc: %d\n", q_no, droq->max_count);
 
 	size = droq->max_count * LIO_DROQ_RECVBUF_SIZE;
-	droq->recv_buf_list =
-		(struct lio_recv_buffer *)malloc(size, M_DEVBUF,
-						 M_NOWAIT | M_ZERO);
+	droq->recv_buf_list = (struct lio_recv_buffer *)malloc(size, M_DEVBUF,
+	    M_NOWAIT | M_ZERO);
 	if (droq->recv_buf_list == NULL) {
 		lio_dev_err(oct, "Output queue recv buf list alloc failed\n");
 		goto init_droq_fail;
@@ -313,7 +308,7 @@ lio_init_droq(struct octeon_device *oct, uint32_t q_no,
 	droq->refill_threshold = c_refill_threshold;
 
 	lio_dev_dbg(oct, "DROQ INIT: max_empty_descs: %d\n",
-		    droq->max_empty_descs);
+	    droq->max_empty_descs);
 
 	mtx_init(&droq->lock, "droq_lock", NULL, MTX_DEF);
 
@@ -331,12 +326,10 @@ lio_init_droq(struct octeon_device *oct, uint32_t q_no,
 	NET_TASK_INIT(&droq->droq_task, 0, lio_droq_bh, (void *)droq);
 
 	droq->droq_taskqueue = taskqueue_create_fast("lio_droq_task", M_NOWAIT,
-						     taskqueue_thread_enqueue,
-						     &droq->droq_taskqueue);
+	    taskqueue_thread_enqueue, &droq->droq_taskqueue);
 	taskqueue_start_threads_cpuset(&droq->droq_taskqueue, 1, PI_NET,
-				       &oct->ioq_vector[q_no].affinity_mask,
-				       "lio%d_droq%d_task", oct->octeon_id,
-				       q_no);
+	    &oct->ioq_vector[q_no].affinity_mask, "lio%d_droq%d_task",
+	    oct->octeon_id, q_no);
 
 	return (0);
 
@@ -367,12 +360,12 @@ init_droq_fail:
  */
 static inline struct lio_recv_info *
 lio_create_recv_info(struct octeon_device *octeon_dev, struct lio_droq *droq,
-		     uint32_t buf_cnt, uint32_t idx)
+    uint32_t buf_cnt, uint32_t idx)
 {
-	struct lio_droq_info	*info;
-	struct lio_recv_pkt	*recv_pkt;
-	struct lio_recv_info	*recv_info;
-	uint32_t		bytes_left, i;
+	struct lio_droq_info *info;
+	struct lio_recv_pkt *recv_pkt;
+	struct lio_recv_info *recv_info;
+	uint32_t bytes_left, i;
 
 	info = (struct lio_droq_info *)droq->recv_buf_list[idx].data;
 
@@ -391,7 +384,8 @@ lio_create_recv_info(struct octeon_device *octeon_dev, struct lio_droq *droq,
 
 	while (buf_cnt) {
 		recv_pkt->buffer_size[i] = (bytes_left >= droq->buffer_size) ?
-			droq->buffer_size : bytes_left;
+		    droq->buffer_size :
+		    bytes_left;
 
 		recv_pkt->buffer_ptr[i] = droq->recv_buf_list[idx].buffer;
 		droq->recv_buf_list[idx].buffer = NULL;
@@ -411,32 +405,31 @@ lio_create_recv_info(struct octeon_device *octeon_dev, struct lio_droq *droq,
  */
 static inline uint32_t
 lio_droq_refill_pullup_descs(struct lio_droq *droq,
-			     struct lio_droq_desc *desc_ring)
+    struct lio_droq_desc *desc_ring)
 {
-	uint32_t	desc_refilled = 0;
-	uint32_t	refill_index = droq->refill_idx;
+	uint32_t desc_refilled = 0;
+	uint32_t refill_index = droq->refill_idx;
 
 	while (refill_index != droq->read_idx) {
 		if (droq->recv_buf_list[refill_index].buffer != NULL) {
 			droq->recv_buf_list[droq->refill_idx].buffer =
-				droq->recv_buf_list[refill_index].buffer;
+			    droq->recv_buf_list[refill_index].buffer;
 			droq->recv_buf_list[droq->refill_idx].data =
-				droq->recv_buf_list[refill_index].data;
+			    droq->recv_buf_list[refill_index].data;
 			desc_ring[droq->refill_idx].buffer_ptr =
-				desc_ring[refill_index].buffer_ptr;
+			    desc_ring[refill_index].buffer_ptr;
 			droq->recv_buf_list[refill_index].buffer = NULL;
 			desc_ring[refill_index].buffer_ptr = 0;
 			do {
-				droq->refill_idx =
-					lio_incr_index(droq->refill_idx, 1,
-						       droq->max_count);
+				droq->refill_idx = lio_incr_index(
+				    droq->refill_idx, 1, droq->max_count);
 				desc_refilled++;
 				droq->refill_count--;
 			} while (droq->recv_buf_list[droq->refill_idx].buffer !=
-				 NULL);
+			    NULL);
 		}
 		refill_index = lio_incr_index(refill_index, 1, droq->max_count);
-	}	/* while */
+	} /* while */
 	return (desc_refilled);
 }
 
@@ -457,10 +450,10 @@ lio_droq_refill_pullup_descs(struct lio_droq *droq,
 uint32_t
 lio_droq_refill(struct octeon_device *octeon_dev, struct lio_droq *droq)
 {
-	struct lio_droq_desc	*desc_ring;
-	void			*buf = NULL;
-	uint32_t		desc_refilled = 0;
-	uint8_t			*data;
+	struct lio_droq_desc *desc_ring;
+	void *buf = NULL;
+	uint32_t desc_refilled = 0;
+	uint8_t *data;
 
 	desc_ring = droq->desc_ring;
 
@@ -484,19 +477,21 @@ lio_droq_refill(struct octeon_device *octeon_dev, struct lio_droq *droq)
 			droq->recv_buf_list[droq->refill_idx].buffer = buf;
 			data = ((struct mbuf *)buf)->m_data;
 		} else {
-			data = ((struct mbuf *)droq->recv_buf_list
-				[droq->refill_idx].buffer)->m_data;
+			data = ((struct mbuf *)droq
+				    ->recv_buf_list[droq->refill_idx]
+				    .buffer)
+				   ->m_data;
 		}
 
 		droq->recv_buf_list[droq->refill_idx].data = data;
 
 		desc_ring[droq->refill_idx].buffer_ptr =
 		    lio_map_ring(octeon_dev->device,
-				 droq->recv_buf_list[droq->refill_idx].buffer,
-				 droq->buffer_size);
+			droq->recv_buf_list[droq->refill_idx].buffer,
+			droq->buffer_size);
 
 		droq->refill_idx = lio_incr_index(droq->refill_idx, 1,
-						  droq->max_count);
+		    droq->max_count);
 		desc_refilled++;
 		droq->refill_count--;
 	}
@@ -522,16 +517,16 @@ lio_droq_get_bufcount(uint32_t buf_size, uint32_t total_len)
 
 static int
 lio_droq_dispatch_pkt(struct octeon_device *oct, struct lio_droq *droq,
-		      union octeon_rh *rh, struct lio_droq_info *info)
+    union octeon_rh *rh, struct lio_droq_info *info)
 {
-	struct lio_recv_info	*rinfo;
-	lio_dispatch_fn_t	disp_fn;
-	uint32_t		cnt;
+	struct lio_recv_info *rinfo;
+	lio_dispatch_fn_t disp_fn;
+	uint32_t cnt;
 
 	cnt = lio_droq_get_bufcount(droq->buffer_size, (uint32_t)info->length);
 
 	disp_fn = lio_get_dispatch(oct, (uint16_t)rh->r.opcode,
-				   (uint16_t)rh->r.subcode);
+	    (uint16_t)rh->r.subcode);
 	if (disp_fn) {
 		rinfo = lio_create_recv_info(oct, droq, cnt, droq->read_idx);
 		if (rinfo != NULL) {
@@ -541,14 +536,13 @@ lio_droq_dispatch_pkt(struct octeon_device *oct, struct lio_droq *droq,
 			rdisp->disp_fn = disp_fn;
 			rinfo->recv_pkt->rh = *rh;
 			STAILQ_INSERT_TAIL(&droq->dispatch_stq_head,
-					   &rdisp->node, entries);
+			    &rdisp->node, entries);
 		} else {
 			droq->stats.dropped_nomem++;
 		}
 	} else {
 		lio_dev_err(oct, "DROQ: No dispatch function (opcode %u/%u)\n",
-			    (unsigned int)rh->r.opcode,
-			    (unsigned int)rh->r.subcode);
+		    (unsigned int)rh->r.opcode, (unsigned int)rh->r.subcode);
 		droq->stats.dropped_nodispatch++;
 	}
 
@@ -557,14 +551,15 @@ lio_droq_dispatch_pkt(struct octeon_device *oct, struct lio_droq *droq,
 
 static inline void
 lio_droq_drop_packets(struct octeon_device *oct, struct lio_droq *droq,
-		      uint32_t cnt)
+    uint32_t cnt)
 {
-	struct lio_droq_info	*info;
-	uint32_t		i = 0, buf_cnt;
+	struct lio_droq_info *info;
+	uint32_t i = 0, buf_cnt;
 
 	for (i = 0; i < cnt; i++) {
-		info = (struct lio_droq_info *)
-			droq->recv_buf_list[droq->read_idx].data;
+		info = (struct lio_droq_info *)droq
+			   ->recv_buf_list[droq->read_idx]
+			   .data;
 
 		lio_swap_8B_data((uint64_t *)info, 2);
 
@@ -572,43 +567,44 @@ lio_droq_drop_packets(struct octeon_device *oct, struct lio_droq *droq,
 			info->length += 8;
 			droq->stats.bytes_received += info->length;
 			buf_cnt = lio_droq_get_bufcount(droq->buffer_size,
-							(uint32_t)info->length);
+			    (uint32_t)info->length);
 		} else {
 			lio_dev_err(oct, "DROQ: In drop: pkt with len 0\n");
 			buf_cnt = 1;
 		}
 
 		droq->read_idx = lio_incr_index(droq->read_idx, buf_cnt,
-						droq->max_count);
+		    droq->max_count);
 		droq->refill_count += buf_cnt;
 	}
 }
 
 static uint32_t
 lio_droq_fast_process_packets(struct octeon_device *oct, struct lio_droq *droq,
-			      uint32_t pkts_to_process)
+    uint32_t pkts_to_process)
 {
-	struct lio_droq_info	*info;
-	union			octeon_rh *rh;
-	uint32_t		pkt, pkt_count, total_len = 0;
+	struct lio_droq_info *info;
+	union octeon_rh *rh;
+	uint32_t pkt, pkt_count, total_len = 0;
 
 	pkt_count = pkts_to_process;
 
 	for (pkt = 0; pkt < pkt_count; pkt++) {
-		struct mbuf	*nicbuf = NULL;
-		uint32_t	pkt_len = 0;
+		struct mbuf *nicbuf = NULL;
+		uint32_t pkt_len = 0;
 
-		info = (struct lio_droq_info *)
-		    droq->recv_buf_list[droq->read_idx].data;
+		info = (struct lio_droq_info *)droq
+			   ->recv_buf_list[droq->read_idx]
+			   .data;
 
 		lio_swap_8B_data((uint64_t *)info, 2);
 
 		if (!info->length) {
 			lio_dev_err(oct,
-				    "DROQ[%d] idx: %d len:0, pkt_cnt: %d\n",
-				    droq->q_no, droq->read_idx, pkt_count);
+			    "DROQ[%d] idx: %d len:0, pkt_cnt: %d\n", droq->q_no,
+			    droq->read_idx, pkt_count);
 			hexdump((uint8_t *)info, LIO_DROQ_INFO_SIZE, NULL,
-				HD_OMIT_CHARS);
+			    HD_OMIT_CHARS);
 			pkt++;
 			lio_incr_index(droq->read_idx, 1, droq->max_count);
 			droq->refill_count++;
@@ -622,43 +618,42 @@ lio_droq_fast_process_packets(struct octeon_device *oct, struct lio_droq *droq,
 
 		total_len += (uint32_t)info->length;
 		if (lio_opcode_slow_path(rh)) {
-			uint32_t	buf_cnt;
+			uint32_t buf_cnt;
 
 			buf_cnt = lio_droq_dispatch_pkt(oct, droq, rh, info);
-			droq->read_idx = lio_incr_index(droq->read_idx,	buf_cnt,
-							droq->max_count);
+			droq->read_idx = lio_incr_index(droq->read_idx, buf_cnt,
+			    droq->max_count);
 			droq->refill_count += buf_cnt;
 		} else {
 			if (info->length <= droq->buffer_size) {
 				pkt_len = (uint32_t)info->length;
-				nicbuf = droq->recv_buf_list[
-						       droq->read_idx].buffer;
+				nicbuf =
+				    droq->recv_buf_list[droq->read_idx].buffer;
 				nicbuf->m_len = pkt_len;
 				droq->recv_buf_list[droq->read_idx].buffer =
-					NULL;
+				    NULL;
 
-				droq->read_idx =
-					lio_incr_index(droq->read_idx,
-						       1, droq->max_count);
+				droq->read_idx = lio_incr_index(droq->read_idx,
+				    1, droq->max_count);
 				droq->refill_count++;
 			} else {
-				bool	secondary_frag = false;
+				bool secondary_frag = false;
 
 				pkt_len = 0;
 
 				while (pkt_len < info->length) {
-					int	frag_len, idx = droq->read_idx;
-					struct mbuf	*buffer;
+					int frag_len, idx = droq->read_idx;
+					struct mbuf *buffer;
 
-					frag_len =
-						((pkt_len + droq->buffer_size) >
-						 info->length) ?
-						((uint32_t)info->length -
-						 pkt_len) : droq->buffer_size;
+					frag_len = ((pkt_len +
+							droq->buffer_size) >
+						       info->length) ?
+					    ((uint32_t)info->length - pkt_len) :
+					    droq->buffer_size;
 
-					buffer = ((struct mbuf *)
-						  droq->recv_buf_list[idx].
-						  buffer);
+					buffer = ((struct mbuf *)droq
+						      ->recv_buf_list[idx]
+						      .buffer);
 					buffer->m_len = frag_len;
 					if (__predict_true(secondary_frag)) {
 						m_cat(nicbuf, buffer);
@@ -667,14 +662,12 @@ lio_droq_fast_process_packets(struct octeon_device *oct, struct lio_droq *droq,
 						secondary_frag = true;
 					}
 
-					droq->recv_buf_list[droq->read_idx].
-						buffer = NULL;
+					droq->recv_buf_list[droq->read_idx]
+					    .buffer = NULL;
 
 					pkt_len += frag_len;
-					droq->read_idx =
-						lio_incr_index(droq->read_idx,
-							       1,
-							       droq->max_count);
+					droq->read_idx = lio_incr_index(
+					    droq->read_idx, 1, droq->max_count);
 					droq->refill_count++;
 				}
 			}
@@ -682,7 +675,7 @@ lio_droq_fast_process_packets(struct octeon_device *oct, struct lio_droq *droq,
 			if (nicbuf != NULL) {
 				if (droq->ops.fptr != NULL) {
 					droq->ops.fptr(nicbuf, pkt_len, rh,
-						       droq, droq->ops.farg);
+					    droq, droq->ops.farg);
 				} else {
 					lio_recv_buffer_free(nicbuf);
 				}
@@ -699,11 +692,11 @@ lio_droq_fast_process_packets(struct octeon_device *oct, struct lio_droq *droq,
 			 */
 			wmb();
 			lio_write_csr32(oct, droq->pkts_credit_reg,
-					desc_refilled);
+			    desc_refilled);
 			/* make sure mmio write completes */
 			__compiler_membar();
 		}
-	}	/* for (each packet)... */
+	} /* for (each packet)... */
 
 	/* Increment refill_count by the number of buffers processed. */
 	droq->stats.pkts_received += pkt;
@@ -723,10 +716,10 @@ lio_droq_fast_process_packets(struct octeon_device *oct, struct lio_droq *droq,
 
 int
 lio_droq_process_packets(struct octeon_device *oct, struct lio_droq *droq,
-			 uint32_t budget)
+    uint32_t budget)
 {
-	struct lio_stailq_node	*tmp, *tmp2;
-	uint32_t		pkt_count = 0, pkts_processed = 0;
+	struct lio_stailq_node *tmp, *tmp2;
+	uint32_t pkt_count = 0, pkts_processed = 0;
 
 	/* Grab the droq lock */
 	mtx_lock(&droq->lock);
@@ -748,11 +741,12 @@ lio_droq_process_packets(struct octeon_device *oct, struct lio_droq *droq,
 	/* Release the lock */
 	mtx_unlock(&droq->lock);
 
-	STAILQ_FOREACH_SAFE(tmp, &droq->dispatch_stq_head, entries, tmp2) {
+	STAILQ_FOREACH_SAFE (tmp, &droq->dispatch_stq_head, entries, tmp2) {
 		struct __dispatch *rdisp = (struct __dispatch *)tmp;
 
 		STAILQ_REMOVE_HEAD(&droq->dispatch_stq_head, entries);
-		rdisp->disp_fn(rdisp->rinfo, lio_get_dispatch_arg(oct,
+		rdisp->disp_fn(rdisp->rinfo,
+		    lio_get_dispatch_arg(oct,
 			(uint16_t)rdisp->rinfo->recv_pkt->rh.r.opcode,
 			(uint16_t)rdisp->rinfo->recv_pkt->rh.r.subcode));
 	}
@@ -766,10 +760,10 @@ lio_droq_process_packets(struct octeon_device *oct, struct lio_droq *droq,
 
 int
 lio_register_droq_ops(struct octeon_device *oct, uint32_t q_no,
-		      struct lio_droq_ops *ops)
+    struct lio_droq_ops *ops)
 {
-	struct lio_droq		*droq;
-	struct lio_config	*lio_cfg = NULL;
+	struct lio_droq *droq;
+	struct lio_config *lio_cfg = NULL;
 
 	lio_cfg = lio_get_conf(oct);
 
@@ -783,7 +777,7 @@ lio_register_droq_ops(struct octeon_device *oct, uint32_t q_no,
 
 	if (q_no >= LIO_GET_OQ_MAX_Q_CFG(lio_cfg)) {
 		lio_dev_err(oct, "%s: droq id (%d) exceeds MAX (%d)\n",
-			    __func__, q_no, (oct->num_oqs - 1));
+		    __func__, q_no, (oct->num_oqs - 1));
 		return (-EINVAL);
 	}
 	droq = oct->droq[q_no];
@@ -800,8 +794,8 @@ lio_register_droq_ops(struct octeon_device *oct, uint32_t q_no,
 int
 lio_unregister_droq_ops(struct octeon_device *oct, uint32_t q_no)
 {
-	struct lio_droq		*droq;
-	struct lio_config	*lio_cfg = NULL;
+	struct lio_droq *droq;
+	struct lio_config *lio_cfg = NULL;
 
 	lio_cfg = lio_get_conf(oct);
 
@@ -810,7 +804,7 @@ lio_unregister_droq_ops(struct octeon_device *oct, uint32_t q_no)
 
 	if (q_no >= LIO_GET_OQ_MAX_Q_CFG(lio_cfg)) {
 		lio_dev_err(oct, "%s: droq id (%d) exceeds MAX (%d)\n",
-			    __func__, q_no, oct->num_oqs - 1);
+		    __func__, q_no, oct->num_oqs - 1);
 		return (-EINVAL);
 	}
 
@@ -834,12 +828,12 @@ lio_unregister_droq_ops(struct octeon_device *oct, uint32_t q_no)
 
 int
 lio_create_droq(struct octeon_device *oct, uint32_t q_no, uint32_t num_descs,
-		uint32_t desc_size, void *app_ctx)
+    uint32_t desc_size, void *app_ctx)
 {
 
 	if (oct->droq[q_no]->oct_dev != NULL) {
-		lio_dev_dbg(oct, "Droq already in use. Cannot create droq %d again\n",
-			    q_no);
+		lio_dev_dbg(oct,
+		    "Droq already in use. Cannot create droq %d again\n", q_no);
 		return (1);
 	}
 
@@ -852,7 +846,7 @@ lio_create_droq(struct octeon_device *oct, uint32_t q_no, uint32_t num_descs,
 	oct->num_oqs++;
 
 	lio_dev_dbg(oct, "%s: Total number of OQ: %d\n", __func__,
-		    oct->num_oqs);
+	    oct->num_oqs);
 
 	/* Global Droq register settings */
 

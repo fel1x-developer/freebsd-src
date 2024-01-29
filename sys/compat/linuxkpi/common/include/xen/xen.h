@@ -26,10 +26,10 @@
  */
 
 #ifndef _LINUXKPI_XEN_XEN_H_
-#define	_LINUXKPI_XEN_XEN_H_
+#define _LINUXKPI_XEN_XEN_H_
 
-#define xen_initial_domain()	lkpi_xen_initial_domain()
-#define	xen_pv_domain()		lkpi_xen_pv_domain()
+#define xen_initial_domain() lkpi_xen_initial_domain()
+#define xen_pv_domain() lkpi_xen_pv_domain()
 
 bool lkpi_xen_initial_domain(void);
 bool lkpi_xen_pv_domain(void);

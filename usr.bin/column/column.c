@@ -30,8 +30,8 @@
  */
 
 #include <sys/types.h>
-#include <sys/ioctl.h>
 #include <sys/param.h>
+#include <sys/ioctl.h>
 
 #include <err.h>
 #include <limits.h>
@@ -43,22 +43,22 @@
 #include <wchar.h>
 #include <wctype.h>
 
-#define	TAB	8
+#define TAB 8
 
-static void	c_columnate(void);
-static void	input(FILE *);
-static void	maketbl(void);
-static void	print(void);
-static void	r_columnate(void);
-static void	usage(void);
-static int	width(const wchar_t *);
+static void c_columnate(void);
+static void input(FILE *);
+static void maketbl(void);
+static void print(void);
+static void r_columnate(void);
+static void usage(void);
+static int width(const wchar_t *);
 
-static int	termwidth = 80;		/* default terminal width */
+static int termwidth = 80; /* default terminal width */
 
-static int	entries;		/* number of records */
-static int	eval;			/* exit value */
-static int	maxlength;		/* longest record */
-static wchar_t	**list;			/* array of pointers to records */
+static int entries;			  /* number of records */
+static int eval;			  /* exit value */
+static int maxlength;			  /* longest record */
+static wchar_t **list;			  /* array of pointers to records */
 static const wchar_t *separator = L"\t "; /* field separator for table option */
 
 int
@@ -82,7 +82,7 @@ main(int argc, char **argv)
 
 	tflag = xflag = 0;
 	while ((ch = getopt(argc, argv, "c:s:tx")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case 'c':
 			termwidth = atoi(optarg);
 			break;
@@ -112,14 +112,15 @@ main(int argc, char **argv)
 
 	if (!*argv)
 		input(stdin);
-	else for (; *argv; ++argv)
-		if ((fp = fopen(*argv, "r"))) {
-			input(fp);
-			(void)fclose(fp);
-		} else {
-			warn("%s", *argv);
-			eval = 1;
-		}
+	else
+		for (; *argv; ++argv)
+			if ((fp = fopen(*argv, "r"))) {
+				input(fp);
+				(void)fclose(fp);
+			} else {
+				warn("%s", *argv);
+				eval = 1;
+			}
 
 	if (!entries)
 		exit(eval);
@@ -206,7 +207,7 @@ typedef struct _tbl {
 	wchar_t **list;
 	int cols, *len;
 } TBL;
-#define	DEFCOLS	25
+#define DEFCOLS 25
 
 static void
 maketbl(void)
@@ -227,16 +228,17 @@ maketbl(void)
 		err(1, NULL);
 	for (cnt = 0, lp = list; cnt < entries; ++cnt, ++lp, ++t) {
 		for (coloff = 0, p = *lp;
-		    (cols[coloff] = wcstok(p, separator, &last));
-		    p = NULL)
+		     (cols[coloff] = wcstok(p, separator, &last)); p = NULL)
 			if (++coloff == maxcols) {
-				if (!(cols = realloc(cols, ((u_int)maxcols +
-				    DEFCOLS) * sizeof(wchar_t *))) ||
+				if (!(cols = realloc(cols,
+					  ((u_int)maxcols + DEFCOLS) *
+					      sizeof(wchar_t *))) ||
 				    !(lens = realloc(lens,
-				    ((u_int)maxcols + DEFCOLS) * sizeof(int))))
+					  ((u_int)maxcols + DEFCOLS) *
+					      sizeof(int))))
 					err(1, NULL);
-				memset((char *)lens + maxcols * sizeof(int),
-				    0, DEFCOLS * sizeof(int));
+				memset((char *)lens + maxcols * sizeof(int), 0,
+				    DEFCOLS * sizeof(int));
 				maxcols += DEFCOLS;
 			}
 		if ((t->list = calloc(coloff, sizeof(*t->list))) == NULL)
@@ -251,7 +253,7 @@ maketbl(void)
 		}
 	}
 	for (cnt = 0, t = tbl; cnt < entries; ++cnt, ++t) {
-		for (coloff = 0; coloff < t->cols  - 1; ++coloff)
+		for (coloff = 0; coloff < t->cols - 1; ++coloff)
 			(void)wprintf(L"%ls%*ls", t->list[coloff],
 			    lens[coloff] - t->len[coloff] + 2, L" ");
 		(void)wprintf(L"%ls\n", t->list[coloff]);
@@ -263,8 +265,8 @@ maketbl(void)
 	free(tbl);
 }
 
-#define	DEFNUM		1000
-#define	MAXLINELEN	(LINE_MAX + 1)
+#define DEFNUM 1000
+#define MAXLINELEN (LINE_MAX + 1)
 
 static void
 input(FILE *fp)
@@ -274,11 +276,11 @@ input(FILE *fp)
 	wchar_t *p, buf[MAXLINELEN];
 
 	if (!list)
-		if ((list = calloc((maxentry = DEFNUM), sizeof(*list))) ==
-		    NULL)
+		if ((list = calloc((maxentry = DEFNUM), sizeof(*list))) == NULL)
 			err(1, NULL);
 	while (fgetws(buf, MAXLINELEN, fp)) {
-		for (p = buf; *p && iswspace(*p); ++p);
+		for (p = buf; *p && iswspace(*p); ++p)
+			;
 		if (!*p)
 			continue;
 		if (!(p = wcschr(p, L'\n'))) {
@@ -293,7 +295,7 @@ input(FILE *fp)
 		if (entries == maxentry) {
 			maxentry += DEFNUM;
 			if (!(list = realloc(list,
-			    (u_int)maxentry * sizeof(*list))))
+				  (u_int)maxentry * sizeof(*list))))
 				err(1, NULL);
 		}
 		list[entries] = malloc((wcslen(buf) + 1) * sizeof(wchar_t));

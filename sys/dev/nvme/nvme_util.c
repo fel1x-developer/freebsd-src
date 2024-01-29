@@ -28,6 +28,7 @@
  */
 
 #include <sys/param.h>
+
 #include <dev/nvme/nvme.h>
 
 void
@@ -38,8 +39,8 @@ nvme_strvis(uint8_t *dst, const uint8_t *src, int dstlen, int srclen)
 	/* Trim leading/trailing spaces, nulls. */
 	while (srclen > 0 && src[0] == ' ')
 		src++, srclen--;
-	while (srclen > 0
-	    && (src[srclen - 1] == ' ' || src[srclen - 1] == '\0'))
+	while (
+	    srclen > 0 && (src[srclen - 1] == ' ' || src[srclen - 1] == '\0'))
 		srclen--;
 
 	while (srclen > 0 && dstlen > 1) {

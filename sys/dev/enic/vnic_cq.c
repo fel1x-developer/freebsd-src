@@ -4,14 +4,15 @@
  */
 
 #include "enic.h"
-#include "vnic_dev.h"
 #include "vnic_cq.h"
+#include "vnic_dev.h"
 
-void vnic_cq_init(struct vnic_cq *cq, unsigned int flow_control_enable,
-	unsigned int color_enable, unsigned int cq_head, unsigned int cq_tail,
-	unsigned int cq_tail_color, unsigned int interrupt_enable,
-	unsigned int cq_entry_enable, unsigned int cq_message_enable,
-	unsigned int interrupt_offset, u64 cq_message_addr)
+void
+vnic_cq_init(struct vnic_cq *cq, unsigned int flow_control_enable,
+    unsigned int color_enable, unsigned int cq_head, unsigned int cq_tail,
+    unsigned int cq_tail_color, unsigned int interrupt_enable,
+    unsigned int cq_entry_enable, unsigned int cq_message_enable,
+    unsigned int interrupt_offset, u64 cq_message_addr)
 {
 	u64 paddr;
 
@@ -32,7 +33,8 @@ void vnic_cq_init(struct vnic_cq *cq, unsigned int flow_control_enable,
 	cq->interrupt_offset = interrupt_offset;
 }
 
-void vnic_cq_clean(struct vnic_cq *cq)
+void
+vnic_cq_clean(struct vnic_cq *cq)
 {
 	cq->to_clean = 0;
 	cq->last_color = 0;

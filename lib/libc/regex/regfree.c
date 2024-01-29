@@ -34,15 +34,16 @@
  */
 
 #include <sys/types.h>
-#include <stdio.h>
-#include <stdlib.h>
+
 #include <limits.h>
 #include <regex.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <wchar.h>
 #include <wctype.h>
 
-#include "utils.h"
 #include "regex2.h"
+#include "utils.h"
 
 /*
  - regfree - free everything
@@ -54,14 +55,14 @@ regfree(regex_t *preg)
 	struct re_guts *g;
 	unsigned int i;
 
-	if (preg->re_magic != MAGIC1)	/* oops */
-		return;			/* nice to complain, but hard */
+	if (preg->re_magic != MAGIC1) /* oops */
+		return;		      /* nice to complain, but hard */
 
 	g = preg->re_g;
-	if (g == NULL || g->magic != MAGIC2)	/* oops again */
+	if (g == NULL || g->magic != MAGIC2) /* oops again */
 		return;
-	preg->re_magic = 0;		/* mark it invalid */
-	g->magic = 0;			/* mark it invalid */
+	preg->re_magic = 0; /* mark it invalid */
+	g->magic = 0;	    /* mark it invalid */
 
 	if (g->strip != NULL)
 		free((char *)g->strip);

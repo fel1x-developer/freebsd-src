@@ -25,29 +25,29 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_route.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/socket.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
 #include <sys/rmlock.h>
+#include <sys/socket.h>
 
 #include <net/route.h>
+#include <net/route/nhop.h>
 #include <net/route/route_ctl.h>
 #include <net/route/route_var.h>
-#include <net/route/nhop.h>
 
 struct rib_subscription {
-	CK_STAILQ_ENTRY(rib_subscription)	next;
-	rib_subscription_cb_t			*func;
-	void					*arg;
-	struct rib_head				*rnh;
-	enum rib_subscription_type		type;
-	struct epoch_context			epoch_ctx;
+	CK_STAILQ_ENTRY(rib_subscription) next;
+	rib_subscription_cb_t *func;
+	void *arg;
+	struct rib_head *rnh;
+	enum rib_subscription_type type;
+	struct epoch_context epoch_ctx;
 };
 
 static void destroy_subscription_epoch(epoch_context_t ctx);
@@ -58,7 +58,8 @@ rib_notify(struct rib_head *rnh, enum rib_subscription_type type,
 {
 	struct rib_subscription *rs;
 
-	CK_STAILQ_FOREACH(rs, &rnh->rnh_subscribers, next) {
+	CK_STAILQ_FOREACH(rs, &rnh->rnh_subscribers, next)
+	{
 		if (rs->type == type)
 			rs->func(rnh, rc, rs->arg);
 	}
@@ -104,8 +105,8 @@ rib_subscribe(uint32_t fibnum, int family, rib_subscription_cb_t *f, void *arg,
 }
 
 struct rib_subscription *
-rib_subscribe_internal(struct rib_head *rnh, rib_subscription_cb_t *f, void *arg,
-    enum rib_subscription_type type, bool waitok)
+rib_subscribe_internal(struct rib_head *rnh, rib_subscription_cb_t *f,
+    void *arg, enum rib_subscription_type type, bool waitok)
 {
 	struct rib_subscription *rs;
 	struct epoch_tracker et;

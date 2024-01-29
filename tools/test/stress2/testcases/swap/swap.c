@@ -49,7 +49,7 @@ int
 setup(int nb)
 {
 	struct rlimit rlp;
-	int64_t  mem, swapinfo;
+	int64_t mem, swapinfo;
 	int mi, mx, pct;
 	char *cp;
 
@@ -102,7 +102,7 @@ setup(int nb)
 		size = size / op->incarnations;
 
 		if (getrlimit(RLIMIT_DATA, &rlp) < 0)
-			err(1,"getrlimit");
+			err(1, "getrlimit");
 		rlp.rlim_cur -= 1024 * 1024;
 
 		if (size > rlp.rlim_cur)
@@ -110,9 +110,11 @@ setup(int nb)
 		putval(size);
 
 		if (op->verbose > 1 && nb == 0)
-			printf("setup: pid %d, %d%%. Total %dMb, %d thread(s).\n",
-			    getpid(), pct, (int)(size / 1024 / 1024 *
-			    op->incarnations), op->incarnations);
+			printf(
+			    "setup: pid %d, %d%%. Total %dMb, %d thread(s).\n",
+			    getpid(), pct,
+			    (int)(size / 1024 / 1024 * op->incarnations),
+			    op->incarnations);
 	} else
 		size = getval();
 
@@ -140,16 +142,15 @@ test(void)
 	oldsize = size;
 	c = malloc(size);
 	while (c == NULL && done_testing == 0) {
-		size -=  1024 * 1024;
+		size -= 1024 * 1024;
 		c = malloc(size);
 	}
 	if (op->verbose > 1 && size != oldsize)
 		printf("Malloc size changed from %d Mb to %d Mb\n",
 		    (int)(oldsize / 1024 / 1024), (int)(size / 1024 / 102));
 	page = getpagesize();
-	start = time(NULL);	/* Livelock workaround */
-	while (done_testing == 0 &&
-			(time(NULL) - start) < op->run_time) {
+	start = time(NULL); /* Livelock workaround */
+	while (done_testing == 0 && (time(NULL) - start) < op->run_time) {
 		i = 0;
 		while (i < size && done_testing == 0) {
 			c[i] = 0;

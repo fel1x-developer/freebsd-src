@@ -33,21 +33,19 @@
  */
 /* RCSID("$Id: gss_set_cred_option.c 21126 2007-06-18 20:19:59Z lha $"); */
 
+#include <errno.h>
 #include <gssapi/gssapi.h>
 #include <stdlib.h>
-#include <errno.h>
 
-#include "mech_switch.h"
 #include "cred.h"
+#include "mech_switch.h"
 
 OM_uint32
-gss_set_cred_option (OM_uint32 *minor_status,
-		     gss_cred_id_t *cred_handle,
-		     const gss_OID object,
-		     const gss_buffer_t value)
+gss_set_cred_option(OM_uint32 *minor_status, gss_cred_id_t *cred_handle,
+    const gss_OID object, const gss_buffer_t value)
 {
-	struct _gss_cred *cred = (struct _gss_cred *) *cred_handle;
-	OM_uint32	major_status = GSS_S_COMPLETE;
+	struct _gss_cred *cred = (struct _gss_cred *)*cred_handle;
+	OM_uint32 major_status = GSS_S_COMPLETE;
 	struct _gss_mechanism_cred *mc;
 	int one_ok = 0;
 
@@ -60,29 +58,29 @@ gss_set_cred_option (OM_uint32 *minor_status,
 
 		cred = malloc(sizeof(*cred));
 		if (cred == NULL)
-		    return GSS_S_FAILURE;
+			return GSS_S_FAILURE;
 
 		SLIST_INIT(&cred->gc_mc);
 
-		SLIST_FOREACH(m, &_gss_mechs, gm_link) {
+		SLIST_FOREACH (m, &_gss_mechs, gm_link) {
 
 			if (m->gm_set_cred_option == NULL)
 				continue;
 
 			mc = malloc(sizeof(*mc));
 			if (mc == NULL) {
-			    *cred_handle = (gss_cred_id_t)cred;
-			    gss_release_cred(minor_status, cred_handle);
-			    *minor_status = ENOMEM;
-			    return GSS_S_FAILURE;
+				*cred_handle = (gss_cred_id_t)cred;
+				gss_release_cred(minor_status, cred_handle);
+				*minor_status = ENOMEM;
+				return GSS_S_FAILURE;
 			}
 
 			mc->gmc_mech = m;
 			mc->gmc_mech_oid = &m->gm_mech_oid;
 			mc->gmc_cred = GSS_C_NO_CREDENTIAL;
 
-			major_status = m->gm_set_cred_option(
-			    minor_status, &mc->gmc_cred, object, value);
+			major_status = m->gm_set_cred_option(minor_status,
+			    &mc->gmc_cred, object, value);
 
 			if (major_status) {
 				free(mc);
@@ -99,7 +97,7 @@ gss_set_cred_option (OM_uint32 *minor_status,
 	} else {
 		struct _gss_mech_switch *m;
 
-		SLIST_FOREACH(mc, &cred->gc_mc, gmc_link) {
+		SLIST_FOREACH (mc, &cred->gc_mc, gmc_link) {
 			m = mc->gmc_mech;
 
 			if (m == NULL)
@@ -114,7 +112,6 @@ gss_set_cred_option (OM_uint32 *minor_status,
 				one_ok = 1;
 			else
 				_gss_mg_error(m, major_status, *minor_status);
-
 		}
 	}
 	if (one_ok) {
@@ -123,4 +120,3 @@ gss_set_cred_option (OM_uint32 *minor_status,
 	}
 	return (major_status);
 }
-

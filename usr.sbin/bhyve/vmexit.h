@@ -27,7 +27,7 @@
  */
 
 #ifndef _VMEXIT_H_
-#define	_VMEXIT_H_
+#define _VMEXIT_H_
 
 extern const vmexit_handler_t vmexit_handlers[VM_EXITCODE_MAX];
 

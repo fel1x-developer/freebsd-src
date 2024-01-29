@@ -62,27 +62,27 @@
 
 static char _path_words[] = _PATH_WORDS;
 
-#define	EQUAL		0
-#define	GREATER		1
-#define	LESS		(-1)
+#define EQUAL 0
+#define GREATER 1
+#define LESS (-1)
 
 static int dflag, fflag;
 
-static char	*binary_search(wchar_t *, unsigned char *, unsigned char *);
-static int	 compare(wchar_t *, unsigned char *, unsigned char *);
-static char	*linear_search(wchar_t *, unsigned char *, unsigned char *);
-static int	 look(wchar_t *, unsigned char *, unsigned char *);
-static wchar_t	*prepkey(const char *, wchar_t);
-static void	 print_from(wchar_t *, unsigned char *, unsigned char *);
+static char *binary_search(wchar_t *, unsigned char *, unsigned char *);
+static int compare(wchar_t *, unsigned char *, unsigned char *);
+static char *linear_search(wchar_t *, unsigned char *, unsigned char *);
+static int look(wchar_t *, unsigned char *, unsigned char *);
+static wchar_t *prepkey(const char *, wchar_t);
+static void print_from(wchar_t *, unsigned char *, unsigned char *);
 
 static void usage(void) __dead2;
 
 static struct option longopts[] = {
-	{ "alternative",no_argument,	NULL, 'a' },
-	{ "alphanum",	no_argument,	NULL, 'd' },
-	{ "ignore-case",no_argument,	NULL, 'i' },
-	{ "terminate",	required_argument, NULL, 't'},
-	{ NULL,		0,		NULL, 0 },
+	{ "alternative", no_argument, NULL, 'a' },
+	{ "alphanum", no_argument, NULL, 'd' },
+	{ "ignore-case", no_argument, NULL, 'i' },
+	{ "terminate", required_argument, NULL, 't' },
+	{ NULL, 0, NULL, 0 },
 };
 
 int
@@ -95,12 +95,12 @@ main(int argc, char *argv[])
 	unsigned const char *file;
 	wchar_t *key;
 
-	(void) setlocale(LC_CTYPE, "");
+	(void)setlocale(LC_CTYPE, "");
 
 	file = _path_words;
 	termchar = L'\0';
 	while ((ch = getopt_long(argc, argv, "+adft:", longopts, NULL)) != -1)
-		switch(ch) {
+		switch (ch) {
 		case 'a':
 			/* COMPATIBILITY */
 			break;
@@ -124,7 +124,7 @@ main(int argc, char *argv[])
 
 	if (argc == 0)
 		usage();
-	if (argc == 1) 			/* But set -df by default. */
+	if (argc == 1) /* But set -df by default. */
 		dflag = fflag = 1;
 	key = prepkey(*argv++, termchar);
 	if (argc >= 2)
@@ -141,7 +141,8 @@ main(int argc, char *argv[])
 			close(fd);
 			continue;
 		}
-		if ((front = mmap(NULL, (size_t)sb.st_size, PROT_READ, MAP_SHARED, fd, (off_t)0)) == MAP_FAILED)
+		if ((front = mmap(NULL, (size_t)sb.st_size, PROT_READ,
+			 MAP_SHARED, fd, (off_t)0)) == MAP_FAILED)
 			err(2, "%s", file);
 		back = front + sb.st_size;
 		match *= (look(key, front, back));
@@ -194,7 +195,6 @@ look(wchar_t *string, unsigned char *front, unsigned char *back)
 	return (front ? 0 : 1);
 }
 
-
 /*
  * Binary search for "string" in memory between "front" and "back".
  *
@@ -233,8 +233,9 @@ look(wchar_t *string, unsigned char *front, unsigned char *back)
  * 	Trying to continue with binary search at this point would be
  *	more trouble than it's worth.
  */
-#define	SKIP_PAST_NEWLINE(p, back) \
-	while (p < back && *p++ != '\n');
+#define SKIP_PAST_NEWLINE(p, back)       \
+	while (p < back && *p++ != '\n') \
+		;
 
 static char *
 binary_search(wchar_t *string, unsigned char *front, unsigned char *back)
@@ -275,11 +276,11 @@ linear_search(wchar_t *string, unsigned char *front, unsigned char *back)
 {
 	while (front < back) {
 		switch (compare(string, front, back)) {
-		case EQUAL:		/* Found it. */
+		case EQUAL: /* Found it. */
 			return (front);
-		case LESS:		/* No such string. */
+		case LESS: /* No such string. */
 			return (NULL);
-		case GREATER:		/* Keep going. */
+		case GREATER: /* Keep going. */
 			break;
 		}
 		SKIP_PAST_NEWLINE(front, back);
@@ -344,6 +345,7 @@ compare(wchar_t *s1, unsigned char *s2, unsigned char *back)
 static void
 usage(void)
 {
-	(void)fprintf(stderr, "usage: look [-df] [-t char] string [file ...]\n");
+	(void)fprintf(stderr,
+	    "usage: look [-df] [-t char] string [file ...]\n");
 	exit(2);
 }

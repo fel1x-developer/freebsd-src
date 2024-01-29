@@ -27,35 +27,34 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_route.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
-#include <sys/rmlock.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
+#include <sys/rmlock.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
-#include <sys/kernel.h>
 
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_dl.h>
 #include <net/if_private.h>
+#include <net/if_var.h>
 #include <net/route.h>
-#include <net/route/route_ctl.h>
-#include <net/route/route_var.h>
 #include <net/route/fib_algo.h>
 #include <net/route/nhop.h>
+#include <net/route/route_ctl.h>
+#include <net/route/route_var.h>
 #include <net/toeplitz.h>
 #include <net/vnet.h>
-
 #include <netinet/in.h>
-#include <netinet/in_var.h>
 #include <netinet/in_fib.h>
+#include <netinet/in_var.h>
 
 #ifdef INET
 
@@ -96,7 +95,7 @@ fib4_calc_software_hash(struct in_addr src, struct in_addr dst,
 	*phashtype = M_HASHTYPE_OPAQUE;
 
 	return (toeplitz_hash(MPATH_ENTROPY_KEY_LEN, mpath_entropy_key,
-	  sizeof(data), (uint8_t *)&data));
+	    sizeof(data), (uint8_t *)&data));
 }
 #endif
 
@@ -114,7 +113,7 @@ fib4_lookup(uint32_t fibnum, struct in_addr dst, uint32_t scopeid,
 {
 	struct nhop_object *nh;
 	struct fib_dp *dp = &V_inet_dp[fibnum];
-	struct flm_lookup_key key = {.addr4 = dst };
+	struct flm_lookup_key key = { .addr4 = dst };
 
 	nh = dp->f(dp->arg, key, scopeid);
 	if (nh != NULL) {
@@ -190,16 +189,15 @@ check_urpf_nhop(const struct nhop_object *nh, uint32_t flags,
 }
 
 static int
-check_urpf(struct nhop_object *nh, uint32_t flags,
-    const struct ifnet *src_if)
+check_urpf(struct nhop_object *nh, uint32_t flags, const struct ifnet *src_if)
 {
 #ifdef ROUTE_MPATH
 	if (NH_IS_NHGRP(nh)) {
 		const struct weightened_nhop *wn;
 		uint32_t num_nhops;
 		wn = nhgrp_get_nhops((struct nhgrp_object *)nh, &num_nhops);
-			for (int i = 0; i < num_nhops; i++) {
-				if (check_urpf_nhop(wn[i].nh, flags, src_if) != 0)
+		for (int i = 0; i < num_nhops; i++) {
+			if (check_urpf_nhop(wn[i].nh, flags, src_if) != 0)
 				return (1);
 		}
 		return (0);
@@ -250,12 +248,12 @@ lookup_nhop(uint32_t fibnum, struct in_addr dst, uint32_t scopeid)
  */
 int
 fib4_check_urpf(uint32_t fibnum, struct in_addr dst, uint32_t scopeid,
-  uint32_t flags, const struct ifnet *src_if)
+    uint32_t flags, const struct ifnet *src_if)
 {
 	struct nhop_object *nh;
 #ifdef FIB_ALGO
 	struct fib_dp *dp = &V_inet_dp[fibnum];
-	struct flm_lookup_key key = {.addr4 = dst };
+	struct flm_lookup_key key = { .addr4 = dst };
 
 	nh = dp->f(dp->arg, key, scopeid);
 #else

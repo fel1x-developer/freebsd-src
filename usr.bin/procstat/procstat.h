@@ -31,51 +31,50 @@
 #include <libxo/xo.h>
 
 #ifndef PROCSTAT_H
-#define	PROCSTAT_H
+#define PROCSTAT_H
 
 #define PROCSTAT_XO_VERSION "1"
 
 enum {
-	PS_OPT_CAPABILITIES	= 0x01,
-	PS_OPT_NOHEADER		= 0x02,
-	PS_OPT_PERTHREAD	= 0x04,
-	PS_OPT_SIGNUM		= 0x08,
-	PS_OPT_VERBOSE		= 0x10,
-	PS_MODE_COMPAT		= 0x20,
-	PS_MODE_NO_KINFO_PROC	= 0x40,
+	PS_OPT_CAPABILITIES = 0x01,
+	PS_OPT_NOHEADER = 0x02,
+	PS_OPT_PERTHREAD = 0x04,
+	PS_OPT_SIGNUM = 0x08,
+	PS_OPT_VERBOSE = 0x10,
+	PS_MODE_COMPAT = 0x20,
+	PS_MODE_NO_KINFO_PROC = 0x40,
 };
 
-#define PS_SUBCOMMAND_OPTS			\
-	(PS_OPT_CAPABILITIES | PS_OPT_SIGNUM |	\
-	    PS_OPT_PERTHREAD | PS_OPT_VERBOSE)
+#define PS_SUBCOMMAND_OPTS                                        \
+	(PS_OPT_CAPABILITIES | PS_OPT_SIGNUM | PS_OPT_PERTHREAD | \
+	    PS_OPT_VERBOSE)
 
-extern int	procstat_opts;
+extern int procstat_opts;
 
 struct kinfo_proc;
-void	kinfo_proc_sort(struct kinfo_proc *kipp, int count);
-const char *	kinfo_proc_thread_name(const struct kinfo_proc *kipp);
+void kinfo_proc_sort(struct kinfo_proc *kipp, int count);
+const char *kinfo_proc_thread_name(const struct kinfo_proc *kipp);
 
-void	procstat_advlocks(struct procstat *prstat, struct kinfo_proc *kipp);
-void	procstat_args(struct procstat *prstat, struct kinfo_proc *kipp);
-void	procstat_auxv(struct procstat *prstat, struct kinfo_proc *kipp);
-void	procstat_basic(struct procstat *prstat, struct kinfo_proc *kipp);
-void	procstat_bin(struct procstat *prstat, struct kinfo_proc *kipp);
-void	procstat_cred(struct procstat *prstat, struct kinfo_proc *kipp);
-void	procstat_cs(struct procstat *prstat, struct kinfo_proc *kipp);
-void	procstat_env(struct procstat *prstat, struct kinfo_proc *kipp);
-void	procstat_files(struct procstat *prstat, struct kinfo_proc *kipp);
-void	procstat_kstack(struct procstat *prstat, struct kinfo_proc *kipp);
-void	procstat_pargs(struct procstat *prstat, struct kinfo_proc *kipp);
-void	procstat_penv(struct procstat *prstat, struct kinfo_proc *kipp);
-void	procstat_ptlwpinfo(struct procstat *prstat, struct kinfo_proc *kipp);
-void	procstat_pwdx(struct procstat *prstat, struct kinfo_proc *kipp);
-void	procstat_rlimit(struct procstat *prstat, struct kinfo_proc *kipp);
-void	procstat_rusage(struct procstat *prstat, struct kinfo_proc *kipp);
-void	procstat_sigfastblock(struct procstat *procstat,
-	    struct kinfo_proc *kipp);
-void	procstat_sigs(struct procstat *prstat, struct kinfo_proc *kipp);
-void	procstat_threads(struct procstat *prstat, struct kinfo_proc *kipp);
-void	procstat_threads_sigs(struct procstat *prstat, struct kinfo_proc *kipp);
-void	procstat_vm(struct procstat *prstat, struct kinfo_proc *kipp);
+void procstat_advlocks(struct procstat *prstat, struct kinfo_proc *kipp);
+void procstat_args(struct procstat *prstat, struct kinfo_proc *kipp);
+void procstat_auxv(struct procstat *prstat, struct kinfo_proc *kipp);
+void procstat_basic(struct procstat *prstat, struct kinfo_proc *kipp);
+void procstat_bin(struct procstat *prstat, struct kinfo_proc *kipp);
+void procstat_cred(struct procstat *prstat, struct kinfo_proc *kipp);
+void procstat_cs(struct procstat *prstat, struct kinfo_proc *kipp);
+void procstat_env(struct procstat *prstat, struct kinfo_proc *kipp);
+void procstat_files(struct procstat *prstat, struct kinfo_proc *kipp);
+void procstat_kstack(struct procstat *prstat, struct kinfo_proc *kipp);
+void procstat_pargs(struct procstat *prstat, struct kinfo_proc *kipp);
+void procstat_penv(struct procstat *prstat, struct kinfo_proc *kipp);
+void procstat_ptlwpinfo(struct procstat *prstat, struct kinfo_proc *kipp);
+void procstat_pwdx(struct procstat *prstat, struct kinfo_proc *kipp);
+void procstat_rlimit(struct procstat *prstat, struct kinfo_proc *kipp);
+void procstat_rusage(struct procstat *prstat, struct kinfo_proc *kipp);
+void procstat_sigfastblock(struct procstat *procstat, struct kinfo_proc *kipp);
+void procstat_sigs(struct procstat *prstat, struct kinfo_proc *kipp);
+void procstat_threads(struct procstat *prstat, struct kinfo_proc *kipp);
+void procstat_threads_sigs(struct procstat *prstat, struct kinfo_proc *kipp);
+void procstat_vm(struct procstat *prstat, struct kinfo_proc *kipp);
 
 #endif /* !PROCSTAT_H */

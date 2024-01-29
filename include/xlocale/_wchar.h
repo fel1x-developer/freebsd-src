@@ -30,18 +30,16 @@
 
 #ifndef _LOCALE_T_DEFINED
 #define _LOCALE_T_DEFINED
-typedef struct	_xlocale *locale_t;
+typedef struct _xlocale *locale_t;
 #endif
 
 #ifndef _XLOCALE_WCHAR1_H
 #define _XLOCALE_WCHAR1_H
-int			 wcscasecmp_l(const wchar_t *, const wchar_t *,
-			   locale_t);
-int			 wcsncasecmp_l(const wchar_t *, const wchar_t *, size_t,
-			   locale_t);
-int			 wcscoll_l(const wchar_t *, const wchar_t *, locale_t);
-size_t			 wcsxfrm_l(wchar_t * __restrict,
-			   const wchar_t * __restrict, size_t, locale_t);
+int wcscasecmp_l(const wchar_t *, const wchar_t *, locale_t);
+int wcsncasecmp_l(const wchar_t *, const wchar_t *, size_t, locale_t);
+int wcscoll_l(const wchar_t *, const wchar_t *, locale_t);
+size_t wcsxfrm_l(wchar_t *__restrict, const wchar_t *__restrict, size_t,
+    locale_t);
 
 #endif /* _XLOCALE_WCHAR1_H */
 
@@ -53,80 +51,64 @@ size_t			 wcsxfrm_l(wchar_t * __restrict,
 #ifndef _XLOCALE_WCHAR2_H
 #define _XLOCALE_WCHAR2_H
 
-wint_t			 btowc_l(int, locale_t);
-wint_t			 fgetwc_l(FILE *, locale_t);
-wchar_t			*fgetws_l(wchar_t * __restrict, int, FILE * __restrict,
-			    locale_t);
-wint_t			 fputwc_l(wchar_t, FILE *, locale_t);
-int			 fputws_l(const wchar_t * __restrict, FILE * __restrict,
-			   locale_t);
-int			 fwprintf_l(FILE * __restrict, locale_t,
-			    const wchar_t * __restrict, ...);
-int			 fwscanf_l(FILE * __restrict, locale_t,
-			    const wchar_t * __restrict, ...);
-wint_t			 getwc_l(FILE *, locale_t);
-wint_t			 getwchar_l(locale_t);
-size_t			 mbrlen_l(const char * __restrict, size_t,
-			   mbstate_t * __restrict, locale_t);
-size_t			 mbrtowc_l(wchar_t * __restrict,
-			    const char * __restrict, size_t,
-			    mbstate_t * __restrict, locale_t);
-int			 mbsinit_l(const mbstate_t *, locale_t);
-size_t			 mbsrtowcs_l(wchar_t * __restrict,
-			    const char ** __restrict, size_t,
-			    mbstate_t * __restrict, locale_t);
-wint_t			 putwc_l(wchar_t, FILE *, locale_t);
-wint_t			 putwchar_l(wchar_t, locale_t);
-int			 swprintf_l(wchar_t * __restrict, size_t n, locale_t,
-			    const wchar_t * __restrict, ...);
-int			 swscanf_l(const wchar_t * __restrict, locale_t,
-			   const wchar_t * __restrict, ...);
-wint_t			 ungetwc_l(wint_t, FILE *, locale_t);
-int			 vfwprintf_l(FILE * __restrict, locale_t,
-			    const wchar_t * __restrict, __va_list);
-int			 vswprintf_l(wchar_t * __restrict, size_t n, locale_t,
-			    const wchar_t * __restrict, __va_list);
-int			 vwprintf_l(locale_t, const wchar_t * __restrict,
-			    __va_list);
-size_t			 wcrtomb_l(char * __restrict, wchar_t,
-			    mbstate_t * __restrict, locale_t);
-size_t			 wcsftime_l(wchar_t * __restrict, size_t,
-			    const wchar_t * __restrict,
-			    const struct tm * __restrict, locale_t);
-size_t			 wcsrtombs_l(char * __restrict,
-			    const wchar_t ** __restrict, size_t,
-			    mbstate_t * __restrict, locale_t);
-double			 wcstod_l(const wchar_t * __restrict,
-			    wchar_t ** __restrict, locale_t);
-long			 wcstol_l(const wchar_t * __restrict,
-			    wchar_t ** __restrict, int, locale_t);
-unsigned long		 wcstoul_l(const wchar_t * __restrict,
-			    wchar_t ** __restrict, int, locale_t);
-int			 wcswidth_l(const wchar_t *, size_t, locale_t);
-int			 wctob_l(wint_t, locale_t);
-int			 wcwidth_l(wchar_t, locale_t);
-int			 wprintf_l(locale_t, const wchar_t * __restrict, ...);
-int			 wscanf_l(locale_t, const wchar_t * __restrict, ...);
-int			 vfwscanf_l(FILE * __restrict, locale_t,
-			    const wchar_t * __restrict, __va_list);
-int			 vswscanf_l(const wchar_t * __restrict, locale_t,
-			    const wchar_t *__restrict, __va_list);
-int			 vwscanf_l(locale_t, const wchar_t * __restrict,
-			    __va_list);
-float			 wcstof_l(const wchar_t * __restrict,
-			    wchar_t ** __restrict, locale_t);
-long double		 wcstold_l(const wchar_t * __restrict,
-			    wchar_t ** __restrict, locale_t);
-long long		 wcstoll_l(const wchar_t * __restrict,
-			    wchar_t ** __restrict, int, locale_t);
-unsigned long long	 wcstoull_l(const wchar_t * __restrict,
-			    wchar_t ** __restrict, int, locale_t);
-size_t			 mbsnrtowcs_l(wchar_t * __restrict,
-			    const char ** __restrict, size_t, size_t,
-			    mbstate_t * __restrict, locale_t);
-size_t			 wcsnrtombs_l(char * __restrict,
-			    const wchar_t ** __restrict, size_t, size_t,
-			    mbstate_t * __restrict, locale_t);
+wint_t btowc_l(int, locale_t);
+wint_t fgetwc_l(FILE *, locale_t);
+wchar_t *fgetws_l(wchar_t *__restrict, int, FILE *__restrict, locale_t);
+wint_t fputwc_l(wchar_t, FILE *, locale_t);
+int fputws_l(const wchar_t *__restrict, FILE *__restrict, locale_t);
+int fwprintf_l(FILE *__restrict, locale_t, const wchar_t *__restrict, ...);
+int fwscanf_l(FILE *__restrict, locale_t, const wchar_t *__restrict, ...);
+wint_t getwc_l(FILE *, locale_t);
+wint_t getwchar_l(locale_t);
+size_t mbrlen_l(const char *__restrict, size_t, mbstate_t *__restrict,
+    locale_t);
+size_t mbrtowc_l(wchar_t *__restrict, const char *__restrict, size_t,
+    mbstate_t *__restrict, locale_t);
+int mbsinit_l(const mbstate_t *, locale_t);
+size_t mbsrtowcs_l(wchar_t *__restrict, const char **__restrict, size_t,
+    mbstate_t *__restrict, locale_t);
+wint_t putwc_l(wchar_t, FILE *, locale_t);
+wint_t putwchar_l(wchar_t, locale_t);
+int swprintf_l(wchar_t *__restrict, size_t n, locale_t,
+    const wchar_t *__restrict, ...);
+int swscanf_l(const wchar_t *__restrict, locale_t, const wchar_t *__restrict,
+    ...);
+wint_t ungetwc_l(wint_t, FILE *, locale_t);
+int vfwprintf_l(FILE *__restrict, locale_t, const wchar_t *__restrict,
+    __va_list);
+int vswprintf_l(wchar_t *__restrict, size_t n, locale_t,
+    const wchar_t *__restrict, __va_list);
+int vwprintf_l(locale_t, const wchar_t *__restrict, __va_list);
+size_t wcrtomb_l(char *__restrict, wchar_t, mbstate_t *__restrict, locale_t);
+size_t wcsftime_l(wchar_t *__restrict, size_t, const wchar_t *__restrict,
+    const struct tm *__restrict, locale_t);
+size_t wcsrtombs_l(char *__restrict, const wchar_t **__restrict, size_t,
+    mbstate_t *__restrict, locale_t);
+double wcstod_l(const wchar_t *__restrict, wchar_t **__restrict, locale_t);
+long wcstol_l(const wchar_t *__restrict, wchar_t **__restrict, int, locale_t);
+unsigned long wcstoul_l(const wchar_t *__restrict, wchar_t **__restrict, int,
+    locale_t);
+int wcswidth_l(const wchar_t *, size_t, locale_t);
+int wctob_l(wint_t, locale_t);
+int wcwidth_l(wchar_t, locale_t);
+int wprintf_l(locale_t, const wchar_t *__restrict, ...);
+int wscanf_l(locale_t, const wchar_t *__restrict, ...);
+int vfwscanf_l(FILE *__restrict, locale_t, const wchar_t *__restrict,
+    __va_list);
+int vswscanf_l(const wchar_t *__restrict, locale_t, const wchar_t *__restrict,
+    __va_list);
+int vwscanf_l(locale_t, const wchar_t *__restrict, __va_list);
+float wcstof_l(const wchar_t *__restrict, wchar_t **__restrict, locale_t);
+long double wcstold_l(const wchar_t *__restrict, wchar_t **__restrict,
+    locale_t);
+long long wcstoll_l(const wchar_t *__restrict, wchar_t **__restrict, int,
+    locale_t);
+unsigned long long wcstoull_l(const wchar_t *__restrict, wchar_t **__restrict,
+    int, locale_t);
+size_t mbsnrtowcs_l(wchar_t *__restrict, const char **__restrict, size_t,
+    size_t, mbstate_t *__restrict, locale_t);
+size_t wcsnrtombs_l(char *__restrict, const wchar_t **__restrict, size_t,
+    size_t, mbstate_t *__restrict, locale_t);
 
 #endif /* _XLOCALE_WCHAR_H */
 #endif /* _XLOCALE_H_ */

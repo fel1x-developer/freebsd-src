@@ -33,23 +33,26 @@
  */
 
 #include <sys/param.h>
+
+#include <elf.h>
 #include <stdlib.h>
 #include <string.h>
-#include <elf.h>
 #include <unistd.h>
 
-#include "rtld.h"
 #include "libc_private.h"
+#include "rtld.h"
 
-#define	tls_assert(cond)	((cond) ? (void) 0 :			\
-    (tls_msg(#cond ": assert failed: " __FILE__ ":"			\
-      __XSTRING(__LINE__) "\n"), abort()))
-#define	tls_msg(s)		write(STDOUT_FILENO, s, strlen(s))
+#define tls_assert(cond)                                        \
+	((cond) ? (void)0 :                                     \
+		  (tls_msg(#cond ": assert failed: " __FILE__   \
+				 ":" __XSTRING(__LINE__) "\n"), \
+		      abort()))
+#define tls_msg(s) write(STDOUT_FILENO, s, strlen(s))
 
 /* Provided by jemalloc to avoid bootstrapping issues. */
-void	*__je_bootstrap_malloc(size_t size);
-void	*__je_bootstrap_calloc(size_t num, size_t size);
-void	__je_bootstrap_free(void *ptr);
+void *__je_bootstrap_malloc(size_t size);
+void *__je_bootstrap_calloc(size_t num, size_t size);
+void __je_bootstrap_free(void *ptr);
 
 __weak_reference(__libc_allocate_tls, _rtld_allocate_tls);
 __weak_reference(__libc_free_tls, _rtld_free_tls);
@@ -57,11 +60,11 @@ __weak_reference(__libc_free_tls, _rtld_free_tls);
 #ifdef __i386__
 
 __weak_reference(___libc_tls_get_addr, ___tls_get_addr);
-__attribute__((__regparm__(1))) void * ___libc_tls_get_addr(void *);
+__attribute__((__regparm__(1))) void *___libc_tls_get_addr(void *);
 
 #endif
 
-void * __libc_tls_get_addr(void *);
+void *__libc_tls_get_addr(void *);
 __weak_reference(__libc_tls_get_addr, __tls_get_addr);
 
 void *_rtld_allocate_tls(void *oldtls, size_t tcbsize, size_t tcbalign);
@@ -85,16 +88,15 @@ __libc_tls_get_addr(void *vti)
 
 	dtv = _tcb_get()->tcb_dtv;
 	ti = vti;
-	return ((char *)(dtv[ti->ti_module + 1] + ti->ti_offset) +
-	    TLS_DTV_OFFSET);
+	return (
+	    (char *)(dtv[ti->ti_module + 1] + ti->ti_offset) + TLS_DTV_OFFSET);
 }
 
 #ifdef __i386__
 
 /* GNU ABI */
 
-__attribute__((__regparm__(1)))
-void *
+__attribute__((__regparm__(1))) void *
 ___libc_tls_get_addr(void *vti)
 {
 	return (__libc_tls_get_addr(vti));
@@ -180,7 +182,7 @@ get_tls_block_ptr(void *tcb, size_t tcbsize)
 	/* Compute fragments sizes. */
 	extra_size = tcbsize - TLS_TCB_SIZE;
 #if defined(__aarch64__) || defined(__arm__)
-	post_size =  roundup2(TLS_TCB_SIZE, libc_tls_init_align) - TLS_TCB_SIZE;
+	post_size = roundup2(TLS_TCB_SIZE, libc_tls_init_align) - TLS_TCB_SIZE;
 #else
 	post_size = 0;
 #endif
@@ -211,7 +213,7 @@ __libc_free_tls(void *tcb, size_t tcbsize, size_t tcbalign __unused)
 /*
  * Allocate Static TLS using the Variant I method.
  *
- * To handle all above requirements, we setup the following layout for 
+ * To handle all above requirements, we setup the following layout for
  * TLS block:
  * (whole memory block is aligned with MAX(TLS_TCB_ALIGN, tls_init_align))
  *
@@ -279,8 +281,8 @@ __libc_allocate_tls(void *oldtcb, size_t tcbsize, size_t tcbalign)
 		}
 		/* Build the DTV. */
 		tcb[0] = dtv;
-		dtv[0] = 1;		/* Generation. */
-		dtv[1] = 1;		/* Segments count. */
+		dtv[0] = 1; /* Generation. */
+		dtv[1] = 1; /* Segments count. */
 		dtv[2] = (Elf_Addr)(tls + TLS_DTV_OFFSET);
 
 		if (libc_tls_init_size > 0)
@@ -301,7 +303,7 @@ void
 __libc_free_tls(void *tcb, size_t tcbsize __unused, size_t tcbalign)
 {
 	size_t size;
-	Elf_Addr* dtv;
+	Elf_Addr *dtv;
 	Elf_Addr tlsstart, tlsend;
 
 	/*
@@ -311,10 +313,10 @@ __libc_free_tls(void *tcb, size_t tcbsize __unused, size_t tcbalign)
 	tcbalign = MAX(tcbalign, libc_tls_init_align);
 	size = roundup2(libc_tls_static_space, tcbalign);
 
-	dtv = ((Elf_Addr**)tcb)[1];
-	tlsend = (Elf_Addr) tcb;
+	dtv = ((Elf_Addr **)tcb)[1];
+	tlsend = (Elf_Addr)tcb;
 	tlsstart = tlsend - size;
-	libc_free_aligned((void*)tlsstart);
+	libc_free_aligned((void *)tlsstart);
 	__je_bootstrap_free(dtv);
 }
 
@@ -347,8 +349,8 @@ __libc_allocate_tls(void *oldtls, size_t tcbsize, size_t tcbalign)
 	}
 
 	segbase = (Elf_Addr)(tls + size);
-	((Elf_Addr*)segbase)[0] = segbase;
-	((Elf_Addr*)segbase)[1] = (Elf_Addr) dtv;
+	((Elf_Addr *)segbase)[0] = segbase;
+	((Elf_Addr *)segbase)[1] = (Elf_Addr)dtv;
 
 	dtv[0] = 1;
 	dtv[1] = 1;
@@ -358,7 +360,7 @@ __libc_allocate_tls(void *oldtls, size_t tcbsize, size_t tcbalign)
 		/*
 		 * Copy the static TLS block over whole.
 		 */
-		oldsegbase = (Elf_Addr) oldtls;
+		oldsegbase = (Elf_Addr)oldtls;
 		memcpy((void *)(segbase - libc_tls_static_space),
 		    (const void *)(oldsegbase - libc_tls_static_space),
 		    libc_tls_static_space);
@@ -367,16 +369,16 @@ __libc_allocate_tls(void *oldtls, size_t tcbsize, size_t tcbalign)
 		 * We assume that this block was the one we created with
 		 * allocate_initial_tls().
 		 */
-		_rtld_free_tls(oldtls, 2*sizeof(Elf_Addr), sizeof(Elf_Addr));
+		_rtld_free_tls(oldtls, 2 * sizeof(Elf_Addr), sizeof(Elf_Addr));
 	} else {
-		memcpy((void *)(segbase - libc_tls_static_space),
-		    libc_tls_init, libc_tls_init_size);
+		memcpy((void *)(segbase - libc_tls_static_space), libc_tls_init,
+		    libc_tls_init_size);
 		memset((void *)(segbase - libc_tls_static_space +
-		    libc_tls_init_size), 0,
-		    libc_tls_static_space - libc_tls_init_size);
+			   libc_tls_init_size),
+		    0, libc_tls_static_space - libc_tls_init_size);
 	}
 
-	return (void*) segbase;
+	return (void *)segbase;
 }
 
 #endif /* TLS_VARIANT_II */
@@ -385,14 +387,14 @@ __libc_allocate_tls(void *oldtls, size_t tcbsize, size_t tcbalign)
 
 void *
 __libc_allocate_tls(void *oldtls __unused, size_t tcbsize __unused,
-	size_t tcbalign __unused)
+    size_t tcbalign __unused)
 {
 	return (0);
 }
 
 void
 __libc_free_tls(void *tcb __unused, size_t tcbsize __unused,
-	size_t tcbalign __unused)
+    size_t tcbalign __unused)
 {
 }
 
@@ -409,10 +411,10 @@ _init_tls(void)
 	int i;
 	void *tls;
 
-	sp = (Elf_Addr *) environ;
+	sp = (Elf_Addr *)environ;
 	while (*sp++ != 0)
 		;
-	aux = (Elf_Auxinfo *) sp;
+	aux = (Elf_Auxinfo *)sp;
 	phdr = NULL;
 	phent = phnum = 0;
 	for (auxp = aux; auxp->a_type != AT_NULL; auxp++) {
@@ -433,7 +435,7 @@ _init_tls(void)
 	if (phdr == NULL || phent != sizeof(Elf_Phdr) || phnum == 0)
 		return;
 
-	for (i = 0; (unsigned) i < phnum; i++) {
+	for (i = 0; (unsigned)i < phnum; i++) {
 		if (phdr[i].p_type == PT_TLS) {
 			libc_tls_static_space = roundup2(phdr[i].p_memsz,
 			    phdr[i].p_align);

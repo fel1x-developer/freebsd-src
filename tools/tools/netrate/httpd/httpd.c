@@ -34,7 +34,6 @@
 #include <netinet/in.h>
 
 #include <arpa/inet.h>
-
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -47,7 +46,7 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-static int	threaded;		/* 1 for threaded, 0 for forked. */
+static int threaded; /* 1 for threaded, 0 for forked. */
 
 /*
  * Simple, multi-threaded/multi-process HTTP server.  Very dumb.
@@ -55,15 +54,15 @@ static int	threaded;		/* 1 for threaded, 0 for forked. */
  * If a path is specified as an argument, only that file is served.  If no
  * path is specified, httpd will create one file to send per server thread.
  */
-#define	THREADS		128
-#define	BUFFER		1024
-#define	FILESIZE	1024
+#define THREADS 128
+#define BUFFER 1024
+#define FILESIZE 1024
 
-#define	HTTP_OK		"HTTP/1.1 200 OK\n"
-#define	HTTP_SERVER1	"Server rwatson_httpd/1.0 ("
-#define	HTTP_SERVER2	")\n"
-#define	HTTP_CONNECTION	"Connection: close\n"
-#define	HTTP_CONTENT	"Content-Type: text/html\n\n"
+#define HTTP_OK "HTTP/1.1 200 OK\n"
+#define HTTP_SERVER1 "Server rwatson_httpd/1.0 ("
+#define HTTP_SERVER2 ")\n"
+#define HTTP_CONNECTION "Connection: close\n"
+#define HTTP_CONTENT "Content-Type: text/html\n\n"
 
 /*
  * In order to support both multi-threaded and multi-process operation but
@@ -75,21 +74,21 @@ static int	threaded;		/* 1 for threaded, 0 for forked. */
  */
 static struct state {
 	struct httpd_thread_statep {
-		pthread_t	hts_thread;	/* Multi-thread. */
-		pid_t		hts_pid;	/* Multi-process. */
-		int		hts_fd;
+		pthread_t hts_thread; /* Multi-thread. */
+		pid_t hts_pid;	      /* Multi-process. */
+		int hts_fd;
 	} hts[THREADS];
 
-	const char	*path;
-	int		 data_file;
-	int		 listen_sock;
-	struct utsname	 utsname;
+	const char *path;
+	int data_file;
+	int listen_sock;
+	struct utsname utsname;
 } *statep;
 
 /*
  * Borrowed from sys/param.h.
  */
-#define	roundup(x, y)	((((x)+((y)-1))/(y))*(y))	/* to any y */
+#define roundup(x, y) ((((x) + ((y)-1)) / (y)) * (y)) /* to any y */
 
 /*
  * Given an open client socket, process its request.  No notion of timeout.
@@ -202,7 +201,6 @@ main(int argc, char *argv[])
 	ssize_t len;
 	pid_t pid;
 
-
 	while ((ch = getopt(argc, argv, "t")) != -1) {
 		switch (ch) {
 		case 't':
@@ -268,8 +266,7 @@ main(int argc, char *argv[])
 		}
 	}
 
-	if (bind(statep->listen_sock, (struct sockaddr *)&sin,
-	    sizeof(sin)) < 0)
+	if (bind(statep->listen_sock, (struct sockaddr *)&sin, sizeof(sin)) < 0)
 		err(-1, "bind");
 
 	if (listen(statep->listen_sock, -1) < 0)
@@ -278,7 +275,7 @@ main(int argc, char *argv[])
 	for (i = 0; i < THREADS; i++) {
 		if (threaded) {
 			if (pthread_create(&statep->hts[i].hts_thread, NULL,
-			    httpd_worker, &statep->hts[i]) != 0)
+				httpd_worker, &statep->hts[i]) != 0)
 				err(-1, "pthread_create");
 		} else {
 			pid = fork();
@@ -296,8 +293,7 @@ main(int argc, char *argv[])
 
 	for (i = 0; i < THREADS; i++) {
 		if (threaded) {
-			if (pthread_join(statep->hts[i].hts_thread, NULL)
-			    != 0)
+			if (pthread_join(statep->hts[i].hts_thread, NULL) != 0)
 				err(-1, "pthread_join");
 		} else {
 			pid = waitpid(statep->hts[i].hts_pid, NULL, 0);

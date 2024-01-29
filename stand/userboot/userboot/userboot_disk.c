@@ -30,35 +30,36 @@
  */
 
 #include <sys/disk.h>
+
+#include <bootstrap.h>
 #include <stand.h>
 #include <stdarg.h>
-#include <bootstrap.h>
 
 #include "disk.h"
 #include "libuserboot.h"
 
 struct userdisk_info {
-	uint64_t	mediasize;
-	uint16_t	sectorsize;
-	int		ud_open;	/* reference counter */
-	void		*ud_bcache;	/* buffer cache data */
+	uint64_t mediasize;
+	uint16_t sectorsize;
+	int ud_open;	 /* reference counter */
+	void *ud_bcache; /* buffer cache data */
 };
 
 int userboot_disk_maxunit = 0;
 
 static int userdisk_maxunit = 0;
-static struct userdisk_info	*ud_info;
+static struct userdisk_info *ud_info;
 
-static int	userdisk_init(void);
-static void	userdisk_cleanup(void);
-static int	userdisk_strategy(void *devdata, int flag, daddr_t dblk,
-		    size_t size, char *buf, size_t *rsize);
-static int	userdisk_realstrategy(void *devdata, int flag, daddr_t dblk,
-		    size_t size, char *buf, size_t *rsize);
-static int	userdisk_open(struct open_file *f, ...);
-static int	userdisk_close(struct open_file *f);
-static int	userdisk_ioctl(struct open_file *f, u_long cmd, void *data);
-static int	userdisk_print(int verbose);
+static int userdisk_init(void);
+static void userdisk_cleanup(void);
+static int userdisk_strategy(void *devdata, int flag, daddr_t dblk, size_t size,
+    char *buf, size_t *rsize);
+static int userdisk_realstrategy(void *devdata, int flag, daddr_t dblk,
+    size_t size, char *buf, size_t *rsize);
+static int userdisk_open(struct open_file *f, ...);
+static int userdisk_close(struct open_file *f);
+static int userdisk_ioctl(struct open_file *f, u_long cmd, void *data);
+static int userdisk_print(int verbose);
 
 struct devsw userboot_disk = {
 	.dv_name = "disk",
@@ -91,8 +92,9 @@ userdisk_init(void)
 			return (ENOMEM);
 		for (i = 0; i < userdisk_maxunit; i++) {
 			if (CALLBACK(diskioctl, i, DIOCGSECTORSIZE,
-			    &sectorsize) != 0 || CALLBACK(diskioctl, i,
-			    DIOCGMEDIASIZE, &mediasize) != 0)
+				&sectorsize) != 0 ||
+			    CALLBACK(diskioctl, i, DIOCGMEDIASIZE,
+				&mediasize) != 0)
 				return (ENXIO);
 			ud_info[i].mediasize = mediasize;
 			ud_info[i].sectorsize = sectorsize;
@@ -101,7 +103,7 @@ userdisk_init(void)
 		}
 	}
 	bcache_add_dev(userdisk_maxunit);
-	return(0);
+	return (0);
 }
 
 static void
@@ -140,7 +142,7 @@ userdisk_print(int verbose)
 		dev.d_slice = D_SLICENONE;
 		dev.d_partition = D_PARTNONE;
 		if (disk_open(&dev, ud_info[i].mediasize,
-		    ud_info[i].sectorsize) == 0) {
+			ud_info[i].sectorsize) == 0) {
 			snprintf(line, sizeof(line), "    disk%d", i);
 			ret = disk_print(&dev, line, verbose);
 			disk_close(&dev);
@@ -157,8 +159,8 @@ userdisk_print(int verbose)
 static int
 userdisk_open(struct open_file *f, ...)
 {
-	va_list			ap;
-	struct disk_devdesc	*dev;
+	va_list ap;
+	struct disk_devdesc *dev;
 
 	va_start(ap, f);
 	dev = va_arg(ap, struct disk_devdesc *);
@@ -188,8 +190,8 @@ userdisk_close(struct open_file *f)
 }
 
 static int
-userdisk_strategy(void *devdata, int rw, daddr_t dblk, size_t size,
-    char *buf, size_t *rsize)
+userdisk_strategy(void *devdata, int rw, daddr_t dblk, size_t size, char *buf,
+    size_t *rsize)
 {
 	struct bcache_devdata bcd;
 	struct disk_devdesc *dev;
@@ -198,8 +200,8 @@ userdisk_strategy(void *devdata, int rw, daddr_t dblk, size_t size,
 	bcd.dv_strategy = userdisk_realstrategy;
 	bcd.dv_devdata = devdata;
 	bcd.dv_cache = ud_info[dev->dd.d_unit].ud_bcache;
-	return (bcache_strategy(&bcd, rw, dblk + dev->d_offset,
-	    size, buf, rsize));
+	return (
+	    bcache_strategy(&bcd, rw, dblk + dev->d_offset, size, buf, rsize));
 }
 
 static int
@@ -207,9 +209,9 @@ userdisk_realstrategy(void *devdata, int rw, daddr_t dblk, size_t size,
     char *buf, size_t *rsize)
 {
 	struct disk_devdesc *dev = devdata;
-	uint64_t	off;
-	size_t		resid;
-	int		rc;
+	uint64_t off;
+	size_t resid;
+	int rc;
 
 	if (rsize)
 		*rsize = 0;

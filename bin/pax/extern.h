@@ -53,7 +53,7 @@ int ar_read(char *, int);
 int ar_write(char *, int);
 int ar_rdsync(void);
 int ar_fow(off_t, off_t *);
-int ar_rev(off_t );
+int ar_rev(off_t);
 int ar_next(void);
 
 /*
@@ -100,8 +100,8 @@ int uidtb_start(void);
 int gidtb_start(void);
 int usrtb_start(void);
 int grptb_start(void);
-const char * name_uid(uid_t, int);
-const char * name_gid(gid_t, int);
+const char *name_uid(uid_t, int);
+const char *name_gid(gid_t, int);
 int uid_name(char *, uid_t *);
 int gid_name(char *, gid_t *);
 
@@ -180,7 +180,7 @@ int getoldopt(int, char **, const char *);
 extern FSUB fsub[];
 extern int ford[];
 void options(int, char **);
-OPLIST * opt_next(void);
+OPLIST *opt_next(void);
 int opt_add(const char *);
 int bad_opt(void);
 extern char *chdname;

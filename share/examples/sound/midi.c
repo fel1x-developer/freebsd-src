@@ -50,11 +50,13 @@ main()
 		case NOTE_ON:
 		case NOTE_OFF:
 		case CONTROLER_ON:
-			if ((l = read(midi_config.fd, &(event.note), sizeof(event.note))) == -1) {
+			if ((l = read(midi_config.fd, &(event.note),
+				 sizeof(event.note))) == -1) {
 				perror("Error reading MIDI note");
 				exit(1);
 			}
-			if ((l = read(midi_config.fd, &(event.velocity), sizeof(event.velocity))) == -1) {
+			if ((l = read(midi_config.fd, &(event.velocity),
+				 sizeof(event.velocity))) == -1) {
 				perror("Error reading MIDI velocity");
 				exit(1);
 			}
@@ -63,10 +65,12 @@ main()
 		switch (event.type) {
 		case NOTE_ON:
 		case NOTE_OFF:
-			printf("Channel %d, note %d, velocity %d\n", event.channel, event.note, event.velocity);
+			printf("Channel %d, note %d, velocity %d\n",
+			    event.channel, event.note, event.velocity);
 			break;
 		case CONTROLER_ON:
-			printf("Channel %d, controller %d, value %d\n", event.channel, event.controller, event.value);
+			printf("Channel %d, controller %d, value %d\n",
+			    event.channel, event.controller, event.value);
 			break;
 		default:
 			printf("Unknown event type %d\n", event.type);

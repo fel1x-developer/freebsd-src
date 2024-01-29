@@ -29,40 +29,38 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 #include "opt_sctp.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/domain.h>
 #include <sys/eventhandler.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
 #include <sys/module.h>
-#include <sys/kernel.h>
 #include <sys/priv.h>
 #include <sys/proc.h>
-#include <sys/domain.h>
 #include <sys/protosw.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 #include <sys/sysctl.h>
-#include <net/vnet.h>
 
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_private.h>
+#include <net/if_var.h>
 #include <net/netisr.h>
-
+#include <net/vnet.h>
 #include <netinet/in.h>
 #include <netinet/in_pcb.h>
 #include <netinet/in_systm.h>
 #include <netinet/in_var.h>
 #include <netinet/ip.h>
-#include <netinet/ip_var.h>
 #include <netinet/ip_divert.h>
+#include <netinet/ip_var.h>
 #ifdef INET6
 #include <netinet/ip6.h>
 #include <netinet6/ip6_var.h>
@@ -79,16 +77,16 @@
 /*
  * Allocate enough space to hold a full IP packet
  */
-#define	DIVSNDQ		(65536 + 100)
-#define	DIVRCVQ		(65536 + 100)
+#define DIVSNDQ (65536 + 100)
+#define DIVRCVQ (65536 + 100)
 
 /*
  * Usually a system has very few divert ports.  Previous implementation
  * used a linked list.
  */
-#define	DIVHASHSIZE	(1 << 3)	/* 8 entries, one cache line. */
-#define	DIVHASH(port)	(port % DIVHASHSIZE)
-#define	DCBHASH(dcb)	((dcb)->dcb_port % DIVHASHSIZE)
+#define DIVHASHSIZE (1 << 3) /* 8 entries, one cache line. */
+#define DIVHASH(port) (port % DIVHASHSIZE)
+#define DCBHASH(dcb) ((dcb)->dcb_port % DIVHASHSIZE)
 
 /*
  * Divert sockets work in conjunction with ipfw or other packet filters,
@@ -123,13 +121,13 @@ VNET_PCPUSTAT_SYSINIT(divstat);
 #ifdef VIMAGE
 VNET_PCPUSTAT_SYSUNINIT(divstat);
 #endif
-SYSCTL_VNET_PCPUSTAT(_net_inet_divert, OID_AUTO, stats, struct divstat,
-    divstat, "divert(4) socket statistics");
-#define	DIVSTAT_INC(name)	\
-    VNET_PCPUSTAT_ADD(struct divstat, divstat, div_ ## name, 1)
+SYSCTL_VNET_PCPUSTAT(_net_inet_divert, OID_AUTO, stats, struct divstat, divstat,
+    "divert(4) socket statistics");
+#define DIVSTAT_INC(name) \
+	VNET_PCPUSTAT_ADD(struct divstat, divstat, div_##name, 1)
 
-static u_long	div_sendspace = DIVSNDQ;	/* XXX sysctl ? */
-static u_long	div_recvspace = DIVRCVQ;	/* XXX sysctl ? */
+static u_long div_sendspace = DIVSNDQ; /* XXX sysctl ? */
+static u_long div_recvspace = DIVRCVQ; /* XXX sysctl ? */
 
 static int div_output_inbound(int fmaily, struct socket *so, struct mbuf *m,
     struct sockaddr_in *sin);
@@ -137,29 +135,29 @@ static int div_output_outbound(int family, struct socket *so, struct mbuf *m);
 
 struct divcb {
 	union {
-		SLIST_ENTRY(divcb)	dcb_next;
-		intptr_t		dcb_bound;
-#define	DCB_UNBOUND	((intptr_t)-1)
+		SLIST_ENTRY(divcb) dcb_next;
+		intptr_t dcb_bound;
+#define DCB_UNBOUND ((intptr_t)-1)
 	};
-	struct socket		*dcb_socket;
-	uint16_t		 dcb_port;
-	uint64_t		 dcb_gencnt;
-	struct epoch_context	 dcb_epochctx;
+	struct socket *dcb_socket;
+	uint16_t dcb_port;
+	uint64_t dcb_gencnt;
+	struct epoch_context dcb_epochctx;
 };
 
 SLIST_HEAD(divhashhead, divcb);
 
 VNET_DEFINE_STATIC(struct divhashhead, divhash[DIVHASHSIZE]) = {};
-#define	V_divhash	VNET(divhash)
+#define V_divhash VNET(divhash)
 VNET_DEFINE_STATIC(uint64_t, dcb_count) = 0;
-#define	V_dcb_count	VNET(dcb_count)
+#define V_dcb_count VNET(dcb_count)
 VNET_DEFINE_STATIC(uint64_t, dcb_gencnt) = 0;
-#define	V_dcb_gencnt	VNET(dcb_gencnt)
+#define V_dcb_gencnt VNET(dcb_gencnt)
 
 static struct mtx divert_mtx;
 MTX_SYSINIT(divert, &divert_mtx, "divert(4) socket pcb lists", MTX_DEF);
-#define	DIVERT_LOCK()	mtx_lock(&divert_mtx)
-#define	DIVERT_UNLOCK()	mtx_unlock(&divert_mtx)
+#define DIVERT_LOCK() mtx_lock(&divert_mtx)
+#define DIVERT_UNLOCK() mtx_unlock(&divert_mtx)
 
 /*
  * Divert a packet by passing it up to the divert socket at port 'port'.
@@ -177,12 +175,12 @@ divert_packet(struct mbuf *m, bool incoming)
 
 	mtag = m_tag_locate(m, MTAG_IPFW_RULE, 0, NULL);
 	if (mtag != NULL) {
-		cookie = ((struct ipfw_rule_ref *)(mtag+1))->rulenum;
-		nport = htons((uint16_t)
-		    (((struct ipfw_rule_ref *)(mtag+1))->info));
+		cookie = ((struct ipfw_rule_ref *)(mtag + 1))->rulenum;
+		nport = htons(
+		    (uint16_t)(((struct ipfw_rule_ref *)(mtag + 1))->info));
 	} else if ((mtag = m_tag_locate(m, MTAG_PF_DIVERT, 0, NULL)) != NULL) {
-		cookie = ((struct pf_divert_mtag *)(mtag+1))->idir;
-		nport = htons(((struct pf_divert_mtag *)(mtag+1))->port);
+		cookie = ((struct pf_divert_mtag *)(mtag + 1))->idir;
+		nport = htons(((struct pf_divert_mtag *)(mtag + 1))->port);
 	} else {
 		m_freem(m);
 		return;
@@ -209,8 +207,8 @@ divert_packet(struct mbuf *m, bool incoming)
 #endif
 #ifdef INET6
 	if (m->m_pkthdr.csum_flags & CSUM_DELAY_DATA_IPV6) {
-		in6_delayed_cksum(m, m->m_pkthdr.len -
-		    sizeof(struct ip6_hdr), sizeof(struct ip6_hdr));
+		in6_delayed_cksum(m, m->m_pkthdr.len - sizeof(struct ip6_hdr),
+		    sizeof(struct ip6_hdr));
 		m->m_pkthdr.csum_flags &= ~CSUM_DELAY_DATA_IPV6;
 	}
 #if defined(SCTP) || defined(SCTP_SUPPORT)
@@ -238,11 +236,12 @@ divert_packet(struct mbuf *m, bool incoming)
 
 		/* Find IP address for receive interface */
 		ifp = m->m_pkthdr.rcvif;
-		CK_STAILQ_FOREACH(ifa, &ifp->if_addrhead, ifa_link) {
+		CK_STAILQ_FOREACH(ifa, &ifp->if_addrhead, ifa_link)
+		{
 			if (ifa->ifa_addr->sa_family != AF_INET)
 				continue;
 			divsrc.sin_addr =
-			    ((struct sockaddr_in *) ifa->ifa_addr)->sin_addr;
+			    ((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
 			break;
 		}
 	}
@@ -273,7 +272,7 @@ divert_packet(struct mbuf *m, bool incoming)
 	}
 
 	/* Put packet on socket queue, if any */
-	SLIST_FOREACH(dcb, &V_divhash[DIVHASH(nport)], dcb_next)
+	SLIST_FOREACH (dcb, &V_divhash[DIVHASH(nport)], dcb_next)
 		if (dcb->dcb_port == nport)
 			break;
 
@@ -281,8 +280,8 @@ divert_packet(struct mbuf *m, bool incoming)
 		struct socket *sa = dcb->dcb_socket;
 
 		SOCKBUF_LOCK(&sa->so_rcv);
-		if (sbappendaddr_locked(&sa->so_rcv,
-		    (struct sockaddr *)&divsrc, m, NULL) == 0) {
+		if (sbappendaddr_locked(&sa->so_rcv, (struct sockaddr *)&divsrc,
+			m, NULL) == 0) {
 			soroverflow_locked(sa);
 			m_freem(m);
 		} else {
@@ -318,8 +317,8 @@ div_send(struct socket *so, int flags, struct mbuf *m, struct sockaddr *nam,
 		m_freem(control);
 
 	/* Packet must have a header (but that's about it) */
-	if (m->m_len < sizeof (struct ip) &&
-	    (m = m_pullup(m, sizeof (struct ip))) == NULL) {
+	if (m->m_len < sizeof(struct ip) &&
+	    (m = m_pullup(m, sizeof(struct ip))) == NULL) {
 		m_freem(m);
 		return (EINVAL);
 	}
@@ -354,7 +353,7 @@ div_send(struct socket *so, int flags, struct mbuf *m, struct sockaddr *nam,
 		}
 		m_tag_prepend(m, mtag);
 	}
-	dt = (struct ipfw_rule_ref *)(mtag+1);
+	dt = (struct ipfw_rule_ref *)(mtag + 1);
 
 	/* Loopback avoidance and state recovery */
 	if (sin) {
@@ -366,7 +365,7 @@ div_send(struct socket *so, int flags, struct mbuf *m, struct sockaddr *nam,
 		 */
 		dt->slot = 1; /* dummy, chain_id is invalid */
 		dt->chain_id = 0;
-		dt->rulenum = sin->sin_port+1; /* host format ? */
+		dt->rulenum = sin->sin_port + 1; /* host format ? */
 		dt->rule_id = 0;
 		/* XXX: broken for IPv6 */
 		/*
@@ -377,7 +376,7 @@ div_send(struct socket *so, int flags, struct mbuf *m, struct sockaddr *nam,
 		 */
 		for (i = 0; i < sizeof(sin->sin_zero) && sin->sin_zero[i]; i++)
 			;
-		if ( i > 0 && i < sizeof(sin->sin_zero))
+		if (i > 0 && i < sizeof(sin->sin_zero))
 			m->m_pkthdr.rcvif = ifunit(sin->sin_zero);
 	}
 
@@ -409,7 +408,7 @@ div_send(struct socket *so, int flags, struct mbuf *m, struct sockaddr *nam,
 		}
 		m_tag_prepend(m, mtag);
 	}
-	pfdt = (struct pf_divert_mtag *)(mtag+1);
+	pfdt = (struct pf_divert_mtag *)(mtag + 1);
 	if (sin)
 		pfdt->idir = sin->sin_port;
 
@@ -441,8 +440,7 @@ div_output_outbound(int family, struct socket *so, struct mbuf *m)
 
 	switch (family) {
 #ifdef INET
-	case AF_INET:
-	    {
+	case AF_INET: {
 		struct ip *const ip = mtod(m, struct ip *);
 
 		/* Don't allow packet length sizes that will crash. */
@@ -451,11 +449,10 @@ div_output_outbound(int family, struct socket *so, struct mbuf *m)
 			return (EINVAL);
 		}
 		break;
-	    }
+	}
 #endif
 #ifdef INET6
-	case AF_INET6:
-	    {
+	case AF_INET6: {
 		struct ip6_hdr *const ip6 = mtod(m, struct ip6_hdr *);
 
 		/* Don't allow packet length sizes that will crash */
@@ -464,7 +461,7 @@ div_output_outbound(int family, struct socket *so, struct mbuf *m)
 			return (EINVAL);
 		}
 		break;
-	    }
+	}
 #endif
 	}
 
@@ -477,8 +474,9 @@ div_output_outbound(int family, struct socket *so, struct mbuf *m)
 #ifdef INET
 	case AF_INET:
 		error = ip_output(m, NULL, NULL,
-		    ((so->so_options & SO_DONTROUTE) ? IP_ROUTETOIF : 0)
-		    | IP_ALLOWBROADCAST | IP_RAWOUTPUT, NULL, NULL);
+		    ((so->so_options & SO_DONTROUTE) ? IP_ROUTETOIF : 0) |
+			IP_ALLOWBROADCAST | IP_RAWOUTPUT,
+		    NULL, NULL);
 		break;
 #endif
 #ifdef INET6
@@ -514,7 +512,7 @@ div_output_inbound(int family, struct socket *so, struct mbuf *m,
 		/* XXX: broken for IPv6 */
 		bzero(sin->sin_zero, sizeof(sin->sin_zero));
 		sin->sin_port = 0;
-		ifa = ifa_ifwithaddr((struct sockaddr *) sin);
+		ifa = ifa_ifwithaddr((struct sockaddr *)sin);
 		if (ifa == NULL) {
 			m_freem(m);
 			return (EADDRNOTAVAIL);
@@ -527,8 +525,7 @@ div_output_inbound(int family, struct socket *so, struct mbuf *m,
 	/* Send packet to input processing via netisr */
 	switch (family) {
 #ifdef INET
-	case AF_INET:
-	    {
+	case AF_INET: {
 		const struct ip *ip;
 
 		ip = mtod(m, struct ip *);
@@ -543,7 +540,7 @@ div_output_inbound(int family, struct socket *so, struct mbuf *m,
 		netisr_queue_src(NETISR_IP, (uintptr_t)so, m);
 		DIVSTAT_INC(inbound);
 		break;
-	    }
+	}
 #endif
 #ifdef INET6
 	case AF_INET6:
@@ -620,7 +617,7 @@ div_bind(struct socket *so, struct sockaddr *nam, struct thread *td)
 		return EINVAL;
 	port = ((struct sockaddr_in *)nam)->sin_port;
 	DIVERT_LOCK();
-	SLIST_FOREACH(dcb, &V_divhash[DIVHASH(port)], dcb_next)
+	SLIST_FOREACH (dcb, &V_divhash[DIVHASH(port)], dcb_next)
 		if (dcb->dcb_port == port) {
 			DIVERT_UNLOCK();
 			return (EADDRINUSE);
@@ -668,7 +665,7 @@ div_pcblist(SYSCTL_HANDLER_ARGS)
 
 	DIVERT_LOCK();
 	for (int i = 0; i < DIVHASHSIZE; i++)
-		SLIST_FOREACH(dcb, &V_divhash[i], dcb_next) {
+		SLIST_FOREACH (dcb, &V_divhash[i], dcb_next) {
 			if (dcb->dcb_gencnt <= xig.xig_gen) {
 				struct xinpcb xi;
 
@@ -706,19 +703,19 @@ SYSCTL_PROC(_net_inet_divert, OID_AUTO, pcblist,
     "S,xinpcb", "List of active divert sockets");
 
 static struct protosw div_protosw = {
-	.pr_type =		SOCK_RAW,
-	.pr_flags =		PR_ATOMIC|PR_ADDR,
-	.pr_attach =		div_attach,
-	.pr_bind =		div_bind,
-	.pr_detach =		div_detach,
-	.pr_send =		div_send,
+	.pr_type = SOCK_RAW,
+	.pr_flags = PR_ATOMIC | PR_ADDR,
+	.pr_attach = div_attach,
+	.pr_bind = div_bind,
+	.pr_detach = div_detach,
+	.pr_send = div_send,
 };
 
 static struct domain divertdomain = {
-	.dom_family =	PF_DIVERT,
-	.dom_name =	"divert",
-	.dom_nprotosw =	1,
-	.dom_protosw =	{ &div_protosw },
+	.dom_family = PF_DIVERT,
+	.dom_name = "divert",
+	.dom_nprotosw = 1,
+	.dom_protosw = { &div_protosw },
 };
 
 static int
@@ -771,11 +768,7 @@ div_modevent(module_t mod, int type, void *unused)
 	return err;
 }
 
-static moduledata_t ipdivertmod = {
-        "ipdivert",
-        div_modevent,
-        0
-};
+static moduledata_t ipdivertmod = { "ipdivert", div_modevent, 0 };
 
 DECLARE_MODULE(ipdivert, ipdivertmod, SI_SUB_PROTO_FIREWALL, SI_ORDER_ANY);
 MODULE_VERSION(ipdivert, 1);

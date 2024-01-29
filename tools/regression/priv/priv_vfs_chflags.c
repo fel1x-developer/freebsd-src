@@ -75,8 +75,7 @@ priv_vfs_chflags_froot_setup(int asroot, int injail, struct test *test)
 }
 
 int
-priv_vfs_chflags_fowner_setup(int asroot, int injail,
-    struct test *test)
+priv_vfs_chflags_fowner_setup(int asroot, int injail, struct test *test)
 {
 
 	setup_file("priv_vfs_chflags_fowner_setup: fpath", fpath, UID_OWNER,
@@ -86,8 +85,7 @@ priv_vfs_chflags_fowner_setup(int asroot, int injail,
 }
 
 int
-priv_vfs_chflags_fother_setup(int asroot, int injail,
-    struct test *test)
+priv_vfs_chflags_fother_setup(int asroot, int injail, struct test *test)
 {
 
 	setup_file("priv_vfs_chflags_fowner_setup: fpath", fpath, UID_OTHER,
@@ -97,8 +95,7 @@ priv_vfs_chflags_fother_setup(int asroot, int injail,
 }
 
 void
-priv_vfs_chflags_froot_uflags(int asroot, int injail,
-    struct test *test)
+priv_vfs_chflags_froot_uflags(int asroot, int injail, struct test *test)
 {
 	u_long flags;
 	int error;
@@ -107,22 +104,21 @@ priv_vfs_chflags_froot_uflags(int asroot, int injail,
 	flags |= UF_NODUMP;
 	error = chflags(fpath, flags);
 	if (asroot && injail)
-		expect("priv_vfs_chflags_froot_uflags(asroot, injail)",
-		    error, 0, 0);
+		expect("priv_vfs_chflags_froot_uflags(asroot, injail)", error,
+		    0, 0);
 	if (asroot && !injail)
-		expect("priv_vfs_chflags_froot_uflags(asroot, !injail)",
-		    error, 0, 0);
+		expect("priv_vfs_chflags_froot_uflags(asroot, !injail)", error,
+		    0, 0);
 	if (!asroot && injail)
-		expect("priv_vfs_chflags_froot_uflags(!asroot, injail)",
-		    error, -1, EPERM);
+		expect("priv_vfs_chflags_froot_uflags(!asroot, injail)", error,
+		    -1, EPERM);
 	if (!asroot && !injail)
-		expect("priv_vfs_chflags_froot_uflags(!asroot, !injail)",
-		    error, -1, EPERM);
+		expect("priv_vfs_chflags_froot_uflags(!asroot, !injail)", error,
+		    -1, EPERM);
 }
 
 void
-priv_vfs_chflags_fowner_uflags(int asroot, int injail,
-    struct test *test)
+priv_vfs_chflags_fowner_uflags(int asroot, int injail, struct test *test)
 {
 	u_long flags;
 	int error;
@@ -131,22 +127,21 @@ priv_vfs_chflags_fowner_uflags(int asroot, int injail,
 	flags |= UF_NODUMP;
 	error = chflags(fpath, flags);
 	if (asroot && injail)
-		expect("priv_vfs_chflags_fowner_uflags(asroot, injail)",
-		    error, 0, 0);
+		expect("priv_vfs_chflags_fowner_uflags(asroot, injail)", error,
+		    0, 0);
 	if (asroot && !injail)
-		expect("priv_vfs_chflags_fowner_uflags(asroot, !injail)",
-		    error, 0, 0);
+		expect("priv_vfs_chflags_fowner_uflags(asroot, !injail)", error,
+		    0, 0);
 	if (!asroot && injail)
-		expect("priv_vfs_chflags_fowner_uflags(!asroot, injail)",
-		    error, 0, 0);
+		expect("priv_vfs_chflags_fowner_uflags(!asroot, injail)", error,
+		    0, 0);
 	if (!asroot && !injail)
 		expect("priv_vfs_chflags_fowner_uflags(!asroot, !injail)",
 		    error, 0, 0);
 }
 
 void
-priv_vfs_chflags_fother_uflags(int asroot, int injail,
-    struct test *test)
+priv_vfs_chflags_fother_uflags(int asroot, int injail, struct test *test)
 {
 	u_long flags;
 	int error;
@@ -155,22 +150,21 @@ priv_vfs_chflags_fother_uflags(int asroot, int injail,
 	flags |= UF_NODUMP;
 	error = chflags(fpath, flags);
 	if (asroot && injail)
-		expect("priv_vfs_chflags_fother_uflags(asroot, injail)",
-		    error, 0, 0);
+		expect("priv_vfs_chflags_fother_uflags(asroot, injail)", error,
+		    0, 0);
 	if (asroot && !injail)
-		expect("priv_vfs_chflags_fother_uflags(asroot, !injail)",
-		    error, 0, 0);
+		expect("priv_vfs_chflags_fother_uflags(asroot, !injail)", error,
+		    0, 0);
 	if (!asroot && injail)
-		expect("priv_vfs_chflags_fother_uflags(!asroot, injail)",
-		    error, -1, EPERM);
+		expect("priv_vfs_chflags_fother_uflags(!asroot, injail)", error,
+		    -1, EPERM);
 	if (!asroot && !injail)
 		expect("priv_vfs_chflags_fother_uflags(!asroot, !injail)",
 		    error, -1, EPERM);
 }
 
 void
-priv_vfs_chflags_froot_sflags(int asroot, int injail,
-    struct test *test)
+priv_vfs_chflags_froot_sflags(int asroot, int injail, struct test *test)
 {
 	u_long flags;
 	int error;
@@ -179,22 +173,21 @@ priv_vfs_chflags_froot_sflags(int asroot, int injail,
 	flags |= SF_ARCHIVED;
 	error = chflags(fpath, flags);
 	if (asroot && injail)
-		expect("priv_vfs_chflags_froot_sflags(asroot, injail)",
-		    error, -1, EPERM);
+		expect("priv_vfs_chflags_froot_sflags(asroot, injail)", error,
+		    -1, EPERM);
 	if (asroot && !injail)
-		expect("priv_vfs_chflags_froot_sflags(asroot, !injail)",
-		    error, 0, 0);
+		expect("priv_vfs_chflags_froot_sflags(asroot, !injail)", error,
+		    0, 0);
 	if (!asroot && injail)
-		expect("priv_vfs_chflags_froot_sflags(!asroot, injail)",
-		    error, -1, EPERM);
+		expect("priv_vfs_chflags_froot_sflags(!asroot, injail)", error,
+		    -1, EPERM);
 	if (!asroot && !injail)
-		expect("priv_vfs_chflags_froot_sflags(!asroot, !injail)",
-		    error, -1, EPERM);
+		expect("priv_vfs_chflags_froot_sflags(!asroot, !injail)", error,
+		    -1, EPERM);
 }
 
 void
-priv_vfs_chflags_fowner_sflags(int asroot, int injail,
-    struct test *test)
+priv_vfs_chflags_fowner_sflags(int asroot, int injail, struct test *test)
 {
 	u_long flags;
 	int error;
@@ -203,22 +196,21 @@ priv_vfs_chflags_fowner_sflags(int asroot, int injail,
 	flags |= SF_ARCHIVED;
 	error = chflags(fpath, flags);
 	if (asroot && injail)
-		expect("priv_vfs_chflags_fowner_sflags(asroot, injail)",
-		    error, -1, EPERM);
+		expect("priv_vfs_chflags_fowner_sflags(asroot, injail)", error,
+		    -1, EPERM);
 	if (asroot && !injail)
-		expect("priv_vfs_chflags_fowner_sflags(asroot, !injail)",
-		    error, 0, 0);
+		expect("priv_vfs_chflags_fowner_sflags(asroot, !injail)", error,
+		    0, 0);
 	if (!asroot && injail)
-		expect("priv_vfs_chflags_fowner_sflags(!asroot, injail)",
-		    error, -1, EPERM);
+		expect("priv_vfs_chflags_fowner_sflags(!asroot, injail)", error,
+		    -1, EPERM);
 	if (!asroot && !injail)
 		expect("priv_vfs_chflags_fowner_sflags(!asroot, !injail)",
 		    error, -1, EPERM);
 }
 
 void
-priv_vfs_chflags_fother_sflags(int asroot, int injail,
-    struct test *test)
+priv_vfs_chflags_fother_sflags(int asroot, int injail, struct test *test)
 {
 	u_long flags;
 	int error;
@@ -227,14 +219,14 @@ priv_vfs_chflags_fother_sflags(int asroot, int injail,
 	flags |= SF_ARCHIVED;
 	error = chflags(fpath, flags);
 	if (asroot && injail)
-		expect("priv_vfs_chflags_fother_sflags(asroot, injail)",
-		    error, -1, EPERM);
+		expect("priv_vfs_chflags_fother_sflags(asroot, injail)", error,
+		    -1, EPERM);
 	if (asroot && !injail)
-		expect("priv_vfs_chflags_fother_sflags(asroot, !injail)",
-		    error, 0, 0);
+		expect("priv_vfs_chflags_fother_sflags(asroot, !injail)", error,
+		    0, 0);
 	if (!asroot && injail)
-		expect("priv_vfs_chflags_fother_sflags(!asroot, injail)",
-		    error, -1, EPERM);
+		expect("priv_vfs_chflags_fother_sflags(!asroot, injail)", error,
+		    -1, EPERM);
 	if (!asroot && !injail)
 		expect("priv_vfs_chflags_fother_sflags(!asroot, !injail)",
 		    error, -1, EPERM);

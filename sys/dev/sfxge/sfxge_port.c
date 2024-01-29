@@ -35,21 +35,19 @@
 
 #include <sys/types.h>
 #include <sys/limits.h>
+
 #include <net/ethernet.h>
 #include <net/if_dl.h>
 
 #include "common/efx.h"
-
 #include "sfxge.h"
 
-#define	SFXGE_PARAM_STATS_UPDATE_PERIOD_MS \
-	SFXGE_PARAM(stats_update_period_ms)
+#define SFXGE_PARAM_STATS_UPDATE_PERIOD_MS SFXGE_PARAM(stats_update_period_ms)
 static int sfxge_stats_update_period_ms = SFXGE_STATS_UPDATE_PERIOD_MS;
-TUNABLE_INT(SFXGE_PARAM_STATS_UPDATE_PERIOD_MS,
-	    &sfxge_stats_update_period_ms);
+TUNABLE_INT(SFXGE_PARAM_STATS_UPDATE_PERIOD_MS, &sfxge_stats_update_period_ms);
 SYSCTL_INT(_hw_sfxge, OID_AUTO, stats_update_period_ms, CTLFLAG_RDTUN,
-	   &sfxge_stats_update_period_ms, 0,
-	   "netstat interface statistics update period in milliseconds");
+    &sfxge_stats_update_period_ms, 0,
+    "netstat interface statistics update period in milliseconds");
 
 static int sfxge_phy_cap_mask(struct sfxge_softc *, int, uint32_t *);
 
@@ -87,7 +85,7 @@ sfxge_mac_stat_update(struct sfxge_softc *sc)
 
 		/* Try to update the cached counters */
 		if ((rc = efx_mac_stats_update(sc->enp, esmp,
-		    port->mac_stats.decode_buf, NULL)) != EAGAIN)
+			 port->mac_stats.decode_buf, NULL)) != EAGAIN)
 			goto out;
 
 		DELAY(100);
@@ -127,9 +125,9 @@ sfxge_get_counter(if_t ifp, ift_counter c)
 		break;
 	case IFCOUNTER_COLLISIONS:
 		val = mac_stats[EFX_MAC_TX_SGL_COL_PKTS] +
-		      mac_stats[EFX_MAC_TX_MULT_COL_PKTS] +
-		      mac_stats[EFX_MAC_TX_EX_COL_PKTS] +
-		      mac_stats[EFX_MAC_TX_LATE_COL_PKTS];
+		    mac_stats[EFX_MAC_TX_MULT_COL_PKTS] +
+		    mac_stats[EFX_MAC_TX_EX_COL_PKTS] +
+		    mac_stats[EFX_MAC_TX_LATE_COL_PKTS];
 		break;
 	case IFCOUNTER_IBYTES:
 		val = mac_stats[EFX_MAC_RX_OCTETS];
@@ -139,7 +137,7 @@ sfxge_get_counter(if_t ifp, ift_counter c)
 		break;
 	case IFCOUNTER_OMCASTS:
 		val = mac_stats[EFX_MAC_TX_MULTICST_PKTS] +
-		      mac_stats[EFX_MAC_TX_BRDCST_PKTS];
+		    mac_stats[EFX_MAC_TX_BRDCST_PKTS];
 		break;
 	case IFCOUNTER_OQDROPS:
 		SFXGE_PORT_UNLOCK(&sc->port);
@@ -192,8 +190,8 @@ sfxge_mac_stat_init(struct sfxge_softc *sc)
 	for (id = 0; id < EFX_MAC_NSTATS; id++) {
 		name = efx_mac_stat_name(sc->enp, id);
 		SYSCTL_ADD_PROC(ctx, stat_list, OID_AUTO, name,
-		    CTLTYPE_U64 | CTLFLAG_RD | CTLFLAG_MPSAFE,
-		    sc, id, sfxge_mac_stat_handler, "Q", "");
+		    CTLTYPE_U64 | CTLFLAG_RD | CTLFLAG_MPSAFE, sc, id,
+		    sfxge_mac_stat_handler, "Q", "");
 	}
 }
 
@@ -207,7 +205,7 @@ sfxge_port_wanted_fc(struct sfxge_softc *sc)
 	if (ifm->ifm_media == (IFM_ETHER | IFM_AUTO))
 		return (EFX_FCNTL_RESPOND | EFX_FCNTL_GENERATE);
 	return (((ifm->ifm_media & IFM_ETH_RXPAUSE) ? EFX_FCNTL_RESPOND : 0) |
-		((ifm->ifm_media & IFM_ETH_TXPAUSE) ? EFX_FCNTL_GENERATE : 0));
+	    ((ifm->ifm_media & IFM_ETH_TXPAUSE) ? EFX_FCNTL_GENERATE : 0));
 }
 
 static unsigned int
@@ -217,7 +215,7 @@ sfxge_port_link_fc_ifm(struct sfxge_softc *sc)
 
 	efx_mac_fcntl_get(sc->enp, &wanted_fc, &link_fc);
 	return ((link_fc & EFX_FCNTL_RESPOND) ? IFM_ETH_RXPAUSE : 0) |
-		((link_fc & EFX_FCNTL_GENERATE) ? IFM_ETH_TXPAUSE : 0);
+	    ((link_fc & EFX_FCNTL_GENERATE) ? IFM_ETH_TXPAUSE : 0);
 }
 
 #else /* !SFXGE_HAVE_PAUSE_MEDIAOPTS */
@@ -254,8 +252,7 @@ sfxge_port_wanted_fc_handler(SYSCTL_HANDLER_ARGS)
 		if (port->wanted_fc != fcntl) {
 			if (port->init_state == SFXGE_PORT_STARTED)
 				error = efx_mac_fcntl_set(sc->enp,
-							  port->wanted_fc,
-							  B_TRUE);
+				    port->wanted_fc, B_TRUE);
 			if (error == 0)
 				port->wanted_fc = fcntl;
 		}
@@ -296,17 +293,17 @@ sfxge_port_link_fc_handler(SYSCTL_HANDLER_ARGS)
 #endif /* SFXGE_HAVE_PAUSE_MEDIAOPTS */
 
 static const uint64_t sfxge_link_baudrate[EFX_LINK_NMODES] = {
-	[EFX_LINK_10HDX]	= IF_Mbps(10),
-	[EFX_LINK_10FDX]	= IF_Mbps(10),
-	[EFX_LINK_100HDX]	= IF_Mbps(100),
-	[EFX_LINK_100FDX]	= IF_Mbps(100),
-	[EFX_LINK_1000HDX]	= IF_Gbps(1),
-	[EFX_LINK_1000FDX]	= IF_Gbps(1),
-	[EFX_LINK_10000FDX]	= IF_Gbps(10),
-	[EFX_LINK_25000FDX]	= IF_Gbps(25),
-	[EFX_LINK_40000FDX]	= IF_Gbps(40),
-	[EFX_LINK_50000FDX]	= IF_Gbps(50),
-	[EFX_LINK_100000FDX]	= IF_Gbps(100),
+	[EFX_LINK_10HDX] = IF_Mbps(10),
+	[EFX_LINK_10FDX] = IF_Mbps(10),
+	[EFX_LINK_100HDX] = IF_Mbps(100),
+	[EFX_LINK_100FDX] = IF_Mbps(100),
+	[EFX_LINK_1000HDX] = IF_Gbps(1),
+	[EFX_LINK_1000FDX] = IF_Gbps(1),
+	[EFX_LINK_10000FDX] = IF_Gbps(10),
+	[EFX_LINK_25000FDX] = IF_Gbps(25),
+	[EFX_LINK_40000FDX] = IF_Gbps(40),
+	[EFX_LINK_50000FDX] = IF_Gbps(50),
+	[EFX_LINK_100000FDX] = IF_Gbps(100),
 };
 
 void
@@ -385,7 +382,7 @@ sfxge_mac_multicast_list_set(struct sfxge_softc *sc)
 
 	if (rc == 0) {
 		rc = efx_mac_multicast_list_set(sc->enp, port->mcast_addrs,
-						port->mcast_count);
+		    port->mcast_count);
 		if (rc != 0)
 			device_printf(sc->dev,
 			    "Cannot set multicast address list\n");
@@ -412,7 +409,7 @@ sfxge_mac_filter_set_locked(struct sfxge_softc *sc)
 		all_mulcst = B_TRUE;
 
 	rc = efx_mac_filter_set(sc->enp, !!(if_getflags(ifp) & IFF_PROMISC),
-				(port->mcast_count > 0), all_mulcst, B_TRUE);
+	    (port->mcast_count > 0), all_mulcst, B_TRUE);
 
 	return (rc);
 }
@@ -453,8 +450,7 @@ sfxge_port_stop(struct sfxge_softc *sc)
 
 	SFXGE_PORT_LOCK(port);
 
-	KASSERT(port->init_state == SFXGE_PORT_STARTED,
-	    ("port not started"));
+	KASSERT(port->init_state == SFXGE_PORT_STARTED, ("port not started"));
 
 	port->init_state = SFXGE_PORT_INITIALIZED;
 
@@ -508,8 +504,8 @@ sfxge_port_start(struct sfxge_softc *sc)
 	if ((rc = efx_mac_pdu_set(enp, pdu)) != 0)
 		goto fail2;
 
-	if ((rc = efx_mac_fcntl_set(enp, sfxge_port_wanted_fc(sc), B_TRUE))
-	    != 0)
+	if ((rc = efx_mac_fcntl_set(enp, sfxge_port_wanted_fc(sc), B_TRUE)) !=
+	    0)
 		goto fail3;
 
 	/* Set the unicast address */
@@ -523,15 +519,14 @@ sfxge_port_start(struct sfxge_softc *sc)
 
 	/* Update MAC stats by DMA every period */
 	if ((rc = efx_mac_stats_periodic(enp, &port->mac_stats.dma_buf,
-					 port->stats_update_period_ms,
-					 B_FALSE)) != 0)
+		 port->stats_update_period_ms, B_FALSE)) != 0)
 		goto fail6;
 
 	if ((rc = efx_mac_drain(enp, B_FALSE)) != 0)
 		goto fail8;
 
 	if ((rc = sfxge_phy_cap_mask(sc, sc->media.ifm_cur->ifm_media,
-				     &phy_cap_mask)) != 0)
+		 &phy_cap_mask)) != 0)
 		goto fail9;
 
 	if ((rc = efx_phy_adv_cap_set(sc->enp, phy_cap_mask)) != 0)
@@ -581,7 +576,8 @@ sfxge_phy_stat_update(struct sfxge_softc *sc)
 	}
 
 	now = ticks;
-	if ((unsigned int)(now - port->phy_stats.update_time) < (unsigned int)hz) {
+	if ((unsigned int)(now - port->phy_stats.update_time) <
+	    (unsigned int)hz) {
 		rc = 0;
 		goto out;
 	}
@@ -599,7 +595,7 @@ sfxge_phy_stat_update(struct sfxge_softc *sc)
 
 		/* Try to update the cached counters */
 		if ((rc = efx_phy_stats_update(sc->enp, esmp,
-		    port->phy_stats.decode_buf)) != EAGAIN)
+			 port->phy_stats.decode_buf)) != EAGAIN)
 			goto out;
 
 		DELAY(100);
@@ -645,8 +641,8 @@ sfxge_phy_stat_init(struct sfxge_softc *sc)
 			continue;
 		name = efx_phy_stat_name(sc->enp, id);
 		SYSCTL_ADD_PROC(ctx, stat_list, OID_AUTO, name,
-		    CTLTYPE_UINT | CTLFLAG_RD | CTLFLAG_MPSAFE,
-		    sc, id, sfxge_phy_stat_handler,
+		    CTLTYPE_UINT | CTLFLAG_RD | CTLFLAG_MPSAFE, sc, id,
+		    sfxge_phy_stat_handler,
 		    id == EFX_PHY_STAT_OUI ? "IX" : "IU", "");
 	}
 }
@@ -686,13 +682,13 @@ sfxge_port_stats_update_period_ms(struct sfxge_softc *sc)
 
 	if (period_ms < 0) {
 		device_printf(sc->dev,
-			"treat negative stats update period %d as 0 (disable)\n",
-			 period_ms);
+		    "treat negative stats update period %d as 0 (disable)\n",
+		    period_ms);
 		period_ms = 0;
 	} else if (period_ms > UINT16_MAX) {
 		device_printf(sc->dev,
-			"treat too big stats update period %d as %u\n",
-			period_ms, UINT16_MAX);
+		    "treat too big stats update period %d as %u\n", period_ms,
+		    UINT16_MAX);
 		period_ms = UINT16_MAX;
 	}
 
@@ -723,8 +719,8 @@ sfxge_port_stats_update_period_ms_handler(SYSCTL_HANDLER_ARGS)
 		if (port->stats_update_period_ms != period_ms) {
 			if (port->init_state == SFXGE_PORT_STARTED)
 				error = efx_mac_stats_periodic(sc->enp,
-						&port->mac_stats.dma_buf,
-						period_ms, B_FALSE);
+				    &port->mac_stats.dma_buf, period_ms,
+				    B_FALSE);
 			if (error == 0)
 				port->stats_update_period_ms = period_ms;
 		}
@@ -765,7 +761,7 @@ sfxge_port_init(struct sfxge_softc *sc)
 
 	DBGPRINT(sc->dev, "alloc PHY stats");
 	port->phy_stats.decode_buf = malloc(EFX_PHY_NSTATS * sizeof(uint32_t),
-					    M_SFXGE, M_WAITOK | M_ZERO);
+	    M_SFXGE, M_WAITOK | M_ZERO);
 	if ((rc = sfxge_dma_alloc(sc, EFX_PHY_STATS_SIZE, phy_stats_buf)) != 0)
 		goto fail;
 	sfxge_phy_stat_init(sc);
@@ -788,10 +784,10 @@ sfxge_port_init(struct sfxge_softc *sc)
 
 	DBGPRINT(sc->dev, "alloc MAC stats");
 	port->mac_stats.decode_buf = malloc(EFX_MAC_NSTATS * sizeof(uint64_t),
-					    M_SFXGE, M_WAITOK | M_ZERO);
+	    M_SFXGE, M_WAITOK | M_ZERO);
 	mac_nstats = efx_nic_cfg_get(sc->enp)->enc_mac_stats_nstats;
 	mac_stats_size = EFX_P2ROUNDUP(size_t, mac_nstats * sizeof(uint64_t),
-				       EFX_BUF_SIZE);
+	    EFX_BUF_SIZE);
 	if ((rc = sfxge_dma_alloc(sc, mac_stats_size, mac_stats_buf)) != 0)
 		goto fail2;
 	port->stats_update_period_ms = sfxge_port_stats_update_period_ms(sc);
@@ -942,7 +938,7 @@ sfxge_phy_cap_mask(struct sfxge_softc *sc, int ifmedia, uint32_t *phy_cap_mask)
 		 * If media is not in the table, it must be IFM_AUTO.
 		 */
 		KASSERT((cap_mask & (1 << EFX_PHY_CAP_AN)) &&
-		    ifmedia_masked == (IFM_ETHER | IFM_AUTO),
+			ifmedia_masked == (IFM_ETHER | IFM_AUTO),
 		    ("%s: no mode for media %#x", __func__, ifmedia));
 		*phy_cap_mask = (cap_mask & ~(1 << EFX_PHY_CAP_ASYM));
 		return (0);
@@ -951,8 +947,7 @@ sfxge_phy_cap_mask(struct sfxge_softc *sc, int ifmedia, uint32_t *phy_cap_mask)
 	phy_cap = sfxge_link_mode_to_phy_cap(mode);
 	if (phy_cap == EFX_PHY_CAP_INVALID) {
 		if_printf(sc->ifnet,
-			  "cannot map link mode %d to phy capability\n",
-			  mode);
+		    "cannot map link mode %d to phy capability\n", mode);
 		return (EINVAL);
 	}
 
@@ -1003,7 +998,8 @@ out:
 	return (rc);
 }
 
-int sfxge_port_ifmedia_init(struct sfxge_softc *sc)
+int
+sfxge_port_ifmedia_init(struct sfxge_softc *sc)
 {
 	efx_phy_media_type_t medium_type;
 	uint32_t cap_mask, mode_cap_mask;

@@ -31,14 +31,14 @@
 #include <sys/acct.h>
 
 #include <ctype.h>
+#include <db.h>
 #include <err.h>
 #include <errno.h>
-#include <db.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <limits.h>
 
 #include "extern.h"
 
@@ -78,7 +78,7 @@ db_copy_in(DB **mdb, const char *dbname, const char *uname, BTREEINFO *bti,
 
 	/* Obtain/set version. */
 	version = 1;
-	key.data = (void*)&VERSION_KEY;
+	key.data = (void *)&VERSION_KEY;
 	key.size = sizeof(VERSION_KEY);
 
 	rv = DB_GET(ddb, &key, &data, 0);
@@ -86,24 +86,23 @@ db_copy_in(DB **mdb, const char *dbname, const char *uname, BTREEINFO *bti,
 		warn("get version key from %s stats", uname);
 		error = -1;
 		goto closeout;
-	} else if (rv == 0) {	/* It's there; verify version. */
+	} else if (rv == 0) { /* It's there; verify version. */
 		if (data.size != sizeof(version)) {
-			warnx("invalid version size %zd in %s",
-			    data.size, uname);
+			warnx("invalid version size %zd in %s", data.size,
+			    uname);
 			error = -1;
 			goto closeout;
 		}
 		memcpy(&version, data.data, data.size);
 		if (version != 2) {
-			warnx("unsupported version %d in %s",
-			    version, uname);
+			warnx("unsupported version %d in %s", version, uname);
 			error = -1;
 			goto closeout;
 		}
 	}
 
 	for (rv = DB_SEQ(ddb, &key, &data, R_FIRST); rv == 0;
-	    rv = DB_SEQ(ddb, &key, &data, R_NEXT)) {
+	     rv = DB_SEQ(ddb, &key, &data, R_NEXT)) {
 
 		/* See if this is a version record. */
 		if (key.size == sizeof(VERSION_KEY) &&
@@ -151,16 +150,16 @@ db_copy_out(DB *mdb, const char *dbname, const char *uname, BTREEINFO *bti)
 	DBT key, data;
 	int error, rv, version;
 
-	if ((ddb = dbopen(dbname, O_RDWR|O_CREAT|O_TRUNC, 0644,
-	    DB_BTREE, bti)) == NULL) {
+	if ((ddb = dbopen(dbname, O_RDWR | O_CREAT | O_TRUNC, 0644, DB_BTREE,
+		 bti)) == NULL) {
 		warn("creating %s summary", uname);
 		return (-1);
 	}
 
 	error = 0;
 
-	for (rv = DB_SEQ(mdb, &key, &data, R_FIRST);
-	    rv == 0; rv = DB_SEQ(mdb, &key, &data, R_NEXT)) {
+	for (rv = DB_SEQ(mdb, &key, &data, R_FIRST); rv == 0;
+	     rv = DB_SEQ(mdb, &key, &data, R_NEXT)) {
 		if ((rv = DB_PUT(ddb, &key, &data, 0)) < 0) {
 			warn("saving %s summary", uname);
 			error = -1;
@@ -174,7 +173,7 @@ db_copy_out(DB *mdb, const char *dbname, const char *uname, BTREEINFO *bti)
 
 out:
 	/* Add a version record. */
-	key.data = (void*)&VERSION_KEY;
+	key.data = (void *)&VERSION_KEY;
 	key.size = sizeof(VERSION_KEY);
 	version = 2;
 	data.data = &version;

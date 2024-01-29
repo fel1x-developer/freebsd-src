@@ -27,12 +27,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #ifndef _LINUXKPI_NET_TCP_H_
-#define	_LINUXKPI_NET_TCP_H_
-
-#include <linux/list.h>
-#include <linux/slab.h>
-#include <linux/kref.h>
+#define _LINUXKPI_NET_TCP_H_
 
 #include <net/ip.h>
 
-#endif	/* _LINUXKPI_NET_TCP_H_ */
+#include <linux/kref.h>
+#include <linux/list.h>
+#include <linux/slab.h>
+
+#endif /* _LINUXKPI_NET_TCP_H_ */

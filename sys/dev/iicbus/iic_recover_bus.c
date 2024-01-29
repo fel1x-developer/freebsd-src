@@ -92,7 +92,7 @@ iic_recover_bus(struct iicrb_pin_access *pins)
 	 * win this battle.  We do 9 max because that's a byte plus an ack/nack
 	 * bit, after which the slave must not be driving the data line anymore.
 	 */
-	for (i = 0; ; ++i) {
+	for (i = 0;; ++i) {
 		if (pins->getsda(pins->ctx))
 			break;
 		if (i == 9)
@@ -120,4 +120,3 @@ iic_recover_bus(struct iicrb_pin_access *pins)
 
 	return (0);
 }
-

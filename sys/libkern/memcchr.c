@@ -27,9 +27,9 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/param.h>
 #include <sys/libkern.h>
 #include <sys/limits.h>
-#include <sys/param.h>
 
 /*
  * memcchr(): find first character in buffer not matching `c'.
@@ -45,13 +45,13 @@
 #error Unsupported word size
 #endif
 
-#define	LONGPTR_MASK (sizeof(long) - 1)
+#define LONGPTR_MASK (sizeof(long) - 1)
 
-#define	TESTBYTE				\
-	do {					\
-		if (*p != (unsigned char)c)	\
-			goto done;		\
-		p++;				\
+#define TESTBYTE                            \
+	do {                                \
+		if (*p != (unsigned char)c) \
+			goto done;          \
+		p++;                        \
 	} while (0)
 
 void *

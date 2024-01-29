@@ -66,10 +66,10 @@
  *
  *****************************************************************************/
 
-#include <sys/cdefs.h>
-#include "opt_wlan.h"
 #include "opt_iwm.h"
+#include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -81,11 +81,11 @@
 
 #include <dev/iwm/if_iwm_notif_wait.h>
 
-#define	IWM_WAIT_LOCK_INIT(_n, _s) \
+#define IWM_WAIT_LOCK_INIT(_n, _s) \
 	mtx_init(&(_n)->lk_mtx, (_s), "iwm wait_notif", MTX_DEF);
-#define	IWM_WAIT_LOCK(_n)		mtx_lock(&(_n)->lk_mtx)
-#define	IWM_WAIT_UNLOCK(_n)		mtx_unlock(&(_n)->lk_mtx)
-#define	IWM_WAIT_LOCK_DESTROY(_n)	mtx_destroy(&(_n)->lk_mtx)
+#define IWM_WAIT_LOCK(_n) mtx_lock(&(_n)->lk_mtx)
+#define IWM_WAIT_UNLOCK(_n) mtx_unlock(&(_n)->lk_mtx)
+#define IWM_WAIT_LOCK_DESTROY(_n) mtx_destroy(&(_n)->lk_mtx)
 
 struct iwm_notif_wait_data {
 	struct mtx lk_mtx;
@@ -126,7 +126,7 @@ iwm_notification_wait_notify(struct iwm_notif_wait_data *notif_data,
 	struct iwm_notification_wait *wait_entry;
 
 	IWM_WAIT_LOCK(notif_data);
-	STAILQ_FOREACH(wait_entry, &notif_data->list, entry) {
+	STAILQ_FOREACH (wait_entry, &notif_data->list, entry) {
 		int found = FALSE;
 		int i;
 
@@ -163,7 +163,7 @@ iwm_abort_notification_waits(struct iwm_notif_wait_data *notif_data)
 	struct iwm_notification_wait *wait_entry;
 
 	IWM_WAIT_LOCK(notif_data);
-	STAILQ_FOREACH(wait_entry, &notif_data->list, entry) {
+	STAILQ_FOREACH (wait_entry, &notif_data->list, entry) {
 		wait_entry->aborted = 1;
 		wakeup(wait_entry);
 	}

@@ -29,24 +29,24 @@
  */
 
 #ifndef _LINUXKPI_LINUX_VGA_H_
-#define	_LINUXKPI_LINUX_VGA_H_
+#define _LINUXKPI_LINUX_VGA_H_
 
 #include <video/vga.h>
 
 /* Legacy VGA regions */
-#define VGA_RSRC_NONE	       0x00
-#define VGA_RSRC_LEGACY_IO     0x01
-#define VGA_RSRC_LEGACY_MEM    0x02
-#define VGA_RSRC_LEGACY_MASK   (VGA_RSRC_LEGACY_IO | VGA_RSRC_LEGACY_MEM)
+#define VGA_RSRC_NONE 0x00
+#define VGA_RSRC_LEGACY_IO 0x01
+#define VGA_RSRC_LEGACY_MEM 0x02
+#define VGA_RSRC_LEGACY_MASK (VGA_RSRC_LEGACY_IO | VGA_RSRC_LEGACY_MEM)
 /* Non-legacy access */
-#define VGA_RSRC_NORMAL_IO     0x04
-#define VGA_RSRC_NORMAL_MEM    0x08
+#define VGA_RSRC_NORMAL_IO 0x04
+#define VGA_RSRC_NORMAL_MEM 0x08
 
 /* Passing that instead of a pci_dev to use the system "default"
  * device, that is the one used by vgacon. Archs will probably
  * have to provide their own vga_default_device();
  */
-#define VGA_DEFAULT_DEVICE     (NULL)
+#define VGA_DEFAULT_DEVICE (NULL)
 
 struct pci_dev;
 
@@ -66,11 +66,10 @@ struct pci_dev;
  *     interrupts at any time.
  */
 #if defined(CONFIG_VGA_ARB)
-extern void vga_set_legacy_decoding(struct pci_dev *pdev,
-				    unsigned int decodes);
+extern void vga_set_legacy_decoding(struct pci_dev *pdev, unsigned int decodes);
 #else
 static inline void vga_set_legacy_decoding(struct pci_dev *pdev,
-					   unsigned int decodes) { };
+    unsigned int decodes) {};
 #endif
 
 /**
@@ -104,7 +103,11 @@ static inline void vga_set_legacy_decoding(struct pci_dev *pdev,
 #if defined(CONFIG_VGA_ARB)
 extern int vga_get(struct pci_dev *pdev, unsigned int rsrc, int interruptible);
 #else
-static inline int vga_get(struct pci_dev *pdev, unsigned int rsrc, int interruptible) { return 0; }
+static inline int
+vga_get(struct pci_dev *pdev, unsigned int rsrc, int interruptible)
+{
+	return 0;
+}
 #endif
 
 /**
@@ -113,10 +116,10 @@ static inline int vga_get(struct pci_dev *pdev, unsigned int rsrc, int interrupt
  *     Shortcut to vga_get
  */
 
-static inline int vga_get_interruptible(struct pci_dev *pdev,
-					unsigned int rsrc)
+static inline int
+vga_get_interruptible(struct pci_dev *pdev, unsigned int rsrc)
 {
-       return vga_get(pdev, rsrc, 1);
+	return vga_get(pdev, rsrc, 1);
 }
 
 /**
@@ -125,10 +128,10 @@ static inline int vga_get_interruptible(struct pci_dev *pdev,
  *     Shortcut to vga_get
  */
 
-static inline int vga_get_uninterruptible(struct pci_dev *pdev,
-					  unsigned int rsrc)
+static inline int
+vga_get_uninterruptible(struct pci_dev *pdev, unsigned int rsrc)
 {
-       return vga_get(pdev, rsrc, 0);
+	return vga_get(pdev, rsrc, 0);
 }
 
 /**
@@ -145,7 +148,11 @@ static inline int vga_get_uninterruptible(struct pci_dev *pdev,
 #if defined(CONFIG_VGA_ARB)
 extern int vga_tryget(struct pci_dev *pdev, unsigned int rsrc);
 #else
-static inline int vga_tryget(struct pci_dev *pdev, unsigned int rsrc) { return 0; }
+static inline int
+vga_tryget(struct pci_dev *pdev, unsigned int rsrc)
+{
+	return 0;
+}
 #endif
 
 /**
@@ -166,7 +173,6 @@ extern void vga_put(struct pci_dev *pdev, unsigned int rsrc);
 #else
 #define vga_put(pdev, rsrc)
 #endif
-
 
 /**
  *     vga_default_device
@@ -191,8 +197,12 @@ extern void vga_put(struct pci_dev *pdev, unsigned int rsrc);
 extern struct pci_dev *vga_default_device(void);
 extern void vga_set_default_device(struct pci_dev *pdev);
 #else
-static inline struct pci_dev *vga_default_device(void) { return NULL; };
-static inline void vga_set_default_device(struct pci_dev *pdev) { };
+static inline struct pci_dev *
+vga_default_device(void)
+{
+	return NULL;
+};
+static inline void vga_set_default_device(struct pci_dev *pdev) {};
 #endif
 
 /**
@@ -204,9 +214,10 @@ static inline void vga_set_default_device(struct pci_dev *pdev) { };
  */
 
 #ifndef __ARCH_HAS_VGA_CONFLICT
-static inline int vga_conflicts(struct pci_dev *p1, struct pci_dev *p2)
+static inline int
+vga_conflicts(struct pci_dev *p1, struct pci_dev *p2)
 {
-       return 1;
+	return 1;
 }
 #endif
 
@@ -241,32 +252,36 @@ static inline int vga_conflicts(struct pci_dev *p1, struct pci_dev *p2)
 #if defined(CONFIG_VGA_ARB)
 #if defined(LINUXKPI_VERSION) && LINUXKPI_VERSION >= 51501
 int vga_client_register(struct pci_dev *pdev,
-			unsigned int (*set_vga_decode)(struct pci_dev *pdev, bool state));
+    unsigned int (*set_vga_decode)(struct pci_dev *pdev, bool state));
 #elif defined(LINUXKPI_VERSION) && LINUXKPI_VERSION >= 51500
 int vga_client_register(struct pci_dev *pdev, void *cookie,
-			unsigned int (*set_vga_decode)(void *cookie, bool state));
+    unsigned int (*set_vga_decode)(void *cookie, bool state));
 #else
 int vga_client_register(struct pci_dev *pdev, void *cookie,
-			void (*irq_set_state)(void *cookie, bool state),
-			unsigned int (*set_vga_decode)(void *cookie, bool state));
+    void (*irq_set_state)(void *cookie, bool state),
+    unsigned int (*set_vga_decode)(void *cookie, bool state));
 #endif
 #else
 #if defined(LINUXKPI_VERSION) && LINUXKPI_VERSION >= 51501
-static inline int vga_client_register(struct pci_dev *pdev,
-				      unsigned int (*set_vga_decode)(struct pci_dev *pdev, bool state))
+static inline int
+vga_client_register(struct pci_dev *pdev,
+    unsigned int (*set_vga_decode)(struct pci_dev *pdev, bool state))
 #elif defined(LINUXKPI_VERSION) && LINUXKPI_VERSION >= 51500
-static inline int vga_client_register(struct pci_dev *pdev, void *cookie,
-				      unsigned int (*set_vga_decode)(void *cookie, bool state))
+static inline int
+vga_client_register(struct pci_dev *pdev, void *cookie,
+    unsigned int (*set_vga_decode)(void *cookie, bool state))
 #else
-static inline int vga_client_register(struct pci_dev *pdev, void *cookie,
-				      void (*irq_set_state)(void *cookie, bool state),
-				      unsigned int (*set_vga_decode)(void *cookie, bool state))
+static inline int
+vga_client_register(struct pci_dev *pdev, void *cookie,
+    void (*irq_set_state)(void *cookie, bool state),
+    unsigned int (*set_vga_decode)(void *cookie, bool state))
 #endif
 {
 	return 0;
 }
 
-static inline int vga_client_unregister(struct pci_dev *pdev)
+static inline int
+vga_client_unregister(struct pci_dev *pdev)
 {
 #if defined(LINUXKPI_VERSION) && LINUXKPI_VERSION >= 51501
 	return (vga_client_register(NULL, NULL));

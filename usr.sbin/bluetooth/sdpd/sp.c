@@ -35,85 +35,70 @@
 #include <bluetooth.h>
 #include <sdp.h>
 #include <string.h>
+
 #include "profile.h"
 #include "provider.h"
 
 static int32_t
-sp_profile_create_service_class_id_list(
-		uint8_t *buf, uint8_t const * const eob,
-		uint8_t const *data, uint32_t datalen)
+sp_profile_create_service_class_id_list(uint8_t *buf, uint8_t const *const eob,
+    uint8_t const *data, uint32_t datalen)
 {
-	static uint16_t	service_classes[] = {
-		SDP_SERVICE_CLASS_SERIAL_PORT	
+	static uint16_t service_classes[] = { SDP_SERVICE_CLASS_SERIAL_PORT };
+
+	return (common_profile_create_service_class_id_list(buf, eob,
+	    (uint8_t const *)service_classes, sizeof(service_classes)));
+}
+
+static int32_t
+sp_profile_create_bluetooth_profile_descriptor_list(uint8_t *buf,
+    uint8_t const *const eob, uint8_t const *data, uint32_t datalen)
+{
+	static uint16_t profile_descriptor_list[] = {
+		SDP_SERVICE_CLASS_SERIAL_PORT, 0x0100
 	};
 
-	return (common_profile_create_service_class_id_list(
-			buf, eob,
-			(uint8_t const *) service_classes,
-			sizeof(service_classes)));
+	return (common_profile_create_bluetooth_profile_descriptor_list(buf,
+	    eob, (uint8_t const *)profile_descriptor_list,
+	    sizeof(profile_descriptor_list)));
 }
 
 static int32_t
-sp_profile_create_bluetooth_profile_descriptor_list(
-		uint8_t *buf, uint8_t const * const eob,
-		uint8_t const *data, uint32_t datalen)
+sp_profile_create_service_name(uint8_t *buf, uint8_t const *const eob,
+    uint8_t const *data, uint32_t datalen)
 {
-	static uint16_t	profile_descriptor_list[] = {
-		SDP_SERVICE_CLASS_SERIAL_PORT,
-		0x0100
-	};
+	static char service_name[] = "Serial Port";
 
-	return (common_profile_create_bluetooth_profile_descriptor_list(
-			buf, eob,
-			(uint8_t const *) profile_descriptor_list,
-			sizeof(profile_descriptor_list)));
+	return (common_profile_create_string8(buf, eob,
+	    (uint8_t const *)service_name, strlen(service_name)));
 }
 
 static int32_t
-sp_profile_create_service_name(
-		uint8_t *buf, uint8_t const * const eob,
-		uint8_t const *data, uint32_t datalen)
+sp_profile_create_protocol_descriptor_list(uint8_t *buf,
+    uint8_t const *const eob, uint8_t const *data, uint32_t datalen)
 {
-	static char	service_name[] = "Serial Port";
+	provider_p provider = (provider_p)data;
+	sdp_sp_profile_p sp = (sdp_sp_profile_p)provider->data;
 
-	return (common_profile_create_string8(
-			buf, eob,
-			(uint8_t const *) service_name, strlen(service_name)));
+	return (rfcomm_profile_create_protocol_descriptor_list(buf, eob,
+	    (uint8_t const *)&sp->server_channel, 1));
 }
 
-static int32_t
-sp_profile_create_protocol_descriptor_list(
-		uint8_t *buf, uint8_t const * const eob,
-		uint8_t const *data, uint32_t datalen)
-{
-	provider_p		provider = (provider_p) data;
-	sdp_sp_profile_p	sp = (sdp_sp_profile_p) provider->data;
-
-	return (rfcomm_profile_create_protocol_descriptor_list(
-			buf, eob,
-			(uint8_t const *) &sp->server_channel, 1)); 
-}
-
-static attr_t	sp_profile_attrs[] = {
+static attr_t sp_profile_attrs[] = {
 	{ SDP_ATTR_SERVICE_RECORD_HANDLE,
-	  common_profile_create_service_record_handle },
+	    common_profile_create_service_record_handle },
 	{ SDP_ATTR_SERVICE_CLASS_ID_LIST,
-	  sp_profile_create_service_class_id_list },
+	    sp_profile_create_service_class_id_list },
 	{ SDP_ATTR_BLUETOOTH_PROFILE_DESCRIPTOR_LIST,
-	  sp_profile_create_bluetooth_profile_descriptor_list },
+	    sp_profile_create_bluetooth_profile_descriptor_list },
 	{ SDP_ATTR_LANGUAGE_BASE_ATTRIBUTE_ID_LIST,
-	  common_profile_create_language_base_attribute_id_list },
+	    common_profile_create_language_base_attribute_id_list },
 	{ SDP_ATTR_PRIMARY_LANGUAGE_BASE_ID + SDP_ATTR_SERVICE_NAME_OFFSET,
-	  sp_profile_create_service_name },
+	    sp_profile_create_service_name },
 	{ SDP_ATTR_PROTOCOL_DESCRIPTOR_LIST,
-	  sp_profile_create_protocol_descriptor_list },
+	    sp_profile_create_protocol_descriptor_list },
 	{ 0, NULL } /* end entry */
 };
 
-profile_t	sp_profile_descriptor = {
-	SDP_SERVICE_CLASS_SERIAL_PORT,
-	sizeof(sdp_sp_profile_t),
-	common_profile_server_channel_valid,
-	(attr_t const * const) &sp_profile_attrs
-};
-
+profile_t sp_profile_descriptor = { SDP_SERVICE_CLASS_SERIAL_PORT,
+	sizeof(sdp_sp_profile_t), common_profile_server_channel_valid,
+	(attr_t const *const)&sp_profile_attrs };

@@ -18,41 +18,37 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/rtwn/if_rtwnreg.h>
-#include <dev/rtwn/if_rtwnvar.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <dev/rtwn/if_rtwn_debug.h>
 #include <dev/rtwn/if_rtwn_ridx.h>
-
-#include <dev/rtwn/rtl8192c/r92c_var.h>
-
+#include <dev/rtwn/if_rtwnreg.h>
+#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/rtl8188e/r88e.h>
 #include <dev/rtwn/rtl8188e/r88e_priv.h>
 #include <dev/rtwn/rtl8188e/r88e_reg.h>
+#include <dev/rtwn/rtl8192c/r92c_var.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 static int
 r88e_get_power_group(struct rtwn_softc *sc, struct ieee80211_channel *c)
@@ -62,12 +58,18 @@ r88e_get_power_group(struct rtwn_softc *sc, struct ieee80211_channel *c)
 
 	chan = rtwn_chan2centieee(c);
 	if (IEEE80211_IS_CHAN_2GHZ(c)) {
-		if (chan <= 2)			group = 0;
-		else if (chan <= 5)		group = 1;
-		else if (chan <= 8)		group = 2;
-		else if (chan <= 11)		group = 3;
-		else if (chan <= 13)		group = 4;
-		else if (chan <= 14)		group = 5;
+		if (chan <= 2)
+			group = 0;
+		else if (chan <= 5)
+			group = 1;
+		else if (chan <= 8)
+			group = 2;
+		else if (chan <= 11)
+			group = 3;
+		else if (chan <= 13)
+			group = 4;
+		else if (chan <= 14)
+			group = 5;
 		else {
 			KASSERT(0, ("wrong 2GHz channel %d!\n", chan));
 			return (-1);
@@ -81,8 +83,8 @@ r88e_get_power_group(struct rtwn_softc *sc, struct ieee80211_channel *c)
 }
 
 void
-r88e_get_txpower(struct rtwn_softc *sc, int chain,
-    struct ieee80211_channel *c, uint8_t power[RTWN_RIDX_COUNT])
+r88e_get_txpower(struct rtwn_softc *sc, int chain, struct ieee80211_channel *c,
+    uint8_t power[RTWN_RIDX_COUNT])
 {
 	struct r92c_softc *rs = sc->sc_priv;
 	const struct rtwn_r88e_txpwr *rt = rs->rs_txpwr;
@@ -91,7 +93,7 @@ r88e_get_txpower(struct rtwn_softc *sc, int chain,
 
 	/* Determine channel group. */
 	group = r88e_get_power_group(sc, c);
-	if (group == -1) {	/* shouldn't happen */
+	if (group == -1) { /* shouldn't happen */
 		device_printf(sc->sc_dev, "%s: incorrect channel\n", __func__);
 		return;
 	}
@@ -145,6 +147,6 @@ void
 r88e_set_gain(struct rtwn_softc *sc, uint8_t gain)
 {
 
-	rtwn_bb_setbits(sc, R92C_OFDM0_AGCCORE1(0),
-	    R92C_OFDM0_AGCCORE1_GAIN_M, gain);
+	rtwn_bb_setbits(sc, R92C_OFDM0_AGCCORE1(0), R92C_OFDM0_AGCCORE1_GAIN_M,
+	    gain);
 }

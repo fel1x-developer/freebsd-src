@@ -37,17 +37,16 @@
  */
 
 #include <sys/param.h>
-#include <sys/socket.h>
 #include <sys/mbuf.h>
+#include <sys/socket.h>
 
+#include <net/if.h>
+#include <net/pfvar.h>
+#include <net/vnet.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
-
-#include <net/if.h>
-#include <net/vnet.h>
-#include <net/pfvar.h>
 
 #ifdef INET6
 #include <netinet/ip6.h>
@@ -58,33 +57,32 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#define rs_malloc(x)		 calloc(1, x)
-#define rs_free(x)		 free(x)
+#define rs_malloc(x) calloc(1, x)
+#define rs_free(x) free(x)
 
 #include "pfctl.h"
 #include "pfctl_parser.h"
 
 #ifdef PFDEBUG
 #include <sys/stdarg.h>
-#define DPFPRINTF(format, x...)	fprintf(stderr, format , ##x)
+#define DPFPRINTF(format, x...) fprintf(stderr, format, ##x)
 #else
-#define DPFPRINTF(format, x...)	((void)0)
+#define DPFPRINTF(format, x...) ((void)0)
 #endif /* PFDEBUG */
 
-struct pfctl_anchor_global	 pf_anchors;
-extern struct pfctl_anchor	 pf_main_anchor;
-extern struct pfctl_eth_anchor	 pf_eth_main_anchor;
+struct pfctl_anchor_global pf_anchors;
+extern struct pfctl_anchor pf_main_anchor;
+extern struct pfctl_eth_anchor pf_eth_main_anchor;
 #undef V_pf_anchors
-#define V_pf_anchors		 pf_anchors
+#define V_pf_anchors pf_anchors
 #undef pf_main_ruleset
-#define pf_main_ruleset		 pf_main_anchor.ruleset
+#define pf_main_ruleset pf_main_anchor.ruleset
 
-static __inline int		pf_anchor_compare(struct pfctl_anchor *,
-				    struct pfctl_anchor *);
-static struct pfctl_anchor	*pf_find_anchor(const char *);
+static __inline int pf_anchor_compare(struct pfctl_anchor *,
+    struct pfctl_anchor *);
+static struct pfctl_anchor *pf_find_anchor(const char *);
 
-RB_GENERATE(pfctl_anchor_global, pfctl_anchor, entry_global,
-    pf_anchor_compare);
+RB_GENERATE(pfctl_anchor_global, pfctl_anchor, entry_global, pf_anchor_compare);
 RB_GENERATE(pfctl_anchor_node, pfctl_anchor, entry_node, pf_anchor_compare);
 
 static __inline int
@@ -129,7 +127,7 @@ pf_get_ruleset_number(u_int8_t action)
 void
 pf_init_ruleset(struct pfctl_ruleset *ruleset)
 {
-	int	i;
+	int i;
 
 	memset(ruleset, 0, sizeof(struct pfctl_ruleset));
 	for (i = 0; i < PF_RULESET_MAX; i++) {
@@ -143,7 +141,7 @@ pf_init_ruleset(struct pfctl_ruleset *ruleset)
 static struct pfctl_anchor *
 pf_find_anchor(const char *path)
 {
-	struct pfctl_anchor	*key, *found;
+	struct pfctl_anchor *key, *found;
 
 	key = (struct pfctl_anchor *)rs_malloc(sizeof(*key));
 	if (key == NULL)
@@ -157,7 +155,7 @@ pf_find_anchor(const char *path)
 struct pfctl_ruleset *
 pf_find_ruleset(const char *path)
 {
-	struct pfctl_anchor	*anchor;
+	struct pfctl_anchor *anchor;
 
 	while (*path == '/')
 		path++;
@@ -173,9 +171,9 @@ pf_find_ruleset(const char *path)
 struct pfctl_ruleset *
 pf_find_or_create_ruleset(const char *path)
 {
-	char			*p, *q, *r;
-	struct pfctl_ruleset	*ruleset;
-	struct pfctl_anchor	*anchor = NULL, *dup, *parent = NULL;
+	char *p, *q, *r;
+	struct pfctl_ruleset *ruleset;
+	struct pfctl_anchor *anchor = NULL, *dup, *parent = NULL;
 
 	if (path[0] == 0)
 		return (&pf_main_ruleset);
@@ -208,8 +206,9 @@ pf_find_or_create_ruleset(const char *path)
 		if (r != NULL)
 			*r = 0;
 		if (!*q || strlen(q) >= PF_ANCHOR_NAME_SIZE ||
-		    (parent != NULL && strlen(parent->path) >=
-		    MAXPATHLEN - PF_ANCHOR_NAME_SIZE - 1)) {
+		    (parent != NULL &&
+			strlen(parent->path) >=
+			    MAXPATHLEN - PF_ANCHOR_NAME_SIZE - 1)) {
 			rs_free(p);
 			return (NULL);
 		}
@@ -226,10 +225,10 @@ pf_find_or_create_ruleset(const char *path)
 			strlcat(anchor->path, "/", sizeof(anchor->path));
 		}
 		strlcat(anchor->path, anchor->name, sizeof(anchor->path));
-		if ((dup = RB_INSERT(pfctl_anchor_global, &V_pf_anchors, anchor)) !=
-		    NULL) {
+		if ((dup = RB_INSERT(pfctl_anchor_global, &V_pf_anchors,
+			 anchor)) != NULL) {
 			printf("pf_find_or_create_ruleset: RB_INSERT1 "
-			    "'%s' '%s' collides with '%s' '%s'\n",
+			       "'%s' '%s' collides with '%s' '%s'\n",
 			    anchor->path, anchor->name, dup->path, dup->name);
 			rs_free(anchor);
 			rs_free(p);
@@ -237,12 +236,13 @@ pf_find_or_create_ruleset(const char *path)
 		}
 		if (parent != NULL) {
 			anchor->parent = parent;
-			if ((dup = RB_INSERT(pfctl_anchor_node, &parent->children,
-			    anchor)) != NULL) {
+			if ((dup = RB_INSERT(pfctl_anchor_node,
+				 &parent->children, anchor)) != NULL) {
 				printf("pf_find_or_create_ruleset: "
-				    "RB_INSERT2 '%s' '%s' collides with "
-				    "'%s' '%s'\n", anchor->path, anchor->name,
-				    dup->path, dup->name);
+				       "RB_INSERT2 '%s' '%s' collides with "
+				       "'%s' '%s'\n",
+				    anchor->path, anchor->name, dup->path,
+				    dup->name);
 				RB_REMOVE(pfctl_anchor_global, &V_pf_anchors,
 				    anchor);
 				rs_free(anchor);
@@ -265,8 +265,8 @@ pf_find_or_create_ruleset(const char *path)
 void
 pf_remove_if_empty_ruleset(struct pfctl_ruleset *ruleset)
 {
-	struct pfctl_anchor	*parent;
-	int			 i;
+	struct pfctl_anchor *parent;
+	int i;
 
 	while (ruleset != NULL) {
 		if (ruleset == &pf_main_ruleset || ruleset->anchor == NULL ||
@@ -293,7 +293,7 @@ pf_remove_if_empty_ruleset(struct pfctl_ruleset *ruleset)
 void
 pf_remove_if_empty_eth_ruleset(struct pfctl_eth_ruleset *ruleset)
 {
-	struct pfctl_eth_anchor	*parent;
+	struct pfctl_eth_anchor *parent;
 
 	return;
 	while (ruleset != NULL) {
@@ -317,18 +317,17 @@ pf_init_eth_ruleset(struct pfctl_eth_ruleset *ruleset)
 	TAILQ_INIT(&ruleset->rules);
 }
 
-
-static struct pfctl_eth_anchor*
+static struct pfctl_eth_anchor *
 _pf_find_eth_anchor(struct pfctl_eth_anchor *anchor, const char *path)
 {
-	struct pfctl_eth_rule	*r;
-	struct pfctl_eth_anchor	*a;
+	struct pfctl_eth_rule *r;
+	struct pfctl_eth_anchor *a;
 
 	if (strcmp(path, anchor->path) == 0)
 		return (anchor);
 
-	TAILQ_FOREACH(r, &anchor->ruleset.rules, entries) {
-		if (! r->anchor)
+	TAILQ_FOREACH (r, &anchor->ruleset.rules, entries) {
+		if (!r->anchor)
 			continue;
 
 		/* Step into anchor */
@@ -340,16 +339,16 @@ _pf_find_eth_anchor(struct pfctl_eth_anchor *anchor, const char *path)
 	return (NULL);
 }
 
-static struct pfctl_eth_anchor*
+static struct pfctl_eth_anchor *
 pf_find_eth_anchor(const char *path)
 {
 	return (_pf_find_eth_anchor(&pf_eth_main_anchor, path));
 }
 
-static struct pfctl_eth_ruleset*
+static struct pfctl_eth_ruleset *
 pf_find_eth_ruleset(const char *path)
 {
-	struct pfctl_eth_anchor	*anchor;
+	struct pfctl_eth_anchor *anchor;
 
 	while (*path == '/')
 		path++;
@@ -365,9 +364,9 @@ pf_find_eth_ruleset(const char *path)
 struct pfctl_eth_ruleset *
 pf_find_or_create_eth_ruleset(const char *path)
 {
-	char				*p, *q, *r;
-	struct pfctl_eth_ruleset	*ruleset;
-	struct pfctl_eth_anchor		*anchor = NULL, *parent = NULL;
+	char *p, *q, *r;
+	struct pfctl_eth_ruleset *ruleset;
+	struct pfctl_eth_anchor *anchor = NULL, *parent = NULL;
 
 	if (path[0] == 0)
 		return (&pf_eth_main_anchor.ruleset);
@@ -400,8 +399,9 @@ pf_find_or_create_eth_ruleset(const char *path)
 		if (r != NULL)
 			*r = 0;
 		if (!*q || strlen(q) >= PF_ANCHOR_NAME_SIZE ||
-		    (parent != NULL && strlen(parent->path) >=
-		    MAXPATHLEN - PF_ANCHOR_NAME_SIZE - 1)) {
+		    (parent != NULL &&
+			strlen(parent->path) >=
+			    MAXPATHLEN - PF_ANCHOR_NAME_SIZE - 1)) {
 			rs_free(p);
 			return (NULL);
 		}
@@ -435,8 +435,8 @@ int
 pfctl_anchor_setup(struct pfctl_rule *r, const struct pfctl_ruleset *s,
     const char *name)
 {
-	char			*p, *path;
-	struct pfctl_ruleset	*ruleset;
+	char *p, *path;
+	struct pfctl_ruleset *ruleset;
 
 	r->anchor = NULL;
 	r->anchor_relative = 0;
@@ -491,8 +491,8 @@ int
 pfctl_eth_anchor_setup(struct pfctl *pf, struct pfctl_eth_rule *r,
     const struct pfctl_eth_ruleset *s, const char *name)
 {
-	char				*p, *path;
-	struct pfctl_eth_ruleset	*ruleset;
+	char *p, *path;
+	struct pfctl_eth_ruleset *ruleset;
 
 	r->anchor = NULL;
 	if (!name[0])

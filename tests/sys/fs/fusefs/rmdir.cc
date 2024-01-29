@@ -38,32 +38,36 @@ extern "C" {
 
 using namespace testing;
 
-class Rmdir: public FuseTest {
-public:
-void expect_lookup(const char *relpath, uint64_t ino, int times=1)
-{
-	EXPECT_LOOKUP(FUSE_ROOT_ID, relpath)
-	.Times(times)
-	.WillRepeatedly(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.attr.mode = S_IFDIR | 0755;
-		out.body.entry.nodeid = ino;
-		out.body.entry.attr.nlink = 2;
-	})));
-}
+class Rmdir : public FuseTest {
+    public:
+	void expect_lookup(const char *relpath, uint64_t ino, int times = 1)
+	{
+		EXPECT_LOOKUP(FUSE_ROOT_ID, relpath)
+		    .Times(times)
+		    .WillRepeatedly(Invoke(
+			ReturnImmediate([=](auto in __unused, auto &out) {
+				SET_OUT_HEADER_LEN(out, entry);
+				out.body.entry.attr_valid = UINT64_MAX;
+				out.body.entry.attr.mode = S_IFDIR | 0755;
+				out.body.entry.nodeid = ino;
+				out.body.entry.attr.nlink = 2;
+			})));
+	}
 
-void expect_rmdir(uint64_t parent, const char *relpath, int error)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_RMDIR &&
-				0 == strcmp(relpath, in.body.rmdir) &&
-				in.header.nodeid == parent);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(error)));
-}
+	void expect_rmdir(uint64_t parent, const char *relpath, int error)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(
+			ResultOf(
+			    [=](auto in) {
+				    return (in.header.opcode == FUSE_RMDIR &&
+					0 == strcmp(relpath, in.body.rmdir) &&
+					in.header.nodeid == parent);
+			    },
+			    Eq(true)),
+			_))
+		    .WillOnce(Invoke(ReturnErrno(error)));
+	}
 };
 
 /*
@@ -82,29 +86,34 @@ TEST_F(Rmdir, parent_attr_cache)
 	ASSERT_EQ(0, sem_init(&sem, 0, 0)) << strerror(errno);
 
 	expect_lookup(RELPATH, ino);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_RMDIR &&
-				0 == strcmp(RELPATH, in.body.rmdir) &&
-				in.header.nodeid == FUSE_ROOT_ID);
-		}, Eq(true)),
-		_)
-	).InSequence(seq)
-	.WillOnce(Invoke(ReturnErrno(0)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_RMDIR &&
+				    0 == strcmp(RELPATH, in.body.rmdir) &&
+				    in.header.nodeid == FUSE_ROOT_ID);
+			},
+			Eq(true)),
+		_))
+	    .InSequence(seq)
+	    .WillOnce(Invoke(ReturnErrno(0)));
 	expect_forget(ino, 1, &sem);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_GETATTR &&
-				in.header.nodeid == FUSE_ROOT_ID);
-		}, Eq(true)),
-		_)
-	).InSequence(seq)
-	.WillRepeatedly(Invoke(ReturnImmediate([=](auto i __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr.ino = FUSE_ROOT_ID;
-		out.body.attr.attr.mode = S_IFDIR | 0755;
-		out.body.attr.attr_valid = UINT64_MAX;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_GETATTR &&
+				    in.header.nodeid == FUSE_ROOT_ID);
+			},
+			Eq(true)),
+		_))
+	    .InSequence(seq)
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto i __unused, auto &out) {
+			SET_OUT_HEADER_LEN(out, attr);
+			out.body.attr.attr.ino = FUSE_ROOT_ID;
+			out.body.attr.attr.mode = S_IFDIR | 0755;
+			out.body.attr.attr_valid = UINT64_MAX;
+		})));
 
 	ASSERT_EQ(0, rmdir(FULLPATH)) << strerror(errno);
 	EXPECT_EQ(0, stat("mountpoint", &sb)) << strerror(errno);

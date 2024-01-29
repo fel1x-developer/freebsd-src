@@ -29,10 +29,10 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_EBUF_H_
-#define	_EBUF_H_
+#ifndef _EBUF_H_
+#define _EBUF_H_
 
-#include <stdlib.h>	/* size_t */
+#include <stdlib.h> /* size_t */
 
 struct ebuf;
 
@@ -48,4 +48,4 @@ void ebuf_del_tail(struct ebuf *eb, size_t size);
 void *ebuf_data(struct ebuf *eb, size_t *sizep);
 size_t ebuf_size(struct ebuf *eb);
 
-#endif	/* !_EBUF_H_ */
+#endif /* !_EBUF_H_ */

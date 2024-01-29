@@ -32,11 +32,14 @@
 
 #ifdef VECTX_DEBUG
 static int vectx_debug = VECTX_DEBUG;
-# define DEBUG_PRINTF(n, x) if (vectx_debug >= n) printf x
+#define DEBUG_PRINTF(n, x)    \
+	if (vectx_debug >= n) \
+	printf x
 #endif
 
-#include "libsecureboot-priv.h"
 #include <verify_file.h>
+
+#include "libsecureboot-priv.h"
 
 /**
  * @file vectx.c
@@ -49,19 +52,18 @@ static int vectx_debug = VECTX_DEBUG;
  */
 
 struct vectx {
-	br_hash_compat_context vec_ctx;	/* hash ctx */
+	br_hash_compat_context vec_ctx; /* hash ctx */
 	const br_hash_class *vec_md;	/* hash method */
-	const char	*vec_path;	/* path we are verifying */
-	const char	*vec_want;	/* hash value we want */
-	off_t		vec_off;	/* current offset */
-	off_t		vec_hashed;	/* where we have hashed to */
-	off_t		vec_size;	/* size of path */
-	size_t		vec_hashsz;	/* size of hash */
-	int		vec_fd;		/* file descriptor */
-	int		vec_status;	/* verification status */
-	int		vec_closing;	/* we are closing */
+	const char *vec_path;		/* path we are verifying */
+	const char *vec_want;		/* hash value we want */
+	off_t vec_off;			/* current offset */
+	off_t vec_hashed;		/* where we have hashed to */
+	off_t vec_size;			/* size of path */
+	size_t vec_hashsz;		/* size of hash */
+	int vec_fd;			/* file descriptor */
+	int vec_status;			/* verification status */
+	int vec_closing;		/* we are closing */
 };
-
 
 /**
  * @brief
@@ -93,8 +95,8 @@ struct vectx {
  *	NULL is only returned for non-files or out-of-memory.
  */
 struct vectx *
-vectx_open(int fd, const char *path, off_t off, struct stat *stp,
-    int *error, const char *caller)
+vectx_open(int fd, const char *path, off_t off, struct stat *stp, int *error,
+    const char *caller)
 {
 	struct vectx *ctx;
 	struct stat st;
@@ -103,13 +105,13 @@ vectx_open(int fd, const char *path, off_t off, struct stat *stp,
 	int rc;
 
 	if (!stp)
-	    stp = &st;
+		stp = &st;
 
 	rc = verify_prep(fd, path, off, stp, __func__);
 
 	DEBUG_PRINTF(2,
-	    ("vectx_open: caller=%s,fd=%d,name='%s',prep_rc=%d\n",
-		caller, fd, path, rc));
+	    ("vectx_open: caller=%s,fd=%d,name='%s',prep_rc=%d\n", caller, fd,
+		path, rc));
 
 	switch (rc) {
 	case VE_FINGERPRINT_NONE:
@@ -156,15 +158,15 @@ vectx_open(int fd, const char *path, off_t off, struct stat *stp,
 #endif
 #ifdef VE_SHA384_SUPPORT
 		} else if (strncmp(cp, "sha384=", 7) == 0) {
-		    ctx->vec_md = &br_sha384_vtable;
-		    hashsz = br_sha384_SIZE;
-		    cp += 7;
+			ctx->vec_md = &br_sha384_vtable;
+			hashsz = br_sha384_SIZE;
+			cp += 7;
 #endif
 #ifdef VE_SHA512_SUPPORT
 		} else if (strncmp(cp, "sha512=", 7) == 0) {
-		    ctx->vec_md = &br_sha512_vtable;
-		    hashsz = br_sha512_SIZE;
-		    cp += 7;
+			ctx->vec_md = &br_sha512_vtable;
+			hashsz = br_sha512_SIZE;
+			cp += 7;
 #endif
 		} else {
 			ctx->vec_status = VE_FINGERPRINT_UNKNOWN;
@@ -183,12 +185,11 @@ vectx_open(int fd, const char *path, off_t off, struct stat *stp,
 		}
 	}
 	DEBUG_PRINTF(2,
-	    ("vectx_open: caller=%s,name='%s',hashsz=%lu,status=%d\n",
-		caller, path, (unsigned long)ctx->vec_hashsz,
-		ctx->vec_status));
+	    ("vectx_open: caller=%s,name='%s',hashsz=%lu,status=%d\n", caller,
+		path, (unsigned long)ctx->vec_hashsz, ctx->vec_status));
 	return (ctx);
 
-enomem:					/* unlikely */
+enomem: /* unlikely */
 	*error = ENOMEM;
 	free(ctx);
 	return (NULL);
@@ -222,7 +223,7 @@ vectx_read(struct vectx *ctx, void *buf, size_t nbytes)
 	int x;
 	size_t off;
 
-	if (ctx->vec_hashsz == 0)	/* nothing to do */
+	if (ctx->vec_hashsz == 0) /* nothing to do */
 		return (read(ctx->vec_fd, buf, nbytes));
 
 	off = 0;
@@ -237,8 +238,8 @@ vectx_read(struct vectx *ctx, void *buf, size_t nbytes)
 		if (ctx->vec_closing && n < x) {
 			DEBUG_PRINTF(3,
 			    ("%s: read %d off=%ld hashed=%ld size=%ld\n",
-			     __func__, n, (long)ctx->vec_off,
-			     (long)ctx->vec_hashed, (long)ctx->vec_size));
+				__func__, n, (long)ctx->vec_off,
+				(long)ctx->vec_hashed, (long)ctx->vec_size));
 		}
 		if (n < 0) {
 			return (n);
@@ -255,11 +256,11 @@ vectx_read(struct vectx *ctx, void *buf, size_t nbytes)
 			if (d > 0) {
 				if (ctx->vec_closing && d < PAGE_SIZE) {
 					DEBUG_PRINTF(3,
-					    ("%s: update %ld + %d\n",
-						__func__,
+					    ("%s: update %ld + %d\n", __func__,
 						(long)ctx->vec_hashed, d));
 				}
-				ctx->vec_md->update(&ctx->vec_ctx.vtable, &bp[off], d);
+				ctx->vec_md->update(&ctx->vec_ctx.vtable,
+				    &bp[off], d);
 				off += d;
 				ctx->vec_off += d;
 				ctx->vec_hashed += d;
@@ -297,7 +298,7 @@ vectx_lseek(struct vectx *ctx, off_t off, int whence)
 	size_t delta;
 	ssize_t n;
 
-	if (ctx->vec_hashsz == 0)	/* nothing to do */
+	if (ctx->vec_hashsz == 0) /* nothing to do */
 		return (lseek(ctx->vec_fd, off, whence));
 
 	/*
@@ -307,8 +308,8 @@ vectx_lseek(struct vectx *ctx, off_t off, int whence)
 	    ("%s(%s, %ld, %d)\n", __func__, ctx->vec_path, (long)off, whence));
 	if (whence == SEEK_END && off <= 0) {
 		if (ctx->vec_closing && ctx->vec_hashed < ctx->vec_size) {
-			DEBUG_PRINTF(3, ("%s: SEEK_END %ld\n",
-				__func__,
+			DEBUG_PRINTF(3,
+			    ("%s: SEEK_END %ld\n", __func__,
 				(long)(ctx->vec_size - ctx->vec_hashed)));
 		}
 		whence = SEEK_SET;
@@ -317,9 +318,9 @@ vectx_lseek(struct vectx *ctx, off_t off, int whence)
 		whence = SEEK_SET;
 		off += ctx->vec_off;
 	}
-	if (whence != SEEK_SET ||
-	    off > ctx->vec_size) {
-		printf("ERROR: %s: unsupported operation: whence=%d off=%ld -> %ld\n",
+	if (whence != SEEK_SET || off > ctx->vec_size) {
+		printf(
+		    "ERROR: %s: unsupported operation: whence=%d off=%ld -> %ld\n",
 		    __func__, whence, (long)ctx->vec_off, (long)off);
 		return (-1);
 	}
@@ -327,11 +328,10 @@ vectx_lseek(struct vectx *ctx, off_t off, int whence)
 #ifdef _STANDALONE
 		struct open_file *f = fd2open_file(ctx->vec_fd);
 
-		if (f != NULL &&
-		    strncmp(f->f_ops->fs_name, "tftp", 4) == 0) {
+		if (f != NULL && strncmp(f->f_ops->fs_name, "tftp", 4) == 0) {
 			/* we cannot rewind if we've hashed much of the file */
 			if (ctx->vec_hashed > ctx->vec_size / 5)
-				return (-1);	/* refuse! */
+				return (-1); /* refuse! */
 		}
 #endif
 		/* seeking backwards! just do it */
@@ -385,12 +385,12 @@ vectx_close(struct vectx *ctx, int severity, const char *caller)
 #endif
 		/* make sure we have hashed it all */
 		vectx_lseek(ctx, 0, SEEK_END);
-		rc = ve_check_hash(&ctx->vec_ctx, ctx->vec_md,
-		    ctx->vec_path, ctx->vec_want, ctx->vec_hashsz);
+		rc = ve_check_hash(&ctx->vec_ctx, ctx->vec_md, ctx->vec_path,
+		    ctx->vec_want, ctx->vec_hashsz);
 	}
 	DEBUG_PRINTF(2,
-	    ("vectx_close: caller=%s,name='%s',rc=%d,severity=%d\n",
-		caller,ctx->vec_path, rc, severity));
+	    ("vectx_close: caller=%s,name='%s',rc=%d,severity=%d\n", caller,
+		ctx->vec_path, rc, severity));
 	verify_report(ctx->vec_path, severity, rc, NULL);
 	if (rc == VE_FINGERPRINT_WRONG) {
 #if !defined(UNIT_TEST) && !defined(DEBUG_VECTX)

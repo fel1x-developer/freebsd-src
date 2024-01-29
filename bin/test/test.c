@@ -168,29 +168,29 @@ static int nargc;
 static char **t_wp;
 static int parenlevel;
 
-static int	aexpr(enum token);
-static int	binop(enum token);
-static int	equalf(const char *, const char *);
-static int	filstat(char *, enum token);
-static int	getn(const char *);
-static intmax_t	getq(const char *);
-static int	intcmp(const char *, const char *);
-static int	isunopoperand(void);
-static int	islparenoperand(void);
-static int	isrparenoperand(void);
-static int	newerf(const char *, const char *);
-static int	nexpr(enum token);
-static int	oexpr(enum token);
-static int	olderf(const char *, const char *);
-static int	primary(enum token);
-static void	syntax(const char *, const char *);
-static enum	token t_lex(char *);
+static int aexpr(enum token);
+static int binop(enum token);
+static int equalf(const char *, const char *);
+static int filstat(char *, enum token);
+static int getn(const char *);
+static intmax_t getq(const char *);
+static int intcmp(const char *, const char *);
+static int isunopoperand(void);
+static int islparenoperand(void);
+static int isrparenoperand(void);
+static int newerf(const char *, const char *);
+static int nexpr(enum token);
+static int oexpr(enum token);
+static int olderf(const char *, const char *);
+static int primary(enum token);
+static void syntax(const char *, const char *);
+static enum token t_lex(char *);
 
 int
 main(int argc, char **argv)
 {
-	int	res;
-	char	*p;
+	int res;
+	char *p;
 
 	if ((p = strrchr(argv[0], '/')) == NULL)
 		p = argv[0];
@@ -279,13 +279,13 @@ primary(enum token n)
 	int res;
 
 	if (n == EOI)
-		return 0;		/* missing expression */
+		return 0; /* missing expression */
 	if (n == LPAREN) {
 		parenlevel++;
 		if ((nn = t_lex(nargc > 0 ? (--nargc, *++t_wp) : NULL)) ==
 		    RPAREN) {
 			parenlevel--;
-			return 0;	/* missing expression */
+			return 0; /* missing expression */
 		}
 		res = oexpr(nn);
 		if (t_lex(nargc > 0 ? (--nargc, *++t_wp) : NULL) != RPAREN)
@@ -349,11 +349,11 @@ binop(enum token n)
 	case INTLT:
 		return intcmp(opnd1, opnd2) < 0;
 	case FILNT:
-		return newerf (opnd1, opnd2);
+		return newerf(opnd1, opnd2);
 	case FILOT:
-		return olderf (opnd1, opnd2);
+		return olderf(opnd1, opnd2);
 	case FILEQ:
-		return equalf (opnd1, opnd2);
+		return equalf(opnd1, opnd2);
 	default:
 		abort();
 		/* NOTREACHED */
@@ -447,10 +447,10 @@ find_op(const char *s)
 		return find_op_1char(ops1, (&ops1)[1], s);
 	else if (s[2] == '\0')
 		return s[0] == '-' ? find_op_1char(opsm1, (&opsm1)[1], s + 1) :
-		    find_op_2char(ops2, (&ops2)[1], s);
+				     find_op_2char(ops2, (&ops2)[1], s);
 	else if (s[3] == '\0')
 		return s[0] == '-' ? find_op_2char(opsm2, (&opsm2)[1], s + 1) :
-		    OPERAND;
+				     OPERAND;
 	else
 		return OPERAND;
 }
@@ -464,8 +464,8 @@ t_lex(char *s)
 		return EOI;
 	}
 	num = find_op(s);
-	if (((TOKEN_TYPE(num) == UNOP || TOKEN_TYPE(num) == BUNOP)
-				&& isunopoperand()) ||
+	if (((TOKEN_TYPE(num) == UNOP || TOKEN_TYPE(num) == BUNOP) &&
+		isunopoperand()) ||
 	    (num == LPAREN && islparenoperand()) ||
 	    (num == RPAREN && isrparenoperand()))
 		return OPERAND;
@@ -534,8 +534,8 @@ getn(const char *s)
 		error("%s: bad number", s);
 
 	if (errno != 0)
-		error((errno == EINVAL) ? "%s: bad number" :
-					  "%s: out of range", s);
+		error((errno == EINVAL) ? "%s: bad number" : "%s: out of range",
+		    s);
 
 	while (isspace((unsigned char)*p))
 		p++;
@@ -543,7 +543,7 @@ getn(const char *s)
 	if (*p)
 		error("%s: bad number", s);
 
-	return (int) r;
+	return (int)r;
 }
 
 /* atoi with error detection and 64 bit range */
@@ -560,8 +560,8 @@ getq(const char *s)
 		error("%s: bad number", s);
 
 	if (errno != 0)
-		error((errno == EINVAL) ? "%s: bad number" :
-					  "%s: out of range", s);
+		error((errno == EINVAL) ? "%s: bad number" : "%s: out of range",
+		    s);
 
 	while (isspace((unsigned char)*p))
 		p++;
@@ -573,10 +573,9 @@ getq(const char *s)
 }
 
 static int
-intcmp (const char *s1, const char *s2)
+intcmp(const char *s1, const char *s2)
 {
 	intmax_t q1, q2;
-
 
 	q1 = getq(s1);
 	q2 = getq(s2);
@@ -591,7 +590,7 @@ intcmp (const char *s1, const char *s2)
 }
 
 static int
-newerf (const char *f1, const char *f2)
+newerf(const char *f1, const char *f2)
 {
 	struct stat b1, b2;
 
@@ -603,22 +602,20 @@ newerf (const char *f1, const char *f2)
 	if (b1.st_mtim.tv_sec < b2.st_mtim.tv_sec)
 		return 0;
 
-       return (b1.st_mtim.tv_nsec > b2.st_mtim.tv_nsec);
+	return (b1.st_mtim.tv_nsec > b2.st_mtim.tv_nsec);
 }
 
 static int
-olderf (const char *f1, const char *f2)
+olderf(const char *f1, const char *f2)
 {
 	return (newerf(f2, f1));
 }
 
 static int
-equalf (const char *f1, const char *f2)
+equalf(const char *f1, const char *f2)
 {
 	struct stat b1, b2;
 
-	return (stat (f1, &b1) == 0 &&
-		stat (f2, &b2) == 0 &&
-		b1.st_dev == b2.st_dev &&
-		b1.st_ino == b2.st_ino);
+	return (stat(f1, &b1) == 0 && stat(f2, &b2) == 0 &&
+	    b1.st_dev == b2.st_dev && b1.st_ino == b2.st_ino);
 }

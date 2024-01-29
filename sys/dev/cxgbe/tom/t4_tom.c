@@ -27,31 +27,32 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 #include "opt_kern_tls.h"
 #include "opt_ratelimit.h"
 
-#include <sys/param.h>
+#include <sys/cdefs.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/domain.h>
 #include <sys/kernel.h>
 #include <sys/ktr.h>
-#include <sys/lock.h>
 #include <sys/limits.h>
+#include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/protosw.h>
-#include <sys/domain.h>
 #include <sys/refcount.h>
 #include <sys/rmlock.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 #include <sys/sysctl.h>
 #include <sys/taskqueue.h>
+
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_types.h>
+#include <net/if_var.h>
 #include <net/if_vlan_var.h>
 #include <netinet/in.h>
 #include <netinet/in_pcb.h>
@@ -60,12 +61,12 @@
 #include <netinet/ip6.h>
 #include <netinet6/scope6_var.h>
 #define TCPSTATES
+#include <netinet/cc/cc.h>
 #include <netinet/tcp_fsm.h>
 #include <netinet/tcp_seq.h>
 #include <netinet/tcp_timer.h>
 #include <netinet/tcp_var.h>
 #include <netinet/toecore.h>
-#include <netinet/cc/cc.h>
 
 #ifdef TCP_OFFLOAD
 #include "common/common.h"
@@ -74,9 +75,9 @@
 #include "common/t4_regs_values.h"
 #include "common/t4_tcb.h"
 #include "t4_clip.h"
-#include "tom/t4_tom_l2t.h"
-#include "tom/t4_tom.h"
 #include "tom/t4_tls.h"
+#include "tom/t4_tom.h"
+#include "tom/t4_tom_l2t.h"
 
 static struct protosw toe_protosw;
 static struct protosw toe6_protosw;
@@ -165,7 +166,8 @@ init_toepcb(struct vi_info *vi, struct toepcb *toep)
 		tc = &pi->sched_params->cl_rl[cp->tc_idx];
 		mtx_lock(&sc->tc_lock);
 		if (tc->state != CS_HW_CONFIGURED) {
-			CH_ERR(vi, "tid %d cannot be bound to traffic class %d "
+			CH_ERR(vi,
+			    "tid %d cannot be bound to traffic class %d "
 			    "because it is not configured (its state is %d)\n",
 			    toep->tid, cp->tc_idx, tc->state);
 			cp->tc_idx = -1;
@@ -315,8 +317,8 @@ release_offload_resources(struct toepcb *toep)
 	KASSERT(!(toep->flags & TPF_ATTACHED),
 	    ("%s: %p is still attached.", __func__, toep));
 
-	CTR5(KTR_CXGBE, "%s: toep %p (tid %d, l2te %p, ce %p)",
-	    __func__, toep, tid, toep->l2te, toep->ce);
+	CTR5(KTR_CXGBE, "%s: toep %p (tid %d, l2te %p, ce %p)", __func__, toep,
+	    tid, toep->l2te, toep->ce);
 
 	/*
 	 * These queues should have been emptied at approximately the same time
@@ -343,7 +345,8 @@ release_offload_resources(struct toepcb *toep)
 		t4_release_clip_entry(sc, toep->ce);
 
 	if (toep->params.tc_idx != -1)
-		t4_release_cl_rl(sc, toep->vi->pi->port_id, toep->params.tc_idx);
+		t4_release_cl_rl(sc, toep->vi->pi->port_id,
+		    toep->params.tc_idx);
 
 	mtx_lock(&td->toep_list_lock);
 	TAILQ_REMOVE(&td->toep_list, toep, link);
@@ -371,8 +374,7 @@ t4_pcb_detach(struct toedev *tod __unused, struct tcpcb *tp)
 	INP_WLOCK_ASSERT(inp);
 
 	KASSERT(toep != NULL, ("%s: toep is NULL", __func__));
-	KASSERT(toep->flags & TPF_ATTACHED,
-	    ("%s: not attached", __func__));
+	KASSERT(toep->flags & TPF_ATTACHED, ("%s: not attached", __func__));
 
 #ifdef KTR
 	if (tp->t_state == TCPS_SYN_SENT) {
@@ -458,7 +460,7 @@ get_tcb_field(const uint64_t *tcb, u_int word, uint32_t mask, u_int shift)
 #undef LAST_WORD
 }
 #define GET_TCB_FIELD(tcb, F) \
-    get_tcb_field(tcb, W_TCB_##F, M_TCB_##F, S_TCB_##F)
+	get_tcb_field(tcb, W_TCB_##F, M_TCB_##F, S_TCB_##F)
 
 /*
  * Issues a CPL_GET_TCB to read the entire TCB for the tid.
@@ -479,8 +481,8 @@ send_get_tcb(struct adapter *sc, u_int tid)
 	bzero(cpl, sizeof(*cpl));
 	INIT_TP_WR(cpl, tid);
 	OPCODE_TID(cpl) = htobe32(MK_OPCODE_TID(CPL_GET_TCB, tid));
-	cpl->reply_ctrl = htobe16(V_REPLY_CHAN(0) |
-	    V_QUEUENO(sc->sge.ofld_rxq[0].iq.cntxt_id));
+	cpl->reply_ctrl = htobe16(
+	    V_REPLY_CHAN(0) | V_QUEUENO(sc->sge.ofld_rxq[0].iq.cntxt_id));
 	cpl->cookie = 0xff;
 	commit_wrq_wr(&sc->sge.ctrlq[0], cpl, &cookie);
 
@@ -587,7 +589,7 @@ lookup_tcb_histent(struct adapter *sc, u_int tid, bool addrem)
 	te = td->tcb_history[tid];
 	if (te != NULL) {
 		mtx_lock(&te->te_lock);
-		return (te);	/* with both locks held */
+		return (te); /* with both locks held */
 	}
 	if (addrem)
 		rw_wunlock(&td->tcb_history_lock);
@@ -631,7 +633,8 @@ update_tcb_histent(struct tcb_histent *te, const uint64_t *tcb)
 	uint64_t tflags = get_tcb_tflags(tcb);
 	uint8_t sample = 0;
 
-	if (GET_TCB_FIELD(tcb, SND_MAX_RAW) != GET_TCB_FIELD(tcb, SND_UNA_RAW)) {
+	if (GET_TCB_FIELD(tcb, SND_MAX_RAW) !=
+	    GET_TCB_FIELD(tcb, SND_UNA_RAW)) {
 		if (GET_TCB_FIELD(tcb, T_RXTSHIFT) != 0)
 			sample |= TS_RTO;
 		if (GET_TCB_FIELD(tcb, T_DUPACKS) != 0)
@@ -643,13 +646,13 @@ update_tcb_histent(struct tcb_histent *te, const uint64_t *tcb)
 	if (GET_TCB_FIELD(tcb, SND_MAX_RAW) != 0) {
 		uint32_t snd_wnd;
 
-		sample |= TS_SND_BACKLOGGED;	/* for whatever reason. */
+		sample |= TS_SND_BACKLOGGED; /* for whatever reason. */
 
 		snd_wnd = GET_TCB_FIELD(tcb, RCV_ADV);
 		if (tflags & V_TF_RECV_SCALE(1))
 			snd_wnd <<= GET_TCB_FIELD(tcb, RCV_SCALE);
 		if (GET_TCB_FIELD(tcb, SND_CWND) < snd_wnd)
-			sample |= TS_CWND_LIMITED;	/* maybe due to CWND */
+			sample |= TS_CWND_LIMITED; /* maybe due to CWND */
 	}
 
 	if (tflags & V_TF_CCTRL_ECN(1)) {
@@ -692,10 +695,12 @@ do_get_tcb_rpl(struct sge_iq *iq, const struct rss_header *rss, struct mbuf *m)
 	te = lookup_tcb_histent(sc, tid, remove);
 	if (te == NULL) {
 		/* Not in the history.  Who issued the GET_TCB for this? */
-		device_printf(sc->dev, "tcb %u: flags 0x%016jx, state %u, "
-		    "srtt %u, sscale %u, rscale %u, cookie 0x%x\n", tid,
-		    (uintmax_t)get_tcb_tflags(tcb), GET_TCB_FIELD(tcb, T_STATE),
-		    GET_TCB_FIELD(tcb, T_SRTT), GET_TCB_FIELD(tcb, SND_SCALE),
+		device_printf(sc->dev,
+		    "tcb %u: flags 0x%016jx, state %u, "
+		    "srtt %u, sscale %u, rscale %u, cookie 0x%x\n",
+		    tid, (uintmax_t)get_tcb_tflags(tcb),
+		    GET_TCB_FIELD(tcb, T_STATE), GET_TCB_FIELD(tcb, T_SRTT),
+		    GET_TCB_FIELD(tcb, SND_SCALE),
 		    GET_TCB_FIELD(tcb, RCV_SCALE), cpl->cookie);
 		goto done;
 	}
@@ -739,17 +744,16 @@ fill_tcp_info_from_tcb(struct adapter *sc, uint64_t *tcb, struct tcp_info *ti)
 	ti->tcpi_snd_max = v - GET_TCB_FIELD(tcb, SND_MAX_RAW);
 
 	/* Receive window being advertised by us. */
-	ti->tcpi_rcv_wscale = GET_TCB_FIELD(tcb, SND_SCALE);	/* Yes, SND. */
+	ti->tcpi_rcv_wscale = GET_TCB_FIELD(tcb, SND_SCALE); /* Yes, SND. */
 	ti->tcpi_rcv_space = GET_TCB_FIELD(tcb, RCV_WND);
 
 	/* Send window */
-	ti->tcpi_snd_wscale = GET_TCB_FIELD(tcb, RCV_SCALE);	/* Yes, RCV. */
+	ti->tcpi_snd_wscale = GET_TCB_FIELD(tcb, RCV_SCALE); /* Yes, RCV. */
 	ti->tcpi_snd_wnd = GET_TCB_FIELD(tcb, RCV_ADV);
 	if (get_tcb_tflags(tcb) & V_TF_RECV_SCALE(1))
 		ti->tcpi_snd_wnd <<= ti->tcpi_snd_wscale;
 	else
 		ti->tcpi_snd_wscale = 0;
-
 }
 
 static void
@@ -840,12 +844,13 @@ t4_alloc_tls_session(struct toedev *tod, struct tcpcb *tp,
 #endif
 
 /* SET_TCB_FIELD sent as a ULP command looks like this */
-#define LEN__SET_TCB_FIELD_ULP (sizeof(struct ulp_txpkt) + \
-    sizeof(struct ulptx_idata) + sizeof(struct cpl_set_tcb_field_core))
+#define LEN__SET_TCB_FIELD_ULP                                   \
+	(sizeof(struct ulp_txpkt) + sizeof(struct ulptx_idata) + \
+	    sizeof(struct cpl_set_tcb_field_core))
 
 static void *
 mk_set_tcb_field_ulp(struct ulp_txpkt *ulpmc, uint64_t word, uint64_t mask,
-		uint64_t val, uint32_t tid)
+    uint64_t val, uint32_t tid)
 {
 	struct ulptx_idata *ulpsc;
 	struct cpl_set_tcb_field_core *req;
@@ -893,10 +898,10 @@ send_mss_flowc_wr(struct adapter *sc, struct toepcb *toep)
 		CH_ERR(sc, "ENOMEM in %s for tid %u.\n", __func__, toep->tid);
 		return;
 	}
-	flowc->op_to_nparams = htobe32(V_FW_WR_OP(FW_FLOWC_WR) |
-	    V_FW_FLOWC_WR_NPARAMS(1));
-	flowc->flowid_len16 = htonl(V_FW_WR_LEN16(flowclen16) |
-	    V_FW_WR_FLOWID(toep->tid));
+	flowc->op_to_nparams = htobe32(
+	    V_FW_WR_OP(FW_FLOWC_WR) | V_FW_FLOWC_WR_NPARAMS(1));
+	flowc->flowid_len16 = htonl(
+	    V_FW_WR_LEN16(flowclen16) | V_FW_WR_FLOWID(toep->tid));
 	flowc->mnemval[0].mnemonic = FW_FLOWC_MNEM_MSS;
 	flowc->mnemval[0].val = htobe32(toep->params.emss);
 
@@ -923,7 +928,7 @@ t4_pmtu_update(struct toedev *tod, struct tcpcb *tp, tcp_seq seq, int mtu)
 	unsigned short *mtus = &sc->params.mtus[0];
 
 	INP_WLOCK_ASSERT(inp);
-	MPASS(mtu > 0);	/* kernel is supposed to provide something usable. */
+	MPASS(mtu > 0); /* kernel is supposed to provide something usable. */
 
 	/* tp->snd_una and snd_max are in host byte order too. */
 	seq = be32toh(seq);
@@ -932,7 +937,7 @@ t4_pmtu_update(struct toedev *tod, struct tcpcb *tp, tcp_seq seq, int mtu)
 	    __func__, toep->tid, seq, mtu, toep->params.mtu_idx,
 	    mtus[toep->params.mtu_idx]);
 
-	if (ulp_mode(toep) == ULP_MODE_NONE &&	/* XXX: Read TCB otherwise? */
+	if (ulp_mode(toep) == ULP_MODE_NONE && /* XXX: Read TCB otherwise? */
 	    (SEQ_LT(seq, tp->snd_una) || SEQ_GEQ(seq, tp->snd_max))) {
 		CTR5(KTR_CXGBE,
 		    "%s: tid %d, seq 0x%08x not in range [0x%08x, 0x%08x).",
@@ -944,7 +949,7 @@ t4_pmtu_update(struct toedev *tod, struct tcpcb *tp, tcp_seq seq, int mtu)
 	for (idx = 0; idx < NMTUS - 1 && mtus[idx + 1] <= mtu; idx++)
 		continue;
 	if (idx >= toep->params.mtu_idx)
-		return;	/* Never increase the PMTU (just like the kernel). */
+		return; /* Never increase the PMTU (just like the kernel). */
 
 	/*
 	 * We'll send a compound work request with 2 SET_TCB_FIELDs -- the first
@@ -957,7 +962,7 @@ t4_pmtu_update(struct toedev *tod, struct tcpcb *tp, tcp_seq seq, int mtu)
 		    toep->tid, toep->params.mtu_idx, idx);
 		return;
 	}
-	INIT_ULPTX_WRH(wrh, len, 1, 0);	/* atomic */
+	INIT_ULPTX_WRH(wrh, len, 1, 0); /* atomic */
 	ulpmc = (struct ulp_txpkt *)(wrh + 1);
 	ulpmc = mk_set_tcb_field_ulp(ulpmc, W_TCB_T_MAXSEG,
 	    V_TCB_T_MAXSEG(M_TCB_T_MAXSEG), V_TCB_T_MAXSEG(idx), toep->tid);
@@ -981,7 +986,7 @@ t4_pmtu_update(struct toedev *tod, struct tcpcb *tp, tcp_seq seq, int mtu)
 
 	/* Update the MTU in the kernel's hostcache. */
 	if (sc->tt.update_hc_on_pmtu_change != 0) {
-		struct in_conninfo inc = {0};
+		struct in_conninfo inc = { 0 };
 
 		inc.inc_fibnum = inp->inp_inc.inc_fibnum;
 		if (inp->inp_inc.inc_flags & INC_ISIPV6) {
@@ -1013,8 +1018,8 @@ final_cpl_received(struct toepcb *toep)
 	KASSERT(toep->flags & TPF_CPL_PENDING,
 	    ("%s: CPL not pending already?", __func__));
 
-	CTR6(KTR_CXGBE, "%s: tid %d, toep %p (0x%x), inp %p (0x%x)",
-	    __func__, toep->tid, toep, toep->flags, inp, inp->inp_flags);
+	CTR6(KTR_CXGBE, "%s: tid %d, toep %p (0x%x), inp %p (0x%x)", __func__,
+	    toep->tid, toep, toep->flags, inp, inp->inp_flags);
 
 	if (ulp_mode(toep) == ULP_MODE_TCPDDP)
 		release_ddp_resources(toep);
@@ -1185,8 +1190,8 @@ calc_options2(struct vi_info *vi, struct conn_params *cp)
 		opt2 |= F_RX_FC_VALID | F_RX_COALESCE_VALID;
 		opt2 |= F_CONG_CNTRL_VALID | F_PACE_VALID;
 	} else {
-		opt2 |= F_T5_OPT_2_VALID;	/* all 4 valid */
-		opt2 |= F_T5_ISS;		/* ISS provided in CPL */
+		opt2 |= F_T5_OPT_2_VALID; /* all 4 valid */
+		opt2 |= F_T5_ISS;	  /* ISS provided in CPL */
 	}
 
 	MPASS(cp->sack == 0 || cp->sack == 1);
@@ -1246,8 +1251,9 @@ select_ntuple(struct vi_info *vi, struct l2t_entry *e)
 
 	if (tp->vnic_shift >= 0 && tp->vnic_mode == FW_VNIC_MODE_PF_VF) {
 		ntuple |= (uint64_t)(V_FT_VNID_ID_VF(vi->vin) |
-		    V_FT_VNID_ID_PF(sc->pf) | V_FT_VNID_ID_VLD(vi->vfvld)) <<
-		    tp->vnic_shift;
+			      V_FT_VNID_ID_PF(sc->pf) |
+			      V_FT_VNID_ID_VLD(vi->vfvld))
+		    << tp->vnic_shift;
 	}
 
 	if (is_t4(sc))
@@ -1260,7 +1266,7 @@ select_ntuple(struct vi_info *vi, struct l2t_entry *e)
  * Initialize various connection parameters.
  */
 void
-init_conn_params(struct vi_info *vi , struct offload_settings *s,
+init_conn_params(struct vi_info *vi, struct offload_settings *s,
     struct in_conninfo *inc, struct socket *so,
     const struct tcp_options *tcpopt, int16_t l2t_idx, struct conn_params *cp)
 {
@@ -1319,7 +1325,7 @@ init_conn_params(struct vi_info *vi , struct offload_settings *s,
 
 	/* Optimization that's specific to T5 @ 40G. */
 	if (tt->tx_align >= 0)
-		cp->tx_align =  tt->tx_align > 0 ? 1 : 0;
+		cp->tx_align = tt->tx_align > 0 ? 1 : 0;
 	else if (chip_id(sc) == CHELSIO_T5 &&
 	    (port_top_speed(pi) > 10 || sc->params.nports > 2))
 		cp->tx_align = 1;
@@ -1339,7 +1345,7 @@ init_conn_params(struct vi_info *vi , struct offload_settings *s,
 	else if (tt->rx_coalesce >= 0)
 		cp->rx_coalesce = tt->rx_coalesce > 0 ? 1 : 0;
 	else
-		cp->rx_coalesce = 1;	/* default */
+		cp->rx_coalesce = 1; /* default */
 
 	/*
 	 * Index in the PMTU table.  This controls the MSS that we announce in
@@ -1391,7 +1397,7 @@ init_conn_params(struct vi_info *vi , struct offload_settings *s,
 			cp->wscale = 0;
 
 		/* ECN */
-		if (tcpopt->ecn &&	/* XXX: review. */
+		if (tcpopt->ecn && /* XXX: review. */
 		    (s->ecn > 0 || (s->ecn < 0 && V_tcp_do_ecn)))
 			cp->ecn = 1;
 		else
@@ -1619,8 +1625,8 @@ prepare_pkt(int open_type, uint16_t vtag, struct inpcb *inp, int *pktlen,
 	char *pkt;
 	struct tcphdr *th;
 	int ipv6, len;
-	const int maxlen =
-	    max(sizeof(struct ether_header), sizeof(struct ether_vlan_header)) +
+	const int maxlen = max(sizeof(struct ether_header),
+			       sizeof(struct ether_vlan_header)) +
 	    max(sizeof(struct ip), sizeof(struct ip6_hdr)) +
 	    sizeof(struct tcphdr);
 
@@ -1692,10 +1698,10 @@ prepare_pkt(int open_type, uint16_t vtag, struct inpcb *inp, int *pktlen,
 
 	th = (void *)&pkt[len];
 	if (open_type == OPEN_TYPE_ACTIVE) {
-		th->th_sport = inp->inp_lport;	/* network byte order already */
-		th->th_dport = inp->inp_fport;	/* ditto */
+		th->th_sport = inp->inp_lport; /* network byte order already */
+		th->th_dport = inp->inp_fport; /* ditto */
 	} else if (open_type == OPEN_TYPE_LISTEN) {
-		th->th_sport = inp->inp_lport;	/* network byte order already */
+		th->th_sport = inp->inp_lport; /* network byte order already */
 		th->th_dport = th->th_sport;
 	}
 	len += sizeof(th);
@@ -1823,8 +1829,10 @@ reclaim_wr_resources(void *arg, int count)
 			free(wr, M_CXGBE);
 			break;
 		default:
-			log(LOG_ERR, "%s: leaked work request %p, wr_len %d, "
-			    "opcode %x\n", __func__, wr, wr->wr_len, opcode);
+			log(LOG_ERR,
+			    "%s: leaked work request %p, wr_len %d, "
+			    "opcode %x\n",
+			    __func__, wr, wr->wr_len, opcode);
 			/* WR not freed here; go look at it with a debugger.  */
 		}
 	}
@@ -1901,8 +1909,10 @@ t4_tom_activate(struct adapter *sc)
 #endif
 	tod->tod_pmtu_update = t4_pmtu_update;
 
-	for_each_port(sc, i) {
-		for_each_vi(sc->port[i], v, vi) {
+	for_each_port(sc, i)
+	{
+		for_each_vi(sc->port[i], v, vi)
+		{
 			SETTOEDEV(vi->ifp, &td->tod);
 		}
 	}
@@ -1925,13 +1935,13 @@ t4_tom_deactivate(struct adapter *sc)
 	ASSERT_SYNCHRONIZED_OP(sc);
 
 	if (td == NULL)
-		return (0);	/* XXX. KASSERT? */
+		return (0); /* XXX. KASSERT? */
 
 	if (sc->offload_map != 0)
-		return (EBUSY);	/* at least one port has IFCAP_TOE enabled */
+		return (EBUSY); /* at least one port has IFCAP_TOE enabled */
 
 	if (uld_active(sc, ULD_IWARP) || uld_active(sc, ULD_ISCSI))
-		return (EBUSY);	/* both iWARP and iSCSI rely on the TOE. */
+		return (EBUSY); /* both iWARP and iSCSI rely on the TOE. */
 
 	mtx_lock(&td->toep_list_lock);
 	if (!TAILQ_EMPTY(&td->toep_list))
@@ -2036,7 +2046,7 @@ t4_tom_mod_unload(void)
 
 	return (0);
 }
-#endif	/* TCP_OFFLOAD */
+#endif /* TCP_OFFLOAD */
 
 static int
 t4_tom_modevent(module_t mod, int cmd, void *arg)
@@ -2063,11 +2073,7 @@ t4_tom_modevent(module_t mod, int cmd, void *arg)
 	return (rc);
 }
 
-static moduledata_t t4_tom_moddata= {
-	"t4_tom",
-	t4_tom_modevent,
-	0
-};
+static moduledata_t t4_tom_moddata = { "t4_tom", t4_tom_modevent, 0 };
 
 MODULE_VERSION(t4_tom, 1);
 MODULE_DEPEND(t4_tom, toecore, 1, 1, 1);

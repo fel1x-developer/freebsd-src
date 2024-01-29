@@ -33,17 +33,12 @@
  */
 
 struct locdef {
-	int		catid;
-	const char	*catname;
-} locales[_LC_LAST] = {
-	{ LC_ALL,	"LC_ALL" },
-	{ LC_COLLATE,	"LC_COLLATE" },
-	{ LC_CTYPE,	"LC_CTYPE" },
-	{ LC_MONETARY,	"LC_MONETARY" },
-	{ LC_NUMERIC,	"LC_NUMERIC" },
-	{ LC_TIME,	"LC_TIME" },
-	{ LC_MESSAGES,	"LC_MESSAGES" }
-};
+	int catid;
+	const char *catname;
+} locales[_LC_LAST] = { { LC_ALL, "LC_ALL" }, { LC_COLLATE, "LC_COLLATE" },
+	{ LC_CTYPE, "LC_CTYPE" }, { LC_MONETARY, "LC_MONETARY" },
+	{ LC_NUMERIC, "LC_NUMERIC" }, { LC_TIME, "LC_TIME" },
+	{ LC_MESSAGES, "LC_MESSAGES" } };
 
 int
 main(int argc, char *argv[])

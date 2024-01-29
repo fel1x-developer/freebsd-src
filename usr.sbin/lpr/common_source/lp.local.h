@@ -34,34 +34,34 @@
 /*
  * Defaults for line printer capabilities data base
  */
-#define	DEFLP		"lp"
-#define DEFLOCK		"lock"
-#define DEFSTAT		"status"
-#define	DEFMX		0
-#define DEFMAXCOPIES	0
-#define DEFFF		"\f"
-#define DEFWIDTH	132
-#define DEFLENGTH	66
-#define DEFUID		1
-#define DEFTIMEOUT	120
+#define DEFLP "lp"
+#define DEFLOCK "lock"
+#define DEFSTAT "status"
+#define DEFMX 0
+#define DEFMAXCOPIES 0
+#define DEFFF "\f"
+#define DEFWIDTH 132
+#define DEFLENGTH 66
+#define DEFUID 1
+#define DEFTIMEOUT 120
 
 /*
  * When files are created in the spooling area, they are normally
  *   readable only by their owner and the spooling group.  If you
  *   want otherwise, change this mode.
  */
-#define FILMOD		0660
+#define FILMOD 0660
 
 /*
  * Printer is assumed to support LINELEN (for block chars)
  *   and background character (blank) is a space
  */
-#define LINELEN		132
-#define BACKGND		' '
+#define LINELEN 132
+#define BACKGND ' '
 
-#define HEIGHT	9		/* height of characters */
-#define WIDTH	8		/* width of characters */
-#define DROP	3		/* offset to drop characters with descenders */
+#define HEIGHT 9 /* height of characters */
+#define WIDTH 8	 /* width of characters */
+#define DROP 3	 /* offset to drop characters with descenders */
 
 /*
  * Define TERMCAP if the terminal capabilities are to be used for lpq.
@@ -71,5 +71,5 @@
 /*
  * Maximum number of user and job requests for lpq and lprm.
  */
-#define MAXUSERS	50
-#define MAXREQUESTS	50
+#define MAXUSERS 50
+#define MAXREQUESTS 50

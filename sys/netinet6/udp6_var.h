@@ -65,7 +65,7 @@
 #ifdef _KERNEL
 SYSCTL_DECL(_net_inet6_udp6);
 
-int	udp6_input(struct mbuf **, int *, int);
+int udp6_input(struct mbuf **, int *, int);
 #endif
 
 #endif /*_NETINET6_UDP6_VAR_H_*/

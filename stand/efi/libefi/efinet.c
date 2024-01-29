@@ -26,16 +26,16 @@
  */
 
 #include <sys/param.h>
+
 #include <net/ethernet.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 
-#include <stand.h>
-#include <net.h>
-#include <netif.h>
-
 #include <efi.h>
 #include <efilib.h>
+#include <net.h>
+#include <netif.h>
+#include <stand.h>
 
 #include "dev_net.h"
 
@@ -48,8 +48,7 @@ static int efinet_match(struct netif *, void *);
 static int efinet_probe(struct netif *, void *);
 static ssize_t efinet_put(struct iodesc *, void *, size_t);
 
-struct netif_driver efinetif = {   
-	.netif_bname = "efinet",
+struct netif_driver efinetif = { .netif_bname = "efinet",
 	.netif_match = efinet_match,
 	.netif_probe = efinet_probe,
 	.netif_init = efinet_init,
@@ -57,8 +56,7 @@ struct netif_driver efinetif = {
 	.netif_put = efinet_put,
 	.netif_end = efinet_end,
 	.netif_ifs = NULL,
-	.netif_nifs = 0
-};
+	.netif_nifs = 0 };
 
 #ifdef EFINET_DEBUG
 static void
@@ -101,7 +99,7 @@ efinet_match(struct netif *nif, void *machdep_hint)
 
 	if (dev->d_unit == nif->nif_unit)
 		return (1);
-	return(0);
+	return (0);
 }
 
 static int
@@ -117,12 +115,12 @@ efinet_probe(struct netif *nif, void *machdep_hint)
 	 * we will be racing with the UEFI network stack. It will
 	 * pull packets off the network leading to lost packets.
 	 */
-	status = BS->OpenProtocol(h, &sn_guid, (void **)&net,
-	    IH, NULL, EFI_OPEN_PROTOCOL_EXCLUSIVE);
+	status = BS->OpenProtocol(h, &sn_guid, (void **)&net, IH, NULL,
+	    EFI_OPEN_PROTOCOL_EXCLUSIVE);
 	if (status != EFI_SUCCESS) {
 		printf("Unable to open network interface %d for "
-		    "exclusive access: %lu\n", nif->nif_unit,
-		    EFI_ERROR_CODE(status));
+		       "exclusive access: %lu\n",
+		    nif->nif_unit, EFI_ERROR_CODE(status));
 		return (efi_status_to_errno(status));
 	}
 
@@ -147,10 +145,10 @@ efinet_put(struct iodesc *desc, void *pkt, size_t len)
 
 	/* Wait for the buffer to be transmitted */
 	do {
-		buf = NULL;	/* XXX Is this needed? */
+		buf = NULL; /* XXX Is this needed? */
 		status = net->GetStatus(net, NULL, &buf);
 		/*
-		 * XXX EFI1.1 and the E1000 card returns a different 
+		 * XXX EFI1.1 and the E1000 card returns a different
 		 * address than we gave.  Sigh.
 		 */
 	} while (status == EFI_SUCCESS && buf == NULL);
@@ -328,7 +326,7 @@ efinet_init(struct iodesc *desc, void *machdep_hint)
 static void
 efinet_end(struct netif *nif)
 {
-	EFI_SIMPLE_NETWORK *net = nif->nif_devdata; 
+	EFI_SIMPLE_NETWORK *net = nif->nif_devdata;
 
 	if (net == NULL)
 		return;
@@ -343,9 +341,9 @@ struct devsw efinet_dev = {
 	.dv_name = "net",
 	.dv_type = DEVT_NET,
 	.dv_init = efinet_dev_init,
-	.dv_strategy = NULL,		/* Will be set in efinet_dev_init */
-	.dv_open = NULL,		/* Will be set in efinet_dev_init */
-	.dv_close = NULL,		/* Will be set in efinet_dev_init */
+	.dv_strategy = NULL, /* Will be set in efinet_dev_init */
+	.dv_open = NULL,     /* Will be set in efinet_dev_init */
+	.dv_close = NULL,    /* Will be set in efinet_dev_init */
 	.dv_ioctl = noioctl,
 	.dv_print = efinet_dev_print,
 	.dv_cleanup = nullsys,
@@ -447,8 +445,8 @@ efinet_dev_print(int verbose)
 	if ((ret = pager_output("\n")) != 0)
 		return (ret);
 
-	for (unit = 0, h = efi_find_handle(&efinet_dev, 0);
-	    h != NULL; h = efi_find_handle(&efinet_dev, ++unit)) {
+	for (unit = 0, h = efi_find_handle(&efinet_dev, 0); h != NULL;
+	     h = efi_find_handle(&efinet_dev, ++unit)) {
 		printf("    %s%d:", efinet_dev.dv_name, unit);
 		if (verbose) {
 			text = efi_devpath_name(efi_lookup_devpath(h));

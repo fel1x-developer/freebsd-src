@@ -31,37 +31,41 @@
  */
 
 #include <sys/types.h>
+#include <sys/endian.h>
 #include <sys/socket.h>
 #include <sys/time.h>
-#include <sys/endian.h>
+
+#include <netgraph/bluetooth/include/ng_hci.h>
+
 #include <assert.h>
 #include <errno.h>
-#include <netgraph/bluetooth/include/ng_hci.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "hccontrol.h"
 
 /* Send HCI request to the unit */
 int
-hci_request(int s, int opcode, char const *cp, int cp_size, char *rp, int *rp_size)
+hci_request(int s, int opcode, char const *cp, int cp_size, char *rp,
+    int *rp_size)
 {
-	char			 buffer[512];
-	int			 n;
-	ng_hci_cmd_pkt_t	*c = (ng_hci_cmd_pkt_t *) buffer;
-	ng_hci_event_pkt_t	*e = (ng_hci_event_pkt_t *) buffer;
+	char buffer[512];
+	int n;
+	ng_hci_cmd_pkt_t *c = (ng_hci_cmd_pkt_t *)buffer;
+	ng_hci_event_pkt_t *e = (ng_hci_event_pkt_t *)buffer;
 
 	assert(rp != NULL);
 	assert(rp_size != NULL);
 	assert(*rp_size > 0);
 
 	c->type = NG_HCI_CMD_PKT;
-	c->opcode = (uint16_t) opcode;
+	c->opcode = (uint16_t)opcode;
 	c->opcode = htole16(c->opcode);
 
 	if (cp != NULL) {
 		assert(0 < cp_size && cp_size <= NG_HCI_CMD_PKT_SIZE);
 
-		c->length = (uint8_t) cp_size;
+		c->length = (uint8_t)cp_size;
 		memcpy(buffer + sizeof(*c), cp, cp_size);
 	} else
 		c->length = 0;
@@ -86,33 +90,33 @@ again:
 
 	switch (e->event) {
 	case NG_HCI_EVENT_COMMAND_COMPL: {
-		ng_hci_command_compl_ep	*cc = 
-				(ng_hci_command_compl_ep *)(e + 1);
+		ng_hci_command_compl_ep *cc = (ng_hci_command_compl_ep *)(e +
+		    1);
 
 		cc->opcode = le16toh(cc->opcode);
 
 		if (cc->opcode == 0x0000 || cc->opcode != opcode)
-			goto again; 
+			goto again;
 
 		n -= (sizeof(*e) + sizeof(*cc));
 		if (n < *rp_size)
 			*rp_size = n;
 
 		memcpy(rp, buffer + sizeof(*e) + sizeof(*cc), *rp_size);
-		} break;
+	} break;
 
 	case NG_HCI_EVENT_COMMAND_STATUS: {
-		ng_hci_command_status_ep	*cs = 
-				(ng_hci_command_status_ep *)(e + 1);
+		ng_hci_command_status_ep *cs = (ng_hci_command_status_ep *)(e +
+		    1);
 
 		cs->opcode = le16toh(cs->opcode);
 
 		if (cs->opcode == 0x0000 || cs->opcode != opcode)
-			goto again; 
+			goto again;
 
 		*rp_size = 1;
 		*rp = cs->status;
-		} break;
+	} break;
 
 	default:
 		goto again;
@@ -146,9 +150,9 @@ hci_send(int s, char const *buffer, int size)
 int
 hci_recv(int s, char *buffer, int *size)
 {
-	struct timeval	tv;
-	fd_set		rfd;
-	int		n;
+	struct timeval tv;
+	fd_set rfd;
+	int n;
 
 	assert(buffer != NULL);
 	assert(size != NULL);
@@ -182,4 +186,3 @@ again:
 
 	return (OK);
 } /* hci_recv */
-

@@ -30,67 +30,68 @@
  * SUCH DAMAGE.
  */
 
-#include "lp.cdefs.h"		/* A cross-platform version of <sys/cdefs.h> */
+#include "lp.cdefs.h" /* A cross-platform version of <sys/cdefs.h> */
 /*
  * lpc -- line printer control program -- commands:
  */
 
 #include <sys/param.h>
-#include <sys/time.h>
-#include <sys/stat.h>
 #include <sys/file.h>
+#include <sys/stat.h>
+#include <sys/time.h>
 
-#include <signal.h>
-#include <fcntl.h>
+#include <ctype.h>
+#include <dirent.h>
 #include <err.h>
 #include <errno.h>
-#include <dirent.h>
-#include <unistd.h>
-#include <stdlib.h>
+#include <fcntl.h>
+#include <signal.h>
 #include <stdio.h>
-#include <ctype.h>
+#include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+
+#include "extern.h"
 #include "lp.h"
 #include "lp.local.h"
 #include "lpc.h"
-#include "extern.h"
 #include "pathnames.h"
 
 /*
  * Return values from kill_qtask().
  */
-#define KQT_LFERROR	-2
-#define KQT_KILLFAIL	-1
-#define KQT_NODAEMON	0
-#define KQT_KILLOK	1
+#define KQT_LFERROR -2
+#define KQT_KILLFAIL -1
+#define KQT_NODAEMON 0
+#define KQT_KILLOK 1
 
-static char	*args2line(int argc, char **argv);
-static int	 doarg(char *_job);
-static int	 doselect(const struct dirent *_d);
-static int	 kill_qtask(const char *lf);
-static int	 sortq(const struct dirent **a, const struct dirent **b);
-static int	 touch(struct jobqueue *_jq);
-static void	 unlinkf(char *_name);
-static void	 upstat(struct printer *_pp, const char *_msg, int _notify);
-static void	 wrapup_clean(int _laststatus);
+static char *args2line(int argc, char **argv);
+static int doarg(char *_job);
+static int doselect(const struct dirent *_d);
+static int kill_qtask(const char *lf);
+static int sortq(const struct dirent **a, const struct dirent **b);
+static int touch(struct jobqueue *_jq);
+static void unlinkf(char *_name);
+static void upstat(struct printer *_pp, const char *_msg, int _notify);
+static void wrapup_clean(int _laststatus);
 
 /*
  * generic framework for commands which operate on all or a specified
  * set of printers
  */
-enum	qsel_val {			/* how a given ptr was selected */
-	QSEL_UNKNOWN = -1,		/* ... not selected yet */
-	QSEL_BYNAME = 0,		/* ... user specified it by name */
-	QSEL_ALL = 1			/* ... user wants "all" printers */
-					/*     (with more to come)    */
+enum qsel_val {		   /* how a given ptr was selected */
+	QSEL_UNKNOWN = -1, /* ... not selected yet */
+	QSEL_BYNAME = 0,   /* ... user specified it by name */
+	QSEL_ALL = 1	   /* ... user wants "all" printers */
+			   /*     (with more to come)    */
 };
 
-static enum qsel_val generic_qselect;	/* indicates how ptr was selected */
-static int generic_initerr;		/* result of initrtn processing */
+static enum qsel_val generic_qselect; /* indicates how ptr was selected */
+static int generic_initerr;	      /* result of initrtn processing */
 static char *generic_cmdname;
-static char *generic_msg;		/* if a -msg was specified */
+static char *generic_msg; /* if a -msg was specified */
 static char *generic_nullarg;
-static void (*generic_wrapup)(int _last_status);   /* perform rtn wrap-up */
+static void (*generic_wrapup)(int _last_status); /* perform rtn wrap-up */
 
 void
 generic(void (*specificrtn)(struct printer *_pp), int cmdopts,
@@ -154,7 +155,7 @@ generic(void (*specificrtn)(struct printer *_pp), int cmdopts,
 		}
 		if (argc < 1) {
 			printf("error: No printer name(s) specified before"
-			    " '-msg'.\n");
+			       " '-msg'.\n");
 			printf("usage: %s  {all | printer ...}",
 			    generic_cmdname);
 			printf(" [-msg <text> ...]\n");
@@ -196,12 +197,12 @@ generic(void (*specificrtn)(struct printer *_pp), int cmdopts,
 			(*specificrtn)(pp);
 			do {
 				more = nextprinter(pp, &cmdstatus);
-looperr:
+			looperr:
 				switch (cmdstatus) {
 				case PCAPERR_TCOPEN:
 					printf("warning: %s: unresolved "
 					       "tc= reference(s) ",
-					       pp->printer);
+					    pp->printer);
 				case PCAPERR_SUCCESS:
 					break;
 				default:
@@ -212,7 +213,7 @@ looperr:
 		goto wrapup;
 	}
 
-	generic_qselect = QSEL_BYNAME;		/* specifically-named ptrs */
+	generic_qselect = QSEL_BYNAME; /* specifically-named ptrs */
 	for (; argc > 0; argc--, argv++) {
 		init_printer(pp);
 		cmdstatus = getprintcap(*argv, pp);
@@ -224,7 +225,7 @@ looperr:
 			continue;
 		case PCAPERR_TCOPEN:
 			printf("warning: %s: unresolved tc= reference(s)\n",
-			       *argv);
+			    *argv);
 			break;
 		case PCAPERR_SUCCESS:
 			break;
@@ -255,7 +256,7 @@ args2line(int argc, char **argv)
 		return strdup("\n");
 
 	cp1 = buf;
-	cend = buf + sizeof(buf) - 1;		/* save room for '\0' */
+	cend = buf + sizeof(buf) - 1; /* save room for '\0' */
 	while (--argc >= 0) {
 		cp2 = *argv++;
 		while ((cp1 < cend) && (*cp1++ = *cp2++))
@@ -303,8 +304,8 @@ kill_qtask(const char *lf)
 	 *
 	 * XXX - not sure I understand the reasoning behind this...
 	 */
-	lockres = flock(fileno(fp), LOCK_SH|LOCK_NB);
-	(void) fclose(fp);
+	lockres = flock(fileno(fp), LOCK_SH | LOCK_NB);
+	(void)fclose(fp);
 	if (lockres == 0)
 		goto killdone;
 
@@ -336,8 +337,7 @@ kill_qtask(const char *lf)
 killdone:
 	switch (res) {
 	case KQT_LFERROR:
-		printf("\tcannot open lock file: %s\n",
-		    strerror(errsav));
+		printf("\tcannot open lock file: %s\n", strerror(errsav));
 		break;
 	case KQT_NODAEMON:
 		printf("\tno daemon to abort\n");
@@ -366,18 +366,18 @@ upstat(struct printer *pp, const char *msg, int notifyuser)
 	status_file_name(pp, statfile, sizeof statfile);
 	umask(0);
 	PRIV_START
-	fd = open(statfile, O_WRONLY|O_CREAT|O_EXLOCK, STAT_FILE_MODE);
+	fd = open(statfile, O_WRONLY | O_CREAT | O_EXLOCK, STAT_FILE_MODE);
 	PRIV_END
 	if (fd < 0) {
 		printf("\tcannot create status file: %s\n", strerror(errno));
 		return;
 	}
-	(void) ftruncate(fd, 0);
+	(void)ftruncate(fd, 0);
 	if (msg == NULL)
-		(void) write(fd, "\n", 1);
+		(void)write(fd, "\n", 1);
 	else
-		(void) write(fd, msg, strlen(msg));
-	(void) close(fd);
+		(void)write(fd, msg, strlen(msg));
+	(void)close(fd);
 	if (notifyuser) {
 		if ((msg == (char *)NULL) || (strcmp(msg, "\n") == 0))
 			printf("\tstatus message is now set to nothing.\n");
@@ -426,8 +426,7 @@ abort_q(struct printer *pp)
 		printf("\tassuming no daemon to abort\n");
 		break;
 	default:
-		printf("\t<unexpected result (%d) from set_qstate>\n",
-		    setres);
+		printf("\t<unexpected result (%d) from set_qstate>\n", setres);
 		break;
 	}
 
@@ -438,14 +437,14 @@ abort_q(struct printer *pp)
 /*
  * "global" variables for all the routines related to 'clean' and 'tclean'
  */
-static time_t	 cln_now;		/* current time */
-static double	 cln_minage;		/* minimum age before file is removed */
-static long	 cln_sizecnt;		/* amount of space freed up */
-static int 	 cln_debug;		/* print extra debugging msgs */
-static int	 cln_filecnt;		/* number of files destroyed */
-static int	 cln_foundcore;		/* found a core file! */
-static int	 cln_queuecnt;		/* number of queues checked */
-static int 	 cln_testonly;		/* remove-files vs just-print-info */
+static time_t cln_now;	  /* current time */
+static double cln_minage; /* minimum age before file is removed */
+static long cln_sizecnt;  /* amount of space freed up */
+static int cln_debug;	  /* print extra debugging msgs */
+static int cln_filecnt;	  /* number of files destroyed */
+static int cln_foundcore; /* found a core file! */
+static int cln_queuecnt;  /* number of queues checked */
+static int cln_testonly;  /* remove-files vs just-print-info */
 
 static int
 doselect(const struct dirent *d)
@@ -502,35 +501,36 @@ sortq(const struct dirent **a, const struct dirent **b)
 	 * position 4, but some implementations have that as an extra
 	 * file-sequence letter, and start the job number in position 5.]
 	 */
-#define MAP_TO_CAT(fname_X,cat_X,jnum_X,seq_X) do { \
-	cat_X = cat_other;    \
-	ch = *(fname_X + 2);  \
-	jnum_X = fname_X + 3; \
-	seq_X = 0;            \
-	if ((*(fname_X + 1) == 'f') && (isalpha(ch))) { \
-		seq_X = ch; \
-		if (*fname_X == 'c') \
-			cat_X = 1; \
-		else if (*fname_X == 'd') \
-			cat_X = 2; \
-		else if (*fname_X == 'r') \
-			cat_X = 3; \
-		else if (*fname_X == 't') \
-			cat_X = 4; \
-		if (cat_X != cat_other) { \
-			ch = *jnum_X; \
-			if (!isdigit(ch)) { \
-				if (isalpha(ch)) { \
-					jnum_X++; \
-					ch = *jnum_X; \
-					seq_X = (seq_X << 8) + ch; \
-				} \
-				if (!isdigit(ch)) \
-					cat_X = cat_other; \
-			} \
-		} \
-	} \
-} while (0)
+#define MAP_TO_CAT(fname_X, cat_X, jnum_X, seq_X)                          \
+	do {                                                               \
+		cat_X = cat_other;                                         \
+		ch = *(fname_X + 2);                                       \
+		jnum_X = fname_X + 3;                                      \
+		seq_X = 0;                                                 \
+		if ((*(fname_X + 1) == 'f') && (isalpha(ch))) {            \
+			seq_X = ch;                                        \
+			if (*fname_X == 'c')                               \
+				cat_X = 1;                                 \
+			else if (*fname_X == 'd')                          \
+				cat_X = 2;                                 \
+			else if (*fname_X == 'r')                          \
+				cat_X = 3;                                 \
+			else if (*fname_X == 't')                          \
+				cat_X = 4;                                 \
+			if (cat_X != cat_other) {                          \
+				ch = *jnum_X;                              \
+				if (!isdigit(ch)) {                        \
+					if (isalpha(ch)) {                 \
+						jnum_X++;                  \
+						ch = *jnum_X;              \
+						seq_X = (seq_X << 8) + ch; \
+					}                                  \
+					if (!isdigit(ch))                  \
+						cat_X = cat_other;         \
+				}                                          \
+			}                                                  \
+		}                                                          \
+	} while (0)
 
 	MAP_TO_CAT(fname_a, cat_a, jnum_a, seq_a);
 	MAP_TO_CAT(fname_b, cat_b, jnum_b, seq_b);
@@ -589,8 +589,8 @@ sortq(const struct dirent **a, const struct dirent **b)
 	 * can trigger other problems.
 	 */
 	printf("\t*** Error in sortq: %s == %s !\n", fname_a, fname_b);
-	printf("\t***       cat %d == %d ; seq = %d %d\n", cat_a, cat_b,
-	    seq_a, seq_b);
+	printf("\t***       cat %d == %d ; seq = %d %d\n", cat_a, cat_b, seq_a,
+	    seq_b);
 	res = 0;
 
 have_res:
@@ -610,7 +610,7 @@ clean_gi(int argc, char *argv[])
 	/* init some fields before 'clean' is called for each queue */
 	cln_queuecnt = 0;
 	cln_now = time(NULL);
-	cln_minage = 3600.0;		/* only delete files >1h old */
+	cln_minage = 3600.0; /* only delete files >1h old */
 	cln_filecnt = 0;
 	cln_sizecnt = 0;
 	cln_debug = 0;
@@ -624,7 +624,7 @@ clean_gi(int argc, char *argv[])
 		if (strcmp(*argv, "-d") == 0) {
 			/* just an example of an option... */
 			cln_debug++;
-			*argv = generic_nullarg;	/* "erase" it */
+			*argv = generic_nullarg; /* "erase" it */
 		} else {
 			printf("Invalid option '%s'\n", *argv);
 			generic_initerr = 1;
@@ -740,7 +740,8 @@ clean_q(struct printer *pp)
 		}
 		if (rmcp) {
 			if (strlen(cp) >= linerem) {
-				printf("\t** internal error: 'line' overflow!\n");
+				printf(
+				    "\t** internal error: 'line' overflow!\n");
 				printf("\t**   spooldir = %s\n", pp->spool_dir);
 				printf("\t**   cp = %s\n", cp);
 				return;
@@ -748,7 +749,7 @@ clean_q(struct printer *pp)
 			strlcpy(lp, cp, linerem);
 			unlinkf(line);
 		}
-     	} while (++i < nitems);
+	} while (++i < nitems);
 }
 
 static void
@@ -763,9 +764,9 @@ wrapup_clean(int laststatus __unused)
 	if (cln_testonly) {
 		printf("would have ");
 	}
-	printf("removed %d files (%ld bytes).\n", cln_filecnt, cln_sizecnt);	
+	printf("removed %d files (%ld bytes).\n", cln_filecnt, cln_sizecnt);
 }
- 
+
 static void
 unlinkf(char *name)
 {
@@ -790,11 +791,11 @@ unlinkf(char *name)
 	}
 
 	agemod = difftime(cln_now, stbuf.st_mtime);
-	agestat = difftime(cln_now,  stbuf.st_ctime);
+	agestat = difftime(cln_now, stbuf.st_ctime);
 	if (cln_debug > 1) {
 		/* this debugging-aid probably is not needed any more... */
-		printf("\t\t  modify age=%g secs, stat age=%g secs\n",
-		    agemod, agestat);
+		printf("\t\t  modify age=%g secs, stat age=%g secs\n", agemod,
+		    agestat);
 	}
 	if ((agemod <= cln_minage) && (agestat <= cln_minage))
 		return;
@@ -846,7 +847,7 @@ unlinkf(char *name)
 		 *  being printed.  This may effect services such as CAP or
 		 *  samba, if they were configured to use 'lpr -r', and if
 		 *  datafiles are not being properly removed.
-		*/
+		 */
 		if (S_ISLNK(stbuf.st_mode)) {
 			printf("\t    (which was a symlink to %s)\n", linkbuf);
 		}
@@ -904,7 +905,7 @@ down_gi(int argc, char *argv[])
 	/*
 	 * If the user only gave one parameter, then use a default msg.
 	 * (if argc == 1 at this point, then *argv == name of printer).
-	 */ 
+	 */
 	if (argc == 1) {
 		generic_msg = strdup("printing disabled\n");
 		return;
@@ -920,7 +921,7 @@ down_gi(int argc, char *argv[])
 	argv++;
 	generic_msg = args2line(argc, argv);
 	for (; argc > 0; argc--, argv++)
-		*argv = generic_nullarg;	/* "erase" it */
+		*argv = generic_nullarg; /* "erase" it */
 }
 
 void
@@ -932,7 +933,7 @@ down_q(struct printer *pp)
 	lock_file_name(pp, lf, sizeof lf);
 	printf("%s:\n", pp->printer);
 
-	setres = set_qstate(SQS_DISABLEQ+SQS_STOPP, lf);
+	setres = set_qstate(SQS_DISABLEQ + SQS_STOPP, lf);
 	if (setres >= 0)
 		upstat(pp, generic_msg, 1);
 }
@@ -986,7 +987,8 @@ setstatus_gi(int argc __unused, char *argv[] __unused)
 {
 
 	if (generic_msg == NULL) {
-		printf("You must specify '-msg' before the text of the new status message.\n");
+		printf(
+		    "You must specify '-msg' before the text of the new status message.\n");
 		generic_initerr = 1;
 	}
 }
@@ -1060,11 +1062,9 @@ status(struct printer *pp)
 	lock_file_name(pp, file, sizeof file);
 	if (stat(file, &stbuf) >= 0) {
 		printf("\tqueuing is %s\n",
-		       ((stbuf.st_mode & LFM_QUEUE_DIS) ? "disabled"
-			: "enabled"));
+		    ((stbuf.st_mode & LFM_QUEUE_DIS) ? "disabled" : "enabled"));
 		printf("\tprinting is %s\n",
-		       ((stbuf.st_mode & LFM_PRINT_DIS) ? "disabled"
-			: "enabled"));
+		    ((stbuf.st_mode & LFM_PRINT_DIS) ? "disabled" : "enabled"));
 	} else {
 		printf("\tqueuing is enabled\n");
 		printf("\tprinting is enabled\n");
@@ -1086,23 +1086,23 @@ status(struct printer *pp)
 	else
 		printf("\t%d entries in spool area\n", i);
 	fd = open(file, O_RDONLY);
-	if (fd < 0 || flock(fd, LOCK_SH|LOCK_NB) == 0) {
-		(void) close(fd);	/* unlocks as well */
+	if (fd < 0 || flock(fd, LOCK_SH | LOCK_NB) == 0) {
+		(void)close(fd); /* unlocks as well */
 		printf("\tprinter idle\n");
 		return;
 	}
-	(void) close(fd);
+	(void)close(fd);
 	/* print out the contents of the status file, if it exists */
 	status_file_name(pp, file, sizeof file);
-	fd = open(file, O_RDONLY|O_SHLOCK);
+	fd = open(file, O_RDONLY | O_SHLOCK);
 	if (fd >= 0) {
-		(void) fstat(fd, &stbuf);
+		(void)fstat(fd, &stbuf);
 		if (stbuf.st_size > 0) {
 			putchar('\t');
 			while ((i = read(fd, line, sizeof(line))) > 0)
-				(void) fwrite(line, 1, i, stdout);
+				(void)fwrite(line, 1, i, stdout);
 		}
-		(void) close(fd);	/* unlocks as well */
+		(void)close(fd); /* unlocks as well */
 	}
 }
 
@@ -1125,9 +1125,9 @@ stop_q(struct printer *pp)
 		upstat(pp, "printing disabled\n", 0);
 }
 
-struct	jobqueue **queue;
-int	nitems;
-time_t	mtime;
+struct jobqueue **queue;
+int nitems;
+time_t mtime;
 
 /*
  * Put the specified jobs at the top of printer queue.
@@ -1149,7 +1149,7 @@ topq(int argc, char *argv[])
 	++argv;
 	init_printer(pp);
 	cmdstatus = getprintcap(*argv, pp);
-	switch(cmdstatus) {
+	switch (cmdstatus) {
 	default:
 		fatal(pp, "%s", pcaperr(cmdstatus));
 	case PCAPERR_NOTFOUND:
@@ -1174,7 +1174,7 @@ topq(int argc, char *argv[])
 		return;
 	changed = 0;
 	mtime = queue[0]->job_time;
-	for (i = argc; --i; ) {
+	for (i = argc; --i;) {
 		if (doarg(argv[i]) == 0) {
 			printf("\tjob %s is not in the queue\n", argv[i]);
 			continue;
@@ -1194,11 +1194,11 @@ topq(int argc, char *argv[])
 	 */
 	PRIV_START
 	if (changed && stat(pp->lock_file, &stbuf) >= 0)
-		(void) chmod(pp->lock_file, stbuf.st_mode | LFM_RESET_QUE);
+		(void)chmod(pp->lock_file, stbuf.st_mode | LFM_RESET_QUE);
 
 out:
 	PRIV_END
-} 
+}
 
 /*
  * Reposition the job by changing the modification time of
@@ -1232,8 +1232,8 @@ doarg(char *job)
 	FILE *fp;
 
 	/*
-	 * Look for a job item consisting of system name, colon, number 
-	 * (example: ucbarpa:114)  
+	 * Look for a job item consisting of system name, colon, number
+	 * (example: ucbarpa:114)
 	 */
 	if ((cp = strchr(job, ':')) != NULL) {
 		machine = job;
@@ -1250,9 +1250,9 @@ doarg(char *job)
 		do
 			jobnum = jobnum * 10 + (*job++ - '0');
 		while (isdigit(*job));
-		for (qq = queue + nitems; --qq >= queue; ) {
+		for (qq = queue + nitems; --qq >= queue;) {
 			n = 0;
-			for (cp = (*qq)->job_cfname+3; isdigit(*cp); )
+			for (cp = (*qq)->job_cfname + 3; isdigit(*cp);)
 				n = n * 10 + (*cp++ - '0');
 			if (jobnum != n)
 				continue;
@@ -1265,12 +1265,12 @@ doarg(char *job)
 				cnt++;
 			}
 		}
-		return(cnt);
+		return (cnt);
 	}
 	/*
 	 * Process item consisting of owner's name (example: henry).
 	 */
-	for (qq = queue + nitems; --qq >= queue; ) {
+	for (qq = queue + nitems; --qq >= queue;) {
 		PRIV_START
 		fp = fopen((*qq)->job_cfname, "r");
 		PRIV_END
@@ -1279,15 +1279,15 @@ doarg(char *job)
 		while (get_line(fp) > 0)
 			if (line[0] == 'P')
 				break;
-		(void) fclose(fp);
-		if (line[0] != 'P' || strcmp(job, line+1) != 0)
+		(void)fclose(fp);
+		if (line[0] != 'P' || strcmp(job, line + 1) != 0)
 			continue;
 		if (touch(*qq) == 0) {
 			printf("\tmoved %s\n", (*qq)->job_cfname);
 			cnt++;
 		}
 	}
-	return(cnt);
+	return (cnt);
 }
 
 /*
@@ -1302,7 +1302,7 @@ up_q(struct printer *pp)
 	lock_file_name(pp, lf, sizeof lf);
 	printf("%s:\n", pp->printer);
 
-	setres = set_qstate(SQS_ENABLEQ+SQS_STARTP, lf);
+	setres = set_qstate(SQS_ENABLEQ + SQS_STARTP, lf);
 
 	PRIV_START
 	startok = startdaemon(pp);

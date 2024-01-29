@@ -75,18 +75,16 @@ verifiedexecioctl(struct cdev *dev __unused, u_long cmd, caddr_t data,
 	 * permission to access to device node.
 	 */
 	switch (cmd) {
-	case VERIEXEC_GETSTATE:
-		{
-			int *ip = (int *)data;
+	case VERIEXEC_GETSTATE: {
+		int *ip = (int *)data;
 
-			if (ip)
-				*ip = mac_veriexec_get_state();
-			else
-			    error = EINVAL;
+		if (ip)
+			*ip = mac_veriexec_get_state();
+		else
+			error = EINVAL;
 
-			return (error);
-		}
-		break;
+		return (error);
+	} break;
 	default:
 		break;
 	}
@@ -128,11 +126,11 @@ verifiedexecioctl(struct cdev *dev __unused, u_long cmd, caddr_t data,
 		mtx_lock(&ve_mutex);
 		{
 			int *ip = (int *)data;
-			
+
 			mac_veriexec_debug++;
 			if (ip) {
 				if (*ip > 0)
-					mac_veriexec_debug = *ip;	
+					mac_veriexec_debug = *ip;
 				*ip = mac_veriexec_debug;
 			}
 		}
@@ -144,30 +142,28 @@ verifiedexecioctl(struct cdev *dev __unused, u_long cmd, caddr_t data,
 	case VERIEXEC_ENFORCE:
 		mtx_lock(&ve_mutex);
 		if (mac_veriexec_in_state(VERIEXEC_STATE_LOADED))
-			mac_veriexec_set_state(VERIEXEC_STATE_ACTIVE |
-			    VERIEXEC_STATE_ENFORCE);
+			mac_veriexec_set_state(
+			    VERIEXEC_STATE_ACTIVE | VERIEXEC_STATE_ENFORCE);
 		else
 			error = EINVAL;
 		mtx_unlock(&ve_mutex);
 		break;
-	case VERIEXEC_GETVERSION:
-		{
-			int *ip = (int *)data;
+	case VERIEXEC_GETVERSION: {
+		int *ip = (int *)data;
 
-			if (ip)
-				*ip = MAC_VERIEXEC_VERSION;
-			else
-				error = EINVAL;
-		}
-		break;
+		if (ip)
+			*ip = MAC_VERIEXEC_VERSION;
+		else
+			error = EINVAL;
+	} break;
 	case VERIEXEC_LOCK:
 		mtx_lock(&ve_mutex);
 		mac_veriexec_set_state(VERIEXEC_STATE_LOCKED);
 		mtx_unlock(&ve_mutex);
 		break;
 	case VERIEXEC_LOAD:
-	    	if (prison0.pr_securelevel > 0)
-			return (EPERM);	/* no updates when secure */
+		if (prison0.pr_securelevel > 0)
+			return (EPERM); /* no updates when secure */
 
 		/* FALLTHROUGH */
 	case VERIEXEC_LABEL_LOAD:
@@ -177,7 +173,7 @@ verifiedexecioctl(struct cdev *dev __unused, u_long cmd, caddr_t data,
 		 * digitally signed hash list - which it verifies.
 		 * We can load fingerprints provided veriexec is not locked.
 		 */
-	    	if (prison0.pr_securelevel > 0 &&
+		if (prison0.pr_securelevel > 0 &&
 		    !mac_veriexec_in_state(VERIEXEC_STATE_LOADED)) {
 			/*
 			 * If securelevel has been raised and we
@@ -195,7 +191,8 @@ verifiedexecioctl(struct cdev *dev __unused, u_long cmd, caddr_t data,
 
 			if (params->flags & VERIEXEC_LABEL) {
 				labellen = strnlen(lparams->label,
-				    MAXLABELLEN) + 1;
+					       MAXLABELLEN) +
+				    1;
 				if (labellen > MAXLABELLEN)
 					return (EINVAL);
 			}
@@ -209,7 +206,8 @@ verifiedexecioctl(struct cdev *dev __unused, u_long cmd, caddr_t data,
 			/*
 			 * FreeBSD seems to copy the args to kernel space
 			 */
-			NDINIT(&nid, LOOKUP, FOLLOW, UIO_SYSSPACE, params->file);
+			NDINIT(&nid, LOOKUP, FOLLOW, UIO_SYSSPACE,
+			    params->file);
 			if ((error = vn_open(&nid, &flags, 0, NULL)) != 0)
 				return (error);
 
@@ -218,7 +216,7 @@ verifiedexecioctl(struct cdev *dev __unused, u_long cmd, caddr_t data,
 				mac_veriexec_set_fingerprint_status(nid.ni_vp,
 				    FINGERPRINT_INVALID);
 				VOP_UNLOCK(nid.ni_vp);
-				(void) vn_close(nid.ni_vp, FREAD, td->td_ucred,
+				(void)vn_close(nid.ni_vp, FREAD, td->td_ucred,
 				    td);
 				return (error);
 			}
@@ -228,7 +226,7 @@ verifiedexecioctl(struct cdev *dev __unused, u_long cmd, caddr_t data,
 				 * someone may be playing games.
 				 */
 				if ((nid.ni_vp->v_mount->mnt_flag &
-				    MNT_VERIFIED) != 0)
+					MNT_VERIFIED) != 0)
 					override = 0;
 			}
 
@@ -240,16 +238,16 @@ verifiedexecioctl(struct cdev *dev __unused, u_long cmd, caddr_t data,
 			mac_veriexec_set_fingerprint_status(nid.ni_vp,
 			    FINGERPRINT_INVALID);
 			VOP_UNLOCK(nid.ni_vp);
-			(void) vn_close(nid.ni_vp, FREAD, td->td_ucred, td);
+			(void)vn_close(nid.ni_vp, FREAD, td->td_ucred, td);
 
 			mtx_lock(&ve_mutex);
 			error = mac_veriexec_metadata_add_file(
 			    ((params->flags & VERIEXEC_FILE) != 0),
 			    vattr.va_fsid, vattr.va_fileid, vattr.va_gen,
 			    params->fingerprint,
-			    (params->flags & VERIEXEC_LABEL) ?
-			    lparams->label : NULL, labellen,
-			    params->flags, params->fp_type, override);
+			    (params->flags & VERIEXEC_LABEL) ? lparams->label :
+							       NULL,
+			    labellen, params->flags, params->fp_type, override);
 
 			mac_veriexec_set_state(VERIEXEC_STATE_LOADED);
 			mtx_unlock(&ve_mutex);
@@ -262,9 +260,9 @@ verifiedexecioctl(struct cdev *dev __unused, u_long cmd, caddr_t data,
 }
 
 struct cdevsw veriexec_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_ioctl =	verifiedexecioctl,
-	.d_name =	"veriexec",
+	.d_version = D_VERSION,
+	.d_ioctl = verifiedexecioctl,
+	.d_name = "veriexec",
 };
 
 static void

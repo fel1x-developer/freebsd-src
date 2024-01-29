@@ -5,18 +5,18 @@
  *
  * Copyright (c) 2001, MagniComp
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
- * 1. Redistributions of source code must retain the above copyright 
+ * 1. Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright 
- *    notice, this list of conditions and the following disclaimer in 
- *    the documentation and/or other materials provided with the distribution. 
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the distribution.
  * 3. Neither the name of the MagniComp nor the names of its contributors may
  *    be used to endorse or promote products derived from this software
- *    without specific prior written permission. 
+ *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -35,12 +35,11 @@
  * Chris Siebenmann <cks@utcc.utoronto.ca>.
  */
 
-#include "namespace.h"
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
-#include <arpa/inet.h>
 
+#include <arpa/inet.h>
 #include <errno.h>
 #include <netdb.h>
 #include <paths.h>
@@ -48,6 +47,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+
+#include "namespace.h"
 #include "un-namespace.h"
 
 /*
@@ -88,7 +89,7 @@ rcmdsh(char **ahost, int rport, const char *locuser, const char *remuser,
 		error = getaddrinfo(*ahost, num, &hints, &res);
 		if (error) {
 			fprintf(stderr, "rcmdsh: getaddrinfo: %s\n",
-				gai_strerror(error));
+			    gai_strerror(error));
 			return (-1);
 		}
 		if (res->ai_canonname) {
@@ -152,8 +153,8 @@ rcmdsh(char **ahost, int rport, const char *locuser, const char *remuser,
 			execlp(rshprog, p ? p + 1 : rshprog, *ahost, "-l",
 			    remuser, cmd, (char *)NULL);
 		}
-		(void)fprintf(stderr, "rcmdsh: execlp %s failed: %s\n",
-		    rshprog, strerror(errno));
+		(void)fprintf(stderr, "rcmdsh: execlp %s failed: %s\n", rshprog,
+		    strerror(errno));
 		_exit(255);
 	} else {
 		/* Parent. close sp[1], return sp[0]. */

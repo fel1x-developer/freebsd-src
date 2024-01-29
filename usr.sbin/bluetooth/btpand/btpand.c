@@ -27,7 +27,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #include <sys/wait.h>
 
 #define L2CAP_SOCKET_CHECKED
@@ -36,8 +35,8 @@
 #include <fcntl.h>
 #include <paths.h>
 #include <sdp.h>
-#include <stdio.h>
 #include <signal.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -45,26 +44,26 @@
 #include "btpand.h"
 
 /* global variables */
-const char *	control_path;		/* -c <path> */
-const char *	interface_name;		/* -i <ifname> */
-const char *	service_name;		/* -s <service> */
-uint16_t	service_class;
+const char *control_path;   /* -c <path> */
+const char *interface_name; /* -i <ifname> */
+const char *service_name;   /* -s <service> */
+uint16_t service_class;
 
-bdaddr_t	local_bdaddr;		/* -d <addr> */
-bdaddr_t	remote_bdaddr;		/* -a <addr> */
-uint16_t	l2cap_psm;		/* -p <psm> */
-int		l2cap_mode;		/* -m <mode> */
+bdaddr_t local_bdaddr;	/* -d <addr> */
+bdaddr_t remote_bdaddr; /* -a <addr> */
+uint16_t l2cap_psm;	/* -p <psm> */
+int l2cap_mode;		/* -m <mode> */
 
-int		server_limit;		/* -n <limit> */
+int server_limit; /* -n <limit> */
 
 static const struct {
-	const char *	name;
-	uint16_t	class;
-	const char *	desc;
+	const char *name;
+	uint16_t class;
+	const char *desc;
 } services[] = {
 	{ "PANU", SDP_SERVICE_CLASS_PANU, "Personal Area Networking User" },
-	{ "NAP",  SDP_SERVICE_CLASS_NAP,  "Network Access Point"		  },
-	{ "GN",	  SDP_SERVICE_CLASS_GN,   "Group Network"		  },
+	{ "NAP", SDP_SERVICE_CLASS_NAP, "Network Access Point" },
+	{ "GN", SDP_SERVICE_CLASS_GN, "Group Network" },
 };
 
 static void main_exit(int) __dead2;
@@ -74,22 +73,22 @@ static void usage(void) __dead2;
 int
 main(int argc, char *argv[])
 {
-	unsigned long	ul;
-	char *		ep;
-	int		ch, status;
+	unsigned long ul;
+	char *ep;
+	int ch, status;
 
 	while ((ch = getopt(argc, argv, "a:c:d:i:l:m:p:S:s:")) != -1) {
 		switch (ch) {
 		case 'a': /* remote address */
 			if (!bt_aton(optarg, &remote_bdaddr)) {
-				struct hostent  *he;
+				struct hostent *he;
 
 				if ((he = bt_gethostbyname(optarg)) == NULL)
-					errx(EXIT_FAILURE, "%s: %s",
-					    optarg, hstrerror(h_errno));
+					errx(EXIT_FAILURE, "%s: %s", optarg,
+					    hstrerror(h_errno));
 
 				bdaddr_copy(&remote_bdaddr,
-					(bdaddr_t *)he->h_addr);
+				    (bdaddr_t *)he->h_addr);
 			}
 
 			break;
@@ -100,14 +99,14 @@ main(int argc, char *argv[])
 
 		case 'd': /* local address */
 			if (!bt_devaddr(optarg, &local_bdaddr)) {
-				struct hostent  *he;
+				struct hostent *he;
 
 				if ((he = bt_gethostbyname(optarg)) == NULL)
-					errx(EXIT_FAILURE, "%s: %s",
-					    optarg, hstrerror(h_errno));
+					errx(EXIT_FAILURE, "%s: %s", optarg,
+					    hstrerror(h_errno));
 
 				bdaddr_copy(&local_bdaddr,
-					(bdaddr_t *)he->h_addr);
+				    (bdaddr_t *)he->h_addr);
 			}
 			break;
 
@@ -123,7 +122,7 @@ main(int argc, char *argv[])
 			ul = strtoul(optarg, &ep, 10);
 			if (*optarg == '\0' || *ep != '\0' || ul == 0)
 				errx(EXIT_FAILURE, "%s: invalid session limit",
-					optarg);
+				    optarg);
 
 			server_limit = ul;
 			break;
@@ -134,8 +133,8 @@ main(int argc, char *argv[])
 
 		case 'p': /* protocol/service multiplexer */
 			ul = strtoul(optarg, &ep, 0);
-			if (*optarg == '\0' || *ep != '\0'
-			    || ul > 0xffff || L2CAP_PSM_INVALID(ul))
+			if (*optarg == '\0' || *ep != '\0' || ul > 0xffff ||
+			    L2CAP_PSM_INVALID(ul))
 				errx(EXIT_FAILURE, "%s: invalid PSM", optarg);
 
 			l2cap_psm = ul;
@@ -143,9 +142,11 @@ main(int argc, char *argv[])
 
 		case 's': /* service */
 		case 'S': /* service (no SDP) */
-			for (ul = 0; strcasecmp(optarg, services[ul].name); ul++) {
+			for (ul = 0; strcasecmp(optarg, services[ul].name);
+			     ul++) {
 				if (ul == __arraycount(services))
-					errx(EXIT_FAILURE, "%s: unknown service", optarg);
+					errx(EXIT_FAILURE,
+					    "%s: unknown service", optarg);
 			}
 
 			if (ch == 's')
@@ -167,8 +168,9 @@ main(int argc, char *argv[])
 	if (bdaddr_any(&local_bdaddr) || service_class == 0)
 		usage();
 
-	if (!bdaddr_any(&remote_bdaddr) && (server_limit != 0 ||
-	    control_path != NULL || (service_name != NULL && l2cap_psm != 0)))
+	if (!bdaddr_any(&remote_bdaddr) &&
+	    (server_limit != 0 || control_path != NULL ||
+		(service_name != NULL && l2cap_psm != 0)))
 		usage();
 
 	/* default options */
@@ -195,14 +197,15 @@ main(int argc, char *argv[])
 	 * (as kqueue is not inherited) but block in the parent until the
 	 * setup is finished so we can return an error if necessary.
 	 */
-	switch(fork()) {
+	switch (fork()) {
 	case -1: /* bad */
 		err(EXIT_FAILURE, "fork() failed");
 
-	case 0:	/* child */
+	case 0: /* child */
 		signal(SIGPIPE, SIG_IGN);
 
-		openlog(getprogname(), LOG_NDELAY | LOG_PERROR | LOG_PID, LOG_DAEMON);
+		openlog(getprogname(), LOG_NDELAY | LOG_PERROR | LOG_PID,
+		    LOG_DAEMON);
 
 		channel_init();
 		server_init();
@@ -282,10 +285,12 @@ usage(void)
 	    "\t-s service  service name\n"
 	    "\n"
 	    "Known services:\n"
-	    "", p, n, "", p, n, "");
+	    "",
+	    p, n, "", p, n, "");
 
 	for (n = 0; n < __arraycount(services); n++)
-		fprintf(stderr, "\t%s\t%s\n", services[n].name, services[n].desc);
+		fprintf(stderr, "\t%s\t%s\n", services[n].name,
+		    services[n].desc);
 
 	exit(EXIT_FAILURE);
 }

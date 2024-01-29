@@ -26,40 +26,40 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
 #include <sys/param.h>
 #include <sys/disk.h>
-#include <sys/stat.h>
 #include <sys/endian.h>
-#include <sys/socket.h>
 #include <sys/linker.h>
 #include <sys/module.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+
 #include <arpa/inet.h>
-#include <signal.h>
 #include <err.h>
 #include <errno.h>
-#include <string.h>
-#include <strings.h>
+#include <fcntl.h>
+#include <geom/gate/g_gate.h>
 #include <libgen.h>
+#include <libgeom.h>
 #include <libutil.h>
 #include <netdb.h>
-#include <syslog.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <stdint.h>
-#include <libgeom.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+#include <syslog.h>
+#include <unistd.h>
 
-#include <geom/gate/g_gate.h>
 #include "ggate.h"
-
 
 int g_gate_devfd = -1;
 int g_gate_verbose = 0;
-
 
 void
 g_gate_vlog(int priority, const char *message, va_list ap)
@@ -229,8 +229,8 @@ g_gate_load_module(void)
  * size of packets send from ggatec to 32kB by defining MAX_SEND_SIZE
  * in ggatec Makefile.
  */
-#ifndef	MAX_SEND_SIZE
-#define	MAX_SEND_SIZE	MAXPHYS
+#ifndef MAX_SEND_SIZE
+#define MAX_SEND_SIZE MAXPHYS
 #endif
 ssize_t
 g_gate_send(int s, const void *buf, size_t len, int flags)
@@ -282,7 +282,7 @@ g_gate_socket_settings(int sfd)
 	on = 1;
 	if (nagle) {
 		if (setsockopt(sfd, IPPROTO_TCP, TCP_NODELAY, &on,
-		    sizeof(on)) == -1) {
+			sizeof(on)) == -1) {
 			g_gate_xlog("setsockopt() error: %s.", strerror(errno));
 		}
 	}
@@ -312,7 +312,7 @@ find_class(struct gmesh *mesh, const char *name)
 {
 	struct gclass *class;
 
-	LIST_FOREACH(class, &mesh->lg_class, lg_class) {
+	LIST_FOREACH (class, &mesh->lg_class, lg_class) {
 		if (strcmp(class->lg_name, name) == 0)
 			return (class);
 	}
@@ -324,7 +324,7 @@ get_conf(struct ggeom *gp, const char *name)
 {
 	struct gconfig *conf;
 
-	LIST_FOREACH(conf, &gp->lg_config, lg_config) {
+	LIST_FOREACH (conf, &gp->lg_config, lg_config) {
 		if (strcmp(conf->lg_name, name) == 0)
 			return (conf->lg_val);
 	}
@@ -380,7 +380,7 @@ g_gate_list(int unit, int verbose)
 		snprintf(name, sizeof(name), "%s%d", G_GATE_PROVIDER_NAME,
 		    unit);
 	}
-	LIST_FOREACH(gp, &class->lg_geom, lg_geom) {
+	LIST_FOREACH (gp, &class->lg_geom, lg_geom) {
 		if (unit != -1 && strcmp(gp->lg_name, name) != 0)
 			continue;
 		show_config(gp, verbose);
@@ -388,7 +388,7 @@ g_gate_list(int unit, int verbose)
 	geom_deletetree(&mesh);
 	exit(EXIT_SUCCESS);
 }
-#endif	/* LIBGEOM */
+#endif /* LIBGEOM */
 
 in_addr_t
 g_gate_str2ip(const char *str)

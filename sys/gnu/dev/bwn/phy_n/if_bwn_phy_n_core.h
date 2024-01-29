@@ -28,8 +28,8 @@
 /*
  */
 
-#ifndef	__IF_BWN_PHY_N_CORE_H__
-#define	__IF_BWN_PHY_N_CORE_H__
+#ifndef __IF_BWN_PHY_N_CORE_H__
+#define __IF_BWN_PHY_N_CORE_H__
 
 struct bwn_mac;
 
@@ -165,17 +165,21 @@ struct bwn_phy_n {
 	bool noisevars_adjusted;
 };
 
-extern	bwn_txpwr_result_t bwn_nphy_op_recalc_txpower(struct bwn_mac *mac, bool ignore_tssi);
-extern	int bwn_nphy_op_allocate(struct bwn_mac *mac);
-extern	int bwn_nphy_op_prepare_structs(struct bwn_mac *mac);
-extern	void bwn_nphy_op_free(struct bwn_mac *mac);
-extern	int bwn_nphy_op_init(struct bwn_mac *mac);
-extern	void bwn_nphy_op_maskset(struct bwn_mac *mac, uint16_t reg, uint16_t mask, uint16_t set);
-extern	uint16_t bwn_nphy_op_radio_read(struct bwn_mac *mac, uint16_t reg);
-extern	void bwn_nphy_op_radio_write(struct bwn_mac *mac, uint16_t reg, uint16_t value);
-extern	void bwn_nphy_op_software_rfkill(struct bwn_mac *mac, bool blocked);
-extern	void bwn_nphy_op_switch_analog(struct bwn_mac *mac, bool on);
-extern	int bwn_nphy_op_switch_channel(struct bwn_mac *mac, unsigned int new_channel);
-extern	unsigned int bwn_nphy_op_get_default_chan(struct bwn_mac *mac);
+extern bwn_txpwr_result_t bwn_nphy_op_recalc_txpower(struct bwn_mac *mac,
+    bool ignore_tssi);
+extern int bwn_nphy_op_allocate(struct bwn_mac *mac);
+extern int bwn_nphy_op_prepare_structs(struct bwn_mac *mac);
+extern void bwn_nphy_op_free(struct bwn_mac *mac);
+extern int bwn_nphy_op_init(struct bwn_mac *mac);
+extern void bwn_nphy_op_maskset(struct bwn_mac *mac, uint16_t reg,
+    uint16_t mask, uint16_t set);
+extern uint16_t bwn_nphy_op_radio_read(struct bwn_mac *mac, uint16_t reg);
+extern void bwn_nphy_op_radio_write(struct bwn_mac *mac, uint16_t reg,
+    uint16_t value);
+extern void bwn_nphy_op_software_rfkill(struct bwn_mac *mac, bool blocked);
+extern void bwn_nphy_op_switch_analog(struct bwn_mac *mac, bool on);
+extern int bwn_nphy_op_switch_channel(struct bwn_mac *mac,
+    unsigned int new_channel);
+extern unsigned int bwn_nphy_op_get_default_chan(struct bwn_mac *mac);
 
-#endif	/* __IF_BWN_PHY_N_CORE_H__ */
+#endif /* __IF_BWN_PHY_N_CORE_H__ */

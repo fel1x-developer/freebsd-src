@@ -26,38 +26,38 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_SECURITY_MAC_GRANTBYLABEL_H
-#define	_SECURITY_MAC_GRANTBYLABEL_H
+#ifndef _SECURITY_MAC_GRANTBYLABEL_H
+#define _SECURITY_MAC_GRANTBYLABEL_H
 
 #include <security/mac_veriexec/mac_veriexec.h>
 
-#define	MAC_GRANTBYLABEL_NAME	"mac_grantbylabel"
+#define MAC_GRANTBYLABEL_NAME "mac_grantbylabel"
 
 /* the bits we use to represent tokens */
-#define GBL_EMPTY	(1<<0)
-#define GBL_BIND	(1<<1)
-#define GBL_IPC		(1<<2)
-#define GBL_NET		(1<<3)
-#define GBL_PROC	(1<<4)
-#define GBL_RTSOCK	(1<<5)
-#define GBL_SYSCTL	(1<<6)
-#define GBL_VACCESS	(1<<7)
-#define GBL_VERIEXEC	(1<<8)
-#define GBL_KMEM	(1<<9)
-#define GBL_MAX		9
+#define GBL_EMPTY (1 << 0)
+#define GBL_BIND (1 << 1)
+#define GBL_IPC (1 << 2)
+#define GBL_NET (1 << 3)
+#define GBL_PROC (1 << 4)
+#define GBL_RTSOCK (1 << 5)
+#define GBL_SYSCTL (1 << 6)
+#define GBL_VACCESS (1 << 7)
+#define GBL_VERIEXEC (1 << 8)
+#define GBL_KMEM (1 << 9)
+#define GBL_MAX 9
 
 /* this should suffice for now */
-typedef uint32_t	gbl_label_t;
+typedef uint32_t gbl_label_t;
 
-#define MAC_GRANTBYLABEL_FETCH_GBL	1
-#define MAC_GRANTBYLABEL_FETCH_PID_GBL	2
+#define MAC_GRANTBYLABEL_FETCH_GBL 1
+#define MAC_GRANTBYLABEL_FETCH_PID_GBL 2
 
 struct mac_grantbylabel_fetch_gbl_args {
 	union {
-		int	fd;
-		pid_t	pid;
+		int fd;
+		pid_t pid;
 	} u;
-	gbl_label_t	gbl;
+	gbl_label_t gbl;
 };
 
 #endif

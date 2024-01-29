@@ -13,12 +13,11 @@
 #include <sys/user.h>
 #include <sys/wait.h>
 
+#include <atf-c.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <atf-c.h>
 
 /*
  * These tests exercise the KERN_PROC_* sysctls.
@@ -153,7 +152,7 @@ ATF_TC_BODY(sysctl_kern_proc_filedesc, tc)
 	sz = 0;
 	ATF_REQUIRE(sysctl(mib, 4, NULL, &sz, NULL, 0) == 0);
 	ATF_REQUIRE(sz >= __offsetof(struct kinfo_file, kf_structsize) +
-	    sizeof(kfile->kf_structsize));
+		sizeof(kfile->kf_structsize));
 
 	buf = malloc(sz);
 	ATF_REQUIRE(buf != NULL);

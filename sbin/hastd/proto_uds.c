@@ -46,16 +46,16 @@
 #include "pjdlog.h"
 #include "proto_impl.h"
 
-#define	UDS_CTX_MAGIC	0xd541c
+#define UDS_CTX_MAGIC 0xd541c
 struct uds_ctx {
-	int			uc_magic;
-	struct sockaddr_un	uc_sun;
-	int			uc_fd;
-	int			uc_side;
-#define	UDS_SIDE_CLIENT		0
-#define	UDS_SIDE_SERVER_LISTEN	1
-#define	UDS_SIDE_SERVER_WORK	2
-	pid_t			uc_owner;
+	int uc_magic;
+	struct sockaddr_un uc_sun;
+	int uc_fd;
+	int uc_side;
+#define UDS_SIDE_CLIENT 0
+#define UDS_SIDE_SERVER_LISTEN 1
+#define UDS_SIDE_SERVER_WORK 2
+	pid_t uc_owner;
 };
 
 static void uds_close(void *ctx);
@@ -71,9 +71,9 @@ uds_addr(const char *addr, struct sockaddr_un *sunp)
 		addr += 6;
 	else if (strncasecmp(addr, "unix://", 7) == 0)
 		addr += 7;
-	else if (addr[0] == '/' &&	/* If it starts from /... */
-	    strstr(addr, "://") == NULL)/* ...and there is no prefix... */
-		;			/* ...we assume its us. */
+	else if (addr[0] == '/' &&	 /* If it starts from /... */
+	    strstr(addr, "://") == NULL) /* ...and there is no prefix... */
+		;			 /* ...we assume its us. */
 	else
 		return (-1);
 
@@ -144,7 +144,7 @@ uds_connect(void *ctx, int timeout)
 	PJDLOG_ASSERT(timeout >= -1);
 
 	if (connect(uctx->uc_fd, (struct sockaddr *)&uctx->uc_sun,
-	    sizeof(uctx->uc_sun)) == -1) {
+		sizeof(uctx->uc_sun)) == -1) {
 		return (errno);
 	}
 
@@ -179,7 +179,7 @@ uds_server(const char *addr, void **ctxp)
 
 	(void)unlink(uctx->uc_sun.sun_path);
 	if (bind(uctx->uc_fd, (struct sockaddr *)&uctx->uc_sun,
-	    sizeof(uctx->uc_sun)) == -1) {
+		sizeof(uctx->uc_sun)) == -1) {
 		ret = errno;
 		uds_close(uctx);
 		return (ret);
@@ -283,7 +283,8 @@ uds_local_address(const void *ctx, char *addr, size_t size)
 		PJDLOG_VERIFY(strlcpy(addr, "N/A", size) < size);
 		return;
 	}
-	PJDLOG_VERIFY(snprintf(addr, size, "uds://%s", sun.sun_path) < (ssize_t)size);
+	PJDLOG_VERIFY(
+	    snprintf(addr, size, "uds://%s", sun.sun_path) < (ssize_t)size);
 }
 
 static void
@@ -338,8 +339,7 @@ uds_close(void *ctx)
 	free(uctx);
 }
 
-static struct proto uds_proto = {
-	.prt_name = "uds",
+static struct proto uds_proto = { .prt_name = "uds",
 	.prt_client = uds_client,
 	.prt_connect = uds_connect,
 	.prt_connect_wait = uds_connect_wait,
@@ -350,8 +350,7 @@ static struct proto uds_proto = {
 	.prt_descriptor = uds_descriptor,
 	.prt_local_address = uds_local_address,
 	.prt_remote_address = uds_remote_address,
-	.prt_close = uds_close
-};
+	.prt_close = uds_close };
 
 static __constructor void
 uds_ctor(void)

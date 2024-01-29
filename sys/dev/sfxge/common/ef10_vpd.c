@@ -29,6 +29,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "efx.h"
 #include "efx_impl.h"
 
@@ -38,9 +39,8 @@
 
 #include "ef10_tlv_layout.h"
 
-	__checkReturn		efx_rc_t
-ef10_vpd_init(
-	__in			efx_nic_t *enp)
+__checkReturn efx_rc_t
+ef10_vpd_init(__in efx_nic_t *enp)
 {
 	caddr_t svpd;
 	size_t svpd_size;
@@ -67,8 +67,7 @@ ef10_vpd_init(
 	 */
 	svpd = NULL;
 	svpd_size = 0;
-	rc = ef10_nvram_partn_read_tlv(enp,
-	    NVRAM_PARTITION_TYPE_STATIC_CONFIG,
+	rc = ef10_nvram_partn_read_tlv(enp, NVRAM_PARTITION_TYPE_STATIC_CONFIG,
 	    tag, &svpd, &svpd_size);
 	if (rc != 0) {
 		if (rc == EACCES) {
@@ -99,10 +98,8 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-ef10_vpd_size(
-	__in			efx_nic_t *enp,
-	__out			size_t *sizep)
+__checkReturn efx_rc_t
+ef10_vpd_size(__in efx_nic_t *enp, __out size_t *sizep)
 {
 	efx_rc_t rc;
 
@@ -117,7 +114,7 @@ ef10_vpd_size(
 	 * which is the size of the DYNAMIC_CONFIG partition.
 	 */
 	if ((rc = efx_mcdi_nvram_info(enp, NVRAM_PARTITION_TYPE_DYNAMIC_CONFIG,
-		    sizep, NULL, NULL, NULL)) != 0)
+		 sizep, NULL, NULL, NULL)) != 0)
 		goto fail1;
 
 	return (0);
@@ -128,11 +125,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-ef10_vpd_read(
-	__in			efx_nic_t *enp,
-	__out_bcount(size)	caddr_t data,
-	__in			size_t size)
+__checkReturn efx_rc_t
+ef10_vpd_read(__in efx_nic_t *enp, __out_bcount(size) caddr_t data,
+    __in size_t size)
 {
 	caddr_t dvpd;
 	size_t dvpd_size;
@@ -152,8 +147,8 @@ ef10_vpd_read(
 	}
 
 	if ((rc = ef10_nvram_partn_read_tlv(enp,
-		    NVRAM_PARTITION_TYPE_DYNAMIC_CONFIG,
-		    tag, &dvpd, &dvpd_size)) != 0)
+		 NVRAM_PARTITION_TYPE_DYNAMIC_CONFIG, tag, &dvpd,
+		 &dvpd_size)) != 0)
 		goto fail1;
 
 	if (dvpd_size > size) {
@@ -182,11 +177,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-ef10_vpd_verify(
-	__in			efx_nic_t *enp,
-	__in_bcount(size)	caddr_t data,
-	__in			size_t size)
+__checkReturn efx_rc_t
+ef10_vpd_verify(__in efx_nic_t *enp, __in_bcount(size) caddr_t data,
+    __in size_t size)
 {
 	efx_vpd_tag_t stag;
 	efx_vpd_tag_t dtag;
@@ -219,8 +212,8 @@ ef10_vpd_verify(
 	dcont = 0;
 	_NOTE(CONSTANTCONDITION)
 	while (1) {
-		if ((rc = efx_vpd_hunk_next(data, size, &dtag,
-		    &dkey, NULL, NULL, &dcont)) != 0)
+		if ((rc = efx_vpd_hunk_next(data, size, &dtag, &dkey, NULL,
+			 NULL, &dcont)) != 0)
 			goto fail2;
 		if (dcont == 0)
 			break;
@@ -235,10 +228,9 @@ ef10_vpd_verify(
 		scont = 0;
 		_NOTE(CONSTANTCONDITION)
 		while (1) {
-			if ((rc = efx_vpd_hunk_next(
-			    enp->en_arch.ef10.ena_svpd,
-			    enp->en_arch.ef10.ena_svpd_length, &stag, &skey,
-			    NULL, NULL, &scont)) != 0)
+			if ((rc = efx_vpd_hunk_next(enp->en_arch.ef10.ena_svpd,
+				 enp->en_arch.ef10.ena_svpd_length, &stag,
+				 &skey, NULL, NULL, &scont)) != 0)
 				goto fail3;
 			if (scont == 0)
 				break;
@@ -265,11 +257,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-ef10_vpd_reinit(
-	__in			efx_nic_t *enp,
-	__in_bcount(size)	caddr_t data,
-	__in			size_t size)
+__checkReturn efx_rc_t
+ef10_vpd_reinit(__in efx_nic_t *enp, __in_bcount(size) caddr_t data,
+    __in size_t size)
 {
 	boolean_t wantpid;
 	efx_rc_t rc;
@@ -284,8 +274,8 @@ ef10_vpd_reinit(
 		uint8_t length;
 
 		rc = efx_vpd_hunk_get(enp->en_arch.ef10.ena_svpd,
-				    enp->en_arch.ef10.ena_svpd_length,
-				    EFX_VPD_ID, 0, &offset, &length);
+		    enp->en_arch.ef10.ena_svpd_length, EFX_VPD_ID, 0, &offset,
+		    &length);
 		if (rc == 0)
 			wantpid = B_FALSE;
 		else if (rc == ENOENT)
@@ -307,12 +297,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-ef10_vpd_get(
-	__in			efx_nic_t *enp,
-	__in_bcount(size)	caddr_t data,
-	__in			size_t size,
-	__inout			efx_vpd_value_t *evvp)
+__checkReturn efx_rc_t
+ef10_vpd_get(__in efx_nic_t *enp, __in_bcount(size) caddr_t data,
+    __in size_t size, __inout efx_vpd_value_t *evvp)
 {
 	unsigned int offset;
 	uint8_t length;
@@ -325,8 +312,8 @@ ef10_vpd_get(
 	/* Attempt to satisfy the request from svpd first */
 	if (enp->en_arch.ef10.ena_svpd_length > 0) {
 		if ((rc = efx_vpd_hunk_get(enp->en_arch.ef10.ena_svpd,
-		    enp->en_arch.ef10.ena_svpd_length, evvp->evv_tag,
-		    evvp->evv_keyword, &offset, &length)) == 0) {
+			 enp->en_arch.ef10.ena_svpd_length, evvp->evv_tag,
+			 evvp->evv_keyword, &offset, &length)) == 0) {
 			evvp->evv_length = length;
 			memcpy(evvp->evv_value,
 			    enp->en_arch.ef10.ena_svpd + offset, length);
@@ -336,8 +323,8 @@ ef10_vpd_get(
 	}
 
 	/* And then from the provided data buffer */
-	if ((rc = efx_vpd_hunk_get(data, size, evvp->evv_tag,
-	    evvp->evv_keyword, &offset, &length)) != 0) {
+	if ((rc = efx_vpd_hunk_get(data, size, evvp->evv_tag, evvp->evv_keyword,
+		 &offset, &length)) != 0) {
 		if (rc == ENOENT)
 			return (rc);
 		goto fail2;
@@ -356,12 +343,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-ef10_vpd_set(
-	__in			efx_nic_t *enp,
-	__in_bcount(size)	caddr_t data,
-	__in			size_t size,
-	__in			efx_vpd_value_t *evvp)
+__checkReturn efx_rc_t
+ef10_vpd_set(__in efx_nic_t *enp, __in_bcount(size) caddr_t data,
+    __in size_t size, __in efx_vpd_value_t *evvp)
 {
 	efx_rc_t rc;
 
@@ -375,8 +359,8 @@ ef10_vpd_set(
 		uint8_t length;
 
 		if ((rc = efx_vpd_hunk_get(enp->en_arch.ef10.ena_svpd,
-		    enp->en_arch.ef10.ena_svpd_length, evvp->evv_tag,
-		    evvp->evv_keyword, &offset, &length)) == 0) {
+			 enp->en_arch.ef10.ena_svpd_length, evvp->evv_tag,
+			 evvp->evv_keyword, &offset, &length)) == 0) {
 			rc = EACCES;
 			goto fail1;
 		}
@@ -395,24 +379,18 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-ef10_vpd_next(
-	__in			efx_nic_t *enp,
-	__in_bcount(size)	caddr_t data,
-	__in			size_t size,
-	__out			efx_vpd_value_t *evvp,
-	__inout			unsigned int *contp)
+__checkReturn efx_rc_t
+ef10_vpd_next(__in efx_nic_t *enp, __in_bcount(size) caddr_t data,
+    __in size_t size, __out efx_vpd_value_t *evvp, __inout unsigned int *contp)
 {
 	_NOTE(ARGUNUSED(enp, data, size, evvp, contp))
 
 	return (ENOTSUP);
 }
 
-	__checkReturn		efx_rc_t
-ef10_vpd_write(
-	__in			efx_nic_t *enp,
-	__in_bcount(size)	caddr_t data,
-	__in			size_t size)
+__checkReturn efx_rc_t
+ef10_vpd_write(__in efx_nic_t *enp, __in_bcount(size) caddr_t data,
+    __in size_t size)
 {
 	size_t vpd_length;
 	uint32_t pci_pf;
@@ -436,8 +414,8 @@ ef10_vpd_write(
 
 	/* Store new dynamic VPD in all segments in DYNAMIC_CONFIG partition */
 	if ((rc = ef10_nvram_partn_write_segment_tlv(enp,
-		    NVRAM_PARTITION_TYPE_DYNAMIC_CONFIG,
-		    tag, data, vpd_length, B_TRUE)) != 0) {
+		 NVRAM_PARTITION_TYPE_DYNAMIC_CONFIG, tag, data, vpd_length,
+		 B_TRUE)) != 0) {
 		goto fail2;
 	}
 
@@ -452,9 +430,8 @@ fail1:
 	return (rc);
 }
 
-				void
-ef10_vpd_fini(
-	__in			efx_nic_t *enp)
+void
+ef10_vpd_fini(__in efx_nic_t *enp)
 {
 	EFSYS_ASSERT(enp->en_family == EFX_FAMILY_HUNTINGTON ||
 	    enp->en_family == EFX_FAMILY_MEDFORD ||
@@ -462,13 +439,13 @@ ef10_vpd_fini(
 
 	if (enp->en_arch.ef10.ena_svpd_length > 0) {
 		EFSYS_KMEM_FREE(enp->en_esip, enp->en_arch.ef10.ena_svpd_length,
-				enp->en_arch.ef10.ena_svpd);
+		    enp->en_arch.ef10.ena_svpd);
 
 		enp->en_arch.ef10.ena_svpd = NULL;
 		enp->en_arch.ef10.ena_svpd_length = 0;
 	}
 }
 
-#endif	/* EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2 */
+#endif /* EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2 */
 
-#endif	/* EFSYS_OPT_VPD */
+#endif /* EFSYS_OPT_VPD */

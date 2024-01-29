@@ -32,31 +32,33 @@
 
 #include <sys/queue.h>
 #define L2CAP_SOCKET_CHECKED
-#include <bluetooth.h>
 #include <dev/usb/usb.h>
 #include <dev/usb/usbhid.h>
+
+#include <bluetooth.h>
 #include <stdio.h>
 #include <string.h>
 #include <usbhid.h>
+
 #include "bthid_config.h"
 #include "bthidcontrol.h"
 
 extern uint32_t verbose;
 
-static void hid_dump_descriptor	(report_desc_t r);
-static void hid_dump_item	(char const *label, struct hid_item *h);
+static void hid_dump_descriptor(report_desc_t r);
+static void hid_dump_item(char const *label, struct hid_item *h);
 
 static int
 hid_dump(bdaddr_t *bdaddr, int argc, char **argv)
 {
-	struct hid_device	*hd = NULL;
-	int			 e = FAILED;
+	struct hid_device *hd = NULL;
+	int e = FAILED;
 
 	if (read_config_file() == 0) {
 		if ((hd = get_hid_device(bdaddr)) != NULL) {
 			hid_dump_descriptor(hd->desc);
 			e = OK;
-		} 
+		}
 
 		clean_config();
 	}
@@ -67,8 +69,8 @@ hid_dump(bdaddr_t *bdaddr, int argc, char **argv)
 static int
 hid_forget(bdaddr_t *bdaddr, int argc, char **argv)
 {
-	struct hid_device	*hd = NULL;
-	int			 e = FAILED;
+	struct hid_device *hd = NULL;
+	int e = FAILED;
 
 	if (read_config_file() == 0) {
 		if (read_hids_file() == 0) {
@@ -88,28 +90,27 @@ hid_forget(bdaddr_t *bdaddr, int argc, char **argv)
 static int
 hid_known(bdaddr_t *bdaddr, int argc, char **argv)
 {
-	struct hid_device	*hd = NULL;
-	struct hostent		*he = NULL;
-	int			 e = FAILED;
+	struct hid_device *hd = NULL;
+	struct hostent *he = NULL;
+	int e = FAILED;
 
 	if (read_config_file() == 0) {
 		if (read_hids_file() == 0) {
 			e = OK;
 
-			for (hd = get_next_hid_device(hd);
-			     hd != NULL;
+			for (hd = get_next_hid_device(hd); hd != NULL;
 			     hd = get_next_hid_device(hd)) {
 				if (hd->new_device)
 					continue;
 
-				he = bt_gethostbyaddr((char *) &hd->bdaddr,
-						sizeof(hd->bdaddr),
-						AF_BLUETOOTH);
+				he = bt_gethostbyaddr((char *)&hd->bdaddr,
+				    sizeof(hd->bdaddr), AF_BLUETOOTH);
 
-				fprintf(stdout,
-"%s %s\n",				bt_ntoa(&hd->bdaddr, NULL),
-					(he != NULL && he->h_name != NULL)?
-						he->h_name : "");
+				fprintf(stdout, "%s %s\n",
+				    bt_ntoa(&hd->bdaddr, NULL),
+				    (he != NULL && he->h_name != NULL) ?
+					he->h_name :
+					"");
 			}
 		}
 
@@ -122,15 +123,15 @@ hid_known(bdaddr_t *bdaddr, int argc, char **argv)
 static void
 hid_dump_descriptor(report_desc_t r)
 {
-	struct hid_data	*d = NULL;
-	struct hid_item	 h;
+	struct hid_data *d = NULL;
+	struct hid_item h;
 
-	for (d = hid_start_parse(r, ~0, -1); hid_get_item(d, &h); ) {
+	for (d = hid_start_parse(r, ~0, -1); hid_get_item(d, &h);) {
 		switch (h.kind) {
 		case hid_collection:
-			fprintf(stdout,
-"Collection page=%s usage=%s\n", hid_usage_page(HID_PAGE(h.usage)),
-				 hid_usage_in_page(h.usage));
+			fprintf(stdout, "Collection page=%s usage=%s\n",
+			    hid_usage_page(HID_PAGE(h.usage)),
+			    hid_usage_in_page(h.usage));
 			break;
 
 		case hid_endcollection:
@@ -161,56 +162,45 @@ hid_dump_item(char const *label, struct hid_item *h)
 		return;
 
 	fprintf(stdout,
-"%s id=%u size=%u count=%u page=%s usage=%s%s%s%s%s%s%s%s%s%s",
-		label, (uint8_t) h->report_ID, h->report_size, h->report_count,
-		hid_usage_page(HID_PAGE(h->usage)),
-		hid_usage_in_page(h->usage),
-		h->flags & HIO_CONST ? " Const" : "",
-		h->flags & HIO_VARIABLE ? " Variable" : "",
-		h->flags & HIO_RELATIVE ? " Relative" : "",
-		h->flags & HIO_WRAP ? " Wrap" : "",
-		h->flags & HIO_NONLINEAR ? " NonLinear" : "",
-		h->flags & HIO_NOPREF ? " NoPref" : "",
-		h->flags & HIO_NULLSTATE ? " NullState" : "",
-		h->flags & HIO_VOLATILE ? " Volatile" : "",
-		h->flags & HIO_BUFBYTES ? " BufBytes" : "");
+	    "%s id=%u size=%u count=%u page=%s usage=%s%s%s%s%s%s%s%s%s%s",
+	    label, (uint8_t)h->report_ID, h->report_size, h->report_count,
+	    hid_usage_page(HID_PAGE(h->usage)), hid_usage_in_page(h->usage),
+	    h->flags & HIO_CONST ? " Const" : "",
+	    h->flags & HIO_VARIABLE ? " Variable" : "",
+	    h->flags & HIO_RELATIVE ? " Relative" : "",
+	    h->flags & HIO_WRAP ? " Wrap" : "",
+	    h->flags & HIO_NONLINEAR ? " NonLinear" : "",
+	    h->flags & HIO_NOPREF ? " NoPref" : "",
+	    h->flags & HIO_NULLSTATE ? " NullState" : "",
+	    h->flags & HIO_VOLATILE ? " Volatile" : "",
+	    h->flags & HIO_BUFBYTES ? " BufBytes" : "");
 
-	fprintf(stdout,
-", logical range %d..%d",
-		h->logical_minimum, h->logical_maximum);
+	fprintf(stdout, ", logical range %d..%d", h->logical_minimum,
+	    h->logical_maximum);
 
 	if (h->physical_minimum != h->physical_maximum)
-		fprintf(stdout,
-", physical range %d..%d",
-			h->physical_minimum, h->physical_maximum);
+		fprintf(stdout, ", physical range %d..%d", h->physical_minimum,
+		    h->physical_maximum);
 
 	if (h->unit)
-		fprintf(stdout,
-", unit=0x%02x exp=%d", h->unit, h->unit_exponent);
+		fprintf(stdout, ", unit=0x%02x exp=%d", h->unit,
+		    h->unit_exponent);
 
 	fprintf(stdout, "\n");
 }
 
-struct bthid_command	hid_commands[] = {
-{
-"Dump",
-"Dump HID descriptor for the specified device in human readable form. The\n" \
-"device must have an entry in the Bluetooth HID daemon configuration file.\n",
-hid_dump
-},
-{
-"Known",
-"List all known to the Bluetooth HID daemon devices.\n",
-hid_known
-},
-{
-"Forget",
-"Forget (mark as new) specified HID device. This command is useful when it\n" \
-"is required to remove device from the known HIDs file. This should be done\n" \
-"when reset button was pressed on the device or the battery was changed. The\n"\
-"Bluetooth HID daemon should be restarted.\n",
-hid_forget
-},
-{ NULL, NULL, NULL }
+struct bthid_command hid_commands[] = {
+	{ "Dump",
+	    "Dump HID descriptor for the specified device in human readable form. The\n"
+	    "device must have an entry in the Bluetooth HID daemon configuration file.\n",
+	    hid_dump },
+	{ "Known", "List all known to the Bluetooth HID daemon devices.\n",
+	    hid_known },
+	{ "Forget",
+	    "Forget (mark as new) specified HID device. This command is useful when it\n"
+	    "is required to remove device from the known HIDs file. This should be done\n"
+	    "when reset button was pressed on the device or the battery was changed. The\n"
+	    "Bluetooth HID daemon should be restarted.\n",
+	    hid_forget },
+	{ NULL, NULL, NULL }
 };
-

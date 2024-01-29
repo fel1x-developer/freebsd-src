@@ -29,7 +29,11 @@
  * Shreyank Amartya <Shreyank.Amartya@amd.com>
  */
 
+#include "opt_inet.h"
+#include "opt_inet6.h"
+
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
@@ -38,24 +42,19 @@
 #include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
+
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include <net/if.h>
 #include <net/if_media.h>
 
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
-
-#include "xgbe.h"
-#include "xgbe-common.h"
-
-#include "miibus_if.h"
 #include "ifdi_if.h"
-#include "opt_inet.h"
-#include "opt_inet6.h"
+#include "miibus_if.h"
+#include "xgbe-common.h"
+#include "xgbe.h"
 
 MALLOC_DEFINE(M_AXGBE, "axgbe", "axgbe data");
 
@@ -83,12 +82,14 @@ static int axgbe_if_rx_queue_intr_enable(if_ctx_t, uint16_t);
 static void axgbe_if_disable_intr(if_ctx_t);
 static void axgbe_if_enable_intr(if_ctx_t);
 static int axgbe_if_msix_intr_assign(if_ctx_t, int);
-static void xgbe_free_intr(struct xgbe_prv_data *, struct resource *, void *, int);
+static void xgbe_free_intr(struct xgbe_prv_data *, struct resource *, void *,
+    int);
 
 /* Init and Iflib routines */
 static void axgbe_pci_init(struct xgbe_prv_data *);
 static void axgbe_pci_stop(if_ctx_t);
-static void xgbe_disable_rx_tx_int(struct xgbe_prv_data *, struct xgbe_channel *);
+static void xgbe_disable_rx_tx_int(struct xgbe_prv_data *,
+    struct xgbe_channel *);
 static void xgbe_disable_rx_tx_ints(struct xgbe_prv_data *);
 static int axgbe_if_mtu_set(if_ctx_t, uint32_t);
 static void axgbe_if_update_admin_status(if_ctx_t);
@@ -136,46 +137,44 @@ static struct resource_spec axgbe_pci_mac_spec[] = {
 	{ -1, 0 }
 };
 
-static const pci_vendor_info_t axgbe_vendor_info_array[] =
-{
-	PVID(0x1022, 0x1458,  "AMD 10 Gigabit Ethernet Driver"),
-	PVID(0x1022, 0x1459,  "AMD 10 Gigabit Ethernet Driver"),
-	PVID_END
+static const pci_vendor_info_t axgbe_vendor_info_array[] = {
+	PVID(0x1022, 0x1458, "AMD 10 Gigabit Ethernet Driver"),
+	PVID(0x1022, 0x1459, "AMD 10 Gigabit Ethernet Driver"), PVID_END
 };
 
 static struct xgbe_version_data xgbe_v2a = {
-	.init_function_ptrs_phy_impl    = xgbe_init_function_ptrs_phy_v2,
-	.xpcs_access                    = XGBE_XPCS_ACCESS_V2,
-	.mmc_64bit                      = 1,
-	.tx_max_fifo_size               = 229376,
-	.rx_max_fifo_size               = 229376,
-	.tx_tstamp_workaround           = 1,
-	.ecc_support                    = 1,
-	.i2c_support                    = 1,
-	.irq_reissue_support            = 1,
-	.tx_desc_prefetch               = 5,
-	.rx_desc_prefetch               = 5,
-	.an_cdr_workaround              = 1,
+	.init_function_ptrs_phy_impl = xgbe_init_function_ptrs_phy_v2,
+	.xpcs_access = XGBE_XPCS_ACCESS_V2,
+	.mmc_64bit = 1,
+	.tx_max_fifo_size = 229376,
+	.rx_max_fifo_size = 229376,
+	.tx_tstamp_workaround = 1,
+	.ecc_support = 1,
+	.i2c_support = 1,
+	.irq_reissue_support = 1,
+	.tx_desc_prefetch = 5,
+	.rx_desc_prefetch = 5,
+	.an_cdr_workaround = 1,
 };
 
 static struct xgbe_version_data xgbe_v2b = {
-	.init_function_ptrs_phy_impl    = xgbe_init_function_ptrs_phy_v2,
-	.xpcs_access                    = XGBE_XPCS_ACCESS_V2,
-	.mmc_64bit                      = 1,
-	.tx_max_fifo_size               = 65536,
-	.rx_max_fifo_size               = 65536,
-	.tx_tstamp_workaround           = 1,
-	.ecc_support                    = 1,
-	.i2c_support                    = 1,
-	.irq_reissue_support            = 1,
-	.tx_desc_prefetch               = 5,
-	.rx_desc_prefetch               = 5,
-	.an_cdr_workaround              = 1,
+	.init_function_ptrs_phy_impl = xgbe_init_function_ptrs_phy_v2,
+	.xpcs_access = XGBE_XPCS_ACCESS_V2,
+	.mmc_64bit = 1,
+	.tx_max_fifo_size = 65536,
+	.rx_max_fifo_size = 65536,
+	.tx_tstamp_workaround = 1,
+	.ecc_support = 1,
+	.i2c_support = 1,
+	.irq_reissue_support = 1,
+	.tx_desc_prefetch = 5,
+	.rx_desc_prefetch = 5,
+	.an_cdr_workaround = 1,
 };
 
 /* Device Interface */
-static device_method_t ax_methods[] = {
-	DEVMETHOD(device_register, axgbe_register),
+static device_method_t ax_methods[] = { DEVMETHOD(device_register,
+					    axgbe_register),
 	DEVMETHOD(device_probe, iflib_device_probe),
 	DEVMETHOD(device_attach, iflib_device_attach),
 	DEVMETHOD(device_detach, iflib_device_detach),
@@ -185,11 +184,12 @@ static device_method_t ax_methods[] = {
 	DEVMETHOD(miibus_writereg, axgbe_miibus_writereg),
 	DEVMETHOD(miibus_statchg, axgbe_miibus_statchg),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 static driver_t ax_driver = {
-	"ax", ax_methods, sizeof(struct axgbe_if_softc),
+	"ax",
+	ax_methods,
+	sizeof(struct axgbe_if_softc),
 };
 
 DRIVER_MODULE(axp, pci, ax_driver, 0, 0);
@@ -202,8 +202,8 @@ MODULE_DEPEND(ax, iflib, 1, 1, 1);
 MODULE_DEPEND(ax, miibus, 1, 1, 1);
 
 /* Iflib Interface */
-static device_method_t axgbe_if_methods[] = {
-	DEVMETHOD(ifdi_attach_pre, axgbe_if_attach_pre),
+static device_method_t axgbe_if_methods[] = { DEVMETHOD(ifdi_attach_pre,
+						  axgbe_if_attach_pre),
 	DEVMETHOD(ifdi_attach_post, axgbe_if_attach_post),
 	DEVMETHOD(ifdi_detach, axgbe_if_detach),
 	DEVMETHOD(ifdi_init, axgbe_if_init),
@@ -227,12 +227,10 @@ static device_method_t axgbe_if_methods[] = {
 #if __FreeBSD_version >= 1300000
 	DEVMETHOD(ifdi_needs_restart, axgbe_if_needs_restart),
 #endif
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
-static driver_t axgbe_if_driver = {
-	"axgbe_if", axgbe_if_methods, sizeof(struct axgbe_if_softc)
-};
+static driver_t axgbe_if_driver = { "axgbe_if", axgbe_if_methods,
+	sizeof(struct axgbe_if_softc) };
 
 /* Iflib Shared Context */
 static struct if_shared_ctx axgbe_sctx_init = {
@@ -251,9 +249,9 @@ static struct if_shared_ctx axgbe_sctx_init = {
 	.isc_vendor_info = axgbe_vendor_info_array,
 	.isc_driver_version = XGBE_DRV_VERSION,
 
-	.isc_ntxd_min = {XGBE_TX_DESC_CNT_MIN},
-	.isc_ntxd_default = {XGBE_TX_DESC_CNT_DEFAULT}, 
-	.isc_ntxd_max = {XGBE_TX_DESC_CNT_MAX},
+	.isc_ntxd_min = { XGBE_TX_DESC_CNT_MIN },
+	.isc_ntxd_default = { XGBE_TX_DESC_CNT_DEFAULT },
+	.isc_ntxd_max = { XGBE_TX_DESC_CNT_MAX },
 
 	.isc_ntxqs = 1,
 	.isc_flags = IFLIB_TSO_INIT_IP | IFLIB_NEED_SCRATCH |
@@ -279,7 +277,8 @@ axgbe_register(device_t dev)
 		 */
 		error = kern_setenv("dev.ax.sph_enable", "1");
 		if (error) {
-			printf("Error setting tunable, using default driver values\n");
+			printf(
+			    "Error setting tunable, using default driver values\n");
 		}
 		axgbe_sph_enable = 1;
 	}
@@ -295,7 +294,7 @@ axgbe_register(device_t dev)
 	axgbe_sctx_init.isc_nfl = axgbe_nfl;
 	axgbe_sctx_init.isc_nrxqs = axgbe_nrxqs;
 
-	for (i = 0 ; i < axgbe_nrxqs ; i++) {
+	for (i = 0; i < axgbe_nrxqs; i++) {
 		axgbe_sctx_init.isc_nrxd_min[i] = XGBE_RX_DESC_CNT_MIN;
 		axgbe_sctx_init.isc_nrxd_default[i] = XGBE_RX_DESC_CNT_DEFAULT;
 		axgbe_sctx_init.isc_nrxd_max[i] = XGBE_RX_DESC_CNT_MAX;
@@ -308,8 +307,8 @@ axgbe_register(device_t dev)
 static int
 axgbe_miibus_readreg(device_t dev, int phy, int reg)
 {
-	struct axgbe_if_softc   *sc = iflib_get_softc(device_get_softc(dev));
-	struct xgbe_prv_data    *pdata = &sc->pdata;
+	struct axgbe_if_softc *sc = iflib_get_softc(device_get_softc(dev));
+	struct xgbe_prv_data *pdata = &sc->pdata;
 	int val;
 
 	axgbe_printf(3, "%s: phy %d reg %d\n", __func__, phy, reg);
@@ -323,23 +322,24 @@ axgbe_miibus_readreg(device_t dev, int phy, int reg)
 static int
 axgbe_miibus_writereg(device_t dev, int phy, int reg, int val)
 {
-	struct axgbe_if_softc   *sc = iflib_get_softc(device_get_softc(dev));
-	struct xgbe_prv_data    *pdata = &sc->pdata;
+	struct axgbe_if_softc *sc = iflib_get_softc(device_get_softc(dev));
+	struct xgbe_prv_data *pdata = &sc->pdata;
 
-	axgbe_printf(3, "%s: phy %d reg %d val 0x%x\n", __func__, phy, reg, val);
+	axgbe_printf(3, "%s: phy %d reg %d val 0x%x\n", __func__, phy, reg,
+	    val);
 
 	xgbe_phy_mii_write(pdata, phy, reg, val);
 
-	return(0);
+	return (0);
 }
 
 static void
 axgbe_miibus_statchg(device_t dev)
 {
-        struct axgbe_if_softc   *sc = iflib_get_softc(device_get_softc(dev));
-        struct xgbe_prv_data    *pdata = &sc->pdata;
-	struct mii_data		*mii = device_get_softc(pdata->axgbe_miibus);
-	if_t			 ifp = pdata->netdev;
+	struct axgbe_if_softc *sc = iflib_get_softc(device_get_softc(dev));
+	struct xgbe_prv_data *pdata = &sc->pdata;
+	struct mii_data *mii = device_get_softc(pdata->axgbe_miibus);
+	if_t ifp = pdata->netdev;
 	int bmsr;
 
 	axgbe_printf(2, "%s: Link %d/%d\n", __func__, pdata->phy.link,
@@ -383,15 +383,15 @@ axgbe_miibus_statchg(device_t dev)
 static int
 axgbe_if_attach_pre(if_ctx_t ctx)
 {
-	struct axgbe_if_softc	*sc;
-	struct xgbe_prv_data	*pdata;
-	struct resource		*mac_res[2];
-	if_softc_ctx_t		scctx;
-	if_shared_ctx_t		sctx;
-	device_t		dev;
-	unsigned int		ma_lo, ma_hi;
-	unsigned int		reg;
-	int			ret;
+	struct axgbe_if_softc *sc;
+	struct xgbe_prv_data *pdata;
+	struct resource *mac_res[2];
+	if_softc_ctx_t scctx;
+	if_shared_ctx_t sctx;
+	device_t dev;
+	unsigned int ma_lo, ma_hi;
+	unsigned int reg;
+	int ret;
 
 	sc = iflib_get_softc(ctx);
 	sc->pdata.dev = dev = iflib_get_dev(ctx);
@@ -406,11 +406,11 @@ axgbe_if_attach_pre(if_ctx_t ctx)
 	spin_lock_init(&pdata->xpcs_lock);
 
 	/* Initialize locks */
-        mtx_init(&pdata->rss_mutex, "xgbe rss mutex lock", NULL, MTX_DEF);
+	mtx_init(&pdata->rss_mutex, "xgbe rss mutex lock", NULL, MTX_DEF);
 	mtx_init(&pdata->mdio_mutex, "xgbe MDIO mutex lock", NULL, MTX_SPIN);
 
 	/* Allocate VLAN bitmap */
-	pdata->active_vlans = bit_alloc(VLAN_NVID, M_AXGBE, M_WAITOK|M_ZERO);
+	pdata->active_vlans = bit_alloc(VLAN_NVID, M_AXGBE, M_WAITOK | M_ZERO);
 	pdata->num_active_vlans = 0;
 
 	/* Get the version data */
@@ -421,46 +421,41 @@ axgbe_if_attach_pre(if_ctx_t ctx)
 		sc->pdata.vdata = &xgbe_v2b;
 
 	/* PCI setup */
-        if (bus_alloc_resources(dev, axgbe_pci_mac_spec, mac_res)) {
+	if (bus_alloc_resources(dev, axgbe_pci_mac_spec, mac_res)) {
 		axgbe_error("Unable to allocate bus resources\n");
 		ret = ENXIO;
 		goto free_vlans;
 	}
 
-        sc->pdata.xgmac_res = mac_res[0];
-        sc->pdata.xpcs_res = mac_res[1];
+	sc->pdata.xgmac_res = mac_res[0];
+	sc->pdata.xpcs_res = mac_res[1];
 
-        /* Set the PCS indirect addressing definition registers*/
+	/* Set the PCS indirect addressing definition registers*/
 	pdata->xpcs_window_def_reg = PCS_V2_WINDOW_DEF;
 	pdata->xpcs_window_sel_reg = PCS_V2_WINDOW_SELECT;
 
-        /* Configure the PCS indirect addressing support */
+	/* Configure the PCS indirect addressing support */
 	reg = XPCS32_IOREAD(pdata, pdata->xpcs_window_def_reg);
 	pdata->xpcs_window = XPCS_GET_BITS(reg, PCS_V2_WINDOW_DEF, OFFSET);
 	pdata->xpcs_window <<= 6;
 	pdata->xpcs_window_size = XPCS_GET_BITS(reg, PCS_V2_WINDOW_DEF, SIZE);
 	pdata->xpcs_window_size = 1 << (pdata->xpcs_window_size + 7);
 	pdata->xpcs_window_mask = pdata->xpcs_window_size - 1;
-	DBGPR("xpcs window def : %#010x\n",
-	    pdata->xpcs_window_def_reg);
-	DBGPR("xpcs window sel : %#010x\n",
-	    pdata->xpcs_window_sel_reg);
-        DBGPR("xpcs window : %#010x\n",
-	    pdata->xpcs_window);
-	DBGPR("xpcs window size : %#010x\n",
-	    pdata->xpcs_window_size);
-	DBGPR("xpcs window mask : %#010x\n",
-	    pdata->xpcs_window_mask);
+	DBGPR("xpcs window def : %#010x\n", pdata->xpcs_window_def_reg);
+	DBGPR("xpcs window sel : %#010x\n", pdata->xpcs_window_sel_reg);
+	DBGPR("xpcs window : %#010x\n", pdata->xpcs_window);
+	DBGPR("xpcs window size : %#010x\n", pdata->xpcs_window_size);
+	DBGPR("xpcs window mask : %#010x\n", pdata->xpcs_window_mask);
 
 	/* Enable all interrupts in the hardware */
-        XP_IOWRITE(pdata, XP_INT_EN, 0x1fffff);
-	
+	XP_IOWRITE(pdata, XP_INT_EN, 0x1fffff);
+
 	/* Retrieve the MAC address */
 	ma_lo = XP_IOREAD(pdata, XP_MAC_ADDR_LO);
 	ma_hi = XP_IOREAD(pdata, XP_MAC_ADDR_HI);
 	pdata->mac_addr[0] = ma_lo & 0xff;
 	pdata->mac_addr[1] = (ma_lo >> 8) & 0xff;
-	pdata->mac_addr[2] = (ma_lo >>16) & 0xff;
+	pdata->mac_addr[2] = (ma_lo >> 16) & 0xff;
 	pdata->mac_addr[3] = (ma_lo >> 24) & 0xff;
 	pdata->mac_addr[4] = ma_hi & 0xff;
 	pdata->mac_addr[5] = (ma_hi >> 8) & 0xff;
@@ -502,26 +497,26 @@ axgbe_if_attach_pre(if_ctx_t ctx)
 	    MAX_TX_QUEUES);
 	pdata->rx_max_q_count = XP_GET_BITS(pdata->pp1, XP_PROP_1,
 	    MAX_RX_QUEUES);
-	DBGPR("max tx/rx channel count = %u/%u\n",
-	    pdata->tx_max_channel_count, pdata->rx_max_channel_count);
-	DBGPR("max tx/rx hw queue count = %u/%u\n",
-	    pdata->tx_max_q_count, pdata->rx_max_q_count);
+	DBGPR("max tx/rx channel count = %u/%u\n", pdata->tx_max_channel_count,
+	    pdata->rx_max_channel_count);
+	DBGPR("max tx/rx hw queue count = %u/%u\n", pdata->tx_max_q_count,
+	    pdata->rx_max_q_count);
 
 	axgbe_set_counts(ctx);
 
 	/* Set the maximum fifo amounts */
-        pdata->tx_max_fifo_size = XP_GET_BITS(pdata->pp2, XP_PROP_2,
-                                              TX_FIFO_SIZE);
-        pdata->tx_max_fifo_size *= 16384;
-        pdata->tx_max_fifo_size = min(pdata->tx_max_fifo_size,
-                                      pdata->vdata->tx_max_fifo_size);
-        pdata->rx_max_fifo_size = XP_GET_BITS(pdata->pp2, XP_PROP_2,
-                                              RX_FIFO_SIZE);
-        pdata->rx_max_fifo_size *= 16384;
-        pdata->rx_max_fifo_size = min(pdata->rx_max_fifo_size,
-                                      pdata->vdata->rx_max_fifo_size);
-	DBGPR("max tx/rx max fifo size = %u/%u\n",
-	    pdata->tx_max_fifo_size, pdata->rx_max_fifo_size);
+	pdata->tx_max_fifo_size = XP_GET_BITS(pdata->pp2, XP_PROP_2,
+	    TX_FIFO_SIZE);
+	pdata->tx_max_fifo_size *= 16384;
+	pdata->tx_max_fifo_size = min(pdata->tx_max_fifo_size,
+	    pdata->vdata->tx_max_fifo_size);
+	pdata->rx_max_fifo_size = XP_GET_BITS(pdata->pp2, XP_PROP_2,
+	    RX_FIFO_SIZE);
+	pdata->rx_max_fifo_size *= 16384;
+	pdata->rx_max_fifo_size = min(pdata->rx_max_fifo_size,
+	    pdata->vdata->rx_max_fifo_size);
+	DBGPR("max tx/rx max fifo size = %u/%u\n", pdata->tx_max_fifo_size,
+	    pdata->rx_max_fifo_size);
 
 	/* Initialize IFLIB if_softc_ctx_t */
 	axgbe_init_iflib_softc_ctx(sc);
@@ -531,7 +526,7 @@ axgbe_if_attach_pre(if_ctx_t ctx)
 		axgbe_error("Unable to allocate channel memory\n");
 		ret = ENOMEM;
 		goto release_bus_resource;
-        }
+	}
 
 	TASK_INIT(&pdata->service_work, 0, xgbe_service, pdata);
 
@@ -554,7 +549,7 @@ axgbe_if_attach_pre(if_ctx_t ctx)
 	/* Init timers */
 	xgbe_init_timers(pdata);
 
-        return (0);
+	return (0);
 
 free_task_queue:
 	taskqueue_free(pdata->dev_workqueue);
@@ -563,7 +558,7 @@ free_channels:
 	axgbe_free_channels(sc);
 
 release_bus_resource:
-        bus_release_resources(dev, axgbe_pci_mac_spec, mac_res);
+	bus_release_resources(dev, axgbe_pci_mac_spec, mac_res);
 
 free_vlans:
 	free(pdata->active_vlans, M_AXGBE);
@@ -576,10 +571,10 @@ xgbe_init_all_fptrs(struct xgbe_prv_data *pdata)
 {
 	xgbe_init_function_ptrs_dev(&pdata->hw_if);
 	xgbe_init_function_ptrs_phy(&pdata->phy_if);
-        xgbe_init_function_ptrs_i2c(&pdata->i2c_if);
+	xgbe_init_function_ptrs_i2c(&pdata->i2c_if);
 	xgbe_init_function_ptrs_desc(&pdata->desc_if);
 
-        pdata->vdata->init_function_ptrs_phy_impl(&pdata->phy_if);
+	pdata->vdata->init_function_ptrs_phy_impl(&pdata->phy_if);
 }
 
 static void
@@ -626,9 +621,9 @@ axgbe_set_counts(if_ctx_t ctx)
 	}
 
 	if (bus_get_cpus(pdata->dev, INTR_CPUS, sizeof(lcpus), &lcpus) != 0) {
-                axgbe_error("Unable to fetch CPU list\n");
-                /* TODO - handle CPU_COPY(&all_cpus, &lcpus); */
-        }
+		axgbe_error("Unable to fetch CPU list\n");
+		/* TODO - handle CPU_COPY(&all_cpus, &lcpus); */
+	}
 
 	DBGPR("ncpu %d intrcpu %d\n", cpu_count, CPU_COUNT(&lcpus));
 
@@ -645,14 +640,14 @@ axgbe_set_counts(if_ctx_t ctx)
 
 	pdata->rx_q_count = min(pdata->hw_feat.rx_q_cnt, pdata->rx_max_q_count);
 
-	DBGPR("TX/RX max channel count = %u/%u\n",
-	    pdata->tx_max_channel_count, pdata->rx_max_channel_count);
-	DBGPR("TX/RX max queue count = %u/%u\n",
-	    pdata->tx_max_q_count, pdata->rx_max_q_count);
-	DBGPR("TX/RX DMA ring count = %u/%u\n",
-	    pdata->tx_ring_count, pdata->rx_ring_count);
-	DBGPR("TX/RX hardware queue count = %u/%u\n",
-	    pdata->tx_q_count, pdata->rx_q_count);
+	DBGPR("TX/RX max channel count = %u/%u\n", pdata->tx_max_channel_count,
+	    pdata->rx_max_channel_count);
+	DBGPR("TX/RX max queue count = %u/%u\n", pdata->tx_max_q_count,
+	    pdata->rx_max_q_count);
+	DBGPR("TX/RX DMA ring count = %u/%u\n", pdata->tx_ring_count,
+	    pdata->rx_ring_count);
+	DBGPR("TX/RX hardware queue count = %u/%u\n", pdata->tx_q_count,
+	    pdata->rx_q_count);
 } /* axgbe_set_counts */
 
 static void
@@ -669,15 +664,15 @@ axgbe_init_iflib_softc_ctx(struct axgbe_if_softc *sc)
 	scctx->isc_tx_nsegments = 32;
 
 	for (i = 0; i < sctx->isc_ntxqs; i++) {
-		scctx->isc_txqsizes[i] = 
-		    roundup2(scctx->isc_ntxd[i] * sizeof(struct xgbe_ring_desc),
+		scctx->isc_txqsizes[i] = roundup2(scctx->isc_ntxd[i] *
+			sizeof(struct xgbe_ring_desc),
 		    128);
 		scctx->isc_txd_size[i] = sizeof(struct xgbe_ring_desc);
 	}
 
 	for (i = 0; i < sctx->isc_nrxqs; i++) {
-		scctx->isc_rxqsizes[i] =
-		    roundup2(scctx->isc_nrxd[i] * sizeof(struct xgbe_ring_desc),
+		scctx->isc_rxqsizes[i] = roundup2(scctx->isc_nrxd[i] *
+			sizeof(struct xgbe_ring_desc),
 		    128);
 		scctx->isc_rxd_size[i] = sizeof(struct xgbe_ring_desc);
 	}
@@ -693,13 +688,11 @@ axgbe_init_iflib_softc_ctx(struct axgbe_if_softc *sc)
 	 *    IFCAP_HWCSUM) is set
 	 */
 	scctx->isc_tx_csum_flags = (CSUM_IP | CSUM_TCP | CSUM_UDP | CSUM_SCTP |
-	    CSUM_TCP_IPV6 | CSUM_UDP_IPV6 | CSUM_SCTP_IPV6 |
-	    CSUM_TSO);
+	    CSUM_TCP_IPV6 | CSUM_UDP_IPV6 | CSUM_SCTP_IPV6 | CSUM_TSO);
 	scctx->isc_capenable = (IFCAP_HWCSUM | IFCAP_HWCSUM_IPV6 |
-	    IFCAP_JUMBO_MTU |
-	    IFCAP_VLAN_MTU | IFCAP_VLAN_HWTAGGING | IFCAP_VLAN_HWFILTER | 
-	    IFCAP_VLAN_HWCSUM |
-	    IFCAP_TSO | IFCAP_VLAN_HWTSO);
+	    IFCAP_JUMBO_MTU | IFCAP_VLAN_MTU | IFCAP_VLAN_HWTAGGING |
+	    IFCAP_VLAN_HWFILTER | IFCAP_VLAN_HWCSUM | IFCAP_TSO |
+	    IFCAP_VLAN_HWTSO);
 	scctx->isc_capabilities = scctx->isc_capenable;
 
 	/*
@@ -717,9 +710,9 @@ axgbe_init_iflib_softc_ctx(struct axgbe_if_softc *sc)
 static int
 axgbe_alloc_channels(if_ctx_t ctx)
 {
-	struct axgbe_if_softc 	*sc = iflib_get_softc(ctx);
-	struct xgbe_prv_data	*pdata = &sc->pdata;
-	struct xgbe_channel	*channel;
+	struct axgbe_if_softc *sc = iflib_get_softc(ctx);
+	struct xgbe_prv_data *pdata = &sc->pdata;
+	struct xgbe_channel *channel;
 	int i, j, count;
 
 	DBGPR("%s: txqs %d rxqs %d\n", __func__, pdata->tx_ring_count,
@@ -729,11 +722,11 @@ axgbe_alloc_channels(if_ctx_t ctx)
 	count = max_t(unsigned int, pdata->tx_ring_count, pdata->rx_ring_count);
 
 	/* Allocate channel memory */
-	for (i = 0; i < count ; i++) {
-		channel = (struct xgbe_channel*)malloc(sizeof(struct xgbe_channel),
-		    M_AXGBE, M_NOWAIT | M_ZERO);
+	for (i = 0; i < count; i++) {
+		channel = (struct xgbe_channel *)malloc(
+		    sizeof(struct xgbe_channel), M_AXGBE, M_NOWAIT | M_ZERO);
 
-		if (channel == NULL) {	
+		if (channel == NULL) {
 			for (j = 0; j < i; j++) {
 				free(pdata->channel[j], M_AXGBE);
 				pdata->channel[j] = NULL;
@@ -750,7 +743,7 @@ axgbe_alloc_channels(if_ctx_t ctx)
 	for (i = 0; i < count; i++) {
 
 		channel = pdata->channel[i];
-		snprintf(channel->name, sizeof(channel->name), "channel-%d",i);
+		snprintf(channel->name, sizeof(channel->name), "channel-%d", i);
 
 		channel->pdata = pdata;
 		channel->queue_index = i;
@@ -769,10 +762,10 @@ axgbe_alloc_channels(if_ctx_t ctx)
 static void
 axgbe_free_channels(struct axgbe_if_softc *sc)
 {
-	struct xgbe_prv_data	*pdata = &sc->pdata;
+	struct xgbe_prv_data *pdata = &sc->pdata;
 	int i;
 
-	for (i = 0; i < pdata->total_channel_count ; i++) {
+	for (i = 0; i < pdata->total_channel_count; i++) {
 		free(pdata->channel[i], M_AXGBE);
 		pdata->channel[i] = NULL;
 	}
@@ -784,85 +777,85 @@ axgbe_free_channels(struct axgbe_if_softc *sc)
 static void
 xgbe_service(void *ctx, int pending)
 {
-        struct xgbe_prv_data *pdata = ctx;
+	struct xgbe_prv_data *pdata = ctx;
 	struct axgbe_if_softc *sc = (struct axgbe_if_softc *)pdata;
 	bool prev_state = false;
 
 	/* Get previous link status */
 	prev_state = pdata->phy.link;
 
-        pdata->phy_if.phy_status(pdata);
+	pdata->phy_if.phy_status(pdata);
 
 	if (prev_state != pdata->phy.link) {
 		pdata->phy_link = pdata->phy.link;
 		axgbe_if_update_admin_status(sc->ctx);
 	}
 
-        callout_reset(&pdata->service_timer, 1*hz, xgbe_service_timer, pdata);
+	callout_reset(&pdata->service_timer, 1 * hz, xgbe_service_timer, pdata);
 }
 
 static void
 xgbe_service_timer(void *data)
 {
-        struct xgbe_prv_data *pdata = data;
+	struct xgbe_prv_data *pdata = data;
 
-        taskqueue_enqueue(pdata->dev_workqueue, &pdata->service_work);
+	taskqueue_enqueue(pdata->dev_workqueue, &pdata->service_work);
 }
 
 static void
 xgbe_init_timers(struct xgbe_prv_data *pdata)
 {
-        callout_init(&pdata->service_timer, 1);
+	callout_init(&pdata->service_timer, 1);
 }
 
 static void
 xgbe_start_timers(struct xgbe_prv_data *pdata)
 {
-	callout_reset(&pdata->service_timer, 1*hz, xgbe_service_timer, pdata);
+	callout_reset(&pdata->service_timer, 1 * hz, xgbe_service_timer, pdata);
 }
 
 static void
 xgbe_stop_timers(struct xgbe_prv_data *pdata)
 {
-        callout_drain(&pdata->service_timer);
-        callout_stop(&pdata->service_timer);
+	callout_drain(&pdata->service_timer);
+	callout_stop(&pdata->service_timer);
 }
 
 static void
 xgbe_dump_phy_registers(struct xgbe_prv_data *pdata)
 {
-        axgbe_printf(1, "\n************* PHY Reg dump *********************\n");
+	axgbe_printf(1, "\n************* PHY Reg dump *********************\n");
 
-        axgbe_printf(1, "PCS Control Reg (%#06x) = %#06x\n", MDIO_CTRL1,
-            XMDIO_READ(pdata, MDIO_MMD_PCS, MDIO_CTRL1));
-        axgbe_printf(1, "PCS Status Reg (%#06x) = %#06x\n", MDIO_STAT1,
-            XMDIO_READ(pdata, MDIO_MMD_PCS, MDIO_STAT1));
-        axgbe_printf(1, "Phy Id (PHYS ID 1 %#06x)= %#06x\n", MDIO_DEVID1,
-            XMDIO_READ(pdata, MDIO_MMD_PCS, MDIO_DEVID1));
-        axgbe_printf(1, "Phy Id (PHYS ID 2 %#06x)= %#06x\n", MDIO_DEVID2,
-            XMDIO_READ(pdata, MDIO_MMD_PCS, MDIO_DEVID2));
-        axgbe_printf(1, "Devices in Package (%#06x)= %#06x\n", MDIO_DEVS1,
-            XMDIO_READ(pdata, MDIO_MMD_PCS, MDIO_DEVS1));
-        axgbe_printf(1, "Devices in Package (%#06x)= %#06x\n", MDIO_DEVS2,
-            XMDIO_READ(pdata, MDIO_MMD_PCS, MDIO_DEVS2));
-        axgbe_printf(1, "Auto-Neg Control Reg (%#06x) = %#06x\n", MDIO_CTRL1,
-            XMDIO_READ(pdata, MDIO_MMD_AN, MDIO_CTRL1));
-        axgbe_printf(1, "Auto-Neg Status Reg (%#06x) = %#06x\n", MDIO_STAT1,
-            XMDIO_READ(pdata, MDIO_MMD_AN, MDIO_STAT1));
-        axgbe_printf(1, "Auto-Neg Ad Reg 1 (%#06x) = %#06x\n",
-            MDIO_AN_ADVERTISE,
-            XMDIO_READ(pdata, MDIO_MMD_AN, MDIO_AN_ADVERTISE));
-        axgbe_printf(1, "Auto-Neg Ad Reg 2 (%#06x) = %#06x\n",
-            MDIO_AN_ADVERTISE + 1,
-            XMDIO_READ(pdata, MDIO_MMD_AN, MDIO_AN_ADVERTISE + 1));
-        axgbe_printf(1, "Auto-Neg Ad Reg 3 (%#06x) = %#06x\n",
-            MDIO_AN_ADVERTISE + 2,
-            XMDIO_READ(pdata, MDIO_MMD_AN, MDIO_AN_ADVERTISE + 2));
-        axgbe_printf(1, "Auto-Neg Completion Reg (%#06x) = %#06x\n",
-            MDIO_AN_COMP_STAT,
-            XMDIO_READ(pdata, MDIO_MMD_AN, MDIO_AN_COMP_STAT));
+	axgbe_printf(1, "PCS Control Reg (%#06x) = %#06x\n", MDIO_CTRL1,
+	    XMDIO_READ(pdata, MDIO_MMD_PCS, MDIO_CTRL1));
+	axgbe_printf(1, "PCS Status Reg (%#06x) = %#06x\n", MDIO_STAT1,
+	    XMDIO_READ(pdata, MDIO_MMD_PCS, MDIO_STAT1));
+	axgbe_printf(1, "Phy Id (PHYS ID 1 %#06x)= %#06x\n", MDIO_DEVID1,
+	    XMDIO_READ(pdata, MDIO_MMD_PCS, MDIO_DEVID1));
+	axgbe_printf(1, "Phy Id (PHYS ID 2 %#06x)= %#06x\n", MDIO_DEVID2,
+	    XMDIO_READ(pdata, MDIO_MMD_PCS, MDIO_DEVID2));
+	axgbe_printf(1, "Devices in Package (%#06x)= %#06x\n", MDIO_DEVS1,
+	    XMDIO_READ(pdata, MDIO_MMD_PCS, MDIO_DEVS1));
+	axgbe_printf(1, "Devices in Package (%#06x)= %#06x\n", MDIO_DEVS2,
+	    XMDIO_READ(pdata, MDIO_MMD_PCS, MDIO_DEVS2));
+	axgbe_printf(1, "Auto-Neg Control Reg (%#06x) = %#06x\n", MDIO_CTRL1,
+	    XMDIO_READ(pdata, MDIO_MMD_AN, MDIO_CTRL1));
+	axgbe_printf(1, "Auto-Neg Status Reg (%#06x) = %#06x\n", MDIO_STAT1,
+	    XMDIO_READ(pdata, MDIO_MMD_AN, MDIO_STAT1));
+	axgbe_printf(1, "Auto-Neg Ad Reg 1 (%#06x) = %#06x\n",
+	    MDIO_AN_ADVERTISE,
+	    XMDIO_READ(pdata, MDIO_MMD_AN, MDIO_AN_ADVERTISE));
+	axgbe_printf(1, "Auto-Neg Ad Reg 2 (%#06x) = %#06x\n",
+	    MDIO_AN_ADVERTISE + 1,
+	    XMDIO_READ(pdata, MDIO_MMD_AN, MDIO_AN_ADVERTISE + 1));
+	axgbe_printf(1, "Auto-Neg Ad Reg 3 (%#06x) = %#06x\n",
+	    MDIO_AN_ADVERTISE + 2,
+	    XMDIO_READ(pdata, MDIO_MMD_AN, MDIO_AN_ADVERTISE + 2));
+	axgbe_printf(1, "Auto-Neg Completion Reg (%#06x) = %#06x\n",
+	    MDIO_AN_COMP_STAT,
+	    XMDIO_READ(pdata, MDIO_MMD_AN, MDIO_AN_COMP_STAT));
 
-        axgbe_printf(1, "\n************************************************\n");
+	axgbe_printf(1, "\n************************************************\n");
 }
 
 static void
@@ -870,51 +863,51 @@ xgbe_dump_prop_registers(struct xgbe_prv_data *pdata)
 {
 	int i;
 
-        axgbe_printf(1, "\n************* PROP Reg dump ********************\n");
+	axgbe_printf(1, "\n************* PROP Reg dump ********************\n");
 
-	for (i = 0 ; i < 38 ; i++) {
+	for (i = 0; i < 38; i++) {
 		axgbe_printf(1, "PROP Offset 0x%08x = %08x\n",
-		    (XP_PROP_0 + (i * 4)), XP_IOREAD(pdata,
-		    (XP_PROP_0 + (i * 4))));
+		    (XP_PROP_0 + (i * 4)),
+		    XP_IOREAD(pdata, (XP_PROP_0 + (i * 4))));
 	}
 }
 
 static void
 xgbe_dump_dma_registers(struct xgbe_prv_data *pdata, int ch)
 {
-	struct xgbe_channel     *channel;
+	struct xgbe_channel *channel;
 	int i;
 
-        axgbe_printf(1, "\n************* DMA Reg dump *********************\n");
+	axgbe_printf(1, "\n************* DMA Reg dump *********************\n");
 
-        axgbe_printf(1, "DMA MR Reg (%08x) = %08x\n", DMA_MR,
-           XGMAC_IOREAD(pdata, DMA_MR));
-        axgbe_printf(1, "DMA SBMR Reg (%08x) = %08x\n", DMA_SBMR,
-           XGMAC_IOREAD(pdata, DMA_SBMR));
-        axgbe_printf(1, "DMA ISR Reg (%08x) = %08x\n", DMA_ISR,
-           XGMAC_IOREAD(pdata, DMA_ISR));
-        axgbe_printf(1, "DMA AXIARCR Reg (%08x) = %08x\n", DMA_AXIARCR,
-           XGMAC_IOREAD(pdata, DMA_AXIARCR));
-        axgbe_printf(1, "DMA AXIAWCR Reg (%08x) = %08x\n", DMA_AXIAWCR,
-           XGMAC_IOREAD(pdata, DMA_AXIAWCR));
-        axgbe_printf(1, "DMA AXIAWARCR Reg (%08x) = %08x\n", DMA_AXIAWARCR,
-           XGMAC_IOREAD(pdata, DMA_AXIAWARCR));
-        axgbe_printf(1, "DMA DSR0 Reg (%08x) = %08x\n", DMA_DSR0,
-           XGMAC_IOREAD(pdata, DMA_DSR0));
-        axgbe_printf(1, "DMA DSR1 Reg (%08x) = %08x\n", DMA_DSR1,
-           XGMAC_IOREAD(pdata, DMA_DSR1));
-        axgbe_printf(1, "DMA DSR2 Reg (%08x) = %08x\n", DMA_DSR2,
-           XGMAC_IOREAD(pdata, DMA_DSR2));
-        axgbe_printf(1, "DMA DSR3 Reg (%08x) = %08x\n", DMA_DSR3,
-           XGMAC_IOREAD(pdata, DMA_DSR3));
-        axgbe_printf(1, "DMA DSR4 Reg (%08x) = %08x\n", DMA_DSR4,
-           XGMAC_IOREAD(pdata, DMA_DSR4));
-        axgbe_printf(1, "DMA TXEDMACR Reg (%08x) = %08x\n", DMA_TXEDMACR,
-           XGMAC_IOREAD(pdata, DMA_TXEDMACR));
-        axgbe_printf(1, "DMA RXEDMACR Reg (%08x) = %08x\n", DMA_RXEDMACR,
-           XGMAC_IOREAD(pdata, DMA_RXEDMACR));
+	axgbe_printf(1, "DMA MR Reg (%08x) = %08x\n", DMA_MR,
+	    XGMAC_IOREAD(pdata, DMA_MR));
+	axgbe_printf(1, "DMA SBMR Reg (%08x) = %08x\n", DMA_SBMR,
+	    XGMAC_IOREAD(pdata, DMA_SBMR));
+	axgbe_printf(1, "DMA ISR Reg (%08x) = %08x\n", DMA_ISR,
+	    XGMAC_IOREAD(pdata, DMA_ISR));
+	axgbe_printf(1, "DMA AXIARCR Reg (%08x) = %08x\n", DMA_AXIARCR,
+	    XGMAC_IOREAD(pdata, DMA_AXIARCR));
+	axgbe_printf(1, "DMA AXIAWCR Reg (%08x) = %08x\n", DMA_AXIAWCR,
+	    XGMAC_IOREAD(pdata, DMA_AXIAWCR));
+	axgbe_printf(1, "DMA AXIAWARCR Reg (%08x) = %08x\n", DMA_AXIAWARCR,
+	    XGMAC_IOREAD(pdata, DMA_AXIAWARCR));
+	axgbe_printf(1, "DMA DSR0 Reg (%08x) = %08x\n", DMA_DSR0,
+	    XGMAC_IOREAD(pdata, DMA_DSR0));
+	axgbe_printf(1, "DMA DSR1 Reg (%08x) = %08x\n", DMA_DSR1,
+	    XGMAC_IOREAD(pdata, DMA_DSR1));
+	axgbe_printf(1, "DMA DSR2 Reg (%08x) = %08x\n", DMA_DSR2,
+	    XGMAC_IOREAD(pdata, DMA_DSR2));
+	axgbe_printf(1, "DMA DSR3 Reg (%08x) = %08x\n", DMA_DSR3,
+	    XGMAC_IOREAD(pdata, DMA_DSR3));
+	axgbe_printf(1, "DMA DSR4 Reg (%08x) = %08x\n", DMA_DSR4,
+	    XGMAC_IOREAD(pdata, DMA_DSR4));
+	axgbe_printf(1, "DMA TXEDMACR Reg (%08x) = %08x\n", DMA_TXEDMACR,
+	    XGMAC_IOREAD(pdata, DMA_TXEDMACR));
+	axgbe_printf(1, "DMA RXEDMACR Reg (%08x) = %08x\n", DMA_RXEDMACR,
+	    XGMAC_IOREAD(pdata, DMA_RXEDMACR));
 
-	for (i = 0 ; i < 8 ; i++ ) {
+	for (i = 0; i < 8; i++) {
 
 		if (ch >= 0) {
 			if (i != ch)
@@ -923,61 +916,68 @@ xgbe_dump_dma_registers(struct xgbe_prv_data *pdata, int ch)
 
 		channel = pdata->channel[i];
 
-        	axgbe_printf(1, "\n************* DMA CH %d dump ****************\n", i);
+		axgbe_printf(1,
+		    "\n************* DMA CH %d dump ****************\n", i);
 
-        	axgbe_printf(1, "DMA_CH_CR Reg (%08x) = %08x\n",
-		    DMA_CH_CR, XGMAC_DMA_IOREAD(channel, DMA_CH_CR));
-        	axgbe_printf(1, "DMA_CH_TCR Reg (%08x) = %08x\n",
-		    DMA_CH_TCR, XGMAC_DMA_IOREAD(channel, DMA_CH_TCR));
-        	axgbe_printf(1, "DMA_CH_RCR Reg (%08x) = %08x\n",
-		    DMA_CH_RCR, XGMAC_DMA_IOREAD(channel, DMA_CH_RCR));
-        	axgbe_printf(1, "DMA_CH_TDLR_HI Reg (%08x) = %08x\n",
+		axgbe_printf(1, "DMA_CH_CR Reg (%08x) = %08x\n", DMA_CH_CR,
+		    XGMAC_DMA_IOREAD(channel, DMA_CH_CR));
+		axgbe_printf(1, "DMA_CH_TCR Reg (%08x) = %08x\n", DMA_CH_TCR,
+		    XGMAC_DMA_IOREAD(channel, DMA_CH_TCR));
+		axgbe_printf(1, "DMA_CH_RCR Reg (%08x) = %08x\n", DMA_CH_RCR,
+		    XGMAC_DMA_IOREAD(channel, DMA_CH_RCR));
+		axgbe_printf(1, "DMA_CH_TDLR_HI Reg (%08x) = %08x\n",
 		    DMA_CH_TDLR_HI, XGMAC_DMA_IOREAD(channel, DMA_CH_TDLR_HI));
-        	axgbe_printf(1, "DMA_CH_TDLR_LO Reg (%08x) = %08x\n",
+		axgbe_printf(1, "DMA_CH_TDLR_LO Reg (%08x) = %08x\n",
 		    DMA_CH_TDLR_LO, XGMAC_DMA_IOREAD(channel, DMA_CH_TDLR_LO));
-        	axgbe_printf(1, "DMA_CH_RDLR_HI Reg (%08x) = %08x\n",
+		axgbe_printf(1, "DMA_CH_RDLR_HI Reg (%08x) = %08x\n",
 		    DMA_CH_RDLR_HI, XGMAC_DMA_IOREAD(channel, DMA_CH_RDLR_HI));
-        	axgbe_printf(1, "DMA_CH_RDLR_LO Reg (%08x) = %08x\n",
+		axgbe_printf(1, "DMA_CH_RDLR_LO Reg (%08x) = %08x\n",
 		    DMA_CH_RDLR_LO, XGMAC_DMA_IOREAD(channel, DMA_CH_RDLR_LO));
-        	axgbe_printf(1, "DMA_CH_TDTR_LO Reg (%08x) = %08x\n",
+		axgbe_printf(1, "DMA_CH_TDTR_LO Reg (%08x) = %08x\n",
 		    DMA_CH_TDTR_LO, XGMAC_DMA_IOREAD(channel, DMA_CH_TDTR_LO));
-        	axgbe_printf(1, "DMA_CH_RDTR_LO Reg (%08x) = %08x\n",
-		    DMA_CH_RDTR_LO, XGMAC_DMA_IOREAD(channel, DMA_CH_RDTR_LO));	
-        	axgbe_printf(1, "DMA_CH_TDRLR Reg (%08x) = %08x\n",
+		axgbe_printf(1, "DMA_CH_RDTR_LO Reg (%08x) = %08x\n",
+		    DMA_CH_RDTR_LO, XGMAC_DMA_IOREAD(channel, DMA_CH_RDTR_LO));
+		axgbe_printf(1, "DMA_CH_TDRLR Reg (%08x) = %08x\n",
 		    DMA_CH_TDRLR, XGMAC_DMA_IOREAD(channel, DMA_CH_TDRLR));
-        	axgbe_printf(1, "DMA_CH_RDRLR Reg (%08x) = %08x\n",
+		axgbe_printf(1, "DMA_CH_RDRLR Reg (%08x) = %08x\n",
 		    DMA_CH_RDRLR, XGMAC_DMA_IOREAD(channel, DMA_CH_RDRLR));
-        	axgbe_printf(1, "DMA_CH_IER Reg (%08x) = %08x\n",
-		    DMA_CH_IER, XGMAC_DMA_IOREAD(channel, DMA_CH_IER));
-        	axgbe_printf(1, "DMA_CH_RIWT Reg (%08x) = %08x\n",
-		    DMA_CH_RIWT, XGMAC_DMA_IOREAD(channel, DMA_CH_RIWT));
-        	axgbe_printf(1, "DMA_CH_CATDR_LO Reg (%08x) = %08x\n",
-		    DMA_CH_CATDR_LO, XGMAC_DMA_IOREAD(channel, DMA_CH_CATDR_LO));
-        	axgbe_printf(1, "DMA_CH_CARDR_LO Reg (%08x) = %08x\n",
-		    DMA_CH_CARDR_LO, XGMAC_DMA_IOREAD(channel, DMA_CH_CARDR_LO));
-        	axgbe_printf(1, "DMA_CH_CATBR_HI Reg (%08x) = %08x\n",
-		    DMA_CH_CATBR_HI, XGMAC_DMA_IOREAD(channel, DMA_CH_CATBR_HI));
-        	axgbe_printf(1, "DMA_CH_CATBR_LO Reg (%08x) = %08x\n",
-		    DMA_CH_CATBR_LO, XGMAC_DMA_IOREAD(channel, DMA_CH_CATBR_LO));
-        	axgbe_printf(1, "DMA_CH_CARBR_HI Reg (%08x) = %08x\n",
-		    DMA_CH_CARBR_HI, XGMAC_DMA_IOREAD(channel, DMA_CH_CARBR_HI));
-        	axgbe_printf(1, "DMA_CH_CARBR_LO Reg (%08x) = %08x\n",
-		    DMA_CH_CARBR_LO, XGMAC_DMA_IOREAD(channel, DMA_CH_CARBR_LO));
-        	axgbe_printf(1, "DMA_CH_SR Reg (%08x) = %08x\n",
-		    DMA_CH_SR, XGMAC_DMA_IOREAD(channel, DMA_CH_SR));
-        	axgbe_printf(1, "DMA_CH_DSR Reg (%08x) = %08x\n",
-		    DMA_CH_DSR,	XGMAC_DMA_IOREAD(channel, DMA_CH_DSR));
-        	axgbe_printf(1, "DMA_CH_DCFL Reg (%08x) = %08x\n",
-		    DMA_CH_DCFL, XGMAC_DMA_IOREAD(channel, DMA_CH_DCFL));
-        	axgbe_printf(1, "DMA_CH_MFC Reg (%08x) = %08x\n",
-		    DMA_CH_MFC, XGMAC_DMA_IOREAD(channel, DMA_CH_MFC));
-        	axgbe_printf(1, "DMA_CH_TDTRO Reg (%08x) = %08x\n",
-		    DMA_CH_TDTRO, XGMAC_DMA_IOREAD(channel, DMA_CH_TDTRO));	
-        	axgbe_printf(1, "DMA_CH_RDTRO Reg (%08x) = %08x\n",
+		axgbe_printf(1, "DMA_CH_IER Reg (%08x) = %08x\n", DMA_CH_IER,
+		    XGMAC_DMA_IOREAD(channel, DMA_CH_IER));
+		axgbe_printf(1, "DMA_CH_RIWT Reg (%08x) = %08x\n", DMA_CH_RIWT,
+		    XGMAC_DMA_IOREAD(channel, DMA_CH_RIWT));
+		axgbe_printf(1, "DMA_CH_CATDR_LO Reg (%08x) = %08x\n",
+		    DMA_CH_CATDR_LO,
+		    XGMAC_DMA_IOREAD(channel, DMA_CH_CATDR_LO));
+		axgbe_printf(1, "DMA_CH_CARDR_LO Reg (%08x) = %08x\n",
+		    DMA_CH_CARDR_LO,
+		    XGMAC_DMA_IOREAD(channel, DMA_CH_CARDR_LO));
+		axgbe_printf(1, "DMA_CH_CATBR_HI Reg (%08x) = %08x\n",
+		    DMA_CH_CATBR_HI,
+		    XGMAC_DMA_IOREAD(channel, DMA_CH_CATBR_HI));
+		axgbe_printf(1, "DMA_CH_CATBR_LO Reg (%08x) = %08x\n",
+		    DMA_CH_CATBR_LO,
+		    XGMAC_DMA_IOREAD(channel, DMA_CH_CATBR_LO));
+		axgbe_printf(1, "DMA_CH_CARBR_HI Reg (%08x) = %08x\n",
+		    DMA_CH_CARBR_HI,
+		    XGMAC_DMA_IOREAD(channel, DMA_CH_CARBR_HI));
+		axgbe_printf(1, "DMA_CH_CARBR_LO Reg (%08x) = %08x\n",
+		    DMA_CH_CARBR_LO,
+		    XGMAC_DMA_IOREAD(channel, DMA_CH_CARBR_LO));
+		axgbe_printf(1, "DMA_CH_SR Reg (%08x) = %08x\n", DMA_CH_SR,
+		    XGMAC_DMA_IOREAD(channel, DMA_CH_SR));
+		axgbe_printf(1, "DMA_CH_DSR Reg (%08x) = %08x\n", DMA_CH_DSR,
+		    XGMAC_DMA_IOREAD(channel, DMA_CH_DSR));
+		axgbe_printf(1, "DMA_CH_DCFL Reg (%08x) = %08x\n", DMA_CH_DCFL,
+		    XGMAC_DMA_IOREAD(channel, DMA_CH_DCFL));
+		axgbe_printf(1, "DMA_CH_MFC Reg (%08x) = %08x\n", DMA_CH_MFC,
+		    XGMAC_DMA_IOREAD(channel, DMA_CH_MFC));
+		axgbe_printf(1, "DMA_CH_TDTRO Reg (%08x) = %08x\n",
+		    DMA_CH_TDTRO, XGMAC_DMA_IOREAD(channel, DMA_CH_TDTRO));
+		axgbe_printf(1, "DMA_CH_RDTRO Reg (%08x) = %08x\n",
 		    DMA_CH_RDTRO, XGMAC_DMA_IOREAD(channel, DMA_CH_RDTRO));
-        	axgbe_printf(1, "DMA_CH_TDWRO Reg (%08x) = %08x\n",
-		    DMA_CH_TDWRO, XGMAC_DMA_IOREAD(channel, DMA_CH_TDWRO));	
-        	axgbe_printf(1, "DMA_CH_RDWRO Reg (%08x) = %08x\n",
+		axgbe_printf(1, "DMA_CH_TDWRO Reg (%08x) = %08x\n",
+		    DMA_CH_TDWRO, XGMAC_DMA_IOREAD(channel, DMA_CH_TDWRO));
+		axgbe_printf(1, "DMA_CH_RDWRO Reg (%08x) = %08x\n",
 		    DMA_CH_RDWRO, XGMAC_DMA_IOREAD(channel, DMA_CH_RDWRO));
 	}
 }
@@ -987,329 +987,331 @@ xgbe_dump_mtl_registers(struct xgbe_prv_data *pdata)
 {
 	int i;
 
-        axgbe_printf(1, "\n************* MTL Reg dump *********************\n");
+	axgbe_printf(1, "\n************* MTL Reg dump *********************\n");
 
-        axgbe_printf(1, "MTL OMR Reg (%08x) = %08x\n", MTL_OMR,
-           XGMAC_IOREAD(pdata, MTL_OMR));
-        axgbe_printf(1, "MTL FDCR Reg (%08x) = %08x\n", MTL_FDCR,
-           XGMAC_IOREAD(pdata, MTL_FDCR));
-        axgbe_printf(1, "MTL FDSR Reg (%08x) = %08x\n", MTL_FDSR,
-           XGMAC_IOREAD(pdata, MTL_FDSR));
-        axgbe_printf(1, "MTL FDDR Reg (%08x) = %08x\n", MTL_FDDR,
-           XGMAC_IOREAD(pdata, MTL_FDDR));
-        axgbe_printf(1, "MTL ISR Reg (%08x) = %08x\n", MTL_ISR,
-           XGMAC_IOREAD(pdata, MTL_ISR));
-        axgbe_printf(1, "MTL RQDCM0R Reg (%08x) = %08x\n", MTL_RQDCM0R,
-           XGMAC_IOREAD(pdata, MTL_RQDCM0R));
-        axgbe_printf(1, "MTL RQDCM1R Reg (%08x) = %08x\n", MTL_RQDCM1R,
-           XGMAC_IOREAD(pdata, MTL_RQDCM1R));
-        axgbe_printf(1, "MTL RQDCM2R Reg (%08x) = %08x\n", MTL_RQDCM2R,
-           XGMAC_IOREAD(pdata, MTL_RQDCM2R));
-        axgbe_printf(1, "MTL TCPM0R Reg (%08x) = %08x\n", MTL_TCPM0R,
-           XGMAC_IOREAD(pdata, MTL_TCPM0R));
-        axgbe_printf(1, "MTL TCPM1R Reg (%08x) = %08x\n", MTL_TCPM1R,
-           XGMAC_IOREAD(pdata, MTL_TCPM1R));
+	axgbe_printf(1, "MTL OMR Reg (%08x) = %08x\n", MTL_OMR,
+	    XGMAC_IOREAD(pdata, MTL_OMR));
+	axgbe_printf(1, "MTL FDCR Reg (%08x) = %08x\n", MTL_FDCR,
+	    XGMAC_IOREAD(pdata, MTL_FDCR));
+	axgbe_printf(1, "MTL FDSR Reg (%08x) = %08x\n", MTL_FDSR,
+	    XGMAC_IOREAD(pdata, MTL_FDSR));
+	axgbe_printf(1, "MTL FDDR Reg (%08x) = %08x\n", MTL_FDDR,
+	    XGMAC_IOREAD(pdata, MTL_FDDR));
+	axgbe_printf(1, "MTL ISR Reg (%08x) = %08x\n", MTL_ISR,
+	    XGMAC_IOREAD(pdata, MTL_ISR));
+	axgbe_printf(1, "MTL RQDCM0R Reg (%08x) = %08x\n", MTL_RQDCM0R,
+	    XGMAC_IOREAD(pdata, MTL_RQDCM0R));
+	axgbe_printf(1, "MTL RQDCM1R Reg (%08x) = %08x\n", MTL_RQDCM1R,
+	    XGMAC_IOREAD(pdata, MTL_RQDCM1R));
+	axgbe_printf(1, "MTL RQDCM2R Reg (%08x) = %08x\n", MTL_RQDCM2R,
+	    XGMAC_IOREAD(pdata, MTL_RQDCM2R));
+	axgbe_printf(1, "MTL TCPM0R Reg (%08x) = %08x\n", MTL_TCPM0R,
+	    XGMAC_IOREAD(pdata, MTL_TCPM0R));
+	axgbe_printf(1, "MTL TCPM1R Reg (%08x) = %08x\n", MTL_TCPM1R,
+	    XGMAC_IOREAD(pdata, MTL_TCPM1R));
 
-	for (i = 0 ; i < 8 ; i++ ) {
+	for (i = 0; i < 8; i++) {
 
-        	axgbe_printf(1, "\n************* MTL CH %d dump ****************\n", i);
+		axgbe_printf(1,
+		    "\n************* MTL CH %d dump ****************\n", i);
 
-        	axgbe_printf(1, "MTL_Q_TQOMR Reg (%08x) = %08x\n",
-		    MTL_Q_TQOMR, XGMAC_MTL_IOREAD(pdata, i, MTL_Q_TQOMR));
-        	axgbe_printf(1, "MTL_Q_TQUR Reg (%08x) = %08x\n",
-		    MTL_Q_TQUR, XGMAC_MTL_IOREAD(pdata, i, MTL_Q_TQUR));
-        	axgbe_printf(1, "MTL_Q_TQDR Reg (%08x) = %08x\n",
-		    MTL_Q_TQDR,	XGMAC_MTL_IOREAD(pdata, i, MTL_Q_TQDR));
-        	axgbe_printf(1, "MTL_Q_TC0ETSCR Reg (%08x) = %08x\n",
+		axgbe_printf(1, "MTL_Q_TQOMR Reg (%08x) = %08x\n", MTL_Q_TQOMR,
+		    XGMAC_MTL_IOREAD(pdata, i, MTL_Q_TQOMR));
+		axgbe_printf(1, "MTL_Q_TQUR Reg (%08x) = %08x\n", MTL_Q_TQUR,
+		    XGMAC_MTL_IOREAD(pdata, i, MTL_Q_TQUR));
+		axgbe_printf(1, "MTL_Q_TQDR Reg (%08x) = %08x\n", MTL_Q_TQDR,
+		    XGMAC_MTL_IOREAD(pdata, i, MTL_Q_TQDR));
+		axgbe_printf(1, "MTL_Q_TC0ETSCR Reg (%08x) = %08x\n",
 		    MTL_Q_TC0ETSCR, XGMAC_MTL_IOREAD(pdata, i, MTL_Q_TC0ETSCR));
-        	axgbe_printf(1, "MTL_Q_TC0ETSSR Reg (%08x) = %08x\n",
+		axgbe_printf(1, "MTL_Q_TC0ETSSR Reg (%08x) = %08x\n",
 		    MTL_Q_TC0ETSSR, XGMAC_MTL_IOREAD(pdata, i, MTL_Q_TC0ETSSR));
-        	axgbe_printf(1, "MTL_Q_TC0QWR Reg (%08x) = %08x\n",
+		axgbe_printf(1, "MTL_Q_TC0QWR Reg (%08x) = %08x\n",
 		    MTL_Q_TC0QWR, XGMAC_MTL_IOREAD(pdata, i, MTL_Q_TC0QWR));
 
-        	axgbe_printf(1, "MTL_Q_RQOMR Reg (%08x) = %08x\n",
-		    MTL_Q_RQOMR, XGMAC_MTL_IOREAD(pdata, i, MTL_Q_RQOMR));
-        	axgbe_printf(1, "MTL_Q_RQMPOCR Reg (%08x) = %08x\n",
+		axgbe_printf(1, "MTL_Q_RQOMR Reg (%08x) = %08x\n", MTL_Q_RQOMR,
+		    XGMAC_MTL_IOREAD(pdata, i, MTL_Q_RQOMR));
+		axgbe_printf(1, "MTL_Q_RQMPOCR Reg (%08x) = %08x\n",
 		    MTL_Q_RQMPOCR, XGMAC_MTL_IOREAD(pdata, i, MTL_Q_RQMPOCR));
-        	axgbe_printf(1, "MTL_Q_RQDR Reg (%08x) = %08x\n",
-		    MTL_Q_RQDR,	XGMAC_MTL_IOREAD(pdata, i, MTL_Q_RQDR));
-        	axgbe_printf(1, "MTL_Q_RQCR Reg (%08x) = %08x\n",
-		    MTL_Q_RQCR,	XGMAC_MTL_IOREAD(pdata, i, MTL_Q_RQCR));
-        	axgbe_printf(1, "MTL_Q_RQFCR Reg (%08x) = %08x\n",
-		    MTL_Q_RQFCR, XGMAC_MTL_IOREAD(pdata, i, MTL_Q_RQFCR));
-        	axgbe_printf(1, "MTL_Q_IER Reg (%08x) = %08x\n",
-		    MTL_Q_IER, XGMAC_MTL_IOREAD(pdata, i, MTL_Q_IER));
-        	axgbe_printf(1, "MTL_Q_ISR Reg (%08x) = %08x\n",
-		    MTL_Q_ISR, XGMAC_MTL_IOREAD(pdata, i, MTL_Q_ISR));
+		axgbe_printf(1, "MTL_Q_RQDR Reg (%08x) = %08x\n", MTL_Q_RQDR,
+		    XGMAC_MTL_IOREAD(pdata, i, MTL_Q_RQDR));
+		axgbe_printf(1, "MTL_Q_RQCR Reg (%08x) = %08x\n", MTL_Q_RQCR,
+		    XGMAC_MTL_IOREAD(pdata, i, MTL_Q_RQCR));
+		axgbe_printf(1, "MTL_Q_RQFCR Reg (%08x) = %08x\n", MTL_Q_RQFCR,
+		    XGMAC_MTL_IOREAD(pdata, i, MTL_Q_RQFCR));
+		axgbe_printf(1, "MTL_Q_IER Reg (%08x) = %08x\n", MTL_Q_IER,
+		    XGMAC_MTL_IOREAD(pdata, i, MTL_Q_IER));
+		axgbe_printf(1, "MTL_Q_ISR Reg (%08x) = %08x\n", MTL_Q_ISR,
+		    XGMAC_MTL_IOREAD(pdata, i, MTL_Q_ISR));
 	}
 }
 
 static void
 xgbe_dump_mac_registers(struct xgbe_prv_data *pdata)
 {
-        axgbe_printf(1, "\n************* MAC Reg dump **********************\n");
+	axgbe_printf(1,
+	    "\n************* MAC Reg dump **********************\n");
 
-        axgbe_printf(1, "MAC TCR Reg (%08x) = %08x\n", MAC_TCR,
-           XGMAC_IOREAD(pdata, MAC_TCR));
-        axgbe_printf(1, "MAC RCR Reg (%08x) = %08x\n", MAC_RCR,
-           XGMAC_IOREAD(pdata, MAC_RCR));
-        axgbe_printf(1, "MAC PFR Reg (%08x) = %08x\n", MAC_PFR,
-           XGMAC_IOREAD(pdata, MAC_PFR));
-        axgbe_printf(1, "MAC WTR Reg (%08x) = %08x\n", MAC_WTR,
-           XGMAC_IOREAD(pdata, MAC_WTR));
-        axgbe_printf(1, "MAC HTR0 Reg (%08x) = %08x\n", MAC_HTR0,
-           XGMAC_IOREAD(pdata, MAC_HTR0));
-        axgbe_printf(1, "MAC HTR1 Reg (%08x) = %08x\n", MAC_HTR1,
-           XGMAC_IOREAD(pdata, MAC_HTR1));
-        axgbe_printf(1, "MAC HTR2 Reg (%08x) = %08x\n", MAC_HTR2,
-           XGMAC_IOREAD(pdata, MAC_HTR2));
-        axgbe_printf(1, "MAC HTR3 Reg (%08x) = %08x\n", MAC_HTR3,
-           XGMAC_IOREAD(pdata, MAC_HTR3));
-        axgbe_printf(1, "MAC HTR4 Reg (%08x) = %08x\n", MAC_HTR4,
-           XGMAC_IOREAD(pdata, MAC_HTR4));
-        axgbe_printf(1, "MAC HTR5 Reg (%08x) = %08x\n", MAC_HTR5,
-           XGMAC_IOREAD(pdata, MAC_HTR5));
-        axgbe_printf(1, "MAC HTR6 Reg (%08x) = %08x\n", MAC_HTR6,
-           XGMAC_IOREAD(pdata, MAC_HTR6));
-        axgbe_printf(1, "MAC HTR7 Reg (%08x) = %08x\n", MAC_HTR7,
-           XGMAC_IOREAD(pdata, MAC_HTR7));
-        axgbe_printf(1, "MAC VLANTR Reg (%08x) = %08x\n", MAC_VLANTR,
-           XGMAC_IOREAD(pdata, MAC_VLANTR));
-        axgbe_printf(1, "MAC VLANHTR Reg (%08x) = %08x\n", MAC_VLANHTR,
-           XGMAC_IOREAD(pdata, MAC_VLANHTR));
-        axgbe_printf(1, "MAC VLANIR Reg (%08x) = %08x\n", MAC_VLANIR,
-           XGMAC_IOREAD(pdata, MAC_VLANIR));
-        axgbe_printf(1, "MAC IVLANIR Reg (%08x) = %08x\n", MAC_IVLANIR,
-           XGMAC_IOREAD(pdata, MAC_IVLANIR));
-        axgbe_printf(1, "MAC RETMR Reg (%08x) = %08x\n", MAC_RETMR,
-           XGMAC_IOREAD(pdata, MAC_RETMR));
-        axgbe_printf(1, "MAC Q0TFCR Reg (%08x) = %08x\n", MAC_Q0TFCR,
-           XGMAC_IOREAD(pdata, MAC_Q0TFCR));
-        axgbe_printf(1, "MAC Q1TFCR Reg (%08x) = %08x\n", MAC_Q1TFCR,
-           XGMAC_IOREAD(pdata, MAC_Q1TFCR));
-        axgbe_printf(1, "MAC Q2TFCR Reg (%08x) = %08x\n", MAC_Q2TFCR,
-           XGMAC_IOREAD(pdata, MAC_Q2TFCR));
-        axgbe_printf(1, "MAC Q3TFCR Reg (%08x) = %08x\n", MAC_Q3TFCR,
-           XGMAC_IOREAD(pdata, MAC_Q3TFCR));
-        axgbe_printf(1, "MAC Q4TFCR Reg (%08x) = %08x\n", MAC_Q4TFCR,
-           XGMAC_IOREAD(pdata, MAC_Q4TFCR));
-        axgbe_printf(1, "MAC Q5TFCR Reg (%08x) = %08x\n", MAC_Q5TFCR,
-           XGMAC_IOREAD(pdata, MAC_Q5TFCR));
-        axgbe_printf(1, "MAC Q6TFCR Reg (%08x) = %08x\n", MAC_Q6TFCR,
-           XGMAC_IOREAD(pdata, MAC_Q6TFCR));
-        axgbe_printf(1, "MAC Q7TFCR Reg (%08x) = %08x\n", MAC_Q7TFCR,
-           XGMAC_IOREAD(pdata, MAC_Q7TFCR));
-        axgbe_printf(1, "MAC RFCR Reg (%08x) = %08x\n", MAC_RFCR,
-           XGMAC_IOREAD(pdata, MAC_RFCR));
-        axgbe_printf(1, "MAC RQC0R Reg (%08x) = %08x\n", MAC_RQC0R,
-           XGMAC_IOREAD(pdata, MAC_RQC0R));
-        axgbe_printf(1, "MAC RQC1R Reg (%08x) = %08x\n", MAC_RQC1R,
-           XGMAC_IOREAD(pdata, MAC_RQC1R));
-        axgbe_printf(1, "MAC RQC2R Reg (%08x) = %08x\n", MAC_RQC2R,
-           XGMAC_IOREAD(pdata, MAC_RQC2R));
-        axgbe_printf(1, "MAC RQC3R Reg (%08x) = %08x\n", MAC_RQC3R,
-           XGMAC_IOREAD(pdata, MAC_RQC3R));
-        axgbe_printf(1, "MAC ISR Reg (%08x) = %08x\n", MAC_ISR,
-           XGMAC_IOREAD(pdata, MAC_ISR));
-        axgbe_printf(1, "MAC IER Reg (%08x) = %08x\n", MAC_IER,
-           XGMAC_IOREAD(pdata, MAC_IER));
-        axgbe_printf(1, "MAC RTSR Reg (%08x) = %08x\n", MAC_RTSR,
-           XGMAC_IOREAD(pdata, MAC_RTSR));
-        axgbe_printf(1, "MAC PMTCSR Reg (%08x) = %08x\n", MAC_PMTCSR,
-           XGMAC_IOREAD(pdata, MAC_PMTCSR));
-        axgbe_printf(1, "MAC RWKPFR Reg (%08x) = %08x\n", MAC_RWKPFR,
-           XGMAC_IOREAD(pdata, MAC_RWKPFR));
-        axgbe_printf(1, "MAC LPICSR Reg (%08x) = %08x\n", MAC_LPICSR,
-           XGMAC_IOREAD(pdata, MAC_LPICSR));
-        axgbe_printf(1, "MAC LPITCR Reg (%08x) = %08x\n", MAC_LPITCR,
-           XGMAC_IOREAD(pdata, MAC_LPITCR));
-        axgbe_printf(1, "MAC TIR Reg (%08x) = %08x\n", MAC_TIR,
-           XGMAC_IOREAD(pdata, MAC_TIR));
-        axgbe_printf(1, "MAC VR Reg (%08x) = %08x\n", MAC_VR,
-           XGMAC_IOREAD(pdata, MAC_VR));
+	axgbe_printf(1, "MAC TCR Reg (%08x) = %08x\n", MAC_TCR,
+	    XGMAC_IOREAD(pdata, MAC_TCR));
+	axgbe_printf(1, "MAC RCR Reg (%08x) = %08x\n", MAC_RCR,
+	    XGMAC_IOREAD(pdata, MAC_RCR));
+	axgbe_printf(1, "MAC PFR Reg (%08x) = %08x\n", MAC_PFR,
+	    XGMAC_IOREAD(pdata, MAC_PFR));
+	axgbe_printf(1, "MAC WTR Reg (%08x) = %08x\n", MAC_WTR,
+	    XGMAC_IOREAD(pdata, MAC_WTR));
+	axgbe_printf(1, "MAC HTR0 Reg (%08x) = %08x\n", MAC_HTR0,
+	    XGMAC_IOREAD(pdata, MAC_HTR0));
+	axgbe_printf(1, "MAC HTR1 Reg (%08x) = %08x\n", MAC_HTR1,
+	    XGMAC_IOREAD(pdata, MAC_HTR1));
+	axgbe_printf(1, "MAC HTR2 Reg (%08x) = %08x\n", MAC_HTR2,
+	    XGMAC_IOREAD(pdata, MAC_HTR2));
+	axgbe_printf(1, "MAC HTR3 Reg (%08x) = %08x\n", MAC_HTR3,
+	    XGMAC_IOREAD(pdata, MAC_HTR3));
+	axgbe_printf(1, "MAC HTR4 Reg (%08x) = %08x\n", MAC_HTR4,
+	    XGMAC_IOREAD(pdata, MAC_HTR4));
+	axgbe_printf(1, "MAC HTR5 Reg (%08x) = %08x\n", MAC_HTR5,
+	    XGMAC_IOREAD(pdata, MAC_HTR5));
+	axgbe_printf(1, "MAC HTR6 Reg (%08x) = %08x\n", MAC_HTR6,
+	    XGMAC_IOREAD(pdata, MAC_HTR6));
+	axgbe_printf(1, "MAC HTR7 Reg (%08x) = %08x\n", MAC_HTR7,
+	    XGMAC_IOREAD(pdata, MAC_HTR7));
+	axgbe_printf(1, "MAC VLANTR Reg (%08x) = %08x\n", MAC_VLANTR,
+	    XGMAC_IOREAD(pdata, MAC_VLANTR));
+	axgbe_printf(1, "MAC VLANHTR Reg (%08x) = %08x\n", MAC_VLANHTR,
+	    XGMAC_IOREAD(pdata, MAC_VLANHTR));
+	axgbe_printf(1, "MAC VLANIR Reg (%08x) = %08x\n", MAC_VLANIR,
+	    XGMAC_IOREAD(pdata, MAC_VLANIR));
+	axgbe_printf(1, "MAC IVLANIR Reg (%08x) = %08x\n", MAC_IVLANIR,
+	    XGMAC_IOREAD(pdata, MAC_IVLANIR));
+	axgbe_printf(1, "MAC RETMR Reg (%08x) = %08x\n", MAC_RETMR,
+	    XGMAC_IOREAD(pdata, MAC_RETMR));
+	axgbe_printf(1, "MAC Q0TFCR Reg (%08x) = %08x\n", MAC_Q0TFCR,
+	    XGMAC_IOREAD(pdata, MAC_Q0TFCR));
+	axgbe_printf(1, "MAC Q1TFCR Reg (%08x) = %08x\n", MAC_Q1TFCR,
+	    XGMAC_IOREAD(pdata, MAC_Q1TFCR));
+	axgbe_printf(1, "MAC Q2TFCR Reg (%08x) = %08x\n", MAC_Q2TFCR,
+	    XGMAC_IOREAD(pdata, MAC_Q2TFCR));
+	axgbe_printf(1, "MAC Q3TFCR Reg (%08x) = %08x\n", MAC_Q3TFCR,
+	    XGMAC_IOREAD(pdata, MAC_Q3TFCR));
+	axgbe_printf(1, "MAC Q4TFCR Reg (%08x) = %08x\n", MAC_Q4TFCR,
+	    XGMAC_IOREAD(pdata, MAC_Q4TFCR));
+	axgbe_printf(1, "MAC Q5TFCR Reg (%08x) = %08x\n", MAC_Q5TFCR,
+	    XGMAC_IOREAD(pdata, MAC_Q5TFCR));
+	axgbe_printf(1, "MAC Q6TFCR Reg (%08x) = %08x\n", MAC_Q6TFCR,
+	    XGMAC_IOREAD(pdata, MAC_Q6TFCR));
+	axgbe_printf(1, "MAC Q7TFCR Reg (%08x) = %08x\n", MAC_Q7TFCR,
+	    XGMAC_IOREAD(pdata, MAC_Q7TFCR));
+	axgbe_printf(1, "MAC RFCR Reg (%08x) = %08x\n", MAC_RFCR,
+	    XGMAC_IOREAD(pdata, MAC_RFCR));
+	axgbe_printf(1, "MAC RQC0R Reg (%08x) = %08x\n", MAC_RQC0R,
+	    XGMAC_IOREAD(pdata, MAC_RQC0R));
+	axgbe_printf(1, "MAC RQC1R Reg (%08x) = %08x\n", MAC_RQC1R,
+	    XGMAC_IOREAD(pdata, MAC_RQC1R));
+	axgbe_printf(1, "MAC RQC2R Reg (%08x) = %08x\n", MAC_RQC2R,
+	    XGMAC_IOREAD(pdata, MAC_RQC2R));
+	axgbe_printf(1, "MAC RQC3R Reg (%08x) = %08x\n", MAC_RQC3R,
+	    XGMAC_IOREAD(pdata, MAC_RQC3R));
+	axgbe_printf(1, "MAC ISR Reg (%08x) = %08x\n", MAC_ISR,
+	    XGMAC_IOREAD(pdata, MAC_ISR));
+	axgbe_printf(1, "MAC IER Reg (%08x) = %08x\n", MAC_IER,
+	    XGMAC_IOREAD(pdata, MAC_IER));
+	axgbe_printf(1, "MAC RTSR Reg (%08x) = %08x\n", MAC_RTSR,
+	    XGMAC_IOREAD(pdata, MAC_RTSR));
+	axgbe_printf(1, "MAC PMTCSR Reg (%08x) = %08x\n", MAC_PMTCSR,
+	    XGMAC_IOREAD(pdata, MAC_PMTCSR));
+	axgbe_printf(1, "MAC RWKPFR Reg (%08x) = %08x\n", MAC_RWKPFR,
+	    XGMAC_IOREAD(pdata, MAC_RWKPFR));
+	axgbe_printf(1, "MAC LPICSR Reg (%08x) = %08x\n", MAC_LPICSR,
+	    XGMAC_IOREAD(pdata, MAC_LPICSR));
+	axgbe_printf(1, "MAC LPITCR Reg (%08x) = %08x\n", MAC_LPITCR,
+	    XGMAC_IOREAD(pdata, MAC_LPITCR));
+	axgbe_printf(1, "MAC TIR Reg (%08x) = %08x\n", MAC_TIR,
+	    XGMAC_IOREAD(pdata, MAC_TIR));
+	axgbe_printf(1, "MAC VR Reg (%08x) = %08x\n", MAC_VR,
+	    XGMAC_IOREAD(pdata, MAC_VR));
 	axgbe_printf(1, "MAC DR Reg (%08x) = %08x\n", MAC_DR,
-           XGMAC_IOREAD(pdata, MAC_DR));
-        axgbe_printf(1, "MAC HWF0R Reg (%08x) = %08x\n", MAC_HWF0R,
-           XGMAC_IOREAD(pdata, MAC_HWF0R));
-        axgbe_printf(1, "MAC HWF1R Reg (%08x) = %08x\n", MAC_HWF1R,
-           XGMAC_IOREAD(pdata, MAC_HWF1R));
-        axgbe_printf(1, "MAC HWF2R Reg (%08x) = %08x\n", MAC_HWF2R,
-           XGMAC_IOREAD(pdata, MAC_HWF2R));
-        axgbe_printf(1, "MAC MDIOSCAR Reg (%08x) = %08x\n", MAC_MDIOSCAR,
-           XGMAC_IOREAD(pdata, MAC_MDIOSCAR));
-        axgbe_printf(1, "MAC MDIOSCCDR Reg (%08x) = %08x\n", MAC_MDIOSCCDR,
-           XGMAC_IOREAD(pdata, MAC_MDIOSCCDR));
-        axgbe_printf(1, "MAC MDIOISR Reg (%08x) = %08x\n", MAC_MDIOISR,
-           XGMAC_IOREAD(pdata, MAC_MDIOISR));
-        axgbe_printf(1, "MAC MDIOIER Reg (%08x) = %08x\n", MAC_MDIOIER,
-           XGMAC_IOREAD(pdata, MAC_MDIOIER));
-        axgbe_printf(1, "MAC MDIOCL22R Reg (%08x) = %08x\n", MAC_MDIOCL22R,
-           XGMAC_IOREAD(pdata, MAC_MDIOCL22R));
-        axgbe_printf(1, "MAC GPIOCR Reg (%08x) = %08x\n", MAC_GPIOCR,
-           XGMAC_IOREAD(pdata, MAC_GPIOCR));
-        axgbe_printf(1, "MAC GPIOSR Reg (%08x) = %08x\n", MAC_GPIOSR,
-           XGMAC_IOREAD(pdata, MAC_GPIOSR));
-        axgbe_printf(1, "MAC MACA0HR Reg (%08x) = %08x\n", MAC_MACA0HR,
-           XGMAC_IOREAD(pdata, MAC_MACA0HR));
-        axgbe_printf(1, "MAC MACA0LR Reg (%08x) = %08x\n", MAC_TCR,
-           XGMAC_IOREAD(pdata, MAC_MACA0LR));
-        axgbe_printf(1, "MAC MACA1HR Reg (%08x) = %08x\n", MAC_MACA1HR,
-           XGMAC_IOREAD(pdata, MAC_MACA1HR));
-        axgbe_printf(1, "MAC MACA1LR Reg (%08x) = %08x\n", MAC_MACA1LR,
-           XGMAC_IOREAD(pdata, MAC_MACA1LR));
-        axgbe_printf(1, "MAC RSSCR Reg (%08x) = %08x\n", MAC_RSSCR,
-           XGMAC_IOREAD(pdata, MAC_RSSCR));
-        axgbe_printf(1, "MAC RSSDR Reg (%08x) = %08x\n", MAC_RSSDR,
-           XGMAC_IOREAD(pdata, MAC_RSSDR));
-        axgbe_printf(1, "MAC RSSAR Reg (%08x) = %08x\n", MAC_RSSAR,
-           XGMAC_IOREAD(pdata, MAC_RSSAR));
-        axgbe_printf(1, "MAC TSCR Reg (%08x) = %08x\n", MAC_TSCR,
-           XGMAC_IOREAD(pdata, MAC_TSCR));
-        axgbe_printf(1, "MAC SSIR Reg (%08x) = %08x\n", MAC_SSIR,
-           XGMAC_IOREAD(pdata, MAC_SSIR));
-        axgbe_printf(1, "MAC STSR Reg (%08x) = %08x\n", MAC_STSR,
-           XGMAC_IOREAD(pdata, MAC_STSR));
-        axgbe_printf(1, "MAC STNR Reg (%08x) = %08x\n", MAC_STNR,
-           XGMAC_IOREAD(pdata, MAC_STNR));
-        axgbe_printf(1, "MAC STSUR Reg (%08x) = %08x\n", MAC_STSUR,
-           XGMAC_IOREAD(pdata, MAC_STSUR));
-        axgbe_printf(1, "MAC STNUR Reg (%08x) = %08x\n", MAC_STNUR,
-           XGMAC_IOREAD(pdata, MAC_STNUR));
-        axgbe_printf(1, "MAC TSAR Reg (%08x) = %08x\n", MAC_TSAR,
-           XGMAC_IOREAD(pdata, MAC_TSAR));
-        axgbe_printf(1, "MAC TSSR Reg (%08x) = %08x\n", MAC_TSSR,
-           XGMAC_IOREAD(pdata, MAC_TSSR));
-        axgbe_printf(1, "MAC TXSNR Reg (%08x) = %08x\n", MAC_TXSNR,
-           XGMAC_IOREAD(pdata, MAC_TXSNR));
-	 axgbe_printf(1, "MAC TXSSR Reg (%08x) = %08x\n", MAC_TXSSR,
-           XGMAC_IOREAD(pdata, MAC_TXSSR));
+	    XGMAC_IOREAD(pdata, MAC_DR));
+	axgbe_printf(1, "MAC HWF0R Reg (%08x) = %08x\n", MAC_HWF0R,
+	    XGMAC_IOREAD(pdata, MAC_HWF0R));
+	axgbe_printf(1, "MAC HWF1R Reg (%08x) = %08x\n", MAC_HWF1R,
+	    XGMAC_IOREAD(pdata, MAC_HWF1R));
+	axgbe_printf(1, "MAC HWF2R Reg (%08x) = %08x\n", MAC_HWF2R,
+	    XGMAC_IOREAD(pdata, MAC_HWF2R));
+	axgbe_printf(1, "MAC MDIOSCAR Reg (%08x) = %08x\n", MAC_MDIOSCAR,
+	    XGMAC_IOREAD(pdata, MAC_MDIOSCAR));
+	axgbe_printf(1, "MAC MDIOSCCDR Reg (%08x) = %08x\n", MAC_MDIOSCCDR,
+	    XGMAC_IOREAD(pdata, MAC_MDIOSCCDR));
+	axgbe_printf(1, "MAC MDIOISR Reg (%08x) = %08x\n", MAC_MDIOISR,
+	    XGMAC_IOREAD(pdata, MAC_MDIOISR));
+	axgbe_printf(1, "MAC MDIOIER Reg (%08x) = %08x\n", MAC_MDIOIER,
+	    XGMAC_IOREAD(pdata, MAC_MDIOIER));
+	axgbe_printf(1, "MAC MDIOCL22R Reg (%08x) = %08x\n", MAC_MDIOCL22R,
+	    XGMAC_IOREAD(pdata, MAC_MDIOCL22R));
+	axgbe_printf(1, "MAC GPIOCR Reg (%08x) = %08x\n", MAC_GPIOCR,
+	    XGMAC_IOREAD(pdata, MAC_GPIOCR));
+	axgbe_printf(1, "MAC GPIOSR Reg (%08x) = %08x\n", MAC_GPIOSR,
+	    XGMAC_IOREAD(pdata, MAC_GPIOSR));
+	axgbe_printf(1, "MAC MACA0HR Reg (%08x) = %08x\n", MAC_MACA0HR,
+	    XGMAC_IOREAD(pdata, MAC_MACA0HR));
+	axgbe_printf(1, "MAC MACA0LR Reg (%08x) = %08x\n", MAC_TCR,
+	    XGMAC_IOREAD(pdata, MAC_MACA0LR));
+	axgbe_printf(1, "MAC MACA1HR Reg (%08x) = %08x\n", MAC_MACA1HR,
+	    XGMAC_IOREAD(pdata, MAC_MACA1HR));
+	axgbe_printf(1, "MAC MACA1LR Reg (%08x) = %08x\n", MAC_MACA1LR,
+	    XGMAC_IOREAD(pdata, MAC_MACA1LR));
+	axgbe_printf(1, "MAC RSSCR Reg (%08x) = %08x\n", MAC_RSSCR,
+	    XGMAC_IOREAD(pdata, MAC_RSSCR));
+	axgbe_printf(1, "MAC RSSDR Reg (%08x) = %08x\n", MAC_RSSDR,
+	    XGMAC_IOREAD(pdata, MAC_RSSDR));
+	axgbe_printf(1, "MAC RSSAR Reg (%08x) = %08x\n", MAC_RSSAR,
+	    XGMAC_IOREAD(pdata, MAC_RSSAR));
+	axgbe_printf(1, "MAC TSCR Reg (%08x) = %08x\n", MAC_TSCR,
+	    XGMAC_IOREAD(pdata, MAC_TSCR));
+	axgbe_printf(1, "MAC SSIR Reg (%08x) = %08x\n", MAC_SSIR,
+	    XGMAC_IOREAD(pdata, MAC_SSIR));
+	axgbe_printf(1, "MAC STSR Reg (%08x) = %08x\n", MAC_STSR,
+	    XGMAC_IOREAD(pdata, MAC_STSR));
+	axgbe_printf(1, "MAC STNR Reg (%08x) = %08x\n", MAC_STNR,
+	    XGMAC_IOREAD(pdata, MAC_STNR));
+	axgbe_printf(1, "MAC STSUR Reg (%08x) = %08x\n", MAC_STSUR,
+	    XGMAC_IOREAD(pdata, MAC_STSUR));
+	axgbe_printf(1, "MAC STNUR Reg (%08x) = %08x\n", MAC_STNUR,
+	    XGMAC_IOREAD(pdata, MAC_STNUR));
+	axgbe_printf(1, "MAC TSAR Reg (%08x) = %08x\n", MAC_TSAR,
+	    XGMAC_IOREAD(pdata, MAC_TSAR));
+	axgbe_printf(1, "MAC TSSR Reg (%08x) = %08x\n", MAC_TSSR,
+	    XGMAC_IOREAD(pdata, MAC_TSSR));
+	axgbe_printf(1, "MAC TXSNR Reg (%08x) = %08x\n", MAC_TXSNR,
+	    XGMAC_IOREAD(pdata, MAC_TXSNR));
+	axgbe_printf(1, "MAC TXSSR Reg (%08x) = %08x\n", MAC_TXSSR,
+	    XGMAC_IOREAD(pdata, MAC_TXSSR));
 }
 
 static void
 xgbe_dump_rmon_counters(struct xgbe_prv_data *pdata)
 {
-        struct xgbe_mmc_stats *stats = &pdata->mmc_stats;
+	struct xgbe_mmc_stats *stats = &pdata->mmc_stats;
 
-        axgbe_printf(1, "\n************* RMON counters dump ***************\n");
+	axgbe_printf(1, "\n************* RMON counters dump ***************\n");
 
-        pdata->hw_if.read_mmc_stats(pdata);
+	pdata->hw_if.read_mmc_stats(pdata);
 
-        axgbe_printf(1, "rmon txoctetcount_gb (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon txoctetcount_gb (%08x) = %08lx\n",
 	    MMC_TXOCTETCOUNT_GB_LO, stats->txoctetcount_gb);
-        axgbe_printf(1, "rmon txframecount_gb (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon txframecount_gb (%08x) = %08lx\n",
 	    MMC_TXFRAMECOUNT_GB_LO, stats->txframecount_gb);
-        axgbe_printf(1, "rmon txbroadcastframes_g (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon txbroadcastframes_g (%08x) = %08lx\n",
 	    MMC_TXBROADCASTFRAMES_G_LO, stats->txbroadcastframes_g);
-        axgbe_printf(1, "rmon txmulticastframes_g (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon txmulticastframes_g (%08x) = %08lx\n",
 	    MMC_TXMULTICASTFRAMES_G_LO, stats->txmulticastframes_g);
-        axgbe_printf(1, "rmon tx64octets_gb (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon tx64octets_gb (%08x) = %08lx\n",
 	    MMC_TX64OCTETS_GB_LO, stats->tx64octets_gb);
-        axgbe_printf(1, "rmon tx65to127octets_gb (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon tx65to127octets_gb (%08x) = %08lx\n",
 	    MMC_TX65TO127OCTETS_GB_LO, stats->tx65to127octets_gb);
-        axgbe_printf(1, "rmon tx128to255octets_gb (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon tx128to255octets_gb (%08x) = %08lx\n",
 	    MMC_TX128TO255OCTETS_GB_LO, stats->tx128to255octets_gb);
-        axgbe_printf(1, "rmon tx256to511octets_gb (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon tx256to511octets_gb (%08x) = %08lx\n",
 	    MMC_TX256TO511OCTETS_GB_LO, stats->tx256to511octets_gb);
-        axgbe_printf(1, "rmon tx512to1023octets_gb (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon tx512to1023octets_gb (%08x) = %08lx\n",
 	    MMC_TX512TO1023OCTETS_GB_LO, stats->tx512to1023octets_gb);
 	axgbe_printf(1, "rmon tx1024tomaxoctets_gb (%08x) = %08lx\n",
 	    MMC_TX1024TOMAXOCTETS_GB_LO, stats->tx1024tomaxoctets_gb);
-        axgbe_printf(1, "rmon txunicastframes_gb (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon txunicastframes_gb (%08x) = %08lx\n",
 	    MMC_TXUNICASTFRAMES_GB_LO, stats->txunicastframes_gb);
-        axgbe_printf(1, "rmon txmulticastframes_gb (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon txmulticastframes_gb (%08x) = %08lx\n",
 	    MMC_TXMULTICASTFRAMES_GB_LO, stats->txmulticastframes_gb);
-        axgbe_printf(1, "rmon txbroadcastframes_gb (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon txbroadcastframes_gb (%08x) = %08lx\n",
 	    MMC_TXBROADCASTFRAMES_GB_LO, stats->txbroadcastframes_gb);
-        axgbe_printf(1, "rmon txunderflowerror (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon txunderflowerror (%08x) = %08lx\n",
 	    MMC_TXUNDERFLOWERROR_LO, stats->txunderflowerror);
-        axgbe_printf(1, "rmon txoctetcount_g (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon txoctetcount_g (%08x) = %08lx\n",
 	    MMC_TXOCTETCOUNT_G_LO, stats->txoctetcount_g);
-        axgbe_printf(1, "rmon txframecount_g (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon txframecount_g (%08x) = %08lx\n",
 	    MMC_TXFRAMECOUNT_G_LO, stats->txframecount_g);
-        axgbe_printf(1, "rmon txpauseframes (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon txpauseframes (%08x) = %08lx\n",
 	    MMC_TXPAUSEFRAMES_LO, stats->txpauseframes);
-        axgbe_printf(1, "rmon txvlanframes_g (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon txvlanframes_g (%08x) = %08lx\n",
 	    MMC_TXVLANFRAMES_G_LO, stats->txvlanframes_g);
-        axgbe_printf(1, "rmon rxframecount_gb (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon rxframecount_gb (%08x) = %08lx\n",
 	    MMC_RXFRAMECOUNT_GB_LO, stats->rxframecount_gb);
-        axgbe_printf(1, "rmon rxoctetcount_gb (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon rxoctetcount_gb (%08x) = %08lx\n",
 	    MMC_RXOCTETCOUNT_GB_LO, stats->rxoctetcount_gb);
-        axgbe_printf(1, "rmon rxoctetcount_g (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon rxoctetcount_g (%08x) = %08lx\n",
 	    MMC_RXOCTETCOUNT_G_LO, stats->rxoctetcount_g);
-        axgbe_printf(1, "rmon rxbroadcastframes_g (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon rxbroadcastframes_g (%08x) = %08lx\n",
 	    MMC_RXBROADCASTFRAMES_G_LO, stats->rxbroadcastframes_g);
-        axgbe_printf(1, "rmon rxmulticastframes_g (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon rxmulticastframes_g (%08x) = %08lx\n",
 	    MMC_RXMULTICASTFRAMES_G_LO, stats->rxmulticastframes_g);
-        axgbe_printf(1, "rmon rxcrcerror (%08x) = %08lx\n",
-	    MMC_RXCRCERROR_LO, stats->rxcrcerror);
-	axgbe_printf(1, "rmon rxrunterror (%08x) = %08lx\n",
-	    MMC_RXRUNTERROR, stats->rxrunterror);
-        axgbe_printf(1, "rmon rxjabbererror (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon rxcrcerror (%08x) = %08lx\n", MMC_RXCRCERROR_LO,
+	    stats->rxcrcerror);
+	axgbe_printf(1, "rmon rxrunterror (%08x) = %08lx\n", MMC_RXRUNTERROR,
+	    stats->rxrunterror);
+	axgbe_printf(1, "rmon rxjabbererror (%08x) = %08lx\n",
 	    MMC_RXJABBERERROR, stats->rxjabbererror);
-        axgbe_printf(1, "rmon rxundersize_g (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon rxundersize_g (%08x) = %08lx\n",
 	    MMC_RXUNDERSIZE_G, stats->rxundersize_g);
-        axgbe_printf(1, "rmon rxoversize_g (%08x) = %08lx\n",
-	    MMC_RXOVERSIZE_G, stats->rxoversize_g);
-        axgbe_printf(1, "rmon rx64octets_gb (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon rxoversize_g (%08x) = %08lx\n", MMC_RXOVERSIZE_G,
+	    stats->rxoversize_g);
+	axgbe_printf(1, "rmon rx64octets_gb (%08x) = %08lx\n",
 	    MMC_RX64OCTETS_GB_LO, stats->rx64octets_gb);
-        axgbe_printf(1, "rmon rx65to127octets_gb (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon rx65to127octets_gb (%08x) = %08lx\n",
 	    MMC_RX65TO127OCTETS_GB_LO, stats->rx65to127octets_gb);
-        axgbe_printf(1, "rmon rx128to255octets_gb (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon rx128to255octets_gb (%08x) = %08lx\n",
 	    MMC_RX128TO255OCTETS_GB_LO, stats->rx128to255octets_gb);
-        axgbe_printf(1, "rmon rx256to511octets_gb (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon rx256to511octets_gb (%08x) = %08lx\n",
 	    MMC_RX256TO511OCTETS_GB_LO, stats->rx256to511octets_gb);
-        axgbe_printf(1, "rmon rx512to1023octets_gb (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon rx512to1023octets_gb (%08x) = %08lx\n",
 	    MMC_RX512TO1023OCTETS_GB_LO, stats->rx512to1023octets_gb);
-        axgbe_printf(1, "rmon rx1024tomaxoctets_gb (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon rx1024tomaxoctets_gb (%08x) = %08lx\n",
 	    MMC_RX1024TOMAXOCTETS_GB_LO, stats->rx1024tomaxoctets_gb);
-        axgbe_printf(1, "rmon rxunicastframes_g (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon rxunicastframes_g (%08x) = %08lx\n",
 	    MMC_RXUNICASTFRAMES_G_LO, stats->rxunicastframes_g);
-        axgbe_printf(1, "rmon rxlengtherror (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon rxlengtherror (%08x) = %08lx\n",
 	    MMC_RXLENGTHERROR_LO, stats->rxlengtherror);
-        axgbe_printf(1, "rmon rxoutofrangetype (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon rxoutofrangetype (%08x) = %08lx\n",
 	    MMC_RXOUTOFRANGETYPE_LO, stats->rxoutofrangetype);
-        axgbe_printf(1, "rmon rxpauseframes (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon rxpauseframes (%08x) = %08lx\n",
 	    MMC_RXPAUSEFRAMES_LO, stats->rxpauseframes);
-        axgbe_printf(1, "rmon rxfifooverflow (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon rxfifooverflow (%08x) = %08lx\n",
 	    MMC_RXFIFOOVERFLOW_LO, stats->rxfifooverflow);
 	axgbe_printf(1, "rmon rxvlanframes_gb (%08x) = %08lx\n",
 	    MMC_RXVLANFRAMES_GB_LO, stats->rxvlanframes_gb);
-        axgbe_printf(1, "rmon rxwatchdogerror (%08x) = %08lx\n",
+	axgbe_printf(1, "rmon rxwatchdogerror (%08x) = %08lx\n",
 	    MMC_RXWATCHDOGERROR, stats->rxwatchdogerror);
 }
 
 void
 xgbe_dump_i2c_registers(struct xgbe_prv_data *pdata)
 {
-          axgbe_printf(1, "*************** I2C Registers **************\n");
-          axgbe_printf(1, "  IC_CON             : %010x\n",
-	      XI2C_IOREAD(pdata, 0x00));
-          axgbe_printf(1, "  IC_TAR             : %010x\n",
-	      XI2C_IOREAD(pdata, 0x04));
-          axgbe_printf(1, "  IC_HS_MADDR        : %010x\n",
-	      XI2C_IOREAD(pdata, 0x0c));
-          axgbe_printf(1, "  IC_INTR_STAT       : %010x\n",
-	      XI2C_IOREAD(pdata, 0x2c));
-          axgbe_printf(1, "  IC_INTR_MASK       : %010x\n",
-	      XI2C_IOREAD(pdata, 0x30));
-          axgbe_printf(1, "  IC_RAW_INTR_STAT   : %010x\n",
-	      XI2C_IOREAD(pdata, 0x34));
-          axgbe_printf(1, "  IC_RX_TL           : %010x\n",
-	      XI2C_IOREAD(pdata, 0x38));
-          axgbe_printf(1, "  IC_TX_TL           : %010x\n",
-	      XI2C_IOREAD(pdata, 0x3c));
-          axgbe_printf(1, "  IC_ENABLE          : %010x\n",
-	      XI2C_IOREAD(pdata, 0x6c));
-          axgbe_printf(1, "  IC_STATUS          : %010x\n",
-	      XI2C_IOREAD(pdata, 0x70));
-          axgbe_printf(1, "  IC_TXFLR           : %010x\n",
-	      XI2C_IOREAD(pdata, 0x74));
-          axgbe_printf(1, "  IC_RXFLR           : %010x\n",
-	      XI2C_IOREAD(pdata, 0x78));
-          axgbe_printf(1, "  IC_ENABLE_STATUS   : %010x\n",
-	      XI2C_IOREAD(pdata, 0x9c));
-          axgbe_printf(1, "  IC_COMP_PARAM1     : %010x\n",
-	      XI2C_IOREAD(pdata, 0xf4));
+	axgbe_printf(1, "*************** I2C Registers **************\n");
+	axgbe_printf(1, "  IC_CON             : %010x\n",
+	    XI2C_IOREAD(pdata, 0x00));
+	axgbe_printf(1, "  IC_TAR             : %010x\n",
+	    XI2C_IOREAD(pdata, 0x04));
+	axgbe_printf(1, "  IC_HS_MADDR        : %010x\n",
+	    XI2C_IOREAD(pdata, 0x0c));
+	axgbe_printf(1, "  IC_INTR_STAT       : %010x\n",
+	    XI2C_IOREAD(pdata, 0x2c));
+	axgbe_printf(1, "  IC_INTR_MASK       : %010x\n",
+	    XI2C_IOREAD(pdata, 0x30));
+	axgbe_printf(1, "  IC_RAW_INTR_STAT   : %010x\n",
+	    XI2C_IOREAD(pdata, 0x34));
+	axgbe_printf(1, "  IC_RX_TL           : %010x\n",
+	    XI2C_IOREAD(pdata, 0x38));
+	axgbe_printf(1, "  IC_TX_TL           : %010x\n",
+	    XI2C_IOREAD(pdata, 0x3c));
+	axgbe_printf(1, "  IC_ENABLE          : %010x\n",
+	    XI2C_IOREAD(pdata, 0x6c));
+	axgbe_printf(1, "  IC_STATUS          : %010x\n",
+	    XI2C_IOREAD(pdata, 0x70));
+	axgbe_printf(1, "  IC_TXFLR           : %010x\n",
+	    XI2C_IOREAD(pdata, 0x74));
+	axgbe_printf(1, "  IC_RXFLR           : %010x\n",
+	    XI2C_IOREAD(pdata, 0x78));
+	axgbe_printf(1, "  IC_ENABLE_STATUS   : %010x\n",
+	    XI2C_IOREAD(pdata, 0x9c));
+	axgbe_printf(1, "  IC_COMP_PARAM1     : %010x\n",
+	    XI2C_IOREAD(pdata, 0xf4));
 }
 
 static void
@@ -1317,10 +1319,11 @@ xgbe_dump_active_vlans(struct xgbe_prv_data *pdata)
 {
 	int i;
 
-	for(i=0 ; i<BITS_TO_LONGS(VLAN_NVID); i++) {
-		if (i && (i%8 == 0))
+	for (i = 0; i < BITS_TO_LONGS(VLAN_NVID); i++) {
+		if (i && (i % 8 == 0))
 			axgbe_printf(1, "\n");
-                axgbe_printf(1, "vlans[%d]: 0x%08lx ", i, pdata->active_vlans[i]);
+		axgbe_printf(1, "vlans[%d]: 0x%08lx ", i,
+		    pdata->active_vlans[i]);
 	}
 	axgbe_printf(1, "\n");
 }
@@ -1328,45 +1331,45 @@ xgbe_dump_active_vlans(struct xgbe_prv_data *pdata)
 static void
 xgbe_default_config(struct xgbe_prv_data *pdata)
 {
-        pdata->blen = DMA_SBMR_BLEN_64;
-        pdata->pbl = DMA_PBL_128;
-        pdata->aal = 1;
-        pdata->rd_osr_limit = 8;
-        pdata->wr_osr_limit = 8;
-        pdata->tx_sf_mode = MTL_TSF_ENABLE;
-        pdata->tx_threshold = MTL_TX_THRESHOLD_64;
-        pdata->tx_osp_mode = DMA_OSP_ENABLE;
-        pdata->rx_sf_mode = MTL_RSF_DISABLE;
-        pdata->rx_threshold = MTL_RX_THRESHOLD_64;
-        pdata->pause_autoneg = 1;
-        pdata->tx_pause = 1;
-        pdata->rx_pause = 1;
-        pdata->phy_speed = SPEED_UNKNOWN;
-        pdata->power_down = 0;
-        pdata->enable_rss = 1;
+	pdata->blen = DMA_SBMR_BLEN_64;
+	pdata->pbl = DMA_PBL_128;
+	pdata->aal = 1;
+	pdata->rd_osr_limit = 8;
+	pdata->wr_osr_limit = 8;
+	pdata->tx_sf_mode = MTL_TSF_ENABLE;
+	pdata->tx_threshold = MTL_TX_THRESHOLD_64;
+	pdata->tx_osp_mode = DMA_OSP_ENABLE;
+	pdata->rx_sf_mode = MTL_RSF_DISABLE;
+	pdata->rx_threshold = MTL_RX_THRESHOLD_64;
+	pdata->pause_autoneg = 1;
+	pdata->tx_pause = 1;
+	pdata->rx_pause = 1;
+	pdata->phy_speed = SPEED_UNKNOWN;
+	pdata->power_down = 0;
+	pdata->enable_rss = 1;
 }
 
 static int
 axgbe_if_attach_post(if_ctx_t ctx)
 {
-	struct axgbe_if_softc	*sc = iflib_get_softc(ctx);
-	struct xgbe_prv_data	*pdata = &sc->pdata;
-	if_t			 ifp = pdata->netdev;
-        struct xgbe_phy_if	*phy_if = &pdata->phy_if;
-	struct xgbe_hw_if 	*hw_if = &pdata->hw_if;
-	if_softc_ctx_t		scctx = sc->scctx;
+	struct axgbe_if_softc *sc = iflib_get_softc(ctx);
+	struct xgbe_prv_data *pdata = &sc->pdata;
+	if_t ifp = pdata->netdev;
+	struct xgbe_phy_if *phy_if = &pdata->phy_if;
+	struct xgbe_hw_if *hw_if = &pdata->hw_if;
+	if_softc_ctx_t scctx = sc->scctx;
 	int i, ret;
 
 	/* set split header support based on tunable */
 	pdata->sph_enable = axgbe_sph_enable;
 
 	/* Initialize ECC timestamps */
-        pdata->tx_sec_period = ticks;
-        pdata->tx_ded_period = ticks;
-        pdata->rx_sec_period = ticks;
-        pdata->rx_ded_period = ticks;
-        pdata->desc_sec_period = ticks;
-        pdata->desc_ded_period = ticks;
+	pdata->tx_sec_period = ticks;
+	pdata->tx_ded_period = ticks;
+	pdata->rx_sec_period = ticks;
+	pdata->rx_ded_period = ticks;
+	pdata->desc_sec_period = ticks;
+	pdata->desc_ded_period = ticks;
 
 	/* Reset the hardware */
 	ret = hw_if->exit(&sc->pdata);
@@ -1377,39 +1380,38 @@ axgbe_if_attach_post(if_ctx_t ctx)
 	xgbe_default_config(pdata);
 
 	/* Set default max values if not provided */
-        if (!pdata->tx_max_fifo_size)
-                pdata->tx_max_fifo_size = pdata->hw_feat.tx_fifo_size;
-        if (!pdata->rx_max_fifo_size)
-                pdata->rx_max_fifo_size = pdata->hw_feat.rx_fifo_size;
+	if (!pdata->tx_max_fifo_size)
+		pdata->tx_max_fifo_size = pdata->hw_feat.tx_fifo_size;
+	if (!pdata->rx_max_fifo_size)
+		pdata->rx_max_fifo_size = pdata->hw_feat.rx_fifo_size;
 
 	DBGPR("%s: tx fifo 0x%x rx fifo 0x%x\n", __func__,
 	    pdata->tx_max_fifo_size, pdata->rx_max_fifo_size);
 
-        /* Set and validate the number of descriptors for a ring */
-        MPASS(powerof2(XGBE_TX_DESC_CNT));
-        pdata->tx_desc_count = XGBE_TX_DESC_CNT;
-        MPASS(powerof2(XGBE_RX_DESC_CNT));
-        pdata->rx_desc_count = XGBE_RX_DESC_CNT;
+	/* Set and validate the number of descriptors for a ring */
+	MPASS(powerof2(XGBE_TX_DESC_CNT));
+	pdata->tx_desc_count = XGBE_TX_DESC_CNT;
+	MPASS(powerof2(XGBE_RX_DESC_CNT));
+	pdata->rx_desc_count = XGBE_RX_DESC_CNT;
 
-        /* Adjust the number of queues based on interrupts assigned */
-        if (pdata->channel_irq_count) {
-                pdata->tx_ring_count = min_t(unsigned int, pdata->tx_ring_count,
+	/* Adjust the number of queues based on interrupts assigned */
+	if (pdata->channel_irq_count) {
+		pdata->tx_ring_count = min_t(unsigned int, pdata->tx_ring_count,
 		    pdata->channel_irq_count);
-                pdata->rx_ring_count = min_t(unsigned int, pdata->rx_ring_count,
+		pdata->rx_ring_count = min_t(unsigned int, pdata->rx_ring_count,
 		    pdata->channel_irq_count);
 
-		DBGPR("adjusted TX %u/%u RX %u/%u\n",
-		    pdata->tx_ring_count, pdata->tx_q_count,
-		    pdata->rx_ring_count, pdata->rx_q_count);
-        }
+		DBGPR("adjusted TX %u/%u RX %u/%u\n", pdata->tx_ring_count,
+		    pdata->tx_q_count, pdata->rx_ring_count, pdata->rx_q_count);
+	}
 
-	/* Set channel count based on interrupts assigned */	
+	/* Set channel count based on interrupts assigned */
 	pdata->channel_count = max_t(unsigned int, scctx->isc_ntxqsets,
 	    scctx->isc_nrxqsets);
 	DBGPR("Channel count set to: %u\n", pdata->channel_count);
 
 	/* Get RSS key */
-#ifdef	RSS
+#ifdef RSS
 	rss_getkey((uint8_t *)pdata->rss_key);
 #else
 	arc4rand(&pdata->rss_key, ARRAY_SIZE(pdata->rss_key), 0);
@@ -1423,8 +1425,8 @@ axgbe_if_attach_post(if_ctx_t ctx)
 	phy_if->phy_init(pdata);
 
 	/* Set the coalescing */
-        xgbe_init_rx_coalesce(&sc->pdata);
-        xgbe_init_tx_coalesce(&sc->pdata);
+	xgbe_init_rx_coalesce(&sc->pdata);
+	xgbe_init_tx_coalesce(&sc->pdata);
 
 	ifmedia_add(sc->media, IFM_ETHER | IFM_10G_KR, 0, NULL);
 	ifmedia_add(sc->media, IFM_ETHER | IFM_10G_T, 0, NULL);
@@ -1455,9 +1457,9 @@ axgbe_if_attach_post(if_ctx_t ctx)
 	/* Setup RSS lookup table */
 	for (i = 0; i < XGBE_RSS_MAX_TABLE_SIZE; i++)
 		XGMAC_SET_BITS(pdata->rss_table[i], MAC_RSSDR, DMCH,
-				i % pdata->rx_ring_count);
+		    i % pdata->rx_ring_count);
 
-	/* 
+	/*
 	 * Mark the device down until it is initialized, which happens
 	 * when the device is accessed first (for configuring the iface,
 	 * eg: setting IP)
@@ -1477,7 +1479,7 @@ axgbe_if_attach_post(if_ctx_t ctx)
 
 static void
 xgbe_free_intr(struct xgbe_prv_data *pdata, struct resource *res, void *tag,
-		int rid)
+    int rid)
 {
 	if (tag)
 		bus_teardown_intr(pdata->dev, res, tag);
@@ -1489,23 +1491,23 @@ xgbe_free_intr(struct xgbe_prv_data *pdata, struct resource *res, void *tag,
 static void
 axgbe_interrupts_free(if_ctx_t ctx)
 {
-	struct axgbe_if_softc   *sc = iflib_get_softc(ctx);
-        struct xgbe_prv_data	*pdata = &sc->pdata;
-        if_softc_ctx_t          scctx = sc->scctx;
-        struct xgbe_channel     *channel;
-        struct if_irq   irq;
-        int i;
+	struct axgbe_if_softc *sc = iflib_get_softc(ctx);
+	struct xgbe_prv_data *pdata = &sc->pdata;
+	if_softc_ctx_t scctx = sc->scctx;
+	struct xgbe_channel *channel;
+	struct if_irq irq;
+	int i;
 
 	axgbe_printf(2, "%s: mode %d\n", __func__, scctx->isc_intr);
-	
-	/* Free dev_irq */	
+
+	/* Free dev_irq */
 	iflib_irq_free(ctx, &pdata->dev_irq);
 
 	/* Free ecc_irq */
 	xgbe_free_intr(pdata, pdata->ecc_irq_res, pdata->ecc_irq_tag,
 	    pdata->ecc_rid);
 
-	/* Free i2c_irq */	
+	/* Free i2c_irq */
 	xgbe_free_intr(pdata, pdata->i2c_irq_res, pdata->i2c_irq_tag,
 	    pdata->i2c_rid);
 
@@ -1526,10 +1528,10 @@ axgbe_interrupts_free(if_ctx_t ctx)
 static int
 axgbe_if_detach(if_ctx_t ctx)
 {
-	struct axgbe_if_softc	*sc = iflib_get_softc(ctx);
-	struct xgbe_prv_data	*pdata = &sc->pdata;
-        struct xgbe_phy_if	*phy_if = &pdata->phy_if;
-        struct resource *mac_res[2];
+	struct axgbe_if_softc *sc = iflib_get_softc(ctx);
+	struct xgbe_prv_data *pdata = &sc->pdata;
+	struct xgbe_phy_if *phy_if = &pdata->phy_if;
+	struct resource *mac_res[2];
 
 	mac_res[0] = pdata->xgmac_res;
 	mac_res[1] = pdata->xpcs_res;
@@ -1556,8 +1558,8 @@ axgbe_if_detach(if_ctx_t ctx)
 static void
 axgbe_pci_init(struct xgbe_prv_data *pdata)
 {
-	struct xgbe_phy_if	*phy_if = &pdata->phy_if;
-	struct xgbe_hw_if       *hw_if = &pdata->hw_if;
+	struct xgbe_phy_if *phy_if = &pdata->phy_if;
+	struct xgbe_hw_if *hw_if = &pdata->hw_if;
 	int ret = 0;
 
 	if (!__predict_false((test_bit(XGBE_DOWN, &pdata->dev_state)))) {
@@ -1567,8 +1569,8 @@ axgbe_pci_init(struct xgbe_prv_data *pdata)
 
 	hw_if->init(pdata);
 
-        ret = phy_if->phy_start(pdata);
-        if (ret) {
+	ret = phy_if->phy_start(pdata);
+	if (ret) {
 		axgbe_error("%s:  phy start %d\n", __func__, ret);
 		ret = hw_if->exit(pdata);
 		if (ret)
@@ -1594,8 +1596,8 @@ axgbe_pci_init(struct xgbe_prv_data *pdata)
 static void
 axgbe_if_init(if_ctx_t ctx)
 {
-	struct axgbe_if_softc   *sc = iflib_get_softc(ctx);
-	struct xgbe_prv_data    *pdata = &sc->pdata;	
+	struct axgbe_if_softc *sc = iflib_get_softc(ctx);
+	struct xgbe_prv_data *pdata = &sc->pdata;
 
 	axgbe_pci_init(pdata);
 }
@@ -1603,10 +1605,10 @@ axgbe_if_init(if_ctx_t ctx)
 static void
 axgbe_pci_stop(if_ctx_t ctx)
 {
-	struct axgbe_if_softc   *sc = iflib_get_softc(ctx);
-        struct xgbe_prv_data    *pdata = &sc->pdata;
-	struct xgbe_phy_if	*phy_if = &pdata->phy_if;
-	struct xgbe_hw_if       *hw_if = &pdata->hw_if;
+	struct axgbe_if_softc *sc = iflib_get_softc(ctx);
+	struct xgbe_prv_data *pdata = &sc->pdata;
+	struct xgbe_phy_if *phy_if = &pdata->phy_if;
+	struct xgbe_hw_if *hw_if = &pdata->hw_if;
 	int ret;
 
 	if (__predict_false(test_bit(XGBE_DOWN, &pdata->dev_state))) {
@@ -1651,26 +1653,27 @@ static int
 axgbe_if_tx_queues_alloc(if_ctx_t ctx, caddr_t *va, uint64_t *pa, int ntxqs,
     int ntxqsets)
 {
-	struct axgbe_if_softc	*sc = iflib_get_softc(ctx);
-	struct xgbe_prv_data 	*pdata = &sc->pdata;
-	if_softc_ctx_t		scctx = sc->scctx;
-	struct xgbe_channel	*channel;
-	struct xgbe_ring	*tx_ring;
-	int			i, j, k;
+	struct axgbe_if_softc *sc = iflib_get_softc(ctx);
+	struct xgbe_prv_data *pdata = &sc->pdata;
+	if_softc_ctx_t scctx = sc->scctx;
+	struct xgbe_channel *channel;
+	struct xgbe_ring *tx_ring;
+	int i, j, k;
 
 	MPASS(scctx->isc_ntxqsets > 0);
 	MPASS(scctx->isc_ntxqsets == ntxqsets);
 	MPASS(ntxqs == 1);
 
 	axgbe_printf(1, "%s: txqsets %d/%d txqs %d\n", __func__,
-	    scctx->isc_ntxqsets, ntxqsets, ntxqs);	
+	    scctx->isc_ntxqsets, ntxqsets, ntxqs);
 
-	for (i = 0 ; i < ntxqsets; i++) {
+	for (i = 0; i < ntxqsets; i++) {
 
 		channel = pdata->channel[i];
 
-		tx_ring = (struct xgbe_ring*)malloc(ntxqs *
-		    sizeof(struct xgbe_ring), M_AXGBE, M_NOWAIT | M_ZERO);
+		tx_ring = (struct xgbe_ring *)malloc(ntxqs *
+			sizeof(struct xgbe_ring),
+		    M_AXGBE, M_NOWAIT | M_ZERO);
 
 		if (tx_ring == NULL) {
 			axgbe_error("Unable to allocate TX ring memory\n");
@@ -1680,13 +1683,14 @@ axgbe_if_tx_queues_alloc(if_ctx_t ctx, caddr_t *va, uint64_t *pa, int ntxqs,
 		channel->tx_ring = tx_ring;
 
 		for (j = 0; j < ntxqs; j++, tx_ring++) {
-			tx_ring->rdata =
-			    (struct xgbe_ring_data*)malloc(scctx->isc_ntxd[j] *
-			    sizeof(struct xgbe_ring_data), M_AXGBE, M_NOWAIT);
+			tx_ring->rdata = (struct xgbe_ring_data *)malloc(
+			    scctx->isc_ntxd[j] * sizeof(struct xgbe_ring_data),
+			    M_AXGBE, M_NOWAIT);
 
 			/* Get the virtual & physical address of hw queues */
-			tx_ring->rdesc = (struct xgbe_ring_desc *)va[i*ntxqs + j];
-			tx_ring->rdesc_paddr = pa[i*ntxqs + j];
+			tx_ring->rdesc = (struct xgbe_ring_desc *)
+			    va[i * ntxqs + j];
+			tx_ring->rdesc_paddr = pa[i * ntxqs + j];
 			tx_ring->rdesc_count = scctx->isc_ntxd[j];
 			spin_lock_init(&tx_ring->lock);
 		}
@@ -1698,12 +1702,12 @@ axgbe_if_tx_queues_alloc(if_ctx_t ctx, caddr_t *va, uint64_t *pa, int ntxqs,
 
 tx_ring_fail:
 
-	for (j = 0; j < i ; j++) {
+	for (j = 0; j < i; j++) {
 
 		channel = pdata->channel[j];
 
 		tx_ring = channel->tx_ring;
-		for (k = 0; k < ntxqs ; k++, tx_ring++) {
+		for (k = 0; k < ntxqs; k++, tx_ring++) {
 			if (tx_ring && tx_ring->rdata)
 				free(tx_ring->rdata, M_AXGBE);
 		}
@@ -1720,12 +1724,12 @@ static int
 axgbe_if_rx_queues_alloc(if_ctx_t ctx, caddr_t *va, uint64_t *pa, int nrxqs,
     int nrxqsets)
 {
-	struct axgbe_if_softc	*sc = iflib_get_softc(ctx);
-	struct xgbe_prv_data 	*pdata = &sc->pdata;
-	if_softc_ctx_t		scctx = sc->scctx;
-	struct xgbe_channel	*channel;
-	struct xgbe_ring	*rx_ring;
-	int			i, j, k;
+	struct axgbe_if_softc *sc = iflib_get_softc(ctx);
+	struct xgbe_prv_data *pdata = &sc->pdata;
+	if_softc_ctx_t scctx = sc->scctx;
+	struct xgbe_channel *channel;
+	struct xgbe_ring *rx_ring;
+	int i, j, k;
 
 	MPASS(scctx->isc_nrxqsets > 0);
 	MPASS(scctx->isc_nrxqsets == nrxqsets);
@@ -1736,14 +1740,15 @@ axgbe_if_rx_queues_alloc(if_ctx_t ctx, caddr_t *va, uint64_t *pa, int nrxqs,
 	}
 
 	axgbe_printf(1, "%s: rxqsets %d/%d rxqs %d\n", __func__,
-	    scctx->isc_nrxqsets, nrxqsets, nrxqs);	
+	    scctx->isc_nrxqsets, nrxqsets, nrxqs);
 
-	for (i = 0 ; i < nrxqsets; i++) {
+	for (i = 0; i < nrxqsets; i++) {
 
 		channel = pdata->channel[i];
 
-		rx_ring = (struct xgbe_ring*)malloc(nrxqs *
-		    sizeof(struct xgbe_ring), M_AXGBE, M_NOWAIT | M_ZERO);
+		rx_ring = (struct xgbe_ring *)malloc(nrxqs *
+			sizeof(struct xgbe_ring),
+		    M_AXGBE, M_NOWAIT | M_ZERO);
 
 		if (rx_ring == NULL) {
 			axgbe_error("Unable to allocate RX ring memory\n");
@@ -1753,13 +1758,15 @@ axgbe_if_rx_queues_alloc(if_ctx_t ctx, caddr_t *va, uint64_t *pa, int nrxqs,
 		channel->rx_ring = rx_ring;
 
 		for (j = 0; j < nrxqs; j++, rx_ring++) {
-			rx_ring->rdata =
-			    (struct xgbe_ring_data*)malloc(scctx->isc_nrxd[j] *
-			    sizeof(struct xgbe_ring_data), M_AXGBE, M_NOWAIT);
+			rx_ring->rdata = (struct xgbe_ring_data *)malloc(
+			    scctx->isc_nrxd[j] * sizeof(struct xgbe_ring_data),
+			    M_AXGBE, M_NOWAIT);
 
-			/* Get the virtual and physical address of the hw queues */
-			rx_ring->rdesc = (struct xgbe_ring_desc *)va[i*nrxqs + j];
-			rx_ring->rdesc_paddr = pa[i*nrxqs + j];
+			/* Get the virtual and physical address of the hw queues
+			 */
+			rx_ring->rdesc = (struct xgbe_ring_desc *)
+			    va[i * nrxqs + j];
+			rx_ring->rdesc_paddr = pa[i * nrxqs + j];
 			rx_ring->rdesc_count = scctx->isc_nrxd[j];
 			spin_lock_init(&rx_ring->lock);
 		}
@@ -1771,12 +1778,12 @@ axgbe_if_rx_queues_alloc(if_ctx_t ctx, caddr_t *va, uint64_t *pa, int nrxqs,
 
 rx_ring_fail:
 
-	for (j = 0 ; j < i ; j++) {
+	for (j = 0; j < i; j++) {
 
 		channel = pdata->channel[j];
 
 		rx_ring = channel->rx_ring;
-		for (k = 0; k < nrxqs ; k++, rx_ring++) {
+		for (k = 0; k < nrxqs; k++, rx_ring++) {
 			if (rx_ring && rx_ring->rdata)
 				free(rx_ring->rdata, M_AXGBE);
 		}
@@ -1792,21 +1799,21 @@ rx_ring_fail:
 static void
 axgbe_if_queues_free(if_ctx_t ctx)
 {
-	struct axgbe_if_softc	*sc = iflib_get_softc(ctx);
-	struct xgbe_prv_data 	*pdata = &sc->pdata;
-	if_softc_ctx_t		scctx = sc->scctx;
-	if_shared_ctx_t		sctx = sc->sctx;
-	struct xgbe_channel	*channel;
-	struct xgbe_ring        *tx_ring;
-	struct xgbe_ring        *rx_ring;
+	struct axgbe_if_softc *sc = iflib_get_softc(ctx);
+	struct xgbe_prv_data *pdata = &sc->pdata;
+	if_softc_ctx_t scctx = sc->scctx;
+	if_shared_ctx_t sctx = sc->sctx;
+	struct xgbe_channel *channel;
+	struct xgbe_ring *tx_ring;
+	struct xgbe_ring *rx_ring;
 	int i, j;
 
-	for (i = 0 ; i < scctx->isc_ntxqsets; i++) {
+	for (i = 0; i < scctx->isc_ntxqsets; i++) {
 
 		channel = pdata->channel[i];
 
 		tx_ring = channel->tx_ring;
-		for (j = 0; j < sctx->isc_ntxqs ; j++, tx_ring++) {
+		for (j = 0; j < sctx->isc_ntxqs; j++, tx_ring++) {
 			if (tx_ring && tx_ring->rdata)
 				free(tx_ring->rdata, M_AXGBE);
 		}
@@ -1814,12 +1821,12 @@ axgbe_if_queues_free(if_ctx_t ctx)
 		channel->tx_ring = NULL;
 	}
 
-	for (i = 0 ; i < scctx->isc_nrxqsets; i++) {
+	for (i = 0; i < scctx->isc_nrxqsets; i++) {
 
 		channel = pdata->channel[i];
 
 		rx_ring = channel->rx_ring;
-		for (j = 0; j < sctx->isc_nrxqs ; j++, rx_ring++) {
+		for (j = 0; j < sctx->isc_nrxqs; j++, rx_ring++) {
 			if (rx_ring && rx_ring->rdata)
 				free(rx_ring->rdata, M_AXGBE);
 		}
@@ -1833,9 +1840,9 @@ axgbe_if_queues_free(if_ctx_t ctx)
 static void
 axgbe_if_vlan_register(if_ctx_t ctx, uint16_t vtag)
 {
-	struct axgbe_if_softc	*sc = iflib_get_softc(ctx);
-	struct xgbe_prv_data 	*pdata = &sc->pdata;
-	struct xgbe_hw_if 	*hw_if = &pdata->hw_if;
+	struct axgbe_if_softc *sc = iflib_get_softc(ctx);
+	struct xgbe_prv_data *pdata = &sc->pdata;
+	struct xgbe_hw_if *hw_if = &pdata->hw_if;
 
 	if (!bit_test(pdata->active_vlans, vtag)) {
 		axgbe_printf(0, "Registering VLAN %d\n", vtag);
@@ -1845,7 +1852,7 @@ axgbe_if_vlan_register(if_ctx_t ctx, uint16_t vtag)
 		pdata->num_active_vlans++;
 
 		axgbe_printf(1, "Total active vlans: %d\n",
-		    pdata->num_active_vlans);	
+		    pdata->num_active_vlans);
 	} else
 		axgbe_printf(0, "VLAN %d already registered\n", vtag);
 
@@ -1855,16 +1862,16 @@ axgbe_if_vlan_register(if_ctx_t ctx, uint16_t vtag)
 static void
 axgbe_if_vlan_unregister(if_ctx_t ctx, uint16_t vtag)
 {
-	struct axgbe_if_softc	*sc = iflib_get_softc(ctx);
-	struct xgbe_prv_data 	*pdata = &sc->pdata;
-	struct xgbe_hw_if 	*hw_if = &pdata->hw_if;
+	struct axgbe_if_softc *sc = iflib_get_softc(ctx);
+	struct xgbe_prv_data *pdata = &sc->pdata;
+	struct xgbe_hw_if *hw_if = &pdata->hw_if;
 
 	if (pdata->num_active_vlans == 0) {
 		axgbe_printf(1, "No active VLANs to unregister\n");
 		return;
 	}
 
-	if (bit_test(pdata->active_vlans, vtag)){
+	if (bit_test(pdata->active_vlans, vtag)) {
 		axgbe_printf(0, "Un-Registering VLAN %d\n", vtag);
 
 		bit_clear(pdata->active_vlans, vtag);
@@ -1872,7 +1879,7 @@ axgbe_if_vlan_unregister(if_ctx_t ctx, uint16_t vtag)
 		pdata->num_active_vlans--;
 
 		axgbe_printf(1, "Total active vlans: %d\n",
-		    pdata->num_active_vlans);	
+		    pdata->num_active_vlans);
 	} else
 		axgbe_printf(0, "VLAN %d already unregistered\n", vtag);
 
@@ -1883,30 +1890,30 @@ axgbe_if_vlan_unregister(if_ctx_t ctx, uint16_t vtag)
 static bool
 axgbe_if_needs_restart(if_ctx_t ctx __unused, enum iflib_restart_event event)
 {
-        switch (event) {
-        case IFLIB_RESTART_VLAN_CONFIG:
-        default:
-                return (true);
-        }
+	switch (event) {
+	case IFLIB_RESTART_VLAN_CONFIG:
+	default:
+		return (true);
+	}
 }
 #endif
 
 static int
 axgbe_if_msix_intr_assign(if_ctx_t ctx, int msix)
 {
-	struct axgbe_if_softc	*sc = iflib_get_softc(ctx);
-	struct xgbe_prv_data 	*pdata = &sc->pdata;
-	if_softc_ctx_t		scctx = sc->scctx;
-	struct xgbe_channel	*channel;
-	struct if_irq		irq;
-	int			i, error, rid = 0, flags;
-	char			buf[16];
+	struct axgbe_if_softc *sc = iflib_get_softc(ctx);
+	struct xgbe_prv_data *pdata = &sc->pdata;
+	if_softc_ctx_t scctx = sc->scctx;
+	struct xgbe_channel *channel;
+	struct if_irq irq;
+	int i, error, rid = 0, flags;
+	char buf[16];
 
 	MPASS(scctx->isc_intr != IFLIB_INTR_LEGACY);
 
 	pdata->isr_as_tasklet = 1;
 
-	if (scctx->isc_intr == IFLIB_INTR_MSI) {	
+	if (scctx->isc_intr == IFLIB_INTR_MSI) {
 		pdata->irq_count = 1;
 		pdata->channel_irq_count = 1;
 		return (0);
@@ -1922,8 +1929,9 @@ axgbe_if_msix_intr_assign(if_ctx_t ctx, int msix)
 	error = iflib_irq_alloc_generic(ctx, &pdata->dev_irq, rid,
 	    IFLIB_INTR_ADMIN, axgbe_dev_isr, sc, 0, "dev_irq");
 	if (error) {
-		axgbe_error("Failed to register device interrupt rid %d name %s\n",
-		    rid, "dev_irq");
+		axgbe_error(
+		    "Failed to register device interrupt rid %d name %s\n", rid,
+		    "dev_irq");
 		return (error);
 	}
 
@@ -1938,50 +1946,56 @@ axgbe_if_msix_intr_assign(if_ctx_t ctx, int msix)
 		return (ENOMEM);
 	}
 
-	error = bus_setup_intr(pdata->dev, pdata->ecc_irq_res, INTR_MPSAFE |
-	    INTR_TYPE_NET, NULL, axgbe_ecc_isr, sc, &pdata->ecc_irq_tag);
-        if (error) {
-                axgbe_error("failed to setup interrupt for rid %d, name %s: %d\n",
-		    rid, "ecc_irq", error);
-                return (error);
+	error = bus_setup_intr(pdata->dev, pdata->ecc_irq_res,
+	    INTR_MPSAFE | INTR_TYPE_NET, NULL, axgbe_ecc_isr, sc,
+	    &pdata->ecc_irq_tag);
+	if (error) {
+		axgbe_error(
+		    "failed to setup interrupt for rid %d, name %s: %d\n", rid,
+		    "ecc_irq", error);
+		return (error);
 	}
 
 	/* I2C INTR SETUP */
 	rid++;
 	pdata->i2c_rid = rid;
-        pdata->i2c_irq_res = bus_alloc_resource_any(pdata->dev, SYS_RES_IRQ,
+	pdata->i2c_irq_res = bus_alloc_resource_any(pdata->dev, SYS_RES_IRQ,
 	    &rid, flags);
-        if (!pdata->i2c_irq_res) {
-                axgbe_error("failed to allocate IRQ for rid %d, name %s.\n",
+	if (!pdata->i2c_irq_res) {
+		axgbe_error("failed to allocate IRQ for rid %d, name %s.\n",
 		    rid, "i2c_irq");
-                return (ENOMEM);
-        }
+		return (ENOMEM);
+	}
 
-        error = bus_setup_intr(pdata->dev, pdata->i2c_irq_res, INTR_MPSAFE |
-	    INTR_TYPE_NET, NULL, axgbe_i2c_isr, sc, &pdata->i2c_irq_tag);
-        if (error) {
-                axgbe_error("failed to setup interrupt for rid %d, name %s: %d\n",
-		    rid, "i2c_irq", error);
-                return (error);
+	error = bus_setup_intr(pdata->dev, pdata->i2c_irq_res,
+	    INTR_MPSAFE | INTR_TYPE_NET, NULL, axgbe_i2c_isr, sc,
+	    &pdata->i2c_irq_tag);
+	if (error) {
+		axgbe_error(
+		    "failed to setup interrupt for rid %d, name %s: %d\n", rid,
+		    "i2c_irq", error);
+		return (error);
 	}
 
 	/* AN INTR SETUP */
 	rid++;
 	pdata->an_rid = rid;
-        pdata->an_irq_res = bus_alloc_resource_any(pdata->dev, SYS_RES_IRQ,
+	pdata->an_irq_res = bus_alloc_resource_any(pdata->dev, SYS_RES_IRQ,
 	    &rid, flags);
-        if (!pdata->an_irq_res) {
-                axgbe_error("failed to allocate IRQ for rid %d, name %s.\n",
+	if (!pdata->an_irq_res) {
+		axgbe_error("failed to allocate IRQ for rid %d, name %s.\n",
 		    rid, "an_irq");
-                return (ENOMEM);
-        }
+		return (ENOMEM);
+	}
 
-        error = bus_setup_intr(pdata->dev, pdata->an_irq_res, INTR_MPSAFE |
-	    INTR_TYPE_NET, NULL, axgbe_an_isr, sc, &pdata->an_irq_tag);
-        if (error) {
-                axgbe_error("failed to setup interrupt for rid %d, name %s: %d\n",
-		    rid, "an_irq", error);
-                return (error);
+	error = bus_setup_intr(pdata->dev, pdata->an_irq_res,
+	    INTR_MPSAFE | INTR_TYPE_NET, NULL, axgbe_an_isr, sc,
+	    &pdata->an_irq_tag);
+	if (error) {
+		axgbe_error(
+		    "failed to setup interrupt for rid %d, name %s: %d\n", rid,
+		    "an_irq", error);
+		return (error);
 	}
 
 	pdata->per_channel_irq = 1;
@@ -2026,8 +2040,8 @@ axgbe_if_msix_intr_assign(if_ctx_t ctx, int msix)
 static int
 xgbe_enable_rx_tx_int(struct xgbe_prv_data *pdata, struct xgbe_channel *channel)
 {
-        struct xgbe_hw_if *hw_if = &pdata->hw_if;
-        enum xgbe_int int_id;
+	struct xgbe_hw_if *hw_if = &pdata->hw_if;
+	enum xgbe_int int_id;
 
 	if (channel->tx_ring && channel->rx_ring)
 		int_id = XGMAC_INT_DMA_CH_SR_TI_RI;
@@ -2038,53 +2052,54 @@ xgbe_enable_rx_tx_int(struct xgbe_prv_data *pdata, struct xgbe_channel *channel)
 	else
 		return (-1);
 
-	axgbe_printf(1, "%s channel: %d rx_tx interrupt enabled %d\n",
-	    __func__, channel->queue_index, int_id);
-        return (hw_if->enable_int(channel, int_id));
+	axgbe_printf(1, "%s channel: %d rx_tx interrupt enabled %d\n", __func__,
+	    channel->queue_index, int_id);
+	return (hw_if->enable_int(channel, int_id));
 }
 
 static void
-xgbe_disable_rx_tx_int(struct xgbe_prv_data *pdata, struct xgbe_channel *channel)
+xgbe_disable_rx_tx_int(struct xgbe_prv_data *pdata,
+    struct xgbe_channel *channel)
 {
-        struct xgbe_hw_if *hw_if = &pdata->hw_if;
-        enum xgbe_int int_id;
+	struct xgbe_hw_if *hw_if = &pdata->hw_if;
+	enum xgbe_int int_id;
 
-        if (channel->tx_ring && channel->rx_ring)
-                int_id = XGMAC_INT_DMA_CH_SR_TI_RI;
-        else if (channel->tx_ring)
-                int_id = XGMAC_INT_DMA_CH_SR_TI;
-        else if (channel->rx_ring)
-                int_id = XGMAC_INT_DMA_CH_SR_RI;
-        else
-                return;
+	if (channel->tx_ring && channel->rx_ring)
+		int_id = XGMAC_INT_DMA_CH_SR_TI_RI;
+	else if (channel->tx_ring)
+		int_id = XGMAC_INT_DMA_CH_SR_TI;
+	else if (channel->rx_ring)
+		int_id = XGMAC_INT_DMA_CH_SR_RI;
+	else
+		return;
 
 	axgbe_printf(1, "%s channel: %d rx_tx interrupt disabled %d\n",
 	    __func__, channel->queue_index, int_id);
-        hw_if->disable_int(channel, int_id);
+	hw_if->disable_int(channel, int_id);
 }
 
 static void
 xgbe_disable_rx_tx_ints(struct xgbe_prv_data *pdata)
 {
-        unsigned int i;
+	unsigned int i;
 
-        for (i = 0; i < pdata->channel_count; i++)
-                xgbe_disable_rx_tx_int(pdata, pdata->channel[i]);
+	for (i = 0; i < pdata->channel_count; i++)
+		xgbe_disable_rx_tx_int(pdata, pdata->channel[i]);
 }
 
 static int
 axgbe_msix_que(void *arg)
 {
-	struct xgbe_channel	*channel = (struct xgbe_channel *)arg;
-	struct xgbe_prv_data	*pdata = channel->pdata;
-	unsigned int 		dma_status;
+	struct xgbe_channel *channel = (struct xgbe_channel *)arg;
+	struct xgbe_prv_data *pdata = channel->pdata;
+	unsigned int dma_status;
 
-	axgbe_printf(1, "%s: Channel: %d SR 0x%04x DSR 0x%04x IER:0x%04x D_ISR:0x%04x M_ISR:0x%04x\n",
+	axgbe_printf(1,
+	    "%s: Channel: %d SR 0x%04x DSR 0x%04x IER:0x%04x D_ISR:0x%04x M_ISR:0x%04x\n",
 	    __func__, channel->queue_index,
 	    XGMAC_DMA_IOREAD(channel, DMA_CH_SR),
 	    XGMAC_DMA_IOREAD(channel, DMA_CH_DSR),
-	    XGMAC_DMA_IOREAD(channel, DMA_CH_IER),
-	    XGMAC_IOREAD(pdata, DMA_ISR),
+	    XGMAC_DMA_IOREAD(channel, DMA_CH_IER), XGMAC_IOREAD(pdata, DMA_ISR),
 	    XGMAC_IOREAD(pdata, MAC_ISR));
 
 	(void)XGMAC_DMA_IOREAD(channel, DMA_CH_SR);
@@ -2105,86 +2120,85 @@ static int
 axgbe_dev_isr(void *arg)
 {
 	struct axgbe_if_softc *sc = (struct axgbe_if_softc *)arg;
-	struct xgbe_prv_data	*pdata = &sc->pdata;
-	struct xgbe_channel	*channel;
-	struct xgbe_hw_if	*hw_if = &pdata->hw_if;
-	unsigned int		i, dma_isr, dma_ch_isr;
-	unsigned int		mac_isr, mac_mdioisr;
+	struct xgbe_prv_data *pdata = &sc->pdata;
+	struct xgbe_channel *channel;
+	struct xgbe_hw_if *hw_if = &pdata->hw_if;
+	unsigned int i, dma_isr, dma_ch_isr;
+	unsigned int mac_isr, mac_mdioisr;
 	int ret = FILTER_HANDLED;
 
 	dma_isr = XGMAC_IOREAD(pdata, DMA_ISR);
 	axgbe_printf(2, "%s DMA ISR: 0x%x\n", __func__, dma_isr);
 
-        if (!dma_isr)
-                return (FILTER_HANDLED);
+	if (!dma_isr)
+		return (FILTER_HANDLED);
 
-        for (i = 0; i < pdata->channel_count; i++) {
+	for (i = 0; i < pdata->channel_count; i++) {
 
-                if (!(dma_isr & (1 << i)))
-                        continue;
+		if (!(dma_isr & (1 << i)))
+			continue;
 
-                channel = pdata->channel[i];
+		channel = pdata->channel[i];
 
-                dma_ch_isr = XGMAC_DMA_IOREAD(channel, DMA_CH_SR);
+		dma_ch_isr = XGMAC_DMA_IOREAD(channel, DMA_CH_SR);
 		axgbe_printf(2, "%s: channel %d SR 0x%x DSR 0x%x\n", __func__,
-		    channel->queue_index, dma_ch_isr, XGMAC_DMA_IOREAD(channel,
-		    DMA_CH_DSR));
+		    channel->queue_index, dma_ch_isr,
+		    XGMAC_DMA_IOREAD(channel, DMA_CH_DSR));
 
-                /*
+		/*
 		 * The TI or RI interrupt bits may still be set even if using
-                 * per channel DMA interrupts. Check to be sure those are not
-                 * enabled before using the private data napi structure.
-                 */
+		 * per channel DMA interrupts. Check to be sure those are not
+		 * enabled before using the private data napi structure.
+		 */
 		if (!pdata->per_channel_irq &&
 		    (XGMAC_GET_BITS(dma_ch_isr, DMA_CH_SR, TI) ||
-		    XGMAC_GET_BITS(dma_ch_isr, DMA_CH_SR, RI))) {
+			XGMAC_GET_BITS(dma_ch_isr, DMA_CH_SR, RI))) {
 
 			/* Disable Tx and Rx interrupts */
 			xgbe_disable_rx_tx_ints(pdata);
-                } else {
+		} else {
 
 			/*
 			 * Don't clear Rx/Tx status if doing per channel DMA
 			 * interrupts, these will be cleared by the ISR for
-		 	 * per channel DMA interrupts
-		 	 */
-                	XGMAC_SET_BITS(dma_ch_isr, DMA_CH_SR, TI, 0);
-                	XGMAC_SET_BITS(dma_ch_isr, DMA_CH_SR, RI, 0);
+			 * per channel DMA interrupts
+			 */
+			XGMAC_SET_BITS(dma_ch_isr, DMA_CH_SR, TI, 0);
+			XGMAC_SET_BITS(dma_ch_isr, DMA_CH_SR, RI, 0);
 		}
 
-                if (XGMAC_GET_BITS(dma_ch_isr, DMA_CH_SR, RBU))
-                        pdata->ext_stats.rx_buffer_unavailable++;
+		if (XGMAC_GET_BITS(dma_ch_isr, DMA_CH_SR, RBU))
+			pdata->ext_stats.rx_buffer_unavailable++;
 
-                /* Restart the device on a Fatal Bus Error */
-                if (XGMAC_GET_BITS(dma_ch_isr, DMA_CH_SR, FBE))
+		/* Restart the device on a Fatal Bus Error */
+		if (XGMAC_GET_BITS(dma_ch_isr, DMA_CH_SR, FBE))
 			axgbe_error("%s: Fatal bus error reported 0x%x\n",
 			    __func__, dma_ch_isr);
 
-                /* Clear all interrupt signals */
-                XGMAC_DMA_IOWRITE(channel, DMA_CH_SR, dma_ch_isr);
+		/* Clear all interrupt signals */
+		XGMAC_DMA_IOWRITE(channel, DMA_CH_SR, dma_ch_isr);
 
 		ret = FILTER_SCHEDULE_THREAD;
-        }
+	}
 
-        if (XGMAC_GET_BITS(dma_isr, DMA_ISR, MACIS)) {
+	if (XGMAC_GET_BITS(dma_isr, DMA_ISR, MACIS)) {
 
-                mac_isr = XGMAC_IOREAD(pdata, MAC_ISR);
+		mac_isr = XGMAC_IOREAD(pdata, MAC_ISR);
 		axgbe_printf(2, "%s MAC ISR: 0x%x\n", __func__, mac_isr);
 
-                if (XGMAC_GET_BITS(mac_isr, MAC_ISR, MMCTXIS))
-                        hw_if->tx_mmc_int(pdata);
+		if (XGMAC_GET_BITS(mac_isr, MAC_ISR, MMCTXIS))
+			hw_if->tx_mmc_int(pdata);
 
-                if (XGMAC_GET_BITS(mac_isr, MAC_ISR, MMCRXIS))
-                        hw_if->rx_mmc_int(pdata);
+		if (XGMAC_GET_BITS(mac_isr, MAC_ISR, MMCRXIS))
+			hw_if->rx_mmc_int(pdata);
 
 		if (XGMAC_GET_BITS(mac_isr, MAC_ISR, SMI)) {
 			mac_mdioisr = XGMAC_IOREAD(pdata, MAC_MDIOISR);
 
 			if (XGMAC_GET_BITS(mac_mdioisr, MAC_MDIOISR,
-			    SNGLCOMPINT))
+				SNGLCOMPINT))
 				wakeup_one(pdata);
 		}
-
 	}
 
 	return (ret);
@@ -2195,7 +2209,7 @@ axgbe_i2c_isr(void *arg)
 {
 	struct axgbe_if_softc *sc = (struct axgbe_if_softc *)arg;
 
-	sc->pdata.i2c_if.i2c_isr(&sc->pdata);	
+	sc->pdata.i2c_if.i2c_isr(&sc->pdata);
 }
 
 static void
@@ -2215,8 +2229,8 @@ axgbe_an_isr(void *arg)
 static int
 axgbe_if_tx_queue_intr_enable(if_ctx_t ctx, uint16_t qid)
 {
-	struct axgbe_if_softc	*sc = iflib_get_softc(ctx);
-	struct xgbe_prv_data 	*pdata = &sc->pdata;
+	struct axgbe_if_softc *sc = iflib_get_softc(ctx);
+	struct xgbe_prv_data *pdata = &sc->pdata;
 	int ret;
 
 	if (qid < pdata->tx_q_count) {
@@ -2234,8 +2248,8 @@ axgbe_if_tx_queue_intr_enable(if_ctx_t ctx, uint16_t qid)
 static int
 axgbe_if_rx_queue_intr_enable(if_ctx_t ctx, uint16_t qid)
 {
-	struct axgbe_if_softc	*sc = iflib_get_softc(ctx);
-	struct xgbe_prv_data 	*pdata = &sc->pdata;
+	struct axgbe_if_softc *sc = iflib_get_softc(ctx);
+	struct xgbe_prv_data *pdata = &sc->pdata;
 	int ret;
 
 	if (qid < pdata->rx_q_count) {
@@ -2253,8 +2267,8 @@ axgbe_if_rx_queue_intr_enable(if_ctx_t ctx, uint16_t qid)
 static void
 axgbe_if_update_admin_status(if_ctx_t ctx)
 {
-	struct axgbe_if_softc	*sc = iflib_get_softc(ctx);
-	struct xgbe_prv_data 	*pdata = &sc->pdata;
+	struct axgbe_if_softc *sc = iflib_get_softc(ctx);
+	struct xgbe_prv_data *pdata = &sc->pdata;
 
 	axgbe_printf(1, "%s: phy_link %d status %d speed %d\n", __func__,
 	    pdata->phy_link, sc->link_status, pdata->phy.speed);
@@ -2265,19 +2279,19 @@ axgbe_if_update_admin_status(if_ctx_t ctx)
 	if (pdata->phy_link) {
 		if (sc->link_status == LINK_STATE_DOWN) {
 			sc->link_status = LINK_STATE_UP;
-			if (pdata->phy.speed & SPEED_10000)  
+			if (pdata->phy.speed & SPEED_10000)
 				iflib_link_state_change(ctx, LINK_STATE_UP,
 				    IF_Gbps(10));
-			else if (pdata->phy.speed & SPEED_2500)  
+			else if (pdata->phy.speed & SPEED_2500)
 				iflib_link_state_change(ctx, LINK_STATE_UP,
 				    IF_Gbps(2.5));
-			else if (pdata->phy.speed & SPEED_1000)  
+			else if (pdata->phy.speed & SPEED_1000)
 				iflib_link_state_change(ctx, LINK_STATE_UP,
 				    IF_Gbps(1));
-			else if (pdata->phy.speed & SPEED_100)  
+			else if (pdata->phy.speed & SPEED_100)
 				iflib_link_state_change(ctx, LINK_STATE_UP,
 				    IF_Mbps(100));
-			else if (pdata->phy.speed & SPEED_10)  
+			else if (pdata->phy.speed & SPEED_10)
 				iflib_link_state_change(ctx, LINK_STATE_UP,
 				    IF_Mbps(10));
 		}
@@ -2292,37 +2306,37 @@ axgbe_if_update_admin_status(if_ctx_t ctx)
 static int
 axgbe_if_media_change(if_ctx_t ctx)
 {
-        struct axgbe_if_softc   *sc = iflib_get_softc(ctx);
-        struct ifmedia          *ifm = iflib_get_media(ctx);
+	struct axgbe_if_softc *sc = iflib_get_softc(ctx);
+	struct ifmedia *ifm = iflib_get_media(ctx);
 
-        sx_xlock(&sc->pdata.an_mutex);
-        if (IFM_TYPE(ifm->ifm_media) != IFM_ETHER)
-                return (EINVAL);
+	sx_xlock(&sc->pdata.an_mutex);
+	if (IFM_TYPE(ifm->ifm_media) != IFM_ETHER)
+		return (EINVAL);
 
-        switch (IFM_SUBTYPE(ifm->ifm_media)) {
-        case IFM_10G_KR:
-                sc->pdata.phy.speed = SPEED_10000;
-                sc->pdata.phy.autoneg = AUTONEG_DISABLE;
-                break;
-        case IFM_2500_KX:
-                sc->pdata.phy.speed = SPEED_2500;
-                sc->pdata.phy.autoneg = AUTONEG_DISABLE;
-                break;
-        case IFM_1000_KX:
-                sc->pdata.phy.speed = SPEED_1000;
-                sc->pdata.phy.autoneg = AUTONEG_DISABLE;
-                break;
-        case IFM_100_TX:
-                sc->pdata.phy.speed = SPEED_100;
-                sc->pdata.phy.autoneg = AUTONEG_DISABLE;
-                break;
-        case IFM_AUTO:
-                sc->pdata.phy.autoneg = AUTONEG_ENABLE;
-                break;
-        }
-        sx_xunlock(&sc->pdata.an_mutex);
+	switch (IFM_SUBTYPE(ifm->ifm_media)) {
+	case IFM_10G_KR:
+		sc->pdata.phy.speed = SPEED_10000;
+		sc->pdata.phy.autoneg = AUTONEG_DISABLE;
+		break;
+	case IFM_2500_KX:
+		sc->pdata.phy.speed = SPEED_2500;
+		sc->pdata.phy.autoneg = AUTONEG_DISABLE;
+		break;
+	case IFM_1000_KX:
+		sc->pdata.phy.speed = SPEED_1000;
+		sc->pdata.phy.autoneg = AUTONEG_DISABLE;
+		break;
+	case IFM_100_TX:
+		sc->pdata.phy.speed = SPEED_100;
+		sc->pdata.phy.autoneg = AUTONEG_DISABLE;
+		break;
+	case IFM_AUTO:
+		sc->pdata.phy.autoneg = AUTONEG_ENABLE;
+		break;
+	}
+	sx_xunlock(&sc->pdata.an_mutex);
 
-        return (-sc->pdata.phy_if.phy_config_aneg(&sc->pdata));
+	return (-sc->pdata.phy_if.phy_config_aneg(&sc->pdata));
 }
 
 static int
@@ -2368,57 +2382,57 @@ axgbe_if_promisc_set(if_ctx_t ctx, int flags)
 static uint64_t
 axgbe_if_get_counter(if_ctx_t ctx, ift_counter cnt)
 {
-	struct axgbe_if_softc	*sc = iflib_get_softc(ctx);
-        if_t			 ifp = iflib_get_ifp(ctx);
-        struct xgbe_prv_data    *pdata = &sc->pdata;
-        struct xgbe_mmc_stats	*pstats = &pdata->mmc_stats;
+	struct axgbe_if_softc *sc = iflib_get_softc(ctx);
+	if_t ifp = iflib_get_ifp(ctx);
+	struct xgbe_prv_data *pdata = &sc->pdata;
+	struct xgbe_mmc_stats *pstats = &pdata->mmc_stats;
 
-        pdata->hw_if.read_mmc_stats(pdata);
+	pdata->hw_if.read_mmc_stats(pdata);
 
-        switch(cnt) {
-        case IFCOUNTER_IPACKETS:
-                return (pstats->rxframecount_gb);
-        case IFCOUNTER_IERRORS:
-                return (pstats->rxframecount_gb - pstats->rxbroadcastframes_g -
-                    pstats->rxmulticastframes_g - pstats->rxunicastframes_g);
-        case IFCOUNTER_OPACKETS:
-                return (pstats->txframecount_gb);
-        case IFCOUNTER_OERRORS:
-                return (pstats->txframecount_gb - pstats->txframecount_g);
-        case IFCOUNTER_IBYTES:
-                return (pstats->rxoctetcount_gb);
-        case IFCOUNTER_OBYTES:
-                return (pstats->txoctetcount_gb);
-        default:
-                return (if_get_counter_default(ifp, cnt));
-        }
+	switch (cnt) {
+	case IFCOUNTER_IPACKETS:
+		return (pstats->rxframecount_gb);
+	case IFCOUNTER_IERRORS:
+		return (pstats->rxframecount_gb - pstats->rxbroadcastframes_g -
+		    pstats->rxmulticastframes_g - pstats->rxunicastframes_g);
+	case IFCOUNTER_OPACKETS:
+		return (pstats->txframecount_gb);
+	case IFCOUNTER_OERRORS:
+		return (pstats->txframecount_gb - pstats->txframecount_g);
+	case IFCOUNTER_IBYTES:
+		return (pstats->rxoctetcount_gb);
+	case IFCOUNTER_OBYTES:
+		return (pstats->txoctetcount_gb);
+	default:
+		return (if_get_counter_default(ifp, cnt));
+	}
 }
 
 static int
 axgbe_if_mtu_set(if_ctx_t ctx, uint32_t mtu)
 {
-        struct axgbe_if_softc	*sc = iflib_get_softc(ctx);
-	struct xgbe_prv_data	*pdata = &sc->pdata;
+	struct axgbe_if_softc *sc = iflib_get_softc(ctx);
+	struct xgbe_prv_data *pdata = &sc->pdata;
 	int ret;
 
-        if (mtu > XGMAC_JUMBO_PACKET_MTU)
-                return (EINVAL);
+	if (mtu > XGMAC_JUMBO_PACKET_MTU)
+		return (EINVAL);
 
 	ret = xgbe_calc_rx_buf_size(pdata->netdev, mtu);
-        pdata->rx_buf_size = ret;
-        axgbe_printf(1, "%s: rx_buf_size %d\n", __func__, ret);
+	pdata->rx_buf_size = ret;
+	axgbe_printf(1, "%s: rx_buf_size %d\n", __func__, ret);
 
-        sc->scctx->isc_max_frame_size = mtu + ETHER_HDR_LEN + ETHER_CRC_LEN;
-        return (0);
+	sc->scctx->isc_max_frame_size = mtu + ETHER_HDR_LEN + ETHER_CRC_LEN;
+	return (0);
 }
 
 static void
-axgbe_if_media_status(if_ctx_t ctx, struct ifmediareq * ifmr)
+axgbe_if_media_status(if_ctx_t ctx, struct ifmediareq *ifmr)
 {
-        struct axgbe_if_softc *sc = iflib_get_softc(ctx);
-        struct xgbe_prv_data *pdata = &sc->pdata;
+	struct axgbe_if_softc *sc = iflib_get_softc(ctx);
+	struct xgbe_prv_data *pdata = &sc->pdata;
 
-        ifmr->ifm_status = IFM_AVALID;
+	ifmr->ifm_status = IFM_AVALID;
 	if (!sc->pdata.phy.link)
 		return;
 

@@ -61,86 +61,47 @@
  *        commands.
  */
 
-#include <dev/isci/scil/sati_types.h>
-#include <dev/isci/scil/sati_translator_sequence.h>
 #include <dev/isci/scil/intel_ata.h>
+#include <dev/isci/scil/sati_translator_sequence.h>
+#include <dev/isci/scil/sati_types.h>
 
-U16 sati_mode_sense_calculate_page_header(
-   void * scsi_io,
-   U8     cdb_size
-);
+U16 sati_mode_sense_calculate_page_header(void *scsi_io, U8 cdb_size);
 
-SATI_STATUS sati_mode_sense_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io,
-   U8                           cdb_length
-);
+SATI_STATUS
+sati_mode_sense_translate_command(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io, U8 cdb_length);
 
-U32 sati_mode_sense_build_std_block_descriptor(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   ATA_IDENTIFY_DEVICE_DATA_T * identify,
-   U32                          offset
-);
+U32
+sati_mode_sense_build_std_block_descriptor(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, ATA_IDENTIFY_DEVICE_DATA_T *identify, U32 offset);
 
-U32 sati_mode_sense_copy_initial_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   U32                          page_start,
-   U8                           page_control,
-   U8                           page_code
-);
+U32 sati_mode_sense_copy_initial_data(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, U32 page_start, U8 page_control, U8 page_code);
 
-U32 sati_mode_sense_caching_translate_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   ATA_IDENTIFY_DEVICE_DATA_T * identify,
-   U32                          offset
-);
+U32 sati_mode_sense_caching_translate_data(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, ATA_IDENTIFY_DEVICE_DATA_T *identify, U32 offset);
 
 U32 sati_mode_sense_informational_excp_control_translate_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   ATA_IDENTIFY_DEVICE_DATA_T * identify,
-   U32                          offset
-);
+    SATI_TRANSLATOR_SEQUENCE_T *sequence, void *scsi_io,
+    ATA_IDENTIFY_DEVICE_DATA_T *identify, U32 offset);
 
-U32 sati_mode_sense_all_pages_translate_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   ATA_IDENTIFY_DEVICE_DATA_T * identify,
-   U32                          offset
-);
+U32
+sati_mode_sense_all_pages_translate_data(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, ATA_IDENTIFY_DEVICE_DATA_T *identify, U32 offset);
 
 U32 sati_mode_sense_read_write_error_translate_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   ATA_IDENTIFY_DEVICE_DATA_T * identify,
-   U32                          offset
-);
+    SATI_TRANSLATOR_SEQUENCE_T *sequence, void *scsi_io,
+    ATA_IDENTIFY_DEVICE_DATA_T *identify, U32 offset);
 
-U32 sati_mode_sense_control_translate_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   ATA_IDENTIFY_DEVICE_DATA_T * identify,
-   U32                          offset
-);
+U32 sati_mode_sense_control_translate_data(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, ATA_IDENTIFY_DEVICE_DATA_T *identify, U32 offset);
 
 U32 sati_mode_sense_disconnect_reconnect_translate_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   ATA_IDENTIFY_DEVICE_DATA_T * identify,
-   U32                          offset
-);
+    SATI_TRANSLATOR_SEQUENCE_T *sequence, void *scsi_io,
+    ATA_IDENTIFY_DEVICE_DATA_T *identify, U32 offset);
 
 U32 sati_mode_sense_power_condition_translate_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   ATA_IDENTIFY_DEVICE_DATA_T * identify,
-   U32                          offset
-);
-
+    SATI_TRANSLATOR_SEQUENCE_T *sequence, void *scsi_io,
+    ATA_IDENTIFY_DEVICE_DATA_T *identify, U32 offset);
 
 #endif // _SATI_MODE_SENSE_H_
-

@@ -32,13 +32,14 @@
  * those of the authors and should not be interpreted as representing
  * official policies,either expressed or implied, of the FreeBSD Project.
  *
- * Send feedback to: <megaraidfbsd@avagotech.com> Mail to: AVAGO TECHNOLOGIES, 1621
- * Barber Lane, Milpitas, CA 95035 ATTN: MegaRaid FreeBSD
+ * Send feedback to: <megaraidfbsd@avagotech.com> Mail to: AVAGO TECHNOLOGIES,
+ * 1621 Barber Lane, Milpitas, CA 95035 ATTN: MegaRaid FreeBSD
  *
  */
 
 #include <sys/cdefs.h>
 #include <sys/abi_compat.h>
+
 #include <dev/mrsas/mrsas.h>
 #include <dev/mrsas/mrsas_ioctl.h>
 
@@ -57,20 +58,18 @@ struct mrsas_passthru_cmd {
 /*
  * Function prototypes
  */
-int	mrsas_alloc_mfi_cmds(struct mrsas_softc *sc);
-int	mrsas_passthru(struct mrsas_softc *sc, void *arg, u_long ioctlCmd);
-void	mrsas_free_ioc_cmd(struct mrsas_softc *sc);
-void	mrsas_free_frame(struct mrsas_softc *sc, struct mrsas_mfi_cmd *cmd);
-void   *mrsas_alloc_frame(struct mrsas_softc *sc, struct mrsas_mfi_cmd *cmd);
+int mrsas_alloc_mfi_cmds(struct mrsas_softc *sc);
+int mrsas_passthru(struct mrsas_softc *sc, void *arg, u_long ioctlCmd);
+void mrsas_free_ioc_cmd(struct mrsas_softc *sc);
+void mrsas_free_frame(struct mrsas_softc *sc, struct mrsas_mfi_cmd *cmd);
+void *mrsas_alloc_frame(struct mrsas_softc *sc, struct mrsas_mfi_cmd *cmd);
 static int mrsas_create_frame_pool(struct mrsas_softc *sc);
-static void
-mrsas_alloc_cb(void *arg, bus_dma_segment_t *segs,
-    int nsegs, int error);
+static void mrsas_alloc_cb(void *arg, bus_dma_segment_t *segs, int nsegs,
+    int error);
 
 extern struct mrsas_mfi_cmd *mrsas_get_mfi_cmd(struct mrsas_softc *sc);
 extern void mrsas_release_mfi_cmd(struct mrsas_mfi_cmd *cmd);
-extern int
-mrsas_issue_blocked_cmd(struct mrsas_softc *sc,
+extern int mrsas_issue_blocked_cmd(struct mrsas_softc *sc,
     struct mrsas_mfi_cmd *cmd);
 
 /*
@@ -85,26 +84,32 @@ mrsas_issue_blocked_cmd(struct mrsas_softc *sc,
 static void
 mrsas_passthru_load_cb(void *arg, bus_dma_segment_t *segs, int nseg, int error)
 {
-        struct mrsas_passthru_cmd *cb = (struct mrsas_passthru_cmd *)arg;
-        struct mrsas_softc *sc = cb->sc;
+	struct mrsas_passthru_cmd *cb = (struct mrsas_passthru_cmd *)arg;
+	struct mrsas_softc *sc = cb->sc;
 	int i = 0;
 
 	if (error) {
 		cb->error_code = error;
 		if (error == EFBIG) {
-			device_printf(sc->mrsas_dev, "mrsas_passthru_load_cb: "
-			    "error=%d EFBIG\n", error);
+			device_printf(sc->mrsas_dev,
+			    "mrsas_passthru_load_cb: "
+			    "error=%d EFBIG\n",
+			    error);
 			cb->complete = 1;
 			return;
 		} else {
-			device_printf(sc->mrsas_dev, "mrsas_passthru_load_cb: "
-			    "error=%d UNKNOWN\n", error);
+			device_printf(sc->mrsas_dev,
+			    "mrsas_passthru_load_cb: "
+			    "error=%d UNKNOWN\n",
+			    error);
 		}
 	}
 	if (nseg > MAX_IOCTL_SGE) {
 		cb->error_code = EFBIG;
-		device_printf(sc->mrsas_dev, "mrsas_passthru_load_cb: "
-		    "too many segments: %d\n", nseg);
+		device_printf(sc->mrsas_dev,
+		    "mrsas_passthru_load_cb: "
+		    "too many segments: %d\n",
+		    nseg);
 		cb->complete = 1;
 		return;
 	}
@@ -116,7 +121,7 @@ mrsas_passthru_load_cb(void *arg, bus_dma_segment_t *segs, int nseg, int error)
 	cb->sge_count = nseg;
 
 	bus_dmamap_sync(cb->ioctl_data_tag, cb->ioctl_data_dmamap,
-            BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
+	    BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
 
 	cb->complete = 1;
 }
@@ -164,14 +169,16 @@ mrsas_passthru(struct mrsas_softc *sc, void *arg, u_long ioctlCmd)
 	}
 	/* Validate SGL length */
 	if (user_ioc->sge_count > MAX_IOCTL_SGE) {
-		device_printf(sc->mrsas_dev, "In %s() SGL is too long (%d > 8).\n",
-		    __func__, user_ioc->sge_count);
+		device_printf(sc->mrsas_dev,
+		    "In %s() SGL is too long (%d > 8).\n", __func__,
+		    user_ioc->sge_count);
 		return (ENOENT);
 	}
 	/* Get a command */
 	cmd = mrsas_get_mfi_cmd(sc);
 	if (!cmd) {
-		device_printf(sc->mrsas_dev, "Failed to get a free cmd for IOCTL\n");
+		device_printf(sc->mrsas_dev,
+		    "Failed to get a free cmd for IOCTL\n");
 		return (ENOMEM);
 	}
 	/*
@@ -183,8 +190,8 @@ mrsas_passthru(struct mrsas_softc *sc, void *arg, u_long ioctlCmd)
 	memcpy(cmd->frame, user_ioc->frame.raw, 2 * MEGAMFI_FRAME_SIZE);
 	cmd->frame->hdr.context = cmd->index;
 	cmd->frame->hdr.pad_0 = 0;
-	cmd->frame->hdr.flags &= ~(MFI_FRAME_IEEE | MFI_FRAME_SGL64 |
-	    MFI_FRAME_SENSE64);
+	cmd->frame->hdr.flags &= ~(
+	    MFI_FRAME_IEEE | MFI_FRAME_SGL64 | MFI_FRAME_SENSE64);
 
 	/*
 	 * The management interface between applications and the fw uses MFI
@@ -194,8 +201,8 @@ mrsas_passthru(struct mrsas_softc *sc, void *arg, u_long ioctlCmd)
 	 * buffers in SGLs. The location of SGL is embedded in the struct
 	 * iocpacket itself.
 	 */
-	kern_sge32 = (struct mrsas_sge32 *)
-	    ((uintptr_t)cmd->frame + user_ioc->sgl_off);
+	kern_sge32 = (struct mrsas_sge32 *)((uintptr_t)cmd->frame +
+	    user_ioc->sgl_off);
 
 	memset(ioctl_data_tag, 0, (sizeof(bus_dma_tag_t) * MAX_IOCTL_SGE));
 	memset(ioctl_data_dmamap, 0, (sizeof(bus_dmamap_t) * MAX_IOCTL_SGE));
@@ -217,31 +224,29 @@ mrsas_passthru(struct mrsas_softc *sc, void *arg, u_long ioctlCmd)
 			ioctl_data_size = user_ioc32->sgl[i].iov_len;
 #endif
 		}
-		if (bus_dma_tag_create(sc->mrsas_parent_tag,
-		    1, 0,
-		    BUS_SPACE_MAXADDR_32BIT,
-		    BUS_SPACE_MAXADDR,
-		    NULL, NULL,
-		    ioctl_data_size,
-		    1,
-		    ioctl_data_size,
-		    BUS_DMA_ALLOCNOW,
-		    NULL, NULL,
-		    &ioctl_data_tag[i])) {
-			device_printf(sc->mrsas_dev, "Cannot allocate ioctl data tag\n");
+		if (bus_dma_tag_create(sc->mrsas_parent_tag, 1, 0,
+			BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR, NULL, NULL,
+			ioctl_data_size, 1, ioctl_data_size, BUS_DMA_ALLOCNOW,
+			NULL, NULL, &ioctl_data_tag[i])) {
+			device_printf(sc->mrsas_dev,
+			    "Cannot allocate ioctl data tag\n");
 			ret = ENOMEM;
 			goto out;
 		}
-		if (bus_dmamem_alloc(ioctl_data_tag[i], (void **)&ioctl_data_mem[i],
-		    (BUS_DMA_NOWAIT | BUS_DMA_ZERO), &ioctl_data_dmamap[i])) {
-			device_printf(sc->mrsas_dev, "Cannot allocate ioctl data mem\n");
+		if (bus_dmamem_alloc(ioctl_data_tag[i],
+			(void **)&ioctl_data_mem[i],
+			(BUS_DMA_NOWAIT | BUS_DMA_ZERO),
+			&ioctl_data_dmamap[i])) {
+			device_printf(sc->mrsas_dev,
+			    "Cannot allocate ioctl data mem\n");
 			ret = ENOMEM;
 			goto out;
 		}
 		if (bus_dmamap_load(ioctl_data_tag[i], ioctl_data_dmamap[i],
-		    ioctl_data_mem[i], ioctl_data_size, mrsas_alloc_cb,
-		    &ioctl_data_phys_addr[i], BUS_DMA_NOWAIT)) {
-			device_printf(sc->mrsas_dev, "Cannot load ioctl data mem\n");
+			ioctl_data_mem[i], ioctl_data_size, mrsas_alloc_cb,
+			&ioctl_data_phys_addr[i], BUS_DMA_NOWAIT)) {
+			device_printf(sc->mrsas_dev,
+			    "Cannot load ioctl data mem\n");
 			ret = ENOMEM;
 			goto out;
 		}
@@ -273,36 +278,32 @@ mrsas_passthru(struct mrsas_softc *sc, void *arg, u_long ioctlCmd)
 	ioctl_sense_size = user_ioc->sense_len;
 
 	if (user_ioc->sense_len) {
-		if (bus_dma_tag_create(sc->mrsas_parent_tag,
-		    1, 0,
-		    BUS_SPACE_MAXADDR_32BIT,
-		    BUS_SPACE_MAXADDR,
-		    NULL, NULL,
-		    ioctl_sense_size,
-		    1,
-		    ioctl_sense_size,
-		    BUS_DMA_ALLOCNOW,
-		    NULL, NULL,
-		    &ioctl_sense_tag)) {
-			device_printf(sc->mrsas_dev, "Cannot allocate ioctl sense tag\n");
+		if (bus_dma_tag_create(sc->mrsas_parent_tag, 1, 0,
+			BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR, NULL, NULL,
+			ioctl_sense_size, 1, ioctl_sense_size, BUS_DMA_ALLOCNOW,
+			NULL, NULL, &ioctl_sense_tag)) {
+			device_printf(sc->mrsas_dev,
+			    "Cannot allocate ioctl sense tag\n");
 			ret = ENOMEM;
 			goto out;
 		}
 		if (bus_dmamem_alloc(ioctl_sense_tag, (void **)&ioctl_sense_mem,
-		    (BUS_DMA_NOWAIT | BUS_DMA_ZERO), &ioctl_sense_dmamap)) {
-			device_printf(sc->mrsas_dev, "Cannot allocate ioctl sense mem\n");
+			(BUS_DMA_NOWAIT | BUS_DMA_ZERO), &ioctl_sense_dmamap)) {
+			device_printf(sc->mrsas_dev,
+			    "Cannot allocate ioctl sense mem\n");
 			ret = ENOMEM;
 			goto out;
 		}
 		if (bus_dmamap_load(ioctl_sense_tag, ioctl_sense_dmamap,
-		    ioctl_sense_mem, ioctl_sense_size, mrsas_alloc_cb,
-		    &ioctl_sense_phys_addr, BUS_DMA_NOWAIT)) {
-			device_printf(sc->mrsas_dev, "Cannot load ioctl sense mem\n");
+			ioctl_sense_mem, ioctl_sense_size, mrsas_alloc_cb,
+			&ioctl_sense_phys_addr, BUS_DMA_NOWAIT)) {
+			device_printf(sc->mrsas_dev,
+			    "Cannot load ioctl sense mem\n");
 			ret = ENOMEM;
 			goto out;
 		}
-		sense_ptr =
-		    (unsigned long *)((uintptr_t)cmd->frame + user_ioc->sense_off);
+		sense_ptr = (unsigned long *)((uintptr_t)cmd->frame +
+		    user_ioc->sense_off);
 		*sense_ptr = ioctl_sense_phys_addr;
 	}
 	/*
@@ -351,10 +352,12 @@ mrsas_passthru(struct mrsas_softc *sc, void *arg, u_long ioctlCmd)
 		 */
 		sense_ptr = (unsigned long *)((uintptr_t)user_ioc->frame.raw +
 		    user_ioc->sense_off);
-		ret = copyout(ioctl_sense_mem, (unsigned long *)(uintptr_t)*sense_ptr,
+		ret = copyout(ioctl_sense_mem,
+		    (unsigned long *)(uintptr_t)*sense_ptr,
 		    user_ioc->sense_len);
 		if (ret) {
-			device_printf(sc->mrsas_dev, "IOCTL sense copyout failed!\n");
+			device_printf(sc->mrsas_dev,
+			    "IOCTL sense copyout failed!\n");
 			goto out;
 		}
 	}
@@ -372,7 +375,8 @@ out:
 		if (ioctl_sense_phys_addr)
 			bus_dmamap_unload(ioctl_sense_tag, ioctl_sense_dmamap);
 		if (ioctl_sense_mem != NULL)
-			bus_dmamem_free(ioctl_sense_tag, ioctl_sense_mem, ioctl_sense_dmamap);
+			bus_dmamem_free(ioctl_sense_tag, ioctl_sense_mem,
+			    ioctl_sense_dmamap);
 		if (ioctl_sense_tag != NULL)
 			bus_dma_tag_destroy(ioctl_sense_tag);
 	}
@@ -390,7 +394,8 @@ out:
 #endif
 		}
 		if (ioctl_data_phys_addr[i])
-			bus_dmamap_unload(ioctl_data_tag[i], ioctl_data_dmamap[i]);
+			bus_dmamap_unload(ioctl_data_tag[i],
+			    ioctl_data_dmamap[i]);
 		if (ioctl_data_mem[i] != NULL)
 			bus_dmamem_free(ioctl_data_tag[i], ioctl_data_mem[i],
 			    ioctl_data_dmamap[i]);
@@ -438,7 +443,7 @@ mrsas_user_command(struct mrsas_softc *sc, struct mfi_ioc_passthru *ioc)
 	if (!cmd) {
 		device_printf(sc->mrsas_dev,
 		    "Failed to get a free cmd for IOCTL\n");
-		return(ENOMEM);
+		return (ENOMEM);
 	}
 
 	/*
@@ -463,11 +468,12 @@ mrsas_user_command(struct mrsas_softc *sc, struct mfi_ioc_passthru *ioc)
 	} else {
 		ioctl_temp_data_mem = malloc(ioc->buf_size, M_MRSAS, M_WAITOK);
 		if (ioctl_temp_data_mem == NULL) {
-			device_printf(sc->mrsas_dev, "Could not allocate "
+			device_printf(sc->mrsas_dev,
+			    "Could not allocate "
 			    "%d memory for temporary passthrough ioctl\n",
 			    ioc->buf_size);
-		ret = ENOMEM;
-		goto out;
+			ret = ENOMEM;
+			goto out;
 		}
 
 		/* Copy in data from user space */
@@ -484,7 +490,8 @@ mrsas_user_command(struct mrsas_softc *sc, struct mfi_ioc_passthru *ioc)
 		passcmd = malloc(sizeof(struct mrsas_passthru_cmd), M_MRSAS,
 		    M_WAITOK);
 		if (passcmd == NULL) {
-			device_printf(sc->mrsas_dev, "Could not allocate "
+			device_printf(sc->mrsas_dev,
+			    "Could not allocate "
 			    "memory for temporary passthrough cb struct\n");
 			ret = ENOMEM;
 			goto out;
@@ -497,20 +504,20 @@ mrsas_user_command(struct mrsas_softc *sc, struct mfi_ioc_passthru *ioc)
 		/*
 		 * Create a dma tag for passthru buffers
 		 */
-		if (bus_dma_tag_create(sc->mrsas_parent_tag,   /* parent */
-		    1, 0,                   /* algnmnt, boundary */
-		    BUS_SPACE_MAXADDR,      /* lowaddr */
-		    BUS_SPACE_MAXADDR,      /* highaddr */
-		    NULL, NULL,             /* filter, filterarg */
-		    ioctl_data_size,        /* maxsize */
-		    MAX_IOCTL_SGE,          /* msegments */
-		    ioctl_data_size,        /* maxsegsize */
-		    BUS_DMA_ALLOCNOW,       /* flags */
-		    busdma_lock_mutex,      /* lockfunc */
-		    &sc->ioctl_lock,        /* lockarg */
-		    &ioctl_data_tag)) {
+		if (bus_dma_tag_create(sc->mrsas_parent_tag, /* parent */
+			1, 0,		   /* algnmnt, boundary */
+			BUS_SPACE_MAXADDR, /* lowaddr */
+			BUS_SPACE_MAXADDR, /* highaddr */
+			NULL, NULL,	   /* filter, filterarg */
+			ioctl_data_size,   /* maxsize */
+			MAX_IOCTL_SGE,	   /* msegments */
+			ioctl_data_size,   /* maxsegsize */
+			BUS_DMA_ALLOCNOW,  /* flags */
+			busdma_lock_mutex, /* lockfunc */
+			&sc->ioctl_lock,   /* lockarg */
+			&ioctl_data_tag)) {
 			device_printf(sc->mrsas_dev,
-			   "Cannot allocate ioctl data tag %d\n",
+			    "Cannot allocate ioctl data tag %d\n",
 			    ioc->buf_size);
 			ret = ENOMEM;
 			goto out;
@@ -518,7 +525,8 @@ mrsas_user_command(struct mrsas_softc *sc, struct mfi_ioc_passthru *ioc)
 
 		/* Create memmap */
 		if (bus_dmamap_create(ioctl_data_tag, 0, &ioctl_data_dmamap)) {
-			device_printf(sc->mrsas_dev, "Cannot create ioctl "
+			device_printf(sc->mrsas_dev,
+			    "Cannot create ioctl "
 			    "passthru dmamap\n");
 			ret = ENOMEM;
 			goto out;
@@ -529,10 +537,12 @@ mrsas_user_command(struct mrsas_softc *sc, struct mfi_ioc_passthru *ioc)
 
 		/* Map data buffer into bus space */
 		if (bus_dmamap_load(ioctl_data_tag, ioctl_data_dmamap,
-		    ioctl_temp_data_mem, ioc->buf_size, mrsas_passthru_load_cb,
-		    passcmd, BUS_DMA_NOWAIT)) {
-			device_printf(sc->mrsas_dev, "Cannot load ioctl "
-			    "passthru data mem%s %d\n", curproc->p_comm, ioctl_data_size);
+			ioctl_temp_data_mem, ioc->buf_size,
+			mrsas_passthru_load_cb, passcmd, BUS_DMA_NOWAIT)) {
+			device_printf(sc->mrsas_dev,
+			    "Cannot load ioctl "
+			    "passthru data mem%s %d\n",
+			    curproc->p_comm, ioctl_data_size);
 			ret = ENOMEM;
 			goto out;
 		}
@@ -560,8 +570,7 @@ mrsas_user_command(struct mrsas_softc *sc, struct mfi_ioc_passthru *ioc)
 		 */
 		ret = copyout(ioctl_temp_data_mem, ioc->buf, ioc->buf_size);
 		if (ret) {
-			device_printf(sc->mrsas_dev,
-			    "IOCTL copyout failed!\n");
+			device_printf(sc->mrsas_dev, "IOCTL copyout failed!\n");
 			goto out;
 		}
 	}
@@ -593,9 +602,8 @@ out:
 	/* Free command */
 	mrsas_release_mfi_cmd(cmd);
 
-	return(ret);
+	return (ret);
 }
-
 
 /*
  * mrsas_alloc_mfi_cmds:	Allocates the command packets
@@ -621,9 +629,11 @@ mrsas_alloc_mfi_cmds(struct mrsas_softc *sc)
 	 * Allocate the dynamic array first and then allocate individual
 	 * commands.
 	 */
-	sc->mfi_cmd_list = malloc(sizeof(struct mrsas_mfi_cmd *) * max_cmd, M_MRSAS, M_NOWAIT);
+	sc->mfi_cmd_list = malloc(sizeof(struct mrsas_mfi_cmd *) * max_cmd,
+	    M_MRSAS, M_NOWAIT);
 	if (!sc->mfi_cmd_list) {
-		device_printf(sc->mrsas_dev, "Cannot alloc memory for mfi_cmd cmd_list.\n");
+		device_printf(sc->mrsas_dev,
+		    "Cannot alloc memory for mfi_cmd cmd_list.\n");
 		return (ENOMEM);
 	}
 	memset(sc->mfi_cmd_list, 0, sizeof(struct mrsas_mfi_cmd *) * max_cmd);
@@ -650,7 +660,8 @@ mrsas_alloc_mfi_cmds(struct mrsas_softc *sc)
 
 	/* create a frame pool and assign one frame to each command */
 	if (mrsas_create_frame_pool(sc)) {
-		device_printf(sc->mrsas_dev, "Cannot allocate DMA frame pool.\n");
+		device_printf(sc->mrsas_dev,
+		    "Cannot allocate DMA frame pool.\n");
 		/* Free the frames */
 		for (i = 0; i < MRSAS_MAX_MFI_CMDS; i++) {
 			cmd = sc->mfi_cmd_list[i];
@@ -679,17 +690,10 @@ mrsas_create_frame_pool(struct mrsas_softc *sc)
 	int i;
 	struct mrsas_mfi_cmd *cmd;
 
-	if (bus_dma_tag_create(sc->mrsas_parent_tag,
-	    1, 0,
-	    BUS_SPACE_MAXADDR_32BIT,
-	    BUS_SPACE_MAXADDR,
-	    NULL, NULL,
-	    MRSAS_MFI_FRAME_SIZE,
-	    1,
-	    MRSAS_MFI_FRAME_SIZE,
-	    BUS_DMA_ALLOCNOW,
-	    NULL, NULL,
-	    &sc->mficmd_frame_tag)) {
+	if (bus_dma_tag_create(sc->mrsas_parent_tag, 1, 0,
+		BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR, NULL, NULL,
+		MRSAS_MFI_FRAME_SIZE, 1, MRSAS_MFI_FRAME_SIZE, BUS_DMA_ALLOCNOW,
+		NULL, NULL, &sc->mficmd_frame_tag)) {
 		device_printf(sc->mrsas_dev, "Cannot create MFI frame tag\n");
 		return (ENOMEM);
 	}
@@ -697,7 +701,8 @@ mrsas_create_frame_pool(struct mrsas_softc *sc)
 		cmd = sc->mfi_cmd_list[i];
 		cmd->frame = mrsas_alloc_frame(sc, cmd);
 		if (cmd->frame == NULL) {
-			device_printf(sc->mrsas_dev, "Cannot alloc MFI frame memory\n");
+			device_printf(sc->mrsas_dev,
+			    "Cannot alloc MFI frame memory\n");
 			return (ENOMEM);
 		}
 		/*
@@ -726,19 +731,19 @@ mrsas_create_frame_pool(struct mrsas_softc *sc)
  * Create bus DMA memory tag and dmamap and load memory for MFI frames. Returns
  * virtual memory pointer to allocated region.
  */
-void   *
+void *
 mrsas_alloc_frame(struct mrsas_softc *sc, struct mrsas_mfi_cmd *cmd)
 {
 	u_int32_t frame_size = MRSAS_MFI_FRAME_SIZE;
 
 	if (bus_dmamem_alloc(sc->mficmd_frame_tag, (void **)&cmd->frame_mem,
-	    BUS_DMA_NOWAIT, &cmd->frame_dmamap)) {
+		BUS_DMA_NOWAIT, &cmd->frame_dmamap)) {
 		device_printf(sc->mrsas_dev, "Cannot alloc MFI frame memory\n");
 		return (NULL);
 	}
 	if (bus_dmamap_load(sc->mficmd_frame_tag, cmd->frame_dmamap,
-	    cmd->frame_mem, frame_size, mrsas_alloc_cb,
-	    &cmd->frame_phys_addr, BUS_DMA_NOWAIT)) {
+		cmd->frame_mem, frame_size, mrsas_alloc_cb,
+		&cmd->frame_phys_addr, BUS_DMA_NOWAIT)) {
 		device_printf(sc->mrsas_dev, "Cannot load IO request memory\n");
 		return (NULL);
 	}
@@ -748,17 +753,15 @@ mrsas_alloc_frame(struct mrsas_softc *sc, struct mrsas_mfi_cmd *cmd)
 /*
  * mrsas_alloc_cb:	Callback function of bus_dmamap_load()
  * input:			callback argument,
- * 					machine dependent type that describes DMA segments,
- * 					number of segments,
- * 					error code.
+ * 					machine dependent type that describes
+ * DMA segments, number of segments, error code.
  *
  * This function is for the driver to receive mapping information resultant of
  * the bus_dmamap_load(). The information is actually not being used, but the
  * address is saved anyway.
  */
 static void
-mrsas_alloc_cb(void *arg, bus_dma_segment_t *segs,
-    int nsegs, int error)
+mrsas_alloc_cb(void *arg, bus_dma_segment_t *segs, int nsegs, int error)
 {
 	bus_addr_t *addr;
 
@@ -779,5 +782,6 @@ mrsas_free_frame(struct mrsas_softc *sc, struct mrsas_mfi_cmd *cmd)
 	if (cmd->frame_phys_addr)
 		bus_dmamap_unload(sc->mficmd_frame_tag, cmd->frame_dmamap);
 	if (cmd->frame_mem != NULL)
-		bus_dmamem_free(sc->mficmd_frame_tag, cmd->frame_mem, cmd->frame_dmamap);
+		bus_dmamem_free(sc->mficmd_frame_tag, cmd->frame_mem,
+		    cmd->frame_dmamap);
 }

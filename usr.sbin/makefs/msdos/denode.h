@@ -35,5 +35,6 @@ struct vn_clusterw {
 };
 #include "../ffs/buf.h"
 /* struct direntry needs to be defined to included denode.h */
-#include "msdos/direntry.h"
 #include <fs/msdosfs/denode.h>
+
+#include "msdos/direntry.h"

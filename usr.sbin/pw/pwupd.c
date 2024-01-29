@@ -30,8 +30,8 @@
 
 #include <err.h>
 #include <errno.h>
-#include <pwd.h>
 #include <libutil.h>
+#include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -40,7 +40,7 @@
 #include "pwupd.h"
 
 char *
-getpwpath(char const * file)
+getpwpath(char const *file)
 {
 	static char pathbuf[MAXPATHLEN];
 
@@ -52,9 +52,9 @@ getpwpath(char const * file)
 static int
 pwdb_check(void)
 {
-	int             i = 0;
-	pid_t           pid;
-	char           *args[10];
+	int i = 0;
+	pid_t pid;
+	char *args[10];
 
 	args[i++] = _PATH_PWD_MKDB;
 	args[i++] = "-C";
@@ -66,12 +66,12 @@ pwdb_check(void)
 	args[i++] = getpwpath(_MASTERPASSWD);
 	args[i] = NULL;
 
-	if ((pid = fork()) == -1)	/* Error (errno set) */
+	if ((pid = fork()) == -1) /* Error (errno set) */
 		i = errno;
-	else if (pid == 0) {	/* Child */
+	else if (pid == 0) { /* Child */
 		execv(args[0], args);
 		_exit(1);
-	} else {		/* Parent */
+	} else { /* Parent */
 		waitpid(pid, &i, 0);
 		if (WEXITSTATUS(i))
 			i = EIO;
@@ -81,11 +81,11 @@ pwdb_check(void)
 }
 
 static int
-pw_update(struct passwd * pwd, char const * user)
+pw_update(struct passwd *pwd, char const *user)
 {
-	struct passwd	*pw = NULL;
-	struct passwd	*old_pw = NULL;
-	int		 rc, pfd, tfd;
+	struct passwd *pw = NULL;
+	struct passwd *old_pw = NULL;
+	int rc, pfd, tfd;
 
 	if ((rc = pwdb_check()) != 0)
 		return (rc);
@@ -128,21 +128,21 @@ pw_update(struct passwd * pwd, char const * user)
 }
 
 int
-addpwent(struct passwd * pwd)
+addpwent(struct passwd *pwd)
 {
 
 	return (pw_update(pwd, NULL));
 }
 
 int
-chgpwent(char const * login, struct passwd * pwd)
+chgpwent(char const *login, struct passwd *pwd)
 {
 
 	return (pw_update(pwd, login));
 }
 
 int
-delpwent(struct passwd * pwd)
+delpwent(struct passwd *pwd)
 {
 
 	return (pw_update(NULL, pwd->pw_name));

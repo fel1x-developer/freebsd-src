@@ -19,15 +19,14 @@
  * or NULL if there is not enough space.
  */
 extern void icp_adf_getQueueMemory(icp_comms_trans_handle trans_handle,
-				   Cpa32U numberRequests,
-				   void **pCurrentQatMsg);
+    Cpa32U numberRequests, void **pCurrentQatMsg);
 /*
  * icp_adf_getSingleQueueAddr
  * Data plane support function - returns the pointer to next message on the ring
  * or NULL if there is not enough space - it also updates the shadow tail copy.
  */
 extern void icp_adf_getSingleQueueAddr(icp_comms_trans_handle trans_handle,
-				       void **pCurrentQatMsg);
+    void **pCurrentQatMsg);
 
 /*
  * icp_adf_getQueueNext
@@ -35,7 +34,7 @@ extern void icp_adf_getSingleQueueAddr(icp_comms_trans_handle trans_handle,
  * the pointer to next message on the ring.
  */
 extern void icp_adf_getQueueNext(icp_comms_trans_handle trans_handle,
-				 void **pCurrentQatMsg);
+    void **pCurrentQatMsg);
 
 /*
  * icp_adf_updateQueueTail
@@ -54,7 +53,7 @@ extern CpaBoolean icp_adf_isRingEmpty(icp_comms_trans_handle trans_handle);
  * Data plane support function - Poll messages from the queue.
  */
 extern CpaStatus icp_adf_pollQueue(icp_comms_trans_handle trans_handle,
-				   Cpa32U response_quota);
+    Cpa32U response_quota);
 
 /*
  * icp_adf_queueDataToSend
@@ -75,7 +74,6 @@ extern CpaBoolean icp_adf_queueDataToSend(icp_comms_trans_handle trans_hnd);
  */
 extern CpaStatus
 icp_adf_dp_getInflightRequests(icp_comms_trans_handle trans_handle,
-			       Cpa32U *maxInflightRequests,
-			       Cpa32U *numInflightRequests);
+    Cpa32U *maxInflightRequests, Cpa32U *numInflightRequests);
 
 #endif /* ICP_ADF_TRANSPORT_DP_H */

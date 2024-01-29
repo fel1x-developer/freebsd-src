@@ -38,10 +38,11 @@
 #include "opt_smp.h"
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/interrupt.h>
-#include <sys/ktr.h>
 #include <sys/kernel.h>
+#include <sys/ktr.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
@@ -52,9 +53,9 @@
 #include <sys/sx.h>
 #include <sys/sysctl.h>
 #include <sys/syslog.h>
-#include <sys/systm.h>
 #include <sys/taskqueue.h>
 #include <sys/vmmeter.h>
+
 #include <machine/clock.h>
 #include <machine/intr_machdep.h>
 #include <machine/smp.h>
@@ -63,10 +64,13 @@
 #endif
 
 #ifndef DEV_ATPIC
-#include <machine/segments.h>
 #include <machine/frame.h>
-#include <dev/ic/i8259.h>
+#include <machine/segments.h>
+
 #include <x86/isa/icu.h>
+
+#include <dev/ic/i8259.h>
+
 #include <isa/isareg.h>
 #endif
 
@@ -93,7 +97,7 @@ u_int num_io_irqs;
 #error EARLY_AP_STARTUP required on x86
 #endif
 
-#define	INTRNAME_LEN	(MAXCOMLEN + 1)
+#define INTRNAME_LEN (MAXCOMLEN + 1)
 u_long *intrcnt;
 char *intrnames;
 size_t sintrcnt = sizeof(intrcnt);
@@ -102,13 +106,13 @@ int nintrcnt;
 
 static MALLOC_DEFINE(M_INTR, "intr", "Interrupt Sources");
 
-static int	intr_assign_cpu(void *arg, int cpu);
-static void	intr_disable_src(void *arg);
-static void	intr_init(void *__dummy);
-static int	intr_pic_registered(struct pic *pic);
-static void	intrcnt_setname(const char *name, int index);
-static void	intrcnt_updatename(struct intsrc *is);
-static void	intrcnt_register(struct intsrc *is);
+static int intr_assign_cpu(void *arg, int cpu);
+static void intr_disable_src(void *arg);
+static void intr_init(void *__dummy);
+static int intr_pic_registered(struct pic *pic);
+static void intrcnt_setname(const char *name, int index);
+static void intrcnt_updatename(struct intsrc *is);
+static void intrcnt_register(struct intsrc *is);
 
 /*
  * SYSINIT levels for SI_SUB_INTR:
@@ -127,7 +131,7 @@ intr_pic_registered(struct pic *pic)
 {
 	struct pic *p;
 
-	TAILQ_FOREACH(p, &pics, pics) {
+	TAILQ_FOREACH (p, &pics, pics) {
 		if (p == pic)
 			return (1);
 	}
@@ -186,10 +190,10 @@ intr_init_sources(void *arg)
 	if (mp_ncpus > 1)
 		nintrcnt += 8 * mp_ncpus;
 #endif
-	intrcnt = mallocarray(nintrcnt, sizeof(u_long), M_INTR, M_WAITOK |
-	    M_ZERO);
-	intrnames = mallocarray(nintrcnt, INTRNAME_LEN, M_INTR, M_WAITOK |
-	    M_ZERO);
+	intrcnt = mallocarray(nintrcnt, sizeof(u_long), M_INTR,
+	    M_WAITOK | M_ZERO);
+	intrnames = mallocarray(nintrcnt, INTRNAME_LEN, M_INTR,
+	    M_WAITOK | M_ZERO);
 	sintrcnt = nintrcnt * sizeof(u_long);
 	sintrnames = nintrcnt * INTRNAME_LEN;
 
@@ -202,7 +206,7 @@ intr_init_sources(void *arg)
 	 * single-threaded at this point in startup so the list of
 	 * PICs shouldn't change.
 	 */
-	TAILQ_FOREACH(pic, &pics, pics) {
+	TAILQ_FOREACH (pic, &pics, pics) {
 		if (pic->pic_register_sources != NULL)
 			pic->pic_register_sources(pic);
 	}
@@ -222,14 +226,14 @@ intr_register_source(struct intsrc *isrc)
 
 	KASSERT(intr_pic_registered(isrc->is_pic), ("unregistered PIC"));
 	vector = isrc->is_pic->pic_vector(isrc);
-	KASSERT(vector < num_io_irqs, ("IRQ %d too large (%u irqs)", vector,
-	    num_io_irqs));
+	KASSERT(vector < num_io_irqs,
+	    ("IRQ %d too large (%u irqs)", vector, num_io_irqs));
 	if (interrupt_sources[vector] != NULL)
 		return (EEXIST);
 	error = intr_event_create(&isrc->is_event, isrc, 0, vector,
 	    intr_disable_src, (mask_fn)isrc->is_pic->pic_enable_source,
-	    (mask_fn)isrc->is_pic->pic_eoi_source, intr_assign_cpu, "irq%d:",
-	    vector);
+	    (mask_fn)isrc->is_pic->pic_eoi_source, intr_assign_cpu,
+	    "irq%d:", vector);
 	if (error)
 		return (error);
 	sx_xlock(&intrsrc_lock);
@@ -372,7 +376,7 @@ intr_resume(bool suspend_cancelled)
 	atpic_reset();
 #endif
 	mtx_lock(&intrpic_lock);
-	TAILQ_FOREACH(pic, &pics, pics) {
+	TAILQ_FOREACH (pic, &pics, pics) {
 		if (pic->pic_resume != NULL)
 			pic->pic_resume(pic, suspend_cancelled);
 	}
@@ -385,7 +389,7 @@ intr_suspend(void)
 	struct pic *pic;
 
 	mtx_lock(&intrpic_lock);
-	TAILQ_FOREACH_REVERSE(pic, &pics, pics_head, pics) {
+	TAILQ_FOREACH_REVERSE (pic, &pics, pics_head, pics) {
 		if (pic->pic_suspend != NULL)
 			pic->pic_suspend(pic);
 	}
@@ -590,7 +594,8 @@ intr_init_cpus(void)
 	for (i = 0; i < vm_ndomains; i++) {
 		if (CPU_OVERLAP(&cpuset_domain[i], &intr_cpus) == 0) {
 			intr_no_domain = true;
-			printf("%s: unable to route interrupts to CPUs in domain %d\n",
+			printf(
+			    "%s: unable to route interrupts to CPUs in domain %d\n",
 			    __func__, i);
 		}
 
@@ -626,7 +631,7 @@ intr_next_cpu(int domain)
 			current_cpu[domain] = 0;
 	} while (!CPU_ISSET(current_cpu[domain], &intr_cpus) ||
 	    (!CPU_ISSET(current_cpu[domain], &cpuset_domain[domain]) &&
-	    !intr_no_domain));
+		!intr_no_domain));
 	mtx_unlock_spin(&icu_lock);
 	return (apic_id);
 }
@@ -655,8 +660,7 @@ intr_smp_startup(void *arg __unused)
 	intr_init_cpus();
 	return;
 }
-SYSINIT(intr_smp_startup, SI_SUB_SMP, SI_ORDER_SECOND, intr_smp_startup,
-    NULL);
+SYSINIT(intr_smp_startup, SI_SUB_SMP, SI_ORDER_SECOND, intr_smp_startup, NULL);
 
 /*
  * TODO: Export this information in a non-MD fashion, integrate with vmstat -i.
@@ -680,11 +684,8 @@ sysctl_hw_intrs(SYSCTL_HANDLER_ARGS)
 		if (isrc == NULL)
 			continue;
 		sbuf_printf(&sbuf, "%s:%d @cpu%d(domain%d): %ld\n",
-		    isrc->is_event->ie_fullname,
-		    isrc->is_index,
-		    isrc->is_cpu,
-		    isrc->is_domain,
-		    *isrc->is_count);
+		    isrc->is_event->ie_fullname, isrc->is_index, isrc->is_cpu,
+		    isrc->is_domain, *isrc->is_count);
 	}
 
 	sx_sunlock(&intrsrc_lock);
@@ -692,10 +693,8 @@ sysctl_hw_intrs(SYSCTL_HANDLER_ARGS)
 	sbuf_delete(&sbuf);
 	return (error);
 }
-SYSCTL_PROC(_hw, OID_AUTO, intrs,
-    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE,
-    0, 0, sysctl_hw_intrs, "A",
-    "interrupt:number @cpu: count");
+SYSCTL_PROC(_hw, OID_AUTO, intrs, CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE,
+    0, 0, sysctl_hw_intrs, "A", "interrupt:number @cpu: count");
 
 /*
  * Compare two, possibly NULL, entries in the interrupt source array
@@ -706,8 +705,8 @@ intrcmp(const void *one, const void *two)
 {
 	const struct intsrc *i1, *i2;
 
-	i1 = *(const struct intsrc * const *)one;
-	i2 = *(const struct intsrc * const *)two;
+	i1 = *(const struct intsrc *const *)one;
+	i2 = *(const struct intsrc *const *)two;
 	if (i1 != NULL && i2 != NULL)
 		return (*i1->is_count - *i2->is_count);
 	if (i1 != NULL)
@@ -736,8 +735,8 @@ intr_balance(void *dummy __unused, int pending __unused)
 	 * Sort interrupts according to count.
 	 */
 	sx_xlock(&intrsrc_lock);
-	memcpy(interrupt_sorted, interrupt_sources, num_io_irqs *
-	    sizeof(interrupt_sorted[0]));
+	memcpy(interrupt_sorted, interrupt_sources,
+	    num_io_irqs * sizeof(interrupt_sorted[0]));
 	qsort(interrupt_sorted, num_io_irqs, sizeof(interrupt_sorted[0]),
 	    intrcmp);
 
@@ -752,20 +751,18 @@ intr_balance(void *dummy __unused, int pending __unused)
 	 */
 	for (i = num_io_irqs - 1; i >= 0; i--) {
 		isrc = interrupt_sorted[i];
-		if (isrc == NULL  || isrc->is_event->ie_cpu != NOCPU)
+		if (isrc == NULL || isrc->is_event->ie_cpu != NOCPU)
 			continue;
 		cpu = current_cpu[isrc->is_domain];
 		intr_next_cpu(isrc->is_domain);
 		if (isrc->is_cpu != cpu &&
-		    isrc->is_pic->pic_assign_cpu(isrc,
-		    cpu_apic_ids[cpu]) == 0)
+		    isrc->is_pic->pic_assign_cpu(isrc, cpu_apic_ids[cpu]) == 0)
 			isrc->is_cpu = cpu;
 	}
 	sx_xunlock(&intrsrc_lock);
 out:
 	taskqueue_enqueue_timeout(taskqueue_thread, &intrbalance_task,
 	    interval ? hz * interval : hz * 60);
-
 }
 
 static void

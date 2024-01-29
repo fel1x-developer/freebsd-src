@@ -47,21 +47,18 @@ static const struct crypt_format {
 	const char *name;
 	int (*func)(const char *, const char *, char *);
 	const char *magic;
-} crypt_formats[] = {
-	{ "md5",	crypt_md5,		"$1$"	},
+} crypt_formats[] = { { "md5", crypt_md5, "$1$" },
 #ifdef HAS_BLOWFISH
-	{ "blf",	crypt_blowfish,		"$2"	},
+	{ "blf", crypt_blowfish, "$2" },
 #endif
-	{ "nth",	crypt_nthash,		"$3$"	},
-	{ "sha256",	crypt_sha256,		"$5$"	},
-	{ "sha512",	crypt_sha512,		"$6$"	},
+	{ "nth", crypt_nthash, "$3$" }, { "sha256", crypt_sha256, "$5$" },
+	{ "sha512", crypt_sha512, "$6$" },
 #ifdef HAS_DES
-	{ "des",	crypt_des,		"_"	},
+	{ "des", crypt_des, "_" },
 #endif
 
 	/* sentinel */
-	{ NULL,		NULL,			NULL	}
-};
+	{ NULL, NULL, NULL } };
 
 static const struct crypt_format *crypt_format =
     &crypt_formats[(sizeof crypt_formats / sizeof *crypt_formats) - 2];

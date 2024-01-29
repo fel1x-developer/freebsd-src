@@ -32,22 +32,24 @@
  * LC_MONETARY database generation routines for localedef.
  */
 #include <sys/cdefs.h>
+#include <sys/types.h>
+
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
-#include <sys/types.h>
 #include <string.h>
 #include <unistd.h>
+
+#include "lmonetary.h"
 #include "localedef.h"
 #include "parser.h"
-#include "lmonetary.h"
 
 static struct lc_monetary_T mon;
 
 void
 init_monetary(void)
 {
-	(void) memset(&mon, 0, sizeof (mon));
+	(void)memset(&mon, 0, sizeof(mon));
 }
 
 void
@@ -91,7 +93,7 @@ add_monetary_num(int n)
 {
 	char *str = NULL;
 
-	(void) asprintf(&str, "%d", n);
+	(void)asprintf(&str, "%d", n);
 	if (str == NULL) {
 		fprintf(stderr, "out of memory\n");
 		return;
@@ -162,9 +164,9 @@ add_monetary_group(int n)
 	char *s = NULL;
 
 	if (mon.mon_grouping == NULL) {
-		(void) asprintf(&s, "%d", n);
+		(void)asprintf(&s, "%d", n);
 	} else {
-		(void) asprintf(&s, "%s;%d", mon.mon_grouping, n);
+		(void)asprintf(&s, "%s;%d", mon.mon_grouping, n);
 	}
 	if (s == NULL)
 		fprintf(stderr, "out of memory\n");

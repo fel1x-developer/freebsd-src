@@ -68,21 +68,21 @@
  *
  *****************************************************************************/
 
-#include <sys/cdefs.h>
-#include "opt_wlan.h"
 #include "opt_iwm.h"
+#include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 
 #include "if_iwm_config.h"
 
-#define IWM9000_FW	"iwm9000fw"
+#define IWM9000_FW "iwm9000fw"
 
-#define IWM_NVM_HW_SECTION_NUM_FAMILY_9000	10
+#define IWM_NVM_HW_SECTION_NUM_FAMILY_9000 10
 
-#define IWM_DEVICE_9000_COMMON						\
-	.device_family = IWM_DEVICE_FAMILY_9000,			\
-	.eeprom_size = IWM_OTP_LOW_IMAGE_SIZE_FAMILY_9000,		\
+#define IWM_DEVICE_9000_COMMON                             \
+	.device_family = IWM_DEVICE_FAMILY_9000,           \
+	.eeprom_size = IWM_OTP_LOW_IMAGE_SIZE_FAMILY_9000, \
 	.nvm_hw_section_num = IWM_NVM_HW_SECTION_NUM_FAMILY_9000
 
 const struct iwm_cfg iwm9560_cfg = {

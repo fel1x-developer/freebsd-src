@@ -25,29 +25,27 @@
  */
 
 #ifndef _CAPSICUM_HELPERS_H_
-#define	_CAPSICUM_HELPERS_H_
+#define _CAPSICUM_HELPERS_H_
 
 #include <sys/param.h>
 #include <sys/capsicum.h>
 #include <sys/ioctl.h>
 
 #include <errno.h>
+#include <libcasper.h>
 #include <nl_types.h>
 #include <termios.h>
 #include <time.h>
 #include <unistd.h>
 
-#include <libcasper.h>
-
-#define	CAPH_IGNORE_EBADF	0x0001
-#define	CAPH_READ		0x0002
-#define	CAPH_WRITE		0x0004
-#define	CAPH_LOOKUP		0x0008
+#define CAPH_IGNORE_EBADF 0x0001
+#define CAPH_READ 0x0002
+#define CAPH_WRITE 0x0004
+#define CAPH_LOOKUP 0x0008
 
 __BEGIN_DECLS
 
-static const unsigned long caph_stream_cmds[] =
-    {
+static const unsigned long caph_stream_cmds[] = {
 #ifdef TIOCGETA
 	TIOCGETA,
 #endif
@@ -57,15 +55,15 @@ static const unsigned long caph_stream_cmds[] =
 #ifdef FIODTYPE
 	FIODTYPE,
 #endif
-    };
+};
 static const uint32_t caph_stream_fcntls = CAP_FCNTL_GETFL;
 
 static __inline void
 caph_stream_rights(cap_rights_t *rights, int flags)
 {
 
-	cap_rights_init(rights, CAP_EVENT, CAP_FCNTL, CAP_FSTAT,
-	    CAP_IOCTL, CAP_SEEK);
+	cap_rights_init(rights, CAP_EVENT, CAP_FCNTL, CAP_FSTAT, CAP_IOCTL,
+	    CAP_SEEK);
 
 	if ((flags & CAPH_READ) != 0)
 		cap_rights_set(rights, CAP_READ);
@@ -87,8 +85,9 @@ caph_limit_stream(int fd, int flags)
 		return (-1);
 	}
 
-	if (cap_ioctls_limit(fd, caph_stream_cmds,
-	    nitems(caph_stream_cmds)) < 0 && errno != ENOSYS)
+	if (cap_ioctls_limit(fd, caph_stream_cmds, nitems(caph_stream_cmds)) <
+		0 &&
+	    errno != ENOSYS)
 		return (-1);
 
 	if (cap_fcntls_limit(fd, caph_stream_fcntls) < 0 && errno != ENOSYS)

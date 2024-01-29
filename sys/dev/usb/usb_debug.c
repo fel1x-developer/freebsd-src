@@ -28,49 +28,48 @@
 #ifdef USB_GLOBAL_INCLUDE_FILE
 #include USB_GLOBAL_INCLUDE_FILE
 #else
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-
+#include <dev/usb/usb_busdma.h>
 #include <dev/usb/usb_core.h>
 #include <dev/usb/usb_debug.h>
-#include <dev/usb/usb_process.h>
 #include <dev/usb/usb_device.h>
-#include <dev/usb/usb_busdma.h>
+#include <dev/usb/usb_process.h>
 #include <dev/usb/usb_transfer.h>
+#include <dev/usb/usbdi.h>
 
-#include <ddb/ddb.h>
 #include <ddb/db_sym.h>
-#endif			/* USB_GLOBAL_INCLUDE_FILE */
+#include <ddb/ddb.h>
+#endif /* USB_GLOBAL_INCLUDE_FILE */
 
 /*
  * Define this unconditionally in case a kernel module is loaded that
  * has been compiled with debugging options.
  */
-int	usb_debug = 0;
+int usb_debug = 0;
 
 SYSCTL_NODE(_hw, OID_AUTO, usb, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "USB debugging");
-SYSCTL_INT(_hw_usb, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &usb_debug, 0, "Debug level");
+SYSCTL_INT(_hw_usb, OID_AUTO, debug, CTLFLAG_RWTUN, &usb_debug, 0,
+    "Debug level");
 
 #ifdef USB_DEBUG
 /*
@@ -85,14 +84,12 @@ SYSCTL_PROC(_hw_usb_timings, OID_AUTO, port_reset_delay,
     sizeof(usb_port_reset_delay), usb_timings_sysctl_handler, "IU",
     "Port Reset Delay");
 SYSCTL_PROC(_hw_usb_timings, OID_AUTO, port_root_reset_delay,
-    CTLTYPE_UINT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-    &usb_port_root_reset_delay, sizeof(usb_port_root_reset_delay),
-    usb_timings_sysctl_handler, "IU",
+    CTLTYPE_UINT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, &usb_port_root_reset_delay,
+    sizeof(usb_port_root_reset_delay), usb_timings_sysctl_handler, "IU",
     "Root Port Reset Delay");
 SYSCTL_PROC(_hw_usb_timings, OID_AUTO, port_reset_recovery,
-    CTLTYPE_UINT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-    &usb_port_reset_recovery, sizeof(usb_port_reset_recovery),
-    usb_timings_sysctl_handler, "IU",
+    CTLTYPE_UINT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, &usb_port_reset_recovery,
+    sizeof(usb_port_reset_recovery), usb_timings_sysctl_handler, "IU",
     "Port Reset Recovery");
 SYSCTL_PROC(_hw_usb_timings, OID_AUTO, port_powerup_delay,
     CTLTYPE_UINT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, &usb_port_powerup_delay,
@@ -108,12 +105,10 @@ SYSCTL_PROC(_hw_usb_timings, OID_AUTO, set_address_settle,
     "Set Address Settle");
 SYSCTL_PROC(_hw_usb_timings, OID_AUTO, resume_delay,
     CTLTYPE_UINT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, &usb_resume_delay,
-    sizeof(usb_resume_delay), usb_timings_sysctl_handler, "IU",
-    "Resume Delay");
+    sizeof(usb_resume_delay), usb_timings_sysctl_handler, "IU", "Resume Delay");
 SYSCTL_PROC(_hw_usb_timings, OID_AUTO, resume_wait,
     CTLTYPE_UINT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, &usb_resume_wait,
-    sizeof(usb_resume_wait), usb_timings_sysctl_handler, "IU",
-    "Resume Wait");
+    sizeof(usb_resume_wait), usb_timings_sysctl_handler, "IU", "Resume Wait");
 SYSCTL_PROC(_hw_usb_timings, OID_AUTO, resume_recovery,
     CTLTYPE_UINT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, &usb_resume_recovery,
     sizeof(usb_resume_recovery), usb_timings_sysctl_handler, "IU",
@@ -140,8 +135,8 @@ usb_dump_iface(struct usb_interface *iface)
 	if (iface == NULL) {
 		return;
 	}
-	printf(" iface=%p idesc=%p altindex=%d\n",
-	    iface, iface->idesc, iface->alt_index);
+	printf(" iface=%p idesc=%p altindex=%d\n", iface, iface->idesc,
+	    iface->alt_index);
 }
 
 /*------------------------------------------------------------------------*
@@ -157,11 +152,10 @@ usb_dump_device(struct usb_device *udev)
 		return;
 	}
 	printf(" bus=%p \n"
-	    " address=%d config=%d depth=%d speed=%d self_powered=%d\n"
-	    " power=%d langid=%d\n",
-	    udev->bus,
-	    udev->address, udev->curr_config_no, udev->depth, udev->speed,
-	    udev->flags.self_powered, udev->power, udev->langid);
+	       " address=%d config=%d depth=%d speed=%d self_powered=%d\n"
+	       " power=%d langid=%d\n",
+	    udev->bus, udev->address, udev->curr_config_no, udev->depth,
+	    udev->speed, udev->flags.self_powered, udev->power, udev->langid);
 }
 
 /*------------------------------------------------------------------------*
@@ -177,7 +171,7 @@ usb_dump_queue(struct usb_endpoint *ep)
 
 	printf("usb_dump_queue: endpoint=%p xfer: ", ep);
 	for (x = 0; x != USB_MAX_EP_STREAMS; x++) {
-		TAILQ_FOREACH(xfer, &ep->endpoint_q[x].head, wait_entry)
+		TAILQ_FOREACH (xfer, &ep->endpoint_q[x].head, wait_entry)
 			printf(" %p", xfer);
 	}
 	printf("\n");
@@ -194,8 +188,8 @@ usb_dump_endpoint(struct usb_endpoint *ep)
 	if (ep) {
 		printf("usb_dump_endpoint: endpoint=%p", ep);
 
-		printf(" edesc=%p isoc_next=%d toggle_next=%d",
-		    ep->edesc, ep->isoc_next, ep->toggle_next);
+		printf(" edesc=%p isoc_next=%d toggle_next=%d", ep->edesc,
+		    ep->isoc_next, ep->toggle_next);
 
 		if (ep->edesc) {
 			printf(" bEndpointAddress=0x%02x",
@@ -222,40 +216,38 @@ usb_dump_xfer(struct usb_xfer *xfer)
 		return;
 	}
 	if (xfer->endpoint == NULL) {
-		printf("xfer %p: endpoint=NULL\n",
-		    xfer);
+		printf("xfer %p: endpoint=NULL\n", xfer);
 		return;
 	}
 	udev = xfer->xroot->udev;
 	printf("xfer %p: udev=%p vid=0x%04x pid=0x%04x addr=%d "
-	    "endpoint=%p ep=0x%02x attr=0x%02x\n",
-	    xfer, udev,
-	    UGETW(udev->ddesc.idVendor),
-	    UGETW(udev->ddesc.idProduct),
-	    udev->address, xfer->endpoint,
+	       "endpoint=%p ep=0x%02x attr=0x%02x\n",
+	    xfer, udev, UGETW(udev->ddesc.idVendor),
+	    UGETW(udev->ddesc.idProduct), udev->address, xfer->endpoint,
 	    xfer->endpoint->edesc->bEndpointAddress,
 	    xfer->endpoint->edesc->bmAttributes);
 }
 
 #ifdef USB_DEBUG
-unsigned usb_port_reset_delay	= USB_PORT_RESET_DELAY;
-unsigned usb_port_root_reset_delay	= USB_PORT_ROOT_RESET_DELAY;
-unsigned usb_port_reset_recovery	= USB_PORT_RESET_RECOVERY;
-unsigned usb_port_powerup_delay	= USB_PORT_POWERUP_DELAY;
-unsigned usb_port_resume_delay	= USB_PORT_RESUME_DELAY;
-unsigned usb_set_address_settle	= USB_SET_ADDRESS_SETTLE;
-unsigned usb_resume_delay		= USB_RESUME_DELAY;
-unsigned usb_resume_wait		= USB_RESUME_WAIT;
-unsigned usb_resume_recovery	= USB_RESUME_RECOVERY;
-unsigned usb_extra_power_up_time	= USB_EXTRA_POWER_UP_TIME;
-unsigned usb_enum_nice_time		= USB_ENUM_NICE_TIME;
+unsigned usb_port_reset_delay = USB_PORT_RESET_DELAY;
+unsigned usb_port_root_reset_delay = USB_PORT_ROOT_RESET_DELAY;
+unsigned usb_port_reset_recovery = USB_PORT_RESET_RECOVERY;
+unsigned usb_port_powerup_delay = USB_PORT_POWERUP_DELAY;
+unsigned usb_port_resume_delay = USB_PORT_RESUME_DELAY;
+unsigned usb_set_address_settle = USB_SET_ADDRESS_SETTLE;
+unsigned usb_resume_delay = USB_RESUME_DELAY;
+unsigned usb_resume_wait = USB_RESUME_WAIT;
+unsigned usb_resume_recovery = USB_RESUME_RECOVERY;
+unsigned usb_extra_power_up_time = USB_EXTRA_POWER_UP_TIME;
+unsigned usb_enum_nice_time = USB_ENUM_NICE_TIME;
 
 /*------------------------------------------------------------------------*
  *	usb_timings_sysctl_handler
  *
  * This function is used to update USB timing variables.
  *------------------------------------------------------------------------*/
-static int usb_timings_sysctl_handler(SYSCTL_HANDLER_ARGS)
+static int
+usb_timings_sysctl_handler(SYSCTL_HANDLER_ARGS)
 {
 	int error = 0;
 	unsigned val;

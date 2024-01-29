@@ -1,14 +1,15 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
-#include <linux/iopoll.h>
 #include <adf_accel_devices.h>
 #include <adf_cfg.h>
 #include <adf_common_drv.h>
 #include <adf_dev_err.h>
-#include <adf_pfvf_msg.h>
 #include <adf_gen4_hw_data.h>
 #include <adf_gen4_pfvf.h>
 #include <adf_gen4_timer.h>
+#include <adf_pfvf_msg.h>
+#include <linux/iopoll.h>
+
 #include "adf_4xxx_hw_data.h"
 #include "adf_heartbeat.h"
 #include "icp_qat_fw_init_admin.h"
@@ -30,10 +31,7 @@ static const struct adf_accel_unit adf_4xxx_au_a_ae[] = {
 
 /* Worker thread to service arbiter mappings */
 static u32 thrd_to_arb_map[ADF_4XXX_MAX_ACCELENGINES] = { 0x5555555, 0x5555555,
-							  0x5555555, 0x5555555,
-							  0xAAAAAAA, 0xAAAAAAA,
-							  0xAAAAAAA, 0xAAAAAAA,
-							  0x0 };
+	0x5555555, 0x5555555, 0xAAAAAAA, 0xAAAAAAA, 0xAAAAAAA, 0xAAAAAAA, 0x0 };
 
 /* Masks representing ME thread-service mappings.
  * Thread 7 carries out Admin work and is thus
@@ -44,40 +42,40 @@ static u8 dc_me_active_thd_mask = 0x03;
 
 static u32 thrd_to_arb_map_gen[ADF_4XXX_MAX_ACCELENGINES] = { 0 };
 
-#define ADF_4XXX_ASYM_SYM                                                      \
-	(ASYM | SYM << ADF_CFG_SERV_RING_PAIR_1_SHIFT |                        \
-	 ASYM << ADF_CFG_SERV_RING_PAIR_2_SHIFT |                              \
-	 SYM << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
+#define ADF_4XXX_ASYM_SYM                               \
+	(ASYM | SYM << ADF_CFG_SERV_RING_PAIR_1_SHIFT | \
+	    ASYM << ADF_CFG_SERV_RING_PAIR_2_SHIFT |    \
+	    SYM << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
 
-#define ADF_4XXX_DC                                                            \
-	(COMP | COMP << ADF_CFG_SERV_RING_PAIR_1_SHIFT |                       \
-	 COMP << ADF_CFG_SERV_RING_PAIR_2_SHIFT |                              \
-	 COMP << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
+#define ADF_4XXX_DC                                      \
+	(COMP | COMP << ADF_CFG_SERV_RING_PAIR_1_SHIFT | \
+	    COMP << ADF_CFG_SERV_RING_PAIR_2_SHIFT |     \
+	    COMP << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
 
-#define ADF_4XXX_SYM                                                           \
-	(SYM | SYM << ADF_CFG_SERV_RING_PAIR_1_SHIFT |                         \
-	 SYM << ADF_CFG_SERV_RING_PAIR_2_SHIFT |                               \
-	 SYM << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
+#define ADF_4XXX_SYM                                   \
+	(SYM | SYM << ADF_CFG_SERV_RING_PAIR_1_SHIFT | \
+	    SYM << ADF_CFG_SERV_RING_PAIR_2_SHIFT |    \
+	    SYM << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
 
-#define ADF_4XXX_ASYM                                                          \
-	(ASYM | ASYM << ADF_CFG_SERV_RING_PAIR_1_SHIFT |                       \
-	 ASYM << ADF_CFG_SERV_RING_PAIR_2_SHIFT |                              \
-	 ASYM << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
+#define ADF_4XXX_ASYM                                    \
+	(ASYM | ASYM << ADF_CFG_SERV_RING_PAIR_1_SHIFT | \
+	    ASYM << ADF_CFG_SERV_RING_PAIR_2_SHIFT |     \
+	    ASYM << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
 
-#define ADF_4XXX_ASYM_DC                                                       \
-	(ASYM | ASYM << ADF_CFG_SERV_RING_PAIR_1_SHIFT |                       \
-	 COMP << ADF_CFG_SERV_RING_PAIR_2_SHIFT |                              \
-	 COMP << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
+#define ADF_4XXX_ASYM_DC                                 \
+	(ASYM | ASYM << ADF_CFG_SERV_RING_PAIR_1_SHIFT | \
+	    COMP << ADF_CFG_SERV_RING_PAIR_2_SHIFT |     \
+	    COMP << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
 
-#define ADF_4XXX_SYM_DC                                                        \
-	(SYM | SYM << ADF_CFG_SERV_RING_PAIR_1_SHIFT |                         \
-	 COMP << ADF_CFG_SERV_RING_PAIR_2_SHIFT |                              \
-	 COMP << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
+#define ADF_4XXX_SYM_DC                                \
+	(SYM | SYM << ADF_CFG_SERV_RING_PAIR_1_SHIFT | \
+	    COMP << ADF_CFG_SERV_RING_PAIR_2_SHIFT |   \
+	    COMP << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
 
-#define ADF_4XXX_NA                                                            \
-	(NA | NA << ADF_CFG_SERV_RING_PAIR_1_SHIFT |                           \
-	 NA << ADF_CFG_SERV_RING_PAIR_2_SHIFT |                                \
-	 NA << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
+#define ADF_4XXX_NA                                  \
+	(NA | NA << ADF_CFG_SERV_RING_PAIR_1_SHIFT | \
+	    NA << ADF_CFG_SERV_RING_PAIR_2_SHIFT |   \
+	    NA << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
 
 #define ADF_4XXX_DEFAULT_RING_TO_SRV_MAP ADF_4XXX_ASYM_SYM
 
@@ -86,17 +84,12 @@ struct adf_enabled_services {
 	u16 rng_to_svc_msk;
 };
 
-static struct adf_enabled_services adf_4xxx_svcs[] =
-    { { "dc", ADF_4XXX_DC },
-      { "sym", ADF_4XXX_SYM },
-      { "asym", ADF_4XXX_ASYM },
-      { "dc;asym", ADF_4XXX_ASYM_DC },
-      { "asym;dc", ADF_4XXX_ASYM_DC },
-      { "sym;dc", ADF_4XXX_SYM_DC },
-      { "dc;sym", ADF_4XXX_SYM_DC },
-      { "asym;sym", ADF_4XXX_ASYM_SYM },
-      { "sym;asym", ADF_4XXX_ASYM_SYM },
-      { "cy", ADF_4XXX_ASYM_SYM } };
+static struct adf_enabled_services adf_4xxx_svcs[] = { { "dc", ADF_4XXX_DC },
+	{ "sym", ADF_4XXX_SYM }, { "asym", ADF_4XXX_ASYM },
+	{ "dc;asym", ADF_4XXX_ASYM_DC }, { "asym;dc", ADF_4XXX_ASYM_DC },
+	{ "sym;dc", ADF_4XXX_SYM_DC }, { "dc;sym", ADF_4XXX_SYM_DC },
+	{ "asym;sym", ADF_4XXX_ASYM_SYM }, { "sym;asym", ADF_4XXX_ASYM_SYM },
+	{ "cy", ADF_4XXX_ASYM_SYM } };
 
 static struct adf_hw_device_class adf_4xxx_class = {
 	.name = ADF_4XXX_DEVICE_NAME,
@@ -138,17 +131,15 @@ get_ring_to_svc_map(struct adf_accel_dev *accel_dev, u16 *ring_to_svc_map)
 		return EFAULT;
 
 	for (i = 0; i < ARRAY_SIZE(adf_4xxx_svcs); i++) {
-		if (!strncmp(val,
-			     adf_4xxx_svcs[i].svcs_enabled,
-			     ADF_CFG_MAX_KEY_LEN_IN_BYTES)) {
+		if (!strncmp(val, adf_4xxx_svcs[i].svcs_enabled,
+			ADF_CFG_MAX_KEY_LEN_IN_BYTES)) {
 			*ring_to_svc_map = adf_4xxx_svcs[i].rng_to_svc_msk;
 			return 0;
 		}
 	}
 
-	device_printf(GET_DEV(accel_dev),
-		      "Invalid services enabled: %s\n",
-		      val);
+	device_printf(GET_DEV(accel_dev), "Invalid services enabled: %s\n",
+	    val);
 	return EFAULT;
 }
 
@@ -289,10 +280,8 @@ measure_clock(struct adf_accel_dev *accel_dev)
 	u32 frequency;
 	int ret = 0;
 
-	ret = adf_dev_measure_clock(accel_dev,
-				    &frequency,
-				    ADF_4XXX_MIN_AE_FREQ,
-				    ADF_4XXX_MAX_AE_FREQ);
+	ret = adf_dev_measure_clock(accel_dev, &frequency, ADF_4XXX_MIN_AE_FREQ,
+	    ADF_4XXX_MAX_AE_FREQ);
 	if (ret)
 		return ret;
 
@@ -310,12 +299,11 @@ adf_4xxx_configure_accel_units(struct adf_accel_dev *accel_dev)
 		goto err;
 
 	snprintf(key, sizeof(key), ADF_SERVICES_ENABLED);
-	snprintf(val_str,
-		 sizeof(val_str),
-		 ADF_CFG_ASYM ADF_SERVICES_SEPARATOR ADF_CFG_SYM);
+	snprintf(val_str, sizeof(val_str),
+	    ADF_CFG_ASYM ADF_SERVICES_SEPARATOR ADF_CFG_SYM);
 
-	if (adf_cfg_add_key_value_param(
-		accel_dev, ADF_GENERAL_SEC, key, (void *)val_str, ADF_STR))
+	if (adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+		(void *)val_str, ADF_STR))
 		goto err;
 
 	return 0;
@@ -332,7 +320,7 @@ get_num_accel_units(struct adf_hw_device_data *self)
 
 static void
 get_accel_unit(struct adf_hw_device_data *self,
-	       struct adf_accel_unit **accel_unit)
+    struct adf_accel_unit **accel_unit)
 {
 	memcpy(*accel_unit, adf_4xxx_au_a_ae, sizeof(adf_4xxx_au_a_ae));
 }
@@ -349,10 +337,8 @@ adf_exit_accel_unit_services(struct adf_accel_dev *accel_dev)
 }
 
 static int
-get_accel_unit_config(struct adf_accel_dev *accel_dev,
-		      u8 *num_sym_au,
-		      u8 *num_dc_au,
-		      u8 *num_asym_au)
+get_accel_unit_config(struct adf_accel_dev *accel_dev, u8 *num_sym_au,
+    u8 *num_dc_au, u8 *num_asym_au)
 {
 	struct adf_hw_device_data *hw_data = accel_dev->hw_device;
 	char key[ADF_CFG_MAX_KEY_LEN_IN_BYTES];
@@ -391,7 +377,7 @@ get_accel_unit_config(struct adf_accel_dev *accel_dev,
 	/* Ensure the user won't enable more services than it can support */
 	if (hweight32(service_mask) > num_au) {
 		device_printf(GET_DEV(accel_dev),
-			      "Can't enable more services than ");
+		    "Can't enable more services than ");
 		device_printf(GET_DEV(accel_dev), "%d!\n", num_au);
 		return EFAULT;
 	} else if (hweight32(service_mask) == 2) {
@@ -432,8 +418,9 @@ get_accel_unit_config(struct adf_accel_dev *accel_dev,
 		    ICP_ACCEL_CAPABILITIES_CNV_INTEGRITY64;
 		accel_dev->hw_device->extended_dc_capabilities = 0;
 	}
-	accel_dev->hw_device->accel_capabilities_mask =
-	    adf_4xxx_get_hw_cap(accel_dev) & ~disabled_caps;
+	accel_dev->hw_device->accel_capabilities_mask = adf_4xxx_get_hw_cap(
+							    accel_dev) &
+	    ~disabled_caps;
 
 	hw_data->service_mask = service_mask;
 	hw_data->service_to_load_mask = service_mask;
@@ -450,8 +437,8 @@ adf_init_accel_unit_services(struct adf_accel_dev *accel_dev)
 	u32 au_size = num_au * sizeof(struct adf_accel_unit);
 	u8 i;
 
-	if (get_accel_unit_config(
-		accel_dev, &num_sym_au, &num_dc_au, &num_asym_au))
+	if (get_accel_unit_config(accel_dev, &num_sym_au, &num_dc_au,
+		&num_asym_au))
 		return EFAULT;
 
 	accel_dev->au_info = kzalloc(sizeof(*accel_dev->au_info), GFP_KERNEL);
@@ -496,8 +483,8 @@ adf_init_accel_unit_services(struct adf_accel_dev *accel_dev)
 			num_dc_au--;
 		}
 	}
-	accel_dev->au_info->dc_ae_msk |=
-	    hw_data->get_obj_cfg_ae_mask(accel_dev, ADF_ACCEL_COMPRESSION);
+	accel_dev->au_info->dc_ae_msk |= hw_data->get_obj_cfg_ae_mask(accel_dev,
+	    ADF_ACCEL_COMPRESSION);
 
 	return 0;
 }
@@ -517,7 +504,7 @@ adf_exit_accel_units(struct adf_accel_dev *accel_dev)
 
 static const char *
 get_obj_name(struct adf_accel_dev *accel_dev,
-	     enum adf_accel_unit_services service)
+    enum adf_accel_unit_services service)
 {
 	switch (service) {
 	case ADF_ACCEL_ASYM:
@@ -541,7 +528,7 @@ get_objs_num(struct adf_accel_dev *accel_dev)
 
 static uint32_t
 get_obj_cfg_ae_mask(struct adf_accel_dev *accel_dev,
-		    enum adf_accel_unit_services service)
+    enum adf_accel_unit_services service)
 {
 	u32 ae_mask = 0;
 	struct adf_hw_device_data *hw_data = accel_dev->hw_device;
@@ -595,15 +582,11 @@ adf_4xxx_get_service_type(struct adf_accel_dev *accel_dev, s32 obj_num)
 }
 
 static void
-get_ring_svc_map_data(int ring_pair_index,
-		      u16 ring_to_svc_map,
-		      u8 *serv_type,
-		      int *ring_index,
-		      int *num_rings_per_srv,
-		      int bundle_num)
+get_ring_svc_map_data(int ring_pair_index, u16 ring_to_svc_map, u8 *serv_type,
+    int *ring_index, int *num_rings_per_srv, int bundle_num)
 {
-	*serv_type =
-	    GET_SRV_TYPE(ring_to_svc_map, bundle_num % ADF_CFG_NUM_SERVICES);
+	*serv_type = GET_SRV_TYPE(ring_to_svc_map,
+	    bundle_num % ADF_CFG_NUM_SERVICES);
 	*ring_index = 0;
 	*num_rings_per_srv = ADF_4XXX_NUM_RINGS_PER_BANK / 2;
 }
@@ -644,10 +627,8 @@ adf_get_dc_extcapabilities(struct adf_accel_dev *accel_dev, u32 *capabilities)
 }
 
 static int
-adf_get_fw_status(struct adf_accel_dev *accel_dev,
-		  u8 *major,
-		  u8 *minor,
-		  u8 *patch)
+adf_get_fw_status(struct adf_accel_dev *accel_dev, u8 *major, u8 *minor,
+    u8 *patch)
 {
 	struct icp_qat_fw_init_admin_req req;
 	struct icp_qat_fw_init_admin_resp resp;
@@ -702,7 +683,7 @@ adf_4xxx_send_admin_init(struct adf_accel_dev *accel_dev)
 	req.init_cfg_ptr = accel_dev->admin->const_tbl_addr;
 	if (adf_send_admin(accel_dev, &req, &resp, admin_ae_mask)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Error sending constants config message\n");
+		    "Error sending constants config message\n");
 		return EFAULT;
 	}
 
@@ -711,7 +692,7 @@ adf_4xxx_send_admin_init(struct adf_accel_dev *accel_dev)
 	req.cmd_id = ICP_QAT_FW_INIT_ME;
 	if (adf_send_admin(accel_dev, &req, &resp, ae_mask)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Error sending init message\n");
+		    "Error sending init message\n");
 		return EFAULT;
 	}
 
@@ -724,26 +705,24 @@ adf_4xxx_send_admin_init(struct adf_accel_dev *accel_dev)
 
 	if (adf_send_admin(accel_dev, &req, &resp, ae_mask))
 		device_printf(GET_DEV(accel_dev),
-			      "Heartbeat is not supported\n");
+		    "Heartbeat is not supported\n");
 
 	ret = adf_get_dc_extcapabilities(accel_dev, &dc_capabilities);
 	if (unlikely(ret)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Could not get FW ext. capabilities\n");
+		    "Could not get FW ext. capabilities\n");
 	}
 
 	accel_dev->hw_device->extended_dc_capabilities = dc_capabilities;
 
-	adf_get_fw_status(accel_dev,
-			  &accel_dev->fw_versions.fw_version_major,
-			  &accel_dev->fw_versions.fw_version_minor,
-			  &accel_dev->fw_versions.fw_version_patch);
+	adf_get_fw_status(accel_dev, &accel_dev->fw_versions.fw_version_major,
+	    &accel_dev->fw_versions.fw_version_minor,
+	    &accel_dev->fw_versions.fw_version_patch);
 
-	device_printf(GET_DEV(accel_dev),
-		      "FW version: %d.%d.%d\n",
-		      accel_dev->fw_versions.fw_version_major,
-		      accel_dev->fw_versions.fw_version_minor,
-		      accel_dev->fw_versions.fw_version_patch);
+	device_printf(GET_DEV(accel_dev), "FW version: %d.%d.%d\n",
+	    accel_dev->fw_versions.fw_version_major,
+	    accel_dev->fw_versions.fw_version_minor,
+	    accel_dev->fw_versions.fw_version_patch);
 
 	return ret;
 }
@@ -772,7 +751,7 @@ get_au_by_ae(struct adf_accel_dev *accel_dev, int ae_num)
 
 static bool
 check_accel_unit_service(enum adf_accel_unit_services au_srv,
-			 enum adf_cfg_service_type ring_srv)
+    enum adf_cfg_service_type ring_srv)
 {
 	if ((ADF_ACCEL_SERVICE_NULL == au_srv) && ring_srv == NA)
 		return true;
@@ -788,7 +767,7 @@ check_accel_unit_service(enum adf_accel_unit_services au_srv,
 
 static void
 adf_4xxx_cfg_gen_dispatch_arbiter(struct adf_accel_dev *accel_dev,
-				  u32 *thrd_to_arb_map_gen)
+    u32 *thrd_to_arb_map_gen)
 {
 	struct adf_accel_unit *au = NULL;
 	int engine = 0;
@@ -803,10 +782,8 @@ adf_4xxx_cfg_gen_dispatch_arbiter(struct adf_accel_dev *accel_dev,
 	ena_srv_mask = accel_dev->hw_device->ring_to_svc_map;
 	/* If ring_to_svc_map is not changed, return default arbiter value */
 	if (ena_srv_mask == ADF_4XXX_DEFAULT_RING_TO_SRV_MAP) {
-		memcpy(thrd_to_arb_map_gen,
-		       thrd_to_arb_map,
-		       sizeof(thrd_to_arb_map_gen[0]) *
-			   ADF_4XXX_MAX_ACCELENGINES);
+		memcpy(thrd_to_arb_map_gen, thrd_to_arb_map,
+		    sizeof(thrd_to_arb_map_gen[0]) * ADF_4XXX_MAX_ACCELENGINES);
 		return;
 	}
 
@@ -820,7 +797,7 @@ adf_4xxx_cfg_gen_dispatch_arbiter(struct adf_accel_dev *accel_dev,
 		for (service = 0; service < ADF_CFG_MAX_SERVICES; service++) {
 			service_type = GET_SRV_TYPE(ena_srv_mask, service);
 			if (check_accel_unit_service(au->services,
-						     service_type))
+				service_type))
 				service_mask |= BIT(service);
 		}
 
@@ -833,15 +810,15 @@ adf_4xxx_cfg_gen_dispatch_arbiter(struct adf_accel_dev *accel_dev,
 
 		for_each_set_bit(thread, &thd_srv_mask, 8)
 		{
-			thrd_to_arb_map_gen[engine] |=
-			    (service_mask << (ADF_CFG_MAX_SERVICES * thread));
+			thrd_to_arb_map_gen[engine] |= (service_mask
+			    << (ADF_CFG_MAX_SERVICES * thread));
 		}
 	}
 }
 
 static void
 adf_get_arbiter_mapping(struct adf_accel_dev *accel_dev,
-			u32 const **arb_map_config)
+    u32 const **arb_map_config)
 {
 	int i;
 	struct adf_hw_device_data *hw_device = accel_dev->hw_device;
@@ -915,17 +892,12 @@ adf_init_device(struct adf_accel_dev *accel_dev)
 
 	/* Poll status register to make sure the device is powered up */
 	status = 0;
-	ret = read_poll_timeout(ADF_CSR_RD,
-				status,
-				status & ADF_4XXX_PM_INIT_STATE,
-				ADF_4XXX_PM_POLL_DELAY_US,
-				ADF_4XXX_PM_POLL_TIMEOUT_US,
-				true,
-				addr,
-				ADF_4XXX_PM_STATUS);
+	ret = read_poll_timeout(ADF_CSR_RD, status,
+	    status & ADF_4XXX_PM_INIT_STATE, ADF_4XXX_PM_POLL_DELAY_US,
+	    ADF_4XXX_PM_POLL_TIMEOUT_US, true, addr, ADF_4XXX_PM_STATUS);
 	if (ret)
 		device_printf(GET_DEV(accel_dev),
-			      "Failed to power up the device\n");
+		    "Failed to power up the device\n");
 
 	return ret;
 }

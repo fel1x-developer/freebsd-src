@@ -25,82 +25,78 @@
  * SUCH DAMAGE.
  *
  */
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/errno.h>
 #include <sys/limits.h>
 #include <sys/queue.h>
-#include <sys/systm.h>
 
 #include <netpfil/pf/pf_nv.h>
 
-#define	PF_NV_IMPL_UINT(fnname, type, max)					\
-	int									\
-	pf_nv ## fnname ## _opt(const nvlist_t *nvl, const char *name,		\
-	    type *val, type dflt)						\
-	{									\
-		uint64_t raw;							\
-		if (! nvlist_exists_number(nvl, name)) {			\
-			*val = dflt;						\
-			return (0);						\
-		}								\
-		raw = nvlist_get_number(nvl, name);				\
-		if (raw > max)							\
-			return (ERANGE);					\
-		*val = (type)raw;						\
-		return (0);							\
-	}									\
-	int									\
-	pf_nv ## fnname(const nvlist_t *nvl, const char *name, type *val)	\
-	{									\
-		uint64_t raw;							\
-		if (! nvlist_exists_number(nvl, name))				\
-			return (EINVAL);					\
-		raw = nvlist_get_number(nvl, name);				\
-		if (raw > max)							\
-			return (ERANGE);					\
-		*val = (type)raw;						\
-		return (0);							\
-	}									\
-	int									\
-	pf_nv ## fnname ## _array(const nvlist_t *nvl, const char *name,	\
-	    type *array, size_t maxelems, size_t *nelems)			\
-	{									\
-		const uint64_t *n;						\
-		size_t nitems;							\
-		bzero(array, sizeof(type) * maxelems);				\
-		if (! nvlist_exists_number_array(nvl, name))			\
-			return (EINVAL);					\
-		n = nvlist_get_number_array(nvl, name, &nitems);		\
-		if (nitems > maxelems)						\
-			return (E2BIG);						\
-		if (nelems != NULL)						\
-			*nelems = nitems;					\
-		for (size_t i = 0; i < nitems; i++) {				\
-			if (n[i] > max)						\
-				return (ERANGE);				\
-			array[i] = (type)n[i];					\
-		}								\
-		return (0);							\
-	}									\
-	void									\
-	pf_ ## fnname ## _array_nv(nvlist_t *nvl, const char *name,		\
-	    const type *numbers, size_t count)					\
-	{									\
-		uint64_t tmp;							\
-		for (size_t i = 0; i < count; i++) {				\
-			tmp = numbers[i];					\
-			nvlist_append_number_array(nvl, name, tmp);		\
-		}								\
+#define PF_NV_IMPL_UINT(fnname, type, max)                                  \
+	int pf_nv##fnname##_opt(const nvlist_t *nvl, const char *name,      \
+	    type *val, type dflt)                                           \
+	{                                                                   \
+		uint64_t raw;                                               \
+		if (!nvlist_exists_number(nvl, name)) {                     \
+			*val = dflt;                                        \
+			return (0);                                         \
+		}                                                           \
+		raw = nvlist_get_number(nvl, name);                         \
+		if (raw > max)                                              \
+			return (ERANGE);                                    \
+		*val = (type)raw;                                           \
+		return (0);                                                 \
+	}                                                                   \
+	int pf_nv##fnname(const nvlist_t *nvl, const char *name, type *val) \
+	{                                                                   \
+		uint64_t raw;                                               \
+		if (!nvlist_exists_number(nvl, name))                       \
+			return (EINVAL);                                    \
+		raw = nvlist_get_number(nvl, name);                         \
+		if (raw > max)                                              \
+			return (ERANGE);                                    \
+		*val = (type)raw;                                           \
+		return (0);                                                 \
+	}                                                                   \
+	int pf_nv##fnname##_array(const nvlist_t *nvl, const char *name,    \
+	    type *array, size_t maxelems, size_t *nelems)                   \
+	{                                                                   \
+		const uint64_t *n;                                          \
+		size_t nitems;                                              \
+		bzero(array, sizeof(type) * maxelems);                      \
+		if (!nvlist_exists_number_array(nvl, name))                 \
+			return (EINVAL);                                    \
+		n = nvlist_get_number_array(nvl, name, &nitems);            \
+		if (nitems > maxelems)                                      \
+			return (E2BIG);                                     \
+		if (nelems != NULL)                                         \
+			*nelems = nitems;                                   \
+		for (size_t i = 0; i < nitems; i++) {                       \
+			if (n[i] > max)                                     \
+				return (ERANGE);                            \
+			array[i] = (type)n[i];                              \
+		}                                                           \
+		return (0);                                                 \
+	}                                                                   \
+	void pf_##fnname##_array_nv(nvlist_t *nvl, const char *name,        \
+	    const type *numbers, size_t count)                              \
+	{                                                                   \
+		uint64_t tmp;                                               \
+		for (size_t i = 0; i < count; i++) {                        \
+			tmp = numbers[i];                                   \
+			nvlist_append_number_array(nvl, name, tmp);         \
+		}                                                           \
 	}
 
 int
 pf_nvbool(const nvlist_t *nvl, const char *name, bool *val)
 {
-	if (! nvlist_exists_bool(nvl, name))
+	if (!nvlist_exists_bool(nvl, name))
 		return (EINVAL);
 
 	*val = nvlist_get_bool(nvl, name);
@@ -117,7 +113,7 @@ pf_nvbinary(const nvlist_t *nvl, const char *name, void *data,
 
 	bzero(data, expected_size);
 
-	if (! nvlist_exists_binary(nvl, name))
+	if (!nvlist_exists_binary(nvl, name))
 		return (EINVAL);
 
 	nvdata = (const uint8_t *)nvlist_get_binary(nvl, name, &len);
@@ -139,7 +135,7 @@ pf_nvint(const nvlist_t *nvl, const char *name, int *val)
 {
 	int64_t raw;
 
-	if (! nvlist_exists_number(nvl, name))
+	if (!nvlist_exists_number(nvl, name))
 		return (EINVAL);
 
 	raw = nvlist_get_number(nvl, name);
@@ -156,7 +152,7 @@ pf_nvstring(const nvlist_t *nvl, const char *name, char *str, size_t maxlen)
 {
 	int ret;
 
-	if (! nvlist_exists_string(nvl, name))
+	if (!nvlist_exists_string(nvl, name))
 		return (EINVAL);
 
 	ret = strlcpy(str, nvlist_get_string(nvl, name), maxlen);
@@ -229,8 +225,8 @@ pf_nvpool_to_pool(const nvlist_t *nvl, struct pf_kpool *kpool)
 	}
 
 	PFNV_CHK(pf_nvint(nvl, "tblidx", &kpool->tblidx));
-	PFNV_CHK(pf_nvuint16_array(nvl, "proxy_port", kpool->proxy_port, 2,
-	    NULL));
+	PFNV_CHK(
+	    pf_nvuint16_array(nvl, "proxy_port", kpool->proxy_port, 2, NULL));
 	PFNV_CHK(pf_nvuint8(nvl, "opts", &kpool->opts));
 
 	if (nvlist_exists_nvlist(nvl, "mape")) {
@@ -292,15 +288,15 @@ pf_nvaddr_wrap_to_addr_wrap(const nvlist_t *nvl, struct pf_addr_wrap *addr)
 		PFNV_CHK(pf_nvstring(nvl, "tblname", addr->v.tblname,
 		    sizeof(addr->v.tblname)));
 
-	if (! nvlist_exists_nvlist(nvl, "addr"))
+	if (!nvlist_exists_nvlist(nvl, "addr"))
 		return (EINVAL);
-	PFNV_CHK(pf_nvaddr_to_addr(nvlist_get_nvlist(nvl, "addr"),
-	    &addr->v.a.addr));
+	PFNV_CHK(
+	    pf_nvaddr_to_addr(nvlist_get_nvlist(nvl, "addr"), &addr->v.a.addr));
 
-	if (! nvlist_exists_nvlist(nvl, "mask"))
+	if (!nvlist_exists_nvlist(nvl, "mask"))
 		return (EINVAL);
-	PFNV_CHK(pf_nvaddr_to_addr(nvlist_get_nvlist(nvl, "mask"),
-	    &addr->v.a.mask));
+	PFNV_CHK(
+	    pf_nvaddr_to_addr(nvlist_get_nvlist(nvl, "mask"), &addr->v.a.mask));
 
 	switch (addr->type) {
 	case PF_ADDR_DYNIFTL:
@@ -336,8 +332,7 @@ pf_addr_wrap_to_nvaddr_wrap(const struct pf_addr_wrap *addr)
 		nvlist_add_string(nvl, "ifname", addr->v.ifname);
 		num = 0;
 		if (addr->p.dyn != NULL)
-			num = addr->p.dyn->pfid_acnt4 +
-			    addr->p.dyn->pfid_acnt6;
+			num = addr->p.dyn->pfid_acnt4 + addr->p.dyn->pfid_acnt6;
 		nvlist_add_number(nvl, "dyncnt", num);
 	}
 	if (addr->type == PF_ADDR_TABLE) {
@@ -397,7 +392,7 @@ pf_nvrule_addr_to_rule_addr(const nvlist_t *nvl, struct pf_rule_addr *addr)
 {
 	int error = 0;
 
-	if (! nvlist_exists_nvlist(nvl, "addr"))
+	if (!nvlist_exists_nvlist(nvl, "addr"))
 		return (EINVAL);
 
 	PFNV_CHK(pf_nvaddr_wrap_to_addr_wrap(nvlist_get_nvlist(nvl, "addr"),
@@ -500,17 +495,16 @@ pf_check_rule_addr(const struct pf_rule_addr *addr)
 	return (0);
 }
 
-
 int
 pf_nvrule_to_krule(const nvlist_t *nvl, struct pf_krule *rule)
 {
 	int error = 0;
 
-#define	ERROUT(x)	ERROUT_FUNCTION(errout, x)
+#define ERROUT(x) ERROUT_FUNCTION(errout, x)
 
 	PFNV_CHK(pf_nvuint32(nvl, "nr", &rule->nr));
 
-	if (! nvlist_exists_nvlist(nvl, "src"))
+	if (!nvlist_exists_nvlist(nvl, "src"))
 		ERROUT(EINVAL);
 
 	error = pf_nvrule_addr_to_rule_addr(nvlist_get_nvlist(nvl, "src"),
@@ -518,7 +512,7 @@ pf_nvrule_to_krule(const nvlist_t *nvl, struct pf_krule *rule)
 	if (error != 0)
 		ERROUT(error);
 
-	if (! nvlist_exists_nvlist(nvl, "dst"))
+	if (!nvlist_exists_nvlist(nvl, "dst"))
 		ERROUT(EINVAL);
 
 	PFNV_CHK(pf_nvrule_addr_to_rule_addr(nvlist_get_nvlist(nvl, "dst"),
@@ -545,13 +539,13 @@ pf_nvrule_to_krule(const nvlist_t *nvl, struct pf_krule *rule)
 	}
 
 	PFNV_CHK(pf_nvuint32_opt(nvl, "ridentifier", &rule->ridentifier, 0));
-	PFNV_CHK(pf_nvstring(nvl, "ifname", rule->ifname,
-	    sizeof(rule->ifname)));
+	PFNV_CHK(
+	    pf_nvstring(nvl, "ifname", rule->ifname, sizeof(rule->ifname)));
 	PFNV_CHK(pf_nvstring(nvl, "qname", rule->qname, sizeof(rule->qname)));
-	PFNV_CHK(pf_nvstring(nvl, "pqname", rule->pqname,
-	    sizeof(rule->pqname)));
-	PFNV_CHK(pf_nvstring(nvl, "tagname", rule->tagname,
-	    sizeof(rule->tagname)));
+	PFNV_CHK(
+	    pf_nvstring(nvl, "pqname", rule->pqname, sizeof(rule->pqname)));
+	PFNV_CHK(
+	    pf_nvstring(nvl, "tagname", rule->tagname, sizeof(rule->tagname)));
 	PFNV_CHK(pf_nvuint16_opt(nvl, "dnpipe", &rule->dnpipe, 0));
 	PFNV_CHK(pf_nvuint16_opt(nvl, "dnrpipe", &rule->dnrpipe, 0));
 	PFNV_CHK(pf_nvuint32_opt(nvl, "dnflags", &rule->free_flags, 0));
@@ -560,15 +554,16 @@ pf_nvrule_to_krule(const nvlist_t *nvl, struct pf_krule *rule)
 	PFNV_CHK(pf_nvstring(nvl, "overload_tblname", rule->overload_tblname,
 	    sizeof(rule->overload_tblname)));
 
-	if (! nvlist_exists_nvlist(nvl, "rpool"))
+	if (!nvlist_exists_nvlist(nvl, "rpool"))
 		ERROUT(EINVAL);
-	PFNV_CHK(pf_nvpool_to_pool(nvlist_get_nvlist(nvl, "rpool"),
-	    &rule->rpool));
+	PFNV_CHK(
+	    pf_nvpool_to_pool(nvlist_get_nvlist(nvl, "rpool"), &rule->rpool));
 
 	PFNV_CHK(pf_nvuint32(nvl, "os_fingerprint", &rule->os_fingerprint));
 
 	PFNV_CHK(pf_nvint(nvl, "rtableid", &rule->rtableid));
-	PFNV_CHK(pf_nvuint32_array(nvl, "timeout", rule->timeout, PFTM_MAX, NULL));
+	PFNV_CHK(
+	    pf_nvuint32_array(nvl, "timeout", rule->timeout, PFTM_MAX, NULL));
 	PFNV_CHK(pf_nvuint32(nvl, "max_states", &rule->max_states));
 	PFNV_CHK(pf_nvuint32(nvl, "max_src_nodes", &rule->max_src_nodes));
 	PFNV_CHK(pf_nvuint32(nvl, "max_src_states", &rule->max_src_states));
@@ -587,12 +582,12 @@ pf_nvrule_to_krule(const nvlist_t *nvl, struct pf_krule *rule)
 	PFNV_CHK(pf_nvuint16(nvl, "max_mss", &rule->max_mss));
 	PFNV_CHK(pf_nvuint16(nvl, "scrub_flags", &rule->scrub_flags));
 
-	if (! nvlist_exists_nvlist(nvl, "uid"))
+	if (!nvlist_exists_nvlist(nvl, "uid"))
 		ERROUT(EINVAL);
 	PFNV_CHK(pf_nvrule_uid_to_rule_uid(nvlist_get_nvlist(nvl, "uid"),
 	    &rule->uid));
 
-	if (! nvlist_exists_nvlist(nvl, "gid"))
+	if (!nvlist_exists_nvlist(nvl, "gid"))
 		ERROUT(EINVAL);
 	PFNV_CHK(pf_nvrule_gid_to_rule_gid(nvlist_get_nvlist(nvl, "gid"),
 	    &rule->gid));
@@ -629,7 +624,7 @@ pf_nvrule_to_krule(const nvlist_t *nvl, struct pf_krule *rule)
 	if (nvlist_exists_nvlist(nvl, "divert")) {
 		const nvlist_t *nvldivert = nvlist_get_nvlist(nvl, "divert");
 
-		if (! nvlist_exists_nvlist(nvldivert, "addr"))
+		if (!nvlist_exists_nvlist(nvldivert, "addr"))
 			ERROUT(EINVAL);
 		PFNV_CHK(pf_nvaddr_to_addr(nvlist_get_nvlist(nvldivert, "addr"),
 		    &rule->divert.addr));
@@ -759,8 +754,7 @@ pf_krule_to_nvrule(struct pf_krule *rule)
 	    counter_u64_fetch(rule->states_cur));
 	nvlist_add_number(nvl, "states_tot",
 	    counter_u64_fetch(rule->states_tot));
-	nvlist_add_number(nvl, "src_nodes",
-	    counter_u64_fetch(rule->src_nodes));
+	nvlist_add_number(nvl, "src_nodes", counter_u64_fetch(rule->src_nodes));
 
 	nvlist_add_number(nvl, "return_icmp", rule->return_icmp);
 	nvlist_add_number(nvl, "return_icmp6", rule->return_icmp6);
@@ -839,14 +833,13 @@ errout:
 }
 
 int
-pf_nvstate_kill_to_kstate_kill(const nvlist_t *nvl,
-    struct pf_kstate_kill *kill)
+pf_nvstate_kill_to_kstate_kill(const nvlist_t *nvl, struct pf_kstate_kill *kill)
 {
 	int error = 0;
 
 	bzero(kill, sizeof(*kill));
 
-	if (! nvlist_exists_nvlist(nvl, "cmp"))
+	if (!nvlist_exists_nvlist(nvl, "cmp"))
 		return (EINVAL);
 
 	PFNV_CHK(pf_nvstate_cmp_to_state_cmp(nvlist_get_nvlist(nvl, "cmp"),
@@ -854,17 +847,18 @@ pf_nvstate_kill_to_kstate_kill(const nvlist_t *nvl,
 	PFNV_CHK(pf_nvuint8(nvl, "af", &kill->psk_af));
 	PFNV_CHK(pf_nvint(nvl, "proto", &kill->psk_proto));
 
-	if (! nvlist_exists_nvlist(nvl, "src"))
+	if (!nvlist_exists_nvlist(nvl, "src"))
 		return (EINVAL);
 	PFNV_CHK(pf_nvrule_addr_to_rule_addr(nvlist_get_nvlist(nvl, "src"),
 	    &kill->psk_src));
-	if (! nvlist_exists_nvlist(nvl, "dst"))
+	if (!nvlist_exists_nvlist(nvl, "dst"))
 		return (EINVAL);
 	PFNV_CHK(pf_nvrule_addr_to_rule_addr(nvlist_get_nvlist(nvl, "dst"),
 	    &kill->psk_dst));
 	if (nvlist_exists_nvlist(nvl, "rt_addr")) {
-		PFNV_CHK(pf_nvrule_addr_to_rule_addr(
-		    nvlist_get_nvlist(nvl, "rt_addr"), &kill->psk_rt_addr));
+		PFNV_CHK(pf_nvrule_addr_to_rule_addr(nvlist_get_nvlist(nvl,
+							 "rt_addr"),
+		    &kill->psk_rt_addr));
 	}
 
 	PFNV_CHK(pf_nvstring(nvl, "ifname", kill->psk_ifname,
@@ -883,7 +877,7 @@ errout:
 static nvlist_t *
 pf_state_key_to_nvstate_key(const struct pf_state_key *key)
 {
-	nvlist_t	*nvl, *tmp;
+	nvlist_t *nvl, *tmp;
 
 	nvl = nvlist_create(0);
 	if (nvl == NULL)
@@ -928,8 +922,8 @@ pf_state_peer_to_nvstate_peer(const struct pf_state_peer *peer)
 nvlist_t *
 pf_state_to_nvstate(const struct pf_kstate *s)
 {
-	nvlist_t	*nvl, *tmp;
-	uint32_t	 expire, flags = 0;
+	nvlist_t *nvl, *tmp;
+	uint32_t expire, flags = 0;
 
 	nvl = nvlist_create(0);
 	if (nvl == NULL)
@@ -984,10 +978,8 @@ pf_state_to_nvstate(const struct pf_kstate *s)
 	nvlist_add_number(nvl, "expire", expire);
 
 	for (int i = 0; i < 2; i++) {
-		nvlist_append_number_array(nvl, "packets",
-		    s->packets[i]);
-		nvlist_append_number_array(nvl, "bytes",
-		    s->bytes[i]);
+		nvlist_append_number_array(nvl, "packets", s->packets[i]);
+		nvlist_append_number_array(nvl, "bytes", s->bytes[i]);
 	}
 
 	nvlist_add_number(nvl, "creatorid", s->creatorid);
@@ -1027,7 +1019,7 @@ errout:
 	return (error);
 }
 
-static nvlist_t*
+static nvlist_t *
 pf_keth_rule_addr_to_nveth_rule_addr(const struct pf_keth_rule_addr *krule)
 {
 	nvlist_t *nvl;
@@ -1043,7 +1035,7 @@ pf_keth_rule_addr_to_nveth_rule_addr(const struct pf_keth_rule_addr *krule)
 	return (nvl);
 }
 
-nvlist_t*
+nvlist_t *
 pf_keth_rule_to_nveth_rule(const struct pf_keth_rule *krule)
 {
 	nvlist_t *nvl, *addr;
@@ -1105,10 +1097,8 @@ pf_keth_rule_to_nveth_rule(const struct pf_keth_rule *krule)
 	    counter_u64_fetch(krule->packets[0]));
 	nvlist_add_number(nvl, "packets-out",
 	    counter_u64_fetch(krule->packets[1]));
-	nvlist_add_number(nvl, "bytes-in",
-	    counter_u64_fetch(krule->bytes[0]));
-	nvlist_add_number(nvl, "bytes-out",
-	    counter_u64_fetch(krule->bytes[1]));
+	nvlist_add_number(nvl, "bytes-in", counter_u64_fetch(krule->bytes[0]));
+	nvlist_add_number(nvl, "bytes-out", counter_u64_fetch(krule->bytes[1]));
 
 	nvlist_add_number(nvl, "timestamp", pf_get_timestamp(krule));
 	nvlist_add_string(nvl, "qname", krule->qname);
@@ -1127,12 +1117,11 @@ pf_keth_rule_to_nveth_rule(const struct pf_keth_rule *krule)
 }
 
 int
-pf_nveth_rule_to_keth_rule(const nvlist_t *nvl,
-    struct pf_keth_rule *krule)
+pf_nveth_rule_to_keth_rule(const nvlist_t *nvl, struct pf_keth_rule *krule)
 {
 	int error = 0;
 
-#define ERROUT(x)	ERROUT_FUNCTION(errout, x)
+#define ERROUT(x) ERROUT_FUNCTION(errout, x)
 
 	bzero(krule, sizeof(*krule));
 
@@ -1157,8 +1146,8 @@ pf_nveth_rule_to_keth_rule(const nvlist_t *nvl,
 
 	PFNV_CHK(pf_nvuint32(nvl, "nr", &krule->nr));
 	PFNV_CHK(pf_nvbool(nvl, "quick", &krule->quick));
-	PFNV_CHK(pf_nvstring(nvl, "ifname", krule->ifname,
-	    sizeof(krule->ifname)));
+	PFNV_CHK(
+	    pf_nvstring(nvl, "ifname", krule->ifname, sizeof(krule->ifname)));
 	PFNV_CHK(pf_nvbool(nvl, "ifnot", &krule->ifnot));
 	PFNV_CHK(pf_nvuint8(nvl, "direction", &krule->direction));
 	PFNV_CHK(pf_nvuint16(nvl, "proto", &krule->proto));
@@ -1177,8 +1166,9 @@ pf_nveth_rule_to_keth_rule(const nvlist_t *nvl,
 	}
 
 	if (nvlist_exists_nvlist(nvl, "ipsrc")) {
-		error = pf_nvrule_addr_to_rule_addr(
-		    nvlist_get_nvlist(nvl, "ipsrc"), &krule->ipsrc);
+		error = pf_nvrule_addr_to_rule_addr(nvlist_get_nvlist(nvl,
+							"ipsrc"),
+		    &krule->ipsrc);
 		if (error != 0)
 			return (error);
 
@@ -1188,8 +1178,9 @@ pf_nveth_rule_to_keth_rule(const nvlist_t *nvl,
 	}
 
 	if (nvlist_exists_nvlist(nvl, "ipdst")) {
-		error = pf_nvrule_addr_to_rule_addr(
-		    nvlist_get_nvlist(nvl, "ipdst"), &krule->ipdst);
+		error = pf_nvrule_addr_to_rule_addr(nvlist_get_nvlist(nvl,
+							"ipdst"),
+		    &krule->ipdst);
 		if (error != 0)
 			return (error);
 
@@ -1201,7 +1192,8 @@ pf_nveth_rule_to_keth_rule(const nvlist_t *nvl,
 	if (nvlist_exists_string(nvl, "match_tagname")) {
 		PFNV_CHK(pf_nvstring(nvl, "match_tagname", krule->match_tagname,
 		    sizeof(krule->match_tagname)));
-		PFNV_CHK(pf_nvbool(nvl, "match_tag_not", &krule->match_tag_not));
+		PFNV_CHK(
+		    pf_nvbool(nvl, "match_tag_not", &krule->match_tag_not));
 	}
 
 	PFNV_CHK(pf_nvstring(nvl, "qname", krule->qname, sizeof(krule->qname)));

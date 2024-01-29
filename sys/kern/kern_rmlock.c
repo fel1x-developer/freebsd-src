@@ -33,25 +33,26 @@
  * Machine independent bits of reader/writer lock implementation.
  */
 
-#include <sys/cdefs.h>
 #include "opt_ddb.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-
-#include <sys/kernel.h>
 #include <sys/kdb.h>
+#include <sys/kernel.h>
 #include <sys/ktr.h>
 #include <sys/lock.h>
+#include <sys/lock_profile.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/rmlock.h>
 #include <sys/sched.h>
 #include <sys/smp.h>
 #include <sys/turnstile.h>
-#include <sys/lock_profile.h>
-#include <machine/cpu.h>
+
 #include <vm/uma.h>
+
+#include <machine/cpu.h>
 
 #ifdef DDB
 #include <ddb/ddb.h>
@@ -61,25 +62,24 @@
  * A cookie to mark destroyed rmlocks.  This is stored in the head of
  * rm_activeReaders.
  */
-#define	RM_DESTROYED	((void *)0xdead)
+#define RM_DESTROYED ((void *)0xdead)
 
-#define	rm_destroyed(rm)						\
-	(LIST_FIRST(&(rm)->rm_activeReaders) == RM_DESTROYED)
+#define rm_destroyed(rm) (LIST_FIRST(&(rm)->rm_activeReaders) == RM_DESTROYED)
 
-#define RMPF_ONQUEUE	1
-#define RMPF_SIGNAL	2
+#define RMPF_ONQUEUE 1
+#define RMPF_SIGNAL 2
 
 #ifndef INVARIANTS
-#define	_rm_assert(c, what, file, line)
+#define _rm_assert(c, what, file, line)
 #endif
 
-static void	assert_rm(const struct lock_object *lock, int what);
+static void assert_rm(const struct lock_object *lock, int what);
 #ifdef DDB
-static void	db_show_rm(const struct lock_object *lock);
+static void db_show_rm(const struct lock_object *lock);
 #endif
-static void	lock_rm(struct lock_object *lock, uintptr_t how);
+static void lock_rm(struct lock_object *lock, uintptr_t how);
 #ifdef KDTRACE_HOOKS
-static int	owner_rm(const struct lock_object *lock, struct thread **owner);
+static int owner_rm(const struct lock_object *lock, struct thread **owner);
 #endif
 static uintptr_t unlock_rm(struct lock_object *lock);
 
@@ -159,13 +159,13 @@ unlock_rm(struct lock_object *lock)
 		td = curthread;
 		pc = get_pcpu();
 		for (queue = pc->pc_rm_queue.rmq_next;
-		    queue != &pc->pc_rm_queue; queue = queue->rmq_next) {
+		     queue != &pc->pc_rm_queue; queue = queue->rmq_next) {
 			tracker = (struct rm_priotracker *)queue;
-				if ((tracker->rmp_rmlock == rm) &&
-				    (tracker->rmp_thread == td)) {
-					how = (uintptr_t)tracker;
-					break;
-				}
+			if ((tracker->rmp_rmlock == rm) &&
+			    (tracker->rmp_thread == td)) {
+				how = (uintptr_t)tracker;
+				break;
+			}
 		}
 		KASSERT(tracker != NULL,
 		    ("rm_priotracker is non-NULL when lock held in read mode"));
@@ -198,8 +198,8 @@ MTX_SYSINIT(rm_spinlock, &rm_spinlock, "rm_spinlock", MTX_SPIN);
  * The per-cpu list can be traversed at any time in forward direction from an
  * interrupt on the *local* cpu.
  */
-static void inline
-rm_tracker_add(struct pcpu *pc, struct rm_priotracker *tracker)
+static void inline rm_tracker_add(struct pcpu *pc,
+    struct rm_priotracker *tracker)
 {
 	struct rm_queue *next;
 
@@ -229,7 +229,7 @@ rm_trackers_present(const struct pcpu *pc, const struct rmlock *rm,
 
 	count = 0;
 	for (queue = pc->pc_rm_queue.rmq_next; queue != &pc->pc_rm_queue;
-	    queue = queue->rmq_next) {
+	     queue = queue->rmq_next) {
 		tracker = (struct rm_priotracker *)queue;
 		if ((tracker->rmp_rmlock == rm) && (tracker->rmp_thread == td))
 			count++;
@@ -237,8 +237,8 @@ rm_trackers_present(const struct pcpu *pc, const struct rmlock *rm,
 	return (count);
 }
 
-static void inline
-rm_tracker_remove(struct pcpu *pc, struct rm_priotracker *tracker)
+static void inline rm_tracker_remove(struct pcpu *pc,
+    struct rm_priotracker *tracker)
 {
 	struct rm_queue *next, *prev;
 
@@ -262,7 +262,7 @@ rm_cleanIPI(void *arg)
 	pc = get_pcpu();
 
 	for (queue = pc->pc_rm_queue.rmq_next; queue != &pc->pc_rm_queue;
-	    queue = queue->rmq_next) {
+	     queue = queue->rmq_next) {
 		tracker = (struct rm_priotracker *)queue;
 		if (tracker->rmp_rmlock == rm && tracker->rmp_flags == 0) {
 			tracker->rmp_flags = RMPF_ONQUEUE;
@@ -439,14 +439,14 @@ _rm_rlock(struct rmlock *rm, struct rm_priotracker *tracker, int trylock)
 	if (SCHEDULER_STOPPED())
 		return (1);
 
-	tracker->rmp_flags  = 0;
+	tracker->rmp_flags = 0;
 	tracker->rmp_thread = td;
 	tracker->rmp_rmlock = rm;
 
 	if (rm->lock_object.lo_flags & LO_SLEEPABLE)
 		THREAD_NO_SLEEPING();
 
-	td->td_critnest++;	/* critical_enter(); */
+	td->td_critnest++; /* critical_enter(); */
 	atomic_interrupt_fence();
 
 	pc = cpuid_to_pcpu[td->td_oncpu];
@@ -460,8 +460,9 @@ _rm_rlock(struct rmlock *rm, struct rm_priotracker *tracker, int trylock)
 	 * Fast path to combine two common conditions into a single
 	 * conditional jump.
 	 */
-	if (__predict_true(0 == (td->td_owepreempt |
-	    CPU_ISSET(pc->pc_cpuid, &rm->rm_writecpus))))
+	if (__predict_true(0 ==
+		(td->td_owepreempt |
+		    CPU_ISSET(pc->pc_cpuid, &rm->rm_writecpus))))
 		return (1);
 
 	/* We do not have a read token and need to acquire one. */
@@ -469,7 +470,7 @@ _rm_rlock(struct rmlock *rm, struct rm_priotracker *tracker, int trylock)
 }
 
 static __noinline void
-_rm_unlock_hard(struct thread *td,struct rm_priotracker *tracker)
+_rm_unlock_hard(struct thread *td, struct rm_priotracker *tracker)
 {
 
 	if (td->td_owepreempt) {
@@ -510,7 +511,7 @@ _rm_runlock(struct rmlock *rm, struct rm_priotracker *tracker)
 	if (SCHEDULER_STOPPED())
 		return;
 
-	td->td_critnest++;	/* critical_enter(); */
+	td->td_critnest++; /* critical_enter(); */
 	atomic_interrupt_fence();
 
 	pc = cpuid_to_pcpu[td->td_oncpu];
@@ -555,11 +556,8 @@ _rm_wlock(struct rmlock *rm)
 		 * before rm_cleanIPI is called.
 		 */
 #ifdef SMP
-		smp_rendezvous_cpus(readcpus,
-		    smp_no_rendezvous_barrier,
-		    rm_cleanIPI,
-		    smp_no_rendezvous_barrier,
-		    rm);
+		smp_rendezvous_cpus(readcpus, smp_no_rendezvous_barrier,
+		    rm_cleanIPI, smp_no_rendezvous_barrier, rm);
 
 #else
 		rm_cleanIPI(rm);
@@ -598,14 +596,14 @@ _rm_wlock_debug(struct rmlock *rm, const char *file, int line)
 		return;
 
 	KASSERT(kdb_active != 0 || !TD_IS_IDLETHREAD(curthread),
-	    ("rm_wlock() by idle thread %p on rmlock %s @ %s:%d",
-	    curthread, rm->lock_object.lo_name, file, line));
+	    ("rm_wlock() by idle thread %p on rmlock %s @ %s:%d", curthread,
+		rm->lock_object.lo_name, file, line));
 	KASSERT(!rm_destroyed(rm),
 	    ("rm_wlock() of destroyed rmlock @ %s:%d", file, line));
 	_rm_assert(rm, RA_UNLOCKED, file, line);
 
-	WITNESS_CHECKORDER(&rm->lock_object, LOP_NEWORDER | LOP_EXCLUSIVE,
-	    file, line, NULL);
+	WITNESS_CHECKORDER(&rm->lock_object, LOP_NEWORDER | LOP_EXCLUSIVE, file,
+	    line, NULL);
 
 	_rm_wlock(rm);
 
@@ -631,8 +629,8 @@ _rm_wunlock_debug(struct rmlock *rm, const char *file, int line)
 }
 
 int
-_rm_rlock_debug(struct rmlock *rm, struct rm_priotracker *tracker,
-    int trylock, const char *file, int line)
+_rm_rlock_debug(struct rmlock *rm, struct rm_priotracker *tracker, int trylock,
+    const char *file, int line)
 {
 
 	if (SCHEDULER_STOPPED())
@@ -641,24 +639,23 @@ _rm_rlock_debug(struct rmlock *rm, struct rm_priotracker *tracker,
 #ifdef INVARIANTS
 	if (!(rm->lock_object.lo_flags & LO_RECURSABLE) && !trylock) {
 		critical_enter();
-		KASSERT(rm_trackers_present(get_pcpu(), rm,
-		    curthread) == 0,
+		KASSERT(rm_trackers_present(get_pcpu(), rm, curthread) == 0,
 		    ("rm_rlock: recursed on non-recursive rmlock %s @ %s:%d\n",
-		    rm->lock_object.lo_name, file, line));
+			rm->lock_object.lo_name, file, line));
 		critical_exit();
 	}
 #endif
 	KASSERT(kdb_active != 0 || !TD_IS_IDLETHREAD(curthread),
-	    ("rm_rlock() by idle thread %p on rmlock %s @ %s:%d",
-	    curthread, rm->lock_object.lo_name, file, line));
+	    ("rm_rlock() by idle thread %p on rmlock %s @ %s:%d", curthread,
+		rm->lock_object.lo_name, file, line));
 	KASSERT(!rm_destroyed(rm),
 	    ("rm_rlock() of destroyed rmlock @ %s:%d", file, line));
 	if (!trylock) {
 		KASSERT(!rm_wowned(rm),
 		    ("rm_rlock: wlock already held for %s @ %s:%d",
-		    rm->lock_object.lo_name, file, line));
-		WITNESS_CHECKORDER(&rm->lock_object,
-		    LOP_NEWORDER | LOP_NOSLEEP, file, line, NULL);
+			rm->lock_object.lo_name, file, line));
+		WITNESS_CHECKORDER(&rm->lock_object, LOP_NEWORDER | LOP_NOSLEEP,
+		    file, line, NULL);
 	}
 
 	if (_rm_rlock(rm, tracker, trylock)) {
@@ -715,8 +712,8 @@ _rm_wunlock_debug(struct rmlock *rm, const char *file, int line)
 }
 
 int
-_rm_rlock_debug(struct rmlock *rm, struct rm_priotracker *tracker,
-    int trylock, const char *file, int line)
+_rm_rlock_debug(struct rmlock *rm, struct rm_priotracker *tracker, int trylock,
+    const char *file, int line)
 {
 
 	return _rm_rlock(rm, tracker, trylock);
@@ -776,8 +773,8 @@ _rm_assert(const struct rmlock *rm, int what, const char *file, int line)
 
 		if (count == 0)
 			panic("Lock %s not %slocked @ %s:%d\n",
-			    rm->lock_object.lo_name, (what & RA_RLOCKED) ?
-			    "read " : "", file, line);
+			    rm->lock_object.lo_name,
+			    (what & RA_RLOCKED) ? "read " : "", file, line);
 		if (count > 1) {
 			if (what & RA_NOTRECURSED)
 				panic("Lock %s recursed @ %s:%d\n",
@@ -843,15 +840,15 @@ db_show_rm(const struct lock_object *lock)
 	ddb_display_cpuset(__DEQUALIFY(const cpuset_t *, &rm->rm_writecpus));
 	db_printf("\n");
 	db_printf(" per-CPU readers:\n");
-	STAILQ_FOREACH(pc, &cpuhead, pc_allcpu)
+	STAILQ_FOREACH (pc, &cpuhead, pc_allcpu)
 		for (queue = pc->pc_rm_queue.rmq_next;
-		    queue != &pc->pc_rm_queue; queue = queue->rmq_next) {
+		     queue != &pc->pc_rm_queue; queue = queue->rmq_next) {
 			tr = (struct rm_priotracker *)queue;
 			if (tr->rmp_rmlock == rm)
 				print_tracker(tr);
 		}
 	db_printf(" active readers:\n");
-	LIST_FOREACH(tr, &rm->rm_activeReaders, rmp_qentry)
+	LIST_FOREACH (tr, &rm->rm_activeReaders, rmp_qentry)
 		print_tracker(tr);
 	lc = LOCK_CLASS(&rm->rm_wlock_object);
 	db_printf("Backing write-lock (%s):\n", lc->lc_name);
@@ -882,9 +879,9 @@ db_show_rm(const struct lock_object *lock)
  * problem at some point. The easiest way to lessen it is to provide a bitmap.
  */
 
-#define	RMS_NOOWNER	((void *)0x1)
-#define	RMS_TRANSIENT	((void *)0x2)
-#define	RMS_FLAGMASK	0xf
+#define RMS_NOOWNER ((void *)0x1)
+#define RMS_TRANSIENT ((void *)0x2)
+#define RMS_FLAGMASK 0xf
 
 struct rmslock_pcpu {
 	int influx;
@@ -1010,7 +1007,8 @@ rms_rlock_fallback(struct rmslock *rms)
 
 	mtx_lock(&rms->mtx);
 	while (rms->writers > 0)
-		msleep(&rms->readers, &rms->mtx, PUSER - 1, mtx_name(&rms->mtx), 0);
+		msleep(&rms->readers, &rms->mtx, PUSER - 1, mtx_name(&rms->mtx),
+		    0);
 	critical_enter();
 	rms_int_readers_inc(rms, rms_int_pcpu(rms));
 	mtx_unlock(&rms->mtx);
@@ -1154,7 +1152,7 @@ rms_assert_no_pcpu_readers(struct rmslock *rms)
 	struct rmslock_pcpu *pcpu;
 	int cpu;
 
-	CPU_FOREACH(cpu) {
+	CPU_FOREACH (cpu) {
 		pcpu = rms_int_remote_pcpu(rms, cpu);
 		if (pcpu->readers != 0) {
 			panic("%s: got %d readers on cpu %d\n", __func__,
@@ -1179,11 +1177,8 @@ rms_wlock_switch(struct rmslock *rms)
 
 	rmsipi.rms = rms;
 
-	smp_rendezvous_cpus_retry(all_cpus,
-	    smp_no_rendezvous_barrier,
-	    rms_action_func,
-	    smp_no_rendezvous_barrier,
-	    rms_wait_func,
+	smp_rendezvous_cpus_retry(all_cpus, smp_no_rendezvous_barrier,
+	    rms_action_func, smp_no_rendezvous_barrier, rms_wait_func,
 	    &rmsipi.srcra);
 }
 
@@ -1197,12 +1192,11 @@ rms_wlock(struct rmslock *rms)
 	mtx_lock(&rms->mtx);
 	rms->writers++;
 	if (rms->writers > 1) {
-		msleep(&rms->owner, &rms->mtx, (PUSER - 1),
-		    mtx_name(&rms->mtx), 0);
+		msleep(&rms->owner, &rms->mtx, (PUSER - 1), mtx_name(&rms->mtx),
+		    0);
 		MPASS(rms->readers == 0);
 		KASSERT(rms->owner == RMS_TRANSIENT,
-		    ("%s: unexpected owner value %p\n", __func__,
-		    rms->owner));
+		    ("%s: unexpected owner value %p\n", __func__, rms->owner));
 		goto out_grab;
 	}
 

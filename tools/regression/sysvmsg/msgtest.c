@@ -26,7 +26,7 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
- * 
+ *
  * Obtained from: $NetBSD: msgtest.c,v 1.7 2002/07/20 08:36:25 grant Exp $
  */
 
@@ -48,14 +48,14 @@
 #include <time.h>
 #include <unistd.h>
 
-void	print_msqid_ds (struct msqid_ds *, mode_t);
-void	sigsys_handler(int);
-void	sigchld_handler (int);
-void	cleanup (void);
-void	receiver (void);
-void	usage (void);
+void print_msqid_ds(struct msqid_ds *, mode_t);
+void sigsys_handler(int);
+void sigchld_handler(int);
+void cleanup(void);
+void receiver(void);
+void usage(void);
 
-#define	MESSAGE_TEXT_LEN	255
+#define MESSAGE_TEXT_LEN 255
 
 /*
  * Define it as test_mymsg because we already have struct mymsg and we dont
@@ -64,23 +64,23 @@ void	usage (void);
  * be processed.
  */
 struct test_mymsg {
-	long	mtype;
-	char	mtext[MESSAGE_TEXT_LEN];
+	long mtype;
+	char mtext[MESSAGE_TEXT_LEN];
 };
 
 const char *m1_str = "California is overrated.";
 const char *m2_str = "The quick brown fox jumped over the lazy dog.";
 
-#define	MTYPE_1		1
-#define	MTYPE_1_ACK	2
+#define MTYPE_1 1
+#define MTYPE_1_ACK 2
 
-#define	MTYPE_2		3
-#define	MTYPE_2_ACK	4
+#define MTYPE_2 3
+#define MTYPE_2_ACK 4
 
-int	sender_msqid = -1;
-pid_t	child_pid;
+int sender_msqid = -1;
+pid_t child_pid;
 
-key_t	msgkey;
+key_t msgkey;
 
 int
 main(int argc, char *argv[])
@@ -194,7 +194,7 @@ main(int argc, char *argv[])
 	 * Suspend forever; when we get SIGCHLD, the handler will exit.
 	 */
 	sigemptyset(&sigmask);
-	(void) sigsuspend(&sigmask);
+	(void)sigsuspend(&sigmask);
 
 	/*
 	 * ...and any other signal is an unexpected error.
@@ -225,8 +225,7 @@ sigchld_handler(int signo)
 		errx(1, "receiver exited abnormally");
 
 	if (WEXITSTATUS(cstatus) != 0)
-		errx(1, "receiver exited with status %d",
-		    WEXITSTATUS(cstatus));
+		errx(1, "receiver exited with status %d", WEXITSTATUS(cstatus));
 
 	/*
 	 * If we get here, the child has exited normally, and thus
@@ -262,13 +261,11 @@ print_msqid_ds(struct msqid_ds *mp, mode_t mode)
 	gid_t gid = getegid();
 
 	printf("PERM: uid %d, gid %d, cuid %d, cgid %d, mode 0%o\n",
-	    mp->msg_perm.uid, mp->msg_perm.gid,
-	    mp->msg_perm.cuid, mp->msg_perm.cgid,
-	    mp->msg_perm.mode & 0777);
+	    mp->msg_perm.uid, mp->msg_perm.gid, mp->msg_perm.cuid,
+	    mp->msg_perm.cgid, mp->msg_perm.mode & 0777);
 
-	printf("qnum %lu, qbytes %lu, lspid %d, lrpid %d\n",
-	    mp->msg_qnum, (u_long)mp->msg_qbytes, mp->msg_lspid,
-	    mp->msg_lrpid);
+	printf("qnum %lu, qbytes %lu, lspid %d, lrpid %d\n", mp->msg_qnum,
+	    (u_long)mp->msg_qbytes, mp->msg_lspid, mp->msg_lrpid);
 
 	printf("stime: %s", ctime(&mp->msg_stime));
 	printf("rtime: %s", ctime(&mp->msg_rtime));

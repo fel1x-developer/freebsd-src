@@ -27,40 +27,42 @@
  *
  */
 
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/queue.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/un.h>
 #include <sys/uio.h>
+#include <sys/un.h>
+
 #include <net/if.h>
 #include <net/if_dl.h>
-#include <netinet/in.h>
 #include <netinet/icmp6.h>
-#include <fcntl.h>
+#include <netinet/in.h>
+
 #include <errno.h>
+#include <fcntl.h>
 #include <netdb.h>
-#include <unistd.h>
 #include <poll.h>
 #include <signal.h>
-#include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
+#include <unistd.h>
 
-#include "rtadvd.h"
+#include "control.h"
 #include "if.h"
 #include "pathnames.h"
-#include "control.h"
+#include "rtadvd.h"
 
-#define	CM_RECV_TIMEOUT	30
+#define CM_RECV_TIMEOUT 30
 
 int
 cm_recv(int fd, char *buf)
 {
 	ssize_t n;
-	struct ctrl_msg_hdr	*cm;
+	struct ctrl_msg_hdr *cm;
 	char *msg;
 	struct pollfd pfds[1];
 	int i;
@@ -75,23 +77,21 @@ cm_recv(int fd, char *buf)
 	pfds[0].events = POLLIN;
 
 	for (;;) {
-		i = poll(pfds, sizeof(pfds)/sizeof(pfds[0]),
-		    CM_RECV_TIMEOUT);
+		i = poll(pfds, sizeof(pfds) / sizeof(pfds[0]), CM_RECV_TIMEOUT);
 
 		if (i == 0)
 			continue;
 
 		if (i < 0) {
-			syslog(LOG_ERR, "<%s> poll error: %s",
-			    __func__, strerror(errno));
+			syslog(LOG_ERR, "<%s> poll error: %s", __func__,
+			    strerror(errno));
 			continue;
 		}
 
 		if (pfds[0].revents & POLLIN) {
 			n = read(fd, cm, sizeof(*cm));
 			if (n < 0 && errno == EAGAIN) {
-				syslog(LOG_DEBUG,
-				    "<%s> waiting...", __func__);
+				syslog(LOG_DEBUG, "<%s> waiting...", __func__);
 				continue;
 			}
 			break;
@@ -99,63 +99,59 @@ cm_recv(int fd, char *buf)
 	}
 
 	if (n != (ssize_t)sizeof(*cm)) {
-		syslog(LOG_WARNING,
-		    "<%s> received a too small message.", __func__);
+		syslog(LOG_WARNING, "<%s> received a too small message.",
+		    __func__);
 		goto cm_recv_err;
 	}
 	if (cm->cm_len > CM_MSG_MAXLEN) {
-		syslog(LOG_WARNING,
-		    "<%s> received a too large message.", __func__);
+		syslog(LOG_WARNING, "<%s> received a too large message.",
+		    __func__);
 		goto cm_recv_err;
 	}
 	if (cm->cm_version != CM_VERSION) {
-		syslog(LOG_WARNING,
-		    "<%s> version mismatch", __func__);
+		syslog(LOG_WARNING, "<%s> version mismatch", __func__);
 		goto cm_recv_err;
 	}
 	if (cm->cm_type >= CM_TYPE_MAX) {
-		syslog(LOG_WARNING,
-		    "<%s> invalid msg type.", __func__);
+		syslog(LOG_WARNING, "<%s> invalid msg type.", __func__);
 		goto cm_recv_err;
 	}
 
-	syslog(LOG_DEBUG,
-	    "<%s> ctrl msg received: type=%d", __func__,
+	syslog(LOG_DEBUG, "<%s> ctrl msg received: type=%d", __func__,
 	    cm->cm_type);
 
 	if (cm->cm_len > sizeof(*cm)) {
 		size_t msglen = cm->cm_len - sizeof(*cm);
 
-		syslog(LOG_DEBUG,
-		    "<%s> ctrl msg has payload (len=%zu)", __func__,
-		    msglen);
+		syslog(LOG_DEBUG, "<%s> ctrl msg has payload (len=%zu)",
+		    __func__, msglen);
 
 		for (;;) {
-			i = poll(pfds, sizeof(pfds)/sizeof(pfds[0]),
+			i = poll(pfds, sizeof(pfds) / sizeof(pfds[0]),
 			    CM_RECV_TIMEOUT);
 
 			if (i == 0)
 				continue;
 
 			if (i < 0) {
-				syslog(LOG_ERR, "<%s> poll error: %s",
-				    __func__, strerror(errno));
+				syslog(LOG_ERR, "<%s> poll error: %s", __func__,
+				    strerror(errno));
 				continue;
 			}
 
 			if (pfds[0].revents & POLLIN) {
 				n = read(fd, msg, msglen);
 				if (n < 0 && errno == EAGAIN) {
-					syslog(LOG_DEBUG,
-					    "<%s> waiting...", __func__);
+					syslog(LOG_DEBUG, "<%s> waiting...",
+					    __func__);
 					continue;
 				}
 			}
 			break;
 		}
 		if (n != (ssize_t)msglen) {
-			syslog(LOG_WARNING,
-			    "<%s> payload size mismatch.", __func__);
+			syslog(LOG_WARNING, "<%s> payload size mismatch.",
+			    __func__);
 			goto cm_recv_err;
 		}
 		buf[CM_MSG_MAXLEN - 1] = '\0';
@@ -197,21 +193,18 @@ cm_send(int fd, char *buf)
 	    cm->cm_type, iovcnt, iov_len_total);
 
 	len = writev(fd, iov, iovcnt);
-	syslog(LOG_DEBUG,
-	    "<%s> ctrl msg send: length=%zd", __func__, len);
+	syslog(LOG_DEBUG, "<%s> ctrl msg send: length=%zd", __func__, len);
 
 	if (len == -1) {
-		syslog(LOG_DEBUG,
-		    "<%s> write failed: (%d)%s", __func__, errno,
+		syslog(LOG_DEBUG, "<%s> write failed: (%d)%s", __func__, errno,
 		    strerror(errno));
 		close(fd);
 		return (-1);
 	}
 
-	syslog(LOG_DEBUG,
-	    "<%s> write length = %zd (actual)", __func__, len);
-	syslog(LOG_DEBUG,
-	    "<%s> write length = %zd (expected)", __func__, iov_len_total);
+	syslog(LOG_DEBUG, "<%s> write length = %zd (actual)", __func__, len);
+	syslog(LOG_DEBUG, "<%s> write length = %zd (expected)", __func__,
+	    iov_len_total);
 
 	if (len != iov_len_total) {
 		close(fd);
@@ -224,16 +217,17 @@ cm_send(int fd, char *buf)
 int
 csock_accept(struct sockinfo *s)
 {
-	struct sockaddr_un	sun;
-	int	flags;
-	int	fd;
+	struct sockaddr_un sun;
+	int flags;
+	int fd;
 
 	sun.sun_len = sizeof(sun);
 	if ((fd = accept(s->si_fd, (struct sockaddr *)&sun,
-		    (socklen_t *)&sun.sun_len)) == -1) {
+		 (socklen_t *)&sun.sun_len)) == -1) {
 		if (errno != EWOULDBLOCK && errno != EINTR)
 			syslog(LOG_WARNING, "<%s> accept ", __func__);
-		syslog(LOG_WARNING, "<%s> Xaccept: %s", __func__, strerror(errno));
+		syslog(LOG_WARNING, "<%s> Xaccept: %s", __func__,
+		    strerror(errno));
 		return (-1);
 	}
 	if ((flags = fcntl(fd, F_GETFL, 0)) == -1) {
@@ -245,8 +239,8 @@ csock_accept(struct sockinfo *s)
 		syslog(LOG_WARNING, "<%s> fcntl F_SETFL", __func__);
 		return (-1);
 	}
-	syslog(LOG_DEBUG, "<%s> accept connfd=%d, listenfd=%d", __func__,
-	    fd, s->si_fd);
+	syslog(LOG_DEBUG, "<%s> accept connfd=%d, listenfd=%d", __func__, fd,
+	    s->si_fd);
 
 	return (fd);
 }
@@ -279,8 +273,8 @@ int
 csock_open(struct sockinfo *s, mode_t mode)
 {
 	int flags;
-	struct sockaddr_un	sun;
-	mode_t	old_umask;
+	struct sockaddr_un sun;
+	mode_t old_umask;
 
 	if (s == NULL) {
 		syslog(LOG_ERR, "<%s> internal error.", __func__);
@@ -290,8 +284,7 @@ csock_open(struct sockinfo *s, mode_t mode)
 		s->si_name = _PATH_CTRL_SOCK;
 
 	if ((s->si_fd = socket(PF_UNIX, SOCK_STREAM, 0)) == -1) {
-		syslog(LOG_ERR,
-		    "<%s> cannot open control socket", __func__);
+		syslog(LOG_ERR, "<%s> cannot open control socket", __func__);
 		return (-1);
 	}
 	memset(&sun, 0, sizeof(sun));
@@ -301,33 +294,30 @@ csock_open(struct sockinfo *s, mode_t mode)
 
 	if (unlink(s->si_name) == -1)
 		if (errno != ENOENT) {
-			syslog(LOG_ERR,
-			    "<%s> unlink %s", __func__, s->si_name);
+			syslog(LOG_ERR, "<%s> unlink %s", __func__, s->si_name);
 			close(s->si_fd);
 			return (-1);
 		}
-	old_umask = umask(S_IXUSR|S_IXGRP|S_IXOTH);
+	old_umask = umask(S_IXUSR | S_IXGRP | S_IXOTH);
 	if (bind(s->si_fd, (struct sockaddr *)&sun, sizeof(sun)) == -1) {
-		syslog(LOG_ERR,
-		    "<%s> bind failed: %s", __func__, s->si_name);
+		syslog(LOG_ERR, "<%s> bind failed: %s", __func__, s->si_name);
 		close(s->si_fd);
 		umask(old_umask);
 		return (-1);
 	}
 	umask(old_umask);
 	if (chmod(s->si_name, mode) == -1) {
-		syslog(LOG_ERR,
-		    "<%s> chmod failed: %s", __func__, s->si_name);
+		syslog(LOG_ERR, "<%s> chmod failed: %s", __func__, s->si_name);
 		goto csock_open_err;
 	}
 	if ((flags = fcntl(s->si_fd, F_GETFL, 0)) == -1) {
-		syslog(LOG_ERR,
-		    "<%s> fcntl F_GETFL failed: %s", __func__, s->si_name);
+		syslog(LOG_ERR, "<%s> fcntl F_GETFL failed: %s", __func__,
+		    s->si_name);
 		goto csock_open_err;
 	}
 	if ((flags = fcntl(s->si_fd, F_SETFL, flags | O_NONBLOCK)) == -1) {
-		syslog(LOG_ERR,
-		    "<%s> fcntl F_SETFL failed: %s", __func__, s->si_name);
+		syslog(LOG_ERR, "<%s> fcntl F_SETFL failed: %s", __func__,
+		    s->si_name);
 		goto csock_open_err;
 	}
 
@@ -418,15 +408,14 @@ cm_pl2bin(char *str, struct ctrl_msg_pl *cp)
 		len += cp->cp_val_len;
 
 	if (len > CM_MSG_MAXLEN - sizeof(*cm)) {
-		syslog(LOG_DEBUG, "<%s> msg too long (len=%zu)",
-		    __func__, len);
+		syslog(LOG_DEBUG, "<%s> msg too long (len=%zu)", __func__, len);
 		return (0);
 	}
 	syslog(LOG_DEBUG, "<%s> msglen=%zu", __func__, len);
 	memset(str, 0, len);
 	p = str;
 	lenp = (size_t *)p;
-	
+
 	if (cp->cp_ifname != NULL) {
 		*lenp++ = strlen(cp->cp_ifname);
 		p = (char *)lenp;
@@ -470,8 +459,7 @@ cm_str2bin(char *bin, void *str, size_t len)
 	syslog(LOG_DEBUG, "<%s> enter", __func__);
 
 	if (len > CM_MSG_MAXLEN - sizeof(*cm)) {
-		syslog(LOG_DEBUG, "<%s> msg too long (len=%zu)",
-		    __func__, len);
+		syslog(LOG_DEBUG, "<%s> msg too long (len=%zu)", __func__, len);
 		return (0);
 	}
 	syslog(LOG_DEBUG, "<%s> msglen=%zu", __func__, len);

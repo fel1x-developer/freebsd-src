@@ -9,21 +9,19 @@
  * $Id$
  *
  */
-#define	IPF_IPSEC_PROXY
-
+#define IPF_IPSEC_PROXY
 
 /*
  * IPSec proxy
  */
 typedef struct ipf_ipsec_softc_s {
-	frentry_t	ipsec_fr;
-	int		ipsec_proxy_init;
-	int		ipsec_proxy_ttl;
-	ipftq_t		*ipsec_nat_tqe;
-	ipftq_t		*ipsec_state_tqe;
-	char		ipsec_buffer[1500];
+	frentry_t ipsec_fr;
+	int ipsec_proxy_init;
+	int ipsec_proxy_ttl;
+	ipftq_t *ipsec_nat_tqe;
+	ipftq_t *ipsec_state_tqe;
+	char ipsec_buffer[1500];
 } ipf_ipsec_softc_t;
-
 
 void *ipf_p_ipsec_soft_create(ipf_main_softc_t *);
 void ipf_p_ipsec_soft_destroy(ipf_main_softc_t *, void *);
@@ -35,7 +33,6 @@ int ipf_p_ipsec_new(void *, fr_info_t *, ap_session_t *, nat_t *);
 void ipf_p_ipsec_del(ipf_main_softc_t *, ap_session_t *);
 int ipf_p_ipsec_inout(void *, fr_info_t *, ap_session_t *, nat_t *);
 int ipf_p_ipsec_match(fr_info_t *, ap_session_t *, nat_t *);
-
 
 /*
  * IPSec application proxy initialization.
@@ -51,14 +48,14 @@ ipf_p_ipsec_soft_create(ipf_main_softc_t *softc)
 
 	bzero((char *)softi, sizeof(*softi));
 	softi->ipsec_fr.fr_ref = 1;
-	softi->ipsec_fr.fr_flags = FR_OUTQUE|FR_PASS|FR_QUICK|FR_KEEPSTATE;
+	softi->ipsec_fr.fr_flags = FR_OUTQUE | FR_PASS | FR_QUICK |
+	    FR_KEEPSTATE;
 	MUTEX_INIT(&softi->ipsec_fr.fr_lock, "IPsec proxy rule lock");
 	softi->ipsec_proxy_init = 1;
 	softi->ipsec_proxy_ttl = 60;
 
 	return (softi);
 }
-
 
 int
 ipf_p_ipsec_soft_init(ipf_main_softc_t *softc, void *arg)
@@ -83,7 +80,6 @@ ipf_p_ipsec_soft_init(ipf_main_softc_t *softc, void *arg)
 	return (0);
 }
 
-
 void
 ipf_p_ipsec_soft_fini(ipf_main_softc_t *softc, void *arg)
 {
@@ -104,7 +100,6 @@ ipf_p_ipsec_soft_fini(ipf_main_softc_t *softc, void *arg)
 	softi->ipsec_state_tqe = NULL;
 }
 
-
 void
 ipf_p_ipsec_soft_destroy(ipf_main_softc_t *softc, void *arg)
 {
@@ -117,7 +112,6 @@ ipf_p_ipsec_soft_destroy(ipf_main_softc_t *softc, void *arg)
 
 	KFREE(softi);
 }
-
 
 /*
  * Setup for a new IPSEC proxy.
@@ -151,10 +145,10 @@ ipf_p_ipsec_new(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 	if (dlen < 16)
 		return (-1);
 	COPYDATA(m, off, MIN(sizeof(softi->ipsec_buffer), dlen),
-		 softi->ipsec_buffer);
+	    softi->ipsec_buffer);
 
 	if (ipf_nat_outlookup(fin, 0, IPPROTO_ESP, nat->nat_nsrcip,
-			  ip->ip_dst) != NULL)
+		ip->ip_dst) != NULL)
 		return (-1);
 
 	np = nat->nat_ptr;
@@ -216,7 +210,7 @@ ipf_p_ipsec_new(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 	fi.fin_data[1] = 0;
 	p = ip->ip_p;
 	ip->ip_p = IPPROTO_ESP;
-	fi.fin_flx &= ~(FI_TCPUDP|FI_STATE|FI_FRAG);
+	fi.fin_flx &= ~(FI_TCPUDP | FI_STATE | FI_FRAG);
 	fi.fin_flx |= FI_IGNORE;
 
 	ptr = softi->ipsec_buffer;
@@ -228,27 +222,26 @@ ipf_p_ipsec_new(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 	 * cookie is non-zero.  Therefore, it is safe to assume(!) that the
 	 * cookies are both set after copying if the responder is non-zero.
 	 */
-	if ((ipsec->ipsc_rcookie[0]|ipsec->ipsc_rcookie[1]) != 0)
+	if ((ipsec->ipsc_rcookie[0] | ipsec->ipsc_rcookie[1]) != 0)
 		ipsec->ipsc_rckset = 1;
 
 	MUTEX_ENTER(&softn->ipf_nat_new);
 	ipsec->ipsc_nat = ipf_nat_add(&fi, ipn, &ipsec->ipsc_nat,
-				      NAT_SLAVE|SI_WILDP, NAT_OUTBOUND);
+	    NAT_SLAVE | SI_WILDP, NAT_OUTBOUND);
 	MUTEX_EXIT(&softn->ipf_nat_new);
 	if (ipsec->ipsc_nat != NULL) {
-		(void) ipf_nat_proto(&fi, ipsec->ipsc_nat, 0);
+		(void)ipf_nat_proto(&fi, ipsec->ipsc_nat, 0);
 		MUTEX_ENTER(&ipsec->ipsc_nat->nat_lock);
 		ipf_nat_update(&fi, ipsec->ipsc_nat);
 		MUTEX_EXIT(&ipsec->ipsc_nat->nat_lock);
 
 		fi.fin_data[0] = 0;
 		fi.fin_data[1] = 0;
-		(void) ipf_state_add(softc, &fi, &ipsec->ipsc_state, SI_WILDP);
+		(void)ipf_state_add(softc, &fi, &ipsec->ipsc_state, SI_WILDP);
 	}
 	ip->ip_p = p & 0xff;
 	return (0);
 }
-
 
 /*
  * For outgoing IKE packets.  refresh timeouts for NAT & state entries, if
@@ -283,7 +276,7 @@ ipf_p_ipsec_inout(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 			fi.fin_data[0] = 0;
 			fi.fin_data[1] = 0;
 			ip->ip_p = IPPROTO_ESP;
-			fi.fin_flx &= ~(FI_TCPUDP|FI_STATE|FI_FRAG);
+			fi.fin_flx &= ~(FI_TCPUDP | FI_STATE | FI_FRAG);
 			fi.fin_flx |= FI_IGNORE;
 		}
 
@@ -292,7 +285,7 @@ ipf_p_ipsec_inout(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 		 */
 		if (ipsec->ipsc_nat != NULL)
 			ipf_queueback(softc->ipf_ticks,
-				      &ipsec->ipsc_nat->nat_tqe);
+			    &ipsec->ipsc_nat->nat_tqe);
 		else {
 #ifdef USE_MUTEXES
 			ipf_nat_softc_t *softn = softc->ipf_nat_soft;
@@ -300,12 +293,11 @@ ipf_p_ipsec_inout(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 
 			MUTEX_ENTER(&softn->ipf_nat_new);
 			ipsec->ipsc_nat = ipf_nat_add(&fi, ipsec->ipsc_rule,
-						      &ipsec->ipsc_nat,
-						      NAT_SLAVE|SI_WILDP,
-						      nat->nat_dir);
+			    &ipsec->ipsc_nat, NAT_SLAVE | SI_WILDP,
+			    nat->nat_dir);
 			MUTEX_EXIT(&softn->ipf_nat_new);
 			if (ipsec->ipsc_nat != NULL) {
-				(void) ipf_nat_proto(&fi, ipsec->ipsc_nat, 0);
+				(void)ipf_nat_proto(&fi, ipsec->ipsc_nat, 0);
 				MUTEX_ENTER(&ipsec->ipsc_nat->nat_lock);
 				ipf_nat_update(&fi, ipsec->ipsc_nat);
 				MUTEX_EXIT(&ipsec->ipsc_nat->nat_lock);
@@ -318,21 +310,20 @@ ipf_p_ipsec_inout(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 		READ_ENTER(&softc->ipf_state);
 		if (ipsec->ipsc_state != NULL) {
 			ipf_queueback(softc->ipf_ticks,
-				      &ipsec->ipsc_state->is_sti);
+			    &ipsec->ipsc_state->is_sti);
 			ipsec->ipsc_state->is_die = nat->nat_age;
 			RWLOCK_EXIT(&softc->ipf_state);
 		} else {
 			RWLOCK_EXIT(&softc->ipf_state);
 			fi.fin_data[0] = 0;
 			fi.fin_data[1] = 0;
-			(void) ipf_state_add(softc, &fi, &ipsec->ipsc_state,
-					     SI_WILDP);
+			(void)ipf_state_add(softc, &fi, &ipsec->ipsc_state,
+			    SI_WILDP);
 		}
 		ip->ip_p = p;
 	}
 	return (0);
 }
-
 
 /*
  * This extends the NAT matching to be based on the cookies associated with
@@ -348,7 +339,7 @@ ipf_p_ipsec_match(fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 	mb_t *m;
 	int off;
 
-	nat = nat;	/* LINT */
+	nat = nat; /* LINT */
 
 	if ((fin->fin_dlen < sizeof(cookies)) || (fin->fin_flx & FI_FRAG))
 		return (-1);
@@ -363,7 +354,7 @@ ipf_p_ipsec_match(fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 		return (-1);
 
 	if (ipsec->ipsc_rckset == 0) {
-		if ((cookies[2]|cookies[3]) == 0) {
+		if ((cookies[2] | cookies[3]) == 0) {
 			return (0);
 		}
 		ipsec->ipsc_rckset = 1;
@@ -377,7 +368,6 @@ ipf_p_ipsec_match(fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 		return (-1);
 	return (0);
 }
-
 
 /*
  * clean up after ourselves.

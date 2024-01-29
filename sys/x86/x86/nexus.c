@@ -40,7 +40,7 @@
  */
 
 #ifdef __amd64__
-#define	DEV_APIC
+#define DEV_APIC
 #else
 #include "opt_apic.h"
 #endif
@@ -58,11 +58,11 @@
 #include <sys/rman.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
-#include <vm/vm_page.h>
-#include <vm/vm_phys.h>
-#include <vm/vm_dumpset.h>
 #include <vm/pmap.h>
+#include <vm/vm_dumpset.h>
+#include <vm/vm_page.h>
+#include <vm/vm_param.h>
+#include <vm/vm_phys.h>
 
 #include <machine/bus.h>
 #include <machine/intr_machdep.h>
@@ -77,94 +77,95 @@
 #endif
 
 #ifdef DEV_ISA
-#include <isa/isavar.h>
 #include <isa/isareg.h>
+#include <isa/isavar.h>
 #endif
 
-#define	ELF_KERN_STR	("elf"__XSTRING(__ELF_WORD_SIZE)" kernel")
+#define ELF_KERN_STR ("elf"__XSTRING(__ELF_WORD_SIZE) " kernel")
 
 static MALLOC_DEFINE(M_NEXUSDEV, "nexusdev", "Nexus device");
 
-#define DEVTONX(dev)	((struct nexus_device *)device_get_ivars(dev))
+#define DEVTONX(dev) ((struct nexus_device *)device_get_ivars(dev))
 
 struct rman irq_rman, drq_rman, port_rman, mem_rman;
 
 static int nexus_print_all_resources(device_t dev);
 
-static device_probe_t		nexus_probe;
-static device_attach_t		nexus_attach;
+static device_probe_t nexus_probe;
+static device_attach_t nexus_attach;
 
-static bus_add_child_t		nexus_add_child;
-static bus_print_child_t	nexus_print_child;
+static bus_add_child_t nexus_add_child;
+static bus_print_child_t nexus_print_child;
 
-static bus_alloc_resource_t	nexus_alloc_resource;
-static bus_get_resource_list_t	nexus_get_reslist;
-static bus_get_rman_t		nexus_get_rman;
-static bus_map_resource_t	nexus_map_resource;
-static bus_unmap_resource_t	nexus_unmap_resource;
+static bus_alloc_resource_t nexus_alloc_resource;
+static bus_get_resource_list_t nexus_get_reslist;
+static bus_get_rman_t nexus_get_rman;
+static bus_map_resource_t nexus_map_resource;
+static bus_unmap_resource_t nexus_unmap_resource;
 
 #ifdef SMP
-static bus_bind_intr_t		nexus_bind_intr;
+static bus_bind_intr_t nexus_bind_intr;
 #endif
-static bus_config_intr_t	nexus_config_intr;
-static bus_describe_intr_t	nexus_describe_intr;
-static bus_resume_intr_t	nexus_resume_intr;
-static bus_setup_intr_t		nexus_setup_intr;
-static bus_suspend_intr_t	nexus_suspend_intr;
-static bus_teardown_intr_t	nexus_teardown_intr;
+static bus_config_intr_t nexus_config_intr;
+static bus_describe_intr_t nexus_describe_intr;
+static bus_resume_intr_t nexus_resume_intr;
+static bus_setup_intr_t nexus_setup_intr;
+static bus_suspend_intr_t nexus_suspend_intr;
+static bus_teardown_intr_t nexus_teardown_intr;
 
-static bus_get_cpus_t		nexus_get_cpus;
+static bus_get_cpus_t nexus_get_cpus;
 
 #if defined(DEV_APIC) && defined(DEV_PCI)
-static pcib_alloc_msi_t		nexus_alloc_msi;
-static pcib_release_msi_t	nexus_release_msi;
-static pcib_alloc_msix_t	nexus_alloc_msix;
-static pcib_release_msix_t	nexus_release_msix;
-static pcib_map_msi_t		nexus_map_msi;
+static pcib_alloc_msi_t nexus_alloc_msi;
+static pcib_release_msi_t nexus_release_msi;
+static pcib_alloc_msix_t nexus_alloc_msix;
+static pcib_release_msix_t nexus_release_msix;
+static pcib_map_msi_t nexus_map_msi;
 #endif
 
 static device_method_t nexus_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		nexus_probe),
-	DEVMETHOD(device_attach,	nexus_attach),
-	DEVMETHOD(device_detach,	bus_generic_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	bus_generic_resume),
+	DEVMETHOD(device_probe, nexus_probe),
+	DEVMETHOD(device_attach, nexus_attach),
+	DEVMETHOD(device_detach, bus_generic_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
 
 	/* Bus interface */
-	DEVMETHOD(bus_print_child,	nexus_print_child),
-	DEVMETHOD(bus_add_child,	nexus_add_child),
+	DEVMETHOD(bus_print_child, nexus_print_child),
+	DEVMETHOD(bus_add_child, nexus_add_child),
 	DEVMETHOD(bus_activate_resource, bus_generic_rman_activate_resource),
-	DEVMETHOD(bus_adjust_resource,	bus_generic_rman_adjust_resource),
-	DEVMETHOD(bus_alloc_resource,	nexus_alloc_resource),
-	DEVMETHOD(bus_deactivate_resource, bus_generic_rman_deactivate_resource),
-	DEVMETHOD(bus_get_resource,	bus_generic_rl_get_resource),
+	DEVMETHOD(bus_adjust_resource, bus_generic_rman_adjust_resource),
+	DEVMETHOD(bus_alloc_resource, nexus_alloc_resource),
+	DEVMETHOD(bus_deactivate_resource,
+	    bus_generic_rman_deactivate_resource),
+	DEVMETHOD(bus_get_resource, bus_generic_rl_get_resource),
 	DEVMETHOD(bus_get_resource_list, nexus_get_reslist),
-	DEVMETHOD(bus_get_rman,		nexus_get_rman),
-	DEVMETHOD(bus_delete_resource,	bus_generic_rl_delete_resource),
-	DEVMETHOD(bus_map_resource,	nexus_map_resource),
-	DEVMETHOD(bus_release_resource,	bus_generic_rman_release_resource),
-	DEVMETHOD(bus_set_resource,	bus_generic_rl_set_resource),
-	DEVMETHOD(bus_unmap_resource,	nexus_unmap_resource),
+	DEVMETHOD(bus_get_rman, nexus_get_rman),
+	DEVMETHOD(bus_delete_resource, bus_generic_rl_delete_resource),
+	DEVMETHOD(bus_map_resource, nexus_map_resource),
+	DEVMETHOD(bus_release_resource, bus_generic_rman_release_resource),
+	DEVMETHOD(bus_set_resource, bus_generic_rl_set_resource),
+	DEVMETHOD(bus_unmap_resource, nexus_unmap_resource),
 #ifdef SMP
-	DEVMETHOD(bus_bind_intr,	nexus_bind_intr),
+	DEVMETHOD(bus_bind_intr, nexus_bind_intr),
 #endif
-	DEVMETHOD(bus_config_intr,	nexus_config_intr),
-	DEVMETHOD(bus_describe_intr,	nexus_describe_intr),
-	DEVMETHOD(bus_resume_intr,	nexus_resume_intr),
-	DEVMETHOD(bus_setup_intr,	nexus_setup_intr),
-	DEVMETHOD(bus_suspend_intr,	nexus_suspend_intr),
-	DEVMETHOD(bus_teardown_intr,	nexus_teardown_intr),
-	DEVMETHOD(bus_get_cpus,		nexus_get_cpus),
+	DEVMETHOD(bus_config_intr, nexus_config_intr),
+	DEVMETHOD(bus_describe_intr, nexus_describe_intr),
+	DEVMETHOD(bus_resume_intr, nexus_resume_intr),
+	DEVMETHOD(bus_setup_intr, nexus_setup_intr),
+	DEVMETHOD(bus_suspend_intr, nexus_suspend_intr),
+	DEVMETHOD(bus_teardown_intr, nexus_teardown_intr),
+	DEVMETHOD(bus_get_cpus, nexus_get_cpus),
 
-	/* pcib interface */
+/* pcib interface */
 #if defined(DEV_APIC) && defined(DEV_PCI)
-	DEVMETHOD(pcib_alloc_msi,	nexus_alloc_msi),
-	DEVMETHOD(pcib_release_msi,	nexus_release_msi),
-	DEVMETHOD(pcib_alloc_msix,	nexus_alloc_msix),
-	DEVMETHOD(pcib_release_msix,	nexus_release_msix),
-	DEVMETHOD(pcib_map_msi,		nexus_map_msi),
+	DEVMETHOD(pcib_alloc_msi, nexus_alloc_msi),
+	DEVMETHOD(pcib_release_msi, nexus_release_msi),
+	DEVMETHOD(pcib_alloc_msix, nexus_alloc_msix),
+	DEVMETHOD(pcib_release_msix, nexus_release_msix),
+	DEVMETHOD(pcib_map_msi, nexus_map_msi),
 #endif
 	DEVMETHOD_END
 };
@@ -177,7 +178,7 @@ static int
 nexus_probe(device_t dev)
 {
 
-	device_quiet(dev);	/* suppress attach message for neatness */
+	device_quiet(dev); /* suppress attach message for neatness */
 	return (BUS_PROBE_GENERIC);
 }
 
@@ -230,9 +231,8 @@ nexus_init_resources(void)
 	drq_rman.rm_type = RMAN_ARRAY;
 	drq_rman.rm_descr = "DMA request lines";
 	/* XXX drq 0 not available on some machines */
-	if (rman_init(&drq_rman)
-	    || rman_manage_region(&drq_rman,
-				  drq_rman.rm_start, drq_rman.rm_end))
+	if (rman_init(&drq_rman) ||
+	    rman_manage_region(&drq_rman, drq_rman.rm_start, drq_rman.rm_end))
 		panic("nexus_init_resources drq_rman");
 
 	/*
@@ -244,16 +244,15 @@ nexus_init_resources(void)
 	port_rman.rm_end = 0xffff;
 	port_rman.rm_type = RMAN_ARRAY;
 	port_rman.rm_descr = "I/O ports";
-	if (rman_init(&port_rman)
-	    || rman_manage_region(&port_rman, 0, 0xffff))
+	if (rman_init(&port_rman) || rman_manage_region(&port_rman, 0, 0xffff))
 		panic("nexus_init_resources port_rman");
 
 	mem_rman.rm_start = 0;
 	mem_rman.rm_end = cpu_getmaxphyaddr();
 	mem_rman.rm_type = RMAN_ARRAY;
 	mem_rman.rm_descr = "I/O memory addresses";
-	if (rman_init(&mem_rman)
-	    || rman_manage_region(&mem_rman, 0, mem_rman.rm_end))
+	if (rman_init(&mem_rman) ||
+	    rman_manage_region(&mem_rman, 0, mem_rman.rm_end))
 		panic("nexus_init_resources mem_rman");
 }
 
@@ -278,7 +277,7 @@ nexus_attach(device_t dev)
 static int
 nexus_print_all_resources(device_t dev)
 {
-	struct	nexus_device *ndev = DEVTONX(dev);
+	struct nexus_device *ndev = DEVTONX(dev);
 	struct resource_list *rl = &ndev->nx_resources;
 	int retval = 0;
 
@@ -309,10 +308,11 @@ nexus_print_child(device_t bus, device_t child)
 static device_t
 nexus_add_child(device_t bus, u_int order, const char *name, int unit)
 {
-	device_t		child;
-	struct nexus_device	*ndev;
+	device_t child;
+	struct nexus_device *ndev;
 
-	ndev = malloc(sizeof(struct nexus_device), M_NEXUSDEV, M_NOWAIT|M_ZERO);
+	ndev = malloc(sizeof(struct nexus_device), M_NEXUSDEV,
+	    M_NOWAIT | M_ZERO);
 	if (!ndev)
 		return (0);
 	resource_list_init(&ndev->nx_resources);
@@ -348,8 +348,7 @@ nexus_get_rman(device_t bus, int type, u_int flags)
  */
 static struct resource *
 nexus_alloc_resource(device_t bus, device_t child, int type, int *rid,
-		     rman_res_t start, rman_res_t end, rman_res_t count,
-		     u_int flags)
+    rman_res_t start, rman_res_t end, rman_res_t count, u_int flags)
 {
 	struct nexus_device *ndev = DEVTONX(child);
 	struct resource_list_entry *rle;
@@ -371,8 +370,8 @@ nexus_alloc_resource(device_t bus, device_t child, int type, int *rid,
 		count = rle->count;
 	}
 
-	return (bus_generic_rman_alloc_resource(bus, child, type, rid,
-	    start, end, count, flags));
+	return (bus_generic_rman_alloc_resource(bus, child, type, rid, start,
+	    end, count, flags));
 }
 
 static int
@@ -452,11 +451,10 @@ nexus_unmap_resource(device_t bus, device_t child, int type, struct resource *r,
  * this is going to be the official interface.
  */
 static int
-nexus_setup_intr(device_t bus, device_t child, struct resource *irq,
-		 int flags, driver_filter_t filter, void (*ihand)(void *),
-		 void *arg, void **cookiep)
+nexus_setup_intr(device_t bus, device_t child, struct resource *irq, int flags,
+    driver_filter_t filter, void (*ihand)(void *), void *arg, void **cookiep)
 {
-	int		error, domain;
+	int error, domain;
 
 	/* somebody tried to setup an irq that failed to allocate! */
 	if (irq == NULL)
@@ -599,7 +597,8 @@ nexus_release_msi(device_t pcib, device_t dev, int count, int *irqs)
 }
 
 static int
-nexus_map_msi(device_t pcib, device_t dev, int irq, uint64_t *addr, uint32_t *data)
+nexus_map_msi(device_t pcib, device_t dev, int irq, uint64_t *addr,
+    uint32_t *data)
 {
 
 	return (msi_map(irq, addr, data));
@@ -612,7 +611,7 @@ ram_identify(driver_t *driver, device_t parent)
 {
 
 	if (resource_disabled("ram", 0))
-		return;	
+		return;
 	if (BUS_ADD_CHILD(parent, 0, "ram", 0) == NULL)
 		panic("ram_identify");
 }
@@ -649,13 +648,13 @@ ram_attach(device_t dev)
 
 		rid = 0;
 		for (smap = smapbase; smap < smapend; smap++) {
-			if (smap->type != SMAP_TYPE_MEMORY ||
-			    smap->length == 0)
+			if (smap->type != SMAP_TYPE_MEMORY || smap->length == 0)
 				continue;
 			if (smap->base > mem_rman.rm_end)
 				continue;
 			length = smap->base + smap->length > mem_rman.rm_end ?
-			    mem_rman.rm_end - smap->base : smap->length;
+			    mem_rman.rm_end - smap->base :
+			    smap->length;
 			error = bus_set_resource(dev, SYS_RES_MEMORY, rid,
 			    smap->base, length);
 			if (error)
@@ -665,7 +664,8 @@ ram_attach(device_t dev)
 			res = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
 			    0);
 			if (res == NULL)
-				panic("ram_attach: resource %d failed to attach",
+				panic(
+				    "ram_attach: resource %d failed to attach",
 				    rid);
 			rid++;
 		}
@@ -700,17 +700,15 @@ ram_attach(device_t dev)
 
 static device_method_t ram_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,	ram_identify),
-	DEVMETHOD(device_probe,		ram_probe),
-	DEVMETHOD(device_attach,	ram_attach),
+	DEVMETHOD(device_identify, ram_identify),
+	DEVMETHOD(device_probe, ram_probe),
+	DEVMETHOD(device_attach, ram_attach),
 
 	DEVMETHOD_END
 };
 
 static driver_t ram_driver = {
-	"ram",
-	ram_methods,
-	1,		/* no softc */
+	"ram", ram_methods, 1, /* no softc */
 };
 
 DRIVER_MODULE(ram, nexus, ram_driver, 0, 0);
@@ -720,18 +718,17 @@ DRIVER_MODULE(ram, nexus, ram_driver, 0, 0);
  * Placeholder which claims PnP 'devices' which describe system
  * resources.
  */
-static struct isa_pnp_id sysresource_ids[] = {
-	{ 0x010cd041 /* PNP0c01 */, "System Memory" },
-	{ 0x020cd041 /* PNP0c02 */, "System Resource" },
-	{ 0 }
-};
+static struct isa_pnp_id sysresource_ids[] = { { 0x010cd041 /* PNP0c01 */,
+						   "System Memory" },
+	{ 0x020cd041 /* PNP0c02 */, "System Resource" }, { 0 } };
 
 static int
 sysresource_probe(device_t dev)
 {
-	int	result;
+	int result;
 
-	if ((result = ISA_PNP_PROBE(device_get_parent(dev), dev, sysresource_ids)) <= 0) {
+	if ((result = ISA_PNP_PROBE(device_get_parent(dev), dev,
+		 sysresource_ids)) <= 0) {
 		device_quiet(dev);
 	}
 	return (result);
@@ -745,20 +742,18 @@ sysresource_attach(device_t dev)
 
 static device_method_t sysresource_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		sysresource_probe),
-	DEVMETHOD(device_attach,	sysresource_attach),
-	DEVMETHOD(device_detach,	bus_generic_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	bus_generic_resume),
+	DEVMETHOD(device_probe, sysresource_probe),
+	DEVMETHOD(device_attach, sysresource_attach),
+	DEVMETHOD(device_detach, bus_generic_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
 
 	DEVMETHOD_END
 };
 
 static driver_t sysresource_driver = {
-	"sysresource",
-	sysresource_methods,
-	1,		/* no softc */
+	"sysresource", sysresource_methods, 1, /* no softc */
 };
 
 DRIVER_MODULE(sysresource, isa, sysresource_driver, 0, 0);

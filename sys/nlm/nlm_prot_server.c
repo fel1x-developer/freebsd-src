@@ -32,11 +32,11 @@
 __RCSID("$NetBSD: nlm_prot.x,v 1.6 2000/06/07 14:30:15 bouyer Exp $");
 #endif /* not lint */
 #include <sys/param.h>
-#include <sys/malloc.h>
 #include <sys/systm.h>
+#include <sys/malloc.h>
 
-#include <nlm/nlm_prot.h>
 #include <nlm/nlm.h>
+#include <nlm/nlm_prot.h>
 
 /**********************************************************************/
 
@@ -94,7 +94,7 @@ nlm_convert_to_nlm_stats(enum nlm4_stats src)
 {
 	if (src > nlm4_deadlck)
 		return nlm_denied;
-	return (enum nlm_stats) src;
+	return (enum nlm_stats)src;
 }
 
 static void
@@ -108,7 +108,7 @@ static void
 nlm_convert_to_nlm4_res(struct nlm4_res *dst, struct nlm_res *src)
 {
 	dst->cookie = src->cookie;
-	dst->stat.stat = (enum nlm4_stats) src->stat.stat;
+	dst->stat.stat = (enum nlm4_stats)src->stat.stat;
 }
 
 /**********************************************************************/
@@ -118,7 +118,8 @@ nlm_convert_to_nlm4_res(struct nlm4_res *dst, struct nlm_res *src)
  */
 
 bool_t
-nlm_sm_notify_0_svc(struct nlm_sm_status *argp, void *result, struct svc_req *rqstp)
+nlm_sm_notify_0_svc(struct nlm_sm_status *argp, void *result,
+    struct svc_req *rqstp)
 {
 	nlm_sm_notify(argp);
 
@@ -126,7 +127,8 @@ nlm_sm_notify_0_svc(struct nlm_sm_status *argp, void *result, struct svc_req *rq
 }
 
 bool_t
-nlm_test_1_svc(struct nlm_testargs *argp, nlm_testres *result, struct svc_req *rqstp)
+nlm_test_1_svc(struct nlm_testargs *argp, nlm_testres *result,
+    struct svc_req *rqstp)
 {
 	bool_t retval;
 	nlm4_testargs args4;
@@ -142,15 +144,16 @@ nlm_test_1_svc(struct nlm_testargs *argp, nlm_testres *result, struct svc_req *r
 		result->stat.stat = nlm_convert_to_nlm_stats(res4.stat.stat);
 		if (result->stat.stat == nlm_denied)
 			nlm_convert_to_nlm_holder(
-				&result->stat.nlm_testrply_u.holder,
-				&res4.stat.nlm4_testrply_u.holder);
+			    &result->stat.nlm_testrply_u.holder,
+			    &res4.stat.nlm4_testrply_u.holder);
 	}
 
 	return (retval);
 }
 
 bool_t
-nlm_lock_1_svc(struct nlm_lockargs *argp, nlm_res *result, struct svc_req *rqstp)
+nlm_lock_1_svc(struct nlm_lockargs *argp, nlm_res *result,
+    struct svc_req *rqstp)
 {
 	bool_t retval;
 	nlm4_lockargs args4;
@@ -171,7 +174,8 @@ nlm_lock_1_svc(struct nlm_lockargs *argp, nlm_res *result, struct svc_req *rqstp
 }
 
 bool_t
-nlm_cancel_1_svc(struct nlm_cancargs *argp, nlm_res *result, struct svc_req *rqstp)
+nlm_cancel_1_svc(struct nlm_cancargs *argp, nlm_res *result,
+    struct svc_req *rqstp)
 {
 	bool_t retval;
 	nlm4_cancargs args4;
@@ -190,7 +194,8 @@ nlm_cancel_1_svc(struct nlm_cancargs *argp, nlm_res *result, struct svc_req *rqs
 }
 
 bool_t
-nlm_unlock_1_svc(struct nlm_unlockargs *argp, nlm_res *result, struct svc_req *rqstp)
+nlm_unlock_1_svc(struct nlm_unlockargs *argp, nlm_res *result,
+    struct svc_req *rqstp)
 {
 	bool_t retval;
 	nlm4_unlockargs args4;
@@ -207,7 +212,8 @@ nlm_unlock_1_svc(struct nlm_unlockargs *argp, nlm_res *result, struct svc_req *r
 }
 
 bool_t
-nlm_granted_1_svc(struct nlm_testargs *argp, nlm_res *result, struct svc_req *rqstp)
+nlm_granted_1_svc(struct nlm_testargs *argp, nlm_res *result,
+    struct svc_req *rqstp)
 {
 	bool_t retval;
 	nlm4_testargs args4;
@@ -225,7 +231,8 @@ nlm_granted_1_svc(struct nlm_testargs *argp, nlm_res *result, struct svc_req *rq
 }
 
 bool_t
-nlm_test_msg_1_svc(struct nlm_testargs *argp, void *result, struct svc_req *rqstp)
+nlm_test_msg_1_svc(struct nlm_testargs *argp, void *result,
+    struct svc_req *rqstp)
 {
 	nlm4_testargs args4;
 	nlm4_testres res4;
@@ -243,21 +250,21 @@ nlm_test_msg_1_svc(struct nlm_testargs *argp, void *result, struct svc_req *rqst
 	res.cookie = res4.cookie;
 	res.stat.stat = nlm_convert_to_nlm_stats(res4.stat.stat);
 	if (res.stat.stat == nlm_denied)
-		nlm_convert_to_nlm_holder(
-			&res.stat.nlm_testrply_u.holder,
-			&res4.stat.nlm4_testrply_u.holder);
+		nlm_convert_to_nlm_holder(&res.stat.nlm_testrply_u.holder,
+		    &res4.stat.nlm4_testrply_u.holder);
 
 	if (rpc) {
 		nlm_test_res_1(&res, &dummy, rpc, NULL, nlm_zero_tv);
 		CLNT_RELEASE(rpc);
 	}
-	xdr_free((xdrproc_t) xdr_nlm_testres, &res);
+	xdr_free((xdrproc_t)xdr_nlm_testres, &res);
 
 	return (FALSE);
 }
 
 bool_t
-nlm_lock_msg_1_svc(struct nlm_lockargs *argp, void *result, struct svc_req *rqstp)
+nlm_lock_msg_1_svc(struct nlm_lockargs *argp, void *result,
+    struct svc_req *rqstp)
 {
 	nlm4_lockargs args4;
 	nlm4_res res4;
@@ -281,13 +288,14 @@ nlm_lock_msg_1_svc(struct nlm_lockargs *argp, void *result, struct svc_req *rqst
 		nlm_lock_res_1(&res, &dummy, rpc, NULL, nlm_zero_tv);
 		CLNT_RELEASE(rpc);
 	}
-	xdr_free((xdrproc_t) xdr_nlm_res, &res);
+	xdr_free((xdrproc_t)xdr_nlm_res, &res);
 
 	return (FALSE);
 }
 
 bool_t
-nlm_cancel_msg_1_svc(struct nlm_cancargs *argp, void *result, struct svc_req *rqstp)
+nlm_cancel_msg_1_svc(struct nlm_cancargs *argp, void *result,
+    struct svc_req *rqstp)
 {
 	nlm4_cancargs args4;
 	nlm4_res res4;
@@ -309,13 +317,14 @@ nlm_cancel_msg_1_svc(struct nlm_cancargs *argp, void *result, struct svc_req *rq
 		nlm_cancel_res_1(&res, &dummy, rpc, NULL, nlm_zero_tv);
 		CLNT_RELEASE(rpc);
 	}
-	xdr_free((xdrproc_t) xdr_nlm_res, &res);
+	xdr_free((xdrproc_t)xdr_nlm_res, &res);
 
 	return (FALSE);
 }
 
 bool_t
-nlm_unlock_msg_1_svc(struct nlm_unlockargs *argp, void *result, struct svc_req *rqstp)
+nlm_unlock_msg_1_svc(struct nlm_unlockargs *argp, void *result,
+    struct svc_req *rqstp)
 {
 	nlm4_unlockargs args4;
 	nlm4_res res4;
@@ -335,13 +344,14 @@ nlm_unlock_msg_1_svc(struct nlm_unlockargs *argp, void *result, struct svc_req *
 		nlm_unlock_res_1(&res, &dummy, rpc, NULL, nlm_zero_tv);
 		CLNT_RELEASE(rpc);
 	}
-	xdr_free((xdrproc_t) xdr_nlm_res, &res);
+	xdr_free((xdrproc_t)xdr_nlm_res, &res);
 
 	return (FALSE);
 }
 
 bool_t
-nlm_granted_msg_1_svc(struct nlm_testargs *argp, void *result, struct svc_req *rqstp)
+nlm_granted_msg_1_svc(struct nlm_testargs *argp, void *result,
+    struct svc_req *rqstp)
 {
 	nlm4_testargs args4;
 	nlm4_res res4;
@@ -362,7 +372,7 @@ nlm_granted_msg_1_svc(struct nlm_testargs *argp, void *result, struct svc_req *r
 		nlm_granted_res_1(&res, &dummy, rpc, NULL, nlm_zero_tv);
 		CLNT_RELEASE(rpc);
 	}
-	xdr_free((xdrproc_t) xdr_nlm_res, &res);
+	xdr_free((xdrproc_t)xdr_nlm_res, &res);
 
 	return (FALSE);
 }
@@ -374,9 +384,8 @@ nlm_test_res_1_svc(nlm_testres *argp, void *result, struct svc_req *rqstp)
 
 	args4.cookie = argp->cookie;
 	if (argp->stat.stat == nlm_denied)
-		nlm_convert_to_nlm4_holder(
-			&args4.stat.nlm4_testrply_u.holder,
-			&argp->stat.nlm_testrply_u.holder);
+		nlm_convert_to_nlm4_holder(&args4.stat.nlm4_testrply_u.holder,
+		    &argp->stat.nlm_testrply_u.holder);
 
 	return (nlm4_test_res_4_svc(&args4, result, rqstp));
 }
@@ -421,12 +430,13 @@ int
 nlm_prog_1_freeresult(SVCXPRT *transp, xdrproc_t xdr_result, caddr_t result)
 {
 
-	(void) xdr_free(xdr_result, result);
+	(void)xdr_free(xdr_result, result);
 	return (TRUE);
 }
 
 bool_t
-nlm_share_3_svc(nlm_shareargs *argp, nlm_shareres *result, struct svc_req *rqstp)
+nlm_share_3_svc(nlm_shareargs *argp, nlm_shareres *result,
+    struct svc_req *rqstp)
 {
 	bool_t retval;
 	nlm4_shareargs args4;
@@ -447,7 +457,8 @@ nlm_share_3_svc(nlm_shareargs *argp, nlm_shareres *result, struct svc_req *rqstp
 }
 
 bool_t
-nlm_unshare_3_svc(nlm_shareargs *argp, nlm_shareres *result, struct svc_req *rqstp)
+nlm_unshare_3_svc(nlm_shareargs *argp, nlm_shareres *result,
+    struct svc_req *rqstp)
 {
 	bool_t retval;
 	nlm4_shareargs args4;
@@ -503,12 +514,13 @@ int
 nlm_prog_3_freeresult(SVCXPRT *transp, xdrproc_t xdr_result, caddr_t result)
 {
 
-	(void) xdr_free(xdr_result, result);
+	(void)xdr_free(xdr_result, result);
 	return (TRUE);
 }
 
 bool_t
-nlm4_test_4_svc(nlm4_testargs *argp, nlm4_testres *result, struct svc_req *rqstp)
+nlm4_test_4_svc(nlm4_testargs *argp, nlm4_testres *result,
+    struct svc_req *rqstp)
 {
 
 	nlm_do_test(argp, result, rqstp, NULL);
@@ -532,7 +544,8 @@ nlm4_cancel_4_svc(nlm4_cancargs *argp, nlm4_res *result, struct svc_req *rqstp)
 }
 
 bool_t
-nlm4_unlock_4_svc(nlm4_unlockargs *argp, nlm4_res *result, struct svc_req *rqstp)
+nlm4_unlock_4_svc(nlm4_unlockargs *argp, nlm4_res *result,
+    struct svc_req *rqstp)
 {
 
 	nlm_do_unlock(argp, result, rqstp, NULL);
@@ -560,7 +573,7 @@ nlm4_test_msg_4_svc(nlm4_testargs *argp, void *result, struct svc_req *rqstp)
 		nlm4_test_res_4(&res4, &dummy, rpc, NULL, nlm_zero_tv);
 		CLNT_RELEASE(rpc);
 	}
-	xdr_free((xdrproc_t) xdr_nlm4_testres, &res4);
+	xdr_free((xdrproc_t)xdr_nlm4_testres, &res4);
 
 	return (FALSE);
 }
@@ -578,7 +591,7 @@ nlm4_lock_msg_4_svc(nlm4_lockargs *argp, void *result, struct svc_req *rqstp)
 		nlm4_lock_res_4(&res4, &dummy, rpc, NULL, nlm_zero_tv);
 		CLNT_RELEASE(rpc);
 	}
-	xdr_free((xdrproc_t) xdr_nlm4_res, &res4);
+	xdr_free((xdrproc_t)xdr_nlm4_res, &res4);
 
 	return (FALSE);
 }
@@ -596,13 +609,14 @@ nlm4_cancel_msg_4_svc(nlm4_cancargs *argp, void *result, struct svc_req *rqstp)
 		nlm4_cancel_res_4(&res4, &dummy, rpc, NULL, nlm_zero_tv);
 		CLNT_RELEASE(rpc);
 	}
-	xdr_free((xdrproc_t) xdr_nlm4_res, &res4);
+	xdr_free((xdrproc_t)xdr_nlm4_res, &res4);
 
 	return (FALSE);
 }
 
 bool_t
-nlm4_unlock_msg_4_svc(nlm4_unlockargs *argp, void *result, struct svc_req *rqstp)
+nlm4_unlock_msg_4_svc(nlm4_unlockargs *argp, void *result,
+    struct svc_req *rqstp)
 {
 	nlm4_res res4;
 	CLIENT *rpc;
@@ -614,7 +628,7 @@ nlm4_unlock_msg_4_svc(nlm4_unlockargs *argp, void *result, struct svc_req *rqstp
 		nlm4_unlock_res_4(&res4, &dummy, rpc, NULL, nlm_zero_tv);
 		CLNT_RELEASE(rpc);
 	}
-	xdr_free((xdrproc_t) xdr_nlm4_res, &res4);
+	xdr_free((xdrproc_t)xdr_nlm4_res, &res4);
 
 	return (FALSE);
 }
@@ -632,7 +646,7 @@ nlm4_granted_msg_4_svc(nlm4_testargs *argp, void *result, struct svc_req *rqstp)
 		nlm4_granted_res_4(&res4, &dummy, rpc, NULL, nlm_zero_tv);
 		CLNT_RELEASE(rpc);
 	}
-	xdr_free((xdrproc_t) xdr_nlm4_res, &res4);
+	xdr_free((xdrproc_t)xdr_nlm4_res, &res4);
 
 	return (FALSE);
 }
@@ -674,7 +688,8 @@ nlm4_granted_res_4_svc(nlm4_res *argp, void *result, struct svc_req *rqstp)
 }
 
 bool_t
-nlm4_share_4_svc(nlm4_shareargs *argp, nlm4_shareres *result, struct svc_req *rqstp)
+nlm4_share_4_svc(nlm4_shareargs *argp, nlm4_shareres *result,
+    struct svc_req *rqstp)
 {
 
 	memset(result, 0, sizeof(*result));
@@ -683,7 +698,8 @@ nlm4_share_4_svc(nlm4_shareargs *argp, nlm4_shareres *result, struct svc_req *rq
 }
 
 bool_t
-nlm4_unshare_4_svc(nlm4_shareargs *argp, nlm4_shareres *result, struct svc_req *rqstp)
+nlm4_unshare_4_svc(nlm4_shareargs *argp, nlm4_shareres *result,
+    struct svc_req *rqstp)
 {
 
 	memset(result, 0, sizeof(*result));
@@ -711,6 +727,6 @@ int
 nlm_prog_4_freeresult(SVCXPRT *transp, xdrproc_t xdr_result, caddr_t result)
 {
 
-	(void) xdr_free(xdr_result, result);
+	(void)xdr_free(xdr_result, result);
 	return (TRUE);
 }

@@ -37,68 +37,75 @@
 #include "opt_wlan.h"
 
 #include <sys/param.h>
-#include <sys/systm.h> 
-#include <sys/module.h>
+#include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/errno.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/errno.h>
+#include <sys/rman.h>
+#include <sys/socket.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/bus.h>
-#include <sys/rman.h>
 
-#include <sys/socket.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_media.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-#include <net80211/ieee80211_amrr.h>
-
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
-
-#include <dev/bwi/if_bwivar.h>
-#include <dev/bwi/if_bwireg.h>
 #include <dev/bwi/bitops.h>
+#include <dev/bwi/if_bwireg.h>
+#include <dev/bwi/if_bwivar.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_media.h>
+#include <net/if_var.h>
+#include <net80211/ieee80211_amrr.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 /*
  * PCI glue.
  */
 
 struct bwi_pci_softc {
-	struct bwi_softc	sc_sc;
+	struct bwi_softc sc_sc;
 };
 
-#define	BS_BAR	0x10
-#define	PCIR_RETRY_TIMEOUT	0x41
+#define BS_BAR 0x10
+#define PCIR_RETRY_TIMEOUT 0x41
 
 static const struct bwi_dev {
-	uint16_t	vid;
-	uint16_t	did;
-	const char	*desc;
-} bwi_devices[] = {
-	{ PCI_VENDOR_BROADCOM, 0x4301,"Broadcom BCM4301 802.11b Wireless Lan" },
-	{ PCI_VENDOR_BROADCOM, 0x4307,"Broadcom BCM4307 802.11b Wireless Lan" },
-	{ PCI_VENDOR_BROADCOM, 0x4311,"Broadcom BCM4311 802.11b/g Wireless Lan" },
-	{ PCI_VENDOR_BROADCOM, 0x4312,"Broadcom BCM4312 802.11a/b/g Wireless Lan" },
-	{ PCI_VENDOR_BROADCOM, 0x4313,"Broadcom BCM4312 802.11a Wireless Lan" },
-	{ PCI_VENDOR_BROADCOM, 0x4320,"Broadcom BCM4306 802.11b/g Wireless Lan"},
-	{ PCI_VENDOR_BROADCOM, 0x4321,"Broadcom BCM4306 802.11a Wireless Lan"},
-	{ PCI_VENDOR_BROADCOM, 0x4325,"Broadcom BCM4306 802.11b/g Wireless Lan"},
-	{ PCI_VENDOR_BROADCOM, 0x4324,"Broadcom BCM4309 802.11a/b/g Wireless Lan" },
-	{ PCI_VENDOR_BROADCOM, 0x4318,"Broadcom BCM4318 802.11b/g Wireless Lan" },
-	{ PCI_VENDOR_BROADCOM, 0x4319,"Broadcom BCM4318 802.11a/b/g Wireless Lan" },
-	{ PCI_VENDOR_BROADCOM, 0x431a,"Broadcom BCM4318 802.11a Wireless Lan" },
-	{ 0, 0, NULL }
-};
+	uint16_t vid;
+	uint16_t did;
+	const char *desc;
+} bwi_devices[] = { { PCI_VENDOR_BROADCOM, 0x4301,
+			"Broadcom BCM4301 802.11b Wireless Lan" },
+	{ PCI_VENDOR_BROADCOM, 0x4307,
+	    "Broadcom BCM4307 802.11b Wireless Lan" },
+	{ PCI_VENDOR_BROADCOM, 0x4311,
+	    "Broadcom BCM4311 802.11b/g Wireless Lan" },
+	{ PCI_VENDOR_BROADCOM, 0x4312,
+	    "Broadcom BCM4312 802.11a/b/g Wireless Lan" },
+	{ PCI_VENDOR_BROADCOM, 0x4313,
+	    "Broadcom BCM4312 802.11a Wireless Lan" },
+	{ PCI_VENDOR_BROADCOM, 0x4320,
+	    "Broadcom BCM4306 802.11b/g Wireless Lan" },
+	{ PCI_VENDOR_BROADCOM, 0x4321,
+	    "Broadcom BCM4306 802.11a Wireless Lan" },
+	{ PCI_VENDOR_BROADCOM, 0x4325,
+	    "Broadcom BCM4306 802.11b/g Wireless Lan" },
+	{ PCI_VENDOR_BROADCOM, 0x4324,
+	    "Broadcom BCM4309 802.11a/b/g Wireless Lan" },
+	{ PCI_VENDOR_BROADCOM, 0x4318,
+	    "Broadcom BCM4318 802.11b/g Wireless Lan" },
+	{ PCI_VENDOR_BROADCOM, 0x4319,
+	    "Broadcom BCM4318 802.11a/b/g Wireless Lan" },
+	{ PCI_VENDOR_BROADCOM, 0x431a,
+	    "Broadcom BCM4318 802.11a Wireless Lan" },
+	{ 0, 0, NULL } };
 
 static int
 bwi_pci_probe(device_t dev)
@@ -132,12 +139,12 @@ bwi_pci_attach(device_t dev)
 	 */
 	pci_enable_busmaster(dev);
 
-	/* 
+	/*
 	 * Setup memory-mapping of PCI registers.
 	 */
 	sc->sc_mem_rid = BWI_PCIR_BAR;
 	sc->sc_mem_res = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-		&sc->sc_mem_rid, RF_ACTIVE);
+	    &sc->sc_mem_rid, RF_ACTIVE);
 	if (sc->sc_mem_res == NULL) {
 		device_printf(dev, "cannot map register space\n");
 		goto bad;
@@ -155,8 +162,7 @@ bwi_pci_attach(device_t dev)
 	 */
 	sc->sc_irq_rid = 0;
 	sc->sc_irq_res = bus_alloc_resource_any(dev, SYS_RES_IRQ,
-						&sc->sc_irq_rid,
-						RF_SHAREABLE|RF_ACTIVE);
+	    &sc->sc_irq_rid, RF_SHAREABLE | RF_ACTIVE);
 	if (sc->sc_irq_res == NULL) {
 		device_printf(dev, "could not map interrupt\n");
 		goto bad1;
@@ -171,9 +177,8 @@ bwi_pci_attach(device_t dev)
 	if ((error = bwi_attach(sc)) != 0)
 		goto bad2;
 
-	if (bus_setup_intr(dev, sc->sc_irq_res,
-			   INTR_TYPE_NET | INTR_MPSAFE,
-			   NULL, bwi_intr, sc, &sc->sc_irq_handle)) {
+	if (bus_setup_intr(dev, sc->sc_irq_res, INTR_TYPE_NET | INTR_MPSAFE,
+		NULL, bwi_intr, sc, &sc->sc_irq_handle)) {
 		device_printf(dev, "could not establish interrupt\n");
 		goto bad2;
 	}
@@ -238,24 +243,20 @@ bwi_pci_resume(device_t dev)
 
 static device_method_t bwi_pci_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		bwi_pci_probe),
-	DEVMETHOD(device_attach,	bwi_pci_attach),
-	DEVMETHOD(device_detach,	bwi_pci_detach),
-	DEVMETHOD(device_shutdown,	bwi_pci_shutdown),
-	DEVMETHOD(device_suspend,	bwi_pci_suspend),
-	DEVMETHOD(device_resume,	bwi_pci_resume),
-	{ 0,0 }
+	DEVMETHOD(device_probe, bwi_pci_probe),
+	DEVMETHOD(device_attach, bwi_pci_attach),
+	DEVMETHOD(device_detach, bwi_pci_detach),
+	DEVMETHOD(device_shutdown, bwi_pci_shutdown),
+	DEVMETHOD(device_suspend, bwi_pci_suspend),
+	DEVMETHOD(device_resume, bwi_pci_resume), { 0, 0 }
 };
 
-static driver_t bwi_driver = {
-	"bwi",
-	bwi_pci_methods,
-	sizeof (struct bwi_pci_softc)
-};
+static driver_t bwi_driver = { "bwi", bwi_pci_methods,
+	sizeof(struct bwi_pci_softc) };
 
 DRIVER_MODULE(bwi, pci, bwi_driver, 0, 0);
 MODULE_PNP_INFO("U16:vendor;U16:device;D:#", pci, bwi, bwi_devices,
     nitems(bwi_devices) - 1);
-MODULE_DEPEND(bwi, wlan, 1, 1, 1);		/* 802.11 media layer */
-MODULE_DEPEND(bwi, firmware, 1, 1, 1);		/* firmware support */
+MODULE_DEPEND(bwi, wlan, 1, 1, 1);     /* 802.11 media layer */
+MODULE_DEPEND(bwi, firmware, 1, 1, 1); /* firmware support */
 MODULE_DEPEND(bwi, wlan_amrr, 1, 1, 1);

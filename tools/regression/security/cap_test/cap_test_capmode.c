@@ -50,12 +50,13 @@
 
 #include "cap_test.h"
 
-#define	CHECK_SYSCALL_VOID_NOT_ECAPMODE(syscall, ...)	do {		\
-	errno = 0;							\
-	(void)syscall(__VA_ARGS__);					\
-	if (errno == ECAPMODE)						\
-		FAIL("capmode: %s failed with ECAPMODE", #syscall);	\
-} while (0)
+#define CHECK_SYSCALL_VOID_NOT_ECAPMODE(syscall, ...)                       \
+	do {                                                                \
+		errno = 0;                                                  \
+		(void)syscall(__VA_ARGS__);                                 \
+		if (errno == ECAPMODE)                                      \
+			FAIL("capmode: %s failed with ECAPMODE", #syscall); \
+	} while (0)
 
 int
 test_capmode(void)
@@ -69,7 +70,7 @@ test_capmode(void)
 	char ch;
 
 	/* Open some files to play with. */
-	REQUIRE(fd_file = open("/tmp/cap_capmode", O_RDWR|O_CREAT, 0644));
+	REQUIRE(fd_file = open("/tmp/cap_capmode", O_RDWR | O_CREAT, 0644));
 	REQUIRE(fd_close = open("/dev/null", O_RDWR));
 	REQUIRE(fd_dir = open("/tmp", O_RDONLY));
 	REQUIRE(fd_socket = socket(PF_INET, SOCK_DGRAM, 0));
@@ -100,8 +101,7 @@ test_capmode(void)
 	CHECK_CAPMODE(readlink, "/tmp/cap_capmode_readlink", NULL, 0);
 	CHECK_CAPMODE(revoke, "/tmp/cap_capmode_revoke");
 	CHECK_CAPMODE(stat, "/tmp/cap_capmode_stat", &sb);
-	CHECK_CAPMODE(symlink,
-	    "/tmp/cap_capmode_symlink_from",
+	CHECK_CAPMODE(symlink, "/tmp/cap_capmode_symlink_from",
 	    "/tmp/cap_capmode_symlink_to");
 	CHECK_CAPMODE(unlink, "/tmp/cap_capmode_unlink");
 	CHECK_CAPMODE(unmount, "/not_mounted", 0);
@@ -179,10 +179,10 @@ test_capmode(void)
 	} else if (errno == ECAPMODE)
 		FAIL("capmode:pipe");
 
-	/* XXXRW: ptrace. */
+		/* XXXRW: ptrace. */
 
-	/* sysarch() is, by definition, architecture-dependent */
-#if defined (__amd64__) || defined (__i386__)
+		/* sysarch() is, by definition, architecture-dependent */
+#if defined(__amd64__) || defined(__i386__)
 	CHECK_CAPMODE(sysarch, I386_SET_IOPERM, &sysarch_arg);
 #else
 	/* XXXJA: write a test for arm */

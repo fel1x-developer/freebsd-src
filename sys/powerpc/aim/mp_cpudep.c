@@ -28,8 +28,8 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/pcpu.h>
 #include <sys/proc.h>
 #include <sys/sched.h>
@@ -39,6 +39,7 @@
 #include <machine/cpu.h>
 #include <machine/hid.h>
 #include <machine/intr_machdep.h>
+#include <machine/ofw_machdep.h>
 #include <machine/pcb.h>
 #include <machine/psl.h>
 #include <machine/smp.h>
@@ -46,7 +47,6 @@
 #include <machine/trap.h>
 
 #include <dev/ofw/openfirm.h>
-#include <machine/ofw_machdep.h>
 
 void *ap_pcpu;
 
@@ -67,21 +67,27 @@ cpudep_ap_early_bootstrap(void)
 	case IBM970FX:
 	case IBM970MP:
 		/* Set HIOR to 0 */
-		__asm __volatile("mtspr 311,%0" :: "r"(0));
+		__asm __volatile("mtspr 311,%0" ::"r"(0));
 		powerpc_sync();
 
 		/* Restore HID4 and HID5, which are necessary for the MMU */
 
 #ifdef __powerpc64__
-		mtspr(SPR_HID4, bsp_state[2]); powerpc_sync(); isync();
-		mtspr(SPR_HID5, bsp_state[3]); powerpc_sync(); isync();
+		mtspr(SPR_HID4, bsp_state[2]);
+		powerpc_sync();
+		isync();
+		mtspr(SPR_HID5, bsp_state[3]);
+		powerpc_sync();
+		isync();
 #else
 		__asm __volatile("ld %0, 16(%2); sync; isync;	\
 		    mtspr %1, %0; sync; isync;"
-		    : "=r"(reg) : "K"(SPR_HID4), "b"(bsp_state));
+				 : "=r"(reg)
+				 : "K"(SPR_HID4), "b"(bsp_state));
 		__asm __volatile("ld %0, 24(%2); sync; isync;	\
 		    mtspr %1, %0; sync; isync;"
-		    : "=r"(reg) : "K"(SPR_HID5), "b"(bsp_state));
+				 : "=r"(reg)
+				 : "K"(SPR_HID5), "b"(bsp_state));
 #endif
 		powerpc_sync();
 		break;
@@ -112,7 +118,7 @@ cpudep_ap_early_bootstrap(void)
 		break;
 	}
 
-	__asm __volatile("mtsprg 0, %0" :: "r"(ap_pcpu));
+	__asm __volatile("mtsprg 0, %0" ::"r"(ap_pcpu));
 	powerpc_sync();
 }
 
@@ -126,9 +132,9 @@ cpudep_ap_bootstrap(void)
 
 	pcpup->pc_curthread = pcpup->pc_idlethread;
 #ifdef __powerpc64__
-	__asm __volatile("mr 13,%0" :: "r"(pcpup->pc_curthread));
+	__asm __volatile("mr 13,%0" ::"r"(pcpup->pc_curthread));
 #else
-	__asm __volatile("mr 2,%0" :: "r"(pcpup->pc_curthread));
+	__asm __volatile("mr 2,%0" ::"r"(pcpup->pc_curthread));
 #endif
 	pcpup->pc_curpcb = pcpup->pc_curthread->td_pcb;
 	sp = pcpup->pc_curpcb->pcb_sp;
@@ -141,7 +147,7 @@ static register_t
 mpc74xx_l2_enable(register_t l2cr_config)
 {
 	register_t ccr, bit;
-	uint16_t	vers;
+	uint16_t vers;
 
 	vers = mfpvr() >> 16;
 	switch (vers) {
@@ -183,7 +189,7 @@ mpc745x_l3_enable(register_t l3cr_config)
 	/* Configure L3 cache. */
 	ccr = l3cr_config & ~(L3CR_L3E | L3CR_L3I | L3CR_L3PE | L3CR_L3CLKEN);
 	mtspr(SPR_L3CR, ccr);
-	ccr |= 0x4000000;       /* Magic, but documented. */
+	ccr |= 0x4000000; /* Magic, but documented. */
 	mtspr(SPR_L3CR, ccr);
 	ccr |= L3CR_L3CLKEN;
 	mtspr(SPR_L3CR, ccr);
@@ -200,7 +206,7 @@ mpc745x_l3_enable(register_t l3cr_config)
 	mtspr(SPR_L3CR, ccr);
 	powerpc_sync();
 
-	return(ccr);
+	return (ccr);
 }
 
 static register_t
@@ -242,35 +248,39 @@ mpc74xx_l1i_enable(void)
 static void
 cpudep_save_config(void *dummy)
 {
-	uint16_t	vers;
+	uint16_t vers;
 
 	vers = mfpvr() >> 16;
 
-	switch(vers) {
+	switch (vers) {
 	case IBM970:
 	case IBM970FX:
 	case IBM970MP:
-		#ifdef __powerpc64__
+#ifdef __powerpc64__
 		bsp_state[0] = mfspr(SPR_HID0);
 		bsp_state[1] = mfspr(SPR_HID1);
 		bsp_state[2] = mfspr(SPR_HID4);
 		bsp_state[3] = mfspr(SPR_HID5);
-		#else
-		__asm __volatile ("mfspr %0,%2; mr %1,%0; srdi %0,%0,32"
-		    : "=r" (bsp_state[0]),"=r" (bsp_state[1]) : "K" (SPR_HID0));
-		__asm __volatile ("mfspr %0,%2; mr %1,%0; srdi %0,%0,32"
-		    : "=r" (bsp_state[2]),"=r" (bsp_state[3]) : "K" (SPR_HID1));
-		__asm __volatile ("mfspr %0,%2; mr %1,%0; srdi %0,%0,32"
-		    : "=r" (bsp_state[4]),"=r" (bsp_state[5]) : "K" (SPR_HID4));
-		__asm __volatile ("mfspr %0,%2; mr %1,%0; srdi %0,%0,32"
-		    : "=r" (bsp_state[6]),"=r" (bsp_state[7]) : "K" (SPR_HID5));
-		#endif
+#else
+		__asm __volatile("mfspr %0,%2; mr %1,%0; srdi %0,%0,32"
+				 : "=r"(bsp_state[0]), "=r"(bsp_state[1])
+				 : "K"(SPR_HID0));
+		__asm __volatile("mfspr %0,%2; mr %1,%0; srdi %0,%0,32"
+				 : "=r"(bsp_state[2]), "=r"(bsp_state[3])
+				 : "K"(SPR_HID1));
+		__asm __volatile("mfspr %0,%2; mr %1,%0; srdi %0,%0,32"
+				 : "=r"(bsp_state[4]), "=r"(bsp_state[5])
+				 : "K"(SPR_HID4));
+		__asm __volatile("mfspr %0,%2; mr %1,%0; srdi %0,%0,32"
+				 : "=r"(bsp_state[6]), "=r"(bsp_state[7])
+				 : "K"(SPR_HID5));
+#endif
 
 		powerpc_sync();
 
 		break;
 	case IBMCELLBE:
-		#ifdef NOTYET /* Causes problems if in instruction stream on 970 */
+#ifdef NOTYET /* Causes problems if in instruction stream on 970 */
 		if (mfmsr() & PSL_HV) {
 			bsp_state[0] = mfspr(SPR_HID0);
 			bsp_state[1] = mfspr(SPR_HID1);
@@ -279,7 +289,7 @@ cpudep_save_config(void *dummy)
 
 			bsp_state[4] = mfspr(SPR_CELL_TSCR);
 		}
-		#endif
+#endif
 
 		bsp_state[5] = mfspr(SPR_CELL_TSRL);
 
@@ -306,13 +316,13 @@ void
 cpudep_ap_setup(void)
 {
 #ifndef __powerpc64__
-	register_t	reg;
+	register_t reg;
 #endif
-	uint16_t	vers;
+	uint16_t vers;
 
 	vers = mfpvr() >> 16;
 
-	switch(vers) {
+	switch (vers) {
 	case IBM970:
 	case IBM970FX:
 	case IBM970MP:
@@ -324,36 +334,39 @@ cpudep_ap_setup(void)
 		 * cpudep_ap_early_bootstrap()
 		 */
 
-		__asm __volatile("mtasr %0; sync" :: "r"(0));
-	#ifdef __powerpc64__
+		__asm __volatile("mtasr %0; sync" ::"r"(0));
+#ifdef __powerpc64__
 		__asm __volatile(" \
 			sync; isync;					\
 			mtspr	%1, %0;					\
 			mfspr	%0, %1;	mfspr	%0, %1;	mfspr	%0, %1;	\
 			mfspr	%0, %1;	mfspr	%0, %1;	mfspr	%0, %1; \
-			sync; isync" 
-		    :: "r"(bsp_state[0]), "K"(SPR_HID0));
+			sync; isync" ::"r"(bsp_state[0]),
+		    "K"(SPR_HID0));
 		__asm __volatile("sync; isync;	\
-		    mtspr %1, %0; mtspr %1, %0; sync; isync"
-		    :: "r"(bsp_state[1]), "K"(SPR_HID1));
-	#else
+		    mtspr %1, %0; mtspr %1, %0; sync; isync" ::"r"(
+				     bsp_state[1]),
+		    "K"(SPR_HID1));
+#else
 		__asm __volatile(" \
 			ld	%0,0(%2);				\
 			sync; isync;					\
 			mtspr	%1, %0;					\
 			mfspr	%0, %1;	mfspr	%0, %1;	mfspr	%0, %1;	\
 			mfspr	%0, %1;	mfspr	%0, %1;	mfspr	%0, %1; \
-			sync; isync" 
-		    : "=r"(reg) : "K"(SPR_HID0), "b"(bsp_state));
+			sync; isync"
+				 : "=r"(reg)
+				 : "K"(SPR_HID0), "b"(bsp_state));
 		__asm __volatile("ld %0, 8(%2); sync; isync;	\
 		    mtspr %1, %0; mtspr %1, %0; sync; isync"
-		    : "=r"(reg) : "K"(SPR_HID1), "b"(bsp_state));
-	#endif
+				 : "=r"(reg)
+				 : "K"(SPR_HID1), "b"(bsp_state));
+#endif
 
 		powerpc_sync();
 		break;
 	case IBMCELLBE:
-		#ifdef NOTYET /* Causes problems if in instruction stream on 970 */
+#ifdef NOTYET /* Causes problems if in instruction stream on 970 */
 		if (mfmsr() & PSL_HV) {
 			mtspr(SPR_HID0, bsp_state[0]);
 			mtspr(SPR_HID1, bsp_state[1]);
@@ -362,7 +375,7 @@ cpudep_ap_setup(void)
 
 			mtspr(SPR_CELL_TSCR, bsp_state[4]);
 		}
-		#endif
+#endif
 
 		mtspr(SPR_CELL_TSRL, bsp_state[5]);
 
@@ -375,13 +388,15 @@ cpudep_ap_setup(void)
 	case MPC7455:
 	case MPC7457:
 		/* XXX: Program the CPU ID into PIR */
-		__asm __volatile("mtspr 1023,%0" :: "r"(PCPU_GET(cpuid)));
+		__asm __volatile("mtspr 1023,%0" ::"r"(PCPU_GET(cpuid)));
 
 		powerpc_sync();
 		isync();
 
-		mtspr(SPR_HID0, bsp_state[0]); isync();
-		mtspr(SPR_HID1, bsp_state[1]); isync();
+		mtspr(SPR_HID0, bsp_state[0]);
+		isync();
+		mtspr(SPR_HID1, bsp_state[1]);
+		isync();
 
 		/* Now enable the L3 cache. */
 		switch (vers) {
@@ -393,7 +408,7 @@ cpudep_ap_setup(void)
 		default:
 			break;
 		}
-		
+
 		mpc74xx_l2_enable(bsp_state[2]);
 		mpc74xx_l1d_enable();
 		mpc74xx_l1i_enable();
@@ -407,8 +422,8 @@ cpudep_ap_setup(void)
 	case IBMPOWER9:
 #ifdef __powerpc64__
 		if (mfmsr() & PSL_HV) {
-			mtspr(SPR_LPCR, mfspr(SPR_LPCR) | lpcr |
-			    LPCR_PECE_WAKESET);
+			mtspr(SPR_LPCR,
+			    mfspr(SPR_LPCR) | lpcr | LPCR_PECE_WAKESET);
 			isync();
 		}
 #endif
@@ -419,7 +434,7 @@ cpudep_ap_setup(void)
 			break;
 #endif
 		printf("WARNING: Unknown CPU type. Cache performace may be "
-		    "suboptimal.\n");
+		       "suboptimal.\n");
 		break;
 	}
 }

@@ -26,6 +26,7 @@
 #include <sys/param.h>
 #include <sys/acl.h>
 #include <sys/wait.h>
+
 #include <errno.h>
 #include <limits.h>
 #include <stdbool.h>
@@ -34,6 +35,7 @@
 
 #if defined(__aarch64__) || defined(__amd64__) || defined(__i386__)
 #include <compat/linux/linux_errno.h>
+
 #include <compat/linux/linux_errno.inc>
 #endif
 
@@ -87,4 +89,3 @@ sysdecode_freebsd_to_abi_errno(enum sysdecode_abi abi, int error)
 	}
 	return (INT_MAX);
 }
-

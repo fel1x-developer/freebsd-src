@@ -39,8 +39,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define	BASEMODE	S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | \
-			S_IROTH | S_IWOTH
+#define BASEMODE S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH
 
 static void usage(void) __dead2;
 
@@ -55,7 +54,7 @@ main(int argc, char *argv[])
 	int ch, exitval;
 
 	while ((ch = getopt(argc, argv, "m:")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case 'm':
 			f_mode = 1;
 			modestr = optarg;

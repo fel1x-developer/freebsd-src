@@ -9,7 +9,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -36,10 +36,10 @@
 
 extern struct opensolaris_utsname utsname;
 
-cpu_core_t	cpu_core[MAXCPU];
-kmutex_t	cpu_lock;
-solaris_cpu_t	solaris_cpu[MAXCPU];
-int		nsec_per_tick;
+cpu_core_t cpu_core[MAXCPU];
+kmutex_t cpu_lock;
+solaris_cpu_t solaris_cpu[MAXCPU];
+int nsec_per_tick;
 
 /*
  *  OpenSolaris subsystem initialisation.
@@ -64,7 +64,8 @@ opensolaris_load(void *dummy)
 	nsec_per_tick = NANOSEC / hz;
 }
 
-SYSINIT(opensolaris_register, SI_SUB_OPENSOLARIS, SI_ORDER_FIRST, opensolaris_load, NULL);
+SYSINIT(opensolaris_register, SI_SUB_OPENSOLARIS, SI_ORDER_FIRST,
+    opensolaris_load, NULL);
 
 static void
 opensolaris_unload(void)
@@ -72,7 +73,8 @@ opensolaris_unload(void)
 	mutex_destroy(&cpu_lock);
 }
 
-SYSUNINIT(opensolaris_unregister, SI_SUB_OPENSOLARIS, SI_ORDER_FIRST, opensolaris_unload, NULL);
+SYSUNINIT(opensolaris_unregister, SI_SUB_OPENSOLARIS, SI_ORDER_FIRST,
+    opensolaris_unload, NULL);
 
 static int
 opensolaris_modevent(module_t mod __unused, int type, void *data __unused)
@@ -92,7 +94,6 @@ opensolaris_modevent(module_t mod __unused, int type, void *data __unused)
 	default:
 		error = EOPNOTSUPP;
 		break;
-
 	}
 	return (error);
 }

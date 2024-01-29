@@ -31,14 +31,14 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_PMCSTAT_LOG_H_
-#define	_PMCSTAT_LOG_H_
+#ifndef _PMCSTAT_LOG_H_
+#define _PMCSTAT_LOG_H_
 
 #include <libpmcstat.h>
 
-extern struct pmcstat_stats pmcstat_stats; /* statistics */
+extern struct pmcstat_stats pmcstat_stats;	 /* statistics */
 extern struct pmcstat_process *pmcstat_kernproc; /* kernel 'process' */
-extern int pmcstat_npmcs; /* PMC count. */
+extern int pmcstat_npmcs;			 /* PMC count. */
 
 /*
  * Top mode global options.
@@ -54,4 +54,4 @@ int pmcstat_image_addr2line(struct pmcstat_image *image, uintfptr_t addr,
     char *sourcefile, size_t sourcefile_len, unsigned *sourceline,
     char *funcname, size_t funcname_len);
 
-#endif	/* _PMCSTAT_LOG_H_ */
+#endif /* _PMCSTAT_LOG_H_ */

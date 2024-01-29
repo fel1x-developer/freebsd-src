@@ -60,8 +60,8 @@
  *        must be overridden by the SATI user to ensure successful operation.
  */
 
-#include <dev/isci/scil/sati_types.h>
 #include <dev/isci/scil/intel_sas.h>
+#include <dev/isci/scil/sati_types.h>
 
 #ifdef SATI_DEFAULT_DECLARATION
 
@@ -75,9 +75,7 @@
  *
  * @return This method returns the virtual address of the CDB.
  */
-void * sati_cb_get_cdb_address(
-   void * scsi_io
-);
+void *sati_cb_get_cdb_address(void *scsi_io);
 
 /**
  * @brief This callback method asks the user to provide the length of
@@ -89,9 +87,7 @@ void * sati_cb_get_cdb_address(
  *
  * @return This method returns the length of the CDB.
  */
-U32 sati_cb_get_cdb_length(
-   void * scsi_io
-);
+U32 sati_cb_get_cdb_length(void *scsi_io);
 
 /**
  * @brief This callback method asks the user to provide the data transfer
@@ -103,10 +99,7 @@ U32 sati_cb_get_cdb_length(
  * @param[in] io_direction to return
  * @return This method returns the length of the CDB.
  */
-void sati_cb_get_data_direction(
-   void * scsi_io,
-   U8 * io_direction
-);
+void sati_cb_get_data_direction(void *scsi_io, U8 *io_direction);
 
 /**
  * @brief This callback method sets a value into the data buffer associated
@@ -124,11 +117,7 @@ void sati_cb_get_data_direction(
  *
  * @return none
  */
-void sati_cb_set_data_byte(
-   void * scsi_io,
-   U32    byte_offset,
-   U8     value
-);
+void sati_cb_set_data_byte(void *scsi_io, U32 byte_offset, U8 value);
 
 /**
  * @brief This callback method gets a value from the data buffer associated
@@ -146,11 +135,7 @@ void sati_cb_set_data_byte(
  *
  * @return none
  */
-void sati_cb_get_data_byte(
-   void * scsi_io,
-   U32    byte_offset,
-   U8   * value
-);
+void sati_cb_get_data_byte(void *scsi_io, U32 byte_offset, U8 *value);
 
 /**
  * @brief This callback method gets the task type for the SCSI task
@@ -163,9 +148,7 @@ void sati_cb_get_data_byte(
  * @return This method returns one of the enumeration values for
  *         SCSI_TASK_MGMT_REQUEST_CODES
  */
-U8 sati_cb_get_task_function(
-   void * scsi_task
-);
+U8 sati_cb_get_task_function(void *scsi_task);
 
 #ifdef SATI_TRANSPORT_SUPPORTS_SAS
 /**
@@ -178,9 +161,7 @@ U8 sati_cb_get_task_function(
  *
  * @return This method returns the address of the response data buffer.
  */
-void * sati_cb_get_response_iu_address(
-   void * scsi_io
-);
+void *sati_cb_get_response_iu_address(void *scsi_io);
 
 #else // SATI_TRANSPORT_SUPPORTS_SAS
 
@@ -194,9 +175,7 @@ void * sati_cb_get_response_iu_address(
  *
  * @return This method returns the address of the sense data buffer.
  */
-U8* sati_cb_get_sense_data_address(
-   void * scsi_io
-);
+U8 *sati_cb_get_sense_data_address(void *scsi_io);
 
 /**
  * @brief This callback method retrieves the length of the user's sense data
@@ -208,9 +187,7 @@ U8* sati_cb_get_sense_data_address(
  *
  * @return This method returns the length of the sense data buffer.
  */
-U32 sati_cb_get_sense_data_length(
-   void * scsi_io
-);
+U32 sati_cb_get_sense_data_length(void *scsi_io);
 
 /**
  * @brief This callback method sets the SCSI status to be associated with
@@ -223,10 +200,7 @@ U32 sati_cb_get_sense_data_length(
  *
  * @return none
  */
-void sati_cb_set_scsi_status(
-   void * scsi_io,
-   U8     status
-);
+void sati_cb_set_scsi_status(void *scsi_io, U8 status);
 
 #endif // SATI_TRANSPORT_SUPPORTS_SAS
 
@@ -240,9 +214,7 @@ void sati_cb_set_scsi_status(
  * @return This method returns the address for the host to device register
  *         FIS.
  */
-U8 * sati_cb_get_h2d_register_fis_address(
-   void * ata_io
-);
+U8 *sati_cb_get_h2d_register_fis_address(void *ata_io);
 
 /**
  * @brief This method retrieves the ATA task file (register FIS) relating to
@@ -254,9 +226,7 @@ U8 * sati_cb_get_h2d_register_fis_address(
  * @return This method returns the address for the device to host register
  *         FIS.
  */
-U8 * sati_cb_get_d2h_register_fis_address(
-   void * ata_io
-);
+U8 *sati_cb_get_d2h_register_fis_address(void *ata_io);
 
 /**
  * @brief This method retrieves the address where the ATA data received
@@ -268,9 +238,7 @@ U8 * sati_cb_get_d2h_register_fis_address(
  * @return This method returns the address for the data received from
  *         the remote device.
  */
-void * sati_cb_get_ata_data_address(
-   void * ata_io
-);
+void *sati_cb_get_ata_data_address(void *ata_io);
 
 /**
  * @brief This method allocates a DMA buffer
@@ -287,13 +255,8 @@ void * sati_cb_get_ata_data_address(
  * @return This method returns the virtual and physical address
  *         of the allocated DMA buffer.
  */
-void sati_cb_allocate_dma_buffer(
-   void *  scsi_io,
-   U32     length,
-   void ** virt_address,
-   U32  *  phys_address_low,
-   U32  *  phys_address_high
-);
+void sati_cb_allocate_dma_buffer(void *scsi_io, U32 length, void **virt_address,
+    U32 *phys_address_low, U32 *phys_address_high);
 
 /**
  * @brief This method frees a previously allocated DMA buffer
@@ -305,10 +268,7 @@ void sati_cb_allocate_dma_buffer(
  * @return This method returns the address for the data received from
  *         the remote device.
  */
-void sati_cb_free_dma_buffer(
-   void * scsi_io,
-   void * virt_address
-);
+void sati_cb_free_dma_buffer(void *scsi_io, void *virt_address);
 
 /**
  * @brief This method retrieves a pointer to the next scatter gather
@@ -326,12 +286,8 @@ void sati_cb_free_dma_buffer(
  *
  * @return This method returns a pointer to the scatter gather element.
  */
-void sati_cb_sgl_next_sge(
-   void * scsi_io,
-   void * ata_io,
-   void * current_sge,
-   void ** next_sge
-);
+void sati_cb_sgl_next_sge(void *scsi_io, void *ata_io, void *current_sge,
+    void **next_sge);
 
 /**
  * @brief This method will set the next scatter-gather elements address
@@ -348,25 +304,21 @@ void sati_cb_sgl_next_sge(
  *
  * @return none
  */
-void sati_cb_sge_write(
-   void * current_sge,
-   U32    phys_address_low,
-   U32    phys_address_high,
-   U32    byte_length
-);
+void sati_cb_sge_write(void *current_sge, U32 phys_address_low,
+    U32 phys_address_high, U32 byte_length);
 
 /**
  * @brief This method will check to see if the translation requires
- *        a translation response callback.  Some translations need to be alerted on all
- *        failures so sequence cleanup can be completed for halting the translation.
+ *        a translation response callback.  Some translations need to be alerted
+ * on all failures so sequence cleanup can be completed for halting the
+ * translation.
  *
  * @param[in] the current SCIC request under going translation.
  *
- * @return TRUE A response callback will be required to complete this translation sequence.
+ * @return TRUE A response callback will be required to complete this
+ * translation sequence.
  */
-BOOL sati_cb_do_translate_response(
-   void * request
-);
+BOOL sati_cb_do_translate_response(void *request);
 
 /**
  * @brief This method retrieves the SAS address for the device associated
@@ -380,10 +332,8 @@ BOOL sati_cb_do_translate_response(
  *
  * @return none
  */
-void sati_cb_device_get_sas_address(
-   void              * scsi_io,
-   SCI_SAS_ADDRESS_T * sas_address
-);
+void sati_cb_device_get_sas_address(void *scsi_io,
+    SCI_SAS_ADDRESS_T *sas_address);
 
 /**
  * @brief In this method the user is expected to log the supplied
@@ -399,12 +349,8 @@ void sati_cb_device_get_sas_address(
  *
  * @return none
  */
-void sati_cb_logger_log_error(
-   void                * logger_object,
-   U32                   log_object_mask,
-   char                * log_message,
-   ...
-);
+void sati_cb_logger_log_error(void *logger_object, U32 log_object_mask,
+    char *log_message, ...);
 
 /**
  * @brief In this method the user is expected to log the supplied warning
@@ -420,12 +366,8 @@ void sati_cb_logger_log_error(
  *
  * @return none
  */
-void sati_cb_logger_log_warning(
-   void                * logger_object,
-   U32                   log_object_mask,
-   char                * log_message,
-   ...
-);
+void sati_cb_logger_log_warning(void *logger_object, U32 log_object_mask,
+    char *log_message, ...);
 
 /**
  * @brief In this method the user is expected to log the supplied debug
@@ -441,12 +383,8 @@ void sati_cb_logger_log_warning(
  *
  * @return none
  */
-void sati_cb_logger_log_info(
-   void                * logger_object,
-   U32                   log_object_mask,
-   char                * log_message,
-   ...
-);
+void sati_cb_logger_log_info(void *logger_object, U32 log_object_mask,
+    char *log_message, ...);
 
 /**
  * @brief In this method the user is expected to log the supplied function
@@ -463,12 +401,8 @@ void sati_cb_logger_log_info(
  *
  * @return none
  */
-void sati_cb_logger_log_trace(
-   void                * logger_object,
-   U32                   log_object_mask,
-   char                * log_message,
-   ...
-);
+void sati_cb_logger_log_trace(void *logger_object, U32 log_object_mask,
+    char *log_message, ...);
 
 #include <dev/isci/scil/sati_callbacks_implementation.h>
 
@@ -478,4 +412,3 @@ void sati_cb_logger_log_trace(
 #endif // SATI_DEFAULT_DECLARATION
 
 #endif // _SATI_CALLBACKS_H_
-

@@ -55,13 +55,13 @@
  * mdconfig -d -u X
  */
 
-#define	NUMTRIES	200
+#define NUMTRIES 200
 
 /*
  * Fill up the disk, then generate NUMTRIES additional ENOSPC errors.
  */
-#define	BLOCKSIZE	1024
-#define	BLOCKS_FILENAME	"0"
+#define BLOCKSIZE 1024
+#define BLOCKS_FILENAME "0"
 static void
 fill_blocks(void)
 {
@@ -84,13 +84,12 @@ fill_blocks(void)
 		if (len < 0)
 			break;
 		if (len != BLOCKSIZE) {
-			warnx("fill_blocks: write(%d) returned %zd",
-			    BLOCKSIZE, len);
+			warnx("fill_blocks: write(%d) returned %zd", BLOCKSIZE,
+			    len);
 			close(fd);
 			(void)unlink(BLOCKS_FILENAME);
 			exit(-1);
 		}
-
 	}
 	if (errno != ENOSPC) {
 		warn("fill_blocks: write");
@@ -155,7 +154,8 @@ fill_inodes(void)
 		}
 		if (fd >= 0) {
 			warnx("fill_inodes: open(%s) after ENOSPC returned "
-			    " %d", path, fd);
+			      " %d",
+			    path, fd);
 			close(fd);
 			goto teardown;
 		}

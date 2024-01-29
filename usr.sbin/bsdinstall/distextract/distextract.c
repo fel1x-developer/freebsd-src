@@ -27,12 +27,14 @@
  * SUCH DAMAGE.
  */
 
+#include "opt_osname.h"
+
 #include <sys/param.h>
 
 #include <archive.h>
-#include <ctype.h>
 #include <bsddialog.h>
 #include <bsddialog_progressview.h>
+#include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <limits.h>
@@ -42,16 +44,14 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "opt_osname.h"
-
 /* Data to process */
 static const char *distdir = NULL;
 static struct archive *archive = NULL;
 
 /* Function prototypes */
-static void	sig_int(int sig);
-static int	count_files(const char *file);
-static int	extract_files(struct bsddialog_fileminibar *file);
+static void sig_int(int sig);
+static int count_files(const char *file);
+static int extract_files(struct bsddialog_fileminibar *file);
 
 #define _errx(...) (bsddialog_end(), errx(__VA_ARGS__))
 
@@ -125,8 +125,8 @@ main(void)
 	chrootdir = getenv("BSDINSTALL_CHROOT");
 	if (chrootdir != NULL && chdir(chrootdir) != 0) {
 		snprintf(error, sizeof(error),
-		    "Could not change to directory %s: %s\n",
-		    chrootdir, strerror(errno));
+		    "Could not change to directory %s: %s\n", chrootdir,
+		    strerror(errno));
 		conf.title = "Error";
 		bsddialog_msgbox(&conf, error, 0, 0);
 		bsddialog_end();
@@ -139,14 +139,14 @@ main(void)
 
 	conf.title = "Archive Extraction";
 	conf.auto_minwidth = 40;
-	pvconf.callback	= extract_files;
+	pvconf.callback = extract_files;
 	pvconf.refresh = 1;
 	pvconf.fmtbottomstr = "%10lli files read @ %'9.1f files/sec.";
 	bsddialog_total_progview = 0;
 	bsddialog_interruptprogview = bsddialog_abortprogview = false;
 	retval = bsddialog_progressview(&conf,
-	    "\nExtracting distribution files...\n", 0, 0,
-	    &pvconf, nminibars, dists);
+	    "\nExtracting distribution files...\n", 0, 0, &pvconf, nminibars,
+	    dists);
 
 	if (retval == BSDDIALOG_ERROR) {
 		fprintf(stderr, "progressview error: %s\n",
@@ -194,7 +194,7 @@ count_files(const char *file)
 		rewind(manifest);
 		while (fgets(line, sizeof(line), manifest) != NULL) {
 			p = &line[0];
-			span = strcspn(p, "\t") ;
+			span = strcspn(p, "\t");
 			if (span < 1 || strncmp(p, file, span) != 0)
 				continue;
 
@@ -219,8 +219,8 @@ count_files(const char *file)
 	 */
 	bsddialog_initconf(&conf);
 	if ((archive = archive_read_new()) == NULL) {
-		snprintf(errormsg, sizeof(errormsg),
-		    "Error: %s\n", archive_error_string(NULL));
+		snprintf(errormsg, sizeof(errormsg), "Error: %s\n",
+		    archive_error_string(NULL));
 		conf.title = "Extract Error";
 		bsddialog_msgbox(&conf, errormsg, 0, 0);
 		return (-1);
@@ -262,8 +262,8 @@ extract_files(struct bsddialog_fileminibar *file)
 	/* Open the archive if necessary */
 	if (archive == NULL) {
 		if ((archive = archive_read_new()) == NULL) {
-			snprintf(errormsg, sizeof(errormsg),
-			    "Error: %s\n", archive_error_string(NULL));
+			snprintf(errormsg, sizeof(errormsg), "Error: %s\n",
+			    archive_error_string(NULL));
 			conf.title = "Extract Error";
 			bsddialog_msgbox(&conf, errormsg, 0, 0);
 			bsddialog_abortprogview = true;
@@ -292,18 +292,20 @@ extract_files(struct bsddialog_fileminibar *file)
 	if (retval == ARCHIVE_OK)
 		retval = archive_read_extract(archive, entry,
 		    ARCHIVE_EXTRACT_TIME | ARCHIVE_EXTRACT_OWNER |
-		    ARCHIVE_EXTRACT_PERM | ARCHIVE_EXTRACT_ACL |
-		    ARCHIVE_EXTRACT_XATTR | ARCHIVE_EXTRACT_FFLAGS);
+			ARCHIVE_EXTRACT_PERM | ARCHIVE_EXTRACT_ACL |
+			ARCHIVE_EXTRACT_XATTR | ARCHIVE_EXTRACT_FFLAGS);
 
 	/* Test for either EOF or error */
 	if (retval == ARCHIVE_EOF) {
 		archive_read_free(archive);
 		archive = NULL;
-		file->status = BSDDIALOG_MG_DONE; /*Done*/;
+		file->status = BSDDIALOG_MG_DONE; /*Done*/
+		;
 		return (100);
 	} else if (retval != ARCHIVE_OK &&
 	    !(retval == ARCHIVE_WARN &&
-	    strcmp(archive_error_string(archive), "Can't restore time") == 0)) {
+		strcmp(archive_error_string(archive), "Can't restore time") ==
+		    0)) {
 		/*
 		 * Print any warning/error messages except inability to set
 		 * ctime/mtime, which is not fatal, or even interesting,

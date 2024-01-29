@@ -20,13 +20,14 @@
  */
 
 #include <sys/param.h>
+
 #include <machine/elf.h>
 #include <machine/stdarg.h>
-#include <stand.h>
 
 #include <efi.h>
-#include <eficonsctl.h>
 #include <efichar.h>
+#include <eficonsctl.h>
+#include <stand.h>
 
 #include "boot_module.h"
 #include "paths.h"
@@ -36,12 +37,7 @@ static EFI_GUID BlockIoProtocolGUID = BLOCK_IO_PROTOCOL;
 static EFI_GUID DevicePathGUID = DEVICE_PATH_PROTOCOL;
 
 #ifndef EFI_DEBUG
-static const char *prio_str[] = {
-	"error",
-	"not supported",
-	"good",
-	"better"
-};
+static const char *prio_str[] = { "error", "not supported", "good", "better" };
 #endif
 
 /*
@@ -167,11 +163,13 @@ choice_protocol(EFI_HANDLE *handles, UINTN nhandles, EFI_DEVICE_PATH *imgpath)
 	/* Report UEFI Boot Manager Protocol details */
 	boot_current = 0;
 	sz = sizeof(boot_current);
-	if (efi_global_getenv("BootCurrent", &boot_current, &sz) == EFI_SUCCESS) {
+	if (efi_global_getenv("BootCurrent", &boot_current, &sz) ==
+	    EFI_SUCCESS) {
 		printf("   BootCurrent: %04x\n", boot_current);
 
 		sz = sizeof(boot_order);
-		if (efi_global_getenv("BootOrder", &boot_order, &sz) == EFI_SUCCESS) {
+		if (efi_global_getenv("BootOrder", &boot_order, &sz) ==
+		    EFI_SUCCESS) {
 			printf("   BootOrder:");
 			for (i = 0; i < sz / sizeof(boot_order[0]); i++)
 				printf(" %04x%s", boot_order[i],
@@ -201,7 +199,6 @@ choice_protocol(EFI_HANDLE *handles, UINTN nhandles, EFI_DEVICE_PATH *imgpath)
 #endif
 	}
 	printf(" done\n");
-
 
 	/* Status summary. */
 	for (i = 0; i < num_boot_modules; i++) {

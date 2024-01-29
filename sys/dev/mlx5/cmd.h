@@ -29,27 +29,26 @@
 #include <linux/types.h>
 
 struct manage_pages_layout {
-	u64	ptr;
-	u32	reserved;
-	u16	num_entries;
-	u16	func_id;
+	u64 ptr;
+	u32 reserved;
+	u16 num_entries;
+	u16 func_id;
 };
 
-
 struct mlx5_cmd_alloc_uar_imm_out {
-	u32	rsvd[3];
-	u32	uarn;
+	u32 rsvd[3];
+	u32 uarn;
 };
 
 struct mlx5_core_dev;
-int mlx5_cmd_query_cong_counter(struct mlx5_core_dev *dev,
-                                bool reset, void *out, int out_size);
+int mlx5_cmd_query_cong_counter(struct mlx5_core_dev *dev, bool reset,
+    void *out, int out_size);
 int mlx5_cmd_query_cong_params(struct mlx5_core_dev *dev, int cong_point,
-                               void *out, int out_size);
-int mlx5_cmd_modify_cong_params(struct mlx5_core_dev *mdev,
-                                void *in, int in_size);
+    void *out, int out_size);
+int mlx5_cmd_modify_cong_params(struct mlx5_core_dev *mdev, void *in,
+    int in_size);
 int mlx5_cmd_query_cong_status(struct mlx5_core_dev *dev, int cong_point,
-                               int prio, void *out, int out_size);
-int mlx5_cmd_modify_cong_status(struct mlx5_core_dev *mdev,
-                                void *in, int in_size);
+    int prio, void *out, int out_size);
+int mlx5_cmd_modify_cong_status(struct mlx5_core_dev *mdev, void *in,
+    int in_size);
 #endif /* MLX5_CMD_H */

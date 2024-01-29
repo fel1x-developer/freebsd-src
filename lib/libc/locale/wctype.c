@@ -56,43 +56,27 @@ iswctype_l(wint_t wc, wctype_t charclass, locale_t locale)
 wctype_t
 wctype_l(const char *property, locale_t locale)
 {
-	const char *propnames = 
-		"alnum\0"
-		"alpha\0"
-		"blank\0"
-		"cntrl\0"
-		"digit\0"
-		"graph\0"
-		"lower\0"
-		"print\0"
-		"punct\0"
-		"space\0"
-		"upper\0"
-		"xdigit\0"
-		"ideogram\0"	/* BSD extension */
-		"special\0"	/* BSD extension */
-		"phonogram\0"	/* BSD extension */
-		"number\0"	/* BSD extension */
-		"rune\0";	/* BSD extension */
-	static const wctype_t propmasks[] = {
-		_CTYPE_A|_CTYPE_N,
-		_CTYPE_A,
-		_CTYPE_B,
-		_CTYPE_C,
-		_CTYPE_D,
-		_CTYPE_G,
-		_CTYPE_L,
-		_CTYPE_R,
-		_CTYPE_P,
-		_CTYPE_S,
-		_CTYPE_U,
-		_CTYPE_X,
-		_CTYPE_I,
-		_CTYPE_T,
-		_CTYPE_Q,
-		_CTYPE_N,
-		0xFFFFFF00L
-	};
+	const char *propnames = "alnum\0"
+				"alpha\0"
+				"blank\0"
+				"cntrl\0"
+				"digit\0"
+				"graph\0"
+				"lower\0"
+				"print\0"
+				"punct\0"
+				"space\0"
+				"upper\0"
+				"xdigit\0"
+				"ideogram\0"  /* BSD extension */
+				"special\0"   /* BSD extension */
+				"phonogram\0" /* BSD extension */
+				"number\0"    /* BSD extension */
+				"rune\0";     /* BSD extension */
+	static const wctype_t propmasks[] = { _CTYPE_A | _CTYPE_N, _CTYPE_A,
+		_CTYPE_B, _CTYPE_C, _CTYPE_D, _CTYPE_G, _CTYPE_L, _CTYPE_R,
+		_CTYPE_P, _CTYPE_S, _CTYPE_U, _CTYPE_X, _CTYPE_I, _CTYPE_T,
+		_CTYPE_Q, _CTYPE_N, 0xFFFFFF00L };
 	size_t len1, len2;
 	const char *p;
 	const wctype_t *q;
@@ -108,7 +92,8 @@ wctype_l(const char *property, locale_t locale)
 	return (0UL);
 }
 
-wctype_t wctype(const char *property)
+wctype_t
+wctype(const char *property)
 {
 	return wctype_l(property, 0);
 }

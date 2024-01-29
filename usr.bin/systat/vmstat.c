@@ -29,20 +29,18 @@
  * SUCH DAMAGE.
  */
 
-
-
 /*
  * Cursed vmstat -- from Robert Elz.
  */
 
 #include <sys/param.h>
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <sys/proc.h>
-#include <sys/uio.h>
 #include <sys/namei.h>
+#include <sys/proc.h>
 #include <sys/resource.h>
+#include <sys/stat.h>
 #include <sys/sysctl.h>
+#include <sys/time.h>
+#include <sys/uio.h>
 #include <sys/vmmeter.h>
 
 #include <vm/vm_param.h>
@@ -60,17 +58,18 @@
 #include <time.h>
 #include <unistd.h>
 #include <utmpx.h>
-#include "systat.h"
-#include "extern.h"
+
 #include "devs.h"
+#include "extern.h"
+#include "systat.h"
 
 static struct Info {
-	long	time[CPUSTATES];
-	uint64_t v_swtch;	/* context switches */
-	uint64_t v_trap;	/* calls to trap */
-	uint64_t v_syscall;	/* calls to syscall() */
-	uint64_t v_intr;	/* device interrupts */
-	uint64_t v_soft;	/* software interrupts */
+	long time[CPUSTATES];
+	uint64_t v_swtch;   /* context switches */
+	uint64_t v_trap;    /* calls to trap */
+	uint64_t v_syscall; /* calls to syscall() */
+	uint64_t v_intr;    /* device interrupts */
+	uint64_t v_soft;    /* software interrupts */
 	/*
 	 * Virtual memory activity.
 	 */
@@ -86,43 +85,42 @@ static struct Info {
 	uint64_t v_vnodein;	/* vnode pager pageins */
 	uint64_t v_vnodeout;	/* vnode pager pageouts */
 	uint64_t v_vnodepgsin;	/* vnode_pager pages paged in */
-	uint64_t v_vnodepgsout;	/* vnode pager pages paged out */
+	uint64_t v_vnodepgsout; /* vnode pager pages paged out */
 	uint64_t v_intrans;	/* intransit blocking page faults */
-	uint64_t v_reactivated;	/* number of pages reactivated by pagedaemon */
-	uint64_t v_pdwakeups;	/* number of times daemon has awaken from sleep */
-	uint64_t v_pdpages;	/* number of pages analyzed by daemon */
+	uint64_t v_reactivated; /* number of pages reactivated by pagedaemon */
+	uint64_t v_pdwakeups; /* number of times daemon has awaken from sleep */
+	uint64_t v_pdpages;   /* number of pages analyzed by daemon */
 
-	uint64_t v_dfree;	/* pages freed by daemon */
-	uint64_t v_pfree;	/* pages freed by exiting processes */
-	uint64_t v_tfree;	/* total pages freed */
+	uint64_t v_dfree; /* pages freed by daemon */
+	uint64_t v_pfree; /* pages freed by exiting processes */
+	uint64_t v_tfree; /* total pages freed */
 	/*
 	 * Distribution of page usages.
 	 */
 	u_int v_free_count;	/* number of pages free */
 	u_int v_wire_count;	/* number of pages wired down */
 	u_int v_active_count;	/* number of pages active */
-	u_int v_inactive_count;	/* number of pages inactive */
+	u_int v_inactive_count; /* number of pages inactive */
 	u_int v_laundry_count;	/* number of pages in laundry queue */
-	u_long v_kmem_map_size;	/* Current kmem allocation size */
-	struct	vmtotal Total;
-	struct	nchstats nchstats;
-	long	nchcount;
-	long	*intrcnt;
-	long	bufspace;
-	u_long	maxvnodes;
-	long	numvnodes;
-	long	freevnodes;
-	int	numdirtybuffers;
+	u_long v_kmem_map_size; /* Current kmem allocation size */
+	struct vmtotal Total;
+	struct nchstats nchstats;
+	long nchcount;
+	long *intrcnt;
+	long bufspace;
+	u_long maxvnodes;
+	long numvnodes;
+	long freevnodes;
+	int numdirtybuffers;
 } s, s1, s2, z;
 static u_long kmem_size;
 static u_int v_page_count;
 
+#define total s.Total
+#define nchtotal s.nchstats
+#define oldnchtotal s1.nchstats
 
-#define	total s.Total
-#define	nchtotal s.nchstats
-#define	oldnchtotal s1.nchstats
-
-static	enum state { BOOT, TIME, RUN } state = TIME;
+static enum state { BOOT, TIME, RUN } state = TIME;
 enum divisor { IEC = 0, SI = HN_DIVISOR_1000 };
 
 static void allocinfo(struct Info *);
@@ -132,14 +130,14 @@ static void do_putuint64(uint64_t, int, int, int, int);
 static void getinfo(struct Info *);
 static int ucount(void);
 
-static	int ncpu;
-static	char buf[26];
-static	time_t t;
-static	double etime;
-static	int nintr;
-static	long *intrloc;
-static	char **intrname;
-static	int nextintsrow;
+static int ncpu;
+static char buf[26];
+static time_t t;
+static double etime;
+static int nintr;
+static long *intrloc;
+static char **intrname;
+static int nextintsrow;
 
 WINDOW *
 openkre(void)
@@ -161,32 +159,32 @@ closekre(WINDOW *w)
 /*
  * These constants define where the major pieces are laid out
  */
-#define STATROW		 0	/* uses 1 row and 67 cols */
-#define STATCOL		 0
-#define MEMROW		 2	/* uses 4 rows and 45 cols */
-#define MEMCOL		 0
-#define PAGEROW		 1	/* uses 4 rows and 30 cols */
-#define PAGECOL		47
-#define INTSROW		 5	/* uses all rows to bottom and 16 cols */
-#define INTSCOL		64
-#define PROCSROW	 6	/* uses 3 rows and 20 cols */
-#define PROCSCOL	 0
-#define GENSTATROW	 7	/* uses 2 rows and 29 cols */
-#define GENSTATCOL	22
-#define VMSTATROW	 5	/* uses 17 rows and 12-14 cols */
-#define VMSTATCOL	52
-#define GRAPHROW	10	/* uses 3 rows and 49-51 cols */
-#define GRAPHCOL	 0
-#define VNSTATROW	13	/* uses 4 rows and 13 columns */
-#define VNSTATCOL	35
-#define NAMEIROW	14	/* uses 3 rows and 32 cols */
-#define NAMEICOL	 0
-#define DISKROW		18	/* uses 5 rows and 47 cols (for 7 drives) */
-#define DISKCOL		 0
+#define STATROW 0 /* uses 1 row and 67 cols */
+#define STATCOL 0
+#define MEMROW 2 /* uses 4 rows and 45 cols */
+#define MEMCOL 0
+#define PAGEROW 1 /* uses 4 rows and 30 cols */
+#define PAGECOL 47
+#define INTSROW 5 /* uses all rows to bottom and 16 cols */
+#define INTSCOL 64
+#define PROCSROW 6 /* uses 3 rows and 20 cols */
+#define PROCSCOL 0
+#define GENSTATROW 7 /* uses 2 rows and 29 cols */
+#define GENSTATCOL 22
+#define VMSTATROW 5 /* uses 17 rows and 12-14 cols */
+#define VMSTATCOL 52
+#define GRAPHROW 10 /* uses 3 rows and 49-51 cols */
+#define GRAPHCOL 0
+#define VNSTATROW 13 /* uses 4 rows and 13 columns */
+#define VNSTATCOL 35
+#define NAMEIROW 14 /* uses 3 rows and 32 cols */
+#define NAMEICOL 0
+#define DISKROW 18 /* uses 5 rows and 47 cols (for 7 drives) */
+#define DISKCOL 0
 
-#define	DRIVESPACE	 7	/* max # for space */
+#define DRIVESPACE 7 /* max # for space */
 
-#define	MAXDRIVES	DRIVESPACE	 /* max # to display */
+#define MAXDRIVES DRIVESPACE /* max # to display */
 
 int
 initkre(void)
@@ -196,17 +194,17 @@ initkre(void)
 	size_t sz;
 
 	if (dsinit(MAXDRIVES) != 1)
-		return(0);
+		return (0);
 
 	if (nintr == 0) {
 		if (sysctlbyname("hw.intrcnt", NULL, &sz, NULL, 0) == -1) {
 			error("sysctl(hw.intrcnt...) failed: %s",
-			      strerror(errno));
+			    strerror(errno));
 			return (0);
 		}
 		nintr = sz / sizeof(u_long);
-		intrloc = calloc(nintr, sizeof (long));
-		intrname = calloc(nintr, sizeof (char *));
+		intrloc = calloc(nintr, sizeof(long));
+		intrname = calloc(nintr, sizeof(char *));
 		intrnamebuf = sysctl_dynread("hw.intrnames", NULL);
 		if (intrnamebuf == NULL || intrname == NULL ||
 		    intrloc == NULL) {
@@ -218,13 +216,13 @@ initkre(void)
 			if (intrloc)
 				free(intrloc);
 			nintr = 0;
-			return(0);
+			return (0);
 		}
 		for (cp = intrnamebuf, i = 0; i < nintr; i++) {
 			nextcp = cp + strlen(cp) + 1;
 
 			/* Discard trailing spaces. */
-			for (cp1 = nextcp - 1; cp1 > cp && *(cp1 - 1) == ' '; )
+			for (cp1 = nextcp - 1; cp1 > cp && *(cp1 - 1) == ' ';)
 				*--cp1 = '\0';
 
 			/* Convert "irqN: name" to "name irqN". */
@@ -268,7 +266,7 @@ initkre(void)
 	GETSYSCTL("vm.stats.vm.v_page_count", v_page_count);
 	getinfo(&s2);
 	copyinfo(&s2, &s1);
-	return(1);
+	return (1);
 }
 
 void
@@ -283,8 +281,7 @@ fetchkre(void)
 
 	time(&now);
 	tp = localtime(&now);
-	(void) strftime(buf, sizeof(buf),
-			d_first ? "%e %b %T" : "%b %e %T", tp);
+	(void)strftime(buf, sizeof(buf), d_first ? "%e %b %T" : "%b %e %T", tp);
 	getinfo(&s);
 }
 
@@ -303,7 +300,7 @@ labelkre(void)
 
 	mvprintw(MEMROW + 1, MEMCOL + 40, "Free");
 
-	mvprintw(PAGEROW, PAGECOL,     "         VN PAGER   SWAP PAGER");
+	mvprintw(PAGEROW, PAGECOL, "         VN PAGER   SWAP PAGER");
 	mvprintw(PAGEROW + 1, PAGECOL, "         in   out     in   out");
 	mvprintw(PAGEROW + 2, PAGECOL, "count");
 	mvprintw(PAGEROW + 3, PAGECOL, "pages");
@@ -334,11 +331,11 @@ labelkre(void)
 	mvprintw(GENSTATROW, GENSTATCOL, " Csw  Trp  Sys  Int  Sof  Flt");
 
 	mvprintw(GRAPHROW, GRAPHCOL,
-		"  . %%Sys    . %%Intr   . %%User   . %%Nice   . %%Idle");
+	    "  . %%Sys    . %%Intr   . %%User   . %%Nice   . %%Idle");
 	mvprintw(PROCSROW, PROCSCOL, "Proc:");
 	mvprintw(PROCSROW + 1, PROCSCOL, "  r   p   d    s   w");
 	mvprintw(GRAPHROW + 1, GRAPHCOL,
-		"|    |    |    |    |    |    |    |    |    |    |");
+	    "|    |    |    |    |    |    |    |    |    |    |");
 
 	mvprintw(VNSTATROW, VNSTATCOL + 8, "dtbuf");
 	mvprintw(VNSTATROW + 1, VNSTATCOL + 8, "maxvn");
@@ -346,8 +343,7 @@ labelkre(void)
 	mvprintw(VNSTATROW + 3, VNSTATCOL + 8, "frevn");
 
 	mvprintw(NAMEIROW, NAMEICOL, "Namei     Name-cache   Dir-cache");
-	mvprintw(NAMEIROW + 1, NAMEICOL,
-		"   Calls    hits   %%    hits   %%");
+	mvprintw(NAMEIROW + 1, NAMEICOL, "   Calls    hits   %%    hits   %%");
 	dslabel(MAXDRIVES, DISKCOL, DISKROW);
 
 	for (i = 0; i < nintr; i++) {
@@ -357,21 +353,44 @@ labelkre(void)
 	}
 }
 
-#define X(fld)	{t=s.fld[i]; s.fld[i]-=s1.fld[i]; if(state==TIME) s1.fld[i]=t;}
-#define Q(fld)	{t=cur_dev.fld[i]; cur_dev.fld[i]-=last_dev.fld[i]; if(state==TIME) last_dev.fld[i]=t;}
-#define Y(fld)	{t = s.fld; s.fld -= s1.fld; if(state == TIME) s1.fld = t;}
-#define Z(fld)	{t = s.nchstats.fld; s.nchstats.fld -= s1.nchstats.fld; \
-	if(state == TIME) s1.nchstats.fld = t;}
-#define PUTRATE(fld, l, c, w) \
-do { \
-	Y(fld); \
-	sysputwuint64(wnd, l, c, w, (s.fld/etime + 0.5), 0); \
-} while (0)
+#define X(fld)                         \
+	{                              \
+		t = s.fld[i];          \
+		s.fld[i] -= s1.fld[i]; \
+		if (state == TIME)     \
+			s1.fld[i] = t; \
+	}
+#define Q(fld)                                     \
+	{                                          \
+		t = cur_dev.fld[i];                \
+		cur_dev.fld[i] -= last_dev.fld[i]; \
+		if (state == TIME)                 \
+			last_dev.fld[i] = t;       \
+	}
+#define Y(fld)                      \
+	{                           \
+		t = s.fld;          \
+		s.fld -= s1.fld;    \
+		if (state == TIME)  \
+			s1.fld = t; \
+	}
+#define Z(fld)                                     \
+	{                                          \
+		t = s.nchstats.fld;                \
+		s.nchstats.fld -= s1.nchstats.fld; \
+		if (state == TIME)                 \
+			s1.nchstats.fld = t;       \
+	}
+#define PUTRATE(fld, l, c, w)                                          \
+	do {                                                           \
+		Y(fld);                                                \
+		sysputwuint64(wnd, l, c, w, (s.fld / etime + 0.5), 0); \
+	} while (0)
 #define MAXFAIL 5
 
-static	char cpuchar[CPUSTATES] = { '=' , '+', '>', '-', ' ' };
-static	char cpuorder[CPUSTATES] = { CP_SYS, CP_INTR, CP_USER, CP_NICE,
-				     CP_IDLE };
+static char cpuchar[CPUSTATES] = { '=', '+', '>', '-', ' ' };
+static char cpuorder[CPUSTATES] = { CP_SYS, CP_INTR, CP_USER, CP_NICE,
+	CP_IDLE };
 
 void
 showkre(void)
@@ -382,12 +401,12 @@ showkre(void)
 	static int failcnt = 0;
 
 	etime = 0;
-	for(i = 0; i < CPUSTATES; i++) {
+	for (i = 0; i < CPUSTATES; i++) {
 		X(time);
 		Q(cp_time);
 		etime += s.time[i];
 	}
-	if (etime < 5.0) {	/* < 5 ticks - ignore this trash */
+	if (etime < 5.0) { /* < 5 ticks - ignore this trash */
 		if (failcnt++ >= MAXFAIL) {
 			clear();
 			mvprintw(2, 10, "The alternate system clock has died!");
@@ -408,20 +427,25 @@ showkre(void)
 		if (s.intrcnt[i] == 0)
 			continue;
 		X(intrcnt);
-		l = (int)((float)s.intrcnt[i]/etime + 0.5);
+		l = (int)((float)s.intrcnt[i] / etime + 0.5);
 		inttotal += l;
 		if (intrloc[i] == 0) {
 			if (nextintsrow == LINES)
 				continue;
 			intrloc[i] = nextintsrow++;
 			mvprintw(intrloc[i], INTSCOL + 6, "%-10.10s",
-				intrname[i]);
+			    intrname[i]);
 		}
 		putint(l, intrloc[i], INTSCOL, 5);
 	}
 	putint(inttotal, INTSROW + 1, INTSCOL, 5);
-	Z(ncs_goodhits); Z(ncs_badhits); Z(ncs_miss);
-	Z(ncs_long); Z(ncs_pass2); Z(ncs_2passes); Z(ncs_neghits);
+	Z(ncs_goodhits);
+	Z(ncs_badhits);
+	Z(ncs_miss);
+	Z(ncs_long);
+	Z(ncs_pass2);
+	Z(ncs_2passes);
+	Z(ncs_neghits);
 	s.nchcount = nchtotal.ncs_goodhits + nchtotal.ncs_badhits +
 	    nchtotal.ncs_miss + nchtotal.ncs_long + nchtotal.ncs_neghits;
 	if (state == TIME)
@@ -433,7 +457,7 @@ showkre(void)
 		i = cpuorder[lc];
 		f1 = cputime(i);
 		f2 += f1;
-		l = (int) ((f2 + 1.0) / 2.0) - psiz;
+		l = (int)((f2 + 1.0) / 2.0) - psiz;
 		putfloat(f1, GRAPHROW, GRAPHCOL + 10 * lc, 4, 1, 0);
 		move(GRAPHROW + 2, psiz);
 		psiz += l;
@@ -447,9 +471,9 @@ showkre(void)
 	putfloat(avenrun[2], STATROW, STATCOL + 32, 5, 2, 0);
 	mvaddstr(STATROW, STATCOL + 55, buf);
 	putfloat(100.0 * (v_page_count - total.t_free) / v_page_count,
-	   STATROW + 1, STATCOL + 15, 2, 0, 1);
-	putfloat(100.0 * s.v_kmem_map_size / kmem_size,
-	   STATROW + 1, STATCOL + 22, 2, 0, 1);
+	    STATROW + 1, STATCOL + 15, 2, 0, 1);
+	putfloat(100.0 * s.v_kmem_map_size / kmem_size, STATROW + 1,
+	    STATCOL + 22, 2, 0, 1);
 
 	sysputpage(wnd, MEMROW + 2, MEMCOL + 4, 6, total.t_arm, 0);
 	sysputpage(wnd, MEMROW + 2, MEMCOL + 12, 6, total.t_armshr, 0);
@@ -499,7 +523,7 @@ showkre(void)
 	PUTRATE(v_intr, GENSTATROW + 1, GENSTATCOL + 15, 4);
 	PUTRATE(v_soft, GENSTATROW + 1, GENSTATCOL + 20, 4);
 	PUTRATE(v_vm_faults, GENSTATROW + 1, GENSTATCOL + 25, 4);
-	switch(state) {
+	switch (state) {
 	case TIME:
 		dsshow(MAXDRIVES, DISKCOL, DISKROW, &cur_dev, &last_dev);
 		break;
@@ -515,15 +539,15 @@ showkre(void)
 	putint(s.numvnodes, VNSTATROW + 2, VNSTATCOL, 7);
 	putint(s.freevnodes, VNSTATROW + 3, VNSTATCOL, 7);
 	putint(s.nchcount, NAMEIROW + 2, NAMEICOL, 8);
-	putint((nchtotal.ncs_goodhits + nchtotal.ncs_neghits),
-	   NAMEIROW + 2, NAMEICOL + 9, 7);
-#define nz(x)	((x) ? (x) : 1)
-	putfloat((nchtotal.ncs_goodhits+nchtotal.ncs_neghits) *
-	   100.0 / nz(s.nchcount),
-	   NAMEIROW + 2, NAMEICOL + 17, 3, 0, 1);
+	putint((nchtotal.ncs_goodhits + nchtotal.ncs_neghits), NAMEIROW + 2,
+	    NAMEICOL + 9, 7);
+#define nz(x) ((x) ? (x) : 1)
+	putfloat((nchtotal.ncs_goodhits + nchtotal.ncs_neghits) * 100.0 /
+		nz(s.nchcount),
+	    NAMEIROW + 2, NAMEICOL + 17, 3, 0, 1);
 	putint(nchtotal.ncs_pass2, NAMEIROW + 2, NAMEICOL + 21, 7);
-	putfloat(nchtotal.ncs_pass2 * 100.0 / nz(s.nchcount),
-	   NAMEIROW + 2, NAMEICOL + 29, 3, 0, 1);
+	putfloat(nchtotal.ncs_pass2 * 100.0 / nz(s.nchcount), NAMEIROW + 2,
+	    NAMEICOL + 29, 3, 0, 1);
 #undef nz
 }
 
@@ -572,7 +596,8 @@ cmdkre(const char *cmd, const char *args)
 			case 1:
 				num_devices = run_dev.dinfo->numdevs;
 				generation = run_dev.dinfo->generation;
-				retval = dscmd("refresh",NULL, MAXDRIVES, &cur_dev);
+				retval = dscmd("refresh", NULL, MAXDRIVES,
+				    &cur_dev);
 				if (retval == 2)
 					labelkre();
 				break;
@@ -587,7 +612,7 @@ cmdkre(const char *cmd, const char *args)
 	if (retval == 2)
 		labelkre();
 
-	return(retval);
+	return (retval);
 }
 
 /* calculate number of users on the system */
@@ -636,9 +661,9 @@ do_putuint64(uint64_t n, int l, int lc, int w, int div)
 
 	move(l, lc);
 #ifdef DEBUG
-		while (w-- > 0)
-			addch('*');
-		return;
+	while (w-- > 0)
+		addch('*');
+	return;
 #endif
 	if (n == 0) {
 		while (w-- > 0)
@@ -667,9 +692,9 @@ putfloat(double f, int l, int lc, int w, int d, int nz)
 
 	move(l, lc);
 #ifdef DEBUG
-		while (--w >= 0)
-			addch('*');
-		return;
+	while (--w >= 0)
+		addch('*');
+	return;
 #endif
 	if (nz && f == 0.0) {
 		while (--w >= 0)
@@ -699,9 +724,9 @@ putlongdouble(long double f, int l, int lc, int w, int d, int nz)
 
 	move(l, lc);
 #ifdef DEBUG
-		while (--w >= 0)
-			addch('*');
-		return;
+	while (--w >= 0)
+		addch('*');
+	return;
 #endif
 	if (nz && f == 0.0) {
 		while (--w >= 0)
@@ -795,7 +820,7 @@ static void
 allocinfo(struct Info *ls)
 {
 
-	ls->intrcnt = (long *) calloc(nintr, sizeof(long));
+	ls->intrcnt = (long *)calloc(nintr, sizeof(long));
 	if (ls->intrcnt == NULL)
 		errx(2, "out of memory");
 }
@@ -813,5 +838,5 @@ copyinfo(struct Info *from, struct Info *to)
 	intrcnt = to->intrcnt;
 	*to = *from;
 
-	bcopy(from->intrcnt, to->intrcnt = intrcnt, nintr * sizeof (int));
+	bcopy(from->intrcnt, to->intrcnt = intrcnt, nintr * sizeof(int));
 }

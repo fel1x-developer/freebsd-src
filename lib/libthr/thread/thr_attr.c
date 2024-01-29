@@ -94,18 +94,19 @@
  */
 
 #include <sys/cdefs.h>
-#include "namespace.h"
+#include <sys/sysctl.h>
+
 #include <errno.h>
 #include <pthread.h>
+#include <pthread_np.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pthread_np.h>
-#include <sys/sysctl.h>
+
+#include "namespace.h"
+#include "thr_private.h"
 #include "un-namespace.h"
 
-#include "thr_private.h"
-
-static size_t	_get_kern_cpuset_size(void);
+static size_t _get_kern_cpuset_size(void);
 
 __weak_reference(_thr_attr_destroy, _pthread_attr_destroy);
 __weak_reference(_thr_attr_destroy, pthread_attr_destroy);
@@ -199,8 +200,8 @@ __weak_reference(_thr_attr_getguardsize, pthread_attr_getguardsize);
 __weak_reference(_thr_attr_getguardsize, _pthread_attr_getguardsize);
 
 int
-_thr_attr_getguardsize(const pthread_attr_t * __restrict attr,
-    size_t * __restrict guardsize)
+_thr_attr_getguardsize(const pthread_attr_t *__restrict attr,
+    size_t *__restrict guardsize)
 {
 
 	if (attr == NULL || *attr == NULL || guardsize == NULL)
@@ -214,8 +215,8 @@ __weak_reference(_thr_attr_getinheritsched, pthread_attr_getinheritsched);
 __weak_reference(_thr_attr_getinheritsched, _pthread_attr_getinheritsched);
 
 int
-_thr_attr_getinheritsched(const pthread_attr_t * __restrict attr,
-    int * __restrict sched_inherit)
+_thr_attr_getinheritsched(const pthread_attr_t *__restrict attr,
+    int *__restrict sched_inherit)
 {
 
 	if (attr == NULL || *attr == NULL)
@@ -229,8 +230,8 @@ __weak_reference(_thr_attr_getschedparam, pthread_attr_getschedparam);
 __weak_reference(_thr_attr_getschedparam, _pthread_attr_getschedparam);
 
 int
-_thr_attr_getschedparam(const pthread_attr_t * __restrict attr,
-    struct sched_param * __restrict param)
+_thr_attr_getschedparam(const pthread_attr_t *__restrict attr,
+    struct sched_param *__restrict param)
 {
 
 	if (attr == NULL || *attr == NULL || param == NULL)
@@ -244,8 +245,8 @@ __weak_reference(_thr_attr_getschedpolicy, pthread_attr_getschedpolicy);
 __weak_reference(_thr_attr_getschedpolicy, _pthread_attr_getschedpolicy);
 
 int
-_thr_attr_getschedpolicy(const pthread_attr_t * __restrict attr,
-    int * __restrict policy)
+_thr_attr_getschedpolicy(const pthread_attr_t *__restrict attr,
+    int *__restrict policy)
 {
 
 	if (attr == NULL || *attr == NULL || policy == NULL)
@@ -259,23 +260,24 @@ __weak_reference(_thr_attr_getscope, pthread_attr_getscope);
 __weak_reference(_thr_attr_getscope, _pthread_attr_getscope);
 
 int
-_thr_attr_getscope(const pthread_attr_t * __restrict attr,
-    int * __restrict contentionscope)
+_thr_attr_getscope(const pthread_attr_t *__restrict attr,
+    int *__restrict contentionscope)
 {
 
 	if (attr == NULL || *attr == NULL || contentionscope == NULL)
 		return (EINVAL);
 
 	*contentionscope = ((*attr)->flags & PTHREAD_SCOPE_SYSTEM) != 0 ?
-	    PTHREAD_SCOPE_SYSTEM : PTHREAD_SCOPE_PROCESS;
+	    PTHREAD_SCOPE_SYSTEM :
+	    PTHREAD_SCOPE_PROCESS;
 	return (0);
 }
 
 __weak_reference(_pthread_attr_getstack, pthread_attr_getstack);
 
 int
-_pthread_attr_getstack(const pthread_attr_t * __restrict attr,
-    void ** __restrict stackaddr, size_t * __restrict stacksize)
+_pthread_attr_getstack(const pthread_attr_t *__restrict attr,
+    void **__restrict stackaddr, size_t *__restrict stacksize)
 {
 
 	if (attr == NULL || *attr == NULL || stackaddr == NULL ||
@@ -305,8 +307,8 @@ __weak_reference(_thr_attr_getstacksize, pthread_attr_getstacksize);
 __weak_reference(_thr_attr_getstacksize, _pthread_attr_getstacksize);
 
 int
-_thr_attr_getstacksize(const pthread_attr_t * __restrict attr,
-    size_t * __restrict stacksize)
+_thr_attr_getstacksize(const pthread_attr_t *__restrict attr,
+    size_t *__restrict stacksize)
 {
 
 	if (attr == NULL || *attr == NULL || stacksize == NULL)
@@ -334,7 +336,7 @@ _thr_attr_init(pthread_attr_t *attr)
 	return (0);
 }
 
-__weak_reference(_pthread_attr_setcreatesuspend_np,			\
+__weak_reference(_pthread_attr_setcreatesuspend_np,
     pthread_attr_setcreatesuspend_np);
 
 int
@@ -357,7 +359,7 @@ _thr_attr_setdetachstate(pthread_attr_t *attr, int detachstate)
 
 	if (attr == NULL || *attr == NULL ||
 	    (detachstate != PTHREAD_CREATE_DETACHED &&
-	    detachstate != PTHREAD_CREATE_JOINABLE))
+		detachstate != PTHREAD_CREATE_JOINABLE))
 		return (EINVAL);
 
 	if (detachstate == PTHREAD_CREATE_DETACHED)
@@ -390,7 +392,7 @@ _thr_attr_setinheritsched(pthread_attr_t *attr, int sched_inherit)
 
 	if (attr == NULL || *attr == NULL ||
 	    (sched_inherit != PTHREAD_INHERIT_SCHED &&
-	    sched_inherit != PTHREAD_EXPLICIT_SCHED))
+		sched_inherit != PTHREAD_EXPLICIT_SCHED))
 		return (EINVAL);
 
 	(*attr)->sched_inherit = sched_inherit;
@@ -401,8 +403,8 @@ __weak_reference(_thr_attr_setschedparam, pthread_attr_setschedparam);
 __weak_reference(_thr_attr_setschedparam, _pthread_attr_setschedparam);
 
 int
-_thr_attr_setschedparam(pthread_attr_t * __restrict attr,
-    const struct sched_param * __restrict param)
+_thr_attr_setschedparam(pthread_attr_t *__restrict attr,
+    const struct sched_param *__restrict param)
 {
 	int policy;
 
@@ -412,8 +414,9 @@ _thr_attr_setschedparam(pthread_attr_t * __restrict attr,
 	policy = (*attr)->sched_policy;
 
 	if (policy == SCHED_FIFO || policy == SCHED_RR) {
-		if (param->sched_priority < _thr_priorities[policy-1].pri_min ||
-		    param->sched_priority > _thr_priorities[policy-1].pri_max)
+		if (param->sched_priority <
+			_thr_priorities[policy - 1].pri_min ||
+		    param->sched_priority > _thr_priorities[policy - 1].pri_max)
 			return (EINVAL);
 	} else {
 		/*
@@ -435,12 +438,12 @@ int
 _thr_attr_setschedpolicy(pthread_attr_t *attr, int policy)
 {
 
-	if (attr == NULL || *attr == NULL ||
-	    policy < SCHED_FIFO || policy > SCHED_RR)
+	if (attr == NULL || *attr == NULL || policy < SCHED_FIFO ||
+	    policy > SCHED_RR)
 		return (EINVAL);
 
 	(*attr)->sched_policy = policy;
-	(*attr)->prio = _thr_priorities[policy-1].pri_default;
+	(*attr)->prio = _thr_priorities[policy - 1].pri_default;
 	return (0);
 }
 
@@ -453,7 +456,7 @@ _thr_attr_setscope(pthread_attr_t *attr, int contentionscope)
 
 	if (attr == NULL || *attr == NULL ||
 	    (contentionscope != PTHREAD_SCOPE_PROCESS &&
-	    contentionscope != PTHREAD_SCOPE_SYSTEM))
+		contentionscope != PTHREAD_SCOPE_SYSTEM))
 		return (EINVAL);
 
 	if (contentionscope == PTHREAD_SCOPE_SYSTEM)
@@ -466,8 +469,7 @@ _thr_attr_setscope(pthread_attr_t *attr, int contentionscope)
 __weak_reference(_pthread_attr_setstack, pthread_attr_setstack);
 
 int
-_pthread_attr_setstack(pthread_attr_t *attr, void *stackaddr,
-    size_t stacksize)
+_pthread_attr_setstack(pthread_attr_t *attr, void *stackaddr, size_t stacksize)
 {
 
 	if (attr == NULL || *attr == NULL || stackaddr == NULL ||
@@ -517,9 +519,9 @@ _get_kern_cpuset_size(void)
 
 		len = sizeof(kern_cpuset_size);
 		if (sysctlbyname("kern.sched.cpusetsizemin", &kern_cpuset_size,
-		    &len, NULL, 0) != 0 &&
+			&len, NULL, 0) != 0 &&
 		    sysctlbyname("kern.sched.cpusetsize", &kern_cpuset_size,
-		    &len, NULL, 0) != 0)
+			&len, NULL, 0) != 0)
 			PANIC("failed to get sysctl kern.sched.cpusetsize");
 	}
 
@@ -585,8 +587,8 @@ _pthread_attr_getaffinity_np(const pthread_attr_t *pattr, size_t cpusetsize,
 	if (cpusetsize < kern_size)
 		return (ERANGE);
 	if (attr->cpuset != NULL)
-		memcpy(cpusetp, attr->cpuset, MIN(cpusetsize,
-		    attr->cpusetsize));
+		memcpy(cpusetp, attr->cpuset,
+		    MIN(cpusetsize, attr->cpusetsize));
 	else
 		memset(cpusetp, -1, kern_size);
 	if (cpusetsize > kern_size)

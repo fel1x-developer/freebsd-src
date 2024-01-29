@@ -28,7 +28,6 @@
  * SUCH DAMAGE.
  */
 
-
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
@@ -37,13 +36,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "citrus_namespace.h"
-#include "citrus_region.h"
 #include "citrus_bcs.h"
 #include "citrus_db_factory.h"
 #include "citrus_db_hash.h"
 #include "citrus_lookup_factory.h"
 #include "citrus_lookup_file.h"
+#include "citrus_namespace.h"
+#include "citrus_region.h"
 
 #define T_COMM '#'
 static int
@@ -64,7 +63,7 @@ convert_line(struct _citrus_db_factory *df, const char *line, size_t len)
 	p = _bcs_skip_nonws_len(line, &len);
 	if (p == line)
 		return (0);
-	snprintf(key, sizeof(key), "%.*s", (int)(p-line), line);
+	snprintf(key, sizeof(key), "%.*s", (int)(p - line), line);
 	_bcs_convert_to_lower(key);
 
 	/* data */

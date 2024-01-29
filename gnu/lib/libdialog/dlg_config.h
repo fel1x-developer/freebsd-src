@@ -12,11 +12,11 @@
 #endif
 #define GCC_PRINTF 1
 #ifndef GCC_PRINTFLIKE
-#define GCC_PRINTFLIKE(fmt,var) __attribute__((format(printf,fmt,var)))
+#define GCC_PRINTFLIKE(fmt, var) __attribute__((format(printf, fmt, var)))
 #endif
 #define GCC_SCANF 1
 #ifndef GCC_SCANFLIKE
-#define GCC_SCANFLIKE(fmt,var) __attribute__((format(scanf,fmt,var)))
+#define GCC_SCANFLIKE(fmt, var) __attribute__((format(scanf, fmt, var)))
 #endif
 #ifndef GCC_UNUSED
 #define GCC_UNUSED __attribute__((unused))
@@ -112,7 +112,7 @@
 #define HAVE_WSYNCUP 1
 #define HAVE_XDIALOG 1
 #define HAVE_XDIALOG2 1
-#define ICONV_CONST 
+#define ICONV_CONST
 #define MIXEDCASE_FILENAMES 1
 #define NCURSES 1
 #define NEED_WCHAR_H 1

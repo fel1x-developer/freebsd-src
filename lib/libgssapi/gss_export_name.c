@@ -33,11 +33,10 @@
 #include "utils.h"
 
 OM_uint32
-gss_export_name(OM_uint32 *minor_status,
-    const gss_name_t input_name,
+gss_export_name(OM_uint32 *minor_status, const gss_name_t input_name,
     gss_buffer_t exported_name)
 {
-	struct _gss_name *name = (struct _gss_name *) input_name;
+	struct _gss_name *name = (struct _gss_name *)input_name;
 	struct _gss_mechanism_name *mn;
 
 	_gss_buffer_zero(exported_name);
@@ -53,6 +52,6 @@ gss_export_name(OM_uint32 *minor_status,
 		return (GSS_S_NAME_NOT_MN);
 	}
 
-	return mn->gmn_mech->gm_export_name(minor_status,
-	    mn->gmn_name, exported_name);
+	return mn->gmn_mech->gm_export_name(minor_status, mn->gmn_name,
+	    exported_name);
 }

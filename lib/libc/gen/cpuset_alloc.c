@@ -23,8 +23,8 @@
  * SUCH DAMAGE.
  */
 
-#include <stdlib.h>
 #include <sched.h>
+#include <stdlib.h>
 
 cpuset_t *
 __cpuset_alloc(size_t ncpus)

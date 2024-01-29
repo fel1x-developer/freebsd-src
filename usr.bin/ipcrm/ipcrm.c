@@ -33,12 +33,12 @@
  */
 
 #include <sys/param.h>
-#define	_WANT_SYSVMSG_INTERNALS
+#define _WANT_SYSVMSG_INTERNALS
 #include <sys/msg.h>
-#define	_WANT_SYSVSEM_INTERNALS
-#define	_WANT_SEMUN
+#define _WANT_SYSVSEM_INTERNALS
+#define _WANT_SEMUN
 #include <sys/sem.h>
-#define	_WANT_SYSVSHM_INTERNALS
+#define _WANT_SYSVSHM_INTERNALS
 #include <sys/shm.h>
 
 #include <ctype.h>
@@ -51,9 +51,9 @@
 
 #include "ipc.h"
 
-static int	signaled;
-static int	errflg;
-static int	rmverbose = 0;
+static int signaled;
+static int errflg;
+static int rmverbose = 0;
 
 static void
 usage(void)
@@ -83,19 +83,16 @@ msgrm(key_t key, int id)
 		while (num-- && !signaled)
 			if (kxmsqids[num].u.msg_qbytes != 0) {
 				id = IXSEQ_TO_IPCID(num,
-					kxmsqids[num].u.msg_perm);
+				    kxmsqids[num].u.msg_perm);
 				if (msgctl(id, IPC_RMID, NULL) < 0) {
 					if (rmverbose > 1)
 						warn("msqid(%d): ", id);
 					errflg++;
-				} else
-					if (rmverbose)
-						printf(
-						    "Removed %s %d\n",
-						    IPC_TO_STRING('Q'),
-						    id);
+				} else if (rmverbose)
+					printf("Removed %s %d\n",
+					    IPC_TO_STRING('Q'), id);
 			}
-		return signaled ? -1 : 0;       /* errors maybe handled above */
+		return signaled ? -1 : 0; /* errors maybe handled above */
 	}
 
 	if (key) {
@@ -124,19 +121,16 @@ shmrm(key_t key, int id)
 		while (num-- && !signaled)
 			if (kxshmids[num].u.shm_perm.mode & 0x0800) {
 				id = IXSEQ_TO_IPCID(num,
-					kxshmids[num].u.shm_perm);
+				    kxshmids[num].u.shm_perm);
 				if (shmctl(id, IPC_RMID, NULL) < 0) {
 					if (rmverbose > 1)
 						warn("shmid(%d): ", id);
 					errflg++;
-				} else
-					if (rmverbose)
-						printf(
-						    "Removed %s %d\n",
-						    IPC_TO_STRING('M'),
-						    id);
+				} else if (rmverbose)
+					printf("Removed %s %d\n",
+					    IPC_TO_STRING('M'), id);
 			}
-		return signaled ? -1 : 0;       /* errors maybe handled above */
+		return signaled ? -1 : 0; /* errors maybe handled above */
 	}
 
 	if (key) {
@@ -166,19 +160,16 @@ semrm(key_t key, int id)
 		while (num-- && !signaled)
 			if ((kxsema[num].u.sem_perm.mode & SEM_ALLOC) != 0) {
 				id = IXSEQ_TO_IPCID(num,
-					kxsema[num].u.sem_perm);
+				    kxsema[num].u.sem_perm);
 				if (semctl(id, 0, IPC_RMID, NULL) < 0) {
 					if (rmverbose > 1)
 						warn("semid(%d): ", id);
 					errflg++;
-				} else
-					if (rmverbose)
-						printf(
-						    "Removed %s %d\n",
-						    IPC_TO_STRING('S'),
-						    id);
+				} else if (rmverbose)
+					printf("Removed %s %d\n",
+					    IPC_TO_STRING('S'), id);
 			}
-		return signaled ? -1 : 0;       /* errors maybe handled above */
+		return signaled ? -1 : 0; /* errors maybe handled above */
 	}
 
 	if (key) {
@@ -239,9 +230,8 @@ main(int argc, char *argv[])
 					warn("%sid(%d): ",
 					    IPC_TO_STR(toupper(c)), target_id);
 				else
-					warnx(
-					    "%ss are not configured "
-					    "in the running kernel",
+					warnx("%ss are not configured "
+					      "in the running kernel",
 					    IPC_TO_STRING(toupper(c)));
 			}
 			break;
@@ -263,11 +253,11 @@ main(int argc, char *argv[])
 			if (result < 0) {
 				errflg++;
 				if (!signaled)
-					warn("%ss(%ld): ",
-					    IPC_TO_STR(c), target_key);
+					warn("%ss(%ld): ", IPC_TO_STR(c),
+					    target_key);
 				else
 					warnx("%ss are not configured "
-					    "in the running kernel",
+					      "in the running kernel",
 					    IPC_TO_STRING(c));
 			}
 			break;
@@ -281,8 +271,8 @@ main(int argc, char *argv[])
 			semrm(-1, 0);
 			break;
 		case ':':
-			fprintf(stderr,
-			    "option -%c requires an argument\n", optopt);
+			fprintf(stderr, "option -%c requires an argument\n",
+			    optopt);
 			usage();
 		case '?':
 			fprintf(stderr, "unrecognized option: -%c\n", optopt);

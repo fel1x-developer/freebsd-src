@@ -71,16 +71,16 @@
 #include <ttyent.h>
 #include <unistd.h>
 
-#include "common.h"
 #include "child.h"
+#include "common.h"
 
 struct consinfo {
-	const char		*name;
-	STAILQ_ENTRY(consinfo)	link;
-	int			fd;
+	const char *name;
+	STAILQ_ENTRY(consinfo) link;
+	int fd;
 	/* -1: not started, 0: reaped */
-	volatile pid_t		pid;
-	volatile int		exitstatus;
+	volatile pid_t pid;
+	volatile int exitstatus;
 };
 
 STAILQ_HEAD(consinfo_list, consinfo);
@@ -89,7 +89,7 @@ static struct consinfo_list consinfos;
 static struct consinfo *primary_consinfo;
 static struct consinfo *controlling_consinfo;
 
-static struct consinfo * volatile first_sigchld_consinfo;
+static struct consinfo *volatile first_sigchld_consinfo;
 
 static struct pipe_barrier wait_first_child_barrier;
 static struct pipe_barrier wait_all_children_barrier;
@@ -97,10 +97,8 @@ static struct pipe_barrier wait_all_children_barrier;
 static const char primary[] = "primary";
 static const char secondary[] = "secondary";
 
-static const struct option longopts[] = {
-	{ "help",	no_argument,	NULL,	'h' },
-	{ NULL,		0,		NULL,	0 }
-};
+static const struct option longopts[] = { { "help", no_argument, NULL, 'h' },
+	{ NULL, 0, NULL, 0 } };
 
 static void
 kill_consoles(int sig)
@@ -111,7 +109,7 @@ kill_consoles(int sig)
 	/* Temporarily block signals so PID reading and killing are atomic */
 	sigfillset(&set);
 	sigprocmask(SIG_BLOCK, &set, &oset);
-	STAILQ_FOREACH(consinfo, &consinfos, link) {
+	STAILQ_FOREACH (consinfo, &consinfos, link) {
 		if (consinfo->pid != -1 && consinfo->pid != 0)
 			kill(consinfo->pid, sig);
 	}
@@ -151,8 +149,7 @@ wait_all_consoles(void)
 	sigprocmask(SIG_SETMASK, &oset, NULL);
 
 	if (controlling_consinfo != NULL) {
-		error = tcsetpgrp(controlling_consinfo->fd,
-		    getpgrp());
+		error = tcsetpgrp(controlling_consinfo->fd, getpgrp());
 		if (error != 0)
 			err(EX_OSERR, "could not give up control of %s",
 			    controlling_consinfo->name);
@@ -179,7 +176,7 @@ exit_signal_handler(int code)
 	bool started_console;
 
 	started_console = false;
-	STAILQ_FOREACH(consinfo, &consinfos, link) {
+	STAILQ_FOREACH (consinfo, &consinfos, link) {
 		if (consinfo->pid != -1) {
 			started_console = true;
 			break;
@@ -205,7 +202,7 @@ sigchld_handler_reaped_one(pid_t pid, int status)
 
 	child_consinfo = NULL;
 	others = false;
-	STAILQ_FOREACH(consinfo, &consinfos, link) {
+	STAILQ_FOREACH (consinfo, &consinfos, link) {
 		/*
 		 * NB: No need to check consinfo->pid as the caller is
 		 * responsible for passing a valid PID
@@ -346,8 +343,7 @@ read_consoles(void)
 			 */
 			pgrp = tcgetpgrp(fd);
 			if (pgrp == -1)
-				err(EX_IOERR, "could not get pgrp of %s",
-				    dev);
+				err(EX_IOERR, "could not get pgrp of %s", dev);
 			else if (pgrp != getpgrp())
 				errx(EX_IOERR, "%s controlled by another group",
 				    dev);
@@ -456,9 +452,9 @@ start_consoles(int argc, char **argv)
 	/*
 	 * About to start children, so use our SIGCHLD handler to get notified
 	 * when we need to stop. Once the first child has started we will have
-	 * registered kill_wait_all_consoles_err_exit which needs our SIGALRM handler to
-	 * SIGKILL the children on timeout; do it up front so we can err if it
-	 * fails beforehand.
+	 * registered kill_wait_all_consoles_err_exit which needs our SIGALRM
+	 * handler to SIGKILL the children on timeout; do it up front so we can
+	 * err if it fails beforehand.
 	 *
 	 * Also set up our SIGTERM (and SIGINT and SIGQUIT if we're keeping
 	 * control of this terminal) handler before we start children so we can
@@ -557,7 +553,7 @@ start_consoles(int argc, char **argv)
 	 */
 	sigfillset(&set);
 	sigprocmask(SIG_BLOCK, &set, &oset);
-	STAILQ_FOREACH(consinfo, &consinfos, link)
+	STAILQ_FOREACH (consinfo, &consinfos, link)
 		start_console(consinfo, newargv, primary_secondary,
 		    &start_barrier, &oset);
 	sigprocmask(SIG_SETMASK, &oset, NULL);

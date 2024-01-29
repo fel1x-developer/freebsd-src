@@ -53,7 +53,7 @@ ypclnt_new(const char *domain, const char *map, const char *server)
 	if (server != NULL && (ypclnt->server = strdup(server)) == NULL)
 		goto fail;
 	return (ypclnt);
- fail:
+fail:
 	free(ypclnt->domain);
 	free(ypclnt->map);
 	free(ypclnt->server);

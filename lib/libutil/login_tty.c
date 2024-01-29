@@ -29,7 +29,6 @@
  * SUCH DAMAGE.
  */
 
-
 #include <sys/param.h>
 
 #include <libutil.h>
@@ -47,10 +46,10 @@ login_tty(int fd)
 		s = getsid(0);
 	if (tcsetsid(fd, s) == -1)
 		return (-1);
-	(void) dup2(fd, 0);
-	(void) dup2(fd, 1);
-	(void) dup2(fd, 2);
+	(void)dup2(fd, 0);
+	(void)dup2(fd, 1);
+	(void)dup2(fd, 2);
 	if (fd > 2)
-		(void) close(fd);
+		(void)close(fd);
 	return (0);
 }

@@ -12,10 +12,10 @@
  * 1. Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the 
+ *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
  *
- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND 
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
@@ -32,19 +32,18 @@
 #define L2CAP_SOCKET_CHECKED
 #include <bluetooth.h>
 #include <errno.h>
+#include <sdp-int.h>
+#include <sdp.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <sdp-int.h>
-#include <sdp.h>
-
 void *
 sdp_open(bdaddr_t const *l, bdaddr_t const *r)
 {
-	sdp_session_p		ss = NULL;
-	struct sockaddr_l2cap	sa;
-	socklen_t		size;
+	sdp_session_p ss = NULL;
+	struct sockaddr_l2cap sa;
+	socklen_t size;
 
 	if ((ss = calloc(1, sizeof(*ss))) == NULL)
 		goto fail;
@@ -65,16 +64,16 @@ sdp_open(bdaddr_t const *l, bdaddr_t const *r)
 	sa.l2cap_psm = 0;
 	sa.l2cap_cid = 0;
 	sa.l2cap_bdaddr_type = BDADDR_BREDR;
-	
+
 	memcpy(&sa.l2cap_bdaddr, l, sizeof(sa.l2cap_bdaddr));
-	if (bind(ss->s, (struct sockaddr *) &sa, sizeof(sa)) < 0) {
+	if (bind(ss->s, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
 		ss->error = errno;
 		goto fail;
 	}
 
 	sa.l2cap_psm = htole16(NG_L2CAP_PSM_SDP);
 	memcpy(&sa.l2cap_bdaddr, r, sizeof(sa.l2cap_bdaddr));
-	if (connect(ss->s, (struct sockaddr *) &sa, sizeof(sa)) < 0) {
+	if (connect(ss->s, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
 		ss->error = errno;
 		goto fail;
 	}
@@ -102,14 +101,14 @@ sdp_open(bdaddr_t const *l, bdaddr_t const *r)
 	ss->rsp_e = ss->rsp + ss->imtu;
 	ss->error = 0;
 fail:
-	return ((void *) ss);
+	return ((void *)ss);
 }
 
 void *
 sdp_open_local(char const *control)
 {
-	sdp_session_p		ss = NULL;
-	struct sockaddr_un	sa;
+	sdp_session_p ss = NULL;
+	struct sockaddr_un sa;
 
 	if ((ss = calloc(1, sizeof(*ss))) == NULL)
 		goto fail;
@@ -127,7 +126,7 @@ sdp_open_local(char const *control)
 	sa.sun_family = AF_UNIX;
 	strlcpy(sa.sun_path, control, sizeof(sa.sun_path));
 
-	if (connect(ss->s, (struct sockaddr *) &sa, sizeof(sa)) < 0) {
+	if (connect(ss->s, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
 		ss->error = errno;
 		goto fail;
 	}
@@ -148,13 +147,13 @@ sdp_open_local(char const *control)
 	ss->rsp_e = ss->rsp + ss->imtu;
 	ss->error = 0;
 fail:
-	return ((void *) ss);
+	return ((void *)ss);
 }
 
 int32_t
 sdp_close(void *xss)
 {
-	sdp_session_p	ss = (sdp_session_p) xss;
+	sdp_session_p ss = (sdp_session_p)xss;
 
 	if (ss != NULL) {
 		if (ss->s >= 0)
@@ -175,17 +174,17 @@ sdp_close(void *xss)
 int32_t
 sdp_error(void *xss)
 {
-	sdp_session_p	ss = (sdp_session_p) xss;
+	sdp_session_p ss = (sdp_session_p)xss;
 
-	return ((ss != NULL)? ss->error : EINVAL);
+	return ((ss != NULL) ? ss->error : EINVAL);
 }
 
 int32_t
 sdp_get_lcaddr(void *xss, bdaddr_t *l)
 {
-	sdp_session_p		ss = (sdp_session_p) xss;
-	struct sockaddr_l2cap	sa;
-	socklen_t		size;
+	sdp_session_p ss = (sdp_session_p)xss;
+	struct sockaddr_l2cap sa;
+	socklen_t size;
 
 	if (l == NULL || ss == NULL || ss->flags & SDP_SESSION_LOCAL) {
 		ss->error = EINVAL;

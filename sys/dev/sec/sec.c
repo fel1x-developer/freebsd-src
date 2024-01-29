@@ -47,85 +47,83 @@
 #include <machine/bus.h>
 #include <machine/resource.h>
 
-#include <opencrypto/cryptodev.h>
-#include <opencrypto/xform_auth.h>
-#include "cryptodev_if.h"
-
 #include <dev/ofw/ofw_bus_subr.h>
 #include <dev/sec/sec.h>
 
-static int	sec_probe(device_t dev);
-static int	sec_attach(device_t dev);
-static int	sec_detach(device_t dev);
-static int	sec_suspend(device_t dev);
-static int	sec_resume(device_t dev);
-static int	sec_shutdown(device_t dev);
-static void	sec_primary_intr(void *arg);
-static void	sec_secondary_intr(void *arg);
-static int	sec_setup_intr(struct sec_softc *sc, struct resource **ires,
+#include <opencrypto/cryptodev.h>
+#include <opencrypto/xform_auth.h>
+
+#include "cryptodev_if.h"
+
+static int sec_probe(device_t dev);
+static int sec_attach(device_t dev);
+static int sec_detach(device_t dev);
+static int sec_suspend(device_t dev);
+static int sec_resume(device_t dev);
+static int sec_shutdown(device_t dev);
+static void sec_primary_intr(void *arg);
+static void sec_secondary_intr(void *arg);
+static int sec_setup_intr(struct sec_softc *sc, struct resource **ires,
     void **ihand, int *irid, driver_intr_t handler, const char *iname);
-static void	sec_release_intr(struct sec_softc *sc, struct resource *ires,
+static void sec_release_intr(struct sec_softc *sc, struct resource *ires,
     void *ihand, int irid, const char *iname);
-static int	sec_controller_reset(struct sec_softc *sc);
-static int	sec_channel_reset(struct sec_softc *sc, int channel, int full);
-static int	sec_init(struct sec_softc *sc);
-static int	sec_alloc_dma_mem(struct sec_softc *sc,
-    struct sec_dma_mem *dma_mem, bus_size_t size);
-static int	sec_desc_map_dma(struct sec_softc *sc,
-    struct sec_dma_mem *dma_mem, struct cryptop *crp, bus_size_t size,
-    struct sec_desc_map_info *sdmi);
-static void	sec_free_dma_mem(struct sec_dma_mem *dma_mem);
-static void	sec_enqueue(struct sec_softc *sc);
-static int	sec_enqueue_desc(struct sec_softc *sc, struct sec_desc *desc,
+static int sec_controller_reset(struct sec_softc *sc);
+static int sec_channel_reset(struct sec_softc *sc, int channel, int full);
+static int sec_init(struct sec_softc *sc);
+static int sec_alloc_dma_mem(struct sec_softc *sc, struct sec_dma_mem *dma_mem,
+    bus_size_t size);
+static int sec_desc_map_dma(struct sec_softc *sc, struct sec_dma_mem *dma_mem,
+    struct cryptop *crp, bus_size_t size, struct sec_desc_map_info *sdmi);
+static void sec_free_dma_mem(struct sec_dma_mem *dma_mem);
+static void sec_enqueue(struct sec_softc *sc);
+static int sec_enqueue_desc(struct sec_softc *sc, struct sec_desc *desc,
     int channel);
-static int	sec_eu_channel(struct sec_softc *sc, int eu);
-static int	sec_make_pointer(struct sec_softc *sc, struct sec_desc *desc,
+static int sec_eu_channel(struct sec_softc *sc, int eu);
+static int sec_make_pointer(struct sec_softc *sc, struct sec_desc *desc,
     u_int n, struct cryptop *crp, bus_size_t doffset, bus_size_t dsize);
-static int	sec_make_pointer_direct(struct sec_softc *sc,
-    struct sec_desc *desc, u_int n, bus_addr_t data, bus_size_t dsize);
-static int	sec_probesession(device_t dev,
+static int sec_make_pointer_direct(struct sec_softc *sc, struct sec_desc *desc,
+    u_int n, bus_addr_t data, bus_size_t dsize);
+static int sec_probesession(device_t dev,
     const struct crypto_session_params *csp);
-static int	sec_newsession(device_t dev, crypto_session_t cses,
+static int sec_newsession(device_t dev, crypto_session_t cses,
     const struct crypto_session_params *csp);
-static int	sec_process(device_t dev, struct cryptop *crp, int hint);
-static int	sec_build_common_ns_desc(struct sec_softc *sc,
-    struct sec_desc *desc, const struct crypto_session_params *csp,
-    struct cryptop *crp);
-static int	sec_build_common_s_desc(struct sec_softc *sc,
-    struct sec_desc *desc, const struct crypto_session_params *csp,
-    struct cryptop *crp);
+static int sec_process(device_t dev, struct cryptop *crp, int hint);
+static int sec_build_common_ns_desc(struct sec_softc *sc, struct sec_desc *desc,
+    const struct crypto_session_params *csp, struct cryptop *crp);
+static int sec_build_common_s_desc(struct sec_softc *sc, struct sec_desc *desc,
+    const struct crypto_session_params *csp, struct cryptop *crp);
 
 static struct sec_desc *sec_find_desc(struct sec_softc *sc, bus_addr_t paddr);
 
 /* AESU */
-static bool	sec_aesu_newsession(const struct crypto_session_params *csp);
-static int	sec_aesu_make_desc(struct sec_softc *sc,
+static bool sec_aesu_newsession(const struct crypto_session_params *csp);
+static int sec_aesu_make_desc(struct sec_softc *sc,
     const struct crypto_session_params *csp, struct sec_desc *desc,
     struct cryptop *crp);
 
 /* MDEU */
-static bool	sec_mdeu_can_handle(u_int alg);
-static int	sec_mdeu_config(const struct crypto_session_params *csp,
-    u_int *eu, u_int *mode, u_int *hashlen);
-static bool	sec_mdeu_newsession(const struct crypto_session_params *csp);
-static int	sec_mdeu_make_desc(struct sec_softc *sc,
+static bool sec_mdeu_can_handle(u_int alg);
+static int sec_mdeu_config(const struct crypto_session_params *csp, u_int *eu,
+    u_int *mode, u_int *hashlen);
+static bool sec_mdeu_newsession(const struct crypto_session_params *csp);
+static int sec_mdeu_make_desc(struct sec_softc *sc,
     const struct crypto_session_params *csp, struct sec_desc *desc,
     struct cryptop *crp);
 
 static device_method_t sec_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		sec_probe),
-	DEVMETHOD(device_attach,	sec_attach),
-	DEVMETHOD(device_detach,	sec_detach),
+	DEVMETHOD(device_probe, sec_probe),
+	DEVMETHOD(device_attach, sec_attach),
+	DEVMETHOD(device_detach, sec_detach),
 
-	DEVMETHOD(device_suspend,	sec_suspend),
-	DEVMETHOD(device_resume,	sec_resume),
-	DEVMETHOD(device_shutdown,	sec_shutdown),
+	DEVMETHOD(device_suspend, sec_suspend),
+	DEVMETHOD(device_resume, sec_resume),
+	DEVMETHOD(device_shutdown, sec_shutdown),
 
 	/* Crypto methods */
 	DEVMETHOD(cryptodev_probesession, sec_probesession),
-	DEVMETHOD(cryptodev_newsession,	sec_newsession),
-	DEVMETHOD(cryptodev_process,	sec_process),
+	DEVMETHOD(cryptodev_newsession, sec_newsession),
+	DEVMETHOD(cryptodev_process, sec_process),
 
 	DEVMETHOD_END
 };
@@ -138,17 +136,15 @@ static driver_t sec_driver = {
 DRIVER_MODULE(sec, simplebus, sec_driver, 0, 0);
 MODULE_DEPEND(sec, crypto, 1, 1, 1);
 
-static struct sec_eu_methods sec_eus[] = {
+static struct sec_eu_methods sec_eus[] = { {
+					       sec_aesu_newsession,
+					       sec_aesu_make_desc,
+					   },
 	{
-		sec_aesu_newsession,
-		sec_aesu_make_desc,
+	    sec_mdeu_newsession,
+	    sec_mdeu_make_desc,
 	},
-	{
-		sec_mdeu_newsession,
-		sec_mdeu_make_desc,
-	},
-	{ NULL, NULL }
-};
+	{ NULL, NULL } };
 
 static inline void
 sec_sync_dma_mem(struct sec_dma_mem *dma_mem, bus_dmasync_op_t op)
@@ -208,7 +204,7 @@ sec_probe(device_t dev)
 		sc->sc_version = 3;
 		break;
 	default:
-		device_printf(dev, "unknown SEC ID 0x%016"PRIx64"!\n", id);
+		device_printf(dev, "unknown SEC ID 0x%016" PRIx64 "!\n", id);
 		return (ENXIO);
 	}
 
@@ -287,14 +283,14 @@ sec_attach(device_t dev)
 	/* Fill in descriptors and link tables */
 	for (i = 0; i < SEC_DESCRIPTORS; i++) {
 		sc->sc_desc[i].sd_desc =
-		    (struct sec_hw_desc*)(sc->sc_desc_dmem.dma_vaddr) + i;
+		    (struct sec_hw_desc *)(sc->sc_desc_dmem.dma_vaddr) + i;
 		sc->sc_desc[i].sd_desc_paddr = sc->sc_desc_dmem.dma_paddr +
 		    (i * sizeof(struct sec_hw_desc));
 	}
 
 	for (i = 0; i < SEC_LT_ENTRIES + 1; i++) {
 		sc->sc_lt[i].sl_lt =
-		    (struct sec_hw_lt*)(sc->sc_lt_dmem.dma_vaddr) + i;
+		    (struct sec_hw_lt *)(sc->sc_lt_dmem.dma_vaddr) + i;
 		sc->sc_lt[i].sl_lt_paddr = sc->sc_lt_dmem.dma_paddr +
 		    (i * sizeof(struct sec_hw_lt));
 	}
@@ -323,15 +319,15 @@ sec_attach(device_t dev)
 
 	switch (sc->sc_version) {
 	case 2:
-		sc->sc_channel_idle_mask =
-		    (SEC_CHAN_CSR2_FFLVL_M << SEC_CHAN_CSR2_FFLVL_S) |
+		sc->sc_channel_idle_mask = (SEC_CHAN_CSR2_FFLVL_M
+					       << SEC_CHAN_CSR2_FFLVL_S) |
 		    (SEC_CHAN_CSR2_MSTATE_M << SEC_CHAN_CSR2_MSTATE_S) |
 		    (SEC_CHAN_CSR2_PSTATE_M << SEC_CHAN_CSR2_PSTATE_S) |
 		    (SEC_CHAN_CSR2_GSTATE_M << SEC_CHAN_CSR2_GSTATE_S);
 		break;
 	case 3:
-		sc->sc_channel_idle_mask =
-		    (SEC_CHAN_CSR3_FFLVL_M << SEC_CHAN_CSR3_FFLVL_S) |
+		sc->sc_channel_idle_mask = (SEC_CHAN_CSR3_FFLVL_M
+					       << SEC_CHAN_CSR3_FFLVL_S) |
 		    (SEC_CHAN_CSR3_MSTATE_M << SEC_CHAN_CSR3_MSTATE_S) |
 		    (SEC_CHAN_CSR3_PSTATE_M << SEC_CHAN_CSR3_PSTATE_S) |
 		    (SEC_CHAN_CSR3_GSTATE_M << SEC_CHAN_CSR3_GSTATE_S);
@@ -351,11 +347,11 @@ fail6:
 fail5:
 	sec_free_dma_mem(&(sc->sc_desc_dmem));
 fail4:
-	sec_release_intr(sc, sc->sc_sec_ires, sc->sc_sec_ihand,
-	    sc->sc_sec_irid, "secondary");
+	sec_release_intr(sc, sc->sc_sec_ires, sc->sc_sec_ihand, sc->sc_sec_irid,
+	    "secondary");
 fail3:
-	sec_release_intr(sc, sc->sc_pri_ires, sc->sc_pri_ihand,
-	    sc->sc_pri_irid, "primary");
+	sec_release_intr(sc, sc->sc_pri_ires, sc->sc_pri_ihand, sc->sc_pri_irid,
+	    "primary");
 fail2:
 	bus_release_resource(dev, SYS_RES_MEMORY, sc->sc_rrid, sc->sc_rres);
 fail1:
@@ -413,18 +409,20 @@ sec_detach(device_t dev)
 	sec_free_dma_mem(&(sc->sc_desc_dmem));
 
 	/* Release interrupts */
-	sec_release_intr(sc, sc->sc_pri_ires, sc->sc_pri_ihand,
-	    sc->sc_pri_irid, "primary");
-	sec_release_intr(sc, sc->sc_sec_ires, sc->sc_sec_ihand,
-	    sc->sc_sec_irid, "secondary");
+	sec_release_intr(sc, sc->sc_pri_ires, sc->sc_pri_ihand, sc->sc_pri_irid,
+	    "primary");
+	sec_release_intr(sc, sc->sc_sec_ires, sc->sc_sec_ihand, sc->sc_sec_irid,
+	    "secondary");
 
 	/* Release memory */
 	if (sc->sc_rres) {
 		error = bus_release_resource(dev, SYS_RES_MEMORY, sc->sc_rrid,
 		    sc->sc_rres);
 		if (error)
-			device_printf(dev, "bus_release_resource() failed for"
-			    " I/O memory, error %d\n", error);
+			device_printf(dev,
+			    "bus_release_resource() failed for"
+			    " I/O memory, error %d\n",
+			    error);
 
 		sc->sc_rres = NULL;
 	}
@@ -497,13 +495,17 @@ sec_release_intr(struct sec_softc *sc, struct resource *ires, void *ihand,
 
 	error = bus_teardown_intr(sc->sc_dev, ires, ihand);
 	if (error)
-		device_printf(sc->sc_dev, "bus_teardown_intr() failed for %s"
-		    " IRQ, error %d\n", iname, error);
+		device_printf(sc->sc_dev,
+		    "bus_teardown_intr() failed for %s"
+		    " IRQ, error %d\n",
+		    iname, error);
 
 	error = bus_release_resource(sc->sc_dev, SYS_RES_IRQ, irid, ires);
 	if (error)
-		device_printf(sc->sc_dev, "bus_release_resource() failed for %s"
-		    " IRQ, error %d\n", iname, error);
+		device_printf(sc->sc_dev,
+		    "bus_release_resource() failed for %s"
+		    " IRQ, error %d\n",
+		    iname, error);
 }
 
 static void
@@ -527,12 +529,12 @@ sec_primary_intr(void *arg)
 			if ((isr & SEC_INT_CH_ERR(i)) == 0)
 				continue;
 
-			device_printf(sc->sc_dev,
-			    "I/O error on channel %i!\n", i);
+			device_printf(sc->sc_dev, "I/O error on channel %i!\n",
+			    i);
 
 			/* Find and mark problematic descriptor */
-			desc = sec_find_desc(sc, SEC_READ(sc,
-			    SEC_CHAN_CDPR(i)));
+			desc = sec_find_desc(sc,
+			    SEC_READ(sc, SEC_CHAN_CDPR(i)));
 
 			if (desc != NULL)
 				desc->sd_error = EIO;
@@ -559,8 +561,8 @@ sec_primary_intr(void *arg)
 			break;
 		}
 
-		SEC_DESC_SYNC_POINTERS(desc, BUS_DMASYNC_PREREAD |
-		    BUS_DMASYNC_PREWRITE);
+		SEC_DESC_SYNC_POINTERS(desc,
+		    BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
 
 		crp = desc->sd_crp;
 		crp->crp_etype = desc->sd_error;
@@ -569,16 +571,15 @@ sec_primary_intr(void *arg)
 			if (ses->ss_mlen != 0) {
 				if (crp->crp_op & CRYPTO_OP_VERIFY_DIGEST) {
 					crypto_copydata(crp,
-					    crp->crp_digest_start,
-					    ses->ss_mlen, hash);
+					    crp->crp_digest_start, ses->ss_mlen,
+					    hash);
 					if (timingsafe_bcmp(
-					    desc->sd_desc->shd_digest,
-					    hash, ses->ss_mlen) != 0)
+						desc->sd_desc->shd_digest, hash,
+						ses->ss_mlen) != 0)
 						crp->crp_etype = EBADMSG;
 				} else
 					crypto_copyback(crp,
-					    crp->crp_digest_start,
-					    ses->ss_mlen,
+					    crp->crp_digest_start, ses->ss_mlen,
 					    desc->sd_desc->shd_digest);
 			}
 		}
@@ -627,7 +628,8 @@ sec_controller_reset(struct sec_softc *sc)
 		timeout -= 1000;
 
 		if (timeout < 0) {
-			device_printf(sc->sc_dev, "timeout while waiting for "
+			device_printf(sc->sc_dev,
+			    "timeout while waiting for "
 			    "device reset!\n");
 			return (ETIMEDOUT);
 		}
@@ -652,7 +654,8 @@ sec_channel_reset(struct sec_softc *sc, int channel, int full)
 		timeout -= 1000;
 
 		if (timeout < 0) {
-			device_printf(sc->sc_dev, "timeout while waiting for "
+			device_printf(sc->sc_dev,
+			    "timeout while waiting for "
 			    "channel reset!\n");
 			return (ETIMEDOUT);
 		}
@@ -661,7 +664,7 @@ sec_channel_reset(struct sec_softc *sc, int channel, int full)
 	if (full) {
 		reg = SEC_CHAN_CCR_CDIE | SEC_CHAN_CCR_NT | SEC_CHAN_CCR_BS;
 
-		switch(sc->sc_version) {
+		switch (sc->sc_version) {
 		case 2:
 			reg |= SEC_CHAN_CCR_CDWE;
 			break;
@@ -721,8 +724,7 @@ sec_alloc_dma_mem_cb(void *arg, bus_dma_segment_t *segs, int nseg, int error)
 }
 
 static void
-sec_dma_map_desc_cb(void *arg, bus_dma_segment_t *segs, int nseg,
-    int error)
+sec_dma_map_desc_cb(void *arg, bus_dma_segment_t *segs, int nseg, int error)
 {
 	struct sec_desc_map_info *sdmi = arg;
 	struct sec_softc *sc = sdmi->sdmi_sc;
@@ -781,19 +783,21 @@ sec_alloc_dma_mem(struct sec_softc *sc, struct sec_dma_mem *dma_mem,
 	if (dma_mem->dma_vaddr != NULL)
 		return (EBUSY);
 
-	error = bus_dma_tag_create(NULL,	/* parent */
-		SEC_DMA_ALIGNMENT, 0,		/* alignment, boundary */
-		BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-		BUS_SPACE_MAXADDR,		/* highaddr */
-		NULL, NULL,			/* filtfunc, filtfuncarg */
-		size, 1,			/* maxsize, nsegments */
-		size, 0,			/* maxsegsz, flags */
-		NULL, NULL,			/* lockfunc, lockfuncarg */
-		&(dma_mem->dma_tag));		/* dmat */
+	error = bus_dma_tag_create(NULL, /* parent */
+	    SEC_DMA_ALIGNMENT, 0,	 /* alignment, boundary */
+	    BUS_SPACE_MAXADDR_32BIT,	 /* lowaddr */
+	    BUS_SPACE_MAXADDR,		 /* highaddr */
+	    NULL, NULL,			 /* filtfunc, filtfuncarg */
+	    size, 1,			 /* maxsize, nsegments */
+	    size, 0,			 /* maxsegsz, flags */
+	    NULL, NULL,			 /* lockfunc, lockfuncarg */
+	    &(dma_mem->dma_tag));	 /* dmat */
 
 	if (error) {
-		device_printf(sc->sc_dev, "failed to allocate busdma tag, error"
-		    " %i!\n", error);
+		device_printf(sc->sc_dev,
+		    "failed to allocate busdma tag, error"
+		    " %i!\n",
+		    error);
 		goto err1;
 	}
 
@@ -801,18 +805,22 @@ sec_alloc_dma_mem(struct sec_softc *sc, struct sec_dma_mem *dma_mem,
 	    BUS_DMA_NOWAIT | BUS_DMA_ZERO, &(dma_mem->dma_map));
 
 	if (error) {
-		device_printf(sc->sc_dev, "failed to allocate DMA safe"
-		    " memory, error %i!\n", error);
+		device_printf(sc->sc_dev,
+		    "failed to allocate DMA safe"
+		    " memory, error %i!\n",
+		    error);
 		goto err2;
 	}
 
 	error = bus_dmamap_load(dma_mem->dma_tag, dma_mem->dma_map,
-		    dma_mem->dma_vaddr, size, sec_alloc_dma_mem_cb, dma_mem,
-		    BUS_DMA_NOWAIT);
+	    dma_mem->dma_vaddr, size, sec_alloc_dma_mem_cb, dma_mem,
+	    BUS_DMA_NOWAIT);
 
 	if (error) {
-		device_printf(sc->sc_dev, "cannot get address of the DMA"
-		    " memory, error %i\n", error);
+		device_printf(sc->sc_dev,
+		    "cannot get address of the DMA"
+		    " memory, error %i\n",
+		    error);
 		goto err3;
 	}
 
@@ -825,7 +833,7 @@ err2:
 	bus_dma_tag_destroy(dma_mem->dma_tag);
 err1:
 	dma_mem->dma_vaddr = NULL;
-	return(error);
+	return (error);
 }
 
 static int
@@ -856,20 +864,22 @@ sec_desc_map_dma(struct sec_softc *sc, struct sec_dma_mem *dma_mem,
 		return (EINVAL);
 	}
 
-	error = bus_dma_tag_create(NULL,	/* parent */
-		SEC_DMA_ALIGNMENT, 0,		/* alignment, boundary */
-		BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-		BUS_SPACE_MAXADDR,		/* highaddr */
-		NULL, NULL,			/* filtfunc, filtfuncarg */
-		size,				/* maxsize */
-		SEC_FREE_LT_CNT(sc),		/* nsegments */
-		SEC_MAX_DMA_BLOCK_SIZE, 0,	/* maxsegsz, flags */
-		NULL, NULL,			/* lockfunc, lockfuncarg */
-		&(dma_mem->dma_tag));		/* dmat */
+	error = bus_dma_tag_create(NULL, /* parent */
+	    SEC_DMA_ALIGNMENT, 0,	 /* alignment, boundary */
+	    BUS_SPACE_MAXADDR_32BIT,	 /* lowaddr */
+	    BUS_SPACE_MAXADDR,		 /* highaddr */
+	    NULL, NULL,			 /* filtfunc, filtfuncarg */
+	    size,			 /* maxsize */
+	    SEC_FREE_LT_CNT(sc),	 /* nsegments */
+	    SEC_MAX_DMA_BLOCK_SIZE, 0,	 /* maxsegsz, flags */
+	    NULL, NULL,			 /* lockfunc, lockfuncarg */
+	    &(dma_mem->dma_tag));	 /* dmat */
 
 	if (error) {
-		device_printf(sc->sc_dev, "failed to allocate busdma tag, error"
-		    " %i!\n", error);
+		device_printf(sc->sc_dev,
+		    "failed to allocate busdma tag, error"
+		    " %i!\n",
+		    error);
 		dma_mem->dma_vaddr = NULL;
 		return (error);
 	}
@@ -877,8 +887,10 @@ sec_desc_map_dma(struct sec_softc *sc, struct sec_dma_mem *dma_mem,
 	error = bus_dmamap_create(dma_mem->dma_tag, 0, &(dma_mem->dma_map));
 
 	if (error) {
-		device_printf(sc->sc_dev, "failed to create DMA map, error %i!"
-		    "\n", error);
+		device_printf(sc->sc_dev,
+		    "failed to create DMA map, error %i!"
+		    "\n",
+		    error);
 		bus_dma_tag_destroy(dma_mem->dma_tag);
 		return (error);
 	}
@@ -887,8 +899,10 @@ sec_desc_map_dma(struct sec_softc *sc, struct sec_dma_mem *dma_mem,
 	    sec_dma_map_desc_cb, sdmi, BUS_DMA_NOWAIT);
 
 	if (error) {
-		device_printf(sc->sc_dev, "cannot get address of the DMA"
-		    " memory, error %i!\n", error);
+		device_printf(sc->sc_dev,
+		    "cannot get address of the DMA"
+		    " memory, error %i!\n",
+		    error);
 		bus_dmamap_destroy(dma_mem->dma_tag, dma_mem->dma_map);
 		bus_dma_tag_destroy(dma_mem->dma_tag);
 		return (error);
@@ -989,7 +1003,7 @@ sec_enqueue_desc(struct sec_softc *sc, struct sec_desc *desc, int channel)
 	/* Check FIFO level on selected channel */
 	reg = SEC_READ(sc, SEC_CHAN_CSR(channel));
 
-	switch(sc->sc_version) {
+	switch (sc->sc_version) {
 	case 2:
 		fflvl = (reg >> SEC_CHAN_CSR2_FFLVL_S) & SEC_CHAN_CSR2_FFLVL_M;
 		break;
@@ -1038,8 +1052,8 @@ sec_enqueue(struct sec_softc *sc)
 		 * Enqueue descriptor in channel used by busy EU.
 		 */
 		if ((ch0 >= 0 && ch1 < 0) || (ch1 >= 0 && ch0 < 0)) {
-			if (sec_enqueue_desc(sc, desc, (ch0 >= 0) ? ch0 : ch1)
-			    >= 0) {
+			if (sec_enqueue_desc(sc, desc,
+				(ch0 >= 0) ? ch0 : ch1) >= 0) {
 				SEC_DESC_READY2QUEUED(sc);
 				continue;
 			}
@@ -1101,8 +1115,8 @@ sec_make_pointer_direct(struct sec_softc *sc, struct sec_desc *desc, u_int n,
 }
 
 static int
-sec_make_pointer(struct sec_softc *sc, struct sec_desc *desc,
-    u_int n, struct cryptop *crp, bus_size_t doffset, bus_size_t dsize)
+sec_make_pointer(struct sec_softc *sc, struct sec_desc *desc, u_int n,
+    struct cryptop *crp, bus_size_t doffset, bus_size_t dsize)
 {
 	struct sec_desc_map_info sdmi = { sc, dsize, doffset, NULL, NULL, 0 };
 	struct sec_hw_desc_ptr *ptr;
@@ -1303,8 +1317,8 @@ sec_process(device_t dev, struct cryptop *crp, int hint)
 		desc->sd_desc->shd_dn = 1;
 
 	SEC_DESC_SYNC(sc, BUS_DMASYNC_POSTREAD | BUS_DMASYNC_POSTWRITE);
-	SEC_DESC_SYNC_POINTERS(desc, BUS_DMASYNC_POSTREAD |
-	    BUS_DMASYNC_POSTWRITE);
+	SEC_DESC_SYNC_POINTERS(desc,
+	    BUS_DMASYNC_POSTREAD | BUS_DMASYNC_POSTWRITE);
 	SEC_DESC_FREE2READY(sc);
 	SEC_UNLOCK(sc, descriptors);
 
@@ -1331,15 +1345,17 @@ sec_build_common_ns_desc(struct sec_softc *sc, struct sec_desc *desc,
 		return (error);
 
 	/* Pointer 1: IV IN */
-	error = sec_make_pointer_direct(sc, desc, 1, desc->sd_desc_paddr +
-	    offsetof(struct sec_hw_desc, shd_iv), csp->csp_ivlen);
+	error = sec_make_pointer_direct(sc, desc, 1,
+	    desc->sd_desc_paddr + offsetof(struct sec_hw_desc, shd_iv),
+	    csp->csp_ivlen);
 	if (error)
 		return (error);
 
 	/* Pointer 2: Cipher Key */
-	error = sec_make_pointer_direct(sc, desc, 2, desc->sd_desc_paddr +
-	    offsetof(struct sec_hw_desc, shd_key), csp->csp_cipher_klen);
- 	if (error)
+	error = sec_make_pointer_direct(sc, desc, 2,
+	    desc->sd_desc_paddr + offsetof(struct sec_hw_desc, shd_key),
+	    csp->csp_cipher_klen);
+	if (error)
 		return (error);
 
 	/* Pointer 3: Data IN */
@@ -1382,8 +1398,9 @@ sec_build_common_s_desc(struct sec_softc *sc, struct sec_desc *desc,
 	hd->shd_mode1 = mode;
 
 	/* Pointer 0: HMAC Key */
-	error = sec_make_pointer_direct(sc, desc, 0, desc->sd_desc_paddr +
-	    offsetof(struct sec_hw_desc, shd_mkey), csp->csp_auth_klen);
+	error = sec_make_pointer_direct(sc, desc, 0,
+	    desc->sd_desc_paddr + offsetof(struct sec_hw_desc, shd_mkey),
+	    csp->csp_auth_klen);
 	if (error)
 		return (error);
 
@@ -1394,14 +1411,16 @@ sec_build_common_s_desc(struct sec_softc *sc, struct sec_desc *desc,
 		return (error);
 
 	/* Pointer 2: Cipher Key */
-	error = sec_make_pointer_direct(sc, desc, 2, desc->sd_desc_paddr +
-	    offsetof(struct sec_hw_desc, shd_key), csp->csp_cipher_klen);
- 	if (error)
+	error = sec_make_pointer_direct(sc, desc, 2,
+	    desc->sd_desc_paddr + offsetof(struct sec_hw_desc, shd_key),
+	    csp->csp_cipher_klen);
+	if (error)
 		return (error);
 
 	/* Pointer 3: IV IN */
-	error = sec_make_pointer_direct(sc, desc, 3, desc->sd_desc_paddr +
-	    offsetof(struct sec_hw_desc, shd_iv), csp->csp_ivlen);
+	error = sec_make_pointer_direct(sc, desc, 3,
+	    desc->sd_desc_paddr + offsetof(struct sec_hw_desc, shd_iv),
+	    csp->csp_ivlen);
 	if (error)
 		return (error);
 
@@ -1418,8 +1437,9 @@ sec_build_common_s_desc(struct sec_softc *sc, struct sec_desc *desc,
 		return (error);
 
 	/* Pointer 6: HMAC OUT */
-	error = sec_make_pointer_direct(sc, desc, 6, desc->sd_desc_paddr +
-	    offsetof(struct sec_hw_desc, shd_digest), hashlen);
+	error = sec_make_pointer_direct(sc, desc, 6,
+	    desc->sd_desc_paddr + offsetof(struct sec_hw_desc, shd_digest),
+	    hashlen);
 
 	return (error);
 }
@@ -1523,8 +1543,8 @@ sec_mdeu_newsession(const struct crypto_session_params *csp)
 
 static int
 sec_mdeu_make_desc(struct sec_softc *sc,
-    const struct crypto_session_params *csp,
-    struct sec_desc *desc, struct cryptop *crp)
+    const struct crypto_session_params *csp, struct sec_desc *desc,
+    struct cryptop *crp)
 {
 	struct sec_hw_desc *hd = desc->sd_desc;
 	u_int eu, mode, hashlen;
@@ -1553,8 +1573,9 @@ sec_mdeu_make_desc(struct sec_softc *sc,
 	/* Pointer 2: HMAC Key (or NULL, depending on digest type) */
 	if (hd->shd_mode0 & SEC_MDEU_MODE_HMAC)
 		error = sec_make_pointer_direct(sc, desc, 2,
-		    desc->sd_desc_paddr + offsetof(struct sec_hw_desc,
-		    shd_mkey), csp->csp_auth_klen);
+		    desc->sd_desc_paddr +
+			offsetof(struct sec_hw_desc, shd_mkey),
+		    csp->csp_auth_klen);
 	else
 		error = sec_make_pointer_direct(sc, desc, 2, 0, 0);
 
@@ -1573,8 +1594,9 @@ sec_mdeu_make_desc(struct sec_softc *sc,
 		return (error);
 
 	/* Pointer 5: Hash out */
-	error = sec_make_pointer_direct(sc, desc, 5, desc->sd_desc_paddr +
-	    offsetof(struct sec_hw_desc, shd_digest), hashlen);
+	error = sec_make_pointer_direct(sc, desc, 5,
+	    desc->sd_desc_paddr + offsetof(struct sec_hw_desc, shd_digest),
+	    hashlen);
 	if (error)
 		return (error);
 

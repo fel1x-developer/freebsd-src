@@ -25,10 +25,9 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#ifndef	__ARSWITCH_8216_H__
-#define	__ARSWITCH_8216_H__
+#ifndef __ARSWITCH_8216_H__
+#define __ARSWITCH_8216_H__
 
-extern	void ar8216_attach(struct arswitch_softc *sc);
+extern void ar8216_attach(struct arswitch_softc *sc);
 
-#endif	/* __ARSWITCH_8216_H__ */
-
+#endif /* __ARSWITCH_8216_H__ */

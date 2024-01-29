@@ -2,10 +2,10 @@
  * Codel/FQ_Codel and PIE/FQ_PIE Code:
  * Copyright (C) 2016 Centre for Advanced Internet Architectures,
  *  Swinburne University of Technology, Melbourne, Australia.
- * Portions of this code were made possible in part by a gift from 
+ * Portions of this code were made possible in part by a gift from
  *  The Comcast Innovation Fund.
  * Implemented by Rasool Al-Saadi <ralsaadi@swin.edu.au>
- * 
+ *
  * Copyright (c) 2002-2003,2010 Luigi Rizzo
  *
  * Redistribution and use in source forms, with and without modification,
@@ -21,8 +21,8 @@
  */
 
 #define NEW_AQM
-#include <sys/limits.h>
 #include <sys/types.h>
+#include <sys/limits.h>
 #include <sys/socket.h>
 /* XXX there are several sysctl leftover here */
 #include <sys/sysctl.h>
@@ -33,6 +33,12 @@
 #include <stdint.h>
 #endif
 
+#include <net/if.h>
+#include <netinet/in.h>
+#include <netinet/ip_dummynet.h>
+#include <netinet/ip_fw.h>
+
+#include <arpa/inet.h> /* inet_ntoa */
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
@@ -43,84 +49,45 @@
 #include <string.h>
 #include <sysexits.h>
 
-#include <net/if.h>
-#include <netinet/in.h>
-#include <netinet/ip_fw.h>
-#include <netinet/ip_dummynet.h>
-#include <arpa/inet.h>	/* inet_ntoa */
-
-
 static struct _s_x dummynet_params[] = {
-	{ "plr",		TOK_PLR },
-	{ "noerror",		TOK_NOERROR },
-	{ "buckets",		TOK_BUCKETS },
-	{ "dst-ip",		TOK_DSTIP },
-	{ "src-ip",		TOK_SRCIP },
-	{ "dst-port",		TOK_DSTPORT },
-	{ "src-port",		TOK_SRCPORT },
-	{ "proto",		TOK_PROTO },
-	{ "weight",		TOK_WEIGHT },
-	{ "lmax",		TOK_LMAX },
-	{ "maxlen",		TOK_LMAX },
-	{ "all",		TOK_ALL },
-	{ "mask",		TOK_MASK }, /* alias for both */
-	{ "sched_mask",		TOK_SCHED_MASK },
-	{ "flow_mask",		TOK_FLOW_MASK },
-	{ "droptail",		TOK_DROPTAIL },
-	{ "ecn",		TOK_ECN },
-	{ "red",		TOK_RED },
-	{ "gred",		TOK_GRED },
+	{ "plr", TOK_PLR }, { "noerror", TOK_NOERROR },
+	{ "buckets", TOK_BUCKETS }, { "dst-ip", TOK_DSTIP },
+	{ "src-ip", TOK_SRCIP }, { "dst-port", TOK_DSTPORT },
+	{ "src-port", TOK_SRCPORT }, { "proto", TOK_PROTO },
+	{ "weight", TOK_WEIGHT }, { "lmax", TOK_LMAX }, { "maxlen", TOK_LMAX },
+	{ "all", TOK_ALL }, { "mask", TOK_MASK }, /* alias for both */
+	{ "sched_mask", TOK_SCHED_MASK }, { "flow_mask", TOK_FLOW_MASK },
+	{ "droptail", TOK_DROPTAIL }, { "ecn", TOK_ECN }, { "red", TOK_RED },
+	{ "gred", TOK_GRED },
 #ifdef NEW_AQM
-	{ "codel",		TOK_CODEL}, /* Codel AQM */
-	{ "fq_codel",	TOK_FQ_CODEL}, /* FQ-Codel  */
-	{ "pie",		TOK_PIE}, /* PIE AQM */
-	{ "fq_pie",		TOK_FQ_PIE}, /* FQ-PIE */
+	{ "codel", TOK_CODEL },	      /* Codel AQM */
+	{ "fq_codel", TOK_FQ_CODEL }, /* FQ-Codel  */
+	{ "pie", TOK_PIE },	      /* PIE AQM */
+	{ "fq_pie", TOK_FQ_PIE },     /* FQ-PIE */
 #endif
-	{ "bw",			TOK_BW },
-	{ "bandwidth",		TOK_BW },
-	{ "delay",		TOK_DELAY },
-	{ "link",		TOK_LINK },
-	{ "pipe",		TOK_PIPE },
-	{ "queue",		TOK_QUEUE },
-	{ "flowset",		TOK_FLOWSET },
-	{ "sched",		TOK_SCHED },
-	{ "pri",		TOK_PRI },
-	{ "priority",		TOK_PRI },
-	{ "type",		TOK_TYPE },
-	{ "flow-id",		TOK_FLOWID},
-	{ "dst-ipv6",		TOK_DSTIP6},
-	{ "dst-ip6",		TOK_DSTIP6},
-	{ "src-ipv6",		TOK_SRCIP6},
-	{ "src-ip6",		TOK_SRCIP6},
-	{ "profile",		TOK_PROFILE},
-	{ "burst",		TOK_BURST},
-	{ "dummynet-params",	TOK_NULL },
-	{ NULL, 0 }	/* terminator */
+	{ "bw", TOK_BW }, { "bandwidth", TOK_BW }, { "delay", TOK_DELAY },
+	{ "link", TOK_LINK }, { "pipe", TOK_PIPE }, { "queue", TOK_QUEUE },
+	{ "flowset", TOK_FLOWSET }, { "sched", TOK_SCHED }, { "pri", TOK_PRI },
+	{ "priority", TOK_PRI }, { "type", TOK_TYPE },
+	{ "flow-id", TOK_FLOWID }, { "dst-ipv6", TOK_DSTIP6 },
+	{ "dst-ip6", TOK_DSTIP6 }, { "src-ipv6", TOK_SRCIP6 },
+	{ "src-ip6", TOK_SRCIP6 }, { "profile", TOK_PROFILE },
+	{ "burst", TOK_BURST }, { "dummynet-params", TOK_NULL },
+	{ NULL, 0 } /* terminator */
 };
 
 #ifdef NEW_AQM
 /* AQM/extra sched parameters  tokens*/
 static struct _s_x aqm_params[] = {
-	{ "target",		TOK_TARGET},
-	{ "interval",		TOK_INTERVAL},
-	{ "limit",		TOK_LIMIT},
-	{ "flows",		TOK_FLOWS},
-	{ "quantum",		TOK_QUANTUM},
-	{ "ecn",		TOK_ECN},
-	{ "noecn",		TOK_NO_ECN},
-	{ "tupdate",		TOK_TUPDATE},
-	{ "max_burst",		TOK_MAX_BURST},
-	{ "max_ecnth",	TOK_MAX_ECNTH},
-	{ "alpha",		TOK_ALPHA},
-	{ "beta",		TOK_BETA},
-	{ "capdrop",	TOK_CAPDROP},
-	{ "nocapdrop",	TOK_NO_CAPDROP},
-	{ "onoff",	TOK_ONOFF},
-	{ "dre",	TOK_DRE},
-	{ "ts",	TOK_TS},
-	{ "derand",	TOK_DERAND},
-	{ "noderand",	TOK_NO_DERAND},
-	{ NULL, 0 }	/* terminator */
+	{ "target", TOK_TARGET }, { "interval", TOK_INTERVAL },
+	{ "limit", TOK_LIMIT }, { "flows", TOK_FLOWS },
+	{ "quantum", TOK_QUANTUM }, { "ecn", TOK_ECN }, { "noecn", TOK_NO_ECN },
+	{ "tupdate", TOK_TUPDATE }, { "max_burst", TOK_MAX_BURST },
+	{ "max_ecnth", TOK_MAX_ECNTH }, { "alpha", TOK_ALPHA },
+	{ "beta", TOK_BETA }, { "capdrop", TOK_CAPDROP },
+	{ "nocapdrop", TOK_NO_CAPDROP }, { "onoff", TOK_ONOFF },
+	{ "dre", TOK_DRE }, { "ts", TOK_TS }, { "derand", TOK_DERAND },
+	{ "noderand", TOK_NO_DERAND }, { NULL, 0 } /* terminator */
 };
 #endif
 
@@ -148,9 +115,7 @@ o_next(struct dn_id **o, int len, int type)
 #ifdef NEW_AQM
 
 /* Codel flags */
-enum {
-	CODEL_ECN_ENABLED = 1
-};
+enum { CODEL_ECN_ENABLED = 1 };
 
 /* PIE flags, from PIE kernel module */
 enum {
@@ -162,22 +127,22 @@ enum {
 };
 
 #define PIE_FIX_POINT_BITS 13
-#define PIE_SCALE (1L<<PIE_FIX_POINT_BITS)
+#define PIE_SCALE (1L << PIE_FIX_POINT_BITS)
 
 /* integer to time */
 static void
 us_to_time(int t, char *strt)
 {
 	if (t < 0)
-		strt[0]='\0';
-	else if ( t==0 )
-		sprintf(strt,"%d", t);
-	else if (t< 1000)
-		sprintf(strt,"%dus", t);
-	else if (t < 1000000) 
-		sprintf(strt,"%gms", (float) t / 1000);
+		strt[0] = '\0';
+	else if (t == 0)
+		sprintf(strt, "%d", t);
+	else if (t < 1000)
+		sprintf(strt, "%dus", t);
+	else if (t < 1000000)
+		sprintf(strt, "%gms", (float)t / 1000);
 	else
-		sprintf(strt,"%gfs", (float) t / 1000000);
+		sprintf(strt, "%gfs", (float)t / 1000000);
 }
 
 /*
@@ -188,12 +153,12 @@ time_to_us(const char *s)
 {
 	int i, dots = 0;
 	int len = strlen(s);
-	char strt[16]="", stru[16]="";
-	
-	if (len>15)
+	char strt[16] = "", stru[16] = "";
+
+	if (len > 15)
 		return -1;
-	for (i = 0; i<len && (isdigit(s[i]) || s[i]=='.') ; i++)
-		if (s[i]=='.') {
+	for (i = 0; i < len && (isdigit(s[i]) || s[i] == '.'); i++)
+		if (s[i] == '.') {
 			if (dots)
 				return -1;
 			else
@@ -203,26 +168,25 @@ time_to_us(const char *s)
 	if (!i)
 		return -1;
 	strncpy(strt, s, i);
-	if (i<len)
-		strcpy(stru, s+i);
+	if (i < len)
+		strcpy(stru, s + i);
 	else
 		strcpy(stru, "ms");
-	
+
 	if (!strcasecmp(stru, "us"))
 		return atol(strt);
 	if (!strcasecmp(stru, "ms"))
 		return (strtod(strt, NULL) * 1000);
 	if (!strcasecmp(stru, "s"))
-		return (strtod(strt, NULL)*1000000);
+		return (strtod(strt, NULL) * 1000000);
 
 	return -1;
 }
 
- 
 /* Get AQM or scheduler extra parameters  */
 static void
 get_extra_parms(uint32_t nr, char *out, int subtype)
-{ 
+{
 	struct dn_extra_parms *ep;
 	int ret;
 	char strt1[15], strt2[15], strt3[15];
@@ -247,29 +211,26 @@ get_extra_parms(uint32_t nr, char *out, int subtype)
 
 	switch (subtype) {
 	case DN_AQM_PARAMS:
-		if( !strcasecmp(ep->name, "codel")) {
+		if (!strcasecmp(ep->name, "codel")) {
 			us_to_time(ep->par[0], strt1);
 			us_to_time(ep->par[1], strt2);
 			l = sprintf(out, " AQM CoDel target %s interval %s",
-				strt1, strt2);
+			    strt1, strt2);
 			if (ep->par[2] & CODEL_ECN_ENABLED)
 				l = sprintf(out + l, " ECN");
 			else
 				l += sprintf(out + l, " NoECN");
-		} else if( !strcasecmp(ep->name, "pie")) {
+		} else if (!strcasecmp(ep->name, "pie")) {
 			us_to_time(ep->par[0], strt1);
 			us_to_time(ep->par[1], strt2);
 			us_to_time(ep->par[2], strt3);
-			l = sprintf(out, " AQM type PIE target %s tupdate %s alpha "
-					"%g beta %g max_burst %s max_ecnth %.3g",
-					strt1,
-					strt2,
-					ep->par[4] / (float) PIE_SCALE,
-					ep->par[5] / (float) PIE_SCALE,
-					strt3,
-					ep->par[3] / (float) PIE_SCALE
-				);
-				
+			l = sprintf(out,
+			    " AQM type PIE target %s tupdate %s alpha "
+			    "%g beta %g max_burst %s max_ecnth %.3g",
+			    strt1, strt2, ep->par[4] / (float)PIE_SCALE,
+			    ep->par[5] / (float)PIE_SCALE, strt3,
+			    ep->par[3] / (float)PIE_SCALE);
+
 			if (ep->par[6] & PIE_ECN_ENABLED)
 				l += sprintf(out + l, " ECN");
 			else
@@ -291,40 +252,33 @@ get_extra_parms(uint32_t nr, char *out, int subtype)
 		}
 		break;
 
-	case	DN_SCH_PARAMS:
-		if (!strcasecmp(ep->name,"FQ_CODEL")) {
+	case DN_SCH_PARAMS:
+		if (!strcasecmp(ep->name, "FQ_CODEL")) {
 			us_to_time(ep->par[0], strt1);
 			us_to_time(ep->par[1], strt2);
-			l = sprintf(out," FQ_CODEL target %s interval %s"
-				" quantum %jd limit %jd flows %jd",
-				strt1, strt2,
-				(intmax_t) ep->par[3],
-				(intmax_t) ep->par[4],
-				(intmax_t) ep->par[5]
-				);
+			l = sprintf(out,
+			    " FQ_CODEL target %s interval %s"
+			    " quantum %jd limit %jd flows %jd",
+			    strt1, strt2, (intmax_t)ep->par[3],
+			    (intmax_t)ep->par[4], (intmax_t)ep->par[5]);
 			if (ep->par[2] & CODEL_ECN_ENABLED)
 				l += sprintf(out + l, " ECN");
 			else
 				l += sprintf(out + l, " NoECN");
 			l += sprintf(out + l, "\n");
-		} else 	if (!strcasecmp(ep->name,"FQ_PIE")) {
+		} else if (!strcasecmp(ep->name, "FQ_PIE")) {
 			us_to_time(ep->par[0], strt1);
 			us_to_time(ep->par[1], strt2);
 			us_to_time(ep->par[2], strt3);
-			l = sprintf(out, "  FQ_PIE target %s tupdate %s alpha "
-				"%g beta %g max_burst %s max_ecnth %.3g"
-				" quantum %jd limit %jd flows %jd",
-				strt1,
-				strt2,
-				ep->par[4] / (float) PIE_SCALE,
-				ep->par[5] / (float) PIE_SCALE,
-				strt3,
-				ep->par[3] / (float) PIE_SCALE,
-				(intmax_t) ep->par[7],
-				(intmax_t) ep->par[8],
-				(intmax_t) ep->par[9]
-			);
-			
+			l = sprintf(out,
+			    "  FQ_PIE target %s tupdate %s alpha "
+			    "%g beta %g max_burst %s max_ecnth %.3g"
+			    " quantum %jd limit %jd flows %jd",
+			    strt1, strt2, ep->par[4] / (float)PIE_SCALE,
+			    ep->par[5] / (float)PIE_SCALE, strt3,
+			    ep->par[3] / (float)PIE_SCALE, (intmax_t)ep->par[7],
+			    (intmax_t)ep->par[8], (intmax_t)ep->par[9]);
+
 			if (ep->par[6] & PIE_ECN_ENABLED)
 				l += sprintf(out + l, " ECN");
 			else
@@ -351,7 +305,6 @@ get_extra_parms(uint32_t nr, char *out, int subtype)
 	free(ep);
 }
 #endif
-
 
 #if 0
 static int
@@ -393,16 +346,13 @@ print_mask(struct ipfw_flow_id *id)
 {
 	if (!IS_IP6_FLOW_ID(id)) {
 		printf("    "
-		    "mask: %s 0x%02x 0x%08x/0x%04x -> 0x%08x/0x%04x\n",
-		    id->extra ? "queue," : "",
-		    id->proto,
-		    id->src_ip, id->src_port,
-		    id->dst_ip, id->dst_port);
+		       "mask: %s 0x%02x 0x%08x/0x%04x -> 0x%08x/0x%04x\n",
+		    id->extra ? "queue," : "", id->proto, id->src_ip,
+		    id->src_port, id->dst_ip, id->dst_port);
 	} else {
 		char buf[255];
 		printf("\n        mask: %sproto: 0x%02x, flow_id: 0x%08x,  ",
-		    id->extra ? "queue," : "",
-		    id->proto, id->flow_id6);
+		    id->extra ? "queue," : "", id->proto, id->flow_id6);
 		inet_ntop(AF_INET6, &(id->src_ip6), buf, sizeof(buf));
 		printf("%s/0x%04x -> ", buf, id->src_port);
 		inet_ntop(AF_INET6, &(id->dst_ip6), buf, sizeof(buf));
@@ -415,13 +365,13 @@ print_header(struct ipfw_flow_id *id)
 {
 	if (!IS_IP6_FLOW_ID(id))
 		printf("BKT Prot ___Source IP/port____ "
-		    "____Dest. IP/port____ "
-		    "Tot_pkt/bytes Pkt/Byte Drp\n");
+		       "____Dest. IP/port____ "
+		       "Tot_pkt/bytes Pkt/Byte Drp\n");
 	else
 		printf("BKT ___Prot___ _flow-id_ "
-		    "______________Source IPv6/port_______________ "
-		    "_______________Dest. IPv6/port_______________ "
-		    "Tot_pkt/bytes Pkt/Byte Drp\n");
+		       "______________Source IPv6/port_______________ "
+		       "_______________Dest. IPv6/port_______________ "
+		       "Tot_pkt/bytes Pkt/Byte Drp\n");
 }
 
 static void
@@ -433,20 +383,17 @@ list_flow(struct buf_pr *bp, struct dn_flow *ni)
 	struct ipfw_flow_id *id = &ni->fid;
 
 	pe = getprotobynumber(id->proto);
-		/* XXX: Should check for IPv4 flows */
-	bprintf(bp, "%3u%c", (ni->oid.id) & 0xff,
-		id->extra ? '*' : ' ');
+	/* XXX: Should check for IPv4 flows */
+	bprintf(bp, "%3u%c", (ni->oid.id) & 0xff, id->extra ? '*' : ' ');
 	if (!IS_IP6_FLOW_ID(id)) {
 		if (pe)
 			bprintf(bp, "%-4s ", pe->p_name);
 		else
 			bprintf(bp, "%4u ", id->proto);
 		ina.s_addr = htonl(id->src_ip);
-		bprintf(bp, "%15s/%-5d ",
-		    inet_ntoa(ina), id->src_port);
+		bprintf(bp, "%15s/%-5d ", inet_ntoa(ina), id->src_port);
 		ina.s_addr = htonl(id->dst_ip);
-		bprintf(bp, "%15s/%-5d ",
-		    inet_ntoa(ina), id->dst_port);
+		bprintf(bp, "%15s/%-5d ", inet_ntoa(ina), id->dst_port);
 	} else {
 		/* Print IPv6 flows */
 		if (pe != NULL)
@@ -462,8 +409,7 @@ list_flow(struct buf_pr *bp, struct dn_flow *ni)
 	}
 	pr_u64(bp, &ni->tot_pkts, 4);
 	pr_u64(bp, &ni->tot_bytes, 8);
-	bprintf(bp, "%2u %4u %3u",
-	    ni->length, ni->len_bytes, ni->drops);
+	bprintf(bp, "%2u %4u %3u", ni->length, ni->len_bytes, ni->drops);
 }
 
 static void
@@ -472,7 +418,7 @@ print_flowset_parms(struct dn_fs *fs, char *prefix)
 	int l;
 	char qs[30];
 	char plr[40];
-	char red[200];	/* Display RED parameters */
+	char red[200]; /* Display RED parameters */
 
 	l = fs->qsize;
 	if (fs->flags & DN_QSIZE_BYTES) {
@@ -485,45 +431,42 @@ print_flowset_parms(struct dn_fs *fs, char *prefix)
 	if (fs->plr[0] || fs->plr[1]) {
 		if (fs->plr[1] == 0)
 			sprintf(plr, "plr %f",
-				1.0 * fs->plr[0] / (double)(0x7fffffff));
+			    1.0 * fs->plr[0] / (double)(0x7fffffff));
 		else
 			sprintf(plr, "plr %f,%f,%f,%f",
-				1.0 * fs->plr[0] / (double)(0x7fffffff),
-				1.0 * fs->plr[1] / (double)(0x7fffffff),
-				1.0 * fs->plr[2] / (double)(0x7fffffff),
-				1.0 * fs->plr[3] / (double)(0x7fffffff));
+			    1.0 * fs->plr[0] / (double)(0x7fffffff),
+			    1.0 * fs->plr[1] / (double)(0x7fffffff),
+			    1.0 * fs->plr[2] / (double)(0x7fffffff),
+			    1.0 * fs->plr[3] / (double)(0x7fffffff));
 	} else
 		plr[0] = '\0';
 
-	if (fs->flags & DN_IS_RED) {	/* RED parameters */
-		sprintf(red,
-		    "\n\t %cRED w_q %f min_th %d max_th %d max_p %f",
+	if (fs->flags & DN_IS_RED) { /* RED parameters */
+		sprintf(red, "\n\t %cRED w_q %f min_th %d max_th %d max_p %f",
 		    (fs->flags & DN_IS_GENTLE_RED) ? 'G' : ' ',
-		    1.0 * fs->w_q / (double)(1 << SCALE_RED),
-		    fs->min_th,
-		    fs->max_th,
-		    1.0 * fs->max_p / (double)(1 << SCALE_RED));
+		    1.0 * fs->w_q / (double)(1 << SCALE_RED), fs->min_th,
+		    fs->max_th, 1.0 * fs->max_p / (double)(1 << SCALE_RED));
 		if (fs->flags & DN_IS_ECN)
 			strlcat(red, " (ecn)", sizeof(red));
 #ifdef NEW_AQM
-	/* get AQM parameters */
+		/* get AQM parameters */
 	} else if (fs->flags & DN_IS_AQM) {
-			get_extra_parms(fs->fs_nr, red, DN_AQM_PARAMS);
+		get_extra_parms(fs->fs_nr, red, DN_AQM_PARAMS);
 #endif
 	} else
 		sprintf(red, "droptail");
 
 	if (prefix[0]) {
-	    printf("%s %s%s %d queues (%d buckets) %s\n",
-		prefix, qs, plr, fs->oid.id, fs->buckets, red);
-	    prefix[0] = '\0';
+		printf("%s %s%s %d queues (%d buckets) %s\n", prefix, qs, plr,
+		    fs->oid.id, fs->buckets, red);
+		prefix[0] = '\0';
 	} else {
-	    printf("q%05d %s%s %d flows (%d buckets) sched %d "
-			"weight %d lmax %d pri %d %s\n",
-		fs->fs_nr, qs, plr, fs->oid.id, fs->buckets,
-		fs->sched_nr, fs->par[0], fs->par[1], fs->par[2], red);
-	    if (fs->flags & DN_HAVE_MASK)
-		print_mask(&fs->flow_mask);
+		printf("q%05d %s%s %d flows (%d buckets) sched %d "
+		       "weight %d lmax %d pri %d %s\n",
+		    fs->fs_nr, qs, plr, fs->oid.id, fs->buckets, fs->sched_nr,
+		    fs->par[0], fs->par[1], fs->par[2], red);
+		if (fs->flags & DN_HAVE_MASK)
+			print_mask(&fs->flow_mask);
 	}
 }
 
@@ -536,8 +479,8 @@ print_extra_delay_parms(struct dn_profile *p)
 
 	loss = p->loss_level;
 	loss /= p->samples_no;
-	printf("\t profile: name \"%s\" loss %f samples %d\n",
-		p->name, loss, p->samples_no);
+	printf("\t profile: name \"%s\" loss %f samples %d\n", p->name, loss,
+	    p->samples_no);
 }
 
 static void
@@ -561,106 +504,108 @@ flush_buf(char *buf)
 static void
 list_pipes(struct dn_id *oid, struct dn_id *end)
 {
-    char buf[160];	/* pending buffer */
-    int toPrint = 1;	/* print header */
-    struct buf_pr bp;
+	char buf[160];	 /* pending buffer */
+	int toPrint = 1; /* print header */
+	struct buf_pr bp;
 
-    buf[0] = '\0';
-    bp_alloc(&bp, 4096);
-    for (; oid != end; oid = O_NEXT(oid, oid->len)) {
-	if (oid->len < sizeof(*oid))
-		errx(1, "invalid oid len %d\n", oid->len);
+	buf[0] = '\0';
+	bp_alloc(&bp, 4096);
+	for (; oid != end; oid = O_NEXT(oid, oid->len)) {
+		if (oid->len < sizeof(*oid))
+			errx(1, "invalid oid len %d\n", oid->len);
 
-	switch (oid->type) {
-	default:
-	    flush_buf(buf);
-	    printf("unrecognized object %d size %d\n", oid->type, oid->len);
-	    break;
-	case DN_TEXT: /* list of attached flowsets */
-	    {
-		int i, l;
-		struct {
-			struct dn_id id;
-			uint32_t p[0];
-		} *d = (void *)oid;
-		l = (oid->len - sizeof(*oid))/sizeof(d->p[0]);
-		if (l == 0)
-		    break;
-		printf("   Children flowsets: ");
-		for (i = 0; i < l; i++)
-			printf("%u ", d->p[i]);
-		printf("\n");
-		break;
-	    }
-	case DN_CMD_GET:
-	    if (g_co.verbose)
-		printf("answer for cmd %d, len %d\n", oid->type, oid->id);
-	    break;
-	case DN_SCH: {
-	    struct dn_sch *s = (struct dn_sch *)oid;
-	    flush_buf(buf);
-	    printf(" sched %d type %s flags 0x%x %d buckets %d active\n",
-			s->sched_nr,
-			s->name, s->flags, s->buckets, s->oid.id);
+		switch (oid->type) {
+		default:
+			flush_buf(buf);
+			printf("unrecognized object %d size %d\n", oid->type,
+			    oid->len);
+			break;
+		case DN_TEXT: /* list of attached flowsets */
+		{
+			int i, l;
+			struct {
+				struct dn_id id;
+				uint32_t p[0];
+			} *d = (void *)oid;
+			l = (oid->len - sizeof(*oid)) / sizeof(d->p[0]);
+			if (l == 0)
+				break;
+			printf("   Children flowsets: ");
+			for (i = 0; i < l; i++)
+				printf("%u ", d->p[i]);
+			printf("\n");
+			break;
+		}
+		case DN_CMD_GET:
+			if (g_co.verbose)
+				printf("answer for cmd %d, len %d\n", oid->type,
+				    oid->id);
+			break;
+		case DN_SCH: {
+			struct dn_sch *s = (struct dn_sch *)oid;
+			flush_buf(buf);
+			printf(
+			    " sched %d type %s flags 0x%x %d buckets %d active\n",
+			    s->sched_nr, s->name, s->flags, s->buckets,
+			    s->oid.id);
 #ifdef NEW_AQM
-		char parms[200];
-		get_extra_parms(s->sched_nr, parms, DN_SCH_PARAMS);
-		printf("%s",parms);
+			char parms[200];
+			get_extra_parms(s->sched_nr, parms, DN_SCH_PARAMS);
+			printf("%s", parms);
 #endif
-	    if (s->flags & DN_HAVE_MASK)
-		print_mask(&s->sched_mask);
-	    }
-	    break;
+			if (s->flags & DN_HAVE_MASK)
+				print_mask(&s->sched_mask);
+		} break;
 
-	case DN_FLOW:
-	    if (toPrint != 0) {
-		    print_header(&((struct dn_flow *)oid)->fid);
-		    toPrint = 0;
-	    }
-	    list_flow(&bp, (struct dn_flow *)oid);
-	    printf("%s\n", bp.buf);
-	    bp_flush(&bp);
-	    break;
+		case DN_FLOW:
+			if (toPrint != 0) {
+				print_header(&((struct dn_flow *)oid)->fid);
+				toPrint = 0;
+			}
+			list_flow(&bp, (struct dn_flow *)oid);
+			printf("%s\n", bp.buf);
+			bp_flush(&bp);
+			break;
 
-	case DN_LINK: {
-	    struct dn_link *p = (struct dn_link *)oid;
-	    double b = p->bandwidth;
-	    char bwbuf[30];
-	    char burst[5 + 7];
+		case DN_LINK: {
+			struct dn_link *p = (struct dn_link *)oid;
+			double b = p->bandwidth;
+			char bwbuf[30];
+			char burst[5 + 7];
 
-	    /* This starts a new object so flush buffer */
-	    flush_buf(buf);
-	    /* data rate */
-	    if (b == 0)
-		sprintf(bwbuf, "unlimited     ");
-	    else if (b >= 1000000000)
-		sprintf(bwbuf, "%7.3f Gbit/s", b/1000000000);
-	    else if (b >= 1000000)
-		sprintf(bwbuf, "%7.3f Mbit/s", b/1000000);
-	    else if (b >= 1000)
-		sprintf(bwbuf, "%7.3f Kbit/s", b/1000);
-	    else
-		sprintf(bwbuf, "%7.3f bit/s ", b);
+			/* This starts a new object so flush buffer */
+			flush_buf(buf);
+			/* data rate */
+			if (b == 0)
+				sprintf(bwbuf, "unlimited     ");
+			else if (b >= 1000000000)
+				sprintf(bwbuf, "%7.3f Gbit/s", b / 1000000000);
+			else if (b >= 1000000)
+				sprintf(bwbuf, "%7.3f Mbit/s", b / 1000000);
+			else if (b >= 1000)
+				sprintf(bwbuf, "%7.3f Kbit/s", b / 1000);
+			else
+				sprintf(bwbuf, "%7.3f bit/s ", b);
 
-	    if (humanize_number(burst, sizeof(burst), p->burst,
-		    "", HN_AUTOSCALE, 0) < 0 || g_co.verbose)
-		sprintf(burst, "%d", (int)p->burst);
-	    sprintf(buf, "%05d: %s %4d ms burst %s",
-		p->link_nr % DN_MAX_ID, bwbuf, p->delay, burst);
-	    }
-	    break;
+			if (humanize_number(burst, sizeof(burst), p->burst, "",
+				HN_AUTOSCALE, 0) < 0 ||
+			    g_co.verbose)
+				sprintf(burst, "%d", (int)p->burst);
+			sprintf(buf, "%05d: %s %4d ms burst %s",
+			    p->link_nr % DN_MAX_ID, bwbuf, p->delay, burst);
+		} break;
 
-	case DN_FS:
-	    print_flowset_parms((struct dn_fs *)oid, buf);
-	    break;
-	case DN_PROFILE:
-	    flush_buf(buf);
-	    print_extra_delay_parms((struct dn_profile *)oid);
+		case DN_FS:
+			print_flowset_parms((struct dn_fs *)oid, buf);
+			break;
+		case DN_PROFILE:
+			flush_buf(buf);
+			print_extra_delay_parms((struct dn_profile *)oid);
+		}
+		flush_buf(buf); // XXX does it really go here ?
 	}
-	flush_buf(buf); // XXX does it really go here ?
-    }
 
-    bp_free(&bp);
+	bp_free(&bp);
 }
 
 /*
@@ -671,11 +616,11 @@ ipfw_delete_pipe(int do_pipe, int i)
 {
 	struct {
 		struct dn_id oid;
-		uintptr_t a[1];	/* add more if we want a list */
+		uintptr_t a[1]; /* add more if we want a list */
 	} cmd;
 	oid_fill((void *)&cmd, sizeof(cmd), DN_CMD_DELETE, DN_API_VERSION);
 	cmd.oid.subtype = (do_pipe == 1) ? DN_LINK :
-		( (do_pipe == 2) ? DN_FS : DN_SCH);
+					   ((do_pipe == 2) ? DN_FS : DN_SCH);
 	cmd.a[0] = i;
 	i = do_cmd(IP_DUMMYNET3, &cmd, cmd.oid.len);
 	if (i) {
@@ -770,15 +715,15 @@ ipfw_delete_pipe(int do_pipe, int i)
  *
  */
 
-#define ED_MAX_LINE_LEN	256+ED_MAX_NAME_LEN
-#define ED_TOK_SAMPLES	"samples"
-#define ED_TOK_LOSS	"loss-level"
-#define ED_TOK_NAME	"name"
-#define ED_TOK_DELAY	"delay"
-#define ED_TOK_PROB	"prob"
-#define ED_TOK_BW	"bw"
-#define ED_SEPARATORS	" \t\n"
-#define ED_MIN_SAMPLES_NO	2
+#define ED_MAX_LINE_LEN 256 + ED_MAX_NAME_LEN
+#define ED_TOK_SAMPLES "samples"
+#define ED_TOK_LOSS "loss-level"
+#define ED_TOK_NAME "name"
+#define ED_TOK_DELAY "delay"
+#define ED_TOK_PROB "prob"
+#define ED_TOK_BW "bw"
+#define ED_SEPARATORS " \t\n"
+#define ED_MIN_SAMPLES_NO 2
 
 /*
  * returns 1 if s is a non-negative number, with at least one '.'
@@ -789,8 +734,8 @@ is_valid_number(const char *s)
 	int i, dots_found = 0;
 	int len = strlen(s);
 
-	for (i = 0; i<len; ++i)
-		if (!isdigit(s[i]) && (s[i] !='.' || ++dots_found > 1))
+	for (i = 0; i < len; ++i)
+		if (!isdigit(s[i]) && (s[i] != '.' || ++dots_found > 1))
 			return 0;
 	return 1;
 }
@@ -816,7 +761,7 @@ read_bandwidth(char *arg, uint32_t *bandwidth, char *if_name, int namelen)
 		/* interface name */
 		strlcpy(if_name, arg, namelen);
 		*bandwidth = 0;
-	} else {	/* read bandwidth value */
+	} else { /* read bandwidth value */
 		uint64_t bw;
 		char *end = NULL;
 
@@ -831,8 +776,7 @@ read_bandwidth(char *arg, uint32_t *bandwidth, char *if_name, int namelen)
 			end++;
 			bw *= 1000000000;
 		}
-		if ((*end == 'B' &&
-			_substrcmp2(end, "Bi", "Bit/s") != 0) ||
+		if ((*end == 'B' && _substrcmp2(end, "Bi", "Bit/s") != 0) ||
 		    _substrcmp2(end, "by", "bytes") == 0)
 			bw *= 8;
 
@@ -868,24 +812,24 @@ compare_points(const void *vp1, const void *vp2)
 		return 0;
 }
 
-#define ED_EFMT(s) EX_DATAERR,"error in %s at line %d: "#s,filename,lineno
+#define ED_EFMT(s) EX_DATAERR, "error in %s at line %d: " #s, filename, lineno
 
 static void
 load_extra_delays(const char *filename, struct dn_profile *p,
-	struct dn_link *link)
+    struct dn_link *link)
 {
-	char    line[ED_MAX_LINE_LEN];
-	FILE    *f;
-	int     lineno = 0;
-	int     i;
+	char line[ED_MAX_LINE_LEN];
+	FILE *f;
+	int lineno = 0;
+	int i;
 
-	int     samples = -1;
-	double  loss = -1.0;
-	char    profile_name[ED_MAX_NAME_LEN];
-	int     delay_first = -1;
-	int     do_points = 0;
-	struct point    points[ED_MAX_SAMPLES_NO];
-	int     points_no = 0;
+	int samples = -1;
+	double loss = -1.0;
+	char profile_name[ED_MAX_NAME_LEN];
+	int delay_first = -1;
+	int do_points = 0;
+	struct point points[ED_MAX_SAMPLES_NO];
+	int points_no = 0;
 
 	/* XXX link never NULL? */
 	p->link_nr = link->link_nr;
@@ -895,7 +839,7 @@ load_extra_delays(const char *filename, struct dn_profile *p,
 	if (f == NULL)
 		err(EX_UNAVAILABLE, "fopen: %s", filename);
 
-	while (fgets(line, ED_MAX_LINE_LEN, f)) {	 /* read commands */
+	while (fgets(line, ED_MAX_LINE_LEN, f)) { /* read commands */
 		char *s, *cur = line, *name = NULL, *arg = NULL;
 
 		++lineno;
@@ -914,104 +858,104 @@ load_extra_delays(const char *filename, struct dn_profile *p,
 			else
 				arg = s;
 		}
-		if (name == NULL)	/* empty line */
+		if (name == NULL) /* empty line */
 			continue;
 		if (arg == NULL)
 			errx(ED_EFMT("missing arg for %s"), name);
 
 		if (!strcasecmp(name, ED_TOK_SAMPLES)) {
-		    if (samples > 0)
-			errx(ED_EFMT("duplicate ``samples'' line"));
-		    if (atoi(arg) <=0)
-			errx(ED_EFMT("invalid number of samples"));
-		    samples = atoi(arg);
-		    if (samples>ED_MAX_SAMPLES_NO)
-			    errx(ED_EFMT("too many samples, maximum is %d"),
-				ED_MAX_SAMPLES_NO);
-		    do_points = 0;
+			if (samples > 0)
+				errx(ED_EFMT("duplicate ``samples'' line"));
+			if (atoi(arg) <= 0)
+				errx(ED_EFMT("invalid number of samples"));
+			samples = atoi(arg);
+			if (samples > ED_MAX_SAMPLES_NO)
+				errx(ED_EFMT("too many samples, maximum is %d"),
+				    ED_MAX_SAMPLES_NO);
+			do_points = 0;
 		} else if (!strcasecmp(name, ED_TOK_BW)) {
-		    char buf[IFNAMSIZ];
-		    read_bandwidth(arg, &link->bandwidth, buf, sizeof(buf));
+			char buf[IFNAMSIZ];
+			read_bandwidth(arg, &link->bandwidth, buf, sizeof(buf));
 		} else if (!strcasecmp(name, ED_TOK_LOSS)) {
-		    if (loss != -1.0)
-			errx(ED_EFMT("duplicated token: %s"), name);
-		    if (!is_valid_number(arg))
-			errx(ED_EFMT("invalid %s"), arg);
-		    loss = atof(arg);
-		    if (loss > 1)
-			errx(ED_EFMT("%s greater than 1.0"), name);
-		    do_points = 0;
+			if (loss != -1.0)
+				errx(ED_EFMT("duplicated token: %s"), name);
+			if (!is_valid_number(arg))
+				errx(ED_EFMT("invalid %s"), arg);
+			loss = atof(arg);
+			if (loss > 1)
+				errx(ED_EFMT("%s greater than 1.0"), name);
+			do_points = 0;
 		} else if (!strcasecmp(name, ED_TOK_NAME)) {
-		    if (profile_name[0] != '\0')
-			errx(ED_EFMT("duplicated token: %s"), name);
-		    strlcpy(profile_name, arg, sizeof(profile_name));
-		    do_points = 0;
+			if (profile_name[0] != '\0')
+				errx(ED_EFMT("duplicated token: %s"), name);
+			strlcpy(profile_name, arg, sizeof(profile_name));
+			do_points = 0;
 		} else if (!strcasecmp(name, ED_TOK_DELAY)) {
-		    if (do_points)
-			errx(ED_EFMT("duplicated token: %s"), name);
-		    delay_first = 1;
-		    do_points = 1;
+			if (do_points)
+				errx(ED_EFMT("duplicated token: %s"), name);
+			delay_first = 1;
+			do_points = 1;
 		} else if (!strcasecmp(name, ED_TOK_PROB)) {
-		    if (do_points)
-			errx(ED_EFMT("duplicated token: %s"), name);
-		    delay_first = 0;
-		    do_points = 1;
+			if (do_points)
+				errx(ED_EFMT("duplicated token: %s"), name);
+			delay_first = 0;
+			do_points = 1;
 		} else if (do_points) {
-		    if (!is_valid_number(name) || !is_valid_number(arg))
-			errx(ED_EFMT("invalid point found"));
-		    if (delay_first) {
-			points[points_no].delay = atof(name);
-			points[points_no].prob = atof(arg);
-		    } else {
-			points[points_no].delay = atof(arg);
-			points[points_no].prob = atof(name);
-		    }
-		    if (points[points_no].prob > 1.0)
-			errx(ED_EFMT("probability greater than 1.0"));
-		    ++points_no;
+			if (!is_valid_number(name) || !is_valid_number(arg))
+				errx(ED_EFMT("invalid point found"));
+			if (delay_first) {
+				points[points_no].delay = atof(name);
+				points[points_no].prob = atof(arg);
+			} else {
+				points[points_no].delay = atof(arg);
+				points[points_no].prob = atof(name);
+			}
+			if (points[points_no].prob > 1.0)
+				errx(ED_EFMT("probability greater than 1.0"));
+			++points_no;
 		} else {
-		    errx(ED_EFMT("unrecognised command '%s'"), name);
+			errx(ED_EFMT("unrecognised command '%s'"), name);
 		}
 	}
 
-	fclose (f);
+	fclose(f);
 
 	if (samples == -1) {
-	    warnx("'%s' not found, assuming 100", ED_TOK_SAMPLES);
-	    samples = 100;
+		warnx("'%s' not found, assuming 100", ED_TOK_SAMPLES);
+		samples = 100;
 	}
 
 	if (loss == -1.0) {
-	    warnx("'%s' not found, assuming no loss", ED_TOK_LOSS);
-	    loss = 1;
+		warnx("'%s' not found, assuming no loss", ED_TOK_LOSS);
+		loss = 1;
 	}
 
 	/* make sure that there are enough points. */
 	if (points_no < ED_MIN_SAMPLES_NO)
-	    errx(ED_EFMT("too few samples, need at least %d"),
-		ED_MIN_SAMPLES_NO);
+		errx(ED_EFMT("too few samples, need at least %d"),
+		    ED_MIN_SAMPLES_NO);
 
 	qsort(points, points_no, sizeof(struct point), compare_points);
 
 	/* interpolation */
-	for (i = 0; i<points_no-1; ++i) {
-	    double y1 = points[i].prob * samples;
-	    double x1 = points[i].delay;
-	    double y2 = points[i+1].prob * samples;
-	    double x2 = points[i+1].delay;
+	for (i = 0; i < points_no - 1; ++i) {
+		double y1 = points[i].prob * samples;
+		double x1 = points[i].delay;
+		double y2 = points[i + 1].prob * samples;
+		double x2 = points[i + 1].delay;
 
-	    int ix = y1;
-	    int stop = y2;
+		int ix = y1;
+		int stop = y2;
 
-	    if (x1 == x2) {
-		for (; ix<stop; ++ix)
-		    p->samples[ix] = x1;
-	    } else {
-		double m = (y2-y1)/(x2-x1);
-		double c = y1 - m*x1;
-		for (; ix<stop ; ++ix)
-		    p->samples[ix] = (ix - c)/m;
-	    }
+		if (x1 == x2) {
+			for (; ix < stop; ++ix)
+				p->samples[ix] = x1;
+		} else {
+			double m = (y2 - y1) / (x2 - x1);
+			double c = y1 - m * x1;
+			for (; ix < stop; ++ix)
+				p->samples[ix] = (ix - c) / m;
+		}
 	}
 	p->samples_no = samples;
 	p->loss_level = loss * samples;
@@ -1021,47 +965,51 @@ load_extra_delays(const char *filename, struct dn_profile *p,
 #ifdef NEW_AQM
 
 /* Parse AQM/extra scheduler parameters */
-static int 
+static int
 process_extra_parms(int *ac, char **av, struct dn_extra_parms *ep,
-	uint16_t type)
+    uint16_t type)
 {
 	int i;
-	
+
 	/* use kernel defaults */
-	for (i=0; i<DN_MAX_EXTRA_PARM; i++)
+	for (i = 0; i < DN_MAX_EXTRA_PARM; i++)
 		ep->par[i] = -1;
-		
-	switch(type) {
+
+	switch (type) {
 	case TOK_CODEL:
 	case TOK_FQ_CODEL:
-	/* Codel
-	 * 0- target, 1- interval, 2- flags,
-	 * FQ_CODEL
-	 * 3- quantum, 4- limit, 5- flows
-	 */
-		if (type==TOK_CODEL)
+		/* Codel
+		 * 0- target, 1- interval, 2- flags,
+		 * FQ_CODEL
+		 * 3- quantum, 4- limit, 5- flows
+		 */
+		if (type == TOK_CODEL)
 			ep->par[2] = 0;
 		else
 			ep->par[2] = CODEL_ECN_ENABLED;
 
 		while (*ac > 0) {
 			int tok = match_token(aqm_params, *av);
-			(*ac)--; av++;
-			switch(tok) {
+			(*ac)--;
+			av++;
+			switch (tok) {
 			case TOK_TARGET:
 				if (*ac <= 0 || time_to_us(av[0]) < 0)
 					errx(EX_DATAERR, "target needs time\n");
 
 				ep->par[0] = time_to_us(av[0]);
-				(*ac)--; av++;
+				(*ac)--;
+				av++;
 				break;
 
 			case TOK_INTERVAL:
 				if (*ac <= 0 || time_to_us(av[0]) < 0)
-					errx(EX_DATAERR, "interval needs time\n");
+					errx(EX_DATAERR,
+					    "interval needs time\n");
 
 				ep->par[1] = time_to_us(av[0]);
-				(*ac)--; av++;
+				(*ac)--;
+				av++;
 				break;
 
 			case TOK_ECN:
@@ -1073,32 +1021,41 @@ process_extra_parms(int *ac, char **av, struct dn_extra_parms *ep,
 			/* Config fq_codel parameters */
 			case TOK_QUANTUM:
 				if (type != TOK_FQ_CODEL)
-					errx(EX_DATAERR, "quantum is not for codel\n");
+					errx(EX_DATAERR,
+					    "quantum is not for codel\n");
 				if (*ac <= 0 || !is_valid_number(av[0]))
-					errx(EX_DATAERR, "quantum needs number\n");
+					errx(EX_DATAERR,
+					    "quantum needs number\n");
 
-				ep->par[3]= atoi(av[0]);
-				(*ac)--; av++;
+				ep->par[3] = atoi(av[0]);
+				(*ac)--;
+				av++;
 				break;
 
 			case TOK_LIMIT:
 				if (type != TOK_FQ_CODEL)
-					errx(EX_DATAERR, "limit is not for codel, use queue instead\n");
+					errx(EX_DATAERR,
+					    "limit is not for codel, use queue instead\n");
 				if (*ac <= 0 || !is_valid_number(av[0]))
-					errx(EX_DATAERR, "limit needs number\n");
+					errx(EX_DATAERR,
+					    "limit needs number\n");
 
 				ep->par[4] = atoi(av[0]);
-				(*ac)--; av++;
+				(*ac)--;
+				av++;
 				break;
 
 			case TOK_FLOWS:
 				if (type != TOK_FQ_CODEL)
-					errx(EX_DATAERR, "flows is not for codel\n");
+					errx(EX_DATAERR,
+					    "flows is not for codel\n");
 				if (*ac <= 0 || !is_valid_number(av[0]))
-					errx(EX_DATAERR, "flows needs number\n");
+					errx(EX_DATAERR,
+					    "flows needs number\n");
 
 				ep->par[5] = atoi(av[0]);
-				(*ac)--; av++;
+				(*ac)--;
+				av++;
 				break;
 
 			default:
@@ -1116,64 +1073,75 @@ process_extra_parms(int *ac, char **av, struct dn_extra_parms *ep,
 		 * 7- quantum, 8- limit, 9- flows
 		 */
 
-		if ( type == TOK_PIE)
-			ep->par[6] = PIE_CAPDROP_ENABLED | PIE_DEPRATEEST_ENABLED
-				| PIE_DERAND_ENABLED;
+		if (type == TOK_PIE)
+			ep->par[6] = PIE_CAPDROP_ENABLED |
+			    PIE_DEPRATEEST_ENABLED | PIE_DERAND_ENABLED;
 		else
 			/* for FQ-PIE, use TS mode */
-			ep->par[6] = PIE_CAPDROP_ENABLED |  PIE_DERAND_ENABLED
-				| PIE_ECN_ENABLED;
+			ep->par[6] = PIE_CAPDROP_ENABLED | PIE_DERAND_ENABLED |
+			    PIE_ECN_ENABLED;
 
 		while (*ac > 0) {
 			int tok = match_token(aqm_params, *av);
-			(*ac)--; av++;
-			switch(tok) {
+			(*ac)--;
+			av++;
+			switch (tok) {
 			case TOK_TARGET:
 				if (*ac <= 0 || time_to_us(av[0]) < 0)
 					errx(EX_DATAERR, "target needs time\n");
-					
+
 				ep->par[0] = time_to_us(av[0]);
-				(*ac)--; av++;
+				(*ac)--;
+				av++;
 				break;
-				
+
 			case TOK_TUPDATE:
 				if (*ac <= 0 || time_to_us(av[0]) < 0)
-					errx(EX_DATAERR, "tupdate needs time\n");
-					
+					errx(EX_DATAERR,
+					    "tupdate needs time\n");
+
 				ep->par[1] = time_to_us(av[0]);
-				(*ac)--; av++;
+				(*ac)--;
+				av++;
 				break;
-				
+
 			case TOK_MAX_BURST:
 				if (*ac <= 0 || time_to_us(av[0]) < 0)
-					errx(EX_DATAERR, "max_burst needs time\n");
-					
+					errx(EX_DATAERR,
+					    "max_burst needs time\n");
+
 				ep->par[2] = time_to_us(av[0]);
-				(*ac)--; av++;
+				(*ac)--;
+				av++;
 				break;
-				
+
 			case TOK_MAX_ECNTH:
 				if (*ac <= 0 || !is_valid_number(av[0]))
-					errx(EX_DATAERR, "max_ecnth needs number\n");
-					
+					errx(EX_DATAERR,
+					    "max_ecnth needs number\n");
+
 				ep->par[3] = atof(av[0]) * PIE_SCALE;
-				(*ac)--; av++;
+				(*ac)--;
+				av++;
 				break;
 
 			case TOK_ALPHA:
 				if (*ac <= 0 || !is_valid_number(av[0]))
-					errx(EX_DATAERR, "alpha needs number\n");
-					
+					errx(EX_DATAERR,
+					    "alpha needs number\n");
+
 				ep->par[4] = atof(av[0]) * PIE_SCALE;
-				(*ac)--; av++;
+				(*ac)--;
+				av++;
 				break;
 
 			case TOK_BETA:
 				if (*ac <= 0 || !is_valid_number(av[0]))
 					errx(EX_DATAERR, "beta needs number\n");
-					
+
 				ep->par[5] = atof(av[0]) * PIE_SCALE;
-				(*ac)--; av++;
+				(*ac)--;
+				av++;
 				break;
 
 			case TOK_ECN:
@@ -1193,7 +1161,7 @@ process_extra_parms(int *ac, char **av, struct dn_extra_parms *ep,
 			case TOK_ONOFF:
 				ep->par[6] |= PIE_ON_OFF_MODE_ENABLED;
 				break;
-				
+
 			case TOK_DRE:
 				ep->par[6] |= PIE_DEPRATEEST_ENABLED;
 				break;
@@ -1212,34 +1180,42 @@ process_extra_parms(int *ac, char **av, struct dn_extra_parms *ep,
 			/* Config fq_pie parameters */
 			case TOK_QUANTUM:
 				if (type != TOK_FQ_PIE)
-					errx(EX_DATAERR, "quantum is not for pie\n");
+					errx(EX_DATAERR,
+					    "quantum is not for pie\n");
 				if (*ac <= 0 || !is_valid_number(av[0]))
-					errx(EX_DATAERR, "quantum needs number\n");
+					errx(EX_DATAERR,
+					    "quantum needs number\n");
 
-				ep->par[7]= atoi(av[0]);
-				(*ac)--; av++;
+				ep->par[7] = atoi(av[0]);
+				(*ac)--;
+				av++;
 				break;
 
 			case TOK_LIMIT:
 				if (type != TOK_FQ_PIE)
-					errx(EX_DATAERR, "limit is not for pie, use queue instead\n");
+					errx(EX_DATAERR,
+					    "limit is not for pie, use queue instead\n");
 				if (*ac <= 0 || !is_valid_number(av[0]))
-					errx(EX_DATAERR, "limit needs number\n");
+					errx(EX_DATAERR,
+					    "limit needs number\n");
 
 				ep->par[8] = atoi(av[0]);
-				(*ac)--; av++;
+				(*ac)--;
+				av++;
 				break;
 
 			case TOK_FLOWS:
 				if (type != TOK_FQ_PIE)
-					errx(EX_DATAERR, "flows is not for pie\n");
+					errx(EX_DATAERR,
+					    "flows is not for pie\n");
 				if (*ac <= 0 || !is_valid_number(av[0]))
-					errx(EX_DATAERR, "flows needs number\n");
+					errx(EX_DATAERR,
+					    "flows needs number\n");
 
 				ep->par[9] = atoi(av[0]);
-				(*ac)--; av++;
+				(*ac)--;
+				av++;
 				break;
-
 
 			default:
 				printf("%s is invalid parameter\n", av[-1]);
@@ -1252,7 +1228,6 @@ process_extra_parms(int *ac, char **av, struct dn_extra_parms *ep,
 }
 
 #endif
-
 
 /*
  * configuration of pipes, schedulers, flowsets.
@@ -1290,31 +1265,34 @@ ipfw_config_pipe(int ac, char **av)
 	struct dn_extra_parms *sch_extra = NULL;
 	int lmax_extra;
 #endif
-	
+
 	int lmax;
-	uint32_t _foo = 0, *flags = &_foo , *buckets = &_foo;
+	uint32_t _foo = 0, *flags = &_foo, *buckets = &_foo;
 
 	/*
 	 * allocate space for 1 header,
 	 * 1 scheduler, 1 link, 1 flowset, 1 profile
 	 */
-	lmax = sizeof(struct dn_id);	/* command header */
+	lmax = sizeof(struct dn_id); /* command header */
 	lmax += sizeof(struct dn_sch) + sizeof(struct dn_link) +
-		sizeof(struct dn_fs) + sizeof(struct dn_profile);
+	    sizeof(struct dn_fs) + sizeof(struct dn_profile);
 
 #ifdef NEW_AQM
 	/* Extra Params */
 	lmax_extra = sizeof(struct dn_extra_parms);
 	/* two lmax_extra because one for AQM params and another
-	 * sch params 
+	 * sch params
 	 */
-	lmax += lmax_extra*2; 
+	lmax += lmax_extra * 2;
 #endif
 
-	av++; ac--;
+	av++;
+	ac--;
 	/* Pipe number */
 	if (ac && isdigit(**av)) {
-		i = atoi(*av); av++; ac--;
+		i = atoi(*av);
+		av++;
+		ac--;
 	} else
 		i = -1;
 	if (i <= 0)
@@ -1338,18 +1316,18 @@ ipfw_config_pipe(int ac, char **av)
 		 */
 #ifdef NEW_AQM
 		sch_extra = o_next(&buf, lmax_extra, DN_TEXT);
-		sch_extra ->oid.subtype = 0; /* don't configure scheduler */
+		sch_extra->oid.subtype = 0; /* don't configure scheduler */
 #endif
 		sch = o_next(&buf, sizeof(*sch), DN_SCH);
 		p = o_next(&buf, sizeof(*p), DN_LINK);
 #ifdef NEW_AQM
 		aqm_extra = o_next(&buf, lmax_extra, DN_TEXT);
-		aqm_extra ->oid.subtype = 0; /* don't configure AQM */
+		aqm_extra->oid.subtype = 0; /* don't configure AQM */
 #endif
 		fs = o_next(&buf, sizeof(*fs), DN_FS);
 
 		sch->sched_nr = i;
-		sch->oid.subtype = 0;	/* defaults to WF2Q+ */
+		sch->oid.subtype = 0; /* defaults to WF2Q+ */
 		mask = &sch->sched_mask;
 		flags = &sch->flags;
 		buckets = &sch->buckets;
@@ -1358,14 +1336,14 @@ ipfw_config_pipe(int ac, char **av)
 		p->link_nr = i;
 
 		/* This flowset is only for the FIFO scheduler */
-		fs->fs_nr = i + 2*DN_MAX_ID;
+		fs->fs_nr = i + 2 * DN_MAX_ID;
 		fs->sched_nr = i + DN_MAX_ID;
 		break;
 
 	case 2: /* "queue N config ... " */
 #ifdef NEW_AQM
 		aqm_extra = o_next(&buf, lmax_extra, DN_TEXT);
-		aqm_extra ->oid.subtype = 0; 
+		aqm_extra->oid.subtype = 0;
 #endif
 		fs = o_next(&buf, sizeof(*fs), DN_FS);
 		fs->fs_nr = i;
@@ -1377,12 +1355,12 @@ ipfw_config_pipe(int ac, char **av)
 	case 3: /* "sched N config ..." */
 #ifdef NEW_AQM
 		sch_extra = o_next(&buf, lmax_extra, DN_TEXT);
-		sch_extra ->oid.subtype = 0; 
+		sch_extra->oid.subtype = 0;
 #endif
 		sch = o_next(&buf, sizeof(*sch), DN_SCH);
 #ifdef NEW_AQM
 		aqm_extra = o_next(&buf, lmax_extra, DN_TEXT);
-		aqm_extra ->oid.subtype = 0;
+		aqm_extra->oid.subtype = 0;
 #endif
 		fs = o_next(&buf, sizeof(*fs), DN_FS);
 		sch->sched_nr = i;
@@ -1401,14 +1379,15 @@ ipfw_config_pipe(int ac, char **av)
 	 */
 	if (p)
 		p->bandwidth = -1;
-	for (j = 0; j < sizeof(fs->par)/sizeof(fs->par[0]); j++)
+	for (j = 0; j < sizeof(fs->par) / sizeof(fs->par[0]); j++)
 		fs->par[j] = -1;
 	while (ac > 0) {
 		double d;
 		int tok = match_token(dummynet_params, *av);
-		ac--; av++;
+		ac--;
+		av++;
 
-		switch(tok) {
+		switch (tok) {
 		case TOK_NOERROR:
 			NEED(fs, "noerror is only for pipes");
 			fs->flags |= DN_NOERROR;
@@ -1420,24 +1399,25 @@ ipfw_config_pipe(int ac, char **av)
 			if ((end = strsep(&av[0], ","))) {
 				d = strtod(end, NULL);
 				d = (d < 0) ? 0 : (d <= 1) ? d : 1;
-				fs->plr[0] = (int)(d*0x7fffffff);
+				fs->plr[0] = (int)(d * 0x7fffffff);
 			}
 			if ((end = strsep(&av[0], ","))) {
 				d = strtod(end, NULL);
 				d = (d < 0) ? 0 : (d <= 1) ? d : 1;
-				fs->plr[1] = (int)(d*0x7fffffff);
+				fs->plr[1] = (int)(d * 0x7fffffff);
 			}
 			if ((end = strsep(&av[0], ","))) {
 				d = strtod(end, NULL);
 				d = (d < 0) ? 0 : (d <= 1) ? d : 1;
-				fs->plr[2] = (int)(d*0x7fffffff);
+				fs->plr[2] = (int)(d * 0x7fffffff);
 			}
 			if ((end = strsep(&av[0], ","))) {
 				d = strtod(end, NULL);
 				d = (d < 0) ? 0 : (d <= 1) ? d : 1;
-				fs->plr[3] = (int)(d*0x7fffffff);
+				fs->plr[3] = (int)(d * 0x7fffffff);
 			}
-			ac--; av++;
+			ac--;
+			av++;
 			break;
 
 		case TOK_QUEUE:
@@ -1452,14 +1432,16 @@ ipfw_config_pipe(int ac, char **av)
 			    _substrcmp2(end, "by", "bytes") == 0) {
 				fs->flags |= DN_QSIZE_BYTES;
 			}
-			ac--; av++;
+			ac--;
+			av++;
 			break;
 
 		case TOK_BUCKETS:
 			NEED(fs, "buckets is only for pipes or flowsets");
 			NEED1("buckets needs argument\n");
 			*buckets = strtoul(av[0], NULL, 0);
-			ac--; av++;
+			ac--;
+			av++;
 			break;
 
 		case TOK_FLOW_MASK:
@@ -1476,120 +1458,124 @@ ipfw_config_pipe(int ac, char **av)
 			end = NULL;
 
 			while (ac >= 1) {
-			    uint32_t *p32 = NULL;
-			    uint16_t *p16 = NULL;
-			    uint32_t *p20 = NULL;
-			    struct in6_addr *pa6 = NULL;
-			    uint32_t a;
+				uint32_t *p32 = NULL;
+				uint16_t *p16 = NULL;
+				uint32_t *p20 = NULL;
+				struct in6_addr *pa6 = NULL;
+				uint32_t a;
 
-			    tok = match_token(dummynet_params, *av);
-			    ac--; av++;
-			    switch(tok) {
-			    case TOK_ALL:
-				    /*
-				     * special case, all bits significant
-				     * except 'extra' (the queue number)
-				     */
-				    mask->dst_ip = ~0;
-				    mask->src_ip = ~0;
-				    mask->dst_port = ~0;
-				    mask->src_port = ~0;
-				    mask->proto = ~0;
-				    n2mask(&mask->dst_ip6, 128);
-				    n2mask(&mask->src_ip6, 128);
-				    mask->flow_id6 = ~0;
-				    *flags |= DN_HAVE_MASK;
-				    goto end_mask;
+				tok = match_token(dummynet_params, *av);
+				ac--;
+				av++;
+				switch (tok) {
+				case TOK_ALL:
+					/*
+					 * special case, all bits significant
+					 * except 'extra' (the queue number)
+					 */
+					mask->dst_ip = ~0;
+					mask->src_ip = ~0;
+					mask->dst_port = ~0;
+					mask->src_port = ~0;
+					mask->proto = ~0;
+					n2mask(&mask->dst_ip6, 128);
+					n2mask(&mask->src_ip6, 128);
+					mask->flow_id6 = ~0;
+					*flags |= DN_HAVE_MASK;
+					goto end_mask;
 
-			    case TOK_QUEUE:
-				    mask->extra = ~0;
-				    *flags |= DN_HAVE_MASK;
-				    goto end_mask;
+				case TOK_QUEUE:
+					mask->extra = ~0;
+					*flags |= DN_HAVE_MASK;
+					goto end_mask;
 
-			    case TOK_DSTIP:
-				    mask->addr_type = 4;
-				    p32 = &mask->dst_ip;
-				    break;
+				case TOK_DSTIP:
+					mask->addr_type = 4;
+					p32 = &mask->dst_ip;
+					break;
 
-			    case TOK_SRCIP:
-				    mask->addr_type = 4;
-				    p32 = &mask->src_ip;
-				    break;
+				case TOK_SRCIP:
+					mask->addr_type = 4;
+					p32 = &mask->src_ip;
+					break;
 
-			    case TOK_DSTIP6:
-				    mask->addr_type = 6;
-				    pa6 = &mask->dst_ip6;
-				    break;
+				case TOK_DSTIP6:
+					mask->addr_type = 6;
+					pa6 = &mask->dst_ip6;
+					break;
 
-			    case TOK_SRCIP6:
-				    mask->addr_type = 6;
-				    pa6 = &mask->src_ip6;
-				    break;
+				case TOK_SRCIP6:
+					mask->addr_type = 6;
+					pa6 = &mask->src_ip6;
+					break;
 
-			    case TOK_FLOWID:
-				    mask->addr_type = 6;
-				    p20 = &mask->flow_id6;
-				    break;
+				case TOK_FLOWID:
+					mask->addr_type = 6;
+					p20 = &mask->flow_id6;
+					break;
 
-			    case TOK_DSTPORT:
-				    p16 = &mask->dst_port;
-				    break;
+				case TOK_DSTPORT:
+					p16 = &mask->dst_port;
+					break;
 
-			    case TOK_SRCPORT:
-				    p16 = &mask->src_port;
-				    break;
+				case TOK_SRCPORT:
+					p16 = &mask->src_port;
+					break;
 
-			    case TOK_PROTO:
-				    break;
+				case TOK_PROTO:
+					break;
 
-			    default:
-				    ac++; av--; /* backtrack */
-				    goto end_mask;
-			    }
-			    if (ac < 1)
-				    errx(EX_USAGE, "mask: value missing");
-			    if (*av[0] == '/') {
-				    a = strtoul(av[0]+1, &end, 0);
-				    if (pa6 == NULL)
-					    a = (a == 32) ? ~0 : (1 << a) - 1;
-			    } else
-				    a = strtoul(av[0], &end, 0);
-			    if (p32 != NULL)
-				    *p32 = a;
-			    else if (p16 != NULL) {
-				    if (a > 0xFFFF)
-					    errx(EX_DATAERR,
-						"port mask must be 16 bit");
-				    *p16 = (uint16_t)a;
-			    } else if (p20 != NULL) {
-				    if (a > 0xfffff)
-					errx(EX_DATAERR,
-					    "flow_id mask must be 20 bit");
-				    *p20 = (uint32_t)a;
-			    } else if (pa6 != NULL) {
-				    if (a > 128)
-					errx(EX_DATAERR,
-					    "in6addr invalid mask len");
-				    else
-					n2mask(pa6, a);
-			    } else {
-				    if (a > 0xFF)
-					    errx(EX_DATAERR,
-						"proto mask must be 8 bit");
-				    mask->proto = (uint8_t)a;
-			    }
-			    if (a != 0)
-				    *flags |= DN_HAVE_MASK;
-			    ac--; av++;
+				default:
+					ac++;
+					av--; /* backtrack */
+					goto end_mask;
+				}
+				if (ac < 1)
+					errx(EX_USAGE, "mask: value missing");
+				if (*av[0] == '/') {
+					a = strtoul(av[0] + 1, &end, 0);
+					if (pa6 == NULL)
+						a = (a == 32) ? ~0 :
+								(1 << a) - 1;
+				} else
+					a = strtoul(av[0], &end, 0);
+				if (p32 != NULL)
+					*p32 = a;
+				else if (p16 != NULL) {
+					if (a > 0xFFFF)
+						errx(EX_DATAERR,
+						    "port mask must be 16 bit");
+					*p16 = (uint16_t)a;
+				} else if (p20 != NULL) {
+					if (a > 0xfffff)
+						errx(EX_DATAERR,
+						    "flow_id mask must be 20 bit");
+					*p20 = (uint32_t)a;
+				} else if (pa6 != NULL) {
+					if (a > 128)
+						errx(EX_DATAERR,
+						    "in6addr invalid mask len");
+					else
+						n2mask(pa6, a);
+				} else {
+					if (a > 0xFF)
+						errx(EX_DATAERR,
+						    "proto mask must be 8 bit");
+					mask->proto = (uint8_t)a;
+				}
+				if (a != 0)
+					*flags |= DN_HAVE_MASK;
+				ac--;
+				av++;
 			} /* end while, config masks */
-end_mask:
+		end_mask:
 			break;
 #ifdef NEW_AQM
 		case TOK_CODEL:
 		case TOK_PIE:
 			NEED(fs, "codel/pie is only for flowsets");
 
-			fs->flags &= ~(DN_IS_RED|DN_IS_GENTLE_RED);
+			fs->flags &= ~(DN_IS_RED | DN_IS_GENTLE_RED);
 			fs->flags |= DN_IS_AQM;
 
 			strlcpy(aqm_extra->name, av[-1],
@@ -1601,8 +1587,9 @@ end_mask:
 
 		case TOK_FQ_CODEL:
 		case TOK_FQ_PIE:
-			if (!strcmp(av[-1],"type"))
-				errx(EX_DATAERR, "use type before fq_codel/fq_pie");
+			if (!strcmp(av[-1], "type"))
+				errx(EX_DATAERR,
+				    "use type before fq_codel/fq_pie");
 
 			NEED(sch, "fq_codel/fq_pie is only for schd");
 			strlcpy(sch_extra->name, av[-1],
@@ -1621,28 +1608,29 @@ end_mask:
 			 * the format for parameters is w_q/min_th/max_th/max_p
 			 */
 			if ((end = strsep(&av[0], "/"))) {
-			    double w_q = strtod(end, NULL);
-			    if (w_q > 1 || w_q <= 0)
-				errx(EX_DATAERR, "0 < w_q <= 1");
-			    fs->w_q = (int) (w_q * (1 << SCALE_RED));
+				double w_q = strtod(end, NULL);
+				if (w_q > 1 || w_q <= 0)
+					errx(EX_DATAERR, "0 < w_q <= 1");
+				fs->w_q = (int)(w_q * (1 << SCALE_RED));
 			}
 			if ((end = strsep(&av[0], "/"))) {
-			    fs->min_th = strtoul(end, &end, 0);
-			    if (*end == 'K' || *end == 'k')
-				fs->min_th *= 1024;
+				fs->min_th = strtoul(end, &end, 0);
+				if (*end == 'K' || *end == 'k')
+					fs->min_th *= 1024;
 			}
 			if ((end = strsep(&av[0], "/"))) {
-			    fs->max_th = strtoul(end, &end, 0);
-			    if (*end == 'K' || *end == 'k')
-				fs->max_th *= 1024;
+				fs->max_th = strtoul(end, &end, 0);
+				if (*end == 'K' || *end == 'k')
+					fs->max_th *= 1024;
 			}
 			if ((end = strsep(&av[0], "/"))) {
-			    double max_p = strtod(end, NULL);
-			    if (max_p > 1 || max_p < 0)
-				errx(EX_DATAERR, "0 <= max_p <= 1");
-			    fs->max_p = (int)(max_p * (1 << SCALE_RED));
+				double max_p = strtod(end, NULL);
+				if (max_p > 1 || max_p < 0)
+					errx(EX_DATAERR, "0 <= max_p <= 1");
+				fs->max_p = (int)(max_p * (1 << SCALE_RED));
 			}
-			ac--; av++;
+			ac--;
+			av++;
 			break;
 
 		case TOK_ECN:
@@ -1651,21 +1639,23 @@ end_mask:
 
 		case TOK_DROPTAIL:
 			NEED(fs, "droptail is only for flowsets");
-			fs->flags &= ~(DN_IS_RED|DN_IS_GENTLE_RED);
+			fs->flags &= ~(DN_IS_RED | DN_IS_GENTLE_RED);
 			break;
 
 		case TOK_BW:
 			NEED(p, "bw is only for links");
 			NEED1("bw needs bandwidth or interface\n");
 			read_bandwidth(av[0], &p->bandwidth, NULL, 0);
-			ac--; av++;
+			ac--;
+			av++;
 			break;
 
 		case TOK_DELAY:
 			NEED(p, "delay is only for links");
 			NEED1("delay needs argument 0..10000ms\n");
 			p->delay = strtoul(av[0], NULL, 0);
-			ac--; av++;
+			ac--;
+			av++;
 			break;
 
 		case TOK_TYPE: {
@@ -1681,39 +1671,45 @@ end_mask:
 			/* if fq_codel is selected, consider all tokens after it
 			 * as parameters
 			 */
-			if (!strcasecmp(av[0],"fq_codel") || !strcasecmp(av[0],"fq_pie")){
+			if (!strcasecmp(av[0], "fq_codel") ||
+			    !strcasecmp(av[0], "fq_pie")) {
 				strlcpy(sch_extra->name, av[0],
 				    sizeof(sch_extra->name));
 				sch_extra->oid.subtype = DN_SCH_PARAMS;
 				process_extra_parms(&ac, av, sch_extra, tok);
 			} else {
-				ac--;av++;
+				ac--;
+				av++;
 			}
 #else
-			ac--;av++;
+			ac--;
+			av++;
 #endif
 			break;
-		    }
+		}
 
 		case TOK_WEIGHT:
 			NEED(fs, "weight is only for flowsets");
 			NEED1("weight needs argument\n");
 			fs->par[0] = strtol(av[0], &end, 0);
-			ac--; av++;
+			ac--;
+			av++;
 			break;
 
 		case TOK_LMAX:
 			NEED(fs, "lmax is only for flowsets");
 			NEED1("lmax needs argument\n");
 			fs->par[1] = strtol(av[0], &end, 0);
-			ac--; av++;
+			ac--;
+			av++;
 			break;
 
 		case TOK_PRI:
 			NEED(fs, "priority is only for flowsets");
 			NEED1("priority needs argument\n");
 			fs->par[2] = strtol(av[0], &end, 0);
-			ac--; av++;
+			ac--;
+			av++;
 			break;
 
 		case TOK_SCHED:
@@ -1721,18 +1717,21 @@ end_mask:
 			NEED(fs, "pipe/sched");
 			NEED1("pipe/link/sched needs number\n");
 			fs->sched_nr = strtoul(av[0], &end, 0);
-			ac--; av++;
+			ac--;
+			av++;
 			break;
 
 		case TOK_PROFILE:
 			NEED((!pf), "profile already set");
 			NEED(p, "profile");
-		    {
-			NEED1("extra delay needs the file name\n");
-			pf = o_next(&buf, sizeof(*pf), DN_PROFILE);
-			load_extra_delays(av[0], pf, p); //XXX can't fail?
-			--ac; ++av;
-		    }
+			{
+				NEED1("extra delay needs the file name\n");
+				pf = o_next(&buf, sizeof(*pf), DN_PROFILE);
+				load_extra_delays(av[0], pf,
+				    p); // XXX can't fail?
+				--ac;
+				++av;
+			}
 			break;
 
 		case TOK_BURST:
@@ -1746,7 +1745,8 @@ end_mask:
 			if (errno || p->burst > (1ULL << 48) - 1)
 				errx(EX_DATAERR,
 				    "burst: out of range (0..2^48-1)");
-			ac--; av++;
+			ac--;
+			av++;
 			break;
 
 		default:
@@ -1763,72 +1763,82 @@ end_mask:
 	}
 	if (fs) {
 		/* XXX accept a 0 scheduler to keep the default */
-	    if (fs->flags & DN_QSIZE_BYTES) {
-		size_t len;
-		long limit;
+		if (fs->flags & DN_QSIZE_BYTES) {
+			size_t len;
+			long limit;
 
-		len = sizeof(limit);
-		if (sysctlbyname("net.inet.ip.dummynet.pipe_byte_limit",
-			&limit, &len, NULL, 0) == -1)
-			limit = 1024*1024;
-		if (fs->qsize > limit)
-			errx(EX_DATAERR, "queue size must be < %ldB", limit);
-	    } else {
-		size_t len;
-		long limit;
+			len = sizeof(limit);
+			if (sysctlbyname("net.inet.ip.dummynet.pipe_byte_limit",
+				&limit, &len, NULL, 0) == -1)
+				limit = 1024 * 1024;
+			if (fs->qsize > limit)
+				errx(EX_DATAERR, "queue size must be < %ldB",
+				    limit);
+		} else {
+			size_t len;
+			long limit;
 
-		len = sizeof(limit);
-		if (sysctlbyname("net.inet.ip.dummynet.pipe_slot_limit",
-			&limit, &len, NULL, 0) == -1)
-			limit = 100;
-		if (fs->qsize > limit)
-			errx(EX_DATAERR, "2 <= queue size <= %ld", limit);
-	    }
+			len = sizeof(limit);
+			if (sysctlbyname("net.inet.ip.dummynet.pipe_slot_limit",
+				&limit, &len, NULL, 0) == -1)
+				limit = 100;
+			if (fs->qsize > limit)
+				errx(EX_DATAERR, "2 <= queue size <= %ld",
+				    limit);
+		}
 
 #ifdef NEW_AQM
-		if ((fs->flags & DN_IS_ECN) && !((fs->flags & DN_IS_RED)|| 
-			(fs->flags & DN_IS_AQM)))
-			errx(EX_USAGE, "ECN can be used with red/gred/"
-				"codel/fq_codel only!");
+		if ((fs->flags & DN_IS_ECN) &&
+		    !((fs->flags & DN_IS_RED) || (fs->flags & DN_IS_AQM)))
+			errx(EX_USAGE,
+			    "ECN can be used with red/gred/"
+			    "codel/fq_codel only!");
 #else
-	    if ((fs->flags & DN_IS_ECN) && !(fs->flags & DN_IS_RED))
-		errx(EX_USAGE, "enable red/gred for ECN");
+		if ((fs->flags & DN_IS_ECN) && !(fs->flags & DN_IS_RED))
+			errx(EX_USAGE, "enable red/gred for ECN");
 
 #endif
 
-	    if (fs->flags & DN_IS_RED) {
-		size_t len;
-		int lookup_depth, avg_pkt_size;
+		if (fs->flags & DN_IS_RED) {
+			size_t len;
+			int lookup_depth, avg_pkt_size;
 
-		if (!(fs->flags & DN_IS_ECN) && (fs->min_th >= fs->max_th))
-		    errx(EX_DATAERR, "min_th %d must be < than max_th %d",
-			fs->min_th, fs->max_th);
-		else if ((fs->flags & DN_IS_ECN) && (fs->min_th > fs->max_th))
-		    errx(EX_DATAERR, "min_th %d must be =< than max_th %d",
-			fs->min_th, fs->max_th);
+			if (!(fs->flags & DN_IS_ECN) &&
+			    (fs->min_th >= fs->max_th))
+				errx(EX_DATAERR,
+				    "min_th %d must be < than max_th %d",
+				    fs->min_th, fs->max_th);
+			else if ((fs->flags & DN_IS_ECN) &&
+			    (fs->min_th > fs->max_th))
+				errx(EX_DATAERR,
+				    "min_th %d must be =< than max_th %d",
+				    fs->min_th, fs->max_th);
 
-		if (fs->max_th == 0)
-		    errx(EX_DATAERR, "max_th must be > 0");
+			if (fs->max_th == 0)
+				errx(EX_DATAERR, "max_th must be > 0");
 
-		len = sizeof(int);
-		if (sysctlbyname("net.inet.ip.dummynet.red_lookup_depth",
-			&lookup_depth, &len, NULL, 0) == -1)
-			lookup_depth = 256;
-		if (lookup_depth == 0)
-		    errx(EX_DATAERR, "net.inet.ip.dummynet.red_lookup_depth"
-			" must be greater than zero");
+			len = sizeof(int);
+			if (sysctlbyname(
+				"net.inet.ip.dummynet.red_lookup_depth",
+				&lookup_depth, &len, NULL, 0) == -1)
+				lookup_depth = 256;
+			if (lookup_depth == 0)
+				errx(EX_DATAERR,
+				    "net.inet.ip.dummynet.red_lookup_depth"
+				    " must be greater than zero");
 
-		len = sizeof(int);
-		if (sysctlbyname("net.inet.ip.dummynet.red_avg_pkt_size",
-			&avg_pkt_size, &len, NULL, 0) == -1)
-			avg_pkt_size = 512;
+			len = sizeof(int);
+			if (sysctlbyname(
+				"net.inet.ip.dummynet.red_avg_pkt_size",
+				&avg_pkt_size, &len, NULL, 0) == -1)
+				avg_pkt_size = 512;
 
-		if (avg_pkt_size == 0)
-			errx(EX_DATAERR,
-			    "net.inet.ip.dummynet.red_avg_pkt_size must"
-			    " be greater than zero");
+			if (avg_pkt_size == 0)
+				errx(EX_DATAERR,
+				    "net.inet.ip.dummynet.red_avg_pkt_size must"
+				    " be greater than zero");
 
-#if 0 /* the following computation is now done in the kernel */
+#if 0  /* the following computation is now done in the kernel */
 		/*
 		 * Ticks needed for sending a medium-sized packet.
 		 * Unfortunately, when we are configuring a WF2Q+ queue, we
@@ -1857,7 +1867,7 @@ end_mask:
 			weight *= 1 - w_q;
 		fs->lookup_weight = (int)(weight * (1 << SCALE_RED));
 #endif /* code moved in the kernel */
-	    }
+		}
 	}
 
 	i = do_cmd(IP_DUMMYNET3, base, (char *)buf - (char *)base);
@@ -1893,9 +1903,9 @@ parse_range(int ac, char *av[], uint32_t *v, int len)
 	for (s = *av; s != NULL; av++, ac--) {
 		v[0] = strtoul(s, &endptr, 10);
 		v[1] = (*endptr != '-') ? v[0] :
-			 strtoul(endptr+1, &endptr, 10);
+					  strtoul(endptr + 1, &endptr, 10);
 		if (*endptr == '\0') { /* prepare for next round */
-			s = (ac > 0) ? *(av+1) : NULL;
+			s = (ac > 0) ? *(av + 1) : NULL;
 		} else {
 			if (*endptr != ',') {
 				warn("invalid number: %s", s);
@@ -1907,9 +1917,8 @@ parse_range(int ac, char *av[], uint32_t *v, int len)
 			ac++;
 			av--;
 		}
-		if (v[1] < v[0] ||
-			v[0] >= DN_MAX_ID-1 ||
-			v[1] >= DN_MAX_ID-1) {
+		if (v[1] < v[0] || v[0] >= DN_MAX_ID - 1 ||
+		    v[1] >= DN_MAX_ID - 1) {
 			continue; /* invalid entry */
 		}
 		n++;
@@ -1918,7 +1927,7 @@ parse_range(int ac, char *av[], uint32_t *v, int len)
 			v[0] += DN_MAX_ID;
 			v[1] += DN_MAX_ID;
 		}
-		v = (n*2 < len) ? v + 2 : base;
+		v = (n * 2 < len) ? v + 2 : base;
 	}
 	return n;
 }
@@ -1937,23 +1946,23 @@ dummynet_list(int ac, char *av[], int show_counters)
 {
 	struct dn_id *oid, *x = NULL;
 	int ret, i;
-	int n; 		/* # of ranges */
+	int n; /* # of ranges */
 	u_int buflen, l;
-	u_int max_size;	/* largest obj passed up */
+	u_int max_size; /* largest obj passed up */
 
-	(void)show_counters;	// XXX unused, but we should use it.
+	(void)show_counters; // XXX unused, but we should use it.
 	ac--;
-	av++; 		/* skip 'list' | 'show' word */
+	av++; /* skip 'list' | 'show' word */
 
-	n = parse_range(ac, av, NULL, 0);	/* Count # of ranges. */
+	n = parse_range(ac, av, NULL, 0); /* Count # of ranges. */
 
 	/* Allocate space to store ranges */
 	l = sizeof(*oid) + sizeof(uint32_t) * n * 2;
 	oid = safe_calloc(1, l);
 	oid_fill(oid, l, DN_CMD_GET, DN_API_VERSION);
 
-	if (n > 0)	/* store ranges in idx */
-		parse_range(ac, av, (uint32_t *)(oid + 1), n*2);
+	if (n > 0) /* store ranges in idx */
+		parse_range(ac, av, (uint32_t *)(oid + 1), n * 2);
 	/*
 	 * Compute the size of the largest object returned. If the
 	 * response leaves at least this much spare space in the
@@ -1970,13 +1979,13 @@ dummynet_list(int ac, char *av[], int show_counters)
 
 	switch (g_co.do_pipe) {
 	case 1:
-		oid->subtype = DN_LINK;	/* list pipe */
+		oid->subtype = DN_LINK; /* list pipe */
 		break;
 	case 2:
-		oid->subtype = DN_FS;	/* list queue */
+		oid->subtype = DN_FS; /* list queue */
 		break;
 	case 3:
-		oid->subtype = DN_SCH;	/* list sched */
+		oid->subtype = DN_SCH; /* list sched */
 		break;
 	}
 
@@ -1988,7 +1997,7 @@ dummynet_list(int ac, char *av[], int show_counters)
 	 * creation of new queues, so we must be prepared to retry.
 	 */
 	if (n > 0) {
-		buflen = 4*1024;
+		buflen = 4 * 1024;
 	} else {
 		ret = do_cmd(-IP_DUMMYNET3, oid, (uintptr_t)&l);
 		if (ret != 0 || oid->id <= sizeof(*oid))
@@ -2006,7 +2015,7 @@ dummynet_list(int ac, char *av[], int show_counters)
 			goto done; /* no response */
 		if (l + max_size <= buflen)
 			break; /* ok */
-		buflen *= 2;	 /* double for next attempt */
+		buflen *= 2;   /* double for next attempt */
 	}
 	list_pipes(x, O_NEXT(x, l));
 done:

@@ -26,8 +26,9 @@
  */
 
 #ifndef _ZYNQMP_CLK_GATE_H_
-#define	_ZYNQMP_CLK_GATE_H_
+#define _ZYNQMP_CLK_GATE_H_
 
-int zynqmp_clk_gate_register(struct clkdom *clkdom, device_t fw, struct clknode_init_def *clkdef);
+int zynqmp_clk_gate_register(struct clkdom *clkdom, device_t fw,
+    struct clknode_init_def *clkdef);
 
 #endif /* _ZYNQMP_CLK_GATE_H_ */

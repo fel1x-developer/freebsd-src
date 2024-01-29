@@ -27,7 +27,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #include <sys/cdefs.h>
 __RCSID("$NetBSD: client.c,v 1.2 2008/12/06 20:01:14 plunky Exp $");
 
@@ -37,8 +36,8 @@ __RCSID("$NetBSD: client.c,v 1.2 2008/12/06 20:01:14 plunky Exp $");
 #include <sdp.h>
 #include <unistd.h>
 
-#include "btpand.h"
 #include "bnep.h"
+#include "btpand.h"
 #include "sdp.h"
 
 static void client_query(void);
@@ -69,7 +68,7 @@ client_init(void)
 	sa.l2cap_len = sizeof(sa);
 	sa.l2cap_bdaddr_type = BDADDR_BREDR;
 	sa.l2cap_cid = 0;
-	 
+
 	bdaddr_copy(&sa.l2cap_bdaddr, &local_bdaddr);
 	if (bind(fd, (struct sockaddr *)&sa, sizeof(sa)) == -1) {
 		log_err("Could not bind client socket: %m");
@@ -82,8 +81,8 @@ client_init(void)
 		exit(EXIT_FAILURE);
 	}
 
-	log_info("Opening connection to service 0x%4.4x at %s",
-	    service_class, bt_ntoa(&remote_bdaddr, NULL));
+	log_info("Opening connection to service 0x%4.4x at %s", service_class,
+	    bt_ntoa(&remote_bdaddr, NULL));
 
 	sa.l2cap_psm = htole16(l2cap_psm);
 	bdaddr_copy(&sa.l2cap_bdaddr, &remote_bdaddr);
@@ -131,8 +130,11 @@ client_init(void)
 	}
 	if (n < (mtu * 2)) {
 		n = mtu * 2;
-		if (setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &n, sizeof(n)) == -1) {
-			log_err("Could not set socket send buffer size (%d): %m", n);
+		if (setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &n, sizeof(n)) ==
+		    -1) {
+			log_err(
+			    "Could not set socket send buffer size (%d): %m",
+			    n);
 			close(fd);
 			return;
 		}
@@ -159,8 +161,8 @@ client_init(void)
 	if (!channel_open(chan, fd))
 		exit(EXIT_FAILURE);
 
-	bnep_send_control(chan, BNEP_SETUP_CONNECTION_REQUEST,
-	    2, service_class, SDP_SERVICE_CLASS_PANU);
+	bnep_send_control(chan, BNEP_SETUP_CONNECTION_REQUEST, 2, service_class,
+	    SDP_SERVICE_CLASS_PANU);
 }
 
 static void
@@ -179,7 +181,7 @@ client_query(void)
 	attr.value = buffer;
 
 	range = SDP_ATTR_RANGE(SDP_ATTR_PROTOCOL_DESCRIPTOR_LIST,
-			       SDP_ATTR_PROTOCOL_DESCRIPTOR_LIST);
+	    SDP_ATTR_PROTOCOL_DESCRIPTOR_LIST);
 
 	ss = sdp_open(&local_bdaddr, &remote_bdaddr);
 	if (ss == NULL || (errno = sdp_error(ss)) != 0) {
@@ -187,8 +189,8 @@ client_query(void)
 		exit(EXIT_FAILURE);
 	}
 
-	log_info("Searching for %s service at %s",
-	    service_name, bt_ntoa(&remote_bdaddr, NULL));
+	log_info("Searching for %s service at %s", service_name,
+	    bt_ntoa(&remote_bdaddr, NULL));
 
 	rv = sdp_search(ss, 1, &service_class, 1, &range, 1, &attr);
 	if (rv != 0) {
@@ -198,8 +200,8 @@ client_query(void)
 
 	sdp_close(ss);
 
-	if (attr.flags != SDP_ATTR_OK
-	    || attr.attr != SDP_ATTR_PROTOCOL_DESCRIPTOR_LIST) {
+	if (attr.flags != SDP_ATTR_OK ||
+	    attr.attr != SDP_ATTR_PROTOCOL_DESCRIPTOR_LIST) {
 		log_err("%s service not found", service_name);
 		exit(EXIT_FAILURE);
 	}
@@ -214,13 +216,14 @@ client_query(void)
 	 *	  seq len
 	 *	    uuid value == BNEP
 	 */
-	if (_sdp_get_seq(&attr.value, attr.value + attr.vlen, &seq0)
-	    && _sdp_get_seq(&seq0, attr.value, &seq1)
-	    && _sdp_match_uuid16(&seq1, seq0, SDP_UUID_PROTOCOL_L2CAP)
-	    && _sdp_get_uint16(&seq1, seq0, &l2cap_psm)
-	    && _sdp_get_seq(&seq0, attr.value, &seq1)
-	    && _sdp_match_uuid16(&seq1, seq0, SDP_UUID_PROTOCOL_BNEP)) {
-		log_info("Found PSM %d for service %s", l2cap_psm, service_name);
+	if (_sdp_get_seq(&attr.value, attr.value + attr.vlen, &seq0) &&
+	    _sdp_get_seq(&seq0, attr.value, &seq1) &&
+	    _sdp_match_uuid16(&seq1, seq0, SDP_UUID_PROTOCOL_L2CAP) &&
+	    _sdp_get_uint16(&seq1, seq0, &l2cap_psm) &&
+	    _sdp_get_seq(&seq0, attr.value, &seq1) &&
+	    _sdp_match_uuid16(&seq1, seq0, SDP_UUID_PROTOCOL_BNEP)) {
+		log_info("Found PSM %d for service %s", l2cap_psm,
+		    service_name);
 		return;
 	}
 

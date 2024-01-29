@@ -4,7 +4,7 @@
  * Copyright (C) 2010 David Xu <davidxu@freebsd.org>.
  * Copyright (C) 2000 Jason Evans <jasone@freebsd.org>.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -16,7 +16,7 @@
  *    notice(s), this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER(S) ``AS IS'' AND ANY
  * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
@@ -57,54 +57,57 @@
  * need to be wrapped to provide cancellation points.  The function
  * sem_post() may need to be wrapped to be signal-safe.
  */
-#include "namespace.h"
 #include <sys/types.h>
-#include <sys/queue.h>
-#include <machine/atomic.h>
-#include <errno.h>
-#include <sys/umtx.h>
 #include <sys/_semaphore.h>
-#include <limits.h>
+#include <sys/queue.h>
+#include <sys/umtx.h>
+
+#include <machine/atomic.h>
+
+#include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <pthread.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <time.h>
-#include "un-namespace.h"
+
 #include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 /*
  * Old semaphore definitions.
  */
 struct sem {
-#define SEM_MAGIC       ((u_int32_t) 0x09fa4012)
-        u_int32_t       magic;
-        pthread_mutex_t lock;
-        pthread_cond_t  gtzero;
-        u_int32_t       count;
-        u_int32_t       nwaiters;
-#define SEM_USER        (NULL)
-        semid_t         semid;  /* semaphore id if kernel (shared) semaphore */
-        int             syssem; /* 1 if kernel (shared) semaphore */
-        LIST_ENTRY(sem) entry;
-        struct sem      **backpointer;
+#define SEM_MAGIC ((u_int32_t)0x09fa4012)
+	u_int32_t magic;
+	pthread_mutex_t lock;
+	pthread_cond_t gtzero;
+	u_int32_t count;
+	u_int32_t nwaiters;
+#define SEM_USER (NULL)
+	semid_t semid; /* semaphore id if kernel (shared) semaphore */
+	int syssem;    /* 1 if kernel (shared) semaphore */
+	LIST_ENTRY(sem) entry;
+	struct sem **backpointer;
 };
 
-typedef struct sem* sem_t;
+typedef struct sem *sem_t;
 
-#define SEM_FAILED     ((sem_t *)0)
-#define SEM_VALUE_MAX  __INT_MAX
+#define SEM_FAILED ((sem_t *)0)
+#define SEM_VALUE_MAX __INT_MAX
 
-#define SYM_FB10(sym)                   __CONCAT(sym, _fb10)
-#define WEAK_REF(sym, alias)            __weak_reference(sym, alias)
-#define SYM_COMPAT(sym, impl, ver)      __sym_compat(sym, impl, ver)
- 
-#define FB10_COMPAT(func, sym)                          \
-        WEAK_REF(func, SYM_FB10(sym));                  \
-        SYM_COMPAT(sym, SYM_FB10(sym), FBSD_1.0)
+#define SYM_FB10(sym) __CONCAT(sym, _fb10)
+#define WEAK_REF(sym, alias) __weak_reference(sym, alias)
+#define SYM_COMPAT(sym, impl, ver) __sym_compat(sym, impl, ver)
+
+#define FB10_COMPAT(func, sym)         \
+	WEAK_REF(func, SYM_FB10(sym)); \
+	SYM_COMPAT(sym, SYM_FB10(sym), FBSD_1 .0)
 
 static sem_t sem_alloc(unsigned int value, semid_t semid, int system_sem);
-static void  sem_free(sem_t sem);
+static void sem_free(sem_t sem);
 
 static LIST_HEAD(, sem) named_sems = LIST_HEAD_INITIALIZER(named_sems);
 static pthread_mutex_t named_sems_mtx = PTHREAD_MUTEX_INITIALIZER;
@@ -205,8 +208,7 @@ _libc_sem_destroy_compat(sem_t *sem)
 	else if ((*sem)->nwaiters > 0) {
 		errno = EBUSY;
 		retval = -1;
-	}
-	else {
+	} else {
 		retval = 0;
 		(*sem)->magic = 0;
 	}
@@ -247,7 +249,7 @@ _libc_sem_open_compat(const char *name, int oflag, ...)
 	 * if we locate one.
 	 */
 	_pthread_mutex_lock(&named_sems_mtx);
-	LIST_FOREACH(s, &named_sems, entry) {
+	LIST_FOREACH (s, &named_sems, entry) {
 		if (s->semid == semid) {
 			sem = s->backpointer;
 			_pthread_mutex_unlock(&named_sems_mtx);
@@ -312,7 +314,8 @@ _libc_sem_unlink_compat(const char *name)
 }
 
 static int
-_umtx_wait_uint(volatile unsigned *mtx, unsigned id, const struct timespec *abstime)
+_umtx_wait_uint(volatile unsigned *mtx, unsigned id,
+    const struct timespec *abstime)
 {
 	struct _umtx_time *tm_p, timeout;
 	size_t tm_size;
@@ -327,28 +330,26 @@ _umtx_wait_uint(volatile unsigned *mtx, unsigned id, const struct timespec *abst
 		tm_p = &timeout;
 		tm_size = sizeof(timeout);
 	}
-	return _umtx_op(__DEVOLATILE(void *, mtx),
-		UMTX_OP_WAIT_UINT_PRIVATE, id, 
-		(void *)tm_size, __DECONST(void*, tm_p));
+	return _umtx_op(__DEVOLATILE(void *, mtx), UMTX_OP_WAIT_UINT_PRIVATE,
+	    id, (void *)tm_size, __DECONST(void *, tm_p));
 }
 
 static int
 _umtx_wake(volatile void *mtx)
 {
-	return _umtx_op(__DEVOLATILE(void *, mtx), UMTX_OP_WAKE_PRIVATE,
-			1, NULL, NULL);
+	return _umtx_op(__DEVOLATILE(void *, mtx), UMTX_OP_WAKE_PRIVATE, 1,
+	    NULL, NULL);
 }
 
-#define TIMESPEC_SUB(dst, src, val)                             \
-        do {                                                    \
-                (dst)->tv_sec = (src)->tv_sec - (val)->tv_sec;  \
-                (dst)->tv_nsec = (src)->tv_nsec - (val)->tv_nsec; \
-                if ((dst)->tv_nsec < 0) {                       \
-                        (dst)->tv_sec--;                        \
-                        (dst)->tv_nsec += 1000000000;           \
-                }                                               \
-        } while (0)
-
+#define TIMESPEC_SUB(dst, src, val)                               \
+	do {                                                      \
+		(dst)->tv_sec = (src)->tv_sec - (val)->tv_sec;    \
+		(dst)->tv_nsec = (src)->tv_nsec - (val)->tv_nsec; \
+		if ((dst)->tv_nsec < 0) {                         \
+			(dst)->tv_sec--;                          \
+			(dst)->tv_nsec += 1000000000;             \
+		}                                                 \
+	} while (0)
 
 static void
 sem_cancel_handler(void *arg)
@@ -361,8 +362,8 @@ sem_cancel_handler(void *arg)
 }
 
 int
-_libc_sem_timedwait_compat(sem_t * __restrict sem,
-	const struct timespec * __restrict abstime)
+_libc_sem_timedwait_compat(sem_t *__restrict sem,
+    const struct timespec *__restrict abstime)
 {
 	int val, retval;
 
@@ -388,7 +389,8 @@ _libc_sem_timedwait_compat(sem_t * __restrict sem,
 			break;
 		}
 		if (abstime) {
-			if (abstime->tv_nsec >= 1000000000 || abstime->tv_nsec < 0) {
+			if (abstime->tv_nsec >= 1000000000 ||
+			    abstime->tv_nsec < 0) {
 				errno = EINVAL;
 				return (-1);
 			}
@@ -419,7 +421,7 @@ _libc_sem_trywait_compat(sem_t *sem)
 		return (-1);
 
 	if ((*sem)->syssem != 0)
- 		return ksem_trywait((*sem)->semid);
+		return ksem_trywait((*sem)->semid);
 
 	while ((val = (*sem)->count) > 0) {
 		if (atomic_cmpset_acq_int(&(*sem)->count, val, val - 1))
@@ -447,7 +449,7 @@ _libc_sem_post_compat(sem_t *sem)
 }
 
 int
-_libc_sem_getvalue_compat(sem_t * __restrict sem, int * __restrict sval)
+_libc_sem_getvalue_compat(sem_t *__restrict sem, int *__restrict sval)
 {
 	int retval;
 

@@ -29,19 +29,20 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/param.h>
 #include <sys/stat.h>
+
 #include <errno.h>
-#include <unistd.h>
+#include <paths.h>
+#include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
-#include <paths.h>
+#include <unistd.h>
 
-#include <stdarg.h>
-#include "un-namespace.h"
 #include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 static const char execvPe_err_preamble[] = "execvP: ";
 static const char execvPe_err_trailer[] = ": path too long\n";
@@ -127,21 +128,21 @@ execlp(const char *name, const char *arg, ...)
 }
 
 int
-execv(const char *name, char * const *argv)
+execv(const char *name, char *const *argv)
 {
 	(void)_execve(name, argv, environ);
 	return (-1);
 }
 
 int
-execvp(const char *name, char * const *argv)
+execvp(const char *name, char *const *argv)
 {
 	return (execvpe(name, argv, environ));
 }
 
 static int
-execvPe(const char *name, const char *path, char * const *argv,
-    char * const *envp)
+execvPe(const char *name, const char *path, char *const *argv,
+    char *const *envp)
 {
 	const char **memp;
 	size_t cnt, lp, ln;
@@ -209,7 +210,8 @@ execvPe(const char *name, const char *path, char * const *argv,
 		bcopy(name, buf + lp + 1, ln);
 		buf[lp + ln + 1] = '\0';
 
-retry:		(void)_execve(bp, argv, envp);
+	retry:
+		(void)_execve(bp, argv, envp);
 		switch (errno) {
 		case E2BIG:
 			goto done;
@@ -242,8 +244,8 @@ retry:		(void)_execve(bp, argv, envp);
 				memp[1] = bp;
 				memp[2] = NULL;
 			}
- 			(void)_execve(_PATH_BSHELL,
-			    __DECONST(char **, memp), envp);
+			(void)_execve(_PATH_BSHELL, __DECONST(char **, memp),
+			    envp);
 			goto done;
 		case ENOMEM:
 			goto done;
@@ -282,13 +284,13 @@ done:
 }
 
 int
-execvP(const char *name, const char *path, char * const argv[])
+execvP(const char *name, const char *path, char *const argv[])
 {
 	return execvPe(name, path, argv, environ);
 }
 
 int
-execvpe(const char *name, char * const argv[], char * const envp[])
+execvpe(const char *name, char *const argv[], char *const envp[])
 {
 	const char *path;
 

@@ -26,6 +26,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "lstd.h"
 #include "math.h"
 
@@ -36,26 +37,26 @@
 FILE *
 fopen(const char *filename, const char *mode)
 {
-	struct stat	st;
-	int		fd, m, o;
-	FILE		*f;
+	struct stat st;
+	int fd, m, o;
+	FILE *f;
 
 	if (mode == NULL)
 		return NULL;
 
 	switch (*mode++) {
-	case 'r':	/* open for reading */
+	case 'r': /* open for reading */
 		m = O_RDONLY;
 		o = 0;
 		break;
 
-	case 'w':	/* open for writing */
+	case 'w': /* open for writing */
 		m = O_WRONLY;
 		/* These are not actually implemented yet */
 		o = O_CREAT | O_TRUNC;
 		break;
 
-	default:	/* illegal mode */
+	default: /* illegal mode */
 		return (NULL);
 	}
 
@@ -95,7 +96,6 @@ fopen(const char *filename, const char *mode)
 
 	return (f);
 }
-
 
 FILE *
 freopen(const char *filename, const char *mode, FILE *stream)
@@ -163,8 +163,8 @@ feof(FILE *stream)
 int
 getc(FILE *stream)
 {
-	char	ch;
-	size_t	r;
+	char ch;
+	size_t r;
 
 	if (stream == NULL)
 		return EOF;

@@ -34,19 +34,21 @@
  */
 
 #include <sys/types.h>
-#include <sys/socket.h>
+#include <sys/poll.h>
 #include <sys/queue.h>
+#include <sys/socket.h>
+
 #include <net/if.h>
 #include <netinet/in.h>
+
+#include <arpa/inet.h>
 #include <ifaddrs.h>
-#include <sys/poll.h>
+#include <netconfig.h>
+#include <netdb.h>
 #include <rpc/rpc.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <netdb.h>
-#include <netconfig.h>
-#include <stdio.h>
-#include <arpa/inet.h>
 
 #include "rpcbind.h"
 
@@ -75,16 +77,16 @@ bitmaskcmp(struct sockaddr *dst, struct sockaddr *src, struct sockaddr *mask)
 
 	switch (dst->sa_family) {
 	case AF_INET:
-		p1 = (uint8_t*) &SA2SINADDR(dst);
-		p2 = (uint8_t*) &SA2SINADDR(src);
-		netmask = (uint8_t*) &SA2SINADDR(mask);
+		p1 = (uint8_t *)&SA2SINADDR(dst);
+		p2 = (uint8_t *)&SA2SINADDR(src);
+		netmask = (uint8_t *)&SA2SINADDR(mask);
 		bytelen = sizeof(struct in_addr);
 		break;
 #ifdef INET6
 	case AF_INET6:
-		p1 = (uint8_t*) &SA2SIN6ADDR(dst);
-		p2 = (uint8_t*) &SA2SIN6ADDR(src);
-		netmask = (uint8_t*) &SA2SIN6ADDR(mask);
+		p1 = (uint8_t *)&SA2SIN6ADDR(dst);
+		p2 = (uint8_t *)&SA2SIN6ADDR(src);
+		netmask = (uint8_t *)&SA2SIN6ADDR(mask);
 		bytelen = sizeof(struct in6_addr);
 		break;
 #endif
@@ -201,8 +203,8 @@ addrmerge(struct netbuf *caller, const char *serv_uaddr,
 			continue;
 
 		if ((hint_sa->sa_family == AF_INET) &&
-		    ((((struct sockaddr_in*)hint_sa)->sin_addr.s_addr == 
-		      ((struct sockaddr_in*)ifsa)->sin_addr.s_addr))) {
+		    ((((struct sockaddr_in *)hint_sa)->sin_addr.s_addr ==
+			((struct sockaddr_in *)ifsa)->sin_addr.s_addr))) {
 			const int goodness = 4;
 
 			bestif_goodness = goodness;
@@ -211,11 +213,12 @@ addrmerge(struct netbuf *caller, const char *serv_uaddr,
 		}
 #ifdef INET6
 		if ((hint_sa->sa_family == AF_INET6) &&
-		    (0 == memcmp(&((struct sockaddr_in6*)hint_sa)->sin6_addr,
-				 &((struct sockaddr_in6*)ifsa)->sin6_addr,
-				 sizeof(struct in6_addr))) &&
-		    (((struct sockaddr_in6*)hint_sa)->sin6_scope_id ==
-		    (((struct sockaddr_in6*)ifsa)->sin6_scope_id))) {
+		    (0 ==
+			memcmp(&((struct sockaddr_in6 *)hint_sa)->sin6_addr,
+			    &((struct sockaddr_in6 *)ifsa)->sin6_addr,
+			    sizeof(struct in6_addr))) &&
+		    (((struct sockaddr_in6 *)hint_sa)->sin6_scope_id ==
+			(((struct sockaddr_in6 *)ifsa)->sin6_scope_id))) {
 			const int goodness = 4;
 
 			bestif_goodness = goodness;
@@ -229,10 +232,12 @@ addrmerge(struct netbuf *caller, const char *serv_uaddr,
 			 * which one.
 			 */
 			if (IN6_IS_ADDR_LINKLOCAL(&SA2SIN6ADDR(ifsa))) {
-				if (IN6_IS_ADDR_LINKLOCAL(&SA2SIN6ADDR(caller_sa)) &&
-				    IN6_IS_ADDR_LINKLOCAL(&SA2SIN6ADDR(hint_sa)) &&
+				if (IN6_IS_ADDR_LINKLOCAL(
+					&SA2SIN6ADDR(caller_sa)) &&
+				    IN6_IS_ADDR_LINKLOCAL(
+					&SA2SIN6ADDR(hint_sa)) &&
 				    (SA2SIN6(ifsa)->sin6_scope_id ==
-				     SA2SIN6(caller_sa)->sin6_scope_id)) {
+					SA2SIN6(caller_sa)->sin6_scope_id)) {
 					const int goodness = 3;
 
 					if (bestif_goodness < goodness) {
@@ -391,7 +396,7 @@ network_init(void)
 			continue;
 		mreq6.ipv6mr_interface = ifindex;
 		if (setsockopt(s, IPPROTO_IPV6, IPV6_JOIN_GROUP, &mreq6,
-		    sizeof mreq6) < 0)
+			sizeof mreq6) < 0)
 			if (debugging)
 				perror("setsockopt v6 multicast");
 	}

@@ -59,102 +59,102 @@
 #include <sys/mount.h>
 #include <sys/msg.h>
 #include <sys/proc.h>
-#include <sys/vnode.h>
 #include <sys/sem.h>
 #include <sys/shm.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 #include <sys/sx.h>
 #include <sys/sysctl.h>
-
-#include <ddb/ddb.h>
-
-#include <fs/devfs/devfs.h>
+#include <sys/vnode.h>
 
 #include <net/bpfdesc.h>
 #include <net/if.h>
 #include <net/if_types.h>
 #include <net/if_var.h>
 
+#include <ddb/ddb.h>
+#include <fs/devfs/devfs.h>
 #include <security/mac/mac_policy.h>
 
 SYSCTL_DECL(_security_mac);
 
-static SYSCTL_NODE(_security_mac, OID_AUTO, test,
-    CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
-    "TrustedBSD mac_test policy controls");
+static SYSCTL_NODE(_security_mac, OID_AUTO, test, CTLFLAG_RW | CTLFLAG_MPSAFE,
+    0, "TrustedBSD mac_test policy controls");
 
-#define	MAGIC_BPF	0xfe1ad1b6
-#define	MAGIC_DEVFS	0x9ee79c32
-#define	MAGIC_IFNET	0xc218b120
-#define	MAGIC_INPCB	0x4440f7bb
-#define	MAGIC_IP6Q	0x0870e1b7
-#define	MAGIC_IPQ	0x206188ef
-#define	MAGIC_MBUF	0xbbefa5bb
-#define	MAGIC_MOUNT	0xc7c46e47
-#define	MAGIC_SOCKET	0x9199c6cd
-#define	MAGIC_SYNCACHE	0x7fb838a8
-#define	MAGIC_SYSV_MSG	0x8bbba61e
-#define	MAGIC_SYSV_MSQ	0xea672391
-#define	MAGIC_SYSV_SEM	0x896e8a0b
-#define	MAGIC_SYSV_SHM	0x76119ab0
-#define	MAGIC_PIPE	0xdc6c9919
-#define	MAGIC_POSIX_SEM	0x78ae980c
-#define	MAGIC_POSIX_SHM	0x4e853fc9
-#define	MAGIC_PROC	0x3b4be98f
-#define	MAGIC_CRED	0x9a5a4987
-#define	MAGIC_VNODE	0x1a67a45c
-#define	MAGIC_FREE	0x849ba1fd
+#define MAGIC_BPF 0xfe1ad1b6
+#define MAGIC_DEVFS 0x9ee79c32
+#define MAGIC_IFNET 0xc218b120
+#define MAGIC_INPCB 0x4440f7bb
+#define MAGIC_IP6Q 0x0870e1b7
+#define MAGIC_IPQ 0x206188ef
+#define MAGIC_MBUF 0xbbefa5bb
+#define MAGIC_MOUNT 0xc7c46e47
+#define MAGIC_SOCKET 0x9199c6cd
+#define MAGIC_SYNCACHE 0x7fb838a8
+#define MAGIC_SYSV_MSG 0x8bbba61e
+#define MAGIC_SYSV_MSQ 0xea672391
+#define MAGIC_SYSV_SEM 0x896e8a0b
+#define MAGIC_SYSV_SHM 0x76119ab0
+#define MAGIC_PIPE 0xdc6c9919
+#define MAGIC_POSIX_SEM 0x78ae980c
+#define MAGIC_POSIX_SHM 0x4e853fc9
+#define MAGIC_PROC 0x3b4be98f
+#define MAGIC_CRED 0x9a5a4987
+#define MAGIC_VNODE 0x1a67a45c
+#define MAGIC_FREE 0x849ba1fd
 
-#define	SLOT(x)	mac_label_get((x), test_slot)
-#define	SLOT_SET(x, v)	mac_label_set((x), test_slot, (v))
+#define SLOT(x) mac_label_get((x), test_slot)
+#define SLOT_SET(x, v) mac_label_set((x), test_slot, (v))
 
-static int	test_slot;
-SYSCTL_INT(_security_mac_test, OID_AUTO, slot, CTLFLAG_RD,
-    &test_slot, 0, "Slot allocated by framework");
+static int test_slot;
+SYSCTL_INT(_security_mac_test, OID_AUTO, slot, CTLFLAG_RD, &test_slot, 0,
+    "Slot allocated by framework");
 
 static SYSCTL_NODE(_security_mac_test, OID_AUTO, counter,
-    CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
-    "TrustedBSD mac_test counters controls");
+    CTLFLAG_RW | CTLFLAG_MPSAFE, 0, "TrustedBSD mac_test counters controls");
 
-#define	COUNTER_DECL(variable)						\
-	static int counter_##variable;					\
-	SYSCTL_INT(_security_mac_test_counter, OID_AUTO, variable,	\
-	CTLFLAG_RD, &counter_##variable, 0, #variable)
+#define COUNTER_DECL(variable)                                                 \
+	static int counter_##variable;                                         \
+	SYSCTL_INT(_security_mac_test_counter, OID_AUTO, variable, CTLFLAG_RD, \
+	    &counter_##variable, 0, #variable)
 
-#define	COUNTER_INC(variable)	atomic_add_int(&counter_##variable, 1)
+#define COUNTER_INC(variable) atomic_add_int(&counter_##variable, 1)
 
 #ifdef KDB
-#define	DEBUGGER(func, string)	kdb_enter(KDB_WHY_MAC, (string))
+#define DEBUGGER(func, string) kdb_enter(KDB_WHY_MAC, (string))
 #else
-#define	DEBUGGER(func, string)	printf("mac_test: %s: %s\n", (func), (string))
+#define DEBUGGER(func, string) printf("mac_test: %s: %s\n", (func), (string))
 #endif
 
-#define	LABEL_CHECK(label, magic) do {					\
-	if (label != NULL) {						\
-		KASSERT(SLOT(label) == magic ||	SLOT(label) == 0,	\
-		    ("%s: bad %s label", __func__, #magic));		\
-	}								\
-} while (0)
+#define LABEL_CHECK(label, magic)                                         \
+	do {                                                              \
+		if (label != NULL) {                                      \
+			KASSERT(SLOT(label) == magic || SLOT(label) == 0, \
+			    ("%s: bad %s label", __func__, #magic));      \
+		}                                                         \
+	} while (0)
 
-#define	LABEL_DESTROY(label, magic) do {				\
-	if (SLOT(label) == magic || SLOT(label) == 0) {			\
-		SLOT_SET(label, MAGIC_FREE);				\
-	} else if (SLOT(label) == MAGIC_FREE) {				\
-		DEBUGGER("%s: dup destroy", __func__);			\
-	} else {							\
-		DEBUGGER("%s: corrupted label", __func__);		\
-	}								\
-} while (0)
+#define LABEL_DESTROY(label, magic)                                \
+	do {                                                       \
+		if (SLOT(label) == magic || SLOT(label) == 0) {    \
+			SLOT_SET(label, MAGIC_FREE);               \
+		} else if (SLOT(label) == MAGIC_FREE) {            \
+			DEBUGGER("%s: dup destroy", __func__);     \
+		} else {                                           \
+			DEBUGGER("%s: corrupted label", __func__); \
+		}                                                  \
+	} while (0)
 
-#define	LABEL_INIT(label, magic) do {					\
-	SLOT_SET(label, magic);						\
-} while (0)
+#define LABEL_INIT(label, magic)        \
+	do {                            \
+		SLOT_SET(label, magic); \
+	} while (0)
 
-#define	LABEL_NOTFREE(label) do {					\
-	KASSERT(SLOT(label) != MAGIC_FREE,				\
-	    ("%s: destroyed label", __func__));				\
-} while (0)
+#define LABEL_NOTFREE(label)                            \
+	do {                                            \
+		KASSERT(SLOT(label) != MAGIC_FREE,      \
+		    ("%s: destroyed label", __func__)); \
+	} while (0)
 
 /*
  * Object-specific entry point implementations are sorted alphabetically by
@@ -175,8 +175,7 @@ test_bpfdesc_check_receive(struct bpf_d *d, struct label *dlabel,
 
 COUNTER_DECL(bpfdesc_create);
 static void
-test_bpfdesc_create(struct ucred *cred, struct bpf_d *d,
-    struct label *dlabel)
+test_bpfdesc_create(struct ucred *cred, struct bpf_d *d, struct label *dlabel)
 {
 
 	LABEL_CHECK(cred->cr_label, MAGIC_CRED);
@@ -186,8 +185,8 @@ test_bpfdesc_create(struct ucred *cred, struct bpf_d *d,
 
 COUNTER_DECL(bpfdesc_create_mbuf);
 static void
-test_bpfdesc_create_mbuf(struct bpf_d *d, struct label *dlabel,
-    struct mbuf *m, struct label *mlabel)
+test_bpfdesc_create_mbuf(struct bpf_d *d, struct label *dlabel, struct mbuf *m,
+    struct label *mlabel)
 {
 
 	LABEL_CHECK(dlabel, MAGIC_BPF);
@@ -238,8 +237,7 @@ test_cred_check_setaudit(struct ucred *cred, struct auditinfo *ai)
 
 COUNTER_DECL(cred_check_setaudit_addr);
 static int
-test_cred_check_setaudit_addr(struct ucred *cred,
-    struct auditinfo_addr *aia)
+test_cred_check_setaudit_addr(struct ucred *cred, struct auditinfo_addr *aia)
 {
 
 	LABEL_CHECK(cred->cr_label, MAGIC_CRED);
@@ -316,8 +314,7 @@ test_cred_check_setgid(struct ucred *cred, gid_t gid)
 
 COUNTER_DECL(cred_check_setgroups);
 static int
-test_cred_check_setgroups(struct ucred *cred, int ngroups,
-	gid_t *gidset)
+test_cred_check_setgroups(struct ucred *cred, int ngroups, gid_t *gidset)
 {
 
 	LABEL_CHECK(cred->cr_label, MAGIC_CRED);
@@ -329,7 +326,7 @@ test_cred_check_setgroups(struct ucred *cred, int ngroups,
 COUNTER_DECL(cred_check_setresgid);
 static int
 test_cred_check_setresgid(struct ucred *cred, gid_t rgid, gid_t egid,
-	gid_t sgid)
+    gid_t sgid)
 {
 
 	LABEL_CHECK(cred->cr_label, MAGIC_CRED);
@@ -341,7 +338,7 @@ test_cred_check_setresgid(struct ucred *cred, gid_t rgid, gid_t egid,
 COUNTER_DECL(cred_check_setresuid);
 static int
 test_cred_check_setresuid(struct ucred *cred, uid_t ruid, uid_t euid,
-	uid_t suid)
+    uid_t suid)
 {
 
 	LABEL_CHECK(cred->cr_label, MAGIC_CRED);
@@ -477,8 +474,8 @@ test_ddb_command_register(struct db_command_table *table,
 
 COUNTER_DECL(devfs_create_device);
 static void
-test_devfs_create_device(struct ucred *cred, struct mount *mp,
-    struct cdev *dev, struct devfs_dirent *de, struct label *delabel)
+test_devfs_create_device(struct ucred *cred, struct mount *mp, struct cdev *dev,
+    struct devfs_dirent *de, struct label *delabel)
 {
 
 	if (cred != NULL)
@@ -489,8 +486,8 @@ test_devfs_create_device(struct ucred *cred, struct mount *mp,
 
 COUNTER_DECL(devfs_create_directory);
 static void
-test_devfs_create_directory(struct mount *mp, char *dirname,
-    int dirnamelen, struct devfs_dirent *de, struct label *delabel)
+test_devfs_create_directory(struct mount *mp, char *dirname, int dirnamelen,
+    struct devfs_dirent *de, struct label *delabel)
 {
 
 	LABEL_CHECK(delabel, MAGIC_DEVFS);
@@ -691,8 +688,8 @@ test_inpcb_check_visible(struct ucred *cred, struct inpcb *inp,
 
 COUNTER_DECL(inpcb_create);
 static void
-test_inpcb_create(struct socket *so, struct label *solabel,
-    struct inpcb *inp, struct label *inplabel)
+test_inpcb_create(struct socket *so, struct label *solabel, struct inpcb *inp,
+    struct label *inplabel)
 {
 
 	SOCK_LOCK(so);
@@ -729,8 +726,7 @@ test_inpcb_init_label(struct label *label, int flag)
 
 	if (flag & M_WAITOK)
 		WITNESS_WARN(WARN_GIANTOK | WARN_SLEEPOK, NULL,
-		    "test_inpcb_init_label() at %s:%d", __FILE__,
-		    __LINE__);
+		    "test_inpcb_init_label() at %s:%d", __FILE__, __LINE__);
 
 	LABEL_INIT(label, MAGIC_INPCB);
 	COUNTER_INC(inpcb_init_label);
@@ -777,8 +773,7 @@ test_ip6q_init_label(struct label *label, int flag)
 
 	if (flag & M_WAITOK)
 		WITNESS_WARN(WARN_GIANTOK | WARN_SLEEPOK, NULL,
-		    "test_ip6q_init_label() at %s:%d", __FILE__,
-		    __LINE__);
+		    "test_ip6q_init_label() at %s:%d", __FILE__, __LINE__);
 
 	LABEL_INIT(label, MAGIC_IP6Q);
 	COUNTER_INC(ip6q_init_label);
@@ -801,7 +796,7 @@ test_ip6q_match(struct mbuf *fragment, struct label *fragmentlabel,
 COUNTER_DECL(ip6q_reassemble);
 static void
 test_ip6q_reassemble(struct ip6q *q6, struct label *q6label, struct mbuf *m,
-   struct label *mlabel)
+    struct label *mlabel)
 {
 
 	LABEL_CHECK(q6label, MAGIC_IP6Q);
@@ -847,8 +842,7 @@ test_ipq_init_label(struct label *label, int flag)
 
 	if (flag & M_WAITOK)
 		WITNESS_WARN(WARN_GIANTOK | WARN_SLEEPOK, NULL,
-		    "test_ipq_init_label() at %s:%d", __FILE__,
-		    __LINE__);
+		    "test_ipq_init_label() at %s:%d", __FILE__, __LINE__);
 
 	LABEL_INIT(label, MAGIC_IPQ);
 	COUNTER_INC(ipq_init_label);
@@ -871,7 +865,7 @@ test_ipq_match(struct mbuf *fragment, struct label *fragmentlabel,
 COUNTER_DECL(ipq_reassemble);
 static void
 test_ipq_reassemble(struct ipq *q, struct label *qlabel, struct mbuf *m,
-   struct label *mlabel)
+    struct label *mlabel)
 {
 
 	LABEL_CHECK(qlabel, MAGIC_IPQ);
@@ -946,8 +940,7 @@ test_kenv_check_unset(struct ucred *cred, char *name)
 
 COUNTER_DECL(kld_check_load);
 static int
-test_kld_check_load(struct ucred *cred, struct vnode *vp,
-    struct label *label)
+test_kld_check_load(struct ucred *cred, struct vnode *vp, struct label *label)
 {
 
 	LABEL_CHECK(cred->cr_label, MAGIC_CRED);
@@ -1002,8 +995,7 @@ test_mbuf_init_label(struct label *label, int flag)
 
 	if (flag & M_WAITOK)
 		WITNESS_WARN(WARN_GIANTOK | WARN_SLEEPOK, NULL,
-		    "test_mbuf_init_label() at %s:%d", __FILE__,
-		    __LINE__);
+		    "test_mbuf_init_label() at %s:%d", __FILE__, __LINE__);
 
 	LABEL_INIT(label, MAGIC_MBUF);
 	COUNTER_INC(mbuf_init_label);
@@ -1025,8 +1017,7 @@ test_mount_check_stat(struct ucred *cred, struct mount *mp,
 
 COUNTER_DECL(mount_create);
 static void
-test_mount_create(struct ucred *cred, struct mount *mp,
-    struct label *mplabel)
+test_mount_create(struct ucred *cred, struct mount *mp, struct label *mplabel)
 {
 
 	LABEL_CHECK(cred->cr_label, MAGIC_CRED);
@@ -1054,8 +1045,8 @@ test_mount_init_label(struct label *label)
 
 COUNTER_DECL(netinet_arp_send);
 static void
-test_netinet_arp_send(struct ifnet *ifp, struct label *ifplabel,
-    struct mbuf *m, struct label *mlabel)
+test_netinet_arp_send(struct ifnet *ifp, struct label *ifplabel, struct mbuf *m,
+    struct label *mlabel)
 {
 
 	LABEL_CHECK(ifplabel, MAGIC_IFNET);
@@ -1065,8 +1056,8 @@ test_netinet_arp_send(struct ifnet *ifp, struct label *ifplabel,
 
 COUNTER_DECL(netinet_fragment);
 static void
-test_netinet_fragment(struct mbuf *m, struct label *mlabel,
-    struct mbuf *frag, struct label *fraglabel)
+test_netinet_fragment(struct mbuf *m, struct label *mlabel, struct mbuf *frag,
+    struct label *fraglabel)
 {
 
 	LABEL_CHECK(mlabel, MAGIC_MBUF);
@@ -1216,8 +1207,7 @@ test_pipe_copy_label(struct label *src, struct label *dest)
 
 COUNTER_DECL(pipe_create);
 static void
-test_pipe_create(struct ucred *cred, struct pipepair *pp,
-   struct label *pplabel)
+test_pipe_create(struct ucred *cred, struct pipepair *pp, struct label *pplabel)
 {
 
 	LABEL_CHECK(cred->cr_label, MAGIC_CRED);
@@ -1346,8 +1336,8 @@ test_posixsem_check_setowner(struct ucred *cred, struct ksem *ks,
 
 COUNTER_DECL(posixsem_check_stat);
 static int
-test_posixsem_check_stat(struct ucred *active_cred,
-    struct ucred *file_cred, struct ksem *ks, struct label *kslabel)
+test_posixsem_check_stat(struct ucred *active_cred, struct ucred *file_cred,
+    struct ksem *ks, struct label *kslabel)
 {
 
 	LABEL_CHECK(active_cred->cr_label, MAGIC_CRED);
@@ -1386,8 +1376,7 @@ test_posixsem_check_wait(struct ucred *active_cred, struct ucred *file_cred,
 
 COUNTER_DECL(posixsem_create);
 static void
-test_posixsem_create(struct ucred *cred, struct ksem *ks,
-   struct label *kslabel)
+test_posixsem_create(struct ucred *cred, struct ksem *ks, struct label *kslabel)
 {
 
 	LABEL_CHECK(cred->cr_label, MAGIC_CRED);
@@ -1448,8 +1437,8 @@ test_posixshm_check_open(struct ucred *cred, struct shmfd *shmfd,
 
 COUNTER_DECL(posixshm_check_read);
 static int
-test_posixshm_check_read(struct ucred *active_cred,
-    struct ucred *file_cred, struct shmfd *shm, struct label *shmlabel)
+test_posixshm_check_read(struct ucred *active_cred, struct ucred *file_cred,
+    struct shmfd *shm, struct label *shmlabel)
 {
 
 	LABEL_CHECK(active_cred->cr_label, MAGIC_CRED);
@@ -1487,8 +1476,8 @@ test_posixshm_check_setowner(struct ucred *cred, struct shmfd *shmfd,
 
 COUNTER_DECL(posixshm_check_stat);
 static int
-test_posixshm_check_stat(struct ucred *active_cred,
-    struct ucred *file_cred, struct shmfd *shmfd, struct label *shmfdlabel)
+test_posixshm_check_stat(struct ucred *active_cred, struct ucred *file_cred,
+    struct shmfd *shmfd, struct label *shmfdlabel)
 {
 
 	LABEL_CHECK(active_cred->cr_label, MAGIC_CRED);
@@ -1500,8 +1489,8 @@ test_posixshm_check_stat(struct ucred *active_cred,
 
 COUNTER_DECL(posixshm_check_truncate);
 static int
-test_posixshm_check_truncate(struct ucred *active_cred,
-    struct ucred *file_cred, struct shmfd *shmfd, struct label *shmfdlabel)
+test_posixshm_check_truncate(struct ucred *active_cred, struct ucred *file_cred,
+    struct shmfd *shmfd, struct label *shmfdlabel)
 {
 
 	LABEL_CHECK(active_cred->cr_label, MAGIC_CRED);
@@ -1525,8 +1514,8 @@ test_posixshm_check_unlink(struct ucred *cred, struct shmfd *shmfd,
 
 COUNTER_DECL(posixshm_check_write);
 static int
-test_posixshm_check_write(struct ucred *active_cred,
-    struct ucred *file_cred, struct shmfd *shm, struct label *shmlabel)
+test_posixshm_check_write(struct ucred *active_cred, struct ucred *file_cred,
+    struct shmfd *shm, struct label *shmlabel)
 {
 
 	LABEL_CHECK(active_cred->cr_label, MAGIC_CRED);
@@ -1541,7 +1530,7 @@ test_posixshm_check_write(struct ucred *active_cred,
 COUNTER_DECL(posixshm_create);
 static void
 test_posixshm_create(struct ucred *cred, struct shmfd *shmfd,
-   struct label *shmfdlabel)
+    struct label *shmfdlabel)
 {
 
 	LABEL_CHECK(cred->cr_label, MAGIC_CRED);
@@ -1811,8 +1800,7 @@ test_socket_copy_label(struct label *src, struct label *dest)
 
 COUNTER_DECL(socket_create);
 static void
-test_socket_create(struct ucred *cred, struct socket *so,
-    struct label *solabel)
+test_socket_create(struct ucred *cred, struct socket *so, struct label *solabel)
 {
 
 	LABEL_CHECK(cred->cr_label, MAGIC_CRED);
@@ -1861,8 +1849,7 @@ test_socket_init_label(struct label *label, int flag)
 
 	if (flag & M_WAITOK)
 		WITNESS_WARN(WARN_GIANTOK | WARN_SLEEPOK, NULL,
-		    "test_socket_init_label() at %s:%d", __FILE__,
-		    __LINE__);
+		    "test_socket_init_label() at %s:%d", __FILE__, __LINE__);
 
 	LABEL_INIT(label, MAGIC_SOCKET);
 	COUNTER_INC(socket_init_label);
@@ -1961,9 +1948,8 @@ test_socketpeer_set_from_mbuf(struct mbuf *m, struct label *mlabel,
 
 COUNTER_DECL(socketpeer_set_from_socket);
 static void
-test_socketpeer_set_from_socket(struct socket *oldso,
-    struct label *oldsolabel, struct socket *newso,
-    struct label *newsopeerlabel)
+test_socketpeer_set_from_socket(struct socket *oldso, struct label *oldsolabel,
+    struct socket *newso, struct label *newsopeerlabel)
 {
 
 	SOCK_LOCK(oldso);
@@ -2011,8 +1997,7 @@ test_syncache_init_label(struct label *label, int flag)
 
 	if (flag & M_WAITOK)
 		WITNESS_WARN(WARN_GIANTOK | WARN_SLEEPOK, NULL,
-		    "test_syncache_init_label() at %s:%d", __FILE__,
-		    __LINE__);
+		    "test_syncache_init_label() at %s:%d", __FILE__, __LINE__);
 	LABEL_INIT(label, MAGIC_SYNCACHE);
 	COUNTER_INC(syncache_init_label);
 	return (0);
@@ -2164,7 +2149,7 @@ test_sysvmsq_check_msgmsq(struct ucred *cred, struct msg *msgptr,
 	LABEL_CHECK(cred->cr_label, MAGIC_CRED);
 	COUNTER_INC(sysvmsq_check_msgmsq);
 
-  	return (0);
+	return (0);
 }
 
 COUNTER_DECL(sysvmsq_check_msgrcv);
@@ -2195,8 +2180,8 @@ test_sysvmsq_check_msgrmid(struct ucred *cred, struct msg *msgptr,
 
 COUNTER_DECL(sysvmsq_check_msqget);
 static int
-test_sysvmsq_check_msqget(struct ucred *cred,
-    struct msqid_kernel *msqkptr, struct label *msqklabel)
+test_sysvmsq_check_msqget(struct ucred *cred, struct msqid_kernel *msqkptr,
+    struct label *msqklabel)
 {
 
 	LABEL_CHECK(msqklabel, MAGIC_SYSV_MSQ);
@@ -2208,8 +2193,8 @@ test_sysvmsq_check_msqget(struct ucred *cred,
 
 COUNTER_DECL(sysvmsq_check_msqsnd);
 static int
-test_sysvmsq_check_msqsnd(struct ucred *cred,
-    struct msqid_kernel *msqkptr, struct label *msqklabel)
+test_sysvmsq_check_msqsnd(struct ucred *cred, struct msqid_kernel *msqkptr,
+    struct label *msqklabel)
 {
 
 	LABEL_CHECK(msqklabel, MAGIC_SYSV_MSQ);
@@ -2221,8 +2206,8 @@ test_sysvmsq_check_msqsnd(struct ucred *cred,
 
 COUNTER_DECL(sysvmsq_check_msqrcv);
 static int
-test_sysvmsq_check_msqrcv(struct ucred *cred,
-    struct msqid_kernel *msqkptr, struct label *msqklabel)
+test_sysvmsq_check_msqrcv(struct ucred *cred, struct msqid_kernel *msqkptr,
+    struct label *msqklabel)
 {
 
 	LABEL_CHECK(msqklabel, MAGIC_SYSV_MSQ);
@@ -2234,8 +2219,8 @@ test_sysvmsq_check_msqrcv(struct ucred *cred,
 
 COUNTER_DECL(sysvmsq_check_msqctl);
 static int
-test_sysvmsq_check_msqctl(struct ucred *cred,
-    struct msqid_kernel *msqkptr, struct label *msqklabel, int cmd)
+test_sysvmsq_check_msqctl(struct ucred *cred, struct msqid_kernel *msqkptr,
+    struct label *msqklabel, int cmd)
 {
 
 	LABEL_CHECK(msqklabel, MAGIC_SYSV_MSQ);
@@ -2256,8 +2241,8 @@ test_sysvmsq_cleanup(struct label *msqlabel)
 
 COUNTER_DECL(sysvmsq_create);
 static void
-test_sysvmsq_create(struct ucred *cred,
-    struct msqid_kernel *msqkptr, struct label *msqlabel)
+test_sysvmsq_create(struct ucred *cred, struct msqid_kernel *msqkptr,
+    struct label *msqlabel)
 {
 
 	LABEL_CHECK(msqlabel, MAGIC_SYSV_MSQ);
@@ -2283,21 +2268,21 @@ test_sysvmsq_init_label(struct label *label)
 
 COUNTER_DECL(sysvsem_check_semctl);
 static int
-test_sysvsem_check_semctl(struct ucred *cred,
-    struct semid_kernel *semakptr, struct label *semaklabel, int cmd)
+test_sysvsem_check_semctl(struct ucred *cred, struct semid_kernel *semakptr,
+    struct label *semaklabel, int cmd)
 {
 
 	LABEL_CHECK(cred->cr_label, MAGIC_CRED);
 	LABEL_CHECK(semaklabel, MAGIC_SYSV_SEM);
 	COUNTER_INC(sysvsem_check_semctl);
 
-  	return (0);
+	return (0);
 }
 
 COUNTER_DECL(sysvsem_check_semget);
 static int
-test_sysvsem_check_semget(struct ucred *cred,
-    struct semid_kernel *semakptr, struct label *semaklabel)
+test_sysvsem_check_semget(struct ucred *cred, struct semid_kernel *semakptr,
+    struct label *semaklabel)
 {
 
 	LABEL_CHECK(cred->cr_label, MAGIC_CRED);
@@ -2309,8 +2294,8 @@ test_sysvsem_check_semget(struct ucred *cred,
 
 COUNTER_DECL(sysvsem_check_semop);
 static int
-test_sysvsem_check_semop(struct ucred *cred,
-    struct semid_kernel *semakptr, struct label *semaklabel, size_t accesstype)
+test_sysvsem_check_semop(struct ucred *cred, struct semid_kernel *semakptr,
+    struct label *semaklabel, size_t accesstype)
 {
 
 	LABEL_CHECK(cred->cr_label, MAGIC_CRED);
@@ -2358,34 +2343,34 @@ test_sysvsem_init_label(struct label *label)
 
 COUNTER_DECL(sysvshm_check_shmat);
 static int
-test_sysvshm_check_shmat(struct ucred *cred,
-    struct shmid_kernel *shmsegptr, struct label *shmseglabel, int shmflg)
+test_sysvshm_check_shmat(struct ucred *cred, struct shmid_kernel *shmsegptr,
+    struct label *shmseglabel, int shmflg)
 {
 
 	LABEL_CHECK(cred->cr_label, MAGIC_CRED);
 	LABEL_CHECK(shmseglabel, MAGIC_SYSV_SHM);
 	COUNTER_INC(sysvshm_check_shmat);
 
-  	return (0);
+	return (0);
 }
 
 COUNTER_DECL(sysvshm_check_shmctl);
 static int
-test_sysvshm_check_shmctl(struct ucred *cred,
-    struct shmid_kernel *shmsegptr, struct label *shmseglabel, int cmd)
+test_sysvshm_check_shmctl(struct ucred *cred, struct shmid_kernel *shmsegptr,
+    struct label *shmseglabel, int cmd)
 {
 
 	LABEL_CHECK(cred->cr_label, MAGIC_CRED);
 	LABEL_CHECK(shmseglabel, MAGIC_SYSV_SHM);
 	COUNTER_INC(sysvshm_check_shmctl);
 
-  	return (0);
+	return (0);
 }
 
 COUNTER_DECL(sysvshm_check_shmdt);
 static int
-test_sysvshm_check_shmdt(struct ucred *cred,
-    struct shmid_kernel *shmsegptr, struct label *shmseglabel)
+test_sysvshm_check_shmdt(struct ucred *cred, struct shmid_kernel *shmsegptr,
+    struct label *shmseglabel)
 {
 
 	LABEL_CHECK(cred->cr_label, MAGIC_CRED);
@@ -2397,8 +2382,8 @@ test_sysvshm_check_shmdt(struct ucred *cred,
 
 COUNTER_DECL(sysvshm_check_shmget);
 static int
-test_sysvshm_check_shmget(struct ucred *cred,
-    struct shmid_kernel *shmsegptr, struct label *shmseglabel, int shmflg)
+test_sysvshm_check_shmget(struct ucred *cred, struct shmid_kernel *shmsegptr,
+    struct label *shmseglabel, int shmflg)
 {
 
 	LABEL_CHECK(cred->cr_label, MAGIC_CRED);
@@ -2557,8 +2542,7 @@ test_vnode_check_deleteextattr(struct ucred *cred, struct vnode *vp,
 COUNTER_DECL(vnode_check_exec);
 static int
 test_vnode_check_exec(struct ucred *cred, struct vnode *vp,
-    struct label *vplabel, struct image_params *imgp,
-    struct label *execlabel)
+    struct label *vplabel, struct image_params *imgp, struct label *execlabel)
 {
 
 	LABEL_CHECK(cred->cr_label, MAGIC_CRED);
@@ -2885,8 +2869,8 @@ test_vnode_check_unlink(struct ucred *cred, struct vnode *dvp,
 
 COUNTER_DECL(vnode_check_write);
 static int
-test_vnode_check_write(struct ucred *active_cred,
-    struct ucred *file_cred, struct vnode *vp, struct label *vplabel)
+test_vnode_check_write(struct ucred *active_cred, struct ucred *file_cred,
+    struct vnode *vp, struct label *vplabel)
 {
 
 	LABEL_CHECK(active_cred->cr_label, MAGIC_CRED);
@@ -2935,9 +2919,8 @@ test_vnode_destroy_label(struct label *label)
 COUNTER_DECL(vnode_execve_transition);
 static void
 test_vnode_execve_transition(struct ucred *old, struct ucred *new,
-    struct vnode *vp, struct label *filelabel,
-    struct label *interpvplabel, struct image_params *imgp,
-    struct label *execlabel)
+    struct vnode *vp, struct label *filelabel, struct label *interpvplabel,
+    struct image_params *imgp, struct label *execlabel)
 {
 
 	LABEL_CHECK(old->cr_label, MAGIC_CRED);
@@ -2999,8 +2982,8 @@ test_vnode_internalize_label(struct label *label, char *element_name,
 
 COUNTER_DECL(vnode_relabel);
 static void
-test_vnode_relabel(struct ucred *cred, struct vnode *vp,
-    struct label *vplabel, struct label *label)
+test_vnode_relabel(struct ucred *cred, struct vnode *vp, struct label *vplabel,
+    struct label *label)
 {
 
 	LABEL_CHECK(cred->cr_label, MAGIC_CRED);
@@ -3023,8 +3006,7 @@ test_vnode_setlabel_extattr(struct ucred *cred, struct vnode *vp,
 	return (0);
 }
 
-static struct mac_policy_ops test_ops =
-{
+static struct mac_policy_ops test_ops = {
 	.mpo_bpfdesc_check_receive = test_bpfdesc_check_receive,
 	.mpo_bpfdesc_create = test_bpfdesc_create,
 	.mpo_bpfdesc_create_mbuf = test_bpfdesc_create_mbuf,

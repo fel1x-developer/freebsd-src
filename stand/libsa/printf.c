@@ -40,8 +40,10 @@
 #include <sys/types.h>
 #include <sys/stddef.h>
 #include <sys/stdint.h>
+
 #include <limits.h>
 #include <string.h>
+
 #include "stand.h"
 
 /*
@@ -52,10 +54,11 @@
 
 #define MAXNBUF (sizeof(intmax_t) * CHAR_BIT + 1)
 
-typedef void (kvprintf_fn_t)(int, void *);
+typedef void(kvprintf_fn_t)(int, void *);
 
-static char	*ksprintn (char *buf, uintmax_t num, int base, int *len, int upper);
-static int	kvprintf(char const *fmt, kvprintf_fn_t *func, void *arg, int radix, va_list ap);
+static char *ksprintn(char *buf, uintmax_t num, int base, int *len, int upper);
+static int kvprintf(char const *fmt, kvprintf_fn_t *func, void *arg, int radix,
+    va_list ap);
 
 static void
 putchar_wrapper(int cc, void *arg)
@@ -184,8 +187,8 @@ vsnprintf(char *buf, size_t size, const char *cfmt, va_list ap)
 int
 vsprintf(char *buf, const char *cfmt, va_list ap)
 {
-	int	retval;
-	
+	int retval;
+
 	retval = kvprintf(cfmt, NULL, (void *)buf, 10, ap);
 	buf[retval] = '\0';
 
@@ -243,15 +246,16 @@ ksprintn(char *nbuf, uintmax_t num, int base, int *lenp, int upper)
 static int
 kvprintf(char const *fmt, kvprintf_fn_t *func, void *arg, int radix, va_list ap)
 {
-#define PCHAR(c) { \
-	int cc = (c);				\
-						\
-	if (func) {				\
-		(*func)(cc, arg);		\
-	} else if (d != NULL) {			\
-		*d++ = cc;			\
-	}					\
-	retval++;				\
+#define PCHAR(c)                          \
+	{                                 \
+		int cc = (c);             \
+                                          \
+		if (func) {               \
+			(*func)(cc, arg); \
+		} else if (d != NULL) {   \
+			*d++ = cc;        \
+		}                         \
+		retval++;                 \
 	}
 
 	char nbuf[MAXNBUF];
@@ -270,7 +274,7 @@ kvprintf(char const *fmt, kvprintf_fn_t *func, void *arg, int radix, va_list ap)
 	TSENTER();
 	num = 0;
 	if (!func)
-		d = (char *) arg;
+		d = (char *)arg;
 	else
 		d = NULL;
 
@@ -291,10 +295,22 @@ kvprintf(char const *fmt, kvprintf_fn_t *func, void *arg, int radix, va_list ap)
 			PCHAR(ch);
 		}
 		percent = fmt - 1;
-		qflag = 0; lflag = 0; ladjust = 0; sharpflag = 0; neg = 0;
-		sign = 0; dot = 0; dwidth = 0; upper = 0;
-		cflag = 0; hflag = 0; jflag = 0; tflag = 0; zflag = 0;
-reswitch:	switch (ch = (u_char)*fmt++) {
+		qflag = 0;
+		lflag = 0;
+		ladjust = 0;
+		sharpflag = 0;
+		neg = 0;
+		sign = 0;
+		dot = 0;
+		dwidth = 0;
+		upper = 0;
+		cflag = 0;
+		hflag = 0;
+		jflag = 0;
+		tflag = 0;
+		zflag = 0;
+	reswitch:
+		switch (ch = (u_char)*fmt++) {
 		case '.':
 			dot = 1;
 			goto reswitch;
@@ -326,14 +342,21 @@ reswitch:	switch (ch = (u_char)*fmt++) {
 				padc = '0';
 				goto reswitch;
 			}
-		case '1': case '2': case '3': case '4':
-		case '5': case '6': case '7': case '8': case '9':
-				for (n = 0;; ++fmt) {
-					n = n * 10 + ch - '0';
-					ch = *fmt;
-					if (ch < '0' || ch > '9')
-						break;
-				}
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
+			for (n = 0;; ++fmt) {
+				n = n * 10 + ch - '0';
+				ch = *fmt;
+				if (ch < '0' || ch > '9')
+					break;
+			}
 			if (dot)
 				dwidth = n;
 			else
@@ -370,12 +393,12 @@ reswitch:	switch (ch = (u_char)*fmt++) {
 			p = va_arg(ap, char *);
 			if (!width)
 				width = 16;
-			while(width--) {
+			while (width--) {
 				PCHAR(hex2ascii(*up >> 4));
 				PCHAR(hex2ascii(*up & 0x0f));
 				up++;
 				if (width)
-					for (q=p;*q;q++)
+					for (q = p; *q; q++)
 						PCHAR(*q);
 			}
 			break;
@@ -439,7 +462,7 @@ reswitch:	switch (ch = (u_char)*fmt++) {
 			if (p == NULL)
 				p = "(null)";
 			if (!dot)
-				n = strlen (p);
+				n = strlen(p);
 			else
 				for (n = 0; n < dwidth && p[n]; n++)
 					continue;
@@ -455,10 +478,10 @@ reswitch:	switch (ch = (u_char)*fmt++) {
 				while (width--)
 					PCHAR(padc);
 			break;
-		case 'S':	/* Assume console can cope with wide chars */
+		case 'S': /* Assume console can cope with wide chars */
 			for (S = va_arg(ap, uint16_t *); *S != 0; S++)
 				PCHAR(*S);
- 			break;
+			break;
 		case 't':
 			tflag = 1;
 			goto reswitch;
@@ -477,7 +500,7 @@ reswitch:	switch (ch = (u_char)*fmt++) {
 		case 'z':
 			zflag = 1;
 			goto reswitch;
-handle_nosign:
+		handle_nosign:
 			sign = 0;
 			if (jflag)
 				num = va_arg(ap, uintmax_t);
@@ -496,7 +519,7 @@ handle_nosign:
 			else
 				num = va_arg(ap, u_int);
 			goto number;
-handle_sign:
+		handle_sign:
 			if (jflag)
 				num = va_arg(ap, intmax_t);
 			else if (qflag)
@@ -513,7 +536,7 @@ handle_sign:
 				num = (char)va_arg(ap, int);
 			else
 				num = va_arg(ap, int);
-number:
+		number:
 			if (sign && (intmax_t)num < 0) {
 				neg = 1;
 				num = -(intmax_t)num;

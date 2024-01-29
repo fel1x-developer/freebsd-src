@@ -26,19 +26,19 @@
  */
 
 #ifndef __tcp_log_dev_h__
-#define	__tcp_log_dev_h__
+#define __tcp_log_dev_h__
 
 /*
  * This is the common header for data streamed from the log device. All
  * blocks of data need to start with this header.
  */
 struct tcp_log_common_header {
-	uint32_t	tlch_version;	/* Version is specific to type. */
-	uint32_t	tlch_type;	/* Type of entry(ies) that follow. */
-	uint64_t	tlch_length;	/* Total length, including header. */
+	uint32_t tlch_version; /* Version is specific to type. */
+	uint32_t tlch_type;    /* Type of entry(ies) that follow. */
+	uint64_t tlch_length;  /* Total length, including header. */
 } __packed;
 
-#define	TCP_LOG_DEV_TYPE_BBR	1	/* black box recorder */
+#define TCP_LOG_DEV_TYPE_BBR 1 /* black box recorder */
 
 #ifdef _KERNEL
 /*
@@ -63,8 +63,9 @@ struct tcp_log_common_header {
 struct tcp_log_dev_queue {
 	STAILQ_ENTRY(tcp_log_dev_queue) tldq_queue;
 	struct tcp_log_common_header *tldq_buf;
-	struct tcp_log_common_header *(*tldq_xform)(struct tcp_log_dev_queue *entry);
-	void	(*tldq_dtor)(struct tcp_log_dev_queue *entry);
+	struct tcp_log_common_header *(*tldq_xform)(
+	    struct tcp_log_dev_queue *entry);
+	void (*tldq_dtor)(struct tcp_log_dev_queue *entry);
 	volatile u_int tldq_refcnt;
 };
 
@@ -74,7 +75,7 @@ struct tcp_log_dev_info {
 	STAILQ_ENTRY(tcp_log_dev_info) tldi_list;
 	struct tcp_log_dev_queue *tldi_head;
 	struct tcp_log_common_header *tldi_cur;
-	off_t			tldi_off;
+	off_t tldi_off;
 };
 STAILQ_HEAD(log_infoh, tcp_log_dev_info);
 

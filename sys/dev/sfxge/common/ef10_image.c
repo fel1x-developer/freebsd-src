@@ -31,6 +31,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "efx.h"
 #include "efx_impl.h"
 
@@ -45,31 +46,30 @@
  */
 
 /* DER encodings for ASN.1 tags (see ITU-T X.690) */
-#define	ASN1_TAG_INTEGER	    (0x02)
-#define	ASN1_TAG_OCTET_STRING	    (0x04)
-#define	ASN1_TAG_OBJ_ID		    (0x06)
-#define	ASN1_TAG_SEQUENCE	    (0x30)
-#define	ASN1_TAG_SET		    (0x31)
+#define ASN1_TAG_INTEGER (0x02)
+#define ASN1_TAG_OCTET_STRING (0x04)
+#define ASN1_TAG_OBJ_ID (0x06)
+#define ASN1_TAG_SEQUENCE (0x30)
+#define ASN1_TAG_SET (0x31)
 
-#define	ASN1_TAG_IS_PRIM(tag)	    ((tag & 0x20) == 0)
+#define ASN1_TAG_IS_PRIM(tag) ((tag & 0x20) == 0)
 
-#define	ASN1_TAG_PRIM_CONTEXT(n)    (0x80 + (n))
-#define	ASN1_TAG_CONS_CONTEXT(n)    (0xA0 + (n))
+#define ASN1_TAG_PRIM_CONTEXT(n) (0x80 + (n))
+#define ASN1_TAG_CONS_CONTEXT(n) (0xA0 + (n))
 
 typedef struct efx_asn1_cursor_s {
-	uint8_t		*buffer;
-	uint32_t	length;
+	uint8_t *buffer;
+	uint32_t length;
 
-	uint8_t		tag;
-	uint32_t	hdr_size;
-	uint32_t	val_size;
+	uint8_t tag;
+	uint32_t hdr_size;
+	uint32_t val_size;
 } efx_asn1_cursor_t;
 
 /* Parse header of DER encoded ASN.1 TLV and match tag */
-static	__checkReturn	efx_rc_t
-efx_asn1_parse_header_match_tag(
-	__inout		efx_asn1_cursor_t	*cursor,
-	__in		uint8_t			tag)
+static __checkReturn efx_rc_t
+efx_asn1_parse_header_match_tag(__inout efx_asn1_cursor_t *cursor,
+    __in uint8_t tag)
 {
 	efx_rc_t rc;
 
@@ -110,7 +110,7 @@ efx_asn1_parse_header_match_tag(
 			rc = EINVAL;
 			goto fail6;
 		}
-		if (nbytes > sizeof (uint32_t)) {
+		if (nbytes > sizeof(uint32_t)) {
 			/* Length encoding too big */
 			rc = E2BIG;
 			goto fail5;
@@ -118,8 +118,8 @@ efx_asn1_parse_header_match_tag(
 		cursor->hdr_size = 2 + nbytes;
 		cursor->val_size = 0;
 		for (offset = 2; offset < cursor->hdr_size; offset++) {
-			cursor->val_size =
-			    (cursor->val_size << 8) | cursor->buffer[offset];
+			cursor->val_size = (cursor->val_size << 8) |
+			    cursor->buffer[offset];
 		}
 	}
 
@@ -150,10 +150,8 @@ fail1:
 }
 
 /* Enter nested ASN.1 TLV (contained in value of current TLV) */
-static	__checkReturn	efx_rc_t
-efx_asn1_enter_tag(
-	__inout		efx_asn1_cursor_t	*cursor,
-	__in		uint8_t			tag)
+static __checkReturn efx_rc_t
+efx_asn1_enter_tag(__inout efx_asn1_cursor_t *cursor, __in uint8_t tag)
 {
 	efx_rc_t rc;
 
@@ -193,12 +191,9 @@ fail1:
  * Check that the current ASN.1 TLV matches the given tag and value.
  * Advance cursor to next TLV on a successful match.
  */
-static	__checkReturn	efx_rc_t
-efx_asn1_match_tag_value(
-	__inout		efx_asn1_cursor_t	*cursor,
-	__in		uint8_t			tag,
-	__in		const void		*valp,
-	__in		uint32_t		val_size)
+static __checkReturn efx_rc_t
+efx_asn1_match_tag_value(__inout efx_asn1_cursor_t *cursor, __in uint8_t tag,
+    __in const void *valp, __in uint32_t val_size)
 {
 	efx_rc_t rc;
 
@@ -239,10 +234,8 @@ fail1:
 }
 
 /* Advance cursor to next TLV */
-static	__checkReturn	efx_rc_t
-efx_asn1_skip_tag(
-	__inout		efx_asn1_cursor_t	*cursor,
-	__in		uint8_t			tag)
+static __checkReturn efx_rc_t
+efx_asn1_skip_tag(__inout efx_asn1_cursor_t *cursor, __in uint8_t tag)
 {
 	efx_rc_t rc;
 
@@ -270,12 +263,9 @@ fail1:
 }
 
 /* Return pointer to value octets and value size from current TLV */
-static	__checkReturn	efx_rc_t
-efx_asn1_get_tag_value(
-	__inout		efx_asn1_cursor_t	*cursor,
-	__in		uint8_t			tag,
-	__out		uint8_t			**valp,
-	__out		uint32_t		*val_sizep)
+static __checkReturn efx_rc_t
+efx_asn1_get_tag_value(__inout efx_asn1_cursor_t *cursor, __in uint8_t tag,
+    __out uint8_t **valp, __out uint32_t *val_sizep)
 {
 	efx_rc_t rc;
 
@@ -307,16 +297,15 @@ fail1:
  */
 
 /* OID 1.2.840.113549.1.7.2 */
-static const uint8_t PKCS7_SignedData[] =
-{ 0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D, 0x01, 0x07, 0x02 };
+static const uint8_t PKCS7_SignedData[] = { 0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D,
+	0x01, 0x07, 0x02 };
 
 /* OID 1.2.840.113549.1.7.1 */
-static const uint8_t PKCS7_Data[] =
-{ 0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D, 0x01, 0x07, 0x01 };
+static const uint8_t PKCS7_Data[] = { 0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D, 0x01,
+	0x07, 0x01 };
 
 /* SignedData structure version */
-static const uint8_t SignedData_Version[] =
-{ 0x03 };
+static const uint8_t SignedData_Version[] = { 0x03 };
 
 /*
  * Check for a valid image in signed image format. This uses CMS syntax
@@ -324,12 +313,9 @@ static const uint8_t SignedData_Version[] =
  * to validate the signatures. The encapsulated content is in unsigned image
  * format (reflash header, image code, trailer checksum).
  */
-static	__checkReturn	efx_rc_t
-efx_check_signed_image_header(
-	__in		void		*bufferp,
-	__in		uint32_t	buffer_size,
-	__out		uint32_t	*content_offsetp,
-	__out		uint32_t	*content_lengthp)
+static __checkReturn efx_rc_t
+efx_check_signed_image_header(__in void *bufferp, __in uint32_t buffer_size,
+    __out uint32_t *content_offsetp, __out uint32_t *content_lengthp)
 {
 	efx_asn1_cursor_t cursor;
 	uint8_t *valp;
@@ -350,7 +336,7 @@ efx_check_signed_image_header(
 
 	/* ContextInfo.contentType */
 	rc = efx_asn1_match_tag_value(&cursor, ASN1_TAG_OBJ_ID,
-	    PKCS7_SignedData, sizeof (PKCS7_SignedData));
+	    PKCS7_SignedData, sizeof(PKCS7_SignedData));
 	if (rc != 0)
 		goto fail3;
 
@@ -366,7 +352,7 @@ efx_check_signed_image_header(
 
 	/* SignedData.version */
 	rc = efx_asn1_match_tag_value(&cursor, ASN1_TAG_INTEGER,
-	    SignedData_Version, sizeof (SignedData_Version));
+	    SignedData_Version, sizeof(SignedData_Version));
 	if (rc != 0)
 		goto fail6;
 
@@ -381,8 +367,8 @@ efx_check_signed_image_header(
 		goto fail8;
 
 	/* SignedData.encapContentInfo.econtentType */
-	rc = efx_asn1_match_tag_value(&cursor, ASN1_TAG_OBJ_ID,
-	    PKCS7_Data, sizeof (PKCS7_Data));
+	rc = efx_asn1_match_tag_value(&cursor, ASN1_TAG_OBJ_ID, PKCS7_Data,
+	    sizeof(PKCS7_Data));
 	if (rc != 0)
 		goto fail9;
 
@@ -397,8 +383,8 @@ efx_check_signed_image_header(
 	 */
 	valp = NULL;
 	val_size = 0;
-	rc = efx_asn1_get_tag_value(&cursor, ASN1_TAG_OCTET_STRING,
-	    &valp, &val_size);
+	rc = efx_asn1_get_tag_value(&cursor, ASN1_TAG_OCTET_STRING, &valp,
+	    &val_size);
 	if (rc != 0)
 		goto fail11;
 
@@ -452,22 +438,20 @@ fail1:
 	return (rc);
 }
 
-static	__checkReturn	efx_rc_t
-efx_check_unsigned_image(
-	__in		void		*bufferp,
-	__in		uint32_t	buffer_size)
+static __checkReturn efx_rc_t
+efx_check_unsigned_image(__in void *bufferp, __in uint32_t buffer_size)
 {
 	efx_image_header_t *header;
 	efx_image_trailer_t *trailer;
 	uint32_t crc;
 	efx_rc_t rc;
 
-	EFX_STATIC_ASSERT(sizeof (*header) == EFX_IMAGE_HEADER_SIZE);
-	EFX_STATIC_ASSERT(sizeof (*trailer) == EFX_IMAGE_TRAILER_SIZE);
+	EFX_STATIC_ASSERT(sizeof(*header) == EFX_IMAGE_HEADER_SIZE);
+	EFX_STATIC_ASSERT(sizeof(*trailer) == EFX_IMAGE_TRAILER_SIZE);
 
 	/* Must have at least enough space for required image header fields */
 	if (buffer_size < (EFX_FIELD_OFFSET(efx_image_header_t, eih_size) +
-		sizeof (header->eih_size))) {
+			      sizeof(header->eih_size))) {
 		rc = ENOSPC;
 		goto fail1;
 	}
@@ -489,14 +473,14 @@ efx_check_unsigned_image(
 
 	/* Buffer must have space for image header, code and image trailer. */
 	if (buffer_size < (header->eih_size + header->eih_code_size +
-		EFX_IMAGE_TRAILER_SIZE)) {
+			      EFX_IMAGE_TRAILER_SIZE)) {
 		rc = ENOSPC;
 		goto fail4;
 	}
 
 	/* Check CRC from image buffer matches computed CRC. */
-	trailer = (efx_image_trailer_t *)((uint8_t *)header +
-	    header->eih_size + header->eih_code_size);
+	trailer = (efx_image_trailer_t *)((uint8_t *)header + header->eih_size +
+	    header->eih_code_size);
 
 	crc = efx_crc32_calculate(0, (uint8_t *)header,
 	    (header->eih_size + header->eih_code_size));
@@ -522,11 +506,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-efx_check_reflash_image(
-	__in		void			*bufferp,
-	__in		uint32_t		buffer_size,
-	__out		efx_image_info_t	*infop)
+__checkReturn efx_rc_t
+efx_check_reflash_image(__in void *bufferp, __in uint32_t buffer_size,
+    __out efx_image_info_t *infop)
 {
 	efx_image_format_t format = EFX_IMAGE_FORMAT_NO_IMAGE;
 	uint32_t image_offset;
@@ -539,7 +521,7 @@ efx_check_reflash_image(
 		rc = EINVAL;
 		goto fail1;
 	}
-	memset(infop, 0, sizeof (*infop));
+	memset(infop, 0, sizeof(*infop));
 
 	if (bufferp == NULL || buffer_size == 0) {
 		rc = EINVAL;
@@ -550,8 +532,8 @@ efx_check_reflash_image(
 	 * Check if the buffer contains an image in signed format, and if so,
 	 * locate the image header.
 	 */
-	rc = efx_check_signed_image_header(bufferp, buffer_size,
-	    &image_offset, &image_size);
+	rc = efx_check_signed_image_header(bufferp, buffer_size, &image_offset,
+	    &image_size);
 	if (rc == 0) {
 		/*
 		 * Buffer holds signed image format. Check that the encapsulated
@@ -599,13 +581,10 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-efx_build_signed_image_write_buffer(
-	__out_bcount(buffer_size)
-			uint8_t			*bufferp,
-	__in		uint32_t		buffer_size,
-	__in		efx_image_info_t	*infop,
-	__out		efx_image_header_t	**headerpp)
+__checkReturn efx_rc_t
+efx_build_signed_image_write_buffer(__out_bcount(buffer_size) uint8_t *bufferp,
+    __in uint32_t buffer_size, __in efx_image_info_t *infop,
+    __out efx_image_header_t **headerpp)
 {
 	signed_image_chunk_hdr_t chunk_hdr;
 	uint32_t hdr_offset;
@@ -617,19 +596,18 @@ efx_build_signed_image_write_buffer(
 
 	EFSYS_ASSERT((infop != NULL) && (headerpp != NULL));
 
-	if ((bufferp == NULL) || (buffer_size == 0) ||
-	    (infop == NULL) || (headerpp == NULL)) {
+	if ((bufferp == NULL) || (buffer_size == 0) || (infop == NULL) ||
+	    (headerpp == NULL)) {
 		/* Invalid arguments */
 		rc = EINVAL;
 		goto fail1;
 	}
 	if ((infop->eii_format != EFX_IMAGE_FORMAT_SIGNED) ||
-	    (infop->eii_imagep == NULL) ||
-	    (infop->eii_headerp == NULL) ||
+	    (infop->eii_imagep == NULL) || (infop->eii_headerp == NULL) ||
 	    ((uint8_t *)infop->eii_headerp < (uint8_t *)infop->eii_imagep) ||
 	    (infop->eii_image_size < EFX_IMAGE_HEADER_SIZE) ||
 	    ((size_t)((uint8_t *)infop->eii_headerp - infop->eii_imagep) >
-	    (infop->eii_image_size - EFX_IMAGE_HEADER_SIZE))) {
+		(infop->eii_image_size - EFX_IMAGE_HEADER_SIZE))) {
 		/* Invalid image info */
 		rc = EINVAL;
 		goto fail2;
@@ -637,8 +615,8 @@ efx_build_signed_image_write_buffer(
 
 	/* Locate image chunks in original signed image */
 	cms_header.offset = 0;
-	cms_header.size =
-	    (uint32_t)((uint8_t *)infop->eii_headerp - infop->eii_imagep);
+	cms_header.size = (uint32_t)((uint8_t *)infop->eii_headerp -
+	    infop->eii_imagep);
 	if ((cms_header.size > buffer_size) ||
 	    (cms_header.offset > (buffer_size - cms_header.size))) {
 		rc = EINVAL;
@@ -677,9 +655,9 @@ efx_build_signed_image_write_buffer(
 		goto fail7;
 	}
 
-	EFSYS_ASSERT3U(infop->eii_image_size, ==, cms_header.size +
-	    image_header.size + code.size + image_trailer.size +
-	    signature.size);
+	EFSYS_ASSERT3U(infop->eii_image_size, ==,
+	    cms_header.size + image_header.size + code.size +
+		image_trailer.size + signature.size);
 
 	/* BEGIN CSTYLED */
 	/*
@@ -731,7 +709,7 @@ efx_build_signed_image_write_buffer(
 	/* END CSTYLED */
 	memset(bufferp, 0xFF, buffer_size);
 
-	EFX_STATIC_ASSERT(sizeof (chunk_hdr) == SIGNED_IMAGE_CHUNK_HDR_LEN);
+	EFX_STATIC_ASSERT(sizeof(chunk_hdr) == SIGNED_IMAGE_CHUNK_HDR_LEN);
 	memset(&chunk_hdr, 0, SIGNED_IMAGE_CHUNK_HDR_LEN);
 
 	/*
@@ -743,13 +721,13 @@ efx_build_signed_image_write_buffer(
 	}
 	hdr_offset = buffer_size - SIGNED_IMAGE_CHUNK_HDR_LEN;
 
-	chunk_hdr.magic		= SIGNED_IMAGE_CHUNK_HDR_MAGIC;
-	chunk_hdr.version	= SIGNED_IMAGE_CHUNK_HDR_VERSION;
-	chunk_hdr.id		= SIGNED_IMAGE_CHUNK_CMS_HEADER;
-	chunk_hdr.offset	= code.size + SIGNED_IMAGE_CHUNK_HDR_LEN;
-	chunk_hdr.len		= cms_header.size;
+	chunk_hdr.magic = SIGNED_IMAGE_CHUNK_HDR_MAGIC;
+	chunk_hdr.version = SIGNED_IMAGE_CHUNK_HDR_VERSION;
+	chunk_hdr.id = SIGNED_IMAGE_CHUNK_CMS_HEADER;
+	chunk_hdr.offset = code.size + SIGNED_IMAGE_CHUNK_HDR_LEN;
+	chunk_hdr.len = cms_header.size;
 
-	memcpy(bufferp + hdr_offset, &chunk_hdr, sizeof (chunk_hdr));
+	memcpy(bufferp + hdr_offset, &chunk_hdr, sizeof(chunk_hdr));
 
 	if ((chunk_hdr.len > buffer_size) ||
 	    (chunk_hdr.offset > (buffer_size - chunk_hdr.len))) {
@@ -757,8 +735,7 @@ efx_build_signed_image_write_buffer(
 		goto fail9;
 	}
 	memcpy(bufferp + chunk_hdr.offset,
-	    infop->eii_imagep + cms_header.offset,
-	    cms_header.size);
+	    infop->eii_imagep + cms_header.offset, cms_header.size);
 
 	/*
 	 * Image header
@@ -768,11 +745,11 @@ efx_build_signed_image_write_buffer(
 		rc = ENOSPC;
 		goto fail10;
 	}
-	chunk_hdr.magic		= SIGNED_IMAGE_CHUNK_HDR_MAGIC;
-	chunk_hdr.version	= SIGNED_IMAGE_CHUNK_HDR_VERSION;
-	chunk_hdr.id		= SIGNED_IMAGE_CHUNK_REFLASH_HEADER;
-	chunk_hdr.offset	= hdr_offset + SIGNED_IMAGE_CHUNK_HDR_LEN;
-	chunk_hdr.len		= image_header.size;
+	chunk_hdr.magic = SIGNED_IMAGE_CHUNK_HDR_MAGIC;
+	chunk_hdr.version = SIGNED_IMAGE_CHUNK_HDR_VERSION;
+	chunk_hdr.id = SIGNED_IMAGE_CHUNK_REFLASH_HEADER;
+	chunk_hdr.offset = hdr_offset + SIGNED_IMAGE_CHUNK_HDR_LEN;
+	chunk_hdr.len = image_header.size;
 
 	memcpy(bufferp + hdr_offset, &chunk_hdr, SIGNED_IMAGE_CHUNK_HDR_LEN);
 
@@ -782,8 +759,7 @@ efx_build_signed_image_write_buffer(
 		goto fail11;
 	}
 	memcpy(bufferp + chunk_hdr.offset,
-	    infop->eii_imagep + image_header.offset,
-	    image_header.size);
+	    infop->eii_imagep + image_header.offset, image_header.size);
 
 	*headerpp = (efx_image_header_t *)(bufferp + chunk_hdr.offset);
 
@@ -795,11 +771,11 @@ efx_build_signed_image_write_buffer(
 		rc = ENOSPC;
 		goto fail12;
 	}
-	chunk_hdr.magic		= SIGNED_IMAGE_CHUNK_HDR_MAGIC;
-	chunk_hdr.version	= SIGNED_IMAGE_CHUNK_HDR_VERSION;
-	chunk_hdr.id		= SIGNED_IMAGE_CHUNK_IMAGE;
-	chunk_hdr.offset	= 0;
-	chunk_hdr.len		= code.size;
+	chunk_hdr.magic = SIGNED_IMAGE_CHUNK_HDR_MAGIC;
+	chunk_hdr.version = SIGNED_IMAGE_CHUNK_HDR_VERSION;
+	chunk_hdr.id = SIGNED_IMAGE_CHUNK_IMAGE;
+	chunk_hdr.offset = 0;
+	chunk_hdr.len = code.size;
 
 	memcpy(bufferp + hdr_offset, &chunk_hdr, SIGNED_IMAGE_CHUNK_HDR_LEN);
 
@@ -808,18 +784,17 @@ efx_build_signed_image_write_buffer(
 		rc = ENOSPC;
 		goto fail13;
 	}
-	memcpy(bufferp + chunk_hdr.offset,
-	    infop->eii_imagep + code.offset,
+	memcpy(bufferp + chunk_hdr.offset, infop->eii_imagep + code.offset,
 	    code.size);
 
 	/*
 	 * Image trailer (CRC)
 	 */
-	chunk_hdr.magic		= SIGNED_IMAGE_CHUNK_HDR_MAGIC;
-	chunk_hdr.version	= SIGNED_IMAGE_CHUNK_HDR_VERSION;
-	chunk_hdr.id		= SIGNED_IMAGE_CHUNK_REFLASH_TRAILER;
-	chunk_hdr.offset	= hdr_offset + SIGNED_IMAGE_CHUNK_HDR_LEN;
-	chunk_hdr.len		= image_trailer.size;
+	chunk_hdr.magic = SIGNED_IMAGE_CHUNK_HDR_MAGIC;
+	chunk_hdr.version = SIGNED_IMAGE_CHUNK_HDR_VERSION;
+	chunk_hdr.id = SIGNED_IMAGE_CHUNK_REFLASH_TRAILER;
+	chunk_hdr.offset = hdr_offset + SIGNED_IMAGE_CHUNK_HDR_LEN;
+	chunk_hdr.len = image_trailer.size;
 
 	hdr_offset = code.size;
 	if (hdr_offset > (buffer_size - SIGNED_IMAGE_CHUNK_HDR_LEN)) {
@@ -835,8 +810,7 @@ efx_build_signed_image_write_buffer(
 		goto fail15;
 	}
 	memcpy((uint8_t *)bufferp + chunk_hdr.offset,
-	    infop->eii_imagep + image_trailer.offset,
-	    image_trailer.size);
+	    infop->eii_imagep + image_trailer.offset, image_trailer.size);
 
 	/*
 	 * Signature
@@ -846,11 +820,11 @@ efx_build_signed_image_write_buffer(
 		rc = ENOSPC;
 		goto fail16;
 	}
-	chunk_hdr.magic		= SIGNED_IMAGE_CHUNK_HDR_MAGIC;
-	chunk_hdr.version	= SIGNED_IMAGE_CHUNK_HDR_VERSION;
-	chunk_hdr.id		= SIGNED_IMAGE_CHUNK_SIGNATURE;
-	chunk_hdr.offset	= chunk_hdr.offset + SIGNED_IMAGE_CHUNK_HDR_LEN;
-	chunk_hdr.len		= signature.size;
+	chunk_hdr.magic = SIGNED_IMAGE_CHUNK_HDR_MAGIC;
+	chunk_hdr.version = SIGNED_IMAGE_CHUNK_HDR_VERSION;
+	chunk_hdr.id = SIGNED_IMAGE_CHUNK_SIGNATURE;
+	chunk_hdr.offset = chunk_hdr.offset + SIGNED_IMAGE_CHUNK_HDR_LEN;
+	chunk_hdr.len = signature.size;
 
 	memcpy(bufferp + hdr_offset, &chunk_hdr, SIGNED_IMAGE_CHUNK_HDR_LEN);
 
@@ -859,8 +833,7 @@ efx_build_signed_image_write_buffer(
 		rc = ENOSPC;
 		goto fail17;
 	}
-	memcpy(bufferp + chunk_hdr.offset,
-	    infop->eii_imagep + signature.offset,
+	memcpy(bufferp + chunk_hdr.offset, infop->eii_imagep + signature.offset,
 	    signature.size);
 
 	return (0);
@@ -903,6 +876,6 @@ fail1:
 	return (rc);
 }
 
-#endif	/* EFSYS_OPT_IMAGE_LAYOUT */
+#endif /* EFSYS_OPT_IMAGE_LAYOUT */
 
-#endif	/* EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2 */
+#endif /* EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2 */

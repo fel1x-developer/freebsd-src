@@ -29,36 +29,37 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <inttypes.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <errno.h>
-#include <paths.h>
-#include <fcntl.h>
-#include <ctype.h>
-#include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/queue.h>
 #include <sys/sbuf.h>
+#include <sys/stat.h>
 #include <sys/sysctl.h>
-#include <err.h>
+
 #include <bsdxml.h>
+#include <ctype.h>
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <inttypes.h>
 #include <libgeom.h>
+#include <paths.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 struct mystate {
-	struct gmesh		*mesh;
-	struct gclass		*class;
-	struct ggeom		*geom;
-	struct gprovider	*provider;
-	struct gconsumer	*consumer;
-	int			level;
-	struct sbuf		*sbuf[20];
-	struct gconf		*config;
-	int			nident;
-	XML_Parser		parser;
-	int			error;
+	struct gmesh *mesh;
+	struct gclass *class;
+	struct ggeom *geom;
+	struct gprovider *provider;
+	struct gconsumer *consumer;
+	int level;
+	struct sbuf *sbuf[20];
+	struct gconf *config;
+	int nident;
+	XML_Parser parser;
+	int error;
 };
 
 static void
@@ -81,9 +82,8 @@ StartElement(void *userData, const char *name, const char **attr)
 		} else if (!strcmp(attr[i], "ref")) {
 			ref = (void *)strtoul(attr[i + 1], NULL, 0);
 		} else
-			printf("%*.*s[%s = %s]\n",
-			    mt->level + 1, mt->level + 1, "",
-			    attr[i], attr[i + 1]);
+			printf("%*.*s[%s = %s]\n", mt->level + 1, mt->level + 1,
+			    "", attr[i], attr[i + 1]);
 	}
 	if (!strcmp(name, "class") && mt->class == NULL) {
 		mt->class = calloc(1, sizeof *mt->class);
@@ -91,7 +91,8 @@ StartElement(void *userData, const char *name, const char **attr)
 			mt->error = errno;
 			XML_StopParser(mt->parser, 0);
 			warn("Cannot allocate memory during processing of '%s' "
-			    "element", name);
+			     "element",
+			    name);
 			return;
 		}
 		mt->class->lg_id = id;
@@ -106,7 +107,8 @@ StartElement(void *userData, const char *name, const char **attr)
 			mt->error = errno;
 			XML_StopParser(mt->parser, 0);
 			warn("Cannot allocate memory during processing of '%s' "
-			    "element", name);
+			     "element",
+			    name);
 			return;
 		}
 		mt->geom->lg_id = id;
@@ -126,7 +128,8 @@ StartElement(void *userData, const char *name, const char **attr)
 			mt->error = errno;
 			XML_StopParser(mt->parser, 0);
 			warn("Cannot allocate memory during processing of '%s' "
-			    "element", name);
+			     "element",
+			    name);
 			return;
 		}
 		mt->consumer->lg_id = id;
@@ -149,7 +152,8 @@ StartElement(void *userData, const char *name, const char **attr)
 			mt->error = errno;
 			XML_StopParser(mt->parser, 0);
 			warn("Cannot allocate memory during processing of '%s' "
-			    "element", name);
+			     "element",
+			    name);
 			return;
 		}
 		mt->provider->lg_id = id;
@@ -202,7 +206,8 @@ EndElement(void *userData, const char *name)
 		mt->error = errno;
 		XML_StopParser(mt->parser, 0);
 		warn("Cannot allocate memory during processing of '%s' "
-		    "element", name);
+		     "element",
+		    name);
 		return;
 	}
 	if (strlen(p) == 0) {
@@ -262,8 +267,9 @@ EndElement(void *userData, const char *name)
 		return;
 	}
 
-	if (mt->config != NULL || (!strcmp(name, "wither") &&
-	    (mt->provider != NULL || mt->geom != NULL))) {
+	if (mt->config != NULL ||
+	    (!strcmp(name, "wither") &&
+		(mt->provider != NULL || mt->geom != NULL))) {
 		if (mt->config != NULL)
 			c = mt->config;
 		else if (mt->provider != NULL)
@@ -275,7 +281,8 @@ EndElement(void *userData, const char *name)
 			mt->error = errno;
 			XML_StopParser(mt->parser, 0);
 			warn("Cannot allocate memory during processing of '%s' "
-			    "element", name);
+			     "element",
+			    name);
 			free(p);
 			return;
 		}
@@ -284,7 +291,8 @@ EndElement(void *userData, const char *name)
 			mt->error = errno;
 			XML_StopParser(mt->parser, 0);
 			warn("Cannot allocate memory during processing of '%s' "
-			    "element", name);
+			     "element",
+			    name);
 			free(gc);
 			free(p);
 			return;
@@ -329,7 +337,7 @@ EndElement(void *userData, const char *name)
 }
 
 static void
-CharData(void *userData , const XML_Char *s , int len)
+CharData(void *userData, const XML_Char *s, int len)
 {
 	struct mystate *mt;
 	const char *b, *e;
@@ -400,7 +408,8 @@ geom_xml2tree(struct gmesh *gmp, char *p)
 		error = mt->error;
 	else if (i != 1) {
 		error = XML_GetErrorCode(parser) == XML_ERROR_NO_MEMORY ?
-		    ENOMEM : EILSEQ;
+		    ENOMEM :
+		    EILSEQ;
 	}
 	XML_ParserFree(parser);
 	if (error != 0) {
@@ -413,23 +422,23 @@ geom_xml2tree(struct gmesh *gmp, char *p)
 		return (ENOMEM);
 	i = 0;
 	/* Collect all identifiers */
-	LIST_FOREACH(cl, &gmp->lg_class, lg_class) {
+	LIST_FOREACH (cl, &gmp->lg_class, lg_class) {
 		gmp->lg_ident[i].lg_id = cl->lg_id;
 		gmp->lg_ident[i].lg_ptr = cl;
 		gmp->lg_ident[i].lg_what = ISCLASS;
 		i++;
-		LIST_FOREACH(ge, &cl->lg_geom, lg_geom) {
+		LIST_FOREACH (ge, &cl->lg_geom, lg_geom) {
 			gmp->lg_ident[i].lg_id = ge->lg_id;
 			gmp->lg_ident[i].lg_ptr = ge;
 			gmp->lg_ident[i].lg_what = ISGEOM;
 			i++;
-			LIST_FOREACH(pr, &ge->lg_provider, lg_provider) {
+			LIST_FOREACH (pr, &ge->lg_provider, lg_provider) {
 				gmp->lg_ident[i].lg_id = pr->lg_id;
 				gmp->lg_ident[i].lg_ptr = pr;
 				gmp->lg_ident[i].lg_what = ISPROVIDER;
 				i++;
 			}
-			LIST_FOREACH(co, &ge->lg_consumer, lg_consumer) {
+			LIST_FOREACH (co, &ge->lg_consumer, lg_consumer) {
 				gmp->lg_ident[i].lg_id = co->lg_id;
 				gmp->lg_ident[i].lg_ptr = co;
 				gmp->lg_ident[i].lg_what = ISCONSUMER;
@@ -438,19 +447,22 @@ geom_xml2tree(struct gmesh *gmp, char *p)
 		}
 	}
 	/* Substitute all identifiers */
-	LIST_FOREACH(cl, &gmp->lg_class, lg_class) {
-		LIST_FOREACH(ge, &cl->lg_geom, lg_geom) {
+	LIST_FOREACH (cl, &gmp->lg_class, lg_class) {
+		LIST_FOREACH (ge, &cl->lg_geom, lg_geom) {
 			ge->lg_class = geom_lookupidptr(gmp, ge->lg_class);
-			LIST_FOREACH(pr, &ge->lg_provider, lg_provider)
-				pr->lg_geom = geom_lookupidptr(gmp, pr->lg_geom);
-			LIST_FOREACH(co, &ge->lg_consumer, lg_consumer) {
-				co->lg_geom = geom_lookupidptr(gmp, co->lg_geom);
+			LIST_FOREACH (pr, &ge->lg_provider, lg_provider)
+				pr->lg_geom = geom_lookupidptr(gmp,
+				    pr->lg_geom);
+			LIST_FOREACH (co, &ge->lg_consumer, lg_consumer) {
+				co->lg_geom = geom_lookupidptr(gmp,
+				    co->lg_geom);
 				if (co->lg_provider != NULL) {
 					co->lg_provider = geom_lookupidptr(gmp,
-						co->lg_provider);
+					    co->lg_provider);
 					if (co->lg_provider != NULL) {
 						LIST_INSERT_HEAD(
-						    &co->lg_provider->lg_consumers,
+						    &co->lg_provider
+							 ->lg_consumers,
 						    co, lg_consumers);
 					}
 				}
@@ -490,7 +502,7 @@ geom_gettree_geom(struct gmesh *gmp, const char *c, const char *g, int parents)
 	return (error);
 }
 
-static void 
+static void
 delete_config(struct gconf *gp)
 {
 	struct gconfig *cf;
@@ -518,35 +530,40 @@ geom_deletetree(struct gmesh *gmp)
 	gmp->lg_ident = NULL;
 	for (;;) {
 		cl = LIST_FIRST(&gmp->lg_class);
-		if (cl == NULL) 
+		if (cl == NULL)
 			break;
 		LIST_REMOVE(cl, lg_class);
 		delete_config(&cl->lg_config);
-		if (cl->lg_name) free(cl->lg_name);
+		if (cl->lg_name)
+			free(cl->lg_name);
 		for (;;) {
 			ge = LIST_FIRST(&cl->lg_geom);
-			if (ge == NULL) 
+			if (ge == NULL)
 				break;
 			LIST_REMOVE(ge, lg_geom);
 			delete_config(&ge->lg_config);
-			if (ge->lg_name) free(ge->lg_name);
+			if (ge->lg_name)
+				free(ge->lg_name);
 			for (;;) {
 				pr = LIST_FIRST(&ge->lg_provider);
-				if (pr == NULL) 
+				if (pr == NULL)
 					break;
 				LIST_REMOVE(pr, lg_provider);
 				delete_config(&pr->lg_config);
-				if (pr->lg_name) free(pr->lg_name);
-				if (pr->lg_mode) free(pr->lg_mode);
+				if (pr->lg_name)
+					free(pr->lg_name);
+				if (pr->lg_mode)
+					free(pr->lg_mode);
 				free(pr);
 			}
 			for (;;) {
 				co = LIST_FIRST(&ge->lg_consumer);
-				if (co == NULL) 
+				if (co == NULL)
 					break;
 				LIST_REMOVE(co, lg_consumer);
 				delete_config(&co->lg_config);
-				if (co->lg_mode) free(co->lg_mode);
+				if (co->lg_mode)
+					free(co->lg_mode);
 				free(co);
 			}
 			free(ge);

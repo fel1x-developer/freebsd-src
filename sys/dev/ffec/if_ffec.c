@@ -69,22 +69,23 @@
 
 #include <machine/bus.h>
 
+#include <dev/fdt/fdt_common.h>
+#include <dev/ffec/if_ffecreg.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/mii_fdt.h>
+#include <dev/mii/miivar.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+
 #include <net/bpf.h>
-#include <net/if.h>
 #include <net/ethernet.h>
+#include <net/if.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
 #include <net/if_var.h>
 #include <net/if_vlan_var.h>
 
-#include <dev/fdt/fdt_common.h>
-#include <dev/ffec/if_ffecreg.h>
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include <dev/mii/mii_fdt.h>
 #include "miibus_if.h"
 
 /*
@@ -97,7 +98,7 @@ enum {
 	FECTYPE_NONE,
 	FECTYPE_GENERIC,
 	FECTYPE_IMX53,
-	FECTYPE_IMX6,	/* imx6 and imx7 */
+	FECTYPE_IMX6, /* imx6 and imx7 */
 	FECTYPE_MVF,
 };
 
@@ -108,98 +109,98 @@ enum {
  * flags are put into separate members, so that you don't need to mask the flags
  * out of the type to compare it.
  */
-#define	FECTYPE_MASK		0x000000ff
-#define	FECFLAG_GBE		(1 <<  8)
-#define	FECFLAG_AVB		(1 <<  9)
-#define	FECFLAG_RACC		(1 << 10)
+#define FECTYPE_MASK 0x000000ff
+#define FECFLAG_GBE (1 << 8)
+#define FECFLAG_AVB (1 << 9)
+#define FECFLAG_RACC (1 << 10)
 
 /*
  * Table of supported FDT compat strings and their associated FECTYPE values.
  */
 static struct ofw_compat_data compat_data[] = {
-	{"fsl,imx51-fec",	FECTYPE_GENERIC},
-	{"fsl,imx53-fec",	FECTYPE_IMX53},
-	{"fsl,imx6q-fec",	FECTYPE_IMX6 | FECFLAG_RACC | FECFLAG_GBE },
-	{"fsl,imx6ul-fec",	FECTYPE_IMX6 | FECFLAG_RACC },
-	{"fsl,imx6sx-fec",      FECTYPE_IMX6 | FECFLAG_RACC },
-	{"fsl,imx7d-fec",	FECTYPE_IMX6 | FECFLAG_RACC | FECFLAG_GBE |
-				FECFLAG_AVB },
-	{"fsl,mvf600-fec",	FECTYPE_MVF  | FECFLAG_RACC },
-	{"fsl,mvf-fec",		FECTYPE_MVF},
-	{NULL,		 	FECTYPE_NONE},
+	{ "fsl,imx51-fec", FECTYPE_GENERIC },
+	{ "fsl,imx53-fec", FECTYPE_IMX53 },
+	{ "fsl,imx6q-fec", FECTYPE_IMX6 | FECFLAG_RACC | FECFLAG_GBE },
+	{ "fsl,imx6ul-fec", FECTYPE_IMX6 | FECFLAG_RACC },
+	{ "fsl,imx6sx-fec", FECTYPE_IMX6 | FECFLAG_RACC },
+	{ "fsl,imx7d-fec",
+	    FECTYPE_IMX6 | FECFLAG_RACC | FECFLAG_GBE | FECFLAG_AVB },
+	{ "fsl,mvf600-fec", FECTYPE_MVF | FECFLAG_RACC },
+	{ "fsl,mvf-fec", FECTYPE_MVF },
+	{ NULL, FECTYPE_NONE },
 };
 
 /*
  * Driver data and defines.
  */
-#define	RX_DESC_COUNT	64
-#define	RX_DESC_SIZE	(sizeof(struct ffec_hwdesc) * RX_DESC_COUNT)
-#define	TX_DESC_COUNT	64
-#define	TX_DESC_SIZE	(sizeof(struct ffec_hwdesc) * TX_DESC_COUNT)
+#define RX_DESC_COUNT 64
+#define RX_DESC_SIZE (sizeof(struct ffec_hwdesc) * RX_DESC_COUNT)
+#define TX_DESC_COUNT 64
+#define TX_DESC_SIZE (sizeof(struct ffec_hwdesc) * TX_DESC_COUNT)
 
-#define	WATCHDOG_TIMEOUT_SECS	5
+#define WATCHDOG_TIMEOUT_SECS 5
 
-#define	MAX_IRQ_COUNT 3
+#define MAX_IRQ_COUNT 3
 
 struct ffec_bufmap {
-	struct mbuf	*mbuf;
-	bus_dmamap_t	map;
+	struct mbuf *mbuf;
+	bus_dmamap_t map;
 };
 
 struct ffec_softc {
-	device_t		dev;
-	device_t		miibus;
-	struct mii_data *	mii_softc;
-	if_t			ifp;
-	int			if_flags;
-	struct mtx		mtx;
-	struct resource		*irq_res[MAX_IRQ_COUNT];
-	struct resource		*mem_res;
-	void *			intr_cookie[MAX_IRQ_COUNT];
-	struct callout		ffec_callout;
-	mii_contype_t		phy_conn_type;
-	uint32_t		fecflags;
-	uint8_t			fectype;
-	boolean_t		link_is_up;
-	boolean_t		is_attached;
-	boolean_t		is_detaching;
-	int			tx_watchdog_count;
-	int			rxbuf_align;
-	int			txbuf_align;
+	device_t dev;
+	device_t miibus;
+	struct mii_data *mii_softc;
+	if_t ifp;
+	int if_flags;
+	struct mtx mtx;
+	struct resource *irq_res[MAX_IRQ_COUNT];
+	struct resource *mem_res;
+	void *intr_cookie[MAX_IRQ_COUNT];
+	struct callout ffec_callout;
+	mii_contype_t phy_conn_type;
+	uint32_t fecflags;
+	uint8_t fectype;
+	boolean_t link_is_up;
+	boolean_t is_attached;
+	boolean_t is_detaching;
+	int tx_watchdog_count;
+	int rxbuf_align;
+	int txbuf_align;
 
-	bus_dma_tag_t		rxdesc_tag;
-	bus_dmamap_t		rxdesc_map;
-	struct ffec_hwdesc	*rxdesc_ring;
-	bus_addr_t		rxdesc_ring_paddr;
-	bus_dma_tag_t		rxbuf_tag;
-	struct ffec_bufmap	rxbuf_map[RX_DESC_COUNT];
-	uint32_t		rx_idx;
+	bus_dma_tag_t rxdesc_tag;
+	bus_dmamap_t rxdesc_map;
+	struct ffec_hwdesc *rxdesc_ring;
+	bus_addr_t rxdesc_ring_paddr;
+	bus_dma_tag_t rxbuf_tag;
+	struct ffec_bufmap rxbuf_map[RX_DESC_COUNT];
+	uint32_t rx_idx;
 
-	bus_dma_tag_t		txdesc_tag;
-	bus_dmamap_t		txdesc_map;
-	struct ffec_hwdesc	*txdesc_ring;
-	bus_addr_t		txdesc_ring_paddr;
-	bus_dma_tag_t		txbuf_tag;
-	struct ffec_bufmap	txbuf_map[TX_DESC_COUNT];
-	uint32_t		tx_idx_head;
-	uint32_t		tx_idx_tail;
-	int			txcount;
+	bus_dma_tag_t txdesc_tag;
+	bus_dmamap_t txdesc_map;
+	struct ffec_hwdesc *txdesc_ring;
+	bus_addr_t txdesc_ring_paddr;
+	bus_dma_tag_t txbuf_tag;
+	struct ffec_bufmap txbuf_map[TX_DESC_COUNT];
+	uint32_t tx_idx_head;
+	uint32_t tx_idx_tail;
+	int txcount;
 };
 
 static struct resource_spec irq_res_spec[MAX_IRQ_COUNT + 1] = {
-	{ SYS_RES_IRQ,		0,	RF_ACTIVE },
-	{ SYS_RES_IRQ,		1,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		2,	RF_ACTIVE | RF_OPTIONAL },
-	RESOURCE_SPEC_END
+	{ SYS_RES_IRQ, 0, RF_ACTIVE },
+	{ SYS_RES_IRQ, 1, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 2, RF_ACTIVE | RF_OPTIONAL }, RESOURCE_SPEC_END
 };
 
-#define	FFEC_LOCK(sc)			mtx_lock(&(sc)->mtx)
-#define	FFEC_UNLOCK(sc)			mtx_unlock(&(sc)->mtx)
-#define	FFEC_LOCK_INIT(sc)		mtx_init(&(sc)->mtx, \
-	    device_get_nameunit((sc)->dev), MTX_NETWORK_LOCK, MTX_DEF)
-#define	FFEC_LOCK_DESTROY(sc)		mtx_destroy(&(sc)->mtx);
-#define	FFEC_ASSERT_LOCKED(sc)		mtx_assert(&(sc)->mtx, MA_OWNED);
-#define	FFEC_ASSERT_UNLOCKED(sc)	mtx_assert(&(sc)->mtx, MA_NOTOWNED);
+#define FFEC_LOCK(sc) mtx_lock(&(sc)->mtx)
+#define FFEC_UNLOCK(sc) mtx_unlock(&(sc)->mtx)
+#define FFEC_LOCK_INIT(sc)                                                     \
+	mtx_init(&(sc)->mtx, device_get_nameunit((sc)->dev), MTX_NETWORK_LOCK, \
+	    MTX_DEF)
+#define FFEC_LOCK_DESTROY(sc) mtx_destroy(&(sc)->mtx);
+#define FFEC_ASSERT_LOCKED(sc) mtx_assert(&(sc)->mtx, MA_OWNED);
+#define FFEC_ASSERT_UNLOCKED(sc) mtx_assert(&(sc)->mtx, MA_NOTOWNED);
 
 static void ffec_init_locked(struct ffec_softc *sc);
 static void ffec_stop_locked(struct ffec_softc *sc);
@@ -266,16 +267,14 @@ ffec_miigasket_setup(struct ffec_softc *sc)
 	 * We only need the gasket for MII and RMII connections on certain SoCs.
 	 */
 
-	switch (sc->fectype)
-	{
+	switch (sc->fectype) {
 	case FECTYPE_IMX53:
 		break;
 	default:
 		return;
 	}
 
-	switch (sc->phy_conn_type)
-	{
+	switch (sc->phy_conn_type) {
 	case MII_CONTYPE_MII:
 		ifmode = 0;
 		break;
@@ -323,10 +322,10 @@ ffec_miibus_readreg(device_t dev, int phy, int reg)
 
 	WR4(sc, FEC_IER_REG, FEC_IER_MII);
 
-	WR4(sc, FEC_MMFR_REG, FEC_MMFR_OP_READ |
-	    FEC_MMFR_ST_VALUE | FEC_MMFR_TA_VALUE |
-	    ((phy << FEC_MMFR_PA_SHIFT) & FEC_MMFR_PA_MASK) |
-	    ((reg << FEC_MMFR_RA_SHIFT) & FEC_MMFR_RA_MASK));
+	WR4(sc, FEC_MMFR_REG,
+	    FEC_MMFR_OP_READ | FEC_MMFR_ST_VALUE | FEC_MMFR_TA_VALUE |
+		((phy << FEC_MMFR_PA_SHIFT) & FEC_MMFR_PA_MASK) |
+		((reg << FEC_MMFR_RA_SHIFT) & FEC_MMFR_RA_MASK));
 
 	if (!ffec_miibus_iowait(sc)) {
 		device_printf(dev, "timeout waiting for mii read\n");
@@ -347,11 +346,11 @@ ffec_miibus_writereg(device_t dev, int phy, int reg, int val)
 
 	WR4(sc, FEC_IER_REG, FEC_IER_MII);
 
-	WR4(sc, FEC_MMFR_REG, FEC_MMFR_OP_WRITE |
-	    FEC_MMFR_ST_VALUE | FEC_MMFR_TA_VALUE |
-	    ((phy << FEC_MMFR_PA_SHIFT) & FEC_MMFR_PA_MASK) |
-	    ((reg << FEC_MMFR_RA_SHIFT) & FEC_MMFR_RA_MASK) |
-	    (val & FEC_MMFR_DATA_MASK));
+	WR4(sc, FEC_MMFR_REG,
+	    FEC_MMFR_OP_WRITE | FEC_MMFR_ST_VALUE | FEC_MMFR_TA_VALUE |
+		((phy << FEC_MMFR_PA_SHIFT) & FEC_MMFR_PA_MASK) |
+		((reg << FEC_MMFR_RA_SHIFT) & FEC_MMFR_RA_MASK) |
+		(val & FEC_MMFR_DATA_MASK));
 
 	if (!ffec_miibus_iowait(sc)) {
 		device_printf(dev, "timeout waiting for mii write\n");
@@ -385,8 +384,9 @@ ffec_miibus_statchg(device_t dev)
 		sc->link_is_up = false;
 
 	ecr = RD4(sc, FEC_ECR_REG) & ~FEC_ECR_SPEED;
-	rcr = RD4(sc, FEC_RCR_REG) & ~(FEC_RCR_RMII_10T | FEC_RCR_RMII_MODE |
-	    FEC_RCR_RGMII_EN | FEC_RCR_DRT | FEC_RCR_FCE);
+	rcr = RD4(sc, FEC_RCR_REG) &
+	    ~(FEC_RCR_RMII_10T | FEC_RCR_RMII_MODE | FEC_RCR_RGMII_EN |
+		FEC_RCR_DRT | FEC_RCR_FCE);
 	tcr = RD4(sc, FEC_TCR_REG) & ~FEC_TCR_FDEN;
 
 	rcr |= FEC_RCR_MII_MODE; /* Must always be on even for R[G]MII. */
@@ -439,11 +439,10 @@ ffec_miibus_statchg(device_t dev)
 }
 
 static void
-ffec_media_status(if_t  ifp, struct ifmediareq *ifmr)
+ffec_media_status(if_t ifp, struct ifmediareq *ifmr)
 {
 	struct ffec_softc *sc;
 	struct mii_data *mii;
-
 
 	sc = if_getsoftc(ifp);
 	mii = sc->mii_softc;
@@ -462,7 +461,7 @@ ffec_media_change_locked(struct ffec_softc *sc)
 }
 
 static int
-ffec_media_change(if_t  ifp)
+ffec_media_change(if_t ifp)
 {
 	struct ffec_softc *sc;
 	int error;
@@ -475,7 +474,8 @@ ffec_media_change(if_t  ifp)
 	return (error);
 }
 
-static void ffec_clear_stats(struct ffec_softc *sc)
+static void
+ffec_clear_stats(struct ffec_softc *sc)
 {
 	uint32_t mibc;
 
@@ -491,7 +491,7 @@ static void ffec_clear_stats(struct ffec_softc *sc)
 		WR4(sc, FEC_MIBC_REG, mibc & ~FEC_MIBC_CLEAR);
 	} else {
 		WR4(sc, FEC_MIBC_REG, mibc | FEC_MIBC_DIS);
-	
+
 		WR4(sc, FEC_IEEE_R_DROP, 0);
 		WR4(sc, FEC_IEEE_R_MACERR, 0);
 		WR4(sc, FEC_RMON_R_CRC_ALIGN, 0);
@@ -506,7 +506,7 @@ static void ffec_clear_stats(struct ffec_softc *sc)
 		WR4(sc, FEC_RMON_T_FRAG, 0);
 		WR4(sc, FEC_RMON_T_JAB, 0);
 		WR4(sc, FEC_RMON_T_MC_PKT, 0);
-		WR4(sc, FEC_RMON_T_OVERSIZE , 0);
+		WR4(sc, FEC_RMON_T_OVERSIZE, 0);
 		WR4(sc, FEC_RMON_T_PACKETS, 0);
 		WR4(sc, FEC_RMON_T_UNDERSIZE, 0);
 
@@ -530,8 +530,8 @@ ffec_harvest_stats(struct ffec_softc *sc)
 	if_inc_counter(ifp, IFCOUNTER_IMCASTS, RD4(sc, FEC_RMON_R_MC_PKT));
 	if_inc_counter(ifp, IFCOUNTER_IERRORS,
 	    RD4(sc, FEC_RMON_R_CRC_ALIGN) + RD4(sc, FEC_RMON_R_UNDERSIZE) +
-	    RD4(sc, FEC_RMON_R_OVERSIZE) + RD4(sc, FEC_RMON_R_FRAG) +
-	    RD4(sc, FEC_RMON_R_JAB) + RD4(sc, FEC_IEEE_R_DROP));
+		RD4(sc, FEC_RMON_R_OVERSIZE) + RD4(sc, FEC_RMON_R_FRAG) +
+		RD4(sc, FEC_RMON_R_JAB) + RD4(sc, FEC_IEEE_R_DROP));
 
 	if_inc_counter(ifp, IFCOUNTER_IQDROPS, RD4(sc, FEC_IEEE_R_MACERR));
 
@@ -539,8 +539,8 @@ ffec_harvest_stats(struct ffec_softc *sc)
 	if_inc_counter(ifp, IFCOUNTER_OMCASTS, RD4(sc, FEC_RMON_T_MC_PKT));
 	if_inc_counter(ifp, IFCOUNTER_OERRORS,
 	    RD4(sc, FEC_RMON_T_CRC_ALIGN) + RD4(sc, FEC_RMON_T_UNDERSIZE) +
-	    RD4(sc, FEC_RMON_T_OVERSIZE) + RD4(sc, FEC_RMON_T_FRAG) +
-	    RD4(sc, FEC_RMON_T_JAB));
+		RD4(sc, FEC_RMON_T_OVERSIZE) + RD4(sc, FEC_RMON_T_FRAG) +
+		RD4(sc, FEC_RMON_T_JAB));
 
 	if_inc_counter(ifp, IFCOUNTER_COLLISIONS, RD4(sc, FEC_RMON_T_COL));
 
@@ -561,7 +561,7 @@ ffec_tick(void *arg)
 	ifp = sc->ifp;
 
 	if (!(if_getdrvflags(ifp) & IFF_DRV_RUNNING))
-	    return;
+		return;
 
 	/*
 	 * Typical tx watchdog.  If this fires it indicates that we enqueued
@@ -588,7 +588,7 @@ ffec_tick(void *arg)
 }
 
 inline static uint32_t
-ffec_setup_txdesc(struct ffec_softc *sc, int idx, bus_addr_t paddr, 
+ffec_setup_txdesc(struct ffec_softc *sc, int idx, bus_addr_t paddr,
     uint32_t len)
 {
 	uint32_t nidx;
@@ -621,7 +621,7 @@ ffec_setup_txdesc(struct ffec_softc *sc, int idx, bus_addr_t paddr,
 static int
 ffec_setup_txbuf(struct ffec_softc *sc, int idx, struct mbuf **mp)
 {
-	struct mbuf * m;
+	struct mbuf *m;
 	int error, nsegs;
 	struct bus_dma_segment seg;
 
@@ -634,14 +634,13 @@ ffec_setup_txbuf(struct ffec_softc *sc, int idx, struct mbuf **mp)
 	if (error != 0) {
 		return (ENOMEM);
 	}
-	bus_dmamap_sync(sc->txbuf_tag, sc->txbuf_map[idx].map, 
+	bus_dmamap_sync(sc->txbuf_tag, sc->txbuf_map[idx].map,
 	    BUS_DMASYNC_PREWRITE);
 
 	sc->txbuf_map[idx].mbuf = m;
 	ffec_setup_txdesc(sc, idx, seg.ds_addr, seg.ds_len);
 
 	return (0);
-
 }
 
 static void
@@ -664,7 +663,7 @@ ffec_txstart_locked(struct ffec_softc *sc)
 	enqueued = 0;
 
 	for (;;) {
-		if (sc->txcount == (TX_DESC_COUNT-1)) {
+		if (sc->txcount == (TX_DESC_COUNT - 1)) {
 			if_setdrvflagbits(ifp, IFF_DRV_OACTIVE, 0);
 			break;
 		}
@@ -681,9 +680,11 @@ ffec_txstart_locked(struct ffec_softc *sc)
 	}
 
 	if (enqueued != 0) {
-		bus_dmamap_sync(sc->txdesc_tag, sc->txdesc_map, BUS_DMASYNC_PREWRITE);
+		bus_dmamap_sync(sc->txdesc_tag, sc->txdesc_map,
+		    BUS_DMASYNC_PREWRITE);
 		WR4(sc, FEC_TDAR_REG, FEC_TDAR_TDAR);
-		bus_dmamap_sync(sc->txdesc_tag, sc->txdesc_map, BUS_DMASYNC_POSTWRITE);
+		bus_dmamap_sync(sc->txdesc_tag, sc->txdesc_map,
+		    BUS_DMASYNC_POSTWRITE);
 		sc->tx_watchdog_count = WATCHDOG_TIMEOUT_SECS;
 	}
 }
@@ -719,7 +720,7 @@ ffec_txfinish_locked(struct ffec_softc *sc)
 			break;
 		retired_buffer = true;
 		bmap = &sc->txbuf_map[sc->tx_idx_tail];
-		bus_dmamap_sync(sc->txbuf_tag, bmap->map, 
+		bus_dmamap_sync(sc->txbuf_tag, bmap->map,
 		    BUS_DMASYNC_POSTWRITE);
 		bus_dmamap_unload(sc->txbuf_tag, bmap->map);
 		m_freem(bmap->mbuf);
@@ -755,14 +756,14 @@ ffec_setup_rxdesc(struct ffec_softc *sc, int idx, bus_addr_t paddr)
 	 */
 	nidx = next_rxidx(sc, idx);
 	sc->rxdesc_ring[idx].buf_paddr = (uint32_t)paddr;
-	sc->rxdesc_ring[idx].flags_len = FEC_RXDESC_EMPTY | 
-		((nidx == 0) ? FEC_RXDESC_WRAP : 0);
+	sc->rxdesc_ring[idx].flags_len = FEC_RXDESC_EMPTY |
+	    ((nidx == 0) ? FEC_RXDESC_WRAP : 0);
 
 	return (nidx);
 }
 
 static int
-ffec_setup_rxbuf(struct ffec_softc *sc, int idx, struct mbuf * m)
+ffec_setup_rxbuf(struct ffec_softc *sc, int idx, struct mbuf *m)
 {
 	int error, nsegs;
 	struct bus_dma_segment seg;
@@ -785,12 +786,12 @@ ffec_setup_rxbuf(struct ffec_softc *sc, int idx, struct mbuf * m)
 		return (error);
 	}
 
-	bus_dmamap_sync(sc->rxbuf_tag, sc->rxbuf_map[idx].map, 
+	bus_dmamap_sync(sc->rxbuf_tag, sc->rxbuf_map[idx].map,
 	    BUS_DMASYNC_PREREAD);
 
 	sc->rxbuf_map[idx].mbuf = m;
 	ffec_setup_rxdesc(sc, idx, seg.ds_addr);
-	
+
 	return (0);
 }
 
@@ -821,7 +822,7 @@ ffec_rxfinish_onebuf(struct ffec_softc *sc, int len)
 	 */
 	if ((newmbuf = ffec_alloc_mbufcl(sc)) == NULL) {
 		if_inc_counter(sc->ifp, IFCOUNTER_IQDROPS, 1);
-		ffec_setup_rxdesc(sc, sc->rx_idx, 
+		ffec_setup_rxdesc(sc, sc->rx_idx,
 		    sc->rxdesc_ring[sc->rx_idx].buf_paddr);
 		return;
 	}
@@ -851,7 +852,7 @@ ffec_rxfinish_onebuf(struct ffec_softc *sc, int len)
 	if (sc->fecflags & FECFLAG_RACC) {
 		m->m_data = mtod(m, uint8_t *) + 2;
 	} else {
-		src = mtod(m, uint8_t*);
+		src = mtod(m, uint8_t *);
 		dst = src - ETHER_ALIGN;
 		bcopy(src, dst, len);
 		m->m_data = dst;
@@ -864,7 +865,6 @@ ffec_rxfinish_onebuf(struct ffec_softc *sc, int len)
 		device_printf(sc->dev, "ffec_setup_rxbuf error %d\n", error);
 		/* XXX Now what?  We've got a hole in the rx ring. */
 	}
-
 }
 
 static void
@@ -902,9 +902,9 @@ ffec_rxfinish_locked(struct ffec_softc *sc)
 			 * just really never happen when we have buffers bigger
 			 * than the maximum frame size.
 			 */
-			device_printf(sc->dev, 
+			device_printf(sc->dev,
 			    "fec_rxfinish: received frame without LAST bit set");
-			ffec_setup_rxdesc(sc, sc->rx_idx, 
+			ffec_setup_rxdesc(sc, sc->rx_idx,
 			    sc->rxdesc_ring[sc->rx_idx].buf_paddr);
 		} else if (desc->flags_len & FEC_RXDESC_ERROR_BITS) {
 			/*
@@ -914,7 +914,7 @@ ffec_rxfinish_locked(struct ffec_softc *sc)
 			 *  same mbuf, which is still dma-mapped, by resetting
 			 *  the rx descriptor.
 			 */
-			ffec_setup_rxdesc(sc, sc->rx_idx, 
+			ffec_setup_rxdesc(sc, sc->rx_idx,
 			    sc->rxdesc_ring[sc->rx_idx].buf_paddr);
 		} else {
 			/*
@@ -926,9 +926,11 @@ ffec_rxfinish_locked(struct ffec_softc *sc)
 	}
 
 	if (produced_empty_buffer) {
-		bus_dmamap_sync(sc->rxdesc_tag, sc->rxdesc_map, BUS_DMASYNC_PREWRITE);
+		bus_dmamap_sync(sc->rxdesc_tag, sc->rxdesc_map,
+		    BUS_DMASYNC_PREWRITE);
 		WR4(sc, FEC_RDAR_REG, FEC_RDAR_RDAR);
-		bus_dmamap_sync(sc->rxdesc_tag, sc->rxdesc_map, BUS_DMASYNC_POSTWRITE);
+		bus_dmamap_sync(sc->rxdesc_tag, sc->rxdesc_map,
+		    BUS_DMASYNC_POSTWRITE);
 	}
 }
 
@@ -951,8 +953,8 @@ ffec_get_hwaddr(struct ffec_softc *sc, uint8_t *hwaddr)
 	if ((palr | paur) != 0) {
 		hwaddr[0] = palr >> 24;
 		hwaddr[1] = palr >> 16;
-		hwaddr[2] = palr >>  8;
-		hwaddr[3] = palr >>  0;
+		hwaddr[2] = palr >> 8;
+		hwaddr[3] = palr >> 0;
 		hwaddr[4] = paur >> 24;
 		hwaddr[5] = paur >> 16;
 	} else {
@@ -961,15 +963,14 @@ ffec_get_hwaddr(struct ffec_softc *sc, uint8_t *hwaddr)
 		hwaddr[1] = 's';
 		hwaddr[2] = 'd';
 		hwaddr[3] = rnd >> 16;
-		hwaddr[4] = rnd >>  8;
-		hwaddr[5] = rnd >>  0;
+		hwaddr[4] = rnd >> 8;
+		hwaddr[5] = rnd >> 0;
 	}
 
 	if (bootverbose) {
 		device_printf(sc->dev,
-		    "MAC address %02x:%02x:%02x:%02x:%02x:%02x:\n",
-		    hwaddr[0], hwaddr[1], hwaddr[2], 
-		    hwaddr[3], hwaddr[4], hwaddr[5]);
+		    "MAC address %02x:%02x:%02x:%02x:%02x:%02x:\n", hwaddr[0],
+		    hwaddr[1], hwaddr[2], hwaddr[3], hwaddr[4], hwaddr[5]);
 	}
 }
 
@@ -1028,8 +1029,8 @@ ffec_setup_rxfilter(struct ffec_softc *sc)
 	 * Set the primary address.
 	 */
 	eaddr = if_getlladdr(ifp);
-	WR4(sc, FEC_PALR_REG, (eaddr[0] << 24) | (eaddr[1] << 16) |
-	    (eaddr[2] <<  8) | eaddr[3]);
+	WR4(sc, FEC_PALR_REG,
+	    (eaddr[0] << 24) | (eaddr[1] << 16) | (eaddr[2] << 8) | eaddr[3]);
 	WR4(sc, FEC_PAUR_REG, (eaddr[4] << 24) | (eaddr[5] << 16));
 }
 
@@ -1047,7 +1048,7 @@ ffec_stop_locked(struct ffec_softc *sc)
 	if_setdrvflagbits(ifp, 0, (IFF_DRV_RUNNING | IFF_DRV_OACTIVE));
 	sc->tx_watchdog_count = 0;
 
-	/* 
+	/*
 	 * Stop the hardware, mask all interrupts, and clear all current
 	 * interrupt status bits.
 	 */
@@ -1161,7 +1162,7 @@ ffec_init_locked(struct ffec_softc *sc)
 	 * ffec_miibus_statchg() based on the media type.
 	 */
 	WR4(sc, FEC_TCR_REG, 0);
-        
+
 	/*
 	 * OPD - Opcode/pause duration.
 	 *
@@ -1257,10 +1258,10 @@ ffec_init_locked(struct ffec_softc *sc)
 
 	if_setdrvflagbits(ifp, IFF_DRV_RUNNING, 0);
 
-       /*
-	* Call mii_mediachg() which will call back into ffec_miibus_statchg() to
-	* set up the remaining config registers based on the current media.
-	*/
+	/*
+	 * Call mii_mediachg() which will call back into ffec_miibus_statchg()
+	 * to set up the remaining config registers based on the current media.
+	 */
 	mii_mediachg(sc->mii_softc);
 	callout_reset(&sc->ffec_callout, hz, ffec_tick, sc);
 
@@ -1313,14 +1314,13 @@ ffec_intr(void *arg)
 	 */
 	if (ier & FEC_IER_EBERR) {
 		WR4(sc, FEC_IER_REG, FEC_IER_EBERR);
-		device_printf(sc->dev, 
+		device_printf(sc->dev,
 		    "Ethernet DMA error, restarting controller.\n");
 		ffec_stop_locked(sc);
 		ffec_init_locked(sc);
 	}
 
 	FFEC_UNLOCK(sc);
-
 }
 
 static int
@@ -1381,7 +1381,7 @@ ffec_ioctl(if_t ifp, u_long cmd, caddr_t data)
 	default:
 		error = ether_ioctl(ifp, cmd, data);
 		break;
-	}       
+	}
 
 	return (error);
 }
@@ -1507,7 +1507,8 @@ ffec_attach(device_t dev)
 	}
 	sc->phy_conn_type = mii_fdt_get_contype(ofw_node);
 	if (sc->phy_conn_type == MII_CONTYPE_UNKNOWN) {
-		device_printf(sc->dev, "No valid 'phy-mode' "
+		device_printf(sc->dev,
+		    "No valid 'phy-mode' "
 		    "property found in FDT data for device.\n");
 		error = ENOATTR;
 		goto out;
@@ -1517,7 +1518,7 @@ ffec_attach(device_t dev)
 
 	/* Allocate bus resources for accessing the hardware. */
 	rid = 0;
-	sc->mem_res = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid, 
+	sc->mem_res = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
 	    RF_ACTIVE);
 	if (sc->mem_res == NULL) {
 		device_printf(dev, "could not allocate memory resources.\n");
@@ -1534,24 +1535,22 @@ ffec_attach(device_t dev)
 	/*
 	 * Set up TX descriptor ring, descriptors, and dma maps.
 	 */
-	error = bus_dma_tag_create(
-	    bus_get_dma_tag(dev),	/* Parent tag. */
-	    FEC_DESC_RING_ALIGN, 0,	/* alignment, boundary */
-	    BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    TX_DESC_SIZE, 1, 		/* maxsize, nsegments */
-	    TX_DESC_SIZE,		/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(bus_get_dma_tag(dev), /* Parent tag. */
+	    FEC_DESC_RING_ALIGN, 0,  /* alignment, boundary */
+	    BUS_SPACE_MAXADDR_32BIT, /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filter, filterarg */
+	    TX_DESC_SIZE, 1,	     /* maxsize, nsegments */
+	    TX_DESC_SIZE,	     /* maxsegsize */
+	    0,			     /* flags */
+	    NULL, NULL,		     /* lockfunc, lockarg */
 	    &sc->txdesc_tag);
 	if (error != 0) {
-		device_printf(sc->dev,
-		    "could not create TX ring DMA tag.\n");
+		device_printf(sc->dev, "could not create TX ring DMA tag.\n");
 		goto out;
 	}
 
-	error = bus_dmamem_alloc(sc->txdesc_tag, (void**)&sc->txdesc_ring,
+	error = bus_dmamem_alloc(sc->txdesc_tag, (void **)&sc->txdesc_ring,
 	    BUS_DMA_COHERENT | BUS_DMA_WAITOK | BUS_DMA_ZERO, &sc->txdesc_map);
 	if (error != 0) {
 		device_printf(sc->dev,
@@ -1567,25 +1566,23 @@ ffec_attach(device_t dev)
 		goto out;
 	}
 
-	error = bus_dma_tag_create(
-	    bus_get_dma_tag(dev),	/* Parent tag. */
-	    sc->txbuf_align, 0,		/* alignment, boundary */
-	    BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    MCLBYTES, 1, 		/* maxsize, nsegments */
-	    MCLBYTES,			/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(bus_get_dma_tag(dev), /* Parent tag. */
+	    sc->txbuf_align, 0,	     /* alignment, boundary */
+	    BUS_SPACE_MAXADDR_32BIT, /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filter, filterarg */
+	    MCLBYTES, 1,	     /* maxsize, nsegments */
+	    MCLBYTES,		     /* maxsegsize */
+	    0,			     /* flags */
+	    NULL, NULL,		     /* lockfunc, lockarg */
 	    &sc->txbuf_tag);
 	if (error != 0) {
-		device_printf(sc->dev,
-		    "could not create TX ring DMA tag.\n");
+		device_printf(sc->dev, "could not create TX ring DMA tag.\n");
 		goto out;
 	}
 
 	for (idx = 0; idx < TX_DESC_COUNT; ++idx) {
-		error = bus_dmamap_create(sc->txbuf_tag, 0, 
+		error = bus_dmamap_create(sc->txbuf_tag, 0,
 		    &sc->txbuf_map[idx].map);
 		if (error != 0) {
 			device_printf(sc->dev,
@@ -1598,24 +1595,22 @@ ffec_attach(device_t dev)
 	/*
 	 * Set up RX descriptor ring, descriptors, dma maps, and mbufs.
 	 */
-	error = bus_dma_tag_create(
-	    bus_get_dma_tag(dev),	/* Parent tag. */
-	    FEC_DESC_RING_ALIGN, 0,	/* alignment, boundary */
-	    BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    RX_DESC_SIZE, 1, 		/* maxsize, nsegments */
-	    RX_DESC_SIZE,		/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(bus_get_dma_tag(dev), /* Parent tag. */
+	    FEC_DESC_RING_ALIGN, 0,  /* alignment, boundary */
+	    BUS_SPACE_MAXADDR_32BIT, /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filter, filterarg */
+	    RX_DESC_SIZE, 1,	     /* maxsize, nsegments */
+	    RX_DESC_SIZE,	     /* maxsegsize */
+	    0,			     /* flags */
+	    NULL, NULL,		     /* lockfunc, lockarg */
 	    &sc->rxdesc_tag);
 	if (error != 0) {
-		device_printf(sc->dev,
-		    "could not create RX ring DMA tag.\n");
+		device_printf(sc->dev, "could not create RX ring DMA tag.\n");
 		goto out;
 	}
 
-	error = bus_dmamem_alloc(sc->rxdesc_tag, (void **)&sc->rxdesc_ring, 
+	error = bus_dmamem_alloc(sc->rxdesc_tag, (void **)&sc->rxdesc_ring,
 	    BUS_DMA_COHERENT | BUS_DMA_WAITOK | BUS_DMA_ZERO, &sc->rxdesc_map);
 	if (error != 0) {
 		device_printf(sc->dev,
@@ -1631,25 +1626,23 @@ ffec_attach(device_t dev)
 		goto out;
 	}
 
-	error = bus_dma_tag_create(
-	    bus_get_dma_tag(dev),	/* Parent tag. */
-	    1, 0,			/* alignment, boundary */
-	    BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    MCLBYTES, 1, 		/* maxsize, nsegments */
-	    MCLBYTES,			/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(bus_get_dma_tag(dev), /* Parent tag. */
+	    1, 0,		     /* alignment, boundary */
+	    BUS_SPACE_MAXADDR_32BIT, /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filter, filterarg */
+	    MCLBYTES, 1,	     /* maxsize, nsegments */
+	    MCLBYTES,		     /* maxsegsize */
+	    0,			     /* flags */
+	    NULL, NULL,		     /* lockfunc, lockarg */
 	    &sc->rxbuf_tag);
 	if (error != 0) {
-		device_printf(sc->dev,
-		    "could not create RX buf DMA tag.\n");
+		device_printf(sc->dev, "could not create RX buf DMA tag.\n");
 		goto out;
 	}
 
 	for (idx = 0; idx < RX_DESC_COUNT; ++idx) {
-		error = bus_dmamap_create(sc->rxbuf_tag, 0, 
+		error = bus_dmamap_create(sc->rxbuf_tag, 0,
 		    &sc->rxbuf_map[idx].map);
 		if (error != 0) {
 			device_printf(sc->dev,
@@ -1795,39 +1788,35 @@ ffec_probe(device_t dev)
 	if (fectype == FECTYPE_NONE)
 		return (ENXIO);
 
-	device_set_desc(dev, (fectype & FECFLAG_GBE) ?
-	    "Freescale Gigabit Ethernet Controller" :
-	    "Freescale Fast Ethernet Controller");
+	device_set_desc(dev,
+	    (fectype & FECFLAG_GBE) ? "Freescale Gigabit Ethernet Controller" :
+				      "Freescale Fast Ethernet Controller");
 
 	return (BUS_PROBE_DEFAULT);
 }
 
-
 static device_method_t ffec_methods[] = {
 	/* Device interface. */
-	DEVMETHOD(device_probe,		ffec_probe),
-	DEVMETHOD(device_attach,	ffec_attach),
-	DEVMETHOD(device_detach,	ffec_detach),
+	DEVMETHOD(device_probe, ffec_probe),
+	DEVMETHOD(device_attach, ffec_attach),
+	DEVMETHOD(device_detach, ffec_detach),
 
-/*
-	DEVMETHOD(device_shutdown,	ffec_shutdown),
-	DEVMETHOD(device_suspend,	ffec_suspend),
-	DEVMETHOD(device_resume,	ffec_resume),
-*/
+	/*
+		DEVMETHOD(device_shutdown,	ffec_shutdown),
+		DEVMETHOD(device_suspend,	ffec_suspend),
+		DEVMETHOD(device_resume,	ffec_resume),
+	*/
 
 	/* MII interface. */
-	DEVMETHOD(miibus_readreg,	ffec_miibus_readreg),
-	DEVMETHOD(miibus_writereg,	ffec_miibus_writereg),
-	DEVMETHOD(miibus_statchg,	ffec_miibus_statchg),
+	DEVMETHOD(miibus_readreg, ffec_miibus_readreg),
+	DEVMETHOD(miibus_writereg, ffec_miibus_writereg),
+	DEVMETHOD(miibus_statchg, ffec_miibus_statchg),
 
 	DEVMETHOD_END
 };
 
-static driver_t ffec_driver = {
-	"ffec",
-	ffec_methods,
-	sizeof(struct ffec_softc)
-};
+static driver_t ffec_driver = { "ffec", ffec_methods,
+	sizeof(struct ffec_softc) };
 
 DRIVER_MODULE(ffec, simplebus, ffec_driver, 0, 0);
 DRIVER_MODULE(miibus, ffec, miibus_driver, 0, 0);

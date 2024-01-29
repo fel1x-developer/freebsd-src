@@ -1,5 +1,5 @@
 
-#define _GNU_SOURCE         /* expose POLLRDHUP when testing on Linux */
+#define _GNU_SOURCE /* expose POLLRDHUP when testing on Linux */
 
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -33,11 +33,11 @@ decode_events(int events, char *out, size_t out_size)
 		return;
 	}
 
-#define DECODE_FLAG(x) \
-	if (events & (x)) { \
-		if (out[0] != 0) \
+#define DECODE_FLAG(x)                                \
+	if (events & (x)) {                           \
+		if (out[0] != 0)                      \
 			append(out, out_size, " | "); \
-		append(out, out_size, #x); \
+		append(out, out_size, #x);            \
 	}
 
 	/* Show the expected flags by name. */
@@ -57,7 +57,7 @@ decode_events(int events, char *out, size_t out_size)
 		char buf[80];
 
 		snprintf(buf, sizeof(buf), "%s%x", out[0] != 0 ? " | " : "",
-			unknown);
+		    unknown);
 		append(out, out_size, buf);
 	}
 }
@@ -74,8 +74,8 @@ report(int num, const char *state, int expected, int got)
 		printf("ok %-2d    ", num);
 	else
 		printf("not ok %-2d", num);
-	printf(" state %s: expected %s; got %s\n",
-	    state, expected_str, got_str);
+	printf(" state %s: expected %s; got %s\n", state, expected_str,
+	    got_str);
 	fflush(stdout);
 }
 
@@ -137,7 +137,8 @@ main(void)
 	report(num++, "after large write", 0, pfd0.revents);
 	if (poll(&pfd1, 1, 0) == -1)
 		err(1, "poll");
-	report(num++, "other side after large write", POLLIN | POLLOUT, pfd1.revents);
+	report(num++, "other side after large write", POLLIN | POLLOUT,
+	    pfd1.revents);
 	close(fd[0]);
 	if (poll(&pfd1, 1, 0) == -1)
 		err(1, "poll");
@@ -158,24 +159,27 @@ main(void)
 	report(num++, "after shutdown(SHUT_WR)", POLLOUT, pfd0.revents);
 	if (poll(&pfd1, 1, 0) == -1)
 		err(1, "poll");
-	report(num++, "other side after shutdown(SHUT_WR)", POLLIN | POLLOUT, pfd1.revents);
+	report(num++, "other side after shutdown(SHUT_WR)", POLLIN | POLLOUT,
+	    pfd1.revents);
 	switch (read(fd[1], largeblock, sizeof(largeblock))) {
-		case 0:
-			break;
-		case -1:
-			err(1, "read after other side shutdown");
-			break;
-		default:
-			errx(1, "kernel made up data that was never written");
+	case 0:
+		break;
+	case -1:
+		err(1, "read after other side shutdown");
+		break;
+	default:
+		errx(1, "kernel made up data that was never written");
 	}
 	if (poll(&pfd1, 1, 0) == -1)
 		err(1, "poll");
-	report(num++, "other side after reading EOF", POLLIN | POLLOUT, pfd1.revents);
+	report(num++, "other side after reading EOF", POLLIN | POLLOUT,
+	    pfd1.revents);
 	if (write(fd[1], largeblock, sizeof(largeblock)) == -1)
 		err(1, "write");
 	if (poll(&pfd0, 1, 0) == -1)
 		err(1, "poll");
-	report(num++, "after data from other side", POLLIN | POLLOUT, pfd0.revents);
+	report(num++, "after data from other side", POLLIN | POLLOUT,
+	    pfd0.revents);
 	if (poll(&pfd1, 1, 0) == -1)
 		err(1, "poll");
 	report(num++, "after writing", POLLIN, pfd1.revents);
@@ -203,10 +207,12 @@ main(void)
 		err(1, "shutdown");
 	if (poll(&pfd0, 1, 0) == -1)
 		err(1, "poll");
-	report(num++, "after shutdown(SHUT_RD)", POLLIN | POLLOUT, pfd0.revents);
+	report(num++, "after shutdown(SHUT_RD)", POLLIN | POLLOUT,
+	    pfd0.revents);
 	if (poll(&pfd1, 1, 0) == -1)
 		err(1, "poll");
-	report(num++, "other side after shutdown(SHUT_RD)", POLLOUT, pfd1.revents);
+	report(num++, "other side after shutdown(SHUT_RD)", POLLOUT,
+	    pfd1.revents);
 	if (shutdown(fd[0], SHUT_WR) == -1)
 		err(1, "shutdown");
 	if (poll(&pfd0, 1, 0) == -1)
@@ -214,7 +220,8 @@ main(void)
 	report(num++, "after shutdown(SHUT_WR)", POLLHUP, pfd0.revents);
 	if (poll(&pfd1, 1, 0) == -1)
 		err(1, "poll");
-	report(num++, "other side after shutdown(SHUT_WR)", POLLIN | POLLOUT, pfd1.revents);
+	report(num++, "other side after shutdown(SHUT_WR)", POLLIN | POLLOUT,
+	    pfd1.revents);
 	close(fd[0]);
 	close(fd[1]);
 
@@ -225,7 +232,8 @@ main(void)
 		err(1, "shutdown");
 	if (poll(&pfd1, 1, 0) == -1)
 		err(1, "poll");
-	report(num++, "other side after shutdown(SHUT_RD)", POLLOUT, pfd1.revents);
+	report(num++, "other side after shutdown(SHUT_RD)", POLLOUT,
+	    pfd1.revents);
 	if (write(fd[0], "x", 1) != 1)
 		err(1, "write");
 	if (poll(&pfd1, 1, 0) == -1)
@@ -235,7 +243,8 @@ main(void)
 		err(1, "shutdown");
 	if (poll(&pfd1, 1, 0) == -1)
 		err(1, "poll");
-	report(num++, "other side after shutdown(SHUT_WR)", POLLIN | POLLOUT | POLLRDHUP, pfd1.revents);
+	report(num++, "other side after shutdown(SHUT_WR)",
+	    POLLIN | POLLOUT | POLLRDHUP, pfd1.revents);
 	close(fd[0]);
 	close(fd[1]);
 #endif

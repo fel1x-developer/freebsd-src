@@ -71,61 +71,57 @@
  * ndp - display, set, delete and flush neighbor cache
  */
 
-
 #include <sys/param.h>
 #include <sys/file.h>
 #include <sys/ioctl.h>
+#include <sys/queue.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
 #include <sys/time.h>
-#include <sys/queue.h>
 
 #include <net/if.h>
 #include <net/if_dl.h>
 #include <net/if_types.h>
 #include <net/route.h>
-
-#include <netinet/in.h>
-#include <netinet/if_ether.h>
-
 #include <netinet/icmp6.h>
+#include <netinet/if_ether.h>
+#include <netinet/in.h>
 #include <netinet6/in6_var.h>
 #include <netinet6/nd6.h>
 
 #include <arpa/inet.h>
-
 #include <assert.h>
 #include <ctype.h>
-#include <netdb.h>
-#include <errno.h>
-#include <nlist.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
-#include <paths.h>
 #include <err.h>
-#include <stdint.h>
-#include <stdlib.h>
+#include <errno.h>
 #include <fcntl.h>
-#include <unistd.h>
 #include <libxo/xo.h>
+#include <netdb.h>
+#include <nlist.h>
+#include <paths.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <time.h>
+#include <unistd.h>
 
 #include "ndp.h"
 
-#define	NEXTADDR(w, s)					\
-	if (rtm->rtm_addrs & (w)) {			\
-		bcopy((char *)&s, cp, sizeof(s));	\
-		cp += SA_SIZE(&s);			\
+#define NEXTADDR(w, s)                            \
+	if (rtm->rtm_addrs & (w)) {               \
+		bcopy((char *)&s, cp, sizeof(s)); \
+		cp += SA_SIZE(&s);                \
 	}
 
 static pid_t pid;
-static int32_t thiszone;	/* time difference with gmt */
+static int32_t thiszone; /* time difference with gmt */
 static int s = -1;
 static int repeat = 0;
 
-static char host_buf[NI_MAXHOST];	/* getnameinfo() */
-static char ifix_buf[IFNAMSIZ];		/* if_indextoname() */
+static char host_buf[NI_MAXHOST]; /* getnameinfo() */
+static char ifix_buf[IFNAMSIZ];	  /* if_indextoname() */
 
 static int file(char *);
 static int set(int, char **);
@@ -141,7 +137,7 @@ static void plist(void);
 static void pfx_flush(void);
 static void rtr_flush(void);
 static void harmonize_rtr(void);
-#ifdef SIOCSDEFIFACE_IN6	/* XXX: check SIOCGDEFIFACE_IN6 as well? */
+#ifdef SIOCSDEFIFACE_IN6 /* XXX: check SIOCGDEFIFACE_IN6 as well? */
 static void getdefif(void);
 static void setdefif(char *);
 #endif
@@ -152,15 +148,15 @@ static int rtmsg(int);
 #endif
 
 static const char *rtpref_str[] = {
-	"medium",		/* 00 */
-	"high",			/* 01 */
-	"rsv",			/* 10 */
-	"low"			/* 11 */
+	"medium", /* 00 */
+	"high",	  /* 01 */
+	"rsv",	  /* 10 */
+	"low"	  /* 11 */
 };
 
 struct ndp_opts opts = {};
 
-#define NDP_XO_VERSION	"1"
+#define NDP_XO_VERSION "1"
 
 bool
 valid_type(int if_type)
@@ -278,11 +274,11 @@ main(int argc, char **argv)
 			/*NOTREACHED*/
 		}
 		xo_open_list("neighbor-cache");
-		ret = delete(arg);
+		ret = delete (arg);
 		xo_close_list("neighbor-cache");
 		break;
 	case 'I':
-#ifdef SIOCSDEFIFACE_IN6	/* XXX: check SIOCGDEFIFACE_IN6 as well? */
+#ifdef SIOCSDEFIFACE_IN6 /* XXX: check SIOCGDEFIFACE_IN6 as well? */
 		if (argc > 1) {
 			usage();
 			/*NOTREACHED*/
@@ -376,11 +372,12 @@ file(char *name)
 	while (fgets(line, sizeof(line), fp) != NULL) {
 		if ((p = strchr(line, '#')) != NULL)
 			*p = '\0';
-		for (p = line; isblank(*p); p++);
+		for (p = line; isblank(*p); p++)
+			;
 		if (*p == '\n' || *p == '\0')
 			continue;
-		i = sscanf(line, "%49s %49s %49s %49s %49s",
-		    arg[0], arg[1], arg[2], arg[3], arg[4]);
+		i = sscanf(line, "%49s %49s %49s %49s %49s", arg[0], arg[1],
+		    arg[2], arg[3], arg[4]);
 		if (i < 2) {
 			xo_warnx("bad line: %s", line);
 			retval = 1;
@@ -405,24 +402,18 @@ getsocket(void)
 	}
 }
 
-static struct sockaddr_in6 so_mask = {
-	.sin6_len = sizeof(so_mask),
-	.sin6_family = AF_INET6
-};
-static struct sockaddr_in6 blank_sin = {
-	.sin6_len = sizeof(blank_sin),
-	.sin6_family = AF_INET6
-};
+static struct sockaddr_in6 so_mask = { .sin6_len = sizeof(so_mask),
+	.sin6_family = AF_INET6 };
+static struct sockaddr_in6 blank_sin = { .sin6_len = sizeof(blank_sin),
+	.sin6_family = AF_INET6 };
 static struct sockaddr_in6 sin_m;
-static struct sockaddr_dl blank_sdl = {
-	.sdl_len = sizeof(blank_sdl),
-	.sdl_family = AF_LINK
-};
+static struct sockaddr_dl blank_sdl = { .sdl_len = sizeof(blank_sdl),
+	.sdl_family = AF_LINK };
 static struct sockaddr_dl sdl_m;
 #ifdef WITHOUT_NETLINK
 static struct {
-	struct	rt_msghdr m_rtm;
-	char	m_space[512];
+	struct rt_msghdr m_rtm;
+	char m_space[512];
 } m_rtmsg;
 #endif
 
@@ -532,7 +523,7 @@ get(char *host)
 	}
 	if (dump(sin, 0) == 0) {
 		getnameinfo((struct sockaddr *)sin, sin->sin6_len, host_buf,
-		    sizeof(host_buf), NULL ,0,
+		    sizeof(host_buf), NULL, 0,
 		    (opts.nflag ? NI_NUMERICHOST : 0));
 		xo_errx(1, "%s (%s) -- no entry", host, host_buf);
 	}
@@ -575,8 +566,8 @@ delete_rtsock(char *host)
 		return 1;
 	}
 
-delete:
-	if (sdl->sdl_family != AF_LINK) {
+	delete : if (sdl->sdl_family != AF_LINK)
+	{
 		xo_warnx("cannot locate %s", host);
 		return (1);
 	}
@@ -587,8 +578,7 @@ delete:
 	NEXTADDR(RTA_DST, sin_m);
 	rtm->rtm_flags |= RTF_LLDATA;
 	if (rtmsg(RTM_DELETE) == 0) {
-		getnameinfo((struct sockaddr *)sin,
-		    sin->sin6_len, host_buf,
+		getnameinfo((struct sockaddr *)sin, sin->sin6_len, host_buf,
 		    sizeof(host_buf), NULL, 0,
 		    (opts.nflag ? NI_NUMERICHOST : 0));
 		xo_open_instance("neighbor-cache");
@@ -635,7 +625,8 @@ dump_rtsock(struct sockaddr_in6 *addr, int cflag)
 		snprintf(xobuf, sizeof(xobuf),
 		    "{T:/%%-%d.%ds} {T:/%%-%d.%ds} {T:/%%%d.%ds} {T:/%%-9.9s} {T:%%1s} {T:%%5s}\n",
 		    W_ADDR, W_ADDR, W_LL, W_LL, W_IF, W_IF);
-		xo_emit(xobuf, "Neighbor", "Linklayer Address", "Netif", "Expire", "S", "Flags");
+		xo_emit(xobuf, "Neighbor", "Linklayer Address", "Netif",
+		    "Expire", "S", "Flags");
 	}
 	xo_open_list("neighbor-cache");
 again:;
@@ -690,7 +681,7 @@ again:;
 
 		if (addr) {
 			if (IN6_ARE_ADDR_EQUAL(&addr->sin6_addr,
-			    &sin->sin6_addr) == 0 ||
+				&sin->sin6_addr) == 0 ||
 			    addr->sin6_scope_id != sin->sin6_scope_id)
 				continue;
 		} else if (IN6_IS_ADDR_MULTICAST(&sin->sin6_addr))
@@ -703,18 +694,19 @@ again:;
 				sin->sin6_scope_id = sdl->sdl_index;
 		}
 		getnameinfo((struct sockaddr *)sin, sin->sin6_len, host_buf,
-		    sizeof(host_buf), NULL, 0, (opts.nflag ? NI_NUMERICHOST : 0));
+		    sizeof(host_buf), NULL, 0,
+		    (opts.nflag ? NI_NUMERICHOST : 0));
 		if (cflag) {
 #ifdef RTF_WASCLONED
 			if (rtm->rtm_flags & RTF_WASCLONED)
-				delete(host_buf);
+				delete (host_buf);
 #elif defined(RTF_CLONED)
 			if (rtm->rtm_flags & RTF_CLONED)
-				delete(host_buf);
+				delete (host_buf);
 #else
 			if (rtm->rtm_flags & RTF_PINNED)
 				continue;
-			delete(host_buf);
+			delete (host_buf);
 #endif
 			continue;
 		}
@@ -749,11 +741,13 @@ again:;
 		expire = rtm->rtm_rmx.rmx_expire;
 		int expire_in = expire - now.tv_sec;
 		if (expire > now.tv_sec)
-			xo_emit("{d:/ %-9.9s}{e:expires_sec/%d}", sec2str(expire_in), expire_in);
+			xo_emit("{d:/ %-9.9s}{e:expires_sec/%d}",
+			    sec2str(expire_in), expire_in);
 		else if (expire == 0)
 			xo_emit("{d:/ %-9.9s}{en:permanent/true}", "permanent");
 		else
-			xo_emit("{d:/ %-9.9s}{e:expires_sec/%d}", "expired", expire_in);
+			xo_emit("{d:/ %-9.9s}{e:expires_sec/%d}", "expired",
+			    expire_in);
 
 		char *lle_state = "";
 		switch (rtm->rtm_rmx.rmx_state) {
@@ -797,7 +791,7 @@ again:;
 			    isrouter ? "R" : "",
 			    (rtm->rtm_flags & RTF_ANNOUNCE) ? "p" : "");
 		} else {
-#if 0			/* W and P are mystery even for us */
+#if 0 /* W and P are mystery even for us */
 			sin = (struct sockaddr_in6 *)
 			    (sdl->sdl_len + (char *)sdl);
 			snprintf(flgbuf, sizeof(flgbuf), "%s%s%s%s",
@@ -835,9 +829,7 @@ again:;
 }
 #endif
 
-
-static int
-delete(char *host)
+static int delete(char *host)
 {
 #ifndef WITHOUT_NETLINK
 	return (delete_nl(0, host, true)); /* do warn */
@@ -872,11 +864,11 @@ getnbrinfo(struct in6_addr *addr, int ifindex, int warning)
 		if (warning)
 			xo_warn("ioctl(SIOCGNBRINFO_IN6)");
 		close(sock);
-		return(NULL);
+		return (NULL);
 	}
 
 	close(sock);
-	return(&nbi);
+	return (&nbi);
 }
 
 char *
@@ -893,7 +885,7 @@ ether_str(struct sockaddr_dl *sdl)
 	} else
 		snprintf(hbuf, sizeof(hbuf), "(incomplete)");
 
-	return(hbuf);
+	return (hbuf);
 }
 
 static int
@@ -901,8 +893,8 @@ ndp_ether_aton(char *a, u_char *n)
 {
 	int i, o[6];
 
-	i = sscanf(a, "%x:%x:%x:%x:%x:%x", &o[0], &o[1], &o[2],
-	    &o[3], &o[4], &o[5]);
+	i = sscanf(a, "%x:%x:%x:%x:%x:%x", &o[0], &o[1], &o[2], &o[3], &o[4],
+	    &o[5]);
 	if (i != 6) {
 		xo_warnx("invalid Ethernet address '%s'", a);
 		return (1);
@@ -976,8 +968,9 @@ doit:
 	}
 	do {
 		l = read(s, (char *)&m_rtmsg, sizeof(m_rtmsg));
-	} while (l > 0 && (rtm->rtm_type != cmd || rtm->rtm_seq != seq ||
-	    rtm->rtm_pid != pid));
+	} while (l > 0 &&
+	    (rtm->rtm_type != cmd || rtm->rtm_seq != seq ||
+		rtm->rtm_pid != pid));
 	if (l < 0)
 		xo_warn("read from routing socket");
 	return (0);
@@ -1004,7 +997,7 @@ ifinfo(char *ifname, int argc, char **argv)
 		xo_err(1, "ioctl(SIOCGIFINFO_IN6)");
 		/* NOTREACHED */
 	}
-#define	ND nd.ndi
+#define ND nd.ndi
 	newflags = ND.flags;
 	for (i = 0; i < argc; i++) {
 		int clear = 0;
@@ -1015,33 +1008,35 @@ ifinfo(char *ifname, int argc, char **argv)
 			cp++;
 		}
 
-#define	SETFLAG(s, f) do {			\
-	if (strcmp(cp, (s)) == 0) {		\
-		if (clear)			\
-			newflags &= ~(f);	\
-		else				\
-			newflags |= (f);	\
-	}					\
-} while (0)
+#define SETFLAG(s, f)                             \
+	do {                                      \
+		if (strcmp(cp, (s)) == 0) {       \
+			if (clear)                \
+				newflags &= ~(f); \
+			else                      \
+				newflags |= (f);  \
+		}                                 \
+	} while (0)
 /*
  * XXX: this macro is not 100% correct, in that it matches "nud" against
  *      "nudbogus".  But we just let it go since this is minor.
  */
-#define	SETVALUE(f, v) do {						\
-	char *valptr;							\
-	unsigned long newval;						\
-	v = 0; /* unspecified */					\
-	if (strncmp(cp, f, strlen(f)) == 0) {				\
-		valptr = strchr(cp, '=');				\
-		if (valptr == NULL)					\
-			xo_err(1, "syntax error in %s field", (f));	\
-		errno = 0;						\
-		newval = strtoul(++valptr, NULL, 0);			\
-		if (errno)						\
-			xo_err(1, "syntax error in %s's value", (f));	\
-		v = newval;						\
-	}								\
-} while (0)
+#define SETVALUE(f, v)                                                        \
+	do {                                                                  \
+		char *valptr;                                                 \
+		unsigned long newval;                                         \
+		v = 0; /* unspecified */                                      \
+		if (strncmp(cp, f, strlen(f)) == 0) {                         \
+			valptr = strchr(cp, '=');                             \
+			if (valptr == NULL)                                   \
+				xo_err(1, "syntax error in %s field", (f));   \
+			errno = 0;                                            \
+			newval = strtoul(++valptr, NULL, 0);                  \
+			if (errno)                                            \
+				xo_err(1, "syntax error in %s's value", (f)); \
+			v = newval;                                           \
+		}                                                             \
+	} while (0)
 
 		SETFLAG("disabled", ND6_IFF_IFDISABLED);
 		SETFLAG("nud", ND6_IFF_PERFORMNUD);
@@ -1084,9 +1079,10 @@ ifinfo(char *ifname, int argc, char **argv)
 	xo_emit(", curhlim={:curhlim/%d}", ND.chlim);
 	xo_emit("{d:/, basereachable=%ds%dms}{e:basereachable_ms/%u}",
 	    ND.basereachable / 1000, ND.basereachable % 1000, ND.basereachable);
-	xo_emit("{d:/, reachable=%ds}{e:reachable_ms/%u}", ND.reachable, ND.reachable * 1000);
-	xo_emit("{d:/, retrans=%ds%dms}{e:retrans_ms/%u}", ND.retrans / 1000, ND.retrans % 1000,
-	    ND.retrans);
+	xo_emit("{d:/, reachable=%ds}{e:reachable_ms/%u}", ND.reachable,
+	    ND.reachable * 1000);
+	xo_emit("{d:/, retrans=%ds%dms}{e:retrans_ms/%u}", ND.retrans / 1000,
+	    ND.retrans % 1000, ND.retrans);
 #ifdef IPV6CTL_USETEMPADDR
 	memset(nullbuf, 0, sizeof(nullbuf));
 	if (memcmp(nullbuf, ND.randomid, sizeof(nullbuf)) != 0) {
@@ -1112,12 +1108,15 @@ ifinfo(char *ifname, int argc, char **argv)
 				rbuf = ND.randomid;
 				break;
 			default:
-				xo_errx(1, "impossible case for tempaddr display");
+				xo_errx(1,
+				    "impossible case for tempaddr display");
 			}
 			char abuf[20], xobuf[200];
 			for (j = 0; j < 8; j++)
-				snprintf(&abuf[j * 2], sizeof(abuf), "%02X", rbuf[j]);
-			snprintf(xobuf, sizeof(xobuf), "%s{:%s/%%s}", txt, field);
+				snprintf(&abuf[j * 2], sizeof(abuf), "%02X",
+				    rbuf[j]);
+			snprintf(xobuf, sizeof(xobuf), "%s{:%s/%%s}", txt,
+			    field);
 			xo_emit(xobuf, abuf);
 		}
 	}
@@ -1152,8 +1151,8 @@ ifinfo(char *ifname, int argc, char **argv)
 	close(sock);
 }
 
-#ifndef ND_RA_FLAG_RTPREF_MASK	/* XXX: just for compilation on *BSD release */
-#define ND_RA_FLAG_RTPREF_MASK	0x18 /* 00011000 */
+#ifndef ND_RA_FLAG_RTPREF_MASK /* XXX: just for compilation on *BSD release */
+#define ND_RA_FLAG_RTPREF_MASK 0x18 /* 00011000 */
 #endif
 
 static void
@@ -1189,20 +1188,20 @@ rtrlist(void)
 		char abuf[INET6_ADDRSTRLEN], *paddr;
 
 		if (getnameinfo((struct sockaddr *)&p->rtaddr,
-		    p->rtaddr.sin6_len, host_buf, sizeof(host_buf), NULL, 0,
-		    (opts.nflag ? NI_NUMERICHOST : 0)) != 0)
+			p->rtaddr.sin6_len, host_buf, sizeof(host_buf), NULL, 0,
+			(opts.nflag ? NI_NUMERICHOST : 0)) != 0)
 			strlcpy(host_buf, "?", sizeof(host_buf));
 		if (opts.nflag)
 			paddr = host_buf;
 		else {
-			inet_ntop(AF_INET6, &p->rtaddr.sin6_addr, abuf, sizeof(abuf));
+			inet_ntop(AF_INET6, &p->rtaddr.sin6_addr, abuf,
+			    sizeof(abuf));
 			paddr = abuf;
 		}
 
 		xo_open_instance("router-list");
 		xo_emit("{:hostname/%s}{e:address/%s} if={:interface/%s}",
-		    host_buf, paddr,
-		    if_indextoname(p->if_index, ifix_buf));
+		    host_buf, paddr, if_indextoname(p->if_index, ifix_buf));
 		xo_open_list("flags_pretty");
 		char rflags[6] = {}, *pflags = rflags;
 		if (p->flags & ND_RA_FLAG_MANAGED) {
@@ -1274,8 +1273,8 @@ plist(void)
 
 		xo_open_instance("prefix-list");
 		if (getnameinfo((struct sockaddr *)&p->prefix,
-		    p->prefix.sin6_len, namebuf, sizeof(namebuf),
-		    NULL, 0, niflags) != 0)
+			p->prefix.sin6_len, namebuf, sizeof(namebuf), NULL, 0,
+			niflags) != 0)
 			strlcpy(namebuf, "?", sizeof(namebuf));
 		xo_emit("{:prefix/%s%s%d} if={:interface/%s}\n", namebuf, "/",
 		    p->prefixlen, if_indextoname(p->if_index, ifix_buf));
@@ -1350,8 +1349,9 @@ plist(void)
 
 				xo_open_instance("advertising-routers");
 				if (getnameinfo((struct sockaddr *)sin6,
-				    sin6->sin6_len, namebuf, sizeof(namebuf),
-				    NULL, 0, ninflags) != 0)
+					sin6->sin6_len, namebuf,
+					sizeof(namebuf), NULL, 0,
+					ninflags) != 0)
 					strlcpy(namebuf, "?", sizeof(namebuf));
 				char abuf[INET6_ADDRSTRLEN];
 				inet_ntop(AF_INET6, &sin6->sin6_addr, abuf,
@@ -1360,8 +1360,8 @@ plist(void)
 				xo_emit("    {:hostname/%s}{e:address/%s}",
 				    namebuf, abuf);
 
-				nbi = getnbrinfo(&sin6->sin6_addr,
-				    p->if_index, 0);
+				nbi = getnbrinfo(&sin6->sin6_addr, p->if_index,
+				    0);
 				const char *state = "";
 				if (nbi) {
 					switch (nbi->state) {
@@ -1393,7 +1393,7 @@ plist(void)
 static void
 pfx_flush(void)
 {
-	char dummyif[IFNAMSIZ+8];
+	char dummyif[IFNAMSIZ + 8];
 	int sock;
 
 	if ((sock = socket(AF_INET6, SOCK_DGRAM, 0)) < 0)
@@ -1408,7 +1408,7 @@ pfx_flush(void)
 static void
 rtr_flush(void)
 {
-	char dummyif[IFNAMSIZ+8];
+	char dummyif[IFNAMSIZ + 8];
 	int sock;
 
 	if ((sock = socket(AF_INET6, SOCK_DGRAM, 0)) < 0)
@@ -1423,7 +1423,7 @@ rtr_flush(void)
 static void
 harmonize_rtr(void)
 {
-	char dummyif[IFNAMSIZ+8];
+	char dummyif[IFNAMSIZ + 8];
 	int sock;
 
 	if ((sock = socket(AF_INET6, SOCK_DGRAM, 0)) < 0)
@@ -1435,7 +1435,7 @@ harmonize_rtr(void)
 	close(sock);
 }
 
-#ifdef SIOCSDEFIFACE_IN6	/* XXX: check SIOCGDEFIFACE_IN6 as well? */
+#ifdef SIOCSDEFIFACE_IN6 /* XXX: check SIOCGDEFIFACE_IN6 as well? */
 static void
 setdefif(char *ifname)
 {
@@ -1466,7 +1466,7 @@ static void
 getdefif(void)
 {
 	struct in6_ndifreq ndifreq;
-	char ifname[IFNAMSIZ+8];
+	char ifname[IFNAMSIZ + 8];
 	int sock;
 
 	if ((sock = socket(AF_INET6, SOCK_DGRAM, 0)) < 0)
@@ -1484,7 +1484,8 @@ getdefif(void)
 		if ((if_indextoname(ndifreq.ifindex, ifname)) == NULL)
 			xo_err(1, "failed to resolve ifname for index %lu",
 			    ndifreq.ifindex);
-		xo_emit("ND default interface = {:default-interface/%s}\n", ifname);
+		xo_emit("ND default interface = {:default-interface/%s}\n",
+		    ifname);
 	}
 
 	close(sock);
@@ -1529,7 +1530,7 @@ sec2str(time_t total)
 	}
 	snprintf(p, ep - p, "%ds", secs);
 
-	return(result);
+	return (result);
 }
 
 /*
@@ -1544,8 +1545,8 @@ ts_print(const struct timeval *tvp)
 	/* Default */
 	sec = (tvp->tv_sec + thiszone) % 86400;
 	xo_emit("{e:tv_sec/%lld}{e:tv_usec/%lld}{d:/%02d:%02d:%02d.%06u} ",
-	    tvp->tv_sec, tvp->tv_usec,
-	    sec / 3600, (sec % 3600) / 60, sec % 60, (u_int32_t)tvp->tv_usec);
+	    tvp->tv_sec, tvp->tv_usec, sec / 3600, (sec % 3600) / 60, sec % 60,
+	    (u_int32_t)tvp->tv_usec);
 }
 
 #undef NEXTADDR

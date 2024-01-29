@@ -26,40 +26,38 @@
 
 #include <sys/types.h>
 #include <sys/ioctl.h>
-#include <sys/pciio.h>
-#include <sys/mman.h>
 #include <sys/memrange.h>
+#include <sys/mman.h>
+#include <sys/pciio.h>
 #include <sys/stat.h>
+
 #include <machine/endian.h>
 
-#include <stddef.h>
+#include <fcntl.h>
 #include <inttypes.h>
+#include <libgen.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <libgen.h>
-#include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
 
-#define	_PATH_DEVPCI	"/dev/pci"
-#define	_PATH_DEVMEM	"/dev/mem"
+#define _PATH_DEVPCI "/dev/pci"
+#define _PATH_DEVMEM "/dev/mem"
 
-#define	PCI_CFG_CMD		0x04		/* command register */
-#define	PCI_CFG_ROM_BAR		0x30		/* rom base register */
+#define PCI_CFG_CMD 0x04     /* command register */
+#define PCI_CFG_ROM_BAR 0x30 /* rom base register */
 
-#define	PCI_ROM_ADDR_MASK	0xFFFFFC00	/* the 21 MSBs form the BAR */
-#define	PCI_ROM_RESERVED_MASK	0x03FE		/* mask for reserved bits */
-#define	PCI_ROM_ACTIVATE	0x01		/* mask for activation bit */
+#define PCI_ROM_ADDR_MASK 0xFFFFFC00 /* the 21 MSBs form the BAR */
+#define PCI_ROM_RESERVED_MASK 0x03FE /* mask for reserved bits */
+#define PCI_ROM_ACTIVATE 0x01	     /* mask for activation bit */
 
-#define	PCI_CMD_MEM_SPACE	0x02		/* memory space bit */
-#define	PCI_HDRTYPE_MFD		0x80		/* MFD bit in HDRTYPE reg. */
+#define PCI_CMD_MEM_SPACE 0x02 /* memory space bit */
+#define PCI_HDRTYPE_MFD 0x80   /* MFD bit in HDRTYPE reg. */
 
-#define	MAX_PCI_DEVS		64		/* # of devices in system */
+#define MAX_PCI_DEVS 64 /* # of devices in system */
 
-typedef enum {
-	PRINT = 0,
-	SAVE = 1
-} action_t;
+typedef enum { PRINT = 0, SAVE = 1 } action_t;
 
 /*
  * This is set to a safe physical base address in PCI range for my Vaio.
@@ -69,30 +67,28 @@ typedef enum {
  * This is the hole between the APIC and the BIOS (FED00000-FEDFFFFF);
  * should be a safe range on the i815 Solano chipset.
  */
-#define PCI_DEFAULT_ROM_ADDR	0xFED00000
+#define PCI_DEFAULT_ROM_ADDR 0xFED00000
 
 static char *progname = NULL;
 static uintptr_t base_addr = PCI_DEFAULT_ROM_ADDR;
 
-static void	usage(void);
-static void	banner(void);
-static void	pci_enum_devs(int pci_fd, action_t action);
-static uint32_t	pci_testrombar(int pci_fd, struct pci_conf *dev);
-static int	pci_enable_bars(int pci_fd, struct pci_conf *dev,
-    uint16_t *oldcmd);
-static int	pci_disable_bars(int pci_fd, struct pci_conf *dev,
-    uint16_t *oldcmd);
-static int	pci_save_rom(char *filename, int romsize);
+static void usage(void);
+static void banner(void);
+static void pci_enum_devs(int pci_fd, action_t action);
+static uint32_t pci_testrombar(int pci_fd, struct pci_conf *dev);
+static int pci_enable_bars(int pci_fd, struct pci_conf *dev, uint16_t *oldcmd);
+static int pci_disable_bars(int pci_fd, struct pci_conf *dev, uint16_t *oldcmd);
+static int pci_save_rom(char *filename, int romsize);
 
 int
 main(int argc, char *argv[])
 {
-	int		 pci_fd;
-	int		 err;
-	int		 ch;
-	action_t	 action;
-	char		*base_addr_string;
-	char		*ep;
+	int pci_fd;
+	int err;
+	int ch;
+	action_t action;
+	char *base_addr_string;
+	char *ep;
 
 	err = -1;
 	pci_fd = -1;
@@ -111,8 +107,8 @@ main(int argc, char *argv[])
 			break;
 		case 'h':
 		default:
-		     usage();
-	}
+			usage();
+		}
 	argc -= optind;
 	argv += optind;
 
@@ -145,7 +141,7 @@ cleanup:
 	if (pci_fd != -1)
 		close(pci_fd);
 
-	exit ((err == 0) ? EXIT_SUCCESS : EXIT_FAILURE);
+	exit((err == 0) ? EXIT_SUCCESS : EXIT_FAILURE);
 }
 
 static void
@@ -161,8 +157,8 @@ banner(void)
 {
 
 	fprintf(stderr,
-		"WARNING: You are advised to run this program in single\r\n"
-		"user mode, with few or no processes running.\r\n\r\n");
+	    "WARNING: You are advised to run this program in single\r\n"
+	    "user mode, with few or no processes running.\r\n\r\n");
 }
 
 /*
@@ -171,13 +167,13 @@ banner(void)
 static void
 pci_enum_devs(int pci_fd, action_t action)
 {
-	struct pci_conf		 devs[MAX_PCI_DEVS];
-	char			 filename[16];
-	struct pci_conf_io	 pc;
-	struct pci_conf		*p;
-	int			 result;
-	int			 romsize;
-	uint16_t		 oldcmd;
+	struct pci_conf devs[MAX_PCI_DEVS];
+	char filename[16];
+	struct pci_conf_io pc;
+	struct pci_conf *p;
+	int result;
+	int romsize;
+	uint16_t oldcmd;
 
 	result = -1;
 	romsize = 0;
@@ -199,11 +195,11 @@ pci_enum_devs(int pci_fd, action_t action)
 
 	if (pc.status == PCI_GETCONF_MORE_DEVS) {
 		fprintf(stderr,
-"More than %d devices exist. Only the first %d will be inspected.\r\n",
+		    "More than %d devices exist. Only the first %d will be inspected.\r\n",
 		    MAX_PCI_DEVS, MAX_PCI_DEVS);
 	}
 
-	for (p = devs ; p < &devs[pc.num_matches]; p++) {
+	for (p = devs; p < &devs[pc.num_matches]; p++) {
 
 		/* No PCI bridges; only PCI devices. */
 		if (p->pc_hdr != 0x00)
@@ -214,16 +210,17 @@ pci_enum_devs(int pci_fd, action_t action)
 		switch (action) {
 		case PRINT:
 			printf(
-"Domain %04Xh Bus %02Xh Device %02Xh Function %02Xh: ",
-				p->pc_sel.pc_domain, p->pc_sel.pc_bus,
-				p->pc_sel.pc_dev, p->pc_sel.pc_func);
-			printf((romsize ? "%dKB ROM aperture detected."
-					: "No ROM present."), romsize/1024);
+			    "Domain %04Xh Bus %02Xh Device %02Xh Function %02Xh: ",
+			    p->pc_sel.pc_domain, p->pc_sel.pc_bus,
+			    p->pc_sel.pc_dev, p->pc_sel.pc_func);
+			printf((romsize ? "%dKB ROM aperture detected." :
+					  "No ROM present."),
+			    romsize / 1024);
 			printf("\r\n");
 			break;
 		case SAVE:
 			if (romsize == 0)
-				continue;	/* XXX */
+				continue; /* XXX */
 
 			snprintf(filename, sizeof(filename), "%08X.rom",
 			    ((p->pc_device << 16) | p->pc_vendor));
@@ -236,15 +233,15 @@ pci_enum_devs(int pci_fd, action_t action)
 
 			pci_disable_bars(pci_fd, p, &oldcmd);
 
-			if (result == 0)  {
+			if (result == 0) {
 				fprintf(stderr, "Done.\r\n");
-			} else  {
+			} else {
 				fprintf(stderr,
-"An error occurred whilst saving the ROM.\r\n");
+				    "An error occurred whilst saving the ROM.\r\n");
 			}
 			break;
 		} /* switch */
-	} /* for */
+	}	  /* for */
 }
 
 /*
@@ -253,8 +250,8 @@ pci_enum_devs(int pci_fd, action_t action)
 static uint32_t
 pci_testrombar(int pci_fd, struct pci_conf *dev)
 {
-	struct pci_io	 io;
-	uint32_t	 romsize;
+	struct pci_io io;
+	uint32_t romsize;
 
 	romsize = 0;
 
@@ -299,8 +296,8 @@ pci_testrombar(int pci_fd, struct pci_conf *dev)
 static int
 pci_save_rom(char *filename, int romsize)
 {
-	int	 fd, mem_fd, err;
-	void	*map_addr;
+	int fd, mem_fd, err;
+	void *map_addr;
 
 	fd = err = mem_fd = -1;
 	map_addr = MAP_FAILED;
@@ -310,12 +307,12 @@ pci_save_rom(char *filename, int romsize)
 		return -1;
 	}
 
-	map_addr = mmap(NULL, romsize, PROT_READ, MAP_SHARED|MAP_NOCORE,
+	map_addr = mmap(NULL, romsize, PROT_READ, MAP_SHARED | MAP_NOCORE,
 	    mem_fd, base_addr);
 
 	/* Dump ROM aperture to a file. */
-	if ((fd = open(filename, O_CREAT|O_RDWR|O_TRUNC|O_NOFOLLOW,
-	    S_IRUSR|S_IWUSR)) == -1) {
+	if ((fd = open(filename, O_CREAT | O_RDWR | O_TRUNC | O_NOFOLLOW,
+		 S_IRUSR | S_IWUSR)) == -1) {
 		perror("open");
 		goto cleanup;
 	}
@@ -374,7 +371,7 @@ pci_enable_bars(int pci_fd, struct pci_conf *dev, uint16_t *oldcmd)
 static int
 pci_disable_bars(int pci_fd, struct pci_conf *dev, uint16_t *oldcmd)
 {
-	struct pci_io	 io;
+	struct pci_io io;
 
 	/*
 	 * Clear ROM BAR to deactivate the mapping.

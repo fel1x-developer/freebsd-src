@@ -66,9 +66,8 @@
 extern "C" {
 #endif // __cplusplus
 
-#include <dev/isci/scil/sci_types.h>
 #include <dev/isci/scil/sci_status.h>
-
+#include <dev/isci/scil/sci_types.h>
 
 /**
  * @brief This method simply returns the size required to construct an SCI
@@ -76,9 +75,7 @@ extern "C" {
  *
  * @return Retrun the size of the SCI task request object.
  */
-U32 scif_task_request_get_object_size(
-   void
-);
+U32 scif_task_request_get_object_size(void);
 
 /**
  * @brief This method is called by the SCIF user to construct a task
@@ -112,18 +109,13 @@ U32 scif_task_request_get_object_size(
  * @retval SCI_SUCCESS This value is returned if the task request was
  *         successfully built.
  */
-SCI_STATUS scif_task_request_construct(
-   SCI_CONTROLLER_HANDLE_T      scif_controller,
-   SCI_REMOTE_DEVICE_HANDLE_T   scif_remote_device,
-   U16                          io_tag,
-   void                       * user_task_request_object,
-   void                       * task_request_memory,
-   SCI_TASK_REQUEST_HANDLE_T  * scif_task_request
-);
+SCI_STATUS scif_task_request_construct(SCI_CONTROLLER_HANDLE_T scif_controller,
+    SCI_REMOTE_DEVICE_HANDLE_T scif_remote_device, U16 io_tag,
+    void *user_task_request_object, void *task_request_memory,
+    SCI_TASK_REQUEST_HANDLE_T *scif_task_request);
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
 #endif // _SCIF_TASK_REQUEST_H_
-

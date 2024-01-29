@@ -27,6 +27,7 @@
 /*! \file */
 
 #include <sys/types.h>
+
 #include <arpa/nameser.h>
 #include <resolv.h>
 
@@ -38,18 +39,18 @@ struct ns_updrec {
 		struct ns_updrec *prev;
 		struct ns_updrec *next;
 	} r_link, r_glink;
-	ns_sect		r_section;	/*%< ZONE/PREREQUISITE/UPDATE */
-	char *		r_dname;	/*%< owner of the RR */
-	ns_class	r_class;	/*%< class number */
-	ns_type		r_type;		/*%< type number */
-	u_int32_t	r_ttl;		/*%< time to live */
-	u_char *	r_data;		/*%< rdata fields as text string */
-	u_int		r_size;		/*%< size of r_data field */
-	int		r_opcode;	/*%< type of operation */
+	ns_sect r_section; /*%< ZONE/PREREQUISITE/UPDATE */
+	char *r_dname;	   /*%< owner of the RR */
+	ns_class r_class;  /*%< class number */
+	ns_type r_type;	   /*%< type number */
+	u_int32_t r_ttl;   /*%< time to live */
+	u_char *r_data;	   /*%< rdata fields as text string */
+	u_int r_size;	   /*%< size of r_data field */
+	int r_opcode;	   /*%< type of operation */
 	/* following fields for private use by the resolver/server routines */
-	struct databuf *r_dp;		/*%< databuf to process */
-	struct databuf *r_deldp;	/*%< databuf's deleted/overwritten */
-	u_int		r_zone;		/*%< zone number on server */
+	struct databuf *r_dp;	 /*%< databuf to process */
+	struct databuf *r_deldp; /*%< databuf's deleted/overwritten */
+	u_int r_zone;		 /*%< zone number on server */
 };
 typedef struct ns_updrec ns_updrec;
 typedef struct {
@@ -57,19 +58,19 @@ typedef struct {
 	ns_updrec *tail;
 } ns_updque;
 
-#define res_mkupdate		__res_mkupdate
-#define res_update		__res_update
-#define res_mkupdrec		__res_mkupdrec
-#define res_freeupdrec		__res_freeupdrec
-#define res_nmkupdate		__res_nmkupdate
-#define res_nupdate		__res_nupdate
+#define res_mkupdate __res_mkupdate
+#define res_update __res_update
+#define res_mkupdrec __res_mkupdrec
+#define res_freeupdrec __res_freeupdrec
+#define res_nmkupdate __res_nmkupdate
+#define res_nupdate __res_nupdate
 
-int		res_mkupdate(ns_updrec *, u_char *, int);
-int		res_update(ns_updrec *);
-ns_updrec *	res_mkupdrec(int, const char *, u_int, u_int, u_long);
-void		res_freeupdrec(ns_updrec *);
-int		res_nmkupdate(res_state, ns_updrec *, u_char *, int);
-int		res_nupdate(res_state, ns_updrec *, ns_tsig_key *);
+int res_mkupdate(ns_updrec *, u_char *, int);
+int res_update(ns_updrec *);
+ns_updrec *res_mkupdrec(int, const char *, u_int, u_int, u_long);
+void res_freeupdrec(ns_updrec *);
+int res_nmkupdate(res_state, ns_updrec *, u_char *, int);
+int res_nupdate(res_state, ns_updrec *, ns_tsig_key *);
 
 #endif /*__RES_UPDATE_H*/
 

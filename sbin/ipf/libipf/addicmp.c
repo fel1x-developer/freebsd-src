@@ -11,10 +11,7 @@
 
 #include "ipf.h"
 
-
-char	*icmptypes[MAX_ICMPTYPE + 1] = {
-	"echorep", (char *)NULL, (char *)NULL, "unreach", "squench",
-	"redir", (char *)NULL, (char *)NULL, "echo", "routerad",
-	"routersol", "timex", "paramprob", "timest", "timestrep",
-	"inforeq", "inforep", "maskreq", "maskrep", "END"
-};
+char *icmptypes[MAX_ICMPTYPE + 1] = { "echorep", (char *)NULL, (char *)NULL,
+	"unreach", "squench", "redir", (char *)NULL, (char *)NULL, "echo",
+	"routerad", "routersol", "timex", "paramprob", "timest", "timestrep",
+	"inforeq", "inforep", "maskreq", "maskrep", "END" };

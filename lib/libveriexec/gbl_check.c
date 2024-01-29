@@ -31,10 +31,9 @@
 #include <sys/errno.h>
 #include <sys/mac.h>
 
-#include <unistd.h>
 #include <fcntl.h>
-
 #include <security/mac_grantbylabel/mac_grantbylabel.h>
+#include <unistd.h>
 
 /**
  * @brief does path have a gbl label
@@ -51,17 +50,16 @@ gbl_check_path(const char *path)
 	int rc;
 
 	rc = 0;
-	if ((fd = open(path, O_RDONLY|O_VERIFY)) >= 0) {
+	if ((fd = open(path, O_RDONLY | O_VERIFY)) >= 0) {
 		gbl.u.fd = fd;
 		if (mac_syscall(MAC_GRANTBYLABEL_NAME,
-			MAC_GRANTBYLABEL_FETCH_GBL,
-			&gbl) == 0) {
+			MAC_GRANTBYLABEL_FETCH_GBL, &gbl) == 0) {
 			if (gbl.gbl != GBL_EMPTY)
 				rc = gbl.gbl;
 		}
 		close(fd);
 	}
-	return(rc);
+	return (rc);
 }
 
 /**
@@ -79,19 +77,18 @@ gbl_check_pid(pid_t pid)
 
 	rc = 0;
 	gbl.u.pid = pid;
-	if (mac_syscall(MAC_GRANTBYLABEL_NAME,
-		MAC_GRANTBYLABEL_FETCH_PID_GBL, &gbl) == 0) {
+	if (mac_syscall(MAC_GRANTBYLABEL_NAME, MAC_GRANTBYLABEL_FETCH_PID_GBL,
+		&gbl) == 0) {
 		if (gbl.gbl != GBL_EMPTY)
 			rc = gbl.gbl;
 	}
-	return(rc);
+	return (rc);
 }
 
-
 #ifdef UNIT_TEST
-#include <stdlib.h>
-#include <stdio.h>
 #include <err.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 int
 main(int argc, char *argv[])

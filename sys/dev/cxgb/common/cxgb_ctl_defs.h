@@ -33,28 +33,28 @@ enum {
 	RDMA_CTRL_QP_SETUP,
 	RDMA_GET_MEM,
 
-	FAILOVER           = 30,
-	FAILOVER_DONE      = 31,
-	FAILOVER_CLEAR     = 32,
+	FAILOVER = 30,
+	FAILOVER_DONE = 31,
+	FAILOVER_CLEAR = 32,
 
 	GET_CPUIDX_OF_QSET = 40,
 
-	GET_RX_PAGE_INFO   = 50,
+	GET_RX_PAGE_INFO = 50,
 };
 
 /*
  * Structure used to describe a TID range.  Valid TIDs are [base, base+num).
  */
 struct tid_range {
-	unsigned int base;   /* first TID */
-	unsigned int num;    /* number of TIDs in range */
+	unsigned int base; /* first TID */
+	unsigned int num;  /* number of TIDs in range */
 };
 
 /*
  * Structure used to request the size and contents of the MTU table.
  */
 struct mtutab {
-	unsigned int size;          /* # of entries in the MTU table */
+	unsigned int size;	    /* # of entries in the MTU table */
 	const unsigned short *mtus; /* the MTU table values */
 };
 
@@ -73,14 +73,14 @@ struct pci_dev;
  * Structure used to request the TCP DDP parameters.
  */
 struct ddp_params {
-	unsigned int llimit;     /* TDDP region start address */
-	unsigned int ulimit;     /* TDDP region end address */
-	unsigned int tag_mask;   /* TDDP tag mask */
+	unsigned int llimit;   /* TDDP region start address */
+	unsigned int ulimit;   /* TDDP region end address */
+	unsigned int tag_mask; /* TDDP tag mask */
 	struct pci_dev *pdev;
 };
 
 struct adap_ports {
-	unsigned int nports;     /* number of ports on this adapter */
+	unsigned int nports; /* number of ports on this adapter */
 	if_t devs[MAX_NPORTS];
 };
 
@@ -88,41 +88,41 @@ struct adap_ports {
  * Structure used to return information to the iscsi layer.
  */
 struct ulp_iscsi_info {
-	unsigned int	offset;
-	unsigned int	llimit;
-	unsigned int	ulimit;
-	unsigned int	tagmask;
-	unsigned int	pgsz3;
-	unsigned int	pgsz2;
-	unsigned int	pgsz1;
-	unsigned int	pgsz0;
-	unsigned int	max_rxsz;
-	unsigned int	max_txsz;
-	struct pci_dev	*pdev;
+	unsigned int offset;
+	unsigned int llimit;
+	unsigned int ulimit;
+	unsigned int tagmask;
+	unsigned int pgsz3;
+	unsigned int pgsz2;
+	unsigned int pgsz1;
+	unsigned int pgsz0;
+	unsigned int max_rxsz;
+	unsigned int max_txsz;
+	struct pci_dev *pdev;
 };
 
 /*
  * Offload TX/RX page information.
  */
 struct ofld_page_info {
-	unsigned int page_size;  /* Page size, should be a power of 2 */
-	unsigned int num;        /* Number of pages */
+	unsigned int page_size; /* Page size, should be a power of 2 */
+	unsigned int num;	/* Number of pages */
 };
 
 /*
  * Structure used to return information to the RDMA layer.
  */
 struct rdma_info {
-	unsigned int tpt_base;   /* TPT base address */
-	unsigned int tpt_top;	 /* TPT last entry address */
-	unsigned int pbl_base;   /* PBL base address */
-	unsigned int pbl_top;	 /* PBL last entry address */
-	unsigned int rqt_base;   /* RQT base address */
-	unsigned int rqt_top;	 /* RQT last entry address */
-	unsigned int udbell_len; /* user doorbell region length */
-	unsigned long udbell_physbase;  /* user doorbell physical start addr */
-	void *kdb_addr;  /* kernel doorbell register address */
-	device_t pdev;   /* associated PCI device */
+	unsigned int tpt_base;	       /* TPT base address */
+	unsigned int tpt_top;	       /* TPT last entry address */
+	unsigned int pbl_base;	       /* PBL base address */
+	unsigned int pbl_top;	       /* PBL last entry address */
+	unsigned int rqt_base;	       /* RQT base address */
+	unsigned int rqt_top;	       /* RQT last entry address */
+	unsigned int udbell_len;       /* user doorbell region length */
+	unsigned long udbell_physbase; /* user doorbell physical start addr */
+	void *kdb_addr;		       /* kernel doorbell register address */
+	device_t pdev;		       /* associated PCI device */
 };
 
 /*

@@ -26,14 +26,14 @@
  * SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <gssapi/gssapi.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 
+#include "cred.h"
 #include "mech_switch.h"
 #include "name.h"
-#include "cred.h"
 
 #define AUSAGE 1
 #define IUSAGE 2
@@ -41,25 +41,22 @@
 static void
 updateusage(gss_cred_usage_t usage, int *usagemask)
 {
-    if (usage == GSS_C_BOTH)
-	*usagemask |= AUSAGE | IUSAGE;
-    else if (usage == GSS_C_ACCEPT)
-	*usagemask |= AUSAGE;
-    else if (usage == GSS_C_INITIATE)
-	*usagemask |= IUSAGE;
+	if (usage == GSS_C_BOTH)
+		*usagemask |= AUSAGE | IUSAGE;
+	else if (usage == GSS_C_ACCEPT)
+		*usagemask |= AUSAGE;
+	else if (usage == GSS_C_INITIATE)
+		*usagemask |= IUSAGE;
 }
 
 OM_uint32
-gss_inquire_cred(OM_uint32 *minor_status,
-    const gss_cred_id_t cred_handle,
-    gss_name_t *name_ret,
-    OM_uint32 *lifetime,
-    gss_cred_usage_t *cred_usage,
+gss_inquire_cred(OM_uint32 *minor_status, const gss_cred_id_t cred_handle,
+    gss_name_t *name_ret, OM_uint32 *lifetime, gss_cred_usage_t *cred_usage,
     gss_OID_set *mechanisms)
 {
 	OM_uint32 major_status;
 	struct _gss_mech_switch *m;
-	struct _gss_cred *cred = (struct _gss_cred *) cred_handle;
+	struct _gss_cred *cred = (struct _gss_cred *)cred_handle;
 	struct _gss_name *name;
 	struct _gss_mechanism_name *mn;
 	OM_uint32 min_lifetime;
@@ -95,7 +92,8 @@ gss_inquire_cred(OM_uint32 *minor_status,
 		major_status = gss_create_empty_oid_set(minor_status,
 		    mechanisms);
 		if (major_status) {
-			if (name) free(name);
+			if (name)
+				free(name);
 			return (major_status);
 		}
 	}
@@ -104,12 +102,13 @@ gss_inquire_cred(OM_uint32 *minor_status,
 	if (cred) {
 		struct _gss_mechanism_cred *mc;
 
-		SLIST_FOREACH(mc, &cred->gc_mc, gmc_link) {
+		SLIST_FOREACH (mc, &cred->gc_mc, gmc_link) {
 			gss_name_t mc_name;
 			OM_uint32 mc_lifetime;
 
-			major_status = mc->gmc_mech->gm_inquire_cred(minor_status,
-			    mc->gmc_cred, &mc_name, &mc_lifetime, &usage, NULL);
+			major_status = mc->gmc_mech->gm_inquire_cred(
+			    minor_status, mc->gmc_cred, &mc_name, &mc_lifetime,
+			    &usage, NULL);
 			if (major_status)
 				continue;
 
@@ -117,8 +116,8 @@ gss_inquire_cred(OM_uint32 *minor_status,
 			if (name && mc_name) {
 				mn = malloc(sizeof(struct _gss_mechanism_name));
 				if (!mn) {
-					mc->gmc_mech->gm_release_name(minor_status,
-					    &mc_name);
+					mc->gmc_mech->gm_release_name(
+					    minor_status, &mc_name);
 					continue;
 				}
 				mn->gmn_mech = mc->gmc_mech;
@@ -139,23 +138,22 @@ gss_inquire_cred(OM_uint32 *minor_status,
 			found++;
 		}
 	} else {
-		SLIST_FOREACH(m, &_gss_mechs, gm_link) {
+		SLIST_FOREACH (m, &_gss_mechs, gm_link) {
 			gss_name_t mc_name;
 			OM_uint32 mc_lifetime;
 
 			major_status = m->gm_inquire_cred(minor_status,
-			    GSS_C_NO_CREDENTIAL, &mc_name, &mc_lifetime,
-			    &usage, NULL);
+			    GSS_C_NO_CREDENTIAL, &mc_name, &mc_lifetime, &usage,
+			    NULL);
 			if (major_status)
 				continue;
 
 			updateusage(usage, &usagemask);
 			if (name && mc_name) {
-				mn = malloc(
-					sizeof(struct _gss_mechanism_name));
+				mn = malloc(sizeof(struct _gss_mechanism_name));
 				if (!mn) {
-					m->gm_release_name(
-						minor_status, &mc_name);
+					m->gm_release_name(minor_status,
+					    &mc_name);
 					continue;
 				}
 				mn->gmn_mech = m;
@@ -163,8 +161,7 @@ gss_inquire_cred(OM_uint32 *minor_status,
 				mn->gmn_name = mc_name;
 				SLIST_INSERT_HEAD(&name->gn_mn, mn, gmn_link);
 			} else if (mc_name) {
-				m->gm_release_name(minor_status,
-				    &mc_name);
+				m->gm_release_name(minor_status, &mc_name);
 			}
 
 			if (mc_lifetime < min_lifetime)
@@ -188,11 +185,11 @@ gss_inquire_cred(OM_uint32 *minor_status,
 
 	*minor_status = 0;
 	if (name_ret)
-		*name_ret = (gss_name_t) name;
+		*name_ret = (gss_name_t)name;
 	if (lifetime)
 		*lifetime = min_lifetime;
 	if (cred_usage) {
-		if ((usagemask & (AUSAGE|IUSAGE)) == (AUSAGE|IUSAGE))
+		if ((usagemask & (AUSAGE | IUSAGE)) == (AUSAGE | IUSAGE))
 			*cred_usage = GSS_C_BOTH;
 		else if (usagemask & IUSAGE)
 			*cred_usage = GSS_C_INITIATE;

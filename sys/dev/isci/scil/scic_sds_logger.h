@@ -68,13 +68,13 @@ extern "C" {
 #include <dev/isci/scil/scic_logger.h>
 #include <dev/isci/scil/scic_user_callback.h>
 
-#if defined (SCI_LOGGING)
+#if defined(SCI_LOGGING)
 
-#define SCIC_LOG_ERROR(x)    scic_cb_logger_log_error x
-#define SCIC_LOG_WARNING(x)  scic_cb_logger_log_warning x
-#define SCIC_LOG_INFO(x)     scic_cb_logger_log_info x
-#define SCIC_LOG_TRACE(x)    scic_cb_logger_log_trace x
-#define SCIC_LOG_STATES(x)   scic_cb_logger_log_states x
+#define SCIC_LOG_ERROR(x) scic_cb_logger_log_error x
+#define SCIC_LOG_WARNING(x) scic_cb_logger_log_warning x
+#define SCIC_LOG_INFO(x) scic_cb_logger_log_info x
+#define SCIC_LOG_TRACE(x) scic_cb_logger_log_trace x
+#define SCIC_LOG_STATES(x) scic_cb_logger_log_states x
 
 #else // defined (SCI_LOGGING)
 

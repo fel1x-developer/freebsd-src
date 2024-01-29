@@ -36,17 +36,17 @@
 #include <dev/uart/uart.h>
 #include <dev/uart/uart_cpu.h>
 
-#define	UART_TAG_BR	0
-#define	UART_TAG_CH	1
-#define	UART_TAG_DB	2
-#define	UART_TAG_DT	3
-#define	UART_TAG_IO	4
-#define	UART_TAG_MM	5
-#define	UART_TAG_PA	6
-#define	UART_TAG_RS	7
-#define	UART_TAG_SB	8
-#define	UART_TAG_XO	9
-#define	UART_TAG_BD	10
+#define UART_TAG_BR 0
+#define UART_TAG_CH 1
+#define UART_TAG_DB 2
+#define UART_TAG_DT 3
+#define UART_TAG_IO 4
+#define UART_TAG_MM 5
+#define UART_TAG_PA 6
+#define UART_TAG_RS 7
+#define UART_TAG_SB 8
+#define UART_TAG_XO 9
+#define UART_TAG_BD 10
 
 static struct uart_class *uart_classes[] = {
 	&uart_ns8250_class,
@@ -56,7 +56,7 @@ static struct uart_class *uart_classes[] = {
 static bus_addr_t
 uart_parse_addr(const char **p)
 {
-	return (strtoul(*p, (char**)(uintptr_t)p, 0));
+	return (strtoul(*p, (char **)(uintptr_t)p, 0));
 }
 
 static struct uart_class *
@@ -84,7 +84,7 @@ uart_parse_class(struct uart_class *class, const char **p)
 static long
 uart_parse_long(const char **p)
 {
-	return (strtol(*p, (char**)(uintptr_t)p, 0));
+	return (strtol(*p, (char **)(uintptr_t)p, 0));
 }
 
 static int

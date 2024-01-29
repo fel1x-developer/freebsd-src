@@ -33,12 +33,11 @@
 #include <sys/types.h>
 #include <sys/refcount.h>
 
+#include <asm/atomic.h>
 #include <linux/compiler.h>
 #include <linux/kernel.h>
 #include <linux/mutex.h>
 #include <linux/refcount.h>
-
-#include <asm/atomic.h>
 
 struct kref {
 	/* XXX In Linux this is a refcount_t */
@@ -91,8 +90,7 @@ kref_put_lock(struct kref *kref, void (*rel)(struct kref *kref),
 }
 
 static inline int
-kref_sub(struct kref *kref, unsigned int count,
-    void (*rel)(struct kref *kref))
+kref_sub(struct kref *kref, unsigned int count, void (*rel)(struct kref *kref))
 {
 
 	while (count--) {
@@ -111,11 +109,13 @@ kref_get_unless_zero(struct kref *kref)
 	return refcount_acquire_if_not_zero((uint32_t *)&kref->refcount);
 }
 
-static inline int kref_put_mutex(struct kref *kref,
-    void (*release)(struct kref *kref), struct mutex *lock)
+static inline int
+kref_put_mutex(struct kref *kref, void (*release)(struct kref *kref),
+    struct mutex *lock)
 {
 	WARN_ON(release == NULL);
-	if (unlikely(!refcount_release_if_not_last((uint32_t *)&kref->refcount))) {
+	if (unlikely(
+		!refcount_release_if_not_last((uint32_t *)&kref->refcount))) {
 		mutex_lock(lock);
 		if (unlikely(!refcount_release((uint32_t *)&kref->refcount))) {
 			mutex_unlock(lock);

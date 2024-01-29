@@ -29,35 +29,35 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/types.h>
-#include <sys/malloc.h>
+#include <sys/param.h>
 #include <sys/firmware.h>
+#include <sys/kernel.h>
+#include <sys/malloc.h>
 #include <sys/queue.h>
 #include <sys/taskqueue.h>
 
-#include <linux/types.h>
 #include <linux/device.h>
-
 #include <linux/firmware.h>
+#include <linux/types.h>
 #undef firmware
 
 MALLOC_DEFINE(M_LKPI_FW, "lkpifw", "LinuxKPI firmware");
 
 struct lkpi_fw_task {
 	/* Task and arguments for the "nowait" callback. */
-	struct task		fw_task;
-	gfp_t			gfp;
-	const char		*fw_name;
-	struct device		*dev;
-	void			*drv;
-	void(*cont)(const struct linuxkpi_firmware *, void *);
+	struct task fw_task;
+	gfp_t gfp;
+	const char *fw_name;
+	struct device *dev;
+	void *drv;
+	void (*cont)(const struct linuxkpi_firmware *, void *);
 };
 
 static int
-_linuxkpi_request_firmware(const char *fw_name, const struct linuxkpi_firmware **fw,
-    struct device *dev, gfp_t gfp __unused, bool enoentok, bool warn)
+_linuxkpi_request_firmware(const char *fw_name,
+    const struct linuxkpi_firmware **fw, struct device *dev, gfp_t gfp __unused,
+    bool enoentok, bool warn)
 {
 	const struct firmware *fbdfw;
 	struct linuxkpi_firmware *lfw;
@@ -103,7 +103,7 @@ _linuxkpi_request_firmware(const char *fw_name, const struct linuxkpi_firmware *
 	/* (3) Flatten '/', '.' and '-' to '_' and try with adjusted name. */
 	if (fbdfw == NULL &&
 	    (strchr(fw_name, '/') != NULL || strchr(fw_name, '.') != NULL ||
-	    strchr(fw_name, '-'))) {
+		strchr(fw_name, '-'))) {
 		fwimg = strdup(fw_name, M_LKPI_FW);
 		if (fwimg != NULL) {
 			while ((p = strchr(fwimg, '/')) != NULL)
@@ -130,12 +130,14 @@ _linuxkpi_request_firmware(const char *fw_name, const struct linuxkpi_firmware *
 			*fw = NULL;
 		}
 		if (warn)
-			device_printf(dev->bsddev, "could not load firmware "
-			    "image '%s'\n", fw_name);
+			device_printf(dev->bsddev,
+			    "could not load firmware "
+			    "image '%s'\n",
+			    fw_name);
 		return (-ENOENT);
 	}
 
-	device_printf(dev->bsddev,"successfully loaded firmware image '%s'\n",
+	device_printf(dev->bsddev, "successfully loaded firmware image '%s'\n",
 	    fw_name);
 	lfw->fbdfw = fbdfw;
 	lfw->data = (const uint8_t *)fbdfw->data;
@@ -150,15 +152,15 @@ lkpi_fw_task(void *ctx, int pending)
 	struct lkpi_fw_task *lfwt;
 	const struct linuxkpi_firmware *fw;
 
-	KASSERT(ctx != NULL && pending == 1, ("%s: lfwt %p, pending %d\n",
-	    __func__, ctx, pending));
+	KASSERT(ctx != NULL && pending == 1,
+	    ("%s: lfwt %p, pending %d\n", __func__, ctx, pending));
 
 	lfwt = ctx;
 	if (lfwt->cont == NULL)
 		goto out;
 
-	_linuxkpi_request_firmware(lfwt->fw_name, &fw, lfwt->dev,
-	    lfwt->gfp, true, true);
+	_linuxkpi_request_firmware(lfwt->fw_name, &fw, lfwt->dev, lfwt->gfp,
+	    true, true);
 
 	/*
 	 * Linux seems to run the callback if it cannot find the firmware.
@@ -174,7 +176,7 @@ out:
 int
 linuxkpi_request_firmware_nowait(struct module *mod __unused, bool _t __unused,
     const char *fw_name, struct device *dev, gfp_t gfp, void *drv,
-    void(*cont)(const struct linuxkpi_firmware *, void *))
+    void (*cont)(const struct linuxkpi_firmware *, void *))
 {
 	struct lkpi_fw_task *lfwt;
 	int error;

@@ -41,20 +41,20 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/sysproto.h>
+#include <sys/acl.h>
 #include <sys/capsicum.h>
 #include <sys/fcntl.h>
-#include <sys/kernel.h>
-#include <sys/malloc.h>
-#include <sys/mount.h>
-#include <sys/vnode.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/namei.h>
 #include <sys/file.h>
 #include <sys/filedesc.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mount.h>
+#include <sys/mutex.h>
+#include <sys/namei.h>
 #include <sys/proc.h>
-#include <sys/acl.h>
+#include <sys/sysproto.h>
+#include <sys/vnode.h>
 
 #include <security/audit/audit.h>
 #include <security/mac/mac_framework.h>
@@ -63,20 +63,20 @@ CTASSERT(ACL_MAX_ENTRIES >= OLDACL_MAX_ENTRIES);
 
 MALLOC_DEFINE(M_ACL, "acl", "Access Control Lists");
 
-static int	kern___acl_aclcheck_path(struct thread *td, const char *path,
-		    acl_type_t type, struct acl *aclp, int follow);
-static int	kern___acl_delete_path(struct thread *td, const char *path,
-		    acl_type_t type, int follow);
-static int	kern___acl_get_path(struct thread *td, const char *path,
-		    acl_type_t type, struct acl *aclp, int follow);
-static int	kern___acl_set_path(struct thread *td, const char *path,
-		    acl_type_t type, const struct acl *aclp, int follow);
-static int	vacl_set_acl(struct thread *td, struct vnode *vp,
-		    acl_type_t type, const struct acl *aclp);
-static int	vacl_get_acl(struct thread *td, struct vnode *vp,
-		    acl_type_t type, struct acl *aclp);
-static int	vacl_aclcheck(struct thread *td, struct vnode *vp,
-		    acl_type_t type, const struct acl *aclp);
+static int kern___acl_aclcheck_path(struct thread *td, const char *path,
+    acl_type_t type, struct acl *aclp, int follow);
+static int kern___acl_delete_path(struct thread *td, const char *path,
+    acl_type_t type, int follow);
+static int kern___acl_get_path(struct thread *td, const char *path,
+    acl_type_t type, struct acl *aclp, int follow);
+static int kern___acl_set_path(struct thread *td, const char *path,
+    acl_type_t type, const struct acl *aclp, int follow);
+static int vacl_set_acl(struct thread *td, struct vnode *vp, acl_type_t type,
+    const struct acl *aclp);
+static int vacl_get_acl(struct thread *td, struct vnode *vp, acl_type_t type,
+    struct acl *aclp);
+static int vacl_aclcheck(struct thread *td, struct vnode *vp, acl_type_t type,
+    const struct acl *aclp);
 
 int
 acl_copy_oldacl_into_acl(const struct oldacl *source, struct acl *dest)
@@ -176,7 +176,8 @@ acl_copyout(const struct acl *kernel_acl, void *user_acl, acl_type_t type)
 
 	default:
 		error = fueword32((char *)user_acl +
-		    offsetof(struct acl, acl_maxcnt), &am);
+			offsetof(struct acl, acl_maxcnt),
+		    &am);
 		if (error == -1)
 			return (EFAULT);
 		if (am != ACL_MAX_ENTRIES)
@@ -243,8 +244,8 @@ vacl_set_acl(struct thread *td, struct vnode *vp, acl_type_t type,
 	if (error != 0)
 		goto out_unlock;
 #endif
-	error = VOP_SETACL(vp, acl_type_unold(type), inkernelacl,
-	    td->td_ucred, td);
+	error = VOP_SETACL(vp, acl_type_unold(type), inkernelacl, td->td_ucred,
+	    td);
 #ifdef MAC
 out_unlock:
 #endif
@@ -274,8 +275,8 @@ vacl_get_acl(struct thread *td, struct vnode *vp, acl_type_t type,
 	if (error != 0)
 		goto out;
 #endif
-	error = VOP_GETACL(vp, acl_type_unold(type), inkernelacl,
-	    td->td_ucred, td);
+	error = VOP_GETACL(vp, acl_type_unold(type), inkernelacl, td->td_ucred,
+	    td);
 
 #ifdef MAC
 out:
@@ -351,8 +352,8 @@ int
 sys___acl_get_file(struct thread *td, struct __acl_get_file_args *uap)
 {
 
-	return (kern___acl_get_path(td, uap->path, uap->type, uap->aclp,
-	    FOLLOW));
+	return (
+	    kern___acl_get_path(td, uap->path, uap->type, uap->aclp, FOLLOW));
 }
 
 /*
@@ -362,8 +363,8 @@ int
 sys___acl_get_link(struct thread *td, struct __acl_get_link_args *uap)
 {
 
-	return(kern___acl_get_path(td, uap->path, uap->type, uap->aclp,
-	    NOFOLLOW));
+	return (
+	    kern___acl_get_path(td, uap->path, uap->type, uap->aclp, NOFOLLOW));
 }
 
 static int
@@ -390,8 +391,8 @@ int
 sys___acl_set_file(struct thread *td, struct __acl_set_file_args *uap)
 {
 
-	return(kern___acl_set_path(td, uap->path, uap->type, uap->aclp,
-	    FOLLOW));
+	return (
+	    kern___acl_set_path(td, uap->path, uap->type, uap->aclp, FOLLOW));
 }
 
 /*
@@ -401,13 +402,13 @@ int
 sys___acl_set_link(struct thread *td, struct __acl_set_link_args *uap)
 {
 
-	return(kern___acl_set_path(td, uap->path, uap->type, uap->aclp,
-	    NOFOLLOW));
+	return (
+	    kern___acl_set_path(td, uap->path, uap->type, uap->aclp, NOFOLLOW));
 }
 
 static int
-kern___acl_set_path(struct thread *td, const char *path,
-    acl_type_t type, const struct acl *aclp, int follow)
+kern___acl_set_path(struct thread *td, const char *path, acl_type_t type,
+    const struct acl *aclp, int follow)
 {
 	struct nameidata nd;
 	int error;
@@ -483,8 +484,8 @@ sys___acl_delete_link(struct thread *td, struct __acl_delete_link_args *uap)
 }
 
 static int
-kern___acl_delete_path(struct thread *td, const char *path,
-    acl_type_t type, int follow)
+kern___acl_delete_path(struct thread *td, const char *path, acl_type_t type,
+    int follow)
 {
 	struct nameidata nd;
 	int error;

@@ -74,8 +74,8 @@ extern "C" {
  * Descriptor Entries (MDEs) contained in the MDL.
  */
 /*@{*/
-#define SCI_MDE_ATTRIBUTE_CACHEABLE              0x0001
-#define SCI_MDE_ATTRIBUTE_PHYSICALLY_CONTIGUOUS  0x0002
+#define SCI_MDE_ATTRIBUTE_CACHEABLE 0x0001
+#define SCI_MDE_ATTRIBUTE_PHYSICALLY_CONTIGUOUS 0x0002
 /*@}*/
 
 /**
@@ -83,52 +83,51 @@ extern "C" {
  * @brief  This structure defines a description of a memory location for
  *         the SCI implementation.
  */
-typedef struct SCI_PHYSICAL_MEMORY_DESCRIPTOR
-{
-   /**
-    * This field contains the virtual address associated with this descriptor
-    * element. This field shall be zero when the descriptor is retrieved from
-    * the SCI implementation.  The user shall set this field prior
-    * sci_controller_start()
-    */
-   void * virtual_address;
+typedef struct SCI_PHYSICAL_MEMORY_DESCRIPTOR {
+	/**
+	 * This field contains the virtual address associated with this
+	 * descriptor element. This field shall be zero when the descriptor is
+	 * retrieved from the SCI implementation.  The user shall set this field
+	 * prior sci_controller_start()
+	 */
+	void *virtual_address;
 
-   /**
-    * This field contains the physical address associated with this descriptor 
-    * element. This field shall be zero when the descriptor is retrieved from
-    * the SCI implementation.  The user shall set this field prior
-    * sci_controller_start()
-    */
-   SCI_PHYSICAL_ADDRESS  physical_address;
+	/**
+	 * This field contains the physical address associated with this
+	 * descriptor element. This field shall be zero when the descriptor is
+	 * retrieved from the SCI implementation.  The user shall set this field
+	 * prior sci_controller_start()
+	 */
+	SCI_PHYSICAL_ADDRESS physical_address;
 
-   /**
-    * This field contains the size requirement for this memory descriptor.
-    * A value of zero for this field indicates the end of the descriptor
-    * list.  The value should be treated as read only for an SCI user.
-    */
-   U32 constant_memory_size;
+	/**
+	 * This field contains the size requirement for this memory descriptor.
+	 * A value of zero for this field indicates the end of the descriptor
+	 * list.  The value should be treated as read only for an SCI user.
+	 */
+	U32 constant_memory_size;
 
-   /**
-    * This field contains the alignment requirement for this memory
-    * descriptor.  A value of zero for this field indicates the end of the
-    * descriptor list.  All other values indicate the number of bytes to
-    * achieve the necessary alignment.  The value should be treated as
-    * read only for an SCI user.
-    */
-   U32 constant_memory_alignment;
+	/**
+	 * This field contains the alignment requirement for this memory
+	 * descriptor.  A value of zero for this field indicates the end of the
+	 * descriptor list.  All other values indicate the number of bytes to
+	 * achieve the necessary alignment.  The value should be treated as
+	 * read only for an SCI user.
+	 */
+	U32 constant_memory_alignment;
 
-   /**
-    * This field contains an indication regarding the desired memory
-    * attributes for this memory descriptor entry.
-    * Notes:
-    * - If the cacheable attribute is set, the user can allocate
-    *   memory that is backed by cache for better performance. It
-    *   is not required that the memory be backed by cache.
-    * - If the physically contiguous attribute is set, then the
-    *   entire memory must be physically contiguous across all
-    *   page boundaries.
-    */
-   U16 constant_memory_attributes;
+	/**
+	 * This field contains an indication regarding the desired memory
+	 * attributes for this memory descriptor entry.
+	 * Notes:
+	 * - If the cacheable attribute is set, the user can allocate
+	 *   memory that is backed by cache for better performance. It
+	 *   is not required that the memory be backed by cache.
+	 * - If the physically contiguous attribute is set, then the
+	 *   entire memory must be physically contiguous across all
+	 *   page boundaries.
+	 */
+	U16 constant_memory_attributes;
 
 } SCI_PHYSICAL_MEMORY_DESCRIPTOR_T;
 
@@ -141,9 +140,7 @@ typedef struct SCI_PHYSICAL_MEMORY_DESCRIPTOR
  *
  * @return none
  */
-void sci_mdl_first_entry(
-   SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T mdl
-);
+void sci_mdl_first_entry(SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T mdl);
 
 /**
  * @brief This method simply updates the "current" pointer to the next
@@ -154,9 +151,7 @@ void sci_mdl_first_entry(
  *
  * @return none.
  */
-void sci_mdl_next_entry(
-   SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T mdl
-);
+void sci_mdl_next_entry(SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T mdl);
 
 /**
  * @brief This method simply returns the current memory descriptor entry.
@@ -169,13 +164,11 @@ void sci_mdl_next_entry(
  * @retval NULL This value is returned if there are no descriptors in the
  *         list.
  */
-SCI_PHYSICAL_MEMORY_DESCRIPTOR_T * sci_mdl_get_current_entry(
-   SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T mdl
-);
+SCI_PHYSICAL_MEMORY_DESCRIPTOR_T *sci_mdl_get_current_entry(
+    SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T mdl);
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
 #endif // _SCI_MEMORY_DESCRIPTOR_LIST_H_
-

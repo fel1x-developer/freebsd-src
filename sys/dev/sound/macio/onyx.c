@@ -33,18 +33,19 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/bus.h>
-#include <sys/malloc.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/rman.h>
+
+#include <machine/bus.h>
 #include <machine/dbdma.h>
 #include <machine/intr_machdep.h>
-#include <machine/resource.h>
-#include <machine/bus.h>
 #include <machine/pio.h>
-#include <sys/rman.h>
+#include <machine/resource.h>
 
 #include <dev/iicbus/iicbus.h>
 #include <dev/iicbus/iiconf.h>
@@ -59,77 +60,68 @@
 #include "mixer_if.h"
 
 extern kobj_class_t i2s_mixer_class;
-extern device_t	i2s_mixer;
+extern device_t i2s_mixer;
 
-struct onyx_softc
-{
+struct onyx_softc {
 	device_t sc_dev;
 	uint32_t sc_addr;
 };
 
-static int	onyx_probe(device_t);
-static int	onyx_attach(device_t);
-static int	onyx_init(struct snd_mixer *m);
-static int	onyx_uninit(struct snd_mixer *m);
-static int	onyx_reinit(struct snd_mixer *m);
-static int	onyx_set(struct snd_mixer *m, unsigned dev, unsigned left,
-			    unsigned right);
-static u_int32_t	onyx_setrecsrc(struct snd_mixer *m, u_int32_t src);
+static int onyx_probe(device_t);
+static int onyx_attach(device_t);
+static int onyx_init(struct snd_mixer *m);
+static int onyx_uninit(struct snd_mixer *m);
+static int onyx_reinit(struct snd_mixer *m);
+static int onyx_set(struct snd_mixer *m, unsigned dev, unsigned left,
+    unsigned right);
+static u_int32_t onyx_setrecsrc(struct snd_mixer *m, u_int32_t src);
 
 static device_method_t onyx_methods[] = {
 	/* Device interface. */
-	DEVMETHOD(device_probe,		onyx_probe),
-	DEVMETHOD(device_attach,	onyx_attach),
-	{ 0, 0 }
+	DEVMETHOD(device_probe, onyx_probe),
+	DEVMETHOD(device_attach, onyx_attach), { 0, 0 }
 };
 
-static driver_t onyx_driver = {
-	"onyx",
-	onyx_methods,
-	sizeof(struct onyx_softc)
-};
+static driver_t onyx_driver = { "onyx", onyx_methods,
+	sizeof(struct onyx_softc) };
 
 DRIVER_MODULE(onyx, iicbus, onyx_driver, 0, 0);
 MODULE_VERSION(onyx, 1);
 MODULE_DEPEND(onyx, iicbus, 1, 1, 1);
 
-static kobj_method_t onyx_mixer_methods[] = {
-	KOBJMETHOD(mixer_init,		onyx_init),
-	KOBJMETHOD(mixer_uninit,	onyx_uninit),
-	KOBJMETHOD(mixer_reinit,	onyx_reinit),
-	KOBJMETHOD(mixer_set,		onyx_set),
-	KOBJMETHOD(mixer_setrecsrc,	onyx_setrecsrc),
-	KOBJMETHOD_END
-};
+static kobj_method_t onyx_mixer_methods[] = { KOBJMETHOD(mixer_init, onyx_init),
+	KOBJMETHOD(mixer_uninit, onyx_uninit),
+	KOBJMETHOD(mixer_reinit, onyx_reinit), KOBJMETHOD(mixer_set, onyx_set),
+	KOBJMETHOD(mixer_setrecsrc, onyx_setrecsrc), KOBJMETHOD_END };
 
 MIXER_DECLARE(onyx_mixer);
 
-#define PCM3052_IICADDR	0x8C	/* Hard-coded I2C slave addr */
+#define PCM3052_IICADDR 0x8C /* Hard-coded I2C slave addr */
 
 /*
  * PCM3052 registers.
  * Numbering in decimal as used in the data sheet.
  */
-#define PCM3052_REG_LEFT_ATTN       65
-#define PCM3052_REG_RIGHT_ATTN      66
-#define PCM3052_REG_CONTROL         67
-#define PCM3052_MRST                (1 << 7)
-#define PCM3052_SRST                (1 << 6)
-#define PCM3052_REG_DAC_CONTROL     68
-#define PCM3052_OVR1                (1 << 6)
-#define PCM3052_MUTE_L              (1 << 1)
-#define PCM3052_MUTE_R              (1 << 0)
-#define PCM3052_REG_DAC_DEEMPH      69
-#define PCM3052_REG_DAC_FILTER      70
-#define PCM3052_DAC_FILTER_ALWAYS   (1 << 2)
-#define PCM3052_REG_OUT_PHASE       71
-#define PCM3052_REG_ADC_CONTROL     72
-#define PCM3052_REG_ADC_HPF_BP      75
-#define PCM3052_HPF_ALWAYS          (1 << 2)
-#define PCM3052_REG_INFO_1          77
-#define PCM3052_REG_INFO_2          78
-#define PCM3052_REG_INFO_3          79
-#define PCM3052_REG_INFO_4          80
+#define PCM3052_REG_LEFT_ATTN 65
+#define PCM3052_REG_RIGHT_ATTN 66
+#define PCM3052_REG_CONTROL 67
+#define PCM3052_MRST (1 << 7)
+#define PCM3052_SRST (1 << 6)
+#define PCM3052_REG_DAC_CONTROL 68
+#define PCM3052_OVR1 (1 << 6)
+#define PCM3052_MUTE_L (1 << 1)
+#define PCM3052_MUTE_R (1 << 0)
+#define PCM3052_REG_DAC_DEEMPH 69
+#define PCM3052_REG_DAC_FILTER 70
+#define PCM3052_DAC_FILTER_ALWAYS (1 << 2)
+#define PCM3052_REG_OUT_PHASE 71
+#define PCM3052_REG_ADC_CONTROL 72
+#define PCM3052_REG_ADC_HPF_BP 75
+#define PCM3052_HPF_ALWAYS (1 << 2)
+#define PCM3052_REG_INFO_1 77
+#define PCM3052_REG_INFO_2 78
+#define PCM3052_REG_INFO_3 79
+#define PCM3052_REG_INFO_4 80
 
 struct onyx_reg {
 	u_char LEFT_ATTN;
@@ -148,21 +140,21 @@ struct onyx_reg {
 };
 
 static const struct onyx_reg onyx_initdata = {
-	0x80,				  /* LEFT_ATTN, Mute default */
-	0x80,				  /* RIGHT_ATTN, Mute default */
-	PCM3052_MRST | PCM3052_SRST,      /* CONTROL */
-	0,                                /* DAC_CONTROL */
-	0,				  /* DAC_DEEMPH */
-	PCM3052_DAC_FILTER_ALWAYS,	  /* DAC_FILTER */
-	0,				  /* OUT_PHASE */
-	(-1 /* dB */ + 8) & 0xf,          /* ADC_CONTROL */
-	PCM3052_HPF_ALWAYS,		  /* ADC_HPF_BP */
-	(1 << 2),			  /* INFO_1 */
-	2,				  /* INFO_2,  */
-	0,				  /* INFO_3, CLK 0 (level II),
-					     SF 0 (44.1 kHz) */
-	1				  /* INFO_4, VALIDL/R 0,
-					     WL 24-bit depth */
+	0x80,			     /* LEFT_ATTN, Mute default */
+	0x80,			     /* RIGHT_ATTN, Mute default */
+	PCM3052_MRST | PCM3052_SRST, /* CONTROL */
+	0,			     /* DAC_CONTROL */
+	0,			     /* DAC_DEEMPH */
+	PCM3052_DAC_FILTER_ALWAYS,   /* DAC_FILTER */
+	0,			     /* OUT_PHASE */
+	(-1 /* dB */ + 8) & 0xf,     /* ADC_CONTROL */
+	PCM3052_HPF_ALWAYS,	     /* ADC_HPF_BP */
+	(1 << 2),		     /* INFO_1 */
+	2,			     /* INFO_2,  */
+	0,			     /* INFO_3, CLK 0 (level II),
+					SF 0 (44.1 kHz) */
+	1			     /* INFO_4, VALIDL/R 0,
+					WL 24-bit depth */
 };
 
 static int
@@ -171,9 +163,7 @@ onyx_write(struct onyx_softc *sc, uint8_t reg, const uint8_t value)
 	u_int size;
 	uint8_t buf[16];
 
-	struct iic_msg msg[] = {
-		{ sc->sc_addr, IIC_M_WR, 0, buf }
-	};
+	struct iic_msg msg[] = { { sc->sc_addr, IIC_M_WR, 0, buf } };
 
 	size = 1;
 	msg[0].len = size + 1;
@@ -227,20 +217,18 @@ static int
 onyx_init(struct snd_mixer *m)
 {
 	struct onyx_softc *sc;
-	u_int  x = 0;
+	u_int x = 0;
 
 	sc = device_get_softc(mix_getdevinfo(m));
 
 	onyx_write(sc, PCM3052_REG_LEFT_ATTN, onyx_initdata.LEFT_ATTN);
 	onyx_write(sc, PCM3052_REG_RIGHT_ATTN, onyx_initdata.RIGHT_ATTN);
 	onyx_write(sc, PCM3052_REG_CONTROL, onyx_initdata.CONTROL);
-	onyx_write(sc, PCM3052_REG_DAC_CONTROL,
-		      onyx_initdata.DAC_CONTROL);
+	onyx_write(sc, PCM3052_REG_DAC_CONTROL, onyx_initdata.DAC_CONTROL);
 	onyx_write(sc, PCM3052_REG_DAC_DEEMPH, onyx_initdata.DAC_DEEMPH);
 	onyx_write(sc, PCM3052_REG_DAC_FILTER, onyx_initdata.DAC_FILTER);
 	onyx_write(sc, PCM3052_REG_OUT_PHASE, onyx_initdata.OUT_PHASE);
-	onyx_write(sc, PCM3052_REG_ADC_CONTROL,
-		      onyx_initdata.ADC_CONTROL);
+	onyx_write(sc, PCM3052_REG_ADC_CONTROL, onyx_initdata.ADC_CONTROL);
 	onyx_write(sc, PCM3052_REG_ADC_HPF_BP, onyx_initdata.ADC_HPF_BP);
 	onyx_write(sc, PCM3052_REG_INFO_1, onyx_initdata.INFO_1);
 	onyx_write(sc, PCM3052_REG_INFO_2, onyx_initdata.INFO_2);

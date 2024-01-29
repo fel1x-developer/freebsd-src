@@ -25,10 +25,12 @@
  * SUCH DAMAGE.
  */
 
-#include <stand.h>
-#include <bootstrap.h>
 #include <sys/param.h>
 #include <sys/linker.h>
+
+#include <bootstrap.h>
+#include <stand.h>
+
 #include "geliboot.h"
 
 /*
@@ -40,11 +42,11 @@
 void
 geli_export_key_metadata(struct preloaded_file *kfp)
 {
-    struct keybuf *keybuf;
+	struct keybuf *keybuf;
 
-    keybuf = malloc(GELI_KEYBUF_SIZE);
-    geli_export_key_buffer(keybuf);
-    file_addmetadata(kfp, MODINFOMD_KEYBUF, GELI_KEYBUF_SIZE, keybuf);
-    explicit_bzero(keybuf, GELI_KEYBUF_SIZE);
-    free(keybuf);
+	keybuf = malloc(GELI_KEYBUF_SIZE);
+	geli_export_key_buffer(keybuf);
+	file_addmetadata(kfp, MODINFOMD_KEYBUF, GELI_KEYBUF_SIZE, keybuf);
+	explicit_bzero(keybuf, GELI_KEYBUF_SIZE);
+	free(keybuf);
 }

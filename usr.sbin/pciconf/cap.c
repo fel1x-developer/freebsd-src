@@ -31,19 +31,19 @@
  */
 
 #include <sys/types.h>
-
-#include <err.h>
-#include <stdio.h>
-#include <strings.h>
 #include <sys/agpio.h>
 #include <sys/pciio.h>
 
 #include <dev/agp/agpreg.h>
 #include <dev/pci/pcireg.h>
 
+#include <err.h>
+#include <stdio.h>
+#include <strings.h>
+
 #include "pciconf.h"
 
-static void	list_ecaps(int fd, struct pci_conf *p);
+static void list_ecaps(int fd, struct pci_conf *p);
 
 static int cap_level;
 
@@ -55,10 +55,8 @@ cap_power(int fd, struct pci_conf *p, uint8_t ptr)
 	cap = read_config(fd, &p->pc_sel, ptr + PCIR_POWER_CAP, 2);
 	status = read_config(fd, &p->pc_sel, ptr + PCIR_POWER_STATUS, 2);
 	printf("powerspec %d  supports D0%s%s D3  current D%d",
-	    cap & PCIM_PCAP_SPEC,
-	    cap & PCIM_PCAP_D1SUPP ? " D1" : "",
-	    cap & PCIM_PCAP_D2SUPP ? " D2" : "",
-	    status & PCIM_PSTAT_DMASK);
+	    cap & PCIM_PCAP_SPEC, cap & PCIM_PCAP_D1SUPP ? " D1" : "",
+	    cap & PCIM_PCAP_D2SUPP ? " D2" : "", status & PCIM_PSTAT_DMASK);
 }
 
 static void
@@ -153,8 +151,10 @@ cap_pcix(int fd, struct pci_conf *p, uint8_t ptr)
 		printf("64-bit ");
 	if ((p->pc_hdr & PCIM_HDRTYPE) == 1)
 		printf("bridge ");
-	if ((p->pc_hdr & PCIM_HDRTYPE) != 1 || (status & (PCIXM_STATUS_133CAP |
-	    PCIXM_STATUS_266CAP | PCIXM_STATUS_533CAP)) != 0)
+	if ((p->pc_hdr & PCIM_HDRTYPE) != 1 ||
+	    (status &
+		(PCIXM_STATUS_133CAP | PCIXM_STATUS_266CAP |
+		    PCIXM_STATUS_533CAP)) != 0)
 		printf("supports");
 	comma = 0;
 	if (status & PCIXM_STATUS_133CAP) {
@@ -253,7 +253,7 @@ cap_ht(int fd, struct pci_conf *p, uint8_t ptr)
 			printf("MSI %saddress window %s at 0x",
 			    command & PCIM_HTCMD_MSI_FIXED ? "fixed " : "",
 			    command & PCIM_HTCMD_MSI_ENABLE ? "enabled" :
-			    "disabled");
+							      "disabled");
 			if (command & PCIM_HTCMD_MSI_FIXED)
 				printf("fee00000");
 			else {
@@ -316,15 +316,15 @@ cap_vendor(int fd, struct pci_conf *p, uint8_t ptr)
 			int comma;
 
 			comma = 0;
-			fvec = read_config(fd, &p->pc_sel, ptr +
-			    PCIR_VENDOR_DATA + 5, 4);
+			fvec = read_config(fd, &p->pc_sel,
+			    ptr + PCIR_VENDOR_DATA + 5, 4);
 			printf("\n\t\t features:");
 			if (fvec & (1 << 0)) {
 				printf(" AMT");
 				comma = 1;
 			}
-			fvec = read_config(fd, &p->pc_sel, ptr +
-			    PCIR_VENDOR_DATA + 1, 4);
+			fvec = read_config(fd, &p->pc_sel,
+			    ptr + PCIR_VENDOR_DATA + 1, 4);
 			if (fvec & (1 << 21)) {
 				printf("%s Quick Resume", comma ? "," : "");
 				comma = 1;
@@ -360,8 +360,8 @@ cap_debug(int fd, struct pci_conf *p, uint8_t ptr)
 	uint16_t debug_port;
 
 	debug_port = read_config(fd, &p->pc_sel, ptr + PCIR_DEBUG_PORT, 2);
-	printf("EHCI Debug Port at offset 0x%x in map 0x%x", debug_port &
-	    PCIM_DEBUG_PORT_OFFSET, PCIR_BAR(debug_port >> 13));
+	printf("EHCI Debug Port at offset 0x%x in map 0x%x",
+	    debug_port & PCIM_DEBUG_PORT_OFFSET, PCIR_BAR(debug_port >> 13));
 }
 
 static void
@@ -376,7 +376,7 @@ cap_subvendor(int fd, struct pci_conf *p, uint8_t ptr)
 	printf("PCI Bridge subvendor=0x%04x subdevice=0x%04x", ssvid, ssid);
 }
 
-#define	MAX_PAYLOAD(field)		(128 << (field))
+#define MAX_PAYLOAD(field) (128 << (field))
 
 static const char *
 link_speed_string(uint8_t speed)
@@ -524,8 +524,8 @@ cap_express(int fd, struct pci_conf *p, uint8_t ptr)
 			    (ctl & PCIEM_CTL2_ARI) ? "enabled" : "disabled");
 		}
 	}
-	printf("\n                 max read %s", max_read_string((ctl &
-	    PCIEM_CTL_MAX_READ_REQUEST) >> 12));
+	printf("\n                 max read %s",
+	    max_read_string((ctl & PCIEM_CTL_MAX_READ_REQUEST) >> 12));
 	cap = read_config(fd, &p->pc_sel, ptr + PCIER_LINK_CAP, 4);
 	sta = read_config(fd, &p->pc_sel, ptr + PCIER_LINK_STA, 2);
 	if (cap == 0 && sta == 0)
@@ -534,9 +534,11 @@ cap_express(int fd, struct pci_conf *p, uint8_t ptr)
 	printf(" link x%d(x%d)", (sta & PCIEM_LINK_STA_WIDTH) >> 4,
 	    (cap & PCIEM_LINK_CAP_MAX_WIDTH) >> 4);
 	if ((cap & PCIEM_LINK_CAP_MAX_WIDTH) != 0) {
-		printf(" speed %s(%s)", (sta & PCIEM_LINK_STA_WIDTH) == 0 ?
-		    "0.0" : link_speed_string(sta & PCIEM_LINK_STA_SPEED),
-	    	    link_speed_string(cap & PCIEM_LINK_CAP_MAX_SPEED));
+		printf(" speed %s(%s)",
+		    (sta & PCIEM_LINK_STA_WIDTH) == 0 ?
+			"0.0" :
+			link_speed_string(sta & PCIEM_LINK_STA_SPEED),
+		    link_speed_string(cap & PCIEM_LINK_CAP_MAX_SPEED));
 	}
 	if ((cap & PCIEM_LINK_CAP_ASPM) != 0) {
 		ctl = read_config(fd, &p->pc_sel, ptr + PCIER_LINK_CTL, 2);
@@ -545,8 +547,8 @@ cap_express(int fd, struct pci_conf *p, uint8_t ptr)
 	}
 	if ((cap & PCIEM_LINK_CAP_CLOCK_PM) != 0) {
 		ctl = read_config(fd, &p->pc_sel, ptr + PCIER_LINK_CTL, 2);
-		printf(" ClockPM %s", (ctl & PCIEM_LINK_CTL_ECPM) ?
-		    "enabled" : "disabled");
+		printf(" ClockPM %s",
+		    (ctl & PCIEM_LINK_CTL_ECPM) ? "enabled" : "disabled");
 	}
 	if (!(flags & PCIEM_FLAGS_SLOT))
 		return;
@@ -557,8 +559,8 @@ cap_express(int fd, struct pci_conf *p, uint8_t ptr)
 	printf(" slot %d", (cap & PCIEM_SLOT_CAP_PSN) >> 19);
 	printf(" power limit %d mW", slot_power(cap));
 	if (cap & PCIEM_SLOT_CAP_HPC)
-		printf(" HotPlug(%s)", sta & PCIEM_SLOT_STA_PDS ? "present" :
-		    "empty");
+		printf(" HotPlug(%s)",
+		    sta & PCIEM_SLOT_STA_PDS ? "present" : "empty");
 	if (cap & PCIEM_SLOT_CAP_HPS)
 		printf(" surprise");
 	if (cap & PCIEM_SLOT_CAP_APB)
@@ -566,11 +568,11 @@ cap_express(int fd, struct pci_conf *p, uint8_t ptr)
 	if (cap & PCIEM_SLOT_CAP_PCP)
 		printf(" PC(%s)", ctl & PCIEM_SLOT_CTL_PCC ? "off" : "on");
 	if (cap & PCIEM_SLOT_CAP_MRLSP)
-		printf(" MRL(%s)", sta & PCIEM_SLOT_STA_MRLSS ? "open" :
-		    "closed");
+		printf(" MRL(%s)",
+		    sta & PCIEM_SLOT_STA_MRLSS ? "open" : "closed");
 	if (cap & PCIEM_SLOT_CAP_EIP)
-		printf(" EI(%s)", sta & PCIEM_SLOT_STA_EIS ? "engaged" :
-		    "disengaged");
+		printf(" EI(%s)",
+		    sta & PCIEM_SLOT_STA_EIS ? "engaged" : "disengaged");
 }
 
 static void
@@ -596,8 +598,8 @@ cap_msix(int fd, struct pci_conf *p, uint8_t ptr)
 	    (ctrl & PCIM_MSIXCTRL_MSIX_ENABLE) ? ", enabled" : "");
 
 	printf("                 ");
-	printf("Table in map 0x%x[0x%x], PBA in map 0x%x[0x%x]",
-	    table_bar, table_offset, pba_bar, pba_offset);
+	printf("Table in map 0x%x[0x%x], PBA in map 0x%x[0x%x]", table_bar,
+	    table_offset, pba_bar, pba_offset);
 }
 
 static void
@@ -615,18 +617,16 @@ cap_pciaf(int fd, struct pci_conf *p, uint8_t ptr)
 	cap = read_config(fd, &p->pc_sel, ptr + PCIR_PCIAF_CAP, 1);
 	printf("PCI Advanced Features:%s%s",
 	    cap & PCIM_PCIAFCAP_FLR ? " FLR" : "",
-	    cap & PCIM_PCIAFCAP_TP  ? " TP"  : "");
+	    cap & PCIM_PCIAFCAP_TP ? " TP" : "");
 }
 
 static const char *
 ea_bei_to_name(int bei)
 {
-	static const char *barstr[] = {
-		"BAR0", "BAR1", "BAR2", "BAR3", "BAR4", "BAR5"
-	};
-	static const char *vfbarstr[] = {
-		"VFBAR0", "VFBAR1", "VFBAR2", "VFBAR3", "VFBAR4", "VFBAR5"
-	};
+	static const char *barstr[] = { "BAR0", "BAR1", "BAR2", "BAR3", "BAR4",
+		"BAR5" };
+	static const char *vfbarstr[] = { "VFBAR0", "VFBAR1", "VFBAR2",
+		"VFBAR3", "VFBAR4", "VFBAR5" };
 
 	if ((bei >= PCIM_EA_BEI_BAR_0) && (bei <= PCIM_EA_BEI_BAR_5))
 		return (barstr[bei - PCIM_EA_BEI_BAR_0]);
@@ -735,21 +735,20 @@ cap_ea(int fd, struct pci_conf *p, uint8_t ptr)
 			base |= (uint64_t)dw[b] << 32UL;
 			b++;
 		}
-		if (((dw[1] & PCIM_EA_IS_64) != 0)
-			&& (b < ent_size)) {
+		if (((dw[1] & PCIM_EA_IS_64) != 0) && (b < ent_size)) {
 			max_offset |= (uint64_t)dw[b] << 32UL;
 			b++;
 		}
 
 		printf("\n\t\t [%d] %s, %s, %s, base [0x%jx], size [0x%jx]"
-		    "\n\t\t\tPrimary properties [0x%x] (%s)"
-		    "\n\t\t\tSecondary properties [0x%x] (%s)",
+		       "\n\t\t\tPrimary properties [0x%x] (%s)"
+		       "\n\t\t\tSecondary properties [0x%x] (%s)",
 		    bei, ea_bei_to_name(bei),
 		    (flags & PCIM_EA_ENABLE ? "Enabled" : "Disabled"),
 		    (flags & PCIM_EA_WRITABLE ? "Writable" : "Read-only"),
-		    (uintmax_t)base, (uintmax_t)(max_offset + 1),
-		    flags_pp, ea_prop_to_name(flags_pp),
-		    flags_sp, ea_prop_to_name(flags_sp));
+		    (uintmax_t)base, (uintmax_t)(max_offset + 1), flags_pp,
+		    ea_prop_to_name(flags_pp), flags_sp,
+		    ea_prop_to_name(flags_sp));
 	}
 }
 
@@ -922,8 +921,8 @@ ecap_vendor(int fd, struct pci_conf *p, uint16_t ptr, uint8_t ver)
 		len = nextptr - ptr;
 	}
 
-	printf("Vendor [%d] ID %04x Rev %d Length %d\n", ver,
-	    PCIR_VSEC_ID(hdr), PCIR_VSEC_REV(hdr), len);
+	printf("Vendor [%d] ID %04x Rev %d Length %d\n", ver, PCIR_VSEC_ID(hdr),
+	    PCIR_VSEC_REV(hdr), len);
 	if ((ver < 1) || (cap_level <= 1))
 		return;
 	for (i = 0; i < len; i += 4) {
@@ -932,7 +931,7 @@ ecap_vendor(int fd, struct pci_conf *p, uint16_t ptr, uint8_t ver)
 			printf("                 ");
 		printf("%02x %02x %02x %02x", val & 0xff, (val >> 8) & 0xff,
 		    (val >> 16) & 0xff, (val >> 24) & 0xff);
-		if ((((i + 4) % 16) == 0 ) || ((i + 4) >= len))
+		if ((((i + 4) % 16) == 0) || ((i + 4) >= len))
 			printf("\n");
 		else
 			printf(" ");
@@ -1038,7 +1037,7 @@ ecap_acs(int fd, struct pci_conf *p, uint16_t ptr, uint8_t ver)
 		return;
 	}
 
-#define	CHECK_AVAIL_STATE(bit) \
+#define CHECK_AVAIL_STATE(bit) \
 	check_avail_and_state(acs_cap, bit, acs_ctl, bit##_ENABLE)
 
 	acs_cap = read_config(fd, &p->pc_sel, ptr + PCIR_ACS_CAP, 2);
@@ -1059,13 +1058,15 @@ ecap_acs(int fd, struct pci_conf *p, uint16_t ptr, uint8_t ver)
 	printf("P2P Direct Translated %s, Enhanced Capability %s\n",
 	    CHECK_AVAIL_STATE(PCIM_ACS_P2P_DIRECT_TRANSLATED),
 	    acs_ctl & PCIM_ACS_ENHANCED_CAP ? "available" : "unavailable");
-#undef	CHECK_AVAIL_STATE
+#undef CHECK_AVAIL_STATE
 
 	if (acs_cap & PCIM_ACS_ENHANCED_CAP) {
 		printf("                     ");
-		printf("I/O Req Blocking %s, Unclaimed Req Redirect Control %s\n",
+		printf(
+		    "I/O Req Blocking %s, Unclaimed Req Redirect Control %s\n",
 		    check_enabled(acs_ctl & PCIM_ACS_IO_REQ_BLOCKING_ENABLE),
-		    check_enabled(acs_ctl & PCIM_ACS_UNCLAIMED_REQ_REDIRECT_CTL));
+		    check_enabled(
+			acs_ctl & PCIM_ACS_UNCLAIMED_REQ_REDIRECT_CTL));
 		printf("                     ");
 		printf("DSP BAR %s, USP BAR %s\n",
 		    acc[(acs_cap & PCIM_ACS_DSP_MEM_TGT_ACC_CTL) >> 8],
@@ -1076,39 +1077,27 @@ ecap_acs(int fd, struct pci_conf *p, uint16_t ptr, uint8_t ver)
 static struct {
 	uint16_t id;
 	const char *name;
-} ecap_names[] = {
-	{ PCIZ_AER, "AER" },
-	{ PCIZ_VC, "Virtual Channel" },
+} ecap_names[] = { { PCIZ_AER, "AER" }, { PCIZ_VC, "Virtual Channel" },
 	{ PCIZ_SERNUM, "Device Serial Number" },
 	{ PCIZ_PWRBDGT, "Power Budgeting" },
 	{ PCIZ_RCLINK_DCL, "Root Complex Link Declaration" },
 	{ PCIZ_RCLINK_CTL, "Root Complex Internal Link Control" },
 	{ PCIZ_RCEC_ASSOC, "Root Complex Event Collector ASsociation" },
-	{ PCIZ_MFVC, "MFVC" },
-	{ PCIZ_VC2, "Virtual Channel 2" },
-	{ PCIZ_RCRB, "RCRB" },
-	{ PCIZ_CAC, "Configuration Access Correction" },
-	{ PCIZ_ACS, "ACS" },
-	{ PCIZ_ARI, "ARI" },
-	{ PCIZ_ATS, "ATS" },
-	{ PCIZ_SRIOV, "SRIOV" },
-	{ PCIZ_MRIOV, "MRIOV" },
-	{ PCIZ_MULTICAST, "Multicast" },
-	{ PCIZ_PAGE_REQ, "Page Page Request" },
-	{ PCIZ_AMD, "AMD proprietary "},
-	{ PCIZ_RESIZE_BAR, "Resizable BAR" },
-	{ PCIZ_DPA, "DPA" },
-	{ PCIZ_TPH_REQ, "TPH Requester" },
-	{ PCIZ_LTR, "LTR" },
-	{ PCIZ_SEC_PCIE, "Secondary PCI Express" },
+	{ PCIZ_MFVC, "MFVC" }, { PCIZ_VC2, "Virtual Channel 2" },
+	{ PCIZ_RCRB, "RCRB" }, { PCIZ_CAC, "Configuration Access Correction" },
+	{ PCIZ_ACS, "ACS" }, { PCIZ_ARI, "ARI" }, { PCIZ_ATS, "ATS" },
+	{ PCIZ_SRIOV, "SRIOV" }, { PCIZ_MRIOV, "MRIOV" },
+	{ PCIZ_MULTICAST, "Multicast" }, { PCIZ_PAGE_REQ, "Page Page Request" },
+	{ PCIZ_AMD, "AMD proprietary " }, { PCIZ_RESIZE_BAR, "Resizable BAR" },
+	{ PCIZ_DPA, "DPA" }, { PCIZ_TPH_REQ, "TPH Requester" },
+	{ PCIZ_LTR, "LTR" }, { PCIZ_SEC_PCIE, "Secondary PCI Express" },
 	{ PCIZ_PMUX, "Protocol Multiplexing" },
 	{ PCIZ_PASID, "Process Address Space ID" },
 	{ PCIZ_LN_REQ, "LN Requester" },
 	{ PCIZ_DPC, "Downstream Port Containment" },
 	{ PCIZ_L1PM, "L1 PM Substates" },
 	{ PCIZ_PTM, "Precision Time Measurement" },
-	{ PCIZ_M_PCIE, "PCIe over M-PHY" },
-	{ PCIZ_FRS, "FRS Queuing" },
+	{ PCIZ_M_PCIE, "PCIe over M-PHY" }, { PCIZ_FRS, "FRS Queuing" },
 	{ PCIZ_RTR, "Readiness Time Reporting" },
 	{ PCIZ_DVSEC, "Designated Vendor-Specific" },
 	{ PCIZ_VF_REBAR, "VF Resizable BAR" },
@@ -1119,9 +1108,7 @@ static struct {
 	{ PCIZ_NPEM, "Native PCIe Enclosure Management" },
 	{ PCIZ_PL32, "Physical Layer 32.0 GT/s" },
 	{ PCIZ_AP, "Alternate Protocol" },
-	{ PCIZ_SFI, "System Firmware Intermediary" },
-	{ 0, NULL }
-};
+	{ PCIZ_SFI, "System Firmware Intermediary" }, { 0, NULL } };
 
 static void
 list_ecaps(int fd, struct pci_conf *p)

@@ -43,17 +43,18 @@
  */
 
 #include <sys/cdefs.h>
-#include "dhcpd.h"
 
+#include <netinet/if_ether.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #include <netinet/udp.h>
-#include <netinet/if_ether.h>
+
+#include "dhcpd.h"
 
 #define ETHER_HEADER_SIZE (ETHER_ADDR_LEN * 2 + sizeof(u_int16_t))
 
-u_int32_t	checksum(unsigned char *, unsigned, u_int32_t);
-u_int32_t	wrapsum(u_int32_t);
+u_int32_t checksum(unsigned char *, unsigned, u_int32_t);
+u_int32_t wrapsum(u_int32_t);
 
 u_int32_t
 checksum(unsigned char *buf, unsigned nbytes, u_int32_t sum)
@@ -130,15 +131,15 @@ assemble_udp_ip_header(unsigned char *buf, int *bufix, u_int32_t from,
 	memcpy(&buf[*bufix], &ip, sizeof(ip));
 	*bufix += sizeof(ip);
 
-	udp.uh_sport = htons(LOCAL_PORT);	/* XXX */
-	udp.uh_dport = port;			/* XXX */
+	udp.uh_sport = htons(LOCAL_PORT); /* XXX */
+	udp.uh_dport = port;		  /* XXX */
 	udp.uh_ulen = htons(sizeof(udp) + len);
 	memset(&udp.uh_sum, 0, sizeof(udp.uh_sum));
 
 	udp.uh_sum = wrapsum(checksum((unsigned char *)&udp, sizeof(udp),
-	    checksum(data, len, checksum((unsigned char *)&ip.ip_src,
-	    2 * sizeof(ip.ip_src),
-	    IPPROTO_UDP + (u_int32_t)ntohs(udp.uh_ulen)))));
+	    checksum(data, len,
+		checksum((unsigned char *)&ip.ip_src, 2 * sizeof(ip.ip_src),
+		    IPPROTO_UDP + (u_int32_t)ntohs(udp.uh_ulen)))));
 
 	memcpy(&buf[*bufix], &udp, sizeof(udp));
 	*bufix += sizeof(udp);
@@ -155,8 +156,9 @@ decode_hw_header(unsigned char *buf, int bufix, struct hardware *from)
 	from->htype = ARPHRD_ETHER;
 	from->hlen = sizeof(eh.ether_shost);
 
-	return (sizeof(eh) + (ntohs(eh.ether_type) == ETHERTYPE_VLAN ?
-	    ETHER_VLAN_ENCAP_LEN : 0));
+	return (sizeof(eh) +
+	    (ntohs(eh.ether_type) == ETHERTYPE_VLAN ? ETHER_VLAN_ENCAP_LEN :
+						      0));
 }
 
 ssize_t
@@ -210,7 +212,7 @@ decode_udp_ip_header(unsigned char *buf, int bufix, struct sockaddr_in *from,
 			udp_packets_length_overflow++;
 			if (udp_packets_length_checked > 4 &&
 			    (udp_packets_length_checked /
-			    udp_packets_length_overflow) < 2) {
+				udp_packets_length_overflow) < 2) {
 				note("%d udp packets in %d too long - dropped",
 				    udp_packets_length_overflow,
 				    udp_packets_length_checked);
@@ -227,9 +229,9 @@ decode_udp_ip_header(unsigned char *buf, int bufix, struct sockaddr_in *from,
 	udp->uh_sum = 0;
 
 	sum = wrapsum(checksum((unsigned char *)udp, sizeof(*udp),
-	    checksum(data, len, checksum((unsigned char *)&ip->ip_src,
-	    2 * sizeof(ip->ip_src),
-	    IPPROTO_UDP + (u_int32_t)ntohs(udp->uh_ulen)))));
+	    checksum(data, len,
+		checksum((unsigned char *)&ip->ip_src, 2 * sizeof(ip->ip_src),
+		    IPPROTO_UDP + (u_int32_t)ntohs(udp->uh_ulen)))));
 
 	udp_packets_seen++;
 	if (usum && usum != sum) {

@@ -27,20 +27,20 @@
  */
 
 #include <sys/param.h>
+
+#include <assert.h>
 #include <errno.h>
+#include <geom/shsec/g_shsec.h>
+#include <libgeom.h>
 #include <paths.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
 #include <strings.h>
-#include <assert.h>
-#include <libgeom.h>
-#include <geom/shsec/g_shsec.h>
 
 #include "core/geom.h"
 #include "misc/subr.h"
-
 
 uint32_t lib_version = G_LIB_VERSION;
 uint32_t version = G_SHSEC_VERSION;
@@ -50,29 +50,16 @@ static void shsec_clear(struct gctl_req *req);
 static void shsec_dump(struct gctl_req *req);
 static void shsec_label(struct gctl_req *req);
 
-struct g_command class_commands[] = {
-	{ "clear", G_FLAG_VERBOSE, shsec_main, G_NULL_OPTS,
-	    "[-v] prov ..."
-	},
-	{ "dump", 0, shsec_main, G_NULL_OPTS,
-	    "prov ..."
-	},
+struct g_command class_commands[] = { { "clear", G_FLAG_VERBOSE, shsec_main,
+					  G_NULL_OPTS, "[-v] prov ..." },
+	{ "dump", 0, shsec_main, G_NULL_OPTS, "prov ..." },
 	{ "label", G_FLAG_VERBOSE | G_FLAG_LOADKLD, shsec_main,
-	    {
-		{ 'h', "hardcode", NULL, G_TYPE_BOOL },
-		G_OPT_SENTINEL
-	    },
-	    "[-hv] name prov prov ..."
-	},
+	    { { 'h', "hardcode", NULL, G_TYPE_BOOL }, G_OPT_SENTINEL },
+	    "[-hv] name prov prov ..." },
 	{ "stop", G_FLAG_VERBOSE, NULL,
-	    {
-		{ 'f', "force", NULL, G_TYPE_BOOL },
-		G_OPT_SENTINEL
-	    },
-	    "[-fv] name ..."
-	},
-	G_CMD_SENTINEL
-};
+	    { { 'f', "force", NULL, G_TYPE_BOOL }, G_OPT_SENTINEL },
+	    "[-fv] name ..." },
+	G_CMD_SENTINEL };
 
 static int verbose = 0;
 
@@ -164,7 +151,8 @@ shsec_label(struct gctl_req *req)
 		if (compsize < msize - ssize) {
 			fprintf(stderr,
 			    "warning: %s: only %jd bytes from %jd bytes used.\n",
-			    name, (intmax_t)compsize, (intmax_t)(msize - ssize));
+			    name, (intmax_t)compsize,
+			    (intmax_t)(msize - ssize));
 		}
 
 		md.md_no = i - 1;
@@ -172,7 +160,8 @@ shsec_label(struct gctl_req *req)
 		if (!hardcode)
 			bzero(md.md_provider, sizeof(md.md_provider));
 		else {
-			if (strncmp(name, _PATH_DEV, sizeof(_PATH_DEV) - 1) == 0)
+			if (strncmp(name, _PATH_DEV, sizeof(_PATH_DEV) - 1) ==
+			    0)
 				name += sizeof(_PATH_DEV) - 1;
 			strlcpy(md.md_provider, name, sizeof(md.md_provider));
 		}

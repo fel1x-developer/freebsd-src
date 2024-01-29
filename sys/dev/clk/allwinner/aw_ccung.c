@@ -32,25 +32,22 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/rman.h>
+
 #include <machine/bus.h>
-
-#include <dev/fdt/simplebus.h>
-
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/clk/clk.h>
-#include <dev/clk/clk_gate.h>
-
-#include <dev/hwreset/hwreset.h>
 
 #include <dev/clk/allwinner/aw_ccung.h>
 #include <dev/clk/allwinner/aw_clk.h>
+#include <dev/clk/clk.h>
+#include <dev/clk/clk_gate.h>
+#include <dev/fdt/simplebus.h>
+#include <dev/hwreset/hwreset.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
 
 #ifdef __aarch64__
 #include "opt_soc.h"
@@ -60,18 +57,17 @@
 #include "hwreset_if.h"
 
 #if 0
-#define dprintf(format, arg...)	device_printf(dev, "%s: " format, __func__, arg)
+#define dprintf(format, arg...) device_printf(dev, "%s: " format, __func__, arg)
 #else
 #define dprintf(format, arg...)
 #endif
 
 static struct resource_spec aw_ccung_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ -1, 0 }
+	{ SYS_RES_MEMORY, 0, RF_ACTIVE }, { -1, 0 }
 };
 
-#define	CCU_READ4(sc, reg)		bus_read_4((sc)->res, (reg))
-#define	CCU_WRITE4(sc, reg, val)	bus_write_4((sc)->res, (reg), (val))
+#define CCU_READ4(sc, reg) bus_read_4((sc)->res, (reg))
+#define CCU_WRITE4(sc, reg, val) bus_write_4((sc)->res, (reg), (val))
 
 static int
 aw_ccung_write_4(device_t dev, bus_addr_t addr, uint32_t val)
@@ -218,7 +214,8 @@ aw_ccung_init_clocks(struct aw_ccung_softc *sc)
 
 		if (sc->clk_init[i].parent_name != NULL) {
 			if (bootverbose)
-				device_printf(sc->dev, "Setting %s as parent for %s\n",
+				device_printf(sc->dev,
+				    "Setting %s as parent for %s\n",
 				    sc->clk_init[i].parent_name,
 				    sc->clk_init[i].name);
 			error = clknode_set_parent_by_name(clknode,
@@ -238,7 +235,7 @@ aw_ccung_init_clocks(struct aw_ccung_softc *sc)
 				    sc->clk_init[i].default_freq,
 				    sc->clk_init[i].name);
 			error = clknode_set_freq(clknode,
-			    sc->clk_init[i].default_freq, 0 , 0);
+			    sc->clk_init[i].default_freq, 0, 0);
 			if (error != 0) {
 				device_printf(sc->dev,
 				    "Cannot set frequency for %s to %ju\n",
@@ -250,8 +247,7 @@ aw_ccung_init_clocks(struct aw_ccung_softc *sc)
 		if (sc->clk_init[i].enable) {
 			error = clknode_enable(clknode);
 			if (error != 0) {
-				device_printf(sc->dev,
-				    "Cannot enable %s\n",
+				device_printf(sc->dev, "Cannot enable %s\n",
 				    sc->clk_init[i].name);
 				continue;
 			}
@@ -342,15 +338,15 @@ aw_ccung_attach(device_t dev)
 
 static device_method_t aw_ccung_methods[] = {
 	/* clkdev interface */
-	DEVMETHOD(clkdev_write_4,	aw_ccung_write_4),
-	DEVMETHOD(clkdev_read_4,	aw_ccung_read_4),
-	DEVMETHOD(clkdev_modify_4,	aw_ccung_modify_4),
-	DEVMETHOD(clkdev_device_lock,	aw_ccung_device_lock),
-	DEVMETHOD(clkdev_device_unlock,	aw_ccung_device_unlock),
+	DEVMETHOD(clkdev_write_4, aw_ccung_write_4),
+	DEVMETHOD(clkdev_read_4, aw_ccung_read_4),
+	DEVMETHOD(clkdev_modify_4, aw_ccung_modify_4),
+	DEVMETHOD(clkdev_device_lock, aw_ccung_device_lock),
+	DEVMETHOD(clkdev_device_unlock, aw_ccung_device_unlock),
 
 	/* Reset interface */
-	DEVMETHOD(hwreset_assert,	aw_ccung_reset_assert),
-	DEVMETHOD(hwreset_is_asserted,	aw_ccung_reset_is_asserted),
+	DEVMETHOD(hwreset_assert, aw_ccung_reset_assert),
+	DEVMETHOD(hwreset_is_asserted, aw_ccung_reset_is_asserted),
 
 	DEVMETHOD_END
 };

@@ -32,11 +32,11 @@
 
 #include <sys/types.h>
 #include <sys/sysctl.h>
-#define	_WANT_SYSVMSG_INTERNALS
+#define _WANT_SYSVMSG_INTERNALS
 #include <sys/msg.h>
-#define	_WANT_SYSVSEM_INTERNALS
+#define _WANT_SYSVSEM_INTERNALS
 #include <sys/sem.h>
-#define	_WANT_SYSVSHM_INTERNALS
+#define _WANT_SYSVSHM_INTERNALS
 #include <sys/shm.h>
 
 #include <assert.h>
@@ -47,58 +47,55 @@
 
 #include "ipc.h"
 
-int	use_sysctl = 1;
-struct semid_kernel	*sema;
-struct seminfo		seminfo;
-struct msginfo		msginfo;
-struct msqid_kernel	*msqids;
-struct shminfo		shminfo;
-struct shmid_kernel	*shmsegs;
+int use_sysctl = 1;
+struct semid_kernel *sema;
+struct seminfo seminfo;
+struct msginfo msginfo;
+struct msqid_kernel *msqids;
+struct shminfo shminfo;
+struct shmid_kernel *shmsegs;
 
-struct nlist symbols[] = {
-	{ .n_name = "sema" },
-	{ .n_name = "seminfo" },
-	{ .n_name = "msginfo" },
-	{ .n_name = "msqids" },
-	{ .n_name = "shminfo" },
-	{ .n_name = "shmsegs" },
-	{ .n_name = NULL }
-};
+struct nlist symbols[] = { { .n_name = "sema" }, { .n_name = "seminfo" },
+	{ .n_name = "msginfo" }, { .n_name = "msqids" },
+	{ .n_name = "shminfo" }, { .n_name = "shmsegs" }, { .n_name = NULL } };
 
-#define	SHMINFO_XVEC	X(shmmax, sizeof(u_long))			\
-			X(shmmin, sizeof(u_long))			\
-			X(shmmni, sizeof(u_long))			\
-			X(shmseg, sizeof(u_long))			\
-			X(shmall, sizeof(u_long))
+#define SHMINFO_XVEC              \
+	X(shmmax, sizeof(u_long)) \
+	X(shmmin, sizeof(u_long)) \
+	X(shmmni, sizeof(u_long)) \
+	X(shmseg, sizeof(u_long)) \
+	X(shmall, sizeof(u_long))
 
-#define	SEMINFO_XVEC	X(semmni, sizeof(int))				\
-			X(semmns, sizeof(int))				\
-			X(semmnu, sizeof(int))				\
-			X(semmsl, sizeof(int))				\
-			X(semopm, sizeof(int))				\
-			X(semume, sizeof(int))				\
-			X(semusz, sizeof(int))				\
-			X(semvmx, sizeof(int))				\
-			X(semaem, sizeof(int))
+#define SEMINFO_XVEC           \
+	X(semmni, sizeof(int)) \
+	X(semmns, sizeof(int)) \
+	X(semmnu, sizeof(int)) \
+	X(semmsl, sizeof(int)) \
+	X(semopm, sizeof(int)) \
+	X(semume, sizeof(int)) \
+	X(semusz, sizeof(int)) \
+	X(semvmx, sizeof(int)) \
+	X(semaem, sizeof(int))
 
-#define	MSGINFO_XVEC	X(msgmax, sizeof(int))				\
-			X(msgmni, sizeof(int))				\
-			X(msgmnb, sizeof(int))				\
-			X(msgtql, sizeof(int))				\
-			X(msgssz, sizeof(int))				\
-			X(msgseg, sizeof(int))
+#define MSGINFO_XVEC           \
+	X(msgmax, sizeof(int)) \
+	X(msgmni, sizeof(int)) \
+	X(msgmnb, sizeof(int)) \
+	X(msgtql, sizeof(int)) \
+	X(msgssz, sizeof(int)) \
+	X(msgseg, sizeof(int))
 
-#define	X(a, b)	{ "kern.ipc." #a, offsetof(TYPEC, a), (b) },
-#define	TYPEC	struct shminfo
-static struct scgs_vector shminfo_scgsv[] = { SHMINFO_XVEC { .sysctl=NULL } };
-#undef	TYPEC
-#define	TYPEC	struct seminfo
-static struct scgs_vector seminfo_scgsv[] = { SEMINFO_XVEC { .sysctl=NULL } };
-#undef	TYPEC
-#define	TYPEC	struct msginfo
-static struct scgs_vector msginfo_scgsv[] = { MSGINFO_XVEC { .sysctl=NULL } };
-#undef	TYPEC
-#undef	X
+#define X(a, b) { "kern.ipc." #a, offsetof(TYPEC, a), (b) },
+#define TYPEC struct shminfo
+static struct scgs_vector shminfo_scgsv[] = { SHMINFO_XVEC { .sysctl = NULL } };
+#undef TYPEC
+#define TYPEC struct seminfo
+static struct scgs_vector seminfo_scgsv[] = { SEMINFO_XVEC { .sysctl = NULL } };
+#undef TYPEC
+#define TYPEC struct msginfo
+static struct scgs_vector msginfo_scgsv[] = { MSGINFO_XVEC { .sysctl = NULL } };
+#undef TYPEC
+#undef X
 
 kvm_t *kd;
 
@@ -112,8 +109,8 @@ sysctlgatherstruct(void *addr, size_t size, struct scgs_vector *vecarr)
 	for (xp = vecarr; xp->sysctl != NULL; xp++) {
 		assert(xp->offset <= size);
 		tsiz = xp->size;
-		rv = sysctlbyname(xp->sysctl, (char *)addr + xp->offset,
-		    &tsiz, NULL, 0);
+		rv = sysctlbyname(xp->sysctl, (char *)addr + xp->offset, &tsiz,
+		    NULL, 0);
 		if (rv == -1)
 			err(1, "sysctlbyname: %s", xp->sysctl);
 		if (tsiz != xp->size)
@@ -125,17 +122,14 @@ sysctlgatherstruct(void *addr, size_t size, struct scgs_vector *vecarr)
 void
 kget(int idx, void *addr, size_t size)
 {
-	const char *symn;		/* symbol name */
+	const char *symn; /* symbol name */
 	size_t tsiz;
 	int rv;
 	unsigned long kaddr;
-	const char *sym2sysctl[] = {	/* symbol to sysctl name table */
-		"kern.ipc.sema",
-		"kern.ipc.seminfo",
-		"kern.ipc.msginfo",
-		"kern.ipc.msqids",
-		"kern.ipc.shminfo",
-		"kern.ipc.shmsegs" };
+	const char *sym2sysctl[] = { /* symbol to sysctl name table */
+		"kern.ipc.sema", "kern.ipc.seminfo", "kern.ipc.msginfo",
+		"kern.ipc.msqids", "kern.ipc.shminfo", "kern.ipc.shmsegs"
+	};
 
 	assert((unsigned)idx <= sizeof(sym2sysctl) / sizeof(*sym2sysctl));
 	if (!use_sysctl) {
@@ -152,20 +146,17 @@ kget(int idx, void *addr, size_t size)
 		switch (idx) {
 		case X_MSQIDS:
 			tsiz = sizeof(msqids);
-			rv = kvm_read(kd, symbols[idx].n_value,
-			    &msqids, tsiz);
+			rv = kvm_read(kd, symbols[idx].n_value, &msqids, tsiz);
 			kaddr = (u_long)msqids;
 			break;
 		case X_SHMSEGS:
 			tsiz = sizeof(shmsegs);
-			rv = kvm_read(kd, symbols[idx].n_value,
-			    &shmsegs, tsiz);
+			rv = kvm_read(kd, symbols[idx].n_value, &shmsegs, tsiz);
 			kaddr = (u_long)shmsegs;
 			break;
 		case X_SEMA:
 			tsiz = sizeof(sema);
-			rv = kvm_read(kd, symbols[idx].n_value,
-			    &sema, tsiz);
+			rv = kvm_read(kd, symbols[idx].n_value, &sema, tsiz);
 			kaddr = (u_long)sema;
 			break;
 		default:
@@ -190,12 +181,13 @@ kget(int idx, void *addr, size_t size)
 			break;
 		default:
 			tsiz = size;
-			rv = sysctlbyname(sym2sysctl[idx], addr, &tsiz,
-			    NULL, 0);
+			rv = sysctlbyname(sym2sysctl[idx], addr, &tsiz, NULL,
+			    0);
 			if (rv == -1)
 				err(1, "sysctlbyname: %s", sym2sysctl[idx]);
 			if (tsiz != size)
-				errx(1, "%s size mismatch "
+				errx(1,
+				    "%s size mismatch "
 				    "(expected %zu, got %zu)",
 				    sym2sysctl[idx], size, tsiz);
 			break;

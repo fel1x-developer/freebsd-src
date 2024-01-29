@@ -32,8 +32,8 @@
  * the server side of kernel RPC-over-TLS by Rick Macklem.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/linker.h>
 #include <sys/module.h>
 #include <sys/queue.h>
@@ -42,103 +42,98 @@
 #include <sys/syslog.h>
 #include <sys/time.h>
 #include <sys/wait.h>
+
 #include <err.h>
 #include <getopt.h>
 #include <libutil.h>
 #include <netdb.h>
+#include <openssl/bio.h>
+#include <openssl/err.h>
+#include <openssl/opensslconf.h>
+#include <openssl/ssl.h>
+#include <openssl/x509v3.h>
 #include <pwd.h>
-#include <signal.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <string.h>
-#include <unistd.h>
-
 #include <rpc/rpc.h>
 #include <rpc/rpc_com.h>
 #include <rpc/rpcsec_tls.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
-#include <openssl/opensslconf.h>
-#include <openssl/bio.h>
-#include <openssl/ssl.h>
-#include <openssl/err.h>
-#include <openssl/x509v3.h>
-
-#include "rpctlssd.h"
 #include "rpc.tlscommon.h"
+#include "rpctlssd.h"
 
 #ifndef _PATH_RPCTLSSDSOCK
-#define _PATH_RPCTLSSDSOCK	"/var/run/rpc.tlsservd.sock"
+#define _PATH_RPCTLSSDSOCK "/var/run/rpc.tlsservd.sock"
 #endif
-#ifndef	_PATH_CERTANDKEY
-#define	_PATH_CERTANDKEY	"/etc/rpc.tlsservd/"
+#ifndef _PATH_CERTANDKEY
+#define _PATH_CERTANDKEY "/etc/rpc.tlsservd/"
 #endif
-#ifndef	_PATH_RPCTLSSDPID
-#define	_PATH_RPCTLSSDPID	"/var/run/rpc.tlsservd.pid"
+#ifndef _PATH_RPCTLSSDPID
+#define _PATH_RPCTLSSDPID "/var/run/rpc.tlsservd.pid"
 #endif
-#ifndef	_PREFERRED_CIPHERS
-#define	_PREFERRED_CIPHERS	"AES128-GCM-SHA256"
+#ifndef _PREFERRED_CIPHERS
+#define _PREFERRED_CIPHERS "AES128-GCM-SHA256"
 #endif
 
 /* Global variables also used by rpc.tlscommon.c. */
-int			rpctls_debug_level;
-bool			rpctls_verbose;
-SSL_CTX			*rpctls_ctx = NULL;
-const char		*rpctls_verify_cafile = NULL;
-const char		*rpctls_verify_capath = NULL;
-char			*rpctls_crlfile = NULL;
-bool			rpctls_gothup = false;
-struct ssl_list		rpctls_ssllist;
+int rpctls_debug_level;
+bool rpctls_verbose;
+SSL_CTX *rpctls_ctx = NULL;
+const char *rpctls_verify_cafile = NULL;
+const char *rpctls_verify_capath = NULL;
+char *rpctls_crlfile = NULL;
+bool rpctls_gothup = false;
+struct ssl_list rpctls_ssllist;
 
-static struct pidfh	*rpctls_pfh = NULL;
-static bool		rpctls_do_mutual = false;
-static const char	*rpctls_certdir = _PATH_CERTANDKEY;
-static bool		rpctls_comparehost = false;
-static unsigned int	rpctls_wildcard = X509_CHECK_FLAG_NO_WILDCARDS;
-static uint64_t		rpctls_ssl_refno = 0;
-static uint64_t		rpctls_ssl_sec = 0;
-static uint64_t		rpctls_ssl_usec = 0;
-static bool		rpctls_cnuser = false;
-static char		*rpctls_dnsname;
-static const char	*rpctls_cnuseroid = "1.3.6.1.4.1.2238.1.1.1";
-static const char	*rpctls_ciphers = NULL;
-static int		rpctls_mintls = TLS1_3_VERSION;
-static int		rpctls_procs = 1;
-static char		*rpctls_sockname[RPCTLS_SRV_MAXNPROCS];
-static pid_t		rpctls_workers[RPCTLS_SRV_MAXNPROCS - 1];
-static bool		rpctls_im_a_worker = false;
+static struct pidfh *rpctls_pfh = NULL;
+static bool rpctls_do_mutual = false;
+static const char *rpctls_certdir = _PATH_CERTANDKEY;
+static bool rpctls_comparehost = false;
+static unsigned int rpctls_wildcard = X509_CHECK_FLAG_NO_WILDCARDS;
+static uint64_t rpctls_ssl_refno = 0;
+static uint64_t rpctls_ssl_sec = 0;
+static uint64_t rpctls_ssl_usec = 0;
+static bool rpctls_cnuser = false;
+static char *rpctls_dnsname;
+static const char *rpctls_cnuseroid = "1.3.6.1.4.1.2238.1.1.1";
+static const char *rpctls_ciphers = NULL;
+static int rpctls_mintls = TLS1_3_VERSION;
+static int rpctls_procs = 1;
+static char *rpctls_sockname[RPCTLS_SRV_MAXNPROCS];
+static pid_t rpctls_workers[RPCTLS_SRV_MAXNPROCS - 1];
+static bool rpctls_im_a_worker = false;
 
-static void		rpctls_cleanup_term(int sig);
-static SSL_CTX		*rpctls_setup_ssl(const char *certdir);
-static SSL		*rpctls_server(SSL_CTX *ctx, int s,
-			    uint32_t *flags, uint32_t *uidp,
-			    int *ngrps, uint32_t *gidp, X509 **certp);
-static int		rpctls_cnname(X509 *cert, uint32_t *uidp,
-			    int *ngrps, uint32_t *gidp);
-static char		*rpctls_getdnsname(char *dnsname);
-static void		rpctls_huphandler(int sig __unused);
+static void rpctls_cleanup_term(int sig);
+static SSL_CTX *rpctls_setup_ssl(const char *certdir);
+static SSL *rpctls_server(SSL_CTX *ctx, int s, uint32_t *flags, uint32_t *uidp,
+    int *ngrps, uint32_t *gidp, X509 **certp);
+static int rpctls_cnname(X509 *cert, uint32_t *uidp, int *ngrps,
+    uint32_t *gidp);
+static char *rpctls_getdnsname(char *dnsname);
+static void rpctls_huphandler(int sig __unused);
 
-extern void		rpctlssd_1(struct svc_req *rqstp, SVCXPRT *transp);
+extern void rpctlssd_1(struct svc_req *rqstp, SVCXPRT *transp);
 
-static struct option longopts[] = {
-	{ "allowtls1_2",	no_argument,		NULL,	'2' },
-	{ "ciphers",		required_argument,	NULL,	'C' },
-	{ "certdir",		required_argument,	NULL,	'D' },
-	{ "debuglevel",		no_argument,		NULL,	'd' },
-	{ "checkhost",		no_argument,		NULL,	'h' },
-	{ "verifylocs",		required_argument,	NULL,	'l' },
-	{ "mutualverf",		no_argument,		NULL,	'm' },
-	{ "numdaemons",		required_argument,	NULL,	'N' },
-	{ "domain",		required_argument,	NULL,	'n' },
-	{ "verifydir",		required_argument,	NULL,	'p' },
-	{ "crl",		required_argument,	NULL,	'r' },
-	{ "certuser",		no_argument,		NULL,	'u' },
-	{ "verbose",		no_argument,		NULL,	'v' },
-	{ "multiwild",		no_argument,		NULL,	'W' },
-	{ "singlewild",		no_argument,		NULL,	'w' },
-	{ NULL,			0,			NULL,	0  }
-};
+static struct option longopts[] = { { "allowtls1_2", no_argument, NULL, '2' },
+	{ "ciphers", required_argument, NULL, 'C' },
+	{ "certdir", required_argument, NULL, 'D' },
+	{ "debuglevel", no_argument, NULL, 'd' },
+	{ "checkhost", no_argument, NULL, 'h' },
+	{ "verifylocs", required_argument, NULL, 'l' },
+	{ "mutualverf", no_argument, NULL, 'm' },
+	{ "numdaemons", required_argument, NULL, 'N' },
+	{ "domain", required_argument, NULL, 'n' },
+	{ "verifydir", required_argument, NULL, 'p' },
+	{ "crl", required_argument, NULL, 'r' },
+	{ "certuser", no_argument, NULL, 'u' },
+	{ "verbose", no_argument, NULL, 'v' },
+	{ "multiwild", no_argument, NULL, 'W' },
+	{ "singlewild", no_argument, NULL, 'w' }, { NULL, 0, NULL, 0 } };
 
 int
 main(int argc, char **argv)
@@ -170,7 +165,8 @@ main(int argc, char **argv)
 	/* Check to see that the ktls is enabled. */
 	tls_enable_len = sizeof(tls_enable);
 	if (sysctlbyname("kern.ipc.tls.enable", &tls_enable, &tls_enable_len,
-	    NULL, 0) != 0 || !tls_enable)
+		NULL, 0) != 0 ||
+	    !tls_enable)
 		errx(1, "Kernel TLS not enabled");
 
 	/* Get the time when this daemon is started. */
@@ -194,7 +190,7 @@ main(int argc, char **argv)
 
 	rpctls_verbose = false;
 	while ((ch = getopt_long(argc, argv, "2C:D:dhl:N:n:mp:r:uvWw", longopts,
-	    NULL)) != -1) {
+		    NULL)) != -1) {
 		switch (ch) {
 		case '2':
 			rpctls_mintls = TLS1_2_VERSION;
@@ -221,8 +217,10 @@ main(int argc, char **argv)
 			rpctls_procs = atoi(optarg);
 			if (rpctls_procs < 1 ||
 			    rpctls_procs > RPCTLS_SRV_MAXNPROCS)
-				errx(1, "numdaemons/-N must be between 1 and "
-				    "%d", RPCTLS_SRV_MAXNPROCS);
+				errx(1,
+				    "numdaemons/-N must be between 1 and "
+				    "%d",
+				    RPCTLS_SRV_MAXNPROCS);
 			break;
 		case 'n':
 			hostname[0] = '@';
@@ -243,18 +241,21 @@ main(int argc, char **argv)
 			break;
 		case 'W':
 			if (rpctls_wildcard != X509_CHECK_FLAG_NO_WILDCARDS)
-				errx(1, "options -w and -W are mutually "
+				errx(1,
+				    "options -w and -W are mutually "
 				    "exclusive");
 			rpctls_wildcard = X509_CHECK_FLAG_MULTI_LABEL_WILDCARDS;
 			break;
 		case 'w':
 			if (rpctls_wildcard != X509_CHECK_FLAG_NO_WILDCARDS)
-				errx(1, "options -w and -W are mutually "
+				errx(1,
+				    "options -w and -W are mutually "
 				    "exclusive");
 			rpctls_wildcard = 0;
 			break;
 		default:
-			fprintf(stderr, "usage: %s "
+			fprintf(stderr,
+			    "usage: %s "
 			    "[-2/--allowtls1_2] "
 			    "[-C/--ciphers available_ciphers] "
 			    "[-D/--certdir certdir] [-d/--debuglevel] "
@@ -264,24 +265,30 @@ main(int argc, char **argv)
 			    "[-n/--domain domain_name] "
 			    "[-p/--verifydir CApath] [-r/--crl CRLfile] "
 			    "[-u/--certuser] [-v/--verbose] [-W/--multiwild] "
-			    "[-w/--singlewild]\n", argv[0]);
+			    "[-w/--singlewild]\n",
+			    argv[0]);
 			exit(1);
 		}
 	}
 	if (rpctls_do_mutual && rpctls_verify_cafile == NULL &&
 	    rpctls_verify_capath == NULL)
-		errx(1, "-m requires the -l <CAfile> and/or "
+		errx(1,
+		    "-m requires the -l <CAfile> and/or "
 		    "-p <CApath> options");
-	if (rpctls_comparehost && (!rpctls_do_mutual ||
-	    (rpctls_verify_cafile == NULL && rpctls_verify_capath == NULL)))
-		errx(1, "-h requires the -m plus the "
+	if (rpctls_comparehost &&
+	    (!rpctls_do_mutual ||
+		(rpctls_verify_cafile == NULL && rpctls_verify_capath == NULL)))
+		errx(1,
+		    "-h requires the -m plus the "
 		    "-l <CAfile> and/or -p <CApath> options");
-	if (!rpctls_comparehost && rpctls_wildcard !=
-	    X509_CHECK_FLAG_NO_WILDCARDS)
+	if (!rpctls_comparehost &&
+	    rpctls_wildcard != X509_CHECK_FLAG_NO_WILDCARDS)
 		errx(1, "The -w or -W options require the -h option");
-	if (rpctls_cnuser && (!rpctls_do_mutual ||
-	    (rpctls_verify_cafile == NULL && rpctls_verify_capath == NULL)))
-		errx(1, "-u requires the -m plus the "
+	if (rpctls_cnuser &&
+	    (!rpctls_do_mutual ||
+		(rpctls_verify_cafile == NULL && rpctls_verify_capath == NULL)))
+		errx(1,
+		    "-u requires the -m plus the "
 		    "-l <CAfile> and/or -p <CApath> options");
 
 	if (modfind("krpc") < 0) {
@@ -353,7 +360,7 @@ main(int argc, char **argv)
 		}
 		err(1, "Can't create local rpctlssd socket");
 	}
-	oldmask = umask(S_IXUSR|S_IRWXG|S_IRWXO);
+	oldmask = umask(S_IXUSR | S_IRWXG | S_IRWXO);
 	if (bind(fd, (struct sockaddr *)&sun, sun.sun_len) < 0) {
 		if (rpctls_debug_level == 0) {
 			syslog(LOG_ERR, "Can't bind local rpctlssd socket");
@@ -399,7 +406,8 @@ main(int argc, char **argv)
 	rpctls_gothup = false;
 	LIST_INIT(&rpctls_ssllist);
 
-	if (rpctls_syscall(RPCTLS_SYSC_SRVSETPATH, rpctls_sockname[mypos]) < 0){
+	if (rpctls_syscall(RPCTLS_SYSC_SRVSETPATH, rpctls_sockname[mypos]) <
+	    0) {
 		if (rpctls_debug_level == 0) {
 			syslog(LOG_ERR,
 			    "Can't set upcall socket path=%s errno=%d",
@@ -426,8 +434,8 @@ rpctlssd_null_1_svc(__unused void *argp, __unused void *result,
 }
 
 bool_t
-rpctlssd_connect_1_svc(__unused void *argp,
-    struct rpctlssd_connect_res *result, __unused struct svc_req *rqstp)
+rpctlssd_connect_1_svc(__unused void *argp, struct rpctlssd_connect_res *result,
+    __unused struct svc_req *rqstp)
 {
 	int ngrps, s;
 	SSL *ssl;
@@ -450,7 +458,7 @@ rpctlssd_connect_1_svc(__unused void *argp,
 	if (ssl == NULL) {
 		free(gidp);
 		rpctls_verbose_out("rpctlssd_connect_svc: ssl "
-		    "accept failed\n");
+				   "accept failed\n");
 		/*
 		 * For RPC-over-TLS, this upcall is expected
 		 * to close off the socket upon handshake failure.
@@ -459,7 +467,8 @@ rpctlssd_connect_1_svc(__unused void *argp,
 		return (FALSE);
 	} else {
 		rpctls_verbose_out("rpctlssd_connect_svc: "
-		    "succeeded flags=0x%x\n", flags);
+				   "succeeded flags=0x%x\n",
+		    flags);
 		result->flags = flags;
 		result->sec = rpctls_ssl_sec;
 		result->usec = rpctls_ssl_usec;
@@ -498,17 +507,15 @@ rpctlssd_handlerecord_1_svc(struct rpctlssd_handlerecord_arg *argp,
 	char junk;
 
 	slp = NULL;
-	if (argp->sec == rpctls_ssl_sec && argp->usec ==
-	    rpctls_ssl_usec) {
-		LIST_FOREACH(slp, &rpctls_ssllist, next) {
+	if (argp->sec == rpctls_ssl_sec && argp->usec == rpctls_ssl_usec) {
+		LIST_FOREACH (slp, &rpctls_ssllist, next) {
 			if (slp->refno == argp->ssl)
 				break;
 		}
 	}
 
 	if (slp != NULL) {
-		rpctls_verbose_out("rpctlssd_handlerecord fd=%d\n",
-		    slp->s);
+		rpctls_verbose_out("rpctlssd_handlerecord fd=%d\n", slp->s);
 		/*
 		 * An SSL_read() of 0 bytes should fail, but it should
 		 * handle the non-application data record before doing so.
@@ -517,8 +524,9 @@ rpctlssd_handlerecord_1_svc(struct rpctlssd_handlerecord_arg *argp,
 		if (ret <= 0) {
 			/* Check to see if this was a close alert. */
 			ret = SSL_get_shutdown(slp->ssl);
-			if ((ret & (SSL_SENT_SHUTDOWN |
-			    SSL_RECEIVED_SHUTDOWN)) == SSL_RECEIVED_SHUTDOWN)
+			if ((ret &
+				(SSL_SENT_SHUTDOWN | SSL_RECEIVED_SHUTDOWN)) ==
+			    SSL_RECEIVED_SHUTDOWN)
 				SSL_shutdown(slp->ssl);
 		} else {
 			if (rpctls_debug_level == 0)
@@ -540,9 +548,8 @@ rpctlssd_disconnect_1_svc(struct rpctlssd_disconnect_arg *argp,
 	int ret;
 
 	slp = NULL;
-	if (argp->sec == rpctls_ssl_sec && argp->usec ==
-	    rpctls_ssl_usec) {
-		LIST_FOREACH(slp, &rpctls_ssllist, next) {
+	if (argp->sec == rpctls_ssl_sec && argp->usec == rpctls_ssl_usec) {
+		LIST_FOREACH (slp, &rpctls_ssllist, next) {
 			if (slp->refno == argp->ssl)
 				break;
 		}
@@ -602,7 +609,7 @@ rpctls_cleanup_term(int sig)
 
 	if (rpctls_im_a_worker && sig == SIGCHLD)
 		return;
-	LIST_FOREACH(slp, &rpctls_ssllist, next)
+	LIST_FOREACH (slp, &rpctls_ssllist, next)
 		shutdown(slp->s, SHUT_RD);
 	SSL_CTX_free(rpctls_ctx);
 	EVP_cleanup();
@@ -662,7 +669,8 @@ rpctls_setup_ssl(const char *certdir)
 		 */
 		ret = SSL_CTX_set_ciphersuites(ctx, rpctls_ciphers);
 		if (ret == 0) {
-			rpctls_verbose_out("rpctls_setup_ssl: "
+			rpctls_verbose_out(
+			    "rpctls_setup_ssl: "
 			    "SSL_CTX_set_ciphersuites failed: %s\n",
 			    rpctls_ciphers);
 			SSL_CTX_free(ctx);
@@ -673,14 +681,14 @@ rpctls_setup_ssl(const char *certdir)
 	ret = SSL_CTX_set_min_proto_version(ctx, rpctls_mintls);
 	if (ret == 0) {
 		rpctls_verbose_out("rpctls_setup_ssl: "
-		    "SSL_CTX_set_min_proto_version failed\n");
+				   "SSL_CTX_set_min_proto_version failed\n");
 		SSL_CTX_free(ctx);
 		return (NULL);
 	}
 	ret = SSL_CTX_set_max_proto_version(ctx, TLS1_3_VERSION);
 	if (ret == 0) {
 		rpctls_verbose_out("rpctls_setup_ssl: "
-		    "SSL_CTX_set_max_proto_version failed\n");
+				   "SSL_CTX_set_max_proto_version failed\n");
 		SSL_CTX_free(ctx);
 		return (NULL);
 	}
@@ -695,7 +703,8 @@ rpctls_setup_ssl(const char *certdir)
 	ret = SSL_CTX_use_certificate_file(ctx, path, SSL_FILETYPE_PEM);
 	if (ret != 1) {
 		rpctls_verbose_out("rpctls_setup_ssl: can't use certificate "
-		    "file path=%s ret=%d\n", path, ret);
+				   "file path=%s ret=%d\n",
+		    path, ret);
 		SSL_CTX_free(ctx);
 		return (NULL);
 	}
@@ -706,7 +715,8 @@ rpctls_setup_ssl(const char *certdir)
 	ret = SSL_CTX_use_PrivateKey_file(ctx, path, SSL_FILETYPE_PEM);
 	if (ret != 1) {
 		rpctls_verbose_out("rpctls_setup_ssl: Can't use private "
-		    "key path=%s ret=%d\n", path, ret);
+				   "key path=%s ret=%d\n",
+		    path, ret);
 		SSL_CTX_free(ctx);
 		return (NULL);
 	}
@@ -718,7 +728,8 @@ rpctls_setup_ssl(const char *certdir)
 			if (rpctls_crlfile != NULL) {
 				ret = rpctls_loadcrlfile(ctx);
 				if (ret == 0) {
-					rpctls_verbose_out("rpctls_setup_ssl:"
+					rpctls_verbose_out(
+					    "rpctls_setup_ssl:"
 					    " Load CRLfile failed\n");
 					SSL_CTX_free(ctx);
 					return (NULL);
@@ -737,7 +748,8 @@ rpctls_setup_ssl(const char *certdir)
 			    rpctls_verify_cafile, rpctls_verify_capath);
 #endif
 			if (ret == 0) {
-				rpctls_verbose_out("rpctls_setup_ssl: "
+				rpctls_verbose_out(
+				    "rpctls_setup_ssl: "
 				    "Can't load verify locations\n");
 				SSL_CTX_free(ctx);
 				return (NULL);
@@ -745,7 +757,7 @@ rpctls_setup_ssl(const char *certdir)
 			if (rpctls_verify_cafile != NULL)
 				SSL_CTX_set_client_CA_list(ctx,
 				    SSL_load_client_CA_file(
-			    rpctls_verify_cafile));
+					rpctls_verify_cafile));
 		}
 		SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER,
 		    rpctls_verify_callback);
@@ -760,8 +772,8 @@ rpctls_setup_ssl(const char *certdir)
 }
 
 static SSL *
-rpctls_server(SSL_CTX *ctx, int s, uint32_t *flags, uint32_t *uidp,
-    int *ngrps, uint32_t *gidp, X509 **certp)
+rpctls_server(SSL_CTX *ctx, int s, uint32_t *flags, uint32_t *uidp, int *ngrps,
+    uint32_t *gidp, X509 **certp)
 {
 	SSL *ssl;
 	X509 *cert;
@@ -788,7 +800,8 @@ rpctls_server(SSL_CTX *ctx, int s, uint32_t *flags, uint32_t *uidp,
 	ret = SSL_accept(ssl);
 	if (ret != 1) {
 		rpctls_verbose_out("rpctls_server: SSL_accept "
-		    "failed ret=%d\n", ret);
+				   "failed ret=%d\n",
+		    ret);
 		SSL_free(ssl);
 		return (NULL);
 	}
@@ -798,8 +811,8 @@ rpctls_server(SSL_CTX *ctx, int s, uint32_t *flags, uint32_t *uidp,
 		if (gethostret == 0)
 			hostnam[0] = '\0';
 		rpctls_verbose_out("rpctls_server: SSL handshake ok for host %s"
-		    " <%s %s>\n", hostnam, SSL_get_version(ssl),
-		    SSL_get_cipher(ssl));
+				   " <%s %s>\n",
+		    hostnam, SSL_get_version(ssl), SSL_get_cipher(ssl));
 	}
 	if (rpctls_do_mutual) {
 #if OPENSSL_VERSION_NUMBER >= 0x30000000
@@ -814,32 +827,32 @@ rpctls_server(SSL_CTX *ctx, int s, uint32_t *flags, uint32_t *uidp,
 				if (gethostret == 0)
 					hostnam[0] = '\0';
 			}
-			cp2 = X509_NAME_oneline(
-			    X509_get_subject_name(cert), NULL, 0);
+			cp2 = X509_NAME_oneline(X509_get_subject_name(cert),
+			    NULL, 0);
 			*flags |= RPCTLS_FLAGS_GOTCERT;
 			verfret = SSL_get_verify_result(ssl);
 			if (verfret != X509_V_OK) {
-				cp = X509_NAME_oneline(
-				    X509_get_issuer_name(cert), NULL, 0);
+				cp = X509_NAME_oneline(X509_get_issuer_name(
+							   cert),
+				    NULL, 0);
 				if (rpctls_debug_level == 0)
 					syslog(LOG_INFO | LOG_DAEMON,
 					    "rpctls_server: client IP %s "
 					    "issuerName=%s subjectName=%s"
-					    " verify failed %s\n", hostnam,
-					    cp, cp2,
+					    " verify failed %s\n",
+					    hostnam, cp, cp2,
 					    X509_verify_cert_error_string(
-					    verfret));
+						verfret));
 				else
 					fprintf(stderr,
 					    "rpctls_server: client IP %s "
 					    "issuerName=%s subjectName=%s"
-					    " verify failed %s\n", hostnam,
-					    cp, cp2,
+					    " verify failed %s\n",
+					    hostnam, cp, cp2,
 					    X509_verify_cert_error_string(
-					    verfret));
+						verfret));
 			}
-			if (verfret ==
-			    X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT ||
+			if (verfret == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT ||
 			    verfret == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN)
 				*flags |= RPCTLS_FLAGS_SELFSIGNED;
 			else if (verfret == X509_V_OK) {
@@ -849,8 +862,7 @@ rpctls_server(SSL_CTX *ctx, int s, uint32_t *flags, uint32_t *uidp,
 						ret = rpctls_checkhost(sad,
 						    cert, rpctls_wildcard);
 					if (ret != 1) {
-						*flags |=
-						    RPCTLS_FLAGS_DISABLED;
+						*flags |= RPCTLS_FLAGS_DISABLED;
 						rpctls_verbose_out(
 						    "rpctls_server: "
 						    "checkhost "
@@ -858,8 +870,8 @@ rpctls_server(SSL_CTX *ctx, int s, uint32_t *flags, uint32_t *uidp,
 					}
 				}
 				if (rpctls_cnuser) {
-					ret = rpctls_cnname(cert, uidp,
-					    ngrps, gidp);
+					ret = rpctls_cnname(cert, uidp, ngrps,
+					    gidp);
 					if (ret != 0)
 						*flags |= RPCTLS_FLAGS_CERTUSER;
 				}
@@ -871,7 +883,7 @@ rpctls_server(SSL_CTX *ctx, int s, uint32_t *flags, uint32_t *uidp,
 				X509_free(cert);
 		} else
 			rpctls_verbose_out("rpctls_server: "
-			    "No peer certificate\n");
+					   "No peer certificate\n");
 	}
 
 	/* Check to see that ktls is working for the connection. */
@@ -909,18 +921,18 @@ rpctls_getdnsname(char *hostname)
 
 	dnsname = NULL;
 	if (gethostname(hostname, MAXHOSTNAMELEN) == 0) {
-		if ((cp = strchr(hostname, '.')) != NULL &&
-		    *(cp + 1) != '\0') {
+		if ((cp = strchr(hostname, '.')) != NULL && *(cp + 1) != '\0') {
 			*cp = '@';
 			dnsname = cp;
 		} else {
-			memset((void *)&hints, 0, sizeof (hints));
+			memset((void *)&hints, 0, sizeof(hints));
 			hints.ai_flags = AI_CANONNAME;
 			error = getaddrinfo(hostname, NULL, &hints, &aip);
 			if (error == 0) {
 				if (aip->ai_canonname != NULL &&
 				    (cp = strchr(aip->ai_canonname, '.')) !=
-				    NULL && *(cp + 1) != '\0') {
+					NULL &&
+				    *(cp + 1) != '\0') {
 					hostname[0] = '@';
 					strlcpy(&hostname[1], cp + 1,
 					    MAXHOSTNAMELEN + 1);
@@ -963,17 +975,18 @@ rpctls_cnname(X509 *cert, uint32_t *uidp, int *ngrps, uint32_t *gidp)
 
 		/* Check to see that it is the correct OID. */
 		slen = i2t_ASN1_OBJECT(usern, sizeof(usern), val->type_id);
-		if (slen != strlen(rpctls_cnuseroid) || memcmp(usern,
-		    rpctls_cnuseroid, slen) != 0)
+		if (slen != strlen(rpctls_cnuseroid) ||
+		    memcmp(usern, rpctls_cnuseroid, slen) != 0)
 			continue;
 
 		/* Sanity check the otherName. */
 		if (val->value->type != V_ASN1_UTF8STRING ||
 		    val->value->value.utf8string->length < 3 ||
-		    (size_t)val->value->value.utf8string->length > sizeof(usern)
-		    - 1) {
+		    (size_t)val->value->value.utf8string->length >
+			sizeof(usern) - 1) {
 			rpctls_verbose_out("rpctls_cnname: invalid cnuser "
-			    "type=%d\n", val->value->type);
+					   "type=%d\n",
+			    val->value->type);
 			continue;
 		}
 

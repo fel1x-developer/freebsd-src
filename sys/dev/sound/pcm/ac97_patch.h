@@ -26,10 +26,10 @@
  * SUCH DAMAGE.
  */
 
-typedef void (*ac97_patch)(struct ac97_info*);
+typedef void (*ac97_patch)(struct ac97_info *);
 
-void ad1886_patch(struct ac97_info*);
-void ad198x_patch(struct ac97_info*);
-void ad1981b_patch(struct ac97_info*);
-void cmi9739_patch(struct ac97_info*);
-void alc655_patch(struct ac97_info*);
+void ad1886_patch(struct ac97_info *);
+void ad198x_patch(struct ac97_info *);
+void ad1981b_patch(struct ac97_info *);
+void cmi9739_patch(struct ac97_info *);
+void alc655_patch(struct ac97_info *);

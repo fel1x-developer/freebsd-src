@@ -30,8 +30,6 @@
  */
 
 #include <sys/types.h>
-#include <ufs/ufs/dinode.h>
-#include <ufs/ffs/fs.h>
 
 #include <errno.h>
 #include <libufs.h>
@@ -39,6 +37,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
 
 #include "fstyp.h"
 

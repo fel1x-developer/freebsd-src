@@ -29,23 +29,22 @@
  * SUCH DAMAGE.
  */
 
-
 #include <sys/param.h>
-#include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/time.h>
 
-#include <stdlib.h>
+#include <kvm.h>
 #include <limits.h>
 #include <nlist.h>
-#include <kvm.h>
+#include <stdlib.h>
 
 #include "kvm_private.h"
 
 static struct nlist nl[] = {
 	{ .n_name = "_averunnable" },
-#define	X_AVERUNNABLE	0
+#define X_AVERUNNABLE 0
 	{ .n_name = "_fscale" },
-#define	X_FSCALE	1
+#define X_FSCALE 1
 	{ .n_name = "" },
 };
 
@@ -71,8 +70,8 @@ kvm_getloadavg(kvm_t *kd, double loadavg[], int nelem)
 	}
 
 	if (kvm_nlist(kd, nl) != 0 && nl[X_AVERUNNABLE].n_type == 0) {
-		_kvm_err(kd, kd->program,
-		    "%s: no such symbol", nl[X_AVERUNNABLE].n_name);
+		_kvm_err(kd, kd->program, "%s: no such symbol",
+		    nl[X_AVERUNNABLE].n_name);
 		return (-1);
 	}
 
@@ -93,6 +92,6 @@ kvm_getloadavg(kvm_t *kd, double loadavg[], int nelem)
 
 	nelem = MIN(nelem, (int)(sizeof(loadinfo.ldavg) / sizeof(fixpt_t)));
 	for (i = 0; i < nelem; i++)
-		loadavg[i] = (double) loadinfo.ldavg[i] / loadinfo.fscale;
+		loadavg[i] = (double)loadinfo.ldavg[i] / loadinfo.fscale;
 	return (nelem);
 }

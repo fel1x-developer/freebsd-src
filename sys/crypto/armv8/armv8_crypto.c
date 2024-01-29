@@ -40,9 +40,9 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
 #include <sys/module.h>
@@ -52,15 +52,15 @@
 
 #include <machine/vfp.h>
 
-#include <opencrypto/cryptodev.h>
-#include <opencrypto/gmac.h>
-#include <cryptodev_if.h>
 #include <crypto/armv8/armv8_crypto.h>
 #include <crypto/rijndael/rijndael.h>
+#include <cryptodev_if.h>
+#include <opencrypto/cryptodev.h>
+#include <opencrypto/gmac.h>
 
 struct armv8_crypto_softc {
-	int32_t		cid;
-	bool		has_pmul;
+	int32_t cid;
+	bool has_pmul;
 };
 
 static int armv8_crypto_cipher_process(struct armv8_crypto_session *,
@@ -121,7 +121,8 @@ armv8_crypto_attach(device_t dev)
 		sc->has_pmul = true;
 
 	sc->cid = crypto_get_driverid(dev, sizeof(struct armv8_crypto_session),
-	    CRYPTOCAP_F_SOFTWARE | CRYPTOCAP_F_SYNC | CRYPTOCAP_F_ACCEL_SOFTWARE);
+	    CRYPTOCAP_F_SOFTWARE | CRYPTOCAP_F_SYNC |
+		CRYPTOCAP_F_ACCEL_SOFTWARE);
 	if (sc->cid < 0) {
 		device_printf(dev, "Could not get crypto driver id.\n");
 		return (ENOMEM);
@@ -145,8 +146,7 @@ armv8_crypto_detach(device_t dev)
 #define SUPPORTED_SES (CSP_F_SEPARATE_OUTPUT | CSP_F_SEPARATE_AAD)
 
 static int
-armv8_crypto_probesession(device_t dev,
-    const struct crypto_session_params *csp)
+armv8_crypto_probesession(device_t dev, const struct crypto_session_params *csp)
 {
 	struct armv8_crypto_softc *sc;
 
@@ -232,16 +232,15 @@ armv8_crypto_cipher_setup(struct armv8_crypto_session *ses,
 
 	fpu_kern_enter(curthread, NULL, FPU_KERN_NORMAL | FPU_KERN_NOCTX);
 
-	aes_v8_set_encrypt_key(key,
-	    keylen * 8, &ses->enc_schedule);
+	aes_v8_set_encrypt_key(key, keylen * 8, &ses->enc_schedule);
 
 	if ((csp->csp_cipher_alg == CRYPTO_AES_XTS) ||
 	    (csp->csp_cipher_alg == CRYPTO_AES_CBC))
-		aes_v8_set_decrypt_key(key,
-		    keylen * 8, &ses->dec_schedule);
+		aes_v8_set_decrypt_key(key, keylen * 8, &ses->dec_schedule);
 
 	if (csp->csp_cipher_alg == CRYPTO_AES_XTS)
-		aes_v8_set_encrypt_key(key + keylen, keylen * 8, &ses->xts_schedule);
+		aes_v8_set_encrypt_key(key + keylen, keylen * 8,
+		    &ses->xts_schedule);
 
 	if (csp->csp_cipher_alg == CRYPTO_AES_NIST_GCM_16) {
 		memset(H.c, 0, sizeof(H.c));
@@ -281,7 +280,8 @@ armv8_crypto_process(device_t dev, struct cryptop *crp, int hint __unused)
 }
 
 static uint8_t *
-armv8_crypto_cipher_alloc(struct cryptop *crp, int start, int length, int *allocated)
+armv8_crypto_cipher_alloc(struct cryptop *crp, int start, int length,
+    int *allocated)
 {
 	uint8_t *addr;
 
@@ -321,8 +321,9 @@ armv8_crypto_cipher_process(struct armv8_crypto_session *ses,
 		if (crp->crp_aad != NULL)
 			authbuf = crp->crp_aad;
 		else
-			authbuf = armv8_crypto_cipher_alloc(crp, crp->crp_aad_start,
-			    crp->crp_aad_length, &authallocated);
+			authbuf = armv8_crypto_cipher_alloc(crp,
+			    crp->crp_aad_start, crp->crp_aad_length,
+			    &authallocated);
 		if (authbuf == NULL)
 			return (ENOMEM);
 	}
@@ -397,14 +398,14 @@ armv8_crypto_cipher_process(struct armv8_crypto_session *ses,
 }
 
 static device_method_t armv8_crypto_methods[] = {
-	DEVMETHOD(device_identify,	armv8_crypto_identify),
-	DEVMETHOD(device_probe,		armv8_crypto_probe),
-	DEVMETHOD(device_attach,	armv8_crypto_attach),
-	DEVMETHOD(device_detach,	armv8_crypto_detach),
+	DEVMETHOD(device_identify, armv8_crypto_identify),
+	DEVMETHOD(device_probe, armv8_crypto_probe),
+	DEVMETHOD(device_attach, armv8_crypto_attach),
+	DEVMETHOD(device_detach, armv8_crypto_detach),
 
 	DEVMETHOD(cryptodev_probesession, armv8_crypto_probesession),
-	DEVMETHOD(cryptodev_newsession,	armv8_crypto_newsession),
-	DEVMETHOD(cryptodev_process,	armv8_crypto_process),
+	DEVMETHOD(cryptodev_newsession, armv8_crypto_newsession),
+	DEVMETHOD(cryptodev_process, armv8_crypto_process),
 
 	DEVMETHOD_END,
 };

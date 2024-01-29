@@ -33,7 +33,9 @@
 #include <sys/endian.h>
 
 #include <bitstring.h>
+#include <ebuf.h>
 #include <errno.h>
+#include <pjdlog.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -41,74 +43,71 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <ebuf.h>
-#include <pjdlog.h>
-
 #include "nv.h"
 
-#ifndef	PJDLOG_ASSERT
+#ifndef PJDLOG_ASSERT
 #include <assert.h>
-#define	PJDLOG_ASSERT(...)	assert(__VA_ARGS__)
+#define PJDLOG_ASSERT(...) assert(__VA_ARGS__)
 #endif
-#ifndef	PJDLOG_ABORT
-#define	PJDLOG_ABORT(...)	abort()
+#ifndef PJDLOG_ABORT
+#define PJDLOG_ABORT(...) abort()
 #endif
 
-#define	NV_TYPE_NONE		0
+#define NV_TYPE_NONE 0
 
-#define	NV_TYPE_INT8		1
-#define	NV_TYPE_UINT8		2
-#define	NV_TYPE_INT16		3
-#define	NV_TYPE_UINT16		4
-#define	NV_TYPE_INT32		5
-#define	NV_TYPE_UINT32		6
-#define	NV_TYPE_INT64		7
-#define	NV_TYPE_UINT64		8
-#define	NV_TYPE_INT8_ARRAY	9
-#define	NV_TYPE_UINT8_ARRAY	10
-#define	NV_TYPE_INT16_ARRAY	11
-#define	NV_TYPE_UINT16_ARRAY	12
-#define	NV_TYPE_INT32_ARRAY	13
-#define	NV_TYPE_UINT32_ARRAY	14
-#define	NV_TYPE_INT64_ARRAY	15
-#define	NV_TYPE_UINT64_ARRAY	16
-#define	NV_TYPE_STRING		17
+#define NV_TYPE_INT8 1
+#define NV_TYPE_UINT8 2
+#define NV_TYPE_INT16 3
+#define NV_TYPE_UINT16 4
+#define NV_TYPE_INT32 5
+#define NV_TYPE_UINT32 6
+#define NV_TYPE_INT64 7
+#define NV_TYPE_UINT64 8
+#define NV_TYPE_INT8_ARRAY 9
+#define NV_TYPE_UINT8_ARRAY 10
+#define NV_TYPE_INT16_ARRAY 11
+#define NV_TYPE_UINT16_ARRAY 12
+#define NV_TYPE_INT32_ARRAY 13
+#define NV_TYPE_UINT32_ARRAY 14
+#define NV_TYPE_INT64_ARRAY 15
+#define NV_TYPE_UINT64_ARRAY 16
+#define NV_TYPE_STRING 17
 
-#define	NV_TYPE_MASK		0x7f
-#define	NV_TYPE_FIRST		NV_TYPE_INT8
-#define	NV_TYPE_LAST		NV_TYPE_STRING
+#define NV_TYPE_MASK 0x7f
+#define NV_TYPE_FIRST NV_TYPE_INT8
+#define NV_TYPE_LAST NV_TYPE_STRING
 
-#define	NV_ORDER_NETWORK	0x00
-#define	NV_ORDER_HOST		0x80
+#define NV_ORDER_NETWORK 0x00
+#define NV_ORDER_HOST 0x80
 
-#define	NV_ORDER_MASK		0x80
+#define NV_ORDER_MASK 0x80
 
-#define	NV_MAGIC	0xaea1e
+#define NV_MAGIC 0xaea1e
 struct nv {
-	int	nv_magic;
-	int	nv_error;
+	int nv_magic;
+	int nv_error;
 	struct ebuf *nv_ebuf;
 };
 
 struct nvhdr {
-	uint8_t		nvh_type;
-	uint8_t		nvh_namesize;
-	uint32_t	nvh_dsize;
-	char		nvh_name[0];
+	uint8_t nvh_type;
+	uint8_t nvh_namesize;
+	uint32_t nvh_dsize;
+	char nvh_name[0];
 } __packed;
-#define	NVH_DATA(nvh)	((unsigned char *)nvh + NVH_HSIZE(nvh))
-#define	NVH_HSIZE(nvh)	\
-	(sizeof(struct nvhdr) + roundup2((nvh)->nvh_namesize, 8))
-#define	NVH_DSIZE(nvh)	\
-	(((nvh)->nvh_type & NV_ORDER_MASK) == NV_ORDER_HOST ?		\
-	(nvh)->nvh_dsize :						\
-	le32toh((nvh)->nvh_dsize))
-#define	NVH_SIZE(nvh)	(NVH_HSIZE(nvh) + roundup2(NVH_DSIZE(nvh), 8))
+#define NVH_DATA(nvh) ((unsigned char *)nvh + NVH_HSIZE(nvh))
+#define NVH_HSIZE(nvh) (sizeof(struct nvhdr) + roundup2((nvh)->nvh_namesize, 8))
+#define NVH_DSIZE(nvh)                                        \
+	(((nvh)->nvh_type & NV_ORDER_MASK) == NV_ORDER_HOST ? \
+		(nvh)->nvh_dsize :                            \
+		le32toh((nvh)->nvh_dsize))
+#define NVH_SIZE(nvh) (NVH_HSIZE(nvh) + roundup2(NVH_DSIZE(nvh), 8))
 
-#define	NV_CHECK(nv)	do {						\
-	PJDLOG_ASSERT((nv) != NULL);					\
-	PJDLOG_ASSERT((nv)->nv_magic == NV_MAGIC);			\
-} while (0)
+#define NV_CHECK(nv)                                       \
+	do {                                               \
+		PJDLOG_ASSERT((nv) != NULL);               \
+		PJDLOG_ASSERT((nv)->nv_magic == NV_MAGIC); \
+	} while (0)
 
 static void nv_add(struct nv *nv, const unsigned char *value, size_t vsize,
     int type, const char *name);
@@ -237,8 +236,7 @@ nv_validate(struct nv *nv, size_t *extrap)
 			error = EINVAL;
 			break;
 		}
-		if (strlen(nvh->nvh_name) !=
-		    (size_t)(nvh->nvh_namesize - 1)) {
+		if (strlen(nvh->nvh_name) != (size_t)(nvh->nvh_namesize - 1)) {
 			error = EINVAL;
 			break;
 		}
@@ -399,17 +397,17 @@ nv_ntoh(struct ebuf *eb)
 	return (nv);
 }
 
-#define	NV_DEFINE_ADD(type, TYPE)					\
-void									\
-nv_add_##type(struct nv *nv, type##_t value, const char *namefmt, ...)	\
-{									\
-	va_list nameap;							\
-									\
-	va_start(nameap, namefmt);					\
-	nv_addv(nv, (unsigned char *)&value, sizeof(value),		\
-	    NV_TYPE_##TYPE, namefmt, nameap);				\
-	va_end(nameap);							\
-}
+#define NV_DEFINE_ADD(type, TYPE)                                              \
+	void nv_add_##type(struct nv *nv, type##_t value, const char *namefmt, \
+	    ...)                                                               \
+	{                                                                      \
+		va_list nameap;                                                \
+                                                                               \
+		va_start(nameap, namefmt);                                     \
+		nv_addv(nv, (unsigned char *)&value, sizeof(value),            \
+		    NV_TYPE_##TYPE, namefmt, nameap);                          \
+		va_end(nameap);                                                \
+	}
 
 NV_DEFINE_ADD(int8, INT8)
 NV_DEFINE_ADD(uint8, UINT8)
@@ -420,21 +418,20 @@ NV_DEFINE_ADD(uint32, UINT32)
 NV_DEFINE_ADD(int64, INT64)
 NV_DEFINE_ADD(uint64, UINT64)
 
-#undef	NV_DEFINE_ADD
+#undef NV_DEFINE_ADD
 
-#define	NV_DEFINE_ADD_ARRAY(type, TYPE)					\
-void									\
-nv_add_##type##_array(struct nv *nv, const type##_t *value,		\
-    size_t nsize, const char *namefmt, ...)				\
-{									\
-	va_list nameap;							\
-									\
-	va_start(nameap, namefmt);					\
-	nv_addv(nv, (const unsigned char *)value,			\
-	    sizeof(value[0]) * nsize, NV_TYPE_##TYPE##_ARRAY, namefmt,	\
-	    nameap);							\
-	va_end(nameap);							\
-}
+#define NV_DEFINE_ADD_ARRAY(type, TYPE)                                        \
+	void nv_add_##type##_array(struct nv *nv, const type##_t *value,       \
+	    size_t nsize, const char *namefmt, ...)                            \
+	{                                                                      \
+		va_list nameap;                                                \
+                                                                               \
+		va_start(nameap, namefmt);                                     \
+		nv_addv(nv, (const unsigned char *)value,                      \
+		    sizeof(value[0]) * nsize, NV_TYPE_##TYPE##_ARRAY, namefmt, \
+		    nameap);                                                   \
+		va_end(nameap);                                                \
+	}
 
 NV_DEFINE_ADD_ARRAY(int8, INT8)
 NV_DEFINE_ADD_ARRAY(uint8, UINT8)
@@ -445,7 +442,7 @@ NV_DEFINE_ADD_ARRAY(uint32, UINT32)
 NV_DEFINE_ADD_ARRAY(int64, INT64)
 NV_DEFINE_ADD_ARRAY(uint64, UINT64)
 
-#undef	NV_DEFINE_ADD_ARRAY
+#undef NV_DEFINE_ADD_ARRAY
 
 void
 nv_add_string(struct nv *nv, const char *value, const char *namefmt, ...)
@@ -456,8 +453,8 @@ nv_add_string(struct nv *nv, const char *value, const char *namefmt, ...)
 	size = strlen(value) + 1;
 
 	va_start(nameap, namefmt);
-	nv_addv(nv, (const unsigned char *)value, size, NV_TYPE_STRING,
-	    namefmt, nameap);
+	nv_addv(nv, (const unsigned char *)value, size, NV_TYPE_STRING, namefmt,
+	    nameap);
 	va_end(nameap);
 }
 
@@ -489,25 +486,25 @@ nv_add_stringv(struct nv *nv, const char *name, const char *valuefmt,
 	free(value);
 }
 
-#define	NV_DEFINE_GET(type, TYPE)					\
-type##_t								\
-nv_get_##type(struct nv *nv, const char *namefmt, ...)			\
-{									\
-	struct nvhdr *nvh;						\
-	va_list nameap;							\
-	type##_t value;							\
-									\
-	va_start(nameap, namefmt);					\
-	nvh = nv_find(nv, NV_TYPE_##TYPE, namefmt, nameap);		\
-	va_end(nameap);							\
-	if (nvh == NULL)						\
-		return (0);						\
-	PJDLOG_ASSERT((nvh->nvh_type & NV_ORDER_MASK) == NV_ORDER_HOST);\
-	PJDLOG_ASSERT(sizeof(value) == nvh->nvh_dsize);			\
-	bcopy(NVH_DATA(nvh), &value, sizeof(value));			\
-									\
-	return (value);							\
-}
+#define NV_DEFINE_GET(type, TYPE)                                       \
+	type##_t nv_get_##type(struct nv *nv, const char *namefmt, ...) \
+	{                                                               \
+		struct nvhdr *nvh;                                      \
+		va_list nameap;                                         \
+		type##_t value;                                         \
+                                                                        \
+		va_start(nameap, namefmt);                              \
+		nvh = nv_find(nv, NV_TYPE_##TYPE, namefmt, nameap);     \
+		va_end(nameap);                                         \
+		if (nvh == NULL)                                        \
+			return (0);                                     \
+		PJDLOG_ASSERT(                                          \
+		    (nvh->nvh_type & NV_ORDER_MASK) == NV_ORDER_HOST);  \
+		PJDLOG_ASSERT(sizeof(value) == nvh->nvh_dsize);         \
+		bcopy(NVH_DATA(nvh), &value, sizeof(value));            \
+                                                                        \
+		return (value);                                         \
+	}
 
 NV_DEFINE_GET(int8, INT8)
 NV_DEFINE_GET(uint8, UINT8)
@@ -518,27 +515,27 @@ NV_DEFINE_GET(uint32, UINT32)
 NV_DEFINE_GET(int64, INT64)
 NV_DEFINE_GET(uint64, UINT64)
 
-#undef	NV_DEFINE_GET
+#undef NV_DEFINE_GET
 
-#define	NV_DEFINE_GET_ARRAY(type, TYPE)					\
-const type##_t *							\
-nv_get_##type##_array(struct nv *nv, size_t *sizep,			\
-    const char *namefmt, ...)						\
-{									\
-	struct nvhdr *nvh;						\
-	va_list nameap;							\
-									\
-	va_start(nameap, namefmt);					\
-	nvh = nv_find(nv, NV_TYPE_##TYPE##_ARRAY, namefmt, nameap);	\
-	va_end(nameap);							\
-	if (nvh == NULL)						\
-		return (NULL);						\
-	PJDLOG_ASSERT((nvh->nvh_type & NV_ORDER_MASK) == NV_ORDER_HOST);\
-	PJDLOG_ASSERT((nvh->nvh_dsize % sizeof(type##_t)) == 0);	\
-	if (sizep != NULL)						\
-		*sizep = nvh->nvh_dsize / sizeof(type##_t);		\
-	return ((type##_t *)(void *)NVH_DATA(nvh));			\
-}
+#define NV_DEFINE_GET_ARRAY(type, TYPE)                                     \
+	const type##_t *nv_get_##type##_array(struct nv *nv, size_t *sizep, \
+	    const char *namefmt, ...)                                       \
+	{                                                                   \
+		struct nvhdr *nvh;                                          \
+		va_list nameap;                                             \
+                                                                            \
+		va_start(nameap, namefmt);                                  \
+		nvh = nv_find(nv, NV_TYPE_##TYPE##_ARRAY, namefmt, nameap); \
+		va_end(nameap);                                             \
+		if (nvh == NULL)                                            \
+			return (NULL);                                      \
+		PJDLOG_ASSERT(                                              \
+		    (nvh->nvh_type & NV_ORDER_MASK) == NV_ORDER_HOST);      \
+		PJDLOG_ASSERT((nvh->nvh_dsize % sizeof(type##_t)) == 0);    \
+		if (sizep != NULL)                                          \
+			*sizep = nvh->nvh_dsize / sizeof(type##_t);         \
+		return ((type##_t *)(void *)NVH_DATA(nvh));                 \
+	}
 
 NV_DEFINE_GET_ARRAY(int8, INT8)
 NV_DEFINE_GET_ARRAY(uint8, UINT8)
@@ -549,7 +546,7 @@ NV_DEFINE_GET_ARRAY(uint32, UINT32)
 NV_DEFINE_GET_ARRAY(int64, INT64)
 NV_DEFINE_GET_ARRAY(uint64, UINT64)
 
-#undef	NV_DEFINE_GET_ARRAY
+#undef NV_DEFINE_GET_ARRAY
 
 const char *
 nv_get_string(struct nv *nv, const char *namefmt, ...)
@@ -651,34 +648,37 @@ nv_dump(struct nv *nv)
 			printf("(uint8): %ju", (uintmax_t)(*(uint8_t *)data));
 			break;
 		case NV_TYPE_INT16:
-			printf("(int16): %jd", swap ?
-			    (intmax_t)le16toh(*(int16_t *)(void *)data) :
-			    (intmax_t)*(int16_t *)(void *)data);
+			printf("(int16): %jd",
+			    swap ? (intmax_t)le16toh(*(int16_t *)(void *)data) :
+				   (intmax_t) * (int16_t *)(void *)data);
 			break;
 		case NV_TYPE_UINT16:
-			printf("(uint16): %ju", swap ?
-			    (uintmax_t)le16toh(*(uint16_t *)(void *)data) :
-			    (uintmax_t)*(uint16_t *)(void *)data);
+			printf("(uint16): %ju",
+			    swap ?
+				(uintmax_t)le16toh(*(uint16_t *)(void *)data) :
+				(uintmax_t) * (uint16_t *)(void *)data);
 			break;
 		case NV_TYPE_INT32:
-			printf("(int32): %jd", swap ?
-			    (intmax_t)le32toh(*(int32_t *)(void *)data) :
-			    (intmax_t)*(int32_t *)(void *)data);
+			printf("(int32): %jd",
+			    swap ? (intmax_t)le32toh(*(int32_t *)(void *)data) :
+				   (intmax_t) * (int32_t *)(void *)data);
 			break;
 		case NV_TYPE_UINT32:
-			printf("(uint32): %ju", swap ?
-			    (uintmax_t)le32toh(*(uint32_t *)(void *)data) :
-			    (uintmax_t)*(uint32_t *)(void *)data);
+			printf("(uint32): %ju",
+			    swap ?
+				(uintmax_t)le32toh(*(uint32_t *)(void *)data) :
+				(uintmax_t) * (uint32_t *)(void *)data);
 			break;
 		case NV_TYPE_INT64:
-			printf("(int64): %jd", swap ?
-			    (intmax_t)le64toh(*(int64_t *)(void *)data) :
-			    (intmax_t)*(int64_t *)(void *)data);
+			printf("(int64): %jd",
+			    swap ? (intmax_t)le64toh(*(int64_t *)(void *)data) :
+				   (intmax_t) * (int64_t *)(void *)data);
 			break;
 		case NV_TYPE_UINT64:
-			printf("(uint64): %ju", swap ?
-			    (uintmax_t)le64toh(*(uint64_t *)(void *)data) :
-			    (uintmax_t)*(uint64_t *)(void *)data);
+			printf("(uint64): %ju",
+			    swap ?
+				(uintmax_t)le64toh(*(uint64_t *)(void *)data) :
+				(uintmax_t) * (uint64_t *)(void *)data);
 			break;
 		case NV_TYPE_INT8_ARRAY:
 			printf("(int8 array):");
@@ -688,54 +688,67 @@ nv_dump(struct nv *nv)
 		case NV_TYPE_UINT8_ARRAY:
 			printf("(uint8 array):");
 			for (ii = 0; ii < dsize; ii++)
-				printf(" %ju", (uintmax_t)((uint8_t *)data)[ii]);
+				printf(" %ju",
+				    (uintmax_t)((uint8_t *)data)[ii]);
 			break;
 		case NV_TYPE_INT16_ARRAY:
 			printf("(int16 array):");
 			for (ii = 0; ii < dsize / 2; ii++) {
-				printf(" %jd", swap ?
-				    (intmax_t)le16toh(((int16_t *)(void *)data)[ii]) :
-				    (intmax_t)((int16_t *)(void *)data)[ii]);
+				printf(" %jd",
+				    swap ? (intmax_t)le16toh(
+					       ((int16_t *)(void *)data)[ii]) :
+					   (intmax_t)((
+					       int16_t *)(void *)data)[ii]);
 			}
 			break;
 		case NV_TYPE_UINT16_ARRAY:
 			printf("(uint16 array):");
 			for (ii = 0; ii < dsize / 2; ii++) {
-				printf(" %ju", swap ?
-				    (uintmax_t)le16toh(((uint16_t *)(void *)data)[ii]) :
-				    (uintmax_t)((uint16_t *)(void *)data)[ii]);
+				printf(" %ju",
+				    swap ? (uintmax_t)le16toh(
+					       ((uint16_t *)(void *)data)[ii]) :
+					   (uintmax_t)((
+					       uint16_t *)(void *)data)[ii]);
 			}
 			break;
 		case NV_TYPE_INT32_ARRAY:
 			printf("(int32 array):");
 			for (ii = 0; ii < dsize / 4; ii++) {
-				printf(" %jd", swap ?
-				    (intmax_t)le32toh(((int32_t *)(void *)data)[ii]) :
-				    (intmax_t)((int32_t *)(void *)data)[ii]);
+				printf(" %jd",
+				    swap ? (intmax_t)le32toh(
+					       ((int32_t *)(void *)data)[ii]) :
+					   (intmax_t)((
+					       int32_t *)(void *)data)[ii]);
 			}
 			break;
 		case NV_TYPE_UINT32_ARRAY:
 			printf("(uint32 array):");
 			for (ii = 0; ii < dsize / 4; ii++) {
-				printf(" %ju", swap ?
-				    (uintmax_t)le32toh(((uint32_t *)(void *)data)[ii]) :
-				    (uintmax_t)((uint32_t *)(void *)data)[ii]);
+				printf(" %ju",
+				    swap ? (uintmax_t)le32toh(
+					       ((uint32_t *)(void *)data)[ii]) :
+					   (uintmax_t)((
+					       uint32_t *)(void *)data)[ii]);
 			}
 			break;
 		case NV_TYPE_INT64_ARRAY:
 			printf("(int64 array):");
 			for (ii = 0; ii < dsize / 8; ii++) {
-				printf(" %ju", swap ?
-				    (uintmax_t)le64toh(((uint64_t *)(void *)data)[ii]) :
-				    (uintmax_t)((uint64_t *)(void *)data)[ii]);
+				printf(" %ju",
+				    swap ? (uintmax_t)le64toh(
+					       ((uint64_t *)(void *)data)[ii]) :
+					   (uintmax_t)((
+					       uint64_t *)(void *)data)[ii]);
 			}
 			break;
 		case NV_TYPE_UINT64_ARRAY:
 			printf("(uint64 array):");
 			for (ii = 0; ii < dsize / 8; ii++) {
-				printf(" %ju", swap ?
-				    (uintmax_t)le64toh(((uint64_t *)(void *)data)[ii]) :
-				    (uintmax_t)((uint64_t *)(void *)data)[ii]);
+				printf(" %ju",
+				    swap ? (uintmax_t)le64toh(
+					       ((uint64_t *)(void *)data)[ii]) :
+					   (uintmax_t)((
+					       uint64_t *)(void *)data)[ii]);
 			}
 			break;
 		case NV_TYPE_STRING:
@@ -923,16 +936,16 @@ nv_swap(struct nvhdr *nvh, bool tohost)
 			if (tohost) {
 				switch (vsize) {
 				case 2:
-					*(uint16_t *)(void *)p =
-					    le16toh(*(uint16_t *)(void *)p);
+					*(uint16_t *)(void *)p = le16toh(
+					    *(uint16_t *)(void *)p);
 					break;
 				case 4:
-					*(uint32_t *)(void *)p =
-					    le32toh(*(uint32_t *)(void *)p);
+					*(uint32_t *)(void *)p = le32toh(
+					    *(uint32_t *)(void *)p);
 					break;
 				case 8:
-					*(uint64_t *)(void *)p =
-					    le64toh(*(uint64_t *)(void *)p);
+					*(uint64_t *)(void *)p = le64toh(
+					    *(uint64_t *)(void *)p);
 					break;
 				default:
 					PJDLOG_ABORT("invalid condition");
@@ -940,16 +953,16 @@ nv_swap(struct nvhdr *nvh, bool tohost)
 			} else {
 				switch (vsize) {
 				case 2:
-					*(uint16_t *)(void *)p =
-					    htole16(*(uint16_t *)(void *)p);
+					*(uint16_t *)(void *)p = htole16(
+					    *(uint16_t *)(void *)p);
 					break;
 				case 4:
-					*(uint32_t *)(void *)p =
-					    htole32(*(uint32_t *)(void *)p);
+					*(uint32_t *)(void *)p = htole32(
+					    *(uint32_t *)(void *)p);
 					break;
 				case 8:
-					*(uint64_t *)(void *)p =
-					    htole64(*(uint64_t *)(void *)p);
+					*(uint64_t *)(void *)p = htole64(
+					    *(uint64_t *)(void *)p);
 					break;
 				default:
 					PJDLOG_ABORT("invalid condition");

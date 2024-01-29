@@ -1,6 +1,6 @@
 
-#ifndef	__V4K_H__
-#define	__V4K_H__
+#ifndef __V4K_H__
+#define __V4K_H__
 
 extern void eeprom_v4k_base_print(uint16_t *buf);
 extern void eeprom_v4k_custdata_print(uint16_t *buf);

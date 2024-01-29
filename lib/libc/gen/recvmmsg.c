@@ -29,9 +29,11 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+
 #include <errno.h>
 #include <poll.h>
 #include <stddef.h>
+
 #include "libc_private.h"
 
 ssize_t
@@ -47,8 +49,7 @@ recvmmsg(int s, struct mmsghdr *__restrict msgvec, size_t vlen, int flags,
 	if (timeout != NULL) {
 		pfd[0].fd = s;
 		pfd[0].revents = 0;
-		pfd[0].events = ev = POLLIN | POLLRDNORM | POLLRDBAND |
-		    POLLPRI;
+		pfd[0].events = ev = POLLIN | POLLRDNORM | POLLRDBAND | POLLPRI;
 		res = ppoll(&pfd[0], 1, timeout, NULL);
 		if (res == -1 || res == 0)
 			return (res);
@@ -68,7 +69,7 @@ recvmmsg(int s, struct mmsghdr *__restrict msgvec, size_t vlen, int flags,
 
 	msgvec[0].msg_len = ret;
 
-	/* 
+	/*
 	 * Do non-blocking receive for second and later messages if
 	 * WAITFORONE is set.
 	 */

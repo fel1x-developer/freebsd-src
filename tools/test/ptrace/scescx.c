@@ -28,6 +28,7 @@
 #include <sys/syscall.h>
 #include <sys/sysctl.h>
 #include <sys/wait.h>
+
 #include <assert.h>
 #include <errno.h>
 #include <signal.h>
@@ -36,7 +37,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define TRACE	">>>> "
+#define TRACE ">>>> "
 
 static const char *
 decode_wait_status(int status)
@@ -182,21 +183,20 @@ wait_info(int pid, int status, struct ptrace_lwpinfo *lwpinfo)
 	long *args;
 	int error, i;
 
-	printf(TRACE "pid %d wait %s", pid,
-	    decode_wait_status(status));
+	printf(TRACE "pid %d wait %s", pid, decode_wait_status(status));
 	if (lwpinfo != NULL) {
-		printf(" event %s flags %s",
-		    decode_pl_event(lwpinfo), decode_pl_flags(lwpinfo));
+		printf(" event %s flags %s", decode_pl_event(lwpinfo),
+		    decode_pl_flags(lwpinfo));
 		if ((lwpinfo->pl_flags & (PL_FLAG_SCE | PL_FLAG_SCX)) != 0) {
 			printf(" sc%d", lwpinfo->pl_syscall_code);
 			args = calloc(lwpinfo->pl_syscall_narg, sizeof(long));
 			error = ptrace(PT_GET_SC_ARGS, lwpinfo->pl_lwpid,
-			    (caddr_t)args, lwpinfo->pl_syscall_narg *
-			    sizeof(long));
+			    (caddr_t)args,
+			    lwpinfo->pl_syscall_narg * sizeof(long));
 			if (error == 0) {
 				printf("(");
 				for (i = 0; i < (int)lwpinfo->pl_syscall_narg;
-				    i++) {
+				     i++) {
 					printf("%s%#lx", i == 0 ? "" : ",",
 					    args[i]);
 				}
@@ -275,8 +275,8 @@ trace_sc(int pid)
 		memset(&pscr, 0, sizeof(pscr));
 		pscr.pscr_syscall = SYS_getpid;
 		pscr.pscr_nargs = 0;
-		if (ptrace(PT_SC_REMOTE, pid, (caddr_t)&pscr,
-		    sizeof(pscr)) < 0) {
+		if (ptrace(PT_SC_REMOTE, pid, (caddr_t)&pscr, sizeof(pscr)) <
+		    0) {
 			perror("PT_SC_REMOTE");
 			ptrace(PT_KILL, pid, NULL, 0);
 			return (-1);
@@ -284,8 +284,8 @@ trace_sc(int pid)
 			printf(TRACE "remote getpid %ld errno %d\n",
 			    pscr.pscr_ret.sr_retval[0], pscr.pscr_ret.sr_error);
 			if (waitpid(pid, &status, 0) == -1) {
-			  perror("waitpid");
-			  return (-1);
+				perror("waitpid");
+				return (-1);
 			}
 		}
 	}
@@ -349,7 +349,6 @@ trace(pid_t pid)
 	return (trace_syscalls ? trace_sc(pid) : trace_cont(pid));
 }
 
-
 int
 main(int argc, char *argv[])
 {
@@ -385,8 +384,7 @@ main(int argc, char *argv[])
 	if ((pid = fork()) < 0) {
 		perror("fork");
 		return 1;
-	}
-	else if (pid == 0) {
+	} else if (pid == 0) {
 		if (ptrace(PT_TRACE_ME, 0, NULL, 0) < 0) {
 			perror("PT_TRACE_ME");
 			_exit(1);
@@ -400,8 +398,7 @@ main(int argc, char *argv[])
 			printf("Hi from child %d\n", getpid());
 			execl("/bin/ls", "ls", "/", (char *)NULL);
 		}
-	}
-	else { /* parent */
+	} else { /* parent */
 		if (waitpid(pid, &status, 0) == -1) {
 			perror("waitpid");
 			return (-1);
@@ -410,7 +407,7 @@ main(int argc, char *argv[])
 		assert(WSTOPSIG(status) == SIGSTOP);
 
 		if (ptrace(PT_LWPINFO, pid, (caddr_t)&lwpinfo,
-		    sizeof(lwpinfo)) < 0) {
+			sizeof(lwpinfo)) < 0) {
 			perror("PT_LWPINFO");
 			ptrace(PT_KILL, pid, NULL, 0);
 			return (-1);
@@ -438,7 +435,7 @@ main(int argc, char *argv[])
 				assert(WIFSTOPPED(status));
 				assert(WSTOPSIG(status) == SIGSTOP);
 				if (ptrace(PT_LWPINFO, pid1, (caddr_t)&lwpinfo,
-				    sizeof(lwpinfo)) < 0) {
+					sizeof(lwpinfo)) < 0) {
 					perror("PT_LWPINFO");
 					ptrace(PT_KILL, pid1, NULL, 0);
 					return (-1);

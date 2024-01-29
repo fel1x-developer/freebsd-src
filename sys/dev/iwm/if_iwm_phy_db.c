@@ -102,64 +102,61 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-#include <sys/cdefs.h>
-#include "opt_wlan.h"
 #include "opt_iwm.h"
+#include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/endian.h>
 #include <sys/firmware.h>
 #include <sys/kernel.h>
+#include <sys/linker.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
-#include <sys/mutex.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/linker.h>
 
 #include <machine/bus.h>
 #include <machine/endian.h>
 #include <machine/resource.h>
 
-#include <dev/pci/pcivar.h>
 #include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include <net/bpf.h>
-
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_arp.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
-
+#include <net/if_var.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_ratectl.h>
+#include <net80211/ieee80211_regdomain.h>
+#include <net80211/ieee80211_var.h>
+#include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
-#include <netinet/if_ether.h>
 #include <netinet/ip.h>
 
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_regdomain.h>
-#include <net80211/ieee80211_ratectl.h>
-#include <net80211/ieee80211_radiotap.h>
-
+#include "if_iwm_debug.h"
+#include "if_iwm_phy_db.h"
+#include "if_iwm_util.h"
 #include "if_iwmreg.h"
 #include "if_iwmvar.h"
-#include "if_iwm_debug.h"
-#include "if_iwm_util.h"
-#include "if_iwm_phy_db.h"
 
-#define CHANNEL_NUM_SIZE	4	/* num of channels in calib_ch size */
+#define CHANNEL_NUM_SIZE 4 /* num of channels in calib_ch size */
 
 struct iwm_phy_db_entry {
-	uint16_t	size;
-	uint8_t		*data;
+	uint16_t size;
+	uint8_t *data;
 };
 
 /**
@@ -187,8 +184,8 @@ struct iwm_phy_db {
 struct iwm_phy_db *
 iwm_phy_db_init(struct iwm_softc *sc)
 {
-	struct iwm_phy_db *phy_db = malloc(sizeof(struct iwm_phy_db),
-	    M_DEVBUF, M_NOWAIT | M_ZERO);
+	struct iwm_phy_db *phy_db = malloc(sizeof(struct iwm_phy_db), M_DEVBUF,
+	    M_NOWAIT | M_ZERO);
 
 	if (!phy_db)
 		return phy_db;
@@ -208,8 +205,7 @@ iwm_phy_db_init(struct iwm_softc *sc)
  */
 static struct iwm_phy_db_entry *
 iwm_phy_db_get_section(struct iwm_phy_db *phy_db,
-		       enum iwm_phy_db_section_type type,
-		       uint16_t chg_id)
+    enum iwm_phy_db_section_type type, uint16_t chg_id)
 {
 	if (!phy_db || type >= IWM_PHY_DB_MAX)
 		return NULL;
@@ -235,10 +231,10 @@ iwm_phy_db_get_section(struct iwm_phy_db *phy_db,
 
 static void
 iwm_phy_db_free_section(struct iwm_phy_db *phy_db,
-			enum iwm_phy_db_section_type type, uint16_t chg_id)
+    enum iwm_phy_db_section_type type, uint16_t chg_id)
 {
-	struct iwm_phy_db_entry *entry =
-				iwm_phy_db_get_section(phy_db, type, chg_id);
+	struct iwm_phy_db_entry *entry = iwm_phy_db_get_section(phy_db, type,
+	    chg_id);
 	if (!entry)
 		return;
 
@@ -273,15 +269,14 @@ iwm_phy_db_free(struct iwm_phy_db *phy_db)
 }
 
 int
-iwm_phy_db_set_section(struct iwm_phy_db *phy_db,
-		       struct iwm_rx_packet *pkt)
+iwm_phy_db_set_section(struct iwm_phy_db *phy_db, struct iwm_rx_packet *pkt)
 {
 	struct iwm_calib_res_notif_phy_db *phy_db_notif =
-			(struct iwm_calib_res_notif_phy_db *)pkt->data;
+	    (struct iwm_calib_res_notif_phy_db *)pkt->data;
 	enum iwm_phy_db_section_type type = le16toh(phy_db_notif->type);
-        uint16_t size  = le16toh(phy_db_notif->length);
-        struct iwm_phy_db_entry *entry;
-        uint16_t chg_id = 0;
+	uint16_t size = le16toh(phy_db_notif->length);
+	struct iwm_phy_db_entry *entry;
+	uint16_t chg_id = 0;
 
 	if (!phy_db)
 		return EINVAL;
@@ -293,8 +288,8 @@ iwm_phy_db_set_section(struct iwm_phy_db *phy_db,
 			 * Firmware sends the largest index first, so we can use
 			 * it to know how much we should allocate.
 			 */
-			phy_db->calib_ch_group_papd = malloc(
-			    (chg_id + 1) * sizeof(struct iwm_phy_db_entry),
+			phy_db->calib_ch_group_papd = malloc((chg_id + 1) *
+				sizeof(struct iwm_phy_db_entry),
 			    M_DEVBUF, M_NOWAIT | M_ZERO);
 			if (!phy_db->calib_ch_group_papd)
 				return ENOMEM;
@@ -307,8 +302,8 @@ iwm_phy_db_set_section(struct iwm_phy_db *phy_db,
 			 * Firmware sends the largest index first, so we can use
 			 * it to know how much we should allocate.
 			 */
-			phy_db->calib_ch_group_txp = malloc(
-			    (chg_id + 1) * sizeof(struct iwm_phy_db_entry),
+			phy_db->calib_ch_group_txp = malloc((chg_id + 1) *
+				sizeof(struct iwm_phy_db_entry),
 			    M_DEVBUF, M_NOWAIT | M_ZERO);
 			if (!phy_db->calib_ch_group_txp)
 				return ENOMEM;
@@ -332,8 +327,8 @@ iwm_phy_db_set_section(struct iwm_phy_db *phy_db,
 	entry->size = size;
 
 	IWM_DPRINTF(phy_db->sc, IWM_DEBUG_RESET,
-		    "%s(%d): [PHYDB]SET: Type %d , Size: %d\n",
-		    __func__, __LINE__, type, size);
+	    "%s(%d): [PHYDB]SET: Type %d , Size: %d\n", __func__, __LINE__,
+	    type, size);
 
 	return 0;
 }
@@ -341,8 +336,7 @@ iwm_phy_db_set_section(struct iwm_phy_db *phy_db,
 static int
 is_valid_channel(uint16_t ch_id)
 {
-	if (ch_id <= 14 ||
-	    (36 <= ch_id && ch_id <= 64 && ch_id % 4 == 0) ||
+	if (ch_id <= 14 || (36 <= ch_id && ch_id <= 64 && ch_id % 4 == 0) ||
 	    (100 <= ch_id && ch_id <= 140 && ch_id % 4 == 0) ||
 	    (145 <= ch_id && ch_id <= 165 && ch_id % 4 == 1))
 		return 1;
@@ -363,7 +357,6 @@ ch_id_to_ch_index(uint16_t ch_id)
 		return (ch_id - 12) / 4;
 	return (ch_id - 13) / 4;
 }
-
 
 static uint16_t
 channel_id_to_papd(uint16_t ch_id)
@@ -404,9 +397,8 @@ channel_id_to_txp(struct iwm_phy_db *phy_db, uint16_t ch_id)
 }
 
 static int
-iwm_phy_db_get_section_data(struct iwm_phy_db *phy_db,
-			   uint32_t type, uint8_t **data, uint16_t *size,
-			   uint16_t ch_id)
+iwm_phy_db_get_section_data(struct iwm_phy_db *phy_db, uint32_t type,
+    uint8_t **data, uint16_t *size, uint16_t ch_id)
 {
 	struct iwm_phy_db_entry *entry;
 	uint16_t ch_group_id = 0;
@@ -428,15 +420,15 @@ iwm_phy_db_get_section_data(struct iwm_phy_db *phy_db,
 	*size = entry->size;
 
 	IWM_DPRINTF(phy_db->sc, IWM_DEBUG_RESET,
-		   "%s(%d): [PHYDB] GET: Type %d , Size: %d\n",
-		   __func__, __LINE__, type, *size);
+	    "%s(%d): [PHYDB] GET: Type %d , Size: %d\n", __func__, __LINE__,
+	    type, *size);
 
 	return 0;
 }
 
 static int
-iwm_send_phy_db_cmd(struct iwm_phy_db *phy_db, uint16_t type,
-		    uint16_t length, void *data)
+iwm_send_phy_db_cmd(struct iwm_phy_db *phy_db, uint16_t type, uint16_t length,
+    void *data)
 {
 	struct iwm_phy_db_cmd phy_db_cmd;
 	struct iwm_host_cmd cmd = {
@@ -444,8 +436,7 @@ iwm_send_phy_db_cmd(struct iwm_phy_db *phy_db, uint16_t type,
 	};
 
 	IWM_DPRINTF(phy_db->sc, IWM_DEBUG_RESET,
-		   "Sending PHY-DB hcmd of type %d, of length %d\n",
-		   type, length);
+	    "Sending PHY-DB hcmd of type %d, of length %d\n", type, length);
 
 	/* Set phy db cmd variables */
 	phy_db_cmd.type = htole16(type);
@@ -465,8 +456,7 @@ iwm_send_phy_db_cmd(struct iwm_phy_db *phy_db, uint16_t type,
 
 static int
 iwm_phy_db_send_all_channel_groups(struct iwm_phy_db *phy_db,
-				   enum iwm_phy_db_section_type type,
-				   uint8_t max_ch_groups)
+    enum iwm_phy_db_section_type type, uint8_t max_ch_groups)
 {
 	uint16_t i;
 	int err;
@@ -474,9 +464,7 @@ iwm_phy_db_send_all_channel_groups(struct iwm_phy_db *phy_db,
 
 	/* Send all the channel specific groups to operational fw */
 	for (i = 0; i < max_ch_groups; i++) {
-		entry = iwm_phy_db_get_section(phy_db,
-                                               type,
-                                               i);
+		entry = iwm_phy_db_get_section(phy_db, type, i);
 		if (!entry)
 			return EINVAL;
 
@@ -484,14 +472,12 @@ iwm_phy_db_send_all_channel_groups(struct iwm_phy_db *phy_db,
 			continue;
 
 		/* Send the requested PHY DB section */
-		err = iwm_send_phy_db_cmd(phy_db,
-					  type,
-					  entry->size,
-					  entry->data);
+		err = iwm_send_phy_db_cmd(phy_db, type, entry->size,
+		    entry->data);
 		if (err) {
 			device_printf(phy_db->sc->sc_dev,
-				"Can't SEND phy_db section %d (%d), err %d\n",
-				type, i, err);
+			    "Can't SEND phy_db section %d (%d), err %d\n", type,
+			    i, err);
 			return err;
 		}
 
@@ -514,12 +500,11 @@ iwm_send_phy_db_data(struct iwm_phy_db *phy_db)
 	    __func__);
 
 	/* Send PHY DB CFG section */
-	err = iwm_phy_db_get_section_data(phy_db, IWM_PHY_DB_CFG,
-					  &data, &size, 0);
+	err = iwm_phy_db_get_section_data(phy_db, IWM_PHY_DB_CFG, &data, &size,
+	    0);
 	if (err) {
 		device_printf(phy_db->sc->sc_dev,
-		    "%s: Cannot get Phy DB cfg section, %d\n",
-		    __func__, err);
+		    "%s: Cannot get Phy DB cfg section, %d\n", __func__, err);
 		return err;
 	}
 
@@ -531,12 +516,13 @@ iwm_send_phy_db_data(struct iwm_phy_db *phy_db)
 		return err;
 	}
 
-	err = iwm_phy_db_get_section_data(phy_db, IWM_PHY_DB_CALIB_NCH,
-	    &data, &size, 0);
+	err = iwm_phy_db_get_section_data(phy_db, IWM_PHY_DB_CALIB_NCH, &data,
+	    &size, 0);
 	if (err) {
 		device_printf(phy_db->sc->sc_dev,
 		    "%s: Cannot get Phy DB non specific channel section, "
-		    "%d\n", __func__, err);
+		    "%d\n",
+		    __func__, err);
 		return err;
 	}
 
@@ -544,7 +530,8 @@ iwm_send_phy_db_data(struct iwm_phy_db *phy_db)
 	if (err) {
 		device_printf(phy_db->sc->sc_dev,
 		    "%s: Cannot send HCMD of Phy DB non specific channel "
-		    "sect, %d\n", __func__, err);
+		    "sect, %d\n",
+		    __func__, err);
 		return err;
 	}
 
@@ -564,12 +551,12 @@ iwm_send_phy_db_data(struct iwm_phy_db *phy_db)
 	if (err) {
 		device_printf(phy_db->sc->sc_dev,
 		    "%s: Cannot send channel specific TX power groups, "
-		    "%d\n", __func__, err);
+		    "%d\n",
+		    __func__, err);
 		return err;
 	}
 
 	IWM_DPRINTF(phy_db->sc, IWM_DEBUG_CMD | IWM_DEBUG_RESET,
-	    "%s: Finished sending phy db non channel data\n",
-	    __func__);
+	    "%s: Finished sending phy db non channel data\n", __func__);
 	return 0;
 }

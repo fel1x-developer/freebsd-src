@@ -28,26 +28,27 @@
 #include "opt_platform.h"
 
 #include <sys/param.h>
-#include <sys/endian.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
+#include <sys/endian.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
-#include <sys/mbuf.h>
 #include <sys/malloc.h>
+#include <sys/mbuf.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
-#include <machine/bus.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
 
-#include <dev/iicbus/iiconf.h>
-#include <dev/iicbus/iicbus.h>
-#include "iicbus_if.h"
+#include <machine/bus.h>
 
+#include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
+
+#include "iicbus_if.h"
 #include "opal.h"
 
 #ifdef FDT
@@ -55,8 +56,7 @@
 #include <dev/ofw/ofw_bus_subr.h>
 #endif
 
-struct opal_i2c_softc
-{
+struct opal_i2c_softc {
 	device_t dev;
 	device_t iicbus;
 	uint32_t opal_id;
@@ -66,18 +66,18 @@ struct opal_i2c_softc
 /* OPAL I2C request */
 struct opal_i2c_request {
 	uint8_t type;
-#define OPAL_I2C_RAW_READ	0
-#define OPAL_I2C_RAW_WRITE	1
-#define OPAL_I2C_SM_READ	2
-#define OPAL_I2C_SM_WRITE	3
+#define OPAL_I2C_RAW_READ 0
+#define OPAL_I2C_RAW_WRITE 1
+#define OPAL_I2C_SM_READ 2
+#define OPAL_I2C_SM_WRITE 3
 	uint8_t flags;
-	uint8_t	subaddr_sz;		/* Max 4 */
+	uint8_t subaddr_sz; /* Max 4 */
 	uint8_t reserved;
-	uint16_t addr;			/* 7 or 10 bit address */
+	uint16_t addr; /* 7 or 10 bit address */
 	uint16_t reserved2;
-	uint32_t subaddr;		/* Sub-address if any */
-	uint32_t size;			/* Data size */
-	uint64_t buffer_pa;		/* Buffer real address */
+	uint32_t subaddr;   /* Sub-address if any */
+	uint32_t size;	    /* Data size */
+	uint64_t buffer_pa; /* Buffer real address */
 };
 
 static int opal_i2c_attach(device_t);
@@ -89,21 +89,19 @@ static phandle_t opal_i2c_get_node(device_t bus, device_t dev);
 
 static device_method_t opal_i2c_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		opal_i2c_probe),
-	DEVMETHOD(device_attach,	opal_i2c_attach),
+	DEVMETHOD(device_probe, opal_i2c_probe),
+	DEVMETHOD(device_attach, opal_i2c_attach),
 
 	/* iicbus interface */
-	DEVMETHOD(iicbus_callback,	opal_i2c_callback),
-	DEVMETHOD(iicbus_transfer,	opal_i2c_transfer),
-	DEVMETHOD(ofw_bus_get_node,	opal_i2c_get_node),
-	DEVMETHOD_END
+	DEVMETHOD(iicbus_callback, opal_i2c_callback),
+	DEVMETHOD(iicbus_transfer, opal_i2c_transfer),
+	DEVMETHOD(ofw_bus_get_node, opal_i2c_get_node), DEVMETHOD_END
 };
 
-#define	I2C_LOCK(_sc)		mtx_lock(&(_sc)->sc_mtx)
-#define	I2C_UNLOCK(_sc)		mtx_unlock(&(_sc)->sc_mtx)
-#define	I2C_LOCK_INIT(_sc) \
-	mtx_init(&_sc->sc_mtx, device_get_nameunit(_sc->dev), \
-	    "i2c", MTX_DEF)
+#define I2C_LOCK(_sc) mtx_lock(&(_sc)->sc_mtx)
+#define I2C_UNLOCK(_sc) mtx_unlock(&(_sc)->sc_mtx)
+#define I2C_LOCK_INIT(_sc) \
+	mtx_init(&_sc->sc_mtx, device_get_nameunit(_sc->dev), "i2c", MTX_DEF)
 
 static driver_t opal_i2c_driver = {
 	"iichb",
@@ -167,8 +165,7 @@ i2c_opal_send_request(uint32_t bus_id, struct opal_i2c_request *req)
 
 	memset(&msg, 0, sizeof(msg));
 
-	rc = opal_call(OPAL_I2C_REQUEST, token, bus_id,
-	    vtophys(req));
+	rc = opal_call(OPAL_I2C_REQUEST, token, bus_id, vtophys(req));
 	if (rc != OPAL_ASYNC_COMPLETION)
 		goto out;
 
@@ -198,8 +195,8 @@ opal_i2c_transfer(device_t dev, struct iic_msg *msgs, uint32_t nmsgs)
 
 	I2C_LOCK(sc);
 	for (i = 0; i < nmsgs; i++) {
-		req.type = (msgs[i].flags & IIC_M_RD) ?
-		    OPAL_I2C_RAW_READ : OPAL_I2C_RAW_WRITE;
+		req.type = (msgs[i].flags & IIC_M_RD) ? OPAL_I2C_RAW_READ :
+							OPAL_I2C_RAW_WRITE;
 		req.addr = htobe16(msgs[i].slave >> 1);
 		req.size = htobe32(msgs[i].len);
 		req.buffer_pa = htobe64(pmap_kextract((uint64_t)msgs[i].buf));

@@ -43,15 +43,15 @@
 #include <netlink/netlink.h>
 #include <netlink/netlink_ctl.h>
 #include <netlink/netlink_linux.h>
-#include <netlink/netlink_var.h>
 #include <netlink/netlink_route.h>
+#include <netlink/netlink_var.h>
 
 #include <compat/linux/linux.h>
 #include <compat/linux/linux_common.h>
 #include <compat/linux/linux_util.h>
 
-#define	DEBUG_MOD_NAME	nl_linux
-#define	DEBUG_MAX_LEVEL	LOG_DEBUG3
+#define DEBUG_MOD_NAME nl_linux
+#define DEBUG_MAX_LEVEL LOG_DEBUG3
 #include <netlink/netlink_debug.h>
 _DECLARE_DEBUG(LOG_INFO);
 
@@ -89,7 +89,8 @@ rtnl_ifaddr_from_linux(struct nlmsghdr *hdr, struct nl_pstate *npt)
 {
 	struct ifaddrmsg *ifam = (struct ifaddrmsg *)(hdr + 1);
 
-	if (hdr->nlmsg_len >= sizeof(struct nlmsghdr) + sizeof(struct ifaddrmsg))
+	if (hdr->nlmsg_len >=
+	    sizeof(struct nlmsghdr) + sizeof(struct ifaddrmsg))
 		ifam->ifa_family = linux_to_bsd_domain(ifam->ifa_family);
 
 	return (hdr);
@@ -110,11 +111,13 @@ rtnl_route_from_linux(struct nlmsghdr *hdr, struct nl_pstate *npt)
 
 	attrs_len = hdr->nlmsg_len - sizeof(struct nlmsghdr);
 	attrs_len -= NETLINK_ALIGN(sizeof(struct rtmsg));
-	nla_head = (struct nlattr *)((char *)rtm + NETLINK_ALIGN(sizeof(struct rtmsg)));
+	nla_head = (struct nlattr *)((char *)rtm +
+	    NETLINK_ALIGN(sizeof(struct rtmsg)));
 
-	NLA_FOREACH(nla, nla_head, attrs_len) {
-		RT_LOG(LOG_DEBUG3, "GOT type %d len %d total %d",
-		    nla->nla_type, nla->nla_len, attrs_len);
+	NLA_FOREACH(nla, nla_head, attrs_len)
+	{
+		RT_LOG(LOG_DEBUG3, "GOT type %d len %d total %d", nla->nla_type,
+		    nla->nla_len, attrs_len);
 		struct rtattr *rta = (struct rtattr *)nla;
 		if (rta->rta_len < sizeof(struct rtattr)) {
 			break;
@@ -174,7 +177,6 @@ nlmsg_from_linux(int netlink_family, struct nlmsghdr *hdr,
 	return (hdr);
 }
 
-
 /************************************************************
  * Kernel -> Linux
  ************************************************************/
@@ -208,13 +210,14 @@ _nlmsg_copy_next_header(struct nlmsghdr *hdr, struct nl_writer *nw, int sz)
 
 	return (next_hdr);
 }
-#define	nlmsg_copy_next_header(_hdr, _ns, _t)	\
+#define nlmsg_copy_next_header(_hdr, _ns, _t) \
 	((_t *)(_nlmsg_copy_next_header(_hdr, _ns, sizeof(_t))))
 
 static bool
 nlmsg_copy_nla(const struct nlattr *nla_orig, struct nl_writer *nw)
 {
-	struct nlattr *nla = nlmsg_reserve_data(nw, nla_orig->nla_len, struct nlattr);
+	struct nlattr *nla = nlmsg_reserve_data(nw, nla_orig->nla_len,
+	    struct nlattr);
 	if (nla != NULL) {
 		memcpy(nla, nla_orig, nla_orig->nla_len);
 		return (true);
@@ -231,12 +234,12 @@ nlmsg_translate_ifname_nla(struct nlattr *nla, struct nl_writer *nw)
 	char ifname[LINUX_IFNAMSIZ];
 
 	if (ifname_bsd_to_linux_name((char *)(nla + 1), ifname,
-	    sizeof(ifname)) <= 0)
+		sizeof(ifname)) <= 0)
 		return (false);
 	return (nlattr_add_string(nw, IFLA_IFNAME, ifname));
 }
 
-#define	LINUX_NLA_UNHANDLED	-1
+#define LINUX_NLA_UNHANDLED -1
 /*
  * Translate a FreeBSD attribute to a Linux attribute.
  * Returns LINUX_NLA_UNHANDLED when the attribute is not processed
@@ -273,8 +276,10 @@ nlmsg_copy_all_nla(struct nlmsghdr *hdr, int raw_hdrlen, struct nl_writer *nw)
 	int attrs_len = hdr->nlmsg_len - sizeof(struct nlmsghdr) - hdrlen;
 	struct nlattr *nla_head = (struct nlattr *)((char *)(hdr + 1) + hdrlen);
 
-	NLA_FOREACH(nla, nla_head, attrs_len) {
-		RT_LOG(LOG_DEBUG3, "reading attr %d len %d", nla->nla_type, nla->nla_len);
+	NLA_FOREACH(nla, nla_head, attrs_len)
+	{
+		RT_LOG(LOG_DEBUG3, "reading attr %d len %d", nla->nla_type,
+		    nla->nla_len);
 		if (nla->nla_len < sizeof(struct nlattr)) {
 			return (false);
 		}
@@ -426,25 +431,25 @@ rtnl_newroute_to_linux(struct nlmsghdr *hdr, struct nlpcb *nlp,
 	int attrs_len = hdr->nlmsg_len - sizeof(struct nlmsghdr) - hdrlen;
 	struct nlattr *nla_head = (struct nlattr *)((char *)(hdr + 1) + hdrlen);
 
-	NLA_FOREACH(nla, nla_head, attrs_len) {
+	NLA_FOREACH(nla, nla_head, attrs_len)
+	{
 		struct rtattr *rta = (struct rtattr *)nla;
-		//RT_LOG(LOG_DEBUG, "READING attr %d len %d", nla->nla_type, nla->nla_len);
+		// RT_LOG(LOG_DEBUG, "READING attr %d len %d", nla->nla_type,
+		// nla->nla_len);
 		if (rta->rta_len < sizeof(struct rtattr)) {
 			break;
 		}
 
 		switch (rta->rta_type) {
-		case NL_RTA_TABLE:
-			{
-				uint32_t fibnum;
-				fibnum = _rta_get_uint32(rta);
-				if (fibnum == 0)
-					fibnum = 254;
-				RT_LOG(LOG_DEBUG3, "XFIBNUM %u", fibnum);
-				if (!nlattr_add_u32(nw, NL_RTA_TABLE, fibnum))
-					return (false);
-			}
-			break;
+		case NL_RTA_TABLE: {
+			uint32_t fibnum;
+			fibnum = _rta_get_uint32(rta);
+			if (fibnum == 0)
+				fibnum = 254;
+			RT_LOG(LOG_DEBUG3, "XFIBNUM %u", fibnum);
+			if (!nlattr_add_u32(nw, NL_RTA_TABLE, fibnum))
+				return (false);
+		} break;
 		default:
 			if (!nlmsg_copy_nla(nla, nw))
 				return (false);
@@ -485,7 +490,8 @@ rtnl_to_linux(struct nlmsghdr *hdr, struct nlpcb *nlp, struct nl_writer *nw)
 }
 
 static bool
-nlmsg_error_to_linux(struct nlmsghdr *hdr, struct nlpcb *nlp, struct nl_writer *nw)
+nlmsg_error_to_linux(struct nlmsghdr *hdr, struct nlpcb *nlp,
+    struct nl_writer *nw)
 {
 	if (!nlmsg_copy_header(hdr, nw))
 		return (false);
@@ -530,7 +536,8 @@ nlmsg_to_linux(struct nlmsghdr *hdr, struct nlpcb *nlp, struct nl_writer *nw)
 		case NLMSG_OVERRUN:
 			return (handle_default_out(hdr, nw));
 		default:
-			RT_LOG(LOG_DEBUG, "[WARN] Passing message type %d untranslated",
+			RT_LOG(LOG_DEBUG,
+			    "[WARN] Passing message type %d untranslated",
 			    hdr->nlmsg_type);
 			return (handle_default_out(hdr, nw));
 		}
@@ -564,9 +571,8 @@ nlmsgs_to_linux(struct nl_writer *nw, struct nlpcb *nlp)
 	nw->num_messages = 0;
 
 	/* Assume correct headers. Buffer IS mutable */
-	for (offset = 0;
-	    offset + sizeof(struct nlmsghdr) <= orig->datalen;
-	    offset += msglen) {
+	for (offset = 0; offset + sizeof(struct nlmsghdr) <= orig->datalen;
+	     offset += msglen) {
 		struct nlmsghdr *hdr = (struct nlmsghdr *)&orig->data[offset];
 
 		msglen = NLMSG_ALIGN(hdr->nlmsg_len);

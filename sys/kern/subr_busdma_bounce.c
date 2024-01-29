@@ -49,16 +49,16 @@
 #include <sys/sched.h>
 
 struct bounce_page {
-	vm_offset_t	vaddr;		/* kva of bounce buffer */
-	bus_addr_t	busaddr;	/* Physical address */
-	vm_offset_t	datavaddr;	/* kva of client data */
+	vm_offset_t vaddr;     /* kva of bounce buffer */
+	bus_addr_t busaddr;    /* Physical address */
+	vm_offset_t datavaddr; /* kva of client data */
 #if defined(__amd64__) || defined(__i386__)
-	vm_page_t	datapage[2];	/* physical page(s) of client data */
+	vm_page_t datapage[2]; /* physical page(s) of client data */
 #else
-	vm_page_t	datapage;	/* physical page of client data */
+	vm_page_t datapage; /* physical page of client data */
 #endif
-	vm_offset_t	dataoffs;	/* page offset of client data */
-	bus_size_t	datacount;	/* client data count */
+	vm_offset_t dataoffs; /* page offset of client data */
+	bus_size_t datacount; /* client data count */
 	STAILQ_ENTRY(bounce_page) links;
 };
 
@@ -66,21 +66,21 @@ struct bounce_zone {
 	STAILQ_ENTRY(bounce_zone) links;
 	STAILQ_HEAD(, bounce_page) bounce_page_list;
 	STAILQ_HEAD(, bus_dmamap) bounce_map_waitinglist;
-	int		total_bpages;
-	int		free_bpages;
-	int		reserved_bpages;
-	int		active_bpages;
-	int		total_bounced;
-	int		total_deferred;
-	int		map_count;
+	int total_bpages;
+	int free_bpages;
+	int reserved_bpages;
+	int active_bpages;
+	int total_bounced;
+	int total_deferred;
+	int map_count;
 #ifdef dmat_domain
-	int		domain;
+	int domain;
 #endif
-	sbintime_t	total_deferred_time;
-	bus_size_t	alignment;
-	bus_addr_t	lowaddr;
-	char		zoneid[8];
-	char		lowaddrid[20];
+	sbintime_t total_deferred_time;
+	bus_size_t alignment;
+	bus_addr_t lowaddr;
+	char zoneid[8];
+	char lowaddrid[20];
 	struct sysctl_ctx_list sysctl_tree;
 	struct sysctl_oid *sysctl_tree_top;
 };
@@ -95,7 +95,7 @@ static STAILQ_HEAD(, bus_dmamap) bounce_map_callbacklist;
 static MALLOC_DEFINE(M_BOUNCE, "bounce", "busdma bounce pages");
 
 SYSCTL_INT(_hw_busdma, OID_AUTO, total_bpages, CTLFLAG_RD, &total_bpages, 0,
-   "Total bounce pages");
+    "Total bounce pages");
 
 static void busdma_thread(void *);
 static int reserve_bounce_pages(bus_dma_tag_t dmat, bus_dmamap_t map,
@@ -178,7 +178,7 @@ alloc_bounce_zone(bus_dma_tag_t dmat)
 	bool start_thread;
 
 	/* Check to see if we already have a suitable zone */
-	STAILQ_FOREACH(bz, &bounce_zone_list, links) {
+	STAILQ_FOREACH (bz, &bounce_zone_list, links) {
 		if ((dmat_alignment(dmat) <= bz->alignment) &&
 #ifdef dmat_domain
 		    dmat_domain(dmat) == bz->domain &&
@@ -190,7 +190,7 @@ alloc_bounce_zone(bus_dma_tag_t dmat)
 	}
 
 	if ((bz = (struct bounce_zone *)malloc(sizeof(*bz), M_BUSDMA,
-	    M_NOWAIT | M_ZERO)) == NULL)
+		 M_NOWAIT | M_ZERO)) == NULL)
 		return (ENOMEM);
 
 	STAILQ_INIT(&bz->bounce_page_list);
@@ -218,7 +218,7 @@ alloc_bounce_zone(bus_dma_tag_t dmat)
 	    CTLFLAG_RD | CTLFLAG_MPSAFE, 0, "");
 	if (bz->sysctl_tree_top == NULL) {
 		sysctl_ctx_free(&bz->sysctl_tree);
-		return (0);	/* XXX error code? */
+		return (0); /* XXX error code? */
 	}
 
 	SYSCTL_ADD_INT(busdma_sysctl_tree(bz),
@@ -246,16 +246,15 @@ alloc_bounce_zone(bus_dma_tag_t dmat)
 	    "total_deferred", CTLFLAG_RD, &bz->total_deferred, 0,
 	    "Total bounce requests that were deferred");
 	SYSCTL_ADD_STRING(busdma_sysctl_tree(bz),
-	    SYSCTL_CHILDREN(busdma_sysctl_tree_top(bz)), OID_AUTO,
-	    "lowaddr", CTLFLAG_RD, bz->lowaddrid, 0, "");
+	    SYSCTL_CHILDREN(busdma_sysctl_tree_top(bz)), OID_AUTO, "lowaddr",
+	    CTLFLAG_RD, bz->lowaddrid, 0, "");
 	SYSCTL_ADD_UAUTO(busdma_sysctl_tree(bz),
-	    SYSCTL_CHILDREN(busdma_sysctl_tree_top(bz)), OID_AUTO,
-	    "alignment", CTLFLAG_RD, &bz->alignment, "");
+	    SYSCTL_CHILDREN(busdma_sysctl_tree_top(bz)), OID_AUTO, "alignment",
+	    CTLFLAG_RD, &bz->alignment, "");
 #ifdef dmat_domain
 	SYSCTL_ADD_INT(busdma_sysctl_tree(bz),
-	    SYSCTL_CHILDREN(busdma_sysctl_tree_top(bz)), OID_AUTO,
-	    "domain", CTLFLAG_RD, &bz->domain, 0,
-	    "memory domain");
+	    SYSCTL_CHILDREN(busdma_sysctl_tree_top(bz)), OID_AUTO, "domain",
+	    CTLFLAG_RD, &bz->domain, 0, "memory domain");
 #endif
 	SYSCTL_ADD_SBINTIME_USEC(busdma_sysctl_tree(bz),
 	    SYSCTL_CHILDREN(busdma_sysctl_tree_top(bz)), OID_AUTO,
@@ -291,8 +290,8 @@ alloc_bounce_pages(bus_dma_tag_t dmat, u_int numpages)
 			break;
 #ifdef dmat_domain
 		bpage->vaddr = (vm_offset_t)contigmalloc_domainset(PAGE_SIZE,
-		    M_BOUNCE, DOMAINSET_PREF(bz->domain), M_NOWAIT,
-		    0ul, bz->lowaddr, PAGE_SIZE, 0);
+		    M_BOUNCE, DOMAINSET_PREF(bz->domain), M_NOWAIT, 0ul,
+		    bz->lowaddr, PAGE_SIZE, 0);
 #else
 		bpage->vaddr = (vm_offset_t)contigmalloc(PAGE_SIZE, M_BOUNCE,
 		    M_NOWAIT, 0ul, bz->lowaddr, PAGE_SIZE, 0);
@@ -381,7 +380,7 @@ add_bounce_page(bus_dma_tag_t dmat, bus_dmamap_t map, vm_offset_t vaddr,
 		bpage->vaddr |= addr1 & PAGE_MASK;
 		bpage->busaddr |= addr1 & PAGE_MASK;
 		KASSERT(addr2 == 0,
-	    ("Trying to bounce multiple pages with BUS_DMA_KEEP_PG_OFFSET"));
+		    ("Trying to bounce multiple pages with BUS_DMA_KEEP_PG_OFFSET"));
 #else
 		bpage->vaddr |= addr & PAGE_MASK;
 		bpage->busaddr |= addr & PAGE_MASK;
@@ -416,7 +415,7 @@ free_bounce_pages(bus_dma_tag_t dmat, bus_dmamap_t map)
 	bz = dmat->bounce_zone;
 	count = 0;
 	schedule_thread = false;
-	STAILQ_FOREACH(bpage, &map->bpages, links) {
+	STAILQ_FOREACH (bpage, &map->bpages, links) {
 		bpage->datavaddr = 0;
 		bpage->datacount = 0;
 
@@ -472,16 +471,17 @@ busdma_thread(void *dummy __unused)
 		STAILQ_CONCAT(&callbacklist, &bounce_map_callbacklist);
 		mtx_unlock(&bounce_lock);
 
-		STAILQ_FOREACH_SAFE(map, &callbacklist, links, nmap) {
+		STAILQ_FOREACH_SAFE (map, &callbacklist, links, nmap) {
 			dmat = map->dmat;
 			bz = dmat->bounce_zone;
-			dmat_lockfunc(dmat)(dmat_lockfuncarg(dmat),
-			    BUS_DMA_LOCK);
-			bz->total_deferred_time += (sbinuptime() - map->queued_time);
+			dmat_lockfunc(
+			    dmat)(dmat_lockfuncarg(dmat), BUS_DMA_LOCK);
+			bz->total_deferred_time += (sbinuptime() -
+			    map->queued_time);
 			bus_dmamap_load_mem(map->dmat, map, &map->mem,
 			    map->callback, map->callback_arg, BUS_DMA_WAITOK);
-			dmat_lockfunc(dmat)(dmat_lockfuncarg(dmat),
-			    BUS_DMA_UNLOCK);
+			dmat_lockfunc(
+			    dmat)(dmat_lockfuncarg(dmat), BUS_DMA_UNLOCK);
 		}
 	}
 }

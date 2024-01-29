@@ -29,13 +29,13 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_DEV_PCI_PCI_HOST_GENERIC_ACPI_H_
-#define	_DEV_PCI_PCI_HOST_GENERIC_ACPI_H_
+#ifndef _DEV_PCI_PCI_HOST_GENERIC_ACPI_H_
+#define _DEV_PCI_PCI_HOST_GENERIC_ACPI_H_
 
 struct generic_pcie_acpi_softc {
 	struct generic_pcie_core_softc base;
 	int segment;
-	ACPI_BUFFER		ap_prt;		/* interrupt routing table */
+	ACPI_BUFFER ap_prt; /* interrupt routing table */
 };
 
 DECLARE_CLASS(generic_pcie_acpi_driver);

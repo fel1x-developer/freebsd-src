@@ -19,63 +19,62 @@
  * SOFTWARE.
  */
 
-typedef	struct _entry {
-	struct _entry	*next;
-	uid_t		uid;
-	gid_t		gid;
+typedef struct _entry {
+	struct _entry *next;
+	uid_t uid;
+	gid_t gid;
 #ifdef LOGIN_CAP
-	char            *class;
+	char *class;
 #endif
-	char		**envp;
-	char		*cmd;
+	char **envp;
+	char *cmd;
 	union {
 		struct {
-			bitstr_t	bit_decl(second, SECOND_COUNT);
-			bitstr_t	bit_decl(minute, MINUTE_COUNT);
-			bitstr_t	bit_decl(hour,   HOUR_COUNT);
-			bitstr_t	bit_decl(dom,    DOM_COUNT);
-			bitstr_t	bit_decl(month,  MONTH_COUNT);
-			bitstr_t	bit_decl(dow,    DOW_COUNT);
+			bitstr_t bit_decl(second, SECOND_COUNT);
+			bitstr_t bit_decl(minute, MINUTE_COUNT);
+			bitstr_t bit_decl(hour, HOUR_COUNT);
+			bitstr_t bit_decl(dom, DOM_COUNT);
+			bitstr_t bit_decl(month, MONTH_COUNT);
+			bitstr_t bit_decl(dow, DOW_COUNT);
 		};
 		struct {
-			time_t	lastexit;
-			time_t	interval;
-			pid_t	child;
+			time_t lastexit;
+			time_t interval;
+			pid_t child;
 		};
 	};
-	int		flags;
-#define	DOM_STAR	0x01
-#define	DOW_STAR	0x02
-#define	WHEN_REBOOT	0x04
-#define	DONT_LOG	0x08
-#define	NOT_UNTIL	0x10
-#define	SEC_RES		0x20
-#define	INTERVAL	0x40
-#define	RUN_AT		0x80
-#define	MAIL_WHEN_ERR	0x100
-	time_t	lastrun;
+	int flags;
+#define DOM_STAR 0x01
+#define DOW_STAR 0x02
+#define WHEN_REBOOT 0x04
+#define DONT_LOG 0x08
+#define NOT_UNTIL 0x10
+#define SEC_RES 0x20
+#define INTERVAL 0x40
+#define RUN_AT 0x80
+#define MAIL_WHEN_ERR 0x100
+	time_t lastrun;
 } entry;
 
-			/* the crontab database will be a list of the
-			 * following structure, one element per user
-			 * plus one for the system.
-			 *
-			 * These are the crontabs.
-			 */
+/* the crontab database will be a list of the
+ * following structure, one element per user
+ * plus one for the system.
+ *
+ * These are the crontabs.
+ */
 
-typedef	struct _user {
-	struct _user	*next, *prev;	/* links */
-	char		*name;
-	time_t		mtime;		/* last modtime of crontab */
-	entry		*crontab;	/* this person's crontab */
+typedef struct _user {
+	struct _user *next, *prev; /* links */
+	char *name;
+	time_t mtime;	/* last modtime of crontab */
+	entry *crontab; /* this person's crontab */
 } user;
 
-typedef	struct _cron_db {
-	user		*head, *tail;	/* links */
-	time_t		mtime;		/* last modtime on spooldir */
+typedef struct _cron_db {
+	user *head, *tail; /* links */
+	time_t mtime;	   /* last modtime on spooldir */
 } cron_db;
-				/* in the C tradition, we only create
-				 * variables for the main program, just
-				 * extern them elsewhere.
-				 */
-
+/* in the C tradition, we only create
+ * variables for the main program, just
+ * extern them elsewhere.
+ */

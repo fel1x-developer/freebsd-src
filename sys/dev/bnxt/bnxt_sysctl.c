@@ -75,8 +75,8 @@ bnxt_init_sysctl_ctx(struct bnxt_softc *softc)
 		sysctl_ctx_init(&softc->nvm_info->nvm_ctx);
 		ctx = device_get_sysctl_ctx(softc->dev);
 		softc->nvm_info->nvm_oid = SYSCTL_ADD_NODE(ctx,
-		    SYSCTL_CHILDREN(device_get_sysctl_tree(softc->dev)), OID_AUTO,
-		    "nvram", CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
+		    SYSCTL_CHILDREN(device_get_sysctl_tree(softc->dev)),
+		    OID_AUTO, "nvram", CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
 		    "nvram information");
 		if (!softc->nvm_info->nvm_oid) {
 			sysctl_ctx_free(&softc->nvm_info->nvm_ctx);
@@ -97,8 +97,8 @@ bnxt_init_sysctl_ctx(struct bnxt_softc *softc)
 	sysctl_ctx_init(&softc->flow_ctrl_ctx);
 	ctx = device_get_sysctl_ctx(softc->dev);
 	softc->flow_ctrl_oid = SYSCTL_ADD_NODE(ctx,
-	    SYSCTL_CHILDREN(device_get_sysctl_tree(softc->dev)), OID_AUTO,
-	    "fc", CTLFLAG_RD | CTLFLAG_MPSAFE, 0, "flow ctrl");
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(softc->dev)), OID_AUTO, "fc",
+	    CTLFLAG_RD | CTLFLAG_MPSAFE, 0, "flow ctrl");
 	if (!softc->flow_ctrl_oid) {
 		sysctl_ctx_free(&softc->flow_ctrl_ctx);
 		return ENOMEM;
@@ -158,8 +158,8 @@ bnxt_create_tx_sysctls(struct bnxt_softc *softc, int txr)
 {
 	struct sysctl_oid *oid;
 	struct ctx_hw_stats *tx_stats = (void *)softc->tx_stats[txr].idi_vaddr;
-	char	name[32];
-	char	desc[64];
+	char name[32];
+	char desc[64];
 
 	sprintf(name, "txq%d", txr);
 	sprintf(desc, "transmit queue %d", txr);
@@ -179,8 +179,8 @@ bnxt_create_tx_sysctls(struct bnxt_softc *softc, int txr)
 	    "bcast_pkts", CTLFLAG_RD, &tx_stats->tx_bcast_pkts,
 	    "broadcast packets sent");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "discard_pkts", CTLFLAG_RD,
-	    &tx_stats->tx_discard_pkts, "discarded transmit packets");
+	    "discard_pkts", CTLFLAG_RD, &tx_stats->tx_discard_pkts,
+	    "discarded transmit packets");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "error_pkts", CTLFLAG_RD, &tx_stats->tx_error_pkts,
 	    "Error transmit packets");
@@ -201,20 +201,20 @@ int
 bnxt_create_port_stats_sysctls(struct bnxt_softc *softc)
 {
 	struct sysctl_oid *oid;
-	char	name[32];
-	char	desc[64];
+	char name[32];
+	char desc[64];
 
 	sprintf(name, "port_stats");
 	sprintf(desc, "Port Stats");
 	oid = SYSCTL_ADD_NODE(&softc->hw_stats,
 	    SYSCTL_CHILDREN(softc->hw_stats_oid), OID_AUTO, name,
-	        CTLFLAG_RD | CTLFLAG_MPSAFE, 0, desc);
+	    CTLFLAG_RD | CTLFLAG_MPSAFE, 0, desc);
 	if (!oid)
 		return ENOMEM;
 
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "tx_64b_frames", CTLFLAG_RD,
-	    &softc->tx_port_stats->tx_64b_frames, "Transmitted 64b frames");
+	    "tx_64b_frames", CTLFLAG_RD, &softc->tx_port_stats->tx_64b_frames,
+	    "Transmitted 64b frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "tx_65b_127b_frames", CTLFLAG_RD,
 	    &softc->tx_port_stats->tx_65b_127b_frames,
@@ -256,8 +256,8 @@ bnxt_create_port_stats_sysctls(struct bnxt_softc *softc)
 	    &softc->tx_port_stats->tx_9217b_16383b_frames,
 	    "Transmitted 9217b 16383b frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "tx_good_frames", CTLFLAG_RD,
-	    &softc->tx_port_stats->tx_good_frames, "Transmitted good frames");
+	    "tx_good_frames", CTLFLAG_RD, &softc->tx_port_stats->tx_good_frames,
+	    "Transmitted good frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "tx_total_frames", CTLFLAG_RD,
 	    &softc->tx_port_stats->tx_total_frames, "Transmitted total frames");
@@ -274,11 +274,12 @@ bnxt_create_port_stats_sysctls(struct bnxt_softc *softc)
 	    "tx_pause_frames", CTLFLAG_RD,
 	    &softc->tx_port_stats->tx_pause_frames, "Transmitted pause frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "tx_pfc_frames", CTLFLAG_RD,
-	    &softc->tx_port_stats->tx_pfc_frames, "Transmitted pfc frames");
+	    "tx_pfc_frames", CTLFLAG_RD, &softc->tx_port_stats->tx_pfc_frames,
+	    "Transmitted pfc frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "tx_jabber_frames", CTLFLAG_RD,
-	    &softc->tx_port_stats->tx_jabber_frames, "Transmitted jabber frames");
+	    &softc->tx_port_stats->tx_jabber_frames,
+	    "Transmitted jabber frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "tx_fcs_err_frames", CTLFLAG_RD,
 	    &softc->tx_port_stats->tx_fcs_err_frames,
@@ -289,7 +290,8 @@ bnxt_create_port_stats_sysctls(struct bnxt_softc *softc)
 	    "Transmitted control frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "tx_oversz_frames", CTLFLAG_RD,
-	    &softc->tx_port_stats->tx_oversz_frames, "Transmitted oversz frames");
+	    &softc->tx_port_stats->tx_oversz_frames,
+	    "Transmitted oversz frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "tx_single_dfrl_frames", CTLFLAG_RD,
 	    &softc->tx_port_stats->tx_single_dfrl_frames,
@@ -315,21 +317,22 @@ bnxt_create_port_stats_sysctls(struct bnxt_softc *softc)
 	    &softc->tx_port_stats->tx_excessive_coll_frames,
 	    "Transmitted excessive coll frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "tx_frag_frames", CTLFLAG_RD,
-	    &softc->tx_port_stats->tx_frag_frames, "Transmitted frag frames");
+	    "tx_frag_frames", CTLFLAG_RD, &softc->tx_port_stats->tx_frag_frames,
+	    "Transmitted frag frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "tx_err", CTLFLAG_RD,
-	    &softc->tx_port_stats->tx_err, "Transmitted err");
+	    "tx_err", CTLFLAG_RD, &softc->tx_port_stats->tx_err,
+	    "Transmitted err");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "tx_tagged_frames", CTLFLAG_RD,
-	    &softc->tx_port_stats->tx_tagged_frames, "Transmitted tagged frames");
+	    &softc->tx_port_stats->tx_tagged_frames,
+	    "Transmitted tagged frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "tx_dbl_tagged_frames", CTLFLAG_RD,
 	    &softc->tx_port_stats->tx_dbl_tagged_frames,
 	    "Transmitted dbl tagged frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "tx_runt_frames", CTLFLAG_RD,
-	    &softc->tx_port_stats->tx_runt_frames, "Transmitted runt frames");
+	    "tx_runt_frames", CTLFLAG_RD, &softc->tx_port_stats->tx_runt_frames,
+	    "Transmitted runt frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "tx_fifo_underruns", CTLFLAG_RD,
 	    &softc->tx_port_stats->tx_fifo_underruns,
@@ -379,15 +382,15 @@ bnxt_create_port_stats_sysctls(struct bnxt_softc *softc)
 	    &softc->tx_port_stats->tx_llfc_logical_msgs,
 	    "Transmitted llfc logical msgs");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "tx_hcfc_msgs", CTLFLAG_RD,
-	    &softc->tx_port_stats->tx_hcfc_msgs, "Transmitted hcfc msgs");
+	    "tx_hcfc_msgs", CTLFLAG_RD, &softc->tx_port_stats->tx_hcfc_msgs,
+	    "Transmitted hcfc msgs");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "tx_total_collisions", CTLFLAG_RD,
 	    &softc->tx_port_stats->tx_total_collisions,
 	    "Transmitted total collisions");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "tx_bytes", CTLFLAG_RD,
-	    &softc->tx_port_stats->tx_bytes, "Transmitted bytes");
+	    "tx_bytes", CTLFLAG_RD, &softc->tx_port_stats->tx_bytes,
+	    "Transmitted bytes");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "tx_xthol_frames", CTLFLAG_RD,
 	    &softc->tx_port_stats->tx_xthol_frames, "Transmitted xthol frames");
@@ -395,14 +398,15 @@ bnxt_create_port_stats_sysctls(struct bnxt_softc *softc)
 	    "tx_stat_discard", CTLFLAG_RD,
 	    &softc->tx_port_stats->tx_stat_discard, "Transmitted stat discard");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "tx_stat_error", CTLFLAG_RD,
-	    &softc->tx_port_stats->tx_stat_error, "Transmitted stat error");
+	    "tx_stat_error", CTLFLAG_RD, &softc->tx_port_stats->tx_stat_error,
+	    "Transmitted stat error");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "rx_64b_frames", CTLFLAG_RD,
-	    &softc->rx_port_stats->rx_64b_frames, "Received 64b frames");
+	    "rx_64b_frames", CTLFLAG_RD, &softc->rx_port_stats->rx_64b_frames,
+	    "Received 64b frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "rx_65b_127b_frames", CTLFLAG_RD,
-	    &softc->rx_port_stats->rx_65b_127b_frames, "Received 65b 127b frames");
+	    &softc->rx_port_stats->rx_65b_127b_frames,
+	    "Received 65b 127b frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "rx_128b_255b_frames", CTLFLAG_RD,
 	    &softc->rx_port_stats->rx_128b_255b_frames,
@@ -453,16 +457,17 @@ bnxt_create_port_stats_sysctls(struct bnxt_softc *softc)
 	    &softc->rx_port_stats->rx_bcast_frames, "Received bcast frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "rx_fcs_err_frames", CTLFLAG_RD,
-	    &softc->rx_port_stats->rx_fcs_err_frames, "Received fcs err frames");
+	    &softc->rx_port_stats->rx_fcs_err_frames,
+	    "Received fcs err frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "rx_ctrl_frames", CTLFLAG_RD,
-	    &softc->rx_port_stats->rx_ctrl_frames, "Received ctrl frames");
+	    "rx_ctrl_frames", CTLFLAG_RD, &softc->rx_port_stats->rx_ctrl_frames,
+	    "Received ctrl frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "rx_pause_frames", CTLFLAG_RD,
 	    &softc->rx_port_stats->rx_pause_frames, "Received pause frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "rx_pfc_frames", CTLFLAG_RD,
-	    &softc->rx_port_stats->rx_pfc_frames, "Received pfc frames");
+	    "rx_pfc_frames", CTLFLAG_RD, &softc->rx_port_stats->rx_pfc_frames,
+	    "Received pfc frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "rx_unsupported_opcode_frames", CTLFLAG_RD,
 	    &softc->rx_port_stats->rx_unsupported_opcode_frames,
@@ -493,11 +498,9 @@ bnxt_create_port_stats_sysctls(struct bnxt_softc *softc)
 	    "Received false carrier frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "rx_ovrsz_frames", CTLFLAG_RD,
-	    &softc->rx_port_stats->rx_ovrsz_frames,
-	    "Received ovrsz frames");
+	    &softc->rx_port_stats->rx_ovrsz_frames, "Received ovrsz frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "rx_jbr_frames", CTLFLAG_RD,
-	    &softc->rx_port_stats->rx_jbr_frames,
+	    "rx_jbr_frames", CTLFLAG_RD, &softc->rx_port_stats->rx_jbr_frames,
 	    "Received jbr frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "rx_mtu_err_frames", CTLFLAG_RD,
@@ -513,19 +516,16 @@ bnxt_create_port_stats_sysctls(struct bnxt_softc *softc)
 	    "Received promiscuous frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "rx_tagged_frames", CTLFLAG_RD,
-	    &softc->rx_port_stats->rx_tagged_frames,
-	    "Received tagged frames");
+	    &softc->rx_port_stats->rx_tagged_frames, "Received tagged frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "rx_double_tagged_frames", CTLFLAG_RD,
 	    &softc->rx_port_stats->rx_double_tagged_frames,
 	    "Received double tagged frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "rx_trunc_frames", CTLFLAG_RD,
-	    &softc->rx_port_stats->rx_trunc_frames,
-	    "Received trunc frames");
+	    &softc->rx_port_stats->rx_trunc_frames, "Received trunc frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "rx_good_frames", CTLFLAG_RD,
-	    &softc->rx_port_stats->rx_good_frames,
+	    "rx_good_frames", CTLFLAG_RD, &softc->rx_port_stats->rx_good_frames,
 	    "Received good frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "rx_pfc_xon2xoff_frames_pri0", CTLFLAG_RD,
@@ -599,11 +599,12 @@ bnxt_create_port_stats_sysctls(struct bnxt_softc *softc)
 	    "rx_undrsz_frames", CTLFLAG_RD,
 	    &softc->rx_port_stats->rx_undrsz_frames, "Received undrsz frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "rx_frag_frames", CTLFLAG_RD,
-	    &softc->rx_port_stats->rx_frag_frames, "Received frag frames");
+	    "rx_frag_frames", CTLFLAG_RD, &softc->rx_port_stats->rx_frag_frames,
+	    "Received frag frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "rx_eee_lpi_events", CTLFLAG_RD,
-	    &softc->rx_port_stats->rx_eee_lpi_events, "Received eee lpi events");
+	    &softc->rx_port_stats->rx_eee_lpi_events,
+	    "Received eee lpi events");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "rx_eee_lpi_duration", CTLFLAG_RD,
 	    &softc->rx_port_stats->rx_eee_lpi_duration,
@@ -621,27 +622,27 @@ bnxt_create_port_stats_sysctls(struct bnxt_softc *softc)
 	    &softc->rx_port_stats->rx_llfc_msgs_with_crc_err,
 	    "Received llfc msgs with crc err");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "rx_hcfc_msgs", CTLFLAG_RD,
-	    &softc->rx_port_stats->rx_hcfc_msgs, "Received hcfc msgs");
+	    "rx_hcfc_msgs", CTLFLAG_RD, &softc->rx_port_stats->rx_hcfc_msgs,
+	    "Received hcfc msgs");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "rx_hcfc_msgs_with_crc_err", CTLFLAG_RD,
 	    &softc->rx_port_stats->rx_hcfc_msgs_with_crc_err,
 	    "Received hcfc msgs with crc err");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "rx_bytes", CTLFLAG_RD,
-	    &softc->rx_port_stats->rx_bytes, "Received bytes");
+	    "rx_bytes", CTLFLAG_RD, &softc->rx_port_stats->rx_bytes,
+	    "Received bytes");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "rx_runt_bytes", CTLFLAG_RD,
-	    &softc->rx_port_stats->rx_runt_bytes, "Received runt bytes");
+	    "rx_runt_bytes", CTLFLAG_RD, &softc->rx_port_stats->rx_runt_bytes,
+	    "Received runt bytes");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "rx_runt_frames", CTLFLAG_RD,
-	    &softc->rx_port_stats->rx_runt_frames, "Received runt frames");
+	    "rx_runt_frames", CTLFLAG_RD, &softc->rx_port_stats->rx_runt_frames,
+	    "Received runt frames");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "rx_stat_discard", CTLFLAG_RD,
 	    &softc->rx_port_stats->rx_stat_discard, "Received stat discard");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "rx_stat_err", CTLFLAG_RD,
-	    &softc->rx_port_stats->rx_stat_err, "Received stat err");
+	    "rx_stat_err", CTLFLAG_RD, &softc->rx_port_stats->rx_stat_err,
+	    "Received stat err");
 
 	return 0;
 }
@@ -651,8 +652,8 @@ bnxt_create_rx_sysctls(struct bnxt_softc *softc, int rxr)
 {
 	struct sysctl_oid *oid;
 	struct ctx_hw_stats *rx_stats = (void *)softc->rx_stats[rxr].idi_vaddr;
-	char	name[32];
-	char	desc[64];
+	char name[32];
+	char desc[64];
 
 	sprintf(name, "rxq%d", rxr);
 	sprintf(desc, "receive queue %d", rxr);
@@ -663,13 +664,13 @@ bnxt_create_rx_sysctls(struct bnxt_softc *softc, int rxr)
 		return ENOMEM;
 
 	if (BNXT_CHIP_P5(softc))
-		SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
-		    "nq_num_ints", CTLFLAG_RD, &softc->nq_rings[rxr].int_count,
-		    "Num Interrupts");
+		SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid),
+		    OID_AUTO, "nq_num_ints", CTLFLAG_RD,
+		    &softc->nq_rings[rxr].int_count, "Num Interrupts");
 	else
-		SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
-		    "rq_num_ints", CTLFLAG_RD, &softc->rx_cp_rings[rxr].int_count,
-		    "Num Interrupts");
+		SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid),
+		    OID_AUTO, "rq_num_ints", CTLFLAG_RD,
+		    &softc->rx_cp_rings[rxr].int_count, "Num Interrupts");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "ucast_pkts", CTLFLAG_RD, &rx_stats->rx_ucast_pkts,
 	    "unicast packets received");
@@ -680,8 +681,8 @@ bnxt_create_rx_sysctls(struct bnxt_softc *softc, int rxr)
 	    "bcast_pkts", CTLFLAG_RD, &rx_stats->rx_bcast_pkts,
 	    "broadcast packets received");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "discard_pkts", CTLFLAG_RD,
-	    &rx_stats->rx_discard_pkts, "discarded receive packets");
+	    "discard_pkts", CTLFLAG_RD, &rx_stats->rx_discard_pkts,
+	    "discarded receive packets");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "error_pkts", CTLFLAG_RD, &rx_stats->rx_error_pkts,
 	    "Error receive packets");
@@ -696,27 +697,18 @@ bnxt_create_rx_sysctls(struct bnxt_softc *softc, int rxr)
 	    "broadcast bytes received");
 
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "tpa_pkts", CTLFLAG_RD, &rx_stats->tpa_pkts,
-	    "TPA packets");
+	    "tpa_pkts", CTLFLAG_RD, &rx_stats->tpa_pkts, "TPA packets");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "tpa_bytes", CTLFLAG_RD, &rx_stats->tpa_bytes,
-	    "TPA bytes");
+	    "tpa_bytes", CTLFLAG_RD, &rx_stats->tpa_bytes, "TPA bytes");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "tpa_events", CTLFLAG_RD, &rx_stats->tpa_events,
-	    "TPA events");
+	    "tpa_events", CTLFLAG_RD, &rx_stats->tpa_events, "TPA events");
 	SYSCTL_ADD_QUAD(&softc->hw_stats, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "tpa_aborts", CTLFLAG_RD, &rx_stats->tpa_aborts,
-	    "TPA aborts");
+	    "tpa_aborts", CTLFLAG_RD, &rx_stats->tpa_aborts, "TPA aborts");
 
 	return 0;
 }
 
-static char *bnxt_chip_type[] = {
-	"ASIC",
-	"FPGA",
-	"Palladium",
-	"Unknown"
-};
+static char *bnxt_chip_type[] = { "ASIC", "FPGA", "Palladium", "Unknown" };
 #define MAX_CHIP_TYPE 3
 
 static int
@@ -735,10 +727,10 @@ bnxt_package_ver_sysctl(SYSCTL_HANDLER_ARGS)
 	uint16_t index;
 	uint32_t data_len;
 
-	rc = bnxt_hwrm_nvm_find_dir_entry(softc, BNX_DIR_TYPE_PKG_LOG,
-	    &ordinal, BNX_DIR_EXT_NONE, &index, false,
-	    HWRM_NVM_FIND_DIR_ENTRY_INPUT_OPT_ORDINAL_EQ,
-	    &data_len, NULL, NULL);
+	rc = bnxt_hwrm_nvm_find_dir_entry(softc, BNX_DIR_TYPE_PKG_LOG, &ordinal,
+	    BNX_DIR_EXT_NONE, &index, false,
+	    HWRM_NVM_FIND_DIR_ENTRY_INPUT_OPT_ORDINAL_EQ, &data_len, NULL,
+	    NULL);
 	dma_data.idi_vaddr = NULL;
 	if (rc == 0 && data_len) {
 		rc = iflib_dma_alloc(softc->ctx, data_len, &dma_data,
@@ -749,7 +741,7 @@ bnxt_package_ver_sysctl(SYSCTL_HANDLER_ARGS)
 			if (rc == 0) {
 				pkglog = dma_data.idi_vaddr;
 				/* NULL terminate (removes last \n) */
-				pkglog[data_len-1] = 0;
+				pkglog[data_len - 1] = 0;
 
 				/* Set p = start of last line */
 				p = strrchr(pkglog, '\n');
@@ -759,16 +751,16 @@ bnxt_package_ver_sysctl(SYSCTL_HANDLER_ARGS)
 				/* Now find the correct tab delimited field */
 				for (field = 0, next = p,
 				    p = strsep(&next, "\t");
-				    field <
-				    BNX_PKG_LOG_FIELD_IDX_PKG_VERSION && p;
-				    p = strsep(&next, "\t")) {
+				     field <
+					 BNX_PKG_LOG_FIELD_IDX_PKG_VERSION &&
+				     p;
+				     p = strsep(&next, "\t")) {
 					field++;
 				}
 				if (field == BNX_PKG_LOG_FIELD_IDX_PKG_VERSION)
 					buf = p;
 			}
-		}
-		else
+		} else
 			dma_data.idi_vaddr = NULL;
 	}
 
@@ -783,7 +775,7 @@ bnxt_hwrm_min_ver_sysctl(SYSCTL_HANDLER_ARGS)
 {
 	struct bnxt_softc *softc = arg1;
 	char buf[16];
-	uint8_t	newver[3];
+	uint8_t newver[3];
 	int rc;
 
 	sprintf(buf, "%hhu.%hhu.%hhu", softc->ver_info->hwrm_min_major,
@@ -793,7 +785,7 @@ bnxt_hwrm_min_ver_sysctl(SYSCTL_HANDLER_ARGS)
 	if (rc || req->newptr == NULL)
 		return rc;
 	if (sscanf(buf, "%hhu.%hhu.%hhu%*c", &newver[0], &newver[1],
-	    &newver[2]) != 3)
+		&newver[2]) != 3)
 		return EINVAL;
 	softc->ver_info->hwrm_min_major = newver[0];
 	softc->ver_info->hwrm_min_minor = newver[1];
@@ -819,8 +811,7 @@ bnxt_create_ver_sysctls(struct bnxt_softc *softc)
 	    "driver_hwrm_if", CTLFLAG_RD, vi->driver_hwrm_if_ver, 0,
 	    "HWRM firmware version");
 	SYSCTL_ADD_STRING(&vi->ver_ctx, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "hwrm_fw", CTLFLAG_RD, vi->hwrm_fw_ver, 0,
-	    "HWRM firmware version");
+	    "hwrm_fw", CTLFLAG_RD, vi->hwrm_fw_ver, 0, "HWRM firmware version");
 	SYSCTL_ADD_STRING(&vi->ver_ctx, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "mgmt_fw", CTLFLAG_RD, vi->mgmt_fw_ver, 0,
 	    "management firmware version");
@@ -828,14 +819,11 @@ bnxt_create_ver_sysctls(struct bnxt_softc *softc)
 	    "netctrl_fw", CTLFLAG_RD, vi->netctrl_fw_ver, 0,
 	    "network control firmware version");
 	SYSCTL_ADD_STRING(&vi->ver_ctx, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "roce_fw", CTLFLAG_RD, vi->roce_fw_ver, 0,
-	    "RoCE firmware version");
+	    "roce_fw", CTLFLAG_RD, vi->roce_fw_ver, 0, "RoCE firmware version");
 	SYSCTL_ADD_STRING(&vi->ver_ctx, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "fw_ver", CTLFLAG_RD, vi->fw_ver_str, 0,
-	    "Firmware version");
-	SYSCTL_ADD_STRING(&vi->ver_ctx, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "phy", CTLFLAG_RD, vi->phy_ver, 0,
-	    "PHY version");
+	    "fw_ver", CTLFLAG_RD, vi->fw_ver_str, 0, "Firmware version");
+	SYSCTL_ADD_STRING(&vi->ver_ctx, SYSCTL_CHILDREN(oid), OID_AUTO, "phy",
+	    CTLFLAG_RD, vi->phy_ver, 0, "PHY version");
 	SYSCTL_ADD_STRING(&vi->ver_ctx, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "hwrm_fw_name", CTLFLAG_RD, vi->hwrm_fw_name, 0,
 	    "HWRM firmware name");
@@ -849,27 +837,26 @@ bnxt_create_ver_sysctls(struct bnxt_softc *softc)
 	    "roce_fw_name", CTLFLAG_RD, vi->roce_fw_name, 0,
 	    "RoCE firmware name");
 	SYSCTL_ADD_STRING(&vi->ver_ctx, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "phy_vendor", CTLFLAG_RD, vi->phy_vendor, 0,
-	    "PHY vendor name");
+	    "phy_vendor", CTLFLAG_RD, vi->phy_vendor, 0, "PHY vendor name");
 	SYSCTL_ADD_STRING(&vi->ver_ctx, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "phy_partnumber", CTLFLAG_RD, vi->phy_partnumber, 0,
 	    "PHY vendor part number");
-	SYSCTL_ADD_U16(&vi->ver_ctx, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "chip_num", CTLFLAG_RD, &vi->chip_num, 0, "chip number");
-	SYSCTL_ADD_U8(&vi->ver_ctx, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "chip_rev", CTLFLAG_RD, &vi->chip_rev, 0, "chip revision");
+	SYSCTL_ADD_U16(&vi->ver_ctx, SYSCTL_CHILDREN(oid), OID_AUTO, "chip_num",
+	    CTLFLAG_RD, &vi->chip_num, 0, "chip number");
+	SYSCTL_ADD_U8(&vi->ver_ctx, SYSCTL_CHILDREN(oid), OID_AUTO, "chip_rev",
+	    CTLFLAG_RD, &vi->chip_rev, 0, "chip revision");
 	SYSCTL_ADD_U8(&vi->ver_ctx, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "chip_metal", CTLFLAG_RD, &vi->chip_metal, 0, "chip metal number");
 	SYSCTL_ADD_U8(&vi->ver_ctx, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "chip_bond_id", CTLFLAG_RD, &vi->chip_bond_id, 0,
-	    "chip bond id");
+	    "chip_bond_id", CTLFLAG_RD, &vi->chip_bond_id, 0, "chip bond id");
 	SYSCTL_ADD_STRING(&vi->ver_ctx, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "chip_type", CTLFLAG_RD, vi->chip_type > MAX_CHIP_TYPE ?
-	    bnxt_chip_type[MAX_CHIP_TYPE] : bnxt_chip_type[vi->chip_type], 0,
-	    "RoCE firmware name");
+	    "chip_type", CTLFLAG_RD,
+	    vi->chip_type > MAX_CHIP_TYPE ? bnxt_chip_type[MAX_CHIP_TYPE] :
+					    bnxt_chip_type[vi->chip_type],
+	    0, "RoCE firmware name");
 	SYSCTL_ADD_PROC(&vi->ver_ctx, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "package_ver", CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE,
-	    softc, 0, bnxt_package_ver_sysctl, "A",
+	    "package_ver", CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, softc,
+	    0, bnxt_package_ver_sysctl, "A",
 	    "currently installed package version");
 	SYSCTL_ADD_PROC(&vi->ver_ctx, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "hwrm_min_ver", CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
@@ -887,14 +874,14 @@ bnxt_create_nvram_sysctls(struct bnxt_nvram_info *ni)
 	if (!oid)
 		return ENOMEM;
 
-	SYSCTL_ADD_U16(&ni->nvm_ctx, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "mfg_id", CTLFLAG_RD, &ni->mfg_id, 0, "manufacturer id");
+	SYSCTL_ADD_U16(&ni->nvm_ctx, SYSCTL_CHILDREN(oid), OID_AUTO, "mfg_id",
+	    CTLFLAG_RD, &ni->mfg_id, 0, "manufacturer id");
 	SYSCTL_ADD_U16(&ni->nvm_ctx, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "device_id", CTLFLAG_RD, &ni->device_id, 0, "device id");
 	SYSCTL_ADD_U32(&ni->nvm_ctx, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "sector_size", CTLFLAG_RD, &ni->sector_size, 0, "sector size");
-	SYSCTL_ADD_U32(&ni->nvm_ctx, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "size", CTLFLAG_RD, &ni->size, 0, "nvram total size");
+	SYSCTL_ADD_U32(&ni->nvm_ctx, SYSCTL_CHILDREN(oid), OID_AUTO, "size",
+	    CTLFLAG_RD, &ni->size, 0, "nvram total size");
 	SYSCTL_ADD_U32(&ni->nvm_ctx, SYSCTL_CHILDREN(oid), OID_AUTO,
 	    "reserved_size", CTLFLAG_RD, &ni->reserved_size, 0,
 	    "total reserved space");
@@ -909,12 +896,12 @@ static int
 bnxt_rss_key_sysctl(SYSCTL_HANDLER_ARGS)
 {
 	struct bnxt_softc *softc = arg1;
-	char buf[HW_HASH_KEY_SIZE*2+1] = {0};
+	char buf[HW_HASH_KEY_SIZE * 2 + 1] = { 0 };
 	char *p;
 	int i;
 	int rc;
 
-	for (p = buf, i=0; i<HW_HASH_KEY_SIZE; i++)
+	for (p = buf, i = 0; i < HW_HASH_KEY_SIZE; i++)
 		p += sprintf(p, "%02x", softc->vnic_info.rss_hash_key[i]);
 
 	rc = sysctl_handle_string(oidp, buf, sizeof(buf), req);
@@ -924,7 +911,7 @@ bnxt_rss_key_sysctl(SYSCTL_HANDLER_ARGS)
 	if (strspn(buf, "0123456789abcdefABCDEF") != (HW_HASH_KEY_SIZE * 2))
 		return EINVAL;
 
-	for (p = buf, i=0; i<HW_HASH_KEY_SIZE; i++) {
+	for (p = buf, i = 0; i < HW_HASH_KEY_SIZE; i++) {
 		if (sscanf(p, "%02hhx", &softc->vnic_info.rss_hash_key[i]) != 1)
 			return EINVAL;
 		p += 2;
@@ -937,14 +924,15 @@ bnxt_rss_key_sysctl(SYSCTL_HANDLER_ARGS)
 	return rc;
 }
 
-static const char *bnxt_hash_types[] = {"ipv4", "tcp_ipv4", "udp_ipv4", "ipv6",
-    "tcp_ipv6", "udp_ipv6", NULL};
+static const char *bnxt_hash_types[] = { "ipv4", "tcp_ipv4", "udp_ipv4", "ipv6",
+	"tcp_ipv6", "udp_ipv6", NULL };
 
-static int bnxt_get_rss_type_str_bit(char *str)
+static int
+bnxt_get_rss_type_str_bit(char *str)
 {
 	int i;
 
-	for (i=0; bnxt_hash_types[i]; i++)
+	for (i = 0; bnxt_hash_types[i]; i++)
 		if (strcmp(bnxt_hash_types[i], str) == 0)
 			return i;
 
@@ -955,15 +943,14 @@ static int
 bnxt_rss_type_sysctl(SYSCTL_HANDLER_ARGS)
 {
 	struct bnxt_softc *softc = arg1;
-	char buf[256] = {0};
+	char buf[256] = { 0 };
 	char *p;
 	char *next;
 	int rc;
 	int type;
 	int bit;
 
-	for (type = softc->vnic_info.rss_hash_type; type;
-	    type &= ~(1<<bit)) {
+	for (type = softc->vnic_info.rss_hash_type; type; type &= ~(1 << bit)) {
 		bit = ffs(type) - 1;
 		if (bit >= sizeof(bnxt_hash_types) / sizeof(const char *))
 			continue;
@@ -977,11 +964,11 @@ bnxt_rss_type_sysctl(SYSCTL_HANDLER_ARGS)
 		return rc;
 
 	for (type = 0, next = buf, p = strsep(&next, " ,"); p;
-	    p = strsep(&next, " ,")) {
+	     p = strsep(&next, " ,")) {
 		bit = bnxt_get_rss_type_str_bit(p);
 		if (bit == -1)
 			return EINVAL;
-		type |= 1<<bit;
+		type |= 1 << bit;
 	}
 	if (type != softc->vnic_info.rss_hash_type) {
 		softc->vnic_info.rss_hash_type = type;
@@ -994,7 +981,8 @@ bnxt_rss_type_sysctl(SYSCTL_HANDLER_ARGS)
 }
 
 static int
-bnxt_rx_stall_sysctl(SYSCTL_HANDLER_ARGS) {
+bnxt_rx_stall_sysctl(SYSCTL_HANDLER_ARGS)
+{
 	struct bnxt_softc *softc = arg1;
 	int rc;
 	int val;
@@ -1019,7 +1007,8 @@ bnxt_rx_stall_sysctl(SYSCTL_HANDLER_ARGS) {
 }
 
 static int
-bnxt_vlan_strip_sysctl(SYSCTL_HANDLER_ARGS) {
+bnxt_vlan_strip_sysctl(SYSCTL_HANDLER_ARGS)
+{
 	struct bnxt_softc *softc = arg1;
 	int rc;
 	int val;
@@ -1044,7 +1033,8 @@ bnxt_vlan_strip_sysctl(SYSCTL_HANDLER_ARGS) {
 }
 
 static int
-bnxt_set_coal_rx_usecs(SYSCTL_HANDLER_ARGS) {
+bnxt_set_coal_rx_usecs(SYSCTL_HANDLER_ARGS)
+{
 	struct bnxt_softc *softc = arg1;
 	int rc;
 	int val;
@@ -1064,7 +1054,8 @@ bnxt_set_coal_rx_usecs(SYSCTL_HANDLER_ARGS) {
 }
 
 static int
-bnxt_set_coal_rx_frames(SYSCTL_HANDLER_ARGS) {
+bnxt_set_coal_rx_frames(SYSCTL_HANDLER_ARGS)
+{
 	struct bnxt_softc *softc = arg1;
 	int rc;
 	int val;
@@ -1084,7 +1075,8 @@ bnxt_set_coal_rx_frames(SYSCTL_HANDLER_ARGS) {
 }
 
 static int
-bnxt_set_coal_rx_usecs_irq(SYSCTL_HANDLER_ARGS) {
+bnxt_set_coal_rx_usecs_irq(SYSCTL_HANDLER_ARGS)
+{
 	struct bnxt_softc *softc = arg1;
 	int rc;
 	int val;
@@ -1104,7 +1096,8 @@ bnxt_set_coal_rx_usecs_irq(SYSCTL_HANDLER_ARGS) {
 }
 
 static int
-bnxt_set_coal_rx_frames_irq(SYSCTL_HANDLER_ARGS) {
+bnxt_set_coal_rx_frames_irq(SYSCTL_HANDLER_ARGS)
+{
 	struct bnxt_softc *softc = arg1;
 	int rc;
 	int val;
@@ -1124,7 +1117,8 @@ bnxt_set_coal_rx_frames_irq(SYSCTL_HANDLER_ARGS) {
 }
 
 static int
-bnxt_set_coal_tx_usecs(SYSCTL_HANDLER_ARGS) {
+bnxt_set_coal_tx_usecs(SYSCTL_HANDLER_ARGS)
+{
 	struct bnxt_softc *softc = arg1;
 	int rc;
 	int val;
@@ -1144,7 +1138,8 @@ bnxt_set_coal_tx_usecs(SYSCTL_HANDLER_ARGS) {
 }
 
 static int
-bnxt_set_coal_tx_frames(SYSCTL_HANDLER_ARGS) {
+bnxt_set_coal_tx_frames(SYSCTL_HANDLER_ARGS)
+{
 	struct bnxt_softc *softc = arg1;
 	int rc;
 	int val;
@@ -1164,7 +1159,8 @@ bnxt_set_coal_tx_frames(SYSCTL_HANDLER_ARGS) {
 }
 
 static int
-bnxt_set_coal_tx_usecs_irq(SYSCTL_HANDLER_ARGS) {
+bnxt_set_coal_tx_usecs_irq(SYSCTL_HANDLER_ARGS)
+{
 	struct bnxt_softc *softc = arg1;
 	int rc;
 	int val;
@@ -1184,7 +1180,8 @@ bnxt_set_coal_tx_usecs_irq(SYSCTL_HANDLER_ARGS) {
 }
 
 static int
-bnxt_set_coal_tx_frames_irq(SYSCTL_HANDLER_ARGS) {
+bnxt_set_coal_tx_frames_irq(SYSCTL_HANDLER_ARGS)
+{
 	struct bnxt_softc *softc = arg1;
 	int rc;
 	int val;
@@ -1225,67 +1222,68 @@ bnxt_create_config_sysctls_pre(struct bnxt_softc *softc)
 	    CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, softc, 0,
 	    bnxt_vlan_strip_sysctl, "I", "strip VLAN tag in the RX path");
 	SYSCTL_ADD_CONST_STRING(ctx, children, OID_AUTO, "if_name", CTLFLAG_RD,
-		if_name(iflib_get_ifp(softc->ctx)), "interface name");
+	    if_name(iflib_get_ifp(softc->ctx)), "interface name");
 
-        SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "intr_coal_rx_usecs",
-            CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, softc, 0,
+	SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "intr_coal_rx_usecs",
+	    CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, softc, 0,
 	    bnxt_set_coal_rx_usecs, "I", "interrupt coalescing Rx Usecs");
-        SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "intr_coal_rx_frames",
-            CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, softc, 0,
+	SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "intr_coal_rx_frames",
+	    CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, softc, 0,
 	    bnxt_set_coal_rx_frames, "I", "interrupt coalescing Rx Frames");
-        SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "intr_coal_rx_usecs_irq",
-            CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, softc, 0,
+	SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "intr_coal_rx_usecs_irq",
+	    CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, softc, 0,
 	    bnxt_set_coal_rx_usecs_irq, "I",
 	    "interrupt coalescing Rx Usecs IRQ");
-        SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "intr_coal_rx_frames_irq",
-            CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, softc, 0,
+	SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "intr_coal_rx_frames_irq",
+	    CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, softc, 0,
 	    bnxt_set_coal_rx_frames_irq, "I",
 	    "interrupt coalescing Rx Frames IRQ");
-        SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "intr_coal_tx_usecs",
-            CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, softc, 0,
+	SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "intr_coal_tx_usecs",
+	    CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, softc, 0,
 	    bnxt_set_coal_tx_usecs, "I", "interrupt coalescing Tx Usces");
-        SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "intr_coal_tx_frames",
-            CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, softc, 0,
-	    bnxt_set_coal_tx_frames, "I", "interrupt coalescing Tx Frames"); 
-        SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "intr_coal_tx_usecs_irq",
-            CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, softc, 0,
+	SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "intr_coal_tx_frames",
+	    CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, softc, 0,
+	    bnxt_set_coal_tx_frames, "I", "interrupt coalescing Tx Frames");
+	SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "intr_coal_tx_usecs_irq",
+	    CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, softc, 0,
 	    bnxt_set_coal_tx_usecs_irq, "I",
-	    "interrupt coalescing Tx Usecs IRQ"); 
-        SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "intr_coal_tx_frames_irq",
-            CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, softc, 0,
+	    "interrupt coalescing Tx Usecs IRQ");
+	SYSCTL_ADD_PROC(ctx, children, OID_AUTO, "intr_coal_tx_frames_irq",
+	    CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, softc, 0,
 	    bnxt_set_coal_tx_frames_irq, "I",
 	    "interrupt coalescing Tx Frames IRQ");
 
 	return 0;
 }
 
-#define BNXT_HW_LRO_FN(fn_name, arg)			                   \
-static int						                   \
-fn_name(SYSCTL_HANDLER_ARGS) {				                   \
-	struct bnxt_softc *softc = arg1;		                   \
-	int rc;						                   \
-	int val;					                   \
-							                   \
-	if (softc == NULL)				                   \
-		return EBUSY;				                   \
-							                   \
-	val = softc->hw_lro.arg;			                   \
-	rc = sysctl_handle_int(oidp, &val, 0, req);	                   \
-	if (rc || !req->newptr)				                   \
-		return rc;				                   \
-							                   \
-	if ((if_getdrvflags(iflib_get_ifp(softc->ctx)) & IFF_DRV_RUNNING)) \
-		return EBUSY;				                   \
-							                   \
-	if (!(softc->flags & BNXT_FLAG_TPA))				   \
-		return EINVAL;						   \
-							                   \
-	softc->hw_lro.arg = val;			                   \
-	bnxt_validate_hw_lro_settings(softc);		                   \
-	rc = bnxt_hwrm_vnic_tpa_cfg(softc);		                   \
-							                   \
-	return rc;					                   \
-}
+#define BNXT_HW_LRO_FN(fn_name, arg)                             \
+	static int fn_name(SYSCTL_HANDLER_ARGS)                  \
+	{                                                        \
+		struct bnxt_softc *softc = arg1;                 \
+		int rc;                                          \
+		int val;                                         \
+                                                                 \
+		if (softc == NULL)                               \
+			return EBUSY;                            \
+                                                                 \
+		val = softc->hw_lro.arg;                         \
+		rc = sysctl_handle_int(oidp, &val, 0, req);      \
+		if (rc || !req->newptr)                          \
+			return rc;                               \
+                                                                 \
+		if ((if_getdrvflags(iflib_get_ifp(softc->ctx)) & \
+			IFF_DRV_RUNNING))                        \
+			return EBUSY;                            \
+                                                                 \
+		if (!(softc->flags & BNXT_FLAG_TPA))             \
+			return EINVAL;                           \
+                                                                 \
+		softc->hw_lro.arg = val;                         \
+		bnxt_validate_hw_lro_settings(softc);            \
+		rc = bnxt_hwrm_vnic_tpa_cfg(softc);              \
+                                                                 \
+		return rc;                                       \
+	}
 
 BNXT_HW_LRO_FN(bnxt_hw_lro_enable_disable, enable)
 BNXT_HW_LRO_FN(bnxt_hw_lro_set_mode, is_mode_gro)
@@ -1293,32 +1291,33 @@ BNXT_HW_LRO_FN(bnxt_hw_lro_set_max_agg_segs, max_agg_segs)
 BNXT_HW_LRO_FN(bnxt_hw_lro_set_max_aggs, max_aggs)
 BNXT_HW_LRO_FN(bnxt_hw_lro_set_min_agg_len, min_agg_len)
 
-#define BNXT_FLOW_CTRL_FN(fn_name, arg)			                   \
-static int						                   \
-fn_name(SYSCTL_HANDLER_ARGS) {				                   \
-	struct bnxt_softc *softc = arg1;		                   \
-	int rc;						                   \
-	int val;					                   \
-							                   \
-	if (softc == NULL)				                   \
-		return EBUSY;				                   \
-							                   \
-	val = softc->link_info.flow_ctrl.arg;			           \
-	rc = sysctl_handle_int(oidp, &val, 0, req);	                   \
-	if (rc || !req->newptr)				                   \
-		return rc;				                   \
-							                   \
-	if (val)					                   \
-	   	val = 1; 				                   \
-	        					                   \
-	if (softc->link_info.flow_ctrl.arg != val) {		           \
-		softc->link_info.flow_ctrl.arg = val;		           \
-		rc = bnxt_hwrm_set_link_setting(softc, true, false, false);\
-		rc = bnxt_hwrm_port_phy_qcfg(softc);			   \
-	}						                   \
-							                   \
-	return rc;					                   \
-}
+#define BNXT_FLOW_CTRL_FN(fn_name, arg)                                     \
+	static int fn_name(SYSCTL_HANDLER_ARGS)                             \
+	{                                                                   \
+		struct bnxt_softc *softc = arg1;                            \
+		int rc;                                                     \
+		int val;                                                    \
+                                                                            \
+		if (softc == NULL)                                          \
+			return EBUSY;                                       \
+                                                                            \
+		val = softc->link_info.flow_ctrl.arg;                       \
+		rc = sysctl_handle_int(oidp, &val, 0, req);                 \
+		if (rc || !req->newptr)                                     \
+			return rc;                                          \
+                                                                            \
+		if (val)                                                    \
+			val = 1;                                            \
+                                                                            \
+		if (softc->link_info.flow_ctrl.arg != val) {                \
+			softc->link_info.flow_ctrl.arg = val;               \
+			rc = bnxt_hwrm_set_link_setting(softc, true, false, \
+			    false);                                         \
+			rc = bnxt_hwrm_port_phy_qcfg(softc);                \
+		}                                                           \
+                                                                            \
+		return rc;                                                  \
+	}
 
 BNXT_FLOW_CTRL_FN(bnxt_flow_ctrl_tx, tx)
 BNXT_FLOW_CTRL_FN(bnxt_flow_ctrl_rx, rx)
@@ -1340,8 +1339,8 @@ bnxt_create_pause_fc_sysctls(struct bnxt_softc *softc)
 	    bnxt_flow_ctrl_rx, "A", "Enable or Disable Tx Flow Ctrl: 0 / 1");
 
 	SYSCTL_ADD_PROC(&softc->flow_ctrl_ctx, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "autoneg", CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, softc,
-	    0, bnxt_flow_ctrl_autoneg, "A",
+	    "autoneg", CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, softc, 0,
+	    bnxt_flow_ctrl_autoneg, "A",
 	    "Enable or Disable Autoneg Flow Ctrl: 0 / 1");
 
 	return 0;
@@ -1356,31 +1355,28 @@ bnxt_create_hw_lro_sysctls(struct bnxt_softc *softc)
 		return ENOMEM;
 
 	SYSCTL_ADD_PROC(&softc->hw_lro_ctx, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "enable", CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, softc,
-	    0, bnxt_hw_lro_enable_disable, "A",
-	    "Enable or Disable HW LRO: 0 / 1");
+	    "enable", CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, softc, 0,
+	    bnxt_hw_lro_enable_disable, "A", "Enable or Disable HW LRO: 0 / 1");
 
 	SYSCTL_ADD_PROC(&softc->hw_lro_ctx, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "gro_mode", CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, softc,
-	    0, bnxt_hw_lro_set_mode, "A",
-	    "Set mode: 1 = GRO mode, 0 = RSC mode");
+	    "gro_mode", CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, softc, 0,
+	    bnxt_hw_lro_set_mode, "A", "Set mode: 1 = GRO mode, 0 = RSC mode");
 
 	SYSCTL_ADD_PROC(&softc->hw_lro_ctx, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "max_agg_segs", CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    softc, 0, bnxt_hw_lro_set_max_agg_segs, "A",
+	    "max_agg_segs", CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, softc,
+	    0, bnxt_hw_lro_set_max_agg_segs, "A",
 	    "Set Max Agg Seg Value (unit is Log2): "
 	    "0 (= 1 seg) / 1 (= 2 segs) /  ... / 31 (= 2^31 segs)");
 
-        SYSCTL_ADD_PROC(&softc->hw_lro_ctx, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "max_aggs", CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    softc, 0, bnxt_hw_lro_set_max_aggs, "A",
+	SYSCTL_ADD_PROC(&softc->hw_lro_ctx, SYSCTL_CHILDREN(oid), OID_AUTO,
+	    "max_aggs", CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, softc, 0,
+	    bnxt_hw_lro_set_max_aggs, "A",
 	    "Set Max Aggs Value (unit is Log2): "
 	    "0 (= 1 agg) / 1 (= 2 aggs) /  ... / 7 (= 2^7 segs)");
 
 	SYSCTL_ADD_PROC(&softc->hw_lro_ctx, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "min_agg_len", CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    softc, 0, bnxt_hw_lro_set_min_agg_len, "A",
-	    "Min Agg Len: 1 to 9000");
+	    "min_agg_len", CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, softc,
+	    0, bnxt_hw_lro_set_min_agg_len, "A", "Min Agg Len: 1 to 9000");
 
 	return 0;
 }

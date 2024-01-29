@@ -72,28 +72,30 @@
 //* P R O T E C T E D    M E T H O D S
 //******************************************************************************
 
-void sci_base_state_machine_observer_default_update(
-   SCI_BASE_OBSERVER_T *this_observer,
-   SCI_BASE_SUBJECT_T  *the_subject
-)
+void
+sci_base_state_machine_observer_default_update(
+    SCI_BASE_OBSERVER_T *this_observer, SCI_BASE_SUBJECT_T *the_subject)
 {
-   SCI_BASE_STATE_MACHINE_OBSERVER_T *state_machine_observer;
+	SCI_BASE_STATE_MACHINE_OBSERVER_T *state_machine_observer;
 
-   state_machine_observer = (SCI_BASE_STATE_MACHINE_OBSERVER_T *)this_observer;
+	state_machine_observer = (SCI_BASE_STATE_MACHINE_OBSERVER_T *)
+	    this_observer;
 
-   state_machine_observer->subject_state =
-      sci_base_state_machine_get_state((SCI_BASE_STATE_MACHINE_T *)the_subject);
+	state_machine_observer->subject_state =
+	    sci_base_state_machine_get_state(
+		(SCI_BASE_STATE_MACHINE_T *)the_subject);
 }
 
 // ---------------------------------------------------------------------------
 
-void sci_base_state_machine_observer_construct(
-   SCI_BASE_STATE_MACHINE_OBSERVER_T *this_observer
-)
+void
+sci_base_state_machine_observer_construct(
+    SCI_BASE_STATE_MACHINE_OBSERVER_T *this_observer)
 {
-   this_observer->parent.update = sci_base_state_machine_observer_default_update;
+	this_observer->parent.update =
+	    sci_base_state_machine_observer_default_update;
 
-   this_observer->subject_state = SCI_BASE_INVALID_SUBJECT_STATE;
+	this_observer->subject_state = SCI_BASE_INVALID_SUBJECT_STATE;
 }
 
 #endif // defined(SCI_LOGGING)

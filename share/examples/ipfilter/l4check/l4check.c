@@ -3,50 +3,46 @@
  * (C)Copyright (C) 2012 by Darren Reed.
  */
 #include <sys/types.h>
-#include <sys/stat.h>
+#include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/time.h>
-#include <sys/ioctl.h>
 
+#include <net/if.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
 
-#include <net/if.h>
-
-#include <stdio.h>
-#include <netdb.h>
-#include <string.h>
 #include <ctype.h>
-#include <fcntl.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <netdb.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "ip_compat.h"
 #include "ip_fil.h"
 #include "ip_nat.h"
-
 #include "ipf.h"
 
-extern	char	*optarg;
+extern char *optarg;
 
-
-typedef	struct	l4cfg	{
-	struct	l4cfg		*l4_next;
-	struct	ipnat		l4_nat;		/* NAT rule */
-	struct	sockaddr_in	l4_sin;		/* remote socket to connect */
-	time_t			l4_last;	/* when we last connected */
-	int			l4_alive;	/* 1 = remote alive */
-	int			l4_fd;
-	int			l4_rw;		/* 0 = reading, 1 = writing */
-	char			*l4_rbuf;	/* read buffer */
-	int			l4_rsize;	/* size of buffer */
-	int			l4_rlen;	/* how much used */
-	char			*l4_wptr;	/* next byte to write */
-	int			l4_wlen;	/* length yet to be written */
+typedef struct l4cfg {
+	struct l4cfg *l4_next;
+	struct ipnat l4_nat;	   /* NAT rule */
+	struct sockaddr_in l4_sin; /* remote socket to connect */
+	time_t l4_last;		   /* when we last connected */
+	int l4_alive;		   /* 1 = remote alive */
+	int l4_fd;
+	int l4_rw;     /* 0 = reading, 1 = writing */
+	char *l4_rbuf; /* read buffer */
+	int l4_rsize;  /* size of buffer */
+	int l4_rlen;   /* how much used */
+	char *l4_wptr; /* next byte to write */
+	int l4_wlen;   /* length yet to be written */
 } l4cfg_t;
-
 
 l4cfg_t *l4list = NULL;
 char *response = NULL;
@@ -61,9 +57,8 @@ int natfd = -1;
 int opts = 0;
 
 #if defined(sun) && !defined(__svr4__) && !defined(__SVR4)
-# define	strerror(x)	sys_errlist[x]
+#define strerror(x) sys_errlist[x]
 #endif
-
 
 char *
 copystr(char *dst, char *src)
@@ -71,18 +66,17 @@ copystr(char *dst, char *src)
 	register char *s, *t, c;
 	register int esc = 0;
 
-	for (s = src, t = dst; s && t && (c = *s++); )
+	for (s = src, t = dst; s && t && (c = *s++);)
 		if (esc) {
 			esc = 0;
-			switch (c)
-			{
-			case 'n' :
+			switch (c) {
+			case 'n':
 				*t++ = '\n';
 				break;
-			case 'r' :
+			case 'r':
 				*t++ = '\r';
 				break;
-			case 't' :
+			case 't':
 				*t++ = '\t';
 				break;
 			}
@@ -91,7 +85,7 @@ copystr(char *dst, char *src)
 		else
 			esc = 1;
 	*t = '\0';
-	return(dst);
+	return (dst);
 }
 
 void
@@ -100,7 +94,7 @@ addnat(l4cfg_t *l4)
 	ipnat_t *ipn = &l4->l4_nat;
 
 	printf("Add NAT rule for %s/%#x,%u -> ", inet_ntoa(ipn->in_out[0]),
-		ipn->in_outmsk, ntohs(ipn->in_pmin));
+	    ipn->in_outmsk, ntohs(ipn->in_pmin));
 	printf("%s,%u\n", inet_ntoa(ipn->in_in[0]), ntohs(ipn->in_pnext));
 	if (!(opts & OPT_DONOTHING)) {
 		if (ioctl(natfd, SIOCADNAT, &ipn) == -1)
@@ -108,21 +102,19 @@ addnat(l4cfg_t *l4)
 	}
 }
 
-
 void
 delnat(l4cfg_t *l4)
 {
 	ipnat_t *ipn = &l4->l4_nat;
 
-	printf("Remove NAT rule for %s/%#x,%u -> ",
-		inet_ntoa(ipn->in_out[0]), ipn->in_outmsk, ipn->in_pmin);
+	printf("Remove NAT rule for %s/%#x,%u -> ", inet_ntoa(ipn->in_out[0]),
+	    ipn->in_outmsk, ipn->in_pmin);
 	printf("%s,%u\n", inet_ntoa(ipn->in_in[0]), ipn->in_pnext);
 	if (!(opts & OPT_DONOTHING)) {
 		if (ioctl(natfd, SIOCRMNAT, &ipn) == -1)
 			perror("ioctl(SIOCRMNAT)");
 	}
 }
-
 
 void
 connectl4(l4cfg_t *l4)
@@ -137,7 +129,6 @@ connectl4(l4cfg_t *l4)
 		l4->l4_wptr = probe;
 }
 
-
 void
 closel4(l4cfg_t *l4, int dead)
 {
@@ -150,28 +141,25 @@ closel4(l4cfg_t *l4, int dead)
 	}
 }
 
-
 void
 connectfd(l4cfg_t *l4)
 {
 	if (connect(l4->l4_fd, (struct sockaddr *)&l4->l4_sin,
-		    sizeof(l4->l4_sin)) == -1) {
+		sizeof(l4->l4_sin)) == -1) {
 		if (errno == EISCONN) {
 			if (opts & OPT_VERBOSE)
-				fprintf(stderr, "Connected fd %d\n",
-					l4->l4_fd);
+				fprintf(stderr, "Connected fd %d\n", l4->l4_fd);
 			connectl4(l4);
 			return;
 		}
 		if (opts & OPT_VERBOSE)
-			fprintf(stderr, "Connect failed fd %d: %s\n",
-				l4->l4_fd, strerror(errno));
+			fprintf(stderr, "Connect failed fd %d: %s\n", l4->l4_fd,
+			    strerror(errno));
 		closel4(l4, 1);
 		return;
 	}
 	l4->l4_rw = 1;
 }
-
 
 void
 writefd(l4cfg_t *l4)
@@ -191,8 +179,8 @@ writefd(l4cfg_t *l4)
 	i = send(fd, l4->l4_wptr, n, 0);
 	if (i == 0 || i == -1) {
 		if (opts & OPT_VERBOSE)
-			fprintf(stderr, "Send on fd %d failed: %s\n",
-				fd, strerror(errno));
+			fprintf(stderr, "Send on fd %d failed: %s\n", fd,
+			    strerror(errno));
 		closel4(l4, 1);
 	} else {
 		l4->l4_wptr += i;
@@ -204,8 +192,8 @@ writefd(l4cfg_t *l4)
 	}
 }
 
-
-void readfd(l4cfg_t *l4)
+void
+readfd(l4cfg_t *l4)
 {
 	char buf[80], *ptr;
 	int n, i, fd;
@@ -226,27 +214,25 @@ void readfd(l4cfg_t *l4)
 	}
 
 	if (opts & OPT_VERBOSE)
-		fprintf(stderr, "Read %d bytes on fd %d to %p\n",
-			n, fd, ptr);
+		fprintf(stderr, "Read %d bytes on fd %d to %p\n", n, fd, ptr);
 	i = recv(fd, ptr, n, 0);
 	if (i == 0 || i == -1) {
 		if (opts & OPT_VERBOSE)
-			fprintf(stderr, "Read error on fd %d: %s\n",
-				fd, (i == 0) ? "EOF" : strerror(errno));
+			fprintf(stderr, "Read error on fd %d: %s\n", fd,
+			    (i == 0) ? "EOF" : strerror(errno));
 		closel4(l4, 1);
 	} else {
 		if (ptr == buf)
 			ptr[i] = '\0';
 		if (opts & OPT_VERBOSE)
-			fprintf(stderr, "%d: Read %d bytes [%*.*s]\n",
-				fd, i, i, i, ptr);
+			fprintf(stderr, "%d: Read %d bytes [%*.*s]\n", fd, i, i,
+			    i, ptr);
 		if (ptr != buf) {
 			l4->l4_rlen += i;
 			if (l4->l4_rlen >= l4->l4_rsize) {
 				if (!strncmp(response, l4->l4_rbuf,
-					     l4->l4_rsize)) {
-					printf("%d: Good response\n",
-						fd);
+					l4->l4_rsize)) {
+					printf("%d: Good response\n", fd);
 					if (!l4->l4_alive) {
 						l4->l4_alive = 1;
 						addnat(l4);
@@ -255,7 +241,7 @@ void readfd(l4cfg_t *l4)
 				} else {
 					if (opts & OPT_VERBOSE)
 						printf("%d: Bad response\n",
-							fd);
+						    fd);
 					closel4(l4, 1);
 				}
 			}
@@ -266,7 +252,6 @@ void readfd(l4cfg_t *l4)
 		}
 	}
 }
-
 
 int
 runconfig(void)
@@ -291,18 +276,18 @@ runconfig(void)
 			if (fd == -1)
 				continue;
 			setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt,
-				   sizeof(opt));
-#ifdef	O_NONBLOCK
+			    sizeof(opt));
+#ifdef O_NONBLOCK
 			if ((res = fcntl(fd, F_GETFL, 0)) != -1)
 				fcntl(fd, F_SETFL, res | O_NONBLOCK);
 #endif
 			if (opts & OPT_VERBOSE)
 				fprintf(stderr,
-					"Connecting to %s,%d (fd %d)...",
-					inet_ntoa(l4->l4_sin.sin_addr),
-					ntohs(l4->l4_sin.sin_port), fd);
+				    "Connecting to %s,%d (fd %d)...",
+				    inet_ntoa(l4->l4_sin.sin_addr),
+				    ntohs(l4->l4_sin.sin_port), fd);
 			if (connect(fd, (struct sockaddr *)&l4->l4_sin,
-				    sizeof(l4->l4_sin)) == -1) {
+				sizeof(l4->l4_sin)) == -1) {
 				if (errno != EINPROGRESS) {
 					if (opts & OPT_VERBOSE)
 						fprintf(stderr, "failed\n");
@@ -336,30 +321,28 @@ runconfig(void)
 			if (now - l4->l4_last > rtimeout) {
 				if (opts & OPT_VERBOSE)
 					fprintf(stderr, "%d: Read timeout\n",
-						l4->l4_fd);
+					    l4->l4_fd);
 				closel4(l4, 1);
 				continue;
 			}
 			if (opts & OPT_VERBOSE)
 				fprintf(stderr, "Wait for read on fd %d\n",
-					l4->l4_fd);
+				    l4->l4_fd);
 			FD_SET(l4->l4_fd, &rfd);
 			if (l4->l4_fd > mfd)
 				mfd = l4->l4_fd;
-		} else if ((l4->l4_rw == 1 && l4->l4_wlen) ||
-			   l4->l4_rw == -2) {
+		} else if ((l4->l4_rw == 1 && l4->l4_wlen) || l4->l4_rw == -2) {
 			if ((l4->l4_rw == -2) &&
 			    (now - l4->l4_last > ctimeout)) {
 				if (opts & OPT_VERBOSE)
-					fprintf(stderr,
-						"%d: connect timeout\n",
-						l4->l4_fd);
+					fprintf(stderr, "%d: connect timeout\n",
+					    l4->l4_fd);
 				closel4(l4);
 				continue;
 			}
 			if (opts & OPT_VERBOSE)
 				fprintf(stderr, "Wait for write on fd %d\n",
-					l4->l4_fd);
+				    l4->l4_fd);
 			FD_SET(l4->l4_fd, &wfd);
 			if (l4->l4_fd > mfd)
 				mfd = l4->l4_fd;
@@ -367,11 +350,11 @@ runconfig(void)
 
 	if (opts & OPT_VERBOSE)
 		fprintf(stderr, "Select: max fd %d wait %d\n", mfd + 1,
-			tv.tv_sec);
+		    tv.tv_sec);
 	i = select(mfd + 1, &rfd, &wfd, NULL, &tv);
 	if (i == -1) {
 		perror("select");
-		return(-1);
+		return (-1);
 	}
 
 	now1 = time(NULL);
@@ -382,7 +365,7 @@ runconfig(void)
 		if (FD_ISSET(l4->l4_fd, &rfd)) {
 			if (opts & OPT_VERBOSE)
 				fprintf(stderr, "Ready to read on fd %d\n",
-					l4->l4_fd);
+				    l4->l4_fd);
 			readfd(l4);
 			i--;
 		}
@@ -390,14 +373,13 @@ runconfig(void)
 		if ((l4->l4_fd >= 0) && FD_ISSET(l4->l4_fd, &wfd)) {
 			if (opts & OPT_VERBOSE)
 				fprintf(stderr, "Ready to write on fd %d\n",
-					l4->l4_fd);
+				    l4->l4_fd);
 			writefd(l4);
 			i--;
 		}
 	}
-	return(0);
+	return (0);
 }
-
 
 int
 gethostport(char *str, int lnum, u_32_t *ipp, u_short *portp)
@@ -412,7 +394,7 @@ gethostport(char *str, int lnum, u_32_t *ipp, u_short *portp)
 	if (port)
 		*port++ = '\0';
 
-#ifdef	HAVE_INET_ATON
+#ifdef HAVE_INET_ATON
 	if (ISDIGIT(*host) && inet_aton(host, &ip))
 		*ipp = ip.s_addr;
 #else
@@ -422,8 +404,8 @@ gethostport(char *str, int lnum, u_32_t *ipp, u_short *portp)
 	else {
 		if (!(hp = gethostbyname(host))) {
 			fprintf(stderr, "%d: can't resolve hostname: %s\n",
-				lnum, host);
-			return(0);
+			    lnum, host);
+			return (0);
 		}
 		*ipp = *(u_32_t *)hp->h_addr;
 	}
@@ -437,15 +419,14 @@ gethostport(char *str, int lnum, u_32_t *ipp, u_short *portp)
 				*portp = sp->s_port;
 			else {
 				fprintf(stderr, "%d: unknown service %s\n",
-					lnum, port);
-				return(0);
+				    lnum, port);
+				return (0);
 			}
 		}
 	} else
 		*portp = 0;
-	return(1);
+	return (1);
 }
-
 
 char *
 mapfile(char *file, size_t *sizep)
@@ -457,26 +438,25 @@ mapfile(char *file, size_t *sizep)
 	fd = open(file, O_RDONLY);
 	if (fd == -1) {
 		perror("open(mapfile)");
-		return(NULL);
+		return (NULL);
 	}
 
 	if (fstat(fd, &sb) == -1) {
 		perror("fstat(mapfile)");
 		close(fd);
-		return(NULL);
+		return (NULL);
 	}
 
 	addr = mmap(NULL, sb.st_size, PROT_READ, MAP_SHARED, fd, 0);
 	if (addr == (caddr_t)-1) {
 		perror("mmap(mapfile)");
 		close(fd);
-		return(NULL);
+		return (NULL);
 	}
 	close(fd);
 	*sizep = sb.st_size;
-	return(char *)addr;
+	return (char *)addr;
 }
-
 
 int
 readconfig(char *filename)
@@ -490,7 +470,7 @@ readconfig(char *filename)
 	fp = fopen(filename, "r");
 	if (!fp) {
 		perror("open(configfile)");
-		return(-1);
+		return (-1);
 	}
 
 	bzero((char *)&template, sizeof(template));
@@ -498,15 +478,15 @@ readconfig(char *filename)
 	template.l4_rw = -1;
 	template.l4_sin.sin_family = AF_INET;
 	ipn = &template.l4_nat;
-	ipn->in_flags = IPN_TCP|IPN_ROUNDR;
+	ipn->in_flags = IPN_TCP | IPN_ROUNDR;
 	ipn->in_redir = NAT_REDIRECT;
 
 	for (num = 1; fgets(buf, sizeof(buf), fp); num++) {
 		s = strchr(buf, '\n');
-		if  (!s) {
+		if (!s) {
 			fprintf(stderr, "%d: line too long\n", num);
 			fclose(fp);
-			return(-1);
+			return (-1);
 		}
 
 		*s = '\0';
@@ -543,15 +523,14 @@ readconfig(char *filename)
 
 			if (!strchr(t, ',')) {
 				fprintf(stderr,
-					"%d: local address,port missing\n",
-					num);
+				    "%d: local address,port missing\n", num);
 				err = -1;
 				break;
 			}
 
 			strncpy(ipn->in_ifname, s, sizeof(ipn->in_ifname));
 			if (!gethostport(t, num, &ipn->in_outip,
-					 &ipn->in_pmin)) {
+				&ipn->in_pmin)) {
 				errtxt = line;
 				err = -1;
 				break;
@@ -559,16 +538,14 @@ readconfig(char *filename)
 			ipn->in_outmsk = 0xffffffff;
 			ipn->in_pmax = ipn->in_pmin;
 			if (opts & OPT_VERBOSE)
-				fprintf(stderr,
-					"Interface %s %s/%#x port %u\n",
-					ipn->in_ifname,
-					inet_ntoa(ipn->in_out[0]),
-					ipn->in_outmsk, ipn->in_pmin);
+				fprintf(stderr, "Interface %s %s/%#x port %u\n",
+				    ipn->in_ifname, inet_ntoa(ipn->in_out[0]),
+				    ipn->in_outmsk, ipn->in_pmin);
 		} else if (!strcasecmp(t, "remote")) {
 			if (!*ipn->in_ifname) {
 				fprintf(stderr,
-					"%d: ifname not set prior to remote\n",
-					num);
+				    "%d: ifname not set prior to remote\n",
+				    num);
 				err = -1;
 				break;
 			}
@@ -583,7 +560,7 @@ readconfig(char *filename)
 
 			ipn->in_pnext = 0;
 			if (!gethostport(t, num, &ipn->in_inip,
-					 &ipn->in_pnext)) {
+				&ipn->in_pnext)) {
 				errtxt = line;
 				err = -1;
 				break;
@@ -594,8 +571,8 @@ readconfig(char *filename)
 
 			l4 = (l4cfg_t *)malloc(sizeof(*l4));
 			if (!l4) {
-				fprintf(stderr, "%d: out of memory (%d)\n",
-					num, sizeof(*l4));
+				fprintf(stderr, "%d: out of memory (%d)\n", num,
+				    sizeof(*l4));
 				err = -1;
 				break;
 			}
@@ -616,13 +593,13 @@ readconfig(char *filename)
 				ctimeout = atoi(t);
 				if (opts & OPT_VERBOSE)
 					fprintf(stderr, "connect timeout %d\n",
-						ctimeout);
+					    ctimeout);
 			} else if (!strcasecmp(s, "frequency")) {
 				frequency = atoi(t);
 				if (opts & OPT_VERBOSE)
 					fprintf(stderr,
-						"connect frequency %d\n",
-						frequency);
+					    "connect frequency %d\n",
+					    frequency);
 			} else {
 				errtxt = line;
 				err = -1;
@@ -637,15 +614,14 @@ readconfig(char *filename)
 			} else if (!strcasecmp(s, "string")) {
 				if (probe) {
 					fprintf(stderr,
-						"%d: probe already set\n",
-						num);
+					    "%d: probe already set\n", num);
 					err = -1;
 					break;
 				}
 				t = strtok(NULL, "");
 				if (!t) {
-					fprintf(stderr,
-						"%d: No probe string\n", num);
+					fprintf(stderr, "%d: No probe string\n",
+					    num);
 					err = -1;
 					break;
 				}
@@ -655,7 +631,7 @@ readconfig(char *filename)
 				plen = strlen(probe);
 				if (opts & OPT_VERBOSE)
 					fprintf(stderr, "Probe string [%s]\n",
-						probe);
+					    probe);
 			} else if (!strcasecmp(s, "file")) {
 				t = strtok(NULL, " \t");
 				if (!t) {
@@ -665,16 +641,15 @@ readconfig(char *filename)
 				}
 				if (probe) {
 					fprintf(stderr,
-						"%d: probe already set\n",
-						num);
+					    "%d: probe already set\n", num);
 					err = -1;
 					break;
 				}
 				probe = mapfile(t, &plen);
 				if (opts & OPT_VERBOSE)
 					fprintf(stderr,
-						"Probe file %s len %u@%p\n",
-						t, plen, probe);
+					    "Probe file %s len %u@%p\n", t,
+					    plen, probe);
 			}
 		} else if (!strcasecmp(t, "response")) {
 			s = strtok(NULL, " \t");
@@ -691,14 +666,12 @@ readconfig(char *filename)
 				}
 				rtimeout = atoi(t);
 				if (opts & OPT_VERBOSE)
-					fprintf(stderr,
-						"response timeout %d\n",
-						rtimeout);
+					fprintf(stderr, "response timeout %d\n",
+					    rtimeout);
 			} else if (!strcasecmp(s, "string")) {
 				if (response) {
 					fprintf(stderr,
-						"%d: response already set\n",
-						num);
+					    "%d: response already set\n", num);
 					err = -1;
 					break;
 				}
@@ -708,8 +681,7 @@ readconfig(char *filename)
 				template.l4_rbuf = malloc(rlen);
 				if (opts & OPT_VERBOSE)
 					fprintf(stderr,
-						"Response string [%s]\n",
-						response);
+					    "Response string [%s]\n", response);
 			} else if (!strcasecmp(s, "file")) {
 				t = strtok(NULL, " \t");
 				if (!t) {
@@ -719,8 +691,7 @@ readconfig(char *filename)
 				}
 				if (response) {
 					fprintf(stderr,
-						"%d: response already set\n",
-						num);
+					    "%d: response already set\n", num);
 					err = -1;
 					break;
 				}
@@ -729,8 +700,8 @@ readconfig(char *filename)
 				template.l4_rbuf = malloc(rlen);
 				if (opts & OPT_VERBOSE)
 					fprintf(stderr,
-						"Response file %s len %u@%p\n",
-						t, rlen, response);
+					    "Response file %s len %u@%p\n", t,
+					    rlen, response);
 			}
 		} else {
 			errtxt = line;
@@ -742,9 +713,8 @@ readconfig(char *filename)
 	if (errtxt)
 		fprintf(stderr, "%d: syntax error at \"%s\"\n", num, errtxt);
 	fclose(fp);
-	return(err);
+	return (err);
 }
-
 
 void
 usage(char *prog)
@@ -753,7 +723,6 @@ usage(char *prog)
 	exit(1);
 }
 
-
 int
 main(int argc, char *argv[])
 {
@@ -761,15 +730,14 @@ main(int argc, char *argv[])
 	int c;
 
 	while ((c = getopt(argc, argv, "f:nv")) != -1)
-		switch (c)
-		{
-		case 'f' :
+		switch (c) {
+		case 'f':
 			config = optarg;
 			break;
-		case 'n' :
+		case 'n':
 			opts |= OPT_DONOTHING;
 			break;
-		case 'v' :
+		case 'v':
 			opts |= OPT_VERBOSE;
 			break;
 		}

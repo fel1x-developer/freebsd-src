@@ -31,15 +31,13 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "efx.h"
 #include "efx_impl.h"
 
-	__checkReturn	efx_rc_t
-efx_family(
-	__in		uint16_t venid,
-	__in		uint16_t devid,
-	__out		efx_family_t *efp,
-	__out		unsigned int *membarp)
+__checkReturn efx_rc_t
+efx_family(__in uint16_t venid, __in uint16_t devid, __out efx_family_t *efp,
+    __out unsigned int *membarp)
 {
 	if (venid == EFX_PCI_VENID_SFC) {
 		switch (devid) {
@@ -105,7 +103,7 @@ efx_family(
 			return (0);
 #endif /* EFSYS_OPT_MEDFORD2 */
 
-		case EFX_PCI_DEVID_FALCON:	/* Obsolete, not supported */
+		case EFX_PCI_DEVID_FALCON: /* Obsolete, not supported */
 		default:
 			break;
 		}
@@ -117,95 +115,92 @@ efx_family(
 
 #if EFSYS_OPT_SIENA
 
-static const efx_nic_ops_t	__efx_nic_siena_ops = {
-	siena_nic_probe,		/* eno_probe */
-	NULL,				/* eno_board_cfg */
-	NULL,				/* eno_set_drv_limits */
-	siena_nic_reset,		/* eno_reset */
-	siena_nic_init,			/* eno_init */
-	NULL,				/* eno_get_vi_pool */
-	NULL,				/* eno_get_bar_region */
-	NULL,				/* eno_hw_unavailable */
-	NULL,				/* eno_set_hw_unavailable */
+static const efx_nic_ops_t __efx_nic_siena_ops = {
+	siena_nic_probe, /* eno_probe */
+	NULL,		 /* eno_board_cfg */
+	NULL,		 /* eno_set_drv_limits */
+	siena_nic_reset, /* eno_reset */
+	siena_nic_init,	 /* eno_init */
+	NULL,		 /* eno_get_vi_pool */
+	NULL,		 /* eno_get_bar_region */
+	NULL,		 /* eno_hw_unavailable */
+	NULL,		 /* eno_set_hw_unavailable */
 #if EFSYS_OPT_DIAG
-	siena_nic_register_test,	/* eno_register_test */
-#endif	/* EFSYS_OPT_DIAG */
-	siena_nic_fini,			/* eno_fini */
-	siena_nic_unprobe,		/* eno_unprobe */
+	siena_nic_register_test, /* eno_register_test */
+#endif				 /* EFSYS_OPT_DIAG */
+	siena_nic_fini,		 /* eno_fini */
+	siena_nic_unprobe,	 /* eno_unprobe */
 };
 
-#endif	/* EFSYS_OPT_SIENA */
+#endif /* EFSYS_OPT_SIENA */
 
 #if EFSYS_OPT_HUNTINGTON
 
-static const efx_nic_ops_t	__efx_nic_hunt_ops = {
-	ef10_nic_probe,			/* eno_probe */
-	hunt_board_cfg,			/* eno_board_cfg */
-	ef10_nic_set_drv_limits,	/* eno_set_drv_limits */
-	ef10_nic_reset,			/* eno_reset */
-	ef10_nic_init,			/* eno_init */
-	ef10_nic_get_vi_pool,		/* eno_get_vi_pool */
-	ef10_nic_get_bar_region,	/* eno_get_bar_region */
-	ef10_nic_hw_unavailable,	/* eno_hw_unavailable */
-	ef10_nic_set_hw_unavailable,	/* eno_set_hw_unavailable */
+static const efx_nic_ops_t __efx_nic_hunt_ops = {
+	ef10_nic_probe,		     /* eno_probe */
+	hunt_board_cfg,		     /* eno_board_cfg */
+	ef10_nic_set_drv_limits,     /* eno_set_drv_limits */
+	ef10_nic_reset,		     /* eno_reset */
+	ef10_nic_init,		     /* eno_init */
+	ef10_nic_get_vi_pool,	     /* eno_get_vi_pool */
+	ef10_nic_get_bar_region,     /* eno_get_bar_region */
+	ef10_nic_hw_unavailable,     /* eno_hw_unavailable */
+	ef10_nic_set_hw_unavailable, /* eno_set_hw_unavailable */
 #if EFSYS_OPT_DIAG
-	ef10_nic_register_test,		/* eno_register_test */
-#endif	/* EFSYS_OPT_DIAG */
-	ef10_nic_fini,			/* eno_fini */
-	ef10_nic_unprobe,		/* eno_unprobe */
+	ef10_nic_register_test, /* eno_register_test */
+#endif				/* EFSYS_OPT_DIAG */
+	ef10_nic_fini,		/* eno_fini */
+	ef10_nic_unprobe,	/* eno_unprobe */
 };
 
-#endif	/* EFSYS_OPT_HUNTINGTON */
+#endif /* EFSYS_OPT_HUNTINGTON */
 
 #if EFSYS_OPT_MEDFORD
 
-static const efx_nic_ops_t	__efx_nic_medford_ops = {
-	ef10_nic_probe,			/* eno_probe */
-	medford_board_cfg,		/* eno_board_cfg */
-	ef10_nic_set_drv_limits,	/* eno_set_drv_limits */
-	ef10_nic_reset,			/* eno_reset */
-	ef10_nic_init,			/* eno_init */
-	ef10_nic_get_vi_pool,		/* eno_get_vi_pool */
-	ef10_nic_get_bar_region,	/* eno_get_bar_region */
-	ef10_nic_hw_unavailable,	/* eno_hw_unavailable */
-	ef10_nic_set_hw_unavailable,	/* eno_set_hw_unavailable */
+static const efx_nic_ops_t __efx_nic_medford_ops = {
+	ef10_nic_probe,		     /* eno_probe */
+	medford_board_cfg,	     /* eno_board_cfg */
+	ef10_nic_set_drv_limits,     /* eno_set_drv_limits */
+	ef10_nic_reset,		     /* eno_reset */
+	ef10_nic_init,		     /* eno_init */
+	ef10_nic_get_vi_pool,	     /* eno_get_vi_pool */
+	ef10_nic_get_bar_region,     /* eno_get_bar_region */
+	ef10_nic_hw_unavailable,     /* eno_hw_unavailable */
+	ef10_nic_set_hw_unavailable, /* eno_set_hw_unavailable */
 #if EFSYS_OPT_DIAG
-	ef10_nic_register_test,		/* eno_register_test */
-#endif	/* EFSYS_OPT_DIAG */
-	ef10_nic_fini,			/* eno_fini */
-	ef10_nic_unprobe,		/* eno_unprobe */
+	ef10_nic_register_test, /* eno_register_test */
+#endif				/* EFSYS_OPT_DIAG */
+	ef10_nic_fini,		/* eno_fini */
+	ef10_nic_unprobe,	/* eno_unprobe */
 };
 
-#endif	/* EFSYS_OPT_MEDFORD */
+#endif /* EFSYS_OPT_MEDFORD */
 
 #if EFSYS_OPT_MEDFORD2
 
-static const efx_nic_ops_t	__efx_nic_medford2_ops = {
-	ef10_nic_probe,			/* eno_probe */
-	medford2_board_cfg,		/* eno_board_cfg */
-	ef10_nic_set_drv_limits,	/* eno_set_drv_limits */
-	ef10_nic_reset,			/* eno_reset */
-	ef10_nic_init,			/* eno_init */
-	ef10_nic_get_vi_pool,		/* eno_get_vi_pool */
-	ef10_nic_get_bar_region,	/* eno_get_bar_region */
-	ef10_nic_hw_unavailable,	/* eno_hw_unavailable */
-	ef10_nic_set_hw_unavailable,	/* eno_set_hw_unavailable */
+static const efx_nic_ops_t __efx_nic_medford2_ops = {
+	ef10_nic_probe,		     /* eno_probe */
+	medford2_board_cfg,	     /* eno_board_cfg */
+	ef10_nic_set_drv_limits,     /* eno_set_drv_limits */
+	ef10_nic_reset,		     /* eno_reset */
+	ef10_nic_init,		     /* eno_init */
+	ef10_nic_get_vi_pool,	     /* eno_get_vi_pool */
+	ef10_nic_get_bar_region,     /* eno_get_bar_region */
+	ef10_nic_hw_unavailable,     /* eno_hw_unavailable */
+	ef10_nic_set_hw_unavailable, /* eno_set_hw_unavailable */
 #if EFSYS_OPT_DIAG
-	ef10_nic_register_test,		/* eno_register_test */
-#endif	/* EFSYS_OPT_DIAG */
-	ef10_nic_fini,			/* eno_fini */
-	ef10_nic_unprobe,		/* eno_unprobe */
+	ef10_nic_register_test, /* eno_register_test */
+#endif				/* EFSYS_OPT_DIAG */
+	ef10_nic_fini,		/* eno_fini */
+	ef10_nic_unprobe,	/* eno_unprobe */
 };
 
-#endif	/* EFSYS_OPT_MEDFORD2 */
+#endif /* EFSYS_OPT_MEDFORD2 */
 
-	__checkReturn	efx_rc_t
-efx_nic_create(
-	__in		efx_family_t family,
-	__in		efsys_identifier_t *esip,
-	__in		efsys_bar_t *esbp,
-	__in		efsys_lock_t *eslp,
-	__deref_out	efx_nic_t **enpp)
+__checkReturn efx_rc_t
+efx_nic_create(__in efx_family_t family, __in efsys_identifier_t *esip,
+    __in efsys_bar_t *esbp, __in efsys_lock_t *eslp,
+    __deref_out efx_nic_t **enpp)
 {
 	efx_nic_t *enp;
 	efx_rc_t rc;
@@ -214,7 +209,7 @@ efx_nic_create(
 	EFSYS_ASSERT3U(family, <, EFX_FAMILY_NTYPES);
 
 	/* Allocate a NIC object */
-	EFSYS_KMEM_ALLOC(esip, sizeof (efx_nic_t), enp);
+	EFSYS_KMEM_ALLOC(esip, sizeof(efx_nic_t), enp);
 
 	if (enp == NULL) {
 		rc = ENOMEM;
@@ -227,35 +222,25 @@ efx_nic_create(
 #if EFSYS_OPT_SIENA
 	case EFX_FAMILY_SIENA:
 		enp->en_enop = &__efx_nic_siena_ops;
-		enp->en_features =
-		    EFX_FEATURE_IPV6 |
-		    EFX_FEATURE_LFSR_HASH_INSERT |
-		    EFX_FEATURE_LINK_EVENTS |
-		    EFX_FEATURE_PERIODIC_MAC_STATS |
-		    EFX_FEATURE_MCDI |
+		enp->en_features = EFX_FEATURE_IPV6 |
+		    EFX_FEATURE_LFSR_HASH_INSERT | EFX_FEATURE_LINK_EVENTS |
+		    EFX_FEATURE_PERIODIC_MAC_STATS | EFX_FEATURE_MCDI |
 		    EFX_FEATURE_LOOKAHEAD_SPLIT |
-		    EFX_FEATURE_MAC_HEADER_FILTERS |
-		    EFX_FEATURE_TX_SRC_FILTERS;
+		    EFX_FEATURE_MAC_HEADER_FILTERS | EFX_FEATURE_TX_SRC_FILTERS;
 		break;
-#endif	/* EFSYS_OPT_SIENA */
+#endif /* EFSYS_OPT_SIENA */
 
 #if EFSYS_OPT_HUNTINGTON
 	case EFX_FAMILY_HUNTINGTON:
 		enp->en_enop = &__efx_nic_hunt_ops;
-		enp->en_features =
-		    EFX_FEATURE_IPV6 |
-		    EFX_FEATURE_LINK_EVENTS |
-		    EFX_FEATURE_PERIODIC_MAC_STATS |
-		    EFX_FEATURE_MCDI |
-		    EFX_FEATURE_MAC_HEADER_FILTERS |
-		    EFX_FEATURE_MCDI_DMA |
-		    EFX_FEATURE_PIO_BUFFERS |
-		    EFX_FEATURE_FW_ASSISTED_TSO |
-		    EFX_FEATURE_FW_ASSISTED_TSO_V2 |
-		    EFX_FEATURE_PACKED_STREAM |
+		enp->en_features = EFX_FEATURE_IPV6 | EFX_FEATURE_LINK_EVENTS |
+		    EFX_FEATURE_PERIODIC_MAC_STATS | EFX_FEATURE_MCDI |
+		    EFX_FEATURE_MAC_HEADER_FILTERS | EFX_FEATURE_MCDI_DMA |
+		    EFX_FEATURE_PIO_BUFFERS | EFX_FEATURE_FW_ASSISTED_TSO |
+		    EFX_FEATURE_FW_ASSISTED_TSO_V2 | EFX_FEATURE_PACKED_STREAM |
 		    EFX_FEATURE_TXQ_CKSUM_OP_DESC;
 		break;
-#endif	/* EFSYS_OPT_HUNTINGTON */
+#endif /* EFSYS_OPT_HUNTINGTON */
 
 #if EFSYS_OPT_MEDFORD
 	case EFX_FAMILY_MEDFORD:
@@ -264,36 +249,24 @@ efx_nic_create(
 		 * FW_ASSISTED_TSO omitted as Medford only supports firmware
 		 * assisted TSO version 2, not the v1 scheme used on Huntington.
 		 */
-		enp->en_features =
-		    EFX_FEATURE_IPV6 |
-		    EFX_FEATURE_LINK_EVENTS |
-		    EFX_FEATURE_PERIODIC_MAC_STATS |
-		    EFX_FEATURE_MCDI |
-		    EFX_FEATURE_MAC_HEADER_FILTERS |
-		    EFX_FEATURE_MCDI_DMA |
-		    EFX_FEATURE_PIO_BUFFERS |
-		    EFX_FEATURE_FW_ASSISTED_TSO_V2 |
-		    EFX_FEATURE_PACKED_STREAM |
-		    EFX_FEATURE_TXQ_CKSUM_OP_DESC;
+		enp->en_features = EFX_FEATURE_IPV6 | EFX_FEATURE_LINK_EVENTS |
+		    EFX_FEATURE_PERIODIC_MAC_STATS | EFX_FEATURE_MCDI |
+		    EFX_FEATURE_MAC_HEADER_FILTERS | EFX_FEATURE_MCDI_DMA |
+		    EFX_FEATURE_PIO_BUFFERS | EFX_FEATURE_FW_ASSISTED_TSO_V2 |
+		    EFX_FEATURE_PACKED_STREAM | EFX_FEATURE_TXQ_CKSUM_OP_DESC;
 		break;
-#endif	/* EFSYS_OPT_MEDFORD */
+#endif /* EFSYS_OPT_MEDFORD */
 
 #if EFSYS_OPT_MEDFORD2
 	case EFX_FAMILY_MEDFORD2:
 		enp->en_enop = &__efx_nic_medford2_ops;
-		enp->en_features =
-		    EFX_FEATURE_IPV6 |
-		    EFX_FEATURE_LINK_EVENTS |
-		    EFX_FEATURE_PERIODIC_MAC_STATS |
-		    EFX_FEATURE_MCDI |
-		    EFX_FEATURE_MAC_HEADER_FILTERS |
-		    EFX_FEATURE_MCDI_DMA |
-		    EFX_FEATURE_PIO_BUFFERS |
-		    EFX_FEATURE_FW_ASSISTED_TSO_V2 |
-		    EFX_FEATURE_PACKED_STREAM |
-		    EFX_FEATURE_TXQ_CKSUM_OP_DESC;
+		enp->en_features = EFX_FEATURE_IPV6 | EFX_FEATURE_LINK_EVENTS |
+		    EFX_FEATURE_PERIODIC_MAC_STATS | EFX_FEATURE_MCDI |
+		    EFX_FEATURE_MAC_HEADER_FILTERS | EFX_FEATURE_MCDI_DMA |
+		    EFX_FEATURE_PIO_BUFFERS | EFX_FEATURE_FW_ASSISTED_TSO_V2 |
+		    EFX_FEATURE_PACKED_STREAM | EFX_FEATURE_TXQ_CKSUM_OP_DESC;
 		break;
-#endif	/* EFSYS_OPT_MEDFORD2 */
+#endif /* EFSYS_OPT_MEDFORD2 */
 
 	default:
 		rc = ENOTSUP;
@@ -315,7 +288,7 @@ fail2:
 	enp->en_magic = 0;
 
 	/* Free the NIC object */
-	EFSYS_KMEM_FREE(esip, sizeof (efx_nic_t), enp);
+	EFSYS_KMEM_FREE(esip, sizeof(efx_nic_t), enp);
 
 fail1:
 	EFSYS_PROBE1(fail1, efx_rc_t, rc);
@@ -323,10 +296,8 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-efx_nic_probe(
-	__in		efx_nic_t *enp,
-	__in		efx_fw_variant_t efv)
+__checkReturn efx_rc_t
+efx_nic_probe(__in efx_nic_t *enp, __in efx_fw_variant_t efv)
 {
 	const efx_nic_ops_t *enop;
 	efx_rc_t rc;
@@ -334,26 +305,23 @@ efx_nic_probe(
 	EFSYS_ASSERT3U(enp->en_magic, ==, EFX_NIC_MAGIC);
 #if EFSYS_OPT_MCDI
 	EFSYS_ASSERT3U(enp->en_mod_flags, &, EFX_MOD_MCDI);
-#endif	/* EFSYS_OPT_MCDI */
+#endif /* EFSYS_OPT_MCDI */
 	EFSYS_ASSERT(!(enp->en_mod_flags & EFX_MOD_PROBE));
 
 	/* Ensure FW variant codes match with MC_CMD_FW codes */
-	EFX_STATIC_ASSERT(EFX_FW_VARIANT_FULL_FEATURED ==
-	    MC_CMD_FW_FULL_FEATURED);
-	EFX_STATIC_ASSERT(EFX_FW_VARIANT_LOW_LATENCY ==
-	    MC_CMD_FW_LOW_LATENCY);
-	EFX_STATIC_ASSERT(EFX_FW_VARIANT_PACKED_STREAM ==
-	    MC_CMD_FW_PACKED_STREAM);
-	EFX_STATIC_ASSERT(EFX_FW_VARIANT_HIGH_TX_RATE ==
-	    MC_CMD_FW_HIGH_TX_RATE);
+	EFX_STATIC_ASSERT(
+	    EFX_FW_VARIANT_FULL_FEATURED == MC_CMD_FW_FULL_FEATURED);
+	EFX_STATIC_ASSERT(EFX_FW_VARIANT_LOW_LATENCY == MC_CMD_FW_LOW_LATENCY);
+	EFX_STATIC_ASSERT(
+	    EFX_FW_VARIANT_PACKED_STREAM == MC_CMD_FW_PACKED_STREAM);
+	EFX_STATIC_ASSERT(
+	    EFX_FW_VARIANT_HIGH_TX_RATE == MC_CMD_FW_HIGH_TX_RATE);
 	EFX_STATIC_ASSERT(EFX_FW_VARIANT_PACKED_STREAM_HASH_MODE_1 ==
 	    MC_CMD_FW_PACKED_STREAM_HASH_MODE_1);
-	EFX_STATIC_ASSERT(EFX_FW_VARIANT_RULES_ENGINE ==
-	    MC_CMD_FW_RULES_ENGINE);
-	EFX_STATIC_ASSERT(EFX_FW_VARIANT_DPDK ==
-	    MC_CMD_FW_DPDK);
-	EFX_STATIC_ASSERT(EFX_FW_VARIANT_DONT_CARE ==
-	    (int)MC_CMD_FW_DONT_CARE);
+	EFX_STATIC_ASSERT(
+	    EFX_FW_VARIANT_RULES_ENGINE == MC_CMD_FW_RULES_ENGINE);
+	EFX_STATIC_ASSERT(EFX_FW_VARIANT_DPDK == MC_CMD_FW_DPDK);
+	EFX_STATIC_ASSERT(EFX_FW_VARIANT_DONT_CARE == (int)MC_CMD_FW_DONT_CARE);
 
 	enop = enp->en_enop;
 	enp->efv = efv;
@@ -379,10 +347,8 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-efx_nic_set_drv_limits(
-	__inout		efx_nic_t *enp,
-	__in		efx_drv_limits_t *edlp)
+__checkReturn efx_rc_t
+efx_nic_set_drv_limits(__inout efx_nic_t *enp, __in efx_drv_limits_t *edlp)
 {
 	const efx_nic_ops_t *enop = enp->en_enop;
 	efx_rc_t rc;
@@ -403,12 +369,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-efx_nic_get_bar_region(
-	__in		efx_nic_t *enp,
-	__in		efx_nic_region_t region,
-	__out		uint32_t *offsetp,
-	__out		size_t *sizep)
+__checkReturn efx_rc_t
+efx_nic_get_bar_region(__in efx_nic_t *enp, __in efx_nic_region_t region,
+    __out uint32_t *offsetp, __out size_t *sizep)
 {
 	const efx_nic_ops_t *enop = enp->en_enop;
 	efx_rc_t rc;
@@ -421,8 +384,8 @@ efx_nic_get_bar_region(
 		rc = ENOTSUP;
 		goto fail1;
 	}
-	if ((rc = (enop->eno_get_bar_region)(enp,
-		    region, offsetp, sizep)) != 0) {
+	if ((rc = (enop->eno_get_bar_region)(enp, region, offsetp, sizep)) !=
+	    0) {
 		goto fail2;
 	}
 
@@ -437,12 +400,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-efx_nic_get_vi_pool(
-	__in		efx_nic_t *enp,
-	__out		uint32_t *evq_countp,
-	__out		uint32_t *rxq_countp,
-	__out		uint32_t *txq_countp)
+__checkReturn efx_rc_t
+efx_nic_get_vi_pool(__in efx_nic_t *enp, __out uint32_t *evq_countp,
+    __out uint32_t *rxq_countp, __out uint32_t *txq_countp)
 {
 	const efx_nic_ops_t *enop = enp->en_enop;
 	efx_nic_cfg_t *encp = &enp->en_nic_cfg;
@@ -476,9 +436,8 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-efx_nic_init(
-	__in		efx_nic_t *enp)
+__checkReturn efx_rc_t
+efx_nic_init(__in efx_nic_t *enp)
 {
 	const efx_nic_ops_t *enop = enp->en_enop;
 	efx_rc_t rc;
@@ -506,9 +465,8 @@ fail1:
 	return (rc);
 }
 
-			void
-efx_nic_fini(
-	__in		efx_nic_t *enp)
+void
+efx_nic_fini(__in efx_nic_t *enp)
 {
 	const efx_nic_ops_t *enop = enp->en_enop;
 
@@ -525,16 +483,15 @@ efx_nic_fini(
 	enp->en_mod_flags &= ~EFX_MOD_NIC;
 }
 
-			void
-efx_nic_unprobe(
-	__in		efx_nic_t *enp)
+void
+efx_nic_unprobe(__in efx_nic_t *enp)
 {
 	const efx_nic_ops_t *enop = enp->en_enop;
 
 	EFSYS_ASSERT3U(enp->en_magic, ==, EFX_NIC_MAGIC);
 #if EFSYS_OPT_MCDI
 	EFSYS_ASSERT3U(enp->en_mod_flags, &, EFX_MOD_MCDI);
-#endif	/* EFSYS_OPT_MCDI */
+#endif /* EFSYS_OPT_MCDI */
 	EFSYS_ASSERT3U(enp->en_mod_flags, &, EFX_MOD_PROBE);
 	EFSYS_ASSERT(!(enp->en_mod_flags & EFX_MOD_NIC));
 	EFSYS_ASSERT(!(enp->en_mod_flags & EFX_MOD_INTR));
@@ -549,9 +506,8 @@ efx_nic_unprobe(
 	enp->en_mod_flags &= ~EFX_MOD_PROBE;
 }
 
-			void
-efx_nic_destroy(
-	__in	efx_nic_t *enp)
+void
+efx_nic_destroy(__in efx_nic_t *enp)
 {
 	efsys_identifier_t *esip = enp->en_esip;
 
@@ -568,12 +524,11 @@ efx_nic_destroy(
 	enp->en_magic = 0;
 
 	/* Free the NIC object */
-	EFSYS_KMEM_FREE(esip, sizeof (efx_nic_t), enp);
+	EFSYS_KMEM_FREE(esip, sizeof(efx_nic_t), enp);
 }
 
-	__checkReturn	efx_rc_t
-efx_nic_reset(
-	__in		efx_nic_t *enp)
+__checkReturn efx_rc_t
+efx_nic_reset(__in efx_nic_t *enp)
 {
 	const efx_nic_ops_t *enop = enp->en_enop;
 	unsigned int mod_flags;
@@ -615,9 +570,8 @@ fail1:
 	return (rc);
 }
 
-			const efx_nic_cfg_t *
-efx_nic_cfg_get(
-	__in		efx_nic_t *enp)
+const efx_nic_cfg_t *
+efx_nic_cfg_get(__in efx_nic_t *enp)
 {
 	EFSYS_ASSERT3U(enp->en_magic, ==, EFX_NIC_MAGIC);
 	EFSYS_ASSERT3U(enp->en_mod_flags, &, EFX_MOD_PROBE);
@@ -625,10 +579,8 @@ efx_nic_cfg_get(
 	return (&(enp->en_nic_cfg));
 }
 
-	__checkReturn		efx_rc_t
-efx_nic_get_fw_version(
-	__in			efx_nic_t *enp,
-	__out			efx_nic_fw_info_t *enfip)
+__checkReturn efx_rc_t
+efx_nic_get_fw_version(__in efx_nic_t *enp, __out efx_nic_fw_info_t *enfip)
 {
 	uint16_t mc_fw_version[4];
 	efx_rc_t rc;
@@ -642,25 +594,23 @@ efx_nic_get_fw_version(
 	EFSYS_ASSERT3U(enp->en_features, &, EFX_FEATURE_MCDI);
 
 	/* Ensure RXDP_FW_ID codes match with MC_CMD_GET_CAPABILITIES codes */
-	EFX_STATIC_ASSERT(EFX_RXDP_FULL_FEATURED_FW_ID ==
-	    MC_CMD_GET_CAPABILITIES_OUT_RXDP);
+	EFX_STATIC_ASSERT(
+	    EFX_RXDP_FULL_FEATURED_FW_ID == MC_CMD_GET_CAPABILITIES_OUT_RXDP);
 	EFX_STATIC_ASSERT(EFX_RXDP_LOW_LATENCY_FW_ID ==
 	    MC_CMD_GET_CAPABILITIES_OUT_RXDP_LOW_LATENCY);
 	EFX_STATIC_ASSERT(EFX_RXDP_PACKED_STREAM_FW_ID ==
 	    MC_CMD_GET_CAPABILITIES_OUT_RXDP_PACKED_STREAM);
 	EFX_STATIC_ASSERT(EFX_RXDP_RULES_ENGINE_FW_ID ==
 	    MC_CMD_GET_CAPABILITIES_OUT_RXDP_RULES_ENGINE);
-	EFX_STATIC_ASSERT(EFX_RXDP_DPDK_FW_ID ==
-	    MC_CMD_GET_CAPABILITIES_OUT_RXDP_DPDK);
+	EFX_STATIC_ASSERT(
+	    EFX_RXDP_DPDK_FW_ID == MC_CMD_GET_CAPABILITIES_OUT_RXDP_DPDK);
 
 	rc = efx_mcdi_version(enp, mc_fw_version, NULL, NULL);
 	if (rc != 0)
 		goto fail2;
 
-	rc = efx_mcdi_get_capabilities(enp, NULL,
-	    &enfip->enfi_rx_dpcpu_fw_id,
-	    &enfip->enfi_tx_dpcpu_fw_id,
-	    NULL, NULL);
+	rc = efx_mcdi_get_capabilities(enp, NULL, &enfip->enfi_rx_dpcpu_fw_id,
+	    &enfip->enfi_tx_dpcpu_fw_id, NULL, NULL);
 	if (rc == 0) {
 		enfip->enfi_dpcpu_fw_ids_valid = B_TRUE;
 	} else if (rc == ENOTSUP) {
@@ -671,8 +621,7 @@ efx_nic_get_fw_version(
 		goto fail3;
 	}
 
-	memcpy(enfip->enfi_mc_fw_version, mc_fw_version,
-	    sizeof (mc_fw_version));
+	memcpy(enfip->enfi_mc_fw_version, mc_fw_version, sizeof(mc_fw_version));
 
 	return (0);
 
@@ -686,9 +635,8 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	boolean_t
-efx_nic_hw_unavailable(
-	__in		efx_nic_t *enp)
+__checkReturn boolean_t
+efx_nic_hw_unavailable(__in efx_nic_t *enp)
 {
 	const efx_nic_ops_t *enop = enp->en_enop;
 
@@ -706,9 +654,8 @@ unavail:
 	return (B_TRUE);
 }
 
-			void
-efx_nic_set_hw_unavailable(
-	__in		efx_nic_t *enp)
+void
+efx_nic_set_hw_unavailable(__in efx_nic_t *enp)
 {
 	const efx_nic_ops_t *enop = enp->en_enop;
 
@@ -720,9 +667,8 @@ efx_nic_set_hw_unavailable(
 
 #if EFSYS_OPT_DIAG
 
-	__checkReturn	efx_rc_t
-efx_nic_register_test(
-	__in		efx_nic_t *enp)
+__checkReturn efx_rc_t
+efx_nic_register_test(__in efx_nic_t *enp)
 {
 	const efx_nic_ops_t *enop = enp->en_enop;
 	efx_rc_t rc;
@@ -742,14 +688,13 @@ fail1:
 	return (rc);
 }
 
-#endif	/* EFSYS_OPT_DIAG */
+#endif /* EFSYS_OPT_DIAG */
 
 #if EFSYS_OPT_LOOPBACK
 
-extern			void
-efx_loopback_mask(
-	__in	efx_loopback_kind_t loopback_kind,
-	__out	efx_qword_t *maskp)
+extern void
+efx_loopback_mask(__in efx_loopback_kind_t loopback_kind,
+    __out efx_qword_t *maskp)
 {
 	efx_qword_t mask;
 
@@ -757,7 +702,7 @@ efx_loopback_mask(
 	EFSYS_ASSERT(maskp != NULL);
 
 	/* Assert the MC_CMD_LOOPBACK and EFX_LOOPBACK namespaces agree */
-#define	LOOPBACK_CHECK(_mcdi, _efx) \
+#define LOOPBACK_CHECK(_mcdi, _efx) \
 	EFX_STATIC_ASSERT(MC_CMD_LOOPBACK_##_mcdi == EFX_LOOPBACK_##_efx)
 
 	LOOPBACK_CHECK(NONE, OFF);
@@ -841,7 +786,7 @@ efx_loopback_mask(
 		 * meaning here.
 		 */
 		EFX_SET_QWORD_BIT(mask, EFX_LOOPBACK_GPHY);
-		EFX_SET_QWORD_BIT(mask,	EFX_LOOPBACK_PHY_XS);
+		EFX_SET_QWORD_BIT(mask, EFX_LOOPBACK_PHY_XS);
 		EFX_SET_QWORD_BIT(mask, EFX_LOOPBACK_PCS);
 		EFX_SET_QWORD_BIT(mask, EFX_LOOPBACK_PMA_PMD);
 	}
@@ -849,14 +794,13 @@ efx_loopback_mask(
 	*maskp = mask;
 }
 
-	__checkReturn	efx_rc_t
-efx_mcdi_get_loopback_modes(
-	__in		efx_nic_t *enp)
+__checkReturn efx_rc_t
+efx_mcdi_get_loopback_modes(__in efx_nic_t *enp)
 {
 	efx_nic_cfg_t *encp = &(enp->en_nic_cfg);
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload, MC_CMD_GET_LOOPBACK_MODES_IN_LEN,
-		MC_CMD_GET_LOOPBACK_MODES_OUT_V2_LEN);
+	    MC_CMD_GET_LOOPBACK_MODES_OUT_V2_LEN);
 	efx_qword_t mask;
 	efx_qword_t modes;
 	efx_rc_t rc;
@@ -876,7 +820,7 @@ efx_mcdi_get_loopback_modes(
 
 	if (req.emr_out_length_used <
 	    MC_CMD_GET_LOOPBACK_MODES_OUT_SUGGESTED_OFST +
-	    MC_CMD_GET_LOOPBACK_MODES_OUT_SUGGESTED_LEN) {
+		MC_CMD_GET_LOOPBACK_MODES_OUT_SUGGESTED_LEN) {
 		rc = EMSGSIZE;
 		goto fail2;
 	}
@@ -902,9 +846,8 @@ efx_mcdi_get_loopback_modes(
 	EFX_AND_QWORD(modes, mask);
 	encp->enc_loopback_types[EFX_LINK_10000FDX] = modes;
 
-	if (req.emr_out_length_used >=
-	    MC_CMD_GET_LOOPBACK_MODES_OUT_40G_OFST +
-	    MC_CMD_GET_LOOPBACK_MODES_OUT_40G_LEN) {
+	if (req.emr_out_length_used >= MC_CMD_GET_LOOPBACK_MODES_OUT_40G_OFST +
+		MC_CMD_GET_LOOPBACK_MODES_OUT_40G_LEN) {
 		/* Response includes 40G loopback modes */
 		modes = *MCDI_OUT2(req, efx_qword_t,
 		    GET_LOOPBACK_MODES_OUT_40G);
@@ -914,7 +857,7 @@ efx_mcdi_get_loopback_modes(
 
 	if (req.emr_out_length_used >=
 	    MC_CMD_GET_LOOPBACK_MODES_OUT_V2_25G_OFST +
-	    MC_CMD_GET_LOOPBACK_MODES_OUT_V2_25G_LEN) {
+		MC_CMD_GET_LOOPBACK_MODES_OUT_V2_25G_LEN) {
 		/* Response includes 25G loopback modes */
 		modes = *MCDI_OUT2(req, efx_qword_t,
 		    GET_LOOPBACK_MODES_OUT_V2_25G);
@@ -924,7 +867,7 @@ efx_mcdi_get_loopback_modes(
 
 	if (req.emr_out_length_used >=
 	    MC_CMD_GET_LOOPBACK_MODES_OUT_V2_50G_OFST +
-	    MC_CMD_GET_LOOPBACK_MODES_OUT_V2_50G_LEN) {
+		MC_CMD_GET_LOOPBACK_MODES_OUT_V2_50G_LEN) {
 		/* Response includes 50G loopback modes */
 		modes = *MCDI_OUT2(req, efx_qword_t,
 		    GET_LOOPBACK_MODES_OUT_V2_50G);
@@ -934,7 +877,7 @@ efx_mcdi_get_loopback_modes(
 
 	if (req.emr_out_length_used >=
 	    MC_CMD_GET_LOOPBACK_MODES_OUT_V2_100G_OFST +
-	    MC_CMD_GET_LOOPBACK_MODES_OUT_V2_100G_LEN) {
+		MC_CMD_GET_LOOPBACK_MODES_OUT_V2_100G_LEN) {
 		/* Response includes 100G loopback modes */
 		modes = *MCDI_OUT2(req, efx_qword_t,
 		    GET_LOOPBACK_MODES_OUT_V2_100G);
@@ -965,11 +908,9 @@ fail1:
 
 #endif /* EFSYS_OPT_LOOPBACK */
 
-	__checkReturn	efx_rc_t
-efx_nic_calculate_pcie_link_bandwidth(
-	__in		uint32_t pcie_link_width,
-	__in		uint32_t pcie_link_gen,
-	__out		uint32_t *bandwidth_mbpsp)
+__checkReturn efx_rc_t
+efx_nic_calculate_pcie_link_bandwidth(__in uint32_t pcie_link_width,
+    __in uint32_t pcie_link_gen, __out uint32_t *bandwidth_mbpsp)
 {
 	uint32_t lane_bandwidth;
 	uint32_t total_bandwidth;
@@ -1014,10 +955,9 @@ fail1:
 
 #if EFSYS_OPT_FW_SUBVARIANT_AWARE
 
-	__checkReturn	efx_rc_t
-efx_nic_get_fw_subvariant(
-	__in		efx_nic_t *enp,
-	__out		efx_nic_fw_subvariant_t *subvariantp)
+__checkReturn efx_rc_t
+efx_nic_get_fw_subvariant(__in efx_nic_t *enp,
+    __out efx_nic_fw_subvariant_t *subvariantp)
 {
 	efx_rc_t rc;
 	uint32_t value;
@@ -1054,10 +994,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-efx_nic_set_fw_subvariant(
-	__in		efx_nic_t *enp,
-	__in		efx_nic_fw_subvariant_t subvariant)
+__checkReturn efx_rc_t
+efx_nic_set_fw_subvariant(__in efx_nic_t *enp,
+    __in efx_nic_fw_subvariant_t subvariant)
 {
 	efx_rc_t rc;
 
@@ -1087,14 +1026,12 @@ fail1:
 	return (rc);
 }
 
-#endif	/* EFSYS_OPT_FW_SUBVARIANT_AWARE */
+#endif /* EFSYS_OPT_FW_SUBVARIANT_AWARE */
 
-	__checkReturn	efx_rc_t
-efx_nic_check_pcie_link_speed(
-	__in		efx_nic_t *enp,
-	__in		uint32_t pcie_link_width,
-	__in		uint32_t pcie_link_gen,
-	__out		efx_pcie_link_performance_t *resultp)
+__checkReturn efx_rc_t
+efx_nic_check_pcie_link_speed(__in efx_nic_t *enp,
+    __in uint32_t pcie_link_width, __in uint32_t pcie_link_gen,
+    __out efx_pcie_link_performance_t *resultp)
 {
 	efx_nic_cfg_t *encp = &(enp->en_nic_cfg);
 	uint32_t bandwidth;
@@ -1115,7 +1052,7 @@ efx_nic_check_pcie_link_speed(
 
 	/* Calculate the available bandwidth in megabits per second */
 	rc = efx_nic_calculate_pcie_link_bandwidth(pcie_link_width,
-					    pcie_link_gen, &bandwidth);
+	    pcie_link_gen, &bandwidth);
 	if (rc != 0)
 		goto fail1;
 

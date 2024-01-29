@@ -32,9 +32,9 @@
  * (default device is /dev/cfi0).
  */
 #include <sys/types.h>
+#include <sys/cfictl.h>
 #include <sys/file.h>
 #include <sys/ioctl.h>
-#include <sys/cfictl.h>
 
 #include <err.h>
 #include <getopt.h>
@@ -137,13 +137,13 @@ main(int argc, char *argv[])
 	}
 	for (; argc > 1; argc--, argv++) {
 		if (strcasecmp(argv[1], "fact") == 0) {
-			printf("0x%llx\n", (unsigned long long) getfactorypr());
+			printf("0x%llx\n", (unsigned long long)getfactorypr());
 		} else if (strcasecmp(argv[1], "oem") == 0) {
-			printf("0x%llx\n", (unsigned long long) getoempr());
+			printf("0x%llx\n", (unsigned long long)getoempr());
 		} else if (strcasecmp(argv[1], "woem") == 0) {
 			if (argc < 2)
 				errx(1, "missing value for woem");
-			setoempr((uint64_t) strtoull(argv[2], NULL, 0));
+			setoempr((uint64_t)strtoull(argv[2], NULL, 0));
 			argc--, argv++;
 		} else if (strcasecmp(argv[1], "plr") == 0) {
 			printf("0x%x\n", getplr());

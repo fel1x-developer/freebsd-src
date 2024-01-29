@@ -42,31 +42,31 @@
  * You must define CHAR to either char or wchar_t prior to including this.
  */
 
-
 #ifndef NO_FLOATING_POINT
 
-#define	dtoa		__dtoa
-#define	freedtoa	__freedtoa
+#define dtoa __dtoa
+#define freedtoa __freedtoa
 
 #include <float.h>
 #include <math.h>
+
 #include "floatio.h"
 #include "gdtoa.h"
 
-#define	DEFPREC		6
+#define DEFPREC 6
 
 static int exponent(CHAR *, int, CHAR);
 
 #endif /* !NO_FLOATING_POINT */
 
-static CHAR	*__ujtoa(uintmax_t, CHAR *, int, int, const char *);
-static CHAR	*__ultoa(u_long, CHAR *, int, int, const char *);
+static CHAR *__ujtoa(uintmax_t, CHAR *, int, int, const char *);
+static CHAR *__ultoa(u_long, CHAR *, int, int, const char *);
 
 #define NIOV 8
 struct io_state {
 	FILE *fp;
-	struct __suio uio;	/* output information: summary */
-	struct __siov iov[NIOV];/* ... and individual io vectors */
+	struct __suio uio;	 /* output information: summary */
+	struct __siov iov[NIOV]; /* ... and individual io vectors */
 };
 
 static inline void
@@ -84,7 +84,8 @@ io_init(struct io_state *iop, FILE *fp)
  * remain valid until io_flush() is called.
  */
 static inline int
-io_print(struct io_state *iop, const CHAR * __restrict ptr, int len, locale_t locale)
+io_print(struct io_state *iop, const CHAR *__restrict ptr, int len,
+    locale_t locale)
 {
 
 	iop->iov[iop->uio.uio_iovcnt].iov_base = (char *)ptr;
@@ -101,19 +102,19 @@ io_print(struct io_state *iop, const CHAR * __restrict ptr, int len, locale_t lo
  * fields occur frequently, increase PADSIZE and make the initialisers
  * below longer.
  */
-#define	PADSIZE	16		/* pad chunk size */
-static const CHAR blanks[PADSIZE] =
-{' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '};
-static const CHAR zeroes[PADSIZE] =
-{'0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0'};
+#define PADSIZE 16 /* pad chunk size */
+static const CHAR blanks[PADSIZE] = { ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+	' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ' };
+static const CHAR zeroes[PADSIZE] = { '0', '0', '0', '0', '0', '0', '0', '0',
+	'0', '0', '0', '0', '0', '0', '0', '0' };
 
 /*
  * Pad with blanks or zeroes. 'with' should point to either the blanks array
  * or the zeroes array.
  */
 static inline int
-io_pad(struct io_state *iop, int howmany, const CHAR * __restrict with,
-		locale_t locale)
+io_pad(struct io_state *iop, int howmany, const CHAR *__restrict with,
+    locale_t locale)
 {
 	int n;
 
@@ -131,8 +132,8 @@ io_pad(struct io_state *iop, int howmany, const CHAR * __restrict with,
  * or padding with 'with' as necessary.
  */
 static inline int
-io_printandpad(struct io_state *iop, const CHAR *p, const CHAR *ep,
-	       int len, const CHAR * __restrict with, locale_t locale)
+io_printandpad(struct io_state *iop, const CHAR *p, const CHAR *ep, int len,
+    const CHAR *__restrict with, locale_t locale)
 {
 	int p_len;
 
@@ -173,7 +174,7 @@ __ultoa(u_long val, CHAR *endp, int base, int octzero, const char *xdigs)
 	 */
 	switch (base) {
 	case 10:
-		if (val < 10) {	/* many numbers are 1 digit */
+		if (val < 10) { /* many numbers are 1 digit */
 			*--cp = to_char(val);
 			return (cp);
 		}
@@ -217,7 +218,7 @@ __ultoa(u_long val, CHAR *endp, int base, int octzero, const char *xdigs)
 		} while (val);
 		break;
 
-	default:			/* oops */
+	default: /* oops */
 		abort();
 	}
 	return (cp);
@@ -293,8 +294,7 @@ exponent(CHAR *p0, int exp, CHAR fmtch)
 	if (exp < 0) {
 		exp = -exp;
 		*p++ = '-';
-	}
-	else
+	} else
 		*p++ = '+';
 	t = expbuf + MAXEXPDIG;
 	if (exp > 9) {
@@ -302,9 +302,9 @@ exponent(CHAR *p0, int exp, CHAR fmtch)
 			*--t = to_char(exp % 10);
 		} while ((exp /= 10) > 9);
 		*--t = to_char(exp);
-		for (; t < expbuf + MAXEXPDIG; *p++ = *t++);
-	}
-	else {
+		for (; t < expbuf + MAXEXPDIG; *p++ = *t++)
+			;
+	} else {
 		/*
 		 * Exponents for decimal floating point conversions
 		 * (%[eEgG]) must be at least two characters long,

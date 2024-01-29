@@ -26,25 +26,27 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
-#include <sys/kernel.h>
+#include <sys/param.h>
 #include <sys/errno.h>
+#include <sys/kernel.h>
 
-#define	LINUXKPI_NET80211
+#define LINUXKPI_NET80211
 #include <net/mac80211.h>
 
 #include "linux_80211.h"
 
 /* Could be a different tracing framework later. */
 #ifdef LINUXKPI_DEBUG_80211
-#define	LKPI_80211_TRACE_MO(fmt, ...)					\
-    if (linuxkpi_debug_80211 & D80211_TRACE_MO)				\
-	printf("LKPI_80211_TRACE_MO %s:%d: %d %d %u_" fmt "\n",		\
-	    __func__, __LINE__, curcpu, curthread->td_tid,		\
-	    (unsigned int)ticks, __VA_ARGS__)
+#define LKPI_80211_TRACE_MO(fmt, ...)                                     \
+	if (linuxkpi_debug_80211 & D80211_TRACE_MO)                       \
+	printf("LKPI_80211_TRACE_MO %s:%d: %d %d %u_" fmt "\n", __func__, \
+	    __LINE__, curcpu, curthread->td_tid, (unsigned int)ticks,     \
+	    __VA_ARGS__)
 #else
-#define	LKPI_80211_TRACE_MO(...)	do { } while(0)
+#define LKPI_80211_TRACE_MO(...) \
+	do {                     \
+	} while (0)
 #endif
 
 int
@@ -144,7 +146,6 @@ out:
 	return (error);
 }
 
-
 int
 lkpi_80211_mo_add_interface(struct ieee80211_hw *hw, struct ieee80211_vif *vif)
 {
@@ -181,7 +182,8 @@ out:
 }
 
 void
-lkpi_80211_mo_remove_interface(struct ieee80211_hw *hw, struct ieee80211_vif *vif)
+lkpi_80211_mo_remove_interface(struct ieee80211_hw *hw,
+    struct ieee80211_vif *vif)
 {
 	struct lkpi_hw *lhw;
 	struct lkpi_vif *lvif;
@@ -205,7 +207,6 @@ lkpi_80211_mo_remove_interface(struct ieee80211_hw *hw, struct ieee80211_vif *vi
 	LKPI_80211_LVIF_UNLOCK(lvif);
 }
 
-
 int
 lkpi_80211_mo_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
     struct ieee80211_scan_request *sr)
@@ -228,7 +229,8 @@ lkpi_80211_mo_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 
 	LKPI_80211_TRACE_MO("CALLING hw %p vif %p sr %p", hw, vif, sr);
 	error = lhw->ops->hw_scan(hw, vif, sr);
-	LKPI_80211_TRACE_MO("RETURNING hw %p vif %p sr %p error %d", hw, vif, sr, error);
+	LKPI_80211_TRACE_MO("RETURNING hw %p vif %p sr %p error %d", hw, vif,
+	    sr, error);
 
 out:
 	return (error);
@@ -248,7 +250,8 @@ lkpi_80211_mo_cancel_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif)
 }
 
 void
-lkpi_80211_mo_sw_scan_complete(struct ieee80211_hw *hw, struct ieee80211_vif *vif)
+lkpi_80211_mo_sw_scan_complete(struct ieee80211_hw *hw,
+    struct ieee80211_vif *vif)
 {
 	struct lkpi_hw *lhw;
 
@@ -275,7 +278,6 @@ lkpi_80211_mo_sw_scan_start(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 	lhw->ops->sw_scan_start(hw, vif, addr);
 }
 
-
 /*
  * We keep the Linux type here;  it really is an uintptr_t.
  */
@@ -296,8 +298,8 @@ lkpi_80211_mo_prepare_multicast(struct ieee80211_hw *hw,
 }
 
 void
-lkpi_80211_mo_configure_filter(struct ieee80211_hw *hw, unsigned int changed_flags,
-    unsigned int *total_flags, u64 mc_ptr)
+lkpi_80211_mo_configure_filter(struct ieee80211_hw *hw,
+    unsigned int changed_flags, unsigned int *total_flags, u64 mc_ptr)
 {
 	struct lkpi_hw *lhw;
 
@@ -308,10 +310,10 @@ lkpi_80211_mo_configure_filter(struct ieee80211_hw *hw, unsigned int changed_fla
 	if (mc_ptr == 0)
 		return;
 
-	LKPI_80211_TRACE_MO("hw %p changed_flags %#x total_flags %p mc_ptr %ju", hw, changed_flags, total_flags, (uintmax_t)mc_ptr);
+	LKPI_80211_TRACE_MO("hw %p changed_flags %#x total_flags %p mc_ptr %ju",
+	    hw, changed_flags, total_flags, (uintmax_t)mc_ptr);
 	lhw->ops->configure_filter(hw, changed_flags, total_flags, mc_ptr);
 }
-
 
 /*
  * So far we only called sta_{add,remove} as an alternative to sta_state.
@@ -388,7 +390,8 @@ lkpi_80211_mo_sta_state(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 	lhw = HW_TO_LHW(hw);
 	sta = LSTA_TO_STA(lsta);
 	if (lhw->ops->sta_state != NULL) {
-		LKPI_80211_TRACE_MO("hw %p vif %p sta %p nstate %d", hw, vif, sta, nstate);
+		LKPI_80211_TRACE_MO("hw %p vif %p sta %p nstate %d", hw, vif,
+		    sta, nstate);
 		error = lhw->ops->sta_state(hw, vif, sta, lsta->state, nstate);
 		if (error == 0) {
 			if (nstate == IEEE80211_STA_NOTEXIST)
@@ -401,7 +404,8 @@ lkpi_80211_mo_sta_state(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 	}
 
 	/* XXX-BZ is the change state AUTH or ASSOC here? */
-	if (lsta->state < IEEE80211_STA_ASSOC && nstate == IEEE80211_STA_ASSOC) {
+	if (lsta->state < IEEE80211_STA_ASSOC &&
+	    nstate == IEEE80211_STA_ASSOC) {
 		error = lkpi_80211_mo_sta_add(hw, vif, sta);
 		if (error == 0)
 			lsta->added_to_drv = true;
@@ -440,10 +444,10 @@ out:
 	return (error);
 }
 
-
 int
-lkpi_80211_mo_assign_vif_chanctx(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
-    struct ieee80211_bss_conf *conf, struct ieee80211_chanctx_conf *chanctx_conf)
+lkpi_80211_mo_assign_vif_chanctx(struct ieee80211_hw *hw,
+    struct ieee80211_vif *vif, struct ieee80211_bss_conf *conf,
+    struct ieee80211_chanctx_conf *chanctx_conf)
 {
 	struct lkpi_hw *lhw;
 	int error;
@@ -454,8 +458,8 @@ lkpi_80211_mo_assign_vif_chanctx(struct ieee80211_hw *hw, struct ieee80211_vif *
 		goto out;
 	}
 
-	LKPI_80211_TRACE_MO("hw %p vif %p bss_conf %p chanctx_conf %p",
-	    hw, vif, conf, chanctx_conf);
+	LKPI_80211_TRACE_MO("hw %p vif %p bss_conf %p chanctx_conf %p", hw, vif,
+	    conf, chanctx_conf);
 	error = lhw->ops->assign_vif_chanctx(hw, vif, conf, chanctx_conf);
 	if (error == 0)
 		vif->chanctx_conf = chanctx_conf;
@@ -465,8 +469,9 @@ out:
 }
 
 void
-lkpi_80211_mo_unassign_vif_chanctx(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
-    struct ieee80211_bss_conf *conf, struct ieee80211_chanctx_conf **chanctx_conf)
+lkpi_80211_mo_unassign_vif_chanctx(struct ieee80211_hw *hw,
+    struct ieee80211_vif *vif, struct ieee80211_bss_conf *conf,
+    struct ieee80211_chanctx_conf **chanctx_conf)
 {
 	struct lkpi_hw *lhw;
 
@@ -477,12 +482,11 @@ lkpi_80211_mo_unassign_vif_chanctx(struct ieee80211_hw *hw, struct ieee80211_vif
 	if (*chanctx_conf == NULL)
 		return;
 
-	LKPI_80211_TRACE_MO("hw %p vif %p bss_conf %p chanctx_conf %p",
-	    hw, vif, conf, *chanctx_conf);
+	LKPI_80211_TRACE_MO("hw %p vif %p bss_conf %p chanctx_conf %p", hw, vif,
+	    conf, *chanctx_conf);
 	lhw->ops->unassign_vif_chanctx(hw, vif, conf, *chanctx_conf);
 	*chanctx_conf = NULL;
 }
-
 
 int
 lkpi_80211_mo_add_chanctx(struct ieee80211_hw *hw,
@@ -519,7 +523,8 @@ lkpi_80211_mo_change_chanctx(struct ieee80211_hw *hw,
 	if (lhw->ops->change_chanctx == NULL)
 		return;
 
-	LKPI_80211_TRACE_MO("hw %p chanctx_conf %p changed %u", hw, chanctx_conf, changed);
+	LKPI_80211_TRACE_MO("hw %p chanctx_conf %p changed %u", hw,
+	    chanctx_conf, changed);
 	lhw->ops->change_chanctx(hw, chanctx_conf, changed);
 }
 
@@ -541,8 +546,9 @@ lkpi_80211_mo_remove_chanctx(struct ieee80211_hw *hw,
 }
 
 void
-lkpi_80211_mo_bss_info_changed(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
-    struct ieee80211_bss_conf *conf, uint64_t changed)
+lkpi_80211_mo_bss_info_changed(struct ieee80211_hw *hw,
+    struct ieee80211_vif *vif, struct ieee80211_bss_conf *conf,
+    uint64_t changed)
 {
 	struct lkpi_hw *lhw;
 
@@ -551,7 +557,8 @@ lkpi_80211_mo_bss_info_changed(struct ieee80211_hw *hw, struct ieee80211_vif *vi
 	    lhw->ops->bss_info_changed == NULL)
 		return;
 
-	LKPI_80211_TRACE_MO("hw %p vif %p conf %p changed %#jx", hw, vif, conf, (uintmax_t)changed);
+	LKPI_80211_TRACE_MO("hw %p vif %p conf %p changed %#jx", hw, vif, conf,
+	    (uintmax_t)changed);
 	if (lhw->ops->link_info_changed != NULL)
 		lhw->ops->link_info_changed(hw, vif, conf, changed);
 	else
@@ -571,8 +578,8 @@ lkpi_80211_mo_conf_tx(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 		goto out;
 	}
 
-	LKPI_80211_TRACE_MO("hw %p vif %p link_id %u ac %u txpq %p",
-	    hw, vif, link_id, ac, txqp);
+	LKPI_80211_TRACE_MO("hw %p vif %p link_id %u ac %u txpq %p", hw, vif,
+	    link_id, ac, txqp);
 	error = lhw->ops->conf_tx(hw, vif, link_id, ac, txqp);
 
 out:
@@ -589,7 +596,8 @@ lkpi_80211_mo_flush(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 	if (lhw->ops->flush == NULL)
 		return;
 
-	LKPI_80211_TRACE_MO("hw %p vif %p nqueues %u drop %d", hw, vif, nqueues, drop);
+	LKPI_80211_TRACE_MO("hw %p vif %p nqueues %u drop %d", hw, vif, nqueues,
+	    drop);
 	lhw->ops->flush(hw, vif, nqueues, drop);
 }
 
@@ -608,8 +616,8 @@ lkpi_80211_mo_mgd_prepare_tx(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 }
 
 void
-lkpi_80211_mo_mgd_complete_tx(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
-    struct ieee80211_prep_tx_info *txinfo)
+lkpi_80211_mo_mgd_complete_tx(struct ieee80211_hw *hw,
+    struct ieee80211_vif *vif, struct ieee80211_prep_tx_info *txinfo)
 {
 	struct lkpi_hw *lhw;
 
@@ -689,7 +697,8 @@ lkpi_80211_mo_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
 		goto out;
 	}
 
-	LKPI_80211_TRACE_MO("hw %p cmd %d vif %p sta %p kc %p", hw, cmd, vif, sta, kc);
+	LKPI_80211_TRACE_MO("hw %p cmd %d vif %p sta %p kc %p", hw, cmd, vif,
+	    sta, kc);
 	error = lhw->ops->set_key(hw, cmd, vif, sta, kc);
 
 out:
@@ -709,8 +718,9 @@ lkpi_80211_mo_ampdu_action(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 		goto out;
 	}
 
-	LKPI_80211_TRACE_MO("hw %p vif %p params %p { %p, %d, %u, %u, %u, %u, %d }",
-	    hw, vif, params, params->sta, params->action, params->buf_size,
+	LKPI_80211_TRACE_MO(
+	    "hw %p vif %p params %p { %p, %d, %u, %u, %u, %u, %d }", hw, vif,
+	    params, params->sta, params->action, params->buf_size,
 	    params->timeout, params->ssn, params->tid, params->amsdu);
 	error = lhw->ops->ampdu_action(hw, vif, params);
 

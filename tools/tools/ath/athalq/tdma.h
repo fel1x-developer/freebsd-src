@@ -14,13 +14,13 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-#ifndef	__TDMA_H__
-#define	__TDMA_H__
+#ifndef __TDMA_H__
+#define __TDMA_H__
 
-extern	void ath_tdma_beacon_state(struct if_ath_alq_payload *a);
-extern	void ath_tdma_timer_config(struct if_ath_alq_payload *a);
-extern	void ath_tdma_slot_calc(struct if_ath_alq_payload *a);
-extern	void ath_tdma_tsf_adjust(struct if_ath_alq_payload *a);
-extern	void ath_tdma_timer_set(struct if_ath_alq_payload *a);
+extern void ath_tdma_beacon_state(struct if_ath_alq_payload *a);
+extern void ath_tdma_timer_config(struct if_ath_alq_payload *a);
+extern void ath_tdma_slot_calc(struct if_ath_alq_payload *a);
+extern void ath_tdma_tsf_adjust(struct if_ath_alq_payload *a);
+extern void ath_tdma_timer_set(struct if_ath_alq_payload *a);
 
-#endif	/* __TDMA_H__ */
+#endif /* __TDMA_H__ */

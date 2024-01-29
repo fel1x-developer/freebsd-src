@@ -41,36 +41,37 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/malloc.h>
 #include <sys/bio.h>
+#include <sys/devicestat.h>
+#include <sys/errno.h>
+#include <sys/kernel.h>
 #include <sys/ktr.h>
+#include <sys/malloc.h>
 #include <sys/proc.h>
 #include <sys/sbuf.h>
 #include <sys/stack.h>
 #include <sys/sysctl.h>
 #include <sys/vmem.h>
+
+#include <vm/vm.h>
+#include <vm/uma.h>
+#include <vm/vm_extern.h>
+#include <vm/vm_kern.h>
+#include <vm/vm_map.h>
+#include <vm/vm_object.h>
+#include <vm/vm_page.h>
+#include <vm/vm_param.h>
+
 #include <machine/stack.h>
 #include <machine/stdarg.h>
 
-#include <sys/errno.h>
 #include <geom/geom.h>
 #include <geom/geom_int.h>
-#include <sys/devicestat.h>
-
-#include <vm/uma.h>
-#include <vm/vm.h>
-#include <vm/vm_param.h>
-#include <vm/vm_kern.h>
-#include <vm/vm_page.h>
-#include <vm/vm_object.h>
-#include <vm/vm_extern.h>
-#include <vm/vm_map.h>
 
 #define KTR_GEOM_ENABLED \
-    ((KTR_COMPILE & KTR_GEOM) != 0 && (ktr_mask & KTR_GEOM) != 0)
+	((KTR_COMPILE & KTR_GEOM) != 0 && (ktr_mask & KTR_GEOM) != 0)
 
-static int	g_io_transient_map_bio(struct bio *bp);
+static int g_io_transient_map_bio(struct bio *bp);
 
 static struct g_bioq g_bio_run_down;
 static struct g_bioq g_bio_run_up;
@@ -230,7 +231,7 @@ g_clone_bio(struct bio *bp)
 		CTRSTACK(KTR_GEOM, &st, 3);
 	}
 #endif
-	return(bp2);
+	return (bp2);
 }
 
 struct bio *
@@ -259,7 +260,7 @@ g_duplicate_bio(struct bio *bp)
 		CTRSTACK(KTR_GEOM, &st, 3);
 	}
 #endif
-	return(bp2);
+	return (bp2);
 }
 
 void
@@ -275,10 +276,8 @@ g_io_init(void)
 
 	g_bioq_init(&g_bio_run_down);
 	g_bioq_init(&g_bio_run_up);
-	biozone = uma_zcreate("g_bio", sizeof (struct bio),
-	    NULL, NULL,
-	    NULL, NULL,
-	    0, 0);
+	biozone = uma_zcreate("g_bio", sizeof(struct bio), NULL, NULL, NULL,
+	    NULL, 0, 0);
 }
 
 int
@@ -400,7 +399,7 @@ g_io_check(struct bio *bp)
 	pp = bp->bio_to;
 
 	/* Fail if access counters dont allow the operation */
-	switch(bp->bio_cmd) {
+	switch (bp->bio_cmd) {
 	case BIO_READ:
 	case BIO_GETATTR:
 		if (cp->acr == 0)
@@ -430,7 +429,7 @@ g_io_check(struct bio *bp)
 	if (cp->flags & G_CF_ORPHAN)
 		return (ENXIO);
 
-	switch(bp->bio_cmd) {
+	switch (bp->bio_cmd) {
 	case BIO_READ:
 	case BIO_WRITE:
 	case BIO_DELETE:
@@ -453,25 +452,30 @@ g_io_check(struct bio *bp)
 		excess = bp->bio_offset + bp->bio_length;
 		if (excess > bp->bio_to->mediasize) {
 			KASSERT((bp->bio_flags & BIO_UNMAPPED) == 0 ||
-			    round_page(bp->bio_ma_offset +
-			    bp->bio_length) / PAGE_SIZE == bp->bio_ma_n,
+				round_page(bp->bio_ma_offset + bp->bio_length) /
+					PAGE_SIZE ==
+				    bp->bio_ma_n,
 			    ("excess bio %p too short", bp));
 			excess -= bp->bio_to->mediasize;
 			bp->bio_length -= excess;
 			if ((bp->bio_flags & BIO_UNMAPPED) != 0) {
 				bp->bio_ma_n = round_page(bp->bio_ma_offset +
-				    bp->bio_length) / PAGE_SIZE;
+						   bp->bio_length) /
+				    PAGE_SIZE;
 			}
 			if (excess > 0)
-				CTR3(KTR_GEOM, "g_down truncated bio "
-				    "%p provider %s by %d", bp,
-				    bp->bio_to->name, excess);
+				CTR3(KTR_GEOM,
+				    "g_down truncated bio "
+				    "%p provider %s by %d",
+				    bp, bp->bio_to->name, excess);
 		}
 
 		/* Deliver zero length transfers right here. */
 		if (bp->bio_length == 0) {
-			CTR2(KTR_GEOM, "g_down terminated 0-length "
-			    "bp %p provider %s", bp, bp->bio_to->name);
+			CTR2(KTR_GEOM,
+			    "g_down terminated 0-length "
+			    "bp %p provider %s",
+			    bp, bp->bio_to->name);
 			return (0);
 		}
 
@@ -525,19 +529,19 @@ g_io_request(struct bio *bp, struct g_consumer *cp)
 	if (cmd == BIO_DELETE || cmd == BIO_FLUSH || cmd == BIO_SPEEDUP) {
 		KASSERT(bp->bio_data == NULL,
 		    ("non-NULL bp->data in g_io_request(cmd=%hu)",
-		    bp->bio_cmd));
+			bp->bio_cmd));
 	}
 	if (cmd == BIO_READ || cmd == BIO_WRITE || cmd == BIO_DELETE) {
 		KASSERT(bp->bio_offset % cp->provider->sectorsize == 0,
-		    ("wrong offset %jd for sectorsize %u",
-		    bp->bio_offset, cp->provider->sectorsize));
+		    ("wrong offset %jd for sectorsize %u", bp->bio_offset,
+			cp->provider->sectorsize));
 		KASSERT(bp->bio_length % cp->provider->sectorsize == 0,
-		    ("wrong length %jd for sectorsize %u",
-		    bp->bio_length, cp->provider->sectorsize));
+		    ("wrong length %jd for sectorsize %u", bp->bio_length,
+			cp->provider->sectorsize));
 	}
 
-	g_trace(G_T_BIO, "bio_request(%p) from %p(%s) to %p(%s) cmd %d",
-	    bp, cp, cp->geom->name, pp, pp->name, bp->bio_cmd);
+	g_trace(G_T_BIO, "bio_request(%p) from %p(%s) to %p(%s) cmd %d", bp, cp,
+	    cp->geom->name, pp, pp->name, bp->bio_cmd);
 
 	bp->bio_from = cp;
 	bp->bio_to = pp;
@@ -561,14 +565,13 @@ g_io_request(struct bio *bp, struct g_consumer *cp)
 #endif
 
 	direct = (cp->flags & G_CF_DIRECT_SEND) != 0 &&
-	    (pp->flags & G_PF_DIRECT_RECEIVE) != 0 &&
-	    curthread != g_down_td &&
+	    (pp->flags & G_PF_DIRECT_RECEIVE) != 0 && curthread != g_down_td &&
 	    ((pp->flags & G_PF_ACCEPT_UNMAPPED) != 0 ||
-	    (bp->bio_flags & BIO_UNMAPPED) == 0 || THREAD_CAN_SLEEP()) &&
+		(bp->bio_flags & BIO_UNMAPPED) == 0 || THREAD_CAN_SLEEP()) &&
 	    pace == 0;
 	if (direct) {
 		/* Block direct execution if less then half of stack left. */
-		size_t	st, su;
+		size_t st, su;
 		GET_STACK_USAGE(st, su);
 		if (su * 2 > st)
 			direct = 0;
@@ -577,9 +580,10 @@ g_io_request(struct bio *bp, struct g_consumer *cp)
 	if (direct) {
 		error = g_io_check(bp);
 		if (error >= 0) {
-			CTR3(KTR_GEOM, "g_io_request g_io_check on bp %p "
-			    "provider %s returned %d", bp, bp->bio_to->name,
-			    error);
+			CTR3(KTR_GEOM,
+			    "g_io_request g_io_check on bp %p "
+			    "provider %s returned %d",
+			    bp, bp->bio_to->name, error);
 			g_io_deliver(bp, error);
 			return;
 		}
@@ -639,7 +643,7 @@ g_io_deliver(struct bio *bp, int error)
 	    ("bio_completed can't be greater than bio_length"));
 
 	g_trace(G_T_BIO,
-"g_io_deliver(%p) from %p(%s) to %p(%s) cmd %d error %d off %jd len %jd",
+	    "g_io_deliver(%p) from %p(%s) to %p(%s) cmd %d error %d off %jd len %jd",
 	    bp, cp, cp->geom->name, pp, pp->name, bp->bio_cmd, error,
 	    (intmax_t)bp->bio_offset, (intmax_t)bp->bio_length);
 
@@ -653,11 +657,10 @@ g_io_deliver(struct bio *bp, int error)
 	bp->bio_resid = bp->bio_bcount - bp->bio_completed;
 
 	direct = (pp->flags & G_PF_DIRECT_SEND) &&
-		 (cp->flags & G_CF_DIRECT_RECEIVE) &&
-		 curthread != g_up_td;
+	    (cp->flags & G_CF_DIRECT_RECEIVE) && curthread != g_up_td;
 	if (direct) {
 		/* Block direct execution if less then half of stack left. */
-		size_t	st, su;
+		size_t st, su;
 		GET_STACK_USAGE(st, su);
 		if (su * 2 > st)
 			direct = 0;
@@ -689,7 +692,8 @@ g_io_deliver(struct bio *bp, int error)
 		} else {
 			g_bioq_lock(&g_bio_run_up);
 			first = TAILQ_EMPTY(&g_bio_run_up.bio_queue);
-			TAILQ_INSERT_TAIL(&g_bio_run_up.bio_queue, bp, bio_queue);
+			TAILQ_INSERT_TAIL(&g_bio_run_up.bio_queue, bp,
+			    bio_queue);
 			bp->bio_flags |= BIO_ONQUEUE;
 			g_bio_run_up.bio_queue_length++;
 			g_bioq_unlock(&g_bio_run_up);
@@ -714,9 +718,8 @@ g_io_deliver(struct bio *bp, int error)
 SYSCTL_DECL(_kern_geom);
 
 static long transient_maps;
-SYSCTL_LONG(_kern_geom, OID_AUTO, transient_maps, CTLFLAG_RD,
-    &transient_maps, 0,
-    "Total count of the transient mapping requests");
+SYSCTL_LONG(_kern_geom, OID_AUTO, transient_maps, CTLFLAG_RD, &transient_maps,
+    0, "Total count of the transient mapping requests");
 u_int transient_map_retries = 10;
 SYSCTL_UINT(_kern_geom, OID_AUTO, transient_map_retries, CTLFLAG_RW,
     &transient_map_retries, 0,
@@ -732,8 +735,7 @@ SYSCTL_INT(_kern_geom, OID_AUTO, transient_map_soft_failures, CTLFLAG_RD,
     "Count of retried failures to establish the transient mapping");
 int inflight_transient_maps;
 SYSCTL_INT(_kern_geom, OID_AUTO, inflight_transient_maps, CTLFLAG_RD,
-    &inflight_transient_maps, 0,
-    "Current count of the active transient maps");
+    &inflight_transient_maps, 0, "Current count of the active transient maps");
 
 static int
 g_io_transient_map_bio(struct bio *bp)
@@ -756,7 +758,7 @@ retry:
 			CTR2(KTR_GEOM, "g_down cannot map bp %p provider %s",
 			    bp, bp->bio_to->name);
 			atomic_add_int(&transient_map_hard_failures, 1);
-			return (EDEADLK/* XXXKIB */);
+			return (EDEADLK /* XXXKIB */);
 		} else {
 			/*
 			 * Naive attempt to quisce the I/O to get more
@@ -785,7 +787,7 @@ g_io_schedule_down(struct thread *tp __unused)
 	struct bio *bp;
 	int error;
 
-	for(;;) {
+	for (;;) {
 		g_bioq_lock(&g_bio_run_down);
 		bp = g_bioq_first(&g_bio_run_down);
 		if (bp == NULL) {
@@ -822,22 +824,25 @@ g_io_schedule_down(struct thread *tp __unused)
 			 * for that I/O.
 			 */
 			CTR0(KTR_GEOM, "g_down pacing self");
-			pause("g_down", min(hz/1000, 1));
+			pause("g_down", min(hz / 1000, 1));
 			pace = 0;
 		}
 		CTR2(KTR_GEOM, "g_down processing bp %p provider %s", bp,
 		    bp->bio_to->name);
 		error = g_io_check(bp);
 		if (error >= 0) {
-			CTR3(KTR_GEOM, "g_down g_io_check on bp %p provider "
-			    "%s returned %d", bp, bp->bio_to->name, error);
+			CTR3(KTR_GEOM,
+			    "g_down g_io_check on bp %p provider "
+			    "%s returned %d",
+			    bp, bp->bio_to->name, error);
 			g_io_deliver(bp, error);
 			continue;
 		}
 		THREAD_NO_SLEEPING();
-		CTR4(KTR_GEOM, "g_down starting bp %p provider %s off %ld "
-		    "len %ld", bp, bp->bio_to->name, bp->bio_offset,
-		    bp->bio_length);
+		CTR4(KTR_GEOM,
+		    "g_down starting bp %p provider %s off %ld "
+		    "len %ld",
+		    bp, bp->bio_to->name, bp->bio_offset, bp->bio_length);
 		bp->bio_to->geom->start(bp);
 		THREAD_SLEEPING_OK();
 	}
@@ -848,7 +853,7 @@ g_io_schedule_up(struct thread *tp __unused)
 {
 	struct bio *bp;
 
-	for(;;) {
+	for (;;) {
 		g_bioq_lock(&g_bio_run_up);
 		bp = g_bioq_first(&g_bio_run_up);
 		if (bp == NULL) {
@@ -859,9 +864,10 @@ g_io_schedule_up(struct thread *tp __unused)
 		}
 		g_bioq_unlock(&g_bio_run_up);
 		THREAD_NO_SLEEPING();
-		CTR4(KTR_GEOM, "g_up biodone bp %p provider %s off "
-		    "%jd len %ld", bp, bp->bio_to->name,
-		    bp->bio_offset, bp->bio_length);
+		CTR4(KTR_GEOM,
+		    "g_up biodone bp %p provider %s off "
+		    "%jd len %ld",
+		    bp, bp->bio_to->name, bp->bio_offset, bp->bio_length);
 		biodone(bp);
 		THREAD_SLEEPING_OK();
 	}
@@ -875,8 +881,8 @@ g_read_data(struct g_consumer *cp, off_t offset, off_t length, int *error)
 	int errorc;
 
 	KASSERT(length > 0 && length >= cp->provider->sectorsize &&
-	    length <= maxphys, ("g_read_data(): invalid length %jd",
-	    (intmax_t)length));
+		length <= maxphys,
+	    ("g_read_data(): invalid length %jd", (intmax_t)length));
 
 	bp = g_alloc_bio();
 	bp->bio_cmd = BIO_READ;
@@ -932,8 +938,8 @@ g_write_data(struct g_consumer *cp, off_t offset, void *ptr, off_t length)
 	int error;
 
 	KASSERT(length > 0 && length >= cp->provider->sectorsize &&
-	    length <= maxphys, ("g_write_data(): invalid length %jd",
-	    (intmax_t)length));
+		length <= maxphys,
+	    ("g_write_data(): invalid length %jd", (intmax_t)length));
 
 	bp = g_alloc_bio();
 	bp->bio_cmd = BIO_WRITE;

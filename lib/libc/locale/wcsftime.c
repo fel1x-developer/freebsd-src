@@ -36,6 +36,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <wchar.h>
+
 #include "xlocale_private.h"
 
 /*
@@ -52,9 +53,9 @@
  * format specifications in the format string.
  */
 size_t
-wcsftime_l(wchar_t * __restrict wcs, size_t maxsize,
-	const wchar_t * __restrict format, const struct tm * __restrict timeptr,
-	locale_t locale)
+wcsftime_l(wchar_t *__restrict wcs, size_t maxsize,
+    const wchar_t *__restrict format, const struct tm *__restrict timeptr,
+    locale_t locale)
 {
 	static const mbstate_t initial;
 	mbstate_t mbs;
@@ -114,8 +115,8 @@ error:
 	return (0);
 }
 size_t
-wcsftime(wchar_t * __restrict wcs, size_t maxsize,
-	const wchar_t * __restrict format, const struct tm * __restrict timeptr)
+wcsftime(wchar_t *__restrict wcs, size_t maxsize,
+    const wchar_t *__restrict format, const struct tm *__restrict timeptr)
 {
 	return wcsftime_l(wcs, maxsize, format, timeptr, __get_locale());
 }

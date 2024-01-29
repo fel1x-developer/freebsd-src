@@ -28,7 +28,7 @@
  */
 
 #ifndef _MWLSTATS_H_
-#define	_MWLSTATS_H_
+#define _MWLSTATS_H_
 
 #include "bsdstat.h"
 

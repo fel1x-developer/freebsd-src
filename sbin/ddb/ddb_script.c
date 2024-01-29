@@ -46,9 +46,9 @@
  * completeness, listing of scripts is also included.
  */
 
-#define	SYSCTL_SCRIPT	"debug.ddb.scripting.script"
-#define	SYSCTL_SCRIPTS	"debug.ddb.scripting.scripts"
-#define	SYSCTL_UNSCRIPT	"debug.ddb.scripting.unscript"
+#define SYSCTL_SCRIPT "debug.ddb.scripting.script"
+#define SYSCTL_SCRIPTS "debug.ddb.scripting.scripts"
+#define SYSCTL_UNSCRIPT "debug.ddb.scripting.unscript"
 
 /*
  * Print all scripts (scriptname==NULL) or a specific script.
@@ -125,7 +125,7 @@ ddb_script(int argc, char *argv[])
 	argc--;
 	if (strchr(argv[0], '=') != 0) {
 		if (sysctlbyname(SYSCTL_SCRIPT, NULL, NULL, argv[0],
-		    strlen(argv[0]) + 1) < 0)
+			strlen(argv[0]) + 1) < 0)
 			err(EX_OSERR, "sysctl: %s", SYSCTL_SCRIPTS);
 	} else
 		ddb_list_scripts(argv[0]);

@@ -5,9 +5,9 @@
  */
 
 #include <sys/ioctl.h>
+
 #include "ipf.h"
 #include "netinet/ipl.h"
-
 
 iphtable_t *
 printhash_live(iphtable_t *hp, int fd, char *name, int opts, wordtab_t *fields)
@@ -50,7 +50,7 @@ printhash_live(iphtable_t *hp, int fd, char *name, int opts, wordtab_t *fields)
 			last = 1;
 		if (bcmp(&zero, &entry, sizeof(zero)) == 0)
 			break;
-		(void) printhashnode(hp, &entry, bcopywrap, opts, fields);
+		(void)printhashnode(hp, &entry, bcopywrap, opts, fields);
 		printed++;
 	}
 	if (last == 0)

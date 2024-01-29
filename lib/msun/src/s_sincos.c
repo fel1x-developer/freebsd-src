@@ -7,7 +7,7 @@
  * software is freely granted, provided that this notice
  * is preserved.
  * ====================================================
- * 
+ *
  * s_sin.c and s_cos.c merged by Steven G. Kargl.  Descriptions of the
  * algorithms are contained in the original files.
  */
@@ -16,9 +16,10 @@
 
 #include "math.h"
 #define INLINE_REM_PIO2
-#include "math_private.h"
-#include "e_rem_pio2.c"
 #include "k_sincos.h"
+#include "math_private.h"
+
+#include "e_rem_pio2.c"
 
 void
 sincos(double x, double *sn, double *cs)
@@ -32,8 +33,8 @@ sincos(double x, double *sn, double *cs)
 	/* |x| ~< pi/4 */
 	ix &= 0x7fffffff;
 	if (ix <= 0x3fe921fb) {
-		if (ix < 0x3e400000) {		/* |x| < 2**-27 */
-			if ((int)x == 0) {	/* Generate inexact. */
+		if (ix < 0x3e400000) {	   /* |x| < 2**-27 */
+			if ((int)x == 0) { /* Generate inexact. */
 				*sn = x;
 				*cs = 1;
 				return;
@@ -53,7 +54,7 @@ sincos(double x, double *sn, double *cs)
 	/* Argument reduction. */
 	n = __ieee754_rem_pio2(x, y);
 
-	switch(n & 3) {
+	switch (n & 3) {
 	case 0:
 		__kernel_sincos(y[0], y[1], 1, sn, cs);
 		break;

@@ -12,11 +12,11 @@
  *	Geoff Rehmet, Rhodes University, South Africa <csgr@cs.ru.ac.za>
  */
 
-#ifndef	_DEV_PPBUS_LPT_H_
-#define	_DEV_PPBUS_LPT_H_
+#ifndef _DEV_PPBUS_LPT_H_
+#define _DEV_PPBUS_LPT_H_
 
 #include <sys/ioccom.h>
 
-#define	LPT_IRQ		_IOW('p', 1, long)	/* set interrupt status */
+#define LPT_IRQ _IOW('p', 1, long) /* set interrupt status */
 
 #endif /* !_DEV_PPBUS_LPT_H_ */

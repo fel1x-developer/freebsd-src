@@ -10,7 +10,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -42,8 +42,8 @@
 /* dialog(1) `.dialogrc' characteristics */
 uint8_t use_colors = 1;
 uint8_t use_shadow = 1;
-char gauge_color[STR_BUFSIZE]	= "47b"; /* (BLUE,WHITE,ON) */
-char separator[STR_BUFSIZE]	= "";
+char gauge_color[STR_BUFSIZE] = "47b"; /* (BLUE,WHITE,ON) */
+char separator[STR_BUFSIZE] = "";
 
 /* Function prototypes */
 static int setattr(struct figpar_config *, uint32_t, char *, char *);
@@ -57,48 +57,49 @@ static int setstr(struct figpar_config *, uint32_t, char *, char *);
  * NB: Brace-initialization of union requires cast to *first* member of union
  */
 static struct figpar_config dialogrc_config[] = {
-    /* TYPE            DIRECTIVE                      DEFAULT        HANDLER */
-    {FIGPAR_TYPE_INT,  "aspect",                      {(void *)0},   &setnum},
-    {FIGPAR_TYPE_STR,  "separate_widget",             {separator},   &setstr},
-    {FIGPAR_TYPE_INT,  "tab_len",                     {(void *)0},   &setnum},
-    {FIGPAR_TYPE_BOOL, "visit_items",                 {(void *)0},   &setbool},
-    {FIGPAR_TYPE_BOOL, "use_shadow",                  {(void *)1},   &setbool},
-    {FIGPAR_TYPE_BOOL, "use_colors",                  {(void *)1},   &setbool},
-    {FIGPAR_TYPE_STR,  "screen_color",                {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "shadow_color",                {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "dialog_color",                {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "title_color",                 {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "border_color",                {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "button_active_color",         {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "button_inactive_color",       {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "button_key_active_color",     {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "button_key_inactive_color",   {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "button_label_active_color",   {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "button_label_inactive_color", {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "inputbox_color",              {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "inputbox_border_color",       {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "searchbox_color",             {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "searchbox_title_color",       {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "searchbox_border_color",      {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "position_indicator_color",    {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "menubox_color",               {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "menubox_border_color",        {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "item_color",                  {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "item_selected_color",         {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "tag_color",                   {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "tag_selected_color",          {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "tag_key_color",               {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "tag_key_selected_color",      {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "check_color",                 {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "check_selected_color",        {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "uarrow_color",                {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "darrow_color",                {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "itemhelp_color",              {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "form_active_text_color",      {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "form_text_color",             {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "form_item_readonly_color",    {NULL},        &setattr},
-    {FIGPAR_TYPE_STR,  "gauge_color",                 {gauge_color}, &setattr},
-    {0, NULL, {0}, NULL}
+	/* TYPE            DIRECTIVE                      DEFAULT        HANDLER
+	 */
+	{ FIGPAR_TYPE_INT, "aspect", { (void *)0 }, &setnum },
+	{ FIGPAR_TYPE_STR, "separate_widget", { separator }, &setstr },
+	{ FIGPAR_TYPE_INT, "tab_len", { (void *)0 }, &setnum },
+	{ FIGPAR_TYPE_BOOL, "visit_items", { (void *)0 }, &setbool },
+	{ FIGPAR_TYPE_BOOL, "use_shadow", { (void *)1 }, &setbool },
+	{ FIGPAR_TYPE_BOOL, "use_colors", { (void *)1 }, &setbool },
+	{ FIGPAR_TYPE_STR, "screen_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "shadow_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "dialog_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "title_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "border_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "button_active_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "button_inactive_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "button_key_active_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "button_key_inactive_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "button_label_active_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "button_label_inactive_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "inputbox_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "inputbox_border_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "searchbox_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "searchbox_title_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "searchbox_border_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "position_indicator_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "menubox_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "menubox_border_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "item_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "item_selected_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "tag_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "tag_selected_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "tag_key_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "tag_key_selected_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "check_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "check_selected_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "uarrow_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "darrow_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "itemhelp_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "form_active_text_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "form_text_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "form_item_readonly_color", { NULL }, &setattr },
+	{ FIGPAR_TYPE_STR, "gauge_color", { gauge_color }, &setattr },
+	{ 0, NULL, { 0 }, NULL }
 };
 
 /*
@@ -149,14 +150,22 @@ setattr(struct figpar_config *option, uint32_t line __unused,
 	attrbuf[3] = '\0';
 
 	/* Interpret the foreground color */
-	if      (strncmp(cp, "red,",     4) == 0) attrbuf[0] = '1';
-	else if (strncmp(cp, "green,",   6) == 0) attrbuf[0] = '2';
-	else if (strncmp(cp, "yellow,",  7) == 0) attrbuf[0] = '3';
-	else if (strncmp(cp, "blue,",    5) == 0) attrbuf[0] = '4';
-	else if (strncmp(cp, "magenta,", 8) == 0) attrbuf[0] = '5';
-	else if (strncmp(cp, "cyan,",    5) == 0) attrbuf[0] = '6';
-	else if (strncmp(cp, "white,",   6) == 0) attrbuf[0] = '7';
-	else if (strncmp(cp, "black,",   6) == 0) attrbuf[0] = '8';
+	if (strncmp(cp, "red,", 4) == 0)
+		attrbuf[0] = '1';
+	else if (strncmp(cp, "green,", 6) == 0)
+		attrbuf[0] = '2';
+	else if (strncmp(cp, "yellow,", 7) == 0)
+		attrbuf[0] = '3';
+	else if (strncmp(cp, "blue,", 5) == 0)
+		attrbuf[0] = '4';
+	else if (strncmp(cp, "magenta,", 8) == 0)
+		attrbuf[0] = '5';
+	else if (strncmp(cp, "cyan,", 5) == 0)
+		attrbuf[0] = '6';
+	else if (strncmp(cp, "white,", 6) == 0)
+		attrbuf[0] = '7';
+	else if (strncmp(cp, "black,", 6) == 0)
+		attrbuf[0] = '8';
 
 	/* Advance to the background color */
 	cp = strchr(cp, ',');
@@ -166,14 +175,22 @@ setattr(struct figpar_config *option, uint32_t line __unused,
 		cp++;
 
 	/* Interpret the background color */
-	if      (strncmp(cp, "red,",     4) == 0) attrbuf[1] = '1';
-	else if (strncmp(cp, "green,",   6) == 0) attrbuf[1] = '2';
-	else if (strncmp(cp, "yellow,",  7) == 0) attrbuf[1] = '3';
-	else if (strncmp(cp, "blue,",    5) == 0) attrbuf[1] = '4';
-	else if (strncmp(cp, "magenta,", 8) == 0) attrbuf[1] = '5';
-	else if (strncmp(cp, "cyan,",    5) == 0) attrbuf[1] = '6';
-	else if (strncmp(cp, "white,",   6) == 0) attrbuf[1] = '7';
-	else if (strncmp(cp, "black,",   6) == 0) attrbuf[1] = '8';
+	if (strncmp(cp, "red,", 4) == 0)
+		attrbuf[1] = '1';
+	else if (strncmp(cp, "green,", 6) == 0)
+		attrbuf[1] = '2';
+	else if (strncmp(cp, "yellow,", 7) == 0)
+		attrbuf[1] = '3';
+	else if (strncmp(cp, "blue,", 5) == 0)
+		attrbuf[1] = '4';
+	else if (strncmp(cp, "magenta,", 8) == 0)
+		attrbuf[1] = '5';
+	else if (strncmp(cp, "cyan,", 5) == 0)
+		attrbuf[1] = '6';
+	else if (strncmp(cp, "white,", 6) == 0)
+		attrbuf[1] = '7';
+	else if (strncmp(cp, "black,", 6) == 0)
+		attrbuf[1] = '8';
 
 	/* Advance to the highlight */
 	cp = strchr(cp, ',');
@@ -312,8 +329,7 @@ parse_dialogrc(void)
 	}
 
 	/* Process file (either $DIALOGRC if set, or `$HOME/.dialogrc') */
-	res = parse_config(dialogrc_config,
-		path, NULL, FIGPAR_BREAK_ON_EQUALS);
+	res = parse_config(dialogrc_config, path, NULL, FIGPAR_BREAK_ON_EQUALS);
 
 	/* Set some globals based on what we parsed */
 	use_shadow = dialogrc_config_option("use_shadow")->value.boolean;

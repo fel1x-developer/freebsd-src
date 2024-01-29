@@ -30,22 +30,22 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/consio.h>
 #include <sys/fbio.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
 
 #include <dev/fb/fbreg.h>
 #include <dev/fb/splashreg.h>
 #include <dev/syscons/syscons.h>
 
-static u_char palette[256*3];
+static u_char palette[256 * 3];
 
 static int
 fade_saver(video_adapter_t *adp, int blank)
 {
 	static int count = 0;
-	u_char pal[256*3];
+	u_char pal[256 * 3];
 	int i;
 
 	if (blank) {
@@ -54,7 +54,7 @@ fade_saver(video_adapter_t *adp, int blank)
 				vidd_save_palette(adp, palette);
 			if (count < 256) {
 				pal[0] = pal[1] = pal[2] = 0;
-				for (i = 3; i < 256*3; i++) {
+				for (i = 3; i < 256 * 3; i++) {
 					if (palette[i] - count > 60)
 						pal[i] = palette[i] - count;
 					else
@@ -64,14 +64,14 @@ fade_saver(video_adapter_t *adp, int blank)
 				count++;
 			}
 		} else {
-	    		vidd_blank_display(adp, V_DISPLAY_BLANK);
+			vidd_blank_display(adp, V_DISPLAY_BLANK);
 		}
 	} else {
 		if (ISPALAVAIL(adp->va_flags)) {
 			vidd_load_palette(adp, palette);
 			count = 0;
 		} else {
-	    		vidd_blank_display(adp, V_DISPLAY_ON);
+			vidd_blank_display(adp, V_DISPLAY_ON);
 		}
 	}
 	return 0;
@@ -93,7 +93,11 @@ fade_term(video_adapter_t *adp)
 }
 
 static scrn_saver_t fade_module = {
-	"fade_saver", fade_init, fade_term, fade_saver, NULL,
+	"fade_saver",
+	fade_init,
+	fade_term,
+	fade_saver,
+	NULL,
 };
 
 SAVER_MODULE(fade_saver, fade_module);

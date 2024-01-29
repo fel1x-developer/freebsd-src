@@ -30,8 +30,8 @@
  * SOFTWARE.
  */
 
-#include <dev/mlx5/mlx5_fpga/trans.h>
 #include <dev/mlx5/mlx5_fpga/conn.h>
+#include <dev/mlx5/mlx5_fpga/trans.h>
 
 enum mlx5_fpga_transaction_state {
 	TRANS_STATE_NONE,
@@ -56,8 +56,8 @@ struct mlx5_fpga_trans_device_state {
 	struct mlx5_fpga_trans_priv transactions[MLX5_FPGA_TID_COUNT];
 };
 
-static struct mlx5_fpga_trans_priv *find_tid(struct mlx5_fpga_device *fdev,
-					     u8 tid)
+static struct mlx5_fpga_trans_priv *
+find_tid(struct mlx5_fpga_device *fdev, u8 tid)
 {
 	if (tid >= MLX5_FPGA_TID_COUNT) {
 		mlx5_fpga_warn(fdev, "Unexpected transaction ID %u\n", tid);
@@ -66,7 +66,8 @@ static struct mlx5_fpga_trans_priv *find_tid(struct mlx5_fpga_device *fdev,
 	return &fdev->trans->transactions[tid];
 }
 
-static struct mlx5_fpga_trans_priv *alloc_tid(struct mlx5_fpga_device *fdev)
+static struct mlx5_fpga_trans_priv *
+alloc_tid(struct mlx5_fpga_device *fdev)
 {
 	struct mlx5_fpga_trans_priv *ret;
 	unsigned long flags;
@@ -80,7 +81,7 @@ static struct mlx5_fpga_trans_priv *alloc_tid(struct mlx5_fpga_device *fdev)
 	}
 
 	ret = list_first_entry(&fdev->trans->free_queue,
-			       struct mlx5_fpga_trans_priv, list_item);
+	    struct mlx5_fpga_trans_priv, list_item);
 	list_del(&ret->list_item);
 
 	ret->state = TRANS_STATE_NONE;
@@ -89,8 +90,8 @@ out:
 	return ret;
 }
 
-static void free_tid(struct mlx5_fpga_device *fdev,
-		     struct mlx5_fpga_trans_priv *trans_priv)
+static void
+free_tid(struct mlx5_fpga_device *fdev, struct mlx5_fpga_trans_priv *trans_priv)
 {
 	unsigned long flags;
 
@@ -99,14 +100,15 @@ static void free_tid(struct mlx5_fpga_device *fdev,
 	spin_unlock_irqrestore(&fdev->trans->lock, flags);
 }
 
-static void trans_complete(struct mlx5_fpga_device *fdev,
-			   struct mlx5_fpga_trans_priv *trans_priv, u8 status)
+static void
+trans_complete(struct mlx5_fpga_device *fdev,
+    struct mlx5_fpga_trans_priv *trans_priv, u8 status)
 {
 	const struct mlx5_fpga_transaction *user_trans;
 	unsigned long flags;
 
 	mlx5_fpga_dbg(fdev, "Transaction %u is complete with status %u\n",
-		      trans_priv->tid, status);
+	    trans_priv->tid, status);
 
 	spin_lock_irqsave(&fdev->trans->lock, flags);
 	trans_priv->state = TRANS_STATE_COMPLETE;
@@ -120,16 +122,16 @@ static void trans_complete(struct mlx5_fpga_device *fdev,
 		user_trans->complete1(user_trans, status);
 }
 
-static void trans_send_complete(struct mlx5_fpga_conn *conn,
-				struct mlx5_fpga_device *fdev,
-				struct mlx5_fpga_dma_buf *buf, u8 status)
+static void
+trans_send_complete(struct mlx5_fpga_conn *conn, struct mlx5_fpga_device *fdev,
+    struct mlx5_fpga_dma_buf *buf, u8 status)
 {
 	unsigned long flags;
 	struct mlx5_fpga_trans_priv *trans_priv;
 
 	trans_priv = container_of(buf, struct mlx5_fpga_trans_priv, buf);
 	mlx5_fpga_dbg(fdev, "send complete tid %u. Status: %u\n",
-		      trans_priv->tid, status);
+	    trans_priv->tid, status);
 	if (status) {
 		trans_complete(fdev, trans_priv, status);
 		return;
@@ -141,45 +143,52 @@ static void trans_send_complete(struct mlx5_fpga_conn *conn,
 	spin_unlock_irqrestore(&fdev->trans->lock, flags);
 }
 
-static int trans_validate(struct mlx5_fpga_device *fdev, u64 addr, size_t size)
+static int
+trans_validate(struct mlx5_fpga_device *fdev, u64 addr, size_t size)
 {
 	if (size > MLX5_FPGA_TRANSACTION_MAX_SIZE) {
-		mlx5_fpga_warn(fdev, "Cannot access %zu bytes at once. Max is %u\n",
-			       size, MLX5_FPGA_TRANSACTION_MAX_SIZE);
+		mlx5_fpga_warn(fdev,
+		    "Cannot access %zu bytes at once. Max is %u\n", size,
+		    MLX5_FPGA_TRANSACTION_MAX_SIZE);
 		return -EINVAL;
 	}
 	if (size & MLX5_FPGA_TRANSACTION_SEND_ALIGN_BITS) {
-		mlx5_fpga_warn(fdev, "Cannot access %zu bytes. Must be full dwords\n",
-			       size);
+		mlx5_fpga_warn(fdev,
+		    "Cannot access %zu bytes. Must be full dwords\n", size);
 		return -EINVAL;
 	}
 	if (size < 1) {
-		mlx5_fpga_warn(fdev, "Cannot access %zu bytes. Empty transaction not allowed\n",
-			       size);
+		mlx5_fpga_warn(fdev,
+		    "Cannot access %zu bytes. Empty transaction not allowed\n",
+		    size);
 		return -EINVAL;
 	}
 	if (addr & MLX5_FPGA_TRANSACTION_SEND_ALIGN_BITS) {
-		mlx5_fpga_warn(fdev, "Cannot access %zu bytes at unaligned address %jx\n",
-			       size, (uintmax_t)addr);
+		mlx5_fpga_warn(fdev,
+		    "Cannot access %zu bytes at unaligned address %jx\n", size,
+		    (uintmax_t)addr);
 		return -EINVAL;
 	}
 	if ((addr >> MLX5_FPGA_TRANSACTION_SEND_PAGE_BITS) !=
 	    ((addr + size - 1) >> MLX5_FPGA_TRANSACTION_SEND_PAGE_BITS)) {
-		mlx5_fpga_warn(fdev, "Cannot access %zu bytes at address %jx. Crosses page boundary\n",
-			       size, (uintmax_t)addr);
+		mlx5_fpga_warn(fdev,
+		    "Cannot access %zu bytes at address %jx. Crosses page boundary\n",
+		    size, (uintmax_t)addr);
 		return -EINVAL;
 	}
 	if (addr < mlx5_fpga_ddr_base_get(fdev)) {
 		if (size != sizeof(u32)) {
-			mlx5_fpga_warn(fdev, "Cannot access %zu bytes at cr-space address %jx. Must access a single dword\n",
-				       size, (uintmax_t)addr);
+			mlx5_fpga_warn(fdev,
+			    "Cannot access %zu bytes at cr-space address %jx. Must access a single dword\n",
+			    size, (uintmax_t)addr);
 			return -EINVAL;
 		}
 	}
 	return 0;
 }
 
-int mlx5_fpga_trans_exec(const struct mlx5_fpga_transaction *trans)
+int
+mlx5_fpga_trans_exec(const struct mlx5_fpga_transaction *trans)
 {
 	struct mlx5_fpga_conn *conn = trans->conn;
 	struct mlx5_fpga_trans_priv *trans_priv;
@@ -187,7 +196,8 @@ int mlx5_fpga_trans_exec(const struct mlx5_fpga_transaction *trans)
 	int err;
 
 	if (!trans->complete1) {
-		mlx5_fpga_warn(conn->fdev, "Transaction must have a completion callback\n");
+		mlx5_fpga_warn(conn->fdev,
+		    "Transaction must have a completion callback\n");
 		err = -EINVAL;
 		goto out;
 	}
@@ -207,9 +217,9 @@ int mlx5_fpga_trans_exec(const struct mlx5_fpga_transaction *trans)
 	memset(header, 0, sizeof(trans_priv->header));
 	memset(&trans_priv->buf, 0, sizeof(trans_priv->buf));
 	MLX5_SET(fpga_shell_qp_packet, header, type,
-		 (trans->direction == MLX5_FPGA_WRITE) ?
-		 MLX5_FPGA_SHELL_QP_PACKET_TYPE_DDR_WRITE :
-		 MLX5_FPGA_SHELL_QP_PACKET_TYPE_DDR_READ);
+	    (trans->direction == MLX5_FPGA_WRITE) ?
+		MLX5_FPGA_SHELL_QP_PACKET_TYPE_DDR_WRITE :
+		MLX5_FPGA_SHELL_QP_PACKET_TYPE_DDR_READ);
 	MLX5_SET(fpga_shell_qp_packet, header, tid, trans_priv->tid);
 	MLX5_SET(fpga_shell_qp_packet, header, len, trans->size);
 	MLX5_SET64(fpga_shell_qp_packet, header, address, trans->addr);
@@ -240,7 +250,8 @@ out:
 	return err;
 }
 
-void mlx5_fpga_trans_recv(void *cb_arg, struct mlx5_fpga_dma_buf *buf)
+void
+mlx5_fpga_trans_recv(void *cb_arg, struct mlx5_fpga_dma_buf *buf)
 {
 	struct mlx5_fpga_device *fdev = cb_arg;
 	struct mlx5_fpga_trans_priv *trans_priv;
@@ -249,11 +260,11 @@ void mlx5_fpga_trans_recv(void *cb_arg, struct mlx5_fpga_dma_buf *buf)
 	u8 tid, type;
 
 	mlx5_fpga_dbg(fdev, "Rx QP message on core conn; %u bytes\n",
-		      buf->sg[0].size);
+	    buf->sg[0].size);
 
 	if (buf->sg[0].size < MLX5_ST_SZ_BYTES(fpga_shell_qp_packet)) {
 		mlx5_fpga_warn(fdev, "Short message %u bytes from device\n",
-			       buf->sg[0].size);
+		    buf->sg[0].size);
 		goto out;
 	}
 	payload_len = buf->sg[0].size - MLX5_ST_SZ_BYTES(fpga_shell_qp_packet);
@@ -267,32 +278,35 @@ void mlx5_fpga_trans_recv(void *cb_arg, struct mlx5_fpga_dma_buf *buf)
 	switch (type) {
 	case MLX5_FPGA_SHELL_QP_PACKET_TYPE_DDR_READ_RESPONSE:
 		if (trans_priv->user_trans->direction != MLX5_FPGA_READ) {
-			mlx5_fpga_warn(fdev, "Wrong answer type %u to a %u transaction\n",
-				       type, trans_priv->user_trans->direction);
+			mlx5_fpga_warn(fdev,
+			    "Wrong answer type %u to a %u transaction\n", type,
+			    trans_priv->user_trans->direction);
 			status = -EIO;
 			goto complete;
 		}
 		if (payload_len != trans_priv->user_trans->size) {
-			mlx5_fpga_warn(fdev, "Incorrect transaction payload length %zu expected %zu\n",
-				       payload_len,
-				       trans_priv->user_trans->size);
+			mlx5_fpga_warn(fdev,
+			    "Incorrect transaction payload length %zu expected %zu\n",
+			    payload_len, trans_priv->user_trans->size);
 			goto complete;
 		}
 		memcpy(trans_priv->user_trans->data,
-		       MLX5_ADDR_OF(fpga_shell_qp_packet, buf->sg[0].data,
-				    data), payload_len);
+		    MLX5_ADDR_OF(fpga_shell_qp_packet, buf->sg[0].data, data),
+		    payload_len);
 		break;
 	case MLX5_FPGA_SHELL_QP_PACKET_TYPE_DDR_WRITE_RESPONSE:
 		if (trans_priv->user_trans->direction != MLX5_FPGA_WRITE) {
-			mlx5_fpga_warn(fdev, "Wrong answer type %u to a %u transaction\n",
-				       type, trans_priv->user_trans->direction);
+			mlx5_fpga_warn(fdev,
+			    "Wrong answer type %u to a %u transaction\n", type,
+			    trans_priv->user_trans->direction);
 			status = -EIO;
 			goto complete;
 		}
 		break;
 	default:
-		mlx5_fpga_warn(fdev, "Unexpected message type %u len %u from device\n",
-			       type, buf->sg[0].size);
+		mlx5_fpga_warn(fdev,
+		    "Unexpected message type %u len %u from device\n", type,
+		    buf->sg[0].size);
 		status = -EIO;
 		goto complete;
 	}
@@ -303,7 +317,8 @@ out:
 	return;
 }
 
-int mlx5_fpga_trans_device_init(struct mlx5_fpga_device *fdev)
+int
+mlx5_fpga_trans_device_init(struct mlx5_fpga_device *fdev)
 {
 	int ret = 0;
 	int tid;
@@ -318,7 +333,7 @@ int mlx5_fpga_trans_device_init(struct mlx5_fpga_device *fdev)
 	for (tid = 0; tid < ARRAY_SIZE(fdev->trans->transactions); tid++) {
 		fdev->trans->transactions[tid].tid = tid;
 		list_add_tail(&fdev->trans->transactions[tid].list_item,
-			      &fdev->trans->free_queue);
+		    &fdev->trans->free_queue);
 	}
 
 	spin_lock_init(&fdev->trans->lock);
@@ -327,7 +342,8 @@ out:
 	return ret;
 }
 
-void mlx5_fpga_trans_device_cleanup(struct mlx5_fpga_device *fdev)
+void
+mlx5_fpga_trans_device_cleanup(struct mlx5_fpga_device *fdev)
 {
 	kfree(fdev->trans);
 }

@@ -33,54 +33,56 @@
 #include <sys/nv.h>
 
 #include <assert.h>
+#include <casper/cap_pwd.h>
 #include <err.h>
 #include <errno.h>
+#include <libcasper.h>
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <libcasper.h>
-
-#include <casper/cap_pwd.h>
-
 static int ntest = 1;
 
-#define CHECK(expr)     do {						\
-	if ((expr))							\
-		printf("ok %d # %s:%u\n", ntest, __FILE__, __LINE__);	\
-	else								\
-		printf("not ok %d # %s:%u\n", ntest, __FILE__, __LINE__); \
-	fflush(stdout);							\
-	ntest++;							\
-} while (0)
-#define CHECKX(expr)     do {						\
-	if ((expr)) {							\
-		printf("ok %d # %s:%u\n", ntest, __FILE__, __LINE__);	\
-	} else {							\
-		printf("not ok %d # %s:%u\n", ntest, __FILE__, __LINE__); \
-		exit(1);						\
-	}								\
-	fflush(stdout);							\
-	ntest++;							\
-} while (0)
+#define CHECK(expr)                                                           \
+	do {                                                                  \
+		if ((expr))                                                   \
+			printf("ok %d # %s:%u\n", ntest, __FILE__, __LINE__); \
+		else                                                          \
+			printf("not ok %d # %s:%u\n", ntest, __FILE__,        \
+			    __LINE__);                                        \
+		fflush(stdout);                                               \
+		ntest++;                                                      \
+	} while (0)
+#define CHECKX(expr)                                                          \
+	do {                                                                  \
+		if ((expr)) {                                                 \
+			printf("ok %d # %s:%u\n", ntest, __FILE__, __LINE__); \
+		} else {                                                      \
+			printf("not ok %d # %s:%u\n", ntest, __FILE__,        \
+			    __LINE__);                                        \
+			exit(1);                                              \
+		}                                                             \
+		fflush(stdout);                                               \
+		ntest++;                                                      \
+	} while (0)
 
-#define	UID_ROOT	0
-#define	UID_OPERATOR	2
+#define UID_ROOT 0
+#define UID_OPERATOR 2
 
-#define	GETPWENT0	0x0001
-#define	GETPWENT1	0x0002
-#define	GETPWENT2	0x0004
-#define	GETPWENT	(GETPWENT0 | GETPWENT1 | GETPWENT2)
-#define	GETPWENT_R0	0x0008
-#define	GETPWENT_R1	0x0010
-#define	GETPWENT_R2	0x0020
-#define	GETPWENT_R	(GETPWENT_R0 | GETPWENT_R1 | GETPWENT_R2)
-#define	GETPWNAM	0x0040
-#define	GETPWNAM_R	0x0080
-#define	GETPWUID	0x0100
-#define	GETPWUID_R	0x0200
+#define GETPWENT0 0x0001
+#define GETPWENT1 0x0002
+#define GETPWENT2 0x0004
+#define GETPWENT (GETPWENT0 | GETPWENT1 | GETPWENT2)
+#define GETPWENT_R0 0x0008
+#define GETPWENT_R1 0x0010
+#define GETPWENT_R2 0x0020
+#define GETPWENT_R (GETPWENT_R0 | GETPWENT_R1 | GETPWENT_R2)
+#define GETPWNAM 0x0040
+#define GETPWNAM_R 0x0080
+#define GETPWUID 0x0100
+#define GETPWUID_R 0x0200
 
 static bool
 passwd_compare(const struct passwd *pwd0, const struct passwd *pwd1)
@@ -287,8 +289,9 @@ test_cmds(cap_channel_t *origcappwd)
 	CHECK(cap_pwd_limit_fields(cappwd, fields, 10) == 0);
 	CHECK(cap_pwd_limit_users(cappwd, names, 6, NULL, 0) == 0);
 
-	CHECK(runtest_cmds(cappwd) == (GETPWENT | GETPWENT_R |
-	    GETPWNAM | GETPWNAM_R | GETPWUID | GETPWUID_R));
+	CHECK(runtest_cmds(cappwd) ==
+	    (GETPWENT | GETPWENT_R | GETPWNAM | GETPWNAM_R | GETPWUID |
+		GETPWUID_R));
 
 	cap_close(cappwd);
 
@@ -314,8 +317,9 @@ test_cmds(cap_channel_t *origcappwd)
 	CHECK(cap_pwd_limit_fields(cappwd, fields, 10) == 0);
 	CHECK(cap_pwd_limit_users(cappwd, NULL, 0, uids, 5) == 0);
 
-	CHECK(runtest_cmds(cappwd) == (GETPWENT | GETPWENT_R |
-	    GETPWNAM | GETPWNAM_R | GETPWUID | GETPWUID_R));
+	CHECK(runtest_cmds(cappwd) ==
+	    (GETPWENT | GETPWENT_R | GETPWNAM | GETPWNAM_R | GETPWUID |
+		GETPWUID_R));
 
 	cap_close(cappwd);
 
@@ -349,14 +353,17 @@ test_cmds(cap_channel_t *origcappwd)
 	cmds[4] = "getpwnam_r";
 	cmds[5] = "getpwuid";
 	cmds[6] = "getpwuid_r";
-	CHECK(cap_pwd_limit_cmds(cappwd, cmds, 7) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_pwd_limit_cmds(cappwd, cmds, 7) == -1 && errno == ENOTCAPABLE);
 	cmds[0] = "setpwent";
-	CHECK(cap_pwd_limit_cmds(cappwd, cmds, 1) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_pwd_limit_cmds(cappwd, cmds, 1) == -1 && errno == ENOTCAPABLE);
 	CHECK(cap_pwd_limit_fields(cappwd, fields, 10) == 0);
 	CHECK(cap_pwd_limit_users(cappwd, names, 6, NULL, 0) == 0);
 
-	CHECK(runtest_cmds(cappwd) == (GETPWENT0 | GETPWENT1 | GETPWENT_R0 |
-	    GETPWENT_R1 | GETPWNAM | GETPWNAM_R | GETPWUID | GETPWUID_R));
+	CHECK(runtest_cmds(cappwd) ==
+	    (GETPWENT0 | GETPWENT1 | GETPWENT_R0 | GETPWENT_R1 | GETPWNAM |
+		GETPWNAM_R | GETPWUID | GETPWUID_R));
 
 	cap_close(cappwd);
 
@@ -390,14 +397,17 @@ test_cmds(cap_channel_t *origcappwd)
 	cmds[4] = "getpwnam_r";
 	cmds[5] = "getpwuid";
 	cmds[6] = "getpwuid_r";
-	CHECK(cap_pwd_limit_cmds(cappwd, cmds, 7) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_pwd_limit_cmds(cappwd, cmds, 7) == -1 && errno == ENOTCAPABLE);
 	cmds[0] = "setpwent";
-	CHECK(cap_pwd_limit_cmds(cappwd, cmds, 1) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_pwd_limit_cmds(cappwd, cmds, 1) == -1 && errno == ENOTCAPABLE);
 	CHECK(cap_pwd_limit_fields(cappwd, fields, 10) == 0);
 	CHECK(cap_pwd_limit_users(cappwd, NULL, 0, uids, 5) == 0);
 
-	CHECK(runtest_cmds(cappwd) == (GETPWENT0 | GETPWENT1 | GETPWENT_R0 |
-	    GETPWENT_R1 | GETPWNAM | GETPWNAM_R | GETPWUID | GETPWUID_R));
+	CHECK(runtest_cmds(cappwd) ==
+	    (GETPWENT0 | GETPWENT1 | GETPWENT_R0 | GETPWENT_R1 | GETPWNAM |
+		GETPWNAM_R | GETPWUID | GETPWUID_R));
 
 	cap_close(cappwd);
 
@@ -429,14 +439,16 @@ test_cmds(cap_channel_t *origcappwd)
 	cmds[4] = "getpwnam_r";
 	cmds[5] = "getpwuid";
 	cmds[6] = "getpwuid_r";
-	CHECK(cap_pwd_limit_cmds(cappwd, cmds, 7) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_pwd_limit_cmds(cappwd, cmds, 7) == -1 && errno == ENOTCAPABLE);
 	cmds[0] = "getpwent";
-	CHECK(cap_pwd_limit_cmds(cappwd, cmds, 1) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_pwd_limit_cmds(cappwd, cmds, 1) == -1 && errno == ENOTCAPABLE);
 	CHECK(cap_pwd_limit_fields(cappwd, fields, 10) == 0);
 	CHECK(cap_pwd_limit_users(cappwd, names, 6, NULL, 0) == 0);
 
-	CHECK(runtest_cmds(cappwd) == (GETPWENT_R2 |
-	    GETPWNAM | GETPWNAM_R | GETPWUID | GETPWUID_R));
+	CHECK(runtest_cmds(cappwd) ==
+	    (GETPWENT_R2 | GETPWNAM | GETPWNAM_R | GETPWUID | GETPWUID_R));
 
 	cap_close(cappwd);
 
@@ -468,14 +480,16 @@ test_cmds(cap_channel_t *origcappwd)
 	cmds[4] = "getpwnam_r";
 	cmds[5] = "getpwuid";
 	cmds[6] = "getpwuid_r";
-	CHECK(cap_pwd_limit_cmds(cappwd, cmds, 7) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_pwd_limit_cmds(cappwd, cmds, 7) == -1 && errno == ENOTCAPABLE);
 	cmds[0] = "getpwent";
-	CHECK(cap_pwd_limit_cmds(cappwd, cmds, 1) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_pwd_limit_cmds(cappwd, cmds, 1) == -1 && errno == ENOTCAPABLE);
 	CHECK(cap_pwd_limit_fields(cappwd, fields, 10) == 0);
 	CHECK(cap_pwd_limit_users(cappwd, NULL, 0, uids, 5) == 0);
 
-	CHECK(runtest_cmds(cappwd) == (GETPWENT_R2 |
-	    GETPWNAM | GETPWNAM_R | GETPWUID | GETPWUID_R));
+	CHECK(runtest_cmds(cappwd) ==
+	    (GETPWENT_R2 | GETPWNAM | GETPWNAM_R | GETPWUID | GETPWUID_R));
 
 	cap_close(cappwd);
 
@@ -507,14 +521,17 @@ test_cmds(cap_channel_t *origcappwd)
 	cmds[4] = "getpwnam_r";
 	cmds[5] = "getpwuid";
 	cmds[6] = "getpwuid_r";
-	CHECK(cap_pwd_limit_cmds(cappwd, cmds, 7) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_pwd_limit_cmds(cappwd, cmds, 7) == -1 && errno == ENOTCAPABLE);
 	cmds[0] = "getpwent_r";
-	CHECK(cap_pwd_limit_cmds(cappwd, cmds, 1) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_pwd_limit_cmds(cappwd, cmds, 1) == -1 && errno == ENOTCAPABLE);
 	CHECK(cap_pwd_limit_fields(cappwd, fields, 10) == 0);
 	CHECK(cap_pwd_limit_users(cappwd, names, 6, NULL, 0) == 0);
 
-	CHECK(runtest_cmds(cappwd) == (GETPWENT0 | GETPWENT1 |
-	    GETPWNAM | GETPWNAM_R | GETPWUID | GETPWUID_R));
+	CHECK(runtest_cmds(cappwd) ==
+	    (GETPWENT0 | GETPWENT1 | GETPWNAM | GETPWNAM_R | GETPWUID |
+		GETPWUID_R));
 
 	cap_close(cappwd);
 
@@ -546,14 +563,17 @@ test_cmds(cap_channel_t *origcappwd)
 	cmds[4] = "getpwnam_r";
 	cmds[5] = "getpwuid";
 	cmds[6] = "getpwuid_r";
-	CHECK(cap_pwd_limit_cmds(cappwd, cmds, 7) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_pwd_limit_cmds(cappwd, cmds, 7) == -1 && errno == ENOTCAPABLE);
 	cmds[0] = "getpwent_r";
-	CHECK(cap_pwd_limit_cmds(cappwd, cmds, 1) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_pwd_limit_cmds(cappwd, cmds, 1) == -1 && errno == ENOTCAPABLE);
 	CHECK(cap_pwd_limit_fields(cappwd, fields, 10) == 0);
 	CHECK(cap_pwd_limit_users(cappwd, NULL, 0, uids, 5) == 0);
 
-	CHECK(runtest_cmds(cappwd) == (GETPWENT0 | GETPWENT1 |
-	    GETPWNAM | GETPWNAM_R | GETPWUID | GETPWUID_R));
+	CHECK(runtest_cmds(cappwd) ==
+	    (GETPWENT0 | GETPWENT1 | GETPWNAM | GETPWNAM_R | GETPWUID |
+		GETPWUID_R));
 
 	cap_close(cappwd);
 
@@ -585,14 +605,16 @@ test_cmds(cap_channel_t *origcappwd)
 	cmds[4] = "getpwnam_r";
 	cmds[5] = "getpwuid";
 	cmds[6] = "getpwuid_r";
-	CHECK(cap_pwd_limit_cmds(cappwd, cmds, 7) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_pwd_limit_cmds(cappwd, cmds, 7) == -1 && errno == ENOTCAPABLE);
 	cmds[0] = "getpwnam";
-	CHECK(cap_pwd_limit_cmds(cappwd, cmds, 1) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_pwd_limit_cmds(cappwd, cmds, 1) == -1 && errno == ENOTCAPABLE);
 	CHECK(cap_pwd_limit_fields(cappwd, fields, 10) == 0);
 	CHECK(cap_pwd_limit_users(cappwd, names, 6, NULL, 0) == 0);
 
-	CHECK(runtest_cmds(cappwd) == (GETPWENT | GETPWENT_R |
-	    GETPWNAM_R | GETPWUID | GETPWUID_R));
+	CHECK(runtest_cmds(cappwd) ==
+	    (GETPWENT | GETPWENT_R | GETPWNAM_R | GETPWUID | GETPWUID_R));
 
 	cap_close(cappwd);
 
@@ -624,14 +646,16 @@ test_cmds(cap_channel_t *origcappwd)
 	cmds[4] = "getpwnam_r";
 	cmds[5] = "getpwuid";
 	cmds[6] = "getpwuid_r";
-	CHECK(cap_pwd_limit_cmds(cappwd, cmds, 7) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_pwd_limit_cmds(cappwd, cmds, 7) == -1 && errno == ENOTCAPABLE);
 	cmds[0] = "getpwnam";
-	CHECK(cap_pwd_limit_cmds(cappwd, cmds, 1) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_pwd_limit_cmds(cappwd, cmds, 1) == -1 && errno == ENOTCAPABLE);
 	CHECK(cap_pwd_limit_fields(cappwd, fields, 10) == 0);
 	CHECK(cap_pwd_limit_users(cappwd, NULL, 0, uids, 5) == 0);
 
-	CHECK(runtest_cmds(cappwd) == (GETPWENT | GETPWENT_R |
-	    GETPWNAM_R | GETPWUID | GETPWUID_R));
+	CHECK(runtest_cmds(cappwd) ==
+	    (GETPWENT | GETPWENT_R | GETPWNAM_R | GETPWUID | GETPWUID_R));
 
 	cap_close(cappwd);
 
@@ -663,14 +687,16 @@ test_cmds(cap_channel_t *origcappwd)
 	cmds[4] = "getpwnam_r";
 	cmds[5] = "getpwuid";
 	cmds[6] = "getpwuid_r";
-	CHECK(cap_pwd_limit_cmds(cappwd, cmds, 7) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_pwd_limit_cmds(cappwd, cmds, 7) == -1 && errno == ENOTCAPABLE);
 	cmds[0] = "getpwnam_r";
-	CHECK(cap_pwd_limit_cmds(cappwd, cmds, 1) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_pwd_limit_cmds(cappwd, cmds, 1) == -1 && errno == ENOTCAPABLE);
 	CHECK(cap_pwd_limit_fields(cappwd, fields, 10) == 0);
 	CHECK(cap_pwd_limit_users(cappwd, names, 6, NULL, 0) == 0);
 
-	CHECK(runtest_cmds(cappwd) == (GETPWENT | GETPWENT_R |
-	    GETPWNAM | GETPWUID | GETPWUID_R));
+	CHECK(runtest_cmds(cappwd) ==
+	    (GETPWENT | GETPWENT_R | GETPWNAM | GETPWUID | GETPWUID_R));
 
 	cap_close(cappwd);
 
@@ -702,14 +728,16 @@ test_cmds(cap_channel_t *origcappwd)
 	cmds[4] = "getpwnam_r";
 	cmds[5] = "getpwuid";
 	cmds[6] = "getpwuid_r";
-	CHECK(cap_pwd_limit_cmds(cappwd, cmds, 7) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_pwd_limit_cmds(cappwd, cmds, 7) == -1 && errno == ENOTCAPABLE);
 	cmds[0] = "getpwnam_r";
-	CHECK(cap_pwd_limit_cmds(cappwd, cmds, 1) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_pwd_limit_cmds(cappwd, cmds, 1) == -1 && errno == ENOTCAPABLE);
 	CHECK(cap_pwd_limit_fields(cappwd, fields, 10) == 0);
 	CHECK(cap_pwd_limit_users(cappwd, NULL, 0, uids, 5) == 0);
 
-	CHECK(runtest_cmds(cappwd) == (GETPWENT | GETPWENT_R |
-	    GETPWNAM | GETPWUID | GETPWUID_R));
+	CHECK(runtest_cmds(cappwd) ==
+	    (GETPWENT | GETPWENT_R | GETPWNAM | GETPWUID | GETPWUID_R));
 
 	cap_close(cappwd);
 
@@ -741,14 +769,16 @@ test_cmds(cap_channel_t *origcappwd)
 	cmds[4] = "getpwnam_r";
 	cmds[5] = "getpwuid";
 	cmds[6] = "getpwuid_r";
-	CHECK(cap_pwd_limit_cmds(cappwd, cmds, 7) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_pwd_limit_cmds(cappwd, cmds, 7) == -1 && errno == ENOTCAPABLE);
 	cmds[0] = "getpwuid";
-	CHECK(cap_pwd_limit_cmds(cappwd, cmds, 1) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_pwd_limit_cmds(cappwd, cmds, 1) == -1 && errno == ENOTCAPABLE);
 	CHECK(cap_pwd_limit_fields(cappwd, fields, 10) == 0);
 	CHECK(cap_pwd_limit_users(cappwd, names, 6, NULL, 0) == 0);
 
-	CHECK(runtest_cmds(cappwd) == (GETPWENT | GETPWENT_R |
-	    GETPWNAM | GETPWNAM_R | GETPWUID_R));
+	CHECK(runtest_cmds(cappwd) ==
+	    (GETPWENT | GETPWENT_R | GETPWNAM | GETPWNAM_R | GETPWUID_R));
 
 	cap_close(cappwd);
 
@@ -780,14 +810,16 @@ test_cmds(cap_channel_t *origcappwd)
 	cmds[4] = "getpwnam_r";
 	cmds[5] = "getpwuid";
 	cmds[6] = "getpwuid_r";
-	CHECK(cap_pwd_limit_cmds(cappwd, cmds, 7) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_pwd_limit_cmds(cappwd, cmds, 7) == -1 && errno == ENOTCAPABLE);
 	cmds[0] = "getpwuid";
-	CHECK(cap_pwd_limit_cmds(cappwd, cmds, 1) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_pwd_limit_cmds(cappwd, cmds, 1) == -1 && errno == ENOTCAPABLE);
 	CHECK(cap_pwd_limit_fields(cappwd, fields, 10) == 0);
 	CHECK(cap_pwd_limit_users(cappwd, NULL, 0, uids, 5) == 0);
 
-	CHECK(runtest_cmds(cappwd) == (GETPWENT | GETPWENT_R |
-	    GETPWNAM | GETPWNAM_R | GETPWUID_R));
+	CHECK(runtest_cmds(cappwd) ==
+	    (GETPWENT | GETPWENT_R | GETPWNAM | GETPWNAM_R | GETPWUID_R));
 
 	cap_close(cappwd);
 
@@ -819,14 +851,16 @@ test_cmds(cap_channel_t *origcappwd)
 	cmds[4] = "getpwnam_r";
 	cmds[5] = "getpwuid";
 	cmds[6] = "getpwuid_r";
-	CHECK(cap_pwd_limit_cmds(cappwd, cmds, 7) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_pwd_limit_cmds(cappwd, cmds, 7) == -1 && errno == ENOTCAPABLE);
 	cmds[0] = "getpwuid_r";
-	CHECK(cap_pwd_limit_cmds(cappwd, cmds, 1) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_pwd_limit_cmds(cappwd, cmds, 1) == -1 && errno == ENOTCAPABLE);
 	CHECK(cap_pwd_limit_fields(cappwd, fields, 10) == 0);
 	CHECK(cap_pwd_limit_users(cappwd, names, 6, NULL, 0) == 0);
 
-	CHECK(runtest_cmds(cappwd) == (GETPWENT | GETPWENT_R |
-	    GETPWNAM | GETPWNAM_R | GETPWUID));
+	CHECK(runtest_cmds(cappwd) ==
+	    (GETPWENT | GETPWENT_R | GETPWNAM | GETPWNAM_R | GETPWUID));
 
 	cap_close(cappwd);
 
@@ -858,28 +892,30 @@ test_cmds(cap_channel_t *origcappwd)
 	cmds[4] = "getpwnam_r";
 	cmds[5] = "getpwuid";
 	cmds[6] = "getpwuid_r";
-	CHECK(cap_pwd_limit_cmds(cappwd, cmds, 7) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_pwd_limit_cmds(cappwd, cmds, 7) == -1 && errno == ENOTCAPABLE);
 	cmds[0] = "getpwuid_r";
-	CHECK(cap_pwd_limit_cmds(cappwd, cmds, 1) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_pwd_limit_cmds(cappwd, cmds, 1) == -1 && errno == ENOTCAPABLE);
 	CHECK(cap_pwd_limit_fields(cappwd, fields, 10) == 0);
 	CHECK(cap_pwd_limit_users(cappwd, NULL, 0, uids, 5) == 0);
 
-	CHECK(runtest_cmds(cappwd) == (GETPWENT | GETPWENT_R |
-	    GETPWNAM | GETPWNAM_R | GETPWUID));
+	CHECK(runtest_cmds(cappwd) ==
+	    (GETPWENT | GETPWENT_R | GETPWNAM | GETPWNAM_R | GETPWUID));
 
 	cap_close(cappwd);
 }
 
-#define	PW_NAME		_PWF_NAME
-#define	PW_PASSWD	_PWF_PASSWD
-#define	PW_UID		_PWF_UID
-#define	PW_GID		_PWF_GID
-#define	PW_CHANGE	_PWF_CHANGE
-#define	PW_CLASS	_PWF_CLASS
-#define	PW_GECOS	_PWF_GECOS
-#define	PW_DIR		_PWF_DIR
-#define	PW_SHELL	_PWF_SHELL
-#define	PW_EXPIRE	_PWF_EXPIRE
+#define PW_NAME _PWF_NAME
+#define PW_PASSWD _PWF_PASSWD
+#define PW_UID _PWF_UID
+#define PW_GID _PWF_GID
+#define PW_CHANGE _PWF_CHANGE
+#define PW_CLASS _PWF_CLASS
+#define PW_GECOS _PWF_GECOS
+#define PW_DIR _PWF_DIR
+#define PW_SHELL _PWF_SHELL
+#define PW_EXPIRE _PWF_EXPIRE
 
 static unsigned int
 passwd_fields(const struct passwd *pwd)
@@ -890,80 +926,94 @@ passwd_fields(const struct passwd *pwd)
 
 	if (pwd->pw_name != NULL && pwd->pw_name[0] != '\0')
 		result |= PW_NAME;
-//	else
-//		printf("No pw_name\n");
+	//	else
+	//		printf("No pw_name\n");
 
 	if (pwd->pw_passwd != NULL && pwd->pw_passwd[0] != '\0')
 		result |= PW_PASSWD;
 	else if ((pwd->pw_fields & _PWF_PASSWD) != 0)
 		result |= PW_PASSWD;
-//	else
-//		printf("No pw_passwd\n");
+	//	else
+	//		printf("No pw_passwd\n");
 
 	if (pwd->pw_uid != (uid_t)-1)
 		result |= PW_UID;
-//	else
-//		printf("No pw_uid\n");
+	//	else
+	//		printf("No pw_uid\n");
 
 	if (pwd->pw_gid != (gid_t)-1)
 		result |= PW_GID;
-//	else
-//		printf("No pw_gid\n");
+	//	else
+	//		printf("No pw_gid\n");
 
 	if (pwd->pw_change != 0 || (pwd->pw_fields & _PWF_CHANGE) != 0)
 		result |= PW_CHANGE;
-//	else
-//		printf("No pw_change\n");
+	//	else
+	//		printf("No pw_change\n");
 
 	if (pwd->pw_class != NULL && pwd->pw_class[0] != '\0')
 		result |= PW_CLASS;
 	else if ((pwd->pw_fields & _PWF_CLASS) != 0)
 		result |= PW_CLASS;
-//	else
-//		printf("No pw_class\n");
+	//	else
+	//		printf("No pw_class\n");
 
 	if (pwd->pw_gecos != NULL && pwd->pw_gecos[0] != '\0')
 		result |= PW_GECOS;
 	else if ((pwd->pw_fields & _PWF_GECOS) != 0)
 		result |= PW_GECOS;
-//	else
-//		printf("No pw_gecos\n");
+	//	else
+	//		printf("No pw_gecos\n");
 
 	if (pwd->pw_dir != NULL && pwd->pw_dir[0] != '\0')
 		result |= PW_DIR;
 	else if ((pwd->pw_fields & _PWF_DIR) != 0)
 		result |= PW_DIR;
-//	else
-//		printf("No pw_dir\n");
+	//	else
+	//		printf("No pw_dir\n");
 
 	if (pwd->pw_shell != NULL && pwd->pw_shell[0] != '\0')
 		result |= PW_SHELL;
 	else if ((pwd->pw_fields & _PWF_SHELL) != 0)
 		result |= PW_SHELL;
-//	else
-//		printf("No pw_shell\n");
+	//	else
+	//		printf("No pw_shell\n");
 
 	if (pwd->pw_expire != 0 || (pwd->pw_fields & _PWF_EXPIRE) != 0)
 		result |= PW_EXPIRE;
-//	else
-//		printf("No pw_expire\n");
+	//	else
+	//		printf("No pw_expire\n");
 
-if (false && pwd->pw_fields != (int)result) {
-printf("fields=0x%x != result=0x%x\n", (const unsigned int)pwd->pw_fields, result);
-printf("           fields result\n");
-printf("PW_NAME    %d      %d\n", (pwd->pw_fields & PW_NAME) != 0, (result & PW_NAME) != 0);
-printf("PW_PASSWD  %d      %d\n", (pwd->pw_fields & PW_PASSWD) != 0, (result & PW_PASSWD) != 0);
-printf("PW_UID     %d      %d\n", (pwd->pw_fields & PW_UID) != 0, (result & PW_UID) != 0);
-printf("PW_GID     %d      %d\n", (pwd->pw_fields & PW_GID) != 0, (result & PW_GID) != 0);
-printf("PW_CHANGE  %d      %d\n", (pwd->pw_fields & PW_CHANGE) != 0, (result & PW_CHANGE) != 0);
-printf("PW_CLASS   %d      %d\n", (pwd->pw_fields & PW_CLASS) != 0, (result & PW_CLASS) != 0);
-printf("PW_GECOS   %d      %d\n", (pwd->pw_fields & PW_GECOS) != 0, (result & PW_GECOS) != 0);
-printf("PW_DIR     %d      %d\n", (pwd->pw_fields & PW_DIR) != 0, (result & PW_DIR) != 0);
-printf("PW_SHELL   %d      %d\n", (pwd->pw_fields & PW_SHELL) != 0, (result & PW_SHELL) != 0);
-printf("PW_EXPIRE  %d      %d\n", (pwd->pw_fields & PW_EXPIRE) != 0, (result & PW_EXPIRE) != 0);
-}
+	if (false && pwd->pw_fields != (int)result) {
+		printf("fields=0x%x != result=0x%x\n",
+		    (const unsigned int)pwd->pw_fields, result);
+		printf("           fields result\n");
+		printf("PW_NAME    %d      %d\n",
+		    (pwd->pw_fields & PW_NAME) != 0, (result & PW_NAME) != 0);
+		printf("PW_PASSWD  %d      %d\n",
+		    (pwd->pw_fields & PW_PASSWD) != 0,
+		    (result & PW_PASSWD) != 0);
+		printf("PW_UID     %d      %d\n",
+		    (pwd->pw_fields & PW_UID) != 0, (result & PW_UID) != 0);
+		printf("PW_GID     %d      %d\n",
+		    (pwd->pw_fields & PW_GID) != 0, (result & PW_GID) != 0);
+		printf("PW_CHANGE  %d      %d\n",
+		    (pwd->pw_fields & PW_CHANGE) != 0,
+		    (result & PW_CHANGE) != 0);
+		printf("PW_CLASS   %d      %d\n",
+		    (pwd->pw_fields & PW_CLASS) != 0, (result & PW_CLASS) != 0);
+		printf("PW_GECOS   %d      %d\n",
+		    (pwd->pw_fields & PW_GECOS) != 0, (result & PW_GECOS) != 0);
+		printf("PW_DIR     %d      %d\n",
+		    (pwd->pw_fields & PW_DIR) != 0, (result & PW_DIR) != 0);
+		printf("PW_SHELL   %d      %d\n",
+		    (pwd->pw_fields & PW_SHELL) != 0, (result & PW_SHELL) != 0);
+		printf("PW_EXPIRE  %d      %d\n",
+		    (pwd->pw_fields & PW_EXPIRE) != 0,
+		    (result & PW_EXPIRE) != 0);
+	}
 
-//printf("result=0x%x\n", result);
+	// printf("result=0x%x\n", result);
 	return (result);
 }
 
@@ -974,7 +1024,7 @@ runtest_fields(cap_channel_t *cappwd, unsigned int expected)
 	struct passwd *pwd;
 	struct passwd st;
 
-//printf("expected=0x%x\n", expected);
+	// printf("expected=0x%x\n", expected);
 	cap_setpwent(cappwd);
 	pwd = cap_getpwent(cappwd);
 	if ((passwd_fields(pwd) & ~expected) != 0)
@@ -1012,9 +1062,9 @@ test_fields(cap_channel_t *origcappwd)
 
 	/* No limits. */
 
-	CHECK(runtest_fields(origcappwd, PW_NAME | PW_PASSWD | PW_UID |
-	    PW_GID | PW_CHANGE | PW_CLASS | PW_GECOS | PW_DIR | PW_SHELL |
-	    PW_EXPIRE));
+	CHECK(runtest_fields(origcappwd,
+	    PW_NAME | PW_PASSWD | PW_UID | PW_GID | PW_CHANGE | PW_CLASS |
+		PW_GECOS | PW_DIR | PW_SHELL | PW_EXPIRE));
 
 	/*
 	 * Allow:
@@ -1036,9 +1086,9 @@ test_fields(cap_channel_t *origcappwd)
 	fields[9] = "pw_expire";
 	CHECK(cap_pwd_limit_fields(cappwd, fields, 10) == 0);
 
-	CHECK(runtest_fields(origcappwd, PW_NAME | PW_PASSWD | PW_UID |
-	    PW_GID | PW_CHANGE | PW_CLASS | PW_GECOS | PW_DIR | PW_SHELL |
-	    PW_EXPIRE));
+	CHECK(runtest_fields(origcappwd,
+	    PW_NAME | PW_PASSWD | PW_UID | PW_GID | PW_CHANGE | PW_CLASS |
+		PW_GECOS | PW_DIR | PW_SHELL | PW_EXPIRE));
 
 	cap_close(cappwd);
 
@@ -1062,8 +1112,8 @@ test_fields(cap_channel_t *origcappwd)
 	CHECK(cap_pwd_limit_fields(cappwd, fields, 1) == -1 &&
 	    errno == ENOTCAPABLE);
 
-	CHECK(runtest_fields(cappwd, PW_NAME | PW_PASSWD | PW_UID |
-	    PW_GID | PW_CHANGE));
+	CHECK(runtest_fields(cappwd,
+	    PW_NAME | PW_PASSWD | PW_UID | PW_GID | PW_CHANGE));
 
 	cap_close(cappwd);
 
@@ -1087,8 +1137,8 @@ test_fields(cap_channel_t *origcappwd)
 	CHECK(cap_pwd_limit_fields(cappwd, fields, 1) == -1 &&
 	    errno == ENOTCAPABLE);
 
-	CHECK(runtest_fields(cappwd, PW_CLASS | PW_GECOS | PW_DIR |
-	    PW_SHELL | PW_EXPIRE));
+	CHECK(runtest_fields(cappwd,
+	    PW_CLASS | PW_GECOS | PW_DIR | PW_SHELL | PW_EXPIRE));
 
 	cap_close(cappwd);
 
@@ -1112,8 +1162,8 @@ test_fields(cap_channel_t *origcappwd)
 	CHECK(cap_pwd_limit_fields(cappwd, fields, 1) == -1 &&
 	    errno == ENOTCAPABLE);
 
-	CHECK(runtest_fields(cappwd, PW_NAME | PW_UID | PW_CHANGE |
-	    PW_GECOS | PW_SHELL));
+	CHECK(runtest_fields(cappwd,
+	    PW_NAME | PW_UID | PW_CHANGE | PW_GECOS | PW_SHELL));
 
 	cap_close(cappwd);
 
@@ -1137,8 +1187,8 @@ test_fields(cap_channel_t *origcappwd)
 	CHECK(cap_pwd_limit_fields(cappwd, fields, 1) == -1 &&
 	    errno == ENOTCAPABLE);
 
-	CHECK(runtest_fields(cappwd, PW_PASSWD | PW_GID | PW_CLASS |
-	    PW_DIR | PW_EXPIRE));
+	CHECK(runtest_fields(cappwd,
+	    PW_PASSWD | PW_GID | PW_CLASS | PW_DIR | PW_EXPIRE));
 
 	cap_close(cappwd);
 
@@ -1524,8 +1574,9 @@ main(void)
 
 	/* No limits. */
 
-	CHECK(runtest_cmds(cappwd) == (GETPWENT | GETPWENT_R | GETPWNAM |
-	    GETPWNAM_R | GETPWUID | GETPWUID_R));
+	CHECK(runtest_cmds(cappwd) ==
+	    (GETPWENT | GETPWENT_R | GETPWNAM | GETPWNAM_R | GETPWUID |
+		GETPWUID_R));
 
 	test_cmds(cappwd);
 

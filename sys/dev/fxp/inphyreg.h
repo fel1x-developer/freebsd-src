@@ -30,11 +30,11 @@
  */
 
 #ifndef _INPHYREG_H
-#define	_INPHYREG_H
+#define _INPHYREG_H
 
-#define	MII_INPHY_SCR		0x10	/* status and control register */
-#define	SCR_FLOWCTL		0x8000
-#define	SCR_S100		0x0002	/* autonegotiated speed */
-#define	SCR_FDX			0x0001	/* autonegotiated duplex */
+#define MII_INPHY_SCR 0x10 /* status and control register */
+#define SCR_FLOWCTL 0x8000
+#define SCR_S100 0x0002 /* autonegotiated speed */
+#define SCR_FDX 0x0001	/* autonegotiated duplex */
 
 #endif

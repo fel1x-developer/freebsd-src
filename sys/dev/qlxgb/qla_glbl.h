@@ -54,7 +54,7 @@ extern int qla_alloc_dmabuf(qla_host_t *ha, qla_dma_t *dma_buf);
 extern void qla_free_dmabuf(qla_host_t *ha, qla_dma_t *dma_buf);
 extern void qla_start(if_t ifp);
 extern int qla_get_mbuf(qla_host_t *ha, qla_rx_buf_t *rxb, struct mbuf *nmp,
-	        uint32_t jumbo);
+    uint32_t jumbo);
 
 /*
  * from qla_hw.c
@@ -64,11 +64,11 @@ extern int qla_alloc_dma(qla_host_t *ha);
 extern void qla_free_dma(qla_host_t *ha);
 extern void qla_hw_add_sysctls(qla_host_t *ha);
 extern int qla_hw_send(qla_host_t *ha, bus_dma_segment_t *segs, int nsegs,
-		uint32_t *tx_idx, struct mbuf *mp);
+    uint32_t *tx_idx, struct mbuf *mp);
 extern int qla_init_hw_if(qla_host_t *ha);
 extern void qla_get_hw_caps(qla_host_t *ha);
 extern void qla_hw_set_multi(qla_host_t *ha, uint8_t *mta, uint32_t mcnt,
-	uint32_t add_multi);
+    uint32_t add_multi);
 extern void qla_del_hw_if(qla_host_t *ha);
 extern void qla_set_promisc(qla_host_t *ha);
 extern void qla_set_allmulti(qla_host_t *ha);
@@ -87,16 +87,16 @@ extern void qla_hw_stop_rcv(qla_host_t *ha);
  */
 extern int qla_init_hw(qla_host_t *ha);
 extern int qla_rdwr_indreg32(qla_host_t *ha, uint32_t addr, uint32_t *val,
-		uint32_t rd);
+    uint32_t rd);
 extern int qla_rd_flash32(qla_host_t *ha, uint32_t addr, uint32_t *data);
-extern int qla_flash_rd32_words(qla_host_t *ha, uint32_t addr,
-		uint32_t *val, uint32_t num);
+extern int qla_flash_rd32_words(qla_host_t *ha, uint32_t addr, uint32_t *val,
+    uint32_t num);
 extern int qla_flash_rd32(qla_host_t *ha, uint32_t addr, uint32_t *val);
 extern int qla_fw_update(qla_host_t *ha, void *fdata, uint32_t off,
-		uint32_t size);
+    uint32_t size);
 extern int qla_erase_flash(qla_host_t *ha, uint32_t off, uint32_t size);
 extern int qla_wr_flash_buffer(qla_host_t *ha, uint32_t off, uint32_t size,
-		void *buf, uint32_t pattern);
+    void *buf, uint32_t pattern);
 
 /*
  * from qla_ioctl.c
@@ -104,6 +104,6 @@ extern int qla_wr_flash_buffer(qla_host_t *ha, uint32_t off, uint32_t size,
 extern int qla_make_cdev(qla_host_t *ha);
 extern void qla_del_cdev(qla_host_t *ha);
 extern int qla_eioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
-		struct thread *td);
+    struct thread *td);
 
 #endif /* #ifndef_QLA_GLBL_H_ */

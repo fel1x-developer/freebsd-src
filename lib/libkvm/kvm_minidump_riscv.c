@@ -32,21 +32,21 @@
  */
 
 #include <sys/param.h>
+
+#include <vm/vm.h>
+
+#include <kvm.h>
+#include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <vm/vm.h>
-#include <kvm.h>
 
 #include "../../sys/riscv/include/minidump.h"
-
-#include <limits.h>
-
 #include "kvm_private.h"
 #include "kvm_riscv.h"
 
-#define	riscv_round_page(x)	roundup2((kvaddr_t)(x), RISCV_PAGE_SIZE)
+#define riscv_round_page(x) roundup2((kvaddr_t)(x), RISCV_PAGE_SIZE)
 
 struct vmstate {
 	struct minidumphdr hdr;
@@ -94,16 +94,18 @@ _riscv_minidump_initvtop(kvm_t *kd)
 		_kvm_err(kd, kd->program, "cannot read dump header");
 		return (-1);
 	}
-	if (strncmp(MINIDUMP_MAGIC, vmst->hdr.magic,
-	    sizeof(vmst->hdr.magic)) != 0) {
+	if (strncmp(MINIDUMP_MAGIC, vmst->hdr.magic, sizeof(vmst->hdr.magic)) !=
+	    0) {
 		_kvm_err(kd, kd->program, "not a minidump for this platform");
 		return (-1);
 	}
 
 	vmst->hdr.version = le32toh(vmst->hdr.version);
 	if (vmst->hdr.version != MINIDUMP_VERSION && vmst->hdr.version != 1) {
-		_kvm_err(kd, kd->program, "wrong minidump version. "
-		    "Expected %d got %d", MINIDUMP_VERSION, vmst->hdr.version);
+		_kvm_err(kd, kd->program,
+		    "wrong minidump version. "
+		    "Expected %d got %d",
+		    MINIDUMP_VERSION, vmst->hdr.version);
 		return (-1);
 	}
 	vmst->hdr.msgbufsize = le32toh(vmst->hdr.msgbufsize);
@@ -114,10 +116,12 @@ _riscv_minidump_initvtop(kvm_t *kd)
 	vmst->hdr.dmapbase = le64toh(vmst->hdr.dmapbase);
 	vmst->hdr.dmapend = le64toh(vmst->hdr.dmapend);
 	vmst->hdr.dumpavailsize = vmst->hdr.version == MINIDUMP_VERSION ?
-	    le32toh(vmst->hdr.dumpavailsize) : 0;
+	    le32toh(vmst->hdr.dumpavailsize) :
+	    0;
 
 	/* Skip header and msgbuf */
-	dump_avail_off = RISCV_PAGE_SIZE + riscv_round_page(vmst->hdr.msgbufsize);
+	dump_avail_off = RISCV_PAGE_SIZE +
+	    riscv_round_page(vmst->hdr.msgbufsize);
 
 	/* Skip dump_avail */
 	off = dump_avail_off + riscv_round_page(vmst->hdr.dumpavailsize);
@@ -126,7 +130,7 @@ _riscv_minidump_initvtop(kvm_t *kd)
 	sparse_off = off + riscv_round_page(vmst->hdr.bitmapsize) +
 	    riscv_round_page(vmst->hdr.pmapsize);
 	if (_kvm_pt_init(kd, vmst->hdr.dumpavailsize, dump_avail_off,
-	    vmst->hdr.bitmapsize, off, sparse_off, RISCV_PAGE_SIZE) == -1) {
+		vmst->hdr.bitmapsize, off, sparse_off, RISCV_PAGE_SIZE) == -1) {
 		return (-1);
 	}
 	off += riscv_round_page(vmst->hdr.bitmapsize);
@@ -157,7 +161,8 @@ _riscv_minidump_vatop(kvm_t *kd, kvaddr_t va, off_t *pa)
 		    ~RISCV_PAGE_MASK;
 		ofs = _kvm_pt_find(kd, a, RISCV_PAGE_SIZE);
 		if (ofs == -1) {
-			_kvm_err(kd, kd->program, "_riscv_minidump_vatop: "
+			_kvm_err(kd, kd->program,
+			    "_riscv_minidump_vatop: "
 			    "direct map address 0x%jx not in minidump",
 			    (uintmax_t)va);
 			goto invalid;
@@ -177,7 +182,8 @@ _riscv_minidump_vatop(kvm_t *kd, kvaddr_t va, off_t *pa)
 		a = (l3 >> RISCV_PTE_PPN0_S) << RISCV_L3_SHIFT;
 		ofs = _kvm_pt_find(kd, a, RISCV_PAGE_SIZE);
 		if (ofs == -1) {
-			_kvm_err(kd, kd->program, "_riscv_minidump_vatop: "
+			_kvm_err(kd, kd->program,
+			    "_riscv_minidump_vatop: "
 			    "physical address 0x%jx not in minidump",
 			    (uintmax_t)a);
 			goto invalid;
@@ -186,7 +192,7 @@ _riscv_minidump_vatop(kvm_t *kd, kvaddr_t va, off_t *pa)
 		return (RISCV_PAGE_SIZE - offset);
 	} else {
 		_kvm_err(kd, kd->program,
-	    "_riscv_minidump_vatop: virtual address 0x%jx not minidumped",
+		    "_riscv_minidump_vatop: virtual address 0x%jx not minidumped",
 		    (uintmax_t)va);
 		goto invalid;
 	}
@@ -247,15 +253,14 @@ _riscv_minidump_walk_pages(kvm_t *kd, kvm_walk_pages_cb_t *cb, void *arg)
 	for (pteindex = 0; pteindex < nptes; pteindex++) {
 		riscv_pt_entry_t pte = _riscv_pte_get(kd, pteindex);
 
-		if (((pte & RISCV_PTE_V) == 0) ||
-		    ((pte & RISCV_PTE_RWX) == 0))
+		if (((pte & RISCV_PTE_V) == 0) || ((pte & RISCV_PTE_RWX) == 0))
 			continue;
 
 		va = vm->hdr.kernbase + (pteindex << RISCV_L3_SHIFT);
 		pa = (pte >> RISCV_PTE_PPN0_S) << RISCV_L3_SHIFT;
 		dva = vm->hdr.dmapbase + pa;
 		if (!_kvm_visit_cb(kd, cb, arg, pa, va, dva,
-		    _riscv_entry_to_prot(pte), RISCV_PAGE_SIZE, 0)) {
+			_riscv_entry_to_prot(pte), RISCV_PAGE_SIZE, 0)) {
 			goto out;
 		}
 	}
@@ -269,8 +274,8 @@ _riscv_minidump_walk_pages(kvm_t *kd, kvm_walk_pages_cb_t *cb, void *arg)
 			break;
 		va = 0;
 		prot = VM_PROT_READ | VM_PROT_WRITE;
-		if (!_kvm_visit_cb(kd, cb, arg, pa, va, dva,
-		    prot, RISCV_PAGE_SIZE, 0)) {
+		if (!_kvm_visit_cb(kd, cb, arg, pa, va, dva, prot,
+			RISCV_PAGE_SIZE, 0)) {
 			goto out;
 		}
 	}

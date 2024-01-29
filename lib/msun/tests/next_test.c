@@ -29,59 +29,63 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <fenv.h>
 #include <float.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifdef	__i386__
+#ifdef __i386__
 #include <ieeefp.h>
 #endif
 
 #include "test-utils.h"
 
-#define	test(exp, ans, ex)	do {			\
-	double __ans = (ans);				\
-	feclearexcept(ALL_STD_EXCEPT);			\
-	_testl(#exp, __LINE__, (exp), __ans, (ex));	\
-} while (0)
-#define	testf(exp, ans, ex)	do {			\
-	float __ans = (ans);				\
-	feclearexcept(ALL_STD_EXCEPT);			\
-	_testl(#exp, __LINE__, (exp), __ans, (ex));	\
-} while (0)
-#define	testl(exp, ans, ex)	do {			\
-	long double __ans = (ans);			\
-	feclearexcept(ALL_STD_EXCEPT);			\
-	_testl(#exp, __LINE__, (exp), __ans, (ex));	\
-} while (0)
-#define	testboth(arg1, arg2, ans, ex, prec)	do {			\
-	test##prec(nextafter##prec((arg1), (arg2)), (ans), (ex));	\
-	test##prec(nexttoward##prec((arg1), (arg2)), (ans), (ex));	\
-} while (0)
-#define	testall(arg1, arg2, ans, ex)	do {		\
-	testboth((arg1), (arg2), (ans), (ex), );	\
-	testboth((arg1), (arg2), (ans), (ex), f);	\
-	testboth((arg1), (arg2), (ans), (ex), l);	\
-} while (0)
+#define test(exp, ans, ex)                                  \
+	do {                                                \
+		double __ans = (ans);                       \
+		feclearexcept(ALL_STD_EXCEPT);              \
+		_testl(#exp, __LINE__, (exp), __ans, (ex)); \
+	} while (0)
+#define testf(exp, ans, ex)                                 \
+	do {                                                \
+		float __ans = (ans);                        \
+		feclearexcept(ALL_STD_EXCEPT);              \
+		_testl(#exp, __LINE__, (exp), __ans, (ex)); \
+	} while (0)
+#define testl(exp, ans, ex)                                 \
+	do {                                                \
+		long double __ans = (ans);                  \
+		feclearexcept(ALL_STD_EXCEPT);              \
+		_testl(#exp, __LINE__, (exp), __ans, (ex)); \
+	} while (0)
+#define testboth(arg1, arg2, ans, ex, prec)                                \
+	do {                                                               \
+		test##prec(nextafter##prec((arg1), (arg2)), (ans), (ex));  \
+		test##prec(nexttoward##prec((arg1), (arg2)), (ans), (ex)); \
+	} while (0)
+#define testall(arg1, arg2, ans, ex)                      \
+	do {                                              \
+		testboth((arg1), (arg2), (ans), (ex), );  \
+		testboth((arg1), (arg2), (ans), (ex), f); \
+		testboth((arg1), (arg2), (ans), (ex), l); \
+	} while (0)
 
 static void _testl(const char *, int, long double, long double, int);
 static double idd(double);
 static float idf(float);
 
-static const int ex_under = FE_UNDERFLOW | FE_INEXACT;	/* shorthand */
+static const int ex_under = FE_UNDERFLOW | FE_INEXACT; /* shorthand */
 static const int ex_over = FE_OVERFLOW | FE_INEXACT;
 static const long double ldbl_eps = LDBL_EPSILON;
-
-
 
 ATF_TC_WITHOUT_HEAD(zeros);
 ATF_TC_BODY(zeros, tc)
 {
 	long double ldbl_small;
 
-#ifdef	__i386__
+#ifdef __i386__
 	fpsetprec(FP_PE);
 #endif
 	/*
@@ -94,21 +98,21 @@ ATF_TC_BODY(zeros, tc)
 	/*
 	 * Special cases involving zeroes.
 	 */
-#define	ztest(prec)							      \
-	test##prec(copysign##prec(1.0, nextafter##prec(0.0, -0.0)), -1.0, 0); \
-	test##prec(copysign##prec(1.0, nextafter##prec(-0.0, 0.0)), 1.0, 0);  \
-	test##prec(copysign##prec(1.0, nexttoward##prec(0.0, -0.0)), -1.0, 0);\
+#define ztest(prec)                                                            \
+	test##prec(copysign##prec(1.0, nextafter##prec(0.0, -0.0)), -1.0, 0);  \
+	test##prec(copysign##prec(1.0, nextafter##prec(-0.0, 0.0)), 1.0, 0);   \
+	test##prec(copysign##prec(1.0, nexttoward##prec(0.0, -0.0)), -1.0, 0); \
 	test##prec(copysign##prec(1.0, nexttoward##prec(-0.0, 0.0)), 1.0, 0)
 
 	ztest();
 	ztest(f);
 	ztest(l);
-#undef	ztest
+#undef ztest
 
-#define	stest(next, eps, prec)					\
-	test##prec(next(-0.0, 42.0), eps, ex_under);		\
-	test##prec(next(0.0, -42.0), -eps, ex_under);		\
-	test##prec(next(0.0, INFINITY), eps, ex_under);		\
+#define stest(next, eps, prec)                          \
+	test##prec(next(-0.0, 42.0), eps, ex_under);    \
+	test##prec(next(0.0, -42.0), -eps, ex_under);   \
+	test##prec(next(0.0, INFINITY), eps, ex_under); \
 	test##prec(next(-0.0, -INFINITY), -eps, ex_under)
 
 	stest(nextafter, 0x1p-1074, );
@@ -117,7 +121,7 @@ ATF_TC_BODY(zeros, tc)
 	stest(nexttoward, 0x1p-1074, );
 	stest(nexttowardf, 0x1p-149f, f);
 	stest(nexttowardl, ldbl_small, l);
-#undef	stest
+#undef stest
 }
 
 ATF_TC_WITHOUT_HEAD(eq_and_nan);
@@ -192,8 +196,8 @@ ATF_TC_BODY(boundaries, tc)
 	testboth(0x1.fffffffffffffffep0L, INFINITY, 0x1p1L, 0, l);
 	testboth(0x1p1L, -INFINITY, 0x1.fffffffffffffffep0L, 0, l);
 	testboth(0x0.fffffffffffffffep-16382L, INFINITY, 0x1p-16382L, 0, l);
-	testboth(0x1p-16382L, -INFINITY,
-	    0x0.fffffffffffffffep-16382L, ex_under, l);
+	testboth(0x1p-16382L, -INFINITY, 0x0.fffffffffffffffep-16382L, ex_under,
+	    l);
 #elif LDBL_MANT_DIG == 113
 	testboth(0x1.876543210987ffffffffffffffffp+0L, INFINITY,
 	    0x1.876543210988p+0, 0, l);

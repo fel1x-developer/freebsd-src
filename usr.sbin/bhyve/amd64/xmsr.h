@@ -26,8 +26,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_XMSR_H_
-#define	_XMSR_H_
+#ifndef _XMSR_H_
+#define _XMSR_H_
 
 int init_msr(void);
 int emulate_wrmsr(struct vcpu *vcpu, uint32_t code, uint64_t val);

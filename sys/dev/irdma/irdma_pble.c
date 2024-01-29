@@ -32,12 +32,12 @@
  * SOFTWARE.
  */
 
-#include "osdep.h"
-#include "irdma_hmc.h"
 #include "irdma_defs.h"
-#include "irdma_type.h"
-#include "irdma_protos.h"
+#include "irdma_hmc.h"
 #include "irdma_pble.h"
+#include "irdma_protos.h"
+#include "irdma_type.h"
+#include "osdep.h"
 
 static int add_pble_prm(struct irdma_hmc_pble_rsrc *pble_rsrc);
 
@@ -70,7 +70,7 @@ irdma_destroy_pble_prm(struct irdma_hmc_pble_rsrc *pble_rsrc)
  */
 int
 irdma_hmc_init_pble(struct irdma_sc_dev *dev,
-		    struct irdma_hmc_pble_rsrc *pble_rsrc)
+    struct irdma_hmc_pble_rsrc *pble_rsrc)
 {
 	struct irdma_hmc_info *hmc_info;
 	u32 fpm_idx = 0;
@@ -82,8 +82,8 @@ irdma_hmc_init_pble(struct irdma_sc_dev *dev,
 	/* Start pble' on 4k boundary */
 	if (pble_rsrc->fpm_base_addr & 0xfff)
 		fpm_idx = (4096 - (pble_rsrc->fpm_base_addr & 0xfff)) >> 3;
-	pble_rsrc->unallocated_pble =
-	    hmc_info->hmc_obj[IRDMA_HMC_IW_PBLE].cnt - fpm_idx;
+	pble_rsrc->unallocated_pble = hmc_info->hmc_obj[IRDMA_HMC_IW_PBLE].cnt -
+	    fpm_idx;
 	pble_rsrc->next_fpm_addr = pble_rsrc->fpm_base_addr + (fpm_idx << 3);
 	pble_rsrc->pinfo.pble_shift = PBLE_SHIFT;
 
@@ -105,8 +105,7 @@ irdma_hmc_init_pble(struct irdma_sc_dev *dev,
  * @idx: where to return indexes
  */
 static void
-get_sd_pd_idx(struct irdma_hmc_pble_rsrc *pble_rsrc,
-	      struct sd_pd_idx *idx)
+get_sd_pd_idx(struct irdma_hmc_pble_rsrc *pble_rsrc, struct sd_pd_idx *idx)
 {
 	idx->sd_idx = (u32)pble_rsrc->next_fpm_addr / IRDMA_HMC_DIRECT_BP_SIZE;
 	idx->pd_idx = (u32)(pble_rsrc->next_fpm_addr / IRDMA_HMC_PAGED_BP_SIZE);
@@ -120,7 +119,7 @@ get_sd_pd_idx(struct irdma_hmc_pble_rsrc *pble_rsrc,
  */
 static int
 add_sd_direct(struct irdma_hmc_pble_rsrc *pble_rsrc,
-	      struct irdma_add_page_info *info)
+    struct irdma_add_page_info *info)
 {
 	struct irdma_sc_dev *dev = pble_rsrc->dev;
 	int ret_code = 0;
@@ -132,9 +131,8 @@ add_sd_direct(struct irdma_hmc_pble_rsrc *pble_rsrc,
 
 	if (!sd_entry->valid) {
 		ret_code = irdma_add_sd_table_entry(dev->hw, hmc_info,
-						    info->idx.sd_idx,
-						    IRDMA_SD_TYPE_DIRECT,
-						    IRDMA_HMC_DIRECT_BP_SIZE);
+		    info->idx.sd_idx, IRDMA_SD_TYPE_DIRECT,
+		    IRDMA_HMC_DIRECT_BP_SIZE);
 		if (ret_code)
 			return ret_code;
 
@@ -146,8 +144,8 @@ add_sd_direct(struct irdma_hmc_pble_rsrc *pble_rsrc,
 	chunk->vaddr = (u8 *)sd_entry->u.bp.addr.va + offset;
 	chunk->fpm_addr = pble_rsrc->next_fpm_addr;
 	irdma_debug(dev, IRDMA_DEBUG_PBLE,
-		    "chunk_size[%ld] = 0x%lx vaddr=0x%p fpm_addr = %lx\n",
-		    chunk->size, chunk->size, chunk->vaddr, chunk->fpm_addr);
+	    "chunk_size[%ld] = 0x%lx vaddr=0x%p fpm_addr = %lx\n", chunk->size,
+	    chunk->size, chunk->vaddr, chunk->fpm_addr);
 
 	return 0;
 }
@@ -157,7 +155,9 @@ add_sd_direct(struct irdma_hmc_pble_rsrc *pble_rsrc,
  * @pble_rsrc: pble resource management
  * @addr: fpm address for index
  */
-static u32 fpm_to_idx(struct irdma_hmc_pble_rsrc *pble_rsrc, u64 addr){
+static u32
+fpm_to_idx(struct irdma_hmc_pble_rsrc *pble_rsrc, u64 addr)
+{
 	u64 idx;
 
 	idx = (addr - (pble_rsrc->fpm_base_addr)) >> 3;
@@ -172,7 +172,7 @@ static u32 fpm_to_idx(struct irdma_hmc_pble_rsrc *pble_rsrc, u64 addr){
  */
 static int
 add_bp_pages(struct irdma_hmc_pble_rsrc *pble_rsrc,
-	     struct irdma_add_page_info *info)
+    struct irdma_add_page_info *info)
 {
 	struct irdma_sc_dev *dev = pble_rsrc->dev;
 	u8 *addr;
@@ -190,8 +190,7 @@ add_bp_pages(struct irdma_hmc_pble_rsrc *pble_rsrc,
 		return -ENOMEM;
 
 	status = irdma_add_sd_table_entry(dev->hw, hmc_info, info->idx.sd_idx,
-					  IRDMA_SD_TYPE_PAGED,
-					  IRDMA_HMC_DIRECT_BP_SIZE);
+	    IRDMA_SD_TYPE_PAGED, IRDMA_HMC_DIRECT_BP_SIZE);
 	if (status)
 		goto error;
 
@@ -203,7 +202,7 @@ add_bp_pages(struct irdma_hmc_pble_rsrc *pble_rsrc,
 		pd_entry = &sd_entry->u.pd_table.pd_entry[rel_pd_idx++];
 		if (!pd_entry->valid) {
 			status = irdma_add_pd_table_entry(dev, hmc_info,
-							  pd_idx++, &mem);
+			    pd_idx++, &mem);
 			if (status)
 				goto error;
 
@@ -227,13 +226,13 @@ error:
  * @pages: pages in the sd
  */
 static enum irdma_sd_entry_type
-irdma_get_type(struct irdma_sc_dev *dev,
-	       struct sd_pd_idx *idx, u32 pages)
+irdma_get_type(struct irdma_sc_dev *dev, struct sd_pd_idx *idx, u32 pages)
 {
 	enum irdma_sd_entry_type sd_entry_type;
 
 	sd_entry_type = !idx->rel_pd_idx && pages == IRDMA_HMC_PD_CNT_IN_SD ?
-	    IRDMA_SD_TYPE_DIRECT : IRDMA_SD_TYPE_PAGED;
+	    IRDMA_SD_TYPE_DIRECT :
+	    IRDMA_SD_TYPE_PAGED;
 	return sd_entry_type;
 }
 
@@ -275,7 +274,7 @@ add_pble_prm(struct irdma_hmc_pble_rsrc *pble_rsrc)
 	get_sd_pd_idx(pble_rsrc, idx);
 	sd_entry = &hmc_info->sd_table.sd_entry[idx->sd_idx];
 	pages = (idx->rel_pd_idx) ? (IRDMA_HMC_PD_CNT_IN_SD - idx->rel_pd_idx) :
-	    IRDMA_HMC_PD_CNT_IN_SD;
+				    IRDMA_HMC_PD_CNT_IN_SD;
 	pages = min(pages, pble_rsrc->unallocated_pble >> PBLE_512_SHIFT);
 	info.chunk = chunk;
 	info.hmc_info = hmc_info;
@@ -287,11 +286,10 @@ add_pble_prm(struct irdma_hmc_pble_rsrc *pble_rsrc)
 		sd_entry_type = sd_entry->entry_type;
 
 	irdma_debug(dev, IRDMA_DEBUG_PBLE,
-		    "pages = %d, unallocated_pble[%d] current_fpm_addr = %lx\n",
-		    pages, pble_rsrc->unallocated_pble,
-		    pble_rsrc->next_fpm_addr);
+	    "pages = %d, unallocated_pble[%d] current_fpm_addr = %lx\n", pages,
+	    pble_rsrc->unallocated_pble, pble_rsrc->next_fpm_addr);
 	irdma_debug(dev, IRDMA_DEBUG_PBLE, "sd_entry_type = %d\n",
-		    sd_entry_type);
+	    sd_entry_type);
 	if (sd_entry_type == IRDMA_SD_TYPE_DIRECT)
 		ret_code = add_sd_direct(pble_rsrc, &info);
 
@@ -314,15 +312,15 @@ add_pble_prm(struct irdma_hmc_pble_rsrc *pble_rsrc)
 
 	pble_rsrc->next_fpm_addr += chunk->size;
 	irdma_debug(dev, IRDMA_DEBUG_PBLE,
-		    "next_fpm_addr = %lx chunk_size[%lu] = 0x%lx\n",
-		    pble_rsrc->next_fpm_addr, chunk->size, chunk->size);
+	    "next_fpm_addr = %lx chunk_size[%lu] = 0x%lx\n",
+	    pble_rsrc->next_fpm_addr, chunk->size, chunk->size);
 	pble_rsrc->unallocated_pble -= (u32)(chunk->size >> 3);
 	sd_reg_val = (sd_entry_type == IRDMA_SD_TYPE_PAGED) ?
 	    sd_entry->u.pd_table.pd_page_addr.pa :
 	    sd_entry->u.bp.addr.pa;
 	if (!sd_entry->valid) {
-		ret_code = irdma_hmc_sd_one(dev, hmc_info->hmc_fn_id, sd_reg_val,
-					    idx->sd_idx, sd_entry->entry_type, true);
+		ret_code = irdma_hmc_sd_one(dev, hmc_info->hmc_fn_id,
+		    sd_reg_val, idx->sd_idx, sd_entry->entry_type, true);
 		if (ret_code)
 			goto error;
 	}
@@ -346,7 +344,7 @@ err_bp_pages:
  */
 static void
 free_lvl2(struct irdma_hmc_pble_rsrc *pble_rsrc,
-	  struct irdma_pble_alloc *palloc)
+    struct irdma_pble_alloc *palloc)
 {
 	u32 i;
 	struct irdma_pble_level2 *lvl2 = &palloc->level2;
@@ -356,7 +354,7 @@ free_lvl2(struct irdma_hmc_pble_rsrc *pble_rsrc,
 	for (i = 0; i < lvl2->leaf_cnt; i++, leaf++) {
 		if (leaf->addr)
 			irdma_prm_return_pbles(&pble_rsrc->pinfo,
-					       &leaf->chunkinfo);
+			    &leaf->chunkinfo);
 		else
 			break;
 	}
@@ -375,7 +373,7 @@ free_lvl2(struct irdma_hmc_pble_rsrc *pble_rsrc,
  */
 static int
 get_lvl2_pble(struct irdma_hmc_pble_rsrc *pble_rsrc,
-	      struct irdma_pble_alloc *palloc)
+    struct irdma_pble_alloc *palloc)
 {
 	u32 lf4k, lflast, total, i;
 	u32 pblcnt = PBLE_PER_PAGE;
@@ -400,7 +398,7 @@ get_lvl2_pble(struct irdma_hmc_pble_rsrc *pble_rsrc,
 	lvl2->leaf = lvl2->leafmem.va;
 	leaf = lvl2->leaf;
 	ret_code = irdma_prm_get_pbles(&pble_rsrc->pinfo, &root->chunkinfo,
-				       total << 3, &root->addr, &fpm_addr);
+	    total << 3, &root->addr, &fpm_addr);
 	if (ret_code) {
 		kfree(lvl2->leafmem.va);
 		lvl2->leaf = NULL;
@@ -411,11 +409,10 @@ get_lvl2_pble(struct irdma_hmc_pble_rsrc *pble_rsrc,
 	root->cnt = total;
 	addr = root->addr;
 	for (i = 0; i < total; i++, leaf++) {
-		pblcnt = (lflast && ((i + 1) == total)) ?
-		    lflast : PBLE_PER_PAGE;
+		pblcnt = (lflast && ((i + 1) == total)) ? lflast :
+							  PBLE_PER_PAGE;
 		ret_code = irdma_prm_get_pbles(&pble_rsrc->pinfo,
-					       &leaf->chunkinfo, pblcnt << 3,
-					       &leaf->addr, &fpm_addr);
+		    &leaf->chunkinfo, pblcnt << 3, &leaf->addr, &fpm_addr);
 		if (ret_code)
 			goto error;
 
@@ -443,15 +440,14 @@ error:
  */
 static int
 get_lvl1_pble(struct irdma_hmc_pble_rsrc *pble_rsrc,
-	      struct irdma_pble_alloc *palloc)
+    struct irdma_pble_alloc *palloc)
 {
 	int ret_code;
 	u64 fpm_addr;
 	struct irdma_pble_info *lvl1 = &palloc->level1;
 
 	ret_code = irdma_prm_get_pbles(&pble_rsrc->pinfo, &lvl1->chunkinfo,
-				       palloc->total_cnt << 3, &lvl1->addr,
-				       &fpm_addr);
+	    palloc->total_cnt << 3, &lvl1->addr, &fpm_addr);
 	if (ret_code)
 		return -ENOMEM;
 
@@ -471,12 +467,13 @@ get_lvl1_pble(struct irdma_hmc_pble_rsrc *pble_rsrc,
  */
 static int
 get_lvl1_lvl2_pble(struct irdma_hmc_pble_rsrc *pble_rsrc,
-		   struct irdma_pble_alloc *palloc, u8 lvl)
+    struct irdma_pble_alloc *palloc, u8 lvl)
 {
 	int status = 0;
 
 	status = get_lvl1_pble(pble_rsrc, palloc);
-	if (!status || lvl == PBLE_LEVEL_1 || palloc->total_cnt <= PBLE_PER_PAGE)
+	if (!status || lvl == PBLE_LEVEL_1 ||
+	    palloc->total_cnt <= PBLE_PER_PAGE)
 		return status;
 
 	status = get_lvl2_pble(pble_rsrc, palloc);
@@ -493,8 +490,7 @@ get_lvl1_lvl2_pble(struct irdma_hmc_pble_rsrc *pble_rsrc,
  */
 int
 irdma_get_pble(struct irdma_hmc_pble_rsrc *pble_rsrc,
-	       struct irdma_pble_alloc *palloc, u32 pble_cnt,
-	       u8 lvl)
+    struct irdma_pble_alloc *palloc, u32 pble_cnt, u8 lvl)
 {
 	int status = 0;
 	int max_sds = 0;
@@ -506,7 +502,8 @@ irdma_get_pble(struct irdma_hmc_pble_rsrc *pble_rsrc,
 	mutex_lock(&pble_rsrc->pble_mutex_lock);
 
 	/*
-	 * check first to see if we can get pble's without acquiring additional sd's
+	 * check first to see if we can get pble's without acquiring additional
+	 * sd's
 	 */
 	status = get_lvl1_lvl2_pble(pble_rsrc, palloc, lvl);
 	if (!status)
@@ -543,7 +540,7 @@ exit:
  */
 void
 irdma_free_pble(struct irdma_hmc_pble_rsrc *pble_rsrc,
-		struct irdma_pble_alloc *palloc)
+    struct irdma_pble_alloc *palloc)
 {
 	pble_rsrc->freedpbles += palloc->total_cnt;
 
@@ -551,6 +548,6 @@ irdma_free_pble(struct irdma_hmc_pble_rsrc *pble_rsrc,
 		free_lvl2(pble_rsrc, palloc);
 	else
 		irdma_prm_return_pbles(&pble_rsrc->pinfo,
-				       &palloc->level1.chunkinfo);
+		    &palloc->level1.chunkinfo);
 	pble_rsrc->stats_alloc_freed++;
 }

@@ -53,8 +53,8 @@
 
 #include "main.h"
 
-static int	childproc_running;
-static pid_t	childproc;
+static int childproc_running;
+static pid_t childproc;
 
 int
 priv_sched_rtprio_setup(int asroot, int injail, struct test *test)
@@ -86,15 +86,15 @@ priv_sched_rtprio_setup(int asroot, int injail, struct test *test)
 		}
 		if (childproc == 0) {
 			if (another_uid) {
-				if (setresuid(UID_THIRD, UID_THIRD,
-				    UID_THIRD) < 0)
-				err(-1, "setresuid(%d)", UID_THIRD);
+				if (setresuid(UID_THIRD, UID_THIRD, UID_THIRD) <
+				    0)
+					err(-1, "setresuid(%d)", UID_THIRD);
 			}
 			while (1)
 				sleep(1);
 		}
 		childproc_running = 1;
-		sleep(1);	/* Allow dummy thread to change uids. */
+		sleep(1); /* Allow dummy thread to change uids. */
 	}
 	return (0);
 }
@@ -132,14 +132,14 @@ priv_sched_rtprio_curproc_idle(int asroot, int injail, struct test *test)
 	rtp.prio = 0;
 	error = rtprio(RTP_SET, 0, &rtp);
 	if (asroot && injail)
-		expect("priv_sched_rtprio_curproc_idle(asroot, injail)",
-		    error, -1, EPERM);
+		expect("priv_sched_rtprio_curproc_idle(asroot, injail)", error,
+		    -1, EPERM);
 	if (asroot && !injail)
-		expect("priv_sched_rtprio_curproc_idle(asroot, !injail)",
-		    error, 0, 0);
+		expect("priv_sched_rtprio_curproc_idle(asroot, !injail)", error,
+		    0, 0);
 	if (!asroot && injail)
-		expect("priv_sched_rtprio_curproc_idle(!asroot, injail)",
-		    error, -1, EPERM);
+		expect("priv_sched_rtprio_curproc_idle(!asroot, injail)", error,
+		    -1, EPERM);
 	if (!asroot && !injail)
 		expect("priv_sched_rtprio_curproc_idle(!asroot, !injail)",
 		    error, -1, EPERM);
@@ -178,8 +178,8 @@ priv_sched_rtprio_myproc_normal(int asroot, int injail, struct test *test)
 	rtp.prio = 0;
 	error = rtprio(RTP_SET, 0, &rtp);
 	if (asroot && injail)
-		expect("priv_sched_rtprio_myproc_normal(asroot, injail)",
-		    error, 0, 0);
+		expect("priv_sched_rtprio_myproc_normal(asroot, injail)", error,
+		    0, 0);
 	if (asroot && !injail)
 		expect("priv_sched_rtprio_myproc_normal(asroot, !injail)",
 		    error, 0, 0);
@@ -201,17 +201,17 @@ priv_sched_rtprio_myproc_idle(int asroot, int injail, struct test *test)
 	rtp.prio = 0;
 	error = rtprio(RTP_SET, 0, &rtp);
 	if (asroot && injail)
-		expect("priv_sched_rtprio_myproc_idle(asroot, injail)",
-		    error, -1, EPERM);
+		expect("priv_sched_rtprio_myproc_idle(asroot, injail)", error,
+		    -1, EPERM);
 	if (asroot && !injail)
-		expect("priv_sched_rtprio_myproc_idle(asroot, !injail)",
-		    error, 0, 0);
+		expect("priv_sched_rtprio_myproc_idle(asroot, !injail)", error,
+		    0, 0);
 	if (!asroot && injail)
-		expect("priv_sched_rtprio_myproc_idle(!asroot, injail)",
-		    error, -1, EPERM);
+		expect("priv_sched_rtprio_myproc_idle(!asroot, injail)", error,
+		    -1, EPERM);
 	if (!asroot && !injail)
-		expect("priv_sched_rtprio_myproc_idle(!asroot, !injail)",
-		    error, -1, EPERM);
+		expect("priv_sched_rtprio_myproc_idle(!asroot, !injail)", error,
+		    -1, EPERM);
 }
 
 void
@@ -247,14 +247,14 @@ priv_sched_rtprio_aproc_normal(int asroot, int injail, struct test *test)
 	rtp.prio = 0;
 	error = rtprio(RTP_SET, childproc, &rtp);
 	if (asroot && injail)
-		expect("priv_sched_rtprio_aproc_normal(asroot, injail)",
-		    error, -1, ESRCH);
+		expect("priv_sched_rtprio_aproc_normal(asroot, injail)", error,
+		    -1, ESRCH);
 	if (asroot && !injail)
-		expect("priv_sched_rtprio_aproc_normal(asroot, !injail)",
-		    error, 0, 0);
+		expect("priv_sched_rtprio_aproc_normal(asroot, !injail)", error,
+		    0, 0);
 	if (!asroot && injail)
-		expect("priv_sched_rtprio_aproc_normal(!asroot, injail)",
-		    error, -1, ESRCH);
+		expect("priv_sched_rtprio_aproc_normal(!asroot, injail)", error,
+		    -1, ESRCH);
 	if (!asroot && !injail)
 		expect("priv_sched_rtprio_aproc_normal(!asroot, !injail)",
 		    error, -1, EPERM);
@@ -270,17 +270,17 @@ priv_sched_rtprio_aproc_idle(int asroot, int injail, struct test *test)
 	rtp.prio = 0;
 	error = rtprio(RTP_SET, childproc, &rtp);
 	if (asroot && injail)
-		expect("priv_sched_rtprio_aproc_idle(asroot, injail)",
-		    error, -1, ESRCH);
+		expect("priv_sched_rtprio_aproc_idle(asroot, injail)", error,
+		    -1, ESRCH);
 	if (asroot && !injail)
-		expect("priv_sched_rtprio_aproc_idle(asroot, !injail)",
-		    error, 0, 0);
+		expect("priv_sched_rtprio_aproc_idle(asroot, !injail)", error,
+		    0, 0);
 	if (!asroot && injail)
-		expect("priv_sched_rtprio_aproc_idle(!asroot, injail)",
-		    error, -1, ESRCH);
+		expect("priv_sched_rtprio_aproc_idle(!asroot, injail)", error,
+		    -1, ESRCH);
 	if (!asroot && !injail)
-		expect("priv_sched_rtprio_aroc_idle(!asroot, !injail)",
-		    error, -1, EPERM);
+		expect("priv_sched_rtprio_aroc_idle(!asroot, !injail)", error,
+		    -1, EPERM);
 }
 
 void
@@ -316,8 +316,7 @@ priv_sched_rtprio_cleanup(int asroot, int injail, struct test *test)
 		while (1) {
 			pid = waitpid(childproc, NULL, 0);
 			if (pid == -1)
-				warn("waitpid(%d (test), NULL, 0)",
-				    childproc);
+				warn("waitpid(%d (test), NULL, 0)", childproc);
 			if (pid == childproc)
 				break;
 		}

@@ -33,9 +33,8 @@
 #define _CITRUS_MMAP_H_
 
 __BEGIN_DECLS
-int	 _citrus_map_file(struct _citrus_region * __restrict,
-	    const char * __restrict);
-void	 _citrus_unmap_file(struct _citrus_region *);
+int _citrus_map_file(struct _citrus_region *__restrict, const char *__restrict);
+void _citrus_unmap_file(struct _citrus_region *);
 __END_DECLS
 
 #endif

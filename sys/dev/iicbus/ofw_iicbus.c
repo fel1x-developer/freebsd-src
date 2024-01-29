@@ -53,20 +53,20 @@ static int ofw_iicbus_set_devinfo(device_t bus, device_t dev,
 
 static device_method_t ofw_iicbus_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		ofw_iicbus_probe),
-	DEVMETHOD(device_attach,	ofw_iicbus_attach),
+	DEVMETHOD(device_probe, ofw_iicbus_probe),
+	DEVMETHOD(device_attach, ofw_iicbus_attach),
 
 	/* Bus interface */
-	DEVMETHOD(bus_child_pnpinfo,	ofw_bus_gen_child_pnpinfo),
-	DEVMETHOD(bus_add_child,	ofw_iicbus_add_child),
+	DEVMETHOD(bus_child_pnpinfo, ofw_bus_gen_child_pnpinfo),
+	DEVMETHOD(bus_add_child, ofw_iicbus_add_child),
 
 	/* ofw_bus interface */
-	DEVMETHOD(ofw_bus_get_devinfo,	ofw_iicbus_get_devinfo),
-	DEVMETHOD(ofw_bus_get_compat,	ofw_bus_gen_get_compat),
-	DEVMETHOD(ofw_bus_get_model,	ofw_bus_gen_get_model),
-	DEVMETHOD(ofw_bus_get_name,	ofw_bus_gen_get_name),
-	DEVMETHOD(ofw_bus_get_node,	ofw_bus_gen_get_node),
-	DEVMETHOD(ofw_bus_get_type,	ofw_bus_gen_get_type),
+	DEVMETHOD(ofw_bus_get_devinfo, ofw_iicbus_get_devinfo),
+	DEVMETHOD(ofw_bus_get_compat, ofw_bus_gen_get_compat),
+	DEVMETHOD(ofw_bus_get_model, ofw_bus_gen_get_model),
+	DEVMETHOD(ofw_bus_get_name, ofw_bus_gen_get_name),
+	DEVMETHOD(ofw_bus_get_node, ofw_bus_gen_get_node),
+	DEVMETHOD(ofw_bus_get_type, ofw_bus_gen_get_type),
 
 	/* ofw_iicbus interface */
 	DEVMETHOD(ofw_iicbus_set_devinfo, ofw_iicbus_set_devinfo),
@@ -75,8 +75,8 @@ static device_method_t ofw_iicbus_methods[] = {
 };
 
 struct ofw_iicbus_devinfo {
-	struct iicbus_ivar	opd_dinfo;	/* Must be the first. */
-	struct ofw_bus_devinfo	opd_obdinfo;
+	struct iicbus_ivar opd_dinfo; /* Must be the first. */
+	struct ofw_bus_devinfo opd_obdinfo;
 };
 
 DEFINE_CLASS_1(iicbus, ofw_iicbus_driver, ofw_iicbus_methods,
@@ -124,7 +124,7 @@ ofw_iicbus_attach(device_t dev)
 	freq = 0;
 	OF_getencprop(node, "clock-frequency", &freq, sizeof(freq));
 	iicbus_init_frequency(dev, freq);
-	
+
 	iicbus_reset(dev, IIC_FASTEST, 0, NULL);
 
 	bus_generic_probe(dev);
@@ -135,14 +135,13 @@ ofw_iicbus_attach(device_t dev)
 	 * address below.
 	 */
 	root = OF_peer(0);
-	compatlen = OF_getprop(root, "compatible", compat,
-				sizeof(compat));
+	compatlen = OF_getprop(root, "compatible", compat, sizeof(compat));
 	if (compatlen != -1) {
-	    for (curstr = compat; curstr < compat + compatlen;
-		curstr += strlen(curstr) + 1) {
-		if (strncmp(curstr, "MacRISC", 7) == 0)
-		    iic_addr_8bit = 1;
-	    }
+		for (curstr = compat; curstr < compat + compatlen;
+		     curstr += strlen(curstr) + 1) {
+			if (strncmp(curstr, "MacRISC", 7) == 0)
+				iic_addr_8bit = 1;
+		}
 	}
 
 	/*
@@ -155,9 +154,9 @@ ofw_iicbus_attach(device_t dev)
 		 * on different systems.
 		 */
 		if (OF_getencprop(child, "i2c-address", &paddr,
-		    sizeof(paddr)) == -1)
+			sizeof(paddr)) == -1)
 			if (OF_getencprop(child, "reg", &paddr,
-			    sizeof(paddr)) == -1)
+				sizeof(paddr)) == -1)
 				continue;
 
 		/*
@@ -175,9 +174,9 @@ ofw_iicbus_attach(device_t dev)
 		 * 8-bit format.
 		 */
 		if (iic_addr_8bit)
-		    dinfo->opd_dinfo.addr = paddr;
+			dinfo->opd_dinfo.addr = paddr;
 		else
-		    dinfo->opd_dinfo.addr = paddr << 1;
+			dinfo->opd_dinfo.addr = paddr << 1;
 
 		if (ofw_bus_gen_setup_devinfo(&dinfo->opd_obdinfo, child) !=
 		    0) {
@@ -187,8 +186,7 @@ ofw_iicbus_attach(device_t dev)
 
 		childdev = device_add_child(dev, NULL, -1);
 		resource_list_init(&dinfo->opd_dinfo.rl);
-		ofw_bus_intr_to_rl(childdev, child,
-					&dinfo->opd_dinfo.rl, NULL);
+		ofw_bus_intr_to_rl(childdev, child, &dinfo->opd_dinfo.rl, NULL);
 		device_set_ivars(childdev, dinfo);
 	}
 

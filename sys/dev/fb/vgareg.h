@@ -30,53 +30,53 @@
 #define _DEV_FB_VGAREG_H_
 
 /* physical addresses */
-#define MDA_BUF_BASE		0xb0000
-#define MDA_BUF_SIZE		0x08000
-#define MDA_BUF			BIOS_PADDRTOVADDR(MDA_BUF_BASE)
-#define CGA_BUF_BASE		0xb8000
-#define CGA_BUF_SIZE		0x08000
-#define CGA_BUF			BIOS_PADDRTOVADDR(CGA_BUF_BASE)
-#define EGA_BUF_BASE		0xa0000
-#define EGA_BUF_SIZE		0x20000
-#define EGA_BUF			BIOS_PADDRTOVADDR(EGA_BUF_BASE)
-#define GRAPHICS_BUF_BASE	0xa0000
-#define GRAPHICS_BUF_SIZE	0x10000
-#define GRAPHICS_BUF		BIOS_PADDRTOVADDR(GRAPHICS_BUF_BASE)
-#define FONT_BUF		BIOS_PADDRTOVADDR(GRAPHICS_BUF_BASE)
-#define VIDEO_BUF_BASE		0xa0000
-#define VIDEO_BUF_SIZE		0x20000
+#define MDA_BUF_BASE 0xb0000
+#define MDA_BUF_SIZE 0x08000
+#define MDA_BUF BIOS_PADDRTOVADDR(MDA_BUF_BASE)
+#define CGA_BUF_BASE 0xb8000
+#define CGA_BUF_SIZE 0x08000
+#define CGA_BUF BIOS_PADDRTOVADDR(CGA_BUF_BASE)
+#define EGA_BUF_BASE 0xa0000
+#define EGA_BUF_SIZE 0x20000
+#define EGA_BUF BIOS_PADDRTOVADDR(EGA_BUF_BASE)
+#define GRAPHICS_BUF_BASE 0xa0000
+#define GRAPHICS_BUF_SIZE 0x10000
+#define GRAPHICS_BUF BIOS_PADDRTOVADDR(GRAPHICS_BUF_BASE)
+#define FONT_BUF BIOS_PADDRTOVADDR(GRAPHICS_BUF_BASE)
+#define VIDEO_BUF_BASE 0xa0000
+#define VIDEO_BUF_SIZE 0x20000
 
 /* I/O port addresses */
-#define MONO_CRTC	(IO_MDA + 0x04)		/* crt controller base mono */
-#define COLOR_CRTC	(IO_CGA + 0x04)		/* crt controller base color */
-#define MISC		(IO_VGA + 0x02)		/* misc output register */
-#define ATC		(IO_VGA + 0x00)		/* attribute controller */
-#define TSIDX		(IO_VGA + 0x04)		/* timing sequencer idx */
-#define TSREG		(IO_VGA + 0x05)		/* timing sequencer data */
-#define PIXMASK		(IO_VGA + 0x06)		/* pixel write mask */
-#define PALRADR		(IO_VGA + 0x07)		/* palette read address */
-#define PALWADR		(IO_VGA + 0x08)		/* palette write address */
-#define PALDATA		(IO_VGA + 0x09)		/* palette data register */
-#define GDCIDX		(IO_VGA + 0x0E)		/* graph data controller idx */
-#define GDCREG		(IO_VGA + 0x0F)		/* graph data controller data */
+#define MONO_CRTC (IO_MDA + 0x04)  /* crt controller base mono */
+#define COLOR_CRTC (IO_CGA + 0x04) /* crt controller base color */
+#define MISC (IO_VGA + 0x02)	   /* misc output register */
+#define ATC (IO_VGA + 0x00)	   /* attribute controller */
+#define TSIDX (IO_VGA + 0x04)	   /* timing sequencer idx */
+#define TSREG (IO_VGA + 0x05)	   /* timing sequencer data */
+#define PIXMASK (IO_VGA + 0x06)	   /* pixel write mask */
+#define PALRADR (IO_VGA + 0x07)	   /* palette read address */
+#define PALWADR (IO_VGA + 0x08)	   /* palette write address */
+#define PALDATA (IO_VGA + 0x09)	   /* palette data register */
+#define GDCIDX (IO_VGA + 0x0E)	   /* graph data controller idx */
+#define GDCREG (IO_VGA + 0x0F)	   /* graph data controller data */
 
-#define VGA_DRIVER_NAME		"vga"
-#define VGA_UNIT(dev)		dev2unit(dev)
-#define VGA_MKMINOR(unit)	(unit)
+#define VGA_DRIVER_NAME "vga"
+#define VGA_UNIT(dev) dev2unit(dev)
+#define VGA_MKMINOR(unit) (unit)
 
 #ifdef _KERNEL
 
 struct video_adapter;
 typedef struct vga_softc {
-	struct video_adapter	*adp;
-	void			*state_buf;
-	void			*pal_buf;
+	struct video_adapter *adp;
+	void *state_buf;
+	void *pal_buf;
 } vga_softc_t;
 
-int		vga_probe_unit(int unit, struct video_adapter *adp, int flags);
-int		vga_attach_unit(int unit, vga_softc_t *sc, int flags);
+int vga_probe_unit(int unit, struct video_adapter *adp, int flags);
+int vga_attach_unit(int unit, vga_softc_t *sc, int flags);
 
-extern int	(*vga_sub_configure)(int flags);
+extern int (*vga_sub_configure)(int flags);
 
 #endif /* _KERNEL */
 

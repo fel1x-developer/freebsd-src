@@ -59,12 +59,8 @@ run_cxa_finalize(void)
 #ifdef HAVE_CTORS
 static void __do_global_dtors_aux(void) __used;
 
-static crt_func __CTOR_LIST__[] __section(".ctors") __used = {
-	(crt_func)-1
-};
-static crt_func __DTOR_LIST__[] __section(".dtors") __used = {
-	(crt_func)-1
-};
+static crt_func __CTOR_LIST__[] __section(".ctors") __used = { (crt_func)-1 };
+static crt_func __DTOR_LIST__[] __section(".dtors") __used = { (crt_func)-1 };
 
 static void
 __do_global_dtors_aux(void)
@@ -84,11 +80,9 @@ __do_global_dtors_aux(void)
 	}
 }
 
-asm (
-    ".pushsection .fini		\n"
+asm(".pushsection .fini		\n"
     "\t" INIT_CALL_SEQ(__do_global_dtors_aux) "\n"
-    ".popsection		\n"
-);
+					      ".popsection		\n");
 #endif
 
 /*
@@ -99,7 +93,7 @@ asm (
 extern void _Jv_RegisterClasses(void *) __weak_symbol;
 static void register_classes(void) __used;
 
-static crt_func __JCR_LIST__[] __section(".jcr") __used = { };
+static crt_func __JCR_LIST__[] __section(".jcr") __used = {};
 
 #ifndef CTORS_CONSTRUCTORS
 __attribute__((constructor))
@@ -117,9 +111,7 @@ register_classes(void)
  * placed before __CTOR_LIST__.
  */
 #ifdef CTORS_CONSTRUCTORS
-asm (
-    ".pushsection .init		\n"
+asm(".pushsection .init		\n"
     "\t" INIT_CALL_SEQ(register_classes) "\n"
-    ".popsection		\n"
-);
+					 ".popsection		\n");
 #endif

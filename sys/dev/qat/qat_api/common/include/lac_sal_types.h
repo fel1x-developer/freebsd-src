@@ -13,11 +13,11 @@
 #ifndef LAC_SAL_TYPES_H
 #define LAC_SAL_TYPES_H
 
-#include "lac_sync.h"
-#include "lac_list.h"
 #include "icp_accel_devices.h"
-#include "sal_statistics.h"
 #include "icp_adf_debug.h"
+#include "lac_list.h"
+#include "lac_sync.h"
+#include "sal_statistics.h"
 
 #define SAL_CFG_BASE_DEC 10
 #define SAL_CFG_BASE_HEX 16
@@ -100,17 +100,17 @@ typedef struct sal_service_s {
 	CpaVirtualToPhysical virt2PhysClient;
 	/**< Function pointer to client supplied virt_to_phys */
 
-	CpaStatus (*init)(icp_accel_dev_t *device,
-			  struct sal_service_s *service);
+	CpaStatus (
+	    *init)(icp_accel_dev_t *device, struct sal_service_s *service);
 	/**< Function pointer for instance INIT function */
-	CpaStatus (*start)(icp_accel_dev_t *device,
-			   struct sal_service_s *service);
+	CpaStatus (
+	    *start)(icp_accel_dev_t *device, struct sal_service_s *service);
 	/**< Function pointer for instance START function */
-	CpaStatus (*stop)(icp_accel_dev_t *device,
-			  struct sal_service_s *service);
+	CpaStatus (
+	    *stop)(icp_accel_dev_t *device, struct sal_service_s *service);
 	/**< Function pointer for instance STOP function */
-	CpaStatus (*shutdown)(icp_accel_dev_t *device,
-			      struct sal_service_s *service);
+	CpaStatus (
+	    *shutdown)(icp_accel_dev_t *device, struct sal_service_s *service);
 	/**< Function pointer for instance SHUTDOWN function */
 
 	CpaCyInstanceNotificationCbFunc notification_cb;
@@ -196,7 +196,7 @@ typedef struct sal_service_debug_s {
  * @param[in] service_type     service type to check againstx.
  *
  * @return CPA_STATUS_FAIL      Parameter is incorrect type
-  *
+ *
  ******************************************************************************/
 #define SAL_CHECK_INSTANCE_TYPE(pService, service_type)                        \
 	do {                                                                   \

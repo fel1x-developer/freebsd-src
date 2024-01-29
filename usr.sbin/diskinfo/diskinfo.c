@@ -31,35 +31,36 @@
  * SUCH DAMAGE.
  */
 
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <strings.h>
-#include <unistd.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <libutil.h>
-#include <paths.h>
-#include <err.h>
-#include <geom/geom_disk.h>
-#include <sysexits.h>
+#include <sys/param.h>
 #include <sys/aio.h>
 #include <sys/disk.h>
-#include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 
-#define	NAIO	128
-#define	MAXTX	(8*1024*1024)
-#define	MEGATX	(1024*1024)
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <geom/geom_disk.h>
+#include <libutil.h>
+#include <paths.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+#include <sysexits.h>
+#include <unistd.h>
+
+#define NAIO 128
+#define MAXTX (8 * 1024 * 1024)
+#define MEGATX (1024 * 1024)
 
 static void
 usage(void)
 {
 	fprintf(stderr, "usage: diskinfo [-cipsStvw] disk ...\n");
-	exit (1);
+	exit(1);
 }
 
 static int opt_c, opt_i, opt_p, opt_s, opt_S, opt_t, opt_v, opt_w;
@@ -71,7 +72,7 @@ static void iopsbench(int fd, off_t mediasize, u_int sectorsize);
 static void rotationrate(int fd, char *buf, size_t buflen);
 static void slogbench(int fd, int isreg, off_t mediasize, u_int sectorsize);
 static int zonecheck(int fd, uint32_t *zone_mode, char *zone_str,
-		     size_t zone_str_len);
+    size_t zone_str_len);
 
 static uint8_t *buf;
 
@@ -84,8 +85,8 @@ main(int argc, char **argv)
 	char zone_desc[64];
 	char rrate[64];
 	struct diocgattr_arg arg;
-	off_t	mediasize, stripesize, stripeoffset;
-	u_int	sectorsize, fwsectors, fwheads, zoned = 0, isreg;
+	off_t mediasize, stripesize, stripeoffset;
+	u_int sectorsize, fwsectors, fwheads, zoned = 0, isreg;
 	uint32_t zone_mode;
 
 	while ((ch = getopt(argc, argv, "cipsStvw")) != -1) {
@@ -128,7 +129,8 @@ main(int argc, char **argv)
 	if (argc < 1)
 		usage();
 
-	if ((opt_p && opt_s) || ((opt_p || opt_s) && (opt_c || opt_i || opt_t || opt_v))) {
+	if ((opt_p && opt_s) ||
+	    ((opt_p || opt_s) && (opt_c || opt_i || opt_t || opt_v))) {
 		warnx("-p or -s cannot be used with other options");
 		usage();
 	}
@@ -143,7 +145,8 @@ main(int argc, char **argv)
 	for (i = 0; i < argc; i++) {
 		fd = open(argv[i], (opt_w ? O_RDWR : O_RDONLY) | O_DIRECT);
 		if (fd < 0 && errno == ENOENT && *argv[i] != '/') {
-			snprintf(tstr, sizeof(tstr), "%s%s", _PATH_DEV, argv[i]);
+			snprintf(tstr, sizeof(tstr), "%s%s", _PATH_DEV,
+			    argv[i]);
 			fd = open(tstr, O_RDONLY);
 		}
 		if (fd < 0) {
@@ -165,7 +168,9 @@ main(int argc, char **argv)
 			stripesize = sb.st_blksize;
 			stripeoffset = 0;
 			if (opt_p || opt_s) {
-				warnx("-p and -s only operate on physical devices: %s", argv[i]);
+				warnx(
+				    "-p and -s only operate on physical devices: %s",
+				    argv[i]);
 				goto out;
 			}
 		} else {
@@ -173,7 +178,9 @@ main(int argc, char **argv)
 				if (ioctl(fd, DIOCGPHYSPATH, physpath) == 0) {
 					printf("%s\n", physpath);
 				} else {
-					warnx("Failed to determine physpath for: %s", argv[i]);
+					warnx(
+					    "Failed to determine physpath for: %s",
+					    argv[i]);
 				}
 				goto out;
 			}
@@ -181,19 +188,25 @@ main(int argc, char **argv)
 				if (ioctl(fd, DIOCGIDENT, ident) == 0) {
 					printf("%s\n", ident);
 				} else {
-					warnx("Failed to determine serial number for: %s", argv[i]);
+					warnx(
+					    "Failed to determine serial number for: %s",
+					    argv[i]);
 				}
 				goto out;
 			}
 			error = ioctl(fd, DIOCGMEDIASIZE, &mediasize);
 			if (error) {
-				warnx("%s: ioctl(DIOCGMEDIASIZE) failed, probably not a disk.", argv[i]);
+				warnx(
+				    "%s: ioctl(DIOCGMEDIASIZE) failed, probably not a disk.",
+				    argv[i]);
 				exitval = 1;
 				goto out;
 			}
 			error = ioctl(fd, DIOCGSECTORSIZE, &sectorsize);
 			if (error) {
-				warnx("%s: ioctl(DIOCGSECTORSIZE) failed, probably not a disk.", argv[i]);
+				warnx(
+				    "%s: ioctl(DIOCGSECTORSIZE) failed, probably not a disk.",
+				    argv[i]);
 				exitval = 1;
 				goto out;
 			}
@@ -209,7 +222,8 @@ main(int argc, char **argv)
 			error = ioctl(fd, DIOCGSTRIPEOFFSET, &stripeoffset);
 			if (error)
 				stripeoffset = 0;
-			error = zonecheck(fd, &zone_mode, zone_desc, sizeof(zone_desc));
+			error = zonecheck(fd, &zone_mode, zone_desc,
+			    sizeof(zone_desc));
 			if (error == 0)
 				zoned = 1;
 		}
@@ -217,15 +231,16 @@ main(int argc, char **argv)
 			printf("%s", argv[i]);
 			printf("\t%u", sectorsize);
 			printf("\t%jd", (intmax_t)mediasize);
-			printf("\t%jd", (intmax_t)mediasize/sectorsize);
+			printf("\t%jd", (intmax_t)mediasize / sectorsize);
 			printf("\t%jd", (intmax_t)stripesize);
 			printf("\t%jd", (intmax_t)stripeoffset);
 			if (fwsectors != 0 && fwheads != 0) {
-				printf("\t%jd", (intmax_t)mediasize /
-				    (fwsectors * fwheads * sectorsize));
+				printf("\t%jd",
+				    (intmax_t)mediasize /
+					(fwsectors * fwheads * sectorsize));
 				printf("\t%u", fwheads);
 				printf("\t%u", fwsectors);
-			} 
+			}
 		} else {
 			humanize_number(tstr, 5, (int64_t)mediasize, "",
 			    HN_AUTOSCALE, HN_B | HN_NOSPACE | HN_DECIMAL);
@@ -234,25 +249,33 @@ main(int argc, char **argv)
 			printf("\t%-12jd\t# mediasize in bytes (%s)\n",
 			    (intmax_t)mediasize, tstr);
 			printf("\t%-12jd\t# mediasize in sectors\n",
-			    (intmax_t)mediasize/sectorsize);
+			    (intmax_t)mediasize / sectorsize);
 			printf("\t%-12jd\t# stripesize\n", stripesize);
 			printf("\t%-12jd\t# stripeoffset\n", stripeoffset);
 			if (fwsectors != 0 && fwheads != 0) {
-				printf("\t%-12jd\t# Cylinders according to firmware.\n", (intmax_t)mediasize /
-				    (fwsectors * fwheads * sectorsize));
-				printf("\t%-12u\t# Heads according to firmware.\n", fwheads);
-				printf("\t%-12u\t# Sectors according to firmware.\n", fwsectors);
-			} 
+				printf(
+				    "\t%-12jd\t# Cylinders according to firmware.\n",
+				    (intmax_t)mediasize /
+					(fwsectors * fwheads * sectorsize));
+				printf(
+				    "\t%-12u\t# Heads according to firmware.\n",
+				    fwheads);
+				printf(
+				    "\t%-12u\t# Sectors according to firmware.\n",
+				    fwsectors);
+			}
 			strlcpy(arg.name, "GEOM::descr", sizeof(arg.name));
 			arg.len = sizeof(arg.value.str);
 			if (ioctl(fd, DIOCGATTR, &arg) == 0)
-				printf("\t%-12s\t# Disk descr.\n", arg.value.str);
+				printf("\t%-12s\t# Disk descr.\n",
+				    arg.value.str);
 			if (ioctl(fd, DIOCGIDENT, ident) == 0)
 				printf("\t%-12s\t# Disk ident.\n", ident);
 			strlcpy(arg.name, "GEOM::attachment", sizeof(arg.name));
 			arg.len = sizeof(arg.value.str);
 			if (ioctl(fd, DIOCGATTR, &arg) == 0)
-				printf("\t%-12s\t# Attachment\n", arg.value.str);
+				printf("\t%-12s\t# Attachment\n",
+				    arg.value.str);
 			if (ioctl(fd, DIOCGPHYSPATH, physpath) == 0)
 				printf("\t%-12s\t# Physical path\n", physpath);
 			printf("\t%-12s\t# TRIM/UNMAP support\n",
@@ -271,11 +294,11 @@ main(int argc, char **argv)
 			iopsbench(fd, mediasize, sectorsize);
 		if (opt_S)
 			slogbench(fd, isreg, mediasize, sectorsize);
-out:
+	out:
 		close(fd);
 	}
 	free(buf);
-	exit (exitval);
+	exit(exitval);
 }
 
 static bool
@@ -369,8 +392,8 @@ TN(int count)
 	double dt;
 
 	dt = delta_t();
-	printf("%5d iter in %10.6f sec = %8.3f msec\n",
-		count, dt, dt * 1000.0 / count);
+	printf("%5d iter in %10.6f sec = %8.3f msec\n", count, dt,
+	    dt * 1000.0 / count);
 }
 
 static void
@@ -379,8 +402,8 @@ TR(double count)
 	double dt;
 
 	dt = delta_t();
-	printf("%8.0f kbytes in %10.6f sec = %8.0f kbytes/sec\n",
-		count, dt, count / dt);
+	printf("%8.0f kbytes in %10.6f sec = %8.0f kbytes/sec\n", count, dt,
+	    count / dt);
 }
 
 static void
@@ -389,8 +412,8 @@ TI(double count)
 	double dt;
 
 	dt = delta_t();
-	printf("%8.0f ops in  %10.6f sec = %8.0f IOPS\n",
-		count, dt, count / dt);
+	printf("%8.0f ops in  %10.6f sec = %8.0f IOPS\n", count, dt,
+	    count / dt);
 }
 
 static void
@@ -399,8 +422,8 @@ TS(u_int size, int count)
 	double dt;
 
 	dt = delta_t();
-	printf("%8.1f usec/IO = %8.1f Mbytes/s\n",
-	    dt * 1000000.0 / count, (double)size * count / dt / (1024 * 1024));
+	printf("%8.1f usec/IO = %8.1f Mbytes/s\n", dt * 1000000.0 / count,
+	    (double)size * count / dt / (1024 * 1024));
 }
 
 static void
@@ -416,7 +439,6 @@ speeddisk(int fd, off_t mediasize, u_int sectorsize)
 	sectorcount = mediasize / sectorsize;
 	if (mediasize < 1024 * 1024 || sectorcount < 2048)
 		return;
-
 
 	step = 1ULL << (flsll(sectorcount / (4 * 200)) - 1);
 	if (step > 16384)
@@ -507,7 +529,7 @@ speeddisk(int fd, off_t mediasize, u_int sectorsize)
 	TR(bulk * 1024);
 
 	printf("\tmiddle:      ");
-	b0 = sectorcount / 2 - bulk * (1024*1024 / sectorsize) / 2 - 1;
+	b0 = sectorcount / 2 - bulk * (1024 * 1024 / sectorsize) / 2 - 1;
 	rdsect(fd, b0, sectorsize);
 	T0();
 	for (i = 0; i < bulk; i++) {
@@ -516,7 +538,7 @@ speeddisk(int fd, off_t mediasize, u_int sectorsize)
 	TR(bulk * 1024);
 
 	printf("\tinside:      ");
-	b0 = sectorcount - bulk * (1024*1024 / sectorsize) - 1;
+	b0 = sectorcount - bulk * (1024 * 1024 / sectorsize) - 1;
 	rdsect(fd, b0, sectorsize);
 	T0();
 	for (i = 0; i < bulk; i++) {
@@ -529,7 +551,7 @@ speeddisk(int fd, off_t mediasize, u_int sectorsize)
 
 static void
 commandtime(int fd, off_t mediasize, u_int sectorsize)
-{	
+{
 	double dtmega, dtsector;
 	int i;
 
@@ -542,7 +564,7 @@ commandtime(int fd, off_t mediasize, u_int sectorsize)
 	dtmega = delta_t();
 
 	printf("\ttime to read 10MB block    %10.6f sec\t= %8.3f msec/sector\n",
-		dtmega, dtmega*100/2048);
+	    dtmega, dtmega * 100 / 2048);
 
 	rdsect(fd, 0, sectorsize);
 	T0();
@@ -551,9 +573,9 @@ commandtime(int fd, off_t mediasize, u_int sectorsize)
 	dtsector = delta_t();
 
 	printf("\ttime to read 20480 sectors %10.6f sec\t= %8.3f msec/sector\n",
-		dtsector, dtsector*100/2048);
+	    dtsector, dtsector * 100 / 2048);
 	printf("\tcalculated command overhead\t\t\t= %8.3f msec/sector\n",
-		(dtsector - dtmega)*100/2048);
+	    (dtsector - dtmega) * 100 / 2048);
 
 	printf("\n");
 }
@@ -603,7 +625,8 @@ iops(int fd, off_t mediasize, u_int sectorsize)
 
 		if (delta_t() < 3.0) {
 			aiop->aio_fildes = fd;
-			aiop->aio_offset = (random() % (sectorcount)) * sectorsize;
+			aiop->aio_offset = (random() % (sectorcount)) *
+			    sectorsize;
 			aiop->aio_nbytes = sectorsize;
 
 			error = aio_read(aiop);
@@ -640,11 +663,11 @@ iopsbench(int fd, off_t mediasize, u_int sectorsize)
 
 	printf("\t1024 kbytes: ");
 	iops(fd, mediasize, 1024 * 1024);
-	
+
 	printf("\n");
 }
 
-#define MAXIO (128*1024)
+#define MAXIO (128 * 1024)
 #define MAXIOS (MAXTX / MAXIO)
 
 static void

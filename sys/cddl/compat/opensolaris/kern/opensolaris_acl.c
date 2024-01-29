@@ -23,50 +23,38 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/types.h>
-#include <sys/malloc.h>
-#include <sys/errno.h>
-#include <sys/zfs_acl.h>
 #include <sys/acl.h>
+#include <sys/errno.h>
+#include <sys/malloc.h>
+#include <sys/zfs_acl.h>
 
 struct zfs2bsd {
-	uint32_t	zb_zfs;
-	int		zb_bsd;
+	uint32_t zb_zfs;
+	int zb_bsd;
 };
 
-struct zfs2bsd perms[] = {{ACE_READ_DATA, ACL_READ_DATA},
-			{ACE_WRITE_DATA, ACL_WRITE_DATA},
-			{ACE_EXECUTE, ACL_EXECUTE},
-			{ACE_APPEND_DATA, ACL_APPEND_DATA},
-			{ACE_DELETE_CHILD, ACL_DELETE_CHILD},
-			{ACE_DELETE, ACL_DELETE},
-			{ACE_READ_ATTRIBUTES, ACL_READ_ATTRIBUTES},
-			{ACE_WRITE_ATTRIBUTES, ACL_WRITE_ATTRIBUTES},
-			{ACE_READ_NAMED_ATTRS, ACL_READ_NAMED_ATTRS},
-			{ACE_WRITE_NAMED_ATTRS, ACL_WRITE_NAMED_ATTRS},
-			{ACE_READ_ACL, ACL_READ_ACL},
-			{ACE_WRITE_ACL, ACL_WRITE_ACL},
-			{ACE_WRITE_OWNER, ACL_WRITE_OWNER},
-			{ACE_SYNCHRONIZE, ACL_SYNCHRONIZE},
-			{0, 0}};
+struct zfs2bsd perms[] = { { ACE_READ_DATA, ACL_READ_DATA },
+	{ ACE_WRITE_DATA, ACL_WRITE_DATA }, { ACE_EXECUTE, ACL_EXECUTE },
+	{ ACE_APPEND_DATA, ACL_APPEND_DATA },
+	{ ACE_DELETE_CHILD, ACL_DELETE_CHILD }, { ACE_DELETE, ACL_DELETE },
+	{ ACE_READ_ATTRIBUTES, ACL_READ_ATTRIBUTES },
+	{ ACE_WRITE_ATTRIBUTES, ACL_WRITE_ATTRIBUTES },
+	{ ACE_READ_NAMED_ATTRS, ACL_READ_NAMED_ATTRS },
+	{ ACE_WRITE_NAMED_ATTRS, ACL_WRITE_NAMED_ATTRS },
+	{ ACE_READ_ACL, ACL_READ_ACL }, { ACE_WRITE_ACL, ACL_WRITE_ACL },
+	{ ACE_WRITE_OWNER, ACL_WRITE_OWNER },
+	{ ACE_SYNCHRONIZE, ACL_SYNCHRONIZE }, { 0, 0 } };
 
-struct zfs2bsd flags[] = {{ACE_FILE_INHERIT_ACE,
-			    ACL_ENTRY_FILE_INHERIT},
-			{ACE_DIRECTORY_INHERIT_ACE,
-			    ACL_ENTRY_DIRECTORY_INHERIT},
-			{ACE_NO_PROPAGATE_INHERIT_ACE,
-			    ACL_ENTRY_NO_PROPAGATE_INHERIT},
-			{ACE_INHERIT_ONLY_ACE,
-			    ACL_ENTRY_INHERIT_ONLY},
-			{ACE_INHERITED_ACE,
-			    ACL_ENTRY_INHERITED},
-			{ACE_SUCCESSFUL_ACCESS_ACE_FLAG,
-			    ACL_ENTRY_SUCCESSFUL_ACCESS},
-			{ACE_FAILED_ACCESS_ACE_FLAG,
-			    ACL_ENTRY_FAILED_ACCESS},
-			{0, 0}};
+struct zfs2bsd flags[] = { { ACE_FILE_INHERIT_ACE, ACL_ENTRY_FILE_INHERIT },
+	{ ACE_DIRECTORY_INHERIT_ACE, ACL_ENTRY_DIRECTORY_INHERIT },
+	{ ACE_NO_PROPAGATE_INHERIT_ACE, ACL_ENTRY_NO_PROPAGATE_INHERIT },
+	{ ACE_INHERIT_ONLY_ACE, ACL_ENTRY_INHERIT_ONLY },
+	{ ACE_INHERITED_ACE, ACL_ENTRY_INHERITED },
+	{ ACE_SUCCESSFUL_ACCESS_ACE_FLAG, ACL_ENTRY_SUCCESSFUL_ACCESS },
+	{ ACE_FAILED_ACCESS_ACE_FLAG, ACL_ENTRY_FAILED_ACCESS }, { 0, 0 } };
 
 static int
 _bsd_from_zfs(uint32_t zfs, const struct zfs2bsd *table)
@@ -114,7 +102,7 @@ acl_from_aces(struct acl *aclp, const ace_t *aces, int nentries)
 		 * from SunOS to FreeBSD.
 		 */
 		printf("acl_from_aces: ZFS ACL too big to fit "
-		    "into 'struct acl'; returning EINVAL.\n");
+		       "into 'struct acl'; returning EINVAL.\n");
 		return (EINVAL);
 	}
 
@@ -211,7 +199,8 @@ aces_from_acl(ace_t *aces, int *nentries, const struct acl *aclp)
 			ace->a_type = ACE_SYSTEM_AUDIT_ACE_TYPE;
 			break;
 		default:
-			panic("aces_from_acl: ae_entry_type is 0x%x", entry->ae_entry_type);
+			panic("aces_from_acl: ae_entry_type is 0x%x",
+			    entry->ae_entry_type);
 		}
 	}
 }

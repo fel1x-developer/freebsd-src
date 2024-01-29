@@ -30,59 +30,57 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/malloc.h>
 #include <sys/bus.h>
 #include <sys/cpu.h>
+#include <sys/kernel.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+
 #include <machine/bus.h>
 
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 #include <dev/ofw/ofw_cpu.h>
+#include <dev/ofw/openfirm.h>
 
 #if defined(__arm__) || defined(__arm64__) || defined(__riscv__)
 #include <dev/clk/clk.h>
 #endif
 
-static int	ofw_cpulist_probe(device_t);
-static int	ofw_cpulist_attach(device_t);
+static int ofw_cpulist_probe(device_t);
+static int ofw_cpulist_attach(device_t);
 static const struct ofw_bus_devinfo *ofw_cpulist_get_devinfo(device_t dev,
     device_t child);
 
 static MALLOC_DEFINE(M_OFWCPU, "ofwcpu", "OFW CPU device information");
 
 struct ofw_cpulist_softc {
-	pcell_t	 sc_addr_cells;
+	pcell_t sc_addr_cells;
 };
 
 static device_method_t ofw_cpulist_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		ofw_cpulist_probe),
-	DEVMETHOD(device_attach,	ofw_cpulist_attach),
+	DEVMETHOD(device_probe, ofw_cpulist_probe),
+	DEVMETHOD(device_attach, ofw_cpulist_attach),
 
 	/* Bus interface */
-	DEVMETHOD(bus_add_child,	bus_generic_add_child),
-	DEVMETHOD(bus_child_pnpinfo,	ofw_bus_gen_child_pnpinfo),
-	DEVMETHOD(bus_get_device_path,  ofw_bus_gen_get_device_path),
+	DEVMETHOD(bus_add_child, bus_generic_add_child),
+	DEVMETHOD(bus_child_pnpinfo, ofw_bus_gen_child_pnpinfo),
+	DEVMETHOD(bus_get_device_path, ofw_bus_gen_get_device_path),
 
 	/* ofw_bus interface */
-	DEVMETHOD(ofw_bus_get_devinfo,	ofw_cpulist_get_devinfo),
-	DEVMETHOD(ofw_bus_get_compat,	ofw_bus_gen_get_compat),
-	DEVMETHOD(ofw_bus_get_model,	ofw_bus_gen_get_model),
-	DEVMETHOD(ofw_bus_get_name,	ofw_bus_gen_get_name),
-	DEVMETHOD(ofw_bus_get_node,	ofw_bus_gen_get_node),
-	DEVMETHOD(ofw_bus_get_type,	ofw_bus_gen_get_type),
+	DEVMETHOD(ofw_bus_get_devinfo, ofw_cpulist_get_devinfo),
+	DEVMETHOD(ofw_bus_get_compat, ofw_bus_gen_get_compat),
+	DEVMETHOD(ofw_bus_get_model, ofw_bus_gen_get_model),
+	DEVMETHOD(ofw_bus_get_name, ofw_bus_gen_get_name),
+	DEVMETHOD(ofw_bus_get_node, ofw_bus_gen_get_node),
+	DEVMETHOD(ofw_bus_get_type, ofw_bus_gen_get_type),
 
 	DEVMETHOD_END
 };
 
-static driver_t ofw_cpulist_driver = {
-	"cpulist",
-	ofw_cpulist_methods,
-	sizeof(struct ofw_cpulist_softc)
-};
+static driver_t ofw_cpulist_driver = { "cpulist", ofw_cpulist_methods,
+	sizeof(struct ofw_cpulist_softc) };
 
 DRIVER_MODULE(ofw_cpulist, ofwbus, ofw_cpulist_driver, 0, 0);
 
@@ -143,40 +141,37 @@ ofw_cpulist_get_devinfo(device_t dev, device_t child)
 	return (device_get_ivars(child));
 }
 
-static int	ofw_cpu_probe(device_t);
-static int	ofw_cpu_attach(device_t);
-static int	ofw_cpu_read_ivar(device_t dev, device_t child, int index,
+static int ofw_cpu_probe(device_t);
+static int ofw_cpu_attach(device_t);
+static int ofw_cpu_read_ivar(device_t dev, device_t child, int index,
     uintptr_t *result);
 
 struct ofw_cpu_softc {
-	struct pcpu	*sc_cpu_pcpu;
-	uint32_t	 sc_nominal_mhz;
-	boolean_t	 sc_reg_valid;
-	pcell_t		 sc_reg[2];
+	struct pcpu *sc_cpu_pcpu;
+	uint32_t sc_nominal_mhz;
+	boolean_t sc_reg_valid;
+	pcell_t sc_reg[2];
 };
 
 static device_method_t ofw_cpu_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		ofw_cpu_probe),
-	DEVMETHOD(device_attach,	ofw_cpu_attach),
+	DEVMETHOD(device_probe, ofw_cpu_probe),
+	DEVMETHOD(device_attach, ofw_cpu_attach),
 
 	/* Bus interface */
-	DEVMETHOD(bus_add_child,	bus_generic_add_child),
-	DEVMETHOD(bus_read_ivar,	ofw_cpu_read_ivar),
-	DEVMETHOD(bus_setup_intr,	bus_generic_setup_intr),
-	DEVMETHOD(bus_teardown_intr,	bus_generic_teardown_intr),
-	DEVMETHOD(bus_alloc_resource,	bus_generic_alloc_resource),
-	DEVMETHOD(bus_release_resource,	bus_generic_release_resource),
-	DEVMETHOD(bus_activate_resource,bus_generic_activate_resource),
+	DEVMETHOD(bus_add_child, bus_generic_add_child),
+	DEVMETHOD(bus_read_ivar, ofw_cpu_read_ivar),
+	DEVMETHOD(bus_setup_intr, bus_generic_setup_intr),
+	DEVMETHOD(bus_teardown_intr, bus_generic_teardown_intr),
+	DEVMETHOD(bus_alloc_resource, bus_generic_alloc_resource),
+	DEVMETHOD(bus_release_resource, bus_generic_release_resource),
+	DEVMETHOD(bus_activate_resource, bus_generic_activate_resource),
 
 	DEVMETHOD_END
 };
 
-static driver_t ofw_cpu_driver = {
-	"cpu",
-	ofw_cpu_methods,
-	sizeof(struct ofw_cpu_softc)
-};
+static driver_t ofw_cpu_driver = { "cpu", ofw_cpu_methods,
+	sizeof(struct ofw_cpu_softc) };
 
 DRIVER_MODULE(ofw_cpu, cpulist, ofw_cpu_driver, 0, 0);
 
@@ -246,15 +241,15 @@ ofw_cpu_attach(device_t dev)
 		int i, nservers, rv;
 
 		if ((nservers = OF_getencprop_alloc(node,
-		    "ibm,ppc-interrupt-server#s", (void **)&servers)) < 0)
+			 "ibm,ppc-interrupt-server#s", (void **)&servers)) < 0)
 			return (ENXIO);
 		nservers /= sizeof(cell_t);
 		for (i = 0; i < nservers; i++) {
 			for (rv = platform_smp_first_cpu(&cpuref); rv == 0;
-			    rv = platform_smp_next_cpu(&cpuref)) {
+			     rv = platform_smp_next_cpu(&cpuref)) {
 				if (cpuref.cr_hwref == servers[i]) {
-					sc->sc_cpu_pcpu =
-					    pcpu_find(cpuref.cr_cpuid);
+					sc->sc_cpu_pcpu = pcpu_find(
+					    cpuref.cr_cpuid);
 					if (sc->sc_cpu_pcpu == NULL) {
 						OF_prop_free(servers);
 						return (ENXIO);
@@ -272,7 +267,7 @@ ofw_cpu_attach(device_t dev)
 		}
 	} else
 #endif
-	sc->sc_cpu_pcpu = pcpu_find(device_get_unit(dev));
+		sc->sc_cpu_pcpu = pcpu_find(device_get_unit(dev));
 
 	if (OF_getencprop(node, "clock-frequency", &cell, sizeof(cell)) < 0) {
 #if defined(__arm__) || defined(__arm64__) || defined(__riscv__)
@@ -354,11 +349,11 @@ ofw_cpu_early_foreach(ofw_cpu_foreach_cb callback, boolean_t only_runnable)
 
 	/* Find the number of cells in the cpu register */
 	if (OF_getencprop(node, "#address-cells", &addr_cells,
-	    sizeof(addr_cells)) < 0)
+		sizeof(addr_cells)) < 0)
 		return (-1);
 
-	for (child = OF_child(node); child != 0; child = OF_peer(child),
-	    id = next_id) {
+	for (child = OF_child(node); child != 0;
+	     child = OF_peer(child), id = next_id) {
 		/* Check if child is a CPU */
 		memset(device_type, 0, sizeof(device_type));
 		rv = OF_getprop(child, "device_type", device_type,
@@ -368,7 +363,8 @@ ofw_cpu_early_foreach(ofw_cpu_foreach_cb callback, boolean_t only_runnable)
 		if (strcmp(device_type, "cpu") != 0)
 			continue;
 
-		/* We're processing CPU, update next_id used in the next iteration */
+		/* We're processing CPU, update next_id used in the next
+		 * iteration */
 		next_id++;
 
 		/*
@@ -380,9 +376,9 @@ ofw_cpu_early_foreach(ofw_cpu_foreach_cb callback, boolean_t only_runnable)
 			status[0] = '\0';
 			OF_getprop(child, "status", status, sizeof(status));
 			if (status[0] != '\0' && strcmp(status, "okay") != 0 &&
-				strcmp(status, "ok") != 0 &&
-				!OF_hasprop(child, "enable-method"))
-					continue;
+			    strcmp(status, "ok") != 0 &&
+			    !OF_hasprop(child, "enable-method"))
+				continue;
 		}
 
 		/*

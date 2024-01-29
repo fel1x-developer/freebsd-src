@@ -31,13 +31,14 @@
 
 #include <sys/param.h>
 
-#include "namespace.h"
 #include <err.h>
-#include "un-namespace.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+
+#include "namespace.h"
+#include "un-namespace.h"
 
 int
 initgroups(const char *uname, gid_t agroup)

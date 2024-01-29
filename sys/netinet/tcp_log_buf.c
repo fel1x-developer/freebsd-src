@@ -27,10 +27,12 @@
  *
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
+
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/arb.h>
+#include <sys/counter.h>
 #include <sys/hash.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
@@ -42,34 +44,33 @@
 #include <sys/rwlock.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
+#include <sys/stats.h> /* Must come after qmath.h and tree.h */
 #include <sys/sysctl.h>
 #include <sys/tree.h>
-#include <sys/stats.h> /* Must come after qmath.h and tree.h */
-#include <sys/counter.h>
+
 #include <dev/tcp_log/tcp_log_dev.h>
 
 #include <net/if.h>
 #include <net/if_var.h>
 #include <net/vnet.h>
-
 #include <netinet/in.h>
 #include <netinet/in_pcb.h>
 #include <netinet/in_var.h>
-#include <netinet/tcp_var.h>
+#include <netinet/tcp_hpts.h>
 #include <netinet/tcp_log_buf.h>
 #include <netinet/tcp_seq.h>
-#include <netinet/tcp_hpts.h>
+#include <netinet/tcp_var.h>
 
 /* Default expiry time */
-#define	TCP_LOG_EXPIRE_TIME	((sbintime_t)60 * SBT_1S)
+#define TCP_LOG_EXPIRE_TIME ((sbintime_t)60 * SBT_1S)
 
 /* Max interval at which to run the expiry timer */
-#define	TCP_LOG_EXPIRE_INTVL	((sbintime_t)5 * SBT_1S)
+#define TCP_LOG_EXPIRE_INTVL ((sbintime_t)5 * SBT_1S)
 
-bool	tcp_log_verbose;
+bool tcp_log_verbose;
 static uma_zone_t tcp_log_id_bucket_zone, tcp_log_id_node_zone, tcp_log_zone;
-static int	tcp_log_session_limit = TCP_LOG_BUF_DEFAULT_SESSION_LIMIT;
-static uint32_t	tcp_log_version = TCP_LOG_BUF_VER;
+static int tcp_log_session_limit = TCP_LOG_BUF_DEFAULT_SESSION_LIMIT;
+static uint32_t tcp_log_version = TCP_LOG_BUF_VER;
 RB_HEAD(tcp_log_id_tree, tcp_log_id_bucket);
 static struct tcp_log_id_tree tcp_log_id_head;
 static STAILQ_HEAD(, tcp_log_id_node) tcp_log_expireq_head =
@@ -90,11 +91,11 @@ SYSCTL_NODE(_net_inet_tcp, OID_AUTO, bb, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
 SYSCTL_NODE(_net_inet_tcp_bb, OID_AUTO, tp, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "TCP Black Box Trace Point controls");
 
-SYSCTL_BOOL(_net_inet_tcp_bb, OID_AUTO, log_verbose, CTLFLAG_RW, &tcp_log_verbose,
-    0, "Force verbose logging for TCP traces");
+SYSCTL_BOOL(_net_inet_tcp_bb, OID_AUTO, log_verbose, CTLFLAG_RW,
+    &tcp_log_verbose, 0, "Force verbose logging for TCP traces");
 
-SYSCTL_INT(_net_inet_tcp_bb, OID_AUTO, log_session_limit,
-    CTLFLAG_RW, &tcp_log_session_limit, 0,
+SYSCTL_INT(_net_inet_tcp_bb, OID_AUTO, log_session_limit, CTLFLAG_RW,
+    &tcp_log_session_limit, 0,
     "Maximum number of events maintained for each TCP session");
 
 uint32_t tcp_trace_point_config = 0;
@@ -111,8 +112,6 @@ int32_t tcp_trace_point_count = 0;
 SYSCTL_U32(_net_inet_tcp_bb_tp, OID_AUTO, count, CTLFLAG_RW,
     &tcp_trace_point_count, TCP_LOG_STATE_HEAD_AUTO,
     "How many connections will have BB logging turned on that hit the tracepoint?");
-
-
 
 SYSCTL_UMA_MAX(_net_inet_tcp_bb, OID_AUTO, log_global_limit, CTLFLAG_RW,
     &tcp_log_zone, "Maximum number of events maintained for all TCP sessions");
@@ -132,12 +131,11 @@ SYSCTL_UMA_MAX(_net_inet_tcp_bb, OID_AUTO, log_id_tcpcb_limit, CTLFLAG_RW,
 SYSCTL_UMA_CUR(_net_inet_tcp_bb, OID_AUTO, log_id_tcpcb_entries, CTLFLAG_RD,
     &tcp_log_id_node_zone, "Current number of tcpcbs with log IDs");
 
-SYSCTL_U32(_net_inet_tcp_bb, OID_AUTO, log_version, CTLFLAG_RD, &tcp_log_version,
-    0, "Version of log formats exported");
+SYSCTL_U32(_net_inet_tcp_bb, OID_AUTO, log_version, CTLFLAG_RD,
+    &tcp_log_version, 0, "Version of log formats exported");
 
 SYSCTL_U32(_net_inet_tcp_bb, OID_AUTO, disable_all, CTLFLAG_RW,
-    &tcp_disable_all_bb_logs, 0,
-    "Disable all BB logging for all connections");
+    &tcp_disable_all_bb_logs, 0, "Disable all BB logging for all connections");
 
 SYSCTL_ULONG(_net_inet_tcp_bb, OID_AUTO, log_auto_ratio, CTLFLAG_RW,
     &tcp_log_auto_ratio, 0, "Do auto capturing for 1 out of N sessions");
@@ -182,10 +180,10 @@ SYSCTL_COUNTER_U64(_net_inet_tcp_bb, OID_AUTO, freed, CTLFLAG_RD,
 #endif
 
 #ifdef INVARIANTS
-#define	TCPLOG_DEBUG_RINGBUF
+#define TCPLOG_DEBUG_RINGBUF
 #endif
 /* Number of requests to consider a PBCID "active". */
-#define	ACTIVE_REQUEST_COUNT	10
+#define ACTIVE_REQUEST_COUNT 10
 
 /* Statistic tracking for "active" PBCIDs. */
 static counter_u64_t tcp_log_pcb_ids_cur;
@@ -196,18 +194,17 @@ SYSCTL_COUNTER_U64(_net_inet_tcp_bb, OID_AUTO, pcb_ids_cur, CTLFLAG_RD,
 SYSCTL_COUNTER_U64(_net_inet_tcp_bb, OID_AUTO, pcb_ids_tot, CTLFLAG_RD,
     &tcp_log_pcb_ids_tot, "Total number of pcb IDs that have been allocated");
 
-struct tcp_log_mem
-{
+struct tcp_log_mem {
 	STAILQ_ENTRY(tcp_log_mem) tlm_queue;
-	struct tcp_log_buffer	tlm_buf;
-	struct tcp_log_verbose	tlm_v;
+	struct tcp_log_buffer tlm_buf;
+	struct tcp_log_verbose tlm_v;
 #ifdef TCPLOG_DEBUG_RINGBUF
-	volatile int		tlm_refcnt;
+	volatile int tlm_refcnt;
 #endif
 };
 
 /* 60 bytes for the header, + 16 bytes for padding */
-static uint8_t	zerobuf[76];
+static uint8_t zerobuf[76];
 
 /*
  * Lock order:
@@ -248,52 +245,53 @@ static uint8_t	zerobuf[76];
  * leave that node alone.
  */
 static struct rwlock tcp_id_tree_lock;
-#define	TCPID_TREE_WLOCK()		rw_wlock(&tcp_id_tree_lock)
-#define	TCPID_TREE_RLOCK()		rw_rlock(&tcp_id_tree_lock)
-#define	TCPID_TREE_UPGRADE()		rw_try_upgrade(&tcp_id_tree_lock)
-#define	TCPID_TREE_WUNLOCK()		rw_wunlock(&tcp_id_tree_lock)
-#define	TCPID_TREE_RUNLOCK()		rw_runlock(&tcp_id_tree_lock)
-#define	TCPID_TREE_WLOCK_ASSERT()	rw_assert(&tcp_id_tree_lock, RA_WLOCKED)
-#define	TCPID_TREE_RLOCK_ASSERT()	rw_assert(&tcp_id_tree_lock, RA_RLOCKED)
-#define	TCPID_TREE_UNLOCK_ASSERT()	rw_assert(&tcp_id_tree_lock, RA_UNLOCKED)
+#define TCPID_TREE_WLOCK() rw_wlock(&tcp_id_tree_lock)
+#define TCPID_TREE_RLOCK() rw_rlock(&tcp_id_tree_lock)
+#define TCPID_TREE_UPGRADE() rw_try_upgrade(&tcp_id_tree_lock)
+#define TCPID_TREE_WUNLOCK() rw_wunlock(&tcp_id_tree_lock)
+#define TCPID_TREE_RUNLOCK() rw_runlock(&tcp_id_tree_lock)
+#define TCPID_TREE_WLOCK_ASSERT() rw_assert(&tcp_id_tree_lock, RA_WLOCKED)
+#define TCPID_TREE_RLOCK_ASSERT() rw_assert(&tcp_id_tree_lock, RA_RLOCKED)
+#define TCPID_TREE_UNLOCK_ASSERT() rw_assert(&tcp_id_tree_lock, RA_UNLOCKED)
 
-#define	TCPID_BUCKET_LOCK_INIT(tlb)	mtx_init(&((tlb)->tlb_mtx), "tcp log id bucket", NULL, MTX_DEF)
-#define	TCPID_BUCKET_LOCK_DESTROY(tlb)	mtx_destroy(&((tlb)->tlb_mtx))
-#define	TCPID_BUCKET_LOCK(tlb)		mtx_lock(&((tlb)->tlb_mtx))
-#define	TCPID_BUCKET_UNLOCK(tlb)	mtx_unlock(&((tlb)->tlb_mtx))
-#define	TCPID_BUCKET_LOCK_ASSERT(tlb)	mtx_assert(&((tlb)->tlb_mtx), MA_OWNED)
-#define	TCPID_BUCKET_UNLOCK_ASSERT(tlb) mtx_assert(&((tlb)->tlb_mtx), MA_NOTOWNED)
+#define TCPID_BUCKET_LOCK_INIT(tlb) \
+	mtx_init(&((tlb)->tlb_mtx), "tcp log id bucket", NULL, MTX_DEF)
+#define TCPID_BUCKET_LOCK_DESTROY(tlb) mtx_destroy(&((tlb)->tlb_mtx))
+#define TCPID_BUCKET_LOCK(tlb) mtx_lock(&((tlb)->tlb_mtx))
+#define TCPID_BUCKET_UNLOCK(tlb) mtx_unlock(&((tlb)->tlb_mtx))
+#define TCPID_BUCKET_LOCK_ASSERT(tlb) mtx_assert(&((tlb)->tlb_mtx), MA_OWNED)
+#define TCPID_BUCKET_UNLOCK_ASSERT(tlb) \
+	mtx_assert(&((tlb)->tlb_mtx), MA_NOTOWNED)
 
-#define	TCPID_BUCKET_REF(tlb)		refcount_acquire(&((tlb)->tlb_refcnt))
-#define	TCPID_BUCKET_UNREF(tlb)		refcount_release(&((tlb)->tlb_refcnt))
+#define TCPID_BUCKET_REF(tlb) refcount_acquire(&((tlb)->tlb_refcnt))
+#define TCPID_BUCKET_UNREF(tlb) refcount_release(&((tlb)->tlb_refcnt))
 
-#define	TCPLOG_EXPIREQ_LOCK()		mtx_lock(&tcp_log_expireq_mtx)
-#define	TCPLOG_EXPIREQ_UNLOCK()		mtx_unlock(&tcp_log_expireq_mtx)
+#define TCPLOG_EXPIREQ_LOCK() mtx_lock(&tcp_log_expireq_mtx)
+#define TCPLOG_EXPIREQ_UNLOCK() mtx_unlock(&tcp_log_expireq_mtx)
 
 SLIST_HEAD(tcp_log_id_head, tcp_log_id_node);
 
-struct tcp_log_id_bucket
-{
+struct tcp_log_id_bucket {
 	/*
 	 * tlb_id must be first. This lets us use strcmp on
 	 * (struct tcp_log_id_bucket *) and (char *) interchangeably.
 	 */
-	char				tlb_id[TCP_LOG_ID_LEN];
-	char				tlb_tag[TCP_LOG_TAG_LEN];
-	RB_ENTRY(tcp_log_id_bucket)	tlb_rb;
-	struct tcp_log_id_head		tlb_head;
-	struct mtx			tlb_mtx;
-	volatile u_int			tlb_refcnt;
-	volatile u_int			tlb_reqcnt;
-	uint32_t			tlb_loglimit;
-	int8_t				tlb_logstate;
+	char tlb_id[TCP_LOG_ID_LEN];
+	char tlb_tag[TCP_LOG_TAG_LEN];
+	RB_ENTRY(tcp_log_id_bucket) tlb_rb;
+	struct tcp_log_id_head tlb_head;
+	struct mtx tlb_mtx;
+	volatile u_int tlb_refcnt;
+	volatile u_int tlb_reqcnt;
+	uint32_t tlb_loglimit;
+	int8_t tlb_logstate;
 };
 
-struct tcp_log_id_node
-{
+struct tcp_log_id_node {
 	SLIST_ENTRY(tcp_log_id_node) tln_list;
-	STAILQ_ENTRY(tcp_log_id_node) tln_expireq; /* Locked by the expireq lock */
-	sbintime_t		tln_expiretime;	/* Locked by the expireq lock */
+	STAILQ_ENTRY(tcp_log_id_node)
+	    tln_expireq;	   /* Locked by the expireq lock */
+	sbintime_t tln_expiretime; /* Locked by the expireq lock */
 
 	/*
 	 * If INP is NULL, that means the connection has closed. We've
@@ -302,14 +300,14 @@ struct tcp_log_id_node
 	 * to the enclosing bucket here. If INP is not NULL, the information is
 	 * in the PCB and not here.
 	 */
-	struct inpcb		*tln_inp;
-	struct tcpcb		*tln_tp;
+	struct inpcb *tln_inp;
+	struct tcpcb *tln_tp;
 	struct tcp_log_id_bucket *tln_bucket;
-	struct in_endpoints	tln_ie;
-	struct tcp_log_stailq	tln_entries;
-	int			tln_count;
-	volatile int		tln_closed;
-	uint8_t			tln_af;
+	struct in_endpoints tln_ie;
+	struct tcp_log_stailq tln_entries;
+	int tln_count;
+	volatile int tln_closed;
+	uint8_t tln_af;
 };
 
 enum tree_lock_state {
@@ -327,10 +325,9 @@ tcp_log_selectauto(void)
 	 * If we are doing auto-capturing, figure out whether we will capture
 	 * this session.
 	 */
-	if (tcp_log_auto_ratio &&
-	    (tcp_disable_all_bb_logs == 0) &&
+	if (tcp_log_auto_ratio && (tcp_disable_all_bb_logs == 0) &&
 	    (atomic_fetchadd_long(&tcp_log_auto_ratio_cur, 1) %
-	    tcp_log_auto_ratio) == 0)
+		tcp_log_auto_ratio) == 0)
 		return (true);
 	return (false);
 }
@@ -377,7 +374,7 @@ tcp_log_remove_bucket(struct tcp_log_id_bucket *tlb)
 	if (RB_REMOVE(tcp_log_id_tree, &tcp_log_id_head, tlb) == NULL) {
 #ifdef INVARIANTS
 		kassert_panic("%s:%d: error removing element from tree",
-			    __func__, __LINE__);
+		    __func__, __LINE__);
 #endif
 	}
 	TCPID_BUCKET_LOCK_DESTROY(tlb);
@@ -401,8 +398,8 @@ tcp_log_unref_bucket(struct tcp_log_id_bucket *tlb, int *tree_locked,
 {
 
 	KASSERT(tlb != NULL, ("%s: called with NULL tlb", __func__));
-	KASSERT(tree_locked != NULL, ("%s: called with NULL tree_locked",
-	    __func__));
+	KASSERT(tree_locked != NULL,
+	    ("%s: called with NULL tree_locked", __func__));
 
 	tcp_log_id_validate_tree_lock(*tree_locked);
 
@@ -475,10 +472,9 @@ tcp_log_remove_id_node(struct inpcb *inp, struct tcpcb *tp,
 	int orig_tree_locked;
 
 	KASSERT(tp != NULL || (tlb != NULL && tln != NULL),
-	    ("%s: called with tp=%p, tlb=%p, tln=%p", __func__,
-	    tp, tlb, tln));
-	KASSERT(tree_locked != NULL, ("%s: called with NULL tree_locked",
-	    __func__));
+	    ("%s: called with tp=%p, tlb=%p, tln=%p", __func__, tp, tlb, tln));
+	KASSERT(tree_locked != NULL,
+	    ("%s: called with NULL tree_locked", __func__));
 
 	if (tp != NULL) {
 		tlb = tp->t_lib;
@@ -506,16 +502,17 @@ tcp_log_remove_id_node(struct inpcb *inp, struct tcpcb *tp,
 	return (*tree_locked != orig_tree_locked);
 }
 
-#define	RECHECK_INP_CLEAN(cleanup)	do {			\
-	if (inp->inp_flags & INP_DROPPED) {			\
-		rv = ECONNRESET;				\
-		cleanup;					\
-		goto done;					\
-	}							\
-	tp = intotcpcb(inp);					\
-} while (0)
+#define RECHECK_INP_CLEAN(cleanup)                  \
+	do {                                        \
+		if (inp->inp_flags & INP_DROPPED) { \
+			rv = ECONNRESET;            \
+			cleanup;                    \
+			goto done;                  \
+		}                                   \
+		tp = intotcpcb(inp);                \
+	} while (0)
 
-#define	RECHECK_INP()	RECHECK_INP_CLEAN(/* noop */)
+#define RECHECK_INP() RECHECK_INP_CLEAN(/* noop */)
 
 static void
 tcp_log_grow_tlb(char *tlb_id, struct tcpcb *tp)
@@ -574,7 +571,7 @@ tcp_log_apply_ratio(struct tcpcb *tp, int ratio)
 		INP_WLOCK(inp);
 		RECHECK_INP();
 		(void)tcp_log_state_change(tp, TCP_LOG_STATE_OFF);
-done:
+	done:
 		INP_WUNLOCK(inp);
 	}
 
@@ -656,28 +653,32 @@ restart:
 	INP_WLOCK_ASSERT(inp);
 	/* See if the ID is unchanged. */
 	same = ((tp->t_lib != NULL && !strcmp(tp->t_lib->tlb_id, id)) ||
-		(tp->t_lib == NULL && *id == 0));
+	    (tp->t_lib == NULL && *id == 0));
 	if (tp->_t_logstate && STAILQ_FIRST(&tp->t_logs) && !same) {
 		/*
 		 * There are residual logs left we may
 		 * be changing id's so dump what we can.
 		 */
-		switch(tp->_t_logstate) {
+		switch (tp->_t_logstate) {
 		case TCP_LOG_STATE_HEAD_AUTO:
-			(void)tcp_log_dump_tp_logbuf(tp, "auto-dumped from head at id switch",
-						     M_NOWAIT, false);
+			(void)tcp_log_dump_tp_logbuf(tp,
+			    "auto-dumped from head at id switch", M_NOWAIT,
+			    false);
 			break;
 		case TCP_LOG_STATE_TAIL_AUTO:
-			(void)tcp_log_dump_tp_logbuf(tp, "auto-dumped from tail at id switch",
-						     M_NOWAIT, false);
+			(void)tcp_log_dump_tp_logbuf(tp,
+			    "auto-dumped from tail at id switch", M_NOWAIT,
+			    false);
 			break;
 		case TCP_LOG_STATE_CONTINUAL:
-			(void)tcp_log_dump_tp_logbuf(tp, "auto-dumped from continual at id switch",
-						     M_NOWAIT, false);
+			(void)tcp_log_dump_tp_logbuf(tp,
+			    "auto-dumped from continual at id switch", M_NOWAIT,
+			    false);
 			break;
 		case TCP_LOG_VIA_BBPOINTS:
-			(void)tcp_log_dump_tp_logbuf(tp, "auto-dumped from bbpoints at id switch",
-						     M_NOWAIT, false);
+			(void)tcp_log_dump_tp_logbuf(tp,
+			    "auto-dumped from bbpoints at id switch", M_NOWAIT,
+			    false);
 			break;
 		}
 	}
@@ -752,7 +753,8 @@ restart:
 		if (tlb == NULL || tp->t_lib != tlb) {
 			KASSERT(bucket_locked || tlb == NULL,
 			    ("%s: bucket_locked (%d) and tlb (%p) are "
-			    "inconsistent", __func__, bucket_locked, tlb));
+			     "inconsistent",
+				__func__, bucket_locked, tlb));
 
 			if (bucket_locked) {
 				TCPID_BUCKET_UNLOCK(tlb);
@@ -807,7 +809,7 @@ restart:
 		/* Get a new tln, if we don't already have one to reuse. */
 		if (tln == NULL) {
 			tln = uma_zalloc(tcp_log_id_node_zone,
-				M_NOWAIT | M_ZERO);
+			    M_NOWAIT | M_ZERO);
 			if (tln == NULL) {
 				rv = ENOBUFS;
 				goto done;
@@ -829,15 +831,15 @@ restart:
 			tree_locked = TREE_RLOCKED;
 		}
 
-refind:
+	refind:
 		/*
 		 * Remember that we constructed (struct tcp_log_id_node) so
 		 * we can safely cast the id to it for the purposes of finding.
 		 */
-		KASSERT(tlb == NULL, ("%s:%d tlb unexpectedly non-NULL",
-		    __func__, __LINE__));
+		KASSERT(tlb == NULL,
+		    ("%s:%d tlb unexpectedly non-NULL", __func__, __LINE__));
 		tmp_tlb = RB_FIND(tcp_log_id_tree, &tcp_log_id_head,
-		    (struct tcp_log_id_bucket *) id);
+		    (struct tcp_log_id_bucket *)id);
 
 		/*
 		 * If we didn't find a matching bucket, we need to add a new
@@ -869,8 +871,7 @@ refind:
 			counter_u64_add(tcp_log_pcb_ids_cur, 1);
 			counter_u64_add(tcp_log_pcb_ids_tot, 1);
 
-			if ((tcp_log_auto_all == false) &&
-			    tcp_log_auto_mode &&
+			if ((tcp_log_auto_all == false) && tcp_log_auto_mode &&
 			    tcp_log_selectauto()) {
 				/* Save off the log state */
 				tlb->tlb_logstate = tcp_log_auto_mode;
@@ -906,14 +907,15 @@ refind:
 			TCPID_BUCKET_LOCK(tlb);
 			bucket_locked = true;
 
-#define	FREE_NEW_TLB()	do {				\
-	TCPID_BUCKET_LOCK_DESTROY(tlb);			\
-	uma_zfree(tcp_log_id_bucket_zone, tlb);		\
-	counter_u64_add(tcp_log_pcb_ids_cur, (int64_t)-1);	\
-	counter_u64_add(tcp_log_pcb_ids_tot, (int64_t)-1);	\
-	bucket_locked = false;				\
-	tlb = NULL;					\
-} while (0)
+#define FREE_NEW_TLB()                                             \
+	do {                                                       \
+		TCPID_BUCKET_LOCK_DESTROY(tlb);                    \
+		uma_zfree(tcp_log_id_bucket_zone, tlb);            \
+		counter_u64_add(tcp_log_pcb_ids_cur, (int64_t)-1); \
+		counter_u64_add(tcp_log_pcb_ids_tot, (int64_t)-1); \
+		bucket_locked = false;                             \
+		tlb = NULL;                                        \
+	} while (0)
 			/*
 			 * Relock the INP and make sure we are still
 			 * unassigned.
@@ -930,7 +932,8 @@ refind:
 			    tlb);
 			KASSERT(tmp_tlb == NULL,
 			    ("%s: Unexpected conflicting bucket (%p) while "
-			    "adding new bucket (%p)", __func__, tmp_tlb, tlb));
+			     "adding new bucket (%p)",
+				__func__, tmp_tlb, tlb));
 
 			/*
 			 * If we found a conflicting bucket, free the new
@@ -941,7 +944,7 @@ refind:
 				FREE_NEW_TLB();
 				INP_WUNLOCK(inp);
 			}
-#undef	FREE_NEW_TLB
+#undef FREE_NEW_TLB
 		}
 
 		/* If we found an existing bucket, use it. */
@@ -1030,8 +1033,8 @@ tcp_log_get_id(struct tcpcb *tp, char *buf)
 	if (tp->t_lib != NULL) {
 		len = strlcpy(buf, tp->t_lib->tlb_id, TCP_LOG_ID_LEN);
 		KASSERT(len < TCP_LOG_ID_LEN,
-		    ("%s:%d: tp->t_lib->tlb_id too long (%zu)",
-		    __func__, __LINE__, len));
+		    ("%s:%d: tp->t_lib->tlb_id too long (%zu)", __func__,
+			__LINE__, len));
 	} else {
 		*buf = '\0';
 		len = 0;
@@ -1064,8 +1067,8 @@ tcp_log_get_tag(struct tcpcb *tp, char *buf)
 		TCPID_BUCKET_LOCK(tlb);
 		len = strlcpy(buf, tlb->tlb_tag, TCP_LOG_TAG_LEN);
 		KASSERT(len < TCP_LOG_TAG_LEN,
-		    ("%s:%d: tp->t_lib->tlb_tag too long (%zu)",
-		    __func__, __LINE__, len));
+		    ("%s:%d: tp->t_lib->tlb_tag too long (%zu)", __func__,
+			__LINE__, len));
 		if (!tcp_log_unref_bucket(tlb, &tree_locked, NULL))
 			TCPID_BUCKET_UNLOCK(tlb);
 
@@ -1116,8 +1119,8 @@ _tcp_log_entry_refcnt_add(struct tcp_log_mem *log_entry, const char *func,
 		panic("%s:%d: log_entry(%p)->tlm_refcnt is %d (expected 0)",
 		    func, line, log_entry, refcnt);
 }
-#define	tcp_log_entry_refcnt_add(l)	\
-    _tcp_log_entry_refcnt_add((l), __func__, __LINE__)
+#define tcp_log_entry_refcnt_add(l) \
+	_tcp_log_entry_refcnt_add((l), __func__, __LINE__)
 
 static inline void
 _tcp_log_entry_refcnt_rem(struct tcp_log_mem *log_entry, const char *func,
@@ -1130,13 +1133,13 @@ _tcp_log_entry_refcnt_rem(struct tcp_log_mem *log_entry, const char *func,
 		panic("%s:%d: log_entry(%p)->tlm_refcnt is %d (expected 1)",
 		    func, line, log_entry, refcnt);
 }
-#define	tcp_log_entry_refcnt_rem(l)	\
-    _tcp_log_entry_refcnt_rem((l), __func__, __LINE__)
+#define tcp_log_entry_refcnt_rem(l) \
+	_tcp_log_entry_refcnt_rem((l), __func__, __LINE__)
 
 #else /* !TCPLOG_DEBUG_RINGBUF */
 
-#define	tcp_log_entry_refcnt_add(l)
-#define	tcp_log_entry_refcnt_rem(l)
+#define tcp_log_entry_refcnt_add(l)
+#define tcp_log_entry_refcnt_rem(l)
 
 #endif
 
@@ -1151,8 +1154,7 @@ tcp_log_free_log_common(struct tcp_log_mem *log_entry, int *count __unused)
 	uma_zfree(tcp_log_zone, log_entry);
 #ifdef INVARIANTS
 	(*count)--;
-	KASSERT(*count >= 0,
-	    ("%s: count unexpectedly negative", __func__));
+	KASSERT(*count >= 0, ("%s: count unexpectedly negative", __func__));
 #endif
 }
 
@@ -1220,8 +1222,8 @@ tcp_log_zone_ctor(void *mem, int size, void *args __unused, int flags __unused)
 	    ("%s: unexpectedly short (%d) allocation", __func__, size));
 	tlm = (struct tcp_log_mem *)mem;
 	if (tlm->tlm_refcnt != 0)
-		panic("%s:%d: tlm(%p)->tlm_refcnt is %d (expected 0)",
-		    __func__, __LINE__, tlm, tlm->tlm_refcnt);
+		panic("%s:%d: tlm(%p)->tlm_refcnt is %d (expected 0)", __func__,
+		    __LINE__, tlm, tlm->tlm_refcnt);
 	return (0);
 }
 
@@ -1234,8 +1236,8 @@ tcp_log_zone_dtor(void *mem, int size, void *args __unused)
 	    ("%s: unexpectedly short (%d) allocation", __func__, size));
 	tlm = (struct tcp_log_mem *)mem;
 	if (tlm->tlm_refcnt != 0)
-		panic("%s:%d: tlm(%p)->tlm_refcnt is %d (expected 0)",
-		    __func__, __LINE__, tlm, tlm->tlm_refcnt);
+		panic("%s:%d: tlm(%p)->tlm_refcnt is %d (expected 0)", __func__,
+		    __LINE__, tlm, tlm->tlm_refcnt);
 }
 #endif /* TCPLOG_DEBUG_RINGBUF */
 
@@ -1290,8 +1292,7 @@ tcp_log_tcpcbinit(struct tcpcb *tp)
 	 * this session.
 	 */
 	tp->t_loglimit = tcp_log_session_limit;
-	if ((tcp_log_auto_all == true) &&
-	    tcp_log_auto_mode &&
+	if ((tcp_log_auto_all == true) && tcp_log_auto_mode &&
 	    tcp_log_selectauto()) {
 		tp->_t_logstate = tcp_log_auto_mode;
 		tp->t_flags2 |= TF2_LOG_AUTO;
@@ -1346,7 +1347,8 @@ tcp_log_expire(void *unused __unused)
 		 */
 		tlb = tln->tln_bucket;
 		TCPID_BUCKET_LOCK(tlb);
-		if (tcp_log_remove_id_node(NULL, NULL, tlb, tln, &tree_locked)) {
+		if (tcp_log_remove_id_node(NULL, NULL, tlb, tln,
+			&tree_locked)) {
 			tcp_log_id_validate_tree_lock(tree_locked);
 			if (tree_locked == TREE_WLOCKED)
 				TCPID_TREE_WUNLOCK();
@@ -1429,7 +1431,6 @@ tcp_log_tcpcbfini(struct tcpcb *tp)
 	struct tcp_log_mem *log_entry;
 	sbintime_t callouttime;
 
-
 	INP_WLOCK_ASSERT(tptoinpcb(tp));
 	if (tp->_t_logstate) {
 		union tcp_log_stackspecific log;
@@ -1443,38 +1444,31 @@ tcp_log_tcpcbfini(struct tcpcb *tp)
 			for (i = 0; i < TCP_NUM_CNT_COUNTERS; i++) {
 				log.u_raw.u64_flex[i] = tp->tcp_cnt_counters[i];
 			}
-			lgb = tcp_log_event(tp, NULL,
-				  NULL,
-				  NULL,
-				  TCP_LOG_ACCOUNTING, 0,
-				  0, &log, false, NULL, NULL, 0, &tv);
+			lgb = tcp_log_event(tp, NULL, NULL, NULL,
+			    TCP_LOG_ACCOUNTING, 0, 0, &log, false, NULL, NULL,
+			    0, &tv);
 			if (lgb != NULL) {
 				lgb->tlb_flex1 = TCP_NUM_CNT_COUNTERS;
 				lgb->tlb_flex2 = 1;
 			} else
 				goto skip_out;
-			for (i = 0; i<TCP_NUM_CNT_COUNTERS; i++) {
+			for (i = 0; i < TCP_NUM_CNT_COUNTERS; i++) {
 				log.u_raw.u64_flex[i] = tp->tcp_proc_time[i];
 			}
-			lgb = tcp_log_event(tp, NULL,
-				 NULL,
-				 NULL,
-				 TCP_LOG_ACCOUNTING, 0,
-				 0, &log, false, NULL, NULL, 0, &tv);
+			lgb = tcp_log_event(tp, NULL, NULL, NULL,
+			    TCP_LOG_ACCOUNTING, 0, 0, &log, false, NULL, NULL,
+			    0, &tv);
 			if (lgb != NULL) {
 				lgb->tlb_flex1 = TCP_NUM_CNT_COUNTERS;
 				lgb->tlb_flex2 = 2;
 			}
 		}
-skip_out:
+	skip_out:
 #endif
 		log.u_bbr.timeStamp = tcp_get_usecs(&tv);
 		log.u_bbr.cur_del_rate = tp->t_end_info;
-		(void)tcp_log_event(tp, NULL,
-	                 NULL,
-			 NULL,
-		         TCP_LOG_CONNEND, 0,
-		         0, &log, false, NULL, NULL, 0,  &tv);
+		(void)tcp_log_event(tp, NULL, NULL, NULL, TCP_LOG_CONNEND, 0, 0,
+		    &log, false, NULL, NULL, 0, &tv);
 	}
 	/*
 	 * If we were gathering packets to be automatically dumped, try to do
@@ -1482,7 +1476,7 @@ skip_out:
 	 * cleared. Otherwise, we'll handle the log information as we do
 	 * for other states.
 	 */
-	switch(tp->_t_logstate) {
+	switch (tp->_t_logstate) {
 	case TCP_LOG_STATE_HEAD_AUTO:
 		(void)tcp_log_dump_tp_logbuf(tp, "auto-dumped from head",
 		    M_NOWAIT, false);
@@ -1542,7 +1536,7 @@ skip_out:
 		tln = tp->t_lin;
 		KASSERT(tln->tln_inp == inp,
 		    ("%s: Mismatched inp (tln->tln_inp=%p, tp inpcb=%p)",
-		    __func__, tln->tln_inp, inp));
+			__func__, tln->tln_inp, inp));
 		tcp_log_move_tp_to_node(tp, tln);
 
 		/* Clear information from the PCB. */
@@ -1589,9 +1583,9 @@ skip_out:
 			tln_first = STAILQ_FIRST(&tcp_log_expireq_head);
 
 			if ((tln_first == NULL ||
-			    callouttime < tln_first->tln_expiretime) &&
+				callouttime < tln_first->tln_expiretime) &&
 			    (callout_pending(&tcp_log_expireq_callout) ||
-			    !callout_active(&tcp_log_expireq_callout))) {
+				!callout_active(&tcp_log_expireq_callout))) {
 				/*
 				 * The list is empty, or we want to run the
 				 * expire code before the first entry's timer
@@ -1659,8 +1653,8 @@ tcp_log_purge_tp_logbuf(struct tcpcb *tp)
 	while ((log_entry = STAILQ_FIRST(&tp->t_logs)) != NULL)
 		tcp_log_remove_log_head(tp, log_entry);
 	KASSERT(tp->t_lognum == 0,
-		("%s: After freeing entries, tp->t_lognum=%d (expected 0)",
-		 __func__, tp->t_lognum));
+	    ("%s: After freeing entries, tp->t_lognum=%d (expected 0)",
+		__func__, tp->t_lognum));
 	tp->_t_logstate = TCP_LOG_STATE_OFF;
 }
 
@@ -1674,7 +1668,8 @@ struct tcp_log_buffer *
 tcp_log_event(struct tcpcb *tp, struct tcphdr *th, struct sockbuf *rxbuf,
     struct sockbuf *txbuf, uint8_t eventid, int errornum, uint32_t len,
     union tcp_log_stackspecific *stackinfo, int th_hostorder,
-    const char *output_caller, const char *func, int line, const struct timeval *itv)
+    const char *output_caller, const char *func, int line,
+    const struct timeval *itv)
 {
 	struct tcp_log_mem *log_entry;
 	struct tcp_log_buffer *log_buf;
@@ -1699,11 +1694,11 @@ tcp_log_event(struct tcpcb *tp, struct tcphdr *th, struct sockbuf *rxbuf,
 		return (NULL);
 	}
 	KASSERT(tp->_t_logstate == TCP_LOG_STATE_HEAD ||
-	    tp->_t_logstate == TCP_LOG_STATE_TAIL ||
-	    tp->_t_logstate == TCP_LOG_STATE_CONTINUAL ||
-	    tp->_t_logstate == TCP_LOG_STATE_HEAD_AUTO ||
-	    tp->_t_logstate == TCP_LOG_VIA_BBPOINTS ||
-	    tp->_t_logstate == TCP_LOG_STATE_TAIL_AUTO,
+		tp->_t_logstate == TCP_LOG_STATE_TAIL ||
+		tp->_t_logstate == TCP_LOG_STATE_CONTINUAL ||
+		tp->_t_logstate == TCP_LOG_STATE_HEAD_AUTO ||
+		tp->_t_logstate == TCP_LOG_VIA_BBPOINTS ||
+		tp->_t_logstate == TCP_LOG_STATE_TAIL_AUTO,
 	    ("%s called with unexpected tp->_t_logstate (%d)", __func__,
 		tp->_t_logstate));
 
@@ -1738,7 +1733,7 @@ retry:
 			if (tcp_log_state_change(tp, TCP_LOG_STATE_CLEAR)) {
 #ifdef INVARIANTS
 				panic("%s:%d: tcp_log_state_change() failed "
-				    "to set tp %p to TCP_LOG_STATE_CLEAR",
+				      "to set tp %p to TCP_LOG_STATE_CLEAR",
 				    __func__, __LINE__, tp);
 #endif
 				tp->_t_logstate = TCP_LOG_STATE_OFF;
@@ -1752,12 +1747,12 @@ retry:
 		 */
 		if (tp->_t_logstate == TCP_LOG_STATE_HEAD_AUTO &&
 		    !tcp_log_dump_tp_logbuf(tp, "auto-dumped from head",
-		    M_NOWAIT, false)) {
+			M_NOWAIT, false)) {
 			tp->_t_logstate = TCP_LOG_STATE_OFF;
-			return(NULL);
+			return (NULL);
 		} else if ((tp->_t_logstate == TCP_LOG_STATE_CONTINUAL) &&
 		    !tcp_log_dump_tp_logbuf(tp, "auto-dumped from continual",
-		    M_NOWAIT, false)) {
+			M_NOWAIT, false)) {
 			if (attempt_count == 0) {
 				attempt_count++;
 				goto retry;
@@ -1765,11 +1760,11 @@ retry:
 #ifdef TCPLOG_DEBUG_COUNTERS
 			counter_u64_add(tcp_log_que_fail4, 1);
 #endif
-			return(NULL);
+			return (NULL);
 
 		} else if ((tp->_t_logstate == TCP_LOG_VIA_BBPOINTS) &&
 		    !tcp_log_dump_tp_logbuf(tp, "auto-dumped from bbpoints",
-		    M_NOWAIT, false)) {
+			M_NOWAIT, false)) {
 			if (attempt_count == 0) {
 				attempt_count++;
 				goto retry;
@@ -1777,14 +1772,14 @@ retry:
 #ifdef TCPLOG_DEBUG_COUNTERS
 			counter_u64_add(tcp_log_que_fail4, 1);
 #endif
-			return(NULL);
+			return (NULL);
 		} else if (tp->_t_logstate == TCP_LOG_STATE_HEAD_AUTO)
-			return(NULL);
+			return (NULL);
 
 		/* If in HEAD state, just deactivate the tracing and return. */
 		if (tp->_t_logstate == TCP_LOG_STATE_HEAD) {
 			tp->_t_logstate = TCP_LOG_STATE_OFF;
-			return(NULL);
+			return (NULL);
 		}
 		/*
 		 * Get a buffer to reuse. If that fails, just give up.
@@ -1796,7 +1791,7 @@ retry:
 		 * number won't change.
 		 */
 		if ((log_entry = STAILQ_FIRST(&tp->t_logs)) == NULL)
-			return(NULL);
+			return (NULL);
 		STAILQ_REMOVE_HEAD(&tp->t_logs, tlm_queue);
 		tcp_log_entry_refcnt_rem(log_entry);
 	}
@@ -1840,8 +1835,8 @@ retry:
 		log_buf->tlb_txbuf.tls_sb_ccc = 0;
 	}
 	/* Copy values from tp to the log entry. */
-#define	COPY_STAT(f)	log_buf->tlb_ ## f = tp->f
-#define	COPY_STAT_T(f)	log_buf->tlb_ ## f = tp->t_ ## f
+#define COPY_STAT(f) log_buf->tlb_##f = tp->f
+#define COPY_STAT_T(f) log_buf->tlb_##f = tp->t_##f
 	COPY_STAT_T(state);
 	COPY_STAT_T(starttime);
 	COPY_STAT(iss);
@@ -1885,7 +1880,7 @@ retry:
 		log_buf->tlb_th = *th;
 		if (th_hostorder)
 			tcp_fields_to_net(&log_buf->tlb_th);
-		optlen = (th->th_off << 2) - sizeof (struct tcphdr);
+		optlen = (th->th_off << 2) - sizeof(struct tcphdr);
 		if (optlen > 0)
 			memcpy(log_buf->tlb_opts, th + 1, optlen);
 	} else {
@@ -1922,7 +1917,7 @@ tcp_log_state_change(struct tcpcb *tp, int state)
 
 	INP_WLOCK_ASSERT(tptoinpcb(tp));
 	rv = 0;
-	switch(state) {
+	switch (state) {
 	case TCP_LOG_STATE_CLEAR:
 		while ((log_entry = STAILQ_FIRST(&tp->t_logs)) != NULL)
 			tcp_log_remove_log_head(tp, log_entry);
@@ -1997,7 +1992,7 @@ tcp_log_drain(struct tcpcb *tp)
 	 */
 	if (tp->_t_logstate == TCP_LOG_STATE_HEAD) {
 		skip = tp->t_lognum - target;
-		STAILQ_FOREACH(log_entry, &tp->t_logs, tlm_queue)
+		STAILQ_FOREACH (log_entry, &tp->t_logs, tlm_queue)
 			if (!--skip)
 				break;
 		KASSERT(log_entry != NULL,
@@ -2016,11 +2011,11 @@ tcp_log_drain(struct tcpcb *tp)
 		    ("%s: After removing from tail, target was %d", __func__,
 			target));
 	} else if (tp->_t_logstate == TCP_LOG_STATE_HEAD_AUTO) {
-		(void)tcp_log_dump_tp_logbuf(tp, "auto-dumped from head at drain",
-		    M_NOWAIT, false);
+		(void)tcp_log_dump_tp_logbuf(tp,
+		    "auto-dumped from head at drain", M_NOWAIT, false);
 	} else if (tp->_t_logstate == TCP_LOG_STATE_TAIL_AUTO) {
-		(void)tcp_log_dump_tp_logbuf(tp, "auto-dumped from tail at drain",
-		    M_NOWAIT, false);
+		(void)tcp_log_dump_tp_logbuf(tp,
+		    "auto-dumped from tail at drain", M_NOWAIT, false);
 	} else if (tp->_t_logstate == TCP_LOG_VIA_BBPOINTS) {
 		(void)tcp_log_dump_tp_logbuf(tp, "auto-dumped from bbpoints",
 		    M_NOWAIT, false);
@@ -2028,8 +2023,8 @@ tcp_log_drain(struct tcpcb *tp)
 		(void)tcp_log_dump_tp_logbuf(tp, "auto-dumped from continual",
 		    M_NOWAIT, false);
 	} else {
-		while ((log_entry = STAILQ_FIRST(&tp->t_logs)) != NULL &&
-		    target--)
+		while (
+		    (log_entry = STAILQ_FIRST(&tp->t_logs)) != NULL && target--)
 			tcp_log_remove_log_head(tp, log_entry);
 		KASSERT(target <= 0,
 		    ("%s: After removing from head, target was %d", __func__,
@@ -2067,12 +2062,12 @@ tcp_log_logs_to_buf(struct sockopt *sopt, struct tcp_log_stailq *log_tailqp,
 
 	/* Copy the data out. */
 	error = 0;
-	out_entry = (struct tcp_log_buffer *) sopt->sopt_val;
-	STAILQ_FOREACH(log_entry, log_tailqp, tlm_queue) {
+	out_entry = (struct tcp_log_buffer *)sopt->sopt_val;
+	STAILQ_FOREACH (log_entry, log_tailqp, tlm_queue) {
 		count--;
 		KASSERT(count >= 0,
 		    ("%s:%d: Exceeded expected count (%d) processing list %p",
-		    __func__, __LINE__, orig_count, log_tailqp));
+			__func__, __LINE__, orig_count, log_tailqp));
 
 #ifdef TCPLOG_DEBUG_COUNTERS
 		counter_u64_add(tcp_log_que_copyout, 1);
@@ -2108,17 +2103,18 @@ tcp_log_logs_to_buf(struct sockopt *sopt, struct tcp_log_stailq *log_tailqp,
 			    sizeof(struct tcp_log_verbose));
 			if (error)
 				break;
-			out_entry = (struct tcp_log_buffer *)
-			    (((uint8_t *) (out_entry + 1)) +
-			    sizeof(struct tcp_log_verbose));
+			out_entry =
+			    (struct tcp_log_buffer *)(((uint8_t *)(out_entry +
+							  1)) +
+				sizeof(struct tcp_log_verbose));
 		} else
 			out_entry++;
 	}
 	*end = out_entry;
 	KASSERT(error || count == 0,
 	    ("%s:%d: Less than expected count (%d) processing list %p"
-	    " (%d remain)", __func__, __LINE__, orig_count,
-	    log_tailqp, count));
+	     " (%d remain)",
+		__func__, __LINE__, orig_count, log_tailqp, count));
 
 	return (error);
 }
@@ -2151,8 +2147,10 @@ tcp_log_getlogbuf(struct sockopt *sopt, struct tcpcb *tp)
 	 * INVARIANTS.)
 	 */
 #ifndef INVARIANTS
-	if (sopt->sopt_valsize / (sizeof(struct tcp_log_buffer) +
-	    sizeof(struct tcp_log_verbose)) >= tp->t_lognum) {
+	if (sopt->sopt_valsize /
+		(sizeof(struct tcp_log_buffer) +
+		    sizeof(struct tcp_log_verbose)) >=
+	    tp->t_lognum) {
 		log_entry = STAILQ_LAST(&tp->t_logs, tcp_log_mem, tlm_queue);
 		log_next = NULL;
 		outsize = 0;
@@ -2161,10 +2159,9 @@ tcp_log_getlogbuf(struct sockopt *sopt, struct tcpcb *tp)
 #endif
 		outsize = outnum = 0;
 		log_entry = NULL;
-		STAILQ_FOREACH(log_next, &tp->t_logs, tlm_queue) {
+		STAILQ_FOREACH (log_next, &tp->t_logs, tlm_queue) {
 			entrysize = sizeof(struct tcp_log_buffer);
-			if (log_next->tlm_buf.tlb_eventflags &
-			    TLB_FLAG_VERBOSE)
+			if (log_next->tlm_buf.tlb_eventflags & TLB_FLAG_VERBOSE)
 				entrysize += sizeof(struct tcp_log_verbose);
 			if ((sopt->sopt_valsize - outsize) < entrysize)
 				break;
@@ -2174,7 +2171,8 @@ tcp_log_getlogbuf(struct sockopt *sopt, struct tcpcb *tp)
 		}
 		KASSERT(outsize <= sopt->sopt_valsize,
 		    ("%s: calculated output size (%zu) greater than available"
-			"space (%zu)", __func__, outsize, sopt->sopt_valsize));
+		     "space (%zu)",
+			__func__, outsize, sopt->sopt_valsize));
 #ifndef INVARIANTS
 	}
 #endif
@@ -2189,8 +2187,9 @@ tcp_log_getlogbuf(struct sockopt *sopt, struct tcpcb *tp)
 	if (sopt->sopt_val == NULL) {
 		INP_WUNLOCK(inp);
 		if (outsize == 0) {
-			outsize = outnum * (sizeof(struct tcp_log_buffer) +
-			    sizeof(struct tcp_log_verbose));
+			outsize = outnum *
+			    (sizeof(struct tcp_log_buffer) +
+				sizeof(struct tcp_log_verbose));
 		}
 		if (sopt->sopt_valsize > outsize)
 			sopt->sopt_valsize = outsize;
@@ -2227,8 +2226,9 @@ tcp_log_getlogbuf(struct sockopt *sopt, struct tcpcb *tp)
 		STAILQ_FIRST(&tp->t_logs) = STAILQ_NEXT(log_entry, tlm_queue);
 		KASSERT(STAILQ_NEXT(log_entry, tlm_queue) != NULL,
 		    ("%s:%d: tp->t_logs is unexpectedly shorter than expected"
-		    "(tp: %p, log_tailq: %p, outnum: %d, tp->t_lognum: %d)",
-		    __func__, __LINE__, tp, &log_tailq, outnum, tp->t_lognum));
+		     "(tp: %p, log_tailq: %p, outnum: %d, tp->t_lognum: %d)",
+			__func__, __LINE__, tp, &log_tailq, outnum,
+			tp->t_lognum));
 		STAILQ_NEXT(log_entry, tlm_queue) = NULL;
 		log_tailq.stqh_last = &STAILQ_NEXT(log_entry, tlm_queue);
 		tp->t_lognum -= outnum;
@@ -2255,14 +2255,17 @@ tcp_log_getlogbuf(struct sockopt *sopt, struct tcpcb *tp)
 		INP_WUNLOCK(inp);
 	} else {
 		/* Sanity check entries */
-		KASSERT(((caddr_t)out_entry - (caddr_t)sopt->sopt_val)  ==
-		    outsize, ("%s: Actual output size (%zu) != "
-			"calculated output size (%zu)", __func__,
+		KASSERT(((caddr_t)out_entry - (caddr_t)sopt->sopt_val) ==
+			outsize,
+		    ("%s: Actual output size (%zu) != "
+		     "calculated output size (%zu)",
+			__func__,
 			(size_t)((caddr_t)out_entry - (caddr_t)sopt->sopt_val),
 			outsize));
 
 		/* Free the entries we just copied out. */
-		STAILQ_FOREACH_SAFE(log_entry, &log_tailq, tlm_queue, log_next) {
+		STAILQ_FOREACH_SAFE (log_entry, &log_tailq, tlm_queue,
+		    log_next) {
 			tcp_log_entry_refcnt_rem(log_entry);
 			uma_zfree(tcp_log_zone, log_entry);
 		}
@@ -2308,8 +2311,9 @@ tcp_log_expandlogbuf(struct tcp_log_dev_queue *param)
 
 	/* Take a worst-case guess at space needs. */
 	sopt.sopt_valsize = sizeof(struct tcp_log_header) +
-	    entry->tldl_count * (sizeof(struct tcp_log_buffer) +
-	    sizeof(struct tcp_log_verbose));
+	    entry->tldl_count *
+		(sizeof(struct tcp_log_buffer) +
+		    sizeof(struct tcp_log_verbose));
 	hdr = malloc(sopt.sopt_valsize, M_TCPLOGDEV, M_NOWAIT);
 	if (hdr == NULL) {
 #ifdef TCPLOG_DEBUG_COUNTERS
@@ -2496,10 +2500,10 @@ tcp_log_dump_node_logbuf(struct tcp_log_id_node *tln, char *reason, int how)
 	TCPID_BUCKET_LOCK_ASSERT(tlb);
 	KASSERT(tlb->tlb_refcnt > 0,
 	    ("%s:%d: Called with unreferenced bucket (tln=%p, tlb=%p)",
-	    __func__, __LINE__, tln, tlb));
+		__func__, __LINE__, tln, tlb));
 	KASSERT(tln->tln_closed,
-	    ("%s:%d: Called for node with tln_closed==false (tln=%p)",
-	    __func__, __LINE__, tln));
+	    ("%s:%d: Called for node with tln_closed==false (tln=%p)", __func__,
+		__LINE__, tln));
 
 	/* If there are no log entries, there is nothing to do. */
 	if (tln->tln_count == 0)
@@ -2552,7 +2556,7 @@ tcp_log_dump_node_logbuf(struct tcp_log_id_node *tln, char *reason, int how)
  * NOTE: This should be called with a locked bucket; however, the function
  * will drop the lock.
  */
-#define	LOCAL_SAVE	10
+#define LOCAL_SAVE 10
 static void
 tcp_log_dumpbucketlogs(struct tcp_log_id_bucket *tlb, char *reason)
 {
@@ -2583,7 +2587,7 @@ tcp_log_dumpbucketlogs(struct tcp_log_id_bucket *tlb, char *reason)
 	num_local_entries = 0;
 	prev_tln = NULL;
 	tree_locked = TREE_UNLOCKED;
-	SLIST_FOREACH_SAFE(cur_tln, &tlb->tlb_head, tln_list, tmp_tln) {
+	SLIST_FOREACH_SAFE (cur_tln, &tlb->tlb_head, tln_list, tmp_tln) {
 		/*
 		 * If this isn't associated with a TCPCB, we can pull it off
 		 * the list now. We need to be careful that the expire timer
@@ -2591,7 +2595,7 @@ tcp_log_dumpbucketlogs(struct tcp_log_id_bucket *tlb, char *reason)
 		 * If so, we let the expire timer code free the data.
 		 */
 		if (cur_tln->tln_closed) {
-no_inp:
+		no_inp:
 			/*
 			 * Get the expireq lock so we can get a consistent
 			 * read of tln_expiretime and so we can remove this
@@ -2606,9 +2610,10 @@ no_inp:
 			 * We ignore entries with tln_expiretime == SBT_MAX.
 			 * The expire timer code already owns those.
 			 */
-			KASSERT(cur_tln->tln_expiretime > (sbintime_t) 0,
+			KASSERT(cur_tln->tln_expiretime > (sbintime_t)0,
 			    ("%s:%d: node on the expire queue without positive "
-			    "expire time", __func__, __LINE__));
+			     "expire time",
+				__func__, __LINE__));
 			if (cur_tln->tln_expiretime == SBT_MAX) {
 				prev_tln = cur_tln;
 				continue;
@@ -2653,7 +2658,7 @@ no_inp:
 			}
 
 			if (tcp_log_dump_node_logbuf(cur_tln, reason,
-			    M_NOWAIT)) {
+				M_NOWAIT)) {
 				/*
 				 * If we have sapce, save the entries locally.
 				 * Otherwise, free them.
@@ -2723,8 +2728,9 @@ no_inp:
 			    &local_entries[num_local_entries]);
 			local_entries[num_local_entries].tln_closed = 1;
 			KASSERT(local_entries[num_local_entries].tln_bucket ==
-			    tlb, ("%s: %d: bucket mismatch for node %p",
-			    __func__, __LINE__, cur_tln));
+				tlb,
+			    ("%s: %d: bucket mismatch for node %p", __func__,
+				__LINE__, cur_tln));
 			num_local_entries++;
 		}
 
@@ -2780,7 +2786,7 @@ done:
 	if (expireq_locked)
 		TCPLOG_EXPIREQ_UNLOCK();
 }
-#undef	LOCAL_SAVE
+#undef LOCAL_SAVE
 
 /*
  * Queue the log buffers for all sessions in a bucket for transmissions via
@@ -2841,7 +2847,7 @@ tcp_log_flowend(struct tcpcb *tp)
 	if (tp->_t_logstate != TCP_LOG_STATE_OFF) {
 		struct socket *so = tptosocket(tp);
 		TCP_LOG_EVENT(tp, NULL, &so->so_rcv, &so->so_snd,
-				TCP_LOG_FLOWEND, 0, 0, NULL, false);
+		    TCP_LOG_FLOWEND, 0, 0, NULL, false);
 	}
 }
 
@@ -2878,10 +2884,9 @@ tcp_log_sendfile(struct socket *so, off_t offset, size_t nbytes, int flags)
 		log.u_sf.length = nbytes;
 		log.u_sf.flags = flags;
 
-		TCP_LOG_EVENTP(tp, NULL,
-		    &tptosocket(tp)->so_rcv,
-		    &tptosocket(tp)->so_snd,
-		    TCP_LOG_SENDFILE, 0, 0, &log, false, &tv);
+		TCP_LOG_EVENTP(tp, NULL, &tptosocket(tp)->so_rcv,
+		    &tptosocket(tp)->so_snd, TCP_LOG_SENDFILE, 0, 0, &log,
+		    false, &tv);
 	}
 #ifdef TCP_REQUEST_TRK
 	if (tp->t_tcpreq_req == 0) {
@@ -2893,7 +2898,7 @@ tcp_log_sendfile(struct socket *so, off_t offset, size_t nbytes, int flags)
 		/* No closed end req to track */
 		goto skip_closed_req;
 	}
-	for(i = 0; i < MAX_TCP_TRK_REQ; i++) {
+	for (i = 0; i < MAX_TCP_TRK_REQ; i++) {
 		/* Lets see if this one can be found */
 		ent = &tp->t_tcpreq_info[i];
 		if (ent->flags == TCP_TRK_TRACK_FLG_EMPTY) {
@@ -2910,7 +2915,7 @@ tcp_log_sendfile(struct socket *so, off_t offset, size_t nbytes, int flags)
 		}
 		/* If we reach here its a allocated closed end request */
 		if ((ent->start == offset) ||
-		    ((offset > ent->start) && (offset < ent->end))){
+		    ((offset > ent->start) && (offset < ent->end))) {
 			/* Its within this request?? */
 			fnd = 1;
 		}
@@ -2920,32 +2925,39 @@ tcp_log_sendfile(struct socket *so, off_t offset, size_t nbytes, int flags)
 			 */
 			ent->flags |= TCP_TRK_TRACK_FLG_SEQV;
 			/*
-			 * When an entry completes we can take (snd_una + sb_cc) and know where
-			 * the end of the range really is. Note that this works since two
-			 * requests must be sequential and sendfile now is complete for *this* request.
-			 * we must use sb_ccc since the data may still be in-flight in TLS.
+			 * When an entry completes we can take (snd_una + sb_cc)
+			 * and know where the end of the range really is. Note
+			 * that this works since two requests must be sequential
+			 * and sendfile now is complete for *this* request. we
+			 * must use sb_ccc since the data may still be in-flight
+			 * in TLS.
 			 *
-			 * We always cautiously move the end_seq only if our calculations
-			 * show it happened (just in case sf has the call to here at the wrong
-			 * place). When we go COMP we will stop coming here and hopefully be
-			 * left with the correct end_seq.
+			 * We always cautiously move the end_seq only if our
+			 * calculations show it happened (just in case sf has
+			 * the call to here at the wrong place). When we go COMP
+			 * we will stop coming here and hopefully be left with
+			 * the correct end_seq.
 			 */
-			if (SEQ_GT((tp->snd_una + so->so_snd.sb_ccc), ent->end_seq))
+			if (SEQ_GT((tp->snd_una + so->so_snd.sb_ccc),
+				ent->end_seq))
 				ent->end_seq = tp->snd_una + so->so_snd.sb_ccc;
 			if ((offset + nbytes) >= ent->end) {
 				ent->flags |= TCP_TRK_TRACK_FLG_COMP;
-				tcp_req_log_req_info(tp, ent, i, TCP_TRK_REQ_LOG_COMPLETE, offset, nbytes);
+				tcp_req_log_req_info(tp, ent, i,
+				    TCP_TRK_REQ_LOG_COMPLETE, offset, nbytes);
 			} else {
-				tcp_req_log_req_info(tp, ent, i, TCP_TRK_REQ_LOG_MOREYET, offset, nbytes);
+				tcp_req_log_req_info(tp, ent, i,
+				    TCP_TRK_REQ_LOG_MOREYET, offset, nbytes);
 			}
-			/* We assume that sendfile never sends overlapping requests */
+			/* We assume that sendfile never sends overlapping
+			 * requests */
 			goto done;
 		}
 	}
 skip_closed_req:
 	if (!fnd) {
 		/* Ok now lets look for open requests */
-		for(i = 0; i < MAX_TCP_TRK_REQ; i++) {
+		for (i = 0; i < MAX_TCP_TRK_REQ; i++) {
 			ent = &tp->t_tcpreq_info[i];
 			if (ent->flags == TCP_TRK_TRACK_FLG_EMPTY) {
 				/* Not used */

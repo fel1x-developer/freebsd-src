@@ -66,9 +66,9 @@ extern "C" {
 #endif // __cplusplus
 
 #include <dev/isci/scil/intel_sas.h>
-#include <dev/isci/scil/sci_types.h>
-#include <dev/isci/scil/sci_status.h>
 #include <dev/isci/scil/sci_base_request.h>
+#include <dev/isci/scil/sci_status.h>
+#include <dev/isci/scil/sci_types.h>
 
 struct SCIF_SAS_REQUEST;
 struct SCIF_SAS_IO_REQUEST;
@@ -76,60 +76,42 @@ struct SCIF_SAS_CONTROLLER;
 struct SCIF_SAS_REMOTE_DEVICE;
 struct SCIF_SAS_INTERNAL_IO_REQUEST;
 
-void scif_sas_smp_request_construct(
-   struct SCIF_SAS_REQUEST * fw_io,
-   SMP_REQUEST_T * smp_command
-);
+void scif_sas_smp_request_construct(struct SCIF_SAS_REQUEST *fw_io,
+    SMP_REQUEST_T *smp_command);
 
-void * scif_sas_smp_request_construct_report_general(
-   struct SCIF_SAS_CONTROLLER    * fw_controller,
-   struct SCIF_SAS_REMOTE_DEVICE * fw_device
-);
+void *scif_sas_smp_request_construct_report_general(
+    struct SCIF_SAS_CONTROLLER *fw_controller,
+    struct SCIF_SAS_REMOTE_DEVICE *fw_device);
 
-void * scif_sas_smp_request_construct_report_manufacturer_info(
-   struct SCIF_SAS_CONTROLLER    * fw_controller,
-   struct SCIF_SAS_REMOTE_DEVICE * fw_device
-);
+void *scif_sas_smp_request_construct_report_manufacturer_info(
+    struct SCIF_SAS_CONTROLLER *fw_controller,
+    struct SCIF_SAS_REMOTE_DEVICE *fw_device);
 
-void * scif_sas_smp_request_construct_discover(
-   struct SCIF_SAS_CONTROLLER    * fw_controller,
-   struct SCIF_SAS_REMOTE_DEVICE * fw_device,
-   U8                              phy_identifier,
-   void                          * external_request_object,
-   void                          * external_memory
-);
+void *scif_sas_smp_request_construct_discover(
+    struct SCIF_SAS_CONTROLLER *fw_controller,
+    struct SCIF_SAS_REMOTE_DEVICE *fw_device, U8 phy_identifier,
+    void *external_request_object, void *external_memory);
 
-void * scif_sas_smp_request_construct_report_phy_sata(
-   struct SCIF_SAS_CONTROLLER    * fw_controller,
-   struct SCIF_SAS_REMOTE_DEVICE * fw_device,
-   U8                              phy_identifier
-);
+void *scif_sas_smp_request_construct_report_phy_sata(
+    struct SCIF_SAS_CONTROLLER *fw_controller,
+    struct SCIF_SAS_REMOTE_DEVICE *fw_device, U8 phy_identifier);
 
-void * scif_sas_smp_request_construct_phy_control(
-   struct SCIF_SAS_CONTROLLER    * fw_controller,
-   struct SCIF_SAS_REMOTE_DEVICE * fw_device,
-   U8                         phy_operation,
-   U8                         phy_identifier,
-   void                     * external_request_object,
-   void                     * external_memory
-);
+void *scif_sas_smp_request_construct_phy_control(
+    struct SCIF_SAS_CONTROLLER *fw_controller,
+    struct SCIF_SAS_REMOTE_DEVICE *fw_device, U8 phy_operation,
+    U8 phy_identifier, void *external_request_object, void *external_memory);
 
-void * scif_sas_smp_request_construct_config_route_info(
-   struct SCIF_SAS_CONTROLLER    * fw_controller,
-   struct SCIF_SAS_REMOTE_DEVICE * fw_device,
-   U8                              phy_id,
-   U16                             route_index,
-   SCI_SAS_ADDRESS_T               destination_sas_Address,
-   BOOL                            disable_expander_route_entry
-);
+void *scif_sas_smp_request_construct_config_route_info(
+    struct SCIF_SAS_CONTROLLER *fw_controller,
+    struct SCIF_SAS_REMOTE_DEVICE *fw_device, U8 phy_id, U16 route_index,
+    SCI_SAS_ADDRESS_T destination_sas_Address,
+    BOOL disable_expander_route_entry);
 
 SCI_STATUS scif_sas_smp_internal_request_retry(
-   struct SCIF_SAS_REMOTE_DEVICE * fw_device
-);
+    struct SCIF_SAS_REMOTE_DEVICE *fw_device);
 
 SCI_STATUS scif_sas_smp_external_request_retry(
-   struct SCIF_SAS_IO_REQUEST    * old_io
-);
+    struct SCIF_SAS_IO_REQUEST *old_io);
 
 #ifdef __cplusplus
 }

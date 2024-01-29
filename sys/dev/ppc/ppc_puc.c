@@ -29,18 +29,17 @@
  */
 
 #include <sys/param.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/bus.h>
 
 #include <machine/bus.h>
 
-#include <dev/puc/puc_bus.h>
-
-#include <dev/ppbus/ppbconf.h>
 #include <dev/ppbus/ppb_msq.h>
-#include <dev/ppc/ppcvar.h>
+#include <dev/ppbus/ppbconf.h>
 #include <dev/ppc/ppcreg.h>
+#include <dev/ppc/ppcvar.h>
+#include <dev/puc/puc_bus.h>
 
 #include "ppbus_if.h"
 
@@ -48,24 +47,23 @@ static int ppc_puc_probe(device_t dev);
 
 static device_method_t ppc_puc_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		ppc_puc_probe),
-	DEVMETHOD(device_attach,	ppc_attach),
-	DEVMETHOD(device_detach,	ppc_detach),
+	DEVMETHOD(device_probe, ppc_puc_probe),
+	DEVMETHOD(device_attach, ppc_attach),
+	DEVMETHOD(device_detach, ppc_detach),
 
 	/* bus interface */
-	DEVMETHOD(bus_read_ivar,	ppc_read_ivar),
-	DEVMETHOD(bus_write_ivar,	ppc_write_ivar),
-	DEVMETHOD(bus_alloc_resource,	ppc_alloc_resource),
-	DEVMETHOD(bus_release_resource,	ppc_release_resource),
+	DEVMETHOD(bus_read_ivar, ppc_read_ivar),
+	DEVMETHOD(bus_write_ivar, ppc_write_ivar),
+	DEVMETHOD(bus_alloc_resource, ppc_alloc_resource),
+	DEVMETHOD(bus_release_resource, ppc_release_resource),
 
 	/* ppbus interface */
-	DEVMETHOD(ppbus_io,		ppc_io),
-	DEVMETHOD(ppbus_exec_microseq,	ppc_exec_microseq),
-	DEVMETHOD(ppbus_reset_epp,	ppc_reset_epp),
-	DEVMETHOD(ppbus_setmode,	ppc_setmode),
-	DEVMETHOD(ppbus_ecp_sync,	ppc_ecp_sync),
-	DEVMETHOD(ppbus_read,		ppc_read),
-	DEVMETHOD(ppbus_write,		ppc_write),
+	DEVMETHOD(ppbus_io, ppc_io),
+	DEVMETHOD(ppbus_exec_microseq, ppc_exec_microseq),
+	DEVMETHOD(ppbus_reset_epp, ppc_reset_epp),
+	DEVMETHOD(ppbus_setmode, ppc_setmode),
+	DEVMETHOD(ppbus_ecp_sync, ppc_ecp_sync),
+	DEVMETHOD(ppbus_read, ppc_read), DEVMETHOD(ppbus_write, ppc_write),
 	{ 0, 0 }
 };
 

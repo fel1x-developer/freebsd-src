@@ -36,7 +36,6 @@
 #include <sys/sysctl.h>
 
 #include <dev/fdt/simplebus.h>
-
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
@@ -46,13 +45,12 @@
 #include <arm/broadcom/bcm2835/bcm2835_vcbus.h>
 
 struct bcm2835_firmware_softc {
-	struct simplebus_softc	sc;
-	phandle_t	sc_mbox;
+	struct simplebus_softc sc;
+	phandle_t sc_mbox;
 };
 
 static struct ofw_compat_data compat_data[] = {
-	{"raspberrypi,bcm2835-firmware",	1},
-	{NULL,					0}
+	{ "raspberrypi,bcm2835-firmware", 1 }, { NULL, 0 }
 };
 
 static int sysctl_bcm2835_firmware_get_revision(SYSCTL_HANDLER_ARGS);
@@ -97,8 +95,7 @@ bcm2835_firmware_attach(device_t dev)
 	tree = SYSCTL_CHILDREN(tree_node);
 	SYSCTL_ADD_PROC(ctx, tree, OID_AUTO, "revision",
 	    CTLTYPE_UINT | CTLFLAG_RD, sc, sizeof(*sc),
-	    sysctl_bcm2835_firmware_get_revision, "IU",
-	    "Firmware revision");
+	    sysctl_bcm2835_firmware_get_revision, "IU", "Firmware revision");
 
 	/* The firmwaare doesn't have a ranges property */
 	sc->sc.flags |= SB_FLAG_NO_RANGES;
@@ -152,7 +149,7 @@ sysctl_bcm2835_firmware_get_revision(SYSCTL_HANDLER_ARGS)
 	int err;
 
 	if (bcm2835_firmware_property(sc->sc.dev,
-	    BCM2835_MBOX_TAG_FIRMWARE_REVISION, &rev, sizeof(rev)) != 0)
+		BCM2835_MBOX_TAG_FIRMWARE_REVISION, &rev, sizeof(rev)) != 0)
 		return (ENXIO);
 
 	err = sysctl_handle_int(oidp, &rev, sizeof(rev), req);
@@ -165,8 +162,8 @@ sysctl_bcm2835_firmware_get_revision(SYSCTL_HANDLER_ARGS)
 
 static device_method_t bcm2835_firmware_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		bcm2835_firmware_probe),
-	DEVMETHOD(device_attach,	bcm2835_firmware_attach),
+	DEVMETHOD(device_probe, bcm2835_firmware_probe),
+	DEVMETHOD(device_attach, bcm2835_firmware_attach),
 
 	DEVMETHOD_END
 };

@@ -44,6 +44,7 @@
 #include <sys/time.h>
 
 #include <stdio.h>
+
 #include "defs.h"
 #include "pathnames.h"
 
@@ -57,25 +58,25 @@
 **	simplify the boot file search code.
 */
 
-char	MyHost[MAXHOSTNAMELEN];			/* host name */
-pid_t	MyPid;					/* process id */
-int	DebugFlg = 0;				/* set true if debugging */
-int	BootAny = 0;				/* set true if we boot anyone */
+char MyHost[MAXHOSTNAMELEN]; /* host name */
+pid_t MyPid;		     /* process id */
+int DebugFlg = 0;	     /* set true if debugging */
+int BootAny = 0;	     /* set true if we boot anyone */
 
-char	*ConfigFile = NULL;			/* configuration file */
-char	*DfltConfig = _PATH_RBOOTDCONF;		/* default configuration file */
-char	*PidFile = _PATH_RBOOTDPID;		/* file w/pid of server */
-char	*BootDir = _PATH_RBOOTDLIB;		/* directory w/boot files */
-char	*DbgFile = _PATH_RBOOTDDBG;		/* debug output file */
+char *ConfigFile = NULL;	     /* configuration file */
+char *DfltConfig = _PATH_RBOOTDCONF; /* default configuration file */
+char *PidFile = _PATH_RBOOTDPID;     /* file w/pid of server */
+char *BootDir = _PATH_RBOOTDLIB;     /* directory w/boot files */
+char *DbgFile = _PATH_RBOOTDDBG;     /* debug output file */
 
-FILE	*DbgFp = NULL;				/* debug file pointer */
-char	*IntfName = NULL;			/* intf we are attached to */
+FILE *DbgFp = NULL;    /* debug file pointer */
+char *IntfName = NULL; /* intf we are attached to */
 
-u_int16_t SessionID = 0;			/* generated session ID */
+u_int16_t SessionID = 0; /* generated session ID */
 
-char	*BootFiles[C_MAXFILE];			/* list of boot files */
+char *BootFiles[C_MAXFILE]; /* list of boot files */
 
-CLIENT	*Clients = NULL;			/* list of addrs we'll accept */
-RMPCONN	*RmpConns = NULL;			/* list of active connections */
+CLIENT *Clients = NULL;	  /* list of addrs we'll accept */
+RMPCONN *RmpConns = NULL; /* list of active connections */
 
-u_int8_t RmpMcastAddr[RMP_ADDRLEN] = RMP_ADDR;	/* RMP multicast address */
+u_int8_t RmpMcastAddr[RMP_ADDRLEN] = RMP_ADDR; /* RMP multicast address */

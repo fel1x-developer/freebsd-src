@@ -37,22 +37,22 @@
  */
 
 #ifndef _DEV_KTTCPIO_H_
-#define	_DEV_KTTCPIO_H_
+#define _DEV_KTTCPIO_H_
 
 #include <sys/ioccom.h>
 #include <sys/time.h>
 
 struct kttcp_io_args {
-	unsigned long long kio_totalsize;/* i/o total size (IN) */
-	unsigned long long kio_bytesdone;/* i/o actually completed (OUT) */
-	struct timeval kio_elapsed;	 /* elapsed time (OUT) */
-	int	kio_socket;		 /* socket to use for i/o (IN) */
-	int	kio_protovers;		 /* KTTCP protocol version */
+	unsigned long long kio_totalsize; /* i/o total size (IN) */
+	unsigned long long kio_bytesdone; /* i/o actually completed (OUT) */
+	struct timeval kio_elapsed;	  /* elapsed time (OUT) */
+	int kio_socket;			  /* socket to use for i/o (IN) */
+	int kio_protovers;		  /* KTTCP protocol version */
 };
 
-#define	KTTCP_IO_SEND		_IOWR('K', 0, struct kttcp_io_args)
-#define	KTTCP_IO_RECV		_IOWR('K', 1, struct kttcp_io_args)
+#define KTTCP_IO_SEND _IOWR('K', 0, struct kttcp_io_args)
+#define KTTCP_IO_RECV _IOWR('K', 1, struct kttcp_io_args)
 
-#define	KTTCP_MAX_XMIT		0x7fffffffLL /* XXX can't handle > 31 bits */
+#define KTTCP_MAX_XMIT 0x7fffffffLL /* XXX can't handle > 31 bits */
 
 #endif /* _DEV_KTTCPIO_H_ */

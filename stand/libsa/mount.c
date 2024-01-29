@@ -24,8 +24,9 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
 #include <sys/queue.h>
+
+#include <stand.h>
 
 /*
  * While setting "currdev" environment variable, alse "mount" the
@@ -38,12 +39,12 @@
 typedef STAILQ_HEAD(mnt_info_list, mnt_info) mnt_info_list_t;
 
 typedef struct mnt_info {
-	STAILQ_ENTRY(mnt_info)	mnt_link;	/* link in mount list */
-	const struct fs_ops	*mnt_fs;
-	char			*mnt_dev;
-	char			*mnt_path;
-	unsigned		mnt_refcount;
-	void			*mnt_data;	/* Private state */
+	STAILQ_ENTRY(mnt_info) mnt_link; /* link in mount list */
+	const struct fs_ops *mnt_fs;
+	char *mnt_dev;
+	char *mnt_path;
+	unsigned mnt_refcount;
+	void *mnt_data; /* Private state */
 } mnt_info_t;
 
 /* list of mounted filesystems. */
@@ -94,7 +95,7 @@ mount(const char *dev, const char *path, int flags __unused, void *data)
 	int rc = -1;
 
 	/* Is it already mounted? */
-	STAILQ_FOREACH(mnt, &mnt_list, mnt_link) {
+	STAILQ_FOREACH (mnt, &mnt_list, mnt_link) {
 		if (strcmp(dev, mnt->mnt_dev) == 0 &&
 		    strcmp(path, mnt->mnt_path) == 0) {
 			mnt->mnt_refcount++;
@@ -114,13 +115,11 @@ mount(const char *dev, const char *path, int flags __unused, void *data)
 
 		rc = add_mnt_info(fs, dev, path, data);
 		if (rc != 0 && mnt->mnt_fs->fo_unmount != NULL) {
-			printf("failed to mount %s: %s\n", dev,
-			    strerror(rc));
+			printf("failed to mount %s: %s\n", dev, strerror(rc));
 			(void)mnt->mnt_fs->fo_unmount(dev, data);
 		}
 		break;
 	}
-
 
 	/*
 	 * if rc is -1, it means we have no file system with fo_mount()
@@ -140,7 +139,7 @@ unmount(const char *dev, int flags __unused)
 	int rv;
 
 	rv = 0;
-	STAILQ_FOREACH(mnt, &mnt_list, mnt_link) {
+	STAILQ_FOREACH (mnt, &mnt_list, mnt_link) {
 		if (strcmp(dev, mnt->mnt_dev) == 0) {
 			if (mnt->mnt_refcount > 1) {
 				mnt->mnt_refcount--;

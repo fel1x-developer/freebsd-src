@@ -37,37 +37,35 @@
 
 #include "lio_bsd.h"
 #include "lio_common.h"
-#include "lio_droq.h"
-#include "lio_iq.h"
-#include "lio_response_manager.h"
 #include "lio_device.h"
+#include "lio_droq.h"
 #include "lio_image.h"
-#include "lio_mem_ops.h"
+#include "lio_iq.h"
 #include "lio_main.h"
+#include "lio_mem_ops.h"
+#include "lio_response_manager.h"
 
-static void	lio_get_uboot_version(struct octeon_device *oct);
-static void	lio_remote_lock(void);
-static void	lio_remote_unlock(void);
-static uint64_t	cvmx_bootmem_phy_named_block_find(struct octeon_device *oct,
-						  const char *name,
-						  uint32_t flags);
-static int	lio_console_read(struct octeon_device *oct,
-				 uint32_t console_num, char *buffer,
-				 uint32_t buf_size);
+static void lio_get_uboot_version(struct octeon_device *oct);
+static void lio_remote_lock(void);
+static void lio_remote_unlock(void);
+static uint64_t cvmx_bootmem_phy_named_block_find(struct octeon_device *oct,
+    const char *name, uint32_t flags);
+static int lio_console_read(struct octeon_device *oct, uint32_t console_num,
+    char *buffer, uint32_t buf_size);
 
-#define CAST_ULL(v)	((unsigned long long)(v))
+#define CAST_ULL(v) ((unsigned long long)(v))
 
-#define LIO_BOOTLOADER_PCI_READ_BUFFER_DATA_ADDR	0x0006c008
-#define LIO_BOOTLOADER_PCI_READ_BUFFER_LEN_ADDR		0x0006c004
-#define LIO_BOOTLOADER_PCI_READ_BUFFER_OWNER_ADDR	0x0006c000
-#define LIO_BOOTLOADER_PCI_READ_DESC_ADDR		0x0006c100
-#define LIO_BOOTLOADER_PCI_WRITE_BUFFER_STR_LEN		248
+#define LIO_BOOTLOADER_PCI_READ_BUFFER_DATA_ADDR 0x0006c008
+#define LIO_BOOTLOADER_PCI_READ_BUFFER_LEN_ADDR 0x0006c004
+#define LIO_BOOTLOADER_PCI_READ_BUFFER_OWNER_ADDR 0x0006c000
+#define LIO_BOOTLOADER_PCI_READ_DESC_ADDR 0x0006c100
+#define LIO_BOOTLOADER_PCI_WRITE_BUFFER_STR_LEN 248
 
-#define LIO_PCI_IO_BUF_OWNER_OCTEON	0x00000001
-#define LIO_PCI_IO_BUF_OWNER_HOST	0x00000002
+#define LIO_PCI_IO_BUF_OWNER_OCTEON 0x00000001
+#define LIO_PCI_IO_BUF_OWNER_HOST 0x00000002
 
-#define LIO_PCI_CONSOLE_BLOCK_NAME	"__pci_console"
-#define LIO_CONSOLE_POLL_INTERVAL_MS	100	/* 10 times per second */
+#define LIO_PCI_CONSOLE_BLOCK_NAME "__pci_console"
+#define LIO_CONSOLE_POLL_INTERVAL_MS 100 /* 10 times per second */
 
 /*
  * First three members of cvmx_bootmem_desc are left in original positions
@@ -75,33 +73,33 @@ static int	lio_console_read(struct octeon_device *oct,
  */
 struct cvmx_bootmem_desc {
 	/* lock to control access to list */
-	uint32_t	lock;
+	uint32_t lock;
 
 	/* flags for indicating various conditions */
-	uint32_t	flags;
+	uint32_t flags;
 
-	uint64_t	head_addr;
+	uint64_t head_addr;
 
 	/* incremented changed when incompatible changes made */
-	uint32_t	major_version;
+	uint32_t major_version;
 
 	/*
 	 * incremented changed when compatible changes made, reset to zero
 	 * when major incremented
 	 */
-	uint32_t	minor_version;
+	uint32_t minor_version;
 
-	uint64_t	app_data_addr;
-	uint64_t	app_data_size;
+	uint64_t app_data_addr;
+	uint64_t app_data_size;
 
 	/* number of elements in named blocks array */
-	uint32_t	nb_num_blocks;
+	uint32_t nb_num_blocks;
 
 	/* length of name array in bootmem blocks */
-	uint32_t	named_block_name_len;
+	uint32_t named_block_name_len;
 
 	/* address of named memory block descriptors */
-	uint64_t	named_block_array_addr;
+	uint64_t named_block_array_addr;
 };
 
 /*
@@ -111,14 +109,14 @@ struct cvmx_bootmem_desc {
  * size of each console is console_buf_size -1;
  */
 struct lio_pci_console {
-	uint64_t	input_base_addr;
-	uint32_t	input_read_index;
-	uint32_t	input_write_index;
-	uint64_t	output_base_addr;
-	uint32_t	output_read_index;
-	uint32_t	output_write_index;
-	uint32_t	lock;
-	uint32_t	buf_size;
+	uint64_t input_base_addr;
+	uint32_t input_read_index;
+	uint32_t input_write_index;
+	uint64_t output_base_addr;
+	uint32_t output_read_index;
+	uint32_t output_write_index;
+	uint32_t lock;
+	uint32_t buf_size;
 };
 
 /*
@@ -127,15 +125,15 @@ struct lio_pci_console {
  * various routines that operation on PCI consoles.
  */
 struct lio_pci_console_desc {
-	uint32_t	major_version;
-	uint32_t	minor_version;
-	uint32_t	lock;
-	uint32_t	flags;
-	uint32_t	num_consoles;
-	uint32_t	pad;
+	uint32_t major_version;
+	uint32_t minor_version;
+	uint32_t lock;
+	uint32_t flags;
+	uint32_t num_consoles;
+	uint32_t pad;
 	/* must be 64 bit aligned here... */
 	/* Array of addresses of octeon_pci_console structures */
-	uint64_t	console_addr_array[1];
+	uint64_t console_addr_array[1];
 	/* Implicit storage for console_addr_array */
 };
 
@@ -159,7 +157,7 @@ struct lio_pci_console_desc {
  */
 static inline uint64_t
 __cvmx_bootmem_desc_get(struct octeon_device *oct, uint64_t base,
-			uint32_t offset, uint32_t size)
+    uint32_t offset, uint32_t size)
 {
 
 	base = (1ull << 63) | (base + offset);
@@ -186,11 +184,11 @@ __cvmx_bootmem_desc_get(struct octeon_device *oct, uint64_t base,
  */
 static void
 lio_bootmem_named_get_name(struct octeon_device *oct, uint64_t addr, char *str,
-			   uint32_t len)
+    uint32_t len)
 {
 
 	addr += offsetof(struct cvmx_bootmem_named_block_desc, name);
-	lio_pci_read_core_mem(oct, addr, (uint8_t *) str, len);
+	lio_pci_read_core_mem(oct, addr, (uint8_t *)str, len);
 	str[len] = 0;
 }
 
@@ -210,29 +208,28 @@ lio_bootmem_named_get_name(struct octeon_device *oct, uint64_t addr, char *str,
 static int
 __cvmx_bootmem_check_version(struct octeon_device *oct, uint32_t exact_match)
 {
-	uint32_t	major_version;
-	uint32_t	minor_version;
+	uint32_t major_version;
+	uint32_t minor_version;
 
 	if (!oct->bootmem_desc_addr)
-		oct->bootmem_desc_addr =
-			lio_read_device_mem64(oct,
-					LIO_BOOTLOADER_PCI_READ_DESC_ADDR);
+		oct->bootmem_desc_addr = lio_read_device_mem64(oct,
+		    LIO_BOOTLOADER_PCI_READ_DESC_ADDR);
 
-	major_version = (uint32_t) __cvmx_bootmem_desc_get(oct,
-			oct->bootmem_desc_addr,
-			offsetof(struct cvmx_bootmem_desc, major_version),
-			SIZEOF_FIELD(struct cvmx_bootmem_desc, major_version));
-	minor_version = (uint32_t) __cvmx_bootmem_desc_get(oct,
-			oct->bootmem_desc_addr,
-			offsetof(struct cvmx_bootmem_desc, minor_version),
-			SIZEOF_FIELD(struct cvmx_bootmem_desc, minor_version));
+	major_version = (uint32_t)__cvmx_bootmem_desc_get(oct,
+	    oct->bootmem_desc_addr,
+	    offsetof(struct cvmx_bootmem_desc, major_version),
+	    SIZEOF_FIELD(struct cvmx_bootmem_desc, major_version));
+	minor_version = (uint32_t)__cvmx_bootmem_desc_get(oct,
+	    oct->bootmem_desc_addr,
+	    offsetof(struct cvmx_bootmem_desc, minor_version),
+	    SIZEOF_FIELD(struct cvmx_bootmem_desc, minor_version));
 
 	lio_dev_dbg(oct, "%s: major_version=%d\n", __func__, major_version);
 	if ((major_version > 3) ||
 	    (exact_match && major_version != exact_match)) {
 		lio_dev_err(oct, "bootmem ver mismatch %d.%d addr:0x%llx\n",
-			    major_version, minor_version,
-			    CAST_ULL(oct->bootmem_desc_addr));
+		    major_version, minor_version,
+		    CAST_ULL(oct->bootmem_desc_addr));
 		return (-1);
 	} else {
 		return (0);
@@ -241,25 +238,22 @@ __cvmx_bootmem_check_version(struct octeon_device *oct, uint32_t exact_match)
 
 static const struct cvmx_bootmem_named_block_desc *
 __cvmx_bootmem_find_named_block_flags(struct octeon_device *oct,
-				      const char *name, uint32_t flags)
+    const char *name, uint32_t flags)
 {
-	struct cvmx_bootmem_named_block_desc	*desc =
-		&oct->bootmem_named_block_desc;
-	uint64_t	named_addr;
+	struct cvmx_bootmem_named_block_desc *desc =
+	    &oct->bootmem_named_block_desc;
+	uint64_t named_addr;
 
-	named_addr = cvmx_bootmem_phy_named_block_find(oct, name,
-						       flags);
+	named_addr = cvmx_bootmem_phy_named_block_find(oct, name, flags);
 	if (named_addr) {
 		desc->base_addr = __cvmx_bootmem_desc_get(oct, named_addr,
-			offsetof(struct cvmx_bootmem_named_block_desc,
-				 base_addr),
-			SIZEOF_FIELD(struct cvmx_bootmem_named_block_desc,
-				     base_addr));
+		    offsetof(struct cvmx_bootmem_named_block_desc, base_addr),
+		    SIZEOF_FIELD(struct cvmx_bootmem_named_block_desc,
+			base_addr));
 
 		desc->size = __cvmx_bootmem_desc_get(oct, named_addr,
-			 offsetof(struct cvmx_bootmem_named_block_desc, size),
-			 SIZEOF_FIELD(struct cvmx_bootmem_named_block_desc,
-				      size));
+		    offsetof(struct cvmx_bootmem_named_block_desc, size),
+		    SIZEOF_FIELD(struct cvmx_bootmem_named_block_desc, size));
 
 		strncpy(desc->name, name, sizeof(desc->name));
 		desc->name[sizeof(desc->name) - 1] = 0;
@@ -272,55 +266,47 @@ __cvmx_bootmem_find_named_block_flags(struct octeon_device *oct,
 
 static uint64_t
 cvmx_bootmem_phy_named_block_find(struct octeon_device *oct, const char *name,
-				  uint32_t flags)
+    uint32_t flags)
 {
-	uint64_t	result = 0;
+	uint64_t result = 0;
 
 	if (!__cvmx_bootmem_check_version(oct, 3)) {
 		uint32_t i;
 
-		uint64_t named_block_array_addr =
-			__cvmx_bootmem_desc_get(oct, oct->bootmem_desc_addr,
-					offsetof(struct cvmx_bootmem_desc,
-						 named_block_array_addr),
-					SIZEOF_FIELD(struct cvmx_bootmem_desc,
-						     named_block_array_addr));
-		uint32_t num_blocks =
-			(uint32_t) __cvmx_bootmem_desc_get(oct,
-					oct->bootmem_desc_addr,
-					offsetof(struct cvmx_bootmem_desc,
-						 nb_num_blocks),
-					SIZEOF_FIELD(struct cvmx_bootmem_desc,
-						     nb_num_blocks));
+		uint64_t named_block_array_addr = __cvmx_bootmem_desc_get(oct,
+		    oct->bootmem_desc_addr,
+		    offsetof(struct cvmx_bootmem_desc, named_block_array_addr),
+		    SIZEOF_FIELD(struct cvmx_bootmem_desc,
+			named_block_array_addr));
+		uint32_t num_blocks = (uint32_t)__cvmx_bootmem_desc_get(oct,
+		    oct->bootmem_desc_addr,
+		    offsetof(struct cvmx_bootmem_desc, nb_num_blocks),
+		    SIZEOF_FIELD(struct cvmx_bootmem_desc, nb_num_blocks));
 
-		uint32_t name_length =
-			(uint32_t) __cvmx_bootmem_desc_get(oct,
-					oct->bootmem_desc_addr,
-					offsetof(struct cvmx_bootmem_desc,
-						 named_block_name_len),
-					SIZEOF_FIELD(struct cvmx_bootmem_desc,
-						     named_block_name_len));
+		uint32_t name_length = (uint32_t)__cvmx_bootmem_desc_get(oct,
+		    oct->bootmem_desc_addr,
+		    offsetof(struct cvmx_bootmem_desc, named_block_name_len),
+		    SIZEOF_FIELD(struct cvmx_bootmem_desc,
+			named_block_name_len));
 
 		uint64_t named_addr = named_block_array_addr;
 
 		for (i = 0; i < num_blocks; i++) {
-			uint64_t named_size =
-			  __cvmx_bootmem_desc_get(oct, named_addr,
+			uint64_t named_size = __cvmx_bootmem_desc_get(oct,
+			    named_addr,
 			    offsetof(struct cvmx_bootmem_named_block_desc,
-				     size),
+				size),
 			    SIZEOF_FIELD(struct cvmx_bootmem_named_block_desc,
-					 size));
+				size));
 
 			if (name && named_size) {
-				char	*name_tmp = malloc(name_length + 1,
-							   M_DEVBUF, M_NOWAIT |
-							   M_ZERO);
+				char *name_tmp = malloc(name_length + 1,
+				    M_DEVBUF, M_NOWAIT | M_ZERO);
 				if (!name_tmp)
 					break;
 
 				lio_bootmem_named_get_name(oct, named_addr,
-							   name_tmp,
-							   name_length);
+				    name_tmp, name_length);
 
 				if (!strncmp(name, name_tmp, name_length)) {
 					result = named_addr;
@@ -335,8 +321,8 @@ cvmx_bootmem_phy_named_block_find(struct octeon_device *oct, const char *name,
 				break;
 			}
 
-			named_addr +=
-				sizeof(struct cvmx_bootmem_named_block_desc);
+			named_addr += sizeof(
+			    struct cvmx_bootmem_named_block_desc);
 		}
 	}
 	return (result);
@@ -354,9 +340,9 @@ cvmx_bootmem_phy_named_block_find(struct octeon_device *oct, const char *name,
  */
 static int
 lio_named_block_find(struct octeon_device *oct, const char *name,
-		     uint64_t * base_addr, uint64_t * size)
+    uint64_t *base_addr, uint64_t *size)
 {
-	const struct cvmx_bootmem_named_block_desc	*named_block;
+	const struct cvmx_bootmem_named_block_desc *named_block;
 
 	lio_remote_lock();
 	named_block = __cvmx_bootmem_find_named_block_flags(oct, name, 0);
@@ -369,7 +355,6 @@ lio_named_block_find(struct octeon_device *oct, const char *name,
 
 	return (1);
 }
-
 
 static void
 lio_remote_lock(void)
@@ -387,15 +372,15 @@ lio_remote_unlock(void)
 
 int
 lio_console_send_cmd(struct octeon_device *oct, char *cmd_str,
-		     uint32_t wait_hundredths)
+    uint32_t wait_hundredths)
 {
-	uint32_t	len = (uint32_t) strlen(cmd_str);
+	uint32_t len = (uint32_t)strlen(cmd_str);
 
 	lio_dev_dbg(oct, "sending \"%s\" to bootloader\n", cmd_str);
 
 	if (len > LIO_BOOTLOADER_PCI_WRITE_BUFFER_STR_LEN - 1) {
 		lio_dev_err(oct, "Command string too long, max length is: %d\n",
-			    LIO_BOOTLOADER_PCI_WRITE_BUFFER_STR_LEN - 1);
+		    LIO_BOOTLOADER_PCI_WRITE_BUFFER_STR_LEN - 1);
 		return (-1);
 	}
 
@@ -407,11 +392,11 @@ lio_console_send_cmd(struct octeon_device *oct, char *cmd_str,
 	/* Write command to bootloader */
 	lio_remote_lock();
 	lio_pci_write_core_mem(oct, LIO_BOOTLOADER_PCI_READ_BUFFER_DATA_ADDR,
-			       (uint8_t *) cmd_str, len);
+	    (uint8_t *)cmd_str, len);
 	lio_write_device_mem32(oct, LIO_BOOTLOADER_PCI_READ_BUFFER_LEN_ADDR,
-			       len);
+	    len);
 	lio_write_device_mem32(oct, LIO_BOOTLOADER_PCI_READ_BUFFER_OWNER_ADDR,
-			       LIO_PCI_IO_BUF_OWNER_OCTEON);
+	    LIO_PCI_IO_BUF_OWNER_OCTEON);
 
 	/*
 	 * Bootloader should accept command very quickly if it really was
@@ -429,18 +414,18 @@ lio_console_send_cmd(struct octeon_device *oct, char *cmd_str,
 
 int
 lio_wait_for_bootloader(struct octeon_device *oct,
-			uint32_t wait_time_hundredths)
+    uint32_t wait_time_hundredths)
 {
 	lio_dev_dbg(oct, "waiting %d0 ms for bootloader\n",
-		    wait_time_hundredths);
+	    wait_time_hundredths);
 
 	if (lio_mem_access_ok(oct))
 		return (-1);
 
 	while (wait_time_hundredths > 0 &&
-	       lio_read_device_mem32(oct,
-				LIO_BOOTLOADER_PCI_READ_BUFFER_OWNER_ADDR) !=
-	       LIO_PCI_IO_BUF_OWNER_HOST) {
+	    lio_read_device_mem32(oct,
+		LIO_BOOTLOADER_PCI_READ_BUFFER_OWNER_ADDR) !=
+		LIO_PCI_IO_BUF_OWNER_HOST) {
 		if (--wait_time_hundredths <= 0)
 			return (-1);
 
@@ -453,23 +438,22 @@ lio_wait_for_bootloader(struct octeon_device *oct,
 static void
 lio_console_handle_result(struct octeon_device *oct, size_t console_num)
 {
-	struct lio_console	*console;
+	struct lio_console *console;
 
 	console = &oct->console[console_num];
 
 	console->waiting = 0;
 }
 
-static char	console_buffer[LIO_MAX_CONSOLE_READ_BYTES];
+static char console_buffer[LIO_MAX_CONSOLE_READ_BYTES];
 
 static void
 lio_output_console_line(struct octeon_device *oct, struct lio_console *console,
-			size_t console_num, char *console_buffer,
-			int32_t bytes_read)
+    size_t console_num, char *console_buffer, int32_t bytes_read)
 {
-	size_t		len;
-	int32_t		i;
-	char           *line;
+	size_t len;
+	int32_t i;
+	char *line;
 
 	line = console_buffer;
 	for (i = 0; i < bytes_read; i++) {
@@ -487,14 +471,13 @@ lio_output_console_line(struct octeon_device *oct, struct lio_console *console,
 			    (line != console->leftover)) {
 				if (console->print)
 					(*console->print)(oct,
-							  (uint32_t)console_num,
-							console->leftover,line);
+					    (uint32_t)console_num,
+					    console->leftover, line);
 				console->leftover[0] = '\0';
 			} else {
 				if (console->print)
 					(*console->print)(oct,
-							  (uint32_t)console_num,
-							  line, NULL);
+					    (uint32_t)console_num, line, NULL);
 			}
 
 			line = &console_buffer[i + 1];
@@ -506,7 +489,7 @@ lio_output_console_line(struct octeon_device *oct, struct lio_console *console,
 		console_buffer[bytes_read] = '\0';
 		len = strlen(console->leftover);
 		strncpy(&console->leftover[len], line,
-			sizeof(console->leftover) - len);
+		    sizeof(console->leftover) - len);
 	}
 }
 
@@ -515,11 +498,11 @@ lio_check_console(void *arg)
 {
 	struct lio_console *console;
 	struct lio_callout *console_callout = arg;
-	struct octeon_device *oct =
-		(struct octeon_device *)console_callout->ctxptr;
-	size_t		len;
-	uint32_t	console_num = (uint32_t) console_callout->ctxul;
-	int32_t		bytes_read, total_read, tries;
+	struct octeon_device *oct = (struct octeon_device *)
+					console_callout->ctxptr;
+	size_t len;
+	uint32_t console_num = (uint32_t)console_callout->ctxul;
+	int32_t bytes_read, total_read, tries;
 
 	console = &oct->console[console_num];
 	tries = 0;
@@ -535,7 +518,7 @@ lio_check_console(void *arg)
 		 * logged
 		 */
 		bytes_read = lio_console_read(oct, console_num, console_buffer,
-					      sizeof(console_buffer) - 1);
+		    sizeof(console_buffer) - 1);
 		if (bytes_read > 0) {
 			total_read += bytes_read;
 			if (console->waiting)
@@ -543,14 +526,12 @@ lio_check_console(void *arg)
 
 			if (console->print) {
 				lio_output_console_line(oct, console,
-							console_num,
-							console_buffer,
-							bytes_read);
+				    console_num, console_buffer, bytes_read);
 			}
 
 		} else if (bytes_read < 0) {
 			lio_dev_err(oct, "Error reading console %u, ret=%d\n",
-				    console_num, bytes_read);
+			    console_num, bytes_read);
 		}
 
 		tries++;
@@ -565,19 +546,18 @@ lio_check_console(void *arg)
 		len = strlen(console->leftover);
 		console->leftover[len] = '\n';
 		lio_output_console_line(oct, console, console_num,
-					console->leftover, (int32_t)(len + 1));
+		    console->leftover, (int32_t)(len + 1));
 		console->leftover[0] = '\0';
 	}
 	callout_schedule(&oct->console_timer[console_num].timer,
-			 lio_ms_to_ticks(LIO_CONSOLE_POLL_INTERVAL_MS));
+	    lio_ms_to_ticks(LIO_CONSOLE_POLL_INTERVAL_MS));
 }
-
 
 int
 lio_init_consoles(struct octeon_device *oct)
 {
-	uint64_t	addr, size;
-	int		ret = 0;
+	uint64_t addr, size;
+	int ret = 0;
 
 	ret = lio_mem_access_ok(oct);
 	if (ret) {
@@ -585,10 +565,10 @@ lio_init_consoles(struct octeon_device *oct)
 		return (ret);
 	}
 	ret = lio_named_block_find(oct, LIO_PCI_CONSOLE_BLOCK_NAME, &addr,
-				   &size);
+	    &size);
 	if (ret) {
 		lio_dev_err(oct, "Could not find console '%s'\n",
-			    LIO_PCI_CONSOLE_BLOCK_NAME);
+		    LIO_PCI_CONSOLE_BLOCK_NAME);
 		return (ret);
 	}
 
@@ -598,7 +578,7 @@ lio_init_consoles(struct octeon_device *oct)
 	 */
 	oct->console_nb_info.bar1_index = 15;
 	oct->fn_list.bar1_idx_setup(oct, addr, oct->console_nb_info.bar1_index,
-				    1);
+	    1);
 	oct->console_nb_info.dram_region_base = addr & 0xFFFFFFFFFFC00000ULL;
 
 	/*
@@ -606,12 +586,11 @@ lio_init_consoles(struct octeon_device *oct)
 	 * accessible
 	 */
 	oct->num_consoles = lio_read_device_mem32(oct,
-				addr + offsetof(struct lio_pci_console_desc,
-						num_consoles));
+	    addr + offsetof(struct lio_pci_console_desc, num_consoles));
 	oct->console_desc_addr = addr;
 
 	lio_dev_dbg(oct, "Initialized consoles. %d available\n",
-		    oct->num_consoles);
+	    oct->num_consoles);
 
 	return (ret);
 }
@@ -621,31 +600,31 @@ lio_add_console(struct octeon_device *oct, uint32_t console_num, char *dbg_enb)
 {
 	struct callout *timer;
 	struct lio_console *console;
-	uint64_t	coreaddr;
-	int		ret = 0;
+	uint64_t coreaddr;
+	int ret = 0;
 
 	if (console_num >= oct->num_consoles) {
-		lio_dev_err(oct, "trying to read from console number %d when only 0 to %d exist\n",
-			    console_num, oct->num_consoles);
+		lio_dev_err(oct,
+		    "trying to read from console number %d when only 0 to %d exist\n",
+		    console_num, oct->num_consoles);
 	} else {
 		console = &oct->console[console_num];
 
 		console->waiting = 0;
 
 		coreaddr = oct->console_desc_addr + console_num * 8 +
-			offsetof(struct lio_pci_console_desc,
-				 console_addr_array);
+		    offsetof(struct lio_pci_console_desc, console_addr_array);
 		console->addr = lio_read_device_mem64(oct, coreaddr);
-		coreaddr = console->addr + offsetof(struct lio_pci_console,
-						    buf_size);
+		coreaddr = console->addr +
+		    offsetof(struct lio_pci_console, buf_size);
 		console->buffer_size = lio_read_device_mem32(oct, coreaddr);
-		coreaddr = console->addr + offsetof(struct lio_pci_console,
-						    input_base_addr);
+		coreaddr = console->addr +
+		    offsetof(struct lio_pci_console, input_base_addr);
 		console->input_base_addr = lio_read_device_mem64(oct, coreaddr);
-		coreaddr = console->addr + offsetof(struct lio_pci_console,
-						    output_base_addr);
-		console->output_base_addr =
-			lio_read_device_mem64(oct, coreaddr);
+		coreaddr = console->addr +
+		    offsetof(struct lio_pci_console, output_base_addr);
+		console->output_base_addr = lio_read_device_mem64(oct,
+		    coreaddr);
 		console->leftover[0] = '\0';
 
 		timer = &oct->console_timer[console_num].timer;
@@ -657,8 +636,8 @@ lio_add_console(struct octeon_device *oct, uint32_t console_num, char *dbg_enb)
 		oct->console_timer[console_num].ctxptr = (void *)oct;
 		oct->console_timer[console_num].ctxul = console_num;
 		callout_reset(timer,
-			      lio_ms_to_ticks(LIO_CONSOLE_POLL_INTERVAL_MS),
-			      lio_check_console, timer);
+		    lio_ms_to_ticks(LIO_CONSOLE_POLL_INTERVAL_MS),
+		    lio_check_console, timer);
 		/* an empty string means use default debug console enablement */
 		if (dbg_enb && !dbg_enb[0])
 			dbg_enb = "setenv pci_console_active 1";
@@ -680,8 +659,8 @@ lio_add_console(struct octeon_device *oct, uint32_t console_num, char *dbg_enb)
 void
 lio_remove_consoles(struct octeon_device *oct)
 {
-	struct lio_console	*console;
-	uint32_t		i;
+	struct lio_console *console;
+	uint32_t i;
 
 	for (i = 0; i < oct->num_consoles; i++) {
 		console = &oct->console[i];
@@ -717,20 +696,20 @@ lio_console_avail_bytes(uint32_t buffer_size, uint32_t wr_idx, uint32_t rd_idx)
 		return (-1);
 
 	return (buffer_size - 1 -
-		lio_console_free_bytes(buffer_size, wr_idx, rd_idx));
+	    lio_console_free_bytes(buffer_size, wr_idx, rd_idx));
 }
 
 static int
 lio_console_read(struct octeon_device *oct, uint32_t console_num, char *buffer,
-		 uint32_t buf_size)
+    uint32_t buf_size)
 {
-	struct lio_console	*console;
-	int			bytes_to_read;
-	uint32_t		rd_idx, wr_idx;
+	struct lio_console *console;
+	int bytes_to_read;
+	uint32_t rd_idx, wr_idx;
 
 	if (console_num >= oct->num_consoles) {
 		lio_dev_err(oct, "Attempted to read from disabled console %d\n",
-			    console_num);
+		    console_num);
 		return (0);
 	}
 
@@ -740,13 +719,15 @@ lio_console_read(struct octeon_device *oct, uint32_t console_num, char *buffer,
 	 * Check to see if any data is available. Maybe optimize this with
 	 * 64-bit read.
 	 */
-	rd_idx = lio_read_device_mem32(oct, console->addr +
-		       offsetof(struct lio_pci_console, output_read_index));
-	wr_idx = lio_read_device_mem32(oct, console->addr +
-		      offsetof(struct lio_pci_console, output_write_index));
+	rd_idx = lio_read_device_mem32(oct,
+	    console->addr +
+		offsetof(struct lio_pci_console, output_read_index));
+	wr_idx = lio_read_device_mem32(oct,
+	    console->addr +
+		offsetof(struct lio_pci_console, output_write_index));
 
-	bytes_to_read = lio_console_avail_bytes(console->buffer_size,
-						wr_idx, rd_idx);
+	bytes_to_read = lio_console_avail_bytes(console->buffer_size, wr_idx,
+	    rd_idx);
 	if (bytes_to_read <= 0)
 		return (bytes_to_read);
 
@@ -760,11 +741,10 @@ lio_console_read(struct octeon_device *oct, uint32_t console_num, char *buffer,
 		bytes_to_read = console->buffer_size - rd_idx;
 
 	lio_pci_read_core_mem(oct, console->output_base_addr + rd_idx,
-			      (uint8_t *) buffer, bytes_to_read);
-	lio_write_device_mem32(oct, console->addr +
-			       offsetof(struct lio_pci_console,
-					output_read_index),
-			       (rd_idx + bytes_to_read) % console->buffer_size);
+	    (uint8_t *)buffer, bytes_to_read);
+	lio_write_device_mem32(oct,
+	    console->addr + offsetof(struct lio_pci_console, output_read_index),
+	    (rd_idx + bytes_to_read) % console->buffer_size);
 
 	return (bytes_to_read);
 }
@@ -773,9 +753,9 @@ static void
 lio_get_uboot_version(struct octeon_device *oct)
 {
 	struct lio_console *console;
-	int32_t		bytes_read, total_read, tries;
-	uint32_t	console_num = 0;
-	int		i, ret __unused = 0;
+	int32_t bytes_read, total_read, tries;
+	uint32_t console_num = 0;
+	int i, ret __unused = 0;
 
 	ret = lio_console_send_cmd(oct, "setenv stdout pci", 50);
 
@@ -790,11 +770,9 @@ lio_get_uboot_version(struct octeon_device *oct)
 		 * Take console output regardless of whether it will be
 		 * logged
 		 */
-		bytes_read = lio_console_read(oct,
-					      console_num, oct->uboot_version +
-					      total_read,
-					      OCTEON_UBOOT_BUFFER_SIZE - 1 -
-					      total_read);
+		bytes_read = lio_console_read(oct, console_num,
+		    oct->uboot_version + total_read,
+		    OCTEON_UBOOT_BUFFER_SIZE - 1 - total_read);
 		if (bytes_read > 0) {
 			oct->uboot_version[bytes_read] = 0x0;
 
@@ -804,7 +782,7 @@ lio_get_uboot_version(struct octeon_device *oct)
 
 		} else if (bytes_read < 0) {
 			lio_dev_err(oct, "Error reading console %u, ret=%d\n",
-				    console_num, bytes_read);
+			    console_num, bytes_read);
 		}
 
 		tries++;
@@ -838,10 +816,10 @@ lio_get_uboot_version(struct octeon_device *oct)
 					oct->uboot_eidx = i - 1;
 					oct->uboot_version[i - 1] = 0x0;
 					oct->uboot_len = oct->uboot_eidx -
-						oct->uboot_sidx + 1;
+					    oct->uboot_sidx + 1;
 					lio_dev_info(oct, "%s\n",
-						     &oct->uboot_version
-						     [oct->uboot_sidx]);
+					    &oct->uboot_version
+						 [oct->uboot_sidx]);
 					return;
 				}
 			}
@@ -849,21 +827,20 @@ lio_get_uboot_version(struct octeon_device *oct)
 	}
 }
 
-
-#define FBUF_SIZE	(4 * 1024 * 1024)
+#define FBUF_SIZE (4 * 1024 * 1024)
 
 int
-lio_download_firmware(struct octeon_device *oct, const uint8_t * data,
-		      size_t size)
+lio_download_firmware(struct octeon_device *oct, const uint8_t *data,
+    size_t size)
 {
 	struct lio_firmware_file_header *h;
-	uint64_t	load_addr;
-	uint32_t	crc32_result, i, image_len, rem;
+	uint64_t load_addr;
+	uint32_t crc32_result, i, image_len, rem;
 
 	if (size < sizeof(struct lio_firmware_file_header)) {
 		lio_dev_err(oct, "Firmware file too small (%d < %d).\n",
-			    (uint32_t) size,
-			    (uint32_t) sizeof(struct lio_firmware_file_header));
+		    (uint32_t)size,
+		    (uint32_t)sizeof(struct lio_firmware_file_header));
 		return (-EINVAL);
 	}
 
@@ -874,30 +851,30 @@ lio_download_firmware(struct octeon_device *oct, const uint8_t * data,
 		return (-EINVAL);
 	}
 
-	crc32_result = crc32(data, sizeof(struct lio_firmware_file_header) -
-			     sizeof(uint32_t));
+	crc32_result = crc32(data,
+	    sizeof(struct lio_firmware_file_header) - sizeof(uint32_t));
 	if (crc32_result != be32toh(h->crc32)) {
 		lio_dev_err(oct, "Firmware CRC mismatch (0x%08x != 0x%08x).\n",
-			    crc32_result, be32toh(h->crc32));
+		    crc32_result, be32toh(h->crc32));
 		return (-EINVAL);
 	}
 
-	if (memcmp(LIO_BASE_VERSION, h->version,
-		   strlen(LIO_BASE_VERSION))) {
-		lio_dev_err(oct, "Unmatched firmware version. Expected %s.x, got %s.\n",
-			    LIO_BASE_VERSION, h->version);
+	if (memcmp(LIO_BASE_VERSION, h->version, strlen(LIO_BASE_VERSION))) {
+		lio_dev_err(oct,
+		    "Unmatched firmware version. Expected %s.x, got %s.\n",
+		    LIO_BASE_VERSION, h->version);
 		return (-EINVAL);
 	}
 
 	if (be32toh(h->num_images) > LIO_MAX_IMAGES) {
 		lio_dev_err(oct, "Too many images in firmware file (%d).\n",
-			    be32toh(h->num_images));
+		    be32toh(h->num_images));
 		return (-EINVAL);
 	}
 
 	lio_dev_info(oct, "Firmware version: %s\n", h->version);
 	snprintf(oct->fw_info.lio_firmware_version, 32, "LIQUIDIO: %s",
-		 h->version);
+	    h->version);
 
 	data += sizeof(struct lio_firmware_file_header);
 
@@ -909,7 +886,7 @@ lio_download_firmware(struct octeon_device *oct, const uint8_t * data,
 		image_len = be32toh(h->desc[i].len);
 
 		lio_dev_info(oct, "Loading firmware %d at %llx\n", image_len,
-			     (unsigned long long)load_addr);
+		    (unsigned long long)load_addr);
 
 		/* Write in 4MB chunks */
 		rem = image_len;
@@ -922,11 +899,10 @@ lio_download_firmware(struct octeon_device *oct, const uint8_t * data,
 
 			/* download the image */
 			lio_pci_write_core_mem(oct, load_addr,
-					       __DECONST(uint8_t *, data),
-					       (uint32_t) size);
+			    __DECONST(uint8_t *, data), (uint32_t)size);
 
 			data += size;
-			rem -= (uint32_t) size;
+			rem -= (uint32_t)size;
 			load_addr += size;
 		}
 	}

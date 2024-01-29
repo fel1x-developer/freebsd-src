@@ -28,23 +28,21 @@
 
 #include <sys/cdefs.h>
 #include <sys/queue.h>
-#include <sys/syslog.h>
 #include <sys/select.h>
+#include <sys/syslog.h>
 #include <sys/time.h>
 
 #include <netdb.h>
+#include <openssl/bio.h>
+#include <openssl/err.h>
+#include <openssl/opensslconf.h>
+#include <openssl/ssl.h>
+#include <openssl/x509v3.h>
+#include <rpc/rpc.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <string.h>
-
-#include <rpc/rpc.h>
-
-#include <openssl/opensslconf.h>
-#include <openssl/bio.h>
-#include <openssl/ssl.h>
-#include <openssl/err.h>
-#include <openssl/x509v3.h>
 
 #include "rpc.tlscommon.h"
 
@@ -52,7 +50,7 @@
  * How long to delay a reload of the CRL when there are RPC request(s)
  * to process, in usec.  Must be less than 1second.
  */
-#define	RELOADDELAY	250000
+#define RELOADDELAY 250000
 
 void
 rpctls_svc_run(void)
@@ -81,7 +79,7 @@ rpctls_svc_run(void)
 				rpctls_checkcrl();
 			else
 				rpctls_verbose_out("rpc.tlsservd: Can't "
-				    "reload CRLfile\n");
+						   "reload CRLfile\n");
 			clock_gettime(CLOCK_MONOTONIC, &tp);
 			nexttime = tp.tv_sec;
 			nexttime = nexttime * 1000000 + tp.tv_nsec / 1000 +
@@ -130,24 +128,21 @@ rpctls_loadcrlfile(SSL_CTX *ctx)
 	X509_LOOKUP *certlookup;
 	int ret;
 
-	if ((rpctls_verify_cafile != NULL ||
-	    rpctls_verify_capath != NULL) &&
+	if ((rpctls_verify_cafile != NULL || rpctls_verify_capath != NULL) &&
 	    rpctls_crlfile != NULL) {
 		certstore = SSL_CTX_get_cert_store(ctx);
-		certlookup = X509_STORE_add_lookup(
-		    certstore, X509_LOOKUP_file());
+		certlookup = X509_STORE_add_lookup(certstore,
+		    X509_LOOKUP_file());
 		ret = 0;
 		if (certlookup != NULL)
-			ret = X509_load_crl_file(certlookup,
-			    rpctls_crlfile, X509_FILETYPE_PEM);
+			ret = X509_load_crl_file(certlookup, rpctls_crlfile,
+			    X509_FILETYPE_PEM);
 		if (ret != 0)
 			ret = X509_STORE_set_flags(certstore,
-			    X509_V_FLAG_CRL_CHECK |
-			    X509_V_FLAG_CRL_CHECK_ALL);
+			    X509_V_FLAG_CRL_CHECK | X509_V_FLAG_CRL_CHECK_ALL);
 		if (ret == 0) {
-			rpctls_verbose_out(
-			    "rpctls_loadcrlfile: Can't"
-			    " load CRLfile=%s\n",
+			rpctls_verbose_out("rpctls_loadcrlfile: Can't"
+					   " load CRLfile=%s\n",
 			    rpctls_crlfile);
 			return (ret);
 		}
@@ -169,8 +164,8 @@ rpctls_checkcrl(void)
 	char *cp, *cp2, nullstr[1];
 	int ret;
 
-	if (rpctls_crlfile == NULL || (rpctls_verify_cafile == NULL &&
-	    rpctls_verify_capath == NULL))
+	if (rpctls_crlfile == NULL ||
+	    (rpctls_verify_cafile == NULL && rpctls_verify_capath == NULL))
 		return;
 	infile = BIO_new(BIO_s_file());
 	if (infile == NULL) {
@@ -186,9 +181,9 @@ rpctls_checkcrl(void)
 
 	nullstr[0] = '\0';
 	for (crl = PEM_read_bio_X509_CRL(infile, NULL, NULL, nullstr);
-	    crl != NULL; crl = PEM_read_bio_X509_CRL(infile, NULL, NULL,
-	    nullstr)) {
-		LIST_FOREACH(slp, &rpctls_ssllist, next) {
+	     crl != NULL;
+	     crl = PEM_read_bio_X509_CRL(infile, NULL, NULL, nullstr)) {
+		LIST_FOREACH (slp, &rpctls_ssllist, next) {
 			if (slp->cert != NULL) {
 				ret = X509_CRL_get0_by_cert(crl, &revoked,
 				    slp->cert);
@@ -258,14 +253,11 @@ rpctls_checkhost(struct sockaddr *sad, X509 *cert, unsigned int wildcard)
 	char hostnam[NI_MAXHOST];
 	int ret;
 
-	if (getnameinfo((const struct sockaddr *)sad,
-	    sad->sa_len, hostnam, sizeof(hostnam),
-	    NULL, 0, NI_NAMEREQD) != 0)
+	if (getnameinfo((const struct sockaddr *)sad, sad->sa_len, hostnam,
+		sizeof(hostnam), NULL, 0, NI_NAMEREQD) != 0)
 		return (0);
-	rpctls_verbose_out("rpctls_checkhost: DNS %s\n",
-	    hostnam);
-	ret = X509_check_host(cert, hostnam, strlen(hostnam),
-	    wildcard, NULL);
+	rpctls_verbose_out("rpctls_checkhost: DNS %s\n", hostnam);
+	ret = X509_check_host(cert, hostnam, strlen(hostnam), wildcard, NULL);
 	return (ret);
 }
 
@@ -282,11 +274,9 @@ rpctls_gethost(int s, struct sockaddr *sad, char *hostip, size_t hostlen)
 	if (getpeername(s, sad, &slen) < 0)
 		return (0);
 	ret = 0;
-	if (getnameinfo((const struct sockaddr *)sad,
-	    sad->sa_len, hostip, hostlen,
-	    NULL, 0, NI_NUMERICHOST) == 0) {
-		rpctls_verbose_out("rpctls_gethost: %s\n",
-		    hostip);
+	if (getnameinfo((const struct sockaddr *)sad, sad->sa_len, hostip,
+		hostlen, NULL, 0, NI_NUMERICHOST) == 0) {
+		rpctls_verbose_out("rpctls_gethost: %s\n", hostip);
 		ret = 1;
 	}
 	return (ret);

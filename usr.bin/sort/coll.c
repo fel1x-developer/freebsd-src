@@ -29,8 +29,8 @@
 
 #include <sys/types.h>
 
-#include <errno.h>
 #include <err.h>
+#include <errno.h>
 #include <langinfo.h>
 #include <limits.h>
 #include <math.h>
@@ -52,13 +52,14 @@ wint_t symbol_thousands_sep = 0;
 wint_t symbol_negative_sign = L'-';
 wint_t symbol_positive_sign = L'+';
 
-static int wstrcoll(struct key_value *kv1, struct key_value *kv2, size_t offset);
-static int gnumcoll(struct key_value*, struct key_value *, size_t offset);
-static int monthcoll(struct key_value*, struct key_value *, size_t offset);
-static int numcoll(struct key_value*, struct key_value *, size_t offset);
-static int hnumcoll(struct key_value*, struct key_value *, size_t offset);
-static int randomcoll(struct key_value*, struct key_value *, size_t offset);
-static int versioncoll(struct key_value*, struct key_value *, size_t offset);
+static int wstrcoll(struct key_value *kv1, struct key_value *kv2,
+    size_t offset);
+static int gnumcoll(struct key_value *, struct key_value *, size_t offset);
+static int monthcoll(struct key_value *, struct key_value *, size_t offset);
+static int numcoll(struct key_value *, struct key_value *, size_t offset);
+static int hnumcoll(struct key_value *, struct key_value *, size_t offset);
+static int randomcoll(struct key_value *, struct key_value *, size_t offset);
+static int versioncoll(struct key_value *, struct key_value *, size_t offset);
 
 /*
  * Allocate keys array
@@ -240,7 +241,7 @@ skip_cols_to_start(const struct bwstring *s, size_t cols, size_t start,
 		return (BWSLEN(s) + 1);
 
 	if (skip_blanks)
-		while (start < BWSLEN(s) && iswblank(BWS_GET(s,start)))
+		while (start < BWSLEN(s) && iswblank(BWS_GET(s, start)))
 			++start;
 
 	while (start < BWSLEN(s) && cols > 1) {
@@ -289,7 +290,8 @@ skip_fields_to_start(const struct bwstring *s, size_t fields, bool *empty_field)
 		size_t cpos = 0;
 
 		while (cpos < BWSLEN(s)) {
-			if (BWS_GET(s,cpos) == (wchar_t)sort_opts_vals.field_sep) {
+			if (BWS_GET(s, cpos) ==
+			    (wchar_t)sort_opts_vals.field_sep) {
 				--fields;
 				if (fields <= 1)
 					return (cpos + 1);
@@ -338,8 +340,8 @@ find_field_end(const struct bwstring *s, struct key_specs *ks)
 			next_field_start = skip_fields_to_start(s, f2 + 1,
 			    &empty_field);
 			if ((next_field_start > 0) && sort_opts_vals.tflag &&
-			    ((wchar_t)sort_opts_vals.field_sep == BWS_GET(s,
-			    next_field_start - 1)))
+			    ((wchar_t)sort_opts_vals.field_sep ==
+				BWS_GET(s, next_field_start - 1)))
 				--next_field_start;
 		} else
 			next_field_start = skip_fields_to_start(s, f2,
@@ -377,8 +379,8 @@ cut_field(const struct bwstring *s, struct key_specs *ks)
 		empty_field = false;
 		empty_key = false;
 
-		find_field_start(s, ks, &field_start, &key_start,
-		    &empty_field, &empty_key);
+		find_field_start(s, ks, &field_start, &key_start, &empty_field,
+		    &empty_key);
 
 		if (empty_key)
 			sz = 0;
@@ -555,7 +557,8 @@ str_list_coll(struct bwstring *str1, struct sort_list_item **ss2)
 	clean_keys_array(str1, ka1);
 	sort_free(ka1);
 
-	if ((ret == 0) && !(sort_opts_vals.sflag) && sort_opts_vals.complex_sort) {
+	if ((ret == 0) && !(sort_opts_vals.sflag) &&
+	    sort_opts_vals.complex_sort) {
 		ret = top_level_str_coll(str1, ((*ss2)->str));
 		if (debug_sort)
 			printf("; cmp2=%d", ret);
@@ -580,7 +583,7 @@ list_coll_offset(struct sort_list_item **ss1, struct sort_list_item **ss2,
 
 	if (debug_sort) {
 		if (offset)
-			printf("; offset=%d", (int) offset);
+			printf("; offset=%d", (int)offset);
 		bwsprintf(stdout, ((*ss1)->str), "; s1=<", ">");
 		bwsprintf(stdout, ((*ss2)->str), ", s2=<", ">");
 		printf("; cmp1=%d\n", ret);
@@ -608,13 +611,13 @@ list_coll(struct sort_list_item **ss1, struct sort_list_item **ss2)
 	return (list_coll_offset(ss1, ss2, 0));
 }
 
-#define	LSCDEF(N)							\
-static int 								\
-list_coll_##N(struct sort_list_item **ss1, struct sort_list_item **ss2)	\
-{									\
-									\
-	return (list_coll_offset(ss1, ss2, N));				\
-}
+#define LSCDEF(N)                                             \
+	static int list_coll_##N(struct sort_list_item **ss1, \
+	    struct sort_list_item **ss2)                      \
+	{                                                     \
+                                                              \
+		return (list_coll_offset(ss1, ss2, N));       \
+	}
 
 LSCDEF(1)
 LSCDEF(2)
@@ -641,11 +644,11 @@ listcoll_t
 get_list_call_func(size_t offset)
 {
 	static const listcoll_t lsarray[] = { list_coll, list_coll_1,
-	    list_coll_2, list_coll_3, list_coll_4, list_coll_5,
-	    list_coll_6, list_coll_7, list_coll_8, list_coll_9,
-	    list_coll_10, list_coll_11, list_coll_12, list_coll_13,
-	    list_coll_14, list_coll_15, list_coll_16, list_coll_17,
-	    list_coll_18, list_coll_19, list_coll_20 };
+		list_coll_2, list_coll_3, list_coll_4, list_coll_5, list_coll_6,
+		list_coll_7, list_coll_8, list_coll_9, list_coll_10,
+		list_coll_11, list_coll_12, list_coll_13, list_coll_14,
+		list_coll_15, list_coll_16, list_coll_17, list_coll_18,
+		list_coll_19, list_coll_20 };
 
 	if (offset <= 20)
 		return (lsarray[offset]);
@@ -671,9 +674,10 @@ list_coll_by_str_only(struct sort_list_item **ss1, struct sort_list_item **ss2)
 /*
  * Set suffix value
  */
-static void setsuffix(wchar_t c, unsigned char *si)
+static void
+setsuffix(wchar_t c, unsigned char *si)
 {
-	switch (c){
+	switch (c) {
 	case L'k':
 	case L'K':
 		*si = 1;
@@ -712,7 +716,8 @@ static void setsuffix(wchar_t c, unsigned char *si)
  * point is in sfrac, tail is the pointer to the remainder of the string.
  */
 static int
-read_number(struct bwstring *s0, int *sign, wchar_t *smain, size_t *main_len, wchar_t *sfrac, size_t *frac_len, unsigned char *si)
+read_number(struct bwstring *s0, int *sign, wchar_t *smain, size_t *main_len,
+    wchar_t *sfrac, size_t *frac_len, unsigned char *si)
 {
 	bwstring_iterator s;
 
@@ -730,8 +735,8 @@ read_number(struct bwstring *s0, int *sign, wchar_t *smain, size_t *main_len, wc
 	}
 
 	// This is '0', not '\0', do not change this
-	while (iswdigit(bws_get_iter_value(s)) &&
-	    (bws_get_iter_value(s) == L'0'))
+	while (
+	    iswdigit(bws_get_iter_value(s)) && (bws_get_iter_value(s) == L'0'))
 		s = bws_iterator_inc(s, 1);
 
 	while (bws_get_iter_value(s) && *main_len < MAX_NUM_SIZE) {
@@ -764,7 +769,7 @@ read_number(struct bwstring *s0, int *sign, wchar_t *smain, size_t *main_len, wc
 		}
 	}
 
-	setsuffix(bws_get_iter_value(s),si);
+	setsuffix(bws_get_iter_value(s), si);
 
 	if ((*main_len + *frac_len) == 0)
 		*sign = 0;
@@ -781,7 +786,7 @@ wstrcoll(struct key_value *kv1, struct key_value *kv2, size_t offset)
 
 	if (debug_sort) {
 		if (offset)
-			printf("; offset=%d\n", (int) offset);
+			printf("; offset=%d\n", (int)offset);
 		bwsprintf(stdout, kv1->k, "; k1=<", ">");
 		printf("(%zu)", BWSLEN(kv1->k));
 		bwsprintf(stdout, kv2->k, ", k2=<", ">");
@@ -837,29 +842,31 @@ numcoll_impl(struct key_value *kv1, struct key_value *kv2,
 		read_number(s1, &sign1, smain1, &main1, sfrac1, &frac1, &SI1);
 		key1_read = true;
 		kv1->hint->v.nh.n1 = wcstoull(smain1, NULL, 10);
-		if(main1 < 1 && frac1 < 1)
-			kv1->hint->v.nh.empty=true;
+		if (main1 < 1 && frac1 < 1)
+			kv1->hint->v.nh.empty = true;
 		kv1->hint->v.nh.si = SI1;
 		kv1->hint->status = (kv1->hint->v.nh.n1 != ULLONG_MAX) ?
-		    HS_INITIALIZED : HS_ERROR;
+		    HS_INITIALIZED :
+		    HS_ERROR;
 		kv1->hint->v.nh.neg = (sign1 < 0) ? true : false;
 	}
 
 	if (kv2->hint->status == HS_UNINITIALIZED) {
 		/* read the number from the string */
-		read_number(s2, &sign2, smain2, &main2, sfrac2, &frac2,&SI2);
+		read_number(s2, &sign2, smain2, &main2, sfrac2, &frac2, &SI2);
 		key2_read = true;
 		kv2->hint->v.nh.n1 = wcstoull(smain2, NULL, 10);
-		if(main2 < 1 && frac2 < 1)
-			kv2->hint->v.nh.empty=true;
+		if (main2 < 1 && frac2 < 1)
+			kv2->hint->v.nh.empty = true;
 		kv2->hint->v.nh.si = SI2;
 		kv2->hint->status = (kv2->hint->v.nh.n1 != ULLONG_MAX) ?
-		    HS_INITIALIZED : HS_ERROR;
+		    HS_INITIALIZED :
+		    HS_ERROR;
 		kv2->hint->v.nh.neg = (sign2 < 0) ? true : false;
 	}
 
-	if (kv1->hint->status == HS_INITIALIZED && kv2->hint->status ==
-	    HS_INITIALIZED) {
+	if (kv1->hint->status == HS_INITIALIZED &&
+	    kv2->hint->status == HS_INITIALIZED) {
 		unsigned long long n1, n2;
 		bool neg1, neg2;
 
@@ -882,9 +889,9 @@ numcoll_impl(struct key_value *kv1, struct key_value *kv2,
 		else if (e2)
 			return (neg1 ? -1 : +1);
 
-
 		if (use_suffix) {
-			cmp_res = cmpsuffix(kv1->hint->v.nh.si, kv2->hint->v.nh.si);
+			cmp_res = cmpsuffix(kv1->hint->v.nh.si,
+			    kv2->hint->v.nh.si);
 			if (cmp_res)
 				return (neg1 ? -cmp_res : cmp_res);
 		}
@@ -938,7 +945,8 @@ numcoll_impl(struct key_value *kv1, struct key_value *kv2,
 		cmp_res = -1;
 	else if (main1 > main2)
 		cmp_res = +1;
-	/* if the sizes are equal then simple non-collate string compare gives the correct result */
+	/* if the sizes are equal then simple non-collate string compare gives
+	 * the correct result */
 	else
 		cmp_res = wcscmp(smain1, smain2);
 
@@ -989,8 +997,7 @@ randomcoll_init_hint(struct key_value *kv, void *hash)
  * Implements random sort (-R).
  */
 static int
-randomcoll(struct key_value *kv1, struct key_value *kv2,
-    size_t offset __unused)
+randomcoll(struct key_value *kv1, struct key_value *kv2, size_t offset __unused)
 {
 	struct bwstring *s1, *s2;
 	MD5_CTX ctx1, ctx2;
@@ -1010,8 +1017,8 @@ randomcoll(struct key_value *kv1, struct key_value *kv2,
 
 	if (kv1->hint->status == HS_INITIALIZED &&
 	    kv2->hint->status == HS_INITIALIZED) {
-		cmp = memcmp(kv1->hint->v.Rh.cached,
-		    kv2->hint->v.Rh.cached, sizeof(kv1->hint->v.Rh.cached));
+		cmp = memcmp(kv1->hint->v.Rh.cached, kv2->hint->v.Rh.cached,
+		    sizeof(kv1->hint->v.Rh.cached));
 		if (cmp != 0)
 			return (cmp);
 	}
@@ -1112,8 +1119,7 @@ cmp_nans(double d1, double d2)
  * Implements general numeric sort (-g).
  */
 static int
-gnumcoll(struct key_value *kv1, struct key_value *kv2,
-    size_t offset __unused)
+gnumcoll(struct key_value *kv1, struct key_value *kv2, size_t offset __unused)
 {
 	double d1, d2;
 	int err1, err2;
@@ -1171,8 +1177,8 @@ gnumcoll(struct key_value *kv1, struct key_value *kv2,
 
 		if (kv1->hint->v.gh.nan)
 			return ((kv2->hint->v.gh.nan) ?
-			    cmp_nans(kv1->hint->v.gh.d, kv2->hint->v.gh.d) :
-			    -1);
+				cmp_nans(kv1->hint->v.gh.d, kv2->hint->v.gh.d) :
+				-1);
 		else if (kv2->hint->v.gh.nan)
 			return (+1);
 

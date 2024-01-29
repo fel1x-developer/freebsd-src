@@ -58,9 +58,9 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
-#include <sys/systm.h>
 
 #include <machine/stdarg.h>
 
@@ -106,41 +106,30 @@ static void ofw_std_release(ofw_t ofw, void *virt, size_t size);
 static void ofw_std_enter(ofw_t ofw);
 static void ofw_std_exit(ofw_t ofw);
 
-static ofw_method_t ofw_std_methods[] = {
-	OFWMETHOD(ofw_init,			ofw_std_init),
-	OFWMETHOD(ofw_peer,			ofw_std_peer),
-	OFWMETHOD(ofw_child,			ofw_std_child),
-	OFWMETHOD(ofw_parent,			ofw_std_parent),
-	OFWMETHOD(ofw_instance_to_package,	ofw_std_instance_to_package),
-	OFWMETHOD(ofw_getproplen,		ofw_std_getproplen),
-	OFWMETHOD(ofw_getprop,			ofw_std_getprop),
-	OFWMETHOD(ofw_nextprop,			ofw_std_nextprop),
-	OFWMETHOD(ofw_setprop,			ofw_std_setprop),
-	OFWMETHOD(ofw_canon,			ofw_std_canon),
-	OFWMETHOD(ofw_finddevice,		ofw_std_finddevice),
-	OFWMETHOD(ofw_instance_to_path,		ofw_std_instance_to_path),
-	OFWMETHOD(ofw_package_to_path,		ofw_std_package_to_path),
+static ofw_method_t ofw_std_methods[] = { OFWMETHOD(ofw_init, ofw_std_init),
+	OFWMETHOD(ofw_peer, ofw_std_peer), OFWMETHOD(ofw_child, ofw_std_child),
+	OFWMETHOD(ofw_parent, ofw_std_parent),
+	OFWMETHOD(ofw_instance_to_package, ofw_std_instance_to_package),
+	OFWMETHOD(ofw_getproplen, ofw_std_getproplen),
+	OFWMETHOD(ofw_getprop, ofw_std_getprop),
+	OFWMETHOD(ofw_nextprop, ofw_std_nextprop),
+	OFWMETHOD(ofw_setprop, ofw_std_setprop),
+	OFWMETHOD(ofw_canon, ofw_std_canon),
+	OFWMETHOD(ofw_finddevice, ofw_std_finddevice),
+	OFWMETHOD(ofw_instance_to_path, ofw_std_instance_to_path),
+	OFWMETHOD(ofw_package_to_path, ofw_std_package_to_path),
 
-	OFWMETHOD(ofw_test,			ofw_std_test),
-	OFWMETHOD(ofw_call_method,		ofw_std_call_method),
-	OFWMETHOD(ofw_interpret,		ofw_std_interpret),
-	OFWMETHOD(ofw_open,			ofw_std_open),
-	OFWMETHOD(ofw_close,			ofw_std_close),
-	OFWMETHOD(ofw_read,			ofw_std_read),
-	OFWMETHOD(ofw_write,			ofw_std_write),
-	OFWMETHOD(ofw_seek,			ofw_std_seek),
-	OFWMETHOD(ofw_claim,			ofw_std_claim),
-	OFWMETHOD(ofw_release,			ofw_std_release),
-	OFWMETHOD(ofw_enter,			ofw_std_enter),
-	OFWMETHOD(ofw_exit,			ofw_std_exit),
-	{ 0, 0 }
-};
+	OFWMETHOD(ofw_test, ofw_std_test),
+	OFWMETHOD(ofw_call_method, ofw_std_call_method),
+	OFWMETHOD(ofw_interpret, ofw_std_interpret),
+	OFWMETHOD(ofw_open, ofw_std_open), OFWMETHOD(ofw_close, ofw_std_close),
+	OFWMETHOD(ofw_read, ofw_std_read), OFWMETHOD(ofw_write, ofw_std_write),
+	OFWMETHOD(ofw_seek, ofw_std_seek), OFWMETHOD(ofw_claim, ofw_std_claim),
+	OFWMETHOD(ofw_release, ofw_std_release),
+	OFWMETHOD(ofw_enter, ofw_std_enter), OFWMETHOD(ofw_exit, ofw_std_exit),
+	{ 0, 0 } };
 
-static ofw_def_t ofw_std = {
-	OFW_STD_DIRECT,
-	ofw_std_methods,
-	0
-};
+static ofw_def_t ofw_std = { OFW_STD_DIRECT, ofw_std_methods, 0 };
 OFW_DEF(ofw_std);
 
 static int (*openfirmware)(void *);
@@ -170,7 +159,7 @@ ofw_std_test(ofw_t ofw, const char *name)
 		cell_t service;
 		cell_t missing;
 	} args = {
-		(cell_t)"test",
+		(cell_t) "test",
 		1,
 		1,
 	};
@@ -190,7 +179,7 @@ ofw_std_interpret(ofw_t ofw, const char *cmd, int nreturns, cell_t *returns)
 		cell_t nreturns;
 		cell_t slot[16];
 	} args = {
-		(cell_t)"interpret",
+		(cell_t) "interpret",
 		1,
 	};
 	cell_t status;
@@ -221,7 +210,7 @@ ofw_std_peer(ofw_t ofw, phandle_t node)
 		cell_t node;
 		cell_t next;
 	} args = {
-		(cell_t)"peer",
+		(cell_t) "peer",
 		1,
 		1,
 	};
@@ -243,7 +232,7 @@ ofw_std_child(ofw_t ofw, phandle_t node)
 		cell_t node;
 		cell_t child;
 	} args = {
-		(cell_t)"child",
+		(cell_t) "child",
 		1,
 		1,
 	};
@@ -265,7 +254,7 @@ ofw_std_parent(ofw_t ofw, phandle_t node)
 		cell_t node;
 		cell_t parent;
 	} args = {
-		(cell_t)"parent",
+		(cell_t) "parent",
 		1,
 		1,
 	};
@@ -287,7 +276,7 @@ ofw_std_instance_to_package(ofw_t ofw, ihandle_t instance)
 		cell_t instance;
 		cell_t package;
 	} args = {
-		(cell_t)"instance-to-package",
+		(cell_t) "instance-to-package",
 		1,
 		1,
 	};
@@ -310,7 +299,7 @@ ofw_std_getproplen(ofw_t ofw, phandle_t package, const char *propname)
 		cell_t propname;
 		cell_t proplen;
 	} args = {
-		(cell_t)"getproplen",
+		(cell_t) "getproplen",
 		2,
 		1,
 	};
@@ -337,7 +326,7 @@ ofw_std_getprop(ofw_t ofw, phandle_t package, const char *propname, void *buf,
 		cell_t buflen;
 		cell_t size;
 	} args = {
-		(cell_t)"getprop",
+		(cell_t) "getprop",
 		4,
 		1,
 	};
@@ -365,7 +354,7 @@ ofw_std_nextprop(ofw_t ofw, phandle_t package, const char *previous, char *buf,
 		cell_t buf;
 		cell_t flag;
 	} args = {
-		(cell_t)"nextprop",
+		(cell_t) "nextprop",
 		3,
 		1,
 	};
@@ -394,7 +383,7 @@ ofw_std_setprop(ofw_t ofw, phandle_t package, const char *propname,
 		cell_t len;
 		cell_t size;
 	} args = {
-		(cell_t)"setprop",
+		(cell_t) "setprop",
 		4,
 		1,
 	};
@@ -421,7 +410,7 @@ ofw_std_canon(ofw_t ofw, const char *device, char *buf, size_t len)
 		cell_t len;
 		cell_t size;
 	} args = {
-		(cell_t)"canon",
+		(cell_t) "canon",
 		3,
 		1,
 	};
@@ -445,7 +434,7 @@ ofw_std_finddevice(ofw_t ofw, const char *device)
 		cell_t device;
 		cell_t package;
 	} args = {
-		(cell_t)"finddevice",
+		(cell_t) "finddevice",
 		1,
 		1,
 	};
@@ -469,7 +458,7 @@ ofw_std_instance_to_path(ofw_t ofw, ihandle_t instance, char *buf, size_t len)
 		cell_t len;
 		cell_t size;
 	} args = {
-		(cell_t)"instance-to-path",
+		(cell_t) "instance-to-path",
 		3,
 		1,
 	};
@@ -495,7 +484,7 @@ ofw_std_package_to_path(ofw_t ofw, phandle_t package, char *buf, size_t len)
 		cell_t len;
 		cell_t size;
 	} args = {
-		(cell_t)"package-to-path",
+		(cell_t) "package-to-path",
 		3,
 		1,
 	};
@@ -521,7 +510,7 @@ ofw_std_call_method(ofw_t ofw, ihandle_t instance, const char *method,
 		cell_t instance;
 		cell_t args_n_results[12];
 	} args = {
-		(cell_t)"call-method",
+		(cell_t) "call-method",
 		2,
 		1,
 	};
@@ -562,7 +551,7 @@ ofw_std_open(ofw_t ofw, const char *device)
 		cell_t device;
 		cell_t instance;
 	} args = {
-		(cell_t)"open",
+		(cell_t) "open",
 		1,
 		1,
 	};
@@ -583,7 +572,7 @@ ofw_std_close(ofw_t ofw, ihandle_t instance)
 		cell_t nreturns;
 		cell_t instance;
 	} args = {
-		(cell_t)"close",
+		(cell_t) "close",
 		1,
 		0,
 	};
@@ -605,7 +594,7 @@ ofw_std_read(ofw_t ofw, ihandle_t instance, void *addr, size_t len)
 		cell_t len;
 		cell_t actual;
 	} args = {
-		(cell_t)"read",
+		(cell_t) "read",
 		3,
 		1,
 	};
@@ -632,7 +621,7 @@ ofw_std_write(ofw_t ofw, ihandle_t instance, const void *addr, size_t len)
 		cell_t len;
 		cell_t actual;
 	} args = {
-		(cell_t)"write",
+		(cell_t) "write",
 		3,
 		1,
 	};
@@ -658,7 +647,7 @@ ofw_std_seek(ofw_t ofw, ihandle_t instance, uint64_t pos)
 		cell_t poslo;
 		cell_t status;
 	} args = {
-		(cell_t)"seek",
+		(cell_t) "seek",
 		3,
 		1,
 	};
@@ -688,7 +677,7 @@ ofw_std_claim(ofw_t ofw, void *virt, size_t size, u_int align)
 		cell_t align;
 		cell_t baseaddr;
 	} args = {
-		(cell_t)"claim",
+		(cell_t) "claim",
 		3,
 		1,
 	};
@@ -712,7 +701,7 @@ ofw_std_release(ofw_t ofw, void *virt, size_t size)
 		cell_t virt;
 		cell_t size;
 	} args = {
-		(cell_t)"release",
+		(cell_t) "release",
 		2,
 		0,
 	};
@@ -735,7 +724,7 @@ ofw_std_enter(ofw_t ofw)
 		cell_t nargs;
 		cell_t nreturns;
 	} args = {
-		(cell_t)"enter",
+		(cell_t) "enter",
 		0,
 		0,
 	};
@@ -753,12 +742,12 @@ ofw_std_exit(ofw_t ofw)
 		cell_t nargs;
 		cell_t nreturns;
 	} args = {
-		(cell_t)"exit",
+		(cell_t) "exit",
 		0,
 		0,
 	};
 
 	openfirmware(&args);
-	for (;;)			/* just in case */
+	for (;;) /* just in case */
 		;
 }

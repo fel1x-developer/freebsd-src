@@ -5,7 +5,7 @@
  *
  * Copyright (C) 1999 WIDE Project.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -17,7 +17,7 @@
  * 3. Neither the name of the project nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE PROJECT AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -33,14 +33,14 @@
 
 #include <sys/types.h>
 #include <sys/capsicum.h>
-#include <sys/socket.h>
 #include <sys/queue.h>
+#include <sys/socket.h>
 
 #include <net/if.h>
-#include <netinet/in.h>
 #include <netinet/icmp6.h>
-#include <arpa/inet.h>
+#include <netinet/in.h>
 
+#include <arpa/inet.h>
 #include <capsicum_helpers.h>
 #include <errno.h>
 #include <stdio.h>
@@ -50,8 +50,8 @@
 
 #include "rtsold.h"
 
-static const char * const ifstatstr[] =
-    { "IDLE", "DELAY", "PROBE", "DOWN", "TENTATIVE" };
+static const char *const ifstatstr[] = { "IDLE", "DELAY", "PROBE", "DOWN",
+	"TENTATIVE" };
 
 void
 rtsold_dump(FILE *fp)
@@ -70,7 +70,7 @@ rtsold_dump(FILE *fp)
 
 	(void)clock_gettime(CLOCK_MONOTONIC_FAST, &now);
 
-	TAILQ_FOREACH(ifi, &ifinfo_head, ifi_next) {
+	TAILQ_FOREACH (ifi, &ifinfo_head, ifi_next) {
 		fprintf(fp, "Interface %s\n", ifi->ifname);
 		fprintf(fp, "  probe interval: ");
 		if (ifi->probeinterval) {
@@ -89,8 +89,8 @@ rtsold_dump(FILE *fp)
 		fprintf(fp, "  rtsold status: %s\n", ifstatstr[ifi->state]);
 		fprintf(fp, "  carrier detection: %s\n",
 		    ifi->mediareqok ? "available" : "unavailable");
-		fprintf(fp, "  probes: %d, dadcount = %d\n",
-		    ifi->probes, ifi->dadcount);
+		fprintf(fp, "  probes: %d, dadcount = %d\n", ifi->probes,
+		    ifi->dadcount);
 		if (ifi->timer.tv_sec == tm_max.tv_sec &&
 		    ifi->timer.tv_nsec == tm_max.tv_nsec)
 			fprintf(fp, "  no timer\n");
@@ -98,16 +98,17 @@ rtsold_dump(FILE *fp)
 			fprintf(fp, "  timer: interval=%d:%d, expire=%s\n",
 			    (int)ifi->timer.tv_sec,
 			    (int)ifi->timer.tv_nsec / 1000,
-			    (ifi->expire.tv_sec < now.tv_sec) ? "expired"
-			    : sec2str(&ifi->expire));
+			    (ifi->expire.tv_sec < now.tv_sec) ?
+				"expired" :
+				sec2str(&ifi->expire));
 		}
 		fprintf(fp, "  number of valid RAs: %d\n", ifi->racnt);
 
-		TAILQ_FOREACH(rai, &ifi->ifi_rainfo, rai_next) {
+		TAILQ_FOREACH (rai, &ifi->ifi_rainfo, rai_next) {
 			fprintf(fp, "   RA from %s\n",
 			    inet_ntop(AF_INET6, &rai->rai_saddr.sin6_addr,
 				ntopbuf, sizeof(ntopbuf)));
-			TAILQ_FOREACH(rao, &rai->rai_ra_opt, rao_next) {
+			TAILQ_FOREACH (rao, &rai->rai_ra_opt, rao_next) {
 				fprintf(fp, "    option: ");
 				switch (rao->rao_type) {
 				case ND_OPT_RDNSS:
@@ -165,7 +166,7 @@ sec2str(const struct timespec *total)
 	time_t tsec;
 
 	clock_gettime(CLOCK_MONOTONIC_FAST, &now);
-	tsec  = total->tv_sec;
+	tsec = total->tv_sec;
 	tsec += total->tv_nsec / 1000 / 1000000;
 	tsec -= now.tv_sec;
 	tsec -= now.tv_nsec / 1000 / 1000000;

@@ -31,59 +31,58 @@
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
+#include <sys/queue.h>
 #include <sys/resource.h>
 #include <sys/rman.h>
 #include <sys/socket.h>
-#include <sys/queue.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
+
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
 
 #include <net/if.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
 #include <net/if_var.h>
 
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-
-#include "thunder_mdio_var.h"
-
 #include "lmac_if.h"
 #include "miibus_if.h"
+#include "thunder_mdio_var.h"
 
-#define	REG_BASE_RID	0
+#define REG_BASE_RID 0
 
-#define	SMI_CMD				0x00
-#define	 SMI_CMD_PHY_REG_ADR_SHIFT	(0)
-#define	 SMI_CMD_PHY_REG_ADR_MASK	(0x1FUL << SMI_CMD_PHY_REG_ADR_SHIFT)
-#define	 SMI_CMD_PHY_ADR_SHIFT		(8)
-#define	 SMI_CMD_PHY_ADR_MASK		(0x1FUL << SMI_CMD_PHY_ADR_SHIFT)
-#define	 SMI_CMD_PHY_OP_MASK		(0x3UL << 16)
-#define	 SMI_CMD_PHY_OP_C22_READ	(0x1UL << 16)
-#define	 SMI_CMD_PHY_OP_C22_WRITE	(0x0UL << 16)
-#define	 SMI_CMD_PHY_OP_C45_READ	(0x3UL << 16)
-#define	 SMI_CMD_PHY_OP_C45_WRITE	(0x1UL << 16)
-#define	 SMI_CMD_PHY_OP_C45_ADDR	(0x0UL << 16)
+#define SMI_CMD 0x00
+#define SMI_CMD_PHY_REG_ADR_SHIFT (0)
+#define SMI_CMD_PHY_REG_ADR_MASK (0x1FUL << SMI_CMD_PHY_REG_ADR_SHIFT)
+#define SMI_CMD_PHY_ADR_SHIFT (8)
+#define SMI_CMD_PHY_ADR_MASK (0x1FUL << SMI_CMD_PHY_ADR_SHIFT)
+#define SMI_CMD_PHY_OP_MASK (0x3UL << 16)
+#define SMI_CMD_PHY_OP_C22_READ (0x1UL << 16)
+#define SMI_CMD_PHY_OP_C22_WRITE (0x0UL << 16)
+#define SMI_CMD_PHY_OP_C45_READ (0x3UL << 16)
+#define SMI_CMD_PHY_OP_C45_WRITE (0x1UL << 16)
+#define SMI_CMD_PHY_OP_C45_ADDR (0x0UL << 16)
 
-#define	SMI_WR_DAT			0x08
-#define	 SMI_WR_DAT_PENDING		(1UL << 17)
-#define	 SMI_WR_DAT_VAL			(1UL << 16)
-#define	 SMI_WR_DAT_DAT_MASK		(0xFFFFUL << 0)
+#define SMI_WR_DAT 0x08
+#define SMI_WR_DAT_PENDING (1UL << 17)
+#define SMI_WR_DAT_VAL (1UL << 16)
+#define SMI_WR_DAT_DAT_MASK (0xFFFFUL << 0)
 
-#define	SMI_RD_DAT			0x10
-#define	 SMI_RD_DAT_PENDING		(1UL << 17)
-#define	 SMI_RD_DAT_VAL			(1UL << 16)
-#define	 SMI_RD_DAT_DAT_MASK		(0xFFFFUL << 0)
+#define SMI_RD_DAT 0x10
+#define SMI_RD_DAT_PENDING (1UL << 17)
+#define SMI_RD_DAT_VAL (1UL << 16)
+#define SMI_RD_DAT_DAT_MASK (0xFFFFUL << 0)
 
-#define	SMI_CLK				0x18
-#define	 SMI_CLK_PREAMBLE		(1UL << 12)
-#define	 SMI_CLK_MODE			(1UL << 24)
+#define SMI_CLK 0x18
+#define SMI_CLK_PREAMBLE (1UL << 12)
+#define SMI_CLK_MODE (1UL << 24)
 
-#define	SMI_EN				0x20
-#define	 SMI_EN_EN			(1UL << 0)	/* Enable interface */
+#define SMI_EN 0x20
+#define SMI_EN_EN (1UL << 0) /* Enable interface */
 
-#define	SMI_DRV_CTL			0x28
+#define SMI_DRV_CTL 0x28
 
 static int thunder_mdio_detach(device_t);
 
@@ -100,15 +99,15 @@ static int thunder_mdio_phy_disconnect(device_t, int, int);
 
 static device_method_t thunder_mdio_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_detach,	thunder_mdio_detach),
+	DEVMETHOD(device_detach, thunder_mdio_detach),
 	/* LMAC interface */
-	DEVMETHOD(lmac_media_status,	thunder_mdio_media_status),
-	DEVMETHOD(lmac_media_change,	thunder_mdio_media_change),
-	DEVMETHOD(lmac_phy_connect,	thunder_mdio_phy_connect),
-	DEVMETHOD(lmac_phy_disconnect,	thunder_mdio_phy_disconnect),
+	DEVMETHOD(lmac_media_status, thunder_mdio_media_status),
+	DEVMETHOD(lmac_media_change, thunder_mdio_media_change),
+	DEVMETHOD(lmac_phy_connect, thunder_mdio_phy_connect),
+	DEVMETHOD(lmac_phy_disconnect, thunder_mdio_phy_disconnect),
 	/* MII interface */
-	DEVMETHOD(miibus_readreg,	thunder_mdio_read),
-	DEVMETHOD(miibus_writereg,	thunder_mdio_write),
+	DEVMETHOD(miibus_readreg, thunder_mdio_read),
+	DEVMETHOD(miibus_writereg, thunder_mdio_write),
 
 	/* End */
 	DEVMETHOD_END
@@ -126,23 +125,18 @@ MODULE_DEPEND(thunder_mdio, mrmlbus, 1, 1, 1);
 MALLOC_DEFINE(M_THUNDER_MDIO, "ThunderX MDIO",
     "Cavium ThunderX MDIO dynamic memory");
 
-#define	MDIO_LOCK_INIT(sc, name)			\
-    mtx_init(&(sc)->mtx, name, NULL, MTX_DEF)
+#define MDIO_LOCK_INIT(sc, name) mtx_init(&(sc)->mtx, name, NULL, MTX_DEF)
 
-#define	MDIO_LOCK_DESTROY(sc)				\
-    mtx_destroy(&(sc)->mtx)
+#define MDIO_LOCK_DESTROY(sc) mtx_destroy(&(sc)->mtx)
 
-#define	MDIO_LOCK(sc)	mtx_lock(&(sc)->mtx)
-#define	MDIO_UNLOCK(sc)	mtx_unlock(&(sc)->mtx)
+#define MDIO_LOCK(sc) mtx_lock(&(sc)->mtx)
+#define MDIO_UNLOCK(sc) mtx_unlock(&(sc)->mtx)
 
-#define	MDIO_LOCK_ASSERT(sc)				\
-    mtx_assert(&(sc)->mtx, MA_OWNED)
+#define MDIO_LOCK_ASSERT(sc) mtx_assert(&(sc)->mtx, MA_OWNED)
 
-#define	mdio_reg_read(sc, reg)				\
-    bus_read_8((sc)->reg_base, (reg))
+#define mdio_reg_read(sc, reg) bus_read_8((sc)->reg_base, (reg))
 
-#define	mdio_reg_write(sc, reg, val)			\
-    bus_write_8((sc)->reg_base, (reg), (val))
+#define mdio_reg_write(sc, reg, val) bus_write_8((sc)->reg_base, (reg), (val))
 
 int
 thunder_mdio_attach(device_t dev)
@@ -355,8 +349,7 @@ thunder_ifmedia_change_stub(if_t ifp __unused)
 }
 
 static void
-thunder_ifmedia_status_stub(if_t ifp __unused, struct ifmediareq
-    *ifmr __unused)
+thunder_ifmedia_status_stub(if_t ifp __unused, struct ifmediareq *ifmr __unused)
 {
 	/* Will never be called by if_media */
 }
@@ -367,7 +360,7 @@ get_phy_desc(struct thunder_mdio_softc *sc, int lmacid)
 	struct phy_desc *pd = NULL;
 
 	MDIO_LOCK_ASSERT(sc);
-	TAILQ_FOREACH(pd, &sc->phy_desc_head, phy_desc_list) {
+	TAILQ_FOREACH (pd, &sc->phy_desc_head, phy_desc_list) {
 		if (pd->lmacid == lmacid)
 			break;
 	}
@@ -388,8 +381,8 @@ thunder_mdio_media_status(device_t dev, int lmacid, int *link, int *duplex,
 	pd = get_phy_desc(sc, lmacid);
 	if (pd == NULL) {
 		/* Panic when invariants are enabled, fail otherwise. */
-		KASSERT(0, ("%s: no PHY descriptor for LMAC%d",
-		    __func__, lmacid));
+		KASSERT(0,
+		    ("%s: no PHY descriptor for LMAC%d", __func__, lmacid));
 		MDIO_UNLOCK(sc);
 		return (ENXIO);
 	}
@@ -460,9 +453,9 @@ thunder_mdio_phy_connect(device_t dev, int lmacid, int phy)
 		pd->lmacid = lmacid;
 	}
 
-	err = mii_attach(dev, &pd->miibus, pd->ifp,
-	    thunder_ifmedia_change_stub, thunder_ifmedia_status_stub,
-	    BMSR_DEFCAPMASK, phy, MII_OFFSET_ANY, 0);
+	err = mii_attach(dev, &pd->miibus, pd->ifp, thunder_ifmedia_change_stub,
+	    thunder_ifmedia_status_stub, BMSR_DEFCAPMASK, phy, MII_OFFSET_ANY,
+	    0);
 
 	if (err != 0) {
 		device_printf(dev, "Could not attach PHY%d\n", phy);

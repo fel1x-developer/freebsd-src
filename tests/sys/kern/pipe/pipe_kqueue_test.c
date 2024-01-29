@@ -29,6 +29,7 @@
 #include <sys/event.h>
 #include <sys/stat.h>
 
+#include <atf-c.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
@@ -37,8 +38,6 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
-
-#include <atf-c.h>
 
 ATF_TC_WITHOUT_HEAD(pipe_kqueue__write_end);
 ATF_TC_BODY(pipe_kqueue__write_end, tc)
@@ -60,7 +59,7 @@ ATF_TC_BODY(pipe_kqueue__write_end, tc)
 	/* Test that EVFILT_WRITE behaves sensibly on the write end. */
 
 	ATF_REQUIRE(kevent(kq, NULL, 0, kev, nitems(kev),
-	    &(struct timespec) { 0, 0 }) == 1);
+			&(struct timespec) { 0, 0 }) == 1);
 	ATF_REQUIRE(kev[0].ident == (uintptr_t)p[1]);
 	ATF_REQUIRE(kev[0].filter == EVFILT_WRITE);
 	ATF_REQUIRE(kev[0].flags == EV_CLEAR);
@@ -78,7 +77,7 @@ ATF_TC_BODY(pipe_kqueue__write_end, tc)
 	ATF_REQUIRE(errno == EAGAIN || errno == EWOULDBLOCK);
 
 	ATF_REQUIRE(kevent(kq, NULL, 0, kev, nitems(kev),
-	    &(struct timespec) { 0, 0 }) == 0);
+			&(struct timespec) { 0, 0 }) == 0);
 
 	/* Reading (PIPE_BUF - 1) bytes will not trigger a EVFILT_WRITE yet. */
 
@@ -87,7 +86,7 @@ ATF_TC_BODY(pipe_kqueue__write_end, tc)
 	}
 
 	ATF_REQUIRE(kevent(kq, NULL, 0, kev, nitems(kev),
-	    &(struct timespec) { 0, 0 }) == 0);
+			&(struct timespec) { 0, 0 }) == 0);
 
 	/* Reading one additional byte triggers the EVFILT_WRITE. */
 
@@ -110,7 +109,7 @@ ATF_TC_BODY(pipe_kqueue__write_end, tc)
 	ATF_REQUIRE(read(p[0], &c, 1) == 1);
 
 	ATF_REQUIRE(kevent(kq, NULL, 0, kev, nitems(kev),
-	    &(struct timespec) { 0, 0 }) == 1);
+			&(struct timespec) { 0, 0 }) == 1);
 	ATF_REQUIRE(kev[0].ident == (uintptr_t)p[1]);
 	ATF_REQUIRE(kev[0].filter == EVFILT_WRITE);
 	ATF_REQUIRE(kev[0].flags == EV_CLEAR);
@@ -126,7 +125,7 @@ ATF_TC_BODY(pipe_kqueue__write_end, tc)
 	ATF_REQUIRE(close(p[0]) == 0);
 
 	ATF_REQUIRE(kevent(kq, NULL, 0, kev, nitems(kev),
-	    &(struct timespec) { 0, 0 }) == 1);
+			&(struct timespec) { 0, 0 }) == 1);
 	ATF_REQUIRE(kev[0].ident == (uintptr_t)p[1]);
 	ATF_REQUIRE(kev[0].filter == EVFILT_WRITE);
 	ATF_REQUIRE(kev[0].flags == (EV_CLEAR | EV_EOF | EV_ONESHOT));
@@ -170,7 +169,7 @@ ATF_TC_BODY(pipe_kqueue__closed_read_end, tc)
 	ATF_REQUIRE(kev[1].data == EPIPE);
 
 	ATF_REQUIRE(kevent(kq, NULL, 0, kev, nitems(kev),
-	    &(struct timespec) { 0, 0 }) == 1);
+			&(struct timespec) { 0, 0 }) == 1);
 	ATF_REQUIRE(kev[0].ident == (uintptr_t)p[1]);
 	ATF_REQUIRE(kev[0].filter == EVFILT_READ);
 	ATF_REQUIRE(kev[0].flags == (EV_EOF | EV_CLEAR | EV_RECEIPT));
@@ -214,7 +213,7 @@ ATF_TC_BODY(pipe_kqueue__closed_read_end_register_before_close, tc)
 	ATF_REQUIRE(close(p[0]) == 0);
 
 	ATF_REQUIRE(kevent(kq, NULL, 0, kev, nitems(kev),
-	    &(struct timespec) { 0, 0 }) == 2);
+			&(struct timespec) { 0, 0 }) == 2);
 	{
 		ATF_REQUIRE(kev[0].ident == (uintptr_t)p[1]);
 		ATF_REQUIRE(kev[0].filter == EVFILT_WRITE);
@@ -261,10 +260,10 @@ ATF_TC_BODY(pipe_kqueue__closed_write_end, tc)
 	kq = kqueue();
 	ATF_REQUIRE(kq >= 0);
 
-	EV_SET(&kev[0], p[0], EVFILT_READ, EV_ADD | EV_CLEAR | EV_RECEIPT,
-	    0, 0, 0);
-	EV_SET(&kev[1], p[0], EVFILT_WRITE, EV_ADD | EV_CLEAR | EV_RECEIPT,
-	    0, 0, 0);
+	EV_SET(&kev[0], p[0], EVFILT_READ, EV_ADD | EV_CLEAR | EV_RECEIPT, 0, 0,
+	    0);
+	EV_SET(&kev[1], p[0], EVFILT_WRITE, EV_ADD | EV_CLEAR | EV_RECEIPT, 0,
+	    0, 0);
 
 	/*
 	 * Trying to register EVFILT_WRITE when the pipe is closed leads to an
@@ -278,7 +277,7 @@ ATF_TC_BODY(pipe_kqueue__closed_write_end, tc)
 	ATF_REQUIRE(kev[1].data == EPIPE);
 
 	ATF_REQUIRE(kevent(kq, NULL, 0, kev, nitems(kev),
-	    &(struct timespec) { 0, 0 }) == 1);
+			&(struct timespec) { 0, 0 }) == 1);
 	ATF_REQUIRE(kev[0].ident == (uintptr_t)p[0]);
 	ATF_REQUIRE(kev[0].filter == EVFILT_READ);
 	ATF_REQUIRE(kev[0].flags == (EV_EOF | EV_CLEAR | EV_RECEIPT));
@@ -305,10 +304,10 @@ ATF_TC_BODY(pipe_kqueue__closed_write_end_register_before_close, tc)
 	kq = kqueue();
 	ATF_REQUIRE(kq >= 0);
 
-	EV_SET(&kev[0], p[0], EVFILT_READ, EV_ADD | EV_CLEAR | EV_RECEIPT,
-	    0, 0, 0);
-	EV_SET(&kev[1], p[0], EVFILT_WRITE, EV_ADD | EV_CLEAR | EV_RECEIPT,
-	    0, 0, 0);
+	EV_SET(&kev[0], p[0], EVFILT_READ, EV_ADD | EV_CLEAR | EV_RECEIPT, 0, 0,
+	    0);
+	EV_SET(&kev[1], p[0], EVFILT_WRITE, EV_ADD | EV_CLEAR | EV_RECEIPT, 0,
+	    0, 0);
 
 	/*
 	 * Registering EVFILT_WRITE before the pipe is closed leads to a
@@ -331,12 +330,12 @@ ATF_TC_BODY(pipe_kqueue__closed_write_end_register_before_close, tc)
 	ATF_REQUIRE(close(p[1]) == 0);
 
 	ATF_REQUIRE(kevent(kq, NULL, 0, kev, nitems(kev),
-	    &(struct timespec){ 0, 0 }) == 2);
+			&(struct timespec) { 0, 0 }) == 2);
 
 	ATF_REQUIRE(kev[0].ident == (uintptr_t)p[0]);
 	ATF_REQUIRE(kev[0].filter == EVFILT_WRITE);
-	ATF_REQUIRE(kev[0].flags ==
-	    (EV_EOF | EV_CLEAR | EV_ONESHOT | EV_RECEIPT));
+	ATF_REQUIRE(
+	    kev[0].flags == (EV_EOF | EV_CLEAR | EV_ONESHOT | EV_RECEIPT));
 	ATF_REQUIRE(kev[0].fflags == 0);
 	ATF_REQUIRE(kev[0].data > 0);
 	ATF_REQUIRE(kev[0].udata == 0);

@@ -34,8 +34,10 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
+
 #include <machine/stdarg.h>
+
+#include <stand.h>
 
 /*
  * Boot loaders and other standalone programs that wish to have a
@@ -51,9 +53,9 @@ panic_action(void)
 }
 
 void
-panic(const char *fmt,...)
+panic(const char *fmt, ...)
 {
-	va_list         ap;
+	va_list ap;
 
 	printf("panic: ");
 	va_start(ap, fmt);

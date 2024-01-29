@@ -47,11 +47,16 @@ gdb_cpu_getreg(int regnum, size_t *regsz)
 
 	if (kdb_thread == curthread) {
 		switch (regnum) {
-		case GDB_REG_RA:	return (&kdb_frame->tf_ra);
-		case GDB_REG_PC:	return (&kdb_frame->tf_sepc);
-		case GDB_REG_SSTATUS:	return (&kdb_frame->tf_sstatus);
-		case GDB_REG_STVAL:	return (&kdb_frame->tf_stval);
-		case GDB_REG_SCAUSE:	return (&kdb_frame->tf_scause);
+		case GDB_REG_RA:
+			return (&kdb_frame->tf_ra);
+		case GDB_REG_PC:
+			return (&kdb_frame->tf_sepc);
+		case GDB_REG_SSTATUS:
+			return (&kdb_frame->tf_sstatus);
+		case GDB_REG_STVAL:
+			return (&kdb_frame->tf_stval);
+		case GDB_REG_SCAUSE:
+			return (&kdb_frame->tf_scause);
 		default:
 			if (regnum >= GDB_REG_A0 && regnum < GDB_REG_S2)
 				return (&kdb_frame->tf_a[regnum - GDB_REG_A0]);
@@ -64,12 +69,18 @@ gdb_cpu_getreg(int regnum, size_t *regsz)
 	}
 	switch (regnum) {
 	case GDB_REG_PC: /* FALLTHROUGH */
-	case GDB_REG_RA: return (&kdb_thrctx->pcb_ra);
-	case GDB_REG_SP: return (&kdb_thrctx->pcb_sp);
-	case GDB_REG_GP: return (&kdb_thrctx->pcb_gp);
-	case GDB_REG_TP: return (&kdb_thrctx->pcb_tp);
-	case GDB_REG_FP: return (&kdb_thrctx->pcb_s[0]);
-	case GDB_REG_S1: return (&kdb_thrctx->pcb_s[1]);
+	case GDB_REG_RA:
+		return (&kdb_thrctx->pcb_ra);
+	case GDB_REG_SP:
+		return (&kdb_thrctx->pcb_sp);
+	case GDB_REG_GP:
+		return (&kdb_thrctx->pcb_gp);
+	case GDB_REG_TP:
+		return (&kdb_thrctx->pcb_tp);
+	case GDB_REG_FP:
+		return (&kdb_thrctx->pcb_s[0]);
+	case GDB_REG_S1:
+		return (&kdb_thrctx->pcb_s[1]);
 	default:
 		if (regnum >= GDB_REG_S2 && regnum < GDB_REG_T3)
 			return (&kdb_thrctx->pcb_s[regnum - GDB_REG_S2]);
@@ -87,16 +98,36 @@ gdb_cpu_setreg(int regnum, void *val)
 	/* For curthread, keep the pcb and trapframe in sync. */
 	if (kdb_thread == curthread) {
 		switch (regnum) {
-		case GDB_REG_PC:	kdb_frame->tf_sepc = regval; break;
-		case GDB_REG_RA:	kdb_frame->tf_ra = regval; break;
-		case GDB_REG_SP:	kdb_frame->tf_sp = regval; break;
-		case GDB_REG_GP:	kdb_frame->tf_gp = regval; break;
-		case GDB_REG_TP:	kdb_frame->tf_tp = regval; break;
-		case GDB_REG_FP:	kdb_frame->tf_s[0] = regval; break;
-		case GDB_REG_S1:	kdb_frame->tf_s[1] = regval; break;
-		case GDB_REG_SSTATUS:	kdb_frame->tf_sstatus = regval; break;
-		case GDB_REG_STVAL:	kdb_frame->tf_stval = regval; break;
-		case GDB_REG_SCAUSE:	kdb_frame->tf_scause = regval; break;
+		case GDB_REG_PC:
+			kdb_frame->tf_sepc = regval;
+			break;
+		case GDB_REG_RA:
+			kdb_frame->tf_ra = regval;
+			break;
+		case GDB_REG_SP:
+			kdb_frame->tf_sp = regval;
+			break;
+		case GDB_REG_GP:
+			kdb_frame->tf_gp = regval;
+			break;
+		case GDB_REG_TP:
+			kdb_frame->tf_tp = regval;
+			break;
+		case GDB_REG_FP:
+			kdb_frame->tf_s[0] = regval;
+			break;
+		case GDB_REG_S1:
+			kdb_frame->tf_s[1] = regval;
+			break;
+		case GDB_REG_SSTATUS:
+			kdb_frame->tf_sstatus = regval;
+			break;
+		case GDB_REG_STVAL:
+			kdb_frame->tf_stval = regval;
+			break;
+		case GDB_REG_SCAUSE:
+			kdb_frame->tf_scause = regval;
+			break;
 		default:
 			if (regnum >= GDB_REG_A0 && regnum < GDB_REG_S2)
 				kdb_frame->tf_a[regnum - GDB_REG_A0] = regval;
@@ -111,12 +142,24 @@ gdb_cpu_setreg(int regnum, void *val)
 	}
 	switch (regnum) {
 	case GDB_REG_PC: /* FALLTHROUGH */
-	case GDB_REG_RA: kdb_thrctx->pcb_ra = regval; break;
-	case GDB_REG_SP: kdb_thrctx->pcb_sp = regval; break;
-	case GDB_REG_GP: kdb_thrctx->pcb_gp = regval; break;
-	case GDB_REG_TP: kdb_thrctx->pcb_tp = regval; break;
-	case GDB_REG_FP: kdb_thrctx->pcb_s[0] = regval; break;
-	case GDB_REG_S1: kdb_thrctx->pcb_s[1] = regval; break;
+	case GDB_REG_RA:
+		kdb_thrctx->pcb_ra = regval;
+		break;
+	case GDB_REG_SP:
+		kdb_thrctx->pcb_sp = regval;
+		break;
+	case GDB_REG_GP:
+		kdb_thrctx->pcb_gp = regval;
+		break;
+	case GDB_REG_TP:
+		kdb_thrctx->pcb_tp = regval;
+		break;
+	case GDB_REG_FP:
+		kdb_thrctx->pcb_s[0] = regval;
+		break;
+	case GDB_REG_S1:
+		kdb_thrctx->pcb_s[1] = regval;
+		break;
 	default:
 		if (regnum >= GDB_REG_S2 && regnum < GDB_REG_T3)
 			kdb_thrctx->pcb_s[regnum - GDB_REG_S2] = regval;

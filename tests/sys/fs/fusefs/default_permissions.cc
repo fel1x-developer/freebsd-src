@@ -47,215 +47,260 @@ extern "C" {
 
 using namespace testing;
 
-class DefaultPermissions: public FuseTest {
+class DefaultPermissions : public FuseTest {
 
-virtual void SetUp() {
-	m_default_permissions = true;
-	FuseTest::SetUp();
-	if (HasFatalFailure() || IsSkipped())
-		return;
+	virtual void SetUp()
+	{
+		m_default_permissions = true;
+		FuseTest::SetUp();
+		if (HasFatalFailure() || IsSkipped())
+			return;
 
-	if (geteuid() == 0) {
-		GTEST_SKIP() << "This test requires an unprivileged user";
+		if (geteuid() == 0) {
+			GTEST_SKIP()
+			    << "This test requires an unprivileged user";
+		}
+
+		/* With -o default_permissions, FUSE_ACCESS should never be
+		 * called */
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					return (
+					    in.header.opcode == FUSE_ACCESS);
+				},
+				Eq(true)),
+			_))
+		    .Times(0);
 	}
-	
-	/* With -o default_permissions, FUSE_ACCESS should never be called */
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_ACCESS);
-		}, Eq(true)),
-		_)
-	).Times(0);
-}
 
-public:
-void expect_chmod(uint64_t ino, mode_t mode, uint64_t size = 0)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_SETATTR &&
-				in.header.nodeid == ino &&
-				in.body.setattr.valid == FATTR_MODE &&
-				in.body.setattr.mode == mode);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr.ino = ino;	// Must match nodeid
-		out.body.attr.attr.mode = S_IFREG | mode;
-		out.body.attr.attr.size = size;
-		out.body.attr.attr_valid = UINT64_MAX;
-	})));
-}
+    public:
+	void expect_chmod(uint64_t ino, mode_t mode, uint64_t size = 0)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					return (
+					    in.header.opcode == FUSE_SETATTR &&
+					    in.header.nodeid == ino &&
+					    in.body.setattr.valid ==
+						FATTR_MODE &&
+					    in.body.setattr.mode == mode);
+				},
+				Eq(true)),
+			_))
+		    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused,
+							 auto &out) {
+			    SET_OUT_HEADER_LEN(out, attr);
+			    out.body.attr.attr.ino = ino; // Must match nodeid
+			    out.body.attr.attr.mode = S_IFREG | mode;
+			    out.body.attr.attr.size = size;
+			    out.body.attr.attr_valid = UINT64_MAX;
+		    })));
+	}
 
-void expect_create(const char *relpath, uint64_t ino)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			const char *name = (const char*)in.body.bytes +
-				sizeof(fuse_create_in);
-			return (in.header.opcode == FUSE_CREATE &&
-				(0 == strcmp(relpath, name)));
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, create);
-		out.body.create.entry.attr.mode = S_IFREG | 0644;
-		out.body.create.entry.nodeid = ino;
-		out.body.create.entry.entry_valid = UINT64_MAX;
-		out.body.create.entry.attr_valid = UINT64_MAX;
-	})));
-}
+	void expect_create(const char *relpath, uint64_t ino)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					const char *name = (const char *)
+							       in.body.bytes +
+					    sizeof(fuse_create_in);
+					return (
+					    in.header.opcode == FUSE_CREATE &&
+					    (0 == strcmp(relpath, name)));
+				},
+				Eq(true)),
+			_))
+		    .WillOnce(Invoke(
+			ReturnImmediate([=](auto in __unused, auto &out) {
+				SET_OUT_HEADER_LEN(out, create);
+				out.body.create.entry.attr.mode = S_IFREG |
+				    0644;
+				out.body.create.entry.nodeid = ino;
+				out.body.create.entry.entry_valid = UINT64_MAX;
+				out.body.create.entry.attr_valid = UINT64_MAX;
+			})));
+	}
 
-void expect_copy_file_range(uint64_t ino_in, uint64_t off_in, uint64_t ino_out,
-    uint64_t off_out, uint64_t len)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_COPY_FILE_RANGE &&
-				in.header.nodeid == ino_in &&
-				in.body.copy_file_range.off_in == off_in &&
-				in.body.copy_file_range.nodeid_out == ino_out &&
-				in.body.copy_file_range.off_out == off_out &&
-				in.body.copy_file_range.len == len);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, write);
-		out.body.write.size = len;
-	})));
-}
+	void expect_copy_file_range(uint64_t ino_in, uint64_t off_in,
+	    uint64_t ino_out, uint64_t off_out, uint64_t len)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					return (in.header.opcode ==
+						FUSE_COPY_FILE_RANGE &&
+					    in.header.nodeid == ino_in &&
+					    in.body.copy_file_range.off_in ==
+						off_in &&
+					    in.body.copy_file_range
+						    .nodeid_out == ino_out &&
+					    in.body.copy_file_range.off_out ==
+						off_out &&
+					    in.body.copy_file_range.len == len);
+				},
+				Eq(true)),
+			_))
+		    .WillOnce(Invoke(
+			ReturnImmediate([=](auto in __unused, auto &out) {
+				SET_OUT_HEADER_LEN(out, write);
+				out.body.write.size = len;
+			})));
+	}
 
-void expect_getattr(uint64_t ino, mode_t mode, uint64_t attr_valid, int times,
-	uid_t uid = 0, gid_t gid = 0)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_GETATTR &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).Times(times)
-	.WillRepeatedly(Invoke(ReturnImmediate([=](auto i __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr.ino = ino;	// Must match nodeid
-		out.body.attr.attr.mode = mode;
-		out.body.attr.attr.size = 0;
-		out.body.attr.attr.uid = uid;
-		out.body.attr.attr.gid = gid;
-		out.body.attr.attr_valid = attr_valid;
-	})));
-}
+	void expect_getattr(uint64_t ino, mode_t mode, uint64_t attr_valid,
+	    int times, uid_t uid = 0, gid_t gid = 0)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					return (
+					    in.header.opcode == FUSE_GETATTR &&
+					    in.header.nodeid == ino);
+				},
+				Eq(true)),
+			_))
+		    .Times(times)
+		    .WillRepeatedly(Invoke(ReturnImmediate([=](auto i __unused,
+							       auto &out) {
+			    SET_OUT_HEADER_LEN(out, attr);
+			    out.body.attr.attr.ino = ino; // Must match nodeid
+			    out.body.attr.attr.mode = mode;
+			    out.body.attr.attr.size = 0;
+			    out.body.attr.attr.uid = uid;
+			    out.body.attr.attr.gid = gid;
+			    out.body.attr.attr_valid = attr_valid;
+		    })));
+	}
 
-void expect_lookup(const char *relpath, uint64_t ino, mode_t mode,
-	uint64_t attr_valid, uid_t uid = 0, gid_t gid = 0)
-{
-	FuseTest::expect_lookup(relpath, ino, mode, 0, 1, attr_valid, uid, gid);
-}
-
+	void expect_lookup(const char *relpath, uint64_t ino, mode_t mode,
+	    uint64_t attr_valid, uid_t uid = 0, gid_t gid = 0)
+	{
+		FuseTest::expect_lookup(relpath, ino, mode, 0, 1, attr_valid,
+		    uid, gid);
+	}
 };
 
-class Access: public DefaultPermissions {};
-class Chown: public DefaultPermissions {};
-class Chgrp: public DefaultPermissions {};
-class CopyFileRange: public DefaultPermissions {};
-class Fspacectl: public DefaultPermissions {};
-class Lookup: public DefaultPermissions {};
-class Open: public DefaultPermissions {};
-class PosixFallocate: public DefaultPermissions {};
-class Read: public DefaultPermissions {};
-class Setattr: public DefaultPermissions {};
-class Unlink: public DefaultPermissions {};
-class Utimensat: public DefaultPermissions {};
-class Write: public DefaultPermissions {};
+class Access : public DefaultPermissions { };
+class Chown : public DefaultPermissions { };
+class Chgrp : public DefaultPermissions { };
+class CopyFileRange : public DefaultPermissions { };
+class Fspacectl : public DefaultPermissions { };
+class Lookup : public DefaultPermissions { };
+class Open : public DefaultPermissions { };
+class PosixFallocate : public DefaultPermissions { };
+class Read : public DefaultPermissions { };
+class Setattr : public DefaultPermissions { };
+class Unlink : public DefaultPermissions { };
+class Utimensat : public DefaultPermissions { };
+class Write : public DefaultPermissions { };
 
-/* 
+/*
  * Test permission handling during create, mkdir, mknod, link, symlink, and
  * rename vops (they all share a common path for permission checks in
  * VOP_LOOKUP)
  */
-class Create: public DefaultPermissions {};
+class Create : public DefaultPermissions { };
 
-class Deleteextattr: public DefaultPermissions {
-public:
-void expect_removexattr()
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_REMOVEXATTR);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(0)));
-}
+class Deleteextattr : public DefaultPermissions {
+    public:
+	void expect_removexattr()
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					return (in.header.opcode ==
+					    FUSE_REMOVEXATTR);
+				},
+				Eq(true)),
+			_))
+		    .WillOnce(Invoke(ReturnErrno(0)));
+	}
 };
 
-class Getextattr: public DefaultPermissions {
-public:
-void expect_getxattr(ProcessMockerT r)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_GETXATTR);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(r));
-}
+class Getextattr : public DefaultPermissions {
+    public:
+	void expect_getxattr(ProcessMockerT r)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					return (
+					    in.header.opcode == FUSE_GETXATTR);
+				},
+				Eq(true)),
+			_))
+		    .WillOnce(Invoke(r));
+	}
 };
 
-class Listextattr: public DefaultPermissions {
-public:
-void expect_listxattr()
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_LISTXATTR);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([](auto i __unused, auto& out) {
-		out.body.listxattr.size = 0;
-		SET_OUT_HEADER_LEN(out, listxattr);
-	})));
-}
+class Listextattr : public DefaultPermissions {
+    public:
+	void expect_listxattr()
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					return (
+					    in.header.opcode == FUSE_LISTXATTR);
+				},
+				Eq(true)),
+			_))
+		    .WillOnce(
+			Invoke(ReturnImmediate([](auto i __unused, auto &out) {
+				out.body.listxattr.size = 0;
+				SET_OUT_HEADER_LEN(out, listxattr);
+			})));
+	}
 };
 
-class Rename: public DefaultPermissions {
-public:
-	/* 
+class Rename : public DefaultPermissions {
+    public:
+	/*
 	 * Expect a rename and respond with the given error.  Don't both to
 	 * validate arguments; the tests in rename.cc do that.
 	 */
 	void expect_rename(int error)
 	{
-		EXPECT_CALL(*m_mock, process(
-			ResultOf([=](auto in) {
-				return (in.header.opcode == FUSE_RENAME);
-			}, Eq(true)),
-			_)
-		).WillOnce(Invoke(ReturnErrno(error)));
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					return (
+					    in.header.opcode == FUSE_RENAME);
+				},
+				Eq(true)),
+			_))
+		    .WillOnce(Invoke(ReturnErrno(error)));
 	}
 };
 
-class Setextattr: public DefaultPermissions {
-public:
-void expect_setxattr(int error)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_SETXATTR);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(error)));
-}
+class Setextattr : public DefaultPermissions {
+    public:
+	void expect_setxattr(int error)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					return (
+					    in.header.opcode == FUSE_SETXATTR);
+				},
+				Eq(true)),
+			_))
+		    .WillOnce(Invoke(ReturnErrno(error)));
+	}
 };
 
 /* Return a group to which this user does not belong */
-static gid_t excluded_group()
+static gid_t
+excluded_group()
 {
 	int i, ngroups = 64;
 	gid_t newgid, groups[ngroups];
 
 	getgrouplist(getlogin(), getegid(), groups, &ngroups);
-	for (newgid = 0; ; newgid++) {
+	for (newgid = 0;; newgid++) {
 		bool belongs = false;
 
 		for (i = 0; i < ngroups; i++) {
@@ -274,7 +319,7 @@ TEST_F(Access, eacces)
 	const char FULLPATH[] = "mountpoint/some_file.txt";
 	const char RELPATH[] = "some_file.txt";
 	uint64_t ino = 42;
-	mode_t	access_mode = X_OK;
+	mode_t access_mode = X_OK;
 
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0755, UINT64_MAX, 1);
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, UINT64_MAX);
@@ -288,12 +333,12 @@ TEST_F(Access, eacces_no_cached_attrs)
 	const char FULLPATH[] = "mountpoint/some_file.txt";
 	const char RELPATH[] = "some_file.txt";
 	uint64_t ino = 42;
-	mode_t	access_mode = X_OK;
+	mode_t access_mode = X_OK;
 
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0755, 0, 1);
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, 0);
 	expect_getattr(ino, S_IFREG | 0644, 0, 1);
-	/* 
+	/*
 	 * Once default_permissions is properly implemented, there might be
 	 * another FUSE_GETATTR or something in here.  But there should not be
 	 * a FUSE_ACCESS
@@ -308,11 +353,11 @@ TEST_F(Access, ok)
 	const char FULLPATH[] = "mountpoint/some_file.txt";
 	const char RELPATH[] = "some_file.txt";
 	uint64_t ino = 42;
-	mode_t	access_mode = R_OK;
+	mode_t access_mode = R_OK;
 
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0755, UINT64_MAX, 1);
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, UINT64_MAX);
-	/* 
+	/*
 	 * Once default_permissions is properly implemented, there might be
 	 * another FUSE_GETATTR or something in here.
 	 */
@@ -334,16 +379,19 @@ TEST_F(Chown, chown_to_self)
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0755, UINT64_MAX, 1, uid);
 	expect_lookup(RELPATH, ino, S_IFREG | mode, UINT64_MAX, uid);
 	/* The OS may optimize chown by omitting the redundant setattr */
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([](auto in) {
-			return (in.header.opcode == FUSE_SETATTR);
-		}, Eq(true)),
-		_)
-	).WillRepeatedly(Invoke(ReturnImmediate([=](auto in __unused, auto& out){
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr.mode = S_IFREG | mode;
-		out.body.attr.attr.uid = uid;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[](auto in) {
+				return (in.header.opcode == FUSE_SETATTR);
+			},
+			Eq(true)),
+		_))
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+			SET_OUT_HEADER_LEN(out, attr);
+			out.body.attr.attr.mode = S_IFREG | mode;
+			out.body.attr.attr.uid = uid;
+		})));
 
 	EXPECT_EQ(0, chown(FULLPATH, uid, -1)) << strerror(errno);
 }
@@ -364,24 +412,25 @@ TEST_F(Chown, clear_suid)
 
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0755, UINT64_MAX, 1, uid);
 	expect_lookup(RELPATH, ino, S_IFREG | oldmode, UINT64_MAX, uid);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_SETATTR &&
-				in.header.nodeid == ino &&
-				in.body.setattr.valid == valid &&
-				in.body.setattr.mode == newmode);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr.ino = ino;	// Must match nodeid
-		out.body.attr.attr.mode = S_IFREG | newmode;
-		out.body.attr.attr_valid = UINT64_MAX;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_SETATTR &&
+				    in.header.nodeid == ino &&
+				    in.body.setattr.valid == valid &&
+				    in.body.setattr.mode == newmode);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, attr);
+		    out.body.attr.attr.ino = ino; // Must match nodeid
+		    out.body.attr.attr.mode = S_IFREG | newmode;
+		    out.body.attr.attr_valid = UINT64_MAX;
+	    })));
 
 	EXPECT_EQ(0, chown(FULLPATH, uid, -1)) << strerror(errno);
 }
-
 
 /* Only root may change a file's owner */
 TEST_F(Chown, eperm)
@@ -393,12 +442,14 @@ TEST_F(Chown, eperm)
 
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0755, UINT64_MAX, 1, geteuid());
 	expect_lookup(RELPATH, ino, S_IFREG | mode, UINT64_MAX, geteuid());
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([](auto in) {
-			return (in.header.opcode == FUSE_SETATTR);
-		}, Eq(true)),
-		_)
-	).Times(0);
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[](auto in) {
+				return (in.header.opcode == FUSE_SETATTR);
+			},
+			Eq(true)),
+		_))
+	    .Times(0);
 
 	EXPECT_NE(0, chown(FULLPATH, 0, -1));
 	EXPECT_EQ(EPERM, errno);
@@ -421,20 +472,22 @@ TEST_F(Chgrp, clear_suid)
 
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0755, UINT64_MAX, 1, uid);
 	expect_lookup(RELPATH, ino, S_IFREG | oldmode, UINT64_MAX, uid, gid);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_SETATTR &&
-				in.header.nodeid == ino &&
-				in.body.setattr.valid == valid &&
-				in.body.setattr.mode == newmode);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr.ino = ino;	// Must match nodeid
-		out.body.attr.attr.mode = S_IFREG | newmode;
-		out.body.attr.attr_valid = UINT64_MAX;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_SETATTR &&
+				    in.header.nodeid == ino &&
+				    in.body.setattr.valid == valid &&
+				    in.body.setattr.mode == newmode);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, attr);
+		    out.body.attr.attr.ino = ino; // Must match nodeid
+		    out.body.attr.attr.mode = S_IFREG | newmode;
+		    out.body.attr.attr_valid = UINT64_MAX;
+	    })));
 
 	EXPECT_EQ(0, chown(FULLPATH, -1, gid)) << strerror(errno);
 }
@@ -455,12 +508,14 @@ TEST_F(Chgrp, eperm)
 
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0755, UINT64_MAX, 1, uid, gid);
 	expect_lookup(RELPATH, ino, S_IFREG | mode, UINT64_MAX, uid, gid);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([](auto in) {
-			return (in.header.opcode == FUSE_SETATTR);
-		}, Eq(true)),
-		_)
-	).Times(0);
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[](auto in) {
+				return (in.header.opcode == FUSE_SETATTR);
+			},
+			Eq(true)),
+		_))
+	    .Times(0);
 
 	EXPECT_NE(0, chown(FULLPATH, -1, newgid));
 	EXPECT_EQ(EPERM, errno);
@@ -482,18 +537,21 @@ TEST_F(Chgrp, ok)
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0755, UINT64_MAX, 1, uid, gid);
 	expect_lookup(RELPATH, ino, S_IFREG | mode, UINT64_MAX, uid, gid);
 	/* The OS may optimize chgrp by omitting the redundant setattr */
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([](auto in) {
-			return (in.header.opcode == FUSE_SETATTR &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).WillRepeatedly(Invoke(ReturnImmediate([=](auto in __unused, auto& out){
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr.mode = S_IFREG | mode;
-		out.body.attr.attr.uid = uid;
-		out.body.attr.attr.gid = newgid;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[](auto in) {
+				return (in.header.opcode == FUSE_SETATTR &&
+				    in.header.nodeid == ino);
+			},
+			Eq(true)),
+		_))
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+			SET_OUT_HEADER_LEN(out, attr);
+			out.body.attr.attr.mode = S_IFREG | mode;
+			out.body.attr.attr.uid = uid;
+			out.body.attr.attr.gid = newgid;
+		})));
 
 	EXPECT_EQ(0, chown(FULLPATH, -1, newgid)) << strerror(errno);
 }
@@ -595,7 +653,7 @@ TEST_F(Create, ok)
 
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0777, UINT64_MAX, 1);
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-		.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
 	expect_create(RELPATH, ino);
 
 	fd = open(FULLPATH, O_CREAT | O_EXCL, 0644);
@@ -610,7 +668,7 @@ TEST_F(Create, eacces)
 
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0755, UINT64_MAX, 1);
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-		.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
 
 	ASSERT_EQ(-1, open(FULLPATH, O_CREAT | O_EXCL, 0644));
 	EXPECT_EQ(EACCES, errno);
@@ -642,7 +700,7 @@ TEST_F(Deleteextattr, ok)
 	expect_removexattr();
 
 	ASSERT_EQ(0, extattr_delete_file(FULLPATH, ns, "foo"))
-		<< strerror(errno);
+	    << strerror(errno);
 }
 
 /* Delete system attributes requires superuser privilege */
@@ -670,27 +728,29 @@ TEST_F(Utimensat, utime_now)
 	const mode_t mode = 0666;
 	uid_t owner = 0;
 	const timespec times[2] = {
-		{.tv_sec = 0, .tv_nsec = UTIME_NOW},
-		{.tv_sec = 0, .tv_nsec = UTIME_NOW},
+		{ .tv_sec = 0, .tv_nsec = UTIME_NOW },
+		{ .tv_sec = 0, .tv_nsec = UTIME_NOW },
 	};
 
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0755, UINT64_MAX, 1);
 	expect_lookup(RELPATH, ino, S_IFREG | mode, UINT64_MAX, owner);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([](auto in) {
-			return (in.header.opcode == FUSE_SETATTR &&
-				in.header.nodeid == ino &&
-				in.body.setattr.valid & FATTR_ATIME &&
-				in.body.setattr.valid & FATTR_MTIME);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr.mode = S_IFREG | mode;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[](auto in) {
+				return (in.header.opcode == FUSE_SETATTR &&
+				    in.header.nodeid == ino &&
+				    in.body.setattr.valid & FATTR_ATIME &&
+				    in.body.setattr.valid & FATTR_MTIME);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, attr);
+		    out.body.attr.attr.mode = S_IFREG | mode;
+	    })));
 
 	ASSERT_EQ(0, utimensat(AT_FDCWD, FULLPATH, &times[0], 0))
-		<< strerror(errno);
+	    << strerror(errno);
 }
 
 /* Anybody can set both timestamps to UTIME_OMIT */
@@ -703,15 +763,15 @@ TEST_F(Utimensat, utime_omit)
 	const mode_t mode = 0444;
 	uid_t owner = 0;
 	const timespec times[2] = {
-		{.tv_sec = 0, .tv_nsec = UTIME_OMIT},
-		{.tv_sec = 0, .tv_nsec = UTIME_OMIT},
+		{ .tv_sec = 0, .tv_nsec = UTIME_OMIT },
+		{ .tv_sec = 0, .tv_nsec = UTIME_OMIT },
 	};
 
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0755, UINT64_MAX, 1);
 	expect_lookup(RELPATH, ino, S_IFREG | mode, UINT64_MAX, owner);
 
 	ASSERT_EQ(0, utimensat(AT_FDCWD, FULLPATH, &times[0], 0))
-		<< strerror(errno);
+	    << strerror(errno);
 }
 
 /* Deleting user attributes merely requires WRITE privilege */
@@ -727,7 +787,7 @@ TEST_F(Deleteextattr, user)
 	expect_removexattr();
 
 	ASSERT_EQ(0, extattr_delete_file(FULLPATH, ns, "foo"))
-		<< strerror(errno);
+	    << strerror(errno);
 }
 
 TEST_F(Getextattr, eacces)
@@ -742,7 +802,7 @@ TEST_F(Getextattr, eacces)
 	expect_lookup(RELPATH, ino, S_IFREG | 0600, UINT64_MAX, 0);
 
 	ASSERT_EQ(-1,
-		extattr_get_file(FULLPATH, ns, "foo", data, sizeof(data)));
+	    extattr_get_file(FULLPATH, ns, "foo", data, sizeof(data)));
 	ASSERT_EQ(EACCES, errno);
 }
 
@@ -760,15 +820,13 @@ TEST_F(Getextattr, ok)
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0755, UINT64_MAX, 1);
 	/* Getting user attributes only requires read access */
 	expect_lookup(RELPATH, ino, S_IFREG | 0444, UINT64_MAX, 0);
-	expect_getxattr(
-		ReturnImmediate([&](auto in __unused, auto& out) {
-			memcpy((void*)out.body.bytes, value, value_len);
-			out.header.len = sizeof(out.header) + value_len;
-		})
-	);
+	expect_getxattr(ReturnImmediate([&](auto in __unused, auto &out) {
+		memcpy((void *)out.body.bytes, value, value_len);
+		out.header.len = sizeof(out.header) + value_len;
+	}));
 
 	r = extattr_get_file(FULLPATH, ns, "foo", data, sizeof(data));
-	ASSERT_EQ(value_len, r)  << strerror(errno);
+	ASSERT_EQ(value_len, r) << strerror(errno);
 	EXPECT_STREQ(value, data);
 }
 
@@ -785,7 +843,7 @@ TEST_F(Getextattr, system)
 	expect_lookup(RELPATH, ino, S_IFREG | 0666, UINT64_MAX, geteuid());
 
 	ASSERT_EQ(-1,
-		extattr_get_file(FULLPATH, ns, "foo", data, sizeof(data)));
+	    extattr_get_file(FULLPATH, ns, "foo", data, sizeof(data)));
 	ASSERT_EQ(EPERM, errno);
 }
 
@@ -816,7 +874,7 @@ TEST_F(Listextattr, ok)
 	expect_listxattr();
 
 	ASSERT_EQ(0, extattr_list_file(FULLPATH, ns, NULL, 0))
-		<< strerror(errno);
+	    << strerror(errno);
 }
 
 /* Listing system xattrs requires superuser privileges */
@@ -851,11 +909,11 @@ TEST_F(Fspacectl, clear_sgid)
 	int fd;
 
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0755, UINT64_MAX, 1);
-	FuseTest::expect_lookup(RELPATH, ino, S_IFREG | oldmode, fsize,
-	    1, UINT64_MAX, 0, 0);
+	FuseTest::expect_lookup(RELPATH, ino, S_IFREG | oldmode, fsize, 1,
+	    UINT64_MAX, 0, 0);
 	expect_open(ino, 0, 1);
 	expect_fallocate(ino, off, len,
-		FUSE_FALLOC_FL_KEEP_SIZE | FUSE_FALLOC_FL_PUNCH_HOLE, 0);
+	    FUSE_FALLOC_FL_KEEP_SIZE | FUSE_FALLOC_FL_PUNCH_HOLE, 0);
 	expect_chmod(ino, newmode, fsize);
 
 	fd = open(FULLPATH, O_WRONLY);
@@ -885,11 +943,11 @@ TEST_F(Fspacectl, clear_suid)
 	int fd;
 
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0755, UINT64_MAX, 1);
-	FuseTest::expect_lookup(RELPATH, ino, S_IFREG | oldmode, fsize,
-	    1, UINT64_MAX, 0, 0);
+	FuseTest::expect_lookup(RELPATH, ino, S_IFREG | oldmode, fsize, 1,
+	    UINT64_MAX, 0, 0);
 	expect_open(ino, 0, 1);
 	expect_fallocate(ino, off, len,
-		FUSE_FALLOC_FL_KEEP_SIZE | FUSE_FALLOC_FL_PUNCH_HOLE, 0);
+	    FUSE_FALLOC_FL_KEEP_SIZE | FUSE_FALLOC_FL_PUNCH_HOLE, 0);
 	expect_chmod(ino, newmode, fsize);
 
 	fd = open(FULLPATH, O_WRONLY);
@@ -920,10 +978,10 @@ TEST_F(Fspacectl, posix_fallocate_of_newly_created_file)
 
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0777, UINT64_MAX, 1);
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-		.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
 	expect_create(RELPATH, ino);
 	expect_fallocate(ino, off, len,
-		FUSE_FALLOC_FL_KEEP_SIZE | FUSE_FALLOC_FL_PUNCH_HOLE, 0);
+	    FUSE_FALLOC_FL_KEEP_SIZE | FUSE_FALLOC_FL_PUNCH_HOLE, 0);
 
 	fd = open(FULLPATH, O_CREAT | O_RDWR, 0);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -991,8 +1049,8 @@ TEST_F(PosixFallocate, clear_sgid)
 	int fd;
 
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0755, UINT64_MAX, 1);
-	FuseTest::expect_lookup(RELPATH, ino, S_IFREG | oldmode, fsize,
-	    1, UINT64_MAX, 0, 0);
+	FuseTest::expect_lookup(RELPATH, ino, S_IFREG | oldmode, fsize, 1,
+	    UINT64_MAX, 0, 0);
 	expect_open(ino, 0, 1);
 	expect_fallocate(ino, off, len, 0, 0);
 	expect_chmod(ino, newmode, fsize);
@@ -1021,8 +1079,8 @@ TEST_F(PosixFallocate, clear_suid)
 	int fd;
 
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0755, UINT64_MAX, 1);
-	FuseTest::expect_lookup(RELPATH, ino, S_IFREG | oldmode, fsize,
-	    1, UINT64_MAX, 0, 0);
+	FuseTest::expect_lookup(RELPATH, ino, S_IFREG | oldmode, fsize, 1,
+	    UINT64_MAX, 0, 0);
 	expect_open(ino, 0, 1);
 	expect_fallocate(ino, off, len, 0, 0);
 	expect_chmod(ino, newmode, fsize);
@@ -1052,7 +1110,7 @@ TEST_F(PosixFallocate, posix_fallocate_of_newly_created_file)
 
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0777, UINT64_MAX, 1);
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-		.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
 	expect_create(RELPATH, ino);
 	expect_fallocate(ino, off, len, 0, 0);
 
@@ -1073,8 +1131,8 @@ TEST_F(Rename, eacces_on_srcdir)
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0755, UINT64_MAX, 1, 0);
 	expect_lookup(RELSRC, ino, S_IFREG | 0644, UINT64_MAX);
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELDST)
-		.Times(AnyNumber())
-		.WillRepeatedly(Invoke(ReturnErrno(ENOENT)));
+	    .Times(AnyNumber())
+	    .WillRepeatedly(Invoke(ReturnErrno(ENOENT)));
 
 	ASSERT_EQ(-1, rename(FULLSRC, FULLDST));
 	ASSERT_EQ(EACCES, errno);
@@ -1132,7 +1190,7 @@ TEST_F(Rename, eperm_on_sticky_srcdir)
 	ASSERT_EQ(EPERM, errno);
 }
 
-/* 
+/*
  * A user cannot move out a subdirectory that he does not own, because that
  * would require changing the subdirectory's ".." dirent
  */
@@ -1170,7 +1228,7 @@ TEST_F(Rename, subdirectory_to_same_dir)
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0777, UINT64_MAX, 1, 0);
 	expect_lookup(RELSRC, ino, S_IFDIR | 0755, UINT64_MAX, 0);
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELDST)
-		.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
 	expect_rename(0);
 
 	ASSERT_EQ(0, rename(FULLSRC, FULLDST)) << strerror(errno);
@@ -1191,14 +1249,14 @@ TEST_F(Rename, eperm_on_sticky_dstdir)
 	expect_lookup(RELSRC, src_ino, S_IFREG | 0644, UINT64_MAX);
 	expect_lookup(RELDSTDIR, dstdir_ino, S_IFDIR | 01777, UINT64_MAX);
 	EXPECT_LOOKUP(dstdir_ino, RELDST)
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFREG | 0644;
-		out.body.entry.nodeid = dst_ino;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.entry_valid = UINT64_MAX;
-		out.body.entry.attr.uid = 0;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = S_IFREG | 0644;
+		    out.body.entry.nodeid = dst_ino;
+		    out.body.entry.attr_valid = UINT64_MAX;
+		    out.body.entry.entry_valid = UINT64_MAX;
+		    out.body.entry.attr.uid = 0;
+	    })));
 
 	ASSERT_EQ(-1, rename(FULLSRC, FULLDST));
 	ASSERT_EQ(EPERM, errno);
@@ -1234,7 +1292,7 @@ TEST_F(Rename, ok_to_remove_src_because_of_stickiness)
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 01777, UINT64_MAX, 1, 0);
 	expect_lookup(RELSRC, ino, S_IFREG | 0644, UINT64_MAX, geteuid());
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELDST)
-		.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
 	expect_rename(0);
 
 	ASSERT_EQ(0, rename(FULLSRC, FULLDST)) << strerror(errno);
@@ -1254,16 +1312,18 @@ TEST_F(Read, atime_during_close)
 	ssize_t fsize = sizeof(CONTENTS);
 
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0755, UINT64_MAX, 1);
-	FuseTest::expect_lookup(RELPATH, ino, S_IFREG | 0755, fsize,
-		1, UINT64_MAX, 0, 0);
+	FuseTest::expect_lookup(RELPATH, ino, S_IFREG | 0755, fsize, 1,
+	    UINT64_MAX, 0, 0);
 	expect_open(ino, 0, 1);
 	expect_read(ino, 0, fsize, fsize, CONTENTS);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([&](auto in) {
-			return (in.header.opcode == FUSE_SETATTR);
-		}, Eq(true)),
-		_)
-	).Times(0);
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[&](auto in) {
+				return (in.header.opcode == FUSE_SETATTR);
+			},
+			Eq(true)),
+		_))
+	    .Times(0);
 	expect_flush(ino, 1, ReturnErrno(0));
 	expect_release(ino, FuseTest::FH);
 
@@ -1288,17 +1348,19 @@ TEST_F(Setattr, ok)
 
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0755, UINT64_MAX, 1);
 	expect_lookup(RELPATH, ino, S_IFREG | oldmode, UINT64_MAX, geteuid());
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([](auto in) {
-			return (in.header.opcode == FUSE_SETATTR &&
-				in.header.nodeid == ino &&
-				in.body.setattr.mode == newmode);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr.mode = S_IFREG | newmode;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[](auto in) {
+				return (in.header.opcode == FUSE_SETATTR &&
+				    in.header.nodeid == ino &&
+				    in.body.setattr.mode == newmode);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, attr);
+		    out.body.attr.attr.mode = S_IFREG | newmode;
+	    })));
 
 	EXPECT_EQ(0, chmod(FULLPATH, newmode)) << strerror(errno);
 }
@@ -1313,12 +1375,14 @@ TEST_F(Setattr, eacces)
 
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0755, UINT64_MAX, 1);
 	expect_lookup(RELPATH, ino, S_IFREG | oldmode, UINT64_MAX, 0);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([](auto in) {
-			return (in.header.opcode == FUSE_SETATTR);
-		}, Eq(true)),
-		_)
-	).Times(0);
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[](auto in) {
+				return (in.header.opcode == FUSE_SETATTR);
+			},
+			Eq(true)),
+		_))
+	    .Times(0);
 
 	EXPECT_NE(0, chmod(FULLPATH, newmode));
 	EXPECT_EQ(EPERM, errno);
@@ -1339,21 +1403,23 @@ TEST_F(Setattr, ftruncate_of_newly_created_file)
 
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0777, UINT64_MAX, 1);
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-		.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
 	expect_create(RELPATH, ino);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([](auto in) {
-			return (in.header.opcode == FUSE_SETATTR &&
-				in.header.nodeid == ino &&
-				(in.body.setattr.valid & FATTR_SIZE));
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr.ino = ino;
-		out.body.attr.attr.mode = S_IFREG | mode;
-		out.body.attr.attr_valid = UINT64_MAX;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[](auto in) {
+				return (in.header.opcode == FUSE_SETATTR &&
+				    in.header.nodeid == ino &&
+				    (in.body.setattr.valid & FATTR_SIZE));
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, attr);
+		    out.body.attr.attr.ino = ino;
+		    out.body.attr.attr.mode = S_IFREG | mode;
+		    out.body.attr.attr_valid = UINT64_MAX;
+	    })));
 
 	fd = open(FULLPATH, O_CREAT | O_RDWR, 0);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -1361,7 +1427,7 @@ TEST_F(Setattr, ftruncate_of_newly_created_file)
 	leak(fd);
 }
 
-/* 
+/*
  * Setting the sgid bit should fail for an unprivileged user who doesn't belong
  * to the file's group
  */
@@ -1377,12 +1443,14 @@ TEST_F(Setattr, sgid_by_non_group_member)
 
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0755, UINT64_MAX, 1);
 	expect_lookup(RELPATH, ino, S_IFREG | oldmode, UINT64_MAX, uid, gid);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([](auto in) {
-			return (in.header.opcode == FUSE_SETATTR);
-		}, Eq(true)),
-		_)
-	).Times(0);
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[](auto in) {
+				return (in.header.opcode == FUSE_SETATTR);
+			},
+			Eq(true)),
+		_))
+	    .Times(0);
 
 	EXPECT_NE(0, chmod(FULLPATH, newmode));
 	EXPECT_EQ(EPERM, errno);
@@ -1399,12 +1467,14 @@ TEST_F(Setattr, sticky_regular_file)
 
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0755, UINT64_MAX, 1);
 	expect_lookup(RELPATH, ino, S_IFREG | oldmode, UINT64_MAX, geteuid());
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([](auto in) {
-			return (in.header.opcode == FUSE_SETATTR);
-		}, Eq(true)),
-		_)
-	).Times(0);
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[](auto in) {
+				return (in.header.opcode == FUSE_SETATTR);
+			},
+			Eq(true)),
+		_))
+	    .Times(0);
 
 	EXPECT_NE(0, chmod(FULLPATH, newmode));
 	EXPECT_EQ(EFTYPE, errno);
@@ -1424,8 +1494,8 @@ TEST_F(Setextattr, ok)
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, UINT64_MAX, geteuid());
 	expect_setxattr(0);
 
-	r = extattr_set_file(FULLPATH, ns, "foo", (const void*)value,
-		value_len);
+	r = extattr_set_file(FULLPATH, ns, "foo", (const void *)value,
+	    value_len);
 	ASSERT_EQ(value_len, r) << strerror(errno);
 }
 
@@ -1441,7 +1511,8 @@ TEST_F(Setextattr, eacces)
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0755, UINT64_MAX, 1);
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, UINT64_MAX, 0);
 
-	ASSERT_EQ(-1, extattr_set_file(FULLPATH, ns, "foo", (const void*)value,
+	ASSERT_EQ(-1,
+	    extattr_set_file(FULLPATH, ns, "foo", (const void *)value,
 		value_len));
 	ASSERT_EQ(EACCES, errno);
 }
@@ -1459,7 +1530,8 @@ TEST_F(Setextattr, system)
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0755, UINT64_MAX, 1);
 	expect_lookup(RELPATH, ino, S_IFREG | 0666, UINT64_MAX, geteuid());
 
-	ASSERT_EQ(-1, extattr_set_file(FULLPATH, ns, "foo", (const void*)value,
+	ASSERT_EQ(-1,
+	    extattr_set_file(FULLPATH, ns, "foo", (const void *)value,
 		value_len));
 	ASSERT_EQ(EPERM, errno);
 }
@@ -1479,8 +1551,8 @@ TEST_F(Setextattr, user)
 	expect_lookup(RELPATH, ino, S_IFREG | 0666, UINT64_MAX, 0);
 	expect_setxattr(0);
 
-	r = extattr_set_file(FULLPATH, ns, "foo", (const void*)value,
-		value_len);
+	r = extattr_set_file(FULLPATH, ns, "foo", (const void *)value,
+	    value_len);
 	ASSERT_EQ(value_len, r) << strerror(errno);
 }
 
@@ -1519,15 +1591,14 @@ TEST_F(Unlink, cached_unwritable_directory)
 
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0755, UINT64_MAX, 1);
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.Times(AnyNumber())
-	.WillRepeatedly(Invoke(
-		ReturnImmediate([=](auto i __unused, auto& out) {
+	    .Times(AnyNumber())
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto i __unused, auto &out) {
 			SET_OUT_HEADER_LEN(out, entry);
 			out.body.entry.attr.mode = S_IFREG | 0644;
 			out.body.entry.nodeid = ino;
 			out.body.entry.entry_valid = UINT64_MAX;
-		}))
-	);
+		})));
 
 	/* Fill name cache */
 	ASSERT_EQ(0, access(FULLPATH, F_OK)) << strerror(errno);
@@ -1571,7 +1642,7 @@ TEST_F(Write, clear_suid)
 	uint64_t ino = 42;
 	mode_t oldmode = 04777;
 	mode_t newmode = 0777;
-	char wbuf[1] = {'x'};
+	char wbuf[1] = { 'x' };
 	int fd;
 
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0755, UINT64_MAX, 1);
@@ -1597,7 +1668,7 @@ TEST_F(Write, clear_sgid)
 	uint64_t ino = 42;
 	mode_t oldmode = 02777;
 	mode_t newmode = 0777;
-	char wbuf[1] = {'x'};
+	char wbuf[1] = { 'x' };
 	int fd;
 
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0755, UINT64_MAX, 1);
@@ -1627,7 +1698,7 @@ TEST_F(Write, recursion_panic_while_clearing_suid)
 	uint64_t ino = 42;
 	mode_t oldmode = 04777;
 	mode_t newmode = 0777;
-	char wbuf[1] = {'x'};
+	char wbuf[1] = { 'x' };
 	int fd;
 
 	expect_getattr(FUSE_ROOT_ID, S_IFDIR | 0755, UINT64_MAX, 1);

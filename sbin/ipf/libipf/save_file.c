@@ -9,22 +9,14 @@ static int file_match(void *, void *);
 static void *file_dup(void *);
 
 typedef struct file_opts_s {
-	FILE	*fp;
-	int	raw;
-	char	*path;
-	int	ref;
+	FILE *fp;
+	int raw;
+	char *path;
+	int ref;
 } file_opts_t;
 
-ipmon_saver_t filesaver = {
-	"file",
-	file_destroy,
-	file_dup,
-	file_match,
-	file_parse,
-	file_print,
-	file_send
-};
-
+ipmon_saver_t filesaver = { "file", file_destroy, file_dup, file_match,
+	file_parse, file_print, file_send };
 
 static void *
 file_parse(char **strings)
@@ -56,7 +48,6 @@ file_parse(char **strings)
 	return (ctx);
 }
 
-
 static int
 file_match(void *ctx1, void *ctx2)
 {
@@ -69,7 +60,6 @@ file_match(void *ctx1, void *ctx2)
 	return (0);
 }
 
-
 static void *
 file_dup(void *ctx)
 {
@@ -78,7 +68,6 @@ file_dup(void *ctx)
 	f->ref++;
 	return (f);
 }
-
 
 static void
 file_print(void *ctx)
@@ -91,7 +80,6 @@ file_print(void *ctx)
 		printf("file://");
 	printf("%s", file->path);
 }
-
 
 static void
 file_destroy(void *ctx)
@@ -107,7 +95,6 @@ file_destroy(void *ctx)
 	free(file);
 }
 
-
 static int
 file_send(void *ctx, ipmon_msg_t *msg)
 {
@@ -120,4 +107,3 @@ file_send(void *ctx, ipmon_msg_t *msg)
 	}
 	return (0);
 }
-

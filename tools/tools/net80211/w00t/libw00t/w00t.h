@@ -36,7 +36,7 @@ int open_rx(char *iface);
 int open_rxtx(char *iface, int *rx, int *tx);
 int inject(int fd, void *buf, int len);
 int inject_params(int fd, void *buf, int len,
-		  struct ieee80211_bpf_params *params);
+    struct ieee80211_bpf_params *params);
 int sniff(int fd, void *buf, int len);
 void *get_wifi(void *buf, int *len);
 short seqfn(unsigned short seq, unsigned short fn);

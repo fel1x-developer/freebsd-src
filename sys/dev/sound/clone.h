@@ -36,12 +36,12 @@ struct snd_clone;
  * 750 milisecond default deadline. Short enough to not cause excessive
  * garbage collection, long enough to indicate stalled VFS.
  */
-#define SND_CLONE_DEADLINE_DEFAULT	750
+#define SND_CLONE_DEADLINE_DEFAULT 750
 
 /*
  * Fit within 24bit MAXMINOR.
  */
-#define SND_CLONE_MAXUNIT		0xffffff
+#define SND_CLONE_MAXUNIT 0xffffff
 
 /*
  * Creation flags, mostly related to the behaviour of garbage collector.
@@ -59,22 +59,19 @@ struct snd_clone;
  * SND_CLONE_WAITOK     - malloc() is allowed to sleep while allocating
  *                        clone entry.
  */
-#define SND_CLONE_ENABLE	0x00000001
-#define SND_CLONE_GC_ENABLE	0x00000002
-#define SND_CLONE_GC_UNREF	0x00000004
-#define SND_CLONE_GC_LASTREF	0x00000008
-#define SND_CLONE_GC_EXPIRED	0x00000010
-#define SND_CLONE_GC_REVOKE	0x00000020
-#define SND_CLONE_WAITOK	0x80000000
+#define SND_CLONE_ENABLE 0x00000001
+#define SND_CLONE_GC_ENABLE 0x00000002
+#define SND_CLONE_GC_UNREF 0x00000004
+#define SND_CLONE_GC_LASTREF 0x00000008
+#define SND_CLONE_GC_EXPIRED 0x00000010
+#define SND_CLONE_GC_REVOKE 0x00000020
+#define SND_CLONE_WAITOK 0x80000000
 
-#define SND_CLONE_GC_MASK	(SND_CLONE_GC_ENABLE  |			\
-				 SND_CLONE_GC_UNREF   |			\
-				 SND_CLONE_GC_LASTREF |			\
-				 SND_CLONE_GC_EXPIRED |			\
-				 SND_CLONE_GC_REVOKE)
+#define SND_CLONE_GC_MASK                                                  \
+	(SND_CLONE_GC_ENABLE | SND_CLONE_GC_UNREF | SND_CLONE_GC_LASTREF | \
+	    SND_CLONE_GC_EXPIRED | SND_CLONE_GC_REVOKE)
 
-#define SND_CLONE_MASK		(SND_CLONE_ENABLE | SND_CLONE_GC_MASK |	\
-				 SND_CLONE_WAITOK)
+#define SND_CLONE_MASK (SND_CLONE_ENABLE | SND_CLONE_GC_MASK | SND_CLONE_WAITOK)
 
 /*
  * Runtime clone device flags
@@ -85,17 +82,16 @@ struct snd_clone;
  * SND_CLONE_INVOKE - Cloning being invoked, waiting for next VFS operation.
  * SND_CLONE_BUSY   - In progress, being referenced by living thread/proc.
  */
-#define SND_CLONE_NEW		0x00000001
-#define SND_CLONE_INVOKE	0x00000002
-#define SND_CLONE_BUSY		0x00000004
+#define SND_CLONE_NEW 0x00000001
+#define SND_CLONE_INVOKE 0x00000002
+#define SND_CLONE_BUSY 0x00000004
 
 /*
  * Nothing important, just for convenience.
  */
-#define SND_CLONE_ALLOC		(SND_CLONE_NEW | SND_CLONE_INVOKE |	\
-				 SND_CLONE_BUSY)
+#define SND_CLONE_ALLOC (SND_CLONE_NEW | SND_CLONE_INVOKE | SND_CLONE_BUSY)
 
-#define SND_CLONE_DEVMASK	SND_CLONE_ALLOC
+#define SND_CLONE_DEVMASK SND_CLONE_ALLOC
 
 struct snd_clone *snd_clone_create(int, int, int, uint32_t);
 int snd_clone_busy(struct snd_clone *);
@@ -120,8 +116,8 @@ void snd_clone_register(struct snd_clone_entry *, struct cdev *);
 struct snd_clone_entry *snd_clone_alloc(struct snd_clone *, struct cdev **,
     int *, int);
 
-#define snd_clone_enabled(x)	((x) != NULL && 			\
-				(snd_clone_getflags(x) & SND_CLONE_ENABLE))
-#define snd_clone_disabled(x)	(!snd_clone_enabled(x))
+#define snd_clone_enabled(x) \
+	((x) != NULL && (snd_clone_getflags(x) & SND_CLONE_ENABLE))
+#define snd_clone_disabled(x) (!snd_clone_enabled(x))
 
 #endif /* !_SND_CLONE_H */

@@ -47,33 +47,33 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/malloc.h>
 #include <sys/libkern.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/pcpu.h>
 #include <sys/uio.h>
+
 #include <machine/fpu.h>
 
-#include <opencrypto/cryptodev.h>
 #include <crypto/rijndael/rijndael.h>
-
 #include <crypto/via/padlock.h>
+#include <opencrypto/cryptodev.h>
 
-#define	PADLOCK_ROUND_COUNT_AES128	10
-#define	PADLOCK_ROUND_COUNT_AES192	12
-#define	PADLOCK_ROUND_COUNT_AES256	14
+#define PADLOCK_ROUND_COUNT_AES128 10
+#define PADLOCK_ROUND_COUNT_AES192 12
+#define PADLOCK_ROUND_COUNT_AES256 14
 
-#define	PADLOCK_ALGORITHM_TYPE_AES	0
+#define PADLOCK_ALGORITHM_TYPE_AES 0
 
-#define	PADLOCK_KEY_GENERATION_HW	0
-#define	PADLOCK_KEY_GENERATION_SW	1
+#define PADLOCK_KEY_GENERATION_HW 0
+#define PADLOCK_KEY_GENERATION_SW 1
 
-#define	PADLOCK_DIRECTION_ENCRYPT	0
-#define	PADLOCK_DIRECTION_DECRYPT	1
+#define PADLOCK_DIRECTION_ENCRYPT 0
+#define PADLOCK_DIRECTION_DECRYPT 1
 
-#define	PADLOCK_KEY_SIZE_128	0
-#define	PADLOCK_KEY_SIZE_192	1
-#define	PADLOCK_KEY_SIZE_256	2
+#define PADLOCK_KEY_SIZE_128 0
+#define PADLOCK_KEY_SIZE_192 1
+#define PADLOCK_KEY_SIZE_256 2
 
 MALLOC_DECLARE(M_PADLOCK);
 
@@ -82,15 +82,13 @@ padlock_cbc(void *in, void *out, size_t count, void *key, union padlock_cw *cw,
     void *iv)
 {
 	/* The .byte line is really VIA C3 "xcrypt-cbc" instruction */
-	__asm __volatile(
-		"pushf				\n\t"
-		"popf				\n\t"
-		"rep				\n\t"
-		".byte	0x0f, 0xa7, 0xd0"
-			: "+a" (iv), "+c" (count), "+D" (out), "+S" (in)
-			: "b" (key), "d" (cw)
-			: "cc", "memory"
-		);
+	__asm __volatile("pushf				\n\t"
+			 "popf				\n\t"
+			 "rep				\n\t"
+			 ".byte	0x0f, 0xa7, 0xd0"
+			 : "+a"(iv), "+c"(count), "+D"(out), "+S"(in)
+			 : "b"(key), "d"(cw)
+			 : "cc", "memory");
 }
 
 static void

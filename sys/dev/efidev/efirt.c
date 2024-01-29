@@ -29,10 +29,12 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_acpi.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/clock.h>
 #include <sys/efi.h>
 #include <sys/eventhandler.h>
 #include <sys/kernel.h>
@@ -42,24 +44,22 @@
 #include <sys/module.h>
 #include <sys/msan.h>
 #include <sys/mutex.h>
-#include <sys/clock.h>
 #include <sys/proc.h>
 #include <sys/reboot.h>
 #include <sys/rwlock.h>
 #include <sys/sched.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 #include <sys/uio.h>
 #include <sys/vmmeter.h>
-
-#include <machine/fpu.h>
-#include <machine/efi.h>
-#include <machine/metadata.h>
-#include <machine/vmparam.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
 #include <vm/vm_map.h>
+
+#include <machine/efi.h>
+#include <machine/fpu.h>
+#include <machine/metadata.h>
+#include <machine/vmparam.h>
 
 #ifdef DEV_ACPI
 #include <contrib/dev/acpica/include/acpi.h>
@@ -78,37 +78,34 @@ static struct efi_cfgtbl *efi_cfgtbl;
 static struct efi_rt *efi_runtime;
 
 static int efi_status2err[25] = {
-	0,		/* EFI_SUCCESS */
-	ENOEXEC,	/* EFI_LOAD_ERROR */
-	EINVAL,		/* EFI_INVALID_PARAMETER */
-	ENOSYS,		/* EFI_UNSUPPORTED */
-	EMSGSIZE, 	/* EFI_BAD_BUFFER_SIZE */
-	EOVERFLOW,	/* EFI_BUFFER_TOO_SMALL */
-	EBUSY,		/* EFI_NOT_READY */
-	EIO,		/* EFI_DEVICE_ERROR */
-	EROFS,		/* EFI_WRITE_PROTECTED */
-	EAGAIN,		/* EFI_OUT_OF_RESOURCES */
-	EIO,		/* EFI_VOLUME_CORRUPTED */
-	ENOSPC,		/* EFI_VOLUME_FULL */
-	ENXIO,		/* EFI_NO_MEDIA */
-	ESTALE,		/* EFI_MEDIA_CHANGED */
-	ENOENT,		/* EFI_NOT_FOUND */
-	EACCES,		/* EFI_ACCESS_DENIED */
-	ETIMEDOUT,	/* EFI_NO_RESPONSE */
-	EADDRNOTAVAIL,	/* EFI_NO_MAPPING */
-	ETIMEDOUT,	/* EFI_TIMEOUT */
-	EDOOFUS,	/* EFI_NOT_STARTED */
-	EALREADY,	/* EFI_ALREADY_STARTED */
-	ECANCELED,	/* EFI_ABORTED */
-	EPROTO,		/* EFI_ICMP_ERROR */
-	EPROTO,		/* EFI_TFTP_ERROR */
-	EPROTO		/* EFI_PROTOCOL_ERROR */
+	0,	       /* EFI_SUCCESS */
+	ENOEXEC,       /* EFI_LOAD_ERROR */
+	EINVAL,	       /* EFI_INVALID_PARAMETER */
+	ENOSYS,	       /* EFI_UNSUPPORTED */
+	EMSGSIZE,      /* EFI_BAD_BUFFER_SIZE */
+	EOVERFLOW,     /* EFI_BUFFER_TOO_SMALL */
+	EBUSY,	       /* EFI_NOT_READY */
+	EIO,	       /* EFI_DEVICE_ERROR */
+	EROFS,	       /* EFI_WRITE_PROTECTED */
+	EAGAIN,	       /* EFI_OUT_OF_RESOURCES */
+	EIO,	       /* EFI_VOLUME_CORRUPTED */
+	ENOSPC,	       /* EFI_VOLUME_FULL */
+	ENXIO,	       /* EFI_NO_MEDIA */
+	ESTALE,	       /* EFI_MEDIA_CHANGED */
+	ENOENT,	       /* EFI_NOT_FOUND */
+	EACCES,	       /* EFI_ACCESS_DENIED */
+	ETIMEDOUT,     /* EFI_NO_RESPONSE */
+	EADDRNOTAVAIL, /* EFI_NO_MAPPING */
+	ETIMEDOUT,     /* EFI_TIMEOUT */
+	EDOOFUS,       /* EFI_NOT_STARTED */
+	EALREADY,      /* EFI_ALREADY_STARTED */
+	ECANCELED,     /* EFI_ABORTED */
+	EPROTO,	       /* EFI_ICMP_ERROR */
+	EPROTO,	       /* EFI_TFTP_ERROR */
+	EPROTO	       /* EFI_PROTOCOL_ERROR */
 };
 
-enum efi_table_type {
-	TYPE_ESRT = 0,
-	TYPE_PROP
-};
+enum efi_table_type { TYPE_ESRT = 0, TYPE_PROP };
 
 static int efi_enter(void);
 static void efi_leave(void);
@@ -135,8 +132,8 @@ efi_is_in_map(struct efi_md *map, int ndesc, int descsz, vm_offset_t addr)
 	struct efi_md *p;
 	int i;
 
-	for (i = 0, p = map; i < ndesc; i++, p = efi_next_descriptor(p,
-	    descsz)) {
+	for (i = 0, p = map; i < ndesc;
+	     i++, p = efi_next_descriptor(p, descsz)) {
 		if ((p->md_attr & EFI_MD_ATTR_RT) == 0)
 			continue;
 
@@ -190,7 +187,8 @@ efi_init(void)
 			printf("EFI systbl signature invalid\n");
 		return (0);
 	}
-	efi_cfgtbl = (efi_systbl->st_cfgtbl == 0) ? NULL :
+	efi_cfgtbl = (efi_systbl->st_cfgtbl == 0) ?
+	    NULL :
 	    (struct efi_cfgtbl *)efi_systbl->st_cfgtbl;
 	if (efi_cfgtbl == NULL) {
 		if (bootverbose)
@@ -219,7 +217,8 @@ efi_init(void)
 		return (ENOMEM);
 	}
 
-	efi_runtime = (efi_systbl->st_rt == 0) ? NULL :
+	efi_runtime = (efi_systbl->st_rt == 0) ?
+	    NULL :
 	    (struct efi_rt *)efi_systbl->st_rt;
 	if (efi_runtime == NULL) {
 		if (bootverbose)
@@ -238,11 +237,12 @@ efi_init(void)
 	 * the EFI map, and fail to attach if not.
 	 */
 	rtdm = (struct efi_rt *)efi_phys_to_kva((uintptr_t)efi_runtime);
-	if (rtdm == NULL || !efi_is_in_map(map, ndesc, efihdr->descriptor_size,
-	    (vm_offset_t)rtdm->rt_gettime)) {
+	if (rtdm == NULL ||
+	    !efi_is_in_map(map, ndesc, efihdr->descriptor_size,
+		(vm_offset_t)rtdm->rt_gettime)) {
 		if (bootverbose)
 			printf(
-			 "EFI runtime services table has an invalid pointer\n");
+			    "EFI runtime services table has an invalid pointer\n");
 		efi_runtime = NULL;
 		efi_destroy_1t1_map();
 		return (ENXIO);
@@ -359,8 +359,7 @@ static int
 get_table_length(enum efi_table_type type, size_t *table_len, void **taddr)
 {
 	switch (type) {
-	case TYPE_ESRT:
-	{
+	case TYPE_ESRT: {
 		struct efi_esrt_table *esrt = NULL;
 		struct uuid uuid = EFI_TABLE_ESRT;
 		uint32_t fw_resource_count = 0;
@@ -386,10 +385,10 @@ get_table_length(enum efi_table_type type, size_t *table_len, void **taddr)
 			return (ENODEV);
 		}
 
-		fw_resource_count = ((struct efi_esrt_table *)buf)->
-		    fw_resource_count;
-		if (fw_resource_count > EFI_TABLE_ALLOC_MAX /
-		    sizeof(struct efi_esrt_entry_v1)) {
+		fw_resource_count =
+		    ((struct efi_esrt_table *)buf)->fw_resource_count;
+		if (fw_resource_count >
+		    EFI_TABLE_ALLOC_MAX / sizeof(struct efi_esrt_entry_v1)) {
 			free(buf, M_TEMP);
 			return (ENOMEM);
 		}
@@ -402,8 +401,7 @@ get_table_length(enum efi_table_type type, size_t *table_len, void **taddr)
 		free(buf, M_TEMP);
 		return (0);
 	}
-	case TYPE_PROP:
-	{
+	case TYPE_PROP: {
 		struct uuid uuid = EFI_PROPERTIES_TABLE;
 		struct efi_prop_table *prop;
 		size_t len = sizeof(*prop);
@@ -444,10 +442,8 @@ copy_table(struct uuid *uuid, void **buf, size_t buf_len, size_t *table_len)
 	static const struct known_table {
 		struct uuid uuid;
 		enum efi_table_type type;
-	} tables[] = {
-		{ EFI_TABLE_ESRT,       TYPE_ESRT },
-		{ EFI_PROPERTIES_TABLE, TYPE_PROP }
-	};
+	} tables[] = { { EFI_TABLE_ESRT, TYPE_ESRT },
+		{ EFI_PROPERTIES_TABLE, TYPE_PROP } };
 	size_t table_idx;
 	void *taddr;
 	int rc;
@@ -484,31 +480,31 @@ efi_rt_arch_call_nofault(struct efirt_callinfo *ec)
 
 	switch (ec->ec_argcnt) {
 	case 0:
-		ec->ec_efi_status = ((register_t (*)(void))ec->ec_fptr)();
+		ec->ec_efi_status = ((register_t(*)(void))ec->ec_fptr)();
 		break;
 	case 1:
-		ec->ec_efi_status = ((register_t (*)(register_t))ec->ec_fptr)
-		    (ec->ec_arg1);
+		ec->ec_efi_status = ((register_t(*)(register_t))ec->ec_fptr)(
+		    ec->ec_arg1);
 		break;
 	case 2:
-		ec->ec_efi_status = ((register_t (*)(register_t, register_t))
-		    ec->ec_fptr)(ec->ec_arg1, ec->ec_arg2);
+		ec->ec_efi_status = ((register_t(*)(register_t,
+		    register_t))ec->ec_fptr)(ec->ec_arg1, ec->ec_arg2);
 		break;
 	case 3:
-		ec->ec_efi_status = ((register_t (*)(register_t, register_t,
+		ec->ec_efi_status = ((register_t(*)(register_t, register_t,
 		    register_t))ec->ec_fptr)(ec->ec_arg1, ec->ec_arg2,
 		    ec->ec_arg3);
 		break;
 	case 4:
-		ec->ec_efi_status = ((register_t (*)(register_t, register_t,
+		ec->ec_efi_status = ((register_t(*)(register_t, register_t,
 		    register_t, register_t))ec->ec_fptr)(ec->ec_arg1,
 		    ec->ec_arg2, ec->ec_arg3, ec->ec_arg4);
 		break;
 	case 5:
-		ec->ec_efi_status = ((register_t (*)(register_t, register_t,
-		    register_t, register_t, register_t))ec->ec_fptr)(
-		    ec->ec_arg1, ec->ec_arg2, ec->ec_arg3, ec->ec_arg4,
-		    ec->ec_arg5);
+		ec->ec_efi_status = ((
+		    register_t(*)(register_t, register_t, register_t,
+			register_t, register_t))ec->ec_fptr)(ec->ec_arg1,
+		    ec->ec_arg2, ec->ec_arg3, ec->ec_arg4, ec->ec_arg5);
 		break;
 	default:
 		panic("efi_rt_arch_call: %d args", (int)ec->ec_argcnt);
@@ -526,7 +522,7 @@ efi_call(struct efirt_callinfo *ecp)
 	if (error != 0)
 		return (error);
 	error = efi_rt_handle_faults ? efi_rt_arch_call(ecp) :
-	    efi_rt_arch_call_nofault(ecp);
+				       efi_rt_arch_call_nofault(ecp);
 	efi_leave();
 	if (error == 0)
 		error = efi_status_to_errno(ecp->ec_efi_status);
@@ -535,9 +531,9 @@ efi_call(struct efirt_callinfo *ecp)
 	return (error);
 }
 
-#define	EFI_RT_METHOD_PA(method)				\
-    ((uintptr_t)((struct efi_rt *)efi_phys_to_kva((uintptr_t)	\
-    efi_runtime))->method)
+#define EFI_RT_METHOD_PA(method)                                               \
+	((uintptr_t)((struct efi_rt *)efi_phys_to_kva((uintptr_t)efi_runtime)) \
+		->method)
 
 static int
 efi_get_time_locked(struct efi_tm *tm, struct efi_tmcap *tmcap)
@@ -718,8 +714,8 @@ set_time(struct efi_tm *tm)
 }
 
 static int
-var_get(efi_char *name, struct uuid *vendor, uint32_t *attrib,
-    size_t *datasize, void *data)
+var_get(efi_char *name, struct uuid *vendor, uint32_t *attrib, size_t *datasize,
+    void *data)
 {
 	struct efirt_callinfo ec;
 	int error;
@@ -763,8 +759,8 @@ var_nextname(size_t *namesize, efi_char *name, struct uuid *vendor)
 }
 
 static int
-var_set(efi_char *name, struct uuid *vendor, uint32_t attrib,
-    size_t datasize, void *data)
+var_set(efi_char *name, struct uuid *vendor, uint32_t attrib, size_t datasize,
+    void *data)
 {
 	struct efirt_callinfo ec;
 

@@ -28,6 +28,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "if_igc.h"
 
 #ifdef RSS
@@ -68,16 +69,14 @@ static int igc_determine_rsstype(uint16_t pkt_info);
 extern void igc_if_enable_intr(if_ctx_t ctx);
 extern int igc_intr(void *arg);
 
-struct if_txrx igc_txrx = {
-	.ift_txd_encap = igc_isc_txd_encap,
+struct if_txrx igc_txrx = { .ift_txd_encap = igc_isc_txd_encap,
 	.ift_txd_flush = igc_isc_txd_flush,
 	.ift_txd_credits_update = igc_isc_txd_credits_update,
 	.ift_rxd_available = igc_isc_rxd_available,
 	.ift_rxd_pkt_get = igc_isc_rxd_pkt_get,
 	.ift_rxd_refill = igc_isc_rxd_refill,
 	.ift_rxd_flush = igc_isc_rxd_flush,
-	.ift_legacy_intr = igc_intr
-};
+	.ift_legacy_intr = igc_intr };
 
 void
 igc_dump_rs(struct igc_adapter *adapter)
@@ -93,21 +92,25 @@ igc_dump_rs(struct igc_adapter *adapter)
 	ntxd = scctx->isc_ntxd[0];
 	for (qid = 0; qid < adapter->tx_num_queues; qid++) {
 		que = &adapter->tx_queues[qid];
-		txr =  &que->txr;
+		txr = &que->txr;
 		rs_cidx = txr->tx_rs_cidx;
 		if (rs_cidx != txr->tx_rs_pidx) {
 			cur = txr->tx_rsq[rs_cidx];
 			status = txr->tx_base[cur].upper.fields.status;
 			if (!(status & IGC_TXD_STAT_DD))
-				printf("qid[%d]->tx_rsq[%d]: %d clear ", qid, rs_cidx, cur);
+				printf("qid[%d]->tx_rsq[%d]: %d clear ", qid,
+				    rs_cidx, cur);
 		} else {
-			rs_cidx = (rs_cidx-1)&(ntxd-1);
+			rs_cidx = (rs_cidx - 1) & (ntxd - 1);
 			cur = txr->tx_rsq[rs_cidx];
-			printf("qid[%d]->tx_rsq[rs_cidx-1=%d]: %d  ", qid, rs_cidx, cur);
+			printf("qid[%d]->tx_rsq[rs_cidx-1=%d]: %d  ", qid,
+			    rs_cidx, cur);
 		}
-		printf("cidx_prev=%d rs_pidx=%d ",txr->tx_cidx_processed, txr->tx_rs_pidx);
+		printf("cidx_prev=%d rs_pidx=%d ", txr->tx_cidx_processed,
+		    txr->tx_rs_pidx);
 		for (i = 0; i < ntxd; i++) {
-			if (txr->tx_base[i].upper.fields.status & IGC_TXD_STAT_DD)
+			if (txr->tx_base[i].upper.fields.status &
+			    IGC_TXD_STAT_DD)
 				printf("%d set ", i);
 		}
 		printf("\n");
@@ -129,7 +132,7 @@ igc_tso_setup(struct tx_ring *txr, if_pkt_info_t pi, uint32_t *cmd_type_len,
 	uint32_t mss_l4len_idx = 0;
 	uint32_t paylen;
 
-	switch(pi->ipi_etype) {
+	switch (pi->ipi_etype) {
 	case ETHERTYPE_IPV6:
 		type_tucmd_mlhl |= IGC_ADVTXD_TUCMD_IPV6;
 		break;
@@ -140,14 +143,15 @@ igc_tso_setup(struct tx_ring *txr, if_pkt_info_t pi, uint32_t *cmd_type_len,
 		break;
 	default:
 		panic("%s: CSUM_TSO but no supported IP version (0x%04x)",
-		      __func__, ntohs(pi->ipi_etype));
+		    __func__, ntohs(pi->ipi_etype));
 		break;
 	}
 
-	TXD = (struct igc_adv_tx_context_desc *) &txr->tx_base[pi->ipi_pidx];
+	TXD = (struct igc_adv_tx_context_desc *)&txr->tx_base[pi->ipi_pidx];
 
 	/* This is used in the transmit desc in encap */
-	paylen = pi->ipi_len - pi->ipi_ehdrlen - pi->ipi_ip_hlen - pi->ipi_tcp_hlen;
+	paylen = pi->ipi_len - pi->ipi_ehdrlen - pi->ipi_ip_hlen -
+	    pi->ipi_tcp_hlen;
 
 	/* VLAN MACLEN IPLEN */
 	if (pi->ipi_mflags & M_VLANTAG) {
@@ -198,7 +202,7 @@ igc_tx_ctx_setup(struct tx_ring *txr, if_pkt_info_t pi, uint32_t *cmd_type_len,
 	*olinfo_status |= pi->ipi_len << IGC_ADVTXD_PAYLEN_SHIFT;
 
 	/* Now ready a context descriptor */
-	TXD = (struct igc_adv_tx_context_desc *) &txr->tx_base[pi->ipi_pidx];
+	TXD = (struct igc_adv_tx_context_desc *)&txr->tx_base[pi->ipi_pidx];
 
 	/*
 	** In advanced descriptors the vlan tag must
@@ -214,7 +218,7 @@ igc_tx_ctx_setup(struct tx_ring *txr, if_pkt_info_t pi, uint32_t *cmd_type_len,
 	/* Set the ether header length */
 	vlan_macip_lens |= pi->ipi_ehdrlen << IGC_ADVTXD_MACLEN_SHIFT;
 
-	switch(pi->ipi_etype) {
+	switch (pi->ipi_etype) {
 	case ETHERTYPE_IP:
 		type_tucmd_mlhl |= IGC_ADVTXD_TUCMD_IPV4;
 		break;
@@ -276,8 +280,8 @@ igc_isc_txd_encap(void *arg, if_pkt_info_t pi)
 
 	pidx_last = olinfo_status = 0;
 	/* Basic descriptor defines */
-	cmd_type_len = (IGC_ADVTXD_DTYP_DATA |
-			IGC_ADVTXD_DCMD_IFCS | IGC_ADVTXD_DCMD_DEXT);
+	cmd_type_len = (IGC_ADVTXD_DTYP_DATA | IGC_ADVTXD_DCMD_IFCS |
+	    IGC_ADVTXD_DCMD_DEXT);
 
 	if (pi->ipi_mflags & M_VLANTAG)
 		cmd_type_len |= IGC_ADVTXD_DCMD_VLE;
@@ -299,8 +303,8 @@ igc_isc_txd_encap(void *arg, if_pkt_info_t pi)
 		segaddr = htole64(segs[j].ds_addr);
 
 		txd->read.buffer_addr = segaddr;
-		txd->read.cmd_type_len = htole32(IGC_ADVTXD_DCMD_IFCS |
-		    cmd_type_len | seglen);
+		txd->read.cmd_type_len = htole32(
+		    IGC_ADVTXD_DCMD_IFCS | cmd_type_len | seglen);
 		txd->read.olinfo_status = htole32(olinfo_status);
 		pidx_last = i;
 		if (++i == scctx->isc_ntxd[0]) {
@@ -309,7 +313,7 @@ igc_isc_txd_encap(void *arg, if_pkt_info_t pi)
 	}
 	if (txd_flags) {
 		txr->tx_rsq[txr->tx_rs_pidx] = pidx_last;
-		txr->tx_rs_pidx = (txr->tx_rs_pidx+1) & (ntxd-1);
+		txr->tx_rs_pidx = (txr->tx_rs_pidx + 1) & (ntxd - 1);
 		MPASS(txr->tx_rs_pidx != txr->tx_rs_cidx);
 	}
 
@@ -322,9 +326,9 @@ igc_isc_txd_encap(void *arg, if_pkt_info_t pi)
 static void
 igc_isc_txd_flush(void *arg, uint16_t txqid, qidx_t pidx)
 {
-	struct igc_adapter *adapter	= arg;
-	struct igc_tx_queue *que	= &adapter->tx_queues[txqid];
-	struct tx_ring *txr	= &que->txr;
+	struct igc_adapter *adapter = arg;
+	struct igc_tx_queue *que = &adapter->tx_queues[txqid];
+	struct tx_ring *txr = &que->txr;
 
 	IGC_WRITE_REG(&adapter->hw, IGC_TDT(txr->me), pidx);
 }
@@ -368,12 +372,13 @@ igc_isc_txd_credits_update(void *arg, uint16_t txqid, bool clear)
 		MPASS(delta > 0);
 
 		processed += delta;
-		prev  = cur;
-		rs_cidx = (rs_cidx + 1) & (ntxd-1);
-		if (rs_cidx  == txr->tx_rs_pidx)
+		prev = cur;
+		rs_cidx = (rs_cidx + 1) & (ntxd - 1);
+		if (rs_cidx == txr->tx_rs_pidx)
 			break;
 		cur = txr->tx_rsq[rs_cidx];
-		status = ((union igc_adv_tx_desc *)&txr->tx_base[cur])->wb.status;
+		status =
+		    ((union igc_adv_tx_desc *)&txr->tx_base[cur])->wb.status;
 	} while ((status & IGC_TXD_STAT_DD));
 
 	txr->tx_rs_cidx = rs_cidx;
@@ -472,10 +477,10 @@ igc_isc_rxd_pkt_get(void *arg, if_rxd_info_t ri)
 		staterr = le32toh(rxd->wb.upper.status_error);
 		pkt_info = le16toh(rxd->wb.lower.lo_dword.hs_rss.pkt_info);
 
-		MPASS ((staterr & IGC_RXD_STAT_DD) != 0);
+		MPASS((staterr & IGC_RXD_STAT_DD) != 0);
 
 		len = le16toh(rxd->wb.upper.length);
-		ptype = le32toh(rxd->wb.lower.lo_dword.data) &  IGC_PKTTYPE_MASK;
+		ptype = le32toh(rxd->wb.lower.lo_dword.data) & IGC_PKTTYPE_MASK;
 
 		ri->iri_len += len;
 		rxr->rx_bytes += ri->iri_len;
@@ -516,8 +521,7 @@ igc_isc_rxd_pkt_get(void *arg, if_rxd_info_t ri)
 		ri->iri_flags |= M_VLANTAG;
 	}
 
-	ri->iri_flowid =
-		le32toh(rxd->wb.lower.hi_dword.rss);
+	ri->iri_flowid = le32toh(rxd->wb.lower.hi_dword.rss);
 	ri->iri_rsstype = igc_determine_rsstype(pkt_info);
 	ri->iri_nfrags = i;
 
@@ -549,11 +553,11 @@ igc_rx_checksum(uint32_t staterr, if_rxd_info_t ri, uint32_t ptype)
 		ri->iri_csum_flags = (CSUM_IP_CHECKED | CSUM_IP_VALID);
 
 	/* Valid L4E checksum */
-	if (__predict_true(status &
-	    (IGC_RXD_STAT_TCPCS | IGC_RXD_STAT_UDPCS))) {
+	if (__predict_true(
+		status & (IGC_RXD_STAT_TCPCS | IGC_RXD_STAT_UDPCS))) {
 		/* SCTP header present */
 		if (__predict_false((ptype & IGC_RXDADV_PKTTYPE_ETQF) == 0 &&
-		    (ptype & IGC_RXDADV_PKTTYPE_SCTP) != 0)) {
+			(ptype & IGC_RXDADV_PKTTYPE_SCTP) != 0)) {
 			ri->iri_csum_flags |= CSUM_SCTP_VALID;
 		} else {
 			ri->iri_csum_flags |= CSUM_DATA_VALID | CSUM_PSEUDO_HDR;

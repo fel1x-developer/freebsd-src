@@ -6,12 +6,13 @@
  * $Id: load_dstlist.c,v 1.1.2.5 2012/07/22 08:04:24 darren_r Exp $
  */
 
-#include <fcntl.h>
 #include <sys/ioctl.h>
-#include "ipf.h"
-#include "netinet/ip_lookup.h"
-#include "netinet/ip_dstlist.h"
 
+#include <fcntl.h>
+
+#include "ipf.h"
+#include "netinet/ip_dstlist.h"
+#include "netinet/ip_lookup.h"
 
 int
 load_dstlist(ippool_dst_t *dst, ioctlfunc_t iocfunc, ipf_dstnode_t *nodes)
@@ -42,13 +43,14 @@ load_dstlist(ippool_dst_t *dst, ioctlfunc_t iocfunc, ipf_dstnode_t *nodes)
 		if (pool_ioctl(iocfunc, SIOCLOOKUPADDTABLE, &op))
 			if ((opts & OPT_DONOTHING) == 0) {
 				return (ipf_perror_fd(pool_fd(), iocfunc,
-						  "add destination list table"));
+				    "add destination list table"));
 			}
 	}
 
 	if ((opts & OPT_VERBOSE) != 0) {
 		dest.ipld_dests = dst->ipld_dests;
-		printdstlist(&dest, bcopywrap, dest.ipld_name, opts, nodes, NULL);
+		printdstlist(&dest, bcopywrap, dest.ipld_name, opts, nodes,
+		    NULL);
 		dest.ipld_dests = NULL;
 	}
 
@@ -59,7 +61,7 @@ load_dstlist(ippool_dst_t *dst, ioctlfunc_t iocfunc, ipf_dstnode_t *nodes)
 		if (pool_ioctl(iocfunc, SIOCLOOKUPDELTABLE, &op))
 			if ((opts & OPT_DONOTHING) == 0) {
 				return (ipf_perror_fd(pool_fd(), iocfunc,
-					      "delete destination list table"));
+				    "delete destination list table"));
 			}
 	}
 	return (0);

@@ -31,13 +31,12 @@
 
 #include <sys/param.h>
 
+#include <activemap.h>
 #include <err.h>
 #include <libutil.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <activemap.h>
 
 #include "hast.h"
 #include "hast_proto.h"
@@ -54,14 +53,7 @@ static struct hastd_config *cfg;
 /* Control connection. */
 static struct proto_conn *controlconn;
 
-enum {
-	CMD_INVALID,
-	CMD_CREATE,
-	CMD_ROLE,
-	CMD_STATUS,
-	CMD_DUMP,
-	CMD_LIST
-};
+enum { CMD_INVALID, CMD_CREATE, CMD_ROLE, CMD_STATUS, CMD_DUMP, CMD_LIST };
 
 static __dead2 void
 usage(void)
@@ -74,14 +66,11 @@ usage(void)
 	fprintf(stderr,
 	    "       %s role [-d] [-c config] <init | primary | secondary> all | name ...\n",
 	    getprogname());
-	fprintf(stderr,
-	    "       %s list [-d] [-c config] [all | name ...]\n",
+	fprintf(stderr, "       %s list [-d] [-c config] [all | name ...]\n",
 	    getprogname());
-	fprintf(stderr,
-	    "       %s status [-d] [-c config] [all | name ...]\n",
+	fprintf(stderr, "       %s status [-d] [-c config] [all | name ...]\n",
 	    getprogname());
-	fprintf(stderr,
-	    "       %s dump [-d] [-c config] [all | name ...]\n",
+	fprintf(stderr, "       %s dump [-d] [-c config] [all | name ...]\n",
 	    getprogname());
 	exit(EX_USAGE);
 }
@@ -104,13 +93,15 @@ create_one(struct hast_resource *res, intmax_t mediasize, intmax_t extentsize,
 	if (mediasize == 0)
 		mediasize = res->hr_local_mediasize;
 	else if (mediasize > res->hr_local_mediasize) {
-		pjdlog_error("Provided mediasize is larger than provider %s size.",
+		pjdlog_error(
+		    "Provided mediasize is larger than provider %s size.",
 		    res->hr_localpath);
 		ec = EX_DATAERR;
 		goto end;
 	}
 	if (!powerof2(res->hr_local_sectorsize)) {
-		pjdlog_error("Sector size of provider %s is not power of 2 (%u).",
+		pjdlog_error(
+		    "Sector size of provider %s is not power of 2 (%u).",
 		    res->hr_localpath, res->hr_local_sectorsize);
 		ec = EX_DATAERR;
 		goto end;
@@ -124,7 +115,8 @@ create_one(struct hast_resource *res, intmax_t mediasize, intmax_t extentsize,
 		goto end;
 	}
 	if ((extentsize % res->hr_local_sectorsize) != 0) {
-		pjdlog_error("Extent size (%jd) is not multiple of sector size (%u).",
+		pjdlog_error(
+		    "Extent size (%jd) is not multiple of sector size (%u).",
 		    (intmax_t)extentsize, res->hr_local_sectorsize);
 		ec = EX_DATAERR;
 		goto end;
@@ -145,7 +137,8 @@ create_one(struct hast_resource *res, intmax_t mediasize, intmax_t extentsize,
 	}
 	buf = calloc(1, mapsize);
 	if (buf == NULL) {
-		pjdlog_error("Unable to allocate %zu bytes of memory for initial bitmap.",
+		pjdlog_error(
+		    "Unable to allocate %zu bytes of memory for initial bitmap.",
 		    mapsize);
 		ec = EX_TEMPFAIL;
 		goto end;
@@ -178,7 +171,7 @@ control_create(int argc, char *argv[], intmax_t mediasize, intmax_t extentsize,
 		usage();
 	ec = 0;
 	for (ii = 0; ii < argc; ii++) {
-		TAILQ_FOREACH(res, &cfg->hc_resources, hr_next) {
+		TAILQ_FOREACH (res, &cfg->hc_resources, hr_next) {
 			if (strcmp(argv[ii], res->hr_name) == 0)
 				break;
 		}
@@ -229,7 +222,7 @@ control_dump(int argc, char *argv[])
 
 	ec = 0;
 	if (argc == 0 || (argc == 1 && strcmp(argv[0], "all") == 0)) {
-		TAILQ_FOREACH(res, &cfg->hc_resources, hr_next) {
+		TAILQ_FOREACH (res, &cfg->hc_resources, hr_next) {
 			ret = dump_one(res);
 			if (ret != 0 && ec == 0)
 				ec = ret;
@@ -238,7 +231,7 @@ control_dump(int argc, char *argv[])
 		int ii;
 
 		for (ii = 0; ii < argc; ii++) {
-			TAILQ_FOREACH(res, &cfg->hc_resources, hr_next) {
+			TAILQ_FOREACH (res, &cfg->hc_resources, hr_next) {
 				if (strcmp(argv[ii], res->hr_name) == 0)
 					break;
 			}
@@ -265,7 +258,7 @@ control_set_role(struct nv *nv, const char *newrole)
 
 	ret = 0;
 
-	for (ii = 0; ; ii++) {
+	for (ii = 0;; ii++) {
 		res = nv_get_string(nv, "resource%u", ii);
 		if (res == NULL)
 			break;
@@ -299,7 +292,7 @@ control_list(struct nv *nv)
 
 	ret = 0;
 
-	for (ii = 0; ; ii++) {
+	for (ii = 0;; ii++) {
 		str = nv_get_string(nv, "resource%u", ii);
 		if (str == NULL)
 			break;
@@ -312,8 +305,7 @@ control_list(struct nv *nv)
 			continue;
 		}
 		printf("  role: %s\n", nv_get_string(nv, "role%u", ii));
-		printf("  provname: %s\n",
-		    nv_get_string(nv, "provname%u", ii));
+		printf("  provname: %s\n", nv_get_string(nv, "provname%u", ii));
 		printf("  localpath: %s\n",
 		    nv_get_string(nv, "localpath%u", ii));
 		printf("  extentsize: %u (%NB)\n",
@@ -347,14 +339,16 @@ control_list(struct nv *nv)
 		printf("    flushes: %ju\n",
 		    (uintmax_t)nv_get_uint64(nv, "stat_flush%u", ii));
 		printf("    activemap updates: %ju\n",
-		    (uintmax_t)nv_get_uint64(nv, "stat_activemap_update%u", ii));
+		    (uintmax_t)nv_get_uint64(nv, "stat_activemap_update%u",
+			ii));
 		printf("    local errors: "
-		    "read: %ju, write: %ju, delete: %ju, flush: %ju\n",
+		       "read: %ju, write: %ju, delete: %ju, flush: %ju\n",
 		    (uintmax_t)nv_get_uint64(nv, "stat_read_error%u", ii),
 		    (uintmax_t)nv_get_uint64(nv, "stat_write_error%u", ii),
 		    (uintmax_t)nv_get_uint64(nv, "stat_delete_error%u", ii),
 		    (uintmax_t)nv_get_uint64(nv, "stat_flush_error%u", ii));
-		printf("    queues: "
+		printf(
+		    "    queues: "
 		    "local: %ju, send: %ju, recv: %ju, done: %ju, idle: %ju\n",
 		    (uintmax_t)nv_get_uint64(nv, "local_queue_size%u", ii),
 		    (uintmax_t)nv_get_uint64(nv, "send_queue_size%u", ii),
@@ -375,7 +369,7 @@ control_status(struct nv *nv)
 	hprinted = 0;
 	ret = 0;
 
-	for (ii = 0; ; ii++) {
+	for (ii = 0;; ii++) {
 		str = nv_get_string(nv, "resource%u", ii);
 		if (str == NULL)
 			break;
@@ -394,10 +388,8 @@ control_status(struct nv *nv)
 		str = nv_get_string(nv, "status%u", ii);
 		printf("%-9s", (str != NULL) ? str : "-");
 		printf("%-15s", nv_get_string(nv, "role%u", ii));
-		printf("%s\t",
-		    nv_get_string(nv, "localpath%u", ii));
-		printf("%s\n",
-		    nv_get_string(nv, "remoteaddr%u", ii));
+		printf("%s\t", nv_get_string(nv, "localpath%u", ii));
+		printf("%s\n", nv_get_string(nv, "remoteaddr%u", ii));
 	}
 	return (ret);
 }

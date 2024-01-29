@@ -42,17 +42,17 @@
 #ifdef PORTMAP
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <stdio.h>
-#include <rpc/rpc.h>
+
 #include <rpc/pmap_prot.h>
+#include <rpc/rpc.h>
 #include <rpc/rpcb_prot.h>
+#include <stdio.h>
 #ifdef RPCBIND_DEBUG
 #include <stdlib.h>
 #endif
 #include "rpcbind.h"
 
-static struct pmaplist *find_service_pmap(rpcprog_t, rpcvers_t,
-					       rpcprot_t);
+static struct pmaplist *find_service_pmap(rpcprog_t, rpcvers_t, rpcprot_t);
 static bool_t pmapproc_change(struct svc_req *, SVCXPRT *, u_long);
 static bool_t pmapproc_getport(struct svc_req *, SVCXPRT *);
 static bool_t pmapproc_dump(struct svc_req *, SVCXPRT *);
@@ -74,8 +74,8 @@ pmap_service(struct svc_req *rqstp, SVCXPRT *xprt)
 			fprintf(stderr, "PMAPPROC_NULL\n");
 #endif
 		check_access(xprt, rqstp->rq_proc, NULL, PMAPVERS);
-		if ((!svc_sendreply(xprt, (xdrproc_t) xdr_void, NULL)) &&
-			debugging) {
+		if ((!svc_sendreply(xprt, (xdrproc_t)xdr_void, NULL)) &&
+		    debugging) {
 			if (doabort) {
 				rpcbind_abort();
 			}
@@ -149,7 +149,7 @@ find_service_pmap(rpcprog_t prog, rpcvers_t vers, rpcprot_t prot)
 
 	for (pml = list_pml; pml != NULL; pml = pml->pml_next) {
 		if ((pml->pml_map.pm_prog != prog) ||
-			(pml->pml_map.pm_prot != prot))
+		    (pml->pml_map.pm_prot != prot))
 			continue;
 		hit = pml;
 		if (pml->pml_map.pm_vers == vers)
@@ -171,11 +171,11 @@ pmapproc_change(struct svc_req *rqstp __unused, SVCXPRT *xprt, unsigned long op)
 #ifdef RPCBIND_DEBUG
 	if (debugging)
 		fprintf(stderr, "%s request for (%lu, %lu) : ",
-		    op == PMAPPROC_SET ? "PMAP_SET" : "PMAP_UNSET",
-		    reg.pm_prog, reg.pm_vers);
+		    op == PMAPPROC_SET ? "PMAP_SET" : "PMAP_UNSET", reg.pm_prog,
+		    reg.pm_vers);
 #endif
 
-	if (!svc_getargs(xprt, (xdrproc_t) xdr_pmap, (char *)&reg)) {
+	if (!svc_getargs(xprt, (xdrproc_t)xdr_pmap, (char *)&reg)) {
 		svcerr_decode(xprt);
 		return (FALSE);
 	}
@@ -233,7 +233,7 @@ pmapproc_change(struct svc_req *rqstp __unused, SVCXPRT *xprt, unsigned long op)
 		ans = FALSE;
 	}
 done_change:
-	if ((!svc_sendreply(xprt, (xdrproc_t) xdr_long, (caddr_t) &ans)) &&
+	if ((!svc_sendreply(xprt, (xdrproc_t)xdr_long, (caddr_t)&ans)) &&
 	    debugging) {
 		fprintf(stderr, "portmap: svc_sendreply\n");
 		if (doabort) {
@@ -263,7 +263,7 @@ pmapproc_getport(struct svc_req *rqstp __unused, SVCXPRT *xprt)
 	char *uaddr;
 #endif
 
-	if (!svc_getargs(xprt, (xdrproc_t) xdr_pmap, (char *)&reg)) {
+	if (!svc_getargs(xprt, (xdrproc_t)xdr_pmap, (char *)&reg)) {
 		svcerr_decode(xprt);
 		return (FALSE);
 	}
@@ -275,11 +275,11 @@ pmapproc_getport(struct svc_req *rqstp __unused, SVCXPRT *xprt)
 
 #ifdef RPCBIND_DEBUG
 	if (debugging) {
-		uaddr =  taddr2uaddr(rpcbind_get_conf(xprt->xp_netid),
-			    svc_getrpccaller(xprt));
+		uaddr = taddr2uaddr(rpcbind_get_conf(xprt->xp_netid),
+		    svc_getrpccaller(xprt));
 		fprintf(stderr, "PMAP_GETPORT req for (%lu, %lu, %s) from %s :",
-			reg.pm_prog, reg.pm_vers,
-			reg.pm_prot == IPPROTO_UDP ? "udp" : "tcp", uaddr);
+		    reg.pm_prog, reg.pm_vers,
+		    reg.pm_prot == IPPROTO_UDP ? "udp" : "tcp", uaddr);
 		free(uaddr);
 	}
 #endif
@@ -299,8 +299,8 @@ pmapproc_getport(struct svc_req *rqstp __unused, SVCXPRT *xprt)
 		if (ua == NULL) {
 			goto sendreply;
 		}
-		if (sscanf(ua, "%d.%d.%d.%d.%d.%d", &h1, &h2, &h3,
-				&h4, &p1, &p2) == 6) {
+		if (sscanf(ua, "%d.%d.%d.%d.%d.%d", &h1, &h2, &h3, &h4, &p1,
+			&p2) == 6) {
 			p1 = (fnd->pml_map.pm_port >> 8) & 0xff;
 			p2 = (fnd->pml_map.pm_port) & 0xff;
 			snprintf(serveuaddr, sizeof serveuaddr,
@@ -314,9 +314,9 @@ pmapproc_getport(struct svc_req *rqstp __unused, SVCXPRT *xprt)
 	}
 sendreply:
 	lport = port;
-	if ((!svc_sendreply(xprt, (xdrproc_t) xdr_long, (caddr_t)&lport)) &&
-			debugging) {
-		(void) fprintf(stderr, "portmap: svc_sendreply\n");
+	if ((!svc_sendreply(xprt, (xdrproc_t)xdr_long, (caddr_t)&lport)) &&
+	    debugging) {
+		(void)fprintf(stderr, "portmap: svc_sendreply\n");
 		if (doabort) {
 			rpcbind_abort();
 		}
@@ -326,8 +326,8 @@ sendreply:
 		fprintf(stderr, "port = %d\n", port);
 #endif
 	rpcbs_getaddr(RPCBVERS_2_STAT, reg.pm_prog, reg.pm_vers,
-		reg.pm_prot == IPPROTO_UDP ? udptrans : tcptrans,
-		port ? udptrans : "");
+	    reg.pm_prot == IPPROTO_UDP ? udptrans : tcptrans,
+	    port ? udptrans : "");
 
 	return (TRUE);
 }
@@ -346,10 +346,11 @@ pmapproc_dump(struct svc_req *rqstp __unused, SVCXPRT *xprt)
 		return FALSE;
 	}
 
-	if ((!svc_sendreply(xprt, (xdrproc_t) xdr_pmaplist_ptr,
-			(caddr_t)&list_pml)) && debugging) {
+	if ((!svc_sendreply(xprt, (xdrproc_t)xdr_pmaplist_ptr,
+		(caddr_t)&list_pml)) &&
+	    debugging) {
 		if (debugging)
-			(void) fprintf(stderr, "portmap: svc_sendreply\n");
+			(void)fprintf(stderr, "portmap: svc_sendreply\n");
 		if (doabort) {
 			rpcbind_abort();
 		}

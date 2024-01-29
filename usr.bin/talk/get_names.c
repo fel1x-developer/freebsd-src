@@ -29,8 +29,6 @@
  * SUCH DAMAGE.
  */
 
-
-
 #include <sys/param.h>
 
 #include <err.h>
@@ -41,7 +39,7 @@
 
 #include "talk.h"
 
-extern	CTL_MSG msg;
+extern CTL_MSG msg;
 
 static void
 usage(void)
@@ -62,7 +60,7 @@ get_names(int argc, char *argv[])
 	const char *his_tty;
 	char *cp;
 
-	if (argc < 2 )
+	if (argc < 2)
 		usage();
 	if (!isatty(0))
 		errx(1, "standard input must be a tty, not a pipe or a file");
@@ -73,7 +71,7 @@ get_names(int argc, char *argv[])
 			errx(1, "you don't exist. Go away");
 		my_name = pw->pw_name;
 	}
-	gethostname(hostname, sizeof (hostname));
+	gethostname(hostname, sizeof(hostname));
 	my_machine_name = hostname;
 	/* check for, and strip out, the machine name of the target */
 	cp = argv[1] + strcspn(argv[1], "@:!");
@@ -94,7 +92,7 @@ get_names(int argc, char *argv[])
 		*--cp = '\0';
 	}
 	if (argc > 2)
-		his_tty = argv[2];	/* tty name is arg 2 */
+		his_tty = argv[2]; /* tty name is arg 2 */
 	else
 		his_tty = "";
 	get_addrs(my_machine_name, his_machine_name);

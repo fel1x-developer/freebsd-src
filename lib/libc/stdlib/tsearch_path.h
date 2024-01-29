@@ -24,7 +24,7 @@
  */
 
 #ifndef TSEARCH_PATH_H
-#define	TSEARCH_PATH_H
+#define TSEARCH_PATH_H
 
 #include <limits.h>
 #include <stdbool.h>
@@ -53,15 +53,15 @@ path_init(struct path *p)
 	p->nsteps = 0;
 }
 
-#define	STEPS_BIT (sizeof(uintptr_t) * CHAR_BIT)
+#define STEPS_BIT (sizeof(uintptr_t) * CHAR_BIT)
 
 /* Pushes a step to the left to the end of the path. */
 static inline void
 path_taking_left(struct path *p)
 {
 
-	p->steps[p->nsteps / STEPS_BIT] |=
-	    (uintptr_t)1 << (p->nsteps % STEPS_BIT);
+	p->steps[p->nsteps / STEPS_BIT] |= (uintptr_t)1
+	    << (p->nsteps % STEPS_BIT);
 	++p->nsteps;
 }
 
@@ -70,8 +70,8 @@ static inline void
 path_taking_right(struct path *p)
 {
 
-	p->steps[p->nsteps / STEPS_BIT] &=
-	    ~((uintptr_t)1 << (p->nsteps % STEPS_BIT));
+	p->steps[p->nsteps / STEPS_BIT] &= ~(
+	    (uintptr_t)1 << (p->nsteps % STEPS_BIT));
 	++p->nsteps;
 }
 

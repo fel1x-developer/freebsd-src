@@ -33,12 +33,12 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_PMCSTAT_PL_ANNOTATE_CG_H_
-#define	_PMCSTAT_PL_ANNOTATE_CG_H_
+#ifndef _PMCSTAT_PL_ANNOTATE_CG_H_
+#define _PMCSTAT_PL_ANNOTATE_CG_H_
 
 /* Function prototypes */
-void pmcpl_annotate_cg_process(
-    struct pmcstat_process *pp, struct pmcstat_pmcrecord *pmcr,
-    uint32_t nsamples, uintfptr_t *cc, int usermode, uint32_t cpu);
+void pmcpl_annotate_cg_process(struct pmcstat_process *pp,
+    struct pmcstat_pmcrecord *pmcr, uint32_t nsamples, uintfptr_t *cc,
+    int usermode, uint32_t cpu);
 
-#endif	/* _PMCSTAT_PL_ANNOTATE_CG_H_ */
+#endif /* _PMCSTAT_PL_ANNOTATE_CG_H_ */

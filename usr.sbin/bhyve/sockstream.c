@@ -27,9 +27,9 @@
  */
 
 #include <sys/types.h>
-#include <unistd.h>
 
 #include <errno.h>
+#include <unistd.h>
 
 #include "sockstream.h"
 

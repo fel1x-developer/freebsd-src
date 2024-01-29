@@ -61,22 +61,21 @@
  */
 
 #include <dev/isci/scil/intel_sas.h>
-#include <dev/isci/scil/sci_fast_list.h>
-#include <dev/isci/scil/scic_controller.h>
-#include <dev/isci/scil/scic_port.h>
-#include <dev/isci/scil/scic_remote_device.h>
-#include <dev/isci/scil/scic_io_request.h>
-#include <dev/isci/scil/scic_user_callback.h>
-#include <dev/isci/scil/scif_user_callback.h>
 #include <dev/isci/scil/sci_abstract_list.h>
 #include <dev/isci/scil/sci_base_iterator.h>
-
-#include <dev/isci/scil/scif_sas_logger.h>
-#include <dev/isci/scil/scif_sas_domain.h>
+#include <dev/isci/scil/sci_fast_list.h>
+#include <dev/isci/scil/sci_util.h>
+#include <dev/isci/scil/scic_controller.h>
+#include <dev/isci/scil/scic_io_request.h>
+#include <dev/isci/scil/scic_port.h>
+#include <dev/isci/scil/scic_remote_device.h>
+#include <dev/isci/scil/scic_user_callback.h>
 #include <dev/isci/scil/scif_sas_controller.h>
+#include <dev/isci/scil/scif_sas_domain.h>
+#include <dev/isci/scil/scif_sas_logger.h>
 #include <dev/isci/scil/scif_sas_remote_device.h>
 #include <dev/isci/scil/scif_sas_smp_remote_device.h>
-#include <dev/isci/scil/sci_util.h>
+#include <dev/isci/scil/scif_user_callback.h>
 
 //******************************************************************************
 //* P R I V A T E   M E T H O D S
@@ -91,434 +90,373 @@
  *
  * @return none
  */
-static
-void scif_sas_domain_operation_timeout_handler(
-   void * cookie
-)
+static void
+scif_sas_domain_operation_timeout_handler(void *cookie)
 {
-   SCIF_SAS_DOMAIN_T * fw_domain = (SCIF_SAS_DOMAIN_T*) cookie;
-   U32                 state;
+	SCIF_SAS_DOMAIN_T *fw_domain = (SCIF_SAS_DOMAIN_T *)cookie;
+	U32 state;
 
-   state = sci_base_state_machine_get_state(&fw_domain->parent.state_machine);
+	state = sci_base_state_machine_get_state(
+	    &fw_domain->parent.state_machine);
 
-   // Based upon the state of the domain, we know whether we were in the
-   // process of performing discovery or a reset.
-   if (state == SCI_BASE_DOMAIN_STATE_DISCOVERING)
-   {
-      SCIF_LOG_WARNING((
-         sci_base_object_get_logger(fw_domain),
-         SCIF_LOG_OBJECT_DOMAIN,
-         "Domain:0x%x State:0x%x DISCOVER timeout!\n",
-         fw_domain, state
-      ));
+	// Based upon the state of the domain, we know whether we were in the
+	// process of performing discovery or a reset.
+	if (state == SCI_BASE_DOMAIN_STATE_DISCOVERING) {
+		SCIF_LOG_WARNING((sci_base_object_get_logger(fw_domain),
+		    SCIF_LOG_OBJECT_DOMAIN,
+		    "Domain:0x%x State:0x%x DISCOVER timeout!\n", fw_domain,
+		    state));
 
-      fw_domain->operation.status = SCI_FAILURE_TIMEOUT;
+		fw_domain->operation.status = SCI_FAILURE_TIMEOUT;
 
-      //search all the smp devices in the domain and cancel their activities
-      //if there is any outstanding activity remained. The smp devices will terminate
-      //all the started internal IOs.
-      scif_sas_domain_cancel_smp_activities(fw_domain);
+		// search all the smp devices in the domain and cancel their
+		// activities if there is any outstanding activity remained. The
+		// smp devices will terminate all the started internal IOs.
+		scif_sas_domain_cancel_smp_activities(fw_domain);
 
-      scif_sas_domain_continue_discover(fw_domain);
-   }
-   else
-   {
-      SCIF_LOG_ERROR((
-         sci_base_object_get_logger(fw_domain),
-         SCIF_LOG_OBJECT_DOMAIN,
-         "Domain:0x%x State:0x%x operation timeout in invalid state\n",
-         fw_domain, state
-      ));
-   }
+		scif_sas_domain_continue_discover(fw_domain);
+	} else {
+		SCIF_LOG_ERROR((sci_base_object_get_logger(fw_domain),
+		    SCIF_LOG_OBJECT_DOMAIN,
+		    "Domain:0x%x State:0x%x operation timeout in invalid state\n",
+		    fw_domain, state));
+	}
 }
 
 //******************************************************************************
 //* P U B L I C   M E T H O D S
 //******************************************************************************
 
-SCI_PORT_HANDLE_T scif_domain_get_scic_port_handle(
-   SCI_DOMAIN_HANDLE_T  domain
-)
+SCI_PORT_HANDLE_T
+scif_domain_get_scic_port_handle(SCI_DOMAIN_HANDLE_T domain)
 {
-   SCIF_SAS_DOMAIN_T * fw_domain = (SCIF_SAS_DOMAIN_T*) domain;
+	SCIF_SAS_DOMAIN_T *fw_domain = (SCIF_SAS_DOMAIN_T *)domain;
 
-   if ( (fw_domain == NULL) || (fw_domain->core_object == SCI_INVALID_HANDLE) )
-      return SCI_INVALID_HANDLE;
+	if ((fw_domain == NULL) ||
+	    (fw_domain->core_object == SCI_INVALID_HANDLE))
+		return SCI_INVALID_HANDLE;
 
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger(fw_domain),
-      SCIF_LOG_OBJECT_DOMAIN,
-      "Domain:0x%x no associated core port found\n",
-      fw_domain
-   ));
+	SCIF_LOG_WARNING(
+	    (sci_base_object_get_logger(fw_domain), SCIF_LOG_OBJECT_DOMAIN,
+		"Domain:0x%x no associated core port found\n", fw_domain));
 
-   return fw_domain->core_object;
+	return fw_domain->core_object;
 }
 
 // ---------------------------------------------------------------------------
 
-SCI_REMOTE_DEVICE_HANDLE_T scif_domain_get_device_by_sas_address(
-   SCI_DOMAIN_HANDLE_T   domain,
-   SCI_SAS_ADDRESS_T   * sas_address
-)
+SCI_REMOTE_DEVICE_HANDLE_T
+scif_domain_get_device_by_sas_address(SCI_DOMAIN_HANDLE_T domain,
+    SCI_SAS_ADDRESS_T *sas_address)
 {
-   SCIF_SAS_DOMAIN_T        * fw_domain = (SCIF_SAS_DOMAIN_T*) domain;
-   SCI_ABSTRACT_ELEMENT_T   * element   = sci_abstract_list_get_front(
-                                             &fw_domain->remote_device_list
-                                          );
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device;
-   SCI_SAS_ADDRESS_T          fw_device_address;
+	SCIF_SAS_DOMAIN_T *fw_domain = (SCIF_SAS_DOMAIN_T *)domain;
+	SCI_ABSTRACT_ELEMENT_T *element = sci_abstract_list_get_front(
+	    &fw_domain->remote_device_list);
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device;
+	SCI_SAS_ADDRESS_T fw_device_address;
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN,
-      "scif_domain_get_device_by_sas_address(0x%x, 0x%x) enter\n",
-      domain, sas_address
-   ));
+	SCIF_LOG_TRACE(
+	    (sci_base_object_get_logger(domain), SCIF_LOG_OBJECT_DOMAIN,
+		"scif_domain_get_device_by_sas_address(0x%x, 0x%x) enter\n",
+		domain, sas_address));
 
-   // Search the abstract list to see if there is a remote device with the
-   // same SAS address.
-   while (element != NULL)
-   {
-      fw_device = (SCIF_SAS_REMOTE_DEVICE_T*)
-                  sci_abstract_list_get_object(element);
+	// Search the abstract list to see if there is a remote device with the
+	// same SAS address.
+	while (element != NULL) {
+		fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+		    sci_abstract_list_get_object(element);
 
-      scic_remote_device_get_sas_address(
-         fw_device->core_object, &fw_device_address
-      );
+		scic_remote_device_get_sas_address(fw_device->core_object,
+		    &fw_device_address);
 
-      // Check to see if this is the device for which we are searching.
-      if (  (fw_device_address.low == sas_address->low)
-         && (fw_device_address.high == sas_address->high) )
-      {
-         return fw_device;
-      }
+		// Check to see if this is the device for which we are
+		// searching.
+		if ((fw_device_address.low == sas_address->low) &&
+		    (fw_device_address.high == sas_address->high)) {
+			return fw_device;
+		}
 
-      element = sci_abstract_list_get_next(element);
-   }
+		element = sci_abstract_list_get_next(element);
+	}
 
-   return SCI_INVALID_HANDLE;
+	return SCI_INVALID_HANDLE;
 }
 
 // ---------------------------------------------------------------------------
 
 #if !defined(DISABLE_SCI_ITERATORS)
 
-SCI_ITERATOR_HANDLE_T scif_domain_get_remote_device_iterator(
-   SCI_DOMAIN_HANDLE_T   domain,
-   void                * iterator_buffer
-)
+SCI_ITERATOR_HANDLE_T
+scif_domain_get_remote_device_iterator(SCI_DOMAIN_HANDLE_T domain,
+    void *iterator_buffer)
 {
-   SCI_ITERATOR_HANDLE_T iterator = (SCI_ITERATOR_HANDLE_T *)iterator_buffer;
+	SCI_ITERATOR_HANDLE_T iterator = (SCI_ITERATOR_HANDLE_T *)
+	    iterator_buffer;
 
-   sci_base_iterator_construct(
-      iterator, &((SCIF_SAS_DOMAIN_T*) domain)->remote_device_list
-   );
+	sci_base_iterator_construct(iterator,
+	    &((SCIF_SAS_DOMAIN_T *)domain)->remote_device_list);
 
-
-   return iterator;
+	return iterator;
 }
 
 #endif // !defined(DISABLE_SCI_ITERATORS)
 
 // ---------------------------------------------------------------------------
 
-SCI_STATUS scif_domain_discover(
-   SCI_DOMAIN_HANDLE_T   domain,
-   U32                   discover_timeout,
-   U32                   device_timeout
-)
+SCI_STATUS
+scif_domain_discover(SCI_DOMAIN_HANDLE_T domain, U32 discover_timeout,
+    U32 device_timeout)
 {
-   SCIF_SAS_DOMAIN_T * fw_domain = (SCIF_SAS_DOMAIN_T*) domain;
-   SCI_STATUS          status    = SCI_SUCCESS;
-   SCI_STATUS          op_status = SCI_SUCCESS;
+	SCIF_SAS_DOMAIN_T *fw_domain = (SCIF_SAS_DOMAIN_T *)domain;
+	SCI_STATUS status = SCI_SUCCESS;
+	SCI_STATUS op_status = SCI_SUCCESS;
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
-      "scif_domain_discover(0x%x, 0x%x, 0x%x) enter\n",
-      domain, discover_timeout, device_timeout
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
+	    "scif_domain_discover(0x%x, 0x%x, 0x%x) enter\n", domain,
+	    discover_timeout, device_timeout));
 
-   // Check to make sure the size of the domain doesn't cause potential issues
-   // with the remote device timer and the domain timer.
-   if ((device_timeout * sci_abstract_list_size(&fw_domain->remote_device_list))
-        > discover_timeout)
-      status = SCI_WARNING_TIMER_CONFLICT;
+	// Check to make sure the size of the domain doesn't cause potential
+	// issues with the remote device timer and the domain timer.
+	if ((device_timeout *
+		sci_abstract_list_size(&fw_domain->remote_device_list)) >
+	    discover_timeout)
+		status = SCI_WARNING_TIMER_CONFLICT;
 
-   op_status = fw_domain->state_handlers->discover_handler(
-                  &fw_domain->parent, discover_timeout, device_timeout
-               );
+	op_status = fw_domain->state_handlers->discover_handler(
+	    &fw_domain->parent, discover_timeout, device_timeout);
 
-   // The status of the discover operation takes priority.
-   if (  (status == SCI_SUCCESS)
-      || (status != SCI_SUCCESS && op_status != SCI_SUCCESS) )
-   {
-      status = op_status;
-   }
+	// The status of the discover operation takes priority.
+	if ((status == SCI_SUCCESS) ||
+	    (status != SCI_SUCCESS && op_status != SCI_SUCCESS)) {
+		status = op_status;
+	}
 
-   return status;
+	return status;
 }
 
 // ---------------------------------------------------------------------------
 
-U32 scif_domain_get_suggested_discover_timeout(
-   SCI_DOMAIN_HANDLE_T   domain
-)
+U32
+scif_domain_get_suggested_discover_timeout(SCI_DOMAIN_HANDLE_T domain)
 {
-   U32 suggested_timeout = SCIF_DOMAIN_DISCOVER_TIMEOUT; //milli-seconds
-   return suggested_timeout;
+	U32 suggested_timeout = SCIF_DOMAIN_DISCOVER_TIMEOUT; // milli-seconds
+	return suggested_timeout;
 }
 
 // ---------------------------------------------------------------------------
 
-void scic_cb_port_stop_complete(
-   SCI_CONTROLLER_HANDLE_T  controller,
-   SCI_PORT_HANDLE_T        port,
-   SCI_STATUS               completion_status
-)
+void
+scic_cb_port_stop_complete(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_PORT_HANDLE_T port, SCI_STATUS completion_status)
 {
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger((SCIF_SAS_DOMAIN_T*)sci_object_get_association(port)),
-      SCIF_LOG_OBJECT_DOMAIN,
-      "scic_cb_port_stop_complete(0x%x, 0x%x, 0x%x) enter\n",
-      controller, port, completion_status
-   ));
+	SCIF_LOG_TRACE(
+	    (sci_base_object_get_logger(
+		 (SCIF_SAS_DOMAIN_T *)sci_object_get_association(port)),
+		SCIF_LOG_OBJECT_DOMAIN,
+		"scic_cb_port_stop_complete(0x%x, 0x%x, 0x%x) enter\n",
+		controller, port, completion_status));
 }
 
 // ---------------------------------------------------------------------------
 
-void scic_cb_port_ready(
-   SCI_CONTROLLER_HANDLE_T  controller,
-   SCI_PORT_HANDLE_T        port
-)
+void
+scic_cb_port_ready(SCI_CONTROLLER_HANDLE_T controller, SCI_PORT_HANDLE_T port)
 {
-   SCIF_SAS_DOMAIN_T * fw_domain = (SCIF_SAS_DOMAIN_T*)
-                                   sci_object_get_association(port);
+	SCIF_SAS_DOMAIN_T *fw_domain = (SCIF_SAS_DOMAIN_T *)
+	    sci_object_get_association(port);
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(fw_domain),
-      SCIF_LOG_OBJECT_DOMAIN,
-      "scic_cb_port_ready(0x%x, 0x%x) enter\n",
-      controller, port
-   ));
+	SCIF_LOG_TRACE(
+	    (sci_base_object_get_logger(fw_domain), SCIF_LOG_OBJECT_DOMAIN,
+		"scic_cb_port_ready(0x%x, 0x%x) enter\n", controller, port));
 
-   // The controller supplied with the port should match the controller
-   // saved in the domain.
-   ASSERT(sci_object_get_association(controller) == fw_domain->controller);
+	// The controller supplied with the port should match the controller
+	// saved in the domain.
+	ASSERT(sci_object_get_association(controller) == fw_domain->controller);
 
-   fw_domain->is_port_ready = TRUE;
+	fw_domain->is_port_ready = TRUE;
 
-   fw_domain->state_handlers->port_ready_handler(&fw_domain->parent);
+	fw_domain->state_handlers->port_ready_handler(&fw_domain->parent);
 }
 
 // ---------------------------------------------------------------------------
 
-void scic_cb_port_not_ready(
-   SCI_CONTROLLER_HANDLE_T  controller,
-   SCI_PORT_HANDLE_T        port,
-   U32                      reason_code
-)
+void
+scic_cb_port_not_ready(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_PORT_HANDLE_T port, U32 reason_code)
 {
-   SCIF_SAS_DOMAIN_T * fw_domain = (SCIF_SAS_DOMAIN_T*)
-                                   sci_object_get_association(port);
+	SCIF_SAS_DOMAIN_T *fw_domain = (SCIF_SAS_DOMAIN_T *)
+	    sci_object_get_association(port);
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(fw_domain),
-      SCIF_LOG_OBJECT_DOMAIN,
-      "scic_cb_port_not_ready(0x%x, 0x%x) enter\n",
-      controller, port
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(fw_domain),
+	    SCIF_LOG_OBJECT_DOMAIN,
+	    "scic_cb_port_not_ready(0x%x, 0x%x) enter\n", controller, port));
 
-   // The controller supplied with the port should match the controller
-   // saved in the domain.
-   ASSERT(sci_object_get_association(controller) == fw_domain->controller);
+	// The controller supplied with the port should match the controller
+	// saved in the domain.
+	ASSERT(sci_object_get_association(controller) == fw_domain->controller);
 
-   // There is no need to take action on the port reconfiguring since it is
-   // just a change of the port width.
-   if (reason_code != SCIC_PORT_NOT_READY_RECONFIGURING)
-   {
-      fw_domain->is_port_ready = FALSE;
+	// There is no need to take action on the port reconfiguring since it is
+	// just a change of the port width.
+	if (reason_code != SCIC_PORT_NOT_READY_RECONFIGURING) {
+		fw_domain->is_port_ready = FALSE;
 
-      fw_domain->state_handlers->port_not_ready_handler(
-                                    &fw_domain->parent, reason_code);
-   }
+		fw_domain->state_handlers->port_not_ready_handler(
+		    &fw_domain->parent, reason_code);
+	}
 }
 
 // ---------------------------------------------------------------------------
 
-void scic_cb_port_hard_reset_complete(
-   SCI_CONTROLLER_HANDLE_T  controller,
-   SCI_PORT_HANDLE_T        port,
-   SCI_STATUS               completion_status
-)
+void
+scic_cb_port_hard_reset_complete(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_PORT_HANDLE_T port, SCI_STATUS completion_status)
 {
-   SCIF_SAS_DOMAIN_T        * fw_domain = (SCIF_SAS_DOMAIN_T*)
-                                   sci_object_get_association(port);
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device;
-   SCI_FAST_LIST_ELEMENT_T  * element = fw_domain->request_list.list_head;
-   SCIF_SAS_TASK_REQUEST_T  * task_request = NULL;
+	SCIF_SAS_DOMAIN_T *fw_domain = (SCIF_SAS_DOMAIN_T *)
+	    sci_object_get_association(port);
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device;
+	SCI_FAST_LIST_ELEMENT_T *element = fw_domain->request_list.list_head;
+	SCIF_SAS_TASK_REQUEST_T *task_request = NULL;
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(fw_domain),
-      SCIF_LOG_OBJECT_DOMAIN,
-      "scic_cb_port_hard_reset_complete(0x%x, 0x%x, 0x%x) enter\n",
-      controller, port, completion_status
-   ));
+	SCIF_LOG_TRACE(
+	    (sci_base_object_get_logger(fw_domain), SCIF_LOG_OBJECT_DOMAIN,
+		"scic_cb_port_hard_reset_complete(0x%x, 0x%x, 0x%x) enter\n",
+		controller, port, completion_status));
 
-   while (element != NULL)
-   {
-      task_request = (SCIF_SAS_TASK_REQUEST_T*) sci_fast_list_get_object(element);
-      element = sci_fast_list_get_next(element);
+	while (element != NULL) {
+		task_request = (SCIF_SAS_TASK_REQUEST_T *)
+		    sci_fast_list_get_object(element);
+		element = sci_fast_list_get_next(element);
 
-      if (scif_sas_task_request_get_function(task_request)
-             == SCI_SAS_HARD_RESET)
-      {
-         fw_device = task_request->parent.device;
+		if (scif_sas_task_request_get_function(task_request) ==
+		    SCI_SAS_HARD_RESET) {
+			fw_device = task_request->parent.device;
 
-         if (fw_device->domain == fw_domain)
-         {
-            scic_remote_device_reset_complete(fw_device->core_object);
+			if (fw_device->domain == fw_domain) {
+				scic_remote_device_reset_complete(
+				    fw_device->core_object);
 
-            scif_cb_task_request_complete(
-               sci_object_get_association(controller),
-               fw_device,
-               task_request,
-               (SCI_TASK_STATUS) completion_status
-            );
+				scif_cb_task_request_complete(
+				    sci_object_get_association(controller),
+				    fw_device, task_request,
+				    (SCI_TASK_STATUS)completion_status);
 
-            break;
-         }
-      }
-   }
+				break;
+			}
+		}
+	}
 }
 
 // ---------------------------------------------------------------------------
 
-void scic_cb_port_bc_change_primitive_recieved(
-   SCI_CONTROLLER_HANDLE_T  controller,
-   SCI_PORT_HANDLE_T        port,
-   SCI_PHY_HANDLE_T         phy
-)
+void
+scic_cb_port_bc_change_primitive_recieved(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_PORT_HANDLE_T port, SCI_PHY_HANDLE_T phy)
 {
-   SCIF_SAS_DOMAIN_T * fw_domain = (SCIF_SAS_DOMAIN_T*)
-                                   sci_object_get_association(port);
+	SCIF_SAS_DOMAIN_T *fw_domain = (SCIF_SAS_DOMAIN_T *)
+	    sci_object_get_association(port);
 
-   SCIF_SAS_CONTROLLER_T * fw_controller = (SCIF_SAS_CONTROLLER_T *)
-                                           sci_object_get_association(controller);
+	SCIF_SAS_CONTROLLER_T *fw_controller = (SCIF_SAS_CONTROLLER_T *)
+	    sci_object_get_association(controller);
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(fw_domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
-      "scic_cb_port_bc_change_primitive_recieved(0x%x, 0x%x, 0x%x) enter\n",
-      controller, port, phy
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(fw_domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
+	    "scic_cb_port_bc_change_primitive_recieved(0x%x, 0x%x, 0x%x) enter\n",
+	    controller, port, phy));
 
-   if (fw_domain->broadcast_change_count == 0)
-   {  // Enable the BCN detection only if the bcn_count is zero. If bcn_count is
-      // not zero at this time, we won't enable BCN detection since all non-zero
-      // BCN_count means same to us. Furthermore, we avoid BCN storm by not
-      // always enabling the BCN_detection.
-      scic_port_enable_broadcast_change_notification(fw_domain->core_object);
-   }
+	if (fw_domain->broadcast_change_count ==
+	    0) { // Enable the BCN detection only if the bcn_count is zero. If
+		 // bcn_count is
+		// not zero at this time, we won't enable BCN detection since
+		// all non-zero BCN_count means same to us. Furthermore, we
+		// avoid BCN storm by not always enabling the BCN_detection.
+		scic_port_enable_broadcast_change_notification(
+		    fw_domain->core_object);
+	}
 
-   fw_domain->broadcast_change_count++;
+	fw_domain->broadcast_change_count++;
 
-   //if there is smp device on this domain that is in the middle of discover
-   //process or smp target reset, don't notify the driver layer.
-   if( ! scif_sas_domain_is_in_smp_activity(fw_domain) )
-      // Notify the user that there is, potentially, a change to the domain.
-      scif_cb_domain_change_notification(fw_controller, fw_domain);
+	// if there is smp device on this domain that is in the middle of
+	// discover process or smp target reset, don't notify the driver layer.
+	if (!scif_sas_domain_is_in_smp_activity(fw_domain))
+		// Notify the user that there is, potentially, a change to the
+		// domain.
+		scif_cb_domain_change_notification(fw_controller, fw_domain);
 }
 
 // ---------------------------------------------------------------------------
 
-void scic_cb_port_bc_ses_primitive_recieved(
-   SCI_CONTROLLER_HANDLE_T  controller,
-   SCI_PORT_HANDLE_T        port,
-   SCI_PHY_HANDLE_T         phy
-)
+void
+scic_cb_port_bc_ses_primitive_recieved(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_PORT_HANDLE_T port, SCI_PHY_HANDLE_T phy)
 {
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(sci_object_get_association(port)),
-      SCIF_LOG_OBJECT_DOMAIN,
-      "scic_cb_port_bc_ses_primitive_received(0x%x, 0x%x, 0x%x) enter\n",
-      controller, port, phy
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(
+			    sci_object_get_association(port)),
+	    SCIF_LOG_OBJECT_DOMAIN,
+	    "scic_cb_port_bc_ses_primitive_received(0x%x, 0x%x, 0x%x) enter\n",
+	    controller, port, phy));
 }
 
 // ---------------------------------------------------------------------------
 
-void scic_cb_port_bc_expander_primitive_recieved(
-   SCI_CONTROLLER_HANDLE_T  controller,
-   SCI_PORT_HANDLE_T        port,
-   SCI_PHY_HANDLE_T         phy
-)
+void
+scic_cb_port_bc_expander_primitive_recieved(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_PORT_HANDLE_T port, SCI_PHY_HANDLE_T phy)
 {
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(sci_object_get_association(port)),
-      SCIF_LOG_OBJECT_DOMAIN,
-      "scic_cb_port_bc_expander_primitive_received(0x%x, 0x%x, 0x%x) enter\n",
-      controller, port, phy
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(
+			    sci_object_get_association(port)),
+	    SCIF_LOG_OBJECT_DOMAIN,
+	    "scic_cb_port_bc_expander_primitive_received(0x%x, 0x%x, 0x%x) enter\n",
+	    controller, port, phy));
 }
 
 // ---------------------------------------------------------------------------
 
-void scic_cb_port_bc_aen_primitive_recieved(
-   SCI_CONTROLLER_HANDLE_T  controller,
-   SCI_PORT_HANDLE_T        port,
-   SCI_PHY_HANDLE_T         phy
-)
+void
+scic_cb_port_bc_aen_primitive_recieved(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_PORT_HANDLE_T port, SCI_PHY_HANDLE_T phy)
 {
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(sci_object_get_association(port)),
-      SCIF_LOG_OBJECT_DOMAIN,
-      "scic_cb_port_bc_aen_primitive_received(0x%x, 0x%x, 0x%x) enter\n",
-      controller, port, phy
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(
+			    sci_object_get_association(port)),
+	    SCIF_LOG_OBJECT_DOMAIN,
+	    "scic_cb_port_bc_aen_primitive_received(0x%x, 0x%x, 0x%x) enter\n",
+	    controller, port, phy));
 }
 
 // ---------------------------------------------------------------------------
 
-void scic_cb_port_link_up(
-   SCI_CONTROLLER_HANDLE_T  controller,
-   SCI_PORT_HANDLE_T        port,
-   SCI_PHY_HANDLE_T         phy
-)
+void
+scic_cb_port_link_up(SCI_CONTROLLER_HANDLE_T controller, SCI_PORT_HANDLE_T port,
+    SCI_PHY_HANDLE_T phy)
 {
-   SCIF_SAS_DOMAIN_T        * fw_domain = (SCIF_SAS_DOMAIN_T*)
-                                 sci_object_get_association(port);
+	SCIF_SAS_DOMAIN_T *fw_domain = (SCIF_SAS_DOMAIN_T *)
+	    sci_object_get_association(port);
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(sci_object_get_association(port)),
-      SCIF_LOG_OBJECT_DOMAIN,
-      "scic_cb_port_link_up(0x%x, 0x%x, 0x%x) enter\n",
-      controller, port, phy
-   ));
+	SCIF_LOG_TRACE(
+	    (sci_base_object_get_logger(sci_object_get_association(port)),
+		SCIF_LOG_OBJECT_DOMAIN,
+		"scic_cb_port_link_up(0x%x, 0x%x, 0x%x) enter\n", controller,
+		port, phy));
 
-   scif_sas_domain_update_device_port_width(fw_domain, port);
+	scif_sas_domain_update_device_port_width(fw_domain, port);
 }
 
 // ---------------------------------------------------------------------------
 
-void scic_cb_port_link_down(
-   SCI_CONTROLLER_HANDLE_T  controller,
-   SCI_PORT_HANDLE_T        port,
-   SCI_PHY_HANDLE_T         phy
-)
+void
+scic_cb_port_link_down(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_PORT_HANDLE_T port, SCI_PHY_HANDLE_T phy)
 {
-   SCIF_SAS_DOMAIN_T        * fw_domain = (SCIF_SAS_DOMAIN_T*)
-                                 sci_object_get_association(port);
+	SCIF_SAS_DOMAIN_T *fw_domain = (SCIF_SAS_DOMAIN_T *)
+	    sci_object_get_association(port);
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(sci_object_get_association(port)),
-      SCIF_LOG_OBJECT_DOMAIN,
-      "scic_cb_port_link_down(0x%x, 0x%x, 0x%x) enter\n",
-      controller, port, phy
-   ));
+	SCIF_LOG_TRACE(
+	    (sci_base_object_get_logger(sci_object_get_association(port)),
+		SCIF_LOG_OBJECT_DOMAIN,
+		"scic_cb_port_link_down(0x%x, 0x%x, 0x%x) enter\n", controller,
+		port, phy));
 
-   scif_sas_domain_update_device_port_width(fw_domain, port);
+	scif_sas_domain_update_device_port_width(fw_domain, port);
 }
 
 //******************************************************************************
@@ -539,51 +477,42 @@ void scic_cb_port_link_down(
  *
  * @return none
  */
-void scif_sas_domain_construct(
-   SCIF_SAS_DOMAIN_T     * fw_domain,
-   U8                      domain_id,
-   SCIF_SAS_CONTROLLER_T * fw_controller
-)
+void
+scif_sas_domain_construct(SCIF_SAS_DOMAIN_T *fw_domain, U8 domain_id,
+    SCIF_SAS_CONTROLLER_T *fw_controller)
 {
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(fw_controller),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_INITIALIZATION,
-      "scif_sas_domain_construct(0x%x, 0x%x, 0x%x) enter\n",
-      fw_domain, domain_id, fw_controller
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(fw_controller),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_INITIALIZATION,
+	    "scif_sas_domain_construct(0x%x, 0x%x, 0x%x) enter\n", fw_domain,
+	    domain_id, fw_controller));
 
-   sci_base_domain_construct(
-      &fw_domain->parent,
-      sci_base_object_get_logger(fw_controller),
-      scif_sas_domain_state_table
-   );
+	sci_base_domain_construct(&fw_domain->parent,
+	    sci_base_object_get_logger(fw_controller),
+	    scif_sas_domain_state_table);
 
-   scif_sas_domain_initialize_state_logging(fw_domain);
+	scif_sas_domain_initialize_state_logging(fw_domain);
 
-   sci_abstract_list_construct(
-      &fw_domain->remote_device_list, &fw_controller->free_remote_device_pool
-   );
+	sci_abstract_list_construct(&fw_domain->remote_device_list,
+	    &fw_controller->free_remote_device_pool);
 
-   // Retrieve the core's port object that directly corresponds to this
-   // domain.
-   scic_controller_get_port_handle(
-      fw_controller->core_object, domain_id, &fw_domain->core_object
-   );
+	// Retrieve the core's port object that directly corresponds to this
+	// domain.
+	scic_controller_get_port_handle(fw_controller->core_object, domain_id,
+	    &fw_domain->core_object);
 
-   // Set the association in the core port to this framework domain object.
-   sci_object_set_association(
-      (SCI_OBJECT_HANDLE_T) fw_domain->core_object, fw_domain
-   );
+	// Set the association in the core port to this framework domain object.
+	sci_object_set_association((SCI_OBJECT_HANDLE_T)fw_domain->core_object,
+	    fw_domain);
 
-   sci_fast_list_init(&fw_domain->request_list);
+	sci_fast_list_init(&fw_domain->request_list);
 
-   fw_domain->operation.timer = NULL;
+	fw_domain->operation.timer = NULL;
 
-   fw_domain->is_port_ready      = FALSE;
-   fw_domain->device_start_count = 0;
-   fw_domain->controller         = fw_controller;
-   fw_domain->operation.status   = SCI_SUCCESS;
-   fw_domain->is_config_route_table_needed = FALSE;
+	fw_domain->is_port_ready = FALSE;
+	fw_domain->device_start_count = 0;
+	fw_domain->controller = fw_controller;
+	fw_domain->operation.status = SCI_SUCCESS;
+	fw_domain->is_config_route_table_needed = FALSE;
 }
 
 /**
@@ -612,61 +541,52 @@ void scif_sas_domain_construct(
  *
  * @return none
  */
-void scif_sas_domain_terminate_requests(
-   SCIF_SAS_DOMAIN_T        * fw_domain,
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device,
-   SCIF_SAS_REQUEST_T       * fw_request,
-   SCIF_SAS_TASK_REQUEST_T  * fw_requestor
-)
+void
+scif_sas_domain_terminate_requests(SCIF_SAS_DOMAIN_T *fw_domain,
+    SCIF_SAS_REMOTE_DEVICE_T *fw_device, SCIF_SAS_REQUEST_T *fw_request,
+    SCIF_SAS_TASK_REQUEST_T *fw_requestor)
 {
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(fw_domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_TASK_MANAGEMENT,
-      "scif_sas_domain_terminate_requests(0x%x, 0x%x, 0x%x, 0x%x) enter\n",
-      fw_domain, fw_device, fw_request, fw_requestor
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(fw_domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_TASK_MANAGEMENT,
+	    "scif_sas_domain_terminate_requests(0x%x, 0x%x, 0x%x, 0x%x) enter\n",
+	    fw_domain, fw_device, fw_request, fw_requestor));
 
-   if (fw_request != NULL)
-   {
-      fw_request->terminate_requestor = fw_requestor;
-      fw_request->state_handlers->abort_handler(&fw_request->parent);
-   }
-   else
-   {
-      SCI_FAST_LIST_ELEMENT_T * element = fw_domain->request_list.list_head;
-      SCIF_SAS_REQUEST_T      * request = NULL;
+	if (fw_request != NULL) {
+		fw_request->terminate_requestor = fw_requestor;
+		fw_request->state_handlers->abort_handler(&fw_request->parent);
+	} else {
+		SCI_FAST_LIST_ELEMENT_T *element =
+		    fw_domain->request_list.list_head;
+		SCIF_SAS_REQUEST_T *request = NULL;
 
-      // Cycle through the fast list of IO requests.  Terminate each
-      // outstanding requests that matches the criteria supplied by the
-      // caller.
-      while (element != NULL)
-      {
-         request = (SCIF_SAS_REQUEST_T*) sci_fast_list_get_object(element);
-         // The current element may be deleted from the list because of
-         // IO completion so advance to the next element early
-         element = sci_fast_list_get_next(element);
+		// Cycle through the fast list of IO requests.  Terminate each
+		// outstanding requests that matches the criteria supplied by
+		// the caller.
+		while (element != NULL) {
+			request = (SCIF_SAS_REQUEST_T *)
+			    sci_fast_list_get_object(element);
+			// The current element may be deleted from the list
+			// because of IO completion so advance to the next
+			// element early
+			element = sci_fast_list_get_next(element);
 
-         // Ensure we pass the supplied criteria before terminating the
-         // request.
-         if (
-               (fw_device == NULL)
-            || (
-                  (request->device == fw_device)
-               && (fw_requestor != (SCIF_SAS_TASK_REQUEST_T*) request)
-               )
-            )
-         {
-            if (
-                  (request->is_waiting_for_abort_task_set == FALSE) ||
-                  (request->terminate_requestor == NULL)
-               )
-            {
-               request->terminate_requestor = fw_requestor;
-               request->state_handlers->abort_handler(&request->parent);
-            }
-         }
-      }
-   }
+			// Ensure we pass the supplied criteria before
+			// terminating the request.
+			if ((fw_device == NULL) ||
+			    ((request->device == fw_device) &&
+				(fw_requestor !=
+				    (SCIF_SAS_TASK_REQUEST_T *)request))) {
+				if ((request->is_waiting_for_abort_task_set ==
+					FALSE) ||
+				    (request->terminate_requestor == NULL)) {
+					request->terminate_requestor =
+					    fw_requestor;
+					request->state_handlers->abort_handler(
+					    &request->parent);
+				}
+			}
+		}
+	}
 }
 
 /**
@@ -683,33 +603,31 @@ void scif_sas_domain_terminate_requests(
  * @retval NULL This value is returned if the IO tag does not resolve to
  *         a request.
  */
-SCIF_SAS_REQUEST_T * scif_sas_domain_get_request_by_io_tag(
-   SCIF_SAS_DOMAIN_T * fw_domain,
-   U16                 io_tag
-)
+SCIF_SAS_REQUEST_T *
+scif_sas_domain_get_request_by_io_tag(SCIF_SAS_DOMAIN_T *fw_domain, U16 io_tag)
 {
-   SCI_FAST_LIST_ELEMENT_T * element    = fw_domain->request_list.list_head;
-   SCIF_SAS_IO_REQUEST_T   * io_request = NULL;
+	SCI_FAST_LIST_ELEMENT_T *element = fw_domain->request_list.list_head;
+	SCIF_SAS_IO_REQUEST_T *io_request = NULL;
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(fw_domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_TASK_MANAGEMENT,
-      "scif_sas_domain_get_request_by_io_tag(0x%x, 0x%x) enter\n",
-      fw_domain, io_tag
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(fw_domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_TASK_MANAGEMENT,
+	    "scif_sas_domain_get_request_by_io_tag(0x%x, 0x%x) enter\n",
+	    fw_domain, io_tag));
 
-   while (element != NULL)
-   {
-      io_request = (SCIF_SAS_IO_REQUEST_T*) sci_fast_list_get_object(element);
+	while (element != NULL) {
+		io_request = (SCIF_SAS_IO_REQUEST_T *)sci_fast_list_get_object(
+		    element);
 
-      // Check to see if we located the request with an identical IO tag.
-      if (scic_io_request_get_io_tag(io_request->parent.core_object) == io_tag)
-         return &io_request->parent;
+		// Check to see if we located the request with an identical IO
+		// tag.
+		if (scic_io_request_get_io_tag(
+			io_request->parent.core_object) == io_tag)
+			return &io_request->parent;
 
-      element = sci_fast_list_get_next(element);
-   }
+		element = sci_fast_list_get_next(element);
+	}
 
-   return NULL;
+	return NULL;
 }
 
 /**
@@ -722,28 +640,21 @@ SCIF_SAS_REQUEST_T * scif_sas_domain_get_request_by_io_tag(
  *
  * @return none
  */
-void scif_sas_domain_initialize(
-   SCIF_SAS_DOMAIN_T * fw_domain
-)
+void
+scif_sas_domain_initialize(SCIF_SAS_DOMAIN_T *fw_domain)
 {
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(fw_domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_INITIALIZATION,
-      "scif_sas_domain_initialize(0x%x) enter\n",
-      fw_domain
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(fw_domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_INITIALIZATION,
+	    "scif_sas_domain_initialize(0x%x) enter\n", fw_domain));
 
-   // Create the timer for each domain.  It is too early in the process
-   // to allocate this during construction since the user didn't have
-   // a chance to set it's association.
-   if (fw_domain->operation.timer == 0)
-   {
-      fw_domain->operation.timer = scif_cb_timer_create(
-                                      fw_domain->controller,
-                                      scif_sas_domain_operation_timeout_handler,
-                                      fw_domain
-                                   );
-   }
+	// Create the timer for each domain.  It is too early in the process
+	// to allocate this during construction since the user didn't have
+	// a chance to set it's association.
+	if (fw_domain->operation.timer == 0) {
+		fw_domain->operation.timer =
+		    scif_cb_timer_create(fw_domain->controller,
+			scif_sas_domain_operation_timeout_handler, fw_domain);
+	}
 }
 
 /**
@@ -760,50 +671,46 @@ void scif_sas_domain_initialize(
  *
  * @return none
  */
-void scif_sas_domain_remote_device_start_complete(
-   SCIF_SAS_DOMAIN_T        * fw_domain,
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device
-)
+void
+scif_sas_domain_remote_device_start_complete(SCIF_SAS_DOMAIN_T *fw_domain,
+    SCIF_SAS_REMOTE_DEVICE_T *fw_device)
 {
-   SMP_DISCOVER_RESPONSE_PROTOCOLS_T  dev_protocols;
+	SMP_DISCOVER_RESPONSE_PROTOCOLS_T dev_protocols;
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(fw_domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
-      "scif_sas_domain_remote_device_start_complete(0x%x, 0x%x) enter\n",
-      fw_domain, fw_device
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(fw_domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
+	    "scif_sas_domain_remote_device_start_complete(0x%x, 0x%x) enter\n",
+	    fw_domain, fw_device));
 
-   // If a device is being started/start completed, then we must be
-   // during discovery.
-   ASSERT(fw_domain->parent.state_machine.current_state_id
-          == SCI_BASE_DOMAIN_STATE_DISCOVERING);
+	// If a device is being started/start completed, then we must be
+	// during discovery.
+	ASSERT(fw_domain->parent.state_machine.current_state_id ==
+	    SCI_BASE_DOMAIN_STATE_DISCOVERING);
 
-   scic_remote_device_get_protocols(fw_device->core_object, &dev_protocols);
+	scic_remote_device_get_protocols(fw_device->core_object,
+	    &dev_protocols);
 
-   // Decrement the number of devices being started and check to see
-   // if all have finished being started or failed as the case may be.
-   fw_domain->device_start_in_progress_count--;
+	// Decrement the number of devices being started and check to see
+	// if all have finished being started or failed as the case may be.
+	fw_domain->device_start_in_progress_count--;
 
-   if ( dev_protocols.u.bits.attached_smp_target )
-   {
-      if ( fw_device->containing_device == NULL )
-         //kick off the smp discover process if this expander is direct attached.
-         scif_sas_smp_remote_device_start_discover(fw_device);
-      else
-         //mark this device, the discover process of this device will start after
-         //its containing smp device finish discover.
-         fw_device->protocol_device.smp_device.scheduled_activity =
-            SCIF_SAS_SMP_REMOTE_DEVICE_ACTIVITY_DISCOVER;
-   }
-   else
-   {
-      fw_domain->state_handlers->device_start_complete_handler(
-         &fw_domain->parent, &fw_device->parent
-      );
-   }
+	if (dev_protocols.u.bits.attached_smp_target) {
+		if (fw_device->containing_device == NULL)
+			// kick off the smp discover process if this expander is
+			// direct attached.
+			scif_sas_smp_remote_device_start_discover(fw_device);
+		else
+			// mark this device, the discover process of this device
+			// will start after its containing smp device finish
+			// discover.
+			fw_device->protocol_device.smp_device
+			    .scheduled_activity =
+			    SCIF_SAS_SMP_REMOTE_DEVICE_ACTIVITY_DISCOVER;
+	} else {
+		fw_domain->state_handlers->device_start_complete_handler(
+		    &fw_domain->parent, &fw_device->parent);
+	}
 }
-
 
 /**
  * @brief This methods check each smp device in this domain. If there is at
@@ -815,41 +722,36 @@ void scif_sas_domain_remote_device_start_complete(
  *
  * @return BOOL value to indicate whether a domain is in SMP activity.
  */
-BOOL scif_sas_domain_is_in_smp_activity(
-   SCIF_SAS_DOMAIN_T        * fw_domain
-)
+BOOL
+scif_sas_domain_is_in_smp_activity(SCIF_SAS_DOMAIN_T *fw_domain)
 {
-   SCI_ABSTRACT_ELEMENT_T * current_element =
-      sci_abstract_list_get_front(&fw_domain->remote_device_list);
+	SCI_ABSTRACT_ELEMENT_T *current_element = sci_abstract_list_get_front(
+	    &fw_domain->remote_device_list);
 
-   SCIF_SAS_REMOTE_DEVICE_T * current_device;
+	SCIF_SAS_REMOTE_DEVICE_T *current_device;
 
-   while ( current_element != NULL )
-   {
-      SMP_DISCOVER_RESPONSE_PROTOCOLS_T  dev_protocols;
+	while (current_element != NULL) {
+		SMP_DISCOVER_RESPONSE_PROTOCOLS_T dev_protocols;
 
-      current_device = (SCIF_SAS_REMOTE_DEVICE_T *)
-                       sci_abstract_list_get_object(current_element);
+		current_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+		    sci_abstract_list_get_object(current_element);
 
-      scic_remote_device_get_protocols(current_device->core_object,
-                                       &dev_protocols
-      );
+		scic_remote_device_get_protocols(current_device->core_object,
+		    &dev_protocols);
 
-      if (dev_protocols.u.bits.attached_smp_target &&
-          scif_sas_smp_remote_device_is_in_activity(current_device))
-         return TRUE;
+		if (dev_protocols.u.bits.attached_smp_target &&
+		    scif_sas_smp_remote_device_is_in_activity(current_device))
+			return TRUE;
 
-      current_element =
-         sci_abstract_list_get_next(current_element);
-   }
+		current_element = sci_abstract_list_get_next(current_element);
+	}
 
-   return FALSE;
+	return FALSE;
 }
 
-
 /**
- * @brief This methods finds a expander attached device by searching the domain's
- *        device list using connected expander device and expander phy id.
+ * @brief This methods finds a expander attached device by searching the
+ * domain's device list using connected expander device and expander phy id.
  *
  * @param[in] fw_domain The framework domain object
  * @param[in] parent_device The expander device the target device attaches to.
@@ -857,42 +759,35 @@ BOOL scif_sas_domain_is_in_smp_activity(
  *
  * @return found remote device or a NULL value if no device found.
  */
-SCIF_SAS_REMOTE_DEVICE_T * scif_sas_domain_get_device_by_containing_device(
-   SCIF_SAS_DOMAIN_T        * fw_domain,
-   SCIF_SAS_REMOTE_DEVICE_T * containing_device,
-   U8                         expander_phy_id
-)
+SCIF_SAS_REMOTE_DEVICE_T *
+scif_sas_domain_get_device_by_containing_device(SCIF_SAS_DOMAIN_T *fw_domain,
+    SCIF_SAS_REMOTE_DEVICE_T *containing_device, U8 expander_phy_id)
 {
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device;
-   SCI_ABSTRACT_ELEMENT_T * element = sci_abstract_list_get_front(
-                                         &fw_domain->remote_device_list
-                                      );
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device;
+	SCI_ABSTRACT_ELEMENT_T *element = sci_abstract_list_get_front(
+	    &fw_domain->remote_device_list);
 
-   //parent device must not be NULL.
-   ASSERT(containing_device != NULL);
+	// parent device must not be NULL.
+	ASSERT(containing_device != NULL);
 
-   // Search the abstract list to see if there is a remote device meets the
-   // search condition.
-   while (element != NULL)
-   {
-      fw_device = (SCIF_SAS_REMOTE_DEVICE_T*)
-                  sci_abstract_list_get_object(element);
+	// Search the abstract list to see if there is a remote device meets the
+	// search condition.
+	while (element != NULL) {
+		fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+		    sci_abstract_list_get_object(element);
 
-      // Check to see if this is the device for which we are searching.
-      if (
-            (fw_device->containing_device == containing_device)
-         && (fw_device->expander_phy_identifier == expander_phy_id)
-         )
-      {
-         return fw_device;
-      }
+		// Check to see if this is the device for which we are
+		// searching.
+		if ((fw_device->containing_device == containing_device) &&
+		    (fw_device->expander_phy_identifier == expander_phy_id)) {
+			return fw_device;
+		}
 
-      element = sci_abstract_list_get_next(element);
-   }
+		element = sci_abstract_list_get_next(element);
+	}
 
-   return SCI_INVALID_HANDLE;
+	return SCI_INVALID_HANDLE;
 }
-
 
 /**
  * @brief This methods finds the first device that is in STOPPED state and its
@@ -902,175 +797,166 @@ SCIF_SAS_REMOTE_DEVICE_T * scif_sas_domain_get_device_by_containing_device(
  *
  * @return SCIF_SAS_REMOTE_DEVICE_T The device that is in SPINUP_HOLD or NULL.
  */
-SCIF_SAS_REMOTE_DEVICE_T * scif_sas_domain_find_device_in_spinup_hold(
-   SCIF_SAS_DOMAIN_T        * fw_domain
-)
+SCIF_SAS_REMOTE_DEVICE_T *
+scif_sas_domain_find_device_in_spinup_hold(SCIF_SAS_DOMAIN_T *fw_domain)
 {
-   SCI_ABSTRACT_ELEMENT_T   * current_element;
-   SCIF_SAS_REMOTE_DEVICE_T * current_device;
+	SCI_ABSTRACT_ELEMENT_T *current_element;
+	SCIF_SAS_REMOTE_DEVICE_T *current_device;
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(fw_domain),
-      SCIF_LOG_OBJECT_DOMAIN,
-      "scif_sas_domain_find_device_in_spinup_hold(0x%x) enter\n",
-      fw_domain
-   ));
+	SCIF_LOG_TRACE(
+	    (sci_base_object_get_logger(fw_domain), SCIF_LOG_OBJECT_DOMAIN,
+		"scif_sas_domain_find_device_in_spinup_hold(0x%x) enter\n",
+		fw_domain));
 
-   //search throught domain's device list to find the first sata device on spinup_hold
-   current_element = sci_abstract_list_get_front(&fw_domain->remote_device_list);
-   while (current_element != NULL )
-   {
-      current_device = (SCIF_SAS_REMOTE_DEVICE_T *)
-                       sci_abstract_list_get_object(current_element);
+	// search throught domain's device list to find the first sata device on
+	// spinup_hold
+	current_element = sci_abstract_list_get_front(
+	    &fw_domain->remote_device_list);
+	while (current_element != NULL) {
+		current_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+		    sci_abstract_list_get_object(current_element);
 
-      //We must get the next element before we remove the current
-      //device. Or else, we will get wrong next_element, since the erased
-      //element has been put into free pool.
-      current_element = sci_abstract_list_get_next(current_element);
+		// We must get the next element before we remove the current
+		// device. Or else, we will get wrong next_element, since the
+		// erased element has been put into free pool.
+		current_element = sci_abstract_list_get_next(current_element);
 
-      if ( sci_base_state_machine_get_state(&current_device->parent.state_machine) ==
-              SCI_BASE_REMOTE_DEVICE_STATE_STOPPED
-          && scic_remote_device_get_connection_rate(current_device->core_object) ==
-                SCI_SATA_SPINUP_HOLD )
-      {
-         return current_device;
-      }
-   }
+		if (sci_base_state_machine_get_state(
+			&current_device->parent.state_machine) ==
+			SCI_BASE_REMOTE_DEVICE_STATE_STOPPED &&
+		    scic_remote_device_get_connection_rate(
+			current_device->core_object) == SCI_SATA_SPINUP_HOLD) {
+			return current_device;
+		}
+	}
 
-   return NULL;
+	return NULL;
 }
 
-
 /**
- * @brief This methods finds the first device that has specific activity scheduled.
+ * @brief This methods finds the first device that has specific activity
+ * scheduled.
  *
  * @param[in] fw_domain The framework domain object
  * @param[in] smp_activity A specified smp activity. The valid range is [1,5].
  *
- * @return SCIF_SAS_REMOTE_DEVICE_T The device that has specified smp activity scheduled.
+ * @return SCIF_SAS_REMOTE_DEVICE_T The device that has specified smp activity
+ * scheduled.
  */
-SCIF_SAS_REMOTE_DEVICE_T * scif_sas_domain_find_device_has_scheduled_activity(
-   SCIF_SAS_DOMAIN_T        * fw_domain,
-   U8                         smp_activity
-)
+SCIF_SAS_REMOTE_DEVICE_T *
+scif_sas_domain_find_device_has_scheduled_activity(SCIF_SAS_DOMAIN_T *fw_domain,
+    U8 smp_activity)
 {
-   SCI_ABSTRACT_ELEMENT_T * current_element =
-      sci_abstract_list_get_front(&fw_domain->remote_device_list);
+	SCI_ABSTRACT_ELEMENT_T *current_element = sci_abstract_list_get_front(
+	    &fw_domain->remote_device_list);
 
-   SCIF_SAS_REMOTE_DEVICE_T * current_device;
-   SMP_DISCOVER_RESPONSE_PROTOCOLS_T  dev_protocols;
+	SCIF_SAS_REMOTE_DEVICE_T *current_device;
+	SMP_DISCOVER_RESPONSE_PROTOCOLS_T dev_protocols;
 
-   //config route table activity has higher priority than discover activity.
-   while ( current_element != NULL )
-   {
-      current_device = (SCIF_SAS_REMOTE_DEVICE_T *)
-                       sci_abstract_list_get_object(current_element);
+	// config route table activity has higher priority than discover
+	// activity.
+	while (current_element != NULL) {
+		current_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+		    sci_abstract_list_get_object(current_element);
 
-      scic_remote_device_get_protocols(current_device->core_object,
-                                       &dev_protocols);
+		scic_remote_device_get_protocols(current_device->core_object,
+		    &dev_protocols);
 
-      current_element =
-         sci_abstract_list_get_next(current_element);
+		current_element = sci_abstract_list_get_next(current_element);
 
-      if ( dev_protocols.u.bits.attached_smp_target
-          && current_device->protocol_device.smp_device.scheduled_activity ==
-                smp_activity)
-      {
-         return current_device;
-      }
-   }
+		if (dev_protocols.u.bits.attached_smp_target &&
+		    current_device->protocol_device.smp_device
+			    .scheduled_activity == smp_activity) {
+			return current_device;
+		}
+	}
 
-   return NULL;
+	return NULL;
 }
 
-
 /**
- * @brief This methods finds the smp device that has is_config_route_table_scheduled
- *        flag set to TRUE, and start config route table on it. If there is no
- *        smp device scheduled to config route table, find the smp device has
- *        is_discover_scheduled and start the smp discover process on them.
+ * @brief This methods finds the smp device that has
+ * is_config_route_table_scheduled flag set to TRUE, and start config route
+ * table on it. If there is no smp device scheduled to config route table, find
+ * the smp device has is_discover_scheduled and start the smp discover process
+ * on them.
  *
  * @param[in] fw_domain The framework domain that to start smp discover process.
  *
  * @return NONE
  */
-void scif_sas_domain_start_smp_activity(
-  SCIF_SAS_DOMAIN_T        * fw_domain
-)
+void
+scif_sas_domain_start_smp_activity(SCIF_SAS_DOMAIN_T *fw_domain)
 {
-   SCIF_SAS_REMOTE_DEVICE_T * device_has_scheduled_activity = NULL;
+	SCIF_SAS_REMOTE_DEVICE_T *device_has_scheduled_activity = NULL;
 
-   //first, find device that has config route table activity scheduled.
-   //config route table activity has higher priority than Discover.
-   device_has_scheduled_activity =
-      scif_sas_domain_find_device_has_scheduled_activity(
-         fw_domain,
-         SCIF_SAS_SMP_REMOTE_DEVICE_ACTIVITY_CONFIG_ROUTE_TABLE
-      );
+	// first, find device that has config route table activity scheduled.
+	// config route table activity has higher priority than Discover.
+	device_has_scheduled_activity =
+	    scif_sas_domain_find_device_has_scheduled_activity(fw_domain,
+		SCIF_SAS_SMP_REMOTE_DEVICE_ACTIVITY_CONFIG_ROUTE_TABLE);
 
-   if (device_has_scheduled_activity != NULL)
-   {
-      scif_sas_smp_remote_device_configure_route_table(device_has_scheduled_activity);
-      device_has_scheduled_activity->protocol_device.smp_device.scheduled_activity =
-         SCIF_SAS_SMP_REMOTE_DEVICE_ACTIVITY_NONE;
-      return;
-   }
+	if (device_has_scheduled_activity != NULL) {
+		scif_sas_smp_remote_device_configure_route_table(
+		    device_has_scheduled_activity);
+		device_has_scheduled_activity->protocol_device.smp_device
+		    .scheduled_activity =
+		    SCIF_SAS_SMP_REMOTE_DEVICE_ACTIVITY_NONE;
+		return;
+	}
 
-   //if no device has config route table activity scheduled, search again, find
-   //device has discover activity scheduled.
-   device_has_scheduled_activity =
-      scif_sas_domain_find_device_has_scheduled_activity(
-         fw_domain,
-         SCIF_SAS_SMP_REMOTE_DEVICE_ACTIVITY_DISCOVER
-      );
+	// if no device has config route table activity scheduled, search again,
+	// find device has discover activity scheduled.
+	device_has_scheduled_activity =
+	    scif_sas_domain_find_device_has_scheduled_activity(fw_domain,
+		SCIF_SAS_SMP_REMOTE_DEVICE_ACTIVITY_DISCOVER);
 
-   if (device_has_scheduled_activity != NULL)
-      scif_sas_smp_remote_device_start_discover(device_has_scheduled_activity);
+	if (device_has_scheduled_activity != NULL)
+		scif_sas_smp_remote_device_start_discover(
+		    device_has_scheduled_activity);
 }
 
-
 /**
- * @brief This method starts domain's smp discover process from the top level expander.
+ * @brief This method starts domain's smp discover process from the top level
+ expander.
  *
  * @param[in] fw_domain The framework domain that to start smp discover process.
- @ @param[in] top_expander The top level expander device to start smp discover process.
+ @ @param[in] top_expander The top level expander device to start smp discover
+ process.
  *
  * @return None
  */
-void scif_sas_domain_start_smp_discover(
-   SCIF_SAS_DOMAIN_T        * fw_domain,
-   SCIF_SAS_REMOTE_DEVICE_T * top_expander
-)
+void
+scif_sas_domain_start_smp_discover(SCIF_SAS_DOMAIN_T *fw_domain,
+    SCIF_SAS_REMOTE_DEVICE_T *top_expander)
 {
-   SCI_ABSTRACT_ELEMENT_T * current_element =
-       sci_abstract_list_get_front(&fw_domain->remote_device_list);
+	SCI_ABSTRACT_ELEMENT_T *current_element = sci_abstract_list_get_front(
+	    &fw_domain->remote_device_list);
 
-   SCIF_SAS_REMOTE_DEVICE_T * current_device;
+	SCIF_SAS_REMOTE_DEVICE_T *current_device;
 
-   // something changed behind expander
-   // mark all the device behind expander to be NOT
-   // is_currently_discovered.
-   while ( current_element != NULL )
-   {
-      current_device = (SCIF_SAS_REMOTE_DEVICE_T *)
-                           sci_abstract_list_get_object(current_element);
+	// something changed behind expander
+	// mark all the device behind expander to be NOT
+	// is_currently_discovered.
+	while (current_element != NULL) {
+		current_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+		    sci_abstract_list_get_object(current_element);
 
-      current_device->is_currently_discovered = FALSE;
+		current_device->is_currently_discovered = FALSE;
 
-      //reset all the devices' port witdh except the top expander.
-      if (current_device->containing_device != NULL)
-         current_device->device_port_width = 1;
+		// reset all the devices' port witdh except the top expander.
+		if (current_device->containing_device != NULL)
+			current_device->device_port_width = 1;
 
-      current_element = sci_abstract_list_get_next(current_element);
-   }
+		current_element = sci_abstract_list_get_next(current_element);
+	}
 
-   //expander device itself should be set to is_currently_discovered.
-   top_expander->is_currently_discovered = TRUE;
+	// expander device itself should be set to is_currently_discovered.
+	top_expander->is_currently_discovered = TRUE;
 
-   //kick off the smp discover process.
-   scif_sas_smp_remote_device_start_discover(top_expander);
+	// kick off the smp discover process.
+	scif_sas_smp_remote_device_start_discover(top_expander);
 }
-
 
 /**
  * @brief This method continues domain's smp discover process and
@@ -1080,138 +966,129 @@ void scif_sas_domain_start_smp_discover(
  *
  * @return None
  */
-void scif_sas_domain_continue_discover(
-   SCIF_SAS_DOMAIN_T * fw_domain
-)
+void
+scif_sas_domain_continue_discover(SCIF_SAS_DOMAIN_T *fw_domain)
 {
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(fw_domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
-      "scif_sas_domain_continue_discover(0x%x) enter\n",
-      fw_domain
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(fw_domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
+	    "scif_sas_domain_continue_discover(0x%x) enter\n", fw_domain));
 
-   if ( fw_domain->device_start_in_progress_count == 0
-       && !scif_sas_domain_is_in_smp_activity(fw_domain) )
-   {
-      //domain scrub the remote device list to see if there is a need
-      //to start smp discover on expander device. There may be no
-      //need to start any smp discover.
-      scif_sas_domain_start_smp_activity(fw_domain);
+	if (fw_domain->device_start_in_progress_count == 0 &&
+	    !scif_sas_domain_is_in_smp_activity(fw_domain)) {
+		// domain scrub the remote device list to see if there is a need
+		// to start smp discover on expander device. There may be no
+		// need to start any smp discover.
+		scif_sas_domain_start_smp_activity(fw_domain);
 
-      //In domain discovery timeout case, we cancel all
-      //the smp activities, and terminate all the smp requests, then
-      //this routine is called. But the smp request may not done
-      //terminated. We want to guard the domain trasitting to READY
-      //by checking outstanding smp request count. If there is outstanding
-      //smp request, the domain will not transit to READY. Later when
-      //the smp request is terminated at smp remote device, this routine
-      //will be called then the domain will transit to READY state.
-      if ( ! scif_sas_domain_is_in_smp_activity(fw_domain)
-          && scif_sas_domain_get_smp_request_count(fw_domain) == 0)
-      {
-         //before domain transit to READY state, domain has some clean up
-         //work to do, such like update domain's remote devcie list.
-         scif_sas_domain_finish_discover(fw_domain);
-      }
-   }
+		// In domain discovery timeout case, we cancel all
+		// the smp activities, and terminate all the smp requests, then
+		// this routine is called. But the smp request may not done
+		// terminated. We want to guard the domain trasitting to READY
+		// by checking outstanding smp request count. If there is
+		// outstanding smp request, the domain will not transit to
+		// READY. Later when the smp request is terminated at smp remote
+		// device, this routine will be called then the domain will
+		// transit to READY state.
+		if (!scif_sas_domain_is_in_smp_activity(fw_domain) &&
+		    scif_sas_domain_get_smp_request_count(fw_domain) == 0) {
+			// before domain transit to READY state, domain has some
+			// clean up work to do, such like update domain's remote
+			// devcie list.
+			scif_sas_domain_finish_discover(fw_domain);
+		}
+	}
 }
-
 
 /**
  * @brief This method finishes domain's smp discover process and
  *        update domain's remote device list.
  *
- * @param[in] fw_domain The framework domain that's to finish smp discover process.
+ * @param[in] fw_domain The framework domain that's to finish smp discover
+ * process.
  *
  * @return None
  */
-void scif_sas_domain_finish_discover(
-   SCIF_SAS_DOMAIN_T * fw_domain
-)
+void
+scif_sas_domain_finish_discover(SCIF_SAS_DOMAIN_T *fw_domain)
 {
-   SCIF_SAS_REMOTE_DEVICE_T * current_device = NULL;
-   SCI_ABSTRACT_ELEMENT_T   * current_element = NULL;
+	SCIF_SAS_REMOTE_DEVICE_T *current_device = NULL;
+	SCI_ABSTRACT_ELEMENT_T *current_element = NULL;
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(fw_domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
-      "scif_sas_domain_finish_discover(0x%x) enter\n",
-      fw_domain
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(fw_domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
+	    "scif_sas_domain_finish_discover(0x%x) enter\n", fw_domain));
 
-   //need to scrub all the devices behind the expander. Check each
-   //device's discover_status. if the is_currently_discovered is FALSE, means
-   //the device is not been rediscovered. this device needs to be removed.
-   current_element = sci_abstract_list_get_front(&fw_domain->remote_device_list);
-   while (current_element != NULL )
-   {
-      current_device = (SCIF_SAS_REMOTE_DEVICE_T *)
-                          sci_abstract_list_get_object(current_element);
+	// need to scrub all the devices behind the expander. Check each
+	// device's discover_status. if the is_currently_discovered is FALSE,
+	// means the device is not been rediscovered. this device needs to be
+	// removed.
+	current_element = sci_abstract_list_get_front(
+	    &fw_domain->remote_device_list);
+	while (current_element != NULL) {
+		current_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+		    sci_abstract_list_get_object(current_element);
 
-      //We must get the next element before we remove the current
-      //device. Or else, we will get wrong next_element, since the erased
-      //element has been put into free pool.
-      current_element = sci_abstract_list_get_next(current_element);
+		// We must get the next element before we remove the current
+		// device. Or else, we will get wrong next_element, since the
+		// erased element has been put into free pool.
+		current_element = sci_abstract_list_get_next(current_element);
 
-      if ( current_device->is_currently_discovered == FALSE )
-      {
-         // Notify the framework user of the device removal.
-         scif_cb_domain_device_removed(
-            fw_domain->controller, fw_domain, current_device
-         );
-      }
-   }
+		if (current_device->is_currently_discovered == FALSE) {
+			// Notify the framework user of the device removal.
+			scif_cb_domain_device_removed(fw_domain->controller,
+			    fw_domain, current_device);
+		}
+	}
 
-   sci_base_state_machine_change_state(
-      &fw_domain->parent.state_machine, SCI_BASE_DOMAIN_STATE_READY
-   );
+	sci_base_state_machine_change_state(&fw_domain->parent.state_machine,
+	    SCI_BASE_DOMAIN_STATE_READY);
 }
 
-
-
 /**
- * @brief This method remove an expander device and its child devices, in order to
- *        deal with a detected illeagal phy connection.
+ * @brief This method remove an expander device and its child devices, in order
+ * to deal with a detected illeagal phy connection.
  *
  * @param[in] fw_domain The domain that a expander belongs to.
  * @param[in] fw_device The expander device to be removed.
  *
  * @return none.
  */
-void scif_sas_domain_remove_expander_device(
-   SCIF_SAS_DOMAIN_T        * fw_domain,
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device
-)
+void
+scif_sas_domain_remove_expander_device(SCIF_SAS_DOMAIN_T *fw_domain,
+    SCIF_SAS_REMOTE_DEVICE_T *fw_device)
 {
-   SCIF_SAS_SMP_REMOTE_DEVICE_T * smp_remote_device =
-      &fw_device->protocol_device.smp_device;
+	SCIF_SAS_SMP_REMOTE_DEVICE_T *smp_remote_device =
+	    &fw_device->protocol_device.smp_device;
 
-   SCI_FAST_LIST_ELEMENT_T     * element = smp_remote_device->smp_phy_list.list_head;
-   SCIF_SAS_SMP_PHY_T          * curr_smp_phy = NULL;
-   SCIF_SAS_REMOTE_DEVICE_T    * current_device = NULL;
+	SCI_FAST_LIST_ELEMENT_T *element =
+	    smp_remote_device->smp_phy_list.list_head;
+	SCIF_SAS_SMP_PHY_T *curr_smp_phy = NULL;
+	SCIF_SAS_REMOTE_DEVICE_T *current_device = NULL;
 
-   while (element != NULL)
-   {
-      curr_smp_phy = (SCIF_SAS_SMP_PHY_T*) sci_fast_list_get_object(element);
-      element = sci_fast_list_get_next(element);
+	while (element != NULL) {
+		curr_smp_phy = (SCIF_SAS_SMP_PHY_T *)sci_fast_list_get_object(
+		    element);
+		element = sci_fast_list_get_next(element);
 
-      if ( curr_smp_phy->attached_device_type != SMP_NO_DEVICE_ATTACHED
-          && curr_smp_phy->u.end_device != NULL )
-      {
-         if (curr_smp_phy->attached_device_type == SMP_END_DEVICE_ONLY)
-            current_device = curr_smp_phy->u.end_device;
-         else
-            current_device = curr_smp_phy->u.attached_phy->owning_device;
+		if (curr_smp_phy->attached_device_type !=
+			SMP_NO_DEVICE_ATTACHED &&
+		    curr_smp_phy->u.end_device != NULL) {
+			if (curr_smp_phy->attached_device_type ==
+			    SMP_END_DEVICE_ONLY)
+				current_device = curr_smp_phy->u.end_device;
+			else
+				current_device =
+				    curr_smp_phy->u.attached_phy->owning_device;
 
-         scif_cb_domain_device_removed(fw_domain->controller, fw_domain, current_device);
-      }
-   }
+			scif_cb_domain_device_removed(fw_domain->controller,
+			    fw_domain, current_device);
+		}
+	}
 
-   //remove device itself
-   scif_cb_domain_device_removed(fw_domain->controller, fw_domain, fw_device);
+	// remove device itself
+	scif_cb_domain_device_removed(fw_domain->controller, fw_domain,
+	    fw_device);
 }
-
 
 /**
  * @brief This method searches the whole domain and finds all the smp devices to
@@ -1221,41 +1098,35 @@ void scif_sas_domain_remove_expander_device(
  *
  * @return none.
  */
-void scif_sas_domain_cancel_smp_activities(
-   SCIF_SAS_DOMAIN_T * fw_domain
-)
+void
+scif_sas_domain_cancel_smp_activities(SCIF_SAS_DOMAIN_T *fw_domain)
 {
-   SCI_ABSTRACT_ELEMENT_T * current_element =
-      sci_abstract_list_get_front(&fw_domain->remote_device_list);
+	SCI_ABSTRACT_ELEMENT_T *current_element = sci_abstract_list_get_front(
+	    &fw_domain->remote_device_list);
 
-   SCIF_SAS_REMOTE_DEVICE_T * current_device;
+	SCIF_SAS_REMOTE_DEVICE_T *current_device;
 
-   //purge all the outstanding internal IOs in HPQ.
-   scif_sas_high_priority_request_queue_purge_domain(
-      &fw_domain->controller->hprq, fw_domain
-   );
+	// purge all the outstanding internal IOs in HPQ.
+	scif_sas_high_priority_request_queue_purge_domain(
+	    &fw_domain->controller->hprq, fw_domain);
 
-   while ( current_element != NULL )
-   {
-      SMP_DISCOVER_RESPONSE_PROTOCOLS_T  dev_protocols;
+	while (current_element != NULL) {
+		SMP_DISCOVER_RESPONSE_PROTOCOLS_T dev_protocols;
 
-      current_device = (SCIF_SAS_REMOTE_DEVICE_T *)
-                       sci_abstract_list_get_object(current_element);
+		current_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+		    sci_abstract_list_get_object(current_element);
 
-      scic_remote_device_get_protocols(current_device->core_object,
-                                       &dev_protocols
-      );
+		scic_remote_device_get_protocols(current_device->core_object,
+		    &dev_protocols);
 
-      if (dev_protocols.u.bits.attached_smp_target)
-      {
-         scif_sas_smp_remote_device_cancel_smp_activity(current_device);
-      }
+		if (dev_protocols.u.bits.attached_smp_target) {
+			scif_sas_smp_remote_device_cancel_smp_activity(
+			    current_device);
+		}
 
-      current_element =
-         sci_abstract_list_get_next(current_element);
-   }
+		current_element = sci_abstract_list_get_next(current_element);
+	}
 }
-
 
 /**
  * @brief This method searches the domain's request list and counts outstanding
@@ -1265,34 +1136,32 @@ void scif_sas_domain_cancel_smp_activities(
  *
  * @return U8 The possible return value of this routine is 0 or 1.
  */
-U8 scif_sas_domain_get_smp_request_count(
-   SCIF_SAS_DOMAIN_T * fw_domain
-)
+U8
+scif_sas_domain_get_smp_request_count(SCIF_SAS_DOMAIN_T *fw_domain)
 {
-   SCI_FAST_LIST_ELEMENT_T * element = fw_domain->request_list.list_head;
-   SCIF_SAS_REQUEST_T      * request = NULL;
-   U8                        count = 0;
-   SCIC_TRANSPORT_PROTOCOL   protocol;
+	SCI_FAST_LIST_ELEMENT_T *element = fw_domain->request_list.list_head;
+	SCIF_SAS_REQUEST_T *request = NULL;
+	U8 count = 0;
+	SCIC_TRANSPORT_PROTOCOL protocol;
 
-   // Cycle through the fast list of IO requests.  Terminate each
-   // outstanding requests that matches the criteria supplied by the
-   // caller.
-   while (element != NULL)
-   {
-      request = (SCIF_SAS_REQUEST_T*) sci_fast_list_get_object(element);
-      // The current element may be deleted from the list because of
-      // IO completion so advance to the next element early
-      element = sci_fast_list_get_next(element);
+	// Cycle through the fast list of IO requests.  Terminate each
+	// outstanding requests that matches the criteria supplied by the
+	// caller.
+	while (element != NULL) {
+		request = (SCIF_SAS_REQUEST_T *)sci_fast_list_get_object(
+		    element);
+		// The current element may be deleted from the list because of
+		// IO completion so advance to the next element early
+		element = sci_fast_list_get_next(element);
 
-      protocol = scic_io_request_get_protocol(request->core_object);
+		protocol = scic_io_request_get_protocol(request->core_object);
 
-      if ( protocol == SCIC_SMP_PROTOCOL)
-         count++;
-   }
+		if (protocol == SCIC_SMP_PROTOCOL)
+			count++;
+	}
 
-   return count;
+	return count;
 }
-
 
 /**
  * @brief This method start clear affiliation activities for smp devices in
@@ -1303,14 +1172,12 @@ U8 scif_sas_domain_get_smp_request_count(
  *
  * @return none.
  */
-void scif_sas_domain_start_clear_affiliation(
-   SCIF_SAS_DOMAIN_T * fw_domain
-)
+void
+scif_sas_domain_start_clear_affiliation(SCIF_SAS_DOMAIN_T *fw_domain)
 {
-   scif_sas_domain_schedule_clear_affiliation(fw_domain);
-   scif_sas_domain_continue_clear_affiliation(fw_domain);
+	scif_sas_domain_schedule_clear_affiliation(fw_domain);
+	scif_sas_domain_continue_clear_affiliation(fw_domain);
 }
-
 
 /**
  * @brief This method schedule clear affiliation activities for smp devices in
@@ -1321,36 +1188,33 @@ void scif_sas_domain_start_clear_affiliation(
  *
  * @return none.
  */
-void scif_sas_domain_schedule_clear_affiliation(
-   SCIF_SAS_DOMAIN_T * fw_domain
-)
+void
+scif_sas_domain_schedule_clear_affiliation(SCIF_SAS_DOMAIN_T *fw_domain)
 {
-   SCI_ABSTRACT_ELEMENT_T * current_element =
-      sci_abstract_list_get_front(&fw_domain->remote_device_list);
+	SCI_ABSTRACT_ELEMENT_T *current_element = sci_abstract_list_get_front(
+	    &fw_domain->remote_device_list);
 
-   SCIF_SAS_REMOTE_DEVICE_T * current_device;
-   SMP_DISCOVER_RESPONSE_PROTOCOLS_T  dev_protocols;
+	SCIF_SAS_REMOTE_DEVICE_T *current_device;
+	SMP_DISCOVER_RESPONSE_PROTOCOLS_T dev_protocols;
 
-   //config route table activity has higher priority than discover activity.
-   while ( current_element != NULL )
-   {
-      current_device = (SCIF_SAS_REMOTE_DEVICE_T *)
-                       sci_abstract_list_get_object(current_element);
+	// config route table activity has higher priority than discover
+	// activity.
+	while (current_element != NULL) {
+		current_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+		    sci_abstract_list_get_object(current_element);
 
-      scic_remote_device_get_protocols(current_device->core_object,
-                                       &dev_protocols);
+		scic_remote_device_get_protocols(current_device->core_object,
+		    &dev_protocols);
 
-      current_element =
-         sci_abstract_list_get_next(current_element);
+		current_element = sci_abstract_list_get_next(current_element);
 
-      if ( dev_protocols.u.bits.attached_smp_target )
-      {
-         current_device->protocol_device.smp_device.scheduled_activity =
-            SCIF_SAS_SMP_REMOTE_DEVICE_ACTIVITY_CLEAR_AFFILIATION;
-      }
-   }
+		if (dev_protocols.u.bits.attached_smp_target) {
+			current_device->protocol_device.smp_device
+			    .scheduled_activity =
+			    SCIF_SAS_SMP_REMOTE_DEVICE_ACTIVITY_CLEAR_AFFILIATION;
+		}
+	}
 }
-
 
 /**
  * @brief This method carries clear affiliation activities for a smp devices in
@@ -1361,29 +1225,25 @@ void scif_sas_domain_schedule_clear_affiliation(
  *
  * @return none.
  */
-void scif_sas_domain_continue_clear_affiliation(
-   SCIF_SAS_DOMAIN_T * fw_domain
-)
+void
+scif_sas_domain_continue_clear_affiliation(SCIF_SAS_DOMAIN_T *fw_domain)
 {
-   SCIF_SAS_REMOTE_DEVICE_T * smp_device =
-      scif_sas_domain_find_device_has_scheduled_activity(
-         fw_domain,
-         SCIF_SAS_SMP_REMOTE_DEVICE_ACTIVITY_CLEAR_AFFILIATION
-      );
+	SCIF_SAS_REMOTE_DEVICE_T *smp_device =
+	    scif_sas_domain_find_device_has_scheduled_activity(fw_domain,
+		SCIF_SAS_SMP_REMOTE_DEVICE_ACTIVITY_CLEAR_AFFILIATION);
 
-   if (smp_device != NULL)
-      scif_sas_smp_remote_device_start_clear_affiliation(smp_device);
-   else
-   {
-      //This domain has done clear affiliation.
-      SCIF_SAS_CONTROLLER_T * fw_controller = fw_domain->controller;
-      fw_controller->current_domain_to_clear_affiliation++;
+	if (smp_device != NULL)
+		scif_sas_smp_remote_device_start_clear_affiliation(smp_device);
+	else {
+		// This domain has done clear affiliation.
+		SCIF_SAS_CONTROLLER_T *fw_controller = fw_domain->controller;
+		fw_controller->current_domain_to_clear_affiliation++;
 
-      //let controller continue to clear affiliation on other domains.
-      scif_sas_controller_clear_affiliation(fw_domain->controller);
-   }
+		// let controller continue to clear affiliation on other
+		// domains.
+		scif_sas_controller_clear_affiliation(fw_domain->controller);
+	}
 }
-
 
 /**
  * @brief This method releases resource for a framework domain.
@@ -1393,56 +1253,52 @@ void scif_sas_domain_continue_clear_affiliation(
  * @param[in] fw_domain This parameter specifies the framework
  *            domain whose resources are to be released.
  */
-void scif_sas_domain_release_resource(
-   SCIF_SAS_CONTROLLER_T * fw_controller,
-   SCIF_SAS_DOMAIN_T     * fw_domain
-)
+void
+scif_sas_domain_release_resource(SCIF_SAS_CONTROLLER_T *fw_controller,
+    SCIF_SAS_DOMAIN_T *fw_domain)
 {
-   if (fw_domain->operation.timer != NULL)
-   {
-      scif_cb_timer_destroy(fw_controller, fw_domain->operation.timer);
-      fw_domain->operation.timer = NULL;
-   }
+	if (fw_domain->operation.timer != NULL) {
+		scif_cb_timer_destroy(fw_controller,
+		    fw_domain->operation.timer);
+		fw_domain->operation.timer = NULL;
+	}
 }
-
 
 /**
  * @brief This method finds the a EA device that has target reset scheduled.
  *
  * @param[in] fw_domain The framework domain object
  *
- * @return SCIF_SAS_REMOTE_DEVICE_T The EA device that has target reset scheduled.
+ * @return SCIF_SAS_REMOTE_DEVICE_T The EA device that has target reset
+ * scheduled.
  */
-SCIF_SAS_REMOTE_DEVICE_T * scif_sas_domain_find_next_ea_target_reset(
-   SCIF_SAS_DOMAIN_T     * fw_domain
-)
+SCIF_SAS_REMOTE_DEVICE_T *
+scif_sas_domain_find_next_ea_target_reset(SCIF_SAS_DOMAIN_T *fw_domain)
 {
-   SCI_ABSTRACT_ELEMENT_T   * current_element;
-   SCIF_SAS_REMOTE_DEVICE_T * current_device;
+	SCI_ABSTRACT_ELEMENT_T *current_element;
+	SCIF_SAS_REMOTE_DEVICE_T *current_device;
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(fw_domain),
-      SCIF_LOG_OBJECT_DOMAIN,
-      "scif_sas_domain_find_next_ea_target_reset(0x%x) enter\n",
-      fw_domain
-   ));
+	SCIF_LOG_TRACE(
+	    (sci_base_object_get_logger(fw_domain), SCIF_LOG_OBJECT_DOMAIN,
+		"scif_sas_domain_find_next_ea_target_reset(0x%x) enter\n",
+		fw_domain));
 
-   //search through domain's device list to find the first sata device on spinup_hold
-   current_element = sci_abstract_list_get_front(&fw_domain->remote_device_list);
-   while (current_element != NULL )
-   {
-      current_device = (SCIF_SAS_REMOTE_DEVICE_T *)
-                       sci_abstract_list_get_object(current_element);
+	// search through domain's device list to find the first sata device on
+	// spinup_hold
+	current_element = sci_abstract_list_get_front(
+	    &fw_domain->remote_device_list);
+	while (current_element != NULL) {
+		current_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+		    sci_abstract_list_get_object(current_element);
 
-      current_element = sci_abstract_list_get_next(current_element);
+		current_element = sci_abstract_list_get_next(current_element);
 
-      if ( current_device->ea_target_reset_request_scheduled != NULL )
-      {
-         return current_device;
-      }
-   }
+		if (current_device->ea_target_reset_request_scheduled != NULL) {
+			return current_device;
+		}
+	}
 
-   return NULL;
+	return NULL;
 }
 
 #if !defined(DISABLE_WIDE_PORTED_TARGETS)
@@ -1455,47 +1311,44 @@ SCIF_SAS_REMOTE_DEVICE_T * scif_sas_domain_find_next_ea_target_reset(
  *
  * @return none
  */
-void scif_sas_domain_update_device_port_width(
-   SCIF_SAS_DOMAIN_T * fw_domain,
-   SCI_PORT_HANDLE_T   port
-)
+void
+scif_sas_domain_update_device_port_width(SCIF_SAS_DOMAIN_T *fw_domain,
+    SCI_PORT_HANDLE_T port)
 {
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device;
-   SCIC_PORT_PROPERTIES_T     properties;
-   U8                         new_port_width = 0;
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device;
+	SCIC_PORT_PROPERTIES_T properties;
+	U8 new_port_width = 0;
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(fw_domain),
-      SCIF_LOG_OBJECT_DOMAIN,
-      "scif_sas_domain_update_device_port_width(0x%x, 0x%x) enter\n",
-      fw_domain, port
-   ));
+	SCIF_LOG_TRACE(
+	    (sci_base_object_get_logger(fw_domain), SCIF_LOG_OBJECT_DOMAIN,
+		"scif_sas_domain_update_device_port_width(0x%x, 0x%x) enter\n",
+		fw_domain, port));
 
-   scic_port_get_properties(port, &properties);
+	scic_port_get_properties(port, &properties);
 
-   fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
-                  scif_domain_get_device_by_sas_address(
-                  fw_domain, &properties.remote.sas_address
-               );
+	fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+	    scif_domain_get_device_by_sas_address(fw_domain,
+		&properties.remote.sas_address);
 
-   // If the device already existed in the domain, it is a wide port SSP target,
-   // we need to update its port width.
-   if (fw_device != SCI_INVALID_HANDLE)
-   {
-      SMP_DISCOVER_RESPONSE_PROTOCOLS_T  dev_protocols;
-      scic_remote_device_get_protocols(fw_device->core_object, &dev_protocols);
+	// If the device already existed in the domain, it is a wide port SSP
+	// target, we need to update its port width.
+	if (fw_device != SCI_INVALID_HANDLE) {
+		SMP_DISCOVER_RESPONSE_PROTOCOLS_T dev_protocols;
+		scic_remote_device_get_protocols(fw_device->core_object,
+		    &dev_protocols);
 
-      if (dev_protocols.u.bits.attached_ssp_target)
-      {
-         //Get accurate port width from port's phy mask for a DA device.
-         SCI_GET_BITS_SET_COUNT(properties.phy_mask, new_port_width);
+		if (dev_protocols.u.bits.attached_ssp_target) {
+			// Get accurate port width from port's phy mask for a DA
+			// device.
+			SCI_GET_BITS_SET_COUNT(properties.phy_mask,
+			    new_port_width);
 
-         scif_sas_remote_device_update_port_width(fw_device, new_port_width);
-      }
-   }
+			scif_sas_remote_device_update_port_width(fw_device,
+			    new_port_width);
+		}
+	}
 }
-#endif //#if !defined(DISABLE_WIDE_PORTED_TARGETS)
-
+#endif // #if !defined(DISABLE_WIDE_PORTED_TARGETS)
 
 #ifdef SCI_LOGGING
 /**
@@ -1504,18 +1357,14 @@ void scif_sas_domain_update_device_port_width(
  * @param[in] fw_domain The domain for which the state logging is to be turned
  *       on.
  */
-void scif_sas_domain_initialize_state_logging(
-   SCIF_SAS_DOMAIN_T *fw_domain
-)
+void
+scif_sas_domain_initialize_state_logging(SCIF_SAS_DOMAIN_T *fw_domain)
 {
-   sci_base_state_machine_logger_initialize(
-      &fw_domain->parent.state_machine_logger,
-      &fw_domain->parent.state_machine,
-      &fw_domain->parent.parent,
-      scif_cb_logger_log_states,
-      "SCIF_SAS_DOMAIN_T", "base state machine",
-      SCIF_LOG_OBJECT_DOMAIN
-   );
+	sci_base_state_machine_logger_initialize(
+	    &fw_domain->parent.state_machine_logger,
+	    &fw_domain->parent.state_machine, &fw_domain->parent.parent,
+	    scif_cb_logger_log_states, "SCIF_SAS_DOMAIN_T",
+	    "base state machine", SCIF_LOG_OBJECT_DOMAIN);
 }
 
 /**
@@ -1524,13 +1373,11 @@ void scif_sas_domain_initialize_state_logging(
  * @param[in] fw_domain The domain for which the state logging is to be turned
  *       off.
  */
-void scif_sas_domain_deinitialize_state_logging(
-   SCIF_SAS_DOMAIN_T *fw_domain
-)
+void
+scif_sas_domain_deinitialize_state_logging(SCIF_SAS_DOMAIN_T *fw_domain)
 {
-   sci_base_state_machine_logger_deinitialize(
-      &fw_domain->parent.state_machine_logger,
-      &fw_domain->parent.state_machine
-   );
+	sci_base_state_machine_logger_deinitialize(
+	    &fw_domain->parent.state_machine_logger,
+	    &fw_domain->parent.state_machine);
 }
 #endif

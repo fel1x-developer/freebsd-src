@@ -27,19 +27,20 @@
  */
 
 #include <sys/cdefs.h>
-#include "namespace.h"
-#include <pthread.h>
-#include "un-namespace.h"
 
+#include <pthread.h>
+
+#include "namespace.h"
 #include "thr_private.h"
+#include "un-namespace.h"
 
 __weak_reference(_thr_once, pthread_once);
 __weak_reference(_thr_once, _pthread_once);
 
-#define ONCE_NEVER_DONE		PTHREAD_NEEDS_INIT
-#define ONCE_DONE		PTHREAD_DONE_INIT
-#define	ONCE_IN_PROGRESS	0x02
-#define ONCE_WAIT		0x03
+#define ONCE_NEVER_DONE PTHREAD_NEEDS_INIT
+#define ONCE_DONE PTHREAD_DONE_INIT
+#define ONCE_IN_PROGRESS 0x02
+#define ONCE_WAIT 0x03
 
 /*
  * POSIX:
@@ -47,7 +48,7 @@ __weak_reference(_thr_once, _pthread_once);
  * if init_routine is a cancellation point and is canceled, the effect
  * on once_control shall be as if pthread_once() was never called.
  */
- 
+
 static void
 once_cancel_handler(void *arg)
 {
@@ -55,7 +56,7 @@ once_cancel_handler(void *arg)
 
 	once_control = arg;
 	if (atomic_cmpset_rel_int(&once_control->state, ONCE_IN_PROGRESS,
-	    ONCE_NEVER_DONE))
+		ONCE_NEVER_DONE))
 		return;
 	atomic_store_rel_int(&once_control->state, ONCE_NEVER_DONE);
 	_thr_umtx_wake(&once_control->state, INT_MAX, 0);
@@ -77,26 +78,26 @@ _thr_once(pthread_once_t *once_control, void (*init_routine)(void))
 		}
 		if (state == ONCE_NEVER_DONE) {
 			if (atomic_cmpset_int(&once_control->state, state,
-			    ONCE_IN_PROGRESS))
+				ONCE_IN_PROGRESS))
 				break;
 		} else if (state == ONCE_IN_PROGRESS) {
 			if (atomic_cmpset_int(&once_control->state, state,
-			    ONCE_WAIT))
+				ONCE_WAIT))
 				_thr_umtx_wait_uint(&once_control->state,
 				    ONCE_WAIT, NULL, 0);
 		} else if (state == ONCE_WAIT) {
-			_thr_umtx_wait_uint(&once_control->state, state,
-			    NULL, 0);
+			_thr_umtx_wait_uint(&once_control->state, state, NULL,
+			    0);
 		} else
 			return (EINVAL);
-        }
+	}
 
 	curthread = _get_curthread();
 	THR_CLEANUP_PUSH(curthread, once_cancel_handler, once_control);
 	init_routine();
 	THR_CLEANUP_POP(curthread, 0);
 	if (atomic_cmpset_rel_int(&once_control->state, ONCE_IN_PROGRESS,
-	    ONCE_DONE))
+		ONCE_DONE))
 		return (0);
 	atomic_store_rel_int(&once_control->state, ONCE_DONE);
 	_thr_umtx_wake(&once_control->state, INT_MAX, 0);

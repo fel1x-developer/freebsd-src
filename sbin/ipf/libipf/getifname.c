@@ -8,20 +8,20 @@
  */
 
 #include "ipf.h"
-
 #include "kmem.h"
 
 /*
-* Given a pointer to an interface in the kernel, return a pointer to a
+ * Given a pointer to an interface in the kernel, return a pointer to a
  * string which is the interface name.
  */
 char *
 getifname(struct ifnet *ptr)
 {
 #if SOLARIS
-#  include <sys/mutex.h>
-#  include <sys/condvar.h>
-# include "../pfil/qif.h"
+#include <sys/condvar.h>
+#include <sys/mutex.h>
+
+#include "../pfil/qif.h"
 	char *ifname;
 	qif_t qif;
 

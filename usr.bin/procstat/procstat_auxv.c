@@ -65,7 +65,7 @@ procstat_auxv(struct procstat *procstat, struct kinfo_proc *kipp)
 	    kipp->ki_comm);
 
 	for (i = 0; i < count; i++) {
-		switch(auxv[i].a_type) {
+		switch (auxv[i].a_type) {
 		case AT_NULL:
 			return;
 		case AT_IGNORE:
@@ -75,8 +75,8 @@ procstat_auxv(struct procstat *procstat, struct kinfo_proc *kipp)
 			    prefix, "AT_EXECFD", (long)auxv[i].a_un.a_val);
 			break;
 		case AT_PHDR:
-			xo_emit("{dw:/%s}{Lw:/%-16s/%s}{:AT_PHDR/%p}\n",
-			    prefix, "AT_PHDR", auxv[i].a_un.a_ptr);
+			xo_emit("{dw:/%s}{Lw:/%-16s/%s}{:AT_PHDR/%p}\n", prefix,
+			    "AT_PHDR", auxv[i].a_un.a_ptr);
 			break;
 		case AT_PHENT:
 			xo_emit("{dw:/%s}{Lw:/%-16s/%s}{:AT_PHENT/%ld}\n",
@@ -91,8 +91,8 @@ procstat_auxv(struct procstat *procstat, struct kinfo_proc *kipp)
 			    prefix, "AT_PAGESZ", (long)auxv[i].a_un.a_val);
 			break;
 		case AT_BASE:
-			xo_emit("{dw:/%s}{Lw:/%-16s/%s}{:AT_BASE/%p}\n",
-			    prefix, "AT_BASE", auxv[i].a_un.a_ptr);
+			xo_emit("{dw:/%s}{Lw:/%-16s/%s}{:AT_BASE/%p}\n", prefix,
+			    "AT_BASE", auxv[i].a_un.a_ptr);
 			break;
 		case AT_FLAGS:
 			xo_emit("{dw:/%s}{Lw:/%-16s/%s}{:AT_FLAGS/%#lx}\n",
@@ -110,8 +110,8 @@ procstat_auxv(struct procstat *procstat, struct kinfo_proc *kipp)
 #endif
 #ifdef AT_UID
 		case AT_UID:
-			xo_emit("{dw:/%s}{Lw:/%-16s/%s}{:AT_UID/%ld}\n",
-			    prefix, "AT_UID", (long)auxv[i].a_un.a_val);
+			xo_emit("{dw:/%s}{Lw:/%-16s/%s}{:AT_UID/%ld}\n", prefix,
+			    "AT_UID", (long)auxv[i].a_un.a_val);
 			break;
 #endif
 #ifdef AT_EUID
@@ -122,8 +122,8 @@ procstat_auxv(struct procstat *procstat, struct kinfo_proc *kipp)
 #endif
 #ifdef AT_GID
 		case AT_GID:
-			xo_emit("{dw:/%s}{Lw:/%-16s/%s}{:AT_GID/%ld}\n",
-			    prefix, "AT_GID", (long)auxv[i].a_un.a_val);
+			xo_emit("{dw:/%s}{Lw:/%-16s/%s}{:AT_GID/%ld}\n", prefix,
+			    "AT_GID", (long)auxv[i].a_un.a_val);
 			break;
 #endif
 #ifdef AT_EGID
@@ -158,18 +158,19 @@ procstat_auxv(struct procstat *procstat, struct kinfo_proc *kipp)
 			break;
 		case AT_PAGESIZESLEN:
 			xo_emit("{dw:/%s}{Lw:/%-16s/%s}"
-			    "{:AT_PAGESIZESLEN/%ld}\n", prefix,
-			    "AT_PAGESIZESLEN", (long)auxv[i].a_un.a_val);
+				"{:AT_PAGESIZESLEN/%ld}\n",
+			    prefix, "AT_PAGESIZESLEN",
+			    (long)auxv[i].a_un.a_val);
 			break;
 		case AT_STACKPROT:
 			if ((auxv[i].a_un.a_val & VM_PROT_EXECUTE) != 0)
 				xo_emit("{dw:/%s}{Lw:/%-16s/%s}"
-				    "{:AT_STACKPROT/%s}\n", prefix,
-				    "AT_STACKPROT", "EXECUTABLE");
+					"{:AT_STACKPROT/%s}\n",
+				    prefix, "AT_STACKPROT", "EXECUTABLE");
 			else
 				xo_emit("{dw:/%s}{Lw:/%-16s/%s}"
-				    "{:AT_STACKPROT/%s}\n", prefix,
-				    "AT_STACKPROT", "NONEXECUTABLE");
+					"{:AT_STACKPROT/%s}\n",
+				    prefix, "AT_STACKPROT", "NONEXECUTABLE");
 			break;
 #ifdef AT_TIMEKEEP
 		case AT_TIMEKEEP:
@@ -209,8 +210,8 @@ procstat_auxv(struct procstat *procstat, struct kinfo_proc *kipp)
 #endif
 #ifdef AT_ARGV
 		case AT_ARGV:
-			xo_emit("{dw:/%s}{Lw:/%-16s/%s}{:AT_ARGV/%p}\n",
-			    prefix, "AT_ARGV", auxv[i].a_un.a_ptr);
+			xo_emit("{dw:/%s}{Lw:/%-16s/%s}{:AT_ARGV/%p}\n", prefix,
+			    "AT_ARGV", auxv[i].a_un.a_ptr);
 			break;
 #endif
 #ifdef AT_ENVC
@@ -221,8 +222,8 @@ procstat_auxv(struct procstat *procstat, struct kinfo_proc *kipp)
 #endif
 #ifdef AT_ENVV
 		case AT_ENVV:
-			xo_emit("{dw:/%s}{Lw:/%-16s/%s}{:AT_ENVV/%p}\n",
-			    prefix, "AT_ENVV", auxv[i].a_un.a_ptr);
+			xo_emit("{dw:/%s}{Lw:/%-16s/%s}{:AT_ENVV/%p}\n", prefix,
+			    "AT_ENVV", auxv[i].a_un.a_ptr);
 			break;
 #endif
 #ifdef AT_PS_STRINGS
@@ -246,14 +247,14 @@ procstat_auxv(struct procstat *procstat, struct kinfo_proc *kipp)
 #ifdef AT_USRSTACKBASE
 		case AT_USRSTACKBASE:
 			xo_emit("{dw:/%s}{Lw:/%-16s/%s}"
-			    "{:AT_USRSTACKBASE/%#lx}\n",
+				"{:AT_USRSTACKBASE/%#lx}\n",
 			    prefix, "AT_USRSTACKBASE", auxv[i].a_un.a_val);
 			break;
 #endif
 #ifdef AT_USRSTACKLIM
 		case AT_USRSTACKLIM:
 			xo_emit("{dw:/%s}{Lw:/%-16s/%s}"
-			    "{:AT_USRSTACKLIM/%#lx}\n",
+				"{:AT_USRSTACKLIM/%#lx}\n",
 			    prefix, "AT_USRSTACKLIM", auxv[i].a_un.a_val);
 			break;
 #endif
@@ -266,4 +267,3 @@ procstat_auxv(struct procstat *procstat, struct kinfo_proc *kipp)
 	xo_emit("\n");
 	procstat_freeauxv(procstat, auxv);
 }
-

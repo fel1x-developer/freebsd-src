@@ -27,10 +27,10 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 
+#include <sys/cdefs.h>
 #include <sys/types.h>
 #include <sys/ck.h>
 #include <sys/eventhandler.h>
@@ -39,6 +39,7 @@
 #include <sys/sbuf.h>
 #include <sys/socket.h>
 #include <sys/taskqueue.h>
+
 #include <net/if.h>
 #include <net/if_var.h>
 #include <netinet/in.h>
@@ -68,19 +69,19 @@
 
 #if defined(INET6)
 struct clip_db_entry {
-	LIST_ENTRY(clip_db_entry) link;	/* clip_db hash linkage */
+	LIST_ENTRY(clip_db_entry) link; /* clip_db hash linkage */
 	struct in6_addr lip;
-	u_int krn_ref;	/* # of times this IP6 appears in list of all IP6 */
-	u_int adp_ref;	/* # of adapters with this IP6 in their CLIP */
-	u_int tmp_ref;	/* Used only during refresh */
+	u_int krn_ref; /* # of times this IP6 appears in list of all IP6 */
+	u_int adp_ref; /* # of adapters with this IP6 in their CLIP */
+	u_int tmp_ref; /* Used only during refresh */
 };
 
 struct clip_entry {
-	LIST_ENTRY(clip_entry) link;	/* clip_table hash linkage */
-	TAILQ_ENTRY(clip_entry) plink;	/* clip_pending linkage */
+	LIST_ENTRY(clip_entry) link;   /* clip_table hash linkage */
+	TAILQ_ENTRY(clip_entry) plink; /* clip_pending linkage */
 	struct clip_db_entry *cde;
-	int16_t clip_idx;		/* index in the hw table */
-	bool pending;			/* in clip_pending list */
+	int16_t clip_idx; /* index in the hw table */
+	bool pending;	  /* in clip_pending list */
 	int refcount;
 };
 
@@ -105,14 +106,14 @@ static struct clip_db_entry *lookup_clip_db_entry(struct in6_addr *, bool);
 static struct clip_entry *lookup_clip_entry(struct adapter *, struct in6_addr *,
     bool);
 
-SYSCTL_PROC(_hw_cxgbe, OID_AUTO, clip_db, CTLTYPE_STRING | CTLFLAG_RD |
-    CTLFLAG_SKIP | CTLFLAG_MPSAFE, NULL, 0, sysctl_clip_db, "A",
-    "CLIP database");
+SYSCTL_PROC(_hw_cxgbe, OID_AUTO, clip_db,
+    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_SKIP | CTLFLAG_MPSAFE, NULL, 0,
+    sysctl_clip_db, "A", "CLIP database");
 
 int t4_clip_db_auto = 1;
-SYSCTL_PROC(_hw_cxgbe, OID_AUTO, clip_db_auto, CTLTYPE_INT | CTLFLAG_RWTUN |
-    CTLFLAG_MPSAFE, NULL, 0, sysctl_clip_db_auto, "I",
-    "Add local IPs to CLIP db automatically (0 = no, 1 = yes)");
+SYSCTL_PROC(_hw_cxgbe, OID_AUTO, clip_db_auto,
+    CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, NULL, 0, sysctl_clip_db_auto,
+    "I", "Add local IPs to CLIP db automatically (0 = no, 1 = yes)");
 
 static inline uint32_t
 clip_hashfn(struct in6_addr *addr)
@@ -161,7 +162,7 @@ lookup_clip_db_entry(struct in6_addr *in6, bool add)
 
 	mtx_assert(&clip_db_lock, MA_OWNED);
 
-	LIST_FOREACH(cde, &clip_db[bucket], link) {
+	LIST_FOREACH (cde, &clip_db[bucket], link) {
 		if (IN6_ARE_ADDR_EQUAL(&cde->lip, in6))
 			return (cde);
 	}
@@ -193,7 +194,7 @@ lookup_clip_entry(struct adapter *sc, struct in6_addr *in6, bool add)
 	if (cde == NULL)
 		return (NULL);
 
-	LIST_FOREACH(ce, &sc->clip_table[bucket], link) {
+	LIST_FOREACH (ce, &sc->clip_table[bucket], link) {
 		if (ce->cde == cde)
 			return (ce);
 	}
@@ -220,8 +221,8 @@ add_lip(struct adapter *sc, struct in6_addr *lip, int16_t *idx)
 	ASSERT_SYNCHRONIZED_OP(sc);
 
 	memset(&c, 0, sizeof(c));
-	c.op_to_write = htonl(V_FW_CMD_OP(FW_CLIP_CMD) | F_FW_CMD_REQUEST |
-	    F_FW_CMD_WRITE);
+	c.op_to_write = htonl(
+	    V_FW_CMD_OP(FW_CLIP_CMD) | F_FW_CMD_REQUEST | F_FW_CMD_WRITE);
 	c.alloc_to_len16 = htonl(F_FW_CLIP_CMD_ALLOC | FW_LEN16(c));
 	c.ip_hi = *(uint64_t *)&lip->s6_addr[0];
 	c.ip_lo = *(uint64_t *)&lip->s6_addr[8];
@@ -240,8 +241,8 @@ del_lip(struct adapter *sc, struct in6_addr *lip)
 	ASSERT_SYNCHRONIZED_OP(sc);
 
 	memset(&c, 0, sizeof(c));
-	c.op_to_write = htonl(V_FW_CMD_OP(FW_CLIP_CMD) | F_FW_CMD_REQUEST |
-	    F_FW_CMD_READ);
+	c.op_to_write = htonl(
+	    V_FW_CMD_OP(FW_CLIP_CMD) | F_FW_CMD_REQUEST | F_FW_CMD_READ);
 	c.alloc_to_len16 = htonl(F_FW_CLIP_CMD_FREE | FW_LEN16(c));
 	c.ip_hi = *(uint64_t *)&lip->s6_addr[0];
 	c.ip_lo = *(uint64_t *)&lip->s6_addr[8];
@@ -380,7 +381,8 @@ void
 t4_init_clip_table(struct adapter *sc)
 {
 	TAILQ_INIT(&sc->clip_pending);
-	TIMEOUT_TASK_INIT(taskqueue_thread, &sc->clip_task, 0, t4_clip_task, sc);
+	TIMEOUT_TASK_INIT(taskqueue_thread, &sc->clip_task, 0, t4_clip_task,
+	    sc);
 	sc->clip_gen = -1;
 	sc->clip_table = hashinit(CLIP_HASH_SIZE, M_CXGBE, &sc->clip_mask);
 
@@ -411,9 +413,11 @@ update_clip_db(void)
 	VNET_LIST_RLOCK();
 	IN6_IFADDR_RLOCK(&in6_ifa_tracker);
 	mtx_lock(&clip_db_lock);
-	VNET_FOREACH(vnet_iter) {
+	VNET_FOREACH(vnet_iter)
+	{
 		CURVNET_SET_QUIET(vnet_iter);
-		CK_STAILQ_FOREACH(ia, &V_in6_ifaddrhead, ia_link) {
+		CK_STAILQ_FOREACH(ia, &V_in6_ifaddrhead, ia_link)
+		{
 			if (if_getflags(ia->ia_ifp) & IFF_LOOPBACK)
 				continue;
 			in6 = &ia->ia_addr.sin6_addr;
@@ -437,16 +441,16 @@ update_clip_db(void)
 
 	addel = 0;
 	for (i = 0; i <= clip_db_mask; i++) {
-		LIST_FOREACH_SAFE(cde, &clip_db[i], link, cde_tmp) {
+		LIST_FOREACH_SAFE (cde, &clip_db[i], link, cde_tmp) {
 			if (cde->krn_ref == 0 && cde->tmp_ref > 0) {
-				addel++;	/* IP6 addr added. */
+				addel++; /* IP6 addr added. */
 			} else if (cde->krn_ref > 0 && cde->tmp_ref == 0) {
 				if (cde->adp_ref == 0) {
 					LIST_REMOVE(cde, link);
 					free(cde, M_CXGBE);
 					continue;
 				}
-				addel++;	/* IP6 addr deleted. */
+				addel++; /* IP6 addr deleted. */
 			}
 			cde->krn_ref = cde->tmp_ref;
 			cde->tmp_ref = 0;
@@ -457,7 +461,6 @@ update_clip_db(void)
 	mtx_unlock(&clip_db_lock);
 	IN6_IFADDR_RUNLOCK(&in6_ifa_tracker);
 	VNET_LIST_RUNLOCK();
-
 }
 
 /*
@@ -498,7 +501,7 @@ update_sw_clip_table(struct adapter *sc)
 	 * status as we're rebuilding the pending list.
 	 */
 	for (i = 0; i <= clip_db_mask; i++) {
-		LIST_FOREACH_SAFE(ce, &sc->clip_table[i], link, ce_temp) {
+		LIST_FOREACH_SAFE (ce, &sc->clip_table[i], link, ce_temp) {
 			cde = ce->cde;
 			MPASS(cde->adp_ref > 0);
 			if (ce->refcount != 0 || cde->krn_ref != 0) {
@@ -538,12 +541,12 @@ update_sw_clip_table(struct adapter *sc)
 	}
 
 	for (i = 0; i <= clip_db_mask; i++) {
-		LIST_FOREACH(cde, &clip_db[i], link) {
+		LIST_FOREACH (cde, &clip_db[i], link) {
 			if (cde->krn_ref == 0)
 				continue;
 
 			found = false;
-			LIST_FOREACH(ce, &sc->clip_table[i], link) {
+			LIST_FOREACH (ce, &sc->clip_table[i], link) {
 				if (ce->cde == cde) {
 					found = true;
 					break;
@@ -577,7 +580,7 @@ update_hw_clip_table(struct adapter *sc)
 	if (rc != 0)
 		return (rc);
 	if (hw_off_limits(sc))
-		goto done;	/* with rc = 0, we don't want to reschedule. */
+		goto done; /* with rc = 0, we don't want to reschedule. */
 	while (!TAILQ_EMPTY(&sc->clip_pending)) {
 		ce = TAILQ_FIRST(&sc->clip_pending);
 		MPASS(ce->pending);
@@ -694,9 +697,9 @@ t4_destroy_clip_table(struct adapter *sc)
 
 	mtx_lock(&clip_db_lock);
 	if (sc->clip_table == NULL)
-		goto done;		/* CLIP was never initialized. */
+		goto done; /* CLIP was never initialized. */
 	for (i = 0; i <= sc->clip_mask; i++) {
-		LIST_FOREACH_SAFE(ce, &sc->clip_table[i], link, ce_temp) {
+		LIST_FOREACH_SAFE (ce, &sc->clip_table[i], link, ce_temp) {
 			MPASS(ce->refcount == 0);
 			MPASS(ce->cde->adp_ref > 0);
 #if 0
@@ -717,13 +720,12 @@ done:
 }
 
 static void
-t4_ifaddr_event(void *arg __unused, if_t ifp, struct ifaddr *ifa,
-    int event)
+t4_ifaddr_event(void *arg __unused, if_t ifp, struct ifaddr *ifa, int event)
 {
 	struct in6_addr *in6;
 
 	if (t4_clip_db_auto == 0)
-		return;		/* Automatic updates not allowed. */
+		return; /* Automatic updates not allowed. */
 	if (ifa->ifa_addr->sa_family != AF_INET6)
 		return;
 	if (if_getflags(ifp) & IFF_LOOPBACK)
@@ -754,7 +756,7 @@ sysctl_clip(SYSCTL_HANDLER_ARGS)
 
 	mtx_lock(&clip_db_lock);
 	for (i = 0; i <= sc->clip_mask; i++) {
-		LIST_FOREACH(ce, &sc->clip_table[i], link) {
+		LIST_FOREACH (ce, &sc->clip_table[i], link) {
 			if (header == 0) {
 				sbuf_printf(sb, "%-4s %-4s %s", "Indx", "Refs",
 				    "IP address");
@@ -796,7 +798,7 @@ sysctl_clip_db(SYSCTL_HANDLER_ARGS)
 
 	mtx_lock(&clip_db_lock);
 	for (i = 0; i <= clip_db_mask; i++) {
-		LIST_FOREACH(cde, &clip_db[i], link) {
+		LIST_FOREACH (cde, &clip_db[i], link) {
 			MPASS(cde->tmp_ref == 0);
 			if (header == 0) {
 				sbuf_printf(sb, "%-4s %-4s %s", "Kref", "Aref",

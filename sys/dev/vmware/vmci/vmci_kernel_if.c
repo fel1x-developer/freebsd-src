@@ -20,8 +20,8 @@
 #include "vmci_queue.h"
 
 struct vmci_queue_kernel_if {
-	size_t			num_pages;	/* Num pages incl. header. */
-	struct vmci_dma_alloc	*dmas;		/* For dma alloc. */
+	size_t num_pages;	     /* Num pages incl. header. */
+	struct vmci_dma_alloc *dmas; /* For dma alloc. */
 };
 
 /*
@@ -210,11 +210,11 @@ vmci_alloc_kernel_mem(size_t size, int flags)
 	void *ptr;
 
 	if ((flags & VMCI_MEMORY_ATOMIC) != 0)
-		ptr = contigmalloc(size, M_DEVBUF, M_NOWAIT, 0, 0xFFFFFFFF,
-		    8, 1024 * 1024);
+		ptr = contigmalloc(size, M_DEVBUF, M_NOWAIT, 0, 0xFFFFFFFF, 8,
+		    1024 * 1024);
 	else
-		ptr = contigmalloc(size, M_DEVBUF, M_WAITOK, 0, 0xFFFFFFFF,
-		    8, 1024 * 1024);
+		ptr = contigmalloc(size, M_DEVBUF, M_WAITOK, 0, 0xFFFFFFFF, 8,
+		    1024 * 1024);
 
 	return (ptr);
 }
@@ -514,8 +514,8 @@ vmci_alloc_queue(uint64_t size, uint32_t flags)
 	size_t i;
 	const size_t num_pages = CEILING(size, PAGE_SIZE) + 1;
 	const size_t dmas_size = num_pages * sizeof(struct vmci_dma_alloc);
-	const size_t queue_size =
-	    sizeof(*queue) + sizeof(*(queue->kernel_if)) + dmas_size;
+	const size_t queue_size = sizeof(*queue) + sizeof(*(queue->kernel_if)) +
+	    dmas_size;
 
 	/* Size should be enforced by vmci_qpair_alloc(), double-check here. */
 	if (size > VMCI_MAX_GUEST_QP_MEMORY) {
@@ -617,14 +617,14 @@ vmci_alloc_ppn_set(void *prod_q, uint64_t num_produce_pages, void *cons_q,
 	if (ppn_set->initialized)
 		return (VMCI_ERROR_ALREADY_EXISTS);
 
-	produce_ppns =
-	    vmci_alloc_kernel_mem(num_produce_pages * sizeof(*produce_ppns),
+	produce_ppns = vmci_alloc_kernel_mem(num_produce_pages *
+		sizeof(*produce_ppns),
 	    VMCI_MEMORY_NORMAL);
 	if (!produce_ppns)
 		return (VMCI_ERROR_NO_MEM);
 
-	consume_ppns =
-	    vmci_alloc_kernel_mem(num_consume_pages * sizeof(*consume_ppns),
+	consume_ppns = vmci_alloc_kernel_mem(num_consume_pages *
+		sizeof(*consume_ppns),
 	    VMCI_MEMORY_NORMAL);
 	if (!consume_ppns) {
 		vmci_free_kernel_mem(produce_ppns,
@@ -635,29 +635,29 @@ vmci_alloc_ppn_set(void *prod_q, uint64_t num_produce_pages, void *cons_q,
 	for (i = 0; i < num_produce_pages; i++) {
 		unsigned long pfn;
 
-		produce_ppns[i] =
-		    pfn = produce_q->kernel_if->dmas[i].dma_paddr >> PAGE_SHIFT;
+		produce_ppns[i] = pfn =
+		    produce_q->kernel_if->dmas[i].dma_paddr >> PAGE_SHIFT;
 
 		/*
 		 * Fail allocation if PFN isn't supported by hypervisor.
 		 */
 
-		if (sizeof(pfn) >
-		    sizeof(*produce_ppns) && pfn != produce_ppns[i])
+		if (sizeof(pfn) > sizeof(*produce_ppns) &&
+		    pfn != produce_ppns[i])
 			goto ppn_error;
 	}
 	for (i = 0; i < num_consume_pages; i++) {
 		unsigned long pfn;
 
-		consume_ppns[i] =
-		    pfn = consume_q->kernel_if->dmas[i].dma_paddr >> PAGE_SHIFT;
+		consume_ppns[i] = pfn =
+		    consume_q->kernel_if->dmas[i].dma_paddr >> PAGE_SHIFT;
 
 		/*
 		 * Fail allocation if PFN isn't supported by hypervisor.
 		 */
 
-		if (sizeof(pfn) >
-		    sizeof(*consume_ppns) && pfn != consume_ppns[i])
+		if (sizeof(pfn) > sizeof(*consume_ppns) &&
+		    pfn != consume_ppns[i])
 			goto ppn_error;
 	}
 
@@ -669,10 +669,10 @@ vmci_alloc_ppn_set(void *prod_q, uint64_t num_produce_pages, void *cons_q,
 	return (VMCI_SUCCESS);
 
 ppn_error:
-	vmci_free_kernel_mem(produce_ppns, num_produce_pages *
-	    sizeof(*produce_ppns));
-	vmci_free_kernel_mem(consume_ppns, num_consume_pages *
-	    sizeof(*consume_ppns));
+	vmci_free_kernel_mem(produce_ppns,
+	    num_produce_pages * sizeof(*produce_ppns));
+	vmci_free_kernel_mem(consume_ppns,
+	    num_consume_pages * sizeof(*consume_ppns));
 	return (VMCI_ERROR_INVALID_ARGS);
 }
 
@@ -702,10 +702,10 @@ vmci_free_ppn_set(struct ppn_set *ppn_set)
 		ASSERT(ppn_set->produce_ppns && ppn_set->consume_ppns);
 		vmci_free_kernel_mem(ppn_set->produce_ppns,
 		    ppn_set->num_produce_pages *
-		    sizeof(*ppn_set->produce_ppns));
+			sizeof(*ppn_set->produce_ppns));
 		vmci_free_kernel_mem(ppn_set->consume_ppns,
 		    ppn_set->num_consume_pages *
-		    sizeof(*ppn_set->consume_ppns));
+			sizeof(*ppn_set->consume_ppns));
 	}
 	memset(ppn_set, 0, sizeof(*ppn_set));
 }
@@ -734,8 +734,9 @@ vmci_populate_ppn_list(uint8_t *call_buf, const struct ppn_set *ppn_set)
 	ASSERT(call_buf && ppn_set && ppn_set->initialized);
 	memcpy(call_buf, ppn_set->produce_ppns,
 	    ppn_set->num_produce_pages * sizeof(*ppn_set->produce_ppns));
-	memcpy(call_buf + ppn_set->num_produce_pages *
-	    sizeof(*ppn_set->produce_ppns), ppn_set->consume_ppns,
+	memcpy(call_buf +
+		ppn_set->num_produce_pages * sizeof(*ppn_set->produce_ppns),
+	    ppn_set->consume_ppns,
 	    ppn_set->num_consume_pages * sizeof(*ppn_set->consume_ppns));
 
 	return (VMCI_SUCCESS);
@@ -769,7 +770,7 @@ vmci_memcpy_toiovec(struct iovec *iov, uint8_t *src, size_t len)
 			memcpy(iov->iov_base, src, to_copy);
 			src += to_copy;
 			len -= to_copy;
-			iov->iov_base = (void *)((uintptr_t) iov->iov_base +
+			iov->iov_base = (void *)((uintptr_t)iov->iov_base +
 			    to_copy);
 			iov->iov_len -= to_copy;
 		}
@@ -787,7 +788,7 @@ vmci_memcpy_fromiovec(uint8_t *dst, struct iovec *iov, size_t len)
 			memcpy(dst, iov->iov_base, to_copy);
 			dst += to_copy;
 			len -= to_copy;
-			iov->iov_base = (void *)((uintptr_t) iov->iov_base +
+			iov->iov_base = (void *)((uintptr_t)iov->iov_base +
 			    to_copy);
 			iov->iov_len -= to_copy;
 		}
@@ -821,10 +822,10 @@ __vmci_memcpy_to_queue(struct vmci_queue *queue, uint64_t queue_offset,
 	size_t bytes_copied = 0;
 
 	while (bytes_copied < size) {
-		const uint64_t page_index =
-		    (queue_offset + bytes_copied) / PAGE_SIZE;
-		const size_t page_offset =
-		    (queue_offset + bytes_copied) & (PAGE_SIZE - 1);
+		const uint64_t page_index = (queue_offset + bytes_copied) /
+		    PAGE_SIZE;
+		const size_t page_offset = (queue_offset + bytes_copied) &
+		    (PAGE_SIZE - 1);
 		void *va;
 		size_t to_copy;
 
@@ -842,8 +843,8 @@ __vmci_memcpy_to_queue(struct vmci_queue *queue, uint64_t queue_offset,
 			struct iovec *iov = (struct iovec *)src;
 
 			/* The iovec will track bytes_copied internally. */
-			vmci_memcpy_fromiovec((uint8_t *)va + page_offset,
-			    iov, to_copy);
+			vmci_memcpy_fromiovec((uint8_t *)va + page_offset, iov,
+			    to_copy);
 		} else
 			memcpy((uint8_t *)va + page_offset,
 			    (uint8_t *)src + bytes_copied, to_copy);
@@ -878,10 +879,10 @@ __vmci_memcpy_from_queue(void *dest, const struct vmci_queue *queue,
 	size_t bytes_copied = 0;
 
 	while (bytes_copied < size) {
-		const uint64_t page_index =
-		    (queue_offset + bytes_copied) / PAGE_SIZE;
-		const size_t page_offset =
-		    (queue_offset + bytes_copied) & (PAGE_SIZE - 1);
+		const uint64_t page_index = (queue_offset + bytes_copied) /
+		    PAGE_SIZE;
+		const size_t page_offset = (queue_offset + bytes_copied) &
+		    (PAGE_SIZE - 1);
 		void *va;
 		size_t to_copy;
 
@@ -899,8 +900,8 @@ __vmci_memcpy_from_queue(void *dest, const struct vmci_queue *queue,
 			struct iovec *iov = (struct iovec *)dest;
 
 			/* The iovec will track bytesCopied internally. */
-			vmci_memcpy_toiovec(iov, (uint8_t *)va +
-			    page_offset, to_copy);
+			vmci_memcpy_toiovec(iov, (uint8_t *)va + page_offset,
+			    to_copy);
 		} else
 			memcpy((uint8_t *)dest + bytes_copied,
 			    (uint8_t *)va + page_offset, to_copy);
@@ -963,8 +964,8 @@ vmci_memcpy_from_queue(void *dest, size_t dest_offset,
 
 	ASSERT(can_block);
 
-	return (__vmci_memcpy_from_queue((uint8_t *)dest + dest_offset,
-	    queue, queue_offset, size, false));
+	return (__vmci_memcpy_from_queue((uint8_t *)dest + dest_offset, queue,
+	    queue_offset, size, false));
 }
 
 /*
@@ -1020,8 +1021,8 @@ vmci_memcpy_from_queue_local(void *dest, size_t dest_offset,
 
 	ASSERT(can_block);
 
-	return (__vmci_memcpy_from_queue((uint8_t *)dest + dest_offset,
-	    queue, queue_offset, size, false));
+	return (__vmci_memcpy_from_queue((uint8_t *)dest + dest_offset, queue,
+	    queue_offset, size, false));
 }
 
 /*------------------------------------------------------------------------------
@@ -1051,8 +1052,7 @@ vmci_memcpy_to_queue_v(struct vmci_queue *queue, uint64_t queue_offset,
 	 * We ignore src_offset because src is really a struct iovec * and will
 	 * maintain offset internally.
 	 */
-	return (__vmci_memcpy_to_queue(queue, queue_offset, src, size,
-	    true));
+	return (__vmci_memcpy_to_queue(queue, queue_offset, src, size, true));
 }
 
 /*
@@ -1083,8 +1083,8 @@ vmci_memcpy_from_queue_v(void *dest, size_t dest_offset,
 	 * We ignore dest_offset because dest is really a struct iovec * and
 	 * will maintain offset internally.
 	 */
-	return (__vmci_memcpy_from_queue(dest, queue, queue_offset, size,
-	    true));
+	return (
+	    __vmci_memcpy_from_queue(dest, queue, queue_offset, size, true));
 }
 
 /*

@@ -36,9 +36,11 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 
+#include <activemap.h>
 #include <err.h>
 #include <errno.h>
 #include <libutil.h>
+#include <pjdlog.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -47,9 +49,6 @@
 #include <sysexits.h>
 #include <time.h>
 #include <unistd.h>
-
-#include <activemap.h>
-#include <pjdlog.h>
 
 #include "control.h"
 #include "event.h"
@@ -73,7 +72,7 @@ struct pidfh *pfh;
 static bool foreground;
 
 /* How often check for hooks running for too long. */
-#define	REPORT_INTERVAL	5
+#define REPORT_INTERVAL 5
 
 static void
 usage(void)
@@ -103,11 +102,11 @@ descriptors_cleanup(struct hast_resource *res)
 	struct hast_resource *tres, *tmres;
 	struct hastd_listen *lst;
 
-	TAILQ_FOREACH_SAFE(tres, &cfg->hc_resources, hr_next, tmres) {
+	TAILQ_FOREACH_SAFE (tres, &cfg->hc_resources, hr_next, tmres) {
 		if (tres == res) {
 			PJDLOG_VERIFY(res->hr_role == HAST_ROLE_SECONDARY ||
 			    (res->hr_remotein == NULL &&
-			     res->hr_remoteout == NULL));
+				res->hr_remoteout == NULL));
 			continue;
 		}
 		if (tres->hr_remotein != NULL)
@@ -205,8 +204,11 @@ descriptors_assert(const struct hast_resource *res, int pjdlogmode)
 			if (!isopen) {
 				(void)snprintf(msg, sizeof(msg),
 				    "Descriptor %d (%s) is closed, but should be open.",
-				    fd, (fd == STDIN_FILENO ? "stdin" :
-				    (fd == STDOUT_FILENO ? "stdout" : "stderr")));
+				    fd,
+				    (fd == STDIN_FILENO ?
+					    "stdin" :
+					    (fd == STDOUT_FILENO ? "stdout" :
+								   "stderr")));
 				break;
 			}
 		} else if (fd == proto_descriptor(res->hr_event)) {
@@ -311,10 +313,11 @@ child_exit_log(unsigned int pid, int status)
 		pjdlog_debug(1, "Worker process exited gracefully (pid=%u).",
 		    pid);
 	} else if (WIFSIGNALED(status)) {
-		pjdlog_error("Worker process killed (pid=%u, signal=%d).",
-		    pid, WTERMSIG(status));
+		pjdlog_error("Worker process killed (pid=%u, signal=%d).", pid,
+		    WTERMSIG(status));
 	} else {
-		pjdlog_error("Worker process exited ungracefully (pid=%u, exitcode=%d).",
+		pjdlog_error(
+		    "Worker process exited ungracefully (pid=%u, exitcode=%d).",
 		    pid, WIFEXITED(status) ? WEXITSTATUS(status) : -1);
 	}
 }
@@ -328,7 +331,7 @@ child_exit(void)
 
 	while ((pid = wait3(&status, WNOHANG, NULL)) > 0) {
 		/* Find resource related to the process that just exited. */
-		TAILQ_FOREACH(res, &cfg->hc_resources, hr_next) {
+		TAILQ_FOREACH (res, &cfg->hc_resources, hr_next) {
 			if (pid == res->hr_workerpid)
 				break;
 		}
@@ -352,13 +355,14 @@ child_exit(void)
 			 */
 			if (WIFSIGNALED(status) ||
 			    (WIFEXITED(status) &&
-			     WEXITSTATUS(status) == EX_TEMPFAIL)) {
+				WEXITSTATUS(status) == EX_TEMPFAIL)) {
 				sleep(1);
 				pjdlog_info("Restarting worker process.");
 				hastd_primary(res);
 			} else {
 				res->hr_role = HAST_ROLE_INIT;
-				pjdlog_info("Changing resource role back to %s.",
+				pjdlog_info(
+				    "Changing resource role back to %s.",
 				    role2str(res->hr_role));
 			}
 		}
@@ -501,7 +505,7 @@ hastd_reload(void)
 	 */
 	if (strcmp(cfg->hc_controladdr, newcfg->hc_controladdr) != 0) {
 		if (proto_server(newcfg->hc_controladdr,
-		    &newcfg->hc_controlconn) == -1) {
+			&newcfg->hc_controlconn) == -1) {
 			pjdlog_errno(LOG_ERR,
 			    "Unable to listen on control address %s",
 			    newcfg->hc_controladdr);
@@ -512,8 +516,8 @@ hastd_reload(void)
 	 * Check if any listen address has changed.
 	 */
 	nlisten = 0;
-	TAILQ_FOREACH(nlst, &newcfg->hc_listen, hl_next) {
-		TAILQ_FOREACH(clst, &cfg->hc_listen, hl_next) {
+	TAILQ_FOREACH (nlst, &newcfg->hc_listen, hl_next) {
+		TAILQ_FOREACH (clst, &cfg->hc_listen, hl_next) {
 			if (strcmp(nlst->hl_addr, clst->hl_addr) == 0)
 				break;
 		}
@@ -591,7 +595,7 @@ hastd_reload(void)
 	 * Switch to new listen addresses. Close all that were removed.
 	 */
 	while ((clst = TAILQ_FIRST(&cfg->hc_listen)) != NULL) {
-		TAILQ_FOREACH(nlst, &newcfg->hc_listen, hl_next) {
+		TAILQ_FOREACH (nlst, &newcfg->hc_listen, hl_next) {
 			if (strcmp(nlst->hl_addr, clst->hl_addr) == 0)
 				break;
 		}
@@ -608,8 +612,8 @@ hastd_reload(void)
 	/*
 	 * Stop and remove resources that were removed from the configuration.
 	 */
-	TAILQ_FOREACH_SAFE(cres, &cfg->hc_resources, hr_next, tres) {
-		TAILQ_FOREACH(nres, &newcfg->hc_resources, hr_next) {
+	TAILQ_FOREACH_SAFE (cres, &cfg->hc_resources, hr_next, tres) {
+		TAILQ_FOREACH (nres, &newcfg->hc_resources, hr_next) {
 			if (strcmp(cres->hr_name, nres->hr_name) == 0)
 				break;
 		}
@@ -623,8 +627,8 @@ hastd_reload(void)
 	/*
 	 * Move new resources to the current configuration.
 	 */
-	TAILQ_FOREACH_SAFE(nres, &newcfg->hc_resources, hr_next, tres) {
-		TAILQ_FOREACH(cres, &cfg->hc_resources, hr_next) {
+	TAILQ_FOREACH_SAFE (nres, &newcfg->hc_resources, hr_next, tres) {
+		TAILQ_FOREACH (cres, &cfg->hc_resources, hr_next) {
 			if (strcmp(cres->hr_name, nres->hr_name) == 0)
 				break;
 		}
@@ -656,14 +660,15 @@ hastd_reload(void)
 	 * has changed or it will update metaflush if only metaflush has
 	 * changed.
 	 */
-	TAILQ_FOREACH_SAFE(nres, &newcfg->hc_resources, hr_next, tres) {
-		TAILQ_FOREACH(cres, &cfg->hc_resources, hr_next) {
+	TAILQ_FOREACH_SAFE (nres, &newcfg->hc_resources, hr_next, tres) {
+		TAILQ_FOREACH (cres, &cfg->hc_resources, hr_next) {
 			if (strcmp(cres->hr_name, nres->hr_name) == 0)
 				break;
 		}
 		PJDLOG_ASSERT(cres != NULL);
 		if (resource_needs_restart(cres, nres)) {
-			pjdlog_info("Resource %s configuration was modified, restarting it.",
+			pjdlog_info(
+			    "Resource %s configuration was modified, restarting it.",
 			    cres->hr_name);
 			role = cres->hr_role;
 			control_set_role(cres, HAST_ROLE_INIT);
@@ -673,7 +678,8 @@ hastd_reload(void)
 			TAILQ_INSERT_TAIL(&cfg->hc_resources, nres, hr_next);
 			control_set_role(nres, role);
 		} else if (resource_needs_reload(cres, nres)) {
-			pjdlog_info("Resource %s configuration was modified, reloading it.",
+			pjdlog_info(
+			    "Resource %s configuration was modified, reloading it.",
 			    cres->hr_name);
 			strlcpy(cres->hr_remoteaddr, nres->hr_remoteaddr,
 			    sizeof(cres->hr_remoteaddr));
@@ -700,9 +706,9 @@ failed:
 			proto_close(newcfg->hc_controlconn);
 		while ((nlst = TAILQ_FIRST(&newcfg->hc_listen)) != NULL) {
 			if (nlst->hl_conn != NULL) {
-				TAILQ_FOREACH(clst, &cfg->hc_listen, hl_next) {
+				TAILQ_FOREACH (clst, &cfg->hc_listen, hl_next) {
 					if (strcmp(nlst->hl_addr,
-					    clst->hl_addr) == 0) {
+						clst->hl_addr) == 0) {
 						break;
 					}
 				}
@@ -725,10 +731,11 @@ terminate_workers(void)
 	struct hast_resource *res;
 
 	pjdlog_info("Termination signal received, exiting.");
-	TAILQ_FOREACH(res, &cfg->hc_resources, hr_next) {
+	TAILQ_FOREACH (res, &cfg->hc_resources, hr_next) {
 		if (res->hr_workerpid == 0)
 			continue;
-		pjdlog_info("Terminating worker process (resource=%s, role=%s, pid=%u).",
+		pjdlog_info(
+		    "Terminating worker process (resource=%s, role=%s, pid=%u).",
 		    res->hr_name, role2str(res->hr_role), res->hr_workerpid);
 		if (kill(res->hr_workerpid, SIGTERM) == 0)
 			continue;
@@ -774,7 +781,7 @@ listen_accept(struct hastd_listen *lst)
 	 * Before receiving any data see if remote host have access to any
 	 * resource.
 	 */
-	TAILQ_FOREACH(res, &cfg->hc_resources, hr_next) {
+	TAILQ_FOREACH (res, &cfg->hc_resources, hr_next) {
 		if (proto_address_match(conn, res->hr_remoteaddr))
 			break;
 	}
@@ -792,7 +799,8 @@ listen_accept(struct hastd_listen *lst)
 
 	resname = nv_get_string(nvin, "resource");
 	if (resname == NULL) {
-		pjdlog_error("No 'resource' field in the header received from %s.",
+		pjdlog_error(
+		    "No 'resource' field in the header received from %s.",
 		    raddr);
 		goto close;
 	}
@@ -810,7 +818,8 @@ listen_accept(struct hastd_listen *lst)
 	 * NULL token means that this is first connection.
 	 */
 	if (token != NULL && size != sizeof(res->hr_token)) {
-		pjdlog_error("Received token of invalid size from %s (expected %zu, got %zu).",
+		pjdlog_error(
+		    "Received token of invalid size from %s (expected %zu, got %zu).",
 		    raddr, sizeof(res->hr_token), size);
 		goto close;
 	}
@@ -821,14 +830,14 @@ listen_accept(struct hastd_listen *lst)
 	nverr = nv_alloc();
 
 	/* Find resource related to this connection. */
-	TAILQ_FOREACH(res, &cfg->hc_resources, hr_next) {
+	TAILQ_FOREACH (res, &cfg->hc_resources, hr_next) {
 		if (strcmp(resname, res->hr_name) == 0)
 			break;
 	}
 	/* Have we found the resource? */
 	if (res == NULL) {
-		pjdlog_error("No resource '%s' as requested by %s.",
-		    resname, raddr);
+		pjdlog_error("No resource '%s' as requested by %s.", resname,
+		    raddr);
 		nv_add_stringf(nverr, "errmsg", "Resource not configured.");
 		goto fail;
 	}
@@ -844,7 +853,8 @@ listen_accept(struct hastd_listen *lst)
 	}
 	/* Is the resource marked as secondary? */
 	if (res->hr_role != HAST_ROLE_SECONDARY) {
-		pjdlog_warning("We act as %s for the resource and not as %s as requested by %s.",
+		pjdlog_warning(
+		    "We act as %s for the resource and not as %s as requested by %s.",
 		    role2str(res->hr_role), role2str(HAST_ROLE_SECONDARY),
 		    raddr);
 		nv_add_stringf(nverr, "errmsg",
@@ -860,8 +870,8 @@ listen_accept(struct hastd_listen *lst)
 		goto fail;
 	}
 	/* Does token (if exists) match? */
-	if (token != NULL && memcmp(token, res->hr_token,
-	    sizeof(res->hr_token)) != 0) {
+	if (token != NULL &&
+	    memcmp(token, res->hr_token, sizeof(res->hr_token)) != 0) {
 		pjdlog_error("Token received from %s doesn't match.", raddr);
 		nv_add_stringf(nverr, "errmsg", "Token doesn't match.");
 		goto fail;
@@ -890,8 +900,8 @@ listen_accept(struct hastd_listen *lst)
 				 */
 			}
 			/* Wait for it to exit. */
-			else if ((pid = waitpid(res->hr_workerpid,
-			    &status, 0)) != res->hr_workerpid) {
+			else if ((pid = waitpid(res->hr_workerpid, &status,
+				      0)) != res->hr_workerpid) {
 				/* We can only log the problem. */
 				pjdlog_errno(LOG_ERR,
 				    "Waiting for worker process (pid=%u) failed",
@@ -919,7 +929,8 @@ listen_accept(struct hastd_listen *lst)
 
 	if (token == NULL) {
 		if (version > HAST_PROTO_VERSION) {
-			pjdlog_info("Remote protocol version %hhu is not supported, falling back to version %hhu.",
+			pjdlog_info(
+			    "Remote protocol version %hhu is not supported, falling back to version %hhu.",
 			    version, (unsigned char)HAST_PROTO_VERSION);
 			version = HAST_PROTO_VERSION;
 		}
@@ -928,8 +939,8 @@ listen_accept(struct hastd_listen *lst)
 		arc4random_buf(res->hr_token, sizeof(res->hr_token));
 		nvout = nv_alloc();
 		nv_add_uint8(nvout, version, "version");
-		nv_add_uint8_array(nvout, res->hr_token,
-		    sizeof(res->hr_token), "token");
+		nv_add_uint8_array(nvout, res->hr_token, sizeof(res->hr_token),
+		    "token");
 		if (nv_error(nvout) != 0) {
 			pjdlog_common(LOG_ERR, 0, nv_error(nvout),
 			    "Unable to prepare return header for %s", raddr);
@@ -997,8 +1008,9 @@ connection_migrate(struct hast_resource *res)
 		    "Unable to receive connection command");
 		return;
 	}
-	if (proto_client(res->hr_sourceaddr[0] != '\0' ? res->hr_sourceaddr : NULL,
-	    res->hr_remoteaddr, &conn) == -1) {
+	if (proto_client(res->hr_sourceaddr[0] != '\0' ? res->hr_sourceaddr :
+							 NULL,
+		res->hr_remoteaddr, &conn) == -1) {
 		val = errno;
 		pjdlog_errno(LOG_WARNING,
 		    "Unable to create outgoing connection to %s",
@@ -1083,7 +1095,7 @@ main_loop(void)
 		maxfd = fd = proto_descriptor(cfg->hc_controlconn);
 		PJDLOG_ASSERT(fd >= 0);
 		FD_SET(fd, &rfds);
-		TAILQ_FOREACH(lst, &cfg->hc_listen, hl_next) {
+		TAILQ_FOREACH (lst, &cfg->hc_listen, hl_next) {
 			if (lst->hl_conn == NULL)
 				continue;
 			fd = proto_descriptor(lst->hl_conn);
@@ -1091,7 +1103,7 @@ main_loop(void)
 			FD_SET(fd, &rfds);
 			maxfd = MAX(fd, maxfd);
 		}
-		TAILQ_FOREACH(res, &cfg->hc_resources, hr_next) {
+		TAILQ_FOREACH (res, &cfg->hc_resources, hr_next) {
 			if (res->hr_event == NULL)
 				continue;
 			fd = proto_descriptor(res->hr_event);
@@ -1138,13 +1150,13 @@ main_loop(void)
 
 		if (FD_ISSET(proto_descriptor(cfg->hc_controlconn), &rfds))
 			control_handle(cfg);
-		TAILQ_FOREACH(lst, &cfg->hc_listen, hl_next) {
+		TAILQ_FOREACH (lst, &cfg->hc_listen, hl_next) {
 			if (lst->hl_conn == NULL)
 				continue;
 			if (FD_ISSET(proto_descriptor(lst->hl_conn), &rfds))
 				listen_accept(lst);
 		}
-		TAILQ_FOREACH(res, &cfg->hc_resources, hr_next) {
+		TAILQ_FOREACH (res, &cfg->hc_resources, hr_next) {
 			if (res->hr_event == NULL)
 				continue;
 			if (FD_ISSET(proto_descriptor(res->hr_event), &rfds)) {
@@ -1162,7 +1174,7 @@ main_loop(void)
 			if (res->hr_role == HAST_ROLE_PRIMARY) {
 				PJDLOG_ASSERT(res->hr_conn != NULL);
 				if (FD_ISSET(proto_descriptor(res->hr_conn),
-				    &rfds)) {
+					&rfds)) {
 					connection_migrate(res);
 				}
 			} else {
@@ -1243,7 +1255,7 @@ main(int argc, char *argv[])
 
 	if (pidfile != NULL) {
 		if (strlcpy(cfg->hc_pidfile, pidfile,
-		    sizeof(cfg->hc_pidfile)) >= sizeof(cfg->hc_pidfile)) {
+			sizeof(cfg->hc_pidfile)) >= sizeof(cfg->hc_pidfile)) {
 			pjdlog_exitx(EX_CONFIG, "Pidfile path is too long.");
 		}
 	}
@@ -1293,7 +1305,7 @@ main(int argc, char *argv[])
 		    cfg->hc_controladdr);
 	}
 	/* Listen for remote connections. */
-	TAILQ_FOREACH(lst, &cfg->hc_listen, hl_next) {
+	TAILQ_FOREACH (lst, &cfg->hc_listen, hl_next) {
 		if (proto_server(lst->hl_addr, &lst->hl_conn) == -1) {
 			KEEP_ERRNO((void)pidfile_remove(pfh));
 			pjdlog_exit(EX_OSERR, "Unable to listen on address %s",
@@ -1326,7 +1338,7 @@ main(int argc, char *argv[])
 
 	pjdlog_debug(1, "Listening on control address %s.",
 	    cfg->hc_controladdr);
-	TAILQ_FOREACH(lst, &cfg->hc_listen, hl_next)
+	TAILQ_FOREACH (lst, &cfg->hc_listen, hl_next)
 		pjdlog_info("Listening on address %s.", lst->hl_addr);
 
 	hook_init();

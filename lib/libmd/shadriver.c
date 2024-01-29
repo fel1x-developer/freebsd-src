@@ -5,20 +5,20 @@
  *
  * Copyright (C) 1990-2, RSA Data Security, Inc. Created 1990. All rights
  * reserved.
- * 
+ *
  * RSA Data Security, Inc. makes no representations concerning either the
  * merchantability of this software or the suitability of this software for
  * any particular purpose. It is provided "as is" without express or implied
  * warranty of any kind.
- * 
+ *
  * These notices must be retained in any copies of any part of this
  * documentation and/or software. */
 
 #include <sys/types.h>
 
 #include <stdio.h>
-#include <time.h>
 #include <string.h>
+#include <time.h>
 
 #include "sha.h"
 #include "sha224.h"
@@ -60,10 +60,10 @@
 static void
 SHAString(char *string)
 {
-	char buf[2*64 + 1];
+	char buf[2 * 64 + 1];
 
-	printf("SHA-%d (\"%s\") = %s\n",
-	       SHA, string, SHA_Data(string, strlen(string), buf));
+	printf("SHA-%d (\"%s\") = %s\n", SHA, string,
+	    SHA_Data(string, strlen(string), buf));
 }
 
 /* Digests a reference suite of strings and prints the results. */

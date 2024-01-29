@@ -1,4 +1,5 @@
-/* from: FreeBSD: head/lib/msun/ld80/s_expl.c 251343 2013-06-03 19:51:32Z kargl */
+/* from: FreeBSD: head/lib/msun/ld80/s_expl.c 251343 2013-06-03 19:51:32Z kargl
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
@@ -37,29 +38,28 @@
  * about the secondary kernels.
  */
 
-#define	INTERVALS	128
-#define	LOG2_INTERVALS	7
-#define	BIAS	(LDBL_MAX_EXP - 1)
+#define INTERVALS 128
+#define LOG2_INTERVALS 7
+#define BIAS (LDBL_MAX_EXP - 1)
 
 static const double
-/*
- * ln2/INTERVALS = L1+L2 (hi+lo decomposition for multiplication).  L1 must
- * have at least 22 (= log2(|LDBL_MIN_EXP-extras|) + log2(INTERVALS)) lowest
- * bits zero so that multiplication of it by n is exact.
- */
-INV_L = 1.8466496523378731e+2,		/*  0x171547652b82fe.0p-45 */
-L1 =  5.4152123484527692e-3,		/*  0x162e42ff000000.0p-60 */
-L2 = -3.2819649005320973e-13,		/* -0x1718432a1b0e26.0p-94 */
-/*
- * Domain [-0.002708, 0.002708], range ~[-5.7136e-24, 5.7110e-24]:
- * |exp(x) - p(x)| < 2**-77.2
- * (0.002708 is ln2/(2*INTERVALS) rounded up a little).
- */
-A2 =  0.5,
-A3 =  1.6666666666666119e-1,		/*  0x15555555555490.0p-55 */
-A4 =  4.1666666666665887e-2,		/*  0x155555555554e5.0p-57 */
-A5 =  8.3333354987869413e-3,		/*  0x1111115b789919.0p-59 */
-A6 =  1.3888891738560272e-3;		/*  0x16c16c651633ae.0p-62 */
+    /*
+     * ln2/INTERVALS = L1+L2 (hi+lo decomposition for multiplication).  L1 must
+     * have at least 22 (= log2(|LDBL_MIN_EXP-extras|) + log2(INTERVALS)) lowest
+     * bits zero so that multiplication of it by n is exact.
+     */
+    INV_L = 1.8466496523378731e+2, /*  0x171547652b82fe.0p-45 */
+    L1 = 5.4152123484527692e-3,	   /*  0x162e42ff000000.0p-60 */
+    L2 = -3.2819649005320973e-13,  /* -0x1718432a1b0e26.0p-94 */
+    /*
+     * Domain [-0.002708, 0.002708], range ~[-5.7136e-24, 5.7110e-24]:
+     * |exp(x) - p(x)| < 2**-77.2
+     * (0.002708 is ln2/(2*INTERVALS) rounded up a little).
+     */
+    A2 = 0.5, A3 = 1.6666666666666119e-1, /*  0x15555555555490.0p-55 */
+    A4 = 4.1666666666665887e-2,		  /*  0x155555555554e5.0p-57 */
+    A5 = 8.3333354987869413e-3,		  /*  0x1111115b789919.0p-59 */
+    A6 = 1.3888891738560272e-3;		  /*  0x16c16c651633ae.0p-62 */
 
 /*
  * 2^(i/INTERVALS) for i in [0,INTERVALS] is represented by two values where
@@ -71,10 +71,9 @@ A6 =  1.3888891738560272e-3;		/*  0x16c16c651633ae.0p-62 */
  * converting it to long double gives 11 trailing zero bits.
  */
 static const struct {
-	double	hi;
-	double	lo;
-} tbl[INTERVALS] = {
-	{ 0x1p+0, 0x0p+0 },
+	double hi;
+	double lo;
+} tbl[INTERVALS] = { { 0x1p+0, 0x0p+0 },
 	/*
 	 * XXX hi is rounded down, and the formatting is not quite normal.
 	 * But I rather like both.  The 0x1.*p format is good for 4N+1
@@ -207,8 +206,7 @@ static const struct {
 	{ 0x1.f50765b6e4540p+0, 0x1.9d3e12dd8a18bp-54 },
 	{ 0x1.f7bfdad9cbe13p+0, 0x1.1227697fce57bp-53 },
 	{ 0x1.fa7c1819e90d8p+0, 0x1.74853f3a5931ep-55 },
-	{ 0x1.fd3c22b8f71f1p+0, 0x1.2eb74966579e7p-57 }
-};
+	{ 0x1.fd3c22b8f71f1p+0, 0x1.2eb74966579e7p-57 } };
 
 /*
  * Kernel for expl(x).  x must be finite and not tiny or huge.
@@ -223,7 +221,7 @@ __k_expl(long double x, long double *hip, long double *lop, int *kp)
 
 	/* Reduce x to (k*ln2 + endpoint[n2] + r1 + r2). */
 	fn = rnintl(x * INV_L);
-	r = x - fn * L1 - fn * L2;	/* r = r1 + r2 done independently. */
+	r = x - fn * L1 - fn * L2; /* r = r1 + r2 done independently. */
 	n = irint(fn);
 	n2 = (unsigned)n % INTERVALS;
 	/* Depend on the sign bit being propagated: */
@@ -292,7 +290,7 @@ __ldexp_cexpl(long double complex z, int expt)
 	SET_LDBL_EXPSIGN(scale2, BIAS + expt - half_expt);
 
 	sincosl(y, &s, &c);
-	return (CMPLXL(c * exp_x * scale1 * scale2,
-	    s * exp_x * scale1 * scale2));
+	return (
+	    CMPLXL(c * exp_x * scale1 * scale2, s * exp_x * scale1 * scale2));
 }
 #endif /* _COMPLEX_H */

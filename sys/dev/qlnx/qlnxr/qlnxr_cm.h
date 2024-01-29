@@ -31,64 +31,60 @@
 /* ECORE LL2 has a limit to the number of buffers it can handle.
  * FYI, OFED used 512 and 128 for recv and send.
  */
-#define QLNXR_GSI_MAX_RECV_WR	(4096)
-#define QLNXR_GSI_MAX_SEND_WR	(4096)
+#define QLNXR_GSI_MAX_RECV_WR (4096)
+#define QLNXR_GSI_MAX_SEND_WR (4096)
 
-#define QLNXR_GSI_MAX_RECV_SGE	(1)	/* LL2 FW limitation */
+#define QLNXR_GSI_MAX_RECV_SGE (1) /* LL2 FW limitation */
 
 /* future OFED/kernel will have these */
-#define ETH_P_ROCE		(0x8915)
-#define QLNXR_ROCE_V2_UDP_SPORT	(0000)
+#define ETH_P_ROCE (0x8915)
+#define QLNXR_ROCE_V2_UDP_SPORT (0000)
 
 #define rdma_wr(_wr) rdma_wr(_wr)
 #define ud_wr(_wr) ud_wr(_wr)
 #define atomic_wr(_wr) atomic_wr(_wr)
 
-static inline u32 qlnxr_get_ipv4_from_gid(u8 *gid)
+static inline u32
+qlnxr_get_ipv4_from_gid(u8 *gid)
 {
 	return *(u32 *)(void *)&gid[12];
 }
 
 struct ecore_roce_ll2_header {
-        void *vaddr;
-        dma_addr_t baddr;
-        size_t len;
+	void *vaddr;
+	dma_addr_t baddr;
+	size_t len;
 };
 
 struct ecore_roce_ll2_buffer {
-        dma_addr_t baddr;
-        size_t len;
+	dma_addr_t baddr;
+	size_t len;
 };
 
 struct ecore_roce_ll2_packet {
-        struct ecore_roce_ll2_header header;
-        int n_seg;
-        struct ecore_roce_ll2_buffer payload[RDMA_MAX_SGE_PER_SQ_WQE];
-        int roce_mode;
-        enum ecore_roce_ll2_tx_dest tx_dest;
+	struct ecore_roce_ll2_header header;
+	int n_seg;
+	struct ecore_roce_ll2_buffer payload[RDMA_MAX_SGE_PER_SQ_WQE];
+	int roce_mode;
+	enum ecore_roce_ll2_tx_dest tx_dest;
 };
 
 /* RDMA CM */
 
-extern int qlnxr_gsi_poll_cq(struct ib_cq *ibcq,
-			int num_entries,
-			struct ib_wc *wc);
+extern int qlnxr_gsi_poll_cq(struct ib_cq *ibcq, int num_entries,
+    struct ib_wc *wc);
 
-extern int qlnxr_gsi_post_recv(struct ib_qp *ibqp,
-			const struct ib_recv_wr *wr,
-			const struct ib_recv_wr **bad_wr);
+extern int qlnxr_gsi_post_recv(struct ib_qp *ibqp, const struct ib_recv_wr *wr,
+    const struct ib_recv_wr **bad_wr);
 
-extern int qlnxr_gsi_post_send(struct ib_qp *ibqp,
-			const struct ib_send_wr *wr,
-			const struct ib_send_wr **bad_wr);
+extern int qlnxr_gsi_post_send(struct ib_qp *ibqp, const struct ib_send_wr *wr,
+    const struct ib_send_wr **bad_wr);
 
-extern struct ib_qp* qlnxr_create_gsi_qp(struct qlnxr_dev *dev,
-			struct ib_qp_init_attr *attrs,
-			struct qlnxr_qp *qp);
+extern struct ib_qp *qlnxr_create_gsi_qp(struct qlnxr_dev *dev,
+    struct ib_qp_init_attr *attrs, struct qlnxr_qp *qp);
 
-extern void qlnxr_store_gsi_qp_cq(struct qlnxr_dev *dev,
-			struct qlnxr_qp *qp,
-			struct ib_qp_init_attr *attrs);
+extern void qlnxr_store_gsi_qp_cq(struct qlnxr_dev *dev, struct qlnxr_qp *qp,
+    struct ib_qp_init_attr *attrs);
 
 extern void qlnxr_inc_sw_gsi_cons(struct qlnxr_qp_hwq_info *info);
 

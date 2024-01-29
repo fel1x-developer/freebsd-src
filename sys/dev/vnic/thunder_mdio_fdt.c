@@ -33,14 +33,14 @@
 #include <sys/module.h>
 #include <sys/socket.h>
 
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-#include <dev/fdt/simplebus.h>
-
-#include <net/if.h>
-
 #include <machine/bus.h>
 #include <machine/resource.h>
+
+#include <dev/fdt/simplebus.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+
+#include <net/if.h>
 
 #include "thunder_mdio_var.h"
 
@@ -49,8 +49,8 @@ static int thunder_mdio_fdt_attach(device_t);
 
 static device_method_t thunder_mdio_fdt_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		thunder_mdio_fdt_probe),
-	DEVMETHOD(device_attach,	thunder_mdio_fdt_attach),
+	DEVMETHOD(device_probe, thunder_mdio_fdt_probe),
+	DEVMETHOD(device_attach, thunder_mdio_fdt_attach),
 
 	/* End */
 	DEVMETHOD_END
@@ -65,9 +65,8 @@ EARLY_DRIVER_MODULE(thunder_mdio, mdionexus, thunder_mdio_fdt_driver, 0, 0,
     BUS_PASS_BUS + BUS_PASS_ORDER_MIDDLE);
 
 static struct ofw_compat_data mdio_compat_data[] = {
-	{"cavium,octeon-3860-mdio",	true},
-	{"cavium,thunder-8890-mdio",	true},
-	{NULL,				false}
+	{ "cavium,octeon-3860-mdio", true },
+	{ "cavium,thunder-8890-mdio", true }, { NULL, false }
 };
 
 static int
@@ -111,26 +110,26 @@ struct mdionexus_softc {
 static device_probe_t mdionexus_fdt_probe;
 static device_attach_t mdionexus_fdt_attach;
 
-static const struct ofw_bus_devinfo * mdionexus_ofw_get_devinfo(device_t,
+static const struct ofw_bus_devinfo *mdionexus_ofw_get_devinfo(device_t,
     device_t);
 
 static device_method_t mdionexus_fdt_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		mdionexus_fdt_probe),
-	DEVMETHOD(device_attach,	mdionexus_fdt_attach),
+	DEVMETHOD(device_probe, mdionexus_fdt_probe),
+	DEVMETHOD(device_attach, mdionexus_fdt_attach),
 
 	/* Bus interface */
-	DEVMETHOD(bus_alloc_resource,		bus_generic_alloc_resource),
-	DEVMETHOD(bus_release_resource,		bus_generic_release_resource),
-	DEVMETHOD(bus_activate_resource,	bus_generic_activate_resource),
+	DEVMETHOD(bus_alloc_resource, bus_generic_alloc_resource),
+	DEVMETHOD(bus_release_resource, bus_generic_release_resource),
+	DEVMETHOD(bus_activate_resource, bus_generic_activate_resource),
 
 	/* ofw_bus interface */
-	DEVMETHOD(ofw_bus_get_devinfo,	mdionexus_ofw_get_devinfo),
-	DEVMETHOD(ofw_bus_get_compat,	ofw_bus_gen_get_compat),
-	DEVMETHOD(ofw_bus_get_model,	ofw_bus_gen_get_model),
-	DEVMETHOD(ofw_bus_get_name,	ofw_bus_gen_get_name),
-	DEVMETHOD(ofw_bus_get_node,	ofw_bus_gen_get_node),
-	DEVMETHOD(ofw_bus_get_type,	ofw_bus_gen_get_type),
+	DEVMETHOD(ofw_bus_get_devinfo, mdionexus_ofw_get_devinfo),
+	DEVMETHOD(ofw_bus_get_compat, ofw_bus_gen_get_compat),
+	DEVMETHOD(ofw_bus_get_model, ofw_bus_gen_get_model),
+	DEVMETHOD(ofw_bus_get_name, ofw_bus_gen_get_name),
+	DEVMETHOD(ofw_bus_get_node, ofw_bus_gen_get_node),
+	DEVMETHOD(ofw_bus_get_type, ofw_bus_gen_get_type),
 
 	DEVMETHOD_END
 };
@@ -172,8 +171,8 @@ mdionexus_fdt_attach(device_t dev)
 
 /* OFW bus interface */
 struct mdionexus_ofw_devinfo {
-	struct ofw_bus_devinfo	di_dinfo;
-	struct resource_list	di_rl;
+	struct ofw_bus_devinfo di_dinfo;
+	struct resource_list di_rl;
 };
 
 static const struct ofw_bus_devinfo *
@@ -209,8 +208,8 @@ mdionexus_ofw_fill_ranges(phandle_t node, struct simplebus_softc *sc)
 	if (sc->nranges == 0)
 		return (0);
 
-	sc->ranges = malloc(sc->nranges * sizeof(sc->ranges[0]),
-	    M_THUNDER_MDIO, M_WAITOK);
+	sc->ranges = malloc(sc->nranges * sizeof(sc->ranges[0]), M_THUNDER_MDIO,
+	    M_WAITOK);
 	base_ranges = malloc(nbase_ranges, M_THUNDER_MDIO, M_WAITOK);
 	OF_getencprop(node, "ranges", base_ranges, nbase_ranges);
 

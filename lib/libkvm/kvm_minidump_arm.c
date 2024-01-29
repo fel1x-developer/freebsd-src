@@ -33,9 +33,11 @@
  * ARM machine dependent routines for kvm and minidumps.
  */
 
-#include <sys/endian.h>
 #include <sys/param.h>
+#include <sys/endian.h>
+
 #include <vm/vm.h>
+
 #include <kvm.h>
 #include <limits.h>
 #include <stdint.h>
@@ -44,15 +46,14 @@
 #include <unistd.h>
 
 #include "../../sys/arm/include/minidump.h"
-
-#include "kvm_private.h"
 #include "kvm_arm.h"
+#include "kvm_private.h"
 
-#define	arm_round_page(x)	roundup2((kvaddr_t)(x), ARM_PAGE_SIZE)
+#define arm_round_page(x) roundup2((kvaddr_t)(x), ARM_PAGE_SIZE)
 
 struct vmstate {
-	struct		minidumphdr hdr;
-	unsigned char	ei_data;
+	struct minidumphdr hdr;
+	unsigned char ei_data;
 };
 
 static arm_pt_entry_t
@@ -94,21 +95,23 @@ _arm_minidump_initvtop(kvm_t *kd)
 
 	kd->vmst = vmst;
 
-	if (pread(kd->pmfd, &vmst->hdr,
-	    sizeof(vmst->hdr), 0) != sizeof(vmst->hdr)) {
+	if (pread(kd->pmfd, &vmst->hdr, sizeof(vmst->hdr), 0) !=
+	    sizeof(vmst->hdr)) {
 		_kvm_err(kd, kd->program, "cannot read dump header");
 		return (-1);
 	}
 
-	if (strncmp(MINIDUMP_MAGIC, vmst->hdr.magic,
-	    sizeof(vmst->hdr.magic)) != 0) {
+	if (strncmp(MINIDUMP_MAGIC, vmst->hdr.magic, sizeof(vmst->hdr.magic)) !=
+	    0) {
 		_kvm_err(kd, kd->program, "not a minidump for this platform");
 		return (-1);
 	}
 	vmst->hdr.version = _kvm32toh(kd, vmst->hdr.version);
 	if (vmst->hdr.version != MINIDUMP_VERSION && vmst->hdr.version != 1) {
-		_kvm_err(kd, kd->program, "wrong minidump version. "
-		    "Expected %d got %d", MINIDUMP_VERSION, vmst->hdr.version);
+		_kvm_err(kd, kd->program,
+		    "wrong minidump version. "
+		    "Expected %d got %d",
+		    MINIDUMP_VERSION, vmst->hdr.version);
 		return (-1);
 	}
 	vmst->hdr.msgbufsize = _kvm32toh(kd, vmst->hdr.msgbufsize);
@@ -122,7 +125,8 @@ _arm_minidump_initvtop(kvm_t *kd)
 		vmst->hdr.mmuformat = MINIDUMP_MMU_FORMAT_V6;
 	}
 	vmst->hdr.dumpavailsize = vmst->hdr.version == MINIDUMP_VERSION ?
-	    _kvm32toh(kd, vmst->hdr.dumpavailsize) : 0;
+	    _kvm32toh(kd, vmst->hdr.dumpavailsize) :
+	    0;
 
 	/* Skip header and msgbuf */
 	dump_avail_off = ARM_PAGE_SIZE + arm_round_page(vmst->hdr.msgbufsize);
@@ -133,7 +137,7 @@ _arm_minidump_initvtop(kvm_t *kd)
 	sparse_off = off + arm_round_page(vmst->hdr.bitmapsize) +
 	    arm_round_page(vmst->hdr.ptesize);
 	if (_kvm_pt_init(kd, vmst->hdr.dumpavailsize, dump_avail_off,
-	    vmst->hdr.bitmapsize, off, sparse_off, ARM_PAGE_SIZE) == -1) {
+		vmst->hdr.bitmapsize, off, sparse_off, ARM_PAGE_SIZE) == -1) {
 		return (-1);
 	}
 	off += arm_round_page(vmst->hdr.bitmapsize);
@@ -191,7 +195,8 @@ _arm_minidump_kvatop(kvm_t *kd, kvaddr_t va, off_t *pa)
 
 		ofs = _kvm_pt_find(kd, a, ARM_PAGE_SIZE);
 		if (ofs == -1) {
-			_kvm_err(kd, kd->program, "_arm_minidump_kvatop: "
+			_kvm_err(kd, kd->program,
+			    "_arm_minidump_kvatop: "
 			    "physical address 0x%jx not in minidump",
 			    (uintmax_t)a);
 			goto invalid;
@@ -200,8 +205,10 @@ _arm_minidump_kvatop(kvm_t *kd, kvaddr_t va, off_t *pa)
 		*pa = ofs + offset;
 		return (ARM_PAGE_SIZE - offset);
 	} else
-		_kvm_err(kd, kd->program, "_arm_minidump_kvatop: virtual "
-		    "address 0x%jx not minidumped", (uintmax_t)va);
+		_kvm_err(kd, kd->program,
+		    "_arm_minidump_kvatop: virtual "
+		    "address 0x%jx not minidumped",
+		    (uintmax_t)va);
 
 invalid:
 	_kvm_err(kd, 0, "invalid address (0x%jx)", (uintmax_t)va);
@@ -258,7 +265,7 @@ _arm_minidump_walk_pages(kvm_t *kd, kvm_walk_pages_cb_t *cb, void *arg)
 
 		dva = 0; /* no direct map on this platform */
 		if (!_kvm_visit_cb(kd, cb, arg, pa, va, dva,
-		    _arm_entry_to_prot(kd, pte), ARM_PAGE_SIZE, 0))
+			_arm_entry_to_prot(kd, pte), ARM_PAGE_SIZE, 0))
 			return (0);
 	}
 	return (1);

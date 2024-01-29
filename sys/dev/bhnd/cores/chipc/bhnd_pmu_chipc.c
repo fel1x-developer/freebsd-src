@@ -32,40 +32,38 @@
 #include <sys/cdefs.h>
 /*
  * ChipCommon attachment support for the bhnd(4) PMU driver.
- * 
+ *
  * Supports non-AOB ("Always-on Bus") devices that map the PMU register blocks
  * via the ChipCommon core, rather than vending a distinct PMU core on the
  * bhnd bus.
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/limits.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
-#include <sys/systm.h>
 
 #include <dev/bhnd/bhnd.h>
-
-#include <dev/bhnd/cores/pmu/bhnd_pmuvar.h>
 #include <dev/bhnd/cores/pmu/bhnd_pmureg.h>
+#include <dev/bhnd/cores/pmu/bhnd_pmuvar.h>
 
 #include "bhnd_chipc_if.h"
 #include "bhnd_pmu_if.h"
-
 #include "chipcvar.h"
 
 static int
 bhnd_pmu_chipc_probe(device_t dev)
 {
-	struct chipc_caps	*ccaps;
-	struct chipc_softc	*chipc_sc;
-	device_t		 chipc;
-	char			 desc[34];
-	int			 error;
-	uint32_t		 pcaps;
-	uint8_t			 rev;
+	struct chipc_caps *ccaps;
+	struct chipc_softc *chipc_sc;
+	device_t chipc;
+	char desc[34];
+	int error;
+	uint32_t pcaps;
+	uint8_t rev;
 
 	/* Look for chipc parent */
 	chipc = device_get_parent(dev);
@@ -96,8 +94,8 @@ bhnd_pmu_chipc_probe(device_t dev)
 static int
 bhnd_pmu_chipc_attach(device_t dev)
 {
-	struct chipc_softc	*chipc_sc;
-	struct bhnd_resource	*r;
+	struct chipc_softc *chipc_sc;
+	struct bhnd_resource *r;
 
 	/* Fetch core registers from ChipCommon parent */
 	chipc_sc = device_get_softc(device_get_parent(dev));
@@ -108,16 +106,16 @@ bhnd_pmu_chipc_attach(device_t dev)
 
 static device_method_t bhnd_pmu_chipc_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,			bhnd_pmu_chipc_probe),
-	DEVMETHOD(device_attach,		bhnd_pmu_chipc_attach),
+	DEVMETHOD(device_probe, bhnd_pmu_chipc_probe),
+	DEVMETHOD(device_attach, bhnd_pmu_chipc_attach),
 
 	DEVMETHOD_END
 };
 
 DEFINE_CLASS_1(bhnd_pmu, bhnd_pmu_chipc_driver, bhnd_pmu_chipc_methods,
     sizeof(struct bhnd_pmu_softc), bhnd_pmu_driver);
-EARLY_DRIVER_MODULE(bhnd_pmu_chipc, bhnd_chipc, bhnd_pmu_chipc_driver,
-    NULL, NULL, BUS_PASS_TIMER + BUS_PASS_ORDER_MIDDLE);
+EARLY_DRIVER_MODULE(bhnd_pmu_chipc, bhnd_chipc, bhnd_pmu_chipc_driver, NULL,
+    NULL, BUS_PASS_TIMER + BUS_PASS_ORDER_MIDDLE);
 
 MODULE_DEPEND(bhnd_pmu_chipc, bhnd, 1, 1, 1);
 MODULE_VERSION(bhnd_pmu_chipc, 1);

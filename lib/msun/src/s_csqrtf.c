@@ -46,7 +46,7 @@ csqrtf(float complex z)
 	if (isinf(b))
 		return (CMPLXF(INFINITY, b));
 	if (isnan(a)) {
-		t = (b - b) / (b - b);	/* raise invalid if b is not a NaN */
+		t = (b - b) / (b - b); /* raise invalid if b is not a NaN */
 		return (CMPLXF(a + 0.0L + t, a + 0.0L + t)); /* NaN + NaN i */
 	}
 	if (isinf(a)) {
@@ -62,7 +62,7 @@ csqrtf(float complex z)
 			return (CMPLXF(a, copysignf(b - b, b)));
 	}
 	if (isnan(b)) {
-		t = (a - a) / (a - a);	/* raise invalid */
+		t = (a - a) / (a - a);			     /* raise invalid */
 		return (CMPLXF(b + 0.0L + t, b + 0.0L + t)); /* NaN + NaN i */
 	}
 

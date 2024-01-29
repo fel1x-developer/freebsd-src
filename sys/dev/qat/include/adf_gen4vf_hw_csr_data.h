@@ -23,48 +23,48 @@
 #define ADF_BANK_INT_FLAG_CLEAR_MASK_GEN4 0x3
 #define ADF_RINGS_PER_INT_SRCSEL_GEN4 2
 
-#define BUILD_RING_BASE_ADDR_GEN4(addr, size)                                  \
+#define BUILD_RING_BASE_ADDR_GEN4(addr, size) \
 	((((addr) >> 6) & (0xFFFFFFFFFFFFFFFFULL << (size))) << 6)
-#define READ_CSR_RING_HEAD_GEN4VF(csr_base_addr, bank, ring)                   \
-	ADF_CSR_RD((csr_base_addr),                                            \
-		   (ADF_RING_CSR_ADDR_OFFSET_GEN4VF +                          \
-		    ADF_RING_BUNDLE_SIZE_GEN4 * (bank)) +                      \
-		       ADF_RING_CSR_RING_HEAD + ((ring) << 2))
-#define READ_CSR_RING_TAIL_GEN4VF(csr_base_addr, bank, ring)                   \
-	ADF_CSR_RD((csr_base_addr),                                            \
-		   (ADF_RING_CSR_ADDR_OFFSET_GEN4VF +                          \
-		    ADF_RING_BUNDLE_SIZE_GEN4 * (bank)) +                      \
-		       ADF_RING_CSR_RING_TAIL + ((ring) << 2))
-#define READ_CSR_E_STAT_GEN4VF(csr_base_addr, bank)                            \
-	ADF_CSR_RD((csr_base_addr),                                            \
-		   (ADF_RING_CSR_ADDR_OFFSET_GEN4VF +                          \
-		    ADF_RING_BUNDLE_SIZE_GEN4 * (bank)) +                      \
-		       ADF_RING_CSR_E_STAT)
-#define WRITE_CSR_RING_CONFIG_GEN4VF(csr_base_addr, bank, ring, value)         \
-	ADF_CSR_WR((csr_base_addr),                                            \
-		   (ADF_RING_CSR_ADDR_OFFSET_GEN4VF +                          \
-		    ADF_RING_BUNDLE_SIZE_GEN4 * (bank)) +                      \
-		       ADF_RING_CSR_RING_CONFIG_GEN4 + ((ring) << 2),          \
-		   (value))
-#define WRITE_CSR_RING_BASE_GEN4VF(csr_base_addr, bank, ring, value)           \
-	do {                                                                   \
-		struct resource *_csr_base_addr = csr_base_addr;               \
-		u32 _bank = bank;                                              \
-		u32 _ring = ring;                                              \
-		dma_addr_t _value = value;                                     \
-		u32 l_base = 0, u_base = 0;                                    \
-		l_base = (u32)((_value)&0xFFFFFFFF);                           \
-		u_base = (u32)(((_value)&0xFFFFFFFF00000000ULL) >> 32);        \
-		ADF_CSR_WR((_csr_base_addr),                                   \
-			   (ADF_RING_CSR_ADDR_OFFSET_GEN4VF +                  \
-			    ADF_RING_BUNDLE_SIZE_GEN4 * (_bank)) +             \
-			       ADF_RING_CSR_RING_LBASE_GEN4 + ((_ring) << 2),  \
-			   l_base);                                            \
-		ADF_CSR_WR((_csr_base_addr),                                   \
-			   (ADF_RING_CSR_ADDR_OFFSET_GEN4VF +                  \
-			    ADF_RING_BUNDLE_SIZE_GEN4 * (_bank)) +             \
-			       ADF_RING_CSR_RING_UBASE_GEN4 + ((_ring) << 2),  \
-			   u_base);                                            \
+#define READ_CSR_RING_HEAD_GEN4VF(csr_base_addr, bank, ring) \
+	ADF_CSR_RD((csr_base_addr),                          \
+	    (ADF_RING_CSR_ADDR_OFFSET_GEN4VF +               \
+		ADF_RING_BUNDLE_SIZE_GEN4 * (bank)) +        \
+		ADF_RING_CSR_RING_HEAD + ((ring) << 2))
+#define READ_CSR_RING_TAIL_GEN4VF(csr_base_addr, bank, ring) \
+	ADF_CSR_RD((csr_base_addr),                          \
+	    (ADF_RING_CSR_ADDR_OFFSET_GEN4VF +               \
+		ADF_RING_BUNDLE_SIZE_GEN4 * (bank)) +        \
+		ADF_RING_CSR_RING_TAIL + ((ring) << 2))
+#define READ_CSR_E_STAT_GEN4VF(csr_base_addr, bank)   \
+	ADF_CSR_RD((csr_base_addr),                   \
+	    (ADF_RING_CSR_ADDR_OFFSET_GEN4VF +        \
+		ADF_RING_BUNDLE_SIZE_GEN4 * (bank)) + \
+		ADF_RING_CSR_E_STAT)
+#define WRITE_CSR_RING_CONFIG_GEN4VF(csr_base_addr, bank, ring, value) \
+	ADF_CSR_WR((csr_base_addr),                                    \
+	    (ADF_RING_CSR_ADDR_OFFSET_GEN4VF +                         \
+		ADF_RING_BUNDLE_SIZE_GEN4 * (bank)) +                  \
+		ADF_RING_CSR_RING_CONFIG_GEN4 + ((ring) << 2),         \
+	    (value))
+#define WRITE_CSR_RING_BASE_GEN4VF(csr_base_addr, bank, ring, value)      \
+	do {                                                              \
+		struct resource *_csr_base_addr = csr_base_addr;          \
+		u32 _bank = bank;                                         \
+		u32 _ring = ring;                                         \
+		dma_addr_t _value = value;                                \
+		u32 l_base = 0, u_base = 0;                               \
+		l_base = (u32)((_value) & 0xFFFFFFFF);                    \
+		u_base = (u32)(((_value) & 0xFFFFFFFF00000000ULL) >> 32); \
+		ADF_CSR_WR((_csr_base_addr),                              \
+		    (ADF_RING_CSR_ADDR_OFFSET_GEN4VF +                    \
+			ADF_RING_BUNDLE_SIZE_GEN4 * (_bank)) +            \
+			ADF_RING_CSR_RING_LBASE_GEN4 + ((_ring) << 2),    \
+		    l_base);                                              \
+		ADF_CSR_WR((_csr_base_addr),                              \
+		    (ADF_RING_CSR_ADDR_OFFSET_GEN4VF +                    \
+			ADF_RING_BUNDLE_SIZE_GEN4 * (_bank)) +            \
+			ADF_RING_CSR_RING_UBASE_GEN4 + ((_ring) << 2),    \
+		    u_base);                                              \
 	} while (0)
 
 static inline u64
@@ -74,11 +74,11 @@ read_base_gen4vf(struct resource *csr_base_addr, u32 bank, u32 ring)
 	u64 addr;
 
 	l_base = ADF_CSR_RD(csr_base_addr,
-			    (ADF_RING_BUNDLE_SIZE_GEN4 * bank) +
-				ADF_RING_CSR_RING_LBASE_GEN4 + (ring << 2));
+	    (ADF_RING_BUNDLE_SIZE_GEN4 * bank) + ADF_RING_CSR_RING_LBASE_GEN4 +
+		(ring << 2));
 	u_base = ADF_CSR_RD(csr_base_addr,
-			    (ADF_RING_BUNDLE_SIZE_GEN4 * bank) +
-				ADF_RING_CSR_RING_UBASE_GEN4 + (ring << 2));
+	    (ADF_RING_BUNDLE_SIZE_GEN4 * bank) + ADF_RING_CSR_RING_UBASE_GEN4 +
+		(ring << 2));
 
 	addr = (u64)l_base & 0x00000000FFFFFFFFULL;
 	addr |= (u64)u_base << 32 & 0xFFFFFFFF00000000ULL;
@@ -86,63 +86,62 @@ read_base_gen4vf(struct resource *csr_base_addr, u32 bank, u32 ring)
 	return addr;
 }
 
-#define WRITE_CSR_INT_SRCSEL_GEN4VF(csr_base_addr, bank)                       \
-	ADF_CSR_WR((csr_base_addr),                                            \
-		   ADF_RING_CSR_ADDR_OFFSET_GEN4VF +                           \
-		       ADF_RING_BUNDLE_SIZE_GEN4 * (bank) +                    \
-		       ADF_RING_CSR_INT_SRCSEL,                                \
-		   ADF_BANK_INT_SRC_SEL_MASK_GEN4)
+#define WRITE_CSR_INT_SRCSEL_GEN4VF(csr_base_addr, bank)                      \
+	ADF_CSR_WR((csr_base_addr),                                           \
+	    ADF_RING_CSR_ADDR_OFFSET_GEN4VF +                                 \
+		ADF_RING_BUNDLE_SIZE_GEN4 * (bank) + ADF_RING_CSR_INT_SRCSEL, \
+	    ADF_BANK_INT_SRC_SEL_MASK_GEN4)
 
-#define READ_CSR_RING_BASE_GEN4VF(csr_base_addr, bank, ring)                   \
+#define READ_CSR_RING_BASE_GEN4VF(csr_base_addr, bank, ring) \
 	read_base_gen4vf((csr_base_addr), (bank), (ring))
 
-#define WRITE_CSR_RING_HEAD_GEN4VF(csr_base_addr, bank, ring, value)           \
-	ADF_CSR_WR((csr_base_addr),                                            \
-		   (ADF_RING_CSR_ADDR_OFFSET_GEN4VF +                          \
-		    ADF_RING_BUNDLE_SIZE_GEN4 * (bank)) +                      \
-		       ADF_RING_CSR_RING_HEAD + ((ring) << 2),                 \
-		   (value))
-#define WRITE_CSR_RING_TAIL_GEN4VF(csr_base_addr, bank, ring, value)           \
-	ADF_CSR_WR((csr_base_addr),                                            \
-		   (ADF_RING_CSR_ADDR_OFFSET_GEN4VF +                          \
-		    ADF_RING_BUNDLE_SIZE_GEN4 * (bank)) +                      \
-		       ADF_RING_CSR_RING_TAIL + ((ring) << 2),                 \
-		   (value))
-#define WRITE_CSR_INT_FLAG_GEN4VF(csr_base_addr, bank, value)                  \
-	ADF_CSR_WR((csr_base_addr),                                            \
-		   (ADF_RING_CSR_ADDR_OFFSET_GEN4VF +                          \
-		    ADF_RING_BUNDLE_SIZE_GEN4 * (bank)) +                      \
-		       ADF_RING_CSR_INT_FLAG,                                  \
-		   (value))
-#define WRITE_CSR_INT_COL_EN_GEN4VF(csr_base_addr, bank, value)                \
-	ADF_CSR_WR((csr_base_addr),                                            \
-		   (ADF_RING_CSR_ADDR_OFFSET_GEN4VF +                          \
-		    ADF_RING_BUNDLE_SIZE_GEN4 * (bank)) +                      \
-		       ADF_RING_CSR_INT_COL_EN,                                \
-		   (value))
-#define WRITE_CSR_INT_COL_CTL_GEN4VF(csr_base_addr, bank, value)               \
-	ADF_CSR_WR((csr_base_addr),                                            \
-		   (ADF_RING_CSR_ADDR_OFFSET_GEN4VF +                          \
-		    ADF_RING_BUNDLE_SIZE_GEN4 * (bank)) +                      \
-		       ADF_RING_CSR_INT_COL_CTL,                               \
-		   (value))
-#define WRITE_CSR_INT_FLAG_AND_COL_GEN4VF(csr_base_addr, bank, value)          \
-	ADF_CSR_WR((csr_base_addr),                                            \
-		   (ADF_RING_CSR_ADDR_OFFSET_GEN4VF +                          \
-		    ADF_RING_BUNDLE_SIZE_GEN4 * (bank)) +                      \
-		       ADF_RING_CSR_INT_FLAG_AND_COL,                          \
-		   (value))
-#define READ_CSR_RING_SRV_ARB_EN_GEN4VF(csr_base_addr, bank)                   \
-	ADF_CSR_RD((csr_base_addr),                                            \
-		   (ADF_RING_CSR_ADDR_OFFSET_GEN4VF +                          \
-		    ADF_RING_BUNDLE_SIZE_GEN4 * (bank)) +                      \
-		       ADF_RING_CSR_RING_SRV_ARB_EN)
-#define WRITE_CSR_RING_SRV_ARB_EN_GEN4VF(csr_base_addr, bank, value)           \
-	ADF_CSR_WR((csr_base_addr),                                            \
-		   (ADF_RING_CSR_ADDR_OFFSET_GEN4VF +                          \
-		    ADF_RING_BUNDLE_SIZE_GEN4 * (bank)) +                      \
-		       ADF_RING_CSR_RING_SRV_ARB_EN,                           \
-		   (value))
+#define WRITE_CSR_RING_HEAD_GEN4VF(csr_base_addr, bank, ring, value) \
+	ADF_CSR_WR((csr_base_addr),                                  \
+	    (ADF_RING_CSR_ADDR_OFFSET_GEN4VF +                       \
+		ADF_RING_BUNDLE_SIZE_GEN4 * (bank)) +                \
+		ADF_RING_CSR_RING_HEAD + ((ring) << 2),              \
+	    (value))
+#define WRITE_CSR_RING_TAIL_GEN4VF(csr_base_addr, bank, ring, value) \
+	ADF_CSR_WR((csr_base_addr),                                  \
+	    (ADF_RING_CSR_ADDR_OFFSET_GEN4VF +                       \
+		ADF_RING_BUNDLE_SIZE_GEN4 * (bank)) +                \
+		ADF_RING_CSR_RING_TAIL + ((ring) << 2),              \
+	    (value))
+#define WRITE_CSR_INT_FLAG_GEN4VF(csr_base_addr, bank, value) \
+	ADF_CSR_WR((csr_base_addr),                           \
+	    (ADF_RING_CSR_ADDR_OFFSET_GEN4VF +                \
+		ADF_RING_BUNDLE_SIZE_GEN4 * (bank)) +         \
+		ADF_RING_CSR_INT_FLAG,                        \
+	    (value))
+#define WRITE_CSR_INT_COL_EN_GEN4VF(csr_base_addr, bank, value) \
+	ADF_CSR_WR((csr_base_addr),                             \
+	    (ADF_RING_CSR_ADDR_OFFSET_GEN4VF +                  \
+		ADF_RING_BUNDLE_SIZE_GEN4 * (bank)) +           \
+		ADF_RING_CSR_INT_COL_EN,                        \
+	    (value))
+#define WRITE_CSR_INT_COL_CTL_GEN4VF(csr_base_addr, bank, value) \
+	ADF_CSR_WR((csr_base_addr),                              \
+	    (ADF_RING_CSR_ADDR_OFFSET_GEN4VF +                   \
+		ADF_RING_BUNDLE_SIZE_GEN4 * (bank)) +            \
+		ADF_RING_CSR_INT_COL_CTL,                        \
+	    (value))
+#define WRITE_CSR_INT_FLAG_AND_COL_GEN4VF(csr_base_addr, bank, value) \
+	ADF_CSR_WR((csr_base_addr),                                   \
+	    (ADF_RING_CSR_ADDR_OFFSET_GEN4VF +                        \
+		ADF_RING_BUNDLE_SIZE_GEN4 * (bank)) +                 \
+		ADF_RING_CSR_INT_FLAG_AND_COL,                        \
+	    (value))
+#define READ_CSR_RING_SRV_ARB_EN_GEN4VF(csr_base_addr, bank) \
+	ADF_CSR_RD((csr_base_addr),                          \
+	    (ADF_RING_CSR_ADDR_OFFSET_GEN4VF +               \
+		ADF_RING_BUNDLE_SIZE_GEN4 * (bank)) +        \
+		ADF_RING_CSR_RING_SRV_ARB_EN)
+#define WRITE_CSR_RING_SRV_ARB_EN_GEN4VF(csr_base_addr, bank, value) \
+	ADF_CSR_WR((csr_base_addr),                                  \
+	    (ADF_RING_CSR_ADDR_OFFSET_GEN4VF +                       \
+		ADF_RING_BUNDLE_SIZE_GEN4 * (bank)) +                \
+		ADF_RING_CSR_RING_SRV_ARB_EN,                        \
+	    (value))
 
 struct adf_hw_csr_info;
 void gen4vf_init_hw_csr_info(struct adf_hw_csr_info *csr_info);

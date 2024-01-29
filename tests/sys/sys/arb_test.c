@@ -27,12 +27,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <sys/types.h>
-
 #include <sys/arb.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 #include <atf-c.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 struct node {
 	ARB32_ENTRY() next;
@@ -44,8 +43,10 @@ static ARB32_HEAD(tree, node) *root;
 static int
 compare(const struct node *a, const struct node *b)
 {
-	if (a->key < b->key) return (-1);
-	else if (a->key > b->key) return (1);
+	if (a->key < b->key)
+		return (-1);
+	else if (a->key > b->key)
+		return (1);
 	return (0);
 }
 
@@ -73,7 +74,7 @@ ATF_TC_BODY(arb_test, tc)
 		tmp = ARB_GETFREE(root, next);
 		ATF_REQUIRE_MSG(tmp != NULL, "ARB_GETFREE failed");
 		do {
-			tmp->key = arc4random_uniform(MAX-MIN);
+			tmp->key = arc4random_uniform(MAX - MIN);
 			tmp->key += MIN;
 		} while (ARB_FIND(tree, root, tmp) != NULL);
 		if (i == 0)

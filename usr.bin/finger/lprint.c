@@ -36,6 +36,7 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+
 #include <ctype.h>
 #include <db.h>
 #include <err.h>
@@ -47,15 +48,16 @@
 #include <string.h>
 #include <unistd.h>
 #include <utmpx.h>
+
 #include "finger.h"
 #include "pathnames.h"
 
-#define	LINE_LEN	80
-#define	TAB_LEN		8		/* 8 spaces between tabs */
+#define LINE_LEN 80
+#define TAB_LEN 8 /* 8 spaces between tabs */
 
-static int	demi_print(char *, int);
-static void	lprint(PERSON *);
-static void     vputc(unsigned char);
+static int demi_print(char *, int);
+static void lprint(PERSON *);
+static void vputc(unsigned char);
 
 void
 lflag_print(void)
@@ -77,13 +79,12 @@ lflag_print(void)
 			putchar('\n');
 		lprint(pn);
 		if (!pplan) {
-			(void)show_text(pn->dir,
-			    _PATH_FORWARD, "Mail forwarded to");
+			(void)show_text(pn->dir, _PATH_FORWARD,
+			    "Mail forwarded to");
 			(void)show_text(pn->dir, _PATH_PROJECT, "Project");
 			if (!show_text(pn->dir, _PATH_PLAN, "Plan"))
 				(void)printf("No Plan.\n");
-			(void)show_text(pn->dir,
-			    _PATH_PUBKEY, "Public key");
+			(void)show_text(pn->dir, _PATH_PUBKEY, "Public key");
 		}
 	}
 }
@@ -109,29 +110,30 @@ lprint(PERSON *pn)
 	 *	office, office phone, home phone if available
 	 *	mail status
 	 */
-	(void)printf("Login: %-15s\t\t\tName: %s\nDirectory: %-25s",
-	    pn->name, pn->realname, pn->dir);
+	(void)printf("Login: %-15s\t\t\tName: %s\nDirectory: %-25s", pn->name,
+	    pn->realname, pn->dir);
 	(void)printf("\tShell: %-s\n", *pn->shell ? pn->shell : _PATH_BSHELL);
 
 	if (gflag)
 		goto no_gecos;
-	/*
-	 * try and print office, office phone, and home phone on one line;
-	 * if that fails, do line filling so it looks nice.
-	 */
-#define	OFFICE_TAG		"Office"
-#define	OFFICE_PHONE_TAG	"Office Phone"
+		/*
+		 * try and print office, office phone, and home phone on one
+		 * line; if that fails, do line filling so it looks nice.
+		 */
+#define OFFICE_TAG "Office"
+#define OFFICE_PHONE_TAG "Office Phone"
 	oddfield = 0;
 	if (pn->office && pn->officephone &&
-	    strlen(pn->office) + strlen(pn->officephone) +
-	    sizeof(OFFICE_TAG) + 2 <= 5 * TAB_LEN) {
-		(void)snprintf(tbuf, sizeof(tbuf), "%s: %s, %s",
-		    OFFICE_TAG, pn->office, prphone(pn->officephone));
+	    strlen(pn->office) + strlen(pn->officephone) + sizeof(OFFICE_TAG) +
+		    2 <=
+		5 * TAB_LEN) {
+		(void)snprintf(tbuf, sizeof(tbuf), "%s: %s, %s", OFFICE_TAG,
+		    pn->office, prphone(pn->officephone));
 		oddfield = demi_print(tbuf, oddfield);
 	} else {
 		if (pn->office) {
-			(void)snprintf(tbuf, sizeof(tbuf), "%s: %s",
-			    OFFICE_TAG, pn->office);
+			(void)snprintf(tbuf, sizeof(tbuf), "%s: %s", OFFICE_TAG,
+			    pn->office);
 			oddfield = demi_print(tbuf, oddfield);
 		}
 		if (pn->officephone) {
@@ -177,17 +179,18 @@ no_gecos:
 			 * idle time.  Follow with a comma if a remote login.
 			 */
 			delta = gmtime(&w->idletime);
-			if (w->idletime != -1 && (delta->tm_yday ||
-			    delta->tm_hour || delta->tm_min)) {
+			if (w->idletime != -1 &&
+			    (delta->tm_yday || delta->tm_hour ||
+				delta->tm_min)) {
 				cpr += printf("%-*s idle ",
 				    maxlen - (int)strlen(w->tty) + 1, ",");
 				if (delta->tm_yday > 0) {
 					cpr += printf("%d day%s ",
-					   delta->tm_yday,
-					   delta->tm_yday == 1 ? "" : "s");
+					    delta->tm_yday,
+					    delta->tm_yday == 1 ? "" : "s");
 				}
-				cpr += printf("%d:%02d",
-				    delta->tm_hour, delta->tm_min);
+				cpr += printf("%d:%02d", delta->tm_hour,
+				    delta->tm_min);
 				if (*w->host) {
 					putchar(',');
 					++cpr;
@@ -201,14 +204,14 @@ no_gecos:
 			tp = localtime(&w->loginat);
 			if (now - w->loginat > 86400 * 365 / 2) {
 				strftime(t, sizeof(t),
-					 d_first ? "%a %e %b %R %Y (%Z)" :
-						   "%a %b %e %R %Y (%Z)",
-					 tp);
+				    d_first ? "%a %e %b %R %Y (%Z)" :
+					      "%a %b %e %R %Y (%Z)",
+				    tp);
 			} else {
 				strftime(t, sizeof(t),
-					 d_first ? "%a %e %b %R (%Z)" :
-						   "%a %b %e %R (%Z)",
-					 tp);
+				    d_first ? "%a %e %b %R (%Z)" :
+					      "%a %b %e %R (%Z)",
+				    tp);
 			}
 			cpr = printf("Last login %s on %s", t, w->tty);
 		}
@@ -224,22 +227,19 @@ no_gecos:
 	else if (pn->mailrecv > pn->mailread) {
 		tp = localtime(&pn->mailrecv);
 		strftime(t, sizeof(t),
-			 d_first ? "%a %e %b %R %Y (%Z)" :
-				   "%a %b %e %R %Y (%Z)",
-			 tp);
+		    d_first ? "%a %e %b %R %Y (%Z)" : "%a %b %e %R %Y (%Z)",
+		    tp);
 		printf("New mail received %s\n", t);
 		tp = localtime(&pn->mailread);
 		strftime(t, sizeof(t),
-			 d_first ? "%a %e %b %R %Y (%Z)" :
-				   "%a %b %e %R %Y (%Z)",
-			 tp);
+		    d_first ? "%a %e %b %R %Y (%Z)" : "%a %b %e %R %Y (%Z)",
+		    tp);
 		printf("     Unread since %s\n", t);
 	} else {
 		tp = localtime(&pn->mailread);
 		strftime(t, sizeof(t),
-			 d_first ? "%a %e %b %R %Y (%Z)" :
-				   "%a %b %e %R %Y (%Z)",
-			 tp);
+		    d_first ? "%a %e %b %R %Y (%Z)" : "%a %b %e %R %Y (%Z)",
+		    tp);
 		printf("Mail last read %s\n", t);
 	}
 }
@@ -264,22 +264,22 @@ demi_print(char *str, int oddfield)
 		maxlen = 5 * TAB_LEN;
 		if (maxlen < lenlast)
 			maxlen = lenlast;
-		if (((((maxlen / TAB_LEN) + 1) * TAB_LEN) +
-		    lenthis) <= LINE_LEN) {
-			while(lenlast < (4 * TAB_LEN)) {
+		if (((((maxlen / TAB_LEN) + 1) * TAB_LEN) + lenthis) <=
+		    LINE_LEN) {
+			while (lenlast < (4 * TAB_LEN)) {
 				putchar('\t');
 				lenlast += TAB_LEN;
 			}
-			(void)printf("\t%s\n", str);	/* force one tab */
+			(void)printf("\t%s\n", str); /* force one tab */
 		} else {
-			(void)printf("\n%s", str);	/* go to next line */
-			oddfield = !oddfield;	/* this'll be undone below */
+			(void)printf("\n%s", str); /* go to next line */
+			oddfield = !oddfield;	   /* this'll be undone below */
 		}
 	} else
 		(void)printf("%s", str);
-	oddfield = !oddfield;			/* toggle odd/even marker */
+	oddfield = !oddfield; /* toggle odd/even marker */
 	lenlast = lenthis;
-	return(oddfield);
+	return (oddfield);
 }
 
 int
@@ -296,14 +296,14 @@ show_text(const char *directory, const char *file_name, const char *header)
 	(void)snprintf(tbuf, sizeof(tbuf), "%s/%s", directory, file_name);
 	if ((fd = open(tbuf, O_RDONLY)) < 0 || fstat(fd, &sb) ||
 	    sb.st_size == 0)
-		return(0);
+		return (0);
 
 	/* If short enough, and no newlines, show it on a single line.*/
 	if (sb.st_size <= (off_t)(LINE_LEN - strlen(header) - 5)) {
 		nr = read(fd, tbuf, sizeof(tbuf));
 		if (nr <= 0) {
 			(void)close(fd);
-			return(0);
+			return (0);
 		}
 		for (p = tbuf, cnt = nr; cnt--; ++p)
 			if (*p == '\n')
@@ -317,13 +317,12 @@ show_text(const char *directory, const char *file_name, const char *header)
 			if (lastc != '\n')
 				(void)putchar('\n');
 			(void)close(fd);
-			return(1);
-		}
-		else
+			return (1);
+		} else
 			(void)lseek(fd, 0L, SEEK_SET);
 	}
 	if ((fp = fdopen(fd, "r")) == NULL)
-		return(0);
+		return (0);
 	if (*header != '\0')
 		(void)printf("%s:\n", header);
 	while ((ch = getc(fp)) != EOF)
@@ -332,7 +331,7 @@ show_text(const char *directory, const char *file_name, const char *header)
 	if (lastc != '\n')
 		(void)putchar('\n');
 	(void)fclose(fp);
-	return(1);
+	return (1);
 }
 
 static void

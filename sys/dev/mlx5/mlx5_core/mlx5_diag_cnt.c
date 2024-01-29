@@ -87,7 +87,7 @@ done:
 	return (err);
 }
 
-#define	NUM_OF_DIAG_PARAMS 5
+#define NUM_OF_DIAG_PARAMS 5
 
 static int
 mlx5_sysctl_params(SYSCTL_HANDLER_ARGS)
@@ -120,7 +120,7 @@ mlx5_sysctl_params(SYSCTL_HANDLER_ARGS)
 
 	if (temp[0] > MLX5_CAP_DEBUG(dev, log_max_samples) ||
 	    (1U << (MLX5_CAP_DEBUG(dev, log_max_samples) - temp[0])) <
-	    diag_cnt->num_cnt_id) {
+		diag_cnt->num_cnt_id) {
 		err = ERANGE;
 		goto done;
 	} else if (temp[1] < MLX5_CAP_DEBUG(dev, log_min_sample_period)) {
@@ -156,13 +156,12 @@ decode_cnt_buffer(u32 num_of_samples, u8 *out, struct sbuf *sbuf)
 	u32 i;
 
 	for (i = 0; i != num_of_samples; i++) {
-		cnt = MLX5_ADDR_OF(query_diagnostic_counters_out,
-		    out, diag_counter[i]);
+		cnt = MLX5_ADDR_OF(query_diagnostic_counters_out, out,
+		    diag_counter[i]);
 		temp = MLX5_GET(diagnostic_cntr_struct, cnt, counter_value_h);
 		temp = (temp << 32) |
 		    MLX5_GET(diagnostic_cntr_struct, cnt, counter_value_l);
-		sbuf_printf(sbuf,
-		    "0x%04x,0x%04x,0x%08x,0x%016llx\n",
+		sbuf_printf(sbuf, "0x%04x,0x%04x,0x%08x,0x%016llx\n",
 		    MLX5_GET(diagnostic_cntr_struct, cnt, counter_id),
 		    MLX5_GET(diagnostic_cntr_struct, cnt, sample_id),
 		    MLX5_GET(diagnostic_cntr_struct, cnt, time_stamp_31_0),
@@ -223,11 +222,13 @@ mlx5_sysctl_dump_get(SYSCTL_HANDLER_ARGS)
 	if (diag_cnt->ready != 0) {
 		err = -mlx5_diag_query_counters(dev, &out);
 		if (err) {
-			sbuf_printf(&sbuf, "\nCould not query counters: %d\n", err);
+			sbuf_printf(&sbuf, "\nCould not query counters: %d\n",
+			    err);
 		} else {
 			sbuf_printf(&sbuf, "\n");
 			decode_cnt_buffer(diag_cnt->num_of_samples *
-			    diag_cnt->num_cnt_id, out, &sbuf);
+				diag_cnt->num_cnt_id,
+			    out, &sbuf);
 			kfree(out);
 		}
 	} else {
@@ -270,10 +271,8 @@ mlx5_sysctl_cap_read(SYSCTL_HANDLER_ARGS)
 	    MLX5_CAP_DEBUG(dev, log_max_samples));
 	sbuf_printf(&sbuf, "log_min_sample_period=%d\n",
 	    MLX5_CAP_DEBUG(dev, log_min_sample_period));
-	sbuf_printf(&sbuf, "repetitive=%d\n",
-	    MLX5_CAP_DEBUG(dev, repetitive));
-	sbuf_printf(&sbuf, "single=%d\n",
-	    MLX5_CAP_DEBUG(dev, single));
+	sbuf_printf(&sbuf, "repetitive=%d\n", MLX5_CAP_DEBUG(dev, repetitive));
+	sbuf_printf(&sbuf, "single=%d\n", MLX5_CAP_DEBUG(dev, single));
 	sbuf_printf(&sbuf, "num_of_diagnostic_counters=%d\n",
 	    MLX5_CAP_GEN(dev, num_of_diagnostic_counters));
 
@@ -304,8 +303,8 @@ get_supported_cnt_ids(struct mlx5_core_dev *dev)
 		return (-ENOMEM);
 
 	for (i = 0; i != num_counters; i++) {
-		diag_cnt->cnt_id[i].id =
-		    MLX5_CAP_DEBUG(dev, diagnostic_counter[i].counter_id);
+		diag_cnt->cnt_id[i].id = MLX5_CAP_DEBUG(dev,
+		    diagnostic_counter[i].counter_id);
 	}
 	return (0);
 }
@@ -356,7 +355,7 @@ reset_params(struct mlx5_diag_cnt *diag_cnt)
 int
 mlx5_diag_set_params(struct mlx5_core_dev *dev)
 {
-	u8 out[MLX5_ST_SZ_BYTES(set_diagnostic_params_out)] = {0};
+	u8 out[MLX5_ST_SZ_BYTES(set_diagnostic_params_out)] = { 0 };
 	struct mlx5_diag_cnt *diag_cnt = &dev->diag_cnt;
 	void *cnt_id;
 	void *ctx;
@@ -378,8 +377,7 @@ mlx5_diag_set_params(struct mlx5_core_dev *dev)
 	MLX5_SET(set_diagnostic_params_in, in, opcode,
 	    MLX5_CMD_OP_SET_DIAGNOSTICS);
 
-	ctx = MLX5_ADDR_OF(set_diagnostic_params_in, in,
-	    diagnostic_params_ctx);
+	ctx = MLX5_ADDR_OF(set_diagnostic_params_in, in, diagnostic_params_ctx);
 	MLX5_SET(diagnostic_params_context, ctx, num_of_counters,
 	    diag_cnt->num_cnt_id);
 	MLX5_SET(diagnostic_params_context, ctx, log_num_of_samples,
@@ -400,10 +398,11 @@ mlx5_diag_set_params(struct mlx5_core_dev *dev)
 	MLX5_SET(diagnostic_params_context, ctx, log_sample_period,
 	    diag_cnt->log_sample_period);
 
-	for (i = j = 0; i != MLX5_CAP_GEN(dev, num_of_diagnostic_counters); i++) {
+	for (i = j = 0; i != MLX5_CAP_GEN(dev, num_of_diagnostic_counters);
+	     i++) {
 		if (diag_cnt->cnt_id[i].enabled) {
-			cnt_id = MLX5_ADDR_OF(diagnostic_params_context,
-			    ctx, counter_id[j]);
+			cnt_id = MLX5_ADDR_OF(diagnostic_params_context, ctx,
+			    counter_id[j]);
 			MLX5_SET(counter_id, cnt_id, counter_id,
 			    diag_cnt->cnt_id[i].id);
 			j++;
@@ -420,7 +419,7 @@ mlx5_diag_set_params(struct mlx5_core_dev *dev)
 int
 mlx5_diag_query_params(struct mlx5_core_dev *dev)
 {
-	u8 in[MLX5_ST_SZ_BYTES(query_diagnostic_params_in)] = {0};
+	u8 in[MLX5_ST_SZ_BYTES(query_diagnostic_params_in)] = { 0 };
 	struct mlx5_diag_cnt *diag_cnt = &dev->diag_cnt;
 	void *cnt_id;
 	u16 out_sz;
@@ -457,12 +456,11 @@ mlx5_diag_query_params(struct mlx5_core_dev *dev)
 	mlx5_core_dbg(dev, "enable=%x\n",
 	    MLX5_GET(diagnostic_params_context, ctx, enable));
 	mlx5_core_dbg(dev, "log_sample_period=%x\n",
-	    MLX5_GET(diagnostic_params_context, ctx,
-	    log_sample_period));
+	    MLX5_GET(diagnostic_params_context, ctx, log_sample_period));
 
 	for (i = 0; i != diag_cnt->num_cnt_id; i++) {
-		cnt_id = MLX5_ADDR_OF(diagnostic_params_context,
-		    ctx, counter_id[i]);
+		cnt_id = MLX5_ADDR_OF(diagnostic_params_context, ctx,
+		    counter_id[i]);
 		mlx5_core_dbg(dev, "counter_id[%d]=%x\n", i,
 		    MLX5_GET(counter_id, cnt_id, counter_id));
 	}
@@ -474,7 +472,7 @@ out:
 int
 mlx5_diag_query_counters(struct mlx5_core_dev *dev, u8 **out_buffer)
 {
-	u8 in[MLX5_ST_SZ_BYTES(query_diagnostic_counters_in)] = {0};
+	u8 in[MLX5_ST_SZ_BYTES(query_diagnostic_counters_in)] = { 0 };
 	struct mlx5_diag_cnt *diag_cnt = &dev->diag_cnt;
 	u16 out_sz;
 	u8 *out;
@@ -482,7 +480,7 @@ mlx5_diag_query_counters(struct mlx5_core_dev *dev, u8 **out_buffer)
 
 	out_sz = MLX5_ST_SZ_BYTES(query_diagnostic_counters_out) +
 	    diag_cnt->num_of_samples * diag_cnt->num_cnt_id *
-	    MLX5_ST_SZ_BYTES(diagnostic_cntr_struct);
+		MLX5_ST_SZ_BYTES(diagnostic_cntr_struct);
 
 	out = kzalloc(out_sz, GFP_KERNEL);
 	if (!out)
@@ -532,29 +530,32 @@ mlx5_diag_cnt_init(struct mlx5_core_dev *dev)
 	if (diag_cnt_sysctl_node == NULL)
 		return (-ENOMEM);
 
-	SYSCTL_ADD_PROC(&diag_cnt->sysctl_ctx, SYSCTL_CHILDREN(diag_cnt_sysctl_node),
-	    OID_AUTO, "counter_id", CTLTYPE_U16 | CTLFLAG_RW | CTLFLAG_MPSAFE,
-	    dev, 0, mlx5_sysctl_counter_id, "SU", "Selected counter IDs");
+	SYSCTL_ADD_PROC(&diag_cnt->sysctl_ctx,
+	    SYSCTL_CHILDREN(diag_cnt_sysctl_node), OID_AUTO, "counter_id",
+	    CTLTYPE_U16 | CTLFLAG_RW | CTLFLAG_MPSAFE, dev, 0,
+	    mlx5_sysctl_counter_id, "SU", "Selected counter IDs");
 
-	SYSCTL_ADD_PROC(&diag_cnt->sysctl_ctx, SYSCTL_CHILDREN(diag_cnt_sysctl_node),
-	    OID_AUTO, "params", CTLTYPE_U32 | CTLFLAG_RW | CTLFLAG_MPSAFE,
-	    dev, 0, mlx5_sysctl_params, "IU",
+	SYSCTL_ADD_PROC(&diag_cnt->sysctl_ctx,
+	    SYSCTL_CHILDREN(diag_cnt_sysctl_node), OID_AUTO, "params",
+	    CTLTYPE_U32 | CTLFLAG_RW | CTLFLAG_MPSAFE, dev, 0,
+	    mlx5_sysctl_params, "IU",
 	    "Counter parameters: log_num_of_samples, log_sample_perios, flag, num_of_samples, sample_index");
 
-	SYSCTL_ADD_PROC(&diag_cnt->sysctl_ctx, SYSCTL_CHILDREN(diag_cnt_sysctl_node),
-	    OID_AUTO, "dump_set", CTLTYPE_U8 | CTLFLAG_RW | CTLFLAG_MPSAFE,
-	    dev, 0, mlx5_sysctl_dump_set, "CU",
+	SYSCTL_ADD_PROC(&diag_cnt->sysctl_ctx,
+	    SYSCTL_CHILDREN(diag_cnt_sysctl_node), OID_AUTO, "dump_set",
+	    CTLTYPE_U8 | CTLFLAG_RW | CTLFLAG_MPSAFE, dev, 0,
+	    mlx5_sysctl_dump_set, "CU",
 	    "Set dump parameters by writing 1 and enable dump_get. Write 0 to disable dump.");
 
-	SYSCTL_ADD_PROC(&diag_cnt->sysctl_ctx, SYSCTL_CHILDREN(diag_cnt_sysctl_node),
-	    OID_AUTO, "dump_get", CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE,
-	    dev, 0, mlx5_sysctl_dump_get, "A",
-	    "Get dump parameters.");
+	SYSCTL_ADD_PROC(&diag_cnt->sysctl_ctx,
+	    SYSCTL_CHILDREN(diag_cnt_sysctl_node), OID_AUTO, "dump_get",
+	    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, dev, 0,
+	    mlx5_sysctl_dump_get, "A", "Get dump parameters.");
 
-	SYSCTL_ADD_PROC(&diag_cnt->sysctl_ctx, SYSCTL_CHILDREN(diag_cnt_sysctl_node),
-	    OID_AUTO, "cap", CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE,
-	    dev, 0, mlx5_sysctl_cap_read, "A",
-	    "Read capabilities.");
+	SYSCTL_ADD_PROC(&diag_cnt->sysctl_ctx,
+	    SYSCTL_CHILDREN(diag_cnt_sysctl_node), OID_AUTO, "cap",
+	    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, dev, 0,
+	    mlx5_sysctl_cap_read, "A", "Read capabilities.");
 
 	return (0);
 }

@@ -25,7 +25,7 @@
 
 #ifndef _LOCALE_T_DEFINED
 #define _LOCALE_T_DEFINED
-typedef struct	_xlocale *locale_t;
+typedef struct _xlocale *locale_t;
 #endif
 
 /*
@@ -40,6 +40,6 @@ typedef struct	_xlocale *locale_t;
 /*
  * POSIX2008 functions
  */
-int	 strcasecmp_l(const char *, const char *, locale_t);
-int	 strncasecmp_l(const char *, const char *, size_t, locale_t);
+int strcasecmp_l(const char *, const char *, locale_t);
+int strncasecmp_l(const char *, const char *, size_t, locale_t);
 #endif /* _XLOCALE_STRINGS1_H */

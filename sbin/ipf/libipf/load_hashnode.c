@@ -7,16 +7,17 @@
  * $Id$
  */
 
-#include <fcntl.h>
 #include <sys/ioctl.h>
-#include "ipf.h"
-#include "netinet/ip_lookup.h"
-#include "netinet/ip_htable.h"
 
+#include <fcntl.h>
+
+#include "ipf.h"
+#include "netinet/ip_htable.h"
+#include "netinet/ip_lookup.h"
 
 int
 load_hashnode(int unit, char *name, iphtent_t *node, int ttl,
-	ioctlfunc_t iocfunc)
+    ioctlfunc_t iocfunc)
 {
 	iplookupop_t op;
 	iphtent_t ipe;
@@ -37,11 +38,11 @@ load_hashnode(int unit, char *name, iphtent_t *node, int ttl,
 	ipe.ipe_family = node->ipe_family;
 	ipe.ipe_die = ttl;
 	bcopy((char *)&node->ipe_addr, (char *)&ipe.ipe_addr,
-	      sizeof(ipe.ipe_addr));
+	    sizeof(ipe.ipe_addr));
 	bcopy((char *)&node->ipe_mask, (char *)&ipe.ipe_mask,
-	      sizeof(ipe.ipe_mask));
+	    sizeof(ipe.ipe_mask));
 	bcopy((char *)&node->ipe_group, (char *)&ipe.ipe_group,
-	      sizeof(ipe.ipe_group));
+	    sizeof(ipe.ipe_group));
 
 	if ((opts & OPT_REMOVE) == 0) {
 		what = "add";
@@ -55,7 +56,8 @@ load_hashnode(int unit, char *name, iphtent_t *node, int ttl,
 		if (!(opts & OPT_DONOTHING)) {
 			char msg[80];
 
-			snprintf(msg, sizeof(msg), "%s node from lookup hash table", what);
+			snprintf(msg, sizeof(msg),
+			    "%s node from lookup hash table", what);
 			return (ipf_perror_fd(pool_fd(), iocfunc, msg));
 		}
 	return (0);

@@ -52,7 +52,8 @@ test(void)
 
 	for (i = 0; i < 64 && done_testing == 0; i++) {
 		if (system("sysctl -a > /dev/null 2>&1") == -1)
-			err(1, "system(\"sysctl -a\"), %s:%d", __FILE__, __LINE__);
+			err(1, "system(\"sysctl -a\"), %s:%d", __FILE__,
+			    __LINE__);
 
 		if (system("fstat > /dev/null 2>&1") == -1)
 			err(1, "system(\"fstat\"), %s:%d", __FILE__, __LINE__);
@@ -60,4 +61,3 @@ test(void)
 	}
 	return (0);
 }
-

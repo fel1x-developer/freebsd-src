@@ -26,9 +26,9 @@
 #include <sys/param.h>
 #include <sys/endian.h>
 
-#include "stand.h"
 #include "host_syscall.h"
 #include "kboot.h"
+#include "stand.h"
 
 struct region_desc {
 	uint64_t start;
@@ -41,8 +41,9 @@ struct region_desc {
  * This excludes ranges that are marked as reserved.
  * And 0..end of kernel
  *
- * It then tries to find the memory exposed from the DTB, which it assumes is one
- * contiguous range. It adds everything not in that list to the excluded list.
+ * It then tries to find the memory exposed from the DTB, which it assumes is
+ * one contiguous range. It adds everything not in that list to the excluded
+ * list.
  *
  * Sort, dedup, and it finds the first region and uses that as the load_segment
  * and returns that. All addresses are offset by this amount.
@@ -66,28 +67,34 @@ kboot_get_phys_load_segment(void)
 		load_segment = 0UL;
 
 		/* Read reserved regions */
-		fd = host_open("/proc/device-tree/reserved-ranges", O_RDONLY, 0);
+		fd = host_open("/proc/device-tree/reserved-ranges", O_RDONLY,
+		    0);
 		if (fd >= 0) {
-			while (host_read(fd, &entry[0], sizeof(entry)) == sizeof(entry)) {
-				rsvd_reg[rsvd_reg_cnt].start = be64toh(entry[0]);
-				rsvd_reg[rsvd_reg_cnt].end =
-				    be64toh(entry[1]) + rsvd_reg[rsvd_reg_cnt].start - 1;
+			while (host_read(fd, &entry[0], sizeof(entry)) ==
+			    sizeof(entry)) {
+				rsvd_reg[rsvd_reg_cnt].start = be64toh(
+				    entry[0]);
+				rsvd_reg[rsvd_reg_cnt].end = be64toh(entry[1]) +
+				    rsvd_reg[rsvd_reg_cnt].start - 1;
 				rsvd_reg_cnt++;
 			}
 			host_close(fd);
 		}
 		/* Read where the kernel ends */
-		fd = host_open("/proc/device-tree/chosen/linux,kernel-end", O_RDONLY, 0);
+		fd = host_open("/proc/device-tree/chosen/linux,kernel-end",
+		    O_RDONLY, 0);
 		if (fd >= 0) {
 			ret = host_read(fd, &val_64, sizeof(val_64));
 
 			if (ret == sizeof(uint64_t)) {
 				rsvd_reg[rsvd_reg_cnt].start = 0;
-				rsvd_reg[rsvd_reg_cnt].end = be64toh(val_64) - 1;
+				rsvd_reg[rsvd_reg_cnt].end = be64toh(val_64) -
+				    1;
 			} else {
 				memcpy(&val_32, &val_64, sizeof(val_32));
 				rsvd_reg[rsvd_reg_cnt].start = 0;
-				rsvd_reg[rsvd_reg_cnt].end = be32toh(val_32) - 1;
+				rsvd_reg[rsvd_reg_cnt].end = be32toh(val_32) -
+				    1;
 			}
 			rsvd_reg_cnt++;
 
@@ -96,7 +103,8 @@ kboot_get_phys_load_segment(void)
 		/* Read memory size (SOCKET0 only) */
 		fd = host_open("/proc/device-tree/memory@0/reg", O_RDONLY, 0);
 		if (fd < 0)
-			fd = host_open("/proc/device-tree/memory/reg", O_RDONLY, 0);
+			fd = host_open("/proc/device-tree/memory/reg", O_RDONLY,
+			    0);
 		if (fd >= 0) {
 			ret = host_read(fd, &entry, sizeof(entry));
 
@@ -112,8 +120,10 @@ kboot_get_phys_load_segment(void)
 			}
 			/* Reserve everything what is after end */
 			if (entry[1] != 0xffffffffffffffffUL) {
-				rsvd_reg[rsvd_reg_cnt].start = entry[0] + entry[1];
-				rsvd_reg[rsvd_reg_cnt].end = 0xffffffffffffffffUL;
+				rsvd_reg[rsvd_reg_cnt].start = entry[0] +
+				    entry[1];
+				rsvd_reg[rsvd_reg_cnt].end =
+				    0xffffffffffffffffUL;
 				rsvd_reg_cnt++;
 			}
 
@@ -133,13 +143,13 @@ kboot_get_phys_load_segment(void)
 		}
 
 		/* Join overlapping/adjacent regions */
-		for (a = 0; a < rsvd_reg_cnt - 1; ) {
+		for (a = 0; a < rsvd_reg_cnt - 1;) {
 
 			if ((rsvd_reg[a + 1].start >= rsvd_reg[a].start) &&
 			    ((rsvd_reg[a + 1].start - 1) <= rsvd_reg[a].end)) {
 				/* We have overlapping/adjacent regions! */
-				rsvd_reg[a].end =
-				    MAX(rsvd_reg[a].end, rsvd_reg[a + a].end);
+				rsvd_reg[a].end = MAX(rsvd_reg[a].end,
+				    rsvd_reg[a + a].end);
 
 				for (b = a + 1; b < rsvd_reg_cnt - 1; b++)
 					rsvd_reg[b] = rsvd_reg[b + 1];
@@ -162,7 +172,7 @@ kboot_get_phys_load_segment(void)
 			}
 
 			if (start != end) {
-				uint64_t align = 64UL*1024UL*1024UL;
+				uint64_t align = 64UL * 1024UL * 1024UL;
 
 				/* Align both to 64MB boundary */
 				start = (start + align - 1UL) & ~(align - 1UL);
@@ -210,7 +220,8 @@ kboot_get_kernel_machine_bits(void)
 #endif
 
 /* Need to transition from current hacky FDT way to this code */
-bool enumerate_memory_arch(void)
+bool
+enumerate_memory_arch(void)
 {
 	/*
 	 * For now, we dig it out of the FDT, plus we need to pass all data into

@@ -61,11 +61,11 @@
 
 #if !defined(DISABLE_SATI_REPORT_LUNS)
 
-#include <dev/isci/scil/sati_report_luns.h>
-#include <dev/isci/scil/sati_callbacks.h>
-#include <dev/isci/scil/sati_util.h>
 #include <dev/isci/scil/intel_ata.h>
 #include <dev/isci/scil/intel_scsi.h>
+#include <dev/isci/scil/sati_callbacks.h>
+#include <dev/isci/scil/sati_report_luns.h>
+#include <dev/isci/scil/sati_util.h>
 
 /**
  * @brief This method will translate the REPORT LUN SCSI command.  This
@@ -78,47 +78,43 @@
  * @return This method always indicates the translation is complete.
  * @retval SATI_COMPLETE This value is always returned.
  */
-SATI_STATUS sati_report_luns_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-)
+SATI_STATUS
+sati_report_luns_translate_command(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io)
 {
-   U8 * cdb = sati_cb_get_cdb_address(scsi_io);
+	U8 *cdb = sati_cb_get_cdb_address(scsi_io);
 
-   // Set the data length based on the allocation length field in the CDB.
-   sequence->allocation_length = (sati_get_cdb_byte(cdb, 6) << 24) |
-                                 (sati_get_cdb_byte(cdb, 7) << 16) |
-                                 (sati_get_cdb_byte(cdb, 8) << 8)  |
-                                 (sati_get_cdb_byte(cdb, 9));
+	// Set the data length based on the allocation length field in the CDB.
+	sequence->allocation_length = (sati_get_cdb_byte(cdb, 6) << 24) |
+	    (sati_get_cdb_byte(cdb, 7) << 16) |
+	    (sati_get_cdb_byte(cdb, 8) << 8) | (sati_get_cdb_byte(cdb, 9));
 
-   // The first 4 bytes indicate the length of the LUN list.  Each
-   // LUN entry is 8 bytes.  There is only ever LUN 0 for ATA/ATAPI
-   // devices.  The value reported is: n-7, where n is the last byte
-   // offset (i.e. 15) in the REPORT LUN data.
-   sati_set_data_byte(sequence, scsi_io, 0, 0);
-   sati_set_data_byte(sequence, scsi_io, 1, 0);
-   sati_set_data_byte(sequence, scsi_io, 2, 0);
-   sati_set_data_byte(sequence, scsi_io, 3, 8);
+	// The first 4 bytes indicate the length of the LUN list.  Each
+	// LUN entry is 8 bytes.  There is only ever LUN 0 for ATA/ATAPI
+	// devices.  The value reported is: n-7, where n is the last byte
+	// offset (i.e. 15) in the REPORT LUN data.
+	sati_set_data_byte(sequence, scsi_io, 0, 0);
+	sati_set_data_byte(sequence, scsi_io, 1, 0);
+	sati_set_data_byte(sequence, scsi_io, 2, 0);
+	sati_set_data_byte(sequence, scsi_io, 3, 8);
 
-   // Bytes 4-7 are reserved.
-   sati_set_data_byte(sequence, scsi_io, 4, 0);
-   sati_set_data_byte(sequence, scsi_io, 5, 0);
-   sati_set_data_byte(sequence, scsi_io, 6, 0);
-   sati_set_data_byte(sequence, scsi_io, 7, 0);
+	// Bytes 4-7 are reserved.
+	sati_set_data_byte(sequence, scsi_io, 4, 0);
+	sati_set_data_byte(sequence, scsi_io, 5, 0);
+	sati_set_data_byte(sequence, scsi_io, 6, 0);
+	sati_set_data_byte(sequence, scsi_io, 7, 0);
 
-   // Add in our single LUN of zero.
-   sati_set_data_byte(sequence, scsi_io, 8, 0);
-   sati_set_data_byte(sequence, scsi_io, 9, 0);
-   sati_set_data_byte(sequence, scsi_io, 10, 0);
-   sati_set_data_byte(sequence, scsi_io, 11, 0);
-   sati_set_data_byte(sequence, scsi_io, 12, 0);
-   sati_set_data_byte(sequence, scsi_io, 13, 0);
-   sati_set_data_byte(sequence, scsi_io, 14, 0);
-   sati_set_data_byte(sequence, scsi_io, 15, 0);
+	// Add in our single LUN of zero.
+	sati_set_data_byte(sequence, scsi_io, 8, 0);
+	sati_set_data_byte(sequence, scsi_io, 9, 0);
+	sati_set_data_byte(sequence, scsi_io, 10, 0);
+	sati_set_data_byte(sequence, scsi_io, 11, 0);
+	sati_set_data_byte(sequence, scsi_io, 12, 0);
+	sati_set_data_byte(sequence, scsi_io, 13, 0);
+	sati_set_data_byte(sequence, scsi_io, 14, 0);
+	sati_set_data_byte(sequence, scsi_io, 15, 0);
 
-   return SATI_COMPLETE;
+	return SATI_COMPLETE;
 }
 
 #endif // !defined(DISABLE_SATI_REPORT_LUNS)
-

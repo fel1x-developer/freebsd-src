@@ -22,29 +22,29 @@
 #include <sys/tree.h>
 
 #include <netinet/in.h>
-#include <arpa/inet.h>
 
+#include <arpa/inet.h>
 #include <errno.h>
 #include <event.h>
 #include <fcntl.h>
-#include <unistd.h>
+#include <limits.h>
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <limits.h>
+#include <unistd.h>
 
 #include "ypldap.h"
 
 void
 flatten_entries(struct env *env)
 {
-	size_t		 len;
-	char		*linep;
-	char		*endp;
-	char		*tmp;
-	struct userent	*ue;
-	struct groupent	*ge;
+	size_t len;
+	char *linep;
+	char *endp;
+	char *tmp;
+	struct userent *ue;
+	struct groupent *ge;
 
 	log_debug("flattening trees");
 	/*
@@ -62,7 +62,7 @@ flatten_entries(struct env *env)
 	}
 	endp = linep;
 
-	RB_FOREACH(ue, user_name_tree, env->sc_user_names) {
+	RB_FOREACH (ue, user_name_tree, env->sc_user_names) {
 		/*
 		 * we convert the first nul back to a column,
 		 * copy the string and then convert it back to a nul.
@@ -97,7 +97,7 @@ flatten_entries(struct env *env)
 		fatal("out of memory");
 	}
 	endp = linep;
-	RB_FOREACH(ge, group_name_tree, env->sc_group_names) {
+	RB_FOREACH (ge, group_name_tree, env->sc_group_names) {
 		/*
 		 * we convert the first nul back to a column,
 		 * copy the string and then convert it back to a nul.

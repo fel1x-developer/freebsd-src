@@ -42,9 +42,9 @@
  * define only a subset of the functions (which will then not set the _STDLIB_H
  * macro). libnetbsd stdlib.h can only be included once so this will not work.
  */
-#include <stdlib.h>
-
 #include <sys/cdefs.h>
+
+#include <stdlib.h>
 
 __BEGIN_DECLS
 #if !defined(__GLIBC__) || \

@@ -37,7 +37,6 @@
 #include <sys/mman.h>
 
 #include <crypto/cryptodev.h>
-
 #include <err.h>
 #include <fcntl.h>
 #include <stdlib.h>

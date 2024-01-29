@@ -30,7 +30,9 @@
  */
 
 #include <sys/types.h>
+
 #include <signal.h>
+
 #include "libc_private.h"
 
 __weak_reference(__sys_sigprocmask, __sigprocmask);
@@ -42,5 +44,5 @@ sigprocmask(int how, const sigset_t *set, sigset_t *oset)
 {
 
 	return (((int (*)(int, const sigset_t *, sigset_t *))
-	    __libc_interposing[INTERPOS_sigprocmask])(how, set, oset));
+		__libc_interposing[INTERPOS_sigprocmask])(how, set, oset));
 }

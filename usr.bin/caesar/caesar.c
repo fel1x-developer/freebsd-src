@@ -35,28 +35,52 @@
  * SUCH DAMAGE.
  */
 
+#include <ctype.h>
 #include <errno.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 #include <unistd.h>
 
-#define	LINELENGTH	2048
-#define	ROTATE(ch, perm) \
-     isascii(ch) ? ( \
-	isupper(ch) ? ('A' + (ch - 'A' + perm) % 26) : \
-	    islower(ch) ? ('a' + (ch - 'a' + perm) % 26) : ch) : ch
+#define LINELENGTH 2048
+#define ROTATE(ch, perm)                                                     \
+	isascii(ch) ? (isupper(ch)	  ? ('A' + (ch - 'A' + perm) % 26) : \
+			      islower(ch) ? ('a' + (ch - 'a' + perm) % 26) : \
+					    ch) :                            \
+		      ch
 
 /*
  * letter frequencies (taken from some unix(tm) documentation)
  * (unix is a trademark of Bell Laboratories)
  */
 static double stdf[26] = {
-	7.97, 1.35, 3.61, 4.78, 12.37, 2.01, 1.46, 4.49, 6.39, 0.04,
-	0.42, 3.81, 2.69, 5.92,  6.96, 2.91, 0.08, 6.63, 8.77, 9.68,
-	2.62, 0.81, 1.88, 0.23,  2.07, 0.06,
+	7.97,
+	1.35,
+	3.61,
+	4.78,
+	12.37,
+	2.01,
+	1.46,
+	4.49,
+	6.39,
+	0.04,
+	0.42,
+	3.81,
+	2.69,
+	5.92,
+	6.96,
+	2.91,
+	0.08,
+	6.63,
+	8.77,
+	9.68,
+	2.62,
+	0.81,
+	1.88,
+	0.23,
+	2.07,
+	0.06,
 };
 
 static void printit(char *);
@@ -88,7 +112,7 @@ main(int argc, char **argv)
 		exit(1);
 	}
 	for (i = nread; i--;) {
-		ch = (unsigned char) inbuf[i];
+		ch = (unsigned char)inbuf[i];
 		if (isascii(ch)) {
 			if (islower(ch))
 				++obs[ch - 'a'];
@@ -117,12 +141,13 @@ main(int argc, char **argv)
 
 	for (;;) {
 		for (i = 0; i < nread; ++i) {
-			ch = (unsigned char) inbuf[i];
+			ch = (unsigned char)inbuf[i];
 			putchar(ROTATE(ch, winner));
 		}
 		if (nread < LINELENGTH)
 			break;
-		if ((nread = read(STDIN_FILENO, inbuf, (size_t)LINELENGTH)) < 0) {
+		if ((nread = read(STDIN_FILENO, inbuf, (size_t)LINELENGTH)) <
+		    0) {
 			(void)fprintf(stderr, "caesar: %s\n", strerror(errno));
 			exit(1);
 		}

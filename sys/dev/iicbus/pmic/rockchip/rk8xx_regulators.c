@@ -26,16 +26,14 @@
  */
 
 #include <sys/param.h>
-#include <sys/bus.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/clock.h>
 
+#include <dev/iicbus/pmic/rockchip/rk8xx.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
 #include <dev/regulator/regulator.h>
-
-#include <dev/iicbus/pmic/rockchip/rk8xx.h>
 
 #include "regdev_if.h"
 
@@ -44,8 +42,9 @@ static int rk8xx_regnode_set_voltage(struct regnode *regnode, int min_uvolt,
     int max_uvolt, int *udelay);
 static int rk8xx_regnode_get_voltage(struct regnode *regnode, int *uvolt);
 
-/* #define	dprintf(sc, format, arg...)	device_printf(sc->base_dev, "%s: " format, __func__, arg) */
-#define	dprintf(sc, format, arg...) (sc = sc)
+/* #define	dprintf(sc, format, arg...)	device_printf(sc->base_dev, "%s:
+ * " format, __func__, arg) */
+#define dprintf(sc, format, arg...) (sc = sc)
 
 static int
 rk8xx_regnode_init(struct regnode *regnode)
@@ -61,13 +60,13 @@ rk8xx_regnode_init(struct regnode *regnode)
 		return (0);
 
 	/* Check that the regulator is preset to the correct voltage */
-	rv  = rk8xx_regnode_get_voltage(regnode, &uvolt);
+	rv = rk8xx_regnode_get_voltage(regnode, &uvolt);
 	if (rv != 0)
-		return(rv);
+		return (rv);
 
 	if (uvolt >= param->min_uvolt && uvolt <= param->max_uvolt)
-		return(0);
-	/* 
+		return (0);
+	/*
 	 * Set the regulator at the correct voltage if it is not enabled.
 	 * Do not enable it, this is will be done either by a
 	 * consumer or by regnode_set_constraint if boot_on is true
@@ -92,8 +91,7 @@ rk8xx_regnode_enable(struct regnode *regnode, bool enable, int *udelay)
 
 	sc = regnode_get_softc(regnode);
 
-	dprintf(sc, "%sabling regulator %s\n",
-	    enable ? "En" : "Dis",
+	dprintf(sc, "%sabling regulator %s\n", enable ? "En" : "Dis",
 	    sc->def->name);
 	rk8xx_read(sc->base_dev, sc->def->enable_reg, &val, 1);
 	if (enable)
@@ -117,27 +115,29 @@ rk8xx_regnode_reg_to_voltage(struct rk8xx_reg_sc *sc, uint8_t val, int *uv)
 		if (sc->def->voltage_step2) {
 			int change;
 
-			change =
-			    ((sc->def->voltage_min2 - sc->def->voltage_min) /
+			change = ((sc->def->voltage_min2 -
+				      sc->def->voltage_min) /
 			    sc->def->voltage_step);
 			if (val > change) {
 				if (val < sc->def->voltage_nstep) {
 					*uv = sc->def->voltage_min2 +
 					    (val - change) *
-					    sc->def->voltage_step2;
+						sc->def->voltage_step2;
 				} else
 					*uv = sc->def->voltage_max2;
 				return;
 			}
 		}
 		if (val < sc->def->voltage_nstep)
-			*uv = sc->def->voltage_min + val * sc->def->voltage_step;
+			*uv = sc->def->voltage_min +
+			    val * sc->def->voltage_step;
 		else
 			*uv = sc->def->voltage_max;
 
 	} else {
 		if (val < sc->def->voltage_nstep)
-			*uv = sc->def->voltage_min + val * sc->def->voltage_step;
+			*uv = sc->def->voltage_min +
+			    val * sc->def->voltage_step;
 		else
 			*uv = sc->def->voltage_min +
 			    (sc->def->voltage_nstep * sc->def->voltage_step);
@@ -194,8 +194,8 @@ rk8xx_regnode_status(struct regnode *regnode, int *status)
 }
 
 static int
-rk8xx_regnode_set_voltage(struct regnode *regnode, int min_uvolt,
-    int max_uvolt, int *udelay)
+rk8xx_regnode_set_voltage(struct regnode *regnode, int min_uvolt, int max_uvolt,
+    int *udelay)
 {
 	struct rk8xx_reg_sc *sc;
 	uint8_t val, old;
@@ -208,9 +208,7 @@ rk8xx_regnode_set_voltage(struct regnode *regnode, int min_uvolt,
 	if (!sc->def->voltage_step)
 		return (ENXIO);
 
-	dprintf(sc, "Setting %s to %d<->%d uvolts\n",
-	    sc->def->name,
-	    min_uvolt,
+	dprintf(sc, "Setting %s to %d<->%d uvolts\n", sc->def->name, min_uvolt,
 	    max_uvolt);
 	rk8xx_read(sc->base_dev, sc->def->voltage_reg, &val, 1);
 	old = val;
@@ -227,9 +225,7 @@ rk8xx_regnode_set_voltage(struct regnode *regnode, int min_uvolt,
 	*udelay = 0;
 
 	rk8xx_regnode_reg_to_voltage(sc, val, &uvolt);
-	dprintf(sc, "Regulator %s set to %d uvolt\n",
-	  sc->def->name,
-	  uvolt);
+	dprintf(sc, "Regulator %s set to %d uvolt\n", sc->def->name, uvolt);
 
 	return (0);
 }
@@ -242,7 +238,7 @@ rk8xx_regnode_get_voltage(struct regnode *regnode, int *uvolt)
 
 	sc = regnode_get_softc(regnode);
 
-	if (sc->def->voltage_min ==  sc->def->voltage_max) {
+	if (sc->def->voltage_min == sc->def->voltage_max) {
 		*uvolt = sc->def->voltage_min;
 		return (0);
 	}
@@ -253,29 +249,26 @@ rk8xx_regnode_get_voltage(struct regnode *regnode, int *uvolt)
 	rk8xx_read(sc->base_dev, sc->def->voltage_reg, &val, 1);
 	rk8xx_regnode_reg_to_voltage(sc, val & sc->def->voltage_mask, uvolt);
 
-	dprintf(sc, "Regulator %s is at %d uvolt\n",
-	  sc->def->name,
-	  *uvolt);
+	dprintf(sc, "Regulator %s is at %d uvolt\n", sc->def->name, *uvolt);
 
 	return (0);
 }
 
 static regnode_method_t rk8xx_regnode_methods[] = {
 	/* Regulator interface */
-	REGNODEMETHOD(regnode_init,		rk8xx_regnode_init),
-	REGNODEMETHOD(regnode_enable,		rk8xx_regnode_enable),
-	REGNODEMETHOD(regnode_status,		rk8xx_regnode_status),
-	REGNODEMETHOD(regnode_set_voltage,	rk8xx_regnode_set_voltage),
-	REGNODEMETHOD(regnode_get_voltage,	rk8xx_regnode_get_voltage),
-	REGNODEMETHOD(regnode_check_voltage,	regnode_method_check_voltage),
+	REGNODEMETHOD(regnode_init, rk8xx_regnode_init),
+	REGNODEMETHOD(regnode_enable, rk8xx_regnode_enable),
+	REGNODEMETHOD(regnode_status, rk8xx_regnode_status),
+	REGNODEMETHOD(regnode_set_voltage, rk8xx_regnode_set_voltage),
+	REGNODEMETHOD(regnode_get_voltage, rk8xx_regnode_get_voltage),
+	REGNODEMETHOD(regnode_check_voltage, regnode_method_check_voltage),
 	REGNODEMETHOD_END
 };
 DEFINE_CLASS_1(rk8xx_regnode, rk8xx_regnode_class, rk8xx_regnode_methods,
     sizeof(struct rk8xx_reg_sc), regnode_class);
 
 static struct rk8xx_reg_sc *
-rk8xx_reg_attach(device_t dev, phandle_t node,
-    struct rk8xx_regdef *def)
+rk8xx_reg_attach(device_t dev, phandle_t node, struct rk8xx_regdef *def)
 {
 	struct rk8xx_reg_sc *reg_sc;
 	struct regnode_init_def initdef;
@@ -324,8 +317,7 @@ rk8xx_attach_regulators(struct rk8xx_softc *sc)
 	rnode = ofw_bus_find_child(ofw_bus_get_node(sc->dev), "regulators");
 	if (rnode > 0) {
 		for (i = 0; i < sc->nregs; i++) {
-			child = ofw_bus_find_child(rnode,
-			    sc->regdefs[i].name);
+			child = ofw_bus_find_child(rnode, sc->regdefs[i].name);
 			if (child == 0)
 				continue;
 			if (OF_hasprop(child, "regulator-name") != 1)
@@ -337,26 +329,28 @@ rk8xx_attach_regulators(struct rk8xx_softc *sc)
 				    sc->regdefs[i].name);
 				continue;
 			}
-			regp = malloc(sizeof(*regp), M_DEVBUF, M_WAITOK | M_ZERO);
+			regp = malloc(sizeof(*regp), M_DEVBUF,
+			    M_WAITOK | M_ZERO);
 			regp->reg = reg;
 			TAILQ_INSERT_TAIL(&sc->regs, regp, next);
 			if (bootverbose)
-				device_printf(sc->dev, "Regulator %s attached\n",
+				device_printf(sc->dev,
+				    "Regulator %s attached\n",
 				    sc->regdefs[i].name);
 		}
 	}
 }
 
 int
-rk8xx_map(device_t dev, phandle_t xref, int ncells,
-    pcell_t *cells, intptr_t *id)
+rk8xx_map(device_t dev, phandle_t xref, int ncells, pcell_t *cells,
+    intptr_t *id)
 {
 	struct rk8xx_softc *sc;
 	struct reg_list *regp;
 
 	sc = device_get_softc(dev);
 
-	TAILQ_FOREACH(regp, &sc->regs, next) {
+	TAILQ_FOREACH (regp, &sc->regs, next) {
 		if (regp->reg->xref == xref) {
 			*id = regp->reg->def->id;
 			return (0);

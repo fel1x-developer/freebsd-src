@@ -40,49 +40,49 @@
  *
  */
 #include <sys/cdefs.h>
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/linker_set.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/linker_set.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
+#include <dev/usb/usb_cdc.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
-#include <dev/usb/usb_cdc.h>
+
 #include "usbdevs.h"
 
-#define	USB_DEBUG_VAR umcs_debug
+#define USB_DEBUG_VAR umcs_debug
+#include <dev/usb/serial/umcs.h>
+#include <dev/usb/serial/usb_serial.h>
 #include <dev/usb/usb_debug.h>
 #include <dev/usb/usb_process.h>
 
-#include <dev/usb/serial/usb_serial.h>
-
-#include <dev/usb/serial/umcs.h>
-
-#define	UMCS7840_MODVER	1
+#define UMCS7840_MODVER 1
 
 #ifdef USB_DEBUG
 static int umcs_debug = 0;
 
 static SYSCTL_NODE(_hw_usb, OID_AUTO, umcs, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "USB umcs quadport serial adapter");
-SYSCTL_INT(_hw_usb_umcs, OID_AUTO, debug, CTLFLAG_RWTUN, &umcs_debug, 0, "Debug level");
-#endif					/* USB_DEBUG */
+SYSCTL_INT(_hw_usb_umcs, OID_AUTO, debug, CTLFLAG_RWTUN, &umcs_debug, 0,
+    "Debug level");
+#endif /* USB_DEBUG */
 
 /*
  * Two-port devices (both with 7820 chip and 7840 chip configured as two-port)
@@ -96,63 +96,74 @@ SYSCTL_INT(_hw_usb_umcs, OID_AUTO, debug, CTLFLAG_RWTUN, &umcs_debug, 0, "Debug 
  * Pack non-regular registers to array to easier if-less access.
  */
 struct umcs7840_port_registers {
-	uint8_t	reg_sp;			/* SP register. */
-	uint8_t	reg_control;		/* CONTROL register. */
-	uint8_t	reg_dcr;		/* DCR0 register. DCR1 & DCR2 can be
-					 * calculated */
+	uint8_t reg_sp;	     /* SP register. */
+	uint8_t reg_control; /* CONTROL register. */
+	uint8_t reg_dcr;     /* DCR0 register. DCR1 & DCR2 can be
+			      * calculated */
 };
 
-static const struct umcs7840_port_registers umcs7840_port_registers[UMCS7840_MAX_PORTS] = {
-	{.reg_sp = MCS7840_DEV_REG_SP1,.reg_control = MCS7840_DEV_REG_CONTROL1,.reg_dcr = MCS7840_DEV_REG_DCR0_1},
-	{.reg_sp = MCS7840_DEV_REG_SP2,.reg_control = MCS7840_DEV_REG_CONTROL2,.reg_dcr = MCS7840_DEV_REG_DCR0_2},
-	{.reg_sp = MCS7840_DEV_REG_SP3,.reg_control = MCS7840_DEV_REG_CONTROL3,.reg_dcr = MCS7840_DEV_REG_DCR0_3},
-	{.reg_sp = MCS7840_DEV_REG_SP4,.reg_control = MCS7840_DEV_REG_CONTROL4,.reg_dcr = MCS7840_DEV_REG_DCR0_4},
-};
+static const struct umcs7840_port_registers
+    umcs7840_port_registers[UMCS7840_MAX_PORTS] = {
+	    { .reg_sp = MCS7840_DEV_REG_SP1,
+		.reg_control = MCS7840_DEV_REG_CONTROL1,
+		.reg_dcr = MCS7840_DEV_REG_DCR0_1 },
+	    { .reg_sp = MCS7840_DEV_REG_SP2,
+		.reg_control = MCS7840_DEV_REG_CONTROL2,
+		.reg_dcr = MCS7840_DEV_REG_DCR0_2 },
+	    { .reg_sp = MCS7840_DEV_REG_SP3,
+		.reg_control = MCS7840_DEV_REG_CONTROL3,
+		.reg_dcr = MCS7840_DEV_REG_DCR0_3 },
+	    { .reg_sp = MCS7840_DEV_REG_SP4,
+		.reg_control = MCS7840_DEV_REG_CONTROL4,
+		.reg_dcr = MCS7840_DEV_REG_DCR0_4 },
+    };
 
-enum {
-	UMCS7840_BULK_RD_EP,
-	UMCS7840_BULK_WR_EP,
-	UMCS7840_N_TRANSFERS
-};
+enum { UMCS7840_BULK_RD_EP, UMCS7840_BULK_WR_EP, UMCS7840_N_TRANSFERS };
 
 struct umcs7840_softc_oneport {
-	struct usb_xfer *sc_xfer[UMCS7840_N_TRANSFERS];	/* Control structures
+	struct usb_xfer *sc_xfer[UMCS7840_N_TRANSFERS]; /* Control structures
 							 * for two transfers */
 
-	uint8_t	sc_lcr;			/* local line control register */
-	uint8_t	sc_mcr;			/* local modem control register */
+	uint8_t sc_lcr; /* local line control register */
+	uint8_t sc_mcr; /* local modem control register */
 };
 
 struct umcs7840_softc {
 	struct ucom_super_softc sc_super_ucom;
-	struct ucom_softc sc_ucom[UMCS7840_MAX_PORTS];	/* Need to be continuous
-							 * array, so indexed by
-							 * LOGICAL port
-							 * (subunit) number */
+	struct ucom_softc sc_ucom[UMCS7840_MAX_PORTS]; /* Need to be continuous
+							* array, so indexed by
+							* LOGICAL port
+							* (subunit) number */
 
-	struct usb_xfer *sc_intr_xfer;	/* Interrupt endpoint */
+	struct usb_xfer *sc_intr_xfer; /* Interrupt endpoint */
 
-	device_t sc_dev;		/* Device for error prints */
-	struct usb_device *sc_udev;	/* USB Device for all operations */
-	struct mtx sc_mtx;		/* ucom requires this */
+	device_t sc_dev;	    /* Device for error prints */
+	struct usb_device *sc_udev; /* USB Device for all operations */
+	struct mtx sc_mtx;	    /* ucom requires this */
 
-	uint8_t	sc_driver_done;		/* Flag when enumeration is finished */
+	uint8_t sc_driver_done; /* Flag when enumeration is finished */
 
-	uint8_t	sc_numports;		/* Number of ports (subunits) */
-	struct umcs7840_softc_oneport sc_ports[UMCS7840_MAX_PORTS];	/* Indexed by PHYSICAL
-									 * port number. */
+	uint8_t sc_numports; /* Number of ports (subunits) */
+	struct umcs7840_softc_oneport
+	    sc_ports[UMCS7840_MAX_PORTS]; /* Indexed by PHYSICAL
+					   * port number. */
 };
 
 /* prototypes */
-static usb_error_t umcs7840_get_reg_sync(struct umcs7840_softc *, uint8_t, uint8_t *);
-static usb_error_t umcs7840_set_reg_sync(struct umcs7840_softc *, uint8_t, uint8_t);
-static usb_error_t umcs7840_get_UART_reg_sync(struct umcs7840_softc *, uint8_t, uint8_t, uint8_t *);
-static usb_error_t umcs7840_set_UART_reg_sync(struct umcs7840_softc *, uint8_t, uint8_t, uint8_t);
+static usb_error_t umcs7840_get_reg_sync(struct umcs7840_softc *, uint8_t,
+    uint8_t *);
+static usb_error_t umcs7840_set_reg_sync(struct umcs7840_softc *, uint8_t,
+    uint8_t);
+static usb_error_t umcs7840_get_UART_reg_sync(struct umcs7840_softc *, uint8_t,
+    uint8_t, uint8_t *);
+static usb_error_t umcs7840_set_UART_reg_sync(struct umcs7840_softc *, uint8_t,
+    uint8_t, uint8_t);
 
-static usb_error_t umcs7840_set_baudrate(struct umcs7840_softc *, uint8_t, uint32_t);
+static usb_error_t umcs7840_set_baudrate(struct umcs7840_softc *, uint8_t,
+    uint32_t);
 static usb_error_t umcs7840_calc_baudrate(uint32_t rate, uint16_t *, uint8_t *);
 
-static void	umcs7840_free(struct ucom_softc *);
+static void umcs7840_free(struct ucom_softc *);
 static void umcs7840_cfg_get_status(struct ucom_softc *, uint8_t *, uint8_t *);
 static void umcs7840_cfg_set_dtr(struct ucom_softc *, uint8_t);
 static void umcs7840_cfg_set_rts(struct ucom_softc *, uint8_t);
@@ -190,12 +201,13 @@ static void umcs7840_read_callbackN(struct usb_xfer *, usb_error_t, uint8_t);
 static void umcs7840_write_callbackN(struct usb_xfer *, usb_error_t, uint8_t);
 
 /* Indexed by LOGICAL port number (subunit), so two-port device uses 0 & 1 */
-static usb_callback_t *umcs7840_rw_callbacks[UMCS7840_MAX_PORTS][UMCS7840_N_TRANSFERS] = {
-	{&umcs7840_read_callback1, &umcs7840_write_callback1},
-	{&umcs7840_read_callback2, &umcs7840_write_callback2},
-	{&umcs7840_read_callback3, &umcs7840_write_callback3},
-	{&umcs7840_read_callback4, &umcs7840_write_callback4},
-};
+static usb_callback_t
+    *umcs7840_rw_callbacks[UMCS7840_MAX_PORTS][UMCS7840_N_TRANSFERS] = {
+	    { &umcs7840_read_callback1, &umcs7840_write_callback1 },
+	    { &umcs7840_read_callback2, &umcs7840_write_callback2 },
+	    { &umcs7840_read_callback3, &umcs7840_write_callback3 },
+	    { &umcs7840_read_callback4, &umcs7840_write_callback4 },
+    };
 
 static const struct usb_config umcs7840_bulk_config_data[UMCS7840_N_TRANSFERS] = {
 	[UMCS7840_BULK_RD_EP] = {
@@ -255,16 +267,14 @@ static struct ucom_callback umcs7840_callback = {
 };
 
 static const STRUCT_USB_HOST_ID umcs7840_devs[] = {
-	{USB_VPI(USB_VENDOR_MOSCHIP, USB_PRODUCT_MOSCHIP_MCS7820, 0)},
-	{USB_VPI(USB_VENDOR_MOSCHIP, USB_PRODUCT_MOSCHIP_MCS7840, 0)},
+	{ USB_VPI(USB_VENDOR_MOSCHIP, USB_PRODUCT_MOSCHIP_MCS7820, 0) },
+	{ USB_VPI(USB_VENDOR_MOSCHIP, USB_PRODUCT_MOSCHIP_MCS7840, 0) },
 };
 
-static device_method_t umcs7840_methods[] = {
-	DEVMETHOD(device_probe, umcs7840_probe),
+static device_method_t umcs7840_methods[] = { DEVMETHOD(device_probe,
+						  umcs7840_probe),
 	DEVMETHOD(device_attach, umcs7840_attach),
-	DEVMETHOD(device_detach, umcs7840_detach),
-	DEVMETHOD_END
-};
+	DEVMETHOD(device_detach, umcs7840_detach), DEVMETHOD_END };
 
 static driver_t umcs7840_driver = {
 	.name = "umcs7840",
@@ -289,7 +299,8 @@ umcs7840_probe(device_t dev)
 		return (ENXIO);
 	if (uaa->info.bIfaceIndex != MCS7840_IFACE_INDEX)
 		return (ENXIO);
-	return (usbd_lookup_id_by_uaa(umcs7840_devs, sizeof(umcs7840_devs), uaa));
+	return (
+	    usbd_lookup_id_by_uaa(umcs7840_devs, sizeof(umcs7840_devs), uaa));
 }
 
 static int
@@ -339,11 +350,13 @@ umcs7840_attach(device_t dev)
 		sc->sc_numports = 2;
 		/* Store physical port numbers in sc_portno */
 		sc->sc_ucom[0].sc_portno = 0;
-		sc->sc_ucom[1].sc_portno = 2;	/* '1' is skipped */
+		sc->sc_ucom[1].sc_portno = 2; /* '1' is skipped */
 	}
-	device_printf(dev, "Chip mcs%04x, found %d active ports\n", uaa->info.idProduct, sc->sc_numports);
+	device_printf(dev, "Chip mcs%04x, found %d active ports\n",
+	    uaa->info.idProduct, sc->sc_numports);
 	if (!umcs7840_get_reg_sync(sc, MCS7840_DEV_REG_MODE, &data)) {
-		device_printf(dev, "On-die configuration: RST: active %s, HRD: %s, PLL: %s, POR: %s, Ports: %s, EEPROM write %s, IrDA is %savailable\n",
+		device_printf(dev,
+		    "On-die configuration: RST: active %s, HRD: %s, PLL: %s, POR: %s, Ports: %s, EEPROM write %s, IrDA is %savailable\n",
 		    (data & MCS7840_DEV_MODE_RESET) ? "low" : "high",
 		    (data & MCS7840_DEV_MODE_SER_PRSNT) ? "yes" : "no",
 		    (data & MCS7840_DEV_MODE_PLLBYPASS) ? "bypassed" : "avail",
@@ -356,35 +369,41 @@ umcs7840_attach(device_t dev)
 	for (subunit = 0; subunit < sc->sc_numports; ++subunit) {
 		for (n = 0; n < UMCS7840_N_TRANSFERS; ++n) {
 			/* Set endpoint address */
-			umcs7840_config_tmp[n].endpoint = umcs7840_bulk_config_data[n].endpoint + 2 * sc->sc_ucom[subunit].sc_portno;
-			umcs7840_config_tmp[n].callback = umcs7840_rw_callbacks[subunit][n];
+			umcs7840_config_tmp[n].endpoint =
+			    umcs7840_bulk_config_data[n].endpoint +
+			    2 * sc->sc_ucom[subunit].sc_portno;
+			umcs7840_config_tmp[n].callback =
+			    umcs7840_rw_callbacks[subunit][n];
 		}
-		error = usbd_transfer_setup(uaa->device,
-		    &iface_index, sc->sc_ports[sc->sc_ucom[subunit].sc_portno].sc_xfer, umcs7840_config_tmp,
-		    UMCS7840_N_TRANSFERS, sc, &sc->sc_mtx);
+		error = usbd_transfer_setup(uaa->device, &iface_index,
+		    sc->sc_ports[sc->sc_ucom[subunit].sc_portno].sc_xfer,
+		    umcs7840_config_tmp, UMCS7840_N_TRANSFERS, sc, &sc->sc_mtx);
 		if (error) {
-			device_printf(dev, "allocating USB transfers failed for subunit %d of %d\n",
+			device_printf(dev,
+			    "allocating USB transfers failed for subunit %d of %d\n",
 			    subunit + 1, sc->sc_numports);
 			goto detach;
 		}
 	}
-	error = usbd_transfer_setup(uaa->device,
-	    &iface_index, &sc->sc_intr_xfer, umcs7840_intr_config_data,
-	    1, sc, &sc->sc_mtx);
+	error = usbd_transfer_setup(uaa->device, &iface_index,
+	    &sc->sc_intr_xfer, umcs7840_intr_config_data, 1, sc, &sc->sc_mtx);
 	if (error) {
-		device_printf(dev, "allocating USB transfers failed for interrupt\n");
+		device_printf(dev,
+		    "allocating USB transfers failed for interrupt\n");
 		goto detach;
 	}
 	/* clear stall at first run */
 	mtx_lock(&sc->sc_mtx);
 	for (subunit = 0; subunit < sc->sc_numports; ++subunit) {
-		usbd_xfer_set_stall(sc->sc_ports[sc->sc_ucom[subunit].sc_portno].sc_xfer[UMCS7840_BULK_RD_EP]);
-		usbd_xfer_set_stall(sc->sc_ports[sc->sc_ucom[subunit].sc_portno].sc_xfer[UMCS7840_BULK_WR_EP]);
+		usbd_xfer_set_stall(sc->sc_ports[sc->sc_ucom[subunit].sc_portno]
+					.sc_xfer[UMCS7840_BULK_RD_EP]);
+		usbd_xfer_set_stall(sc->sc_ports[sc->sc_ucom[subunit].sc_portno]
+					.sc_xfer[UMCS7840_BULK_WR_EP]);
 	}
 	mtx_unlock(&sc->sc_mtx);
 
-	error = ucom_attach(&sc->sc_super_ucom, sc->sc_ucom, sc->sc_numports, sc,
-	    &umcs7840_callback, &sc->sc_mtx);
+	error = ucom_attach(&sc->sc_super_ucom, sc->sc_ucom, sc->sc_numports,
+	    sc, &umcs7840_callback, &sc->sc_mtx);
 	if (error)
 		goto detach;
 
@@ -406,7 +425,9 @@ umcs7840_detach(device_t dev)
 	ucom_detach(&sc->sc_super_ucom, sc->sc_ucom);
 
 	for (subunit = 0; subunit < sc->sc_numports; ++subunit)
-		usbd_transfer_unsetup(sc->sc_ports[sc->sc_ucom[subunit].sc_portno].sc_xfer, UMCS7840_N_TRANSFERS);
+		usbd_transfer_unsetup(
+		    sc->sc_ports[sc->sc_ucom[subunit].sc_portno].sc_xfer,
+		    UMCS7840_N_TRANSFERS);
 	usbd_transfer_unsetup(&sc->sc_intr_xfer, 1);
 
 	device_claim_softc(dev);
@@ -454,7 +475,8 @@ umcs7840_cfg_open(struct ucom_softc *ucom)
 		sc->sc_driver_done = 1;
 	}
 	/* Toggle reset bit on-off */
-	if (umcs7840_get_reg_sync(sc, umcs7840_port_registers[pn].reg_sp, &data))
+	if (umcs7840_get_reg_sync(sc, umcs7840_port_registers[pn].reg_sp,
+		&data))
 		return;
 	data |= MCS7840_DEV_SPx_UART_RESET;
 	if (umcs7840_set_reg_sync(sc, umcs7840_port_registers[pn].reg_sp, data))
@@ -464,14 +486,17 @@ umcs7840_cfg_open(struct ucom_softc *ucom)
 		return;
 
 	/* Set RS-232 mode */
-	if (umcs7840_set_UART_reg_sync(sc, pn, MCS7840_UART_REG_SCRATCHPAD, MCS7840_UART_SCRATCHPAD_RS232))
+	if (umcs7840_set_UART_reg_sync(sc, pn, MCS7840_UART_REG_SCRATCHPAD,
+		MCS7840_UART_SCRATCHPAD_RS232))
 		return;
 
 	/* Disable RX on time of initialization */
-	if (umcs7840_get_reg_sync(sc, umcs7840_port_registers[pn].reg_control, &data))
+	if (umcs7840_get_reg_sync(sc, umcs7840_port_registers[pn].reg_control,
+		&data))
 		return;
 	data |= MCS7840_DEV_CONTROLx_RX_DISABLE;
-	if (umcs7840_set_reg_sync(sc, umcs7840_port_registers[pn].reg_control, data))
+	if (umcs7840_set_reg_sync(sc, umcs7840_port_registers[pn].reg_control,
+		data))
 		return;
 
 	/* Disable all interrupts */
@@ -482,13 +507,15 @@ umcs7840_cfg_open(struct ucom_softc *ucom)
 	if (umcs7840_set_UART_reg_sync(sc, pn, MCS7840_UART_REG_FCR, 0))
 		return;
 	if (umcs7840_set_UART_reg_sync(sc, pn, MCS7840_UART_REG_FCR,
-	    MCS7840_UART_FCR_ENABLE | MCS7840_UART_FCR_FLUSHRHR |
-	    MCS7840_UART_FCR_FLUSHTHR | MCS7840_UART_FCR_RTL_1_14))
+		MCS7840_UART_FCR_ENABLE | MCS7840_UART_FCR_FLUSHRHR |
+		    MCS7840_UART_FCR_FLUSHTHR | MCS7840_UART_FCR_RTL_1_14))
 		return;
 
 	/* Set 8 bit, no parity, 1 stop bit -- documented */
-	sc->sc_ports[pn].sc_lcr = MCS7840_UART_LCR_DATALEN8 | MCS7840_UART_LCR_STOPB1;
-	if (umcs7840_set_UART_reg_sync(sc, pn, MCS7840_UART_REG_LCR, sc->sc_ports[pn].sc_lcr))
+	sc->sc_ports[pn].sc_lcr = MCS7840_UART_LCR_DATALEN8 |
+	    MCS7840_UART_LCR_STOPB1;
+	if (umcs7840_set_UART_reg_sync(sc, pn, MCS7840_UART_REG_LCR,
+		sc->sc_ports[pn].sc_lcr))
 		return;
 
 	/*
@@ -496,18 +523,23 @@ umcs7840_cfg_open(struct ucom_softc *ucom)
 	 * documented
 	 */
 	sc->sc_ports[pn].sc_mcr = MCS7840_UART_MCR_IE;
-	if (ucom->sc_tty == NULL || (ucom->sc_tty->t_termios.c_cflag & CNO_RTSDTR) == 0)
-		sc->sc_ports[pn].sc_mcr |= MCS7840_UART_MCR_DTR | MCS7840_UART_MCR_RTS;
-	if (umcs7840_set_UART_reg_sync(sc, pn, MCS7840_UART_REG_MCR, sc->sc_ports[pn].sc_mcr))
+	if (ucom->sc_tty == NULL ||
+	    (ucom->sc_tty->t_termios.c_cflag & CNO_RTSDTR) == 0)
+		sc->sc_ports[pn].sc_mcr |= MCS7840_UART_MCR_DTR |
+		    MCS7840_UART_MCR_RTS;
+	if (umcs7840_set_UART_reg_sync(sc, pn, MCS7840_UART_REG_MCR,
+		sc->sc_ports[pn].sc_mcr))
 		return;
 
 	/* Clearing Bulkin and Bulkout FIFO */
-	if (umcs7840_get_reg_sync(sc, umcs7840_port_registers[pn].reg_sp, &data))
+	if (umcs7840_get_reg_sync(sc, umcs7840_port_registers[pn].reg_sp,
+		&data))
 		return;
 	data |= MCS7840_DEV_SPx_RESET_OUT_FIFO | MCS7840_DEV_SPx_RESET_IN_FIFO;
 	if (umcs7840_set_reg_sync(sc, umcs7840_port_registers[pn].reg_sp, data))
 		return;
-	data &= ~(MCS7840_DEV_SPx_RESET_OUT_FIFO | MCS7840_DEV_SPx_RESET_IN_FIFO);
+	data &= ~(
+	    MCS7840_DEV_SPx_RESET_OUT_FIFO | MCS7840_DEV_SPx_RESET_IN_FIFO);
 	if (umcs7840_set_reg_sync(sc, umcs7840_port_registers[pn].reg_sp, data))
 		return;
 
@@ -520,17 +552,20 @@ umcs7840_cfg_open(struct ucom_softc *ucom)
 	 * Copied from vendor driver, I don't know why we should read LCR
 	 * here
 	 */
-	if (umcs7840_get_UART_reg_sync(sc, pn, MCS7840_UART_REG_LCR, &sc->sc_ports[pn].sc_lcr))
+	if (umcs7840_get_UART_reg_sync(sc, pn, MCS7840_UART_REG_LCR,
+		&sc->sc_ports[pn].sc_lcr))
 		return;
 	if (umcs7840_set_UART_reg_sync(sc, pn, MCS7840_UART_REG_IER,
-	    MCS7840_UART_IER_RXSTAT | MCS7840_UART_IER_MODEM))
+		MCS7840_UART_IER_RXSTAT | MCS7840_UART_IER_MODEM))
 		return;
 
 	/* Enable RX */
-	if (umcs7840_get_reg_sync(sc, umcs7840_port_registers[pn].reg_control, &data))
+	if (umcs7840_get_reg_sync(sc, umcs7840_port_registers[pn].reg_control,
+		&data))
 		return;
 	data &= ~MCS7840_DEV_CONTROLx_RX_DISABLE;
-	if (umcs7840_set_reg_sync(sc, umcs7840_port_registers[pn].reg_control, data))
+	if (umcs7840_set_reg_sync(sc, umcs7840_port_registers[pn].reg_control,
+		data))
 		return;
 
 	DPRINTF("Port %d has been opened\n", pn);
@@ -550,10 +585,12 @@ umcs7840_cfg_close(struct ucom_softc *ucom)
 	umcs7840_set_UART_reg_sync(sc, pn, MCS7840_UART_REG_IER, 0);
 
 	/* Disable RX */
-	if (umcs7840_get_reg_sync(sc, umcs7840_port_registers[pn].reg_control, &data))
+	if (umcs7840_get_reg_sync(sc, umcs7840_port_registers[pn].reg_control,
+		&data))
 		return;
 	data |= MCS7840_DEV_CONTROLx_RX_DISABLE;
-	if (umcs7840_set_reg_sync(sc, umcs7840_port_registers[pn].reg_control, data))
+	if (umcs7840_set_reg_sync(sc, umcs7840_port_registers[pn].reg_control,
+		data))
 		return;
 	DPRINTF("Port %d has been closed\n", pn);
 }
@@ -569,7 +606,8 @@ umcs7840_cfg_set_dtr(struct ucom_softc *ucom, uint8_t onoff)
 	else
 		sc->sc_ports[pn].sc_mcr &= ~MCS7840_UART_MCR_DTR;
 
-	umcs7840_set_UART_reg_sync(sc, pn, MCS7840_UART_REG_MCR, sc->sc_ports[pn].sc_mcr);
+	umcs7840_set_UART_reg_sync(sc, pn, MCS7840_UART_REG_MCR,
+	    sc->sc_ports[pn].sc_mcr);
 	DPRINTF("Port %d DTR set to: %s\n", pn, onoff ? "on" : "off");
 }
 
@@ -584,7 +622,8 @@ umcs7840_cfg_set_rts(struct ucom_softc *ucom, uint8_t onoff)
 	else
 		sc->sc_ports[pn].sc_mcr &= ~MCS7840_UART_MCR_RTS;
 
-	umcs7840_set_UART_reg_sync(sc, pn, MCS7840_UART_REG_MCR, sc->sc_ports[pn].sc_mcr);
+	umcs7840_set_UART_reg_sync(sc, pn, MCS7840_UART_REG_MCR,
+	    sc->sc_ports[pn].sc_mcr);
 	DPRINTF("Port %d RTS set to: %s\n", pn, onoff ? "on" : "off");
 }
 
@@ -599,7 +638,8 @@ umcs7840_cfg_set_break(struct ucom_softc *ucom, uint8_t onoff)
 	else
 		sc->sc_ports[pn].sc_lcr &= ~MCS7840_UART_LCR_BREAK;
 
-	umcs7840_set_UART_reg_sync(sc, pn, MCS7840_UART_REG_LCR, sc->sc_ports[pn].sc_lcr);
+	umcs7840_set_UART_reg_sync(sc, pn, MCS7840_UART_REG_LCR,
+	    sc->sc_ports[pn].sc_lcr);
 	DPRINTF("Port %d BREAK set to: %s\n", pn, onoff ? "on" : "off");
 }
 
@@ -668,11 +708,13 @@ umcs7840_cfg_param(struct ucom_softc *ucom, struct termios *t)
 		mcr &= ~MCS7840_UART_MCR_DTRDSR;
 
 	sc->sc_ports[pn].sc_lcr = lcr;
-	umcs7840_set_UART_reg_sync(sc, pn, MCS7840_UART_REG_LCR, sc->sc_ports[pn].sc_lcr);
+	umcs7840_set_UART_reg_sync(sc, pn, MCS7840_UART_REG_LCR,
+	    sc->sc_ports[pn].sc_lcr);
 	DPRINTF("Port %d LCR=%02x\n", pn, sc->sc_ports[pn].sc_lcr);
 
 	sc->sc_ports[pn].sc_mcr = mcr;
-	umcs7840_set_UART_reg_sync(sc, pn, MCS7840_UART_REG_MCR, sc->sc_ports[pn].sc_mcr);
+	umcs7840_set_UART_reg_sync(sc, pn, MCS7840_UART_REG_MCR,
+	    sc->sc_ports[pn].sc_mcr);
 	DPRINTF("Port %d MCR=%02x\n", pn, sc->sc_ports[pn].sc_mcr);
 
 	umcs7840_set_baudrate(sc, pn, t->c_ospeed);
@@ -740,7 +782,7 @@ umcs7840_cfg_get_status(struct ucom_softc *ucom, uint8_t *lsr, uint8_t *msr)
 {
 	struct umcs7840_softc *sc = ucom->sc_parent;
 	uint8_t pn = ucom->sc_portno;
-	uint8_t	hw_msr = 0;	/* local modem status register */
+	uint8_t hw_msr = 0; /* local modem status register */
 
 	/*
 	 * Read status registers.  MSR bits need translation from ns16550 to
@@ -761,7 +803,8 @@ umcs7840_cfg_get_status(struct ucom_softc *ucom, uint8_t *lsr, uint8_t *msr)
 	if (hw_msr & MCS7840_UART_MSR_NEGDSR)
 		*msr |= SER_DSR;
 
-	DPRINTF("Port %d status: LSR=%02x MSR=%02x\n", ucom->sc_portno, *lsr, *msr);
+	DPRINTF("Port %d status: LSR=%02x MSR=%02x\n", ucom->sc_portno, *lsr,
+	    *msr);
 }
 
 static void
@@ -781,18 +824,23 @@ umcs7840_intr_callback(struct usb_xfer *xfer, usb_error_t error)
 			pc = usbd_xfer_get_frame(xfer, 0);
 			usbd_copy_out(pc, 0, buf, actlen);
 			/* Check status of all ports */
-			for (subunit = 0; subunit < sc->sc_numports; ++subunit) {
+			for (subunit = 0; subunit < sc->sc_numports;
+			     ++subunit) {
 				uint8_t pn = sc->sc_ucom[subunit].sc_portno;
 
 				if (buf[pn] & MCS7840_UART_ISR_NOPENDING)
 					continue;
-				DPRINTF("Port %d has pending interrupt: %02x (FIFO: %02x)\n", pn, buf[pn] & MCS7840_UART_ISR_INTMASK, buf[pn] & (~MCS7840_UART_ISR_INTMASK));
+				DPRINTF(
+				    "Port %d has pending interrupt: %02x (FIFO: %02x)\n",
+				    pn, buf[pn] & MCS7840_UART_ISR_INTMASK,
+				    buf[pn] & (~MCS7840_UART_ISR_INTMASK));
 				switch (buf[pn] & MCS7840_UART_ISR_INTMASK) {
 				case MCS7840_UART_ISR_RXERR:
 				case MCS7840_UART_ISR_RXHASDATA:
 				case MCS7840_UART_ISR_RXTIMEOUT:
 				case MCS7840_UART_ISR_MSCHANGE:
-					ucom_status_change(&sc->sc_ucom[subunit]);
+					ucom_status_change(
+					    &sc->sc_ucom[subunit]);
 					break;
 				default:
 					/* Do nothing */
@@ -800,15 +848,16 @@ umcs7840_intr_callback(struct usb_xfer *xfer, usb_error_t error)
 				}
 			}
 		} else
-			device_printf(sc->sc_dev, "Invalid interrupt data length %d", actlen);
+			device_printf(sc->sc_dev,
+			    "Invalid interrupt data length %d", actlen);
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -842,7 +891,8 @@ umcs7840_read_callback4(struct usb_xfer *xfer, usb_error_t error)
 }
 
 static void
-umcs7840_read_callbackN(struct usb_xfer *xfer, usb_error_t error, uint8_t subunit)
+umcs7840_read_callbackN(struct usb_xfer *xfer, usb_error_t error,
+    uint8_t subunit)
 {
 	struct umcs7840_softc *sc = usbd_xfer_softc(xfer);
 	struct ucom_softc *ucom = &sc->sc_ucom[subunit];
@@ -851,7 +901,8 @@ umcs7840_read_callbackN(struct usb_xfer *xfer, usb_error_t error, uint8_t subuni
 
 	usbd_xfer_status(xfer, &actlen, NULL, NULL, NULL);
 
-	DPRINTF("Port %d read, state = %d, data length = %d\n", ucom->sc_portno, USB_GET_STATE(xfer), actlen);
+	DPRINTF("Port %d read, state = %d, data length = %d\n", ucom->sc_portno,
+	    USB_GET_STATE(xfer), actlen);
 
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_TRANSFERRED:
@@ -859,12 +910,12 @@ umcs7840_read_callbackN(struct usb_xfer *xfer, usb_error_t error, uint8_t subuni
 		ucom_put_data(ucom, pc, 0, actlen);
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -899,28 +950,32 @@ umcs7840_write_callback4(struct usb_xfer *xfer, usb_error_t error)
 }
 
 static void
-umcs7840_write_callbackN(struct usb_xfer *xfer, usb_error_t error, uint8_t subunit)
+umcs7840_write_callbackN(struct usb_xfer *xfer, usb_error_t error,
+    uint8_t subunit)
 {
 	struct umcs7840_softc *sc = usbd_xfer_softc(xfer);
 	struct ucom_softc *ucom = &sc->sc_ucom[subunit];
 	struct usb_page_cache *pc;
 	uint32_t actlen;
 
-	DPRINTF("Port %d write, state = %d\n", ucom->sc_portno, USB_GET_STATE(xfer));
+	DPRINTF("Port %d write, state = %d\n", ucom->sc_portno,
+	    USB_GET_STATE(xfer));
 
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_SETUP:
 	case USB_ST_TRANSFERRED:
-tr_setup:
+	tr_setup:
 		pc = usbd_xfer_get_frame(xfer, 0);
-		if (ucom_get_data(ucom, pc, 0, usbd_xfer_max_len(xfer), &actlen)) {
-			DPRINTF("Port %d write, has %d bytes\n", ucom->sc_portno, actlen);
+		if (ucom_get_data(ucom, pc, 0, usbd_xfer_max_len(xfer),
+			&actlen)) {
+			DPRINTF("Port %d write, has %d bytes\n",
+			    ucom->sc_portno, actlen);
 			usbd_xfer_set_frame_len(xfer, 0, actlen);
 			usbd_transfer_submit(xfer);
 		}
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -936,7 +991,8 @@ umcs7840_poll(struct ucom_softc *ucom)
 	struct umcs7840_softc *sc = ucom->sc_parent;
 
 	DPRINTF("Port %d poll\n", ucom->sc_portno);
-	usbd_transfer_poll(sc->sc_ports[ucom->sc_portno].sc_xfer, UMCS7840_N_TRANSFERS);
+	usbd_transfer_poll(sc->sc_ports[ucom->sc_portno].sc_xfer,
+	    UMCS7840_N_TRANSFERS);
 	usbd_transfer_poll(&sc->sc_intr_xfer, 1);
 }
 
@@ -953,12 +1009,16 @@ umcs7840_get_reg_sync(struct umcs7840_softc *sc, uint8_t reg, uint8_t *data)
 	USETW(req.wIndex, reg);
 	USETW(req.wLength, UMCS7840_READ_LENGTH);
 
-	err = usbd_do_request_proc(sc->sc_udev, &sc->sc_super_ucom.sc_tq, &req, (void *)data, 0, &len, UMCS7840_CTRL_TIMEOUT);
+	err = usbd_do_request_proc(sc->sc_udev, &sc->sc_super_ucom.sc_tq, &req,
+	    (void *)data, 0, &len, UMCS7840_CTRL_TIMEOUT);
 	if (err == USB_ERR_NORMAL_COMPLETION && len != 1) {
-		device_printf(sc->sc_dev, "Reading register %d failed: invalid length %d\n", reg, len);
+		device_printf(sc->sc_dev,
+		    "Reading register %d failed: invalid length %d\n", reg,
+		    len);
 		return (USB_ERR_INVAL);
 	} else if (err)
-		device_printf(sc->sc_dev, "Reading register %d failed: %s\n", reg, usbd_errstr(err));
+		device_printf(sc->sc_dev, "Reading register %d failed: %s\n",
+		    reg, usbd_errstr(err));
 	return (err);
 }
 
@@ -974,15 +1034,18 @@ umcs7840_set_reg_sync(struct umcs7840_softc *sc, uint8_t reg, uint8_t data)
 	USETW(req.wIndex, reg);
 	USETW(req.wLength, 0);
 
-	err = usbd_do_request_proc(sc->sc_udev, &sc->sc_super_ucom.sc_tq, &req, NULL, 0, NULL, UMCS7840_CTRL_TIMEOUT);
+	err = usbd_do_request_proc(sc->sc_udev, &sc->sc_super_ucom.sc_tq, &req,
+	    NULL, 0, NULL, UMCS7840_CTRL_TIMEOUT);
 	if (err)
-		device_printf(sc->sc_dev, "Writing register %d failed: %s\n", reg, usbd_errstr(err));
+		device_printf(sc->sc_dev, "Writing register %d failed: %s\n",
+		    reg, usbd_errstr(err));
 
 	return (err);
 }
 
 static usb_error_t
-umcs7840_get_UART_reg_sync(struct umcs7840_softc *sc, uint8_t portno, uint8_t reg, uint8_t *data)
+umcs7840_get_UART_reg_sync(struct umcs7840_softc *sc, uint8_t portno,
+    uint8_t reg, uint8_t *data)
 {
 	struct usb_device_request req;
 	uint16_t wVal;
@@ -998,17 +1061,23 @@ umcs7840_get_UART_reg_sync(struct umcs7840_softc *sc, uint8_t portno, uint8_t re
 	USETW(req.wIndex, reg);
 	USETW(req.wLength, UMCS7840_READ_LENGTH);
 
-	err = usbd_do_request_proc(sc->sc_udev, &sc->sc_super_ucom.sc_tq, &req, (void *)data, 0, &len, UMCS7840_CTRL_TIMEOUT);
+	err = usbd_do_request_proc(sc->sc_udev, &sc->sc_super_ucom.sc_tq, &req,
+	    (void *)data, 0, &len, UMCS7840_CTRL_TIMEOUT);
 	if (err == USB_ERR_NORMAL_COMPLETION && len != 1) {
-		device_printf(sc->sc_dev, "Reading UART%d register %d failed: invalid length %d\n", portno, reg, len);
+		device_printf(sc->sc_dev,
+		    "Reading UART%d register %d failed: invalid length %d\n",
+		    portno, reg, len);
 		return (USB_ERR_INVAL);
 	} else if (err)
-		device_printf(sc->sc_dev, "Reading UART%d register %d failed: %s\n", portno, reg, usbd_errstr(err));
+		device_printf(sc->sc_dev,
+		    "Reading UART%d register %d failed: %s\n", portno, reg,
+		    usbd_errstr(err));
 	return (err);
 }
 
 static usb_error_t
-umcs7840_set_UART_reg_sync(struct umcs7840_softc *sc, uint8_t portno, uint8_t reg, uint8_t data)
+umcs7840_set_UART_reg_sync(struct umcs7840_softc *sc, uint8_t portno,
+    uint8_t reg, uint8_t data)
 {
 	struct usb_device_request req;
 	usb_error_t err;
@@ -1023,9 +1092,12 @@ umcs7840_set_UART_reg_sync(struct umcs7840_softc *sc, uint8_t portno, uint8_t re
 	USETW(req.wIndex, reg);
 	USETW(req.wLength, 0);
 
-	err = usbd_do_request_proc(sc->sc_udev, &sc->sc_super_ucom.sc_tq, &req, NULL, 0, NULL, UMCS7840_CTRL_TIMEOUT);
+	err = usbd_do_request_proc(sc->sc_udev, &sc->sc_super_ucom.sc_tq, &req,
+	    NULL, 0, NULL, UMCS7840_CTRL_TIMEOUT);
 	if (err)
-		device_printf(sc->sc_dev, "Writing UART%d register %d failed: %s\n", portno, reg, usbd_errstr(err));
+		device_printf(sc->sc_dev,
+		    "Writing UART%d register %d failed: %s\n", portno, reg,
+		    usbd_errstr(err));
 	return (err);
 }
 
@@ -1045,55 +1117,77 @@ umcs7840_set_baudrate(struct umcs7840_softc *sc, uint8_t portno, uint32_t rate)
 		DPRINTF("Port %d bad speed calculation: %d\n", portno, rate);
 		return (-1);
 	}
-	DPRINTF("Port %d set speed: %d (%02x / %d)\n", portno, rate, clk, divisor);
+	DPRINTF("Port %d set speed: %d (%02x / %d)\n", portno, rate, clk,
+	    divisor);
 
 	/* Set clock source for standard BAUD frequences */
-	err = umcs7840_get_reg_sync(sc, umcs7840_port_registers[portno].reg_sp, &data);
+	err = umcs7840_get_reg_sync(sc, umcs7840_port_registers[portno].reg_sp,
+	    &data);
 	if (err)
 		return (err);
 	data &= MCS7840_DEV_SPx_CLOCK_MASK;
 	data |= clk;
-	err = umcs7840_set_reg_sync(sc, umcs7840_port_registers[portno].reg_sp, data);
+	err = umcs7840_set_reg_sync(sc, umcs7840_port_registers[portno].reg_sp,
+	    data);
 	if (err)
 		return (err);
 
 	/* Set divider */
 	sc->sc_ports[portno].sc_lcr |= MCS7840_UART_LCR_DIVISORS;
-	err = umcs7840_set_UART_reg_sync(sc, portno, MCS7840_UART_REG_LCR, sc->sc_ports[portno].sc_lcr);
+	err = umcs7840_set_UART_reg_sync(sc, portno, MCS7840_UART_REG_LCR,
+	    sc->sc_ports[portno].sc_lcr);
 	if (err)
 		return (err);
 
-	err = umcs7840_set_UART_reg_sync(sc, portno, MCS7840_UART_REG_DLL, (uint8_t)(divisor & 0xff));
+	err = umcs7840_set_UART_reg_sync(sc, portno, MCS7840_UART_REG_DLL,
+	    (uint8_t)(divisor & 0xff));
 	if (err)
 		return (err);
-	err = umcs7840_set_UART_reg_sync(sc, portno, MCS7840_UART_REG_DLM, (uint8_t)((divisor >> 8) & 0xff));
+	err = umcs7840_set_UART_reg_sync(sc, portno, MCS7840_UART_REG_DLM,
+	    (uint8_t)((divisor >> 8) & 0xff));
 	if (err)
 		return (err);
 
 	/* Turn off access to DLL/DLM registers of UART */
 	sc->sc_ports[portno].sc_lcr &= ~MCS7840_UART_LCR_DIVISORS;
-	err = umcs7840_set_UART_reg_sync(sc, portno, MCS7840_UART_REG_LCR, sc->sc_ports[portno].sc_lcr);
+	err = umcs7840_set_UART_reg_sync(sc, portno, MCS7840_UART_REG_LCR,
+	    sc->sc_ports[portno].sc_lcr);
 	if (err)
 		return (err);
 	return (0);
 }
 
 /* Maximum speeds for standard frequences, when PLL is not used */
-static const uint32_t umcs7840_baudrate_divisors[] = {0, 115200, 230400, 403200, 460800, 806400, 921600, 1572864, 3145728,};
-static const uint8_t umcs7840_baudrate_divisors_len = nitems(umcs7840_baudrate_divisors);
+static const uint32_t umcs7840_baudrate_divisors[] = {
+	0,
+	115200,
+	230400,
+	403200,
+	460800,
+	806400,
+	921600,
+	1572864,
+	3145728,
+};
+static const uint8_t umcs7840_baudrate_divisors_len = nitems(
+    umcs7840_baudrate_divisors);
 
 static usb_error_t
 umcs7840_calc_baudrate(uint32_t rate, uint16_t *divisor, uint8_t *clk)
 {
 	uint8_t i = 0;
 
-	if (rate > umcs7840_baudrate_divisors[umcs7840_baudrate_divisors_len - 1])
+	if (rate >
+	    umcs7840_baudrate_divisors[umcs7840_baudrate_divisors_len - 1])
 		return (-1);
 
 	for (i = 0; i < umcs7840_baudrate_divisors_len - 1 &&
-	    !(rate > umcs7840_baudrate_divisors[i] && rate <= umcs7840_baudrate_divisors[i + 1]); ++i);
+	     !(rate > umcs7840_baudrate_divisors[i] &&
+		 rate <= umcs7840_baudrate_divisors[i + 1]);
+	     ++i)
+		;
 	if (rate == 0)
-		*divisor = 1;	/* XXX */
+		*divisor = 1; /* XXX */
 	else
 		*divisor = umcs7840_baudrate_divisors[i + 1] / rate;
 	/* 0x00 .. 0x70 */

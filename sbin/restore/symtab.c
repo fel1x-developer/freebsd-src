@@ -41,8 +41,6 @@
 #include <sys/param.h>
 #include <sys/stat.h>
 
-#include <ufs/ufs/dinode.h>
-
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
@@ -50,10 +48,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ufs/ufs/dinode.h>
 #include <unistd.h>
 
-#include "restore.h"
 #include "extern.h"
+#include "restore.h"
 
 /*
  * The following variables define the inode symbol table.
@@ -66,9 +65,9 @@
 static struct entry **entry;
 static long entrytblsize;
 
-static void		 addino(ino_t, struct entry *);
-static struct entry	*lookupparent(char *);
-static void		 removeentry(struct entry *);
+static void addino(ino_t, struct entry *);
+static struct entry *lookupparent(char *);
+static void removeentry(struct entry *);
 
 /*
  * Look up an entry by inode number
@@ -141,13 +140,13 @@ lookupname(char *name)
 
 	cp = name;
 	for (ep = lookupino(UFS_ROOTINO); ep != NULL; ep = ep->e_entries) {
-		for (np = buf; *cp != '/' && *cp != '\0' &&
-				np < &buf[sizeof(buf)]; )
+		for (np = buf;
+		     *cp != '/' && *cp != '\0' && np < &buf[sizeof(buf)];)
 			*np++ = *cp++;
 		if (np == &buf[sizeof(buf)])
 			break;
 		*np = '\0';
-		for ( ; ep != NULL; ep = ep->e_sibling)
+		for (; ep != NULL; ep = ep->e_sibling)
 			if (strcmp(ep->e_name, buf) == 0)
 				break;
 		if (ep == NULL)
@@ -189,7 +188,7 @@ myname(struct entry *ep)
 	char *cp;
 	static char namebuf[MAXPATHLEN];
 
-	for (cp = &namebuf[MAXPATHLEN - 2]; cp > &namebuf[ep->e_namlen]; ) {
+	for (cp = &namebuf[MAXPATHLEN - 2]; cp > &namebuf[ep->e_namlen];) {
 		cp -= ep->e_namlen;
 		memmove(cp, ep->e_name, (long)ep->e_namlen);
 		if (ep == lookupino(UFS_ROOTINO))
@@ -198,7 +197,7 @@ myname(struct entry *ep)
 		ep = ep->e_parent;
 	}
 	panic("%s: pathname too long\n", cp);
-	return(cp);
+	return (cp);
 }
 
 /*
@@ -365,8 +364,8 @@ struct strhdr {
 	struct strhdr *next;
 };
 
-#define STRTBLINCR	(sizeof(struct strhdr))
-#define	allocsize(size)	roundup2((size) + 1, STRTBLINCR)
+#define STRTBLINCR (sizeof(struct strhdr))
+#define allocsize(size) roundup2((size) + 1, STRTBLINCR)
 
 static struct strhdr strtblhdr[allocsize(NAME_MAX) / STRTBLINCR];
 
@@ -393,7 +392,7 @@ savename(char *name)
 		if (cp == NULL)
 			panic("no space for string table\n");
 	}
-	(void) strcpy(cp, name);
+	(void)strcpy(cp, name);
 	return (cp);
 }
 
@@ -416,13 +415,13 @@ freename(char *name)
  * Useful quantities placed at the end of a dumped symbol table.
  */
 struct symtableheader {
-	int32_t	volno;
-	int32_t	stringsize;
-	int32_t	entrytblsize;
-	time_t	dumptime;
-	time_t	dumpdate;
-	ino_t	maxino;
-	int32_t	ntrec;
+	int32_t volno;
+	int32_t stringsize;
+	int32_t entrytblsize;
+	time_t dumptime;
+	time_t dumpdate;
+	ino_t maxino;
+	int32_t ntrec;
 };
 
 /*
@@ -444,7 +443,7 @@ dumpsymtable(char *filename, long checkpt)
 	if ((fd = fopen(filename, "w")) == NULL) {
 		fprintf(stderr, "fopen: %s\n", strerror(errno));
 		panic("cannot create save file %s for symbol table\n",
-			filename);
+		    filename);
 		done(1);
 	}
 	clearerr(fd);
@@ -455,8 +454,8 @@ dumpsymtable(char *filename, long checkpt)
 	for (i = UFS_WINO; i <= maxino; i++) {
 		for (ep = lookupino(i); ep != NULL; ep = ep->e_links) {
 			ep->e_index = mynum++;
-			(void) fwrite(ep->e_name, sizeof(char),
-			       (int)allocsize(ep->e_namlen), fd);
+			(void)fwrite(ep->e_name, sizeof(char),
+			    (int)allocsize(ep->e_namlen), fd);
 		}
 	}
 	/*
@@ -471,18 +470,18 @@ dumpsymtable(char *filename, long checkpt)
 			stroff += allocsize(ep->e_namlen);
 			tep->e_parent = (struct entry *)ep->e_parent->e_index;
 			if (ep->e_links != NULL)
-				tep->e_links =
-					(struct entry *)ep->e_links->e_index;
+				tep->e_links = (struct entry *)
+						   ep->e_links->e_index;
 			if (ep->e_sibling != NULL)
-				tep->e_sibling =
-					(struct entry *)ep->e_sibling->e_index;
+				tep->e_sibling = (struct entry *)
+						     ep->e_sibling->e_index;
 			if (ep->e_entries != NULL)
-				tep->e_entries =
-					(struct entry *)ep->e_entries->e_index;
+				tep->e_entries = (struct entry *)
+						     ep->e_entries->e_index;
 			if (ep->e_next != NULL)
-				tep->e_next =
-					(struct entry *)ep->e_next->e_index;
-			(void) fwrite((char *)tep, sizeof(struct entry), 1, fd);
+				tep->e_next = (struct entry *)
+						  ep->e_next->e_index;
+			(void)fwrite((char *)tep, sizeof(struct entry), 1, fd);
 		}
 	}
 	/*
@@ -493,7 +492,7 @@ dumpsymtable(char *filename, long checkpt)
 			tentry = NULL;
 		else
 			tentry = (struct entry *)entry[i]->e_index;
-		(void) fwrite((char *)&tentry, sizeof(struct entry *), 1, fd);
+		(void)fwrite((char *)&tentry, sizeof(struct entry *), 1, fd);
 	}
 	hdr.volno = checkpt;
 	hdr.maxino = maxino;
@@ -502,13 +501,13 @@ dumpsymtable(char *filename, long checkpt)
 	hdr.dumptime = dumptime;
 	hdr.dumpdate = dumpdate;
 	hdr.ntrec = ntrec;
-	(void) fwrite((char *)&hdr, sizeof(struct symtableheader), 1, fd);
+	(void)fwrite((char *)&hdr, sizeof(struct symtableheader), 1, fd);
 	if (ferror(fd)) {
 		fprintf(stderr, "fwrite: %s\n", strerror(errno));
 		panic("output error to file %s writing symbol table\n",
-			filename);
+		    filename);
 	}
-	(void) fclose(fd);
+	(void)fclose(fd);
 }
 
 /*
@@ -585,8 +584,8 @@ initsymtable(char *filename)
 	}
 	maxino = hdr.maxino;
 	entrytblsize = hdr.entrytblsize;
-	entry = (struct entry **)
-		(base + tblsize - (entrytblsize * sizeof(struct entry *)));
+	entry = (struct entry **)(base + tblsize -
+	    (entrytblsize * sizeof(struct entry *)));
 	baseep = (struct entry *)(base + hdr.stringsize - sizeof(struct entry));
 	lep = (struct entry *)entry;
 	for (i = 0; i < entrytblsize; i++) {

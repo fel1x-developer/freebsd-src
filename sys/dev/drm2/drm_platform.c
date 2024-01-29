@@ -25,32 +25,36 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 #include <sys/cdefs.h>
+
 #include <dev/drm2/drmP.h>
 
-static void drm_platform_free_irq(struct drm_device *dev)
+static void
+drm_platform_free_irq(struct drm_device *dev)
 {
 	if (dev->irqr == NULL)
 		return;
 
-	bus_release_resource(dev->dev, SYS_RES_IRQ,
-	    dev->irqrid, dev->irqr);
+	bus_release_resource(dev->dev, SYS_RES_IRQ, dev->irqrid, dev->irqr);
 
 	dev->irqr = NULL;
 	dev->irq = 0;
 }
 
-static const char *drm_platform_get_name(struct drm_device *dev)
+static const char *
+drm_platform_get_name(struct drm_device *dev)
 {
 	return dev->driver->name;
 }
 
-static int drm_platform_set_busid(struct drm_device *dev, struct drm_master *master)
+static int
+drm_platform_set_busid(struct drm_device *dev, struct drm_master *master)
 {
 	int len, ret, id;
 
 	master->unique_len = 13 + strlen(dev->driver->name);
 	master->unique_size = master->unique_len;
-	master->unique = malloc(master->unique_len + 1, DRM_MEM_DRIVER, M_NOWAIT);
+	master->unique = malloc(master->unique_len + 1, DRM_MEM_DRIVER,
+	    M_NOWAIT);
 
 	if (master->unique == NULL)
 		return -ENOMEM;
@@ -63,8 +67,8 @@ static int drm_platform_set_busid(struct drm_device *dev, struct drm_master *mas
 	if (id == -1)
 		id = 0;
 
-	len = snprintf(master->unique, master->unique_len,
-			"platform:%s:%02d", dev->driver->name, id);
+	len = snprintf(master->unique, master->unique_len, "platform:%s:%02d",
+	    dev->driver->name, id);
 
 	if (len > master->unique_len) {
 		DRM_ERROR("Unique buffer overflowed\n");
@@ -77,19 +81,20 @@ err:
 	return ret;
 }
 
-static int drm_platform_get_irq(struct drm_device *dev)
+static int
+drm_platform_get_irq(struct drm_device *dev)
 {
 	if (dev->irqr)
 		return (dev->irq);
 
-	dev->irqr = bus_alloc_resource_any(dev->dev, SYS_RES_IRQ,
-	    &dev->irqrid, RF_SHAREABLE);
+	dev->irqr = bus_alloc_resource_any(dev->dev, SYS_RES_IRQ, &dev->irqrid,
+	    RF_SHAREABLE);
 	if (!dev->irqr) {
 		dev_err(dev->dev, "Failed to allocate IRQ\n");
 		return (0);
 	}
 
-	dev->irq = (int) rman_get_start(dev->irqr);
+	dev->irq = (int)rman_get_start(dev->irqr);
 
 	return (dev->irq);
 }
@@ -113,8 +118,9 @@ static struct drm_bus drm_platform_bus = {
  * Try and register, if we fail to register, backout previous work.
  */
 
-int drm_get_platform_dev(device_t kdev, struct drm_device *dev,
-			 struct drm_driver *driver)
+int
+drm_get_platform_dev(device_t kdev, struct drm_device *dev,
+    struct drm_driver *driver)
 {
 	int ret;
 
@@ -152,7 +158,7 @@ int drm_get_platform_dev(device_t kdev, struct drm_device *dev,
 	/* setup the grouping for the legacy output */
 	if (drm_core_check_feature(dev, DRIVER_MODESET)) {
 		ret = drm_mode_group_init_legacy_group(dev,
-				&dev->primary->mode_group);
+		    &dev->primary->mode_group);
 		if (ret)
 			goto err_g3;
 	}
@@ -163,9 +169,9 @@ int drm_get_platform_dev(device_t kdev, struct drm_device *dev,
 
 	sx_xunlock(&drm_global_mutex);
 
-	DRM_INFO("Initialized %s %d.%d.%d %s on minor %d\n",
-		 driver->name, driver->major, driver->minor, driver->patchlevel,
-		 driver->date, dev->primary->index);
+	DRM_INFO("Initialized %s %d.%d.%d %s on minor %d\n", driver->name,
+	    driver->major, driver->minor, driver->patchlevel, driver->date,
+	    dev->primary->index);
 
 	return 0;
 

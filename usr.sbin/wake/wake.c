@@ -30,12 +30,13 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/time.h>
+
 #include <net/bpf.h>
 #include <net/if.h>
 #include <net/if_dl.h>
 #include <net/if_types.h>
-#include <netinet/in.h>
 #include <netinet/if_ether.h>
+#include <netinet/in.h>
 
 #include <err.h>
 #include <fcntl.h>
@@ -45,22 +46,22 @@
 #include <string.h>
 #include <unistd.h>
 
-#define	_PATH_BPF	"/dev/bpf"
+#define _PATH_BPF "/dev/bpf"
 
 #ifndef SYNC_LEN
-#define	SYNC_LEN	6
+#define SYNC_LEN 6
 #endif
 
 #ifndef DESTADDR_COUNT
-#define	DESTADDR_COUNT	16
+#define DESTADDR_COUNT 16
 #endif
 
-static int	bind_if_to_bpf(char const *ifname, int bpf);
-static int	find_ether(char *dst, size_t len);
-static int	get_ether(char const *text, struct ether_addr *addr);
-static int	send_wakeup(int bpf, struct ether_addr const *addr);
-static void	usage(void);
-static int	wake(int bpf, const char *host);
+static int bind_if_to_bpf(char const *ifname, int bpf);
+static int find_ether(char *dst, size_t len);
+static int get_ether(char const *text, struct ether_addr *addr);
+static int send_wakeup(int bpf, struct ether_addr const *addr);
+static void usage(void);
+static int wake(int bpf, const char *host);
 
 static void
 usage(void)
@@ -164,7 +165,7 @@ send_wakeup(int bpf, struct ether_addr const *addr)
 	pkt.hdr.ether_type = htons(0);
 	(void)memset(pkt.data, 0xff, SYNC_LEN);
 	for (p = pkt.data + SYNC_LEN, i = 0; i < DESTADDR_COUNT;
-	    p += ETHER_ADDR_LEN, i++)
+	     p += ETHER_ADDR_LEN, i++)
 		bcopy(addr->octet, p, ETHER_ADDR_LEN);
 	p = (u_char *)&pkt;
 	len = sizeof(pkt);

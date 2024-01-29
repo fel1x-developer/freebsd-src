@@ -33,19 +33,20 @@
  */
 
 #include <linux/kernel.h>
-#include "fw_qos.h"
+
 #include "fw.h"
+#include "fw_qos.h"
 
 enum {
 	/* allocate vpp opcode modifiers */
-	MLX4_ALLOCATE_VPP_ALLOCATE	= 0x0,
-	MLX4_ALLOCATE_VPP_QUERY		= 0x1
+	MLX4_ALLOCATE_VPP_ALLOCATE = 0x0,
+	MLX4_ALLOCATE_VPP_QUERY = 0x1
 };
 
 enum {
 	/* set vport qos opcode modifiers */
-	MLX4_SET_VPORT_QOS_SET		= 0x0,
-	MLX4_SET_VPORT_QOS_QUERY	= 0x1
+	MLX4_SET_VPORT_QOS_SET = 0x0,
+	MLX4_SET_VPORT_QOS_QUERY = 0x1
 };
 
 struct mlx4_set_port_prio2tc_context {
@@ -82,7 +83,8 @@ struct mlx4_set_vport_context {
 	struct mlx4_prio_qos_param qos_p_up[MLX4_NUM_UP];
 };
 
-int mlx4_SET_PORT_PRIO2TC(struct mlx4_dev *dev, u8 port, u8 *prio2tc)
+int
+mlx4_SET_PORT_PRIO2TC(struct mlx4_dev *dev, u8 port, u8 *prio2tc)
 {
 	struct mlx4_cmd_mailbox *mailbox;
 	struct mlx4_set_port_prio2tc_context *context;
@@ -101,15 +103,16 @@ int mlx4_SET_PORT_PRIO2TC(struct mlx4_dev *dev, u8 port, u8 *prio2tc)
 
 	in_mod = MLX4_SET_PORT_PRIO2TC << 8 | port;
 	err = mlx4_cmd(dev, mailbox->dma, in_mod, 1, MLX4_CMD_SET_PORT,
-		       MLX4_CMD_TIME_CLASS_B, MLX4_CMD_NATIVE);
+	    MLX4_CMD_TIME_CLASS_B, MLX4_CMD_NATIVE);
 
 	mlx4_free_cmd_mailbox(dev, mailbox);
 	return err;
 }
 EXPORT_SYMBOL(mlx4_SET_PORT_PRIO2TC);
 
-int mlx4_SET_PORT_SCHEDULER(struct mlx4_dev *dev, u8 port, u8 *tc_tx_bw,
-			    u8 *pg, u16 *ratelimit)
+int
+mlx4_SET_PORT_SCHEDULER(struct mlx4_dev *dev, u8 port, u8 *tc_tx_bw, u8 *pg,
+    u16 *ratelimit)
 {
 	struct mlx4_cmd_mailbox *mailbox;
 	struct mlx4_set_port_scheduler_context *context;
@@ -130,12 +133,12 @@ int mlx4_SET_PORT_SCHEDULER(struct mlx4_dev *dev, u8 port, u8 *tc_tx_bw,
 		if (ratelimit && ratelimit[i]) {
 			if (ratelimit[i] <= MLX4_MAX_100M_UNITS_VAL) {
 				r = ratelimit[i];
-				tc->max_bw_units =
-					htons(MLX4_RATELIMIT_100M_UNITS);
+				tc->max_bw_units = htons(
+				    MLX4_RATELIMIT_100M_UNITS);
 			} else {
 				r = ratelimit[i] / 10;
-				tc->max_bw_units =
-					htons(MLX4_RATELIMIT_1G_UNITS);
+				tc->max_bw_units = htons(
+				    MLX4_RATELIMIT_1G_UNITS);
 			}
 			tc->max_bw_value = htons(r);
 		} else {
@@ -149,15 +152,16 @@ int mlx4_SET_PORT_SCHEDULER(struct mlx4_dev *dev, u8 port, u8 *tc_tx_bw,
 
 	in_mod = MLX4_SET_PORT_SCHEDULER << 8 | port;
 	err = mlx4_cmd(dev, mailbox->dma, in_mod, 1, MLX4_CMD_SET_PORT,
-		       MLX4_CMD_TIME_CLASS_B, MLX4_CMD_NATIVE);
+	    MLX4_CMD_TIME_CLASS_B, MLX4_CMD_NATIVE);
 
 	mlx4_free_cmd_mailbox(dev, mailbox);
 	return err;
 }
 EXPORT_SYMBOL(mlx4_SET_PORT_SCHEDULER);
 
-int mlx4_ALLOCATE_VPP_get(struct mlx4_dev *dev, u8 port,
-			  u16 *availible_vpp, u8 *vpp_p_up)
+int
+mlx4_ALLOCATE_VPP_get(struct mlx4_dev *dev, u8 port, u16 *availible_vpp,
+    u8 *vpp_p_up)
 {
 	int i;
 	int err;
@@ -170,11 +174,8 @@ int mlx4_ALLOCATE_VPP_get(struct mlx4_dev *dev, u8 port,
 
 	out_param = mailbox->buf;
 
-	err = mlx4_cmd_box(dev, 0, mailbox->dma, port,
-			   MLX4_ALLOCATE_VPP_QUERY,
-			   MLX4_CMD_ALLOCATE_VPP,
-			   MLX4_CMD_TIME_CLASS_A,
-			   MLX4_CMD_NATIVE);
+	err = mlx4_cmd_box(dev, 0, mailbox->dma, port, MLX4_ALLOCATE_VPP_QUERY,
+	    MLX4_CMD_ALLOCATE_VPP, MLX4_CMD_TIME_CLASS_A, MLX4_CMD_NATIVE);
 	if (err)
 		goto out;
 
@@ -191,7 +192,8 @@ out:
 }
 EXPORT_SYMBOL(mlx4_ALLOCATE_VPP_get);
 
-int mlx4_ALLOCATE_VPP_set(struct mlx4_dev *dev, u8 port, u8 *vpp_p_up)
+int
+mlx4_ALLOCATE_VPP_set(struct mlx4_dev *dev, u8 port, u8 *vpp_p_up)
 {
 	int i;
 	int err;
@@ -207,19 +209,17 @@ int mlx4_ALLOCATE_VPP_set(struct mlx4_dev *dev, u8 port, u8 *vpp_p_up)
 	for (i = 0; i < MLX4_NUM_UP; i++)
 		in_param->vpp_p_up[i] = cpu_to_be32(vpp_p_up[i]);
 
-	err = mlx4_cmd(dev, mailbox->dma, port,
-		       MLX4_ALLOCATE_VPP_ALLOCATE,
-		       MLX4_CMD_ALLOCATE_VPP,
-		       MLX4_CMD_TIME_CLASS_A,
-		       MLX4_CMD_NATIVE);
+	err = mlx4_cmd(dev, mailbox->dma, port, MLX4_ALLOCATE_VPP_ALLOCATE,
+	    MLX4_CMD_ALLOCATE_VPP, MLX4_CMD_TIME_CLASS_A, MLX4_CMD_NATIVE);
 
 	mlx4_free_cmd_mailbox(dev, mailbox);
 	return err;
 }
 EXPORT_SYMBOL(mlx4_ALLOCATE_VPP_set);
 
-int mlx4_SET_VPORT_QOS_get(struct mlx4_dev *dev, u8 port, u8 vport,
-			   struct mlx4_vport_qos_param *out_param)
+int
+mlx4_SET_VPORT_QOS_get(struct mlx4_dev *dev, u8 port, u8 vport,
+    struct mlx4_vport_qos_param *out_param)
 {
 	int i;
 	int err;
@@ -233,19 +233,17 @@ int mlx4_SET_VPORT_QOS_get(struct mlx4_dev *dev, u8 port, u8 vport,
 	ctx = mailbox->buf;
 
 	err = mlx4_cmd_box(dev, 0, mailbox->dma, (vport << 8) | port,
-			   MLX4_SET_VPORT_QOS_QUERY,
-			   MLX4_CMD_SET_VPORT_QOS,
-			   MLX4_CMD_TIME_CLASS_A,
-			   MLX4_CMD_NATIVE);
+	    MLX4_SET_VPORT_QOS_QUERY, MLX4_CMD_SET_VPORT_QOS,
+	    MLX4_CMD_TIME_CLASS_A, MLX4_CMD_NATIVE);
 	if (err)
 		goto out;
 
 	for (i = 0; i < MLX4_NUM_UP; i++) {
 		out_param[i].bw_share = be32_to_cpu(ctx->qos_p_up[i].bw_share);
-		out_param[i].max_avg_bw =
-			be32_to_cpu(ctx->qos_p_up[i].max_avg_bw);
-		out_param[i].enable =
-			!!(be32_to_cpu(ctx->qos_p_up[i].enable) & 31);
+		out_param[i].max_avg_bw = be32_to_cpu(
+		    ctx->qos_p_up[i].max_avg_bw);
+		out_param[i].enable = !!(
+		    be32_to_cpu(ctx->qos_p_up[i].enable) & 31);
 	}
 
 out:
@@ -255,8 +253,9 @@ out:
 }
 EXPORT_SYMBOL(mlx4_SET_VPORT_QOS_get);
 
-int mlx4_SET_VPORT_QOS_set(struct mlx4_dev *dev, u8 port, u8 vport,
-			   struct mlx4_vport_qos_param *in_param)
+int
+mlx4_SET_VPORT_QOS_set(struct mlx4_dev *dev, u8 port, u8 vport,
+    struct mlx4_vport_qos_param *in_param)
 {
 	int i;
 	int err;
@@ -271,17 +270,14 @@ int mlx4_SET_VPORT_QOS_set(struct mlx4_dev *dev, u8 port, u8 vport,
 
 	for (i = 0; i < MLX4_NUM_UP; i++) {
 		ctx->qos_p_up[i].bw_share = cpu_to_be32(in_param[i].bw_share);
-		ctx->qos_p_up[i].max_avg_bw =
-				cpu_to_be32(in_param[i].max_avg_bw);
-		ctx->qos_p_up[i].enable =
-				cpu_to_be32(in_param[i].enable << 31);
+		ctx->qos_p_up[i].max_avg_bw = cpu_to_be32(
+		    in_param[i].max_avg_bw);
+		ctx->qos_p_up[i].enable = cpu_to_be32(in_param[i].enable << 31);
 	}
 
 	err = mlx4_cmd(dev, mailbox->dma, (vport << 8) | port,
-		       MLX4_SET_VPORT_QOS_SET,
-		       MLX4_CMD_SET_VPORT_QOS,
-		       MLX4_CMD_TIME_CLASS_A,
-		       MLX4_CMD_NATIVE);
+	    MLX4_SET_VPORT_QOS_SET, MLX4_CMD_SET_VPORT_QOS,
+	    MLX4_CMD_TIME_CLASS_A, MLX4_CMD_NATIVE);
 
 	mlx4_free_cmd_mailbox(dev, mailbox);
 	return err;

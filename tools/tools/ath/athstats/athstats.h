@@ -28,7 +28,7 @@
  */
 
 #ifndef _ATHSTATS_H_
-#define	_ATHSTATS_H_
+#define _ATHSTATS_H_
 
 #include <bsdstat.h>
 

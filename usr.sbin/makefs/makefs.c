@@ -39,16 +39,17 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-#include <stdbool.h>
 #include <util.h>
 
 #include "makefs.h"
@@ -58,48 +59,48 @@
  * list of supported file systems and dispatch functions
  */
 typedef struct {
-	const char	*type;
-	void		(*prepare_options)(fsinfo_t *);
-	int		(*parse_options)(const char *, fsinfo_t *);
-	void		(*cleanup_options)(fsinfo_t *);
-	void		(*make_fs)(const char *, const char *, fsnode *,
-				fsinfo_t *);
+	const char *type;
+	void (*prepare_options)(fsinfo_t *);
+	int (*parse_options)(const char *, fsinfo_t *);
+	void (*cleanup_options)(fsinfo_t *);
+	void (*make_fs)(const char *, const char *, fsnode *, fsinfo_t *);
 } fstype_t;
 
 static fstype_t fstypes[] = {
-#define ENTRY(name) { \
-	# name, name ## _prep_opts, name ## _parse_opts, \
-	name ## _cleanup_opts, name ## _makefs  \
-}
+#define ENTRY(name)                                         \
+	{                                                   \
+		#name, name##_prep_opts, name##_parse_opts, \
+		    name##_cleanup_opts, name##_makefs      \
+	}
 	ENTRY(cd9660),
 	ENTRY(ffs),
 	ENTRY(msdos),
 #ifdef HAVE_ZFS
 	ENTRY(zfs),
 #endif
-	{ .type = NULL	},
+	{ .type = NULL },
 };
 
-u_int		debug;
-int		dupsok;
-struct timespec	start_time;
+u_int debug;
+int dupsok;
+struct timespec start_time;
 struct stat stampst;
 
-static	fstype_t *get_fstype(const char *);
+static fstype_t *get_fstype(const char *);
 static int get_tstamp(const char *, struct stat *);
-static	void	usage(fstype_t *, fsinfo_t *);
+static void usage(fstype_t *, fsinfo_t *);
 
 int
 main(int argc, char *argv[])
 {
-	struct stat	 sb;
-	struct timeval	 start;
-	fstype_t	*fstype;
-	fsinfo_t	 fsoptions;
-	fsnode		*root;
-	int		 ch, i, len;
-	const char	*subtree;
-	const char	*specfile;
+	struct stat sb;
+	struct timeval start;
+	fstype_t *fstype;
+	fsinfo_t fsoptions;
+	fsnode *root;
+	int ch, i, len;
+	const char *subtree;
+	const char *specfile;
 
 	setprogname(argv[0]);
 
@@ -107,7 +108,7 @@ main(int argc, char *argv[])
 	if ((fstype = get_fstype(DEFAULT_FSTYPE)) == NULL)
 		errx(1, "Unknown default fs type `%s'.", DEFAULT_FSTYPE);
 
-		/* set default fsoptions */
+	/* set default fsoptions */
 	(void)memset(&fsoptions, 0, sizeof(fsoptions));
 	fsoptions.fd = -1;
 	fsoptions.sectorsize = -1;
@@ -126,8 +127,8 @@ main(int argc, char *argv[])
 	if (ch == -1)
 		err(1, "Unable to get system time");
 
-
-	while ((ch = getopt(argc, argv, "B:b:Dd:f:F:M:m:N:O:o:pR:s:S:t:T:xZ")) != -1) {
+	while ((ch = getopt(argc, argv,
+		    "B:b:Dd:f:F:M:m:N:O:o:pR:s:S:t:T:xZ")) != -1) {
 		switch (ch) {
 
 		case 'B':
@@ -153,13 +154,11 @@ main(int argc, char *argv[])
 			len = strlen(optarg) - 1;
 			if (optarg[len] == '%') {
 				optarg[len] = '\0';
-				fsoptions.freeblockpc =
-				    strsuftoll("free block percentage",
-					optarg, 0, 99);
+				fsoptions.freeblockpc = strsuftoll(
+				    "free block percentage", optarg, 0, 99);
 			} else {
-				fsoptions.freeblocks =
-				    strsuftoll("free blocks",
-					optarg, 0, LLONG_MAX);
+				fsoptions.freeblocks = strsuftoll("free blocks",
+				    optarg, 0, LLONG_MAX);
 			}
 			break;
 
@@ -175,13 +174,11 @@ main(int argc, char *argv[])
 			len = strlen(optarg) - 1;
 			if (optarg[len] == '%') {
 				optarg[len] = '\0';
-				fsoptions.freefilepc =
-				    strsuftoll("free file percentage",
-					optarg, 0, 99);
+				fsoptions.freefilepc = strsuftoll(
+				    "free file percentage", optarg, 0, 99);
 			} else {
-				fsoptions.freefiles =
-				    strsuftoll("free files",
-					optarg, 0, LLONG_MAX);
+				fsoptions.freefiles = strsuftoll("free files",
+				    optarg, 0, LLONG_MAX);
 			}
 			break;
 
@@ -190,35 +187,34 @@ main(int argc, char *argv[])
 			break;
 
 		case 'M':
-			fsoptions.minsize =
-			    strsuftoll("minimum size", optarg, 1LL, LLONG_MAX);
+			fsoptions.minsize = strsuftoll("minimum size", optarg,
+			    1LL, LLONG_MAX);
 			break;
 
 		case 'N':
-			if (! setup_getid(optarg))
+			if (!setup_getid(optarg))
 				errx(1,
-			    "Unable to use user and group databases in `%s'",
+				    "Unable to use user and group databases in `%s'",
 				    optarg);
 			break;
 
 		case 'm':
-			fsoptions.maxsize =
-			    strsuftoll("maximum size", optarg, 1LL, LLONG_MAX);
+			fsoptions.maxsize = strsuftoll("maximum size", optarg,
+			    1LL, LLONG_MAX);
 			break;
 
 		case 'O':
-			fsoptions.offset =
-			    strsuftoll("offset", optarg, 0LL, LLONG_MAX);
+			fsoptions.offset = strsuftoll("offset", optarg, 0LL,
+			    LLONG_MAX);
 			break;
 
-		case 'o':
-		{
+		case 'o': {
 			char *p;
 
 			while ((p = strsep(&optarg, ",")) != NULL) {
 				if (*p == '\0')
 					errx(1, "Empty option");
-				if (! fstype->parse_options(p, &fsoptions))
+				if (!fstype->parse_options(p, &fsoptions))
 					usage(fstype, &fsoptions);
 			}
 			break;
@@ -230,8 +226,8 @@ main(int argc, char *argv[])
 
 		case 'R':
 			/* Round image size up to specified block size */
-			fsoptions.roundup =
-			    strsuftoll("roundup-size", optarg, 0, LLONG_MAX);
+			fsoptions.roundup = strsuftoll("roundup-size", optarg,
+			    0, LLONG_MAX);
 			break;
 
 		case 's':
@@ -240,9 +236,8 @@ main(int argc, char *argv[])
 			break;
 
 		case 'S':
-			fsoptions.sectorsize =
-			    (int)strsuftoll("sector size", optarg,
-				1LL, INT_MAX);
+			fsoptions.sectorsize = (int)strsuftoll("sector size",
+			    optarg, 1LL, INT_MAX);
 			break;
 
 		case 't':
@@ -266,21 +261,20 @@ main(int argc, char *argv[])
 			break;
 
 		case 'Z':
-			/* Superscedes 'p' for compatibility with NetBSD makefs(8) */
+			/* Superscedes 'p' for compatibility with NetBSD
+			 * makefs(8) */
 			fsoptions.sparse = 1;
 			break;
 
 		default:
 			usage(fstype, &fsoptions);
 			/* NOTREACHED */
-
 		}
 	}
 	if (debug) {
 		printf("debug mask: 0x%08x\n", debug);
-		printf("start time: %ld.%ld, %s",
-		    (long)start_time.tv_sec, (long)start_time.tv_nsec,
-		    ctime(&start_time.tv_sec));
+		printf("start time: %ld.%ld, %s", (long)start_time.tv_sec,
+		    (long)start_time.tv_nsec, ctime(&start_time.tv_sec));
 	}
 	argc -= optind;
 	argv += optind;
@@ -301,13 +295,13 @@ main(int argc, char *argv[])
 	}
 
 	switch (sb.st_mode & S_IFMT) {
-	case S_IFDIR:		/* walk the tree */
+	case S_IFDIR: /* walk the tree */
 		subtree = argv[1];
 		TIMER_START(start);
 		root = walk_dir(subtree, ".", NULL, NULL);
 		TIMER_RESULTS(start, "walk_dir");
 		break;
-	case S_IFREG:		/* read the manifest file */
+	case S_IFREG: /* read the manifest file */
 		subtree = ".";
 		TIMER_START(start);
 		root = read_mtree(argv[1], NULL);
@@ -329,7 +323,7 @@ main(int argc, char *argv[])
 		TIMER_RESULTS(start, "walk_dir2");
 	}
 
-	if (specfile) {		/* apply a specfile */
+	if (specfile) { /* apply a specfile */
 		TIMER_START(start);
 		apply_specfile(specfile, subtree, root, fsoptions.onlyspec);
 		TIMER_RESULTS(start, "apply_specfile");
@@ -341,7 +335,7 @@ main(int argc, char *argv[])
 		putchar('\n');
 	}
 
-				/* build the file system */
+	/* build the file system */
 	TIMER_START(start);
 	fstype->make_fs(argv[0], subtree, root, &fsoptions);
 	TIMER_RESULTS(start, "make_fs");
@@ -378,13 +372,14 @@ set_option_var(const option_t *options, const char *var, const char *val,
 	char *s;
 	size_t i;
 
-#define NUM(type) \
-	if (!*val) { \
-		*(type *)options[i].value = 1; \
-		break; \
-	} \
+#define NUM(type)                                                          \
+	if (!*val) {                                                       \
+		*(type *)options[i].value = 1;                             \
+		break;                                                     \
+	}                                                                  \
 	*(type *)options[i].value = (type)strsuftoll(options[i].desc, val, \
-	    options[i].minimum, options[i].maximum); break
+	    options[i].minimum, options[i].maximum);                       \
+	break
 
 	for (i = 0; options[i].name != NULL; i++) {
 		if (var[1] == '\0') {
@@ -397,8 +392,8 @@ set_option_var(const option_t *options, const char *var, const char *val,
 			*(bool *)options[i].value = 1;
 			break;
 		case OPT_STRARRAY:
-			strlcpy((void *)options[i].value, val, (size_t)
-			    options[i].maximum);
+			strlcpy((void *)options[i].value, val,
+			    (size_t)options[i].maximum);
 			break;
 		case OPT_STRPTR:
 			s = estrdup(val);
@@ -428,12 +423,11 @@ set_option_var(const option_t *options, const char *var, const char *val,
 	return -1;
 }
 
-
 static fstype_t *
 get_fstype(const char *type)
 {
 	int i;
-	
+
 	for (i = 0; fstypes[i].type != NULL; i++)
 		if (strcmp(fstypes[i].type, type) == 0)
 			return (&fstypes[i]);
@@ -473,7 +467,7 @@ get_tstamp(const char *b, struct stat *st)
 #ifdef HAVE_STRUCT_STAT_BIRTHTIME
 	st->st_birthtime =
 #endif
-	st->st_mtime = st->st_ctime = st->st_atime = when;
+	    st->st_mtime = st->st_ctime = st->st_atime = when;
 	return 0;
 }
 
@@ -484,11 +478,11 @@ usage(fstype_t *fstype, fsinfo_t *fsoptions)
 
 	prog = getprogname();
 	fprintf(stderr,
-"Usage: %s [-xZ] [-B endian] [-b free-blocks] [-d debug-mask]\n"
-"\t[-F mtree-specfile] [-f free-files] [-M minimum-size] [-m maximum-size]\n"
-"\t[-N userdb-dir] [-O offset] [-o fs-options] [-R roundup-size]\n"
-"\t[-S sector-size] [-s image-size] [-T <timestamp/file>] [-t fs-type]\n"
-"\timage-file directory | manifest [extra-directory ...]\n",
+	    "Usage: %s [-xZ] [-B endian] [-b free-blocks] [-d debug-mask]\n"
+	    "\t[-F mtree-specfile] [-f free-files] [-M minimum-size] [-m maximum-size]\n"
+	    "\t[-N userdb-dir] [-O offset] [-o fs-options] [-R roundup-size]\n"
+	    "\t[-S sector-size] [-s image-size] [-T <timestamp/file>] [-t fs-type]\n"
+	    "\timage-file directory | manifest [extra-directory ...]\n",
 	    prog);
 
 	if (fstype) {
@@ -499,8 +493,7 @@ usage(fstype_t *fstype, fsinfo_t *fsoptions)
 		for (i = 0; o[i].name != NULL; i++)
 			fprintf(stderr, "\t%c%c%20.20s\t%s\n",
 			    o[i].letter ? o[i].letter : ' ',
-			    o[i].letter ? ',' : ' ',
-			    o[i].name, o[i].desc);
+			    o[i].letter ? ',' : ' ', o[i].name, o[i].desc);
 	}
 	exit(1);
 }

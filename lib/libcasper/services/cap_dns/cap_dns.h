@@ -27,24 +27,25 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_CAP_DNS_H_
-#define	_CAP_DNS_H_
+#ifndef _CAP_DNS_H_
+#define _CAP_DNS_H_
 
 #ifdef HAVE_CASPER
 #define WITH_CASPER
 #endif
 
 #include <sys/cdefs.h>
-#include <sys/socket.h>	/* socklen_t */
+#include <sys/socket.h> /* socklen_t */
 
 /*
  * Pull these in if we're just inlining calls to the underlying
  * libc functions.
  */
-#ifndef	WITH_CASPER
+#ifndef WITH_CASPER
 #include <sys/types.h>
+
 #include <netdb.h>
-#endif	/* WITH_CASPER */
+#endif /* WITH_CASPER */
 
 struct addrinfo;
 struct hostent;
@@ -64,7 +65,7 @@ int cap_getnameinfo(cap_channel_t *chan, const struct sockaddr *sa,
     socklen_t salen, char *host, size_t hostlen, char *serv, size_t servlen,
     int flags);
 
-int cap_dns_type_limit(cap_channel_t *chan, const char * const *types,
+int cap_dns_type_limit(cap_channel_t *chan, const char *const *types,
     size_t ntypes);
 int cap_dns_family_limit(cap_channel_t *chan, const int *families,
     size_t nfamilies);
@@ -87,24 +88,25 @@ cap_gethostbyname2(cap_channel_t *chan __unused, const char *name, int type)
 }
 
 static inline struct hostent *
-cap_gethostbyaddr(cap_channel_t *chan __unused, const void *addr,
-    socklen_t len, int type)
+cap_gethostbyaddr(cap_channel_t *chan __unused, const void *addr, socklen_t len,
+    int type)
 {
 
 	return (gethostbyaddr(addr, len, type));
 }
 
-static inline int cap_getaddrinfo(cap_channel_t *chan __unused,
-    const char *hostname, const char *servname, const struct addrinfo *hints,
-    struct addrinfo **res)
+static inline int
+cap_getaddrinfo(cap_channel_t *chan __unused, const char *hostname,
+    const char *servname, const struct addrinfo *hints, struct addrinfo **res)
 {
 
 	return (getaddrinfo(hostname, servname, hints, res));
 }
 
-static inline int cap_getnameinfo(cap_channel_t *chan __unused,
-    const struct sockaddr *sa, socklen_t salen, char *host, size_t hostlen,
-    char *serv, size_t servlen, int flags)
+static inline int
+cap_getnameinfo(cap_channel_t *chan __unused, const struct sockaddr *sa,
+    socklen_t salen, char *host, size_t hostlen, char *serv, size_t servlen,
+    int flags)
 {
 
 	return (getnameinfo(sa, salen, host, hostlen, serv, servlen, flags));
@@ -112,21 +114,19 @@ static inline int cap_getnameinfo(cap_channel_t *chan __unused,
 
 static inline int
 cap_dns_type_limit(cap_channel_t *chan __unused,
-    const char * const *types __unused,
-    size_t ntypes __unused)
+    const char *const *types __unused, size_t ntypes __unused)
 {
 
 	return (0);
 }
 
 static inline int
-cap_dns_family_limit(cap_channel_t *chan __unused,
-    const int *families __unused,
+cap_dns_family_limit(cap_channel_t *chan __unused, const int *families __unused,
     size_t nfamilies __unused)
 {
 
 	return (0);
 }
-#endif	/* WITH_CASPER */
+#endif /* WITH_CASPER */
 
-#endif	/* !_CAP_DNS_H_ */
+#endif /* !_CAP_DNS_H_ */

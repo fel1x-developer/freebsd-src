@@ -37,13 +37,15 @@
 
 static int ntest = 1;
 
-#define	CHECK(expr)	do {						\
-	if ((expr))							\
-		printf("ok # %d %s:%u\n", ntest, __FILE__, __LINE__);	\
-	else								\
-		printf("not ok # %d %s:%u\n", ntest, __FILE__, __LINE__);\
-	ntest++;							\
-} while (0)
+#define CHECK(expr)                                                           \
+	do {                                                                  \
+		if ((expr))                                                   \
+			printf("ok # %d %s:%u\n", ntest, __FILE__, __LINE__); \
+		else                                                          \
+			printf("not ok # %d %s:%u\n", ntest, __FILE__,        \
+			    __LINE__);                                        \
+		ntest++;                                                      \
+	} while (0)
 
 int
 main(void)
@@ -86,8 +88,8 @@ main(void)
 	CHECK(ptr ==
 	    nvlist_get_string(nvl, "nvlist/string/abcdefghijklmnopqrstuvwxyz"));
 
-	CHECK(!nvlist_exists_descriptor(nvl,
-	    "nvlist/descriptor/STDERR_FILENO"));
+	CHECK(
+	    !nvlist_exists_descriptor(nvl, "nvlist/descriptor/STDERR_FILENO"));
 	fd = dup(STDERR_FILENO);
 	CHECK(fd >= 0);
 	nvlist_move_descriptor(nvl, "nvlist/descriptor/STDERR_FILENO", fd);
@@ -113,15 +115,17 @@ main(void)
 	CHECK(ptr != NULL);
 	memcpy(ptr, "abcdefghijklmnopqrstuvwxyz",
 	    sizeof("abcdefghijklmnopqrstuvwxyz"));
-	nvlist_move_binary(nvl, "nvlist/binary/abcdefghijklmnopqrstuvwxyz",
-	    ptr, sizeof("abcdefghijklmnopqrstuvwxyz"));
+	nvlist_move_binary(nvl, "nvlist/binary/abcdefghijklmnopqrstuvwxyz", ptr,
+	    sizeof("abcdefghijklmnopqrstuvwxyz"));
 	CHECK(nvlist_error(nvl) == 0);
 	CHECK(nvlist_exists_binary(nvl,
 	    "nvlist/binary/abcdefghijklmnopqrstuvwxyz"));
-	CHECK(ptr == nvlist_get_binary(nvl,
-	    "nvlist/binary/abcdefghijklmnopqrstuvwxyz", NULL));
-	CHECK(ptr == nvlist_get_binary(nvl,
-	    "nvlist/binary/abcdefghijklmnopqrstuvwxyz", &size));
+	CHECK(ptr ==
+	    nvlist_get_binary(nvl, "nvlist/binary/abcdefghijklmnopqrstuvwxyz",
+		NULL));
+	CHECK(ptr ==
+	    nvlist_get_binary(nvl, "nvlist/binary/abcdefghijklmnopqrstuvwxyz",
+		&size));
 	CHECK(size == sizeof("abcdefghijklmnopqrstuvwxyz"));
 
 	CHECK(!nvlist_exists_nvlist(nvl, "nvlist/nvlist"));
@@ -147,8 +151,8 @@ main(void)
 	CHECK(nvlist_exists_string(cnvl, "nvlist/string/x"));
 	CHECK(nvlist_exists_string(cnvl,
 	    "nvlist/string/abcdefghijklmnopqrstuvwxyz"));
-	CHECK(nvlist_exists_descriptor(cnvl,
-	    "nvlist/descriptor/STDERR_FILENO"));
+	CHECK(
+	    nvlist_exists_descriptor(cnvl, "nvlist/descriptor/STDERR_FILENO"));
 	CHECK(nvlist_exists_binary(cnvl, "nvlist/binary/x"));
 	CHECK(nvlist_exists_binary(cnvl,
 	    "nvlist/binary/abcdefghijklmnopqrstuvwxyz"));

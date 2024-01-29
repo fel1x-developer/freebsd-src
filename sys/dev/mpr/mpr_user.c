@@ -64,72 +64,72 @@
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/selinfo.h>
-#include <sys/module.h>
+#include <sys/abi_compat.h>
+#include <sys/bio.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
-#include <sys/bio.h>
-#include <sys/abi_compat.h>
-#include <sys/malloc.h>
-#include <sys/uio.h>
-#include <sys/sysctl.h>
-#include <sys/ioccom.h>
 #include <sys/endian.h>
-#include <sys/queue.h>
+#include <sys/ioccom.h>
+#include <sys/kernel.h>
 #include <sys/kthread.h>
-#include <sys/taskqueue.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/proc.h>
+#include <sys/queue.h>
+#include <sys/rman.h>
+#include <sys/selinfo.h>
+#include <sys/sysctl.h>
 #include <sys/sysent.h>
+#include <sys/taskqueue.h>
+#include <sys/uio.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
+
+#include <dev/mpr/mpi/mpi2.h>
+#include <dev/mpr/mpi/mpi2_cnfg.h>
+#include <dev/mpr/mpi/mpi2_init.h>
+#include <dev/mpr/mpi/mpi2_ioc.h>
+#include <dev/mpr/mpi/mpi2_pci.h>
+#include <dev/mpr/mpi/mpi2_tool.h>
+#include <dev/mpr/mpi/mpi2_type.h>
+#include <dev/mpr/mpr_ioctl.h>
+#include <dev/mpr/mpr_sas.h>
+#include <dev/mpr/mpr_table.h>
+#include <dev/mpr/mprvar.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include <cam/cam.h>
 #include <cam/cam_ccb.h>
 
-#include <dev/mpr/mpi/mpi2_type.h>
-#include <dev/mpr/mpi/mpi2.h>
-#include <dev/mpr/mpi/mpi2_ioc.h>
-#include <dev/mpr/mpi/mpi2_cnfg.h>
-#include <dev/mpr/mpi/mpi2_init.h>
-#include <dev/mpr/mpi/mpi2_tool.h>
-#include <dev/mpr/mpi/mpi2_pci.h>
-#include <dev/mpr/mpr_ioctl.h>
-#include <dev/mpr/mprvar.h>
-#include <dev/mpr/mpr_table.h>
-#include <dev/mpr/mpr_sas.h>
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
-
-static d_open_t		mpr_open;
-static d_close_t	mpr_close;
-static d_ioctl_t	mpr_ioctl_devsw;
+static d_open_t mpr_open;
+static d_close_t mpr_close;
+static d_ioctl_t mpr_ioctl_devsw;
 
 static struct cdevsw mpr_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_flags =	0,
-	.d_open =	mpr_open,
-	.d_close =	mpr_close,
-	.d_ioctl =	mpr_ioctl_devsw,
-	.d_name =	"mpr",
+	.d_version = D_VERSION,
+	.d_flags = 0,
+	.d_open = mpr_open,
+	.d_close = mpr_close,
+	.d_ioctl = mpr_ioctl_devsw,
+	.d_name = "mpr",
 };
 
-typedef int (mpr_user_f)(struct mpr_command *, struct mpr_usr_command *);
-static mpr_user_f	mpi_pre_ioc_facts;
-static mpr_user_f	mpi_pre_port_facts;
-static mpr_user_f	mpi_pre_fw_download;
-static mpr_user_f	mpi_pre_fw_upload;
-static mpr_user_f	mpi_pre_sata_passthrough;
-static mpr_user_f	mpi_pre_smp_passthrough;
-static mpr_user_f	mpi_pre_config;
-static mpr_user_f	mpi_pre_sas_io_unit_control;
+typedef int(mpr_user_f)(struct mpr_command *, struct mpr_usr_command *);
+static mpr_user_f mpi_pre_ioc_facts;
+static mpr_user_f mpi_pre_port_facts;
+static mpr_user_f mpi_pre_fw_download;
+static mpr_user_f mpi_pre_fw_upload;
+static mpr_user_f mpi_pre_sata_passthrough;
+static mpr_user_f mpi_pre_smp_passthrough;
+static mpr_user_f mpi_pre_config;
+static mpr_user_f mpi_pre_sas_io_unit_control;
 
 static int mpr_user_read_cfg_header(struct mpr_softc *,
     struct mpr_cfg_page_req *);
-static int mpr_user_read_cfg_page(struct mpr_softc *,
-    struct mpr_cfg_page_req *, void *);
+static int mpr_user_read_cfg_page(struct mpr_softc *, struct mpr_cfg_page_req *,
+    void *);
 static int mpr_user_read_extcfg_header(struct mpr_softc *,
     struct mpr_ext_cfg_page_req *);
 static int mpr_user_read_extcfg_page(struct mpr_softc *,
@@ -178,17 +178,11 @@ static MALLOC_DEFINE(M_MPRUSER, "mpr_user", "Buffers for mpr(4) ioctls");
 /*
  * MPI functions that support IEEE SGLs for SAS3.
  */
-static uint8_t ieee_sgl_func_list[] = {
-	MPI2_FUNCTION_SCSI_IO_REQUEST,
-	MPI2_FUNCTION_RAID_SCSI_IO_PASSTHROUGH,
-	MPI2_FUNCTION_SMP_PASSTHROUGH,
-	MPI2_FUNCTION_SATA_PASSTHROUGH,
-	MPI2_FUNCTION_FW_UPLOAD,
-	MPI2_FUNCTION_FW_DOWNLOAD,
-	MPI2_FUNCTION_TARGET_ASSIST,
-	MPI2_FUNCTION_TARGET_STATUS_SEND,
-	MPI2_FUNCTION_TOOLBOX
-};
+static uint8_t ieee_sgl_func_list[] = { MPI2_FUNCTION_SCSI_IO_REQUEST,
+	MPI2_FUNCTION_RAID_SCSI_IO_PASSTHROUGH, MPI2_FUNCTION_SMP_PASSTHROUGH,
+	MPI2_FUNCTION_SATA_PASSTHROUGH, MPI2_FUNCTION_FW_UPLOAD,
+	MPI2_FUNCTION_FW_DOWNLOAD, MPI2_FUNCTION_TARGET_ASSIST,
+	MPI2_FUNCTION_TARGET_STATUS_SEND, MPI2_FUNCTION_TOOLBOX };
 
 int
 mpr_attach_user(struct mpr_softc *sc)
@@ -235,7 +229,7 @@ mpr_user_read_cfg_header(struct mpr_softc *sc,
 {
 	MPI2_CONFIG_PAGE_HEADER *hdr;
 	struct mpr_config_params params;
-	int	    error;
+	int error;
 
 	hdr = &params.hdr.Struct;
 	params.action = MPI2_CONFIG_ACTION_PAGE_HEADER;
@@ -274,7 +268,7 @@ mpr_user_read_cfg_page(struct mpr_softc *sc, struct mpr_cfg_page_req *page_req,
 {
 	MPI2_CONFIG_PAGE_HEADER *reqhdr, *hdr;
 	struct mpr_config_params params;
-	int	      error;
+	int error;
 
 	reqhdr = buf;
 	hdr = &params.hdr.Struct;
@@ -303,7 +297,7 @@ mpr_user_read_extcfg_header(struct mpr_softc *sc,
 {
 	MPI2_CONFIG_EXTENDED_PAGE_HEADER *hdr;
 	struct mpr_config_params params;
-	int	    error;
+	int error;
 
 	hdr = &params.hdr.Ext;
 	params.action = MPI2_CONFIG_ACTION_PAGE_HEADER;
@@ -372,13 +366,13 @@ mpr_user_read_extcfg_page(struct mpr_softc *sc,
 }
 
 static int
-mpr_user_write_cfg_page(struct mpr_softc *sc,
-    struct mpr_cfg_page_req *page_req, void *buf)
+mpr_user_write_cfg_page(struct mpr_softc *sc, struct mpr_cfg_page_req *page_req,
+    void *buf)
 {
 	MPI2_CONFIG_PAGE_HEADER *reqhdr, *hdr;
 	struct mpr_config_params params;
-	u_int	      hdr_attr;
-	int	      error;
+	u_int hdr_attr;
+	int error;
 
 	reqhdr = buf;
 	hdr = &params.hdr.Struct;
@@ -386,7 +380,7 @@ mpr_user_write_cfg_page(struct mpr_softc *sc,
 	if (hdr_attr != MPI2_CONFIG_PAGEATTR_CHANGEABLE &&
 	    hdr_attr != MPI2_CONFIG_PAGEATTR_PERSISTENT) {
 		mpr_printf(sc, "page type 0x%x not changeable\n",
-			reqhdr->PageType & MPI2_CONFIG_PAGETYPE_MASK);
+		    reqhdr->PageType & MPI2_CONFIG_PAGETYPE_MASK);
 		return (EINVAL);
 	}
 
@@ -422,8 +416,8 @@ mpr_init_sge(struct mpr_command *cm, void *req, void *sge)
 	space = (int)cm->cm_sc->reqframesz;
 	off = (uintptr_t)sge - (uintptr_t)req;
 
-	KASSERT(off < space, ("bad pointers %p %p, off %d, space %d",
-            req, sge, off, space));
+	KASSERT(off < space,
+	    ("bad pointers %p %p, off %d, space %d", req, sge, off, space));
 
 	cm->cm_sge = sge;
 	cm->cm_sglsize = space - off;
@@ -593,8 +587,7 @@ mpi_pre_config(struct mpr_command *cm, struct mpr_usr_command *cmd)
  * Prepare the mpr_command for a SAS_IO_UNIT_CONTROL request.
  */
 static int
-mpi_pre_sas_io_unit_control(struct mpr_command *cm,
-			     struct mpr_usr_command *cmd)
+mpi_pre_sas_io_unit_control(struct mpr_command *cm, struct mpr_usr_command *cmd)
 {
 
 	cm->cm_sge = NULL;
@@ -607,24 +600,24 @@ mpi_pre_sas_io_unit_control(struct mpr_command *cm,
  * supported requests.
  */
 struct mpr_user_func {
-	U8		Function;
-	mpr_user_f	*f_pre;
+	U8 Function;
+	mpr_user_f *f_pre;
 } mpr_user_func_list[] = {
-	{ MPI2_FUNCTION_IOC_FACTS,		mpi_pre_ioc_facts },
-	{ MPI2_FUNCTION_PORT_FACTS,		mpi_pre_port_facts },
-	{ MPI2_FUNCTION_FW_DOWNLOAD, 		mpi_pre_fw_download },
-	{ MPI2_FUNCTION_FW_UPLOAD,		mpi_pre_fw_upload },
-	{ MPI2_FUNCTION_SATA_PASSTHROUGH,	mpi_pre_sata_passthrough },
-	{ MPI2_FUNCTION_SMP_PASSTHROUGH,	mpi_pre_smp_passthrough},
-	{ MPI2_FUNCTION_CONFIG,			mpi_pre_config},
-	{ MPI2_FUNCTION_SAS_IO_UNIT_CONTROL,	mpi_pre_sas_io_unit_control },
-	{ 0xFF,					NULL } /* list end */
+	{ MPI2_FUNCTION_IOC_FACTS, mpi_pre_ioc_facts },
+	{ MPI2_FUNCTION_PORT_FACTS, mpi_pre_port_facts },
+	{ MPI2_FUNCTION_FW_DOWNLOAD, mpi_pre_fw_download },
+	{ MPI2_FUNCTION_FW_UPLOAD, mpi_pre_fw_upload },
+	{ MPI2_FUNCTION_SATA_PASSTHROUGH, mpi_pre_sata_passthrough },
+	{ MPI2_FUNCTION_SMP_PASSTHROUGH, mpi_pre_smp_passthrough },
+	{ MPI2_FUNCTION_CONFIG, mpi_pre_config },
+	{ MPI2_FUNCTION_SAS_IO_UNIT_CONTROL, mpi_pre_sas_io_unit_control },
+	{ 0xFF, NULL } /* list end */
 };
 
 static int
 mpr_user_setup_request(struct mpr_command *cm, struct mpr_usr_command *cmd)
 {
-	MPI2_REQUEST_HEADER *hdr = (MPI2_REQUEST_HEADER *)cm->cm_req;	
+	MPI2_REQUEST_HEADER *hdr = (MPI2_REQUEST_HEADER *)cm->cm_req;
 	struct mpr_user_func *f;
 
 	for (f = mpr_user_func_list; f->f_pre != NULL; f++) {
@@ -632,12 +625,12 @@ mpr_user_setup_request(struct mpr_command *cm, struct mpr_usr_command *cmd)
 			return (f->f_pre(cm, cmd));
 	}
 	return (EINVAL);
-}	
+}
 
 static int
 mpr_user_command(struct mpr_softc *sc, struct mpr_usr_command *cmd)
 {
-	MPI2_REQUEST_HEADER *hdr;	
+	MPI2_REQUEST_HEADER *hdr;
 	MPI2_DEFAULT_REPLY *rpl = NULL;
 	void *buf = NULL;
 	struct mpr_command *cm = NULL;
@@ -671,7 +664,7 @@ mpr_user_command(struct mpr_softc *sc, struct mpr_usr_command *cmd)
 	    hdr->Function, hdr->MsgFlags);
 
 	if (cmd->len > 0) {
-		buf = malloc(cmd->len, M_MPRUSER, M_WAITOK|M_ZERO);
+		buf = malloc(cmd->len, M_MPRUSER, M_WAITOK | M_ZERO);
 		cm->cm_data = buf;
 		cm->cm_length = cmd->len;
 	} else {
@@ -684,9 +677,10 @@ mpr_user_command(struct mpr_softc *sc, struct mpr_usr_command *cmd)
 
 	err = mpr_user_setup_request(cm, cmd);
 	if (err == EINVAL) {
-		mpr_printf(sc, "%s: unsupported parameter or unsupported "
-		    "function in request (function = 0x%X)\n", __func__,
-		    hdr->Function);
+		mpr_printf(sc,
+		    "%s: unsupported parameter or unsupported "
+		    "function in request (function = 0x%X)\n",
+		    __func__, hdr->Function);
 	}
 	if (err != 0)
 		goto RetFreeUnlocked;
@@ -695,8 +689,8 @@ mpr_user_command(struct mpr_softc *sc, struct mpr_usr_command *cmd)
 	err = mpr_wait_command(sc, &cm, 30, CAN_SLEEP);
 
 	if (err || (cm == NULL)) {
-		mpr_printf(sc, "%s: invalid request: error %d\n",
-		    __func__, err);
+		mpr_printf(sc, "%s: invalid request: error %d\n", __func__,
+		    err);
 		goto RetFree;
 	}
 
@@ -708,10 +702,12 @@ mpr_user_command(struct mpr_softc *sc, struct mpr_usr_command *cmd)
 		sz = 0;
 
 	if (sz > cmd->rpl_len) {
-		mpr_printf(sc, "%s: user reply buffer (%d) smaller than "
-		    "returned buffer (%d)\n", __func__, cmd->rpl_len, sz);
+		mpr_printf(sc,
+		    "%s: user reply buffer (%d) smaller than "
+		    "returned buffer (%d)\n",
+		    __func__, cmd->rpl_len, sz);
 		sz = cmd->rpl_len;
-	}	
+	}
 
 	mpr_unlock(sc);
 	err = copyout(rpl, cmd->rpl, sz);
@@ -733,16 +729,16 @@ RetFree:
 static int
 mpr_user_pass_thru(struct mpr_softc *sc, mpr_pass_thru_t *data)
 {
-	MPI2_REQUEST_HEADER	*hdr, *tmphdr;
-	MPI2_DEFAULT_REPLY	*rpl;
+	MPI2_REQUEST_HEADER *hdr, *tmphdr;
+	MPI2_DEFAULT_REPLY *rpl;
 	Mpi26NVMeEncapsulatedErrorReply_t *nvme_error_reply = NULL;
 	Mpi26NVMeEncapsulatedRequest_t *nvme_encap_request = NULL;
-	struct mpr_command	*cm = NULL;
-	void			*req = NULL;
-	int			i, err = 0, dir = 0, sz;
-	uint8_t			tool, function = 0;
-	u_int			sense_len;
-	struct mprsas_target	*targ = NULL;
+	struct mpr_command *cm = NULL;
+	void *req = NULL;
+	int i, err = 0, dir = 0, sz;
+	uint8_t tool, function = 0;
+	u_int sense_len;
+	struct mprsas_target *targ = NULL;
 
 	/*
 	 * Only allow one passthru command at a time.  Use the MPR_FLAGS_BUSY
@@ -750,8 +746,10 @@ mpr_user_pass_thru(struct mpr_softc *sc, mpr_pass_thru_t *data)
 	 */
 	mpr_lock(sc);
 	if (sc->mpr_flags & MPR_FLAGS_BUSY) {
-		mpr_dprint(sc, MPR_USER, "%s: Only one passthru command "
-		    "allowed at a single time.", __func__);
+		mpr_dprint(sc, MPR_USER,
+		    "%s: Only one passthru command "
+		    "allowed at a single time.",
+		    __func__);
 		mpr_unlock(sc);
 		return (EBUSY);
 	}
@@ -769,12 +767,12 @@ mpr_user_pass_thru(struct mpr_softc *sc, mpr_pass_thru_t *data)
 	 * if valid and the direction is not BOTH, make sure DataOutSize is 0.
 	 */
 	if (((data->DataSize == 0) &&
-	    (data->DataDirection == MPR_PASS_THRU_DIRECTION_NONE)) ||
+		(data->DataDirection == MPR_PASS_THRU_DIRECTION_NONE)) ||
 	    ((data->DataSize != 0) &&
-	    ((data->DataDirection == MPR_PASS_THRU_DIRECTION_READ) ||
-	    (data->DataDirection == MPR_PASS_THRU_DIRECTION_WRITE) ||
-	    ((data->DataDirection == MPR_PASS_THRU_DIRECTION_BOTH) &&
-	    (data->DataOutSize != 0))))) {
+		((data->DataDirection == MPR_PASS_THRU_DIRECTION_READ) ||
+		    (data->DataDirection == MPR_PASS_THRU_DIRECTION_WRITE) ||
+		    ((data->DataDirection == MPR_PASS_THRU_DIRECTION_BOTH) &&
+			(data->DataOutSize != 0))))) {
 		if (data->DataDirection == MPR_PASS_THRU_DIRECTION_BOTH)
 			data->DataDirection = MPR_PASS_THRU_DIRECTION_READ;
 		else
@@ -784,11 +782,12 @@ mpr_user_pass_thru(struct mpr_softc *sc, mpr_pass_thru_t *data)
 		goto RetFreeUnlocked;
 	}
 
-	mpr_dprint(sc, MPR_USER, "%s: req 0x%jx %d  rpl 0x%jx %d "
-	    "data in 0x%jx %d data out 0x%jx %d data dir %d\n", __func__,
-	    data->PtrRequest, data->RequestSize, data->PtrReply,
-	    data->ReplySize, data->PtrData, data->DataSize,
-	    data->PtrDataOut, data->DataOutSize, data->DataDirection);
+	mpr_dprint(sc, MPR_USER,
+	    "%s: req 0x%jx %d  rpl 0x%jx %d "
+	    "data in 0x%jx %d data out 0x%jx %d data dir %d\n",
+	    __func__, data->PtrRequest, data->RequestSize, data->PtrReply,
+	    data->ReplySize, data->PtrData, data->DataSize, data->PtrDataOut,
+	    data->DataOutSize, data->DataDirection);
 
 	if (data->RequestSize > sc->reqframesz) {
 		err = EINVAL;
@@ -810,7 +809,7 @@ mpr_user_pass_thru(struct mpr_softc *sc, mpr_pass_thru_t *data)
 	 * Handle a passthru TM request.
 	 */
 	if (function == MPI2_FUNCTION_SCSI_TASK_MGMT) {
-		MPI2_SCSI_TASK_MANAGE_REQUEST	*task;
+		MPI2_SCSI_TASK_MANAGE_REQUEST *task;
 
 		mpr_lock(sc);
 		cm = mprsas_alloc_tm(sc);
@@ -832,8 +831,8 @@ mpr_user_pass_thru(struct mpr_softc *sc, mpr_pass_thru_t *data)
 		    task->DevHandle);
 		if (targ == NULL) {
 			mpr_dprint(sc, MPR_INFO,
-			   "%s %d : invalid handle for requested TM 0x%x \n",
-			   __func__, __LINE__, task->DevHandle);
+			    "%s %d : invalid handle for requested TM 0x%x \n",
+			    __func__, __LINE__, task->DevHandle);
 			err = 1;
 		} else {
 			mprsas_prepare_for_tm(sc, cm, targ, CAM_LUN_WILDCARD);
@@ -853,7 +852,8 @@ mpr_user_pass_thru(struct mpr_softc *sc, mpr_pass_thru_t *data)
 			sz = rpl->MsgLength * 4;
 
 			if (bootverbose && sz > data->ReplySize) {
-				mpr_printf(sc, "%s: user reply buffer (%d) "
+				mpr_printf(sc,
+				    "%s: user reply buffer (%d) "
 				    "smaller than returned buffer (%d)\n",
 				    __func__, data->ReplySize, sz);
 			}
@@ -898,22 +898,24 @@ mpr_user_pass_thru(struct mpr_softc *sc, mpr_pass_thru_t *data)
 	cm->cm_out_len = data->DataOutSize;
 	cm->cm_flags = 0;
 	if (cm->cm_length != 0) {
-		cm->cm_data = malloc(cm->cm_length, M_MPRUSER, M_WAITOK |
-		    M_ZERO);
+		cm->cm_data = malloc(cm->cm_length, M_MPRUSER,
+		    M_WAITOK | M_ZERO);
 		cm->cm_flags = MPR_CM_FLAGS_DATAIN;
 		if (data->DataOutSize) {
 			cm->cm_flags |= MPR_CM_FLAGS_DATAOUT;
-			err = copyin(PTRIN(data->PtrDataOut),
-			    cm->cm_data, data->DataOutSize);
+			err = copyin(PTRIN(data->PtrDataOut), cm->cm_data,
+			    data->DataOutSize);
 		} else if (data->DataDirection ==
 		    MPR_PASS_THRU_DIRECTION_WRITE) {
 			cm->cm_flags = MPR_CM_FLAGS_DATAOUT;
-			err = copyin(PTRIN(data->PtrData),
-			    cm->cm_data, data->DataSize);
+			err = copyin(PTRIN(data->PtrData), cm->cm_data,
+			    data->DataSize);
 		}
 		if (err != 0)
-			mpr_dprint(sc, MPR_FAULT, "%s: failed to copy IOCTL "
-			    "data from user space\n", __func__);
+			mpr_dprint(sc, MPR_FAULT,
+			    "%s: failed to copy IOCTL "
+			    "data from user space\n",
+			    __func__);
 	}
 	/*
 	 * Set this flag only if processing a command that does not need an
@@ -921,10 +923,9 @@ mpr_user_pass_thru(struct mpr_softc *sc, mpr_pass_thru_t *data)
 	 * the flag only for that tool if processing a Toolbox function.
 	 */
 	cm->cm_flags |= MPR_CM_FLAGS_SGE_SIMPLE;
-	for (i = 0; i < sizeof (ieee_sgl_func_list); i++) {
+	for (i = 0; i < sizeof(ieee_sgl_func_list); i++) {
 		if (function == ieee_sgl_func_list[i]) {
-			if (function == MPI2_FUNCTION_TOOLBOX)
-			{
+			if (function == MPI2_FUNCTION_TOOLBOX) {
 				tool = (uint8_t)hdr->FunctionDependent1;
 				if (tool != MPI2_TOOLBOX_DIAGNOSTIC_CLI_TOOL)
 					break;
@@ -936,8 +937,8 @@ mpr_user_pass_thru(struct mpr_softc *sc, mpr_pass_thru_t *data)
 	cm->cm_desc.Default.RequestFlags = MPI2_REQ_DESCRIPT_FLAGS_DEFAULT_TYPE;
 
 	if (function == MPI2_FUNCTION_NVME_ENCAPSULATED) {
-		nvme_encap_request =
-		    (Mpi26NVMeEncapsulatedRequest_t *)cm->cm_req;
+		nvme_encap_request = (Mpi26NVMeEncapsulatedRequest_t *)
+					 cm->cm_req;
 		cm->cm_desc.Default.RequestFlags =
 		    MPI26_REQ_DESCRIPT_FLAGS_PCIE_ENCAPSULATED;
 
@@ -950,15 +951,15 @@ mpr_user_pass_thru(struct mpr_softc *sc, mpr_pass_thru_t *data)
 		 * Build the PRPs and set direction bits.
 		 * Send the request.
 		 */
-		cm->nvme_error_response =
-		    (uint64_t *)(uintptr_t)(((uint64_t)nvme_encap_request->
-		    ErrorResponseBaseAddress.High << 32) |
-		    (uint64_t)nvme_encap_request->
-		    ErrorResponseBaseAddress.Low);
-		nvme_encap_request->ErrorResponseBaseAddress.High =
-		    htole32((uint32_t)((uint64_t)cm->cm_sense_busaddr >> 32));
-		nvme_encap_request->ErrorResponseBaseAddress.Low =
-		    htole32(cm->cm_sense_busaddr);
+		cm->nvme_error_response = (uint64_t
+			*)(uintptr_t)(((uint64_t)nvme_encap_request
+					      ->ErrorResponseBaseAddress.High
+					  << 32) |
+		    (uint64_t)nvme_encap_request->ErrorResponseBaseAddress.Low);
+		nvme_encap_request->ErrorResponseBaseAddress.High = htole32(
+		    (uint32_t)((uint64_t)cm->cm_sense_busaddr >> 32));
+		nvme_encap_request->ErrorResponseBaseAddress.Low = htole32(
+		    cm->cm_sense_busaddr);
 		memset(cm->cm_sense, 0, NVME_ERROR_RESPONSE_SIZE);
 		mpr_build_nvme_prp(sc, cm, nvme_encap_request, cm->cm_data,
 		    data->DataSize, data->DataOutSize);
@@ -970,7 +971,7 @@ mpr_user_pass_thru(struct mpr_softc *sc, mpr_pass_thru_t *data)
 	 */
 	if ((function == MPI2_FUNCTION_SCSI_IO_REQUEST) ||
 	    (function == MPI2_FUNCTION_RAID_SCSI_IO_PASSTHROUGH)) {
-		MPI2_SCSI_IO_REQUEST	*scsi_io_req;
+		MPI2_SCSI_IO_REQUEST *scsi_io_req;
 
 		scsi_io_req = (MPI2_SCSI_IO_REQUEST *)hdr;
 		/*
@@ -981,8 +982,8 @@ mpr_user_pass_thru(struct mpr_softc *sc, mpr_pass_thru_t *data)
 		 */
 		scsi_io_req->SenseBufferLength = (uint8_t)(data->RequestSize -
 		    64);
-		scsi_io_req->SenseBufferLowAddress =
-		    htole32(cm->cm_sense_busaddr);
+		scsi_io_req->SenseBufferLowAddress = htole32(
+		    cm->cm_sense_busaddr);
 
 		/*
 		 * Set SGLOffset0 value.  This is the number of dwords that SGL
@@ -1061,12 +1062,14 @@ mpr_user_pass_thru(struct mpr_softc *sc, mpr_pass_thru_t *data)
 
 		if (cm->cm_flags & MPR_CM_FLAGS_DATAIN) {
 			mpr_unlock(sc);
-			err = copyout(cm->cm_data,
-			    PTRIN(data->PtrData), data->DataSize);
+			err = copyout(cm->cm_data, PTRIN(data->PtrData),
+			    data->DataSize);
 			mpr_lock(sc);
 			if (err != 0)
-				mpr_dprint(sc, MPR_FAULT, "%s: failed to copy "
-				    "IOCTL data to user space\n", __func__);
+				mpr_dprint(sc, MPR_FAULT,
+				    "%s: failed to copy "
+				    "IOCTL data to user space\n",
+				    __func__);
 		}
 	}
 
@@ -1078,35 +1081,40 @@ mpr_user_pass_thru(struct mpr_softc *sc, mpr_pass_thru_t *data)
 		sz = rpl->MsgLength * 4;
 
 		if (bootverbose && sz > data->ReplySize) {
-			mpr_printf(sc, "%s: user reply buffer (%d) smaller "
-			    "than returned buffer (%d)\n", __func__,
-			    data->ReplySize, sz);
+			mpr_printf(sc,
+			    "%s: user reply buffer (%d) smaller "
+			    "than returned buffer (%d)\n",
+			    __func__, data->ReplySize, sz);
 		}
 		mpr_unlock(sc);
 		err = copyout(cm->cm_reply, PTRIN(data->PtrReply),
 		    MIN(sz, data->ReplySize));
 		if (err != 0)
-			mpr_dprint(sc, MPR_FAULT, "%s: failed to copy "
-			    "IOCTL data to user space\n", __func__);
+			mpr_dprint(sc, MPR_FAULT,
+			    "%s: failed to copy "
+			    "IOCTL data to user space\n",
+			    __func__);
 		mpr_lock(sc);
 
 		if (err == 0 &&
 		    (function == MPI2_FUNCTION_SCSI_IO_REQUEST ||
-		    function == MPI2_FUNCTION_RAID_SCSI_IO_PASSTHROUGH)) {
+			function == MPI2_FUNCTION_RAID_SCSI_IO_PASSTHROUGH)) {
 			if (((MPI2_SCSI_IO_REPLY *)rpl)->SCSIState &
 			    MPI2_SCSI_STATE_AUTOSENSE_VALID) {
-				sense_len =
-				    MIN((le32toh(((MPI2_SCSI_IO_REPLY *)rpl)->
-				    SenseCount)), sizeof(struct
-				    scsi_sense_data));
+				sense_len = MIN((le32toh(
+						    ((MPI2_SCSI_IO_REPLY *)rpl)
+							->SenseCount)),
+				    sizeof(struct scsi_sense_data));
 				mpr_unlock(sc);
 				err = copyout(cm->cm_sense,
 				    PTRIN(data->PtrReply +
-				    sizeof(MPI2_SCSI_IO_REPLY)), sense_len);
+					sizeof(MPI2_SCSI_IO_REPLY)),
+				    sense_len);
 				if (err != 0)
 					mpr_dprint(sc, MPR_FAULT,
 					    "%s: failed to copy IOCTL data to "
-					    "user space\n", __func__);
+					    "user space\n",
+					    __func__);
 				mpr_lock(sc);
 			}
 		}
@@ -1127,25 +1135,28 @@ mpr_user_pass_thru(struct mpr_softc *sc, mpr_pass_thru_t *data)
 		 */
 		if (err == 0 && function == MPI2_FUNCTION_NVME_ENCAPSULATED) {
 			if (cm->nvme_error_response == NULL) {
-				mpr_dprint(sc, MPR_INFO, "NVMe Error Response "
+				mpr_dprint(sc, MPR_INFO,
+				    "NVMe Error Response "
 				    "buffer is NULL. Response data will not be "
 				    "returned.\n");
 				mpr_unlock(sc);
 				goto RetFreeUnlocked;
 			}
 
-			nvme_error_reply =
-			    (Mpi26NVMeEncapsulatedErrorReply_t *)cm->cm_reply;
+			nvme_error_reply = (Mpi26NVMeEncapsulatedErrorReply_t *)
+					       cm->cm_reply;
 			sz = MIN(le32toh(nvme_error_reply->ErrorResponseCount),
 			    NVME_ERROR_RESPONSE_SIZE);
 			mpr_unlock(sc);
 			err = copyout(cm->cm_sense,
-			    (PTRIN(data->PtrReply +
-			    sizeof(MPI2_SCSI_IO_REPLY))), sz);
+			    (PTRIN(
+				data->PtrReply + sizeof(MPI2_SCSI_IO_REPLY))),
+			    sz);
 			if (err != 0)
 				mpr_dprint(sc, MPR_FAULT,
 				    "%s: failed to copy IOCTL data to "
-				    "user space\n", __func__);
+				    "user space\n",
+				    __func__);
 			mpr_lock(sc);
 		}
 	}
@@ -1171,8 +1182,8 @@ Ret:
 static void
 mpr_user_get_adapter_data(struct mpr_softc *sc, mpr_adapter_data_t *data)
 {
-	Mpi2ConfigReply_t	mpi_reply;
-	Mpi2BiosPage3_t		config_page;
+	Mpi2ConfigReply_t mpi_reply;
+	Mpi2BiosPage3_t config_page;
 
 	/*
 	 * Use the PCI interface functions to get the Bus, Device, and Function
@@ -1180,8 +1191,8 @@ mpr_user_get_adapter_data(struct mpr_softc *sc, mpr_adapter_data_t *data)
 	 */
 	data->PciInformation.u.bits.BusNumber = pci_get_bus(sc->mpr_dev);
 	data->PciInformation.u.bits.DeviceNumber = pci_get_slot(sc->mpr_dev);
-	data->PciInformation.u.bits.FunctionNumber =
-	    pci_get_function(sc->mpr_dev);
+	data->PciInformation.u.bits.FunctionNumber = pci_get_function(
+	    sc->mpr_dev);
 
 	/*
 	 * Get the FW version that should already be saved in IOC Facts.
@@ -1220,7 +1231,7 @@ mpr_user_get_adapter_data(struct mpr_softc *sc, mpr_adapter_data_t *data)
 static void
 mpr_user_read_pci_info(struct mpr_softc *sc, mpr_pci_info_t *data)
 {
-	int	i;
+	int i;
 
 	/*
 	 * Use the PCI interface functions to get the Bus, Device, and Function
@@ -1236,7 +1247,7 @@ mpr_user_read_pci_info(struct mpr_softc *sc, mpr_pci_info_t *data)
 	 * space.
 	 */
 	data->InterruptVector = 0;
-	for (i = 0; i < sizeof (data->PciHeader); i++) {
+	for (i = 0; i < sizeof(data->PciHeader); i++) {
 		data->PciHeader[i] = pci_read_config(sc->mpr_dev, i, 1);
 	}
 }
@@ -1244,7 +1255,7 @@ mpr_user_read_pci_info(struct mpr_softc *sc, mpr_pci_info_t *data)
 static uint8_t
 mpr_get_fw_diag_buffer_number(struct mpr_softc *sc, uint32_t unique_id)
 {
-	uint8_t	index;
+	uint8_t index;
 
 	for (index = 0; index < MPI2_DIAG_BUF_TYPE_COUNT; index++) {
 		if (sc->fw_diag_buffer_list[index].unique_id == unique_id) {
@@ -1259,10 +1270,10 @@ static int
 mpr_post_fw_diag_buffer(struct mpr_softc *sc,
     mpr_fw_diagnostic_buffer_t *pBuffer, uint32_t *return_code)
 {
-	MPI2_DIAG_BUFFER_POST_REQUEST	*req;
-	MPI2_DIAG_BUFFER_POST_REPLY	*reply;
-	struct mpr_command		*cm = NULL;
-	int				i, status;
+	MPI2_DIAG_BUFFER_POST_REQUEST *req;
+	MPI2_DIAG_BUFFER_POST_REPLY *reply;
+	struct mpr_command *cm = NULL;
+	int i, status;
 
 	/*
 	 * If buffer is not enabled, just leave.
@@ -1320,8 +1331,10 @@ mpr_post_fw_diag_buffer(struct mpr_softc *sc,
 	 */
 	reply = (MPI2_DIAG_BUFFER_POST_REPLY *)cm->cm_reply;
 	if (reply == NULL) {
-		mpr_printf(sc, "%s: reply is NULL, probably due to "
-		    "reinitialization\n", __func__);
+		mpr_printf(sc,
+		    "%s: reply is NULL, probably due to "
+		    "reinitialization\n",
+		    __func__);
 		status = MPR_DIAG_FAILURE;
 		goto done;
 	}
@@ -1329,11 +1342,12 @@ mpr_post_fw_diag_buffer(struct mpr_softc *sc,
 	if ((le16toh(reply->IOCStatus) & MPI2_IOCSTATUS_MASK) !=
 	    MPI2_IOCSTATUS_SUCCESS) {
 		status = MPR_DIAG_FAILURE;
-		mpr_dprint(sc, MPR_FAULT, "%s: post of FW  Diag Buffer failed "
+		mpr_dprint(sc, MPR_FAULT,
+		    "%s: post of FW  Diag Buffer failed "
 		    "with IOCStatus = 0x%x, IOCLogInfo = 0x%x and "
-		    "TransferLength = 0x%x\n", __func__,
-		    le16toh(reply->IOCStatus), le32toh(reply->IOCLogInfo),
-		    le32toh(reply->TransferLength));
+		    "TransferLength = 0x%x\n",
+		    __func__, le16toh(reply->IOCStatus),
+		    le32toh(reply->IOCLogInfo), le32toh(reply->TransferLength));
 		goto done;
 	}
 
@@ -1356,18 +1370,20 @@ mpr_release_fw_diag_buffer(struct mpr_softc *sc,
     mpr_fw_diagnostic_buffer_t *pBuffer, uint32_t *return_code,
     uint32_t diag_type)
 {
-	MPI2_DIAG_RELEASE_REQUEST	*req;
-	MPI2_DIAG_RELEASE_REPLY		*reply;
-	struct mpr_command		*cm = NULL;
-	int				status;
+	MPI2_DIAG_RELEASE_REQUEST *req;
+	MPI2_DIAG_RELEASE_REPLY *reply;
+	struct mpr_command *cm = NULL;
+	int status;
 
 	/*
 	 * If buffer is not enabled, just leave.
 	 */
 	*return_code = MPR_FW_DIAG_ERROR_RELEASE_FAILED;
 	if (!pBuffer->enabled) {
-		mpr_dprint(sc, MPR_USER, "%s: This buffer type is not "
-		    "supported by the IOC", __func__);
+		mpr_dprint(sc, MPR_USER,
+		    "%s: This buffer type is not "
+		    "supported by the IOC",
+		    __func__);
 		return (MPR_DIAG_FAILURE);
 	}
 
@@ -1414,15 +1430,19 @@ mpr_release_fw_diag_buffer(struct mpr_softc *sc,
 	 */
 	reply = (MPI2_DIAG_RELEASE_REPLY *)cm->cm_reply;
 	if (reply == NULL) {
-		mpr_printf(sc, "%s: reply is NULL, probably due to "
-		    "reinitialization\n", __func__);
+		mpr_printf(sc,
+		    "%s: reply is NULL, probably due to "
+		    "reinitialization\n",
+		    __func__);
 		status = MPR_DIAG_FAILURE;
 		goto done;
 	}
 	if (((le16toh(reply->IOCStatus) & MPI2_IOCSTATUS_MASK) !=
-	    MPI2_IOCSTATUS_SUCCESS) || pBuffer->owned_by_firmware) {
+		MPI2_IOCSTATUS_SUCCESS) ||
+	    pBuffer->owned_by_firmware) {
 		status = MPR_DIAG_FAILURE;
-		mpr_dprint(sc, MPR_FAULT, "%s: release of FW Diag Buffer "
+		mpr_dprint(sc, MPR_FAULT,
+		    "%s: release of FW Diag Buffer "
 		    "failed with IOCStatus = 0x%x and IOCLogInfo = 0x%x\n",
 		    __func__, le16toh(reply->IOCStatus),
 		    le32toh(reply->IOCLogInfo));
@@ -1453,14 +1473,14 @@ static int
 mpr_diag_register(struct mpr_softc *sc, mpr_fw_diag_register_t *diag_register,
     uint32_t *return_code)
 {
-	bus_dma_template_t		t;
-	mpr_fw_diagnostic_buffer_t	*pBuffer;
-	struct mpr_busdma_context	*ctx;
-	uint8_t				extended_type, buffer_type, i;
-	uint32_t			buffer_size;
-	uint32_t			unique_id;
-	int				status;
-	int				error;
+	bus_dma_template_t t;
+	mpr_fw_diagnostic_buffer_t *pBuffer;
+	struct mpr_busdma_context *ctx;
+	uint8_t extended_type, buffer_type, i;
+	uint32_t buffer_size;
+	uint32_t unique_id;
+	int status;
+	int error;
 
 	extended_type = diag_register->ExtendedType;
 	buffer_type = diag_register->BufferType;
@@ -1527,8 +1547,8 @@ mpr_diag_register(struct mpr_softc *sc, mpr_fw_diag_register_t *diag_register,
 		status = MPR_DIAG_FAILURE;
 		goto bailout;
 	}
-        if (bus_dmamem_alloc(sc->fw_diag_dmat, (void **)&sc->fw_diag_buffer,
-	    BUS_DMA_NOWAIT, &sc->fw_diag_map)) {
+	if (bus_dmamem_alloc(sc->fw_diag_dmat, (void **)&sc->fw_diag_buffer,
+		BUS_DMA_NOWAIT, &sc->fw_diag_map)) {
 		mpr_dprint(sc, MPR_ERROR,
 		    "Cannot allocate FW diag buffer memory\n");
 		*return_code = MPR_FW_DIAG_ERROR_NO_BUFFER;
@@ -1543,8 +1563,7 @@ mpr_diag_register(struct mpr_softc *sc, mpr_fw_diag_register_t *diag_register,
 	ctx->buffer_dmamap = sc->fw_diag_map;
 	ctx->softc = sc;
 	error = bus_dmamap_load(sc->fw_diag_dmat, sc->fw_diag_map,
-	    sc->fw_diag_buffer, buffer_size, mpr_memaddr_wait_cb,
-	    ctx, 0);
+	    sc->fw_diag_buffer, buffer_size, mpr_memaddr_wait_cb, ctx, 0);
 	if (error == EINPROGRESS) {
 		/* XXX KDM */
 		device_printf(sc->mpr_dev, "%s: Deferred bus_dmamap_load\n",
@@ -1570,21 +1589,24 @@ mpr_diag_register(struct mpr_softc *sc, mpr_fw_diag_register_t *diag_register,
 				ctx = NULL;
 				mpr_unlock(sc);
 
-				device_printf(sc->mpr_dev, "Cannot "
+				device_printf(sc->mpr_dev,
+				    "Cannot "
 				    "bus_dmamap_load FW diag buffer, error = "
-				    "%d returned from msleep\n", error);
+				    "%d returned from msleep\n",
+				    error);
 				*return_code = MPR_FW_DIAG_ERROR_NO_BUFFER;
 				status = MPR_DIAG_FAILURE;
 				goto bailout;
 			}
 		}
 		mpr_unlock(sc);
-	} 
+	}
 
 	if ((error != 0) || (ctx->error != 0)) {
-		device_printf(sc->mpr_dev, "Cannot bus_dmamap_load FW diag "
-		    "buffer, %serror = %d\n", error ? "" : "callback ",
-		    error ? error : ctx->error);
+		device_printf(sc->mpr_dev,
+		    "Cannot bus_dmamap_load FW diag "
+		    "buffer, %serror = %d\n",
+		    error ? "" : "callback ", error ? error : ctx->error);
 		*return_code = MPR_FW_DIAG_ERROR_NO_BUFFER;
 		status = MPR_DIAG_FAILURE;
 		goto bailout;
@@ -1600,8 +1622,7 @@ mpr_diag_register(struct mpr_softc *sc, mpr_fw_diag_register_t *diag_register,
 	pBuffer->buffer_type = buffer_type;
 	pBuffer->immediate = FALSE;
 	if (buffer_type == MPI2_DIAG_BUF_TYPE_TRACE) {
-		for (i = 0; i < (sizeof (pBuffer->product_specific) / 4);
-		    i++) {
+		for (i = 0; i < (sizeof(pBuffer->product_specific) / 4); i++) {
 			pBuffer->product_specific[i] =
 			    diag_register->ProductSpecific[i];
 		}
@@ -1641,10 +1662,10 @@ static int
 mpr_diag_unregister(struct mpr_softc *sc,
     mpr_fw_diag_unregister_t *diag_unregister, uint32_t *return_code)
 {
-	mpr_fw_diagnostic_buffer_t	*pBuffer;
-	uint8_t				i;
-	uint32_t			unique_id;
-	int				status;
+	mpr_fw_diagnostic_buffer_t *pBuffer;
+	uint8_t i;
+	uint32_t unique_id;
+	int status;
 
 	unique_id = diag_unregister->UniqueId;
 
@@ -1700,9 +1721,9 @@ static int
 mpr_diag_query(struct mpr_softc *sc, mpr_fw_diag_query_t *diag_query,
     uint32_t *return_code)
 {
-	mpr_fw_diagnostic_buffer_t	*pBuffer;
-	uint8_t				i;
-	uint32_t			unique_id;
+	mpr_fw_diagnostic_buffer_t *pBuffer;
+	uint8_t i;
+	uint32_t unique_id;
 
 	unique_id = diag_query->UniqueId;
 
@@ -1732,7 +1753,7 @@ mpr_diag_query(struct mpr_softc *sc, mpr_fw_diag_query_t *diag_query,
 	diag_query->ExtendedType = pBuffer->extended_type;
 	if (diag_query->BufferType == MPI2_DIAG_BUF_TYPE_TRACE) {
 		for (i = 0; i < (sizeof(diag_query->ProductSpecific) / 4);
-		    i++) {
+		     i++) {
 			diag_query->ProductSpecific[i] =
 			    pBuffer->product_specific[i];
 		}
@@ -1772,10 +1793,10 @@ mpr_diag_read_buffer(struct mpr_softc *sc,
     mpr_diag_read_buffer_t *diag_read_buffer, uint8_t *ioctl_buf,
     uint32_t *return_code)
 {
-	mpr_fw_diagnostic_buffer_t	*pBuffer;
-	uint8_t				i, *pData;
-	uint32_t			unique_id;
-	int				status;
+	mpr_fw_diagnostic_buffer_t *pBuffer;
+	uint8_t i, *pData;
+	uint32_t unique_id;
+	int status;
 
 	unique_id = diag_read_buffer->UniqueId;
 
@@ -1842,10 +1863,10 @@ static int
 mpr_diag_release(struct mpr_softc *sc, mpr_fw_diag_release_t *diag_release,
     uint32_t *return_code)
 {
-	mpr_fw_diagnostic_buffer_t	*pBuffer;
-	uint8_t				i;
-	uint32_t			unique_id;
-	int				status;
+	mpr_fw_diagnostic_buffer_t *pBuffer;
+	uint8_t i;
+	uint32_t unique_id;
+	int status;
 
 	unique_id = diag_release->UniqueId;
 
@@ -1881,103 +1902,93 @@ static int
 mpr_do_diag_action(struct mpr_softc *sc, uint32_t action, uint8_t *diag_action,
     uint32_t length, uint32_t *return_code)
 {
-	mpr_fw_diag_register_t		diag_register;
-	mpr_fw_diag_unregister_t	diag_unregister;
-	mpr_fw_diag_query_t		diag_query;
-	mpr_diag_read_buffer_t		diag_read_buffer;
-	mpr_fw_diag_release_t		diag_release;
-	int				status = MPR_DIAG_SUCCESS;
-	uint32_t			original_return_code;
+	mpr_fw_diag_register_t diag_register;
+	mpr_fw_diag_unregister_t diag_unregister;
+	mpr_fw_diag_query_t diag_query;
+	mpr_diag_read_buffer_t diag_read_buffer;
+	mpr_fw_diag_release_t diag_release;
+	int status = MPR_DIAG_SUCCESS;
+	uint32_t original_return_code;
 
 	original_return_code = *return_code;
 	*return_code = MPR_FW_DIAG_ERROR_SUCCESS;
 
 	switch (action) {
-		case MPR_FW_DIAG_TYPE_REGISTER:
-			if (!length) {
-				*return_code =
-				    MPR_FW_DIAG_ERROR_INVALID_PARAMETER;
-				status = MPR_DIAG_FAILURE;
-				break;
-			}
-			if (copyin(diag_action, &diag_register,
-			    sizeof(diag_register)) != 0)
-				return (MPR_DIAG_FAILURE);
-			status = mpr_diag_register(sc, &diag_register,
-			    return_code);
-			break;
-
-		case MPR_FW_DIAG_TYPE_UNREGISTER:
-			if (length < sizeof(diag_unregister)) {
-				*return_code =
-				    MPR_FW_DIAG_ERROR_INVALID_PARAMETER;
-				status = MPR_DIAG_FAILURE;
-				break;
-			}
-			if (copyin(diag_action, &diag_unregister,
-			    sizeof(diag_unregister)) != 0)
-				return (MPR_DIAG_FAILURE);
-			status = mpr_diag_unregister(sc, &diag_unregister,
-			    return_code);
-			break;
-
-		case MPR_FW_DIAG_TYPE_QUERY:
-			if (length < sizeof (diag_query)) {
-				*return_code =
-				    MPR_FW_DIAG_ERROR_INVALID_PARAMETER;
-				status = MPR_DIAG_FAILURE;
-				break;
-			}
-			if (copyin(diag_action, &diag_query, sizeof(diag_query))
-			    != 0)
-				return (MPR_DIAG_FAILURE);
-			status = mpr_diag_query(sc, &diag_query, return_code);
-			if (status == MPR_DIAG_SUCCESS)
-				if (copyout(&diag_query, diag_action,
-				    sizeof (diag_query)) != 0)
-					return (MPR_DIAG_FAILURE);
-			break;
-
-		case MPR_FW_DIAG_TYPE_READ_BUFFER:
-			if (copyin(diag_action, &diag_read_buffer,
-			    sizeof(diag_read_buffer)) != 0)
-				return (MPR_DIAG_FAILURE);
-			if (length < diag_read_buffer.BytesToRead) {
-				*return_code =
-				    MPR_FW_DIAG_ERROR_INVALID_PARAMETER;
-				status = MPR_DIAG_FAILURE;
-				break;
-			}
-			status = mpr_diag_read_buffer(sc, &diag_read_buffer,
-			    PTRIN(diag_read_buffer.PtrDataBuffer),
-			    return_code);
-			if (status == MPR_DIAG_SUCCESS) {
-				if (copyout(&diag_read_buffer, diag_action,
-				    sizeof(diag_read_buffer) -
-				    sizeof(diag_read_buffer.PtrDataBuffer)) !=
-				    0)
-					return (MPR_DIAG_FAILURE);
-			}
-			break;
-
-		case MPR_FW_DIAG_TYPE_RELEASE:
-			if (length < sizeof(diag_release)) {
-				*return_code =
-				    MPR_FW_DIAG_ERROR_INVALID_PARAMETER;
-				status = MPR_DIAG_FAILURE;
-				break;
-			}
-			if (copyin(diag_action, &diag_release,
-			    sizeof(diag_release)) != 0)
-				return (MPR_DIAG_FAILURE);
-			status = mpr_diag_release(sc, &diag_release,
-			    return_code);
-			break;
-
-		default:
+	case MPR_FW_DIAG_TYPE_REGISTER:
+		if (!length) {
 			*return_code = MPR_FW_DIAG_ERROR_INVALID_PARAMETER;
 			status = MPR_DIAG_FAILURE;
 			break;
+		}
+		if (copyin(diag_action, &diag_register,
+			sizeof(diag_register)) != 0)
+			return (MPR_DIAG_FAILURE);
+		status = mpr_diag_register(sc, &diag_register, return_code);
+		break;
+
+	case MPR_FW_DIAG_TYPE_UNREGISTER:
+		if (length < sizeof(diag_unregister)) {
+			*return_code = MPR_FW_DIAG_ERROR_INVALID_PARAMETER;
+			status = MPR_DIAG_FAILURE;
+			break;
+		}
+		if (copyin(diag_action, &diag_unregister,
+			sizeof(diag_unregister)) != 0)
+			return (MPR_DIAG_FAILURE);
+		status = mpr_diag_unregister(sc, &diag_unregister, return_code);
+		break;
+
+	case MPR_FW_DIAG_TYPE_QUERY:
+		if (length < sizeof(diag_query)) {
+			*return_code = MPR_FW_DIAG_ERROR_INVALID_PARAMETER;
+			status = MPR_DIAG_FAILURE;
+			break;
+		}
+		if (copyin(diag_action, &diag_query, sizeof(diag_query)) != 0)
+			return (MPR_DIAG_FAILURE);
+		status = mpr_diag_query(sc, &diag_query, return_code);
+		if (status == MPR_DIAG_SUCCESS)
+			if (copyout(&diag_query, diag_action,
+				sizeof(diag_query)) != 0)
+				return (MPR_DIAG_FAILURE);
+		break;
+
+	case MPR_FW_DIAG_TYPE_READ_BUFFER:
+		if (copyin(diag_action, &diag_read_buffer,
+			sizeof(diag_read_buffer)) != 0)
+			return (MPR_DIAG_FAILURE);
+		if (length < diag_read_buffer.BytesToRead) {
+			*return_code = MPR_FW_DIAG_ERROR_INVALID_PARAMETER;
+			status = MPR_DIAG_FAILURE;
+			break;
+		}
+		status = mpr_diag_read_buffer(sc, &diag_read_buffer,
+		    PTRIN(diag_read_buffer.PtrDataBuffer), return_code);
+		if (status == MPR_DIAG_SUCCESS) {
+			if (copyout(&diag_read_buffer, diag_action,
+				sizeof(diag_read_buffer) -
+				    sizeof(diag_read_buffer.PtrDataBuffer)) !=
+			    0)
+				return (MPR_DIAG_FAILURE);
+		}
+		break;
+
+	case MPR_FW_DIAG_TYPE_RELEASE:
+		if (length < sizeof(diag_release)) {
+			*return_code = MPR_FW_DIAG_ERROR_INVALID_PARAMETER;
+			status = MPR_DIAG_FAILURE;
+			break;
+		}
+		if (copyin(diag_action, &diag_release, sizeof(diag_release)) !=
+		    0)
+			return (MPR_DIAG_FAILURE);
+		status = mpr_diag_release(sc, &diag_release, return_code);
+		break;
+
+	default:
+		*return_code = MPR_FW_DIAG_ERROR_INVALID_PARAMETER;
+		status = MPR_DIAG_FAILURE;
+		break;
 	}
 
 	if ((status == MPR_DIAG_FAILURE) &&
@@ -1991,14 +2002,16 @@ mpr_do_diag_action(struct mpr_softc *sc, uint32_t action, uint8_t *diag_action,
 static int
 mpr_user_diag_action(struct mpr_softc *sc, mpr_diag_action_t *data)
 {
-	int			status;
+	int status;
 
 	/*
 	 * Only allow one diag action at one time.
 	 */
 	if (sc->mpr_flags & MPR_FLAGS_BUSY) {
-		mpr_dprint(sc, MPR_USER, "%s: Only one FW diag command "
-		    "allowed at a single time.", __func__);
+		mpr_dprint(sc, MPR_USER,
+		    "%s: Only one FW diag command "
+		    "allowed at a single time.",
+		    __func__);
 		return (EBUSY);
 	}
 	sc->mpr_flags |= MPR_FLAGS_BUSY;
@@ -2032,7 +2045,7 @@ mpr_user_diag_action(struct mpr_softc *sc, mpr_diag_action_t *data)
 static void
 mpr_user_event_query(struct mpr_softc *sc, mpr_event_query_t *data)
 {
-	uint8_t	i;
+	uint8_t i;
 
 	mpr_lock(sc);
 	data->Entries = MPR_EVENT_QUEUE_SIZE;
@@ -2052,7 +2065,7 @@ mpr_user_event_query(struct mpr_softc *sc, mpr_event_query_t *data)
 static void
 mpr_user_event_enable(struct mpr_softc *sc, mpr_event_enable_t *data)
 {
-	uint8_t	i;
+	uint8_t i;
 
 	mpr_lock(sc);
 	for (i = 0; i < 4; i++) {
@@ -2067,15 +2080,15 @@ mpr_user_event_enable(struct mpr_softc *sc, mpr_event_enable_t *data)
 static int
 mpr_user_event_report(struct mpr_softc *sc, mpr_event_report_t *data)
 {
-	int		status = 0;
-	uint32_t	size;
+	int status = 0;
+	uint32_t size;
 
 	mpr_lock(sc);
 	size = data->Size;
 	if ((size >= sizeof(sc->recorded_events)) && (status == 0)) {
 		mpr_unlock(sc);
-		if (copyout((void *)sc->recorded_events,
-		    PTRIN(data->PtrEvents), sizeof(sc->recorded_events)) != 0)
+		if (copyout((void *)sc->recorded_events, PTRIN(data->PtrEvents),
+			sizeof(sc->recorded_events)) != 0)
 			status = EFAULT;
 		mpr_lock(sc);
 	} else {
@@ -2102,10 +2115,10 @@ void
 mprsas_record_event(struct mpr_softc *sc,
     MPI2_EVENT_NOTIFICATION_REPLY *event_reply)
 {
-	uint32_t	event;
-	int		i, j;
-	uint16_t	event_data_len;
-	boolean_t	sendAEN = FALSE;
+	uint32_t event;
+	int i, j;
+	uint16_t event_data_len;
+	boolean_t sendAEN = FALSE;
 
 	event = event_reply->Event;
 
@@ -2131,8 +2144,8 @@ mprsas_record_event(struct mpr_softc *sc,
 		i = sc->event_index;
 		sc->recorded_events[i].Type = event;
 		sc->recorded_events[i].Number = ++sc->event_number;
-		bzero(sc->recorded_events[i].Data, MPR_MAX_EVENT_DATA_LENGTH *
-		    4);
+		bzero(sc->recorded_events[i].Data,
+		    MPR_MAX_EVENT_DATA_LENGTH * 4);
 		event_data_len = event_reply->EventDataLength;
 
 		if (event_data_len > 0) {
@@ -2167,39 +2180,40 @@ mprsas_record_event(struct mpr_softc *sc,
 	 * that an event has occurred.
 	 */
 	if (sendAEN) {
-//SLM-how to send a system event (see kqueue, kevent)
-//		(void) ddi_log_sysevent(mpt->m_dip, DDI_VENDOR_LSI, "MPT_SAS",
-//		    "SAS", NULL, NULL, DDI_NOSLEEP);
+		// SLM-how to send a system event (see kqueue, kevent)
+		//		(void) ddi_log_sysevent(mpt->m_dip,
+		//DDI_VENDOR_LSI, "MPT_SAS", 		    "SAS", NULL, NULL, DDI_NOSLEEP);
 	}
 }
 
 static int
 mpr_user_reg_access(struct mpr_softc *sc, mpr_reg_access_t *data)
 {
-	int	status = 0;
+	int status = 0;
 
 	switch (data->Command) {
-		/*
-		 * IO access is not supported.
-		 */
-		case REG_IO_READ:
-		case REG_IO_WRITE:
-			mpr_dprint(sc, MPR_USER, "IO access is not supported. "
-			    "Use memory access.");
-			status = EINVAL;
-			break;
+	/*
+	 * IO access is not supported.
+	 */
+	case REG_IO_READ:
+	case REG_IO_WRITE:
+		mpr_dprint(sc, MPR_USER,
+		    "IO access is not supported. "
+		    "Use memory access.");
+		status = EINVAL;
+		break;
 
-		case REG_MEM_READ:
-			data->RegData = mpr_regread(sc, data->RegOffset);
-			break;
+	case REG_MEM_READ:
+		data->RegData = mpr_regread(sc, data->RegOffset);
+		break;
 
-		case REG_MEM_WRITE:
-			mpr_regwrite(sc, data->RegOffset, data->RegData);
-			break;
+	case REG_MEM_WRITE:
+		mpr_regwrite(sc, data->RegOffset, data->RegData);
+		break;
 
-		default:
-			status = EINVAL;
-			break;
+	default:
+		status = EINVAL;
+		break;
 	}
 
 	return (status);
@@ -2208,9 +2222,9 @@ mpr_user_reg_access(struct mpr_softc *sc, mpr_reg_access_t *data)
 static int
 mpr_user_btdh(struct mpr_softc *sc, mpr_btdh_mapping_t *data)
 {
-	uint8_t		bt2dh = FALSE;
-	uint8_t		dh2bt = FALSE;
-	uint16_t	dev_handle, bus, target;
+	uint8_t bt2dh = FALSE;
+	uint8_t dh2bt = FALSE;
+	uint16_t dev_handle, bus, target;
 
 	bus = data->Bus;
 	target = data->TargetID;
@@ -2237,8 +2251,9 @@ mpr_user_btdh(struct mpr_softc *sc, mpr_btdh_mapping_t *data)
 			return (EINVAL);
 
 		if (target >= sc->max_devices) {
-			mpr_dprint(sc, MPR_XINFO, "Target ID is out of range "
-			   "for Bus/Target to DevHandle mapping.");
+			mpr_dprint(sc, MPR_XINFO,
+			    "Target ID is out of range "
+			    "for Bus/Target to DevHandle mapping.");
 			return (EINVAL);
 		}
 		dev_handle = sc->mapping_table[target].dev_handle;
@@ -2255,8 +2270,7 @@ mpr_user_btdh(struct mpr_softc *sc, mpr_btdh_mapping_t *data)
 }
 
 static int
-mpr_ioctl(struct cdev *dev, u_long cmd, void *arg, int flag,
-    struct thread *td)
+mpr_ioctl(struct cdev *dev, u_long cmd, void *arg, int flag, struct thread *td)
 {
 	struct mpr_softc *sc;
 	struct mpr_cfg_page_req *page_req;
@@ -2321,7 +2335,7 @@ mpr_ioctl(struct cdev *dev, u_long cmd, void *arg, int flag,
 			error = EINVAL;
 			break;
 		}
-		mpr_page = malloc(page_req->len, M_MPRUSER, M_WAITOK|M_ZERO);
+		mpr_page = malloc(page_req->len, M_MPRUSER, M_WAITOK | M_ZERO);
 		error = copyin(page_req->buf, mpr_page, page_req->len);
 		if (error)
 			break;
@@ -2369,9 +2383,11 @@ mpr_ioctl(struct cdev *dev, u_long cmd, void *arg, int flag,
 		mpr_unlock(sc);
 		if (msleep_ret)
 			printf("Port Enable did not complete after Diag "
-			    "Reset msleep error %d.\n", msleep_ret);
+			       "Reset msleep error %d.\n",
+			    msleep_ret);
 		else
-			mpr_dprint(sc, MPR_USER, "Hard Reset with Port Enable "
+			mpr_dprint(sc, MPR_USER,
+			    "Hard Reset with Port Enable "
 			    "completed in %d seconds.\n",
 			    (uint32_t)(time_uptime - reinit_start));
 		break;
@@ -2441,7 +2457,7 @@ struct mpr_cfg_page_req32 {
 	MPI2_CONFIG_PAGE_HEADER header;
 	uint32_t page_address;
 	uint32_t buf;
-	int	len;	
+	int len;
 	uint16_t ioc_status;
 };
 
@@ -2449,7 +2465,7 @@ struct mpr_ext_cfg_page_req32 {
 	MPI2_CONFIG_EXTENDED_PAGE_HEADER header;
 	uint32_t page_address;
 	uint32_t buf;
-	int	len;
+	int len;
 	uint16_t ioc_status;
 };
 
@@ -2478,13 +2494,14 @@ struct mpr_usr_command32 {
 	uint32_t flags;
 };
 
-#define	MPRIO_READ_CFG_HEADER32	_IOWR('M', 200, struct mpr_cfg_page_req32)
-#define	MPRIO_READ_CFG_PAGE32	_IOWR('M', 201, struct mpr_cfg_page_req32)
-#define	MPRIO_READ_EXT_CFG_HEADER32 _IOWR('M', 202, struct mpr_ext_cfg_page_req32)
-#define	MPRIO_READ_EXT_CFG_PAGE32 _IOWR('M', 203, struct mpr_ext_cfg_page_req32)
-#define	MPRIO_WRITE_CFG_PAGE32	_IOWR('M', 204, struct mpr_cfg_page_req32)
-#define	MPRIO_RAID_ACTION32	_IOWR('M', 205, struct mpr_raid_action32)
-#define	MPRIO_MPR_COMMAND32	_IOWR('M', 210, struct mpr_usr_command32)
+#define MPRIO_READ_CFG_HEADER32 _IOWR('M', 200, struct mpr_cfg_page_req32)
+#define MPRIO_READ_CFG_PAGE32 _IOWR('M', 201, struct mpr_cfg_page_req32)
+#define MPRIO_READ_EXT_CFG_HEADER32 \
+	_IOWR('M', 202, struct mpr_ext_cfg_page_req32)
+#define MPRIO_READ_EXT_CFG_PAGE32 _IOWR('M', 203, struct mpr_ext_cfg_page_req32)
+#define MPRIO_WRITE_CFG_PAGE32 _IOWR('M', 204, struct mpr_cfg_page_req32)
+#define MPRIO_RAID_ACTION32 _IOWR('M', 205, struct mpr_raid_action32)
+#define MPRIO_MPR_COMMAND32 _IOWR('M', 210, struct mpr_usr_command32)
 
 static int
 mpr_ioctl32(struct cdev *dev, u_long cmd32, void *_arg, int flag,

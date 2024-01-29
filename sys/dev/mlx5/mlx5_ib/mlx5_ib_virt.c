@@ -23,33 +23,37 @@
  * SUCH DAMAGE.
  */
 
-#include "opt_rss.h"
 #include "opt_ratelimit.h"
+#include "opt_rss.h"
+
+#include <dev/mlx5/mlx5_ib/mlx5_ib.h>
+#include <dev/mlx5/vport.h>
 
 #include <linux/module.h>
-#include <dev/mlx5/vport.h>
-#include <dev/mlx5/mlx5_ib/mlx5_ib.h>
 
-int mlx5_ib_get_vf_config(struct ib_device *device, int vf, u8 port,
-			  struct ifla_vf_info *info)
+int
+mlx5_ib_get_vf_config(struct ib_device *device, int vf, u8 port,
+    struct ifla_vf_info *info)
 {
 	return -EOPNOTSUPP;
 }
 
-int mlx5_ib_set_vf_link_state(struct ib_device *device, int vf,
-			      u8 port, int state)
+int
+mlx5_ib_set_vf_link_state(struct ib_device *device, int vf, u8 port, int state)
 {
 	return -EOPNOTSUPP;
 }
 
-int mlx5_ib_get_vf_stats(struct ib_device *device, int vf,
-			 u8 port, struct ifla_vf_stats *stats)
+int
+mlx5_ib_get_vf_stats(struct ib_device *device, int vf, u8 port,
+    struct ifla_vf_stats *stats)
 {
 	return -EOPNOTSUPP;
 }
 
-int mlx5_ib_set_vf_guid(struct ib_device *device, int vf, u8 port,
-			u64 guid, int type)
+int
+mlx5_ib_set_vf_guid(struct ib_device *device, int vf, u8 port, u64 guid,
+    int type)
 {
 	return -EOPNOTSUPP;
 }

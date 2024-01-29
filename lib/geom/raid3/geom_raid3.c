@@ -27,19 +27,19 @@
  */
 
 #include <sys/param.h>
+
+#include <assert.h>
+#include <core/geom.h>
 #include <errno.h>
+#include <geom/raid3/g_raid3.h>
+#include <libgeom.h>
+#include <misc/subr.h>
 #include <paths.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
 #include <strings.h>
-#include <assert.h>
-#include <libgeom.h>
-#include <geom/raid3/g_raid3.h>
-#include <core/geom.h>
-#include <misc/subr.h>
-
 
 uint32_t lib_version = G_LIB_VERSION;
 uint32_t version = G_RAID3_VERSION;
@@ -49,13 +49,10 @@ static void raid3_clear(struct gctl_req *req);
 static void raid3_dump(struct gctl_req *req);
 static void raid3_label(struct gctl_req *req);
 
-struct g_command class_commands[] = {
-	{ "clear", G_FLAG_VERBOSE, raid3_main, G_NULL_OPTS,
-	    "[-v] prov ..."
-	},
+struct g_command class_commands[] = { { "clear", G_FLAG_VERBOSE, raid3_main,
+					  G_NULL_OPTS, "[-v] prov ..." },
 	{ "configure", G_FLAG_VERBOSE, NULL,
-	    {
-		{ 'a', "autosync", NULL, G_TYPE_BOOL },
+	    { { 'a', "autosync", NULL, G_TYPE_BOOL },
 		{ 'd', "dynamic", NULL, G_TYPE_BOOL },
 		{ 'f', "failsync", NULL, G_TYPE_BOOL },
 		{ 'F', "nofailsync", NULL, G_TYPE_BOOL },
@@ -64,53 +61,30 @@ struct g_command class_commands[] = {
 		{ 'r', "round_robin", NULL, G_TYPE_BOOL },
 		{ 'R', "noround_robin", NULL, G_TYPE_BOOL },
 		{ 'w', "verify", NULL, G_TYPE_BOOL },
-		{ 'W', "noverify", NULL, G_TYPE_BOOL },
-		G_OPT_SENTINEL
-	    },
-	    "[-adfFhnrRvwW] name"
-	},
-	{ "dump", 0, raid3_main, G_NULL_OPTS,
-	    "prov ..."
-	},
+		{ 'W', "noverify", NULL, G_TYPE_BOOL }, G_OPT_SENTINEL },
+	    "[-adfFhnrRvwW] name" },
+	{ "dump", 0, raid3_main, G_NULL_OPTS, "prov ..." },
 	{ "insert", G_FLAG_VERBOSE, NULL,
-	    {
-		{ 'h', "hardcode", NULL, G_TYPE_BOOL },
+	    { { 'h', "hardcode", NULL, G_TYPE_BOOL },
 		{ 'n', "number", G_VAL_OPTIONAL, G_TYPE_NUMBER },
-		G_OPT_SENTINEL
-	    },
-	    "[-hv] <-n number> name prov"
-	},
+		G_OPT_SENTINEL },
+	    "[-hv] <-n number> name prov" },
 	{ "label", G_FLAG_VERBOSE, raid3_main,
-	    {
-		{ 'h', "hardcode", NULL, G_TYPE_BOOL },
+	    { { 'h', "hardcode", NULL, G_TYPE_BOOL },
 		{ 'F', "nofailsync", NULL, G_TYPE_BOOL },
 		{ 'n', "noautosync", NULL, G_TYPE_BOOL },
 		{ 'r', "round_robin", NULL, G_TYPE_BOOL },
 		{ 's', "sectorsize", "0", G_TYPE_NUMBER },
-		{ 'w', "verify", NULL, G_TYPE_BOOL },
-		G_OPT_SENTINEL
-	    },
-	    "[-hFnrvw] [-s blocksize] name prov prov prov ..."
-	},
-	{ "rebuild", G_FLAG_VERBOSE, NULL, G_NULL_OPTS,
-	    "[-v] name prov"
-	},
+		{ 'w', "verify", NULL, G_TYPE_BOOL }, G_OPT_SENTINEL },
+	    "[-hFnrvw] [-s blocksize] name prov prov prov ..." },
+	{ "rebuild", G_FLAG_VERBOSE, NULL, G_NULL_OPTS, "[-v] name prov" },
 	{ "remove", G_FLAG_VERBOSE, NULL,
-	    {
-		{ 'n', "number", NULL, G_TYPE_NUMBER },
-		G_OPT_SENTINEL
-	    },
-	    "[-v] <-n number> name"
-	},
+	    { { 'n', "number", NULL, G_TYPE_NUMBER }, G_OPT_SENTINEL },
+	    "[-v] <-n number> name" },
 	{ "stop", G_FLAG_VERBOSE, NULL,
-	    {
-		{ 'f', "force", NULL, G_TYPE_BOOL },
-		G_OPT_SENTINEL
-	    },
-	    "[-fv] name ..."
-	},
-	G_CMD_SENTINEL
-};
+	    { { 'f', "force", NULL, G_TYPE_BOOL }, G_OPT_SENTINEL },
+	    "[-fv] name ..." },
+	G_CMD_SENTINEL };
 
 static int verbose = 0;
 
@@ -241,7 +215,8 @@ raid3_label(struct gctl_req *req)
 		if (mediasize < msize - ssize) {
 			fprintf(stderr,
 			    "warning: %s: only %jd bytes from %jd bytes used.\n",
-			    str, (intmax_t)mediasize, (intmax_t)(msize - ssize));
+			    str, (intmax_t)mediasize,
+			    (intmax_t)(msize - ssize));
 		}
 
 		md.md_no = i - 1;

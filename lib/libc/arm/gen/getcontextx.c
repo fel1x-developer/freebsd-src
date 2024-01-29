@@ -28,13 +28,15 @@
 
 #include <sys/types.h>
 #include <sys/ucontext.h>
-#include <errno.h>
-#include <stdlib.h>
+
 #include <machine/sysarch.h>
 
+#include <errno.h>
+#include <stdlib.h>
+
 struct ucontextx {
-	ucontext_t	ucontext;
-	mcontext_vfp_t	mcontext_vfp;
+	ucontext_t ucontext;
+	mcontext_vfp_t mcontext_vfp;
 };
 
 int
@@ -48,8 +50,8 @@ int
 __fillcontextx2(char *ctx)
 {
 	struct ucontextx *ucxp;
-	ucontext_t	 *ucp;
-	mcontext_vfp_t	 *mvp;
+	ucontext_t *ucp;
+	mcontext_vfp_t *mvp;
 	struct arm_get_vfpstate_args vfp_arg;
 
 	ucxp = (struct ucontextx *)ctx;
@@ -59,7 +61,7 @@ __fillcontextx2(char *ctx)
 	vfp_arg.mc_vfp_size = sizeof(mcontext_vfp_t);
 	vfp_arg.mc_vfp = mvp;
 	if (sysarch(ARM_GET_VFPSTATE, &vfp_arg) == -1)
-			return (-1);
+		return (-1);
 	ucp->uc_mcontext.mc_vfp_size = sizeof(mcontext_vfp_t);
 	ucp->uc_mcontext.mc_vfp_ptr = mvp;
 	return (0);

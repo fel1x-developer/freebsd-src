@@ -29,22 +29,21 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/socket.h>
 
+#include <arpa/inet.h>
 #include <err.h>
 #include <netdb.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
 #include <rpc/rpc.h>
 #include <rpc/xdr.h>
 #include <rpcsvc/yp.h>
 #include <rpcsvc/ypclnt.h>
-#include <arpa/inet.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 static void
 usage(void)
@@ -93,13 +92,12 @@ bind_tohost(struct sockaddr_in *sin, char *dom, char *server)
 	}
 	client->cl_auth = authunix_create_default();
 
-	r = clnt_call(client, YPBINDPROC_SETDOM,
-		(xdrproc_t)xdr_ypbind_setdom, &ypsd,
-		(xdrproc_t)xdr_void, NULL, tv);
+	r = clnt_call(client, YPBINDPROC_SETDOM, (xdrproc_t)xdr_ypbind_setdom,
+	    &ypsd, (xdrproc_t)xdr_void, NULL, tv);
 	if (r) {
 		warnx("cannot ypset for domain %s on host %s: %s"
-                " - make sure ypbind was started with -ypset or -ypsetme", dom,
-		    server, clnt_sperrno(r));
+		      " - make sure ypbind was started with -ypset or -ypsetme",
+		    dom, server, clnt_sperrno(r));
 		clnt_destroy(client);
 		return (YPERR_YPBIND);
 	}

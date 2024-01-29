@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2017 Corelight, Inc. and Universita` di Pisa. All rights reserved.
+ * Copyright (C) 2017 Corelight, Inc. and Universita` di Pisa. All rights
+ * reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -22,11 +23,15 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
+#include <sys/ioctl.h>
+#include <sys/poll.h>
+
+#include <netinet/in.h> /* htonl */
+
 #include <ctype.h>
 #include <errno.h>
 #include <inttypes.h>
 #include <libnetmap.h>
-#include <netinet/in.h>		/* htonl */
 #include <pthread.h>
 #include <signal.h>
 #include <stdbool.h>
@@ -34,13 +39,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
-#include <sys/ioctl.h>
-#include <sys/poll.h>
 #include <unistd.h>
 
-#include "pkt_hash.h"
 #include "ctrs.h"
-
+#include "pkt_hash.h"
 
 /*
  * use our version of header structs, rather than bringing in a ton
@@ -57,7 +59,7 @@ struct compact_eth_hdr {
 };
 
 struct compact_ip_hdr {
-	u_int8_t ihl:4, version:4;
+	u_int8_t ihl : 4, version : 4;
 	u_int8_t tos;
 	u_int16_t tot_len;
 	u_int16_t id;
@@ -70,7 +72,7 @@ struct compact_ip_hdr {
 };
 
 struct compact_ipv6_hdr {
-	u_int8_t priority:4, version:4;
+	u_int8_t priority : 4, version : 4;
 	u_int8_t flow_lbl[3];
 	u_int16_t payload_len;
 	u_int8_t nexthdr;
@@ -79,14 +81,14 @@ struct compact_ipv6_hdr {
 	struct in6_addr daddr;
 };
 
-#define MAX_IFNAMELEN 	64
-#define MAX_PORTNAMELEN	(MAX_IFNAMELEN + 40)
-#define DEF_OUT_PIPES 	2
-#define DEF_EXTRA_BUFS 	0
-#define DEF_BATCH	2048
-#define DEF_WAIT_LINK	2
-#define DEF_STATS_INT	600
-#define BUF_REVOKE	150
+#define MAX_IFNAMELEN 64
+#define MAX_PORTNAMELEN (MAX_IFNAMELEN + 40)
+#define DEF_OUT_PIPES 2
+#define DEF_EXTRA_BUFS 0
+#define DEF_BATCH 2048
+#define DEF_WAIT_LINK 2
+#define DEF_STATS_INT 600
+#define BUF_REVOKE 150
 #define STAT_MSG_MAXSIZE 1024
 
 static struct {
@@ -201,8 +203,8 @@ struct counters {
 	uint64_t non_ip;
 	uint32_t freeq_n;
 	int status __attribute__((aligned(64)));
-#define COUNTERS_EMPTY	0
-#define COUNTERS_FULL	1
+#define COUNTERS_EMPTY 0
+#define COUNTERS_FULL 1
 };
 
 static struct counters counters_buf;
@@ -239,16 +241,19 @@ print_stats(void *arg)
 			newdata = 1;
 			cur.t = counters_buf.ts;
 			if (prev.t.tv_sec || prev.t.tv_usec) {
-				usec = (cur.t.tv_sec - prev.t.tv_sec) * 1000000 +
-					cur.t.tv_usec - prev.t.tv_usec;
+				usec = (cur.t.tv_sec - prev.t.tv_sec) *
+					1000000 +
+				    cur.t.tv_usec - prev.t.tv_usec;
 			}
 		}
 
 		++sys_int;
-		if (glob_arg.stdout_interval && sys_int % glob_arg.stdout_interval == 0)
-				dostdout = 1;
-		if (glob_arg.syslog_interval && sys_int % glob_arg.syslog_interval == 0)
-				dosyslog = 1;
+		if (glob_arg.stdout_interval &&
+		    sys_int % glob_arg.stdout_interval == 0)
+			dostdout = 1;
+		if (glob_arg.syslog_interval &&
+		    sys_int % glob_arg.syslog_interval == 0)
+			dosyslog = 1;
 
 		for (j = 0; j < npipes; ++j) {
 			struct my_ctrs *c = &counters_buf.ctrs[j];
@@ -261,37 +266,37 @@ print_stats(void *arg)
 				x.pkts = c->pkts - pipe_prev[j].pkts;
 				x.drop = c->drop - pipe_prev[j].drop;
 				x.bytes = c->bytes - pipe_prev[j].bytes;
-				x.drop_bytes = c->drop_bytes - pipe_prev[j].drop_bytes;
-				pps = (x.pkts*1000000 + usec/2) / usec;
-				dps = (x.drop*1000000 + usec/2) / usec;
-				bps = ((x.bytes*1000000 + usec/2) / usec) * 8;
-				dbps = ((x.drop_bytes*1000000 + usec/2) / usec) * 8;
+				x.drop_bytes = c->drop_bytes -
+				    pipe_prev[j].drop_bytes;
+				pps = (x.pkts * 1000000 + usec / 2) / usec;
+				dps = (x.drop * 1000000 + usec / 2) / usec;
+				bps = ((x.bytes * 1000000 + usec / 2) / usec) *
+				    8;
+				dbps = ((x.drop_bytes * 1000000 + usec / 2) /
+					   usec) *
+				    8;
 			}
 			pipe_prev[j] = *c;
 
-			if ( (dosyslog || dostdout) && newdata )
+			if ((dosyslog || dostdout) && newdata)
 				snprintf(stat_msg, STAT_MSG_MAXSIZE,
-				       "{"
-				       "\"ts\":%.6f,"
-				       "\"interface\":\"%s\","
-				       "\"output_ring\":%" PRIu16 ","
-				       "\"packets_forwarded\":%" PRIu64 ","
-				       "\"packets_dropped\":%" PRIu64 ","
-				       "\"data_forward_rate_Mbps\":%.4f,"
-				       "\"data_drop_rate_Mbps\":%.4f,"
-				       "\"packet_forward_rate_kpps\":%.4f,"
-				       "\"packet_drop_rate_kpps\":%.4f,"
-				       "\"overflow_queue_size\":%" PRIu32
-				       "}", cur.t.tv_sec + (cur.t.tv_usec / 1000000.0),
-				            ports[j].interface,
-				            j,
-				            c->pkts,
-				            c->drop,
-				            (double)bps / 1024 / 1024,
-				            (double)dbps / 1024 / 1024,
-				            (double)pps / 1000,
-				            (double)dps / 1000,
-				            c->oq_n);
+				    "{"
+				    "\"ts\":%.6f,"
+				    "\"interface\":\"%s\","
+				    "\"output_ring\":%" PRIu16 ","
+				    "\"packets_forwarded\":%" PRIu64 ","
+				    "\"packets_dropped\":%" PRIu64 ","
+				    "\"data_forward_rate_Mbps\":%.4f,"
+				    "\"data_drop_rate_Mbps\":%.4f,"
+				    "\"packet_forward_rate_kpps\":%.4f,"
+				    "\"packet_drop_rate_kpps\":%.4f,"
+				    "\"overflow_queue_size\":%" PRIu32 "}",
+				    cur.t.tv_sec + (cur.t.tv_usec / 1000000.0),
+				    ports[j].interface, j, c->pkts, c->drop,
+				    (double)bps / 1024 / 1024,
+				    (double)dbps / 1024 / 1024,
+				    (double)pps / 1000, (double)dps / 1000,
+				    c->oq_n);
 
 			if (dosyslog && stat_msg[0])
 				syslog(LOG_INFO, "%s", stat_msg);
@@ -303,38 +308,32 @@ print_stats(void *arg)
 			x.drop = cur.drop - prev.drop;
 			x.bytes = cur.bytes - prev.bytes;
 			x.drop_bytes = cur.drop_bytes - prev.drop_bytes;
-			pps = (x.pkts*1000000 + usec/2) / usec;
-			dps = (x.drop*1000000 + usec/2) / usec;
-			bps = ((x.bytes*1000000 + usec/2) / usec) * 8;
-			dbps = ((x.drop_bytes*1000000 + usec/2) / usec) * 8;
+			pps = (x.pkts * 1000000 + usec / 2) / usec;
+			dps = (x.drop * 1000000 + usec / 2) / usec;
+			bps = ((x.bytes * 1000000 + usec / 2) / usec) * 8;
+			dbps = ((x.drop_bytes * 1000000 + usec / 2) / usec) * 8;
 		}
 
-		if ( (dosyslog || dostdout) && newdata )
+		if ((dosyslog || dostdout) && newdata)
 			snprintf(stat_msg, STAT_MSG_MAXSIZE,
-			         "{"
-			         "\"ts\":%.6f,"
-			         "\"interface\":\"%s\","
-			         "\"output_ring\":null,"
-			         "\"packets_received\":%" PRIu64 ","
-			         "\"packets_forwarded\":%" PRIu64 ","
-			         "\"packets_dropped\":%" PRIu64 ","
-			         "\"non_ip_packets\":%" PRIu64 ","
-			         "\"data_forward_rate_Mbps\":%.4f,"
-			         "\"data_drop_rate_Mbps\":%.4f,"
-			         "\"packet_forward_rate_kpps\":%.4f,"
-			         "\"packet_drop_rate_kpps\":%.4f,"
-			         "\"free_buffer_slots\":%" PRIu32
-			         "}", cur.t.tv_sec + (cur.t.tv_usec / 1000000.0),
-			              glob_arg.ifname,
-			              received_pkts,
-			              cur.pkts,
-			              cur.drop,
-			              counters_buf.non_ip,
-			              (double)bps / 1024 / 1024,
-			              (double)dbps / 1024 / 1024,
-			              (double)pps / 1000,
-			              (double)dps / 1000,
-			              counters_buf.freeq_n);
+			    "{"
+			    "\"ts\":%.6f,"
+			    "\"interface\":\"%s\","
+			    "\"output_ring\":null,"
+			    "\"packets_received\":%" PRIu64 ","
+			    "\"packets_forwarded\":%" PRIu64 ","
+			    "\"packets_dropped\":%" PRIu64 ","
+			    "\"non_ip_packets\":%" PRIu64 ","
+			    "\"data_forward_rate_Mbps\":%.4f,"
+			    "\"data_drop_rate_Mbps\":%.4f,"
+			    "\"packet_forward_rate_kpps\":%.4f,"
+			    "\"packet_drop_rate_kpps\":%.4f,"
+			    "\"free_buffer_slots\":%" PRIu32 "}",
+			    cur.t.tv_sec + (cur.t.tv_usec / 1000000.0),
+			    glob_arg.ifname, received_pkts, cur.pkts, cur.drop,
+			    counters_buf.non_ip, (double)bps / 1024 / 1024,
+			    (double)dbps / 1024 / 1024, (double)pps / 1000,
+			    (double)dps / 1000, counters_buf.freeq_n);
 
 		if (dosyslog && stat_msg[0])
 			syslog(LOG_INFO, "%s", stat_msg);
@@ -355,7 +354,8 @@ free_buffers(void)
 	int i, tot = 0;
 	struct port_des *rxport = &ports[glob_arg.output_rings];
 
-	/* build a netmap free list with the buffers in all the overflow queues */
+	/* build a netmap free list with the buffers in all the overflow queues
+	 */
 	for (i = 0; i < glob_arg.output_rings + 1; i++) {
 		struct port_des *cp = &ports[i];
 		struct overflow_queue *q = cp->oq;
@@ -365,7 +365,8 @@ free_buffers(void)
 
 		while (q->n) {
 			struct netmap_slot s = oq_deq(q);
-			uint32_t *b = (uint32_t *)NETMAP_BUF(cp->ring, s.buf_idx);
+			uint32_t *b = (uint32_t *)NETMAP_BUF(cp->ring,
+			    s.buf_idx);
 
 			*b = rxport->nmd->nifp->ni_bufs_head;
 			rxport->nmd->nifp->ni_bufs_head = s.buf_idx;
@@ -379,10 +380,10 @@ free_buffers(void)
 	}
 }
 
-
-static void sigint_h(int sig)
+static void
+sigint_h(int sig)
 {
-	(void)sig;		/* UNUSED */
+	(void)sig; /* UNUSED */
 	do_abort = 1;
 	signal(SIGINT, SIG_DFL);
 }
@@ -395,12 +396,18 @@ usage(void)
 	printf("  -h              	view help text\n");
 	printf("  -i iface        	interface name (required)\n");
 	printf("  -p [prefix:]npipes	add a new group of output pipes\n");
-	printf("  -B nbufs        	number of extra buffers (default: %d)\n", DEF_EXTRA_BUFS);
+	printf(
+	    "  -B nbufs        	number of extra buffers (default: %d)\n",
+	    DEF_EXTRA_BUFS);
 	printf("  -b batch        	batch size (default: %d)\n", DEF_BATCH);
-	printf("  -w seconds        	wait for link up (default: %d)\n", DEF_WAIT_LINK);
-	printf("  -W                    enable busy waiting. this will run your CPU at 100%%\n");
-	printf("  -s seconds      	seconds between syslog stats messages (default: 0)\n");
-	printf("  -o seconds      	seconds between stdout stats messages (default: 0)\n");
+	printf("  -w seconds        	wait for link up (default: %d)\n",
+	    DEF_WAIT_LINK);
+	printf(
+	    "  -W                    enable busy waiting. this will run your CPU at 100%%\n");
+	printf(
+	    "  -s seconds      	seconds between syslog stats messages (default: 0)\n");
+	printf(
+	    "  -o seconds      	seconds between stdout stats messages (default: 0)\n");
 	exit(0);
 }
 
@@ -449,7 +456,8 @@ parse_pipes(const char *spec)
 	} else {
 		g->nports = atoi(end);
 		if (g->nports < 1) {
-			D("invalid number of pipes '%s' (must be at least 1)", end);
+			D("invalid number of pipes '%s' (must be at least 1)",
+			    end);
 			return 1;
 		}
 	}
@@ -481,7 +489,6 @@ init_groups(void)
 	g->last = 1;
 }
 
-
 /* To support packets that span multiple slots (NS_MOREFRAG) we
  * need to make sure of the following:
  *
@@ -498,9 +505,9 @@ init_groups(void)
  * when the need to drop arises, we roll it back to head.
  */
 struct morefrag {
-	uint16_t last_flag;	/* for input rings */
-	uint32_t last_hash;	/* for input rings */
-	uint32_t shadow_head;	/* for output rings */
+	uint16_t last_flag;   /* for input rings */
+	uint32_t last_hash;   /* for input rings */
+	uint32_t shadow_head; /* for output rings */
 };
 
 /* push the packet described by slot rs to the group g.
@@ -523,7 +530,7 @@ forward_packet(struct group_des *g, struct netmap_slot *rs)
 	 * either no space left on the ring, or there is some
 	 * packet still in the overflow queue (since those must
 	 * take precedence over the new one)
-	*/
+	 */
 	if (mf->shadow_head != ring->tail && (q == NULL || oq_empty(q))) {
 		struct netmap_slot *ts = &ring->slot[mf->shadow_head];
 		struct netmap_slot old_slot = *ts;
@@ -537,7 +544,7 @@ forward_packet(struct group_des *g, struct netmap_slot *rs)
 			ring->head = mf->shadow_head;
 		}
 		ND("curmf %2x ts->flags %2x shadow_head %3u head %3u tail %3u",
-				curmf, ts->flags, mf->shadow_head, ring->head, ring->tail);
+		    curmf, ts->flags, mf->shadow_head, ring->head, ring->tail);
 		port->ctr.bytes += rs->len;
 		port->ctr.pkts++;
 		forwarded++;
@@ -553,7 +560,7 @@ forward_packet(struct group_des *g, struct netmap_slot *rs)
 
 		/* drop previous fragments, if any */
 		for (scan = ring->head; scan != mf->shadow_head;
-				scan = nm_ring_next(ring, scan)) {
+		     scan = nm_ring_next(ring, scan)) {
 			struct netmap_slot *ts = &ring->slot[scan];
 			dropped++;
 			port->ctr.drop_bytes += ts->len;
@@ -596,7 +603,8 @@ forward_packet(struct group_des *g, struct netmap_slot *rs)
 		 * To make thinks simple we make sure to leave
 		 * at least NETMAP_MAX_FRAGS slots in the queue.
 		 */
-		for (j = 0; lp->oq->n > NETMAP_MAX_FRAGS && j < BUF_REVOKE; j++) {
+		for (j = 0; lp->oq->n > NETMAP_MAX_FRAGS && j < BUF_REVOKE;
+		     j++) {
 			struct netmap_slot tmp = oq_deq(lp->oq);
 
 			dropped++;
@@ -612,7 +620,8 @@ forward_packet(struct group_des *g, struct netmap_slot *rs)
 	return oq_deq(freeq).buf_idx;
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
 	int ch;
 	uint32_t i;
@@ -627,7 +636,7 @@ int main(int argc, char **argv)
 	glob_arg.syslog_interval = 0;
 	glob_arg.stdout_interval = 0;
 
-	while ( (ch = getopt(argc, argv, "hi:p:b:B:s:o:w:W")) != -1) {
+	while ((ch = getopt(argc, argv, "hi:p:b:B:s:o:w:W")) != -1) {
 		switch (ch) {
 		case 'i':
 			D("interface is %s", optarg);
@@ -635,7 +644,8 @@ int main(int argc, char **argv)
 				D("ifname too long %s", optarg);
 				return 1;
 			}
-			if (strncmp(optarg, "netmap:", 7) && strncmp(optarg, "vale", 4)) {
+			if (strncmp(optarg, "netmap:", 7) &&
+			    strncmp(optarg, "vale", 4)) {
 				sprintf(glob_arg.ifname, "netmap:%s", optarg);
 			} else {
 				strcpy(glob_arg.ifname, optarg);
@@ -703,7 +713,6 @@ int main(int argc, char **argv)
 	}
 
 	uint32_t npipes = glob_arg.output_rings;
-
 
 	pthread_t stat_thread;
 
@@ -775,10 +784,8 @@ int main(int argc, char **argv)
 	 * as the index of the next buffer.
 	 */
 	uint32_t scan;
-	for (scan = rxport->nmd->nifp->ni_bufs_head;
-	     scan;
-	     scan = *(uint32_t *)NETMAP_BUF(rxport->ring, scan))
-	{
+	for (scan = rxport->nmd->nifp->ni_bufs_head; scan;
+	     scan = *(uint32_t *)NETMAP_BUF(rxport->ring, scan)) {
 		struct netmap_slot s;
 		s.len = s.flags = 0;
 		s.ptr = 0;
@@ -787,10 +794,9 @@ int main(int argc, char **argv)
 		oq_enq(freeq, &s);
 	}
 
-
 	if (freeq->n != extra_bufs) {
 		D("something went wrong: netmap reported %d extra_bufs, but the free list contained %d",
-				extra_bufs, freeq->n);
+		    extra_bufs, freeq->n);
 		return 1;
 	}
 	rxport->nmd->nifp->ni_bufs_head = 0;
@@ -805,9 +811,9 @@ run:
 		for (k = 0; k < g->nports; ++k) {
 			struct port_des *p = &g->ports[k];
 			snprintf(p->interface, MAX_PORTNAMELEN, "%s%s{%d/xT@%d",
-					(strncmp(g->pipename, "vale", 4) ? "netmap:" : ""),
-					g->pipename, g->first_id + k,
-					rxport->nmd->reg.nr_mem_id);
+			    (strncmp(g->pipename, "vale", 4) ? "netmap:" : ""),
+			    g->pipename, g->first_id + k,
+			    rxport->nmd->reg.nr_mem_id);
 			D("opening pipe named %s", p->interface);
 
 			p->nmd = nmport_open(p->interface);
@@ -817,35 +823,43 @@ run:
 				return (1);
 			} else if (p->nmd->mem != rxport->nmd->mem) {
 				D("failed to open pipe #%d in zero-copy mode, "
-					"please close any application that uses either pipe %s}%d, "
-				        "or %s{%d, and retry",
-					k + 1, g->pipename, g->first_id + k, g->pipename, g->first_id + k);
+				  "please close any application that uses either pipe %s}%d, "
+				  "or %s{%d, and retry",
+				    k + 1, g->pipename, g->first_id + k,
+				    g->pipename, g->first_id + k);
 				return (1);
 			} else {
 				struct morefrag *mf;
 
 				D("successfully opened pipe #%d %s (tx slots: %d)",
-				  k + 1, p->interface, p->nmd->reg.nr_tx_slots);
+				    k + 1, p->interface,
+				    p->nmd->reg.nr_tx_slots);
 				p->ring = NETMAP_TXRING(p->nmd->nifp, 0);
-				p->last_tail = nm_ring_next(p->ring, p->ring->tail);
+				p->last_tail = nm_ring_next(p->ring,
+				    p->ring->tail);
 				mf = (struct morefrag *)p->ring->sem;
-				mf->last_flag = 0;	/* unused */
-				mf->last_hash = 0;	/* unused */
+				mf->last_flag = 0; /* unused */
+				mf->last_hash = 0; /* unused */
 				mf->shadow_head = p->ring->head;
 			}
 			D("zerocopy %s",
-			  (rxport->nmd->mem == p->nmd->mem) ? "enabled" : "disabled");
+			    (rxport->nmd->mem == p->nmd->mem) ? "enabled" :
+								"disabled");
 
 			if (extra_bufs) {
 				struct overflow_queue *q = &oq[t + k];
-				q->slots = calloc(extra_bufs, sizeof(struct netmap_slot));
+				q->slots = calloc(extra_bufs,
+				    sizeof(struct netmap_slot));
 				if (!q->slots) {
-					D("failed to allocate overflow queue for pipe %d", k);
-					/* make all overflow queue management fail */
+					D("failed to allocate overflow queue for pipe %d",
+					    k);
+					/* make all overflow queue management
+					 * fail */
 					extra_bufs = 0;
 				}
 				q->size = extra_bufs;
-				snprintf(q->name, sizeof(q->name), "oq %s{%4d", g->pipename, k);
+				snprintf(q->name, sizeof(q->name), "oq %s{%4d",
+				    g->pipename, k);
 				p->oq = q;
 			}
 		}
@@ -879,14 +893,18 @@ run:
 	/* make sure we wake up as often as needed, even when there are no
 	 * packets coming in
 	 */
-	if (glob_arg.syslog_interval > 0 && glob_arg.syslog_interval < poll_timeout)
+	if (glob_arg.syslog_interval > 0 &&
+	    glob_arg.syslog_interval < poll_timeout)
 		poll_timeout = glob_arg.syslog_interval;
-	if (glob_arg.stdout_interval > 0 && glob_arg.stdout_interval < poll_timeout)
+	if (glob_arg.stdout_interval > 0 &&
+	    glob_arg.stdout_interval < poll_timeout)
 		poll_timeout = glob_arg.stdout_interval;
 
 	/* initialize the morefrag structures for the input rings */
-	for (i = rxport->nmd->first_rx_ring; i <= rxport->nmd->last_rx_ring; i++) {
-		struct netmap_ring *rxring = NETMAP_RXRING(rxport->nmd->nifp, i);
+	for (i = rxport->nmd->first_rx_ring; i <= rxport->nmd->last_rx_ring;
+	     i++) {
+		struct netmap_ring *rxring = NETMAP_RXRING(rxport->nmd->nifp,
+		    i);
 		struct morefrag *mf = (struct morefrag *)rxring->sem;
 
 		mf->last_flag = 0;
@@ -901,13 +919,14 @@ run:
 			struct netmap_ring *ring = ports[i].ring;
 			int pending = nm_tx_pending(ring);
 
-			/* if there are packets pending, we want to be notified when
-			 * tail moves, so we let cur=tail
+			/* if there are packets pending, we want to be notified
+			 * when tail moves, so we let cur=tail
 			 */
 			ring->cur = pending ? ring->tail : ring->head;
 
 			if (!glob_arg.busy_wait && !pending) {
-				/* no need to poll, there are no packets pending */
+				/* no need to poll, there are no packets pending
+				 */
 				continue;
 			}
 			pollfd[polli].fd = ports[i].nmd->fd;
@@ -929,8 +948,8 @@ run:
 			goto send_stats;
 		}
 
-		/* if there are several groups, try pushing released packets from
-		 * upstream groups to the downstream ones.
+		/* if there are several groups, try pushing released packets
+		 * from upstream groups to the downstream ones.
 		 *
 		 * It is important to do this before returned slots are reused
 		 * for new transmissions. For the same reason, this must be
@@ -945,11 +964,13 @@ run:
 				uint32_t last = p->last_tail,
 					 stop = nm_ring_next(ring, ring->tail);
 
-				/* slight abuse of the API here: we touch the slot
-				 * pointed to by tail
+				/* slight abuse of the API here: we touch the
+				 * slot pointed to by tail
 				 */
-				for ( ; last != stop; last = nm_ring_next(ring, last)) {
-					struct netmap_slot *rs = &ring->slot[last];
+				for (; last != stop;
+				     last = nm_ring_next(ring, last)) {
+					struct netmap_slot *rs =
+					    &ring->slot[last];
 					// XXX less aggressive?
 					rs->buf_idx = forward_packet(g + 1, rs);
 					rs->flags = NS_BUF_CHANGED;
@@ -958,8 +979,6 @@ run:
 				p->last_tail = last;
 			}
 		}
-
-
 
 		if (oq) {
 			/* try to push packets from the overflow queues
@@ -993,23 +1012,29 @@ run:
 					oq_enq(freeq, &tmp);
 					*slot = s;
 					slot->flags |= NS_BUF_CHANGED;
-					mf->shadow_head = nm_ring_next(ring, mf->shadow_head);
+					mf->shadow_head = nm_ring_next(ring,
+					    mf->shadow_head);
 					if (!(slot->flags & NS_MOREFRAG))
 						ring->head = mf->shadow_head;
 				}
 			}
 		}
 
-		/* push any new packets from the input port to the first group */
+		/* push any new packets from the input port to the first group
+		 */
 		int batch = 0;
-		for (i = rxport->nmd->first_rx_ring; i <= rxport->nmd->last_rx_ring; i++) {
-			struct netmap_ring *rxring = NETMAP_RXRING(rxport->nmd->nifp, i);
+		for (i = rxport->nmd->first_rx_ring;
+		     i <= rxport->nmd->last_rx_ring; i++) {
+			struct netmap_ring *rxring =
+			    NETMAP_RXRING(rxport->nmd->nifp, i);
 			struct morefrag *mf = (struct morefrag *)rxring->sem;
 
-			//D("prepare to scan rings");
+			// D("prepare to scan rings");
 			int next_head = rxring->head;
-			struct netmap_slot *next_slot = &rxring->slot[next_head];
-			const char *next_buf = NETMAP_BUF(rxring, next_slot->buf_idx);
+			struct netmap_slot *next_slot =
+			    &rxring->slot[next_head];
+			const char *next_buf = NETMAP_BUF(rxring,
+			    next_slot->buf_idx);
 			while (!nm_ring_empty(rxring)) {
 				struct netmap_slot *rs = next_slot;
 				struct group_des *g = &groups[0];
@@ -1017,12 +1042,15 @@ run:
 				received_bytes += rs->len;
 
 				// CHOOSE THE CORRECT OUTPUT PIPE
-				// If the previous slot had NS_MOREFRAG set, this is another
-				// fragment of the last packet and it should go to the same
-				// output pipe as before.
+				// If the previous slot had NS_MOREFRAG set,
+				// this is another fragment of the last packet
+				// and it should go to the same output pipe as
+				// before.
 				if (!mf->last_flag) {
 					// 'B' is just a hashing seed
-					mf->last_hash = pkt_hdr_hash((const unsigned char *)next_buf, 4, 'B');
+					mf->last_hash = pkt_hdr_hash(
+					    (const unsigned char *)next_buf, 4,
+					    'B');
 				}
 				mf->last_flag = rs->flags & NS_MOREFRAG;
 				rs->ptr = mf->last_hash;
@@ -1032,7 +1060,8 @@ run:
 				// prefetch the buffer for the next round
 				next_head = nm_ring_next(rxring, next_head);
 				next_slot = &rxring->slot[next_head];
-				next_buf = NETMAP_BUF(rxring, next_slot->buf_idx);
+				next_buf = NETMAP_BUF(rxring,
+				    next_slot->buf_idx);
 				__builtin_prefetch(next_buf);
 				rs->buf_idx = forward_packet(g, rs);
 				rs->flags = NS_BUF_CHANGED;
@@ -1040,15 +1069,17 @@ run:
 
 				batch++;
 				if (unlikely(batch >= glob_arg.batch)) {
-					ioctl(rxport->nmd->fd, NIOCRXSYNC, NULL);
+					ioctl(rxport->nmd->fd, NIOCRXSYNC,
+					    NULL);
 					batch = 0;
 				}
 				ND(1,
-				   "Forwarded Packets: %"PRIu64" Dropped packets: %"PRIu64"   Percent: %.2f",
-				   forwarded, dropped,
-				   ((float)dropped / (float)forwarded * 100));
+				    "Forwarded Packets: %" PRIu64
+				    " Dropped packets: %" PRIu64
+				    "   Percent: %.2f",
+				    forwarded, dropped,
+				    ((float)dropped / (float)forwarded * 100));
 			}
-
 		}
 
 	send_stats:
@@ -1060,8 +1091,9 @@ run:
 			struct my_ctrs *c = &counters_buf.ctrs[i];
 			*c = ports[i].ctr;
 			/*
-			 * If there are overflow queues, copy the number of them for each
-			 * port to the ctrs.oq_n variable for each port.
+			 * If there are overflow queues, copy the number of them
+			 * for each port to the ctrs.oq_n variable for each
+			 * port.
 			 */
 			if (ports[i].oq != NULL)
 				c->oq_n = ports[i].oq->n;
@@ -1087,7 +1119,8 @@ run:
 
 	pthread_join(stat_thread, NULL);
 
-	printf("%"PRIu64" packets forwarded.  %"PRIu64" packets dropped. Total %"PRIu64"\n", forwarded,
-	       dropped, forwarded + dropped);
+	printf("%" PRIu64 " packets forwarded.  %" PRIu64
+	       " packets dropped. Total %" PRIu64 "\n",
+	    forwarded, dropped, forwarded + dropped);
 	return 0;
 }

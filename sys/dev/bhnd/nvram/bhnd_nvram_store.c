@@ -34,8 +34,8 @@
 
 #ifdef _KERNEL
 
-#include <sys/ctype.h>
 #include <sys/systm.h>
+#include <sys/ctype.h>
 
 #include <machine/_inttypes.h>
 
@@ -45,16 +45,15 @@
 #include <errno.h>
 #include <inttypes.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #endif /* _KERNEL */
 
-#include "bhnd_nvram_private.h"
 #include "bhnd_nvram_datavar.h"
-
+#include "bhnd_nvram_private.h"
 #include "bhnd_nvram_storevar.h"
 
 /*
@@ -63,38 +62,27 @@
  * Manages in-memory and persistent representations of NVRAM data.
  */
 
-static int			 bhnd_nvstore_parse_data(
-				     struct bhnd_nvram_store *sc);
+static int bhnd_nvstore_parse_data(struct bhnd_nvram_store *sc);
 
-static int			 bhnd_nvstore_parse_path_entries(
-				     struct bhnd_nvram_store *sc);
+static int bhnd_nvstore_parse_path_entries(struct bhnd_nvram_store *sc);
 
-static int			 bhnd_nvram_store_export_child(
-				     struct bhnd_nvram_store *sc,
-				     bhnd_nvstore_path *top,
-				     bhnd_nvstore_path *child,
-				     bhnd_nvram_plist *plist,
-				     uint32_t flags);
+static int bhnd_nvram_store_export_child(struct bhnd_nvram_store *sc,
+    bhnd_nvstore_path *top, bhnd_nvstore_path *child, bhnd_nvram_plist *plist,
+    uint32_t flags);
 
-static int			 bhnd_nvstore_export_merge(
-				     struct bhnd_nvram_store *sc,
-				     bhnd_nvstore_path *path,
-				     bhnd_nvram_plist *merged,
-				     uint32_t flags);
+static int bhnd_nvstore_export_merge(struct bhnd_nvram_store *sc,
+    bhnd_nvstore_path *path, bhnd_nvram_plist *merged, uint32_t flags);
 
-static int			 bhnd_nvstore_export_devpath_alias(
-				     struct bhnd_nvram_store *sc,
-				     bhnd_nvstore_path *path,
-				     const char *devpath,
-				     bhnd_nvram_plist *plist,
-				     u_long *alias_val);
+static int bhnd_nvstore_export_devpath_alias(struct bhnd_nvram_store *sc,
+    bhnd_nvstore_path *path, const char *devpath, bhnd_nvram_plist *plist,
+    u_long *alias_val);
 
 /**
  * Allocate and initialize a new NVRAM data store instance.
  *
  * The caller is responsible for deallocating the instance via
  * bhnd_nvram_store_free().
- * 
+ *
  * @param[out] store On success, a pointer to the newly allocated NVRAM data
  * instance.
  * @param data The NVRAM data to be managed by the returned NVRAM data store
@@ -109,7 +97,7 @@ bhnd_nvram_store_new(struct bhnd_nvram_store **store,
     struct bhnd_nvram_data *data)
 {
 	struct bhnd_nvram_store *sc;
-	int			 error;
+	int error;
 
 	/* Allocate new instance */
 	sc = bhnd_nv_calloc(1, sizeof(*sc));
@@ -175,10 +163,10 @@ cleanup:
  *
  * The caller is responsible for deallocating the instance via
  * bhnd_nvram_store_free().
- * 
+ *
  * The NVRAM data mapped by @p io will be copied, and @p io may be safely
  * deallocated after bhnd_nvram_store_new() returns.
- * 
+ *
  * @param[out] store On success, a pointer to the newly allocated NVRAM data
  * instance.
  * @param io An I/O context mapping the NVRAM data to be copied and parsed.
@@ -193,8 +181,8 @@ int
 bhnd_nvram_store_parse_new(struct bhnd_nvram_store **store,
     struct bhnd_nvram_io *io, bhnd_nvram_data_class *cls)
 {
-	struct bhnd_nvram_data	*data;
-	int			 error;
+	struct bhnd_nvram_data *data;
+	int error;
 
 	/* Try to parse the data */
 	if ((error = bhnd_nvram_data_new(cls, &data, io)))
@@ -209,7 +197,7 @@ bhnd_nvram_store_parse_new(struct bhnd_nvram_store **store,
 
 /**
  * Free an NVRAM store instance, releasing all associated resources.
- * 
+ *
  * @param sc A store instance previously allocated via
  * bhnd_nvram_store_new().
  */
@@ -220,14 +208,14 @@ bhnd_nvram_store_free(struct bhnd_nvram_store *sc)
 	/* Clean up alias hash table */
 	for (size_t i = 0; i < nitems(sc->aliases); i++) {
 		bhnd_nvstore_alias *alias, *anext;
-		LIST_FOREACH_SAFE(alias, &sc->aliases[i], na_link, anext)
+		LIST_FOREACH_SAFE (alias, &sc->aliases[i], na_link, anext)
 			bhnd_nv_free(alias);
 	}
 
 	/* Clean up path hash table */
 	for (size_t i = 0; i < nitems(sc->paths); i++) {
 		bhnd_nvstore_path *path, *pnext;
-		LIST_FOREACH_SAFE(path, &sc->paths[i], np_link, pnext)
+		LIST_FOREACH_SAFE (path, &sc->paths[i], np_link, pnext)
 			bhnd_nvstore_path_free(path);
 	}
 
@@ -244,7 +232,7 @@ bhnd_nvram_store_free(struct bhnd_nvram_store *sc)
 /**
  * Parse all variables vended by our backing NVRAM data instance,
  * generating all path entries, alias entries, and variable indexes.
- * 
+ *
  * @param	sc	The NVRAM store instance to be initialized with
  *			paths, aliases, and data parsed from its backing
  *			data.
@@ -256,9 +244,9 @@ bhnd_nvram_store_free(struct bhnd_nvram_store *sc)
 static int
 bhnd_nvstore_parse_data(struct bhnd_nvram_store *sc)
 {
-	const char	*name;
-	void		*cookiep;
-	int		 error;
+	const char *name;
+	void *cookiep;
+	int error;
 
 	/* Parse and register all device paths and path aliases. This enables
 	 * resolution of _forward_ references to device paths aliases when
@@ -270,8 +258,8 @@ bhnd_nvstore_parse_data(struct bhnd_nvram_store *sc)
 	 * references as an error. */
 	cookiep = NULL;
 	while ((name = bhnd_nvram_data_next(sc->data, &cookiep))) {
-		bhnd_nvstore_path	*path;
-		bhnd_nvstore_name_info	 info;
+		bhnd_nvstore_path *path;
+		bhnd_nvstore_name_info info;
 
 		/* Parse the name info */
 		error = bhnd_nvstore_parse_name_info(name,
@@ -285,14 +273,16 @@ bhnd_nvstore_parse_data(struct bhnd_nvram_store *sc)
 			path = bhnd_nvstore_var_get_path(sc, &info);
 			if (path == NULL) {
 				BHND_NV_LOG("variable '%s' has dangling "
-					    "path reference\n", name);
+					    "path reference\n",
+				    name);
 				return (EFTYPE);
 			}
 
 			/* Increment path variable count */
 			if (path->num_vars == SIZE_MAX) {
 				BHND_NV_LOG("more than SIZE_MAX variables in "
-				    "path %s\n", path->path_str);
+					    "path %s\n",
+				    path->path_str);
 				return (EFTYPE);
 			}
 			path->num_vars++;
@@ -325,9 +315,9 @@ bhnd_nvstore_parse_data(struct bhnd_nvram_store *sc)
 
 	/* Allocate per-path index instances */
 	for (size_t i = 0; i < nitems(sc->paths); i++) {
-		bhnd_nvstore_path	*path;
+		bhnd_nvstore_path *path;
 
-		LIST_FOREACH(path, &sc->paths[i], np_link) {
+		LIST_FOREACH (path, &sc->paths[i], np_link) {
 			path->index = bhnd_nvstore_index_new(path->num_vars);
 			if (path->index == NULL)
 				return (ENOMEM);
@@ -337,8 +327,8 @@ bhnd_nvstore_parse_data(struct bhnd_nvram_store *sc)
 	/* Populate per-path indexes */
 	cookiep = NULL;
 	while ((name = bhnd_nvram_data_next(sc->data, &cookiep))) {
-		bhnd_nvstore_name_info	 info;
-		bhnd_nvstore_path	*path;
+		bhnd_nvstore_name_info info;
+		bhnd_nvstore_path *path;
 
 		/* Parse the name info */
 		error = bhnd_nvstore_parse_name_info(name,
@@ -368,9 +358,9 @@ bhnd_nvstore_parse_data(struct bhnd_nvram_store *sc)
 
 	/* Prepare indexes for querying */
 	for (size_t i = 0; i < nitems(sc->paths); i++) {
-		bhnd_nvstore_path	*path;
+		bhnd_nvstore_path *path;
 
-		LIST_FOREACH(path, &sc->paths[i], np_link) {
+		LIST_FOREACH (path, &sc->paths[i], np_link) {
 			error = bhnd_nvstore_index_prepare(sc, path->index);
 			if (error)
 				return (error);
@@ -383,7 +373,7 @@ bhnd_nvstore_parse_data(struct bhnd_nvram_store *sc)
 /**
  * Parse and register path and path alias entries for all declarations found in
  * the NVRAM data backing @p nvram.
- * 
+ *
  * @param sc		The NVRAM store instance.
  *
  * @retval 0		success
@@ -393,9 +383,9 @@ bhnd_nvstore_parse_data(struct bhnd_nvram_store *sc)
 static int
 bhnd_nvstore_parse_path_entries(struct bhnd_nvram_store *sc)
 {
-	const char	*name;
-	void		*cookiep;
-	int		 error;
+	const char *name;
+	void *cookiep;
+	int error;
 
 	BHND_NVSTORE_LOCK_ASSERT(sc, MA_OWNED);
 
@@ -430,25 +420,25 @@ bhnd_nvstore_parse_path_entries(struct bhnd_nvram_store *sc)
 }
 
 /**
- * Merge exported per-path variables (uncommitted, committed, or both) into 
+ * Merge exported per-path variables (uncommitted, committed, or both) into
  * the empty @p merged property list.
- * 
+ *
  * @param	sc	The NVRAM store instance.
  * @param	path	The NVRAM path to be exported.
  * @param	merged	The property list to populate with the merged results.
  * @param	flags	Export flags. See BHND_NVSTORE_EXPORT_*.
- * 
+ *
  * @retval 0		success
  * @retval ENOMEM	If allocation fails.
  * @retval non-zero	If merging the variables defined in @p path otherwise
  *			fails, a regular unix error code will be returned.
  */
 static int
-bhnd_nvstore_export_merge(struct bhnd_nvram_store *sc,
-    bhnd_nvstore_path *path, bhnd_nvram_plist *merged, uint32_t flags)
+bhnd_nvstore_export_merge(struct bhnd_nvram_store *sc, bhnd_nvstore_path *path,
+    bhnd_nvram_plist *merged, uint32_t flags)
 {
-	void	*cookiep, *idxp;
-	int	 error;
+	void *cookiep, *idxp;
+	int error;
 
 	/* Populate merged list with all pending variables */
 	if (BHND_NVSTORE_GET_FLAG(flags, EXPORT_UNCOMMITTED)) {
@@ -476,8 +466,8 @@ bhnd_nvstore_export_merge(struct bhnd_nvram_store *sc,
 	/* Merge in the committed NVRAM variables */
 	idxp = NULL;
 	while ((cookiep = bhnd_nvstore_path_data_next(sc, path, &idxp))) {
-		const char	*name;
-		bhnd_nvram_val	*val;
+		const char *name;
+		bhnd_nvram_val *val;
 
 		/* Fetch the variable name */
 		name = bhnd_nvram_data_getvar_name(sc->data, cookiep);
@@ -516,7 +506,7 @@ bhnd_nvstore_export_merge(struct bhnd_nvram_store *sc,
 /**
  * Find a free alias value for @p path, and append the devpathXX alias
  * declaration to @p plist.
- * 
+ *
  * @param	sc		The NVRAM store instance.
  * @param	path		The NVRAM path for which a devpath alias
  *				variable should be produced.
@@ -525,7 +515,7 @@ bhnd_nvstore_export_merge(struct bhnd_nvram_store *sc,
  *				variable will be appended.
  * @param[out]	alias_val	On success, will be set to the alias value
  *				allocated for @p path.
- * 
+ *
  * @retval 0		success
  * @retval ENOMEM	If allocation fails.
  * @retval non-zero	If merging the variables defined in @p path otherwise
@@ -536,9 +526,9 @@ bhnd_nvstore_export_devpath_alias(struct bhnd_nvram_store *sc,
     bhnd_nvstore_path *path, const char *devpath, bhnd_nvram_plist *plist,
     u_long *alias_val)
 {
-	bhnd_nvstore_alias	*alias;
-	char			*pathvar;
-	int			 error;
+	bhnd_nvstore_alias *alias;
+	char *pathvar;
+	int error;
 
 	*alias_val = 0;
 
@@ -555,8 +545,9 @@ bhnd_nvstore_export_devpath_alias(struct bhnd_nvram_store *sc,
 		/* Append alias variable to property list */
 		error = bhnd_nvram_plist_append_string(plist, pathvar, devpath);
 
-		BHND_NV_ASSERT(error != EEXIST, ("reserved alias %lu:%s in use",
-		   * alias_val, path->path_str));
+		BHND_NV_ASSERT(error != EEXIST,
+		    ("reserved alias %lu:%s in use", *alias_val,
+			path->path_str));
 
 		bhnd_nv_free(pathvar);
 		return (error);
@@ -599,14 +590,14 @@ bhnd_nvstore_export_devpath_alias(struct bhnd_nvram_store *sc,
 
 /**
  * Export a single @p child path's properties, appending the result to @p plist.
- * 
+ *
  * @param	sc		The NVRAM store instance.
  * @param	top		The root NVRAM path being exported.
  * @param	child		The NVRAM path to be exported.
  * @param	plist		The property list to which @p child's exported
  *				properties should be appended.
  * @param	flags		Export flags. See BHND_NVSTORE_EXPORT_*.
- * 
+ *
  * @retval 0		success
  * @retval ENOMEM	If allocation fails.
  * @retval non-zero	If merging the variables defined in @p path otherwise
@@ -617,14 +608,14 @@ bhnd_nvram_store_export_child(struct bhnd_nvram_store *sc,
     bhnd_nvstore_path *top, bhnd_nvstore_path *child, bhnd_nvram_plist *plist,
     uint32_t flags)
 {
-	bhnd_nvram_plist	*path_vars;
-	bhnd_nvram_prop		*prop;
-	const char		*relpath;
-	char			*prefix, *namebuf;
-	size_t			 prefix_len, relpath_len;
-	size_t			 namebuf_size;
-	bool			 emit_compact_devpath;
-	int			 error;
+	bhnd_nvram_plist *path_vars;
+	bhnd_nvram_prop *prop;
+	const char *relpath;
+	char *prefix, *namebuf;
+	size_t prefix_len, relpath_len;
+	size_t namebuf_size;
+	bool emit_compact_devpath;
+	int error;
 
 	BHND_NVSTORE_LOCK_ASSERT(sc, MA_OWNED);
 
@@ -683,8 +674,8 @@ bhnd_nvram_store_export_child(struct bhnd_nvram_store *sc,
 	prefix = NULL;
 	prefix_len = 0;
 	if (emit_compact_devpath) {
-		u_long	alias_val;
-		int	len;
+		u_long alias_val;
+		int len;
 
 		/* Reserve an alias value and append the devpathXX= variable to
 		 * the property list */
@@ -719,7 +710,7 @@ bhnd_nvram_store_export_child(struct bhnd_nvram_store *sc,
 	 * formatting buffer */
 	namebuf_size = 0;
 	if (prefix != NULL) {
-		size_t	maxlen;
+		size_t maxlen;
 
 		/* Find the maximum name length */
 		maxlen = 0;
@@ -753,8 +744,8 @@ bhnd_nvram_store_export_child(struct bhnd_nvram_store *sc,
 
 			/*
 			 * Write prefixed variable name to our name buffer.
-			 * 
-			 * We precalcuate the size when scanning all names 
+			 *
+			 * We precalcuate the size when scanning all names
 			 * above, so this should always succeed.
 			 */
 			len = snprintf(namebuf, namebuf_size, "%s%s", prefix,
@@ -791,7 +782,7 @@ finished:
 /**
  * Export a flat, ordered NVRAM property list representation of all NVRAM
  * properties at @p path.
- * 
+ *
  * @param	sc	The NVRAM store instance.
  * @param	path	The NVRAM path to export, or NULL to select the root
  *			path.
@@ -807,7 +798,7 @@ finished:
  *			for @p sc. The caller is responsible for releasing this
  *			value via bhnd_nvram_plist_release().
  * @param	flags	Export flags. See BHND_NVSTORE_EXPORT_*.
- * 
+ *
  * @retval 0		success
  * @retval EINVAL	If @p flags is invalid.
  * @retval ENOENT	The requested path was not found.
@@ -820,13 +811,13 @@ bhnd_nvram_store_export(struct bhnd_nvram_store *sc, const char *path,
     bhnd_nvram_data_class **cls, bhnd_nvram_plist **props,
     bhnd_nvram_plist **options, uint32_t flags)
 {
-	bhnd_nvram_plist	*unordered;
-	bhnd_nvstore_path	*top;
-	bhnd_nvram_prop		*prop;
-	const char		*name;
-	void			*cookiep;
-	size_t			 num_dpath_flags;
-	int			 error;
+	bhnd_nvram_plist *unordered;
+	bhnd_nvstore_path *top;
+	bhnd_nvram_prop *prop;
+	const char *name;
+	void *cookiep;
+	size_t num_dpath_flags;
+	int error;
 
 	*props = NULL;
 	unordered = NULL;
@@ -840,15 +831,13 @@ bhnd_nvram_store_export(struct bhnd_nvram_store *sc, const char *path,
 
 	/* Default to exporting all properties */
 	if (!BHND_NVSTORE_GET_FLAG(flags, EXPORT_COMMITTED) &&
-	    !BHND_NVSTORE_GET_FLAG(flags, EXPORT_UNCOMMITTED))
-	{
+	    !BHND_NVSTORE_GET_FLAG(flags, EXPORT_UNCOMMITTED)) {
 		flags |= BHND_NVSTORE_EXPORT_ALL_VARS;
 	}
 
 	/* Default to preserving the current device path encoding */
 	if (!BHND_NVSTORE_GET_FLAG(flags, EXPORT_COMPACT_DEVPATHS) &&
-	    !BHND_NVSTORE_GET_FLAG(flags, EXPORT_EXPAND_DEVPATHS))
-	{
+	    !BHND_NVSTORE_GET_FLAG(flags, EXPORT_EXPAND_DEVPATHS)) {
 		flags |= BHND_NVSTORE_EXPORT_PRESERVE_DEVPATHS;
 	}
 
@@ -867,8 +856,7 @@ bhnd_nvram_store_export(struct bhnd_nvram_store *sc, const char *path,
 
 	/* If EXPORT_DELETED is set, EXPORT_UNCOMMITTED must be set too */
 	if (BHND_NVSTORE_GET_FLAG(flags, EXPORT_DELETED) &&
-	    !BHND_NVSTORE_GET_FLAG(flags, EXPORT_DELETED))
-	{
+	    !BHND_NVSTORE_GET_FLAG(flags, EXPORT_DELETED)) {
 		return (EINVAL);
 	}
 
@@ -897,13 +885,13 @@ bhnd_nvram_store_export(struct bhnd_nvram_store *sc, const char *path,
 	for (size_t i = 0; i < nitems(sc->paths); i++) {
 		bhnd_nvstore_path *child;
 
-		LIST_FOREACH(child, &sc->paths[i], np_link) {
+		LIST_FOREACH (child, &sc->paths[i], np_link) {
 			/* Top-level path was already exported */
 			if (child == top)
 				continue;
 
-			error = bhnd_nvram_store_export_child(sc, top,
-			    child, unordered, flags);
+			error = bhnd_nvram_store_export_child(sc, top, child,
+			    unordered, flags);
 			if (error)
 				goto failed;
 		}
@@ -928,10 +916,10 @@ bhnd_nvram_store_export(struct bhnd_nvram_store *sc, const char *path,
 		goto finished;
 	}
 
-	/* 
+	/*
 	 * Re-order the flattened output to match the existing NVRAM variable
 	 * ordering.
-	 * 
+	 *
 	 * We append all new variables at the end of the input; this should
 	 * reduce the delta that needs to be written (e.g. to flash) when
 	 * committing NVRAM updates, and should result in a serialization
@@ -944,7 +932,7 @@ bhnd_nvram_store_export(struct bhnd_nvram_store *sc, const char *path,
 	}
 
 	/* Using the backing NVRAM data ordering to order all variables
-	 * currently defined in the backing store */ 
+	 * currently defined in the backing store */
 	cookiep = NULL;
 	while ((name = bhnd_nvram_data_next(sc->data, &cookiep))) {
 		prop = bhnd_nvram_plist_get_prop(unordered, name);
@@ -994,7 +982,7 @@ failed:
 /**
  * Encode all NVRAM properties at @p path, using the @p store's current NVRAM
  * data format.
- * 
+ *
  * @param	sc	The NVRAM store instance.
  * @param	path	The NVRAM path to export, or NULL to select the root
  *			path.
@@ -1012,15 +1000,15 @@ failed:
  */
 int
 bhnd_nvram_store_serialize(struct bhnd_nvram_store *sc, const char *path,
-   struct bhnd_nvram_io **data,  uint32_t flags)
+    struct bhnd_nvram_io **data, uint32_t flags)
 {
-	bhnd_nvram_plist	*props;
-	bhnd_nvram_plist	*options;
-	bhnd_nvram_data_class	*cls;
-	struct bhnd_nvram_io	*io;
-	void			*outp;
-	size_t			 olen;
-	int			 error;
+	bhnd_nvram_plist *props;
+	bhnd_nvram_plist *options;
+	bhnd_nvram_data_class *cls;
+	struct bhnd_nvram_io *io;
+	void *outp;
+	size_t olen;
+	int error;
 
 	props = NULL;
 	options = NULL;
@@ -1094,16 +1082,16 @@ failed:
  *			small to hold the requested value.
  * @retval non-zero	If reading @p name otherwise fails, a regular unix
  *			error code will be returned.
-  */
+ */
 int
 bhnd_nvram_store_getvar(struct bhnd_nvram_store *sc, const char *name,
     void *outp, size_t *olen, bhnd_nvram_type otype)
 {
-	bhnd_nvstore_name_info	 info;
-	bhnd_nvstore_path	*path;
-	bhnd_nvram_prop		*prop;
-	void			*cookiep;
-	int			 error;
+	bhnd_nvstore_name_info info;
+	bhnd_nvstore_path *path;
+	bhnd_nvram_prop *prop;
+	void *cookiep;
+	int error;
 
 	BHND_NVSTORE_LOCK(sc);
 
@@ -1136,7 +1124,7 @@ bhnd_nvram_store_getvar(struct bhnd_nvram_store *sc, const char *name,
 	if (cookiep != NULL) {
 		/* Found in backing store */
 		error = bhnd_nvram_data_getvar(sc->data, cookiep, outp, olen,
-		     otype);
+		    otype);
 		goto finished;
 	}
 
@@ -1151,16 +1139,16 @@ finished:
 /**
  * Common bhnd_nvram_store_set*() and bhnd_nvram_store_unsetvar()
  * implementation.
- * 
+ *
  * If @p value is NULL, the variable will be marked for deletion.
  */
 static int
 bhnd_nvram_store_setval_common(struct bhnd_nvram_store *sc, const char *name,
     bhnd_nvram_val *value)
 {
-	bhnd_nvstore_path	*path;
-	bhnd_nvstore_name_info	 info;
-	int			 error;
+	bhnd_nvstore_path *path;
+	bhnd_nvstore_name_info info;
+	int error;
 
 	BHND_NVSTORE_LOCK_ASSERT(sc, MA_OWNED);
 
@@ -1180,7 +1168,7 @@ bhnd_nvram_store_setval_common(struct bhnd_nvram_store *sc, const char *name,
 
 /**
  * Set an NVRAM variable.
- * 
+ *
  * @param	sc	The NVRAM parser state.
  * @param	name	The NVRAM variable name.
  * @param	value	The new value.
@@ -1204,7 +1192,7 @@ bhnd_nvram_store_setval(struct bhnd_nvram_store *sc, const char *name,
 
 /**
  * Set an NVRAM variable.
- * 
+ *
  * @param		sc	The NVRAM parser state.
  * @param		name	The NVRAM variable name.
  * @param[out]		inp	The new value.
@@ -1220,11 +1208,11 @@ int
 bhnd_nvram_store_setvar(struct bhnd_nvram_store *sc, const char *name,
     const void *inp, size_t ilen, bhnd_nvram_type itype)
 {
-	bhnd_nvram_val	val;
-	int		error;
+	bhnd_nvram_val val;
+	int error;
 
 	error = bhnd_nvram_val_init(&val, NULL, inp, ilen, itype,
-	    BHND_NVRAM_VAL_FIXED|BHND_NVRAM_VAL_BORROW_DATA);
+	    BHND_NVRAM_VAL_FIXED | BHND_NVRAM_VAL_BORROW_DATA);
 	if (error) {
 		BHND_NV_LOG("error initializing value: %d\n", error);
 		return (EINVAL);
@@ -1241,7 +1229,7 @@ bhnd_nvram_store_setvar(struct bhnd_nvram_store *sc, const char *name,
 
 /**
  * Unset an NVRAM variable.
- * 
+ *
  * @param		sc	The NVRAM parser state.
  * @param		name	The NVRAM variable name.
  *

@@ -31,13 +31,12 @@
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
-#include <machine/bus.h>
 
-#include <dev/fdt/simplebus.h>
+#include <machine/bus.h>
 
 #include <dev/clk/clk.h>
 #include <dev/clk/clk_fixed.h>
-
+#include <dev/fdt/simplebus.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
@@ -46,24 +45,18 @@
 
 #define NB_DEV_COUNT 17
 
-static struct clk_div_table a37x0_periph_clk_table_6 [] = {
-	{ .value = 1, .divider = 1 },
-	{ .value = 2, .divider = 2 },
-	{ .value = 3, .divider = 3 },
-	{ .value = 4, .divider = 4 },
-	{ .value = 5, .divider = 5 },
-	{ .value = 6, .divider = 6 },
-	{ .value = 0, .divider = 0 }
+static struct clk_div_table a37x0_periph_clk_table_6[] = { { .value = 1,
+							       .divider = 1 },
+	{ .value = 2, .divider = 2 }, { .value = 3, .divider = 3 },
+	{ .value = 4, .divider = 4 }, { .value = 5, .divider = 5 },
+	{ .value = 6, .divider = 6 }, { .value = 0, .divider = 0 } };
+
+static struct clk_div_table a37x0_periph_clk_table_2[] = {
+	{ .value = 0, .divider = 1 }, { .value = 1, .divider = 2 },
+	{ .value = 2, .divider = 4 }, { .value = 3, .divider = 1 }
 };
 
-static struct clk_div_table a37x0_periph_clk_table_2 [] = {
-	{ .value = 0, .divider = 1 },
-	{ .value = 1, .divider = 2 },
-	{ .value = 2, .divider = 4 },
-	{ .value = 3, .divider = 1 }
-};
-
-static struct a37x0_periph_clknode_def a37x0_nb_devices [] = {
+static struct a37x0_periph_clknode_def a37x0_nb_devices[] = {
 	CLK_FULL_DD("mmc", 0, 2, 0, 0, DIV_SEL2, DIV_SEL2, 16, 13,
 	    "tbg_mux_mmc_50", "div1_mmc_51", "div2_mmc_52", "clk_mux_mmc_53"),
 	CLK_FULL_DD("sata_host", 1, 3, 2, 1, DIV_SEL2, DIV_SEL2, 10, 7,
@@ -79,8 +72,8 @@ static struct a37x0_periph_clknode_def a37x0_nb_devices [] = {
 	    "tbg_mux_tsecm_71", "div1_tsecm_72", "div2_tsecm_73",
 	    "clk_mux_tsecm_74"),
 	CLK_FULL("setm_tmx", 5, 10, 10, 5, DIV_SEL1, 18,
-	    a37x0_periph_clk_table_6, "tbg_mux_setm_tmx_76",
-	    "div1_setm_tmx_77", "clk_mux_setm_tmx_78"),
+	    a37x0_periph_clk_table_6, "tbg_mux_setm_tmx_76", "div1_setm_tmx_77",
+	    "clk_mux_setm_tmx_78"),
 	CLK_FIXED("avs", 6, 11, 6, "mux_avs_80", "fixed1_avs_82"),
 	CLK_FULL_DD("pwm", 7, 13, 14, 8, DIV_SEL0, DIV_SEL0, 3, 0,
 	    "tbg_mux_pwm_83", "div1_pwm_84", "div2_pwm_85", "clk_mux_pwm_86"),
@@ -97,8 +90,8 @@ static struct a37x0_periph_clknode_def a37x0_nb_devices [] = {
 	    a37x0_periph_clk_table_6, "tbg_mux_trace_104", "div1_trace_105",
 	    "clk_mux_trace_106"),
 	CLK_FULL("counter", 14, 23, 20, 13, DIV_SEL0, 23,
-	    a37x0_periph_clk_table_6, "tbg_mux_counter_108",
-	    "div1_counter_109", "clk_mux_counter_110"),
+	    a37x0_periph_clk_table_6, "tbg_mux_counter_108", "div1_counter_109",
+	    "clk_mux_counter_110"),
 	CLK_FULL_DD("eip97", 15, 26, 24, 9, DIV_SEL2, DIV_SEL2, 22, 19,
 	    "tbg_mux_eip97_112", "div1_eip97_113", "div2_eip97_114",
 	    "clk_mux_eip97_115"),
@@ -106,31 +99,27 @@ static struct a37x0_periph_clknode_def a37x0_nb_devices [] = {
 	    "tbg_mux_cpu_117", "div1_cpu_118"),
 };
 
-static struct ofw_compat_data a37x0_periph_compat_data [] = {
-	{ "marvell,armada-3700-periph-clock-nb",	1 },
-	{ NULL,						0 }
+static struct ofw_compat_data a37x0_periph_compat_data[] = {
+	{ "marvell,armada-3700-periph-clock-nb", 1 }, { NULL, 0 }
 };
 
 static int a37x0_nb_periph_clk_attach(device_t);
 static int a37x0_nb_periph_clk_probe(device_t);
 
 static device_method_t a37x0_nb_periph_clk_methods[] = {
-	DEVMETHOD(clkdev_device_unlock,		a37x0_periph_clk_device_unlock),
-	DEVMETHOD(clkdev_device_lock,		a37x0_periph_clk_device_lock),
-	DEVMETHOD(clkdev_read_4,		a37x0_periph_clk_read_4),
+	DEVMETHOD(clkdev_device_unlock, a37x0_periph_clk_device_unlock),
+	DEVMETHOD(clkdev_device_lock, a37x0_periph_clk_device_lock),
+	DEVMETHOD(clkdev_read_4, a37x0_periph_clk_read_4),
 
-	DEVMETHOD(device_attach,		a37x0_nb_periph_clk_attach),
-	DEVMETHOD(device_detach,		a37x0_periph_clk_detach),
-	DEVMETHOD(device_probe,			a37x0_nb_periph_clk_probe),
+	DEVMETHOD(device_attach, a37x0_nb_periph_clk_attach),
+	DEVMETHOD(device_detach, a37x0_periph_clk_detach),
+	DEVMETHOD(device_probe, a37x0_nb_periph_clk_probe),
 
 	DEVMETHOD_END
 };
 
-static driver_t a37x0_nb_periph_driver = {
-	"a37x0_nb_periph_driver",
-	a37x0_nb_periph_clk_methods,
-	sizeof(struct a37x0_periph_clk_softc)
-};
+static driver_t a37x0_nb_periph_driver = { "a37x0_nb_periph_driver",
+	a37x0_nb_periph_clk_methods, sizeof(struct a37x0_periph_clk_softc) };
 
 EARLY_DRIVER_MODULE(a37x0_nb_periph, simplebus, a37x0_nb_periph_driver, 0, 0,
     BUS_PASS_TIMER + BUS_PASS_ORDER_LATE);
@@ -154,8 +143,7 @@ a37x0_nb_periph_clk_probe(device_t dev)
 	if (!ofw_bus_status_okay(dev))
 		return (ENXIO);
 
-	if (!ofw_bus_search_compatible(dev,
-	    a37x0_periph_compat_data)->ocd_data)
+	if (!ofw_bus_search_compatible(dev, a37x0_periph_compat_data)->ocd_data)
 		return (ENXIO);
 
 	device_set_desc(dev, "marvell,armada-3700-nb-periph-clock");

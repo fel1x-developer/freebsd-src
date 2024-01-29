@@ -40,23 +40,19 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 
-#include <stdlib.h>
-#include <unistd.h>
-
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_bridgevar.h>
 #include <net/route.h>
 
 #include <ctype.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <err.h>
 #include <errno.h>
-
 #include <libifconfig.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "ifconfig.h"
 
@@ -135,8 +131,7 @@ bridge_addresses(if_ctx *ctx, const char *prefix)
 
 	for (unsigned long i = 0; i < ifbac.ifbac_len / sizeof(*ifba); i++) {
 		ifba = ifbac.ifbac_req + i;
-		memcpy(ea.octet, ifba->ifba_dst,
-		    sizeof(ea.octet));
+		memcpy(ea.octet, ifba->ifba_dst, sizeof(ea.octet));
 		printf("%s%s Vlan%d %s %lu ", prefix, ether_ntoa(&ea),
 		    ifba->ifba_vlan, ifba->ifba_ifsname, ifba->ifba_expire);
 		printb("flags", ifba->ifba_flags, IFBAFBITS);
@@ -162,25 +157,19 @@ bridge_status(if_ctx *ctx)
 
 	PV2ID(params->ifbop_bridgeid, bprio, lladdr);
 	printf("\tid %s priority %u hellotime %u fwddelay %u\n",
-	    ether_ntoa((struct ether_addr *)lladdr),
-	    params->ifbop_priority,
-	    params->ifbop_hellotime,
-	    params->ifbop_fwddelay);
+	    ether_ntoa((struct ether_addr *)lladdr), params->ifbop_priority,
+	    params->ifbop_hellotime, params->ifbop_fwddelay);
 	printf("\tmaxage %u holdcnt %u proto %s maxaddr %u timeout %u\n",
-	    params->ifbop_maxage,
-	    params->ifbop_holdcount,
-	    stpproto[params->ifbop_protocol],
-	    bridge->cache_size,
+	    params->ifbop_maxage, params->ifbop_holdcount,
+	    stpproto[params->ifbop_protocol], bridge->cache_size,
 	    bridge->cache_lifetime);
 	PV2ID(params->ifbop_designated_root, bprio, lladdr);
 	printf("\troot id %s priority %d ifcost %u port %u\n",
-	    ether_ntoa((struct ether_addr *)lladdr),
-	    bprio,
-	    params->ifbop_root_path_cost,
-	    params->ifbop_root_port & 0xfff);
+	    ether_ntoa((struct ether_addr *)lladdr), bprio,
+	    params->ifbop_root_path_cost, params->ifbop_root_port & 0xfff);
 
 	prefix = "\tmember: ";
-	pad    = "\t        ";
+	pad = "\t        ";
 	for (size_t i = 0; i < bridge->members_count; ++i) {
 		struct ifbreq *member = &bridge->members[i];
 
@@ -188,10 +177,8 @@ bridge_status(if_ctx *ctx)
 		printb("flags", member->ifbr_ifsflags, IFBIFBITS);
 		printf("\n%s", pad);
 		printf("ifmaxaddr %u port %u priority %u path cost %u",
-		    member->ifbr_addrmax,
-		    member->ifbr_portno,
-		    member->ifbr_priority,
-		    member->ifbr_path_cost);
+		    member->ifbr_addrmax, member->ifbr_portno,
+		    member->ifbr_priority, member->ifbr_path_cost);
 		if (member->ifbr_ifsflags & IFBIF_STP) {
 			uint8_t proto = member->ifbr_proto;
 			uint8_t role = member->ifbr_role;
@@ -225,7 +212,7 @@ setbridge_add(if_ctx *ctx, const char *val, int dummy __unused)
 	memset(&req, 0, sizeof(req));
 	strlcpy(req.ifbr_ifsname, val, sizeof(req.ifbr_ifsname));
 	if (do_cmd(ctx, BRDGADD, &req, sizeof(req), 1) < 0)
-		err(1, "BRDGADD %s",  val);
+		err(1, "BRDGADD %s", val);
 }
 
 static void
@@ -236,7 +223,7 @@ setbridge_delete(if_ctx *ctx, const char *val, int dummy __unused)
 	memset(&req, 0, sizeof(req));
 	strlcpy(req.ifbr_ifsname, val, sizeof(req.ifbr_ifsname));
 	if (do_cmd(ctx, BRDGDEL, &req, sizeof(req), 1) < 0)
-		err(1, "BRDGDEL %s",  val);
+		err(1, "BRDGDEL %s", val);
 }
 
 static void
@@ -257,28 +244,28 @@ static void
 setbridge_learn(if_ctx *ctx, const char *val, int dummy __unused)
 {
 
-	do_bridgeflag(ctx, val, IFBIF_LEARNING,  1);
+	do_bridgeflag(ctx, val, IFBIF_LEARNING, 1);
 }
 
 static void
 unsetbridge_learn(if_ctx *ctx, const char *val, int dummy __unused)
 {
 
-	do_bridgeflag(ctx, val, IFBIF_LEARNING,  0);
+	do_bridgeflag(ctx, val, IFBIF_LEARNING, 0);
 }
 
 static void
 setbridge_sticky(if_ctx *ctx, const char *val, int dummy __unused)
 {
 
-	do_bridgeflag(ctx, val, IFBIF_STICKY,  1);
+	do_bridgeflag(ctx, val, IFBIF_STICKY, 1);
 }
 
 static void
 unsetbridge_sticky(if_ctx *ctx, const char *val, int dummy __unused)
 {
 
-	do_bridgeflag(ctx, val, IFBIF_STICKY,  0);
+	do_bridgeflag(ctx, val, IFBIF_STICKY, 0);
 }
 
 static void
@@ -289,7 +276,7 @@ setbridge_span(if_ctx *ctx, const char *val, int dummy __unused)
 	memset(&req, 0, sizeof(req));
 	strlcpy(req.ifbr_ifsname, val, sizeof(req.ifbr_ifsname));
 	if (do_cmd(ctx, BRDGADDS, &req, sizeof(req), 1) < 0)
-		err(1, "BRDGADDS %s",  val);
+		err(1, "BRDGADDS %s", val);
 }
 
 static void
@@ -300,7 +287,7 @@ unsetbridge_span(if_ctx *ctx, const char *val, int dummy __unused)
 	memset(&req, 0, sizeof(req));
 	strlcpy(req.ifbr_ifsname, val, sizeof(req.ifbr_ifsname));
 	if (do_cmd(ctx, BRDGDELS, &req, sizeof(req), 1) < 0)
-		err(1, "BRDGDELS %s",  val);
+		err(1, "BRDGDELS %s", val);
 }
 
 static void
@@ -405,7 +392,7 @@ setbridge_static(if_ctx *ctx, const char *val, const char *mac)
 	req.ifba_vlan = 0; /* XXX allow user to specify */
 
 	if (do_cmd(ctx, BRDGSADDR, &req, sizeof(req), 1) < 0)
-		err(1, "BRDGSADDR %s",  val);
+		err(1, "BRDGSADDR %s", val);
 }
 
 static void
@@ -418,12 +405,12 @@ setbridge_deladdr(if_ctx *ctx, const char *val, int dummy __unused)
 
 	ea = ether_aton(val);
 	if (ea == NULL)
-		errx(1, "invalid address: %s",  val);
+		errx(1, "invalid address: %s", val);
 
 	memcpy(req.ifba_dst, ea->octet, sizeof(req.ifba_dst));
 
 	if (do_cmd(ctx, BRDGDADDR, &req, sizeof(req), 1) < 0)
-		err(1, "BRDGDADDR %s",  val);
+		err(1, "BRDGDADDR %s", val);
 }
 
 static void
@@ -440,12 +427,12 @@ setbridge_maxaddr(if_ctx *ctx, const char *arg, int dummy __unused)
 	u_long val;
 
 	if (get_val(arg, &val) < 0 || (val & ~0xffffffff) != 0)
-		errx(1, "invalid value: %s",  arg);
+		errx(1, "invalid value: %s", arg);
 
 	param.ifbrp_csize = val & 0xffffffff;
 
 	if (do_cmd(ctx, BRDGSCACHE, &param, sizeof(param), 1) < 0)
-		err(1, "BRDGSCACHE %s",  arg);
+		err(1, "BRDGSCACHE %s", arg);
 }
 
 static void
@@ -455,12 +442,12 @@ setbridge_hellotime(if_ctx *ctx, const char *arg, int dummy __unused)
 	u_long val;
 
 	if (get_val(arg, &val) < 0 || (val & ~0xff) != 0)
-		errx(1, "invalid value: %s",  arg);
+		errx(1, "invalid value: %s", arg);
 
 	param.ifbrp_hellotime = val & 0xff;
 
 	if (do_cmd(ctx, BRDGSHT, &param, sizeof(param), 1) < 0)
-		err(1, "BRDGSHT %s",  arg);
+		err(1, "BRDGSHT %s", arg);
 }
 
 static void
@@ -470,12 +457,12 @@ setbridge_fwddelay(if_ctx *ctx, const char *arg, int dummy __unused)
 	u_long val;
 
 	if (get_val(arg, &val) < 0 || (val & ~0xff) != 0)
-		errx(1, "invalid value: %s",  arg);
+		errx(1, "invalid value: %s", arg);
 
 	param.ifbrp_fwddelay = val & 0xff;
 
 	if (do_cmd(ctx, BRDGSFD, &param, sizeof(param), 1) < 0)
-		err(1, "BRDGSFD %s",  arg);
+		err(1, "BRDGSFD %s", arg);
 }
 
 static void
@@ -485,12 +472,12 @@ setbridge_maxage(if_ctx *ctx, const char *arg, int dummy __unused)
 	u_long val;
 
 	if (get_val(arg, &val) < 0 || (val & ~0xff) != 0)
-		errx(1, "invalid value: %s",  arg);
+		errx(1, "invalid value: %s", arg);
 
 	param.ifbrp_maxage = val & 0xff;
 
 	if (do_cmd(ctx, BRDGSMA, &param, sizeof(param), 1) < 0)
-		err(1, "BRDGSMA %s",  arg);
+		err(1, "BRDGSMA %s", arg);
 }
 
 static void
@@ -500,12 +487,12 @@ setbridge_priority(if_ctx *ctx, const char *arg, int dummy __unused)
 	u_long val;
 
 	if (get_val(arg, &val) < 0 || (val & ~0xffff) != 0)
-		errx(1, "invalid value: %s",  arg);
+		errx(1, "invalid value: %s", arg);
 
 	param.ifbrp_prio = val & 0xffff;
 
 	if (do_cmd(ctx, BRDGSPRI, &param, sizeof(param), 1) < 0)
-		err(1, "BRDGSPRI %s",  arg);
+		err(1, "BRDGSPRI %s", arg);
 }
 
 static void
@@ -522,7 +509,7 @@ setbridge_protocol(if_ctx *ctx, const char *arg, int dummy __unused)
 	}
 
 	if (do_cmd(ctx, BRDGSPROTO, &param, sizeof(param), 1) < 0)
-		err(1, "BRDGSPROTO %s",  arg);
+		err(1, "BRDGSPROTO %s", arg);
 }
 
 static void
@@ -532,12 +519,12 @@ setbridge_holdcount(if_ctx *ctx, const char *arg, int dummy __unused)
 	u_long val;
 
 	if (get_val(arg, &val) < 0 || (val & ~0xff) != 0)
-		errx(1, "invalid value: %s",  arg);
+		errx(1, "invalid value: %s", arg);
 
 	param.ifbrp_txhc = val & 0xff;
 
 	if (do_cmd(ctx, BRDGSTXHC, &param, sizeof(param), 1) < 0)
-		err(1, "BRDGSTXHC %s",  arg);
+		err(1, "BRDGSTXHC %s", arg);
 }
 
 static void
@@ -549,13 +536,13 @@ setbridge_ifpriority(if_ctx *ctx, const char *ifn, const char *pri)
 	memset(&req, 0, sizeof(req));
 
 	if (get_val(pri, &val) < 0 || (val & ~0xff) != 0)
-		errx(1, "invalid value: %s",  pri);
+		errx(1, "invalid value: %s", pri);
 
 	strlcpy(req.ifbr_ifsname, ifn, sizeof(req.ifbr_ifsname));
 	req.ifbr_priority = val & 0xff;
 
 	if (do_cmd(ctx, BRDGSIFPRIO, &req, sizeof(req), 1) < 0)
-		err(1, "BRDGSIFPRIO %s",  pri);
+		err(1, "BRDGSIFPRIO %s", pri);
 }
 
 static void
@@ -567,13 +554,13 @@ setbridge_ifpathcost(if_ctx *ctx, const char *ifn, const char *cost)
 	memset(&req, 0, sizeof(req));
 
 	if (get_val(cost, &val) < 0)
-		errx(1, "invalid value: %s",  cost);
+		errx(1, "invalid value: %s", cost);
 
 	strlcpy(req.ifbr_ifsname, ifn, sizeof(req.ifbr_ifsname));
 	req.ifbr_path_cost = val;
 
 	if (do_cmd(ctx, BRDGSIFCOST, &req, sizeof(req), 1) < 0)
-		err(1, "BRDGSIFCOST %s",  cost);
+		err(1, "BRDGSIFCOST %s", cost);
 }
 
 static void
@@ -585,13 +572,13 @@ setbridge_ifmaxaddr(if_ctx *ctx, const char *ifn, const char *arg)
 	memset(&req, 0, sizeof(req));
 
 	if (get_val(arg, &val) < 0 || (val & ~0xffffffff) != 0)
-		errx(1, "invalid value: %s",  arg);
+		errx(1, "invalid value: %s", arg);
 
 	strlcpy(req.ifbr_ifsname, ifn, sizeof(req.ifbr_ifsname));
 	req.ifbr_addrmax = val & 0xffffffff;
 
 	if (do_cmd(ctx, BRDGSIFAMAX, &req, sizeof(req), 1) < 0)
-		err(1, "BRDGSIFAMAX %s",  arg);
+		err(1, "BRDGSIFAMAX %s", arg);
 }
 
 static void
@@ -601,12 +588,12 @@ setbridge_timeout(if_ctx *ctx, const char *arg, int dummy __unused)
 	u_long val;
 
 	if (get_val(arg, &val) < 0 || (val & ~0xffffffff) != 0)
-		errx(1, "invalid value: %s",  arg);
+		errx(1, "invalid value: %s", arg);
 
 	param.ifbrp_ctime = val & 0xffffffff;
 
 	if (do_cmd(ctx, BRDGSTO, &param, sizeof(param), 1) < 0)
-		err(1, "BRDGSTO %s",  arg);
+		err(1, "BRDGSTO %s", arg);
 }
 
 static void
@@ -624,55 +611,55 @@ unsetbridge_private(if_ctx *ctx, const char *val, int dummy __unused)
 }
 
 static struct cmd bridge_cmds[] = {
-	DEF_CMD_ARG("addm",		setbridge_add),
-	DEF_CMD_ARG("deletem",		setbridge_delete),
-	DEF_CMD_ARG("discover",		setbridge_discover),
-	DEF_CMD_ARG("-discover",	unsetbridge_discover),
-	DEF_CMD_ARG("learn",		setbridge_learn),
-	DEF_CMD_ARG("-learn",		unsetbridge_learn),
-	DEF_CMD_ARG("sticky",		setbridge_sticky),
-	DEF_CMD_ARG("-sticky",		unsetbridge_sticky),
-	DEF_CMD_ARG("span",		setbridge_span),
-	DEF_CMD_ARG("-span",		unsetbridge_span),
-	DEF_CMD_ARG("stp",		setbridge_stp),
-	DEF_CMD_ARG("-stp",		unsetbridge_stp),
-	DEF_CMD_ARG("edge",		setbridge_edge),
-	DEF_CMD_ARG("-edge",		unsetbridge_edge),
-	DEF_CMD_ARG("autoedge",		setbridge_autoedge),
-	DEF_CMD_ARG("-autoedge",	unsetbridge_autoedge),
-	DEF_CMD_ARG("ptp",		setbridge_ptp),
-	DEF_CMD_ARG("-ptp",		unsetbridge_ptp),
-	DEF_CMD_ARG("autoptp",		setbridge_autoptp),
-	DEF_CMD_ARG("-autoptp",		unsetbridge_autoptp),
-	DEF_CMD("flush", 0,		setbridge_flush),
-	DEF_CMD("flushall", 0,		setbridge_flushall),
-	DEF_CMD_ARG2("static",		setbridge_static),
-	DEF_CMD_ARG("deladdr",		setbridge_deladdr),
-	DEF_CMD("addr",	 1,		setbridge_addr),
-	DEF_CMD_ARG("maxaddr",		setbridge_maxaddr),
-	DEF_CMD_ARG("hellotime",	setbridge_hellotime),
-	DEF_CMD_ARG("fwddelay",		setbridge_fwddelay),
-	DEF_CMD_ARG("maxage",		setbridge_maxage),
-	DEF_CMD_ARG("priority",		setbridge_priority),
-	DEF_CMD_ARG("proto",		setbridge_protocol),
-	DEF_CMD_ARG("holdcnt",		setbridge_holdcount),
-	DEF_CMD_ARG2("ifpriority",	setbridge_ifpriority),
-	DEF_CMD_ARG2("ifpathcost",	setbridge_ifpathcost),
-	DEF_CMD_ARG2("ifmaxaddr",	setbridge_ifmaxaddr),
-	DEF_CMD_ARG("timeout",		setbridge_timeout),
-	DEF_CMD_ARG("private",		setbridge_private),
-	DEF_CMD_ARG("-private",		unsetbridge_private),
+	DEF_CMD_ARG("addm", setbridge_add),
+	DEF_CMD_ARG("deletem", setbridge_delete),
+	DEF_CMD_ARG("discover", setbridge_discover),
+	DEF_CMD_ARG("-discover", unsetbridge_discover),
+	DEF_CMD_ARG("learn", setbridge_learn),
+	DEF_CMD_ARG("-learn", unsetbridge_learn),
+	DEF_CMD_ARG("sticky", setbridge_sticky),
+	DEF_CMD_ARG("-sticky", unsetbridge_sticky),
+	DEF_CMD_ARG("span", setbridge_span),
+	DEF_CMD_ARG("-span", unsetbridge_span),
+	DEF_CMD_ARG("stp", setbridge_stp),
+	DEF_CMD_ARG("-stp", unsetbridge_stp),
+	DEF_CMD_ARG("edge", setbridge_edge),
+	DEF_CMD_ARG("-edge", unsetbridge_edge),
+	DEF_CMD_ARG("autoedge", setbridge_autoedge),
+	DEF_CMD_ARG("-autoedge", unsetbridge_autoedge),
+	DEF_CMD_ARG("ptp", setbridge_ptp),
+	DEF_CMD_ARG("-ptp", unsetbridge_ptp),
+	DEF_CMD_ARG("autoptp", setbridge_autoptp),
+	DEF_CMD_ARG("-autoptp", unsetbridge_autoptp),
+	DEF_CMD("flush", 0, setbridge_flush),
+	DEF_CMD("flushall", 0, setbridge_flushall),
+	DEF_CMD_ARG2("static", setbridge_static),
+	DEF_CMD_ARG("deladdr", setbridge_deladdr),
+	DEF_CMD("addr", 1, setbridge_addr),
+	DEF_CMD_ARG("maxaddr", setbridge_maxaddr),
+	DEF_CMD_ARG("hellotime", setbridge_hellotime),
+	DEF_CMD_ARG("fwddelay", setbridge_fwddelay),
+	DEF_CMD_ARG("maxage", setbridge_maxage),
+	DEF_CMD_ARG("priority", setbridge_priority),
+	DEF_CMD_ARG("proto", setbridge_protocol),
+	DEF_CMD_ARG("holdcnt", setbridge_holdcount),
+	DEF_CMD_ARG2("ifpriority", setbridge_ifpriority),
+	DEF_CMD_ARG2("ifpathcost", setbridge_ifpathcost),
+	DEF_CMD_ARG2("ifmaxaddr", setbridge_ifmaxaddr),
+	DEF_CMD_ARG("timeout", setbridge_timeout),
+	DEF_CMD_ARG("private", setbridge_private),
+	DEF_CMD_ARG("-private", unsetbridge_private),
 };
 static struct afswtch af_bridge = {
-	.af_name	= "af_bridge",
-	.af_af		= AF_UNSPEC,
+	.af_name = "af_bridge",
+	.af_af = AF_UNSPEC,
 	.af_other_status = bridge_status,
 };
 
 static __constructor void
 bridge_ctor(void)
 {
-	for (size_t i = 0; i < nitems(bridge_cmds);  i++)
+	for (size_t i = 0; i < nitems(bridge_cmds); i++)
 		cmd_register(&bridge_cmds[i]);
 	af_register(&af_bridge);
 }

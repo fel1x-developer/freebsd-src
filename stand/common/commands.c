@@ -25,21 +25,22 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stand.h>
 #include <string.h>
 
 #include "bootstrap.h"
 
-const char	*command_errmsg;
+const char *command_errmsg;
 /* XXX should have procedural interface for setting, size limit? */
-char		command_errbuf[COMMAND_ERRBUFSZ];
+char command_errbuf[COMMAND_ERRBUFSZ];
 
 static int page_file(char *filename);
 
 /*
  * Help is read from a formatted text file.
  *
- * Entries in the file are formatted as 
+ * Entries in the file are formatted as
 
 # Ttopic [Ssubtopic] Ddescription
 help
@@ -61,7 +62,7 @@ COMMAND_SET(help, "help", "detailed help", command_help);
 static int
 help_getnext(int fd, char **topic, char **subtopic, char **desc)
 {
-	char	line[81], *cp, *ep;
+	char line[81], *cp, *ep;
 
 	/* Make sure we provide sane values. */
 	*topic = *subtopic = *desc = NULL;
@@ -102,7 +103,7 @@ help_getnext(int fd, char **topic, char **subtopic, char **desc)
 static int
 help_emitsummary(char *topic, char *subtopic, char *desc)
 {
-	int	i;
+	int i;
 
 	pager_output("    ");
 	pager_output(topic);
@@ -124,16 +125,16 @@ help_emitsummary(char *topic, char *subtopic, char *desc)
 static int
 command_help(int argc, char *argv[])
 {
-	char	buf[81];	/* XXX buffer size? */
-	int	hfd, matched, doindex;
-	char	*topic, *subtopic, *t, *s, *d;
+	char buf[81]; /* XXX buffer size? */
+	int hfd, matched, doindex;
+	char *topic, *subtopic, *t, *s, *d;
 
 	/* page the help text from our load path */
 	snprintf(buf, sizeof(buf), "%s/boot/%s", getenv("loaddev"),
 	    HELP_FILENAME);
 	if ((hfd = open(buf, O_RDONLY)) < 0) {
 		printf("Verbose help not available, "
-		    "use '?' to list commands\n");
+		       "use '?' to list commands\n");
 		return (CMD_OK);
 	}
 
@@ -152,18 +153,18 @@ command_help(int argc, char *argv[])
 	default:
 		command_errmsg = "usage is 'help <topic> [<subtopic>]";
 		close(hfd);
-		return(CMD_ERROR);
+		return (CMD_ERROR);
 	}
 
 	/* magic "index" keyword */
-	doindex = strcmp(topic, "index") == 0? 1 : 0;
+	doindex = strcmp(topic, "index") == 0 ? 1 : 0;
 	matched = doindex;
 
 	/* Scan the helpfile looking for help matching the request */
 	pager_open();
 	while (help_getnext(hfd, &t, &s, &d)) {
 
-		if (doindex) {		/* dink around formatting */
+		if (doindex) { /* dink around formatting */
 			if (help_emitsummary(t, s, d))
 				break;
 
@@ -178,7 +179,7 @@ command_help(int argc, char *argv[])
 			matched = 1;
 			if ((subtopic == NULL && s == NULL) ||
 			    (subtopic != NULL && s != NULL &&
-			    strcmp(subtopic, s) == 0)) {
+				strcmp(subtopic, s) == 0)) {
 				/* exact match, print text */
 				while (fgetstr(buf, 80, hfd) >= 0 &&
 				    buf[0] != '#') {
@@ -228,14 +229,15 @@ COMMAND_SET(commandlist, "?", "list commands", command_commandlist);
 static int
 command_commandlist(int argc __unused, char *argv[] __unused)
 {
-	struct bootblk_command	**cmdp;
-	int	res;
-	char	name[20];
+	struct bootblk_command **cmdp;
+	int res;
+	char name[20];
 
 	res = 0;
 	pager_open();
 	res = pager_output("Available commands:\n");
-	SET_FOREACH(cmdp, Xcommand_set) {
+	SET_FOREACH(cmdp, Xcommand_set)
+	{
 		if (res)
 			break;
 		if ((*cmdp)->c_name != NULL && (*cmdp)->c_desc != NULL) {
@@ -260,8 +262,8 @@ COMMAND_SET(show, "show", "show variable(s)", command_show);
 static int
 command_show(int argc, char *argv[])
 {
-	struct env_var	*ev;
-	char		*cp;
+	struct env_var *ev;
+	char *cp;
 
 	if (argc < 2) {
 		/*
@@ -296,7 +298,7 @@ COMMAND_SET(set, "set", "set a variable", command_set);
 static int
 command_set(int argc, char *argv[])
 {
-	int	err;
+	int err;
 
 	if (argc != 2) {
 		command_errmsg = "wrong number of arguments";
@@ -325,7 +327,8 @@ command_set(int argc, char *argv[])
 #endif
 			for (cp = restricted; *cp; cp++) {
 				if (strncmp(argv[1], *cp, strlen(*cp)) == 0) {
-					printf("Ignoring restricted variable: %s\n",
+					printf(
+					    "Ignoring restricted variable: %s\n",
 					    argv[1]);
 					return (CMD_OK);
 				}
@@ -345,7 +348,7 @@ COMMAND_SET(unset, "unset", "unset a variable", command_unset);
 static int
 command_unset(int argc, char *argv[])
 {
-	int	err;
+	int err;
 
 	if (argc != 2) {
 		command_errmsg = "wrong number of arguments";
@@ -364,8 +367,8 @@ COMMAND_SET(echo, "echo", "echo arguments", command_echo);
 static int
 command_echo(int argc, char *argv[])
 {
-	char	*s;
-	int	nl, ch;
+	char *s;
+	int nl, ch;
 
 	nl = 0;
 	optind = 1;
@@ -403,14 +406,14 @@ COMMAND_SET(read, "read", "read input from the terminal", command_read);
 static int
 command_read(int argc, char *argv[])
 {
-	char	*prompt;
-	int	timeout;
-	time_t	when;
-	char	*cp;
-	char	*name;
-	char	buf[256];		/* XXX size? */
-	int	c;
-    
+	char *prompt;
+	int timeout;
+	time_t when;
+	char *cp;
+	char *name;
+	char buf[256]; /* XXX size? */
+	int c;
+
 	timeout = -1;
 	prompt = NULL;
 	optind = 1;
@@ -423,8 +426,7 @@ command_read(int argc, char *argv[])
 		case 't':
 			timeout = strtol(optarg, &cp, 0);
 			if (cp == optarg) {
-				snprintf(command_errbuf,
-				    sizeof(command_errbuf),
+				snprintf(command_errbuf, sizeof(command_errbuf),
 				    "bad timeout '%s'", optarg);
 				return (CMD_ERROR);
 			}
@@ -436,7 +438,7 @@ command_read(int argc, char *argv[])
 
 	argv += (optind);
 	argc -= (optind);
-	name = (argc > 0) ? argv[0]: NULL;
+	name = (argc > 0) ? argv[0] : NULL;
 
 	if (prompt != NULL)
 		printf("%s", prompt);
@@ -462,9 +464,9 @@ COMMAND_SET(more, "more", "show contents of a file", command_more);
 static int
 command_more(int argc, char *argv[])
 {
-	int	i;
-	int	res;
-	char	line[80];
+	int i;
+	int res;
+	char line[80];
 
 	res = 0;
 	pager_open();
@@ -508,8 +510,8 @@ COMMAND_SET(lsdev, "lsdev", "list all devices", command_lsdev);
 static int
 command_lsdev(int argc, char *argv[])
 {
-	int	verbose, ch, i;
-	char	line[80];
+	int verbose, ch, i;
+	char line[80];
 
 	verbose = 0;
 	optind = 1;
@@ -554,21 +556,22 @@ command_readtest(int argc, char *argv[])
 
 	if (argc != 2) {
 		snprintf(command_errbuf, sizeof(command_errbuf),
-		  "Usage: readtest <filename>");
+		    "Usage: readtest <filename>");
 		return (CMD_ERROR);
 	}
 
 	start = getsecs();
 	if ((fd = open(argv[1], O_RDONLY)) < 0) {
 		snprintf(command_errbuf, sizeof(command_errbuf),
-		  "can't open '%s'", argv[1]);
+		    "can't open '%s'", argv[1]);
 		return (CMD_ERROR);
 	}
 	while ((rv = read(fd, buf, sizeof(buf))) > 0)
 		count += rv;
 	end = getsecs();
 
-	printf("Received %zd bytes during %jd seconds\n", count, (intmax_t)end - start);
+	printf("Received %zd bytes during %jd seconds\n", count,
+	    (intmax_t)end - start);
 	close(fd);
 	return (CMD_OK);
 }

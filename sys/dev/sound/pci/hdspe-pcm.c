@@ -32,12 +32,11 @@
  * Supported cards: AIO, RayDAT.
  */
 
-#include <dev/sound/pcm/sound.h>
-#include <dev/sound/pci/hdspe.h>
-#include <dev/sound/chip.h>
-
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
+#include <dev/sound/chip.h>
+#include <dev/sound/pci/hdspe.h>
+#include <dev/sound/pcm/sound.h>
 
 #include <mixer_if.h>
 
@@ -48,16 +47,16 @@ struct hdspe_latency {
 };
 
 static struct hdspe_latency latency_map[] = {
-	{ 7,   32, 0.7 },
-	{ 0,   64, 1.5 },
-	{ 1,  128,   3 },
-	{ 2,  256,   6 },
-	{ 3,  512,  12 },
-	{ 4, 1024,  23 },
-	{ 5, 2048,  46 },
-	{ 6, 4096,  93 },
+	{ 7, 32, 0.7 },
+	{ 0, 64, 1.5 },
+	{ 1, 128, 3 },
+	{ 2, 256, 6 },
+	{ 3, 512, 12 },
+	{ 4, 1024, 23 },
+	{ 5, 2048, 46 },
+	{ 6, 4096, 93 },
 
-	{ 0,    0,   0 },
+	{ 0, 0, 0 },
 };
 
 struct hdspe_rate {
@@ -66,15 +65,15 @@ struct hdspe_rate {
 };
 
 static struct hdspe_rate rate_map[] = {
-	{  32000, (HDSPE_FREQ_32000) },
-	{  44100, (HDSPE_FREQ_44100) },
-	{  48000, (HDSPE_FREQ_48000) },
-	{  64000, (HDSPE_FREQ_32000 | HDSPE_FREQ_DOUBLE) },
-	{  88200, (HDSPE_FREQ_44100 | HDSPE_FREQ_DOUBLE) },
-	{  96000, (HDSPE_FREQ_48000 | HDSPE_FREQ_DOUBLE) },
-	{ 128000, (HDSPE_FREQ_32000 | HDSPE_FREQ_QUAD)   },
-	{ 176400, (HDSPE_FREQ_44100 | HDSPE_FREQ_QUAD)   },
-	{ 192000, (HDSPE_FREQ_48000 | HDSPE_FREQ_QUAD)   },
+	{ 32000, (HDSPE_FREQ_32000) },
+	{ 44100, (HDSPE_FREQ_44100) },
+	{ 48000, (HDSPE_FREQ_48000) },
+	{ 64000, (HDSPE_FREQ_32000 | HDSPE_FREQ_DOUBLE) },
+	{ 88200, (HDSPE_FREQ_44100 | HDSPE_FREQ_DOUBLE) },
+	{ 96000, (HDSPE_FREQ_48000 | HDSPE_FREQ_DOUBLE) },
+	{ 128000, (HDSPE_FREQ_32000 | HDSPE_FREQ_QUAD) },
+	{ 176400, (HDSPE_FREQ_44100 | HDSPE_FREQ_QUAD) },
+	{ 192000, (HDSPE_FREQ_48000 | HDSPE_FREQ_QUAD) },
 
 	{ 0, 0 },
 };
@@ -104,7 +103,7 @@ hdspe_adat_width(uint32_t speed)
 static uint32_t
 hdspe_port_first(uint32_t ports)
 {
-	return (ports & (~(ports - 1)));	/* Extract first bit set. */
+	return (ports & (~(ports - 1))); /* Extract first bit set. */
 }
 
 static uint32_t
@@ -114,11 +113,11 @@ hdspe_port_first_row(uint32_t ports)
 
 	/* Restrict ports to one set with contiguous slots. */
 	if (ports & HDSPE_CHAN_AIO_LINE)
-		ports = HDSPE_CHAN_AIO_LINE;	/* Gap in the AIO slots here. */
+		ports = HDSPE_CHAN_AIO_LINE; /* Gap in the AIO slots here. */
 	else if (ports & HDSPE_CHAN_AIO_ALL)
-		ports &= HDSPE_CHAN_AIO_ALL;	/* Rest of the AIO slots. */
+		ports &= HDSPE_CHAN_AIO_ALL; /* Rest of the AIO slots. */
 	else if (ports & HDSPE_CHAN_RAY_ALL)
-		ports &= HDSPE_CHAN_RAY_ALL;	/* All RayDAT slots. */
+		ports &= HDSPE_CHAN_RAY_ALL; /* All RayDAT slots. */
 
 	/* Ends of port rows are followed by a port which is not in the set. */
 	ends = ports & (~(ports >> 1));
@@ -173,9 +172,9 @@ hdspe_channel_offset(uint32_t subset, uint32_t ports, unsigned int adat_width)
 	preceding = ports & (~subset & (subset - 1));
 
 	if (preceding & HDSPE_CHAN_AIO_ALL)
-		preceding &= HDSPE_CHAN_AIO_ALL;	/* Contiguous AIO slots. */
+		preceding &= HDSPE_CHAN_AIO_ALL; /* Contiguous AIO slots. */
 	else if (preceding & HDSPE_CHAN_RAY_ALL)
-		preceding &= HDSPE_CHAN_RAY_ALL;	/* Contiguous RayDAT slots. */
+		preceding &= HDSPE_CHAN_RAY_ALL; /* Contiguous RayDAT slots. */
 
 	return (hdspe_channel_count(preceding, adat_width));
 }
@@ -226,8 +225,8 @@ hdspe_port_slot_width(uint32_t ports, unsigned int adat_width)
 }
 
 static int
-hdspe_hw_mixer(struct sc_chinfo *ch, unsigned int dst,
-    unsigned int src, unsigned short data)
+hdspe_hw_mixer(struct sc_chinfo *ch, unsigned int dst, unsigned int src,
+    unsigned short data)
 {
 	struct sc_pcminfo *scp;
 	struct sc_info *sc;
@@ -240,8 +239,8 @@ hdspe_hw_mixer(struct sc_chinfo *ch, unsigned int dst,
 	if (ch->dir == PCMDIR_PLAY)
 		offs = 64;
 
-	hdspe_write_4(sc, HDSPE_MIXER_BASE +
-	    ((offs + src + 128 * dst) * sizeof(uint32_t)),
+	hdspe_write_4(sc,
+	    HDSPE_MIXER_BASE + ((offs + src + 128 * dst) * sizeof(uint32_t)),
 	    data & 0xFFFF);
 
 	return (0);
@@ -262,8 +261,8 @@ hdspechan_setgain(struct sc_chinfo *ch)
 	port = hdspe_port_first(ports);
 	while (port != 0) {
 		/* Get slot range of the physical port. */
-		slot =
-		    hdspe_port_slot_offset(port, hdspe_adat_width(sc->speed));
+		slot = hdspe_port_slot_offset(port,
+		    hdspe_adat_width(sc->speed));
 		end_slot = slot +
 		    hdspe_port_slot_width(port, hdspe_adat_width(sc->speed));
 
@@ -311,8 +310,7 @@ hdspemixer_init(struct snd_mixer *m)
 }
 
 static int
-hdspemixer_set(struct snd_mixer *m, unsigned dev,
-    unsigned left, unsigned right)
+hdspemixer_set(struct snd_mixer *m, unsigned dev, unsigned left, unsigned right)
 {
 	struct sc_pcminfo *scp;
 	struct sc_chinfo *ch;
@@ -339,11 +337,9 @@ hdspemixer_set(struct snd_mixer *m, unsigned dev,
 	return (0);
 }
 
-static kobj_method_t hdspemixer_methods[] = {
-	KOBJMETHOD(mixer_init,      hdspemixer_init),
-	KOBJMETHOD(mixer_set,       hdspemixer_set),
-	KOBJMETHOD_END
-};
+static kobj_method_t hdspemixer_methods[] = { KOBJMETHOD(mixer_init,
+						  hdspemixer_init),
+	KOBJMETHOD(mixer_set, hdspemixer_set), KOBJMETHOD_END };
 MIXER_DECLARE(hdspemixer);
 
 static void
@@ -369,8 +365,7 @@ hdspechan_enable(struct sc_chinfo *ch, int value)
 	ports = ch->ports;
 	row = hdspe_port_first_row(ports);
 	while (row != 0) {
-		slot =
-		    hdspe_port_slot_offset(row, hdspe_adat_width(sc->speed));
+		slot = hdspe_port_slot_offset(row, hdspe_adat_width(sc->speed));
 		end_slot = slot +
 		    hdspe_port_slot_width(row, hdspe_adat_width(sc->speed));
 
@@ -530,7 +525,6 @@ buffer_demux_port(uint32_t *dma, uint32_t *pcm, uint32_t subset, uint32_t ports,
 		buffer_demux_read(dma, pcm, pos, samples, slots, channels);
 }
 
-
 /* Copy data between DMA and PCM buffers. */
 static void
 buffer_copy(struct sc_chinfo *ch)
@@ -649,15 +643,15 @@ hdspechan_init(kobj_t obj, void *devinfo, struct snd_dbuf *b,
 	ch->rvol = 0;
 
 	/* Support all possible ADAT widths as channel formats. */
-	ch->cap_fmts[0] =
-	    SND_FORMAT(AFMT_S32_LE, hdspe_channel_count(ch->ports, 2), 0);
-	ch->cap_fmts[1] =
-	    SND_FORMAT(AFMT_S32_LE, hdspe_channel_count(ch->ports, 4), 0);
-	ch->cap_fmts[2] =
-	    SND_FORMAT(AFMT_S32_LE, hdspe_channel_count(ch->ports, 8), 0);
+	ch->cap_fmts[0] = SND_FORMAT(AFMT_S32_LE,
+	    hdspe_channel_count(ch->ports, 2), 0);
+	ch->cap_fmts[1] = SND_FORMAT(AFMT_S32_LE,
+	    hdspe_channel_count(ch->ports, 4), 0);
+	ch->cap_fmts[2] = SND_FORMAT(AFMT_S32_LE,
+	    hdspe_channel_count(ch->ports, 8), 0);
 	ch->cap_fmts[3] = 0;
 	ch->caps = malloc(sizeof(struct pcmchan_caps), M_HDSPE, M_NOWAIT);
-	*(ch->caps) = (struct pcmchan_caps) {32000, 192000, ch->cap_fmts, 0};
+	*(ch->caps) = (struct pcmchan_caps) { 32000, 192000, ch->cap_fmts, 0 };
 
 	/* Allocate maximum buffer size. */
 	ch->size = HDSPE_CHANBUF_SIZE * hdspe_channel_count(ch->ports, 8);
@@ -713,7 +707,7 @@ hdspechan_trigger(kobj_t obj, void *data, int go)
 
 	case PCMTRIG_EMLDMAWR:
 	case PCMTRIG_EMLDMARD:
-		if(ch->run)
+		if (ch->run)
 			buffer_copy(ch);
 		break;
 	}
@@ -824,8 +818,10 @@ hdspechan_setspeed(kobj_t obj, void *data, uint32_t speed)
 	if (hr == NULL) {
 		for (i = 0; rate_map[i].speed != 0; i++) {
 			hr = &rate_map[i];
-			threshold = hr->speed + ((rate_map[i + 1].speed != 0) ?
-			    ((rate_map[i + 1].speed - hr->speed) >> 1) : 0);
+			threshold = hr->speed +
+			    ((rate_map[i + 1].speed != 0) ?
+				    ((rate_map[i + 1].speed - hr->speed) >> 1) :
+				    0);
 			if (speed < threshold)
 				break;
 		}
@@ -904,8 +900,11 @@ hdspechan_setblocksize(kobj_t obj, void *data, uint32_t blocksize)
 	if (hl == NULL) {
 		for (i = 0; latency_map[i].period != 0; i++) {
 			hl = &latency_map[i];
-			threshold = hl->period + ((latency_map[i + 1].period != 0) ?
-			    ((latency_map[i + 1].period - hl->period) >> 1) : 0);
+			threshold = hl->period +
+			    ((latency_map[i + 1].period != 0) ?
+				    ((latency_map[i + 1].period - hl->period) >>
+					1) :
+				    0);
 			if (blocksize < threshold)
 				break;
 		}
@@ -930,12 +929,9 @@ end:
 	return (sndbuf_getblksz(ch->buffer));
 }
 
-static uint32_t hdspe_bkp_fmt[] = {
-	SND_FORMAT(AFMT_S32_LE, 2, 0),
-	0
-};
+static uint32_t hdspe_bkp_fmt[] = { SND_FORMAT(AFMT_S32_LE, 2, 0), 0 };
 
-static struct pcmchan_caps hdspe_bkp_caps = {32000, 192000, hdspe_bkp_fmt, 0};
+static struct pcmchan_caps hdspe_bkp_caps = { 32000, 192000, hdspe_bkp_fmt, 0 };
 
 static struct pcmchan_caps *
 hdspechan_getcaps(kobj_t obj, void *data)
@@ -955,17 +951,15 @@ hdspechan_getcaps(kobj_t obj, void *data)
 	return (&hdspe_bkp_caps);
 }
 
-static kobj_method_t hdspechan_methods[] = {
-	KOBJMETHOD(channel_init,         hdspechan_init),
-	KOBJMETHOD(channel_free,         hdspechan_free),
-	KOBJMETHOD(channel_setformat,    hdspechan_setformat),
-	KOBJMETHOD(channel_setspeed,     hdspechan_setspeed),
+static kobj_method_t hdspechan_methods[] = { KOBJMETHOD(channel_init,
+						 hdspechan_init),
+	KOBJMETHOD(channel_free, hdspechan_free),
+	KOBJMETHOD(channel_setformat, hdspechan_setformat),
+	KOBJMETHOD(channel_setspeed, hdspechan_setspeed),
 	KOBJMETHOD(channel_setblocksize, hdspechan_setblocksize),
-	KOBJMETHOD(channel_trigger,      hdspechan_trigger),
-	KOBJMETHOD(channel_getptr,       hdspechan_getptr),
-	KOBJMETHOD(channel_getcaps,      hdspechan_getcaps),
-	KOBJMETHOD_END
-};
+	KOBJMETHOD(channel_trigger, hdspechan_trigger),
+	KOBJMETHOD(channel_getptr, hdspechan_getptr),
+	KOBJMETHOD(channel_getcaps, hdspechan_getcaps), KOBJMETHOD_END };
 CHANNEL_DECLARE(hdspechan);
 
 static int
@@ -1044,8 +1038,7 @@ hdspe_pcm_attach(device_t dev)
 	}
 
 	snprintf(status, SND_STATUSLEN, "port 0x%jx irq %jd on %s",
-	    rman_get_start(scp->sc->cs),
-	    rman_get_start(scp->sc->irq),
+	    rman_get_start(scp->sc->cs), rman_get_start(scp->sc->irq),
 	    device_get_nameunit(device_get_parent(dev)));
 	pcm_setstatus(dev, status);
 
@@ -1068,12 +1061,10 @@ hdspe_pcm_detach(device_t dev)
 	return (0);
 }
 
-static device_method_t hdspe_pcm_methods[] = {
-	DEVMETHOD(device_probe,     hdspe_pcm_probe),
-	DEVMETHOD(device_attach,    hdspe_pcm_attach),
-	DEVMETHOD(device_detach,    hdspe_pcm_detach),
-	{ 0, 0 }
-};
+static device_method_t hdspe_pcm_methods[] = { DEVMETHOD(device_probe,
+						   hdspe_pcm_probe),
+	DEVMETHOD(device_attach, hdspe_pcm_attach),
+	DEVMETHOD(device_detach, hdspe_pcm_detach), { 0, 0 } };
 
 static driver_t hdspe_pcm_driver = {
 	"pcm",

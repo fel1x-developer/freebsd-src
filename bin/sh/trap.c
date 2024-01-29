@@ -33,27 +33,26 @@
  */
 
 #include <signal.h>
-#include <unistd.h>
 #include <stdlib.h>
+#include <unistd.h>
 
-#include "shell.h"
-#include "main.h"
-#include "nodes.h"	/* for other headers */
+#include "builtins.h"
+#include "error.h"
 #include "eval.h"
 #include "jobs.h"
-#include "show.h"
-#include "options.h"
-#include "syntax.h"
-#include "output.h"
+#include "main.h"
 #include "memalloc.h"
-#include "error.h"
-#include "trap.h"
 #include "mystring.h"
-#include "builtins.h"
+#include "nodes.h" /* for other headers */
+#include "options.h"
+#include "output.h"
+#include "shell.h"
+#include "show.h"
+#include "syntax.h"
+#include "trap.h"
 #ifndef NO_HISTORY
 #include "myhistedit.h"
 #endif
-
 
 /*
  * Sigmode records the current value of the signal handlers for the various
@@ -61,28 +60,27 @@
  * S_HARD_IGN indicates that the signal was ignored on entry to the shell,
  */
 
-#define S_DFL 1			/* default signal handling (SIG_DFL) */
-#define S_CATCH 2		/* signal is caught */
-#define S_IGN 3			/* signal is ignored (SIG_IGN) */
-#define S_HARD_IGN 4		/* signal is ignored permanently */
-#define S_RESET 5		/* temporary - to reset a hard ignored sig */
+#define S_DFL 1	     /* default signal handling (SIG_DFL) */
+#define S_CATCH 2    /* signal is caught */
+#define S_IGN 3	     /* signal is ignored (SIG_IGN) */
+#define S_HARD_IGN 4 /* signal is ignored permanently */
+#define S_RESET 5    /* temporary - to reset a hard ignored sig */
 
-
-static char sigmode[NSIG];	/* current value of signal */
-volatile sig_atomic_t pendingsig;	/* indicates some signal received */
-volatile sig_atomic_t pendingsig_waitcmd;	/* indicates wait builtin should be interrupted */
-static int in_dotrap;			/* do we execute in a trap handler? */
-static char *volatile trap[NSIG];	/* trap handler commands */
+static char sigmode[NSIG];	  /* current value of signal */
+volatile sig_atomic_t pendingsig; /* indicates some signal received */
+volatile sig_atomic_t
+    pendingsig_waitcmd; /* indicates wait builtin should be interrupted */
+static int in_dotrap;	/* do we execute in a trap handler? */
+static char *volatile trap[NSIG]; /* trap handler commands */
 static volatile sig_atomic_t gotsig[NSIG];
-				/* indicates specified signal received */
-static int ignore_sigchld;	/* Used while handling SIGCHLD traps. */
+/* indicates specified signal received */
+static int ignore_sigchld; /* Used while handling SIGCHLD traps. */
 static int last_trapsig;
 
-static int exiting;		/* exitshell() has been called */
-static int exiting_exitstatus;	/* value passed to exitshell() */
+static int exiting;	       /* exitshell() has been called */
+static int exiting_exitstatus; /* value passed to exitshell() */
 
 static int getsigaction(int, sig_t *);
-
 
 /*
  * Map a string to a signal number.
@@ -113,7 +111,6 @@ sigstring_to_signum(char *sig)
 	return (-1);
 }
 
-
 /*
  * Print a list of valid signal names.
  */
@@ -129,7 +126,7 @@ printsignals(void)
 			outlen += strlen(sys_signame[n]);
 		} else {
 			out1fmt("%d", n);
-			outlen += 3;	/* good enough */
+			outlen += 3; /* good enough */
 		}
 		++outlen;
 		if (outlen > 71 || n == sys_nsig - 1) {
@@ -140,7 +137,6 @@ printsignals(void)
 		}
 	}
 }
-
 
 /*
  * The trap builtin.
@@ -163,7 +159,7 @@ trapcmd(int argc __unused, char **argv)
 	argv = argptr;
 
 	if (*argv == NULL) {
-		for (signo = 0 ; signo < sys_nsig ; signo++) {
+		for (signo = 0; signo < sys_nsig; signo++) {
 			if (signo < NSIG && trap[signo] != NULL) {
 				out1str("trap -- ");
 				out1qstr(trap[signo]);
@@ -206,7 +202,6 @@ trapcmd(int argc __unused, char **argv)
 	return errors;
 }
 
-
 /*
  * Clear traps on a fork.
  */
@@ -215,8 +210,8 @@ clear_traps(void)
 {
 	char *volatile *tp;
 
-	for (tp = trap ; tp <= &trap[NSIG - 1] ; tp++) {
-		if (*tp && **tp) {	/* trap not NULL or SIG_IGN */
+	for (tp = trap; tp <= &trap[NSIG - 1]; tp++) {
+		if (*tp && **tp) { /* trap not NULL or SIG_IGN */
 			INTOFF;
 			ckfree(*tp);
 			*tp = NULL;
@@ -227,7 +222,6 @@ clear_traps(void)
 	}
 }
 
-
 /*
  * Check if we have any traps enabled.
  */
@@ -236,8 +230,8 @@ have_traps(void)
 {
 	char *volatile *tp;
 
-	for (tp = trap ; tp <= &trap[NSIG - 1] ; tp++) {
-		if (*tp && **tp)	/* trap not NULL or SIG_IGN */
+	for (tp = trap; tp <= &trap[NSIG - 1]; tp++) {
+		if (*tp && **tp) /* trap not NULL or SIG_IGN */
 			return 1;
 	}
 	return 0;
@@ -301,21 +295,28 @@ setsignal(int signo)
 			return;
 		}
 		if (sigact == SIG_IGN) {
-			if (mflag && (signo == SIGTSTP ||
-			     signo == SIGTTIN || signo == SIGTTOU)) {
-				*t = S_IGN;	/* don't hard ignore these */
+			if (mflag &&
+			    (signo == SIGTSTP || signo == SIGTTIN ||
+				signo == SIGTTOU)) {
+				*t = S_IGN; /* don't hard ignore these */
 			} else
 				*t = S_HARD_IGN;
 		} else {
-			*t = S_RESET;	/* force to be set */
+			*t = S_RESET; /* force to be set */
 		}
 	}
 	if (*t == S_HARD_IGN || *t == action)
 		return;
 	switch (action) {
-		case S_DFL:	sigact = SIG_DFL;	break;
-		case S_CATCH:  	sigact = onsig;		break;
-		case S_IGN:	sigact = SIG_IGN;	break;
+	case S_DFL:
+		sigact = SIG_DFL;
+		break;
+	case S_CATCH:
+		sigact = onsig;
+		break;
+	case S_IGN:
+		sigact = SIG_IGN;
+		break;
 	}
 	*t = action;
 	sa.sa_handler = sigact;
@@ -323,7 +324,6 @@ setsignal(int signo)
 	sigemptyset(&sa.sa_mask);
 	sigaction(signo, &sa, NULL);
 }
-
 
 /*
  * Return the current setting for sig w/o changing it.
@@ -335,10 +335,9 @@ getsigaction(int signo, sig_t *sigact)
 
 	if (sigaction(signo, (struct sigaction *)0, &sa) == -1)
 		return 0;
-	*sigact = (sig_t) sa.sa_handler;
+	*sigact = (sig_t)sa.sa_handler;
 	return 1;
 }
-
 
 /*
  * Ignore a signal.
@@ -355,14 +354,12 @@ ignoresig(int signo)
 	}
 }
 
-
 int
 issigchldtrapped(void)
 {
 
 	return (trap[SIGCHLD] != NULL && *trap[SIGCHLD] != '\0');
 }
-
 
 /*
  * Signal handler.
@@ -390,7 +387,6 @@ onsig(int signo)
 		pendingsig_waitcmd = signo;
 	}
 }
-
 
 /*
  * Called to execute a trap.  Perhaps we should avoid entering new trap
@@ -427,7 +423,7 @@ dotrap(void)
 					 * ongoing break/continue/return
 					 * statement.
 					 */
-					prev_evalskip  = evalskip;
+					prev_evalskip = evalskip;
 					prev_skipcount = skipcount;
 					evalskip = 0;
 
@@ -446,7 +442,7 @@ dotrap(void)
 					 */
 					if (evalskip == 0 ||
 					    prev_evalskip != 0) {
-						evalskip  = prev_evalskip;
+						evalskip = prev_evalskip;
 						skipcount = prev_skipcount;
 						exitstatus = savestatus;
 					}
@@ -463,14 +459,12 @@ dotrap(void)
 	in_dotrap--;
 }
 
-
 void
 trap_init(void)
 {
 	setsignal(SIGINT);
 	setsignal(SIGQUIT);
 }
-
 
 /*
  * Controls whether the shell is interactive or not based on iflag.
@@ -480,7 +474,6 @@ setinteractive(void)
 {
 	setsignal(SIGTERM);
 }
-
 
 /*
  * Called to exit the shell.
@@ -524,7 +517,7 @@ exitshell_savedstatus(void)
 		}
 	}
 	if (!setjmp(loc2.loc)) {
-		handler = &loc2;		/* probably unnecessary */
+		handler = &loc2; /* probably unnecessary */
 		FORCEINTON;
 		flushall();
 #if JOBS

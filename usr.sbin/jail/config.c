@@ -31,9 +31,9 @@
 #include <sys/socket.h>
 #include <sys/sysctl.h>
 
-#include <arpa/inet.h>
 #include <netinet/in.h>
 
+#include <arpa/inet.h>
 #include <err.h>
 #include <glob.h>
 #include <netdb.h>
@@ -47,8 +47,8 @@
 #define MAX_INCLUDE_DEPTH 32
 
 struct ipspec {
-	const char	*name;
-	unsigned	flags;
+	const char *name;
+	unsigned flags;
 };
 
 extern int yylex_init_extra(struct cflex *extra, void *scanner);
@@ -62,66 +62,67 @@ static void parse_config(const char *fname, int is_stdin);
 static void free_param(struct cfparams *pp, struct cfparam *p);
 
 static const struct ipspec intparams[] = {
-    [IP_ALLOW_DYING] =		{"allow.dying",		PF_INTERNAL | PF_BOOL},
-    [IP_COMMAND] =		{"command",		PF_INTERNAL},
-    [IP_DEPEND] =		{"depend",		PF_INTERNAL},
-    [IP_EXEC_CLEAN] =		{"exec.clean",		PF_INTERNAL | PF_BOOL},
-    [IP_EXEC_CONSOLELOG] =	{"exec.consolelog",	PF_INTERNAL},
-    [IP_EXEC_FIB] =		{"exec.fib",		PF_INTERNAL | PF_INT},
-    [IP_EXEC_JAIL_USER] =	{"exec.jail_user",	PF_INTERNAL},
-    [IP_EXEC_POSTSTART] =	{"exec.poststart",	PF_INTERNAL},
-    [IP_EXEC_POSTSTOP] =	{"exec.poststop",	PF_INTERNAL},
-    [IP_EXEC_PREPARE] =		{"exec.prepare",	PF_INTERNAL},
-    [IP_EXEC_PRESTART] =	{"exec.prestart",	PF_INTERNAL},
-    [IP_EXEC_PRESTOP] =		{"exec.prestop",	PF_INTERNAL},
-    [IP_EXEC_RELEASE] =		{"exec.release",	PF_INTERNAL},
-    [IP_EXEC_CREATED] =		{"exec.created",	PF_INTERNAL},
-    [IP_EXEC_START] =		{"exec.start",		PF_INTERNAL},
-    [IP_EXEC_STOP] =		{"exec.stop",		PF_INTERNAL},
-    [IP_EXEC_SYSTEM_JAIL_USER]=	{"exec.system_jail_user",
-							PF_INTERNAL | PF_BOOL},
-    [IP_EXEC_SYSTEM_USER] =	{"exec.system_user",	PF_INTERNAL},
-    [IP_EXEC_TIMEOUT] =		{"exec.timeout",	PF_INTERNAL | PF_INT},
+	[IP_ALLOW_DYING] = { "allow.dying", PF_INTERNAL | PF_BOOL },
+	[IP_COMMAND] = { "command", PF_INTERNAL },
+	[IP_DEPEND] = { "depend", PF_INTERNAL },
+	[IP_EXEC_CLEAN] = { "exec.clean", PF_INTERNAL | PF_BOOL },
+	[IP_EXEC_CONSOLELOG] = { "exec.consolelog", PF_INTERNAL },
+	[IP_EXEC_FIB] = { "exec.fib", PF_INTERNAL | PF_INT },
+	[IP_EXEC_JAIL_USER] = { "exec.jail_user", PF_INTERNAL },
+	[IP_EXEC_POSTSTART] = { "exec.poststart", PF_INTERNAL },
+	[IP_EXEC_POSTSTOP] = { "exec.poststop", PF_INTERNAL },
+	[IP_EXEC_PREPARE] = { "exec.prepare", PF_INTERNAL },
+	[IP_EXEC_PRESTART] = { "exec.prestart", PF_INTERNAL },
+	[IP_EXEC_PRESTOP] = { "exec.prestop", PF_INTERNAL },
+	[IP_EXEC_RELEASE] = { "exec.release", PF_INTERNAL },
+	[IP_EXEC_CREATED] = { "exec.created", PF_INTERNAL },
+	[IP_EXEC_START] = { "exec.start", PF_INTERNAL },
+	[IP_EXEC_STOP] = { "exec.stop", PF_INTERNAL },
+	[IP_EXEC_SYSTEM_JAIL_USER] = { "exec.system_jail_user",
+	    PF_INTERNAL | PF_BOOL },
+	[IP_EXEC_SYSTEM_USER] = { "exec.system_user", PF_INTERNAL },
+	[IP_EXEC_TIMEOUT] = { "exec.timeout", PF_INTERNAL | PF_INT },
 #if defined(INET) || defined(INET6)
-    [IP_INTERFACE] =		{"interface",		PF_INTERNAL},
-    [IP_IP_HOSTNAME] =		{"ip_hostname",		PF_INTERNAL | PF_BOOL},
+	[IP_INTERFACE] = { "interface", PF_INTERNAL },
+	[IP_IP_HOSTNAME] = { "ip_hostname", PF_INTERNAL | PF_BOOL },
 #endif
-    [IP_MOUNT] =		{"mount",		PF_INTERNAL | PF_REV},
-    [IP_MOUNT_DEVFS] =		{"mount.devfs",		PF_INTERNAL | PF_BOOL},
-    [IP_MOUNT_FDESCFS] =	{"mount.fdescfs",	PF_INTERNAL | PF_BOOL},
-    [IP_MOUNT_PROCFS] =		{"mount.procfs",	PF_INTERNAL | PF_BOOL},
-    [IP_MOUNT_FSTAB] =		{"mount.fstab",		PF_INTERNAL},
-    [IP_STOP_TIMEOUT] =		{"stop.timeout",	PF_INTERNAL | PF_INT},
-    [IP_VNET_INTERFACE] =	{"vnet.interface",	PF_INTERNAL},
-    [IP_ZFS_DATASET] =		{"zfs.dataset",		PF_INTERNAL},
+	[IP_MOUNT] = { "mount", PF_INTERNAL | PF_REV },
+	[IP_MOUNT_DEVFS] = { "mount.devfs", PF_INTERNAL | PF_BOOL },
+	[IP_MOUNT_FDESCFS] = { "mount.fdescfs", PF_INTERNAL | PF_BOOL },
+	[IP_MOUNT_PROCFS] = { "mount.procfs", PF_INTERNAL | PF_BOOL },
+	[IP_MOUNT_FSTAB] = { "mount.fstab", PF_INTERNAL },
+	[IP_STOP_TIMEOUT] = { "stop.timeout", PF_INTERNAL | PF_INT },
+	[IP_VNET_INTERFACE] = { "vnet.interface", PF_INTERNAL },
+	[IP_ZFS_DATASET] = { "zfs.dataset", PF_INTERNAL },
 #ifdef INET
-    [IP__IP4_IFADDR] =		{"ip4.addr",	PF_INTERNAL | PF_CONV | PF_REV},
+	[IP__IP4_IFADDR] = { "ip4.addr", PF_INTERNAL | PF_CONV | PF_REV },
 #endif
 #ifdef INET6
-    [IP__IP6_IFADDR] =		{"ip6.addr",	PF_INTERNAL | PF_CONV | PF_REV},
+	[IP__IP6_IFADDR] = { "ip6.addr", PF_INTERNAL | PF_CONV | PF_REV },
 #endif
-    [IP__MOUNT_FROM_FSTAB] =	{"mount.fstab",	PF_INTERNAL | PF_CONV | PF_REV},
-    [IP__OP] =			{NULL,			PF_CONV},
-    [KP_ALLOW_CHFLAGS] =	{"allow.chflags",	0},
-    [KP_ALLOW_MOUNT] =		{"allow.mount",		0},
-    [KP_ALLOW_RAW_SOCKETS] =	{"allow.raw_sockets",	0},
-    [KP_ALLOW_SET_HOSTNAME]=	{"allow.set_hostname",	0},
-    [KP_ALLOW_SOCKET_AF] =	{"allow.socket_af",	0},
-    [KP_ALLOW_SYSVIPC] =	{"allow.sysvipc",	0},
-    [KP_DEVFS_RULESET] =	{"devfs_ruleset",	0},
-    [KP_HOST_HOSTNAME] =	{"host.hostname",	0},
+	[IP__MOUNT_FROM_FSTAB] = { "mount.fstab",
+	    PF_INTERNAL | PF_CONV | PF_REV },
+	[IP__OP] = { NULL, PF_CONV },
+	[KP_ALLOW_CHFLAGS] = { "allow.chflags", 0 },
+	[KP_ALLOW_MOUNT] = { "allow.mount", 0 },
+	[KP_ALLOW_RAW_SOCKETS] = { "allow.raw_sockets", 0 },
+	[KP_ALLOW_SET_HOSTNAME] = { "allow.set_hostname", 0 },
+	[KP_ALLOW_SOCKET_AF] = { "allow.socket_af", 0 },
+	[KP_ALLOW_SYSVIPC] = { "allow.sysvipc", 0 },
+	[KP_DEVFS_RULESET] = { "devfs_ruleset", 0 },
+	[KP_HOST_HOSTNAME] = { "host.hostname", 0 },
 #ifdef INET
-    [KP_IP4_ADDR] =		{"ip4.addr",		0},
+	[KP_IP4_ADDR] = { "ip4.addr", 0 },
 #endif
 #ifdef INET6
-    [KP_IP6_ADDR] =		{"ip6.addr",		0},
+	[KP_IP6_ADDR] = { "ip6.addr", 0 },
 #endif
-    [KP_JID] =			{"jid",			PF_IMMUTABLE},
-    [KP_NAME] =			{"name",		PF_IMMUTABLE},
-    [KP_PATH] =			{"path",		0},
-    [KP_PERSIST] =		{"persist",		0},
-    [KP_SECURELEVEL] =		{"securelevel",		0},
-    [KP_VNET] =			{"vnet",		0},
+	[KP_JID] = { "jid", PF_IMMUTABLE },
+	[KP_NAME] = { "name", PF_IMMUTABLE },
+	[KP_PATH] = { "path", 0 },
+	[KP_PERSIST] = { "persist", 0 },
+	[KP_SECURELEVEL] = { "securelevel", 0 },
+	[KP_VNET] = { "vnet", 0 },
 };
 
 /*
@@ -144,13 +145,13 @@ load_config(const char *cfname)
 	/* Separate the wildcard jails out from the actual jails. */
 	jseq = 0;
 	TAILQ_INIT(&wild);
-	TAILQ_FOREACH_SAFE(j, &cfjails, tq, tj) {
+	TAILQ_FOREACH_SAFE (j, &cfjails, tq, tj) {
 		j->seq = ++jseq;
 		if (wild_jail_name(j->name))
 			requeue(j, &wild);
 	}
 
-	TAILQ_FOREACH(j, &cfjails, tq) {
+	TAILQ_FOREACH (j, &cfjails, tq) {
 		/* Set aside the jail's parameters. */
 		TAILQ_INIT(&opp);
 		TAILQ_CONCAT(&opp, &j->params, tq);
@@ -166,95 +167,102 @@ load_config(const char *cfname)
 		 * and any matching wildcard jails.
 		 */
 		did_self = 0;
-		TAILQ_FOREACH(wj, &wild, tq) {
+		TAILQ_FOREACH (wj, &wild, tq) {
 			if (j->seq < wj->seq && !did_self) {
-				TAILQ_FOREACH(p, &opp, tq)
+				TAILQ_FOREACH (p, &opp, tq)
 					add_param(j, p, 0, NULL);
 				did_self = 1;
 			}
 			if (wild_jail_match(j->name, wj->name))
-				TAILQ_FOREACH(p, &wj->params, tq)
+				TAILQ_FOREACH (p, &wj->params, tq)
 					add_param(j, p, 0, NULL);
 		}
 		if (!did_self)
-			TAILQ_FOREACH(p, &opp, tq)
+			TAILQ_FOREACH (p, &opp, tq)
 				add_param(j, p, 0, NULL);
 
 		/* Resolve any variable substitutions. */
 		pgen = 0;
-		TAILQ_FOREACH(p, &j->params, tq) {
-		    p->gen = ++pgen;
+		TAILQ_FOREACH (p, &j->params, tq) {
+			p->gen = ++pgen;
 		find_vars:
-		    TAILQ_FOREACH(s, &p->val, tq) {
-			while ((v = STAILQ_FIRST(&s->vars))) {
-				TAILQ_FOREACH(vp, &j->params, tq)
-					if (!strcmp(vp->name, v->name))
-						break;
-				if (!vp || TAILQ_EMPTY(&vp->val)) {
-					jail_warnx(j,
-					    "%s: variable \"%s\" not found",
-					    p->name, v->name);
-				bad_var:
-					j->flags |= JF_FAILED;
-					TAILQ_FOREACH(vp, &j->params, tq)
-						if (vp->gen == pgen)
-							vp->flags |= PF_BAD;
-					goto free_var;
-				}
-				if (vp->flags & PF_BAD)
-					goto bad_var;
-				if (vp->gen == pgen) {
-					jail_warnx(j, "%s: variable loop",
-					    v->name);
-					goto bad_var;
-				}
-				TAILQ_FOREACH(vs, &vp->val, tq)
-					if (!STAILQ_EMPTY(&vs->vars)) {
-						vp->gen = pgen;
-						TAILQ_REMOVE(&j->params, vp,
-						    tq);
-						TAILQ_INSERT_BEFORE(p, vp, tq);
-						p = vp;
-						goto find_vars;
+			TAILQ_FOREACH (s, &p->val, tq) {
+				while ((v = STAILQ_FIRST(&s->vars))) {
+					TAILQ_FOREACH (vp, &j->params, tq)
+						if (!strcmp(vp->name, v->name))
+							break;
+					if (!vp || TAILQ_EMPTY(&vp->val)) {
+						jail_warnx(j,
+						    "%s: variable \"%s\" not found",
+						    p->name, v->name);
+					bad_var:
+						j->flags |= JF_FAILED;
+						TAILQ_FOREACH (vp, &j->params,
+						    tq)
+							if (vp->gen == pgen)
+								vp->flags |=
+								    PF_BAD;
+						goto free_var;
 					}
-				vs = TAILQ_FIRST(&vp->val);
-				if (TAILQ_NEXT(vs, tq) != NULL &&
-				    (s->s[0] != '\0' ||
-				     STAILQ_NEXT(v, tq))) {
-					jail_warnx(j, "%s: array cannot be "
-					    "substituted inline",
-					    p->name);
-					goto bad_var;
+					if (vp->flags & PF_BAD)
+						goto bad_var;
+					if (vp->gen == pgen) {
+						jail_warnx(j,
+						    "%s: variable loop",
+						    v->name);
+						goto bad_var;
+					}
+					TAILQ_FOREACH (vs, &vp->val, tq)
+						if (!STAILQ_EMPTY(&vs->vars)) {
+							vp->gen = pgen;
+							TAILQ_REMOVE(&j->params,
+							    vp, tq);
+							TAILQ_INSERT_BEFORE(p,
+							    vp, tq);
+							p = vp;
+							goto find_vars;
+						}
+					vs = TAILQ_FIRST(&vp->val);
+					if (TAILQ_NEXT(vs, tq) != NULL &&
+					    (s->s[0] != '\0' ||
+						STAILQ_NEXT(v, tq))) {
+						jail_warnx(j,
+						    "%s: array cannot be "
+						    "substituted inline",
+						    p->name);
+						goto bad_var;
+					}
+					s->s = erealloc(s->s,
+					    s->len + vs->len + 1);
+					memmove(s->s + v->pos + vs->len,
+					    s->s + v->pos, s->len - v->pos + 1);
+					memcpy(s->s + v->pos, vs->s, vs->len);
+					vv = v;
+					while ((vv = STAILQ_NEXT(vv, tq)))
+						vv->pos += vs->len;
+					s->len += vs->len;
+					while ((vs = TAILQ_NEXT(vs, tq))) {
+						ns = emalloc(
+						    sizeof(struct cfstring));
+						ns->s = estrdup(vs->s);
+						ns->len = vs->len;
+						STAILQ_INIT(&ns->vars);
+						TAILQ_INSERT_AFTER(&p->val, s,
+						    ns, tq);
+						s = ns;
+					}
+				free_var:
+					free(v->name);
+					STAILQ_REMOVE_HEAD(&s->vars, tq);
+					free(v);
 				}
-				s->s = erealloc(s->s, s->len + vs->len + 1);
-				memmove(s->s + v->pos + vs->len,
-				    s->s + v->pos,
-				    s->len - v->pos + 1);
-				memcpy(s->s + v->pos, vs->s, vs->len);
-				vv = v;
-				while ((vv = STAILQ_NEXT(vv, tq)))
-					vv->pos += vs->len;
-				s->len += vs->len;
-				while ((vs = TAILQ_NEXT(vs, tq))) {
-					ns = emalloc(sizeof(struct cfstring));
-					ns->s = estrdup(vs->s);
-					ns->len = vs->len;
-					STAILQ_INIT(&ns->vars);
-					TAILQ_INSERT_AFTER(&p->val, s, ns, tq);
-					s = ns;
-				}
-			free_var:
-				free(v->name);
-				STAILQ_REMOVE_HEAD(&s->vars, tq);
-				free(v);
 			}
-		    }
 		}
 
 		/* Free the jail's original parameter list and any variables. */
 		while ((p = TAILQ_FIRST(&opp)))
 			free_param(&opp, p);
-		TAILQ_FOREACH_SAFE(p, &j->params, tq, tp)
+		TAILQ_FOREACH_SAFE (p, &j->params, tq, tp)
 			if (p->flags & PF_VAR)
 				free_param(&j->params, p);
 	}
@@ -270,7 +278,7 @@ void
 include_config(void *scanner, const char *cfname)
 {
 	static unsigned int depth;
-	glob_t g = {0};
+	glob_t g = { 0 };
 	const char *slash;
 	char *fullpath = NULL;
 
@@ -309,7 +317,7 @@ include_config(void *scanner, const char *cfname)
 static void
 parse_config(const char *cfname, int is_stdin)
 {
-	struct cflex cflex = {.cfname = cfname, .error = 0};
+	struct cflex cflex = { .cfname = cfname, .error = 0 };
 	void *scanner;
 
 	yylex_init_extra(&cflex, &scanner);
@@ -374,12 +382,12 @@ add_param(struct cfjail *j, const struct cfparam *p, enum intparam ipnum,
 		 * Make a copy of the parameter's string list,
 		 * which may be freed if it's overridden later.
 		 */
-		TAILQ_FOREACH(s, &p->val, tq) {
+		TAILQ_FOREACH (s, &p->val, tq) {
 			ns = emalloc(sizeof(struct cfstring));
 			ns->s = estrdup(s->s);
 			ns->len = s->len;
 			STAILQ_INIT(&ns->vars);
-			STAILQ_FOREACH(v, &s->vars, tq) {
+			STAILQ_FOREACH (v, &s->vars, tq) {
 				nv = emalloc(sizeof(struct cfvar));
 				nv->name = strdup(v->name);
 				nv->pos = v->pos;
@@ -414,14 +422,16 @@ add_param(struct cfjail *j, const struct cfparam *p, enum intparam ipnum,
 	if (ipnum != IP__NULL)
 		dp = j->intparams[ipnum];
 	else
-		TAILQ_FOREACH(dp, &j->params, tq)
+		TAILQ_FOREACH (dp, &j->params, tq)
 			if (!(dp->flags & PF_CONV) && equalopts(dp->name, name))
 				break;
 	if (dp != NULL) {
 		/* Found it - append or replace. */
 		if ((flags ^ dp->flags) & PF_VAR) {
-			jail_warnx(j, "variable \"$%s\" cannot have the same "
-			    "name as a parameter.", name);
+			jail_warnx(j,
+			    "variable \"$%s\" cannot have the same "
+			    "name as a parameter.",
+			    name);
 			j->flags |= JF_FAILED;
 			return;
 		}
@@ -483,8 +493,8 @@ bool_param(const struct cfparam *p)
 	cs = strrchr(p->name, '.');
 	return !strncmp(cs ? cs + 1 : p->name, "no", 2) ^
 	    (TAILQ_EMPTY(&p->val) ||
-	     !strcasecmp(TAILQ_LAST(&p->val, cfstrings)->s, "true") ||
-	     (strtol(TAILQ_LAST(&p->val, cfstrings)->s, NULL, 10)));
+		!strcasecmp(TAILQ_LAST(&p->val, cfstrings)->s, "true") ||
+		(strtol(TAILQ_LAST(&p->val, cfstrings)->s, NULL, 10)));
 }
 
 /*
@@ -505,8 +515,8 @@ int_param(const struct cfparam *p, int *ip)
 const char *
 string_param(const struct cfparam *p)
 {
-	return (p && !TAILQ_EMPTY(&p->val)
-	    ? TAILQ_LAST(&p->val, cfstrings)->s : NULL);
+	return (p && !TAILQ_EMPTY(&p->val) ? TAILQ_LAST(&p->val, cfstrings)->s :
+					     NULL);
 }
 
 /*
@@ -542,7 +552,7 @@ check_intparams(struct cfjail *j)
 
 	error = 0;
 	/* Check format of boolan and integer values. */
-	TAILQ_FOREACH(p, &j->params, tq) {
+	TAILQ_FOREACH (p, &j->params, tq) {
 		if (!TAILQ_EMPTY(&p->val) && (p->flags & (PF_BOOL | PF_INT))) {
 			val = TAILQ_LAST(&p->val, cfstrings)->s;
 			if (p->flags & PF_BOOL) {
@@ -572,7 +582,7 @@ check_intparams(struct cfjail *j)
 	 * for any IP addresses it finds.
 	 */
 	if (((j->flags & JF_OP_MASK) != JF_STOP ||
-	    j->intparams[IP_INTERFACE] != NULL) &&
+		j->intparams[IP_INTERFACE] != NULL) &&
 	    bool_param(j->intparams[IP_IP_HOSTNAME]) &&
 	    (hostname = string_param(j->intparams[KP_HOST_HOSTNAME]))) {
 		j->intparams[IP_IP_HOSTNAME] = NULL;
@@ -594,13 +604,13 @@ check_intparams(struct cfjail *j)
 #elif defined(INET6)
 		    ip6ok
 #endif
-			 ) {
+		) {
 			/* Look up the hostname (or get the address) */
 			memset(&hints, 0, sizeof(hints));
 			hints.ai_socktype = SOCK_STREAM;
 			hints.ai_family =
 #if defined(INET) && defined(INET6)
-			    ip4ok ? (ip6ok ? PF_UNSPEC : PF_INET) :  PF_INET6;
+			    ip4ok ? (ip6ok ? PF_UNSPEC : PF_INET) : PF_INET6;
 #elif defined(INET)
 			    PF_INET;
 #elif defined(INET6)
@@ -622,12 +632,15 @@ check_intparams(struct cfjail *j)
 #ifdef INET
 					case AF_INET:
 						memcpy(&addr4,
-						    &((struct sockaddr_in *)
-						    (void *)ai->ai_addr)->
-						    sin_addr, sizeof(addr4));
-						if (inet_ntop(AF_INET,
-						    &addr4, avalue4,
-						    INET_ADDRSTRLEN) == NULL)
+						    &((struct sockaddr_in
+							      *)(void *)
+							    ai->ai_addr)
+							 ->sin_addr,
+						    sizeof(addr4));
+						if (inet_ntop(AF_INET, &addr4,
+							avalue4,
+							INET_ADDRSTRLEN) ==
+						    NULL)
 							err(1, "inet_ntop");
 						add_param(j, NULL, KP_IP4_ADDR,
 						    avalue4);
@@ -636,12 +649,15 @@ check_intparams(struct cfjail *j)
 #ifdef INET6
 					case AF_INET6:
 						memcpy(&addr6,
-						    &((struct sockaddr_in6 *)
-						    (void *)ai->ai_addr)->
-						    sin6_addr, sizeof(addr6));
-						if (inet_ntop(AF_INET6,
-						    &addr6, avalue6,
-						    INET6_ADDRSTRLEN) == NULL)
+						    &((struct sockaddr_in6
+							      *)(void *)
+							    ai->ai_addr)
+							 ->sin6_addr,
+						    sizeof(addr6));
+						if (inet_ntop(AF_INET6, &addr6,
+							avalue6,
+							INET6_ADDRSTRLEN) ==
+						    NULL)
 							err(1, "inet_ntop");
 						add_param(j, NULL, KP_IP6_ADDR,
 						    avalue6);
@@ -662,7 +678,7 @@ check_intparams(struct cfjail *j)
 	defif = string_param(j->intparams[IP_INTERFACE]) != NULL;
 #ifdef INET
 	if (j->intparams[KP_IP4_ADDR] != NULL) {
-		TAILQ_FOREACH(s, &j->intparams[KP_IP4_ADDR]->val, tq) {
+		TAILQ_FOREACH (s, &j->intparams[KP_IP4_ADDR]->val, tq) {
 			cs = strchr(s->s, '|');
 			if (cs || defif)
 				add_param(j, NULL, IP__IP4_IFADDR, s->s);
@@ -683,7 +699,7 @@ check_intparams(struct cfjail *j)
 #endif
 #ifdef INET6
 	if (j->intparams[KP_IP6_ADDR] != NULL) {
-		TAILQ_FOREACH(s, &j->intparams[KP_IP6_ADDR]->val, tq) {
+		TAILQ_FOREACH (s, &j->intparams[KP_IP6_ADDR]->val, tq) {
 			cs = strchr(s->s, '|');
 			if (cs || defif)
 				add_param(j, NULL, IP__IP6_IFADDR, s->s);
@@ -709,13 +725,13 @@ check_intparams(struct cfjail *j)
 	 * parameter.
 	 */
 	if (j->intparams[IP_MOUNT_FSTAB] != NULL) {
-		TAILQ_FOREACH(s, &j->intparams[IP_MOUNT_FSTAB]->val, tq) {
+		TAILQ_FOREACH (s, &j->intparams[IP_MOUNT_FSTAB]->val, tq) {
 			if (s->len == 0)
 				continue;
 			f = fopen(s->s, "r");
 			if (f == NULL) {
-				jail_warnx(j, "mount.fstab: %s: %s",
-				    s->s, strerror(errno));
+				jail_warnx(j, "mount.fstab: %s: %s", s->s,
+				    strerror(errno));
 				error = -1;
 				continue;
 			}
@@ -755,11 +771,11 @@ import_params(struct cfjail *j)
 
 	error = 0;
 	j->njp = 0;
-	TAILQ_FOREACH(p, &j->params, tq)
+	TAILQ_FOREACH (p, &j->params, tq)
 		if (!(p->flags & PF_INTERNAL))
 			j->njp++;
 	j->jp = jp = emalloc(j->njp * sizeof(struct jailparam));
-	TAILQ_FOREACH(p, &j->params, tq) {
+	TAILQ_FOREACH (p, &j->params, tq) {
 		if (p->flags & PF_INTERNAL)
 			continue;
 		if (jailparam_init(jp, p->name) < 0) {
@@ -771,7 +787,7 @@ import_params(struct cfjail *j)
 		if (TAILQ_EMPTY(&p->val))
 			value = NULL;
 		else if (!jp->jp_elemlen ||
-			 !TAILQ_NEXT(TAILQ_FIRST(&p->val), tq)) {
+		    !TAILQ_NEXT(TAILQ_FIRST(&p->val), tq)) {
 			/*
 			 * Scalar parameters silently discard multiple (array)
 			 * values, keeping only the last value added.  This
@@ -785,11 +801,11 @@ import_params(struct cfjail *j)
 			 * jailparam_import will then convert back into arrays.
 			 */
 			vallen = 0;
-			TAILQ_FOREACH(s, &p->val, tq)
+			TAILQ_FOREACH (s, &p->val, tq)
 				vallen += s->len + 1;
 			value = alloca(vallen);
 			cs = value;
-			TAILQ_FOREACH_SAFE(s, &p->val, tq, ts) {
+			TAILQ_FOREACH_SAFE (s, &p->val, tq, ts) {
 				memcpy(cs, s->s, s->len);
 				cs += s->len + 1;
 				cs[-1] = ',';

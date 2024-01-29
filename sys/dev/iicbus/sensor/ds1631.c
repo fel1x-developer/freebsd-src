@@ -26,54 +26,52 @@
  */
 
 #include <sys/param.h>
-#include <sys/bus.h>
 #include <sys/systm.h>
-#include <sys/module.h>
+#include <sys/bus.h>
 #include <sys/callout.h>
 #include <sys/conf.h>
 #include <sys/cpu.h>
 #include <sys/ctype.h>
 #include <sys/kernel.h>
+#include <sys/limits.h>
+#include <sys/module.h>
 #include <sys/reboot.h>
 #include <sys/rman.h>
 #include <sys/sysctl.h>
-#include <sys/limits.h>
 
 #include <machine/bus.h>
 #include <machine/md_var.h>
 
 #include <dev/iicbus/iicbus.h>
 #include <dev/iicbus/iiconf.h>
-
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/openfirm.h>
+
 #include <powerpc/powermac/powermac_thermal.h>
 
 /* Sensor: Maxim DS1631 */
 
-#define DS1631_STOP            0x22
-#define DS1631_START           0x51
-#define DS1631_RESET           0x54
-#define DS1631_TEMP            0xAA
-#define DS1631_CONTROL         0xAC
-#define DS1631_CONTROL_1SHOT   0x01
-#define DS1631_CONTROL_9BIT    0x00
-#define DS1631_CONTROL_10BIT   0x04
-#define DS1631_CONTROL_11BIT   0x08
-#define DS1631_CONTROL_12BIT   0x0C
-
-
+#define DS1631_STOP 0x22
+#define DS1631_START 0x51
+#define DS1631_RESET 0x54
+#define DS1631_TEMP 0xAA
+#define DS1631_CONTROL 0xAC
+#define DS1631_CONTROL_1SHOT 0x01
+#define DS1631_CONTROL_9BIT 0x00
+#define DS1631_CONTROL_10BIT 0x04
+#define DS1631_CONTROL_11BIT 0x08
+#define DS1631_CONTROL_12BIT 0x0C
 
 /* Regular bus attachment functions */
-static int  ds1631_probe(device_t);
-static int  ds1631_attach(device_t);
+static int ds1631_probe(device_t);
+static int ds1631_attach(device_t);
 
 struct ds1631_softc {
-	struct pmac_therm	sc_sensor;
-	device_t		sc_dev;
+	struct pmac_therm sc_sensor;
+	device_t sc_dev;
 	struct intr_config_hook enum_hook;
-	uint32_t                sc_addr;
-	uint32_t		init_done;
+	uint32_t sc_addr;
+	uint32_t init_done;
 };
 
 struct write_data {
@@ -87,28 +85,25 @@ struct read_data {
 };
 
 /* Utility functions */
-static int  ds1631_sensor_read(struct ds1631_softc *sc);
-static int  ds1631_sensor_sysctl(SYSCTL_HANDLER_ARGS);
+static int ds1631_sensor_read(struct ds1631_softc *sc);
+static int ds1631_sensor_sysctl(SYSCTL_HANDLER_ARGS);
 static void ds1631_start(void *xdev);
-static int  ds1631_read_1(device_t dev, uint32_t addr, uint8_t reg,
-			  uint8_t *data);
-static int  ds1631_read_2(device_t dev, uint32_t addr, uint8_t reg,
-			  uint16_t *data);
-static int  ds1631_write(device_t dev, uint32_t addr, uint8_t reg,
-			 uint8_t *buff, int len);
+static int ds1631_read_1(device_t dev, uint32_t addr, uint8_t reg,
+    uint8_t *data);
+static int ds1631_read_2(device_t dev, uint32_t addr, uint8_t reg,
+    uint16_t *data);
+static int ds1631_write(device_t dev, uint32_t addr, uint8_t reg, uint8_t *buff,
+    int len);
 
-static device_method_t  ds1631_methods[] = {
+static device_method_t ds1631_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		ds1631_probe),
-	DEVMETHOD(device_attach,	ds1631_attach),
+	DEVMETHOD(device_probe, ds1631_probe),
+	DEVMETHOD(device_attach, ds1631_attach),
 	{ 0, 0 },
 };
 
-static driver_t ds1631_driver = {
-	"ds1631",
-	ds1631_methods,
-	sizeof(struct ds1631_softc)
-};
+static driver_t ds1631_driver = { "ds1631", ds1631_methods,
+	sizeof(struct ds1631_softc) };
 
 DRIVER_MODULE(ds1631, iicbus, ds1631_driver, 0, 0);
 
@@ -118,17 +113,14 @@ ds1631_write(device_t dev, uint32_t addr, uint8_t reg, uint8_t *buff, int len)
 	uint8_t buf[4];
 	int try = 0;
 
-	struct iic_msg msg[] = {
-		{ addr, IIC_M_WR, 0, buf }
-	};
+	struct iic_msg msg[] = { { addr, IIC_M_WR, 0, buf } };
 
 	/* Prepare the write msg. */
 	msg[0].len = len + 1;
 	buf[0] = reg;
 	memcpy(buf + 1, buff, len);
 
-	for (;;)
-	{
+	for (;;) {
 		if (iicbus_transfer(dev, msg, nitems(msg)) == 0)
 			return (0);
 		if (++try > 5) {
@@ -150,13 +142,12 @@ ds1631_read_1(device_t dev, uint32_t addr, uint8_t reg, uint8_t *data)
 		{ addr, IIC_M_RD, 1, buf },
 	};
 
-	for (;;)
-	{
+	for (;;) {
 		err = iicbus_transfer(dev, msg, nitems(msg));
 		if (err != 0)
 			goto retry;
 
-		*data = *((uint8_t*)buf);
+		*data = *((uint8_t *)buf);
 		return (0);
 	retry:
 		if (++try > 5) {
@@ -178,13 +169,12 @@ ds1631_read_2(device_t dev, uint32_t addr, uint8_t reg, uint16_t *data)
 		{ addr, IIC_M_RD, 2, buf },
 	};
 
-	for (;;)
-	{
+	for (;;) {
 		err = iicbus_transfer(dev, msg, nitems(msg));
 		if (err != 0)
 			goto retry;
 
-		*data = *((uint16_t*)buf);
+		*data = *((uint16_t *)buf);
 		return (0);
 	retry:
 		if (++try > 5) {
@@ -198,7 +188,7 @@ ds1631_read_2(device_t dev, uint32_t addr, uint8_t reg, uint16_t *data)
 static int
 ds1631_probe(device_t dev)
 {
-	const char  *name, *compatible;
+	const char *name, *compatible;
 	struct ds1631_softc *sc;
 
 	name = ofw_bus_get_name(dev);
@@ -208,7 +198,7 @@ ds1631_probe(device_t dev)
 		return (ENXIO);
 
 	if (strcmp(name, "temp-monitor") != 0 ||
-	    strcmp(compatible, "ds1631") != 0 )
+	    strcmp(compatible, "ds1631") != 0)
 		return (ENXIO);
 
 	sc = device_get_softc(dev);
@@ -286,7 +276,6 @@ ds1631_init(device_t dev, uint32_t addr)
 	sc->init_done = 1;
 
 	return (0);
-
 }
 static void
 ds1631_start(void *xdev)
@@ -297,7 +286,7 @@ ds1631_start(void *xdev)
 	struct sysctl_ctx_list *ctx;
 	ssize_t plen;
 	int i;
-	char  sysctl_desc[40], sysctl_name[40];
+	char sysctl_desc[40], sysctl_name[40];
 
 	device_t dev = (device_t)xdev;
 
@@ -311,11 +300,11 @@ ds1631_start(void *xdev)
 	    CTLFLAG_RD | CTLFLAG_MPSAFE, 0, "DS1631 Sensor Information");
 
 	if (OF_getprop(child, "hwsensor-zone", &sc->sc_sensor.zone,
-		       sizeof(int)) < 0)
+		sizeof(int)) < 0)
 		sc->sc_sensor.zone = 0;
 
 	plen = OF_getprop(child, "hwsensor-location", sc->sc_sensor.name,
-			  sizeof(sc->sc_sensor.name));
+	    sizeof(sc->sc_sensor.name));
 	if (plen == -1) {
 		/*
 		 * Ok, no hwsensor-location property, so let's look for a
@@ -323,7 +312,7 @@ ds1631_start(void *xdev)
 		 */
 		for (node = OF_child(child); node; node = OF_peer(node))
 			plen = OF_getprop(node, "location", sc->sc_sensor.name,
-					  sizeof(sc->sc_sensor.name));
+			    sizeof(sc->sc_sensor.name));
 	}
 
 	if (plen == -1) {
@@ -346,17 +335,16 @@ ds1631_start(void *xdev)
 		sc->sc_sensor.max_temp = 500 + ZERO_C_TO_K;
 	}
 
-	sc->sc_sensor.read =
-	    (int (*)(struct pmac_therm *sc))(ds1631_sensor_read);
+	sc->sc_sensor.read = (int (*)(struct pmac_therm *sc))(
+	    ds1631_sensor_read);
 	pmac_thermal_sensor_register(&sc->sc_sensor);
 
-	sprintf(sysctl_desc,"%s %s", sc->sc_sensor.name, "(C)");
-	oid = SYSCTL_ADD_NODE(ctx, SYSCTL_CHILDREN(sensroot_oid),
-	    OID_AUTO, sysctl_name, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
-	    "Sensor Information");
+	sprintf(sysctl_desc, "%s %s", sc->sc_sensor.name, "(C)");
+	oid = SYSCTL_ADD_NODE(ctx, SYSCTL_CHILDREN(sensroot_oid), OID_AUTO,
+	    sysctl_name, CTLFLAG_RD | CTLFLAG_MPSAFE, 0, "Sensor Information");
 	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(oid), OID_AUTO, "temp",
-			CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, dev,
-			0, ds1631_sensor_sysctl, "IK", sysctl_desc);
+	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, dev, 0,
+	    ds1631_sensor_sysctl, "IK", sysctl_desc);
 
 	config_intrhook_disestablish(&sc->enum_hook);
 }

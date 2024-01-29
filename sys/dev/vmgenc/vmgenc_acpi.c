@@ -30,7 +30,8 @@
  *
  * See, e.g., the "Virtual Machine Generation ID" white paper:
  * https://go.microsoft.com/fwlink/p/?LinkID=260709 , and perhaps also:
- * https://docs.microsoft.com/en-us/windows/win32/hyperv_v2/virtual-machine-generation-identifier ,
+ * https://docs.microsoft.com/en-us/windows/win32/hyperv_v2/virtual-machine-generation-identifier
+ * ,
  * https://azure.microsoft.com/en-us/blog/accessing-and-using-azure-vm-unique-id/
  *
  * Microsoft introduced the concept in 2013 or so and seems to have
@@ -38,10 +39,12 @@
  * HyperV/Azure:
  * - QEMU: https://bugzilla.redhat.com/show_bug.cgi?id=1118834
  * - VMware/ESXi: https://kb.vmware.com/s/article/2032586
- * - Xen: https://github.com/xenserver/xen-4.5/blob/master/tools/firmware/hvmloader/acpi/dsdt.asl#L456
+ * - Xen:
+ * https://github.com/xenserver/xen-4.5/blob/master/tools/firmware/hvmloader/acpi/dsdt.asl#L456
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/eventhandler.h>
 #include <sys/kernel.h>
@@ -51,31 +54,27 @@
 #include <sys/mutex.h>
 #include <sys/random.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
-
-#include <contrib/dev/acpica/include/acpi.h>
 
 #include <dev/acpica/acpivar.h>
 #include <dev/random/random_harvestq.h>
 #include <dev/vmgenc/vmgenc_acpi.h>
 
-#ifndef	ACPI_NOTIFY_STATUS_CHANGED
-#define	ACPI_NOTIFY_STATUS_CHANGED	0x80
+#include <contrib/dev/acpica/include/acpi.h>
+
+#ifndef ACPI_NOTIFY_STATUS_CHANGED
+#define ACPI_NOTIFY_STATUS_CHANGED 0x80
 #endif
 
-#define	GUID_BYTES	16
+#define GUID_BYTES 16
 
-static const char *vmgenc_ids[] = {
-	"VM_GEN_COUNTER",
-	NULL
-};
+static const char *vmgenc_ids[] = { "VM_GEN_COUNTER", NULL };
 #if 0
 MODULE_PNP_INFO("Z:_CID", acpi, vmgenc, vmgenc_ids, nitems(vmgenc_ids) - 1);
 #endif
 
 struct vmgenc_softc {
-	volatile void	*vmg_pguid;
-	uint8_t		vmg_cache_guid[GUID_BYTES];
+	volatile void *vmg_pguid;
+	uint8_t vmg_cache_guid[GUID_BYTES];
 };
 
 static void
@@ -153,14 +152,14 @@ vmgenc_probe(device_t dev)
 static const char *
 vmgenc_acpi_getname(ACPI_HANDLE handle, char data[static 256])
 {
-    ACPI_BUFFER buf;
+	ACPI_BUFFER buf;
 
-    buf.Length = 256;
-    buf.Pointer = data;
+	buf.Length = 256;
+	buf.Pointer = data;
 
-    if (ACPI_SUCCESS(AcpiGetName(handle, ACPI_FULL_PATHNAME, &buf)))
-	return (data);
-    return ("(unknown)");
+	if (ACPI_SUCCESS(AcpiGetName(handle, ACPI_FULL_PATHNAME, &buf)))
+		return (data);
+	return ("(unknown)");
 }
 
 static int
@@ -183,8 +182,7 @@ acpi_GetPackedUINT64(device_t dev, ACPI_HANDLE handle, char *path,
 	}
 	if (param[0].Type != ACPI_TYPE_PACKAGE) {
 		device_printf(dev, "%s(%s::%s()): Wrong type %#x\n", __func__,
-		    vmgenc_acpi_getname(handle, hpath), path,
-		    param[0].Type);
+		    vmgenc_acpi_getname(handle, hpath), path, param[0].Type);
 		return (ENXIO);
 	}
 	if (param[0].Package.Count != 2) {
@@ -195,8 +193,9 @@ acpi_GetPackedUINT64(device_t dev, ACPI_HANDLE handle, char *path,
 	}
 	if (param[0].Package.Elements[0].Type != ACPI_TYPE_INTEGER ||
 	    param[0].Package.Elements[1].Type != ACPI_TYPE_INTEGER) {
-		device_printf(dev, "%s(%s::%s()): Wrong type results %#x, %#x\n",
-		    __func__, vmgenc_acpi_getname(handle, hpath), path,
+		device_printf(dev,
+		    "%s(%s::%s()): Wrong type results %#x, %#x\n", __func__,
+		    vmgenc_acpi_getname(handle, hpath), path,
 		    param[0].Package.Elements[0].Type,
 		    param[0].Package.Elements[1].Type);
 		return (ENXIO);
@@ -207,7 +206,6 @@ acpi_GetPackedUINT64(device_t dev, ACPI_HANDLE handle, char *path,
 	if (*out == 0)
 		return (ENXIO);
 	return (0);
-
 }
 
 static int
@@ -241,11 +239,9 @@ vmgenc_attach(device_t dev)
 	return (0);
 }
 
-static device_method_t vmgenc_methods[] = {
-	DEVMETHOD(device_probe,		vmgenc_probe),
-	DEVMETHOD(device_attach,	vmgenc_attach),
-	DEVMETHOD_END
-};
+static device_method_t vmgenc_methods[] = { DEVMETHOD(device_probe,
+						vmgenc_probe),
+	DEVMETHOD(device_attach, vmgenc_attach), DEVMETHOD_END };
 
 static driver_t vmgenc_driver = {
 	"vmgenc",

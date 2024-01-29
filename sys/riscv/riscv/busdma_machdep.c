@@ -33,17 +33,18 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/ktr.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
 #include <sys/memdesc.h>
 #include <sys/mutex.h>
 #include <sys/uio.h>
+
 #include <vm/vm.h>
-#include <vm/vm_extern.h>
 #include <vm/pmap.h>
+#include <vm/vm_extern.h>
 
 #include <machine/bus.h>
 #include <machine/bus_dma_impl.h>
@@ -51,9 +52,9 @@
 int
 common_bus_dma_tag_create(struct bus_dma_tag_common *parent,
     bus_size_t alignment, bus_addr_t boundary, bus_addr_t lowaddr,
-    bus_addr_t highaddr, bus_size_t maxsize, int nsegments,
-    bus_size_t maxsegsz, int flags, bus_dma_lock_t *lockfunc,
-    void *lockfuncarg, size_t sz, void **dmat)
+    bus_addr_t highaddr, bus_size_t maxsize, int nsegments, bus_size_t maxsegsz,
+    int flags, bus_dma_lock_t *lockfunc, void *lockfuncarg, size_t sz,
+    void **dmat)
 {
 	void *newtag;
 	struct bus_dma_tag_common *common;
@@ -131,9 +132,9 @@ bus_dma_tag_create(bus_dma_tag_t parent, bus_size_t alignment,
 		    flags, lockfunc, lockfuncarg, dmat);
 	} else {
 		tc = (struct bus_dma_tag_common *)parent;
-		error = tc->impl->tag_create(parent, alignment,
-		    boundary, lowaddr, highaddr, maxsize, nsegments, maxsegsz,
-		    flags, lockfunc, lockfuncarg, dmat);
+		error = tc->impl->tag_create(parent, alignment, boundary,
+		    lowaddr, highaddr, maxsize, nsegments, maxsegsz, flags,
+		    lockfunc, lockfuncarg, dmat);
 	}
 	return (error);
 }

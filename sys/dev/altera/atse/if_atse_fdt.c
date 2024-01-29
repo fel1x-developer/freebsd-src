@@ -31,30 +31,28 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/rman.h>
 #include <sys/socket.h>
-#include <sys/systm.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
+
+#include <dev/altera/atse/if_atsereg.h>
+#include <dev/fdt/fdt_common.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
 
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_media.h>
 #include <net/if_var.h>
-
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-
-#include <dev/fdt/fdt_common.h>
-#include <dev/ofw/openfirm.h>
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/altera/atse/if_atsereg.h>
 
 /* "device miibus" required.  See GENERIC if you get errors here. */
 #include "miibus_if.h"
@@ -67,7 +65,7 @@ atse_probe_fdt(device_t dev)
 		return (ENXIO);
 
 	if (!ofw_bus_is_compatible(dev, "altera,atse")) {
-       		return (ENXIO);
+		return (ENXIO);
 	}
 
 	device_set_desc(dev, "Altera Triple-Speed Ethernet MegaCore");
@@ -107,7 +105,7 @@ atse_attach_fdt(device_t dev)
 		device_printf(sc->atse_dev, "MAC ctrl region at mem %p-%p\n",
 		    (void *)rman_get_start(sc->atse_mem_res),
 		    (void *)(rman_get_start(sc->atse_mem_res) +
-		    rman_get_size(sc->atse_mem_res)));
+			rman_get_size(sc->atse_mem_res)));
 
 	error = atse_attach(dev);
 	if (error) {
@@ -122,23 +120,20 @@ atse_attach_fdt(device_t dev)
 
 static device_method_t atse_methods_fdt[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		atse_probe_fdt),
-	DEVMETHOD(device_attach,	atse_attach_fdt),
-	DEVMETHOD(device_detach,	atse_detach_dev),
+	DEVMETHOD(device_probe, atse_probe_fdt),
+	DEVMETHOD(device_attach, atse_attach_fdt),
+	DEVMETHOD(device_detach, atse_detach_dev),
 
 	/* MII interface */
-	DEVMETHOD(miibus_readreg,	atse_miibus_readreg),
-	DEVMETHOD(miibus_writereg,	atse_miibus_writereg),
-	DEVMETHOD(miibus_statchg,	atse_miibus_statchg),
+	DEVMETHOD(miibus_readreg, atse_miibus_readreg),
+	DEVMETHOD(miibus_writereg, atse_miibus_writereg),
+	DEVMETHOD(miibus_statchg, atse_miibus_statchg),
 
 	DEVMETHOD_END
 };
 
-static driver_t atse_driver_fdt = {
-	"atse",
-	atse_methods_fdt,
-	sizeof(struct atse_softc)
-};
+static driver_t atse_driver_fdt = { "atse", atse_methods_fdt,
+	sizeof(struct atse_softc) };
 
 DRIVER_MODULE(atse, simplebus, atse_driver_fdt, 0, 0);
 DRIVER_MODULE(miibus, atse, miibus_driver, 0, 0);

@@ -26,35 +26,35 @@
  * ath_hal_9287 struct; so it's convienent to locate the
  * define here.
  */
-#define AR9287_TX_GAIN_TABLE_SIZE		22
+#define AR9287_TX_GAIN_TABLE_SIZE 22
 
 struct ath_hal_9287 {
 	struct ath_hal_5416 ah_5416;
 
-	HAL_INI_ARRAY	ah_ini_xmodes;
-	HAL_INI_ARRAY	ah_ini_rxgain;
-	HAL_INI_ARRAY	ah_ini_txgain;
+	HAL_INI_ARRAY ah_ini_xmodes;
+	HAL_INI_ARRAY ah_ini_rxgain;
+	HAL_INI_ARRAY ah_ini_txgain;
 
-	HAL_INI_ARRAY	ah_ini_cckFirNormal;
-	HAL_INI_ARRAY	ah_ini_cckFirJapan2484;
+	HAL_INI_ARRAY ah_ini_cckFirNormal;
+	HAL_INI_ARRAY ah_ini_cckFirJapan2484;
 
 	int PDADCdelta;
 
-	uint32_t	originalGain[AR9287_TX_GAIN_TABLE_SIZE];
+	uint32_t originalGain[AR9287_TX_GAIN_TABLE_SIZE];
 };
-#define	AH9287(_ah)	((struct ath_hal_9287 *)(_ah))
+#define AH9287(_ah) ((struct ath_hal_9287 *)(_ah))
 
-#define	AR9287_DEFAULT_RXCHAINMASK	3
-#define	AR9287_DEFAULT_TXCHAINMASK	3
+#define AR9287_DEFAULT_RXCHAINMASK 3
+#define AR9287_DEFAULT_TXCHAINMASK 3
 
-#define	AR_PHY_CCA_NOM_VAL_9287_2GHZ		-112
-#define	AR_PHY_CCA_NOM_VAL_9287_5GHZ		-112
-#define	AR_PHY_CCA_MIN_GOOD_VAL_9287_2GHZ	-127
-#define	AR_PHY_CCA_MIN_GOOD_VAL_9287_5GHZ	-122
-#define	AR_PHY_CCA_MAX_GOOD_VAL_9287_2GHZ	-97
-#define	AR_PHY_CCA_MAX_GOOD_VAL_9287_5GHZ	-102
+#define AR_PHY_CCA_NOM_VAL_9287_2GHZ -112
+#define AR_PHY_CCA_NOM_VAL_9287_5GHZ -112
+#define AR_PHY_CCA_MIN_GOOD_VAL_9287_2GHZ -127
+#define AR_PHY_CCA_MIN_GOOD_VAL_9287_5GHZ -122
+#define AR_PHY_CCA_MAX_GOOD_VAL_9287_2GHZ -97
+#define AR_PHY_CCA_MAX_GOOD_VAL_9287_5GHZ -102
 
-extern	HAL_BOOL ar9287RfAttach(struct ath_hal *, HAL_STATUS *);
-extern	HAL_BOOL ar9287SetAntennaSwitch(struct ath_hal *, HAL_ANT_SETTING);
+extern HAL_BOOL ar9287RfAttach(struct ath_hal *, HAL_STATUS *);
+extern HAL_BOOL ar9287SetAntennaSwitch(struct ath_hal *, HAL_ANT_SETTING);
 
-#endif	/* _ATH_AR9287_H_ */
+#endif /* _ATH_AR9287_H_ */

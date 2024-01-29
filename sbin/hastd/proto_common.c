@@ -45,7 +45,7 @@
 
 /* Maximum size of packet we want to use when sending data. */
 #ifndef MAX_SEND_SIZE
-#define	MAX_SEND_SIZE	32768
+#define MAX_SEND_SIZE 32768
 #endif
 
 static bool
@@ -126,10 +126,12 @@ proto_common_send(int sock, const unsigned char *data, size_t size, int fd)
 				 * This gives 11s of total wait time.
 				 */
 				if (errcount == 15) {
-					pjdlog_warning("Getting ENOBUFS errors for 11s on send(), giving up.");
+					pjdlog_warning(
+					    "Getting ENOBUFS errors for 11s on send(), giving up.");
 				} else {
 					if (errcount == 0)
-						pjdlog_warning("Got ENOBUFS error on send(), retrying for a bit.");
+						pjdlog_warning(
+						    "Got ENOBUFS error on send(), retrying for a bit.");
 					errcount++;
 					usleep(100000 * errcount);
 					continue;

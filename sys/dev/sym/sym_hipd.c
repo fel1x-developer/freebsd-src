@@ -58,7 +58,7 @@
  */
 
 #include <sys/cdefs.h>
-#define SYM_DRIVER_NAME	"sym-1.6.5-20000902"
+#define SYM_DRIVER_NAME "sym-1.6.5-20000902"
 
 /* #define SYM_DEBUG_GENERIC_SUPPORT */
 
@@ -68,44 +68,41 @@
  *  Driver configuration options.
  */
 #include "opt_sym.h"
-#include <dev/sym/sym_conf.h>
 
 #include <sys/systm.h>
-#include <sys/malloc.h>
+#include <sys/bus.h>
 #include <sys/endian.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
-#include <sys/mutex.h>
+#include <sys/malloc.h>
 #include <sys/module.h>
-#include <sys/bus.h>
-
+#include <sys/mutex.h>
 #include <sys/proc.h>
+#include <sys/rman.h>
+
+#include <machine/atomic.h>
+#include <machine/bus.h>
+#include <machine/resource.h>
 
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
-
-#include <machine/bus.h>
-#include <machine/resource.h>
-#include <machine/atomic.h>
-
-#include <sys/rman.h>
+#include <dev/sym/sym_conf.h>
 
 #include <cam/cam.h>
 #include <cam/cam_ccb.h>
+#include <cam/cam_debug.h>
 #include <cam/cam_sim.h>
 #include <cam/cam_xpt_sim.h>
-#include <cam/cam_debug.h>
-
 #include <cam/scsi/scsi_all.h>
 #include <cam/scsi/scsi_message.h>
 
 /* Short and quite clear integer types */
-typedef int8_t    s8;
-typedef int16_t   s16;
-typedef	int32_t   s32;
-typedef u_int8_t  u8;
+typedef int8_t s8;
+typedef int16_t s16;
+typedef int32_t s32;
+typedef u_int8_t u8;
 typedef u_int16_t u16;
-typedef	u_int32_t u32;
+typedef u_int32_t u32;
 
 /*
  *  Driver definitions.
@@ -123,81 +120,88 @@ typedef	u_int32_t u32;
  *  requires memory barriers (and also IO barriers when they
  *  make sense) to be used.
  */
-#if	defined	__i386__ || defined __amd64__
-#define MEMORY_BARRIER()	do { ; } while(0)
-#elif	defined	__powerpc__
-#define MEMORY_BARRIER()	__asm__ volatile("eieio; sync" : : : "memory")
-#elif	defined	__arm__
-#define MEMORY_BARRIER()	dmb()
-#elif	defined	__aarch64__
-#define MEMORY_BARRIER()	dmb(sy)
-#elif	defined __riscv
-#define MEMORY_BARRIER()	fence()
+#if defined __i386__ || defined __amd64__
+#define MEMORY_BARRIER() \
+	do {             \
+		;        \
+	} while (0)
+#elif defined __powerpc__
+#define MEMORY_BARRIER() __asm__ volatile("eieio; sync" : : : "memory")
+#elif defined __arm__
+#define MEMORY_BARRIER() dmb()
+#elif defined __aarch64__
+#define MEMORY_BARRIER() dmb(sy)
+#elif defined __riscv
+#define MEMORY_BARRIER() fence()
 #else
-#error	"Not supported platform"
+#error "Not supported platform"
 #endif
 
 /*
  *  A la VMS/CAM-3 queue management.
  */
 typedef struct sym_quehead {
-	struct sym_quehead *flink;	/* Forward  pointer */
-	struct sym_quehead *blink;	/* Backward pointer */
+	struct sym_quehead *flink; /* Forward  pointer */
+	struct sym_quehead *blink; /* Backward pointer */
 } SYM_QUEHEAD;
 
-#define sym_que_init(ptr) do { \
-	(ptr)->flink = (ptr); (ptr)->blink = (ptr); \
-} while (0)
+#define sym_que_init(ptr)             \
+	do {                          \
+		(ptr)->flink = (ptr); \
+		(ptr)->blink = (ptr); \
+	} while (0)
 
-static __inline void __sym_que_add(struct sym_quehead * new,
-	struct sym_quehead * blink,
-	struct sym_quehead * flink)
+static __inline void
+__sym_que_add(struct sym_quehead *new, struct sym_quehead *blink,
+    struct sym_quehead *flink)
 {
-	flink->blink	= new;
-	new->flink	= flink;
-	new->blink	= blink;
-	blink->flink	= new;
+	flink->blink = new;
+	new->flink = flink;
+	new->blink = blink;
+	blink->flink = new;
 }
 
-static __inline void __sym_que_del(struct sym_quehead * blink,
-	struct sym_quehead * flink)
+static __inline void
+__sym_que_del(struct sym_quehead *blink, struct sym_quehead *flink)
 {
 	flink->blink = blink;
 	blink->flink = flink;
 }
 
-static __inline int sym_que_empty(struct sym_quehead *head)
+static __inline int
+sym_que_empty(struct sym_quehead *head)
 {
 	return head->flink == head;
 }
 
-static __inline void sym_que_splice(struct sym_quehead *list,
-	struct sym_quehead *head)
+static __inline void
+sym_que_splice(struct sym_quehead *list, struct sym_quehead *head)
 {
 	struct sym_quehead *first = list->flink;
 
 	if (first != list) {
 		struct sym_quehead *last = list->blink;
-		struct sym_quehead *at   = head->flink;
+		struct sym_quehead *at = head->flink;
 
 		first->blink = head;
-		head->flink  = first;
+		head->flink = first;
 
 		last->flink = at;
-		at->blink   = last;
+		at->blink = last;
 	}
 }
 
 #define sym_que_entry(ptr, type, member) \
-	((type *)((char *)(ptr)-(size_t)(&((type *)0)->member)))
+	((type *)((char *)(ptr) - (size_t)(&((type *)0)->member)))
 
-#define sym_insque(new, pos)		__sym_que_add(new, pos, (pos)->flink)
+#define sym_insque(new, pos) __sym_que_add(new, pos, (pos)->flink)
 
-#define sym_remque(el)			__sym_que_del((el)->blink, (el)->flink)
+#define sym_remque(el) __sym_que_del((el)->blink, (el)->flink)
 
-#define sym_insque_head(new, head)	__sym_que_add(new, head, (head)->flink)
+#define sym_insque_head(new, head) __sym_que_add(new, head, (head)->flink)
 
-static __inline struct sym_quehead *sym_remque_head(struct sym_quehead *head)
+static __inline struct sym_quehead *
+sym_remque_head(struct sym_quehead *head)
 {
 	struct sym_quehead *elem = head->flink;
 
@@ -208,7 +212,7 @@ static __inline struct sym_quehead *sym_remque_head(struct sym_quehead *head)
 	return elem;
 }
 
-#define sym_insque_tail(new, head)	__sym_que_add(new, (head)->blink, head)
+#define sym_insque_tail(new, head) __sym_que_add(new, (head)->blink, head)
 
 /*
  *  This one may be useful.
@@ -219,58 +223,58 @@ static __inline struct sym_quehead *sym_remque_head(struct sym_quehead *head)
  *  FreeBSD does not offer our kind of queue in the CAM CCB.
  *  So, we have to cast.
  */
-#define sym_qptr(p)	((struct sym_quehead *) (p))
+#define sym_qptr(p) ((struct sym_quehead *)(p))
 
 /*
  *  Simple bitmap operations.
  */
-#define sym_set_bit(p, n)	(((u32 *)(p))[(n)>>5] |=  (1<<((n)&0x1f)))
-#define sym_clr_bit(p, n)	(((u32 *)(p))[(n)>>5] &= ~(1<<((n)&0x1f)))
-#define sym_is_bit(p, n)	(((u32 *)(p))[(n)>>5] &   (1<<((n)&0x1f)))
+#define sym_set_bit(p, n) (((u32 *)(p))[(n) >> 5] |= (1 << ((n) & 0x1f)))
+#define sym_clr_bit(p, n) (((u32 *)(p))[(n) >> 5] &= ~(1 << ((n) & 0x1f)))
+#define sym_is_bit(p, n) (((u32 *)(p))[(n) >> 5] & (1 << ((n) & 0x1f)))
 
 /*
  *  Number of tasks per device we want to handle.
  */
-#if	SYM_CONF_MAX_TAG_ORDER > 8
-#error	"more than 256 tags per logical unit not allowed."
+#if SYM_CONF_MAX_TAG_ORDER > 8
+#error "more than 256 tags per logical unit not allowed."
 #endif
-#define	SYM_CONF_MAX_TASK	(1<<SYM_CONF_MAX_TAG_ORDER)
+#define SYM_CONF_MAX_TASK (1 << SYM_CONF_MAX_TAG_ORDER)
 
 /*
  *  Donnot use more tasks that we can handle.
  */
-#ifndef	SYM_CONF_MAX_TAG
-#define	SYM_CONF_MAX_TAG	SYM_CONF_MAX_TASK
+#ifndef SYM_CONF_MAX_TAG
+#define SYM_CONF_MAX_TAG SYM_CONF_MAX_TASK
 #endif
-#if	SYM_CONF_MAX_TAG > SYM_CONF_MAX_TASK
-#undef	SYM_CONF_MAX_TAG
-#define	SYM_CONF_MAX_TAG	SYM_CONF_MAX_TASK
+#if SYM_CONF_MAX_TAG > SYM_CONF_MAX_TASK
+#undef SYM_CONF_MAX_TAG
+#define SYM_CONF_MAX_TAG SYM_CONF_MAX_TASK
 #endif
 
 /*
  *    This one means 'NO TAG for this job'
  */
-#define NO_TAG	(256)
+#define NO_TAG (256)
 
 /*
  *  Number of SCSI targets.
  */
-#if	SYM_CONF_MAX_TARGET > 16
-#error	"more than 16 targets not allowed."
+#if SYM_CONF_MAX_TARGET > 16
+#error "more than 16 targets not allowed."
 #endif
 
 /*
  *  Number of logical units per target.
  */
-#if	SYM_CONF_MAX_LUN > 64
-#error	"more than 64 logical units per target not allowed."
+#if SYM_CONF_MAX_LUN > 64
+#error "more than 64 logical units per target not allowed."
 #endif
 
 /*
  *    Asynchronous pre-scaler (ns). Shall be 40 for
  *    the SCSI timings to be compliant.
  */
-#define	SYM_CONF_MIN_ASYNC (40)
+#define SYM_CONF_MIN_ASYNC (40)
 
 /*
  *  Number of entries in the START and DONE queues.
@@ -278,56 +282,65 @@ static __inline struct sym_quehead *sym_remque_head(struct sym_quehead *head)
  *  We limit to 1 PAGE in order to succeed allocation of
  *  these queues. Each entry is 8 bytes long (2 DWORDS).
  */
-#ifdef	SYM_CONF_MAX_START
-#define	SYM_CONF_MAX_QUEUE (SYM_CONF_MAX_START+2)
+#ifdef SYM_CONF_MAX_START
+#define SYM_CONF_MAX_QUEUE (SYM_CONF_MAX_START + 2)
 #else
-#define	SYM_CONF_MAX_QUEUE (7*SYM_CONF_MAX_TASK+2)
-#define	SYM_CONF_MAX_START (SYM_CONF_MAX_QUEUE-2)
+#define SYM_CONF_MAX_QUEUE (7 * SYM_CONF_MAX_TASK + 2)
+#define SYM_CONF_MAX_START (SYM_CONF_MAX_QUEUE - 2)
 #endif
 
-#if	SYM_CONF_MAX_QUEUE > PAGE_SIZE/8
-#undef	SYM_CONF_MAX_QUEUE
-#define	SYM_CONF_MAX_QUEUE   PAGE_SIZE/8
-#undef	SYM_CONF_MAX_START
-#define	SYM_CONF_MAX_START (SYM_CONF_MAX_QUEUE-2)
+#if SYM_CONF_MAX_QUEUE > PAGE_SIZE / 8
+#undef SYM_CONF_MAX_QUEUE
+#define SYM_CONF_MAX_QUEUE PAGE_SIZE / 8
+#undef SYM_CONF_MAX_START
+#define SYM_CONF_MAX_START (SYM_CONF_MAX_QUEUE - 2)
 #endif
 
 /*
  *  For this one, we want a short name :-)
  */
-#define MAX_QUEUE	SYM_CONF_MAX_QUEUE
+#define MAX_QUEUE SYM_CONF_MAX_QUEUE
 
 /*
  *  Active debugging tags and verbosity.
  */
-#define DEBUG_ALLOC	(0x0001)
-#define DEBUG_PHASE	(0x0002)
-#define DEBUG_POLL	(0x0004)
-#define DEBUG_QUEUE	(0x0008)
-#define DEBUG_RESULT	(0x0010)
-#define DEBUG_SCATTER	(0x0020)
-#define DEBUG_SCRIPT	(0x0040)
-#define DEBUG_TINY	(0x0080)
-#define DEBUG_TIMING	(0x0100)
-#define DEBUG_NEGO	(0x0200)
-#define DEBUG_TAGS	(0x0400)
-#define DEBUG_POINTER	(0x0800)
+#define DEBUG_ALLOC (0x0001)
+#define DEBUG_PHASE (0x0002)
+#define DEBUG_POLL (0x0004)
+#define DEBUG_QUEUE (0x0008)
+#define DEBUG_RESULT (0x0010)
+#define DEBUG_SCATTER (0x0020)
+#define DEBUG_SCRIPT (0x0040)
+#define DEBUG_TINY (0x0080)
+#define DEBUG_TIMING (0x0100)
+#define DEBUG_NEGO (0x0200)
+#define DEBUG_TAGS (0x0400)
+#define DEBUG_POINTER (0x0800)
 
 #if 0
 static int sym_debug = 0;
-	#define DEBUG_FLAGS sym_debug
+#define DEBUG_FLAGS sym_debug
 #else
 /*	#define DEBUG_FLAGS (0x0631) */
-	#define DEBUG_FLAGS (0x0000)
+#define DEBUG_FLAGS (0x0000)
 
 #endif
-#define sym_verbose	(np->verbose)
+#define sym_verbose (np->verbose)
 
 /*
  *  Insert a delay in micro-seconds and milli-seconds.
  */
-static void UDELAY(int us) { DELAY(us); }
-static void MDELAY(int ms) { while (ms--) UDELAY(1000); }
+static void
+UDELAY(int us)
+{
+	DELAY(us);
+}
+static void
+MDELAY(int ms)
+{
+	while (ms--)
+		UDELAY(1000);
+}
 
 /*
  *  Simple power of two buddy-like allocator.
@@ -346,54 +359,55 @@ static void MDELAY(int ms) { while (ms--) UDELAY(1000); }
  *  pages of memory that will be useful if we ever need to deal
  *  with IO MMUs for PCI.
  */
-#define MEMO_SHIFT	4	/* 16 bytes minimum memory chunk */
-#define MEMO_PAGE_ORDER	0	/* 1 PAGE  maximum */
+#define MEMO_SHIFT 4	  /* 16 bytes minimum memory chunk */
+#define MEMO_PAGE_ORDER 0 /* 1 PAGE  maximum */
 #if 0
-#define MEMO_FREE_UNUSED	/* Free unused pages immediately */
+#define MEMO_FREE_UNUSED /* Free unused pages immediately */
 #endif
-#define MEMO_WARN	1
-#define MEMO_CLUSTER_SHIFT	(PAGE_SHIFT+MEMO_PAGE_ORDER)
-#define MEMO_CLUSTER_SIZE	(1UL << MEMO_CLUSTER_SHIFT)
-#define MEMO_CLUSTER_MASK	(MEMO_CLUSTER_SIZE-1)
+#define MEMO_WARN 1
+#define MEMO_CLUSTER_SHIFT (PAGE_SHIFT + MEMO_PAGE_ORDER)
+#define MEMO_CLUSTER_SIZE (1UL << MEMO_CLUSTER_SHIFT)
+#define MEMO_CLUSTER_MASK (MEMO_CLUSTER_SIZE - 1)
 
-#define get_pages()		malloc(MEMO_CLUSTER_SIZE, M_DEVBUF, M_NOWAIT)
-#define free_pages(p)		free((p), M_DEVBUF)
+#define get_pages() malloc(MEMO_CLUSTER_SIZE, M_DEVBUF, M_NOWAIT)
+#define free_pages(p) free((p), M_DEVBUF)
 
-typedef u_long m_addr_t;	/* Enough bits to bit-hack addresses */
+typedef u_long m_addr_t; /* Enough bits to bit-hack addresses */
 
-typedef struct m_link {		/* Link between free memory chunks */
+typedef struct m_link { /* Link between free memory chunks */
 	struct m_link *next;
 } m_link_s;
 
-typedef struct m_vtob {		/* Virtual to Bus address translation */
-	struct m_vtob	*next;
-	bus_dmamap_t	dmamap;	/* Map for this chunk */
-	m_addr_t	vaddr;	/* Virtual address */
-	m_addr_t	baddr;	/* Bus physical address */
+typedef struct m_vtob { /* Virtual to Bus address translation */
+	struct m_vtob *next;
+	bus_dmamap_t dmamap; /* Map for this chunk */
+	m_addr_t vaddr;	     /* Virtual address */
+	m_addr_t baddr;	     /* Bus physical address */
 } m_vtob_s;
 /* Hash this stuff a bit to speed up translations */
-#define VTOB_HASH_SHIFT		5
-#define VTOB_HASH_SIZE		(1UL << VTOB_HASH_SHIFT)
-#define VTOB_HASH_MASK		(VTOB_HASH_SIZE-1)
-#define VTOB_HASH_CODE(m)	\
-	((((m_addr_t) (m)) >> MEMO_CLUSTER_SHIFT) & VTOB_HASH_MASK)
+#define VTOB_HASH_SHIFT 5
+#define VTOB_HASH_SIZE (1UL << VTOB_HASH_SHIFT)
+#define VTOB_HASH_MASK (VTOB_HASH_SIZE - 1)
+#define VTOB_HASH_CODE(m) \
+	((((m_addr_t)(m)) >> MEMO_CLUSTER_SHIFT) & VTOB_HASH_MASK)
 
 typedef struct m_pool {		/* Memory pool of a given kind */
-	bus_dma_tag_t	 dev_dmat;	/* Identifies the pool */
-	bus_dma_tag_t	 dmat;		/* Tag for our fixed allocations */
+	bus_dma_tag_t dev_dmat; /* Identifies the pool */
+	bus_dma_tag_t dmat;	/* Tag for our fixed allocations */
 	m_addr_t (*getp)(struct m_pool *);
-#ifdef	MEMO_FREE_UNUSED
+#ifdef MEMO_FREE_UNUSED
 	void (*freep)(struct m_pool *, m_addr_t);
 #endif
-#define M_GETP()		mp->getp(mp)
-#define M_FREEP(p)		mp->freep(mp, p)
+#define M_GETP() mp->getp(mp)
+#define M_FREEP(p) mp->freep(mp, p)
 	int nump;
 	m_vtob_s *(vtob[VTOB_HASH_SIZE]);
 	struct m_pool *next;
 	struct m_link h[MEMO_CLUSTER_SHIFT - MEMO_SHIFT + 1];
 } m_pool_s;
 
-static void *___sym_malloc(m_pool_s *mp, int size)
+static void *
+___sym_malloc(m_pool_s *mp, int size)
 {
 	int i = 0;
 	int s = (1 << MEMO_SHIFT);
@@ -412,7 +426,7 @@ static void *___sym_malloc(m_pool_s *mp, int size)
 	j = i;
 	while (!h[j].next) {
 		if (s == MEMO_CLUSTER_SIZE) {
-			h[j].next = (m_link_s *) M_GETP();
+			h[j].next = (m_link_s *)M_GETP();
 			if (h[j].next)
 				h[j].next->next = NULL;
 			break;
@@ -420,23 +434,24 @@ static void *___sym_malloc(m_pool_s *mp, int size)
 		++j;
 		s <<= 1;
 	}
-	a = (m_addr_t) h[j].next;
+	a = (m_addr_t)h[j].next;
 	if (a) {
 		h[j].next = h[j].next->next;
 		while (j > i) {
 			j -= 1;
 			s >>= 1;
-			h[j].next = (m_link_s *) (a+s);
+			h[j].next = (m_link_s *)(a + s);
 			h[j].next->next = NULL;
 		}
 	}
 #ifdef DEBUG
-	printf("___sym_malloc(%d) = %p\n", size, (void *) a);
+	printf("___sym_malloc(%d) = %p\n", size, (void *)a);
 #endif
-	return (void *) a;
+	return (void *)a;
 }
 
-static void ___sym_mfree(m_pool_s *mp, void *ptr, int size)
+static void
+___sym_mfree(m_pool_s *mp, void *ptr, int size)
 {
 	int i = 0;
 	int s = (1 << MEMO_SHIFT);
@@ -456,7 +471,7 @@ static void ___sym_mfree(m_pool_s *mp, void *ptr, int size)
 		++i;
 	}
 
-	a = (m_addr_t) ptr;
+	a = (m_addr_t)ptr;
 
 	while (1) {
 #ifdef MEMO_FREE_UNUSED
@@ -467,12 +482,12 @@ static void ___sym_mfree(m_pool_s *mp, void *ptr, int size)
 #endif
 		b = a ^ s;
 		q = &h[i];
-		while (q->next && q->next != (m_link_s *) b) {
+		while (q->next && q->next != (m_link_s *)b) {
 			q = q->next;
 		}
 		if (!q->next) {
-			((m_link_s *) a)->next = h[i].next;
-			h[i].next = (m_link_s *) a;
+			((m_link_s *)a)->next = h[i].next;
+			h[i].next = (m_link_s *)a;
 			break;
 		}
 		q->next = q->next->next;
@@ -482,32 +497,34 @@ static void ___sym_mfree(m_pool_s *mp, void *ptr, int size)
 	}
 }
 
-static void *__sym_calloc2(m_pool_s *mp, int size, char *name, int uflags)
+static void *
+__sym_calloc2(m_pool_s *mp, int size, char *name, int uflags)
 {
 	void *p;
 
 	p = ___sym_malloc(mp, size);
 
 	if (DEBUG_FLAGS & DEBUG_ALLOC)
-		printf ("new %-10s[%4d] @%p.\n", name, size, p);
+		printf("new %-10s[%4d] @%p.\n", name, size, p);
 
 	if (p)
 		bzero(p, size);
 	else if (uflags & MEMO_WARN)
-		printf ("__sym_calloc2: failed to allocate %s[%d]\n", name, size);
+		printf("__sym_calloc2: failed to allocate %s[%d]\n", name,
+		    size);
 
 	return p;
 }
 
-#define __sym_calloc(mp, s, n)	__sym_calloc2(mp, s, n, MEMO_WARN)
+#define __sym_calloc(mp, s, n) __sym_calloc2(mp, s, n, MEMO_WARN)
 
-static void __sym_mfree(m_pool_s *mp, void *ptr, int size, char *name)
+static void
+__sym_mfree(m_pool_s *mp, void *ptr, int size, char *name)
 {
 	if (DEBUG_FLAGS & DEBUG_ALLOC)
-		printf ("freeing %-10s[%4d] @%p.\n", name, size, ptr);
+		printf("freeing %-10s[%4d] @%p.\n", name, size, ptr);
 
 	___sym_mfree(mp, ptr, size);
-
 }
 
 /*
@@ -517,32 +534,35 @@ static void __sym_mfree(m_pool_s *mp, void *ptr, int size, char *name)
  * With the `bus dma abstraction', we use a separate pool for
  * memory we donnot need to involve in DMA.
  */
-static m_addr_t ___mp0_getp(m_pool_s *mp)
+static m_addr_t
+___mp0_getp(m_pool_s *mp)
 {
-	m_addr_t m = (m_addr_t) get_pages();
+	m_addr_t m = (m_addr_t)get_pages();
 	if (m)
 		++mp->nump;
 	return m;
 }
 
-#ifdef	MEMO_FREE_UNUSED
-static void ___mp0_freep(m_pool_s *mp, m_addr_t m)
+#ifdef MEMO_FREE_UNUSED
+static void
+___mp0_freep(m_pool_s *mp, m_addr_t m)
 {
 	free_pages(m);
 	--mp->nump;
 }
 #endif
 
-#ifdef	MEMO_FREE_UNUSED
-static m_pool_s mp0 = {0, 0, ___mp0_getp, ___mp0_freep};
+#ifdef MEMO_FREE_UNUSED
+static m_pool_s mp0 = { 0, 0, ___mp0_getp, ___mp0_freep };
 #else
-static m_pool_s mp0 = {0, 0, ___mp0_getp};
+static m_pool_s mp0 = { 0, 0, ___mp0_getp };
 #endif
 
 /*
  * Actual memory allocation routine for non-DMAed memory.
  */
-static void *sym_calloc(int size, char *name)
+static void *
+sym_calloc(int size, char *name)
 {
 	void *m;
 	/* Lock */
@@ -554,7 +574,8 @@ static void *sym_calloc(int size, char *name)
 /*
  * Actual memory allocation routine for non-DMAed memory.
  */
-static void sym_mfree(void *ptr, int size, char *name)
+static void
+sym_mfree(void *ptr, int size, char *name)
 {
 	/* Lock */
 	__sym_mfree(&mp0, ptr, size, name);
@@ -569,8 +590,8 @@ static void sym_mfree(void *ptr, int size, char *name)
  * BUS handle. A reverse table (hashed) is maintained for virtual
  * to BUS address translation.
  */
-static void getbaddrcb(void *arg, bus_dma_segment_t *segs, int nseg __diagused,
-    int error)
+static void
+getbaddrcb(void *arg, bus_dma_segment_t *segs, int nseg __diagused, int error)
 {
 	bus_addr_t *baddr;
 
@@ -583,7 +604,8 @@ static void getbaddrcb(void *arg, bus_dma_segment_t *segs, int nseg __diagused,
 		*baddr = segs->ds_addr;
 }
 
-static m_addr_t ___dma_getp(m_pool_s *mp)
+static m_addr_t
+___dma_getp(m_pool_s *mp)
 {
 	m_vtob_s *vbp;
 	void *vaddr = NULL;
@@ -594,18 +616,18 @@ static m_addr_t ___dma_getp(m_pool_s *mp)
 		goto out_err;
 
 	if (bus_dmamem_alloc(mp->dmat, &vaddr,
-			BUS_DMA_COHERENT | BUS_DMA_WAITOK, &vbp->dmamap))
+		BUS_DMA_COHERENT | BUS_DMA_WAITOK, &vbp->dmamap))
 		goto out_err;
-	bus_dmamap_load(mp->dmat, vbp->dmamap, vaddr,
-			MEMO_CLUSTER_SIZE, getbaddrcb, &baddr, BUS_DMA_NOWAIT);
+	bus_dmamap_load(mp->dmat, vbp->dmamap, vaddr, MEMO_CLUSTER_SIZE,
+	    getbaddrcb, &baddr, BUS_DMA_NOWAIT);
 	if (baddr) {
 		int hc = VTOB_HASH_CODE(vaddr);
-		vbp->vaddr = (m_addr_t) vaddr;
-		vbp->baddr = (m_addr_t) baddr;
+		vbp->vaddr = (m_addr_t)vaddr;
+		vbp->baddr = (m_addr_t)baddr;
 		vbp->next = mp->vtob[hc];
 		mp->vtob[hc] = vbp;
 		++mp->nump;
-		return (m_addr_t) vaddr;
+		return (m_addr_t)vaddr;
 	}
 out_err:
 	if (vaddr)
@@ -615,8 +637,9 @@ out_err:
 	return 0;
 }
 
-#ifdef	MEMO_FREE_UNUSED
-static void ___dma_freep(m_pool_s *mp, m_addr_t m)
+#ifdef MEMO_FREE_UNUSED
+static void
+___dma_freep(m_pool_s *mp, m_addr_t m)
 {
 	m_vtob_s **vbpp, *vbp;
 	int hc = VTOB_HASH_CODE(m);
@@ -628,21 +651,24 @@ static void ___dma_freep(m_pool_s *mp, m_addr_t m)
 		vbp = *vbpp;
 		*vbpp = (*vbpp)->next;
 		bus_dmamap_unload(mp->dmat, vbp->dmamap);
-		bus_dmamem_free(mp->dmat, (void *) vbp->vaddr, vbp->dmamap);
+		bus_dmamem_free(mp->dmat, (void *)vbp->vaddr, vbp->dmamap);
 		__sym_mfree(&mp0, vbp, sizeof(*vbp), "VTOB");
 		--mp->nump;
 	}
 }
 #endif
 
-static __inline m_pool_s *___get_dma_pool(bus_dma_tag_t dev_dmat)
+static __inline m_pool_s *
+___get_dma_pool(bus_dma_tag_t dev_dmat)
 {
 	m_pool_s *mp;
-	for (mp = mp0.next; mp && mp->dev_dmat != dev_dmat; mp = mp->next);
+	for (mp = mp0.next; mp && mp->dev_dmat != dev_dmat; mp = mp->next)
+		;
 	return mp;
 }
 
-static m_pool_s *___cre_dma_pool(bus_dma_tag_t dev_dmat)
+static m_pool_s *
+___cre_dma_pool(bus_dma_tag_t dev_dmat)
 {
 	m_pool_s *mp = NULL;
 
@@ -650,13 +676,11 @@ static m_pool_s *___cre_dma_pool(bus_dma_tag_t dev_dmat)
 	if (mp) {
 		mp->dev_dmat = dev_dmat;
 		if (!bus_dma_tag_create(dev_dmat, 1, MEMO_CLUSTER_SIZE,
-			       BUS_SPACE_MAXADDR_32BIT,
-			       BUS_SPACE_MAXADDR,
-			       NULL, NULL, MEMO_CLUSTER_SIZE, 1,
-			       MEMO_CLUSTER_SIZE, 0,
-			       NULL, NULL, &mp->dmat)) {
+			BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR, NULL, NULL,
+			MEMO_CLUSTER_SIZE, 1, MEMO_CLUSTER_SIZE, 0, NULL, NULL,
+			&mp->dmat)) {
 			mp->getp = ___dma_getp;
-#ifdef	MEMO_FREE_UNUSED
+#ifdef MEMO_FREE_UNUSED
 			mp->freep = ___dma_freep;
 #endif
 			mp->next = mp0.next;
@@ -669,8 +693,9 @@ static m_pool_s *___cre_dma_pool(bus_dma_tag_t dev_dmat)
 	return NULL;
 }
 
-#ifdef	MEMO_FREE_UNUSED
-static void ___del_dma_pool(m_pool_s *p)
+#ifdef MEMO_FREE_UNUSED
+static void
+___del_dma_pool(m_pool_s *p)
 {
 	struct m_pool **pp = &mp0.next;
 
@@ -684,7 +709,8 @@ static void ___del_dma_pool(m_pool_s *p)
 }
 #endif
 
-static void *__sym_calloc_dma(bus_dma_tag_t dev_dmat, int size, char *name)
+static void *
+__sym_calloc_dma(bus_dma_tag_t dev_dmat, int size, char *name)
 {
 	struct m_pool *mp;
 	void *m = NULL;
@@ -695,7 +721,7 @@ static void *__sym_calloc_dma(bus_dma_tag_t dev_dmat, int size, char *name)
 		mp = ___cre_dma_pool(dev_dmat);
 	if (mp)
 		m = __sym_calloc(mp, size, name);
-#ifdef	MEMO_FREE_UNUSED
+#ifdef MEMO_FREE_UNUSED
 	if (mp && !mp->nump)
 		___del_dma_pool(mp);
 #endif
@@ -713,31 +739,32 @@ __sym_mfree_dma(bus_dma_tag_t dev_dmat, void *m, int size, char *name)
 	mp = ___get_dma_pool(dev_dmat);
 	if (mp)
 		__sym_mfree(mp, m, size, name);
-#ifdef	MEMO_FREE_UNUSED
+#ifdef MEMO_FREE_UNUSED
 	if (mp && !mp->nump)
 		___del_dma_pool(mp);
 #endif
 	/* Unlock */
 }
 
-static m_addr_t __vtobus(bus_dma_tag_t dev_dmat, void *m)
+static m_addr_t
+__vtobus(bus_dma_tag_t dev_dmat, void *m)
 {
 	m_pool_s *mp;
 	int hc = VTOB_HASH_CODE(m);
 	m_vtob_s *vp = NULL;
-	m_addr_t a = ((m_addr_t) m) & ~MEMO_CLUSTER_MASK;
+	m_addr_t a = ((m_addr_t)m) & ~MEMO_CLUSTER_MASK;
 
 	/* Lock */
 	mp = ___get_dma_pool(dev_dmat);
 	if (mp) {
 		vp = mp->vtob[hc];
-		while (vp && (m_addr_t) vp->vaddr != a)
+		while (vp && (m_addr_t)vp->vaddr != a)
 			vp = vp->next;
 	}
 	/* Unlock */
 	if (!vp)
 		panic("sym: VTOBUS FAILED!\n");
-	return vp ? vp->baddr + (((m_addr_t) m) - a) : 0;
+	return vp ? vp->baddr + (((m_addr_t)m) - a) : 0;
 }
 
 /*
@@ -746,42 +773,48 @@ static m_addr_t __vtobus(bus_dma_tag_t dev_dmat, void *m)
  * being discarded.
  */
 #define _uvptv_(p) ((void *)((vm_offset_t)(p)))
-#define _sym_calloc_dma(np, s, n)	__sym_calloc_dma(np->bus_dmat, s, n)
-#define _sym_mfree_dma(np, p, s, n)	\
-				__sym_mfree_dma(np->bus_dmat, _uvptv_(p), s, n)
-#define sym_calloc_dma(s, n)		_sym_calloc_dma(np, s, n)
-#define sym_mfree_dma(p, s, n)		_sym_mfree_dma(np, p, s, n)
-#define _vtobus(np, p)			__vtobus(np->bus_dmat, _uvptv_(p))
-#define vtobus(p)			_vtobus(np, p)
+#define _sym_calloc_dma(np, s, n) __sym_calloc_dma(np->bus_dmat, s, n)
+#define _sym_mfree_dma(np, p, s, n) \
+	__sym_mfree_dma(np->bus_dmat, _uvptv_(p), s, n)
+#define sym_calloc_dma(s, n) _sym_calloc_dma(np, s, n)
+#define sym_mfree_dma(p, s, n) _sym_mfree_dma(np, p, s, n)
+#define _vtobus(np, p) __vtobus(np->bus_dmat, _uvptv_(p))
+#define vtobus(p) _vtobus(np, p)
 
 /*
  *  Print a buffer in hexadecimal format.
  */
-static void sym_printb_hex (u_char *p, int n)
+static void
+sym_printb_hex(u_char *p, int n)
 {
 	while (n-- > 0)
-		printf (" %x", *p++);
+		printf(" %x", *p++);
 }
 
 /*
  *  Same with a label at beginning and .\n at end.
  */
-static void sym_printl_hex (char *label, u_char *p, int n)
+static void
+sym_printl_hex(char *label, u_char *p, int n)
 {
-	printf ("%s", label);
-	sym_printb_hex (p, n);
-	printf (".\n");
+	printf("%s", label);
+	sym_printb_hex(p, n);
+	printf(".\n");
 }
 
 /*
  *  Return a string for SCSI BUS mode.
  */
-static const char *sym_scsi_bus_mode(int mode)
+static const char *
+sym_scsi_bus_mode(int mode)
 {
-	switch(mode) {
-	case SMODE_HVD:	return "HVD";
-	case SMODE_SE:	return "SE";
-	case SMODE_LVD: return "LVD";
+	switch (mode) {
+	case SMODE_HVD:
+		return "HVD";
+	case SMODE_SE:
+		return "SE";
+	case SMODE_LVD:
+		return "LVD";
 	}
 	return "??";
 }
@@ -790,8 +823,8 @@ static const char *sym_scsi_bus_mode(int mode)
  *  Some poor and bogus sync table that refers to Tekram NVRAM layout.
  */
 #ifdef SYM_CONF_NVRAM_SUPPORT
-static const u_char Tekram_sync[16] =
-	{25,31,37,43, 50,62,75,125, 12,15,18,21, 6,7,9,10};
+static const u_char Tekram_sync[16] = { 25, 31, 37, 43, 50, 62, 75, 125, 12, 15,
+	18, 21, 6, 7, 9, 10 };
 #endif
 
 /*
@@ -799,9 +832,9 @@ static const u_char Tekram_sync[16] =
  */
 struct sym_nvram {
 	int type;
-#define	SYM_SYMBIOS_NVRAM	(1)
-#define	SYM_TEKRAM_NVRAM	(2)
-#ifdef	SYM_CONF_NVRAM_SUPPORT
+#define SYM_SYMBIOS_NVRAM (1)
+#define SYM_TEKRAM_NVRAM (2)
+#ifdef SYM_CONF_NVRAM_SUPPORT
 	union {
 		Symbios_nvram Symbios;
 		Tekram_nvram Tekram;
@@ -813,14 +846,14 @@ struct sym_nvram {
  *  This one is hopefully useless, but actually useful. :-)
  */
 #ifndef assert
-#define	assert(expression) { \
-	if (!(expression)) { \
-		(void)panic( \
-			"assertion \"%s\" failed: file \"%s\", line %d\n", \
-			#expression, \
-			__FILE__, __LINE__); \
-	} \
-}
+#define assert(expression)                                                     \
+	{                                                                      \
+		if (!(expression)) {                                           \
+			(void)panic(                                           \
+			    "assertion \"%s\" failed: file \"%s\", line %d\n", \
+			    #expression, __FILE__, __LINE__);                  \
+		}                                                              \
+	}
 #endif
 
 /*
@@ -828,14 +861,14 @@ struct sym_nvram {
  *  Symbios chips (never seen, by the way).
  *  For now, this stuff does not deserve any comments. :)
  */
-#define sym_offb(o)	(o)
-#define sym_offw(o)	(o)
+#define sym_offb(o) (o)
+#define sym_offw(o) (o)
 
 /*
  *  Some provision for support for BIG ENDIAN CPU.
  */
-#define cpu_to_scr(dw)	htole32(dw)
-#define scr_to_cpu(dw)	le32toh(dw)
+#define cpu_to_scr(dw) htole32(dw)
+#define scr_to_cpu(dw) le32toh(dw)
 
 /*
  *  Access to the chip IO registers and on-chip RAM.
@@ -844,146 +877,145 @@ struct sym_nvram {
  */
 #if defined(SYM_CONF_IOMAPPED)
 
-#define INB_OFF(o)	bus_read_1(np->io_res, (o))
-#define INW_OFF(o)	bus_read_2(np->io_res, (o))
-#define INL_OFF(o)	bus_read_4(np->io_res, (o))
+#define INB_OFF(o) bus_read_1(np->io_res, (o))
+#define INW_OFF(o) bus_read_2(np->io_res, (o))
+#define INL_OFF(o) bus_read_4(np->io_res, (o))
 
-#define OUTB_OFF(o, v)	bus_write_1(np->io_res, (o), (v))
-#define OUTW_OFF(o, v)	bus_write_2(np->io_res, (o), (v))
-#define OUTL_OFF(o, v)	bus_write_4(np->io_res, (o), (v))
+#define OUTB_OFF(o, v) bus_write_1(np->io_res, (o), (v))
+#define OUTW_OFF(o, v) bus_write_2(np->io_res, (o), (v))
+#define OUTL_OFF(o, v) bus_write_4(np->io_res, (o), (v))
 
-#else	/* Memory mapped IO */
+#else /* Memory mapped IO */
 
-#define INB_OFF(o)	bus_read_1(np->mmio_res, (o))
-#define INW_OFF(o)	bus_read_2(np->mmio_res, (o))
-#define INL_OFF(o)	bus_read_4(np->mmio_res, (o))
+#define INB_OFF(o) bus_read_1(np->mmio_res, (o))
+#define INW_OFF(o) bus_read_2(np->mmio_res, (o))
+#define INL_OFF(o) bus_read_4(np->mmio_res, (o))
 
-#define OUTB_OFF(o, v)	bus_write_1(np->mmio_res, (o), (v))
-#define OUTW_OFF(o, v)	bus_write_2(np->mmio_res, (o), (v))
-#define OUTL_OFF(o, v)	bus_write_4(np->mmio_res, (o), (v))
+#define OUTB_OFF(o, v) bus_write_1(np->mmio_res, (o), (v))
+#define OUTW_OFF(o, v) bus_write_2(np->mmio_res, (o), (v))
+#define OUTL_OFF(o, v) bus_write_4(np->mmio_res, (o), (v))
 
-#endif	/* SYM_CONF_IOMAPPED */
+#endif /* SYM_CONF_IOMAPPED */
 
-#define OUTRAM_OFF(o, a, l)	\
-	bus_write_region_1(np->ram_res, (o), (a), (l))
+#define OUTRAM_OFF(o, a, l) bus_write_region_1(np->ram_res, (o), (a), (l))
 
 /*
  *  Common definitions for both bus space and legacy IO methods.
  */
-#define INB(r)		INB_OFF(offsetof(struct sym_reg,r))
-#define INW(r)		INW_OFF(offsetof(struct sym_reg,r))
-#define INL(r)		INL_OFF(offsetof(struct sym_reg,r))
+#define INB(r) INB_OFF(offsetof(struct sym_reg, r))
+#define INW(r) INW_OFF(offsetof(struct sym_reg, r))
+#define INL(r) INL_OFF(offsetof(struct sym_reg, r))
 
-#define OUTB(r, v)	OUTB_OFF(offsetof(struct sym_reg,r), (v))
-#define OUTW(r, v)	OUTW_OFF(offsetof(struct sym_reg,r), (v))
-#define OUTL(r, v)	OUTL_OFF(offsetof(struct sym_reg,r), (v))
+#define OUTB(r, v) OUTB_OFF(offsetof(struct sym_reg, r), (v))
+#define OUTW(r, v) OUTW_OFF(offsetof(struct sym_reg, r), (v))
+#define OUTL(r, v) OUTL_OFF(offsetof(struct sym_reg, r), (v))
 
-#define OUTONB(r, m)	OUTB(r, INB(r) | (m))
-#define OUTOFFB(r, m)	OUTB(r, INB(r) & ~(m))
-#define OUTONW(r, m)	OUTW(r, INW(r) | (m))
-#define OUTOFFW(r, m)	OUTW(r, INW(r) & ~(m))
-#define OUTONL(r, m)	OUTL(r, INL(r) | (m))
-#define OUTOFFL(r, m)	OUTL(r, INL(r) & ~(m))
+#define OUTONB(r, m) OUTB(r, INB(r) | (m))
+#define OUTOFFB(r, m) OUTB(r, INB(r) & ~(m))
+#define OUTONW(r, m) OUTW(r, INW(r) | (m))
+#define OUTOFFW(r, m) OUTW(r, INW(r) & ~(m))
+#define OUTONL(r, m) OUTL(r, INL(r) | (m))
+#define OUTOFFL(r, m) OUTL(r, INL(r) & ~(m))
 
 /*
  *  We normally want the chip to have a consistent view
  *  of driver internal data structures when we restart it.
  *  Thus these macros.
  */
-#define OUTL_DSP(v)				\
-	do {					\
-		MEMORY_BARRIER();		\
-		OUTL (nc_dsp, (v));		\
+#define OUTL_DSP(v)                \
+	do {                       \
+		MEMORY_BARRIER();  \
+		OUTL(nc_dsp, (v)); \
 	} while (0)
 
-#define OUTONB_STD()				\
-	do {					\
-		MEMORY_BARRIER();		\
-		OUTONB (nc_dcntl, (STD|NOCOM));	\
+#define OUTONB_STD()                             \
+	do {                                     \
+		MEMORY_BARRIER();                \
+		OUTONB(nc_dcntl, (STD | NOCOM)); \
 	} while (0)
 
 /*
  *  Command control block states.
  */
-#define HS_IDLE		(0)
-#define HS_BUSY		(1)
-#define HS_NEGOTIATE	(2)	/* sync/wide data transfer*/
-#define HS_DISCONNECT	(3)	/* Disconnected by target */
-#define HS_WAIT		(4)	/* waiting for resource	  */
+#define HS_IDLE (0)
+#define HS_BUSY (1)
+#define HS_NEGOTIATE (2)  /* sync/wide data transfer*/
+#define HS_DISCONNECT (3) /* Disconnected by target */
+#define HS_WAIT (4)	  /* waiting for resource	  */
 
-#define HS_DONEMASK	(0x80)
-#define HS_COMPLETE	(4|HS_DONEMASK)
-#define HS_SEL_TIMEOUT	(5|HS_DONEMASK)	/* Selection timeout      */
-#define HS_UNEXPECTED	(6|HS_DONEMASK)	/* Unexpected disconnect  */
-#define HS_COMP_ERR	(7|HS_DONEMASK)	/* Completed with error	  */
+#define HS_DONEMASK (0x80)
+#define HS_COMPLETE (4 | HS_DONEMASK)
+#define HS_SEL_TIMEOUT (5 | HS_DONEMASK) /* Selection timeout      */
+#define HS_UNEXPECTED (6 | HS_DONEMASK)	 /* Unexpected disconnect  */
+#define HS_COMP_ERR (7 | HS_DONEMASK)	 /* Completed with error	  */
 
 /*
  *  Software Interrupt Codes
  */
-#define	SIR_BAD_SCSI_STATUS	(1)
-#define	SIR_SEL_ATN_NO_MSG_OUT	(2)
-#define	SIR_MSG_RECEIVED	(3)
-#define	SIR_MSG_WEIRD		(4)
-#define	SIR_NEGO_FAILED		(5)
-#define	SIR_NEGO_PROTO		(6)
-#define	SIR_SCRIPT_STOPPED	(7)
-#define	SIR_REJECT_TO_SEND	(8)
-#define	SIR_SWIDE_OVERRUN	(9)
-#define	SIR_SODL_UNDERRUN	(10)
-#define	SIR_RESEL_NO_MSG_IN	(11)
-#define	SIR_RESEL_NO_IDENTIFY	(12)
-#define	SIR_RESEL_BAD_LUN	(13)
-#define	SIR_TARGET_SELECTED	(14)
-#define	SIR_RESEL_BAD_I_T_L	(15)
-#define	SIR_RESEL_BAD_I_T_L_Q	(16)
-#define	SIR_ABORT_SENT		(17)
-#define	SIR_RESEL_ABORTED	(18)
-#define	SIR_MSG_OUT_DONE	(19)
-#define	SIR_COMPLETE_ERROR	(20)
-#define	SIR_DATA_OVERRUN	(21)
-#define	SIR_BAD_PHASE		(22)
-#define	SIR_MAX			(22)
+#define SIR_BAD_SCSI_STATUS (1)
+#define SIR_SEL_ATN_NO_MSG_OUT (2)
+#define SIR_MSG_RECEIVED (3)
+#define SIR_MSG_WEIRD (4)
+#define SIR_NEGO_FAILED (5)
+#define SIR_NEGO_PROTO (6)
+#define SIR_SCRIPT_STOPPED (7)
+#define SIR_REJECT_TO_SEND (8)
+#define SIR_SWIDE_OVERRUN (9)
+#define SIR_SODL_UNDERRUN (10)
+#define SIR_RESEL_NO_MSG_IN (11)
+#define SIR_RESEL_NO_IDENTIFY (12)
+#define SIR_RESEL_BAD_LUN (13)
+#define SIR_TARGET_SELECTED (14)
+#define SIR_RESEL_BAD_I_T_L (15)
+#define SIR_RESEL_BAD_I_T_L_Q (16)
+#define SIR_ABORT_SENT (17)
+#define SIR_RESEL_ABORTED (18)
+#define SIR_MSG_OUT_DONE (19)
+#define SIR_COMPLETE_ERROR (20)
+#define SIR_DATA_OVERRUN (21)
+#define SIR_BAD_PHASE (22)
+#define SIR_MAX (22)
 
 /*
  *  Extended error bit codes.
  *  xerr_status field of struct sym_ccb.
  */
-#define	XE_EXTRA_DATA	(1)	/* unexpected data phase	 */
-#define	XE_BAD_PHASE	(1<<1)	/* illegal phase (4/5)		 */
-#define	XE_PARITY_ERR	(1<<2)	/* unrecovered SCSI parity error */
-#define	XE_SODL_UNRUN	(1<<3)	/* ODD transfer in DATA OUT phase */
-#define	XE_SWIDE_OVRUN	(1<<4)	/* ODD transfer in DATA IN phase */
+#define XE_EXTRA_DATA (1)	/* unexpected data phase	 */
+#define XE_BAD_PHASE (1 << 1)	/* illegal phase (4/5)		 */
+#define XE_PARITY_ERR (1 << 2)	/* unrecovered SCSI parity error */
+#define XE_SODL_UNRUN (1 << 3)	/* ODD transfer in DATA OUT phase */
+#define XE_SWIDE_OVRUN (1 << 4) /* ODD transfer in DATA IN phase */
 
 /*
  *  Negotiation status.
  *  nego_status field of struct sym_ccb.
  */
-#define NS_SYNC		(1)
-#define NS_WIDE		(2)
-#define NS_PPR		(3)
+#define NS_SYNC (1)
+#define NS_WIDE (2)
+#define NS_PPR (3)
 
 /*
  *  A CCB hashed table is used to retrieve CCB address
  *  from DSA value.
  */
-#define CCB_HASH_SHIFT		8
-#define CCB_HASH_SIZE		(1UL << CCB_HASH_SHIFT)
-#define CCB_HASH_MASK		(CCB_HASH_SIZE-1)
-#define CCB_HASH_CODE(dsa)	(((dsa) >> 9) & CCB_HASH_MASK)
+#define CCB_HASH_SHIFT 8
+#define CCB_HASH_SIZE (1UL << CCB_HASH_SHIFT)
+#define CCB_HASH_MASK (CCB_HASH_SIZE - 1)
+#define CCB_HASH_CODE(dsa) (((dsa) >> 9) & CCB_HASH_MASK)
 
 /*
  *  Device flags.
  */
-#define SYM_DISC_ENABLED	(1)
-#define SYM_TAGS_ENABLED	(1<<1)
-#define SYM_SCAN_BOOT_DISABLED	(1<<2)
-#define SYM_SCAN_LUNS_DISABLED	(1<<3)
+#define SYM_DISC_ENABLED (1)
+#define SYM_TAGS_ENABLED (1 << 1)
+#define SYM_SCAN_BOOT_DISABLED (1 << 2)
+#define SYM_SCAN_LUNS_DISABLED (1 << 3)
 
 /*
  *  Host adapter miscellaneous flags.
  */
-#define SYM_AVOID_BUS_RESET	(1)
-#define SYM_SCAN_TARGETS_HILO	(1<<1)
+#define SYM_AVOID_BUS_RESET (1)
+#define SYM_SCAN_TARGETS_HILO (1 << 1)
 
 /*
  *  Device quirks.
@@ -1000,23 +1032,23 @@ struct sym_nvram {
 /*
  *  Misc.
  */
-#define	SYM_LOCK()		mtx_lock(&np->mtx)
-#define	SYM_LOCK_ASSERT(_what)	mtx_assert(&np->mtx, (_what))
-#define	SYM_LOCK_DESTROY()	mtx_destroy(&np->mtx)
-#define	SYM_LOCK_INIT()		mtx_init(&np->mtx, "sym_lock", NULL, MTX_DEF)
-#define	SYM_LOCK_INITIALIZED()	mtx_initialized(&np->mtx)
-#define	SYM_UNLOCK()		mtx_unlock(&np->mtx)
+#define SYM_LOCK() mtx_lock(&np->mtx)
+#define SYM_LOCK_ASSERT(_what) mtx_assert(&np->mtx, (_what))
+#define SYM_LOCK_DESTROY() mtx_destroy(&np->mtx)
+#define SYM_LOCK_INIT() mtx_init(&np->mtx, "sym_lock", NULL, MTX_DEF)
+#define SYM_LOCK_INITIALIZED() mtx_initialized(&np->mtx)
+#define SYM_UNLOCK() mtx_unlock(&np->mtx)
 
 #define SYM_SNOOP_TIMEOUT (10000000)
-#define SYM_PCI_IO	PCIR_BAR(0)
-#define SYM_PCI_MMIO	PCIR_BAR(1)
-#define SYM_PCI_RAM	PCIR_BAR(2)
-#define SYM_PCI_RAM64	PCIR_BAR(3)
+#define SYM_PCI_IO PCIR_BAR(0)
+#define SYM_PCI_MMIO PCIR_BAR(1)
+#define SYM_PCI_RAM PCIR_BAR(2)
+#define SYM_PCI_RAM64 PCIR_BAR(3)
 
 /*
  *  Back-pointer from the CAM CCB to our data structures.
  */
-#define sym_hcb_ptr	spriv_ptr0
+#define sym_hcb_ptr spriv_ptr0
 /* #define sym_ccb_ptr	spriv_ptr1 */
 
 /*
@@ -1037,7 +1069,7 @@ struct sym_trans {
 	u8 period;
 	u8 offset;
 	u8 width;
-	u8 options;	/* PPR options */
+	u8 options; /* PPR options */
 };
 
 struct sym_tinfo {
@@ -1046,8 +1078,8 @@ struct sym_tinfo {
 	struct sym_trans user;
 };
 
-#define BUS_8_BIT	MSG_EXT_WDTR_BUS_8_BIT
-#define BUS_16_BIT	MSG_EXT_WDTR_BUS_16_BIT
+#define BUS_8_BIT MSG_EXT_WDTR_BUS_8_BIT
+#define BUS_16_BIT MSG_EXT_WDTR_BUS_16_BIT
 
 /*
  *  Global TCB HEADER.
@@ -1065,17 +1097,17 @@ struct sym_tcbh {
 	 *  and we we want to speed-up the general case and not waste
 	 *  resources.
 	 */
-	u32	luntbl_sa;	/* bus address of this table	*/
-	u32	lun0_sa;	/* bus address of LCB #0	*/
-	/*
-	 *  Actual SYNC/WIDE IO registers value for this target.
-	 *  'sval', 'wval' and 'uval' are read from SCRIPTS and
-	 *  so have alignment constraints.
-	 */
-/*0*/	u_char	uval;		/* -> SCNTL4 register		*/
-/*1*/	u_char	sval;		/* -> SXFER  io register	*/
-/*2*/	u_char	filler1;
-/*3*/	u_char	wval;		/* -> SCNTL3 io register	*/
+	u32 luntbl_sa;	   /* bus address of this table	*/
+	u32 lun0_sa;	   /* bus address of LCB #0	*/
+			   /*
+			    *  Actual SYNC/WIDE IO registers value for this target.
+			    *  'sval', 'wval' and 'uval' are read from SCRIPTS and
+			    *  so have alignment constraints.
+			    */
+	/*0*/ u_char uval; /* -> SCNTL4 register		*/
+	/*1*/ u_char sval; /* -> SXFER  io register	*/
+	/*2*/ u_char filler1;
+	/*3*/ u_char wval; /* -> SCNTL3 io register	*/
 };
 
 /*
@@ -1086,20 +1118,20 @@ struct sym_tcb {
 	 *  TCB header.
 	 *  Assumed at offset 0.
 	 */
-/*0*/	struct sym_tcbh head;
+	/*0*/ struct sym_tcbh head;
 
 	/*
 	 *  LUN table used by the SCRIPTS processor.
 	 *  An array of bus addresses is used on reselection.
 	 */
-	u32	*luntbl;	/* LCBs bus address table	*/
+	u32 *luntbl; /* LCBs bus address table	*/
 
 	/*
 	 *  LUN table used by the C code.
 	 */
-	lcb_p	lun0p;		/* LCB of LUN #0 (usual case)	*/
+	lcb_p lun0p; /* LCB of LUN #0 (usual case)	*/
 #if SYM_CONF_MAX_LUN > 1
-	lcb_p	*lunmp;		/* Other LCBs [1..MAX_LUN]	*/
+	lcb_p *lunmp; /* Other LCBs [1..MAX_LUN]	*/
 #endif
 
 	/*
@@ -1107,13 +1139,13 @@ struct sym_tcb {
 	 *  1 IO and therefore assumed to be a real device.
 	 *  Avoid useless allocation of the LCB structure.
 	 */
-	u32	lun_map[(SYM_CONF_MAX_LUN+31)/32];
+	u32 lun_map[(SYM_CONF_MAX_LUN + 31) / 32];
 
 	/*
 	 *  Bitmap that tells about LUNs that haven't yet an LCB
 	 *  allocated (not discovered or LCB allocation failed).
 	 */
-	u32	busy0_map[(SYM_CONF_MAX_LUN+31)/32];
+	u32 busy0_map[(SYM_CONF_MAX_LUN + 31) / 32];
 
 	/*
 	 *  Transfer capabilities (SIP)
@@ -1124,28 +1156,30 @@ struct sym_tcb {
 	 * Keep track of the CCB used for the negotiation in order
 	 * to ensure that only 1 negotiation is queued at a time.
 	 */
-	ccb_p   nego_cp;	/* CCB used for the nego		*/
+	ccb_p nego_cp; /* CCB used for the nego		*/
 
 	/*
 	 *  Set when we want to reset the device.
 	 */
-	u_char	to_reset;
+	u_char to_reset;
 
 	/*
 	 *  Other user settable limits and options.
 	 *  These limits are read from the NVRAM if present.
 	 */
-	u_char	usrflags;
-	u_short	usrtags;
+	u_char usrflags;
+	u_short usrtags;
 };
 
 /*
  *  Assert some alignments required by the chip.
  */
 CTASSERT(((offsetof(struct sym_reg, nc_sxfer) ^
-    offsetof(struct sym_tcb, head.sval)) &3) == 0);
+	      offsetof(struct sym_tcb, head.sval)) &
+	     3) == 0);
 CTASSERT(((offsetof(struct sym_reg, nc_scntl3) ^
-    offsetof(struct sym_tcb, head.wval)) &3) == 0);
+	      offsetof(struct sym_tcb, head.wval)) &
+	     3) == 0);
 
 /*
  *  Global LCB HEADER.
@@ -1163,18 +1197,18 @@ struct sym_lcbh {
 	 *  SCRIPTS that deal with bad LU handling (must be at
 	 *  offset zero of the LCB for that reason).
 	 */
-/*0*/	u32	resel_sa;
+	/*0*/ u32 resel_sa;
 
 	/*
 	 *  Task (bus address of a CCB) read from SCRIPTS that points
 	 *  to the unique ITL nexus allowed to be disconnected.
 	 */
-	u32	itl_task_sa;
+	u32 itl_task_sa;
 
 	/*
 	 *  Task table bus address (read from SCRIPTS).
 	 */
-	u32	itlq_tbl_sa;
+	u32 itlq_tbl_sa;
 };
 
 /*
@@ -1185,27 +1219,27 @@ struct sym_lcb {
 	 *  TCB header.
 	 *  Assumed at offset 0.
 	 */
-/*0*/	struct sym_lcbh head;
+	/*0*/ struct sym_lcbh head;
 
 	/*
 	 *  Task table read from SCRIPTS that contains pointers to
 	 *  ITLQ nexuses. The bus address read from SCRIPTS is
 	 *  inside the header.
 	 */
-	u32	*itlq_tbl;	/* Kernel virtual address	*/
+	u32 *itlq_tbl; /* Kernel virtual address	*/
 
 	/*
 	 *  Busy CCBs management.
 	 */
-	u_short	busy_itlq;	/* Number of busy tagged CCBs	*/
-	u_short	busy_itl;	/* Number of busy untagged CCBs	*/
+	u_short busy_itlq; /* Number of busy tagged CCBs	*/
+	u_short busy_itl;  /* Number of busy untagged CCBs	*/
 
 	/*
 	 *  Circular tag allocation buffer.
 	 */
-	u_short	ia_tag;		/* Tag allocation index		*/
-	u_short	if_tag;		/* Tag release index		*/
-	u_char	*cb_tags;	/* Circular tags buffer		*/
+	u_short ia_tag;	 /* Tag allocation index		*/
+	u_short if_tag;	 /* Tag release index		*/
+	u_char *cb_tags; /* Circular tags buffer		*/
 
 	/*
 	 *  Set when we want to clear all tasks.
@@ -1215,8 +1249,8 @@ struct sym_lcb {
 	/*
 	 *  Capabilities.
 	 */
-	u_char	user_flags;
-	u_char	current_flags;
+	u_char user_flags;
+	u_char current_flags;
 };
 
 /*
@@ -1225,8 +1259,8 @@ struct sym_lcb {
  *  error handling action to perform from SCRIPTS.
  */
 struct sym_actscr {
-	u32	start;		/* Jumped by SCRIPTS after selection	*/
-	u32	restart;	/* Jumped by SCRIPTS on relection	*/
+	u32 start;   /* Jumped by SCRIPTS after selection	*/
+	u32 restart; /* Jumped by SCRIPTS on relection	*/
 };
 
 /*
@@ -1237,8 +1271,8 @@ struct sym_actscr {
  *  SAVED DATA POINTER.
  */
 struct sym_pmc {
-	struct	sym_tblmove sg;	/* Updated interrupted SG block	*/
-	u32	ret;		/* SCRIPT return address	*/
+	struct sym_tblmove sg; /* Updated interrupted SG block	*/
+	u32 ret;	       /* SCRIPT return address	*/
 };
 
 /*
@@ -1266,34 +1300,34 @@ struct sym_pmc {
 /*
  *  Last four bytes (script)
  */
-#define  QU_REG	scr0
-#define  HS_REG	scr1
-#define  HS_PRT	nc_scr1
-#define  SS_REG	scr2
-#define  SS_PRT	nc_scr2
-#define  HF_REG	scr3
-#define  HF_PRT	nc_scr3
+#define QU_REG scr0
+#define HS_REG scr1
+#define HS_PRT nc_scr1
+#define SS_REG scr2
+#define SS_PRT nc_scr2
+#define HF_REG scr3
+#define HF_PRT nc_scr3
 
 /*
  *  Last four bytes (host)
  */
-#define  actualquirks  phys.head.status[0]
-#define  host_status   phys.head.status[1]
-#define  ssss_status   phys.head.status[2]
-#define  host_flags    phys.head.status[3]
+#define actualquirks phys.head.status[0]
+#define host_status phys.head.status[1]
+#define ssss_status phys.head.status[2]
+#define host_flags phys.head.status[3]
 
 /*
  *  Host flags
  */
-#define HF_IN_PM0	1u
-#define HF_IN_PM1	(1u<<1)
-#define HF_ACT_PM	(1u<<2)
-#define HF_DP_SAVED	(1u<<3)
-#define HF_SENSE	(1u<<4)
-#define HF_EXT_ERR	(1u<<5)
-#define HF_DATA_IN	(1u<<6)
+#define HF_IN_PM0 1u
+#define HF_IN_PM1 (1u << 1)
+#define HF_ACT_PM (1u << 2)
+#define HF_DP_SAVED (1u << 3)
+#define HF_SENSE (1u << 4)
+#define HF_EXT_ERR (1u << 5)
+#define HF_DATA_IN (1u << 6)
 #ifdef SYM_CONF_IARB_SUPPORT
-#define HF_HINT_IARB	(1u<<7)
+#define HF_HINT_IARB (1u << 7)
 #endif
 
 /*
@@ -1310,7 +1344,7 @@ struct sym_ccbh {
 	/*
 	 *  Start and restart SCRIPTS addresses (must be at 0).
 	 */
-/*0*/	struct sym_actscr go;
+	/*0*/ struct sym_actscr go;
 
 	/*
 	 *  SCRIPTS jump address that deal with data pointers.
@@ -1318,14 +1352,14 @@ struct sym_ccbh {
 	 *  for the actual transfer of data.
 	 *  It's written on reception of a SAVE_DATA_POINTER message.
 	 */
-	u32	savep;		/* Jump address to saved data pointer	*/
-	u32	lastp;		/* SCRIPTS address at end of data	*/
-	u32	goalp;		/* Not accessed for now from SCRIPTS	*/
+	u32 savep; /* Jump address to saved data pointer	*/
+	u32 lastp; /* SCRIPTS address at end of data	*/
+	u32 goalp; /* Not accessed for now from SCRIPTS	*/
 
 	/*
 	 *  Status fields.
 	 */
-	u8	status[4];
+	u8 status[4];
 };
 
 /*
@@ -1340,7 +1374,7 @@ struct sym_dsb {
 	 *  CCB header.
 	 *  Also assumed at offset 0 of the sym_ccb structure.
 	 */
-/*0*/	struct sym_ccbh head;
+	/*0*/ struct sym_ccbh head;
 
 	/*
 	 *  Phase mismatch contexts.
@@ -1354,13 +1388,13 @@ struct sym_dsb {
 	/*
 	 *  Table data for Script
 	 */
-	struct sym_tblsel  select;
+	struct sym_tblsel select;
 	struct sym_tblmove smsg;
 	struct sym_tblmove smsg_ext;
 	struct sym_tblmove cmd;
 	struct sym_tblmove sense;
 	struct sym_tblmove wresid;
-	struct sym_tblmove data [SYM_CONF_MAX_SG];
+	struct sym_tblmove data[SYM_CONF_MAX_SG];
 };
 
 /*
@@ -1377,20 +1411,20 @@ struct sym_ccb {
 	/*
 	 *  Pointer to CAM ccb and related stuff.
 	 */
-	struct callout ch;	/* callout handle		*/
-	union ccb *cam_ccb;	/* CAM scsiio ccb		*/
-	u8	cdb_buf[16];	/* Copy of CDB			*/
-	u8	*sns_bbuf;	/* Bounce buffer for sense data	*/
-#define SYM_SNS_BBUF_LEN	sizeof(struct scsi_sense_data)
-	int	data_len;	/* Total data length		*/
-	int	segments;	/* Number of SG segments	*/
+	struct callout ch;  /* callout handle		*/
+	union ccb *cam_ccb; /* CAM scsiio ccb		*/
+	u8 cdb_buf[16];	    /* Copy of CDB			*/
+	u8 *sns_bbuf;	    /* Bounce buffer for sense data	*/
+#define SYM_SNS_BBUF_LEN sizeof(struct scsi_sense_data)
+	int data_len; /* Total data length		*/
+	int segments; /* Number of SG segments	*/
 
 	/*
 	 *  Miscellaneous status'.
 	 */
-	u_char	nego_status;	/* Negotiation status		*/
-	u_char	xerr_status;	/* Extended error flags		*/
-	u32	extra_bytes;	/* Extraneous bytes transferred	*/
+	u_char nego_status; /* Negotiation status		*/
+	u_char xerr_status; /* Extended error flags		*/
+	u32 extra_bytes;    /* Extraneous bytes transferred	*/
 
 	/*
 	 *  Message areas.
@@ -1401,50 +1435,50 @@ struct sym_ccb {
 	 *  While negotiating sync or wide transfer,
 	 *  a SDTR or WDTR message is appended.
 	 */
-	u_char	scsi_smsg [12];
-	u_char	scsi_smsg2[12];
+	u_char scsi_smsg[12];
+	u_char scsi_smsg2[12];
 
 	/*
 	 *  Auto request sense related fields.
 	 */
-	u_char	sensecmd[6];	/* Request Sense command	*/
-	u_char	sv_scsi_status;	/* Saved SCSI status 		*/
-	u_char	sv_xerr_status;	/* Saved extended status	*/
-	int	sv_resid;	/* Saved residual		*/
+	u_char sensecmd[6];    /* Request Sense command	*/
+	u_char sv_scsi_status; /* Saved SCSI status 		*/
+	u_char sv_xerr_status; /* Saved extended status	*/
+	int sv_resid;	       /* Saved residual		*/
 
 	/*
 	 *  Map for the DMA of user data.
 	 */
-	void		*arg;	/* Argument for some callback	*/
-	bus_dmamap_t	dmamap;	/* DMA map for user data	*/
-	u_char		dmamapped;
-#define SYM_DMA_NONE	0
-#define SYM_DMA_READ	1
-#define SYM_DMA_WRITE	2
+	void *arg;	     /* Argument for some callback	*/
+	bus_dmamap_t dmamap; /* DMA map for user data	*/
+	u_char dmamapped;
+#define SYM_DMA_NONE 0
+#define SYM_DMA_READ 1
+#define SYM_DMA_WRITE 2
 	/*
 	 *  Other fields.
 	 */
-	u32	ccb_ba;		/* BUS address of this CCB	*/
-	u_short	tag;		/* Tag for this transfer	*/
-				/*  NO_TAG means no tag		*/
-	u_char	target;
-	u_char	lun;
-	ccb_p	link_ccbh;	/* Host adapter CCB hash chain	*/
+	u32 ccb_ba;  /* BUS address of this CCB	*/
+	u_short tag; /* Tag for this transfer	*/
+		     /*  NO_TAG means no tag		*/
+	u_char target;
+	u_char lun;
+	ccb_p link_ccbh; /* Host adapter CCB hash chain	*/
 	SYM_QUEHEAD
-		link_ccbq;	/* Link to free/busy CCB queue	*/
-	u32	startp;		/* Initial data pointer		*/
-	int	ext_sg;		/* Extreme data pointer, used	*/
-	int	ext_ofs;	/*  to calculate the residual.	*/
-	u_char	to_abort;	/* Want this IO to be aborted	*/
+	link_ccbq;	 /* Link to free/busy CCB queue	*/
+	u32 startp;	 /* Initial data pointer		*/
+	int ext_sg;	 /* Extreme data pointer, used	*/
+	int ext_ofs;	 /*  to calculate the residual.	*/
+	u_char to_abort; /* Want this IO to be aborted	*/
 };
 
-#define CCB_BA(cp,lbl)	(cp->ccb_ba + offsetof(struct sym_ccb, lbl))
+#define CCB_BA(cp, lbl) (cp->ccb_ba + offsetof(struct sym_ccb, lbl))
 
 /*
  *  Host Control Block
  */
 struct sym_hcb {
-	struct mtx	mtx;
+	struct mtx mtx;
 
 	/*
 	 *  Global headers.
@@ -1452,10 +1486,10 @@ struct sym_hcb {
 	 *  chips (810, 815, 825) copy part of the data structures
 	 *  (CCB, TCB and LCB) in fixed areas.
 	 */
-#ifdef	SYM_CONF_GENERIC_SUPPORT
-	struct sym_ccbh	ccb_head;
-	struct sym_tcbh	tcb_head;
-	struct sym_lcbh	lcb_head;
+#ifdef SYM_CONF_GENERIC_SUPPORT
+	struct sym_ccbh ccb_head;
+	struct sym_tcbh tcb_head;
+	struct sym_lcbh lcb_head;
 #endif
 	/*
 	 *  Idle task and invalid task actions and
@@ -1468,20 +1502,20 @@ struct sym_hcb {
 	 *  Dummy lun table to protect us against target
 	 *  returning bad lun number on reselection.
 	 */
-	u32	*badluntbl;	/* Table physical address	*/
-	u32	badlun_sa;	/* SCRIPT handler BUS address	*/
+	u32 *badluntbl; /* Table physical address	*/
+	u32 badlun_sa;	/* SCRIPT handler BUS address	*/
 
 	/*
 	 *  Bus address of this host control block.
 	 */
-	u32	hcb_ba;
+	u32 hcb_ba;
 
 	/*
 	 *  Bit 32-63 of the on-chip RAM bus address in LE format.
 	 *  The START_RAM64 script loads the MMRS and MMWS from this
 	 *  field.
 	 */
-	u32	scr_ram_seg;
+	u32 scr_ram_seg;
 
 	/*
 	 *  Chip and controller indentification.
@@ -1493,48 +1527,47 @@ struct sym_hcb {
 	 *  These values are assumed to have been set by BIOS, and may
 	 *  be used to probe adapter implementation differences.
 	 */
-	u_char	sv_scntl0, sv_scntl3, sv_dmode, sv_dcntl, sv_ctest3, sv_ctest4,
-		sv_ctest5, sv_gpcntl, sv_stest2, sv_stest4, sv_scntl4,
-		sv_stest1;
+	u_char sv_scntl0, sv_scntl3, sv_dmode, sv_dcntl, sv_ctest3, sv_ctest4,
+	    sv_ctest5, sv_gpcntl, sv_stest2, sv_stest4, sv_scntl4, sv_stest1;
 
 	/*
 	 *  Actual initial value of IO register bits used by the
 	 *  driver. They are loaded at initialisation according to
 	 *  features that are to be enabled/disabled.
 	 */
-	u_char	rv_scntl0, rv_scntl3, rv_dmode, rv_dcntl, rv_ctest3, rv_ctest4,
-		rv_ctest5, rv_stest2, rv_ccntl0, rv_ccntl1, rv_scntl4;
+	u_char rv_scntl0, rv_scntl3, rv_dmode, rv_dcntl, rv_ctest3, rv_ctest4,
+	    rv_ctest5, rv_stest2, rv_ccntl0, rv_ccntl1, rv_scntl4;
 
 	/*
 	 *  Target data.
 	 */
 #ifdef __amd64__
-	struct sym_tcb	*target;
+	struct sym_tcb *target;
 #else
-	struct sym_tcb	target[SYM_CONF_MAX_TARGET];
+	struct sym_tcb target[SYM_CONF_MAX_TARGET];
 #endif
 
 	/*
 	 *  Target control block bus address array used by the SCRIPT
 	 *  on reselection.
 	 */
-	u32		*targtbl;
-	u32		targtbl_ba;
+	u32 *targtbl;
+	u32 targtbl_ba;
 
 	/*
 	 *  CAM SIM information for this instance.
 	 */
-	struct		cam_sim  *sim;
-	struct		cam_path *path;
+	struct cam_sim *sim;
+	struct cam_path *path;
 
 	/*
 	 *  Allocated hardware resources.
 	 */
-	struct resource	*irq_res;
-	struct resource	*io_res;
-	struct resource	*mmio_res;
-	struct resource	*ram_res;
-	int		ram_id;
+	struct resource *irq_res;
+	struct resource *io_res;
+	struct resource *mmio_res;
+	struct resource *ram_res;
+	int ram_id;
 	void *intr;
 
 	/*
@@ -1552,16 +1585,16 @@ struct sym_hcb {
 	/*
 	 *  DMA stuff.
 	 */
-	bus_dma_tag_t	bus_dmat;	/* DMA tag from parent BUS	*/
-	bus_dma_tag_t	data_dmat;	/* DMA tag for user data	*/
+	bus_dma_tag_t bus_dmat;	 /* DMA tag from parent BUS	*/
+	bus_dma_tag_t data_dmat; /* DMA tag for user data	*/
 	/*
 	 *  BUS addresses of the chip
 	 */
-	vm_offset_t	mmio_ba;	/* MMIO BUS address		*/
-	int		mmio_ws;	/* MMIO Window size		*/
+	vm_offset_t mmio_ba; /* MMIO BUS address		*/
+	int mmio_ws;	     /* MMIO Window size		*/
 
-	vm_offset_t	ram_ba;		/* RAM BUS address		*/
-	int		ram_ws;		/* RAM window size		*/
+	vm_offset_t ram_ba; /* RAM BUS address		*/
+	int ram_ws;	    /* RAM window size		*/
 
 	/*
 	 *  SCRIPTS virtual and physical bus addresses.
@@ -1569,87 +1602,87 @@ struct sym_hcb {
 	 *  'scripth' stays in main memory for all chips except the
 	 *  53C895A, 53C896 and 53C1010 that provide 8K on-chip RAM.
 	 */
-	u_char		*scripta0;	/* Copies of script and scripth	*/
-	u_char		*scriptb0;	/* Copies of script and scripth	*/
-	vm_offset_t	scripta_ba;	/* Actual script and scripth	*/
-	vm_offset_t	scriptb_ba;	/*  bus addresses.		*/
-	vm_offset_t	scriptb0_ba;
-	u_short		scripta_sz;	/* Actual size of script A	*/
-	u_short		scriptb_sz;	/* Actual size of script B	*/
+	u_char *scripta0;	/* Copies of script and scripth	*/
+	u_char *scriptb0;	/* Copies of script and scripth	*/
+	vm_offset_t scripta_ba; /* Actual script and scripth	*/
+	vm_offset_t scriptb_ba; /*  bus addresses.		*/
+	vm_offset_t scriptb0_ba;
+	u_short scripta_sz; /* Actual size of script A	*/
+	u_short scriptb_sz; /* Actual size of script B	*/
 
 	/*
 	 *  Bus addresses, setup and patch methods for
 	 *  the selected firmware.
 	 */
-	struct sym_fwa_ba fwa_bas;	/* Useful SCRIPTA bus addresses	*/
-	struct sym_fwb_ba fwb_bas;	/* Useful SCRIPTB bus addresses	*/
-	void		(*fw_setup)(hcb_p np, const struct sym_fw *fw);
-	void		(*fw_patch)(hcb_p np);
-	const char	*fw_name;
+	struct sym_fwa_ba fwa_bas; /* Useful SCRIPTA bus addresses	*/
+	struct sym_fwb_ba fwb_bas; /* Useful SCRIPTB bus addresses	*/
+	void (*fw_setup)(hcb_p np, const struct sym_fw *fw);
+	void (*fw_patch)(hcb_p np);
+	const char *fw_name;
 
 	/*
 	 *  General controller parameters and configuration.
 	 */
-	u_short	device_id;	/* PCI device id		*/
-	u_char	revision_id;	/* PCI device revision id	*/
-	u_int	features;	/* Chip features map		*/
-	u_char	myaddr;		/* SCSI id of the adapter	*/
-	u_char	maxburst;	/* log base 2 of dwords burst	*/
-	u_char	maxwide;	/* Maximum transfer width	*/
-	u_char	minsync;	/* Min sync period factor (ST)	*/
-	u_char	maxsync;	/* Max sync period factor (ST)	*/
-	u_char	maxoffs;	/* Max scsi offset        (ST)	*/
-	u_char	minsync_dt;	/* Min sync period factor (DT)	*/
-	u_char	maxsync_dt;	/* Max sync period factor (DT)	*/
-	u_char	maxoffs_dt;	/* Max scsi offset        (DT)	*/
-	u_char	multiplier;	/* Clock multiplier (1,2,4)	*/
-	u_char	clock_divn;	/* Number of clock divisors	*/
-	u32	clock_khz;	/* SCSI clock frequency in KHz	*/
-	u32	pciclk_khz;	/* Estimated PCI clock  in KHz	*/
+	u_short device_id;  /* PCI device id		*/
+	u_char revision_id; /* PCI device revision id	*/
+	u_int features;	    /* Chip features map		*/
+	u_char myaddr;	    /* SCSI id of the adapter	*/
+	u_char maxburst;    /* log base 2 of dwords burst	*/
+	u_char maxwide;	    /* Maximum transfer width	*/
+	u_char minsync;	    /* Min sync period factor (ST)	*/
+	u_char maxsync;	    /* Max sync period factor (ST)	*/
+	u_char maxoffs;	    /* Max scsi offset        (ST)	*/
+	u_char minsync_dt;  /* Min sync period factor (DT)	*/
+	u_char maxsync_dt;  /* Max sync period factor (DT)	*/
+	u_char maxoffs_dt;  /* Max scsi offset        (DT)	*/
+	u_char multiplier;  /* Clock multiplier (1,2,4)	*/
+	u_char clock_divn;  /* Number of clock divisors	*/
+	u32 clock_khz;	    /* SCSI clock frequency in KHz	*/
+	u32 pciclk_khz;	    /* Estimated PCI clock  in KHz	*/
 	/*
 	 *  Start queue management.
 	 *  It is filled up by the host processor and accessed by the
 	 *  SCRIPTS processor in order to start SCSI commands.
 	 */
-	volatile		/* Prevent code optimizations	*/
-	u32	*squeue;	/* Start queue virtual address	*/
-	u32	squeue_ba;	/* Start queue BUS address	*/
-	u_short	squeueput;	/* Next free slot of the queue	*/
-	u_short	actccbs;	/* Number of allocated CCBs	*/
+	volatile	   /* Prevent code optimizations	*/
+	    u32 *squeue;   /* Start queue virtual address	*/
+	u32 squeue_ba;	   /* Start queue BUS address	*/
+	u_short squeueput; /* Next free slot of the queue	*/
+	u_short actccbs;   /* Number of allocated CCBs	*/
 
 	/*
 	 *  Command completion queue.
 	 *  It is the same size as the start queue to avoid overflow.
 	 */
-	u_short	dqueueget;	/* Next position to scan	*/
-	volatile		/* Prevent code optimizations	*/
-	u32	*dqueue;	/* Completion (done) queue	*/
-	u32	dqueue_ba;	/* Done queue BUS address	*/
+	u_short dqueueget; /* Next position to scan	*/
+	volatile	   /* Prevent code optimizations	*/
+	    u32 *dqueue;   /* Completion (done) queue	*/
+	u32 dqueue_ba;	   /* Done queue BUS address	*/
 
 	/*
 	 *  Miscellaneous buffers accessed by the scripts-processor.
 	 *  They shall be DWORD aligned, because they may be read or
 	 *  written with a script command.
 	 */
-	u_char		msgout[8];	/* Buffer for MESSAGE OUT 	*/
-	u_char		msgin [8];	/* Buffer for MESSAGE IN	*/
-	u32		lastmsg;	/* Last SCSI message sent	*/
-	u_char		scratch;	/* Scratch for SCSI receive	*/
+	u_char msgout[8]; /* Buffer for MESSAGE OUT 	*/
+	u_char msgin[8];  /* Buffer for MESSAGE IN	*/
+	u32 lastmsg;	  /* Last SCSI message sent	*/
+	u_char scratch;	  /* Scratch for SCSI receive	*/
 
 	/*
 	 *  Miscellaneous configuration and status parameters.
 	 */
-	u_char		usrflags;	/* Miscellaneous user flags	*/
-	u_char		scsi_mode;	/* Current SCSI BUS mode	*/
-	u_char		verbose;	/* Verbosity for this controller*/
-	u32		cache;		/* Used for cache test at init.	*/
+	u_char usrflags;  /* Miscellaneous user flags	*/
+	u_char scsi_mode; /* Current SCSI BUS mode	*/
+	u_char verbose;	  /* Verbosity for this controller*/
+	u32 cache;	  /* Used for cache test at init.	*/
 
 	/*
 	 *  CCB lists and queue.
 	 */
-	ccb_p ccbh[CCB_HASH_SIZE];	/* CCB hashed by DSA value	*/
-	SYM_QUEHEAD	free_ccbq;	/* Queue of available CCBs	*/
-	SYM_QUEHEAD	busy_ccbq;	/* Queue of busy CCBs		*/
+	ccb_p ccbh[CCB_HASH_SIZE]; /* CCB hashed by DSA value	*/
+	SYM_QUEHEAD free_ccbq;	   /* Queue of available CCBs	*/
+	SYM_QUEHEAD busy_ccbq;	   /* Queue of busy CCBs		*/
 
 	/*
 	 *  During error handling and/or recovery,
@@ -1657,12 +1690,12 @@ struct sym_hcb {
 	 *  error or requeued are moved from the busy_ccbq
 	 *  to the comp_ccbq prior to completion.
 	 */
-	SYM_QUEHEAD	comp_ccbq;
+	SYM_QUEHEAD comp_ccbq;
 
 	/*
 	 *  CAM CCB pending queue.
 	 */
-	SYM_QUEHEAD	cam_ccbq;
+	SYM_QUEHEAD cam_ccbq;
 
 	/*
 	 *  IMMEDIATE ARBITRATION (IARB) control.
@@ -1677,9 +1710,9 @@ struct sym_hcb {
 	 *  By the way, any non zero value of 'iarb_max' is unfair. :)
 	 */
 #ifdef SYM_CONF_IARB_SUPPORT
-	u_short		iarb_max;	/* Max. # consecutive IARB hints*/
-	u_short		iarb_count;	/* Actual # of these hints	*/
-	ccb_p		last_cp;
+	u_short iarb_max;   /* Max. # consecutive IARB hints*/
+	u_short iarb_count; /* Actual # of these hints	*/
+	ccb_p last_cp;
 #endif
 
 	/*
@@ -1687,18 +1720,19 @@ struct sym_hcb {
 	 *  We need to synchronize tightly with the SCRIPTS
 	 *  processor in order to handle things correctly.
 	 */
-	u_char		abrt_msg[4];	/* Message to send buffer	*/
-	struct sym_tblmove abrt_tbl;	/* Table for the MOV of it 	*/
-	struct sym_tblsel  abrt_sel;	/* Sync params for selection	*/
-	u_char		istat_sem;	/* Tells the chip to stop (SEM)	*/
+	u_char abrt_msg[4];	     /* Message to send buffer	*/
+	struct sym_tblmove abrt_tbl; /* Table for the MOV of it 	*/
+	struct sym_tblsel abrt_sel;  /* Sync params for selection	*/
+	u_char istat_sem;	     /* Tells the chip to stop (SEM)	*/
 };
 
-#define HCB_BA(np, lbl)	    (np->hcb_ba      + offsetof(struct sym_hcb, lbl))
+#define HCB_BA(np, lbl) (np->hcb_ba + offsetof(struct sym_hcb, lbl))
 
 /*
  *  Return the name of the controller.
  */
-static __inline const char *sym_name(hcb_p np)
+static __inline const char *
+sym_name(hcb_p np)
 {
 	return device_get_nameunit(np->device);
 }
@@ -1715,51 +1749,46 @@ static __inline const char *sym_name(hcb_p np)
 /*
  *  Macros used for all firmwares.
  */
-#define	SYM_GEN_A(s, label)	((short) offsetof(s, label)),
-#define	SYM_GEN_B(s, label)	((short) offsetof(s, label)),
-#define	PADDR_A(label)		SYM_GEN_PADDR_A(struct SYM_FWA_SCR, label)
-#define	PADDR_B(label)		SYM_GEN_PADDR_B(struct SYM_FWB_SCR, label)
+#define SYM_GEN_A(s, label) ((short)offsetof(s, label)),
+#define SYM_GEN_B(s, label) ((short)offsetof(s, label)),
+#define PADDR_A(label) SYM_GEN_PADDR_A(struct SYM_FWA_SCR, label)
+#define PADDR_B(label) SYM_GEN_PADDR_B(struct SYM_FWB_SCR, label)
 
-#ifdef	SYM_CONF_GENERIC_SUPPORT
+#ifdef SYM_CONF_GENERIC_SUPPORT
 /*
  *  Allocate firmware #1 script area.
  */
-#define	SYM_FWA_SCR		sym_fw1a_scr
-#define	SYM_FWB_SCR		sym_fw1b_scr
+#define SYM_FWA_SCR sym_fw1a_scr
+#define SYM_FWB_SCR sym_fw1b_scr
 #include <dev/sym/sym_fw1.h>
-static const struct sym_fwa_ofs sym_fw1a_ofs = {
-	SYM_GEN_FW_A(struct SYM_FWA_SCR)
-};
-static const struct sym_fwb_ofs sym_fw1b_ofs = {
-	SYM_GEN_FW_B(struct SYM_FWB_SCR)
-};
-#undef	SYM_FWA_SCR
-#undef	SYM_FWB_SCR
-#endif	/* SYM_CONF_GENERIC_SUPPORT */
+static const struct sym_fwa_ofs sym_fw1a_ofs = { SYM_GEN_FW_A(
+    struct SYM_FWA_SCR) };
+static const struct sym_fwb_ofs sym_fw1b_ofs = { SYM_GEN_FW_B(
+    struct SYM_FWB_SCR) };
+#undef SYM_FWA_SCR
+#undef SYM_FWB_SCR
+#endif /* SYM_CONF_GENERIC_SUPPORT */
 
 /*
  *  Allocate firmware #2 script area.
  */
-#define	SYM_FWA_SCR		sym_fw2a_scr
-#define	SYM_FWB_SCR		sym_fw2b_scr
+#define SYM_FWA_SCR sym_fw2a_scr
+#define SYM_FWB_SCR sym_fw2b_scr
 #include <dev/sym/sym_fw2.h>
-static const struct sym_fwa_ofs sym_fw2a_ofs = {
-	SYM_GEN_FW_A(struct SYM_FWA_SCR)
-};
-static const struct sym_fwb_ofs sym_fw2b_ofs = {
-	SYM_GEN_FW_B(struct SYM_FWB_SCR)
-	SYM_GEN_B(struct SYM_FWB_SCR, start64)
-	SYM_GEN_B(struct SYM_FWB_SCR, pm_handle)
-};
-#undef	SYM_FWA_SCR
-#undef	SYM_FWB_SCR
+static const struct sym_fwa_ofs sym_fw2a_ofs = { SYM_GEN_FW_A(
+    struct SYM_FWA_SCR) };
+static const struct sym_fwb_ofs sym_fw2b_ofs = { SYM_GEN_FW_B(
+    struct SYM_FWB_SCR) SYM_GEN_B(struct SYM_FWB_SCR, start64)
+	    SYM_GEN_B(struct SYM_FWB_SCR, pm_handle) };
+#undef SYM_FWA_SCR
+#undef SYM_FWB_SCR
 
-#undef	SYM_GEN_A
-#undef	SYM_GEN_B
-#undef	PADDR_A
-#undef	PADDR_B
+#undef SYM_GEN_A
+#undef SYM_GEN_B
+#undef PADDR_A
+#undef PADDR_B
 
-#ifdef	SYM_CONF_GENERIC_SUPPORT
+#ifdef SYM_CONF_GENERIC_SUPPORT
 /*
  *  Patch routine for firmware #1.
  */
@@ -1769,16 +1798,16 @@ sym_fw1_patch(hcb_p np)
 	struct sym_fw1a_scr *scripta0;
 	struct sym_fw1b_scr *scriptb0;
 
-	scripta0 = (struct sym_fw1a_scr *) np->scripta0;
-	scriptb0 = (struct sym_fw1b_scr *) np->scriptb0;
+	scripta0 = (struct sym_fw1a_scr *)np->scripta0;
+	scriptb0 = (struct sym_fw1b_scr *)np->scriptb0;
 
 	/*
 	 *  Remove LED support if not needed.
 	 */
 	if (!(np->features & FE_LED0)) {
-		scripta0->idle[0]	= cpu_to_scr(SCR_NO_OP);
-		scripta0->reselected[0]	= cpu_to_scr(SCR_NO_OP);
-		scripta0->start[0]	= cpu_to_scr(SCR_NO_OP);
+		scripta0->idle[0] = cpu_to_scr(SCR_NO_OP);
+		scripta0->reselected[0] = cpu_to_scr(SCR_NO_OP);
+		scripta0->start[0] = cpu_to_scr(SCR_NO_OP);
 	}
 
 #ifdef SYM_CONF_IARB_SUPPORT
@@ -1795,11 +1824,11 @@ sym_fw1_patch(hcb_p np)
 	 *  - start and done queue initial bus address.
 	 *  - target bus address table bus address.
 	 */
-	scriptb0->startpos[0]	= cpu_to_scr(np->squeue_ba);
-	scriptb0->done_pos[0]	= cpu_to_scr(np->dqueue_ba);
-	scriptb0->targtbl[0]	= cpu_to_scr(np->targtbl_ba);
+	scriptb0->startpos[0] = cpu_to_scr(np->squeue_ba);
+	scriptb0->done_pos[0] = cpu_to_scr(np->dqueue_ba);
+	scriptb0->targtbl[0] = cpu_to_scr(np->targtbl_ba);
 }
-#endif	/* SYM_CONF_GENERIC_SUPPORT */
+#endif /* SYM_CONF_GENERIC_SUPPORT */
 
 /*
  *  Patch routine for firmware #2.
@@ -1810,16 +1839,16 @@ sym_fw2_patch(hcb_p np)
 	struct sym_fw2a_scr *scripta0;
 	struct sym_fw2b_scr *scriptb0;
 
-	scripta0 = (struct sym_fw2a_scr *) np->scripta0;
-	scriptb0 = (struct sym_fw2b_scr *) np->scriptb0;
+	scripta0 = (struct sym_fw2a_scr *)np->scripta0;
+	scriptb0 = (struct sym_fw2b_scr *)np->scriptb0;
 
 	/*
 	 *  Remove LED support if not needed.
 	 */
 	if (!(np->features & FE_LED0)) {
-		scripta0->idle[0]	= cpu_to_scr(SCR_NO_OP);
-		scripta0->reselected[0]	= cpu_to_scr(SCR_NO_OP);
-		scripta0->start[0]	= cpu_to_scr(SCR_NO_OP);
+		scripta0->idle[0] = cpu_to_scr(SCR_NO_OP);
+		scripta0->reselected[0] = cpu_to_scr(SCR_NO_OP);
+		scripta0->start[0] = cpu_to_scr(SCR_NO_OP);
 	}
 
 #ifdef SYM_CONF_IARB_SUPPORT
@@ -1836,9 +1865,9 @@ sym_fw2_patch(hcb_p np)
 	 *  - start and done queue initial bus address.
 	 *  - target bus address table bus address.
 	 */
-	scriptb0->startpos[0]	= cpu_to_scr(np->squeue_ba);
-	scriptb0->done_pos[0]	= cpu_to_scr(np->dqueue_ba);
-	scriptb0->targtbl[0]	= cpu_to_scr(np->targtbl_ba);
+	scriptb0->startpos[0] = cpu_to_scr(np->squeue_ba);
+	scriptb0->done_pos[0] = cpu_to_scr(np->dqueue_ba);
+	scriptb0->targtbl[0] = cpu_to_scr(np->targtbl_ba);
 
 	/*
 	 *  Remove the load of SCNTL4 on reselection if not a C10.
@@ -1852,14 +1881,13 @@ sym_fw2_patch(hcb_p np)
 	 *  Remove a couple of work-arounds specific to C1010 if
 	 *  they are not desirable. See `sym_fw2.h' for more details.
 	 */
-	if (!(np->device_id == PCI_ID_LSI53C1010_2 &&
-	      np->revision_id < 0x1 &&
-	      np->pciclk_khz < 60000)) {
+	if (!(np->device_id == PCI_ID_LSI53C1010_2 && np->revision_id < 0x1 &&
+		np->pciclk_khz < 60000)) {
 		scripta0->datao_phase[0] = cpu_to_scr(SCR_NO_OP);
 		scripta0->datao_phase[1] = cpu_to_scr(0);
 	}
 	if (!(np->device_id == PCI_ID_LSI53C1010 &&
-	      /* np->revision_id < 0xff */ 1)) {
+		/* np->revision_id < 0xff */ 1)) {
 		scripta0->sel_done[0] = cpu_to_scr(SCR_NO_OP);
 		scripta0->sel_done[1] = cpu_to_scr(0);
 	}
@@ -1868,12 +1896,10 @@ sym_fw2_patch(hcb_p np)
 	 *  Patch some other variables in SCRIPTS.
 	 *  These ones are loaded by the SCRIPTS processor.
 	 */
-	scriptb0->pm0_data_addr[0] =
-		cpu_to_scr(np->scripta_ba +
-			   offsetof(struct sym_fw2a_scr, pm0_data));
-	scriptb0->pm1_data_addr[0] =
-		cpu_to_scr(np->scripta_ba +
-			   offsetof(struct sym_fw2a_scr, pm1_data));
+	scriptb0->pm0_data_addr[0] = cpu_to_scr(
+	    np->scripta_ba + offsetof(struct sym_fw2a_scr, pm0_data));
+	scriptb0->pm1_data_addr[0] = cpu_to_scr(
+	    np->scripta_ba + offsetof(struct sym_fw2a_scr, pm1_data));
 }
 
 /*
@@ -1881,15 +1907,15 @@ sym_fw2_patch(hcb_p np)
  *  To be done for all firmwares.
  */
 static void
-sym_fw_fill_data (u32 *in, u32 *out)
+sym_fw_fill_data(u32 *in, u32 *out)
 {
-	int	i;
+	int i;
 
 	for (i = 0; i < SYM_CONF_MAX_SG; i++) {
-		*in++  = SCR_CHMOV_TBL ^ SCR_DATA_IN;
-		*in++  = offsetof (struct sym_dsb, data[i]);
+		*in++ = SCR_CHMOV_TBL ^ SCR_DATA_IN;
+		*in++ = offsetof(struct sym_dsb, data[i]);
 		*out++ = SCR_CHMOV_TBL ^ SCR_DATA_OUT;
-		*out++ = offsetof (struct sym_dsb, data[i]);
+		*out++ = offsetof(struct sym_dsb, data[i]);
 	}
 }
 
@@ -1908,21 +1934,21 @@ sym_fw_setup_bus_addresses(hcb_p np, const struct sym_fw *fw)
 	 *  Build the bus address table for script A
 	 *  from the script A offset table.
 	 */
-	po = (const u_short *) fw->a_ofs;
-	pa = (u32 *) &np->fwa_bas;
-	for (i = 0 ; i < sizeof(np->fwa_bas)/sizeof(u32) ; i++)
+	po = (const u_short *)fw->a_ofs;
+	pa = (u32 *)&np->fwa_bas;
+	for (i = 0; i < sizeof(np->fwa_bas) / sizeof(u32); i++)
 		pa[i] = np->scripta_ba + po[i];
 
 	/*
 	 *  Same for script B.
 	 */
-	po = (const u_short *) fw->b_ofs;
-	pa = (u32 *) &np->fwb_bas;
-	for (i = 0 ; i < sizeof(np->fwb_bas)/sizeof(u32) ; i++)
+	po = (const u_short *)fw->b_ofs;
+	pa = (u32 *)&np->fwb_bas;
+	for (i = 0; i < sizeof(np->fwb_bas) / sizeof(u32); i++)
 		pa[i] = np->scriptb_ba + po[i];
 }
 
-#ifdef	SYM_CONF_GENERIC_SUPPORT
+#ifdef SYM_CONF_GENERIC_SUPPORT
 /*
  *  Setup routine for firmware #1.
  */
@@ -1931,7 +1957,7 @@ sym_fw1_setup(hcb_p np, const struct sym_fw *fw)
 {
 	struct sym_fw1a_scr *scripta0;
 
-	scripta0 = (struct sym_fw1a_scr *) np->scripta0;
+	scripta0 = (struct sym_fw1a_scr *)np->scripta0;
 
 	/*
 	 *  Fill variable parts in scripts.
@@ -1943,7 +1969,7 @@ sym_fw1_setup(hcb_p np, const struct sym_fw *fw)
 	 */
 	sym_fw_setup_bus_addresses(np, fw);
 }
-#endif	/* SYM_CONF_GENERIC_SUPPORT */
+#endif /* SYM_CONF_GENERIC_SUPPORT */
 
 /*
  *  Setup routine for firmware #2.
@@ -1953,7 +1979,7 @@ sym_fw2_setup(hcb_p np, const struct sym_fw *fw)
 {
 	struct sym_fw2a_scr *scripta0;
 
-	scripta0 = (struct sym_fw2a_scr *) np->scripta0;
+	scripta0 = (struct sym_fw2a_scr *)np->scripta0;
 
 	/*
 	 *  Fill variable parts in scripts.
@@ -1969,9 +1995,9 @@ sym_fw2_setup(hcb_p np, const struct sym_fw *fw)
 /*
  *  Allocate firmware descriptors.
  */
-#ifdef	SYM_CONF_GENERIC_SUPPORT
+#ifdef SYM_CONF_GENERIC_SUPPORT
 static const struct sym_fw sym_fw1 = SYM_FW_ENTRY(sym_fw1, "NCR-generic");
-#endif	/* SYM_CONF_GENERIC_SUPPORT */
+#endif /* SYM_CONF_GENERIC_SUPPORT */
 static const struct sym_fw sym_fw2 = SYM_FW_ENTRY(sym_fw2, "LOAD/STORE-based");
 
 /*
@@ -1982,8 +2008,8 @@ sym_find_firmware(const struct sym_pci_chip *chip)
 {
 	if (chip->features & FE_LDSTR)
 		return &sym_fw2;
-#ifdef	SYM_CONF_GENERIC_SUPPORT
-	else if (!(chip->features & (FE_PFEN|FE_NOPM|FE_DAC)))
+#ifdef SYM_CONF_GENERIC_SUPPORT
+	else if (!(chip->features & (FE_PFEN | FE_NOPM | FE_DAC)))
 		return &sym_fw1;
 #endif
 	else
@@ -1993,14 +2019,15 @@ sym_find_firmware(const struct sym_pci_chip *chip)
 /*
  *  Bind a script to physical addresses.
  */
-static void sym_fw_bind_script (hcb_p np, u32 *start, int len)
+static void
+sym_fw_bind_script(hcb_p np, u32 *start, int len)
 {
 	u32 opcode, new, old, tmp1, tmp2;
 	u32 *end, *cur;
 	int relocs;
 
 	cur = start;
-	end = start + len/4;
+	end = start + len / 4;
 
 	while (cur < end) {
 		opcode = *cur;
@@ -2012,9 +2039,9 @@ static void sym_fw_bind_script (hcb_p np, u32 *start, int len)
 		 *  command.
 		 */
 		if (opcode == 0) {
-			printf ("%s: ERROR0 IN SCRIPT at %d.\n",
-				sym_name(np), (int) (cur-start));
-			MDELAY (10000);
+			printf("%s: ERROR0 IN SCRIPT at %d.\n", sym_name(np),
+			    (int)(cur - start));
+			MDELAY(10000);
 			++cur;
 			continue;
 		}
@@ -2029,8 +2056,8 @@ static void sym_fw_bind_script (hcb_p np, u32 *start, int len)
 		}
 
 		if (DEBUG_FLAGS & DEBUG_SCRIPT)
-			printf ("%d:  <%x>\n", (int) (cur-start),
-				(unsigned)opcode);
+			printf("%d:  <%x>\n", (int)(cur - start),
+			    (unsigned)opcode);
 
 		/*
 		 *  We don't have to decode ALL commands
@@ -2056,9 +2083,9 @@ static void sym_fw_bind_script (hcb_p np, u32 *start, int len)
 			tmp1 = cur[1];
 			tmp2 = cur[2];
 			if ((tmp1 ^ tmp2) & 3) {
-				printf ("%s: ERROR1 IN SCRIPT at %d.\n",
-					sym_name(np), (int) (cur-start));
-				MDELAY (10000);
+				printf("%s: ERROR1 IN SCRIPT at %d.\n",
+				    sym_name(np), (int)(cur - start));
+				MDELAY(10000);
 			}
 			/*
 			 *  If PREFETCH feature not enabled, remove
@@ -2092,7 +2119,7 @@ static void sym_fw_bind_script (hcb_p np, u32 *start, int len)
 			 */
 			if (opcode & 0x00800000)
 				relocs = 0;
-			else if ((opcode & 0xf8400000) == 0x80400000)/*JUMP64*/
+			else if ((opcode & 0xf8400000) == 0x80400000) /*JUMP64*/
 				relocs = 2;
 			else
 				relocs = 1;
@@ -2156,7 +2183,8 @@ static void sym_fw_bind_script (hcb_p np, u32 *start, int len)
 			default:
 				new = 0;
 				panic("sym_fw_bind_script: "
-				      "weird relocation %x\n", old);
+				      "weird relocation %x\n",
+				    old);
 				break;
 			}
 
@@ -2172,108 +2200,111 @@ static void sym_fw_bind_script (hcb_p np, u32 *start, int len)
 /*
  *  Function prototypes.
  */
-static void sym_save_initial_setting (hcb_p np);
-static int  sym_prepare_setting (hcb_p np, struct sym_nvram *nvram);
-static int  sym_prepare_nego (hcb_p np, ccb_p cp, int nego, u_char *msgptr);
-static void sym_put_start_queue (hcb_p np, ccb_p cp);
-static void sym_chip_reset (hcb_p np);
-static void sym_soft_reset (hcb_p np);
-static void sym_start_reset (hcb_p np);
-static int  sym_reset_scsi_bus (hcb_p np, int enab_int);
-static int  sym_wakeup_done (hcb_p np);
-static void sym_flush_busy_queue (hcb_p np, int cam_status);
-static void sym_flush_comp_queue (hcb_p np, int cam_status);
-static void sym_init (hcb_p np, int reason);
-static int  sym_getsync(hcb_p np, u_char dt, u_char sfac, u_char *divp,
-		        u_char *fakp);
-static void sym_setsync (hcb_p np, ccb_p cp, u_char ofs, u_char per,
-			 u_char div, u_char fak);
-static void sym_setwide (hcb_p np, ccb_p cp, u_char wide);
-static void sym_setpprot(hcb_p np, ccb_p cp, u_char dt, u_char ofs,
-			 u_char per, u_char wide, u_char div, u_char fak);
-static void sym_settrans(hcb_p np, ccb_p cp, u_char dt, u_char ofs,
-			 u_char per, u_char wide, u_char div, u_char fak);
-static void sym_log_hard_error (hcb_p np, u_short sist, u_char dstat);
-static void sym_intr (void *arg);
-static void sym_poll (struct cam_sim *sim);
-static void sym_recover_scsi_int (hcb_p np, u_char hsts);
-static void sym_int_sto (hcb_p np);
-static void sym_int_udc (hcb_p np);
-static void sym_int_sbmc (hcb_p np);
-static void sym_int_par (hcb_p np, u_short sist);
-static void sym_int_ma (hcb_p np);
-static int  sym_dequeue_from_squeue(hcb_p np, int i, int target, int lun,
-				    int task);
-static void sym_sir_bad_scsi_status (hcb_p np, ccb_p cp);
-static int  sym_clear_tasks (hcb_p np, int status, int targ, int lun, int task);
-static void sym_sir_task_recovery (hcb_p np, int num);
-static int  sym_evaluate_dp (hcb_p np, ccb_p cp, u32 scr, int *ofs);
+static void sym_save_initial_setting(hcb_p np);
+static int sym_prepare_setting(hcb_p np, struct sym_nvram *nvram);
+static int sym_prepare_nego(hcb_p np, ccb_p cp, int nego, u_char *msgptr);
+static void sym_put_start_queue(hcb_p np, ccb_p cp);
+static void sym_chip_reset(hcb_p np);
+static void sym_soft_reset(hcb_p np);
+static void sym_start_reset(hcb_p np);
+static int sym_reset_scsi_bus(hcb_p np, int enab_int);
+static int sym_wakeup_done(hcb_p np);
+static void sym_flush_busy_queue(hcb_p np, int cam_status);
+static void sym_flush_comp_queue(hcb_p np, int cam_status);
+static void sym_init(hcb_p np, int reason);
+static int sym_getsync(hcb_p np, u_char dt, u_char sfac, u_char *divp,
+    u_char *fakp);
+static void sym_setsync(hcb_p np, ccb_p cp, u_char ofs, u_char per, u_char div,
+    u_char fak);
+static void sym_setwide(hcb_p np, ccb_p cp, u_char wide);
+static void sym_setpprot(hcb_p np, ccb_p cp, u_char dt, u_char ofs, u_char per,
+    u_char wide, u_char div, u_char fak);
+static void sym_settrans(hcb_p np, ccb_p cp, u_char dt, u_char ofs, u_char per,
+    u_char wide, u_char div, u_char fak);
+static void sym_log_hard_error(hcb_p np, u_short sist, u_char dstat);
+static void sym_intr(void *arg);
+static void sym_poll(struct cam_sim *sim);
+static void sym_recover_scsi_int(hcb_p np, u_char hsts);
+static void sym_int_sto(hcb_p np);
+static void sym_int_udc(hcb_p np);
+static void sym_int_sbmc(hcb_p np);
+static void sym_int_par(hcb_p np, u_short sist);
+static void sym_int_ma(hcb_p np);
+static int sym_dequeue_from_squeue(hcb_p np, int i, int target, int lun,
+    int task);
+static void sym_sir_bad_scsi_status(hcb_p np, ccb_p cp);
+static int sym_clear_tasks(hcb_p np, int status, int targ, int lun, int task);
+static void sym_sir_task_recovery(hcb_p np, int num);
+static int sym_evaluate_dp(hcb_p np, ccb_p cp, u32 scr, int *ofs);
 static void sym_modify_dp(hcb_p np, ccb_p cp, int ofs);
-static int  sym_compute_residual (hcb_p np, ccb_p cp);
-static int  sym_show_msg (u_char * msg);
-static void sym_print_msg (ccb_p cp, char *label, u_char *msg);
-static void sym_sync_nego (hcb_p np, tcb_p tp, ccb_p cp);
-static void sym_ppr_nego (hcb_p np, tcb_p tp, ccb_p cp);
-static void sym_wide_nego (hcb_p np, tcb_p tp, ccb_p cp);
-static void sym_nego_default (hcb_p np, tcb_p tp, ccb_p cp);
-static void sym_nego_rejected (hcb_p np, tcb_p tp, ccb_p cp);
-static void sym_int_sir (hcb_p np);
-static void sym_free_ccb (hcb_p np, ccb_p cp);
-static ccb_p sym_get_ccb (hcb_p np, u_char tn, u_char ln, u_char tag_order);
-static ccb_p sym_alloc_ccb (hcb_p np);
-static ccb_p sym_ccb_from_dsa (hcb_p np, u32 dsa);
-static lcb_p sym_alloc_lcb (hcb_p np, u_char tn, u_char ln);
-static void sym_alloc_lcb_tags (hcb_p np, u_char tn, u_char ln);
-static int  sym_snooptest (hcb_p np);
+static int sym_compute_residual(hcb_p np, ccb_p cp);
+static int sym_show_msg(u_char *msg);
+static void sym_print_msg(ccb_p cp, char *label, u_char *msg);
+static void sym_sync_nego(hcb_p np, tcb_p tp, ccb_p cp);
+static void sym_ppr_nego(hcb_p np, tcb_p tp, ccb_p cp);
+static void sym_wide_nego(hcb_p np, tcb_p tp, ccb_p cp);
+static void sym_nego_default(hcb_p np, tcb_p tp, ccb_p cp);
+static void sym_nego_rejected(hcb_p np, tcb_p tp, ccb_p cp);
+static void sym_int_sir(hcb_p np);
+static void sym_free_ccb(hcb_p np, ccb_p cp);
+static ccb_p sym_get_ccb(hcb_p np, u_char tn, u_char ln, u_char tag_order);
+static ccb_p sym_alloc_ccb(hcb_p np);
+static ccb_p sym_ccb_from_dsa(hcb_p np, u32 dsa);
+static lcb_p sym_alloc_lcb(hcb_p np, u_char tn, u_char ln);
+static void sym_alloc_lcb_tags(hcb_p np, u_char tn, u_char ln);
+static int sym_snooptest(hcb_p np);
 static void sym_selectclock(hcb_p np, u_char scntl3);
-static void sym_getclock (hcb_p np, int mult);
-static int  sym_getpciclock (hcb_p np);
-static void sym_complete_ok (hcb_p np, ccb_p cp);
-static void sym_complete_error (hcb_p np, ccb_p cp);
-static void sym_callout (void *arg);
-static int  sym_abort_scsiio (hcb_p np, union ccb *ccb, int timed_out);
-static void sym_reset_dev (hcb_p np, union ccb *ccb);
-static void sym_action (struct cam_sim *sim, union ccb *ccb);
-static int  sym_setup_cdb (hcb_p np, struct ccb_scsiio *csio, ccb_p cp);
-static void sym_setup_data_and_start (hcb_p np, struct ccb_scsiio *csio,
-				      ccb_p cp);
+static void sym_getclock(hcb_p np, int mult);
+static int sym_getpciclock(hcb_p np);
+static void sym_complete_ok(hcb_p np, ccb_p cp);
+static void sym_complete_error(hcb_p np, ccb_p cp);
+static void sym_callout(void *arg);
+static int sym_abort_scsiio(hcb_p np, union ccb *ccb, int timed_out);
+static void sym_reset_dev(hcb_p np, union ccb *ccb);
+static void sym_action(struct cam_sim *sim, union ccb *ccb);
+static int sym_setup_cdb(hcb_p np, struct ccb_scsiio *csio, ccb_p cp);
+static void sym_setup_data_and_start(hcb_p np, struct ccb_scsiio *csio,
+    ccb_p cp);
 static int sym_fast_scatter_sg_physical(hcb_p np, ccb_p cp,
-					bus_dma_segment_t *psegs, int nsegs);
-static int sym_scatter_sg_physical (hcb_p np, ccb_p cp,
-				    bus_dma_segment_t *psegs, int nsegs);
-static void sym_action2 (struct cam_sim *sim, union ccb *ccb);
+    bus_dma_segment_t *psegs, int nsegs);
+static int sym_scatter_sg_physical(hcb_p np, ccb_p cp, bus_dma_segment_t *psegs,
+    int nsegs);
+static void sym_action2(struct cam_sim *sim, union ccb *ccb);
 static void sym_update_trans(hcb_p np, struct sym_trans *tip,
-			      struct ccb_trans_settings *cts);
+    struct ccb_trans_settings *cts);
 static void sym_update_dflags(hcb_p np, u_char *flags,
-			      struct ccb_trans_settings *cts);
+    struct ccb_trans_settings *cts);
 
-static const struct sym_pci_chip *sym_find_pci_chip (device_t dev);
-static int  sym_pci_probe (device_t dev);
-static int  sym_pci_attach (device_t dev);
+static const struct sym_pci_chip *sym_find_pci_chip(device_t dev);
+static int sym_pci_probe(device_t dev);
+static int sym_pci_attach(device_t dev);
 
-static void sym_pci_free (hcb_p np);
-static int  sym_cam_attach (hcb_p np);
-static void sym_cam_free (hcb_p np);
+static void sym_pci_free(hcb_p np);
+static int sym_cam_attach(hcb_p np);
+static void sym_cam_free(hcb_p np);
 
-static void sym_nvram_setup_host (hcb_p np, struct sym_nvram *nvram);
-static void sym_nvram_setup_target (hcb_p np, int targ, struct sym_nvram *nvp);
-static int sym_read_nvram (hcb_p np, struct sym_nvram *nvp);
+static void sym_nvram_setup_host(hcb_p np, struct sym_nvram *nvram);
+static void sym_nvram_setup_target(hcb_p np, int targ, struct sym_nvram *nvp);
+static int sym_read_nvram(hcb_p np, struct sym_nvram *nvp);
 
 /*
  *  Print something which allows to retrieve the controller type,
  *  unit, target, lun concerned by a kernel message.
  */
-static void PRINT_TARGET (hcb_p np, int target)
+static void
+PRINT_TARGET(hcb_p np, int target)
 {
-	printf ("%s:%d:", sym_name(np), target);
+	printf("%s:%d:", sym_name(np), target);
 }
 
-static void PRINT_LUN(hcb_p np, int target, int lun)
+static void
+PRINT_LUN(hcb_p np, int target, int lun)
 {
-	printf ("%s:%d:%d:", sym_name(np), target, lun);
+	printf("%s:%d:%d:", sym_name(np), target, lun);
 }
 
-static void PRINT_ADDR (ccb_p cp)
+static void
+PRINT_ADDR(ccb_p cp)
 {
 	if (cp && cp->cam_ccb)
 		xpt_print_path(cp->cam_ccb->ccb_h.path);
@@ -2282,7 +2313,8 @@ static void PRINT_ADDR (ccb_p cp)
 /*
  *  Take into account this ccb in the freeze count.
  */
-static void sym_freeze_cam_ccb(union ccb *ccb)
+static void
+sym_freeze_cam_ccb(union ccb *ccb)
 {
 	if (!(ccb->ccb_h.flags & CAM_DEV_QFRZDIS)) {
 		if (!(ccb->ccb_h.status & CAM_DEV_QFRZN)) {
@@ -2295,7 +2327,8 @@ static void sym_freeze_cam_ccb(union ccb *ccb)
 /*
  *  Set the status field of a CAM CCB.
  */
-static __inline void sym_set_cam_status(union ccb *ccb, cam_status status)
+static __inline void
+sym_set_cam_status(union ccb *ccb, cam_status status)
 {
 	ccb->ccb_h.status &= ~CAM_STATUS_MASK;
 	ccb->ccb_h.status |= status;
@@ -2304,7 +2337,8 @@ static __inline void sym_set_cam_status(union ccb *ccb, cam_status status)
 /*
  *  Get the status field of a CAM CCB.
  */
-static __inline int sym_get_cam_status(union ccb *ccb)
+static __inline int
+sym_get_cam_status(union ccb *ccb)
 {
 	return ccb->ccb_h.status & CAM_STATUS_MASK;
 }
@@ -2312,13 +2346,14 @@ static __inline int sym_get_cam_status(union ccb *ccb)
 /*
  *  Enqueue a CAM CCB.
  */
-static void sym_enqueue_cam_ccb(ccb_p cp)
+static void
+sym_enqueue_cam_ccb(ccb_p cp)
 {
 	hcb_p np;
 	union ccb *ccb;
 
 	ccb = cp->cam_ccb;
-	np = (hcb_p) cp->arg;
+	np = (hcb_p)cp->arg;
 
 	assert(!(ccb->ccb_h.status & CAM_SIM_QUEUED));
 	ccb->ccb_h.status = CAM_REQ_INPROG;
@@ -2335,7 +2370,8 @@ static void sym_enqueue_cam_ccb(ccb_p cp)
  *  Complete a pending CAM CCB.
  */
 
-static void sym_xpt_done(hcb_p np, union ccb *ccb, ccb_p cp)
+static void
+sym_xpt_done(hcb_p np, union ccb *ccb, ccb_p cp)
 {
 
 	SYM_LOCK_ASSERT(MA_OWNED);
@@ -2349,7 +2385,8 @@ static void sym_xpt_done(hcb_p np, union ccb *ccb, ccb_p cp)
 	xpt_done(ccb);
 }
 
-static void sym_xpt_done2(hcb_p np, union ccb *ccb, int cam_status)
+static void
+sym_xpt_done2(hcb_p np, union ccb *ccb, int cam_status)
 {
 
 	SYM_LOCK_ASSERT(MA_OWNED);
@@ -2365,8 +2402,8 @@ static void sym_xpt_done2(hcb_p np, union ccb *ccb, int cam_status)
  *  calculations more simple.
  */
 #define _5M 5000000
-static const u32 div_10M[] =
-	{2*_5M, 3*_5M, 4*_5M, 6*_5M, 8*_5M, 12*_5M, 16*_5M};
+static const u32 div_10M[] = { 2 * _5M, 3 * _5M, 4 * _5M, 6 * _5M, 8 * _5M,
+	12 * _5M, 16 * _5M };
 
 /*
  *  SYMBIOS chips allow burst lengths of 2, 4, 8, 16, 32, 64,
@@ -2386,48 +2423,49 @@ static const u32 div_10M[] =
 /*
  *  Burst length from burst code.
  */
-#define burst_length(bc) (!(bc))? 0 : 1 << (bc)
+#define burst_length(bc) (!(bc)) ? 0 : 1 << (bc)
 
 /*
  *  Burst code from io register bits.
  */
 #define burst_code(dmode, ctest4, ctest5) \
-	(ctest4) & 0x80? 0 : (((dmode) & 0xc0) >> 6) + ((ctest5) & 0x04) + 1
+	(ctest4) & 0x80 ? 0 : (((dmode) & 0xc0) >> 6) + ((ctest5) & 0x04) + 1
 
 /*
  *  Set initial io register bits from burst code.
  */
-static __inline void sym_init_burst(hcb_p np, u_char bc)
+static __inline void
+sym_init_burst(hcb_p np, u_char bc)
 {
-	np->rv_ctest4	&= ~0x80;
-	np->rv_dmode	&= ~(0x3 << 6);
-	np->rv_ctest5	&= ~0x4;
+	np->rv_ctest4 &= ~0x80;
+	np->rv_dmode &= ~(0x3 << 6);
+	np->rv_ctest5 &= ~0x4;
 
 	if (!bc) {
-		np->rv_ctest4	|= 0x80;
-	}
-	else {
+		np->rv_ctest4 |= 0x80;
+	} else {
 		--bc;
-		np->rv_dmode	|= ((bc & 0x3) << 6);
-		np->rv_ctest5	|= (bc & 0x4);
+		np->rv_dmode |= ((bc & 0x3) << 6);
+		np->rv_ctest5 |= (bc & 0x4);
 	}
 }
 
 /*
  * Print out the list of targets that have some flag disabled by user.
  */
-static void sym_print_targets_flag(hcb_p np, int mask, char *msg)
+static void
+sym_print_targets_flag(hcb_p np, int mask, char *msg)
 {
 	int cnt;
 	int i;
 
-	for (cnt = 0, i = 0 ; i < SYM_CONF_MAX_TARGET ; i++) {
+	for (cnt = 0, i = 0; i < SYM_CONF_MAX_TARGET; i++) {
 		if (i == np->myaddr)
 			continue;
 		if (np->target[i].usrflags & mask) {
 			if (!cnt++)
 				printf("%s: %s disabled for targets",
-					sym_name(np), msg);
+				    sym_name(np), msg);
 			printf(" %d", i);
 		}
 	}
@@ -2444,53 +2482,54 @@ static void sym_print_targets_flag(hcb_p np, int mask, char *msg)
  *  is not safe on paper, but it seems to work quite
  *  well. :)
  */
-static void sym_save_initial_setting (hcb_p np)
+static void
+sym_save_initial_setting(hcb_p np)
 {
-	np->sv_scntl0	= INB(nc_scntl0) & 0x0a;
-	np->sv_scntl3	= INB(nc_scntl3) & 0x07;
-	np->sv_dmode	= INB(nc_dmode)  & 0xce;
-	np->sv_dcntl	= INB(nc_dcntl)  & 0xa8;
-	np->sv_ctest3	= INB(nc_ctest3) & 0x01;
-	np->sv_ctest4	= INB(nc_ctest4) & 0x80;
-	np->sv_gpcntl	= INB(nc_gpcntl);
-	np->sv_stest1	= INB(nc_stest1);
-	np->sv_stest2	= INB(nc_stest2) & 0x20;
-	np->sv_stest4	= INB(nc_stest4);
-	if (np->features & FE_C10) {	/* Always large DMA fifo + ultra3 */
-		np->sv_scntl4	= INB(nc_scntl4);
-		np->sv_ctest5	= INB(nc_ctest5) & 0x04;
-	}
-	else
-		np->sv_ctest5	= INB(nc_ctest5) & 0x24;
+	np->sv_scntl0 = INB(nc_scntl0) & 0x0a;
+	np->sv_scntl3 = INB(nc_scntl3) & 0x07;
+	np->sv_dmode = INB(nc_dmode) & 0xce;
+	np->sv_dcntl = INB(nc_dcntl) & 0xa8;
+	np->sv_ctest3 = INB(nc_ctest3) & 0x01;
+	np->sv_ctest4 = INB(nc_ctest4) & 0x80;
+	np->sv_gpcntl = INB(nc_gpcntl);
+	np->sv_stest1 = INB(nc_stest1);
+	np->sv_stest2 = INB(nc_stest2) & 0x20;
+	np->sv_stest4 = INB(nc_stest4);
+	if (np->features & FE_C10) { /* Always large DMA fifo + ultra3 */
+		np->sv_scntl4 = INB(nc_scntl4);
+		np->sv_ctest5 = INB(nc_ctest5) & 0x04;
+	} else
+		np->sv_ctest5 = INB(nc_ctest5) & 0x24;
 }
 
 /*
  *  Prepare io register values used by sym_init() according
  *  to selected and supported features.
  */
-static int sym_prepare_setting(hcb_p np, struct sym_nvram *nvram)
+static int
+sym_prepare_setting(hcb_p np, struct sym_nvram *nvram)
 {
-	u_char	burst_max;
-	u32	period;
+	u_char burst_max;
+	u32 period;
 	int i;
 
 	/*
 	 *  Wide ?
 	 */
-	np->maxwide	= (np->features & FE_WIDE)? 1 : 0;
+	np->maxwide = (np->features & FE_WIDE) ? 1 : 0;
 
 	/*
 	 *  Get the frequency of the chip's clock.
 	 */
-	if	(np->features & FE_QUAD)
-		np->multiplier	= 4;
-	else if	(np->features & FE_DBLR)
-		np->multiplier	= 2;
+	if (np->features & FE_QUAD)
+		np->multiplier = 4;
+	else if (np->features & FE_DBLR)
+		np->multiplier = 2;
 	else
-		np->multiplier	= 1;
+		np->multiplier = 1;
 
-	np->clock_khz	= (np->features & FE_CLK80)? 80000 : 40000;
-	np->clock_khz	*= np->multiplier;
+	np->clock_khz = (np->features & FE_CLK80) ? 80000 : 40000;
+	np->clock_khz *= np->multiplier;
 
 	if (np->clock_khz != 40000)
 		sym_getclock(np, np->multiplier);
@@ -2505,7 +2544,7 @@ static int sym_prepare_setting(hcb_p np, struct sym_nvram *nvram)
 			break;
 		}
 	}
-	np->rv_scntl3 = i+1;
+	np->rv_scntl3 = i + 1;
 
 	/*
 	 * The C1010 uses hardwired divisors for async.
@@ -2519,19 +2558,22 @@ static int sym_prepare_setting(hcb_p np, struct sym_nvram *nvram)
 	 * Btw, 'period' is in tenths of nanoseconds.
 	 */
 	period = howmany(4 * div_10M[0], np->clock_khz);
-	if	(period <= 250)		np->minsync = 10;
-	else if	(period <= 303)		np->minsync = 11;
-	else if	(period <= 500)		np->minsync = 12;
-	else				np->minsync = howmany(period, 40);
+	if (period <= 250)
+		np->minsync = 10;
+	else if (period <= 303)
+		np->minsync = 11;
+	else if (period <= 500)
+		np->minsync = 12;
+	else
+		np->minsync = howmany(period, 40);
 
 	/*
 	 * Check against chip SCSI standard support (SCSI-2,ULTRA,ULTRA2).
 	 */
-	if	(np->minsync < 25 &&
-		 !(np->features & (FE_ULTRA|FE_ULTRA2|FE_ULTRA3)))
+	if (np->minsync < 25 &&
+	    !(np->features & (FE_ULTRA | FE_ULTRA2 | FE_ULTRA3)))
 		np->minsync = 25;
-	else if	(np->minsync < 12 &&
-		 !(np->features & (FE_ULTRA2|FE_ULTRA3)))
+	else if (np->minsync < 12 && !(np->features & (FE_ULTRA2 | FE_ULTRA3)))
 		np->minsync = 12;
 
 	/*
@@ -2543,7 +2585,7 @@ static int sym_prepare_setting(hcb_p np, struct sym_nvram *nvram)
 	/*
 	 * If chip is a C1010, guess the sync limits in DT mode.
 	 */
-	if ((np->features & (FE_C10|FE_ULTRA3)) == (FE_C10|FE_ULTRA3)) {
+	if ((np->features & (FE_C10 | FE_ULTRA3)) == (FE_C10 | FE_ULTRA3)) {
 		if (np->clock_khz == 160000) {
 			np->minsync_dt = 9;
 			np->maxsync_dt = 50;
@@ -2556,33 +2598,32 @@ static int sym_prepare_setting(hcb_p np, struct sym_nvram *nvram)
 	 */
 	if (np->features & FE_DAC)
 #ifdef __LP64__
-		np->rv_ccntl1	|= (XTIMOD | EXTIBMV);
+		np->rv_ccntl1 |= (XTIMOD | EXTIBMV);
 #else
-		np->rv_ccntl1	|= (DDAC);
+		np->rv_ccntl1 |= (DDAC);
 #endif
 
 	/*
 	 *  Phase mismatch handled by SCRIPTS (895A/896/1010) ?
-  	 */
+	 */
 	if (np->features & FE_NOPM)
-		np->rv_ccntl0	|= (ENPMJ);
+		np->rv_ccntl0 |= (ENPMJ);
 
- 	/*
+	/*
 	 *  C1010 Errata.
 	 *  In dual channel mode, contention occurs if internal cycles
 	 *  are used. Disable internal cycles.
 	 */
-	if (np->device_id == PCI_ID_LSI53C1010 &&
-	    np->revision_id < 0x2)
-		np->rv_ccntl0	|=  DILS;
+	if (np->device_id == PCI_ID_LSI53C1010 && np->revision_id < 0x2)
+		np->rv_ccntl0 |= DILS;
 
 	/*
 	 *  Select burst length (dwords)
 	 */
-	burst_max	= SYM_SETUP_BURST_ORDER;
+	burst_max = SYM_SETUP_BURST_ORDER;
 	if (burst_max == 255)
 		burst_max = burst_code(np->sv_dmode, np->sv_ctest4,
-				       np->sv_ctest5);
+		    np->sv_ctest5);
 	if (burst_max > 7)
 		burst_max = 7;
 	if (burst_max > np->maxburst)
@@ -2596,11 +2637,10 @@ static int sym_prepare_setting(hcb_p np, struct sym_nvram *nvram)
 	 *  this driver. The generic ncr driver that does not use
 	 *  LOAD/STORE instructions does not need this work-around.
 	 */
-	if ((np->device_id == PCI_ID_SYM53C810 &&
-	     np->revision_id >= 0x10 && np->revision_id <= 0x11) ||
-	    (np->device_id == PCI_ID_SYM53C860 &&
-	     np->revision_id <= 0x1))
-		np->features &= ~(FE_WRIE|FE_ERL|FE_ERMP);
+	if ((np->device_id == PCI_ID_SYM53C810 && np->revision_id >= 0x10 &&
+		np->revision_id <= 0x11) ||
+	    (np->device_id == PCI_ID_SYM53C860 && np->revision_id <= 0x1))
+		np->features &= ~(FE_WRIE | FE_ERL | FE_ERMP);
 
 	/*
 	 *  Select all supported special features.
@@ -2609,37 +2649,37 @@ static int sym_prepare_setting(hcb_p np, struct sym_nvram *nvram)
 	 *  Disabling PFEN makes sure BOF will be used.
 	 */
 	if (np->features & FE_ERL)
-		np->rv_dmode	|= ERL;		/* Enable Read Line */
+		np->rv_dmode |= ERL; /* Enable Read Line */
 	if (np->features & FE_BOF)
-		np->rv_dmode	|= BOF;		/* Burst Opcode Fetch */
+		np->rv_dmode |= BOF; /* Burst Opcode Fetch */
 	if (np->features & FE_ERMP)
-		np->rv_dmode	|= ERMP;	/* Enable Read Multiple */
+		np->rv_dmode |= ERMP; /* Enable Read Multiple */
 #if 1
 	if ((np->features & FE_PFEN) && !np->ram_ba)
 #else
 	if (np->features & FE_PFEN)
 #endif
-		np->rv_dcntl	|= PFEN;	/* Prefetch Enable */
+		np->rv_dcntl |= PFEN; /* Prefetch Enable */
 	if (np->features & FE_CLSE)
-		np->rv_dcntl	|= CLSE;	/* Cache Line Size Enable */
+		np->rv_dcntl |= CLSE; /* Cache Line Size Enable */
 	if (np->features & FE_WRIE)
-		np->rv_ctest3	|= WRIE;	/* Write and Invalidate */
+		np->rv_ctest3 |= WRIE; /* Write and Invalidate */
 	if (np->features & FE_DFS)
-		np->rv_ctest5	|= DFS;		/* Dma Fifo Size */
+		np->rv_ctest5 |= DFS; /* Dma Fifo Size */
 
 	/*
 	 *  Select some other
 	 */
 	if (SYM_SETUP_PCI_PARITY)
-		np->rv_ctest4	|= MPEE; /* Master parity checking */
+		np->rv_ctest4 |= MPEE; /* Master parity checking */
 	if (SYM_SETUP_SCSI_PARITY)
-		np->rv_scntl0	|= 0x0a; /*  full arb., ena parity, par->ATN  */
+		np->rv_scntl0 |= 0x0a; /*  full arb., ena parity, par->ATN  */
 
 	/*
 	 *  Get parity checking, host ID and verbose mode from NVRAM
 	 */
 	np->myaddr = 255;
-	sym_nvram_setup_host (np, nvram);
+	sym_nvram_setup_host(np, nvram);
 
 	/*
 	 *  Get SCSI addr of host adapter (set by bios?).
@@ -2664,20 +2704,18 @@ static int sym_prepare_setting(hcb_p np, struct sym_nvram *nvram)
 	 *    since a 100% safe algorithm is not possible.
 	 */
 	np->scsi_mode = SMODE_SE;
-	if (np->features & (FE_ULTRA2|FE_ULTRA3))
+	if (np->features & (FE_ULTRA2 | FE_ULTRA3))
 		np->scsi_mode = (np->sv_stest4 & SMODE);
-	else if	(np->features & FE_DIFF) {
+	else if (np->features & FE_DIFF) {
 		if (SYM_SETUP_SCSI_DIFF == 1) {
 			if (np->sv_scntl3) {
 				if (np->sv_stest2 & 0x20)
 					np->scsi_mode = SMODE_HVD;
-			}
-			else if (nvram->type == SYM_SYMBIOS_NVRAM) {
+			} else if (nvram->type == SYM_SYMBIOS_NVRAM) {
 				if (!(INB(nc_gpreg) & 0x08))
 					np->scsi_mode = SMODE_HVD;
 			}
-		}
-		else if	(SYM_SETUP_SCSI_DIFF == 2)
+		} else if (SYM_SETUP_SCSI_DIFF == 2)
 			np->scsi_mode = SMODE_HVD;
 	}
 	if (np->scsi_mode == SMODE_HVD)
@@ -2690,21 +2728,21 @@ static int sym_prepare_setting(hcb_p np, struct sym_nvram *nvram)
 	 *  and 1010 that drive the LED directly.
 	 */
 	if ((SYM_SETUP_SCSI_LED ||
-	     (nvram->type == SYM_SYMBIOS_NVRAM ||
-	      (nvram->type == SYM_TEKRAM_NVRAM &&
-	       np->device_id == PCI_ID_SYM53C895))) &&
+		(nvram->type == SYM_SYMBIOS_NVRAM ||
+		    (nvram->type == SYM_TEKRAM_NVRAM &&
+			np->device_id == PCI_ID_SYM53C895))) &&
 	    !(np->features & FE_LEDC) && !(np->sv_gpcntl & 0x01))
 		np->features |= FE_LED0;
 
 	/*
 	 *  Set irq mode.
 	 */
-	switch(SYM_SETUP_IRQ_MODE & 3) {
+	switch (SYM_SETUP_IRQ_MODE & 3) {
 	case 2:
-		np->rv_dcntl	|= IRQM;
+		np->rv_dcntl |= IRQM;
 		break;
 	case 1:
-		np->rv_dcntl	|= (np->sv_dcntl & IRQM);
+		np->rv_dcntl |= (np->sv_dcntl & IRQM);
 		break;
 	default:
 		break;
@@ -2714,30 +2752,31 @@ static int sym_prepare_setting(hcb_p np, struct sym_nvram *nvram)
 	 *  Configure targets according to driver setup.
 	 *  If NVRAM present get targets setup from NVRAM.
 	 */
-	for (i = 0 ; i < SYM_CONF_MAX_TARGET ; i++) {
+	for (i = 0; i < SYM_CONF_MAX_TARGET; i++) {
 		tcb_p tp = &np->target[i];
 
-		tp->tinfo.user.scsi_version = tp->tinfo.current.scsi_version= 2;
-		tp->tinfo.user.spi_version  = tp->tinfo.current.spi_version = 2;
+		tp->tinfo.user.scsi_version = tp->tinfo.current.scsi_version =
+		    2;
+		tp->tinfo.user.spi_version = tp->tinfo.current.spi_version = 2;
 		tp->tinfo.user.period = np->minsync;
 		if (np->features & FE_ULTRA3)
 			tp->tinfo.user.period = np->minsync_dt;
 		tp->tinfo.user.offset = np->maxoffs;
-		tp->tinfo.user.width  = np->maxwide ? BUS_16_BIT : BUS_8_BIT;
+		tp->tinfo.user.width = np->maxwide ? BUS_16_BIT : BUS_8_BIT;
 		tp->usrflags |= (SYM_DISC_ENABLED | SYM_TAGS_ENABLED);
 		tp->usrtags = SYM_SETUP_MAX_TAG;
 
-		sym_nvram_setup_target (np, i, nvram);
+		sym_nvram_setup_target(np, i, nvram);
 
 		/*
 		 *  For now, guess PPR/DT support from the period
 		 *  and BUS width.
 		 */
 		if (np->features & FE_ULTRA3) {
-			if (tp->tinfo.user.period <= 9	&&
+			if (tp->tinfo.user.period <= 9 &&
 			    tp->tinfo.user.width == BUS_16_BIT) {
 				tp->tinfo.user.options |= PPR_OPT_DT;
-				tp->tinfo.user.offset   = np->maxoffs_dt;
+				tp->tinfo.user.offset = np->maxoffs_dt;
 				tp->tinfo.user.spi_version = 3;
 			}
 		}
@@ -2751,40 +2790,40 @@ static int sym_prepare_setting(hcb_p np, struct sym_nvram *nvram)
 	 */
 	i = nvram->type;
 	printf("%s: %s NVRAM, ID %d, Fast-%d, %s, %s\n", sym_name(np),
-		i  == SYM_SYMBIOS_NVRAM ? "Symbios" :
-		(i == SYM_TEKRAM_NVRAM  ? "Tekram" : "No"),
-		np->myaddr,
-		(np->features & FE_ULTRA3) ? 80 :
+	    i == SYM_SYMBIOS_NVRAM ? "Symbios" :
+				     (i == SYM_TEKRAM_NVRAM ? "Tekram" : "No"),
+	    np->myaddr,
+	    (np->features & FE_ULTRA3)	   ? 80 :
 		(np->features & FE_ULTRA2) ? 40 :
-		(np->features & FE_ULTRA)  ? 20 : 10,
-		sym_scsi_bus_mode(np->scsi_mode),
-		(np->rv_scntl0 & 0xa)	? "parity checking" : "NO parity");
+		(np->features & FE_ULTRA)  ? 20 :
+					     10,
+	    sym_scsi_bus_mode(np->scsi_mode),
+	    (np->rv_scntl0 & 0xa) ? "parity checking" : "NO parity");
 	/*
 	 *  Tell him more on demand.
 	 */
 	if (sym_verbose) {
-		printf("%s: %s IRQ line driver%s\n",
-			sym_name(np),
-			np->rv_dcntl & IRQM ? "totem pole" : "open drain",
-			np->ram_ba ? ", using on-chip SRAM" : "");
+		printf("%s: %s IRQ line driver%s\n", sym_name(np),
+		    np->rv_dcntl & IRQM ? "totem pole" : "open drain",
+		    np->ram_ba ? ", using on-chip SRAM" : "");
 		printf("%s: using %s firmware.\n", sym_name(np), np->fw_name);
 		if (np->features & FE_NOPM)
 			printf("%s: handling phase mismatch from SCRIPTS.\n",
-			       sym_name(np));
+			    sym_name(np));
 	}
 	/*
 	 *  And still more.
 	 */
 	if (sym_verbose > 1) {
-		printf ("%s: initial SCNTL3/DMODE/DCNTL/CTEST3/4/5 = "
-			"(hex) %02x/%02x/%02x/%02x/%02x/%02x\n",
-			sym_name(np), np->sv_scntl3, np->sv_dmode, np->sv_dcntl,
-			np->sv_ctest3, np->sv_ctest4, np->sv_ctest5);
+		printf("%s: initial SCNTL3/DMODE/DCNTL/CTEST3/4/5 = "
+		       "(hex) %02x/%02x/%02x/%02x/%02x/%02x\n",
+		    sym_name(np), np->sv_scntl3, np->sv_dmode, np->sv_dcntl,
+		    np->sv_ctest3, np->sv_ctest4, np->sv_ctest5);
 
-		printf ("%s: final   SCNTL3/DMODE/DCNTL/CTEST3/4/5 = "
-			"(hex) %02x/%02x/%02x/%02x/%02x/%02x\n",
-			sym_name(np), np->rv_scntl3, np->rv_dmode, np->rv_dcntl,
-			np->rv_ctest3, np->rv_ctest4, np->rv_ctest5);
+		printf("%s: final   SCNTL3/DMODE/DCNTL/CTEST3/4/5 = "
+		       "(hex) %02x/%02x/%02x/%02x/%02x/%02x\n",
+		    sym_name(np), np->rv_scntl3, np->rv_dmode, np->rv_dcntl,
+		    np->rv_ctest3, np->rv_ctest4, np->rv_ctest5);
 	}
 	/*
 	 *  Let user be aware of targets that have some disable flags set.
@@ -2792,7 +2831,7 @@ static int sym_prepare_setting(hcb_p np, struct sym_nvram *nvram)
 	sym_print_targets_flag(np, SYM_SCAN_BOOT_DISABLED, "SCAN AT BOOT");
 	if (sym_verbose)
 		sym_print_targets_flag(np, SYM_SCAN_LUNS_DISABLED,
-				       "SCAN FOR LUNS");
+		    "SCAN FOR LUNS");
 
 	return 0;
 }
@@ -2804,7 +2843,8 @@ static int sym_prepare_setting(hcb_p np, struct sym_nvram *nvram)
  *  negotiation and the nego_status field of the CCB.
  *  Returns the size of the message in bytes.
  */
-static int sym_prepare_nego(hcb_p np, ccb_p cp, int nego, u_char *msgptr)
+static int
+sym_prepare_nego(hcb_p np, ccb_p cp, int nego, u_char *msgptr)
 {
 	tcb_p tp = &np->target[cp->target];
 	int msglen = 0;
@@ -2829,7 +2869,7 @@ static int sym_prepare_nego(hcb_p np, ccb_p cp, int nego, u_char *msgptr)
 	 *  negotiate synchronous transfers?
 	 */
 	else if (tp->tinfo.current.period != tp->tinfo.goal.period ||
-		 tp->tinfo.current.offset != tp->tinfo.goal.offset)
+	    tp->tinfo.current.offset != tp->tinfo.goal.offset)
 		nego = NS_SYNC;
 
 	switch (nego) {
@@ -2863,9 +2903,11 @@ static int sym_prepare_nego(hcb_p np, ccb_p cp, int nego, u_char *msgptr)
 	if (nego) {
 		tp->nego_cp = cp; /* Keep track a nego will be performed */
 		if (DEBUG_FLAGS & DEBUG_NEGO) {
-			sym_print_msg(cp, nego == NS_SYNC ? "sync msgout" :
-					  nego == NS_WIDE ? "wide msgout" :
-					  "ppr msgout", msgptr);
+			sym_print_msg(cp,
+			    nego == NS_SYNC	? "sync msgout" :
+				nego == NS_WIDE ? "wide msgout" :
+						  "ppr msgout",
+			    msgptr);
 		}
 	}
 
@@ -2875,9 +2917,10 @@ static int sym_prepare_nego(hcb_p np, ccb_p cp, int nego, u_char *msgptr)
 /*
  *  Insert a job into the start queue.
  */
-static void sym_put_start_queue(hcb_p np, ccb_p cp)
+static void
+sym_put_start_queue(hcb_p np, ccb_p cp)
 {
-	u_short	qidx;
+	u_short qidx;
 
 #ifdef SYM_CONF_IARB_SUPPORT
 	/*
@@ -2891,8 +2934,7 @@ static void sym_put_start_queue(hcb_p np, ccb_p cp)
 	if (np->last_cp && np->iarb_count < np->iarb_max) {
 		np->last_cp->host_flags |= HF_HINT_IARB;
 		++np->iarb_count;
-	}
-	else
+	} else
 		np->iarb_count = 0;
 	np->last_cp = cp;
 #endif
@@ -2902,23 +2944,24 @@ static void sym_put_start_queue(hcb_p np, ccb_p cp)
 	 *  The MB should ensure proper ordering.
 	 */
 	qidx = np->squeueput + 2;
-	if (qidx >= MAX_QUEUE*2) qidx = 0;
+	if (qidx >= MAX_QUEUE * 2)
+		qidx = 0;
 
-	np->squeue [qidx]	   = cpu_to_scr(np->idletask_ba);
+	np->squeue[qidx] = cpu_to_scr(np->idletask_ba);
 	MEMORY_BARRIER();
-	np->squeue [np->squeueput] = cpu_to_scr(cp->ccb_ba);
+	np->squeue[np->squeueput] = cpu_to_scr(cp->ccb_ba);
 
 	np->squeueput = qidx;
 
 	if (DEBUG_FLAGS & DEBUG_QUEUE)
-		printf ("%s: queuepos=%d.\n", sym_name (np), np->squeueput);
+		printf("%s: queuepos=%d.\n", sym_name(np), np->squeueput);
 
 	/*
 	 *  Script processor may be waiting for reselect.
 	 *  Wake it up.
 	 */
 	MEMORY_BARRIER();
-	OUTB (nc_istat, SIGP|np->istat_sem);
+	OUTB(nc_istat, SIGP | np->istat_sem);
 }
 
 /*
@@ -2929,12 +2972,13 @@ static void sym_put_start_queue(hcb_p np, ccb_p cp)
  *  On the other hand, LVD devices need some delay
  *  to settle and report actual BUS mode in STEST4.
  */
-static void sym_chip_reset (hcb_p np)
+static void
+sym_chip_reset(hcb_p np)
 {
-	OUTB (nc_istat, SRST);
-	UDELAY (10);
-	OUTB (nc_istat, 0);
-	UDELAY(2000);	/* For BUS MODE to settle */
+	OUTB(nc_istat, SRST);
+	UDELAY(10);
+	OUTB(nc_istat, 0);
+	UDELAY(2000); /* For BUS MODE to settle */
 }
 
 /*
@@ -2946,28 +2990,29 @@ static void sym_chip_reset (hcb_p np)
  *  So, we need to abort the current operation prior to
  *  soft resetting the chip.
  */
-static void sym_soft_reset (hcb_p np)
+static void
+sym_soft_reset(hcb_p np)
 {
 	u_char istat;
 	int i;
 
-	OUTB (nc_istat, CABRT);
-	for (i = 1000000 ; i ; --i) {
-		istat = INB (nc_istat);
+	OUTB(nc_istat, CABRT);
+	for (i = 1000000; i; --i) {
+		istat = INB(nc_istat);
 		if (istat & SIP) {
-			INW (nc_sist);
+			INW(nc_sist);
 			continue;
 		}
 		if (istat & DIP) {
-			OUTB (nc_istat, 0);
-			INB (nc_dstat);
+			OUTB(nc_istat, 0);
+			INB(nc_dstat);
 			break;
 		}
 	}
 	if (!i)
 		printf("%s: unable to abort current chip operation.\n",
-			sym_name(np));
-	sym_chip_reset (np);
+		    sym_name(np));
+	sym_chip_reset(np);
 }
 
 /*
@@ -2975,27 +3020,29 @@ static void sym_soft_reset (hcb_p np)
  *
  *  The interrupt handler will reinitialize the chip.
  */
-static void sym_start_reset(hcb_p np)
+static void
+sym_start_reset(hcb_p np)
 {
-	(void) sym_reset_scsi_bus(np, 1);
+	(void)sym_reset_scsi_bus(np, 1);
 }
 
-static int sym_reset_scsi_bus(hcb_p np, int enab_int)
+static int
+sym_reset_scsi_bus(hcb_p np, int enab_int)
 {
 	u32 term;
 	int retv = 0;
 
-	sym_soft_reset(np);	/* Soft reset the chip */
+	sym_soft_reset(np); /* Soft reset the chip */
 	if (enab_int)
-		OUTW (nc_sien, RST);
+		OUTW(nc_sien, RST);
 	/*
 	 *  Enable Tolerant, reset IRQD if present and
 	 *  properly set IRQ mode, prior to resetting the bus.
 	 */
-	OUTB (nc_stest3, TE);
-	OUTB (nc_dcntl, (np->rv_dcntl & IRQM));
-	OUTB (nc_scntl1, CRST);
-	UDELAY (200);
+	OUTB(nc_stest3, TE);
+	OUTB(nc_dcntl, (np->rv_dcntl & IRQM));
+	OUTB(nc_scntl1, CRST);
+	UDELAY(200);
 
 	if (!SYM_SETUP_SCSI_BUS_CHECK)
 		goto out;
@@ -3005,29 +3052,28 @@ static int sym_reset_scsi_bus(hcb_p np, int enab_int)
 	 *  We are expecting RESET to be TRUE and other signals to be
 	 *  FALSE.
 	 */
-	term =	INB(nc_sstat0);
-	term =	((term & 2) << 7) + ((term & 1) << 17);	/* rst sdp0 */
-	term |= ((INB(nc_sstat2) & 0x01) << 26) |	/* sdp1     */
-		((INW(nc_sbdl) & 0xff)   << 9)  |	/* d7-0     */
-		((INW(nc_sbdl) & 0xff00) << 10) |	/* d15-8    */
-		INB(nc_sbcl);	/* req ack bsy sel atn msg cd io    */
+	term = INB(nc_sstat0);
+	term = ((term & 2) << 7) + ((term & 1) << 17); /* rst sdp0 */
+	term |= ((INB(nc_sstat2) & 0x01) << 26) |      /* sdp1     */
+	    ((INW(nc_sbdl) & 0xff) << 9) |	       /* d7-0     */
+	    ((INW(nc_sbdl) & 0xff00) << 10) |	       /* d15-8    */
+	    INB(nc_sbcl); /* req ack bsy sel atn msg cd io    */
 
 	if (!(np->features & FE_WIDE))
 		term &= 0x3ffff;
 
-	if (term != (2<<7)) {
+	if (term != (2 << 7)) {
 		printf("%s: suspicious SCSI data while resetting the BUS.\n",
-			sym_name(np));
+		    sym_name(np));
 		printf("%s: %sdp0,d7-0,rst,req,ack,bsy,sel,atn,msg,c/d,i/o = "
-			"0x%lx, expecting 0x%lx\n",
-			sym_name(np),
-			(np->features & FE_WIDE) ? "dp1,d15-8," : "",
-			(u_long)term, (u_long)(2<<7));
+		       "0x%lx, expecting 0x%lx\n",
+		    sym_name(np), (np->features & FE_WIDE) ? "dp1,d15-8," : "",
+		    (u_long)term, (u_long)(2 << 7));
 		if (SYM_SETUP_SCSI_BUS_CHECK == 1)
 			retv = 1;
 	}
 out:
-	OUTB (nc_scntl1, 0);
+	OUTB(nc_scntl1, 0);
 	/* MDELAY(100); */
 	return retv;
 }
@@ -3039,7 +3085,8 @@ out:
  *  a memory barrier may be needed after the reading of the
  *  so-called `flag' and prior to dealing with the data.
  */
-static int sym_wakeup_done (hcb_p np)
+static int
+sym_wakeup_done(hcb_p np)
 {
 	ccb_p cp;
 	int i, n;
@@ -3054,18 +3101,17 @@ static int sym_wakeup_done (hcb_p np)
 		if (!dsa)
 			break;
 		np->dqueue[i] = 0;
-		if ((i = i+2) >= MAX_QUEUE*2)
+		if ((i = i + 2) >= MAX_QUEUE * 2)
 			i = 0;
 
 		cp = sym_ccb_from_dsa(np, dsa);
 		if (cp) {
 			MEMORY_BARRIER();
-			sym_complete_ok (np, cp);
+			sym_complete_ok(np, cp);
 			++n;
-		}
-		else
-			printf ("%s: bad DSA (%x) in done queue.\n",
-				sym_name(np), (u_int) dsa);
+		} else
+			printf("%s: bad DSA (%x) in done queue.\n",
+			    sym_name(np), (u_int)dsa);
 	}
 	np->dqueueget = i;
 
@@ -3076,7 +3122,8 @@ static int sym_wakeup_done (hcb_p np)
  *  Complete all active CCBs with error.
  *  Used on CHIP/SCSI RESET.
  */
-static void sym_flush_busy_queue (hcb_p np, int cam_status)
+static void
+sym_flush_busy_queue(hcb_p np, int cam_status)
 {
 	/*
 	 *  Move all active CCBs to the COMP queue
@@ -3095,32 +3142,33 @@ static void sym_flush_busy_queue (hcb_p np, int cam_status)
  *     1: SCSI BUS RESET delivered or received.
  *     2: SCSI BUS MODE changed.
  */
-static void sym_init (hcb_p np, int reason)
+static void
+sym_init(hcb_p np, int reason)
 {
- 	int	i;
-	u32	phys;
+	int i;
+	u32 phys;
 
 	SYM_LOCK_ASSERT(MA_OWNED);
 
- 	/*
+	/*
 	 *  Reset chip if asked, otherwise just clear fifos.
- 	 */
+	 */
 	if (reason == 1)
 		sym_soft_reset(np);
 	else {
-		OUTB (nc_stest3, TE|CSF);
-		OUTONB (nc_ctest3, CLF);
+		OUTB(nc_stest3, TE | CSF);
+		OUTONB(nc_ctest3, CLF);
 	}
 
 	/*
 	 *  Clear Start Queue
 	 */
 	phys = np->squeue_ba;
-	for (i = 0; i < MAX_QUEUE*2; i += 2) {
-		np->squeue[i]   = cpu_to_scr(np->idletask_ba);
-		np->squeue[i+1] = cpu_to_scr(phys + (i+2)*4);
+	for (i = 0; i < MAX_QUEUE * 2; i += 2) {
+		np->squeue[i] = cpu_to_scr(np->idletask_ba);
+		np->squeue[i + 1] = cpu_to_scr(phys + (i + 2) * 4);
 	}
-	np->squeue[MAX_QUEUE*2-1] = cpu_to_scr(phys);
+	np->squeue[MAX_QUEUE * 2 - 1] = cpu_to_scr(phys);
 
 	/*
 	 *  Start at first entry.
@@ -3131,11 +3179,11 @@ static void sym_init (hcb_p np, int reason)
 	 *  Clear Done Queue
 	 */
 	phys = np->dqueue_ba;
-	for (i = 0; i < MAX_QUEUE*2; i += 2) {
-		np->dqueue[i]   = 0;
-		np->dqueue[i+1] = cpu_to_scr(phys + (i+2)*4);
+	for (i = 0; i < MAX_QUEUE * 2; i += 2) {
+		np->dqueue[i] = 0;
+		np->dqueue[i + 1] = cpu_to_scr(phys + (i + 2) * 4);
 	}
-	np->dqueue[MAX_QUEUE*2-1] = cpu_to_scr(phys);
+	np->dqueue[MAX_QUEUE * 2 - 1] = cpu_to_scr(phys);
 
 	/*
 	 *  Start at first entry.
@@ -3157,39 +3205,39 @@ static void sym_init (hcb_p np, int reason)
 	/*
 	 *  Init chip.
 	 */
-	OUTB (nc_istat,  0x00   );	/*  Remove Reset, abort */
-	UDELAY (2000);	/* The 895 needs time for the bus mode to settle */
+	OUTB(nc_istat, 0x00); /*  Remove Reset, abort */
+	UDELAY(2000); /* The 895 needs time for the bus mode to settle */
 
-	OUTB (nc_scntl0, np->rv_scntl0 | 0xc0);
-					/*  full arb., ena parity, par->ATN  */
-	OUTB (nc_scntl1, 0x00);		/*  odd parity, and remove CRST!! */
+	OUTB(nc_scntl0, np->rv_scntl0 | 0xc0);
+	/*  full arb., ena parity, par->ATN  */
+	OUTB(nc_scntl1, 0x00); /*  odd parity, and remove CRST!! */
 
-	sym_selectclock(np, np->rv_scntl3);	/* Select SCSI clock */
+	sym_selectclock(np, np->rv_scntl3); /* Select SCSI clock */
 
-	OUTB (nc_scid  , RRE|np->myaddr);	/* Adapter SCSI address */
-	OUTW (nc_respid, 1ul<<np->myaddr);	/* Id to respond to */
-	OUTB (nc_istat , SIGP	);		/*  Signal Process */
-	OUTB (nc_dmode , np->rv_dmode);		/* Burst length, dma mode */
-	OUTB (nc_ctest5, np->rv_ctest5);	/* Large fifo + large burst */
+	OUTB(nc_scid, RRE | np->myaddr);    /* Adapter SCSI address */
+	OUTW(nc_respid, 1ul << np->myaddr); /* Id to respond to */
+	OUTB(nc_istat, SIGP);		    /*  Signal Process */
+	OUTB(nc_dmode, np->rv_dmode);	    /* Burst length, dma mode */
+	OUTB(nc_ctest5, np->rv_ctest5);	    /* Large fifo + large burst */
 
-	OUTB (nc_dcntl , NOCOM|np->rv_dcntl);	/* Protect SFBR */
-	OUTB (nc_ctest3, np->rv_ctest3);	/* Write and invalidate */
-	OUTB (nc_ctest4, np->rv_ctest4);	/* Master parity checking */
+	OUTB(nc_dcntl, NOCOM | np->rv_dcntl); /* Protect SFBR */
+	OUTB(nc_ctest3, np->rv_ctest3);	      /* Write and invalidate */
+	OUTB(nc_ctest4, np->rv_ctest4);	      /* Master parity checking */
 
 	/* Extended Sreq/Sack filtering not supported on the C10 */
 	if (np->features & FE_C10)
-		OUTB (nc_stest2, np->rv_stest2);
+		OUTB(nc_stest2, np->rv_stest2);
 	else
-		OUTB (nc_stest2, EXT|np->rv_stest2);
+		OUTB(nc_stest2, EXT | np->rv_stest2);
 
-	OUTB (nc_stest3, TE);			/* TolerANT enable */
-	OUTB (nc_stime0, 0x0c);			/* HTH disabled  STO 0.25 sec */
+	OUTB(nc_stest3, TE);   /* TolerANT enable */
+	OUTB(nc_stime0, 0x0c); /* HTH disabled  STO 0.25 sec */
 
 	/*
 	 *  For now, disable AIP generation on C1010-66.
 	 */
 	if (np->device_id == PCI_ID_LSI53C1010_2)
-		OUTB (nc_aipcntl1, DISAIP);
+		OUTB(nc_aipcntl1, DISAIP);
 
 	/*
 	 *  C10101 Errata.
@@ -3200,7 +3248,7 @@ static void sym_init (hcb_p np, int reason)
 	 */
 	if (np->device_id == PCI_ID_LSI53C1010 &&
 	    /* np->revision_id < 0xff */ 1)
-		OUTB (nc_stest1, INB(nc_stest1) | 0x30);
+		OUTB(nc_stest1, INB(nc_stest1) | 0x30);
 
 	/*
 	 *  DEL 441 - 53C876 Rev 5 - Part Number 609-0392787/2788 - ITEM 2.
@@ -3208,7 +3256,7 @@ static void sym_init (hcb_p np, int reason)
 	 *  regardless revision id (kind of post-chip-design feature. ;-))
 	 */
 	if (np->device_id == PCI_ID_SYM53C875)
-		OUTB (nc_ctest0, (1<<5));
+		OUTB(nc_ctest0, (1 << 5));
 	else if (np->device_id == PCI_ID_SYM53C896)
 		np->rv_ccntl0 |= DPR;
 
@@ -3217,9 +3265,9 @@ static void sym_init (hcb_p np, int reason)
 	 *  and/or hardware phase mismatch, since only such chips
 	 *  seem to support those IO registers.
 	 */
-	if (np->features & (FE_DAC|FE_NOPM)) {
-		OUTB (nc_ccntl0, np->rv_ccntl0);
-		OUTB (nc_ccntl1, np->rv_ccntl1);
+	if (np->features & (FE_DAC | FE_NOPM)) {
+		OUTB(nc_ccntl0, np->rv_ccntl0);
+		OUTB(nc_ccntl1, np->rv_ccntl1);
 	}
 
 	/*
@@ -3227,8 +3275,8 @@ static void sym_init (hcb_p np, int reason)
 	 *  set PM jump addresses.
 	 */
 	if (np->features & FE_NOPM) {
-		OUTL (nc_pmjad1, SCRIPTB_BA (np, pm_handle));
-		OUTL (nc_pmjad2, SCRIPTB_BA (np, pm_handle));
+		OUTL(nc_pmjad1, SCRIPTB_BA(np, pm_handle));
+		OUTL(nc_pmjad2, SCRIPTB_BA(np, pm_handle));
 	}
 
 	/*
@@ -3243,21 +3291,21 @@ static void sym_init (hcb_p np, int reason)
 	/*
 	 *      enable ints
 	 */
-	OUTW (nc_sien , STO|HTH|MA|SGE|UDC|RST|PAR);
-	OUTB (nc_dien , MDPE|BF|SSI|SIR|IID);
+	OUTW(nc_sien, STO | HTH | MA | SGE | UDC | RST | PAR);
+	OUTB(nc_dien, MDPE | BF | SSI | SIR | IID);
 
 	/*
 	 *  For 895/6 enable SBMC interrupt and save current SCSI bus mode.
 	 *  Try to eat the spurious SBMC interrupt that may occur when
 	 *  we reset the chip but not the SCSI BUS (at initialization).
 	 */
-	if (np->features & (FE_ULTRA2|FE_ULTRA3)) {
-		OUTONW (nc_sien, SBMC);
+	if (np->features & (FE_ULTRA2 | FE_ULTRA3)) {
+		OUTONW(nc_sien, SBMC);
 		if (reason == 0) {
 			MDELAY(100);
-			INW (nc_sist);
+			INW(nc_sist);
 		}
-		np->scsi_mode = INB (nc_stest4) & SMODE;
+		np->scsi_mode = INB(nc_stest4) & SMODE;
 	}
 
 	/*
@@ -3266,17 +3314,17 @@ static void sym_init (hcb_p np, int reason)
 	 *  Reinitialize usrwide.
 	 *  Prepare sync negotiation according to actual SCSI bus mode.
 	 */
-	for (i=0;i<SYM_CONF_MAX_TARGET;i++) {
+	for (i = 0; i < SYM_CONF_MAX_TARGET; i++) {
 		tcb_p tp = &np->target[i];
 
-		tp->to_reset  = 0;
+		tp->to_reset = 0;
 		tp->head.sval = 0;
 		tp->head.wval = np->rv_scntl3;
 		tp->head.uval = 0;
 
 		tp->tinfo.current.period = 0;
 		tp->tinfo.current.offset = 0;
-		tp->tinfo.current.width  = BUS_8_BIT;
+		tp->tinfo.current.width = BUS_8_BIT;
 		tp->tinfo.current.options = 0;
 	}
 
@@ -3286,26 +3334,23 @@ static void sym_init (hcb_p np, int reason)
 	 */
 	if (np->ram_ba) {
 		if (sym_verbose > 1)
-			printf ("%s: Downloading SCSI SCRIPTS.\n",
-				sym_name(np));
+			printf("%s: Downloading SCSI SCRIPTS.\n", sym_name(np));
 		if (np->ram_ws == 8192) {
 			OUTRAM_OFF(4096, np->scriptb0, np->scriptb_sz);
-			OUTL (nc_mmws, np->scr_ram_seg);
-			OUTL (nc_mmrs, np->scr_ram_seg);
-			OUTL (nc_sfs,  np->scr_ram_seg);
-			phys = SCRIPTB_BA (np, start64);
-		}
-		else
-			phys = SCRIPTA_BA (np, init);
+			OUTL(nc_mmws, np->scr_ram_seg);
+			OUTL(nc_mmrs, np->scr_ram_seg);
+			OUTL(nc_sfs, np->scr_ram_seg);
+			phys = SCRIPTB_BA(np, start64);
+		} else
+			phys = SCRIPTA_BA(np, init);
 		OUTRAM_OFF(0, np->scripta0, np->scripta_sz);
-	}
-	else
-		phys = SCRIPTA_BA (np, init);
+	} else
+		phys = SCRIPTA_BA(np, init);
 
 	np->istat_sem = 0;
 
-	OUTL (nc_dsa, np->hcb_ba);
-	OUTL_DSP (phys);
+	OUTL(nc_dsa, np->hcb_ba);
+	OUTL_DSP(phys);
 
 	/*
 	 *  Notify the XPT about the RESET condition.
@@ -3321,36 +3366,41 @@ static void sym_init (hcb_p np, int reason)
 static int
 sym_getsync(hcb_p np, u_char dt, u_char sfac, u_char *divp, u_char *fakp)
 {
-	u32	clk = np->clock_khz;	/* SCSI clock frequency in kHz	*/
-	int	div = np->clock_divn;	/* Number of divisors supported	*/
-	u32	fak;			/* Sync factor in sxfer		*/
-	u32	per;			/* Period in tenths of ns	*/
-	u32	kpc;			/* (per * clk)			*/
-	int	ret;
+	u32 clk = np->clock_khz;  /* SCSI clock frequency in kHz	*/
+	int div = np->clock_divn; /* Number of divisors supported	*/
+	u32 fak;		  /* Sync factor in sxfer		*/
+	u32 per;		  /* Period in tenths of ns	*/
+	u32 kpc;		  /* (per * clk)			*/
+	int ret;
 
 	/*
 	 *  Compute the synchronous period in tenths of nano-seconds
 	 */
-	if (dt && sfac <= 9)	per = 125;
-	else if	(sfac <= 10)	per = 250;
-	else if	(sfac == 11)	per = 303;
-	else if	(sfac == 12)	per = 500;
-	else			per = 40 * sfac;
+	if (dt && sfac <= 9)
+		per = 125;
+	else if (sfac <= 10)
+		per = 250;
+	else if (sfac == 11)
+		per = 303;
+	else if (sfac == 12)
+		per = 500;
+	else
+		per = 40 * sfac;
 	ret = per;
 
 	kpc = per * clk;
 	if (dt)
 		kpc <<= 1;
 
-	/*
-	 *  For earliest C10 revision 0, we cannot use extra
-	 *  clocks for the setting of the SCSI clocking.
-	 *  Note that this limits the lowest sync data transfer
-	 *  to 5 Mega-transfers per second and may result in
-	 *  using higher clock divisors.
-	 */
+		/*
+		 *  For earliest C10 revision 0, we cannot use extra
+		 *  clocks for the setting of the SCSI clocking.
+		 *  Note that this limits the lowest sync data transfer
+		 *  to 5 Mega-transfers per second and may result in
+		 *  using higher clock divisors.
+		 */
 #if 1
-	if ((np->features & (FE_C10|FE_U3EN)) == FE_C10) {
+	if ((np->features & (FE_C10 | FE_U3EN)) == FE_C10) {
 		/*
 		 *  Look for the lowest clock divisor that allows an
 		 *  output speed not faster than the period.
@@ -3362,8 +3412,8 @@ sym_getsync(hcb_p np, u_char dt, u_char sfac, u_char *divp, u_char *fakp)
 				break;
 			}
 		}
-		fak = 0;			/* No extra clocks */
-		if (div == np->clock_divn) {	/* Are we too fast ? */
+		fak = 0;		     /* No extra clocks */
+		if (div == np->clock_divn) { /* Are we too fast ? */
 			ret = -1;
 		}
 		*divp = div;
@@ -3377,7 +3427,8 @@ sym_getsync(hcb_p np, u_char dt, u_char sfac, u_char *divp, u_char *fakp)
 	 *  input speed faster than the period.
 	 */
 	while (div-- > 0)
-		if (kpc >= (div_10M[div] << 2)) break;
+		if (kpc >= (div_10M[div] << 2))
+			break;
 
 	/*
 	 *  Calculate the lowest clock factor that allows an output
@@ -3388,8 +3439,7 @@ sym_getsync(hcb_p np, u_char dt, u_char sfac, u_char *divp, u_char *fakp)
 	if (dt) {
 		fak = (kpc - 1) / (div_10M[div] << 1) + 1 - 2;
 		/* ret = ((2+fak)*div_10M[div])/np->clock_khz; */
-	}
-	else {
+	} else {
 		fak = (kpc - 1) / div_10M[div] + 1 - 4;
 		/* ret = ((4+fak)*div_10M[div])/np->clock_khz; */
 	}
@@ -3397,7 +3447,10 @@ sym_getsync(hcb_p np, u_char dt, u_char sfac, u_char *divp, u_char *fakp)
 	/*
 	 *  Check against our hardware limits, or bugs :).
 	 */
-	if (fak > 2)	{fak = 2; ret = -1;}
+	if (fak > 2) {
+		fak = 2;
+		ret = -1;
+	}
 
 	/*
 	 *  Compute and return sync parameters.
@@ -3420,19 +3473,19 @@ sym_xpt_async_transfer_neg(hcb_p np, int target, u_int spi_valid)
 	tcb_p tp = &np->target[target];
 
 	sts = xpt_create_path(&path, NULL, cam_sim_path(np->sim), target,
-	                      CAM_LUN_WILDCARD);
+	    CAM_LUN_WILDCARD);
 	if (sts != CAM_REQ_CMP)
 		return;
 
 	bzero(&cts, sizeof(cts));
 
-#define	cts__scsi (cts.proto_specific.scsi)
-#define	cts__spi  (cts.xport_specific.spi)
+#define cts__scsi (cts.proto_specific.scsi)
+#define cts__spi (cts.xport_specific.spi)
 
-	cts.type      = CTS_TYPE_CURRENT_SETTINGS;
-	cts.protocol  = PROTO_SCSI;
+	cts.type = CTS_TYPE_CURRENT_SETTINGS;
+	cts.protocol = PROTO_SCSI;
 	cts.transport = XPORT_SPI;
-	cts.protocol_version  = tp->tinfo.current.scsi_version;
+	cts.protocol_version = tp->tinfo.current.scsi_version;
 	cts.transport_version = tp->tinfo.current.spi_version;
 
 	cts__spi.valid = spi_valid;
@@ -3441,34 +3494,30 @@ sym_xpt_async_transfer_neg(hcb_p np, int target, u_int spi_valid)
 	if (spi_valid & CTS_SPI_VALID_SYNC_OFFSET)
 		cts__spi.sync_offset = tp->tinfo.current.offset;
 	if (spi_valid & CTS_SPI_VALID_BUS_WIDTH)
-		cts__spi.bus_width   = tp->tinfo.current.width;
+		cts__spi.bus_width = tp->tinfo.current.width;
 	if (spi_valid & CTS_SPI_VALID_PPR_OPTIONS)
 		cts__spi.ppr_options = tp->tinfo.current.options;
 #undef cts__spi
 #undef cts__scsi
-	xpt_setup_ccb(&cts.ccb_h, path, /*priority*/1);
+	xpt_setup_ccb(&cts.ccb_h, path, /*priority*/ 1);
 	xpt_async(AC_TRANSFER_NEG, path, &cts);
 	xpt_free_path(path);
 }
 
-#define SYM_SPI_VALID_WDTR		\
-	CTS_SPI_VALID_BUS_WIDTH |	\
-	CTS_SPI_VALID_SYNC_RATE |	\
-	CTS_SPI_VALID_SYNC_OFFSET
-#define SYM_SPI_VALID_SDTR		\
-	CTS_SPI_VALID_SYNC_RATE |	\
-	CTS_SPI_VALID_SYNC_OFFSET
-#define SYM_SPI_VALID_PPR		\
-	CTS_SPI_VALID_PPR_OPTIONS |	\
-	CTS_SPI_VALID_BUS_WIDTH |	\
-	CTS_SPI_VALID_SYNC_RATE |	\
-	CTS_SPI_VALID_SYNC_OFFSET
+#define SYM_SPI_VALID_WDTR                                  \
+	CTS_SPI_VALID_BUS_WIDTH | CTS_SPI_VALID_SYNC_RATE | \
+	    CTS_SPI_VALID_SYNC_OFFSET
+#define SYM_SPI_VALID_SDTR CTS_SPI_VALID_SYNC_RATE | CTS_SPI_VALID_SYNC_OFFSET
+#define SYM_SPI_VALID_PPR                                     \
+	CTS_SPI_VALID_PPR_OPTIONS | CTS_SPI_VALID_BUS_WIDTH | \
+	    CTS_SPI_VALID_SYNC_RATE | CTS_SPI_VALID_SYNC_OFFSET
 
 /*
  *  We received a WDTR.
  *  Let everything be aware of the changes.
  */
-static void sym_setwide(hcb_p np, ccb_p cp, u_char wide)
+static void
+sym_setwide(hcb_p np, ccb_p cp, u_char wide)
 {
 	tcb_p tp = &np->target[cp->target];
 
@@ -3500,9 +3549,9 @@ sym_setsync(hcb_p np, ccb_p cp, u_char ofs, u_char per, u_char div, u_char fak)
 	/*
 	 *  Tell the SCSI layer about the new transfer parameters.
 	 */
-	tp->tinfo.goal.period	= tp->tinfo.current.period  = per;
-	tp->tinfo.goal.offset	= tp->tinfo.current.offset  = ofs;
-	tp->tinfo.goal.options	= tp->tinfo.current.options = 0;
+	tp->tinfo.goal.period = tp->tinfo.current.period = per;
+	tp->tinfo.goal.offset = tp->tinfo.current.offset = ofs;
+	tp->tinfo.goal.options = tp->tinfo.current.options = 0;
 
 	sym_xpt_async_transfer_neg(np, cp->target, SYM_SPI_VALID_SDTR);
 }
@@ -3511,8 +3560,9 @@ sym_setsync(hcb_p np, ccb_p cp, u_char ofs, u_char per, u_char div, u_char fak)
  *  We received a PPR.
  *  Let everything be aware of the changes.
  */
-static void sym_setpprot(hcb_p np, ccb_p cp, u_char dt, u_char ofs,
-			 u_char per, u_char wide, u_char div, u_char fak)
+static void
+sym_setpprot(hcb_p np, ccb_p cp, u_char dt, u_char ofs, u_char per, u_char wide,
+    u_char div, u_char fak)
 {
 	tcb_p tp = &np->target[cp->target];
 
@@ -3521,10 +3571,10 @@ static void sym_setpprot(hcb_p np, ccb_p cp, u_char dt, u_char ofs,
 	/*
 	 *  Tell the SCSI layer about the new transfer parameters.
 	 */
-	tp->tinfo.goal.width	= tp->tinfo.current.width  = wide;
-	tp->tinfo.goal.period	= tp->tinfo.current.period = per;
-	tp->tinfo.goal.offset	= tp->tinfo.current.offset = ofs;
-	tp->tinfo.goal.options	= tp->tinfo.current.options = dt;
+	tp->tinfo.goal.width = tp->tinfo.current.width = wide;
+	tp->tinfo.goal.period = tp->tinfo.current.period = per;
+	tp->tinfo.goal.offset = tp->tinfo.current.offset = ofs;
+	tp->tinfo.goal.options = tp->tinfo.current.options = dt;
 
 	sym_xpt_async_transfer_neg(np, cp->target, SYM_SPI_VALID_PPR);
 }
@@ -3532,21 +3582,24 @@ static void sym_setpprot(hcb_p np, ccb_p cp, u_char dt, u_char ofs,
 /*
  *  Switch trans mode for current job and it's target.
  */
-static void sym_settrans(hcb_p np, ccb_p cp, u_char dt, u_char ofs,
-			 u_char per, u_char wide, u_char div, u_char fak)
+static void
+sym_settrans(hcb_p np, ccb_p cp, u_char dt, u_char ofs, u_char per, u_char wide,
+    u_char div, u_char fak)
 {
 	SYM_QUEHEAD *qp;
-	union	ccb *ccb;
+	union ccb *ccb;
 	tcb_p tp;
-	u_char target = INB (nc_sdid) & 0x0f;
+	u_char target = INB(nc_sdid) & 0x0f;
 	u_char sval, wval, uval;
 
-	assert (cp);
-	if (!cp) return;
+	assert(cp);
+	if (!cp)
+		return;
 	ccb = cp->cam_ccb;
-	assert (ccb);
-	if (!ccb) return;
-	assert (target == (cp->target & 0xf));
+	assert(ccb);
+	if (!ccb)
+		return;
+	assert(target == (cp->target & 0xf));
 	tp = &np->target[target];
 
 	sval = tp->head.sval;
@@ -3569,13 +3622,16 @@ static void sym_settrans(hcb_p np, ccb_p cp, u_char dt, u_char ofs,
 	 *  Set the sync divisor and extra clock factor.
 	 */
 	if (ofs != 0) {
-		wval = (wval & ~0x70) | ((div+1) << 4);
+		wval = (wval & ~0x70) | ((div + 1) << 4);
 		if (!(np->features & FE_C10))
 			sval = (sval & ~0xe0) | (fak << 5);
 		else {
-			uval = uval & ~(XCLKH_ST|XCLKH_DT|XCLKS_ST|XCLKS_DT);
-			if (fak >= 1) uval |= (XCLKH_ST|XCLKH_DT);
-			if (fak >= 2) uval |= (XCLKS_ST|XCLKS_DT);
+			uval = uval &
+			    ~(XCLKH_ST | XCLKH_DT | XCLKS_ST | XCLKS_DT);
+			if (fak >= 1)
+				uval |= (XCLKH_ST | XCLKH_DT);
+			if (fak >= 2)
+				uval |= (XCLKS_ST | XCLKS_DT);
 		}
 	}
 
@@ -3590,22 +3646,21 @@ static void sym_settrans(hcb_p np, ccb_p cp, u_char dt, u_char ofs,
 	 *  Set misc. ultra enable bits.
 	 */
 	if (np->features & FE_C10) {
-		uval = uval & ~(U3EN|AIPCKEN);
-		if (dt)	{
+		uval = uval & ~(U3EN | AIPCKEN);
+		if (dt) {
 			assert(np->features & FE_U3EN);
 			uval |= U3EN;
 		}
-	}
-	else {
+	} else {
 		wval = wval & ~ULTRA;
-		if (per <= 12)	wval |= ULTRA;
+		if (per <= 12)
+			wval |= ULTRA;
 	}
 
 	/*
 	 *   Stop there if sync parameters are unchanged.
 	 */
-	if (tp->head.sval == sval &&
-	    tp->head.wval == wval &&
+	if (tp->head.sval == sval && tp->head.wval == wval &&
 	    tp->head.uval == uval)
 		return;
 	tp->head.sval = sval;
@@ -3617,27 +3672,28 @@ static void sym_settrans(hcb_p np, ccb_p cp, u_char dt, u_char ofs,
 	 *  Not supported on the C1010.
 	 */
 	if (per < 50 && !(np->features & FE_C10))
-		OUTOFFB (nc_stest2, EXT);
+		OUTOFFB(nc_stest2, EXT);
 
 	/*
 	 *  set actual value and sync_status
 	 */
-	OUTB (nc_sxfer,  tp->head.sval);
-	OUTB (nc_scntl3, tp->head.wval);
+	OUTB(nc_sxfer, tp->head.sval);
+	OUTB(nc_scntl3, tp->head.wval);
 
 	if (np->features & FE_C10) {
-		OUTB (nc_scntl4, tp->head.uval);
+		OUTB(nc_scntl4, tp->head.uval);
 	}
 
 	/*
 	 *  patch ALL busy ccbs of this target.
 	 */
-	FOR_EACH_QUEUED_ELEMENT(&np->busy_ccbq, qp) {
+	FOR_EACH_QUEUED_ELEMENT(&np->busy_ccbq, qp)
+	{
 		cp = sym_que_entry(qp, struct sym_ccb, link_ccbq);
 		if (cp->target != target)
 			continue;
 		cp->phys.select.sel_scntl3 = tp->head.wval;
-		cp->phys.select.sel_sxfer  = tp->head.sval;
+		cp->phys.select.sel_sxfer = tp->head.sval;
 		if (np->features & FE_C10) {
 			cp->phys.select.sel_scntl4 = tp->head.uval;
 		}
@@ -3670,65 +3726,63 @@ static void sym_settrans(hcb_p np, ccb_p cp, u_char dt, u_char ofs,
  *  First 24 register of the chip:
  *  	r0..rf
  */
-static void sym_log_hard_error(hcb_p np, u_short sist, u_char dstat)
+static void
+sym_log_hard_error(hcb_p np, u_short sist, u_char dstat)
 {
-	u32	dsp;
-	int	script_ofs;
-	int	script_size;
-	char	*script_name;
-	u_char	*script_base;
-	int	i;
+	u32 dsp;
+	int script_ofs;
+	int script_size;
+	char *script_name;
+	u_char *script_base;
+	int i;
 
-	dsp	= INL (nc_dsp);
+	dsp = INL(nc_dsp);
 
-	if	(dsp > np->scripta_ba &&
-		 dsp <= np->scripta_ba + np->scripta_sz) {
-		script_ofs	= dsp - np->scripta_ba;
-		script_size	= np->scripta_sz;
-		script_base	= (u_char *) np->scripta0;
-		script_name	= "scripta";
-	}
-	else if (np->scriptb_ba < dsp &&
-		 dsp <= np->scriptb_ba + np->scriptb_sz) {
-		script_ofs	= dsp - np->scriptb_ba;
-		script_size	= np->scriptb_sz;
-		script_base	= (u_char *) np->scriptb0;
-		script_name	= "scriptb";
+	if (dsp > np->scripta_ba && dsp <= np->scripta_ba + np->scripta_sz) {
+		script_ofs = dsp - np->scripta_ba;
+		script_size = np->scripta_sz;
+		script_base = (u_char *)np->scripta0;
+		script_name = "scripta";
+	} else if (np->scriptb_ba < dsp &&
+	    dsp <= np->scriptb_ba + np->scriptb_sz) {
+		script_ofs = dsp - np->scriptb_ba;
+		script_size = np->scriptb_sz;
+		script_base = (u_char *)np->scriptb0;
+		script_name = "scriptb";
 	} else {
-		script_ofs	= dsp;
-		script_size	= 0;
-		script_base	= NULL;
-		script_name	= "mem";
+		script_ofs = dsp;
+		script_size = 0;
+		script_base = NULL;
+		script_name = "mem";
 	}
 
-	printf ("%s:%d: ERROR (%x:%x) (%x-%x-%x) (%x/%x) @ (%s %x:%08x).\n",
-		sym_name (np), (unsigned)INB (nc_sdid)&0x0f, dstat, sist,
-		(unsigned)INB (nc_socl), (unsigned)INB (nc_sbcl),
-		(unsigned)INB (nc_sbdl), (unsigned)INB (nc_sxfer),
-		(unsigned)INB (nc_scntl3), script_name, script_ofs,
-		(unsigned)INL (nc_dbc));
+	printf("%s:%d: ERROR (%x:%x) (%x-%x-%x) (%x/%x) @ (%s %x:%08x).\n",
+	    sym_name(np), (unsigned)INB(nc_sdid) & 0x0f, dstat, sist,
+	    (unsigned)INB(nc_socl), (unsigned)INB(nc_sbcl),
+	    (unsigned)INB(nc_sbdl), (unsigned)INB(nc_sxfer),
+	    (unsigned)INB(nc_scntl3), script_name, script_ofs,
+	    (unsigned)INL(nc_dbc));
 
-	if (((script_ofs & 3) == 0) &&
-	    (unsigned)script_ofs < script_size) {
-		printf ("%s: script cmd = %08x\n", sym_name(np),
-			scr_to_cpu((int) *(u32 *)(script_base + script_ofs)));
+	if (((script_ofs & 3) == 0) && (unsigned)script_ofs < script_size) {
+		printf("%s: script cmd = %08x\n", sym_name(np),
+		    scr_to_cpu((int)*(u32 *)(script_base + script_ofs)));
 	}
 
-        printf ("%s: regdump:", sym_name(np));
-        for (i=0; i<24;i++)
-            printf (" %02x", (unsigned)INB_OFF(i));
-        printf (".\n");
+	printf("%s: regdump:", sym_name(np));
+	for (i = 0; i < 24; i++)
+		printf(" %02x", (unsigned)INB_OFF(i));
+	printf(".\n");
 
 	/*
 	 *  PCI BUS error, read the PCI ststus register.
 	 */
-	if (dstat & (MDPE|BF)) {
+	if (dstat & (MDPE | BF)) {
 		u_short pci_sts;
 		pci_sts = pci_read_config(np->device, PCIR_STATUS, 2);
 		if (pci_sts & 0xf900) {
 			pci_write_config(np->device, PCIR_STATUS, pci_sts, 2);
-			printf("%s: PCI STATUS = 0x%04x\n",
-				sym_name(np), pci_sts & 0xf900);
+			printf("%s: PCI STATUS = 0x%04x\n", sym_name(np),
+			    pci_sts & 0xf900);
 		}
 	}
 }
@@ -3795,11 +3849,12 @@ static void sym_log_hard_error(hcb_p np, u_short sist, u_char dstat)
  *  ask me for any guarantee that it will never fail. :-)
  *  Use at your own decision and risk.
  */
-static void sym_intr1 (hcb_p np)
+static void
+sym_intr1(hcb_p np)
 {
-	u_char	istat, istatc;
-	u_char	dstat;
-	u_short	sist;
+	u_char istat, istatc;
+	u_char dstat;
+	u_short sist;
 
 	SYM_LOCK_ASSERT(MA_OWNED);
 
@@ -3810,18 +3865,19 @@ static void sym_intr1 (hcb_p np)
 	 *  clear of the INTF flag reaches the device
 	 *  before the scanning of the DONE queue.
 	 */
-	istat = INB (nc_istat);
+	istat = INB(nc_istat);
 	if (istat & INTF) {
-		OUTB (nc_istat, (istat & SIGP) | INTF | np->istat_sem);
-		istat = INB (nc_istat);		/* DUMMY READ */
-		if (DEBUG_FLAGS & DEBUG_TINY) printf ("F ");
-		(void)sym_wakeup_done (np);
+		OUTB(nc_istat, (istat & SIGP) | INTF | np->istat_sem);
+		istat = INB(nc_istat); /* DUMMY READ */
+		if (DEBUG_FLAGS & DEBUG_TINY)
+			printf("F ");
+		(void)sym_wakeup_done(np);
 	}
 
-	if (!(istat & (SIP|DIP)))
+	if (!(istat & (SIP | DIP)))
 		return;
 
-#if 0	/* We should never get this one */
+#if 0 /* We should never get this one */
 	if (istat & CABRT)
 		OUTB (nc_istat, CABRT);
 #endif
@@ -3836,24 +3892,21 @@ static void sym_intr1 (hcb_p np)
 	 *  happen, we also try unstacking these ones, since
 	 *  this has no performance impact.
 	 */
-	sist	= 0;
-	dstat	= 0;
-	istatc	= istat;
+	sist = 0;
+	dstat = 0;
+	istatc = istat;
 	do {
 		if (istatc & SIP)
-			sist  |= INW (nc_sist);
+			sist |= INW(nc_sist);
 		if (istatc & DIP)
-			dstat |= INB (nc_dstat);
-		istatc = INB (nc_istat);
+			dstat |= INB(nc_dstat);
+		istatc = INB(nc_istat);
 		istat |= istatc;
-	} while (istatc & (SIP|DIP));
+	} while (istatc & (SIP | DIP));
 
 	if (DEBUG_FLAGS & DEBUG_TINY)
-		printf ("<%d|%x:%x|%x:%x>",
-			(int)INB(nc_scr0),
-			dstat,sist,
-			(unsigned)INL(nc_dsp),
-			(unsigned)INL(nc_dbc));
+		printf("<%d|%x:%x|%x:%x>", (int)INB(nc_scr0), dstat, sist,
+		    (unsigned)INL(nc_dsp), (unsigned)INL(nc_dbc));
 	/*
 	 *  On paper, a memory barrier may be needed here.
 	 *  And since we are paranoid ... :)
@@ -3873,13 +3926,18 @@ static void sym_intr1 (hcb_p np)
 	 *  The single step interrupt (SSI) is not used in this
 	 *  driver.
 	 */
-	if (!(sist  & (STO|GEN|HTH|SGE|UDC|SBMC|RST)) &&
-	    !(dstat & (MDPE|BF|ABRT|IID))) {
-		if	(sist & PAR)	sym_int_par (np, sist);
-		else if (sist & MA)	sym_int_ma (np);
-		else if (dstat & SIR)	sym_int_sir (np);
-		else if (dstat & SSI)	OUTONB_STD ();
-		else			goto unknown_int;
+	if (!(sist & (STO | GEN | HTH | SGE | UDC | SBMC | RST)) &&
+	    !(dstat & (MDPE | BF | ABRT | IID))) {
+		if (sist & PAR)
+			sym_int_par(np, sist);
+		else if (sist & MA)
+			sym_int_ma(np);
+		else if (dstat & SIR)
+			sym_int_sir(np);
+		else if (dstat & SSI)
+			OUTONB_STD();
+		else
+			goto unknown_int;
 		return;
 	}
 
@@ -3897,19 +3955,23 @@ static void sym_intr1 (hcb_p np)
 	if (sist & RST) {
 		xpt_print_path(np->path);
 		printf("SCSI BUS reset detected.\n");
-		sym_init (np, 1);
+		sym_init(np, 1);
 		return;
 	}
 
-	OUTB (nc_ctest3, np->rv_ctest3 | CLF);	/* clear dma fifo  */
-	OUTB (nc_stest3, TE|CSF);		/* clear scsi fifo */
+	OUTB(nc_ctest3, np->rv_ctest3 | CLF); /* clear dma fifo  */
+	OUTB(nc_stest3, TE | CSF);	      /* clear scsi fifo */
 
-	if (!(sist  & (GEN|HTH|SGE)) &&
-	    !(dstat & (MDPE|BF|ABRT|IID))) {
-		if	(sist & SBMC)	sym_int_sbmc (np);
-		else if (sist & STO)	sym_int_sto (np);
-		else if (sist & UDC)	sym_int_udc (np);
-		else			goto unknown_int;
+	if (!(sist & (GEN | HTH | SGE)) &&
+	    !(dstat & (MDPE | BF | ABRT | IID))) {
+		if (sist & SBMC)
+			sym_int_sbmc(np);
+		else if (sist & STO)
+			sym_int_sto(np);
+		else if (sist & UDC)
+			sym_int_udc(np);
+		else
+			goto unknown_int;
 		return;
 	}
 
@@ -3922,8 +3984,7 @@ static void sym_intr1 (hcb_p np)
 
 	sym_log_hard_error(np, sist, dstat);
 
-	if ((sist & (GEN|HTH|SGE)) ||
-		(dstat & (MDPE|BF|ABRT|IID))) {
+	if ((sist & (GEN | HTH | SGE)) || (dstat & (MDPE | BF | ABRT | IID))) {
 		sym_start_reset(np);
 		return;
 	}
@@ -3933,25 +3994,29 @@ unknown_int:
 	 *  We just miss the cause of the interrupt. :(
 	 *  Print a message. The timeout will do the real work.
 	 */
-	printf(	"%s: unknown interrupt(s) ignored, "
-		"ISTAT=0x%x DSTAT=0x%x SIST=0x%x\n",
-		sym_name(np), istat, dstat, sist);
+	printf("%s: unknown interrupt(s) ignored, "
+	       "ISTAT=0x%x DSTAT=0x%x SIST=0x%x\n",
+	    sym_name(np), istat, dstat, sist);
 }
 
-static void sym_intr(void *arg)
+static void
+sym_intr(void *arg)
 {
 	hcb_p np = arg;
 
 	SYM_LOCK();
 
-	if (DEBUG_FLAGS & DEBUG_TINY) printf ("[");
-	sym_intr1((hcb_p) arg);
-	if (DEBUG_FLAGS & DEBUG_TINY) printf ("]");
+	if (DEBUG_FLAGS & DEBUG_TINY)
+		printf("[");
+	sym_intr1((hcb_p)arg);
+	if (DEBUG_FLAGS & DEBUG_TINY)
+		printf("]");
 
 	SYM_UNLOCK();
 }
 
-static void sym_poll(struct cam_sim *sim)
+static void
+sym_poll(struct cam_sim *sim)
 {
 	sym_intr1(cam_sim_softc(sim));
 }
@@ -3982,27 +4047,28 @@ static void sym_poll(struct cam_sim *sim)
  *  pushes a DSA into a queue, we can trust it when it
  *  points to a CCB.
  */
-static void sym_recover_scsi_int (hcb_p np, u_char hsts)
+static void
+sym_recover_scsi_int(hcb_p np, u_char hsts)
 {
-	u32	dsp	= INL (nc_dsp);
-	u32	dsa	= INL (nc_dsa);
-	ccb_p cp	= sym_ccb_from_dsa(np, dsa);
+	u32 dsp = INL(nc_dsp);
+	u32 dsa = INL(nc_dsa);
+	ccb_p cp = sym_ccb_from_dsa(np, dsa);
 
 	/*
 	 *  If we haven't been interrupted inside the SCRIPTS
 	 *  critical paths, we can safely restart the SCRIPTS
 	 *  and trust the DSA value if it matches a CCB.
 	 */
-	if ((!(dsp > SCRIPTA_BA (np, getjob_begin) &&
-	       dsp < SCRIPTA_BA (np, getjob_end) + 1)) &&
-	    (!(dsp > SCRIPTA_BA (np, ungetjob) &&
-	       dsp < SCRIPTA_BA (np, reselect) + 1)) &&
-	    (!(dsp > SCRIPTB_BA (np, sel_for_abort) &&
-	       dsp < SCRIPTB_BA (np, sel_for_abort_1) + 1)) &&
-	    (!(dsp > SCRIPTA_BA (np, done) &&
-	       dsp < SCRIPTA_BA (np, done_end) + 1))) {
-		OUTB (nc_ctest3, np->rv_ctest3 | CLF);	/* clear dma fifo  */
-		OUTB (nc_stest3, TE|CSF);		/* clear scsi fifo */
+	if ((!(dsp > SCRIPTA_BA(np, getjob_begin) &&
+		dsp < SCRIPTA_BA(np, getjob_end) + 1)) &&
+	    (!(dsp > SCRIPTA_BA(np, ungetjob) &&
+		dsp < SCRIPTA_BA(np, reselect) + 1)) &&
+	    (!(dsp > SCRIPTB_BA(np, sel_for_abort) &&
+		dsp < SCRIPTB_BA(np, sel_for_abort_1) + 1)) &&
+	    (!(dsp > SCRIPTA_BA(np, done) &&
+		dsp < SCRIPTA_BA(np, done_end) + 1))) {
+		OUTB(nc_ctest3, np->rv_ctest3 | CLF); /* clear dma fifo  */
+		OUTB(nc_stest3, TE | CSF);	      /* clear scsi fifo */
 		/*
 		 *  If we have a CCB, let the SCRIPTS call us back for
 		 *  the handling of the error with SCRATCHA filled with
@@ -4011,17 +4077,16 @@ static void sym_recover_scsi_int (hcb_p np, u_char hsts)
 		 */
 		if (cp) {
 			cp->host_status = hsts;
-			OUTL_DSP (SCRIPTA_BA (np, complete_error));
+			OUTL_DSP(SCRIPTA_BA(np, complete_error));
 		}
 		/*
 		 *  Otherwise just restart the SCRIPTS.
 		 */
 		else {
-			OUTL (nc_dsa, 0xffffff);
-			OUTL_DSP (SCRIPTA_BA (np, start));
+			OUTL(nc_dsa, 0xffffff);
+			OUTL_DSP(SCRIPTA_BA(np, start));
 		}
-	}
-	else
+	} else
 		goto reset_all;
 
 	return;
@@ -4033,13 +4098,15 @@ reset_all:
 /*
  *  chip exception handler for selection timeout
  */
-static void sym_int_sto (hcb_p np)
+static void
+sym_int_sto(hcb_p np)
 {
-	u32 dsp	= INL (nc_dsp);
+	u32 dsp = INL(nc_dsp);
 
-	if (DEBUG_FLAGS & DEBUG_TINY) printf ("T");
+	if (DEBUG_FLAGS & DEBUG_TINY)
+		printf("T");
 
-	if (dsp == SCRIPTA_BA (np, wf_sel_done) + 8)
+	if (dsp == SCRIPTA_BA(np, wf_sel_done) + 8)
 		sym_recover_scsi_int(np, HS_SEL_TIMEOUT);
 	else
 		sym_start_reset(np);
@@ -4048,9 +4115,10 @@ static void sym_int_sto (hcb_p np)
 /*
  *  chip exception handler for unexpected disconnect
  */
-static void sym_int_udc (hcb_p np)
+static void
+sym_int_udc(hcb_p np)
 {
-	printf ("%s: unexpected disconnect\n", sym_name(np));
+	printf("%s: unexpected disconnect\n", sym_name(np));
 	sym_recover_scsi_int(np, HS_UNEXPECTED);
 }
 
@@ -4064,22 +4132,23 @@ static void sym_int_udc (hcb_p np)
  *  mode to eight bit asynchronous, etc...
  *  So, just reinitializing all except chip should be enough.
  */
-static void sym_int_sbmc (hcb_p np)
+static void
+sym_int_sbmc(hcb_p np)
 {
-	u_char scsi_mode = INB (nc_stest4) & SMODE;
+	u_char scsi_mode = INB(nc_stest4) & SMODE;
 
 	/*
 	 *  Notify user.
 	 */
 	xpt_print_path(np->path);
 	printf("SCSI BUS mode change from %s to %s.\n",
-		sym_scsi_bus_mode(np->scsi_mode), sym_scsi_bus_mode(scsi_mode));
+	    sym_scsi_bus_mode(np->scsi_mode), sym_scsi_bus_mode(scsi_mode));
 
 	/*
 	 *  Should suspend command processing for a few seconds and
 	 *  reinitialize all except the chip.
 	 */
-	sym_init (np, 2);
+	sym_init(np, 2);
 }
 
 /*
@@ -4106,24 +4175,25 @@ static void sym_int_sbmc (hcb_p np)
  *    The chip will load the DSP with the phase mismatch
  *    JUMP address and interrupt the host processor.
  */
-static void sym_int_par (hcb_p np, u_short sist)
+static void
+sym_int_par(hcb_p np, u_short sist)
 {
-	u_char	hsts	= INB (HS_PRT);
-	u32	dsp	= INL (nc_dsp);
-	u32	dbc	= INL (nc_dbc);
-	u32	dsa	= INL (nc_dsa);
-	u_char	sbcl	= INB (nc_sbcl);
-	u_char	cmd	= dbc >> 24;
-	int phase	= cmd & 7;
-	ccb_p	cp	= sym_ccb_from_dsa(np, dsa);
+	u_char hsts = INB(HS_PRT);
+	u32 dsp = INL(nc_dsp);
+	u32 dbc = INL(nc_dbc);
+	u32 dsa = INL(nc_dsa);
+	u_char sbcl = INB(nc_sbcl);
+	u_char cmd = dbc >> 24;
+	int phase = cmd & 7;
+	ccb_p cp = sym_ccb_from_dsa(np, dsa);
 
 	printf("%s: SCSI parity error detected: SCR1=%d DBC=%x SBCL=%x\n",
-		sym_name(np), hsts, dbc, sbcl);
+	    sym_name(np), hsts, dbc, sbcl);
 
 	/*
 	 *  Check that the chip is connected to the SCSI BUS.
 	 */
-	if (!(INB (nc_scntl1) & ISCON)) {
+	if (!(INB(nc_scntl1) & ISCON)) {
 		sym_recover_scsi_int(np, HS_UNEXPECTED);
 		return;
 	}
@@ -4145,7 +4215,7 @@ static void sym_int_par (hcb_p np, u_short sist)
 	/*
 	 *  Keep track of the parity error.
 	 */
-	OUTONB (HF_PRT, HF_EXT_ERR);
+	OUTONB(HF_PRT, HF_EXT_ERR);
 	cp->xerr_status |= XE_PARITY_ERR;
 
 	/*
@@ -4162,19 +4232,18 @@ static void sym_int_par (hcb_p np, u_short sist)
 	 */
 	if (phase == 1 || phase == 5) {
 		/* Phase mismatch handled by SCRIPTS */
-		if (dsp == SCRIPTB_BA (np, pm_handle))
-			OUTL_DSP (dsp);
+		if (dsp == SCRIPTB_BA(np, pm_handle))
+			OUTL_DSP(dsp);
 		/* Phase mismatch handled by the C code */
 		else if (sist & MA)
-			sym_int_ma (np);
+			sym_int_ma(np);
 		/* No phase mismatch occurred */
 		else {
-			OUTL (nc_temp, dsp);
-			OUTL_DSP (SCRIPTA_BA (np, dispatch));
+			OUTL(nc_temp, dsp);
+			OUTL_DSP(SCRIPTA_BA(np, dispatch));
 		}
-	}
-	else
-		OUTL_DSP (SCRIPTA_BA (np, clrack));
+	} else
+		OUTL_DSP(SCRIPTA_BA(np, clrack));
 	return;
 
 reset_all:
@@ -4187,30 +4256,31 @@ reset_all:
  *  We have to construct a new transfer descriptor,
  *  to transfer the rest of the current block.
  */
-static void sym_int_ma (hcb_p np)
+static void
+sym_int_ma(hcb_p np)
 {
-	u32	dbc;
-	u32	rest;
-	u32	dsp;
-	u32	dsa;
-	u32	nxtdsp;
-	u32	*vdsp;
-	u32	oadr, olen;
-	u32	*tblp;
-        u32	newcmd;
-	u_int	delta;
-	u_char	cmd;
-	u_char	hflags, hflags0;
-	struct	sym_pmc *pm;
-	ccb_p	cp;
+	u32 dbc;
+	u32 rest;
+	u32 dsp;
+	u32 dsa;
+	u32 nxtdsp;
+	u32 *vdsp;
+	u32 oadr, olen;
+	u32 *tblp;
+	u32 newcmd;
+	u_int delta;
+	u_char cmd;
+	u_char hflags, hflags0;
+	struct sym_pmc *pm;
+	ccb_p cp;
 
-	dsp	= INL (nc_dsp);
-	dbc	= INL (nc_dbc);
-	dsa	= INL (nc_dsa);
+	dsp = INL(nc_dsp);
+	dbc = INL(nc_dbc);
+	dsa = INL(nc_dsa);
 
-	cmd	= dbc >> 24;
-	rest	= dbc & 0xffffff;
-	delta	= 0;
+	cmd = dbc >> 24;
+	rest = dbc & 0xffffff;
+	delta = 0;
 
 	/*
 	 *  locate matching cp if any.
@@ -4227,7 +4297,7 @@ static void sym_int_ma (hcb_p np)
 		u_char ss0, ss2;
 
 		if (np->features & FE_DFBC)
-			delta = INW (nc_dfbc);
+			delta = INW(nc_dfbc);
 		else {
 			u32 dfifo;
 
@@ -4242,7 +4312,9 @@ static void sym_int_ma (hcb_p np)
 			 */
 			if (dfifo & (DFS << 16))
 				delta = ((((dfifo >> 8) & 0x300) |
-				          (dfifo & 0xff)) - rest) & 0x3ff;
+					     (dfifo & 0xff)) -
+					    rest) &
+				    0x3ff;
 			else
 				delta = ((dfifo & 0xff) - rest) & 0x7f;
 		}
@@ -4254,45 +4326,49 @@ static void sym_int_ma (hcb_p np)
 		 *  Check the sstat2 register in case of wide transfer.
 		 */
 		rest += delta;
-		ss0  = INB (nc_sstat0);
-		if (ss0 & OLF) rest++;
+		ss0 = INB(nc_sstat0);
+		if (ss0 & OLF)
+			rest++;
 		if (!(np->features & FE_C10))
-			if (ss0 & ORF) rest++;
+			if (ss0 & ORF)
+				rest++;
 		if (cp && (cp->phys.select.sel_scntl3 & EWS)) {
-			ss2 = INB (nc_sstat2);
-			if (ss2 & OLF1) rest++;
+			ss2 = INB(nc_sstat2);
+			if (ss2 & OLF1)
+				rest++;
 			if (!(np->features & FE_C10))
-				if (ss2 & ORF1) rest++;
+				if (ss2 & ORF1)
+					rest++;
 		}
 
 		/*
 		 *  Clear fifos.
 		 */
-		OUTB (nc_ctest3, np->rv_ctest3 | CLF);	/* dma fifo  */
-		OUTB (nc_stest3, TE|CSF);		/* scsi fifo */
+		OUTB(nc_ctest3, np->rv_ctest3 | CLF); /* dma fifo  */
+		OUTB(nc_stest3, TE | CSF);	      /* scsi fifo */
 	}
 
 	/*
 	 *  log the information
 	 */
-	if (DEBUG_FLAGS & (DEBUG_TINY|DEBUG_PHASE))
-		printf ("P%x%x RL=%d D=%d ", cmd&7, INB(nc_sbcl)&7,
-			(unsigned) rest, (unsigned) delta);
+	if (DEBUG_FLAGS & (DEBUG_TINY | DEBUG_PHASE))
+		printf("P%x%x RL=%d D=%d ", cmd & 7, INB(nc_sbcl) & 7,
+		    (unsigned)rest, (unsigned)delta);
 
 	/*
 	 *  try to find the interrupted script command,
 	 *  and the address at which to continue.
 	 */
-	vdsp	= NULL;
-	nxtdsp	= 0;
-	if	(dsp >  np->scripta_ba &&
-		 dsp <= np->scripta_ba + np->scripta_sz) {
-		vdsp = (u32 *)((char*)np->scripta0 + (dsp-np->scripta_ba-8));
+	vdsp = NULL;
+	nxtdsp = 0;
+	if (dsp > np->scripta_ba && dsp <= np->scripta_ba + np->scripta_sz) {
+		vdsp = (u32 *)((char *)np->scripta0 +
+		    (dsp - np->scripta_ba - 8));
 		nxtdsp = dsp;
-	}
-	else if	(dsp >  np->scriptb_ba &&
-		 dsp <= np->scriptb_ba + np->scriptb_sz) {
-		vdsp = (u32 *)((char*)np->scriptb0 + (dsp-np->scriptb_ba-8));
+	} else if (dsp > np->scriptb_ba &&
+	    dsp <= np->scriptb_ba + np->scriptb_sz) {
+		vdsp = (u32 *)((char *)np->scriptb0 +
+		    (dsp - np->scriptb_ba - 8));
 		nxtdsp = dsp;
 	}
 
@@ -4300,19 +4376,19 @@ static void sym_int_ma (hcb_p np)
 	 *  log the information
 	 */
 	if (DEBUG_FLAGS & DEBUG_PHASE) {
-		printf ("\nCP=%p DSP=%x NXT=%x VDSP=%p CMD=%x ",
-			cp, (unsigned)dsp, (unsigned)nxtdsp, vdsp, cmd);
+		printf("\nCP=%p DSP=%x NXT=%x VDSP=%p CMD=%x ", cp,
+		    (unsigned)dsp, (unsigned)nxtdsp, vdsp, cmd);
 	}
 
 	if (!vdsp) {
-		printf ("%s: interrupted SCRIPT address not found.\n",
-			sym_name (np));
+		printf("%s: interrupted SCRIPT address not found.\n",
+		    sym_name(np));
 		goto reset_all;
 	}
 
 	if (!cp) {
-		printf ("%s: SCSI phase error fixup: CCB already dequeued.\n",
-			sym_name (np));
+		printf("%s: SCSI phase error fixup: CCB already dequeued.\n",
+		    sym_name(np));
 		goto reset_all;
 	}
 
@@ -4321,21 +4397,19 @@ static void sym_int_ma (hcb_p np)
 	 */
 	oadr = scr_to_cpu(vdsp[1]);
 
-	if (cmd & 0x10) {	/* Table indirect */
-		tblp = (u32 *) ((char*) &cp->phys + oadr);
+	if (cmd & 0x10) { /* Table indirect */
+		tblp = (u32 *)((char *)&cp->phys + oadr);
 		olen = scr_to_cpu(tblp[0]);
 		oadr = scr_to_cpu(tblp[1]);
 	} else {
-		tblp = (u32 *) 0;
+		tblp = (u32 *)0;
 		olen = scr_to_cpu(vdsp[0]) & 0xffffff;
 	}
 
 	if (DEBUG_FLAGS & DEBUG_PHASE) {
-		printf ("OCMD=%x\nTBLP=%p OLEN=%x OADR=%x\n",
-			(unsigned) (scr_to_cpu(vdsp[0]) >> 24),
-			tblp,
-			(unsigned) olen,
-			(unsigned) oadr);
+		printf("OCMD=%x\nTBLP=%p OLEN=%x OADR=%x\n",
+		    (unsigned)(scr_to_cpu(vdsp[0]) >> 24), tblp, (unsigned)olen,
+		    (unsigned)oadr);
 	}
 
 	/*
@@ -4345,8 +4419,8 @@ static void sym_int_ma (hcb_p np)
 	 */
 	if (((cmd & 2) ? cmd : (cmd & ~4)) != (scr_to_cpu(vdsp[0]) >> 24)) {
 		PRINT_ADDR(cp);
-		printf ("internal error: cmd=%02x != %02x=(vdsp[0] >> 24)\n",
-			(unsigned)cmd, (unsigned)scr_to_cpu(vdsp[0]) >> 24);
+		printf("internal error: cmd=%02x != %02x=(vdsp[0] >> 24)\n",
+		    (unsigned)cmd, (unsigned)scr_to_cpu(vdsp[0]) >> 24);
 
 		goto reset_all;
 	}
@@ -4356,9 +4430,9 @@ static void sym_int_ma (hcb_p np)
 	 */
 	if (cmd & 2) {
 		PRINT_ADDR(cp);
-		printf ("phase change %x-%x %d@%08x resid=%d.\n",
-			cmd&7, INB(nc_sbcl)&7, (unsigned)olen,
-			(unsigned)oadr, (unsigned)rest);
+		printf("phase change %x-%x %d@%08x resid=%d.\n", cmd & 7,
+		    INB(nc_sbcl) & 7, (unsigned)olen, (unsigned)oadr,
+		    (unsigned)rest);
 		goto unexpected_phase;
 	}
 
@@ -4370,13 +4444,13 @@ static void sym_int_ma (hcb_p np)
 	 *  SCRIPTS for the 895A, 896 and 1010 that are able to
 	 *  handle PM from the SCRIPTS processor.
 	 */
-	hflags0 = INB (HF_PRT);
+	hflags0 = INB(HF_PRT);
 	hflags = hflags0;
 
 	if (hflags & (HF_IN_PM0 | HF_IN_PM1 | HF_DP_SAVED)) {
 		if (hflags & HF_IN_PM0)
 			nxtdsp = scr_to_cpu(cp->phys.pm0.ret);
-		else if	(hflags & HF_IN_PM1)
+		else if (hflags & HF_IN_PM1)
 			nxtdsp = scr_to_cpu(cp->phys.pm1.ret);
 
 		if (hflags & HF_DP_SAVED)
@@ -4385,23 +4459,22 @@ static void sym_int_ma (hcb_p np)
 
 	if (!(hflags & HF_ACT_PM)) {
 		pm = &cp->phys.pm0;
-		newcmd = SCRIPTA_BA (np, pm0_data);
-	}
-	else {
+		newcmd = SCRIPTA_BA(np, pm0_data);
+	} else {
 		pm = &cp->phys.pm1;
-		newcmd = SCRIPTA_BA (np, pm1_data);
+		newcmd = SCRIPTA_BA(np, pm1_data);
 	}
 
 	hflags &= ~(HF_IN_PM0 | HF_IN_PM1 | HF_DP_SAVED);
 	if (hflags != hflags0)
-		OUTB (HF_PRT, hflags);
+		OUTB(HF_PRT, hflags);
 
 	/*
 	 *  fillin the phase mismatch context
 	 */
 	pm->sg.addr = cpu_to_scr(oadr + olen - rest);
 	pm->sg.size = cpu_to_scr(rest);
-	pm->ret     = cpu_to_scr(nxtdsp);
+	pm->ret = cpu_to_scr(nxtdsp);
 
 	/*
 	 *  If we have a SWIDE,
@@ -4409,9 +4482,9 @@ static void sym_int_ma (hcb_p np)
 	 *  - compute the SCRIPTS address to restart from,
 	 *  - move current data pointer context by one byte.
 	 */
-	nxtdsp = SCRIPTA_BA (np, dispatch);
+	nxtdsp = SCRIPTA_BA(np, dispatch);
 	if ((cmd & 7) == 1 && cp && (cp->phys.select.sel_scntl3 & EWS) &&
-	    (INB (nc_scntl2) & WSR)) {
+	    (INB(nc_scntl2) & WSR)) {
 		u32 tmp;
 
 		/*
@@ -4423,37 +4496,36 @@ static void sym_int_ma (hcb_p np)
 		cp->phys.wresid.addr = cpu_to_scr(tmp);
 		pm->sg.addr = cpu_to_scr(tmp + 1);
 		tmp = scr_to_cpu(pm->sg.size);
-		cp->phys.wresid.size = cpu_to_scr((tmp&0xff000000) | 1);
+		cp->phys.wresid.size = cpu_to_scr((tmp & 0xff000000) | 1);
 		pm->sg.size = cpu_to_scr(tmp - 1);
 
 		/*
 		 *  If only the residual byte is to be moved,
 		 *  no PM context is needed.
 		 */
-		if ((tmp&0xffffff) == 1)
+		if ((tmp & 0xffffff) == 1)
 			newcmd = pm->ret;
 
 		/*
 		 *  Prepare the address of SCRIPTS that will
 		 *  move the residual byte to memory.
 		 */
-		nxtdsp = SCRIPTB_BA (np, wsr_ma_helper);
+		nxtdsp = SCRIPTB_BA(np, wsr_ma_helper);
 	}
 
 	if (DEBUG_FLAGS & DEBUG_PHASE) {
 		PRINT_ADDR(cp);
-		printf ("PM %x %x %x / %x %x %x.\n",
-			hflags0, hflags, newcmd,
-			(unsigned)scr_to_cpu(pm->sg.addr),
-			(unsigned)scr_to_cpu(pm->sg.size),
-			(unsigned)scr_to_cpu(pm->ret));
+		printf("PM %x %x %x / %x %x %x.\n", hflags0, hflags, newcmd,
+		    (unsigned)scr_to_cpu(pm->sg.addr),
+		    (unsigned)scr_to_cpu(pm->sg.size),
+		    (unsigned)scr_to_cpu(pm->ret));
 	}
 
 	/*
 	 *  Restart the SCRIPTS processor.
 	 */
-	OUTL (nc_temp, newcmd);
-	OUTL_DSP (nxtdsp);
+	OUTL(nc_temp, newcmd);
+	OUTL_DSP(nxtdsp);
 	return;
 
 	/*
@@ -4488,34 +4560,32 @@ unexpected_phase:
 	nxtdsp = 0;
 
 	switch (cmd & 7) {
-	case 2:	/* COMMAND phase */
-		nxtdsp = SCRIPTA_BA (np, dispatch);
+	case 2: /* COMMAND phase */
+		nxtdsp = SCRIPTA_BA(np, dispatch);
 		break;
 #if 0
 	case 3:	/* STATUS  phase */
 		nxtdsp = SCRIPTA_BA (np, dispatch);
 		break;
 #endif
-	case 6:	/* MSG OUT phase */
+	case 6: /* MSG OUT phase */
 		/*
 		 *  If the device may want to use untagged when we want
 		 *  tagged, we prepare an IDENTIFY without disc. granted,
 		 *  since we will not be able to handle reselect.
 		 *  Otherwise, we just don't care.
 		 */
-		if	(dsp == SCRIPTA_BA (np, send_ident)) {
+		if (dsp == SCRIPTA_BA(np, send_ident)) {
 			if (cp->tag != NO_TAG && olen - rest <= 3) {
 				cp->host_status = HS_BUSY;
 				np->msgout[0] = M_IDENTIFY | cp->lun;
-				nxtdsp = SCRIPTB_BA (np, ident_break_atn);
-			}
-			else
-				nxtdsp = SCRIPTB_BA (np, ident_break);
-		}
-		else if	(dsp == SCRIPTB_BA (np, send_wdtr) ||
-			 dsp == SCRIPTB_BA (np, send_sdtr) ||
-			 dsp == SCRIPTB_BA (np, send_ppr)) {
-			nxtdsp = SCRIPTB_BA (np, nego_bad_phase);
+				nxtdsp = SCRIPTB_BA(np, ident_break_atn);
+			} else
+				nxtdsp = SCRIPTB_BA(np, ident_break);
+		} else if (dsp == SCRIPTB_BA(np, send_wdtr) ||
+		    dsp == SCRIPTB_BA(np, send_sdtr) ||
+		    dsp == SCRIPTB_BA(np, send_ppr)) {
+			nxtdsp = SCRIPTB_BA(np, nego_bad_phase);
 		}
 		break;
 #if 0
@@ -4526,7 +4596,7 @@ unexpected_phase:
 	}
 
 	if (nxtdsp) {
-		OUTL_DSP (nxtdsp);
+		OUTL_DSP(nxtdsp);
 		return;
 	}
 
@@ -4551,7 +4621,7 @@ sym_dequeue_from_squeue(hcb_p np, int i, int target, int lun, int task)
 	/*
 	 *  Make sure the starting index is within range.
 	 */
-	assert((i >= 0) && (i < 2*MAX_QUEUE));
+	assert((i >= 0) && (i < 2 * MAX_QUEUE));
 
 	/*
 	 *  Walk until end of START queue and dequeue every job
@@ -4566,22 +4636,23 @@ sym_dequeue_from_squeue(hcb_p np, int i, int target, int lun, int task)
 		cp->host_flags &= ~HF_HINT_IARB;
 #endif
 		if ((target == -1 || cp->target == target) &&
-		    (lun    == -1 || cp->lun    == lun)    &&
-		    (task   == -1 || cp->tag    == task)) {
+		    (lun == -1 || cp->lun == lun) &&
+		    (task == -1 || cp->tag == task)) {
 			sym_set_cam_status(cp->cam_ccb, CAM_REQUEUE_REQ);
 			sym_remque(&cp->link_ccbq);
 			sym_insque_tail(&cp->link_ccbq, &np->comp_ccbq);
-		}
-		else {
+		} else {
 			if (i != j)
 				np->squeue[j] = np->squeue[i];
-			if ((j += 2) >= MAX_QUEUE*2) j = 0;
+			if ((j += 2) >= MAX_QUEUE * 2)
+				j = 0;
 		}
-		if ((i += 2) >= MAX_QUEUE*2) i = 0;
+		if ((i += 2) >= MAX_QUEUE * 2)
+			i = 0;
 	}
-	if (i != j)		/* Copy back the idle task if needed */
+	if (i != j) /* Copy back the idle task if needed */
 		np->squeue[j] = np->squeue[i];
-	np->squeueput = j;	/* Update our current start queue pointer */
+	np->squeueput = j; /* Update our current start queue pointer */
 
 	return (i - j) / 2;
 }
@@ -4640,22 +4711,23 @@ sym_flush_comp_queue(hcb_p np, int cam_status)
  *  SCRATCHA is assumed to have been loaded with STARTPOS
  *  before the SCRIPTS called the C code.
  */
-static void sym_sir_bad_scsi_status(hcb_p np, ccb_p cp)
+static void
+sym_sir_bad_scsi_status(hcb_p np, ccb_p cp)
 {
-	tcb_p tp	= &np->target[cp->target];
-	u32		startp;
-	u_char		s_status = cp->ssss_status;
-	u_char		h_flags  = cp->host_flags;
-	int		msglen;
-	int		nego;
-	int		i;
+	tcb_p tp = &np->target[cp->target];
+	u32 startp;
+	u_char s_status = cp->ssss_status;
+	u_char h_flags = cp->host_flags;
+	int msglen;
+	int nego;
+	int i;
 
 	SYM_LOCK_ASSERT(MA_OWNED);
 
 	/*
 	 *  Compute the index of the next job to start from SCRIPTS.
 	 */
-	i = (INL (nc_scratcha) - np->squeue_ba) / 4;
+	i = (INL(nc_scratcha) - np->squeue_ba) / 4;
 
 	/*
 	 *  The last CCB queued used for IARB hint may be
@@ -4669,16 +4741,16 @@ static void sym_sir_bad_scsi_status(hcb_p np, ccb_p cp)
 	/*
 	 *  Now deal with the SCSI status.
 	 */
-	switch(s_status) {
+	switch (s_status) {
 	case S_BUSY:
 	case S_QUEUE_FULL:
 		if (sym_verbose >= 2) {
 			PRINT_ADDR(cp);
-			printf (s_status == S_BUSY ? "BUSY" : "QUEUE FULL\n");
+			printf(s_status == S_BUSY ? "BUSY" : "QUEUE FULL\n");
 		}
 		/* FALLTHROUGH */
-	default:	/* S_INT, S_INT_COND_MET, S_CONFLICT */
-		sym_complete_error (np, cp);
+	default: /* S_INT, S_INT_COND_MET, S_CONFLICT */
+		sym_complete_error(np, cp);
 		break;
 	case S_TERMINATED:
 	case S_CHECK_COND:
@@ -4686,7 +4758,7 @@ static void sym_sir_bad_scsi_status(hcb_p np, ccb_p cp)
 		 *  If we get an SCSI error when requesting sense, give up.
 		 */
 		if (h_flags & HF_SENSE) {
-			sym_complete_error (np, cp);
+			sym_complete_error(np, cp);
 			break;
 		}
 
@@ -4694,10 +4766,10 @@ static void sym_sir_bad_scsi_status(hcb_p np, ccb_p cp)
 		 *  Dequeue all queued CCBs for that device not yet started,
 		 *  and restart the SCRIPTS processor immediately.
 		 */
-		(void) sym_dequeue_from_squeue(np, i, cp->target, cp->lun, -1);
-		OUTL_DSP (SCRIPTA_BA (np, start));
+		(void)sym_dequeue_from_squeue(np, i, cp->target, cp->lun, -1);
+		OUTL_DSP(SCRIPTA_BA(np, start));
 
- 		/*
+		/*
 		 *  Save some info of the actual IO.
 		 *  Compute the data residual.
 		 */
@@ -4728,62 +4800,62 @@ static void sym_sir_bad_scsi_status(hcb_p np, ccb_p cp)
 		 */
 		cp->nego_status = 0;
 		nego = 0;
-		if	(tp->tinfo.current.options & PPR_OPT_MASK)
+		if (tp->tinfo.current.options & PPR_OPT_MASK)
 			nego = NS_PPR;
-		else if	(tp->tinfo.current.width != BUS_8_BIT)
+		else if (tp->tinfo.current.width != BUS_8_BIT)
 			nego = NS_WIDE;
 		else if (tp->tinfo.current.offset != 0)
 			nego = NS_SYNC;
 		if (nego)
-			msglen +=
-			sym_prepare_nego (np,cp, nego, &cp->scsi_smsg2[msglen]);
+			msglen += sym_prepare_nego(np, cp, nego,
+			    &cp->scsi_smsg2[msglen]);
 		/*
 		 *  Message table indirect structure.
 		 */
-		cp->phys.smsg.addr	= cpu_to_scr(CCB_BA (cp, scsi_smsg2));
-		cp->phys.smsg.size	= cpu_to_scr(msglen);
+		cp->phys.smsg.addr = cpu_to_scr(CCB_BA(cp, scsi_smsg2));
+		cp->phys.smsg.size = cpu_to_scr(msglen);
 
 		/*
 		 *  sense command
 		 */
-		cp->phys.cmd.addr	= cpu_to_scr(CCB_BA (cp, sensecmd));
-		cp->phys.cmd.size	= cpu_to_scr(6);
+		cp->phys.cmd.addr = cpu_to_scr(CCB_BA(cp, sensecmd));
+		cp->phys.cmd.size = cpu_to_scr(6);
 
 		/*
 		 *  patch requested size into sense command
 		 */
-		cp->sensecmd[0]		= 0x03;
-		cp->sensecmd[1]		= cp->lun << 5;
+		cp->sensecmd[0] = 0x03;
+		cp->sensecmd[1] = cp->lun << 5;
 		if (tp->tinfo.current.scsi_version > 2 || cp->lun > 7)
-			cp->sensecmd[1]	= 0;
-		cp->sensecmd[4]		= SYM_SNS_BBUF_LEN;
-		cp->data_len		= SYM_SNS_BBUF_LEN;
+			cp->sensecmd[1] = 0;
+		cp->sensecmd[4] = SYM_SNS_BBUF_LEN;
+		cp->data_len = SYM_SNS_BBUF_LEN;
 
 		/*
 		 *  sense data
 		 */
 		bzero(cp->sns_bbuf, SYM_SNS_BBUF_LEN);
-		cp->phys.sense.addr	= cpu_to_scr(vtobus(cp->sns_bbuf));
-		cp->phys.sense.size	= cpu_to_scr(SYM_SNS_BBUF_LEN);
+		cp->phys.sense.addr = cpu_to_scr(vtobus(cp->sns_bbuf));
+		cp->phys.sense.size = cpu_to_scr(SYM_SNS_BBUF_LEN);
 
 		/*
 		 *  requeue the command.
 		 */
-		startp = SCRIPTB_BA (np, sdata_in);
+		startp = SCRIPTB_BA(np, sdata_in);
 
-		cp->phys.head.savep	= cpu_to_scr(startp);
-		cp->phys.head.goalp	= cpu_to_scr(startp + 16);
-		cp->phys.head.lastp	= cpu_to_scr(startp);
-		cp->startp	= cpu_to_scr(startp);
+		cp->phys.head.savep = cpu_to_scr(startp);
+		cp->phys.head.goalp = cpu_to_scr(startp + 16);
+		cp->phys.head.lastp = cpu_to_scr(startp);
+		cp->startp = cpu_to_scr(startp);
 
 		cp->actualquirks = SYM_QUIRK_AUTOSAVE;
-		cp->host_status	= cp->nego_status ? HS_NEGOTIATE : HS_BUSY;
+		cp->host_status = cp->nego_status ? HS_NEGOTIATE : HS_BUSY;
 		cp->ssss_status = S_ILLEGAL;
-		cp->host_flags	= (HF_SENSE|HF_DATA_IN);
+		cp->host_flags = (HF_SENSE | HF_DATA_IN);
 		cp->xerr_status = 0;
 		cp->extra_bytes = 0;
 
-		cp->phys.head.go.start = cpu_to_scr(SCRIPTA_BA (np, select));
+		cp->phys.head.go.start = cpu_to_scr(SCRIPTA_BA(np, select));
 
 		/*
 		 *  Requeue the command.
@@ -4835,9 +4907,8 @@ sym_clear_tasks(hcb_p np, int cam_status, int target, int lun, int task)
 		union ccb *ccb;
 		cp = sym_que_entry(qp, struct sym_ccb, link_ccbq);
 		ccb = cp->cam_ccb;
-		if (cp->host_status != HS_DISCONNECT ||
-		    cp->target != target	     ||
-		    (lun  != -1 && cp->lun != lun)   ||
+		if (cp->host_status != HS_DISCONNECT || cp->target != target ||
+		    (lun != -1 && cp->lun != lun) ||
 		    (task != -1 &&
 			(cp->tag != NO_TAG && cp->scsi_smsg[2] != task))) {
 			sym_insque_tail(&cp->link_ccbq, &np->busy_ccbq);
@@ -4896,15 +4967,16 @@ printf("XXXX TASK @%p CLEARED\n", cp);
  *  all the CCBs that should have been aborted by the
  *  target according to our message.
  */
-static void sym_sir_task_recovery(hcb_p np, int num)
+static void
+sym_sir_task_recovery(hcb_p np, int num)
 {
 	SYM_QUEHEAD *qp;
 	ccb_p cp;
 	tcb_p tp;
-	int target=-1, lun=-1, task;
+	int target = -1, lun = -1, task;
 	int i, k;
 
-	switch(num) {
+	switch (num) {
 	/*
 	 *  The SCRIPTS processor stopped before starting
 	 *  the next command in order to allow us to perform
@@ -4914,7 +4986,7 @@ static void sym_sir_task_recovery(hcb_p np, int num)
 		/*
 		 *  Do we have any target to reset or unit to clear ?
 		 */
-		for (i = 0 ; i < SYM_CONF_MAX_TARGET ; i++) {
+		for (i = 0; i < SYM_CONF_MAX_TARGET; i++) {
 			tp = &np->target[i];
 			if (tp->to_reset ||
 			    (tp->lun0p && tp->lun0p->to_clear)) {
@@ -4923,9 +4995,9 @@ static void sym_sir_task_recovery(hcb_p np, int num)
 			}
 			if (!tp->lunmp)
 				continue;
-			for (k = 1 ; k < SYM_CONF_MAX_LUN ; k++) {
+			for (k = 1; k < SYM_CONF_MAX_LUN; k++) {
 				if (tp->lunmp[k] && tp->lunmp[k]->to_clear) {
-					target	= i;
+					target = i;
 					break;
 				}
 			}
@@ -4938,8 +5010,10 @@ static void sym_sir_task_recovery(hcb_p np, int num)
 		 *  disconnected CCB to be aborted.
 		 */
 		if (target == -1) {
-			FOR_EACH_QUEUED_ELEMENT(&np->busy_ccbq, qp) {
-				cp = sym_que_entry(qp,struct sym_ccb,link_ccbq);
+			FOR_EACH_QUEUED_ELEMENT(&np->busy_ccbq, qp)
+			{
+				cp = sym_que_entry(qp, struct sym_ccb,
+				    link_ccbq);
 				if (cp->host_status != HS_DISCONNECT)
 					continue;
 				if (cp->to_abort) {
@@ -4955,11 +5029,11 @@ static void sym_sir_task_recovery(hcb_p np, int num)
 		 */
 		if (target != -1) {
 			tp = &np->target[target];
-			np->abrt_sel.sel_id	= target;
+			np->abrt_sel.sel_id = target;
 			np->abrt_sel.sel_scntl3 = tp->head.wval;
-			np->abrt_sel.sel_sxfer  = tp->head.sval;
+			np->abrt_sel.sel_sxfer = tp->head.sval;
 			OUTL(nc_dsa, np->hcb_ba);
-			OUTL_DSP (SCRIPTB_BA (np, sel_for_abort));
+			OUTL_DSP(SCRIPTB_BA(np, sel_for_abort));
 			return;
 		}
 
@@ -4970,7 +5044,8 @@ static void sym_sir_task_recovery(hcb_p np, int num)
 		 */
 		i = 0;
 		cp = NULL;
-		FOR_EACH_QUEUED_ELEMENT(&np->busy_ccbq, qp) {
+		FOR_EACH_QUEUED_ELEMENT(&np->busy_ccbq, qp)
+		{
 			cp = sym_que_entry(qp, struct sym_ccb, link_ccbq);
 			if (cp->host_status != HS_BUSY &&
 			    cp->host_status != HS_NEGOTIATE)
@@ -4988,7 +5063,7 @@ static void sym_sir_task_recovery(hcb_p np, int num)
 				continue;
 			}
 #endif
-			i = 1;	/* Means we have found some */
+			i = 1; /* Means we have found some */
 			break;
 		}
 		if (!i) {
@@ -4998,7 +5073,7 @@ static void sym_sir_task_recovery(hcb_p np, int num)
 			 *  Remove the SEM flag from the ISTAT.
 			 */
 			np->istat_sem = 0;
-			OUTB (nc_istat, SIGP);
+			OUTB(nc_istat, SIGP);
 			break;
 		}
 		/*
@@ -5006,7 +5081,7 @@ static void sym_sir_task_recovery(hcb_p np, int num)
 		 *  queue the SCRIPTS intends to start and dequeue
 		 *  all CCBs for that device that haven't been started.
 		 */
-		i = (INL (nc_scratcha) - np->squeue_ba) / 4;
+		i = (INL(nc_scratcha) - np->squeue_ba) / 4;
 		i = sym_dequeue_from_squeue(np, i, cp->target, cp->lun, -1);
 
 		/*
@@ -5024,7 +5099,7 @@ static void sym_sir_task_recovery(hcb_p np, int num)
 
 		/*
 		 *  Complete with error everything that we have dequeued.
-	 	 */
+		 */
 		sym_flush_comp_queue(np, 0);
 		break;
 	/*
@@ -5032,7 +5107,7 @@ static void sym_sir_task_recovery(hcb_p np, int num)
 	 *  we may have some manual recovery to perform for.
 	 */
 	case SIR_TARGET_SELECTED:
-		target = (INB (nc_sdid) & 0xf);
+		target = (INB(nc_sdid) & 0xf);
 		tp = &np->target[target];
 
 		np->abrt_tbl.addr = cpu_to_scr(vtobus(np->abrt_msg));
@@ -5055,7 +5130,7 @@ static void sym_sir_task_recovery(hcb_p np, int num)
 		if (tp->lun0p && tp->lun0p->to_clear)
 			lun = 0;
 		else if (tp->lunmp) {
-			for (k = 1 ; k < SYM_CONF_MAX_LUN ; k++) {
+			for (k = 1; k < SYM_CONF_MAX_LUN; k++) {
 				if (tp->lunmp[k] && tp->lunmp[k]->to_clear) {
 					lun = k;
 					break;
@@ -5082,7 +5157,8 @@ static void sym_sir_task_recovery(hcb_p np, int num)
 		 */
 		i = 0;
 		cp = NULL;
-		FOR_EACH_QUEUED_ELEMENT(&np->busy_ccbq, qp) {
+		FOR_EACH_QUEUED_ELEMENT(&np->busy_ccbq, qp)
+		{
 			cp = sym_que_entry(qp, struct sym_ccb, link_ccbq);
 			if (cp->host_status != HS_DISCONNECT)
 				continue;
@@ -5090,7 +5166,7 @@ static void sym_sir_task_recovery(hcb_p np, int num)
 				continue;
 			if (!cp->to_abort)
 				continue;
-			i = 1;	/* Means we have some */
+			i = 1; /* Means we have some */
 			break;
 		}
 
@@ -5122,8 +5198,7 @@ static void sym_sir_task_recovery(hcb_p np, int num)
 		if (cp->tag == NO_TAG) {
 			np->abrt_msg[1] = M_ABORT;
 			np->abrt_tbl.size = 2;
-		}
-		else {
+		} else {
 			np->abrt_msg[1] = cp->scsi_smsg[1];
 			np->abrt_msg[2] = cp->scsi_smsg[2];
 			np->abrt_msg[3] = M_ABORT_TAG;
@@ -5144,7 +5219,7 @@ static void sym_sir_task_recovery(hcb_p np, int num)
 	 *  to BUS FREE phase as we expected.
 	 */
 	case SIR_ABORT_SENT:
-		target = (INB (nc_sdid) & 0xf);
+		target = (INB(nc_sdid) & 0xf);
 		tp = &np->target[target];
 
 		/*
@@ -5169,7 +5244,7 @@ static void sym_sir_task_recovery(hcb_p np, int num)
 			tp->head.uval = 0;
 			tp->tinfo.current.period = 0;
 			tp->tinfo.current.offset = 0;
-			tp->tinfo.current.width  = BUS_8_BIT;
+			tp->tinfo.current.width = BUS_8_BIT;
 			tp->tinfo.current.options = 0;
 		}
 
@@ -5189,9 +5264,9 @@ static void sym_sir_task_recovery(hcb_p np, int num)
 		 *  Complete all the CCBs the device should have
 		 *  aborted due to our 'kiss of death' message.
 		 */
-		i = (INL (nc_scratcha) - np->squeue_ba) / 4;
-		(void) sym_dequeue_from_squeue(np, i, target, lun, -1);
-		(void) sym_clear_tasks(np, CAM_REQ_ABORTED, target, lun, task);
+		i = (INL(nc_scratcha) - np->squeue_ba) / 4;
+		(void)sym_dequeue_from_squeue(np, i, target, lun, -1);
+		(void)sym_clear_tasks(np, CAM_REQ_ABORTED, target, lun, task);
 		sym_flush_comp_queue(np, 0);
 
 		/*
@@ -5208,14 +5283,14 @@ static void sym_sir_task_recovery(hcb_p np, int num)
 	if (num == SIR_TARGET_SELECTED) {
 		PRINT_TARGET(np, target);
 		sym_printl_hex("control msgout:", np->abrt_msg,
-			      np->abrt_tbl.size);
+		    np->abrt_tbl.size);
 		np->abrt_tbl.size = cpu_to_scr(np->abrt_tbl.size);
 	}
 
 	/*
 	 *  Let the SCRIPTS processor continue.
 	 */
-	OUTONB_STD ();
+	OUTONB_STD();
 }
 
 /*
@@ -5244,11 +5319,12 @@ static void sym_sir_task_recovery(hcb_p np, int num)
  *  offset (basically from the MDP message) and returns
  *  the corresponding values of dp_sg and dp_ofs.
  */
-static int sym_evaluate_dp(hcb_p np, ccb_p cp, u32 scr, int *ofs)
+static int
+sym_evaluate_dp(hcb_p np, ccb_p cp, u32 scr, int *ofs)
 {
-	u32	dp_scr;
-	int	dp_ofs, dp_sg, dp_sgmin;
-	int	tmp;
+	u32 dp_scr;
+	int dp_ofs, dp_sg, dp_sgmin;
+	int tmp;
 	struct sym_pmc *pm;
 
 	/*
@@ -5257,15 +5333,15 @@ static int sym_evaluate_dp(hcb_p np, ccb_p cp, u32 scr, int *ofs)
 	 */
 	dp_scr = scr;
 	dp_ofs = *ofs;
-	if	(dp_scr == SCRIPTA_BA (np, pm0_data))
+	if (dp_scr == SCRIPTA_BA(np, pm0_data))
 		pm = &cp->phys.pm0;
-	else if (dp_scr == SCRIPTA_BA (np, pm1_data))
+	else if (dp_scr == SCRIPTA_BA(np, pm1_data))
 		pm = &cp->phys.pm1;
 	else
 		pm = NULL;
 
 	if (pm) {
-		dp_scr  = scr_to_cpu(pm->ret);
+		dp_scr = scr_to_cpu(pm->ret);
 		dp_ofs -= scr_to_cpu(pm->sg.size);
 	}
 
@@ -5286,7 +5362,7 @@ static int sym_evaluate_dp(hcb_p np, ccb_p cp, u32 scr, int *ofs)
 	tmp = scr_to_cpu(cp->phys.head.goalp);
 	dp_sg = SYM_CONF_MAX_SG;
 	if (dp_scr != tmp)
-		dp_sg -= (tmp - 8 - (int)dp_scr) / (2*4);
+		dp_sg -= (tmp - 8 - (int)dp_scr) / (2 * 4);
 	dp_sgmin = SYM_CONF_MAX_SG - cp->segments;
 
 	/*
@@ -5313,8 +5389,7 @@ static int sym_evaluate_dp(hcb_p np, ccb_p cp, u32 scr, int *ofs)
 			}
 			dp_ofs = n;
 		}
-	}
-	else if (dp_ofs > 0) {
+	} else if (dp_ofs > 0) {
 		while (dp_sg < SYM_CONF_MAX_SG) {
 			tmp = scr_to_cpu(cp->phys.data[dp_sg].size);
 			dp_ofs -= (tmp & 0xffffff);
@@ -5328,18 +5403,18 @@ static int sym_evaluate_dp(hcb_p np, ccb_p cp, u32 scr, int *ofs)
 	 *  Make sure the data pointer is inside the data area.
 	 *  If not, return some error.
 	 */
-	if	(dp_sg < dp_sgmin || (dp_sg == dp_sgmin && dp_ofs < 0))
+	if (dp_sg < dp_sgmin || (dp_sg == dp_sgmin && dp_ofs < 0))
 		goto out_err;
-	else if	(dp_sg > SYM_CONF_MAX_SG ||
-		 (dp_sg == SYM_CONF_MAX_SG && dp_ofs > 0))
+	else if (dp_sg > SYM_CONF_MAX_SG ||
+	    (dp_sg == SYM_CONF_MAX_SG && dp_ofs > 0))
 		goto out_err;
 
 	/*
 	 *  Save the extreme pointer if needed.
 	 */
 	if (dp_sg > cp->ext_sg ||
-            (dp_sg == cp->ext_sg && dp_ofs > cp->ext_ofs)) {
-		cp->ext_sg  = dp_sg;
+	    (dp_sg == cp->ext_sg && dp_ofs > cp->ext_ofs)) {
+		cp->ext_sg = dp_sg;
 		cp->ext_ofs = dp_ofs;
 	}
 
@@ -5361,15 +5436,16 @@ out_err:
  *  Btw, we assume in that situation that such a message
  *  is equivalent to a MODIFY DATA POINTER (offset=-1).
  */
-static void sym_modify_dp(hcb_p np, ccb_p cp, int ofs)
+static void
+sym_modify_dp(hcb_p np, ccb_p cp, int ofs)
 {
-	int dp_ofs	= ofs;
-	u32	dp_scr	= INL (nc_temp);
-	u32	dp_ret;
-	u32	tmp;
-	u_char	hflags;
-	int	dp_sg;
-	struct	sym_pmc *pm;
+	int dp_ofs = ofs;
+	u32 dp_scr = INL(nc_temp);
+	u32 dp_ret;
+	u32 tmp;
+	u_char hflags;
+	int dp_sg;
+	struct sym_pmc *pm;
 
 	/*
 	 *  Not supported for auto-sense.
@@ -5390,7 +5466,7 @@ static void sym_modify_dp(hcb_p np, ccb_p cp, int ofs)
 	 *  script address we want to return for the next data phase.
 	 */
 	dp_ret = cpu_to_scr(cp->phys.head.goalp);
-	dp_ret = dp_ret - 8 - (SYM_CONF_MAX_SG - dp_sg) * (2*4);
+	dp_ret = dp_ret - 8 - (SYM_CONF_MAX_SG - dp_sg) * (2 * 4);
 
 	/*
 	 *  If offset / scatter entry is zero we donnot need
@@ -5404,23 +5480,22 @@ static void sym_modify_dp(hcb_p np, ccb_p cp, int ofs)
 	/*
 	 *  Get a context for the new current data pointer.
 	 */
-	hflags = INB (HF_PRT);
+	hflags = INB(HF_PRT);
 
 	if (hflags & HF_DP_SAVED)
 		hflags ^= HF_ACT_PM;
 
 	if (!(hflags & HF_ACT_PM)) {
-		pm  = &cp->phys.pm0;
-		dp_scr = SCRIPTA_BA (np, pm0_data);
-	}
-	else {
+		pm = &cp->phys.pm0;
+		dp_scr = SCRIPTA_BA(np, pm0_data);
+	} else {
 		pm = &cp->phys.pm1;
-		dp_scr = SCRIPTA_BA (np, pm1_data);
+		dp_scr = SCRIPTA_BA(np, pm1_data);
 	}
 
 	hflags &= ~(HF_DP_SAVED);
 
-	OUTB (HF_PRT, hflags);
+	OUTB(HF_PRT, hflags);
 
 	/*
 	 *  Set up the new current data pointer.
@@ -5430,18 +5505,18 @@ static void sym_modify_dp(hcb_p np, ccb_p cp, int ofs)
 	 *  to the main data script.
 	 */
 	pm->ret = cpu_to_scr(dp_ret);
-	tmp  = scr_to_cpu(cp->phys.data[dp_sg-1].addr);
-	tmp += scr_to_cpu(cp->phys.data[dp_sg-1].size) + dp_ofs;
+	tmp = scr_to_cpu(cp->phys.data[dp_sg - 1].addr);
+	tmp += scr_to_cpu(cp->phys.data[dp_sg - 1].size) + dp_ofs;
 	pm->sg.addr = cpu_to_scr(tmp);
 	pm->sg.size = cpu_to_scr(-dp_ofs);
 
 out_ok:
-	OUTL (nc_temp, dp_scr);
-	OUTL_DSP (SCRIPTA_BA (np, clrack));
+	OUTL(nc_temp, dp_scr);
+	OUTL_DSP(SCRIPTA_BA(np, clrack));
 	return;
 
 out_reject:
-	OUTL_DSP (SCRIPTB_BA (np, msg_bad));
+	OUTL_DSP(SCRIPTB_BA(np, msg_bad));
 }
 
 /*
@@ -5458,7 +5533,8 @@ out_reject:
  *  any software that considers this data residual as
  *  a relevant information. :)
  */
-static int sym_compute_residual(hcb_p np, ccb_p cp)
+static int
+sym_compute_residual(hcb_p np, ccb_p cp)
 {
 	int dp_sg, resid = 0;
 	int dp_ofs = 0;
@@ -5470,7 +5546,8 @@ static int sym_compute_residual(hcb_p np, ccb_p cp)
 	 *  device claims some more data, it may well happen
 	 *  than our residual be zero. :-)
 	 */
-	if (cp->xerr_status & (XE_EXTRA_DATA|XE_SODL_UNRUN|XE_SWIDE_OVRUN)) {
+	if (cp->xerr_status &
+	    (XE_EXTRA_DATA | XE_SODL_UNRUN | XE_SWIDE_OVRUN)) {
 		if (cp->xerr_status & XE_EXTRA_DATA)
 			resid -= cp->extra_bytes;
 		if (cp->xerr_status & XE_SODL_UNRUN)
@@ -5491,8 +5568,8 @@ static int sym_compute_residual(hcb_p np, ccb_p cp)
 	 *  pointer is weird, return full residual.
 	 */
 	if (cp->startp == cp->phys.head.lastp ||
-	    sym_evaluate_dp(np, cp, scr_to_cpu(cp->phys.head.lastp),
-			    &dp_ofs) < 0) {
+	    sym_evaluate_dp(np, cp, scr_to_cpu(cp->phys.head.lastp), &dp_ofs) <
+		0) {
 		return cp->data_len;
 	}
 
@@ -5522,31 +5599,34 @@ static int sym_compute_residual(hcb_p np, ccb_p cp)
 /*
  *  Print out the content of a SCSI message.
  */
-static int sym_show_msg (u_char * msg)
+static int
+sym_show_msg(u_char *msg)
 {
 	u_char i;
-	printf ("%x",*msg);
-	if (*msg==M_EXTENDED) {
-		for (i=1;i<8;i++) {
-			if (i-1>msg[1]) break;
-			printf ("-%x",msg[i]);
+	printf("%x", *msg);
+	if (*msg == M_EXTENDED) {
+		for (i = 1; i < 8; i++) {
+			if (i - 1 > msg[1])
+				break;
+			printf("-%x", msg[i]);
 		}
-		return (i+1);
+		return (i + 1);
 	} else if ((*msg & 0xf0) == 0x20) {
-		printf ("-%x",msg[1]);
+		printf("-%x", msg[1]);
 		return (2);
 	}
 	return (1);
 }
 
-static void sym_print_msg (ccb_p cp, char *label, u_char *msg)
+static void
+sym_print_msg(ccb_p cp, char *label, u_char *msg)
 {
 	PRINT_ADDR(cp);
 	if (label)
-		printf ("%s: ", label);
+		printf("%s: ", label);
 
-	(void) sym_show_msg (msg);
-	printf (".\n");
+	(void)sym_show_msg(msg);
+	printf(".\n");
 }
 
 /*
@@ -5586,10 +5666,11 @@ static void sym_print_msg (ccb_p cp, char *label, u_char *msg)
 /*
  *  chip handler for SYNCHRONOUS DATA TRANSFER REQUEST (SDTR) message.
  */
-static void sym_sync_nego(hcb_p np, tcb_p tp, ccb_p cp)
+static void
+sym_sync_nego(hcb_p np, tcb_p tp, ccb_p cp)
 {
-	u_char	chg, ofs, per, fak, div;
-	int	req = 1;
+	u_char chg, ofs, per, fak, div;
+	int req = 1;
 
 	/*
 	 *  Synchronous request message received.
@@ -5601,8 +5682,8 @@ static void sym_sync_nego(hcb_p np, tcb_p tp, ccb_p cp)
 	/*
 	 * request or answer ?
 	 */
-	if (INB (HS_PRT) == HS_NEGOTIATE) {
-		OUTB (HS_PRT, HS_BUSY);
+	if (INB(HS_PRT) == HS_NEGOTIATE) {
+		OUTB(HS_PRT, HS_BUSY);
 		if (cp->nego_status && cp->nego_status != NS_SYNC)
 			goto reject_it;
 		req = 0;
@@ -5619,20 +5700,28 @@ static void sym_sync_nego(hcb_p np, tcb_p tp, ccb_p cp)
 	 *  check values against our limits.
 	 */
 	if (ofs) {
-		if (ofs > np->maxoffs)
-			{chg = 1; ofs = np->maxoffs;}
+		if (ofs > np->maxoffs) {
+			chg = 1;
+			ofs = np->maxoffs;
+		}
 		if (req) {
-			if (ofs > tp->tinfo.user.offset)
-				{chg = 1; ofs = tp->tinfo.user.offset;}
+			if (ofs > tp->tinfo.user.offset) {
+				chg = 1;
+				ofs = tp->tinfo.user.offset;
+			}
 		}
 	}
 
 	if (ofs) {
-		if (per < np->minsync)
-			{chg = 1; per = np->minsync;}
+		if (per < np->minsync) {
+			chg = 1;
+			per = np->minsync;
+		}
 		if (req) {
-			if (per < tp->tinfo.user.period)
-				{chg = 1; per = tp->tinfo.user.period;}
+			if (per < tp->tinfo.user.period) {
+				chg = 1;
+				per = tp->tinfo.user.period;
+			}
 		}
 	}
 
@@ -5642,18 +5731,18 @@ static void sym_sync_nego(hcb_p np, tcb_p tp, ccb_p cp)
 
 	if (DEBUG_FLAGS & DEBUG_NEGO) {
 		PRINT_ADDR(cp);
-		printf ("sdtr: ofs=%d per=%d div=%d fak=%d chg=%d.\n",
-			ofs, per, div, fak, chg);
+		printf("sdtr: ofs=%d per=%d div=%d fak=%d chg=%d.\n", ofs, per,
+		    div, fak, chg);
 	}
 
 	/*
 	 *  This was an answer message
 	 */
 	if (req == 0) {
-		if (chg) 	/* Answer wasn't acceptable. */
+		if (chg) /* Answer wasn't acceptable. */
 			goto reject_it;
-		sym_setsync (np, cp, ofs, per, div, fak);
-		OUTL_DSP (SCRIPTA_BA (np, clrack));
+		sym_setsync(np, cp, ofs, per, div, fak);
+		OUTL_DSP(SCRIPTA_BA(np, clrack));
 		return;
 	}
 
@@ -5661,7 +5750,7 @@ static void sym_sync_nego(hcb_p np, tcb_p tp, ccb_p cp)
 	 *  It was a request. Set value and
 	 *  prepare an answer message
 	 */
-	sym_setsync (np, cp, ofs, per, div, fak);
+	sym_setsync(np, cp, ofs, per, div, fak);
 
 	np->msgout[0] = M_EXTENDED;
 	np->msgout[1] = 3;
@@ -5675,22 +5764,23 @@ static void sym_sync_nego(hcb_p np, tcb_p tp, ccb_p cp)
 		sym_print_msg(cp, "sync msgout", np->msgout);
 	}
 
-	np->msgin [0] = M_NOOP;
+	np->msgin[0] = M_NOOP;
 
-	OUTL_DSP (SCRIPTB_BA (np, sdtr_resp));
+	OUTL_DSP(SCRIPTB_BA(np, sdtr_resp));
 	return;
 reject_it:
-	sym_setsync (np, cp, 0, 0, 0, 0);
-	OUTL_DSP (SCRIPTB_BA (np, msg_bad));
+	sym_setsync(np, cp, 0, 0, 0, 0);
+	OUTL_DSP(SCRIPTB_BA(np, msg_bad));
 }
 
 /*
  *  chip handler for PARALLEL PROTOCOL REQUEST (PPR) message.
  */
-static void sym_ppr_nego(hcb_p np, tcb_p tp, ccb_p cp)
+static void
+sym_ppr_nego(hcb_p np, tcb_p tp, ccb_p cp)
 {
-	u_char	chg, ofs, per, fak, dt, div, wide;
-	int	req = 1;
+	u_char chg, ofs, per, fak, dt, div, wide;
+	int req = 1;
 
 	/*
 	 * Synchronous request message received.
@@ -5702,17 +5792,17 @@ static void sym_ppr_nego(hcb_p np, tcb_p tp, ccb_p cp)
 	/*
 	 *  get requested values.
 	 */
-	chg  = 0;
-	per  = np->msgin[3];
-	ofs  = np->msgin[5];
+	chg = 0;
+	per = np->msgin[3];
+	ofs = np->msgin[5];
 	wide = np->msgin[6];
-	dt   = np->msgin[7] & PPR_OPT_DT;
+	dt = np->msgin[7] & PPR_OPT_DT;
 
 	/*
 	 * request or answer ?
 	 */
-	if (INB (HS_PRT) == HS_NEGOTIATE) {
-		OUTB (HS_PRT, HS_BUSY);
+	if (INB(HS_PRT) == HS_NEGOTIATE) {
+		OUTB(HS_PRT, HS_BUSY);
 		if (cp->nego_status && cp->nego_status != NS_PPR)
 			goto reject_it;
 		req = 0;
@@ -5721,43 +5811,58 @@ static void sym_ppr_nego(hcb_p np, tcb_p tp, ccb_p cp)
 	/*
 	 *  check values against our limits.
 	 */
-	if (wide > np->maxwide)
-		{chg = 1; wide = np->maxwide;}
+	if (wide > np->maxwide) {
+		chg = 1;
+		wide = np->maxwide;
+	}
 	if (!wide || !(np->features & FE_ULTRA3))
 		dt &= ~PPR_OPT_DT;
 	if (req) {
-		if (wide > tp->tinfo.user.width)
-			{chg = 1; wide = tp->tinfo.user.width;}
+		if (wide > tp->tinfo.user.width) {
+			chg = 1;
+			wide = tp->tinfo.user.width;
+		}
 	}
 
-	if (!(np->features & FE_U3EN))	/* Broken U3EN bit not supported */
+	if (!(np->features & FE_U3EN)) /* Broken U3EN bit not supported */
 		dt &= ~PPR_OPT_DT;
 
-	if (dt != (np->msgin[7] & PPR_OPT_MASK)) chg = 1;
+	if (dt != (np->msgin[7] & PPR_OPT_MASK))
+		chg = 1;
 
 	if (ofs) {
 		if (dt) {
-			if (ofs > np->maxoffs_dt)
-				{chg = 1; ofs = np->maxoffs_dt;}
+			if (ofs > np->maxoffs_dt) {
+				chg = 1;
+				ofs = np->maxoffs_dt;
+			}
+		} else if (ofs > np->maxoffs) {
+			chg = 1;
+			ofs = np->maxoffs;
 		}
-		else if (ofs > np->maxoffs)
-			{chg = 1; ofs = np->maxoffs;}
 		if (req) {
-			if (ofs > tp->tinfo.user.offset)
-				{chg = 1; ofs = tp->tinfo.user.offset;}
+			if (ofs > tp->tinfo.user.offset) {
+				chg = 1;
+				ofs = tp->tinfo.user.offset;
+			}
 		}
 	}
 
 	if (ofs) {
 		if (dt) {
-			if (per < np->minsync_dt)
-				{chg = 1; per = np->minsync_dt;}
+			if (per < np->minsync_dt) {
+				chg = 1;
+				per = np->minsync_dt;
+			}
+		} else if (per < np->minsync) {
+			chg = 1;
+			per = np->minsync;
 		}
-		else if (per < np->minsync)
-			{chg = 1; per = np->minsync;}
 		if (req) {
-			if (per < tp->tinfo.user.period)
-				{chg = 1; per = tp->tinfo.user.period;}
+			if (per < tp->tinfo.user.period) {
+				chg = 1;
+				per = tp->tinfo.user.period;
+			}
 		}
 	}
 
@@ -5767,19 +5872,19 @@ static void sym_ppr_nego(hcb_p np, tcb_p tp, ccb_p cp)
 
 	if (DEBUG_FLAGS & DEBUG_NEGO) {
 		PRINT_ADDR(cp);
-		printf ("ppr: "
-			"dt=%x ofs=%d per=%d wide=%d div=%d fak=%d chg=%d.\n",
-			dt, ofs, per, wide, div, fak, chg);
+		printf("ppr: "
+		       "dt=%x ofs=%d per=%d wide=%d div=%d fak=%d chg=%d.\n",
+		    dt, ofs, per, wide, div, fak, chg);
 	}
 
 	/*
 	 *  It was an answer.
 	 */
 	if (req == 0) {
-		if (chg) 	/* Answer wasn't acceptable */
+		if (chg) /* Answer wasn't acceptable */
 			goto reject_it;
-		sym_setpprot (np, cp, dt, ofs, per, wide, div, fak);
-		OUTL_DSP (SCRIPTA_BA (np, clrack));
+		sym_setpprot(np, cp, dt, ofs, per, wide, div, fak);
+		OUTL_DSP(SCRIPTA_BA(np, clrack));
 		return;
 	}
 
@@ -5787,7 +5892,7 @@ static void sym_ppr_nego(hcb_p np, tcb_p tp, ccb_p cp)
 	 *  It was a request. Set value and
 	 *  prepare an answer message
 	 */
-	sym_setpprot (np, cp, dt, ofs, per, wide, div, fak);
+	sym_setpprot(np, cp, dt, ofs, per, wide, div, fak);
 
 	np->msgout[0] = M_EXTENDED;
 	np->msgout[1] = 6;
@@ -5804,32 +5909,33 @@ static void sym_ppr_nego(hcb_p np, tcb_p tp, ccb_p cp)
 		sym_print_msg(cp, "ppr msgout", np->msgout);
 	}
 
-	np->msgin [0] = M_NOOP;
+	np->msgin[0] = M_NOOP;
 
-	OUTL_DSP (SCRIPTB_BA (np, ppr_resp));
+	OUTL_DSP(SCRIPTB_BA(np, ppr_resp));
 	return;
 reject_it:
-	sym_setpprot (np, cp, 0, 0, 0, 0, 0, 0);
-	OUTL_DSP (SCRIPTB_BA (np, msg_bad));
+	sym_setpprot(np, cp, 0, 0, 0, 0, 0, 0);
+	OUTL_DSP(SCRIPTB_BA(np, msg_bad));
 	/*
 	 *  If it was a device response that should result in
 	 *  ST, we may want to try a legacy negotiation later.
 	 */
 	if (!req && !dt) {
 		tp->tinfo.goal.options = 0;
-		tp->tinfo.goal.width   = wide;
-		tp->tinfo.goal.period  = per;
-		tp->tinfo.goal.offset  = ofs;
+		tp->tinfo.goal.width = wide;
+		tp->tinfo.goal.period = per;
+		tp->tinfo.goal.offset = ofs;
 	}
 }
 
 /*
  *  chip handler for WIDE DATA TRANSFER REQUEST (WDTR) message.
  */
-static void sym_wide_nego(hcb_p np, tcb_p tp, ccb_p cp)
+static void
+sym_wide_nego(hcb_p np, tcb_p tp, ccb_p cp)
 {
-	u_char	chg, wide;
-	int	req = 1;
+	u_char chg, wide;
+	int req = 1;
 
 	/*
 	 *  Wide request message received.
@@ -5841,8 +5947,8 @@ static void sym_wide_nego(hcb_p np, tcb_p tp, ccb_p cp)
 	/*
 	 * Is it a request from the device?
 	 */
-	if (INB (HS_PRT) == HS_NEGOTIATE) {
-		OUTB (HS_PRT, HS_BUSY);
+	if (INB(HS_PRT) == HS_NEGOTIATE) {
+		OUTB(HS_PRT, HS_BUSY);
 		if (cp->nego_status && cp->nego_status != NS_WIDE)
 			goto reject_it;
 		req = 0;
@@ -5851,31 +5957,35 @@ static void sym_wide_nego(hcb_p np, tcb_p tp, ccb_p cp)
 	/*
 	 *  get requested values.
 	 */
-	chg  = 0;
+	chg = 0;
 	wide = np->msgin[3];
 
 	/*
 	 *  check values against driver limits.
 	 */
-	if (wide > np->maxwide)
-		{chg = 1; wide = np->maxwide;}
+	if (wide > np->maxwide) {
+		chg = 1;
+		wide = np->maxwide;
+	}
 	if (req) {
-		if (wide > tp->tinfo.user.width)
-			{chg = 1; wide = tp->tinfo.user.width;}
+		if (wide > tp->tinfo.user.width) {
+			chg = 1;
+			wide = tp->tinfo.user.width;
+		}
 	}
 
 	if (DEBUG_FLAGS & DEBUG_NEGO) {
 		PRINT_ADDR(cp);
-		printf ("wdtr: wide=%d chg=%d.\n", wide, chg);
+		printf("wdtr: wide=%d chg=%d.\n", wide, chg);
 	}
 
 	/*
 	 * This was an answer message
 	 */
 	if (req == 0) {
-		if (chg)	/*  Answer wasn't acceptable. */
+		if (chg) /*  Answer wasn't acceptable. */
 			goto reject_it;
-		sym_setwide (np, cp, wide);
+		sym_setwide(np, cp, wide);
 
 		/*
 		 * Negotiate for SYNC immediately after WIDE response.
@@ -5894,12 +6004,12 @@ static void sym_wide_nego(hcb_p np, tcb_p tp, ccb_p cp)
 			}
 
 			cp->nego_status = NS_SYNC;
-			OUTB (HS_PRT, HS_NEGOTIATE);
-			OUTL_DSP (SCRIPTB_BA (np, sdtr_resp));
+			OUTB(HS_PRT, HS_NEGOTIATE);
+			OUTL_DSP(SCRIPTB_BA(np, sdtr_resp));
 			return;
 		}
 
-		OUTL_DSP (SCRIPTA_BA (np, clrack));
+		OUTL_DSP(SCRIPTA_BA(np, clrack));
 		return;
 	}
 
@@ -5907,14 +6017,14 @@ static void sym_wide_nego(hcb_p np, tcb_p tp, ccb_p cp)
 	 *  It was a request, set value and
 	 *  prepare an answer message
 	 */
-	sym_setwide (np, cp, wide);
+	sym_setwide(np, cp, wide);
 
 	np->msgout[0] = M_EXTENDED;
 	np->msgout[1] = 2;
 	np->msgout[2] = M_X_WIDE_REQ;
 	np->msgout[3] = wide;
 
-	np->msgin [0] = M_NOOP;
+	np->msgin[0] = M_NOOP;
 
 	cp->nego_status = NS_WIDE;
 
@@ -5922,10 +6032,10 @@ static void sym_wide_nego(hcb_p np, tcb_p tp, ccb_p cp)
 		sym_print_msg(cp, "wide msgout", np->msgout);
 	}
 
-	OUTL_DSP (SCRIPTB_BA (np, wdtr_resp));
+	OUTL_DSP(SCRIPTB_BA(np, wdtr_resp));
 	return;
 reject_it:
-	OUTL_DSP (SCRIPTB_BA (np, msg_bad));
+	OUTL_DSP(SCRIPTB_BA(np, msg_bad));
 }
 
 /*
@@ -5937,7 +6047,8 @@ reject_it:
  *  If it was a PPR that made problems, we may want to
  *  try a legacy negotiation later.
  */
-static void sym_nego_default(hcb_p np, tcb_p tp, ccb_p cp)
+static void
+sym_nego_default(hcb_p np, tcb_p tp, ccb_p cp)
 {
 	/*
 	 *  any error in negotiation:
@@ -5956,13 +6067,13 @@ static void sym_nego_default(hcb_p np, tcb_p tp, ccb_p cp)
 #endif
 		break;
 	case NS_SYNC:
-		sym_setsync (np, cp, 0, 0, 0, 0);
+		sym_setsync(np, cp, 0, 0, 0, 0);
 		break;
 	case NS_WIDE:
-		sym_setwide (np, cp, 0);
+		sym_setwide(np, cp, 0);
 		break;
 	}
-	np->msgin [0] = M_NOOP;
+	np->msgin[0] = M_NOOP;
 	np->msgout[0] = M_NOOP;
 	cp->nego_status = 0;
 }
@@ -5971,27 +6082,30 @@ static void sym_nego_default(hcb_p np, tcb_p tp, ccb_p cp)
  *  chip handler for MESSAGE REJECT received in response to
  *  a WIDE or SYNCHRONOUS negotiation.
  */
-static void sym_nego_rejected(hcb_p np, tcb_p tp, ccb_p cp)
+static void
+sym_nego_rejected(hcb_p np, tcb_p tp, ccb_p cp)
 {
 	sym_nego_default(np, tp, cp);
-	OUTB (HS_PRT, HS_BUSY);
+	OUTB(HS_PRT, HS_BUSY);
 }
 
 /*
  *  chip exception handler for programmed interrupts.
  */
-static void sym_int_sir (hcb_p np)
+static void
+sym_int_sir(hcb_p np)
 {
-	u_char	num	= INB (nc_dsps);
-	u32	dsa	= INL (nc_dsa);
-	ccb_p	cp	= sym_ccb_from_dsa(np, dsa);
-	u_char	target	= INB (nc_sdid) & 0x0f;
-	tcb_p	tp	= &np->target[target];
-	int	tmp;
+	u_char num = INB(nc_dsps);
+	u32 dsa = INL(nc_dsa);
+	ccb_p cp = sym_ccb_from_dsa(np, dsa);
+	u_char target = INB(nc_sdid) & 0x0f;
+	tcb_p tp = &np->target[target];
+	int tmp;
 
 	SYM_LOCK_ASSERT(MA_OWNED);
 
-	if (DEBUG_FLAGS & DEBUG_TINY) printf ("I#%d", num);
+	if (DEBUG_FLAGS & DEBUG_TINY)
+		printf("I#%d", num);
 
 	switch (num) {
 	/*
@@ -6018,24 +6132,24 @@ static void sym_int_sir (hcb_p np)
 	 *  that.
 	 */
 	case SIR_SEL_ATN_NO_MSG_OUT:
-		printf ("%s:%d: No MSG OUT phase after selection with ATN.\n",
-			sym_name (np), target);
+		printf("%s:%d: No MSG OUT phase after selection with ATN.\n",
+		    sym_name(np), target);
 		goto out_stuck;
 	/*
 	 *  The device didn't switch to MSG IN phase after
 	 *  having reseleted the initiator.
 	 */
 	case SIR_RESEL_NO_MSG_IN:
-		printf ("%s:%d: No MSG IN phase after reselection.\n",
-			sym_name (np), target);
+		printf("%s:%d: No MSG IN phase after reselection.\n",
+		    sym_name(np), target);
 		goto out_stuck;
 	/*
 	 *  After reselection, the device sent a message that wasn't
 	 *  an IDENTIFY.
 	 */
 	case SIR_RESEL_NO_IDENTIFY:
-		printf ("%s:%d: No IDENTIFY after reselection.\n",
-			sym_name (np), target);
+		printf("%s:%d: No IDENTIFY after reselection.\n", sym_name(np),
+		    target);
 		goto out_stuck;
 	/*
 	 *  The device reselected a LUN we donnot know about.
@@ -6064,8 +6178,8 @@ static void sym_int_sir (hcb_p np)
 	case SIR_RESEL_ABORTED:
 		np->lastmsg = np->msgout[0];
 		np->msgout[0] = M_NOOP;
-		printf ("%s:%d: message %x sent on bad reselection.\n",
-			sym_name (np), target, np->lastmsg);
+		printf("%s:%d: message %x sent on bad reselection.\n",
+		    sym_name(np), target, np->lastmsg);
 		goto out;
 	/*
 	 *  The SCRIPTS let us know that a message has been
@@ -6079,7 +6193,7 @@ static void sym_int_sir (hcb_p np)
 			if (cp) {
 				cp->xerr_status &= ~XE_PARITY_ERR;
 				if (!cp->xerr_status)
-					OUTOFFB (HF_PRT, HF_EXT_ERR);
+					OUTOFFB(HF_PRT, HF_EXT_ERR);
 			}
 		}
 		goto out;
@@ -6109,7 +6223,7 @@ static void sym_int_sir (hcb_p np)
 	 */
 	case SIR_SWIDE_OVERRUN:
 		if (cp) {
-			OUTONB (HF_PRT, HF_EXT_ERR);
+			OUTONB(HF_PRT, HF_EXT_ERR);
 			cp->xerr_status |= XE_SWIDE_OVRUN;
 		}
 		goto out;
@@ -6120,7 +6234,7 @@ static void sym_int_sir (hcb_p np)
 	 */
 	case SIR_SODL_UNDERRUN:
 		if (cp) {
-			OUTONB (HF_PRT, HF_EXT_ERR);
+			OUTONB(HF_PRT, HF_EXT_ERR);
 			cp->xerr_status |= XE_SODL_UNRUN;
 		}
 		goto out;
@@ -6132,9 +6246,9 @@ static void sym_int_sir (hcb_p np)
 	 */
 	case SIR_DATA_OVERRUN:
 		if (cp) {
-			OUTONB (HF_PRT, HF_EXT_ERR);
+			OUTONB(HF_PRT, HF_EXT_ERR);
 			cp->xerr_status |= XE_EXTRA_DATA;
-			cp->extra_bytes += INL (nc_scratcha);
+			cp->extra_bytes += INL(nc_scratcha);
 		}
 		goto out;
 	/*
@@ -6142,7 +6256,7 @@ static void sym_int_sir (hcb_p np)
 	 */
 	case SIR_BAD_PHASE:
 		if (cp) {
-			OUTONB (HF_PRT, HF_EXT_ERR);
+			OUTONB(HF_PRT, HF_EXT_ERR);
 			cp->xerr_status |= XE_BAD_PHASE;
 		}
 		goto out;
@@ -6152,19 +6266,21 @@ static void sym_int_sir (hcb_p np)
 	case SIR_MSG_RECEIVED:
 		if (!cp)
 			goto out_stuck;
-		switch (np->msgin [0]) {
+		switch (np->msgin[0]) {
 		/*
 		 *  We received an extended message.
 		 *  We handle MODIFY DATA POINTER, SDTR, WDTR
 		 *  and reject all other extended messages.
 		 */
 		case M_EXTENDED:
-			switch (np->msgin [2]) {
+			switch (np->msgin[2]) {
 			case M_X_MODIFY_DP:
 				if (DEBUG_FLAGS & DEBUG_POINTER)
-					sym_print_msg(cp,"modify DP",np->msgin);
-				tmp = (np->msgin[3]<<24) + (np->msgin[4]<<16) +
-				      (np->msgin[5]<<8)  + (np->msgin[6]);
+					sym_print_msg(cp, "modify DP",
+					    np->msgin);
+				tmp = (np->msgin[3] << 24) +
+				    (np->msgin[4] << 16) + (np->msgin[5] << 8) +
+				    (np->msgin[6]);
 				sym_modify_dp(np, cp, tmp);
 				return;
 			case M_X_SYNC_REQ:
@@ -6189,16 +6305,17 @@ static void sym_int_sir (hcb_p np)
 		 */
 		case M_IGN_RESIDUE:
 			if (DEBUG_FLAGS & DEBUG_POINTER)
-				sym_print_msg(cp,"ign wide residue", np->msgin);
+				sym_print_msg(cp, "ign wide residue",
+				    np->msgin);
 			sym_modify_dp(np, cp, -1);
 			return;
 		case M_REJECT:
-			if (INB (HS_PRT) == HS_NEGOTIATE)
+			if (INB(HS_PRT) == HS_NEGOTIATE)
 				sym_nego_rejected(np, tp, cp);
 			else {
 				PRINT_ADDR(cp);
-				printf ("M_REJECT received (%x:%x).\n",
-					scr_to_cpu(np->lastmsg), np->msgout[0]);
+				printf("M_REJECT received (%x:%x).\n",
+				    scr_to_cpu(np->lastmsg), np->msgout[0]);
 			}
 			goto out_clrack;
 			break;
@@ -6212,7 +6329,7 @@ static void sym_int_sir (hcb_p np)
 	 */
 	case SIR_MSG_WEIRD:
 		sym_print_msg(cp, "WEIRD message received", np->msgin);
-		OUTL_DSP (SCRIPTB_BA (np, msg_weird));
+		OUTL_DSP(SCRIPTB_BA(np, msg_weird));
 		return;
 	/*
 	 *  Negotiation failed.
@@ -6220,7 +6337,7 @@ static void sym_int_sir (hcb_p np)
 	 *  Remove the HS_NEGOTIATE status.
 	 */
 	case SIR_NEGO_FAILED:
-		OUTB (HS_PRT, HS_BUSY);
+		OUTB(HS_PRT, HS_BUSY);
 	/*
 	 *  Negotiation failed.
 	 *  Target does not want answer message.
@@ -6233,13 +6350,13 @@ static void sym_int_sir (hcb_p np)
 	}
 
 out:
-	OUTONB_STD ();
+	OUTONB_STD();
 	return;
 out_reject:
-	OUTL_DSP (SCRIPTB_BA (np, msg_bad));
+	OUTL_DSP(SCRIPTB_BA(np, msg_bad));
 	return;
 out_clrack:
-	OUTL_DSP (SCRIPTA_BA (np, clrack));
+	OUTL_DSP(SCRIPTA_BA(np, clrack));
 	return;
 out_stuck:
 	return;
@@ -6248,13 +6365,14 @@ out_stuck:
 /*
  *  Acquire a control block
  */
-static	ccb_p sym_get_ccb (hcb_p np, u_char tn, u_char ln, u_char tag_order)
+static ccb_p
+sym_get_ccb(hcb_p np, u_char tn, u_char ln, u_char tag_order)
 {
 	tcb_p tp = &np->target[tn];
 	lcb_p lp = sym_lp(tp, ln);
 	u_short tag = NO_TAG;
 	SYM_QUEHEAD *qp;
-	ccb_p cp = (ccb_p) NULL;
+	ccb_p cp = (ccb_p)NULL;
 
 	/*
 	 *  Look for a free CCB
@@ -6315,10 +6433,9 @@ static	ccb_p sym_get_ccb (hcb_p np, u_char tn, u_char ln, u_char tag_order)
 					lp->ia_tag = 0;
 				lp->itlq_tbl[tag] = cpu_to_scr(cp->ccb_ba);
 				++lp->busy_itlq;
-				lp->head.resel_sa =
-					cpu_to_scr(SCRIPTA_BA (np, resel_tag));
-			}
-			else
+				lp->head.resel_sa = cpu_to_scr(
+				    SCRIPTA_BA(np, resel_tag));
+			} else
 				goto out_free;
 		}
 		/*
@@ -6336,8 +6453,8 @@ static	ccb_p sym_get_ccb (hcb_p np, u_char tn, u_char ln, u_char tag_order)
 			 */
 			lp->busy_itl = 1;
 			lp->head.itl_task_sa = cpu_to_scr(cp->ccb_ba);
-			lp->head.resel_sa =
-			      cpu_to_scr(SCRIPTA_BA (np, resel_no_tag));
+			lp->head.resel_sa = cpu_to_scr(
+			    SCRIPTA_BA(np, resel_no_tag));
 		}
 	}
 	/*
@@ -6349,13 +6466,13 @@ static	ccb_p sym_get_ccb (hcb_p np, u_char tn, u_char ln, u_char tag_order)
 	 *  Remember all informations needed to free this CCB.
 	 */
 	cp->to_abort = 0;
-	cp->tag	   = tag;
+	cp->tag = tag;
 	cp->target = tn;
-	cp->lun    = ln;
+	cp->lun = ln;
 
 	if (DEBUG_FLAGS & DEBUG_TAGS) {
 		PRINT_LUN(np, tn, ln);
-		printf ("ccb @%p using tag %d.\n", cp, tag);
+		printf("ccb @%p using tag %d.\n", cp, tag);
 	}
 
 out:
@@ -6368,14 +6485,15 @@ out_free:
 /*
  *  Release one control block
  */
-static void sym_free_ccb(hcb_p np, ccb_p cp)
+static void
+sym_free_ccb(hcb_p np, ccb_p cp)
 {
 	tcb_p tp = &np->target[cp->target];
 	lcb_p lp = sym_lp(tp, cp->lun);
 
 	if (DEBUG_FLAGS & DEBUG_TAGS) {
 		PRINT_LUN(np, cp->target, cp->lun);
-		printf ("ccb @%p freeing tag %d.\n", cp, cp->tag);
+		printf("ccb @%p freeing tag %d.\n", cp, cp->tag);
 	}
 
 	/*
@@ -6398,7 +6516,7 @@ static void sym_free_ccb(hcb_p np, ccb_p cp)
 			 */
 			lp->itlq_tbl[cp->tag] = cpu_to_scr(np->bad_itlq_ba);
 			--lp->busy_itlq;
-		} else {	/* Untagged */
+		} else { /* Untagged */
 			/*
 			 *  Make the reselect path invalid,
 			 *  and uncount this CCB.
@@ -6410,8 +6528,8 @@ static void sym_free_ccb(hcb_p np, ccb_p cp)
 		 *  If no JOB active, make the LUN reselect path invalid.
 		 */
 		if (lp->busy_itlq == 0 && lp->busy_itl == 0)
-			lp->head.resel_sa =
-				cpu_to_scr(SCRIPTB_BA (np, resel_bad_lun));
+			lp->head.resel_sa = cpu_to_scr(
+			    SCRIPTB_BA(np, resel_bad_lun));
 	}
 	/*
 	 *  Otherwise, we only accept 1 IO per LUN.
@@ -6457,7 +6575,8 @@ static void sym_free_ccb(hcb_p np, ccb_p cp)
 /*
  *  Allocate a CCB from memory and initialize its fixed part.
  */
-static ccb_p sym_alloc_ccb(hcb_p np)
+static ccb_p
+sym_alloc_ccb(hcb_p np)
 {
 	ccb_p cp = NULL;
 	int hcode;
@@ -6515,10 +6634,10 @@ static ccb_p sym_alloc_ccb(hcb_p np)
 	/*
 	 *  Initialize the start and restart actions.
 	 */
-	cp->phys.head.go.start   = cpu_to_scr(SCRIPTA_BA (np, idle));
-	cp->phys.head.go.restart = cpu_to_scr(SCRIPTB_BA (np, bad_i_t_l));
+	cp->phys.head.go.start = cpu_to_scr(SCRIPTA_BA(np, idle));
+	cp->phys.head.go.restart = cpu_to_scr(SCRIPTB_BA(np, bad_i_t_l));
 
- 	/*
+	/*
 	 *  Initilialyze some other fields.
 	 */
 	cp->phys.smsg_ext.addr = cpu_to_scr(HCB_BA(np, msgin[2]));
@@ -6539,7 +6658,8 @@ out_free:
 /*
  *  Look up a CCB from a DSA value.
  */
-static ccb_p sym_ccb_from_dsa(hcb_p np, u32 dsa)
+static ccb_p
+sym_ccb_from_dsa(hcb_p np, u32 dsa)
 {
 	int hcode;
 	ccb_p cp;
@@ -6558,7 +6678,8 @@ static ccb_p sym_ccb_from_dsa(hcb_p np, u32 dsa)
 /*
  *  Lun control block allocation and initialization.
  */
-static lcb_p sym_alloc_lcb (hcb_p np, u_char tn, u_char ln)
+static lcb_p
+sym_alloc_lcb(hcb_p np, u_char tn, u_char ln)
 {
 	tcb_p tp = &np->target[tn];
 	lcb_p lp = sym_lp(tp, ln);
@@ -6583,7 +6704,7 @@ static lcb_p sym_alloc_lcb (hcb_p np, u_char tn, u_char ln)
 		tp->luntbl = sym_calloc_dma(256, "LUNTBL");
 		if (!tp->luntbl)
 			goto fail;
-		for (i = 0 ; i < 64 ; i++)
+		for (i = 0; i < 64; i++)
 			tp->luntbl[i] = cpu_to_scr(vtobus(&np->badlun_sa));
 		tp->head.luntbl_sa = cpu_to_scr(vtobus(tp->luntbl));
 	}
@@ -6593,7 +6714,7 @@ static lcb_p sym_alloc_lcb (hcb_p np, u_char tn, u_char ln)
 	 */
 	if (ln && !tp->lunmp) {
 		tp->lunmp = sym_calloc(SYM_CONF_MAX_LUN * sizeof(lcb_p),
-				   "LUNMP");
+		    "LUNMP");
 		if (!tp->lunmp)
 			goto fail;
 	}
@@ -6608,8 +6729,7 @@ static lcb_p sym_alloc_lcb (hcb_p np, u_char tn, u_char ln)
 	if (ln) {
 		tp->lunmp[ln] = lp;
 		tp->luntbl[ln] = cpu_to_scr(vtobus(lp));
-	}
-	else {
+	} else {
 		tp->lun0p = lp;
 		tp->head.lun0_sa = cpu_to_scr(vtobus(lp));
 	}
@@ -6622,7 +6742,7 @@ static lcb_p sym_alloc_lcb (hcb_p np, u_char tn, u_char ln)
 	/*
 	 *  Set the reselect pattern to our default. :)
 	 */
-	lp->head.resel_sa = cpu_to_scr(SCRIPTB_BA (np, resel_bad_lun));
+	lp->head.resel_sa = cpu_to_scr(SCRIPTB_BA(np, resel_bad_lun));
 
 	/*
 	 *  Set user capabilities.
@@ -6636,7 +6756,8 @@ fail:
 /*
  *  Allocate LCB resources for tagged command queuing.
  */
-static void sym_alloc_lcb_tags (hcb_p np, u_char tn, u_char ln)
+static void
+sym_alloc_lcb_tags(hcb_p np, u_char tn, u_char ln)
 {
 	tcb_p tp = &np->target[tn];
 	lcb_p lp = sym_lp(tp, ln);
@@ -6652,12 +6773,12 @@ static void sym_alloc_lcb_tags (hcb_p np, u_char tn, u_char ln)
 	 *  Allocate the task table and and the tag allocation
 	 *  circular buffer. We want both or none.
 	 */
-	lp->itlq_tbl = sym_calloc_dma(SYM_CONF_MAX_TASK*4, "ITLQ_TBL");
+	lp->itlq_tbl = sym_calloc_dma(SYM_CONF_MAX_TASK * 4, "ITLQ_TBL");
 	if (!lp->itlq_tbl)
 		return;
 	lp->cb_tags = sym_calloc(SYM_CONF_MAX_TASK, "CB_TAGS");
 	if (!lp->cb_tags) {
-		sym_mfree_dma(lp->itlq_tbl, SYM_CONF_MAX_TASK*4, "ITLQ_TBL");
+		sym_mfree_dma(lp->itlq_tbl, SYM_CONF_MAX_TASK * 4, "ITLQ_TBL");
 		lp->itlq_tbl = NULL;
 		return;
 	}
@@ -6665,13 +6786,13 @@ static void sym_alloc_lcb_tags (hcb_p np, u_char tn, u_char ln)
 	/*
 	 *  Initialize the task table with invalid entries.
 	 */
-	for (i = 0 ; i < SYM_CONF_MAX_TASK ; i++)
+	for (i = 0; i < SYM_CONF_MAX_TASK; i++)
 		lp->itlq_tbl[i] = cpu_to_scr(np->notask_ba);
 
 	/*
 	 *  Fill up the tag buffer with tag numbers.
 	 */
-	for (i = 0 ; i < SYM_CONF_MAX_TASK ; i++)
+	for (i = 0; i < SYM_CONF_MAX_TASK; i++)
 		lp->cb_tags[i] = i;
 
 	/*
@@ -6687,7 +6808,8 @@ static void sym_alloc_lcb_tags (hcb_p np, u_char tn, u_char ln)
  *  Has to be called with interrupts disabled.
  */
 #ifndef SYM_CONF_IOMAPPED
-static int sym_regtest (hcb_p np)
+static int
+sym_regtest(hcb_p np)
 {
 	register volatile u32 data;
 	/*
@@ -6703,108 +6825,110 @@ static int sym_regtest (hcb_p np)
 #else
 	if ((data & 0xe2f0fffd) != 0x02000080) {
 #endif
-		printf ("CACHE TEST FAILED: reg dstat-sstat2 readback %x.\n",
-			(unsigned) data);
+		printf("CACHE TEST FAILED: reg dstat-sstat2 readback %x.\n",
+		    (unsigned)data);
 		return (0x10);
 	}
 	return (0);
 }
 #endif
 
-static int sym_snooptest (hcb_p np)
+static int
+sym_snooptest(hcb_p np)
 {
-	u32	sym_rd, sym_wr, sym_bk, host_rd, host_wr, pc, dstat;
-	int	i, err=0;
+	u32 sym_rd, sym_wr, sym_bk, host_rd, host_wr, pc, dstat;
+	int i, err = 0;
 #ifndef SYM_CONF_IOMAPPED
-	err |= sym_regtest (np);
-	if (err) return (err);
+	err |= sym_regtest(np);
+	if (err)
+		return (err);
 #endif
 restart_test:
 	/*
 	 *  Enable Master Parity Checking as we intend
 	 *  to enable it for normal operations.
 	 */
-	OUTB (nc_ctest4, (np->rv_ctest4 & MPEE));
+	OUTB(nc_ctest4, (np->rv_ctest4 & MPEE));
 	/*
 	 *  init
 	 */
-	pc  = SCRIPTB0_BA (np, snooptest);
+	pc = SCRIPTB0_BA(np, snooptest);
 	host_wr = 1;
-	sym_wr  = 2;
+	sym_wr = 2;
 	/*
 	 *  Set memory and register.
 	 */
 	np->cache = cpu_to_scr(host_wr);
-	OUTL (nc_temp, sym_wr);
+	OUTL(nc_temp, sym_wr);
 	/*
 	 *  Start script (exchange values)
 	 */
-	OUTL (nc_dsa, np->hcb_ba);
-	OUTL_DSP (pc);
+	OUTL(nc_dsa, np->hcb_ba);
+	OUTL_DSP(pc);
 	/*
 	 *  Wait 'til done (with timeout)
 	 */
-	for (i=0; i<SYM_SNOOP_TIMEOUT; i++)
-		if (INB(nc_istat) & (INTF|SIP|DIP))
+	for (i = 0; i < SYM_SNOOP_TIMEOUT; i++)
+		if (INB(nc_istat) & (INTF | SIP | DIP))
 			break;
-	if (i>=SYM_SNOOP_TIMEOUT) {
-		printf ("CACHE TEST FAILED: timeout.\n");
+	if (i >= SYM_SNOOP_TIMEOUT) {
+		printf("CACHE TEST FAILED: timeout.\n");
 		return (0x20);
 	}
 	/*
 	 *  Check for fatal DMA errors.
 	 */
-	dstat = INB (nc_dstat);
-#if 1	/* Band aiding for broken hardwares that fail PCI parity */
+	dstat = INB(nc_dstat);
+#if 1 /* Band aiding for broken hardwares that fail PCI parity */
 	if ((dstat & MDPE) && (np->rv_ctest4 & MPEE)) {
-		printf ("%s: PCI DATA PARITY ERROR DETECTED - "
-			"DISABLING MASTER DATA PARITY CHECKING.\n",
-			sym_name(np));
+		printf("%s: PCI DATA PARITY ERROR DETECTED - "
+		       "DISABLING MASTER DATA PARITY CHECKING.\n",
+		    sym_name(np));
 		np->rv_ctest4 &= ~MPEE;
 		goto restart_test;
 	}
 #endif
-	if (dstat & (MDPE|BF|IID)) {
-		printf ("CACHE TEST FAILED: DMA error (dstat=0x%02x).", dstat);
+	if (dstat & (MDPE | BF | IID)) {
+		printf("CACHE TEST FAILED: DMA error (dstat=0x%02x).", dstat);
 		return (0x80);
 	}
 	/*
 	 *  Save termination position.
 	 */
-	pc = INL (nc_dsp);
+	pc = INL(nc_dsp);
 	/*
 	 *  Read memory and register.
 	 */
 	host_rd = scr_to_cpu(np->cache);
-	sym_rd  = INL (nc_scratcha);
-	sym_bk  = INL (nc_temp);
+	sym_rd = INL(nc_scratcha);
+	sym_bk = INL(nc_temp);
 
 	/*
 	 *  Check termination position.
 	 */
-	if (pc != SCRIPTB0_BA (np, snoopend)+8) {
-		printf ("CACHE TEST FAILED: script execution failed.\n");
-		printf ("start=%08lx, pc=%08lx, end=%08lx\n",
-			(u_long) SCRIPTB0_BA (np, snooptest), (u_long) pc,
-			(u_long) SCRIPTB0_BA (np, snoopend) +8);
+	if (pc != SCRIPTB0_BA(np, snoopend) + 8) {
+		printf("CACHE TEST FAILED: script execution failed.\n");
+		printf("start=%08lx, pc=%08lx, end=%08lx\n",
+		    (u_long)SCRIPTB0_BA(np, snooptest), (u_long)pc,
+		    (u_long)SCRIPTB0_BA(np, snoopend) + 8);
 		return (0x40);
 	}
 	/*
 	 *  Show results.
 	 */
 	if (host_wr != sym_rd) {
-		printf ("CACHE TEST FAILED: host wrote %d, chip read %d.\n",
-			(int) host_wr, (int) sym_rd);
+		printf("CACHE TEST FAILED: host wrote %d, chip read %d.\n",
+		    (int)host_wr, (int)sym_rd);
 		err |= 1;
 	}
 	if (host_rd != sym_wr) {
-		printf ("CACHE TEST FAILED: chip wrote %d, host read %d.\n",
-			(int) sym_wr, (int) host_rd);
+		printf("CACHE TEST FAILED: chip wrote %d, host read %d.\n",
+		    (int)sym_wr, (int)host_rd);
 		err |= 2;
 	}
 	if (sym_bk != sym_wr) {
-		printf ("CACHE TEST FAILED: chip wrote %d, read back %d.\n",
-			(int) sym_wr, (int) sym_bk);
+		printf("CACHE TEST FAILED: chip wrote %d, read back %d.\n",
+		    (int)sym_wr, (int)sym_bk);
 		err |= 4;
 	}
 
@@ -6832,20 +6956,21 @@ restart_test:
 /*
  *  Select SCSI clock frequency
  */
-static void sym_selectclock(hcb_p np, u_char scntl3)
+static void
+sym_selectclock(hcb_p np, u_char scntl3)
 {
 	/*
 	 *  If multiplier not present or not selected, leave here.
 	 */
 	if (np->multiplier <= 1) {
-		OUTB(nc_scntl3,	scntl3);
+		OUTB(nc_scntl3, scntl3);
 		return;
 	}
 
 	if (sym_verbose >= 2)
-		printf ("%s: enabling clock multiplier\n", sym_name(np));
+		printf("%s: enabling clock multiplier\n", sym_name(np));
 
-	OUTB(nc_stest1, DBLEN);	   /* Enable clock multiplier		  */
+	OUTB(nc_stest1, DBLEN); /* Enable clock multiplier		  */
 	/*
 	 *  Wait for the LCKFRQ bit to be set if supported by the chip.
 	 *  Otherwise wait 20 micro-seconds.
@@ -6853,22 +6978,23 @@ static void sym_selectclock(hcb_p np, u_char scntl3)
 	if (np->features & FE_LCKFRQ) {
 		int i = 20;
 		while (!(INB(nc_stest4) & LCKFRQ) && --i > 0)
-			UDELAY (20);
+			UDELAY(20);
 		if (!i)
 			printf("%s: the chip cannot lock the frequency\n",
-				sym_name(np));
+			    sym_name(np));
 	} else
-		UDELAY (20);
-	OUTB(nc_stest3, HSC);		/* Halt the scsi clock		*/
-	OUTB(nc_scntl3,	scntl3);
-	OUTB(nc_stest1, (DBLEN|DBLSEL));/* Select clock multiplier	*/
-	OUTB(nc_stest3, 0x00);		/* Restart scsi clock 		*/
+		UDELAY(20);
+	OUTB(nc_stest3, HSC); /* Halt the scsi clock		*/
+	OUTB(nc_scntl3, scntl3);
+	OUTB(nc_stest1, (DBLEN | DBLSEL)); /* Select clock multiplier	*/
+	OUTB(nc_stest3, 0x00);		   /* Restart scsi clock 		*/
 }
 
 /*
  *  calculate SCSI clock frequency (in KHz)
  */
-static unsigned getfreq (hcb_p np, int gen)
+static unsigned
+getfreq(hcb_p np, int gen)
 {
 	unsigned int ms = 0;
 	unsigned int f;
@@ -6888,51 +7014,54 @@ static unsigned getfreq (hcb_p np, int gen)
 	 * performed trust the higher delay
 	 * (lower frequency returned).
 	 */
-	OUTW (nc_sien , 0);	/* mask all scsi interrupts */
-	(void) INW (nc_sist);	/* clear pending scsi interrupt */
-	OUTB (nc_dien , 0);	/* mask all dma interrupts */
-	(void) INW (nc_sist);	/* another one, just to be sure :) */
-	OUTB (nc_scntl3, 4);	/* set pre-scaler to divide by 3 */
-	OUTB (nc_stime1, 0);	/* disable general purpose timer */
-	OUTB (nc_stime1, gen);	/* set to nominal delay of 1<<gen * 125us */
+	OUTW(nc_sien, 0);     /* mask all scsi interrupts */
+	(void)INW(nc_sist);   /* clear pending scsi interrupt */
+	OUTB(nc_dien, 0);     /* mask all dma interrupts */
+	(void)INW(nc_sist);   /* another one, just to be sure :) */
+	OUTB(nc_scntl3, 4);   /* set pre-scaler to divide by 3 */
+	OUTB(nc_stime1, 0);   /* disable general purpose timer */
+	OUTB(nc_stime1, gen); /* set to nominal delay of 1<<gen * 125us */
 	while (!(INW(nc_sist) & GEN) && ms++ < 100000)
-		UDELAY (1000);	/* count ms */
-	OUTB (nc_stime1, 0);	/* disable general purpose timer */
- 	/*
- 	 * set prescaler to divide by whatever 0 means
- 	 * 0 ought to choose divide by 2, but appears
- 	 * to set divide by 3.5 mode in my 53c810 ...
- 	 */
- 	OUTB (nc_scntl3, 0);
+		UDELAY(1000); /* count ms */
+	OUTB(nc_stime1, 0);   /* disable general purpose timer */
+	/*
+	 * set prescaler to divide by whatever 0 means
+	 * 0 ought to choose divide by 2, but appears
+	 * to set divide by 3.5 mode in my 53c810 ...
+	 */
+	OUTB(nc_scntl3, 0);
 
-  	/*
- 	 * adjust for prescaler, and convert into KHz
-  	 */
+	/*
+	 * adjust for prescaler, and convert into KHz
+	 */
 	f = ms ? ((1 << gen) * 4340) / ms : 0;
 
 	if (sym_verbose >= 2)
-		printf ("%s: Delay (GEN=%d): %u msec, %u KHz\n",
-			sym_name(np), gen, ms, f);
+		printf("%s: Delay (GEN=%d): %u msec, %u KHz\n", sym_name(np),
+		    gen, ms, f);
 
 	return f;
 }
 
-static unsigned sym_getfreq (hcb_p np)
+static unsigned
+sym_getfreq(hcb_p np)
 {
 	u_int f1, f2;
 	int gen = 11;
 
-	(void) getfreq (np, gen);	/* throw away first result */
-	f1 = getfreq (np, gen);
-	f2 = getfreq (np, gen);
-	if (f1 > f2) f1 = f2;		/* trust lower result	*/
+	(void)getfreq(np, gen); /* throw away first result */
+	f1 = getfreq(np, gen);
+	f2 = getfreq(np, gen);
+	if (f1 > f2)
+		f1 = f2; /* trust lower result	*/
 	return f1;
 }
 
 /*
  *  Get/probe chip SCSI clock frequency
  */
-static void sym_getclock (hcb_p np, int mult)
+static void
+sym_getclock(hcb_p np, int mult)
 {
 	unsigned char scntl3 = np->sv_scntl3;
 	unsigned char stest1 = np->sv_stest1;
@@ -6952,9 +7081,9 @@ static void sym_getclock (hcb_p np, int mult)
 	/*
 	 *  True with 875/895/896/895A with clock multiplier selected
 	 */
-	if (mult > 1 && (stest1 & (DBLEN+DBLSEL)) == DBLEN+DBLSEL) {
+	if (mult > 1 && (stest1 & (DBLEN + DBLSEL)) == DBLEN + DBLSEL) {
 		if (sym_verbose >= 2)
-			printf ("%s: clock multiplier found\n", sym_name(np));
+			printf("%s: clock multiplier found\n", sym_name(np));
 		np->multiplier = mult;
 	}
 
@@ -6964,26 +7093,32 @@ static void sym_getclock (hcb_p np, int mult)
 	 *  Otherwise trust scntl3 BIOS setting.
 	 */
 	if (np->multiplier != mult || (scntl3 & 7) < 3 || !(scntl3 & 1)) {
-		OUTB (nc_stest1, 0);		/* make sure doubler is OFF */
-		f1 = sym_getfreq (np);
+		OUTB(nc_stest1, 0); /* make sure doubler is OFF */
+		f1 = sym_getfreq(np);
 
 		if (sym_verbose)
-			printf ("%s: chip clock is %uKHz\n", sym_name(np), f1);
+			printf("%s: chip clock is %uKHz\n", sym_name(np), f1);
 
-		if	(f1 <	45000)		f1 =  40000;
-		else if (f1 <	55000)		f1 =  50000;
-		else				f1 =  80000;
+		if (f1 < 45000)
+			f1 = 40000;
+		else if (f1 < 55000)
+			f1 = 50000;
+		else
+			f1 = 80000;
 
 		if (f1 < 80000 && mult > 1) {
 			if (sym_verbose >= 2)
-				printf ("%s: clock multiplier assumed\n",
-					sym_name(np));
-			np->multiplier	= mult;
+				printf("%s: clock multiplier assumed\n",
+				    sym_name(np));
+			np->multiplier = mult;
 		}
 	} else {
-		if	((scntl3 & 7) == 3)	f1 =  40000;
-		else if	((scntl3 & 7) == 5)	f1 =  80000;
-		else 				f1 = 160000;
+		if ((scntl3 & 7) == 3)
+			f1 = 40000;
+		else if ((scntl3 & 7) == 5)
+			f1 = 80000;
+		else
+			f1 = 160000;
 
 		f1 /= np->multiplier;
 	}
@@ -6991,14 +7126,15 @@ static void sym_getclock (hcb_p np, int mult)
 	/*
 	 *  Compute controller synchronous parameters.
 	 */
-	f1		*= np->multiplier;
-	np->clock_khz	= f1;
+	f1 *= np->multiplier;
+	np->clock_khz = f1;
 }
 
 /*
  *  Get/probe PCI clock frequency
  */
-static int sym_getpciclock (hcb_p np)
+static int
+sym_getpciclock(hcb_p np)
 {
 	int f = 0;
 
@@ -7008,9 +7144,9 @@ static int sym_getpciclock (hcb_p np)
 	 *  such a beast to play with.
 	 */
 	if (!(np->features & FE_C10)) {
-		OUTB (nc_stest1, SCLK);	/* Use the PCI clock as SCSI clock */
-		f = (int) sym_getfreq (np);
-		OUTB (nc_stest1, 0);
+		OUTB(nc_stest1, SCLK); /* Use the PCI clock as SCSI clock */
+		f = (int)sym_getfreq(np);
+		OUTB(nc_stest1, 0);
 	}
 	np->pciclk_khz = f;
 
@@ -7022,27 +7158,28 @@ static int sym_getpciclock (hcb_p np)
 /*
  *  Print something that tells about extended errors.
  */
-static void sym_print_xerr(ccb_p cp, int x_status)
+static void
+sym_print_xerr(ccb_p cp, int x_status)
 {
 	if (x_status & XE_PARITY_ERR) {
 		PRINT_ADDR(cp);
-		printf ("unrecovered SCSI parity error.\n");
+		printf("unrecovered SCSI parity error.\n");
 	}
 	if (x_status & XE_EXTRA_DATA) {
 		PRINT_ADDR(cp);
-		printf ("extraneous data discarded.\n");
+		printf("extraneous data discarded.\n");
 	}
 	if (x_status & XE_BAD_PHASE) {
 		PRINT_ADDR(cp);
-		printf ("illegal scsi phase (4/5).\n");
+		printf("illegal scsi phase (4/5).\n");
 	}
 	if (x_status & XE_SODL_UNRUN) {
 		PRINT_ADDR(cp);
-		printf ("ODD transfer in DATA OUT phase.\n");
+		printf("ODD transfer in DATA OUT phase.\n");
 	}
 	if (x_status & XE_SWIDE_OVRUN) {
 		PRINT_ADDR(cp);
-		printf ("ODD transfer in DATA IN phase.\n");
+		printf("ODD transfer in DATA IN phase.\n");
 	}
 }
 
@@ -7050,14 +7187,16 @@ static void sym_print_xerr(ccb_p cp, int x_status)
  *  Choose the more appropriate CAM status if
  *  the IO encountered an extended error.
  */
-static int sym_xerr_cam_status(int cam_status, int x_status)
+static int
+sym_xerr_cam_status(int cam_status, int x_status)
 {
 	if (x_status) {
-		if	(x_status & XE_PARITY_ERR)
+		if (x_status & XE_PARITY_ERR)
 			cam_status = CAM_UNCOR_PARITY;
-		else if	(x_status &(XE_EXTRA_DATA|XE_SODL_UNRUN|XE_SWIDE_OVRUN))
+		else if (x_status &
+		    (XE_EXTRA_DATA | XE_SODL_UNRUN | XE_SWIDE_OVRUN))
 			cam_status = CAM_DATA_RUN_ERR;
-		else if	(x_status & XE_BAD_PHASE)
+		else if (x_status & XE_BAD_PHASE)
 			cam_status = CAM_REQ_CMP_ERR;
 		else
 			cam_status = CAM_REQ_CMP_ERR;
@@ -7075,7 +7214,8 @@ static int sym_xerr_cam_status(int cam_status, int x_status)
  *  SCRATCHA is assumed to have been loaded with STARTPOS
  *  before the SCRIPTS called the C code.
  */
-static void sym_complete_error (hcb_p np, ccb_p cp)
+static void
+sym_complete_error(hcb_p np, ccb_p cp)
 {
 	struct ccb_scsiio *csio;
 	u_int cam_status;
@@ -7089,10 +7229,10 @@ static void sym_complete_error (hcb_p np, ccb_p cp)
 	if (!cp || !cp->cam_ccb)
 		return;
 
-	if (DEBUG_FLAGS & (DEBUG_TINY|DEBUG_RESULT)) {
-		printf ("CCB=%lx STAT=%x/%x/%x DEV=%d/%d\n", (unsigned long)cp,
-			cp->host_status, cp->ssss_status, cp->host_flags,
-			cp->target, cp->lun);
+	if (DEBUG_FLAGS & (DEBUG_TINY | DEBUG_RESULT)) {
+		printf("CCB=%lx STAT=%x/%x/%x DEV=%d/%d\n", (unsigned long)cp,
+		    cp->host_status, cp->ssss_status, cp->host_flags,
+		    cp->target, cp->lun);
 		MDELAY(100);
 	}
 
@@ -7117,23 +7257,22 @@ static void sym_complete_error (hcb_p np, ccb_p cp)
 	csio->sense_resid = 0;
 	csio->resid = sym_compute_residual(np, cp);
 
-	if (!SYM_CONF_RESIDUAL_SUPPORT) {/* If user does not want residuals */
-		csio->resid  = 0;	/* throw them away. :)		   */
+	if (!SYM_CONF_RESIDUAL_SUPPORT) { /* If user does not want residuals */
+		csio->resid = 0;	  /* throw them away. :)		   */
 		cp->sv_resid = 0;
 	}
 
 	if (cp->host_flags & HF_SENSE) {		/* Auto sense     */
-		csio->scsi_status = cp->sv_scsi_status;	/* Restore status */
+		csio->scsi_status = cp->sv_scsi_status; /* Restore status */
 		csio->sense_resid = csio->resid;	/* Swap residuals */
-		csio->resid       = cp->sv_resid;
-		cp->sv_resid	  = 0;
+		csio->resid = cp->sv_resid;
+		cp->sv_resid = 0;
 		if (sym_verbose && cp->sv_xerr_status)
 			sym_print_xerr(cp, cp->sv_xerr_status);
 		if (cp->host_status == HS_COMPLETE &&
-		    cp->ssss_status == S_GOOD &&
-		    cp->xerr_status == 0) {
+		    cp->ssss_status == S_GOOD && cp->xerr_status == 0) {
 			cam_status = sym_xerr_cam_status(CAM_SCSI_STATUS_ERROR,
-							 cp->sv_xerr_status);
+			    cp->sv_xerr_status);
 			cam_status |= CAM_AUTOSNS_VALID;
 			/*
 			 *  Bounce back the sense data to user and
@@ -7162,59 +7301,55 @@ static void sym_complete_error (hcb_p np, ccb_p cp)
 							cp->target,cp->lun, -1);
 			}
 #endif
-		}
-		else
+		} else
 			cam_status = CAM_AUTOSENSE_FAIL;
-	}
-	else if (cp->host_status == HS_COMPLETE) {	/* Bad SCSI status */
+	} else if (cp->host_status == HS_COMPLETE) { /* Bad SCSI status */
 		csio->scsi_status = cp->ssss_status;
 		cam_status = CAM_SCSI_STATUS_ERROR;
-	}
-	else if (cp->host_status == HS_SEL_TIMEOUT)	/* Selection timeout */
+	} else if (cp->host_status == HS_SEL_TIMEOUT) /* Selection timeout */
 		cam_status = CAM_SEL_TIMEOUT;
-	else if (cp->host_status == HS_UNEXPECTED)	/* Unexpected BUS FREE*/
+	else if (cp->host_status == HS_UNEXPECTED) /* Unexpected BUS FREE*/
 		cam_status = CAM_UNEXP_BUSFREE;
-	else {						/* Extended error */
+	else { /* Extended error */
 		if (sym_verbose) {
 			PRINT_ADDR(cp);
-			printf ("COMMAND FAILED (%x %x %x).\n",
-				cp->host_status, cp->ssss_status,
-				cp->xerr_status);
+			printf("COMMAND FAILED (%x %x %x).\n", cp->host_status,
+			    cp->ssss_status, cp->xerr_status);
 		}
 		csio->scsi_status = cp->ssss_status;
 		/*
 		 *  Set the most appropriate value for CAM status.
 		 */
 		cam_status = sym_xerr_cam_status(CAM_REQ_CMP_ERR,
-						 cp->xerr_status);
+		    cp->xerr_status);
 	}
 
 	/*
 	 *  Dequeue all queued CCBs for that device
 	 *  not yet started by SCRIPTS.
 	 */
-	i = (INL (nc_scratcha) - np->squeue_ba) / 4;
-	(void) sym_dequeue_from_squeue(np, i, cp->target, cp->lun, -1);
+	i = (INL(nc_scratcha) - np->squeue_ba) / 4;
+	(void)sym_dequeue_from_squeue(np, i, cp->target, cp->lun, -1);
 
 	/*
 	 *  Restart the SCRIPTS processor.
 	 */
-	OUTL_DSP (SCRIPTA_BA (np, start));
+	OUTL_DSP(SCRIPTA_BA(np, start));
 
 	/*
 	 *  Synchronize DMA map if needed.
 	 */
 	if (cp->dmamapped) {
 		bus_dmamap_sync(np->data_dmat, cp->dmamap,
-			(cp->dmamapped == SYM_DMA_READ ?
-				BUS_DMASYNC_POSTREAD : BUS_DMASYNC_POSTWRITE));
+		    (cp->dmamapped == SYM_DMA_READ ? BUS_DMASYNC_POSTREAD :
+						     BUS_DMASYNC_POSTWRITE));
 	}
 	/*
 	 *  Add this one to the COMP queue.
 	 *  Complete all those commands with either error
 	 *  or requeue condition.
 	 */
-	sym_set_cam_status((union ccb *) csio, cam_status);
+	sym_set_cam_status((union ccb *)csio, cam_status);
 	sym_remque(&cp->link_ccbq);
 	sym_insque_head(&cp->link_ccbq, &np->comp_ccbq);
 	sym_flush_comp_queue(np, 0);
@@ -7229,7 +7364,8 @@ static void sym_complete_error (hcb_p np, ccb_p cp)
  *  The SCRIPTS processor is running while we are
  *  completing successful commands.
  */
-static void sym_complete_ok (hcb_p np, ccb_p cp)
+static void
+sym_complete_ok(hcb_p np, ccb_p cp)
 {
 	struct ccb_scsiio *csio;
 	tcb_p tp;
@@ -7242,7 +7378,7 @@ static void sym_complete_ok (hcb_p np, ccb_p cp)
 	 */
 	if (!cp || !cp->cam_ccb)
 		return;
-	assert (cp->host_status == HS_COMPLETE);
+	assert(cp->host_status == HS_COMPLETE);
 
 	/*
 	 *  Get command, target and lun pointers.
@@ -7271,31 +7407,32 @@ static void sym_complete_ok (hcb_p np, ccb_p cp)
 	 *  sym_conf.h. Residual support is enabled by default.
 	 */
 	if (!SYM_CONF_RESIDUAL_SUPPORT)
-		csio->resid  = 0;
+		csio->resid = 0;
 
 	/*
 	 *  Synchronize DMA map if needed.
 	 */
 	if (cp->dmamapped) {
 		bus_dmamap_sync(np->data_dmat, cp->dmamap,
-			(cp->dmamapped == SYM_DMA_READ ?
-				BUS_DMASYNC_POSTREAD : BUS_DMASYNC_POSTWRITE));
+		    (cp->dmamapped == SYM_DMA_READ ? BUS_DMASYNC_POSTREAD :
+						     BUS_DMASYNC_POSTWRITE));
 	}
 	/*
 	 *  Set status and complete the command.
 	 */
 	csio->scsi_status = cp->ssss_status;
-	sym_set_cam_status((union ccb *) csio, CAM_REQ_CMP);
-	sym_xpt_done(np, (union ccb *) csio, cp);
+	sym_set_cam_status((union ccb *)csio, CAM_REQ_CMP);
+	sym_xpt_done(np, (union ccb *)csio, cp);
 	sym_free_ccb(np, cp);
 }
 
 /*
  *  Our callout handler
  */
-static void sym_callout(void *arg)
+static void
+sym_callout(void *arg)
 {
-	union ccb *ccb = (union ccb *) arg;
+	union ccb *ccb = (union ccb *)arg;
 	hcb_p np = ccb->ccb_h.sym_hcb_ptr;
 
 	/*
@@ -7306,9 +7443,9 @@ static void sym_callout(void *arg)
 
 	SYM_LOCK();
 
-	switch(ccb->ccb_h.func_code) {
+	switch (ccb->ccb_h.func_code) {
 	case XPT_SCSI_IO:
-		(void) sym_abort_scsiio(np, ccb, 1);
+		(void)sym_abort_scsiio(np, ccb, 1);
 		break;
 	default:
 		break;
@@ -7320,7 +7457,8 @@ static void sym_callout(void *arg)
 /*
  *  Abort an SCSI IO.
  */
-static int sym_abort_scsiio(hcb_p np, union ccb *ccb, int timed_out)
+static int
+sym_abort_scsiio(hcb_p np, union ccb *ccb, int timed_out)
 {
 	ccb_p cp;
 	SYM_QUEHEAD *qp;
@@ -7331,7 +7469,8 @@ static int sym_abort_scsiio(hcb_p np, union ccb *ccb, int timed_out)
 	 *  Look up our CCB control block.
 	 */
 	cp = NULL;
-	FOR_EACH_QUEUED_ELEMENT(&np->busy_ccbq, qp) {
+	FOR_EACH_QUEUED_ELEMENT(&np->busy_ccbq, qp)
+	{
 		ccb_p cp2 = sym_que_entry(qp, struct sym_ccb, link_ccbq);
 		if (cp2->cam_ccb == ccb) {
 			cp = cp2;
@@ -7354,29 +7493,30 @@ static int sym_abort_scsiio(hcb_p np, union ccb *ccb, int timed_out)
 	 *  Mark the CCB for abort and allow time for.
 	 */
 	cp->to_abort = timed_out ? 2 : 1;
-	callout_reset(&cp->ch, 10 * hz, sym_callout, (caddr_t) ccb);
+	callout_reset(&cp->ch, 10 * hz, sym_callout, (caddr_t)ccb);
 
 	/*
 	 *  Tell the SCRIPTS processor to stop and synchronize with us.
 	 */
 	np->istat_sem = SEM;
-	OUTB (nc_istat, SIGP|SEM);
+	OUTB(nc_istat, SIGP | SEM);
 	return 0;
 }
 
 /*
  *  Reset a SCSI device (all LUNs of a target).
  */
-static void sym_reset_dev(hcb_p np, union ccb *ccb)
+static void
+sym_reset_dev(hcb_p np, union ccb *ccb)
 {
 	tcb_p tp;
 	struct ccb_hdr *ccb_h = &ccb->ccb_h;
 
 	SYM_LOCK_ASSERT(MA_OWNED);
 
-	if (ccb_h->target_id   == np->myaddr ||
-	    ccb_h->target_id   >= SYM_CONF_MAX_TARGET ||
-	    ccb_h->target_lun  >= SYM_CONF_MAX_LUN) {
+	if (ccb_h->target_id == np->myaddr ||
+	    ccb_h->target_id >= SYM_CONF_MAX_TARGET ||
+	    ccb_h->target_lun >= SYM_CONF_MAX_LUN) {
 		sym_xpt_done2(np, ccb, CAM_DEV_NOT_THERE);
 		return;
 	}
@@ -7387,30 +7527,31 @@ static void sym_reset_dev(hcb_p np, union ccb *ccb)
 	sym_xpt_done2(np, ccb, CAM_REQ_CMP);
 
 	np->istat_sem = SEM;
-	OUTB (nc_istat, SIGP|SEM);
+	OUTB(nc_istat, SIGP | SEM);
 }
 
 /*
  *  SIM action entry point.
  */
-static void sym_action(struct cam_sim *sim, union ccb *ccb)
+static void
+sym_action(struct cam_sim *sim, union ccb *ccb)
 {
-	hcb_p	np;
-	tcb_p	tp;
-	lcb_p	lp;
-	ccb_p	cp;
-	int 	tmp;
-	u_char	idmsg, *msgptr;
-	u_int   msglen;
-	struct	ccb_scsiio *csio;
-	struct	ccb_hdr  *ccb_h;
+	hcb_p np;
+	tcb_p tp;
+	lcb_p lp;
+	ccb_p cp;
+	int tmp;
+	u_char idmsg, *msgptr;
+	u_int msglen;
+	struct ccb_scsiio *csio;
+	struct ccb_hdr *ccb_h;
 
 	CAM_DEBUG(ccb->ccb_h.path, CAM_DEBUG_TRACE, ("sym_action\n"));
 
 	/*
 	 *  Retrieve our controller data structure.
 	 */
-	np = (hcb_p) cam_sim_softc(sim);
+	np = (hcb_p)cam_sim_softc(sim);
 
 	SYM_LOCK_ASSERT(MA_OWNED);
 
@@ -7422,7 +7563,7 @@ static void sym_action(struct cam_sim *sim, union ccb *ccb)
 		sym_action2(sim, ccb);
 		return;
 	}
-	csio  = &ccb->csio;
+	csio = &ccb->csio;
 	ccb_h = &csio->ccb_h;
 
 	/*
@@ -7437,12 +7578,12 @@ static void sym_action(struct cam_sim *sim, union ccb *ccb)
 	 *  Minimal checkings, so that we will not
 	 *  go outside our tables.
 	 */
-	if (ccb_h->target_id   == np->myaddr ||
-	    ccb_h->target_id   >= SYM_CONF_MAX_TARGET ||
-	    ccb_h->target_lun  >= SYM_CONF_MAX_LUN) {
+	if (ccb_h->target_id == np->myaddr ||
+	    ccb_h->target_id >= SYM_CONF_MAX_TARGET ||
+	    ccb_h->target_lun >= SYM_CONF_MAX_LUN) {
 		sym_xpt_done2(np, ccb, CAM_DEV_NOT_THERE);
 		return;
-        }
+	}
 
 	/*
 	 *  Retrieve the target and lun descriptors.
@@ -7463,11 +7604,13 @@ static void sym_action(struct cam_sim *sim, union ccb *ccb)
 	 *  zero LUN. Btw, this is an absolute hack.:-)
 	 */
 	if (!(ccb_h->flags & CAM_CDB_PHYS) &&
-	    (0x12 == ((ccb_h->flags & CAM_CDB_POINTER) ?
-		  csio->cdb_io.cdb_ptr[0] : csio->cdb_io.cdb_bytes[0]))) {
+	    (0x12 ==
+		((ccb_h->flags & CAM_CDB_POINTER) ?
+			csio->cdb_io.cdb_ptr[0] :
+			csio->cdb_io.cdb_bytes[0]))) {
 		if ((tp->usrflags & SYM_SCAN_BOOT_DISABLED) ||
 		    ((tp->usrflags & SYM_SCAN_LUNS_DISABLED) &&
-		     ccb_h->target_lun != 0)) {
+			ccb_h->target_lun != 0)) {
 			tp->usrflags &= ~SYM_SCAN_BOOT_DISABLED;
 			sym_xpt_done2(np, ccb, CAM_DEV_NOT_THERE);
 			return;
@@ -7506,7 +7649,7 @@ static void sym_action(struct cam_sim *sim, union ccb *ccb)
 	if (cp->tag != NO_TAG) {
 		u_char order = csio->tag_action;
 
-		switch(order) {
+		switch (order) {
 		case M_ORDERED_TAG:
 			break;
 		case M_HEAD_TAG:
@@ -7523,7 +7666,7 @@ static void sym_action(struct cam_sim *sim, union ccb *ccb)
 		 *  great #TAG numbers. For more tags (up to 256),
 		 *  we use directly our tag number.
 		 */
-#if SYM_CONF_MAX_TASK > (512/4)
+#if SYM_CONF_MAX_TASK > (512 / 4)
 		msgptr[msglen++] = cp->tag;
 #else
 		msgptr[msglen++] = (cp->tag << 1) + 1;
@@ -7535,9 +7678,9 @@ static void sym_action(struct cam_sim *sim, union ccb *ccb)
 	 *  (nego_status is filled by sym_prepare_nego())
 	 */
 	cp->nego_status = 0;
-	if (tp->tinfo.current.width   != tp->tinfo.goal.width  ||
-	    tp->tinfo.current.period  != tp->tinfo.goal.period ||
-	    tp->tinfo.current.offset  != tp->tinfo.goal.offset ||
+	if (tp->tinfo.current.width != tp->tinfo.goal.width ||
+	    tp->tinfo.current.period != tp->tinfo.goal.period ||
+	    tp->tinfo.current.offset != tp->tinfo.goal.offset ||
 	    tp->tinfo.current.options != tp->tinfo.goal.options) {
 		if (!tp->nego_cp && lp)
 			msglen += sym_prepare_nego(np, cp, 0, msgptr + msglen);
@@ -7550,22 +7693,22 @@ static void sym_action(struct cam_sim *sim, union ccb *ccb)
 	/*
 	 *  Startqueue
 	 */
-	cp->phys.head.go.start   = cpu_to_scr(SCRIPTA_BA (np, select));
-	cp->phys.head.go.restart = cpu_to_scr(SCRIPTA_BA (np, resel_dsa));
+	cp->phys.head.go.start = cpu_to_scr(SCRIPTA_BA(np, select));
+	cp->phys.head.go.restart = cpu_to_scr(SCRIPTA_BA(np, resel_dsa));
 
 	/*
 	 *  select
 	 */
-	cp->phys.select.sel_id		= cp->target;
-	cp->phys.select.sel_scntl3	= tp->head.wval;
-	cp->phys.select.sel_sxfer	= tp->head.sval;
-	cp->phys.select.sel_scntl4	= tp->head.uval;
+	cp->phys.select.sel_id = cp->target;
+	cp->phys.select.sel_scntl3 = tp->head.wval;
+	cp->phys.select.sel_sxfer = tp->head.sval;
+	cp->phys.select.sel_scntl4 = tp->head.uval;
 
 	/*
 	 *  message
 	 */
-	cp->phys.smsg.addr	= cpu_to_scr(CCB_BA (cp, scsi_smsg));
-	cp->phys.smsg.size	= cpu_to_scr(msglen);
+	cp->phys.smsg.addr = cpu_to_scr(CCB_BA(cp, scsi_smsg));
+	cp->phys.smsg.size = cpu_to_scr(msglen);
 
 	/*
 	 *  command
@@ -7579,21 +7722,21 @@ static void sym_action(struct cam_sim *sim, union ccb *ccb)
 	/*
 	 *  status
 	 */
-#if	0	/* Provision */
+#if 0 /* Provision */
 	cp->actualquirks	= tp->quirks;
 #endif
-	cp->actualquirks	= SYM_QUIRK_AUTOSAVE;
-	cp->host_status		= cp->nego_status ? HS_NEGOTIATE : HS_BUSY;
-	cp->ssss_status		= S_ILLEGAL;
-	cp->xerr_status		= 0;
-	cp->host_flags		= 0;
-	cp->extra_bytes		= 0;
+	cp->actualquirks = SYM_QUIRK_AUTOSAVE;
+	cp->host_status = cp->nego_status ? HS_NEGOTIATE : HS_BUSY;
+	cp->ssss_status = S_ILLEGAL;
+	cp->xerr_status = 0;
+	cp->host_flags = 0;
+	cp->extra_bytes = 0;
 
 	/*
 	 *  extreme data pointer.
 	 *  shall be positive, so -1 is lower than lowest.:)
 	 */
-	cp->ext_sg  = -1;
+	cp->ext_sg = -1;
 	cp->ext_ofs = 0;
 
 	/*
@@ -7608,11 +7751,12 @@ static void sym_action(struct cam_sim *sim, union ccb *ccb)
  *  I bet, physical CDBs will never be used on the planet,
  *  since they can be bounced without significant overhead.
  */
-static int sym_setup_cdb(hcb_p np, struct ccb_scsiio *csio, ccb_p cp)
+static int
+sym_setup_cdb(hcb_p np, struct ccb_scsiio *csio, ccb_p cp)
 {
 	struct ccb_hdr *ccb_h;
-	u32	cmd_ba;
-	int	cmd_len;
+	u32 cmd_ba;
+	int cmd_len;
 
 	SYM_LOCK_ASSERT(MA_OWNED);
 
@@ -7632,7 +7776,7 @@ static int sym_setup_cdb(hcb_p np, struct ccb_scsiio *csio, ccb_p cp)
 		if (!(ccb_h->flags & CAM_CDB_PHYS)) {
 			/* CDB pointer is virtual */
 			bcopy(csio->cdb_io.cdb_ptr, cp->cdb_buf, cmd_len);
-			cmd_ba = CCB_BA (cp, cdb_buf[0]);
+			cmd_ba = CCB_BA(cp, cdb_buf[0]);
 		} else {
 			/* CDB pointer is physical */
 #if 0
@@ -7645,11 +7789,11 @@ static int sym_setup_cdb(hcb_p np, struct ccb_scsiio *csio, ccb_p cp)
 	} else {
 		/* CDB is in the CAM ccb (buffer) */
 		bcopy(csio->cdb_io.cdb_bytes, cp->cdb_buf, cmd_len);
-		cmd_ba = CCB_BA (cp, cdb_buf[0]);
+		cmd_ba = CCB_BA(cp, cdb_buf[0]);
 	}
 
-	cp->phys.cmd.addr	= cpu_to_scr(cmd_ba);
-	cp->phys.cmd.size	= cpu_to_scr(cmd_len);
+	cp->phys.cmd.addr = cpu_to_scr(cmd_ba);
+	cp->phys.cmd.size = cpu_to_scr(cmd_len);
 
 	return 0;
 }
@@ -7657,8 +7801,7 @@ static int sym_setup_cdb(hcb_p np, struct ccb_scsiio *csio, ccb_p cp)
 /*
  *  Set up data pointers used by SCRIPTS.
  */
-static void __inline
-sym_setup_data_pointers(hcb_p np, ccb_p cp, int dir)
+static void __inline sym_setup_data_pointers(hcb_p np, ccb_p cp, int dir)
 {
 	u32 lastp, goalp;
 
@@ -7673,26 +7816,26 @@ sym_setup_data_pointers(hcb_p np, ccb_p cp, int dir)
 	/*
 	 *  Set the data pointer.
 	 */
-	switch(dir) {
+	switch (dir) {
 	case CAM_DIR_OUT:
-		goalp = SCRIPTA_BA (np, data_out2) + 8;
-		lastp = goalp - 8 - (cp->segments * (2*4));
+		goalp = SCRIPTA_BA(np, data_out2) + 8;
+		lastp = goalp - 8 - (cp->segments * (2 * 4));
 		break;
 	case CAM_DIR_IN:
 		cp->host_flags |= HF_DATA_IN;
-		goalp = SCRIPTA_BA (np, data_in2) + 8;
-		lastp = goalp - 8 - (cp->segments * (2*4));
+		goalp = SCRIPTA_BA(np, data_in2) + 8;
+		lastp = goalp - 8 - (cp->segments * (2 * 4));
 		break;
 	case CAM_DIR_NONE:
 	default:
-		lastp = goalp = SCRIPTB_BA (np, no_data);
+		lastp = goalp = SCRIPTB_BA(np, no_data);
 		break;
 	}
 
 	cp->phys.head.lastp = cpu_to_scr(lastp);
 	cp->phys.head.goalp = cpu_to_scr(goalp);
 	cp->phys.head.savep = cpu_to_scr(lastp);
-	cp->startp	    = cp->phys.head.savep;
+	cp->startp = cp->phys.head.savep;
 }
 
 /*
@@ -7703,13 +7846,13 @@ sym_setup_data_pointers(hcb_p np, ccb_p cp, int dir)
 static void
 sym_execute_ccb(void *arg, bus_dma_segment_t *psegs, int nsegs, int error)
 {
-	ccb_p	cp;
-	hcb_p	np;
-	union	ccb *ccb;
+	ccb_p cp;
+	hcb_p np;
+	union ccb *ccb;
 
-	cp  = (ccb_p) arg;
+	cp = (ccb_p)arg;
 	ccb = cp->cam_ccb;
-	np  = (hcb_p) cp->arg;
+	np = (hcb_p)cp->arg;
 
 	SYM_LOCK_ASSERT(MA_OWNED);
 
@@ -7737,7 +7880,8 @@ sym_execute_ccb(void *arg, bus_dma_segment_t *psegs, int nsegs, int error)
 		if (np->device_id == PCI_ID_SYM53C896 && np->revision_id <= 1)
 			retv = sym_scatter_sg_physical(np, cp, psegs, nsegs);
 		else
-			retv = sym_fast_scatter_sg_physical(np,cp, psegs,nsegs);
+			retv = sym_fast_scatter_sg_physical(np, cp, psegs,
+			    nsegs);
 		if (retv < 0) {
 			sym_set_cam_status(cp->cam_ccb, CAM_REQ_TOO_BIG);
 			goto out_abort;
@@ -7750,20 +7894,20 @@ sym_execute_ccb(void *arg, bus_dma_segment_t *psegs, int nsegs, int error)
 	 */
 	if (cp->dmamapped) {
 		bus_dmamap_sync(np->data_dmat, cp->dmamap,
-			(cp->dmamapped == SYM_DMA_READ ?
-				BUS_DMASYNC_PREREAD : BUS_DMASYNC_PREWRITE));
+		    (cp->dmamapped == SYM_DMA_READ ? BUS_DMASYNC_PREREAD :
+						     BUS_DMASYNC_PREWRITE));
 	}
 
 	/*
 	 *  Set host status to busy state.
 	 *  May have been set back to HS_WAIT to avoid a race.
 	 */
-	cp->host_status	= cp->nego_status ? HS_NEGOTIATE : HS_BUSY;
+	cp->host_status = cp->nego_status ? HS_NEGOTIATE : HS_BUSY;
 
 	/*
 	 *  Set data pointers.
 	 */
-	sym_setup_data_pointers(np, cp,  (ccb->ccb_h.flags & CAM_DIR_MASK));
+	sym_setup_data_pointers(np, cp, (ccb->ccb_h.flags & CAM_DIR_MASK));
 
 	/*
 	 *  Enqueue this IO in our pending queue.
@@ -7814,7 +7958,7 @@ sym_setup_data_and_start(hcb_p np, struct ccb_scsiio *csio, ccb_p cp)
 	 *  Now deal with the data.
 	 */
 	cp->data_len = csio->dxfer_len;
-	cp->arg      = np;
+	cp->arg = np;
 
 	/*
 	 *  No direction means no data.
@@ -7825,11 +7969,11 @@ sym_setup_data_and_start(hcb_p np, struct ccb_scsiio *csio, ccb_p cp)
 		return;
 	}
 
-	cp->dmamapped = (dir == CAM_DIR_IN) ?  SYM_DMA_READ : SYM_DMA_WRITE;
-	retv = bus_dmamap_load_ccb(np->data_dmat, cp->dmamap,
-			       (union ccb *)csio, sym_execute_ccb, cp, 0);
+	cp->dmamapped = (dir == CAM_DIR_IN) ? SYM_DMA_READ : SYM_DMA_WRITE;
+	retv = bus_dmamap_load_ccb(np->data_dmat, cp->dmamap, (union ccb *)csio,
+	    sym_execute_ccb, cp, 0);
 	if (retv == EINPROGRESS) {
-		cp->host_status	= HS_WAIT;
+		cp->host_status = HS_WAIT;
 		xpt_freeze_simq(np->sim, 1);
 		csio->ccb_h.status |= CAM_RELEASE_SIMQ;
 	}
@@ -7839,8 +7983,8 @@ sym_setup_data_and_start(hcb_p np, struct ccb_scsiio *csio, ccb_p cp)
  *  Move the scatter list to our data block.
  */
 static int
-sym_fast_scatter_sg_physical(hcb_p np, ccb_p cp,
-			     bus_dma_segment_t *psegs, int nsegs)
+sym_fast_scatter_sg_physical(hcb_p np, ccb_p cp, bus_dma_segment_t *psegs,
+    int nsegs)
 {
 	struct sym_tblmove *data;
 	bus_dma_segment_t *psegs2;
@@ -7850,17 +7994,16 @@ sym_fast_scatter_sg_physical(hcb_p np, ccb_p cp,
 	if (nsegs > SYM_CONF_MAX_SG)
 		return -1;
 
-	data   = &cp->phys.data[SYM_CONF_MAX_SG-1];
-	psegs2 = &psegs[nsegs-1];
+	data = &cp->phys.data[SYM_CONF_MAX_SG - 1];
+	psegs2 = &psegs[nsegs - 1];
 	cp->segments = nsegs;
 
 	while (1) {
 		data->addr = cpu_to_scr(psegs2->ds_addr);
 		data->size = cpu_to_scr(psegs2->ds_len);
 		if (DEBUG_FLAGS & DEBUG_SCATTER) {
-			printf ("%s scatter: paddr=%lx len=%ld\n",
-				sym_name(np), (long) psegs2->ds_addr,
-				(long) psegs2->ds_len);
+			printf("%s scatter: paddr=%lx len=%ld\n", sym_name(np),
+			    (long)psegs2->ds_addr, (long)psegs2->ds_len);
 		}
 		if (psegs2 != psegs) {
 			--data;
@@ -7878,14 +8021,14 @@ sym_fast_scatter_sg_physical(hcb_p np, ccb_p cp,
 static int
 sym_scatter_sg_physical(hcb_p np, ccb_p cp, bus_dma_segment_t *psegs, int nsegs)
 {
-	u_long	ps, pe, pn;
-	u_long	k;
+	u_long ps, pe, pn;
+	u_long k;
 	int s, t;
 
 	SYM_LOCK_ASSERT(MA_OWNED);
 
-	s  = SYM_CONF_MAX_SG - 1;
-	t  = nsegs - 1;
+	s = SYM_CONF_MAX_SG - 1;
+	t = nsegs - 1;
 	ps = psegs[t].ds_addr;
 	pe = ps + psegs[t].ds_len;
 
@@ -7895,8 +8038,8 @@ sym_scatter_sg_physical(hcb_p np, ccb_p cp, bus_dma_segment_t *psegs, int nsegs)
 			pn = ps;
 		k = pe - pn;
 		if (DEBUG_FLAGS & DEBUG_SCATTER) {
-			printf ("%s scatter: paddr=%lx len=%ld\n",
-				sym_name(np), pn, k);
+			printf("%s scatter: paddr=%lx len=%ld\n", sym_name(np),
+			    pn, k);
 		}
 		cp->phys.data[s].addr = cpu_to_scr(pn);
 		cp->phys.data[s].size = cpu_to_scr(k);
@@ -7906,8 +8049,7 @@ sym_scatter_sg_physical(hcb_p np, ccb_p cp, bus_dma_segment_t *psegs, int nsegs)
 				break;
 			ps = psegs[t].ds_addr;
 			pe = ps + psegs[t].ds_len;
-		}
-		else
+		} else
 			pe = pn;
 	}
 
@@ -7919,22 +8061,23 @@ sym_scatter_sg_physical(hcb_p np, ccb_p cp, bus_dma_segment_t *psegs, int nsegs)
 /*
  *  SIM action for non performance critical stuff.
  */
-static void sym_action2(struct cam_sim *sim, union ccb *ccb)
+static void
+sym_action2(struct cam_sim *sim, union ccb *ccb)
 {
 	union ccb *abort_ccb;
 	struct ccb_hdr *ccb_h;
 	struct ccb_pathinq *cpi;
 	struct ccb_trans_settings *cts;
 	struct sym_trans *tip;
-	hcb_p	np;
-	tcb_p	tp;
-	lcb_p	lp;
+	hcb_p np;
+	tcb_p tp;
+	lcb_p lp;
 	u_char dflags;
 
 	/*
 	 *  Retrieve our controller data structure.
 	 */
-	np = (hcb_p) cam_sim_softc(sim);
+	np = (hcb_p)cam_sim_softc(sim);
 
 	SYM_LOCK_ASSERT(MA_OWNED);
 
@@ -7942,7 +8085,7 @@ static void sym_action2(struct cam_sim *sim, union ccb *ccb)
 
 	switch (ccb_h->func_code) {
 	case XPT_SET_TRAN_SETTINGS:
-		cts  = &ccb->cts;
+		cts = &ccb->cts;
 		tp = &np->target[ccb_h->target_id];
 
 		/*
@@ -7968,31 +8111,29 @@ static void sym_action2(struct cam_sim *sim, union ccb *ccb)
 		tp = &np->target[ccb_h->target_id];
 		lp = sym_lp(tp, ccb_h->target_lun);
 
-#define	cts__scsi (&cts->proto_specific.scsi)
-#define	cts__spi  (&cts->xport_specific.spi)
+#define cts__scsi (&cts->proto_specific.scsi)
+#define cts__spi (&cts->xport_specific.spi)
 		if (cts->type == CTS_TYPE_CURRENT_SETTINGS) {
 			tip = &tp->tinfo.current;
 			dflags = lp ? lp->current_flags : 0;
-		}
-		else {
+		} else {
 			tip = &tp->tinfo.user;
 			dflags = lp ? lp->user_flags : tp->usrflags;
 		}
 
-		cts->protocol  = PROTO_SCSI;
+		cts->protocol = PROTO_SCSI;
 		cts->transport = XPORT_SPI;
-		cts->protocol_version  = tip->scsi_version;
+		cts->protocol_version = tip->scsi_version;
 		cts->transport_version = tip->spi_version;
 
 		cts__spi->sync_period = tip->period;
 		cts__spi->sync_offset = tip->offset;
-		cts__spi->bus_width   = tip->width;
+		cts__spi->bus_width = tip->width;
 		cts__spi->ppr_options = tip->options;
 
-		cts__spi->valid = CTS_SPI_VALID_SYNC_RATE
-		                | CTS_SPI_VALID_SYNC_OFFSET
-		                | CTS_SPI_VALID_BUS_WIDTH
-		                | CTS_SPI_VALID_PPR_OPTIONS;
+		cts__spi->valid = CTS_SPI_VALID_SYNC_RATE |
+		    CTS_SPI_VALID_SYNC_OFFSET | CTS_SPI_VALID_BUS_WIDTH |
+		    CTS_SPI_VALID_PPR_OPTIONS;
 
 		cts__spi->flags &= ~CTS_SPI_FLAGS_DISC_ENB;
 		if (dflags & SYM_DISC_ENABLED)
@@ -8003,18 +8144,18 @@ static void sym_action2(struct cam_sim *sim, union ccb *ccb)
 		if (dflags & SYM_TAGS_ENABLED)
 			cts__scsi->flags |= CTS_SCSI_FLAGS_TAG_ENB;
 		cts__scsi->valid |= CTS_SCSI_VALID_TQ;
-#undef	cts__spi
-#undef	cts__scsi
+#undef cts__spi
+#undef cts__scsi
 		sym_xpt_done2(np, ccb, CAM_REQ_CMP);
 		break;
 	case XPT_CALC_GEOMETRY:
-		cam_calc_geometry(&ccb->ccg, /*extended*/1);
+		cam_calc_geometry(&ccb->ccg, /*extended*/ 1);
 		sym_xpt_done2(np, ccb, CAM_REQ_CMP);
 		break;
 	case XPT_PATH_INQ:
 		cpi = &ccb->cpi;
 		cpi->version_num = 1;
-		cpi->hba_inquiry = PI_MDP_ABLE|PI_SDTR_ABLE|PI_TAG_ABLE;
+		cpi->hba_inquiry = PI_MDP_ABLE | PI_SDTR_ABLE | PI_TAG_ABLE;
 		if ((np->features & FE_WIDE) != 0)
 			cpi->hba_inquiry |= PI_WIDE_16;
 		cpi->target_sprt = 0;
@@ -8026,9 +8167,9 @@ static void sym_action2(struct cam_sim *sim, union ccb *ccb)
 		cpi->hba_eng_cnt = 0;
 		cpi->max_target = (np->features & FE_WIDE) ? 15 : 7;
 		/* Semantic problem:)LUN number max = max number of LUNs - 1 */
-		cpi->max_lun = SYM_CONF_MAX_LUN-1;
+		cpi->max_lun = SYM_CONF_MAX_LUN - 1;
 		if (SYM_SETUP_MAX_LUN < SYM_CONF_MAX_LUN)
-			cpi->max_lun = SYM_SETUP_MAX_LUN-1;
+			cpi->max_lun = SYM_SETUP_MAX_LUN - 1;
 		cpi->bus_id = cam_sim_bus(sim);
 		cpi->initiator_id = np->myaddr;
 		cpi->base_transfer_speed = 3300;
@@ -8052,7 +8193,7 @@ static void sym_action2(struct cam_sim *sim, union ccb *ccb)
 		break;
 	case XPT_ABORT:
 		abort_ccb = ccb->cab.abort_ccb;
-		switch(abort_ccb->ccb_h.func_code) {
+		switch (abort_ccb->ccb_h.func_code) {
 		case XPT_SCSI_IO:
 			if (sym_abort_scsiio(np, abort_ccb, 0) == 0) {
 				sym_xpt_done2(np, ccb, CAM_REQ_CMP);
@@ -8072,7 +8213,7 @@ static void sym_action2(struct cam_sim *sim, union ccb *ccb)
 			xpt_print_path(np->path);
 			printf("SCSI BUS reset delivered.\n");
 		}
-		sym_init (np, 1);
+		sym_init(np, 1);
 		sym_xpt_done2(np, ccb, CAM_REQ_CMP);
 		break;
 	case XPT_TERM_IO:
@@ -8093,8 +8234,8 @@ sym_async(void *cb_arg, u32 code, struct cam_path *path, void *args __unused)
 	u_int tn;
 	tcb_p tp;
 
-	sim = (struct cam_sim *) cb_arg;
-	np  = (hcb_p) cam_sim_softc(sim);
+	sim = (struct cam_sim *)cb_arg;
+	np = (hcb_p)cam_sim_softc(sim);
 
 	SYM_LOCK_ASSERT(MA_OWNED);
 
@@ -8106,14 +8247,14 @@ sym_async(void *cb_arg, u32 code, struct cam_path *path, void *args __unused)
 
 		tp = &np->target[tn];
 
-		tp->to_reset  = 0;
+		tp->to_reset = 0;
 		tp->head.sval = 0;
 		tp->head.wval = np->rv_scntl3;
 		tp->head.uval = 0;
 
-		tp->tinfo.current.period  = tp->tinfo.goal.period = 0;
-		tp->tinfo.current.offset  = tp->tinfo.goal.offset = 0;
-		tp->tinfo.current.width   = tp->tinfo.goal.width  = BUS_8_BIT;
+		tp->tinfo.current.period = tp->tinfo.goal.period = 0;
+		tp->tinfo.current.offset = tp->tinfo.goal.offset = 0;
+		tp->tinfo.current.width = tp->tinfo.goal.width = BUS_8_BIT;
 		tp->tinfo.current.options = tp->tinfo.goal.options = 0;
 
 		break;
@@ -8125,7 +8266,8 @@ sym_async(void *cb_arg, u32 code, struct cam_path *path, void *args __unused)
 /*
  *  Update transfer settings of a target.
  */
-static void sym_update_trans(hcb_p np, struct sym_trans *tip,
+static void
+sym_update_trans(hcb_p np, struct sym_trans *tip,
     struct ccb_trans_settings *cts)
 {
 
@@ -8153,10 +8295,13 @@ static void sym_update_trans(hcb_p np, struct sym_trans *tip,
 	/*
 	 *  Scale against driver configuration limits.
 	 */
-	if (tip->width  > SYM_SETUP_MAX_WIDE) tip->width  = SYM_SETUP_MAX_WIDE;
+	if (tip->width > SYM_SETUP_MAX_WIDE)
+		tip->width = SYM_SETUP_MAX_WIDE;
 	if (tip->period && tip->offset) {
-		if (tip->offset > SYM_SETUP_MAX_OFFS) tip->offset = SYM_SETUP_MAX_OFFS;
-		if (tip->period < SYM_SETUP_MIN_SYNC) tip->period = SYM_SETUP_MIN_SYNC;
+		if (tip->offset > SYM_SETUP_MAX_OFFS)
+			tip->offset = SYM_SETUP_MAX_OFFS;
+		if (tip->period < SYM_SETUP_MIN_SYNC)
+			tip->period = SYM_SETUP_MIN_SYNC;
 	} else {
 		tip->offset = 0;
 		tip->period = 0;
@@ -8166,12 +8311,12 @@ static void sym_update_trans(hcb_p np, struct sym_trans *tip,
 	 *  Scale against actual controller BUS width.
 	 */
 	if (tip->width > np->maxwide)
-		tip->width  = np->maxwide;
+		tip->width = np->maxwide;
 
 	/*
 	 *  Only accept DT if controller supports and SYNC/WIDE asked.
 	 */
-	if (!((np->features & (FE_C10|FE_ULTRA3)) == (FE_C10|FE_ULTRA3)) ||
+	if (!((np->features & (FE_C10 | FE_ULTRA3)) == (FE_C10 | FE_ULTRA3)) ||
 	    !(tip->width == BUS_16_BIT && tip->offset)) {
 		tip->options &= ~PPR_OPT_DT;
 	}
@@ -8187,8 +8332,7 @@ static void sym_update_trans(hcb_p np, struct sym_trans *tip,
 				tip->period = np->maxsync_dt;
 			if (tip->offset > np->maxoffs_dt)
 				tip->offset = np->maxoffs_dt;
-		}
-		else {
+		} else {
 			if (tip->period < np->minsync)
 				tip->period = np->minsync;
 			if (tip->period > np->maxsync)
@@ -8208,8 +8352,8 @@ sym_update_dflags(hcb_p np, u_char *flags, struct ccb_trans_settings *cts)
 
 	SYM_LOCK_ASSERT(MA_OWNED);
 
-#define	cts__scsi (&cts->proto_specific.scsi)
-#define	cts__spi  (&cts->xport_specific.spi)
+#define cts__scsi (&cts->proto_specific.scsi)
+#define cts__spi (&cts->xport_specific.spi)
 	if ((cts__spi->valid & CTS_SPI_VALID_DISC) != 0) {
 		if ((cts__spi->flags & CTS_SPI_FLAGS_DISC_ENB) != 0)
 			*flags |= SYM_DISC_ENABLED;
@@ -8223,22 +8367,18 @@ sym_update_dflags(hcb_p np, u_char *flags, struct ccb_trans_settings *cts)
 		else
 			*flags &= ~SYM_TAGS_ENABLED;
 	}
-#undef	cts__spi
-#undef	cts__scsi
+#undef cts__spi
+#undef cts__scsi
 }
 
 /*============= DRIVER INITIALISATION ==================*/
 
-static device_method_t sym_pci_methods[] = {
-	DEVMETHOD(device_probe,	 sym_pci_probe),
-	DEVMETHOD(device_attach, sym_pci_attach),
-	DEVMETHOD_END
-};
+static device_method_t sym_pci_methods[] = { DEVMETHOD(device_probe,
+						 sym_pci_probe),
+	DEVMETHOD(device_attach, sym_pci_attach), DEVMETHOD_END };
 
 static driver_t sym_pci_driver = {
-	"sym",
-	sym_pci_methods,
-	1	/* no softc */
+	"sym", sym_pci_methods, 1 /* no softc */
 };
 
 DRIVER_MODULE(sym, pci, sym_pci_driver, NULL, NULL);
@@ -8246,83 +8386,66 @@ MODULE_DEPEND(sym, cam, 1, 1, 1);
 MODULE_DEPEND(sym, pci, 1, 1, 1);
 
 static const struct sym_pci_chip sym_pci_dev_table[] = {
- {PCI_ID_SYM53C810, 0x0f, "810", 4, 8, 4, 64,
- FE_ERL}
- ,
+	{ PCI_ID_SYM53C810, 0x0f, "810", 4, 8, 4, 64, FE_ERL },
 #ifdef SYM_DEBUG_GENERIC_SUPPORT
- {PCI_ID_SYM53C810, 0xff, "810a", 4,  8, 4, 1,
- FE_BOF}
- ,
+	{ PCI_ID_SYM53C810, 0xff, "810a", 4, 8, 4, 1, FE_BOF },
 #else
- {PCI_ID_SYM53C810, 0xff, "810a", 4,  8, 4, 1,
- FE_CACHE_SET|FE_LDSTR|FE_PFEN|FE_BOF}
- ,
+	{ PCI_ID_SYM53C810, 0xff, "810a", 4, 8, 4, 1,
+	    FE_CACHE_SET | FE_LDSTR | FE_PFEN | FE_BOF },
 #endif
- {PCI_ID_SYM53C815, 0xff, "815", 4,  8, 4, 64,
- FE_BOF|FE_ERL}
- ,
- {PCI_ID_SYM53C825, 0x0f, "825", 6,  8, 4, 64,
- FE_WIDE|FE_BOF|FE_ERL|FE_DIFF}
- ,
- {PCI_ID_SYM53C825, 0xff, "825a", 6,  8, 4, 2,
- FE_WIDE|FE_CACHE0_SET|FE_BOF|FE_DFS|FE_LDSTR|FE_PFEN|FE_RAM|FE_DIFF}
- ,
- {PCI_ID_SYM53C860, 0xff, "860", 4,  8, 5, 1,
- FE_ULTRA|FE_CLK80|FE_CACHE_SET|FE_BOF|FE_LDSTR|FE_PFEN}
- ,
- {PCI_ID_SYM53C875, 0x01, "875", 6, 16, 5, 2,
- FE_WIDE|FE_ULTRA|FE_CLK80|FE_CACHE0_SET|FE_BOF|FE_DFS|FE_LDSTR|FE_PFEN|
- FE_RAM|FE_DIFF}
- ,
- {PCI_ID_SYM53C875, 0xff, "875", 6, 16, 5, 2,
- FE_WIDE|FE_ULTRA|FE_DBLR|FE_CACHE0_SET|FE_BOF|FE_DFS|FE_LDSTR|FE_PFEN|
- FE_RAM|FE_DIFF}
- ,
- {PCI_ID_SYM53C875_2, 0xff, "875", 6, 16, 5, 2,
- FE_WIDE|FE_ULTRA|FE_DBLR|FE_CACHE0_SET|FE_BOF|FE_DFS|FE_LDSTR|FE_PFEN|
- FE_RAM|FE_DIFF}
- ,
- {PCI_ID_SYM53C885, 0xff, "885", 6, 16, 5, 2,
- FE_WIDE|FE_ULTRA|FE_DBLR|FE_CACHE0_SET|FE_BOF|FE_DFS|FE_LDSTR|FE_PFEN|
- FE_RAM|FE_DIFF}
- ,
+	{ PCI_ID_SYM53C815, 0xff, "815", 4, 8, 4, 64, FE_BOF | FE_ERL },
+	{ PCI_ID_SYM53C825, 0x0f, "825", 6, 8, 4, 64,
+	    FE_WIDE | FE_BOF | FE_ERL | FE_DIFF },
+	{ PCI_ID_SYM53C825, 0xff, "825a", 6, 8, 4, 2,
+	    FE_WIDE | FE_CACHE0_SET | FE_BOF | FE_DFS | FE_LDSTR | FE_PFEN |
+		FE_RAM | FE_DIFF },
+	{ PCI_ID_SYM53C860, 0xff, "860", 4, 8, 5, 1,
+	    FE_ULTRA | FE_CLK80 | FE_CACHE_SET | FE_BOF | FE_LDSTR | FE_PFEN },
+	{ PCI_ID_SYM53C875, 0x01, "875", 6, 16, 5, 2,
+	    FE_WIDE | FE_ULTRA | FE_CLK80 | FE_CACHE0_SET | FE_BOF | FE_DFS |
+		FE_LDSTR | FE_PFEN | FE_RAM | FE_DIFF },
+	{ PCI_ID_SYM53C875, 0xff, "875", 6, 16, 5, 2,
+	    FE_WIDE | FE_ULTRA | FE_DBLR | FE_CACHE0_SET | FE_BOF | FE_DFS |
+		FE_LDSTR | FE_PFEN | FE_RAM | FE_DIFF },
+	{ PCI_ID_SYM53C875_2, 0xff, "875", 6, 16, 5, 2,
+	    FE_WIDE | FE_ULTRA | FE_DBLR | FE_CACHE0_SET | FE_BOF | FE_DFS |
+		FE_LDSTR | FE_PFEN | FE_RAM | FE_DIFF },
+	{ PCI_ID_SYM53C885, 0xff, "885", 6, 16, 5, 2,
+	    FE_WIDE | FE_ULTRA | FE_DBLR | FE_CACHE0_SET | FE_BOF | FE_DFS |
+		FE_LDSTR | FE_PFEN | FE_RAM | FE_DIFF },
 #ifdef SYM_DEBUG_GENERIC_SUPPORT
- {PCI_ID_SYM53C895, 0xff, "895", 6, 31, 7, 2,
- FE_WIDE|FE_ULTRA2|FE_QUAD|FE_CACHE_SET|FE_BOF|FE_DFS|
- FE_RAM|FE_LCKFRQ}
- ,
+	{ PCI_ID_SYM53C895, 0xff, "895", 6, 31, 7, 2,
+	    FE_WIDE | FE_ULTRA2 | FE_QUAD | FE_CACHE_SET | FE_BOF | FE_DFS |
+		FE_RAM | FE_LCKFRQ },
 #else
- {PCI_ID_SYM53C895, 0xff, "895", 6, 31, 7, 2,
- FE_WIDE|FE_ULTRA2|FE_QUAD|FE_CACHE_SET|FE_BOF|FE_DFS|FE_LDSTR|FE_PFEN|
- FE_RAM|FE_LCKFRQ}
- ,
+	{ PCI_ID_SYM53C895, 0xff, "895", 6, 31, 7, 2,
+	    FE_WIDE | FE_ULTRA2 | FE_QUAD | FE_CACHE_SET | FE_BOF | FE_DFS |
+		FE_LDSTR | FE_PFEN | FE_RAM | FE_LCKFRQ },
 #endif
- {PCI_ID_SYM53C896, 0xff, "896", 6, 31, 7, 4,
- FE_WIDE|FE_ULTRA2|FE_QUAD|FE_CACHE_SET|FE_BOF|FE_DFS|FE_LDSTR|FE_PFEN|
- FE_RAM|FE_RAM8K|FE_64BIT|FE_DAC|FE_IO256|FE_NOPM|FE_LEDC|FE_LCKFRQ}
- ,
- {PCI_ID_SYM53C895A, 0xff, "895a", 6, 31, 7, 4,
- FE_WIDE|FE_ULTRA2|FE_QUAD|FE_CACHE_SET|FE_BOF|FE_DFS|FE_LDSTR|FE_PFEN|
- FE_RAM|FE_RAM8K|FE_DAC|FE_IO256|FE_NOPM|FE_LEDC|FE_LCKFRQ}
- ,
- {PCI_ID_LSI53C1010, 0x00, "1010-33", 6, 31, 7, 8,
- FE_WIDE|FE_ULTRA3|FE_QUAD|FE_CACHE_SET|FE_BOF|FE_DFBC|FE_LDSTR|FE_PFEN|
- FE_RAM|FE_RAM8K|FE_64BIT|FE_DAC|FE_IO256|FE_NOPM|FE_LEDC|FE_CRC|
- FE_C10}
- ,
- {PCI_ID_LSI53C1010, 0xff, "1010-33", 6, 31, 7, 8,
- FE_WIDE|FE_ULTRA3|FE_QUAD|FE_CACHE_SET|FE_BOF|FE_DFBC|FE_LDSTR|FE_PFEN|
- FE_RAM|FE_RAM8K|FE_64BIT|FE_DAC|FE_IO256|FE_NOPM|FE_LEDC|FE_CRC|
- FE_C10|FE_U3EN}
- ,
- {PCI_ID_LSI53C1010_2, 0xff, "1010-66", 6, 31, 7, 8,
- FE_WIDE|FE_ULTRA3|FE_QUAD|FE_CACHE_SET|FE_BOF|FE_DFBC|FE_LDSTR|FE_PFEN|
- FE_RAM|FE_RAM8K|FE_64BIT|FE_DAC|FE_IO256|FE_NOPM|FE_LEDC|FE_66MHZ|FE_CRC|
- FE_C10|FE_U3EN}
- ,
- {PCI_ID_LSI53C1510D, 0xff, "1510d", 6, 31, 7, 4,
- FE_WIDE|FE_ULTRA2|FE_QUAD|FE_CACHE_SET|FE_BOF|FE_DFS|FE_LDSTR|FE_PFEN|
- FE_RAM|FE_IO256|FE_LEDC}
+	{ PCI_ID_SYM53C896, 0xff, "896", 6, 31, 7, 4,
+	    FE_WIDE | FE_ULTRA2 | FE_QUAD | FE_CACHE_SET | FE_BOF | FE_DFS |
+		FE_LDSTR | FE_PFEN | FE_RAM | FE_RAM8K | FE_64BIT | FE_DAC |
+		FE_IO256 | FE_NOPM | FE_LEDC | FE_LCKFRQ },
+	{ PCI_ID_SYM53C895A, 0xff, "895a", 6, 31, 7, 4,
+	    FE_WIDE | FE_ULTRA2 | FE_QUAD | FE_CACHE_SET | FE_BOF | FE_DFS |
+		FE_LDSTR | FE_PFEN | FE_RAM | FE_RAM8K | FE_DAC | FE_IO256 |
+		FE_NOPM | FE_LEDC | FE_LCKFRQ },
+	{ PCI_ID_LSI53C1010, 0x00, "1010-33", 6, 31, 7, 8,
+	    FE_WIDE | FE_ULTRA3 | FE_QUAD | FE_CACHE_SET | FE_BOF | FE_DFBC |
+		FE_LDSTR | FE_PFEN | FE_RAM | FE_RAM8K | FE_64BIT | FE_DAC |
+		FE_IO256 | FE_NOPM | FE_LEDC | FE_CRC | FE_C10 },
+	{ PCI_ID_LSI53C1010, 0xff, "1010-33", 6, 31, 7, 8,
+	    FE_WIDE | FE_ULTRA3 | FE_QUAD | FE_CACHE_SET | FE_BOF | FE_DFBC |
+		FE_LDSTR | FE_PFEN | FE_RAM | FE_RAM8K | FE_64BIT | FE_DAC |
+		FE_IO256 | FE_NOPM | FE_LEDC | FE_CRC | FE_C10 | FE_U3EN },
+	{ PCI_ID_LSI53C1010_2, 0xff, "1010-66", 6, 31, 7, 8,
+	    FE_WIDE | FE_ULTRA3 | FE_QUAD | FE_CACHE_SET | FE_BOF | FE_DFBC |
+		FE_LDSTR | FE_PFEN | FE_RAM | FE_RAM8K | FE_64BIT | FE_DAC |
+		FE_IO256 | FE_NOPM | FE_LEDC | FE_66MHZ | FE_CRC | FE_C10 |
+		FE_U3EN },
+	{ PCI_ID_LSI53C1510D, 0xff, "1510d", 6, 31, 7, 4,
+	    FE_WIDE | FE_ULTRA2 | FE_QUAD | FE_CACHE_SET | FE_BOF | FE_DFS |
+		FE_LDSTR | FE_PFEN | FE_RAM | FE_IO256 | FE_LEDC }
 };
 
 /*
@@ -8334,16 +8457,16 @@ static const struct sym_pci_chip sym_pci_dev_table[] = {
 static const struct sym_pci_chip *
 sym_find_pci_chip(device_t dev)
 {
-	const struct	sym_pci_chip *chip;
-	int	i;
-	u_short	device_id;
-	u_char	revision;
+	const struct sym_pci_chip *chip;
+	int i;
+	u_short device_id;
+	u_char revision;
 
 	if (pci_get_vendor(dev) != PCI_VENDOR_NCR)
 		return NULL;
 
 	device_id = pci_get_device(dev);
-	revision  = pci_get_revid(dev);
+	revision = pci_get_revid(dev);
 
 	for (i = 0; i < nitems(sym_pci_dev_table); i++) {
 		chip = &sym_pci_dev_table[i];
@@ -8363,7 +8486,7 @@ sym_find_pci_chip(device_t dev)
 static int
 sym_pci_probe(device_t dev)
 {
-	const struct	sym_pci_chip *chip;
+	const struct sym_pci_chip *chip;
 
 	chip = sym_find_pci_chip(dev);
 	if (chip && sym_find_firmware(chip)) {
@@ -8379,14 +8502,14 @@ sym_pci_probe(device_t dev)
 static int
 sym_pci_attach(device_t dev)
 {
-	const struct	sym_pci_chip *chip;
-	u_short	command;
-	u_char	cachelnsz;
-	struct	sym_hcb *np = NULL;
-	struct	sym_nvram nvram;
-	const struct	sym_fw *fw = NULL;
-	int 	i;
-	bus_dma_tag_t	bus_dmat;
+	const struct sym_pci_chip *chip;
+	u_short command;
+	u_char cachelnsz;
+	struct sym_hcb *np = NULL;
+	struct sym_nvram nvram;
+	const struct sym_fw *fw = NULL;
+	int i;
+	bus_dma_tag_t bus_dmat;
 
 	bus_dmat = bus_get_dma_tag(dev);
 
@@ -8416,24 +8539,24 @@ sym_pci_attach(device_t dev)
 	/*
 	 *  Copy some useful infos to the HCB.
 	 */
-	np->hcb_ba	 = vtobus(np);
-	np->verbose	 = bootverbose;
-	np->device	 = dev;
-	np->device_id	 = pci_get_device(dev);
-	np->revision_id  = pci_get_revid(dev);
-	np->features	 = chip->features;
-	np->clock_divn	 = chip->nr_divisor;
-	np->maxoffs	 = chip->offset_max;
-	np->maxburst	 = chip->burst_max;
-	np->scripta_sz	 = fw->a_size;
-	np->scriptb_sz	 = fw->b_size;
-	np->fw_setup	 = fw->setup;
-	np->fw_patch	 = fw->patch;
-	np->fw_name	 = fw->name;
+	np->hcb_ba = vtobus(np);
+	np->verbose = bootverbose;
+	np->device = dev;
+	np->device_id = pci_get_device(dev);
+	np->revision_id = pci_get_revid(dev);
+	np->features = chip->features;
+	np->clock_divn = chip->nr_divisor;
+	np->maxoffs = chip->offset_max;
+	np->maxburst = chip->burst_max;
+	np->scripta_sz = fw->a_size;
+	np->scriptb_sz = fw->b_size;
+	np->fw_setup = fw->setup;
+	np->fw_patch = fw->patch;
+	np->fw_name = fw->name;
 
 #ifdef __amd64__
 	np->target = sym_calloc_dma(SYM_CONF_MAX_TARGET * sizeof(*(np->target)),
-			"TARGET");
+	    "TARGET");
 	if (!np->target)
 		goto attach_failed;
 #endif
@@ -8450,9 +8573,9 @@ sym_pci_attach(device_t dev)
 	 *  Allocate a tag for the DMA of user data.
 	 */
 	if (bus_dma_tag_create(np->bus_dmat, 1, SYM_CONF_DMA_BOUNDARY,
-	    BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR, NULL, NULL,
-	    BUS_SPACE_MAXSIZE_32BIT, SYM_CONF_MAX_SG, SYM_CONF_DMA_BOUNDARY,
-	    0, busdma_lock_mutex, &np->mtx, &np->data_dmat)) {
+		BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR, NULL, NULL,
+		BUS_SPACE_MAXSIZE_32BIT, SYM_CONF_MAX_SG, SYM_CONF_DMA_BOUNDARY,
+		0, busdma_lock_mutex, &np->mtx, &np->data_dmat)) {
 		device_printf(dev, "failed to create DMA tag.\n");
 		goto attach_failed;
 	}
@@ -8465,8 +8588,7 @@ sym_pci_attach(device_t dev)
 	 *  - Write And Invalidate.
 	 */
 	command = pci_read_config(dev, PCIR_COMMAND, 2);
-	command |= PCIM_CMD_BUSMASTEREN | PCIM_CMD_PERRESPEN |
-	    PCIM_CMD_MWRICEN;
+	command |= PCIM_CMD_BUSMASTEREN | PCIM_CMD_PERRESPEN | PCIM_CMD_MWRICEN;
 	pci_write_config(dev, PCIR_COMMAND, command, 2);
 
 	/*
@@ -8496,13 +8618,13 @@ sym_pci_attach(device_t dev)
 	 */
 	i = 0;
 	np->irq_res = bus_alloc_resource_any(dev, SYS_RES_IRQ, &i,
-					     RF_ACTIVE | RF_SHAREABLE);
+	    RF_ACTIVE | RF_SHAREABLE);
 	if (!np->irq_res) {
 		device_printf(dev, "failed to allocate IRQ resource\n");
 		goto attach_failed;
 	}
 
-#ifdef	SYM_CONF_IOMAPPED
+#ifdef SYM_CONF_IOMAPPED
 	/*
 	 *  User want us to use normal IO with PCI.
 	 *  Alloc/get/map/retrieve everything that deals with IO.
@@ -8520,17 +8642,18 @@ sym_pci_attach(device_t dev)
 	 *  If the chip has RAM.
 	 *  Alloc/get/map/retrieve the corresponding resources.
 	 */
-	if (np->features & (FE_RAM|FE_RAM8K)) {
+	if (np->features & (FE_RAM | FE_RAM8K)) {
 		int regs_id = SYM_PCI_RAM;
 		if (np->features & FE_64BIT)
 			regs_id = SYM_PCI_RAM64;
 		np->ram_res = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-						     &regs_id, RF_ACTIVE);
+		    &regs_id, RF_ACTIVE);
 		if (!np->ram_res) {
-			device_printf(dev,"failed to allocate RAM resources\n");
+			device_printf(dev,
+			    "failed to allocate RAM resources\n");
 			goto attach_failed;
 		}
-		np->ram_id  = regs_id;
+		np->ram_id = regs_id;
 		np->ram_ba = rman_get_start(np->ram_res);
 	}
 
@@ -8538,25 +8661,25 @@ sym_pci_attach(device_t dev)
 	 *  Save setting of some IO registers, so we will
 	 *  be able to probe specific implementations.
 	 */
-	sym_save_initial_setting (np);
+	sym_save_initial_setting(np);
 
 	/*
 	 *  Reset the chip now, since it has been reported
 	 *  that SCSI clock calibration may not work properly
 	 *  if the chip is currently active.
 	 */
-	sym_chip_reset (np);
+	sym_chip_reset(np);
 
 	/*
 	 *  Try to read the user set-up.
 	 */
-	(void) sym_read_nvram(np, &nvram);
+	(void)sym_read_nvram(np, &nvram);
 
 	/*
 	 *  Prepare controller and devices settings, according
 	 *  to chip features, user set-up and driver set-up.
 	 */
-	(void) sym_prepare_setting(np, &nvram);
+	(void)sym_prepare_setting(np, &nvram);
 
 	/*
 	 *  Check the PCI clock frequency.
@@ -8565,12 +8688,14 @@ sym_pci_attach(device_t dev)
 	 */
 	i = sym_getpciclock(np);
 	if (i > 37000)
-		device_printf(dev, "PCI BUS clock seems too high: %u KHz.\n",i);
+		device_printf(dev, "PCI BUS clock seems too high: %u KHz.\n",
+		    i);
 
 	/*
 	 *  Allocate the start queue.
 	 */
-	np->squeue = (u32 *) sym_calloc_dma(sizeof(u32)*(MAX_QUEUE*2),"SQUEUE");
+	np->squeue = (u32 *)sym_calloc_dma(sizeof(u32) * (MAX_QUEUE * 2),
+	    "SQUEUE");
 	if (!np->squeue)
 		goto attach_failed;
 	np->squeue_ba = vtobus(np->squeue);
@@ -8578,7 +8703,8 @@ sym_pci_attach(device_t dev)
 	/*
 	 *  Allocate the done queue.
 	 */
-	np->dqueue = (u32 *) sym_calloc_dma(sizeof(u32)*(MAX_QUEUE*2),"DQUEUE");
+	np->dqueue = (u32 *)sym_calloc_dma(sizeof(u32) * (MAX_QUEUE * 2),
+	    "DQUEUE");
 	if (!np->dqueue)
 		goto attach_failed;
 	np->dqueue_ba = vtobus(np->dqueue);
@@ -8586,7 +8712,7 @@ sym_pci_attach(device_t dev)
 	/*
 	 *  Allocate the target bus address array.
 	 */
-	np->targtbl = (u32 *) sym_calloc_dma(256, "TARGTBL");
+	np->targtbl = (u32 *)sym_calloc_dma(256, "TARGTBL");
 	if (!np->targtbl)
 		goto attach_failed;
 	np->targtbl_ba = vtobus(np->targtbl);
@@ -8611,20 +8737,19 @@ sym_pci_attach(device_t dev)
 	 *  Calculate BUS addresses where we are going
 	 *  to load the SCRIPTS.
 	 */
-	np->scripta_ba	= vtobus(np->scripta0);
-	np->scriptb_ba	= vtobus(np->scriptb0);
-	np->scriptb0_ba	= np->scriptb_ba;
+	np->scripta_ba = vtobus(np->scripta0);
+	np->scriptb_ba = vtobus(np->scriptb0);
+	np->scriptb0_ba = np->scriptb_ba;
 
 	if (np->ram_ba) {
-		np->scripta_ba	= np->ram_ba;
+		np->scripta_ba = np->ram_ba;
 		if (np->features & FE_RAM8K) {
 			np->ram_ws = 8192;
 			np->scriptb_ba = np->scripta_ba + 4096;
 #ifdef __LP64__
 			np->scr_ram_seg = cpu_to_scr(np->scripta_ba >> 32);
 #endif
-		}
-		else
+		} else
 			np->ram_ws = 4096;
 	}
 
@@ -8644,8 +8769,8 @@ sym_pci_attach(device_t dev)
 	 *  Bind SCRIPTS with physical addresses usable by the
 	 *  SCRIPTS processor (as seen from the BUS = BUS addresses).
 	 */
-	sym_fw_bind_script(np, (u32 *) np->scripta0, np->scripta_sz);
-	sym_fw_bind_script(np, (u32 *) np->scriptb0, np->scriptb_sz);
+	sym_fw_bind_script(np, (u32 *)np->scripta0, np->scripta_sz);
+	sym_fw_bind_script(np, (u32 *)np->scriptb0, np->scriptb_sz);
 
 #ifdef SYM_CONF_IARB_SUPPORT
 	/*
@@ -8654,7 +8779,7 @@ sym_pci_attach(device_t dev)
 	 *    settings of IARB hints before we leave devices a chance to
 	 *    arbitrate for reselection.
 	 */
-#ifdef	SYM_SETUP_IARB_MAX
+#ifdef SYM_SETUP_IARB_MAX
 	np->iarb_max = SYM_SETUP_IARB_MAX;
 #else
 	np->iarb_max = 4;
@@ -8664,21 +8789,21 @@ sym_pci_attach(device_t dev)
 	/*
 	 *  Prepare the idle and invalid task actions.
 	 */
-	np->idletask.start	= cpu_to_scr(SCRIPTA_BA (np, idle));
-	np->idletask.restart	= cpu_to_scr(SCRIPTB_BA (np, bad_i_t_l));
-	np->idletask_ba		= vtobus(&np->idletask);
+	np->idletask.start = cpu_to_scr(SCRIPTA_BA(np, idle));
+	np->idletask.restart = cpu_to_scr(SCRIPTB_BA(np, bad_i_t_l));
+	np->idletask_ba = vtobus(&np->idletask);
 
-	np->notask.start	= cpu_to_scr(SCRIPTA_BA (np, idle));
-	np->notask.restart	= cpu_to_scr(SCRIPTB_BA (np, bad_i_t_l));
-	np->notask_ba		= vtobus(&np->notask);
+	np->notask.start = cpu_to_scr(SCRIPTA_BA(np, idle));
+	np->notask.restart = cpu_to_scr(SCRIPTB_BA(np, bad_i_t_l));
+	np->notask_ba = vtobus(&np->notask);
 
-	np->bad_itl.start	= cpu_to_scr(SCRIPTA_BA (np, idle));
-	np->bad_itl.restart	= cpu_to_scr(SCRIPTB_BA (np, bad_i_t_l));
-	np->bad_itl_ba		= vtobus(&np->bad_itl);
+	np->bad_itl.start = cpu_to_scr(SCRIPTA_BA(np, idle));
+	np->bad_itl.restart = cpu_to_scr(SCRIPTB_BA(np, bad_i_t_l));
+	np->bad_itl_ba = vtobus(&np->bad_itl);
 
-	np->bad_itlq.start	= cpu_to_scr(SCRIPTA_BA (np, idle));
-	np->bad_itlq.restart	= cpu_to_scr(SCRIPTB_BA (np,bad_i_t_l_q));
-	np->bad_itlq_ba		= vtobus(&np->bad_itlq);
+	np->bad_itlq.start = cpu_to_scr(SCRIPTA_BA(np, idle));
+	np->bad_itlq.restart = cpu_to_scr(SCRIPTB_BA(np, bad_i_t_l_q));
+	np->bad_itlq_ba = vtobus(&np->bad_itlq);
 
 	/*
 	 *  Allocate and prepare the lun JUMP table that is used
@@ -8690,8 +8815,8 @@ sym_pci_attach(device_t dev)
 	if (!np->badluntbl)
 		goto attach_failed;
 
-	np->badlun_sa = cpu_to_scr(SCRIPTB_BA (np, resel_bad_lun));
-	for (i = 0 ; i < 64 ; i++)	/* 64 luns/target, no less */
+	np->badlun_sa = cpu_to_scr(SCRIPTB_BA(np, resel_bad_lun));
+	for (i = 0; i < 64; i++) /* 64 luns/target, no less */
 		np->badluntbl[i] = cpu_to_scr(vtobus(&np->badlun_sa));
 
 	/*
@@ -8699,18 +8824,17 @@ sym_pci_attach(device_t dev)
 	 *  address of each target control block.
 	 *  For now, assume all logical units are wrong. :)
 	 */
-	for (i = 0 ; i < SYM_CONF_MAX_TARGET ; i++) {
+	for (i = 0; i < SYM_CONF_MAX_TARGET; i++) {
 		np->targtbl[i] = cpu_to_scr(vtobus(&np->target[i]));
-		np->target[i].head.luntbl_sa =
-				cpu_to_scr(vtobus(np->badluntbl));
-		np->target[i].head.lun0_sa =
-				cpu_to_scr(vtobus(&np->badlun_sa));
+		np->target[i].head.luntbl_sa = cpu_to_scr(
+		    vtobus(np->badluntbl));
+		np->target[i].head.lun0_sa = cpu_to_scr(vtobus(&np->badlun_sa));
 	}
 
 	/*
 	 *  Now check the cache handling of the pci chipset.
 	 */
-	if (sym_snooptest (np)) {
+	if (sym_snooptest(np)) {
 		device_printf(dev, "CACHE INCORRECTLY CONFIGURED.\n");
 		goto attach_failed;
 	}
@@ -8742,7 +8866,8 @@ attach_failed:
 /*
  *  Free everything that have been allocated for this device.
  */
-static void sym_pci_free(hcb_p np)
+static void
+sym_pci_free(hcb_p np)
 {
 	SYM_QUEHEAD *qp;
 	ccb_p cp;
@@ -8760,26 +8885,27 @@ static void sym_pci_free(hcb_p np)
 	 *  free other resources.
 	 */
 	if (np->ram_res)
-		bus_release_resource(np->device, SYS_RES_MEMORY,
-				     np->ram_id, np->ram_res);
+		bus_release_resource(np->device, SYS_RES_MEMORY, np->ram_id,
+		    np->ram_res);
 	if (np->mmio_res)
-		bus_release_resource(np->device, SYS_RES_MEMORY,
-				     SYM_PCI_MMIO, np->mmio_res);
+		bus_release_resource(np->device, SYS_RES_MEMORY, SYM_PCI_MMIO,
+		    np->mmio_res);
 	if (np->io_res)
-		bus_release_resource(np->device, SYS_RES_IOPORT,
-				     SYM_PCI_IO, np->io_res);
+		bus_release_resource(np->device, SYS_RES_IOPORT, SYM_PCI_IO,
+		    np->io_res);
 	if (np->irq_res)
-		bus_release_resource(np->device, SYS_RES_IRQ,
-				     0, np->irq_res);
+		bus_release_resource(np->device, SYS_RES_IRQ, 0, np->irq_res);
 
 	if (np->scriptb0)
 		sym_mfree_dma(np->scriptb0, np->scriptb_sz, "SCRIPTB0");
 	if (np->scripta0)
 		sym_mfree_dma(np->scripta0, np->scripta_sz, "SCRIPTA0");
 	if (np->squeue)
-		sym_mfree_dma(np->squeue, sizeof(u32)*(MAX_QUEUE*2), "SQUEUE");
+		sym_mfree_dma(np->squeue, sizeof(u32) * (MAX_QUEUE * 2),
+		    "SQUEUE");
 	if (np->dqueue)
-		sym_mfree_dma(np->dqueue, sizeof(u32)*(MAX_QUEUE*2), "DQUEUE");
+		sym_mfree_dma(np->dqueue, sizeof(u32) * (MAX_QUEUE * 2),
+		    "DQUEUE");
 
 	while ((qp = sym_remque_head(&np->free_ccbq)) != NULL) {
 		cp = sym_que_entry(qp, struct sym_ccb, link_ccbq);
@@ -8789,32 +8915,32 @@ static void sym_pci_free(hcb_p np)
 	}
 
 	if (np->badluntbl)
-		sym_mfree_dma(np->badluntbl, 256,"BADLUNTBL");
+		sym_mfree_dma(np->badluntbl, 256, "BADLUNTBL");
 
-	for (target = 0; target < SYM_CONF_MAX_TARGET ; target++) {
+	for (target = 0; target < SYM_CONF_MAX_TARGET; target++) {
 		tp = &np->target[target];
-		for (lun = 0 ; lun < SYM_CONF_MAX_LUN ; lun++) {
+		for (lun = 0; lun < SYM_CONF_MAX_LUN; lun++) {
 			lp = sym_lp(tp, lun);
 			if (!lp)
 				continue;
 			if (lp->itlq_tbl)
-				sym_mfree_dma(lp->itlq_tbl, SYM_CONF_MAX_TASK*4,
-				       "ITLQ_TBL");
+				sym_mfree_dma(lp->itlq_tbl,
+				    SYM_CONF_MAX_TASK * 4, "ITLQ_TBL");
 			if (lp->cb_tags)
 				sym_mfree(lp->cb_tags, SYM_CONF_MAX_TASK,
-				       "CB_TAGS");
+				    "CB_TAGS");
 			sym_mfree_dma(lp, sizeof(*lp), "LCB");
 		}
 #if SYM_CONF_MAX_LUN > 1
 		if (tp->lunmp)
-			sym_mfree(tp->lunmp, SYM_CONF_MAX_LUN*sizeof(lcb_p),
-			       "LUNMP");
+			sym_mfree(tp->lunmp, SYM_CONF_MAX_LUN * sizeof(lcb_p),
+			    "LUNMP");
 #endif
 	}
 #ifdef __amd64__
 	if (np->target)
 		sym_mfree_dma(np->target,
-			SYM_CONF_MAX_TARGET * sizeof(*(np->target)), "TARGET");
+		    SYM_CONF_MAX_TARGET * sizeof(*(np->target)), "TARGET");
 #endif
 	if (np->targtbl)
 		sym_mfree_dma(np->targtbl, 256, "TARGTBL");
@@ -8829,7 +8955,8 @@ static void sym_pci_free(hcb_p np)
 /*
  *  Allocate CAM resources and register a bus to CAM.
  */
-static int sym_cam_attach(hcb_p np)
+static int
+sym_cam_attach(hcb_p np)
 {
 	struct cam_devq *devq = NULL;
 	struct cam_sim *sim = NULL;
@@ -8840,11 +8967,10 @@ static int sym_cam_attach(hcb_p np)
 	 *  Establish our interrupt handler.
 	 */
 	err = bus_setup_intr(np->device, np->irq_res,
-			INTR_ENTROPY | INTR_MPSAFE | INTR_TYPE_CAM,
-			NULL, sym_intr, np, &np->intr);
+	    INTR_ENTROPY | INTR_MPSAFE | INTR_TYPE_CAM, NULL, sym_intr, np,
+	    &np->intr);
 	if (err) {
-		device_printf(np->device, "bus_setup_intr() failed: %d\n",
-			      err);
+		device_printf(np->device, "bus_setup_intr() failed: %d\n", err);
 		goto fail;
 	}
 
@@ -8859,8 +8985,7 @@ static int sym_cam_attach(hcb_p np)
 	 *  Construct our SIM entry.
 	 */
 	sim = cam_sim_alloc(sym_action, sym_poll, "sym", np,
-			device_get_unit(np->device),
-			&np->mtx, 1, SYM_SETUP_MAX_TAG, devq);
+	    device_get_unit(np->device), &np->mtx, 1, SYM_SETUP_MAX_TAG, devq);
 	if (!sim)
 		goto fail;
 
@@ -8871,9 +8996,8 @@ static int sym_cam_attach(hcb_p np)
 	np->sim = sim;
 	sim = NULL;
 
-	if (xpt_create_path(&path, NULL,
-			    cam_sim_path(np->sim), CAM_TARGET_WILDCARD,
-			    CAM_LUN_WILDCARD) != CAM_REQ_CMP) {
+	if (xpt_create_path(&path, NULL, cam_sim_path(np->sim),
+		CAM_TARGET_WILDCARD, CAM_LUN_WILDCARD) != CAM_REQ_CMP) {
 		goto fail;
 	}
 	np->path = path;
@@ -8891,7 +9015,7 @@ static int sym_cam_attach(hcb_p np)
 	 *  With LVD/SE capable chips and BUS in SE mode, we may
 	 *  get a spurious SMBC interrupt.
 	 */
-	sym_init (np, 0);
+	sym_init(np, 0);
 
 	SYM_UNLOCK();
 
@@ -8912,7 +9036,8 @@ fail:
 /*
  *  Free everything that deals with CAM.
  */
-static void sym_cam_free(hcb_p np)
+static void
+sym_cam_free(hcb_p np)
 {
 
 	SYM_LOCK_ASSERT(MA_NOTOWNED);
@@ -8942,17 +9067,18 @@ static void sym_cam_free(hcb_p np)
 /*
  *  Get host setup from NVRAM.
  */
-static void sym_nvram_setup_host (hcb_p np, struct sym_nvram *nvram)
+static void
+sym_nvram_setup_host(hcb_p np, struct sym_nvram *nvram)
 {
 #ifdef SYM_CONF_NVRAM_SUPPORT
 	/*
 	 *  Get parity checking, host ID, verbose mode
 	 *  and miscellaneous host flags from NVRAM.
 	 */
-	switch(nvram->type) {
+	switch (nvram->type) {
 	case SYM_SYMBIOS_NVRAM:
 		if (!(nvram->data.Symbios.flags & SYMBIOS_PARITY_ENABLE))
-			np->rv_scntl0  &= ~0x0a;
+			np->rv_scntl0 &= ~0x0a;
 		np->myaddr = nvram->data.Symbios.host_id & 0x0f;
 		if (nvram->data.Symbios.flags & SYMBIOS_VERBOSE_MSGS)
 			np->verbose += 1;
@@ -8974,20 +9100,21 @@ static void sym_nvram_setup_host (hcb_p np, struct sym_nvram *nvram)
  *  Get target setup from NVRAM.
  */
 #ifdef SYM_CONF_NVRAM_SUPPORT
-static void sym_Symbios_setup_target(hcb_p np,int target, Symbios_nvram *nvram);
-static void sym_Tekram_setup_target(hcb_p np,int target, Tekram_nvram *nvram);
+static void sym_Symbios_setup_target(hcb_p np, int target,
+    Symbios_nvram *nvram);
+static void sym_Tekram_setup_target(hcb_p np, int target, Tekram_nvram *nvram);
 #endif
 
 static void
-sym_nvram_setup_target (hcb_p np, int target, struct sym_nvram *nvp)
+sym_nvram_setup_target(hcb_p np, int target, struct sym_nvram *nvp)
 {
 #ifdef SYM_CONF_NVRAM_SUPPORT
-	switch(nvp->type) {
+	switch (nvp->type) {
 	case SYM_SYMBIOS_NVRAM:
-		sym_Symbios_setup_target (np, target, &nvp->data.Symbios);
+		sym_Symbios_setup_target(np, target, &nvp->data.Symbios);
 		break;
 	case SYM_TEKRAM_NVRAM:
-		sym_Tekram_setup_target (np, target, &nvp->data.Tekram);
+		sym_Tekram_setup_target(np, target, &nvp->data.Tekram);
 		break;
 	default:
 		break;
@@ -9006,9 +9133,10 @@ sym_Symbios_setup_target(hcb_p np, int target, Symbios_nvram *nvram)
 	Symbios_target *tn = &nvram->target[target];
 
 	tp->tinfo.user.period = tn->sync_period ? (tn->sync_period + 3) / 4 : 0;
-	tp->tinfo.user.width  = tn->bus_width == 0x10 ? BUS_16_BIT : BUS_8_BIT;
-	tp->usrtags =
-		(tn->flags & SYMBIOS_QUEUE_TAGS_ENABLED)? SYM_SETUP_MAX_TAG : 0;
+	tp->tinfo.user.width = tn->bus_width == 0x10 ? BUS_16_BIT : BUS_8_BIT;
+	tp->usrtags = (tn->flags & SYMBIOS_QUEUE_TAGS_ENABLED) ?
+	    SYM_SETUP_MAX_TAG :
+	    0;
 
 	if (!(tn->flags & SYMBIOS_DISCONNECT_ENABLE))
 		tp->usrflags &= ~SYM_DISC_ENABLED;
@@ -9033,8 +9161,8 @@ sym_Tekram_setup_target(hcb_p np, int target, Tekram_nvram *nvram)
 		tp->tinfo.user.period = Tekram_sync[i];
 	}
 
-	tp->tinfo.user.width =
-		(tn->flags & TEKRAM_WIDE_NEGO) ? BUS_16_BIT : BUS_8_BIT;
+	tp->tinfo.user.width = (tn->flags & TEKRAM_WIDE_NEGO) ? BUS_16_BIT :
+								BUS_8_BIT;
 
 	if (tn->flags & TEKRAM_TAGGED_COMMANDS) {
 		tp->usrtags = 2 << nvram->max_tags_index;
@@ -9045,47 +9173,46 @@ sym_Tekram_setup_target(hcb_p np, int target, Tekram_nvram *nvram)
 
 	/* If any device does not support parity, we will not use this option */
 	if (!(tn->flags & TEKRAM_PARITY_CHECK))
-		np->rv_scntl0  &= ~0x0a; /* SCSI parity checking disabled */
+		np->rv_scntl0 &= ~0x0a; /* SCSI parity checking disabled */
 }
 
-#ifdef	SYM_CONF_DEBUG_NVRAM
+#ifdef SYM_CONF_DEBUG_NVRAM
 /*
  *  Dump Symbios format NVRAM for debugging purpose.
  */
-static void sym_display_Symbios_nvram(hcb_p np, Symbios_nvram *nvram)
+static void
+sym_display_Symbios_nvram(hcb_p np, Symbios_nvram *nvram)
 {
 	int i;
 
 	/* display Symbios nvram host data */
-	printf("%s: HOST ID=%d%s%s%s%s%s%s\n",
-		sym_name(np), nvram->host_id & 0x0f,
-		(nvram->flags  & SYMBIOS_SCAM_ENABLE)	? " SCAM"	:"",
-		(nvram->flags  & SYMBIOS_PARITY_ENABLE)	? " PARITY"	:"",
-		(nvram->flags  & SYMBIOS_VERBOSE_MSGS)	? " VERBOSE"	:"",
-		(nvram->flags  & SYMBIOS_CHS_MAPPING)	? " CHS_ALT"	:"",
-		(nvram->flags2 & SYMBIOS_AVOID_BUS_RESET)?" NO_RESET"	:"",
-		(nvram->flags1 & SYMBIOS_SCAN_HI_LO)	? " HI_LO"	:"");
+	printf("%s: HOST ID=%d%s%s%s%s%s%s\n", sym_name(np),
+	    nvram->host_id & 0x0f,
+	    (nvram->flags & SYMBIOS_SCAM_ENABLE) ? " SCAM" : "",
+	    (nvram->flags & SYMBIOS_PARITY_ENABLE) ? " PARITY" : "",
+	    (nvram->flags & SYMBIOS_VERBOSE_MSGS) ? " VERBOSE" : "",
+	    (nvram->flags & SYMBIOS_CHS_MAPPING) ? " CHS_ALT" : "",
+	    (nvram->flags2 & SYMBIOS_AVOID_BUS_RESET) ? " NO_RESET" : "",
+	    (nvram->flags1 & SYMBIOS_SCAN_HI_LO) ? " HI_LO" : "");
 
 	/* display Symbios nvram drive data */
-	for (i = 0 ; i < 15 ; i++) {
+	for (i = 0; i < 15; i++) {
 		struct Symbios_target *tn = &nvram->target[i];
-		printf("%s-%d:%s%s%s%s WIDTH=%d SYNC=%d TMO=%d\n",
-		sym_name(np), i,
-		(tn->flags & SYMBIOS_DISCONNECT_ENABLE)	? " DISC"	: "",
-		(tn->flags & SYMBIOS_SCAN_AT_BOOT_TIME)	? " SCAN_BOOT"	: "",
-		(tn->flags & SYMBIOS_SCAN_LUNS)		? " SCAN_LUNS"	: "",
-		(tn->flags & SYMBIOS_QUEUE_TAGS_ENABLED)? " TCQ"	: "",
-		tn->bus_width,
-		tn->sync_period / 4,
-		tn->timeout);
+		printf("%s-%d:%s%s%s%s WIDTH=%d SYNC=%d TMO=%d\n", sym_name(np),
+		    i, (tn->flags & SYMBIOS_DISCONNECT_ENABLE) ? " DISC" : "",
+		    (tn->flags & SYMBIOS_SCAN_AT_BOOT_TIME) ? " SCAN_BOOT" : "",
+		    (tn->flags & SYMBIOS_SCAN_LUNS) ? " SCAN_LUNS" : "",
+		    (tn->flags & SYMBIOS_QUEUE_TAGS_ENABLED) ? " TCQ" : "",
+		    tn->bus_width, tn->sync_period / 4, tn->timeout);
 	}
 }
 
 /*
  *  Dump TEKRAM format NVRAM for debugging purpose.
  */
-static const u_char Tekram_boot_delay[7] = {3, 5, 10, 20, 30, 60, 120};
-static void sym_display_Tekram_nvram(hcb_p np, Tekram_nvram *nvram)
+static const u_char Tekram_boot_delay[7] = { 3, 5, 10, 20, 30, 60, 120 };
+static void
+sym_display_Tekram_nvram(hcb_p np, Tekram_nvram *nvram)
 {
 	int i, tags, boot_delay;
 	char *rem;
@@ -9095,24 +9222,30 @@ static void sym_display_Tekram_nvram(hcb_p np, Tekram_nvram *nvram)
 	boot_delay = 0;
 	if (nvram->boot_delay_index < 6)
 		boot_delay = Tekram_boot_delay[nvram->boot_delay_index];
-	switch((nvram->flags & TEKRAM_REMOVABLE_FLAGS) >> 6) {
+	switch ((nvram->flags & TEKRAM_REMOVABLE_FLAGS) >> 6) {
 	default:
-	case 0:	rem = "";			break;
-	case 1: rem = " REMOVABLE=boot device";	break;
-	case 2: rem = " REMOVABLE=all";		break;
+	case 0:
+		rem = "";
+		break;
+	case 1:
+		rem = " REMOVABLE=boot device";
+		break;
+	case 2:
+		rem = " REMOVABLE=all";
+		break;
 	}
 
 	printf("%s: HOST ID=%d%s%s%s%s%s%s%s%s%s BOOT DELAY=%d tags=%d\n",
-		sym_name(np), nvram->host_id & 0x0f,
-		(nvram->flags1 & SYMBIOS_SCAM_ENABLE)	? " SCAM"	:"",
-		(nvram->flags & TEKRAM_MORE_THAN_2_DRIVES) ? " >2DRIVES"	:"",
-		(nvram->flags & TEKRAM_DRIVES_SUP_1GB)	? " >1GB"	:"",
-		(nvram->flags & TEKRAM_RESET_ON_POWER_ON) ? " RESET"	:"",
-		(nvram->flags & TEKRAM_ACTIVE_NEGATION)	? " ACT_NEG"	:"",
-		(nvram->flags & TEKRAM_IMMEDIATE_SEEK)	? " IMM_SEEK"	:"",
-		(nvram->flags & TEKRAM_SCAN_LUNS)	? " SCAN_LUNS"	:"",
-		(nvram->flags1 & TEKRAM_F2_F6_ENABLED)	? " F2_F6"	:"",
-		rem, boot_delay, tags);
+	    sym_name(np), nvram->host_id & 0x0f,
+	    (nvram->flags1 & SYMBIOS_SCAM_ENABLE) ? " SCAM" : "",
+	    (nvram->flags & TEKRAM_MORE_THAN_2_DRIVES) ? " >2DRIVES" : "",
+	    (nvram->flags & TEKRAM_DRIVES_SUP_1GB) ? " >1GB" : "",
+	    (nvram->flags & TEKRAM_RESET_ON_POWER_ON) ? " RESET" : "",
+	    (nvram->flags & TEKRAM_ACTIVE_NEGATION) ? " ACT_NEG" : "",
+	    (nvram->flags & TEKRAM_IMMEDIATE_SEEK) ? " IMM_SEEK" : "",
+	    (nvram->flags & TEKRAM_SCAN_LUNS) ? " SCAN_LUNS" : "",
+	    (nvram->flags1 & TEKRAM_F2_F6_ENABLED) ? " F2_F6" : "", rem,
+	    boot_delay, tags);
 
 	/* display Tekram nvram drive data */
 	for (i = 0; i <= 15; i++) {
@@ -9120,50 +9253,47 @@ static void sym_display_Tekram_nvram(hcb_p np, Tekram_nvram *nvram)
 		struct Tekram_target *tn = &nvram->target[i];
 		j = tn->sync_index & 0xf;
 		sync = Tekram_sync[j];
-		printf("%s-%d:%s%s%s%s%s%s PERIOD=%d\n",
-		sym_name(np), i,
-		(tn->flags & TEKRAM_PARITY_CHECK)	? " PARITY"	: "",
-		(tn->flags & TEKRAM_SYNC_NEGO)		? " SYNC"	: "",
-		(tn->flags & TEKRAM_DISCONNECT_ENABLE)	? " DISC"	: "",
-		(tn->flags & TEKRAM_START_CMD)		? " START"	: "",
-		(tn->flags & TEKRAM_TAGGED_COMMANDS)	? " TCQ"	: "",
-		(tn->flags & TEKRAM_WIDE_NEGO)		? " WIDE"	: "",
-		sync);
+		printf("%s-%d:%s%s%s%s%s%s PERIOD=%d\n", sym_name(np), i,
+		    (tn->flags & TEKRAM_PARITY_CHECK) ? " PARITY" : "",
+		    (tn->flags & TEKRAM_SYNC_NEGO) ? " SYNC" : "",
+		    (tn->flags & TEKRAM_DISCONNECT_ENABLE) ? " DISC" : "",
+		    (tn->flags & TEKRAM_START_CMD) ? " START" : "",
+		    (tn->flags & TEKRAM_TAGGED_COMMANDS) ? " TCQ" : "",
+		    (tn->flags & TEKRAM_WIDE_NEGO) ? " WIDE" : "", sync);
 	}
 }
-#endif	/* SYM_CONF_DEBUG_NVRAM */
-#endif	/* SYM_CONF_NVRAM_SUPPORT */
+#endif /* SYM_CONF_DEBUG_NVRAM */
+#endif /* SYM_CONF_NVRAM_SUPPORT */
 
 /*
  *  Try reading Symbios or Tekram NVRAM
  */
 #ifdef SYM_CONF_NVRAM_SUPPORT
-static int sym_read_Symbios_nvram (hcb_p np, Symbios_nvram *nvram);
-static int sym_read_Tekram_nvram  (hcb_p np, Tekram_nvram *nvram);
+static int sym_read_Symbios_nvram(hcb_p np, Symbios_nvram *nvram);
+static int sym_read_Tekram_nvram(hcb_p np, Tekram_nvram *nvram);
 #endif
 
-static int sym_read_nvram(hcb_p np, struct sym_nvram *nvp)
+static int
+sym_read_nvram(hcb_p np, struct sym_nvram *nvp)
 {
 #ifdef SYM_CONF_NVRAM_SUPPORT
 	/*
 	 *  Try to read SYMBIOS nvram.
 	 *  Try to read TEKRAM nvram if Symbios nvram not found.
 	 */
-	if	(SYM_SETUP_SYMBIOS_NVRAM &&
-		 !sym_read_Symbios_nvram (np, &nvp->data.Symbios)) {
+	if (SYM_SETUP_SYMBIOS_NVRAM &&
+	    !sym_read_Symbios_nvram(np, &nvp->data.Symbios)) {
 		nvp->type = SYM_SYMBIOS_NVRAM;
 #ifdef SYM_CONF_DEBUG_NVRAM
 		sym_display_Symbios_nvram(np, &nvp->data.Symbios);
 #endif
-	}
-	else if	(SYM_SETUP_TEKRAM_NVRAM &&
-		 !sym_read_Tekram_nvram (np, &nvp->data.Tekram)) {
+	} else if (SYM_SETUP_TEKRAM_NVRAM &&
+	    !sym_read_Tekram_nvram(np, &nvp->data.Tekram)) {
 		nvp->type = SYM_TEKRAM_NVRAM;
 #ifdef SYM_CONF_DEBUG_NVRAM
 		sym_display_Tekram_nvram(np, &nvp->data.Tekram);
 #endif
-	}
-	else
+	} else
 		nvp->type = 0;
 #else
 	nvp->type = 0;
@@ -9188,11 +9318,11 @@ static int sym_read_nvram(hcb_p np, struct sym_nvram *nvp)
 /*
  *  Set/clear data/clock bit in GPIO0
  */
-static void S24C16_set_bit(hcb_p np, u_char write_bit, u_char *gpreg,
-			  int bit_mode)
+static void
+S24C16_set_bit(hcb_p np, u_char write_bit, u_char *gpreg, int bit_mode)
 {
-	UDELAY (5);
-	switch (bit_mode){
+	UDELAY(5);
+	switch (bit_mode) {
 	case SET_BIT:
 		*gpreg |= write_bit;
 		break;
@@ -9206,14 +9336,15 @@ static void S24C16_set_bit(hcb_p np, u_char write_bit, u_char *gpreg,
 		*gpreg &= 0xfd;
 		break;
 	}
-	OUTB (nc_gpreg, *gpreg);
-	UDELAY (5);
+	OUTB(nc_gpreg, *gpreg);
+	UDELAY(5);
 }
 
 /*
  *  Send START condition to NVRAM to wake it up.
  */
-static void S24C16_start(hcb_p np, u_char *gpreg)
+static void
+S24C16_start(hcb_p np, u_char *gpreg)
 {
 	S24C16_set_bit(np, 1, gpreg, SET_BIT);
 	S24C16_set_bit(np, 0, gpreg, SET_CLK);
@@ -9224,7 +9355,8 @@ static void S24C16_start(hcb_p np, u_char *gpreg)
 /*
  *  Send STOP condition to NVRAM - puts NVRAM to sleep... ZZzzzz!!
  */
-static void S24C16_stop(hcb_p np, u_char *gpreg)
+static void
+S24C16_stop(hcb_p np, u_char *gpreg)
 {
 	S24C16_set_bit(np, 0, gpreg, SET_CLK);
 	S24C16_set_bit(np, 1, gpreg, SET_BIT);
@@ -9234,13 +9366,13 @@ static void S24C16_stop(hcb_p np, u_char *gpreg)
  *  Read or write a bit to the NVRAM,
  *  read if GPIO0 input else write if GPIO0 output
  */
-static void S24C16_do_bit(hcb_p np, u_char *read_bit, u_char write_bit,
-			 u_char *gpreg)
+static void
+S24C16_do_bit(hcb_p np, u_char *read_bit, u_char write_bit, u_char *gpreg)
 {
 	S24C16_set_bit(np, write_bit, gpreg, SET_BIT);
 	S24C16_set_bit(np, 0, gpreg, SET_CLK);
 	if (read_bit)
-		*read_bit = INB (nc_gpreg);
+		*read_bit = INB(nc_gpreg);
 	S24C16_set_bit(np, 0, gpreg, CLR_CLK);
 	S24C16_set_bit(np, 0, gpreg, CLR_BIT);
 }
@@ -9249,32 +9381,33 @@ static void S24C16_do_bit(hcb_p np, u_char *read_bit, u_char write_bit,
  *  Output an ACK to the NVRAM after reading,
  *  change GPIO0 to output and when done back to an input
  */
-static void S24C16_write_ack(hcb_p np, u_char write_bit, u_char *gpreg,
-			    u_char *gpcntl)
+static void
+S24C16_write_ack(hcb_p np, u_char write_bit, u_char *gpreg, u_char *gpcntl)
 {
-	OUTB (nc_gpcntl, *gpcntl & 0xfe);
+	OUTB(nc_gpcntl, *gpcntl & 0xfe);
 	S24C16_do_bit(np, 0, write_bit, gpreg);
-	OUTB (nc_gpcntl, *gpcntl);
+	OUTB(nc_gpcntl, *gpcntl);
 }
 
 /*
  *  Input an ACK from NVRAM after writing,
  *  change GPIO0 to input and when done back to an output
  */
-static void S24C16_read_ack(hcb_p np, u_char *read_bit, u_char *gpreg,
-			   u_char *gpcntl)
+static void
+S24C16_read_ack(hcb_p np, u_char *read_bit, u_char *gpreg, u_char *gpcntl)
 {
-	OUTB (nc_gpcntl, *gpcntl | 0x01);
+	OUTB(nc_gpcntl, *gpcntl | 0x01);
 	S24C16_do_bit(np, read_bit, 1, gpreg);
-	OUTB (nc_gpcntl, *gpcntl);
+	OUTB(nc_gpcntl, *gpcntl);
 }
 
 /*
  *  WRITE a byte to the NVRAM and then get an ACK to see it was accepted OK,
  *  GPIO0 must already be set as an output
  */
-static void S24C16_write_byte(hcb_p np, u_char *ack_data, u_char write_data,
-			     u_char *gpreg, u_char *gpcntl)
+static void
+S24C16_write_byte(hcb_p np, u_char *ack_data, u_char write_data, u_char *gpreg,
+    u_char *gpcntl)
 {
 	int x;
 
@@ -9288,8 +9421,9 @@ static void S24C16_write_byte(hcb_p np, u_char *ack_data, u_char write_data,
  *  READ a byte from the NVRAM and then send an ACK to say we have got it,
  *  GPIO0 must already be set as an input
  */
-static void S24C16_read_byte(hcb_p np, u_char *read_data, u_char ack_data,
-			    u_char *gpreg, u_char *gpcntl)
+static void
+S24C16_read_byte(hcb_p np, u_char *read_data, u_char ack_data, u_char *gpreg,
+    u_char *gpcntl)
 {
 	int x;
 	u_char read_bit;
@@ -9306,22 +9440,23 @@ static void S24C16_read_byte(hcb_p np, u_char *read_data, u_char ack_data,
 /*
  *  Read 'len' bytes starting at 'offset'.
  */
-static int sym_read_S24C16_nvram (hcb_p np, int offset, u_char *data, int len)
+static int
+sym_read_S24C16_nvram(hcb_p np, int offset, u_char *data, int len)
 {
-	u_char	gpcntl, gpreg;
-	u_char	old_gpcntl, old_gpreg;
-	u_char	ack_data;
-	int	retv = 1;
-	int	x;
+	u_char gpcntl, gpreg;
+	u_char old_gpcntl, old_gpreg;
+	u_char ack_data;
+	int retv = 1;
+	int x;
 
 	/* save current state of GPCNTL and GPREG */
-	old_gpreg	= INB (nc_gpreg);
-	old_gpcntl	= INB (nc_gpcntl);
-	gpcntl		= old_gpcntl & 0x1c;
+	old_gpreg = INB(nc_gpreg);
+	old_gpcntl = INB(nc_gpcntl);
+	gpcntl = old_gpcntl & 0x1c;
 
 	/* set up GPREG & GPCNTL to set GPIO0 and GPIO1 in to known state */
-	OUTB (nc_gpreg,  old_gpreg);
-	OUTB (nc_gpcntl, gpcntl);
+	OUTB(nc_gpreg, old_gpreg);
+	OUTB(nc_gpcntl, gpcntl);
 
 	/* this is to set NVRAM into a known state with GPIO0/1 both low */
 	gpreg = old_gpreg;
@@ -9335,14 +9470,13 @@ static int sym_read_S24C16_nvram (hcb_p np, int offset, u_char *data, int len)
 	S24C16_start(np, &gpreg);
 
 	/* write device code and random address MSB */
-	S24C16_write_byte(np, &ack_data,
-		0xa0 | ((offset >> 7) & 0x0e), &gpreg, &gpcntl);
+	S24C16_write_byte(np, &ack_data, 0xa0 | ((offset >> 7) & 0x0e), &gpreg,
+	    &gpcntl);
 	if (ack_data & 0x01)
 		goto out;
 
 	/* write random address LSB */
-	S24C16_write_byte(np, &ack_data,
-		offset & 0xff, &gpreg, &gpcntl);
+	S24C16_write_byte(np, &ack_data, offset & 0xff, &gpreg, &gpcntl);
 	if (ack_data & 0x01)
 		goto out;
 
@@ -9350,28 +9484,29 @@ static int sym_read_S24C16_nvram (hcb_p np, int offset, u_char *data, int len)
 	S24C16_start(np, &gpreg);
 
 	/* rewrite device code and address MSB with read bit set (lsb = 0x01) */
-	S24C16_write_byte(np, &ack_data,
-		0xa1 | ((offset >> 7) & 0x0e), &gpreg, &gpcntl);
+	S24C16_write_byte(np, &ack_data, 0xa1 | ((offset >> 7) & 0x0e), &gpreg,
+	    &gpcntl);
 	if (ack_data & 0x01)
 		goto out;
 
 	/* now set up GPIO0 for inputting data */
 	gpcntl |= 0x01;
-	OUTB (nc_gpcntl, gpcntl);
+	OUTB(nc_gpcntl, gpcntl);
 
 	/* input all requested data - only part of total NVRAM */
 	for (x = 0; x < len; x++)
-		S24C16_read_byte(np, &data[x], (x == (len-1)), &gpreg, &gpcntl);
+		S24C16_read_byte(np, &data[x], (x == (len - 1)), &gpreg,
+		    &gpcntl);
 
 	/* finally put NVRAM back in inactive mode */
 	gpcntl &= 0xfe;
-	OUTB (nc_gpcntl, gpcntl);
+	OUTB(nc_gpcntl, gpcntl);
 	S24C16_stop(np, &gpreg);
 	retv = 0;
 out:
 	/* return GPIO0/1 to original states after having accessed NVRAM */
-	OUTB (nc_gpcntl, old_gpcntl);
-	OUTB (nc_gpreg,  old_gpreg);
+	OUTB(nc_gpcntl, old_gpcntl);
+	OUTB(nc_gpreg, old_gpreg);
 
 	return retv;
 }
@@ -9385,21 +9520,21 @@ out:
  *  Try reading Symbios NVRAM.
  *  Return 0 if OK.
  */
-static int sym_read_Symbios_nvram (hcb_p np, Symbios_nvram *nvram)
+static int
+sym_read_Symbios_nvram(hcb_p np, Symbios_nvram *nvram)
 {
-	static u_char Symbios_trailer[6] = {0xfe, 0xfe, 0, 0, 0, 0};
-	u_char *data = (u_char *) nvram;
-	int len  = sizeof(*nvram);
-	u_short	csum;
+	static u_char Symbios_trailer[6] = { 0xfe, 0xfe, 0, 0, 0, 0 };
+	u_char *data = (u_char *)nvram;
+	int len = sizeof(*nvram);
+	u_short csum;
 	int x;
 
 	/* probe the 24c16 and read the SYMBIOS 24c16 area */
-	if (sym_read_S24C16_nvram (np, SYMBIOS_NVRAM_ADDRESS, data, len))
+	if (sym_read_S24C16_nvram(np, SYMBIOS_NVRAM_ADDRESS, data, len))
 		return 1;
 
 	/* check valid NVRAM signature, verify byte count and checksum */
-	if (nvram->type != 0 ||
-	    bcmp(nvram->trailer, Symbios_trailer, 6) ||
+	if (nvram->type != 0 || bcmp(nvram->trailer, Symbios_trailer, 6) ||
 	    nvram->byte_count != len - 12)
 		return 1;
 
@@ -9426,27 +9561,30 @@ static int sym_read_Symbios_nvram (hcb_p np, Symbios_nvram *nvram)
 /*
  *  Pulse clock bit in GPIO0
  */
-static void T93C46_Clk(hcb_p np, u_char *gpreg)
+static void
+T93C46_Clk(hcb_p np, u_char *gpreg)
 {
-	OUTB (nc_gpreg, *gpreg | 0x04);
-	UDELAY (2);
-	OUTB (nc_gpreg, *gpreg);
+	OUTB(nc_gpreg, *gpreg | 0x04);
+	UDELAY(2);
+	OUTB(nc_gpreg, *gpreg);
 }
 
 /*
  *  Read bit from NVRAM
  */
-static void T93C46_Read_Bit(hcb_p np, u_char *read_bit, u_char *gpreg)
+static void
+T93C46_Read_Bit(hcb_p np, u_char *read_bit, u_char *gpreg)
 {
-	UDELAY (2);
+	UDELAY(2);
 	T93C46_Clk(np, gpreg);
-	*read_bit = INB (nc_gpreg);
+	*read_bit = INB(nc_gpreg);
 }
 
 /*
  *  Write bit to GPIO0
  */
-static void T93C46_Write_Bit(hcb_p np, u_char write_bit, u_char *gpreg)
+static void
+T93C46_Write_Bit(hcb_p np, u_char write_bit, u_char *gpreg)
 {
 	if (write_bit & 0x01)
 		*gpreg |= 0x02;
@@ -9455,8 +9593,8 @@ static void T93C46_Write_Bit(hcb_p np, u_char write_bit, u_char *gpreg)
 
 	*gpreg |= 0x10;
 
-	OUTB (nc_gpreg, *gpreg);
-	UDELAY (2);
+	OUTB(nc_gpreg, *gpreg);
+	UDELAY(2);
 
 	T93C46_Clk(np, gpreg);
 }
@@ -9464,11 +9602,12 @@ static void T93C46_Write_Bit(hcb_p np, u_char write_bit, u_char *gpreg)
 /*
  *  Send STOP condition to NVRAM - puts NVRAM to sleep... ZZZzzz!!
  */
-static void T93C46_Stop(hcb_p np, u_char *gpreg)
+static void
+T93C46_Stop(hcb_p np, u_char *gpreg)
 {
 	*gpreg &= 0xef;
-	OUTB (nc_gpreg, *gpreg);
-	UDELAY (2);
+	OUTB(nc_gpreg, *gpreg);
+	UDELAY(2);
 
 	T93C46_Clk(np, gpreg);
 }
@@ -9476,22 +9615,24 @@ static void T93C46_Stop(hcb_p np, u_char *gpreg)
 /*
  *  Send read command and address to NVRAM
  */
-static void T93C46_Send_Command(hcb_p np, u_short write_data,
-				u_char *read_bit, u_char *gpreg)
+static void
+T93C46_Send_Command(hcb_p np, u_short write_data, u_char *read_bit,
+    u_char *gpreg)
 {
 	int x;
 
 	/* send 9 bits, start bit (1), command (2), address (6)  */
 	for (x = 0; x < 9; x++)
-		T93C46_Write_Bit(np, (u_char) (write_data >> (8 - x)), gpreg);
+		T93C46_Write_Bit(np, (u_char)(write_data >> (8 - x)), gpreg);
 
-	*read_bit = INB (nc_gpreg);
+	*read_bit = INB(nc_gpreg);
 }
 
 /*
  *  READ 2 bytes from the NVRAM
  */
-static void T93C46_Read_Word(hcb_p np, u_short *nvram_data, u_char *gpreg)
+static void
+T93C46_Read_Word(hcb_p np, u_short *nvram_data, u_char *gpreg)
 {
 	int x;
 	u_char read_bit;
@@ -9501,7 +9642,7 @@ static void T93C46_Read_Word(hcb_p np, u_short *nvram_data, u_char *gpreg)
 		T93C46_Read_Bit(np, &read_bit, gpreg);
 
 		if (read_bit & 0x01)
-			*nvram_data |=  (0x01 << (15 - x));
+			*nvram_data |= (0x01 << (15 - x));
 		else
 			*nvram_data &= ~(0x01 << (15 - x));
 	}
@@ -9510,12 +9651,13 @@ static void T93C46_Read_Word(hcb_p np, u_short *nvram_data, u_char *gpreg)
 /*
  *  Read Tekram NvRAM data.
  */
-static int T93C46_Read_Data(hcb_p np, u_short *data,int len,u_char *gpreg)
+static int
+T93C46_Read_Data(hcb_p np, u_short *data, int len, u_char *gpreg)
 {
-	u_char	read_bit;
-	int	x;
+	u_char read_bit;
+	int x;
 
-	for (x = 0; x < len; x++)  {
+	for (x = 0; x < len; x++) {
 		/* output read command and address */
 		T93C46_Send_Command(np, 0x180 | x, &read_bit, gpreg);
 		if (read_bit & 0x01)
@@ -9530,30 +9672,31 @@ static int T93C46_Read_Data(hcb_p np, u_short *data,int len,u_char *gpreg)
 /*
  *  Try reading 93C46 Tekram NVRAM.
  */
-static int sym_read_T93C46_nvram (hcb_p np, Tekram_nvram *nvram)
+static int
+sym_read_T93C46_nvram(hcb_p np, Tekram_nvram *nvram)
 {
 	u_char gpcntl, gpreg;
 	u_char old_gpcntl, old_gpreg;
 	int retv = 1;
 
 	/* save current state of GPCNTL and GPREG */
-	old_gpreg	= INB (nc_gpreg);
-	old_gpcntl	= INB (nc_gpcntl);
+	old_gpreg = INB(nc_gpreg);
+	old_gpcntl = INB(nc_gpcntl);
 
 	/* set up GPREG & GPCNTL to set GPIO0/1/2/4 in to known state, 0 in,
 	   1/2/4 out */
 	gpreg = old_gpreg & 0xe9;
-	OUTB (nc_gpreg, gpreg);
+	OUTB(nc_gpreg, gpreg);
 	gpcntl = (old_gpcntl & 0xe9) | 0x09;
-	OUTB (nc_gpcntl, gpcntl);
+	OUTB(nc_gpcntl, gpcntl);
 
 	/* input all of NVRAM, 64 words */
-	retv = T93C46_Read_Data(np, (u_short *) nvram,
-				sizeof(*nvram) / sizeof(short), &gpreg);
+	retv = T93C46_Read_Data(np, (u_short *)nvram,
+	    sizeof(*nvram) / sizeof(short), &gpreg);
 
 	/* return GPIO0/1/2/4 to original states after having accessed NVRAM */
-	OUTB (nc_gpcntl, old_gpcntl);
-	OUTB (nc_gpreg,  old_gpreg);
+	OUTB(nc_gpcntl, old_gpcntl);
+	OUTB(nc_gpreg, old_gpreg);
 
 	return retv;
 }
@@ -9562,23 +9705,24 @@ static int sym_read_T93C46_nvram (hcb_p np, Tekram_nvram *nvram)
  *  Try reading Tekram NVRAM.
  *  Return 0 if OK.
  */
-static int sym_read_Tekram_nvram (hcb_p np, Tekram_nvram *nvram)
+static int
+sym_read_Tekram_nvram(hcb_p np, Tekram_nvram *nvram)
 {
-	u_char *data = (u_char *) nvram;
+	u_char *data = (u_char *)nvram;
 	int len = sizeof(*nvram);
-	u_short	csum;
+	u_short csum;
 	int x;
 
 	switch (np->device_id) {
 	case PCI_ID_SYM53C885:
 	case PCI_ID_SYM53C895:
 	case PCI_ID_SYM53C896:
-		x = sym_read_S24C16_nvram(np, TEKRAM_24C16_NVRAM_ADDRESS,
-					  data, len);
+		x = sym_read_S24C16_nvram(np, TEKRAM_24C16_NVRAM_ADDRESS, data,
+		    len);
 		break;
 	case PCI_ID_SYM53C875:
-		x = sym_read_S24C16_nvram(np, TEKRAM_24C16_NVRAM_ADDRESS,
-					  data, len);
+		x = sym_read_S24C16_nvram(np, TEKRAM_24C16_NVRAM_ADDRESS, data,
+		    len);
 		if (!x)
 			break;
 	default:
@@ -9590,11 +9734,11 @@ static int sym_read_Tekram_nvram (hcb_p np, Tekram_nvram *nvram)
 
 	/* verify checksum */
 	for (x = 0, csum = 0; x < len - 1; x += 2)
-		csum += data[x] + (data[x+1] << 8);
+		csum += data[x] + (data[x + 1] << 8);
 	if (csum != 0x1234)
 		return 1;
 
 	return 0;
 }
 
-#endif	/* SYM_CONF_NVRAM_SUPPORT */
+#endif /* SYM_CONF_NVRAM_SUPPORT */

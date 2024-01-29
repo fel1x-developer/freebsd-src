@@ -42,244 +42,339 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
+#include <sys/bus.h>
 #include <sys/errno.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/rman.h>
 #include <sys/sx.h>
 #include <sys/syslog.h>
-#include <sys/bus.h>
 
 #include <machine/bus.h>
-#include <sys/rman.h>
 #include <machine/resource.h>
-
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
-#include <dev/iicbus/iiconf.h>
 
 #include <dev/ichiic/ig4_reg.h>
 #include <dev/ichiic/ig4_var.h>
+#include <dev/iicbus/iiconf.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 static int ig4iic_pci_detach(device_t dev);
 
-#define PCI_CHIP_BAYTRAIL_I2C_1 	0x0f418086
-#define PCI_CHIP_BAYTRAIL_I2C_2 	0x0f428086
-#define PCI_CHIP_BAYTRAIL_I2C_3 	0x0f438086
-#define PCI_CHIP_BAYTRAIL_I2C_4 	0x0f448086
-#define PCI_CHIP_BAYTRAIL_I2C_5 	0x0f458086
-#define PCI_CHIP_BAYTRAIL_I2C_6 	0x0f468086
-#define PCI_CHIP_BAYTRAIL_I2C_7 	0x0f478086
-#define PCI_CHIP_LYNXPT_LP_I2C_1	0x9c618086
-#define PCI_CHIP_LYNXPT_LP_I2C_2	0x9c628086
-#define PCI_CHIP_BRASWELL_I2C_1 	0x22c18086
-#define PCI_CHIP_BRASWELL_I2C_2 	0x22c28086
-#define PCI_CHIP_BRASWELL_I2C_3 	0x22c38086
-#define PCI_CHIP_BRASWELL_I2C_5 	0x22c58086
-#define PCI_CHIP_BRASWELL_I2C_6 	0x22c68086
-#define PCI_CHIP_BRASWELL_I2C_7 	0x22c78086
-#define PCI_CHIP_SKYLAKE_I2C_0		0x9d608086
-#define PCI_CHIP_SKYLAKE_I2C_1		0x9d618086
-#define PCI_CHIP_SKYLAKE_I2C_2		0x9d628086
-#define PCI_CHIP_SKYLAKE_I2C_3		0x9d638086
-#define PCI_CHIP_SKYLAKE_I2C_4		0x9d648086
-#define PCI_CHIP_SKYLAKE_I2C_5		0x9d658086
-#define PCI_CHIP_KABYLAKE_I2C_0		0xa1608086
-#define PCI_CHIP_KABYLAKE_I2C_1		0xa1618086
-#define PCI_CHIP_APL_I2C_0		0x5aac8086
-#define PCI_CHIP_APL_I2C_1		0x5aae8086
-#define PCI_CHIP_APL_I2C_2		0x5ab08086
-#define PCI_CHIP_APL_I2C_3		0x5ab28086
-#define PCI_CHIP_APL_I2C_4		0x5ab48086
-#define PCI_CHIP_APL_I2C_5		0x5ab68086
-#define PCI_CHIP_APL_I2C_6		0x5ab88086
-#define PCI_CHIP_APL_I2C_7		0x5aba8086
-#define PCI_CHIP_CANNONLAKE_LP_I2C_0	0x9dc58086
-#define PCI_CHIP_CANNONLAKE_LP_I2C_1	0x9dc68086
-#define PCI_CHIP_CANNONLAKE_LP_I2C_2	0x9de88086
-#define PCI_CHIP_CANNONLAKE_LP_I2C_3	0x9de98086
-#define PCI_CHIP_CANNONLAKE_LP_I2C_4	0x9dea8086
-#define PCI_CHIP_CANNONLAKE_LP_I2C_5	0x9deb8086
-#define PCI_CHIP_CANNONLAKE_H_I2C_0	0xa3688086
-#define PCI_CHIP_CANNONLAKE_H_I2C_1	0xa3698086
-#define PCI_CHIP_CANNONLAKE_H_I2C_2	0xa36a8086
-#define PCI_CHIP_CANNONLAKE_H_I2C_3	0xa36b8086
-#define PCI_CHIP_COMETLAKE_LP_I2C_0	0x02e88086
-#define PCI_CHIP_COMETLAKE_LP_I2C_1	0x02e98086
-#define PCI_CHIP_COMETLAKE_LP_I2C_2	0x02ea8086
-#define PCI_CHIP_COMETLAKE_LP_I2C_3	0x02eb8086
-#define PCI_CHIP_COMETLAKE_LP_I2C_4	0x02c58086
-#define PCI_CHIP_COMETLAKE_LP_I2C_5	0x02c68086
-#define PCI_CHIP_COMETLAKE_H_I2C_0	0x06e88086
-#define PCI_CHIP_COMETLAKE_H_I2C_1	0x06e98086
-#define PCI_CHIP_COMETLAKE_H_I2C_2	0x06ea8086
-#define PCI_CHIP_COMETLAKE_H_I2C_3	0x06eb8086
-#define PCI_CHIP_COMETLAKE_V_I2C_0	0xa3e08086
-#define PCI_CHIP_COMETLAKE_V_I2C_1	0xa3e18086
-#define PCI_CHIP_COMETLAKE_V_I2C_2	0xa3e28086
-#define PCI_CHIP_COMETLAKE_V_I2C_3	0xa3e38086
-#define	PCI_CHIP_ICELAKE_LP_I2C_0	0x34e88086
-#define	PCI_CHIP_ICELAKE_LP_I2C_1	0x34e98086
-#define	PCI_CHIP_ICELAKE_LP_I2C_2	0x34ea8086
-#define	PCI_CHIP_ICELAKE_LP_I2C_3	0x34eb8086
-#define	PCI_CHIP_ICELAKE_LP_I2C_4	0x34c58086
-#define	PCI_CHIP_ICELAKE_LP_I2C_5	0x34c68086
-#define PCI_CHIP_TIGERLAKE_H_I2C_0	0x43d88086
-#define PCI_CHIP_TIGERLAKE_H_I2C_1	0x43e88086
-#define PCI_CHIP_TIGERLAKE_H_I2C_2	0x43e98086
-#define PCI_CHIP_TIGERLAKE_H_I2C_3	0x43ea8086
-#define PCI_CHIP_TIGERLAKE_H_I2C_4	0x43eb8086
-#define PCI_CHIP_TIGERLAKE_H_I2C_5	0x43ad8086
-#define PCI_CHIP_TIGERLAKE_H_I2C_6	0x43ae8086
-#define PCI_CHIP_TIGERLAKE_LP_I2C_0	0xa0c58086
-#define PCI_CHIP_TIGERLAKE_LP_I2C_1	0xa0c68086
-#define PCI_CHIP_TIGERLAKE_LP_I2C_2	0xa0d88086
-#define PCI_CHIP_TIGERLAKE_LP_I2C_3	0xa0d98086
-#define PCI_CHIP_TIGERLAKE_LP_I2C_4	0xa0e88086
-#define PCI_CHIP_TIGERLAKE_LP_I2C_5	0xa0e98086
-#define PCI_CHIP_TIGERLAKE_LP_I2C_6	0xa0ea8086
-#define PCI_CHIP_TIGERLAKE_LP_I2C_7	0xa0eb8086
-#define PCI_CHIP_GEMINILAKE_I2C_0	0x31ac8086
-#define PCI_CHIP_GEMINILAKE_I2C_1	0x31ae8086
-#define PCI_CHIP_GEMINILAKE_I2C_2	0x31b08086
-#define PCI_CHIP_GEMINILAKE_I2C_3	0x31b28086
-#define PCI_CHIP_GEMINILAKE_I2C_4	0x31b48086
-#define PCI_CHIP_GEMINILAKE_I2C_5	0x31b68086
-#define PCI_CHIP_GEMINILAKE_I2C_6	0x31b88086
-#define PCI_CHIP_GEMINILAKE_I2C_7	0x31ba8086
-#define PCI_CHIP_ALDERLAKE_P_I2C_0	0x51e88086
-#define PCI_CHIP_ALDERLAKE_P_I2C_1	0x51e98086
-#define PCI_CHIP_ALDERLAKE_P_I2C_2	0x51ea8086
-#define PCI_CHIP_ALDERLAKE_P_I2C_3	0x51eb8086
-#define PCI_CHIP_ALDERLAKE_P_I2C_4	0x51c58086
-#define PCI_CHIP_ALDERLAKE_P_I2C_5	0x51c68086
-#define PCI_CHIP_ALDERLAKE_P_I2C_6	0x51d88086
-#define PCI_CHIP_ALDERLAKE_P_I2C_7	0x51d98086
-#define PCI_CHIP_ALDERLAKE_S_I2C_0	0x7acc8086
-#define PCI_CHIP_ALDERLAKE_S_I2C_1	0x7acd8086
-#define PCI_CHIP_ALDERLAKE_S_I2C_2	0x7ace8086
-#define PCI_CHIP_ALDERLAKE_S_I2C_3	0x7acf8086
-#define PCI_CHIP_ALDERLAKE_S_I2C_4	0x7afc8086
-#define PCI_CHIP_ALDERLAKE_S_I2C_5	0x7afd8086
-#define PCI_CHIP_ALDERLAKE_M_I2C_0	0x54e88086
-#define PCI_CHIP_ALDERLAKE_M_I2C_1	0x54e98086
-#define PCI_CHIP_ALDERLAKE_M_I2C_2	0x54ea8086
-#define PCI_CHIP_ALDERLAKE_M_I2C_3	0x54eb8086
-#define PCI_CHIP_ALDERLAKE_M_I2C_4	0x54c58086
-#define PCI_CHIP_ALDERLAKE_M_I2C_5	0x54c68086
+#define PCI_CHIP_BAYTRAIL_I2C_1 0x0f418086
+#define PCI_CHIP_BAYTRAIL_I2C_2 0x0f428086
+#define PCI_CHIP_BAYTRAIL_I2C_3 0x0f438086
+#define PCI_CHIP_BAYTRAIL_I2C_4 0x0f448086
+#define PCI_CHIP_BAYTRAIL_I2C_5 0x0f458086
+#define PCI_CHIP_BAYTRAIL_I2C_6 0x0f468086
+#define PCI_CHIP_BAYTRAIL_I2C_7 0x0f478086
+#define PCI_CHIP_LYNXPT_LP_I2C_1 0x9c618086
+#define PCI_CHIP_LYNXPT_LP_I2C_2 0x9c628086
+#define PCI_CHIP_BRASWELL_I2C_1 0x22c18086
+#define PCI_CHIP_BRASWELL_I2C_2 0x22c28086
+#define PCI_CHIP_BRASWELL_I2C_3 0x22c38086
+#define PCI_CHIP_BRASWELL_I2C_5 0x22c58086
+#define PCI_CHIP_BRASWELL_I2C_6 0x22c68086
+#define PCI_CHIP_BRASWELL_I2C_7 0x22c78086
+#define PCI_CHIP_SKYLAKE_I2C_0 0x9d608086
+#define PCI_CHIP_SKYLAKE_I2C_1 0x9d618086
+#define PCI_CHIP_SKYLAKE_I2C_2 0x9d628086
+#define PCI_CHIP_SKYLAKE_I2C_3 0x9d638086
+#define PCI_CHIP_SKYLAKE_I2C_4 0x9d648086
+#define PCI_CHIP_SKYLAKE_I2C_5 0x9d658086
+#define PCI_CHIP_KABYLAKE_I2C_0 0xa1608086
+#define PCI_CHIP_KABYLAKE_I2C_1 0xa1618086
+#define PCI_CHIP_APL_I2C_0 0x5aac8086
+#define PCI_CHIP_APL_I2C_1 0x5aae8086
+#define PCI_CHIP_APL_I2C_2 0x5ab08086
+#define PCI_CHIP_APL_I2C_3 0x5ab28086
+#define PCI_CHIP_APL_I2C_4 0x5ab48086
+#define PCI_CHIP_APL_I2C_5 0x5ab68086
+#define PCI_CHIP_APL_I2C_6 0x5ab88086
+#define PCI_CHIP_APL_I2C_7 0x5aba8086
+#define PCI_CHIP_CANNONLAKE_LP_I2C_0 0x9dc58086
+#define PCI_CHIP_CANNONLAKE_LP_I2C_1 0x9dc68086
+#define PCI_CHIP_CANNONLAKE_LP_I2C_2 0x9de88086
+#define PCI_CHIP_CANNONLAKE_LP_I2C_3 0x9de98086
+#define PCI_CHIP_CANNONLAKE_LP_I2C_4 0x9dea8086
+#define PCI_CHIP_CANNONLAKE_LP_I2C_5 0x9deb8086
+#define PCI_CHIP_CANNONLAKE_H_I2C_0 0xa3688086
+#define PCI_CHIP_CANNONLAKE_H_I2C_1 0xa3698086
+#define PCI_CHIP_CANNONLAKE_H_I2C_2 0xa36a8086
+#define PCI_CHIP_CANNONLAKE_H_I2C_3 0xa36b8086
+#define PCI_CHIP_COMETLAKE_LP_I2C_0 0x02e88086
+#define PCI_CHIP_COMETLAKE_LP_I2C_1 0x02e98086
+#define PCI_CHIP_COMETLAKE_LP_I2C_2 0x02ea8086
+#define PCI_CHIP_COMETLAKE_LP_I2C_3 0x02eb8086
+#define PCI_CHIP_COMETLAKE_LP_I2C_4 0x02c58086
+#define PCI_CHIP_COMETLAKE_LP_I2C_5 0x02c68086
+#define PCI_CHIP_COMETLAKE_H_I2C_0 0x06e88086
+#define PCI_CHIP_COMETLAKE_H_I2C_1 0x06e98086
+#define PCI_CHIP_COMETLAKE_H_I2C_2 0x06ea8086
+#define PCI_CHIP_COMETLAKE_H_I2C_3 0x06eb8086
+#define PCI_CHIP_COMETLAKE_V_I2C_0 0xa3e08086
+#define PCI_CHIP_COMETLAKE_V_I2C_1 0xa3e18086
+#define PCI_CHIP_COMETLAKE_V_I2C_2 0xa3e28086
+#define PCI_CHIP_COMETLAKE_V_I2C_3 0xa3e38086
+#define PCI_CHIP_ICELAKE_LP_I2C_0 0x34e88086
+#define PCI_CHIP_ICELAKE_LP_I2C_1 0x34e98086
+#define PCI_CHIP_ICELAKE_LP_I2C_2 0x34ea8086
+#define PCI_CHIP_ICELAKE_LP_I2C_3 0x34eb8086
+#define PCI_CHIP_ICELAKE_LP_I2C_4 0x34c58086
+#define PCI_CHIP_ICELAKE_LP_I2C_5 0x34c68086
+#define PCI_CHIP_TIGERLAKE_H_I2C_0 0x43d88086
+#define PCI_CHIP_TIGERLAKE_H_I2C_1 0x43e88086
+#define PCI_CHIP_TIGERLAKE_H_I2C_2 0x43e98086
+#define PCI_CHIP_TIGERLAKE_H_I2C_3 0x43ea8086
+#define PCI_CHIP_TIGERLAKE_H_I2C_4 0x43eb8086
+#define PCI_CHIP_TIGERLAKE_H_I2C_5 0x43ad8086
+#define PCI_CHIP_TIGERLAKE_H_I2C_6 0x43ae8086
+#define PCI_CHIP_TIGERLAKE_LP_I2C_0 0xa0c58086
+#define PCI_CHIP_TIGERLAKE_LP_I2C_1 0xa0c68086
+#define PCI_CHIP_TIGERLAKE_LP_I2C_2 0xa0d88086
+#define PCI_CHIP_TIGERLAKE_LP_I2C_3 0xa0d98086
+#define PCI_CHIP_TIGERLAKE_LP_I2C_4 0xa0e88086
+#define PCI_CHIP_TIGERLAKE_LP_I2C_5 0xa0e98086
+#define PCI_CHIP_TIGERLAKE_LP_I2C_6 0xa0ea8086
+#define PCI_CHIP_TIGERLAKE_LP_I2C_7 0xa0eb8086
+#define PCI_CHIP_GEMINILAKE_I2C_0 0x31ac8086
+#define PCI_CHIP_GEMINILAKE_I2C_1 0x31ae8086
+#define PCI_CHIP_GEMINILAKE_I2C_2 0x31b08086
+#define PCI_CHIP_GEMINILAKE_I2C_3 0x31b28086
+#define PCI_CHIP_GEMINILAKE_I2C_4 0x31b48086
+#define PCI_CHIP_GEMINILAKE_I2C_5 0x31b68086
+#define PCI_CHIP_GEMINILAKE_I2C_6 0x31b88086
+#define PCI_CHIP_GEMINILAKE_I2C_7 0x31ba8086
+#define PCI_CHIP_ALDERLAKE_P_I2C_0 0x51e88086
+#define PCI_CHIP_ALDERLAKE_P_I2C_1 0x51e98086
+#define PCI_CHIP_ALDERLAKE_P_I2C_2 0x51ea8086
+#define PCI_CHIP_ALDERLAKE_P_I2C_3 0x51eb8086
+#define PCI_CHIP_ALDERLAKE_P_I2C_4 0x51c58086
+#define PCI_CHIP_ALDERLAKE_P_I2C_5 0x51c68086
+#define PCI_CHIP_ALDERLAKE_P_I2C_6 0x51d88086
+#define PCI_CHIP_ALDERLAKE_P_I2C_7 0x51d98086
+#define PCI_CHIP_ALDERLAKE_S_I2C_0 0x7acc8086
+#define PCI_CHIP_ALDERLAKE_S_I2C_1 0x7acd8086
+#define PCI_CHIP_ALDERLAKE_S_I2C_2 0x7ace8086
+#define PCI_CHIP_ALDERLAKE_S_I2C_3 0x7acf8086
+#define PCI_CHIP_ALDERLAKE_S_I2C_4 0x7afc8086
+#define PCI_CHIP_ALDERLAKE_S_I2C_5 0x7afd8086
+#define PCI_CHIP_ALDERLAKE_M_I2C_0 0x54e88086
+#define PCI_CHIP_ALDERLAKE_M_I2C_1 0x54e98086
+#define PCI_CHIP_ALDERLAKE_M_I2C_2 0x54ea8086
+#define PCI_CHIP_ALDERLAKE_M_I2C_3 0x54eb8086
+#define PCI_CHIP_ALDERLAKE_M_I2C_4 0x54c58086
+#define PCI_CHIP_ALDERLAKE_M_I2C_5 0x54c68086
 
 struct ig4iic_pci_device {
-	uint32_t	devid;
-	const char	*desc;
-	enum ig4_vers	version;
+	uint32_t devid;
+	const char *desc;
+	enum ig4_vers version;
 };
 
 static struct ig4iic_pci_device ig4iic_pci_devices[] = {
-	{ PCI_CHIP_BAYTRAIL_I2C_1, "Intel BayTrail Serial I/O I2C Port 1", IG4_ATOM},
-	{ PCI_CHIP_BAYTRAIL_I2C_2, "Intel BayTrail Serial I/O I2C Port 2", IG4_ATOM},
-	{ PCI_CHIP_BAYTRAIL_I2C_3, "Intel BayTrail Serial I/O I2C Port 3", IG4_ATOM},
-	{ PCI_CHIP_BAYTRAIL_I2C_4, "Intel BayTrail Serial I/O I2C Port 4", IG4_ATOM},
-	{ PCI_CHIP_BAYTRAIL_I2C_5, "Intel BayTrail Serial I/O I2C Port 5", IG4_ATOM},
-	{ PCI_CHIP_BAYTRAIL_I2C_6, "Intel BayTrail Serial I/O I2C Port 6", IG4_ATOM},
-	{ PCI_CHIP_BAYTRAIL_I2C_7, "Intel BayTrail Serial I/O I2C Port 7", IG4_ATOM},
-	{ PCI_CHIP_LYNXPT_LP_I2C_1, "Intel Lynx Point-LP I2C Controller-1", IG4_HASWELL},
-	{ PCI_CHIP_LYNXPT_LP_I2C_2, "Intel Lynx Point-LP I2C Controller-2", IG4_HASWELL},
-	{ PCI_CHIP_BRASWELL_I2C_1, "Intel Braswell Serial I/O I2C Port 1", IG4_ATOM},
-	{ PCI_CHIP_BRASWELL_I2C_2, "Intel Braswell Serial I/O I2C Port 2", IG4_ATOM},
-	{ PCI_CHIP_BRASWELL_I2C_3, "Intel Braswell Serial I/O I2C Port 3", IG4_ATOM},
-	{ PCI_CHIP_BRASWELL_I2C_5, "Intel Braswell Serial I/O I2C Port 5", IG4_ATOM},
-	{ PCI_CHIP_BRASWELL_I2C_6, "Intel Braswell Serial I/O I2C Port 6", IG4_ATOM},
-	{ PCI_CHIP_BRASWELL_I2C_7, "Intel Braswell Serial I/O I2C Port 7", IG4_ATOM},
-	{ PCI_CHIP_SKYLAKE_I2C_0, "Intel Sunrise Point-LP I2C Controller-0", IG4_SKYLAKE},
-	{ PCI_CHIP_SKYLAKE_I2C_1, "Intel Sunrise Point-LP I2C Controller-1", IG4_SKYLAKE},
-	{ PCI_CHIP_SKYLAKE_I2C_2, "Intel Sunrise Point-LP I2C Controller-2", IG4_SKYLAKE},
-	{ PCI_CHIP_SKYLAKE_I2C_3, "Intel Sunrise Point-LP I2C Controller-3", IG4_SKYLAKE},
-	{ PCI_CHIP_SKYLAKE_I2C_4, "Intel Sunrise Point-LP I2C Controller-4", IG4_SKYLAKE},
-	{ PCI_CHIP_SKYLAKE_I2C_5, "Intel Sunrise Point-LP I2C Controller-5", IG4_SKYLAKE},
-	{ PCI_CHIP_KABYLAKE_I2C_0, "Intel Sunrise Point-H I2C Controller-0", IG4_SKYLAKE},
-	{ PCI_CHIP_KABYLAKE_I2C_1, "Intel Sunrise Point-H I2C Controller-1", IG4_SKYLAKE},
-	{ PCI_CHIP_APL_I2C_0, "Intel Apollo Lake I2C Controller-0", IG4_APL},
-	{ PCI_CHIP_APL_I2C_1, "Intel Apollo Lake I2C Controller-1", IG4_APL},
-	{ PCI_CHIP_APL_I2C_2, "Intel Apollo Lake I2C Controller-2", IG4_APL},
-	{ PCI_CHIP_APL_I2C_3, "Intel Apollo Lake I2C Controller-3", IG4_APL},
-	{ PCI_CHIP_APL_I2C_4, "Intel Apollo Lake I2C Controller-4", IG4_APL},
-	{ PCI_CHIP_APL_I2C_5, "Intel Apollo Lake I2C Controller-5", IG4_APL},
-	{ PCI_CHIP_APL_I2C_6, "Intel Apollo Lake I2C Controller-6", IG4_APL},
-	{ PCI_CHIP_APL_I2C_7, "Intel Apollo Lake I2C Controller-7", IG4_APL},
-	{ PCI_CHIP_CANNONLAKE_LP_I2C_0, "Intel Cannon Lake-LP I2C Controller-0", IG4_CANNONLAKE},
-	{ PCI_CHIP_CANNONLAKE_LP_I2C_1, "Intel Cannon Lake-LP I2C Controller-1", IG4_CANNONLAKE},
-	{ PCI_CHIP_CANNONLAKE_LP_I2C_2, "Intel Cannon Lake-LP I2C Controller-2", IG4_CANNONLAKE},
-	{ PCI_CHIP_CANNONLAKE_LP_I2C_3, "Intel Cannon Lake-LP I2C Controller-3", IG4_CANNONLAKE},
-	{ PCI_CHIP_CANNONLAKE_LP_I2C_4, "Intel Cannon Lake-LP I2C Controller-4", IG4_CANNONLAKE},
-	{ PCI_CHIP_CANNONLAKE_LP_I2C_5, "Intel Cannon Lake-LP I2C Controller-5", IG4_CANNONLAKE},
-	{ PCI_CHIP_CANNONLAKE_H_I2C_0, "Intel Cannon Lake-H I2C Controller-0", IG4_CANNONLAKE},
-	{ PCI_CHIP_CANNONLAKE_H_I2C_1, "Intel Cannon Lake-H I2C Controller-1", IG4_CANNONLAKE},
-	{ PCI_CHIP_CANNONLAKE_H_I2C_2, "Intel Cannon Lake-H I2C Controller-2", IG4_CANNONLAKE},
-	{ PCI_CHIP_CANNONLAKE_H_I2C_3, "Intel Cannon Lake-H I2C Controller-3", IG4_CANNONLAKE},
-	{ PCI_CHIP_COMETLAKE_LP_I2C_0, "Intel Comet Lake-LP I2C Controller-0", IG4_CANNONLAKE},
-	{ PCI_CHIP_COMETLAKE_LP_I2C_1, "Intel Comet Lake-LP I2C Controller-1", IG4_CANNONLAKE},
-	{ PCI_CHIP_COMETLAKE_LP_I2C_2, "Intel Comet Lake-LP I2C Controller-2", IG4_CANNONLAKE},
-	{ PCI_CHIP_COMETLAKE_LP_I2C_3, "Intel Comet Lake-LP I2C Controller-3", IG4_CANNONLAKE},
-	{ PCI_CHIP_COMETLAKE_LP_I2C_4, "Intel Comet Lake-LP I2C Controller-4", IG4_CANNONLAKE},
-	{ PCI_CHIP_COMETLAKE_LP_I2C_5, "Intel Comet Lake-LP I2C Controller-5", IG4_CANNONLAKE},
-	{ PCI_CHIP_COMETLAKE_H_I2C_0, "Intel Comet Lake-H I2C Controller-0", IG4_CANNONLAKE},
-	{ PCI_CHIP_COMETLAKE_H_I2C_1, "Intel Comet Lake-H I2C Controller-1", IG4_CANNONLAKE},
-	{ PCI_CHIP_COMETLAKE_H_I2C_2, "Intel Comet Lake-H I2C Controller-2", IG4_CANNONLAKE},
-	{ PCI_CHIP_COMETLAKE_H_I2C_3, "Intel Comet Lake-H I2C Controller-3", IG4_CANNONLAKE},
-	{ PCI_CHIP_COMETLAKE_V_I2C_0, "Intel Comet Lake-V I2C Controller-0", IG4_CANNONLAKE},
-	{ PCI_CHIP_COMETLAKE_V_I2C_1, "Intel Comet Lake-V I2C Controller-1", IG4_CANNONLAKE},
-	{ PCI_CHIP_COMETLAKE_V_I2C_2, "Intel Comet Lake-V I2C Controller-2", IG4_CANNONLAKE},
-	{ PCI_CHIP_COMETLAKE_V_I2C_3, "Intel Comet Lake-V I2C Controller-3", IG4_CANNONLAKE},
-	{ PCI_CHIP_ICELAKE_LP_I2C_0, "Intel Ice Lake-LP I2C Controller-0", IG4_TIGERLAKE},
-	{ PCI_CHIP_ICELAKE_LP_I2C_1, "Intel Ice Lake-LP I2C Controller-1", IG4_TIGERLAKE},
-	{ PCI_CHIP_ICELAKE_LP_I2C_2, "Intel Ice Lake-LP I2C Controller-2", IG4_TIGERLAKE},
-	{ PCI_CHIP_ICELAKE_LP_I2C_3, "Intel Ice Lake-LP I2C Controller-3", IG4_TIGERLAKE},
-	{ PCI_CHIP_ICELAKE_LP_I2C_4, "Intel Ice Lake-LP I2C Controller-4", IG4_TIGERLAKE},
-	{ PCI_CHIP_ICELAKE_LP_I2C_5, "Intel Ice Lake-LP I2C Controller-5", IG4_TIGERLAKE},
-	{ PCI_CHIP_TIGERLAKE_H_I2C_0, "Intel Tiger Lake-H I2C Controller-0", IG4_TIGERLAKE},
-	{ PCI_CHIP_TIGERLAKE_H_I2C_1, "Intel Tiger Lake-H I2C Controller-1", IG4_TIGERLAKE},
-	{ PCI_CHIP_TIGERLAKE_H_I2C_2, "Intel Tiger Lake-H I2C Controller-2", IG4_TIGERLAKE},
-	{ PCI_CHIP_TIGERLAKE_H_I2C_3, "Intel Tiger Lake-H I2C Controller-3", IG4_TIGERLAKE},
-	{ PCI_CHIP_TIGERLAKE_H_I2C_4, "Intel Tiger Lake-H I2C Controller-4", IG4_TIGERLAKE},
-	{ PCI_CHIP_TIGERLAKE_H_I2C_5, "Intel Tiger Lake-H I2C Controller-5", IG4_TIGERLAKE},
-	{ PCI_CHIP_TIGERLAKE_H_I2C_6, "Intel Tiger Lake-H I2C Controller-6", IG4_TIGERLAKE},
-	{ PCI_CHIP_TIGERLAKE_LP_I2C_0, "Intel Tiger Lake-LP I2C Controller-0", IG4_SKYLAKE},
-	{ PCI_CHIP_TIGERLAKE_LP_I2C_1, "Intel Tiger Lake-LP I2C Controller-1", IG4_SKYLAKE},
-	{ PCI_CHIP_TIGERLAKE_LP_I2C_2, "Intel Tiger Lake-LP I2C Controller-2", IG4_SKYLAKE},
-	{ PCI_CHIP_TIGERLAKE_LP_I2C_3, "Intel Tiger Lake-LP I2C Controller-3", IG4_SKYLAKE},
-	{ PCI_CHIP_TIGERLAKE_LP_I2C_4, "Intel Tiger Lake-LP I2C Controller-4", IG4_SKYLAKE},
-	{ PCI_CHIP_TIGERLAKE_LP_I2C_5, "Intel Tiger Lake-LP I2C Controller-5", IG4_SKYLAKE},
-	{ PCI_CHIP_TIGERLAKE_LP_I2C_6, "Intel Tiger Lake-LP I2C Controller-6", IG4_SKYLAKE},
-	{ PCI_CHIP_TIGERLAKE_LP_I2C_7, "Intel Tiger Lake-LP I2C Controller-7", IG4_SKYLAKE},
-	{ PCI_CHIP_GEMINILAKE_I2C_0, "Intel Gemini Lake I2C Controller-0", IG4_GEMINILAKE},
-	{ PCI_CHIP_GEMINILAKE_I2C_1, "Intel Gemini Lake I2C Controller-1", IG4_GEMINILAKE},
-	{ PCI_CHIP_GEMINILAKE_I2C_2, "Intel Gemini Lake I2C Controller-2", IG4_GEMINILAKE},
-	{ PCI_CHIP_GEMINILAKE_I2C_3, "Intel Gemini Lake I2C Controller-3", IG4_GEMINILAKE},
-	{ PCI_CHIP_GEMINILAKE_I2C_4, "Intel Gemini Lake I2C Controller-4", IG4_GEMINILAKE},
-	{ PCI_CHIP_GEMINILAKE_I2C_5, "Intel Gemini Lake I2C Controller-5", IG4_GEMINILAKE},
-	{ PCI_CHIP_GEMINILAKE_I2C_6, "Intel Gemini Lake I2C Controller-6", IG4_GEMINILAKE},
-	{ PCI_CHIP_GEMINILAKE_I2C_7, "Intel Gemini Lake I2C Controller-7", IG4_GEMINILAKE},
-	{ PCI_CHIP_ALDERLAKE_P_I2C_0, "Intel Alder Lake-P I2C Controller-0", IG4_TIGERLAKE},
-	{ PCI_CHIP_ALDERLAKE_P_I2C_1, "Intel Alder Lake-P I2C Controller-1", IG4_TIGERLAKE},
-	{ PCI_CHIP_ALDERLAKE_P_I2C_2, "Intel Alder Lake-P I2C Controller-2", IG4_TIGERLAKE},
-	{ PCI_CHIP_ALDERLAKE_P_I2C_3, "Intel Alder Lake-P I2C Controller-3", IG4_TIGERLAKE},
-	{ PCI_CHIP_ALDERLAKE_P_I2C_4, "Intel Alder Lake-P I2C Controller-4", IG4_TIGERLAKE},
-	{ PCI_CHIP_ALDERLAKE_P_I2C_5, "Intel Alder Lake-P I2C Controller-5", IG4_TIGERLAKE},
-	{ PCI_CHIP_ALDERLAKE_P_I2C_6, "Intel Alder Lake-P I2C Controller-6", IG4_TIGERLAKE},
-	{ PCI_CHIP_ALDERLAKE_P_I2C_7, "Intel Alder Lake-P I2C Controller-7", IG4_TIGERLAKE},
-	{ PCI_CHIP_ALDERLAKE_S_I2C_0, "Intel Alder Lake-S I2C Controller-0", IG4_TIGERLAKE},
-	{ PCI_CHIP_ALDERLAKE_S_I2C_1, "Intel Alder Lake-S I2C Controller-1", IG4_TIGERLAKE},
-	{ PCI_CHIP_ALDERLAKE_S_I2C_2, "Intel Alder Lake-S I2C Controller-2", IG4_TIGERLAKE},
-	{ PCI_CHIP_ALDERLAKE_S_I2C_3, "Intel Alder Lake-S I2C Controller-3", IG4_TIGERLAKE},
-	{ PCI_CHIP_ALDERLAKE_S_I2C_4, "Intel Alder Lake-S I2C Controller-4", IG4_TIGERLAKE},
-	{ PCI_CHIP_ALDERLAKE_S_I2C_5, "Intel Alder Lake-S I2C Controller-5", IG4_TIGERLAKE},
-	{ PCI_CHIP_ALDERLAKE_M_I2C_0, "Intel Alder Lake-M I2C Controller-0", IG4_TIGERLAKE},
-	{ PCI_CHIP_ALDERLAKE_M_I2C_1, "Intel Alder Lake-M I2C Controller-1", IG4_TIGERLAKE},
-	{ PCI_CHIP_ALDERLAKE_M_I2C_2, "Intel Alder Lake-M I2C Controller-2", IG4_TIGERLAKE},
-	{ PCI_CHIP_ALDERLAKE_M_I2C_3, "Intel Alder Lake-M I2C Controller-3", IG4_TIGERLAKE},
-	{ PCI_CHIP_ALDERLAKE_M_I2C_4, "Intel Alder Lake-M I2C Controller-4", IG4_TIGERLAKE},
-	{ PCI_CHIP_ALDERLAKE_M_I2C_5, "Intel Alder Lake-M I2C Controller-5", IG4_TIGERLAKE},
+	{ PCI_CHIP_BAYTRAIL_I2C_1, "Intel BayTrail Serial I/O I2C Port 1",
+	    IG4_ATOM },
+	{ PCI_CHIP_BAYTRAIL_I2C_2, "Intel BayTrail Serial I/O I2C Port 2",
+	    IG4_ATOM },
+	{ PCI_CHIP_BAYTRAIL_I2C_3, "Intel BayTrail Serial I/O I2C Port 3",
+	    IG4_ATOM },
+	{ PCI_CHIP_BAYTRAIL_I2C_4, "Intel BayTrail Serial I/O I2C Port 4",
+	    IG4_ATOM },
+	{ PCI_CHIP_BAYTRAIL_I2C_5, "Intel BayTrail Serial I/O I2C Port 5",
+	    IG4_ATOM },
+	{ PCI_CHIP_BAYTRAIL_I2C_6, "Intel BayTrail Serial I/O I2C Port 6",
+	    IG4_ATOM },
+	{ PCI_CHIP_BAYTRAIL_I2C_7, "Intel BayTrail Serial I/O I2C Port 7",
+	    IG4_ATOM },
+	{ PCI_CHIP_LYNXPT_LP_I2C_1, "Intel Lynx Point-LP I2C Controller-1",
+	    IG4_HASWELL },
+	{ PCI_CHIP_LYNXPT_LP_I2C_2, "Intel Lynx Point-LP I2C Controller-2",
+	    IG4_HASWELL },
+	{ PCI_CHIP_BRASWELL_I2C_1, "Intel Braswell Serial I/O I2C Port 1",
+	    IG4_ATOM },
+	{ PCI_CHIP_BRASWELL_I2C_2, "Intel Braswell Serial I/O I2C Port 2",
+	    IG4_ATOM },
+	{ PCI_CHIP_BRASWELL_I2C_3, "Intel Braswell Serial I/O I2C Port 3",
+	    IG4_ATOM },
+	{ PCI_CHIP_BRASWELL_I2C_5, "Intel Braswell Serial I/O I2C Port 5",
+	    IG4_ATOM },
+	{ PCI_CHIP_BRASWELL_I2C_6, "Intel Braswell Serial I/O I2C Port 6",
+	    IG4_ATOM },
+	{ PCI_CHIP_BRASWELL_I2C_7, "Intel Braswell Serial I/O I2C Port 7",
+	    IG4_ATOM },
+	{ PCI_CHIP_SKYLAKE_I2C_0, "Intel Sunrise Point-LP I2C Controller-0",
+	    IG4_SKYLAKE },
+	{ PCI_CHIP_SKYLAKE_I2C_1, "Intel Sunrise Point-LP I2C Controller-1",
+	    IG4_SKYLAKE },
+	{ PCI_CHIP_SKYLAKE_I2C_2, "Intel Sunrise Point-LP I2C Controller-2",
+	    IG4_SKYLAKE },
+	{ PCI_CHIP_SKYLAKE_I2C_3, "Intel Sunrise Point-LP I2C Controller-3",
+	    IG4_SKYLAKE },
+	{ PCI_CHIP_SKYLAKE_I2C_4, "Intel Sunrise Point-LP I2C Controller-4",
+	    IG4_SKYLAKE },
+	{ PCI_CHIP_SKYLAKE_I2C_5, "Intel Sunrise Point-LP I2C Controller-5",
+	    IG4_SKYLAKE },
+	{ PCI_CHIP_KABYLAKE_I2C_0, "Intel Sunrise Point-H I2C Controller-0",
+	    IG4_SKYLAKE },
+	{ PCI_CHIP_KABYLAKE_I2C_1, "Intel Sunrise Point-H I2C Controller-1",
+	    IG4_SKYLAKE },
+	{ PCI_CHIP_APL_I2C_0, "Intel Apollo Lake I2C Controller-0", IG4_APL },
+	{ PCI_CHIP_APL_I2C_1, "Intel Apollo Lake I2C Controller-1", IG4_APL },
+	{ PCI_CHIP_APL_I2C_2, "Intel Apollo Lake I2C Controller-2", IG4_APL },
+	{ PCI_CHIP_APL_I2C_3, "Intel Apollo Lake I2C Controller-3", IG4_APL },
+	{ PCI_CHIP_APL_I2C_4, "Intel Apollo Lake I2C Controller-4", IG4_APL },
+	{ PCI_CHIP_APL_I2C_5, "Intel Apollo Lake I2C Controller-5", IG4_APL },
+	{ PCI_CHIP_APL_I2C_6, "Intel Apollo Lake I2C Controller-6", IG4_APL },
+	{ PCI_CHIP_APL_I2C_7, "Intel Apollo Lake I2C Controller-7", IG4_APL },
+	{ PCI_CHIP_CANNONLAKE_LP_I2C_0, "Intel Cannon Lake-LP I2C Controller-0",
+	    IG4_CANNONLAKE },
+	{ PCI_CHIP_CANNONLAKE_LP_I2C_1, "Intel Cannon Lake-LP I2C Controller-1",
+	    IG4_CANNONLAKE },
+	{ PCI_CHIP_CANNONLAKE_LP_I2C_2, "Intel Cannon Lake-LP I2C Controller-2",
+	    IG4_CANNONLAKE },
+	{ PCI_CHIP_CANNONLAKE_LP_I2C_3, "Intel Cannon Lake-LP I2C Controller-3",
+	    IG4_CANNONLAKE },
+	{ PCI_CHIP_CANNONLAKE_LP_I2C_4, "Intel Cannon Lake-LP I2C Controller-4",
+	    IG4_CANNONLAKE },
+	{ PCI_CHIP_CANNONLAKE_LP_I2C_5, "Intel Cannon Lake-LP I2C Controller-5",
+	    IG4_CANNONLAKE },
+	{ PCI_CHIP_CANNONLAKE_H_I2C_0, "Intel Cannon Lake-H I2C Controller-0",
+	    IG4_CANNONLAKE },
+	{ PCI_CHIP_CANNONLAKE_H_I2C_1, "Intel Cannon Lake-H I2C Controller-1",
+	    IG4_CANNONLAKE },
+	{ PCI_CHIP_CANNONLAKE_H_I2C_2, "Intel Cannon Lake-H I2C Controller-2",
+	    IG4_CANNONLAKE },
+	{ PCI_CHIP_CANNONLAKE_H_I2C_3, "Intel Cannon Lake-H I2C Controller-3",
+	    IG4_CANNONLAKE },
+	{ PCI_CHIP_COMETLAKE_LP_I2C_0, "Intel Comet Lake-LP I2C Controller-0",
+	    IG4_CANNONLAKE },
+	{ PCI_CHIP_COMETLAKE_LP_I2C_1, "Intel Comet Lake-LP I2C Controller-1",
+	    IG4_CANNONLAKE },
+	{ PCI_CHIP_COMETLAKE_LP_I2C_2, "Intel Comet Lake-LP I2C Controller-2",
+	    IG4_CANNONLAKE },
+	{ PCI_CHIP_COMETLAKE_LP_I2C_3, "Intel Comet Lake-LP I2C Controller-3",
+	    IG4_CANNONLAKE },
+	{ PCI_CHIP_COMETLAKE_LP_I2C_4, "Intel Comet Lake-LP I2C Controller-4",
+	    IG4_CANNONLAKE },
+	{ PCI_CHIP_COMETLAKE_LP_I2C_5, "Intel Comet Lake-LP I2C Controller-5",
+	    IG4_CANNONLAKE },
+	{ PCI_CHIP_COMETLAKE_H_I2C_0, "Intel Comet Lake-H I2C Controller-0",
+	    IG4_CANNONLAKE },
+	{ PCI_CHIP_COMETLAKE_H_I2C_1, "Intel Comet Lake-H I2C Controller-1",
+	    IG4_CANNONLAKE },
+	{ PCI_CHIP_COMETLAKE_H_I2C_2, "Intel Comet Lake-H I2C Controller-2",
+	    IG4_CANNONLAKE },
+	{ PCI_CHIP_COMETLAKE_H_I2C_3, "Intel Comet Lake-H I2C Controller-3",
+	    IG4_CANNONLAKE },
+	{ PCI_CHIP_COMETLAKE_V_I2C_0, "Intel Comet Lake-V I2C Controller-0",
+	    IG4_CANNONLAKE },
+	{ PCI_CHIP_COMETLAKE_V_I2C_1, "Intel Comet Lake-V I2C Controller-1",
+	    IG4_CANNONLAKE },
+	{ PCI_CHIP_COMETLAKE_V_I2C_2, "Intel Comet Lake-V I2C Controller-2",
+	    IG4_CANNONLAKE },
+	{ PCI_CHIP_COMETLAKE_V_I2C_3, "Intel Comet Lake-V I2C Controller-3",
+	    IG4_CANNONLAKE },
+	{ PCI_CHIP_ICELAKE_LP_I2C_0, "Intel Ice Lake-LP I2C Controller-0",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_ICELAKE_LP_I2C_1, "Intel Ice Lake-LP I2C Controller-1",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_ICELAKE_LP_I2C_2, "Intel Ice Lake-LP I2C Controller-2",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_ICELAKE_LP_I2C_3, "Intel Ice Lake-LP I2C Controller-3",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_ICELAKE_LP_I2C_4, "Intel Ice Lake-LP I2C Controller-4",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_ICELAKE_LP_I2C_5, "Intel Ice Lake-LP I2C Controller-5",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_TIGERLAKE_H_I2C_0, "Intel Tiger Lake-H I2C Controller-0",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_TIGERLAKE_H_I2C_1, "Intel Tiger Lake-H I2C Controller-1",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_TIGERLAKE_H_I2C_2, "Intel Tiger Lake-H I2C Controller-2",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_TIGERLAKE_H_I2C_3, "Intel Tiger Lake-H I2C Controller-3",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_TIGERLAKE_H_I2C_4, "Intel Tiger Lake-H I2C Controller-4",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_TIGERLAKE_H_I2C_5, "Intel Tiger Lake-H I2C Controller-5",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_TIGERLAKE_H_I2C_6, "Intel Tiger Lake-H I2C Controller-6",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_TIGERLAKE_LP_I2C_0, "Intel Tiger Lake-LP I2C Controller-0",
+	    IG4_SKYLAKE },
+	{ PCI_CHIP_TIGERLAKE_LP_I2C_1, "Intel Tiger Lake-LP I2C Controller-1",
+	    IG4_SKYLAKE },
+	{ PCI_CHIP_TIGERLAKE_LP_I2C_2, "Intel Tiger Lake-LP I2C Controller-2",
+	    IG4_SKYLAKE },
+	{ PCI_CHIP_TIGERLAKE_LP_I2C_3, "Intel Tiger Lake-LP I2C Controller-3",
+	    IG4_SKYLAKE },
+	{ PCI_CHIP_TIGERLAKE_LP_I2C_4, "Intel Tiger Lake-LP I2C Controller-4",
+	    IG4_SKYLAKE },
+	{ PCI_CHIP_TIGERLAKE_LP_I2C_5, "Intel Tiger Lake-LP I2C Controller-5",
+	    IG4_SKYLAKE },
+	{ PCI_CHIP_TIGERLAKE_LP_I2C_6, "Intel Tiger Lake-LP I2C Controller-6",
+	    IG4_SKYLAKE },
+	{ PCI_CHIP_TIGERLAKE_LP_I2C_7, "Intel Tiger Lake-LP I2C Controller-7",
+	    IG4_SKYLAKE },
+	{ PCI_CHIP_GEMINILAKE_I2C_0, "Intel Gemini Lake I2C Controller-0",
+	    IG4_GEMINILAKE },
+	{ PCI_CHIP_GEMINILAKE_I2C_1, "Intel Gemini Lake I2C Controller-1",
+	    IG4_GEMINILAKE },
+	{ PCI_CHIP_GEMINILAKE_I2C_2, "Intel Gemini Lake I2C Controller-2",
+	    IG4_GEMINILAKE },
+	{ PCI_CHIP_GEMINILAKE_I2C_3, "Intel Gemini Lake I2C Controller-3",
+	    IG4_GEMINILAKE },
+	{ PCI_CHIP_GEMINILAKE_I2C_4, "Intel Gemini Lake I2C Controller-4",
+	    IG4_GEMINILAKE },
+	{ PCI_CHIP_GEMINILAKE_I2C_5, "Intel Gemini Lake I2C Controller-5",
+	    IG4_GEMINILAKE },
+	{ PCI_CHIP_GEMINILAKE_I2C_6, "Intel Gemini Lake I2C Controller-6",
+	    IG4_GEMINILAKE },
+	{ PCI_CHIP_GEMINILAKE_I2C_7, "Intel Gemini Lake I2C Controller-7",
+	    IG4_GEMINILAKE },
+	{ PCI_CHIP_ALDERLAKE_P_I2C_0, "Intel Alder Lake-P I2C Controller-0",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_ALDERLAKE_P_I2C_1, "Intel Alder Lake-P I2C Controller-1",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_ALDERLAKE_P_I2C_2, "Intel Alder Lake-P I2C Controller-2",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_ALDERLAKE_P_I2C_3, "Intel Alder Lake-P I2C Controller-3",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_ALDERLAKE_P_I2C_4, "Intel Alder Lake-P I2C Controller-4",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_ALDERLAKE_P_I2C_5, "Intel Alder Lake-P I2C Controller-5",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_ALDERLAKE_P_I2C_6, "Intel Alder Lake-P I2C Controller-6",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_ALDERLAKE_P_I2C_7, "Intel Alder Lake-P I2C Controller-7",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_ALDERLAKE_S_I2C_0, "Intel Alder Lake-S I2C Controller-0",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_ALDERLAKE_S_I2C_1, "Intel Alder Lake-S I2C Controller-1",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_ALDERLAKE_S_I2C_2, "Intel Alder Lake-S I2C Controller-2",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_ALDERLAKE_S_I2C_3, "Intel Alder Lake-S I2C Controller-3",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_ALDERLAKE_S_I2C_4, "Intel Alder Lake-S I2C Controller-4",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_ALDERLAKE_S_I2C_5, "Intel Alder Lake-S I2C Controller-5",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_ALDERLAKE_M_I2C_0, "Intel Alder Lake-M I2C Controller-0",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_ALDERLAKE_M_I2C_1, "Intel Alder Lake-M I2C Controller-1",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_ALDERLAKE_M_I2C_2, "Intel Alder Lake-M I2C Controller-2",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_ALDERLAKE_M_I2C_3, "Intel Alder Lake-M I2C Controller-3",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_ALDERLAKE_M_I2C_4, "Intel Alder Lake-M I2C Controller-4",
+	    IG4_TIGERLAKE },
+	{ PCI_CHIP_ALDERLAKE_M_I2C_5, "Intel Alder Lake-M I2C Controller-5",
+	    IG4_TIGERLAKE },
 };
 
 static int
@@ -309,7 +404,7 @@ ig4iic_pci_attach(device_t dev)
 	sc->dev = dev;
 	sc->regs_rid = PCIR_BAR(0);
 	sc->regs_res = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-					  &sc->regs_rid, RF_ACTIVE);
+	    &sc->regs_rid, RF_ACTIVE);
 	if (sc->regs_res == NULL) {
 		device_printf(dev, "unable to map registers\n");
 		ig4iic_pci_detach(dev);
@@ -319,8 +414,8 @@ ig4iic_pci_attach(device_t dev)
 	if (pci_alloc_msi(dev, &sc->intr_rid)) {
 		device_printf(dev, "Using MSI\n");
 	}
-	sc->intr_res = bus_alloc_resource_any(dev, SYS_RES_IRQ,
-					  &sc->intr_rid, RF_SHAREABLE | RF_ACTIVE);
+	sc->intr_res = bus_alloc_resource_any(dev, SYS_RES_IRQ, &sc->intr_rid,
+	    RF_SHAREABLE | RF_ACTIVE);
 	if (sc->intr_res == NULL) {
 		device_printf(dev, "unable to map interrupt\n");
 		ig4iic_pci_detach(dev);
@@ -349,15 +444,15 @@ ig4iic_pci_detach(device_t dev)
 	}
 
 	if (sc->intr_res) {
-		bus_release_resource(dev, SYS_RES_IRQ,
-				     sc->intr_rid, sc->intr_res);
+		bus_release_resource(dev, SYS_RES_IRQ, sc->intr_rid,
+		    sc->intr_res);
 		sc->intr_res = NULL;
 	}
 	if (sc->intr_rid != 0)
 		pci_release_msi(dev);
 	if (sc->regs_res) {
-		bus_release_resource(dev, SYS_RES_MEMORY,
-				     sc->regs_rid, sc->regs_res);
+		bus_release_resource(dev, SYS_RES_MEMORY, sc->regs_rid,
+		    sc->regs_res);
 		sc->regs_res = NULL;
 	}
 
@@ -375,7 +470,7 @@ ig4iic_pci_suspend(device_t dev)
 static int
 ig4iic_pci_resume(device_t dev)
 {
-	ig4iic_softc_t *sc  = device_get_softc(dev);
+	ig4iic_softc_t *sc = device_get_softc(dev);
 
 	return (ig4iic_resume(sc));
 }
@@ -405,11 +500,8 @@ static device_method_t ig4iic_pci_methods[] = {
 	DEVMETHOD_END
 };
 
-static driver_t ig4iic_pci_driver = {
-	"ig4iic",
-	ig4iic_pci_methods,
-	sizeof(struct ig4iic_softc)
-};
+static driver_t ig4iic_pci_driver = { "ig4iic", ig4iic_pci_methods,
+	sizeof(struct ig4iic_softc) };
 
 DRIVER_MODULE_ORDERED(ig4iic, pci, ig4iic_pci_driver, 0, 0, SI_ORDER_ANY);
 MODULE_DEPEND(ig4iic, pci, 1, 1, 1);

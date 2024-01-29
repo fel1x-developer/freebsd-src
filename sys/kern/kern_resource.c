@@ -36,7 +36,6 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/sysproto.h>
 #include <sys/file.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
@@ -44,8 +43,8 @@
 #include <sys/mutex.h>
 #include <sys/priv.h>
 #include <sys/proc.h>
-#include <sys/refcount.h>
 #include <sys/racct.h>
+#include <sys/refcount.h>
 #include <sys/resourcevar.h>
 #include <sys/rwlock.h>
 #include <sys/sched.h>
@@ -53,34 +52,35 @@
 #include <sys/syscallsubr.h>
 #include <sys/sysctl.h>
 #include <sys/sysent.h>
+#include <sys/sysproto.h>
 #include <sys/time.h>
 #include <sys/umtxvar.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
 #include <vm/pmap.h>
 #include <vm/vm_map.h>
+#include <vm/vm_param.h>
 
 static MALLOC_DEFINE(M_PLIMIT, "plimit", "plimit structures");
 static MALLOC_DEFINE(M_UIDINFO, "uidinfo", "uidinfo structures");
-#define	UIHASH(uid)	(&uihashtbl[(uid) & uihash])
+#define UIHASH(uid) (&uihashtbl[(uid) & uihash])
 static struct rwlock uihashtbl_lock;
 static LIST_HEAD(uihashhead, uidinfo) *uihashtbl;
-static u_long uihash;		/* size of hash table - 1 */
+static u_long uihash; /* size of hash table - 1 */
 
-static void	calcru1(struct proc *p, struct rusage_ext *ruxp,
-		    struct timeval *up, struct timeval *sp);
-static int	donice(struct thread *td, struct proc *chgp, int n);
+static void calcru1(struct proc *p, struct rusage_ext *ruxp, struct timeval *up,
+    struct timeval *sp);
+static int donice(struct thread *td, struct proc *chgp, int n);
 static struct uidinfo *uilookup(uid_t uid);
-static void	ruxagg_ext_locked(struct rusage_ext *rux, struct thread *td);
+static void ruxagg_ext_locked(struct rusage_ext *rux, struct thread *td);
 
 /*
  * Resource controls and accounting.
  */
 #ifndef _SYS_SYSPROTO_H_
 struct getpriority_args {
-	int	which;
-	int	who;
+	int which;
+	int who;
 };
 #endif
 int
@@ -126,10 +126,9 @@ kern_getpriority(struct thread *td, int which, int who)
 			}
 		}
 		sx_sunlock(&proctree_lock);
-		LIST_FOREACH(p, &pg->pg_members, p_pglist) {
+		LIST_FOREACH (p, &pg->pg_members, p_pglist) {
 			PROC_LOCK(p);
-			if (p->p_state == PRS_NORMAL &&
-			    p_cansee(td, p) == 0) {
+			if (p->p_state == PRS_NORMAL && p_cansee(td, p) == 0) {
 				if (p->p_nice < low)
 					low = p->p_nice;
 			}
@@ -142,10 +141,9 @@ kern_getpriority(struct thread *td, int which, int who)
 		if (who == 0)
 			who = td->td_ucred->cr_uid;
 		sx_slock(&allproc_lock);
-		FOREACH_PROC_IN_SYSTEM(p) {
+		FOREACH_PROC_IN_SYSTEM (p) {
 			PROC_LOCK(p);
-			if (p->p_state == PRS_NORMAL &&
-			    p_cansee(td, p) == 0 &&
+			if (p->p_state == PRS_NORMAL && p_cansee(td, p) == 0 &&
 			    p->p_ucred->cr_uid == who) {
 				if (p->p_nice < low)
 					low = p->p_nice;
@@ -167,9 +165,9 @@ kern_getpriority(struct thread *td, int which, int who)
 
 #ifndef _SYS_SYSPROTO_H_
 struct setpriority_args {
-	int	which;
-	int	who;
-	int	prio;
+	int which;
+	int who;
+	int prio;
 };
 #endif
 int
@@ -218,10 +216,9 @@ kern_setpriority(struct thread *td, int which, int who, int prio)
 			}
 		}
 		sx_sunlock(&proctree_lock);
-		LIST_FOREACH(p, &pg->pg_members, p_pglist) {
+		LIST_FOREACH (p, &pg->pg_members, p_pglist) {
 			PROC_LOCK(p);
-			if (p->p_state == PRS_NORMAL &&
-			    p_cansee(td, p) == 0) {
+			if (p->p_state == PRS_NORMAL && p_cansee(td, p) == 0) {
 				error = donice(td, p, prio);
 				found++;
 			}
@@ -234,11 +231,10 @@ kern_setpriority(struct thread *td, int which, int who, int prio)
 		if (who == 0)
 			who = td->td_ucred->cr_uid;
 		sx_slock(&allproc_lock);
-		FOREACH_PROC_IN_SYSTEM(p) {
+		FOREACH_PROC_IN_SYSTEM (p) {
 			PROC_LOCK(p);
 			if (p->p_state == PRS_NORMAL &&
-			    p->p_ucred->cr_uid == who &&
-			    p_cansee(td, p) == 0) {
+			    p->p_ucred->cr_uid == who && p_cansee(td, p) == 0) {
 				error = donice(td, p, prio);
 				found++;
 			}
@@ -287,9 +283,9 @@ SYSCTL_INT(_security_bsd, OID_AUTO, unprivileged_idprio, CTLFLAG_RW,
  */
 #ifndef _SYS_SYSPROTO_H_
 struct rtprio_thread_args {
-	int		function;
-	lwpid_t		lwpid;
-	struct rtprio	*rtp;
+	int function;
+	lwpid_t lwpid;
+	struct rtprio *rtp;
 };
 #endif
 int
@@ -368,9 +364,9 @@ sys_rtprio_thread(struct thread *td, struct rtprio_thread_args *uap)
  */
 #ifndef _SYS_SYSPROTO_H_
 struct rtprio_args {
-	int		function;
-	pid_t		pid;
-	struct rtprio	*rtp;
+	int function;
+	pid_t pid;
+	struct rtprio *rtp;
 };
 #endif
 int
@@ -415,11 +411,11 @@ sys_rtprio(struct thread *td, struct rtprio_args *uap)
 
 			rtp.type = RTP_PRIO_IDLE;
 			rtp.prio = RTP_PRIO_MAX;
-			FOREACH_THREAD_IN_PROC(p, tdp) {
+			FOREACH_THREAD_IN_PROC (p, tdp) {
 				pri_to_rtp(tdp, &rtp2);
-				if (rtp2.type <  rtp.type ||
+				if (rtp2.type < rtp.type ||
 				    (rtp2.type == rtp.type &&
-				    rtp2.prio < rtp.prio)) {
+					rtp2.prio < rtp.prio)) {
 					rtp.type = rtp2.type;
 					rtp.prio = rtp2.prio;
 				}
@@ -453,7 +449,7 @@ sys_rtprio(struct thread *td, struct rtprio_args *uap)
 		if (uap->pid == 0) {
 			error = rtp_to_pri(&rtp, td);
 		} else {
-			FOREACH_THREAD_IN_PROC(p, td) {
+			FOREACH_THREAD_IN_PROC (p, td) {
 				if ((error = rtp_to_pri(&rtp, td)) != 0)
 					break;
 			}
@@ -470,7 +466,7 @@ sys_rtprio(struct thread *td, struct rtprio_args *uap)
 int
 rtp_to_pri(struct rtprio *rtp, struct thread *td)
 {
-	u_char  newpri, oldclass, oldpri;
+	u_char newpri, oldclass, oldpri;
 
 	switch (RTP_PRIO_BASE(rtp->type)) {
 	case RTP_PRIO_REALTIME:
@@ -494,11 +490,12 @@ rtp_to_pri(struct rtprio *rtp, struct thread *td)
 
 	thread_lock(td);
 	oldclass = td->td_pri_class;
-	sched_class(td, rtp->type);	/* XXX fix */
+	sched_class(td, rtp->type); /* XXX fix */
 	oldpri = td->td_user_pri;
 	sched_user_prio(td, newpri);
-	if (td->td_user_pri != oldpri && (oldclass != RTP_PRIO_NORMAL ||
-	    td->td_pri_class != RTP_PRIO_NORMAL))
+	if (td->td_user_pri != oldpri &&
+	    (oldclass != RTP_PRIO_NORMAL ||
+		td->td_pri_class != RTP_PRIO_NORMAL))
 		sched_prio(td, td->td_user_pri);
 	if (TD_ON_UPILOCK(td) && oldpri != newpri) {
 		critical_enter();
@@ -535,8 +532,8 @@ pri_to_rtp(struct thread *td, struct rtprio *rtp)
 #if defined(COMPAT_43)
 #ifndef _SYS_SYSPROTO_H_
 struct osetrlimit_args {
-	u_int	which;
-	struct	orlimit *rlp;
+	u_int which;
+	struct orlimit *rlp;
 };
 #endif
 int
@@ -556,8 +553,8 @@ osetrlimit(struct thread *td, struct osetrlimit_args *uap)
 
 #ifndef _SYS_SYSPROTO_H_
 struct ogetrlimit_args {
-	u_int	which;
-	struct	orlimit *rlp;
+	u_int which;
+	struct orlimit *rlp;
 };
 #endif
 int
@@ -589,8 +586,8 @@ ogetrlimit(struct thread *td, struct ogetrlimit_args *uap)
 
 #ifndef _SYS_SYSPROTO_H_
 struct setrlimit_args {
-	u_int	which;
-	struct	rlimit *rlp;
+	u_int which;
+	struct rlimit *rlp;
 };
 #endif
 int
@@ -621,7 +618,7 @@ lim_cb(void *arg)
 	if (p->p_cpulimit == RLIM_INFINITY)
 		return;
 	PROC_STATLOCK(p);
-	FOREACH_THREAD_IN_PROC(p, td) {
+	FOREACH_THREAD_IN_PROC (p, td) {
 		ruxagg(p, td);
 	}
 	PROC_STATUNLOCK(p);
@@ -636,8 +633,7 @@ lim_cb(void *arg)
 		}
 	}
 	if ((p->p_flag & P_WEXIT) == 0)
-		callout_reset_sbt(&p->p_limco, SBT_1S, 0,
-		    lim_cb, p, C_PREL(1));
+		callout_reset_sbt(&p->p_limco, SBT_1S, 0, lim_cb, p, C_PREL(1));
 }
 
 int
@@ -688,8 +684,8 @@ kern_proc_setrlimit(struct thread *td, struct proc *p, u_int which,
 	case RLIMIT_CPU:
 		if (limp->rlim_cur != RLIM_INFINITY &&
 		    p->p_cpulimit == RLIM_INFINITY)
-			callout_reset_sbt(&p->p_limco, SBT_1S, 0,
-			    lim_cb, p, C_PREL(1));
+			callout_reset_sbt(&p->p_limco, SBT_1S, 0, lim_cb, p,
+			    C_PREL(1));
 		p->p_cpulimit = limp->rlim_cur;
 		break;
 	case RLIMIT_DATA:
@@ -706,8 +702,7 @@ kern_proc_setrlimit(struct thread *td, struct proc *p, u_int which,
 			limp->rlim_max = maxssiz;
 		oldssiz = *alimp;
 		if (p->p_sysent->sv_fixlimit != NULL)
-			p->p_sysent->sv_fixlimit(&oldssiz,
-			    RLIMIT_STACK);
+			p->p_sysent->sv_fixlimit(&oldssiz, RLIMIT_STACK);
 		break;
 
 	case RLIMIT_NOFILE:
@@ -775,9 +770,8 @@ kern_proc_setrlimit(struct thread *td, struct proc *p, u_int which,
 			}
 			addr = trunc_page(addr);
 			size = round_page(size);
-			(void)vm_map_protect(&p->p_vmspace->vm_map,
-			    addr, addr + size, prot, 0,
-			    VM_MAP_PROTECT_SET_PROT);
+			(void)vm_map_protect(&p->p_vmspace->vm_map, addr,
+			    addr + size, prot, 0, VM_MAP_PROTECT_SET_PROT);
 		}
 	}
 
@@ -786,8 +780,8 @@ kern_proc_setrlimit(struct thread *td, struct proc *p, u_int which,
 
 #ifndef _SYS_SYSPROTO_H_
 struct getrlimit_args {
-	u_int	which;
-	struct	rlimit *rlp;
+	u_int which;
+	struct rlimit *rlp;
 };
 #endif
 /* ARGSUSED */
@@ -844,7 +838,7 @@ calcru(struct proc *p, struct timeval *up, struct timeval *sp)
 		PCPU_SET(switchtime, u);
 	}
 	/* Make sure the per-thread stats are current. */
-	FOREACH_THREAD_IN_PROC(p, td) {
+	FOREACH_THREAD_IN_PROC (p, td) {
 		if (td->td_incruntime == 0)
 			continue;
 		ruxagg(p, td);
@@ -908,7 +902,7 @@ mul64_by_fraction(uint64_t a, uint64_t b, uint64_t c)
 	 * is per-process.
 	 */
 	if (a >= (uint64_t)1 << 63)
-		return (0);		/* Unsupported arg -- can't happen. */
+		return (0); /* Unsupported arg -- can't happen. */
 	acc = 0;
 	for (i = 0; i < 128; i++) {
 		sa = flsll(a);
@@ -956,7 +950,7 @@ mul64_by_fraction(uint64_t a, uint64_t b, uint64_t c)
 		a <<= s;
 		b = bh;
 	}
-	return (0);		/* Algorithm failure -- can't happen. */
+	return (0); /* Algorithm failure -- can't happen. */
 }
 
 static void
@@ -1015,7 +1009,7 @@ calcru1(struct proc *p, struct rusage_ext *ruxp, struct timeval *up,
 		uu = ruxp->rux_uu;
 		su = ruxp->rux_su;
 		tu = ruxp->rux_tu;
-	} else if (vm_guest == VM_GUEST_NO) {  /* tu < ruxp->rux_tu */
+	} else if (vm_guest == VM_GUEST_NO) { /* tu < ruxp->rux_tu */
 		/*
 		 * What happened here was likely that a laptop, which ran at
 		 * a reduced clock frequency at boot, kicked into high gear.
@@ -1025,9 +1019,9 @@ calcru1(struct proc *p, struct rusage_ext *ruxp, struct timeval *up,
 		 * more truthful about their CPU speed via ACPI.
 		 */
 		printf("calcru: runtime went backwards from %ju usec "
-		    "to %ju usec for pid %d (%s)\n",
-		    (uintmax_t)ruxp->rux_tu, (uintmax_t)tu,
-		    p->p_pid, p->p_comm);
+		       "to %ju usec for pid %d (%s)\n",
+		    (uintmax_t)ruxp->rux_tu, (uintmax_t)tu, p->p_pid,
+		    p->p_comm);
 	}
 
 	ruxp->rux_uu = uu;
@@ -1042,8 +1036,8 @@ calcru1(struct proc *p, struct rusage_ext *ruxp, struct timeval *up,
 
 #ifndef _SYS_SYSPROTO_H_
 struct getrusage_args {
-	int	who;
-	struct	rusage *rusage;
+	int who;
+	struct rusage *rusage;
 };
 #endif
 int
@@ -1069,8 +1063,7 @@ kern_getrusage(struct thread *td, int who, struct rusage *rup)
 	PROC_LOCK(p);
 	switch (who) {
 	case RUSAGE_SELF:
-		rufetchcalc(p, rup, &rup->ru_utime,
-		    &rup->ru_stime);
+		rufetchcalc(p, rup, &rup->ru_utime, &rup->ru_stime);
 		break;
 
 	case RUSAGE_CHILDREN:
@@ -1170,8 +1163,8 @@ rufetch(struct proc *p, struct rusage *ru)
 	PROC_STATLOCK_ASSERT(p, MA_OWNED);
 
 	*ru = p->p_ru;
-	if (p->p_numthreads > 0)  {
-		FOREACH_THREAD_IN_PROC(p, td) {
+	if (p->p_numthreads > 0) {
+		FOREACH_THREAD_IN_PROC (p, td) {
 			ruxagg(p, td);
 			rucollect(ru, &td->td_ru);
 		}
@@ -1246,8 +1239,8 @@ lim_fork(struct proc *p1, struct proc *p2)
 	p2->p_limit = lim_hold(p1->p_limit);
 	callout_init_mtx(&p2->p_limco, &p2->p_mtx, 0);
 	if (p1->p_cpulimit != RLIM_INFINITY)
-		callout_reset_sbt(&p2->p_limco, SBT_1S, 0,
-		    lim_cb, p2, C_PREL(1));
+		callout_reset_sbt(&p2->p_limco, SBT_1S, 0, lim_cb, p2,
+		    C_PREL(1));
 }
 
 void
@@ -1331,8 +1324,7 @@ lim_max_proc(struct proc *p, int which)
  * Return the current (soft) limit for a particular system resource.
  * The which parameter which specifies the index into the rlimit array
  */
-rlim_t
-(lim_cur)(struct thread *td, int which)
+rlim_t(lim_cur)(struct thread *td, int which)
 {
 	struct rlimit rl;
 
@@ -1399,7 +1391,7 @@ uilookup(uid_t uid)
 
 	rw_assert(&uihashtbl_lock, RA_LOCKED);
 	uipp = UIHASH(uid);
-	LIST_FOREACH(uip, uipp, ui_hash)
+	LIST_FOREACH (uip, uipp, ui_hash)
 		if (uip->ui_uid == uid) {
 			uihold(uip);
 			break;
@@ -1502,8 +1494,8 @@ uifree(struct uidinfo *uip)
 	rw_wunlock(&uihashtbl_lock);
 
 	if (uip->ui_sbsize != 0)
-		printf("freeing uidinfo: uid = %d, sbsize = %ld\n",
-		    uip->ui_uid, uip->ui_sbsize);
+		printf("freeing uidinfo: uid = %d, sbsize = %ld\n", uip->ui_uid,
+		    uip->ui_sbsize);
 	if (uip->ui_proccnt != 0)
 		printf("freeing uidinfo: uid = %d, proccnt = %ld\n",
 		    uip->ui_uid, uip->ui_proccnt);
@@ -1515,9 +1507,8 @@ uifree(struct uidinfo *uip)
 
 #ifdef RACCT
 void
-ui_racct_foreach(void (*callback)(struct racct *racct,
-    void *arg2, void *arg3), void (*pre)(void), void (*post)(void),
-    void *arg2, void *arg3)
+ui_racct_foreach(void (*callback)(struct racct *racct, void *arg2, void *arg3),
+    void (*pre)(void), void (*post)(void), void *arg2, void *arg3)
 {
 	struct uidinfo *uip;
 	struct uihashhead *uih;
@@ -1526,7 +1517,7 @@ ui_racct_foreach(void (*callback)(struct racct *racct,
 	if (pre != NULL)
 		(pre)();
 	for (uih = &uihashtbl[uihash]; uih >= uihashtbl; uih--) {
-		LIST_FOREACH(uip, uih, ui_hash) {
+		LIST_FOREACH (uip, uih, ui_hash) {
 			(callback)(uip->ui_racct, arg2, arg3);
 		}
 	}
@@ -1537,7 +1528,8 @@ ui_racct_foreach(void (*callback)(struct racct *racct,
 #endif
 
 static inline int
-chglimit(struct uidinfo *uip, long *limit, int diff, rlim_t max, const char *name)
+chglimit(struct uidinfo *uip, long *limit, int diff, rlim_t max,
+    const char *name)
 {
 	long new;
 

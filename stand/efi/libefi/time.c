@@ -39,11 +39,11 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/time.h>
+
 #include <efi.h>
 #include <efilib.h>
-
 #include <time.h>
-#include <sys/time.h>
 
 /*
  * Accurate only for the past couple of centuries;
@@ -52,10 +52,9 @@
  * (#defines From FreeBSD 3.2 lib/libc/stdtime/tzfile.h)
  */
 
-#define	isleap(y)	(((y) % 4) == 0 && \
-			    (((y) % 100) != 0 || ((y) % 400) == 0))
-#define	SECSPERHOUR	(60*60)
-#define	SECSPERDAY	(24 * SECSPERHOUR)
+#define isleap(y) (((y) % 4) == 0 && (((y) % 100) != 0 || ((y) % 400) == 0))
+#define SECSPERHOUR (60 * 60)
+#define SECSPERDAY (24 * SECSPERHOUR)
 
 /*
  *  These arrays give the cumulative number of days up to the first of the
@@ -63,34 +62,23 @@
  *  The value at index 13 is for the whole year.
  */
 static const time_t CumulativeDays[2][14] = {
-	{0,
-	0,
-	31,
-	31 + 28,
-	31 + 28 + 31,
-	31 + 28 + 31 + 30,
-	31 + 28 + 31 + 30 + 31,
-	31 + 28 + 31 + 30 + 31 + 30,
-	31 + 28 + 31 + 30 + 31 + 30 + 31,
-	31 + 28 + 31 + 30 + 31 + 30 + 31 + 31,
-	31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30,
-	31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31,
-	31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30,
-	31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30 + 31 },
-	{0,
-	0,
-	31,
-	31 + 29,
-	31 + 29 + 31,
-	31 + 29 + 31 + 30,
-	31 + 29 + 31 + 30 + 31,
-	31 + 29 + 31 + 30 + 31 + 30,
-	31 + 29 + 31 + 30 + 31 + 30 + 31,
-	31 + 29 + 31 + 30 + 31 + 30 + 31 + 31,
-	31 + 29 + 31 + 30 + 31 + 30 + 31 + 31 + 30,
-	31 + 29 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31,
-	31 + 29 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30,
-	31 + 29 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30 + 31 }};
+	{ 0, 0, 31, 31 + 28, 31 + 28 + 31, 31 + 28 + 31 + 30,
+	    31 + 28 + 31 + 30 + 31, 31 + 28 + 31 + 30 + 31 + 30,
+	    31 + 28 + 31 + 30 + 31 + 30 + 31,
+	    31 + 28 + 31 + 30 + 31 + 30 + 31 + 31,
+	    31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30,
+	    31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31,
+	    31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30,
+	    31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30 + 31 },
+	{ 0, 0, 31, 31 + 29, 31 + 29 + 31, 31 + 29 + 31 + 30,
+	    31 + 29 + 31 + 30 + 31, 31 + 29 + 31 + 30 + 31 + 30,
+	    31 + 29 + 31 + 30 + 31 + 30 + 31,
+	    31 + 29 + 31 + 30 + 31 + 30 + 31 + 31,
+	    31 + 29 + 31 + 30 + 31 + 30 + 31 + 31 + 30,
+	    31 + 29 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31,
+	    31 + 29 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30,
+	    31 + 29 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30 + 31 }
+};
 
 void
 efi_time_init(void)
@@ -113,7 +101,7 @@ to_efi_time(EFI_TIME *efi_time, time_t time)
 		lyear = isleap(efi_time->Year);
 		month = 13;
 		seconds = CumulativeDays[lyear][month] * SECSPERDAY;
-                while (time > seconds) {
+		while (time > seconds) {
 			time -= seconds;
 			efi_time->Year++;
 			lyear = isleap(efi_time->Year);
@@ -121,8 +109,7 @@ to_efi_time(EFI_TIME *efi_time, time_t time)
 		}
 
 		efi_time->Month = 0;
-                while (time >
-		    CumulativeDays[lyear][month] * SECSPERDAY) {
+		while (time > CumulativeDays[lyear][month] * SECSPERDAY) {
 			efi_time->Month++;
 		}
 
@@ -150,18 +137,17 @@ to_efi_time(EFI_TIME *efi_time, time_t time)
 time_t
 from_efi_time(EFI_TIME *ETime)
 {
-	time_t  UTime;
-	int	Year;
+	time_t UTime;
+	int Year;
 
 	/*
 	 *  Do a santity check
 	 */
-	if (ETime->Year  <  1998 || ETime->Year   > 2099 ||
-	    ETime->Month ==    0 || ETime->Month  >   12 ||
-	    ETime->Day   ==    0 || ETime->Month  >   31 ||
-	    ETime->Hour   >   23 || ETime->Minute >   59 ||
-	    ETime->Second >   59 || ETime->TimeZone  < -1440 ||
-	    (ETime->TimeZone >  1440 && ETime->TimeZone != 2047)) {
+	if (ETime->Year < 1998 || ETime->Year > 2099 || ETime->Month == 0 ||
+	    ETime->Month > 12 || ETime->Day == 0 || ETime->Month > 31 ||
+	    ETime->Hour > 23 || ETime->Minute > 59 || ETime->Second > 59 ||
+	    ETime->TimeZone < -1440 ||
+	    (ETime->TimeZone > 1440 && ETime->TimeZone != 2047)) {
 		return (0);
 	}
 
@@ -176,7 +162,7 @@ from_efi_time(EFI_TIME *ETime)
 	/*
 	 * UTime should now be set to 00:00:00 on Jan 1 of the file's year.
 	 *
-	 * Months  
+	 * Months
 	 */
 	UTime += (CumulativeDays[isleap(ETime->Year)][ETime->Month] *
 	    SECSPERDAY);
@@ -187,7 +173,7 @@ from_efi_time(EFI_TIME *ETime)
 	 *
 	 * Days -- Don't count the file's day
 	 */
-	UTime += (((ETime->Day > 0) ? ETime->Day-1:0) * SECSPERDAY);
+	UTime += (((ETime->Day > 0) ? ETime->Day - 1 : 0) * SECSPERDAY);
 
 	/*
 	 * Hours
@@ -221,9 +207,9 @@ from_efi_time(EFI_TIME *ETime)
 static int
 EFI_GetTimeOfDay(OUT struct timeval *tp, OUT struct timezone *tzp)
 {
-	EFI_TIME		EfiTime;
-	EFI_TIME_CAPABILITIES	Capabilities;
-	EFI_STATUS		Status;
+	EFI_TIME EfiTime;
+	EFI_TIME_CAPABILITIES Capabilities;
+	EFI_STATUS Status;
 
 	/*
 	 *  Get time from EFI
@@ -237,7 +223,7 @@ EFI_GetTimeOfDay(OUT struct timeval *tp, OUT struct timezone *tzp)
 	 *  Convert to UNIX time (ie seconds since the epoch
 	 */
 
-	tp->tv_sec  = from_efi_time(&EfiTime);
+	tp->tv_sec = from_efi_time(&EfiTime);
 	tp->tv_usec = 0; /* EfiTime.Nanosecond * 1000; */
 
 	/*
@@ -253,8 +239,9 @@ EFI_GetTimeOfDay(OUT struct timeval *tp, OUT struct timezone *tzp)
 		 * This isn't quit right since it doesn't deal with
 		 * EFI_TIME_IN_DAYLIGHT
 		 */
-		tzp->tz_dsttime =
-			EfiTime.Daylight & EFI_TIME_ADJUST_DAYLIGHT ? 1 : 0;
+		tzp->tz_dsttime = EfiTime.Daylight & EFI_TIME_ADJUST_DAYLIGHT ?
+		    1 :
+		    0;
 	}
 
 	return (0);
@@ -277,5 +264,5 @@ time_t
 getsecs(void)
 {
 
-    return (time(NULL));
+	return (time(NULL));
 }

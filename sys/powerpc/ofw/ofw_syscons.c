@@ -28,31 +28,30 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/module.h>
 #include <sys/bus.h>
-#include <sys/kernel.h>
-#include <sys/sysctl.h>
-#include <sys/limits.h>
 #include <sys/conf.h>
 #include <sys/cons.h>
-#include <sys/proc.h>
-#include <sys/fcntl.h>
-#include <sys/malloc.h>
-#include <sys/fbio.h>
 #include <sys/consio.h>
+#include <sys/fbio.h>
+#include <sys/fcntl.h>
+#include <sys/kernel.h>
+#include <sys/limits.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/proc.h>
+#include <sys/rman.h>
+#include <sys/sysctl.h>
 
 #include <machine/bus.h>
 #include <machine/sc_machdep.h>
 #include <machine/vm.h>
 
-#include <sys/rman.h>
-
 #include <dev/fb/fbreg.h>
-#include <dev/syscons/syscons.h>
-
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_pci.h>
+#include <dev/ofw/openfirm.h>
+#include <dev/syscons/syscons.h>
+
 #include <powerpc/ofw/ofw_syscons.h>
 
 static int ofwfb_ignore_mmap_checks = 1;
@@ -103,37 +102,37 @@ static vi_puts_t ofwfb_puts;
 static vi_putm_t ofwfb_putm;
 
 static video_switch_t ofwfbvidsw = {
-	.probe			= ofwfb_probe,
-	.init			= ofwfb_init,
-	.get_info		= ofwfb_get_info,
-	.query_mode		= ofwfb_query_mode,
-	.set_mode		= ofwfb_set_mode,
-	.save_font		= ofwfb_save_font,
-	.load_font		= ofwfb_load_font,
-	.show_font		= ofwfb_show_font,
-	.save_palette		= ofwfb_save_palette,
-	.load_palette		= ofwfb_load_palette,
-	.set_border		= ofwfb_set_border,
-	.save_state		= ofwfb_save_state,
-	.load_state		= ofwfb_load_state,
-	.set_win_org		= ofwfb_set_win_org,
-	.read_hw_cursor		= ofwfb_read_hw_cursor,
-	.set_hw_cursor		= ofwfb_set_hw_cursor,
-	.set_hw_cursor_shape	= ofwfb_set_hw_cursor_shape,
-	.blank_display		= ofwfb_blank_display,
-	.mmap			= ofwfb_mmap,
-	.ioctl			= ofwfb_ioctl,
-	.clear			= ofwfb_clear,
-	.fill_rect		= ofwfb_fill_rect,
-	.bitblt			= ofwfb_bitblt,
-	.diag			= ofwfb_diag,
-	.save_cursor_palette	= ofwfb_save_cursor_palette,
-	.load_cursor_palette	= ofwfb_load_cursor_palette,
-	.copy			= ofwfb_copy,
-	.putp			= ofwfb_putp,
-	.putc			= ofwfb_putc,
-	.puts			= ofwfb_puts,
-	.putm			= ofwfb_putm,
+	.probe = ofwfb_probe,
+	.init = ofwfb_init,
+	.get_info = ofwfb_get_info,
+	.query_mode = ofwfb_query_mode,
+	.set_mode = ofwfb_set_mode,
+	.save_font = ofwfb_save_font,
+	.load_font = ofwfb_load_font,
+	.show_font = ofwfb_show_font,
+	.save_palette = ofwfb_save_palette,
+	.load_palette = ofwfb_load_palette,
+	.set_border = ofwfb_set_border,
+	.save_state = ofwfb_save_state,
+	.load_state = ofwfb_load_state,
+	.set_win_org = ofwfb_set_win_org,
+	.read_hw_cursor = ofwfb_read_hw_cursor,
+	.set_hw_cursor = ofwfb_set_hw_cursor,
+	.set_hw_cursor_shape = ofwfb_set_hw_cursor_shape,
+	.blank_display = ofwfb_blank_display,
+	.mmap = ofwfb_mmap,
+	.ioctl = ofwfb_ioctl,
+	.clear = ofwfb_clear,
+	.fill_rect = ofwfb_fill_rect,
+	.bitblt = ofwfb_bitblt,
+	.diag = ofwfb_diag,
+	.save_cursor_palette = ofwfb_save_cursor_palette,
+	.load_cursor_palette = ofwfb_load_cursor_palette,
+	.copy = ofwfb_copy,
+	.putp = ofwfb_putp,
+	.putc = ofwfb_putc,
+	.puts = ofwfb_puts,
+	.putm = ofwfb_putm,
 };
 
 /*
@@ -160,32 +159,33 @@ RENDERER_MODULE(ofwfb, gfb_set);
  * Define the iso6429-1983 colormap
  */
 static struct {
-	uint8_t	red;
-	uint8_t	green;
-	uint8_t	blue;
-} ofwfb_cmap[16] = {		/*  #     R    G    B   Color */
-				/*  -     -    -    -   ----- */
-	{ 0x00, 0x00, 0x00 },	/*  0     0    0    0   Black */
-	{ 0x00, 0x00, 0xaa },	/*  1     0    0  2/3   Blue  */
-	{ 0x00, 0xaa, 0x00 },	/*  2     0  2/3    0   Green */
-	{ 0x00, 0xaa, 0xaa },	/*  3     0  2/3  2/3   Cyan  */
-	{ 0xaa, 0x00, 0x00 },	/*  4   2/3    0    0   Red   */
-	{ 0xaa, 0x00, 0xaa },	/*  5   2/3    0  2/3   Magenta */
-	{ 0xaa, 0x55, 0x00 },	/*  6   2/3  1/3    0   Brown */
-	{ 0xaa, 0xaa, 0xaa },	/*  7   2/3  2/3  2/3   White */
-        { 0x55, 0x55, 0x55 },	/*  8   1/3  1/3  1/3   Gray  */
-	{ 0x55, 0x55, 0xff },	/*  9   1/3  1/3    1   Bright Blue  */
-	{ 0x55, 0xff, 0x55 },	/* 10   1/3    1  1/3   Bright Green */
-	{ 0x55, 0xff, 0xff },	/* 11   1/3    1    1   Bright Cyan  */
-	{ 0xff, 0x55, 0x55 },	/* 12     1  1/3  1/3   Bright Red   */
-	{ 0xff, 0x55, 0xff },	/* 13     1  1/3    1   Bright Magenta */
-	{ 0xff, 0xff, 0x80 },	/* 14     1    1  1/3   Bright Yellow */
-	{ 0xff, 0xff, 0xff }	/* 15     1    1    1   Bright White */
+	uint8_t red;
+	uint8_t green;
+	uint8_t blue;
+} ofwfb_cmap[16] = {
+	/*  #     R    G    B   Color */
+	/*  -     -    -    -   ----- */
+	{ 0x00, 0x00, 0x00 }, /*  0     0    0    0   Black */
+	{ 0x00, 0x00, 0xaa }, /*  1     0    0  2/3   Blue  */
+	{ 0x00, 0xaa, 0x00 }, /*  2     0  2/3    0   Green */
+	{ 0x00, 0xaa, 0xaa }, /*  3     0  2/3  2/3   Cyan  */
+	{ 0xaa, 0x00, 0x00 }, /*  4   2/3    0    0   Red   */
+	{ 0xaa, 0x00, 0xaa }, /*  5   2/3    0  2/3   Magenta */
+	{ 0xaa, 0x55, 0x00 }, /*  6   2/3  1/3    0   Brown */
+	{ 0xaa, 0xaa, 0xaa }, /*  7   2/3  2/3  2/3   White */
+	{ 0x55, 0x55, 0x55 }, /*  8   1/3  1/3  1/3   Gray  */
+	{ 0x55, 0x55, 0xff }, /*  9   1/3  1/3    1   Bright Blue  */
+	{ 0x55, 0xff, 0x55 }, /* 10   1/3    1  1/3   Bright Green */
+	{ 0x55, 0xff, 0xff }, /* 11   1/3    1    1   Bright Cyan  */
+	{ 0xff, 0x55, 0x55 }, /* 12     1  1/3  1/3   Bright Red   */
+	{ 0xff, 0x55, 0xff }, /* 13     1  1/3    1   Bright Magenta */
+	{ 0xff, 0xff, 0x80 }, /* 14     1    1  1/3   Bright Yellow */
+	{ 0xff, 0xff, 0xff }  /* 15     1    1    1   Bright White */
 };
 
-#define	TODO	printf("%s: unimplemented\n", __func__)
+#define TODO printf("%s: unimplemented\n", __func__)
 
-static u_int16_t ofwfb_static_window[ROW*COL];
+static u_int16_t ofwfb_static_window[ROW * COL];
 
 static struct ofwfb_softc ofwfb_softc;
 
@@ -208,12 +208,10 @@ ofwfb_pix32(struct ofwfb_softc *sc, int attr)
 
 	if (sc->sc_tag == &bs_le_tag)
 		retval = (ofwfb_cmap[attr].red << 16) |
-			(ofwfb_cmap[attr].green << 8) |
-			ofwfb_cmap[attr].blue;
+		    (ofwfb_cmap[attr].green << 8) | ofwfb_cmap[attr].blue;
 	else
-		retval = (ofwfb_cmap[attr].blue  << 16) |
-			(ofwfb_cmap[attr].green << 8) |
-			ofwfb_cmap[attr].red;
+		retval = (ofwfb_cmap[attr].blue << 16) |
+		    (ofwfb_cmap[attr].green << 8) | ofwfb_cmap[attr].red;
 
 	return (retval);
 }
@@ -222,8 +220,8 @@ static int
 ofwfb_configure(int flags)
 {
 	struct ofwfb_softc *sc;
-        phandle_t chosen;
-        ihandle_t stdout;
+	phandle_t chosen;
+	ihandle_t stdout;
 	phandle_t node;
 	uint32_t fb_phys;
 	int depth;
@@ -246,7 +244,7 @@ ofwfb_configure(int flags)
 
 	chosen = OF_finddevice("/chosen");
 	OF_getprop(chosen, "stdout", &stdout, sizeof(stdout));
-        node = OF_instance_to_package(stdout);
+	node = OF_instance_to_package(stdout);
 	if (node == -1) {
 		/*
 		 * The "/chosen/stdout" does not exist try
@@ -291,7 +289,7 @@ ofwfb_configure(int flags)
 	 * the assigned-addresses property.
 	 */
 	len = OF_getprop(node, "assigned-addresses", sc->sc_pciaddrs,
-	          sizeof(sc->sc_pciaddrs));
+	    sizeof(sc->sc_pciaddrs));
 	if (len == -1) {
 		len = OF_getprop(OF_parent(node), "assigned-addresses",
 		    sc->sc_pciaddrs, sizeof(sc->sc_pciaddrs));
@@ -310,8 +308,9 @@ ofwfb_configure(int flags)
 	if (OF_getproplen(node, "address") == sizeof(fb_phys)) {
 		OF_getprop(node, "address", &fb_phys, sizeof(fb_phys));
 		sc->sc_tag = &bs_be_tag;
-		bus_space_map(sc->sc_tag, fb_phys, sc->sc_height *
-		    sc->sc_stride, BUS_SPACE_MAP_PREFETCHABLE, &sc->sc_addr);
+		bus_space_map(sc->sc_tag, fb_phys,
+		    sc->sc_height * sc->sc_stride, BUS_SPACE_MAP_PREFETCHABLE,
+		    &sc->sc_addr);
 	} else {
 		/*
 		 * Some IBM systems don't have an address property. Try to
@@ -324,11 +323,11 @@ ofwfb_configure(int flags)
 		for (i = 0; i < sc->sc_num_pciaddrs; i++) {
 			/* If it is too small, not the framebuffer */
 			if (sc->sc_pciaddrs[i].size_lo <
-			    sc->sc_stride*sc->sc_height)
+			    sc->sc_stride * sc->sc_height)
 				continue;
 			/* If it is not memory, it isn't either */
 			if (!(sc->sc_pciaddrs[i].phys_hi &
-			    OFW_PCI_PHYS_HI_SPACE_MEM32))
+				OFW_PCI_PHYS_HI_SPACE_MEM32))
 				continue;
 
 			/* This could be the framebuffer */
@@ -390,8 +389,8 @@ ofwfb_init(int unit, video_adapter_t *adp, int flags)
 	TUNABLE_INT_FETCH("hw.syscons.border", &cborder);
 
 	vi->vi_cheight = sc->sc_font_height;
-	vi->vi_width = sc->sc_width/8 - 2*cborder;
-	vi->vi_height = sc->sc_height/sc->sc_font_height - 2*cborder;
+	vi->vi_width = sc->sc_width / 8 - 2 * cborder;
+	vi->vi_height = sc->sc_height / sc->sc_font_height - 2 * cborder;
 	vi->vi_cwidth = 8;
 
 	/*
@@ -403,13 +402,13 @@ ofwfb_init(int unit, video_adapter_t *adp, int flags)
 		vi->vi_height = ROW;
 
 	sc->sc_xmargin = (sc->sc_width - (vi->vi_width * vi->vi_cwidth)) / 2;
-	sc->sc_ymargin = (sc->sc_height - (vi->vi_height * vi->vi_cheight))/2;
+	sc->sc_ymargin = (sc->sc_height - (vi->vi_height * vi->vi_cheight)) / 2;
 
 	/*
 	 * Avoid huge amounts of conditional code in syscons by
 	 * defining a dummy h/w text display buffer.
 	 */
-	adp->va_window = (vm_offset_t) ofwfb_static_window;
+	adp->va_window = (vm_offset_t)ofwfb_static_window;
 
 	/*
 	 * Enable future font-loading and flag color support, as well as
@@ -466,11 +465,8 @@ ofwfb_set_mode(video_adapter_t *adp, int mode)
 			 */
 			for (i = 0; i < 16; i++) {
 				OF_call_method("color!", ih, 4, 1,
-						   ofwfb_cmap[i].red,
-						   ofwfb_cmap[i].green,
-						   ofwfb_cmap[i].blue,
-						   i,
-						   &retval);
+				    ofwfb_cmap[i].red, ofwfb_cmap[i].green,
+				    ofwfb_cmap[i].blue, i, &retval);
 			}
 		}
 	}
@@ -538,7 +534,7 @@ ofwfb_set_border8(video_adapter_t *adp, int border)
 	bground = ofwfb_background(border);
 
 	/* Set top margin */
-	addr = (uint8_t *) sc->sc_addr;
+	addr = (uint8_t *)sc->sc_addr;
 	for (i = 0; i < sc->sc_ymargin; i++) {
 		for (j = 0; j < sc->sc_width; j++) {
 			*(addr + j) = bground;
@@ -547,7 +543,8 @@ ofwfb_set_border8(video_adapter_t *adp, int border)
 	}
 
 	/* bottom margin */
-	addr = (uint8_t *) sc->sc_addr + (sc->sc_height - sc->sc_ymargin)*sc->sc_stride;
+	addr = (uint8_t *)sc->sc_addr +
+	    (sc->sc_height - sc->sc_ymargin) * sc->sc_stride;
 	for (i = 0; i < sc->sc_ymargin; i++) {
 		for (j = 0; j < sc->sc_width; j++) {
 			*(addr + j) = bground;
@@ -556,8 +553,8 @@ ofwfb_set_border8(video_adapter_t *adp, int border)
 	}
 
 	/* remaining left and right borders */
-	addr = (uint8_t *) sc->sc_addr + sc->sc_ymargin*sc->sc_stride;
-	for (i = 0; i < sc->sc_height - 2*sc->sc_xmargin; i++) {
+	addr = (uint8_t *)sc->sc_addr + sc->sc_ymargin * sc->sc_stride;
+	for (i = 0; i < sc->sc_height - 2 * sc->sc_xmargin; i++) {
 		for (j = 0; j < sc->sc_xmargin; j++) {
 			*(addr + j) = bground;
 			*(addr + j + sc->sc_width - sc->sc_xmargin) = bground;
@@ -639,8 +636,8 @@ ofwfb_blank_display8(video_adapter_t *adp, int mode)
 	uint32_t end;
 
 	sc = (struct ofwfb_softc *)adp;
-	addr = (uint32_t *) sc->sc_addr;
-	end = (sc->sc_stride/4) * sc->sc_height;
+	addr = (uint32_t *)sc->sc_addr;
+	end = (sc->sc_stride / 4) * sc->sc_height;
 
 	/* Splat 4 pixels at once. */
 	color = (ofwfb_background(SC_NORM_ATTR) << 24) |
@@ -662,10 +659,10 @@ ofwfb_blank_display32(video_adapter_t *adp, int mode)
 	uint32_t *addr, blank;
 
 	sc = (struct ofwfb_softc *)adp;
-	addr = (uint32_t *) sc->sc_addr;
+	addr = (uint32_t *)sc->sc_addr;
 	blank = ofwfb_pix32(sc, ofwfb_background(SC_NORM_ATTR));
 
-	for (i = 0; i < (sc->sc_stride/4)*sc->sc_height; i++)
+	for (i = 0; i < (sc->sc_stride / 4) * sc->sc_height; i++)
 		*(addr + i) = blank;
 
 	return (0);
@@ -695,9 +692,9 @@ ofwfb_mmap(video_adapter_t *adp, vm_ooffset_t offset, vm_paddr_t *paddr,
 	 * assigned addrs
 	 */
 	for (i = 0; i < sc->sc_num_pciaddrs; i++)
-	  if (offset >= sc->sc_pciaddrs[i].phys_lo &&
-	    offset < (sc->sc_pciaddrs[i].phys_lo + sc->sc_pciaddrs[i].size_lo))
-		{
+		if (offset >= sc->sc_pciaddrs[i].phys_lo &&
+		    offset < (sc->sc_pciaddrs[i].phys_lo +
+				 sc->sc_pciaddrs[i].size_lo)) {
 			/*
 			 * If this is a prefetchable BAR, we can (and should)
 			 * enable write-combining.
@@ -722,7 +719,7 @@ ofwfb_mmap(video_adapter_t *adp, vm_ooffset_t offset, vm_paddr_t *paddr,
 	 * This might be a legacy VGA mem request: if so, just point it at the
 	 * framebuffer, since it shouldn't be touched
 	 */
-	if (offset < sc->sc_stride*sc->sc_height) {
+	if (offset < sc->sc_stride * sc->sc_height) {
 		*paddr = sc->sc_addr + offset;
 		return (0);
 	}
@@ -811,16 +808,15 @@ ofwfb_putc8(video_adapter_t *adp, vm_offset_t off, uint8_t c, uint8_t a)
 	u_char *p, fg, bg;
 	union {
 		uint32_t l;
-		uint8_t  c[4];
+		uint8_t c[4];
 	} ch1, ch2;
 
 	sc = (struct ofwfb_softc *)adp;
-        row = (off / adp->va_info.vi_width) * adp->va_info.vi_cheight;
-        col = (off % adp->va_info.vi_width) * adp->va_info.vi_cwidth;
-	p = sc->sc_font + c*sc->sc_font_height;
-	addr = (u_int32_t *)((uintptr_t)sc->sc_addr
-		+ (row + sc->sc_ymargin)*sc->sc_stride
-		+ col + sc->sc_xmargin);
+	row = (off / adp->va_info.vi_width) * adp->va_info.vi_cheight;
+	col = (off % adp->va_info.vi_width) * adp->va_info.vi_cwidth;
+	p = sc->sc_font + c * sc->sc_font_height;
+	addr = (u_int32_t *)((uintptr_t)sc->sc_addr +
+	    (row + sc->sc_ymargin) * sc->sc_stride + col + sc->sc_xmargin);
 
 	fg = ofwfb_foreground(a);
 	bg = ofwfb_background(a);
@@ -838,15 +834,23 @@ ofwfb_putc8(video_adapter_t *adp, vm_offset_t off, uint8_t c, uint8_t a)
 		 * Calculate 2 x 4-chars at a time, and then
 		 * write these out.
 		 */
-		if (fline & 0x80) ch1.c[0] = fg;
-		if (fline & 0x40) ch1.c[1] = fg;
-		if (fline & 0x20) ch1.c[2] = fg;
-		if (fline & 0x10) ch1.c[3] = fg;
+		if (fline & 0x80)
+			ch1.c[0] = fg;
+		if (fline & 0x40)
+			ch1.c[1] = fg;
+		if (fline & 0x20)
+			ch1.c[2] = fg;
+		if (fline & 0x10)
+			ch1.c[3] = fg;
 
-		if (fline & 0x08) ch2.c[0] = fg;
-		if (fline & 0x04) ch2.c[1] = fg;
-		if (fline & 0x02) ch2.c[2] = fg;
-		if (fline & 0x01) ch2.c[3] = fg;
+		if (fline & 0x08)
+			ch2.c[0] = fg;
+		if (fline & 0x04)
+			ch2.c[1] = fg;
+		if (fline & 0x02)
+			ch2.c[2] = fg;
+		if (fline & 0x01)
+			ch2.c[3] = fg;
 
 		addr[0] = ch1.l;
 		addr[1] = ch2.l;
@@ -867,12 +871,11 @@ ofwfb_putc32(video_adapter_t *adp, vm_offset_t off, uint8_t c, uint8_t a)
 	u_char *p;
 
 	sc = (struct ofwfb_softc *)adp;
-        row = (off / adp->va_info.vi_width) * adp->va_info.vi_cheight;
-        col = (off % adp->va_info.vi_width) * adp->va_info.vi_cwidth;
-	p = sc->sc_font + c*sc->sc_font_height;
-	addr = (uint32_t *)sc->sc_addr
-		+ (row + sc->sc_ymargin)*(sc->sc_stride/4)
-		+ col + sc->sc_xmargin;
+	row = (off / adp->va_info.vi_width) * adp->va_info.vi_cheight;
+	col = (off % adp->va_info.vi_width) * adp->va_info.vi_cwidth;
+	p = sc->sc_font + c * sc->sc_font_height;
+	addr = (uint32_t *)sc->sc_addr +
+	    (row + sc->sc_ymargin) * (sc->sc_stride / 4) + col + sc->sc_xmargin;
 
 	fg = ofwfb_pix32(sc, ofwfb_foreground(a));
 	bg = ofwfb_pix32(sc, ofwfb_background(a));
@@ -884,7 +887,7 @@ ofwfb_putc32(video_adapter_t *adp, vm_offset_t off, uint8_t c, uint8_t a)
 			else
 				*(addr + j) = fg;
 		}
-		addr += (sc->sc_stride/4);
+		addr += (sc->sc_stride / 4);
 	}
 
 	return (0);
@@ -919,8 +922,8 @@ ofwfb_putm(video_adapter_t *adp, int x, int y, uint8_t *pixel_image,
 
 	sc = (struct ofwfb_softc *)adp;
 
-	return ((*sc->sc_putm)(adp, x, y, pixel_image, pixel_mask, size,
-	    width));
+	return (
+	    (*sc->sc_putm)(adp, x, y, pixel_image, pixel_mask, size, width));
 }
 
 static int
@@ -933,20 +936,20 @@ ofwfb_putm8(video_adapter_t *adp, int x, int y, uint8_t *pixel_image,
 	u_char fg, bg;
 
 	sc = (struct ofwfb_softc *)adp;
-	addr = (u_int8_t *)((uintptr_t)sc->sc_addr
-		+ (y + sc->sc_ymargin)*sc->sc_stride
-		+ x + sc->sc_xmargin);
+	addr = (u_int8_t *)((uintptr_t)sc->sc_addr +
+	    (y + sc->sc_ymargin) * sc->sc_stride + x + sc->sc_xmargin);
 
 	fg = ofwfb_foreground(SC_NORM_ATTR);
 	bg = ofwfb_background(SC_NORM_ATTR);
 
-	for (i = 0; i < size && i+y < sc->sc_height - 2*sc->sc_ymargin; i++) {
+	for (i = 0; i < size && i + y < sc->sc_height - 2 * sc->sc_ymargin;
+	     i++) {
 		/*
 		 * Calculate 2 x 4-chars at a time, and then
 		 * write these out.
 		 */
 		for (j = 0, k = width; j < 8; j++, k--) {
-			if (x + j >= sc->sc_width - 2*sc->sc_xmargin)
+			if (x + j >= sc->sc_width - 2 * sc->sc_xmargin)
 				continue;
 
 			if (pixel_image[i] & (1 << k))
@@ -969,22 +972,22 @@ ofwfb_putm32(video_adapter_t *adp, int x, int y, uint8_t *pixel_image,
 	uint32_t *addr;
 
 	sc = (struct ofwfb_softc *)adp;
-	addr = (uint32_t *)sc->sc_addr
-		+ (y + sc->sc_ymargin)*(sc->sc_stride/4)
-		+ x + sc->sc_xmargin;
+	addr = (uint32_t *)sc->sc_addr +
+	    (y + sc->sc_ymargin) * (sc->sc_stride / 4) + x + sc->sc_xmargin;
 
 	fg = ofwfb_pix32(sc, ofwfb_foreground(SC_NORM_ATTR));
 	bg = ofwfb_pix32(sc, ofwfb_background(SC_NORM_ATTR));
 
-	for (i = 0; i < size && i+y < sc->sc_height - 2*sc->sc_ymargin; i++) {
+	for (i = 0; i < size && i + y < sc->sc_height - 2 * sc->sc_ymargin;
+	     i++) {
 		for (j = 0, k = width; j < 8; j++, k--) {
-			if (x + j >= sc->sc_width - 2*sc->sc_xmargin)
+			if (x + j >= sc->sc_width - 2 * sc->sc_xmargin)
 				continue;
 
 			if (pixel_image[i] & (1 << k))
 				*(addr + j) = (*(addr + j) == fg) ? bg : fg;
 		}
-		addr += (sc->sc_stride/4);
+		addr += (sc->sc_stride / 4);
 	}
 
 	return (0);
@@ -1028,12 +1031,10 @@ ofwfb_scattach(device_t dev)
 	    device_get_flags(dev) | SC_AUTODETECT_KBD));
 }
 
-static device_method_t ofwfb_sc_methods[] = {
-  	DEVMETHOD(device_identify,	ofwfb_scidentify),
-	DEVMETHOD(device_probe,		ofwfb_scprobe),
-	DEVMETHOD(device_attach,	ofwfb_scattach),
-	{ 0, 0 }
-};
+static device_method_t ofwfb_sc_methods[] = { DEVMETHOD(device_identify,
+						  ofwfb_scidentify),
+	DEVMETHOD(device_probe, ofwfb_scprobe),
+	DEVMETHOD(device_attach, ofwfb_scattach), { 0, 0 } };
 
 static driver_t ofwfb_sc_driver = {
 	SC_DRIVER_NAME,

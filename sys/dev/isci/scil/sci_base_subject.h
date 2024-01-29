@@ -79,12 +79,10 @@ struct SCI_BASE_OBSERVER;
  * @brief This structure defines the fields common to all subjects that
  *        participate in the observer design pattern
  */
-typedef struct SCI_BASE_SUBJECT
-{
-   struct SCI_BASE_OBSERVER *observer_list;
+typedef struct SCI_BASE_SUBJECT {
+	struct SCI_BASE_OBSERVER *observer_list;
 
 } SCI_BASE_SUBJECT_T;
-
 
 /**
  * @brief This method acts as the basic constructor for the subject.
@@ -94,9 +92,7 @@ typedef struct SCI_BASE_SUBJECT
  *
  * @return none
  */
-void sci_base_subject_construct(
-   SCI_BASE_SUBJECT_T  *this_subject
-);
+void sci_base_subject_construct(SCI_BASE_SUBJECT_T *this_subject);
 
 /**
  * @brief This method will call the update method for all
@@ -107,9 +103,7 @@ void sci_base_subject_construct(
  *
  * @return none
  */
-void sci_base_subject_notify(
-   SCI_BASE_SUBJECT_T  *this_subject
-);
+void sci_base_subject_notify(SCI_BASE_SUBJECT_T *this_subject);
 
 /**
  * @brief This method will add an observer to the subject.
@@ -121,10 +115,8 @@ void sci_base_subject_notify(
  *
  * @return none
  */
-void sci_base_subject_attach_observer(
-   SCI_BASE_SUBJECT_T        *this_subject,
-   struct SCI_BASE_OBSERVER  *observer
-);
+void sci_base_subject_attach_observer(SCI_BASE_SUBJECT_T *this_subject,
+    struct SCI_BASE_OBSERVER *observer);
 
 /**
  * @brief This method will remove the observer from the subject.
@@ -134,10 +126,8 @@ void sci_base_subject_attach_observer(
  *
  * @return none
  */
-void sci_base_subject_detach_observer(
-   SCI_BASE_SUBJECT_T        *this_subject,
-   struct SCI_BASE_OBSERVER  *my_observer
-);
+void sci_base_subject_detach_observer(SCI_BASE_SUBJECT_T *this_subject,
+    struct SCI_BASE_OBSERVER *my_observer);
 
 #else // defined(SCI_LOGGING)
 

@@ -39,15 +39,15 @@
 #include <sys/cdefs.h>
 #endif
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/types.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
-#include <sys/malloc.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
 #include <sys/mutex.h>
 
-#include <sys/bus.h>
 #include <machine/bus.h>
 
 #include <dev/firewire/firewire.h>
@@ -67,40 +67,38 @@ fwdma_map_cb(void *arg, bus_dma_segment_t *segs, int nseg, int error)
 
 void *
 fwdma_malloc(struct firewire_comm *fc, int alignment, bus_size_t size,
-	struct fwdma_alloc *dma, int flag)
+    struct fwdma_alloc *dma, int flag)
 {
 	int err;
 
 	dma->v_addr = NULL;
 	err = bus_dma_tag_create(
-		/*parent*/ fc->dmat,
-		/*alignment*/ alignment,
-		/*boundary*/ 0,
-		/*lowaddr*/ BUS_SPACE_MAXADDR_32BIT,
-		/*highaddr*/ BUS_SPACE_MAXADDR,
-		/*filter*/NULL, /*filterarg*/NULL,
-		/*maxsize*/ size,
-		/*nsegments*/ 1,
-		/*maxsegsz*/ BUS_SPACE_MAXSIZE_32BIT,
-		/*flags*/ BUS_DMA_ALLOCNOW,
-		/*lockfunc*/busdma_lock_mutex,
-		/*lockarg*/FW_GMTX(fc),
-		&dma->dma_tag);
+	    /*parent*/ fc->dmat,
+	    /*alignment*/ alignment,
+	    /*boundary*/ 0,
+	    /*lowaddr*/ BUS_SPACE_MAXADDR_32BIT,
+	    /*highaddr*/ BUS_SPACE_MAXADDR,
+	    /*filter*/ NULL, /*filterarg*/ NULL,
+	    /*maxsize*/ size,
+	    /*nsegments*/ 1,
+	    /*maxsegsz*/ BUS_SPACE_MAXSIZE_32BIT,
+	    /*flags*/ BUS_DMA_ALLOCNOW,
+	    /*lockfunc*/ busdma_lock_mutex,
+	    /*lockarg*/ FW_GMTX(fc), &dma->dma_tag);
 	if (err) {
 		printf("fwdma_malloc: failed(1)\n");
 		return (NULL);
 	}
 
-	err = bus_dmamem_alloc(dma->dma_tag, &dma->v_addr,
-		flag, &dma->dma_map);
+	err = bus_dmamem_alloc(dma->dma_tag, &dma->v_addr, flag, &dma->dma_map);
 	if (err) {
 		printf("fwdma_malloc: failed(2)\n");
 		/* XXX destroy tag */
 		return (NULL);
 	}
 
-	bus_dmamap_load(dma->dma_tag, dma->dma_map, dma->v_addr,
-		size, fwdma_map_cb, &dma->bus_addr, /*flags*/0);
+	bus_dmamap_load(dma->dma_tag, dma->dma_map, dma->v_addr, size,
+	    fwdma_map_cb, &dma->bus_addr, /*flags*/ 0);
 
 	return (dma->v_addr);
 }
@@ -108,15 +106,14 @@ fwdma_malloc(struct firewire_comm *fc, int alignment, bus_size_t size,
 void
 fwdma_free(struct firewire_comm *fc, struct fwdma_alloc *dma)
 {
-        bus_dmamap_unload(dma->dma_tag, dma->dma_map);
+	bus_dmamap_unload(dma->dma_tag, dma->dma_map);
 	bus_dmamem_free(dma->dma_tag, dma->v_addr, dma->dma_map);
 	bus_dma_tag_destroy(dma->dma_tag);
 }
 
-
 void *
-fwdma_malloc_size(bus_dma_tag_t dmat, bus_dmamap_t *dmamap,
-	bus_size_t size, bus_addr_t *bus_addr, int flag)
+fwdma_malloc_size(bus_dma_tag_t dmat, bus_dmamap_t *dmamap, bus_size_t size,
+    bus_addr_t *bus_addr, int flag)
 {
 	void *v_addr;
 
@@ -124,14 +121,14 @@ fwdma_malloc_size(bus_dma_tag_t dmat, bus_dmamap_t *dmamap,
 		printf("fwdma_malloc_size: failed(1)\n");
 		return (NULL);
 	}
-	bus_dmamap_load(dmat, *dmamap, v_addr, size,
-			fwdma_map_cb, bus_addr, /*flags*/0);
+	bus_dmamap_load(dmat, *dmamap, v_addr, size, fwdma_map_cb, bus_addr,
+	    /*flags*/ 0);
 	return (v_addr);
 }
 
 void
-fwdma_free_size(bus_dma_tag_t dmat, bus_dmamap_t dmamap,
-		void *vaddr, bus_size_t size)
+fwdma_free_size(bus_dma_tag_t dmat, bus_dmamap_t dmamap, void *vaddr,
+    bus_size_t size)
 {
 	bus_dmamap_unload(dmat, dmamap);
 	bus_dmamem_free(dmat, vaddr, dmamap);
@@ -142,8 +139,8 @@ fwdma_free_size(bus_dma_tag_t dmat, bus_dmamap_t dmamap,
  * each segment size is eqaul to ssize except last segment.
  */
 struct fwdma_alloc_multi *
-fwdma_malloc_multiseg(struct firewire_comm *fc, int alignment,
-		int esize, int n, int flag)
+fwdma_malloc_multiseg(struct firewire_comm *fc, int alignment, int esize, int n,
+    int flag)
 {
 	struct fwdma_alloc_multi *am;
 	struct fwdma_seg *seg;
@@ -159,25 +156,26 @@ fwdma_malloc_multiseg(struct firewire_comm *fc, int alignment,
 		ssize = rounddown(PAGE_SIZE, esize);
 		nseg = howmany(n, ssize / esize);
 	}
-	am = (struct fwdma_alloc_multi *)malloc(sizeof(struct fwdma_alloc_multi)
-			+ sizeof(struct fwdma_seg)*nseg, M_FW, M_WAITOK);
+	am = (struct fwdma_alloc_multi *)malloc(sizeof(
+						    struct fwdma_alloc_multi) +
+		sizeof(struct fwdma_seg) * nseg,
+	    M_FW, M_WAITOK);
 	am->ssize = ssize;
 	am->esize = esize;
 	am->nseg = 0;
 	if (bus_dma_tag_create(
-			/*parent*/ fc->dmat,
-			/*alignment*/ alignment,
-			/*boundary*/ 0,
-			/*lowaddr*/ BUS_SPACE_MAXADDR_32BIT,
-			/*highaddr*/ BUS_SPACE_MAXADDR,
-			/*filter*/NULL, /*filterarg*/NULL,
-			/*maxsize*/ ssize,
-			/*nsegments*/ 1,
-			/*maxsegsz*/ BUS_SPACE_MAXSIZE_32BIT,
-			/*flags*/ BUS_DMA_ALLOCNOW,
-			/*lockfunc*/busdma_lock_mutex,
-			/*lockarg*/FW_GMTX(fc),
-			&am->dma_tag)) {
+		/*parent*/ fc->dmat,
+		/*alignment*/ alignment,
+		/*boundary*/ 0,
+		/*lowaddr*/ BUS_SPACE_MAXADDR_32BIT,
+		/*highaddr*/ BUS_SPACE_MAXADDR,
+		/*filter*/ NULL, /*filterarg*/ NULL,
+		/*maxsize*/ ssize,
+		/*nsegments*/ 1,
+		/*maxsegsz*/ BUS_SPACE_MAXSIZE_32BIT,
+		/*flags*/ BUS_DMA_ALLOCNOW,
+		/*lockfunc*/ busdma_lock_mutex,
+		/*lockarg*/ FW_GMTX(fc), &am->dma_tag)) {
 		printf("fwdma_malloc_multiseg: tag_create failed\n");
 		free(am, M_FW);
 		return (NULL);
@@ -185,10 +183,10 @@ fwdma_malloc_multiseg(struct firewire_comm *fc, int alignment,
 
 	for (seg = &am->seg[0]; nseg--; seg++) {
 		seg->v_addr = fwdma_malloc_size(am->dma_tag, &seg->dma_map,
-			ssize, &seg->bus_addr, flag);
+		    ssize, &seg->bus_addr, flag);
 		if (seg->v_addr == NULL) {
 			printf("fwdma_malloc_multi: malloc_size failed %d\n",
-				am->nseg);
+			    am->nseg);
 			fwdma_free_multiseg(am);
 			return (NULL);
 		}
@@ -203,8 +201,8 @@ fwdma_free_multiseg(struct fwdma_alloc_multi *am)
 	struct fwdma_seg *seg;
 
 	for (seg = &am->seg[0]; am->nseg--; seg++) {
-		fwdma_free_size(am->dma_tag, seg->dma_map,
-			seg->v_addr, am->ssize);
+		fwdma_free_size(am->dma_tag, seg->dma_map, seg->v_addr,
+		    am->ssize);
 	}
 	bus_dma_tag_destroy(am->dma_tag);
 	free(am, M_FW);

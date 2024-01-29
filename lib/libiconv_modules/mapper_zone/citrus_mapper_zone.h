@@ -1,4 +1,5 @@
-/*	$NetBSD: citrus_mapper_zone.h,v 1.1 2003/06/25 09:51:48 tshiozak Exp $	*/
+/*	$NetBSD: citrus_mapper_zone.h,v 1.1 2003/06/25 09:51:48 tshiozak Exp $
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-2-Clause

@@ -28,24 +28,23 @@
 #error Only include fenv-mangle.h once
 #endif
 
-#define	_FENV_MANGLE_H_
+#define _FENV_MANGLE_H_
 
 #ifndef FENV_MANGLE
 #error FENV_MANGLE is undefined
 #endif
 
-#define	feclearexcept	FENV_MANGLE(feclearexcept)
-#define	fegetexceptflag	FENV_MANGLE(fegetexceptflag)
-#define	fesetexceptflag	FENV_MANGLE(fesetexceptflag)
-#define	feraiseexcept	FENV_MANGLE(feraiseexcept)
-#define	fetestexcept	FENV_MANGLE(fetestexcept)
-#define	fegetround	FENV_MANGLE(fegetround)
-#define	fesetround	FENV_MANGLE(fesetround)
-#define	fegetenv	FENV_MANGLE(fegetenv)
-#define	feholdexcept	FENV_MANGLE(feholdexcept)
-#define	fesetenv	FENV_MANGLE(fesetenv)
-#define	feupdateenv	FENV_MANGLE(feupdateenv)
-#define	feenableexcept	FENV_MANGLE(feenableexcept)
-#define	fedisableexcept	FENV_MANGLE(fedisableexcept)
-#define	fegetexcept	FENV_MANGLE(fegetexcept)
-
+#define feclearexcept FENV_MANGLE(feclearexcept)
+#define fegetexceptflag FENV_MANGLE(fegetexceptflag)
+#define fesetexceptflag FENV_MANGLE(fesetexceptflag)
+#define feraiseexcept FENV_MANGLE(feraiseexcept)
+#define fetestexcept FENV_MANGLE(fetestexcept)
+#define fegetround FENV_MANGLE(fegetround)
+#define fesetround FENV_MANGLE(fesetround)
+#define fegetenv FENV_MANGLE(fegetenv)
+#define feholdexcept FENV_MANGLE(feholdexcept)
+#define fesetenv FENV_MANGLE(fesetenv)
+#define feupdateenv FENV_MANGLE(feupdateenv)
+#define feenableexcept FENV_MANGLE(feenableexcept)
+#define fedisableexcept FENV_MANGLE(fedisableexcept)
+#define fegetexcept FENV_MANGLE(fegetexcept)

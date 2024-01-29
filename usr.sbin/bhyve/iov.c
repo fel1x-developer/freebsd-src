@@ -28,12 +28,13 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/uio.h>
 
 #include <stdlib.h>
 #include <string.h>
+
 #include "iov.h"
 
 void
@@ -121,7 +122,7 @@ buf_to_iov(const void *buf, size_t buflen, const struct iovec *iov, int niov,
 {
 	struct iovec *diov;
 	size_t off = 0, len;
-	int  i;
+	int i;
 
 	if (seek > 0) {
 		int ndiov;
@@ -143,4 +144,3 @@ buf_to_iov(const void *buf, size_t buflen, const struct iovec *iov, int niov,
 
 	return ((ssize_t)off);
 }
-

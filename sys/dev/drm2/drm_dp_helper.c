@@ -21,6 +21,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <dev/drm2/drmP.h>
 #include <dev/drm2/drm_dp_helper.h>
 
@@ -34,13 +35,14 @@
  */
 
 /* Helpers for DP link training */
-static u8 dp_link_status(u8 link_status[DP_LINK_STATUS_SIZE], int r)
+static u8
+dp_link_status(u8 link_status[DP_LINK_STATUS_SIZE], int r)
 {
 	return link_status[r - DP_LANE0_1_STATUS];
 }
 
-static u8 dp_get_lane_status(u8 link_status[DP_LINK_STATUS_SIZE],
-			     int lane)
+static u8
+dp_get_lane_status(u8 link_status[DP_LINK_STATUS_SIZE], int lane)
 {
 	int i = DP_LANE0_1_STATUS + (lane >> 1);
 	int s = (lane & 1) * 4;
@@ -48,15 +50,14 @@ static u8 dp_get_lane_status(u8 link_status[DP_LINK_STATUS_SIZE],
 	return (l >> s) & 0xf;
 }
 
-bool drm_dp_channel_eq_ok(u8 link_status[DP_LINK_STATUS_SIZE],
-			  int lane_count)
+bool
+drm_dp_channel_eq_ok(u8 link_status[DP_LINK_STATUS_SIZE], int lane_count)
 {
 	u8 lane_align;
 	u8 lane_status;
 	int lane;
 
-	lane_align = dp_link_status(link_status,
-				    DP_LANE_ALIGN_STATUS_UPDATED);
+	lane_align = dp_link_status(link_status, DP_LANE_ALIGN_STATUS_UPDATED);
 	if ((lane_align & DP_INTERLANE_ALIGN_DONE) == 0)
 		return false;
 	for (lane = 0; lane < lane_count; lane++) {
@@ -68,8 +69,8 @@ bool drm_dp_channel_eq_ok(u8 link_status[DP_LINK_STATUS_SIZE],
 }
 EXPORT_SYMBOL(drm_dp_channel_eq_ok);
 
-bool drm_dp_clock_recovery_ok(u8 link_status[DP_LINK_STATUS_SIZE],
-			      int lane_count)
+bool
+drm_dp_clock_recovery_ok(u8 link_status[DP_LINK_STATUS_SIZE], int lane_count)
 {
 	int lane;
 	u8 lane_status;
@@ -83,33 +84,34 @@ bool drm_dp_clock_recovery_ok(u8 link_status[DP_LINK_STATUS_SIZE],
 }
 EXPORT_SYMBOL(drm_dp_clock_recovery_ok);
 
-u8 drm_dp_get_adjust_request_voltage(u8 link_status[DP_LINK_STATUS_SIZE],
-				     int lane)
+u8
+drm_dp_get_adjust_request_voltage(u8 link_status[DP_LINK_STATUS_SIZE], int lane)
 {
 	int i = DP_ADJUST_REQUEST_LANE0_1 + (lane >> 1);
-	int s = ((lane & 1) ?
-		 DP_ADJUST_VOLTAGE_SWING_LANE1_SHIFT :
-		 DP_ADJUST_VOLTAGE_SWING_LANE0_SHIFT);
+	int s = ((lane & 1) ? DP_ADJUST_VOLTAGE_SWING_LANE1_SHIFT :
+			      DP_ADJUST_VOLTAGE_SWING_LANE0_SHIFT);
 	u8 l = dp_link_status(link_status, i);
 
 	return ((l >> s) & 0x3) << DP_TRAIN_VOLTAGE_SWING_SHIFT;
 }
 EXPORT_SYMBOL(drm_dp_get_adjust_request_voltage);
 
-u8 drm_dp_get_adjust_request_pre_emphasis(u8 link_status[DP_LINK_STATUS_SIZE],
-					  int lane)
+u8
+drm_dp_get_adjust_request_pre_emphasis(u8 link_status[DP_LINK_STATUS_SIZE],
+    int lane)
 {
 	int i = DP_ADJUST_REQUEST_LANE0_1 + (lane >> 1);
-	int s = ((lane & 1) ?
-		 DP_ADJUST_PRE_EMPHASIS_LANE1_SHIFT :
-		 DP_ADJUST_PRE_EMPHASIS_LANE0_SHIFT);
+	int s = ((lane & 1) ? DP_ADJUST_PRE_EMPHASIS_LANE1_SHIFT :
+			      DP_ADJUST_PRE_EMPHASIS_LANE0_SHIFT);
 	u8 l = dp_link_status(link_status, i);
 
 	return ((l >> s) & 0x3) << DP_TRAIN_PRE_EMPHASIS_SHIFT;
 }
 EXPORT_SYMBOL(drm_dp_get_adjust_request_pre_emphasis);
 
-void drm_dp_link_train_clock_recovery_delay(u8 dpcd[DP_RECEIVER_CAP_SIZE]) {
+void
+drm_dp_link_train_clock_recovery_delay(u8 dpcd[DP_RECEIVER_CAP_SIZE])
+{
 	if (dpcd[DP_TRAINING_AUX_RD_INTERVAL] == 0)
 		udelay(100);
 	else
@@ -117,7 +119,9 @@ void drm_dp_link_train_clock_recovery_delay(u8 dpcd[DP_RECEIVER_CAP_SIZE]) {
 }
 EXPORT_SYMBOL(drm_dp_link_train_clock_recovery_delay);
 
-void drm_dp_link_train_channel_eq_delay(u8 dpcd[DP_RECEIVER_CAP_SIZE]) {
+void
+drm_dp_link_train_channel_eq_delay(u8 dpcd[DP_RECEIVER_CAP_SIZE])
+{
 	if (dpcd[DP_TRAINING_AUX_RD_INTERVAL] == 0)
 		udelay(400);
 	else
@@ -125,7 +129,8 @@ void drm_dp_link_train_channel_eq_delay(u8 dpcd[DP_RECEIVER_CAP_SIZE]) {
 }
 EXPORT_SYMBOL(drm_dp_link_train_channel_eq_delay);
 
-u8 drm_dp_link_rate_to_bw_code(int link_rate)
+u8
+drm_dp_link_rate_to_bw_code(int link_rate)
 {
 	switch (link_rate) {
 	case 162000:
@@ -139,7 +144,8 @@ u8 drm_dp_link_rate_to_bw_code(int link_rate)
 }
 EXPORT_SYMBOL(drm_dp_link_rate_to_bw_code);
 
-int drm_dp_bw_code_to_link_rate(u8 link_bw)
+int
+drm_dp_bw_code_to_link_rate(u8 link_bw)
 {
 	switch (link_bw) {
 	case DP_LINK_BW_1_62:

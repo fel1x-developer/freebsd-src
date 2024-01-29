@@ -46,28 +46,26 @@
 
 #include <errno.h>
 #include <stdint.h>
-
-#include "makefs.h"
-
-#include <ufs/ufs/dinode.h>
 #include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
 
-#include "ffs/ufs_bswap.h"
 #include "ffs/buf.h"
-#include "ffs/ufs_inode.h"
 #include "ffs/ffs_extern.h"
+#include "ffs/ufs_bswap.h"
+#include "ffs/ufs_inode.h"
+#include "makefs.h"
 
 static int scanc(u_int, const u_char *, const u_char *, int);
 
 static daddr_t ffs_alloccg(struct inode *, int, daddr_t, int);
 static daddr_t ffs_alloccgblk(struct inode *, struct m_buf *, daddr_t);
 static daddr_t ffs_hashalloc(struct inode *, u_int, daddr_t, int,
-		     daddr_t (*)(struct inode *, int, daddr_t, int));
+    daddr_t (*)(struct inode *, int, daddr_t, int));
 static int32_t ffs_mapsearch(struct fs *, struct cg *, daddr_t, int);
 
 /*
  * Allocate a block in the file system.
- * 
+ *
  * The size of the requested block is given, which must be some
  * multiple of fs_fsize and <= fs_bsize.
  * A preference may be optionally specified. If a preference is given
@@ -91,11 +89,11 @@ ffs_alloc(struct inode *ip, daddr_t lbn __unused, daddr_t bpref, int size,
 	struct fs *fs = ip->i_fs;
 	daddr_t bno;
 	int cg;
-	
+
 	*bnp = 0;
 	if (size > fs->fs_bsize || fragoff(fs, size) != 0) {
-		errx(1, "ffs_alloc: bad size: bsize %d size %d",
-		    fs->fs_bsize, size);
+		errx(1, "ffs_alloc: bad size: bsize %d size %d", fs->fs_bsize,
+		    size);
 	}
 	if (size == fs->fs_bsize && fs->fs_cstotal.cs_nbfree == 0)
 		goto nospace;
@@ -122,7 +120,7 @@ nospace:
  * Select the desired position for the next block in a file.  The file is
  * logically divided into sections. The first section is composed of the
  * direct blocks. Each additional section contains fs_maxbpg blocks.
- * 
+ *
  * If no blocks have been allocated in the first section, the policy is to
  * request a block in the same cylinder group as the inode that describes
  * the file. If no blocks have been allocated in any other section, the
@@ -136,7 +134,7 @@ nospace:
  * indirect block, the information on the previous allocation is unavailable;
  * here a best guess is made based upon the logical block number being
  * allocated.
- * 
+ *
  * If a section is already partially allocated, the policy is to
  * contiguously allocate fs_maxcontig blocks.  The end of one of these
  * contiguous blocks and the beginning of the next is physically separated
@@ -163,11 +161,11 @@ ffs_blkpref_ufs1(struct inode *ip, daddr_t lbn, int indx, int32_t *bap)
 		 * unused data blocks.
 		 */
 		if (indx == 0 || bap[indx - 1] == 0)
-			startcg =
-			    ino_to_cg(fs, ip->i_number) + lbn / fs->fs_maxbpg;
+			startcg = ino_to_cg(fs, ip->i_number) +
+			    lbn / fs->fs_maxbpg;
 		else
 			startcg = dtog(fs,
-				ufs_rw32(bap[indx - 1], UFS_FSNEEDSWAP(fs)) + 1);
+			    ufs_rw32(bap[indx - 1], UFS_FSNEEDSWAP(fs)) + 1);
 		startcg %= fs->fs_ncg;
 		avgbfree = fs->fs_cstotal.cs_nbfree / fs->fs_ncg;
 		for (cg = startcg; cg < fs->fs_ncg; cg++)
@@ -202,11 +200,11 @@ ffs_blkpref_ufs2(struct inode *ip, daddr_t lbn, int indx, int64_t *bap)
 		 * unused data blocks.
 		 */
 		if (indx == 0 || bap[indx - 1] == 0)
-			startcg =
-			    ino_to_cg(fs, ip->i_number) + lbn / fs->fs_maxbpg;
+			startcg = ino_to_cg(fs, ip->i_number) +
+			    lbn / fs->fs_maxbpg;
 		else
 			startcg = dtog(fs,
-				ufs_rw64(bap[indx - 1], UFS_FSNEEDSWAP(fs)) + 1);
+			    ufs_rw64(bap[indx - 1], UFS_FSNEEDSWAP(fs)) + 1);
 		startcg %= fs->fs_ncg;
 		avgbfree = fs->fs_cstotal.cs_nbfree / fs->fs_ncg;
 		for (cg = startcg; cg < fs->fs_ncg; cg++)
@@ -324,7 +322,7 @@ ffs_alloccg(struct inode *ip, int cg, daddr_t bpref, int size)
 			break;
 	if (allocsiz == fs->fs_frag) {
 		/*
-		 * no fragments were available, so a block will be 
+		 * no fragments were available, so a block will be
 		 * allocated, and hacked up
 		 */
 		if (cgp->cg_cs.cs_nbfree == 0) {
@@ -382,7 +380,8 @@ ffs_alloccgblk(struct inode *ip, struct m_buf *bp, daddr_t bpref)
 
 	cgp = (struct cg *)bp->b_data;
 	blksfree_swap = cg_blksfree_swap(cgp, needswap);
-	if (bpref == 0 || (uint32_t)dtog(fs, bpref) != ufs_rw32(cgp->cg_cgx, needswap)) {
+	if (bpref == 0 ||
+	    (uint32_t)dtog(fs, bpref) != ufs_rw32(cgp->cg_cgx, needswap)) {
 		bpref = ufs_rw32(cgp->cg_rotor, needswap);
 	} else {
 		bpref = blknum(fs, bpref);
@@ -416,7 +415,7 @@ gotit:
  * Free a block or fragment.
  *
  * The specified block or fragment is placed back in the
- * free map. If a fragment is deallocated, a possible 
+ * free map. If a fragment is deallocated, a possible
  * block reassembly is checked.
  */
 void
@@ -453,7 +452,8 @@ ffs_blkfree(struct inode *ip, daddr_t bno, long size)
 	cgbno = dtogd(fs, bno);
 	if (size == fs->fs_bsize) {
 		fragno = fragstoblks(fs, cgbno);
-		if (!ffs_isfreeblock(fs, cg_blksfree_swap(cgp, needswap), fragno)) {
+		if (!ffs_isfreeblock(fs, cg_blksfree_swap(cgp, needswap),
+			fragno)) {
 			errx(1, "blkfree: freeing free block %lld",
 			    (long long)bno);
 		}
@@ -475,7 +475,8 @@ ffs_blkfree(struct inode *ip, daddr_t bno, long size)
 		frags = numfrags(fs, size);
 		for (i = 0; i < frags; i++) {
 			if (isset(cg_blksfree_swap(cgp, needswap), cgbno + i)) {
-				errx(1, "blkfree: freeing free frag: block %lld",
+				errx(1,
+				    "blkfree: freeing free frag: block %lld",
 				    (long long)(cgbno + i));
 			}
 			setbit(cg_blksfree_swap(cgp, needswap), cgbno + i);
@@ -505,7 +506,6 @@ ffs_blkfree(struct inode *ip, daddr_t bno, long size)
 	fs->fs_fmod = 1;
 	bdwrite(bp);
 }
-
 
 static int
 scanc(u_int size, const u_char *cp, const u_char table[], int mask)
@@ -544,22 +544,21 @@ ffs_mapsearch(struct fs *fs, struct cg *cgp, daddr_t bpref, int allocsiz)
 	ostart = start;
 	olen = len;
 	loc = scanc((u_int)len,
-		(const u_char *)&cg_blksfree_swap(cgp, needswap)[start],
-		(const u_char *)fragtbl[fs->fs_frag],
-		(1 << (allocsiz - 1 + (fs->fs_frag % NBBY))));
+	    (const u_char *)&cg_blksfree_swap(cgp, needswap)[start],
+	    (const u_char *)fragtbl[fs->fs_frag],
+	    (1 << (allocsiz - 1 + (fs->fs_frag % NBBY))));
 	if (loc == 0) {
 		len = start + 1;
 		start = 0;
 		loc = scanc((u_int)len,
-			(const u_char *)&cg_blksfree_swap(cgp, needswap)[0],
-			(const u_char *)fragtbl[fs->fs_frag],
-			(1 << (allocsiz - 1 + (fs->fs_frag % NBBY))));
+		    (const u_char *)&cg_blksfree_swap(cgp, needswap)[0],
+		    (const u_char *)fragtbl[fs->fs_frag],
+		    (1 << (allocsiz - 1 + (fs->fs_frag % NBBY))));
 		if (loc == 0) {
 			errx(1,
-    "ffs_alloccg: map corrupted: start %d len %d offset %d %ld",
-				ostart, olen,
-				ufs_rw32(cgp->cg_freeoff, needswap),
-				(long)cg_blksfree_swap(cgp, needswap) - (long)cgp);
+			    "ffs_alloccg: map corrupted: start %d len %d offset %d %ld",
+			    ostart, olen, ufs_rw32(cgp->cg_freeoff, needswap),
+			    (long)cg_blksfree_swap(cgp, needswap) - (long)cgp);
 			/* NOTREACHED */
 		}
 	}

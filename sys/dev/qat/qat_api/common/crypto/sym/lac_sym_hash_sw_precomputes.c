@@ -18,11 +18,10 @@
 
 #include "cpa.h"
 #include "cpa_cy_sym.h"
-
 #include "icp_accel_devices.h"
+#include "icp_adf_debug.h"
 #include "icp_adf_init.h"
 #include "icp_adf_transport.h"
-#include "icp_adf_debug.h"
 
 /*
 *******************************************************************************
@@ -30,24 +29,22 @@
 *******************************************************************************
 */
 
-#include "qat_utils.h"
-#include "lac_mem.h"
-#include "lac_sym.h"
-#include "lac_log.h"
-#include "lac_mem_pools.h"
 #include "lac_list.h"
-#include "lac_sym_hash_defs.h"
-#include "lac_sym_qat_hash_defs_lookup.h"
-#include "lac_sal_types_crypto.h"
+#include "lac_log.h"
+#include "lac_mem.h"
+#include "lac_mem_pools.h"
 #include "lac_sal.h"
+#include "lac_sal_types_crypto.h"
 #include "lac_session.h"
+#include "lac_sym.h"
+#include "lac_sym_hash_defs.h"
 #include "lac_sym_hash_precomputes.h"
+#include "lac_sym_qat_hash_defs_lookup.h"
+#include "qat_utils.h"
 
 static CpaStatus
 LacSymHash_Compute(CpaCySymHashAlgorithm hashAlgorithm,
-		   lac_sym_qat_hash_alg_info_t *pHashAlgInfo,
-		   Cpa8U *in,
-		   Cpa8U *out)
+    lac_sym_qat_hash_alg_info_t *pHashAlgInfo, Cpa8U *in, Cpa8U *out)
 {
 	/*
 	 * Note: from SHA hashes appropriate endian swapping is required.
@@ -72,8 +69,8 @@ LacSymHash_Compute(CpaCySymHashAlgorithm hashAlgorithm,
 		}
 		for (i = 0; i < LAC_BYTES_TO_LONGWORDS(pHashAlgInfo->stateSize);
 		     i++) {
-			((Cpa32U *)(out))[i] =
-			    LAC_MEM_WR_32(((Cpa32U *)(out))[i]);
+			((Cpa32U *)(out))[i] = LAC_MEM_WR_32(
+			    ((Cpa32U *)(out))[i]);
 		}
 		status = CPA_STATUS_SUCCESS;
 		break;
@@ -84,8 +81,8 @@ LacSymHash_Compute(CpaCySymHashAlgorithm hashAlgorithm,
 		}
 		for (i = 0; i < LAC_BYTES_TO_LONGWORDS(pHashAlgInfo->stateSize);
 		     i++) {
-			((Cpa32U *)(out))[i] =
-			    LAC_MEM_WR_32(((Cpa32U *)(out))[i]);
+			((Cpa32U *)(out))[i] = LAC_MEM_WR_32(
+			    ((Cpa32U *)(out))[i]);
 		}
 		status = CPA_STATUS_SUCCESS;
 		break;
@@ -96,8 +93,8 @@ LacSymHash_Compute(CpaCySymHashAlgorithm hashAlgorithm,
 		}
 		for (i = 0; i < LAC_BYTES_TO_LONGWORDS(pHashAlgInfo->stateSize);
 		     i++) {
-			((Cpa32U *)(out))[i] =
-			    LAC_MEM_WR_32(((Cpa32U *)(out))[i]);
+			((Cpa32U *)(out))[i] = LAC_MEM_WR_32(
+			    ((Cpa32U *)(out))[i]);
 		}
 		status = CPA_STATUS_SUCCESS;
 		break;
@@ -108,8 +105,8 @@ LacSymHash_Compute(CpaCySymHashAlgorithm hashAlgorithm,
 		}
 		for (i = 0; i < LAC_BYTES_TO_QUADWORDS(pHashAlgInfo->stateSize);
 		     i++) {
-			((Cpa64U *)(out))[i] =
-			    LAC_MEM_WR_64(((Cpa64U *)(out))[i]);
+			((Cpa64U *)(out))[i] = LAC_MEM_WR_64(
+			    ((Cpa64U *)(out))[i]);
 		}
 		status = CPA_STATUS_SUCCESS;
 		break;
@@ -120,8 +117,8 @@ LacSymHash_Compute(CpaCySymHashAlgorithm hashAlgorithm,
 		}
 		for (i = 0; i < LAC_BYTES_TO_QUADWORDS(pHashAlgInfo->stateSize);
 		     i++) {
-			((Cpa64U *)(out))[i] =
-			    LAC_MEM_WR_64(((Cpa64U *)(out))[i]);
+			((Cpa64U *)(out))[i] = LAC_MEM_WR_64(
+			    ((Cpa64U *)(out))[i]);
 		}
 		status = CPA_STATUS_SUCCESS;
 		break;
@@ -133,14 +130,9 @@ LacSymHash_Compute(CpaCySymHashAlgorithm hashAlgorithm,
 
 CpaStatus
 LacSymHash_HmacPreComputes(CpaInstanceHandle instanceHandle,
-			   CpaCySymHashAlgorithm hashAlgorithm,
-			   Cpa32U authKeyLenInBytes,
-			   Cpa8U *pAuthKey,
-			   Cpa8U *pWorkingMemory,
-			   Cpa8U *pState1,
-			   Cpa8U *pState2,
-			   lac_hash_precompute_done_cb_t callbackFn,
-			   void *pCallbackTag)
+    CpaCySymHashAlgorithm hashAlgorithm, Cpa32U authKeyLenInBytes,
+    Cpa8U *pAuthKey, Cpa8U *pWorkingMemory, Cpa8U *pState1, Cpa8U *pState2,
+    lac_hash_precompute_done_cb_t callbackFn, void *pCallbackTag)
 {
 	Cpa8U *pIpadData = NULL;
 	Cpa8U *pOpadData = NULL;
@@ -159,9 +151,8 @@ LacSymHash_HmacPreComputes(CpaInstanceHandle instanceHandle,
 	Cpa32U i = 0;
 	Cpa32U padLenBytes = 0;
 
-	LacSymQat_HashAlgLookupGet(instanceHandle,
-				   hashAlgorithm,
-				   &pHashAlgInfo);
+	LacSymQat_HashAlgLookupGet(instanceHandle, hashAlgorithm,
+	    &pHashAlgInfo);
 	pHmacIpadOpData->stateSize = pHashAlgInfo->stateSize;
 	pHmacOpadOpData->stateSize = pHashAlgInfo->stateSize;
 
@@ -176,9 +167,9 @@ LacSymHash_HmacPreComputes(CpaInstanceHandle instanceHandle,
 	/* Clear the remaining buffer space */
 	if (padLenBytes > 0) {
 		LAC_OS_BZERO(pHmacIpadQatData->data + authKeyLenInBytes,
-			     padLenBytes);
+		    padLenBytes);
 		LAC_OS_BZERO(pHmacOpadQatData->data + authKeyLenInBytes,
-			     padLenBytes);
+		    padLenBytes);
 	}
 
 	/* XOR Key with IPAD at 4-byte level */
@@ -192,16 +183,12 @@ LacSymHash_HmacPreComputes(CpaInstanceHandle instanceHandle,
 	pIpadData = (Cpa8U *)pHmacIpadQatData->data;
 	pOpadData = (Cpa8U *)pHmacOpadQatData->data;
 
-	status = LacSymHash_Compute(hashAlgorithm,
-				    pHashAlgInfo,
-				    (Cpa8U *)pIpadData,
-				    pState1);
+	status = LacSymHash_Compute(hashAlgorithm, pHashAlgInfo,
+	    (Cpa8U *)pIpadData, pState1);
 
 	if (CPA_STATUS_SUCCESS == status) {
-		status = LacSymHash_Compute(hashAlgorithm,
-					    pHashAlgInfo,
-					    (Cpa8U *)pOpadData,
-					    pState2);
+		status = LacSymHash_Compute(hashAlgorithm, pHashAlgInfo,
+		    (Cpa8U *)pOpadData, pState2);
 	}
 
 	if (CPA_STATUS_SUCCESS == status) {
@@ -212,13 +199,9 @@ LacSymHash_HmacPreComputes(CpaInstanceHandle instanceHandle,
 
 CpaStatus
 LacSymHash_AesECBPreCompute(CpaInstanceHandle instanceHandle,
-			    CpaCySymHashAlgorithm hashAlgorithm,
-			    Cpa32U authKeyLenInBytes,
-			    Cpa8U *pAuthKey,
-			    Cpa8U *pWorkingMemory,
-			    Cpa8U *pState,
-			    lac_hash_precompute_done_cb_t callbackFn,
-			    void *pCallbackTag)
+    CpaCySymHashAlgorithm hashAlgorithm, Cpa32U authKeyLenInBytes,
+    Cpa8U *pAuthKey, Cpa8U *pWorkingMemory, Cpa8U *pState,
+    lac_hash_precompute_done_cb_t callbackFn, void *pCallbackTag)
 {
 	CpaStatus status = CPA_STATUS_FAIL;
 	Cpa32U stateSize = 0, x = 0;
@@ -227,16 +210,15 @@ LacSymHash_AesECBPreCompute(CpaInstanceHandle instanceHandle,
 	if (CPA_CY_SYM_HASH_AES_XCBC == hashAlgorithm) {
 		Cpa8U *in = pWorkingMemory;
 		Cpa8U *out = pState;
-		LacSymQat_HashAlgLookupGet(instanceHandle,
-					   hashAlgorithm,
-					   &pHashAlgInfo);
+		LacSymQat_HashAlgLookupGet(instanceHandle, hashAlgorithm,
+		    &pHashAlgInfo);
 		stateSize = pHashAlgInfo->stateSize;
 		memcpy(pWorkingMemory, pHashAlgInfo->initState, stateSize);
 
 		for (x = 0; x < LAC_HASH_XCBC_PRECOMP_KEY_NUM; x++) {
 			if (CPA_STATUS_SUCCESS !=
-			    qatUtilsAESEncrypt(
-				pAuthKey, authKeyLenInBytes, in, out)) {
+			    qatUtilsAESEncrypt(pAuthKey, authKeyLenInBytes, in,
+				out)) {
 				return status;
 			}
 			in += LAC_HASH_XCBC_MAC_BLOCK_SIZE;
@@ -249,9 +231,8 @@ LacSymHash_AesECBPreCompute(CpaInstanceHandle instanceHandle,
 		    k2[LAC_HASH_CMAC_BLOCK_SIZE];
 		Cpa8U *ptr = NULL, i = 0;
 		stateSize = LAC_HASH_CMAC_BLOCK_SIZE;
-		LacSymQat_HashAlgLookupGet(instanceHandle,
-					   hashAlgorithm,
-					   &pHashAlgInfo);
+		LacSymQat_HashAlgLookupGet(instanceHandle, hashAlgorithm,
+		    &pHashAlgInfo);
 		/* Original state size includes K, K1 and K2 which are of equal
 		 * length.
 		 * For precompute state size is only of the length of K which is
@@ -267,8 +248,8 @@ LacSymHash_AesECBPreCompute(CpaInstanceHandle instanceHandle,
 
 		for (x = 0; x < LAC_HASH_XCBC_PRECOMP_KEY_NUM - 1; x++) {
 			if (CPA_STATUS_SUCCESS !=
-			    qatUtilsAESEncrypt(
-				pAuthKey, authKeyLenInBytes, out, out)) {
+			    qatUtilsAESEncrypt(pAuthKey, authKeyLenInBytes, out,
+				out)) {
 				return status;
 			}
 			out += LAC_HASH_CMAC_BLOCK_SIZE;
@@ -284,8 +265,8 @@ LacSymHash_AesECBPreCompute(CpaInstanceHandle instanceHandle,
 		for (i = 0; i < LAC_HASH_CMAC_BLOCK_SIZE; i++, ptr++) {
 			k1[i] = (*ptr) << 1;
 			if (i != 0) {
-				k1[i - 1] |=
-				    (*ptr) >> (LAC_NUM_BITS_IN_BYTE - 1);
+				k1[i - 1] |= (*ptr) >>
+				    (LAC_NUM_BITS_IN_BYTE - 1);
 			}
 			if (i + 1 == LAC_HASH_CMAC_BLOCK_SIZE) {
 				/* If msb of pState + LAC_HASH_CMAC_BLOCK_SIZE
@@ -304,8 +285,8 @@ LacSymHash_AesECBPreCompute(CpaInstanceHandle instanceHandle,
 		for (i = 0; i < LAC_HASH_CMAC_BLOCK_SIZE; i++) {
 			k2[i] = (k1[i]) << 1;
 			if (i != 0) {
-				k2[i - 1] |=
-				    (k1[i]) >> (LAC_NUM_BITS_IN_BYTE - 1);
+				k2[i - 1] |= (k1[i]) >>
+				    (LAC_NUM_BITS_IN_BYTE - 1);
 			}
 			if (i + 1 == LAC_HASH_CMAC_BLOCK_SIZE) {
 				/* If msb of k1 is set xor last byte with RB */
@@ -321,7 +302,7 @@ LacSymHash_AesECBPreCompute(CpaInstanceHandle instanceHandle,
 		memcpy(ptr, k2, LAC_HASH_CMAC_BLOCK_SIZE);
 		status = CPA_STATUS_SUCCESS;
 	} else if (CPA_CY_SYM_HASH_AES_GCM == hashAlgorithm ||
-		   CPA_CY_SYM_HASH_AES_GMAC == hashAlgorithm) {
+	    CPA_CY_SYM_HASH_AES_GMAC == hashAlgorithm) {
 		Cpa8U *in = pWorkingMemory;
 		Cpa8U *out = pState;
 		LAC_OS_BZERO(pWorkingMemory, ICP_QAT_HW_GALOIS_H_SZ);

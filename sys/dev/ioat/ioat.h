@@ -27,6 +27,7 @@
 #define __IOAT_H__
 
 #include <sys/param.h>
+
 #include <machine/bus.h>
 
 /*
@@ -37,46 +38,46 @@
  * Enables an interrupt for this operation. Typically, you would only enable
  * this on the last operation in a group
  */
-#define	DMA_INT_EN	0x1
+#define DMA_INT_EN 0x1
 /*
  * Like M_NOWAIT.  Operations will return NULL if they cannot allocate a
  * descriptor without blocking.
  */
-#define	DMA_NO_WAIT	0x2
+#define DMA_NO_WAIT 0x2
 /*
  * Disallow prefetching the source of the following operation.  Ordinarily, DMA
  * operations can be pipelined on some hardware.  E.g., operation 2's source
  * may be prefetched before operation 1 completes.
  */
-#define	DMA_FENCE	0x4
-#define	_DMA_GENERIC_FLAGS	(DMA_INT_EN | DMA_NO_WAIT | DMA_FENCE)
+#define DMA_FENCE 0x4
+#define _DMA_GENERIC_FLAGS (DMA_INT_EN | DMA_NO_WAIT | DMA_FENCE)
 
 /*
  * Emit a CRC32C as the result of a ioat_copy_crc() or ioat_crc().
  */
-#define	DMA_CRC_STORE	0x8
+#define DMA_CRC_STORE 0x8
 
 /*
  * Compare the CRC32C of a ioat_copy_crc() or ioat_crc() against an expeceted
  * value.  It is invalid to specify both TEST and STORE.
  */
-#define	DMA_CRC_TEST	0x10
-#define	_DMA_CRC_TESTSTORE	(DMA_CRC_STORE | DMA_CRC_TEST)
+#define DMA_CRC_TEST 0x10
+#define _DMA_CRC_TESTSTORE (DMA_CRC_STORE | DMA_CRC_TEST)
 
 /*
  * Use an inline comparison CRC32C or emit an inline CRC32C result.  Invalid
  * without one of STORE or TEST.
  */
-#define	DMA_CRC_INLINE	0x20
-#define	_DMA_CRC_FLAGS	(DMA_CRC_STORE | DMA_CRC_TEST | DMA_CRC_INLINE)
+#define DMA_CRC_INLINE 0x20
+#define _DMA_CRC_FLAGS (DMA_CRC_STORE | DMA_CRC_TEST | DMA_CRC_INLINE)
 
 /*
  * Hardware revision number.  Different hardware revisions support different
  * features.  For example, 3.2 cannot read from MMIO space, while 3.3 can.
  */
-#define	IOAT_VER_3_0			0x30
-#define	IOAT_VER_3_2			0x32
-#define	IOAT_VER_3_3			0x33
+#define IOAT_VER_3_0 0x30
+#define IOAT_VER_3_2 0x32
+#define IOAT_VER_3_3 0x33
 
 /*
  * Hardware capabilities.  Different hardware revisions support different
@@ -86,27 +87,27 @@
  * Different channels may support different features too; for example, 'PQ' may
  * only be supported on the first two channels of some hardware.
  */
-#define	IOAT_DMACAP_PB			(1 << 0)
-#define	IOAT_DMACAP_CRC			(1 << 1)
-#define	IOAT_DMACAP_MARKER_SKIP		(1 << 2)
-#define	IOAT_DMACAP_OLD_XOR		(1 << 3)
-#define	IOAT_DMACAP_DCA			(1 << 4)
-#define	IOAT_DMACAP_MOVECRC		(1 << 5)
-#define	IOAT_DMACAP_BFILL		(1 << 6)
-#define	IOAT_DMACAP_EXT_APIC		(1 << 7)
-#define	IOAT_DMACAP_XOR			(1 << 8)
-#define	IOAT_DMACAP_PQ			(1 << 9)
-#define	IOAT_DMACAP_DMA_DIF		(1 << 10)
-#define	IOAT_DMACAP_DWBES		(1 << 13)
-#define	IOAT_DMACAP_RAID16SS		(1 << 17)
-#define	IOAT_DMACAP_DMAMC		(1 << 18)
-#define	IOAT_DMACAP_CTOS		(1 << 19)
+#define IOAT_DMACAP_PB (1 << 0)
+#define IOAT_DMACAP_CRC (1 << 1)
+#define IOAT_DMACAP_MARKER_SKIP (1 << 2)
+#define IOAT_DMACAP_OLD_XOR (1 << 3)
+#define IOAT_DMACAP_DCA (1 << 4)
+#define IOAT_DMACAP_MOVECRC (1 << 5)
+#define IOAT_DMACAP_BFILL (1 << 6)
+#define IOAT_DMACAP_EXT_APIC (1 << 7)
+#define IOAT_DMACAP_XOR (1 << 8)
+#define IOAT_DMACAP_PQ (1 << 9)
+#define IOAT_DMACAP_DMA_DIF (1 << 10)
+#define IOAT_DMACAP_DWBES (1 << 13)
+#define IOAT_DMACAP_RAID16SS (1 << 17)
+#define IOAT_DMACAP_DMAMC (1 << 18)
+#define IOAT_DMACAP_CTOS (1 << 19)
 
-#define	IOAT_DMACAP_STR \
-    "\20\24Completion_Timeout_Support\23DMA_with_Multicasting_Support" \
-    "\22RAID_Super_descriptors\16Descriptor_Write_Back_Error_Support" \
-    "\13DMA_with_DIF\12PQ\11XOR\10Extended_APIC_ID\07Block_Fill\06Move_CRC" \
-    "\05DCA\04Old_XOR\03Marker_Skipping\02CRC\01Page_Break"
+#define IOAT_DMACAP_STR                                                         \
+	"\20\24Completion_Timeout_Support\23DMA_with_Multicasting_Support"      \
+	"\22RAID_Super_descriptors\16Descriptor_Write_Back_Error_Support"       \
+	"\13DMA_with_DIF\12PQ\11XOR\10Extended_APIC_ID\07Block_Fill\06Move_CRC" \
+	"\05DCA\04Old_XOR\03Marker_Skipping\02CRC\01Page_Break"
 
 typedef void *bus_dmaengine_t;
 struct bus_dmadesc;
@@ -171,8 +172,8 @@ void ioat_release(bus_dmaengine_t dmaengine);
  *
  * On failure, the caller does not hold the dmaengine.
  */
-int ioat_acquire_reserve(bus_dmaengine_t dmaengine, unsigned n, int mflags)
-    __result_use_check;
+int ioat_acquire_reserve(bus_dmaengine_t dmaengine, unsigned n,
+    int mflags) __result_use_check;
 
 /*
  * Issue a blockfill operation.  The 64-bit pattern 'fillpattern' is written to
@@ -245,6 +246,4 @@ struct bus_dmadesc *ioat_crc(bus_dmaengine_t dmaengine, bus_addr_t src,
 struct bus_dmadesc *ioat_null(bus_dmaengine_t dmaengine,
     bus_dmaengine_callback_t callback_fn, void *callback_arg, uint32_t flags);
 
-
 #endif /* __IOAT_H__ */
-

@@ -30,22 +30,21 @@
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/rman.h>
 #include <sys/timeet.h>
 #include <sys/timetc.h>
 #include <sys/watchdog.h>
+
 #include <machine/bus.h>
 #include <machine/cpu.h>
 #include <machine/frame.h>
 #include <machine/intr.h>
 
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <machine/bus.h>
+#include <dev/ofw/openfirm.h>
 
 #include <arm/ti/ti_mbox.h>
 #include <arm/ti/ti_sysc.h>
@@ -53,49 +52,46 @@
 #include "mbox_if.h"
 
 #ifdef DEBUG
-#define	DPRINTF(fmt, ...)	do {	\
-	printf("%s: ", __func__);	\
-	printf(fmt, __VA_ARGS__);	\
-} while (0)
+#define DPRINTF(fmt, ...)                 \
+	do {                              \
+		printf("%s: ", __func__); \
+		printf(fmt, __VA_ARGS__); \
+	} while (0)
 #else
-#define	DPRINTF(fmt, ...)
+#define DPRINTF(fmt, ...)
 #endif
 
-static device_probe_t		ti_mbox_probe;
-static device_attach_t		ti_mbox_attach;
-static device_detach_t		ti_mbox_detach;
-static void			ti_mbox_intr(void *);
-static int			ti_mbox_read(device_t, int, uint32_t *);
-static int			ti_mbox_write(device_t, int, uint32_t);
+static device_probe_t ti_mbox_probe;
+static device_attach_t ti_mbox_attach;
+static device_detach_t ti_mbox_detach;
+static void ti_mbox_intr(void *);
+static int ti_mbox_read(device_t, int, uint32_t *);
+static int ti_mbox_write(device_t, int, uint32_t);
 
 struct ti_mbox_softc {
-	struct mtx		sc_mtx;
-	struct resource		*sc_mem_res;
-	struct resource		*sc_irq_res;
-	void			*sc_intr;
-	bus_space_tag_t		sc_bt;
-	bus_space_handle_t	sc_bh;
+	struct mtx sc_mtx;
+	struct resource *sc_mem_res;
+	struct resource *sc_irq_res;
+	void *sc_intr;
+	bus_space_tag_t sc_bt;
+	bus_space_handle_t sc_bh;
 };
 
-#define	TI_MBOX_LOCK(sc)	mtx_lock(&(sc)->sc_mtx)
-#define	TI_MBOX_UNLOCK(sc)	mtx_unlock(&(sc)->sc_mtx)
+#define TI_MBOX_LOCK(sc) mtx_lock(&(sc)->sc_mtx)
+#define TI_MBOX_UNLOCK(sc) mtx_unlock(&(sc)->sc_mtx)
 
-static device_method_t ti_mbox_methods[] = {
-	DEVMETHOD(device_probe,		ti_mbox_probe),
-	DEVMETHOD(device_attach,	ti_mbox_attach),
-	DEVMETHOD(device_detach,	ti_mbox_detach),
+static device_method_t ti_mbox_methods[] = { DEVMETHOD(device_probe,
+						 ti_mbox_probe),
+	DEVMETHOD(device_attach, ti_mbox_attach),
+	DEVMETHOD(device_detach, ti_mbox_detach),
 
-	DEVMETHOD(mbox_read,		ti_mbox_read),
-	DEVMETHOD(mbox_write,		ti_mbox_write),
+	DEVMETHOD(mbox_read, ti_mbox_read),
+	DEVMETHOD(mbox_write, ti_mbox_write),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
-static driver_t ti_mbox_driver = {
-	"ti_mbox",
-	ti_mbox_methods,
-	sizeof(struct ti_mbox_softc)
-};
+static driver_t ti_mbox_driver = { "ti_mbox", ti_mbox_methods,
+	sizeof(struct ti_mbox_softc) };
 
 DRIVER_MODULE(ti_mbox, simplebus, ti_mbox_driver, 0, 0);
 MODULE_DEPEND(ti_mbox, ti_sysc, 1, 1, 1);
@@ -159,7 +155,7 @@ ti_mbox_attach(device_t dev)
 		return (ENXIO);
 	}
 	if (bus_setup_intr(dev, sc->sc_irq_res, INTR_MPSAFE | INTR_TYPE_MISC,
-	    NULL, ti_mbox_intr, sc, &sc->sc_intr) != 0) {
+		NULL, ti_mbox_intr, sc, &sc->sc_intr) != 0) {
 		device_printf(dev, "unable to setup the interrupt handler\n");
 		ti_mbox_detach(dev);
 		return (ENXIO);
@@ -172,7 +168,7 @@ ti_mbox_attach(device_t dev)
 	sysconfig |= TI_MBOX_SYSCONFIG_SOFTRST;
 	ti_mbox_reg_write(sc, TI_MBOX_SYSCONFIG, sysconfig);
 	delay = 100;
-	while (ti_mbox_reg_read(sc, TI_MBOX_SYSCONFIG) & 
+	while (ti_mbox_reg_read(sc, TI_MBOX_SYSCONFIG) &
 	    TI_MBOX_SYSCONFIG_SOFTRST) {
 		delay--;
 		DELAY(10);
@@ -186,7 +182,8 @@ ti_mbox_attach(device_t dev)
 	 * Enable smart idle mode.
 	 */
 	ti_mbox_reg_write(sc, TI_MBOX_SYSCONFIG,
-	    ti_mbox_reg_read(sc, TI_MBOX_SYSCONFIG) | TI_MBOX_SYSCONFIG_SMARTIDLE);
+	    ti_mbox_reg_read(sc, TI_MBOX_SYSCONFIG) |
+		TI_MBOX_SYSCONFIG_SMARTIDLE);
 	rev = ti_mbox_reg_read(sc,
 	    ti_sysc_get_rev_address_offset_host(device_get_parent(dev)));
 	DPRINTF("rev %d\n", rev);
@@ -209,11 +206,11 @@ ti_mbox_detach(device_t dev)
 	if (sc->sc_intr)
 		bus_teardown_intr(dev, sc->sc_irq_res, sc->sc_intr);
 	if (sc->sc_irq_res)
-		bus_release_resource(dev, SYS_RES_IRQ, rman_get_rid(sc->sc_irq_res),
-		    sc->sc_irq_res);
+		bus_release_resource(dev, SYS_RES_IRQ,
+		    rman_get_rid(sc->sc_irq_res), sc->sc_irq_res);
 	if (sc->sc_mem_res)
-		bus_release_resource(dev, SYS_RES_MEMORY, rman_get_rid(sc->sc_mem_res),
-		    sc->sc_mem_res);
+		bus_release_resource(dev, SYS_RES_MEMORY,
+		    rman_get_rid(sc->sc_mem_res), sc->sc_mem_res);
 
 	return (0);
 }
@@ -247,8 +244,7 @@ ti_mbox_write(device_t dev, int chan, uint32_t data)
 	sc = device_get_softc(dev);
 	TI_MBOX_LOCK(sc);
 	/* XXX implement interrupt method */
-	while (ti_mbox_reg_read(sc, TI_MBOX_FIFOSTATUS(chan)) == 1 && 
-	    limit--) {
+	while (ti_mbox_reg_read(sc, TI_MBOX_FIFOSTATUS(chan)) == 1 && limit--) {
 		DELAY(10);
 	}
 	if (limit == 0) {

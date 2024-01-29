@@ -32,20 +32,19 @@
 #include "opt_snd.h"
 #endif
 
-#include <dev/sound/pcm/sound.h>
-#include <dev/sound/pcm/ac97.h>
-#include <dev/sound/pci/neomagic.h>
-#include <dev/sound/pci/neomagic-coeff.h>
-
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
+#include <dev/sound/pci/neomagic-coeff.h>
+#include <dev/sound/pci/neomagic.h>
+#include <dev/sound/pcm/ac97.h>
+#include <dev/sound/pcm/sound.h>
 
 /* -------------------------------------------------------------------- */
 
-#define	NM_BUFFSIZE	16384
+#define NM_BUFFSIZE 16384
 
-#define NM256AV_PCI_ID 	0x800510c8
-#define NM256ZX_PCI_ID 	0x800610c8
+#define NM256AV_PCI_ID 0x800510c8
+#define NM256ZX_PCI_ID 0x800610c8
 
 struct sc_info;
 
@@ -60,17 +59,17 @@ struct sc_chinfo {
 
 /* device private data */
 struct sc_info {
-	device_t	dev;
-	u_int32_t 	type;
+	device_t dev;
+	u_int32_t type;
 
 	struct resource *reg, *irq, *buf;
-	int		regid, irqid, bufid;
-	void		*ih;
+	int regid, irqid, bufid;
+	void *ih;
 
-	u_int32_t 	ac97_base, ac97_status, ac97_busy;
-	u_int32_t	buftop, pbuf, rbuf, cbuf, acbuf;
-	u_int32_t	playint, recint, misc1int, misc2int;
-	u_int32_t	irsz, badintr;
+	u_int32_t ac97_base, ac97_status, ac97_busy;
+	u_int32_t buftop, pbuf, rbuf, cbuf, acbuf;
+	u_int32_t playint, recint, misc1int, misc2int;
+	u_int32_t irsz, badintr;
 
 	struct sc_chinfo pch, rch;
 };
@@ -82,16 +81,16 @@ struct sc_info {
  */
 
 /* stuff */
-static int 	 nm_loadcoeff(struct sc_info *sc, int dir, int num);
-static int	 nm_setch(struct sc_chinfo *ch);
-static int       nm_init(struct sc_info *);
-static void      nm_intr(void *);
+static int nm_loadcoeff(struct sc_info *sc, int dir, int num);
+static int nm_setch(struct sc_chinfo *ch);
+static int nm_init(struct sc_info *);
+static void nm_intr(void *);
 
 /* talk to the card */
 static u_int32_t nm_rd(struct sc_info *, int, int);
-static void 	 nm_wr(struct sc_info *, int, u_int32_t, int);
+static void nm_wr(struct sc_info *, int, u_int32_t, int);
 static u_int32_t nm_rdbuf(struct sc_info *, int, int);
-static void 	 nm_wrbuf(struct sc_info *, int, u_int32_t, int);
+static void nm_wrbuf(struct sc_info *, int, u_int32_t, int);
 
 static u_int32_t badcards[] = {
 	0x0007103c,
@@ -102,28 +101,15 @@ static u_int32_t badcards[] = {
 #define NUM_BADCARDS (sizeof(badcards) / sizeof(u_int32_t))
 
 /* The actual rates supported by the card. */
-static int samplerates[9] = {
-	8000,
-	11025,
-	16000,
-	22050,
-	24000,
-	32000,
-	44100,
-	48000,
-	99999999
-};
+static int samplerates[9] = { 8000, 11025, 16000, 22050, 24000, 32000, 44100,
+	48000, 99999999 };
 
 /* -------------------------------------------------------------------- */
 
-static u_int32_t nm_fmt[] = {
-	SND_FORMAT(AFMT_U8, 1, 0),
-	SND_FORMAT(AFMT_U8, 2, 0),
-	SND_FORMAT(AFMT_S16_LE, 1, 0),
-	SND_FORMAT(AFMT_S16_LE, 2, 0),
-	0
-};
-static struct pcmchan_caps nm_caps = {4000, 48000, nm_fmt, 0};
+static u_int32_t nm_fmt[] = { SND_FORMAT(AFMT_U8, 1, 0),
+	SND_FORMAT(AFMT_U8, 2, 0), SND_FORMAT(AFMT_S16_LE, 1, 0),
+	SND_FORMAT(AFMT_S16_LE, 2, 0), 0 };
+static struct pcmchan_caps nm_caps = { 4000, 48000, nm_fmt, 0 };
 
 /* -------------------------------------------------------------------- */
 
@@ -277,12 +263,9 @@ nm_wrcd(kobj_t obj, void *devinfo, int regno, u_int32_t data)
 	return -1;
 }
 
-static kobj_method_t nm_ac97_methods[] = {
-    	KOBJMETHOD(ac97_init,		nm_initcd),
-    	KOBJMETHOD(ac97_read,		nm_rdcd),
-    	KOBJMETHOD(ac97_write,		nm_wrcd),
-	KOBJMETHOD_END
-};
+static kobj_method_t nm_ac97_methods[] = { KOBJMETHOD(ac97_init, nm_initcd),
+	KOBJMETHOD(ac97_read, nm_rdcd), KOBJMETHOD(ac97_write, nm_wrcd),
+	KOBJMETHOD_END };
 AC97_DECLARE(nm_ac97);
 
 /* -------------------------------------------------------------------- */
@@ -303,13 +286,13 @@ nm_loadcoeff(struct sc_info *sc, int dir, int num)
 	int ofs, sz, i;
 	u_int32_t addr;
 
-	addr = (dir == PCMDIR_PLAY)? 0x01c : 0x21c;
+	addr = (dir == PCMDIR_PLAY) ? 0x01c : 0x21c;
 	if (dir == PCMDIR_REC)
 		num += 8;
 	sz = coefficientSizes[num];
 	ofs = 0;
 	while (num-- > 0)
-		ofs+= coefficientSizes[num];
+		ofs += coefficientSizes[num];
 	for (i = 0; i < sz; i++)
 		nm_wrbuf(sc, sc->cbuf + i, coefficients[ofs + i], 1);
 	nm_wr(sc, addr, sc->cbuf, 4);
@@ -330,39 +313,46 @@ nm_setch(struct sc_chinfo *ch)
 		if (ch->spd < (samplerates[x] + samplerates[x + 1]) / 2)
 			break;
 
-	if (x == 8) return 1;
+	if (x == 8)
+		return 1;
 
 	ch->spd = samplerates[x];
 	nm_loadcoeff(sc, ch->dir, x);
 
 	x <<= 4;
 	x &= NM_RATE_MASK;
-	if (ch->fmt & AFMT_16BIT) x |= NM_RATE_BITS_16;
-	if (AFMT_CHANNEL(ch->fmt) > 1) x |= NM_RATE_STEREO;
+	if (ch->fmt & AFMT_16BIT)
+		x |= NM_RATE_BITS_16;
+	if (AFMT_CHANNEL(ch->fmt) > 1)
+		x |= NM_RATE_STEREO;
 
-	base = (ch->dir == PCMDIR_PLAY)? NM_PLAYBACK_REG_OFFSET : NM_RECORD_REG_OFFSET;
+	base = (ch->dir == PCMDIR_PLAY) ? NM_PLAYBACK_REG_OFFSET :
+					  NM_RECORD_REG_OFFSET;
 	nm_wr(sc, base + NM_RATE_REG_OFFSET, x, 1);
 	return 0;
 }
 
 /* channel interface */
 static void *
-nmchan_init(kobj_t obj, void *devinfo, struct snd_dbuf *b, struct pcm_channel *c, int dir)
+nmchan_init(kobj_t obj, void *devinfo, struct snd_dbuf *b,
+    struct pcm_channel *c, int dir)
 {
 	struct sc_info *sc = devinfo;
 	struct sc_chinfo *ch;
 	u_int32_t chnbuf;
 
-	chnbuf = (dir == PCMDIR_PLAY)? sc->pbuf : sc->rbuf;
-	ch = (dir == PCMDIR_PLAY)? &sc->pch : &sc->rch;
+	chnbuf = (dir == PCMDIR_PLAY) ? sc->pbuf : sc->rbuf;
+	ch = (dir == PCMDIR_PLAY) ? &sc->pch : &sc->rch;
 	ch->active = 0;
 	ch->blksize = 0;
 	ch->wmark = 0;
 	ch->buffer = b;
-	sndbuf_setup(ch->buffer, (u_int8_t *)rman_get_virtual(sc->buf) + chnbuf, NM_BUFFSIZE);
+	sndbuf_setup(ch->buffer, (u_int8_t *)rman_get_virtual(sc->buf) + chnbuf,
+	    NM_BUFFSIZE);
 	if (bootverbose)
-		device_printf(sc->dev, "%s buf %p\n", (dir == PCMDIR_PLAY)?
-			      "play" : "rec", sndbuf_getbuf(ch->buffer));
+		device_printf(sc->dev, "%s buf %p\n",
+		    (dir == PCMDIR_PLAY) ? "play" : "rec",
+		    sndbuf_getbuf(ch->buffer));
 	ch->parent = sc;
 	ch->channel = c;
 	ch->dir = dir;
@@ -390,7 +380,7 @@ nmchan_setspeed(kobj_t obj, void *data, u_int32_t speed)
 	struct sc_chinfo *ch = data;
 
 	ch->spd = speed;
-	return nm_setch(ch)? 0 : ch->spd;
+	return nm_setch(ch) ? 0 : ch->spd;
 }
 
 static u_int32_t
@@ -413,7 +403,7 @@ nmchan_trigger(kobj_t obj, void *data, int go)
 	if (!PCMTRIG_COMMON(go))
 		return 0;
 
-	ssz = (ch->fmt & AFMT_16BIT)? 2 : 1;
+	ssz = (ch->fmt & AFMT_16BIT) ? 2 : 1;
 	if (AFMT_CHANNEL(ch->fmt) > 1)
 		ssz <<= 1;
 
@@ -422,11 +412,12 @@ nmchan_trigger(kobj_t obj, void *data, int go)
 			ch->active = 1;
 			ch->wmark = ch->blksize;
 			nm_wr(sc, NM_PBUFFER_START, sc->pbuf, 4);
-			nm_wr(sc, NM_PBUFFER_END, sc->pbuf + NM_BUFFSIZE - ssz, 4);
+			nm_wr(sc, NM_PBUFFER_END, sc->pbuf + NM_BUFFSIZE - ssz,
+			    4);
 			nm_wr(sc, NM_PBUFFER_CURRP, sc->pbuf, 4);
 			nm_wr(sc, NM_PBUFFER_WMARK, sc->pbuf + ch->wmark, 4);
-			nm_wr(sc, NM_PLAYBACK_ENABLE_REG, NM_PLAYBACK_FREERUN |
-				NM_PLAYBACK_ENABLE_FLAG, 1);
+			nm_wr(sc, NM_PLAYBACK_ENABLE_REG,
+			    NM_PLAYBACK_FREERUN | NM_PLAYBACK_ENABLE_FLAG, 1);
 			nm_wr(sc, NM_AUDIO_MUTE_REG, 0, 2);
 		} else {
 			ch->active = 0;
@@ -437,8 +428,8 @@ nmchan_trigger(kobj_t obj, void *data, int go)
 		if (go == PCMTRIG_START) {
 			ch->active = 1;
 			ch->wmark = ch->blksize;
-			nm_wr(sc, NM_RECORD_ENABLE_REG, NM_RECORD_FREERUN |
-				NM_RECORD_ENABLE_FLAG, 1);
+			nm_wr(sc, NM_RECORD_ENABLE_REG,
+			    NM_RECORD_FREERUN | NM_RECORD_ENABLE_FLAG, 1);
 			nm_wr(sc, NM_RBUFFER_START, sc->rbuf, 4);
 			nm_wr(sc, NM_RBUFFER_END, sc->rbuf + NM_BUFFSIZE, 4);
 			nm_wr(sc, NM_RBUFFER_CURRP, sc->rbuf, 4);
@@ -469,17 +460,14 @@ nmchan_getcaps(kobj_t obj, void *data)
 	return &nm_caps;
 }
 
-static kobj_method_t nmchan_methods[] = {
-    	KOBJMETHOD(channel_init,		nmchan_init),
-    	KOBJMETHOD(channel_free,		nmchan_free),
-    	KOBJMETHOD(channel_setformat,		nmchan_setformat),
-    	KOBJMETHOD(channel_setspeed,		nmchan_setspeed),
-    	KOBJMETHOD(channel_setblocksize,	nmchan_setblocksize),
-    	KOBJMETHOD(channel_trigger,		nmchan_trigger),
-    	KOBJMETHOD(channel_getptr,		nmchan_getptr),
-    	KOBJMETHOD(channel_getcaps,		nmchan_getcaps),
-	KOBJMETHOD_END
-};
+static kobj_method_t nmchan_methods[] = { KOBJMETHOD(channel_init, nmchan_init),
+	KOBJMETHOD(channel_free, nmchan_free),
+	KOBJMETHOD(channel_setformat, nmchan_setformat),
+	KOBJMETHOD(channel_setspeed, nmchan_setspeed),
+	KOBJMETHOD(channel_setblocksize, nmchan_setblocksize),
+	KOBJMETHOD(channel_trigger, nmchan_trigger),
+	KOBJMETHOD(channel_getptr, nmchan_getptr),
+	KOBJMETHOD(channel_getcaps, nmchan_getcaps), KOBJMETHOD_END };
 CHANNEL_DECLARE(nmchan);
 
 /* The interrupt handler */
@@ -516,18 +504,18 @@ nm_intr(void *p)
 		nm_ackint(sc, sc->misc1int);
 		x = nm_rd(sc, 0x400, 1);
 		nm_wr(sc, 0x400, x | 2, 1);
-	 	device_printf(sc->dev, "misc int 1\n");
+		device_printf(sc->dev, "misc int 1\n");
 	}
 	if (status & sc->misc2int) {
 		status &= ~sc->misc2int;
 		nm_ackint(sc, sc->misc2int);
 		x = nm_rd(sc, 0x400, 1);
 		nm_wr(sc, 0x400, x & ~2, 1);
-	 	device_printf(sc->dev, "misc int 2\n");
+		device_printf(sc->dev, "misc int 2\n");
 	}
 	if (status) {
 		nm_ackint(sc, status);
-	 	device_printf(sc->dev, "unknown int\n");
+		device_printf(sc->dev, "unknown int\n");
 	}
 }
 
@@ -559,25 +547,27 @@ nm_init(struct sc_info *sc)
 		sc->ac97_status = NM2_MIXER_STATUS_OFFSET;
 		sc->ac97_busy = NM2_MIXER_READY_MASK;
 
-		sc->buftop = (nm_rd(sc, 0xa0b, 2)? 6144 : 4096) * 1024;
+		sc->buftop = (nm_rd(sc, 0xa0b, 2) ? 6144 : 4096) * 1024;
 
 		sc->irsz = 4;
 		sc->playint = NM2_PLAYBACK_INT;
 		sc->recint = NM2_RECORD_INT;
 		sc->misc1int = NM2_MISC_INT_1;
 		sc->misc2int = NM2_MISC_INT_2;
-	} else return -1;
+	} else
+		return -1;
 	sc->badintr = 0;
 	ofs = sc->buftop - 0x0400;
 	sc->buftop -= 0x1400;
 
 	if (bootverbose)
 		device_printf(sc->dev, "buftop is 0x%08x\n", sc->buftop);
- 	if ((nm_rdbuf(sc, ofs, 4) & NM_SIG_MASK) == NM_SIGNATURE) {
+	if ((nm_rdbuf(sc, ofs, 4) & NM_SIG_MASK) == NM_SIGNATURE) {
 		i = nm_rdbuf(sc, ofs + 4, 4);
 		if (i != 0 && i != 0xffffffff) {
 			if (bootverbose)
-				device_printf(sc->dev, "buftop is changed to 0x%08x\n", i);
+				device_printf(sc->dev,
+				    "buftop is changed to 0x%08x\n", i);
 			sc->buftop = i;
 		}
 	}
@@ -611,18 +601,19 @@ nm_pci_probe(device_t dev)
 		/* Try to catch other non-ac97 cards */
 
 		if (i == NUM_BADCARDS) {
-			if (!(sc = malloc(sizeof(*sc), M_DEVBUF, M_NOWAIT | M_ZERO))) {
+			if (!(sc = malloc(sizeof(*sc), M_DEVBUF,
+				  M_NOWAIT | M_ZERO))) {
 				device_printf(dev, "cannot allocate softc\n");
 				return ENXIO;
 			}
 
 			sc->regid = PCIR_BAR(1);
 			sc->reg = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-							 &sc->regid,
-							 RF_ACTIVE);
+			    &sc->regid, RF_ACTIVE);
 
 			if (!sc->reg) {
-				device_printf(dev, "unable to map register space\n");
+				device_printf(dev,
+				    "unable to map register space\n");
 				free(sc, M_DEVBUF);
 				return ENXIO;
 			}
@@ -635,19 +626,20 @@ nm_pci_probe(device_t dev)
 			nm_wr(sc, 0, 0x11, 1); /* reset device */
 			if ((nm_rd(sc, NM_MIXER_PRESENCE, 2) &
 				NM_PRESENCE_MASK) != NM_PRESENCE_VALUE) {
-				i = 0;	/* non-ac97 card, but not listed */
-				DEB(device_printf(dev, "subdev = 0x%x - badcard?\n",
-				    subdev));
+				i = 0; /* non-ac97 card, but not listed */
+				DEB(device_printf(dev,
+				    "subdev = 0x%x - badcard?\n", subdev));
 			}
 			bus_release_resource(dev, SYS_RES_MEMORY, sc->regid,
-					     sc->reg);
+			    sc->reg);
 			free(sc, M_DEVBUF);
 		}
 
 		if (i == NUM_BADCARDS)
 			s = "NeoMagic 256AV";
 		DEB(else)
-			DEB(device_printf(dev, "this is a non-ac97 NM256AV, not attaching\n"));
+		DEB(device_printf(dev,
+		    "this is a non-ac97 NM256AV, not attaching\n"));
 
 		break;
 
@@ -656,8 +648,9 @@ nm_pci_probe(device_t dev)
 		break;
 	}
 
-	if (s) device_set_desc(dev, s);
-	return s? 0 : ENXIO;
+	if (s)
+		device_set_desc(dev, s);
+	return s ? 0 : ENXIO;
 }
 
 static int
@@ -665,7 +658,7 @@ nm_pci_attach(device_t dev)
 {
 	struct sc_info *sc;
 	struct ac97_info *codec = NULL;
-	char 		status[SND_STATUSLEN];
+	char status[SND_STATUSLEN];
 
 	sc = malloc(sizeof(*sc), M_DEVBUF, M_WAITOK | M_ZERO);
 	sc->dev = dev;
@@ -675,10 +668,10 @@ nm_pci_attach(device_t dev)
 
 	sc->bufid = PCIR_BAR(0);
 	sc->buf = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &sc->bufid,
-					 RF_ACTIVE);
+	    RF_ACTIVE);
 	sc->regid = PCIR_BAR(1);
 	sc->reg = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &sc->regid,
-					 RF_ACTIVE);
+	    RF_ACTIVE);
 
 	if (!sc->buf || !sc->reg) {
 		device_printf(dev, "unable to map register space\n");
@@ -691,23 +684,26 @@ nm_pci_attach(device_t dev)
 	}
 
 	codec = AC97_CREATE(dev, sc, nm_ac97);
-	if (codec == NULL) goto bad;
-	if (mixer_init(dev, ac97_getmixerclass(), codec) == -1) goto bad;
+	if (codec == NULL)
+		goto bad;
+	if (mixer_init(dev, ac97_getmixerclass(), codec) == -1)
+		goto bad;
 
 	sc->irqid = 0;
 	sc->irq = bus_alloc_resource_any(dev, SYS_RES_IRQ, &sc->irqid,
-					 RF_ACTIVE | RF_SHAREABLE);
+	    RF_ACTIVE | RF_SHAREABLE);
 	if (!sc->irq || snd_setup_intr(dev, sc->irq, 0, nm_intr, sc, &sc->ih)) {
 		device_printf(dev, "unable to map interrupt\n");
 		goto bad;
 	}
 
 	snprintf(status, SND_STATUSLEN, "mem 0x%jx,0x%jx irq %jd on %s",
-		 rman_get_start(sc->buf), rman_get_start(sc->reg),
-		 rman_get_start(sc->irq),
-		 device_get_nameunit(device_get_parent(dev)));
+	    rman_get_start(sc->buf), rman_get_start(sc->reg),
+	    rman_get_start(sc->irq),
+	    device_get_nameunit(device_get_parent(dev)));
 
-	if (pcm_register(dev, sc, 1, 1)) goto bad;
+	if (pcm_register(dev, sc, 1, 1))
+		goto bad;
 	pcm_addchan(dev, PCMDIR_REC, &nmchan_class, sc);
 	pcm_addchan(dev, PCMDIR_PLAY, &nmchan_class, sc);
 	pcm_setstatus(dev, status);
@@ -715,11 +711,16 @@ nm_pci_attach(device_t dev)
 	return 0;
 
 bad:
-	if (codec) ac97_destroy(codec);
-	if (sc->buf) bus_release_resource(dev, SYS_RES_MEMORY, sc->bufid, sc->buf);
-	if (sc->reg) bus_release_resource(dev, SYS_RES_MEMORY, sc->regid, sc->reg);
-	if (sc->ih) bus_teardown_intr(dev, sc->irq, sc->ih);
-	if (sc->irq) bus_release_resource(dev, SYS_RES_IRQ, sc->irqid, sc->irq);
+	if (codec)
+		ac97_destroy(codec);
+	if (sc->buf)
+		bus_release_resource(dev, SYS_RES_MEMORY, sc->bufid, sc->buf);
+	if (sc->reg)
+		bus_release_resource(dev, SYS_RES_MEMORY, sc->regid, sc->reg);
+	if (sc->ih)
+		bus_teardown_intr(dev, sc->irq, sc->ih);
+	if (sc->irq)
+		bus_release_resource(dev, SYS_RES_IRQ, sc->irqid, sc->irq);
 	free(sc, M_DEVBUF);
 	return ENXIO;
 }
@@ -782,32 +783,31 @@ nm_pci_resume(device_t dev)
 	nm_wr(sc, 0x214, 0, 2);
 
 	/* Reinit mixer */
-    	if (mixer_reinit(dev) == -1) {
+	if (mixer_reinit(dev) == -1) {
 		device_printf(dev, "unable to reinitialize the mixer\n");
 		return ENXIO;
 	}
 	/* restart playing */
 	if (sc->pch.active) {
-		nm_wr(sc, NM_PLAYBACK_ENABLE_REG, NM_PLAYBACK_FREERUN |
-			  NM_PLAYBACK_ENABLE_FLAG, 1);
+		nm_wr(sc, NM_PLAYBACK_ENABLE_REG,
+		    NM_PLAYBACK_FREERUN | NM_PLAYBACK_ENABLE_FLAG, 1);
 		nm_wr(sc, NM_AUDIO_MUTE_REG, 0, 2);
 	}
 	/* restart recording */
 	if (sc->rch.active) {
-		nm_wr(sc, NM_RECORD_ENABLE_REG, NM_RECORD_FREERUN |
-			  NM_RECORD_ENABLE_FLAG, 1);
+		nm_wr(sc, NM_RECORD_ENABLE_REG,
+		    NM_RECORD_FREERUN | NM_RECORD_ENABLE_FLAG, 1);
 	}
 	return 0;
 }
 
 static device_method_t nm_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		nm_pci_probe),
-	DEVMETHOD(device_attach,	nm_pci_attach),
-	DEVMETHOD(device_detach,	nm_pci_detach),
-	DEVMETHOD(device_suspend,	nm_pci_suspend),
-	DEVMETHOD(device_resume,	nm_pci_resume),
-	{ 0, 0 }
+	DEVMETHOD(device_probe, nm_pci_probe),
+	DEVMETHOD(device_attach, nm_pci_attach),
+	DEVMETHOD(device_detach, nm_pci_detach),
+	DEVMETHOD(device_suspend, nm_pci_suspend),
+	DEVMETHOD(device_resume, nm_pci_resume), { 0, 0 }
 };
 
 static driver_t nm_driver = {

@@ -32,50 +32,55 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <errno.h>
 #include <link.h>
+#include <pthread.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <pthread.h>
-#include "atexit.h"
-#include "un-namespace.h"
-#include "block_abi.h"
 
+#include "atexit.h"
+#include "block_abi.h"
 #include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 /**
  * The _Block_copy() function is provided by the block runtime.
  */
-__attribute__((weak)) void*
-_Block_copy(void*);
+__attribute__((weak)) void *_Block_copy(void *);
 
-#define	ATEXIT_FN_EMPTY	0
-#define	ATEXIT_FN_STD	1
-#define	ATEXIT_FN_CXA	2
+#define ATEXIT_FN_EMPTY 0
+#define ATEXIT_FN_STD 1
+#define ATEXIT_FN_CXA 2
 
 static pthread_mutex_t atexit_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-#define _MUTEX_LOCK(x)		if (__isthreaded) _pthread_mutex_lock(x)
-#define _MUTEX_UNLOCK(x)	if (__isthreaded) _pthread_mutex_unlock(x)
-#define _MUTEX_DESTROY(x)	if (__isthreaded) _pthread_mutex_destroy(x)
+#define _MUTEX_LOCK(x)    \
+	if (__isthreaded) \
+	_pthread_mutex_lock(x)
+#define _MUTEX_UNLOCK(x)  \
+	if (__isthreaded) \
+	_pthread_mutex_unlock(x)
+#define _MUTEX_DESTROY(x) \
+	if (__isthreaded) \
+	_pthread_mutex_destroy(x)
 
 struct atexit {
-	struct atexit *next;			/* next in list */
-	int ind;				/* next index in this table */
+	struct atexit *next; /* next in list */
+	int ind;	     /* next index in this table */
 	struct atexit_fn {
-		int fn_type;			/* ATEXIT_? from above */
+		int fn_type; /* ATEXIT_? from above */
 		union {
 			void (*std_func)(void);
 			void (*cxa_func)(void *);
-		} fn_ptr;			/* function pointer */
-		void *fn_arg;			/* argument for CXA callback */
-		void *fn_dso;			/* shared module handle */
-	} fns[ATEXIT_SIZE];			/* the table itself */
+		} fn_ptr;     /* function pointer */
+		void *fn_arg; /* argument for CXA callback */
+		void *fn_dso; /* shared module handle */
+	} fns[ATEXIT_SIZE];   /* the table itself */
 };
 
-static struct atexit *__atexit;		/* points to head of LIFO stack */
+static struct atexit *__atexit; /* points to head of LIFO stack */
 typedef DECLARE_BLOCK(void, atexit_block, void);
 
 int atexit_b(atexit_block);
@@ -89,31 +94,32 @@ int __cxa_atexit(void (*)(void *), void *, void *);
 static int
 atexit_register(struct atexit_fn *fptr)
 {
-	static struct atexit __atexit0;	/* one guaranteed table */
+	static struct atexit __atexit0; /* one guaranteed table */
 	struct atexit *p;
 
 	_MUTEX_LOCK(&atexit_mutex);
 	if ((p = __atexit) == NULL)
 		__atexit = p = &__atexit0;
-	else while (p->ind >= ATEXIT_SIZE) {
-		struct atexit *old__atexit;
-		old__atexit = __atexit;
-	        _MUTEX_UNLOCK(&atexit_mutex);
-		if ((p = (struct atexit *)malloc(sizeof(*p))) == NULL)
-			return (-1);
-		_MUTEX_LOCK(&atexit_mutex);
-		if (old__atexit != __atexit) {
-			/* Lost race, retry operation */
+	else
+		while (p->ind >= ATEXIT_SIZE) {
+			struct atexit *old__atexit;
+			old__atexit = __atexit;
 			_MUTEX_UNLOCK(&atexit_mutex);
-			free(p);
+			if ((p = (struct atexit *)malloc(sizeof(*p))) == NULL)
+				return (-1);
 			_MUTEX_LOCK(&atexit_mutex);
-			p = __atexit;
-			continue;
+			if (old__atexit != __atexit) {
+				/* Lost race, retry operation */
+				_MUTEX_UNLOCK(&atexit_mutex);
+				free(p);
+				_MUTEX_LOCK(&atexit_mutex);
+				p = __atexit;
+				continue;
+			}
+			p->ind = 0;
+			p->next = __atexit;
+			__atexit = p;
 		}
-		p->ind = 0;
-		p->next = __atexit;
-		__atexit = p;
-	}
 	p->fns[p->ind++] = *fptr;
 	_MUTEX_UNLOCK(&atexit_mutex);
 	return 0;
@@ -155,7 +161,7 @@ atexit_b(atexit_block func)
 	// Blocks are not C++ destructors, but they have the same signature (a
 	// single void* parameter), so we can pretend that they are.
 	fn.fn_type = ATEXIT_FN_CXA;
-	fn.fn_ptr.cxa_func = (void(*)(void*))GET_BLOCK_FUNCTION(func);
+	fn.fn_ptr.cxa_func = (void (*)(void *))GET_BLOCK_FUNCTION(func);
 	fn.fn_arg = func;
 	fn.fn_dso = NULL;
 
@@ -217,7 +223,7 @@ __cxa_finalize(void *dso)
 				/* wrong DSO ? */
 				if (!has_phdr || global_exit ||
 				    !__elf_phdr_match_addr(&phdr_info,
-				    fn.fn_ptr.cxa_func))
+					fn.fn_ptr.cxa_func))
 					continue;
 			}
 			/*
@@ -225,8 +231,8 @@ __cxa_finalize(void *dso)
 			  has already been called.
 			*/
 			p->fns[n].fn_type = ATEXIT_FN_EMPTY;
-		        _MUTEX_UNLOCK(&atexit_mutex);
-		
+			_MUTEX_UNLOCK(&atexit_mutex);
+
 			/* Call the function of correct type. */
 			if (fn.fn_type == ATEXIT_FN_CXA)
 				fn.fn_ptr.cxa_func(fn.fn_arg);

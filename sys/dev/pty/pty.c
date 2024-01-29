@@ -30,6 +30,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/conf.h>
 #include <sys/eventhandler.h>
 #include <sys/fcntl.h>
@@ -38,7 +39,6 @@
 #include <sys/proc.h>
 #include <sys/sysctl.h>
 #include <sys/syslog.h>
-#include <sys/systm.h>
 #include <sys/tty.h>
 
 /*
@@ -52,8 +52,7 @@
  */
 
 static unsigned pty_warningcnt = 1;
-SYSCTL_UINT(_kern, OID_AUTO, tty_pty_warningcnt, CTLFLAG_RW,
-    &pty_warningcnt, 0,
+SYSCTL_UINT(_kern, OID_AUTO, tty_pty_warningcnt, CTLFLAG_RW, &pty_warningcnt, 0,
     "Warnings that will be triggered upon legacy PTY allocation");
 
 static int
@@ -69,7 +68,8 @@ ptydev_fdopen(struct cdev *dev, int fflags, struct thread *td, struct file *fp)
 	strlcpy(name, devtoname(dev), sizeof(name));
 	name[0] = 't';
 
-	error = pts_alloc_external(fflags & (FREAD|FWRITE), td, fp, dev, name);
+	error = pts_alloc_external(fflags & (FREAD | FWRITE), td, fp, dev,
+	    name);
 	if (error != 0) {
 		destroy_dev_sched(dev);
 		return (error);
@@ -82,9 +82,9 @@ ptydev_fdopen(struct cdev *dev, int fflags, struct thread *td, struct file *fp)
 }
 
 static struct cdevsw ptydev_cdevsw = {
-	.d_version	= D_VERSION,
-	.d_fdopen	= ptydev_fdopen,
-	.d_name		= "ptydev",
+	.d_version = D_VERSION,
+	.d_fdopen = ptydev_fdopen,
+	.d_name = "ptydev",
 };
 
 static void
@@ -114,7 +114,7 @@ pty_clone(void *arg, struct ucred *cr, char *name, int namelen,
 
 	/* Create the controller device node. */
 	make_dev_args_init(&mda);
-	mda.mda_flags =  MAKEDEV_CHECKNAME | MAKEDEV_REF;
+	mda.mda_flags = MAKEDEV_CHECKNAME | MAKEDEV_REF;
 	mda.mda_devsw = &ptydev_cdevsw;
 	mda.mda_uid = UID_ROOT;
 	mda.mda_gid = GID_WHEEL;
@@ -129,20 +129,20 @@ ptmx_fdopen(struct cdev *dev __unused, int fflags, struct thread *td,
     struct file *fp)
 {
 
-	return (pts_alloc(fflags & (FREAD|FWRITE), td, fp));
+	return (pts_alloc(fflags & (FREAD | FWRITE), td, fp));
 }
 
 static struct cdevsw ptmx_cdevsw = {
-	.d_version	= D_VERSION,
-	.d_fdopen	= ptmx_fdopen,
-	.d_name		= "ptmx",
+	.d_version = D_VERSION,
+	.d_fdopen = ptmx_fdopen,
+	.d_name = "ptmx",
 };
 
 static int
 pty_modevent(module_t mod, int type, void *data)
 {
 
-	switch(type) {
+	switch (type) {
 	case MOD_LOAD:
 		EVENTHANDLER_REGISTER(dev_clone, pty_clone, 0, 1000);
 		make_dev_credf(MAKEDEV_ETERNAL_KLD, &ptmx_cdevsw, 0, NULL,

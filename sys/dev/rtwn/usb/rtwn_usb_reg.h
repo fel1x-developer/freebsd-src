@@ -27,17 +27,16 @@ rtwn_usb_calc_tx_checksum(void *buf)
 	for (i = 0; i < 32 / 2; i++)
 		sum ^= ((uint16_t *)buf)[i];
 
-	return (sum);		/* NB: already little endian. */
+	return (sum); /* NB: already little endian. */
 }
 
-int		rtwn_usb_write_region_1(struct rtwn_softc *, uint16_t,
-		    uint8_t *, int);
-int		rtwn_usb_write_1(struct rtwn_softc *, uint16_t, uint8_t);
-int		rtwn_usb_write_2(struct rtwn_softc *, uint16_t, uint16_t);
-int		rtwn_usb_write_4(struct rtwn_softc *, uint16_t, uint32_t);
-uint8_t		rtwn_usb_read_1(struct rtwn_softc *, uint16_t);
-uint16_t	rtwn_usb_read_2(struct rtwn_softc *, uint16_t);
-uint32_t	rtwn_usb_read_4(struct rtwn_softc *, uint16_t);
-void		rtwn_usb_delay(struct rtwn_softc *, int);
+int rtwn_usb_write_region_1(struct rtwn_softc *, uint16_t, uint8_t *, int);
+int rtwn_usb_write_1(struct rtwn_softc *, uint16_t, uint8_t);
+int rtwn_usb_write_2(struct rtwn_softc *, uint16_t, uint16_t);
+int rtwn_usb_write_4(struct rtwn_softc *, uint16_t, uint32_t);
+uint8_t rtwn_usb_read_1(struct rtwn_softc *, uint16_t);
+uint16_t rtwn_usb_read_2(struct rtwn_softc *, uint16_t);
+uint32_t rtwn_usb_read_4(struct rtwn_softc *, uint16_t);
+void rtwn_usb_delay(struct rtwn_softc *, int);
 
-#endif	/* RTWN_USB_REG_H */
+#endif /* RTWN_USB_REG_H */

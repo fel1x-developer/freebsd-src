@@ -41,24 +41,24 @@
 #include "libi386.h"
 
 #ifdef SAVE_MEMORY
-#define BUFSIZE (1*1024)
+#define BUFSIZE (1 * 1024)
 #else
-#define BUFSIZE (4*1024)
+#define BUFSIZE (4 * 1024)
 #endif
 
-static char     buf[BUFSIZE];
+static char buf[BUFSIZE];
 
-int 
+int
 pread(fd, dest, size)
-	int             fd;
-	vm_offset_t         dest;
-	int             size;
+int fd;
+vm_offset_t dest;
+int size;
 {
-	int             rsize;
+	int rsize;
 
 	rsize = size;
 	while (rsize > 0) {
-		int             count, got;
+		int count, got;
 
 		count = (rsize < BUFSIZE ? rsize : BUFSIZE);
 
@@ -72,7 +72,7 @@ pread(fd, dest, size)
 		dest += got;
 		rsize -= got;
 		if (got < count)
-			break;	/* EOF */
+			break; /* EOF */
 	}
 	return (size - rsize);
 }

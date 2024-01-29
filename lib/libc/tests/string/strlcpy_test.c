@@ -31,13 +31,13 @@
 #include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/mman.h>
+
 #include <assert.h>
+#include <atf-c.h>
 #include <dlfcn.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <atf-c.h>
 
 size_t (*strlcpy_fn)(char *restrict, const char *restrict, size_t);
 
@@ -76,8 +76,10 @@ test_strlcpy(const char *s)
 				memcpy(src, s, size);
 				dst = makebuf(bufsize, j);
 				memset(dst, 'X', bufsize);
-				assert(strlcpy_fn(dst, src, bufsize) == size-1);
-				assert(bufsize == 0 || strncmp(src, dst, bufsize - 1) == 0);
+				assert(
+				    strlcpy_fn(dst, src, bufsize) == size - 1);
+				assert(bufsize == 0 ||
+				    strncmp(src, dst, bufsize - 1) == 0);
 				for (x = size; x < bufsize; x++)
 					assert(dst[x] == 'X');
 			}
@@ -99,7 +101,7 @@ test_sentinel(char *dest, char *src, size_t destlen, size_t srclen)
 
 	/* source sentinels: not to be copied */
 	src[-1] = '(';
-	src[srclen+1] = ')';
+	src[srclen + 1] = ')';
 
 	memset(dest, '\xee', destlen);
 
@@ -118,16 +120,19 @@ test_sentinel(char *dest, char *src, size_t destlen, size_t srclen)
 		fail = "incorrect return value";
 	else if (destlen > 0 && strncmp(src, dest, destlen - 1) != 0)
 		fail = "string not copied correctly";
-	else if (destlen > 0 && srclen >= destlen - 1 && dest[destlen-1] != '\0')
+	else if (destlen > 0 && srclen >= destlen - 1 &&
+	    dest[destlen - 1] != '\0')
 		fail = "string not NUL terminated";
-	else for (i = srclen + 1; i < destlen; i++)
-		if (dest[i] != '\xee') {
-			fail = "buffer mutilated behind string";
-			break;
-		}
+	else
+		for (i = srclen + 1; i < destlen; i++)
+			if (dest[i] != '\xee') {
+				fail = "buffer mutilated behind string";
+				break;
+			}
 
 	if (fail)
-		atf_tc_fail_nonfatal("%s\n"
+		atf_tc_fail_nonfatal(
+		    "%s\n"
 		    "strlcpy(%p \"%s\", %p \"%s\", %zu) = %zu (want %zu)\n",
 		    fail, dest, dest, src, src, destlen, res, wantres);
 }
@@ -142,11 +147,11 @@ ATF_TC_WITHOUT_HEAD(bounds);
 ATF_TC_BODY(bounds, tc)
 {
 	size_t i;
-	char buf[64+1];
+	char buf[64 + 1];
 
 	for (i = 0; i < sizeof(buf) - 1; i++) {
 		buf[i] = ' ' + i;
-		buf[i+1] = '\0';
+		buf[i + 1] = '\0';
 		test_strlcpy(buf);
 	}
 }
@@ -155,15 +160,17 @@ ATF_TC_WITHOUT_HEAD(alignments);
 ATF_TC_BODY(alignments, tc)
 {
 	size_t srcalign, destalign, srclen, destlen;
-	char src[15+3+64]; /* 15 offsets + 64 max length + NUL + sentinels */
-	char dest[15+2+64]; /* 15 offsets + 64 max length + sentinels */
+	char
+	    src[15 + 3 + 64]; /* 15 offsets + 64 max length + NUL + sentinels */
+	char dest[15 + 2 + 64]; /* 15 offsets + 64 max length + sentinels */
 
 	for (srcalign = 0; srcalign < 16; srcalign++)
 		for (destalign = 0; destalign < 16; destalign++)
 			for (srclen = 0; srclen < 64; srclen++)
 				for (destlen = 0; destlen < 64; destlen++)
-					test_sentinel(dest+destalign+1,
-					    src+srcalign+1, destlen, srclen);
+					test_sentinel(dest + destalign + 1,
+					    src + srcalign + 1, destlen,
+					    srclen);
 }
 
 ATF_TP_ADD_TCS(tp)

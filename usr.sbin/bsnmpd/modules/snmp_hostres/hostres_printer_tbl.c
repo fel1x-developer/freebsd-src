@@ -33,6 +33,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/dirent.h>
 #include <sys/stat.h>
 
 #include <assert.h>
@@ -44,22 +45,20 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include "hostres_snmp.h"
 #include "hostres_oid.h"
+#include "hostres_snmp.h"
 #include "hostres_tree.h"
-
-#include <sys/dirent.h>
 #include "lp.h"
 
 /* Constants */
 static const struct asn_oid OIDX_hrDevicePrinter_c = OIDX_hrDevicePrinter;
 
 enum PrinterStatus {
-	PS_OTHER	= 1,
-	PS_UNKNOWN	= 2,
-	PS_IDLE		= 3,
-	PS_PRINTING	= 4,
-	PS_WARMUP	= 5
+	PS_OTHER = 1,
+	PS_UNKNOWN = 2,
+	PS_IDLE = 3,
+	PS_PRINTING = 4,
+	PS_WARMUP = 5
 };
 
 /*
@@ -67,13 +66,12 @@ enum PrinterStatus {
  * for HOST-RESOURCES-MIB's hrPrinterTable.
  */
 struct printer_entry {
-	int32_t		index;
-	int32_t		status;  /* values from PrinterStatus enum above */
-	u_char		detectedErrorState[2];
+	int32_t index;
+	int32_t status; /* values from PrinterStatus enum above */
+	u_char detectedErrorState[2];
 	TAILQ_ENTRY(printer_entry) link;
-#define	HR_PRINTER_FOUND		0x001
-	uint32_t	flags;
-
+#define HR_PRINTER_FOUND 0x001
+	uint32_t flags;
 };
 TAILQ_HEAD(printer_tbl, printer_entry);
 
@@ -128,7 +126,7 @@ printer_find_by_index(int32_t idx)
 {
 	struct printer_entry *entry;
 
-	TAILQ_FOREACH(entry, &printer_tbl, link)
+	TAILQ_FOREACH (entry, &printer_tbl, link)
 		if (entry->index == idx)
 			return (entry);
 
@@ -151,8 +149,8 @@ get_printer_status(const struct printer *pp)
 	if (pp->lock_file[0] == '/')
 		strlcpy(lockfile, pp->lock_file, sizeof(lockfile));
 	else
-		snprintf(lockfile, sizeof(lockfile), "%s/%s",
-		    pp->spool_dir, pp->lock_file);
+		snprintf(lockfile, sizeof(lockfile), "%s/%s", pp->spool_dir,
+		    pp->lock_file);
 
 	fd = open(lockfile, O_RDONLY);
 	if (fd < 0 || flock(fd, LOCK_SH | LOCK_NB) == 0) {
@@ -163,8 +161,8 @@ get_printer_status(const struct printer *pp)
 	if (pp->status_file[0] == '/')
 		strlcpy(statfile, pp->status_file, sizeof(statfile));
 	else
-		snprintf(statfile, sizeof(statfile), "%s/%s",
-		    pp->spool_dir, pp->status_file);
+		snprintf(statfile, sizeof(statfile), "%s/%s", pp->spool_dir,
+		    pp->status_file);
 
 	f = fopen(statfile, "r");
 	if (f == NULL) {
@@ -174,7 +172,7 @@ get_printer_status(const struct printer *pp)
 	}
 
 	memset(&fline[0], '\0', sizeof(fline));
-	if (fgets(fline, sizeof(fline) -1, f) == NULL) {
+	if (fgets(fline, sizeof(fline) - 1, f) == NULL) {
 		ps = PS_UNKNOWN;
 		goto LABEL_DONE;
 	}
@@ -191,7 +189,7 @@ get_printer_status(const struct printer *pp)
 
 LABEL_DONE:
 	if (fd >= 0)
-		(void)close(fd);	/* unlocks as well */
+		(void)close(fd); /* unlocks as well */
 
 	if (f != NULL)
 		(void)fclose(f);
@@ -227,8 +225,8 @@ handle_printer(struct printer *pp)
 
 	if (stat(pp->lp, &sb) < 0) {
 		if (errno == ENOENT) {
-			HRDBG("skipped %s -- device %s missing",
-			    pp->printer, pp->lp);
+			HRDBG("skipped %s -- device %s missing", pp->printer,
+			    pp->lp);
 			return;
 		}
 	}
@@ -256,7 +254,7 @@ handle_printer(struct printer *pp)
 static void
 hrPrinter_get_OS_entries(void)
 {
-	int  status, more;
+	int status, more;
 	struct printer myprinter, *pp = &myprinter;
 
 	init_printer(pp);
@@ -271,7 +269,7 @@ hrPrinter_get_OS_entries(void)
 
 			handle_printer(pp);
 			more = nextprinter(pp, &status);
-errloop:
+		errloop:
 			if (status)
 				syslog(LOG_WARNING,
 				    "hrPrinterTable: printcap entry for %s "
@@ -324,7 +322,7 @@ refresh_printer_tbl(void)
 	}
 
 	/* mark each entry as missing */
-	TAILQ_FOREACH(entry, &printer_tbl, link)
+	TAILQ_FOREACH (entry, &printer_tbl, link)
 		entry->flags &= ~HR_PRINTER_FOUND;
 
 	hrPrinter_get_OS_entries();
@@ -356,22 +354,22 @@ op_hrPrinterTable(struct snmp_context *ctx __unused, struct snmp_value *value,
 	switch (curr_op) {
 
 	case SNMP_OP_GETNEXT:
-		if ((entry = NEXT_OBJECT_INT(&printer_tbl, &value->var,
-		    sub)) == NULL)
+		if ((entry = NEXT_OBJECT_INT(&printer_tbl, &value->var, sub)) ==
+		    NULL)
 			return (SNMP_ERR_NOSUCHNAME);
 		value->var.len = sub + 1;
 		value->var.subs[sub] = entry->index;
 		goto get;
 
 	case SNMP_OP_GET:
-		if ((entry = FIND_OBJECT_INT(&printer_tbl, &value->var,
-		    sub)) == NULL)
+		if ((entry = FIND_OBJECT_INT(&printer_tbl, &value->var, sub)) ==
+		    NULL)
 			return (SNMP_ERR_NOSUCHNAME);
 		goto get;
 
 	case SNMP_OP_SET:
-		if ((entry = FIND_OBJECT_INT(&printer_tbl, &value->var,
-		    sub)) == NULL)
+		if ((entry = FIND_OBJECT_INT(&printer_tbl, &value->var, sub)) ==
+		    NULL)
 			return (SNMP_ERR_NO_CREATION);
 		return (SNMP_ERR_NOT_WRITEABLE);
 
@@ -381,7 +379,7 @@ op_hrPrinterTable(struct snmp_context *ctx __unused, struct snmp_value *value,
 	}
 	abort();
 
-  get:
+get:
 	switch (value->var.subs[sub - 1]) {
 
 	case LEAF_hrPrinterStatus:

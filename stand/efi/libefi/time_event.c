@@ -25,11 +25,11 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/time.h>
+
 #include <efi.h>
 #include <efilib.h>
-
 #include <time.h>
-#include <sys/time.h>
 
 static EFI_EVENT time_event;
 static uint64_t curtime;
@@ -76,5 +76,5 @@ time(time_t *tloc)
 time_t
 getsecs(void)
 {
-    return time(0);
+	return time(0);
 }

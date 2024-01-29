@@ -66,8 +66,8 @@ extern "C" {
 #endif // __cplusplus
 
 #include <dev/isci/scil/sati_translator_sequence.h>
-#include <dev/isci/scil/sci_types.h>
 #include <dev/isci/scil/sci_status.h>
+#include <dev/isci/scil/sci_types.h>
 
 /**
  * @struct SCIF_SAS_STP_TASK_REQUEST
@@ -75,32 +75,28 @@ extern "C" {
  * @brief This structure contains all of the data specific to performing
  *        SATA/STP IO requests.
  */
-typedef struct SCIF_SAS_STP_TASK_REQUEST
-{
-   /**
-    * This field contains the translation information utilized by SATI.
-    * For more information on this field please refer to
-    * SATI_TRANSLATOR_SEQUENCE.
-    */
-   SATI_TRANSLATOR_SEQUENCE_T  sequence;
+typedef struct SCIF_SAS_STP_TASK_REQUEST {
+	/**
+	 * This field contains the translation information utilized by SATI.
+	 * For more information on this field please refer to
+	 * SATI_TRANSLATOR_SEQUENCE.
+	 */
+	SATI_TRANSLATOR_SEQUENCE_T sequence;
 
 } SCIF_SAS_STP_TASK_REQUEST_T;
 
-//extern SCI_BASE_REQUEST_STATE_HANDLER_T stp_io_request_constructed_handlers;
+// extern SCI_BASE_REQUEST_STATE_HANDLER_T stp_io_request_constructed_handlers;
 
 struct SCIF_SAS_TASK_REQUEST;
 SCI_STATUS scif_sas_stp_task_request_construct(
-   struct SCIF_SAS_TASK_REQUEST * fw_task
-);
+    struct SCIF_SAS_TASK_REQUEST *fw_task);
 
 void scif_sas_stp_task_request_abort_task_set_failure_handler(
-   struct SCIF_SAS_REMOTE_DEVICE * fw_device,
-   struct SCIF_SAS_TASK_REQUEST  * fw_task
-);
+    struct SCIF_SAS_REMOTE_DEVICE *fw_device,
+    struct SCIF_SAS_TASK_REQUEST *fw_task);
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
 #endif // _SCIF_SAS_STP_TASK_REQUEST_H_
-

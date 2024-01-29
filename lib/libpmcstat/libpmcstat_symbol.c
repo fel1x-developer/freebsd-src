@@ -31,13 +31,13 @@
  */
 
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/cpuset.h>
 #include <sys/event.h>
-#include <sys/param.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
 #include <sys/module.h>
 #include <sys/pmc.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
 
 #include <assert.h>
 #include <err.h>
@@ -51,9 +51,8 @@
 #include "libpmcstat.h"
 
 struct pmcstat_symbol *
-pmcstat_symbol_search_by_name(struct pmcstat_process *pp,
-    const char *pi_name, const char *name, uintptr_t *addr_start,
-    uintptr_t *addr_end)
+pmcstat_symbol_search_by_name(struct pmcstat_process *pp, const char *pi_name,
+    const char *name, uintptr_t *addr_start, uintptr_t *addr_end)
 {
 	struct pmcstat_symbol *sym;
 	struct pmcstat_image *image;
@@ -68,7 +67,7 @@ pmcstat_symbol_search_by_name(struct pmcstat_process *pp,
 	if (pp == NULL)
 		return (NULL);
 
-	TAILQ_FOREACH(pcm, &pp->pp_map, ppm_next) {
+	TAILQ_FOREACH (pcm, &pp->pp_map, ppm_next) {
 		image = pcm->ppm_image;
 		if (image->pi_name == NULL)
 			continue;
@@ -96,10 +95,10 @@ pmcstat_symbol_search_by_name(struct pmcstat_process *pp,
 	if (!found)
 		return (NULL);
 
-	*addr_start = (image->pi_vaddr - image->pi_start +
-	    pcm->ppm_lowpc + sym->ps_start);
-	*addr_end = (image->pi_vaddr - image->pi_start +
-	    pcm->ppm_lowpc + sym->ps_end);
+	*addr_start = (image->pi_vaddr - image->pi_start + pcm->ppm_lowpc +
+	    sym->ps_start);
+	*addr_end = (image->pi_vaddr - image->pi_start + pcm->ppm_lowpc +
+	    sym->ps_end);
 
 	return (sym);
 }
@@ -113,8 +112,8 @@ pmcstat_symbol_compare(const void *a, const void *b)
 {
 	const struct pmcstat_symbol *sym1, *sym2;
 
-	sym1 = (const struct pmcstat_symbol *) a;
-	sym2 = (const struct pmcstat_symbol *) b;
+	sym1 = (const struct pmcstat_symbol *)a;
+	sym2 = (const struct pmcstat_symbol *)b;
 
 	if (sym1->ps_end <= sym2->ps_start)
 		return (-1);
@@ -135,11 +134,10 @@ pmcstat_symbol_search(struct pmcstat_image *image, uintfptr_t addr)
 	if (image->pi_symbols == NULL)
 		return (NULL);
 
-	sym.ps_name  = NULL;
+	sym.ps_name = NULL;
 	sym.ps_start = addr;
-	sym.ps_end   = addr + 1;
+	sym.ps_end = addr + 1;
 
-	return (bsearch((void *) &sym, image->pi_symbols,
-	    image->pi_symcount, sizeof(struct pmcstat_symbol),
-	    pmcstat_symbol_compare));
+	return (bsearch((void *)&sym, image->pi_symbols, image->pi_symcount,
+	    sizeof(struct pmcstat_symbol), pmcstat_symbol_compare));
 }

@@ -66,8 +66,8 @@
 extern "C" {
 #endif // __cplusplus
 
-#include <dev/isci/scil/sci_types.h>
 #include <dev/isci/scil/sci_status.h>
+#include <dev/isci/scil/sci_types.h>
 
 #if !defined(DISABLE_TASK_MANAGEMENT)
 
@@ -77,9 +77,7 @@ extern "C" {
  *
  * @return Return the size of the SCIC task request object.
  */
-U32 scic_task_request_get_object_size(
-   void
-);
+U32 scic_task_request_get_object_size(void);
 
 /**
  * @brief This method is called by the SCI user to construct all SCI Core
@@ -118,14 +116,10 @@ U32 scic_task_request_get_object_size(
  * @retval SCI_SUCCESS This value is returned if the task request was
  *         successfully built.
  */
-SCI_STATUS scic_task_request_construct(
-   SCI_CONTROLLER_HANDLE_T      scic_controller,
-   SCI_REMOTE_DEVICE_HANDLE_T   scic_remote_device,
-   U16                          io_tag,
-   void                       * user_task_request_object,
-   void                       * scic_task_request_memory,
-   SCI_TASK_REQUEST_HANDLE_T  * new_scic_task_request_handle
-);
+SCI_STATUS scic_task_request_construct(SCI_CONTROLLER_HANDLE_T scic_controller,
+    SCI_REMOTE_DEVICE_HANDLE_T scic_remote_device, U16 io_tag,
+    void *user_task_request_object, void *scic_task_request_memory,
+    SCI_TASK_REQUEST_HANDLE_T *new_scic_task_request_handle);
 
 /**
  * @brief This method is called by the SCI user to construct all SCI Core
@@ -142,8 +136,7 @@ SCI_STATUS scic_task_request_construct(
  *         successfully built.
  */
 SCI_STATUS scic_task_request_construct_ssp(
-   SCI_TASK_REQUEST_HANDLE_T  scic_task_request
-);
+    SCI_TASK_REQUEST_HANDLE_T scic_task_request);
 
 /**
  * @brief This method is called by the SCI user to construct all SCI Core
@@ -160,14 +153,13 @@ SCI_STATUS scic_task_request_construct_ssp(
  *         successfully built.
  */
 SCI_STATUS scic_task_request_construct_sata(
-   SCI_TASK_REQUEST_HANDLE_T  scic_task_request_handle
-);
+    SCI_TASK_REQUEST_HANDLE_T scic_task_request_handle);
 
 #else // !defined(DISABLE_TASK_MANAGEMENT)
 
 #define scic_task_request_get_object_size() 0
 #define scic_task_request_construct(controller, dev, tag, task, mem, handle) \
-        SCI_FAILURE
+	SCI_FAILURE
 #define scic_task_request_construct_ssp(task) SCI_FAILURE
 #define scic_task_request_construct_sata(task) SCI_FAILURE
 
@@ -178,4 +170,3 @@ SCI_STATUS scic_task_request_construct_sata(
 #endif // __cplusplus
 
 #endif // _SCIC_TASK_REQUEST_H_
-

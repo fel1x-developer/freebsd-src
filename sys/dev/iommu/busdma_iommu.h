@@ -58,14 +58,14 @@ struct bus_dmamap_iommu {
 #endif
 };
 
-#define	IOMMU_DMAMAP_INIT(map)		mtx_init(&(map)->lock, \
-					    "iommu dmamap", NULL, MTX_DEF)
-#define	IOMMU_DMAMAP_DESTROY(map)	mtx_destroy(&(map)->lock)
-#define	IOMMU_DMAMAP_LOCK(map)		mtx_lock(&(map)->lock)
-#define	IOMMU_DMAMAP_UNLOCK(map)	mtx_unlock(&(map)->lock)
+#define IOMMU_DMAMAP_INIT(map) \
+	mtx_init(&(map)->lock, "iommu dmamap", NULL, MTX_DEF)
+#define IOMMU_DMAMAP_DESTROY(map) mtx_destroy(&(map)->lock)
+#define IOMMU_DMAMAP_LOCK(map) mtx_lock(&(map)->lock)
+#define IOMMU_DMAMAP_UNLOCK(map) mtx_unlock(&(map)->lock)
 
-#define	BUS_DMAMAP_IOMMU_MALLOC	0x0001
-#define	BUS_DMAMAP_IOMMU_KMEM_ALLOC 0x0002
+#define BUS_DMAMAP_IOMMU_MALLOC 0x0001
+#define BUS_DMAMAP_IOMMU_KMEM_ALLOC 0x0002
 
 extern struct bus_dma_impl bus_dma_iommu_impl;
 

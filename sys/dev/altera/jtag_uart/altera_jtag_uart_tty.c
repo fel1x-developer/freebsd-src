@@ -31,62 +31,62 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/cons.h>
 #include <sys/endian.h>
 #include <sys/kdb.h>
-#include <sys/rman.h>
-#include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/reboot.h>
+#include <sys/rman.h>
 #include <sys/sysctl.h>
 #include <sys/tty.h>
-
-#include <ddb/ddb.h>
 
 #include <machine/atomic.h>
 #include <machine/bus.h>
 
 #include <dev/altera/jtag_uart/altera_jtag_uart.h>
 
+#include <ddb/ddb.h>
+
 /*
  * If one of the Altera JTAG UARTs is currently the system console, register
  * it here.
  */
-static struct altera_jtag_uart_softc	*aju_cons_sc;
+static struct altera_jtag_uart_softc *aju_cons_sc;
 
-static tsw_outwakeup_t	aju_outwakeup;
-static void		aju_ac_callout(void *);
-static void		aju_io_callout(void *);
+static tsw_outwakeup_t aju_outwakeup;
+static void aju_ac_callout(void *);
+static void aju_io_callout(void *);
 
 static struct ttydevsw aju_ttydevsw = {
-	.tsw_flags	= TF_NOPREFIX,
-	.tsw_outwakeup	= aju_outwakeup,
+	.tsw_flags = TF_NOPREFIX,
+	.tsw_outwakeup = aju_outwakeup,
 };
 
 /*
  * When polling for the AC bit, the number of times we have to not see it
  * before assuming JTAG has disappeared on us.  By default, four seconds.
  */
-#define	AJU_JTAG_MAXMISS		20
+#define AJU_JTAG_MAXMISS 20
 
 /*
  * Polling intervals for input/output and JTAG connection events.
  */
-#define	AJU_IO_POLLINTERVAL		(hz/100)
-#define	AJU_AC_POLLINTERVAL		(hz/5)
+#define AJU_IO_POLLINTERVAL (hz / 100)
+#define AJU_AC_POLLINTERVAL (hz / 5)
 
 /*
  * Statistics on JTAG removal events when sending, for debugging purposes
  * only.
  */
 static u_int aju_jtag_vanished;
-SYSCTL_UINT(_debug, OID_AUTO, aju_jtag_vanished, CTLFLAG_RW,
-    &aju_jtag_vanished, 0, "Number of times JTAG has vanished");
+SYSCTL_UINT(_debug, OID_AUTO, aju_jtag_vanished, CTLFLAG_RW, &aju_jtag_vanished,
+    0, "Number of times JTAG has vanished");
 
 static u_int aju_jtag_appeared;
-SYSCTL_UINT(_debug, OID_AUTO, aju_jtag_appeared, CTLFLAG_RW,
-    &aju_jtag_appeared, 0, "Number of times JTAG has appeared");
+SYSCTL_UINT(_debug, OID_AUTO, aju_jtag_appeared, CTLFLAG_RW, &aju_jtag_appeared,
+    0, "Number of times JTAG has appeared");
 
 SYSCTL_INT(_debug, OID_AUTO, aju_cons_jtag_present, CTLFLAG_RW,
     &aju_cons_jtag_present, 0, "JTAG console present flag");
@@ -103,17 +103,15 @@ SYSCTL_UINT(_debug, OID_AUTO, aju_intr_readable_enabled, CTLFLAG_RW,
 
 static u_int aju_intr_writable_disabled;
 SYSCTL_UINT(_debug, OID_AUTO, aju_intr_writable_disabled, CTLFLAG_RW,
-    &aju_intr_writable_disabled, 0,
-    "Number of times write interrupt disabled");
+    &aju_intr_writable_disabled, 0, "Number of times write interrupt disabled");
 
 static u_int aju_intr_writable_enabled;
 SYSCTL_UINT(_debug, OID_AUTO, aju_intr_writable_enabled, CTLFLAG_RW,
-    &aju_intr_writable_enabled, 0,
-    "Number of times write interrupt enabled");
+    &aju_intr_writable_enabled, 0, "Number of times write interrupt enabled");
 
 static u_int aju_intr_disabled;
-SYSCTL_UINT(_debug, OID_AUTO, aju_intr_disabled, CTLFLAG_RW,
-    &aju_intr_disabled, 0, "Number of times write interrupt disabled");
+SYSCTL_UINT(_debug, OID_AUTO, aju_intr_disabled, CTLFLAG_RW, &aju_intr_disabled,
+    0, "Number of times write interrupt disabled");
 
 static u_int aju_intr_read_count;
 SYSCTL_UINT(_debug, OID_AUTO, aju_intr_read_count, CTLFLAG_RW,
@@ -131,8 +129,8 @@ static inline uint32_t
 aju_data_read(struct altera_jtag_uart_softc *sc)
 {
 
-	return (le32toh(bus_read_4(sc->ajus_mem_res,
-	    ALTERA_JTAG_UART_DATA_OFF)));
+	return (
+	    le32toh(bus_read_4(sc->ajus_mem_res, ALTERA_JTAG_UART_DATA_OFF)));
 }
 
 static inline void
@@ -146,16 +144,15 @@ static inline uint32_t
 aju_control_read(struct altera_jtag_uart_softc *sc)
 {
 
-	return (le32toh(bus_read_4(sc->ajus_mem_res,
-	    ALTERA_JTAG_UART_CONTROL_OFF)));
+	return (le32toh(
+	    bus_read_4(sc->ajus_mem_res, ALTERA_JTAG_UART_CONTROL_OFF)));
 }
 
 static inline void
 aju_control_write(struct altera_jtag_uart_softc *sc, uint32_t v)
 {
 
-	bus_write_4(sc->ajus_mem_res, ALTERA_JTAG_UART_CONTROL_OFF,
-	    htole32(v));
+	bus_write_4(sc->ajus_mem_res, ALTERA_JTAG_UART_CONTROL_OFF, htole32(v));
 }
 
 /*
@@ -165,8 +162,7 @@ static inline int
 aju_writable(struct altera_jtag_uart_softc *sc)
 {
 
-	return ((aju_control_read(sc) &
-	    ALTERA_JTAG_UART_CONTROL_WSPACE) != 0);
+	return ((aju_control_read(sc) & ALTERA_JTAG_UART_CONTROL_WSPACE) != 0);
 }
 
 static inline int
@@ -193,7 +189,8 @@ aju_read(struct altera_jtag_uart_softc *sc)
 
 	AJU_LOCK_ASSERT(sc);
 
-	while (!aju_readable(sc));
+	while (!aju_readable(sc))
+		;
 	*sc->ajus_buffer_validp = 0;
 	return (*sc->ajus_buffer_datap);
 }
@@ -311,8 +308,7 @@ aju_handle_output(struct altera_jtag_uart_softc *sc, struct tty *tp)
 			 * anymore.  Loop to drain TTY-layer buffer.
 			 */
 			AJU_UNLOCK(sc);
-			if (ttydisc_getc(tp, &ch, sizeof(ch)) !=
-			    sizeof(ch))
+			if (ttydisc_getc(tp, &ch, sizeof(ch)) != sizeof(ch))
 				panic("%s: ttydisc_getc", __func__);
 			continue;
 		}
@@ -393,8 +389,8 @@ aju_io_callout(void *arg)
 	 * pending in the output buffer, or have we recently had input, but we
 	 * don't.
 	 */
-	callout_reset(&sc->ajus_io_callout, AJU_IO_POLLINTERVAL,
-	    aju_io_callout, sc);
+	callout_reset(&sc->ajus_io_callout, AJU_IO_POLLINTERVAL, aju_io_callout,
+	    sc);
 	AJU_UNLOCK(sc);
 	tty_unlock(tp);
 }
@@ -433,8 +429,8 @@ aju_ac_callout(void *arg)
 		} else
 			(*sc->ajus_jtag_missedp)++;
 	}
-	callout_reset(&sc->ajus_ac_callout, AJU_AC_POLLINTERVAL,
-	    aju_ac_callout, sc);
+	callout_reset(&sc->ajus_ac_callout, AJU_AC_POLLINTERVAL, aju_ac_callout,
+	    sc);
 	AJU_UNLOCK(sc);
 	tty_unlock(tp);
 }
@@ -500,8 +496,8 @@ altera_jtag_uart_attach(struct altera_jtag_uart_softc *sc)
 	AJU_UNLOCK(sc);
 	if (sc->ajus_irq_res != NULL) {
 		error = bus_setup_intr(sc->ajus_dev, sc->ajus_irq_res,
-		    INTR_ENTROPY | INTR_TYPE_TTY | INTR_MPSAFE, NULL,
-		    aju_intr, sc, &sc->ajus_irq_cookie);
+		    INTR_ENTROPY | INTR_TYPE_TTY | INTR_MPSAFE, NULL, aju_intr,
+		    sc, &sc->ajus_irq_cookie);
 		if (error) {
 			device_printf(sc->ajus_dev,
 			    "could not activate interrupt\n");
@@ -530,8 +526,8 @@ altera_jtag_uart_attach(struct altera_jtag_uart_softc *sc)
 		    aju_io_callout, sc);
 	}
 	callout_init(&sc->ajus_ac_callout, 1);
-	callout_reset(&sc->ajus_ac_callout, AJU_AC_POLLINTERVAL,
-	    aju_ac_callout, sc);
+	callout_reset(&sc->ajus_ac_callout, AJU_AC_POLLINTERVAL, aju_ac_callout,
+	    sc);
 	return (0);
 }
 

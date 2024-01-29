@@ -31,24 +31,23 @@
 #include <dev/fdt/fdt_common.h>
 #include <dev/ofw/ofw_bus_subr.h>
 #include <dev/ofw/openfirm.h>
-
+#include <dev/usb/net/usb_ethernet.h>
 #include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-#include <dev/usb/usb_process.h>
+#include <dev/usb/usb_bus.h>
 #include <dev/usb/usb_busdma.h>
 #include <dev/usb/usb_controller.h>
-#include <dev/usb/usb_bus.h>
 #include <dev/usb/usb_device.h>
-#include <dev/usb/usb_freebsd.h>
 #include <dev/usb/usb_fdt_support.h>
-#include <dev/usb/net/usb_ethernet.h>
+#include <dev/usb/usb_freebsd.h>
+#include <dev/usb/usb_process.h>
+#include <dev/usb/usbdi.h>
 
 /*
  * Define a constant for allocating an array pointers to serve as a stack of
  * devices between the controller and any arbitrary device on the bus.  The
  * stack ends with the device itself, so add 1 to the max hub nesting depth.
  */
-#define	MAX_UDEV_NEST	(MAX(USB_HUB_MAX_DEPTH, USB_SS_HUB_DEPTH_MAX) + 1)
+#define MAX_UDEV_NEST (MAX(USB_HUB_MAX_DEPTH, USB_SS_HUB_DEPTH_MAX) + 1)
 
 static phandle_t
 find_udev_in_children(phandle_t parent, struct usb_device *udev)
@@ -95,15 +94,13 @@ is_valid_mac_addr(uint8_t *addr)
 }
 
 int
-usb_fdt_get_mac_addr(device_t dev, struct usb_ether* ue)
+usb_fdt_get_mac_addr(device_t dev, struct usb_ether *ue)
 {
 	phandle_t node;
 	ssize_t i, proplen;
 	uint8_t mac[sizeof(ue->ue_eaddr)];
-	static const char *properties[] = {
-	    "mac-address",
-	    "local-mac-address"
-	};
+	static const char *properties[] = { "mac-address",
+		"local-mac-address" };
 
 	if ((node = usb_fdt_get_node(ue->ue_dev, ue->ue_udev)) == -1)
 		return (ENXIO);

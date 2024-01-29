@@ -31,9 +31,8 @@
 
 #include "math_private.h"
 
-static const uint32_t
-exp_ovfl  = 0x42b17218,		/* MAX_EXP * ln2 ~= 88.722839355 */
-cexp_ovfl = 0x43400074;		/* (MAX_EXP - MIN_DENORM_EXP) * ln2 */
+static const uint32_t exp_ovfl = 0x42b17218, /* MAX_EXP * ln2 ~= 88.722839355 */
+    cexp_ovfl = 0x43400074; /* (MAX_EXP - MIN_DENORM_EXP) * ln2 */
 
 float complex
 cexpf(float complex z)

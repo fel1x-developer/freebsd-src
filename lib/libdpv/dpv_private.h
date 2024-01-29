@@ -10,7 +10,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -44,22 +44,22 @@ extern char *pprompt, *aprompt;
 extern const char status_format[];
 
 /* Defaults */
-#define DIALOG_UPDATES_PER_SEC	16
-#define XDIALOG_UPDATES_PER_SEC	4
-#define DISPLAY_LIMIT_DEFAULT	0	/* Auto-calculate */
-#define LABEL_SIZE_DEFAULT	28
-#define PBAR_SIZE_DEFAULT	17
-#define STATUS_UPDATES_PER_SEC	2
+#define DIALOG_UPDATES_PER_SEC 16
+#define XDIALOG_UPDATES_PER_SEC 4
+#define DISPLAY_LIMIT_DEFAULT 0 /* Auto-calculate */
+#define LABEL_SIZE_DEFAULT 28
+#define PBAR_SIZE_DEFAULT 17
+#define STATUS_UPDATES_PER_SEC 2
 
 /* states for dprompt_add_files() of dprompt.c */
 enum dprompt_state {
-	DPROMPT_NONE = 0,	/* Default */
-	DPROMPT_PENDING,	/* Pending */
-	DPROMPT_PBAR,		/* Progress bar */
-	DPROMPT_END_STATE,	/* Done/Fail */
-	DPROMPT_DETAILS,	/* dpv_file_node->read */
-	DPROMPT_CUSTOM_MSG,	/* dpv_file_node->msg */
-	DPROMPT_MINIMAL,	/* whitespace */
+	DPROMPT_NONE = 0,   /* Default */
+	DPROMPT_PENDING,    /* Pending */
+	DPROMPT_PBAR,	    /* Progress bar */
+	DPROMPT_END_STATE,  /* Done/Fail */
+	DPROMPT_DETAILS,    /* dpv_file_node->read */
+	DPROMPT_CUSTOM_MSG, /* dpv_file_node->msg */
+	DPROMPT_MINIMAL,    /* whitespace */
 };
 
 #endif /* !_DPV_PRIVATE_H_ */

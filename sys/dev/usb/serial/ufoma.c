@@ -75,77 +75,77 @@
  * be called from within the config thread function !
  */
 
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
 #include <sys/sbuf.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
+#include <dev/usb/usb_cdc.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
-#include <dev/usb/usb_cdc.h>
+
 #include "usbdevs.h"
 
-#define	USB_DEBUG_VAR usb_debug
+#define USB_DEBUG_VAR usb_debug
+#include <dev/usb/serial/usb_serial.h>
 #include <dev/usb/usb_debug.h>
 #include <dev/usb/usb_process.h>
 
-#include <dev/usb/serial/usb_serial.h>
-
 typedef struct ufoma_mobile_acm_descriptor {
-	uint8_t	bFunctionLength;
-	uint8_t	bDescriptorType;
-	uint8_t	bDescriptorSubtype;
-	uint8_t	bType;
-	uint8_t	bMode[1];
+	uint8_t bFunctionLength;
+	uint8_t bDescriptorType;
+	uint8_t bDescriptorSubtype;
+	uint8_t bType;
+	uint8_t bMode[1];
 } __packed usb_mcpc_acm_descriptor;
 
-#define	UISUBCLASS_MCPC 0x88
+#define UISUBCLASS_MCPC 0x88
 
-#define	UDESC_VS_INTERFACE 0x44
-#define	UDESCSUB_MCPC_ACM  0x11
+#define UDESC_VS_INTERFACE 0x44
+#define UDESCSUB_MCPC_ACM 0x11
 
-#define	UMCPC_ACM_TYPE_AB1 0x1
-#define	UMCPC_ACM_TYPE_AB2 0x2
-#define	UMCPC_ACM_TYPE_AB5 0x5
-#define	UMCPC_ACM_TYPE_AB6 0x6
+#define UMCPC_ACM_TYPE_AB1 0x1
+#define UMCPC_ACM_TYPE_AB2 0x2
+#define UMCPC_ACM_TYPE_AB5 0x5
+#define UMCPC_ACM_TYPE_AB6 0x6
 
-#define	UMCPC_ACM_MODE_DEACTIVATED 0x0
-#define	UMCPC_ACM_MODE_MODEM 0x1
-#define	UMCPC_ACM_MODE_ATCOMMAND 0x2
-#define	UMCPC_ACM_MODE_OBEX 0x60
-#define	UMCPC_ACM_MODE_VENDOR1 0xc0
-#define	UMCPC_ACM_MODE_VENDOR2 0xfe
-#define	UMCPC_ACM_MODE_UNLINKED 0xff
+#define UMCPC_ACM_MODE_DEACTIVATED 0x0
+#define UMCPC_ACM_MODE_MODEM 0x1
+#define UMCPC_ACM_MODE_ATCOMMAND 0x2
+#define UMCPC_ACM_MODE_OBEX 0x60
+#define UMCPC_ACM_MODE_VENDOR1 0xc0
+#define UMCPC_ACM_MODE_VENDOR2 0xfe
+#define UMCPC_ACM_MODE_UNLINKED 0xff
 
-#define	UMCPC_CM_MOBILE_ACM 0x0
+#define UMCPC_CM_MOBILE_ACM 0x0
 
-#define	UMCPC_ACTIVATE_MODE 0x60
-#define	UMCPC_GET_MODETABLE 0x61
-#define	UMCPC_SET_LINK 0x62
-#define	UMCPC_CLEAR_LINK 0x63
+#define UMCPC_ACTIVATE_MODE 0x60
+#define UMCPC_GET_MODETABLE 0x61
+#define UMCPC_SET_LINK 0x62
+#define UMCPC_CLEAR_LINK 0x63
 
-#define	UMCPC_REQUEST_ACKNOWLEDGE 0x31
+#define UMCPC_REQUEST_ACKNOWLEDGE 0x31
 
-#define	UFOMA_MAX_TIMEOUT 15		/* standard says 10 seconds */
-#define	UFOMA_CMD_BUF_SIZE 64		/* bytes */
+#define UFOMA_MAX_TIMEOUT 15  /* standard says 10 seconds */
+#define UFOMA_CMD_BUF_SIZE 64 /* bytes */
 
-#define	UFOMA_BULK_BUF_SIZE 1024	/* bytes */
+#define UFOMA_BULK_BUF_SIZE 1024 /* bytes */
 
 enum {
 	UFOMA_CTRL_ENDPT_INTR,
@@ -156,7 +156,7 @@ enum {
 
 enum {
 	UFOMA_BULK_ENDPT_WRITE,
-	UFOMA_BULK_ENDPT_READ,	
+	UFOMA_BULK_ENDPT_READ,
 	UFOMA_BULK_ENDPT_MAX,
 };
 
@@ -176,18 +176,18 @@ struct ufoma_softc {
 
 	uint16_t sc_line;
 
-	uint8_t	sc_num_msg;
-	uint8_t	sc_nobulk;
-	uint8_t	sc_ctrl_iface_no;
-	uint8_t	sc_ctrl_iface_index;
-	uint8_t	sc_data_iface_no;
-	uint8_t	sc_data_iface_index;
-	uint8_t	sc_cm_cap;
-	uint8_t	sc_acm_cap;
-	uint8_t	sc_lsr;
-	uint8_t	sc_msr;
-	uint8_t	sc_modetoactivate;
-	uint8_t	sc_currentmode;
+	uint8_t sc_num_msg;
+	uint8_t sc_nobulk;
+	uint8_t sc_ctrl_iface_no;
+	uint8_t sc_ctrl_iface_index;
+	uint8_t sc_data_iface_no;
+	uint8_t sc_data_iface_index;
+	uint8_t sc_cm_cap;
+	uint8_t sc_acm_cap;
+	uint8_t sc_lsr;
+	uint8_t sc_msr;
+	uint8_t sc_modetoactivate;
+	uint8_t sc_currentmode;
 };
 
 /* prototypes */
@@ -203,27 +203,26 @@ static usb_callback_t ufoma_intr_callback;
 static usb_callback_t ufoma_bulk_write_callback;
 static usb_callback_t ufoma_bulk_read_callback;
 
-static void	*ufoma_get_intconf(struct usb_config_descriptor *,
-		    struct usb_interface_descriptor *, uint8_t, uint8_t);
-static void	ufoma_cfg_link_state(struct ufoma_softc *);
-static void	ufoma_cfg_activate_state(struct ufoma_softc *, uint16_t);
-static void	ufoma_free(struct ucom_softc *);
-static void	ufoma_cfg_open(struct ucom_softc *);
-static void	ufoma_cfg_close(struct ucom_softc *);
-static void	ufoma_cfg_set_break(struct ucom_softc *, uint8_t);
-static void	ufoma_cfg_get_status(struct ucom_softc *, uint8_t *,
-		    uint8_t *);
-static void	ufoma_cfg_set_dtr(struct ucom_softc *, uint8_t);
-static void	ufoma_cfg_set_rts(struct ucom_softc *, uint8_t);
-static int	ufoma_pre_param(struct ucom_softc *, struct termios *);
-static void	ufoma_cfg_param(struct ucom_softc *, struct termios *);
-static int	ufoma_modem_setup(device_t, struct ufoma_softc *,
-		    struct usb_attach_arg *);
-static void	ufoma_start_read(struct ucom_softc *);
-static void	ufoma_stop_read(struct ucom_softc *);
-static void	ufoma_start_write(struct ucom_softc *);
-static void	ufoma_stop_write(struct ucom_softc *);
-static void	ufoma_poll(struct ucom_softc *ucom);
+static void *ufoma_get_intconf(struct usb_config_descriptor *,
+    struct usb_interface_descriptor *, uint8_t, uint8_t);
+static void ufoma_cfg_link_state(struct ufoma_softc *);
+static void ufoma_cfg_activate_state(struct ufoma_softc *, uint16_t);
+static void ufoma_free(struct ucom_softc *);
+static void ufoma_cfg_open(struct ucom_softc *);
+static void ufoma_cfg_close(struct ucom_softc *);
+static void ufoma_cfg_set_break(struct ucom_softc *, uint8_t);
+static void ufoma_cfg_get_status(struct ucom_softc *, uint8_t *, uint8_t *);
+static void ufoma_cfg_set_dtr(struct ucom_softc *, uint8_t);
+static void ufoma_cfg_set_rts(struct ucom_softc *, uint8_t);
+static int ufoma_pre_param(struct ucom_softc *, struct termios *);
+static void ufoma_cfg_param(struct ucom_softc *, struct termios *);
+static int ufoma_modem_setup(device_t, struct ufoma_softc *,
+    struct usb_attach_arg *);
+static void ufoma_start_read(struct ucom_softc *);
+static void ufoma_stop_read(struct ucom_softc *);
+static void ufoma_start_write(struct ucom_softc *);
+static void ufoma_stop_write(struct ucom_softc *);
+static void ufoma_poll(struct ucom_softc *ucom);
 
 /*sysctl stuff*/
 static int ufoma_sysctl_support(SYSCTL_HANDLER_ARGS);
@@ -303,8 +302,7 @@ static device_method_t ufoma_methods[] = {
 	/* Device methods */
 	DEVMETHOD(device_probe, ufoma_probe),
 	DEVMETHOD(device_attach, ufoma_attach),
-	DEVMETHOD(device_detach, ufoma_detach),
-	DEVMETHOD_END
+	DEVMETHOD(device_detach, ufoma_detach), DEVMETHOD_END
 };
 
 static driver_t ufoma_driver = {
@@ -314,8 +312,10 @@ static driver_t ufoma_driver = {
 };
 
 static const STRUCT_USB_HOST_ID ufoma_devs[] = {
-	{USB_IFACE_CLASS(UICLASS_CDC),
-	 USB_IFACE_SUBCLASS(UISUBCLASS_MCPC),},
+	{
+	    USB_IFACE_CLASS(UICLASS_CDC),
+	    USB_IFACE_SUBCLASS(UISUBCLASS_MCPC),
+	},
 };
 
 DRIVER_MODULE(ufoma, uhub, ufoma_driver, NULL, NULL);
@@ -391,12 +391,13 @@ ufoma_attach(device_t dev)
 	sc->sc_ctrl_iface_no = id->bInterfaceNumber;
 	sc->sc_ctrl_iface_index = uaa->info.bIfaceIndex;
 
-	error = usbd_transfer_setup(uaa->device,
-	    &sc->sc_ctrl_iface_index, sc->sc_ctrl_xfer,
-	    ufoma_ctrl_config, UFOMA_CTRL_ENDPT_MAX, sc, &sc->sc_mtx);
+	error = usbd_transfer_setup(uaa->device, &sc->sc_ctrl_iface_index,
+	    sc->sc_ctrl_xfer, ufoma_ctrl_config, UFOMA_CTRL_ENDPT_MAX, sc,
+	    &sc->sc_mtx);
 
 	if (error) {
-		device_printf(dev, "allocating control USB "
+		device_printf(dev,
+		    "allocating control USB "
 		    "transfers failed\n");
 		goto detach;
 	}
@@ -456,21 +457,21 @@ ufoma_attach(device_t dev)
 	    ufoma_sysctl_support, "A", "Supporting port role");
 
 	SYSCTL_ADD_PROC(sctx, SYSCTL_CHILDREN(soid), OID_AUTO, "currentmode",
-	CTLFLAG_RD | CTLTYPE_STRING | CTLFLAG_MPSAFE, sc, 0,
-	ufoma_sysctl_current, "A", "Current port role");
+	    CTLFLAG_RD | CTLTYPE_STRING | CTLFLAG_MPSAFE, sc, 0,
+	    ufoma_sysctl_current, "A", "Current port role");
 
 	SYSCTL_ADD_PROC(sctx, SYSCTL_CHILDREN(soid), OID_AUTO, "openmode",
-	CTLFLAG_RW | CTLTYPE_STRING | CTLFLAG_MPSAFE, sc, 0,
-	ufoma_sysctl_open, "A", "Mode to transit when port is opened");
+	    CTLFLAG_RW | CTLTYPE_STRING | CTLFLAG_MPSAFE, sc, 0,
+	    ufoma_sysctl_open, "A", "Mode to transit when port is opened");
 	SYSCTL_ADD_UINT(sctx, SYSCTL_CHILDREN(soid), OID_AUTO, "comunit",
-			CTLFLAG_RD, &(sc->sc_super_ucom.sc_unit), 0, 
-			"Unit number as USB serial");
+	    CTLFLAG_RD, &(sc->sc_super_ucom.sc_unit), 0,
+	    "Unit number as USB serial");
 
-	return (0);			/* success */
+	return (0); /* success */
 
 detach:
 	ufoma_detach(dev);
-	return (ENXIO);			/* failure */
+	return (ENXIO); /* failure */
 }
 
 static int
@@ -512,8 +513,8 @@ ufoma_free(struct ucom_softc *ucom)
 }
 
 static void *
-ufoma_get_intconf(struct usb_config_descriptor *cd, struct usb_interface_descriptor *id,
-    uint8_t type, uint8_t subtype)
+ufoma_get_intconf(struct usb_config_descriptor *cd,
+    struct usb_interface_descriptor *id, uint8_t type, uint8_t subtype)
 {
 	struct usb_descriptor *desc = (void *)id;
 
@@ -541,8 +542,8 @@ ufoma_cfg_link_state(struct ufoma_softc *sc)
 	USETW(req.wIndex, sc->sc_ctrl_iface_no);
 	USETW(req.wLength, sc->sc_modetable[0]);
 
-	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, 
-	    &req, sc->sc_modetable, 0, 1000);
+	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, sc->sc_modetable,
+	    0, 1000);
 
 	error = cv_timedwait(&sc->sc_cv, &sc->sc_mtx, hz);
 
@@ -563,11 +564,9 @@ ufoma_cfg_activate_state(struct ufoma_softc *sc, uint16_t state)
 	USETW(req.wIndex, sc->sc_ctrl_iface_no);
 	USETW(req.wLength, 0);
 
-	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, 
-	    &req, NULL, 0, 1000);
+	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, NULL, 0, 1000);
 
-	error = cv_timedwait(&sc->sc_cv, &sc->sc_mtx,
-	    (UFOMA_MAX_TIMEOUT * hz));
+	error = cv_timedwait(&sc->sc_cv, &sc->sc_mtx, (UFOMA_MAX_TIMEOUT * hz));
 	if (error) {
 		DPRINTF("No response\n");
 	}
@@ -585,7 +584,7 @@ ufoma_ctrl_read_callback(struct usb_xfer *xfer, usb_error_t error)
 
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_TRANSFERRED:
-tr_transferred:
+	tr_transferred:
 		if (aframes != nframes)
 			goto tr_setup;
 		pc1 = usbd_xfer_get_frame(xfer, 1);
@@ -594,7 +593,7 @@ tr_transferred:
 			ucom_put_data(&sc->sc_ucom, pc1, 0, len);
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		if (sc->sc_num_msg) {
 			sc->sc_num_msg--;
 
@@ -614,9 +613,8 @@ tr_setup:
 		}
 		return;
 
-	default:			/* Error */
-		DPRINTF("error = %s\n",
-		    usbd_errstr(error));
+	default: /* Error */
+		DPRINTF("error = %s\n", usbd_errstr(error));
 
 		if (error == USB_ERR_CANCELLED) {
 			return;
@@ -635,7 +633,7 @@ ufoma_ctrl_write_callback(struct usb_xfer *xfer, usb_error_t error)
 
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_TRANSFERRED:
-tr_transferred:
+	tr_transferred:
 	case USB_ST_SETUP:
 		pc = usbd_xfer_get_frame(xfer, 1);
 		if (ucom_get_data(&sc->sc_ucom, pc, 0, 1, &actlen)) {
@@ -656,7 +654,7 @@ tr_transferred:
 		}
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		DPRINTF("error = %s\n", usbd_errstr(error));
 
 		if (error == USB_ERR_CANCELLED) {
@@ -719,7 +717,8 @@ ufoma_intr_callback(struct usb_xfer *xfer, usb_error_t error)
 			if (sc->sc_num_msg != 0xFF) {
 				sc->sc_num_msg++;
 			}
-			usbd_transfer_start(sc->sc_ctrl_xfer[UFOMA_CTRL_ENDPT_READ]);
+			usbd_transfer_start(
+			    sc->sc_ctrl_xfer[UFOMA_CTRL_ENDPT_READ]);
 			break;
 
 		case UCDC_N_SERIAL_STATE:
@@ -728,16 +727,17 @@ ufoma_intr_callback(struct usb_xfer *xfer, usb_error_t error)
 				break;
 			}
 			/*
-		         * Set the serial state in ucom driver based on
-		         * the bits from the notify message
-		         */
+			 * Set the serial state in ucom driver based on
+			 * the bits from the notify message
+			 */
 			if (actlen < 2) {
 				DPRINTF("invalid notification "
-				    "length, %d bytes!\n", actlen);
+					"length, %d bytes!\n",
+				    actlen);
 				break;
 			}
-			DPRINTF("notify bytes = 0x%02x, 0x%02x\n",
-			    pkt.data[0], pkt.data[1]);
+			DPRINTF("notify bytes = 0x%02x, 0x%02x\n", pkt.data[0],
+			    pkt.data[1]);
 
 			/* currently, lsr is always zero. */
 			sc->sc_lsr = 0;
@@ -762,12 +762,12 @@ ufoma_intr_callback(struct usb_xfer *xfer, usb_error_t error)
 		}
 
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -787,16 +787,16 @@ ufoma_bulk_write_callback(struct usb_xfer *xfer, usb_error_t error)
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_SETUP:
 	case USB_ST_TRANSFERRED:
-tr_setup:
+	tr_setup:
 		pc = usbd_xfer_get_frame(xfer, 0);
-		if (ucom_get_data(&sc->sc_ucom, pc, 0,
-		    UFOMA_BULK_BUF_SIZE, &actlen)) {
+		if (ucom_get_data(&sc->sc_ucom, pc, 0, UFOMA_BULK_BUF_SIZE,
+			&actlen)) {
 			usbd_xfer_set_frame_len(xfer, 0, actlen);
 			usbd_transfer_submit(xfer);
 		}
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -821,12 +821,12 @@ ufoma_bulk_read_callback(struct usb_xfer *xfer, usb_error_t error)
 		ucom_put_data(&sc->sc_ucom, pc, 0, actlen);
 
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -869,8 +869,7 @@ ufoma_cfg_set_break(struct ucom_softc *ucom, uint8_t onoff)
 	struct usb_device_request req;
 	uint16_t wValue;
 
-	if (sc->sc_nobulk ||
-	    (sc->sc_currentmode == UMCPC_ACM_MODE_OBEX)) {
+	if (sc->sc_nobulk || (sc->sc_currentmode == UMCPC_ACM_MODE_OBEX)) {
 		return;
 	}
 	if (!(sc->sc_acm_cap & USB_CDC_ACM_HAS_BREAK)) {
@@ -885,8 +884,7 @@ ufoma_cfg_set_break(struct ucom_softc *ucom, uint8_t onoff)
 	req.wIndex[1] = 0;
 	USETW(req.wLength, 0);
 
-	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, 
-	    &req, NULL, 0, 1000);
+	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, NULL, 0, 1000);
 }
 
 static void
@@ -915,8 +913,7 @@ ufoma_cfg_set_line_state(struct ufoma_softc *sc)
 	req.wIndex[1] = 0;
 	USETW(req.wLength, 0);
 
-	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, 
-	    &req, NULL, 0, 1000);
+	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, NULL, 0, 1000);
 }
 
 static void
@@ -954,7 +951,7 @@ ufoma_cfg_set_rts(struct ucom_softc *ucom, uint8_t onoff)
 static int
 ufoma_pre_param(struct ucom_softc *ucom, struct termios *t)
 {
-	return (0);			/* we accept anything */
+	return (0); /* we accept anything */
 }
 
 static void
@@ -964,8 +961,7 @@ ufoma_cfg_param(struct ucom_softc *ucom, struct termios *t)
 	struct usb_device_request req;
 	struct usb_cdc_line_state ls;
 
-	if (sc->sc_nobulk ||
-	    (sc->sc_currentmode == UMCPC_ACM_MODE_OBEX)) {
+	if (sc->sc_nobulk || (sc->sc_currentmode == UMCPC_ACM_MODE_OBEX)) {
 		return;
 	}
 	DPRINTF("\n");
@@ -1012,8 +1008,7 @@ ufoma_cfg_param(struct ucom_softc *ucom, struct termios *t)
 	req.wIndex[1] = 0;
 	USETW(req.wLength, UCDC_LINE_STATE_LENGTH);
 
-	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, 
-	    &req, &ls, 0, 1000);
+	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, &ls, 0, 1000);
 }
 
 static int
@@ -1033,8 +1028,7 @@ ufoma_modem_setup(device_t dev, struct ufoma_softc *sc,
 
 	cmd = ufoma_get_intconf(cd, id, UDESC_CS_INTERFACE, UDESCSUB_CDC_CM);
 
-	if ((cmd == NULL) ||
-	    (cmd->bLength < sizeof(*cmd))) {
+	if ((cmd == NULL) || (cmd->bLength < sizeof(*cmd))) {
 		return (EINVAL);
 	}
 	sc->sc_cm_cap = cmd->bmCapabilities;
@@ -1042,13 +1036,13 @@ ufoma_modem_setup(device_t dev, struct ufoma_softc *sc,
 
 	acm = ufoma_get_intconf(cd, id, UDESC_CS_INTERFACE, UDESCSUB_CDC_ACM);
 
-	if ((acm == NULL) ||
-	    (acm->bLength < sizeof(*acm))) {
+	if ((acm == NULL) || (acm->bLength < sizeof(*acm))) {
 		return (EINVAL);
 	}
 	sc->sc_acm_cap = acm->bmCapabilities;
 
-	device_printf(dev, "data interface %d, has %sCM over data, "
+	device_printf(dev,
+	    "data interface %d, has %sCM over data, "
 	    "has %sbreak\n",
 	    sc->sc_data_iface_no,
 	    sc->sc_cm_cap & USB_CDC_CM_OVER_DATA ? "" : "no ",
@@ -1062,9 +1056,11 @@ ufoma_modem_setup(device_t dev, struct ufoma_softc *sc,
 		if (iface) {
 			id = usbd_get_interface_descriptor(iface);
 
-			if (id && (id->bInterfaceNumber == sc->sc_data_iface_no)) {
+			if (id &&
+			    (id->bInterfaceNumber == sc->sc_data_iface_no)) {
 				sc->sc_data_iface_index = i;
-				usbd_set_parent_iface(uaa->device, i, uaa->info.bIfaceIndex);
+				usbd_set_parent_iface(uaa->device, i,
+				    uaa->info.bIfaceIndex);
 				break;
 			}
 		} else {
@@ -1073,12 +1069,13 @@ ufoma_modem_setup(device_t dev, struct ufoma_softc *sc,
 		}
 	}
 
-	error = usbd_transfer_setup(uaa->device,
-	    &sc->sc_data_iface_index, sc->sc_bulk_xfer,
-	    ufoma_bulk_config, UFOMA_BULK_ENDPT_MAX, sc, &sc->sc_mtx);
+	error = usbd_transfer_setup(uaa->device, &sc->sc_data_iface_index,
+	    sc->sc_bulk_xfer, ufoma_bulk_config, UFOMA_BULK_ENDPT_MAX, sc,
+	    &sc->sc_mtx);
 
 	if (error) {
-		device_printf(dev, "allocating BULK USB "
+		device_printf(dev,
+		    "allocating BULK USB "
 		    "transfers failed\n");
 		return (EINVAL);
 	}
@@ -1141,43 +1138,42 @@ ufoma_stop_write(struct ucom_softc *ucom)
 	}
 }
 
-static struct umcpc_modetostr_tab{
+static struct umcpc_modetostr_tab {
 	int mode;
 	char *str;
-}umcpc_modetostr_tab[]={
-	{UMCPC_ACM_MODE_DEACTIVATED, "deactivated"},
-	{UMCPC_ACM_MODE_MODEM, "modem"},
-	{UMCPC_ACM_MODE_ATCOMMAND, "handsfree"},
-	{UMCPC_ACM_MODE_OBEX, "obex"},
-	{UMCPC_ACM_MODE_VENDOR1, "vendor1"},
-	{UMCPC_ACM_MODE_VENDOR2, "vendor2"},
-	{UMCPC_ACM_MODE_UNLINKED, "unlinked"},
-	{0, NULL}
-};
+} umcpc_modetostr_tab[] = { { UMCPC_ACM_MODE_DEACTIVATED, "deactivated" },
+	{ UMCPC_ACM_MODE_MODEM, "modem" },
+	{ UMCPC_ACM_MODE_ATCOMMAND, "handsfree" },
+	{ UMCPC_ACM_MODE_OBEX, "obex" }, { UMCPC_ACM_MODE_VENDOR1, "vendor1" },
+	{ UMCPC_ACM_MODE_VENDOR2, "vendor2" },
+	{ UMCPC_ACM_MODE_UNLINKED, "unlinked" }, { 0, NULL } };
 
-static char *ufoma_mode_to_str(int mode)
+static char *
+ufoma_mode_to_str(int mode)
 {
 	int i;
-	for(i = 0 ;umcpc_modetostr_tab[i].str != NULL; i++){
-		if(umcpc_modetostr_tab[i].mode == mode){
+	for (i = 0; umcpc_modetostr_tab[i].str != NULL; i++) {
+		if (umcpc_modetostr_tab[i].mode == mode) {
 			return umcpc_modetostr_tab[i].str;
 		}
 	}
 	return NULL;
 }
 
-static int ufoma_str_to_mode(char *str)
+static int
+ufoma_str_to_mode(char *str)
 {
 	int i;
-	for(i = 0 ;umcpc_modetostr_tab[i].str != NULL; i++){
-		if(strcmp(str, umcpc_modetostr_tab[i].str)==0){
+	for (i = 0; umcpc_modetostr_tab[i].str != NULL; i++) {
+		if (strcmp(str, umcpc_modetostr_tab[i].str) == 0) {
 			return umcpc_modetostr_tab[i].mode;
 		}
 	}
 	return -1;
 }
 
-static int ufoma_sysctl_support(SYSCTL_HANDLER_ARGS)
+static int
+ufoma_sysctl_support(SYSCTL_HANDLER_ARGS)
 {
 	struct ufoma_softc *sc = (struct ufoma_softc *)oidp->oid_arg1;
 	struct sbuf sb;
@@ -1185,14 +1181,14 @@ static int ufoma_sysctl_support(SYSCTL_HANDLER_ARGS)
 	char *mode;
 
 	sbuf_new(&sb, NULL, 1, SBUF_AUTOEXTEND);
-	for(i = 1; i < sc->sc_modetable[0]; i++){
+	for (i = 1; i < sc->sc_modetable[0]; i++) {
 		mode = ufoma_mode_to_str(sc->sc_modetable[i]);
-		if(mode !=NULL){
+		if (mode != NULL) {
 			sbuf_cat(&sb, mode);
-		}else{
+		} else {
 			sbuf_printf(&sb, "(%02x)", sc->sc_modetable[i]);
 		}
-		if(i < (sc->sc_modetable[0]-1))
+		if (i < (sc->sc_modetable[0] - 1))
 			sbuf_cat(&sb, ",");
 	}
 	sbuf_trim(&sb);
@@ -1202,22 +1198,23 @@ static int ufoma_sysctl_support(SYSCTL_HANDLER_ARGS)
 
 	return 0;
 }
-static int ufoma_sysctl_current(SYSCTL_HANDLER_ARGS)
+static int
+ufoma_sysctl_current(SYSCTL_HANDLER_ARGS)
 {
 	struct ufoma_softc *sc = (struct ufoma_softc *)oidp->oid_arg1;
 	char *mode;
-	char subbuf[]="(XXX)";
+	char subbuf[] = "(XXX)";
 	mode = ufoma_mode_to_str(sc->sc_currentmode);
-	if(!mode){
+	if (!mode) {
 		mode = subbuf;
 		snprintf(subbuf, sizeof(subbuf), "(%02x)", sc->sc_currentmode);
 	}
 	sysctl_handle_string(oidp, mode, strlen(mode), req);
 
 	return 0;
-
 }
-static int ufoma_sysctl_open(SYSCTL_HANDLER_ARGS)
+static int
+ufoma_sysctl_open(SYSCTL_HANDLER_ARGS)
 {
 	struct ufoma_softc *sc = (struct ufoma_softc *)oidp->oid_arg1;
 	char *mode;
@@ -1227,22 +1224,23 @@ static int ufoma_sysctl_open(SYSCTL_HANDLER_ARGS)
 	int i;
 
 	mode = ufoma_mode_to_str(sc->sc_modetoactivate);
-	if(mode){
+	if (mode) {
 		strncpy(subbuf, mode, sizeof(subbuf));
-	}else{
-		snprintf(subbuf, sizeof(subbuf), "(%02x)", sc->sc_modetoactivate);
+	} else {
+		snprintf(subbuf, sizeof(subbuf), "(%02x)",
+		    sc->sc_modetoactivate);
 	}
 	error = sysctl_handle_string(oidp, subbuf, sizeof(subbuf), req);
-	if(error != 0 || req->newptr == NULL){
+	if (error != 0 || req->newptr == NULL) {
 		return error;
 	}
 
-	if((newmode = ufoma_str_to_mode(subbuf)) == -1){
+	if ((newmode = ufoma_str_to_mode(subbuf)) == -1) {
 		return EINVAL;
 	}
 
-	for(i = 1 ; i < sc->sc_modetable[0] ; i++){
-		if(sc->sc_modetable[i] == newmode){
+	for (i = 1; i < sc->sc_modetable[0]; i++) {
+		if (sc->sc_modetable[i] == newmode) {
 			sc->sc_modetoactivate = newmode;
 			return 0;
 		}

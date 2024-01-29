@@ -28,7 +28,7 @@
  */
 
 #ifndef __T4_CLIP_H
-#define	__T4_CLIP_H
+#define __T4_CLIP_H
 
 #define CLIP_HASH_SIZE 32
 struct clip_entry;
@@ -45,4 +45,4 @@ int t4_release_clip_addr(struct adapter *, struct in6_addr *);
 
 int sysctl_clip(SYSCTL_HANDLER_ARGS);
 
-#endif	/* __T4_CLIP_H */
+#endif /* __T4_CLIP_H */

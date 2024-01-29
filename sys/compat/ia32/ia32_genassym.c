@@ -1,7 +1,7 @@
 #include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/assym.h>
 #include <sys/systm.h>
+#include <sys/assym.h>
 #include <sys/signal.h>
 
 #include <compat/freebsd32/freebsd32_signal.h>

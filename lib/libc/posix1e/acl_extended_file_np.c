@@ -30,16 +30,16 @@
  */
 
 #include <sys/param.h>
-#include <sys/errno.h>
 #include <sys/acl.h>
+#include <sys/errno.h>
 
 #include <unistd.h>
 
 typedef acl_t (*acl_get_func)(const char *, acl_type_t);
 typedef long (*pathconf_func)(const char *, int);
 
-static int
-_acl_extended_file(acl_get_func f, pathconf_func pathconf_f, const char* path_p);
+static int _acl_extended_file(acl_get_func f, pathconf_func pathconf_f,
+    const char *path_p);
 
 int
 acl_extended_file_np(const char *path_p)
@@ -60,7 +60,8 @@ acl_extended_link_np(const char *path_p)
 }
 
 int
-_acl_extended_file(acl_get_func acl_get, pathconf_func pathconf_f, const char* path_p)
+_acl_extended_file(acl_get_func acl_get, pathconf_func pathconf_f,
+    const char *path_p)
 {
 	acl_t acl;
 	int retval, istrivial, acltype = ACL_TYPE_ACCESS;

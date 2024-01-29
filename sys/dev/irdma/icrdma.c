@@ -37,17 +37,18 @@
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/sysctl.h>
-#include <machine/bus.h>
-#include <linux/device.h>
 #include <sys/rman.h>
+#include <sys/sysctl.h>
+
+#include <machine/bus.h>
+
+#include <linux/device.h>
 
 #include "ice_rdma.h"
-#include "irdma_main.h"
 #include "icrdma_hw.h"
-
-#include "irdma_if.h"
 #include "irdma_di_if.h"
+#include "irdma_if.h"
+#include "irdma_main.h"
 
 /**
  *  Driver version
@@ -70,45 +71,43 @@ irdma_init_tunable(struct irdma_pci_f *rf, uint8_t pf_id)
 	sysctl_ctx_init(&t_info->irdma_sysctl_ctx);
 
 	t_info->irdma_sysctl_tree = SYSCTL_ADD_NODE(&t_info->irdma_sysctl_ctx,
-						    SYSCTL_STATIC_CHILDREN(_dev),
-						    OID_AUTO, pf_name,
-						    CTLFLAG_RD, NULL, "");
+	    SYSCTL_STATIC_CHILDREN(_dev), OID_AUTO, pf_name, CTLFLAG_RD, NULL,
+	    "");
 
 	irdma_oid_list = SYSCTL_CHILDREN(t_info->irdma_sysctl_tree);
 
 	t_info->sws_sysctl_tree = SYSCTL_ADD_NODE(&t_info->irdma_sysctl_ctx,
-						  irdma_oid_list, OID_AUTO,
-						  "sw_stats", CTLFLAG_RD,
-						  NULL, "");
+	    irdma_oid_list, OID_AUTO, "sw_stats", CTLFLAG_RD, NULL, "");
 	/*
 	 * debug mask setting
 	 */
-	SYSCTL_ADD_S32(&t_info->irdma_sysctl_ctx, irdma_oid_list,
-		       OID_AUTO, "debug", CTLFLAG_RWTUN, &rf->sc_dev.debug_mask,
-		       0, "irdma debug");
+	SYSCTL_ADD_S32(&t_info->irdma_sysctl_ctx, irdma_oid_list, OID_AUTO,
+	    "debug", CTLFLAG_RWTUN, &rf->sc_dev.debug_mask, 0, "irdma debug");
 
 	/*
 	 * RoCEv2/iWARP setting RoCEv2 the default mode
 	 */
 	t_info->roce_ena = 1;
 	SYSCTL_ADD_U8(&t_info->irdma_sysctl_ctx, irdma_oid_list, OID_AUTO,
-		      "roce_enable", CTLFLAG_RDTUN, &t_info->roce_ena, 0,
-		      "RoCEv2 mode enable");
+	    "roce_enable", CTLFLAG_RDTUN, &t_info->roce_ena, 0,
+	    "RoCEv2 mode enable");
 
 	rf->protocol_used = IRDMA_IWARP_PROTOCOL_ONLY;
 	if (t_info->roce_ena == 1)
 		rf->protocol_used = IRDMA_ROCE_PROTOCOL_ONLY;
 	else if (t_info->roce_ena != 0)
 		printf("%s:%d wrong roce_enable value (%d), using iWARP\n",
-		       __func__, __LINE__, t_info->roce_ena);
-	printf("%s:%d protocol: %s, roce_enable value: %d\n", __func__, __LINE__,
-	       (rf->protocol_used == IRDMA_IWARP_PROTOCOL_ONLY) ? "iWARP" : "RoCEv2",
-	       t_info->roce_ena);
+		    __func__, __LINE__, t_info->roce_ena);
+	printf("%s:%d protocol: %s, roce_enable value: %d\n", __func__,
+	    __LINE__,
+	    (rf->protocol_used == IRDMA_IWARP_PROTOCOL_ONLY) ? "iWARP" :
+							       "RoCEv2",
+	    t_info->roce_ena);
 
 	snprintf(t_info->drv_ver, IRDMA_VER_LEN, "%s", irdma_driver_version);
-	SYSCTL_ADD_STRING(&t_info->irdma_sysctl_ctx, irdma_oid_list,
-			  OID_AUTO, "drv_ver", CTLFLAG_RDTUN, t_info->drv_ver,
-			  IRDMA_VER_LEN, "driver version");
+	SYSCTL_ADD_STRING(&t_info->irdma_sysctl_ctx, irdma_oid_list, OID_AUTO,
+	    "drv_ver", CTLFLAG_RDTUN, t_info->drv_ver, IRDMA_VER_LEN,
+	    "driver version");
 
 	irdma_dcqcn_tunables_init(rf);
 	irdma_sysctl_settings(rf);
@@ -125,7 +124,8 @@ irdma_find_handler(struct ice_rdma_peer *p_dev)
 	unsigned long flags;
 
 	spin_lock_irqsave(&irdma_handler_lock, flags);
-	list_for_each_entry(hdl, &irdma_handlers, list) {
+	list_for_each_entry(hdl, &irdma_handlers, list)
+	{
 		if (!hdl->iwdev->rf->peer_info)
 			continue;
 		if (hdl->iwdev->rf->peer_info->dev == p_dev->dev) {
@@ -163,10 +163,10 @@ peer_to_iwdev(struct ice_rdma_peer *peer)
  */
 static void
 irdma_get_qos_info(struct irdma_pci_f *rf, struct irdma_l2params *l2params,
-		   struct ice_qos_params *qos_info)
+    struct ice_qos_params *qos_info)
 {
 	int i;
-	char txt[7][128] = {"", "", "", "", "", "", ""};
+	char txt[7][128] = { "", "", "", "", "", "", "" };
 	u8 len;
 
 	l2params->num_tc = qos_info->num_tc;
@@ -187,48 +187,56 @@ irdma_get_qos_info(struct irdma_pci_f *rf, struct irdma_l2params *l2params,
 
 	if (qos_info->pfc_mode == IRDMA_QOS_MODE_DSCP) {
 		l2params->dscp_mode = true;
-		memcpy(l2params->dscp_map, qos_info->dscp_map, sizeof(l2params->dscp_map));
+		memcpy(l2params->dscp_map, qos_info->dscp_map,
+		    sizeof(l2params->dscp_map));
 	}
 	if (!(rf->sc_dev.debug_mask & IRDMA_DEBUG_DCB))
 		return;
 	for (i = 0; i < l2params->num_tc; i++) {
 		len = strlen(txt[0]);
 		snprintf(txt[0] + len, sizeof(txt[0]) - 5, " %d",
-			 l2params->tc_info[i].egress_virt_up);
+		    l2params->tc_info[i].egress_virt_up);
 		len = strlen(txt[1]);
 		snprintf(txt[1] + len, sizeof(txt[1]) - 5, " %d",
-			 l2params->tc_info[i].ingress_virt_up);
+		    l2params->tc_info[i].ingress_virt_up);
 		len = strlen(txt[2]);
 		snprintf(txt[2] + len, sizeof(txt[2]) - 5, " %d",
-			 l2params->tc_info[i].prio_type);
+		    l2params->tc_info[i].prio_type);
 		len = strlen(txt[3]);
 		snprintf(txt[3] + len, sizeof(txt[3]) - 5, " %d",
-			 l2params->tc_info[i].rel_bw);
+		    l2params->tc_info[i].rel_bw);
 		len = strlen(txt[4]);
 		snprintf(txt[4] + len, sizeof(txt[4]) - 5, " %lu",
-			 l2params->tc_info[i].tc_ctx);
+		    l2params->tc_info[i].tc_ctx);
 	}
 	len = strlen(txt[5]);
 	for (i = 0; i < IRDMA_MAX_USER_PRIORITY; i++)
 		len += snprintf(txt[5] + len, sizeof(txt[5]) - 5, " %d",
-				l2params->up2tc[i]);
+		    l2params->up2tc[i]);
 	len = strlen(txt[6]);
 	for (i = 0; i < IRDMA_DSCP_NUM_VAL; i++)
 		len += snprintf(txt[6] + len, sizeof(txt[6]) - 5, " %d",
-				l2params->dscp_map[i]);
-	irdma_debug(&rf->sc_dev, IRDMA_DEBUG_DCB, "num_tc:          %d\n", l2params->num_tc);
-	irdma_debug(&rf->sc_dev, IRDMA_DEBUG_DCB, "num_apps:        %d\n", l2params->num_apps);
-	irdma_debug(&rf->sc_dev, IRDMA_DEBUG_DCB, "vsi_prio_type:   %d\n", l2params->vsi_prio_type);
-	irdma_debug(&rf->sc_dev, IRDMA_DEBUG_DCB, "vsi_rel_bw:      %d\n", l2params->vsi_rel_bw);
-	irdma_debug(&rf->sc_dev, IRDMA_DEBUG_DCB, "egress_virt_up: %s\n", txt[0]);
-	irdma_debug(&rf->sc_dev, IRDMA_DEBUG_DCB, "ingress_virt_up:%s\n", txt[1]);
+		    l2params->dscp_map[i]);
+	irdma_debug(&rf->sc_dev, IRDMA_DEBUG_DCB, "num_tc:          %d\n",
+	    l2params->num_tc);
+	irdma_debug(&rf->sc_dev, IRDMA_DEBUG_DCB, "num_apps:        %d\n",
+	    l2params->num_apps);
+	irdma_debug(&rf->sc_dev, IRDMA_DEBUG_DCB, "vsi_prio_type:   %d\n",
+	    l2params->vsi_prio_type);
+	irdma_debug(&rf->sc_dev, IRDMA_DEBUG_DCB, "vsi_rel_bw:      %d\n",
+	    l2params->vsi_rel_bw);
+	irdma_debug(&rf->sc_dev, IRDMA_DEBUG_DCB, "egress_virt_up: %s\n",
+	    txt[0]);
+	irdma_debug(&rf->sc_dev, IRDMA_DEBUG_DCB, "ingress_virt_up:%s\n",
+	    txt[1]);
 	irdma_debug(&rf->sc_dev, IRDMA_DEBUG_DCB, "prio_type: %s\n", txt[2]);
 	irdma_debug(&rf->sc_dev, IRDMA_DEBUG_DCB, "rel_bw:    %s\n", txt[3]);
 	irdma_debug(&rf->sc_dev, IRDMA_DEBUG_DCB, "tc_ctx:    %s\n", txt[4]);
 	irdma_debug(&rf->sc_dev, IRDMA_DEBUG_DCB, "up2tc:     %s\n", txt[5]);
 	irdma_debug(&rf->sc_dev, IRDMA_DEBUG_DCB, "dscp_mode: %s\n", txt[6]);
 
-	irdma_debug_buf(&rf->sc_dev, IRDMA_DEBUG_DCB, "l2params", l2params, sizeof(*l2params));
+	irdma_debug_buf(&rf->sc_dev, IRDMA_DEBUG_DCB, "l2params", l2params,
+	    sizeof(*l2params));
 }
 
 /**
@@ -241,12 +249,12 @@ irdma_log_invalid_mtu(u16 mtu, struct irdma_sc_dev *dev)
 {
 	if (mtu < IRDMA_MIN_MTU_IPV4)
 		irdma_dev_warn(to_ibdev(dev),
-			       "MTU setting [%d] too low for RDMA traffic. Minimum MTU is 576 for IPv4\n",
-			       mtu);
+		    "MTU setting [%d] too low for RDMA traffic. Minimum MTU is 576 for IPv4\n",
+		    mtu);
 	else if (mtu < IRDMA_MIN_MTU_IPV6)
 		irdma_dev_warn(to_ibdev(dev),
-			       "MTU setting [%d] too low for RDMA traffic. Minimum MTU is 1280 for IPv6\\n",
-			       mtu);
+		    "MTU setting [%d] too low for RDMA traffic. Minimum MTU is 1280 for IPv6\\n",
+		    mtu);
 }
 
 /**
@@ -289,9 +297,9 @@ irdma_event_handler(struct ice_rdma_peer *peer, struct ice_rdma_event *event)
 	struct irdma_device *iwdev;
 	struct irdma_l2params l2params = {};
 
-	printf("%s:%d event_handler %s (%x) on pf %d (%d)\n", __func__, __LINE__,
-	       irdma_get_event_name(event->type),
-	       event->type, peer->pf_id, if_getdunit(peer->ifp));
+	printf("%s:%d event_handler %s (%x) on pf %d (%d)\n", __func__,
+	    __LINE__, irdma_get_event_name(event->type), event->type,
+	    peer->pf_id, if_getdunit(peer->ifp));
 	iwdev = peer_to_iwdev(peer);
 	if (!iwdev) {
 		printf("%s:%d rdma device not found\n", __func__, __LINE__);
@@ -300,9 +308,9 @@ irdma_event_handler(struct ice_rdma_peer *peer, struct ice_rdma_event *event)
 
 	switch (event->type) {
 	case ICE_RDMA_EVENT_LINK_CHANGE:
-		printf("%s:%d PF: %x (%x), state: %d, speed: %lu\n", __func__, __LINE__,
-		       peer->pf_id, if_getdunit(peer->ifp), event->linkstate,
-		       event->baudrate);
+		printf("%s:%d PF: %x (%x), state: %d, speed: %lu\n", __func__,
+		    __LINE__, peer->pf_id, if_getdunit(peer->ifp),
+		    event->linkstate, event->baudrate);
 		break;
 	case ICE_RDMA_EVENT_MTU_CHANGE:
 		if (iwdev->vsi.mtu != event->mtu) {
@@ -314,34 +322,41 @@ irdma_event_handler(struct ice_rdma_peer *peer, struct ice_rdma_event *event)
 		break;
 	case ICE_RDMA_EVENT_TC_CHANGE:
 		/*
-		 * 1. check if it is pre or post 2. check if it is currently being done
+		 * 1. check if it is pre or post 2. check if it is currently
+		 * being done
 		 */
 		if (event->prep == iwdev->vsi.tc_change_pending) {
-			printf("%s:%d can't process %s TC change if TC change is %spending\n",
-			       __func__, __LINE__,
-			       event->prep ? "pre" : "post",
-			       event->prep ? " " : "not ");
+			printf(
+			    "%s:%d can't process %s TC change if TC change is %spending\n",
+			    __func__, __LINE__, event->prep ? "pre" : "post",
+			    event->prep ? " " : "not ");
 			goto done;
 		}
 		if (!atomic_inc_not_zero(&iwdev->rf->dev_ctx.event_rfcnt)) {
-			printf("%s:%d (%d) EVENT_TC_CHANGE received, but not processed %d\n",
-			       __func__, __LINE__, if_getdunit(peer->ifp),
-			       atomic_read(&iwdev->rf->dev_ctx.event_rfcnt));
+			printf(
+			    "%s:%d (%d) EVENT_TC_CHANGE received, but not processed %d\n",
+			    __func__, __LINE__, if_getdunit(peer->ifp),
+			    atomic_read(&iwdev->rf->dev_ctx.event_rfcnt));
 			break;
 		}
 		if (event->prep) {
 			iwdev->vsi.tc_change_pending = true;
-			irdma_sc_suspend_resume_qps(&iwdev->vsi, IRDMA_OP_SUSPEND);
+			irdma_sc_suspend_resume_qps(&iwdev->vsi,
+			    IRDMA_OP_SUSPEND);
 			wait_event_timeout(iwdev->suspend_wq,
-					   !atomic_read(&iwdev->vsi.qp_suspend_reqs),
-					   IRDMA_EVENT_TIMEOUT_MS * 10);
+			    !atomic_read(&iwdev->vsi.qp_suspend_reqs),
+			    IRDMA_EVENT_TIMEOUT_MS * 10);
 			irdma_ws_reset(&iwdev->vsi);
-			printf("%s:%d TC change preparation done\n", __func__, __LINE__);
+			printf("%s:%d TC change preparation done\n", __func__,
+			    __LINE__);
 		} else {
 			l2params.tc_changed = true;
-			irdma_get_qos_info(iwdev->rf, &l2params, &event->port_qos);
-			if (iwdev->rf->protocol_used != IRDMA_IWARP_PROTOCOL_ONLY)
-				iwdev->dcb_vlan_mode = l2params.num_tc > 1 && !l2params.dscp_mode;
+			irdma_get_qos_info(iwdev->rf, &l2params,
+			    &event->port_qos);
+			if (iwdev->rf->protocol_used !=
+			    IRDMA_IWARP_PROTOCOL_ONLY)
+				iwdev->dcb_vlan_mode = l2params.num_tc > 1 &&
+				    !l2params.dscp_mode;
 
 			irdma_check_fc_for_tc_update(&iwdev->vsi, &l2params);
 			irdma_change_l2params(&iwdev->vsi, &l2params);
@@ -353,15 +368,17 @@ irdma_event_handler(struct ice_rdma_peer *peer, struct ice_rdma_event *event)
 		if (event->oicr_reg & IRDMAPFINT_OICR_PE_CRITERR_M) {
 			u32 pe_criterr;
 
-#define IRDMA_Q1_RESOURCE_ERR  0x0001024d
-			pe_criterr = readl(iwdev->rf->sc_dev.hw_regs[IRDMA_GLPE_CRITERR]);
+#define IRDMA_Q1_RESOURCE_ERR 0x0001024d
+			pe_criterr = readl(
+			    iwdev->rf->sc_dev.hw_regs[IRDMA_GLPE_CRITERR]);
 			if (pe_criterr != IRDMA_Q1_RESOURCE_ERR) {
-				irdma_pr_err("critical PE Error, GLPE_CRITERR=0x%08x\n",
-					     pe_criterr);
+				irdma_pr_err(
+				    "critical PE Error, GLPE_CRITERR=0x%08x\n",
+				    pe_criterr);
 				iwdev->rf->reset = true;
 			} else {
 				irdma_dev_warn(to_ibdev(&iwdev->rf->sc_dev),
-					       "Q1 Resource Check\n");
+				    "Q1 Resource Check\n");
 			}
 		}
 		if (event->oicr_reg & IRDMAPFINT_OICR_HMC_ERR_M) {
@@ -375,7 +392,8 @@ irdma_event_handler(struct ice_rdma_peer *peer, struct ice_rdma_event *event)
 		iwdev->rf->reset = true;
 		break;
 	default:
-		printf("%s:%d event type unsupported: %d\n", __func__, __LINE__, event->type);
+		printf("%s:%d event type unsupported: %d\n", __func__, __LINE__,
+		    event->type);
 	}
 done:
 	return;
@@ -391,7 +409,7 @@ static void
 irdma_link_change(struct ice_rdma_peer *peer, int linkstate, uint64_t baudrate)
 {
 	printf("%s:%d PF: %x (%x), state: %d, speed: %lu\n", __func__, __LINE__,
-	       peer->pf_id, if_getdunit(peer->ifp), linkstate, baudrate);
+	    peer->pf_id, if_getdunit(peer->ifp), linkstate, baudrate);
 }
 
 /**
@@ -409,22 +427,22 @@ irdma_finalize_task(void *context, int pending)
 	struct irdma_device *iwdev = task_arg->iwdev;
 	struct irdma_pci_f *rf = iwdev->rf;
 	struct ice_rdma_peer *peer = task_arg->peer;
-	struct irdma_l2params l2params = {{{0}}};
-	struct ice_rdma_request req = {0};
+	struct irdma_l2params l2params = { { { 0 } } };
+	struct ice_rdma_request req = { 0 };
 	int status = 0;
 
 	if (iwdev->iw_status) {
 		irdma_debug(&rf->sc_dev, IRDMA_DEBUG_INIT,
-			    "Starting deferred closing %d (%d)\n",
-			    rf->peer_info->pf_id, if_getdunit(peer->ifp));
+		    "Starting deferred closing %d (%d)\n", rf->peer_info->pf_id,
+		    if_getdunit(peer->ifp));
 		atomic_dec(&rf->dev_ctx.event_rfcnt);
 		wait_event_timeout(iwdev->suspend_wq,
-				   !atomic_read(&rf->dev_ctx.event_rfcnt),
-				   IRDMA_MAX_TIMEOUT);
+		    !atomic_read(&rf->dev_ctx.event_rfcnt), IRDMA_MAX_TIMEOUT);
 		if (atomic_read(&rf->dev_ctx.event_rfcnt) != 0) {
-			printf("%s:%d (%d) waiting for event_rfcnt (%d) timeout, proceed with unload\n",
-			       __func__, __LINE__, if_getdunit(peer->ifp),
-			       atomic_read(&rf->dev_ctx.event_rfcnt));
+			printf(
+			    "%s:%d (%d) waiting for event_rfcnt (%d) timeout, proceed with unload\n",
+			    __func__, __LINE__, if_getdunit(peer->ifp),
+			    atomic_read(&rf->dev_ctx.event_rfcnt));
 		}
 		irdma_dereg_ipaddr_event_cb(rf);
 		irdma_ib_unregister_device(iwdev);
@@ -435,11 +453,13 @@ irdma_finalize_task(void *context, int pending)
 		irdma_rt_deinit_hw(iwdev);
 	} else {
 		irdma_debug(&rf->sc_dev, IRDMA_DEBUG_INIT,
-			    "Starting deferred opening %d (%d)\n",
-			    rf->peer_info->pf_id, if_getdunit(peer->ifp));
-		irdma_get_qos_info(iwdev->rf, &l2params, &peer->initial_qos_info);
+		    "Starting deferred opening %d (%d)\n", rf->peer_info->pf_id,
+		    if_getdunit(peer->ifp));
+		irdma_get_qos_info(iwdev->rf, &l2params,
+		    &peer->initial_qos_info);
 		if (iwdev->rf->protocol_used != IRDMA_IWARP_PROTOCOL_ONLY)
-			iwdev->dcb_vlan_mode = l2params.num_tc > 1 && !l2params.dscp_mode;
+			iwdev->dcb_vlan_mode = l2params.num_tc > 1 &&
+			    !l2params.dscp_mode;
 
 		l2params.mtu = peer->mtu;
 		status = irdma_rt_init_hw(iwdev, &l2params);
@@ -461,8 +481,8 @@ irdma_finalize_task(void *context, int pending)
 		irdma_reg_ipaddr_event_cb(rf);
 		atomic_inc(&rf->dev_ctx.event_rfcnt);
 		irdma_debug(&rf->sc_dev, IRDMA_DEBUG_INIT,
-			    "Deferred opening finished %d (%d)\n",
-			    rf->peer_info->pf_id, if_getdunit(peer->ifp));
+		    "Deferred opening finished %d (%d)\n", rf->peer_info->pf_id,
+		    if_getdunit(peer->ifp));
 	}
 }
 
@@ -501,8 +521,7 @@ irdma_dealloc_pcidev(struct irdma_pci_f *rf)
  * @peer: the peer interface structure
  */
 static void
-irdma_fill_device_info(struct irdma_device *iwdev,
-		       struct ice_rdma_peer *peer)
+irdma_fill_device_info(struct irdma_device *iwdev, struct ice_rdma_peer *peer)
 {
 	struct irdma_pci_f *rf = iwdev->rf;
 
@@ -530,7 +549,7 @@ irdma_fill_device_info(struct irdma_device *iwdev,
 	rf->msix_info.entry = peer->msix.base;
 	rf->msix_info.vector = peer->msix.count;
 	printf("%s:%d msix_info: %d %d %d\n", __func__, __LINE__,
-	       rf->msix_count, rf->msix_info.entry, rf->msix_info.vector);
+	    rf->msix_count, rf->msix_info.entry, rf->msix_info.vector);
 
 	rf->iwdev = iwdev;
 	iwdev->netdev = peer->ifp;
@@ -562,9 +581,10 @@ irdma_probe(struct ice_rdma_peer *peer)
 	struct irdma_handler *hdl;
 	int err = 0;
 
-	irdma_pr_info("probe: irdma-%s peer=%p, peer->pf_id=%d, peer->ifp=%p, peer->ifp->if_dunit=%d, peer->pci_mem->r_bustag=%p\n",
-		      irdma_driver_version, peer, peer->pf_id, peer->ifp,
-		      if_getdunit(peer->ifp), (void *)(uintptr_t)peer->pci_mem->r_bustag);
+	irdma_pr_info(
+	    "probe: irdma-%s peer=%p, peer->pf_id=%d, peer->ifp=%p, peer->ifp->if_dunit=%d, peer->pci_mem->r_bustag=%p\n",
+	    irdma_driver_version, peer, peer->pf_id, peer->ifp,
+	    if_getdunit(peer->ifp), (void *)(uintptr_t)peer->pci_mem->r_bustag);
 
 	hdl = irdma_find_handler(peer);
 	if (hdl)
@@ -607,10 +627,10 @@ irdma_probe(struct ice_rdma_peer *peer)
 	rf->dev_ctx.task_arg.iwdev = iwdev;
 	rf->dev_ctx.task_arg.peer = peer;
 
-	TASK_INIT(&hdl->deferred_task, 0, irdma_finalize_task, &rf->dev_ctx.task_arg);
-	hdl->deferred_tq = taskqueue_create_fast("irdma_defer",
-						 M_NOWAIT, taskqueue_thread_enqueue,
-						 &hdl->deferred_tq);
+	TASK_INIT(&hdl->deferred_task, 0, irdma_finalize_task,
+	    &rf->dev_ctx.task_arg);
+	hdl->deferred_tq = taskqueue_create_fast("irdma_defer", M_NOWAIT,
+	    taskqueue_thread_enqueue, &hdl->deferred_tq);
 	taskqueue_start_threads(&hdl->deferred_tq, 1, PI_NET, "irdma_defer_t");
 
 	taskqueue_enqueue(hdl->deferred_tq, &hdl->deferred_task);
@@ -642,7 +662,7 @@ irdma_remove(struct ice_rdma_peer *peer)
 	struct irdma_device *iwdev;
 
 	irdma_debug((struct irdma_sc_dev *)NULL, IRDMA_DEBUG_INIT,
-		    "removing %s irdma%d\n", __func__, if_getdunit(peer->ifp));
+	    "removing %s irdma%d\n", __func__, if_getdunit(peer->ifp));
 
 	hdl = irdma_find_handler(peer);
 	if (!hdl)
@@ -675,7 +695,7 @@ irdma_remove(struct ice_rdma_peer *peer)
 	kfree(iwdev->rf);
 	ib_dealloc_device(&iwdev->ibdev);
 	irdma_pr_info("IRDMA hardware deinitialization complete irdma%d\n",
-		      if_getdunit(peer->ifp));
+	    if_getdunit(peer->ifp));
 
 	return 0;
 }
@@ -691,7 +711,7 @@ static int
 irdma_open(struct ice_rdma_peer *peer)
 {
 	struct irdma_device *iwdev;
-	struct ice_rdma_event event = {0};
+	struct ice_rdma_event event = { 0 };
 
 	iwdev = peer_to_iwdev(peer);
 	if (iwdev) {
@@ -741,7 +761,8 @@ irdma_prep_for_unregister(void)
 	do {
 		hdl_valid = false;
 		spin_lock_irqsave(&irdma_handler_lock, flags);
-		list_for_each_entry(hdl, &irdma_handlers, list) {
+		list_for_each_entry(hdl, &irdma_handlers, list)
+		{
 			if (!hdl->iwdev->rf->peer_info)
 				continue;
 			hdl_valid = true;
@@ -755,18 +776,16 @@ irdma_prep_for_unregister(void)
 	} while (1);
 }
 
-static kobj_method_t irdma_methods[] = {
-	KOBJMETHOD(irdma_probe, irdma_probe),
-	    KOBJMETHOD(irdma_open, irdma_open),
-	    KOBJMETHOD(irdma_close, irdma_close),
-	    KOBJMETHOD(irdma_remove, irdma_remove),
-	    KOBJMETHOD(irdma_link_change, irdma_link_change),
-	    KOBJMETHOD(irdma_event_handler, irdma_event_handler),
-	    KOBJMETHOD_END
-};
+static kobj_method_t irdma_methods[] = { KOBJMETHOD(irdma_probe, irdma_probe),
+	KOBJMETHOD(irdma_open, irdma_open),
+	KOBJMETHOD(irdma_close, irdma_close),
+	KOBJMETHOD(irdma_remove, irdma_remove),
+	KOBJMETHOD(irdma_link_change, irdma_link_change),
+	KOBJMETHOD(irdma_event_handler, irdma_event_handler), KOBJMETHOD_END };
 
 /* declare irdma_class which extends the ice_rdma_di class */
-DEFINE_CLASS_1(irdma, irdma_class, irdma_methods, sizeof(struct ice_rdma_peer), ice_rdma_di_class);
+DEFINE_CLASS_1(irdma, irdma_class, irdma_methods, sizeof(struct ice_rdma_peer),
+    ice_rdma_di_class);
 
 static struct ice_rdma_info irdma_info = {
 	.major_version = ICE_RDMA_MAJOR_VERSION,
@@ -786,7 +805,7 @@ static struct ice_rdma_info irdma_info = {
  * load and unload.
  */
 static int
-irdma_module_event_handler(module_t __unused mod, int what, void __unused * arg)
+irdma_module_event_handler(module_t __unused mod, int what, void __unused *arg)
 {
 	switch (what) {
 	case MOD_LOAD:
@@ -804,11 +823,8 @@ irdma_module_event_handler(module_t __unused mod, int what, void __unused * arg)
 	return (0);
 }
 
-static moduledata_t irdma_moduledata = {
-	"irdma",
-	    irdma_module_event_handler,
-	    NULL
-};
+static moduledata_t irdma_moduledata = { "irdma", irdma_module_event_handler,
+	NULL };
 
 DECLARE_MODULE(irdma, irdma_moduledata, SI_SUB_LAST, SI_ORDER_ANY);
 MODULE_VERSION(irdma, 1);

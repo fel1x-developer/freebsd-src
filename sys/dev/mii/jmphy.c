@@ -34,60 +34,49 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/socket.h>
-#include <sys/bus.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_media.h>
-
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include "miidevs.h"
 
 #include <dev/mii/jmphyreg.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
+
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_var.h>
 
 #include "miibus_if.h"
+#include "miidevs.h"
 
-static int	jmphy_probe(device_t);
-static int	jmphy_attach(device_t);
-static void	jmphy_reset(struct mii_softc *);
-static uint16_t	jmphy_anar(struct ifmedia_entry *);
-static int	jmphy_setmedia(struct mii_softc *, struct ifmedia_entry *);
+static int jmphy_probe(device_t);
+static int jmphy_attach(device_t);
+static void jmphy_reset(struct mii_softc *);
+static uint16_t jmphy_anar(struct ifmedia_entry *);
+static int jmphy_setmedia(struct mii_softc *, struct ifmedia_entry *);
 
 static device_method_t jmphy_methods[] = {
 	/* Device interface. */
-	DEVMETHOD(device_probe,		jmphy_probe),
-	DEVMETHOD(device_attach,	jmphy_attach),
-	DEVMETHOD(device_detach,	mii_phy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, jmphy_probe),
+	DEVMETHOD(device_attach, jmphy_attach),
+	DEVMETHOD(device_detach, mii_phy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), DEVMETHOD_END
 };
 
-static driver_t jmphy_driver = {
-	"jmphy",
-	jmphy_methods,
-	sizeof(struct mii_softc)
-};
+static driver_t jmphy_driver = { "jmphy", jmphy_methods,
+	sizeof(struct mii_softc) };
 
 DRIVER_MODULE(jmphy, miibus, jmphy_driver, 0, 0);
 
-static int	jmphy_service(struct mii_softc *, struct mii_data *, int);
-static void	jmphy_status(struct mii_softc *);
+static int jmphy_service(struct mii_softc *, struct mii_data *, int);
+static void jmphy_status(struct mii_softc *);
 
-static const struct mii_phydesc jmphys[] = {
-	MII_PHY_DESC(JMICRON, JMP202),
-	MII_PHY_DESC(JMICRON, JMP211),
-	MII_PHY_END
-};
+static const struct mii_phydesc jmphys[] = { MII_PHY_DESC(JMICRON, JMP202),
+	MII_PHY_DESC(JMICRON, JMP211), MII_PHY_END };
 
-static const struct mii_phy_funcs jmphy_funcs = {
-	jmphy_service,
-	jmphy_status,
-	jmphy_reset
-};
+static const struct mii_phy_funcs jmphy_funcs = { jmphy_service, jmphy_status,
+	jmphy_reset };
 
 static int
 jmphy_probe(device_t dev)
@@ -244,26 +233,26 @@ jmphy_reset(struct mii_softc *sc)
 		t2cr |= 0x2000;
 		PHY_WRITE(sc, MII_100T2CR, t2cr);
 		/* Apply calibration patch. */
-		PHY_WRITE(sc, JMPHY_SPEC_ADDR, JMPHY_SPEC_ADDR_READ |
-		    JMPHY_EXT_COMM_2);
+		PHY_WRITE(sc, JMPHY_SPEC_ADDR,
+		    JMPHY_SPEC_ADDR_READ | JMPHY_EXT_COMM_2);
 		val = PHY_READ(sc, JMPHY_SPEC_DATA);
 		val &= ~0x0002;
 		val |= 0x0010 | 0x0001;
 		PHY_WRITE(sc, JMPHY_SPEC_DATA, val);
-		PHY_WRITE(sc, JMPHY_SPEC_ADDR, JMPHY_SPEC_ADDR_WRITE |
-		    JMPHY_EXT_COMM_2);
+		PHY_WRITE(sc, JMPHY_SPEC_ADDR,
+		    JMPHY_SPEC_ADDR_WRITE | JMPHY_EXT_COMM_2);
 
 		/* XXX 20ms to complete recalibration. */
 		DELAY(20 * 1000);
 
 		PHY_READ(sc, MII_100T2CR);
-		PHY_WRITE(sc, JMPHY_SPEC_ADDR, JMPHY_SPEC_ADDR_READ |
-		    JMPHY_EXT_COMM_2);
+		PHY_WRITE(sc, JMPHY_SPEC_ADDR,
+		    JMPHY_SPEC_ADDR_READ | JMPHY_EXT_COMM_2);
 		val = PHY_READ(sc, JMPHY_SPEC_DATA);
 		val &= ~(0x0001 | 0x0002 | 0x0010);
 		PHY_WRITE(sc, JMPHY_SPEC_DATA, val);
-		PHY_WRITE(sc, JMPHY_SPEC_ADDR, JMPHY_SPEC_ADDR_WRITE |
-		    JMPHY_EXT_COMM_2);
+		PHY_WRITE(sc, JMPHY_SPEC_ADDR,
+		    JMPHY_SPEC_ADDR_WRITE | JMPHY_EXT_COMM_2);
 		/* Disable PHY test mode. */
 		PHY_READ(sc, MII_100T2CR);
 		t2cr &= ~GTCR_TEST_MASK;
@@ -322,9 +311,9 @@ jmphy_setmedia(struct mii_softc *sc, struct ifmedia_entry *ife)
 
 	anar = jmphy_anar(ife);
 	if ((IFM_SUBTYPE(ife->ifm_media) == IFM_AUTO ||
-	    (ife->ifm_media & IFM_FDX) != 0) &&
+		(ife->ifm_media & IFM_FDX) != 0) &&
 	    ((ife->ifm_media & IFM_FLOW) != 0 ||
-	    (sc->mii_flags & MIIF_FORCEPAUSE) != 0))
+		(sc->mii_flags & MIIF_FORCEPAUSE) != 0))
 		anar |= ANAR_PAUSE_TOWARDS;
 
 	if ((sc->mii_flags & MIIF_HAVE_GTCR) != 0) {

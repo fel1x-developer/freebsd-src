@@ -33,8 +33,9 @@
 #ifndef _UTIL_HH_
 #define _UTIL_HH_
 
-#include <memory>
 #include <stdint.h>
+
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -46,34 +47,49 @@
 #endif
 
 #ifdef MISSING_DIGITTOINT
-namespace
+namespace {
+/**
+ * Glibc doesn't have a definition of digittoint, so provide our own.
+ */
+inline int
+digittoint(int c)
 {
-	/**
-	 * Glibc doesn't have a definition of digittoint, so provide our own.
-	 */
-	inline int digittoint(int c)
-	{
-		switch (c)
-		{
-			default:
-			case '0': return 0;
-			case '1': return 1;
-			case '2': return 2;
-			case '3': return 3;
-			case '4': return 4;
-			case '5': return 5;
-			case '6': return 6;
-			case '7': return 7;
-			case '8': return 8;
-			case '9': return 9;
-			case 'a': return 10;
-			case 'b': return 11;
-			case 'c': return 12;
-			case 'd': return 13;
-			case 'e': return 14;
-			case 'f': return 15;
-		}
+	switch (c) {
+	default:
+	case '0':
+		return 0;
+	case '1':
+		return 1;
+	case '2':
+		return 2;
+	case '3':
+		return 3;
+	case '4':
+		return 4;
+	case '5':
+		return 5;
+	case '6':
+		return 6;
+	case '7':
+		return 7;
+	case '8':
+		return 8;
+	case '9':
+		return 9;
+	case 'a':
+		return 10;
+	case 'b':
+		return 11;
+	case 'c':
+		return 12;
+	case 'd':
+		return 13;
+	case 'e':
+		return 14;
+	case 'f':
+		return 15;
 	}
+}
 }
 #endif
 
@@ -92,24 +108,25 @@ typedef std::vector<uint8_t> byte_buffer;
  * native-endian values for all of the in-memory data structures and only
  * transform them into big endian form for output.
  */
-template<typename T>
-inline void push_big_endian(byte_buffer &v, T val)
+template <typename T>
+inline void
+push_big_endian(byte_buffer &v, T val)
 {
 	static_assert(sizeof(T) > 1,
-		"Big endian doesn't make sense for single-byte values");
-	for (int bit=(sizeof(T) - 1)*8 ; bit>=0 ; bit-= 8)
-	{
+	    "Big endian doesn't make sense for single-byte values");
+	for (int bit = (sizeof(T) - 1) * 8; bit >= 0; bit -= 8) {
 		v.push_back((val >> bit) & 0xff);
 	}
 }
 
-void push_string(byte_buffer &v, const std::string &s, bool escapes=false);
+void push_string(byte_buffer &v, const std::string &s, bool escapes = false);
 
 /**
  * Simple inline non-locale-aware check that this is a valid ASCII
  * digit.
  */
-inline bool isdigit(char c)
+inline bool
+isdigit(char c)
 {
 	return (c >= '0') && (c <= '9');
 }
@@ -118,17 +135,19 @@ inline bool isdigit(char c)
  * Simple inline non-locale-aware check that this is a valid ASCII
  * hex digit.
  */
-inline bool ishexdigit(char c)
+inline bool
+ishexdigit(char c)
 {
 	return ((c >= '0') && (c <= '9')) || ((c >= 'a') && (c <= 'f')) ||
-		((c >= 'A') && (c <= 'F'));
+	    ((c >= 'A') && (c <= 'F'));
 }
 
 /**
  * Simple inline non-locale-aware check that this is a valid ASCII
  * letter.
  */
-inline bool isalpha(char c)
+inline bool
+isalpha(char c)
 {
 	return ((c >= 'a') && (c <= 'z')) || ((c >= 'A') && (c <= 'Z'));
 }
@@ -137,14 +156,14 @@ inline bool isalpha(char c)
  * A wrapper around dirname(3) that handles inconsistencies relating to memory
  * management between platforms and provides a std::string interface.
  */
-std::string dirname(const std::string&);
+std::string dirname(const std::string &);
 
 /**
  * A wrapper around basename(3) that handles inconsistencies relating to memory
  * management between platforms and provides a std::string interface.
  */
-std::string basename(const std::string&);
+std::string basename(const std::string &);
 
-}// namespace dtc
+} // namespace dtc
 
 #endif // !_UTIL_HH_

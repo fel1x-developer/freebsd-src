@@ -51,18 +51,14 @@ static struct {
 	const char *tag;
 	const char *fmt;
 } tags[] = {
-  { "default",
-    "input,rx_mgmt,output,rx_badkeyid,scan_active,scan_bg,bmiss,rssi,noise,rate"
-  },
-  { "ampdu",
-    "input,output,ampdu_reorder,ampdu_oor,rx_dup,ampdu_flush,ampdu_move,"
-    "ampdu_drop,ampdu_bar,ampdu_baroow,ampdu_barmove,ampdu_bartx,"
-    "ampdu_bartxfail,ampdu_bartxretry,rssi,rate"
-  },
-  {
-    "amsdu",
-    "input,output,amsdu_tooshort,amsdu_split,amsdu_decap,amsdu_encap,rx_amsdu_more,rx_amsdu_more_end,rssi,rate"
-  },
+	{ "default",
+	    "input,rx_mgmt,output,rx_badkeyid,scan_active,scan_bg,bmiss,rssi,noise,rate" },
+	{ "ampdu",
+	    "input,output,ampdu_reorder,ampdu_oor,rx_dup,ampdu_flush,ampdu_move,"
+	    "ampdu_drop,ampdu_bar,ampdu_baroow,ampdu_barmove,ampdu_bartx,"
+	    "ampdu_bartxfail,ampdu_bartxretry,rssi,rate" },
+	{ "amsdu",
+	    "input,output,amsdu_tooshort,amsdu_split,amsdu_decap,amsdu_encap,rx_amsdu_more,rx_amsdu_more_end,rssi,rate" },
 };
 
 static const char *
@@ -87,8 +83,11 @@ catchalarm(int signo __unused)
 static void
 print_sta_stats(FILE *fd, const u_int8_t macaddr[IEEE80211_ADDR_LEN])
 {
-#define	STAT(x,fmt) \
-	if (ns->ns_##x) { fprintf(fd, "%s" #x " " fmt, sep, ns->ns_##x); sep = " "; }
+#define STAT(x, fmt)                                           \
+	if (ns->ns_##x) {                                      \
+		fprintf(fd, "%s" #x " " fmt, sep, ns->ns_##x); \
+		sep = " ";                                     \
+	}
 	struct ieee80211req ireq;
 	struct ieee80211req_sta_stats stats;
 	const struct ieee80211_nodestats *ns = &stats.is_stats;
@@ -158,7 +157,8 @@ static void
 usage(void)
 {
 
-	printf("wlanstats: [-ah] [-i ifname] [-l] [-m station MAC address] [-o fmt] [interval]\n");
+	printf(
+	    "wlanstats: [-ah] [-i ifname] [-l] [-m station MAC address] [-o fmt] [interval]\n");
 }
 
 int
@@ -250,11 +250,11 @@ main(int argc, char *argv[])
 		/* refresh every display in case sta roams */
 		if (mac == NULL && mode == IEEE80211_M_STA)
 			wf->setstamac(wf, NULL);
-		if (line == 21)		/* XXX tty line count */
+		if (line == 21) /* XXX tty line count */
 			goto banner;
 		else
 			goto loop;
-		/*NOTREACHED*/
+			/*NOTREACHED*/
 #if 0
 	} else if (allnodes) {
 		struct ieee80211req_sta_info *si;

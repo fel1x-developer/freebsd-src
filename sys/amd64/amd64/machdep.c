@@ -38,7 +38,6 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_atpic.h"
 #include "opt_cpu.h"
 #include "opt_ddb.h"
@@ -50,8 +49,8 @@
 #include "opt_platform.h"
 #include "opt_sched.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/proc.h>
 #include <sys/systm.h>
 #include <sys/asan.h>
 #include <sys/bio.h>
@@ -76,6 +75,7 @@
 #include <sys/msgbuf.h>
 #include <sys/mutex.h>
 #include <sys/pcpu.h>
+#include <sys/proc.h>
 #include <sys/ptrace.h>
 #include <sys/reboot.h>
 #include <sys/reg.h>
@@ -93,34 +93,29 @@
 #include <sys/vmmeter.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
+#include <vm/vm_dumpset.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_kern.h>
-#include <vm/vm_page.h>
 #include <vm/vm_map.h>
 #include <vm/vm_object.h>
+#include <vm/vm_page.h>
 #include <vm/vm_pager.h>
+#include <vm/vm_param.h>
 #include <vm/vm_phys.h>
-#include <vm/vm_dumpset.h>
 
 #ifdef DDB
 #ifndef KDB
 #error KDB must be enabled in order for DDB to work!
 #endif
-#include <ddb/ddb.h>
 #include <ddb/db_sym.h>
+#include <ddb/ddb.h>
 #endif
-
-#include <net/netisr.h>
-
-#include <dev/smbios/smbios.h>
 
 #include <machine/clock.h>
 #include <machine/cpu.h>
 #include <machine/cputypes.h>
 #include <machine/frame.h>
 #include <machine/intr_machdep.h>
-#include <x86/mca.h>
 #include <machine/md_var.h>
 #include <machine/metadata.h>
 #include <machine/pc/bios.h>
@@ -130,8 +125,14 @@
 #include <machine/specialreg.h>
 #include <machine/trap.h>
 #include <machine/tss.h>
-#include <x86/ucode.h>
+
 #include <x86/ifunc.h>
+#include <x86/mca.h>
+#include <x86/ucode.h>
+
+#include <dev/smbios/smbios.h>
+
+#include <net/netisr.h>
 #ifdef SMP
 #include <machine/smp.h>
 #endif
@@ -145,9 +146,10 @@
 #include <x86/apicvar.h>
 #endif
 
+#include <x86/init.h>
+
 #include <isa/isareg.h>
 #include <isa/rtc.h>
-#include <x86/init.h>
 
 /* Sanity check for __curthread() */
 CTASSERT(offsetof(struct pcpu, pc_curthread) == 0);
@@ -157,8 +159,8 @@ CTASSERT(offsetof(struct pcpu, pc_curthread) == 0);
  * couple of scratch registers, as well as the trapframe left behind after an
  * iret fault.
  */
-CTASSERT(PC_PTI_STACK_SZ * sizeof(register_t) >= 2 * sizeof(struct pti_frame) -
-    offsetof(struct pti_frame, pti_rip));
+CTASSERT(PC_PTI_STACK_SZ * sizeof(register_t) >=
+    2 * sizeof(struct pti_frame) - offsetof(struct pti_frame, pti_rip));
 
 extern u_int64_t hammer_time(u_int64_t, u_int64_t);
 
@@ -176,10 +178,10 @@ static void native_parse_memmap(caddr_t, vm_paddr_t *, int *);
 
 /* Default init_ops implementation. */
 struct init_ops init_ops = {
-	.parse_preload_data =		native_parse_preload_data,
-	.early_clock_source_init =	native_clock_source_init,
-	.early_delay =			i8254_delay,
-	.parse_memmap =			native_parse_memmap,
+	.parse_preload_data = native_parse_preload_data,
+	.early_clock_source_init = native_clock_source_init,
+	.early_delay = i8254_delay,
+	.parse_memmap = native_parse_memmap,
 };
 
 /*
@@ -189,10 +191,10 @@ struct init_ops init_ops = {
 vm_paddr_t efi_systbl_phys;
 
 /* Intel ICH registers */
-#define ICH_PMBASE	0x400
-#define ICH_SMI_EN	ICH_PMBASE + 0x30
+#define ICH_PMBASE 0x400
+#define ICH_SMI_EN ICH_PMBASE + 0x30
 
-int	_udatasel, _ucodesel, _ucode32sel, _ufssel, _ugssel;
+int _udatasel, _ucodesel, _ucode32sel, _ufssel, _ugssel;
 
 int cold = 1;
 
@@ -211,7 +213,7 @@ struct mtx icu_lock;
 
 struct mem_range_softc mem_range_softc;
 
-struct mtx dt_lock;	/* lock for GDT and LDT */
+struct mtx dt_lock; /* lock for GDT and LDT */
 
 void (*vmm_resume_p)(void);
 
@@ -229,7 +231,7 @@ cpu_startup(void *dummy)
 	 * namely: incorrect CPU frequency detection and failure to
 	 * start the APs.
 	 * We do this by disabling a bit in the SMI_EN (SMI Control and
-	 * Enable register) of the Intel ICH LPC Interface Bridge. 
+	 * Enable register) of the Intel ICH LPC Interface Bridge.
 	 */
 	sysenv = kern_getenv("smbios.system.product");
 	if (sysenv != NULL) {
@@ -243,7 +245,7 @@ cpu_startup(void *dummy)
 		    strncmp(sysenv, "Macmini1,1", 10) == 0) {
 			if (bootverbose)
 				printf("Disabling LEGACY_USB_EN bit on "
-				    "Intel ICH.\n");
+				       "Intel ICH.\n");
 			outl(ICH_SMI_EN, inl(ICH_SMI_EN) & ~0x8);
 		}
 		freeenv(sysenv);
@@ -280,8 +282,7 @@ cpu_startup(void *dummy)
 			vm_paddr_t size;
 
 			size = phys_avail[indx + 1] - phys_avail[indx];
-			printf(
-			    "0x%016jx - 0x%016jx, %ju bytes (%ju pages)\n",
+			printf("0x%016jx - 0x%016jx, %ju bytes (%ju pages)\n",
 			    (uintmax_t)phys_avail[indx],
 			    (uintmax_t)phys_avail[indx + 1] - 1,
 			    (uintmax_t)size, (uintmax_t)size / PAGE_SIZE);
@@ -316,7 +317,6 @@ late_ifunc_resolve(void *dummy __unused)
 }
 SYSINIT(late_ifunc_resolve, SI_SUB_CPU, SI_ORDER_ANY, late_ifunc_resolve, NULL);
 
-
 void
 cpu_setregs(void)
 {
@@ -339,7 +339,7 @@ cpu_setregs(void)
  * Initialize segments & interrupt table
  */
 static struct gate_descriptor idt0[NIDT];
-struct gate_descriptor *idt = &idt0[0];	/* interrupt descriptor table */
+struct gate_descriptor *idt = &idt0[0]; /* interrupt descriptor table */
 
 static char dblfault_stack[DBLFAULT_STACK_SIZE] __aligned(16);
 static char mce0_stack[MCE_STACK_SIZE] __aligned(16);
@@ -354,123 +354,123 @@ CTASSERT(sizeof(struct nmi_pcpu) == 16);
  * slots as corresponding segments for i386 kernel.
  */
 struct soft_segment_descriptor gdt_segs[] = {
-/* GNULL_SEL	0 Null Descriptor */
-{	.ssd_base = 0x0,
-	.ssd_limit = 0x0,
-	.ssd_type = 0,
-	.ssd_dpl = 0,
-	.ssd_p = 0,
-	.ssd_long = 0,
-	.ssd_def32 = 0,
-	.ssd_gran = 0		},
-/* GNULL2_SEL	1 Null Descriptor */
-{	.ssd_base = 0x0,
-	.ssd_limit = 0x0,
-	.ssd_type = 0,
-	.ssd_dpl = 0,
-	.ssd_p = 0,
-	.ssd_long = 0,
-	.ssd_def32 = 0,
-	.ssd_gran = 0		},
-/* GUFS32_SEL	2 32 bit %gs Descriptor for user */
-{	.ssd_base = 0x0,
-	.ssd_limit = 0xfffff,
-	.ssd_type = SDT_MEMRWA,
-	.ssd_dpl = SEL_UPL,
-	.ssd_p = 1,
-	.ssd_long = 0,
-	.ssd_def32 = 1,
-	.ssd_gran = 1		},
-/* GUGS32_SEL	3 32 bit %fs Descriptor for user */
-{	.ssd_base = 0x0,
-	.ssd_limit = 0xfffff,
-	.ssd_type = SDT_MEMRWA,
-	.ssd_dpl = SEL_UPL,
-	.ssd_p = 1,
-	.ssd_long = 0,
-	.ssd_def32 = 1,
-	.ssd_gran = 1		},
-/* GCODE_SEL	4 Code Descriptor for kernel */
-{	.ssd_base = 0x0,
-	.ssd_limit = 0xfffff,
-	.ssd_type = SDT_MEMERA,
-	.ssd_dpl = SEL_KPL,
-	.ssd_p = 1,
-	.ssd_long = 1,
-	.ssd_def32 = 0,
-	.ssd_gran = 1		},
-/* GDATA_SEL	5 Data Descriptor for kernel */
-{	.ssd_base = 0x0,
-	.ssd_limit = 0xfffff,
-	.ssd_type = SDT_MEMRWA,
-	.ssd_dpl = SEL_KPL,
-	.ssd_p = 1,
-	.ssd_long = 1,
-	.ssd_def32 = 0,
-	.ssd_gran = 1		},
-/* GUCODE32_SEL	6 32 bit Code Descriptor for user */
-{	.ssd_base = 0x0,
-	.ssd_limit = 0xfffff,
-	.ssd_type = SDT_MEMERA,
-	.ssd_dpl = SEL_UPL,
-	.ssd_p = 1,
-	.ssd_long = 0,
-	.ssd_def32 = 1,
-	.ssd_gran = 1		},
-/* GUDATA_SEL	7 32/64 bit Data Descriptor for user */
-{	.ssd_base = 0x0,
-	.ssd_limit = 0xfffff,
-	.ssd_type = SDT_MEMRWA,
-	.ssd_dpl = SEL_UPL,
-	.ssd_p = 1,
-	.ssd_long = 0,
-	.ssd_def32 = 1,
-	.ssd_gran = 1		},
-/* GUCODE_SEL	8 64 bit Code Descriptor for user */
-{	.ssd_base = 0x0,
-	.ssd_limit = 0xfffff,
-	.ssd_type = SDT_MEMERA,
-	.ssd_dpl = SEL_UPL,
-	.ssd_p = 1,
-	.ssd_long = 1,
-	.ssd_def32 = 0,
-	.ssd_gran = 1		},
-/* GPROC0_SEL	9 Proc 0 Tss Descriptor */
-{	.ssd_base = 0x0,
-	.ssd_limit = sizeof(struct amd64tss) + IOPERM_BITMAP_SIZE - 1,
-	.ssd_type = SDT_SYSTSS,
-	.ssd_dpl = SEL_KPL,
-	.ssd_p = 1,
-	.ssd_long = 0,
-	.ssd_def32 = 0,
-	.ssd_gran = 0		},
-/* Actually, the TSS is a system descriptor which is double size */
-{	.ssd_base = 0x0,
-	.ssd_limit = 0x0,
-	.ssd_type = 0,
-	.ssd_dpl = 0,
-	.ssd_p = 0,
-	.ssd_long = 0,
-	.ssd_def32 = 0,
-	.ssd_gran = 0		},
-/* GUSERLDT_SEL	11 LDT Descriptor */
-{	.ssd_base = 0x0,
-	.ssd_limit = 0x0,
-	.ssd_type = 0,
-	.ssd_dpl = 0,
-	.ssd_p = 0,
-	.ssd_long = 0,
-	.ssd_def32 = 0,
-	.ssd_gran = 0		},
-/* GUSERLDT_SEL	12 LDT Descriptor, double size */
-{	.ssd_base = 0x0,
-	.ssd_limit = 0x0,
-	.ssd_type = 0,
-	.ssd_dpl = 0,
-	.ssd_p = 0,
-	.ssd_long = 0,
-	.ssd_def32 = 0,
-	.ssd_gran = 0		},
+	/* GNULL_SEL	0 Null Descriptor */
+	{ .ssd_base = 0x0,
+	    .ssd_limit = 0x0,
+	    .ssd_type = 0,
+	    .ssd_dpl = 0,
+	    .ssd_p = 0,
+	    .ssd_long = 0,
+	    .ssd_def32 = 0,
+	    .ssd_gran = 0 },
+	/* GNULL2_SEL	1 Null Descriptor */
+	{ .ssd_base = 0x0,
+	    .ssd_limit = 0x0,
+	    .ssd_type = 0,
+	    .ssd_dpl = 0,
+	    .ssd_p = 0,
+	    .ssd_long = 0,
+	    .ssd_def32 = 0,
+	    .ssd_gran = 0 },
+	/* GUFS32_SEL	2 32 bit %gs Descriptor for user */
+	{ .ssd_base = 0x0,
+	    .ssd_limit = 0xfffff,
+	    .ssd_type = SDT_MEMRWA,
+	    .ssd_dpl = SEL_UPL,
+	    .ssd_p = 1,
+	    .ssd_long = 0,
+	    .ssd_def32 = 1,
+	    .ssd_gran = 1 },
+	/* GUGS32_SEL	3 32 bit %fs Descriptor for user */
+	{ .ssd_base = 0x0,
+	    .ssd_limit = 0xfffff,
+	    .ssd_type = SDT_MEMRWA,
+	    .ssd_dpl = SEL_UPL,
+	    .ssd_p = 1,
+	    .ssd_long = 0,
+	    .ssd_def32 = 1,
+	    .ssd_gran = 1 },
+	/* GCODE_SEL	4 Code Descriptor for kernel */
+	{ .ssd_base = 0x0,
+	    .ssd_limit = 0xfffff,
+	    .ssd_type = SDT_MEMERA,
+	    .ssd_dpl = SEL_KPL,
+	    .ssd_p = 1,
+	    .ssd_long = 1,
+	    .ssd_def32 = 0,
+	    .ssd_gran = 1 },
+	/* GDATA_SEL	5 Data Descriptor for kernel */
+	{ .ssd_base = 0x0,
+	    .ssd_limit = 0xfffff,
+	    .ssd_type = SDT_MEMRWA,
+	    .ssd_dpl = SEL_KPL,
+	    .ssd_p = 1,
+	    .ssd_long = 1,
+	    .ssd_def32 = 0,
+	    .ssd_gran = 1 },
+	/* GUCODE32_SEL	6 32 bit Code Descriptor for user */
+	{ .ssd_base = 0x0,
+	    .ssd_limit = 0xfffff,
+	    .ssd_type = SDT_MEMERA,
+	    .ssd_dpl = SEL_UPL,
+	    .ssd_p = 1,
+	    .ssd_long = 0,
+	    .ssd_def32 = 1,
+	    .ssd_gran = 1 },
+	/* GUDATA_SEL	7 32/64 bit Data Descriptor for user */
+	{ .ssd_base = 0x0,
+	    .ssd_limit = 0xfffff,
+	    .ssd_type = SDT_MEMRWA,
+	    .ssd_dpl = SEL_UPL,
+	    .ssd_p = 1,
+	    .ssd_long = 0,
+	    .ssd_def32 = 1,
+	    .ssd_gran = 1 },
+	/* GUCODE_SEL	8 64 bit Code Descriptor for user */
+	{ .ssd_base = 0x0,
+	    .ssd_limit = 0xfffff,
+	    .ssd_type = SDT_MEMERA,
+	    .ssd_dpl = SEL_UPL,
+	    .ssd_p = 1,
+	    .ssd_long = 1,
+	    .ssd_def32 = 0,
+	    .ssd_gran = 1 },
+	/* GPROC0_SEL	9 Proc 0 Tss Descriptor */
+	{ .ssd_base = 0x0,
+	    .ssd_limit = sizeof(struct amd64tss) + IOPERM_BITMAP_SIZE - 1,
+	    .ssd_type = SDT_SYSTSS,
+	    .ssd_dpl = SEL_KPL,
+	    .ssd_p = 1,
+	    .ssd_long = 0,
+	    .ssd_def32 = 0,
+	    .ssd_gran = 0 },
+	/* Actually, the TSS is a system descriptor which is double size */
+	{ .ssd_base = 0x0,
+	    .ssd_limit = 0x0,
+	    .ssd_type = 0,
+	    .ssd_dpl = 0,
+	    .ssd_p = 0,
+	    .ssd_long = 0,
+	    .ssd_def32 = 0,
+	    .ssd_gran = 0 },
+	/* GUSERLDT_SEL	11 LDT Descriptor */
+	{ .ssd_base = 0x0,
+	    .ssd_limit = 0x0,
+	    .ssd_type = 0,
+	    .ssd_dpl = 0,
+	    .ssd_p = 0,
+	    .ssd_long = 0,
+	    .ssd_def32 = 0,
+	    .ssd_gran = 0 },
+	/* GUSERLDT_SEL	12 LDT Descriptor, double size */
+	{ .ssd_base = 0x0,
+	    .ssd_limit = 0x0,
+	    .ssd_type = 0,
+	    .ssd_dpl = 0,
+	    .ssd_p = 0,
+	    .ssd_long = 0,
+	    .ssd_def32 = 0,
+	    .ssd_gran = 0 },
 };
 _Static_assert(nitems(gdt_segs) == NGDT, "Stale NGDT");
 
@@ -487,29 +487,25 @@ setidt(int idx, inthand_t *func, int typ, int dpl, int ist)
 	ip->gd_type = typ;
 	ip->gd_dpl = dpl;
 	ip->gd_p = 1;
-	ip->gd_hioffset = ((uintptr_t)func)>>16 ;
+	ip->gd_hioffset = ((uintptr_t)func) >> 16;
 }
 
-extern inthand_t
-	IDTVEC(div), IDTVEC(dbg), IDTVEC(nmi), IDTVEC(bpt), IDTVEC(ofl),
-	IDTVEC(bnd), IDTVEC(ill), IDTVEC(dna), IDTVEC(fpusegm),
-	IDTVEC(tss), IDTVEC(missing), IDTVEC(stk), IDTVEC(prot),
-	IDTVEC(page), IDTVEC(mchk), IDTVEC(rsvd), IDTVEC(fpu), IDTVEC(align),
-	IDTVEC(xmm), IDTVEC(dblfault),
-	IDTVEC(div_pti), IDTVEC(bpt_pti),
-	IDTVEC(ofl_pti), IDTVEC(bnd_pti), IDTVEC(ill_pti), IDTVEC(dna_pti),
-	IDTVEC(fpusegm_pti), IDTVEC(tss_pti), IDTVEC(missing_pti),
-	IDTVEC(stk_pti), IDTVEC(prot_pti), IDTVEC(page_pti),
-	IDTVEC(rsvd_pti), IDTVEC(fpu_pti), IDTVEC(align_pti),
-	IDTVEC(xmm_pti),
+extern inthand_t IDTVEC(div), IDTVEC(dbg), IDTVEC(nmi), IDTVEC(bpt),
+    IDTVEC(ofl), IDTVEC(bnd), IDTVEC(ill), IDTVEC(dna), IDTVEC(fpusegm),
+    IDTVEC(tss), IDTVEC(missing), IDTVEC(stk), IDTVEC(prot), IDTVEC(page),
+    IDTVEC(mchk), IDTVEC(rsvd), IDTVEC(fpu), IDTVEC(align), IDTVEC(xmm),
+    IDTVEC(dblfault), IDTVEC(div_pti), IDTVEC(bpt_pti), IDTVEC(ofl_pti),
+    IDTVEC(bnd_pti), IDTVEC(ill_pti), IDTVEC(dna_pti), IDTVEC(fpusegm_pti),
+    IDTVEC(tss_pti), IDTVEC(missing_pti), IDTVEC(stk_pti), IDTVEC(prot_pti),
+    IDTVEC(page_pti), IDTVEC(rsvd_pti), IDTVEC(fpu_pti), IDTVEC(align_pti),
+    IDTVEC(xmm_pti),
 #ifdef KDTRACE_HOOKS
-	IDTVEC(dtrace_ret), IDTVEC(dtrace_ret_pti),
+    IDTVEC(dtrace_ret), IDTVEC(dtrace_ret_pti),
 #endif
 #ifdef XENHVM
-	IDTVEC(xen_intr_upcall), IDTVEC(xen_intr_upcall_pti),
+    IDTVEC(xen_intr_upcall), IDTVEC(xen_intr_upcall_pti),
 #endif
-	IDTVEC(fast_syscall), IDTVEC(fast_syscall32),
-	IDTVEC(fast_syscall_pti);
+    IDTVEC(fast_syscall), IDTVEC(fast_syscall32), IDTVEC(fast_syscall_pti);
 
 #ifdef DDB
 /*
@@ -543,15 +539,15 @@ DB_SHOW_COMMAND_FLAGS(sysregs, db_show_sysregs, DB_CMD_MEMSAFE)
 	} __packed idtr, gdtr;
 	uint16_t ldt, tr;
 
-	__asm __volatile("sidt %0" : "=m" (idtr));
-	db_printf("idtr\t0x%016lx/%04x\n",
-	    (u_long)idtr.base, (u_int)idtr.limit);
-	__asm __volatile("sgdt %0" : "=m" (gdtr));
-	db_printf("gdtr\t0x%016lx/%04x\n",
-	    (u_long)gdtr.base, (u_int)gdtr.limit);
-	__asm __volatile("sldt %0" : "=r" (ldt));
+	__asm __volatile("sidt %0" : "=m"(idtr));
+	db_printf("idtr\t0x%016lx/%04x\n", (u_long)idtr.base,
+	    (u_int)idtr.limit);
+	__asm __volatile("sgdt %0" : "=m"(gdtr));
+	db_printf("gdtr\t0x%016lx/%04x\n", (u_long)gdtr.base,
+	    (u_int)gdtr.limit);
+	__asm __volatile("sldt %0" : "=r"(ldt));
 	db_printf("ldtr\t0x%04x\n", ldt);
-	__asm __volatile("str %0" : "=r" (tr));
+	__asm __volatile("str %0" : "=r"(tr));
 	db_printf("tr\t0x%04x\n", tr);
 	db_printf("cr0\t0x%016lx\n", rcr0());
 	db_printf("cr2\t0x%016lx\n", rcr2());
@@ -584,14 +580,14 @@ void
 sdtossd(struct user_segment_descriptor *sd, struct soft_segment_descriptor *ssd)
 {
 
-	ssd->ssd_base  = (sd->sd_hibase << 24) | sd->sd_lobase;
+	ssd->ssd_base = (sd->sd_hibase << 24) | sd->sd_lobase;
 	ssd->ssd_limit = (sd->sd_hilimit << 16) | sd->sd_lolimit;
-	ssd->ssd_type  = sd->sd_type;
-	ssd->ssd_dpl   = sd->sd_dpl;
-	ssd->ssd_p     = sd->sd_p;
-	ssd->ssd_long  = sd->sd_long;
+	ssd->ssd_type = sd->sd_type;
+	ssd->ssd_dpl = sd->sd_dpl;
+	ssd->ssd_p = sd->sd_p;
+	ssd->ssd_long = sd->sd_long;
 	ssd->ssd_def32 = sd->sd_def32;
-	ssd->ssd_gran  = sd->sd_gran;
+	ssd->ssd_gran = sd->sd_gran;
 }
 
 void
@@ -602,26 +598,27 @@ ssdtosd(struct soft_segment_descriptor *ssd, struct user_segment_descriptor *sd)
 	sd->sd_hibase = (ssd->ssd_base >> 24) & 0xff;
 	sd->sd_lolimit = (ssd->ssd_limit) & 0xffff;
 	sd->sd_hilimit = (ssd->ssd_limit >> 16) & 0xf;
-	sd->sd_type  = ssd->ssd_type;
-	sd->sd_dpl   = ssd->ssd_dpl;
-	sd->sd_p     = ssd->ssd_p;
-	sd->sd_long  = ssd->ssd_long;
+	sd->sd_type = ssd->ssd_type;
+	sd->sd_dpl = ssd->ssd_dpl;
+	sd->sd_p = ssd->ssd_p;
+	sd->sd_long = ssd->ssd_long;
 	sd->sd_def32 = ssd->ssd_def32;
-	sd->sd_gran  = ssd->ssd_gran;
+	sd->sd_gran = ssd->ssd_gran;
 }
 
 void
-ssdtosyssd(struct soft_segment_descriptor *ssd, struct system_segment_descriptor *sd)
+ssdtosyssd(struct soft_segment_descriptor *ssd,
+    struct system_segment_descriptor *sd)
 {
 
 	sd->sd_lobase = (ssd->ssd_base) & 0xffffff;
 	sd->sd_hibase = (ssd->ssd_base >> 24) & 0xfffffffffful;
 	sd->sd_lolimit = (ssd->ssd_limit) & 0xffff;
 	sd->sd_hilimit = (ssd->ssd_limit >> 16) & 0xf;
-	sd->sd_type  = ssd->ssd_type;
-	sd->sd_dpl   = ssd->ssd_dpl;
-	sd->sd_p     = ssd->ssd_p;
-	sd->sd_gran  = ssd->ssd_gran;
+	sd->sd_type = ssd->ssd_type;
+	sd->sd_dpl = ssd->ssd_dpl;
+	sd->sd_p = ssd->ssd_p;
+	sd->sd_gran = ssd->ssd_gran;
 }
 
 u_int basemem;
@@ -652,7 +649,7 @@ add_physmap_entry(uint64_t base, uint64_t length, vm_paddr_t *physmap,
 			}
 			if (boothowto & RB_VERBOSE)
 				printf(
-		    "Overlapping memory regions, ignoring second region\n");
+				    "Overlapping memory regions, ignoring second region\n");
 			return (1);
 		}
 	}
@@ -673,7 +670,7 @@ add_physmap_entry(uint64_t base, uint64_t length, vm_paddr_t *physmap,
 	*physmap_idxp = physmap_idx;
 	if (physmap_idx == PHYS_AVAIL_ENTRIES) {
 		printf(
-		"Too many segments in the physical address map, giving up\n");
+		    "Too many segments in the physical address map, giving up\n");
 		return (0);
 	}
 
@@ -694,7 +691,7 @@ add_physmap_entry(uint64_t base, uint64_t length, vm_paddr_t *physmap,
 
 void
 bios_add_smap_entries(struct bios_smap *smapbase, u_int32_t smapsize,
-                      vm_paddr_t *physmap, int *physmap_idx)
+    vm_paddr_t *physmap, int *physmap_idx)
 {
 	struct bios_smap *smap, *smapend;
 
@@ -709,7 +706,7 @@ bios_add_smap_entries(struct bios_smap *smapbase, u_int32_t smapsize,
 			continue;
 
 		if (!add_physmap_entry(smap->base, smap->length, physmap,
-		    physmap_idx))
+			physmap_idx))
 			break;
 	}
 }
@@ -723,23 +720,11 @@ add_efi_map_entries(struct efi_map_header *efihdr, vm_paddr_t *physmap,
 	size_t efisz;
 	int ndesc, i;
 
-	static const char *types[] = {
-		"Reserved",
-		"LoaderCode",
-		"LoaderData",
-		"BootServicesCode",
-		"BootServicesData",
-		"RuntimeServicesCode",
-		"RuntimeServicesData",
-		"ConventionalMemory",
-		"UnusableMemory",
-		"ACPIReclaimMemory",
-		"ACPIMemoryNVS",
-		"MemoryMappedIO",
-		"MemoryMappedIOPortSpace",
-		"PalCode",
-		"PersistentMemory"
-	};
+	static const char *types[] = { "Reserved", "LoaderCode", "LoaderData",
+		"BootServicesCode", "BootServicesData", "RuntimeServicesCode",
+		"RuntimeServicesData", "ConventionalMemory", "UnusableMemory",
+		"ACPIReclaimMemory", "ACPIMemoryNVS", "MemoryMappedIO",
+		"MemoryMappedIOPortSpace", "PalCode", "PersistentMemory" };
 
 	/*
 	 * Memory map data provided by UEFI via the GetMemoryMap
@@ -753,11 +738,11 @@ add_efi_map_entries(struct efi_map_header *efihdr, vm_paddr_t *physmap,
 	ndesc = efihdr->memory_size / efihdr->descriptor_size;
 
 	if (boothowto & RB_VERBOSE)
-		printf("%23s %12s %12s %8s %4s\n",
-		    "Type", "Physical", "Virtual", "#Pages", "Attr");
+		printf("%23s %12s %12s %8s %4s\n", "Type", "Physical",
+		    "Virtual", "#Pages", "Attr");
 
-	for (i = 0, p = map; i < ndesc; i++,
-	    p = efi_next_descriptor(p, efihdr->descriptor_size)) {
+	for (i = 0, p = map; i < ndesc;
+	     i++, p = efi_next_descriptor(p, efihdr->descriptor_size)) {
 		if (boothowto & RB_VERBOSE) {
 			if (p->md_type < nitems(types))
 				type = types[p->md_type];
@@ -807,7 +792,7 @@ add_efi_map_entries(struct efi_map_header *efihdr, vm_paddr_t *physmap,
 		}
 
 		if (!add_physmap_entry(p->md_phys, p->md_pages * EFI_PAGE_SIZE,
-		    physmap, physmap_idx))
+			physmap, physmap_idx))
 			break;
 	}
 }
@@ -844,7 +829,7 @@ native_parse_memmap(caddr_t kmdp, vm_paddr_t *physmap, int *physmap_idx)
 	}
 }
 
-#define	PAGES_PER_GB	(1024 * 1024 * 1024 / PAGE_SIZE)
+#define PAGES_PER_GB (1024 * 1024 * 1024 / PAGE_SIZE)
 
 /*
  * Populate the (physmap) array with base/bound pairs describing the
@@ -892,7 +877,7 @@ getmemsize(caddr_t kmdp, u_int64_t first)
 	if (basemem == 0 || basemem > 640) {
 		if (bootverbose)
 			printf(
-		"Memory map doesn't contain a basemem segment, faking it");
+			    "Memory map doesn't contain a basemem segment, faking it");
 		basemem = 640;
 	}
 
@@ -995,9 +980,8 @@ getmemsize(caddr_t kmdp, u_int64_t first)
 			/*
 			 * block out dcons buffer
 			 */
-			if (dcons_addr > 0
-			    && pa >= trunc_page(dcons_addr)
-			    && pa < dcons_addr + dcons_size)
+			if (dcons_addr > 0 && pa >= trunc_page(dcons_addr) &&
+			    pa < dcons_addr + dcons_size)
 				goto do_dump_avail;
 
 			page_bad = FALSE;
@@ -1048,7 +1032,7 @@ getmemsize(caddr_t kmdp, u_int64_t first)
 			 */
 			*(int *)ptr = tmp;
 
-skip_memtest:
+		skip_memtest:
 			/*
 			 * Adjust array of valid/good pages.
 			 */
@@ -1071,16 +1055,16 @@ skip_memtest:
 				pa_indx++;
 				if (pa_indx == PHYS_AVAIL_ENTRIES) {
 					printf(
-		"Too many holes in the physical address space, giving up\n");
+					    "Too many holes in the physical address space, giving up\n");
 					pa_indx--;
 					full = TRUE;
 					goto do_dump_avail;
 				}
-				phys_avail[pa_indx++] = pa;	/* start */
+				phys_avail[pa_indx++] = pa; /* start */
 				phys_avail[pa_indx] = pa + PAGE_SIZE; /* end */
 			}
 			physmem++;
-do_dump_avail:
+		do_dump_avail:
 			if (dump_avail[da_indx] == pa) {
 				dump_avail[da_indx] += PAGE_SIZE;
 			} else {
@@ -1092,7 +1076,7 @@ do_dump_avail:
 				dump_avail[da_indx++] = pa; /* start */
 				dump_avail[da_indx] = pa + PAGE_SIZE; /* end */
 			}
-do_next:
+		do_next:
 			if (full)
 				break;
 		}
@@ -1108,8 +1092,8 @@ do_next:
 	 * buffer to avoid complicating other code (message buffer address
 	 * calculation, etc.).
 	 */
-	while (phys_avail[pa_indx - 1] + PAGE_SIZE +
-	    round_page(msgbufsize) >= phys_avail[pa_indx]) {
+	while (phys_avail[pa_indx - 1] + PAGE_SIZE + round_page(msgbufsize) >=
+	    phys_avail[pa_indx]) {
 		physmem -= atop(phys_avail[pa_indx] - phys_avail[pa_indx - 1]);
 		phys_avail[pa_indx--] = 0;
 		phys_avail[pa_indx--] = 0;
@@ -1179,8 +1163,9 @@ amd64_conf_fast_syscall(void)
 
 	msr = rdmsr(MSR_EFER) | EFER_SCE;
 	wrmsr(MSR_EFER, msr);
-	wrmsr(MSR_LSTAR, pti ? (u_int64_t)IDTVEC(fast_syscall_pti) :
-	    (u_int64_t)IDTVEC(fast_syscall));
+	wrmsr(MSR_LSTAR,
+	    pti ? (u_int64_t)IDTVEC(fast_syscall_pti) :
+		  (u_int64_t)IDTVEC(fast_syscall));
 	wrmsr(MSR_CSTAR, (u_int64_t)IDTVEC(fast_syscall32));
 	msr = ((u_int64_t)GSEL(GCODE_SEL, SEL_KPL) << 32) |
 	    ((u_int64_t)GSEL(GUCODE32_SEL, SEL_UPL) << 48);
@@ -1210,8 +1195,10 @@ amd64_bsp_pcpu_init2(uint64_t rsp0)
 {
 
 	PCPU_SET(rsp0, rsp0);
-	PCPU_SET(pti_rsp0, ((vm_offset_t)PCPU_PTR(pti_stack) +
-	    PC_PTI_STACK_SZ * sizeof(uint64_t)) & ~0xful);
+	PCPU_SET(pti_rsp0,
+	    ((vm_offset_t)PCPU_PTR(pti_stack) +
+		PC_PTI_STACK_SZ * sizeof(uint64_t)) &
+		~0xful);
 	PCPU_SET(curpcb, thread0.td_pcb);
 }
 
@@ -1302,8 +1289,8 @@ hammer_time(u_int64_t modulep, u_int64_t physfree)
 
 	kmdp = init_ops.parse_preload_data(modulep);
 
-	efi_boot = preload_search_info(kmdp, MODINFO_METADATA |
-	    MODINFOMD_EFI_MAP) != NULL;
+	efi_boot = preload_search_info(kmdp,
+		       MODINFO_METADATA | MODINFOMD_EFI_MAP) != NULL;
 
 	if (!efi_boot) {
 		/* Tell the bios to warmboot next time */
@@ -1329,8 +1316,8 @@ hammer_time(u_int64_t modulep, u_int64_t physfree)
 	TUNABLE_INT_FETCH("vm.pmap.pti", &pti);
 	TUNABLE_INT_FETCH("vm.pmap.pcid_enabled", &pmap_pcid_enabled);
 	if ((cpu_feature2 & CPUID2_PCID) != 0 && pmap_pcid_enabled) {
-		invpcid_works = (cpu_stdext_feature &
-		    CPUID_STDEXT_INVPCID) != 0;
+		invpcid_works = (cpu_stdext_feature & CPUID_STDEXT_INVPCID) !=
+		    0;
 	} else {
 		pmap_pcid_enabled = 0;
 	}
@@ -1392,9 +1379,9 @@ hammer_time(u_int64_t modulep, u_int64_t physfree)
 	r_gdt.rd_base = (long)gdt;
 	lgdt(&r_gdt);
 
-	wrmsr(MSR_FSBASE, 0);		/* User value */
+	wrmsr(MSR_FSBASE, 0); /* User value */
 	wrmsr(MSR_GSBASE, (u_int64_t)pc);
-	wrmsr(MSR_KGSBASE, 0);		/* User value while in the kernel */
+	wrmsr(MSR_KGSBASE, 0); /* User value while in the kernel */
 
 	dpcpu_init((void *)(physfree - kernphys + KERNSTART), 0);
 	physfree += DPCPU_SIZE;
@@ -1420,7 +1407,7 @@ hammer_time(u_int64_t modulep, u_int64_t physfree)
 	setidt(IDT_DE, pti ? &IDTVEC(div_pti) : &IDTVEC(div), SDT_SYSIGT,
 	    SEL_KPL, 0);
 	setidt(IDT_DB, &IDTVEC(dbg), SDT_SYSIGT, SEL_KPL, 4);
-	setidt(IDT_NMI, &IDTVEC(nmi),  SDT_SYSIGT, SEL_KPL, 2);
+	setidt(IDT_NMI, &IDTVEC(nmi), SDT_SYSIGT, SEL_KPL, 2);
 	setidt(IDT_BP, pti ? &IDTVEC(bpt_pti) : &IDTVEC(bpt), SDT_SYSIGT,
 	    SEL_UPL, 0);
 	setidt(IDT_OF, pti ? &IDTVEC(ofl_pti) : &IDTVEC(ofl), SDT_SYSIGT,
@@ -1452,15 +1439,17 @@ hammer_time(u_int64_t modulep, u_int64_t physfree)
 	setidt(IDT_XF, pti ? &IDTVEC(xmm_pti) : &IDTVEC(xmm), SDT_SYSIGT,
 	    SEL_KPL, 0);
 #ifdef KDTRACE_HOOKS
-	setidt(IDT_DTRACE_RET, pti ? &IDTVEC(dtrace_ret_pti) :
-	    &IDTVEC(dtrace_ret), SDT_SYSIGT, SEL_UPL, 0);
+	setidt(IDT_DTRACE_RET,
+	    pti ? &IDTVEC(dtrace_ret_pti) : &IDTVEC(dtrace_ret), SDT_SYSIGT,
+	    SEL_UPL, 0);
 #endif
 #ifdef XENHVM
-	setidt(IDT_EVTCHN, pti ? &IDTVEC(xen_intr_upcall_pti) :
-	    &IDTVEC(xen_intr_upcall), SDT_SYSIGT, SEL_KPL, 0);
+	setidt(IDT_EVTCHN,
+	    pti ? &IDTVEC(xen_intr_upcall_pti) : &IDTVEC(xen_intr_upcall),
+	    SDT_SYSIGT, SEL_KPL, 0);
 #endif
 	r_idt.rd_limit = sizeof(idt0) - 1;
-	r_idt.rd_base = (long) idt;
+	r_idt.rd_base = (long)idt;
 	lidt(&r_idt);
 
 	/*
@@ -1493,7 +1482,7 @@ hammer_time(u_int64_t modulep, u_int64_t physfree)
 	    &zenbleed_enable);
 	zenbleed_sanitize_enable();
 
-	finishidentcpu();	/* Final stage of CPU initialization */
+	finishidentcpu(); /* Final stage of CPU initialization */
 
 	/*
 	 * Initialize the clock before the console so that console
@@ -1501,7 +1490,7 @@ hammer_time(u_int64_t modulep, u_int64_t physfree)
 	 */
 	clock_init();
 
-	initializecpu();	/* Initialize CPU registers */
+	initializecpu(); /* Initialize CPU registers */
 
 	amd64_bsp_ist_init(pc);
 
@@ -1542,8 +1531,8 @@ hammer_time(u_int64_t modulep, u_int64_t physfree)
 	/* now running on new page tables, configured,and u/iom is accessible */
 
 #ifdef DEV_PCI
-        /* This call might adjust phys_avail[]. */
-        pci_early_quirks();
+	/* This call might adjust phys_avail[]. */
+	pci_early_quirks();
 #endif
 
 	if (late_console)
@@ -1604,7 +1593,7 @@ hammer_time(u_int64_t modulep, u_int64_t physfree)
 	/* setup proc 0's pcb */
 	thread0.td_pcb->pcb_flags = 0;
 
-        env = kern_getenv("kernelname");
+	env = kern_getenv("kernelname");
 	if (env != NULL)
 		strlcpy(kernelname, env, sizeof(kernelname));
 
@@ -1665,9 +1654,8 @@ smap_sysctl_handler(SYSCTL_HANDLER_ARGS)
 	return (error);
 }
 SYSCTL_PROC(_machdep, OID_AUTO, smap,
-    CTLTYPE_OPAQUE | CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, 0,
-    smap_sysctl_handler, "S,bios_smap_xattr",
-    "Raw BIOS SMAP data");
+    CTLTYPE_OPAQUE | CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, 0, smap_sysctl_handler,
+    "S,bios_smap_xattr", "Raw BIOS SMAP data");
 
 static int
 efi_map_sysctl_handler(SYSCTL_HANDLER_ARGS)
@@ -1688,8 +1676,7 @@ efi_map_sysctl_handler(SYSCTL_HANDLER_ARGS)
 }
 SYSCTL_PROC(_machdep, OID_AUTO, efi_map,
     CTLTYPE_OPAQUE | CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, 0,
-    efi_map_sysctl_handler, "S,efi_map_header",
-    "Raw EFI Memory Map");
+    efi_map_sysctl_handler, "S,efi_map_header", "Raw EFI Memory Map");
 
 void
 spinlock_enter(void)
@@ -1760,9 +1747,9 @@ set_pcb_flags_raw(struct pcb *pcb, const u_int flags)
 {
 
 	__asm __volatile("orl %1,%0"
-	    : "=m" (pcb->pcb_flags) : "ir" (flags), "m" (pcb->pcb_flags)
-	    : "cc", "memory");
-
+			 : "=m"(pcb->pcb_flags)
+			 : "ir"(flags), "m"(pcb->pcb_flags)
+			 : "cc", "memory");
 }
 
 /*
@@ -1781,8 +1768,7 @@ set_pcb_flags_fsgsbase(struct pcb *pcb, const u_int flags)
 {
 	register_t r;
 
-	if (curpcb == pcb &&
-	    (flags & PCB_FULL_IRET) != 0 &&
+	if (curpcb == pcb && (flags & PCB_FULL_IRET) != 0 &&
 	    (pcb->pcb_flags & PCB_FULL_IRET) == 0) {
 		r = intr_disable();
 		if ((pcb->pcb_flags & PCB_FULL_IRET) == 0) {
@@ -1802,7 +1788,8 @@ DEFINE_IFUNC(, void, set_pcb_flags, (struct pcb *, const u_int))
 {
 
 	return ((cpu_stdext_feature & CPUID_STDEXT_FSGSBASE) != 0 ?
-	    set_pcb_flags_fsgsbase : set_pcb_flags_raw);
+		set_pcb_flags_fsgsbase :
+		set_pcb_flags_raw);
 }
 
 void
@@ -1810,8 +1797,9 @@ clear_pcb_flags(struct pcb *pcb, const u_int flags)
 {
 
 	__asm __volatile("andl %1,%0"
-	    : "=m" (pcb->pcb_flags) : "ir" (~flags), "m" (pcb->pcb_flags)
-	    : "cc", "memory");
+			 : "=m"(pcb->pcb_flags)
+			 : "ir"(~flags), "m"(pcb->pcb_flags)
+			 : "cc", "memory");
 }
 
 #ifdef KDB
@@ -1843,16 +1831,12 @@ outb_(u_short port, u_char data)
 #undef memmove
 #undef memcpy
 
-void	*memset_std(void *buf, int c, size_t len);
-void	*memset_erms(void *buf, int c, size_t len);
-void    *memmove_std(void * _Nonnull dst, const void * _Nonnull src,
-	    size_t len);
-void    *memmove_erms(void * _Nonnull dst, const void * _Nonnull src,
-	    size_t len);
-void    *memcpy_std(void * _Nonnull dst, const void * _Nonnull src,
-	    size_t len);
-void    *memcpy_erms(void * _Nonnull dst, const void * _Nonnull src,
-	    size_t len);
+void *memset_std(void *buf, int c, size_t len);
+void *memset_erms(void *buf, int c, size_t len);
+void *memmove_std(void *_Nonnull dst, const void *_Nonnull src, size_t len);
+void *memmove_erms(void *_Nonnull dst, const void *_Nonnull src, size_t len);
+void *memcpy_std(void *_Nonnull dst, const void *_Nonnull src, size_t len);
+void *memcpy_erms(void *_Nonnull dst, const void *_Nonnull src, size_t len);
 
 #ifdef KCSAN
 /*
@@ -1866,14 +1850,14 @@ memset(void *buf, int c, size_t len)
 }
 
 void *
-memmove(void * _Nonnull dst, const void * _Nonnull src, size_t len)
+memmove(void *_Nonnull dst, const void *_Nonnull src, size_t len)
 {
 
 	return (memmove_std(dst, src, len));
 }
 
 void *
-memcpy(void * _Nonnull dst, const void * _Nonnull src, size_t len)
+memcpy(void *_Nonnull dst, const void *_Nonnull src, size_t len)
 {
 
 	return (memcpy_std(dst, src, len));
@@ -1882,31 +1866,30 @@ memcpy(void * _Nonnull dst, const void * _Nonnull src, size_t len)
 DEFINE_IFUNC(, void *, memset, (void *, int, size_t))
 {
 
-	return ((cpu_stdext_feature & CPUID_STDEXT_ERMS) != 0 ?
-	    memset_erms : memset_std);
+	return ((cpu_stdext_feature & CPUID_STDEXT_ERMS) != 0 ? memset_erms :
+								memset_std);
 }
 
-DEFINE_IFUNC(, void *, memmove, (void * _Nonnull, const void * _Nonnull,
-    size_t))
+DEFINE_IFUNC(, void *, memmove, (void *_Nonnull, const void *_Nonnull, size_t))
 {
 
-	return ((cpu_stdext_feature & CPUID_STDEXT_ERMS) != 0 ?
-	    memmove_erms : memmove_std);
+	return ((cpu_stdext_feature & CPUID_STDEXT_ERMS) != 0 ? memmove_erms :
+								memmove_std);
 }
 
-DEFINE_IFUNC(, void *, memcpy, (void * _Nonnull, const void * _Nonnull,size_t))
+DEFINE_IFUNC(, void *, memcpy, (void *_Nonnull, const void *_Nonnull, size_t))
 {
 
-	return ((cpu_stdext_feature & CPUID_STDEXT_ERMS) != 0 ?
-	    memcpy_erms : memcpy_std);
+	return ((cpu_stdext_feature & CPUID_STDEXT_ERMS) != 0 ? memcpy_erms :
+								memcpy_std);
 }
 #endif
 
-void	pagezero_std(void *addr);
-void	pagezero_erms(void *addr);
-DEFINE_IFUNC(, void , pagezero, (void *))
+void pagezero_std(void *addr);
+void pagezero_erms(void *addr);
+DEFINE_IFUNC(, void, pagezero, (void *))
 {
 
-	return ((cpu_stdext_feature & CPUID_STDEXT_ERMS) != 0 ?
-	    pagezero_erms : pagezero_std);
+	return ((cpu_stdext_feature & CPUID_STDEXT_ERMS) != 0 ? pagezero_erms :
+								pagezero_std);
 }

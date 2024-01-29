@@ -32,18 +32,20 @@
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/socket.h>
+
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+
 #include <arpa/inet.h>
 #include <errno.h>
-
-#include <unistd.h>
-#include <syslog.h>
 #include <libutil.h>
 #include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <syslog.h>
+#include <unistd.h>
+
 #include "pathnames.h"
 #ifdef USE_BLACKLIST
 #include <blacklist.h>
@@ -60,7 +62,7 @@ main(int argc, char *argv[])
 	struct sockaddr_storage ss;
 	socklen_t sval;
 	int p[2], debug, kflag, logging, pflag, secure;
-#define	ENTRIES	50
+#define ENTRIES 50
 	char **ap, *av[ENTRIES + 1], **comp, line[1024], *prog;
 	char rhost[MAXHOSTNAMELEN];
 
@@ -96,8 +98,8 @@ main(int argc, char *argv[])
 	 */
 	if (!debug) {
 		int one = 1;
-		if (setsockopt(STDOUT_FILENO, IPPROTO_TCP, TCP_NOPUSH, &one, 
-			       sizeof one) < 0) {
+		if (setsockopt(STDOUT_FILENO, IPPROTO_TCP, TCP_NOPUSH, &one,
+			sizeof one) < 0) {
 			logerr("setsockopt(TCP_NOPUSH) failed: %m");
 		}
 	}
@@ -109,8 +111,8 @@ main(int argc, char *argv[])
 		sval = sizeof(ss);
 		if (getpeername(0, (struct sockaddr *)&ss, &sval) < 0)
 			logerr("getpeername: %s", strerror(errno));
-		realhostname_sa(rhost, sizeof rhost - 1,
-				(struct sockaddr *)&ss, sval);
+		realhostname_sa(rhost, sizeof rhost - 1, (struct sockaddr *)&ss,
+		    sval);
 		rhost[sizeof(rhost) - 1] = '\0';
 		if (pflag)
 			setenv("FINGERD_REMOTE_HOST", rhost, 1);
@@ -163,8 +165,7 @@ main(int argc, char *argv[])
 		/* RFC742: "/[Ww]" == "-l" */
 		if ((*ap)[0] == '/' && ((*ap)[1] == 'W' || (*ap)[1] == 'w')) {
 			*comp-- = "-l";
-		}
-		else if (++ap == av + ENTRIES) {
+		} else if (++ap == av + ENTRIES) {
 			*ap = NULL;
 			break;
 		}
@@ -185,7 +186,7 @@ main(int argc, char *argv[])
 		fprintf(stderr, "\n");
 	}
 
-	switch(vfork()) {
+	switch (vfork()) {
 	case 0:
 		(void)close(p[0]);
 		if (p[1] != STDOUT_FILENO) {

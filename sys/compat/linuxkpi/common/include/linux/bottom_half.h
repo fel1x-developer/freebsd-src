@@ -24,9 +24,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #ifndef _LINUXKPI_LINUX_BOTTOM_HALF_H_
-#define	_LINUXKPI_LINUX_BOTTOM_HALF_H_
+#define _LINUXKPI_LINUX_BOTTOM_HALF_H_
 
 extern void local_bh_enable(void);
 extern void local_bh_disable(void);
 
-#endif					/* _LINUXKPI_LINUX_BOTTOM_HALF_H_ */
+#endif /* _LINUXKPI_LINUX_BOTTOM_HALF_H_ */

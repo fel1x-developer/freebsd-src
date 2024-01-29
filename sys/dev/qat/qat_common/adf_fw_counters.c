@@ -1,14 +1,15 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
 #include <sys/types.h>
-#include <sys/sysctl.h>
 #include <sys/systm.h>
-#include "adf_accel_devices.h"
-#include "adf_fw_counters.h"
-#include "adf_common_drv.h"
-#include "icp_qat_fw_init_admin.h"
 #include <sys/mutex.h>
 #include <sys/sbuf.h>
+#include <sys/sysctl.h>
+
+#include "adf_accel_devices.h"
+#include "adf_common_drv.h"
+#include "adf_fw_counters.h"
+#include "icp_qat_fw_init_admin.h"
 #define ADF_FW_COUNTERS_BUF_SZ 4096
 
 #define ADF_RAS_EVENT_STR "RAS events"
@@ -17,15 +18,11 @@
 
 static void adf_fw_counters_section_del_all(struct list_head *head);
 static void adf_fw_counters_del_all(struct adf_accel_dev *accel_dev);
-static int
-adf_fw_counters_add_key_value_param(struct adf_accel_dev *accel_dev,
-				    const char *section_name,
-				    const unsigned long sec_name_max_size,
-				    const char *key,
-				    const void *val);
+static int adf_fw_counters_add_key_value_param(struct adf_accel_dev *accel_dev,
+    const char *section_name, const unsigned long sec_name_max_size,
+    const char *key, const void *val);
 static int adf_fw_counters_section_add(struct adf_accel_dev *accel_dev,
-				       const char *name,
-				       const unsigned long name_max_size);
+    const char *name, const unsigned long name_max_size);
 int adf_get_fw_counters(struct adf_accel_dev *accel_dev);
 int adf_read_fw_counters(SYSCTL_HANDLER_ARGS);
 
@@ -63,7 +60,7 @@ adf_get_fw_counters(struct adf_accel_dev *accel_dev)
 	for_each_set_bit(i, &ae_mask, GET_MAX_ACCELENGINES(accel_dev))
 	{
 		explicit_bzero(&resp,
-			       sizeof(struct icp_qat_fw_init_admin_resp));
+		    sizeof(struct icp_qat_fw_init_admin_resp));
 		if (adf_put_admin_msg_sync(accel_dev, i, &req, &resp) ||
 		    resp.status) {
 			resp.req_rec_count = ADF_FW_COUNTERS_NO_RESPONSE;
@@ -73,29 +70,22 @@ adf_get_fw_counters(struct adf_accel_dev *accel_dev)
 		explicit_bzero(aeidstr, sizeof(aeidstr));
 		snprintf(aeidstr, sizeof(aeidstr), "AE %2d", i);
 
-		if (adf_fw_counters_section_add(accel_dev,
-						aeidstr,
-						sizeof(aeidstr))) {
+		if (adf_fw_counters_section_add(accel_dev, aeidstr,
+			sizeof(aeidstr))) {
 			ret = ENOMEM;
 			goto fail_clean;
 		}
 
-		if (adf_fw_counters_add_key_value_param(
-			accel_dev,
-			aeidstr,
-			sizeof(aeidstr),
-			ADF_FW_REQ_STR,
+		if (adf_fw_counters_add_key_value_param(accel_dev, aeidstr,
+			sizeof(aeidstr), ADF_FW_REQ_STR,
 			(void *)&resp.req_rec_count)) {
 			adf_fw_counters_del_all(accel_dev);
 			ret = ENOMEM;
 			goto fail_clean;
 		}
 
-		if (adf_fw_counters_add_key_value_param(
-			accel_dev,
-			aeidstr,
-			sizeof(aeidstr),
-			ADF_FW_RESP_STR,
+		if (adf_fw_counters_add_key_value_param(accel_dev, aeidstr,
+			sizeof(aeidstr), ADF_FW_RESP_STR,
 			(void *)&resp.resp_sent_count)) {
 			adf_fw_counters_del_all(accel_dev);
 			ret = ENOMEM;
@@ -104,8 +94,7 @@ adf_get_fw_counters(struct adf_accel_dev *accel_dev)
 
 		if (hw_device->count_ras_event &&
 		    hw_device->count_ras_event(accel_dev,
-					       (void *)&resp.ras_event_count,
-					       aeidstr)) {
+			(void *)&resp.ras_event_count, aeidstr)) {
 			adf_fw_counters_del_all(accel_dev);
 			ret = ENOMEM;
 			goto fail_clean;
@@ -116,7 +105,8 @@ fail_clean:
 	return ret;
 }
 
-int adf_read_fw_counters(SYSCTL_HANDLER_ARGS)
+int
+adf_read_fw_counters(SYSCTL_HANDLER_ARGS)
 {
 	struct adf_accel_dev *accel_dev = arg1;
 	struct adf_fw_counters_section *ptr = NULL;
@@ -145,25 +135,21 @@ int adf_read_fw_counters(SYSCTL_HANDLER_ARGS)
 	}
 
 	sbuf_printf(sbuf,
-		    "\n+------------------------------------------------+\n");
-	sbuf_printf(
-	    sbuf,
+	    "\n+------------------------------------------------+\n");
+	sbuf_printf(sbuf,
 	    "| FW Statistics for Qat Device					   |\n");
 	sbuf_printf(sbuf,
-		    "+------------------------------------------------+\n");
+	    "+------------------------------------------------+\n");
 
-	list_for_each_prev_safe(list,
-				tmp,
-				&accel_dev->fw_counters_data->ae_sec_list)
+	list_for_each_prev_safe(list, tmp,
+	    &accel_dev->fw_counters_data->ae_sec_list)
 	{
 		ptr = list_entry(list, struct adf_fw_counters_section, list);
 		sbuf_printf(sbuf, "%s\n", ptr->name);
 		list_for_each_prev_safe(list_ptr, tmp_val, &ptr->param_head)
 		{
-			struct adf_fw_counters_val *count =
-			    list_entry(list_ptr,
-				       struct adf_fw_counters_val,
-				       list);
+			struct adf_fw_counters_val *count = list_entry(list_ptr,
+			    struct adf_fw_counters_val, list);
 			sbuf_printf(sbuf, "%s:%s\n", count->key, count->val);
 		}
 	}
@@ -176,9 +162,8 @@ int adf_read_fw_counters(SYSCTL_HANDLER_ARGS)
 }
 
 int
-adf_fw_count_ras_event(struct adf_accel_dev *accel_dev,
-		       u32 *ras_event,
-		       char *aeidstr)
+adf_fw_count_ras_event(struct adf_accel_dev *accel_dev, u32 *ras_event,
+    char *aeidstr)
 {
 	unsigned long count = 0;
 
@@ -186,11 +171,11 @@ adf_fw_count_ras_event(struct adf_accel_dev *accel_dev,
 		return EINVAL;
 
 	count = (*ras_event == ADF_FW_COUNTERS_NO_RESPONSE ?
-		     ADF_FW_COUNTERS_NO_RESPONSE :
-		     (unsigned long)*ras_event);
+		ADF_FW_COUNTERS_NO_RESPONSE :
+		(unsigned long)*ras_event);
 
-	return adf_fw_counters_add_key_value_param(
-	    accel_dev, aeidstr, 16, ADF_RAS_EVENT_STR, (void *)&count);
+	return adf_fw_counters_add_key_value_param(accel_dev, aeidstr, 16,
+	    ADF_RAS_EVENT_STR, (void *)&count);
 }
 
 /**
@@ -213,28 +198,21 @@ adf_fw_counters_add(struct adf_accel_dev *accel_dev)
 	struct sysctl_oid *qat_sysctl_tree;
 	struct sysctl_oid *rc = 0;
 
-	fw_counters_data =
-	    malloc(sizeof(*fw_counters_data), M_QAT, M_WAITOK | M_ZERO);
+	fw_counters_data = malloc(sizeof(*fw_counters_data), M_QAT,
+	    M_WAITOK | M_ZERO);
 
 	INIT_LIST_HEAD(&fw_counters_data->ae_sec_list);
 
 	init_rwsem(&fw_counters_data->lock);
 	accel_dev->fw_counters_data = fw_counters_data;
 
-	qat_sysctl_ctx =
-	    device_get_sysctl_ctx(accel_dev->accel_pci_dev.pci_dev);
-	qat_sysctl_tree =
-	    device_get_sysctl_tree(accel_dev->accel_pci_dev.pci_dev);
-	rc = SYSCTL_ADD_OID(qat_sysctl_ctx,
-			    SYSCTL_CHILDREN(qat_sysctl_tree),
-			    OID_AUTO,
-			    "fw_counters",
-			    CTLTYPE_STRING | CTLFLAG_RD,
-			    accel_dev,
-			    0,
-			    adf_read_fw_counters,
-			    "A",
-			    "QAT FW counters");
+	qat_sysctl_ctx = device_get_sysctl_ctx(
+	    accel_dev->accel_pci_dev.pci_dev);
+	qat_sysctl_tree = device_get_sysctl_tree(
+	    accel_dev->accel_pci_dev.pci_dev);
+	rc = SYSCTL_ADD_OID(qat_sysctl_ctx, SYSCTL_CHILDREN(qat_sysctl_tree),
+	    OID_AUTO, "fw_counters", CTLTYPE_STRING | CTLFLAG_RD, accel_dev, 0,
+	    adf_read_fw_counters, "A", "QAT FW counters");
 	if (!rc)
 		return ENOMEM;
 	else
@@ -254,7 +232,7 @@ adf_fw_counters_del_all(struct adf_accel_dev *accel_dev)
 
 static void
 adf_fw_counters_keyval_add(struct adf_fw_counters_val *new,
-			   struct adf_fw_counters_section *sec)
+    struct adf_fw_counters_section *sec)
 {
 	list_add_tail(&new->list, &sec->param_head);
 }
@@ -266,8 +244,8 @@ adf_fw_counters_keyval_del_all(struct list_head *head)
 
 	list_for_each_prev_safe(list_ptr, tmp, head)
 	{
-		struct adf_fw_counters_val *ptr =
-		    list_entry(list_ptr, struct adf_fw_counters_val, list);
+		struct adf_fw_counters_val *ptr = list_entry(list_ptr,
+		    struct adf_fw_counters_val, list);
 		list_del(list_ptr);
 		free(ptr, M_QAT);
 	}
@@ -289,9 +267,8 @@ adf_fw_counters_section_del_all(struct list_head *head)
 }
 
 static struct adf_fw_counters_section *
-adf_fw_counters_sec_find(struct adf_accel_dev *accel_dev,
-			 const char *sec_name,
-			 const unsigned long sec_name_max_size)
+adf_fw_counters_sec_find(struct adf_accel_dev *accel_dev, const char *sec_name,
+    const unsigned long sec_name_max_size)
 {
 	struct adf_fw_counters_data *fw_counters_data =
 	    accel_dev->fw_counters_data;
@@ -299,8 +276,8 @@ adf_fw_counters_sec_find(struct adf_accel_dev *accel_dev,
 
 	list_for_each(list, &fw_counters_data->ae_sec_list)
 	{
-		struct adf_fw_counters_section *ptr =
-		    list_entry(list, struct adf_fw_counters_section, list);
+		struct adf_fw_counters_section *ptr = list_entry(list,
+		    struct adf_fw_counters_section, list);
 		if (!strncmp(ptr->name, sec_name, sec_name_max_size))
 			return ptr;
 	}
@@ -309,18 +286,14 @@ adf_fw_counters_sec_find(struct adf_accel_dev *accel_dev,
 
 static int
 adf_fw_counters_add_key_value_param(struct adf_accel_dev *accel_dev,
-				    const char *section_name,
-				    const unsigned long sec_name_max_size,
-				    const char *key,
-				    const void *val)
+    const char *section_name, const unsigned long sec_name_max_size,
+    const char *key, const void *val)
 {
 	struct adf_fw_counters_data *fw_counters_data =
 	    accel_dev->fw_counters_data;
 	struct adf_fw_counters_val *key_val;
-	struct adf_fw_counters_section *section =
-	    adf_fw_counters_sec_find(accel_dev,
-				     section_name,
-				     sec_name_max_size);
+	struct adf_fw_counters_section *section = adf_fw_counters_sec_find(
+	    accel_dev, section_name, sec_name_max_size);
 	long tmp = *((const long *)val);
 
 	if (!section)
@@ -330,14 +303,11 @@ adf_fw_counters_add_key_value_param(struct adf_accel_dev *accel_dev,
 	INIT_LIST_HEAD(&key_val->list);
 
 	if (tmp == ADF_FW_COUNTERS_NO_RESPONSE) {
-		snprintf(key_val->val,
-			 FW_COUNTERS_MAX_VAL_LEN_IN_BYTES,
-			 "No Response");
+		snprintf(key_val->val, FW_COUNTERS_MAX_VAL_LEN_IN_BYTES,
+		    "No Response");
 	} else {
-		snprintf(key_val->val,
-			 FW_COUNTERS_MAX_VAL_LEN_IN_BYTES,
-			 "%ld",
-			 tmp);
+		snprintf(key_val->val, FW_COUNTERS_MAX_VAL_LEN_IN_BYTES, "%ld",
+		    tmp);
 	}
 
 	strlcpy(key_val->key, key, sizeof(key_val->key));
@@ -359,9 +329,8 @@ adf_fw_counters_add_key_value_param(struct adf_accel_dev *accel_dev,
  * Return: 0 on success, error code otherwise.
  */
 static int
-adf_fw_counters_section_add(struct adf_accel_dev *accel_dev,
-			    const char *name,
-			    const unsigned long name_max_size)
+adf_fw_counters_section_add(struct adf_accel_dev *accel_dev, const char *name,
+    const unsigned long name_max_size)
 {
 	struct adf_fw_counters_data *fw_counters_data =
 	    accel_dev->fw_counters_data;

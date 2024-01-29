@@ -24,19 +24,19 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/endian.h>
 #include <sys/types.h>
+#include <sys/endian.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 
 #include <netinet/in.h>
-#include <netdb.h>			/* getaddrinfo */
 
+#include <netdb.h> /* getaddrinfo */
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>			/* close */
+#include <unistd.h> /* close */
 
 static void
 usage(void)
@@ -46,7 +46,7 @@ usage(void)
 	exit(-1);
 }
 
-static int	global_stop_flag;
+static int global_stop_flag;
 
 static void
 signal_handler(int signum __unused)
@@ -129,8 +129,8 @@ blast_loop(int s, long duration, u_char *packet, u_int packet_len)
 	    tmptime.tv_nsec);
 	printf("send calls:        %d\n", send_calls);
 	printf("send errors:       %d\n", send_errors);
-	printf("approx send rate:  %ld\n", (send_calls - send_errors) /
-	    duration);
+	printf("approx send rate:  %ld\n",
+	    (send_calls - send_errors) / duration);
 	printf("approx error rate: %d\n", (send_errors / send_calls));
 
 	return (0);
@@ -183,7 +183,7 @@ main(int argc, char *argv[])
 	}
 
 	bzero(packet, payloadsize);
-	error = getaddrinfo(argv[1],argv[2], &hints, &res0);
+	error = getaddrinfo(argv[1], argv[2], &hints, &res0);
 	if (error) {
 		perror(gai_strerror(error));
 		return (-1);
@@ -204,7 +204,7 @@ main(int argc, char *argv[])
 			continue;
 		}
 
-		break;  /* okay we got one */
+		break; /* okay we got one */
 	}
 	if (s < 0) {
 		perror(cause);
@@ -215,5 +215,4 @@ main(int argc, char *argv[])
 	freeaddrinfo(res0);
 
 	return (blast_loop(s, duration, packet, payloadsize));
-
 }

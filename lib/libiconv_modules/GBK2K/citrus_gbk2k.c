@@ -40,41 +40,40 @@
 #include <string.h>
 #include <wchar.h>
 
-#include "citrus_namespace.h"
-#include "citrus_types.h"
 #include "citrus_bcs.h"
-#include "citrus_module.h"
-#include "citrus_stdenc.h"
 #include "citrus_gbk2k.h"
-
+#include "citrus_module.h"
+#include "citrus_namespace.h"
+#include "citrus_stdenc.h"
+#include "citrus_types.h"
 
 /* ----------------------------------------------------------------------
  * private stuffs used by templates
  */
 
 typedef struct _GBK2KState {
-	int	 chlen;
-	char	 ch[4];
+	int chlen;
+	char ch[4];
 } _GBK2KState;
 
 typedef struct {
-	int	 mb_cur_max;
+	int mb_cur_max;
 } _GBK2KEncodingInfo;
 
-#define _CEI_TO_EI(_cei_)		(&(_cei_)->ei)
-#define _CEI_TO_STATE(_cei_, _func_)	(_cei_)->states.s_##_func_
+#define _CEI_TO_EI(_cei_) (&(_cei_)->ei)
+#define _CEI_TO_STATE(_cei_, _func_) (_cei_)->states.s_##_func_
 
-#define _FUNCNAME(m)			_citrus_GBK2K_##m
-#define _ENCODING_INFO			_GBK2KEncodingInfo
-#define _ENCODING_STATE			_GBK2KState
-#define _ENCODING_MB_CUR_MAX(_ei_)	(_ei_)->mb_cur_max
-#define _ENCODING_IS_STATE_DEPENDENT	0
-#define _STATE_NEEDS_EXPLICIT_INIT(_ps_)	0
+#define _FUNCNAME(m) _citrus_GBK2K_##m
+#define _ENCODING_INFO _GBK2KEncodingInfo
+#define _ENCODING_STATE _GBK2KState
+#define _ENCODING_MB_CUR_MAX(_ei_) (_ei_)->mb_cur_max
+#define _ENCODING_IS_STATE_DEPENDENT 0
+#define _STATE_NEEDS_EXPLICIT_INIT(_ps_) 0
 
 static __inline void
 /*ARGSUSED*/
-_citrus_GBK2K_init_state(_GBK2KEncodingInfo * __restrict ei __unused,
-    _GBK2KState * __restrict s)
+_citrus_GBK2K_init_state(_GBK2KEncodingInfo *__restrict ei __unused,
+    _GBK2KState *__restrict s)
 {
 
 	memset(s, 0, sizeof(*s));
@@ -100,7 +99,7 @@ _citrus_GBK2K_unpack_state(_GBK2KEncodingInfo * __restrict ei __unused,
 }
 #endif
 
-static  __inline bool
+static __inline bool
 _mb_singlebyte(int c)
 {
 
@@ -144,13 +143,13 @@ _mb_count(wchar_t v)
 	return (4);
 }
 
-#define	_PSENC		(psenc->ch[psenc->chlen - 1])
-#define	_PUSH_PSENC(c)	(psenc->ch[psenc->chlen++] = (c))
+#define _PSENC (psenc->ch[psenc->chlen - 1])
+#define _PUSH_PSENC(c) (psenc->ch[psenc->chlen++] = (c))
 
 static int
-_citrus_GBK2K_mbrtowc_priv(_GBK2KEncodingInfo * __restrict ei,
-    wchar_t * __restrict pwc, char ** __restrict s, size_t n,
-    _GBK2KState * __restrict psenc, size_t * __restrict nresult)
+_citrus_GBK2K_mbrtowc_priv(_GBK2KEncodingInfo *__restrict ei,
+    wchar_t *__restrict pwc, char **__restrict s, size_t n,
+    _GBK2KState *__restrict psenc, size_t *__restrict nresult)
 {
 	char *s0, *s1;
 	wchar_t wc;
@@ -169,7 +168,7 @@ _citrus_GBK2K_mbrtowc_priv(_GBK2KEncodingInfo * __restrict ei,
 
 	switch (psenc->chlen) {
 	case 3:
-		if (!_mb_leadbyte (_PSENC))
+		if (!_mb_leadbyte(_PSENC))
 			goto invalid;
 	/* FALLTHROUGH */
 	case 2:
@@ -177,7 +176,7 @@ _citrus_GBK2K_mbrtowc_priv(_GBK2KEncodingInfo * __restrict ei,
 			goto invalid;
 	/* FALLTHROUGH */
 	case 1:
-		if (!_mb_leadbyte (_PSENC))
+		if (!_mb_leadbyte(_PSENC))
 			goto invalid;
 	/* FALLTHOROUGH */
 	case 0:
@@ -196,22 +195,21 @@ _citrus_GBK2K_mbrtowc_priv(_GBK2KEncodingInfo * __restrict ei,
 		case 1:
 			if (_mb_singlebyte(_PSENC))
 				goto convert;
-			if (_mb_leadbyte  (_PSENC))
+			if (_mb_leadbyte(_PSENC))
 				continue;
 			goto ilseq;
 		case 2:
-			if (_mb_trailbyte (_PSENC))
+			if (_mb_trailbyte(_PSENC))
 				goto convert;
-			if (ei->mb_cur_max == 4 &&
-			    _mb_surrogate (_PSENC))
+			if (ei->mb_cur_max == 4 && _mb_surrogate(_PSENC))
 				continue;
 			goto ilseq;
 		case 3:
-			if (_mb_leadbyte  (_PSENC))
+			if (_mb_leadbyte(_PSENC))
 				continue;
 			goto ilseq;
 		case 4:
-			if (_mb_surrogate (_PSENC))
+			if (_mb_surrogate(_PSENC))
 				goto convert;
 			goto ilseq;
 		}
@@ -219,8 +217,8 @@ _citrus_GBK2K_mbrtowc_priv(_GBK2KEncodingInfo * __restrict ei,
 
 convert:
 	len = psenc->chlen;
-	s1  = &psenc->ch[0];
-	wc  = 0;
+	s1 = &psenc->ch[0];
+	wc = 0;
 	while (len-- > 0)
 		wc = (wc << 8) | (*s1++ & 0xff);
 
@@ -248,9 +246,9 @@ ilseq:
 }
 
 static int
-_citrus_GBK2K_wcrtomb_priv(_GBK2KEncodingInfo * __restrict ei,
-    char * __restrict s, size_t n, wchar_t wc, _GBK2KState * __restrict psenc,
-    size_t * __restrict nresult)
+_citrus_GBK2K_wcrtomb_priv(_GBK2KEncodingInfo *__restrict ei,
+    char *__restrict s, size_t n, wchar_t wc, _GBK2KState *__restrict psenc,
+    size_t *__restrict nresult)
 {
 	size_t len;
 	int ret;
@@ -268,24 +266,24 @@ _citrus_GBK2K_wcrtomb_priv(_GBK2KEncodingInfo * __restrict ei,
 
 	switch (len) {
 	case 1:
-		if (!_mb_singlebyte(_PUSH_PSENC(wc     ))) {
+		if (!_mb_singlebyte(_PUSH_PSENC(wc))) {
 			ret = EILSEQ;
 			goto err;
 		}
 		break;
 	case 2:
-		if (!_mb_leadbyte  (_PUSH_PSENC(wc >> 8)) ||
-		    !_mb_trailbyte (_PUSH_PSENC(wc))) {
+		if (!_mb_leadbyte(_PUSH_PSENC(wc >> 8)) ||
+		    !_mb_trailbyte(_PUSH_PSENC(wc))) {
 			ret = EILSEQ;
 			goto err;
 		}
 		break;
 	case 4:
 		if (ei->mb_cur_max != 4 ||
-		    !_mb_leadbyte  (_PUSH_PSENC(wc >> 24)) ||
-		    !_mb_surrogate (_PUSH_PSENC(wc >> 16)) ||
-		    !_mb_leadbyte  (_PUSH_PSENC(wc >>  8)) ||
-		    !_mb_surrogate (_PUSH_PSENC(wc))) {
+		    !_mb_leadbyte(_PUSH_PSENC(wc >> 24)) ||
+		    !_mb_surrogate(_PUSH_PSENC(wc >> 16)) ||
+		    !_mb_leadbyte(_PUSH_PSENC(wc >> 8)) ||
+		    !_mb_surrogate(_PUSH_PSENC(wc))) {
 			ret = EILSEQ;
 			goto err;
 		}
@@ -306,8 +304,8 @@ err:
 
 static __inline int
 /*ARGSUSED*/
-_citrus_GBK2K_stdenc_wctocs(_GBK2KEncodingInfo * __restrict ei __unused,
-    _csid_t * __restrict csid, _index_t * __restrict idx, wchar_t wc)
+_citrus_GBK2K_stdenc_wctocs(_GBK2KEncodingInfo *__restrict ei __unused,
+    _csid_t *__restrict csid, _index_t *__restrict idx, wchar_t wc)
 {
 	uint8_t ch, cl;
 
@@ -332,14 +330,14 @@ _citrus_GBK2K_stdenc_wctocs(_GBK2KEncodingInfo * __restrict ei __unused,
 			*idx = (_index_t)wc;
 		}
 	}
-		
+
 	return (0);
 }
 
 static __inline int
 /*ARGSUSED*/
-_citrus_GBK2K_stdenc_cstowc(_GBK2KEncodingInfo * __restrict ei,
-    wchar_t * __restrict wc, _csid_t csid, _index_t idx)
+_citrus_GBK2K_stdenc_cstowc(_GBK2KEncodingInfo *__restrict ei,
+    wchar_t *__restrict wc, _csid_t csid, _index_t idx)
 {
 
 	switch (csid) {
@@ -370,19 +368,20 @@ _citrus_GBK2K_stdenc_cstowc(_GBK2KEncodingInfo * __restrict ei,
 
 static __inline int
 /*ARGSUSED*/
-_citrus_GBK2K_stdenc_get_state_desc_generic(_GBK2KEncodingInfo * __restrict ei __unused,
-    _GBK2KState * __restrict psenc, int * __restrict rstate)
+_citrus_GBK2K_stdenc_get_state_desc_generic(
+    _GBK2KEncodingInfo *__restrict ei __unused, _GBK2KState *__restrict psenc,
+    int *__restrict rstate)
 {
 
 	*rstate = (psenc->chlen == 0) ? _STDENC_SDGEN_INITIAL :
-	    _STDENC_SDGEN_INCOMPLETE_CHAR;
+					_STDENC_SDGEN_INCOMPLETE_CHAR;
 	return (0);
 }
 
 static int
 /*ARGSUSED*/
-_citrus_GBK2K_encoding_module_init(_GBK2KEncodingInfo * __restrict ei,
-    const void * __restrict var, size_t lenvar)
+_citrus_GBK2K_encoding_module_init(_GBK2KEncodingInfo *__restrict ei,
+    const void *__restrict var, size_t lenvar)
 {
 	const char *p;
 
@@ -406,7 +405,6 @@ static void
 /*ARGSUSED*/
 _citrus_GBK2K_encoding_module_uninit(_GBK2KEncodingInfo *ei __unused)
 {
-
 }
 
 /* ----------------------------------------------------------------------

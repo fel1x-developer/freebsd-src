@@ -28,8 +28,8 @@
 
 #include <sys/types.h>
 #include <sys/param.h>
-#include <sys/module.h>
 #include <sys/linker.h>
+#include <sys/module.h>
 
 #include <err.h>
 #include <libutil.h>
@@ -38,7 +38,7 @@
 #include <strings.h>
 #include <unistd.h>
 
-#define	PTR_WIDTH ((int)(sizeof(void *) * 2 + 2))
+#define PTR_WIDTH ((int)(sizeof(void *) * 2 + 2))
 
 static void printmod(int);
 static void printfile(int, int, int);
@@ -58,9 +58,8 @@ printmod(int modid)
 		return;
 	}
 	if (showdata) {
-		printf("\t\t%3d %s (%d, %u, 0x%lx)\n", stat.id,
-		    stat.name, stat.data.intval, stat.data.uintval,
-		    stat.data.ulongval);
+		printf("\t\t%3d %s (%d, %u, 0x%lx)\n", stat.id, stat.name,
+		    stat.data.intval, stat.data.uintval, stat.data.ulongval);
 	} else
 		printf("\t\t%3d %s\n", stat.id, stat.name);
 }
@@ -76,23 +75,22 @@ printfile(int fileid, int verbose, int humanized)
 	if (kldstat(fileid, &stat) < 0)
 		err(1, "can't stat file id %d", fileid);
 	if (humanized) {
-		humanize_number(buf, sizeof(buf), stat.size,
-		    "", HN_AUTOSCALE, HN_DECIMAL | HN_NOSPACE);
+		humanize_number(buf, sizeof(buf), stat.size, "", HN_AUTOSCALE,
+		    HN_DECIMAL | HN_NOSPACE);
 
-		printf("%2d %4d %*p %5s %s",
-		    stat.id, stat.refs, PTR_WIDTH, stat.address,
-		    buf, stat.name);
+		printf("%2d %4d %*p %5s %s", stat.id, stat.refs, PTR_WIDTH,
+		    stat.address, buf, stat.name);
 	} else {
-		printf("%2d %4d %*p %8zx %s",
-		    stat.id, stat.refs, PTR_WIDTH, stat.address,
-		    stat.size, stat.name);
+		printf("%2d %4d %*p %8zx %s", stat.id, stat.refs, PTR_WIDTH,
+		    stat.address, stat.size, stat.name);
 	}
 
 	if (verbose) {
 		printf(" (%s)\n", stat.pathname);
 		printf("\tContains modules:\n");
 		printf("\t\t Id Name\n");
-		for (modid = kldfirstmod(fileid); modid > 0; modid = modfnext(modid))
+		for (modid = kldfirstmod(fileid); modid > 0;
+		     modid = modfnext(modid))
 			printmod(modid);
 	} else
 		printf("\n");
@@ -101,8 +99,10 @@ printfile(int fileid, int verbose, int humanized)
 static void __dead2
 usage(void)
 {
-	fprintf(stderr, "usage: %1$s [-dhqv] [-i id] [-n filename]\n"
-	    "       %1$s [-dq] [-m modname]\n", getprogname());
+	fprintf(stderr,
+	    "usage: %1$s [-dhqv] [-i id] [-n filename]\n"
+	    "       %1$s [-dq] [-m modname]\n",
+	    getprogname());
 	exit(1);
 }
 
@@ -167,11 +167,11 @@ main(int argc, char *argv[])
 			warn("can't stat module id %d", modid);
 		else {
 			if (showdata) {
-				printf("Id  Refs Name data..(int, uint, ulong)\n");
-				printf("%3d %4d %s (%d, %u, 0x%lx)\n",
-				    stat.id, stat.refs, stat.name,
-				    stat.data.intval, stat.data.uintval,
-				    stat.data.ulongval);
+				printf(
+				    "Id  Refs Name data..(int, uint, ulong)\n");
+				printf("%3d %4d %s (%d, %u, 0x%lx)\n", stat.id,
+				    stat.refs, stat.name, stat.data.intval,
+				    stat.data.uintval, stat.data.ulongval);
 			} else {
 				printf("Id  Refs Name\n");
 				printf("%3d %4d %s\n", stat.id, stat.refs,
@@ -192,11 +192,11 @@ main(int argc, char *argv[])
 	}
 
 	if (humanized) {
-		printf("Id Refs Address%*c %5s Name\n", PTR_WIDTH - 7,
-		    ' ', "Size");
+		printf("Id Refs Address%*c %5s Name\n", PTR_WIDTH - 7, ' ',
+		    "Size");
 	} else {
-		printf("Id Refs Address%*c %8s Name\n", PTR_WIDTH - 7,
-		    ' ', "Size");
+		printf("Id Refs Address%*c %8s Name\n", PTR_WIDTH - 7, ' ',
+		    "Size");
 	}
 	if (fileid != 0)
 		printfile(fileid, verbose, humanized);

@@ -31,7 +31,9 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stand.h>
+
 #include "libofw.h"
 
 void startup(void *, int, int (*)(void *), char *, int);

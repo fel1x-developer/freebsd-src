@@ -88,8 +88,7 @@ ctors_handler(void)
 
 	ctors_run = 1;
 }
-__section(".ctors") __used static func_ptr ctors_func =
-    &ctors_handler;
+__section(".ctors") __used static func_ptr ctors_func = &ctors_handler;
 #endif
 
 #ifndef DSO_LIB
@@ -113,8 +112,8 @@ preinit_array_handler(void)
 	preinit_array_run = 1;
 	preinit_array_state = init_array_run;
 }
-__section(".preinit_array") __used static func_ptr preinit_array_func =
-    &preinit_array_handler;
+__section(".preinit_array") __used
+    static func_ptr preinit_array_func = &preinit_array_handler;
 #endif
 
 #ifndef DSO_LIB
@@ -141,8 +140,8 @@ init_array_handler(void)
 	init_array_run = 1;
 	init_array_state = preinit_array_run;
 }
-__section(".init_array") __used static func_ptr init_array_func =
-    &init_array_handler;
+__section(".init_array") __used
+    static func_ptr init_array_func = &init_array_handler;
 #endif
 
 #ifndef DSO_LIB

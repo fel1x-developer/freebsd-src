@@ -28,8 +28,8 @@
 #include <arm/pcb.h>
 #else /* !__arm__ */
 
-#ifndef	_MACHINE_PCB_H_
-#define	_MACHINE_PCB_H_
+#ifndef _MACHINE_PCB_H_
+#define _MACHINE_PCB_H_
 
 #ifndef LOCORE
 
@@ -39,51 +39,51 @@
 struct trapframe;
 
 /* The first register in pcb_x is x19 */
-#define	PCB_X_START	19
+#define PCB_X_START 19
 
-#define	PCB_X19		0
-#define	PCB_X20		1
-#define	PCB_FP		10
-#define	PCB_LR		11
+#define PCB_X19 0
+#define PCB_X20 1
+#define PCB_FP 10
+#define PCB_LR 11
 
 struct pcb {
-	uint64_t	pcb_x[12];
+	uint64_t pcb_x[12];
 	/* These two need to be in order as we access them together */
-	uint64_t	pcb_sp;
-	uint64_t	pcb_tpidr_el0;
-	uint64_t	pcb_tpidrro_el0;
+	uint64_t pcb_sp;
+	uint64_t pcb_tpidr_el0;
+	uint64_t pcb_tpidrro_el0;
 
 	/* Fault handler, the error value is passed in x0 */
-	vm_offset_t	pcb_onfault;
+	vm_offset_t pcb_onfault;
 
-	u_int		pcb_flags;
-#define	PCB_SINGLE_STEP_SHIFT	0
-#define	PCB_SINGLE_STEP		(1 << PCB_SINGLE_STEP_SHIFT)
-	uint32_t	pcb_pad1;
+	u_int pcb_flags;
+#define PCB_SINGLE_STEP_SHIFT 0
+#define PCB_SINGLE_STEP (1 << PCB_SINGLE_STEP_SHIFT)
+	uint32_t pcb_pad1;
 
-	struct vfpstate	*pcb_fpusaved;
-	int		pcb_fpflags;
-#define	PCB_FP_STARTED	0x00000001
-#define	PCB_FP_KERN	0x40000000
-#define	PCB_FP_NOSAVE	0x80000000
+	struct vfpstate *pcb_fpusaved;
+	int pcb_fpflags;
+#define PCB_FP_STARTED 0x00000001
+#define PCB_FP_KERN 0x40000000
+#define PCB_FP_NOSAVE 0x80000000
 /* The bits passed to userspace in get_fpcontext */
-#define	PCB_FP_USERMASK	(PCB_FP_STARTED)
-	u_int		pcb_vfpcpu;	/* Last cpu this thread ran VFP code */
-	uint64_t	pcb_reserved[5];
+#define PCB_FP_USERMASK (PCB_FP_STARTED)
+	u_int pcb_vfpcpu; /* Last cpu this thread ran VFP code */
+	uint64_t pcb_reserved[5];
 
 	/*
 	 * The userspace VFP state. The pcb_fpusaved pointer will point to
 	 * this unless the kernel has allocated a VFP context.
 	 * Place last to simplify the asm to access the rest if the struct.
 	 */
-	struct vfpstate	pcb_fpustate;
+	struct vfpstate pcb_fpustate;
 
 	struct debug_monitor_state pcb_dbg_regs;
 };
 
 #ifdef _KERNEL
-void	makectx(struct trapframe *tf, struct pcb *pcb);
-int	savectx(struct pcb *pcb) __returns_twice;
+void makectx(struct trapframe *tf, struct pcb *pcb);
+int savectx(struct pcb *pcb) __returns_twice;
 #endif
 
 #endif /* !LOCORE */

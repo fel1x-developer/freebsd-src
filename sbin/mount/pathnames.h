@@ -29,4 +29,4 @@
  * SUCH DAMAGE.
  */
 
-#define	_PATH_MOUNTDPID	"/var/run/mountd.pid"
+#define _PATH_MOUNTDPID "/var/run/mountd.pid"

@@ -97,6 +97,7 @@ static void
 usage(void)
 {
 
-	(void)fprintf(stderr, "usage: hostname [-f] [-s | -d] [name-of-host]\n");
+	(void)fprintf(stderr,
+	    "usage: hostname [-f] [-s | -d] [name-of-host]\n");
 	exit(1);
 }

@@ -30,51 +30,51 @@
  */
 
 #ifndef _TWSI_H_
-#define	_TWSI_H_
+#define _TWSI_H_
 
 #include <dev/clk/clk.h>
 
 struct twsi_baud_rate {
-	uint32_t	raw;
-	int		param;
-	int		m;
-	int		n;
+	uint32_t raw;
+	int param;
+	int m;
+	int n;
 };
 
 struct twsi_softc {
-	device_t	dev;
-	struct resource	*res[2];
-	struct mtx	mutex;
-	device_t	iicbus;
-	clk_t		clk_core;
-	clk_t		clk_reg;
-	void *			intrhand;
-	bool			have_intr;
+	device_t dev;
+	struct resource *res[2];
+	struct mtx mutex;
+	device_t iicbus;
+	clk_t clk_core;
+	clk_t clk_reg;
+	void *intrhand;
+	bool have_intr;
 
-	struct iic_msg		*msgs;
-	uint32_t		nmsgs;
-	uint32_t		msg_idx;
-	uint16_t		sent_bytes;
-	uint16_t		recv_bytes;
-	int			transfer;
-	int			error;
-	int			debug;
-	uint32_t		control_val;
-	bool			iflag_w1c;
+	struct iic_msg *msgs;
+	uint32_t nmsgs;
+	uint32_t msg_idx;
+	uint16_t sent_bytes;
+	uint16_t recv_bytes;
+	int transfer;
+	int error;
+	int debug;
+	uint32_t control_val;
+	bool iflag_w1c;
 
-	bus_size_t	reg_data;
-	bus_size_t	reg_slave_addr;
-	bus_size_t	reg_slave_ext_addr;
-	bus_size_t	reg_control;
-	bus_size_t	reg_status;
-	bus_size_t	reg_baud_rate;
-	bus_size_t	reg_soft_reset;
-	struct twsi_baud_rate  baud_rate[IIC_FASTEST + 1];
+	bus_size_t reg_data;
+	bus_size_t reg_slave_addr;
+	bus_size_t reg_slave_ext_addr;
+	bus_size_t reg_control;
+	bus_size_t reg_status;
+	bus_size_t reg_baud_rate;
+	bus_size_t reg_soft_reset;
+	struct twsi_baud_rate baud_rate[IIC_FASTEST + 1];
 };
 
 DECLARE_CLASS(twsi_driver);
 
-#define	TWSI_BAUD_RATE_PARAM(M,N)	((((M) << 3) | ((N) & 0x7)) & 0x7f)
+#define TWSI_BAUD_RATE_PARAM(M, N) ((((M) << 3) | ((N) & 0x7)) & 0x7f)
 
 int twsi_attach(device_t);
 int twsi_detach(device_t);

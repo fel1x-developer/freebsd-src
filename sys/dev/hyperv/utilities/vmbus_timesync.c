@@ -25,58 +25,50 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/syscallsubr.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
 #include <dev/hyperv/include/hyperv.h>
 #include <dev/hyperv/include/vmbus.h>
 #include <dev/hyperv/utilities/vmbus_icreg.h>
 #include <dev/hyperv/utilities/vmbus_icvar.h>
 
-#define VMBUS_TIMESYNC_FWVER_MAJOR	3
-#define VMBUS_TIMESYNC_FWVER		\
-	VMBUS_IC_VERSION(VMBUS_TIMESYNC_FWVER_MAJOR, 0)
+#define VMBUS_TIMESYNC_FWVER_MAJOR 3
+#define VMBUS_TIMESYNC_FWVER VMBUS_IC_VERSION(VMBUS_TIMESYNC_FWVER_MAJOR, 0)
 
-#define VMBUS_TIMESYNC_MSGVER_MAJOR	4
-#define VMBUS_TIMESYNC_MSGVER		\
-	VMBUS_IC_VERSION(VMBUS_TIMESYNC_MSGVER_MAJOR, 0)
+#define VMBUS_TIMESYNC_MSGVER_MAJOR 4
+#define VMBUS_TIMESYNC_MSGVER VMBUS_IC_VERSION(VMBUS_TIMESYNC_MSGVER_MAJOR, 0)
 
-#define VMBUS_TIMESYNC_MSGVER4(sc)	\
+#define VMBUS_TIMESYNC_MSGVER4(sc) \
 	VMBUS_ICVER_LE(VMBUS_IC_VERSION(4, 0), (sc)->ic_msgver)
 
-#define VMBUS_TIMESYNC_DORTT(sc)	\
+#define VMBUS_TIMESYNC_DORTT(sc) \
 	(VMBUS_TIMESYNC_MSGVER4((sc)) && hyperv_tc64 != NULL)
 
-static int			vmbus_timesync_probe(device_t);
-static int			vmbus_timesync_attach(device_t);
+static int vmbus_timesync_probe(device_t);
+static int vmbus_timesync_attach(device_t);
 
 static const struct vmbus_ic_desc vmbus_timesync_descs[] = {
-	{
-		.ic_guid = { .hv_guid = {
-		    0x30, 0xe6, 0x27, 0x95, 0xae, 0xd0, 0x7b, 0x49,
-		    0xad, 0xce, 0xe8, 0x0a, 0xb0, 0x17, 0x5c, 0xaf } },
-		.ic_desc = "Hyper-V Timesync"
-	},
+	{ .ic_guid = { .hv_guid = { 0x30, 0xe6, 0x27, 0x95, 0xae, 0xd0, 0x7b,
+			   0x49, 0xad, 0xce, 0xe8, 0x0a, 0xb0, 0x17, 0x5c,
+			   0xaf } },
+	    .ic_desc = "Hyper-V Timesync" },
 	VMBUS_IC_DESC_END
 };
 
 static device_method_t vmbus_timesync_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		vmbus_timesync_probe),
-	DEVMETHOD(device_attach,	vmbus_timesync_attach),
-	DEVMETHOD(device_detach,	vmbus_ic_detach),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, vmbus_timesync_probe),
+	DEVMETHOD(device_attach, vmbus_timesync_attach),
+	DEVMETHOD(device_detach, vmbus_ic_detach), DEVMETHOD_END
 };
 
-static driver_t vmbus_timesync_driver = {
-	"hvtimesync",
-	vmbus_timesync_methods,
-	sizeof(struct vmbus_ic_softc)
-};
+static driver_t vmbus_timesync_driver = { "hvtimesync", vmbus_timesync_methods,
+	sizeof(struct vmbus_ic_softc) };
 
 DRIVER_MODULE(hv_timesync, vmbus, vmbus_timesync_driver, NULL, NULL);
 MODULE_VERSION(hv_timesync, 1);
@@ -120,7 +112,8 @@ vmbus_timesync(struct vmbus_ic_softc *sc, uint64_t hvtime, uint64_t sent_tc,
 		struct timespec hv_ts;
 
 		if (bootverbose) {
-			device_printf(sc->ic_dev, "apply sync request, "
+			device_printf(sc->ic_dev,
+			    "apply sync request, "
 			    "hv: %ju, vm: %ju\n",
 			    (uintmax_t)hv_ns, (uintmax_t)vm_ns);
 		}
@@ -136,7 +129,8 @@ vmbus_timesync(struct vmbus_ic_softc *sc, uint64_t hvtime, uint64_t sent_tc,
 		int64_t diff;
 
 		if (vmbus_ts_sample_verbose) {
-			device_printf(sc->ic_dev, "sample request, "
+			device_printf(sc->ic_dev,
+			    "sample request, "
 			    "hv: %ju, vm: %ju\n",
 			    (uintmax_t)hv_ns, (uintmax_t)vm_ns);
 		}
@@ -195,8 +189,8 @@ vmbus_timesync_cb(struct vmbus_channel *chan, void *xsc)
 	 */
 	switch (hdr->ic_type) {
 	case VMBUS_ICMSG_TYPE_NEGOTIATE:
-		error = vmbus_ic_negomsg(sc, data, &dlen,
-		    VMBUS_TIMESYNC_FWVER, VMBUS_TIMESYNC_MSGVER);
+		error = vmbus_ic_negomsg(sc, data, &dlen, VMBUS_TIMESYNC_FWVER,
+		    VMBUS_TIMESYNC_MSGVER);
 		if (error)
 			return;
 		if (VMBUS_TIMESYNC_DORTT(sc))
@@ -208,8 +202,10 @@ vmbus_timesync_cb(struct vmbus_channel *chan, void *xsc)
 			const struct vmbus_icmsg_timesync4 *msg4;
 
 			if (dlen < sizeof(*msg4)) {
-				device_printf(sc->ic_dev, "invalid timesync4 "
-				    "len %d\n", dlen);
+				device_printf(sc->ic_dev,
+				    "invalid timesync4 "
+				    "len %d\n",
+				    dlen);
 				return;
 			}
 			msg4 = data;
@@ -219,8 +215,10 @@ vmbus_timesync_cb(struct vmbus_channel *chan, void *xsc)
 			const struct vmbus_icmsg_timesync *msg;
 
 			if (dlen < sizeof(*msg)) {
-				device_printf(sc->ic_dev, "invalid timesync "
-				    "len %d\n", dlen);
+				device_printf(sc->ic_dev,
+				    "invalid timesync "
+				    "len %d\n",
+				    dlen);
 				return;
 			}
 			msg = data;

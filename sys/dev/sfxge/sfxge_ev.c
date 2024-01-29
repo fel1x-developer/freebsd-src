@@ -34,15 +34,13 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
-#include <sys/param.h>
 #include <sys/queue.h>
-#include <sys/systm.h>
 #include <sys/taskqueue.h>
 
 #include "common/efx.h"
-
 #include "sfxge.h"
 
 static void
@@ -100,7 +98,7 @@ sfxge_get_rxq_by_label(struct sfxge_evq *evq, uint32_t label)
 
 static boolean_t
 sfxge_ev_rx(void *arg, uint32_t label, uint32_t id, uint32_t size,
-	    uint16_t flags)
+    uint16_t flags)
 {
 	struct sfxge_evq *evq;
 	struct sfxge_softc *sc;
@@ -131,9 +129,10 @@ sfxge_ev_rx(void *arg, uint32_t label, uint32_t id, uint32_t size,
 		    (delta > efx_nic_cfg_get(sc->enp)->enc_rx_batch_max)) {
 			evq->exception = B_TRUE;
 
-			device_printf(sc->dev, "RX completion out of order"
-						  " (id=%#x delta=%u flags=%#x); resetting\n",
-						  id, delta, flags);
+			device_printf(sc->dev,
+			    "RX completion out of order"
+			    " (id=%#x delta=%u flags=%#x); resetting\n",
+			    id, delta, flags);
 			sfxge_schedule_reset(sc);
 
 			goto done;
@@ -147,7 +146,7 @@ sfxge_ev_rx(void *arg, uint32_t label, uint32_t id, uint32_t size,
 	for (; id != stop; id = (id + 1) & rxq->ptr_mask) {
 		rx_desc = &rxq->queue[id];
 		KASSERT(rx_desc->flags == EFX_DISCARD,
-				("rx_desc->flags != EFX_DISCARD"));
+		    ("rx_desc->flags != EFX_DISCARD"));
 		rx_desc->flags = flags;
 
 		KASSERT(size < (1 << 16), ("size > (1 << 16)"));
@@ -175,23 +174,23 @@ sfxge_ev_exception(void *arg, uint32_t code, uint32_t data)
 	sc = evq->sc;
 
 	DBGPRINT(sc->dev, "[%d] %s", evq->index,
-			  (code == EFX_EXCEPTION_RX_RECOVERY) ? "RX_RECOVERY" :
-			  (code == EFX_EXCEPTION_RX_DSC_ERROR) ? "RX_DSC_ERROR" :
-			  (code == EFX_EXCEPTION_TX_DSC_ERROR) ? "TX_DSC_ERROR" :
-			  (code == EFX_EXCEPTION_UNKNOWN_SENSOREVT) ? "UNKNOWN_SENSOREVT" :
-			  (code == EFX_EXCEPTION_FWALERT_SRAM) ? "FWALERT_SRAM" :
-			  (code == EFX_EXCEPTION_UNKNOWN_FWALERT) ? "UNKNOWN_FWALERT" :
-			  (code == EFX_EXCEPTION_RX_ERROR) ? "RX_ERROR" :
-			  (code == EFX_EXCEPTION_TX_ERROR) ? "TX_ERROR" :
-			  (code == EFX_EXCEPTION_EV_ERROR) ? "EV_ERROR" :
-			  "UNKNOWN");
+	    (code == EFX_EXCEPTION_RX_RECOVERY)	     ? "RX_RECOVERY" :
+		(code == EFX_EXCEPTION_RX_DSC_ERROR) ? "RX_DSC_ERROR" :
+		(code == EFX_EXCEPTION_TX_DSC_ERROR) ? "TX_DSC_ERROR" :
+		(code == EFX_EXCEPTION_UNKNOWN_SENSOREVT) ?
+						       "UNKNOWN_SENSOREVT" :
+		(code == EFX_EXCEPTION_FWALERT_SRAM)	? "FWALERT_SRAM" :
+		(code == EFX_EXCEPTION_UNKNOWN_FWALERT) ? "UNKNOWN_FWALERT" :
+		(code == EFX_EXCEPTION_RX_ERROR)	? "RX_ERROR" :
+		(code == EFX_EXCEPTION_TX_ERROR)	? "TX_ERROR" :
+		(code == EFX_EXCEPTION_EV_ERROR)	? "EV_ERROR" :
+							  "UNKNOWN");
 
 	evq->exception = B_TRUE;
 
 	if (code != EFX_EXCEPTION_UNKNOWN_SENSOREVT) {
 		device_printf(sc->dev,
-			      "hardware exception (code=%u); resetting\n",
-			      code);
+		    "hardware exception (code=%u); resetting\n", code);
 		sfxge_schedule_reset(sc);
 	}
 
@@ -225,8 +224,7 @@ sfxge_ev_rxq_flush_done(void *arg, uint32_t rxq_index)
 	evq = sc->evq[index];
 	magic = sfxge_sw_ev_rxq_magic(SFXGE_SW_EV_RX_QFLUSH_DONE, rxq);
 
-	KASSERT(evq->init_state == SFXGE_EVQ_STARTED,
-	    ("evq not started"));
+	KASSERT(evq->init_state == SFXGE_EVQ_STARTED, ("evq not started"));
 	efx_ev_qpost(evq->common, magic);
 
 	return (B_FALSE);
@@ -254,8 +252,7 @@ sfxge_ev_rxq_flush_failed(void *arg, uint32_t rxq_index)
 	evq = sc->evq[index];
 	magic = sfxge_sw_ev_rxq_magic(SFXGE_SW_EV_RX_QFLUSH_FAILED, rxq);
 
-	KASSERT(evq->init_state == SFXGE_EVQ_STARTED,
-	    ("evq not started"));
+	KASSERT(evq->init_state == SFXGE_EVQ_STARTED, ("evq not started"));
 	efx_ev_qpost(evq->common, magic);
 
 	return (B_FALSE);
@@ -266,13 +263,15 @@ sfxge_get_txq_by_label(struct sfxge_evq *evq, enum sfxge_txq_type label)
 {
 	unsigned int index;
 
-	KASSERT((evq->sc->txq_dynamic_cksum_toggle_supported) ? (label == 0) :
+	KASSERT((evq->sc->txq_dynamic_cksum_toggle_supported) ?
+		(label == 0) :
 		((evq->index == 0 && label < SFXGE_TXQ_NTYPES) ||
-		 (label == SFXGE_TXQ_IP_TCP_UDP_CKSUM)),
-		("unexpected txq label"));
+		    (label == SFXGE_TXQ_IP_TCP_UDP_CKSUM)),
+	    ("unexpected txq label"));
 
 	index = (evq->index == 0) ?
-		label : (evq->index - 1 + SFXGE_EVQ0_N_TXQ(evq->sc));
+	    label :
+	    (evq->index - 1 + SFXGE_EVQ0_N_TXQ(evq->sc));
 	return (evq->sc->txq[index]);
 }
 
@@ -290,8 +289,7 @@ sfxge_ev_tx(void *arg, uint32_t label, uint32_t id)
 	txq = sfxge_get_txq_by_label(evq, label);
 
 	KASSERT(txq != NULL, ("txq == NULL"));
-	KASSERT(evq->index == txq->evq_index,
-	    ("evq->index != txq->evq_index"));
+	KASSERT(evq->index == txq->evq_index, ("evq->index != txq->evq_index"));
 
 	if (__predict_false(txq->init_state != SFXGE_TXQ_STARTED))
 		goto done;
@@ -304,8 +302,7 @@ sfxge_ev_tx(void *arg, uint32_t label, uint32_t id)
 
 	evq->tx_done++;
 
-	if (txq->next == NULL &&
-	    evq->txqs != &(txq->next)) {
+	if (txq->next == NULL && evq->txqs != &(txq->next)) {
 		*(evq->txqs) = txq;
 		evq->txqs = &(txq->next);
 	}
@@ -344,8 +341,7 @@ sfxge_ev_txq_flush_done(void *arg, uint32_t txq_index)
 	evq = sc->evq[txq->evq_index];
 	magic = sfxge_sw_ev_txq_magic(SFXGE_SW_EV_TX_QFLUSH_DONE, txq);
 
-	KASSERT(evq->init_state == SFXGE_EVQ_STARTED,
-	    ("evq not started"));
+	KASSERT(evq->init_state == SFXGE_EVQ_STARTED, ("evq not started"));
 	efx_ev_qpost(evq->common, magic);
 
 	return (B_FALSE);
@@ -494,8 +490,8 @@ sfxge_evq_stat_init(struct sfxge_evq *evq)
 		return (ENOMEM);
 
 	for (id = 0; id < EV_NQSTATS; id++) {
-		SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(evq_stats_node),
-		    OID_AUTO, efx_ev_qstat_name(sc->enp, id),
+		SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(evq_stats_node), OID_AUTO,
+		    efx_ev_qstat_name(sc->enp, id),
 		    CTLTYPE_U64 | CTLFLAG_RD | CTLFLAG_MPSAFE, evq, id,
 		    sfxge_evq_stat_handler, "Q", "");
 	}
@@ -555,10 +551,10 @@ sfxge_ev_stat_init(struct sfxge_softc *sc)
 
 	for (id = 0; id < EV_NQSTATS; id++) {
 		snprintf(name, sizeof(name), "ev_%s",
-			 efx_ev_qstat_name(sc->enp, id));
+		    efx_ev_qstat_name(sc->enp, id));
 		SYSCTL_ADD_PROC(ctx, stat_list, OID_AUTO, name,
-		    CTLTYPE_U64 | CTLFLAG_RD | CTLFLAG_MPSAFE,
-		    sc, id, sfxge_ev_stat_handler, "Q", "");
+		    CTLTYPE_U64 | CTLFLAG_RD | CTLFLAG_MPSAFE, sc, id,
+		    sfxge_ev_stat_handler, "Q", "");
 	}
 }
 
@@ -591,8 +587,8 @@ sfxge_int_mod_handler(SYSCTL_HANDLER_ARGS)
 	SFXGE_ADAPTER_LOCK(sc);
 
 	if (req->newptr != NULL) {
-		if ((error = SYSCTL_IN(req, &moderation, sizeof(moderation)))
-		    != 0)
+		if ((error = SYSCTL_IN(req, &moderation, sizeof(moderation))) !=
+		    0)
 			goto out;
 
 		/* We may not be calling efx_ev_qmoderate() now,
@@ -611,7 +607,7 @@ sfxge_int_mod_handler(SYSCTL_HANDLER_ARGS)
 		}
 	} else {
 		error = SYSCTL_OUT(req, &sc->ev_moderation,
-				   sizeof(sc->ev_moderation));
+		    sizeof(sc->ev_moderation));
 	}
 
 out:
@@ -639,7 +635,7 @@ sfxge_ev_initialized(void *arg)
 }
 
 static boolean_t
-sfxge_ev_link_change(void *arg, efx_link_mode_t	link_mode)
+sfxge_ev_link_change(void *arg, efx_link_mode_t link_mode)
 {
 	struct sfxge_evq *evq;
 	struct sfxge_softc *sc;
@@ -655,18 +651,18 @@ sfxge_ev_link_change(void *arg, efx_link_mode_t	link_mode)
 }
 
 static const efx_ev_callbacks_t sfxge_ev_callbacks = {
-	.eec_initialized	= sfxge_ev_initialized,
-	.eec_rx			= sfxge_ev_rx,
-	.eec_tx			= sfxge_ev_tx,
-	.eec_exception		= sfxge_ev_exception,
-	.eec_rxq_flush_done	= sfxge_ev_rxq_flush_done,
-	.eec_rxq_flush_failed	= sfxge_ev_rxq_flush_failed,
-	.eec_txq_flush_done	= sfxge_ev_txq_flush_done,
-	.eec_software		= sfxge_ev_software,
-	.eec_sram		= sfxge_ev_sram,
-	.eec_wake_up		= sfxge_ev_wake_up,
-	.eec_timer		= sfxge_ev_timer,
-	.eec_link_change	= sfxge_ev_link_change,
+	.eec_initialized = sfxge_ev_initialized,
+	.eec_rx = sfxge_ev_rx,
+	.eec_tx = sfxge_ev_tx,
+	.eec_exception = sfxge_ev_exception,
+	.eec_rxq_flush_done = sfxge_ev_rxq_flush_done,
+	.eec_rxq_flush_failed = sfxge_ev_rxq_flush_failed,
+	.eec_txq_flush_done = sfxge_ev_txq_flush_done,
+	.eec_software = sfxge_ev_software,
+	.eec_sram = sfxge_ev_sram,
+	.eec_wake_up = sfxge_ev_wake_up,
+	.eec_timer = sfxge_ev_timer,
+	.eec_link_change = sfxge_ev_link_change,
 };
 
 int
@@ -677,7 +673,7 @@ sfxge_ev_qpoll(struct sfxge_evq *evq)
 	SFXGE_EVQ_LOCK(evq);
 
 	if (__predict_false(evq->init_state != SFXGE_EVQ_STARTING &&
-			    evq->init_state != SFXGE_EVQ_STARTED)) {
+		evq->init_state != SFXGE_EVQ_STARTED)) {
 		rc = EINVAL;
 		goto fail;
 	}
@@ -758,13 +754,13 @@ sfxge_ev_qstart(struct sfxge_softc *sc, unsigned int index)
 
 	/* Program the buffer table. */
 	if ((rc = efx_sram_buf_tbl_set(sc->enp, evq->buf_base_id, esmp,
-	    EFX_EVQ_NBUFS(evq->entries))) != 0)
+		 EFX_EVQ_NBUFS(evq->entries))) != 0)
 		return (rc);
 
 	/* Create the common code event queue. */
 	if ((rc = efx_ev_qcreate(sc->enp, index, esmp, evq->entries,
-	    evq->buf_base_id, sc->ev_moderation, EFX_EVQ_FLAGS_TYPE_AUTO,
-	    &evq->common)) != 0)
+		 evq->buf_base_id, sc->ev_moderation, EFX_EVQ_FLAGS_TYPE_AUTO,
+		 &evq->common)) != 0)
 		goto fail;
 
 	SFXGE_EVQ_LOCK(evq);
@@ -818,8 +814,7 @@ sfxge_ev_stop(struct sfxge_softc *sc)
 	intr = &sc->intr;
 	enp = sc->enp;
 
-	KASSERT(intr->state == SFXGE_INTR_STARTED,
-	    ("Interrupts not started"));
+	KASSERT(intr->state == SFXGE_INTR_STARTED, ("Interrupts not started"));
 
 	/* Stop the event queue(s) */
 	index = sc->evq_count;
@@ -906,15 +901,11 @@ sfxge_ev_qinit(struct sfxge_softc *sc, unsigned int index)
 	 * other.
 	 */
 	if (index == 0)
-		evq->entries =
-			ROUNDUP_POW_OF_TWO(sc->rxq_entries +
-					   3 * sc->txq_entries +
-					   128);
+		evq->entries = ROUNDUP_POW_OF_TWO(
+		    sc->rxq_entries + 3 * sc->txq_entries + 128);
 	else
-		evq->entries =
-			ROUNDUP_POW_OF_TWO(sc->rxq_entries +
-					   sc->txq_entries +
-					   128);
+		evq->entries = ROUNDUP_POW_OF_TWO(
+		    sc->rxq_entries + sc->txq_entries + 128);
 
 	/* Initialise TX completion list */
 	evq->txqs = &evq->txq;
@@ -925,7 +916,7 @@ sfxge_ev_qinit(struct sfxge_softc *sc, unsigned int index)
 
 	/* Allocate buffer table entries. */
 	sfxge_sram_buf_tbl_alloc(sc, EFX_EVQ_NBUFS(evq->entries),
-				 &evq->buf_base_id);
+	    &evq->buf_base_id);
 
 	SFXGE_EVQ_LOCK_INIT(evq, device_get_nameunit(sc->dev), index);
 
@@ -992,16 +983,14 @@ sfxge_ev_init(struct sfxge_softc *sc)
 	 * read and change it.
 	 */
 	sc->ev_moderation = SFXGE_MODERATION;
-	SYSCTL_ADD_PROC(sysctl_ctx, SYSCTL_CHILDREN(sysctl_tree),
-	    OID_AUTO, "int_mod", CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_MPSAFE,
-	    sc, 0, sfxge_int_mod_handler, "IU",
-	    "sfxge interrupt moderation (us)");
+	SYSCTL_ADD_PROC(sysctl_ctx, SYSCTL_CHILDREN(sysctl_tree), OID_AUTO,
+	    "int_mod", CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_MPSAFE, sc, 0,
+	    sfxge_int_mod_handler, "IU", "sfxge interrupt moderation (us)");
 
 #if EFSYS_OPT_QSTATS
-	sc->evqs_stats_node = SYSCTL_ADD_NODE(
-	    device_get_sysctl_ctx(sc->dev), SYSCTL_CHILDREN(sc->stats_node),
-	    OID_AUTO, "evq", CTLFLAG_RD | CTLFLAG_MPSAFE, NULL,
-	    "Event queues stats");
+	sc->evqs_stats_node = SYSCTL_ADD_NODE(device_get_sysctl_ctx(sc->dev),
+	    SYSCTL_CHILDREN(sc->stats_node), OID_AUTO, "evq",
+	    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "Event queues stats");
 	if (sc->evqs_stats_node == NULL) {
 		rc = ENOMEM;
 		goto fail_evqs_stats_node;

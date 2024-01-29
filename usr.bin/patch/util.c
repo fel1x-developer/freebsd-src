@@ -1,11 +1,11 @@
 /*-
  * Copyright 1986, Larry Wall
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following condition is met:
  * 1. Redistributions of source code must retain the above copyright notice,
  * this condition and the following disclaimer.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND ANY
  * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -17,7 +17,7 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- * 
+ *
  * patch - a program to apply diffs to original files
  *
  * -C option added in 1998, original code by Marc Espie, based on FreeBSD
@@ -36,23 +36,23 @@
 #include <paths.h>
 #include <signal.h>
 #include <stdarg.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include "common.h"
-#include "util.h"
 #include "backupfile.h"
+#include "common.h"
 #include "pathnames.h"
+#include "util.h"
 
 /* Rename a file, copying it if necessary. */
 
 int
 move_file(const char *from, const char *to)
 {
-	int	fromfd;
-	ssize_t	i;
+	int fromfd;
+	ssize_t i;
 
 	/* to stdout? */
 
@@ -81,8 +81,8 @@ move_file(const char *from, const char *to)
 #endif
 	if (rename(from, to) < 0) {
 		if (errno != EXDEV || copy_file(from, to) < 0) {
-			say("Can't create %s, output is in %s: %s\n",
-			    to, from, strerror(errno));
+			say("Can't create %s, output is in %s: %s\n", to, from,
+			    strerror(errno));
 			return -1;
 		}
 	}
@@ -94,13 +94,13 @@ move_file(const char *from, const char *to)
 int
 backup_file(const char *orig)
 {
-	struct stat	filestat;
-	char		bakname[PATH_MAX], *s, *simplename;
-	dev_t		orig_device;
-	ino_t		orig_inode;
+	struct stat filestat;
+	char bakname[PATH_MAX], *s, *simplename;
+	dev_t orig_device;
+	ino_t orig_inode;
 
 	if (backup_type == none || stat(orig, &filestat) != 0)
-		return 0;			/* nothing to do */
+		return 0; /* nothing to do */
 	/*
 	 * If the user used zero prefixes or suffixes, then
 	 * he doesn't want backups.  Yet we have to remove
@@ -114,7 +114,8 @@ backup_file(const char *orig)
 	orig_inode = filestat.st_ino;
 
 	if (origprae) {
-		if (strlcpy(bakname, origprae, sizeof(bakname)) >= sizeof(bakname) ||
+		if (strlcpy(bakname, origprae, sizeof(bakname)) >=
+			sizeof(bakname) ||
 		    strlcat(bakname, orig, sizeof(bakname)) >= sizeof(bakname))
 			fatal("filename %s too long for buffer\n", origprae);
 	} else {
@@ -163,10 +164,10 @@ backup_file(const char *orig)
 int
 copy_file(const char *from, const char *to)
 {
-	int	tofd, fromfd;
-	ssize_t	i;
+	int tofd, fromfd;
+	ssize_t i;
 
-	tofd = open(to, O_CREAT|O_TRUNC|O_WRONLY, 0666);
+	tofd = open(to, O_CREAT | O_TRUNC | O_WRONLY, 0666);
 	if (tofd < 0)
 		return -1;
 	fromfd = open(from, O_RDONLY, 0);
@@ -186,7 +187,7 @@ copy_file(const char *from, const char *to)
 char *
 savestr(const char *s)
 {
-	char	*rv;
+	char *rv;
 
 	if (!s)
 		s = "Oops";
@@ -206,7 +207,7 @@ savestr(const char *s)
 char *
 xstrdup(const char *s)
 {
-	char	*rv;
+	char *rv;
 
 	if (!s)
 		s = "Oops";
@@ -222,7 +223,7 @@ xstrdup(const char *s)
 void
 say(const char *fmt, ...)
 {
-	va_list	ap;
+	va_list ap;
 
 	va_start(ap, fmt);
 	vfprintf(stdout, fmt, ap);
@@ -236,7 +237,7 @@ say(const char *fmt, ...)
 void
 fatal(const char *fmt, ...)
 {
-	va_list	ap;
+	va_list ap;
 
 	va_start(ap, fmt);
 	fprintf(stderr, "patch: **** ");
@@ -251,8 +252,8 @@ fatal(const char *fmt, ...)
 void
 pfatal(const char *fmt, ...)
 {
-	va_list	ap;
-	int	errnum = errno;
+	va_list ap;
+	int errnum = errno;
 
 	fprintf(stderr, "patch: **** ");
 	va_start(ap, fmt);
@@ -268,9 +269,9 @@ pfatal(const char *fmt, ...)
 void
 ask(const char *fmt, ...)
 {
-	va_list	ap;
-	ssize_t	nr = 0;
-	static	int ttyfd = -1;
+	va_list ap;
+	ssize_t nr = 0;
+	static int ttyfd = -1;
 
 	va_start(ap, fmt);
 	vfprintf(stdout, fmt, ap);
@@ -296,7 +297,7 @@ ask(const char *fmt, ...)
 void
 set_signals(int reset)
 {
-	static sig_t	hupval, intval;
+	static sig_t hupval, intval;
 
 	if (!reset) {
 		hupval = signal(SIGHUP, SIG_IGN);
@@ -328,16 +329,16 @@ ignore_signals(void)
 void
 makedirs(const char *filename, bool striplast)
 {
-	char	*tmpbuf;
+	char *tmpbuf;
 
 	if ((tmpbuf = strdup(filename)) == NULL)
 		fatal("out of memory\n");
 
 	if (striplast) {
-		char	*s = strrchr(tmpbuf, '/');
+		char *s = strrchr(tmpbuf, '/');
 		if (s == NULL) {
 			free(tmpbuf);
-			return;	/* nothing to be done */
+			return; /* nothing to be done */
 		}
 		*s = '\0';
 	}
@@ -352,9 +353,9 @@ makedirs(const char *filename, bool striplast)
 char *
 fetchname(const char *at, bool *exists, int strip_leading)
 {
-	char		*fullname, *name, *t;
-	int		sleading, tab;
-	struct stat	filestat;
+	char *fullname, *name, *t;
+	int sleading, tab;
+	struct stat filestat;
 
 	if (at == NULL || *at == '\0')
 		return NULL;
@@ -373,8 +374,9 @@ fetchname(const char *at, bool *exists, int strip_leading)
 
 	tab = strchr(t, '\t') != NULL;
 	/* Strip off up to `strip_leading' path components and NUL terminate. */
-	for (sleading = strip_leading; *t != '\0' && ((tab && *t != '\t') ||
-	    !isspace((unsigned char)*t)); t++) {
+	for (sleading = strip_leading;
+	     *t != '\0' && ((tab && *t != '\t') || !isspace((unsigned char)*t));
+	     t++) {
 		if (t[0] == '/' && t[1] != '/' && t[1] != '\0')
 			if (--sleading >= 0)
 				name = t + 1;
@@ -388,7 +390,8 @@ fetchname(const char *at, bool *exists, int strip_leading)
 	 */
 	if (strip_leading == 957 && name != fullname && *fullname != '/') {
 		name[-1] = '\0';
-		if (stat(fullname, &filestat) == 0 && S_ISDIR(filestat.st_mode)) {
+		if (stat(fullname, &filestat) == 0 &&
+		    S_ISDIR(filestat.st_mode)) {
 			name[-1] = '/';
 			name = fullname;
 		}

@@ -26,6 +26,7 @@
 
 #include <sys/cdefs.h>
 #include <sys/stat.h>
+
 #include <assert.h>
 #include <errno.h>
 #include <limits.h>
@@ -41,22 +42,16 @@ static struct {
 	const char *name;
 	enum alias alias;
 } scheme_alias[] = {
-	{ "ebr", ALIAS_EBR },
-	{ "efi", ALIAS_EFI },
-	{ "fat16b", ALIAS_FAT16B },
-	{ "fat32", ALIAS_FAT32 },
-	{ "fat32lba", ALIAS_FAT32LBA },
-	{ "freebsd", ALIAS_FREEBSD },
-	{ "freebsd-boot", ALIAS_FREEBSD_BOOT },
+	{ "ebr", ALIAS_EBR }, { "efi", ALIAS_EFI }, { "fat16b", ALIAS_FAT16B },
+	{ "fat32", ALIAS_FAT32 }, { "fat32lba", ALIAS_FAT32LBA },
+	{ "freebsd", ALIAS_FREEBSD }, { "freebsd-boot", ALIAS_FREEBSD_BOOT },
 	{ "freebsd-nandfs", ALIAS_FREEBSD_NANDFS },
 	{ "freebsd-swap", ALIAS_FREEBSD_SWAP },
 	{ "freebsd-ufs", ALIAS_FREEBSD_UFS },
 	{ "freebsd-vinum", ALIAS_FREEBSD_VINUM },
-	{ "freebsd-zfs", ALIAS_FREEBSD_ZFS },
-	{ "mbr", ALIAS_MBR },
-	{ "ntfs", ALIAS_NTFS },
-	{ "prepboot", ALIAS_PPCBOOT },
-	{ NULL, ALIAS_NONE }		/* Keep last! */
+	{ "freebsd-zfs", ALIAS_FREEBSD_ZFS }, { "mbr", ALIAS_MBR },
+	{ "ntfs", ALIAS_NTFS }, { "prepboot", ALIAS_PPCBOOT },
+	{ NULL, ALIAS_NONE } /* Keep last! */
 };
 
 static struct mkimg_scheme *first;
@@ -181,7 +176,7 @@ u_int
 scheme_max_secsz(void)
 {
 
-	return ((scheme == NULL) ? INT_MAX+1U : scheme->maxsecsz);
+	return ((scheme == NULL) ? INT_MAX + 1U : scheme->maxsecsz);
 }
 
 lba_t

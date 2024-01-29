@@ -25,21 +25,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_cpu.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/systm.h>
 #include <sys/exec.h>
 #include <sys/imgact.h>
-#include <sys/linker.h>
-#include <sys/reg.h>
-#include <sys/proc.h>
-#include <sys/sysent.h>
 #include <sys/imgact_elf.h>
-#include <sys/syscall.h>
+#include <sys/kernel.h>
+#include <sys/linker.h>
+#include <sys/proc.h>
+#include <sys/reg.h>
 #include <sys/signalvar.h>
+#include <sys/syscall.h>
+#include <sys/sysent.h>
 #include <sys/vnode.h>
 
 #include <vm/vm.h>
@@ -51,91 +51,82 @@
 #include <machine/npx.h>
 
 struct sysentvec elf32_freebsd_sysvec = {
-	.sv_size	= SYS_MAXSYSCALL,
-	.sv_table	= sysent,
-	.sv_fixup	= __elfN(freebsd_fixup),
-	.sv_sendsig	= sendsig,
-	.sv_sigcode	= sigcode,
-	.sv_szsigcode	= &szsigcode,
-	.sv_name	= "FreeBSD ELF32",
-	.sv_coredump	= __elfN(coredump),
+	.sv_size = SYS_MAXSYSCALL,
+	.sv_table = sysent,
+	.sv_fixup = __elfN(freebsd_fixup),
+	.sv_sendsig = sendsig,
+	.sv_sigcode = sigcode,
+	.sv_szsigcode = &szsigcode,
+	.sv_name = "FreeBSD ELF32",
+	.sv_coredump = __elfN(coredump),
 	.sv_elf_core_osabi = ELFOSABI_FREEBSD,
 	.sv_elf_core_abi_vendor = FREEBSD_ABI_VENDOR,
 	.sv_elf_core_prepare_notes = __elfN(prepare_notes),
-	.sv_minsigstksz	= MINSIGSTKSZ,
-	.sv_minuser	= VM_MIN_ADDRESS,
-	.sv_maxuser	= VM_MAXUSER_ADDRESS,
-	.sv_usrstack	= USRSTACK,
-	.sv_psstrings	= PS_STRINGS,
-	.sv_psstringssz	= sizeof(struct ps_strings),
-	.sv_stackprot	= VM_PROT_ALL,
+	.sv_minsigstksz = MINSIGSTKSZ,
+	.sv_minuser = VM_MIN_ADDRESS,
+	.sv_maxuser = VM_MAXUSER_ADDRESS,
+	.sv_usrstack = USRSTACK,
+	.sv_psstrings = PS_STRINGS,
+	.sv_psstringssz = sizeof(struct ps_strings),
+	.sv_stackprot = VM_PROT_ALL,
 	.sv_copyout_auxargs = __elfN(freebsd_copyout_auxargs),
-	.sv_copyout_strings	= exec_copyout_strings,
-	.sv_setregs	= exec_setregs,
-	.sv_fixlimit	= NULL,
-	.sv_maxssiz	= NULL,
-	.sv_flags	= SV_ABI_FREEBSD | SV_ASLR | SV_IA32 | SV_ILP32 |
-			    SV_SHP | SV_TIMEKEEP | SV_RNG_SEED_VER | SV_SIGSYS,
+	.sv_copyout_strings = exec_copyout_strings,
+	.sv_setregs = exec_setregs,
+	.sv_fixlimit = NULL,
+	.sv_maxssiz = NULL,
+	.sv_flags = SV_ABI_FREEBSD | SV_ASLR | SV_IA32 | SV_ILP32 | SV_SHP |
+	    SV_TIMEKEEP | SV_RNG_SEED_VER | SV_SIGSYS,
 	.sv_set_syscall_retval = cpu_set_syscall_retval,
 	.sv_fetch_syscall_args = cpu_fetch_syscall_args,
 	.sv_syscallnames = syscallnames,
 	.sv_shared_page_base = SHAREDPAGE,
 	.sv_shared_page_len = PAGE_SIZE,
-	.sv_schedtail	= NULL,
+	.sv_schedtail = NULL,
 	.sv_thread_detach = NULL,
-	.sv_trap	= NULL,
-	.sv_onexec_old	= exec_onexec_old,
-	.sv_onexit	= exit_onexit,
+	.sv_trap = NULL,
+	.sv_onexec_old = exec_onexec_old,
+	.sv_onexit = exit_onexit,
 	.sv_set_fork_retval = x86_set_fork_retval,
 	.sv_regset_begin = SET_BEGIN(__elfN(regset)),
-	.sv_regset_end  = SET_LIMIT(__elfN(regset)),
+	.sv_regset_end = SET_LIMIT(__elfN(regset)),
 };
 INIT_SYSENTVEC(elf32_sysvec, &elf32_freebsd_sysvec);
 
-static Elf32_Brandinfo freebsd_brand_info = {
-	.brand		= ELFOSABI_FREEBSD,
-	.machine	= EM_386,
-	.compat_3_brand	= "FreeBSD",
-	.interp_path	= "/libexec/ld-elf.so.1",
-	.sysvec		= &elf32_freebsd_sysvec,
-	.interp_newpath	= NULL,
-	.brand_note	= &elf32_freebsd_brandnote,
-	.flags		= BI_CAN_EXEC_DYN | BI_BRAND_NOTE
-};
+static Elf32_Brandinfo freebsd_brand_info = { .brand = ELFOSABI_FREEBSD,
+	.machine = EM_386,
+	.compat_3_brand = "FreeBSD",
+	.interp_path = "/libexec/ld-elf.so.1",
+	.sysvec = &elf32_freebsd_sysvec,
+	.interp_newpath = NULL,
+	.brand_note = &elf32_freebsd_brandnote,
+	.flags = BI_CAN_EXEC_DYN | BI_BRAND_NOTE };
 
 SYSINIT(elf32, SI_SUB_EXEC, SI_ORDER_FIRST,
-	(sysinit_cfunc_t) elf32_insert_brand_entry,
-	&freebsd_brand_info);
+    (sysinit_cfunc_t)elf32_insert_brand_entry, &freebsd_brand_info);
 
-static Elf32_Brandinfo freebsd_brand_oinfo = {
-	.brand		= ELFOSABI_FREEBSD,
-	.machine	= EM_386,
-	.compat_3_brand	= "FreeBSD",
-	.interp_path	= "/usr/libexec/ld-elf.so.1",
-	.sysvec		= &elf32_freebsd_sysvec,
-	.interp_newpath	= NULL,
-	.brand_note	= &elf32_freebsd_brandnote,
-	.flags		= BI_CAN_EXEC_DYN | BI_BRAND_NOTE
-};
+static Elf32_Brandinfo freebsd_brand_oinfo = { .brand = ELFOSABI_FREEBSD,
+	.machine = EM_386,
+	.compat_3_brand = "FreeBSD",
+	.interp_path = "/usr/libexec/ld-elf.so.1",
+	.sysvec = &elf32_freebsd_sysvec,
+	.interp_newpath = NULL,
+	.brand_note = &elf32_freebsd_brandnote,
+	.flags = BI_CAN_EXEC_DYN | BI_BRAND_NOTE };
 
 SYSINIT(oelf32, SI_SUB_EXEC, SI_ORDER_ANY,
-	(sysinit_cfunc_t) elf32_insert_brand_entry,
-	&freebsd_brand_oinfo);
+    (sysinit_cfunc_t)elf32_insert_brand_entry, &freebsd_brand_oinfo);
 
-static Elf32_Brandinfo kfreebsd_brand_info = {
-	.brand		= ELFOSABI_FREEBSD,
-	.machine	= EM_386,
-	.compat_3_brand	= "FreeBSD",
-	.interp_path	= "/lib/ld.so.1",
-	.sysvec		= &elf32_freebsd_sysvec,
-	.interp_newpath	= NULL,
-	.brand_note	= &elf32_kfreebsd_brandnote,
-	.flags		= BI_CAN_EXEC_DYN | BI_BRAND_NOTE_MANDATORY
-};
+static Elf32_Brandinfo kfreebsd_brand_info = { .brand = ELFOSABI_FREEBSD,
+	.machine = EM_386,
+	.compat_3_brand = "FreeBSD",
+	.interp_path = "/lib/ld.so.1",
+	.sysvec = &elf32_freebsd_sysvec,
+	.interp_newpath = NULL,
+	.brand_note = &elf32_kfreebsd_brandnote,
+	.flags = BI_CAN_EXEC_DYN | BI_BRAND_NOTE_MANDATORY };
 
 SYSINIT(kelf32, SI_SUB_EXEC, SI_ORDER_ANY,
-	(sysinit_cfunc_t) elf32_insert_brand_entry,
-	&kfreebsd_brand_info);
+    (sysinit_cfunc_t)elf32_insert_brand_entry, &kfreebsd_brand_info);
 
 void
 elf32_dump_thread(struct thread *td, void *dst, size_t *off)
@@ -150,8 +141,8 @@ elf32_dump_thread(struct thread *td, void *dst, size_t *off)
 			len += elf32_populate_note(NT_X86_XSTATE,
 			    get_pcb_user_save_td(td), dst,
 			    cpu_max_ext_state_size, &buf);
-			*(uint64_t *)((char *)buf + X86_XSTATE_XCR0_OFFSET) =
-			    xsave_mask;
+			*(uint64_t *)((char *)buf +
+			    X86_XSTATE_XCR0_OFFSET) = xsave_mask;
 		} else
 			len += elf32_populate_note(NT_X86_XSTATE, NULL, NULL,
 			    cpu_max_ext_state_size, NULL);
@@ -166,7 +157,7 @@ elf_is_ifunc_reloc(Elf_Size r_info)
 	return (ELF_R_TYPE(r_info) == R_386_IRELATIVE);
 }
 
-#define	ERI_LOCAL	0x0001
+#define ERI_LOCAL 0x0001
 
 /* Process one elf relocation with addend. */
 static int
@@ -184,14 +175,14 @@ elf_reloc_internal(linker_file_t lf, Elf_Addr relocbase, const void *data,
 	switch (type) {
 	case ELF_RELOC_REL:
 		rel = (const Elf_Rel *)data;
-		where = (Elf_Addr *) (relocbase + rel->r_offset);
+		where = (Elf_Addr *)(relocbase + rel->r_offset);
 		addend = *where;
 		rtype = ELF_R_TYPE(rel->r_info);
 		symidx = ELF_R_SYM(rel->r_info);
 		break;
 	case ELF_RELOC_RELA:
 		rela = (const Elf_Rela *)data;
-		where = (Elf_Addr *) (relocbase + rela->r_offset);
+		where = (Elf_Addr *)(relocbase + rela->r_offset);
 		addend = rela->r_addend;
 		rtype = ELF_R_TYPE(rela->r_info);
 		symidx = ELF_R_SYM(rela->r_info);
@@ -201,7 +192,7 @@ elf_reloc_internal(linker_file_t lf, Elf_Addr relocbase, const void *data,
 	}
 
 	if ((flags & ERI_LOCAL) != 0) {
-		if (rtype == R_386_RELATIVE) {	/* A + B */
+		if (rtype == R_386_RELATIVE) { /* A + B */
 			addr = elf_relocaddr(lf, relocbase + addend);
 			if (*where != addr)
 				*where = addr;
@@ -210,62 +201,64 @@ elf_reloc_internal(linker_file_t lf, Elf_Addr relocbase, const void *data,
 	}
 
 	switch (rtype) {
-		case R_386_NONE:	/* none */
-			break;
+	case R_386_NONE: /* none */
+		break;
 
-		case R_386_32:		/* S + A */
-			error = lookup(lf, symidx, 1, &addr);
-			if (error != 0)
-				return (-1);
-			addr += addend;
-			if (*where != addr)
-				*where = addr;
-			break;
-
-		case R_386_PC32:	/* S + A - P */
-			error = lookup(lf, symidx, 1, &addr);
-			if (error != 0)
-				return (-1);
-			addr += addend - (Elf_Addr)where;
-			if (*where != addr)
-				*where = addr;
-			break;
-
-		case R_386_COPY:	/* none */
-			/*
-			 * There shouldn't be copy relocations in kernel
-			 * objects.
-			 */
-			printf("kldload: unexpected R_COPY relocation, "
-			    "symbol index %d\n", symidx);
+	case R_386_32: /* S + A */
+		error = lookup(lf, symidx, 1, &addr);
+		if (error != 0)
 			return (-1);
-			break;
+		addr += addend;
+		if (*where != addr)
+			*where = addr;
+		break;
 
-		case R_386_GLOB_DAT:	/* S */
-		case R_386_JMP_SLOT:	/* S */
-			error = lookup(lf, symidx, 1, &addr);
-			if (error != 0)
-				return (-1);
-			if (*where != addr)
-				*where = addr;
-			break;
-
-		case R_386_RELATIVE:
-			break;
-
-		case R_386_IRELATIVE:
-			addr = relocbase + addend;
-			addr = ((Elf_Addr (*)(void))addr)();
-			if (*where != addr)
-				*where = addr;
-			break;
-
-		default:
-			printf("kldload: unexpected relocation type %d, "
-			    "symbol index %d\n", rtype, symidx);
+	case R_386_PC32: /* S + A - P */
+		error = lookup(lf, symidx, 1, &addr);
+		if (error != 0)
 			return (-1);
+		addr += addend - (Elf_Addr)where;
+		if (*where != addr)
+			*where = addr;
+		break;
+
+	case R_386_COPY: /* none */
+		/*
+		 * There shouldn't be copy relocations in kernel
+		 * objects.
+		 */
+		printf("kldload: unexpected R_COPY relocation, "
+		       "symbol index %d\n",
+		    symidx);
+		return (-1);
+		break;
+
+	case R_386_GLOB_DAT: /* S */
+	case R_386_JMP_SLOT: /* S */
+		error = lookup(lf, symidx, 1, &addr);
+		if (error != 0)
+			return (-1);
+		if (*where != addr)
+			*where = addr;
+		break;
+
+	case R_386_RELATIVE:
+		break;
+
+	case R_386_IRELATIVE:
+		addr = relocbase + addend;
+		addr = ((Elf_Addr(*)(void))addr)();
+		if (*where != addr)
+			*where = addr;
+		break;
+
+	default:
+		printf("kldload: unexpected relocation type %d, "
+		       "symbol index %d\n",
+		    rtype, symidx);
+		return (-1);
 	}
-	return(0);
+	return (0);
 }
 
 int
@@ -281,8 +274,8 @@ elf_reloc_local(linker_file_t lf, Elf_Addr relocbase, const void *data,
     int type, elf_lookup_fn lookup)
 {
 
-	return (elf_reloc_internal(lf, relocbase, data, type, lookup,
-	    ERI_LOCAL));
+	return (
+	    elf_reloc_internal(lf, relocbase, data, type, lookup, ERI_LOCAL));
 }
 
 int

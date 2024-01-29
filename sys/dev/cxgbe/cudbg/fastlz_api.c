@@ -24,23 +24,24 @@
    THE SOFTWARE.
    */
 #include <sys/cdefs.h>
-#include "osdep.h"
+
 #include "cudbg.h"
 #include "cudbg_lib_common.h"
 #include "fastlz.h"
+#include "osdep.h"
 
-static unsigned char sixpack_magic[8] = {137, '6', 'P', 'K', 13, 10, 26, 10};
+static unsigned char sixpack_magic[8] = { 137, '6', 'P', 'K', 13, 10, 26, 10 };
 
-#define CUDBG_BLOCK_SIZE      (63*1024)
-#define CUDBG_CHUNK_BUF_LEN   16
-#define CUDBG_MIN_COMPR_LEN   32	/*min data length for applying compression*/
+#define CUDBG_BLOCK_SIZE (63 * 1024)
+#define CUDBG_CHUNK_BUF_LEN 16
+#define CUDBG_MIN_COMPR_LEN 32 /*min data length for applying compression*/
 
 /* for Adler-32 checksum algorithm, see RFC 1950 Section 8.2 */
 
 #define ADLER32_BASE 65521
 
-static inline unsigned long update_adler32(unsigned long checksum,
-					   const void *buf, int len)
+static inline unsigned long
+update_adler32(unsigned long checksum, const void *buf, int len)
 {
 	const unsigned char *ptr = (const unsigned char *)buf;
 	unsigned long s1 = checksum & 0xffff;
@@ -51,19 +52,28 @@ static inline unsigned long update_adler32(unsigned long checksum,
 		len -= k;
 
 		while (k >= 8) {
-			s1 += *ptr++; s2 += s1;
-			s1 += *ptr++; s2 += s1;
-			s1 += *ptr++; s2 += s1;
-			s1 += *ptr++; s2 += s1;
-			s1 += *ptr++; s2 += s1;
-			s1 += *ptr++; s2 += s1;
-			s1 += *ptr++; s2 += s1;
-			s1 += *ptr++; s2 += s1;
+			s1 += *ptr++;
+			s2 += s1;
+			s1 += *ptr++;
+			s2 += s1;
+			s1 += *ptr++;
+			s2 += s1;
+			s1 += *ptr++;
+			s2 += s1;
+			s1 += *ptr++;
+			s2 += s1;
+			s1 += *ptr++;
+			s2 += s1;
+			s1 += *ptr++;
+			s2 += s1;
+			s1 += *ptr++;
+			s2 += s1;
 			k -= 8;
 		}
 
 		while (k-- > 0) {
-			s1 += *ptr++; s2 += s1;
+			s1 += *ptr++;
+			s2 += s1;
 		}
 		s1 = s1 % ADLER32_BASE;
 		s2 = s2 % ADLER32_BASE;
@@ -71,18 +81,20 @@ static inline unsigned long update_adler32(unsigned long checksum,
 	return (s2 << 16) + s1;
 }
 
-int write_magic(struct cudbg_buffer *_out_buff)
+int
+write_magic(struct cudbg_buffer *_out_buff)
 {
 	int rc;
 
 	rc = write_to_buf(_out_buff->data, _out_buff->size, &_out_buff->offset,
-			  sixpack_magic, 8);
+	    sixpack_magic, 8);
 
 	return rc;
 }
 
-int write_to_buf(void *out_buf, u32 out_buf_size, u32 *offset, void *in_buf,
-		 u32 in_buf_size)
+int
+write_to_buf(void *out_buf, u32 out_buf_size, u32 *offset, void *in_buf,
+    u32 in_buf_size)
 {
 	int rc = 0;
 
@@ -98,20 +110,21 @@ err:
 	return rc;
 }
 
-int read_from_buf(void *in_buf, u32 in_buf_size, u32 *offset, void *out_buf,
-		  u32 out_buf_size)
+int
+read_from_buf(void *in_buf, u32 in_buf_size, u32 *offset, void *out_buf,
+    u32 out_buf_size)
 {
 	if (in_buf_size - *offset < out_buf_size)
 		return 0;
 
 	memcpy((char *)out_buf, (char *)in_buf + *offset, out_buf_size);
-	*offset =  *offset + out_buf_size;
+	*offset = *offset + out_buf_size;
 	return out_buf_size;
 }
 
-int write_chunk_header(struct cudbg_buffer *_outbuf, int id, int options,
-		       unsigned long size, unsigned long checksum,
-		       unsigned long extra)
+int
+write_chunk_header(struct cudbg_buffer *_outbuf, int id, int options,
+    unsigned long size, unsigned long checksum, unsigned long extra)
 {
 	unsigned char buffer[CUDBG_CHUNK_BUF_LEN];
 	int rc = 0;
@@ -134,13 +147,14 @@ int write_chunk_header(struct cudbg_buffer *_outbuf, int id, int options,
 	buffer[15] = (extra >> 24) & 255;
 
 	rc = write_to_buf(_outbuf->data, _outbuf->size, &_outbuf->offset,
-			  buffer, 16);
+	    buffer, 16);
 
 	return rc;
 }
 
-int write_compression_hdr(struct cudbg_buffer *pin_buff,
-			  struct cudbg_buffer *pout_buff)
+int
+write_compression_hdr(struct cudbg_buffer *pin_buff,
+    struct cudbg_buffer *pout_buff)
 {
 	struct cudbg_buffer tmp_buffer;
 	unsigned long fsize = pin_buff->size;
@@ -171,29 +185,27 @@ int write_compression_hdr(struct cudbg_buffer *pin_buff,
 	buffer[5] = 0;
 	buffer[6] = 0;
 	buffer[7] = 0;
-	buffer[8] = (strlen(shown_name)+1) & 255;
-	buffer[9] = (unsigned char)((strlen(shown_name)+1) >> 8);
+	buffer[8] = (strlen(shown_name) + 1) & 255;
+	buffer[9] = (unsigned char)((strlen(shown_name) + 1) >> 8);
 	checksum = 1L;
 	checksum = update_adler32(checksum, buffer, 10);
 	checksum = update_adler32(checksum, shown_name,
-				  (int)strlen(shown_name)+1);
+	    (int)strlen(shown_name) + 1);
 
 	rc = write_chunk_header(pout_buff, 1, 0,
-				10+(unsigned long)strlen(shown_name)+1,
-				checksum, 0);
+	    10 + (unsigned long)strlen(shown_name) + 1, checksum, 0);
 
 	if (rc)
 		goto err1;
 
 	rc = write_to_buf(pout_buff->data, pout_buff->size,
-			  &(pout_buff->offset), buffer, 10);
+	    &(pout_buff->offset), buffer, 10);
 
 	if (rc)
 		goto err1;
 
 	rc = write_to_buf(pout_buff->data, pout_buff->size,
-			   &(pout_buff->offset), shown_name,
-			   (u32)strlen(shown_name)+1);
+	    &(pout_buff->offset), shown_name, (u32)strlen(shown_name) + 1);
 
 	if (rc)
 		goto err1;
@@ -204,7 +216,8 @@ err:
 	return rc;
 }
 
-int compress_buff(struct cudbg_buffer *pin_buff, struct cudbg_buffer *pout_buff)
+int
+compress_buff(struct cudbg_buffer *pin_buff, struct cudbg_buffer *pout_buff)
 {
 	struct cudbg_buffer tmp_buffer;
 	struct cudbg_hdr *cudbg_hdr;
@@ -225,27 +238,27 @@ int compress_buff(struct cudbg_buffer *pin_buff, struct cudbg_buffer *pout_buff)
 	if (bytes_read < 32)
 		compress_method = 0;
 
-	cudbg_hdr = (struct cudbg_hdr *)  pout_buff->data;
+	cudbg_hdr = (struct cudbg_hdr *)pout_buff->data;
 
 	switch (compress_method) {
 	case 1:
 		chunk_size = fastlz_compress_level(level, pin_buff->data,
-						   bytes_read, result);
+		    bytes_read, result);
 
 		checksum = update_adler32(1L, result, chunk_size);
 
-		if ((chunk_size > 62000) && (cudbg_hdr->reserved[7] < (u32)
-		    chunk_size))   /* 64512 */
-			cudbg_hdr->reserved[7] = (u32) chunk_size;
+		if ((chunk_size > 62000) &&
+		    (cudbg_hdr->reserved[7] < (u32)chunk_size)) /* 64512 */
+			cudbg_hdr->reserved[7] = (u32)chunk_size;
 
 		rc = write_chunk_header(pout_buff, 17, 1, chunk_size, checksum,
-					bytes_read);
+		    bytes_read);
 
 		if (rc)
 			goto err_put_buff;
 
 		rc = write_to_buf(pout_buff->data, pout_buff->size,
-				  &pout_buff->offset, result, chunk_size);
+		    &pout_buff->offset, result, chunk_size);
 
 		if (rc)
 			goto err_put_buff;
@@ -258,14 +271,13 @@ int compress_buff(struct cudbg_buffer *pin_buff, struct cudbg_buffer *pout_buff)
 		checksum = update_adler32(1L, pin_buff->data, bytes_read);
 
 		rc = write_chunk_header(pout_buff, 17, 0, bytes_read, checksum,
-					bytes_read);
+		    bytes_read);
 
 		if (rc)
 			goto err_put_buff;
 
 		rc = write_to_buf(pout_buff->data, pout_buff->size,
-				  &pout_buff->offset, pin_buff->data,
-				  bytes_read);
+		    &pout_buff->offset, pin_buff->data, bytes_read);
 		if (rc)
 			goto err_put_buff;
 
@@ -280,14 +292,15 @@ err:
 
 /* return non-zero if magic sequence is detected */
 /* warning: reset the read pointer to the beginning of the file */
-int detect_magic(struct cudbg_buffer *_c_buff)
+int
+detect_magic(struct cudbg_buffer *_c_buff)
 {
 	unsigned char buffer[8];
 	size_t bytes_read;
 	int c;
 
 	bytes_read = read_from_buf(_c_buff->data, _c_buff->size,
-				   &_c_buff->offset, buffer, 8);
+	    &_c_buff->offset, buffer, 8);
 
 	if (bytes_read < 8)
 		return 0;
@@ -299,35 +312,38 @@ int detect_magic(struct cudbg_buffer *_c_buff)
 	return -1;
 }
 
-static inline unsigned long readU16(const unsigned char *ptr)
+static inline unsigned long
+readU16(const unsigned char *ptr)
 {
-	return ptr[0]+(ptr[1]<<8);
+	return ptr[0] + (ptr[1] << 8);
 }
 
-static inline unsigned long readU32(const unsigned char *ptr)
+static inline unsigned long
+readU32(const unsigned char *ptr)
 {
-	return ptr[0]+(ptr[1]<<8)+(ptr[2]<<16)+(ptr[3]<<24);
+	return ptr[0] + (ptr[1] << 8) + (ptr[2] << 16) + (ptr[3] << 24);
 }
 
-int read_chunk_header(struct cudbg_buffer *pc_buff, int *pid, int *poptions,
-		      unsigned long *psize, unsigned long *pchecksum,
-		      unsigned long *pextra)
+int
+read_chunk_header(struct cudbg_buffer *pc_buff, int *pid, int *poptions,
+    unsigned long *psize, unsigned long *pchecksum, unsigned long *pextra)
 {
 	unsigned char buffer[CUDBG_CHUNK_BUF_LEN];
 	int byte_r = read_from_buf(pc_buff->data, pc_buff->size,
-				   &pc_buff->offset, buffer, 16);
+	    &pc_buff->offset, buffer, 16);
 	if (byte_r == 0)
 		return 0;
 
 	*pid = readU16(buffer) & 0xffff;
-	*poptions = readU16(buffer+2) & 0xffff;
-	*psize = readU32(buffer+4) & 0xffffffff;
-	*pchecksum = readU32(buffer+8) & 0xffffffff;
-	*pextra = readU32(buffer+12) & 0xffffffff;
+	*poptions = readU16(buffer + 2) & 0xffff;
+	*psize = readU32(buffer + 4) & 0xffffffff;
+	*pchecksum = readU32(buffer + 8) & 0xffffffff;
+	*pextra = readU32(buffer + 12) & 0xffffffff;
 	return 0;
 }
 
-int validate_buffer(struct cudbg_buffer *compressed_buffer)
+int
+validate_buffer(struct cudbg_buffer *compressed_buffer)
 {
 	if (!detect_magic(compressed_buffer))
 		return CUDBG_STATUS_INVALID_BUFF;
@@ -335,8 +351,8 @@ int validate_buffer(struct cudbg_buffer *compressed_buffer)
 	return 0;
 }
 
-int decompress_buffer(struct cudbg_buffer *pc_buff,
-		      struct cudbg_buffer *pd_buff)
+int
+decompress_buffer(struct cudbg_buffer *pc_buff, struct cudbg_buffer *pd_buff)
 {
 	struct cudbg_buffer tmp_compressed_buffer;
 	struct cudbg_buffer tmp_decompressed_buffer;
@@ -357,13 +373,13 @@ int decompress_buffer(struct cudbg_buffer *pc_buff,
 		return CUDBG_STATUS_SMALL_BUFF;
 
 	rc = get_scratch_buff(pd_buff, CUDBG_BLOCK_SIZE,
-			      &tmp_compressed_buffer);
+	    &tmp_compressed_buffer);
 
 	if (rc)
 		goto err_cbuff;
 
 	rc = get_scratch_buff(pd_buff, CUDBG_BLOCK_SIZE,
-			      &tmp_decompressed_buffer);
+	    &tmp_decompressed_buffer);
 	if (rc)
 		goto err_dcbuff;
 
@@ -376,9 +392,8 @@ int decompress_buffer(struct cudbg_buffer *pc_buff,
 		if (pc_buff->offset > pc_buff->size)
 			break;
 
-		rc =  read_chunk_header(pc_buff, &chunk_id, &chunk_options,
-					&chunk_size, &chunk_checksum,
-					&chunk_extra);
+		rc = read_chunk_header(pc_buff, &chunk_id, &chunk_options,
+		    &chunk_size, &chunk_checksum, &chunk_extra);
 		if (rc != 0)
 			break;
 
@@ -387,8 +402,7 @@ int decompress_buffer(struct cudbg_buffer *pc_buff,
 		    (chunk_size < CUDBG_BLOCK_SIZE)) {
 
 			bytes_read = read_from_buf(pc_buff->data, pc_buff->size,
-						   &pc_buff->offset, buffer,
-						   chunk_size);
+			    &pc_buff->offset, buffer, chunk_size);
 
 			if (bytes_read == 0)
 				return 0;
@@ -402,7 +416,7 @@ int decompress_buffer(struct cudbg_buffer *pc_buff,
 			if (pd_buff->size < decompressed_size) {
 
 				pd_buff->size = 2 * CUDBG_BLOCK_SIZE +
-						decompressed_size;
+				    decompressed_size;
 				pc_buff->offset -= chunk_size + 16;
 				return CUDBG_STATUS_SMALL_BUFF;
 			}
@@ -415,17 +429,19 @@ int decompress_buffer(struct cudbg_buffer *pc_buff,
 
 			/* allocate new memory with chunk_size size */
 			rc = get_scratch_buff(pd_buff, chunk_size,
-					      &tmp_compressed_buffer);
+			    &tmp_compressed_buffer);
 			if (rc)
 				goto err_cbuff;
 
 			rc = get_scratch_buff(pd_buff, chunk_size,
-					      &tmp_decompressed_buffer);
+			    &tmp_decompressed_buffer);
 			if (rc)
 				goto err_dcbuff;
 
-			compressed_buffer = (unsigned char *)tmp_compressed_buffer.data;
-			decompressed_buffer = (unsigned char *)tmp_decompressed_buffer.data;
+			compressed_buffer = (unsigned char *)
+						tmp_compressed_buffer.data;
+			decompressed_buffer = (unsigned char *)
+						  tmp_decompressed_buffer.data;
 		}
 
 		if ((chunk_id == 17) && decompressed_size) {
@@ -438,30 +454,26 @@ int decompress_buffer(struct cudbg_buffer *pc_buff,
 				for (;;) {
 					/* Write a function for this */
 					r = (CUDBG_BLOCK_SIZE < remaining) ?
-					    CUDBG_BLOCK_SIZE : remaining;
-					bytes_read =
-					read_from_buf(pc_buff->data,
-						      pc_buff->size,
-						      &pc_buff->offset, buffer,
-						      r);
+					    CUDBG_BLOCK_SIZE :
+					    remaining;
+					bytes_read = read_from_buf(
+					    pc_buff->data, pc_buff->size,
+					    &pc_buff->offset, buffer, r);
 
 					if (bytes_read == 0)
 						return 0;
 
 					write_to_buf(pd_buff->data,
-						     pd_buff->size,
-						     &pd_buff->offset, buffer,
-						     bytes_read);
+					    pd_buff->size, &pd_buff->offset,
+					    buffer, bytes_read);
 					checksum = update_adler32(checksum,
-								  buffer,
-								  bytes_read);
+					    buffer, bytes_read);
 					remaining -= bytes_read;
 
 					/* verify everything is written
 					 * correctly */
 					if (checksum != chunk_checksum)
-						return
-						CUDBG_STATUS_CHKSUM_MISSMATCH;
+						return CUDBG_STATUS_CHKSUM_MISSMATCH;
 				}
 
 				break;
@@ -469,38 +481,34 @@ int decompress_buffer(struct cudbg_buffer *pc_buff,
 				/* compressed using FastLZ */
 			case 1:
 				bytes_read = read_from_buf(pc_buff->data,
-							   pc_buff->size,
-							   &pc_buff->offset,
-							   compressed_buffer,
-							   chunk_size);
+				    pc_buff->size, &pc_buff->offset,
+				    compressed_buffer, chunk_size);
 
 				if (bytes_read == 0)
 					return 0;
 
 				checksum = update_adler32(1L, compressed_buffer,
-							  chunk_size);
+				    chunk_size);
 
 				/* verify that the chunk data is correct */
 				if (checksum != chunk_checksum) {
 					return CUDBG_STATUS_CHKSUM_MISSMATCH;
 				} else {
 					/* decompress and verify */
-					remaining =
-					fastlz_decompress(compressed_buffer,
-							  chunk_size,
-							  decompressed_buffer,
-							  chunk_extra);
+					remaining = fastlz_decompress(
+					    compressed_buffer, chunk_size,
+					    decompressed_buffer, chunk_extra);
 
 					if (remaining != chunk_extra) {
 						rc =
-						CUDBG_STATUS_DECOMPRESS_FAIL;
+						    CUDBG_STATUS_DECOMPRESS_FAIL;
 						goto err;
 					} else {
 						write_to_buf(pd_buff->data,
-							     pd_buff->size,
-							     &pd_buff->offset,
-							     decompressed_buffer,
-							     chunk_extra);
+						    pd_buff->size,
+						    &pd_buff->offset,
+						    decompressed_buffer,
+						    chunk_extra);
 					}
 				}
 				break;
@@ -508,9 +516,7 @@ int decompress_buffer(struct cudbg_buffer *pc_buff,
 			default:
 				break;
 			}
-
 		}
-
 	}
 
 err:
@@ -521,4 +527,3 @@ err_dcbuff:
 err_cbuff:
 	return rc;
 }
-

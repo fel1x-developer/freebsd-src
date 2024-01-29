@@ -30,11 +30,10 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-
 #include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/rman.h>
-#include <sys/lock.h>
 #include <sys/sysctl.h>
 
 #include <machine/bus.h>
@@ -45,38 +44,35 @@
 
 #include <arm/broadcom/bcm2835/bcm2835_clkman.h>
 
-static struct ofw_compat_data compat_data[] = {
-	{"broadcom,bcm2835-pwm",	1},
-	{"brcm,bcm2835-pwm",		1},
-	{NULL,				0}
-};
+static struct ofw_compat_data compat_data[] = { { "broadcom,bcm2835-pwm", 1 },
+	{ "brcm,bcm2835-pwm", 1 }, { NULL, 0 } };
 
 struct bcm_pwm_softc {
-	device_t		sc_dev;
+	device_t sc_dev;
 
-	struct resource *	sc_mem_res;
-	bus_space_tag_t		sc_m_bst;
-	bus_space_handle_t	sc_m_bsh;
+	struct resource *sc_mem_res;
+	bus_space_tag_t sc_m_bst;
+	bus_space_handle_t sc_m_bsh;
 
-	device_t		clkman;
+	device_t clkman;
 
-	uint32_t		freq;    /* shared between channels 1 and 2 */
-	uint32_t		period;  /* channel 1 */
-	uint32_t		ratio;
-	uint32_t		mode;
-	uint32_t		period2; /* channel 2 */
-	uint32_t		ratio2;
-	uint32_t		mode2;
+	uint32_t freq;	 /* shared between channels 1 and 2 */
+	uint32_t period; /* channel 1 */
+	uint32_t ratio;
+	uint32_t mode;
+	uint32_t period2; /* channel 2 */
+	uint32_t ratio2;
+	uint32_t mode2;
 };
 
-#define BCM_PWM_MEM_WRITE(_sc, _off, _val)		\
-    bus_space_write_4(_sc->sc_m_bst, _sc->sc_m_bsh, _off, _val)
-#define BCM_PWM_MEM_READ(_sc, _off)			\
-    bus_space_read_4(_sc->sc_m_bst, _sc->sc_m_bsh, _off)
-#define BCM_PWM_CLK_WRITE(_sc, _off, _val)		\
-    bus_space_write_4(_sc->sc_c_bst, _sc->sc_c_bsh, _off, _val)
-#define BCM_PWM_CLK_READ(_sc, _off)			\
-    bus_space_read_4(_sc->sc_c_bst, _sc->sc_c_bsh, _off)
+#define BCM_PWM_MEM_WRITE(_sc, _off, _val) \
+	bus_space_write_4(_sc->sc_m_bst, _sc->sc_m_bsh, _off, _val)
+#define BCM_PWM_MEM_READ(_sc, _off) \
+	bus_space_read_4(_sc->sc_m_bst, _sc->sc_m_bsh, _off)
+#define BCM_PWM_CLK_WRITE(_sc, _off, _val) \
+	bus_space_write_4(_sc->sc_c_bst, _sc->sc_c_bsh, _off, _val)
+#define BCM_PWM_CLK_READ(_sc, _off) \
+	bus_space_read_4(_sc->sc_c_bst, _sc->sc_c_bsh, _off)
 
 #define W_CTL(_sc, _val) BCM_PWM_MEM_WRITE(_sc, 0x00, _val)
 #define R_CTL(_sc) BCM_PWM_MEM_READ(_sc, 0x00)
@@ -105,7 +101,7 @@ bcm_pwm_reconf(struct bcm_pwm_softc *sc)
 	ctlr = 0; /* pre-assign zero, enable bits, write to CTL at end */
 
 	if (sc->mode == 0 && sc->mode2 == 0) /* both modes are zero */
-		return 0; /* device is now off - return */
+		return 0;		     /* device is now off - return */
 
 	/* set the PWM clock frequency */
 	/* TODO:  should I only do this if it changes and not stop it first? */
@@ -134,13 +130,14 @@ bcm_pwm_reconf(struct bcm_pwm_softc *sc)
 	 *  1 MODE1  chan 1 PWM/Serializer mode (0 PWM, 1 Serializer)
 	 *  0 PWMEN1 chan 1 enable (0 disable, 1 enable)
 	 *
-	 * Notes on M/S enable:  when this bit is '1', a simple M/S ratio is used. In short,
-	 * the value of 'ratio' is the number of 'on' bits, and the total length of the data is
-	 * defined by 'period'.  So if 'ratio' is 2500 and 'period' is 10000, then the output
-	 * remains 'on' for 2500 clocks, and goes 'off' for the remaining 7500 clocks.
-	 * When the M/S enable is '0', a more complicated algorithm effectively 'dithers' the
-	 * pulses in order to obtain the desired ratio.  For details, see section 9.3 of the
-	 * BCM2835 ARM Peripherals manual.
+	 * Notes on M/S enable:  when this bit is '1', a simple M/S ratio is
+	 * used. In short, the value of 'ratio' is the number of 'on' bits, and
+	 * the total length of the data is defined by 'period'.  So if 'ratio'
+	 * is 2500 and 'period' is 10000, then the output remains 'on' for 2500
+	 * clocks, and goes 'off' for the remaining 7500 clocks. When the M/S
+	 * enable is '0', a more complicated algorithm effectively 'dithers' the
+	 * pulses in order to obtain the desired ratio.  For details, see
+	 * section 9.3 of the BCM2835 ARM Peripherals manual.
 	 */
 
 	if (sc->mode != 0) {
@@ -168,7 +165,7 @@ bcm_pwm_reconf(struct bcm_pwm_softc *sc)
 		if (sc->mode2 == 1)
 			ctlr |= 0x8100; /* chan 2 enable + chan 2 M/S enable */
 		else
-			ctlr |= 0x100;  /* chan 2 enable */
+			ctlr |= 0x100; /* chan 2 enable */
 	}
 
 	/* write CTL register with updated value */
@@ -254,7 +251,7 @@ bcm_pwm_ratio_proc(SYSCTL_HANDLER_ARGS)
 	error = sysctl_handle_int(oidp, &r, sizeof(r), req);
 	if (error != 0 || req->newptr == NULL)
 		return (error);
-	if (r > sc->period)			// XXX >= ?
+	if (r > sc->period) // XXX >= ?
 		return (EINVAL);
 	sc->ratio = r;
 	W_DAT(sc, sc->ratio);
@@ -320,7 +317,7 @@ bcm_pwm_ratio2_proc(SYSCTL_HANDLER_ARGS)
 	error = sysctl_handle_int(oidp, &r, sizeof(r), req);
 	if (error != 0 || req->newptr == NULL)
 		return (error);
-	if (r > sc->period2)		// XXX >= ?
+	if (r > sc->period2) // XXX >= ?
 		return (EINVAL);
 	sc->ratio2 = r;
 	W_DAT(sc, sc->ratio2);
@@ -359,10 +356,9 @@ bcm_pwm_sysctl_init(struct bcm_pwm_softc *sc)
 	tree_node = device_get_sysctl_tree(sc->sc_dev);
 	tree = SYSCTL_CHILDREN(tree_node);
 	if (bootverbose) {
-#define RR(x,y)							\
-	SYSCTL_ADD_PROC(ctx, tree, OID_AUTO, y,			\
-	    CTLFLAG_RW | CTLTYPE_UINT | CTLFLAG_NEEDGIANT,	\
-	    sc, 0x##x,						\
+#define RR(x, y)                                                      \
+	SYSCTL_ADD_PROC(ctx, tree, OID_AUTO, y,                       \
+	    CTLFLAG_RW | CTLTYPE_UINT | CTLFLAG_NEEDGIANT, sc, 0x##x, \
 	    bcm_pwm_reg_proc, "IU", "Register 0x" #x " " y);
 
 		RR(24, "DAT2")
@@ -489,10 +485,10 @@ bcm_pwm_get_node(device_t bus, device_t dev)
 
 static device_method_t bcm_pwm_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		bcm_pwm_probe),
-	DEVMETHOD(device_attach,	bcm_pwm_attach),
-	DEVMETHOD(device_detach,	bcm_pwm_detach),
-	DEVMETHOD(ofw_bus_get_node,	bcm_pwm_get_node),
+	DEVMETHOD(device_probe, bcm_pwm_probe),
+	DEVMETHOD(device_attach, bcm_pwm_attach),
+	DEVMETHOD(device_detach, bcm_pwm_detach),
+	DEVMETHOD(ofw_bus_get_node, bcm_pwm_get_node),
 
 	DEVMETHOD_END
 };

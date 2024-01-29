@@ -4,9 +4,9 @@
  */
 
 /************************************************************************
-          Copyright 1988, 1991 by Carnegie Mellon University
+	  Copyright 1988, 1991 by Carnegie Mellon University
 
-                          All Rights Reserved
+			  All Rights Reserved
 
 Permission to use, copy, modify, and distribute this software and its
 documentation for any purpose and without fee is hereby granted, provided
@@ -32,50 +32,49 @@ SOFTWARE.
 
 #include <sys/types.h>
 #include <sys/param.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
 #include <sys/file.h>
-#include <sys/time.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/utsname.h>
 
 #include <net/if.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>	/* inet_ntoa */
 
-#ifndef	NO_UNISTD
+#include <arpa/inet.h> /* inet_ntoa */
+
+#ifndef NO_UNISTD
 #include <unistd.h>
 #endif
 
-#include <err.h>
-#include <stdlib.h>
-#include <signal.h>
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
+#include <assert.h>
 #include <ctype.h>
+#include <err.h>
+#include <errno.h>
 #include <netdb.h>
 #include <paths.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
-#include <assert.h>
 
-#ifdef	NO_SETSID
-# include <fcntl.h>		/* for O_RDONLY, etc */
+#ifdef NO_SETSID
+#include <fcntl.h> /* for O_RDONLY, etc */
 #endif
 
 #include "bootp.h"
 #include "getif.h"
 #include "hwaddr.h"
-#include "report.h"
 #include "patchlevel.h"
+#include "report.h"
 
 /* Local definitions: */
-#define MAX_MSG_SIZE			(3*512)	/* Maximum packet size */
+#define MAX_MSG_SIZE (3 * 512) /* Maximum packet size */
 #define TRUE 1
 #define FALSE 0
 #define get_network_errmsg get_errmsg
-
-
 
 /*
  * Externals, forward declarations, and global variables
@@ -91,49 +90,43 @@ static void handle_request(void);
 
 u_short bootps_port, bootpc_port;
 
-
 /*
  * Internet socket and interface config structures
  */
 
-struct sockaddr_in bind_addr;	/* Listening */
-struct sockaddr_in recv_addr;	/* Packet source */
-struct sockaddr_in send_addr;	/*  destination */
-
+struct sockaddr_in bind_addr; /* Listening */
+struct sockaddr_in recv_addr; /* Packet source */
+struct sockaddr_in send_addr; /*  destination */
 
 /*
  * option defaults
  */
-int debug = 0;					/* Debugging flag (level) */
-struct timeval actualtimeout =
-{								/* fifteen minutes */
-	15 * 60L,					/* tv_sec */
-	0							/* tv_usec */
+int debug = 0; /* Debugging flag (level) */
+struct timeval actualtimeout = {
+	/* fifteen minutes */
+	15 * 60L, /* tv_sec */
+	0	  /* tv_usec */
 };
-u_char maxhops = 4;				/* Number of hops allowed for requests. */
-u_int minwait = 3;				/* Number of seconds client must wait before
-						   its bootrequest packets are forwarded. */
-int arpmod = TRUE;				/* modify the ARP table */
+u_char maxhops = 4; /* Number of hops allowed for requests. */
+u_int minwait = 3;  /* Number of seconds client must wait before
+		       its bootrequest packets are forwarded. */
+int arpmod = TRUE;  /* modify the ARP table */
 
 /*
  * General
  */
 
-int s;							/* Socket file descriptor */
-char *pktbuf;					/* Receive packet buffer */
+int s;	      /* Socket file descriptor */
+char *pktbuf; /* Receive packet buffer */
 int pktlen;
 char *progname;
 char *servername;
-int32 server_ipa;				/* Real server IP address, network order. */
+int32 server_ipa; /* Real server IP address, network order. */
 
 struct in_addr my_ip_addr;
 
 struct utsname my_uname;
 char *hostname;
-
-
-
-
 
 /*
  * Initialization such as command-line processing is done and then the
@@ -153,13 +146,15 @@ main(int argc, char **argv)
 	int standalone;
 
 	progname = strrchr(argv[0], '/');
-	if (progname) progname++;
-	else progname = argv[0];
+	if (progname)
+		progname++;
+	else
+		progname = argv[0];
 
 	/*
 	 * Initialize logging.
 	 */
-	report_init(0);				/* uses progname */
+	report_init(0); /* uses progname */
 
 	/*
 	 * Log startup
@@ -175,7 +170,7 @@ main(int argc, char **argv)
 		report(LOG_ERR, "malloc failed");
 		exit(1);
 	}
-	bp = (struct bootp *) pktbuf;
+	bp = (struct bootp *)pktbuf;
 
 	/*
 	 * Check to see if a socket was passed to us from inetd.
@@ -186,10 +181,10 @@ main(int argc, char **argv)
 	 */
 	s = 0;
 	ba_len = sizeof(bind_addr);
-	bzero((char *) &bind_addr, ba_len);
+	bzero((char *)&bind_addr, ba_len);
 	errno = 0;
 	standalone = TRUE;
-	if (getsockname(s, (struct sockaddr *) &bind_addr, &ba_len) == 0) {
+	if (getsockname(s, (struct sockaddr *)&bind_addr, &ba_len) == 0) {
 		/*
 		 * Descriptor 0 is a socket.  Assume we are a child of inetd.
 		 */
@@ -226,16 +221,17 @@ main(int argc, char **argv)
 			break;
 		switch (argv[0][1]) {
 
-		case 'a':				/* don't modify the ARP table */
+		case 'a': /* don't modify the ARP table */
 			arpmod = FALSE;
 			break;
-		case 'd':				/* debug level */
+		case 'd': /* debug level */
 			if (argv[0][2]) {
 				stmp = &(argv[0][2]);
 			} else if (argv[1] && argv[1][0] == '-') {
 				/*
 				 * Backwards-compatible behavior:
-				 * no parameter, so just increment the debug flag.
+				 * no parameter, so just increment the debug
+				 * flag.
 				 */
 				debug++;
 				break;
@@ -251,7 +247,7 @@ main(int argc, char **argv)
 			debug = n;
 			break;
 
-		case 'h':				/* hop count limit */
+		case 'h': /* hop count limit */
 			if (argv[0][2]) {
 				stmp = &(argv[0][2]);
 			} else {
@@ -259,24 +255,23 @@ main(int argc, char **argv)
 				argv++;
 				stmp = argv[0];
 			}
-			if (!stmp || (sscanf(stmp, "%d", &n) != 1) ||
-				(n < 0) || (n > 16))
-			{
+			if (!stmp || (sscanf(stmp, "%d", &n) != 1) || (n < 0) ||
+			    (n > 16)) {
 				warnx("invalid hop count limit");
 				break;
 			}
 			maxhops = (u_char)n;
 			break;
 
-		case 'i':				/* inetd mode */
+		case 'i': /* inetd mode */
 			standalone = FALSE;
 			break;
 
-		case 's':				/* standalone mode */
+		case 's': /* standalone mode */
 			standalone = TRUE;
 			break;
 
-		case 't':				/* timeout */
+		case 't': /* timeout */
 			if (argv[0][2]) {
 				stmp = &(argv[0][2]);
 			} else {
@@ -288,7 +283,7 @@ main(int argc, char **argv)
 				warnx("invalid timeout specification");
 				break;
 			}
-			actualtimeout.tv_sec = (int32) (60 * n);
+			actualtimeout.tv_sec = (int32)(60 * n);
 			/*
 			 * If the actual timeout is zero, pass a NULL pointer
 			 * to select so it blocks indefinitely, otherwise,
@@ -297,7 +292,7 @@ main(int argc, char **argv)
 			timeout = (n > 0) ? &actualtimeout : NULL;
 			break;
 
-		case 'w':				/* wait time */
+		case 'w': /* wait time */
 			if (argv[0][2]) {
 				stmp = &(argv[0][2]);
 			} else {
@@ -305,9 +300,8 @@ main(int argc, char **argv)
 				argv++;
 				stmp = argv[0];
 			}
-			if (!stmp || (sscanf(stmp, "%d", &n) != 1) ||
-				(n < 0) || (n > 60))
-			{
+			if (!stmp || (sscanf(stmp, "%d", &n) != 1) || (n < 0) ||
+			    (n > 60)) {
 				warnx("invalid wait time");
 				break;
 			}
@@ -320,7 +314,7 @@ main(int argc, char **argv)
 			break;
 
 		} /* switch */
-	} /* for args */
+	}	  /* for args */
 
 	/* Make sure server name argument is suplied. */
 	servername = argv[0];
@@ -342,25 +336,26 @@ main(int argc, char **argv)
 
 	if (standalone) {
 		/*
-		 * Go into background and disassociate from controlling terminal.
+		 * Go into background and disassociate from controlling
+		 * terminal.
 		 * XXX - This is not the POSIX way (Should use setsid). -gwr
 		 */
 		if (debug < 3) {
 			if (fork())
 				exit(0);
-#ifdef	NO_SETSID
-			setpgrp(0,0);
+#ifdef NO_SETSID
+			setpgrp(0, 0);
 #ifdef TIOCNOTTY
 			n = open(_PATH_TTY, O_RDWR);
 			if (n >= 0) {
-				ioctl(n, TIOCNOTTY, (char *) 0);
-				(void) close(n);
+				ioctl(n, TIOCNOTTY, (char *)0);
+				(void)close(n);
 			}
-#endif	/* TIOCNOTTY */
-#else	/* SETSID */
+#endif		  /* TIOCNOTTY */
+#else		  /* SETSID */
 			if (setsid() < 0)
 				perror("setsid");
-#endif	/* SETSID */
+#endif		  /* SETSID */
 		} /* if debug < 3 */
 		/*
 		 * Nuke any timeout value
@@ -387,12 +382,12 @@ main(int argc, char **argv)
 		 */
 		servp = getservbyname("bootps", "udp");
 		if (servp) {
-			bootps_port = ntohs((u_short) servp->s_port);
+			bootps_port = ntohs((u_short)servp->s_port);
 		} else {
-			bootps_port = (u_short) IPPORT_BOOTPS;
+			bootps_port = (u_short)IPPORT_BOOTPS;
 			report(LOG_ERR,
-			   "bootps/udp: unknown service -- using port %d",
-				   bootps_port);
+			    "bootps/udp: unknown service -- using port %d",
+			    bootps_port);
 		}
 
 		/*
@@ -401,9 +396,8 @@ main(int argc, char **argv)
 		bind_addr.sin_family = AF_INET;
 		bind_addr.sin_port = htons(bootps_port);
 		bind_addr.sin_addr.s_addr = INADDR_ANY;
-		if (bind(s, (struct sockaddr *) &bind_addr,
-				 sizeof(bind_addr)) < 0)
-		{
+		if (bind(s, (struct sockaddr *)&bind_addr, sizeof(bind_addr)) <
+		    0) {
 			report(LOG_ERR, "bind: %s", get_network_errmsg());
 			exit(1);
 		}
@@ -415,10 +409,9 @@ main(int argc, char **argv)
 	if (servp) {
 		bootpc_port = ntohs(servp->s_port);
 	} else {
-		report(LOG_ERR,
-			   "bootpc/udp: unknown service -- using port %d",
-			   IPPORT_BOOTPC);
-		bootpc_port = (u_short) IPPORT_BOOTPC;
+		report(LOG_ERR, "bootpc/udp: unknown service -- using port %d",
+		    IPPORT_BOOTPC);
+		bootpc_port = (u_short)IPPORT_BOOTPC;
 	}
 
 	/* no signal catchers */
@@ -434,7 +427,7 @@ main(int argc, char **argv)
 			tv = *timeout;
 
 		nfound = select(s + 1, (fd_set *)&readfds, NULL, NULL,
-						(timeout) ? &tv : NULL);
+		    (timeout) ? &tv : NULL);
 		if (nfound < 0) {
 			if (errno != EINTR) {
 				report(LOG_ERR, "select: %s", get_errmsg());
@@ -442,19 +435,20 @@ main(int argc, char **argv)
 			continue;
 		}
 		if (!(readfds & (1 << s))) {
-			report(LOG_INFO, "exiting after %ld minutes of inactivity",
-				   (long)(actualtimeout.tv_sec / 60));
+			report(LOG_INFO,
+			    "exiting after %ld minutes of inactivity",
+			    (long)(actualtimeout.tv_sec / 60));
 			exit(0);
 		}
 		ra_len = sizeof(recv_addr);
 		n = recvfrom(s, pktbuf, MAX_MSG_SIZE, 0,
-					 (struct sockaddr *) &recv_addr, &ra_len);
+		    (struct sockaddr *)&recv_addr, &ra_len);
 		if (n <= 0) {
 			continue;
 		}
 		if (debug > 3) {
 			report(LOG_INFO, "recvd pkt from IP addr %s",
-				   inet_ntoa(recv_addr.sin_addr));
+			    inet_ntoa(recv_addr.sin_addr));
 		}
 		if (n < sizeof(struct bootp)) {
 			if (debug) {
@@ -475,9 +469,6 @@ main(int argc, char **argv)
 	}
 	return 0;
 }
-
-
-
 
 /*
  * Print "usage" message and exit
@@ -487,8 +478,8 @@ static void
 usage()
 {
 	fprintf(stderr,
-		"usage: bootpgw [-a] [-i | -s] [-d level] [-h count] [-t timeout]\n"
-		"               [-w time] server\n");
+	    "usage: bootpgw [-a] [-i | -s] [-d level] [-h count] [-t timeout]\n"
+	    "               [-w time] server\n");
 	fprintf(stderr, "\t -a\tdon't modify ARP table\n");
 	fprintf(stderr, "\t -d n\tset debug level\n");
 	fprintf(stderr, "\t -h n\tset max hop count\n");
@@ -498,8 +489,6 @@ usage()
 	fprintf(stderr, "\t -w n\tset min wait time (secs)\n");
 	exit(1);
 }
-
-
 
 /*
  * Process BOOTREQUEST packet.
@@ -509,15 +498,15 @@ usage()
 static void
 handle_request()
 {
-	struct bootp *bp = (struct bootp *) pktbuf;
+	struct bootp *bp = (struct bootp *)pktbuf;
 	u_short secs;
-        u_char hops;
+	u_char hops;
 
 	/* XXX - SLIP init: Set bp_ciaddr = recv_addr here? */
 
 	if (debug) {
 		report(LOG_INFO, "request from %s",
-			   inet_ntoa(recv_addr.sin_addr));
+		    inet_ntoa(recv_addr.sin_addr));
 	}
 	/* Has the client been waiting long enough? */
 	secs = ntohs(bp->bp_secs);
@@ -528,7 +517,7 @@ handle_request()
 	hops = bp->bp_hops;
 	if (++hops > maxhops) {
 		report(LOG_NOTICE, "request from %s reached hop limit",
-			   inet_ntoa(recv_addr.sin_addr));
+		    inet_ntoa(recv_addr.sin_addr));
 		return;
 	}
 	bp->bp_hops = hops;
@@ -541,7 +530,7 @@ handle_request()
 
 	/* If gateway address is not set, put in local interface addr. */
 	if (bp->bp_giaddr.s_addr == 0) {
-#if 0	/* BUG */
+#if 0 /* BUG */
 		struct sockaddr_in *sip;
 		struct ifreq *ifr;
 		/*
@@ -558,7 +547,7 @@ handle_request()
 		}
 		sip = (struct sockaddr_in *) &(ifr->ifr_addr);
 		bp->bp_giaddr = sip->sin_addr;
-#else	/* BUG */
+#else /* BUG */
 		/*
 		 * XXX - Just set "giaddr" to our "official" IP address.
 		 * RFC 1532 says giaddr MUST be set to the address of the
@@ -571,7 +560,7 @@ handle_request()
 		 * See handle_reply()
 		 */
 		bp->bp_giaddr = my_ip_addr;
-#endif	/* BUG */
+#endif /* BUG */
 
 		/*
 		 * XXX - DHCP says to insert a subnet mask option into the
@@ -584,15 +573,11 @@ handle_request()
 	send_addr.sin_addr.s_addr = server_ipa;
 
 	/* Send reply with same size packet as request used. */
-	if (sendto(s, pktbuf, pktlen, 0,
-			   (struct sockaddr *) &send_addr,
-			   sizeof(send_addr)) < 0)
-	{
+	if (sendto(s, pktbuf, pktlen, 0, (struct sockaddr *)&send_addr,
+		sizeof(send_addr)) < 0) {
 		report(LOG_ERR, "sendto: %s", get_network_errmsg());
 	}
 }
-
-
 
 /*
  * Process BOOTREPLY packet.
@@ -600,32 +585,31 @@ handle_request()
 static void
 handle_reply()
 {
-	struct bootp *bp = (struct bootp *) pktbuf;
+	struct bootp *bp = (struct bootp *)pktbuf;
 	struct ifreq *ifr;
 	struct sockaddr_in *sip;
 	unsigned char *ha;
 	int len, haf;
 
 	if (debug) {
-		report(LOG_INFO, "   reply for %s",
-			   inet_ntoa(bp->bp_yiaddr));
+		report(LOG_INFO, "   reply for %s", inet_ntoa(bp->bp_yiaddr));
 	}
 	/* Make sure client is directly accessible. */
 	ifr = getif(s, &(bp->bp_yiaddr));
 	if (!ifr) {
 		report(LOG_NOTICE, "no interface for reply to %s",
-			   inet_ntoa(bp->bp_yiaddr));
+		    inet_ntoa(bp->bp_yiaddr));
 		return;
 	}
 #if 1	/* Experimental (see BUG above) */
-/* #ifdef CATER_TO_OLD_CLIENTS ? */
+	/* #ifdef CATER_TO_OLD_CLIENTS ? */
 	/*
 	 * The giaddr field has been set to our "default" IP address
 	 * which might not be on the same interface as the client.
 	 * In case the client looks at giaddr, (which it should not)
 	 * giaddr is now set to the address of the correct interface.
 	 */
-	sip = (struct sockaddr_in *) &(ifr->ifr_addr);
+	sip = (struct sockaddr_in *)&(ifr->ifr_addr);
 	bp->bp_giaddr = sip->sin_addr;
 #endif
 
@@ -642,21 +626,19 @@ handle_reply()
 
 		if (len > MAXHADDRLEN)
 			len = MAXHADDRLEN;
-		haf = (int) bp->bp_htype;
+		haf = (int)bp->bp_htype;
 		if (haf == 0)
 			haf = HTYPE_ETHERNET;
 
 		if (debug > 1)
-			report(LOG_INFO, "setarp %s - %s",
-				   inet_ntoa(dst), haddrtoa(ha, len));
+			report(LOG_INFO, "setarp %s - %s", inet_ntoa(dst),
+			    haddrtoa(ha, len));
 		setarp(s, &dst, haf, ha, len);
 	}
 
 	/* Send reply with same size packet as request used. */
-	if (sendto(s, pktbuf, pktlen, 0,
-			   (struct sockaddr *) &send_addr,
-			   sizeof(send_addr)) < 0)
-	{
+	if (sendto(s, pktbuf, pktlen, 0, (struct sockaddr *)&send_addr,
+		sizeof(send_addr)) < 0) {
 		report(LOG_ERR, "sendto: %s", get_network_errmsg());
 	}
 }

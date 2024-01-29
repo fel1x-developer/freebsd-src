@@ -29,7 +29,7 @@
  */
 
 #ifndef _IOV_H_
-#define	_IOV_H_
+#define _IOV_H_
 
 void seek_iov(const struct iovec *iov1, int niov1, struct iovec *iov2,
     int *niov2, size_t seek);
@@ -39,4 +39,4 @@ ssize_t iov_to_buf(const struct iovec *iov, int niov, void **buf);
 ssize_t buf_to_iov(const void *buf, size_t buflen, const struct iovec *iov,
     int niov, size_t seek);
 
-#endif	/* _IOV_H_ */
+#endif /* _IOV_H_ */

@@ -29,23 +29,22 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
-#include <sys/systm.h>
 #include <sys/socket.h>
 
-#include <net/if.h>
-
-#include <dev/mii/mii.h>
-
 #include <dev/etherswitch/etherswitch.h>
+#include <dev/etherswitch/ip17x/ip175c.h>
 #include <dev/etherswitch/ip17x/ip17x_phy.h>
 #include <dev/etherswitch/ip17x/ip17x_reg.h>
 #include <dev/etherswitch/ip17x/ip17x_var.h>
 #include <dev/etherswitch/ip17x/ip17x_vlans.h>
-#include <dev/etherswitch/ip17x/ip175c.h>
+#include <dev/mii/mii.h>
+
+#include <net/if.h>
 
 /*
  * IP175C specific functions.
@@ -61,7 +60,7 @@ ip175c_reset(struct ip17x_softc *sc)
 
 	/* Reset all the switch settings. */
 	if (ip17x_writephy(sc->sc_dev, IP175C_RESET_PHY, IP175C_RESET_REG,
-	    0x175c))
+		0x175c))
 		return (-1);
 	DELAY(2000);
 
@@ -69,8 +68,8 @@ ip175c_reset(struct ip17x_softc *sc)
 	data = ip17x_readphy(sc->sc_dev, IP175C_MODE_PHY, IP175C_MODE_REG);
 	if (data == 0x175a) {
 		if (ip17x_writephy(sc->sc_dev, IP175C_MODE_PHY, IP175C_MODE_REG,
-		    0x175c))
-		return (-1);
+			0x175c))
+			return (-1);
 	}
 
 	return (0);
@@ -80,7 +79,7 @@ static int
 ip175c_port_vlan_setup(struct ip17x_softc *sc)
 {
 	struct ip17x_vlan *v;
-	uint32_t ports[IP175X_NUM_PORTS], reg[IP175X_NUM_PORTS/2];
+	uint32_t ports[IP175X_NUM_PORTS], reg[IP175X_NUM_PORTS / 2];
 	int i, err, phy;
 
 	KASSERT(sc->cpuport == 5, ("cpuport != 5 not supported for IP175C"));
@@ -239,7 +238,7 @@ ip175c_attach(struct ip17x_softc *sc)
 	data = ip17x_readphy(sc->sc_dev, IP175C_MII_PHY, IP175C_MII_CTL_REG);
 	device_printf(sc->sc_dev, "MII: %x\n", data);
 	/* check mii1 interface if disabled then phy4 and mac4 hold on switch */
-	if((data & (1 << IP175C_MII_MII1_RMII_EN)) == 0)
+	if ((data & (1 << IP175C_MII_MII1_RMII_EN)) == 0)
 		sc->phymask |= 0x10;
 
 	sc->hal.ip17x_reset = ip175c_reset;

@@ -33,15 +33,16 @@
  * LC_CTYPE database generation routines for localedef.
  */
 #include <sys/cdefs.h>
+#include <sys/types.h>
 #include <sys/tree.h>
 
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stddef.h>
 #include <string.h>
-#include <sys/types.h>
-#include <wchar.h>
 #include <unistd.h>
+#include <wchar.h>
+
 #include "localedef.h"
 #include "parser.h"
 
@@ -50,37 +51,36 @@
 #include "_ctype.h"
 #include "runefile.h"
 
-
 /* Needed for bootstrapping, _CTYPE_N */
 #ifndef _CTYPE_N
-#define _CTYPE_N       0x00400000L
+#define _CTYPE_N 0x00400000L
 #endif
 
-#define _ISUPPER	_CTYPE_U
-#define _ISLOWER	_CTYPE_L
-#define	_ISDIGIT	_CTYPE_D
-#define	_ISXDIGIT	_CTYPE_X
-#define	_ISSPACE	_CTYPE_S
-#define	_ISBLANK	_CTYPE_B
-#define	_ISALPHA	_CTYPE_A
-#define	_ISPUNCT	_CTYPE_P
-#define	_ISGRAPH	_CTYPE_G
-#define	_ISPRINT	_CTYPE_R
-#define	_ISCNTRL	_CTYPE_C
-#define	_E1		_CTYPE_Q
-#define	_E2		_CTYPE_I
-#define	_E3		0
-#define	_E4		_CTYPE_N
-#define	_E5		_CTYPE_T
+#define _ISUPPER _CTYPE_U
+#define _ISLOWER _CTYPE_L
+#define _ISDIGIT _CTYPE_D
+#define _ISXDIGIT _CTYPE_X
+#define _ISSPACE _CTYPE_S
+#define _ISBLANK _CTYPE_B
+#define _ISALPHA _CTYPE_A
+#define _ISPUNCT _CTYPE_P
+#define _ISGRAPH _CTYPE_G
+#define _ISPRINT _CTYPE_R
+#define _ISCNTRL _CTYPE_C
+#define _E1 _CTYPE_Q
+#define _E2 _CTYPE_I
+#define _E3 0
+#define _E4 _CTYPE_N
+#define _E5 _CTYPE_T
 
-static wchar_t		last_ctype;
+static wchar_t last_ctype;
 static int ctype_compare(const void *n1, const void *n2);
 
 typedef struct ctype_node {
 	wchar_t wc;
-	int32_t	ctype;
-	int32_t	toupper;
-	int32_t	tolower;
+	int32_t ctype;
+	int32_t toupper;
+	int32_t tolower;
 	RB_ENTRY(ctype_node) entry;
 } ctype_node_t;
 
@@ -102,7 +102,6 @@ init_ctype(void)
 	RB_INIT(&ctypes);
 }
 
-
 static void
 add_ctype_impl(ctype_node_t *ctn)
 {
@@ -117,7 +116,8 @@ add_ctype_impl(ctype_node_t *ctn)
 		ctn->ctype |= (_ISALPHA | _ISGRAPH | _ISPRINT);
 		break;
 	case T_ISDIGIT:
-		ctn->ctype |= (_ISDIGIT | _ISGRAPH | _ISPRINT | _ISXDIGIT | _E4);
+		ctn->ctype |= (_ISDIGIT | _ISGRAPH | _ISPRINT | _ISXDIGIT |
+		    _E4);
 		break;
 	case T_ISSPACE:
 		/*
@@ -175,12 +175,12 @@ add_ctype_impl(ctype_node_t *ctn)
 static ctype_node_t *
 get_ctype(wchar_t wc)
 {
-	ctype_node_t	srch;
-	ctype_node_t	*ctn;
+	ctype_node_t srch;
+	ctype_node_t *ctn;
 
 	srch.wc = wc;
 	if ((ctn = RB_FIND(ctypes, &ctypes, &srch)) == NULL) {
-		if ((ctn = calloc(1, sizeof (*ctn))) == NULL) {
+		if ((ctn = calloc(1, sizeof(*ctn))) == NULL) {
 			errf("out of memory");
 			return (NULL);
 		}
@@ -194,7 +194,7 @@ get_ctype(wchar_t wc)
 void
 add_ctype(int val)
 {
-	ctype_node_t	*ctn;
+	ctype_node_t *ctn;
 
 	if ((ctn = get_ctype(val)) == NULL) {
 		INTERR;
@@ -207,12 +207,11 @@ add_ctype(int val)
 void
 add_ctype_range(wchar_t end)
 {
-	ctype_node_t	*ctn;
-	wchar_t		cur;
+	ctype_node_t *ctn;
+	wchar_t cur;
 
 	if (end < last_ctype) {
-		errf("malformed character range (%u ... %u))",
-		    last_ctype, end);
+		errf("malformed character range (%u ... %u))", last_ctype, end);
 		return;
 	}
 	for (cur = last_ctype + 1; cur <= end; cur++) {
@@ -223,7 +222,6 @@ add_ctype_range(wchar_t end)
 		add_ctype_impl(ctn);
 	}
 	last_ctype = end;
-
 }
 
 /*
@@ -237,7 +235,7 @@ add_ctype_range(wchar_t end)
 void
 add_width(int wc, int width)
 {
-	ctype_node_t	*ctn;
+	ctype_node_t *ctn;
 
 	if ((ctn = get_ctype(wc)) == NULL) {
 		INTERR;
@@ -271,7 +269,7 @@ add_width_range(int start, int end, int width)
 void
 add_caseconv(int val, int wc)
 {
-	ctype_node_t	*ctn;
+	ctype_node_t *ctn;
 
 	ctn = get_ctype(val);
 	if (ctn == NULL) {
@@ -295,18 +293,18 @@ add_caseconv(int val, int wc)
 void
 dump_ctype(void)
 {
-	FILE		*f;
-	_FileRuneLocale	rl;
-	ctype_node_t	*ctn, *last_ct, *last_lo, *last_up;
-	_FileRuneEntry	*ct = NULL;
-	_FileRuneEntry	*lo = NULL;
-	_FileRuneEntry	*up = NULL;
-	wchar_t		wc;
-	uint32_t	runetype_ext_nranges;
-	uint32_t	maplower_ext_nranges;
-	uint32_t	mapupper_ext_nranges;
+	FILE *f;
+	_FileRuneLocale rl;
+	ctype_node_t *ctn, *last_ct, *last_lo, *last_up;
+	_FileRuneEntry *ct = NULL;
+	_FileRuneEntry *lo = NULL;
+	_FileRuneEntry *up = NULL;
+	wchar_t wc;
+	uint32_t runetype_ext_nranges;
+	uint32_t maplower_ext_nranges;
+	uint32_t mapupper_ext_nranges;
 
-	(void) memset(&rl, 0, sizeof (rl));
+	(void)memset(&rl, 0, sizeof(rl));
 	runetype_ext_nranges = 0;
 	last_ct = NULL;
 	maplower_ext_nranges = 0;
@@ -317,8 +315,8 @@ dump_ctype(void)
 	if ((f = open_category()) == NULL)
 		return;
 
-	(void) memcpy(rl.magic, _FILE_RUNE_MAGIC_1, 8);
-	(void) strlcpy(rl.encoding, get_wide_encoding(), sizeof (rl.encoding));
+	(void)memcpy(rl.magic, _FILE_RUNE_MAGIC_1, 8);
+	(void)strlcpy(rl.encoding, get_wide_encoding(), sizeof(rl.encoding));
 
 	/*
 	 * Initialize the identity map.
@@ -328,7 +326,7 @@ dump_ctype(void)
 		rl.mapupper[wc] = htote(wc);
 	}
 
-	RB_FOREACH(ctn, ctypes, &ctypes) {
+	RB_FOREACH (ctn, ctypes, &ctypes) {
 		int conflict = 0;
 
 		wc = ctn->wc;
@@ -364,7 +362,7 @@ dump_ctype(void)
 			 * to return TRUE for them.
 			 */
 			if (strchr("!\"'#$%&()*+,-./:;<=>?@[\\]^_`{|}~",
-			    (char)wc))
+				(char)wc))
 				ctn->ctype |= _ISPUNCT;
 		}
 
@@ -372,13 +370,13 @@ dump_ctype(void)
 		 * POSIX also requires that certain types imply
 		 * others.  Add any inferred types here.
 		 */
-		if (ctn->ctype & (_ISUPPER |_ISLOWER))
+		if (ctn->ctype & (_ISUPPER | _ISLOWER))
 			ctn->ctype |= _ISALPHA;
 		if (ctn->ctype & _ISDIGIT)
 			ctn->ctype |= _ISXDIGIT;
 		if (ctn->ctype & _ISBLANK)
 			ctn->ctype |= _ISSPACE;
-		if (ctn->ctype & (_ISALPHA|_ISDIGIT|_ISXDIGIT))
+		if (ctn->ctype & (_ISALPHA | _ISDIGIT | _ISXDIGIT))
 			ctn->ctype |= _ISGRAPH;
 		if (ctn->ctype & _ISGRAPH)
 			ctn->ctype |= _ISPRINT;
@@ -387,7 +385,8 @@ dump_ctype(void)
 		 * POSIX requires that certain combinations are invalid.
 		 * Try fixing the cases we know about (see add_ctype_impl()).
 		 */
-		if ((ctn->ctype & (_ISSPACE|_ISCNTRL)) == (_ISSPACE|_ISCNTRL))
+		if ((ctn->ctype & (_ISSPACE | _ISCNTRL)) ==
+		    (_ISSPACE | _ISCNTRL))
 			ctn->ctype &= ~_ISPRINT;
 
 		/*
@@ -395,21 +394,21 @@ dump_ctype(void)
 		 * and just warn about them.
 		 */
 		if ((ctn->ctype & _ISALPHA) &&
-		    (ctn->ctype & (_ISPUNCT|_ISDIGIT)))
+		    (ctn->ctype & (_ISPUNCT | _ISDIGIT)))
 			conflict++;
 		if ((ctn->ctype & _ISPUNCT) &&
-		    (ctn->ctype & (_ISDIGIT|_ISALPHA|_ISXDIGIT)))
+		    (ctn->ctype & (_ISDIGIT | _ISALPHA | _ISXDIGIT)))
 			conflict++;
 		if ((ctn->ctype & _ISSPACE) && (ctn->ctype & _ISGRAPH))
 			conflict++;
 		if ((ctn->ctype & _ISCNTRL) && (ctn->ctype & _ISPRINT))
 			conflict++;
-		if ((wc == ' ') && (ctn->ctype & (_ISPUNCT|_ISGRAPH)))
+		if ((wc == ' ') && (ctn->ctype & (_ISPUNCT | _ISGRAPH)))
 			conflict++;
 
 		if (conflict) {
-			warn("conflicting classes for character 0x%x (%x)",
-			    wc, ctn->ctype);
+			warn("conflicting classes for character 0x%x (%x)", wc,
+			    ctn->ctype);
 		}
 		/*
 		 * Handle the lower 256 characters using the simple
@@ -430,11 +429,10 @@ dump_ctype(void)
 			ct[runetype_ext_nranges - 1].max = htote(wc);
 		} else {
 			runetype_ext_nranges++;
-			ct = realloc(ct, sizeof (*ct) * runetype_ext_nranges);
+			ct = realloc(ct, sizeof(*ct) * runetype_ext_nranges);
 			ct[runetype_ext_nranges - 1].min = htote(wc);
 			ct[runetype_ext_nranges - 1].max = htote(wc);
-			ct[runetype_ext_nranges - 1].map =
-			    htote(ctn->ctype);
+			ct[runetype_ext_nranges - 1].map = htote(ctn->ctype);
 		}
 		last_ct = ctn;
 		if (ctn->tolower == 0) {
@@ -445,11 +443,10 @@ dump_ctype(void)
 			last_lo = ctn;
 		} else {
 			maplower_ext_nranges++;
-			lo = realloc(lo, sizeof (*lo) * maplower_ext_nranges);
+			lo = realloc(lo, sizeof(*lo) * maplower_ext_nranges);
 			lo[maplower_ext_nranges - 1].min = htote(wc);
 			lo[maplower_ext_nranges - 1].max = htote(wc);
-			lo[maplower_ext_nranges - 1].map =
-			    htote(ctn->tolower);
+			lo[maplower_ext_nranges - 1].map = htote(ctn->tolower);
 			last_lo = ctn;
 		}
 
@@ -457,15 +454,14 @@ dump_ctype(void)
 			last_up = NULL;
 		} else if ((last_up != NULL) &&
 		    (last_up->toupper + 1 == ctn->toupper)) {
-			up[mapupper_ext_nranges-1].max = htote(wc);
+			up[mapupper_ext_nranges - 1].max = htote(wc);
 			last_up = ctn;
 		} else {
 			mapupper_ext_nranges++;
-			up = realloc(up, sizeof (*up) * mapupper_ext_nranges);
+			up = realloc(up, sizeof(*up) * mapupper_ext_nranges);
 			up[mapupper_ext_nranges - 1].min = htote(wc);
 			up[mapupper_ext_nranges - 1].max = htote(wc);
-			up[mapupper_ext_nranges - 1].map =
-			    htote(ctn->toupper);
+			up[mapupper_ext_nranges - 1].map = htote(ctn->toupper);
 			last_up = ctn;
 		}
 	}
@@ -473,10 +469,10 @@ dump_ctype(void)
 	rl.runetype_ext_nranges = htote(runetype_ext_nranges);
 	rl.maplower_ext_nranges = htote(maplower_ext_nranges);
 	rl.mapupper_ext_nranges = htote(mapupper_ext_nranges);
-	if ((wr_category(&rl, sizeof (rl), f) < 0) ||
-	    (wr_category(ct, sizeof (*ct) * runetype_ext_nranges, f) < 0) ||
-	    (wr_category(lo, sizeof (*lo) * maplower_ext_nranges, f) < 0) ||
-	    (wr_category(up, sizeof (*up) * mapupper_ext_nranges, f) < 0)) {
+	if ((wr_category(&rl, sizeof(rl), f) < 0) ||
+	    (wr_category(ct, sizeof(*ct) * runetype_ext_nranges, f) < 0) ||
+	    (wr_category(lo, sizeof(*lo) * maplower_ext_nranges, f) < 0) ||
+	    (wr_category(up, sizeof(*up) * mapupper_ext_nranges, f) < 0)) {
 		return;
 	}
 

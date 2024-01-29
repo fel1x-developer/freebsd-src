@@ -1,14 +1,14 @@
 /***************************************************************************
  *
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2007-2023 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -18,7 +18,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -30,7 +30,7 @@
  *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ *
  *
  ***************************************************************************/
 
@@ -113,19 +113,19 @@ extern "C" {
  *      than 2^8192, and the modulus must not be equal to zero.
  *****************************************************************************/
 typedef struct _CpaCyLnModExpOpData {
-    CpaFlatBuffer modulus;
-    /**< Flat buffer containing a pointer to the modulus.
-     * This number may be up to 8192 bits in length, and MUST be greater
-     * than zero.
-     */
-    CpaFlatBuffer base;
-    /**< Flat buffer containing a pointer to the base.
-     * This number may be up to 8192 bits in length.
-     */
-    CpaFlatBuffer exponent;
-    /**< Flat buffer containing a pointer to the exponent.
-     * This number may be up to 8192 bits in length.
-     */
+	CpaFlatBuffer modulus;
+	/**< Flat buffer containing a pointer to the modulus.
+	 * This number may be up to 8192 bits in length, and MUST be greater
+	 * than zero.
+	 */
+	CpaFlatBuffer base;
+	/**< Flat buffer containing a pointer to the base.
+	 * This number may be up to 8192 bits in length.
+	 */
+	CpaFlatBuffer exponent;
+	/**< Flat buffer containing a pointer to the exponent.
+	 * This number may be up to 8192 bits in length.
+	 */
 } CpaCyLnModExpOpData;
 
 /**
@@ -149,18 +149,18 @@ typedef struct _CpaCyLnModExpOpData {
  *      both MUST be less than 2^8192.
  *****************************************************************************/
 typedef struct _CpaCyLnModInvOpData {
-    CpaFlatBuffer A;
-    /**< Flat buffer containing a pointer to the value that will be
-     * inverted.
-     * This number may be up to 8192 bits in length, it MUST NOT be zero,
-     * and it MUST be co-prime with B.
-     */
-    CpaFlatBuffer B;
-    /**< Flat buffer containing a pointer to the value that will be used as
-     * the modulus.
-     * This number may be up to 8192 bits in length, it MUST NOT be zero,
-     * and it MUST be co-prime with A.
-     */
+	CpaFlatBuffer A;
+	/**< Flat buffer containing a pointer to the value that will be
+	 * inverted.
+	 * This number may be up to 8192 bits in length, it MUST NOT be zero,
+	 * and it MUST be co-prime with B.
+	 */
+	CpaFlatBuffer B;
+	/**< Flat buffer containing a pointer to the value that will be used as
+	 * the modulus.
+	 * This number may be up to 8192 bits in length, it MUST NOT be zero,
+	 * and it MUST be co-prime with A.
+	 */
 } CpaCyLnModInvOpData;
 
 /**
@@ -177,30 +177,30 @@ typedef struct _CpaCyLnModInvOpData {
  *
  ****************************************************************************/
 typedef struct _CpaCyLnStats {
-    Cpa32U numLnModExpRequests;
-    /**< Total number of successful large number modular exponentiation
-     * requests.*/
-    Cpa32U numLnModExpRequestErrors;
-    /**< Total number of large number modular exponentiation requests that
-     * had an error and could not be processed.  */
-    Cpa32U numLnModExpCompleted;
-    /**< Total number of large number modular exponentiation operations
-     * that completed successfully. */
-    Cpa32U numLnModExpCompletedErrors;
-    /**< Total number of large number modular exponentiation operations
-     * that could not be completed successfully due to errors. */
-    Cpa32U numLnModInvRequests;
-    /**< Total number of successful large number modular inversion
-     * requests.*/
-    Cpa32U numLnModInvRequestErrors;
-    /**< Total number of large number modular inversion requests that
-     * had an error and could not be processed.  */
-    Cpa32U numLnModInvCompleted;
-    /**< Total number of large number modular inversion operations
-     * that completed successfully. */
-    Cpa32U numLnModInvCompletedErrors;
-    /**< Total number of large number modular inversion operations
-     * that could not be completed successfully due to errors. */
+	Cpa32U numLnModExpRequests;
+	/**< Total number of successful large number modular exponentiation
+	 * requests.*/
+	Cpa32U numLnModExpRequestErrors;
+	/**< Total number of large number modular exponentiation requests that
+	 * had an error and could not be processed.  */
+	Cpa32U numLnModExpCompleted;
+	/**< Total number of large number modular exponentiation operations
+	 * that completed successfully. */
+	Cpa32U numLnModExpCompletedErrors;
+	/**< Total number of large number modular exponentiation operations
+	 * that could not be completed successfully due to errors. */
+	Cpa32U numLnModInvRequests;
+	/**< Total number of successful large number modular inversion
+	 * requests.*/
+	Cpa32U numLnModInvRequestErrors;
+	/**< Total number of large number modular inversion requests that
+	 * had an error and could not be processed.  */
+	Cpa32U numLnModInvCompleted;
+	/**< Total number of large number modular inversion operations
+	 * that completed successfully. */
+	Cpa32U numLnModInvCompletedErrors;
+	/**< Total number of large number modular inversion operations
+	 * that could not be completed successfully due to errors. */
 } CpaCyLnStats CPA_DEPRECATED;
 
 /**
@@ -214,30 +214,30 @@ typedef struct _CpaCyLnStats {
  *
  ****************************************************************************/
 typedef struct _CpaCyLnStats64 {
-    Cpa64U numLnModExpRequests;
-    /**< Total number of successful large number modular exponentiation
-     * requests.*/
-    Cpa64U numLnModExpRequestErrors;
-    /**< Total number of large number modular exponentiation requests that
-     * had an error and could not be processed.  */
-    Cpa64U numLnModExpCompleted;
-    /**< Total number of large number modular exponentiation operations
-     * that completed successfully. */
-    Cpa64U numLnModExpCompletedErrors;
-    /**< Total number of large number modular exponentiation operations
-     * that could not be completed successfully due to errors. */
-    Cpa64U numLnModInvRequests;
-    /**< Total number of successful large number modular inversion
-     * requests.*/
-    Cpa64U numLnModInvRequestErrors;
-    /**< Total number of large number modular inversion requests that
-     * had an error and could not be processed.  */
-    Cpa64U numLnModInvCompleted;
-    /**< Total number of large number modular inversion operations
-     * that completed successfully. */
-    Cpa64U numLnModInvCompletedErrors;
-    /**< Total number of large number modular inversion operations
-     * that could not be completed successfully due to errors. */
+	Cpa64U numLnModExpRequests;
+	/**< Total number of successful large number modular exponentiation
+	 * requests.*/
+	Cpa64U numLnModExpRequestErrors;
+	/**< Total number of large number modular exponentiation requests that
+	 * had an error and could not be processed.  */
+	Cpa64U numLnModExpCompleted;
+	/**< Total number of large number modular exponentiation operations
+	 * that completed successfully. */
+	Cpa64U numLnModExpCompletedErrors;
+	/**< Total number of large number modular exponentiation operations
+	 * that could not be completed successfully due to errors. */
+	Cpa64U numLnModInvRequests;
+	/**< Total number of successful large number modular inversion
+	 * requests.*/
+	Cpa64U numLnModInvRequestErrors;
+	/**< Total number of large number modular inversion requests that
+	 * had an error and could not be processed.  */
+	Cpa64U numLnModInvCompleted;
+	/**< Total number of large number modular inversion operations
+	 * that completed successfully. */
+	Cpa64U numLnModInvCompletedErrors;
+	/**< Total number of large number modular inversion operations
+	 * that could not be completed successfully due to errors. */
 } CpaCyLnStats64;
 
 /**
@@ -309,12 +309,9 @@ typedef struct _CpaCyLnStats64 {
  *      CpaCyLnModExpOpData, CpaCyGenFlatBufCbFunc
  *
  *****************************************************************************/
-CpaStatus
-cpaCyLnModExp(const CpaInstanceHandle instanceHandle,
-        const CpaCyGenFlatBufCbFunc pLnModExpCb,
-        void *pCallbackTag,
-        const CpaCyLnModExpOpData *pLnModExpOpData,
-        CpaFlatBuffer *pResult);
+CpaStatus cpaCyLnModExp(const CpaInstanceHandle instanceHandle,
+    const CpaCyGenFlatBufCbFunc pLnModExpCb, void *pCallbackTag,
+    const CpaCyLnModExpOpData *pLnModExpOpData, CpaFlatBuffer *pResult);
 
 /**
  *****************************************************************************
@@ -369,8 +366,8 @@ cpaCyLnModExp(const CpaInstanceHandle instanceHandle,
  * @retval CPA_STATUS_RETRY            Resubmit the request.
  * @retval CPA_STATUS_INVALID_PARAM    Invalid parameter passed in.
  * @retval CPA_STATUS_RESOURCE         Error related to system resources.
- * @retval CPA_STATUS_RESTARTING       API implementation is restarting. Resubmit
- *                                     the request.
+ * @retval CPA_STATUS_RESTARTING       API implementation is restarting.
+ *Resubmit the request.
  * @retval CPA_STATUS_UNSUPPORTED      Function is not supported.
  *
  * @pre
@@ -388,12 +385,9 @@ cpaCyLnModExp(const CpaInstanceHandle instanceHandle,
  *      CpaCyGenFlatBufCbFunc
  *
  *****************************************************************************/
-CpaStatus
-cpaCyLnModInv(const CpaInstanceHandle instanceHandle,
-        const CpaCyGenFlatBufCbFunc pLnModInvCb,
-        void *pCallbackTag,
-        const CpaCyLnModInvOpData *pLnModInvOpData,
-        CpaFlatBuffer *pResult);
+CpaStatus cpaCyLnModInv(const CpaInstanceHandle instanceHandle,
+    const CpaCyGenFlatBufCbFunc pLnModInvCb, void *pCallbackTag,
+    const CpaCyLnModInvOpData *pLnModInvOpData, CpaFlatBuffer *pResult);
 
 /**
  *****************************************************************************
@@ -434,8 +428,8 @@ cpaCyLnModInv(const CpaInstanceHandle instanceHandle,
  * @retval CPA_STATUS_FAIL              Function failed.
  * @retval CPA_STATUS_INVALID_PARAM     Invalid parameter passed in.
  * @retval CPA_STATUS_RESOURCE          Error related to system resources.
- * @retval CPA_STATUS_RESTARTING        API implementation is restarting. Resubmit
- *                                      the request.
+ * @retval CPA_STATUS_RESTARTING        API implementation is restarting.
+ *Resubmit the request.
  * @retval CPA_STATUS_UNSUPPORTED       Function is not supported.
  *
  * @pre
@@ -451,9 +445,8 @@ cpaCyLnModInv(const CpaInstanceHandle instanceHandle,
  *      CpaCyLnStats
  *
  *****************************************************************************/
-CpaStatus CPA_DEPRECATED
-cpaCyLnStatsQuery(const CpaInstanceHandle instanceHandle,
-        struct _CpaCyLnStats *pLnStats);
+CpaStatus CPA_DEPRECATED cpaCyLnStatsQuery(
+    const CpaInstanceHandle instanceHandle, struct _CpaCyLnStats *pLnStats);
 
 /**
  *****************************************************************************
@@ -492,8 +485,8 @@ cpaCyLnStatsQuery(const CpaInstanceHandle instanceHandle,
  * @retval CPA_STATUS_FAIL              Function failed.
  * @retval CPA_STATUS_INVALID_PARAM     Invalid parameter passed in.
  * @retval CPA_STATUS_RESOURCE          Error related to system resources.
- * @retval CPA_STATUS_RESTARTING        API implementation is restarting. Resubmit
- *                                      the request.
+ * @retval CPA_STATUS_RESTARTING        API implementation is restarting.
+ *Resubmit the request.
  * @retval CPA_STATUS_UNSUPPORTED       Function is not supported.
  *
  * @pre
@@ -508,9 +501,8 @@ cpaCyLnStatsQuery(const CpaInstanceHandle instanceHandle,
  * @see
  *      CpaCyLnStats
  *****************************************************************************/
-CpaStatus
-cpaCyLnStatsQuery64(const CpaInstanceHandle instanceHandle,
-        CpaCyLnStats64 *pLnStats);
+CpaStatus cpaCyLnStatsQuery64(const CpaInstanceHandle instanceHandle,
+    CpaCyLnStats64 *pLnStats);
 
 #ifdef __cplusplus
 } /* close the extern "C" { */

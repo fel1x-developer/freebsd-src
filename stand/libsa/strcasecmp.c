@@ -28,17 +28,15 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/cdefs.h>
-#include <string.h>
-#include "stand.h"
 
+#include <string.h>
+
+#include "stand.h"
 
 int
 strcasecmp(const char *s1, const char *s2)
 {
-	const u_char
-			*us1 = (const u_char *)s1,
-			*us2 = (const u_char *)s2;
+	const u_char *us1 = (const u_char *)s1, *us2 = (const u_char *)s2;
 
 	while (tolower(*us1) == tolower(*us2++))
 		if (*us1++ == '\0')
@@ -50,9 +48,8 @@ int
 strncasecmp(const char *s1, const char *s2, size_t n)
 {
 	if (n != 0) {
-		const u_char
-				*us1 = (const u_char *)s1,
-				*us2 = (const u_char *)s2;
+		const u_char *us1 = (const u_char *)s1,
+			     *us2 = (const u_char *)s2;
 
 		do {
 			if (tolower(*us1) != tolower(*us2++))

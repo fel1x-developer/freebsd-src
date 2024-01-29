@@ -40,12 +40,12 @@ extern const char *__fix_locale_grouping_str(const char *);
 
 #define LCNUMERIC_SIZE (sizeof(struct lc_numeric_T) / sizeof(char *))
 
-static char	numempty[] = { CHAR_MAX, '\0' };
+static char numempty[] = { CHAR_MAX, '\0' };
 
 static const struct lc_numeric_T _C_numeric_locale = {
-	".",		/* decimal_point */
-	"",		/* thousands_sep */
-	numempty	/* grouping */
+	".",	 /* decimal_point */
+	"",	 /* thousands_sep */
+	numempty /* grouping */
 };
 
 static void
@@ -66,17 +66,13 @@ numeric_load_locale(struct xlocale_numeric *loc, int *using_locale,
 	int ret;
 	struct lc_numeric_T *l = &loc->locale;
 
-	ret = __part_load_locale(name, using_locale,
-	    &loc->buffer, "LC_NUMERIC",
-	    LCNUMERIC_SIZE, LCNUMERIC_SIZE,
-	    (const char**)l);
+	ret = __part_load_locale(name, using_locale, &loc->buffer, "LC_NUMERIC",
+	    LCNUMERIC_SIZE, LCNUMERIC_SIZE, (const char **)l);
 	if (ret == _LDP_LOADED) {
 		/* Can't be empty according to C99 */
 		if (*l->decimal_point == '\0')
-			l->decimal_point =
-			    _C_numeric_locale.decimal_point;
-		l->grouping =
-		    __fix_locale_grouping_str(l->grouping);
+			l->decimal_point = _C_numeric_locale.decimal_point;
+		l->grouping = __fix_locale_grouping_str(l->grouping);
 	}
 	if (ret != _LDP_ERROR)
 		atomic_store_rel_int(changed, 1);
@@ -94,13 +90,12 @@ __numeric_load_locale(const char *name)
 void *
 __numeric_load(const char *name, locale_t l)
 {
-	struct xlocale_numeric *new = calloc(sizeof(struct xlocale_numeric),
-	    1);
+	struct xlocale_numeric *new = calloc(sizeof(struct xlocale_numeric), 1);
 	if (new == NULL)
 		return (NULL);
 	new->header.header.destructor = destruct_numeric;
 	if (numeric_load_locale(new, &l->using_numeric_locale,
-	    &l->numeric_locale_changed, name) == _LDP_ERROR) {
+		&l->numeric_locale_changed, name) == _LDP_ERROR) {
 		xlocale_release(new);
 		return (NULL);
 	}
@@ -111,19 +106,19 @@ struct lc_numeric_T *
 __get_current_numeric_locale(locale_t loc)
 {
 	return (loc->using_numeric_locale ?
-	    &((struct xlocale_numeric *)loc->components[XLC_NUMERIC])->locale :
-	    (struct lc_numeric_T *)&_C_numeric_locale);
+		&((struct xlocale_numeric *)loc->components[XLC_NUMERIC])
+		     ->locale :
+		(struct lc_numeric_T *)&_C_numeric_locale);
 }
 
 #ifdef LOCALE_DEBUG
 void
-numericdebug(void) {
-printf(	"decimal_point = %s\n"
-	"thousands_sep = %s\n"
-	"grouping = %s\n",
-	_numeric_locale.decimal_point,
-	_numeric_locale.thousands_sep,
-	_numeric_locale.grouping
-);
+numericdebug(void)
+{
+	printf("decimal_point = %s\n"
+	       "thousands_sep = %s\n"
+	       "grouping = %s\n",
+	    _numeric_locale.decimal_point, _numeric_locale.thousands_sep,
+	    _numeric_locale.grouping);
 }
 #endif /* LOCALE_DEBUG */

@@ -48,7 +48,8 @@ static int port;
 static int bufsize;
 
 static void
-reader(void) {
+reader(void)
+{
 	struct sockaddr_in inetaddr, inetpeer;
 	socklen_t len;
 	int on;
@@ -60,8 +61,8 @@ reader(void) {
 	if ((tcpsock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 		err(1, "socket(), %s:%d", __FILE__, __LINE__);
 
-	if (setsockopt(tcpsock,
-	    SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on)) < 0)
+	if (setsockopt(tcpsock, SOL_SOCKET, SO_REUSEADDR, (char *)&on,
+		sizeof(on)) < 0)
 		err(1, "setsockopt(), %s:%d", __FILE__, __LINE__);
 
 	inetaddr.sin_family = AF_INET;
@@ -69,35 +70,35 @@ reader(void) {
 	inetaddr.sin_port = htons(port);
 	inetaddr.sin_len = sizeof(inetaddr);
 
-	if (bind(tcpsock,
-	    (struct sockaddr *)&inetaddr, sizeof (inetaddr)) < 0)
+	if (bind(tcpsock, (struct sockaddr *)&inetaddr, sizeof(inetaddr)) < 0)
 		err(1, "bind(), %s:%d", __FILE__, __LINE__);
 
 	if (listen(tcpsock, 5) < 0)
 		err(1, "listen(), %s:%d", __FILE__, __LINE__);
 
-	if ((random_int(1,100) > 60) || (op->hog == 1)) {
-		usleep(random_int(1000000,1000000) * 60);
+	if ((random_int(1, 100) > 60) || (op->hog == 1)) {
+		usleep(random_int(1000000, 1000000) * 60);
 	}
 
 	len = sizeof(inetpeer);
-	if ((msgsock = accept(tcpsock,
-	    (struct sockaddr *)&inetpeer, &len)) < 0)
+	if ((msgsock = accept(tcpsock, (struct sockaddr *)&inetpeer, &len)) < 0)
 		err(1, "accept(), %s:%d", __FILE__, __LINE__);
 
 	if ((buf = malloc(bufsize)) == NULL)
-			err(1, "malloc(%d), %s:%d", bufsize, __FILE__, __LINE__);
+		err(1, "malloc(%d), %s:%d", bufsize, __FILE__, __LINE__);
 	while (done_testing == 0) {
 		if ((n = read(msgsock, buf, bufsize)) < 0)
 			err(1, "read(), %s:%d", __FILE__, __LINE__);
-		if (n == 0) break;
+		if (n == 0)
+			break;
 	}
 	close(msgsock);
 	return;
 }
 
 static void
-writer(void) {
+writer(void)
+{
 	struct sockaddr_in inetaddr;
 	struct hostent *hostent;
 	int i, *buf, r;
@@ -109,21 +110,21 @@ writer(void) {
 		if ((tcpsock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 			err(1, "socket(), %s:%d", __FILE__, __LINE__);
 
-		if (setsockopt(tcpsock,
-		    SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on)) < 0)
+		if (setsockopt(tcpsock, SOL_SOCKET, SO_REUSEADDR, (char *)&on,
+			sizeof(on)) < 0)
 			err(1, "setsockopt(), %s:%d", __FILE__, __LINE__);
 
-		hostent = gethostbyname ("localhost");
-		bzero((char *) &inetaddr, sizeof(inetaddr));
-		memcpy (&inetaddr.sin_addr.s_addr, hostent->h_addr,
-			sizeof (struct in_addr));
+		hostent = gethostbyname("localhost");
+		bzero((char *)&inetaddr, sizeof(inetaddr));
+		memcpy(&inetaddr.sin_addr.s_addr, hostent->h_addr,
+		    sizeof(struct in_addr));
 
 		inetaddr.sin_family = AF_INET;
 		inetaddr.sin_port = htons(port);
 		inetaddr.sin_len = sizeof(inetaddr);
 
-		r = connect(tcpsock, (struct sockaddr *) &inetaddr,
-			sizeof(inetaddr));
+		r = connect(tcpsock, (struct sockaddr *)&inetaddr,
+		    sizeof(inetaddr));
 		if (r == 0)
 			break;
 		sleep(1);
@@ -133,18 +134,18 @@ writer(void) {
 		err(1, "connect(), %s:%d", __FILE__, __LINE__);
 
 	if ((buf = malloc(bufsize)) == NULL)
-			err(1, "malloc(%d), %s:%d", bufsize, __FILE__, __LINE__);
+		err(1, "malloc(%d), %s:%d", bufsize, __FILE__, __LINE__);
 	for (i = 0; i < bufsize / (int)sizeof(int); i++)
 		buf[i] = i;
 
 	for (;;) {
-		for (i = 0; i < NB; i+= bufsize) {
+		for (i = 0; i < NB; i += bufsize) {
 			if (write(tcpsock, buf, bufsize) < 0) {
 				if (errno == EPIPE)
 					return;
 				if (errno != ECONNRESET)
 					err(1, "write(%d), %s:%d", tcpsock,
-						__FILE__, __LINE__);
+					    __FILE__, __LINE__);
 				_exit(EXIT_SUCCESS);
 			}
 		}
@@ -180,7 +181,7 @@ test(void)
 		if (waitpid(pid, NULL, 0) != pid)
 			err(1, "waitpid(%d)", pid);
 	} else
-		err(1, "fork(), %s:%d",  __FILE__, __LINE__);
+		err(1, "fork(), %s:%d", __FILE__, __LINE__);
 
 	return (0);
 }

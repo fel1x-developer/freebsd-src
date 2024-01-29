@@ -33,8 +33,8 @@
 
 #include <fcntl.h>
 
-#include "rcv.h"
 #include "extern.h"
+#include "rcv.h"
 
 /*
  * Mail -- a mail program
@@ -89,7 +89,7 @@ touch(struct message *mp)
 
 	mp->m_flag |= MTOUCH;
 	if ((mp->m_flag & MREAD) == 0)
-		mp->m_flag |= MREAD|MSTATUS;
+		mp->m_flag |= MREAD | MSTATUS;
 }
 
 /*
@@ -164,8 +164,9 @@ gethfield(FILE *f, char linebuf[], int rem, char **colon)
 			return (-1);
 		if ((c = readline(f, linebuf, LINESIZE)) <= 0)
 			return (-1);
-		for (cp = linebuf; isprint((unsigned char)*cp) && *cp != ' ' && *cp != ':';
-		    cp++)
+		for (cp = linebuf;
+		     isprint((unsigned char)*cp) && *cp != ' ' && *cp != ':';
+		     cp++)
 			;
 		if (*cp != ':' || cp == linebuf)
 			continue;
@@ -207,7 +208,7 @@ gethfield(FILE *f, char linebuf[], int rem, char **colon)
  * the desired breed.  Return the field body, or 0.
  */
 
-char*
+char *
 ishfield(char *linebuf, char *colon, const char *field)
 {
 	char *cp = colon;
@@ -242,13 +243,13 @@ istrncpy(char *dest, const char *src, size_t dsize)
  * the stack.
  */
 
-static	int	ssp;			/* Top of file stack */
+static int ssp; /* Top of file stack */
 struct sstack {
-	FILE	*s_file;		/* File we were in. */
-	int	s_cond;			/* Saved state of conditionals */
-	int	s_loading;		/* Loading .mailrc, etc. */
+	FILE *s_file;  /* File we were in. */
+	int s_cond;    /* Saved state of conditionals */
+	int s_loading; /* Loading .mailrc, etc. */
 };
-#define	SSTACK_SIZE	64		/* XXX was NOFILE. */
+#define SSTACK_SIZE 64 /* XXX was NOFILE. */
 static struct sstack sstack[SSTACK_SIZE];
 
 /*
@@ -385,8 +386,8 @@ skin(char *name)
 
 	if (name == NULL)
 		return (NULL);
-	if (strchr(name, '(') == NULL && strchr(name, '<') == NULL
-	    && strchr(name, ' ') == NULL)
+	if (strchr(name, '(') == NULL && strchr(name, '<') == NULL &&
+	    strchr(name, ' ') == NULL)
 		return (name);
 
 	/* We assume that length(input) <= length(output) */
@@ -395,7 +396,7 @@ skin(char *name)
 	gotlt = 0;
 	lastsp = 0;
 	bufend = nbuf;
-	for (cp = name, cp2 = bufend; (c = *cp++) != '\0'; ) {
+	for (cp = name, cp2 = bufend; (c = *cp++) != '\0';) {
 		switch (c) {
 		case '(':
 			cp = skip_comment(cp);
@@ -424,8 +425,7 @@ skin(char *name)
 		case ' ':
 			if (cp[0] == 'a' && cp[1] == 't' && cp[2] == ' ')
 				cp += 3, *cp2++ = '@';
-			else
-			if (cp[0] == '@' && cp[1] == ' ')
+			else if (cp[0] == '@' && cp[1] == ' ')
 				cp += 2, *cp2++ = '@';
 			else
 				lastsp = 1;
@@ -449,7 +449,8 @@ skin(char *name)
 							cp++;
 							if (c == '"')
 								break;
-							if (c == '\\' && *cp != '\0')
+							if (c == '\\' &&
+							    *cp != '\0')
 								cp++;
 						}
 				}
@@ -510,9 +511,8 @@ newname:
 		;
 	for (; *cp == ' ' || *cp == '\t'; cp++)
 		;
-	for (cp2 = &namebuf[strlen(namebuf)];
-	    *cp != '\0' && *cp != ' ' && *cp != '\t' &&
-	    cp2 < namebuf + LINESIZE - 1;)
+	for (cp2 = &namebuf[strlen(namebuf)]; *cp != '\0' && *cp != ' ' &&
+	     *cp != '\t' && cp2 < namebuf + LINESIZE - 1;)
 		*cp2++ = *cp++;
 	*cp2 = '\0';
 	if (readline(ibuf, linebuf, LINESIZE) < 0)
@@ -585,7 +585,8 @@ member(char *realfield, struct ignoretab *table)
 {
 	struct ignore *igp;
 
-	for (igp = table->i_head[hash(realfield)]; igp != NULL; igp = igp->i_link)
+	for (igp = table->i_head[hash(realfield)]; igp != NULL;
+	     igp = igp->i_link)
 		if (*igp->i_field == *realfield &&
 		    equal(igp->i_field, realfield))
 			return (1);

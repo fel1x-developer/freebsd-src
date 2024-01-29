@@ -30,7 +30,7 @@
  */
 
 #ifndef __RADIX_H_
-#define	__RADIX_H_
+#define __RADIX_H_
 
 #include <sys/cdefs.h>
 struct walkarg;
@@ -40,26 +40,26 @@ struct walkarg;
  */
 
 struct radix_node {
-	struct	radix_mask *rn_mklist;	/* list of masks contained in subtree */
-	struct	radix_node *rn_p;	/* parent */
-	short	rn_b;			/* bit offset; -1-index(netmask) */
-	char	rn_bmask;		/* node: mask for bit test*/
-	u_char	rn_flags;		/* enumerated next */
-#define RNF_NORMAL	1		/* leaf contains normal route */
-#define RNF_ROOT	2		/* leaf is root leaf for tree */
-#define RNF_ACTIVE	4		/* This node is alive (for rtfree) */
+	struct radix_mask *rn_mklist; /* list of masks contained in subtree */
+	struct radix_node *rn_p;      /* parent */
+	short rn_b;		      /* bit offset; -1-index(netmask) */
+	char rn_bmask;		      /* node: mask for bit test*/
+	u_char rn_flags;	      /* enumerated next */
+#define RNF_NORMAL 1		      /* leaf contains normal route */
+#define RNF_ROOT 2		      /* leaf is root leaf for tree */
+#define RNF_ACTIVE 4		      /* This node is alive (for rtfree) */
 	union {
-		struct {			/* leaf only data: */
-			caddr_t	rn_Key;	/* object of search */
-			caddr_t	rn_Mask;	/* netmask, if present */
-			struct	radix_node *rn_Dupedkey;
+		struct {		 /* leaf only data: */
+			caddr_t rn_Key;	 /* object of search */
+			caddr_t rn_Mask; /* netmask, if present */
+			struct radix_node *rn_Dupedkey;
 		} rn_leaf;
-		struct {			/* node only data: */
-			int	rn_Off;		/* where to start compare */
-			struct	radix_node *rn_L;/* progeny */
-			struct	radix_node *rn_R;/* progeny */
-		}rn_node;
-	}		rn_u;
+		struct {			 /* node only data: */
+			int rn_Off;		 /* where to start compare */
+			struct radix_node *rn_L; /* progeny */
+			struct radix_node *rn_R; /* progeny */
+		} rn_node;
+	} rn_u;
 #ifdef RN_DEBUG
 	int rn_info;
 	struct radix_node *rn_twin;
@@ -79,65 +79,70 @@ struct radix_node {
  */
 
 struct radix_mask {
-	short	rm_b;			/* bit offset; -1-index(netmask) */
-	char	rm_unused;		/* cf. rn_bmask */
-	u_char	rm_flags;		/* cf. rn_flags */
-	struct	radix_mask *rm_mklist;	/* more masks to try */
-	union	{
-		caddr_t	rmu_mask;		/* the mask */
-		struct	radix_node *rmu_leaf;	/* for normal routes */
-	}	rm_rmu;
-	int	rm_refs;		/* # of references to this struct */
+	short rm_b;		      /* bit offset; -1-index(netmask) */
+	char rm_unused;		      /* cf. rn_bmask */
+	u_char rm_flags;	      /* cf. rn_flags */
+	struct radix_mask *rm_mklist; /* more masks to try */
+	union {
+		caddr_t rmu_mask;	     /* the mask */
+		struct radix_node *rmu_leaf; /* for normal routes */
+	} rm_rmu;
+	int rm_refs; /* # of references to this struct */
 };
 
 #define rm_mask rm_rmu.rmu_mask
-#define rm_leaf rm_rmu.rmu_leaf		/* extra field would make 32 bytes */
+#define rm_leaf rm_rmu.rmu_leaf /* extra field would make 32 bytes */
 
-#define MKGet(m) {\
-	if (rn_mkfreelist) {\
-		m = rn_mkfreelist; \
-		rn_mkfreelist = (m)->rm_mklist; \
-	} else \
-		m = (struct radix_mask *)rtmalloc(sizeof(*(m)), "MKGet"); }\
+#define MKGet(m)                                                        \
+	{                                                               \
+		if (rn_mkfreelist) {                                    \
+			m = rn_mkfreelist;                              \
+			rn_mkfreelist = (m)->rm_mklist;                 \
+		} else                                                  \
+			m = (struct radix_mask *)rtmalloc(sizeof(*(m)), \
+			    "MKGet");                                   \
+	}
 
-#define MKFree(m) { (m)->rm_mklist = rn_mkfreelist; rn_mkfreelist = (m);}
+#define MKFree(m)                               \
+	{                                       \
+		(m)->rm_mklist = rn_mkfreelist; \
+		rn_mkfreelist = (m);            \
+	}
 
 struct radix_node_head {
-	struct	radix_node *rnh_treetop;
-	int	rnh_addrsize;		/* permit, but not require fixed keys */
-	int	rnh_pktsize;		/* permit, but not require fixed keys */
-	struct	radix_node *(*rnh_addaddr)	/* add based on sockaddr */
-		(void *v, void *mask,
-		     struct radix_node_head *head, struct radix_node nodes[]);
-	struct	radix_node *(*rnh_addpkt)	/* add based on packet hdr */
-		(void *v, void *mask,
-		     struct radix_node_head *head, struct radix_node nodes[]);
-	struct	radix_node *(*rnh_deladdr)	/* remove based on sockaddr */
-		(void *v, void *mask, struct radix_node_head *head);
-	struct	radix_node *(*rnh_delpkt)	/* remove based on packet hdr */
-		(void *v, void *mask, struct radix_node_head *head);
-	struct	radix_node *(*rnh_matchaddr)	/* locate based on sockaddr */
-		(void *v, struct radix_node_head *head);
-	struct	radix_node *(*rnh_lookup)	/* locate based on sockaddr */
-		(void *v, void *mask, struct radix_node_head *head);
-	struct	radix_node *(*rnh_matchpkt)	/* locate based on packet hdr */
-		(void *v, struct radix_node_head *head);
-	int	(*rnh_walktree)			/* traverse tree */
-			(struct radix_node_head *head,
-			 int (*f)(struct radix_node *, struct walkarg *),
-			 struct walkarg *w);
-	struct	radix_node rnh_nodes[3];	/* empty tree for common case */
+	struct radix_node *rnh_treetop;
+	int rnh_addrsize; /* permit, but not require fixed keys */
+	int rnh_pktsize;  /* permit, but not require fixed keys */
+	struct radix_node *(*rnh_addaddr) /* add based on sockaddr */
+	    (void *v, void *mask, struct radix_node_head *head,
+		struct radix_node nodes[]);
+	struct radix_node *(*rnh_addpkt) /* add based on packet hdr */
+	    (void *v, void *mask, struct radix_node_head *head,
+		struct radix_node nodes[]);
+	struct radix_node *(*rnh_deladdr) /* remove based on sockaddr */
+	    (void *v, void *mask, struct radix_node_head *head);
+	struct radix_node *(*rnh_delpkt) /* remove based on packet hdr */
+	    (void *v, void *mask, struct radix_node_head *head);
+	struct radix_node *(*rnh_matchaddr) /* locate based on sockaddr */
+	    (void *v, struct radix_node_head *head);
+	struct radix_node *(*rnh_lookup) /* locate based on sockaddr */
+	    (void *v, void *mask, struct radix_node_head *head);
+	struct radix_node *(*rnh_matchpkt) /* locate based on packet hdr */
+	    (void *v, struct radix_node_head *head);
+	int(*rnh_walktree) /* traverse tree */
+	    (struct radix_node_head *head,
+		int (*f)(struct radix_node *, struct walkarg *),
+		struct walkarg *w);
+	struct radix_node rnh_nodes[3]; /* empty tree for common case */
 };
-
 
 #define Bcopy(a, b, n) memmove(((void *)(b)), ((void *)(a)), (size_t)(n))
 #define Bzero(p, n) memset((void *)(p), 0, (size_t)(n));
 #define Free(p) free((void *)p);
 
-void	 rn_init(void);
-int	 rn_inithead(struct radix_node_head **head, int off);
-int	 rn_walktree(struct radix_node_head *,
-		     int (*)(struct radix_node *, struct walkarg *),
-		     struct walkarg *);
+void rn_init(void);
+int rn_inithead(struct radix_node_head **head, int off);
+int rn_walktree(struct radix_node_head *,
+    int (*)(struct radix_node *, struct walkarg *), struct walkarg *);
 
 #endif /* __RADIX_H_ */

@@ -28,17 +28,17 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	__IP17X_REG_H__
-#define	__IP17X_REG_H__
+#ifndef __IP17X_REG_H__
+#define __IP17X_REG_H__
 
 /* IP175X */
-#define	IP17X_OUI			0x9c3
-#define	IP17X_IP175A			0x05
-#define	IP17X_IP175C			0x18
+#define IP17X_OUI 0x9c3
+#define IP17X_IP175A 0x05
+#define IP17X_IP175C 0x18
 
-#define	IP17X_MAX_VLANS			16
+#define IP17X_MAX_VLANS 16
 
-#define	IP175X_CPU_PORT			5
-#define	IP175X_NUM_PORTS		6
+#define IP175X_CPU_PORT 5
+#define IP175X_NUM_PORTS 6
 
 #endif /* __IP17X_REG_H__ */

@@ -43,19 +43,19 @@
 #include <time.h>
 #include <unistd.h>
 
-#undef	MIN
-#define	MIN(a, b)	(((a) < (b))? (a) : (b))
+#undef MIN
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
-static int    bt_devany_cb(int s, struct bt_devinfo const *di, void *xdevname);
-static char * bt_dev2node (char const *devname, char *nodename, int nnlen);
+static int bt_devany_cb(int s, struct bt_devinfo const *di, void *xdevname);
+static char *bt_dev2node(char const *devname, char *nodename, int nnlen);
 static time_t bt_get_default_hci_command_timeout(void);
 
 int
 bt_devopen(char const *devname)
 {
-	struct sockaddr_hci	ha;
-	bdaddr_t		ba;
-	int			s;
+	struct sockaddr_hci ha;
+	bdaddr_t ba;
+	int s;
 
 	if (devname == NULL) {
 		errno = EINVAL;
@@ -69,8 +69,8 @@ bt_devopen(char const *devname)
 	if (bt_aton(devname, &ba)) {
 		if (!bt_devname(ha.hci_node, &ba))
 			return (-1);
-	} else if (bt_dev2node(devname, ha.hci_node,
-					sizeof(ha.hci_node)) == NULL) {
+	} else if (bt_dev2node(devname, ha.hci_node, sizeof(ha.hci_node)) ==
+	    NULL) {
 		errno = ENXIO;
 		return (-1);
 	}
@@ -79,8 +79,8 @@ bt_devopen(char const *devname)
 	if (s < 0)
 		return (-1);
 
-	if (bind(s, (struct sockaddr *) &ha, sizeof(ha)) < 0 ||
-	    connect(s, (struct sockaddr *) &ha, sizeof(ha)) < 0) {
+	if (bind(s, (struct sockaddr *)&ha, sizeof(ha)) < 0 ||
+	    connect(s, (struct sockaddr *)&ha, sizeof(ha)) < 0) {
 		close(s);
 		return (-1);
 	}
@@ -97,13 +97,12 @@ bt_devclose(int s)
 int
 bt_devsend(int s, uint16_t opcode, void *param, size_t plen)
 {
-	ng_hci_cmd_pkt_t	h;
-	struct iovec		iv[2];
-	int			ivn;
+	ng_hci_cmd_pkt_t h;
+	struct iovec iv[2];
+	int ivn;
 
-	if ((plen == 0 && param != NULL) ||
-	    (plen > 0 && param == NULL) ||
-	    plen > UINT8_MAX) { 
+	if ((plen == 0 && param != NULL) || (plen > 0 && param == NULL) ||
+	    plen > UINT8_MAX) {
 		errno = EINVAL;
 		return (-1);
 	}
@@ -136,7 +135,7 @@ bt_devsend(int s, uint16_t opcode, void *param, size_t plen)
 ssize_t
 bt_devrecv(int s, void *buf, size_t size, time_t to)
 {
-	ssize_t	n;
+	ssize_t n;
 
 	if (buf == NULL || size == 0) {
 		errno = EINVAL;
@@ -144,8 +143,8 @@ bt_devrecv(int s, void *buf, size_t size, time_t to)
 	}
 
 	if (to >= 0) {
-		fd_set		rfd;
-		struct timeval	tv;
+		fd_set rfd;
+		struct timeval tv;
 
 		FD_ZERO(&rfd);
 		FD_SET(s, &rfd);
@@ -175,34 +174,34 @@ bt_devrecv(int s, void *buf, size_t size, time_t to)
 		return (-1);
 	}
 
-	switch (*((uint8_t *) buf)) {
+	switch (*((uint8_t *)buf)) {
 	case NG_HCI_CMD_PKT: {
-		ng_hci_cmd_pkt_t	*h = (ng_hci_cmd_pkt_t *) buf;
+		ng_hci_cmd_pkt_t *h = (ng_hci_cmd_pkt_t *)buf;
 
 		if (n >= sizeof(*h) && n == (sizeof(*h) + h->length))
 			return (n);
-		} break;
+	} break;
 
 	case NG_HCI_ACL_DATA_PKT: {
-		ng_hci_acldata_pkt_t	*h = (ng_hci_acldata_pkt_t *) buf;
+		ng_hci_acldata_pkt_t *h = (ng_hci_acldata_pkt_t *)buf;
 
 		if (n >= sizeof(*h) && n == (sizeof(*h) + le16toh(h->length)))
 			return (n);
-		} break;
+	} break;
 
 	case NG_HCI_SCO_DATA_PKT: {
-		ng_hci_scodata_pkt_t	*h = (ng_hci_scodata_pkt_t *) buf;
+		ng_hci_scodata_pkt_t *h = (ng_hci_scodata_pkt_t *)buf;
 
 		if (n >= sizeof(*h) && n == (sizeof(*h) + h->length))
 			return (n);
-		} break;
+	} break;
 
 	case NG_HCI_EVENT_PKT: {
-		ng_hci_event_pkt_t	*h = (ng_hci_event_pkt_t *) buf;
+		ng_hci_event_pkt_t *h = (ng_hci_event_pkt_t *)buf;
 
 		if (n >= sizeof(*h) && n == (sizeof(*h) + h->length))
 			return (n);
-		} break;
+	} break;
 	}
 
 	errno = EIO;
@@ -212,15 +211,15 @@ bt_devrecv(int s, void *buf, size_t size, time_t to)
 int
 bt_devreq(int s, struct bt_devreq *r, time_t to)
 {
-	uint8_t				buf[320]; /* more than enough */
-	ng_hci_event_pkt_t		*e = (ng_hci_event_pkt_t *) buf;
-	ng_hci_command_compl_ep		*cc = (ng_hci_command_compl_ep *)(e+1);
-	ng_hci_command_status_ep	*cs = (ng_hci_command_status_ep*)(e+1);
-	struct bt_devfilter		old, new;
-	time_t				t_end;
-	uint16_t			opcode;
-	ssize_t				n;
-	int				error;
+	uint8_t buf[320]; /* more than enough */
+	ng_hci_event_pkt_t *e = (ng_hci_event_pkt_t *)buf;
+	ng_hci_command_compl_ep *cc = (ng_hci_command_compl_ep *)(e + 1);
+	ng_hci_command_status_ep *cs = (ng_hci_command_status_ep *)(e + 1);
+	struct bt_devfilter old, new;
+	time_t t_end;
+	uint16_t opcode;
+	ssize_t n;
+	int error;
 
 	if (s < 0 || r == NULL || to < 0) {
 		errno = EINVAL;
@@ -248,7 +247,7 @@ bt_devreq(int s, struct bt_devreq *r, time_t to)
 	n = bt_devsend(s, r->opcode, r->cparam, r->clen);
 	if (n < 0) {
 		error = errno;
-		goto out;	
+		goto out;
 	}
 
 	opcode = htole16(r->opcode);
@@ -332,8 +331,8 @@ out:
 int
 bt_devfilter(int s, struct bt_devfilter const *new, struct bt_devfilter *old)
 {
-	struct ng_btsocket_hci_raw_filter	f;
-	socklen_t				len;
+	struct ng_btsocket_hci_raw_filter f;
+	socklen_t len;
 
 	if (new == NULL && old == NULL) {
 		errno = EINVAL;
@@ -347,17 +346,17 @@ bt_devfilter(int s, struct bt_devfilter const *new, struct bt_devfilter *old)
 
 		memset(old, 0, sizeof(*old));
 		memcpy(old->packet_mask, &f.packet_mask,
-			MIN(sizeof(old->packet_mask), sizeof(f.packet_mask)));
+		    MIN(sizeof(old->packet_mask), sizeof(f.packet_mask)));
 		memcpy(old->event_mask, &f.event_mask,
-			MIN(sizeof(old->event_mask), sizeof(f.packet_mask)));
+		    MIN(sizeof(old->event_mask), sizeof(f.packet_mask)));
 	}
 
 	if (new != NULL) {
 		memset(&f, 0, sizeof(f));
 		memcpy(&f.packet_mask, new->packet_mask,
-			MIN(sizeof(f.packet_mask), sizeof(new->event_mask)));
+		    MIN(sizeof(f.packet_mask), sizeof(new->event_mask)));
 		memcpy(&f.event_mask, new->event_mask,
-			MIN(sizeof(f.event_mask), sizeof(new->event_mask)));
+		    MIN(sizeof(f.event_mask), sizeof(new->event_mask)));
 
 		len = sizeof(f);
 		if (setsockopt(s, SOL_HCI_RAW, SO_HCI_RAW_FILTER, &f, len) < 0)
@@ -405,17 +404,17 @@ bt_devfilter_evt_tst(struct bt_devfilter const *filter, uint8_t event)
 
 int
 bt_devinquiry(char const *devname, time_t length, int num_rsp,
-		struct bt_devinquiry **ii)
+    struct bt_devinquiry **ii)
 {
-	uint8_t				buf[320];
-	char				_devname[HCI_DEVNAME_SIZE];
-	struct bt_devfilter		f;
-	ng_hci_inquiry_cp		*cp = (ng_hci_inquiry_cp *) buf;
-	ng_hci_event_pkt_t		*e = (ng_hci_event_pkt_t *) buf;
-	ng_hci_inquiry_result_ep	*ep = (ng_hci_inquiry_result_ep *)(e+1);
-	ng_hci_inquiry_response		*ir;
-	struct bt_devinquiry		*i;
-	int				s, n;
+	uint8_t buf[320];
+	char _devname[HCI_DEVNAME_SIZE];
+	struct bt_devfilter f;
+	ng_hci_inquiry_cp *cp = (ng_hci_inquiry_cp *)buf;
+	ng_hci_event_pkt_t *e = (ng_hci_event_pkt_t *)buf;
+	ng_hci_inquiry_result_ep *ep = (ng_hci_inquiry_result_ep *)(e + 1);
+	ng_hci_inquiry_response *ir;
+	struct bt_devinquiry *i;
+	int s, n;
 
 	if (ii == NULL) {
 		errno = EINVAL;
@@ -474,7 +473,7 @@ bt_devinquiry(char const *devname, time_t length, int num_rsp,
 
 	if (num_rsp <= 0 || num_rsp > 255)
 		num_rsp = 8;
-	cp->num_responses = (uint8_t) num_rsp;
+	cp->num_responses = (uint8_t)num_rsp;
 
 	i = *ii = calloc(num_rsp, sizeof(struct bt_devinquiry));
 	if (i == NULL) {
@@ -484,8 +483,8 @@ bt_devinquiry(char const *devname, time_t length, int num_rsp,
 	}
 
 	if (bt_devsend(s,
-		NG_HCI_OPCODE(NG_HCI_OGF_LINK_CONTROL, NG_HCI_OCF_INQUIRY),
-			cp, sizeof(*cp)) < 0) {
+		NG_HCI_OPCODE(NG_HCI_OGF_LINK_CONTROL, NG_HCI_OCF_INQUIRY), cp,
+		sizeof(*cp)) < 0) {
 		free(i);
 		bt_devclose(s);
 		return (-1);
@@ -514,16 +513,16 @@ wait_for_more:
 	case NG_HCI_EVENT_INQUIRY_RESULT:
 		ir = (ng_hci_inquiry_response *)(ep + 1);
 
-		for (n = 0; n < MIN(ep->num_responses, num_rsp); n ++) {
+		for (n = 0; n < MIN(ep->num_responses, num_rsp); n++) {
 			bdaddr_copy(&i->bdaddr, &ir->bdaddr);
 			i->pscan_rep_mode = ir->page_scan_rep_mode;
 			i->pscan_period_mode = ir->page_scan_period_mode;
 			memcpy(i->dev_class, ir->uclass, sizeof(i->dev_class));
 			i->clock_offset = le16toh(ir->clock_offset);
 
-			ir ++;
-			i ++;
-			num_rsp --;
+			ir++;
+			i++;
+			num_rsp--;
 		}
 		/* FALLTHROUGH */
 
@@ -533,7 +532,7 @@ wait_for_more:
 	}
 
 	bt_devclose(s);
-		
+
 	return (i - *ii);
 }
 
@@ -541,12 +540,12 @@ char *
 bt_devremote_name(char const *devname, const bdaddr_t *remote, time_t to,
     uint16_t clk_off, uint8_t ps_rep_mode, uint8_t ps_mode)
 {
-	char				 _devname[HCI_DEVNAME_SIZE];
-	struct bt_devreq		 r;
-	ng_hci_remote_name_req_cp	 cp;
-	ng_hci_remote_name_req_compl_ep	 ep;
-	int				 s;
-	char				*remote_name = NULL;
+	char _devname[HCI_DEVNAME_SIZE];
+	struct bt_devreq r;
+	ng_hci_remote_name_req_cp cp;
+	ng_hci_remote_name_req_compl_ep ep;
+	int s;
+	char *remote_name = NULL;
 
 	if (remote == NULL || to < 0) {
 		errno = EINVAL;
@@ -565,7 +564,7 @@ bt_devremote_name(char const *devname, const bdaddr_t *remote, time_t to,
 		devname = _devname;
 		if (bt_devenum(bt_devany_cb, _devname) <= 0)
 			goto out;
-        }
+	}
 
 	memset(&r, 0, sizeof(r));
 	memset(&cp, 0, sizeof(cp));
@@ -575,7 +574,7 @@ bt_devremote_name(char const *devname, const bdaddr_t *remote, time_t to,
 	cp.page_scan_mode = ps_mode;
 	bdaddr_copy(&cp.bdaddr, remote);
 	r.opcode = NG_HCI_OPCODE(NG_HCI_OGF_LINK_CONTROL,
-				 NG_HCI_OCF_REMOTE_NAME_REQ);
+	    NG_HCI_OCF_REMOTE_NAME_REQ);
 	r.event = NG_HCI_EVENT_REMOTE_NAME_REQ_COMPL;
 	r.cparam = &cp;
 	r.clen = sizeof(cp);
@@ -598,19 +597,19 @@ int
 bt_devinfo(struct bt_devinfo *di)
 {
 	union {
-		struct ng_btsocket_hci_raw_node_state		r0;
-		struct ng_btsocket_hci_raw_node_bdaddr		r1;
-		struct ng_btsocket_hci_raw_node_features	r2;
-		struct ng_btsocket_hci_raw_node_buffer		r3;
-		struct ng_btsocket_hci_raw_node_stat		r4;
+		struct ng_btsocket_hci_raw_node_state r0;
+		struct ng_btsocket_hci_raw_node_bdaddr r1;
+		struct ng_btsocket_hci_raw_node_features r2;
+		struct ng_btsocket_hci_raw_node_buffer r3;
+		struct ng_btsocket_hci_raw_node_stat r4;
 		struct ng_btsocket_hci_raw_node_link_policy_mask r5;
-		struct ng_btsocket_hci_raw_node_packet_mask	r6;
-		struct ng_btsocket_hci_raw_node_role_switch	r7;
-		struct ng_btsocket_hci_raw_node_debug		r8;
-	}						rp;
-	struct sockaddr_hci				ha;
-	socklen_t					halen;
-	int						s, rval;
+		struct ng_btsocket_hci_raw_node_packet_mask r6;
+		struct ng_btsocket_hci_raw_node_role_switch r7;
+		struct ng_btsocket_hci_raw_node_debug r8;
+	} rp;
+	struct sockaddr_hci ha;
+	socklen_t halen;
+	int s, rval;
 
 	if (di == NULL) {
 		errno = EINVAL;
@@ -624,7 +623,7 @@ bt_devinfo(struct bt_devinfo *di)
 	rval = -1;
 
 	halen = sizeof(ha);
-	if (getsockname(s, (struct sockaddr *) &ha, &halen) < 0)
+	if (getsockname(s, (struct sockaddr *)&ha, &halen) < 0)
 		goto bad;
 	strlcpy(di->devname, ha.hci_node, sizeof(di->devname));
 
@@ -635,7 +634,7 @@ bt_devinfo(struct bt_devinfo *di)
 	if (ioctl(s, SIOC_HCI_RAW_NODE_GET_BDADDR, &rp.r1, sizeof(rp.r1)) < 0)
 		goto bad;
 	bdaddr_copy(&di->bdaddr, &rp.r1.bdaddr);
-	
+
 	if (ioctl(s, SIOC_HCI_RAW_NODE_GET_FEATURES, &rp.r2, sizeof(rp.r2)) < 0)
 		goto bad;
 	memcpy(di->features, rp.r2.features, sizeof(di->features));
@@ -661,18 +660,18 @@ bt_devinfo(struct bt_devinfo *di)
 	di->bytes_recv = rp.r4.stat.bytes_recv;
 	di->bytes_sent = rp.r4.stat.bytes_sent;
 
-	if (ioctl(s, SIOC_HCI_RAW_NODE_GET_LINK_POLICY_MASK,
-			&rp.r5, sizeof(rp.r5)) < 0)
+	if (ioctl(s, SIOC_HCI_RAW_NODE_GET_LINK_POLICY_MASK, &rp.r5,
+		sizeof(rp.r5)) < 0)
 		goto bad;
 	di->link_policy_info = rp.r5.policy_mask;
 
-	if (ioctl(s, SIOC_HCI_RAW_NODE_GET_PACKET_MASK,
-			&rp.r6, sizeof(rp.r6)) < 0)
+	if (ioctl(s, SIOC_HCI_RAW_NODE_GET_PACKET_MASK, &rp.r6, sizeof(rp.r6)) <
+	    0)
 		goto bad;
 	di->packet_type_info = rp.r6.packet_mask;
 
-	 if (ioctl(s, SIOC_HCI_RAW_NODE_GET_ROLE_SWITCH,
-			&rp.r7, sizeof(rp.r7)) < 0)
+	if (ioctl(s, SIOC_HCI_RAW_NODE_GET_ROLE_SWITCH, &rp.r7, sizeof(rp.r7)) <
+	    0)
 		goto bad;
 	di->role_switch_info = rp.r7.role_switch;
 
@@ -690,14 +689,14 @@ bad:
 int
 bt_devenum(bt_devenum_cb_t cb, void *arg)
 {
-	struct ng_btsocket_hci_raw_node_list_names	rp;
-	struct bt_devinfo				di;
-	struct sockaddr_hci				ha;
-	int						s, i, count;
+	struct ng_btsocket_hci_raw_node_list_names rp;
+	struct bt_devinfo di;
+	struct sockaddr_hci ha;
+	int s, i, count;
 
 	rp.num_names = HCI_DEVMAX;
-	rp.names = (struct nodeinfo *) calloc(rp.num_names,
-						sizeof(struct nodeinfo));
+	rp.names = (struct nodeinfo *)calloc(rp.num_names,
+	    sizeof(struct nodeinfo));
 	if (rp.names == NULL) {
 		errno = ENOMEM;
 		return (-1);
@@ -715,8 +714,8 @@ bt_devenum(bt_devenum_cb_t cb, void *arg)
 		return (-1);
 	}
 
-	if (bind(s, (struct sockaddr *) &ha, sizeof(ha)) < 0 ||
-	    connect(s, (struct sockaddr *) &ha, sizeof(ha)) < 0 ||
+	if (bind(s, (struct sockaddr *)&ha, sizeof(ha)) < 0 ||
+	    connect(s, (struct sockaddr *)&ha, sizeof(ha)) < 0 ||
 	    ioctl(s, SIOC_HCI_RAW_NODE_LIST_NAMES, &rp, sizeof(rp)) < 0) {
 		close(s);
 		free(rp.names);
@@ -724,26 +723,26 @@ bt_devenum(bt_devenum_cb_t cb, void *arg)
 		return (-1);
 	}
 
-	for (count = 0, i = 0; i < rp.num_names; i ++) {
+	for (count = 0, i = 0; i < rp.num_names; i++) {
 		strlcpy(di.devname, rp.names[i].name, sizeof(di.devname));
 		if (bt_devinfo(&di) < 0)
 			continue;
 
-		count ++;
+		count++;
 
 		if (cb == NULL)
 			continue;
 
 		strlcpy(ha.hci_node, rp.names[i].name, sizeof(ha.hci_node));
-		if (bind(s, (struct sockaddr *) &ha, sizeof(ha)) < 0 ||
-		    connect(s, (struct sockaddr *) &ha, sizeof(ha)) < 0)
+		if (bind(s, (struct sockaddr *)&ha, sizeof(ha)) < 0 ||
+		    connect(s, (struct sockaddr *)&ha, sizeof(ha)) < 0)
 			continue;
 
 		if ((*cb)(s, &di, arg) > 0)
 			break;
 	}
 
-	close (s);
+	close(s);
 	free(rp.names);
 
 	return (count);
@@ -752,38 +751,37 @@ bt_devenum(bt_devenum_cb_t cb, void *arg)
 static int
 bt_devany_cb(int s, struct bt_devinfo const *di, void *xdevname)
 {
-	strlcpy((char *) xdevname, di->devname, HCI_DEVNAME_SIZE);
+	strlcpy((char *)xdevname, di->devname, HCI_DEVNAME_SIZE);
 	return (1);
 }
 
 static char *
 bt_dev2node(char const *devname, char *nodename, int nnlen)
 {
-	static char const *	 bt_dev_prefix[] = {
-		"ubt",		/* Bluetooth USB devices */
-		NULL		/* should be last */
+	static char const *bt_dev_prefix[] = {
+		"ubt", /* Bluetooth USB devices */
+		NULL   /* should be last */
 	};
 
-	static char		_nodename[HCI_DEVNAME_SIZE];
-	char const		**p;
-	char			*ep;
-	int			plen, unit;
+	static char _nodename[HCI_DEVNAME_SIZE];
+	char const **p;
+	char *ep;
+	int plen, unit;
 
 	if (nodename == NULL) {
 		nodename = _nodename;
 		nnlen = HCI_DEVNAME_SIZE;
 	}
 
-	for (p = bt_dev_prefix; *p != NULL; p ++) {
+	for (p = bt_dev_prefix; *p != NULL; p++) {
 		plen = strlen(*p);
 		if (strncmp(devname, *p, plen) != 0)
 			continue;
 
 		unit = strtoul(devname + plen, &ep, 10);
-		if (*ep != '\0' &&
-		    strcmp(ep, "hci") != 0 &&
+		if (*ep != '\0' && strcmp(ep, "hci") != 0 &&
 		    strcmp(ep, "l2cap") != 0)
-			return (NULL);	/* can't make sense of device name */
+			return (NULL); /* can't make sense of device name */
 
 		snprintf(nodename, nnlen, "%s%uhci", *p, unit);
 
@@ -796,11 +794,11 @@ bt_dev2node(char const *devname, char *nodename, int nnlen)
 static time_t
 bt_get_default_hci_command_timeout(void)
 {
-	int	to;
-	size_t	to_size = sizeof(to);
+	int to;
+	size_t to_size = sizeof(to);
 
-	if (sysctlbyname("net.bluetooth.hci.command_timeout",
-			 &to, &to_size, NULL, 0) < 0)
+	if (sysctlbyname("net.bluetooth.hci.command_timeout", &to, &to_size,
+		NULL, 0) < 0)
 		return (-1);
 
 	/* Should not happen */

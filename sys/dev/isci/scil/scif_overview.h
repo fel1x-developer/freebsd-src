@@ -67,13 +67,13 @@ the same SCI Framework with different SCI Core implementations, with the
 little to no changes necessary.
 
 @warning In situations where the SCI framework is utilized, users should NOT
-         invoke core methods on core objects for which there are associated
-         framework objects and framework methods. Therefore, if a method is
-         common to both the core and the framework object, do not invoke the
-         core method if utilizing the framework.  Some exceptions to this
-         exist and are called out.  It is important to mention that methods
-         found only in the core are safe to invoke at times specified per
-         that methods definition.
+	 invoke core methods on core objects for which there are associated
+	 framework objects and framework methods. Therefore, if a method is
+	 common to both the core and the framework object, do not invoke the
+	 core method if utilizing the framework.  Some exceptions to this
+	 exist and are called out.  It is important to mention that methods
+	 found only in the core are safe to invoke at times specified per
+	 that methods definition.
 
 The following is a list of features found in an SCI Framework implementation:
 
@@ -113,4 +113,3 @@ in the previous diagram:
  */
 
 #endif // _SCIF_OVERVIEW_H_
-

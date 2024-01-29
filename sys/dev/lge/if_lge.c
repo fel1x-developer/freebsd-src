@@ -71,35 +71,34 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/sockio.h>
-#include <sys/mbuf.h>
-#include <sys/malloc.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
 #include <sys/module.h>
+#include <sys/rman.h>
 #include <sys/socket.h>
+#include <sys/sockio.h>
 
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
+#include <vm/vm.h>   /* for vtophys */
+#include <vm/pmap.h> /* for vtophys */
 
-#include <net/bpf.h>
-
-#include <vm/vm.h>              /* for vtophys */
-#include <vm/pmap.h>            /* for vtophys */
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/bus.h>
-#include <sys/rman.h>
 
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
-
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
+
+#include <net/bpf.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
 
 #define LGE_USEIOSPACE
 
@@ -111,10 +110,9 @@
 /*
  * Various supported device vendors/types and their names.
  */
-static const struct lge_type lge_devs[] = {
-	{ LGE_VENDORID, LGE_DEVICEID, "Level 1 Gigabit Ethernet" },
-	{ 0, 0, NULL }
-};
+static const struct lge_type lge_devs[] = { { LGE_VENDORID, LGE_DEVICEID,
+						"Level 1 Gigabit Ethernet" },
+	{ 0, 0, NULL } };
 
 static int lge_probe(device_t);
 static int lge_attach(device_t);
@@ -157,33 +155,29 @@ static int lge_list_rx_init(struct lge_softc *);
 static int lge_list_tx_init(struct lge_softc *);
 
 #ifdef LGE_USEIOSPACE
-#define LGE_RES			SYS_RES_IOPORT
-#define LGE_RID			LGE_PCI_LOIO
+#define LGE_RES SYS_RES_IOPORT
+#define LGE_RID LGE_PCI_LOIO
 #else
-#define LGE_RES			SYS_RES_MEMORY
-#define LGE_RID			LGE_PCI_LOMEM
+#define LGE_RES SYS_RES_MEMORY
+#define LGE_RID LGE_PCI_LOMEM
 #endif
 
 static device_method_t lge_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		lge_probe),
-	DEVMETHOD(device_attach,	lge_attach),
-	DEVMETHOD(device_detach,	lge_detach),
-	DEVMETHOD(device_shutdown,	lge_shutdown),
+	DEVMETHOD(device_probe, lge_probe),
+	DEVMETHOD(device_attach, lge_attach),
+	DEVMETHOD(device_detach, lge_detach),
+	DEVMETHOD(device_shutdown, lge_shutdown),
 
 	/* MII interface */
-	DEVMETHOD(miibus_readreg,	lge_miibus_readreg),
-	DEVMETHOD(miibus_writereg,	lge_miibus_writereg),
-	DEVMETHOD(miibus_statchg,	lge_miibus_statchg),
+	DEVMETHOD(miibus_readreg, lge_miibus_readreg),
+	DEVMETHOD(miibus_writereg, lge_miibus_writereg),
+	DEVMETHOD(miibus_statchg, lge_miibus_statchg),
 
 	DEVMETHOD_END
 };
 
-static driver_t lge_driver = {
-	"lge",
-	lge_methods,
-	sizeof(struct lge_softc)
-};
+static driver_t lge_driver = { "lge", lge_methods, sizeof(struct lge_softc) };
 
 DRIVER_MODULE(lge, pci, lge_driver, 0, 0);
 DRIVER_MODULE(miibus, lge, miibus_driver, 0, 0);
@@ -191,19 +185,13 @@ MODULE_DEPEND(lge, pci, 1, 1, 1);
 MODULE_DEPEND(lge, ether, 1, 1, 1);
 MODULE_DEPEND(lge, miibus, 1, 1, 1);
 
-#define LGE_SETBIT(sc, reg, x)				\
-	CSR_WRITE_4(sc, reg,				\
-		CSR_READ_4(sc, reg) | (x))
+#define LGE_SETBIT(sc, reg, x) CSR_WRITE_4(sc, reg, CSR_READ_4(sc, reg) | (x))
 
-#define LGE_CLRBIT(sc, reg, x)				\
-	CSR_WRITE_4(sc, reg,				\
-		CSR_READ_4(sc, reg) & ~(x))
+#define LGE_CLRBIT(sc, reg, x) CSR_WRITE_4(sc, reg, CSR_READ_4(sc, reg) & ~(x))
 
-#define SIO_SET(x)					\
-	CSR_WRITE_4(sc, LGE_MEAR, CSR_READ_4(sc, LGE_MEAR) | x)
+#define SIO_SET(x) CSR_WRITE_4(sc, LGE_MEAR, CSR_READ_4(sc, LGE_MEAR) | x)
 
-#define SIO_CLR(x)					\
-	CSR_WRITE_4(sc, LGE_MEAR, CSR_READ_4(sc, LGE_MEAR) & ~x)
+#define SIO_CLR(x) CSR_WRITE_4(sc, LGE_MEAR, CSR_READ_4(sc, LGE_MEAR) & ~x)
 
 /*
  * Read a word of data stored in the EEPROM at address 'addr.'
@@ -211,11 +199,11 @@ MODULE_DEPEND(lge, miibus, 1, 1, 1);
 static void
 lge_eeprom_getword(struct lge_softc *sc, int addr, u_int16_t *dest)
 {
-	int			i;
-	u_int32_t		val;
+	int i;
+	u_int32_t val;
 
-	CSR_WRITE_4(sc, LGE_EECTL, LGE_EECTL_CMD_READ|
-	    LGE_EECTL_SINGLEACCESS|((addr >> 1) << 8));
+	CSR_WRITE_4(sc, LGE_EECTL,
+	    LGE_EECTL_CMD_READ | LGE_EECTL_SINGLEACCESS | ((addr >> 1) << 8));
 
 	for (i = 0; i < LGE_TIMEOUT; i++)
 		if (!(CSR_READ_4(sc, LGE_EECTL) & LGE_EECTL_CMD_READ))
@@ -242,8 +230,8 @@ lge_eeprom_getword(struct lge_softc *sc, int addr, u_int16_t *dest)
 static void
 lge_read_eeprom(struct lge_softc *sc, caddr_t dest, int off, int cnt, int swap)
 {
-	int			i;
-	u_int16_t		word = 0, *ptr;
+	int i;
+	u_int16_t word = 0, *ptr;
 
 	for (i = 0; i < cnt; i++) {
 		lge_eeprom_getword(sc, off + i, &word);
@@ -260,8 +248,8 @@ lge_read_eeprom(struct lge_softc *sc, caddr_t dest, int off, int cnt, int swap)
 static int
 lge_miibus_readreg(device_t dev, int phy, int reg)
 {
-	struct lge_softc	*sc;
-	int			i;
+	struct lge_softc *sc;
+	int i;
 
 	sc = device_get_softc(dev);
 
@@ -271,7 +259,7 @@ lge_miibus_readreg(device_t dev, int phy, int reg)
 	 * the miibus code will find only the GMII PHY.
 	 */
 	if (sc->lge_pcs == 0 && phy == 0)
-		return(0);
+		return (0);
 
 	CSR_WRITE_4(sc, LGE_GMIICTL, (phy << 8) | reg | LGE_GMIICMD_READ);
 
@@ -281,17 +269,17 @@ lge_miibus_readreg(device_t dev, int phy, int reg)
 
 	if (i == LGE_TIMEOUT) {
 		device_printf(sc->lge_dev, "PHY read timed out\n");
-		return(0);
+		return (0);
 	}
 
-	return(CSR_READ_4(sc, LGE_GMIICTL) >> 16);
+	return (CSR_READ_4(sc, LGE_GMIICTL) >> 16);
 }
 
 static int
 lge_miibus_writereg(device_t dev, int phy, int reg, int data)
 {
-	struct lge_softc	*sc;
-	int			i;
+	struct lge_softc *sc;
+	int i;
 
 	sc = device_get_softc(dev);
 
@@ -304,17 +292,17 @@ lge_miibus_writereg(device_t dev, int phy, int reg, int data)
 
 	if (i == LGE_TIMEOUT) {
 		device_printf(sc->lge_dev, "PHY write timed out\n");
-		return(0);
+		return (0);
 	}
 
-	return(0);
+	return (0);
 }
 
 static void
 lge_miibus_statchg(device_t dev)
 {
-	struct lge_softc	*sc;
-	struct mii_data		*mii;
+	struct lge_softc *sc;
+	struct mii_data *mii;
 
 	sc = device_get_softc(dev);
 	mii = device_get_softc(sc->lge_miibus);
@@ -366,14 +354,14 @@ lge_hash_maddr(void *arg, struct sockaddr_dl *sdl, u_int count)
 static void
 lge_setmulti(struct lge_softc *sc)
 {
-	if_t			ifp;
+	if_t ifp;
 	uint32_t hashes[2] = { 0, 0 };
 
 	ifp = sc->lge_ifp;
 	LGE_LOCK_ASSERT(sc);
 
 	/* Make sure multicast hash table is enabled. */
-	CSR_WRITE_4(sc, LGE_MODE1, LGE_MODE1_SETRST_CTL1|LGE_MODE1_RX_MCAST);
+	CSR_WRITE_4(sc, LGE_MODE1, LGE_MODE1_SETRST_CTL1 | LGE_MODE1_RX_MCAST);
 
 	if (if_getflags(ifp) & IFF_ALLMULTI || if_getflags(ifp) & IFF_PROMISC) {
 		CSR_WRITE_4(sc, LGE_MAR0, 0xFFFFFFFF);
@@ -397,9 +385,9 @@ lge_setmulti(struct lge_softc *sc)
 static void
 lge_reset(struct lge_softc *sc)
 {
-	int			i;
+	int i;
 
-	LGE_SETBIT(sc, LGE_MODE1, LGE_MODE1_SETRST_CTL0|LGE_MODE1_SOFTRST);
+	LGE_SETBIT(sc, LGE_MODE1, LGE_MODE1_SETRST_CTL0 | LGE_MODE1_SOFTRST);
 
 	for (i = 0; i < LGE_TIMEOUT; i++) {
 		if (!(CSR_READ_4(sc, LGE_MODE1) & LGE_MODE1_SOFTRST))
@@ -422,20 +410,20 @@ lge_reset(struct lge_softc *sc)
 static int
 lge_probe(device_t dev)
 {
-	const struct lge_type	*t;
+	const struct lge_type *t;
 
 	t = lge_devs;
 
-	while(t->lge_name != NULL) {
+	while (t->lge_name != NULL) {
 		if ((pci_get_vendor(dev) == t->lge_vid) &&
 		    (pci_get_device(dev) == t->lge_did)) {
 			device_set_desc(dev, t->lge_name);
-			return(BUS_PROBE_DEFAULT);
+			return (BUS_PROBE_DEFAULT);
 		}
 		t++;
 	}
 
-	return(ENXIO);
+	return (ENXIO);
 }
 
 /*
@@ -445,10 +433,10 @@ lge_probe(device_t dev)
 static int
 lge_attach(device_t dev)
 {
-	u_char			eaddr[ETHER_ADDR_LEN];
-	struct lge_softc	*sc;
-	if_t			ifp = NULL;
-	int			error = 0, rid;
+	u_char eaddr[ETHER_ADDR_LEN];
+	struct lge_softc *sc;
+	if_t ifp = NULL;
+	int error = 0, rid;
 
 	sc = device_get_softc(dev);
 	sc->lge_dev = dev;
@@ -560,8 +548,8 @@ lge_attach(device_t dev)
 fail:
 	lge_free_jumbo_mem(sc);
 	if (sc->lge_ldata)
-		contigfree(sc->lge_ldata,
-		    sizeof(struct lge_list_data), M_DEVBUF);
+		contigfree(sc->lge_ldata, sizeof(struct lge_list_data),
+		    M_DEVBUF);
 	if (ifp)
 		if_free(ifp);
 	if (sc->lge_irq)
@@ -569,14 +557,14 @@ fail:
 	if (sc->lge_res)
 		bus_release_resource(dev, LGE_RES, LGE_RID, sc->lge_res);
 	mtx_destroy(&sc->lge_mtx);
-	return(error);
+	return (error);
 }
 
 static int
 lge_detach(device_t dev)
 {
-	struct lge_softc	*sc;
-	if_t			ifp;
+	struct lge_softc *sc;
+	if_t ifp;
 
 	sc = device_get_softc(dev);
 	ifp = sc->lge_ifp;
@@ -600,7 +588,7 @@ lge_detach(device_t dev)
 	lge_free_jumbo_mem(sc);
 	mtx_destroy(&sc->lge_mtx);
 
-	return(0);
+	return (0);
 }
 
 /*
@@ -609,9 +597,9 @@ lge_detach(device_t dev)
 static int
 lge_list_tx_init(struct lge_softc *sc)
 {
-	struct lge_list_data	*ld;
-	struct lge_ring_data	*cd;
-	int			i;
+	struct lge_list_data *ld;
+	struct lge_ring_data *cd;
+	int i;
 
 	cd = &sc->lge_cdata;
 	ld = sc->lge_ldata;
@@ -622,9 +610,8 @@ lge_list_tx_init(struct lge_softc *sc)
 
 	cd->lge_tx_prod = cd->lge_tx_cons = 0;
 
-	return(0);
+	return (0);
 }
-
 
 /*
  * Initialize the RX descriptors and allocate mbufs for them. Note that
@@ -634,9 +621,9 @@ lge_list_tx_init(struct lge_softc *sc)
 static int
 lge_list_rx_init(struct lge_softc *sc)
 {
-	struct lge_list_data	*ld;
-	struct lge_ring_data	*cd;
-	int			i;
+	struct lge_list_data *ld;
+	struct lge_ring_data *cd;
+	int i;
 
 	ld = sc->lge_ldata;
 	cd = &sc->lge_cdata;
@@ -649,13 +636,13 @@ lge_list_rx_init(struct lge_softc *sc)
 		if (CSR_READ_1(sc, LGE_RXCMDFREE_8BIT) == 0)
 			break;
 		if (lge_newbuf(sc, &ld->lge_rx_list[i], NULL) == ENOBUFS)
-			return(ENOBUFS);
+			return (ENOBUFS);
 	}
 
 	/* Clear possible 'rx command queue empty' interrupt. */
 	CSR_READ_4(sc, LGE_ISR);
 
-	return(0);
+	return (0);
 }
 
 /*
@@ -664,31 +651,33 @@ lge_list_rx_init(struct lge_softc *sc)
 static int
 lge_newbuf(struct lge_softc *sc, struct lge_rx_desc *c, struct mbuf *m)
 {
-	struct mbuf		*m_new = NULL;
-	char			*buf = NULL;
+	struct mbuf *m_new = NULL;
+	char *buf = NULL;
 
 	if (m == NULL) {
 		MGETHDR(m_new, M_NOWAIT, MT_DATA);
 		if (m_new == NULL) {
-			device_printf(sc->lge_dev, "no memory for rx list "
+			device_printf(sc->lge_dev,
+			    "no memory for rx list "
 			    "-- packet dropped!\n");
-			return(ENOBUFS);
+			return (ENOBUFS);
 		}
 
 		/* Allocate the jumbo buffer */
 		buf = lge_jalloc(sc);
 		if (buf == NULL) {
 #ifdef LGE_VERBOSE
-			device_printf(sc->lge_dev, "jumbo allocation failed "
+			device_printf(sc->lge_dev,
+			    "jumbo allocation failed "
 			    "-- packet dropped!\n");
 #endif
 			m_freem(m_new);
-			return(ENOBUFS);
+			return (ENOBUFS);
 		}
 		/* Attach the buffer to the mbuf */
 		m_new->m_len = m_new->m_pkthdr.len = LGE_JUMBO_FRAMELEN;
-		m_extadd(m_new, buf, LGE_JUMBO_FRAMELEN, lge_jfree, sc, NULL,
-		    0, EXT_NET_DRV);
+		m_extadd(m_new, buf, LGE_JUMBO_FRAMELEN, lge_jfree, sc, NULL, 0,
+		    EXT_NET_DRV);
 	} else {
 		m_new = m;
 		m_new->m_len = m_new->m_pkthdr.len = LGE_JUMBO_FRAMELEN;
@@ -699,7 +688,7 @@ lge_newbuf(struct lge_softc *sc, struct lge_rx_desc *c, struct mbuf *m)
 	 * Adjust alignment so packet payload begins on a
 	 * longword boundary. Mandatory for Alpha, useful on
 	 * x86 too.
-	*/
+	 */
 	m_adj(m_new, ETHER_ALIGN);
 
 	c->lge_mbuf = m_new;
@@ -723,23 +712,23 @@ lge_newbuf(struct lge_softc *sc, struct lge_rx_desc *c, struct mbuf *m)
 	CSR_WRITE_4(sc, LGE_RXDESC_ADDR_LO, vtophys(c));
 	LGE_INC(sc->lge_cdata.lge_rx_prod, LGE_RX_LIST_CNT);
 
-	return(0);
+	return (0);
 }
 
 static int
 lge_alloc_jumbo_mem(struct lge_softc *sc)
 {
-	caddr_t			ptr;
-	int			i;
-	struct lge_jpool_entry   *entry;
+	caddr_t ptr;
+	int i;
+	struct lge_jpool_entry *entry;
 
 	/* Grab a big chunk o' storage. */
-	sc->lge_cdata.lge_jumbo_buf = contigmalloc(LGE_JMEM, M_DEVBUF,
-	    M_NOWAIT, 0, 0xffffffff, PAGE_SIZE, 0);
+	sc->lge_cdata.lge_jumbo_buf = contigmalloc(LGE_JMEM, M_DEVBUF, M_NOWAIT,
+	    0, 0xffffffff, PAGE_SIZE, 0);
 
 	if (sc->lge_cdata.lge_jumbo_buf == NULL) {
 		device_printf(sc->lge_dev, "no memory for jumbo buffers!\n");
-		return(ENOBUFS);
+		return (ENOBUFS);
 	}
 
 	SLIST_INIT(&sc->lge_jfree_listhead);
@@ -753,25 +742,26 @@ lge_alloc_jumbo_mem(struct lge_softc *sc)
 	for (i = 0; i < LGE_JSLOTS; i++) {
 		sc->lge_cdata.lge_jslots[i] = ptr;
 		ptr += LGE_JLEN;
-		entry = malloc(sizeof(struct lge_jpool_entry),
-		    M_DEVBUF, M_NOWAIT);
+		entry = malloc(sizeof(struct lge_jpool_entry), M_DEVBUF,
+		    M_NOWAIT);
 		if (entry == NULL) {
-			device_printf(sc->lge_dev, "no memory for jumbo "
+			device_printf(sc->lge_dev,
+			    "no memory for jumbo "
 			    "buffer queue!\n");
-			return(ENOBUFS);
+			return (ENOBUFS);
 		}
 		entry->slot = i;
-		SLIST_INSERT_HEAD(&sc->lge_jfree_listhead,
-		    entry, jpool_entries);
+		SLIST_INSERT_HEAD(&sc->lge_jfree_listhead, entry,
+		    jpool_entries);
 	}
 
-	return(0);
+	return (0);
 }
 
 static void
 lge_free_jumbo_mem(struct lge_softc *sc)
 {
-	struct lge_jpool_entry	*entry;
+	struct lge_jpool_entry *entry;
 
 	if (sc->lge_cdata.lge_jumbo_buf == NULL)
 		return;
@@ -800,7 +790,7 @@ lge_free_jumbo_mem(struct lge_softc *sc)
 static void *
 lge_jalloc(struct lge_softc *sc)
 {
-	struct lge_jpool_entry   *entry;
+	struct lge_jpool_entry *entry;
 
 	entry = SLIST_FIRST(&sc->lge_jfree_listhead);
 
@@ -808,12 +798,12 @@ lge_jalloc(struct lge_softc *sc)
 #ifdef LGE_VERBOSE
 		device_printf(sc->lge_dev, "no free jumbo buffers\n");
 #endif
-		return(NULL);
+		return (NULL);
 	}
 
 	SLIST_REMOVE_HEAD(&sc->lge_jfree_listhead, jpool_entries);
 	SLIST_INSERT_HEAD(&sc->lge_jinuse_listhead, entry, jpool_entries);
-	return(sc->lge_cdata.lge_jslots[entry->slot]);
+	return (sc->lge_cdata.lge_jslots[entry->slot]);
 }
 
 /*
@@ -822,9 +812,9 @@ lge_jalloc(struct lge_softc *sc)
 static void
 lge_jfree(struct mbuf *m)
 {
-	struct lge_softc	*sc;
-	int		        i;
-	struct lge_jpool_entry   *entry;
+	struct lge_softc *sc;
+	int i;
+	struct lge_jpool_entry *entry;
 
 	/* Extract the softc struct pointer. */
 	sc = m->m_ext.ext_arg1;
@@ -833,8 +823,9 @@ lge_jfree(struct mbuf *m)
 		panic("lge_jfree: can't find softc pointer!");
 
 	/* calculate the slot this buffer belongs to */
-	i = ((vm_offset_t)m->m_ext.ext_buf
-	     - (vm_offset_t)sc->lge_cdata.lge_jumbo_buf) / LGE_JLEN;
+	i = ((vm_offset_t)m->m_ext.ext_buf -
+		(vm_offset_t)sc->lge_cdata.lge_jumbo_buf) /
+	    LGE_JLEN;
 
 	if ((i < 0) || (i >= LGE_JSLOTS))
 		panic("lge_jfree: asked to free buffer that we don't manage!");
@@ -854,11 +845,11 @@ lge_jfree(struct mbuf *m)
 static void
 lge_rxeof(struct lge_softc *sc, int cnt)
 {
-        struct mbuf		*m;
-        if_t ifp;
-	struct lge_rx_desc	*cur_rx;
-	int			c, i, total_len = 0;
-	u_int32_t		rxsts, rxctl;
+	struct mbuf *m;
+	if_t ifp;
+	struct lge_rx_desc *cur_rx;
+	int c, i, total_len = 0;
+	u_int32_t rxsts, rxctl;
 
 	ifp = sc->lge_ifp;
 
@@ -867,8 +858,8 @@ lge_rxeof(struct lge_softc *sc, int cnt)
 	i = sc->lge_cdata.lge_rx_cons;
 
 	/* Suck them in. */
-	while(c) {
-		struct mbuf		*m0 = NULL;
+	while (c) {
+		struct mbuf *m0 = NULL;
 
 		cur_rx = &sc->lge_ldata->lge_rx_list[i];
 		rxctl = cur_rx->lge_ctl;
@@ -883,7 +874,7 @@ lge_rxeof(struct lge_softc *sc, int cnt)
 		 * If an error occurs, update stats, clear the
 		 * status word and leave the mbuf cluster in place:
 		 * it should simply get re-used next time this descriptor
-	 	 * comes up in the ring.
+		 * comes up in the ring.
 		 */
 		if (rxctl & LGE_RXCTL_ERRMASK) {
 			if_inc_counter(ifp, IFCOUNTER_IERRORS, 1);
@@ -896,7 +887,8 @@ lge_rxeof(struct lge_softc *sc, int cnt)
 			    ifp, NULL);
 			lge_newbuf(sc, &LGE_RXTAIL(sc), m);
 			if (m0 == NULL) {
-				device_printf(sc->lge_dev, "no receive buffers "
+				device_printf(sc->lge_dev,
+				    "no receive buffers "
 				    "available -- packet dropped!\n");
 				if_inc_counter(ifp, IFCOUNTER_IERRORS, 1);
 				continue;
@@ -915,11 +907,11 @@ lge_rxeof(struct lge_softc *sc, int cnt)
 		if (!(rxsts & LGE_RXSTS_IPCSUMERR))
 			m->m_pkthdr.csum_flags |= CSUM_IP_VALID;
 		if ((rxsts & LGE_RXSTS_ISTCP &&
-		    !(rxsts & LGE_RXSTS_TCPCSUMERR)) ||
+			!(rxsts & LGE_RXSTS_TCPCSUMERR)) ||
 		    (rxsts & LGE_RXSTS_ISUDP &&
-		    !(rxsts & LGE_RXSTS_UDPCSUMERR))) {
-			m->m_pkthdr.csum_flags |=
-			    CSUM_DATA_VALID|CSUM_PSEUDO_HDR;
+			!(rxsts & LGE_RXSTS_UDPCSUMERR))) {
+			m->m_pkthdr.csum_flags |= CSUM_DATA_VALID |
+			    CSUM_PSEUDO_HDR;
 			m->m_pkthdr.csum_data = 0xffff;
 		}
 
@@ -936,7 +928,7 @@ lge_rxeof(struct lge_softc *sc, int cnt)
 static void
 lge_rxeoc(struct lge_softc *sc)
 {
-	if_t			ifp;
+	if_t ifp;
 
 	ifp = sc->lge_ifp;
 	if_setdrvflagbits(ifp, 0, IFF_DRV_RUNNING);
@@ -952,9 +944,9 @@ lge_rxeoc(struct lge_softc *sc)
 static void
 lge_txeof(struct lge_softc *sc)
 {
-	struct lge_tx_desc	*cur_tx = NULL;
-	if_t			ifp;
-	u_int32_t		idx, txdone;
+	struct lge_tx_desc *cur_tx = NULL;
+	if_t ifp;
+	u_int32_t idx, txdone;
 
 	ifp = sc->lge_ifp;
 
@@ -994,9 +986,9 @@ lge_txeof(struct lge_softc *sc)
 static void
 lge_tick(void *xsc)
 {
-	struct lge_softc	*sc;
-	struct mii_data		*mii;
-	if_t			ifp;
+	struct lge_softc *sc;
+	struct mii_data *mii;
+	if_t ifp;
 
 	sc = xsc;
 	ifp = sc->lge_ifp;
@@ -1014,8 +1006,10 @@ lge_tick(void *xsc)
 		    IFM_SUBTYPE(mii->mii_media_active) != IFM_NONE) {
 			sc->lge_link++;
 			if (bootverbose &&
-		  	    (IFM_SUBTYPE(mii->mii_media_active) == IFM_1000_SX||
-			    IFM_SUBTYPE(mii->mii_media_active) == IFM_1000_T))
+			    (IFM_SUBTYPE(mii->mii_media_active) ==
+				    IFM_1000_SX ||
+				IFM_SUBTYPE(mii->mii_media_active) ==
+				    IFM_1000_T))
 				device_printf(sc->lge_dev, "gigabit link up\n");
 			if (!if_sendq_empty(ifp))
 				lge_start_locked(ifp);
@@ -1032,9 +1026,9 @@ lge_tick(void *xsc)
 static void
 lge_intr(void *arg)
 {
-	struct lge_softc	*sc;
-	if_t			ifp;
-	u_int32_t		status;
+	struct lge_softc *sc;
+	if_t ifp;
+	u_int32_t status;
 
 	sc = arg;
 	ifp = sc->lge_ifp;
@@ -1058,7 +1052,7 @@ lge_intr(void *arg)
 		if ((status & LGE_INTRS) == 0)
 			break;
 
-		if ((status & (LGE_ISR_TXCMDFIFO_EMPTY|LGE_ISR_TXDMA_DONE)))
+		if ((status & (LGE_ISR_TXCMDFIFO_EMPTY | LGE_ISR_TXDMA_DONE)))
 			lge_txeof(sc);
 
 		if (status & LGE_ISR_RXDMA_DONE)
@@ -1075,7 +1069,7 @@ lge_intr(void *arg)
 	}
 
 	/* Re-enable interrupts. */
-	CSR_WRITE_4(sc, LGE_IMR, LGE_IMR_SETRST_CTL0|LGE_IMR_INTR_ENB);
+	CSR_WRITE_4(sc, LGE_IMR, LGE_IMR_SETRST_CTL0 | LGE_IMR_INTR_ENB);
 
 	if (!if_sendq_empty(ifp))
 		lge_start_locked(ifp);
@@ -1091,15 +1085,15 @@ lge_intr(void *arg)
 static int
 lge_encap(struct lge_softc *sc, struct mbuf *m_head, u_int32_t *txidx)
 {
-	struct lge_frag		*f = NULL;
-	struct lge_tx_desc	*cur_tx;
-	struct mbuf		*m;
-	int			frag = 0, tot_len = 0;
+	struct lge_frag *f = NULL;
+	struct lge_tx_desc *cur_tx;
+	struct mbuf *m;
+	int frag = 0, tot_len = 0;
 
 	/*
- 	 * Start packing the mbufs in this chain into
+	 * Start packing the mbufs in this chain into
 	 * the fragment pointers. Stop when we run out
- 	 * of fragments or hit the end of the mbuf chain.
+	 * of fragments or hit the end of the mbuf chain.
 	 */
 	m = m_head;
 	cur_tx = &sc->lge_ldata->lge_tx_list[*txidx];
@@ -1117,16 +1111,16 @@ lge_encap(struct lge_softc *sc, struct mbuf *m_head, u_int32_t *txidx)
 	}
 
 	if (m != NULL)
-		return(ENOBUFS);
+		return (ENOBUFS);
 
 	cur_tx->lge_mbuf = m_head;
-	cur_tx->lge_ctl = LGE_TXCTL_WANTINTR|LGE_FRAGCNT(frag)|tot_len;
+	cur_tx->lge_ctl = LGE_TXCTL_WANTINTR | LGE_FRAGCNT(frag) | tot_len;
 	LGE_INC((*txidx), LGE_TX_LIST_CNT);
 
 	/* Queue for transmit */
 	CSR_WRITE_4(sc, LGE_TXDESC_ADDR_LO, vtophys(cur_tx));
 
-	return(0);
+	return (0);
 }
 
 /*
@@ -1139,7 +1133,7 @@ lge_encap(struct lge_softc *sc, struct mbuf *m_head, u_int32_t *txidx)
 static void
 lge_start(if_t ifp)
 {
-	struct lge_softc	*sc;
+	struct lge_softc *sc;
 
 	sc = if_getsoftc(ifp);
 	LGE_LOCK(sc);
@@ -1150,9 +1144,9 @@ lge_start(if_t ifp)
 static void
 lge_start_locked(if_t ifp)
 {
-	struct lge_softc	*sc;
-	struct mbuf		*m_head = NULL;
-	u_int32_t		idx;
+	struct lge_softc *sc;
+	struct mbuf *m_head = NULL;
+	u_int32_t idx;
 
 	sc = if_getsoftc(ifp);
 
@@ -1164,7 +1158,7 @@ lge_start_locked(if_t ifp)
 	if (if_getdrvflags(ifp) & IFF_DRV_OACTIVE)
 		return;
 
-	while(sc->lge_ldata->lge_tx_list[idx].lge_mbuf == NULL) {
+	while (sc->lge_ldata->lge_tx_list[idx].lge_mbuf == NULL) {
 		if (CSR_READ_1(sc, LGE_TXCMDFREE_8BIT) == 0)
 			break;
 
@@ -1198,7 +1192,7 @@ lge_start_locked(if_t ifp)
 static void
 lge_init(void *xsc)
 {
-	struct lge_softc	*sc = xsc;
+	struct lge_softc *sc = xsc;
 
 	LGE_LOCK(sc);
 	lge_init_locked(sc);
@@ -1208,7 +1202,7 @@ lge_init(void *xsc)
 static void
 lge_init_locked(struct lge_softc *sc)
 {
-	if_t			ifp = sc->lge_ifp;
+	if_t ifp = sc->lge_ifp;
 
 	LGE_LOCK_ASSERT(sc);
 	if (if_getdrvflags(ifp) & IFF_DRV_RUNNING)
@@ -1221,12 +1215,15 @@ lge_init_locked(struct lge_softc *sc)
 	lge_reset(sc);
 
 	/* Set MAC address */
-	CSR_WRITE_4(sc, LGE_PAR0, *(u_int32_t *)(&if_getlladdr(sc->lge_ifp)[0]));
-	CSR_WRITE_4(sc, LGE_PAR1, *(u_int32_t *)(&if_getlladdr(sc->lge_ifp)[4]));
+	CSR_WRITE_4(sc, LGE_PAR0,
+	    *(u_int32_t *)(&if_getlladdr(sc->lge_ifp)[0]));
+	CSR_WRITE_4(sc, LGE_PAR1,
+	    *(u_int32_t *)(&if_getlladdr(sc->lge_ifp)[4]));
 
 	/* Init circular RX list. */
 	if (lge_list_rx_init(sc) == ENOBUFS) {
-		device_printf(sc->lge_dev, "initialization failed: no "
+		device_printf(sc->lge_dev,
+		    "initialization failed: no "
 		    "memory for rx buffers\n");
 		lge_stop(sc);
 		return;
@@ -1238,15 +1235,15 @@ lge_init_locked(struct lge_softc *sc)
 	lge_list_tx_init(sc);
 
 	/* Set initial value for MODE1 register. */
-	CSR_WRITE_4(sc, LGE_MODE1, LGE_MODE1_RX_UCAST|
-	    LGE_MODE1_TX_CRC|LGE_MODE1_TXPAD|
-	    LGE_MODE1_RX_FLOWCTL|LGE_MODE1_SETRST_CTL0|
-	    LGE_MODE1_SETRST_CTL1|LGE_MODE1_SETRST_CTL2);
+	CSR_WRITE_4(sc, LGE_MODE1,
+	    LGE_MODE1_RX_UCAST | LGE_MODE1_TX_CRC | LGE_MODE1_TXPAD |
+		LGE_MODE1_RX_FLOWCTL | LGE_MODE1_SETRST_CTL0 |
+		LGE_MODE1_SETRST_CTL1 | LGE_MODE1_SETRST_CTL2);
 
-	 /* If we want promiscuous mode, set the allframes bit. */
+	/* If we want promiscuous mode, set the allframes bit. */
 	if (if_getflags(ifp) & IFF_PROMISC) {
 		CSR_WRITE_4(sc, LGE_MODE1,
-		    LGE_MODE1_SETRST_CTL1|LGE_MODE1_RX_PROMISC);
+		    LGE_MODE1_SETRST_CTL1 | LGE_MODE1_RX_PROMISC);
 	} else {
 		CSR_WRITE_4(sc, LGE_MODE1, LGE_MODE1_RX_PROMISC);
 	}
@@ -1256,19 +1253,19 @@ lge_init_locked(struct lge_softc *sc)
 	 */
 	if (if_getflags(ifp) & IFF_BROADCAST) {
 		CSR_WRITE_4(sc, LGE_MODE1,
-		    LGE_MODE1_SETRST_CTL1|LGE_MODE1_RX_BCAST);
+		    LGE_MODE1_SETRST_CTL1 | LGE_MODE1_RX_BCAST);
 	} else {
 		CSR_WRITE_4(sc, LGE_MODE1, LGE_MODE1_RX_BCAST);
 	}
 
 	/* Packet padding workaround? */
-	CSR_WRITE_4(sc, LGE_MODE1, LGE_MODE1_SETRST_CTL1|LGE_MODE1_RMVPAD);
+	CSR_WRITE_4(sc, LGE_MODE1, LGE_MODE1_SETRST_CTL1 | LGE_MODE1_RMVPAD);
 
 	/* No error frames */
 	CSR_WRITE_4(sc, LGE_MODE1, LGE_MODE1_RX_ERRPKTS);
 
 	/* Receive large frames */
-	CSR_WRITE_4(sc, LGE_MODE1, LGE_MODE1_SETRST_CTL1|LGE_MODE1_RX_GIANTS);
+	CSR_WRITE_4(sc, LGE_MODE1, LGE_MODE1_SETRST_CTL1 | LGE_MODE1_RX_GIANTS);
 
 	/* Workaround: disable RX/TX flow control */
 	CSR_WRITE_4(sc, LGE_MODE1, LGE_MODE1_TX_FLOWCTL);
@@ -1281,12 +1278,13 @@ lge_init_locked(struct lge_softc *sc)
 	CSR_WRITE_4(sc, LGE_MODE1, LGE_MODE1_MPACK_ENB);
 
 	/* Turn off all VLAN stuff */
-	CSR_WRITE_4(sc, LGE_MODE1, LGE_MODE1_VLAN_RX|LGE_MODE1_VLAN_TX|
-	    LGE_MODE1_VLAN_STRIP|LGE_MODE1_VLAN_INSERT);
+	CSR_WRITE_4(sc, LGE_MODE1,
+	    LGE_MODE1_VLAN_RX | LGE_MODE1_VLAN_TX | LGE_MODE1_VLAN_STRIP |
+		LGE_MODE1_VLAN_INSERT);
 
 	/* Workarond: FIFO overflow */
 	CSR_WRITE_2(sc, LGE_RXFIFO_HIWAT, 0x3FFF);
-	CSR_WRITE_4(sc, LGE_IMR, LGE_IMR_SETRST_CTL1|LGE_IMR_RXFIFO_WAT);
+	CSR_WRITE_4(sc, LGE_IMR, LGE_IMR_SETRST_CTL1 | LGE_IMR_RXFIFO_WAT);
 
 	/*
 	 * Load the multicast filter.
@@ -1297,28 +1295,29 @@ lge_init_locked(struct lge_softc *sc)
 	 * Enable hardware checksum validation for all received IPv4
 	 * packets, do not reject packets with bad checksums.
 	 */
-	CSR_WRITE_4(sc, LGE_MODE2, LGE_MODE2_RX_IPCSUM|
-	    LGE_MODE2_RX_TCPCSUM|LGE_MODE2_RX_UDPCSUM|
-	    LGE_MODE2_RX_ERRCSUM);
+	CSR_WRITE_4(sc, LGE_MODE2,
+	    LGE_MODE2_RX_IPCSUM | LGE_MODE2_RX_TCPCSUM | LGE_MODE2_RX_UDPCSUM |
+		LGE_MODE2_RX_ERRCSUM);
 
 	/*
 	 * Enable the delivery of PHY interrupts based on
 	 * link/speed/duplex status chalges.
 	 */
-	CSR_WRITE_4(sc, LGE_MODE1, LGE_MODE1_SETRST_CTL0|LGE_MODE1_GMIIPOLL);
+	CSR_WRITE_4(sc, LGE_MODE1, LGE_MODE1_SETRST_CTL0 | LGE_MODE1_GMIIPOLL);
 
 	/* Enable receiver and transmitter. */
 	CSR_WRITE_4(sc, LGE_RXDESC_ADDR_HI, 0);
-	CSR_WRITE_4(sc, LGE_MODE1, LGE_MODE1_SETRST_CTL1|LGE_MODE1_RX_ENB);
+	CSR_WRITE_4(sc, LGE_MODE1, LGE_MODE1_SETRST_CTL1 | LGE_MODE1_RX_ENB);
 
 	CSR_WRITE_4(sc, LGE_TXDESC_ADDR_HI, 0);
-	CSR_WRITE_4(sc, LGE_MODE1, LGE_MODE1_SETRST_CTL1|LGE_MODE1_TX_ENB);
+	CSR_WRITE_4(sc, LGE_MODE1, LGE_MODE1_SETRST_CTL1 | LGE_MODE1_TX_ENB);
 
 	/*
 	 * Enable interrupts.
 	 */
-	CSR_WRITE_4(sc, LGE_IMR, LGE_IMR_SETRST_CTL0|
-	    LGE_IMR_SETRST_CTL1|LGE_IMR_INTR_ENB|LGE_INTRS);
+	CSR_WRITE_4(sc, LGE_IMR,
+	    LGE_IMR_SETRST_CTL0 | LGE_IMR_SETRST_CTL1 | LGE_IMR_INTR_ENB |
+		LGE_INTRS);
 
 	lge_ifmedia_upd_locked(ifp);
 
@@ -1336,29 +1335,29 @@ lge_init_locked(struct lge_softc *sc)
 static int
 lge_ifmedia_upd(if_t ifp)
 {
-	struct lge_softc	*sc;
+	struct lge_softc *sc;
 
 	sc = if_getsoftc(ifp);
 	LGE_LOCK(sc);
 	lge_ifmedia_upd_locked(ifp);
 	LGE_UNLOCK(sc);
 
-	return(0);
+	return (0);
 }
 
 static void
 lge_ifmedia_upd_locked(if_t ifp)
 {
-	struct lge_softc	*sc;
-	struct mii_data		*mii;
-	struct mii_softc	*miisc;
+	struct lge_softc *sc;
+	struct mii_data *mii;
+	struct mii_softc *miisc;
 
 	sc = if_getsoftc(ifp);
 
 	LGE_LOCK_ASSERT(sc);
 	mii = device_get_softc(sc->lge_miibus);
 	sc->lge_link = 0;
-	LIST_FOREACH(miisc, &mii->mii_phys, mii_list)
+	LIST_FOREACH (miisc, &mii->mii_phys, mii_list)
 		PHY_RESET(miisc);
 	mii_mediachg(mii);
 }
@@ -1369,8 +1368,8 @@ lge_ifmedia_upd_locked(if_t ifp)
 static void
 lge_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr)
 {
-	struct lge_softc	*sc;
-	struct mii_data		*mii;
+	struct lge_softc *sc;
+	struct mii_data *mii;
 
 	sc = if_getsoftc(ifp);
 
@@ -1387,12 +1386,12 @@ lge_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr)
 static int
 lge_ioctl(if_t ifp, u_long command, caddr_t data)
 {
-	struct lge_softc	*sc = if_getsoftc(ifp);
-	struct ifreq		*ifr = (struct ifreq *) data;
-	struct mii_data		*mii;
-	int			error = 0;
+	struct lge_softc *sc = if_getsoftc(ifp);
+	struct ifreq *ifr = (struct ifreq *)data;
+	struct mii_data *mii;
+	int error = 0;
 
-	switch(command) {
+	switch (command) {
 	case SIOCSIFMTU:
 		LGE_LOCK(sc);
 		if (ifr->ifr_mtu > LGE_JUMBO_MTU)
@@ -1408,8 +1407,8 @@ lge_ioctl(if_t ifp, u_long command, caddr_t data)
 			    if_getflags(ifp) & IFF_PROMISC &&
 			    !(sc->lge_if_flags & IFF_PROMISC)) {
 				CSR_WRITE_4(sc, LGE_MODE1,
-				    LGE_MODE1_SETRST_CTL1|
-				    LGE_MODE1_RX_PROMISC);
+				    LGE_MODE1_SETRST_CTL1 |
+					LGE_MODE1_RX_PROMISC);
 			} else if (if_getdrvflags(ifp) & IFF_DRV_RUNNING &&
 			    !(if_getflags(ifp) & IFF_PROMISC) &&
 			    sc->lge_if_flags & IFF_PROMISC) {
@@ -1444,13 +1443,13 @@ lge_ioctl(if_t ifp, u_long command, caddr_t data)
 		break;
 	}
 
-	return(error);
+	return (error);
 }
 
 static void
 lge_watchdog(struct lge_softc *sc)
 {
-	if_t			ifp;
+	if_t ifp;
 
 	LGE_LOCK_ASSERT(sc);
 	ifp = sc->lge_ifp;
@@ -1474,8 +1473,8 @@ lge_watchdog(struct lge_softc *sc)
 static void
 lge_stop(struct lge_softc *sc)
 {
-	int			i;
-	if_t			ifp;
+	int i;
+	if_t ifp;
 
 	LGE_LOCK_ASSERT(sc);
 	ifp = sc->lge_ifp;
@@ -1484,7 +1483,7 @@ lge_stop(struct lge_softc *sc)
 	CSR_WRITE_4(sc, LGE_IMR, LGE_IMR_INTR_ENB);
 
 	/* Disable receiver and transmitter. */
-	CSR_WRITE_4(sc, LGE_MODE1, LGE_MODE1_RX_ENB|LGE_MODE1_TX_ENB);
+	CSR_WRITE_4(sc, LGE_MODE1, LGE_MODE1_RX_ENB | LGE_MODE1_TX_ENB);
 	sc->lge_link = 0;
 
 	/*
@@ -1497,7 +1496,7 @@ lge_stop(struct lge_softc *sc)
 		}
 	}
 	bzero((char *)&sc->lge_ldata->lge_rx_list,
-		sizeof(sc->lge_ldata->lge_rx_list));
+	    sizeof(sc->lge_ldata->lge_rx_list));
 
 	/*
 	 * Free the TX list buffers.
@@ -1510,7 +1509,7 @@ lge_stop(struct lge_softc *sc)
 	}
 
 	bzero((char *)&sc->lge_ldata->lge_tx_list,
-		sizeof(sc->lge_ldata->lge_tx_list));
+	    sizeof(sc->lge_ldata->lge_tx_list));
 
 	if_setdrvflagbits(ifp, 0, (IFF_DRV_RUNNING | IFF_DRV_OACTIVE));
 
@@ -1524,7 +1523,7 @@ lge_stop(struct lge_softc *sc)
 static int
 lge_shutdown(device_t dev)
 {
-	struct lge_softc	*sc;
+	struct lge_softc *sc;
 
 	sc = device_get_softc(dev);
 

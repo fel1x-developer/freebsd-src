@@ -25,9 +25,9 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
-
 #include <sys/types.h>
+
+#include <stdio.h>
 #include <string.h>
 
 #include "local-link.h"
@@ -77,8 +77,8 @@ fgetln(FILE *stream, size_t *len)
 	}
 }
 libbsd_link_warning(fgetln,
-                    "This function cannot be safely ported, use getline(3) "
-                    "instead, as it is supported by GNU and POSIX.1-2008.")
+    "This function cannot be safely ported, use getline(3) "
+    "instead, as it is supported by GNU and POSIX.1-2008.")
 #else
 #error "Function fgetln() needs to be ported."
 #endif

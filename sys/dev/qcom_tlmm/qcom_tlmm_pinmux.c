@@ -38,35 +38,32 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-
+#include <sys/gpio.h>
 #include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/rman.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/gpio.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <dev/gpio/gpiobusvar.h>
 
 #include <dev/fdt/fdt_common.h>
+#include <dev/fdt/fdt_pinctrl.h>
+#include <dev/gpio/gpiobusvar.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include <dev/fdt/fdt_pinctrl.h>
-
-#include "qcom_tlmm_var.h"
 #include "qcom_tlmm_debug.h"
+#include "qcom_tlmm_var.h"
 
 /*
  * For now we're hard-coded to doing IPQ4018 stuff here, but
  * it's not going to be very hard to flip it to being generic.
  */
-#include "qcom_tlmm_ipq4018_hw.h"
-
 #include "gpio_if.h"
+#include "qcom_tlmm_ipq4018_hw.h"
 
 /* Parameters */
 static const struct qcom_tlmm_prop_name prop_names[] = {
@@ -86,13 +83,29 @@ static const struct qcom_tlmm_prop_name prop_names[] = {
 	{ "input-schmitt-disable", PIN_ID_INPUT_SCHMITT_DISABLE, 0 },
 	{ "input-debounce", PIN_ID_INPUT_DEBOUNCE, 0 },
 	{ "power-source", PIN_ID_POWER_SOURCE, 0 },
-	{ "slew-rate", PIN_ID_SLEW_RATE, 0},
+	{ "slew-rate", PIN_ID_SLEW_RATE, 0 },
 	{ "low-power-enable", PIN_ID_LOW_POWER_MODE_ENABLE, 0 },
 	{ "low-power-disable", PIN_ID_LOW_POWER_MODE_DISABLE, 0 },
-	{ "output-low", PIN_ID_OUTPUT_LOW, 0, },
-	{ "output-high", PIN_ID_OUTPUT_HIGH, 0, },
-	{ "vm-enable", PIN_ID_VM_ENABLE, 0, },
-	{ "vm-disable", PIN_ID_VM_DISABLE, 0, },
+	{
+	    "output-low",
+	    PIN_ID_OUTPUT_LOW,
+	    0,
+	},
+	{
+	    "output-high",
+	    PIN_ID_OUTPUT_HIGH,
+	    0,
+	},
+	{
+	    "vm-enable",
+	    PIN_ID_VM_ENABLE,
+	    0,
+	},
+	{
+	    "vm-disable",
+	    PIN_ID_VM_DISABLE,
+	    0,
+	},
 };
 
 static const struct qcom_tlmm_spec_pin *
@@ -112,13 +125,12 @@ qcom_tlmm_pinctrl_search_spin(struct qcom_tlmm_softc *sc, char *pin_name)
 }
 
 static int
-qcom_tlmm_pinctrl_config_spin(struct qcom_tlmm_softc *sc,
-     char *pin_name, const struct qcom_tlmm_spec_pin *spin,
-    struct qcom_tlmm_pinctrl_cfg *cfg)
+qcom_tlmm_pinctrl_config_spin(struct qcom_tlmm_softc *sc, char *pin_name,
+    const struct qcom_tlmm_spec_pin *spin, struct qcom_tlmm_pinctrl_cfg *cfg)
 {
 	/* XXX TODO */
-	device_printf(sc->dev, "%s: TODO: called; pin_name=%s\n",
-	     __func__, pin_name);
+	device_printf(sc->dev, "%s: TODO: called; pin_name=%s\n", __func__,
+	    pin_name);
 	return (0);
 }
 
@@ -132,7 +144,7 @@ qcom_tlmm_pinctrl_search_gmux(struct qcom_tlmm_softc *sc, char *pin_name)
 
 	for (i = 0; sc->gpio_muxes[i].id >= 0; i++) {
 		if (strcmp(pin_name, sc->gpio_muxes[i].name) == 0)
-			return  (&sc->gpio_muxes[i]);
+			return (&sc->gpio_muxes[i]);
 	}
 
 	return (NULL);
@@ -147,16 +159,15 @@ qcom_tlmm_pinctrl_gmux_function(const struct qcom_tlmm_gpio_mux *gmux,
 	for (i = 0; i < 16; i++) { /* XXX size */
 		if ((gmux->functions[i] != NULL) &&
 		    (strcmp(fnc_name, gmux->functions[i]) == 0))
-			return  (i);
+			return (i);
 	}
 
 	return (-1);
 }
 
 static int
-qcom_tlmm_pinctrl_read_node(struct qcom_tlmm_softc *sc,
-     phandle_t node, struct qcom_tlmm_pinctrl_cfg *cfg, char **pins,
-     int *lpins)
+qcom_tlmm_pinctrl_read_node(struct qcom_tlmm_softc *sc, phandle_t node,
+    struct qcom_tlmm_pinctrl_cfg *cfg, char **pins, int *lpins)
 {
 	int rv, i;
 
@@ -207,8 +218,8 @@ qcom_tlmm_pinctrl_config_gmux(struct qcom_tlmm_softc *sc, char *pin_name,
 	int err = 0, i;
 
 	QCOM_TLMM_DPRINTF(sc, QCOM_TLMM_DEBUG_PINMUX,
-	    "%s: called; pin=%s, function %s\n",
-	    __func__, pin_name, cfg->function);
+	    "%s: called; pin=%s, function %s\n", __func__, pin_name,
+	    cfg->function);
 
 	GPIO_LOCK(sc);
 
@@ -222,10 +233,8 @@ qcom_tlmm_pinctrl_config_gmux(struct qcom_tlmm_softc *sc, char *pin_name,
 		tmp = qcom_tlmm_pinctrl_gmux_function(gmux, cfg->function);
 		if (tmp == -1) {
 			device_printf(sc->dev,
-			    "%s: pin=%s, function=%s, unknown!\n",
-			    __func__,
-			    pin_name,
-			    cfg->function);
+			    "%s: pin=%s, function=%s, unknown!\n", __func__,
+			    pin_name, cfg->function);
 			err = EINVAL;
 			goto done;
 		}
@@ -234,12 +243,9 @@ qcom_tlmm_pinctrl_config_gmux(struct qcom_tlmm_softc *sc, char *pin_name,
 		 * Program in the given function to the given pin.
 		 */
 		QCOM_TLMM_DPRINTF(sc, QCOM_TLMM_DEBUG_PINMUX,
-		    "%s: pin id=%u, new function=%u\n",
-		    __func__,
-		    gmux->id,
+		    "%s: pin id=%u, new function=%u\n", __func__, gmux->id,
 		    tmp);
-		err = qcom_tlmm_ipq4018_hw_pin_set_function(sc, gmux->id,
-		    tmp);
+		err = qcom_tlmm_ipq4018_hw_pin_set_function(sc, gmux->id, tmp);
 		if (err != 0) {
 			device_printf(sc->dev,
 			    "%s: pin=%d: failed to set function (%d)\n",
@@ -256,10 +262,7 @@ qcom_tlmm_pinctrl_config_gmux(struct qcom_tlmm_softc *sc, char *pin_name,
 		if (cfg->params[i] == -1)
 			continue;
 		QCOM_TLMM_DPRINTF(sc, QCOM_TLMM_DEBUG_PINMUX,
-		    "%s: pin_id=%u, param=%d, val=%d\n",
-		    __func__,
-		    gmux->id,
-		    i,
+		    "%s: pin_id=%u, param=%d, val=%d\n", __func__, gmux->id, i,
 		    cfg->params[i]);
 		switch (i) {
 		case PIN_ID_BIAS_DISABLE:
@@ -317,8 +320,8 @@ qcom_tlmm_pinctrl_config_gmux(struct qcom_tlmm_softc *sc, char *pin_name,
 				    __func__, gmux->id, err);
 				goto done;
 			}
-			err = qcom_tlmm_ipq4018_hw_pin_set_output_value(
-			    sc, gmux->id, 0);
+			err = qcom_tlmm_ipq4018_hw_pin_set_output_value(sc,
+			    gmux->id, 0);
 			if (err != 0) {
 				device_printf(sc->dev,
 				    "%s: pin=%d: failed to set output value:"
@@ -337,8 +340,8 @@ qcom_tlmm_pinctrl_config_gmux(struct qcom_tlmm_softc *sc, char *pin_name,
 				    __func__, gmux->id, err);
 				goto done;
 			}
-			err = qcom_tlmm_ipq4018_hw_pin_set_output_value(
-			    sc, gmux->id, 1);
+			err = qcom_tlmm_ipq4018_hw_pin_set_output_value(sc,
+			    gmux->id, 1);
 			if (err != 0) {
 				device_printf(sc->dev,
 				    "%s: pin=%d: failed to set output value:"
@@ -354,14 +357,13 @@ qcom_tlmm_pinctrl_config_gmux(struct qcom_tlmm_softc *sc, char *pin_name,
 				device_printf(sc->dev,
 				    "%s: pin=%d: failed to set drive"
 				    " strength %d (%d)\n",
-				    __func__, gmux->id,
-				    cfg->params[i], err);
+				    __func__, gmux->id, cfg->params[i], err);
 				goto done;
 			}
 			break;
-			case PIN_ID_VM_ENABLE:
-			err = qcom_tlmm_ipq4018_hw_pin_set_vm(sc,
-			    gmux->id, true);
+		case PIN_ID_VM_ENABLE:
+			err = qcom_tlmm_ipq4018_hw_pin_set_vm(sc, gmux->id,
+			    true);
 			if (err != 0) {
 				device_printf(sc->dev,
 				    "%s: pin=%d: failed to set VM enable:"
@@ -371,8 +373,8 @@ qcom_tlmm_pinctrl_config_gmux(struct qcom_tlmm_softc *sc, char *pin_name,
 			}
 			break;
 		case PIN_ID_VM_DISABLE:
-			err = qcom_tlmm_ipq4018_hw_pin_set_vm(sc,
-			    gmux->id, false);
+			err = qcom_tlmm_ipq4018_hw_pin_set_vm(sc, gmux->id,
+			    false);
 			if (err != 0) {
 				device_printf(sc->dev,
 				    "%s: pin=%d: failed to set VM disable:"
@@ -427,13 +429,9 @@ qcom_tlmm_pinctrl_config_gmux(struct qcom_tlmm_softc *sc, char *pin_name,
 			device_printf(sc->dev,
 			    "%s: ERROR: unknown/unsupported param: "
 			    " pin_id=%u, param=%d, val=%d\n",
-			    __func__,
-			    gmux->id,
-			    i,
-			    cfg->params[i]);
+			    __func__, gmux->id, i, cfg->params[i]);
 			err = ENXIO;
 			goto done;
-
 		}
 	}
 done:
@@ -441,10 +439,9 @@ done:
 	return (0);
 }
 
-
 static int
-qcom_tlmm_pinctrl_config_node(struct qcom_tlmm_softc *sc,
-    char *pin_name, struct qcom_tlmm_pinctrl_cfg *cfg)
+qcom_tlmm_pinctrl_config_node(struct qcom_tlmm_softc *sc, char *pin_name,
+    struct qcom_tlmm_pinctrl_cfg *cfg)
 {
 	const struct qcom_tlmm_gpio_mux *gmux;
 	const struct qcom_tlmm_spec_pin *spin;
@@ -468,8 +465,7 @@ qcom_tlmm_pinctrl_config_node(struct qcom_tlmm_softc *sc,
 }
 
 static int
-qcom_tlmm_pinctrl_process_node(struct qcom_tlmm_softc *sc,
-     phandle_t node)
+qcom_tlmm_pinctrl_process_node(struct qcom_tlmm_softc *sc, phandle_t node)
 {
 	struct qcom_tlmm_pinctrl_cfg cfg;
 	char *pins, *pname;
@@ -492,8 +488,8 @@ qcom_tlmm_pinctrl_process_node(struct qcom_tlmm_softc *sc,
 		 */
 		rv = qcom_tlmm_pinctrl_config_node(sc, pname, &cfg);
 		if (rv != 0)
-			device_printf(sc->dev,
-			    "Cannot configure pin: %s: %d\n", pname, rv);
+			device_printf(sc->dev, "Cannot configure pin: %s: %d\n",
+			    pname, rv);
 
 		len += i;
 		pname += i;
@@ -522,9 +518,8 @@ qcom_tlmm_pinctrl_configure(device_t dev, phandle_t cfgxref)
 			continue;
 		rv = qcom_tlmm_pinctrl_process_node(sc, node);
 		if (rv != 0)
-		 device_printf(dev, "Pin config failed: %d\n", rv);
+			device_printf(dev, "Pin config failed: %d\n", rv);
 	}
 
 	return (0);
 }
-

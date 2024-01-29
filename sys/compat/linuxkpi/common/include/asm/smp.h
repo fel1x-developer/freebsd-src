@@ -25,26 +25,26 @@
  */
 
 #ifndef _LINUXKPI_ASM_SMP_H_
-#define	_LINUXKPI_ASM_SMP_H_
+#define _LINUXKPI_ASM_SMP_H_
 
+#include <asm/fpu/api.h>
 #include <linux/jump_label.h>
 #include <linux/preempt.h>
-#include <asm/fpu/api.h>
 
 #if defined(__i386__) || defined(__amd64__)
 
-#define	wbinvd_on_all_cpus()	linux_wbinvd_on_all_cpus()
+#define wbinvd_on_all_cpus() linux_wbinvd_on_all_cpus()
 
-int	linux_wbinvd_on_all_cpus(void);
+int linux_wbinvd_on_all_cpus(void);
 
 #endif
 
-#define	get_cpu() ({			\
-	critical_enter();		\
-	PCPU_GET(cpuid);		\
-})
+#define get_cpu()                 \
+	({                        \
+		critical_enter(); \
+		PCPU_GET(cpuid);  \
+	})
 
-#define	put_cpu()			\
-	critical_exit()
+#define put_cpu() critical_exit()
 
 #endif /* _LINUXKPI_ASM_SMP_H_ */

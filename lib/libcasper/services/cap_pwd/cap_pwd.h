@@ -27,8 +27,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_CAP_PWD_H_
-#define	_CAP_PWD_H_
+#ifndef _CAP_PWD_H_
+#define _CAP_PWD_H_
 
 #ifdef HAVE_CASPER
 #define WITH_CASPER
@@ -54,11 +54,11 @@ int cap_setpassent(cap_channel_t *chan, int stayopen);
 void cap_setpwent(cap_channel_t *chan);
 void cap_endpwent(cap_channel_t *chan);
 
-int cap_pwd_limit_cmds(cap_channel_t *chan, const char * const *cmds,
+int cap_pwd_limit_cmds(cap_channel_t *chan, const char *const *cmds,
     size_t ncmds);
-int cap_pwd_limit_fields(cap_channel_t *chan, const char * const *fields,
+int cap_pwd_limit_fields(cap_channel_t *chan, const char *const *fields,
     size_t nfields);
-int cap_pwd_limit_users(cap_channel_t *chan, const char * const *names,
+int cap_pwd_limit_users(cap_channel_t *chan, const char *const *names,
     size_t nnames, uid_t *uids, size_t nuids);
 
 __END_DECLS
@@ -133,7 +133,7 @@ cap_endpwent(cap_channel_t *chan __unused)
 
 static inline int
 cap_pwd_limit_cmds(cap_channel_t *chan __unused,
-    const char * const *cmds __unused, size_t ncmds __unused)
+    const char *const *cmds __unused, size_t ncmds __unused)
 {
 
 	return (0);
@@ -141,7 +141,7 @@ cap_pwd_limit_cmds(cap_channel_t *chan __unused,
 
 static inline int
 cap_pwd_limit_fields(cap_channel_t *chan __unused,
-    const char * const *fields __unused, size_t nfields __unused)
+    const char *const *fields __unused, size_t nfields __unused)
 {
 
 	return (0);
@@ -149,7 +149,7 @@ cap_pwd_limit_fields(cap_channel_t *chan __unused,
 
 static inline int
 cap_pwd_limit_users(cap_channel_t *chan __unused,
-    const char * const *names __unused, size_t nnames __unused,
+    const char *const *names __unused, size_t nnames __unused,
     uid_t *uids __unused, size_t nuids __unused)
 {
 
@@ -157,4 +157,4 @@ cap_pwd_limit_users(cap_channel_t *chan __unused,
 }
 #endif
 
-#endif	/* !_CAP_PWD_H_ */
+#endif /* !_CAP_PWD_H_ */

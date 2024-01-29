@@ -62,25 +62,23 @@ struct ControlFeatures {
 };
 
 static struct ControlFeatures featurelist[] = {
-	{ "noaslr",	NT_FREEBSD_FCTL_ASLR_DISABLE,	"Disable ASLR" },
-	{ "noprotmax",	NT_FREEBSD_FCTL_PROTMAX_DISABLE,
+	{ "noaslr", NT_FREEBSD_FCTL_ASLR_DISABLE, "Disable ASLR" },
+	{ "noprotmax", NT_FREEBSD_FCTL_PROTMAX_DISABLE,
 	    "Disable implicit PROT_MAX" },
-	{ "nostackgap",	NT_FREEBSD_FCTL_STKGAP_DISABLE, "Disable stack gap" },
-	{ "wxneeded",	NT_FREEBSD_FCTL_WXNEEDED, "Requires W+X mappings" },
-	{ "la48",	NT_FREEBSD_FCTL_LA48, "amd64: Limit user VA to 48bit" },
+	{ "nostackgap", NT_FREEBSD_FCTL_STKGAP_DISABLE, "Disable stack gap" },
+	{ "wxneeded", NT_FREEBSD_FCTL_WXNEEDED, "Requires W+X mappings" },
+	{ "la48", NT_FREEBSD_FCTL_LA48, "amd64: Limit user VA to 48bit" },
 };
 
-static struct option long_opts[] = {
-	{ "help",	no_argument,	NULL,	'h' },
-	{ NULL,		0,		NULL,	0 }
-};
+static struct option long_opts[] = { { "help", no_argument, NULL, 'h' },
+	{ NULL, 0, NULL, 0 } };
 
 #if BYTE_ORDER == LITTLE_ENDIAN
-#define	HOST_ENDIAN	ELFDATA2LSB
-#define	SWAP_ENDIAN	ELFDATA2MSB
+#define HOST_ENDIAN ELFDATA2LSB
+#define SWAP_ENDIAN ELFDATA2MSB
 #else
-#define	HOST_ENDIAN	ELFDATA2MSB
-#define	SWAP_ENDIAN	ELFDATA2LSB
+#define HOST_ENDIAN ELFDATA2MSB
+#define SWAP_ENDIAN ELFDATA2LSB
 #endif
 
 static bool iflag;
@@ -137,8 +135,8 @@ main(int argc, char **argv)
 	while (argc) {
 		elf = NULL;
 
-		if ((fd = open(argv[0],
-		    editfeatures ? O_RDWR : O_RDONLY, 0)) < 0) {
+		if ((fd = open(argv[0], editfeatures ? O_RDWR : O_RDONLY, 0)) <
+		    0) {
 			warn("error opening file %s", argv[0]);
 			retval = 1;
 			goto fail;
@@ -176,17 +174,17 @@ main(int argc, char **argv)
 		}
 
 		if (!editfeatures) {
-			if (!print_file_features(elf, ehdr.e_phnum, fd,
-			    argv[0], endian_swap)) {
+			if (!print_file_features(elf, ehdr.e_phnum, fd, argv[0],
+				endian_swap)) {
 				retval = 1;
 				goto fail;
 			}
-		} else if (!edit_file_features(elf, ehdr.e_phnum, fd,
-		    features, endian_swap)) {
+		} else if (!edit_file_features(elf, ehdr.e_phnum, fd, features,
+			       endian_swap)) {
 			retval = 1;
 			goto fail;
 		}
-fail:
+	fail:
 		if (elf != NULL)
 			elf_end(elf);
 
@@ -298,7 +296,7 @@ edit_file_features(Elf *elf, int phcount, int fd, char *val, bool endian_swap)
 	uint64_t off;
 
 	if (!get_file_features(elf, phcount, fd, &features, &off,
-	    endian_swap)) {
+		endian_swap)) {
 		warnx("NT_FREEBSD_FEATURE_CTL note not found");
 		return (false);
 	}
@@ -315,7 +313,7 @@ edit_file_features(Elf *elf, int phcount, int fd, char *val, bool endian_swap)
 
 	if (lseek(fd, off, SEEK_SET) == -1 ||
 	    write(fd, &features, sizeof(features)) <
-	    (ssize_t)sizeof(features)) {
+		(ssize_t)sizeof(features)) {
 		warnx("error writing feature value");
 		return (false);
 	}
@@ -329,8 +327,7 @@ print_features(void)
 
 	printf("Known features are:\n");
 	for (i = 0; i < nitems(featurelist); ++i)
-		printf("%-16s%s\n", featurelist[i].alias,
-		    featurelist[i].desc);
+		printf("%-16s%s\n", featurelist[i].alias, featurelist[i].desc);
 }
 
 static bool
@@ -341,7 +338,7 @@ print_file_features(Elf *elf, int phcount, int fd, char *filename,
 	unsigned long i;
 
 	if (!get_file_features(elf, phcount, fd, &features, NULL,
-	    endian_swap)) {
+		endian_swap)) {
 		return (false);
 	}
 
@@ -435,7 +432,7 @@ get_file_features(Elf *elf, int phcount, int fd, uint32_t *features,
 
 			if (note.n_descsz < sizeof(uint32_t)) {
 				warnx("Feature descriptor can't "
-				    "be less than 4 bytes");
+				      "be less than 4 bytes");
 				free(name);
 				return (false);
 			}

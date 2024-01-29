@@ -29,13 +29,13 @@
 
 #include <dev/rtwn/rtl8192c/r92c_rom_defs.h>
 
-#define R12A_GROUP_2G		6
-#define R12A_GROUP_5G		14
+#define R12A_GROUP_2G 6
+#define R12A_GROUP_5G 14
 
-#define R12A_MAX_TX_COUNT	4
-#define R12A_MAX_RF_PATH	4
+#define R12A_MAX_TX_COUNT 4
+#define R12A_MAX_RF_PATH 4
 
-#define	R12A_EFUSE_MAX_LEN	512
-#define R12A_EFUSE_MAP_LEN	512
+#define R12A_EFUSE_MAX_LEN 512
+#define R12A_EFUSE_MAP_LEN 512
 
-#endif	/* R12A_ROM_DEFS_H */
+#endif /* R12A_ROM_DEFS_H */

@@ -25,6 +25,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <err.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -40,8 +41,8 @@ usr1(int sig __unused)
 	saw = 1;
 }
 
-void	foo(void);
-void	qux(void);
+void foo(void);
+void qux(void);
 
 void
 foo(void)

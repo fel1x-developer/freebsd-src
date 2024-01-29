@@ -30,21 +30,23 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_SUBR_H_
-#define	_SUBR_H_
+#ifndef _SUBR_H_
+#define _SUBR_H_
 
 #include <sys/types.h>
+
 #include <stdbool.h>
 
 #include "hast.h"
 
-#define	KEEP_ERRNO(work)	do {					\
-	int _rerrno;							\
-									\
-	_rerrno = errno;						\
-	work;								\
-	errno = _rerrno;						\
-} while (0)
+#define KEEP_ERRNO(work)         \
+	do {                     \
+		int _rerrno;     \
+                                 \
+		_rerrno = errno; \
+		work;            \
+		errno = _rerrno; \
+	} while (0)
 
 int vsnprlcat(char *str, size_t size, const char *fmt, va_list ap);
 int snprlcat(char *str, size_t size, const char *fmt, ...);
@@ -53,4 +55,4 @@ int provinfo(struct hast_resource *res, bool dowrite);
 const char *role2str(int role);
 int drop_privs(const struct hast_resource *res);
 
-#endif	/* !_SUBR_H_ */
+#endif /* !_SUBR_H_ */

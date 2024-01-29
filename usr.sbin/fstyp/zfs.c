@@ -26,14 +26,14 @@
 
 #include <sys/types.h>
 #include <sys/time.h>
+#include <sys/vdev_impl.h>
+
+#include <libnvpair.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <libnvpair.h>
-#include <sys/vdev_impl.h>
 
 #include "fstyp.h"
 
@@ -59,7 +59,7 @@ fstyp_zfs(FILE *fp, char *label, size_t labelsize)
 	vdev_phys = &(vdev_label->vl_vdev_phys);
 
 	if ((nvlist_unpack(vdev_phys->vp_nvlist, sizeof(vdev_phys->vp_nvlist),
-	    &config, 0)) == 0 &&
+		&config, 0)) == 0 &&
 	    (nvlist_lookup_string(config, "name", &zpool_name) == 0)) {
 		strlcpy(label, zpool_name, labelsize);
 	} else

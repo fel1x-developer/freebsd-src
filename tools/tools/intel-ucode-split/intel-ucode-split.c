@@ -40,9 +40,9 @@ static const size_t bufsize = 65536;
 struct microcode_update_header {
 	uint32_t header_version;
 	uint32_t update_revision;
-	uint32_t date;			/* BCD mmddyyyy */
+	uint32_t date; /* BCD mmddyyyy */
 	uint32_t processor_signature;
-	uint32_t checksum;		/* Over update data and header */
+	uint32_t checksum; /* Over update data and header */
 	uint32_t loader_revision;
 	uint32_t processor_flags;
 	uint32_t data_size;
@@ -84,9 +84,8 @@ dump_header(const struct microcode_update_header *hdr)
 	sig_str = format_signature(hdr->processor_signature);
 	printf("header version\t0x%x\n", hdr->header_version);
 	printf("revision\t0x%x\n", hdr->update_revision);
-	printf("date\t\t0x%x\t%04x-%02x-%02x\n", hdr->date,
-	    hdr->date & 0xffff, (hdr->date & 0xff000000) >> 24,
-	    (hdr->date & 0xff0000) >> 16);
+	printf("date\t\t0x%x\t%04x-%02x-%02x\n", hdr->date, hdr->date & 0xffff,
+	    (hdr->date & 0xff000000) >> 24, (hdr->date & 0xff0000) >> 16);
 	printf("signature\t0x%x\t\t%s\n", hdr->processor_signature, sig_str);
 	printf("checksum\t0x%x\n", hdr->checksum);
 	printf("loader revision\t0x%x\n", hdr->loader_revision);
@@ -187,12 +186,12 @@ main(int argc, char *argv[])
 			    0600);
 			if (ofd < 0)
 				err(1, "open");
-	
+
 			/* Write header. */
 			rv = write(ofd, &hdr, sizeof(hdr));
 			if (rv < (ssize_t)sizeof(hdr))
 				err(1, "write");
-	
+
 			/* Copy data. */
 			while (resid > 0) {
 				len = resid < bufsize ? resid : bufsize;

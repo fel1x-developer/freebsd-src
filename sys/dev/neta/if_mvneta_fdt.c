@@ -29,41 +29,39 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/bus.h>
 #include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/taskqueue.h>
 
-#include <net/ethernet.h>
-#include <net/if.h>
-#include <net/if_media.h>
-
-#include <netinet/in.h>
-#include <netinet/ip.h>
-#include <netinet/tcp_lro.h>
-
 #include <machine/bus.h>
 #include <machine/resource.h>
 
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
+#include <netinet/tcp_lro.h>
 
 #include "if_mvnetareg.h"
 #include "if_mvnetavar.h"
 
 #ifdef MVNETA_DEBUG
-#define	STATIC /* nothing */
+#define STATIC /* nothing */
 #else
-#define	STATIC static
+#define STATIC static
 #endif
 
-#define	PHY_MODE_MAXLEN	10
-#define	INBAND_STATUS_MAXLEN 16
+#define PHY_MODE_MAXLEN 10
+#define INBAND_STATUS_MAXLEN 16
 
 static int mvneta_fdt_probe(device_t);
 static int mvneta_fdt_attach(device_t);
@@ -71,8 +69,8 @@ STATIC boolean_t mvneta_find_ethernet_prop_switch(phandle_t, phandle_t);
 
 static device_method_t mvneta_fdt_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		mvneta_fdt_probe),
-	DEVMETHOD(device_attach,	mvneta_fdt_attach),
+	DEVMETHOD(device_probe, mvneta_fdt_probe),
+	DEVMETHOD(device_attach, mvneta_fdt_attach),
 
 	/* End */
 	DEVMETHOD_END
@@ -86,11 +84,9 @@ DRIVER_MODULE(mvneta, simplebus, mvneta_fdt_driver, 0, 0);
 
 static int mvneta_fdt_phy_acquire(device_t);
 
-static struct ofw_compat_data compat_data[] = {
-	{"marvell,armada-370-neta",	true},
-	{"marvell,armada-3700-neta",	true},
-	{NULL,				false}
-};
+static struct ofw_compat_data compat_data[] = { { "marvell,armada-370-neta",
+						    true },
+	{ "marvell,armada-3700-neta", true }, { NULL, false } };
 
 SIMPLEBUS_PNP_INFO(compat_data);
 
@@ -130,10 +126,10 @@ mvneta_fdt_attach(device_t dev)
 
 	if (ofw_bus_has_prop(dev, "tx-csum-limit")) {
 		err = OF_getencprop(ofw_bus_get_node(dev), "tx-csum-limit",
-			    &tx_csum_limit, sizeof(tx_csum_limit));
+		    &tx_csum_limit, sizeof(tx_csum_limit));
 		if (err <= 0) {
 			device_printf(dev,
-				"Failed to acquire tx-csum-limit property\n");
+			    "Failed to acquire tx-csum-limit property\n");
 			return (ENXIO);
 		}
 	}
@@ -181,17 +177,19 @@ mvneta_fdt_phy_acquire(device_t dev)
 	}
 
 	if (OF_getencprop(node, "phy", (void *)&phy_handle,
-	    sizeof(phy_handle)) <= 0) {
+		sizeof(phy_handle)) <= 0) {
 		/* Test for fixed-link (present i.e. in 388-gp) */
-		for (child = OF_child(node); child != 0; child = OF_peer(child)) {
-			if (OF_getprop_alloc(child,
-			    "name", (void **)&name) <= 0) {
+		for (child = OF_child(node); child != 0;
+		     child = OF_peer(child)) {
+			if (OF_getprop_alloc(child, "name", (void **)&name) <=
+			    0) {
 				continue;
 			}
 			if (strncmp(name, "fixed-link", 10) == 0) {
 				free(name, M_OFWPROP);
 				if (OF_getencprop(child, "speed",
-				    &sc->phy_speed, sizeof(sc->phy_speed)) <= 0) {
+					&sc->phy_speed,
+					sizeof(sc->phy_speed)) <= 0) {
 					if (bootverbose) {
 						device_printf(dev,
 						    "No PHY information.\n");
@@ -218,7 +216,7 @@ mvneta_fdt_phy_acquire(device_t dev)
 	} else {
 		phy_handle = OF_instance_to_package(phy_handle);
 		if (OF_getencprop(phy_handle, "reg", &sc->phy_addr,
-		    sizeof(sc->phy_addr)) <= 0) {
+			sizeof(sc->phy_addr)) <= 0) {
 			device_printf(dev,
 			    "Could not find PHY address in FDT.\n");
 			return (ENXIO);
@@ -233,7 +231,7 @@ mvneta_fdt_mac_address(struct mvneta_softc *sc, uint8_t *addr)
 {
 	phandle_t node;
 	uint8_t lmac[ETHER_ADDR_LEN];
-	uint8_t zeromac[] = {[0 ... (ETHER_ADDR_LEN - 1)] = 0};
+	uint8_t zeromac[] = { [0 ...(ETHER_ADDR_LEN - 1)] = 0 };
 	int len;
 
 	/*
@@ -263,8 +261,8 @@ mvneta_find_ethernet_prop_switch(phandle_t ethernet, phandle_t node)
 	phandle_t child, switch_eth_handle, switch_eth;
 
 	for (child = OF_child(node); child != 0; child = OF_peer(child)) {
-		if (OF_getencprop(child, "ethernet", (void*)&switch_eth_handle,
-		    sizeof(switch_eth_handle)) > 0) {
+		if (OF_getencprop(child, "ethernet", (void *)&switch_eth_handle,
+			sizeof(switch_eth_handle)) > 0) {
 			if (switch_eth_handle > 0) {
 				switch_eth = OF_node_from_xref(
 				    switch_eth_handle);

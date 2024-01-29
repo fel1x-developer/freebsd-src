@@ -26,9 +26,9 @@
  */
 
 #include <sys/param.h>
-#include <sys/time.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
+#include <sys/time.h>
 
 static int
 zlib_modevent(module_t mod, int type, void *unused)
@@ -42,10 +42,6 @@ zlib_modevent(module_t mod, int type, void *unused)
 	return EINVAL;
 }
 
-static moduledata_t zlib_mod = {
-	"zlib",
-	zlib_modevent,
-	0
-};
+static moduledata_t zlib_mod = { "zlib", zlib_modevent, 0 };
 DECLARE_MODULE(zlib, zlib_mod, SI_SUB_DRIVERS, SI_ORDER_FIRST);
 MODULE_VERSION(zlib, 1);

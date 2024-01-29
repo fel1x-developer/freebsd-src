@@ -29,22 +29,22 @@
 
 #include <sys/param.h>
 
-#define	_WANT_PRISON
-#define	_WANT_UCRED
-#define	_WANT_VNET
+#define _WANT_PRISON
+#define _WANT_UCRED
+#define _WANT_VNET
 
+#include <sys/types.h>
 #include <sys/_lock.h>
 #include <sys/_mutex.h>
 #include <sys/_task.h>
 #include <sys/jail.h>
 #include <sys/proc.h>
-#include <sys/types.h>
 
-#include <stdbool.h>
 #include <net/vnet.h>
 
 #include <kvm.h>
 #include <limits.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -62,26 +62,26 @@ _kvm_vnet_selectpid(kvm_t *kd, pid_t pid)
 	struct prison prison;
 	struct vnet vnet;
 	struct kvm_nlist nl[] = {
-		/*
-		 * Note: kvm_nlist strips the first '_' so add an extra one
-		 * here to __{start,stop}_set_vnet.
-		 */
-#define	NLIST_START_VNET	0
+	/*
+	 * Note: kvm_nlist strips the first '_' so add an extra one
+	 * here to __{start,stop}_set_vnet.
+	 */
+#define NLIST_START_VNET 0
 		{ .n_name = "___start_" VNET_SETNAME },
-#define	NLIST_STOP_VNET		1
+#define NLIST_STOP_VNET 1
 		{ .n_name = "___stop_" VNET_SETNAME },
-#define	NLIST_VNET_HEAD		2
+#define NLIST_VNET_HEAD 2
 		{ .n_name = "vnet_head" },
-#define	NLIST_ALLPROC		3
+#define NLIST_ALLPROC 3
 		{ .n_name = "allproc" },
-#define	NLIST_DUMPTID		4
+#define NLIST_DUMPTID 4
 		{ .n_name = "dumptid" },
-#define	NLIST_PROC0		5
+#define NLIST_PROC0 5
 		{ .n_name = "proc0" },
 		{ .n_name = NULL },
 	};
 	uintptr_t procp, credp;
-#define	VMCORE_VNET_OF_PROC0
+#define VMCORE_VNET_OF_PROC0
 #ifndef VMCORE_VNET_OF_PROC0
 	struct thread td;
 	uintptr_t tdp;
@@ -119,7 +119,7 @@ _kvm_vnet_selectpid(kvm_t *kd, pid_t pid)
 	dumptid = 0;
 	if (nl[NLIST_DUMPTID].n_value) {
 		if (kvm_read(kd, nl[NLIST_DUMPTID].n_value, &dumptid,
-		    sizeof(dumptid)) != sizeof(dumptid)) {
+			sizeof(dumptid)) != sizeof(dumptid)) {
 			_kvm_err(kd, kd->program, "%s: dumptid", __func__);
 			return (-1);
 		}
@@ -162,7 +162,7 @@ _kvm_vnet_selectpid(kvm_t *kd, pid_t pid)
 			}
 		} else
 #endif
-		if (proc.p_pid == pid)
+		    if (proc.p_pid == pid)
 			credp = (uintptr_t)proc.p_ucred;
 		if (credp != 0)
 			break;
@@ -218,7 +218,7 @@ _kvm_vnet_initialized(kvm_t *kd, int intialize)
 	if (kd->vnet_initialized || !intialize)
 		return (kd->vnet_initialized);
 
-	(void) _kvm_vnet_selectpid(kd, getpid());
+	(void)_kvm_vnet_selectpid(kd, getpid());
 
 	return (kd->vnet_initialized);
 }

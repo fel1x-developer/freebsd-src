@@ -7,14 +7,14 @@
  * $Id$
  */
 
-# include <stdarg.h>
+#include <stdarg.h>
 #include <stdio.h>
 
 #include "ipf.h"
 #include "opts.h"
 
-
-void	verbose(int level, char *fmt, ...)
+void
+verbose(int level, char *fmt, ...)
 {
 	va_list pvar;
 
@@ -25,8 +25,8 @@ void	verbose(int level, char *fmt, ...)
 	va_end(pvar);
 }
 
-
-void	ipfkverbose(char *fmt, ...)
+void
+ipfkverbose(char *fmt, ...)
 {
 	va_list pvar;
 

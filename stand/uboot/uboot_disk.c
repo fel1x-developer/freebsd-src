@@ -33,7 +33,9 @@
 
 #include <sys/param.h>
 #include <sys/disk.h>
+
 #include <machine/stdarg.h>
+
 #include <stand.h>
 
 #include "api_public.h"
@@ -42,27 +44,31 @@
 #include "glue.h"
 #include "libuboot.h"
 
-#define stor_printf(fmt, args...) do {			\
-    printf("%s%d: ", dev->dd.d_dev->dv_name, dev->dd.d_unit);	\
-    printf(fmt, ##args);				\
-} while (0)
+#define stor_printf(fmt, args...)                                         \
+	do {                                                              \
+		printf("%s%d: ", dev->dd.d_dev->dv_name, dev->dd.d_unit); \
+		printf(fmt, ##args);                                      \
+	} while (0)
 
 #ifdef DEBUG
-#define debugf(fmt, args...) do { printf("%s(): ", __func__);	\
-    printf(fmt,##args); } while (0)
+#define debugf(fmt, args...)                \
+	do {                                \
+		printf("%s(): ", __func__); \
+		printf(fmt, ##args);        \
+	} while (0)
 #else
 #define debugf(fmt, args...)
 #endif
 
 static struct {
-	int		opened;	/* device is opened */
-	int		handle;	/* storage device handle */
-	int		type;	/* storage type */
-	off_t		blocks;	/* block count */
-	u_int		bsize;	/* block size */
+	int opened;   /* device is opened */
+	int handle;   /* storage device handle */
+	int type;     /* storage type */
+	off_t blocks; /* block count */
+	u_int bsize;  /* block size */
 } stor_info[UB_MAX_DEV];
 
-#define	SI(dev)		(stor_info[(dev)->dd.d_unit])
+#define SI(dev) (stor_info[(dev)->dd.d_unit])
 
 static int stor_info_no = 0;
 static int stor_opendev(struct disk_devdesc *);
@@ -115,8 +121,7 @@ stor_init(void)
 			stor_info[stor_info_no].type = di->type;
 			stor_info[stor_info_no].blocks =
 			    di->di_stor.block_count;
-			stor_info[stor_info_no].bsize =
-			    di->di_stor.block_size;
+			stor_info[stor_info_no].bsize = di->di_stor.block_size;
 			stor_info_no++;
 		}
 	}
@@ -141,8 +146,8 @@ stor_cleanup(void)
 }
 
 static int
-stor_strategy(void *devdata, int rw, daddr_t blk, size_t size,
-    char *buf, size_t *rsize)
+stor_strategy(void *devdata, int rw, daddr_t blk, size_t size, char *buf,
+    size_t *rsize)
 {
 	struct disk_devdesc *dev = (struct disk_devdesc *)devdata;
 	daddr_t bcount;
@@ -156,7 +161,7 @@ stor_strategy(void *devdata, int rw, daddr_t blk, size_t size,
 
 	if (size % SI(dev).bsize) {
 		stor_printf("size=%zu not multiple of device "
-		    "block size=%d\n",
+			    "block size=%d\n",
 		    size, SI(dev).bsize);
 		return (EIO);
 	}
@@ -196,13 +201,13 @@ stor_opendev(struct disk_devdesc *dev)
 		err = ub_dev_open(SI(dev).handle);
 		if (err != 0) {
 			stor_printf("device open failed with error=%d, "
-			    "handle=%d\n", err, SI(dev).handle);
+				    "handle=%d\n",
+			    err, SI(dev).handle);
 			return (ENXIO);
 		}
 		SI(dev).opened++;
 	}
-	return (disk_open(dev, SI(dev).blocks * SI(dev).bsize,
-	    SI(dev).bsize));
+	return (disk_open(dev, SI(dev).blocks * SI(dev).bsize, SI(dev).bsize));
 }
 
 static int
@@ -220,7 +225,8 @@ stor_readdev(struct disk_devdesc *dev, daddr_t blk, size_t size, char *buf)
 	lbasize_t real_size;
 	int err;
 
-	debugf("reading blk=%d size=%d @ 0x%08x\n", (int)blk, size, (uint32_t)buf);
+	debugf("reading blk=%d size=%d @ 0x%08x\n", (int)blk, size,
+	    (uint32_t)buf);
 
 	err = ub_dev_read(SI(dev).handle, buf, size, blk, &real_size);
 	if (err != 0) {
@@ -293,7 +299,6 @@ stor_ioctl(struct open_file *f, u_long cmd, void *data)
 	}
 	return (0);
 }
-
 
 /*
  * Return the device unit number for the given type and type-relative unit

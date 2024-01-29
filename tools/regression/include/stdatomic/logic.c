@@ -25,6 +25,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <assert.h>
 #include <stdatomic.h>
 #include <stdint.h>
@@ -53,58 +54,64 @@ rndnum(void)
 	return (v);
 }
 
-#define	DO_FETCH_TEST(T, a, name, result) do {				\
-	T v1 = atomic_load(a);						\
-	T v2 = rndnum();						\
-	assert(atomic_##name(a, v2) == v1); 				\
-	assert(atomic_load(a) == (T)(result)); 				\
-} while (0)
+#define DO_FETCH_TEST(T, a, name, result)              \
+	do {                                           \
+		T v1 = atomic_load(a);                 \
+		T v2 = rndnum();                       \
+		assert(atomic_##name(a, v2) == v1);    \
+		assert(atomic_load(a) == (T)(result)); \
+	} while (0)
 
-#define	DO_COMPARE_EXCHANGE_TEST(T, a, name) do {			\
-	T v1 = atomic_load(a);						\
-	T v2 = rndnum();						\
-	T v3 = rndnum();						\
-	if (atomic_compare_exchange_##name(a, &v2, v3))			\
-		assert(v1 == v2);					\
-	else								\
-		assert(atomic_compare_exchange_##name(a, &v2, v3));	\
-	assert(atomic_load(a) == v3);					\
-} while (0)
+#define DO_COMPARE_EXCHANGE_TEST(T, a, name)                                \
+	do {                                                                \
+		T v1 = atomic_load(a);                                      \
+		T v2 = rndnum();                                            \
+		T v3 = rndnum();                                            \
+		if (atomic_compare_exchange_##name(a, &v2, v3))             \
+			assert(v1 == v2);                                   \
+		else                                                        \
+			assert(atomic_compare_exchange_##name(a, &v2, v3)); \
+		assert(atomic_load(a) == v3);                               \
+	} while (0)
 
-#define	DO_ALL_TESTS(T, a) do {						\
-	{								\
-		T v1 = rndnum();					\
-		atomic_init(a, v1);					\
-		assert(atomic_load(a) == v1);				\
-	}								\
-	{								\
-		T v1 = rndnum();					\
-		atomic_store(a, v1);					\
-		assert(atomic_load(a) == v1);				\
-	}								\
-									\
-	DO_FETCH_TEST(T, a, exchange, v2);				\
-	DO_FETCH_TEST(T, a, fetch_add, v1 + v2);			\
-	DO_FETCH_TEST(T, a, fetch_and, v1 & v2);			\
-	DO_FETCH_TEST(T, a, fetch_or, v1 | v2);				\
-	DO_FETCH_TEST(T, a, fetch_sub, v1 - v2);			\
-	DO_FETCH_TEST(T, a, fetch_xor, v1 ^ v2);			\
-									\
-	DO_COMPARE_EXCHANGE_TEST(T, a, weak);				\
-	DO_COMPARE_EXCHANGE_TEST(T, a, strong);				\
-} while (0)
+#define DO_ALL_TESTS(T, a)                               \
+	do {                                             \
+		{                                        \
+			T v1 = rndnum();                 \
+			atomic_init(a, v1);              \
+			assert(atomic_load(a) == v1);    \
+		}                                        \
+		{                                        \
+			T v1 = rndnum();                 \
+			atomic_store(a, v1);             \
+			assert(atomic_load(a) == v1);    \
+		}                                        \
+                                                         \
+		DO_FETCH_TEST(T, a, exchange, v2);       \
+		DO_FETCH_TEST(T, a, fetch_add, v1 + v2); \
+		DO_FETCH_TEST(T, a, fetch_and, v1 &v2);  \
+		DO_FETCH_TEST(T, a, fetch_or, v1 | v2);  \
+		DO_FETCH_TEST(T, a, fetch_sub, v1 - v2); \
+		DO_FETCH_TEST(T, a, fetch_xor, v1 ^ v2); \
+                                                         \
+		DO_COMPARE_EXCHANGE_TEST(T, a, weak);    \
+		DO_COMPARE_EXCHANGE_TEST(T, a, strong);  \
+	} while (0)
 
-#define	TEST_TYPE(T) do {						\
-	int j;								\
-	struct { _Atomic(T) v[16]; } list, cmp;				\
-	arc4random_buf(&cmp, sizeof(cmp));				\
-	for (j = 0; j < 16; j++) {					\
-		list = cmp;						\
-		DO_ALL_TESTS(T, &list.v[j]);				\
-		list.v[j] = cmp.v[j];					\
-		assert(memcmp(&list, &cmp, sizeof(list)) == 0);		\
-	}								\
-} while (0)
+#define TEST_TYPE(T)                                                    \
+	do {                                                            \
+		int j;                                                  \
+		struct {                                                \
+			_Atomic(T) v[16];                               \
+		} list, cmp;                                            \
+		arc4random_buf(&cmp, sizeof(cmp));                      \
+		for (j = 0; j < 16; j++) {                              \
+			list = cmp;                                     \
+			DO_ALL_TESTS(T, &list.v[j]);                    \
+			list.v[j] = cmp.v[j];                           \
+			assert(memcmp(&list, &cmp, sizeof(list)) == 0); \
+		}                                                       \
+	} while (0)
 
 int
 main(void)

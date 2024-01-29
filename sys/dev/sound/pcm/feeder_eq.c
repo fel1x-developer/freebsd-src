@@ -39,8 +39,9 @@
 #ifdef HAVE_KERNEL_OPTION_HEADERS
 #include "opt_snd.h"
 #endif
-#include <dev/sound/pcm/sound.h>
 #include <dev/sound/pcm/pcm.h>
+#include <dev/sound/pcm/sound.h>
+
 #include "feeder_if.h"
 
 #define SND_USE_FXDIV
@@ -49,46 +50,47 @@
 
 #include "feeder_eq_gen.h"
 
-#define FEEDEQ_LEVELS							\
-	(((FEEDEQ_GAIN_MAX - FEEDEQ_GAIN_MIN) *				\
-	(FEEDEQ_GAIN_DIV / FEEDEQ_GAIN_STEP)) + 1)
+#define FEEDEQ_LEVELS                                \
+	(((FEEDEQ_GAIN_MAX - FEEDEQ_GAIN_MIN) *      \
+	     (FEEDEQ_GAIN_DIV / FEEDEQ_GAIN_STEP)) + \
+	    1)
 
-#define FEEDEQ_L2GAIN(v)						\
+#define FEEDEQ_L2GAIN(v) \
 	((int)min(((v) * FEEDEQ_LEVELS) / 100, FEEDEQ_LEVELS - 1))
 
-#define FEEDEQ_PREAMP_IPART(x)		(abs(x) >> FEEDEQ_GAIN_SHIFT)
-#define FEEDEQ_PREAMP_FPART(x)		(abs(x) & FEEDEQ_GAIN_FMASK)
-#define FEEDEQ_PREAMP_SIGNVAL(x)	((x) < 0 ? -1 : 1)
-#define FEEDEQ_PREAMP_SIGNMARK(x)	(((x) < 0) ? '-' : '+')
+#define FEEDEQ_PREAMP_IPART(x) (abs(x) >> FEEDEQ_GAIN_SHIFT)
+#define FEEDEQ_PREAMP_FPART(x) (abs(x) & FEEDEQ_GAIN_FMASK)
+#define FEEDEQ_PREAMP_SIGNVAL(x) ((x) < 0 ? -1 : 1)
+#define FEEDEQ_PREAMP_SIGNMARK(x) (((x) < 0) ? '-' : '+')
 
-#define FEEDEQ_PREAMP_IMIN	-192
-#define FEEDEQ_PREAMP_IMAX	192
-#define FEEDEQ_PREAMP_FMIN	0
-#define FEEDEQ_PREAMP_FMAX	9
+#define FEEDEQ_PREAMP_IMIN -192
+#define FEEDEQ_PREAMP_IMAX 192
+#define FEEDEQ_PREAMP_FMIN 0
+#define FEEDEQ_PREAMP_FMAX 9
 
-#define FEEDEQ_PREAMP_INVALID	INT_MAX
+#define FEEDEQ_PREAMP_INVALID INT_MAX
 
-#define FEEDEQ_IF2PREAMP(i, f)						\
-	((abs(i) << FEEDEQ_GAIN_SHIFT) |				\
-	(((abs(f) / FEEDEQ_GAIN_STEP) * FEEDEQ_GAIN_STEP) &		\
-	FEEDEQ_GAIN_FMASK))
+#define FEEDEQ_IF2PREAMP(i, f)                                  \
+	((abs(i) << FEEDEQ_GAIN_SHIFT) |                        \
+	    (((abs(f) / FEEDEQ_GAIN_STEP) * FEEDEQ_GAIN_STEP) & \
+		FEEDEQ_GAIN_FMASK))
 
-#define FEEDEQ_PREAMP_MIN						\
-	(FEEDEQ_PREAMP_SIGNVAL(FEEDEQ_GAIN_MIN) *			\
-	FEEDEQ_IF2PREAMP(FEEDEQ_GAIN_MIN, 0))
+#define FEEDEQ_PREAMP_MIN                         \
+	(FEEDEQ_PREAMP_SIGNVAL(FEEDEQ_GAIN_MIN) * \
+	    FEEDEQ_IF2PREAMP(FEEDEQ_GAIN_MIN, 0))
 
-#define FEEDEQ_PREAMP_MAX						\
-	(FEEDEQ_PREAMP_SIGNVAL(FEEDEQ_GAIN_MAX) *			\
-	FEEDEQ_IF2PREAMP(FEEDEQ_GAIN_MAX, 0))
+#define FEEDEQ_PREAMP_MAX                         \
+	(FEEDEQ_PREAMP_SIGNVAL(FEEDEQ_GAIN_MAX) * \
+	    FEEDEQ_IF2PREAMP(FEEDEQ_GAIN_MAX, 0))
 
-#define FEEDEQ_PREAMP_DEFAULT	FEEDEQ_IF2PREAMP(0, 0)
+#define FEEDEQ_PREAMP_DEFAULT FEEDEQ_IF2PREAMP(0, 0)
 
-#define FEEDEQ_PREAMP2IDX(v)						\
-	((int32_t)((FEEDEQ_GAIN_MAX * (FEEDEQ_GAIN_DIV /		\
-	FEEDEQ_GAIN_STEP)) + (FEEDEQ_PREAMP_SIGNVAL(v) *		\
-	FEEDEQ_PREAMP_IPART(v) * (FEEDEQ_GAIN_DIV /			\
-	FEEDEQ_GAIN_STEP)) + (FEEDEQ_PREAMP_SIGNVAL(v) *		\
-	(FEEDEQ_PREAMP_FPART(v) / FEEDEQ_GAIN_STEP))))
+#define FEEDEQ_PREAMP2IDX(v)                                                  \
+	((int32_t)((FEEDEQ_GAIN_MAX * (FEEDEQ_GAIN_DIV / FEEDEQ_GAIN_STEP)) + \
+	    (FEEDEQ_PREAMP_SIGNVAL(v) * FEEDEQ_PREAMP_IPART(v) *              \
+		(FEEDEQ_GAIN_DIV / FEEDEQ_GAIN_STEP)) +                       \
+	    (FEEDEQ_PREAMP_SIGNVAL(v) *                                       \
+		(FEEDEQ_PREAMP_FPART(v) / FEEDEQ_GAIN_STEP))))
 
 static int feeder_eq_exact_rate = 0;
 
@@ -126,90 +128,94 @@ struct feed_eq_info {
 };
 
 #if !defined(_KERNEL) && defined(FEEDEQ_ERR_CLIP)
-#define FEEDEQ_ERR_CLIP_CHECK(t, v)	do {				\
-	if ((v) < PCM_S32_MIN || (v) > PCM_S32_MAX)			\
-		errx(1, "\n\n%s(): ["#t"] Sample clipping: %jd\n",	\
-		    __func__, (intmax_t)(v));				\
-} while (0)
+#define FEEDEQ_ERR_CLIP_CHECK(t, v)                                          \
+	do {                                                                 \
+		if ((v) < PCM_S32_MIN || (v) > PCM_S32_MAX)                  \
+			errx(1, "\n\n%s(): [" #t "] Sample clipping: %jd\n", \
+			    __func__, (intmax_t)(v));                        \
+	} while (0)
 #else
 #define FEEDEQ_ERR_CLIP_CHECK(...)
 #endif
 
-#define FEEDEQ_CLAMP(v)		(((v) > PCM_S32_MAX) ? PCM_S32_MAX :	\
-				(((v) < PCM_S32_MIN) ? PCM_S32_MIN :	\
-				  (v)))
+#define FEEDEQ_CLAMP(v)                      \
+	(((v) > PCM_S32_MAX) ? PCM_S32_MAX : \
+			       (((v) < PCM_S32_MIN) ? PCM_S32_MIN : (v)))
 
-#define FEEDEQ_DECLARE(SIGN, BIT, ENDIAN)					\
-static void									\
-feed_eq_biquad_##SIGN##BIT##ENDIAN(struct feed_eq_info *info,			\
-    uint8_t *dst, uint32_t count)						\
-{										\
-	struct feed_eq_coeff_tone *treble, *bass;				\
-	intpcm64_t w;								\
-	intpcm_t v;								\
-	uint32_t i, j;								\
-	int32_t pmul, pshift;							\
-										\
-	pmul = feed_eq_preamp[info->preamp].mul;				\
-	pshift = feed_eq_preamp[info->preamp].shift;				\
-										\
-	if (info->state == FEEDEQ_DISABLE) {					\
-		j = count * info->channels;					\
-		dst += j * PCM_##BIT##_BPS;					\
-		do {								\
-			dst -= PCM_##BIT##_BPS;					\
-			v = _PCM_READ_##SIGN##BIT##_##ENDIAN(dst);		\
-			v = ((intpcm64_t)pmul * v) >> pshift;			\
-			_PCM_WRITE_##SIGN##BIT##_##ENDIAN(dst, v);		\
-		} while (--j != 0);						\
-										\
-		return;								\
-	}									\
-										\
-	treble = &(info->coeff[info->treble.gain].treble);			\
-	bass   = &(info->coeff[info->bass.gain].bass);				\
-										\
-	do {									\
-		i = 0;								\
-		j = info->channels;						\
-		do {								\
-			v = _PCM_READ_##SIGN##BIT##_##ENDIAN(dst);		\
-			v <<= 32 - BIT;						\
-			v = ((intpcm64_t)pmul * v) >> pshift;			\
-										\
-			w  = (intpcm64_t)v * treble->b0;			\
-			w += (intpcm64_t)info->treble.i1[i] * treble->b1;	\
-			w += (intpcm64_t)info->treble.i2[i] * treble->b2;	\
-			w -= (intpcm64_t)info->treble.o1[i] * treble->a1;	\
-			w -= (intpcm64_t)info->treble.o2[i] * treble->a2;	\
-			info->treble.i2[i] = info->treble.i1[i];		\
-			info->treble.i1[i] = v;					\
-			info->treble.o2[i] = info->treble.o1[i];		\
-			w >>= FEEDEQ_COEFF_SHIFT;				\
-			FEEDEQ_ERR_CLIP_CHECK(treble, w);			\
-			v = FEEDEQ_CLAMP(w);					\
-			info->treble.o1[i] = v;					\
-										\
-			w  = (intpcm64_t)v * bass->b0;				\
-			w += (intpcm64_t)info->bass.i1[i] * bass->b1;		\
-			w += (intpcm64_t)info->bass.i2[i] * bass->b2;		\
-			w -= (intpcm64_t)info->bass.o1[i] * bass->a1;		\
-			w -= (intpcm64_t)info->bass.o2[i] * bass->a2;		\
-			info->bass.i2[i] = info->bass.i1[i];			\
-			info->bass.i1[i] = v;					\
-			info->bass.o2[i] = info->bass.o1[i];			\
-			w >>= FEEDEQ_COEFF_SHIFT;				\
-			FEEDEQ_ERR_CLIP_CHECK(bass, w);				\
-			v = FEEDEQ_CLAMP(w);					\
-			info->bass.o1[i] = v;					\
-										\
-			v >>= 32 - BIT;						\
-			_PCM_WRITE_##SIGN##BIT##_##ENDIAN(dst, v);		\
-			dst += PCM_##BIT##_BPS;					\
-			i++;							\
-		} while (--j != 0);						\
-	} while (--count != 0);							\
-}
+#define FEEDEQ_DECLARE(SIGN, BIT, ENDIAN)                                     \
+	static void feed_eq_biquad_##SIGN##BIT##ENDIAN(                       \
+	    struct feed_eq_info *info, uint8_t *dst, uint32_t count)          \
+	{                                                                     \
+		struct feed_eq_coeff_tone *treble, *bass;                     \
+		intpcm64_t w;                                                 \
+		intpcm_t v;                                                   \
+		uint32_t i, j;                                                \
+		int32_t pmul, pshift;                                         \
+                                                                              \
+		pmul = feed_eq_preamp[info->preamp].mul;                      \
+		pshift = feed_eq_preamp[info->preamp].shift;                  \
+                                                                              \
+		if (info->state == FEEDEQ_DISABLE) {                          \
+			j = count * info->channels;                           \
+			dst += j * PCM_##BIT##_BPS;                           \
+			do {                                                  \
+				dst -= PCM_##BIT##_BPS;                       \
+				v = _PCM_READ_##SIGN##BIT##_##ENDIAN(dst);    \
+				v = ((intpcm64_t)pmul * v) >> pshift;         \
+				_PCM_WRITE_##SIGN##BIT##_##ENDIAN(dst, v);    \
+			} while (--j != 0);                                   \
+                                                                              \
+			return;                                               \
+		}                                                             \
+                                                                              \
+		treble = &(info->coeff[info->treble.gain].treble);            \
+		bass = &(info->coeff[info->bass.gain].bass);                  \
+                                                                              \
+		do {                                                          \
+			i = 0;                                                \
+			j = info->channels;                                   \
+			do {                                                  \
+				v = _PCM_READ_##SIGN##BIT##_##ENDIAN(dst);    \
+				v <<= 32 - BIT;                               \
+				v = ((intpcm64_t)pmul * v) >> pshift;         \
+                                                                              \
+				w = (intpcm64_t)v * treble->b0;               \
+				w += (intpcm64_t)info->treble.i1[i] *         \
+				    treble->b1;                               \
+				w += (intpcm64_t)info->treble.i2[i] *         \
+				    treble->b2;                               \
+				w -= (intpcm64_t)info->treble.o1[i] *         \
+				    treble->a1;                               \
+				w -= (intpcm64_t)info->treble.o2[i] *         \
+				    treble->a2;                               \
+				info->treble.i2[i] = info->treble.i1[i];      \
+				info->treble.i1[i] = v;                       \
+				info->treble.o2[i] = info->treble.o1[i];      \
+				w >>= FEEDEQ_COEFF_SHIFT;                     \
+				FEEDEQ_ERR_CLIP_CHECK(treble, w);             \
+				v = FEEDEQ_CLAMP(w);                          \
+				info->treble.o1[i] = v;                       \
+                                                                              \
+				w = (intpcm64_t)v * bass->b0;                 \
+				w += (intpcm64_t)info->bass.i1[i] * bass->b1; \
+				w += (intpcm64_t)info->bass.i2[i] * bass->b2; \
+				w -= (intpcm64_t)info->bass.o1[i] * bass->a1; \
+				w -= (intpcm64_t)info->bass.o2[i] * bass->a2; \
+				info->bass.i2[i] = info->bass.i1[i];          \
+				info->bass.i1[i] = v;                         \
+				info->bass.o2[i] = info->bass.o1[i];          \
+				w >>= FEEDEQ_COEFF_SHIFT;                     \
+				FEEDEQ_ERR_CLIP_CHECK(bass, w);               \
+				v = FEEDEQ_CLAMP(w);                          \
+				info->bass.o1[i] = v;                         \
+                                                                              \
+				v >>= 32 - BIT;                               \
+				_PCM_WRITE_##SIGN##BIT##_##ENDIAN(dst, v);    \
+				dst += PCM_##BIT##_BPS;                       \
+				i++;                                          \
+			} while (--j != 0);                                   \
+		} while (--count != 0);                                       \
+	}
 
 #if BYTE_ORDER == LITTLE_ENDIAN || defined(SND_FEEDER_MULTIFORMAT)
 FEEDEQ_DECLARE(S, 16, LE)
@@ -220,10 +226,10 @@ FEEDEQ_DECLARE(S, 16, BE)
 FEEDEQ_DECLARE(S, 32, BE)
 #endif
 #ifdef SND_FEEDER_MULTIFORMAT
-FEEDEQ_DECLARE(S,  8, NE)
+FEEDEQ_DECLARE(S, 8, NE)
 FEEDEQ_DECLARE(S, 24, LE)
 FEEDEQ_DECLARE(S, 24, BE)
-FEEDEQ_DECLARE(U,  8, NE)
+FEEDEQ_DECLARE(U, 8, NE)
 FEEDEQ_DECLARE(U, 16, LE)
 FEEDEQ_DECLARE(U, 24, LE)
 FEEDEQ_DECLARE(U, 32, LE)
@@ -232,10 +238,10 @@ FEEDEQ_DECLARE(U, 24, BE)
 FEEDEQ_DECLARE(U, 32, BE)
 #endif
 
-#define FEEDEQ_ENTRY(SIGN, BIT, ENDIAN)					\
-	{								\
-		AFMT_##SIGN##BIT##_##ENDIAN,				\
-		feed_eq_biquad_##SIGN##BIT##ENDIAN			\
+#define FEEDEQ_ENTRY(SIGN, BIT, ENDIAN)                \
+	{                                              \
+		AFMT_##SIGN##BIT##_##ENDIAN,           \
+		    feed_eq_biquad_##SIGN##BIT##ENDIAN \
 	}
 
 static const struct {
@@ -243,28 +249,21 @@ static const struct {
 	feed_eq_t biquad;
 } feed_eq_biquad_tab[] = {
 #if BYTE_ORDER == LITTLE_ENDIAN || defined(SND_FEEDER_MULTIFORMAT)
-	FEEDEQ_ENTRY(S, 16, LE),
-	FEEDEQ_ENTRY(S, 32, LE),
+	FEEDEQ_ENTRY(S, 16, LE), FEEDEQ_ENTRY(S, 32, LE),
 #endif
 #if BYTE_ORDER == BIG_ENDIAN || defined(SND_FEEDER_MULTIFORMAT)
-	FEEDEQ_ENTRY(S, 16, BE),
-	FEEDEQ_ENTRY(S, 32, BE),
+	FEEDEQ_ENTRY(S, 16, BE), FEEDEQ_ENTRY(S, 32, BE),
 #endif
 #ifdef SND_FEEDER_MULTIFORMAT
-	FEEDEQ_ENTRY(S,  8, NE),
-	FEEDEQ_ENTRY(S, 24, LE),
-	FEEDEQ_ENTRY(S, 24, BE),
-	FEEDEQ_ENTRY(U,  8, NE),
-	FEEDEQ_ENTRY(U, 16, LE),
-	FEEDEQ_ENTRY(U, 24, LE),
-	FEEDEQ_ENTRY(U, 32, LE),
-	FEEDEQ_ENTRY(U, 16, BE),
-	FEEDEQ_ENTRY(U, 24, BE),
-	FEEDEQ_ENTRY(U, 32, BE)
+	FEEDEQ_ENTRY(S, 8, NE), FEEDEQ_ENTRY(S, 24, LE),
+	FEEDEQ_ENTRY(S, 24, BE), FEEDEQ_ENTRY(U, 8, NE),
+	FEEDEQ_ENTRY(U, 16, LE), FEEDEQ_ENTRY(U, 24, LE),
+	FEEDEQ_ENTRY(U, 32, LE), FEEDEQ_ENTRY(U, 16, BE),
+	FEEDEQ_ENTRY(U, 24, BE), FEEDEQ_ENTRY(U, 32, BE)
 #endif
 };
 
-#define FEEDEQ_BIQUAD_TAB_SIZE						\
+#define FEEDEQ_BIQUAD_TAB_SIZE \
 	((int32_t)(sizeof(feed_eq_biquad_tab) / sizeof(feed_eq_biquad_tab[0])))
 
 static struct feed_eq_coeff *
@@ -282,9 +281,11 @@ feed_eq_coeff_rate(uint32_t rate)
 	 */
 	for (i = 0; i < FEEDEQ_TAB_SIZE; i++) {
 		spd = feed_eq_tab[i].rate;
-		threshold = spd + ((i < (FEEDEQ_TAB_SIZE - 1) &&
-		    feed_eq_tab[i + 1].rate > spd) ?
-		    ((feed_eq_tab[i + 1].rate - spd) >> 1) : 0);
+		threshold = spd +
+		    ((i < (FEEDEQ_TAB_SIZE - 1) &&
+			 feed_eq_tab[i + 1].rate > spd) ?
+			    ((feed_eq_tab[i + 1].rate - spd) >> 1) :
+			    0);
 		if (rate == spd ||
 		    (feeder_eq_exact_rate == 0 && rate <= threshold))
 			return (feed_eq_tab[i].coeff);
@@ -412,7 +413,7 @@ feed_eq_set(struct pcm_feeder *f, int what, int value)
 		break;
 	case FEEDEQ_STATE:
 		if (!(value == FEEDEQ_BYPASS || value == FEEDEQ_ENABLE ||
-		    value == FEEDEQ_DISABLE))
+			value == FEEDEQ_DISABLE))
 			return (EINVAL);
 		info->state = value;
 		feed_eq_reset(info);
@@ -481,18 +482,14 @@ feed_eq_feed(struct pcm_feeder *f, struct pcm_channel *c, uint8_t *b,
 	return (dst - b);
 }
 
-static struct pcm_feederdesc feeder_eq_desc[] = {
-	{ FEEDER_EQ, 0, 0, 0, 0 },
-	{ 0, 0, 0, 0, 0 }
-};
+static struct pcm_feederdesc feeder_eq_desc[] = { { FEEDER_EQ, 0, 0, 0, 0 },
+	{ 0, 0, 0, 0, 0 } };
 
-static kobj_method_t feeder_eq_methods[] = {
-	KOBJMETHOD(feeder_init,		feed_eq_init),
-	KOBJMETHOD(feeder_free,		feed_eq_free),
-	KOBJMETHOD(feeder_set,		feed_eq_set),
-	KOBJMETHOD(feeder_feed,		feed_eq_feed),
-	KOBJMETHOD_END
-};
+static kobj_method_t feeder_eq_methods[] = { KOBJMETHOD(feeder_init,
+						 feed_eq_init),
+	KOBJMETHOD(feeder_free, feed_eq_free),
+	KOBJMETHOD(feeder_set, feed_eq_set),
+	KOBJMETHOD(feeder_feed, feed_eq_feed), KOBJMETHOD_END };
 
 FEEDER_DECLARE(feeder_eq, NULL);
 
@@ -510,14 +507,14 @@ feed_eq_scan_preamp_arg(const char *s)
 	r = sscanf(s, "%d.%d", &i, &f);
 
 	if (r == 1 && !(i < FEEDEQ_PREAMP_IMIN || i > FEEDEQ_PREAMP_IMAX)) {
-		snprintf(buf, sizeof(buf), "%c%d",
-		    FEEDEQ_PREAMP_SIGNMARK(i), abs(i));
+		snprintf(buf, sizeof(buf), "%c%d", FEEDEQ_PREAMP_SIGNMARK(i),
+		    abs(i));
 		f = 0;
 	} else if (r == 2 &&
 	    !(i < FEEDEQ_PREAMP_IMIN || i > FEEDEQ_PREAMP_IMAX ||
-	    f < FEEDEQ_PREAMP_FMIN || f > FEEDEQ_PREAMP_FMAX))
-		snprintf(buf, sizeof(buf), "%c%d.%d",
-		    FEEDEQ_PREAMP_SIGNMARK(i), abs(i), f);
+		f < FEEDEQ_PREAMP_FMIN || f > FEEDEQ_PREAMP_FMAX))
+		snprintf(buf, sizeof(buf), "%c%d.%d", FEEDEQ_PREAMP_SIGNMARK(i),
+		    abs(i), f);
 	else
 		return (FEEDEQ_PREAMP_INVALID);
 
@@ -582,7 +579,8 @@ sysctl_dev_pcm_eq(SYSCTL_HANDLER_ARGS)
 		} else
 			val = FEEDEQ_DISABLE;
 
-		CHN_FOREACH(c, d, channels.pcm.busy) {
+		CHN_FOREACH(c, d, channels.pcm.busy)
+		{
 			CHN_LOCK(c);
 			f = chn_findfeeder(c, FEEDER_EQ);
 			if (f != NULL)
@@ -641,7 +639,8 @@ sysctl_dev_pcm_eq_preamp(SYSCTL_HANDLER_ARGS)
 
 			d->eqpreamp = val;
 
-			CHN_FOREACH(c, d, channels.pcm.busy) {
+			CHN_FOREACH(c, d, channels.pcm.busy)
+			{
 				CHN_LOCK(c);
 				f = chn_findfeeder(c, FEEDER_EQ);
 				if (f != NULL)
@@ -668,9 +667,9 @@ feeder_eq_initsys(device_t dev)
 	d = device_get_softc(dev);
 
 	if (!(resource_string_value(device_get_name(dev), device_get_unit(dev),
-	    "eq_preamp", &preamp) == 0 &&
-	    (d->eqpreamp = feed_eq_scan_preamp_arg(preamp)) !=
-	    FEEDEQ_PREAMP_INVALID))
+		  "eq_preamp", &preamp) == 0 &&
+		(d->eqpreamp = feed_eq_scan_preamp_arg(preamp)) !=
+		    FEEDEQ_PREAMP_INVALID))
 		d->eqpreamp = FEEDEQ_PREAMP_DEFAULT;
 
 	if (d->eqpreamp < FEEDEQ_PREAMP_MIN)
@@ -679,20 +678,21 @@ feeder_eq_initsys(device_t dev)
 		d->eqpreamp = FEEDEQ_PREAMP_MAX;
 
 	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev),
-	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO,
-	    "eq", CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, d,
-	    sizeof(d), sysctl_dev_pcm_eq, "I",
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO, "eq",
+	    CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, d, sizeof(d),
+	    sysctl_dev_pcm_eq, "I",
 	    "Bass/Treble Equalizer (0=disable, 1=enable, 2=bypass)");
 
-	(void)snprintf(buf, sizeof(buf), "Bass/Treble Equalizer Preamp "
+	(void)snprintf(buf, sizeof(buf),
+	    "Bass/Treble Equalizer Preamp "
 	    "(-/+ %d.0dB , %d.%ddB step)",
 	    FEEDEQ_GAIN_MAX, FEEDEQ_GAIN_STEP / FEEDEQ_GAIN_DIV,
-	    FEEDEQ_GAIN_STEP - ((FEEDEQ_GAIN_STEP / FEEDEQ_GAIN_DIV) *
-	    FEEDEQ_GAIN_DIV));
+	    FEEDEQ_GAIN_STEP -
+		((FEEDEQ_GAIN_STEP / FEEDEQ_GAIN_DIV) * FEEDEQ_GAIN_DIV));
 
 	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev),
-	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO,
-	    "eq_preamp", CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    d, sizeof(d), sysctl_dev_pcm_eq_preamp, "A", buf);
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO, "eq_preamp",
+	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, d, sizeof(d),
+	    sysctl_dev_pcm_eq_preamp, "A", buf);
 }
 #endif

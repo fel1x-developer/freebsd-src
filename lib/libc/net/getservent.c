@@ -31,6 +31,7 @@
 
 #include <sys/param.h>
 #include <sys/socket.h>
+
 #include <arpa/inet.h>
 #include <db.h>
 #include <errno.h>
@@ -39,8 +40,8 @@
 #include <netdb.h>
 #include <nsswitch.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #ifdef YP
 #include <rpc/rpc.h>
@@ -48,38 +49,33 @@
 #include <rpcsvc/ypclnt.h>
 #endif
 #include "namespace.h"
+#include "netdb_private.h"
 #include "reentrant.h"
 #include "un-namespace.h"
-#include "netdb_private.h"
 #ifdef NS_CACHING
 #include "nscache.h"
 #endif
 #include "nss_tls.h"
 
-enum constants
-{
-	SETSERVENT		= 1,
-	ENDSERVENT		= 2,
-	SERVENT_STORAGE_INITIAL	= 1 << 10, /* 1 KByte */
-	SERVENT_STORAGE_MAX	= 1 << 20, /* 1 MByte */
+enum constants {
+	SETSERVENT = 1,
+	ENDSERVENT = 2,
+	SERVENT_STORAGE_INITIAL = 1 << 10, /* 1 KByte */
+	SERVENT_STORAGE_MAX = 1 << 20,	   /* 1 MByte */
 };
 
-struct servent_mdata
-{
+struct servent_mdata {
 	enum nss_lookup_type how;
 	int compat_mode;
 };
 
-static const ns_src defaultsrc[] = {
-	{ NSSRC_COMPAT, NS_SUCCESS },
-	{ NULL, 0 }
-};
+static const ns_src defaultsrc[] = { { NSSRC_COMPAT, NS_SUCCESS },
+	{ NULL, 0 } };
 
 static int servent_unpack(char *, struct servent *, char **, size_t, int *);
 
 /* files backend declarations */
-struct files_state
-{
+struct files_state {
 	FILE *fp;
 	int stayopen;
 
@@ -92,9 +88,8 @@ static int files_servent(void *, void *, va_list);
 static int files_setservent(void *, void *, va_list);
 
 /* db backend declarations */
-struct db_state
-{
-        DB *db;
+struct db_state {
+	DB *db;
 	int stayopen;
 	int keynum;
 };
@@ -106,11 +101,10 @@ static int db_setservent(void *, void *, va_list);
 
 #ifdef YP
 /* nis backend declarations */
-static 	int 	nis_servent(void *, void *, va_list);
-static 	int 	nis_setservent(void *, void *, va_list);
+static int nis_servent(void *, void *, va_list);
+static int nis_setservent(void *, void *, va_list);
 
-struct nis_state
-{
+struct nis_state {
 	int yp_stepping;
 	char yp_domain[MAXHOSTNAMELEN];
 	char *yp_key;
@@ -132,7 +126,7 @@ struct servent_state {
 	char *buffer;
 	size_t bufsize;
 };
-static	void	servent_endstate(void *);
+static void servent_endstate(void *);
 NSS_TLS_HANDLING(servent);
 
 struct key {
@@ -150,7 +144,8 @@ static int wrap_getservbyport_r(struct key, struct servent *, char *, size_t,
 static int wrap_getservent_r(struct key, struct servent *, char *, size_t,
     struct servent **);
 static struct servent *getserv(int (*fn)(struct key, struct servent *, char *,
-    size_t, struct servent **), struct key);
+				   size_t, struct servent **),
+    struct key);
 
 #ifdef NS_CACHING
 static int serv_id_func(char *, size_t *, va_list, void *);
@@ -244,10 +239,10 @@ parse_result(struct servent *serv, char *buffer, size_t bufsize,
 }
 
 /* files backend implementation */
-static	void
+static void
 files_endstate(void *p)
 {
-	FILE * f;
+	FILE *f;
 
 	if (p == NULL)
 		return;
@@ -274,10 +269,10 @@ files_servent(void *retval, void *mdata, va_list ap)
 	};
 	ns_dtab compat_dtab[] = {
 		{ NSSRC_DB, db_servent,
-			(void *)((struct servent_mdata *)mdata)->how },
+		    (void *)((struct servent_mdata *)mdata)->how },
 #ifdef YP
 		{ NSSRC_NIS, nis_servent,
-			(void *)((struct servent_mdata *)mdata)->how },
+		    (void *)((struct servent_mdata *)mdata)->how },
 #endif
 		{ NULL, NULL, NULL }
 	};
@@ -319,9 +314,9 @@ files_servent(void *retval, void *mdata, va_list ap)
 	}
 
 	serv = va_arg(ap, struct servent *);
-	buffer  = va_arg(ap, char *);
+	buffer = va_arg(ap, char *);
 	bufsize = va_arg(ap, size_t);
-	errnop = va_arg(ap,int *);
+	errnop = va_arg(ap, int *);
 
 	*errnop = files_getstate(&st);
 	if (*errnop != 0)
@@ -351,7 +346,7 @@ files_servent(void *retval, void *mdata, va_list ap)
 				break;
 			}
 
-			if (*line=='+' && serv_mdata->compat_mode != 0)
+			if (*line == '+' && serv_mdata->compat_mode != 0)
 				st->compat_mode_active = 1;
 		}
 
@@ -367,7 +362,7 @@ files_servent(void *retval, void *mdata, va_list ap)
 				rv = nsdispatch(retval, compat_dtab,
 				    NSDB_SERVICES_COMPAT, "getservbyport_r",
 				    compat_src, port, proto, serv, buffer,
-					bufsize, errnop);
+				    bufsize, errnop);
 				break;
 			case nss_lt_all:
 				rv = nsdispatch(retval, compat_dtab,
@@ -424,7 +419,7 @@ files_servent(void *retval, void *mdata, va_list ap)
 	}
 
 	if ((rv == NS_SUCCESS) && (retval != NULL))
-		*(struct servent **)retval=serv;
+		*(struct servent **)retval = serv;
 
 	return (rv);
 }
@@ -442,7 +437,7 @@ files_setservent(void *retval, void *mdata, va_list ap)
 
 	switch ((enum constants)(uintptr_t)mdata) {
 	case SETSERVENT:
-		f = va_arg(ap,int);
+		f = va_arg(ap, int);
 		if (st->fp == NULL)
 			st->fp = fopen(_PATH_SERVICES, "re");
 		else
@@ -465,7 +460,7 @@ files_setservent(void *retval, void *mdata, va_list ap)
 }
 
 /* db backend implementation */
-static	void
+static void
 db_endstate(void *p)
 {
 	DB *db;
@@ -520,9 +515,9 @@ db_servent(void *retval, void *mdata, va_list ap)
 	}
 
 	serv = va_arg(ap, struct servent *);
-	buffer  = va_arg(ap, char *);
+	buffer = va_arg(ap, char *);
 	bufsize = va_arg(ap, size_t);
-	errnop = va_arg(ap,int *);
+	errnop = va_arg(ap, int *);
 
 	*errnop = db_getstate(&st);
 	if (*errnop != 0)
@@ -547,8 +542,8 @@ db_servent(void *retval, void *mdata, va_list ap)
 		case nss_lt_name:
 			key.data = buf;
 			if (proto == NULL)
-				key.size = snprintf(buf, sizeof(buf),
-				    "\376%s", name);
+				key.size = snprintf(buf, sizeof(buf), "\376%s",
+				    name);
 			else
 				key.size = snprintf(buf, sizeof(buf),
 				    "\376%s/%s", name, proto);
@@ -564,8 +559,8 @@ db_servent(void *retval, void *mdata, va_list ap)
 			key.data = buf;
 			port = htons(port);
 			if (proto == NULL)
-				key.size = snprintf(buf, sizeof(buf),
-				    "\377%d", port);
+				key.size = snprintf(buf, sizeof(buf), "\377%d",
+				    port);
 			else
 				key.size = snprintf(buf, sizeof(buf),
 				    "\377%d/%s", port, proto);
@@ -643,7 +638,7 @@ db_setservent(void *retval, void *mdata, va_list ap)
 
 /* nis backend implementation */
 #ifdef YP
-static 	void
+static void
 nis_endstate(void *p)
 {
 	if (p == NULL)
@@ -693,7 +688,7 @@ nis_servent(void *retval, void *mdata, va_list ap)
 	}
 
 	serv = va_arg(ap, struct servent *);
-	buffer  = va_arg(ap, char *);
+	buffer = va_arg(ap, char *);
 	bufsize = va_arg(ap, size_t);
 	errnop = va_arg(ap, int *);
 
@@ -716,7 +711,7 @@ nis_servent(void *retval, void *mdata, va_list ap)
 			if (buf == NULL)
 				return (NS_TRYAGAIN);
 			if (yp_match(st->yp_domain, "services.byname", buf,
-			    strlen(buf), &resultbuf, &resultbuflen)) {
+				strlen(buf), &resultbuf, &resultbuflen)) {
 				rv = NS_NOTFOUND;
 				goto fin;
 			}
@@ -745,9 +740,9 @@ nis_servent(void *retval, void *mdata, va_list ap)
 			if (rv) {
 				if (rv == YPERR_MAP) {
 					if (yp_match(st->yp_domain,
-					    "services.byname", buf,
-					    strlen(buf), &resultbuf,
-					    &resultbuflen)) {
+						"services.byname", buf,
+						strlen(buf), &resultbuf,
+						&resultbuflen)) {
 						rv = NS_NOTFOUND;
 						goto fin;
 					}
@@ -833,20 +828,18 @@ compat_setservent(void *retval, void *mdata, va_list ap)
 #endif
 		{ NULL, 0 }
 	};
-	ns_dtab compat_dtab[] = {
-		{ NSSRC_DB, db_setservent, mdata },
+	ns_dtab compat_dtab[] = { { NSSRC_DB, db_setservent, mdata },
 #ifdef YP
 		{ NSSRC_NIS, nis_setservent, mdata },
 #endif
-		{ NULL, NULL, NULL }
-	};
+		{ NULL, NULL, NULL } };
 	int f;
 
 	(void)files_setservent(retval, mdata, ap);
 
 	switch ((enum constants)(uintptr_t)mdata) {
 	case SETSERVENT:
-		f = va_arg(ap,int);
+		f = va_arg(ap, int);
 		(void)nsdispatch(retval, compat_dtab, NSDB_SERVICES_COMPAT,
 		    "setservent", compat_src, f);
 		break;
@@ -923,7 +916,8 @@ serv_id_func(char *buffer, size_t *buffer_size, va_list ap, void *cache_mdata)
 
 		if (proto != NULL)
 			memcpy(buffer + sizeof(enum nss_lookup_type) +
-			    sizeof(int), proto, size + 1);
+				sizeof(int),
+			    proto, size + 1);
 
 		res = NS_SUCCESS;
 		break;
@@ -1083,10 +1077,11 @@ serv_unmarshal_func(char *buffer, size_t buffer_size, void *retval, va_list ap,
 	memcpy(&p, buffer + sizeof(struct servent), sizeof(char *));
 
 	orig_buf = (char *)_ALIGN(orig_buf);
-	memcpy(orig_buf, buffer + sizeof(struct servent) + sizeof(char *) +
-	    (_ALIGN(p) - (size_t)p),
+	memcpy(orig_buf,
+	    buffer + sizeof(struct servent) + sizeof(char *) +
+		(_ALIGN(p) - (size_t)p),
 	    buffer_size - sizeof(struct servent) - sizeof(char *) -
-	    (_ALIGN(p) - (size_t)p));
+		(_ALIGN(p) - (size_t)p));
 	p = (char *)_ALIGN(p);
 
 	NS_APPLY_OFFSET(serv->s_name, orig_buf, p, char *);
@@ -1115,12 +1110,11 @@ getservbyname_r(const char *name, const char *proto, struct servent *serv,
 	static const struct servent_mdata compat_mdata = { nss_lt_name, 1 };
 #ifdef NS_CACHING
 	static const nss_cache_info cache_info =
-	NS_COMMON_CACHE_INFO_INITIALIZER(
-		services, (void *)nss_lt_name,
+	    NS_COMMON_CACHE_INFO_INITIALIZER(services, (void *)nss_lt_name,
 		serv_id_func, serv_marshal_func, serv_unmarshal_func);
 #endif /* NS_CACHING */
-	static const ns_dtab dtab[] = {
-		{ NSSRC_FILES, files_servent, (void *)&mdata },
+	static const ns_dtab dtab[] = { { NSSRC_FILES, files_servent,
+					    (void *)&mdata },
 		{ NSSRC_DB, db_servent, (void *)nss_lt_name },
 #ifdef YP
 		{ NSSRC_NIS, nis_servent, (void *)nss_lt_name },
@@ -1129,9 +1123,8 @@ getservbyname_r(const char *name, const char *proto, struct servent *serv,
 #ifdef NS_CACHING
 		NS_CACHE_CB(&cache_info)
 #endif
-		{ NULL, NULL, NULL }
-	};
-	int	rv, ret_errno;
+		    { NULL, NULL, NULL } };
+	int rv, ret_errno;
 
 	ret_errno = 0;
 	*result = NULL;
@@ -1145,19 +1138,18 @@ getservbyname_r(const char *name, const char *proto, struct servent *serv,
 }
 
 int
-getservbyport_r(int port, const char *proto, struct servent *serv,
-    char *buffer, size_t bufsize, struct servent **result)
+getservbyport_r(int port, const char *proto, struct servent *serv, char *buffer,
+    size_t bufsize, struct servent **result)
 {
 	static const struct servent_mdata mdata = { nss_lt_id, 0 };
 	static const struct servent_mdata compat_mdata = { nss_lt_id, 1 };
 #ifdef NS_CACHING
 	static const nss_cache_info cache_info =
-	NS_COMMON_CACHE_INFO_INITIALIZER(
-		services, (void *)nss_lt_id,
+	    NS_COMMON_CACHE_INFO_INITIALIZER(services, (void *)nss_lt_id,
 		serv_id_func, serv_marshal_func, serv_unmarshal_func);
 #endif
-	static const ns_dtab dtab[] = {
-		{ NSSRC_FILES, files_servent, (void *)&mdata },
+	static const ns_dtab dtab[] = { { NSSRC_FILES, files_servent,
+					    (void *)&mdata },
 		{ NSSRC_DB, db_servent, (void *)nss_lt_id },
 #ifdef YP
 		{ NSSRC_NIS, nis_servent, (void *)nss_lt_id },
@@ -1166,8 +1158,7 @@ getservbyport_r(int port, const char *proto, struct servent *serv,
 #ifdef NS_CACHING
 		NS_CACHE_CB(&cache_info)
 #endif
-		{ NULL, NULL, NULL }
-	};
+		    { NULL, NULL, NULL } };
 	int rv, ret_errno;
 
 	ret_errno = 0;
@@ -1188,12 +1179,12 @@ getservent_r(struct servent *serv, char *buffer, size_t bufsize,
 	static const struct servent_mdata mdata = { nss_lt_all, 0 };
 	static const struct servent_mdata compat_mdata = { nss_lt_all, 1 };
 #ifdef NS_CACHING
-	static const nss_cache_info cache_info = NS_MP_CACHE_INFO_INITIALIZER(
-		services, (void *)nss_lt_all,
+	static const nss_cache_info cache_info =
+	    NS_MP_CACHE_INFO_INITIALIZER(services, (void *)nss_lt_all,
 		serv_marshal_func, serv_unmarshal_func);
 #endif
-	static const ns_dtab dtab[] = {
-		{ NSSRC_FILES, files_servent, (void *)&mdata },
+	static const ns_dtab dtab[] = { { NSSRC_FILES, files_servent,
+					    (void *)&mdata },
 		{ NSSRC_DB, db_servent, (void *)nss_lt_all },
 #ifdef YP
 		{ NSSRC_NIS, nis_servent, (void *)nss_lt_all },
@@ -1202,14 +1193,13 @@ getservent_r(struct servent *serv, char *buffer, size_t bufsize,
 #ifdef NS_CACHING
 		NS_CACHE_CB(&cache_info)
 #endif
-		{ NULL, NULL, NULL }
-	};
+		    { NULL, NULL, NULL } };
 	int rv, ret_errno;
 
 	ret_errno = 0;
 	*result = NULL;
-	rv = nsdispatch(result, dtab, NSDB_SERVICES, "getservent_r",
-	    defaultsrc, serv, buffer, bufsize, &ret_errno);
+	rv = nsdispatch(result, dtab, NSDB_SERVICES, "getservent_r", defaultsrc,
+	    serv, buffer, bufsize, &ret_errno);
 
 	if (rv == NS_SUCCESS)
 		return (0);
@@ -1222,11 +1212,10 @@ setservent(int stayopen)
 {
 #ifdef NS_CACHING
 	static const nss_cache_info cache_info = NS_MP_CACHE_INFO_INITIALIZER(
-		services, (void *)nss_lt_all,
-		NULL, NULL);
+	    services, (void *)nss_lt_all, NULL, NULL);
 #endif
-	static const ns_dtab dtab[] = {
-		{ NSSRC_FILES, files_setservent, (void *)SETSERVENT },
+	static const ns_dtab dtab[] = { { NSSRC_FILES, files_setservent,
+					    (void *)SETSERVENT },
 		{ NSSRC_DB, db_setservent, (void *)SETSERVENT },
 #ifdef YP
 		{ NSSRC_NIS, nis_setservent, (void *)SETSERVENT },
@@ -1235,8 +1224,7 @@ setservent(int stayopen)
 #ifdef NS_CACHING
 		NS_CACHE_CB(&cache_info)
 #endif
-		{ NULL, NULL, NULL }
-	};
+		    { NULL, NULL, NULL } };
 
 	(void)nsdispatch(NULL, dtab, NSDB_SERVICES, "setservent", defaultsrc,
 	    stayopen);
@@ -1247,11 +1235,10 @@ endservent(void)
 {
 #ifdef NS_CACHING
 	static const nss_cache_info cache_info = NS_MP_CACHE_INFO_INITIALIZER(
-		services, (void *)nss_lt_all,
-		NULL, NULL);
+	    services, (void *)nss_lt_all, NULL, NULL);
 #endif
-	static const ns_dtab dtab[] = {
-		{ NSSRC_FILES, files_setservent, (void *)ENDSERVENT },
+	static const ns_dtab dtab[] = { { NSSRC_FILES, files_setservent,
+					    (void *)ENDSERVENT },
 		{ NSSRC_DB, db_setservent, (void *)ENDSERVENT },
 #ifdef YP
 		{ NSSRC_NIS, nis_setservent, (void *)ENDSERVENT },
@@ -1260,8 +1247,7 @@ endservent(void)
 #ifdef NS_CACHING
 		NS_CACHE_CB(&cache_info)
 #endif
-		{ NULL, NULL, NULL }
-	};
+		    { NULL, NULL, NULL } };
 
 	(void)nsdispatch(NULL, dtab, NSDB_SERVICES, "endservent", defaultsrc);
 }
@@ -1281,19 +1267,19 @@ static int
 wrap_getservbyname_r(struct key key, struct servent *serv, char *buffer,
     size_t bufsize, struct servent **res)
 {
-	return (getservbyname_r(key.name, key.proto, serv, buffer, bufsize,
-	    res));
+	return (
+	    getservbyname_r(key.name, key.proto, serv, buffer, bufsize, res));
 }
 
 static int
 wrap_getservbyport_r(struct key key, struct servent *serv, char *buffer,
     size_t bufsize, struct servent **res)
 {
-	return (getservbyport_r(key.port, key.proto, serv, buffer, bufsize,
-	    res));
+	return (
+	    getservbyport_r(key.port, key.proto, serv, buffer, bufsize, res));
 }
 
-static	int
+static int
 wrap_getservent_r(struct key key, struct servent *serv, char *buffer,
     size_t bufsize, struct servent **res)
 {
@@ -1302,11 +1288,12 @@ wrap_getservent_r(struct key key, struct servent *serv, char *buffer,
 
 static struct servent *
 getserv(int (*fn)(struct key, struct servent *, char *, size_t,
-    struct servent **), struct key key)
+	    struct servent **),
+    struct key key)
 {
 	int rv;
 	struct servent *res;
-	struct servent_state * st;
+	struct servent_state *st;
 
 	rv = servent_getstate(&st);
 	if (rv != 0) {

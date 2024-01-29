@@ -3,7 +3,7 @@
  *
  * Copyright (c) 1983, 1990, 1993
  *    The Regents of the University of California.  All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -15,7 +15,7 @@
  * 3. Neither the name of the University nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -31,14 +31,14 @@
 
 /*
  * Portions Copyright (c) 1993 by Digital Equipment Corporation.
- * 
+ *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies, and that
  * the name of Digital Equipment Corporation not be used in advertising or
  * publicity pertaining to distribution of the document or software without
  * specific, written prior permission.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND DIGITAL EQUIPMENT CORP. DISCLAIMS ALL
  * WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND FITNESS.   IN NO EVENT SHALL DIGITAL EQUIPMENT
@@ -66,23 +66,23 @@
  * OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "port_before.h"
-
 #include <sys/param.h>
 
 #include <netinet/in.h>
-#include <arpa/inet.h>
 
+#include <arpa/inet.h>
 #include <ctype.h>
 
 #include "port_after.h"
+#include "port_before.h"
 
 /*%
  * Ascii internet address interpretation routine.
  * The value returned is in network order.
  */
-in_addr_t		/* XXX should be struct in_addr :( */
-inet_addr(const char *cp) {
+in_addr_t /* XXX should be struct in_addr :( */
+inet_addr(const char *cp)
+{
 	struct in_addr val;
 
 	if (inet_aton(cp, &val))
@@ -98,7 +98,8 @@ inet_addr(const char *cp) {
  * cannot distinguish between failure and a local broadcast address.
  */
 int
-inet_aton(const char *cp, struct in_addr *addr) {
+inet_aton(const char *cp, struct in_addr *addr)
+{
 	u_long val;
 	int base, n;
 	char c;
@@ -115,14 +116,16 @@ inet_aton(const char *cp, struct in_addr *addr) {
 		 */
 		if (!isdigit((unsigned char)c))
 			return (0);
-		val = 0; base = 10; digit = 0;
+		val = 0;
+		base = 10;
+		digit = 0;
 		if (c == '0') {
 			c = *++cp;
 			if (c == 'x' || c == 'X')
 				base = 16, c = *++cp;
 			else {
 				base = 8;
-				digit = 1 ;
+				digit = 1;
 			}
 		}
 		for (;;) {
@@ -132,10 +135,12 @@ inet_aton(const char *cp, struct in_addr *addr) {
 				val = (val * base) + (c - '0');
 				c = *++cp;
 				digit = 1;
-			} else if (base == 16 && isascii(c) && 
-				   isxdigit((unsigned char)c)) {
+			} else if (base == 16 && isascii(c) &&
+			    isxdigit((unsigned char)c)) {
 				val = (val << 4) |
-					(c + 10 - (islower((unsigned char)c) ? 'a' : 'A'));
+				    (c + 10 -
+					(islower((unsigned char)c) ? 'a' :
+								     'A'));
 				c = *++cp;
 				digit = 1;
 			} else
@@ -171,22 +176,22 @@ inet_aton(const char *cp, struct in_addr *addr) {
 	 */
 	n = pp - parts + 1;
 	switch (n) {
-	case 1:				/*%< a -- 32 bits */
+	case 1: /*%< a -- 32 bits */
 		break;
 
-	case 2:				/*%< a.b -- 8.24 bits */
+	case 2: /*%< a.b -- 8.24 bits */
 		if (val > 0xffffffU)
 			return (0);
 		val |= (uint32_t)parts[0] << 24;
 		break;
 
-	case 3:				/*%< a.b.c -- 8.8.16 bits */
+	case 3: /*%< a.b.c -- 8.8.16 bits */
 		if (val > 0xffffU)
 			return (0);
 		val |= ((uint32_t)parts[0] << 24) | (parts[1] << 16);
 		break;
 
-	case 4:				/*%< a.b.c.d -- 8.8.8.8 bits */
+	case 4: /*%< a.b.c.d -- 8.8.8.8 bits */
 		if (val > 0xffU)
 			return (0);
 		val |= ((uint32_t)parts[0] << 24) | (parts[1] << 16) |

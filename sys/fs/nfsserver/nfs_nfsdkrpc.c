@@ -33,19 +33,17 @@
  *
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet6.h"
-#include "opt_kgssapi.h"
 #include "opt_kern_tls.h"
+#include "opt_kgssapi.h"
+
+#include <sys/cdefs.h>
 
 #include <fs/nfs/nfsport.h>
-
+#include <fs/nfsserver/nfs_fha_new.h>
 #include <rpc/rpc.h>
 #include <rpc/rpcsec_gss.h>
 #include <rpc/rpcsec_tls.h>
-
-#include <fs/nfsserver/nfs_fha_new.h>
-
 #include <security/mac/mac_framework.h>
 
 NFSDLOCKMUTEX;
@@ -189,8 +187,7 @@ nfssvc_program(struct svc_req *rqst, SVCXPRT *xprt)
 		 *    sin_port and sin6_port are at same offset
 		 */
 		port = ntohs(sin->sin_port);
-		if (port >= IPPORT_RESERVED &&
-		    nd.nd_procnum != NFSPROC_NULL) {
+		if (port >= IPPORT_RESERVED && nd.nd_procnum != NFSPROC_NULL) {
 #ifdef INET6
 			char buf[INET6_ADDRSTRLEN];
 #else
@@ -198,25 +195,26 @@ nfssvc_program(struct svc_req *rqst, SVCXPRT *xprt)
 #endif
 #ifdef INET6
 #if defined(KLD_MODULE)
-			/* Do not use ip6_sprintf: the nfs module should work without INET6. */
-#define	ip6_sprintf(buf, a)						\
-			(sprintf((buf), "%x:%x:%x:%x:%x:%x:%x:%x",	\
-			    (a)->s6_addr16[0], (a)->s6_addr16[1],	\
-			    (a)->s6_addr16[2], (a)->s6_addr16[3],	\
-			    (a)->s6_addr16[4], (a)->s6_addr16[5],	\
-			    (a)->s6_addr16[6], (a)->s6_addr16[7]),	\
-			    (buf))
+			/* Do not use ip6_sprintf: the nfs module should work
+			 * without INET6. */
+#define ip6_sprintf(buf, a)                                           \
+	(sprintf((buf), "%x:%x:%x:%x:%x:%x:%x:%x", (a)->s6_addr16[0], \
+	     (a)->s6_addr16[1], (a)->s6_addr16[2], (a)->s6_addr16[3], \
+	     (a)->s6_addr16[4], (a)->s6_addr16[5], (a)->s6_addr16[6], \
+	     (a)->s6_addr16[7]),                                      \
+	    (buf))
 #endif
 #endif
 			printf("NFS request from unprivileged port (%s:%d)\n",
 #ifdef INET6
 			    sin->sin_family == AF_INET6 ?
-			    ip6_sprintf(buf, &satosin6(sin)->sin6_addr) :
+				ip6_sprintf(buf, &satosin6(sin)->sin6_addr) :
 #if defined(KLD_MODULE)
 #undef ip6_sprintf
 #endif
 #endif
-			    inet_ntoa_r(sin->sin_addr, buf), port);
+				inet_ntoa_r(sin->sin_addr, buf),
+			    port);
 			svcerr_weakauth(rqst);
 			svc_freereq(rqst);
 			m_freem(nd.nd_mrep);
@@ -289,13 +287,15 @@ nfssvc_program(struct svc_req *rqst, SVCXPRT *xprt)
 					nd.nd_princlen = j;
 					memcpy(nd.nd_principal, p, j);
 					nd.nd_principal[j] = '\0';
-					NFSD_DEBUG(1, "nfssvc_program: "
-					    "principal=%s\n", nd.nd_principal);
+					NFSD_DEBUG(1,
+					    "nfssvc_program: "
+					    "principal=%s\n",
+					    nd.nd_principal);
 				}
 			}
 			if (nd.nd_princlen == 0)
 				printf("nfssvc_program: cannot get RPCSEC_GSS "
-				    "principal name\n");
+				       "principal name\n");
 		}
 
 		if ((xprt->xp_tls & RPCTLS_FLAGS_HANDSHAKE) != 0) {
@@ -381,8 +381,9 @@ nfssvc_program(struct svc_req *rqst, SVCXPRT *xprt)
 		svcerr_systemerr(rqst);
 	}
 	if (rp != NULL) {
-		nfsrvd_sentcache(rp, (rqst->rq_reply_seq != 0 ||
-		    SVC_ACK(xprt, NULL)), rqst->rq_reply_seq);
+		nfsrvd_sentcache(rp,
+		    (rqst->rq_reply_seq != 0 || SVC_ACK(xprt, NULL)),
+		    rqst->rq_reply_seq);
 	}
 	svc_freereq(rqst);
 
@@ -432,8 +433,7 @@ nfs_proc(struct nfsrv_descript *nd, u_int32_t xid, SVCXPRT *xprt,
 		 * For NFSv3, play it safe and assume that the client is
 		 * doing retries on the same TCP connection.
 		 */
-		if ((nd->nd_flag & (ND_NFSV4 | ND_STREAMSOCK)) ==
-		    ND_STREAMSOCK)
+		if ((nd->nd_flag & (ND_NFSV4 | ND_STREAMSOCK)) == ND_STREAMSOCK)
 			nd->nd_flag |= ND_SAMETCPCONN;
 		nd->nd_retxid = xid;
 		nd->nd_tcpconntime = NFSD_MONOSEC;
@@ -539,15 +539,12 @@ nfsrvd_addsock(struct file *fp)
 		fp->f_data = NULL;
 		xprt->xp_sockref = ++sockref;
 		if (NFSD_VNET(nfs_minvers) == NFS_VER2)
-			svc_reg(xprt, NFS_PROG, NFS_VER2, nfssvc_program,
-			    NULL);
+			svc_reg(xprt, NFS_PROG, NFS_VER2, nfssvc_program, NULL);
 		if (NFSD_VNET(nfs_minvers) <= NFS_VER3 &&
 		    NFSD_VNET(nfs_maxvers) >= NFS_VER3)
-			svc_reg(xprt, NFS_PROG, NFS_VER3, nfssvc_program,
-			    NULL);
+			svc_reg(xprt, NFS_PROG, NFS_VER3, nfssvc_program, NULL);
 		if (NFSD_VNET(nfs_maxvers) >= NFS_VER4)
-			svc_reg(xprt, NFS_PROG, NFS_VER4, nfssvc_program,
-			    NULL);
+			svc_reg(xprt, NFS_PROG, NFS_VER4, nfssvc_program, NULL);
 		if (so->so_type == SOCK_STREAM)
 			svc_loss_reg(xprt, nfssvc_loss);
 		SVC_RELEASE(xprt);
@@ -571,8 +568,7 @@ nfsrvd_nfsd(struct thread *td, struct nfsd_nfsd_args *args)
 	int error = 0;
 	bool_t ret2, ret3, ret4;
 
-	error = copyinstr(args->principal, principal, sizeof (principal),
-	    NULL);
+	error = copyinstr(args->principal, principal, sizeof(principal), NULL);
 	if (error)
 		goto out;
 
@@ -590,8 +586,8 @@ nfsrvd_nfsd(struct thread *td, struct nfsd_nfsd_args *args)
 		PROC_LOCK(p);
 		p->p_flag2 |= P2_AST_SU;
 		PROC_UNLOCK(p);
-		newnfs_numnfsd++;	/* Total num for all vnets. */
-		NFSD_VNET(nfsrv_numnfsd)++;	/* Num for this vnet. */
+		newnfs_numnfsd++;	    /* Total num for all vnets. */
+		NFSD_VNET(nfsrv_numnfsd)++; /* Num for this vnet. */
 
 		NFSD_UNLOCK();
 		error = nfsrv_createdevids(args, td);
@@ -610,7 +606,8 @@ nfsrvd_nfsd(struct thread *td, struct nfsd_nfsd_args *args)
 
 				if (!ret2 || !ret3 || !ret4)
 					printf("nfsd: can't register svc "
-					    "name %s jid:%d\n", principal,
+					       "name %s jid:%d\n",
+					    principal,
 					    td->td_ucred->cr_prison->pr_id);
 			}
 
@@ -618,7 +615,7 @@ nfsrvd_nfsd(struct thread *td, struct nfsd_nfsd_args *args)
 			    args->minthreads;
 			NFSD_VNET(nfsrvd_pool)->sp_maxthreads =
 			    args->maxthreads;
-				
+
 			/*
 			 * If this is a pNFS service, make Getattr do a
 			 * vn_start_write(), so it can do a vn_set_extattr().

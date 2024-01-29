@@ -22,7 +22,8 @@ static struct {
 	{ "yield", yield, 1 },
 };
 
-static int usage(int argc, char *argv[])
+static int
+usage(int argc, char *argv[])
 {
 	int i;
 	if (argc > 1)
@@ -30,23 +31,24 @@ static int usage(int argc, char *argv[])
 
 	fprintf(stderr, "usage: %s [-a] or one of [", argv[0]);
 	for (i = 0; i < (sizeof(tab) / sizeof(tab[0])); i++)
-		fprintf(stderr, "%s%s", (i)? " | " : "", tab[i].t);
+		fprintf(stderr, "%s%s", (i) ? " | " : "", tab[i].t);
 	fprintf(stderr, "]\n");
 
 	return -1;
 }
 
-int main(int argc, char *argv[])
+int
+main(int argc, char *argv[])
 {
 	int i;
 
 	if (argc == 2 && strcmp(argv[1], "-a") == 0) {
 #if 1
 		fprintf(stderr,
-			"-a should but doesn't really work"
-			" (my notes say \"because things detach\");\n"
-			"meanwhile do these individual tests and look"
-			" for a non-zero exit code:\n");
+		    "-a should but doesn't really work"
+		    " (my notes say \"because things detach\");\n"
+		    "meanwhile do these individual tests and look"
+		    " for a non-zero exit code:\n");
 		for (i = 0; i < nitems(tab); i++)
 			if (tab[i].works)
 				fprintf(stderr, "p1003_1b %s\n", tab[i].t);
@@ -56,10 +58,10 @@ int main(int argc, char *argv[])
 			int r;
 			for (i = 0; i < nitems(tab); i++) {
 				if (tab[i].works) {
-					if ( (r =
-					(*tab[i].f)(argc - 1, argv + 1)) ) {
-						fprintf(stderr,
-						"%s failed\n", tab[i].t);
+					if ((r = (*tab[i].f)(argc - 1,
+						 argv + 1))) {
+						fprintf(stderr, "%s failed\n",
+						    tab[i].t);
 						return r;
 					}
 				}
@@ -68,7 +70,7 @@ int main(int argc, char *argv[])
 		}
 #endif
 	}
-	
+
 	if (argc > 1) {
 		for (i = 0; i < nitems(tab); i++)
 			if (strcmp(tab[i].t, argv[1]) == 0)

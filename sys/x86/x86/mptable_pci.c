@@ -37,12 +37,14 @@
 #include <sys/module.h>
 #include <sys/rman.h>
 
+#include <machine/pci_cfgreg.h>
+
+#include <x86/legacyvar.h>
+#include <x86/mptable.h>
+
+#include <dev/pci/pcib_private.h>
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
-#include <dev/pci/pcib_private.h>
-#include <x86/mptable.h>
-#include <x86/legacyvar.h>
-#include <machine/pci_cfgreg.h>
 
 #include "pcib_if.h"
 
@@ -149,51 +151,51 @@ mptable_hostb_adjust_resource(device_t dev, device_t child, int type,
 		return (pci_domain_adjust_bus(0, child, r, start, end));
 #endif
 	sc = device_get_softc(dev);
-	return (pcib_host_res_adjust(&sc->sc_host_res, child, type, r, start,
-	    end));
+	return (
+	    pcib_host_res_adjust(&sc->sc_host_res, child, type, r, start, end));
 }
 #endif
 
 static device_method_t mptable_hostb_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		mptable_hostb_probe),
-	DEVMETHOD(device_attach,	mptable_hostb_attach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	bus_generic_resume),
+	DEVMETHOD(device_probe, mptable_hostb_probe),
+	DEVMETHOD(device_attach, mptable_hostb_attach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
 
 	/* Bus interface */
-	DEVMETHOD(bus_read_ivar,	legacy_pcib_read_ivar),
-	DEVMETHOD(bus_write_ivar,	legacy_pcib_write_ivar),
+	DEVMETHOD(bus_read_ivar, legacy_pcib_read_ivar),
+	DEVMETHOD(bus_write_ivar, legacy_pcib_write_ivar),
 #ifdef NEW_PCIB
-	DEVMETHOD(bus_alloc_resource,	mptable_hostb_alloc_resource),
-	DEVMETHOD(bus_adjust_resource,	mptable_hostb_adjust_resource),
+	DEVMETHOD(bus_alloc_resource, mptable_hostb_alloc_resource),
+	DEVMETHOD(bus_adjust_resource, mptable_hostb_adjust_resource),
 #else
-	DEVMETHOD(bus_alloc_resource,	legacy_pcib_alloc_resource),
-	DEVMETHOD(bus_adjust_resource,	bus_generic_adjust_resource),
+	DEVMETHOD(bus_alloc_resource, legacy_pcib_alloc_resource),
+	DEVMETHOD(bus_adjust_resource, bus_generic_adjust_resource),
 #endif
 #if defined(NEW_PCIB) && defined(PCI_RES_BUS)
-	DEVMETHOD(bus_release_resource,	legacy_pcib_release_resource),
+	DEVMETHOD(bus_release_resource, legacy_pcib_release_resource),
 	DEVMETHOD(bus_activate_resource, legacy_pcib_activate_resource),
 	DEVMETHOD(bus_deactivate_resource, legacy_pcib_deactivate_resource),
 #else
-	DEVMETHOD(bus_release_resource,	bus_generic_release_resource),
+	DEVMETHOD(bus_release_resource, bus_generic_release_resource),
 	DEVMETHOD(bus_activate_resource, bus_generic_activate_resource),
 	DEVMETHOD(bus_deactivate_resource, bus_generic_deactivate_resource),
 #endif
-	DEVMETHOD(bus_setup_intr,	bus_generic_setup_intr),
-	DEVMETHOD(bus_teardown_intr,	bus_generic_teardown_intr),
+	DEVMETHOD(bus_setup_intr, bus_generic_setup_intr),
+	DEVMETHOD(bus_teardown_intr, bus_generic_teardown_intr),
 
 	/* pcib interface */
-	DEVMETHOD(pcib_maxslots,	legacy_pcib_maxslots),
-	DEVMETHOD(pcib_read_config,	legacy_pcib_read_config),
-	DEVMETHOD(pcib_write_config,	legacy_pcib_write_config),
-	DEVMETHOD(pcib_route_interrupt,	mptable_pci_route_interrupt),
-	DEVMETHOD(pcib_alloc_msi,	legacy_pcib_alloc_msi),
-	DEVMETHOD(pcib_release_msi,	pcib_release_msi),
-	DEVMETHOD(pcib_alloc_msix,	legacy_pcib_alloc_msix),
-	DEVMETHOD(pcib_release_msix,	pcib_release_msix),
-	DEVMETHOD(pcib_map_msi,		legacy_pcib_map_msi),
+	DEVMETHOD(pcib_maxslots, legacy_pcib_maxslots),
+	DEVMETHOD(pcib_read_config, legacy_pcib_read_config),
+	DEVMETHOD(pcib_write_config, legacy_pcib_write_config),
+	DEVMETHOD(pcib_route_interrupt, mptable_pci_route_interrupt),
+	DEVMETHOD(pcib_alloc_msi, legacy_pcib_alloc_msi),
+	DEVMETHOD(pcib_release_msi, pcib_release_msi),
+	DEVMETHOD(pcib_alloc_msix, legacy_pcib_alloc_msix),
+	DEVMETHOD(pcib_release_msix, pcib_release_msix),
+	DEVMETHOD(pcib_map_msi, legacy_pcib_map_msi),
 
 	DEVMETHOD_END
 };
@@ -223,11 +225,10 @@ mptable_pcib_probe(device_t dev)
 
 static device_method_t mptable_pcib_pci_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		mptable_pcib_probe),
+	DEVMETHOD(device_probe, mptable_pcib_probe),
 
 	/* pcib interface */
-	DEVMETHOD(pcib_route_interrupt,	mptable_pci_route_interrupt),
-	{0, 0}
+	DEVMETHOD(pcib_route_interrupt, mptable_pci_route_interrupt), { 0, 0 }
 };
 
 DEFINE_CLASS_1(pcib, mptable_pcib_driver, mptable_pcib_pci_methods,

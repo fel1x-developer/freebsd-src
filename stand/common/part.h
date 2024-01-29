@@ -25,7 +25,7 @@
  */
 
 #ifndef _PART_H_
-#define	_PART_H_
+#define _PART_H_
 
 struct ptable;
 
@@ -54,15 +54,15 @@ enum partition_type {
 };
 
 struct ptable_entry {
-	uint64_t		start;
-	uint64_t		end;
-	int			index;
-	enum partition_type	type;
+	uint64_t start;
+	uint64_t end;
+	int index;
+	enum partition_type type;
 };
 
 /* The offset and size are in sectors */
-typedef int (diskread_t)(void *arg, void *buf, size_t blocks, uint64_t offset);
-typedef int (ptable_iterate_t)(void *arg, const char *partname,
+typedef int(diskread_t)(void *arg, void *buf, size_t blocks, uint64_t offset);
+typedef int(ptable_iterate_t)(void *arg, const char *partname,
     const struct ptable_entry *part);
 
 struct ptable *ptable_open(void *dev, uint64_t sectors, uint16_t sectorsize,
@@ -79,4 +79,4 @@ int ptable_iterate(const struct ptable *table, void *arg,
     ptable_iterate_t *iter);
 const char *parttype2str(enum partition_type type);
 
-#endif	/* !_PART_H_ */
+#endif /* !_PART_H_ */

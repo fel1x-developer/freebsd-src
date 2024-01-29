@@ -74,8 +74,8 @@
 
 #include <net/if.h>
 #include <net/if_dl.h>
-#include <net/if_types.h>
 #include <net/if_media.h>
+#include <net/if_types.h>
 #include <net/route.h>
 
 #include <ctype.h>
@@ -87,13 +87,13 @@
 #include <string.h>
 #include <unistd.h>
 
-void	domediaopt(const char *, int, int);
-int	get_media_subtype(int, const char *);
-int	get_media_mode(int, const char *);
-int	get_media_options(int, const char *);
-int	lookup_media_word(struct ifmedia_description *, const char *);
-void	print_media_word(int, int);
-void	print_media_word_ifconfig(int);
+void domediaopt(const char *, int, int);
+int get_media_subtype(int, const char *);
+int get_media_mode(int, const char *);
+int get_media_options(int, const char *);
+int lookup_media_word(struct ifmedia_description *, const char *);
+void print_media_word(int, int);
+void print_media_word_ifconfig(int);
 
 #if 0
 static struct ifmedia_description *get_toptype_desc(int);
@@ -101,11 +101,12 @@ static struct ifmedia_type_to_subtype *get_toptype_ttos(int);
 static struct ifmedia_description *get_subtype_desc(int,
     struct ifmedia_type_to_subtype *ttos);
 
-#define	IFM_OPMODE(x) \
-	((x) & (IFM_IEEE80211_ADHOC | IFM_IEEE80211_HOSTAP | \
-	 IFM_IEEE80211_IBSS | IFM_IEEE80211_WDS | IFM_IEEE80211_MONITOR | \
-	 IFM_IEEE80211_MBSS))
-#define	IFM_IEEE80211_STA	0
+#define IFM_OPMODE(x)                                                          \
+	((x) &                                                                 \
+	    (IFM_IEEE80211_ADHOC | IFM_IEEE80211_HOSTAP | IFM_IEEE80211_IBSS | \
+		IFM_IEEE80211_WDS | IFM_IEEE80211_MONITOR |                    \
+		IFM_IEEE80211_MBSS))
+#define IFM_IEEE80211_STA 0
 
 static void
 media_status(int s)
@@ -416,60 +417,60 @@ struct ifmedia_type_to_subtype {
 /* must be in the same order as IFM_TYPE_DESCRIPTIONS */
 static struct ifmedia_type_to_subtype ifmedia_types_to_subtypes[] = {
 	{
-		{
-			{ &ifm_subtype_shared_descriptions[0], 0 },
-			{ &ifm_subtype_shared_aliases[0], 1 },
-			{ &ifm_subtype_ethernet_descriptions[0], 0 },
-			{ &ifm_subtype_ethernet_aliases[0], 1 },
-			{ NULL, 0 },
-		},
-		{
-			{ &ifm_shared_option_descriptions[0], 0 },
-			{ &ifm_shared_option_aliases[0], 1 },
-			{ &ifm_subtype_ethernet_option_descriptions[0], 0 },
-			{ NULL, 0 },
-		},
-		{
-			{ NULL, 0 },
-		},
+	    {
+		{ &ifm_subtype_shared_descriptions[0], 0 },
+		{ &ifm_subtype_shared_aliases[0], 1 },
+		{ &ifm_subtype_ethernet_descriptions[0], 0 },
+		{ &ifm_subtype_ethernet_aliases[0], 1 },
+		{ NULL, 0 },
+	    },
+	    {
+		{ &ifm_shared_option_descriptions[0], 0 },
+		{ &ifm_shared_option_aliases[0], 1 },
+		{ &ifm_subtype_ethernet_option_descriptions[0], 0 },
+		{ NULL, 0 },
+	    },
+	    {
+		{ NULL, 0 },
+	    },
 	},
 	{
-		{
-			{ &ifm_subtype_shared_descriptions[0], 0 },
-			{ &ifm_subtype_shared_aliases[0], 1 },
-			{ &ifm_subtype_ieee80211_descriptions[0], 0 },
-			{ &ifm_subtype_ieee80211_aliases[0], 1 },
-			{ NULL, 0 },
-		},
-		{
-			{ &ifm_shared_option_descriptions[0], 0 },
-			{ &ifm_shared_option_aliases[0], 1 },
-			{ &ifm_subtype_ieee80211_option_descriptions[0], 0 },
-			{ NULL, 0 },
-		},
-		{
-			{ &ifm_subtype_ieee80211_mode_descriptions[0], 0 },
-			{ &ifm_subtype_ieee80211_mode_aliases[0], 0 },
-			{ NULL, 0 },
-		},
+	    {
+		{ &ifm_subtype_shared_descriptions[0], 0 },
+		{ &ifm_subtype_shared_aliases[0], 1 },
+		{ &ifm_subtype_ieee80211_descriptions[0], 0 },
+		{ &ifm_subtype_ieee80211_aliases[0], 1 },
+		{ NULL, 0 },
+	    },
+	    {
+		{ &ifm_shared_option_descriptions[0], 0 },
+		{ &ifm_shared_option_aliases[0], 1 },
+		{ &ifm_subtype_ieee80211_option_descriptions[0], 0 },
+		{ NULL, 0 },
+	    },
+	    {
+		{ &ifm_subtype_ieee80211_mode_descriptions[0], 0 },
+		{ &ifm_subtype_ieee80211_mode_aliases[0], 0 },
+		{ NULL, 0 },
+	    },
 	},
 	{
-		{
-			{ &ifm_subtype_shared_descriptions[0], 0 },
-			{ &ifm_subtype_shared_aliases[0], 1 },
-			{ &ifm_subtype_atm_descriptions[0], 0 },
-			{ &ifm_subtype_atm_aliases[0], 1 },
-			{ NULL, 0 },
-		},
-		{
-			{ &ifm_shared_option_descriptions[0], 0 },
-			{ &ifm_shared_option_aliases[0], 1 },
-			{ &ifm_subtype_atm_option_descriptions[0], 0 },
-			{ NULL, 0 },
-		},
-		{
-			{ NULL, 0 },
-		},
+	    {
+		{ &ifm_subtype_shared_descriptions[0], 0 },
+		{ &ifm_subtype_shared_aliases[0], 1 },
+		{ &ifm_subtype_atm_descriptions[0], 0 },
+		{ &ifm_subtype_atm_aliases[0], 1 },
+		{ NULL, 0 },
+	    },
+	    {
+		{ &ifm_shared_option_descriptions[0], 0 },
+		{ &ifm_shared_option_aliases[0], 1 },
+		{ &ifm_subtype_atm_option_descriptions[0], 0 },
+		{ NULL, 0 },
+	    },
+	    {
+		{ NULL, 0 },
+	    },
 	},
 };
 
@@ -482,7 +483,7 @@ get_media_subtype(int type, const char *val)
 
 	/* Find the top-level interface type. */
 	for (desc = ifm_type_descriptions, ttos = ifmedia_types_to_subtypes;
-	    desc->ifmt_string != NULL; desc++, ttos++)
+	     desc->ifmt_string != NULL; desc++, ttos++)
 		if (type == desc->ifmt_word)
 			break;
 	if (desc->ifmt_string == NULL)
@@ -506,7 +507,7 @@ get_media_mode(int type, const char *val)
 
 	/* Find the top-level interface type. */
 	for (desc = ifm_type_descriptions, ttos = ifmedia_types_to_subtypes;
-	    desc->ifmt_string != NULL; desc++, ttos++)
+	     desc->ifmt_string != NULL; desc++, ttos++)
 		if (type == desc->ifmt_word)
 			break;
 	if (desc->ifmt_string == NULL)
@@ -535,7 +536,7 @@ get_media_options(int type, const char *val)
 
 	/* Find the top-level interface type. */
 	for (desc = ifm_type_descriptions, ttos = ifmedia_types_to_subtypes;
-	    desc->ifmt_string != NULL; desc++, ttos++)
+	     desc->ifmt_string != NULL; desc++, ttos++)
 		if (type == desc->ifmt_word)
 			break;
 	if (desc->ifmt_string == NULL)
@@ -548,7 +549,8 @@ get_media_options(int type, const char *val)
 	optptr = optlist;
 	for (; (optptr = strtok(optptr, ",")) != NULL; optptr = NULL) {
 		for (i = 0; ttos->options[i].desc != NULL; i++) {
-			option = lookup_media_word(ttos->options[i].desc, optptr);
+			option = lookup_media_word(ttos->options[i].desc,
+			    optptr);
 			if (option != -1)
 				break;
 		}
@@ -572,7 +574,8 @@ lookup_media_word(struct ifmedia_description *desc, const char *val)
 	return (-1);
 }
 
-static struct ifmedia_description *get_toptype_desc(int ifmw)
+static struct ifmedia_description *
+get_toptype_desc(int ifmw)
 {
 	struct ifmedia_description *desc;
 
@@ -583,21 +586,22 @@ static struct ifmedia_description *get_toptype_desc(int ifmw)
 	return desc;
 }
 
-static struct ifmedia_type_to_subtype *get_toptype_ttos(int ifmw)
+static struct ifmedia_type_to_subtype *
+get_toptype_ttos(int ifmw)
 {
 	struct ifmedia_description *desc;
 	struct ifmedia_type_to_subtype *ttos;
 
 	for (desc = ifm_type_descriptions, ttos = ifmedia_types_to_subtypes;
-	    desc->ifmt_string != NULL; desc++, ttos++)
+	     desc->ifmt_string != NULL; desc++, ttos++)
 		if (IFM_TYPE(ifmw) == desc->ifmt_word)
 			break;
 
 	return ttos;
 }
 
-static struct ifmedia_description *get_subtype_desc(int ifmw, 
-    struct ifmedia_type_to_subtype *ttos)
+static struct ifmedia_description *
+get_subtype_desc(int ifmw, struct ifmedia_type_to_subtype *ttos)
 {
 	int i;
 	struct ifmedia_description *desc;
@@ -605,8 +609,8 @@ static struct ifmedia_description *get_subtype_desc(int ifmw,
 	for (i = 0; ttos->subtypes[i].desc != NULL; i++) {
 		if (ttos->subtypes[i].alias)
 			continue;
-		for (desc = ttos->subtypes[i].desc;
-		    desc->ifmt_string != NULL; desc++) {
+		for (desc = ttos->subtypes[i].desc; desc->ifmt_string != NULL;
+		     desc++) {
 			if (IFM_SUBTYPE(ifmw) == desc->ifmt_word)
 				return desc;
 		}
@@ -615,8 +619,8 @@ static struct ifmedia_description *get_subtype_desc(int ifmw,
 	return NULL;
 }
 
-static struct ifmedia_description *get_mode_desc(int ifmw, 
-    struct ifmedia_type_to_subtype *ttos)
+static struct ifmedia_description *
+get_mode_desc(int ifmw, struct ifmedia_type_to_subtype *ttos)
 {
 	int i;
 	struct ifmedia_description *desc;
@@ -624,8 +628,8 @@ static struct ifmedia_description *get_mode_desc(int ifmw,
 	for (i = 0; ttos->modes[i].desc != NULL; i++) {
 		if (ttos->modes[i].alias)
 			continue;
-		for (desc = ttos->modes[i].desc;
-		    desc->ifmt_string != NULL; desc++) {
+		for (desc = ttos->modes[i].desc; desc->ifmt_string != NULL;
+		     desc++) {
 			if (IFM_MODE(ifmw) == desc->ifmt_word)
 				return desc;
 		}
@@ -678,8 +682,8 @@ print_media_word(int ifmw, int print_toptype)
 	for (i = 0; ttos->options[i].desc != NULL; i++) {
 		if (ttos->options[i].alias)
 			continue;
-		for (desc = ttos->options[i].desc;
-		    desc->ifmt_string != NULL; desc++) {
+		for (desc = ttos->options[i].desc; desc->ifmt_string != NULL;
+		     desc++) {
 			if (ifmw & desc->ifmt_word) {
 				if (seen_option == 0)
 					printf(" <");
@@ -731,8 +735,8 @@ print_media_word_ifconfig(int ifmw)
 	for (i = 0; ttos->options[i].desc != NULL; i++) {
 		if (ttos->options[i].alias)
 			continue;
-		for (desc = ttos->options[i].desc;
-		    desc->ifmt_string != NULL; desc++) {
+		for (desc = ttos->options[i].desc; desc->ifmt_string != NULL;
+		     desc++) {
 			if (ifmw & desc->ifmt_word) {
 				if (seen_option == 0)
 					printf(" mediaopt ");

@@ -43,6 +43,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "dhcpd.h"
 #include "dhctoken.h"
 
@@ -60,10 +61,10 @@ static char client_script_name[] = "/sbin/dhclient-script";
 int
 read_client_conf(void)
 {
-	FILE			*cfile;
-	char			*val;
-	int			 token;
-	struct client_config	*config;
+	FILE *cfile;
+	char *val;
+	int token;
+	struct client_config *config;
 
 	new_parse(path_dhclient_conf);
 
@@ -83,27 +84,36 @@ read_client_conf(void)
 	top_level_config.initial_interval = 3;
 	top_level_config.bootp_policy = ACCEPT;
 	top_level_config.script_name = client_script_name;
-	top_level_config.requested_options
-	    [top_level_config.requested_option_count++] = DHO_SUBNET_MASK;
-	top_level_config.requested_options
-	    [top_level_config.requested_option_count++] = DHO_BROADCAST_ADDRESS;
-	top_level_config.requested_options
-	    [top_level_config.requested_option_count++] = DHO_TIME_OFFSET;
-	top_level_config.requested_options
-	    [top_level_config.requested_option_count++] = DHO_CLASSLESS_ROUTES;
-	top_level_config.requested_options
-	    [top_level_config.requested_option_count++] = DHO_ROUTERS;
-	top_level_config.requested_options
-	    [top_level_config.requested_option_count++] = DHO_DOMAIN_NAME;
-	top_level_config.requested_options
-	    [top_level_config.requested_option_count++] =
+	top_level_config
+	    .requested_options[top_level_config.requested_option_count++] =
+	    DHO_SUBNET_MASK;
+	top_level_config
+	    .requested_options[top_level_config.requested_option_count++] =
+	    DHO_BROADCAST_ADDRESS;
+	top_level_config
+	    .requested_options[top_level_config.requested_option_count++] =
+	    DHO_TIME_OFFSET;
+	top_level_config
+	    .requested_options[top_level_config.requested_option_count++] =
+	    DHO_CLASSLESS_ROUTES;
+	top_level_config
+	    .requested_options[top_level_config.requested_option_count++] =
+	    DHO_ROUTERS;
+	top_level_config
+	    .requested_options[top_level_config.requested_option_count++] =
+	    DHO_DOMAIN_NAME;
+	top_level_config
+	    .requested_options[top_level_config.requested_option_count++] =
 	    DHO_DOMAIN_NAME_SERVERS;
-	top_level_config.requested_options
-	    [top_level_config.requested_option_count++] = DHO_HOST_NAME;
-	top_level_config.requested_options
-	    [top_level_config.requested_option_count++] = DHO_DOMAIN_SEARCH;
-	top_level_config.requested_options
-	    [top_level_config.requested_option_count++] = DHO_INTERFACE_MTU;
+	top_level_config
+	    .requested_options[top_level_config.requested_option_count++] =
+	    DHO_HOST_NAME;
+	top_level_config
+	    .requested_options[top_level_config.requested_option_count++] =
+	    DHO_DOMAIN_SEARCH;
+	top_level_config
+	    .requested_options[top_level_config.requested_option_count++] =
+	    DHO_INTERFACE_MTU;
 
 	if ((cfile = fopen(path_dhclient_conf, "r")) != NULL) {
 		do {
@@ -133,7 +143,7 @@ read_client_conf(void)
 			if (!config)
 				error("no memory for client config.");
 			memcpy(config, &top_level_config,
-				sizeof(top_level_config));
+			    sizeof(top_level_config));
 		}
 		ifi->client->config = config;
 	}
@@ -149,9 +159,9 @@ read_client_conf(void)
 void
 read_client_leases(void)
 {
-	FILE	*cfile;
-	char	*val;
-	int	 token;
+	FILE *cfile;
+	char *val;
+	int token;
 
 	new_parse(path_dhclient_db);
 
@@ -198,9 +208,9 @@ void
 parse_client_statement(FILE *cfile, struct interface_info *ip,
     struct client_config *config)
 {
-	char		*val;
-	struct option	*option;
-	time_t		 tmp;
+	char *val;
+	struct option *option;
+	time_t tmp;
 
 	switch (next_token(&val, cfile)) {
 	case SEND:
@@ -235,13 +245,13 @@ parse_client_statement(FILE *cfile, struct interface_info *ip,
 			parse_hardware_param(cfile, &ip->hw_address);
 		else {
 			parse_warn("hardware address parameter %s",
-				    "not allowed here.");
+			    "not allowed here.");
 			skip_to_semi(cfile);
 		}
 		return;
 	case REQUEST:
-		config->requested_option_count =
-			parse_option_list(cfile, config->requested_options);
+		config->requested_option_count = parse_option_list(cfile,
+		    config->requested_options);
 		return;
 	case REQUIRE:
 		memset(config->required_options, 0,
@@ -301,8 +311,8 @@ parse_client_statement(FILE *cfile, struct interface_info *ip,
 unsigned
 parse_X(FILE *cfile, u_int8_t *buf, unsigned max)
 {
-	int	 token;
-	char	*val;
+	int token;
+	char *val;
 	unsigned len;
 
 	token = peek_token(&val, cfile);
@@ -350,9 +360,9 @@ parse_X(FILE *cfile, u_int8_t *buf, unsigned max)
 int
 parse_option_list(FILE *cfile, u_int8_t *list)
 {
-	int	 ix, i;
-	int	 token;
-	char	*val;
+	int ix, i;
+	int token;
+	char *val;
 
 	ix = 0;
 	do {
@@ -394,9 +404,9 @@ parse_option_list(FILE *cfile, u_int8_t *list)
 void
 parse_interface_declaration(FILE *cfile, struct client_config *outer_config)
 {
-	int			 token;
-	char			*val;
-	struct interface_info	*ip;
+	int token;
+	char *val;
+	struct interface_info *ip;
 
 	token = next_token(&val, cfile);
 	if (token != STRING) {
@@ -436,7 +446,7 @@ parse_interface_declaration(FILE *cfile, struct client_config *outer_config)
 struct interface_info *
 interface_or_dummy(char *name)
 {
-	struct interface_info	*ip;
+	struct interface_info *ip;
 
 	/* Find the interface (if any) that matches the name. */
 	if (!strcmp(ifi->name, name))
@@ -492,10 +502,10 @@ make_client_config(struct interface_info *ip, struct client_config *config)
 void
 parse_client_lease_statement(FILE *cfile, int is_static)
 {
-	struct client_lease	*lease, *lp, *pl;
-	struct interface_info	*ip;
-	int			 token;
-	char			*val;
+	struct client_lease *lease, *lp, *pl;
+	struct interface_info *ip;
+	int token;
+	char *val;
 
 	token = next_token(&val, cfile);
 	if (token != LBRACE) {
@@ -553,7 +563,7 @@ parse_client_lease_statement(FILE *cfile, int is_static)
 	for (lp = ip->client->leases; lp; lp = lp->next) {
 		if (lp->address.len == lease->address.len &&
 		    !memcmp(lp->address.iabuf, lease->address.iabuf,
-		    lease->address.len)) {
+			lease->address.len)) {
 			if (pl)
 				pl->next = lp->next;
 			else
@@ -591,9 +601,9 @@ parse_client_lease_statement(FILE *cfile, int is_static)
 		if (ip->client->active->expiry < cur_time)
 			free_client_lease(ip->client->active);
 		else if (ip->client->active->address.len ==
-		    lease->address.len &&
+			lease->address.len &&
 		    !memcmp(ip->client->active->address.iabuf,
-		    lease->address.iabuf, lease->address.len))
+			lease->address.iabuf, lease->address.len))
 			free_client_lease(ip->client->active);
 		else {
 			ip->client->active->next = ip->client->leases;
@@ -621,9 +631,9 @@ void
 parse_client_lease_declaration(FILE *cfile, struct client_lease *lease,
     struct interface_info **ipp)
 {
-	int			 token;
-	char			*val;
-	struct interface_info	*ip;
+	int token;
+	char *val;
+	struct interface_info *ip;
 
 	switch (next_token(&val, cfile)) {
 	case BOOTP:
@@ -683,19 +693,19 @@ parse_client_lease_declaration(FILE *cfile, struct client_lease *lease,
 struct option *
 parse_option_decl(FILE *cfile, struct option_data *options)
 {
-	char		*val;
-	int		 token;
-	u_int8_t	 buf[4];
-	u_int8_t	 hunkbuf[1024];
-	unsigned	 hunkix = 0;
-	char		*vendor;
-	const char	*fmt;
-	struct universe	*universe;
-	struct option	*option;
-	struct iaddr	 ip_addr;
-	u_int8_t	*dp;
-	unsigned	 len;
-	int		 nul_term = 0;
+	char *val;
+	int token;
+	u_int8_t buf[4];
+	u_int8_t hunkbuf[1024];
+	unsigned hunkix = 0;
+	char *vendor;
+	const char *fmt;
+	struct universe *universe;
+	struct option *option;
+	struct iaddr ip_addr;
+	u_int8_t *dp;
+	unsigned len;
+	int nul_term = 0;
 
 	token = next_token(&val, cfile);
 	if (!is_identifier(token)) {
@@ -750,8 +760,8 @@ parse_option_decl(FILE *cfile, struct option_data *options)
 		if (val == vendor)
 			parse_warn("no option named %s", val);
 		else
-			parse_warn("no option named %s for vendor %s",
-				    val, vendor);
+			parse_warn("no option named %s for vendor %s", val,
+			    vendor);
 		skip_to_semi(cfile);
 		free(vendor);
 		return (NULL);
@@ -794,21 +804,21 @@ parse_option_decl(FILE *cfile, struct option_data *options)
 					return (NULL);
 				len = ip_addr.len;
 				dp = ip_addr.iabuf;
-alloc:
+			alloc:
 				if (hunkix + len > sizeof(hunkbuf)) {
 					parse_warn("option data buffer "
-					    "overflow");
+						   "overflow");
 					skip_to_semi(cfile);
 					return (NULL);
 				}
 				memcpy(&hunkbuf[hunkix], dp, len);
 				hunkix += len;
 				break;
-			case 'L':	/* Unsigned 32-bit integer... */
-			case 'l':	/* Signed 32-bit integer... */
+			case 'L': /* Unsigned 32-bit integer... */
+			case 'l': /* Signed 32-bit integer... */
 				token = next_token(&val, cfile);
 				if (token != NUMBER) {
-need_number:
+				need_number:
 					parse_warn("expecting number.");
 					if (token != SEMI)
 						skip_to_semi(cfile);
@@ -818,8 +828,8 @@ need_number:
 				len = 4;
 				dp = buf;
 				goto alloc;
-			case 's':	/* Signed 16-bit integer. */
-			case 'S':	/* Unsigned 16-bit integer. */
+			case 's': /* Signed 16-bit integer. */
+			case 'S': /* Unsigned 16-bit integer. */
 				token = next_token(&val, cfile);
 				if (token != NUMBER)
 					goto need_number;
@@ -827,8 +837,8 @@ need_number:
 				len = 2;
 				dp = buf;
 				goto alloc;
-			case 'b':	/* Signed 8-bit integer. */
-			case 'B':	/* Unsigned 8-bit integer. */
+			case 'b': /* Signed 8-bit integer. */
+			case 'B': /* Unsigned 8-bit integer. */
 				token = next_token(&val, cfile);
 				if (token != NUMBER)
 					goto need_number;
@@ -840,7 +850,7 @@ need_number:
 				token = next_token(&val, cfile);
 				if (!is_identifier(token)) {
 					parse_warn("expecting identifier.");
-bad_flag:
+				bad_flag:
 					if (token != SEMI)
 						skip_to_semi(cfile);
 					return (NULL);
@@ -885,15 +895,15 @@ bad_flag:
 void
 parse_string_list(FILE *cfile, struct string_list **lp, int multiple)
 {
-	int			 token;
-	char			*val;
-	size_t			 valsize;
-	struct string_list	*cur, *tmp;
+	int token;
+	char *val;
+	size_t valsize;
+	struct string_list *cur, *tmp;
 
 	/* Find the last medium in the media list. */
 	if (*lp)
 		for (cur = *lp; cur->next; cur = cur->next)
-			;	/* nothing */
+			; /* nothing */
 	else
 		cur = NULL;
 
@@ -931,10 +941,10 @@ parse_string_list(FILE *cfile, struct string_list **lp, int multiple)
 void
 parse_reject_statement(FILE *cfile, struct client_config *config)
 {
-	int			 token;
-	char			*val;
-	struct iaddr		 addr;
-	struct iaddrlist	*list;
+	int token;
+	char *val;
+	struct iaddr addr;
+	struct iaddrlist *list;
 
 	do {
 		if (!parse_ip_addr(cfile, &addr)) {

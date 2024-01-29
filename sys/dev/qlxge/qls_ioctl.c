@@ -31,17 +31,18 @@
  * Author : David C Somayajulu, Qlogic Corporation, Aliso Viejo, CA 92656.
  */
 #include <sys/cdefs.h>
-#include "qls_os.h"
-#include "qls_hw.h"
+
 #include "qls_def.h"
-#include "qls_inline.h"
-#include "qls_glbl.h"
-#include "qls_ioctl.h"
 #include "qls_dump.h"
+#include "qls_glbl.h"
+#include "qls_hw.h"
+#include "qls_inline.h"
+#include "qls_ioctl.h"
+#include "qls_os.h"
 extern qls_mpi_coredump_t ql_mpi_coredump;
 
 static int qls_eioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
-		struct thread *td);
+    struct thread *td);
 
 static struct cdevsw qla_cdevsw = {
 	.d_version = D_VERSION,
@@ -52,18 +53,13 @@ static struct cdevsw qla_cdevsw = {
 int
 qls_make_cdev(qla_host_t *ha)
 {
-        ha->ioctl_dev = make_dev(&qla_cdevsw,
-				if_getdunit(ha->ifp),
-                                UID_ROOT,
-                                GID_WHEEL,
-                                0600,
-                                "%s",
-                                if_name(ha->ifp));
+	ha->ioctl_dev = make_dev(&qla_cdevsw, if_getdunit(ha->ifp), UID_ROOT,
+	    GID_WHEEL, 0600, "%s", if_name(ha->ifp));
 
 	if (ha->ioctl_dev == NULL)
 		return (-1);
 
-        ha->ioctl_dev->si_drv1 = ha;
+	ha->ioctl_dev->si_drv1 = ha;
 
 	return (0);
 }
@@ -78,46 +74,45 @@ qls_del_cdev(qla_host_t *ha)
 
 static int
 qls_eioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
-        struct thread *td)
+    struct thread *td)
 {
-        qla_host_t *ha;
-        int rval = 0;
+	qla_host_t *ha;
+	int rval = 0;
 
 	qls_mpi_dump_t *mpi_dump;
 
-        if ((ha = (qla_host_t *)dev->si_drv1) == NULL)
-                return ENXIO;
+	if ((ha = (qla_host_t *)dev->si_drv1) == NULL)
+		return ENXIO;
 
-        switch(cmd) {
+	switch (cmd) {
 	case QLA_MPI_DUMP:
 		mpi_dump = (qls_mpi_dump_t *)data;
 
 		if (mpi_dump->size == 0) {
-			mpi_dump->size = sizeof (qls_mpi_coredump_t);
+			mpi_dump->size = sizeof(qls_mpi_coredump_t);
 		} else {
-			if ((mpi_dump->size != sizeof (qls_mpi_coredump_t)) ||
-				(mpi_dump->dbuf == NULL))
+			if ((mpi_dump->size != sizeof(qls_mpi_coredump_t)) ||
+			    (mpi_dump->dbuf == NULL))
 				rval = EINVAL;
 			else {
 				if (qls_mpi_core_dump(ha) == 0) {
 					rval = copyout(&ql_mpi_coredump,
-							mpi_dump->dbuf,
-							mpi_dump->size);
-				} else 
+					    mpi_dump->dbuf, mpi_dump->size);
+				} else
 					rval = ENXIO;
 
 				if (rval) {
 					device_printf(ha->pci_dev,
-						"%s: mpidump failed[%d]\n",
-						__func__, rval);
+					    "%s: mpidump failed[%d]\n",
+					    __func__, rval);
 				}
 			}
 		}
-		
-		break;
-        default:
-                break;
-        }
 
-        return rval;
+		break;
+	default:
+		break;
+	}
+
+	return rval;
 }

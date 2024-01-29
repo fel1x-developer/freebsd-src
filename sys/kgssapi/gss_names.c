@@ -27,6 +27,7 @@
  */
 
 #include <sys/param.h>
+
 #include <kgssapi/gssapi.h>
 
 /*
@@ -40,8 +41,8 @@
  * GSS_C_NT_USER_NAME should be initialized to point
  * to that gss_OID_desc.
  */
-static gss_OID_desc GSS_C_NT_USER_NAME_storage =
-	{10, (void *)(uintptr_t)"\x2a\x86\x48\x86\xf7\x12\x01\x02\x01\x01"};
+static gss_OID_desc GSS_C_NT_USER_NAME_storage = { 10,
+	(void *)(uintptr_t) "\x2a\x86\x48\x86\xf7\x12\x01\x02\x01\x01" };
 gss_OID GSS_C_NT_USER_NAME = &GSS_C_NT_USER_NAME_storage;
 
 /*
@@ -55,8 +56,8 @@ gss_OID GSS_C_NT_USER_NAME = &GSS_C_NT_USER_NAME_storage;
  * The constant GSS_C_NT_MACHINE_UID_NAME should be
  * initialized to point to that gss_OID_desc.
  */
-static gss_OID_desc GSS_C_NT_MACHINE_UID_NAME_storage =
-	{10, (void *)(uintptr_t)"\x2a\x86\x48\x86\xf7\x12\x01\x02\x01\x02"};
+static gss_OID_desc GSS_C_NT_MACHINE_UID_NAME_storage = { 10,
+	(void *)(uintptr_t) "\x2a\x86\x48\x86\xf7\x12\x01\x02\x01\x02" };
 gss_OID GSS_C_NT_MACHINE_UID_NAME = &GSS_C_NT_MACHINE_UID_NAME_storage;
 
 /*
@@ -70,8 +71,8 @@ gss_OID GSS_C_NT_MACHINE_UID_NAME = &GSS_C_NT_MACHINE_UID_NAME_storage;
  * The constant GSS_C_NT_STRING_UID_NAME should be
  * initialized to point to that gss_OID_desc.
  */
-static gss_OID_desc GSS_C_NT_STRING_UID_NAME_storage =
-	{10, (void *)(uintptr_t)"\x2a\x86\x48\x86\xf7\x12\x01\x02\x01\x03"};
+static gss_OID_desc GSS_C_NT_STRING_UID_NAME_storage = { 10,
+	(void *)(uintptr_t) "\x2a\x86\x48\x86\xf7\x12\x01\x02\x01\x03" };
 gss_OID GSS_C_NT_STRING_UID_NAME = &GSS_C_NT_STRING_UID_NAME_storage;
 
 /*
@@ -91,8 +92,8 @@ gss_OID GSS_C_NT_STRING_UID_NAME = &GSS_C_NT_STRING_UID_NAME_storage;
  * parameter, but should not be emitted by GSS-API
  * implementations
  */
-static gss_OID_desc GSS_C_NT_HOSTBASED_SERVICE_X_storage =
-	{6, (void *)(uintptr_t)"\x2b\x06\x01\x05\x06\x02"};
+static gss_OID_desc GSS_C_NT_HOSTBASED_SERVICE_X_storage = { 6,
+	(void *)(uintptr_t) "\x2b\x06\x01\x05\x06\x02" };
 gss_OID GSS_C_NT_HOSTBASED_SERVICE_X = &GSS_C_NT_HOSTBASED_SERVICE_X_storage;
 
 /*
@@ -106,8 +107,8 @@ gss_OID GSS_C_NT_HOSTBASED_SERVICE_X = &GSS_C_NT_HOSTBASED_SERVICE_X_storage;
  * GSS_C_NT_HOSTBASED_SERVICE should be initialized
  * to point to that gss_OID_desc.
  */
-static gss_OID_desc GSS_C_NT_HOSTBASED_SERVICE_storage =
-	{10, (void *)(uintptr_t)"\x2a\x86\x48\x86\xf7\x12\x01\x02\x01\x04"};
+static gss_OID_desc GSS_C_NT_HOSTBASED_SERVICE_storage = { 10,
+	(void *)(uintptr_t) "\x2a\x86\x48\x86\xf7\x12\x01\x02\x01\x04" };
 gss_OID GSS_C_NT_HOSTBASED_SERVICE = &GSS_C_NT_HOSTBASED_SERVICE_storage;
 
 /*
@@ -120,8 +121,8 @@ gss_OID GSS_C_NT_HOSTBASED_SERVICE = &GSS_C_NT_HOSTBASED_SERVICE_storage;
  * and GSS_C_NT_ANONYMOUS should be initialized to point
  * to that gss_OID_desc.
  */
-static gss_OID_desc GSS_C_NT_ANONYMOUS_storage =
-	{6, (void *)(uintptr_t)"\x2b\x06\01\x05\x06\x03"};
+static gss_OID_desc GSS_C_NT_ANONYMOUS_storage = { 6,
+	(void *)(uintptr_t) "\x2b\x06\01\x05\x06\x03" };
 gss_OID GSS_C_NT_ANONYMOUS = &GSS_C_NT_ANONYMOUS_storage;
 
 /*
@@ -134,8 +135,8 @@ gss_OID GSS_C_NT_ANONYMOUS = &GSS_C_NT_ANONYMOUS_storage;
  * GSS_C_NT_EXPORT_NAME should be initialized to point
  * to that gss_OID_desc.
  */
-static gss_OID_desc GSS_C_NT_EXPORT_NAME_storage =
-	{6, (void *)(uintptr_t)"\x2b\x06\x01\x05\x06\x04"};
+static gss_OID_desc GSS_C_NT_EXPORT_NAME_storage = { 6,
+	(void *)(uintptr_t) "\x2b\x06\x01\x05\x06\x04" };
 gss_OID GSS_C_NT_EXPORT_NAME = &GSS_C_NT_EXPORT_NAME_storage;
 
 /*
@@ -144,8 +145,8 @@ gss_OID GSS_C_NT_EXPORT_NAME = &GSS_C_NT_EXPORT_NAME_storage;
  *   krb5(2) krb5_name(1)}.  The recommended symbolic name for this type
  *   is "GSS_KRB5_NT_PRINCIPAL_NAME".
  */
-static gss_OID_desc GSS_KRB5_NT_PRINCIPAL_NAME_storage =
-        {10, (void *)(uintptr_t)"\x2a\x86\x48\x86\xf7\x12\x01\x02\x02\x01"};
+static gss_OID_desc GSS_KRB5_NT_PRINCIPAL_NAME_storage = { 10,
+	(void *)(uintptr_t) "\x2a\x86\x48\x86\xf7\x12\x01\x02\x02\x01" };
 gss_OID GSS_KRB5_NT_PRINCIPAL_NAME = &GSS_KRB5_NT_PRINCIPAL_NAME_storage;
 
 /*

@@ -27,8 +27,7 @@
  *                        or ring is already being polled.
  */
 CpaStatus icp_adf_pollInstance(icp_comms_trans_handle *trans_hnd,
-			       Cpa32U num_transHandles,
-			       Cpa32U response_quota);
+    Cpa32U num_transHandles, Cpa32U response_quota);
 
 /*
  * icp_adf_check_RespInstance
@@ -46,6 +45,6 @@ CpaStatus icp_adf_pollInstance(icp_comms_trans_handle *trans_hnd,
  *   CPA_STATUS_INVALID_PARAM   Invalid parameter passed in
  */
 CpaStatus icp_adf_check_RespInstance(icp_comms_trans_handle *trans_hnd,
-				     Cpa32U num_transHandles);
+    Cpa32U num_transHandles);
 
 #endif /* ICP_ADF_POLL_H */

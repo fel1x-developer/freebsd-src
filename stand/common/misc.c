@@ -25,9 +25,10 @@
  */
 
 #include <sys/cdefs.h>
-#include <string.h>
-#include <stand.h>
+
 #include <bootstrap.h>
+#include <stand.h>
+#include <string.h>
 
 /*
  * Concatenate the (argc) elements of (argv) into a single string, and return
@@ -36,25 +37,25 @@
 char *
 unargv(int argc, char *argv[])
 {
-    size_t	hlong;
-    int		i;
-    char	*cp;
+	size_t hlong;
+	int i;
+	char *cp;
 
-    for (i = 0, hlong = 0; i < argc; i++)
-	hlong += strlen(argv[i]) + 2;
+	for (i = 0, hlong = 0; i < argc; i++)
+		hlong += strlen(argv[i]) + 2;
 
-    if(hlong == 0)
-	return(NULL);
+	if (hlong == 0)
+		return (NULL);
 
-    cp = malloc(hlong);
-    cp[0] = 0;
-    for (i = 0; i < argc; i++) {
-	strcat(cp, argv[i]);
-	if (i < (argc - 1))
-	  strcat(cp, " ");
-    }
-	  
-    return(cp);
+	cp = malloc(hlong);
+	cp[0] = 0;
+	for (i = 0; i < argc; i++) {
+		strcat(cp, argv[i]);
+		if (i < (argc - 1))
+			strcat(cp, " ");
+	}
+
+	return (cp);
 }
 
 /*
@@ -63,15 +64,15 @@ unargv(int argc, char *argv[])
 size_t
 strlenout(vm_offset_t src)
 {
-    char	c;
-    size_t	len;
-    
-    for (len = 0; ; len++) {
-	archsw.arch_copyout(src++, &c, 1);
-	if (c == 0)
-	    break;
-    }
-    return(len);
+	char c;
+	size_t len;
+
+	for (len = 0;; len++) {
+		archsw.arch_copyout(src++, &c, 1);
+		if (c == 0)
+			break;
+	}
+	return (len);
 }
 
 /*
@@ -80,15 +81,15 @@ strlenout(vm_offset_t src)
 char *
 strdupout(vm_offset_t str)
 {
-    char	*result, *cp;
-    
-    result = malloc(strlenout(str) + 1);
-    for (cp = result; ;cp++) {
-	archsw.arch_copyout(str++, cp, 1);
-	if (*cp == 0)
-	    break;
-    }
-    return(result);
+	char *result, *cp;
+
+	result = malloc(strlenout(str) + 1);
+	for (cp = result;; cp++) {
+		archsw.arch_copyout(str++, cp, 1);
+		if (*cp == 0)
+			break;
+	}
+	return (result);
 }
 
 /* Zero a region in kernel space. */
@@ -170,7 +171,8 @@ alloc_pread(readin_handle_t fd, off_t off, size_t len)
 /*
  * mount new rootfs and unmount old, set "currdev" environment variable.
  */
-int mount_currdev(struct env_var *ev, int flags, const void *value)
+int
+mount_currdev(struct env_var *ev, int flags, const void *value)
 {
 	int rv;
 

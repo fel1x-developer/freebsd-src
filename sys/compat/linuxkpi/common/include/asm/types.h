@@ -26,8 +26,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef	_LINUXKPI_ASM_TYPES_H_
-#define	_LINUXKPI_ASM_TYPES_H_
+#ifndef _LINUXKPI_ASM_TYPES_H_
+#define _LINUXKPI_ASM_TYPES_H_
 
 #if defined(_KERNEL) || defined(_STANDALONE)
 
@@ -57,6 +57,6 @@ typedef vm_paddr_t dma64_addr_t;
 
 typedef unsigned short umode_t;
 
-#endif	/* _KERNEL || _STANDALONE */
+#endif /* _KERNEL || _STANDALONE */
 
-#endif	/* _LINUXKPI_ASM_TYPES_H_ */
+#endif /* _LINUXKPI_ASM_TYPES_H_ */

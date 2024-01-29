@@ -33,23 +33,23 @@
 #include <sys/pmc.h>
 #include <sys/pmckern.h>
 
-#include <machine/pmc_mdep.h>
 #include <machine/cpu.h>
+#include <machine/pmc_mdep.h>
 
 static int armv7_npmcs;
 
 struct armv7_event_code_map {
-	enum pmc_event	pe_ev;
-	uint8_t		pe_code;
+	enum pmc_event pe_ev;
+	uint8_t pe_code;
 };
 
-#define	PMC_EV_CPU_CYCLES	0xFF
+#define PMC_EV_CPU_CYCLES 0xFF
 
 /*
  * Per-processor information.
  */
 struct armv7_cpu {
-	struct pmc_hw   *pc_armv7pmcs;
+	struct pmc_hw *pc_armv7pmcs;
 };
 
 static struct armv7_cpu **armv7_pcpu;
@@ -113,7 +113,8 @@ armv7_pmcn_read(unsigned int pmc, uint32_t evsel)
 		return ((uint32_t)cp15_pmccntr_get());
 	}
 
-	KASSERT(pmc < armv7_npmcs, ("%s: illegal PMC number %d", __func__, pmc));
+	KASSERT(pmc < armv7_npmcs,
+	    ("%s: illegal PMC number %d", __func__, pmc));
 
 	cp15_pmselr_set(pmc);
 	return (cp15_pmxevcntr_get());
@@ -123,7 +124,8 @@ static uint32_t
 armv7_pmcn_write(unsigned int pmc, uint32_t reg)
 {
 
-	KASSERT(pmc < armv7_npmcs, ("%s: illegal PMC number %d", __func__, pmc));
+	KASSERT(pmc < armv7_npmcs,
+	    ("%s: illegal PMC number %d", __func__, pmc));
 
 	cp15_pmselr_set(pmc);
 	cp15_pmxevcntr_set(reg);
@@ -133,7 +135,7 @@ armv7_pmcn_write(unsigned int pmc, uint32_t reg)
 
 static int
 armv7_allocate_pmc(int cpu, int ri, struct pmc *pm,
-  const struct pmc_op_pmcallocate *a)
+    const struct pmc_op_pmcallocate *a)
 {
 	enum pmc_event pe;
 	uint32_t config;
@@ -154,7 +156,6 @@ armv7_allocate_pmc(int cpu, int ri, struct pmc *pm,
 
 	return 0;
 }
-
 
 static int
 armv7_read_pmc(int cpu, int ri, struct pmc *pm, pmc_value_t *v)
@@ -216,7 +217,7 @@ armv7_write_pmc(int cpu, int ri, struct pmc *pm, pmc_value_t v)
 
 	if (PMC_IS_SAMPLING_MODE(PMC_TO_MODE(pm)))
 		v = ARMV7_RELOAD_COUNT_TO_PERFCTR_VALUE(v);
-	
+
 	PMCDBG3(MDP, WRI, 1, "armv7-write cpu=%d ri=%d v=%jx", cpu, ri, v);
 
 	pm->pm_pcpu_state[cpu].pps_overflowcnt = v >> 32;
@@ -243,8 +244,8 @@ armv7_config_pmc(int cpu, int ri, struct pmc *pm)
 	phw = &armv7_pcpu[cpu]->pc_armv7pmcs[ri];
 
 	KASSERT(pm == NULL || phw->phw_pmc == NULL,
-	    ("[armv7,%d] pm=%p phw->pm=%p hwpmc not unconfigured",
-	    __LINE__, pm, phw->phw_pmc));
+	    ("[armv7,%d] pm=%p phw->pm=%p hwpmc not unconfigured", __LINE__, pm,
+		phw->phw_pmc));
 
 	phw->phw_pmc = pm;
 
@@ -403,7 +404,7 @@ static int
 armv7_pcpu_init(struct pmc_mdep *md, int cpu)
 {
 	struct armv7_cpu *pac;
-	struct pmc_hw  *phw;
+	struct pmc_hw *phw;
 	struct pmc_cpu *pc;
 	uint32_t pmnc;
 	int first_ri;
@@ -414,18 +415,18 @@ armv7_pcpu_init(struct pmc_mdep *md, int cpu)
 	PMCDBG0(MDP, INI, 1, "armv7-pcpu-init");
 
 	armv7_pcpu[cpu] = pac = malloc(sizeof(struct armv7_cpu), M_PMC,
-	    M_WAITOK|M_ZERO);
+	    M_WAITOK | M_ZERO);
 
-	pac->pc_armv7pmcs = malloc(sizeof(struct pmc_hw) * armv7_npmcs,
-	    M_PMC, M_WAITOK|M_ZERO);
+	pac->pc_armv7pmcs = malloc(sizeof(struct pmc_hw) * armv7_npmcs, M_PMC,
+	    M_WAITOK | M_ZERO);
 	pc = pmc_pcpu[cpu];
 	first_ri = md->pmd_classdep[PMC_MDEP_CLASS_INDEX_ARMV7].pcd_ri;
 	KASSERT(pc != NULL, ("[armv7,%d] NULL per-cpu pointer", __LINE__));
 
 	for (i = 0, phw = pac->pc_armv7pmcs; i < armv7_npmcs; i++, phw++) {
-		phw->phw_state    = PMC_PHW_FLAG_IS_ENABLED |
+		phw->phw_state = PMC_PHW_FLAG_IS_ENABLED |
 		    PMC_PHW_CPU_TO_STATE(cpu) | PMC_PHW_INDEX_TO_STATE(i);
-		phw->phw_pmc      = NULL;
+		phw->phw_pmc = NULL;
 		pc->pc_hwpmcs[i + first_ri] = phw;
 	}
 
@@ -474,18 +475,17 @@ pmc_armv7_initialize(void)
 	int reg;
 
 	reg = cp15_pmcr_get();
-	armv7_npmcs = (reg >> ARMV7_PMNC_N_SHIFT) & \
-				ARMV7_PMNC_N_MASK;
+	armv7_npmcs = (reg >> ARMV7_PMNC_N_SHIFT) & ARMV7_PMNC_N_MASK;
 	idcode = (reg & ARMV7_IDCODE_MASK) >> ARMV7_IDCODE_SHIFT;
 
 	PMCDBG1(MDP, INI, 1, "armv7-init npmcs=%d", armv7_npmcs);
-	
+
 	/*
 	 * Allocate space for pointers to PMC HW descriptors and for
 	 * the MDEP structure used by MI code.
 	 */
-	armv7_pcpu = malloc(sizeof(struct armv7_cpu *) * pmc_cpu_max(),
-		M_PMC, M_WAITOK | M_ZERO);
+	armv7_pcpu = malloc(sizeof(struct armv7_cpu *) * pmc_cpu_max(), M_PMC,
+	    M_WAITOK | M_ZERO);
 
 	/* Just one class */
 	pmc_mdep = pmc_mdep_alloc(1);
@@ -505,23 +505,23 @@ pmc_armv7_initialize(void)
 	}
 
 	pcd = &pmc_mdep->pmd_classdep[PMC_MDEP_CLASS_INDEX_ARMV7];
-	pcd->pcd_caps  = ARMV7_PMC_CAPS;
+	pcd->pcd_caps = ARMV7_PMC_CAPS;
 	pcd->pcd_class = PMC_CLASS_ARMV7;
-	pcd->pcd_num   = armv7_npmcs;
-	pcd->pcd_ri    = pmc_mdep->pmd_npmc;
+	pcd->pcd_num = armv7_npmcs;
+	pcd->pcd_ri = pmc_mdep->pmd_npmc;
 	pcd->pcd_width = 32;
 
-	pcd->pcd_allocate_pmc   = armv7_allocate_pmc;
-	pcd->pcd_config_pmc     = armv7_config_pmc;
-	pcd->pcd_pcpu_fini      = armv7_pcpu_fini;
-	pcd->pcd_pcpu_init      = armv7_pcpu_init;
-	pcd->pcd_describe       = armv7_describe;
-	pcd->pcd_get_config	= armv7_get_config;
-	pcd->pcd_read_pmc       = armv7_read_pmc;
-	pcd->pcd_release_pmc    = armv7_release_pmc;
-	pcd->pcd_start_pmc      = armv7_start_pmc;
-	pcd->pcd_stop_pmc       = armv7_stop_pmc;
-	pcd->pcd_write_pmc      = armv7_write_pmc;
+	pcd->pcd_allocate_pmc = armv7_allocate_pmc;
+	pcd->pcd_config_pmc = armv7_config_pmc;
+	pcd->pcd_pcpu_fini = armv7_pcpu_fini;
+	pcd->pcd_pcpu_init = armv7_pcpu_init;
+	pcd->pcd_describe = armv7_describe;
+	pcd->pcd_get_config = armv7_get_config;
+	pcd->pcd_read_pmc = armv7_read_pmc;
+	pcd->pcd_release_pmc = armv7_release_pmc;
+	pcd->pcd_start_pmc = armv7_start_pmc;
+	pcd->pcd_stop_pmc = armv7_stop_pmc;
+	pcd->pcd_write_pmc = armv7_write_pmc;
 
 	pmc_mdep->pmd_intr = armv7_intr;
 	pmc_mdep->pmd_npmc += armv7_npmcs;

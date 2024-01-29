@@ -29,33 +29,36 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/ctype.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
-#include <sys/systm.h>
-
-#include <contrib/libfdt/libfdt.h>
 
 #include <machine/stdarg.h>
 
 #include <dev/fdt/fdt_common.h>
+#include <dev/ofw/ofw_bus_subr.h>
 #include <dev/ofw/ofwvar.h>
 #include <dev/ofw/openfirm.h>
-#include <dev/ofw/ofw_bus_subr.h>
+
+#include <contrib/libfdt/libfdt.h>
 
 #include "ofw_if.h"
 
 #ifdef DEBUG
-#define debugf(fmt, args...) do { printf("%s(): ", __func__);	\
-    printf(fmt,##args); } while (0)
+#define debugf(fmt, args...)                \
+	do {                                \
+		printf("%s(): ", __func__); \
+		printf(fmt, ##args);        \
+	} while (0)
 #else
 #define debugf(fmt, args...)
 #endif
 
 #if defined(__arm__)
 #if defined(SOC_MV_ARMADAXP) || defined(SOC_MV_ARMADA38X) || \
-    defined(SOC_MV_DISCOVERY) || defined(SOC_MV_DOVE) || \
-    defined(SOC_MV_FREY) || defined(SOC_MV_KIRKWOOD) || \
+    defined(SOC_MV_DISCOVERY) || defined(SOC_MV_DOVE) ||     \
+    defined(SOC_MV_FREY) || defined(SOC_MV_KIRKWOOD) ||      \
     defined(SOC_MV_LOKIPLUS) || defined(SOC_MV_ORION)
 #define FDT_MARVELL
 #endif
@@ -77,35 +80,27 @@ static ssize_t ofw_fdt_instance_to_path(ofw_t, ihandle_t, char *, size_t);
 static ssize_t ofw_fdt_package_to_path(ofw_t, phandle_t, char *, size_t);
 static int ofw_fdt_interpret(ofw_t, const char *, int, cell_t *);
 
-static ofw_method_t ofw_fdt_methods[] = {
-	OFWMETHOD(ofw_init,			ofw_fdt_init),
-	OFWMETHOD(ofw_peer,			ofw_fdt_peer),
-	OFWMETHOD(ofw_child,			ofw_fdt_child),
-	OFWMETHOD(ofw_parent,			ofw_fdt_parent),
-	OFWMETHOD(ofw_instance_to_package,	ofw_fdt_instance_to_package),
-	OFWMETHOD(ofw_getproplen,		ofw_fdt_getproplen),
-	OFWMETHOD(ofw_getprop,			ofw_fdt_getprop),
-	OFWMETHOD(ofw_nextprop,			ofw_fdt_nextprop),
-	OFWMETHOD(ofw_setprop,			ofw_fdt_setprop),
-	OFWMETHOD(ofw_canon,			ofw_fdt_canon),
-	OFWMETHOD(ofw_finddevice,		ofw_fdt_finddevice),
-	OFWMETHOD(ofw_instance_to_path,		ofw_fdt_instance_to_path),
-	OFWMETHOD(ofw_package_to_path,		ofw_fdt_package_to_path),
-	OFWMETHOD(ofw_interpret,		ofw_fdt_interpret),
-	{ 0, 0 }
-};
+static ofw_method_t ofw_fdt_methods[] = { OFWMETHOD(ofw_init, ofw_fdt_init),
+	OFWMETHOD(ofw_peer, ofw_fdt_peer), OFWMETHOD(ofw_child, ofw_fdt_child),
+	OFWMETHOD(ofw_parent, ofw_fdt_parent),
+	OFWMETHOD(ofw_instance_to_package, ofw_fdt_instance_to_package),
+	OFWMETHOD(ofw_getproplen, ofw_fdt_getproplen),
+	OFWMETHOD(ofw_getprop, ofw_fdt_getprop),
+	OFWMETHOD(ofw_nextprop, ofw_fdt_nextprop),
+	OFWMETHOD(ofw_setprop, ofw_fdt_setprop),
+	OFWMETHOD(ofw_canon, ofw_fdt_canon),
+	OFWMETHOD(ofw_finddevice, ofw_fdt_finddevice),
+	OFWMETHOD(ofw_instance_to_path, ofw_fdt_instance_to_path),
+	OFWMETHOD(ofw_package_to_path, ofw_fdt_package_to_path),
+	OFWMETHOD(ofw_interpret, ofw_fdt_interpret), { 0, 0 } };
 
-static ofw_def_t ofw_fdt = {
-	OFW_FDT,
-	ofw_fdt_methods,
-	0
-};
+static ofw_def_t ofw_fdt = { OFW_FDT, ofw_fdt_methods, 0 };
 OFW_DEF(ofw_fdt);
 
-#define	FDT_FBSDVER_LEN	16
-#define	FDT_MODEL_LEN	80
-#define	FDT_COMPAT_LEN	255
-#define	FDT_SERIAL_LEN	32
+#define FDT_FBSDVER_LEN 16
+#define FDT_MODEL_LEN 80
+#define FDT_COMPAT_LEN 255
+#define FDT_SERIAL_LEN 32
 
 static void *fdtp = NULL;
 static char fdt_model[FDT_MODEL_LEN];
@@ -117,7 +112,7 @@ static int
 sysctl_handle_dtb(SYSCTL_HANDLER_ARGS)
 {
 
-        return (sysctl_handle_opaque(oidp, fdtp, fdt_totalsize(fdtp), req));
+	return (sysctl_handle_opaque(oidp, fdtp, fdt_totalsize(fdtp), req));
 }
 
 static void
@@ -133,8 +128,8 @@ sysctl_register_fdt_oid(void *arg)
 	    sysctl_handle_dtb, "", "Device Tree Blob");
 	if (fdt_model[0] != '\0')
 		SYSCTL_ADD_STRING(NULL, SYSCTL_STATIC_CHILDREN(_hw_fdt),
-		    OID_AUTO, "model", CTLFLAG_RD, fdt_model,
-		    FDT_MODEL_LEN, "System board model");
+		    OID_AUTO, "model", CTLFLAG_RD, fdt_model, FDT_MODEL_LEN,
+		    "System board model");
 	if (fdt_compatible[0] != '\0')
 		SYSCTL_ADD_STRING(NULL, SYSCTL_STATIC_CHILDREN(_hw_fdt),
 		    OID_AUTO, "compatible", CTLFLAG_RD, fdt_compatible,
@@ -183,13 +178,13 @@ ofw_fdt_init(ofw_t ofw, void *data)
 	if (len > 0 && len <= FDT_FBSDVER_LEN) {
 		bzero(fdt_fbsd_version, FDT_FBSDVER_LEN);
 		ofw_fdt_getprop(NULL, root, "freebsd,dts-version",
-		  fdt_fbsd_version, FDT_FBSDVER_LEN);
+		    fdt_fbsd_version, FDT_FBSDVER_LEN);
 	}
 	len = ofw_fdt_getproplen(NULL, root, "serial-number");
 	if (len > 0 && len <= FDT_SERIAL_LEN) {
 		bzero(fdt_serial, FDT_SERIAL_LEN);
-		ofw_fdt_getprop(NULL, root, "serial-number",
-		    fdt_serial, FDT_SERIAL_LEN);
+		ofw_fdt_getprop(NULL, root, "serial-number", fdt_serial,
+		    FDT_SERIAL_LEN);
 		/*
 		 * Non-standard property; check for NUL-terminated
 		 * printable string.
@@ -315,7 +310,7 @@ ofw_fdt_getproplen(ofw_t ofw, phandle_t package, const char *propname)
 		if (strcmp(propname, "fdtbootcpu") == 0)
 			return (sizeof(cell_t));
 		if (strcmp(propname, "fdtmemreserv") == 0)
-			return (sizeof(uint64_t)*2*fdt_num_mem_rsv(fdtp));
+			return (sizeof(uint64_t) * 2 * fdt_num_mem_rsv(fdtp));
 	}
 
 	if (prop == NULL)
@@ -355,7 +350,7 @@ ofw_fdt_getprop(ofw_t ofw, phandle_t package, const char *propname, void *buf,
 		}
 		if (strcmp(propname, "fdtmemreserv") == 0) {
 			prop = (char *)fdtp + fdt_off_mem_rsvmap(fdtp);
-			len = sizeof(uint64_t)*2*fdt_num_mem_rsv(fdtp);
+			len = sizeof(uint64_t) * 2 * fdt_num_mem_rsv(fdtp);
 		}
 	}
 
@@ -389,7 +384,8 @@ ofw_fdt_nextprop(ofw_t ofw, phandle_t package, const char *previous, char *buf,
 		/* Find the first prop in the node */
 		offset = fdt_first_property_offset(fdtp, offset);
 	else {
-		fdt_for_each_property_offset(offset, fdtp, offset) {
+		fdt_for_each_property_offset(offset, fdtp, offset)
+		{
 			prop = fdt_getprop_by_offset(fdtp, offset, &name, NULL);
 			if (prop == NULL)
 				return (-1); /* Internal error */
@@ -495,16 +491,16 @@ ofw_fdt_fixup(ofw_t ofw)
 	 * Search fixup table and call handler if appropriate.
 	 */
 	for (i = 0; fdt_fixup_table[i].model != NULL; i++) {
-		if (strncmp(model, fdt_fixup_table[i].model,
-		    FDT_MODEL_LEN) != 0)
+		if (strncmp(model, fdt_fixup_table[i].model, FDT_MODEL_LEN) !=
+		    0)
 			/*
 			 * Sometimes it's convenient to provide one
 			 * fixup entry that refers to many boards.
 			 * To handle this case, simply check if model
 			 * is compatible parameter
 			 */
-			if(!ofw_bus_node_is_compatible(root,
-			    fdt_fixup_table[i].model))
+			if (!ofw_bus_node_is_compatible(root,
+				fdt_fixup_table[i].model))
 				continue;
 
 		if (fdt_fixup_table[i].handler != NULL)

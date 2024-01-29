@@ -26,50 +26,51 @@
 
 #include <sys/cdefs.h>
 #include <sys/errno.h>
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "endian.h"
-#include "image.h"
 #include "format.h"
+#include "image.h"
 #include "mkimg.h"
 
 /* Default cluster sizes. */
-#define	QCOW1_CLSTR_LOG2SZ	12	/* 4KB */
-#define	QCOW2_CLSTR_LOG2SZ	16	/* 64KB */
+#define QCOW1_CLSTR_LOG2SZ 12 /* 4KB */
+#define QCOW2_CLSTR_LOG2SZ 16 /* 64KB */
 
 /* Flag bits in cluster offsets */
-#define	QCOW_CLSTR_COMPRESSED	(1ULL << 62)
-#define	QCOW_CLSTR_COPIED	(1ULL << 63)
+#define QCOW_CLSTR_COMPRESSED (1ULL << 62)
+#define QCOW_CLSTR_COPIED (1ULL << 63)
 
 struct qcow_header {
-	uint32_t	magic;
-#define	QCOW_MAGIC		0x514649fb
-	uint32_t	version;
-#define	QCOW_VERSION_1		1
-#define	QCOW_VERSION_2		2
-	uint64_t	path_offset;
-	uint32_t	path_length;
-	uint32_t	clstr_log2sz;	/* v2 only */
-	uint64_t	disk_size;
+	uint32_t magic;
+#define QCOW_MAGIC 0x514649fb
+	uint32_t version;
+#define QCOW_VERSION_1 1
+#define QCOW_VERSION_2 2
+	uint64_t path_offset;
+	uint32_t path_length;
+	uint32_t clstr_log2sz; /* v2 only */
+	uint64_t disk_size;
 	union {
 		struct {
-			uint8_t		clstr_log2sz;
-			uint8_t		l2_log2sz;
-			uint16_t	_pad;
-			uint32_t	encryption;
-			uint64_t	l1_offset;
+			uint8_t clstr_log2sz;
+			uint8_t l2_log2sz;
+			uint16_t _pad;
+			uint32_t encryption;
+			uint64_t l1_offset;
 		} v1;
 		struct {
-			uint32_t	encryption;
-			uint32_t	l1_entries;
-			uint64_t	l1_offset;
-			uint64_t	refcnt_offset;
-			uint32_t	refcnt_clstrs;
-			uint32_t	snapshot_count;
-			uint64_t	snapshot_offset;
+			uint32_t encryption;
+			uint32_t l1_entries;
+			uint64_t l1_offset;
+			uint64_t refcnt_offset;
+			uint32_t refcnt_clstrs;
+			uint32_t snapshot_count;
+			uint64_t snapshot_offset;
 		} v2;
 	} u;
 };
@@ -320,7 +321,7 @@ qcow_write(int fd, u_int version)
 	if (!error)
 		error = image_copyout_done(fd);
 
- out:
+out:
 	if (rcblk != NULL)
 		free(rcblk);
 	if (l2tbl != NULL)

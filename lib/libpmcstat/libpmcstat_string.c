@@ -25,10 +25,10 @@
  */
 
 #include <sys/types.h>
-#include <sys/cpuset.h>
 #include <sys/param.h>
-#include <sys/stat.h>
+#include <sys/cpuset.h>
 #include <sys/pmc.h>
+#include <sys/stat.h>
 
 #include <assert.h>
 #include <err.h>
@@ -42,7 +42,7 @@
 
 #include "libpmcstat.h"
 
-static LIST_HEAD(,pmcstat_string)	pmcstat_string_hash[PMCSTAT_NHASH];
+static LIST_HEAD(, pmcstat_string) pmcstat_string_hash[PMCSTAT_NHASH];
 
 /*
  * Intern a copy of string 's', and return a pointer to the
@@ -60,7 +60,7 @@ pmcstat_string_intern(const char *s)
 		return (cps);
 
 	hash = pmcstat_string_compute_hash(s);
-	len  = strlen(s);
+	len = strlen(s);
 
 	if ((ps = malloc(sizeof(*ps))) == NULL)
 		err(EX_OSERR, "ERROR: Could not intern string");
@@ -68,7 +68,7 @@ pmcstat_string_intern(const char *s)
 	ps->ps_hash = hash;
 	ps->ps_string = strdup(s);
 	LIST_INSERT_HEAD(&pmcstat_string_hash[hash], ps, ps_next);
-	return ((pmcstat_interned_string) ps);
+	return ((pmcstat_interned_string)ps);
 }
 
 const char *
@@ -76,7 +76,7 @@ pmcstat_string_unintern(pmcstat_interned_string str)
 {
 	const char *s;
 
-	s = ((const struct pmcstat_string *) str)->ps_string;
+	s = ((const struct pmcstat_string *)str)->ps_string;
 	return (s);
 }
 
@@ -104,10 +104,10 @@ pmcstat_string_lookup(const char *s)
 	hash = pmcstat_string_compute_hash(s);
 	len = strlen(s);
 
-	LIST_FOREACH(ps, &pmcstat_string_hash[hash], ps_next)
-	    if (ps->ps_len == len && ps->ps_hash == hash &&
-		strcmp(ps->ps_string, s) == 0)
-		    return (ps);
+	LIST_FOREACH (ps, &pmcstat_string_hash[hash], ps_next)
+		if (ps->ps_len == len && ps->ps_hash == hash &&
+		    strcmp(ps->ps_string, s) == 0)
+			return (ps);
 	return (NULL);
 }
 
@@ -116,7 +116,7 @@ pmcstat_string_lookup_hash(pmcstat_interned_string s)
 {
 	const struct pmcstat_string *ps;
 
-	ps = (const struct pmcstat_string *) s;
+	ps = (const struct pmcstat_string *)s;
 	return (ps->ps_hash);
 }
 
@@ -131,7 +131,7 @@ pmcstat_string_shutdown(void)
 	struct pmcstat_string *ps, *pstmp;
 
 	for (i = 0; i < PMCSTAT_NHASH; i++)
-		LIST_FOREACH_SAFE(ps, &pmcstat_string_hash[i], ps_next,
+		LIST_FOREACH_SAFE (ps, &pmcstat_string_hash[i], ps_next,
 		    pstmp) {
 			LIST_REMOVE(ps, ps_next);
 			free(ps->ps_string);

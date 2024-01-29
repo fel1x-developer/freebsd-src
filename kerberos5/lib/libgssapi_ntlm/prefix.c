@@ -28,10 +28,12 @@
 
 #include <gssapi/gssapi.h>
 
-gss_OID_desc __gss_c_nt_user_name_oid_desc =
-    {10, (void *)("\x2a\x86\x48\x86\xf7\x12" "\x01\x02\x01\x01")};
-gss_OID_desc __gss_c_nt_hostbased_service_oid_desc =
-    {10, (void *)("\x2a\x86\x48\x86\xf7\x12" "\x01\x02\x01\x04")};
+gss_OID_desc __gss_c_nt_user_name_oid_desc = { 10,
+	(void *)("\x2a\x86\x48\x86\xf7\x12"
+		 "\x01\x02\x01\x01") };
+gss_OID_desc __gss_c_nt_hostbased_service_oid_desc = { 10,
+	(void *)("\x2a\x86\x48\x86\xf7\x12"
+		 "\x01\x02\x01\x04") };
 
 const char *
 _gss_name_prefix(void)

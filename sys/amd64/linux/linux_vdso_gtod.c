@@ -29,27 +29,27 @@
 #include <sys/errno.h>
 #include <sys/proc.h>
 #include <sys/stddef.h>
-#define	_KERNEL
+#define _KERNEL
 #include <sys/vdso.h>
-#undef	_KERNEL
-#include <stdbool.h>
-
+#undef _KERNEL
 #include <machine/atomic.h>
 #include <machine/cpufunc.h>
 #include <machine/stdarg.h>
 
 #include <amd64/linux/linux.h>
 #include <amd64/linux/linux_syscall.h>
+
 #include <compat/linux/linux_errno.h>
 #include <compat/linux/linux_time.h>
+#include <stdbool.h>
 
 /* The kernel fixup this at vDSO install */
 uintptr_t *kern_timekeep_base = NULL;
 uint32_t kern_tsc_selector = 0;
 uint32_t kern_cpu_selector = 0;
 
-#include <x86/linux/linux_vdso_gettc_x86.inc>
 #include <x86/linux/linux_vdso_getcpu_x86.inc>
+#include <x86/linux/linux_vdso_gettc_x86.inc>
 
 /* for debug purpose */
 static int
@@ -57,13 +57,11 @@ write(int fd, const void *buf, size_t size)
 {
 	int res;
 
-	__asm__ __volatile__
-	(
-	    "syscall"
-	    : "=a"(res)
-	    : "a"(LINUX_SYS_linux_write), "D"(fd), "S"(buf), "d"(size)
-	    : "cc", "rcx", "r11", "memory"
-	);
+	__asm__ __volatile__("syscall"
+			     : "=a"(res)
+			     : "a"(LINUX_SYS_linux_write), "D"(fd), "S"(buf),
+			     "d"(size)
+			     : "cc", "rcx", "r11", "memory");
 	return (res);
 }
 
@@ -72,13 +70,11 @@ __vdso_clock_gettime_fallback(clockid_t clock_id, struct l_timespec *ts)
 {
 	int res;
 
-	__asm__ __volatile__
-	(
-	    "syscall"
-	    : "=a"(res)
-	    : "a"(LINUX_SYS_linux_clock_gettime), "D"(clock_id), "S"(ts)
-	    : "cc", "rcx", "r11", "memory"
-	);
+	__asm__ __volatile__("syscall"
+			     : "=a"(res)
+			     : "a"(LINUX_SYS_linux_clock_gettime),
+			     "D"(clock_id), "S"(ts)
+			     : "cc", "rcx", "r11", "memory");
 	return (res);
 }
 
@@ -87,13 +83,10 @@ __vdso_gettimeofday_fallback(l_timeval *tv, struct timezone *tz)
 {
 	int res;
 
-	__asm__ __volatile__
-	(
-	    "syscall"
-	    : "=a"(res)
-	    : "a"(LINUX_SYS_gettimeofday), "D"(tv), "S"(tz)
-	    : "cc", "rcx", "r11", "memory"
-	);
+	__asm__ __volatile__("syscall"
+			     : "=a"(res)
+			     : "a"(LINUX_SYS_gettimeofday), "D"(tv), "S"(tz)
+			     : "cc", "rcx", "r11", "memory");
 	return (res);
 }
 
@@ -102,13 +95,11 @@ __vdso_clock_getres_fallback(clockid_t clock_id, struct l_timespec *ts)
 {
 	int res;
 
-	__asm__ __volatile__
-	(
-	    "syscall"
-	    : "=a"(res)
-	    : "a"(LINUX_SYS_linux_clock_getres), "D"(clock_id), "S"(ts)
-	    : "cc", "rcx", "r11", "memory"
-	);
+	__asm__ __volatile__("syscall"
+			     : "=a"(res)
+			     : "a"(LINUX_SYS_linux_clock_getres), "D"(clock_id),
+			     "S"(ts)
+			     : "cc", "rcx", "r11", "memory");
 	return (res);
 }
 
@@ -117,13 +108,11 @@ __vdso_getcpu_fallback(uint32_t *cpu, uint32_t *node, void *cache)
 {
 	int res;
 
-	__asm__ __volatile__
-	(
-	    "syscall"
-	    : "=a"(res)
-	    : "a"(LINUX_SYS_linux_getcpu), "D"(cpu), "S"(node), "d"(cache)
-	    : "cc", "rcx", "r11", "memory"
-	);
+	__asm__ __volatile__("syscall"
+			     : "=a"(res)
+			     : "a"(LINUX_SYS_linux_getcpu), "D"(cpu), "S"(node),
+			     "d"(cache)
+			     : "cc", "rcx", "r11", "memory");
 	return (res);
 }
 
@@ -132,13 +121,10 @@ __vdso_time_fallback(long *tm)
 {
 	int res;
 
-	__asm__ __volatile__
-	(
-	    "syscall"
-	    : "=a"(res)
-	    : "a"(LINUX_SYS_linux_time), "D"(tm)
-	    : "cc", "rcx", "r11", "memory"
-	);
+	__asm__ __volatile__("syscall"
+			     : "=a"(res)
+			     : "a"(LINUX_SYS_linux_time), "D"(tm)
+			     : "cc", "rcx", "r11", "memory");
 	return (res);
 }
 

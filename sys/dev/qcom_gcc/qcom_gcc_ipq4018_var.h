@@ -25,41 +25,41 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	__QCOM_GCC_IPQ4018_VAR_H__
-#define	__QCOM_GCC_IPQ4018_VAR_H__
+#ifndef __QCOM_GCC_IPQ4018_VAR_H__
+#define __QCOM_GCC_IPQ4018_VAR_H__
 
 struct qcom_gcc_ipq4018_reset_entry {
-	uint32_t	reg;
-	uint32_t	bit;
+	uint32_t reg;
+	uint32_t bit;
 };
 
 struct qcom_gcc_ipq4018_softc {
-	device_t		dev;
-	int			reg_rid;
-	struct resource		*reg;
-	struct mtx		mtx;
-	struct clkdom		*clkdom;
+	device_t dev;
+	int reg_rid;
+	struct resource *reg;
+	struct mtx mtx;
+	struct clkdom *clkdom;
 };
 
 /*
  * reset block
  */
-extern	int qcom_gcc_ipq4018_hwreset_assert(device_t dev, intptr_t id,
-	    bool reset);
-extern	int qcom_gcc_ipq4018_hwreset_is_asserted(device_t dev, intptr_t id,
-	    bool *reset);
+extern int qcom_gcc_ipq4018_hwreset_assert(device_t dev, intptr_t id,
+    bool reset);
+extern int qcom_gcc_ipq4018_hwreset_is_asserted(device_t dev, intptr_t id,
+    bool *reset);
 
 /*
  * clock block
  */
-extern	int qcom_gcc_ipq4018_clock_read(device_t dev, bus_addr_t addr,
-	    uint32_t *val);
-extern	int qcom_gcc_ipq4018_clock_write(device_t dev, bus_addr_t addr,
-	    uint32_t val);
-extern	int qcom_gcc_ipq4018_clock_modify(device_t dev, bus_addr_t addr,
-     uint32_t clear_mask, uint32_t set_mask);
-extern	void qcom_gcc_ipq4018_clock_setup(struct qcom_gcc_ipq4018_softc *sc);
-extern	void qcom_gcc_ipq4018_clock_lock(device_t dev);
-extern	void qcom_gcc_ipq4018_clock_unlock(device_t dev);
+extern int qcom_gcc_ipq4018_clock_read(device_t dev, bus_addr_t addr,
+    uint32_t *val);
+extern int qcom_gcc_ipq4018_clock_write(device_t dev, bus_addr_t addr,
+    uint32_t val);
+extern int qcom_gcc_ipq4018_clock_modify(device_t dev, bus_addr_t addr,
+    uint32_t clear_mask, uint32_t set_mask);
+extern void qcom_gcc_ipq4018_clock_setup(struct qcom_gcc_ipq4018_softc *sc);
+extern void qcom_gcc_ipq4018_clock_lock(device_t dev);
+extern void qcom_gcc_ipq4018_clock_unlock(device_t dev);
 
-#endif	/* __QCOM_GCC_IPQ4018_VAR_H__ */
+#endif /* __QCOM_GCC_IPQ4018_VAR_H__ */

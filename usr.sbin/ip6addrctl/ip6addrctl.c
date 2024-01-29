@@ -32,24 +32,23 @@
  */
 
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/queue.h>
 #include <sys/param.h>
 #include <sys/ioctl.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
 #include <sys/sysctl.h>
 
 #include <net/if.h>
-
 #include <netinet/in.h>
 #include <netinet6/in6_var.h>
 
-#include <stdlib.h>
+#include <err.h>
+#include <limits.h>
 #include <netdb.h>
 #include <stdio.h>
-#include <unistd.h>
-#include <limits.h>
+#include <stdlib.h>
 #include <string.h>
-#include <err.h>
+#include <unistd.h>
 
 static char *configfile;
 
@@ -128,7 +127,7 @@ get_policy(void)
 		/* NOTREACHED */
 	}
 
-	ep = buf + l/sizeof(*buf);
+	ep = buf + l / sizeof(*buf);
 	for (pol = buf; pol + 1 <= ep; pol++) {
 		struct policyqueue *new;
 
@@ -154,14 +153,14 @@ dump_policy(void)
 	     ent = TAILQ_NEXT(ent, pc_entry)) {
 		pol = &ent->pc_policy;
 		if (first) {
-			printf("%-30s %5s %5s %8s\n",
-			       "Prefix", "Prec", "Label", "Use");
+			printf("%-30s %5s %5s %8s\n", "Prefix", "Prec", "Label",
+			    "Use");
 			first = 0;
 		}
 
 		if ((getnameinfo((struct sockaddr *)&pol->addr,
-				 sizeof(pol->addr), addrbuf, sizeof(addrbuf),
-				 NULL, 0, NI_NUMERICHOST))) {
+			sizeof(pol->addr), addrbuf, sizeof(addrbuf), NULL, 0,
+			NI_NUMERICHOST))) {
 			warnx("getnameinfo for prefix address failed");
 			continue;
 		}
@@ -172,29 +171,28 @@ dump_policy(void)
 		addrlen = strlen(addrbuf);
 		if (addrlen + sizeof("/128") < sizeof(addrbuf)) {
 			snprintf(&addrbuf[addrlen],
-				 sizeof(addrbuf) - addrlen - 1,
-				 "/%d", plen);
+			    sizeof(addrbuf) - addrlen - 1, "/%d", plen);
 			printf("%-30s", addrbuf);
-		} else		/* XXX */
+		} else /* XXX */
 			printf("%s/%d", addrbuf, plen);
 		printf(" %5d %5d %8llu\n", pol->preced, pol->label,
 		    (unsigned long long)pol->use);
 	}
 }
 
-#define SKIP_WHITE(p, emptyok) \
-	do { \
-		while((*(p) == ' ' || *(p) == '\t')) \
-			(p)++; \
- 		if ((*(p) == '\0' || (*(p) == '\n')) && !(emptyok)) \
-			goto bad; \
+#define SKIP_WHITE(p, emptyok)                                      \
+	do {                                                        \
+		while ((*(p) == ' ' || *(p) == '\t'))               \
+			(p)++;                                      \
+		if ((*(p) == '\0' || (*(p) == '\n')) && !(emptyok)) \
+			goto bad;                                   \
 	} while (0);
-#define SKIP_WORD(p) \
-	do { \
-		while(*(p) != ' ' && *(p) != '\t') \
-			(p)++; \
- 		if (*(p) == '\0' || *(p) == '\n') \
-			goto bad; \
+#define SKIP_WORD(p)                                \
+	do {                                        \
+		while (*(p) != ' ' && *(p) != '\t') \
+			(p)++;                      \
+		if (*(p) == '\0' || *(p) == '\n')   \
+			goto bad;                   \
 	} while (0);
 
 static void
@@ -210,7 +208,7 @@ make_policy_fromfile(char *conf)
 	if ((fp = fopen(conf, "r")) == NULL)
 		err(1, "fopen: %s", conf);
 
-	while(fgets(line, sizeof(line), fp)) {
+	while (fgets(line, sizeof(line), fp)) {
 		count++;
 		cp = line;
 
@@ -247,7 +245,7 @@ make_policy_fromfile(char *conf)
 	fclose(fp);
 	return;
 
-  bad:
+bad:
 	errx(1, "parse failed at line %d", count);
 	/* NOTREACHED */
 }
@@ -273,8 +271,7 @@ parse_prefix(const char *prefix0, struct in6_addrpolicy *pol)
 	hints.ai_family = AF_INET6;
 
 	if ((e = getaddrinfo(prefix, NULL, &hints, &res)) != 0) {
-		warnx("getaddrinfo failed for %s: %s", prefix,
-		      gai_strerror(e));
+		warnx("getaddrinfo failed for %s: %s", prefix, gai_strerror(e));
 		goto end;
 	}
 	memcpy(&pol->addr, res->ai_addr, res->ai_addrlen);
@@ -287,9 +284,9 @@ parse_prefix(const char *prefix0, struct in6_addrpolicy *pol)
 	}
 	plen2mask(&pol->addrmask, plen);
 
-  end:
+end:
 	free(prefix);
-	return(e);
+	return (e);
 }
 
 static void
@@ -301,7 +298,7 @@ plen2mask(struct sockaddr_in6 *mask, int plen)
 	mask->sin6_family = AF_INET6; /* just in case */
 	mask->sin6_len = sizeof(*mask);
 
-	for(; plen >= 8; plen -= 8)
+	for (; plen >= 8; plen -= 8)
 		*cp++ = 0xff;
 	if (plen > 0)
 		*cp = (0xff << (8 - plen));
@@ -378,10 +375,10 @@ mask2plen(struct sockaddr_in6 *mask)
 			break;
 		}
 	}
-	return(masklen);
+	return (masklen);
 
-  bad:
-	return(-1);
+bad:
+	return (-1);
 }
 
 static void
@@ -446,8 +443,9 @@ static void
 usage(void)
 {
 	fprintf(stderr, "usage: ip6addrctl [show]\n");
-	fprintf(stderr, "       ip6addrctl add "
-		"<prefix> <precedence> <label>\n");
+	fprintf(stderr,
+	    "       ip6addrctl add "
+	    "<prefix> <precedence> <label>\n");
 	fprintf(stderr, "       ip6addrctl delete <prefix>\n");
 	fprintf(stderr, "       ip6addrctl flush\n");
 	fprintf(stderr, "       ip6addrctl install <configfile>\n");

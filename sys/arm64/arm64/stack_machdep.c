@@ -34,9 +34,9 @@
 #include <sys/proc.h>
 #include <sys/stack.h>
 
-#include <machine/vmparam.h>
 #include <machine/pcb.h>
 #include <machine/stack.h>
+#include <machine/vmparam.h>
 
 static void
 stack_capture(struct thread *td, struct stack *st, struct unwind_state *frame)

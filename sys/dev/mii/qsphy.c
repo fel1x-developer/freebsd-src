@@ -65,57 +65,47 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
-#include <sys/errno.h>
-#include <sys/module.h>
 #include <sys/bus.h>
+#include <sys/errno.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
+#include <sys/socket.h>
+
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
+#include <dev/mii/qsphyreg.h>
 
 #include <net/if.h>
 #include <net/if_media.h>
 
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include "miidevs.h"
-
-#include <dev/mii/qsphyreg.h>
-
 #include "miibus_if.h"
+#include "miidevs.h"
 
 static int qsphy_probe(device_t);
 static int qsphy_attach(device_t);
 
 static device_method_t qsphy_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		qsphy_probe),
-	DEVMETHOD(device_attach,	qsphy_attach),
-	DEVMETHOD(device_detach,	mii_phy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, qsphy_probe),
+	DEVMETHOD(device_attach, qsphy_attach),
+	DEVMETHOD(device_detach, mii_phy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), DEVMETHOD_END
 };
 
-static driver_t qsphy_driver = {
-	"qsphy",
-	qsphy_methods,
-	sizeof(struct mii_softc)
-};
+static driver_t qsphy_driver = { "qsphy", qsphy_methods,
+	sizeof(struct mii_softc) };
 
 DRIVER_MODULE(qsphy, miibus, qsphy_driver, 0, 0);
 
-static int	qsphy_service(struct mii_softc *, struct mii_data *, int);
-static void	qsphy_reset(struct mii_softc *);
-static void	qsphy_status(struct mii_softc *);
+static int qsphy_service(struct mii_softc *, struct mii_data *, int);
+static void qsphy_reset(struct mii_softc *);
+static void qsphy_status(struct mii_softc *);
 
-static const struct mii_phydesc qsphys[] = {
-	MII_PHY_DESC(xxQUALSEMI, QS6612),
-	MII_PHY_END
-};
+static const struct mii_phydesc qsphys[] = { MII_PHY_DESC(xxQUALSEMI, QS6612),
+	MII_PHY_END };
 
-static const struct mii_phy_funcs qsphy_funcs = {
-	qsphy_service,
-	qsphy_status,
-	qsphy_reset
-};
+static const struct mii_phy_funcs qsphy_funcs = { qsphy_service, qsphy_status,
+	qsphy_reset };
 
 static int
 qsphy_probe(device_t dev)
@@ -168,8 +158,7 @@ qsphy_status(struct mii_softc *sc)
 	mii->mii_media_status = IFM_AVALID;
 	mii->mii_media_active = IFM_ETHER;
 
-	bmsr = PHY_READ(sc, MII_BMSR) |
-	    PHY_READ(sc, MII_BMSR);
+	bmsr = PHY_READ(sc, MII_BMSR) | PHY_READ(sc, MII_BMSR);
 	if (bmsr & BMSR_LINK)
 		mii->mii_media_status |= IFM_ACTIVE;
 
@@ -186,19 +175,19 @@ qsphy_status(struct mii_softc *sc)
 	pctl = PHY_READ(sc, MII_QSPHY_PCTL);
 	switch (pctl & PCTL_OPMASK) {
 	case PCTL_10_T:
-		mii->mii_media_active |= IFM_10_T|IFM_HDX;
+		mii->mii_media_active |= IFM_10_T | IFM_HDX;
 		break;
 	case PCTL_10_T_FDX:
-		mii->mii_media_active |= IFM_10_T|IFM_FDX;
+		mii->mii_media_active |= IFM_10_T | IFM_FDX;
 		break;
 	case PCTL_100_TX:
-		mii->mii_media_active |= IFM_100_TX|IFM_HDX;
+		mii->mii_media_active |= IFM_100_TX | IFM_HDX;
 		break;
 	case PCTL_100_TX_FDX:
-		mii->mii_media_active |= IFM_100_TX|IFM_FDX;
+		mii->mii_media_active |= IFM_100_TX | IFM_FDX;
 		break;
 	case PCTL_100_T4:
-		mii->mii_media_active |= IFM_100_T4|IFM_HDX;
+		mii->mii_media_active |= IFM_100_T4 | IFM_HDX;
 		break;
 	case PCTL_AN:
 		mii->mii_media_active |= IFM_NONE;

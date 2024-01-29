@@ -14,7 +14,7 @@
  * Associates, Inc. under DARPA/SPAWAR contract N66001-01-C-8035 ("CBOSS"),
  * as part of the DARPA CHATS research program.
  *
- * This software was enhanced by SPARTA ISSO under SPAWAR contract 
+ * This software was enhanced by SPARTA ISSO under SPAWAR contract
  * N66001-04-C-6019 ("SEFOS").
  *
  * This software was developed at the University of Cambridge Computer
@@ -42,28 +42,28 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_mac.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/capsicum.h>
 #include <sys/fcntl.h>
+#include <sys/file.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
-#include <sys/malloc.h>
-#include <sys/mutex.h>
 #include <sys/mac.h>
+#include <sys/malloc.h>
+#include <sys/mount.h>
+#include <sys/mutex.h>
+#include <sys/namei.h>
+#include <sys/pipe.h>
 #include <sys/proc.h>
-#include <sys/systm.h>
+#include <sys/socket.h>
+#include <sys/socketvar.h>
 #include <sys/sysctl.h>
 #include <sys/sysproto.h>
 #include <sys/vnode.h>
-#include <sys/mount.h>
-#include <sys/file.h>
-#include <sys/namei.h>
-#include <sys/socket.h>
-#include <sys/pipe.h>
-#include <sys/socketvar.h>
 
 #include <security/mac/mac_framework.h>
 #include <security/mac/mac_internal.h>
@@ -73,10 +73,10 @@
 
 FEATURE(security_mac, "Mandatory Access Control Framework support");
 
-static int	kern___mac_get_path(struct thread *td, const char *path_p,
-		    struct mac *mac_p, int follow);
-static int	kern___mac_set_path(struct thread *td, const char *path_p,
-		    struct mac *mac_p, int follow);
+static int kern___mac_get_path(struct thread *td, const char *path_p,
+    struct mac *mac_p, int follow);
+static int kern___mac_set_path(struct thread *td, const char *path_p,
+    struct mac *mac_p, int follow);
 
 int
 sys___mac_get_pid(struct thread *td, struct __mac_get_pid_args *uap)
@@ -99,7 +99,7 @@ sys___mac_get_pid(struct thread *td, struct __mac_get_pid_args *uap)
 	if (tproc == NULL)
 		return (ESRCH);
 
-	tcred = NULL;				/* Satisfy gcc. */
+	tcred = NULL; /* Satisfy gcc. */
 	error = p_cansee(td, tproc);
 	if (error == 0)
 		tcred = crhold(tproc->p_ucred);
@@ -116,10 +116,10 @@ sys___mac_get_pid(struct thread *td, struct __mac_get_pid_args *uap)
 	}
 
 	buffer = malloc(mac.m_buflen, M_MACTEMP, M_WAITOK | M_ZERO);
-	error = mac_cred_externalize_label(tcred->cr_label, elements,
-	    buffer, mac.m_buflen);
+	error = mac_cred_externalize_label(tcred->cr_label, elements, buffer,
+	    mac.m_buflen);
 	if (error == 0)
-		error = copyout(buffer, mac.m_string, strlen(buffer)+1);
+		error = copyout(buffer, mac.m_string, strlen(buffer) + 1);
 
 	free(buffer, M_MACTEMP);
 	free(elements, M_MACTEMP);
@@ -150,10 +150,10 @@ sys___mac_get_proc(struct thread *td, struct __mac_get_proc_args *uap)
 	}
 
 	buffer = malloc(mac.m_buflen, M_MACTEMP, M_WAITOK | M_ZERO);
-	error = mac_cred_externalize_label(td->td_ucred->cr_label,
-	    elements, buffer, mac.m_buflen);
+	error = mac_cred_externalize_label(td->td_ucred->cr_label, elements,
+	    buffer, mac.m_buflen);
 	if (error == 0)
-		error = copyout(buffer, mac.m_string, strlen(buffer)+1);
+		error = copyout(buffer, mac.m_string, strlen(buffer) + 1);
 
 	free(buffer, M_MACTEMP);
 	free(elements, M_MACTEMP);
@@ -267,8 +267,8 @@ sys___mac_get_fd(struct thread *td, struct __mac_get_fd_args *uap)
 		vn_lock(vp, LK_EXCLUSIVE | LK_RETRY);
 		mac_vnode_copy_label(vp->v_label, intlabel);
 		VOP_UNLOCK(vp);
-		error = mac_vnode_externalize_label(intlabel, elements,
-		    buffer, mac.m_buflen);
+		error = mac_vnode_externalize_label(intlabel, elements, buffer,
+		    mac.m_buflen);
 		mac_vnode_label_free(intlabel);
 		break;
 
@@ -282,8 +282,8 @@ sys___mac_get_fd(struct thread *td, struct __mac_get_fd_args *uap)
 		PIPE_LOCK(pipe);
 		mac_pipe_copy_label(pipe->pipe_pair->pp_label, intlabel);
 		PIPE_UNLOCK(pipe);
-		error = mac_pipe_externalize_label(intlabel, elements,
-		    buffer, mac.m_buflen);
+		error = mac_pipe_externalize_label(intlabel, elements, buffer,
+		    mac.m_buflen);
 		mac_pipe_label_free(intlabel);
 		break;
 
@@ -297,8 +297,8 @@ sys___mac_get_fd(struct thread *td, struct __mac_get_fd_args *uap)
 		SOCK_LOCK(so);
 		mac_socket_copy_label(so->so_label, intlabel);
 		SOCK_UNLOCK(so);
-		error = mac_socket_externalize_label(intlabel, elements,
-		    buffer, mac.m_buflen);
+		error = mac_socket_externalize_label(intlabel, elements, buffer,
+		    mac.m_buflen);
 		mac_socket_label_free(intlabel);
 		break;
 
@@ -306,7 +306,7 @@ sys___mac_get_fd(struct thread *td, struct __mac_get_fd_args *uap)
 		error = EINVAL;
 	}
 	if (error == 0)
-		error = copyout(buffer, mac.m_string, strlen(buffer)+1);
+		error = copyout(buffer, mac.m_string, strlen(buffer) + 1);
 out_fdrop:
 	fdrop(fp, td);
 out:
@@ -331,7 +331,7 @@ sys___mac_get_link(struct thread *td, struct __mac_get_link_args *uap)
 
 static int
 kern___mac_get_path(struct thread *td, const char *path_p, struct mac *mac_p,
-   int follow)
+    int follow)
 {
 	char *elements, *buffer;
 	struct nameidata nd;
@@ -372,7 +372,7 @@ kern___mac_get_path(struct thread *td, const char *path_p, struct mac *mac_p,
 	mac_vnode_label_free(intlabel);
 
 	if (error == 0)
-		error = copyout(buffer, mac.m_string, strlen(buffer)+1);
+		error = copyout(buffer, mac.m_string, strlen(buffer) + 1);
 
 out:
 	free(buffer, M_MACTEMP);
@@ -537,8 +537,7 @@ kern___mac_set_path(struct thread *td, const char *path_p, struct mac *mac_p,
 	if (error == 0) {
 		error = vn_start_write(nd.ni_vp, &mp, V_WAIT | V_PCATCH);
 		if (error == 0) {
-			error = vn_setlabel(nd.ni_vp, intlabel,
-			    td->td_ucred);
+			error = vn_setlabel(nd.ni_vp, intlabel, td->td_ucred);
 			vn_finished_write(mp);
 		}
 		vput(nd.ni_vp);
@@ -561,22 +560,22 @@ sys_mac_syscall(struct thread *td, struct mac_syscall_args *uap)
 		return (error);
 
 	error = ENOSYS;
-	LIST_FOREACH(mpc, &mac_static_policy_list, mpc_list) {
+	LIST_FOREACH (mpc, &mac_static_policy_list, mpc_list) {
 		if (strcmp(mpc->mpc_name, target) == 0 &&
 		    mpc->mpc_ops->mpo_syscall != NULL) {
-			error = mpc->mpc_ops->mpo_syscall(td,
-			    uap->call, uap->arg);
+			error = mpc->mpc_ops->mpo_syscall(td, uap->call,
+			    uap->arg);
 			goto out;
 		}
 	}
 
 	if (!LIST_EMPTY(&mac_policy_list)) {
 		mac_policy_slock_sleep();
-		LIST_FOREACH(mpc, &mac_policy_list, mpc_list) {
+		LIST_FOREACH (mpc, &mac_policy_list, mpc_list) {
 			if (strcmp(mpc->mpc_name, target) == 0 &&
 			    mpc->mpc_ops->mpo_syscall != NULL) {
-				error = mpc->mpc_ops->mpo_syscall(td,
-				    uap->call, uap->arg);
+				error = mpc->mpc_ops->mpo_syscall(td, uap->call,
+				    uap->arg);
 				break;
 			}
 		}

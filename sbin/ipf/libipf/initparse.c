@@ -8,11 +8,10 @@
  */
 #include "ipf.h"
 
+char thishost[MAXHOSTNAMELEN];
 
-char	thishost[MAXHOSTNAMELEN];
-
-
-void initparse(void)
+void
+initparse(void)
 {
 	gethostname(thishost, sizeof(thishost));
 	thishost[sizeof(thishost) - 1] = '\0';

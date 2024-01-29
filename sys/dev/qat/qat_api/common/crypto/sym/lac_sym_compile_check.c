@@ -17,17 +17,16 @@
  ***************************************************************************/
 
 #include "cpa.h"
-
-#include "lac_common.h"
+#include "cpa_cy_sym_dp.h"
 #include "icp_accel_devices.h"
 #include "icp_adf_debug.h"
+#include "lac_common.h"
 #include "lac_sym.h"
-#include "cpa_cy_sym_dp.h"
 
-#define COMPILE_TIME_ASSERT(pred)                                              \
-	switch (0) {                                                           \
-	case 0:                                                                \
-	case pred:;                                                            \
+#define COMPILE_TIME_ASSERT(pred) \
+	switch (0) {              \
+	case 0:                   \
+	case pred:;               \
 	}
 
 void
@@ -41,5 +40,5 @@ LacSym_CompileTimeAssertions(void)
 	 * ************************************************************* */
 
 	COMPILE_TIME_ASSERT(offsetof(lac_sym_bulk_cookie_t, sessionCtx) ==
-			    offsetof(CpaCySymDpOpData, sessionCtx));
+	    offsetof(CpaCySymDpOpData, sessionCtx));
 }

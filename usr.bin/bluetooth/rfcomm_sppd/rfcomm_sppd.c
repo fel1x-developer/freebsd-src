@@ -32,8 +32,8 @@
  * $Id: rfcomm_sppd.c,v 1.4 2003/09/07 18:15:55 max Exp $
  */
 
-#include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #define L2CAP_SOCKET_CHECKED
 #include <bluetooth.h>
 #include <ctype.h>
@@ -41,6 +41,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <grp.h>
+#include <libutil.h>
 #include <limits.h>
 #include <paths.h>
 #include <sdp.h>
@@ -52,36 +53,33 @@
 #include <syslog.h>
 #include <termios.h>
 #include <unistd.h>
-#include <libutil.h>
 
-#define SPPD_IDENT		"rfcomm_sppd"
-#define SPPD_BUFFER_SIZE	1024
-#define max(a, b)		(((a) > (b))? (a) : (b))
+#define SPPD_IDENT "rfcomm_sppd"
+#define SPPD_BUFFER_SIZE 1024
+#define max(a, b) (((a) > (b)) ? (a) : (b))
 
-int		rfcomm_channel_lookup	(bdaddr_t const *local,
-					 bdaddr_t const *remote, 
-					 int service, int *channel, int *error);
+int rfcomm_channel_lookup(bdaddr_t const *local, bdaddr_t const *remote,
+    int service, int *channel, int *error);
 
-static int	sppd_ttys_open	(char **tty, int *amaster, int *aslave);
-static int	sppd_read	(int fd, char *buffer, int size);
-static int	sppd_write	(int fd, char *buffer, int size);
-static void	sppd_sighandler	(int s);
-static void	usage		(void);
+static int sppd_ttys_open(char **tty, int *amaster, int *aslave);
+static int sppd_read(int fd, char *buffer, int size);
+static int sppd_write(int fd, char *buffer, int size);
+static void sppd_sighandler(int s);
+static void usage(void);
 
-static int	done;	/* are we done? */
+static int done; /* are we done? */
 
 /* Main */
 int
-main(int argc, char *argv[]) 
+main(int argc, char *argv[])
 {
-	struct sigaction	 sa;
-	struct sockaddr_rfcomm	 ra;
-	bdaddr_t		 addr;
-	int			 n, background, channel, service,
-				 s, amaster, aslave, fd, doserver,
-				 dopty;
-	fd_set			 rfd;
-	char			*tty = NULL, *ep = NULL, buf[SPPD_BUFFER_SIZE];
+	struct sigaction sa;
+	struct sockaddr_rfcomm ra;
+	bdaddr_t addr;
+	int n, background, channel, service, s, amaster, aslave, fd, doserver,
+	    dopty;
+	fd_set rfd;
+	char *tty = NULL, *ep = NULL, buf[SPPD_BUFFER_SIZE];
 
 	memcpy(&addr, NG_HCI_BDADDR_ANY, sizeof(addr));
 	background = channel = 0;
@@ -91,13 +89,14 @@ main(int argc, char *argv[])
 
 	/* Parse command line options */
 	while ((n = getopt(argc, argv, "a:bc:thS")) != -1) {
-		switch (n) { 
+		switch (n) {
 		case 'a': /* BDADDR */
 			if (!bt_aton(optarg, &addr)) {
-				struct hostent	*he = NULL;
+				struct hostent *he = NULL;
 
 				if ((he = bt_gethostbyname(optarg)) == NULL)
-					errx(1, "%s: %s", optarg, hstrerror(h_errno));
+					errx(1, "%s: %s", optarg,
+					    hstrerror(h_errno));
 
 				memcpy(&addr, he->h_addr, sizeof(addr));
 			}
@@ -109,7 +108,8 @@ main(int argc, char *argv[])
 				channel = 0;
 				switch (tolower(optarg[0])) {
 				case 'd': /* DialUp Networking */
-					service = SDP_SERVICE_CLASS_DIALUP_NETWORKING;
+					service =
+					    SDP_SERVICE_CLASS_DIALUP_NETWORKING;
 					break;
 
 				case 'f': /* Fax */
@@ -117,7 +117,8 @@ main(int argc, char *argv[])
 					break;
 
 				case 'l': /* LAN */
-					service = SDP_SERVICE_CLASS_LAN_ACCESS_USING_PPP;
+					service =
+					    SDP_SERVICE_CLASS_LAN_ACCESS_USING_PPP;
 					break;
 
 				case 's': /* Serial Port */
@@ -126,7 +127,7 @@ main(int argc, char *argv[])
 
 				default:
 					errx(1, "Unknown service name: %s",
-						optarg);
+					    optarg);
 					/* NOT REACHED */
 				}
 			}
@@ -154,7 +155,7 @@ main(int argc, char *argv[])
 	/* Check if we have everything we need */
 	if (!doserver && memcmp(&addr, NG_HCI_BDADDR_ANY, sizeof(addr)) == 0)
 		usage();
-		/* NOT REACHED */
+	/* NOT REACHED */
 
 	/* Set signal handlers */
 	memset(&sa, 0, sizeof(sa));
@@ -162,10 +163,10 @@ main(int argc, char *argv[])
 
 	if (sigaction(SIGTERM, &sa, NULL) < 0)
 		err(1, "Could not sigaction(SIGTERM)");
- 
+
 	if (sigaction(SIGHUP, &sa, NULL) < 0)
 		err(1, "Could not sigaction(SIGHUP)");
- 
+
 	if (sigaction(SIGINT, &sa, NULL) < 0)
 		err(1, "Could not sigaction(SIGINT)");
 
@@ -192,15 +193,15 @@ main(int argc, char *argv[])
 	/* Open RFCOMM connection */
 
 	if (doserver) {
-		struct sockaddr_rfcomm	 ma;
-		bdaddr_t		 bt_addr_any;
-		sdp_sp_profile_t	 sp;
-		void			*ss;
-		uint32_t		 sdp_handle;
-		int			 acceptsock, aaddrlen;
+		struct sockaddr_rfcomm ma;
+		bdaddr_t bt_addr_any;
+		sdp_sp_profile_t sp;
+		void *ss;
+		uint32_t sdp_handle;
+		int acceptsock, aaddrlen;
 
 		acceptsock = socket(PF_BLUETOOTH, SOCK_STREAM,
-					BLUETOOTH_PROTO_RFCOMM);
+		    BLUETOOTH_PROTO_RFCOMM);
 		if (acceptsock < 0)
 			err(1, "Could not create socket");
 
@@ -218,7 +219,8 @@ main(int argc, char *argv[])
 			err(1, "Could not listen on socket");
 
 		aaddrlen = sizeof(ma);
-		if (getsockname(acceptsock, (struct sockaddr *)&ma, &aaddrlen) < 0)
+		if (getsockname(acceptsock, (struct sockaddr *)&ma, &aaddrlen) <
+		    0)
 			err(1, "Could not get socket name");
 		channel = ma.rfcomm_channel;
 
@@ -232,9 +234,10 @@ main(int argc, char *argv[])
 		sp.server_channel = channel;
 
 		if (sdp_register_service(ss, SDP_SERVICE_CLASS_SERIAL_PORT,
-				&bt_addr_any, (void *)&sp, sizeof(sp),
-				&sdp_handle) != 0) {
-			errx(1, "Unable to register LAN service with "
+			&bt_addr_any, (void *)&sp, sizeof(sp),
+			&sdp_handle) != 0) {
+			errx(1,
+			    "Unable to register LAN service with "
 			    "local SDP daemon. %s (%d)",
 			    strerror(sdp_error(ss)), sdp_error(ss));
 		}
@@ -259,8 +262,8 @@ main(int argc, char *argv[])
 	} else {
 		/* Check channel, if was not set then obtain it via SDP */
 		if (channel == 0 && service != 0)
-			if (rfcomm_channel_lookup(NULL, &addr,
-				    service, &channel, &n) != 0)
+			if (rfcomm_channel_lookup(NULL, &addr, service,
+				&channel, &n) != 0)
 				errc(1, n, "Could not obtain RFCOMM channel");
 		if (channel <= 0 || channel > 30)
 			errx(1, "Invalid RFCOMM channel number %d", channel);
@@ -273,13 +276,13 @@ main(int argc, char *argv[])
 		ra.rfcomm_len = sizeof(ra);
 		ra.rfcomm_family = AF_BLUETOOTH;
 
-		if (bind(s, (struct sockaddr *) &ra, sizeof(ra)) < 0)
+		if (bind(s, (struct sockaddr *)&ra, sizeof(ra)) < 0)
 			err(1, "Could not bind socket");
 
 		memcpy(&ra.rfcomm_bdaddr, &addr, sizeof(ra.rfcomm_bdaddr));
 		ra.rfcomm_channel = channel;
 
-		if (connect(s, (struct sockaddr *) &ra, sizeof(ra)) < 0)
+		if (connect(s, (struct sockaddr *)&ra, sizeof(ra)) < 0)
 			err(1, "Could not connect socket");
 	}
 
@@ -287,14 +290,15 @@ main(int argc, char *argv[])
 	if (background && daemon(0, 0) < 0)
 		err(1, "Could not daemon()");
 
-	openlog(SPPD_IDENT, LOG_NDELAY|LOG_PERROR|LOG_PID, LOG_DAEMON);
-	syslog(LOG_INFO, "Starting on %s...", (tty != NULL)? tty : "stdin/stdout");
+	openlog(SPPD_IDENT, LOG_NDELAY | LOG_PERROR | LOG_PID, LOG_DAEMON);
+	syslog(LOG_INFO, "Starting on %s...",
+	    (tty != NULL) ? tty : "stdin/stdout");
 
 	/* Print used tty on stdout for wrappers to pick up */
 	if (!background)
 		fprintf(stdout, "%s\n", tty);
 
-	for (done = 0; !done; ) {
+	for (done = 0; !done;) {
 		FD_ZERO(&rfd);
 		FD_SET(amaster, &rfd);
 		FD_SET(s, &rfd);
@@ -305,7 +309,7 @@ main(int argc, char *argv[])
 				continue;
 
 			syslog(LOG_ERR, "Could not select(). %s",
-					strerror(errno));
+			    strerror(errno));
 			exit(1);
 		}
 
@@ -315,8 +319,10 @@ main(int argc, char *argv[])
 		if (FD_ISSET(amaster, &rfd)) {
 			n = sppd_read(amaster, buf, sizeof(buf));
 			if (n < 0) {
-				syslog(LOG_ERR, "Could not read master pty, " \
-					"fd=%d. %s", amaster, strerror(errno));
+				syslog(LOG_ERR,
+				    "Could not read master pty, "
+				    "fd=%d. %s",
+				    amaster, strerror(errno));
 				exit(1);
 			}
 
@@ -324,9 +330,10 @@ main(int argc, char *argv[])
 				break; /* XXX */
 
 			if (sppd_write(s, buf, n) < 0) {
-				syslog(LOG_ERR, "Could not write to socket, " \
-					"fd=%d, size=%d. %s",
-					s, n, strerror(errno));
+				syslog(LOG_ERR,
+				    "Could not write to socket, "
+				    "fd=%d, size=%d. %s",
+				    s, n, strerror(errno));
 				exit(1);
 			}
 		}
@@ -334,8 +341,10 @@ main(int argc, char *argv[])
 		if (FD_ISSET(s, &rfd)) {
 			n = sppd_read(s, buf, sizeof(buf));
 			if (n < 0) {
-				syslog(LOG_ERR, "Could not read socket, " \
-					"fd=%d. %s", s, strerror(errno));
+				syslog(LOG_ERR,
+				    "Could not read socket, "
+				    "fd=%d. %s",
+				    s, strerror(errno));
 				exit(1);
 			}
 
@@ -343,15 +352,17 @@ main(int argc, char *argv[])
 				break;
 
 			if (sppd_write(fd, buf, n) < 0) {
-				syslog(LOG_ERR, "Could not write to master " \
-					"pty, fd=%d, size=%d. %s",
-					fd, n, strerror(errno));
+				syslog(LOG_ERR,
+				    "Could not write to master "
+				    "pty, fd=%d, size=%d. %s",
+				    fd, n, strerror(errno));
 				exit(1);
 			}
 		}
 	}
 
-	syslog(LOG_INFO, "Completed on %s", (tty != NULL)? tty : "stdin/stdout");
+	syslog(LOG_INFO, "Completed on %s",
+	    (tty != NULL) ? tty : "stdin/stdout");
 	closelog();
 
 	close(s);
@@ -359,7 +370,7 @@ main(int argc, char *argv[])
 	if (tty != NULL) {
 		close(aslave);
 		close(amaster);
-	}	
+	}
 
 	return (0);
 }
@@ -368,8 +379,8 @@ main(int argc, char *argv[])
 static int
 sppd_ttys_open(char **tty, int *amaster, int *aslave)
 {
-	char		 pty[PATH_MAX];
-	struct termios	 tio;
+	char pty[PATH_MAX];
+	struct termios tio;
 
 	cfmakeraw(&tio);
 
@@ -392,7 +403,7 @@ sppd_ttys_open(char **tty, int *amaster, int *aslave)
 static int
 sppd_read(int fd, char *buffer, int size)
 {
-	int	n;
+	int n;
 
 again:
 	n = read(fd, buffer, size);
@@ -410,9 +421,9 @@ again:
 static int
 sppd_write(int fd, char *buffer, int size)
 {
-	int	n, wrote;
+	int n, wrote;
 
-	for (wrote = 0; size > 0; ) {
+	for (wrote = 0; size > 0;) {
 		n = write(fd, buffer, size);
 		switch (n) {
 		case -1:
@@ -420,7 +431,7 @@ sppd_write(int fd, char *buffer, int size)
 				return (-1);
 			break;
 
-		case 0: 
+		case 0:
 			/* XXX can happen? */
 			break;
 
@@ -439,23 +450,23 @@ sppd_write(int fd, char *buffer, int size)
 static void
 sppd_sighandler(int s)
 {
-	syslog(LOG_INFO, "Signal %d received. Total %d signals received\n",
-			s, ++ done);
+	syslog(LOG_INFO, "Signal %d received. Total %d signals received\n", s,
+	    ++done);
 } /* sppd_sighandler */
- 
+
 /* Display usage and exit */
 static void
 usage(void)
 {
 	fprintf(stdout,
-"Usage: %s options\n" \
-"Where options are:\n" \
-"\t-a address Peer address (required in client mode)\n" \
-"\t-b         Run in background\n" \
-"\t-c channel RFCOMM channel to connect to or listen on\n" \
-"\t-t         use slave pseudo tty (required in background mode)\n" \
-"\t-S         Server mode\n" \
-"\t-h         Display this message\n", SPPD_IDENT);
+	    "Usage: %s options\n"
+	    "Where options are:\n"
+	    "\t-a address Peer address (required in client mode)\n"
+	    "\t-b         Run in background\n"
+	    "\t-c channel RFCOMM channel to connect to or listen on\n"
+	    "\t-t         use slave pseudo tty (required in background mode)\n"
+	    "\t-S         Server mode\n"
+	    "\t-h         Display this message\n",
+	    SPPD_IDENT);
 	exit(255);
 } /* usage */
-

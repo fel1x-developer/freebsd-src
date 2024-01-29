@@ -30,18 +30,19 @@
  */
 
 #include <sys/cdefs.h>
+
+#include <netinet/in.h>
+
 #include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <netinet/in.h>
 
 #include "ctld.h"
 #include "iscsi_proto.h"
 
-static void login_send_error(struct pdu *request,
-    char class, char detail);
+static void login_send_error(struct pdu *request, char class, char detail);
 
 static void
 login_set_nsg(struct pdu *response, int nsg)
@@ -117,27 +118,33 @@ login_receive(struct connection *conn, bool initial)
 	}
 	if (bhslr->bhslr_version_max != 0x00) {
 		login_send_error(request, 0x02, 0x05);
-		log_errx(1, "received Login PDU with unsupported "
-		    "Version-max 0x%x", bhslr->bhslr_version_max);
+		log_errx(1,
+		    "received Login PDU with unsupported "
+		    "Version-max 0x%x",
+		    bhslr->bhslr_version_max);
 	}
 	if (bhslr->bhslr_version_min != 0x00) {
 		login_send_error(request, 0x02, 0x05);
-		log_errx(1, "received Login PDU with unsupported "
-		    "Version-min 0x%x", bhslr->bhslr_version_min);
+		log_errx(1,
+		    "received Login PDU with unsupported "
+		    "Version-min 0x%x",
+		    bhslr->bhslr_version_min);
 	}
 	if (initial == false &&
 	    ISCSI_SNLT(ntohl(bhslr->bhslr_cmdsn), conn->conn_cmdsn)) {
 		login_send_error(request, 0x02, 0x00);
-		log_errx(1, "received Login PDU with decreasing CmdSN: "
-		    "was %u, is %u", conn->conn_cmdsn,
-		    ntohl(bhslr->bhslr_cmdsn));
+		log_errx(1,
+		    "received Login PDU with decreasing CmdSN: "
+		    "was %u, is %u",
+		    conn->conn_cmdsn, ntohl(bhslr->bhslr_cmdsn));
 	}
 	if (initial == false &&
 	    ntohl(bhslr->bhslr_expstatsn) != conn->conn_statsn) {
 		login_send_error(request, 0x02, 0x00);
-		log_errx(1, "received Login PDU with wrong ExpStatSN: "
-		    "is %u, should be %u", ntohl(bhslr->bhslr_expstatsn),
-		    conn->conn_statsn);
+		log_errx(1,
+		    "received Login PDU with wrong ExpStatSN: "
+		    "is %u, should be %u",
+		    ntohl(bhslr->bhslr_expstatsn), conn->conn_statsn);
 	}
 	conn->conn_cmdsn = ntohl(bhslr->bhslr_cmdsn);
 
@@ -159,8 +166,8 @@ login_new_response(struct pdu *request)
 	bhslr2 = (struct iscsi_bhs_login_response *)response->pdu_bhs;
 	bhslr2->bhslr_opcode = ISCSI_BHS_OPCODE_LOGIN_RESPONSE;
 	login_set_csg(response, BHSLR_STAGE_SECURITY_NEGOTIATION);
-	memcpy(bhslr2->bhslr_isid,
-	    bhslr->bhslr_isid, sizeof(bhslr2->bhslr_isid));
+	memcpy(bhslr2->bhslr_isid, bhslr->bhslr_isid,
+	    sizeof(bhslr2->bhslr_isid));
 	bhslr2->bhslr_initiator_task_tag = bhslr->bhslr_initiator_task_tag;
 	bhslr2->bhslr_statsn = htonl(conn->conn_statsn++);
 	bhslr2->bhslr_expcmdsn = htonl(conn->conn_cmdsn);
@@ -176,7 +183,8 @@ login_send_error(struct pdu *request, char class, char detail)
 	struct iscsi_bhs_login_response *bhslr2;
 
 	log_debugx("sending Login Response PDU with failure class 0x%x/0x%x; "
-	    "see next line for reason", class, detail);
+		   "see next line for reason",
+	    class, detail);
 	response = login_new_response(request);
 	bhslr2 = (struct iscsi_bhs_login_response *)response->pdu_bhs;
 	bhslr2->bhslr_status_class = class;
@@ -204,8 +212,7 @@ login_list_contains(const char *list, const char *what)
 }
 
 static int
-login_list_prefers(const char *list,
-    const char *choice1, const char *choice2)
+login_list_prefers(const char *list, const char *choice1, const char *choice2)
 {
 	char *tofree, *str, *token;
 
@@ -243,8 +250,10 @@ login_receive_chap_a(struct connection *conn)
 	}
 	if (login_list_contains(chap_a, "5") == 0) {
 		login_send_error(request, 0x02, 0x01);
-		log_errx(1, "received CHAP Login PDU with unsupported CHAP_A "
-		    "\"%s\"", chap_a);
+		log_errx(1,
+		    "received CHAP Login PDU with unsupported CHAP_A "
+		    "\"%s\"",
+		    chap_a);
 	}
 	keys_delete(request_keys);
 
@@ -307,8 +316,8 @@ login_receive_chap_r(struct connection *conn, struct auth_group *ag,
 	/*
 	 * Verify the response.
 	 */
-	assert(ag->ag_type == AG_TYPE_CHAP ||
-	    ag->ag_type == AG_TYPE_CHAP_MUTUAL);
+	assert(
+	    ag->ag_type == AG_TYPE_CHAP || ag->ag_type == AG_TYPE_CHAP_MUTUAL);
 	auth = auth_find(ag, chap_n);
 	if (auth == NULL) {
 		login_send_error(request, 0x02, 0x01);
@@ -333,8 +342,7 @@ login_receive_chap_r(struct connection *conn, struct auth_group *ag,
 }
 
 static void
-login_send_chap_success(struct pdu *request,
-    const struct auth *auth)
+login_send_chap_success(struct pdu *request, const struct auth *auth)
 {
 	struct pdu *response;
 	struct keys *request_keys, *response_keys;
@@ -356,19 +364,23 @@ login_send_chap_success(struct pdu *request,
 	if (chap_i != NULL || chap_c != NULL) {
 		if (chap_i == NULL) {
 			login_send_error(request, 0x02, 0x07);
-			log_errx(1, "initiator requested target "
+			log_errx(1,
+			    "initiator requested target "
 			    "authentication, but didn't send CHAP_I");
 		}
 		if (chap_c == NULL) {
 			login_send_error(request, 0x02, 0x07);
-			log_errx(1, "initiator requested target "
+			log_errx(1,
+			    "initiator requested target "
 			    "authentication, but didn't send CHAP_C");
 		}
 		if (auth->a_auth_group->ag_type != AG_TYPE_CHAP_MUTUAL) {
 			login_send_error(request, 0x02, 0x01);
-			log_errx(1, "initiator requests target authentication "
+			log_errx(1,
+			    "initiator requests target authentication "
 			    "for user \"%s\", but mutual user/secret "
-			    "is not set", auth->a_user);
+			    "is not set",
+			    auth->a_user);
 		}
 
 		log_debugx("performing mutual authentication as user \"%s\"",
@@ -378,7 +390,8 @@ login_send_chap_success(struct pdu *request,
 		error = rchap_receive(rchap, chap_i, chap_c);
 		if (error != 0) {
 			login_send_error(request, 0x02, 0x07);
-			log_errx(1, "received CHAP Login PDU with malformed "
+			log_errx(1,
+			    "received CHAP Login PDU with malformed "
 			    "CHAP_I or CHAP_C");
 		}
 		chap_r = rchap_get_response(rchap);
@@ -434,7 +447,8 @@ login_chap(struct ctld_connection *conn, struct auth_group *ag)
 	 * Yay, authentication succeeded!
 	 */
 	log_debugx("authentication succeeded for user \"%s\"; "
-	    "transitioning to operational parameter negotiation", auth->a_user);
+		   "transitioning to operational parameter negotiation",
+	    auth->a_user);
 	login_send_chap_success(request, auth);
 	pdu_delete(request);
 
@@ -446,8 +460,8 @@ login_chap(struct ctld_connection *conn, struct auth_group *ag)
 }
 
 static void
-login_negotiate_key(struct pdu *request, const char *name,
-    const char *value, bool skipped_security, struct keys *response_keys)
+login_negotiate_key(struct pdu *request, const char *name, const char *value,
+    bool skipped_security, struct keys *response_keys)
 {
 	int which;
 	size_t tmp;
@@ -484,18 +498,19 @@ login_negotiate_key(struct pdu *request, const char *name,
 		switch (which) {
 		case 1:
 			log_debugx("initiator prefers CRC32C "
-			    "for header digest; we'll use it");
+				   "for header digest; we'll use it");
 			conn->conn.conn_header_digest = CONN_DIGEST_CRC32C;
 			keys_add(response_keys, name, "CRC32C");
 			break;
 		case 2:
 			log_debugx("initiator prefers not to do "
-			    "header digest; we'll comply");
+				   "header digest; we'll comply");
 			keys_add(response_keys, name, "None");
 			break;
 		default:
 			log_warnx("initiator sent unrecognized "
-			    "HeaderDigest value \"%s\"; will use None", value);
+				  "HeaderDigest value \"%s\"; will use None",
+			    value);
 			keys_add(response_keys, name, "None");
 			break;
 		}
@@ -510,18 +525,19 @@ login_negotiate_key(struct pdu *request, const char *name,
 		switch (which) {
 		case 1:
 			log_debugx("initiator prefers CRC32C "
-			    "for data digest; we'll use it");
+				   "for data digest; we'll use it");
 			conn->conn.conn_data_digest = CONN_DIGEST_CRC32C;
 			keys_add(response_keys, name, "CRC32C");
 			break;
 		case 2:
 			log_debugx("initiator prefers not to do "
-			    "data digest; we'll comply");
+				   "data digest; we'll comply");
 			keys_add(response_keys, name, "None");
 			break;
 		default:
 			log_warnx("initiator sent unrecognized "
-			    "DataDigest value \"%s\"; will use None", value);
+				  "DataDigest value \"%s\"; will use None",
+			    value);
 			keys_add(response_keys, name, "None");
 			break;
 		}
@@ -531,7 +547,8 @@ login_negotiate_key(struct pdu *request, const char *name,
 		keys_add(response_keys, name, "Yes");
 	} else if (strcmp(name, "ImmediateData") == 0) {
 		if (conn->conn_session_type == CONN_SESSION_TYPE_DISCOVERY) {
-			log_debugx("discovery session; ImmediateData irrelevant");
+			log_debugx(
+			    "discovery session; ImmediateData irrelevant");
 			keys_add(response_keys, name, "Irrelevant");
 		} else {
 			if (strcmp(value, "Yes") == 0) {
@@ -546,7 +563,8 @@ login_negotiate_key(struct pdu *request, const char *name,
 		tmp = strtoul(value, NULL, 10);
 		if (tmp <= 0) {
 			login_send_error(request, 0x02, 0x00);
-			log_errx(1, "received invalid "
+			log_errx(1,
+			    "received invalid "
 			    "MaxRecvDataSegmentLength");
 		}
 
@@ -558,8 +576,8 @@ login_negotiate_key(struct pdu *request, const char *name,
 		 */
 		if ((int)tmp > conn->conn_max_send_data_segment_limit) {
 			log_debugx("capping MaxRecvDataSegmentLength "
-			    "from %zd to %d", tmp,
-			    conn->conn_max_send_data_segment_limit);
+				   "from %zd to %d",
+			    tmp, conn->conn_max_send_data_segment_limit);
 			tmp = conn->conn_max_send_data_segment_limit;
 		}
 		conn->conn.conn_max_send_data_segment_length = tmp;
@@ -570,8 +588,8 @@ login_negotiate_key(struct pdu *request, const char *name,
 			log_errx(1, "received invalid MaxBurstLength");
 		}
 		if ((int)tmp > conn->conn_max_burst_limit) {
-			log_debugx("capping MaxBurstLength from %zd to %d",
-			    tmp, conn->conn_max_burst_limit);
+			log_debugx("capping MaxBurstLength from %zd to %d", tmp,
+			    conn->conn_max_burst_limit);
 			tmp = conn->conn_max_burst_limit;
 		}
 		conn->conn.conn_max_burst_length = tmp;
@@ -612,7 +630,8 @@ login_negotiate_key(struct pdu *request, const char *name,
 		keys_add_int(response_keys, name, tmp);
 	} else {
 		log_debugx("unknown key \"%s\"; responding "
-		    "with NotUnderstood", name);
+			   "with NotUnderstood",
+		    name);
 		keys_add(response_keys, name, "NotUnderstood");
 	}
 }
@@ -670,7 +689,7 @@ login_target_redirect(struct ctld_connection *conn, struct pdu *request)
 		return (false);
 
 	log_debugx("target \"%s\" configured to redirect to %s",
-	  conn->conn_target->t_name, target_address);
+	    conn->conn_target->t_name, target_address);
 	login_redirect(request, target_address);
 
 	return (true);
@@ -699,8 +718,7 @@ login_negotiate(struct ctld_connection *conn, struct pdu *request)
 		    conn->conn.conn_socket,
 		    &conn->conn_max_recv_data_segment_limit,
 		    &conn->conn_max_send_data_segment_limit,
-		    &conn->conn_max_burst_limit,
-		    &conn->conn_first_burst_limit);
+		    &conn->conn_max_burst_limit, &conn->conn_first_burst_limit);
 
 		/* We expect legal, usable values at this point. */
 		assert(conn->conn_max_recv_data_segment_limit >= 512);
@@ -711,8 +729,8 @@ login_negotiate(struct ctld_connection *conn, struct pdu *request)
 		assert(conn->conn_max_burst_limit < (1 << 24));
 		assert(conn->conn_first_burst_limit >= 512);
 		assert(conn->conn_first_burst_limit < (1 << 24));
-		assert(conn->conn_first_burst_limit <=
-		    conn->conn_max_burst_limit);
+		assert(
+		    conn->conn_first_burst_limit <= conn->conn_max_burst_limit);
 
 		/*
 		 * Limit default send length in case it won't be negotiated.
@@ -733,7 +751,7 @@ login_negotiate(struct ctld_connection *conn, struct pdu *request)
 
 	if (request == NULL) {
 		log_debugx("beginning operational parameter negotiation; "
-		    "waiting for Login PDU");
+			   "waiting for Login PDU");
 		request = login_receive(&conn->conn, false);
 		skipped_security = false;
 	} else
@@ -764,8 +782,8 @@ login_negotiate(struct ctld_connection *conn, struct pdu *request)
 	if (skipped_security &&
 	    conn->conn_session_type == CONN_SESSION_TYPE_NORMAL) {
 		if (conn->conn_target->t_alias != NULL)
-			keys_add(response_keys,
-			    "TargetAlias", conn->conn_target->t_alias);
+			keys_add(response_keys, "TargetAlias",
+			    conn->conn_target->t_alias);
 		keys_add_int(response_keys, "TargetPortalGroupTag",
 		    conn->conn_portal->p_portal_group->pg_tag);
 	}
@@ -788,17 +806,17 @@ login_negotiate(struct ctld_connection *conn, struct pdu *request)
 	 */
 	if (conn->conn_session_type == CONN_SESSION_TYPE_NORMAL &&
 	    conn->conn.conn_first_burst_length >
-	    conn->conn.conn_max_burst_length) {
+		conn->conn.conn_max_burst_length) {
 		log_errx(1, "initiator sent FirstBurstLength > MaxBurstLength");
 	}
 
 	conn->conn.conn_max_recv_data_segment_length =
 	    conn->conn_max_recv_data_segment_limit;
 	keys_add_int(response_keys, "MaxRecvDataSegmentLength",
-		    conn->conn.conn_max_recv_data_segment_length);
+	    conn->conn.conn_max_recv_data_segment_length);
 
 	log_debugx("operational parameter negotiation done; "
-	    "transitioning to Full Feature Phase");
+		   "transitioning to Full Feature Phase");
 
 	keys_save_pdu(response_keys, response);
 	pdu_send(response);
@@ -880,7 +898,8 @@ login(struct ctld_connection *conn)
 	}
 	conn->conn_initiator_name = checked_strdup(initiator_name);
 	log_set_peer_name(conn->conn_initiator_name);
-	setproctitle("%s (%s)", conn->conn_initiator_addr, conn->conn_initiator_name);
+	setproctitle("%s (%s)", conn->conn_initiator_addr,
+	    conn->conn_initiator_name);
 
 	redirected = login_portal_redirect(conn, request);
 	if (redirected) {
@@ -901,8 +920,10 @@ login(struct ctld_connection *conn)
 			conn->conn_session_type = CONN_SESSION_TYPE_DISCOVERY;
 		} else {
 			login_send_error(request, 0x02, 0x00);
-			log_errx(1, "received Login PDU with invalid "
-			    "SessionType \"%s\"", session_type);
+			log_errx(1,
+			    "received Login PDU with invalid "
+			    "SessionType \"%s\"",
+			    session_type);
 		}
 	} else
 		conn->conn_session_type = CONN_SESSION_TYPE_NORMAL;
@@ -933,19 +954,20 @@ login(struct ctld_connection *conn)
 			ag = conn->conn_target->t_auth_group;
 		if (ag->ag_name != NULL) {
 			log_debugx("initiator requests to connect "
-			    "to target \"%s\"; auth-group \"%s\"",
-			    conn->conn_target->t_name,
-			    ag->ag_name);
+				   "to target \"%s\"; auth-group \"%s\"",
+			    conn->conn_target->t_name, ag->ag_name);
 		} else {
 			log_debugx("initiator requests to connect "
-			    "to target \"%s\"", conn->conn_target->t_name);
+				   "to target \"%s\"",
+			    conn->conn_target->t_name);
 		}
 	} else {
 		assert(conn->conn_session_type == CONN_SESSION_TYPE_DISCOVERY);
 		ag = pg->pg_discovery_auth_group;
 		if (ag->ag_name != NULL) {
 			log_debugx("initiator requests "
-			    "discovery session; auth-group \"%s\"", ag->ag_name);
+				   "discovery session; auth-group \"%s\"",
+			    ag->ag_name);
 		} else {
 			log_debugx("initiator requests discovery session");
 		}
@@ -974,7 +996,8 @@ login(struct ctld_connection *conn)
 
 	if (auth_portal_check(ag, &conn->conn_initiator_sa) != 0) {
 		login_send_error(request, 0x02, 0x02);
-		log_errx(1, "initiator does not match allowed "
+		log_errx(1,
+		    "initiator does not match allowed "
 		    "initiator portals");
 	}
 
@@ -985,14 +1008,15 @@ login(struct ctld_connection *conn)
 	if (login_csg(request) == BHSLR_STAGE_OPERATIONAL_NEGOTIATION) {
 		if (ag->ag_type != AG_TYPE_NO_AUTHENTICATION) {
 			login_send_error(request, 0x02, 0x01);
-			log_errx(1, "initiator skipped the authentication, "
+			log_errx(1,
+			    "initiator skipped the authentication, "
 			    "but authentication is required");
 		}
 
 		keys_delete(request_keys);
 
 		log_debugx("initiator skipped the authentication, "
-		    "and we don't need it; proceeding with negotiation");
+			   "and we don't need it; proceeding with negotiation");
 		login_negotiate(conn, request);
 		return;
 	}
@@ -1009,12 +1033,13 @@ login(struct ctld_connection *conn)
 			keys_add(response_keys, "AuthMethod", "None");
 		} else {
 			log_warnx("initiator requests "
-			    "AuthMethod \"%s\" instead of \"None\"",
+				  "AuthMethod \"%s\" instead of \"None\"",
 			    auth_method);
 			keys_add(response_keys, "AuthMethod", "Reject");
 		}
 		if (trans)
-			login_set_nsg(response, BHSLR_STAGE_OPERATIONAL_NEGOTIATION);
+			login_set_nsg(response,
+			    BHSLR_STAGE_OPERATIONAL_NEGOTIATION);
 	} else {
 		log_debugx("CHAP authentication required");
 		if (auth_method == NULL ||
@@ -1022,7 +1047,7 @@ login(struct ctld_connection *conn)
 			keys_add(response_keys, "AuthMethod", "CHAP");
 		} else {
 			log_warnx("initiator requests unsupported "
-			    "AuthMethod \"%s\" instead of \"CHAP\"",
+				  "AuthMethod \"%s\" instead of \"CHAP\"",
 			    auth_method);
 			keys_add(response_keys, "AuthMethod", "Reject");
 			fail = true;
@@ -1030,10 +1055,9 @@ login(struct ctld_connection *conn)
 	}
 	if (conn->conn_session_type == CONN_SESSION_TYPE_NORMAL) {
 		if (conn->conn_target->t_alias != NULL)
-			keys_add(response_keys,
-			    "TargetAlias", conn->conn_target->t_alias);
-		keys_add_int(response_keys,
-		    "TargetPortalGroupTag", pg->pg_tag);
+			keys_add(response_keys, "TargetAlias",
+			    conn->conn_target->t_alias);
+		keys_add_int(response_keys, "TargetPortalGroupTag", pg->pg_tag);
 	}
 	keys_save_pdu(response_keys, response);
 

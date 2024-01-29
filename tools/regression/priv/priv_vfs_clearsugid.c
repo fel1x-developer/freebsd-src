@@ -77,12 +77,12 @@ confirm_sugid(char *test_case, int asroot, int injail)
 	}
 	if (asroot) {
 		if (!(sb.st_mode & S_ISUID))
-			warnx("%s(root, %s): !SUID", test_case, injail ?
-			    "jail" : "!jail");
+			warnx("%s(root, %s): !SUID", test_case,
+			    injail ? "jail" : "!jail");
 	} else {
 		if (sb.st_mode & S_ISUID)
-			warnx("%s(!root, %s): SUID", test_case, injail ?
-			    "jail" : "!jail");
+			warnx("%s(!root, %s): SUID", test_case,
+			    injail ? "jail" : "!jail");
 	}
 }
 
@@ -106,19 +106,18 @@ priv_vfs_clearsugid_chgrp(int asroot, int injail, struct test *test)
 	confirm_sugid("priv_vfs_clearsugid_chgrp", asroot, injail);
 }
 
-#define	EA_NAMESPACE	EXTATTR_NAMESPACE_USER
-#define	EA_NAME		"clearsugid"
-#define	EA_DATA		"test"
-#define	EA_SIZE		(strlen(EA_DATA))
+#define EA_NAMESPACE EXTATTR_NAMESPACE_USER
+#define EA_NAME "clearsugid"
+#define EA_DATA "test"
+#define EA_SIZE (strlen(EA_DATA))
 
 void
 priv_vfs_clearsugid_extattr(int asroot, int injail, struct test *test)
 {
 
-	if (extattr_set_file(fpath, EA_NAMESPACE, EA_NAME, EA_DATA, EA_SIZE)
-	    < 0)
-		err(-1,
-		    "priv_vfs_clearsugid_extattr(%s, %s): extattr_set_file",
+	if (extattr_set_file(fpath, EA_NAMESPACE, EA_NAME, EA_DATA, EA_SIZE) <
+	    0)
+		err(-1, "priv_vfs_clearsugid_extattr(%s, %s): extattr_set_file",
 		    asroot ? "root" : "!root", injail ? "jail" : "!jail");
 	confirm_sugid("priv_vfs_clearsugid_extattr", asroot, injail);
 }

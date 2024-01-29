@@ -43,17 +43,16 @@ ixgbe_init_fdir(struct ixgbe_softc *sc)
 	if (!(sc->feat_en & IXGBE_FEATURE_FDIR))
 		return;
 
-	sc->hw.mac.ops.setup_rxpba(&sc->hw, 0, hdrm,
-	    PBA_STRATEGY_EQUAL);
+	sc->hw.mac.ops.setup_rxpba(&sc->hw, 0, hdrm, PBA_STRATEGY_EQUAL);
 	ixgbe_init_fdir_signature_82599(&sc->hw, fdir_pballoc);
 } /* ixgbe_init_fdir */
 
 void
 ixgbe_reinit_fdir(void *context)
 {
-	if_ctx_t       ctx = context;
+	if_ctx_t ctx = context;
 	struct ixgbe_softc *sc = iflib_get_softc(ctx);
-	if_t           ifp = iflib_get_ifp(ctx);
+	if_t ifp = iflib_get_ifp(ctx);
 
 	if (!(sc->feat_en & IXGBE_FEATURE_FDIR))
 		return;
@@ -79,16 +78,16 @@ ixgbe_reinit_fdir(void *context)
 void
 ixgbe_atr(struct tx_ring *txr, struct mbuf *mp)
 {
-	struct ixgbe_softc             *sc = txr->sc;
-	struct ix_queue            *que;
-	struct ip                  *ip;
-	struct tcphdr              *th;
-	struct udphdr              *uh;
-	struct ether_vlan_header   *eh;
-	union ixgbe_atr_hash_dword input = {.dword = 0};
-	union ixgbe_atr_hash_dword common = {.dword = 0};
-	int                        ehdrlen, ip_hlen;
-	u16                        etype;
+	struct ixgbe_softc *sc = txr->sc;
+	struct ix_queue *que;
+	struct ip *ip;
+	struct tcphdr *th;
+	struct udphdr *uh;
+	struct ether_vlan_header *eh;
+	union ixgbe_atr_hash_dword input = { .dword = 0 };
+	union ixgbe_atr_hash_dword common = { .dword = 0 };
+	int ehdrlen, ip_hlen;
+	u16 etype;
 
 	eh = mtod(mp, struct ether_vlan_header *);
 	if (eh->evl_encap_proto == htons(ETHERTYPE_VLAN)) {
@@ -138,8 +137,8 @@ ixgbe_atr(struct tx_ring *txr, struct mbuf *mp)
 	 * This assumes the Rx queue and Tx
 	 * queue are bound to the same CPU
 	 */
-	ixgbe_fdir_add_signature_filter_82599(&sc->hw,
-	    input, common, que->msix);
+	ixgbe_fdir_add_signature_filter_82599(&sc->hw, input, common,
+	    que->msix);
 } /* ixgbe_atr */
 
 #else

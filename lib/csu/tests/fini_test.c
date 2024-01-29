@@ -32,19 +32,16 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+#include <atf-c.h>
+#include <crt.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <atf-c.h>
-
-#include <crt.h>
-
 extern bool run_dtors_test;
 extern bool run_fini_array_test;
 void dso_handle_check(void);
-
 
 #ifndef DSO_BASE
 typedef void (*func_ptr)(void);
@@ -59,8 +56,7 @@ dtors_handler(void)
 	if (run_dtors_test)
 		_exit(1);
 }
-__section(".dtors") __used static func_ptr dtors_func =
-    &dtors_handler;
+__section(".dtors") __used static func_ptr dtors_func = &dtors_handler;
 #endif
 
 #ifndef DSO_LIB
@@ -71,15 +67,15 @@ ATF_TC_BODY(dtors_test, tc)
 	int status;
 
 	pid = fork();
-	switch(pid) {
+	switch (pid) {
 	case -1:
 		break;
 	case 0:
 		run_dtors_test = true;
 		exit(0);
 	default:
-		while ((wpid = waitpid(pid, &status, 0)) == -1 &&
-		    errno == EINTR)
+		while (
+		    (wpid = waitpid(pid, &status, 0)) == -1 && errno == EINTR)
 			;
 #ifdef HAVE_CTORS
 		ATF_REQUIRE_MSG(WEXITSTATUS(status) == 1,
@@ -101,8 +97,8 @@ fini_array_handler(void)
 	if (run_fini_array_test)
 		_exit(1);
 }
-__section(".fini_array") __used static func_ptr fini_array_func =
-    &fini_array_handler;
+__section(".fini_array") __used
+    static func_ptr fini_array_func = &fini_array_handler;
 #endif
 
 #ifndef DSO_LIB
@@ -113,15 +109,15 @@ ATF_TC_BODY(fini_array_test, tc)
 	int status;
 
 	pid = fork();
-	switch(pid) {
+	switch (pid) {
 	case -1:
 		break;
 	case 0:
 		run_fini_array_test = true;
 		exit(0);
 	default:
-		while ((wpid = waitpid(pid, &status, 0)) == -1 &&
-		    errno == EINTR)
+		while (
+		    (wpid = waitpid(pid, &status, 0)) == -1 && errno == EINTR)
 			;
 		ATF_REQUIRE_MSG(WEXITSTATUS(status) == 1,
 		    ".fini_array failed to run");
@@ -139,11 +135,9 @@ dso_handle_check(void)
 	void *dso = __dso_handle;
 
 #if defined(DSO_LIB) || defined(__PIE__)
-	ATF_REQUIRE_MSG(dso != NULL,
-	    "Null __dso_handle in DSO/PIE");
+	ATF_REQUIRE_MSG(dso != NULL, "Null __dso_handle in DSO/PIE");
 #else
-	ATF_REQUIRE_MSG(dso == NULL,
-	    "Invalid __dso_handle in non-DSO");
+	ATF_REQUIRE_MSG(dso == NULL, "Invalid __dso_handle in non-DSO");
 #endif
 }
 #endif

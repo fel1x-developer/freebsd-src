@@ -33,16 +33,15 @@
 #ifndef _LOG_H_
 #define _LOG_H_
 
-void	log_open	(char const *prog, int32_t log2stderr);
-void	log_close	(void);
-void	log_emerg	(char const *message, ...);
-void	log_alert	(char const *message, ...);
-void	log_crit	(char const *message, ...);
-void	log_err		(char const *message, ...);
-void	log_warning	(char const *message, ...);
-void	log_notice	(char const *message, ...);
-void	log_info	(char const *message, ...);
-void	log_debug	(char const *message, ...);
+void log_open(char const *prog, int32_t log2stderr);
+void log_close(void);
+void log_emerg(char const *message, ...);
+void log_alert(char const *message, ...);
+void log_crit(char const *message, ...);
+void log_err(char const *message, ...);
+void log_warning(char const *message, ...);
+void log_notice(char const *message, ...);
+void log_info(char const *message, ...);
+void log_debug(char const *message, ...);
 
 #endif /* ndef _LOG_H_ */
-

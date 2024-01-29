@@ -33,12 +33,10 @@
  */
 
 #include <sys/types.h>
-#include <sys/uio.h>
-#include <sys/extattr.h>
 #include <sys/param.h>
+#include <sys/extattr.h>
 #include <sys/mount.h>
-
-#include <ufs/ufs/extattr.h>
+#include <sys/uio.h>
 
 #include <errno.h>
 #include <fcntl.h>
@@ -46,6 +44,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ufs/ufs/extattr.h>
 #include <unistd.h>
 
 int initattr(int argc, char *argv[]);
@@ -71,8 +70,8 @@ usage(void)
 long
 num_inodes_by_path(char *path)
 {
-	struct statfs	buf;
-	int	error;
+	struct statfs buf;
+	int error;
 
 	error = statfs(path, &buf);
 	if (error) {
@@ -88,11 +87,11 @@ static const char zero_buf[8192];
 int
 initattr(int argc, char *argv[])
 {
-	struct ufs_extattr_fileheader	uef;
-	char	*fs_path = NULL;
-	int	ch, i, error, flags;
-	ssize_t	wlen;
-	size_t	easize;
+	struct ufs_extattr_fileheader uef;
+	char *fs_path = NULL;
+	int ch, i, error, flags;
+	ssize_t wlen;
+	size_t easize;
 
 	flags = O_CREAT | O_WRONLY | O_TRUNC | O_EXCL;
 	optind = 0;
@@ -155,7 +154,7 @@ initattr(int argc, char *argv[])
 int
 showattr(int argc, char *argv[])
 {
-	struct ufs_extattr_fileheader	uef;
+	struct ufs_extattr_fileheader uef;
 	int i, fd;
 
 	if (argc != 1)
@@ -195,7 +194,7 @@ showattr(int argc, char *argv[])
 int
 main(int argc, char *argv[])
 {
-	int	error = 0, attrnamespace;
+	int error = 0, attrnamespace;
 
 	if (argc < 2)
 		usage();
@@ -213,7 +212,7 @@ main(int argc, char *argv[])
 		if (argc != 3)
 			usage();
 		error = extattrctl(argv[2], UFS_EXTATTR_CMD_STOP, NULL, 0,
-		   NULL);
+		    NULL);
 		if (error) {
 			perror("extattrctl stop");
 			return (-1);

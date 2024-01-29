@@ -1,5 +1,5 @@
 /*******************************************************************
-                    s y s d e p . h
+		    s y s d e p . h
 ** Forth Inspired Command Language
 ** Author: John Sadler (john_sadler@alum.mit.edu)
 ** Created: 16 Oct 1997
@@ -8,7 +8,7 @@
 ** Note: Ficl also depends on the use of "assert" when
 ** FICL_ROBUST is enabled. This may require some consideration
 ** in firmware systems since assert often
-** assumes stderr/stdout.  
+** assumes stderr/stdout.
 ** $Id: sysdep.h,v 1.6 2001-04-26 21:41:55-07 jsadler Exp jsadler $
 *******************************************************************/
 /*
@@ -18,7 +18,7 @@
 ** Get the latest Ficl release at http://ficl.sourceforge.net
 **
 ** L I C E N S E  and  D I S C L A I M E R
-** 
+**
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions
 ** are met:
@@ -48,23 +48,23 @@
 ** $Id: sysdep.h,v 1.6 2001-04-26 21:41:55-07 jsadler Exp jsadler $
 */
 
-#if !defined (__SYSDEP_H__)
-#define __SYSDEP_H__ 
+#if !defined(__SYSDEP_H__)
+#define __SYSDEP_H__
 
 #include <sys/types.h>
 
-#include <stddef.h> /* size_t, NULL */
-#include <setjmp.h>
 #include <assert.h>
+#include <setjmp.h>
+#include <stddef.h> /* size_t, NULL */
 
-#if !defined IGNORE		/* Macro to silence unused param warnings */
+#if !defined IGNORE /* Macro to silence unused param warnings */
 #define IGNORE(x) (void)(x)
 #endif
 
 /*
 ** TRUE and FALSE for C boolean operations, and
 ** portable 32 bit types for CELLs
-** 
+**
 */
 #if !defined TRUE
 #define TRUE 1
@@ -72,7 +72,6 @@
 #if !defined FALSE
 #define FALSE 0
 #endif
-
 
 /*
 ** System dependent data type declarations...
@@ -100,7 +99,7 @@
 /*
 ** FICL_UNS and FICL_INT must have the same size as a void* on
 ** the target system. A CELL is a union of void*, FICL_UNS, and
-** FICL_INT. 
+** FICL_INT.
 ** (11/2000: same for FICL_FLOAT)
 */
 #if !defined FICL_INT
@@ -123,51 +122,46 @@
 #endif
 
 #if ((BITS_PER_CELL != 32) && (BITS_PER_CELL != 64))
-    Error!
+Error !
 #endif
 
-typedef struct
-{
-    FICL_UNS hi;
-    FICL_UNS lo;
+    typedef struct {
+	FICL_UNS hi;
+	FICL_UNS lo;
 } DPUNS;
 
-typedef struct
-{
-    FICL_UNS quot;
-    FICL_UNS rem;
+typedef struct {
+	FICL_UNS quot;
+	FICL_UNS rem;
 } UNSQR;
 
-typedef struct
-{
-    FICL_INT hi;
-    FICL_INT lo;
+typedef struct {
+	FICL_INT hi;
+	FICL_INT lo;
 } DPINT;
 
-typedef struct
-{
-    FICL_INT quot;
-    FICL_INT rem;
+typedef struct {
+	FICL_INT quot;
+	FICL_INT rem;
 } INTQR;
-
 
 /*
 ** B U I L D   C O N T R O L S
 */
 
-#if !defined (FICL_MINIMAL)
+#if !defined(FICL_MINIMAL)
 #define FICL_MINIMAL 0
 #endif
 #if (FICL_MINIMAL)
-#define FICL_WANT_SOFTWORDS  0
-#define FICL_WANT_FLOAT      0
-#define FICL_WANT_USER       0
-#define FICL_WANT_LOCALS     0
-#define FICL_WANT_DEBUGGER   0
-#define FICL_WANT_OOP        0
+#define FICL_WANT_SOFTWORDS 0
+#define FICL_WANT_FLOAT 0
+#define FICL_WANT_USER 0
+#define FICL_WANT_LOCALS 0
+#define FICL_WANT_DEBUGGER 0
+#define FICL_WANT_OOP 0
 #define FICL_PLATFORM_EXTEND 0
-#define FICL_MULTITHREAD     0
-#define FICL_ROBUST          0
+#define FICL_MULTITHREAD 0
+#define FICL_ROBUST 0
 #define FICL_EXTENDED_PREFIX 0
 #endif
 
@@ -175,7 +169,7 @@ typedef struct
 ** FICL_PLATFORM_EXTEND
 ** Includes words defined in ficlCompilePlatform
 */
-#if !defined (FICL_PLATFORM_EXTEND)
+#if !defined(FICL_PLATFORM_EXTEND)
 #define FICL_PLATFORM_EXTEND 1
 #endif
 
@@ -184,7 +178,7 @@ typedef struct
 ** Includes a floating point stack for the VM, and words to do float operations.
 ** Contributed by Guy Carver
 */
-#if !defined (FICL_WANT_FLOAT)
+#if !defined(FICL_WANT_FLOAT)
 #define FICL_WANT_FLOAT 0
 #endif
 
@@ -192,13 +186,13 @@ typedef struct
 ** FICL_WANT_DEBUGGER
 ** Inludes a simple source level debugger
 */
-#if !defined (FICL_WANT_DEBUGGER)
+#if !defined(FICL_WANT_DEBUGGER)
 #define FICL_WANT_DEBUGGER 1
 #endif
 
 /*
 ** User variables: per-instance variables bound to the VM.
-** Kinda like thread-local storage. Could be implemented in a 
+** Kinda like thread-local storage. Could be implemented in a
 ** VM private dictionary, but I've chosen the lower overhead
 ** approach of an array of CELLs instead.
 */
@@ -210,7 +204,7 @@ typedef struct
 #define FICL_USER_CELLS 16
 #endif
 
-/* 
+/*
 ** FICL_WANT_LOCALS controls the creation of the LOCALS wordset and
 ** a private dictionary for local variable compilation.
 */
@@ -229,12 +223,12 @@ typedef struct
 ** OOP support requires locals and user variables!
 */
 #if !(FICL_WANT_LOCALS) || !(FICL_WANT_USER)
-#if !defined (FICL_WANT_OOP)
+#if !defined(FICL_WANT_OOP)
 #define FICL_WANT_OOP 0
 #endif
 #endif
 
-#if !defined (FICL_WANT_OOP)
+#if !defined(FICL_WANT_OOP)
 #define FICL_WANT_OOP 1
 #endif
 
@@ -242,7 +236,7 @@ typedef struct
 ** FICL_WANT_SOFTWORDS
 ** Controls inclusion of all softwords in softcore.c
 */
-#if !defined (FICL_WANT_SOFTWORDS)
+#if !defined(FICL_WANT_SOFTWORDS)
 #define FICL_WANT_SOFTWORDS 1
 #endif
 
@@ -261,10 +255,10 @@ typedef struct
 
 /*
 ** PORTABLE_LONGMULDIV causes ficlLongMul and ficlLongDiv to be
-** defined in C in sysdep.c. Use this if you cannot easily 
+** defined in C in sysdep.c. Use this if you cannot easily
 ** generate an inline asm definition
-*/ 
-#if !defined (PORTABLE_LONGMULDIV)
+*/
+#if !defined(PORTABLE_LONGMULDIV)
 #define PORTABLE_LONGMULDIV 0
 #endif
 
@@ -297,7 +291,7 @@ typedef struct
 
 /*
 ** FICL_DEFAULT_STACK Specifies the default size (in CELLs) of
-** a new virtual machine's stacks, unless overridden at 
+** a new virtual machine's stacks, unless overridden at
 ** create time.
 */
 #if !defined FICL_DEFAULT_STACK
@@ -320,7 +314,7 @@ typedef struct
 #endif
 
 /*
-** FICL_DEFAULT_VOCS specifies the maximum number of wordlists in 
+** FICL_DEFAULT_VOCS specifies the maximum number of wordlists in
 ** the dictionary search order. See Forth DPANS sec 16.3.3
 ** (file://dpans16.htm#16.3.3)
 */
@@ -329,9 +323,12 @@ typedef struct
 #endif
 
 /*
-** FICL_MAX_PARSE_STEPS controls the size of an array in the FICL_SYSTEM structure
-** that stores pointers to parser extension functions. I would never expect to have
-** more than 8 of these, so that's the default limit. Too many of these functions
+** FICL_MAX_PARSE_STEPS controls the size of an array in the FICL_SYSTEM
+*structure
+** that stores pointers to parser extension functions. I would never expect to
+*have
+** more than 8 of these, so that's the default limit. Too many of these
+*functions
 ** will probably exact a nasty performance penalty.
 */
 #if !defined FICL_MAX_PARSE_STEPS
@@ -339,7 +336,8 @@ typedef struct
 #endif
 
 /*
-** FICL_EXTENDED_PREFIX enables a bunch of extra prefixes in prefix.c and prefix.fr (if
+** FICL_EXTENDED_PREFIX enables a bunch of extra prefixes in prefix.c and
+*prefix.fr (if
 ** included as part of softcore.c)
 */
 #if !defined FICL_EXTENDED_PREFIX
@@ -362,19 +360,19 @@ typedef struct
 ** System dependent routines --
 ** edit the implementations in sysdep.c to be compatible
 ** with your runtime environment...
-** ficlTextOut sends a NULL terminated string to the 
+** ficlTextOut sends a NULL terminated string to the
 **   default output device - used for system error messages
 ** ficlMalloc and ficlFree have the same semantics as malloc and free
 **   in standard C
-** ficlLongMul multiplies two UNS32s and returns a 64 bit unsigned 
+** ficlLongMul multiplies two UNS32s and returns a 64 bit unsigned
 **   product
 ** ficlLongDiv divides an UNS64 by an UNS32 and returns UNS32 quotient
 **   and remainder
 */
 struct vm;
-void  ficlTextOut(struct vm *pVM, char *msg, int fNewline);
-void *ficlMalloc (size_t size);
-void  ficlFree   (void *p);
+void ficlTextOut(struct vm *pVM, char *msg, int fNewline);
+void *ficlMalloc(size_t size);
+void ficlFree(void *p);
 void *ficlRealloc(void *p, size_t size);
 /*
 ** Stub function for dictionary access control - does nothing
@@ -401,10 +399,10 @@ int ficlLockDictionary(short fLock);
 ** 64 bit integer math support routines: multiply two UNS32s
 ** to get a 64 bit product, & divide the product by an UNS32
 ** to get an UNS32 quotient and remainder. Much easier in asm
-** on a 32 bit CPU than in C, which usually doesn't support 
+** on a 32 bit CPU than in C, which usually doesn't support
 ** the double length result (but it should).
 */
 DPUNS ficlLongMul(FICL_UNS x, FICL_UNS y);
-UNSQR ficlLongDiv(DPUNS    q, FICL_UNS y);
+UNSQR ficlLongDiv(DPUNS q, FICL_UNS y);
 
 #endif /*__SYSDEP_H__*/

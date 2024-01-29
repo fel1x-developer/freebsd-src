@@ -34,12 +34,13 @@
  */
 
 #ifndef ICL_WRAPPERS_H
-#define	ICL_WRAPPERS_H
+#define ICL_WRAPPERS_H
 
 #include <sys/bio.h>
 #include <sys/kobj.h>
 
 #include <dev/iscsi/icl.h>
+
 #include <icl_conn_if.h>
 
 static inline struct icl_pdu *
@@ -61,8 +62,8 @@ icl_pdu_append_bio(struct icl_pdu *ip, struct bio *bp, size_t offset,
     size_t len, int flags)
 {
 
-	return (ICL_CONN_PDU_APPEND_BIO(ip->ip_conn, ip, bp, offset, len,
-	    flags));
+	return (
+	    ICL_CONN_PDU_APPEND_BIO(ip->ip_conn, ip, bp, offset, len, flags));
 }
 
 static inline int
@@ -163,12 +164,12 @@ icl_conn_transfer_done(struct icl_conn *ic, void *prv)
  * The function below is only used with ICL_KERNEL_PROXY.
  */
 static inline int
-icl_conn_connect(struct icl_conn *ic, int domain, int socktype,
-    int protocol, struct sockaddr *from_sa, struct sockaddr *to_sa)
+icl_conn_connect(struct icl_conn *ic, int domain, int socktype, int protocol,
+    struct sockaddr *from_sa, struct sockaddr *to_sa)
 {
 
-	return (ICL_CONN_CONNECT(ic, domain, socktype, protocol,
-	    from_sa, to_sa));
+	return (
+	    ICL_CONN_CONNECT(ic, domain, socktype, protocol, from_sa, to_sa));
 }
 
 #endif /* !ICL_WRAPPERS_H */

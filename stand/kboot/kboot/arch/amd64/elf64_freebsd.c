@@ -30,11 +30,14 @@
 #include <sys/param.h>
 #include <sys/exec.h>
 #include <sys/linker.h>
-#include <string.h>
-#include <machine/elf.h>
-#include <stand.h>
+
 #include <vm/vm.h>
 #include <vm/pmap.h>
+
+#include <machine/elf.h>
+
+#include <stand.h>
+#include <string.h>
 
 #ifdef EFI
 #include <efi.h>
@@ -43,14 +46,13 @@
 #include "host_syscall.h"
 #endif
 
+#include "acconfig.h"
 #include "bootstrap.h"
 #include "kboot.h"
-
 #include "platform/acfreebsd.h"
-#include "acconfig.h"
 #define ACPI_SYSTEM_XFACE
-#include "actypes.h"
 #include "actbl.h"
+#include "actypes.h"
 
 #ifdef EFI
 #include "loader_efi.h"
@@ -68,8 +70,8 @@ static EFI_GUID acpi20_guid = ACPI_20_TABLE_GUID;
 extern int bi_load(char *args, vm_offset_t *modulep, vm_offset_t *kernendp,
     bool exit_bs);
 
-static int	elf64_exec(struct preloaded_file *amp);
-static int	elf64_obj_exec(struct preloaded_file *amp);
+static int elf64_exec(struct preloaded_file *amp);
+static int elf64_obj_exec(struct preloaded_file *amp);
 
 static struct file_format amd64_elf = {
 	.l_load = elf64_loadfile,
@@ -87,15 +89,12 @@ extern struct file_format multiboot2_obj;
 
 struct file_format *file_formats[] = {
 #ifdef EFI
-	&multiboot2,
-	&multiboot2_obj,
+	&multiboot2, &multiboot2_obj,
 #endif
-	&amd64_elf,
-	&amd64_elf_obj,
-	NULL
+	&amd64_elf, &amd64_elf_obj, NULL
 };
 
-#ifndef	EFI
+#ifndef EFI
 /*
  * We create the stack that we want. We have the address of the page tables
  * we make on top (so we pop that off and set %cr3). We have the entry point
@@ -104,14 +103,15 @@ struct file_format *file_formats[] = {
  * to keep this aligned. This makes the trampoline very simple.
  */
 struct trampoline_data {
-	uint64_t	pt4;			// Page table address to pop
-	uint64_t	entry;			// return address to jump to kernel
-	uint32_t	fill1;			// 0
-	uint32_t	modulep;		// 4 module metadata
-	uint32_t	kernend;		// 8 kernel end
-	uint32_t	fill2;			// 12
+	uint64_t pt4;	  // Page table address to pop
+	uint64_t entry;	  // return address to jump to kernel
+	uint32_t fill1;	  // 0
+	uint32_t modulep; // 4 module metadata
+	uint32_t kernend; // 8 kernel end
+	uint32_t fill2;	  // 12
 };
-_Static_assert(sizeof(struct trampoline_data) == 32, "Bad size for trampoline data");
+_Static_assert(sizeof(struct trampoline_data) == 32,
+    "Bad size for trampoline data");
 #endif
 
 static pml4_entry_t *PT4;
@@ -142,33 +142,34 @@ extern uint32_t tramp_data_offset;
 static int
 elf64_exec(struct preloaded_file *fp)
 {
-	struct file_metadata	*md;
-	Elf_Ehdr 		*ehdr;
-	vm_offset_t		modulep, kernend;
-	int			err, i;
-	char			buf[24];
+	struct file_metadata *md;
+	Elf_Ehdr *ehdr;
+	vm_offset_t modulep, kernend;
+	int err, i;
+	char buf[24];
 #ifdef EFI
-	ACPI_TABLE_RSDP		*rsdp = NULL;
-	int			revision;
-	int			copy_auto;
-	vm_offset_t		trampstack, trampcode;
+	ACPI_TABLE_RSDP *rsdp = NULL;
+	int revision;
+	int copy_auto;
+	vm_offset_t trampstack, trampcode;
 #else
-	vm_offset_t		rsdp = 0;
-	void			*trampcode;
-	int			nseg;
-	void			*kseg;
-	vm_offset_t		trampolinebase;
-	uint64_t		*trampoline;
-	struct trampoline_data	*trampoline_data;
-	vm_offset_t		staging;
-	int			error;
+	vm_offset_t rsdp = 0;
+	void *trampcode;
+	int nseg;
+	void *kseg;
+	vm_offset_t trampolinebase;
+	uint64_t *trampoline;
+	struct trampoline_data *trampoline_data;
+	vm_offset_t staging;
+	int error;
 #endif
 
 #ifdef EFI
 	copy_auto = copy_staging == COPY_STAGING_AUTO;
 	if (copy_auto)
 		copy_staging = fp->f_kernphys_relocatable ?
-		    COPY_STAGING_DISABLE : COPY_STAGING_ENABLE;
+		    COPY_STAGING_DISABLE :
+		    COPY_STAGING_ENABLE;
 #else
 	/*
 	 * Figure out where to put it.
@@ -184,15 +185,17 @@ elf64_exec(struct preloaded_file *fp)
 	 * kernel starting environment.
 	 */
 	staging = trampolinebase = kboot_get_phys_load_segment();
-	trampolinebase += 1ULL << 20;	/* Copy trampoline to base + 1MB, kernel will wind up at 2MB */
+	trampolinebase += 1ULL << 20; /* Copy trampoline to base + 1MB, kernel
+					 will wind up at 2MB */
 	printf("Load address at %#jx\n", (uintmax_t)trampolinebase);
-	printf("Relocation offset is %#jx\n", (uintmax_t)elf64_relocation_offset);
+	printf("Relocation offset is %#jx\n",
+	    (uintmax_t)elf64_relocation_offset);
 #endif
 
-	/*
-	 * Report the RSDP to the kernel. While this can be found with
-	 * a BIOS boot, the RSDP may be elsewhere when booted from UEFI.
-	 */
+		/*
+		 * Report the RSDP to the kernel. While this can be found with
+		 * a BIOS boot, the RSDP may be elsewhere when booted from UEFI.
+		 */
 #ifdef EFI
 	rsdp = efi_get_table(&acpi20_guid);
 	if (rsdp == NULL) {
@@ -212,7 +215,8 @@ elf64_exec(struct preloaded_file *fp)
 #ifdef EFI
 	trampcode = copy_staging == COPY_STAGING_ENABLE ?
 	    (vm_offset_t)0x0000000040000000 /* 1G */ :
-	    (vm_offset_t)0x0000000100000000; /* 4G */;
+	    (vm_offset_t)0x0000000100000000; /* 4G */
+	;
 	err = BS->AllocatePages(AllocateMaxAddress, EfiLoaderData, 1,
 	    (EFI_PHYSICAL_ADDRESS *)&trampcode);
 	if (EFI_ERROR(err)) {
@@ -305,8 +309,8 @@ elf64_exec(struct preloaded_file *fp)
 		PT3_l[2] = (pdp_entry_t)PT2_l2 | PG_V | PG_RW;
 		PT3_l[3] = (pdp_entry_t)PT2_l3 | PG_V | PG_RW;
 		for (i = 0; i < 4 * NPDEPG; i++) {
-			PT2_l0[i] = ((pd_entry_t)i << PDRSHIFT) | PG_V |
-			    PG_RW | PG_PS;
+			PT2_l0[i] = ((pd_entry_t)i << PDRSHIFT) | PG_V | PG_RW |
+			    PG_PS;
 		}
 
 		/* mapping of kernel 2G below top */
@@ -318,13 +322,14 @@ elf64_exec(struct preloaded_file *fp)
 		/* this maps past staging area */
 		for (i = 1; i < 2 * NPDEPG; i++) {
 			PT2_u0[i] = ((pd_entry_t)staging +
-			    ((pd_entry_t)i - 1) * NBPDR) |
+					((pd_entry_t)i - 1) * NBPDR) |
 			    PG_V | PG_RW | PG_PS;
 		}
 	}
 #else
 	{
-		vm_offset_t pabase, pa_pt3_l, pa_pt3_u, pa_pt2_l0, pa_pt2_l1, pa_pt2_l2, pa_pt2_l3, pa_pt2_u0, pa_pt2_u1;
+		vm_offset_t pabase, pa_pt3_l, pa_pt3_u, pa_pt2_l0, pa_pt2_l1,
+		    pa_pt2_l2, pa_pt2_l3, pa_pt2_u0, pa_pt2_u1;
 
 		/* We'll find a place for these later */
 		PT4 = (pml4_entry_t *)host_getmem(9 * LOADER_PAGE_SIZE);
@@ -355,9 +360,10 @@ elf64_exec(struct preloaded_file *fp)
 		PT3_l[1] = (pdp_entry_t)pa_pt2_l1 | PG_V | PG_RW;
 		PT3_l[2] = (pdp_entry_t)pa_pt2_l2 | PG_V | PG_RW;
 		PT3_l[3] = (pdp_entry_t)pa_pt2_l3 | PG_V | PG_RW;
-		for (i = 0; i < 4 * NPDEPG; i++) {	/* we overflow PT2_l0 into _l1, etc */
-			PT2_l0[i] = ((pd_entry_t)i << PDRSHIFT) | PG_V |
-			    PG_RW | PG_PS;
+		for (i = 0; i < 4 * NPDEPG;
+		     i++) { /* we overflow PT2_l0 into _l1, etc */
+			PT2_l0[i] = ((pd_entry_t)i << PDRSHIFT) | PG_V | PG_RW |
+			    PG_PS;
 		}
 
 		/* mapping of kernel 2G below top */
@@ -383,22 +389,24 @@ elf64_exec(struct preloaded_file *fp)
 		 * all the 'early' allocations are at kernend (which the kernel
 		 * calls physfree).
 		 */
-		for (i = 1; i < 2 * NPDEPG; i++) {	/* we overflow PT2_u0 into _u1 */
+		for (i = 1; i < 2 * NPDEPG;
+		     i++) { /* we overflow PT2_u0 into _u1 */
 			PT2_u0[i] = ((pd_entry_t)staging +
-			    ((pd_entry_t)i) * NBPDR) |
+					((pd_entry_t)i) * NBPDR) |
 			    PG_V | PG_RW | PG_PS;
-			if (i < 10) printf("Mapping %d to %#lx staging %#lx\n", i, PT2_u0[i], staging);
+			if (i < 10)
+				printf("Mapping %d to %#lx staging %#lx\n", i,
+				    PT2_u0[i], staging);
 		}
 	}
 #endif
 
 #ifdef EFI
-	printf("staging %#lx (%scopying) tramp %p PT4 %p\n",
-	    staging, copy_staging == COPY_STAGING_ENABLE ? "" : "not ",
-	    trampoline, PT4);
+	printf("staging %#lx (%scopying) tramp %p PT4 %p\n", staging,
+	    copy_staging == COPY_STAGING_ENABLE ? "" : "not ", trampoline, PT4);
 #else
-	printf("staging %#lx tramp %p PT4 %p\n", staging, (void *)trampolinebase,
-	    (void *)trampolinebase + LOADER_PAGE_SIZE);
+	printf("staging %#lx tramp %p PT4 %p\n", staging,
+	    (void *)trampolinebase, (void *)trampolinebase + LOADER_PAGE_SIZE);
 #endif
 	printf("Start @ 0x%lx ...\n", ehdr->e_entry);
 
@@ -418,9 +426,10 @@ elf64_exec(struct preloaded_file *fp)
 	dev_cleanup();
 
 #ifdef EFI
-	trampoline(trampstack, copy_staging == COPY_STAGING_ENABLE ?
-	    efi_copy_finish : efi_copy_finish_nop, kernend, modulep,
-	    PT4, ehdr->e_entry);
+	trampoline(trampstack,
+	    copy_staging == COPY_STAGING_ENABLE ? efi_copy_finish :
+						  efi_copy_finish_nop,
+	    kernend, modulep, PT4, ehdr->e_entry);
 #else
 	trampoline_data = (void *)trampoline + tramp_data_offset;
 	trampoline_data->entry = ehdr->e_entry;
@@ -432,21 +441,26 @@ elf64_exec(struct preloaded_file *fp)
 	 * calculated with a phyaddr of "kernend + PA(PT_u0[1])"), so we better
 	 * make sure we're not overwriting the last 2MB of the kernel :).
 	 */
-	trampoline_data->modulep = modulep;	/* Offset from KERNBASE */
-	trampoline_data->kernend = kernend;	/* Offset from the load address */
+	trampoline_data->modulep = modulep; /* Offset from KERNBASE */
+	trampoline_data->kernend = kernend; /* Offset from the load address */
 	trampoline_data->fill1 = trampoline_data->fill2 = 0;
 	printf("Modulep = %lx kernend %lx\n", modulep, kernend);
-	/* NOTE: when copyting in, it's relative to the start of our 'area' not an abs addr */
+	/* NOTE: when copyting in, it's relative to the start of our 'area' not
+	 * an abs addr */
 	/* Copy the trampoline to the ksegs */
-	archsw.arch_copyin((void *)trampcode, trampolinebase - staging, tramp_size);
+	archsw.arch_copyin((void *)trampcode, trampolinebase - staging,
+	    tramp_size);
 	/* Copy the page table to the ksegs */
-	archsw.arch_copyin(PT4, trampoline_data->pt4 - staging, 9 * LOADER_PAGE_SIZE);
+	archsw.arch_copyin(PT4, trampoline_data->pt4 - staging,
+	    9 * LOADER_PAGE_SIZE);
 
 	kboot_kseg_get(&nseg, &kseg);
-	error = host_kexec_load(trampolinebase, nseg, kseg, HOST_KEXEC_ARCH_X86_64);
+	error = host_kexec_load(trampolinebase, nseg, kseg,
+	    HOST_KEXEC_ARCH_X86_64);
 	if (error != 0)
 		panic("kexec_load returned error: %d", error);
-	host_reboot(HOST_REBOOT_MAGIC1, HOST_REBOOT_MAGIC2, HOST_REBOOT_CMD_KEXEC, 0);
+	host_reboot(HOST_REBOOT_MAGIC1, HOST_REBOOT_MAGIC2,
+	    HOST_REBOOT_CMD_KEXEC, 0);
 #endif
 
 	panic("exec returned");

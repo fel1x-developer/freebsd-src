@@ -29,8 +29,10 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <net/if_dl.h>
+
 #include <net/if.h>
+#include <net/if_dl.h>
+
 #include <ifaddrs.h>
 #include <stdlib.h>
 #include <string.h>
@@ -85,7 +87,7 @@ if_nameindex(void)
 	char *cp;
 
 	if (getifaddrs(&ifaddrs) < 0)
-		return(NULL);
+		return (NULL);
 
 	/*
 	 * First, find out how many interfaces there are, and how
@@ -94,8 +96,7 @@ if_nameindex(void)
 	ni = 0;
 	nbytes = 0;
 	for (ifa = ifaddrs; ifa != NULL; ifa = ifa->ifa_next) {
-		if (ifa->ifa_addr &&
-		    ifa->ifa_addr->sa_family == AF_LINK) {
+		if (ifa->ifa_addr && ifa->ifa_addr->sa_family == AF_LINK) {
 			nbytes += strlen(ifa->ifa_name) + 1;
 			ni++;
 		}
@@ -119,10 +120,9 @@ if_nameindex(void)
 	 */
 	ifni2 = ifni;
 	for (ifa = ifaddrs; ifa != NULL; ifa = ifa->ifa_next) {
-		if (ifa->ifa_addr &&
-		    ifa->ifa_addr->sa_family == AF_LINK) {
-			ifni2->if_index =
-			    LLINDEX((struct sockaddr_dl*)ifa->ifa_addr);
+		if (ifa->ifa_addr && ifa->ifa_addr->sa_family == AF_LINK) {
+			ifni2->if_index = LLINDEX(
+			    (struct sockaddr_dl *)ifa->ifa_addr);
 			ifni2->if_name = cp;
 			strcpy(cp, ifa->ifa_name);
 			ifni2++;
@@ -136,7 +136,7 @@ if_nameindex(void)
 	ifni2->if_name = NULL;
 out:
 	freeifaddrs(ifaddrs);
-	return(ifni);
+	return (ifni);
 }
 
 void

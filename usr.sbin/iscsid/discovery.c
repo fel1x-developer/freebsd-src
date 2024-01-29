@@ -31,12 +31,14 @@
 
 #include <sys/types.h>
 #include <sys/ioctl.h>
-#include <stdbool.h>
-#include <string.h>
+
 #include <netinet/in.h>
 
-#include "iscsid.h"
+#include <stdbool.h>
+#include <string.h>
+
 #include "iscsi_proto.h"
+#include "iscsid.h"
 
 static struct pdu *
 logout_receive(struct connection *conn)
@@ -54,9 +56,10 @@ logout_receive(struct connection *conn)
 		log_warnx("received Logout Response with reason %d",
 		    ntohs(bhslr->bhslr_response));
 	if (ntohl(bhslr->bhslr_statsn) != conn->conn_statsn + 1) {
-		log_errx(1, "received Logout PDU with wrong StatSN: "
-		    "is %u, should be %u", ntohl(bhslr->bhslr_statsn),
-		    conn->conn_statsn + 1);
+		log_errx(1,
+		    "received Logout PDU with wrong StatSN: "
+		    "is %u, should be %u",
+		    ntohl(bhslr->bhslr_statsn), conn->conn_statsn + 1);
 	}
 	conn->conn_statsn = ntohl(bhslr->bhslr_statsn);
 
@@ -76,7 +79,7 @@ logout_new_request(struct connection *conn)
 	bhslr->bhslr_reason = BHSLR_REASON_CLOSE_SESSION;
 	bhslr->bhslr_reason |= 0x80;
 	bhslr->bhslr_initiator_task_tag = 0; /* XXX */
-	bhslr->bhslr_cmdsn = 0; /* XXX */
+	bhslr->bhslr_cmdsn = 0;		     /* XXX */
 	bhslr->bhslr_expstatsn = htonl(conn->conn_statsn + 1);
 
 	return (request);

@@ -30,19 +30,18 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/kernel.h>
-#include <sys/sysctl.h>
-#include <sys/socket.h>
 #include <sys/mbuf.h>
+#include <sys/socket.h>
+#include <sys/sysctl.h>
 
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_private.h>
+#include <net/if_var.h>
 #include <net/route.h>
+#include <net/route/nhop.h>
 #include <net/route/route_ctl.h>
 #include <net/route/route_var.h>
-#include <net/route/nhop.h>
 #include <net/vnet.h>
-
 #include <netinet/in.h>
 #include <netinet/in_var.h>
 #include <netinet/ip.h>
@@ -50,8 +49,8 @@
 #include <netinet/ip_var.h>
 
 static int
-rib4_set_nh_pfxflags(u_int fibnum, const struct sockaddr *addr, const struct sockaddr *mask,
-    struct nhop_object *nh)
+rib4_set_nh_pfxflags(u_int fibnum, const struct sockaddr *addr,
+    const struct sockaddr *mask, struct nhop_object *nh)
 {
 	const struct sockaddr_in *addr4 = (const struct sockaddr_in *)addr;
 	const struct sockaddr_in *mask4 = (const struct sockaddr_in *)mask;
@@ -178,5 +177,5 @@ in_ifadown(struct ifaddr *ifa, int delete)
 	arg.del = delete;
 
 	rib_foreach_table_walk_del(AF_INET, in_ifadownkill, &arg);
-	ifa->ifa_flags &= ~IFA_ROUTE;		/* XXXlocking? */
+	ifa->ifa_flags &= ~IFA_ROUTE; /* XXXlocking? */
 }

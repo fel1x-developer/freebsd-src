@@ -16,21 +16,21 @@
  * genreated code, but leaves enough breadcrumbs to keep gdb happy)
  */
 
-__asm__(
-".text\n"		/* ENTRY(_start) -- can't expand and stringify, so by hand */
-".align 2\n"
-".global _start\n"
-".type _start, #function\n"
-"_start:\n"
-".cfi_startproc\n"
-/*
- * Linux zeros all registers so x29 (frame pointer) and x30 (link register) are 0.
- */
-"	mov	x0, sp\n"	/* Pointer to argc, etc kernel left on the stack */
-"	and	sp, x0, #-16\n"	/* Align stack to 16-byte boundary */
-"	b	_start_c\n"	/* Our MI code takes it from here */
-/* NORETURN */
-".ltorg\n"		/* END(_start) */
-".cfi_endproc\n"
-".size _start, .-_start\n"
-);
+__asm__(".text\n" /* ENTRY(_start) -- can't expand and stringify, so by hand */
+	".align 2\n"
+	".global _start\n"
+	".type _start, #function\n"
+	"_start:\n"
+	".cfi_startproc\n"
+	/*
+	 * Linux zeros all registers so x29 (frame pointer) and x30 (link
+	 * register) are 0.
+	 */
+	"	mov	x0, sp\n" /* Pointer to argc, etc kernel left on the
+				     stack */
+	"	and	sp, x0, #-16\n" /* Align stack to 16-byte boundary */
+	"	b	_start_c\n"	/* Our MI code takes it from here */
+	/* NORETURN */
+	".ltorg\n" /* END(_start) */
+	".cfi_endproc\n"
+	".size _start, .-_start\n");

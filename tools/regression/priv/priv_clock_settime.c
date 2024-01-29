@@ -42,7 +42,7 @@
 
 #include "main.h"
 
-static struct timespec	the_time;
+static struct timespec the_time;
 
 int
 priv_clock_settime_setup(int asroot, int injail, struct test *test)
@@ -50,7 +50,7 @@ priv_clock_settime_setup(int asroot, int injail, struct test *test)
 
 	if (clock_gettime(CLOCK_REALTIME, &the_time) < 0) {
 		warn("priv_clock_settime_setup: "
-		    "clock_gettime(CLOCK_REALTIME)");
+		     "clock_gettime(CLOCK_REALTIME)");
 		return (-1);
 	}
 	return (0);
@@ -63,20 +63,16 @@ priv_clock_settime(int asroot, int injail, struct test *test)
 
 	error = clock_settime(CLOCK_REALTIME, &the_time);
 	if (asroot && injail)
-		expect("priv_clock_settime(asroot, injail)", error, -1,
-		    EPERM);
+		expect("priv_clock_settime(asroot, injail)", error, -1, EPERM);
 	if (asroot && !injail)
 		expect("priv_clock_settime(asroot, !injail)", error, 0, 0);
 	if (!asroot && injail)
-		expect("priv_clock_settime(!asroot, injail)", error, -1,
-		    EPERM);
+		expect("priv_clock_settime(!asroot, injail)", error, -1, EPERM);
 	if (!asroot && !injail)
-		expect("priv_clock_settime(!asroot, !injail", error, -1,
-		    EPERM);
+		expect("priv_clock_settime(!asroot, !injail", error, -1, EPERM);
 }
 
 void
 priv_clock_settime_cleanup(int asroot, int injail, struct test *test)
 {
-
 }

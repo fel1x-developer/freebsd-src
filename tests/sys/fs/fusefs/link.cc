@@ -37,67 +37,78 @@ extern "C" {
 
 using namespace testing;
 
-class Link: public FuseTest {
-public:
-void expect_link(uint64_t ino, const char *relpath, mode_t mode, uint32_t nlink)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			const char *name = (const char*)in.body.bytes
-				+ sizeof(struct fuse_link_in);
-			return (in.header.opcode == FUSE_LINK &&
-				in.body.link.oldnodeid == ino &&
-				(0 == strcmp(name, relpath)));
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.nodeid = ino;
-		out.body.entry.attr.mode = mode;
-		out.body.entry.attr.nlink = nlink;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.entry_valid = UINT64_MAX;
-	})));
-}
+class Link : public FuseTest {
+    public:
+	void expect_link(uint64_t ino, const char *relpath, mode_t mode,
+	    uint32_t nlink)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					const char *name = (const char *)
+							       in.body.bytes +
+					    sizeof(struct fuse_link_in);
+					return (in.header.opcode == FUSE_LINK &&
+					    in.body.link.oldnodeid == ino &&
+					    (0 == strcmp(name, relpath)));
+				},
+				Eq(true)),
+			_))
+		    .WillOnce(Invoke(
+			ReturnImmediate([=](auto in __unused, auto &out) {
+				SET_OUT_HEADER_LEN(out, entry);
+				out.body.entry.nodeid = ino;
+				out.body.entry.attr.mode = mode;
+				out.body.entry.attr.nlink = nlink;
+				out.body.entry.attr_valid = UINT64_MAX;
+				out.body.entry.entry_valid = UINT64_MAX;
+			})));
+	}
 
-void expect_lookup(const char *relpath, uint64_t ino)
-{
-	FuseTest::expect_lookup(relpath, ino, S_IFREG | 0644, 0, 1);
-}
+	void expect_lookup(const char *relpath, uint64_t ino)
+	{
+		FuseTest::expect_lookup(relpath, ino, S_IFREG | 0644, 0, 1);
+	}
 };
 
-class Link_7_8: public FuseTest {
-public:
-virtual void SetUp() {
-	m_kernel_minor_version = 8;
-	FuseTest::SetUp();
-}
+class Link_7_8 : public FuseTest {
+    public:
+	virtual void SetUp()
+	{
+		m_kernel_minor_version = 8;
+		FuseTest::SetUp();
+	}
 
-void expect_link(uint64_t ino, const char *relpath, mode_t mode, uint32_t nlink)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			const char *name = (const char*)in.body.bytes
-				+ sizeof(struct fuse_link_in);
-			return (in.header.opcode == FUSE_LINK &&
-				in.body.link.oldnodeid == ino &&
-				(0 == strcmp(name, relpath)));
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry_7_8);
-		out.body.entry.nodeid = ino;
-		out.body.entry.attr.mode = mode;
-		out.body.entry.attr.nlink = nlink;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.entry_valid = UINT64_MAX;
-	})));
-}
+	void expect_link(uint64_t ino, const char *relpath, mode_t mode,
+	    uint32_t nlink)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					const char *name = (const char *)
+							       in.body.bytes +
+					    sizeof(struct fuse_link_in);
+					return (in.header.opcode == FUSE_LINK &&
+					    in.body.link.oldnodeid == ino &&
+					    (0 == strcmp(name, relpath)));
+				},
+				Eq(true)),
+			_))
+		    .WillOnce(Invoke(
+			ReturnImmediate([=](auto in __unused, auto &out) {
+				SET_OUT_HEADER_LEN(out, entry_7_8);
+				out.body.entry.nodeid = ino;
+				out.body.entry.attr.mode = mode;
+				out.body.entry.attr.nlink = nlink;
+				out.body.entry.attr_valid = UINT64_MAX;
+				out.body.entry.entry_valid = UINT64_MAX;
+			})));
+	}
 
-void expect_lookup(const char *relpath, uint64_t ino)
-{
-	FuseTest::expect_lookup_7_8(relpath, ino, S_IFREG | 0644, 0, 1);
-}
+	void expect_lookup(const char *relpath, uint64_t ino)
+	{
+		FuseTest::expect_lookup_7_8(relpath, ino, S_IFREG | 0644, 0, 1);
+	}
 };
 
 /*
@@ -115,31 +126,34 @@ TEST_F(Link, clear_attr_cache)
 	struct stat sb;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.WillOnce(Invoke(ReturnErrno(ENOENT)));
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_GETATTR &&
-				in.header.nodeid == FUSE_ROOT_ID);
-		}, Eq(true)),
-		_)
-	).Times(2)
-	.WillRepeatedly(Invoke(ReturnImmediate([=](auto i __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr.ino = FUSE_ROOT_ID;
-		out.body.attr.attr.mode = S_IFDIR | 0755;
-		out.body.attr.attr_valid = UINT64_MAX;
-	})));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_GETATTR &&
+				    in.header.nodeid == FUSE_ROOT_ID);
+			},
+			Eq(true)),
+		_))
+	    .Times(2)
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto i __unused, auto &out) {
+			SET_OUT_HEADER_LEN(out, attr);
+			out.body.attr.attr.ino = FUSE_ROOT_ID;
+			out.body.attr.attr.mode = S_IFDIR | 0755;
+			out.body.attr.attr_valid = UINT64_MAX;
+		})));
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELDST)
-	
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = mode;
-		out.body.entry.nodeid = ino;
-		out.body.entry.attr.nlink = 1;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.entry_valid = UINT64_MAX;
-	})));
+
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = mode;
+		    out.body.entry.nodeid = ino;
+		    out.body.entry.attr.nlink = 1;
+		    out.body.entry.attr_valid = UINT64_MAX;
+		    out.body.entry.entry_valid = UINT64_MAX;
+	    })));
 	expect_link(ino, RELPATH, mode, 2);
 
 	EXPECT_EQ(0, stat("mountpoint", &sb)) << strerror(errno);
@@ -156,19 +170,21 @@ TEST_F(Link, emlink)
 	uint64_t dst_ino = 42;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
 	expect_lookup(RELDST, dst_ino);
 
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			const char *name = (const char*)in.body.bytes
-				+ sizeof(struct fuse_link_in);
-			return (in.header.opcode == FUSE_LINK &&
-				in.body.link.oldnodeid == dst_ino &&
-				(0 == strcmp(name, RELPATH)));
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(EMLINK)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				const char *name = (const char *)in.body.bytes +
+				    sizeof(struct fuse_link_in);
+				return (in.header.opcode == FUSE_LINK &&
+				    in.body.link.oldnodeid == dst_ino &&
+				    (0 == strcmp(name, RELPATH)));
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnErrno(EMLINK)));
 
 	EXPECT_EQ(-1, link(FULLDST, FULLPATH));
 	EXPECT_EQ(EMLINK, errno);
@@ -189,33 +205,35 @@ TEST_F(Link, bad_inode)
 	mode_t mode = S_IFREG | 0644;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELDST)
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = mode;
-		out.body.entry.nodeid = dst_ino;
-		out.body.entry.attr.nlink = 1;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.entry_valid = UINT64_MAX;
-	})));
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			const char *name = (const char*)in.body.bytes
-				+ sizeof(struct fuse_link_in);
-			return (in.header.opcode == FUSE_LINK &&
-				in.body.link.oldnodeid == dst_ino &&
-				(0 == strcmp(name, RELPATH)));
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.nodeid = src_ino;
-		out.body.entry.attr.mode = mode;
-		out.body.entry.attr.nlink = 2;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.entry_valid = UINT64_MAX;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = mode;
+		    out.body.entry.nodeid = dst_ino;
+		    out.body.entry.attr.nlink = 1;
+		    out.body.entry.attr_valid = UINT64_MAX;
+		    out.body.entry.entry_valid = UINT64_MAX;
+	    })));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				const char *name = (const char *)in.body.bytes +
+				    sizeof(struct fuse_link_in);
+				return (in.header.opcode == FUSE_LINK &&
+				    in.body.link.oldnodeid == dst_ino &&
+				    (0 == strcmp(name, RELPATH)));
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.nodeid = src_ino;
+		    out.body.entry.attr.mode = mode;
+		    out.body.entry.attr.nlink = 2;
+		    out.body.entry.attr_valid = UINT64_MAX;
+		    out.body.entry.entry_valid = UINT64_MAX;
+	    })));
 
 	ASSERT_EQ(-1, link(FULLDST, FULLPATH));
 	ASSERT_EQ(EIO, errno);
@@ -232,16 +250,16 @@ TEST_F(Link, ok)
 	struct stat sb;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELDST)
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = mode;
-		out.body.entry.nodeid = ino;
-		out.body.entry.attr.nlink = 1;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.entry_valid = UINT64_MAX;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = mode;
+		    out.body.entry.nodeid = ino;
+		    out.body.entry.attr.nlink = 1;
+		    out.body.entry.attr_valid = UINT64_MAX;
+		    out.body.entry.entry_valid = UINT64_MAX;
+	    })));
 	expect_link(ino, RELPATH, mode, 2);
 
 	ASSERT_EQ(0, link(FULLDST, FULLPATH)) << strerror(errno);
@@ -261,16 +279,16 @@ TEST_F(Link_7_8, ok)
 	struct stat sb;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELDST)
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry_7_8);
-		out.body.entry.attr.mode = mode;
-		out.body.entry.nodeid = ino;
-		out.body.entry.attr.nlink = 1;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.entry_valid = UINT64_MAX;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry_7_8);
+		    out.body.entry.attr.mode = mode;
+		    out.body.entry.nodeid = ino;
+		    out.body.entry.attr.nlink = 1;
+		    out.body.entry.attr_valid = UINT64_MAX;
+		    out.body.entry.entry_valid = UINT64_MAX;
+	    })));
 	expect_link(ino, RELPATH, mode, 2);
 
 	ASSERT_EQ(0, link(FULLDST, FULLPATH)) << strerror(errno);

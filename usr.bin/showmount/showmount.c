@@ -33,19 +33,18 @@
  */
 
 #include <sys/types.h>
-#include <sys/queue.h>
 #include <sys/file.h>
+#include <sys/queue.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 
 #include <err.h>
 #include <getopt.h>
 #include <netdb.h>
-#include <rpc/rpc.h>
 #include <rpc/pmap_clnt.h>
 #include <rpc/pmap_prot.h>
+#include <rpc/rpc.h>
 #include <rpcsvc/mount.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -53,29 +52,29 @@
 #include <vis.h>
 
 /* Constant defs */
-#define	ALL	1
-#define	DIRS	2
+#define ALL 1
+#define DIRS 2
 
-#define	DODUMP			0x1
-#define	DOEXPORTS		0x2
-#define	DOPARSABLEEXPORTS	0x4
+#define DODUMP 0x1
+#define DOEXPORTS 0x2
+#define DOPARSABLEEXPORTS 0x4
 
 struct mountlist {
 	struct mountlist *ml_left;
 	struct mountlist *ml_right;
-	char	ml_host[MNTNAMLEN+1];
-	char	ml_dirp[MNTPATHLEN+1];
+	char ml_host[MNTNAMLEN + 1];
+	char ml_dirp[MNTPATHLEN + 1];
 };
 
 struct grouplist {
 	struct grouplist *gr_next;
-	char	gr_name[MNTNAMLEN+1];
+	char gr_name[MNTNAMLEN + 1];
 };
 
 struct exportslist {
 	struct exportslist *ex_next;
 	struct grouplist *ex_groups;
-	char	ex_dirp[MNTPATHLEN+1];
+	char ex_dirp[MNTPATHLEN + 1];
 };
 
 static struct mountlist *mntdump;
@@ -87,14 +86,14 @@ static void usage(void) __dead2;
 int xdr_mntdump(XDR *, struct mountlist **);
 int xdr_exportslist(XDR *, struct exportslist **);
 int tcp_callrpc(const char *host, int prognum, int versnum, int procnum,
-		xdrproc_t inproc, char *in, xdrproc_t outproc, char *out);
+    xdrproc_t inproc, char *in, xdrproc_t outproc, char *out);
 
 static const struct option long_opts[] = {
-	{ "all",			no_argument,	NULL,	'a' },
-	{ "directories",	no_argument,	NULL,	'd' },
-	{ "exports-script",	no_argument,	NULL,	'E' },
-	{ "exports",		no_argument,	NULL,	'e' },
-	{ NULL,				0,				NULL,	0 },
+	{ "all", no_argument, NULL, 'a' },
+	{ "directories", no_argument, NULL, 'd' },
+	{ "exports-script", no_argument, NULL, 'E' },
+	{ "exports", no_argument, NULL, 'e' },
+	{ NULL, 0, NULL, 0 },
 };
 
 /*
@@ -166,15 +165,16 @@ main(int argc, char **argv)
 
 	if (rpcs & DODUMP)
 		if ((estat = tcp_callrpc(host, MOUNTPROG, mntvers,
-			MOUNTPROC_DUMP, (xdrproc_t)xdr_void, (char *)0,
-			(xdrproc_t)xdr_mntdump, (char *)&mntdump)) != 0) {
+			 MOUNTPROC_DUMP, (xdrproc_t)xdr_void, (char *)0,
+			 (xdrproc_t)xdr_mntdump, (char *)&mntdump)) != 0) {
 			clnt_perrno(estat);
 			errx(1, "can't do mountdump rpc");
 		}
 	if (rpcs & (DOEXPORTS | DOPARSABLEEXPORTS))
 		if ((estat = tcp_callrpc(host, MOUNTPROG, mntvers,
-			MOUNTPROC_EXPORT, (xdrproc_t)xdr_void, (char *)0,
-			(xdrproc_t)xdr_exportslist, (char *)&exportslist)) != 0) {
+			 MOUNTPROC_EXPORT, (xdrproc_t)xdr_void, (char *)0,
+			 (xdrproc_t)xdr_exportslist, (char *)&exportslist)) !=
+		    0) {
 			clnt_perrno(estat);
 			errx(1, "can't do exports rpc");
 		}
@@ -230,7 +230,7 @@ main(int argc, char **argv)
  * tcp_callrpc has the same interface as callrpc, but tries to
  * use tcp as transport method in order to handle large replies.
  */
-int 
+int
 tcp_callrpc(const char *host, int prognum, int versnum, int procnum,
     xdrproc_t inproc, char *in, xdrproc_t outproc, char *out)
 {
@@ -240,16 +240,14 @@ tcp_callrpc(const char *host, int prognum, int versnum, int procnum,
 
 	if ((client = clnt_create(host, prognum, versnum, "tcp")) == NULL &&
 	    (client = clnt_create(host, prognum, versnum, "udp")) == NULL)
-		return ((int) rpc_createerr.cf_stat);
+		return ((int)rpc_createerr.cf_stat);
 
 	timeout.tv_sec = 25;
 	timeout.tv_usec = 0;
-	rval = (int) clnt_call(client, procnum, 
-			       inproc, in,
-			       outproc, out,
-			       timeout);
+	rval = (int)clnt_call(client, procnum, inproc, in, outproc, out,
+	    timeout);
 	clnt_destroy(client);
- 	return rval;
+	return rval;
 }
 
 /*
@@ -329,7 +327,7 @@ xdr_mntdump(XDR *xdrsp, struct mountlist **mlp)
 			}
 			*otp = mp;
 		}
-next:
+	next:
 		if (!xdr_bool(xdrsp, &bool))
 			return (0);
 	}
@@ -361,7 +359,8 @@ xdr_exportslist(XDR *xdrsp, struct exportslist **exp)
 		if (!xdr_bool(xdrsp, &grpbool))
 			return (0);
 		while (grpbool) {
-			gp = (struct grouplist *)malloc(sizeof(struct grouplist));
+			gp = (struct grouplist *)malloc(
+			    sizeof(struct grouplist));
 			if (gp == NULL)
 				return (0);
 			strp = gp->gr_name;

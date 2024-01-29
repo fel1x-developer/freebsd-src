@@ -29,13 +29,14 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/conf.h>
 #include <sys/condvar.h>
+#include <sys/conf.h>
 #include <sys/eventhandler.h>
 #include <sys/kernel.h>
 #include <sys/kthread.h>
 #include <sys/rman.h>
 #include <sys/selinfo.h>
+
 #include <machine/bus.h>
 
 #ifdef LOCAL_MODULE
@@ -43,16 +44,17 @@
 #include <ipmivars.h>
 #else
 #include <sys/ipmi.h>
+
 #include <dev/ipmi/ipmivars.h>
 #endif
 
-#define	POLLING_DELAY_MIN 4	/* Waits are 2-3 usecs on typical systems */
-#define	POLLING_DELAY_MAX 256
+#define POLLING_DELAY_MIN 4 /* Waits are 2-3 usecs on typical systems */
+#define POLLING_DELAY_MAX 256
 
-static void	kcs_clear_obf(struct ipmi_softc *, int);
-static void	kcs_error(struct ipmi_softc *);
-static int	kcs_wait_for_ibf(struct ipmi_softc *, bool);
-static int	kcs_wait_for_obf(struct ipmi_softc *, bool);
+static void kcs_clear_obf(struct ipmi_softc *, int);
+static void kcs_error(struct ipmi_softc *);
+static int kcs_wait_for_ibf(struct ipmi_softc *, bool);
+static int kcs_wait_for_obf(struct ipmi_softc *, bool);
 
 static int
 kcs_wait(struct ipmi_softc *sc, int value, int mask)
@@ -488,7 +490,8 @@ kcs_startup(struct ipmi_softc *sc)
 }
 
 static int
-kcs_driver_request_queue(struct ipmi_softc *sc, struct ipmi_request *req, int timo)
+kcs_driver_request_queue(struct ipmi_softc *sc, struct ipmi_request *req,
+    int timo)
 {
 	int error;
 
@@ -525,7 +528,6 @@ kcs_driver_request(struct ipmi_softc *sc, struct ipmi_request *req, int timo)
 	else
 		return (kcs_driver_request_queue(sc, req, timo));
 }
-
 
 int
 ipmi_kcs_attach(struct ipmi_softc *sc)
@@ -571,7 +573,8 @@ ipmi_kcs_probe_align(struct ipmi_softc *sc)
 	sc->ipmi_io_spacing = 1;
 retry:
 #ifdef KCS_DEBUG
-	device_printf(sc->ipmi_dev, "Trying KCS align %d... ", sc->ipmi_io_spacing);
+	device_printf(sc->ipmi_dev, "Trying KCS align %d... ",
+	    sc->ipmi_io_spacing);
 #endif
 
 	/* Wait for IBF = 0 */

@@ -59,6 +59,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "stand.h"
 
 struct fs_ops *exclusive_file_system;
@@ -73,7 +74,7 @@ struct fs_ops *exclusive_file_system;
  * close will free all unused tail entries.
  *
  * Only case we expect open file list to grow long, is with zfs pools with
- * many disks. 
+ * many disks.
  */
 file_list_t files = TAILQ_HEAD_INITIALIZER(files);
 
@@ -86,7 +87,7 @@ fd2open_file(int fd)
 {
 	struct open_file *f;
 
-	TAILQ_FOREACH(f, &files, f_link) {
+	TAILQ_FOREACH (f, &files, f_link) {
 		if (fd >= 0) {
 			if (f->f_id == fd)
 				break;
@@ -112,7 +113,7 @@ o_gethandle(struct open_file **ptr)
 	}
 
 	/* Add new entry */
-	f = calloc(1, sizeof (*f));
+	f = calloc(1, sizeof(*f));
 	if (f == NULL)
 		return (-1);
 
@@ -164,8 +165,7 @@ open(const char *fname, int mode)
 	}
 
 	error = devopen(f, fname, &file);
-	if (error ||
-	    (((f->f_flags & F_NODEV) == 0) && f->f_dev == NULL))
+	if (error || (((f->f_flags & F_NODEV) == 0) && f->f_dev == NULL))
 		goto err;
 
 	/* see if we opened a raw device; otherwise, 'file' is the file name. */

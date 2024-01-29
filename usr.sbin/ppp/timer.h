@@ -28,23 +28,23 @@
  * SUCH DAMAGE.
  */
 
-#define	TICKUNIT	100000			/* usec's per Unit */
-#define	SECTICKS	(1000000/TICKUNIT)	/* Units per second */
+#define TICKUNIT 100000		      /* usec's per Unit */
+#define SECTICKS (1000000 / TICKUNIT) /* Units per second */
 
 struct pppTimer {
-  int state;
-  const char *name;
-  u_long rest;			/* Ticks to expire */
-  u_long load;			/* Initial load value */
-  void (*func)(void *);		/* Function called when timer is expired */
-  void *arg;			/* Argument passed to timeout function */
-  struct pppTimer *next;	/* Link to next timer */
-  struct pppTimer *enext;	/* Link to next expired timer */
+	int state;
+	const char *name;
+	u_long rest;		/* Ticks to expire */
+	u_long load;		/* Initial load value */
+	void (*func)(void *);	/* Function called when timer is expired */
+	void *arg;		/* Argument passed to timeout function */
+	struct pppTimer *next;	/* Link to next timer */
+	struct pppTimer *enext; /* Link to next expired timer */
 };
 
-#define	TIMER_STOPPED	0
-#define	TIMER_RUNNING	1
-#define	TIMER_EXPIRED	2
+#define TIMER_STOPPED 0
+#define TIMER_RUNNING 1
+#define TIMER_EXPIRED 2
 
 struct prompt;
 

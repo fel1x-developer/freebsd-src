@@ -30,35 +30,33 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
-#include <sys/rmlock.h>
-#include <sys/rwlock.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
 #include <sys/refcount.h>
+#include <sys/rmlock.h>
+#include <sys/rwlock.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
-#include <sys/kernel.h>
 
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_dl.h>
+#include <net/if_var.h>
 #include <net/route.h>
+#include <net/route/nhgrp_var.h>
+#include <net/route/nhop.h>
+#include <net/route/nhop_utils.h>
+#include <net/route/nhop_var.h>
 #include <net/route/route_ctl.h>
 #include <net/route/route_var.h>
 #include <net/vnet.h>
-
 #include <netinet/in.h>
-#include <netinet/in_var.h>
 #include <netinet/in_fib.h>
+#include <netinet/in_var.h>
 
-#include <net/route/nhop_utils.h>
-#include <net/route/nhop.h>
-#include <net/route/nhop_var.h>
-#include <net/route/nhgrp_var.h>
-
-#define	DEBUG_MOD_NAME	nhgrp
-#define	DEBUG_MAX_LEVEL	LOG_DEBUG
+#define DEBUG_MOD_NAME nhgrp
+#define DEBUG_MAX_LEVEL LOG_DEBUG
 #include <net/route/route_debug.h>
 _DECLARE_DEBUG(LOG_INFO);
 
@@ -128,7 +126,8 @@ hash_nhgrp(const struct nhgrp_priv *obj)
 
 	key = (const unsigned char *)obj->nhg_nh_weights;
 
-	return (djb_hash(key, sizeof(struct weightened_nhop) * obj->nhg_nh_count));
+	return (
+	    djb_hash(key, sizeof(struct weightened_nhop) * obj->nhg_nh_count));
 }
 
 /*
@@ -142,7 +141,8 @@ find_nhgrp(struct nh_control *ctl, const struct nhgrp_priv *key)
 	NHOPS_RLOCK(ctl);
 	CHT_SLIST_FIND_BYOBJ(&ctl->gr_head, mpath, key, priv_ret);
 	if (priv_ret != NULL) {
-		if (refcount_acquire_if_not_zero(&priv_ret->nhg_refcount) == 0) {
+		if (refcount_acquire_if_not_zero(&priv_ret->nhg_refcount) ==
+		    0) {
 			/* refcount is 0 -> group is being deleted */
 			priv_ret = NULL;
 		}
@@ -165,7 +165,8 @@ link_nhgrp(struct nh_control *ctl, struct nhgrp_priv *grp_priv)
 
 	if (bitmask_alloc_idx(&ctl->nh_idx_head, &idx) != 0) {
 		NHOPS_WUNLOCK(ctl);
-		FIB_RH_LOG(LOG_DEBUG, ctl->ctl_rh, "Unable to allocate nhg index");
+		FIB_RH_LOG(LOG_DEBUG, ctl->ctl_rh,
+		    "Unable to allocate nhg index");
 		consider_resize(ctl, new_num_buckets, new_num_items);
 		return (0);
 	}
@@ -176,10 +177,12 @@ link_nhgrp(struct nh_control *ctl, struct nhgrp_priv *grp_priv)
 
 	NHOPS_WUNLOCK(ctl);
 
-	IF_DEBUG_LEVEL(LOG_DEBUG2) {
+	IF_DEBUG_LEVEL(LOG_DEBUG2)
+	{
 		char nhgrp_buf[NHOP_PRINT_BUFSIZE] __unused;
 		FIB_RH_LOG(LOG_DEBUG2, ctl->ctl_rh, "linked %s",
-		    nhgrp_print_buf(grp_priv->nhg, nhgrp_buf, sizeof(nhgrp_buf)));
+		    nhgrp_print_buf(grp_priv->nhg, nhgrp_buf,
+			sizeof(nhgrp_buf)));
 	}
 	consider_resize(ctl, new_num_buckets, new_num_items);
 
@@ -209,9 +212,11 @@ unlink_nhgrp(struct nh_control *ctl, struct nhgrp_priv *key)
 
 	NHOPS_WUNLOCK(ctl);
 
-	IF_DEBUG_LEVEL(LOG_DEBUG2) {
+	IF_DEBUG_LEVEL(LOG_DEBUG2)
+	{
 		char nhgrp_buf[NHOP_PRINT_BUFSIZE];
-		nhgrp_print_buf(nhg_priv_ret->nhg, nhgrp_buf, sizeof(nhgrp_buf));
+		nhgrp_print_buf(nhg_priv_ret->nhg, nhgrp_buf,
+		    sizeof(nhgrp_buf));
 		FIB_RH_LOG(LOG_DEBUG2, ctl->ctl_rh, "unlinked idx#%d %s", idx,
 		    nhgrp_buf);
 	}
@@ -224,13 +229,14 @@ unlink_nhgrp(struct nh_control *ctl, struct nhgrp_priv *key)
  *
  */
 static void
-consider_resize(struct nh_control *ctl, uint32_t new_gr_bucket, uint32_t new_idx_items)
+consider_resize(struct nh_control *ctl, uint32_t new_gr_bucket,
+    uint32_t new_idx_items)
 {
 	void *gr_ptr, *gr_idx_ptr;
 	void *old_idx_ptr;
 	size_t alloc_size;
 
-	gr_ptr = NULL ;
+	gr_ptr = NULL;
 	if (new_gr_bucket != 0) {
 		alloc_size = CHT_SLIST_GET_RESIZE_SIZE(new_gr_bucket);
 		gr_ptr = malloc(alloc_size, M_NHOP, M_NOWAIT | M_ZERO);
@@ -258,8 +264,10 @@ consider_resize(struct nh_control *ctl, uint32_t new_gr_bucket, uint32_t new_idx
 		CHT_SLIST_RESIZE(&ctl->gr_head, mpath, gr_ptr, new_gr_bucket);
 	}
 	if (gr_idx_ptr != NULL) {
-		if (bitmask_copy(&ctl->nh_idx_head, gr_idx_ptr, new_idx_items) == 0)
-			bitmask_swap(&ctl->nh_idx_head, gr_idx_ptr, new_idx_items, &old_idx_ptr);
+		if (bitmask_copy(&ctl->nh_idx_head, gr_idx_ptr,
+			new_idx_items) == 0)
+			bitmask_swap(&ctl->nh_idx_head, gr_idx_ptr,
+			    new_idx_items, &old_idx_ptr);
 	}
 	NHOPS_WUNLOCK(ctl);
 
@@ -333,13 +341,17 @@ nhgrp_ctl_unlink_all(struct nh_control *ctl)
 
 	NHOPS_WLOCK_ASSERT(ctl);
 
-	CHT_SLIST_FOREACH(&ctl->gr_head, mpath, nhg_priv) {
-		IF_DEBUG_LEVEL(LOG_DEBUG2) {
+	CHT_SLIST_FOREACH(&ctl->gr_head, mpath, nhg_priv)
+	{
+		IF_DEBUG_LEVEL(LOG_DEBUG2)
+		{
 			char nhgbuf[NHOP_PRINT_BUFSIZE] __unused;
-			FIB_RH_LOG(LOG_DEBUG2, ctl->ctl_rh, "marking %s unlinked",
-			    nhgrp_print_buf(nhg_priv->nhg, nhgbuf, sizeof(nhgbuf)));
+			FIB_RH_LOG(LOG_DEBUG2, ctl->ctl_rh,
+			    "marking %s unlinked",
+			    nhgrp_print_buf(nhg_priv->nhg, nhgbuf,
+				sizeof(nhgbuf)));
 		}
 		refcount_release(&nhg_priv->nhg_linked);
-	} CHT_SLIST_FOREACH_END;
+	}
+	CHT_SLIST_FOREACH_END;
 }
-

@@ -26,13 +26,13 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/proc.h>
 #include <sys/pcpu.h>
+#include <sys/proc.h>
 #include <sys/rman.h>
 #include <sys/sched.h>
 #include <sys/smp.h>
@@ -41,8 +41,8 @@
 #include <machine/resource.h>
 #include <machine/tlb.h>
 
-#include "qman.h"
 #include "portals.h"
+#include "qman.h"
 
 extern struct dpaa_portals_softc *qp_sc;
 static struct qman_softc *qman_sc;
@@ -172,16 +172,16 @@ qman_attach(device_t dev)
 
 	/* Allocate resources */
 	sc->sc_rrid = 0;
-	sc->sc_rres = bus_alloc_resource(dev, SYS_RES_MEMORY,
-	    &sc->sc_rrid, 0, ~0, QMAN_CCSR_SIZE, RF_ACTIVE);
+	sc->sc_rres = bus_alloc_resource(dev, SYS_RES_MEMORY, &sc->sc_rrid, 0,
+	    ~0, QMAN_CCSR_SIZE, RF_ACTIVE);
 	if (sc->sc_rres == NULL) {
 		device_printf(dev, "could not allocate memory.\n");
 		goto err;
 	}
 
 	sc->sc_irid = 0;
-	sc->sc_ires = bus_alloc_resource_any(dev, SYS_RES_IRQ,
-	    &sc->sc_irid, RF_ACTIVE | RF_SHAREABLE);
+	sc->sc_ires = bus_alloc_resource_any(dev, SYS_RES_IRQ, &sc->sc_irid,
+	    RF_ACTIVE | RF_SHAREABLE);
 	if (sc->sc_ires == NULL) {
 		device_printf(dev, "could not allocate error interrupt.\n");
 		goto err;
@@ -226,8 +226,8 @@ qman_attach(device_t dev)
 		goto err;
 	}
 
-	device_printf(dev, "Hardware version: %d.%d.\n",
-	    rev.majorRev, rev.minorRev);
+	device_printf(dev, "Hardware version: %d.%d.\n", rev.majorRev,
+	    rev.minorRev);
 
 	sched_unpin();
 
@@ -255,12 +255,12 @@ qman_detach(device_t dev)
 		XX_DeallocIntr((uintptr_t)sc->sc_ires);
 
 	if (sc->sc_ires != NULL)
-		bus_release_resource(dev, SYS_RES_IRQ,
-		    sc->sc_irid, sc->sc_ires);
+		bus_release_resource(dev, SYS_RES_IRQ, sc->sc_irid,
+		    sc->sc_ires);
 
 	if (sc->sc_rres != NULL)
-		bus_release_resource(dev, SYS_RES_MEMORY,
-		    sc->sc_rrid, sc->sc_rres);
+		bus_release_resource(dev, SYS_RES_MEMORY, sc->sc_rrid,
+		    sc->sc_rres);
 
 	return (0);
 }
@@ -286,7 +286,6 @@ qman_shutdown(device_t dev)
 	return (0);
 }
 
-
 /**
  * @group QMan API functions implementation.
  * @{
@@ -294,10 +293,9 @@ qman_shutdown(device_t dev)
 
 t_Handle
 qman_fqr_create(uint32_t fqids_num, e_QmFQChannel channel, uint8_t wq,
-    bool force_fqid, uint32_t fqid_or_align, bool init_parked,
-    bool hold_active, bool prefer_in_cache, bool congst_avoid_ena,
-    t_Handle congst_group, int8_t overhead_accounting_len,
-    uint32_t tail_drop_threshold)
+    bool force_fqid, uint32_t fqid_or_align, bool init_parked, bool hold_active,
+    bool prefer_in_cache, bool congst_avoid_ena, t_Handle congst_group,
+    int8_t overhead_accounting_len, uint32_t tail_drop_threshold)
 {
 	struct qman_softc *sc;
 	t_QmFqrParams fqr;
@@ -354,7 +352,8 @@ qman_fqr_create(uint32_t fqids_num, e_QmFQChannel channel, uint8_t wq,
 
 	fqrh = QM_FQR_Create(&fqr);
 	if (fqrh == NULL) {
-		device_printf(sc->sc_dev, "could not create Frame Queue Range"
+		device_printf(sc->sc_dev,
+		    "could not create Frame Queue Range"
 		    "\n");
 		goto err;
 	}
@@ -443,8 +442,7 @@ qman_fqr_enqueue(t_Handle fqr, uint32_t fqid_off, t_DpaaFD *frame)
 }
 
 uint32_t
-qman_fqr_get_counter(t_Handle fqr, uint32_t fqid_off,
-    e_QmFqrCounters counter)
+qman_fqr_get_counter(t_Handle fqr, uint32_t fqid_off, e_QmFqrCounters counter)
 {
 	struct qman_softc *sc;
 	uint32_t val;

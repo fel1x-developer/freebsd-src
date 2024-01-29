@@ -21,57 +21,57 @@
  * be called from within the config thread function !
  */
 
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
 #include <dev/usb/usbhid.h>
+
 #include "usbdevs.h"
 
-#define	USB_DEBUG_VAR usb_debug
+#define USB_DEBUG_VAR usb_debug
+#include <dev/usb/serial/usb_serial.h>
 #include <dev/usb/usb_debug.h>
 #include <dev/usb/usb_process.h>
 
-#include <dev/usb/serial/usb_serial.h>
+#define UARK_BUF_SIZE 1024 /* bytes */
 
-#define	UARK_BUF_SIZE		1024	/* bytes */
+#define UARK_SET_DATA_BITS(x) ((x)-5)
 
-#define	UARK_SET_DATA_BITS(x)	((x) - 5)
+#define UARK_PARITY_NONE 0x00
+#define UARK_PARITY_ODD 0x08
+#define UARK_PARITY_EVEN 0x18
 
-#define	UARK_PARITY_NONE	0x00
-#define	UARK_PARITY_ODD		0x08
-#define	UARK_PARITY_EVEN	0x18
+#define UARK_STOP_BITS_1 0x00
+#define UARK_STOP_BITS_2 0x04
 
-#define	UARK_STOP_BITS_1	0x00
-#define	UARK_STOP_BITS_2	0x04
+#define UARK_BAUD_REF 3000000
 
-#define	UARK_BAUD_REF		3000000
+#define UARK_WRITE 0x40
+#define UARK_READ 0xc0
 
-#define	UARK_WRITE		0x40
-#define	UARK_READ		0xc0
+#define UARK_REQUEST 0xfe
 
-#define	UARK_REQUEST		0xfe
-
-#define	UARK_CONFIG_INDEX	0
-#define	UARK_IFACE_INDEX	0
+#define UARK_CONFIG_INDEX 0
+#define UARK_IFACE_INDEX 0
 
 enum {
 	UARK_BULK_DT_WR,
@@ -87,8 +87,8 @@ struct uark_softc {
 	struct usb_device *sc_udev;
 	struct mtx sc_mtx;
 
-	uint8_t	sc_msr;
-	uint8_t	sc_lsr;
+	uint8_t sc_msr;
+	uint8_t sc_lsr;
 };
 
 /* prototypes */
@@ -101,18 +101,17 @@ static void uark_free_softc(struct uark_softc *);
 static usb_callback_t uark_bulk_write_callback;
 static usb_callback_t uark_bulk_read_callback;
 
-static void	uark_free(struct ucom_softc *);
-static void	uark_start_read(struct ucom_softc *);
-static void	uark_stop_read(struct ucom_softc *);
-static void	uark_start_write(struct ucom_softc *);
-static void	uark_stop_write(struct ucom_softc *);
-static int	uark_pre_param(struct ucom_softc *, struct termios *);
-static void	uark_cfg_param(struct ucom_softc *, struct termios *);
-static void	uark_cfg_get_status(struct ucom_softc *, uint8_t *,
-		    uint8_t *);
-static void	uark_cfg_set_break(struct ucom_softc *, uint8_t);
-static void	uark_cfg_write(struct uark_softc *, uint16_t, uint16_t);
-static void	uark_poll(struct ucom_softc *ucom);
+static void uark_free(struct ucom_softc *);
+static void uark_start_read(struct ucom_softc *);
+static void uark_stop_read(struct ucom_softc *);
+static void uark_start_write(struct ucom_softc *);
+static void uark_stop_write(struct ucom_softc *);
+static int uark_pre_param(struct ucom_softc *, struct termios *);
+static void uark_cfg_param(struct ucom_softc *, struct termios *);
+static void uark_cfg_get_status(struct ucom_softc *, uint8_t *, uint8_t *);
+static void uark_cfg_set_break(struct ucom_softc *, uint8_t);
+static void uark_cfg_write(struct uark_softc *, uint16_t, uint16_t);
+static void uark_poll(struct ucom_softc *ucom);
 
 static const struct usb_config
 	uark_xfer_config[UARK_N_TRANSFER] = {
@@ -152,8 +151,7 @@ static device_method_t uark_methods[] = {
 	/* Device methods */
 	DEVMETHOD(device_probe, uark_probe),
 	DEVMETHOD(device_attach, uark_attach),
-	DEVMETHOD(device_detach, uark_detach),
-	DEVMETHOD_END
+	DEVMETHOD(device_detach, uark_detach), DEVMETHOD_END
 };
 
 static driver_t uark_driver = {
@@ -163,7 +161,7 @@ static driver_t uark_driver = {
 };
 
 static const STRUCT_USB_HOST_ID uark_devs[] = {
-	{USB_VPI(USB_VENDOR_ARKMICRO, USB_PRODUCT_ARKMICRO_ARK3116, 0)},
+	{ USB_VPI(USB_VENDOR_ARKMICRO, USB_PRODUCT_ARKMICRO_ARK3116, 0) },
 };
 
 DRIVER_MODULE(uark, uhub, uark_driver, NULL, NULL);
@@ -204,12 +202,12 @@ uark_attach(device_t dev)
 	sc->sc_udev = uaa->device;
 
 	iface_index = UARK_IFACE_INDEX;
-	error = usbd_transfer_setup
-	    (uaa->device, &iface_index, sc->sc_xfer,
+	error = usbd_transfer_setup(uaa->device, &iface_index, sc->sc_xfer,
 	    uark_xfer_config, UARK_N_TRANSFER, sc, &sc->sc_mtx);
 
 	if (error) {
-		device_printf(dev, "allocating control USB "
+		device_printf(dev,
+		    "allocating control USB "
 		    "transfers failed\n");
 		goto detach;
 	}
@@ -227,11 +225,11 @@ uark_attach(device_t dev)
 	}
 	ucom_set_pnpinfo_usb(&sc->sc_super_ucom, dev);
 
-	return (0);			/* success */
+	return (0); /* success */
 
 detach:
 	uark_detach(dev);
-	return (ENXIO);			/* failure */
+	return (ENXIO); /* failure */
 }
 
 static int
@@ -276,16 +274,16 @@ uark_bulk_write_callback(struct usb_xfer *xfer, usb_error_t error)
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_SETUP:
 	case USB_ST_TRANSFERRED:
-tr_setup:
+	tr_setup:
 		pc = usbd_xfer_get_frame(xfer, 0);
-		if (ucom_get_data(&sc->sc_ucom, pc, 0,
-		    UARK_BUF_SIZE, &actlen)) {
+		if (ucom_get_data(&sc->sc_ucom, pc, 0, UARK_BUF_SIZE,
+			&actlen)) {
 			usbd_xfer_set_frame_len(xfer, 0, actlen);
 			usbd_transfer_submit(xfer);
 		}
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -310,12 +308,12 @@ uark_bulk_read_callback(struct usb_xfer *xfer, usb_error_t error)
 		ucom_put_data(&sc->sc_ucom, pc, 0, actlen);
 
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -447,11 +445,13 @@ uark_cfg_write(struct uark_softc *sc, uint16_t index, uint16_t value)
 	USETW(req.wIndex, index);
 	USETW(req.wLength, 0);
 
-	err = ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, 
-	    &req, NULL, 0, 1000);
+	err = ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, NULL, 0,
+	    1000);
 	if (err) {
-		DPRINTFN(0, "device request failed, err=%s "
-		    "(ignored)\n", usbd_errstr(err));
+		DPRINTFN(0,
+		    "device request failed, err=%s "
+		    "(ignored)\n",
+		    usbd_errstr(err));
 	}
 }
 

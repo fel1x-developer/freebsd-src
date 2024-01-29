@@ -33,19 +33,19 @@
 
 #include <sys/types.h>
 #include <sys/param.h>
-#include <err.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <spawn.h>
 #include <sys/module.h>
 #include <sys/sbuf.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 
 #include <atf-c.h>
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <spawn.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 /*
  * Tests 0001-0999 are copied from OpenBSD's regress/sbin/pfctl.
@@ -151,10 +151,10 @@ run_pfctl_test(const char *input_path, const char *expected_path,
 		NULL };
 	printf("Running %s %s %s %s %s\n", argv[0], argv[1], argv[2], argv[3],
 	    argv[4]);
-	status = posix_spawnp(
-	    &pid, "pfctl", &action, NULL, __DECONST(char **, argv), environ);
-	ATF_REQUIRE_EQ_MSG(
-	    status, 0, "posix_spawn failed: %s", strerror(errno));
+	status = posix_spawnp(&pid, "pfctl", &action, NULL,
+	    __DECONST(char **, argv), environ);
+	ATF_REQUIRE_EQ_MSG(status, 0, "posix_spawn failed: %s",
+	    strerror(errno));
 	posix_spawn_file_actions_destroy(&action);
 	close(pipefds[0]);
 
@@ -194,32 +194,32 @@ do_selfpf_test(const char *number, const atf_tc_t *tc)
 	free(expected_path);
 }
 
-#define PFCTL_TEST(number, descr)				\
-	ATF_TC(pf##number);					\
-	ATF_TC_HEAD(pf##number, tc)				\
-	{							\
-		atf_tc_set_md_var(tc, "descr", descr);		\
-	}							\
-	ATF_TC_BODY(pf##number, tc)				\
-	{							\
-		do_pf_test(#number, tc);			\
-	}							\
-	ATF_TC(selfpf##number);					\
-	ATF_TC_HEAD(selfpf##number, tc)				\
-	{							\
-		atf_tc_set_md_var(tc, "descr", "Self " descr);	\
-	}							\
-	ATF_TC_BODY(selfpf##number, tc)				\
-	{							\
-		do_selfpf_test(#number, tc);			\
+#define PFCTL_TEST(number, descr)                              \
+	ATF_TC(pf##number);                                    \
+	ATF_TC_HEAD(pf##number, tc)                            \
+	{                                                      \
+		atf_tc_set_md_var(tc, "descr", descr);         \
+	}                                                      \
+	ATF_TC_BODY(pf##number, tc)                            \
+	{                                                      \
+		do_pf_test(#number, tc);                       \
+	}                                                      \
+	ATF_TC(selfpf##number);                                \
+	ATF_TC_HEAD(selfpf##number, tc)                        \
+	{                                                      \
+		atf_tc_set_md_var(tc, "descr", "Self " descr); \
+	}                                                      \
+	ATF_TC_BODY(selfpf##number, tc)                        \
+	{                                                      \
+		do_selfpf_test(#number, tc);                   \
 	}
 #include "pfctl_test_list.inc"
 #undef PFCTL_TEST
 
 ATF_TP_ADD_TCS(tp)
 {
-#define PFCTL_TEST(number, descr)		\
-	ATF_TP_ADD_TC(tp, pf##number);		\
+#define PFCTL_TEST(number, descr)      \
+	ATF_TP_ADD_TC(tp, pf##number); \
 	ATF_TP_ADD_TC(tp, selfpf##number);
 #include "pfctl_test_list.inc"
 #undef PFCTL_TEST

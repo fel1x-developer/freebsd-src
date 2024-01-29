@@ -30,8 +30,7 @@
  * official policies, either expressed or implied, of the FreeBSD Project.
  */
 
-void		 search_paths(char *path, char **argv);
-void		 split_spaces(const char *str, int *origind, int *origc,
-		    char ***origv);
+void search_paths(char *path, char **argv);
+void split_spaces(const char *str, int *origind, int *origc, char ***origv);
 
-extern int	 env_verbosity;
+extern int env_verbosity;

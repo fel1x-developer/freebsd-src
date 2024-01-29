@@ -49,16 +49,16 @@ struct iommu_qi_genseq {
 struct iommu_map_entry {
 	iommu_gaddr_t start;
 	iommu_gaddr_t end;
-	iommu_gaddr_t first;		/* Least start in subtree */
-	iommu_gaddr_t last;		/* Greatest end in subtree */
-	iommu_gaddr_t free_down;	/* Max free space below the
-					   current R/B tree node */
+	iommu_gaddr_t first;	 /* Least start in subtree */
+	iommu_gaddr_t last;	 /* Greatest end in subtree */
+	iommu_gaddr_t free_down; /* Max free space below the
+				    current R/B tree node */
 	u_int flags;
 	union {
 		TAILQ_ENTRY(iommu_map_entry) dmamap_link; /* DMA map entries */
 		struct iommu_map_entry *tlb_flush_next;
 	};
-	RB_ENTRY(iommu_map_entry) rb_entry;	 /* Links for domain entries */
+	RB_ENTRY(iommu_map_entry) rb_entry; /* Links for domain entries */
 	struct iommu_domain *domain;
 	struct iommu_qi_genseq gseq;
 };
@@ -99,67 +99,71 @@ struct iommu_domain_map_ops {
  */
 
 struct iommu_domain {
-	struct iommu_unit *iommu;	/* (c) */
+	struct iommu_unit *iommu; /* (c) */
 	const struct iommu_domain_map_ops *ops;
-	struct mtx lock;		/* (c) */
-	struct task unload_task;	/* (c) */
-	u_int entries_cnt;		/* (d) */
+	struct mtx lock;			       /* (c) */
+	struct task unload_task;		       /* (c) */
+	u_int entries_cnt;			       /* (d) */
 	struct iommu_map_entries_tailq unload_entries; /* (d) Entries to
 							 unload */
-	struct iommu_gas_entries_tree rb_root; /* (d) */
-	struct iommu_map_entry *start_gap;     /* (d) */
-	iommu_gaddr_t end;		/* (c) Highest address + 1 in
-					   the guest AS */
+	struct iommu_gas_entries_tree rb_root;	       /* (d) */
+	struct iommu_map_entry *start_gap;	       /* (d) */
+	iommu_gaddr_t end; /* (c) Highest address + 1 in
+			      the guest AS */
 	struct iommu_map_entry *first_place, *last_place; /* (d) */
 	struct iommu_map_entry *msi_entry; /* (d) Arch-specific */
-	iommu_gaddr_t msi_base;		/* (d) Arch-specific */
-	vm_paddr_t msi_phys;		/* (d) Arch-specific */
-	u_int flags;			/* (u) */
+	iommu_gaddr_t msi_base;		   /* (d) Arch-specific */
+	vm_paddr_t msi_phys;		   /* (d) Arch-specific */
+	u_int flags;			   /* (u) */
 };
 
 struct iommu_ctx {
-	struct iommu_domain *domain;	/* (c) */
-	struct bus_dma_tag_iommu *tag;	/* (c) Root tag */
-	u_long loads;			/* atomic updates, for stat only */
-	u_long unloads;			/* same */
-	u_int flags;			/* (u) */
-	uint16_t rid;			/* (c) pci RID */
+	struct iommu_domain *domain;   /* (c) */
+	struct bus_dma_tag_iommu *tag; /* (c) Root tag */
+	u_long loads;		       /* atomic updates, for stat only */
+	u_long unloads;		       /* same */
+	u_int flags;		       /* (u) */
+	uint16_t rid;		       /* (c) pci RID */
 };
 
 /* struct iommu_ctx flags */
-#define	IOMMU_CTX_FAULTED	0x0001	/* Fault was reported,
-					   last_fault_rec is valid */
-#define	IOMMU_CTX_DISABLED	0x0002	/* Device is disabled, the
-					   ephemeral reference is kept
-					   to prevent context destruction */
+#define IOMMU_CTX_FAULTED             \
+	0x0001 /* Fault was reported, \
+		  last_fault_rec is valid */
+#define IOMMU_CTX_DISABLED                    \
+	0x0002 /* Device is disabled, the     \
+		  ephemeral reference is kept \
+		  to prevent context destruction */
 
-#define	IOMMU_DOMAIN_GAS_INITED		0x0001
-#define	IOMMU_DOMAIN_PGTBL_INITED	0x0002
-#define	IOMMU_DOMAIN_IDMAP		0x0010	/* Domain uses identity
-						   page table */
-#define	IOMMU_DOMAIN_RMRR		0x0020	/* Domain contains RMRR entry,
-						   cannot be turned off */
+#define IOMMU_DOMAIN_GAS_INITED 0x0001
+#define IOMMU_DOMAIN_PGTBL_INITED 0x0002
+#define IOMMU_DOMAIN_IDMAP             \
+	0x0010 /* Domain uses identity \
+		  page table */
+#define IOMMU_DOMAIN_RMRR                     \
+	0x0020 /* Domain contains RMRR entry, \
+		  cannot be turned off */
 
-#define	IOMMU_LOCK(unit)		mtx_lock(&(unit)->lock)
-#define	IOMMU_UNLOCK(unit)		mtx_unlock(&(unit)->lock)
-#define	IOMMU_ASSERT_LOCKED(unit)	mtx_assert(&(unit)->lock, MA_OWNED)
+#define IOMMU_LOCK(unit) mtx_lock(&(unit)->lock)
+#define IOMMU_UNLOCK(unit) mtx_unlock(&(unit)->lock)
+#define IOMMU_ASSERT_LOCKED(unit) mtx_assert(&(unit)->lock, MA_OWNED)
 
-#define	IOMMU_DOMAIN_LOCK(dom)		mtx_lock(&(dom)->lock)
-#define	IOMMU_DOMAIN_UNLOCK(dom)	mtx_unlock(&(dom)->lock)
-#define	IOMMU_DOMAIN_ASSERT_LOCKED(dom)	mtx_assert(&(dom)->lock, MA_OWNED)
+#define IOMMU_DOMAIN_LOCK(dom) mtx_lock(&(dom)->lock)
+#define IOMMU_DOMAIN_UNLOCK(dom) mtx_unlock(&(dom)->lock)
+#define IOMMU_DOMAIN_ASSERT_LOCKED(dom) mtx_assert(&(dom)->lock, MA_OWNED)
 
 void iommu_free_ctx(struct iommu_ctx *ctx);
 void iommu_free_ctx_locked(struct iommu_unit *iommu, struct iommu_ctx *ctx);
-struct iommu_ctx *iommu_get_ctx(struct iommu_unit *, device_t dev,
-    uint16_t rid, bool id_mapped, bool rmrr_init);
+struct iommu_ctx *iommu_get_ctx(struct iommu_unit *, device_t dev, uint16_t rid,
+    bool id_mapped, bool rmrr_init);
 struct iommu_unit *iommu_find(device_t dev, bool verbose);
 void iommu_domain_unload_entry(struct iommu_map_entry *entry, bool free,
     bool cansleep);
 void iommu_domain_unload(struct iommu_domain *domain,
     struct iommu_map_entries_tailq *entries, bool cansleep);
 
-struct iommu_ctx *iommu_instantiate_ctx(struct iommu_unit *iommu,
-    device_t dev, bool rmrr);
+struct iommu_ctx *iommu_instantiate_ctx(struct iommu_unit *iommu, device_t dev,
+    bool rmrr);
 device_t iommu_get_requester(device_t dev, uint16_t *rid);
 int iommu_init_busdma(struct iommu_unit *unit);
 void iommu_fini_busdma(struct iommu_unit *unit);

@@ -8,7 +8,6 @@
  */
 #include "ipf.h"
 
-
 u_32_t
 getoptbyname(char *optname)
 {
@@ -19,7 +18,6 @@ getoptbyname(char *optname)
 			return (io->on_bit);
 	return (-1);
 }
-
 
 u_32_t
 getoptbyvalue(int optval)

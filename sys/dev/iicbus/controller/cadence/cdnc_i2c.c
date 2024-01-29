@@ -36,137 +36,140 @@
 #include <sys/systm.h>
 #include <sys/conf.h>
 #include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/sysctl.h>
 #include <sys/lock.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/resource.h>
 #include <sys/rman.h>
+#include <sys/sysctl.h>
 #include <sys/uio.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
 #include <machine/stdarg.h>
 
+#include <dev/clk/clk.h>
 #include <dev/fdt/fdt_common.h>
+#include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/clk/clk.h>
-
-#include <dev/iicbus/iiconf.h>
-#include <dev/iicbus/iicbus.h>
 
 #include "iicbus_if.h"
 
 #ifdef I2CDEBUG
-#define DPRINTF(...)	do { printf(__VA_ARGS__); } while (0)
+#define DPRINTF(...)                 \
+	do {                         \
+		printf(__VA_ARGS__); \
+	} while (0)
 #else
-#define DPRINTF(...)    do { } while (0)
+#define DPRINTF(...) \
+	do {         \
+	} while (0)
 #endif
 
 #if 0
-#define HWTYPE_CDNS_R1P10	1
+#define HWTYPE_CDNS_R1P10 1
 #endif
-#define HWTYPE_CDNS_R1P14	2
+#define HWTYPE_CDNS_R1P14 2
 
 static struct ofw_compat_data compat_data[] = {
 #if 0
 	{"cdns,i2c-r1p10",		HWTYPE_CDNS_R1P10},
 #endif
-	{"cdns,i2c-r1p14",		HWTYPE_CDNS_R1P14},
-	{NULL,				0}
+	{ "cdns,i2c-r1p14", HWTYPE_CDNS_R1P14 }, { NULL, 0 }
 };
 
 struct cdnc_i2c_softc {
-	device_t		dev;
-	device_t		iicbus;
-	struct mtx		sc_mtx;
-	struct resource		*mem_res;
-	struct resource		*irq_res;
-	void			*intrhandle;
+	device_t dev;
+	device_t iicbus;
+	struct mtx sc_mtx;
+	struct resource *mem_res;
+	struct resource *irq_res;
+	void *intrhandle;
 
-	uint16_t		cfg_reg_shadow;
-	uint16_t		istat;
-	clk_t			ref_clk;
-	uint32_t		ref_clock_freq;
-	uint32_t		i2c_clock_freq;
+	uint16_t cfg_reg_shadow;
+	uint16_t istat;
+	clk_t ref_clk;
+	uint32_t ref_clock_freq;
+	uint32_t i2c_clock_freq;
 
-	int			hwtype;
-	int			hold;
+	int hwtype;
+	int hold;
 
 	/* sysctls */
-	unsigned int		i2c_clk_real_freq;
-	unsigned int		interrupts;
-	unsigned int		timeout_ints;
+	unsigned int i2c_clk_real_freq;
+	unsigned int interrupts;
+	unsigned int timeout_ints;
 };
 
-#define I2C_SC_LOCK(sc)		mtx_lock(&(sc)->sc_mtx)
-#define	I2C_SC_UNLOCK(sc)	mtx_unlock(&(sc)->sc_mtx)
+#define I2C_SC_LOCK(sc) mtx_lock(&(sc)->sc_mtx)
+#define I2C_SC_UNLOCK(sc) mtx_unlock(&(sc)->sc_mtx)
 #define I2C_SC_LOCK_INIT(sc) \
-	mtx_init(&(sc)->sc_mtx, device_get_nameunit((sc)->dev),	NULL, MTX_DEF)
-#define I2C_SC_LOCK_DESTROY(sc)	mtx_destroy(&(sc)->sc_mtx)
-#define I2C_SC_ASSERT_LOCKED(sc)	mtx_assert(&(sc)->sc_mtx, MA_OWNED)
+	mtx_init(&(sc)->sc_mtx, device_get_nameunit((sc)->dev), NULL, MTX_DEF)
+#define I2C_SC_LOCK_DESTROY(sc) mtx_destroy(&(sc)->sc_mtx)
+#define I2C_SC_ASSERT_LOCKED(sc) mtx_assert(&(sc)->sc_mtx, MA_OWNED)
 
-#define RD2(sc, off)		(bus_read_2((sc)->mem_res, (off)))
-#define WR2(sc, off, val)	(bus_write_2((sc)->mem_res, (off), (val)))
-#define RD1(sc, off)		(bus_read_1((sc)->mem_res, (off)))
-#define WR1(sc, off, val)	(bus_write_1((sc)->mem_res, (off), (val)))
+#define RD2(sc, off) (bus_read_2((sc)->mem_res, (off)))
+#define WR2(sc, off, val) (bus_write_2((sc)->mem_res, (off), (val)))
+#define RD1(sc, off) (bus_read_1((sc)->mem_res, (off)))
+#define WR1(sc, off, val) (bus_write_1((sc)->mem_res, (off), (val)))
 
 /* Cadence I2C controller device registers. */
-#define CDNC_I2C_CR			0x0000	/* Config register. */
-#define    CDNC_I2C_CR_DIV_A_MASK		(3 << 14)
-#define    CDNC_I2C_CR_DIV_A_SHIFT		14
-#define    CDNC_I2C_CR_DIV_A(a)			((a) << 14)
-#define    CDNC_I2C_CR_DIV_A_MAX		3
-#define    CDNC_I2C_CR_DIV_B_MASK		(0x3f << 8)
-#define    CDNC_I2C_CR_DIV_B_SHIFT		8
-#define    CDNC_I2C_CR_DIV_B(b)			((b) << 8)
-#define    CDNC_I2C_CR_DIV_B_MAX		63
-#define    CDNC_I2C_CR_CLR_FIFO			(1 << 6)
-#define    CDNC_I2C_CR_SLVMON_MODE		(1 << 5)
-#define    CDNC_I2C_CR_HOLD			(1 << 4)
-#define    CDNC_I2C_CR_ACKEN			(1 << 3)
-#define    CDNC_I2C_CR_NEA			(1 << 2)
-#define    CDNC_I2C_CR_MAST			(1 << 1)
-#define    CDNC_I2C_CR_RNW			(1 << 0)
+#define CDNC_I2C_CR 0x0000 /* Config register. */
+#define CDNC_I2C_CR_DIV_A_MASK (3 << 14)
+#define CDNC_I2C_CR_DIV_A_SHIFT 14
+#define CDNC_I2C_CR_DIV_A(a) ((a) << 14)
+#define CDNC_I2C_CR_DIV_A_MAX 3
+#define CDNC_I2C_CR_DIV_B_MASK (0x3f << 8)
+#define CDNC_I2C_CR_DIV_B_SHIFT 8
+#define CDNC_I2C_CR_DIV_B(b) ((b) << 8)
+#define CDNC_I2C_CR_DIV_B_MAX 63
+#define CDNC_I2C_CR_CLR_FIFO (1 << 6)
+#define CDNC_I2C_CR_SLVMON_MODE (1 << 5)
+#define CDNC_I2C_CR_HOLD (1 << 4)
+#define CDNC_I2C_CR_ACKEN (1 << 3)
+#define CDNC_I2C_CR_NEA (1 << 2)
+#define CDNC_I2C_CR_MAST (1 << 1)
+#define CDNC_I2C_CR_RNW (1 << 0)
 
-#define CDNC_I2C_SR			0x0004	/* Status register. */
-#define    CDNC_I2C_SR_BUS_ACTIVE		(1 << 8)
-#define    CDNC_I2C_SR_RX_OVF			(1 << 7)
-#define    CDNC_I2C_SR_TX_VALID			(1 << 6)
-#define    CDNC_I2C_SR_RX_VALID			(1 << 5)
-#define    CDNC_I2C_SR_RXRW			(1 << 3)
+#define CDNC_I2C_SR 0x0004 /* Status register. */
+#define CDNC_I2C_SR_BUS_ACTIVE (1 << 8)
+#define CDNC_I2C_SR_RX_OVF (1 << 7)
+#define CDNC_I2C_SR_TX_VALID (1 << 6)
+#define CDNC_I2C_SR_RX_VALID (1 << 5)
+#define CDNC_I2C_SR_RXRW (1 << 3)
 
-#define CDNC_I2C_ADDR			0x0008	/* i2c address register. */
-#define CDNC_I2C_DATA			0x000C	/* i2c data register. */
+#define CDNC_I2C_ADDR 0x0008 /* i2c address register. */
+#define CDNC_I2C_DATA 0x000C /* i2c data register. */
 
-#define CDNC_I2C_ISR			0x0010	/* Int status register. */
-#define    CDNC_I2C_ISR_ARB_LOST		(1 << 9)
-#define    CDNC_I2C_ISR_RX_UNDF			(1 << 7)
-#define    CDNC_I2C_ISR_TX_OVF			(1 << 6)
-#define    CDNC_I2C_ISR_RX_OVF			(1 << 5)
-#define    CDNC_I2C_ISR_SLV_RDY			(1 << 4)
-#define    CDNC_I2C_ISR_XFER_TMOUT		(1 << 3)
-#define    CDNC_I2C_ISR_XFER_NACK		(1 << 2)
-#define    CDNC_I2C_ISR_XFER_DATA		(1 << 1)
-#define    CDNC_I2C_ISR_XFER_DONE		(1 << 0)
-#define    CDNC_I2C_ISR_ALL			0x2ff
-#define CDNC_I2C_TRANS_SIZE		0x0014	/* Transfer size. */
-#define CDNC_I2C_PAUSE			0x0018	/* Slv Monitor Pause reg. */
-#define CDNC_I2C_TIME_OUT		0x001C	/* Time-out register. */
-#define    CDNC_I2C_TIME_OUT_MIN		31
-#define    CDNC_I2C_TIME_OUT_MAX		255
-#define CDNC_I2C_IMR			0x0020	/* Int mask register. */
-#define CDNC_I2C_IER			0x0024	/* Int enable register. */
-#define CDNC_I2C_IDR			0x0028	/* Int disable register. */
+#define CDNC_I2C_ISR 0x0010 /* Int status register. */
+#define CDNC_I2C_ISR_ARB_LOST (1 << 9)
+#define CDNC_I2C_ISR_RX_UNDF (1 << 7)
+#define CDNC_I2C_ISR_TX_OVF (1 << 6)
+#define CDNC_I2C_ISR_RX_OVF (1 << 5)
+#define CDNC_I2C_ISR_SLV_RDY (1 << 4)
+#define CDNC_I2C_ISR_XFER_TMOUT (1 << 3)
+#define CDNC_I2C_ISR_XFER_NACK (1 << 2)
+#define CDNC_I2C_ISR_XFER_DATA (1 << 1)
+#define CDNC_I2C_ISR_XFER_DONE (1 << 0)
+#define CDNC_I2C_ISR_ALL 0x2ff
+#define CDNC_I2C_TRANS_SIZE 0x0014 /* Transfer size. */
+#define CDNC_I2C_PAUSE 0x0018	   /* Slv Monitor Pause reg. */
+#define CDNC_I2C_TIME_OUT 0x001C   /* Time-out register. */
+#define CDNC_I2C_TIME_OUT_MIN 31
+#define CDNC_I2C_TIME_OUT_MAX 255
+#define CDNC_I2C_IMR 0x0020 /* Int mask register. */
+#define CDNC_I2C_IER 0x0024 /* Int enable register. */
+#define CDNC_I2C_IDR 0x0028 /* Int disable register. */
 
-#define CDNC_I2C_FIFO_SIZE		16
-#define CDNC_I2C_DEFAULT_I2C_CLOCK	400000	/* 400Khz default */
+#define CDNC_I2C_FIFO_SIZE 16
+#define CDNC_I2C_DEFAULT_I2C_CLOCK 400000 /* 400Khz default */
 
-#define CDNC_I2C_ISR_ERRS (CDNC_I2C_ISR_ARB_LOST | CDNC_I2C_ISR_RX_UNDF | \
-	CDNC_I2C_ISR_TX_OVF | CDNC_I2C_ISR_RX_OVF | CDNC_I2C_ISR_XFER_TMOUT | \
-	CDNC_I2C_ISR_XFER_NACK)
+#define CDNC_I2C_ISR_ERRS                                                     \
+	(CDNC_I2C_ISR_ARB_LOST | CDNC_I2C_ISR_RX_UNDF | CDNC_I2C_ISR_TX_OVF | \
+	    CDNC_I2C_ISR_RX_OVF | CDNC_I2C_ISR_XFER_TMOUT |                   \
+	    CDNC_I2C_ISR_XFER_NACK)
 
 /* Configure clock dividers. */
 static int
@@ -188,12 +191,11 @@ cdnc_i2c_set_freq(struct cdnc_i2c_softc *sc)
 	 * Try all div_a values and pick best match.
 	 */
 	for (div_a = 0; div_a <= CDNC_I2C_CR_DIV_A_MAX; div_a++) {
-		div_b = sc->ref_clock_freq / (22 * sc->i2c_clock_freq *
-		    (div_a + 1));
+		div_b = sc->ref_clock_freq /
+		    (22 * sc->i2c_clock_freq * (div_a + 1));
 		if (div_b > CDNC_I2C_CR_DIV_B_MAX)
 			continue;
-		clk_out = sc->ref_clock_freq / (22 * (div_a + 1) *
-		    (div_b + 1));
+		clk_out = sc->ref_clock_freq / (22 * (div_a + 1) * (div_b + 1));
 		err = clk_out > sc->i2c_clock_freq ?
 		    clk_out - sc->i2c_clock_freq :
 		    sc->i2c_clock_freq - clk_out;
@@ -209,16 +211,16 @@ cdnc_i2c_set_freq(struct cdnc_i2c_softc *sc)
 		return (EINVAL); /* out of range */
 	}
 
-	clk_out = sc->ref_clock_freq / (22 * (best_div_a + 1) *
-	    (best_div_b + 1));
+	clk_out = sc->ref_clock_freq /
+	    (22 * (best_div_a + 1) * (best_div_b + 1));
 
 	DPRINTF("%s: ref_clock_freq=%d i2c_clock_freq=%d\n", __func__,
 	    sc->ref_clock_freq, sc->i2c_clock_freq);
 	DPRINTF("%s: div_a=%d div_b=%d real-freq=%d\n", __func__, best_div_a,
 	    best_div_b, clk_out);
 
-	sc->cfg_reg_shadow &= ~(CDNC_I2C_CR_DIV_A_MASK |
-	    CDNC_I2C_CR_DIV_B_MASK);
+	sc->cfg_reg_shadow &= ~(
+	    CDNC_I2C_CR_DIV_A_MASK | CDNC_I2C_CR_DIV_B_MASK);
 	sc->cfg_reg_shadow |= CDNC_I2C_CR_DIV_A(best_div_a) |
 	    CDNC_I2C_CR_DIV_B(best_div_b);
 	WR2(sc, CDNC_I2C_CR, sc->cfg_reg_shadow);
@@ -367,17 +369,18 @@ cdnc_i2c_xfer_rd(struct cdnc_i2c_softc *sc, struct iic_msg *msg)
 
 		/* Enable FIFO interrupts and wait. */
 		if (last)
-			WR2(sc, CDNC_I2C_IER, CDNC_I2C_ISR_XFER_DONE |
-			    CDNC_I2C_ISR_ERRS);
+			WR2(sc, CDNC_I2C_IER,
+			    CDNC_I2C_ISR_XFER_DONE | CDNC_I2C_ISR_ERRS);
 		else
-			WR2(sc, CDNC_I2C_IER, CDNC_I2C_ISR_XFER_DATA |
-			    CDNC_I2C_ISR_ERRS);
+			WR2(sc, CDNC_I2C_IER,
+			    CDNC_I2C_ISR_XFER_DATA | CDNC_I2C_ISR_ERRS);
 
 		error = mtx_sleep(sc, &sc->sc_mtx, 0, "cdi2c", hz);
 
 		/* Disable FIFO interrupts. */
-		WR2(sc, CDNC_I2C_IDR, CDNC_I2C_ISR_XFER_DATA |
-		    CDNC_I2C_ISR_XFER_DONE | CDNC_I2C_ISR_ERRS);
+		WR2(sc, CDNC_I2C_IDR,
+		    CDNC_I2C_ISR_XFER_DATA | CDNC_I2C_ISR_XFER_DONE |
+			CDNC_I2C_ISR_ERRS);
 
 		if (error == EWOULDBLOCK)
 			error = cdnc_i2c_errs(sc, CDNC_I2C_ISR_XFER_TMOUT);
@@ -424,8 +427,8 @@ cdnc_i2c_xfer_wr(struct cdnc_i2c_softc *sc, struct iic_msg *msg)
 
 	while (len > 0) {
 		/* Put as much data into fifo as you can. */
-		nbytes = MIN(len, CDNC_I2C_FIFO_SIZE -
-		    RD1(sc, CDNC_I2C_TRANS_SIZE) - 1);
+		nbytes = MIN(len,
+		    CDNC_I2C_FIFO_SIZE - RD1(sc, CDNC_I2C_TRANS_SIZE) - 1);
 		len -= nbytes;
 		while (nbytes-- > 0)
 			WR2(sc, CDNC_I2C_DATA, msg->buf[idx++]);
@@ -444,15 +447,15 @@ cdnc_i2c_xfer_wr(struct cdnc_i2c_softc *sc, struct iic_msg *msg)
 		first = 0;
 
 		/* Enable FIFO interrupts. */
-		WR2(sc, CDNC_I2C_IER, CDNC_I2C_ISR_XFER_DONE |
-		    CDNC_I2C_ISR_ERRS);
+		WR2(sc, CDNC_I2C_IER,
+		    CDNC_I2C_ISR_XFER_DONE | CDNC_I2C_ISR_ERRS);
 
 		/* Wait for end of data transfer. */
 		error = mtx_sleep(sc, &sc->sc_mtx, 0, "cdi2c", hz);
 
 		/* Disable FIFO interrupts. */
-		WR2(sc, CDNC_I2C_IDR, CDNC_I2C_ISR_XFER_DONE |
-		    CDNC_I2C_ISR_ERRS);
+		WR2(sc, CDNC_I2C_IDR,
+		    CDNC_I2C_ISR_XFER_DONE | CDNC_I2C_ISR_ERRS);
 
 		if (error == EWOULDBLOCK)
 			error = cdnc_i2c_errs(sc, CDNC_I2C_ISR_XFER_TMOUT);
@@ -519,7 +522,6 @@ cdnc_i2c_add_sysctls(device_t dev)
 	    &sc->timeout_ints, 0, "hardware timeout interrupts");
 }
 
-
 static int
 cdnc_i2c_probe(device_t dev)
 {
@@ -534,7 +536,6 @@ cdnc_i2c_probe(device_t dev)
 
 	return (BUS_PROBE_DEFAULT);
 }
-
 
 static int cdnc_i2c_detach(device_t);
 
@@ -566,8 +567,7 @@ cdnc_i2c_attach(device_t dev)
 			    "Cannot get clock frequency. err=%d\n", err);
 		else
 			sc->ref_clock_freq = freq;
-	}
-	else {
+	} else {
 		device_printf(dev, "must have ref-clock property\n");
 		return (ENXIO);
 	}
@@ -588,8 +588,7 @@ cdnc_i2c_attach(device_t dev)
 
 	/* Allocate IRQ. */
 	rid = 0;
-	sc->irq_res = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid,
-	    RF_ACTIVE);
+	sc->irq_res = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid, RF_ACTIVE);
 	if (sc->irq_res == NULL) {
 		device_printf(dev, "could not allocate IRQ resource.\n");
 		cdnc_i2c_detach(dev);
@@ -668,7 +667,6 @@ cdnc_i2c_detach(device_t dev)
 	return (0);
 }
 
-
 static phandle_t
 cdnc_i2c_get_node(device_t bus, device_t dev)
 {
@@ -678,17 +676,17 @@ cdnc_i2c_get_node(device_t bus, device_t dev)
 
 static device_method_t cdnc_i2c_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,			cdnc_i2c_probe),
-	DEVMETHOD(device_attach,		cdnc_i2c_attach),
-	DEVMETHOD(device_detach,		cdnc_i2c_detach),
+	DEVMETHOD(device_probe, cdnc_i2c_probe),
+	DEVMETHOD(device_attach, cdnc_i2c_attach),
+	DEVMETHOD(device_detach, cdnc_i2c_detach),
 
 	/* ofw_bus interface */
-	DEVMETHOD(ofw_bus_get_node,		cdnc_i2c_get_node),
+	DEVMETHOD(ofw_bus_get_node, cdnc_i2c_get_node),
 
 	/* iicbus methods */
-	DEVMETHOD(iicbus_callback,              iicbus_null_callback),
-	DEVMETHOD(iicbus_reset,			cdnc_i2c_reset),
-	DEVMETHOD(iicbus_transfer,		cdnc_i2c_transfer),
+	DEVMETHOD(iicbus_callback, iicbus_null_callback),
+	DEVMETHOD(iicbus_reset, cdnc_i2c_reset),
+	DEVMETHOD(iicbus_transfer, cdnc_i2c_transfer),
 
 	DEVMETHOD_END
 };

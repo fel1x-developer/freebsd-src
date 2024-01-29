@@ -26,71 +26,61 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-#include "opt_inet6.h"
 #include "opt_inet.h"
+#include "opt_inet6.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
+#include <sys/socket.h>
 #include <sys/taskqueue.h>
 
 #include <machine/atomic.h>
 
+#include <dev/hyperv/include/hyperv.h>
+#include <dev/hyperv/include/vmbus.h>
+#include <dev/hyperv/include/vmbus_xact.h>
+#include <dev/hyperv/netvsc/hn_nvs.h>
+#include <dev/hyperv/netvsc/hn_rndis.h>
+#include <dev/hyperv/netvsc/if_hnreg.h>
+#include <dev/hyperv/netvsc/if_hnvar.h>
+#include <dev/hyperv/netvsc/ndis.h>
+
 #include <net/ethernet.h>
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_media.h>
+#include <net/if_var.h>
 #include <net/rndis.h>
-
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/tcp_lro.h>
 
-#include <dev/hyperv/include/hyperv.h>
-#include <dev/hyperv/include/vmbus.h>
-#include <dev/hyperv/include/vmbus_xact.h>
+#define HN_RNDIS_RID_COMPAT_MASK 0xffff
+#define HN_RNDIS_RID_COMPAT_MAX HN_RNDIS_RID_COMPAT_MASK
 
-#include <dev/hyperv/netvsc/ndis.h>
-#include <dev/hyperv/netvsc/if_hnreg.h>
-#include <dev/hyperv/netvsc/if_hnvar.h>
-#include <dev/hyperv/netvsc/hn_nvs.h>
-#include <dev/hyperv/netvsc/hn_rndis.h>
+#define HN_RNDIS_XFER_SIZE 2048
 
-#define HN_RNDIS_RID_COMPAT_MASK	0xffff
-#define HN_RNDIS_RID_COMPAT_MAX		HN_RNDIS_RID_COMPAT_MASK
-
-#define HN_RNDIS_XFER_SIZE		2048
-
-#define HN_NDIS_TXCSUM_CAP_IP4		\
-	(NDIS_TXCSUM_CAP_IP4 | NDIS_TXCSUM_CAP_IP4OPT)
-#define HN_NDIS_TXCSUM_CAP_TCP4		\
-	(NDIS_TXCSUM_CAP_TCP4 | NDIS_TXCSUM_CAP_TCP4OPT)
-#define HN_NDIS_TXCSUM_CAP_TCP6		\
+#define HN_NDIS_TXCSUM_CAP_IP4 (NDIS_TXCSUM_CAP_IP4 | NDIS_TXCSUM_CAP_IP4OPT)
+#define HN_NDIS_TXCSUM_CAP_TCP4 (NDIS_TXCSUM_CAP_TCP4 | NDIS_TXCSUM_CAP_TCP4OPT)
+#define HN_NDIS_TXCSUM_CAP_TCP6                           \
 	(NDIS_TXCSUM_CAP_TCP6 | NDIS_TXCSUM_CAP_TCP6OPT | \
-	 NDIS_TXCSUM_CAP_IP6EXT)
-#define HN_NDIS_TXCSUM_CAP_UDP6		\
-	(NDIS_TXCSUM_CAP_UDP6 | NDIS_TXCSUM_CAP_IP6EXT)
-#define HN_NDIS_LSOV2_CAP_IP6		\
-	(NDIS_LSOV2_CAP_IP6EXT | NDIS_LSOV2_CAP_TCP6OPT)
+	    NDIS_TXCSUM_CAP_IP6EXT)
+#define HN_NDIS_TXCSUM_CAP_UDP6 (NDIS_TXCSUM_CAP_UDP6 | NDIS_TXCSUM_CAP_IP6EXT)
+#define HN_NDIS_LSOV2_CAP_IP6 (NDIS_LSOV2_CAP_IP6EXT | NDIS_LSOV2_CAP_TCP6OPT)
 
-static const void	*hn_rndis_xact_exec1(struct hn_softc *,
-			    struct vmbus_xact *, size_t,
-			    struct hn_nvs_sendctx *, size_t *);
-static const void	*hn_rndis_xact_execute(struct hn_softc *,
-			    struct vmbus_xact *, uint32_t, size_t, size_t *,
-			    uint32_t);
-static int		hn_rndis_query(struct hn_softc *, uint32_t,
-			    const void *, size_t, void *, size_t *);
-static int		hn_rndis_query2(struct hn_softc *, uint32_t,
-			    const void *, size_t, void *, size_t *, size_t);
-static int		hn_rndis_set(struct hn_softc *, uint32_t,
-			    const void *, size_t);
-static int		hn_rndis_init(struct hn_softc *);
-static int		hn_rndis_halt(struct hn_softc *);
-static int		hn_rndis_conf_offload(struct hn_softc *, int);
-static int		hn_rndis_query_hwcaps(struct hn_softc *,
-			    struct ndis_offload *);
+static const void *hn_rndis_xact_exec1(struct hn_softc *, struct vmbus_xact *,
+    size_t, struct hn_nvs_sendctx *, size_t *);
+static const void *hn_rndis_xact_execute(struct hn_softc *, struct vmbus_xact *,
+    uint32_t, size_t, size_t *, uint32_t);
+static int hn_rndis_query(struct hn_softc *, uint32_t, const void *, size_t,
+    void *, size_t *);
+static int hn_rndis_query2(struct hn_softc *, uint32_t, const void *, size_t,
+    void *, size_t *, size_t);
+static int hn_rndis_set(struct hn_softc *, uint32_t, const void *, size_t);
+static int hn_rndis_init(struct hn_softc *);
+static int hn_rndis_halt(struct hn_softc *);
+static int hn_rndis_conf_offload(struct hn_softc *, int);
+static int hn_rndis_query_hwcaps(struct hn_softc *, struct ndis_offload *);
 
 static __inline uint32_t
 hn_rndis_rid(struct hn_softc *sc)
@@ -119,7 +109,7 @@ hn_rndis_rx_ctrl(struct hn_softc *sc, const void *data, int dlen)
 	case REMOTE_NDIS_INITIALIZE_CMPLT:
 	case REMOTE_NDIS_QUERY_CMPLT:
 	case REMOTE_NDIS_SET_CMPLT:
-	case REMOTE_NDIS_KEEPALIVE_CMPLT:	/* unused */
+	case REMOTE_NDIS_KEEPALIVE_CMPLT: /* unused */
 		if (dlen < sizeof(*comp)) {
 			if_printf(sc->hn_ifp, "invalid RNDIS cmplt\n");
 			return;
@@ -143,8 +133,7 @@ hn_rndis_rx_ctrl(struct hn_softc *sc, const void *data, int dlen)
 		break;
 
 	default:
-		if_printf(sc->hn_ifp, "unknown RNDIS msg 0x%x\n",
-		    hdr->rm_type);
+		if_printf(sc->hn_ifp, "unknown RNDIS msg 0x%x\n", hdr->rm_type);
 		break;
 	}
 }
@@ -156,8 +145,8 @@ hn_rndis_get_eaddr(struct hn_softc *sc, uint8_t *eaddr)
 	int error;
 
 	eaddr_len = ETHER_ADDR_LEN;
-	error = hn_rndis_query(sc, OID_802_3_PERMANENT_ADDRESS, NULL, 0,
-	    eaddr, &eaddr_len);
+	error = hn_rndis_query(sc, OID_802_3_PERMANENT_ADDRESS, NULL, 0, eaddr,
+	    &eaddr_len);
 	if (error)
 		return (error);
 	if (eaddr_len != ETHER_ADDR_LEN) {
@@ -192,8 +181,8 @@ hn_rndis_get_mtu(struct hn_softc *sc, uint32_t *mtu)
 	int error;
 
 	size = sizeof(*mtu);
-	error = hn_rndis_query(sc, OID_GEN_MAXIMUM_FRAME_SIZE, NULL, 0,
-	    mtu, &size);
+	error = hn_rndis_query(sc, OID_GEN_MAXIMUM_FRAME_SIZE, NULL, 0, mtu,
+	    &size);
 	if (error)
 		return (error);
 	if (size != sizeof(uint32_t)) {
@@ -252,8 +241,8 @@ hn_rndis_xact_exec1(struct hn_softc *sc, struct vmbus_xact *xact, size_t reqlen,
 }
 
 static const void *
-hn_rndis_xact_execute(struct hn_softc *sc, struct vmbus_xact *xact, uint32_t rid,
-    size_t reqlen, size_t *comp_len0, uint32_t comp_type)
+hn_rndis_xact_execute(struct hn_softc *sc, struct vmbus_xact *xact,
+    uint32_t rid, size_t reqlen, size_t *comp_len0, uint32_t comp_type)
 {
 	const struct rndis_comp_hdr *comp;
 	size_t comp_len, min_complen = *comp_len0;
@@ -276,8 +265,10 @@ hn_rndis_xact_execute(struct hn_softc *sc, struct vmbus_xact *xact, uint32_t rid
 	if (comp_len < min_complen) {
 		if (comp_len >= sizeof(*comp)) {
 			/* rm_status field is valid */
-			if_printf(sc->hn_ifp, "invalid RNDIS comp len %zu, "
-			    "status 0x%08x\n", comp_len, comp->rm_status);
+			if_printf(sc->hn_ifp,
+			    "invalid RNDIS comp len %zu, "
+			    "status 0x%08x\n",
+			    comp_len, comp->rm_status);
 		} else {
 			if_printf(sc->hn_ifp, "invalid RNDIS comp len %zu\n",
 			    comp_len);
@@ -290,13 +281,17 @@ hn_rndis_xact_execute(struct hn_softc *sc, struct vmbus_xact *xact, uint32_t rid
 		return (NULL);
 	}
 	if (comp->rm_type != comp_type) {
-		if_printf(sc->hn_ifp, "unexpected RNDIS comp 0x%08x, "
-		    "expect 0x%08x\n", comp->rm_type, comp_type);
+		if_printf(sc->hn_ifp,
+		    "unexpected RNDIS comp 0x%08x, "
+		    "expect 0x%08x\n",
+		    comp->rm_type, comp_type);
 		return (NULL);
 	}
 	if (comp->rm_rid != rid) {
-		if_printf(sc->hn_ifp, "RNDIS comp rid mismatch %u, "
-		    "expect %u\n", comp->rm_rid, rid);
+		if_printf(sc->hn_ifp,
+		    "RNDIS comp rid mismatch %u, "
+		    "expect %u\n",
+		    comp->rm_rid, rid);
 		return (NULL);
 	}
 	/* All pass! */
@@ -305,17 +300,16 @@ hn_rndis_xact_execute(struct hn_softc *sc, struct vmbus_xact *xact, uint32_t rid
 }
 
 static int
-hn_rndis_query(struct hn_softc *sc, uint32_t oid,
-    const void *idata, size_t idlen, void *odata, size_t *odlen0)
+hn_rndis_query(struct hn_softc *sc, uint32_t oid, const void *idata,
+    size_t idlen, void *odata, size_t *odlen0)
 {
 
 	return (hn_rndis_query2(sc, oid, idata, idlen, odata, odlen0, *odlen0));
 }
 
 static int
-hn_rndis_query2(struct hn_softc *sc, uint32_t oid,
-    const void *idata, size_t idlen, void *odata, size_t *odlen0,
-    size_t min_odlen)
+hn_rndis_query2(struct hn_softc *sc, uint32_t oid, const void *idata,
+    size_t idlen, void *odata, size_t *odlen0, size_t min_odlen)
 {
 	struct rndis_query_req *req;
 	const struct rndis_query_comp *comp;
@@ -364,8 +358,10 @@ hn_rndis_query2(struct hn_softc *sc, uint32_t oid,
 	}
 
 	if (comp->rm_status != RNDIS_STATUS_SUCCESS) {
-		if_printf(sc->hn_ifp, "RNDIS query 0x%08x failed: "
-		    "status 0x%08x\n", oid, comp->rm_status);
+		if_printf(sc->hn_ifp,
+		    "RNDIS query 0x%08x failed: "
+		    "status 0x%08x\n",
+		    oid, comp->rm_status);
 		error = EIO;
 		goto done;
 	}
@@ -383,8 +379,10 @@ hn_rndis_query2(struct hn_softc *sc, uint32_t oid,
 	/* ofs is the offset from the beginning of comp. */
 	ofs = RNDIS_QUERY_COMP_INFOBUFOFFSET_ABS(comp->rm_infobufoffset);
 	if (ofs < sizeof(*comp) || ofs + comp->rm_infobuflen > comp_len) {
-		if_printf(sc->hn_ifp, "RNDIS query invalid comp ib off/len, "
-		    "%u/%u\n", comp->rm_infobufoffset, comp->rm_infobuflen);
+		if_printf(sc->hn_ifp,
+		    "RNDIS query invalid comp ib off/len, "
+		    "%u/%u\n",
+		    comp->rm_infobufoffset, comp->rm_infobuflen);
 		error = EINVAL;
 		goto done;
 	}
@@ -422,8 +420,8 @@ hn_rndis_query_rsscaps(struct hn_softc *sc, int *rxr_cnt0)
 	in.ndis_hdr.ndis_size = NDIS_RSS_CAPS_SIZE;
 
 	caps_len = NDIS_RSS_CAPS_SIZE;
-	error = hn_rndis_query2(sc, OID_GEN_RECEIVE_SCALE_CAPABILITIES,
-	    &in, NDIS_RSS_CAPS_SIZE, &caps, &caps_len, NDIS_RSS_CAPS_SIZE_6_0);
+	error = hn_rndis_query2(sc, OID_GEN_RECEIVE_SCALE_CAPABILITIES, &in,
+	    NDIS_RSS_CAPS_SIZE, &caps, &caps_len, NDIS_RSS_CAPS_SIZE_6_0);
 	if (error)
 		return (error);
 
@@ -441,8 +439,10 @@ hn_rndis_query_rsscaps(struct hn_softc *sc, int *rxr_cnt0)
 		return (EINVAL);
 	}
 	if (caps.ndis_hdr.ndis_size > caps_len) {
-		if_printf(sc->hn_ifp, "invalid NDIS objsize %u, "
-		    "data size %zu\n", caps.ndis_hdr.ndis_size, caps_len);
+		if_printf(sc->hn_ifp,
+		    "invalid NDIS objsize %u, "
+		    "data size %zu\n",
+		    caps.ndis_hdr.ndis_size, caps_len);
 		return (EINVAL);
 	} else if (caps.ndis_hdr.ndis_size < NDIS_RSS_CAPS_SIZE_6_0) {
 		if_printf(sc->hn_ifp, "invalid NDIS objsize %u\n",
@@ -470,8 +470,10 @@ hn_rndis_query_rsscaps(struct hn_softc *sc, int *rxr_cnt0)
 			return (EOPNOTSUPP);
 		}
 		if (!powerof2(caps.ndis_nind)) {
-			if_printf(sc->hn_ifp, "RSS indirect table size is not "
-			    "power-of-2 %u\n", caps.ndis_nind);
+			if_printf(sc->hn_ifp,
+			    "RSS indirect table size is not "
+			    "power-of-2 %u\n",
+			    caps.ndis_nind);
 		}
 
 		if (bootverbose) {
@@ -483,8 +485,10 @@ hn_rndis_query_rsscaps(struct hn_softc *sc, int *rxr_cnt0)
 		indsz = NDIS_HASH_INDCNT;
 	}
 	if (indsz < rxr_cnt) {
-		if_printf(sc->hn_ifp, "# of RX rings (%d) > "
-		    "RSS indirect table size %d\n", rxr_cnt, indsz);
+		if_printf(sc->hn_ifp,
+		    "# of RX rings (%d) > "
+		    "RSS indirect table size %d\n",
+		    rxr_cnt, indsz);
 		rxr_cnt = indsz;
 	}
 
@@ -565,8 +569,10 @@ hn_rndis_set(struct hn_softc *sc, uint32_t oid, const void *data, size_t dlen)
 	}
 
 	if (comp->rm_status != RNDIS_STATUS_SUCCESS) {
-		if_printf(sc->hn_ifp, "RNDIS set 0x%08x failed: "
-		    "status 0x%08x\n", oid, comp->rm_status);
+		if_printf(sc->hn_ifp,
+		    "RNDIS set 0x%08x failed: "
+		    "status 0x%08x\n",
+		    oid, comp->rm_status);
 		error = EIO;
 		goto done;
 	}
@@ -579,7 +585,7 @@ done:
 int
 hn_rndis_reconf_offload(struct hn_softc *sc, int mtu)
 {
-	return(hn_rndis_conf_offload(sc, mtu));
+	return (hn_rndis_conf_offload(sc, mtu));
 }
 
 static int
@@ -626,7 +632,7 @@ hn_rndis_conf_offload(struct hn_softc *sc, int mtu)
 	}
 	if ((hwcaps.ndis_lsov2.ndis_ip6_encap & NDIS_OFFLOAD_ENCAP_8023) &&
 	    (hwcaps.ndis_lsov2.ndis_ip6_opts & HN_NDIS_LSOV2_CAP_IP6) ==
-	    HN_NDIS_LSOV2_CAP_IP6) {
+		HN_NDIS_LSOV2_CAP_IP6) {
 		caps |= HN_CAP_TSO6;
 		params.ndis_lsov2_ip6 = NDIS_OFFLOAD_LSOV2_ON;
 
@@ -643,7 +649,8 @@ hn_rndis_conf_offload(struct hn_softc *sc, int mtu)
 		KASSERT(tso_minsg >= 2,
 		    ("invalid NDIS TSO minsg %d", tso_minsg));
 		if (tso_maxsz < tso_minsg * mtu) {
-			if_printf(sc->hn_ifp, "invalid NDIS TSO config: "
+			if_printf(sc->hn_ifp,
+			    "invalid NDIS TSO config: "
 			    "maxsz %d, minsg %d, mtu %d; "
 			    "disable TSO4 and TSO6\n",
 			    tso_maxsz, tso_minsg, mtu);
@@ -654,7 +661,8 @@ hn_rndis_conf_offload(struct hn_softc *sc, int mtu)
 			sc->hn_ndis_tso_szmax = tso_maxsz;
 			sc->hn_ndis_tso_sgmin = tso_minsg;
 			if (bootverbose) {
-				if_printf(sc->hn_ifp, "NDIS TSO "
+				if_printf(sc->hn_ifp,
+				    "NDIS TSO "
 				    "szmax %d sgmin %d\n",
 				    sc->hn_ndis_tso_szmax,
 				    sc->hn_ndis_tso_sgmin);
@@ -739,20 +747,17 @@ hn_rndis_conf_offload(struct hn_softc *sc, int mtu)
 	}
 
 	if (bootverbose) {
-		if_printf(sc->hn_ifp, "offload csum: "
+		if_printf(sc->hn_ifp,
+		    "offload csum: "
 		    "ip4 %u, tcp4 %u, udp4 %u, tcp6 %u, udp6 %u\n",
-		    params.ndis_ip4csum,
-		    params.ndis_tcp4csum,
-		    params.ndis_udp4csum,
-		    params.ndis_tcp6csum,
+		    params.ndis_ip4csum, params.ndis_tcp4csum,
+		    params.ndis_udp4csum, params.ndis_tcp6csum,
 		    params.ndis_udp6csum);
 		if_printf(sc->hn_ifp, "offload lsov2: ip4 %u, ip6 %u\n",
-		    params.ndis_lsov2_ip4,
-		    params.ndis_lsov2_ip6);
+		    params.ndis_lsov2_ip4, params.ndis_lsov2_ip6);
 		if (hwcaps.ndis_hdr.ndis_rev >= NDIS_OFFLOAD_PARAMS_REV_3)
 			if_printf(sc->hn_ifp, "offload rsc: ip4 %u, ip6 %u\n",
-			    params.ndis_rsc_ip4,
-			    params.ndis_rsc_ip6);
+			    params.ndis_rsc_ip4, params.ndis_rsc_ip6);
 	}
 
 	error = hn_rndis_set(sc, OID_TCP_OFFLOAD_PARAMETERS, &params, paramsz);
@@ -790,8 +795,10 @@ hn_rndis_conf_rss(struct hn_softc *sc, uint16_t flags)
 	KASSERT(sc->hn_rss_ind_size > 0, ("no indirect table size"));
 
 	if (bootverbose) {
-		if_printf(sc->hn_ifp, "RSS indirect table size %d, "
-		    "hash 0x%08x\n", sc->hn_rss_ind_size, sc->hn_rss_hash);
+		if_printf(sc->hn_ifp,
+		    "RSS indirect table size %d, "
+		    "hash 0x%08x\n",
+		    sc->hn_rss_ind_size, sc->hn_rss_hash);
 	}
 
 	/*
@@ -808,14 +815,14 @@ hn_rndis_conf_rss(struct hn_softc *sc, uint16_t flags)
 	prm->ndis_hash = sc->hn_rss_hash &
 	    (NDIS_HASH_FUNCTION_MASK | NDIS_HASH_STD);
 	prm->ndis_indsize = sizeof(rss->rss_ind[0]) * sc->hn_rss_ind_size;
-	prm->ndis_indoffset =
-	    __offsetof(struct ndis_rssprm_toeplitz, rss_ind[0]);
+	prm->ndis_indoffset = __offsetof(struct ndis_rssprm_toeplitz,
+	    rss_ind[0]);
 	prm->ndis_keysize = sizeof(rss->rss_key);
-	prm->ndis_keyoffset =
-	    __offsetof(struct ndis_rssprm_toeplitz, rss_key[0]);
+	prm->ndis_keyoffset = __offsetof(struct ndis_rssprm_toeplitz,
+	    rss_key[0]);
 
-	error = hn_rndis_set(sc, OID_GEN_RECEIVE_SCALE_PARAMETERS,
-	    rss, rss_size);
+	error = hn_rndis_set(sc, OID_GEN_RECEIVE_SCALE_PARAMETERS, rss,
+	    rss_size);
 	if (error) {
 		if_printf(sc->hn_ifp, "RSS config failed: %d\n", error);
 	} else {
@@ -830,8 +837,8 @@ hn_rndis_set_rxfilter(struct hn_softc *sc, uint32_t filter)
 {
 	int error;
 
-	error = hn_rndis_set(sc, OID_GEN_CURRENT_PACKET_FILTER,
-	    &filter, sizeof(filter));
+	error = hn_rndis_set(sc, OID_GEN_CURRENT_PACKET_FILTER, &filter,
+	    sizeof(filter));
 	if (error) {
 		if_printf(sc->hn_ifp, "set RX filter 0x%08x failed: %d\n",
 		    filter, error);
@@ -900,7 +907,8 @@ hn_rndis_init(struct hn_softc *sc)
 	}
 
 	if (bootverbose) {
-		if_printf(sc->hn_ifp, "RNDIS ver %u.%u, "
+		if_printf(sc->hn_ifp,
+		    "RNDIS ver %u.%u, "
 		    "aggpkt size %u, aggpkt cnt %u, aggpkt align %u\n",
 		    comp->rm_ver_major, comp->rm_ver_minor,
 		    sc->hn_rndis_agg_size, sc->hn_rndis_agg_pkts,
@@ -962,8 +970,8 @@ hn_rndis_query_hwcaps(struct hn_softc *sc, struct ndis_offload *caps)
 	in.ndis_hdr.ndis_size = size;
 
 	caps_len = NDIS_OFFLOAD_SIZE;
-	error = hn_rndis_query2(sc, OID_TCP_OFFLOAD_HARDWARE_CAPABILITIES,
-	    &in, size, caps, &caps_len, NDIS_OFFLOAD_SIZE_6_0);
+	error = hn_rndis_query2(sc, OID_TCP_OFFLOAD_HARDWARE_CAPABILITIES, &in,
+	    size, caps, &caps_len, NDIS_OFFLOAD_SIZE_6_0);
 	if (error)
 		return (error);
 
@@ -981,15 +989,17 @@ hn_rndis_query_hwcaps(struct hn_softc *sc, struct ndis_offload *caps)
 		return (EINVAL);
 	}
 	if (caps->ndis_hdr.ndis_size > caps_len) {
-		if_printf(sc->hn_ifp, "invalid NDIS objsize %u, "
-		    "data size %zu\n", caps->ndis_hdr.ndis_size, caps_len);
+		if_printf(sc->hn_ifp,
+		    "invalid NDIS objsize %u, "
+		    "data size %zu\n",
+		    caps->ndis_hdr.ndis_size, caps_len);
 		return (EINVAL);
 	} else if (caps->ndis_hdr.ndis_size < NDIS_OFFLOAD_SIZE_6_0) {
 		if_printf(sc->hn_ifp, "invalid NDIS objsize %u\n",
 		    caps->ndis_hdr.ndis_size);
 		return (EINVAL);
 	} else if (caps->ndis_hdr.ndis_rev >= NDIS_OFFLOAD_REV_3 &&
-		   caps->ndis_hdr.ndis_size < NDIS_OFFLOAD_SIZE) {
+	    caps->ndis_hdr.ndis_size < NDIS_OFFLOAD_SIZE) {
 		if_printf(sc->hn_ifp, "invalid NDIS rev3 objsize %u\n",
 		    caps->ndis_hdr.ndis_size);
 		return (EINVAL);
@@ -1004,7 +1014,8 @@ hn_rndis_query_hwcaps(struct hn_softc *sc, struct ndis_offload *caps)
 		if_printf(sc->hn_ifp, "hwcaps rev %u\n",
 		    caps->ndis_hdr.ndis_rev);
 
-		if_printf(sc->hn_ifp, "hwcaps csum: "
+		if_printf(sc->hn_ifp,
+		    "hwcaps csum: "
 		    "ip4 tx 0x%x/0x%x rx 0x%x/0x%x, "
 		    "ip6 tx 0x%x/0x%x rx 0x%x/0x%x\n",
 		    caps->ndis_csum.ndis_ip4_txcsum,
@@ -1015,7 +1026,8 @@ hn_rndis_query_hwcaps(struct hn_softc *sc, struct ndis_offload *caps)
 		    caps->ndis_csum.ndis_ip6_txenc,
 		    caps->ndis_csum.ndis_ip6_rxcsum,
 		    caps->ndis_csum.ndis_ip6_rxenc);
-		if_printf(sc->hn_ifp, "hwcaps lsov2: "
+		if_printf(sc->hn_ifp,
+		    "hwcaps lsov2: "
 		    "ip4 maxsz %u minsg %u encap 0x%x, "
 		    "ip6 maxsz %u minsg %u encap 0x%x opts 0x%x\n",
 		    caps->ndis_lsov2.ndis_ip4_maxsz,
@@ -1026,10 +1038,10 @@ hn_rndis_query_hwcaps(struct hn_softc *sc, struct ndis_offload *caps)
 		    caps->ndis_lsov2.ndis_ip6_encap,
 		    caps->ndis_lsov2.ndis_ip6_opts);
 		if (caps->ndis_hdr.ndis_rev >= NDIS_OFFLOAD_REV_3)
-			if_printf(sc->hn_ifp, "hwcaps rsc: "
+			if_printf(sc->hn_ifp,
+			    "hwcaps rsc: "
 			    "ip4 %u ip6 %u\n",
-			    caps->ndis_rsc.ndis_ip4,
-			    caps->ndis_rsc.ndis_ip6);
+			    caps->ndis_rsc.ndis_ip4, caps->ndis_rsc.ndis_ip6);
 	}
 	return (0);
 }

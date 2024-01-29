@@ -48,8 +48,8 @@
 #include <unistd.h>
 #include <util.h>
 
-#include "makefs.h"
 #include "buf.h"
+#include "makefs.h"
 
 static TAILQ_HEAD(buftailhead, m_buf) buftail;
 
@@ -57,11 +57,11 @@ int
 bread(struct m_vnode *vp, daddr_t blkno, int size, struct ucred *u1 __unused,
     struct m_buf **bpp)
 {
-	off_t	offset;
-	ssize_t	rv;
+	off_t offset;
+	ssize_t rv;
 	fsinfo_t *fs = vp->fs;
 
-	assert (bpp != NULL);
+	assert(bpp != NULL);
 
 	if (debug & DEBUG_BUF_BREAD)
 		printf("%s: blkno %lld size %d\n", __func__, (long long)blkno,
@@ -70,7 +70,7 @@ bread(struct m_vnode *vp, daddr_t blkno, int size, struct ucred *u1 __unused,
 	offset = (off_t)(*bpp)->b_blkno * fs->sectorsize + fs->offset;
 	if (debug & DEBUG_BUF_BREAD)
 		printf("%s: blkno %lld offset %lld bcount %ld\n", __func__,
-		    (long long)(*bpp)->b_blkno, (long long) offset,
+		    (long long)(*bpp)->b_blkno, (long long)offset,
 		    (*bpp)->b_bcount);
 	if (lseek((*bpp)->b_fs->fd, offset, SEEK_SET) == -1)
 		err(1, "%s: lseek %lld (%lld)", __func__,
@@ -79,10 +79,10 @@ bread(struct m_vnode *vp, daddr_t blkno, int size, struct ucred *u1 __unused,
 	if (debug & DEBUG_BUF_BREAD)
 		printf("%s: read %ld (%lld) returned %d\n", __func__,
 		    (*bpp)->b_bcount, (long long)offset, (int)rv);
-	if (rv == -1)				/* read error */
+	if (rv == -1) /* read error */
 		err(1, "%s: read %ld (%lld) returned %d", __func__,
 		    (*bpp)->b_bcount, (long long)offset, (int)rv);
-	else if (rv != (*bpp)->b_bcount)	/* short read */
+	else if (rv != (*bpp)->b_bcount) /* short read */
 		err(1, "%s: read %ld (%lld) returned %d", __func__,
 		    (*bpp)->b_bcount, (long long)offset, (int)rv);
 	else
@@ -93,8 +93,8 @@ void
 brelse(struct m_buf *bp)
 {
 
-	assert (bp != NULL);
-	assert (bp->b_data != NULL);
+	assert(bp != NULL);
+	assert(bp->b_data != NULL);
 
 	if (bp->b_lblkno < 0) {
 		/*
@@ -122,18 +122,18 @@ brelse(struct m_buf *bp)
 int
 bwrite(struct m_buf *bp)
 {
-	off_t	offset;
-	ssize_t	rv;
-	size_t	bytes;
-	int	e;
+	off_t offset;
+	ssize_t rv;
+	size_t bytes;
+	int e;
 	fsinfo_t *fs = bp->b_fs;
 
-	assert (bp != NULL);
+	assert(bp != NULL);
 	offset = (off_t)bp->b_blkno * fs->sectorsize + fs->offset;
 	bytes = (size_t)bp->b_bcount;
 	if (debug & DEBUG_BUF_BWRITE)
 		printf("%s: blkno %lld offset %lld bcount %zu\n", __func__,
-		    (long long)bp->b_blkno, (long long) offset, bytes);
+		    (long long)bp->b_blkno, (long long)offset, bytes);
 	if (lseek(bp->b_fs->fd, offset, SEEK_SET) == -1) {
 		brelse(bp);
 		return (errno);
@@ -146,7 +146,7 @@ bwrite(struct m_buf *bp)
 	brelse(bp);
 	if (rv == (ssize_t)bytes)
 		return (0);
-	if (rv == -1)		/* write error */
+	if (rv == -1) /* write error */
 		return (e);
 	return (EAGAIN);
 }
@@ -166,8 +166,9 @@ bcleanup(void)
 		return;
 
 	printf("%s: unflushed buffers:\n", __func__);
-	TAILQ_FOREACH(bp, &buftail, b_tailq) {
-		printf("\tlblkno %10lld  blkno %10lld  count %6ld  bufsize %6ld\n",
+	TAILQ_FOREACH (bp, &buftail, b_tailq) {
+		printf(
+		    "\tlblkno %10lld  blkno %10lld  count %6ld  bufsize %6ld\n",
 		    (long long)bp->b_lblkno, (long long)bp->b_blkno,
 		    bp->b_bcount, bp->b_bufsize);
 	}
@@ -193,7 +194,7 @@ getblk(struct m_vnode *vp, daddr_t blkno, int size, int u1 __unused,
 		TAILQ_INIT(&buftail);
 		buftailinitted = 1;
 	} else {
-		TAILQ_FOREACH(bp, &buftail, b_tailq) {
+		TAILQ_FOREACH (bp, &buftail, b_tailq) {
 			if (bp->b_lblkno != blkno)
 				continue;
 			break;

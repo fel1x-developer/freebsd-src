@@ -1,8 +1,8 @@
 /* This file is in the public domain. */
 
 #include <sys/cdefs.h>
-#include <opencrypto/xform_auth.h>
 
+#include <opencrypto/xform_auth.h>
 #include <sodium/crypto_onetimeauth_poly1305.h>
 
 struct poly1305_xform_ctx {

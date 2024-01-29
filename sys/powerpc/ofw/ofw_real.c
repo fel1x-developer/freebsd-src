@@ -58,24 +58,25 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/endian.h>
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/endian.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
-#include <sys/systm.h>
 
 #include <vm/vm.h>
-#include <vm/vm_page.h>
 #include <vm/pmap.h>
+#include <vm/vm_page.h>
 
 #include <machine/bus.h>
 #include <machine/md_var.h>
 #include <machine/ofw_machdep.h>
 #include <machine/stdarg.h>
 
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofwvar.h>
+#include <dev/ofw/openfirm.h>
+
 #include "ofw_if.h"
 
 static int ofw_real_init(ofw_t, void *openfirm);
@@ -84,28 +85,28 @@ static phandle_t ofw_real_peer(ofw_t, phandle_t node);
 static phandle_t ofw_real_child(ofw_t, phandle_t node);
 static phandle_t ofw_real_parent(ofw_t, phandle_t node);
 static phandle_t ofw_real_instance_to_package(ofw_t, ihandle_t instance);
-static ssize_t ofw_real_getproplen(ofw_t, phandle_t package, 
+static ssize_t ofw_real_getproplen(ofw_t, phandle_t package,
     const char *propname);
-static ssize_t ofw_real_getprop(ofw_t, phandle_t package, const char *propname, 
+static ssize_t ofw_real_getprop(ofw_t, phandle_t package, const char *propname,
     void *buf, size_t buflen);
-static int ofw_real_nextprop(ofw_t, phandle_t package, const char *previous, 
+static int ofw_real_nextprop(ofw_t, phandle_t package, const char *previous,
     char *buf, size_t);
 static int ofw_real_setprop(ofw_t, phandle_t package, const char *propname,
     const void *buf, size_t len);
 static ssize_t ofw_real_canon(ofw_t, const char *device, char *buf, size_t len);
 static phandle_t ofw_real_finddevice(ofw_t, const char *device);
-static ssize_t ofw_real_instance_to_path(ofw_t, ihandle_t instance, char *buf, 
+static ssize_t ofw_real_instance_to_path(ofw_t, ihandle_t instance, char *buf,
     size_t len);
-static ssize_t ofw_real_package_to_path(ofw_t, phandle_t package, char *buf, 
+static ssize_t ofw_real_package_to_path(ofw_t, phandle_t package, char *buf,
     size_t len);
-static int ofw_real_call_method(ofw_t, ihandle_t instance, const char *method, 
+static int ofw_real_call_method(ofw_t, ihandle_t instance, const char *method,
     int nargs, int nreturns, cell_t *args_and_returns);
 static int ofw_real_interpret(ofw_t ofw, const char *cmd, int nreturns,
     cell_t *returns);
 static ihandle_t ofw_real_open(ofw_t, const char *device);
 static void ofw_real_close(ofw_t, ihandle_t instance);
 static ssize_t ofw_real_read(ofw_t, ihandle_t instance, void *addr, size_t len);
-static ssize_t ofw_real_write(ofw_t, ihandle_t instance, const void *addr, 
+static ssize_t ofw_real_write(ofw_t, ihandle_t instance, const void *addr,
     size_t len);
 static int ofw_real_seek(ofw_t, ihandle_t instance, u_int64_t pos);
 static caddr_t ofw_real_claim(ofw_t, void *virt, size_t size, u_int align);
@@ -113,48 +114,37 @@ static void ofw_real_release(ofw_t, void *virt, size_t size);
 static void ofw_real_enter(ofw_t);
 static void ofw_real_exit(ofw_t);
 
-static ofw_method_t ofw_real_methods[] = {
-	OFWMETHOD(ofw_init,			ofw_real_init),
-	OFWMETHOD(ofw_peer,			ofw_real_peer),
-	OFWMETHOD(ofw_child,			ofw_real_child),
-	OFWMETHOD(ofw_parent,			ofw_real_parent),
-	OFWMETHOD(ofw_instance_to_package,	ofw_real_instance_to_package),
-	OFWMETHOD(ofw_getproplen,		ofw_real_getproplen),
-	OFWMETHOD(ofw_getprop,			ofw_real_getprop),
-	OFWMETHOD(ofw_nextprop,			ofw_real_nextprop),
-	OFWMETHOD(ofw_setprop,			ofw_real_setprop),
-	OFWMETHOD(ofw_canon,			ofw_real_canon),
-	OFWMETHOD(ofw_finddevice,		ofw_real_finddevice),
-	OFWMETHOD(ofw_instance_to_path,		ofw_real_instance_to_path),
-	OFWMETHOD(ofw_package_to_path,		ofw_real_package_to_path),
+static ofw_method_t ofw_real_methods[] = { OFWMETHOD(ofw_init, ofw_real_init),
+	OFWMETHOD(ofw_peer, ofw_real_peer),
+	OFWMETHOD(ofw_child, ofw_real_child),
+	OFWMETHOD(ofw_parent, ofw_real_parent),
+	OFWMETHOD(ofw_instance_to_package, ofw_real_instance_to_package),
+	OFWMETHOD(ofw_getproplen, ofw_real_getproplen),
+	OFWMETHOD(ofw_getprop, ofw_real_getprop),
+	OFWMETHOD(ofw_nextprop, ofw_real_nextprop),
+	OFWMETHOD(ofw_setprop, ofw_real_setprop),
+	OFWMETHOD(ofw_canon, ofw_real_canon),
+	OFWMETHOD(ofw_finddevice, ofw_real_finddevice),
+	OFWMETHOD(ofw_instance_to_path, ofw_real_instance_to_path),
+	OFWMETHOD(ofw_package_to_path, ofw_real_package_to_path),
 
-	OFWMETHOD(ofw_test,			ofw_real_test),
-	OFWMETHOD(ofw_call_method,		ofw_real_call_method),
-	OFWMETHOD(ofw_interpret,		ofw_real_interpret),
-	OFWMETHOD(ofw_open,			ofw_real_open),
-	OFWMETHOD(ofw_close,			ofw_real_close),
-	OFWMETHOD(ofw_read,			ofw_real_read),
-	OFWMETHOD(ofw_write,			ofw_real_write),
-	OFWMETHOD(ofw_seek,			ofw_real_seek),
-	OFWMETHOD(ofw_claim,			ofw_real_claim),
-	OFWMETHOD(ofw_release,			ofw_real_release),
-	OFWMETHOD(ofw_enter,			ofw_real_enter),
-	OFWMETHOD(ofw_exit,			ofw_real_exit),
-	{ 0, 0 }
-};
+	OFWMETHOD(ofw_test, ofw_real_test),
+	OFWMETHOD(ofw_call_method, ofw_real_call_method),
+	OFWMETHOD(ofw_interpret, ofw_real_interpret),
+	OFWMETHOD(ofw_open, ofw_real_open),
+	OFWMETHOD(ofw_close, ofw_real_close),
+	OFWMETHOD(ofw_read, ofw_real_read),
+	OFWMETHOD(ofw_write, ofw_real_write),
+	OFWMETHOD(ofw_seek, ofw_real_seek),
+	OFWMETHOD(ofw_claim, ofw_real_claim),
+	OFWMETHOD(ofw_release, ofw_real_release),
+	OFWMETHOD(ofw_enter, ofw_real_enter),
+	OFWMETHOD(ofw_exit, ofw_real_exit), { 0, 0 } };
 
-static ofw_def_t ofw_real = {
-	OFW_STD_REAL,
-	ofw_real_methods,
-	0
-};
+static ofw_def_t ofw_real = { OFW_STD_REAL, ofw_real_methods, 0 };
 OFW_DEF(ofw_real);
 
-static ofw_def_t ofw_32bit = {
-	OFW_STD_32BIT,
-	ofw_real_methods,
-	0
-};
+static ofw_def_t ofw_32bit = { OFW_STD_32BIT, ofw_real_methods, 0 };
 OFW_DEF(ofw_32bit);
 
 static MALLOC_DEFINE(M_OFWREAL, "ofwreal",
@@ -162,10 +152,10 @@ static MALLOC_DEFINE(M_OFWREAL, "ofwreal",
 
 static int (*openfirmware)(void *);
 
-static vm_offset_t	of_bounce_phys;
-static caddr_t		of_bounce_virt;
-static off_t		of_bounce_offset;
-static size_t		of_bounce_size;
+static vm_offset_t of_bounce_phys;
+static caddr_t of_bounce_virt;
+static off_t of_bounce_offset;
+static size_t of_bounce_size;
 
 #define IN(x) htobe32(x)
 #define OUT(x) be32toh(x)
@@ -203,13 +193,13 @@ static size_t		of_bounce_size;
  * hint.xhci.0.disabled=1
  */
 
-static struct mtx	of_bounce_mtx;
-static struct mtx	of_spin_mtx;
-static struct mtx	*of_real_mtx;
-static void		(*of_mtx_lock)(void);
-static void		(*of_mtx_unlock)(void);
+static struct mtx of_bounce_mtx;
+static struct mtx of_spin_mtx;
+static struct mtx *of_real_mtx;
+static void (*of_mtx_lock)(void);
+static void (*of_mtx_unlock)(void);
 
-extern int		ofw_real_mode;
+extern int ofw_real_mode;
 
 /*
  * After the VM is up, allocate a wired, low memory bounce page.
@@ -217,8 +207,8 @@ extern int		ofw_real_mode;
 
 static void ofw_real_bounce_alloc(void *);
 
-SYSINIT(ofw_real_bounce_alloc, SI_SUB_KMEM, SI_ORDER_ANY, 
-    ofw_real_bounce_alloc, NULL);
+SYSINIT(ofw_real_bounce_alloc, SI_SUB_KMEM, SI_ORDER_ANY, ofw_real_bounce_alloc,
+    NULL);
 
 static void
 ofw_real_mtx_lock_spin(void)
@@ -263,7 +253,7 @@ ofw_real_bounce_alloc(void *junk)
 	caddr_t temp;
 
 	/*
-	 * Check that ofw_real is actually in use before allocating wads 
+	 * Check that ofw_real is actually in use before allocating wads
 	 * of memory. Do this by checking if our mutex has been set up.
 	 */
 	if (!mtx_initialized(&of_bounce_mtx))
@@ -277,7 +267,8 @@ ofw_real_bounce_alloc(void *junk)
 	    ulmin(platform_real_maxaddr(), BUS_SPACE_MAXADDR_32BIT), PAGE_SIZE,
 	    4 * PAGE_SIZE);
 	if (temp == NULL)
-		panic("%s: Not able to allocated contiguous memory\n", __func__);
+		panic("%s: Not able to allocated contiguous memory\n",
+		    __func__);
 
 	mtx_lock(&of_bounce_mtx);
 
@@ -361,7 +352,7 @@ ofw_real_unmap(cell_t physaddr, void *buf, size_t len)
 	if (physaddr == 0)
 		return;
 
-	memcpy(buf,of_bounce_virt + (physaddr - of_bounce_phys),len);
+	memcpy(buf, of_bounce_virt + (physaddr - of_bounce_phys), len);
 }
 
 /* Initialiser */
@@ -408,7 +399,7 @@ ofw_real_test(ofw_t ofw, const char *name)
 		cell_t missing;
 	} args;
 
-	args.name = IN((cell_t)(uintptr_t)"test");
+	args.name = IN((cell_t)(uintptr_t) "test");
 	args.nargs = IN(1);
 	args.nreturns = IN(1);
 
@@ -442,7 +433,7 @@ ofw_real_peer(ofw_t ofw, phandle_t node)
 		cell_t next;
 	} args;
 
-	args.name = IN((cell_t)(uintptr_t)"peer");
+	args.name = IN((cell_t)(uintptr_t) "peer");
 	args.nargs = IN(1);
 	args.nreturns = IN(1);
 
@@ -471,7 +462,7 @@ ofw_real_child(ofw_t ofw, phandle_t node)
 		cell_t child;
 	} args;
 
-	args.name = IN((cell_t)(uintptr_t)"child");
+	args.name = IN((cell_t)(uintptr_t) "child");
 	args.nargs = IN(1);
 	args.nreturns = IN(1);
 
@@ -500,7 +491,7 @@ ofw_real_parent(ofw_t ofw, phandle_t node)
 		cell_t parent;
 	} args;
 
-	args.name = IN((cell_t)(uintptr_t)"parent");
+	args.name = IN((cell_t)(uintptr_t) "parent");
 	args.nargs = IN(1);
 	args.nreturns = IN(1);
 
@@ -529,7 +520,7 @@ ofw_real_instance_to_package(ofw_t ofw, ihandle_t instance)
 		cell_t package;
 	} args;
 
-	args.name = IN((cell_t)(uintptr_t)"instance-to-package");
+	args.name = IN((cell_t)(uintptr_t) "instance-to-package");
 	args.nargs = IN(1);
 	args.nreturns = IN(1);
 
@@ -559,7 +550,7 @@ ofw_real_getproplen(ofw_t ofw, phandle_t package, const char *propname)
 		int32_t proplen;
 	} args;
 
-	args.name = IN((cell_t)(uintptr_t)"getproplen");
+	args.name = IN((cell_t)(uintptr_t) "getproplen");
 	args.nargs = IN(2);
 	args.nreturns = IN(1);
 
@@ -579,7 +570,7 @@ ofw_real_getproplen(ofw_t ofw, phandle_t package, const char *propname)
 
 /* Get the value of a property of a package. */
 static ssize_t
-ofw_real_getprop(ofw_t ofw, phandle_t package, const char *propname, void *buf, 
+ofw_real_getprop(ofw_t ofw, phandle_t package, const char *propname, void *buf,
     size_t buflen)
 {
 	vm_offset_t argsptr;
@@ -594,7 +585,7 @@ ofw_real_getprop(ofw_t ofw, phandle_t package, const char *propname, void *buf,
 		int32_t size;
 	} args;
 
-	args.name = IN((cell_t)(uintptr_t)"getprop");
+	args.name = IN((cell_t)(uintptr_t) "getprop");
 	args.nargs = IN(4);
 	args.nreturns = IN(1);
 
@@ -619,8 +610,8 @@ ofw_real_getprop(ofw_t ofw, phandle_t package, const char *propname, void *buf,
 
 /* Get the next property of a package. */
 static int
-ofw_real_nextprop(ofw_t ofw, phandle_t package, const char *previous, 
-    char *buf, size_t size)
+ofw_real_nextprop(ofw_t ofw, phandle_t package, const char *previous, char *buf,
+    size_t size)
 {
 	vm_offset_t argsptr;
 	struct {
@@ -633,14 +624,15 @@ ofw_real_nextprop(ofw_t ofw, phandle_t package, const char *previous,
 		cell_t flag;
 	} args;
 
-	args.name = IN((cell_t)(uintptr_t)"nextprop");
+	args.name = IN((cell_t)(uintptr_t) "nextprop");
 	args.nargs = IN(3);
 	args.nreturns = IN(1);
 
 	ofw_real_start();
 
 	args.package = IN(package);
-	args.previous = IN(ofw_real_map(previous, (previous != NULL) ? (strlen(previous) + 1) : 0));
+	args.previous = IN(ofw_real_map(previous,
+	    (previous != NULL) ? (strlen(previous) + 1) : 0));
 	args.buf = IN(ofw_real_map(buf, size));
 	argsptr = ofw_real_map(&args, sizeof(args));
 	if (args.buf == 0 || openfirmware((void *)argsptr) == -1) {
@@ -672,7 +664,7 @@ ofw_real_setprop(ofw_t ofw, phandle_t package, const char *propname,
 		cell_t size;
 	} args;
 
-	args.name = IN((cell_t)(uintptr_t)"setprop");
+	args.name = IN((cell_t)(uintptr_t) "setprop");
 	args.nargs = IN(4);
 	args.nreturns = IN(1);
 
@@ -708,7 +700,7 @@ ofw_real_canon(ofw_t ofw, const char *device, char *buf, size_t len)
 		int32_t size;
 	} args;
 
-	args.name = IN((cell_t)(uintptr_t)"canon");
+	args.name = IN((cell_t)(uintptr_t) "canon");
 	args.nargs = IN(3);
 	args.nreturns = IN(1);
 
@@ -743,7 +735,7 @@ ofw_real_finddevice(ofw_t ofw, const char *device)
 		cell_t package;
 	} args;
 
-	args.name = IN((cell_t)(uintptr_t)"finddevice");
+	args.name = IN((cell_t)(uintptr_t) "finddevice");
 	args.nargs = IN(1);
 	args.nreturns = IN(1);
 
@@ -751,8 +743,7 @@ ofw_real_finddevice(ofw_t ofw, const char *device)
 
 	args.device = IN(ofw_real_map(device, strlen(device) + 1));
 	argsptr = ofw_real_map(&args, sizeof(args));
-	if (args.device == 0 ||
-	    openfirmware((void *)argsptr) == -1) {
+	if (args.device == 0 || openfirmware((void *)argsptr) == -1) {
 		ofw_real_stop();
 		return (-1);
 	}
@@ -776,7 +767,7 @@ ofw_real_instance_to_path(ofw_t ofw, ihandle_t instance, char *buf, size_t len)
 		int32_t size;
 	} args;
 
-	args.name = IN((cell_t)(uintptr_t)"instance-to-path");
+	args.name = IN((cell_t)(uintptr_t) "instance-to-path");
 	args.nargs = IN(3);
 	args.nreturns = IN(1);
 
@@ -786,8 +777,7 @@ ofw_real_instance_to_path(ofw_t ofw, ihandle_t instance, char *buf, size_t len)
 	args.buf = IN(ofw_real_map(buf, len));
 	args.len = IN(len);
 	argsptr = ofw_real_map(&args, sizeof(args));
-	if (args.buf == 0 ||
-	    openfirmware((void *)argsptr) == -1) {
+	if (args.buf == 0 || openfirmware((void *)argsptr) == -1) {
 		ofw_real_stop();
 		return (-1);
 	}
@@ -813,7 +803,7 @@ ofw_real_package_to_path(ofw_t ofw, phandle_t package, char *buf, size_t len)
 		int32_t size;
 	} args;
 
-	args.name = IN((cell_t)(uintptr_t)"package-to-path");
+	args.name = IN((cell_t)(uintptr_t) "package-to-path");
 	args.nargs = IN(3);
 	args.nreturns = IN(1);
 
@@ -823,8 +813,7 @@ ofw_real_package_to_path(ofw_t ofw, phandle_t package, char *buf, size_t len)
 	args.buf = IN(ofw_real_map(buf, len));
 	args.len = IN(len);
 	argsptr = ofw_real_map(&args, sizeof(args));
-	if (args.buf == 0 ||
-	    openfirmware((void *)argsptr) == -1) {
+	if (args.buf == 0 || openfirmware((void *)argsptr) == -1) {
 		ofw_real_stop();
 		return (-1);
 	}
@@ -837,7 +826,7 @@ ofw_real_package_to_path(ofw_t ofw, phandle_t package, char *buf, size_t len)
 
 /*  Call the method in the scope of a given instance. */
 static int
-ofw_real_call_method(ofw_t ofw, ihandle_t instance, const char *method, 
+ofw_real_call_method(ofw_t ofw, ihandle_t instance, const char *method,
     int nargs, int nreturns, cell_t *args_and_returns)
 {
 	vm_offset_t argsptr;
@@ -852,7 +841,7 @@ ofw_real_call_method(ofw_t ofw, ihandle_t instance, const char *method,
 	cell_t *ap, *cp;
 	int n;
 
-	args.name = IN((cell_t)(uintptr_t)"call-method");
+	args.name = IN((cell_t)(uintptr_t) "call-method");
 	args.nargs = IN(2);
 	args.nreturns = IN(1);
 
@@ -869,8 +858,7 @@ ofw_real_call_method(ofw_t ofw, ihandle_t instance, const char *method,
 	for (cp = args.args_n_results + (n = nargs); --n >= 0;)
 		*--cp = IN(*(ap++));
 	argsptr = ofw_real_map(&args, sizeof(args));
-	if (args.method == 0 ||
-	    openfirmware((void *)argsptr) == -1) {
+	if (args.method == 0 || openfirmware((void *)argsptr) == -1) {
 		ofw_real_stop();
 		return (-1);
 	}
@@ -878,7 +866,8 @@ ofw_real_call_method(ofw_t ofw, ihandle_t instance, const char *method,
 	ofw_real_stop();
 	if (OUT(args.args_n_results[nargs]))
 		return (OUT(args.args_n_results[nargs]));
-	for (cp = args.args_n_results + nargs + (n = OUT(args.nreturns)); --n > 0;)
+	for (cp = args.args_n_results + nargs + (n = OUT(args.nreturns));
+	     --n > 0;)
 		*(ap++) = OUT(*--cp);
 	return (0);
 }
@@ -896,7 +885,7 @@ ofw_real_interpret(ofw_t ofw, const char *cmd, int nreturns, cell_t *returns)
 	cell_t status;
 	int i = 0, j = 0;
 
-	args.name = IN((cell_t)(uintptr_t)"interpret");
+	args.name = IN((cell_t)(uintptr_t) "interpret");
 	args.nargs = IN(1);
 
 	ofw_real_start();
@@ -932,7 +921,7 @@ ofw_real_open(ofw_t ofw, const char *device)
 		cell_t instance;
 	} args;
 
-	args.name = IN((cell_t)(uintptr_t)"open");
+	args.name = IN((cell_t)(uintptr_t) "open");
 	args.nargs = IN(1);
 	args.nreturns = IN(1);
 
@@ -940,8 +929,8 @@ ofw_real_open(ofw_t ofw, const char *device)
 
 	args.device = IN(ofw_real_map(device, strlen(device) + 1));
 	argsptr = ofw_real_map(&args, sizeof(args));
-	if (args.device == 0 || openfirmware((void *)argsptr) == -1 
-	    || args.instance == 0) {
+	if (args.device == 0 || openfirmware((void *)argsptr) == -1 ||
+	    args.instance == 0) {
 		ofw_real_stop();
 		return (-1);
 	}
@@ -962,7 +951,7 @@ ofw_real_close(ofw_t ofw, ihandle_t instance)
 		cell_t instance;
 	} args;
 
-	args.name = IN((cell_t)(uintptr_t)"close");
+	args.name = IN((cell_t)(uintptr_t) "close");
 	args.nargs = IN(1);
 	args.nreturns = IN(0);
 	args.instance = IN(instance);
@@ -987,7 +976,7 @@ ofw_real_read(ofw_t ofw, ihandle_t instance, void *addr, size_t len)
 		int32_t actual;
 	} args;
 
-	args.name = IN((cell_t)(uintptr_t)"read");
+	args.name = IN((cell_t)(uintptr_t) "read");
 	args.nargs = IN(3);
 	args.nreturns = IN(1);
 
@@ -1023,7 +1012,7 @@ ofw_real_write(ofw_t ofw, ihandle_t instance, const void *addr, size_t len)
 		int32_t actual;
 	} args;
 
-	args.name = IN((cell_t)(uintptr_t)"write");
+	args.name = IN((cell_t)(uintptr_t) "write");
 	args.nargs = IN(3);
 	args.nreturns = IN(1);
 
@@ -1057,7 +1046,7 @@ ofw_real_seek(ofw_t ofw, ihandle_t instance, u_int64_t pos)
 		cell_t status;
 	} args;
 
-	args.name = IN((cell_t)(uintptr_t)"seek");
+	args.name = IN((cell_t)(uintptr_t) "seek");
 	args.nargs = IN(3);
 	args.nreturns = IN(1);
 
@@ -1094,7 +1083,7 @@ ofw_real_claim(ofw_t ofw, void *virt, size_t size, u_int align)
 		cell_t baseaddr;
 	} args;
 
-	args.name = IN((cell_t)(uintptr_t)"claim");
+	args.name = IN((cell_t)(uintptr_t) "claim");
 	args.nargs = IN(3);
 	args.nreturns = IN(1);
 
@@ -1125,7 +1114,7 @@ ofw_real_release(ofw_t ofw, void *virt, size_t size)
 		cell_t size;
 	} args;
 
-	args.name = IN((cell_t)(uintptr_t)"release");
+	args.name = IN((cell_t)(uintptr_t) "release");
 	args.nargs = IN(2);
 	args.nreturns = IN(0);
 
@@ -1152,7 +1141,7 @@ ofw_real_enter(ofw_t ofw)
 		cell_t nreturns;
 	} args;
 
-	args.name = IN((cell_t)(uintptr_t)"enter");
+	args.name = IN((cell_t)(uintptr_t) "enter");
 	args.nargs = IN(0);
 	args.nreturns = IN(0);
 
@@ -1174,14 +1163,14 @@ ofw_real_exit(ofw_t ofw)
 		cell_t nreturns;
 	} args;
 
-	args.name = IN((cell_t)(uintptr_t)"exit");
+	args.name = IN((cell_t)(uintptr_t) "exit");
 	args.nargs = IN(0);
 	args.nreturns = IN(0);
 
 	ofw_real_start();
 	argsptr = ofw_real_map(&args, sizeof(args));
 	openfirmware((void *)argsptr);
-	for (;;)			/* just in case */
+	for (;;) /* just in case */
 		;
 	ofw_real_stop();
 }

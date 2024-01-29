@@ -48,12 +48,12 @@
  */
 struct utmpx_entry {
 	SLIST_ENTRY(utmpx_entry) next;
-	char		user[sizeof(((struct utmpx *)0)->ut_user)];
-	char		id[sizeof(((struct utmpx *)0)->ut_id)];
+	char user[sizeof(((struct utmpx *)0)->ut_user)];
+	char id[sizeof(((struct utmpx *)0)->ut_id)];
 #ifdef CONSOLE_TTY
-	char		line[sizeof(((struct utmpx *)0)->ut_line)];
+	char line[sizeof(((struct utmpx *)0)->ut_line)];
 #endif
-	struct timeval	time;
+	struct timeval time;
 };
 
 /*
@@ -61,8 +61,8 @@ struct utmpx_entry {
  */
 struct user_entry {
 	SLIST_ENTRY(user_entry) next;
-	char		user[sizeof(((struct utmpx *)0)->ut_user)];
-	struct timeval	time;
+	char user[sizeof(((struct utmpx *)0)->ut_user)];
+	struct timeval time;
 };
 
 /*
@@ -70,9 +70,9 @@ struct user_entry {
  */
 struct tty_entry {
 	SLIST_ENTRY(tty_entry) next;
-	char		line[sizeof(((struct utmpx *)0)->ut_line) + 2];
-	size_t		len;
-	int		ret;
+	char line[sizeof(((struct utmpx *)0)->ut_line) + 2];
+	size_t len;
+	int ret;
 };
 
 /*
@@ -83,19 +83,19 @@ static const char *Console = CONSOLE_TTY;
 #endif
 static struct timeval Total = { 0, 0 };
 static struct timeval FirstTime = { 0, 0 };
-static int	Flags = 0;
+static int Flags = 0;
 static SLIST_HEAD(, utmpx_entry) CurUtmpx = SLIST_HEAD_INITIALIZER(CurUtmpx);
 static SLIST_HEAD(, user_entry) Users = SLIST_HEAD_INITIALIZER(Users);
 static SLIST_HEAD(, tty_entry) Ttys = SLIST_HEAD_INITIALIZER(Ttys);
 
-#define	AC_W	1				/* not _PATH_WTMP */
-#define	AC_D	2				/* daily totals (ignore -p) */
-#define	AC_P	4				/* per-user totals */
-#define	AC_U	8				/* specified users only */
-#define	AC_T	16				/* specified ttys only */
+#define AC_W 1	/* not _PATH_WTMP */
+#define AC_D 2	/* daily totals (ignore -p) */
+#define AC_P 4	/* per-user totals */
+#define AC_U 8	/* specified users only */
+#define AC_T 16 /* specified ttys only */
 
-static void	ac(const char *);
-static void	usage(void);
+static void ac(const char *);
+static void usage(void);
 
 static void
 add_tty(const char *line)
@@ -107,9 +107,9 @@ add_tty(const char *line)
 
 	if ((tp = malloc(sizeof(*tp))) == NULL)
 		errx(1, "malloc failed");
-	tp->len = 0;				/* full match */
-	tp->ret = 1;				/* do if match */
-	if (*line == '!') {			/* don't do if match */
+	tp->len = 0;	    /* full match */
+	tp->ret = 1;	    /* do if match */
+	if (*line == '!') { /* don't do if match */
 		tp->ret = 0;
 		line++;
 	}
@@ -132,9 +132,9 @@ do_tty(const char *line)
 	struct tty_entry *tp;
 	int def_ret = 0;
 
-	SLIST_FOREACH(tp, &Ttys, next) {
-		if (tp->ret == 0)		/* specific don't */
-			def_ret = 1;		/* default do */
+	SLIST_FOREACH (tp, &Ttys, next) {
+		if (tp->ret == 0)    /* specific don't */
+			def_ret = 1; /* default do */
 		if (tp->len != 0) {
 			if (strncmp(line, tp->line, tp->len) == 0)
 				return tp->ret;
@@ -155,7 +155,7 @@ on_console(void)
 {
 	struct utmpx_entry *up;
 
-	SLIST_FOREACH(up, &CurUtmpx, next)
+	SLIST_FOREACH (up, &CurUtmpx, next)
 		if (strcmp(up->line, Console) == 0)
 			return (1);
 	return (0);
@@ -174,7 +174,7 @@ update_user(const char *user, struct timeval secs)
 	int c;
 
 	aup = NULL;
-	SLIST_FOREACH(up, &Users, next) {
+	SLIST_FOREACH (up, &Users, next) {
 		c = strcmp(up->user, user);
 		if (c == 0) {
 			timeradd(&up->time, &secs, &up->time);
@@ -207,7 +207,7 @@ main(int argc, char *argv[])
 	const char *wtmpf = NULL;
 	int c;
 
-	(void) setlocale(LC_TIME, "");
+	(void)setlocale(LC_TIME, "");
 
 	while ((c = getopt(argc, argv, "c:dpt:w:")) != -1) {
 		switch (c) {
@@ -215,7 +215,7 @@ main(int argc, char *argv[])
 #ifdef CONSOLE_TTY
 			Console = optarg;
 #else
-			usage();		/* XXX */
+			usage(); /* XXX */
 #endif
 			break;
 		case 'd':
@@ -224,7 +224,7 @@ main(int argc, char *argv[])
 		case 'p':
 			Flags |= AC_P;
 			break;
-		case 't':			/* only do specified ttys */
+		case 't': /* only do specified ttys */
 			add_tty(optarg);
 			break;
 		case 'w':
@@ -242,9 +242,9 @@ main(int argc, char *argv[])
 		 * initialize user list
 		 */
 		for (; optind < argc; optind++) {
-			update_user(argv[optind], (struct timeval){ 0, 0 });
+			update_user(argv[optind], (struct timeval) { 0, 0 });
 		}
-		Flags |= AC_U;			/* freeze user list */
+		Flags |= AC_U; /* freeze user list */
 	}
 	if (Flags & AC_D)
 		Flags &= ~AC_P;
@@ -269,7 +269,7 @@ show_users(void)
 {
 	struct user_entry *lp;
 
-	SLIST_FOREACH(lp, &Users, next)
+	SLIST_FOREACH (lp, &Users, next)
 		show(lp->user, lp->time);
 }
 
@@ -289,16 +289,16 @@ show_today(struct timeval today)
 		d_first = (*nl_langinfo(D_MD_ORDER) == 'd');
 	timersub(&today, &usec, &yesterday);
 	(void)strftime(date, sizeof(date),
-		       d_first ? "%e %b  total" : "%b %e  total",
-		       localtime(&yesterday.tv_sec));
+	    d_first ? "%e %b  total" : "%b %e  total",
+	    localtime(&yesterday.tv_sec));
 
-	SLIST_FOREACH(lp, &CurUtmpx, next) {
+	SLIST_FOREACH (lp, &CurUtmpx, next) {
 		timersub(&today, &lp->time, &diff);
 		update_user(lp->user, diff);
 		/* As if they just logged in. */
 		lp->time = today;
 	}
-	SLIST_FOREACH(up, &Users, next) {
+	SLIST_FOREACH (up, &Users, next) {
 		timeradd(&total, &up->time, &total);
 		/* For next day. */
 		timerclear(&up->time);
@@ -321,7 +321,7 @@ log_out(const struct utmpx *up)
 	for (lp = SLIST_FIRST(&CurUtmpx), lp2 = NULL; lp != NULL;)
 		if (up->ut_type == BOOT_TIME || up->ut_type == SHUTDOWN_TIME ||
 		    (up->ut_type == DEAD_PROCESS &&
-		    memcmp(lp->id, up->ut_id, sizeof(up->ut_id)) == 0)) {
+			memcmp(lp->id, up->ut_id, sizeof(up->ut_id)) == 0)) {
 			timersub(&up->ut_tv, &lp->time, &secs);
 			update_user(lp->user, secs);
 			/*
@@ -409,7 +409,7 @@ ac(const char *file)
 	int day;
 
 	day = -1;
-	timerclear(&prev_secs);	/* Minimum acceptable date == 1970. */
+	timerclear(&prev_secs); /* Minimum acceptable date == 1970. */
 	timerclear(&secs);
 	timerclear(&clock_shift);
 	if (setutxdb(UTXDB_LOG, file) != 0)
@@ -439,7 +439,7 @@ ac(const char *file)
 			} else
 				day = ltm->tm_yday;
 		}
-		switch(usr->ut_type) {
+		switch (usr->ut_type) {
 		case OLD_TIME:
 			clock_shift = ut_timecopy;
 			break;
@@ -448,7 +448,7 @@ ac(const char *file)
 			/*
 			 * adjust time for those logged in
 			 */
-			SLIST_FOREACH(lp, &CurUtmpx, next)
+			SLIST_FOREACH (lp, &CurUtmpx, next)
 				timersub(&lp->time, &clock_shift, &lp->time);
 			break;
 		case BOOT_TIME:

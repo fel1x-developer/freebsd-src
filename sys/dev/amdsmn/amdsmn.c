@@ -29,36 +29,36 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
-#include <sys/lock.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
 #include <machine/cpufunc.h>
 #include <machine/cputypes.h>
 #include <machine/md_var.h>
 #include <machine/specialreg.h>
 
-#include <dev/pci/pcivar.h>
 #include <x86/pci_cfgreg.h>
 
 #include <dev/amdsmn/amdsmn.h>
+#include <dev/pci/pcivar.h>
 
-#define	F15H_SMN_ADDR_REG	0xb8
-#define	F15H_SMN_DATA_REG	0xbc
-#define	F17H_SMN_ADDR_REG	0x60
-#define	F17H_SMN_DATA_REG	0x64
+#define F15H_SMN_ADDR_REG 0xb8
+#define F15H_SMN_DATA_REG 0xbc
+#define F17H_SMN_ADDR_REG 0x60
+#define F17H_SMN_DATA_REG 0x64
 
-#define	PCI_DEVICE_ID_AMD_15H_M60H_ROOT		0x1576
-#define	PCI_DEVICE_ID_AMD_17H_ROOT		0x1450
-#define	PCI_DEVICE_ID_AMD_17H_M10H_ROOT		0x15d0
-#define	PCI_DEVICE_ID_AMD_17H_M30H_ROOT		0x1480	/* Also M70H, F19H M00H/M20H */
-#define	PCI_DEVICE_ID_AMD_17H_M60H_ROOT		0x1630
-#define	PCI_DEVICE_ID_AMD_19H_M60H_ROOT		0x14d8
+#define PCI_DEVICE_ID_AMD_15H_M60H_ROOT 0x1576
+#define PCI_DEVICE_ID_AMD_17H_ROOT 0x1450
+#define PCI_DEVICE_ID_AMD_17H_M10H_ROOT 0x15d0
+#define PCI_DEVICE_ID_AMD_17H_M30H_ROOT 0x1480 /* Also M70H, F19H M00H/M20H */
+#define PCI_DEVICE_ID_AMD_17H_M60H_ROOT 0x1630
+#define PCI_DEVICE_ID_AMD_19H_M60H_ROOT 0x14d8
 
 struct pciid;
 struct amdsmn_softc {
@@ -67,64 +67,63 @@ struct amdsmn_softc {
 };
 
 static const struct pciid {
-	uint16_t	amdsmn_vendorid;
-	uint16_t	amdsmn_deviceid;
-	uint8_t		amdsmn_addr_reg;
-	uint8_t		amdsmn_data_reg;
+	uint16_t amdsmn_vendorid;
+	uint16_t amdsmn_deviceid;
+	uint8_t amdsmn_addr_reg;
+	uint8_t amdsmn_data_reg;
 } amdsmn_ids[] = {
 	{
-		.amdsmn_vendorid = CPU_VENDOR_AMD,
-		.amdsmn_deviceid = PCI_DEVICE_ID_AMD_15H_M60H_ROOT,
-		.amdsmn_addr_reg = F15H_SMN_ADDR_REG,
-		.amdsmn_data_reg = F15H_SMN_DATA_REG,
+	    .amdsmn_vendorid = CPU_VENDOR_AMD,
+	    .amdsmn_deviceid = PCI_DEVICE_ID_AMD_15H_M60H_ROOT,
+	    .amdsmn_addr_reg = F15H_SMN_ADDR_REG,
+	    .amdsmn_data_reg = F15H_SMN_DATA_REG,
 	},
 	{
-		.amdsmn_vendorid = CPU_VENDOR_AMD,
-		.amdsmn_deviceid = PCI_DEVICE_ID_AMD_17H_ROOT,
-		.amdsmn_addr_reg = F17H_SMN_ADDR_REG,
-		.amdsmn_data_reg = F17H_SMN_DATA_REG,
+	    .amdsmn_vendorid = CPU_VENDOR_AMD,
+	    .amdsmn_deviceid = PCI_DEVICE_ID_AMD_17H_ROOT,
+	    .amdsmn_addr_reg = F17H_SMN_ADDR_REG,
+	    .amdsmn_data_reg = F17H_SMN_DATA_REG,
 	},
 	{
-		.amdsmn_vendorid = CPU_VENDOR_AMD,
-		.amdsmn_deviceid = PCI_DEVICE_ID_AMD_17H_M10H_ROOT,
-		.amdsmn_addr_reg = F17H_SMN_ADDR_REG,
-		.amdsmn_data_reg = F17H_SMN_DATA_REG,
+	    .amdsmn_vendorid = CPU_VENDOR_AMD,
+	    .amdsmn_deviceid = PCI_DEVICE_ID_AMD_17H_M10H_ROOT,
+	    .amdsmn_addr_reg = F17H_SMN_ADDR_REG,
+	    .amdsmn_data_reg = F17H_SMN_DATA_REG,
 	},
 	{
-		.amdsmn_vendorid = CPU_VENDOR_AMD,
-		.amdsmn_deviceid = PCI_DEVICE_ID_AMD_17H_M30H_ROOT,
-		.amdsmn_addr_reg = F17H_SMN_ADDR_REG,
-		.amdsmn_data_reg = F17H_SMN_DATA_REG,
+	    .amdsmn_vendorid = CPU_VENDOR_AMD,
+	    .amdsmn_deviceid = PCI_DEVICE_ID_AMD_17H_M30H_ROOT,
+	    .amdsmn_addr_reg = F17H_SMN_ADDR_REG,
+	    .amdsmn_data_reg = F17H_SMN_DATA_REG,
 	},
 	{
-		.amdsmn_vendorid = CPU_VENDOR_AMD,
-		.amdsmn_deviceid = PCI_DEVICE_ID_AMD_17H_M60H_ROOT,
-		.amdsmn_addr_reg = F17H_SMN_ADDR_REG,
-		.amdsmn_data_reg = F17H_SMN_DATA_REG,
+	    .amdsmn_vendorid = CPU_VENDOR_AMD,
+	    .amdsmn_deviceid = PCI_DEVICE_ID_AMD_17H_M60H_ROOT,
+	    .amdsmn_addr_reg = F17H_SMN_ADDR_REG,
+	    .amdsmn_data_reg = F17H_SMN_DATA_REG,
 	},
 	{
-		.amdsmn_vendorid = CPU_VENDOR_AMD,
-		.amdsmn_deviceid = PCI_DEVICE_ID_AMD_19H_M60H_ROOT,
-		.amdsmn_addr_reg = F17H_SMN_ADDR_REG,
-		.amdsmn_data_reg = F17H_SMN_DATA_REG,
+	    .amdsmn_vendorid = CPU_VENDOR_AMD,
+	    .amdsmn_deviceid = PCI_DEVICE_ID_AMD_19H_M60H_ROOT,
+	    .amdsmn_addr_reg = F17H_SMN_ADDR_REG,
+	    .amdsmn_data_reg = F17H_SMN_DATA_REG,
 	},
 };
 
 /*
  * Device methods.
  */
-static void 	amdsmn_identify(driver_t *driver, device_t parent);
-static int	amdsmn_probe(device_t dev);
-static int	amdsmn_attach(device_t dev);
-static int	amdsmn_detach(device_t dev);
+static void amdsmn_identify(driver_t *driver, device_t parent);
+static int amdsmn_probe(device_t dev);
+static int amdsmn_attach(device_t dev);
+static int amdsmn_detach(device_t dev);
 
 static device_method_t amdsmn_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,	amdsmn_identify),
-	DEVMETHOD(device_probe,		amdsmn_probe),
-	DEVMETHOD(device_attach,	amdsmn_attach),
-	DEVMETHOD(device_detach,	amdsmn_detach),
-	DEVMETHOD_END
+	DEVMETHOD(device_identify, amdsmn_identify),
+	DEVMETHOD(device_probe, amdsmn_probe),
+	DEVMETHOD(device_attach, amdsmn_attach),
+	DEVMETHOD(device_detach, amdsmn_detach), DEVMETHOD_END
 };
 
 static driver_t amdsmn_driver = {

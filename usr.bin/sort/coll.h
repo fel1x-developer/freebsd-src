@@ -29,7 +29,7 @@
  */
 
 #if !defined(__COLL_H__)
-#define	__COLL_H__
+#define __COLL_H__
 
 #include "bwstring.h"
 #include "sort.h"
@@ -37,30 +37,27 @@
 /*
  * Sort hint data for -n
  */
-struct n_hint
-{
-	unsigned long long	 n1;
-	unsigned char		 si;
-	bool			 empty;
-	bool			 neg;
+struct n_hint {
+	unsigned long long n1;
+	unsigned char si;
+	bool empty;
+	bool neg;
 };
 
 /*
  * Sort hint data for -g
  */
-struct g_hint
-{
-	double			 d;
-	bool			 nan;
-	bool			 notnum;
+struct g_hint {
+	double d;
+	bool nan;
+	bool notnum;
 };
 
 /*
  * Sort hint data for -M
  */
-struct M_hint
-{
-	int			 m;
+struct M_hint {
+	int m;
 };
 
 /*
@@ -69,78 +66,73 @@ struct M_hint
  * This stores the first 12 bytes of the digest rather than the full output to
  * avoid increasing the size of the 'key_hint' object via the 'v' union.
  */
-struct R_hint
-{
-	unsigned char		 cached[12];
+struct R_hint {
+	unsigned char cached[12];
 };
 
 /*
  * Status of a sort hint object
  */
-typedef enum
-{
-	HS_ERROR = -1, HS_UNINITIALIZED = 0, HS_INITIALIZED = 1
+typedef enum {
+	HS_ERROR = -1,
+	HS_UNINITIALIZED = 0,
+	HS_INITIALIZED = 1
 } hint_status;
 
 /*
  * Sort hint object
  */
-struct key_hint
-{
-	hint_status		status;
-	union
-	{
-		struct n_hint		nh;
-		struct g_hint		gh;
-		struct M_hint		Mh;
-		struct R_hint		Rh;
-	}			v;
+struct key_hint {
+	hint_status status;
+	union {
+		struct n_hint nh;
+		struct g_hint gh;
+		struct M_hint Mh;
+		struct R_hint Rh;
+	} v;
 };
 
 /*
  * Key value
  */
-struct key_value
-{
-	struct bwstring		*k; /* key string */
-	struct key_hint		 hint[0]; /* key sort hint */
+struct key_value {
+	struct bwstring *k;	 /* key string */
+	struct key_hint hint[0]; /* key sort hint */
 } __packed;
 
 /*
  * Set of keys container object.
  */
-struct keys_array
-{
-	struct key_value	 key[0];
+struct keys_array {
+	struct key_value key[0];
 };
 
 /*
  * Parsed -k option data
  */
-struct key_specs
-{
-	struct sort_mods	 sm;
-	size_t			 c1;
-	size_t			 c2;
-	size_t			 f1;
-	size_t			 f2;
-	bool			 pos1b;
-	bool			 pos2b;
+struct key_specs {
+	struct sort_mods sm;
+	size_t c1;
+	size_t c2;
+	size_t f1;
+	size_t f2;
+	bool pos1b;
+	bool pos2b;
 };
 
 /*
  * Single entry in sort list.
  */
-struct sort_list_item
-{
-	struct bwstring		*str;
-	struct keys_array	 ka;
+struct sort_list_item {
+	struct bwstring *str;
+	struct keys_array ka;
 };
 
 /*
  * Function type, used to compare two list objects
  */
-typedef int (*listcoll_t)(struct sort_list_item **ss1, struct sort_list_item **ss2);
+typedef int (
+    *listcoll_t)(struct sort_list_item **ss1, struct sort_list_item **ss2);
 
 extern struct key_specs *keys;
 extern size_t keys_num;
@@ -160,7 +152,8 @@ cmpcoll_t get_sort_func(struct sort_mods *sm);
 struct keys_array *keys_array_alloc(void);
 size_t keys_array_size(void);
 struct key_value *get_key_from_keys_array(struct keys_array *ka, size_t ind);
-void set_key_on_keys_array(struct keys_array *ka, struct bwstring *s, size_t ind);
+void set_key_on_keys_array(struct keys_array *ka, struct bwstring *s,
+    size_t ind);
 void clean_keys_array(const struct bwstring *s, struct keys_array *ka);
 
 struct sort_list_item *sort_list_item_alloc(void);
@@ -172,9 +165,11 @@ int preproc(struct bwstring *s, struct keys_array *ka);
 int top_level_str_coll(const struct bwstring *, const struct bwstring *);
 int key_coll(struct keys_array *ks1, struct keys_array *ks2, size_t offset);
 int str_list_coll(struct bwstring *str1, struct sort_list_item **ss2);
-int list_coll_by_str_only(struct sort_list_item **ss1, struct sort_list_item **ss2);
+int list_coll_by_str_only(struct sort_list_item **ss1,
+    struct sort_list_item **ss2);
 int list_coll(struct sort_list_item **ss1, struct sort_list_item **ss2);
-int list_coll_offset(struct sort_list_item **ss1, struct sort_list_item **ss2, size_t offset);
+int list_coll_offset(struct sort_list_item **ss1, struct sort_list_item **ss2,
+    size_t offset);
 
 listcoll_t get_list_call_func(size_t offset);
 

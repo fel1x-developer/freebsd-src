@@ -30,9 +30,10 @@
 #include <sys/malloc.h>
 #include <sys/uuid.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
 #include <dev/acpica/acpivar.h>
 #include <dev/nvdimm/nvdimm_var.h>
+
+#include <contrib/dev/acpica/include/acpi.h>
 
 int
 nvdimm_create_namespaces(struct SPA_mapping *spa, ACPI_TABLE_NFIT *nfitbl)
@@ -59,14 +60,14 @@ nvdimm_create_namespaces(struct SPA_mapping *spa, ACPI_TABLE_NFIT *nfitbl)
 	}
 	i = 0;
 	error = 0;
-	SLIST_FOREACH(e, &nv->labels, link) {
+	SLIST_FOREACH (e, &nv->labels, link) {
 		ns = malloc(sizeof(struct nvdimm_namespace), M_NVDIMM,
 		    M_WAITOK | M_ZERO);
 		ns->dev.spa_domain = spa->dev.spa_domain;
 		ns->dev.spa_phys_base = spa->dev.spa_phys_base +
 		    regions[0]->RegionOffset +
 		    num_regions *
-		    (e->label.dimm_phys_addr - regions[0]->Address);
+			(e->label.dimm_phys_addr - regions[0]->Address);
 		ns->dev.spa_len = num_regions * e->label.raw_size;
 		ns->dev.spa_efi_mem_flags = spa->dev.spa_efi_mem_flags;
 		ns->dev.spa_memattr = spa->dev.spa_memattr;
@@ -87,7 +88,7 @@ nvdimm_destroy_namespaces(struct SPA_mapping *spa)
 {
 	struct nvdimm_namespace *ns, *next;
 
-	SLIST_FOREACH_SAFE(ns, &spa->namespaces, link, next) {
+	SLIST_FOREACH_SAFE (ns, &spa->namespaces, link, next) {
 		SLIST_REMOVE_HEAD(&spa->namespaces, link);
 		nvdimm_spa_dev_fini(&ns->dev);
 		free(ns, M_NVDIMM);

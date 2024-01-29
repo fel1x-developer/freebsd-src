@@ -24,41 +24,36 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/rtwn/if_rtwnreg.h>
-#include <dev/rtwn/if_rtwnvar.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <dev/rtwn/if_rtwn_debug.h>
-
+#include <dev/rtwn/if_rtwnreg.h>
+#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/rtl8188e/r88e.h>
 #include <dev/rtwn/rtl8188e/r88e_reg.h>
-
+#include <dev/rtwn/rtl8192e/r92e.h>
 #include <dev/rtwn/rtl8812a/r12a_fw_cmd.h>
 
-#include <dev/rtwn/rtl8192e/r92e.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 #ifndef RTWN_WITHOUT_UCODE
 void
@@ -67,14 +62,14 @@ r92e_fw_reset(struct rtwn_softc *sc, int reason)
 	/* Reset MCU IO wrapper. */
 	rtwn_setbits_1(sc, R92C_RSV_CTRL + 1, 0x01, 0);
 
-	rtwn_setbits_1_shift(sc, R92C_SYS_FUNC_EN,
-	    R92C_SYS_FUNC_EN_CPUEN, 0, 1);
+	rtwn_setbits_1_shift(sc, R92C_SYS_FUNC_EN, R92C_SYS_FUNC_EN_CPUEN, 0,
+	    1);
 
 	/* Enable MCU IO wrapper. */
 	rtwn_setbits_1(sc, R92C_RSV_CTRL + 1, 0, 0x01);
 
-	rtwn_setbits_1_shift(sc, R92C_SYS_FUNC_EN,
-	    0, R92C_SYS_FUNC_EN_CPUEN, 1);
+	rtwn_setbits_1_shift(sc, R92C_SYS_FUNC_EN, 0, R92C_SYS_FUNC_EN_CPUEN,
+	    1);
 }
 
 void
@@ -116,8 +111,8 @@ r92e_set_pwrmode(struct rtwn_softc *sc, struct ieee80211vap *vap, int off)
 		mode.mode = R88E_PWRMODE_CAM;
 		mode.pwr_state = R88E_PWRMODE_STATE_ALLON;
 	}
-	mode.pwrb1 =
-	    SM(R88E_PWRMODE_B1_SMART_PS, R88E_PWRMODE_B1_LEG_NULLDATA) |
+	mode.pwrb1 = SM(R88E_PWRMODE_B1_SMART_PS,
+			 R88E_PWRMODE_B1_LEG_NULLDATA) |
 	    SM(R88E_PWRMODE_B1_RLBM, R88E_PWRMODE_B1_MODE_MIN);
 	/* XXX ignored */
 	mode.bcn_pass = 0;
@@ -126,8 +121,8 @@ r92e_set_pwrmode(struct rtwn_softc *sc, struct ieee80211vap *vap, int off)
 	error = r88e_fw_cmd(sc, R88E_CMD_SET_PWRMODE, &mode, sizeof(mode));
 	if (error != 0) {
 		device_printf(sc->sc_dev,
-		    "%s: CMD_SET_PWRMODE was not sent, error %d\n",
-		    __func__, error);
+		    "%s: CMD_SET_PWRMODE was not sent, error %d\n", __func__,
+		    error);
 	}
 
 	return (error);

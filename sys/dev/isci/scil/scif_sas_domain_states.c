@@ -62,12 +62,11 @@
  */
 
 #include <dev/isci/scil/intel_sas.h>
-#include <dev/isci/scil/scic_port.h>
-
-#include <dev/isci/scil/scif_sas_logger.h>
-#include <dev/isci/scil/scif_sas_domain.h>
-#include <dev/isci/scil/scif_sas_controller.h>
 #include <dev/isci/scil/scic_controller.h>
+#include <dev/isci/scil/scic_port.h>
+#include <dev/isci/scil/scif_sas_controller.h>
+#include <dev/isci/scil/scif_sas_domain.h>
+#include <dev/isci/scil/scif_sas_logger.h>
 
 //******************************************************************************
 //* P R O T E C T E D    M E T H O D S
@@ -83,35 +82,28 @@
  *
  * @return none
  */
-void scif_sas_domain_transition_to_stopped_state(
-   SCIF_SAS_DOMAIN_T * fw_domain
-)
+void
+scif_sas_domain_transition_to_stopped_state(SCIF_SAS_DOMAIN_T *fw_domain)
 {
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(fw_domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
-      "scif_sas_domain_transition_to_stopped_state(0x%x) enter\n",
-      fw_domain
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(fw_domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
+	    "scif_sas_domain_transition_to_stopped_state(0x%x) enter\n",
+	    fw_domain));
 
-   // If IOs are quiesced, and all remote devices are stopped,
-   // then transition directly to the STOPPED state.
-   if (  (fw_domain->request_list.element_count == 0)
-      && (fw_domain->device_start_count == 0) )
-   {
-      SCIF_LOG_INFO((
-         sci_base_object_get_logger(fw_domain),
-         SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
-         "Domain:0x%x immediate transition to STOPPED\n",
-         fw_domain
-      ));
+	// If IOs are quiesced, and all remote devices are stopped,
+	// then transition directly to the STOPPED state.
+	if ((fw_domain->request_list.element_count == 0) &&
+	    (fw_domain->device_start_count == 0)) {
+		SCIF_LOG_INFO((sci_base_object_get_logger(fw_domain),
+		    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
+		    "Domain:0x%x immediate transition to STOPPED\n",
+		    fw_domain));
 
-      sci_base_state_machine_change_state(
-         &fw_domain->parent.state_machine, SCI_BASE_DOMAIN_STATE_STOPPED
-      );
-   }
+		sci_base_state_machine_change_state(
+		    &fw_domain->parent.state_machine,
+		    SCI_BASE_DOMAIN_STATE_STOPPED);
+	}
 }
-
 
 /**
  * @brief This method is called upon entrance to all states where the
@@ -127,31 +119,26 @@ void scif_sas_domain_transition_to_stopped_state(
  *
  * @return none
  */
-static
-void scif_sas_domain_transition_from_discovering_state(
-   SCIF_SAS_DOMAIN_T * fw_domain
-)
+static void
+scif_sas_domain_transition_from_discovering_state(SCIF_SAS_DOMAIN_T *fw_domain)
 {
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(fw_domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
-      "scif_sas_domain_transition_from_discovering_state(0x%x) enter\n",
-      fw_domain
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(fw_domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
+	    "scif_sas_domain_transition_from_discovering_state(0x%x) enter\n",
+	    fw_domain));
 
-   if (fw_domain->parent.state_machine.previous_state_id
-       == SCI_BASE_DOMAIN_STATE_DISCOVERING)
-   {
-      scif_sas_controller_restore_interrupt_coalescence(fw_domain->controller);
+	if (fw_domain->parent.state_machine.previous_state_id ==
+	    SCI_BASE_DOMAIN_STATE_DISCOVERING) {
+		scif_sas_controller_restore_interrupt_coalescence(
+		    fw_domain->controller);
 
-      scif_cb_timer_stop(fw_domain->controller, fw_domain->operation.timer);
+		scif_cb_timer_stop(fw_domain->controller,
+		    fw_domain->operation.timer);
 
-      scif_cb_domain_discovery_complete(
-         fw_domain->controller, fw_domain, fw_domain->operation.status
-      );
-   }
+		scif_cb_domain_discovery_complete(fw_domain->controller,
+		    fw_domain, fw_domain->operation.status);
+	}
 }
-
 
 /**
  * @brief This method is called upon entrance to DISCOVERING state. Right before
@@ -163,17 +150,14 @@ void scif_sas_domain_transition_from_discovering_state(
  *
  * @return none
  */
-void scif_sas_domain_transition_to_discovering_state(
-   SCIF_SAS_DOMAIN_T * fw_domain
-)
+void
+scif_sas_domain_transition_to_discovering_state(SCIF_SAS_DOMAIN_T *fw_domain)
 {
-   scif_sas_controller_save_interrupt_coalescence(fw_domain->controller);
+	scif_sas_controller_save_interrupt_coalescence(fw_domain->controller);
 
-   sci_base_state_machine_change_state(
-      &fw_domain->parent.state_machine, SCI_BASE_DOMAIN_STATE_DISCOVERING
-   );
+	sci_base_state_machine_change_state(&fw_domain->parent.state_machine,
+	    SCI_BASE_DOMAIN_STATE_DISCOVERING);
 }
-
 
 /**
  * @brief This method implements the actions taken when entering the
@@ -185,25 +169,17 @@ void scif_sas_domain_transition_to_discovering_state(
  *
  * @return none
  */
-static
-void scif_sas_domain_initial_state_enter(
-   SCI_BASE_OBJECT_T * object
-)
+static void
+scif_sas_domain_initial_state_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_DOMAIN_T * fw_domain = (SCIF_SAS_DOMAIN_T *)object;
+	SCIF_SAS_DOMAIN_T *fw_domain = (SCIF_SAS_DOMAIN_T *)object;
 
-   SET_STATE_HANDLER(
-      fw_domain,
-      scif_sas_domain_state_handler_table,
-      SCI_BASE_DOMAIN_STATE_INITIAL
-   );
+	SET_STATE_HANDLER(fw_domain, scif_sas_domain_state_handler_table,
+	    SCI_BASE_DOMAIN_STATE_INITIAL);
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(fw_domain),
-      SCIF_LOG_OBJECT_DOMAIN,
-      "scif_sas_domain_initial_state_enter(0x%x) enter\n",
-      fw_domain
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(fw_domain),
+	    SCIF_LOG_OBJECT_DOMAIN,
+	    "scif_sas_domain_initial_state_enter(0x%x) enter\n", fw_domain));
 }
 
 /**
@@ -217,39 +193,30 @@ void scif_sas_domain_initial_state_enter(
  *
  * @return none
  */
-static
-void scif_sas_domain_starting_state_enter(
-   SCI_BASE_OBJECT_T * object
-)
+static void
+scif_sas_domain_starting_state_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_DOMAIN_T * fw_domain = (SCIF_SAS_DOMAIN_T *)object;
+	SCIF_SAS_DOMAIN_T *fw_domain = (SCIF_SAS_DOMAIN_T *)object;
 
-   SET_STATE_HANDLER(
-      fw_domain,
-      scif_sas_domain_state_handler_table,
-      SCI_BASE_DOMAIN_STATE_STARTING
-   );
+	SET_STATE_HANDLER(fw_domain, scif_sas_domain_state_handler_table,
+	    SCI_BASE_DOMAIN_STATE_STARTING);
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(fw_domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
-      "scif_sas_domain_starting_state_enter(0x%x) enter\n",
-      fw_domain
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(fw_domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
+	    "scif_sas_domain_starting_state_enter(0x%x) enter\n", fw_domain));
 
-   scif_sas_domain_transition_from_discovering_state(fw_domain);
+	scif_sas_domain_transition_from_discovering_state(fw_domain);
 
-   // If we entered the STARTING state and the core port is actually ready,
-   // then directly transition into the READY state.  This can occur
-   // if we were in the middle of discovery when the port failed
-   // (causing a transition to STOPPING), then before reaching STOPPED
-   // the port becomes ready again.
-   if (fw_domain->is_port_ready == TRUE)
-   {
-      sci_base_state_machine_change_state(
-         &fw_domain->parent.state_machine, SCI_BASE_DOMAIN_STATE_READY
-      );
-   }
+	// If we entered the STARTING state and the core port is actually ready,
+	// then directly transition into the READY state.  This can occur
+	// if we were in the middle of discovery when the port failed
+	// (causing a transition to STOPPING), then before reaching STOPPED
+	// the port becomes ready again.
+	if (fw_domain->is_port_ready == TRUE) {
+		sci_base_state_machine_change_state(
+		    &fw_domain->parent.state_machine,
+		    SCI_BASE_DOMAIN_STATE_READY);
+	}
 }
 
 /**
@@ -269,69 +236,59 @@ void scif_sas_domain_starting_state_enter(
  *
  * @return none
  */
-static
-void scif_sas_domain_ready_state_enter(
-   SCI_BASE_OBJECT_T * object
-)
+static void
+scif_sas_domain_ready_state_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_DOMAIN_T * fw_domain = (SCIF_SAS_DOMAIN_T *)object;
+	SCIF_SAS_DOMAIN_T *fw_domain = (SCIF_SAS_DOMAIN_T *)object;
 
-   SET_STATE_HANDLER(
-      fw_domain,
-      scif_sas_domain_state_handler_table,
-      SCI_BASE_DOMAIN_STATE_READY
-   );
+	SET_STATE_HANDLER(fw_domain, scif_sas_domain_state_handler_table,
+	    SCI_BASE_DOMAIN_STATE_READY);
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(fw_domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
-      "scif_sas_domain_ready_state_enter(0x%x) enter\n",
-      fw_domain
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(fw_domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
+	    "scif_sas_domain_ready_state_enter(0x%x) enter\n", fw_domain));
 
-   if (fw_domain->parent.state_machine.previous_state_id
-       == SCI_BASE_DOMAIN_STATE_STARTING)
-   {
-      scif_cb_domain_ready(fw_domain->controller, fw_domain);
+	if (fw_domain->parent.state_machine.previous_state_id ==
+	    SCI_BASE_DOMAIN_STATE_STARTING) {
+		scif_cb_domain_ready(fw_domain->controller, fw_domain);
 
-      // Only indicate the domain change notification if the previous
-      // state was the STARTING state.  We issue the notification here
-      // as opposed to exit of the STARTING state so that the appropriate
-      // state handlers are in place should the user call
-      // scif_domain_discover() from scif_cb_domain_change_notification()
-      scif_cb_domain_change_notification(fw_domain->controller, fw_domain);
-   }
-   else if (fw_domain->parent.state_machine.previous_state_id
-            == SCI_BASE_DOMAIN_STATE_DISCOVERING)
-   {
-      //if domain discovery timed out, we will NOT go back to discover even
-      //the broadcast change count is not zero. Instead we finish the discovery
-      //back to user. User can check the operation status and decide to
-      //retry discover all over again.
-      if (fw_domain->operation.status == SCI_FAILURE_TIMEOUT)
-         fw_domain->broadcast_change_count = 0;
+		// Only indicate the domain change notification if the previous
+		// state was the STARTING state.  We issue the notification here
+		// as opposed to exit of the STARTING state so that the
+		// appropriate state handlers are in place should the user call
+		// scif_domain_discover() from
+		// scif_cb_domain_change_notification()
+		scif_cb_domain_change_notification(fw_domain->controller,
+		    fw_domain);
+	} else if (fw_domain->parent.state_machine.previous_state_id ==
+	    SCI_BASE_DOMAIN_STATE_DISCOVERING) {
+		// if domain discovery timed out, we will NOT go back to
+		// discover even the broadcast change count is not zero. Instead
+		// we finish the discovery back to user. User can check the
+		// operation status and decide to retry discover all over again.
+		if (fw_domain->operation.status == SCI_FAILURE_TIMEOUT)
+			fw_domain->broadcast_change_count = 0;
 
-      // Check the broadcast change count to determine if discovery
-      // is indeed complete.
-      if (fw_domain->broadcast_change_count == 0)
-      {
-         scif_sas_domain_transition_from_discovering_state(fw_domain);
-         scif_cb_domain_ready(fw_domain->controller, fw_domain);
-      }
-      else
-      {
-         // The broadcast change count indicates something my have
-         // changed in the domain, while a discovery was ongoing.
-         // Thus, we should start discovery over again.
-         sci_base_state_machine_change_state(
-            &fw_domain->parent.state_machine, SCI_BASE_DOMAIN_STATE_DISCOVERING
-         );
-      }
+		// Check the broadcast change count to determine if discovery
+		// is indeed complete.
+		if (fw_domain->broadcast_change_count == 0) {
+			scif_sas_domain_transition_from_discovering_state(
+			    fw_domain);
+			scif_cb_domain_ready(fw_domain->controller, fw_domain);
+		} else {
+			// The broadcast change count indicates something my
+			// have changed in the domain, while a discovery was
+			// ongoing. Thus, we should start discovery over again.
+			sci_base_state_machine_change_state(
+			    &fw_domain->parent.state_machine,
+			    SCI_BASE_DOMAIN_STATE_DISCOVERING);
+		}
 
-      // Enable the BCN because underneath hardware may disabled any further
-      // BCN.
-      scic_port_enable_broadcast_change_notification(fw_domain->core_object);
-   }
+		// Enable the BCN because underneath hardware may disabled any
+		// further BCN.
+		scic_port_enable_broadcast_change_notification(
+		    fw_domain->core_object);
+	}
 }
 
 /**
@@ -344,21 +301,16 @@ void scif_sas_domain_ready_state_enter(
  *
  * @return none
  */
-static
-void scif_sas_domain_ready_state_exit(
-   SCI_BASE_OBJECT_T * object
-)
+static void
+scif_sas_domain_ready_state_exit(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_DOMAIN_T * fw_domain = (SCIF_SAS_DOMAIN_T *)object;
+	SCIF_SAS_DOMAIN_T *fw_domain = (SCIF_SAS_DOMAIN_T *)object;
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(fw_domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
-      "scif_sas_domain_ready_state_exit(0x%x) enter\n",
-      fw_domain
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(fw_domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
+	    "scif_sas_domain_ready_state_exit(0x%x) enter\n", fw_domain));
 
-   scif_cb_domain_not_ready(fw_domain->controller, fw_domain);
+	scif_cb_domain_not_ready(fw_domain->controller, fw_domain);
 }
 
 /**
@@ -371,55 +323,45 @@ void scif_sas_domain_ready_state_exit(
  *
  * @return none
  */
-static
-void scif_sas_domain_stopping_state_enter(
-   SCI_BASE_OBJECT_T * object
-)
+static void
+scif_sas_domain_stopping_state_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device;
-   SCIF_SAS_DOMAIN_T        * fw_domain = (SCIF_SAS_DOMAIN_T *)object;
-   SCI_ABSTRACT_ELEMENT_T   * element   = sci_abstract_list_get_front(
-                                             &fw_domain->remote_device_list
-                                          );
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device;
+	SCIF_SAS_DOMAIN_T *fw_domain = (SCIF_SAS_DOMAIN_T *)object;
+	SCI_ABSTRACT_ELEMENT_T *element = sci_abstract_list_get_front(
+	    &fw_domain->remote_device_list);
 
-   SET_STATE_HANDLER(
-      fw_domain,
-      scif_sas_domain_state_handler_table,
-      SCI_BASE_DOMAIN_STATE_STOPPING
-   );
+	SET_STATE_HANDLER(fw_domain, scif_sas_domain_state_handler_table,
+	    SCI_BASE_DOMAIN_STATE_STOPPING);
 
-   // This must be invoked after the state handlers are set to ensure
-   // appropriate processing will occur if the user attempts to perform
-   // additional actions.
-   scif_sas_domain_transition_from_discovering_state(fw_domain);
+	// This must be invoked after the state handlers are set to ensure
+	// appropriate processing will occur if the user attempts to perform
+	// additional actions.
+	scif_sas_domain_transition_from_discovering_state(fw_domain);
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(fw_domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
-      "scif_sas_domain_stopping_state_enter(0x%x) enter\n",
-      fw_domain
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(fw_domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
+	    "scif_sas_domain_stopping_state_enter(0x%x) enter\n", fw_domain));
 
-   scif_sas_high_priority_request_queue_purge_domain(
-      &fw_domain->controller->hprq, fw_domain
-   );
+	scif_sas_high_priority_request_queue_purge_domain(
+	    &fw_domain->controller->hprq, fw_domain);
 
-   // Search the domain's list of devices and put them all in the STOPPING
-   // state.
-   while (element != NULL)
-   {
-      fw_device = (SCIF_SAS_REMOTE_DEVICE_T*)
-                  sci_abstract_list_get_object(element);
+	// Search the domain's list of devices and put them all in the STOPPING
+	// state.
+	while (element != NULL) {
+		fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+		    sci_abstract_list_get_object(element);
 
-      // This method will stop the core device.  The core will terminate
-      // all IO requests currently outstanding.
-      fw_device->state_handlers->parent.stop_handler(&fw_device->parent);
+		// This method will stop the core device.  The core will
+		// terminate all IO requests currently outstanding.
+		fw_device->state_handlers->parent.stop_handler(
+		    &fw_device->parent);
 
-      element = sci_abstract_list_get_next(element);
-   }
+		element = sci_abstract_list_get_next(element);
+	}
 
-   // Attempt to transition to the stopped state.
-   scif_sas_domain_transition_to_stopped_state(fw_domain);
+	// Attempt to transition to the stopped state.
+	scif_sas_domain_transition_to_stopped_state(fw_domain);
 }
 
 /**
@@ -432,34 +374,27 @@ void scif_sas_domain_stopping_state_enter(
  *
  * @return none
  */
-static
-void scif_sas_domain_stopped_state_enter(
-   SCI_BASE_OBJECT_T * object
-)
+static void
+scif_sas_domain_stopped_state_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_DOMAIN_T * fw_domain = (SCIF_SAS_DOMAIN_T *)object;
+	SCIF_SAS_DOMAIN_T *fw_domain = (SCIF_SAS_DOMAIN_T *)object;
 
-   SET_STATE_HANDLER(
-      fw_domain,
-      scif_sas_domain_state_handler_table,
-      SCI_BASE_DOMAIN_STATE_STOPPED
-   );
+	SET_STATE_HANDLER(fw_domain, scif_sas_domain_state_handler_table,
+	    SCI_BASE_DOMAIN_STATE_STOPPED);
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(fw_domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
-      "scif_sas_domain_stopped_state_enter(0x%x) enter\n",
-      fw_domain
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(fw_domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
+	    "scif_sas_domain_stopped_state_enter(0x%x) enter\n", fw_domain));
 
-   // A hot unplug of the direct attached device has occurred.  Thus,
-   // notify the user. Note, if the controller is not in READY state,
-   // mostly likely the controller is in STOPPING or STOPPED state,
-   // meaning the controller is in the process of stopping, we should
-   // not call back to user in the middle of controller stopping.
-   if(fw_domain->controller->parent.state_machine.current_state_id
-         == SCI_BASE_CONTROLLER_STATE_READY)
-      scif_cb_domain_change_notification(fw_domain->controller, fw_domain);
+	// A hot unplug of the direct attached device has occurred.  Thus,
+	// notify the user. Note, if the controller is not in READY state,
+	// mostly likely the controller is in STOPPING or STOPPED state,
+	// meaning the controller is in the process of stopping, we should
+	// not call back to user in the middle of controller stopping.
+	if (fw_domain->controller->parent.state_machine.current_state_id ==
+	    SCI_BASE_CONTROLLER_STATE_READY)
+		scif_cb_domain_change_notification(fw_domain->controller,
+		    fw_domain);
 }
 
 /**
@@ -480,133 +415,116 @@ void scif_sas_domain_stopped_state_enter(
  *
  * @return none
  */
-static
-void scif_sas_domain_discovering_state_enter(
-   SCI_BASE_OBJECT_T * object
-)
+static void
+scif_sas_domain_discovering_state_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_DOMAIN_T * fw_domain = (SCIF_SAS_DOMAIN_T *)object;
+	SCIF_SAS_DOMAIN_T *fw_domain = (SCIF_SAS_DOMAIN_T *)object;
 
-   SET_STATE_HANDLER(
-      fw_domain,
-      scif_sas_domain_state_handler_table,
-      SCI_BASE_DOMAIN_STATE_DISCOVERING
-   );
+	SET_STATE_HANDLER(fw_domain, scif_sas_domain_state_handler_table,
+	    SCI_BASE_DOMAIN_STATE_DISCOVERING);
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(fw_domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
-      "scif_sas_domain_discovering_state_enter(0x%x) enter\n",
-      fw_domain
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(fw_domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
+	    "scif_sas_domain_discovering_state_enter(0x%x) enter\n",
+	    fw_domain));
 
-   fw_domain->broadcast_change_count = 0;
+	fw_domain->broadcast_change_count = 0;
 
-   // Did the domain just go through a port not ready action?  If it did,
-   // then we will be entering from the STOPPED state.
-   if (fw_domain->parent.state_machine.previous_state_id
-       != SCI_BASE_DOMAIN_STATE_STOPPED)
-   {
-      SCIF_SAS_REMOTE_DEVICE_T * remote_device;
-      SCIC_PORT_PROPERTIES_T     properties;
+	// Did the domain just go through a port not ready action?  If it did,
+	// then we will be entering from the STOPPED state.
+	if (fw_domain->parent.state_machine.previous_state_id !=
+	    SCI_BASE_DOMAIN_STATE_STOPPED) {
+		SCIF_SAS_REMOTE_DEVICE_T *remote_device;
+		SCIC_PORT_PROPERTIES_T properties;
 
-      scic_port_get_properties(fw_domain->core_object, &properties);
+		scic_port_get_properties(fw_domain->core_object, &properties);
 
-      // If the device has not yet been added to the domain, then
-      // inform the user that the device is new.
-      remote_device = (SCIF_SAS_REMOTE_DEVICE_T *)
-                      scif_domain_get_device_by_sas_address(
-                         fw_domain, &properties.remote.sas_address
-                      );
-      if (remote_device == SCI_INVALID_HANDLE)
-      {
-         // simply notify the user of the new DA device and be done
-         // with discovery.
-         scif_cb_domain_da_device_added(
-            fw_domain->controller,
-            fw_domain,
-            &properties.remote.sas_address,
-            &properties.remote.protocols
-         );
-      }
-      else
-      {
-         if(properties.remote.protocols.u.bits.smp_target)
-            //kick off the smp discover process.
-            scif_sas_domain_start_smp_discover(fw_domain, remote_device);
-      }
-   }
-   else  //entered from STOPPED state.
-   {
-      SCI_ABSTRACT_ELEMENT_T * current_element =
-             sci_abstract_list_get_front(&(fw_domain->remote_device_list) );
+		// If the device has not yet been added to the domain, then
+		// inform the user that the device is new.
+		remote_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+		    scif_domain_get_device_by_sas_address(fw_domain,
+			&properties.remote.sas_address);
+		if (remote_device == SCI_INVALID_HANDLE) {
+			// simply notify the user of the new DA device and be
+			// done with discovery.
+			scif_cb_domain_da_device_added(fw_domain->controller,
+			    fw_domain, &properties.remote.sas_address,
+			    &properties.remote.protocols);
+		} else {
+			if (properties.remote.protocols.u.bits.smp_target)
+				// kick off the smp discover process.
+				scif_sas_domain_start_smp_discover(fw_domain,
+				    remote_device);
+		}
+	} else // entered from STOPPED state.
+	{
+		SCI_ABSTRACT_ELEMENT_T *current_element =
+		    sci_abstract_list_get_front(
+			&(fw_domain->remote_device_list));
 
-      SCIF_SAS_REMOTE_DEVICE_T * fw_device;
+		SCIF_SAS_REMOTE_DEVICE_T *fw_device;
 
-      while (current_element != NULL)
-      {
-         fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
-                     sci_abstract_list_get_object(current_element);
+		while (current_element != NULL) {
+			fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+			    sci_abstract_list_get_object(current_element);
 
-         ASSERT(fw_device->parent.state_machine.current_state_id
-                == SCI_BASE_REMOTE_DEVICE_STATE_STOPPED);
+			ASSERT(
+			    fw_device->parent.state_machine.current_state_id ==
+			    SCI_BASE_REMOTE_DEVICE_STATE_STOPPED);
 
-         current_element =
-            sci_abstract_list_get_next(current_element);
+			current_element = sci_abstract_list_get_next(
+			    current_element);
 
-         SCIF_LOG_INFO((
-            sci_base_object_get_logger(fw_domain),
-            SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
-            "Controller:0x%x Domain:0x%x Device:0x%x removed\n",
-            fw_domain->controller, fw_domain, fw_device
-         ));
+			SCIF_LOG_INFO((sci_base_object_get_logger(fw_domain),
+			    SCIF_LOG_OBJECT_DOMAIN |
+				SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
+			    "Controller:0x%x Domain:0x%x Device:0x%x removed\n",
+			    fw_domain->controller, fw_domain, fw_device));
 
-         // Notify the framework user of the device removal.
-         scif_cb_domain_device_removed(
-            fw_domain->controller, fw_domain, fw_device
-         );
-      }
+			// Notify the framework user of the device removal.
+			scif_cb_domain_device_removed(fw_domain->controller,
+			    fw_domain, fw_device);
+		}
 
-      ASSERT(fw_domain->request_list.element_count == 0);
-      ASSERT(sci_abstract_list_size(&fw_domain->remote_device_list) == 0);
+		ASSERT(fw_domain->request_list.element_count == 0);
+		ASSERT(sci_abstract_list_size(&fw_domain->remote_device_list) ==
+		    0);
 
-      sci_base_state_machine_change_state(
-         &fw_domain->parent.state_machine, SCI_BASE_DOMAIN_STATE_STARTING
-      );
-   }
+		sci_base_state_machine_change_state(
+		    &fw_domain->parent.state_machine,
+		    SCI_BASE_DOMAIN_STATE_STARTING);
+	}
 }
 
-SCI_BASE_STATE_T scif_sas_domain_state_table[SCI_BASE_DOMAIN_MAX_STATES] =
-{
-   {
-      SCI_BASE_DOMAIN_STATE_INITIAL,
-      scif_sas_domain_initial_state_enter,
-      NULL,
-   },
-   {
-      SCI_BASE_DOMAIN_STATE_STARTING,
-      scif_sas_domain_starting_state_enter,
-      NULL,
-   },
-   {
-      SCI_BASE_DOMAIN_STATE_READY,
-      scif_sas_domain_ready_state_enter,
-      scif_sas_domain_ready_state_exit,
-   },
-   {
-      SCI_BASE_DOMAIN_STATE_STOPPING,
-      scif_sas_domain_stopping_state_enter,
-      NULL,
-   },
-   {
-      SCI_BASE_DOMAIN_STATE_STOPPED,
-      scif_sas_domain_stopped_state_enter,
-      NULL,
-   },
-   {
-      SCI_BASE_DOMAIN_STATE_DISCOVERING,
-      scif_sas_domain_discovering_state_enter,
-      NULL,
-   }
+SCI_BASE_STATE_T scif_sas_domain_state_table[SCI_BASE_DOMAIN_MAX_STATES] = {
+	{
+	    SCI_BASE_DOMAIN_STATE_INITIAL,
+	    scif_sas_domain_initial_state_enter,
+	    NULL,
+	},
+	{
+	    SCI_BASE_DOMAIN_STATE_STARTING,
+	    scif_sas_domain_starting_state_enter,
+	    NULL,
+	},
+	{
+	    SCI_BASE_DOMAIN_STATE_READY,
+	    scif_sas_domain_ready_state_enter,
+	    scif_sas_domain_ready_state_exit,
+	},
+	{
+	    SCI_BASE_DOMAIN_STATE_STOPPING,
+	    scif_sas_domain_stopping_state_enter,
+	    NULL,
+	},
+	{
+	    SCI_BASE_DOMAIN_STATE_STOPPED,
+	    scif_sas_domain_stopped_state_enter,
+	    NULL,
+	},
+	{
+	    SCI_BASE_DOMAIN_STATE_DISCOVERING,
+	    scif_sas_domain_discovering_state_enter,
+	    NULL,
+	}
 };
-

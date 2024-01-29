@@ -191,9 +191,9 @@ enum Argtype {
 	MAX_ARG_TYPE,
 };
 
-#define	ARG_MASK	0xff
-#define	OUT	0x100
-#define	IN	/*0x20*/0
+#define ARG_MASK 0xff
+#define OUT 0x100
+#define IN /*0x20*/ 0
 
 _Static_assert(ARG_MASK > MAX_ARG_TYPE,
     "ARG_MASK overlaps with Argtype values");
@@ -218,12 +218,12 @@ struct syscall_decode {
 
 struct syscall {
 	STAILQ_ENTRY(syscall) entries;
-	const char *name;	/* Name to be displayed, might be malloc()'d */
+	const char *name; /* Name to be displayed, might be malloc()'d */
 	struct syscall_decode decode;
 	struct timespec time; /* Time spent for this call */
-	int ncalls;	/* Number of calls */
-	int nerror;	/* Number of calls that returned with error */
-	bool unknown;	/* Unknown system call */
+	int ncalls;	      /* Number of calls */
+	int nerror;	      /* Number of calls that returned with error */
+	bool unknown;	      /* Unknown system call */
 };
 
 struct syscall *get_syscall(struct threadinfo *, u_int, u_int);
@@ -233,41 +233,46 @@ char *print_arg(struct syscall_arg *, syscallarg_t *, syscallarg_t *,
 /*
  * Linux Socket defines
  */
-#define LINUX_SOCKET		1
-#define LINUX_BIND		2
-#define LINUX_CONNECT		3
-#define LINUX_LISTEN		4
-#define LINUX_ACCEPT		5
-#define LINUX_GETSOCKNAME	6
-#define LINUX_GETPEERNAME	7
-#define LINUX_SOCKETPAIR	8
-#define LINUX_SEND		9
-#define LINUX_RECV		10
-#define LINUX_SENDTO		11
-#define LINUX_RECVFROM		12
-#define LINUX_SHUTDOWN		13
-#define LINUX_SETSOCKOPT	14
-#define LINUX_GETSOCKOPT	15
-#define LINUX_SENDMSG		16
-#define LINUX_RECVMSG		17
+#define LINUX_SOCKET 1
+#define LINUX_BIND 2
+#define LINUX_CONNECT 3
+#define LINUX_LISTEN 4
+#define LINUX_ACCEPT 5
+#define LINUX_GETSOCKNAME 6
+#define LINUX_GETPEERNAME 7
+#define LINUX_SOCKETPAIR 8
+#define LINUX_SEND 9
+#define LINUX_RECV 10
+#define LINUX_SENDTO 11
+#define LINUX_RECVFROM 12
+#define LINUX_SHUTDOWN 13
+#define LINUX_SETSOCKOPT 14
+#define LINUX_GETSOCKOPT 15
+#define LINUX_SENDMSG 16
+#define LINUX_RECVMSG 17
 
-#define PAD_(t) (sizeof(syscallarg_t) <= sizeof(t) ? \
-    0 : sizeof(syscallarg_t) - sizeof(t))
+#define PAD_(t)                                  \
+	(sizeof(syscallarg_t) <= sizeof(t) ? 0 : \
+					     sizeof(syscallarg_t) - sizeof(t))
 
 #if BYTE_ORDER == LITTLE_ENDIAN
-#define PADL_(t)	0
-#define PADR_(t)	PAD_(t)
+#define PADL_(t) 0
+#define PADR_(t) PAD_(t)
 #else
-#define PADL_(t)	PAD_(t)
-#define PADR_(t)	0
+#define PADL_(t) PAD_(t)
+#define PADR_(t) 0
 #endif
 
-typedef int     l_int;
-typedef uint32_t    l_ulong;
+typedef int l_int;
+typedef uint32_t l_ulong;
 
 struct linux_socketcall_args {
-    char what_l_[PADL_(l_int)]; l_int what; char what_r_[PADR_(l_int)];
-    char args_l_[PADL_(l_ulong)]; l_ulong args; char args_r_[PADR_(l_ulong)];
+	char what_l_[PADL_(l_int)];
+	l_int what;
+	char what_r_[PADR_(l_int)];
+	char args_l_[PADL_(l_ulong)];
+	l_ulong args;
+	char args_r_[PADR_(l_ulong)];
 };
 
 void print_syscall(struct trussinfo *);

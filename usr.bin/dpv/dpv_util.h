@@ -10,7 +10,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -28,39 +28,39 @@
 #define _DPV_UTIL_H_
 
 /* Limits */
-#define BUFSIZE_MAX		(2 * 1024 * 1024)
-					/* Buffer size for read(2) input */
+#define BUFSIZE_MAX (2 * 1024 * 1024)
+/* Buffer size for read(2) input */
 #ifndef MAXPHYS
-#define MAXPHYS			(128 * 1024)
-					/* max raw I/O transfer size */
+#define MAXPHYS (128 * 1024)
+/* max raw I/O transfer size */
 #endif
 
 /*
  * Memory strategry threshold, in pages: if physmem is larger than this,
  * use a large buffer.
  */
-#define PHYSPAGES_THRESHOLD	(32 * 1024)
+#define PHYSPAGES_THRESHOLD (32 * 1024)
 
 /*
  * Small (default) buffer size in bytes. It's inefficient for this to be
  * smaller than MAXPHYS.
  */
-#define BUFSIZE_SMALL		(MAXPHYS)
+#define BUFSIZE_SMALL (MAXPHYS)
 
 /*
  * Math macros
  */
-#undef  MIN
-#define MIN(x,y) ((x) < (y) ? (x) : (y))
-#undef  MAX
-#define MAX(x,y) ((x) > (y) ? (x) : (y))
+#undef MIN
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
+#undef MAX
+#define MAX(x, y) ((x) > (y) ? (x) : (y))
 
 /*
  * Extra display information
  */
-#define BYTE_STATUS_SOLO	"%'10lli bytes read @ %'9.1f bytes/sec."
-#define BYTE_STATUS_MANY	(BYTE_STATUS_SOLO " [%i/%i busy/wait]")
-#define LINE_STATUS_SOLO	"%'10lli lines read @ %'9.1f lines/sec."
-#define LINE_STATUS_MANY	(LINE_STATUS_SOLO " [%i/%i busy/wait]")
+#define BYTE_STATUS_SOLO "%'10lli bytes read @ %'9.1f bytes/sec."
+#define BYTE_STATUS_MANY (BYTE_STATUS_SOLO " [%i/%i busy/wait]")
+#define LINE_STATUS_SOLO "%'10lli lines read @ %'9.1f lines/sec."
+#define LINE_STATUS_MANY (LINE_STATUS_SOLO " [%i/%i busy/wait]")
 
 #endif /* !_DPV_UTIL_H_ */

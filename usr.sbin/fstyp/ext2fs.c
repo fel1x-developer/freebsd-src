@@ -29,24 +29,25 @@
  */
 
 #include <sys/cdefs.h>
-#include <stdio.h>
+
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "fstyp.h"
 
-#define EXT2FS_SB_OFFSET	1024
-#define EXT2_SUPER_MAGIC	0xef53
-#define EXT2_DYNAMIC_REV	1
+#define EXT2FS_SB_OFFSET 1024
+#define EXT2_SUPER_MAGIC 0xef53
+#define EXT2_DYNAMIC_REV 1
 
 typedef struct e2sb {
-	uint8_t		fake1[56];
-	uint16_t	s_magic;
-	uint8_t		fake2[18];
-	uint32_t	s_rev_level;
-	uint8_t		fake3[40];
-	char		s_volume_name[16];
+	uint8_t fake1[56];
+	uint16_t s_magic;
+	uint8_t fake2[18];
+	uint32_t s_rev_level;
+	uint8_t fake3[40];
+	char s_volume_name[16];
 } e2sb_t;
 
 int
@@ -62,8 +63,8 @@ fstyp_ext2fs(FILE *fp, char *label, size_t size)
 	/* Check for magic and versio n*/
 	if (fs->s_magic == EXT2_SUPER_MAGIC &&
 	    fs->s_rev_level == EXT2_DYNAMIC_REV) {
-		//G_LABEL_DEBUG(1, "ext2fs file system detected on %s.",
-		//    pp->name);
+		// G_LABEL_DEBUG(1, "ext2fs file system detected on %s.",
+		//     pp->name);
 	} else {
 		free(fs);
 		return (1);

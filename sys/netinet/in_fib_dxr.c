@@ -42,13 +42,13 @@
  * lookups per second on commodity CPUs, IEEE SoftCOM, September 2017, Split
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/ctype.h>
 #include <sys/epoch.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/socket.h>
@@ -57,170 +57,165 @@
 
 #include <vm/uma.h>
 
+#include <net/route.h>
+#include <net/route/fib_algo.h>
+#include <net/route/route_ctl.h>
 #include <netinet/in.h>
 #include <netinet/in_fib.h>
 
-#include <net/route.h>
-#include <net/route/route_ctl.h>
-#include <net/route/fib_algo.h>
-
-#define	DXR_TRIE_BITS		20
+#define DXR_TRIE_BITS 20
 
 CTASSERT(DXR_TRIE_BITS >= 16 && DXR_TRIE_BITS <= 24);
 
 /* DXR2: two-stage primary trie, instead of a single direct lookup table */
-#define	DXR2
+#define DXR2
 
 #if DXR_TRIE_BITS > 16
-#define	DXR_D			16
+#define DXR_D 16
 #else
-#define	DXR_D			(DXR_TRIE_BITS - 1)
+#define DXR_D (DXR_TRIE_BITS - 1)
 #endif
 
-#define	D_TBL_SIZE		(1 << DXR_D)
-#define	DIRECT_TBL_SIZE		(1 << DXR_TRIE_BITS)
-#define	DXR_RANGE_MASK		(0xffffffffU >> DXR_TRIE_BITS)
-#define	DXR_RANGE_SHIFT		(32 - DXR_TRIE_BITS)
+#define D_TBL_SIZE (1 << DXR_D)
+#define DIRECT_TBL_SIZE (1 << DXR_TRIE_BITS)
+#define DXR_RANGE_MASK (0xffffffffU >> DXR_TRIE_BITS)
+#define DXR_RANGE_SHIFT (32 - DXR_TRIE_BITS)
 
-#define	DESC_BASE_BITS		22
-#define	DESC_FRAGMENTS_BITS	(32 - DESC_BASE_BITS)
-#define	BASE_MAX		((1 << DESC_BASE_BITS) - 1)
-#define	RTBL_SIZE_INCR		(BASE_MAX / 64)
+#define DESC_BASE_BITS 22
+#define DESC_FRAGMENTS_BITS (32 - DESC_BASE_BITS)
+#define BASE_MAX ((1 << DESC_BASE_BITS) - 1)
+#define RTBL_SIZE_INCR (BASE_MAX / 64)
 
 #if DXR_TRIE_BITS < 24
-#define	FRAGS_MASK_SHORT	((1 << (23 - DXR_TRIE_BITS)) - 1)
+#define FRAGS_MASK_SHORT ((1 << (23 - DXR_TRIE_BITS)) - 1)
 #else
-#define	FRAGS_MASK_SHORT	0
+#define FRAGS_MASK_SHORT 0
 #endif
-#define	FRAGS_PREF_SHORT	(((1 << DESC_FRAGMENTS_BITS) - 1) & \
-				 ~FRAGS_MASK_SHORT)
-#define	FRAGS_MARK_XL		(FRAGS_PREF_SHORT - 1)
-#define	FRAGS_MARK_HIT		(FRAGS_PREF_SHORT - 2)
+#define FRAGS_PREF_SHORT (((1 << DESC_FRAGMENTS_BITS) - 1) & ~FRAGS_MASK_SHORT)
+#define FRAGS_MARK_XL (FRAGS_PREF_SHORT - 1)
+#define FRAGS_MARK_HIT (FRAGS_PREF_SHORT - 2)
 
-#define	IS_SHORT_FORMAT(x)	((x & FRAGS_PREF_SHORT) == FRAGS_PREF_SHORT)
-#define	IS_LONG_FORMAT(x)	((x & FRAGS_PREF_SHORT) != FRAGS_PREF_SHORT)
-#define	IS_XL_FORMAT(x)		(x == FRAGS_MARK_XL)
+#define IS_SHORT_FORMAT(x) ((x & FRAGS_PREF_SHORT) == FRAGS_PREF_SHORT)
+#define IS_LONG_FORMAT(x) ((x & FRAGS_PREF_SHORT) != FRAGS_PREF_SHORT)
+#define IS_XL_FORMAT(x) (x == FRAGS_MARK_XL)
 
-#define	RE_SHORT_MAX_NH		((1 << (DXR_TRIE_BITS - 8)) - 1)
+#define RE_SHORT_MAX_NH ((1 << (DXR_TRIE_BITS - 8)) - 1)
 
-#define	CHUNK_HASH_BITS		16
-#define	CHUNK_HASH_SIZE		(1 << CHUNK_HASH_BITS)
-#define	CHUNK_HASH_MASK		(CHUNK_HASH_SIZE - 1)
+#define CHUNK_HASH_BITS 16
+#define CHUNK_HASH_SIZE (1 << CHUNK_HASH_BITS)
+#define CHUNK_HASH_MASK (CHUNK_HASH_SIZE - 1)
 
-#define	TRIE_HASH_BITS		16
-#define	TRIE_HASH_SIZE		(1 << TRIE_HASH_BITS)
-#define	TRIE_HASH_MASK		(TRIE_HASH_SIZE - 1)
+#define TRIE_HASH_BITS 16
+#define TRIE_HASH_SIZE (1 << TRIE_HASH_BITS)
+#define TRIE_HASH_MASK (TRIE_HASH_SIZE - 1)
 
-#define	XTBL_SIZE_INCR		(DIRECT_TBL_SIZE / 16)
+#define XTBL_SIZE_INCR (DIRECT_TBL_SIZE / 16)
 
-#define	UNUSED_BUCKETS		8
+#define UNUSED_BUCKETS 8
 
 /* Lookup structure elements */
 
 struct direct_entry {
-	uint32_t		fragments: DESC_FRAGMENTS_BITS,
-				base: DESC_BASE_BITS;
+	uint32_t fragments : DESC_FRAGMENTS_BITS, base : DESC_BASE_BITS;
 };
 
 struct range_entry_long {
-	uint32_t		start: DXR_RANGE_SHIFT,
-				nexthop: DXR_TRIE_BITS;
+	uint32_t start : DXR_RANGE_SHIFT, nexthop : DXR_TRIE_BITS;
 };
 
 #if DXR_TRIE_BITS < 24
 struct range_entry_short {
-	uint16_t		start: DXR_RANGE_SHIFT - 8,
-				nexthop: DXR_TRIE_BITS - 8;
+	uint16_t start : DXR_RANGE_SHIFT - 8, nexthop : DXR_TRIE_BITS - 8;
 };
 #endif
 
 /* Auxiliary structures */
 
 struct heap_entry {
-	uint32_t		start;
-	uint32_t		end;
-	uint32_t		preflen;
-	uint32_t		nexthop;
+	uint32_t start;
+	uint32_t end;
+	uint32_t preflen;
+	uint32_t nexthop;
 };
 
 struct chunk_desc {
-	LIST_ENTRY(chunk_desc)	cd_all_le;
-	LIST_ENTRY(chunk_desc)	cd_hash_le;
-	uint32_t		cd_hash;
-	uint32_t		cd_refcnt;
-	uint32_t		cd_base;
-	uint32_t		cd_cur_size;
-	uint32_t		cd_max_size;
+	LIST_ENTRY(chunk_desc) cd_all_le;
+	LIST_ENTRY(chunk_desc) cd_hash_le;
+	uint32_t cd_hash;
+	uint32_t cd_refcnt;
+	uint32_t cd_base;
+	uint32_t cd_cur_size;
+	uint32_t cd_max_size;
 };
 
 struct trie_desc {
-	LIST_ENTRY(trie_desc)	td_all_le;
-	LIST_ENTRY(trie_desc)	td_hash_le;
-	uint32_t		td_hash;
-	uint32_t		td_index;
-	uint32_t		td_refcnt;
+	LIST_ENTRY(trie_desc) td_all_le;
+	LIST_ENTRY(trie_desc) td_hash_le;
+	uint32_t td_hash;
+	uint32_t td_index;
+	uint32_t td_refcnt;
 };
 
 struct dxr_aux {
 	/* Glue to external state */
-	struct fib_data		*fd;
-	uint32_t		fibnum;
-	int			refcnt;
+	struct fib_data *fd;
+	uint32_t fibnum;
+	int refcnt;
 
 	/* Auxiliary build-time tables */
-	struct direct_entry	direct_tbl[DIRECT_TBL_SIZE];
-	uint16_t		d_tbl[D_TBL_SIZE];
-	struct direct_entry	*x_tbl;
+	struct direct_entry direct_tbl[DIRECT_TBL_SIZE];
+	uint16_t d_tbl[D_TBL_SIZE];
+	struct direct_entry *x_tbl;
 	union {
-		struct range_entry_long	re;
-		uint32_t	fragments;
-	}			*range_tbl;
+		struct range_entry_long re;
+		uint32_t fragments;
+	} *range_tbl;
 
 	/* Auxiliary internal state */
-	uint32_t		updates_mask[DIRECT_TBL_SIZE / 32];
-	struct trie_desc	*trietbl[D_TBL_SIZE];
-	LIST_HEAD(, chunk_desc)	chunk_hashtbl[CHUNK_HASH_SIZE];
-	LIST_HEAD(, chunk_desc)	all_chunks;
+	uint32_t updates_mask[DIRECT_TBL_SIZE / 32];
+	struct trie_desc *trietbl[D_TBL_SIZE];
+	LIST_HEAD(, chunk_desc) chunk_hashtbl[CHUNK_HASH_SIZE];
+	LIST_HEAD(, chunk_desc) all_chunks;
 	LIST_HEAD(, chunk_desc) unused_chunks[UNUSED_BUCKETS];
-	LIST_HEAD(, trie_desc)	trie_hashtbl[TRIE_HASH_SIZE];
-	LIST_HEAD(, trie_desc)	all_trie;
-	LIST_HEAD(, trie_desc)	unused_trie; /* abuses hash link entry */
-	struct sockaddr_in	dst;
-	struct sockaddr_in	mask;
-	struct heap_entry	heap[33];
-	uint32_t		prefixes;
-	uint32_t		updates_low;
-	uint32_t		updates_high;
-	uint32_t		unused_chunks_size;
-	uint32_t		xtbl_size;
-	uint32_t		all_trie_cnt;
-	uint32_t		unused_trie_cnt;
-	uint32_t		trie_rebuilt_prefixes;
-	uint32_t		heap_index;
-	uint32_t		d_bits;
-	uint32_t		rtbl_size;
-	uint32_t		rtbl_top;
-	uint32_t		rtbl_work_frags;
-	uint32_t		work_chunk;
+	LIST_HEAD(, trie_desc) trie_hashtbl[TRIE_HASH_SIZE];
+	LIST_HEAD(, trie_desc) all_trie;
+	LIST_HEAD(, trie_desc) unused_trie; /* abuses hash link entry */
+	struct sockaddr_in dst;
+	struct sockaddr_in mask;
+	struct heap_entry heap[33];
+	uint32_t prefixes;
+	uint32_t updates_low;
+	uint32_t updates_high;
+	uint32_t unused_chunks_size;
+	uint32_t xtbl_size;
+	uint32_t all_trie_cnt;
+	uint32_t unused_trie_cnt;
+	uint32_t trie_rebuilt_prefixes;
+	uint32_t heap_index;
+	uint32_t d_bits;
+	uint32_t rtbl_size;
+	uint32_t rtbl_top;
+	uint32_t rtbl_work_frags;
+	uint32_t work_chunk;
 };
 
 /* Main lookup structure container */
 
 struct dxr {
 	/* Lookup tables */
-	void			*d;
-	void			*x;
-	void			*r;
-	struct nhop_object	**nh_tbl;
+	void *d;
+	void *x;
+	void *r;
+	struct nhop_object **nh_tbl;
 
 	/* Glue to external state */
-	struct dxr_aux		*aux;
-	struct fib_data		*fd;
-	struct epoch_context	epoch_ctx;
-	uint32_t		fibnum;
-	uint16_t		d_shift;
-	uint16_t		x_shift;
-	uint32_t		x_mask;
+	struct dxr_aux *aux;
+	struct fib_data *fd;
+	struct epoch_context epoch_ctx;
+	uint32_t fibnum;
+	uint16_t d_shift;
+	uint16_t x_shift;
+	uint32_t x_mask;
 };
 
 static MALLOC_DEFINE(M_DXRLPM, "dxr", "DXR LPM");
@@ -230,20 +225,20 @@ uma_zone_t chunk_zone;
 uma_zone_t trie_zone;
 
 VNET_DEFINE_STATIC(int, frag_limit) = 100;
-#define	V_frag_limit	VNET(frag_limit)
+#define V_frag_limit VNET(frag_limit)
 
 /* Binary search for a matching address range */
-#define	DXR_LOOKUP_STAGE					\
-	if (masked_dst < range[middle].start) {			\
-		upperbound = middle;				\
-		middle = (middle + lowerbound) / 2;		\
-	} else if (masked_dst < range[middle + 1].start)	\
-		return (range[middle].nexthop);			\
-	else {							\
-		lowerbound = middle + 1;			\
-		middle = (upperbound + middle + 1) / 2;		\
-	}							\
-	if (upperbound == lowerbound)				\
+#define DXR_LOOKUP_STAGE                                 \
+	if (masked_dst < range[middle].start) {          \
+		upperbound = middle;                     \
+		middle = (middle + lowerbound) / 2;      \
+	} else if (masked_dst < range[middle + 1].start) \
+		return (range[middle].nexthop);          \
+	else {                                           \
+		lowerbound = middle + 1;                 \
+		middle = (upperbound + middle + 1) / 2;  \
+	}                                                \
+	if (upperbound == lowerbound)                    \
 		return (range[lowerbound].nexthop);
 
 static int
@@ -263,7 +258,7 @@ range_lookup(struct range_entry_long *rt, struct direct_entry de, uint32_t dst)
 	if (__predict_true(IS_SHORT_FORMAT(de.fragments))) {
 		upperbound = de.fragments & FRAGS_MASK_SHORT;
 		struct range_entry_short *range =
-		    (struct range_entry_short *) &rt[base];
+		    (struct range_entry_short *)&rt[base];
 
 		masked_dst >>= 8;
 		middle = upperbound;
@@ -280,7 +275,7 @@ range_lookup(struct range_entry_long *rt, struct direct_entry de, uint32_t dst)
 	middle = upperbound / 2;
 	struct range_entry_long *range = &rt[base];
 	if (__predict_false(IS_XL_FORMAT(de.fragments))) {
-		upperbound = *((uint32_t *) range);
+		upperbound = *((uint32_t *)range);
 		range++;
 		middle = upperbound / 2;
 	}
@@ -291,30 +286,28 @@ range_lookup(struct range_entry_long *rt, struct direct_entry de, uint32_t dst)
 	}
 }
 
-#define DXR_LOOKUP_DEFINE(D)						\
-	static int inline						\
-	dxr_lookup_##D(struct dxr *dxr, uint32_t dst)			\
-	{								\
-		struct direct_entry de;					\
-		uint16_t *dt = dxr->d;					\
-		struct direct_entry *xt = dxr->x;			\
-									\
-		de = xt[(dt[dst >> (32 - (D))] << (DXR_TRIE_BITS - (D))) \
-		    + ((dst >> DXR_RANGE_SHIFT) &			\
-		    (0xffffffffU >> (32 - DXR_TRIE_BITS + (D))))];	\
-		if (__predict_true(de.fragments == FRAGS_MARK_HIT))	\
-			return (de.base);				\
-		return (range_lookup(dxr->r, de, dst));			\
-	}								\
-									\
-	static struct nhop_object *					\
-	dxr_fib_lookup_##D(void *algo_data,				\
-	    const struct flm_lookup_key key, uint32_t scopeid __unused)	\
-	{								\
-		struct dxr *dxr = algo_data;				\
-									\
-		return (dxr->nh_tbl[dxr_lookup_##D(dxr,			\
-		    ntohl(key.addr4.s_addr))]);				\
+#define DXR_LOOKUP_DEFINE(D)                                               \
+	static int inline dxr_lookup_##D(struct dxr *dxr, uint32_t dst)    \
+	{                                                                  \
+		struct direct_entry de;                                    \
+		uint16_t *dt = dxr->d;                                     \
+		struct direct_entry *xt = dxr->x;                          \
+                                                                           \
+		de = xt[(dt[dst >> (32 - (D))] << (DXR_TRIE_BITS - (D))) + \
+		    ((dst >> DXR_RANGE_SHIFT) &                            \
+			(0xffffffffU >> (32 - DXR_TRIE_BITS + (D))))];     \
+		if (__predict_true(de.fragments == FRAGS_MARK_HIT))        \
+			return (de.base);                                  \
+		return (range_lookup(dxr->r, de, dst));                    \
+	}                                                                  \
+                                                                           \
+	static struct nhop_object *dxr_fib_lookup_##D(void *algo_data,     \
+	    const struct flm_lookup_key key, uint32_t scopeid __unused)    \
+	{                                                                  \
+		struct dxr *dxr = algo_data;                               \
+                                                                           \
+		return (dxr->nh_tbl[dxr_lookup_##D(dxr,                    \
+		    ntohl(key.addr4.s_addr))]);                            \
 	}
 
 #ifdef DXR2
@@ -330,8 +323,7 @@ DXR_LOOKUP_DEFINE(10)
 DXR_LOOKUP_DEFINE(9)
 #endif /* DXR2 */
 
-static int inline
-dxr_lookup(struct dxr *dxr, uint32_t dst)
+static int inline dxr_lookup(struct dxr *dxr, uint32_t dst)
 {
 	struct direct_entry de;
 #ifdef DXR2
@@ -340,7 +332,7 @@ dxr_lookup(struct dxr *dxr, uint32_t dst)
 
 	de = xt[(dt[dst >> dxr->d_shift] << dxr->x_shift) +
 	    ((dst >> DXR_RANGE_SHIFT) & dxr->x_mask)];
-#else /* !DXR2 */
+#else  /* !DXR2 */
 	struct direct_entry *dt = dxr->d;
 
 	de = dt[dst >> DXR_RANGE_SHIFT];
@@ -356,7 +348,7 @@ initheap(struct dxr_aux *da, uint32_t dst_u32, uint32_t chunk)
 	struct heap_entry *fhp = &da->heap[0];
 	struct rtentry *rt;
 	struct route_nhop_data rnd;
- 
+
 	da->heap_index = 0;
 	da->dst.sin_addr.s_addr = htonl(dst_u32);
 	rt = fib4_lookup_rt(da->fibnum, da->dst.sin_addr, 0, NHR_UNLOCKED,
@@ -393,8 +385,8 @@ static uint32_t
 chunk_hash(struct dxr_aux *da, struct direct_entry *fdesc)
 {
 	uint32_t size = chunk_size(da, fdesc);
-	uint32_t *p = (uint32_t *) &da->range_tbl[fdesc->base];
-	uint32_t *l = (uint32_t *) &da->range_tbl[fdesc->base + size];
+	uint32_t *p = (uint32_t *)&da->range_tbl[fdesc->base];
+	uint32_t *l = (uint32_t *)&da->range_tbl[fdesc->base + size];
 	uint32_t hash = fdesc->fragments;
 
 	for (; p < l; p++)
@@ -414,11 +406,11 @@ chunk_ref(struct dxr_aux *da, uint32_t chunk)
 	int i;
 
 	/* Find an existing descriptor */
-	LIST_FOREACH(cdp, &da->chunk_hashtbl[hash & CHUNK_HASH_MASK],
+	LIST_FOREACH (cdp, &da->chunk_hashtbl[hash & CHUNK_HASH_MASK],
 	    cd_hash_le) {
 		if (cdp->cd_hash != hash || cdp->cd_cur_size != size ||
 		    memcmp(&da->range_tbl[base], &da->range_tbl[cdp->cd_base],
-		    sizeof(struct range_entry_long) * size))
+			sizeof(struct range_entry_long) * size))
 			continue;
 		da->rtbl_top = fdesc->base;
 		fdesc->base = cdp->cd_base;
@@ -431,9 +423,10 @@ chunk_ref(struct dxr_aux *da, uint32_t chunk)
 		cdp = LIST_FIRST(&da->unused_chunks[i]);
 
 	if (cdp == NULL)
-		LIST_FOREACH(empty_cdp, &da->unused_chunks[0], cd_hash_le)
-			if (empty_cdp->cd_max_size >= size && (cdp == NULL ||
-			    empty_cdp->cd_max_size < cdp->cd_max_size)) {
+		LIST_FOREACH (empty_cdp, &da->unused_chunks[0], cd_hash_le)
+			if (empty_cdp->cd_max_size >= size &&
+			    (cdp == NULL ||
+				empty_cdp->cd_max_size < cdp->cd_max_size)) {
 				cdp = empty_cdp;
 				if (empty_cdp->cd_max_size == size)
 					break;
@@ -487,7 +480,8 @@ chunk_ref(struct dxr_aux *da, uint32_t chunk)
 		if (da->rtbl_top >= BASE_MAX) {
 			FIB_PRINTF(LOG_ERR, da->fd,
 			    "structural limit exceeded at %d "
-			    "range table elements", da->rtbl_top);
+			    "range table elements",
+			    da->rtbl_top);
 			return (1);
 		}
 		da->rtbl_size += RTBL_SIZE_INCR;
@@ -515,11 +509,11 @@ chunk_unref(struct dxr_aux *da, uint32_t chunk)
 	int i;
 
 	/* Find the corresponding descriptor */
-	LIST_FOREACH(cdp, &da->chunk_hashtbl[hash & CHUNK_HASH_MASK],
+	LIST_FOREACH (cdp, &da->chunk_hashtbl[hash & CHUNK_HASH_MASK],
 	    cd_hash_le)
 		if (cdp->cd_hash == hash && cdp->cd_cur_size == size &&
 		    memcmp(&da->range_tbl[base], &da->range_tbl[cdp->cd_base],
-		    sizeof(struct range_entry_long) * size) == 0)
+			sizeof(struct range_entry_long) * size) == 0)
 			break;
 
 	KASSERT(cdp != NULL, ("dxr: dangling chunk"));
@@ -581,8 +575,7 @@ trie_hash(struct dxr_aux *da, uint32_t dxr_x, uint32_t index)
 
 	for (i = 0; i < (1 << dxr_x); i++) {
 		hash = (hash << 3) ^ (hash >> 3);
-		val = (uint32_t *)
-		    (void *) &da->direct_tbl[(index << dxr_x) + i];
+		val = (uint32_t *)(void *)&da->direct_tbl[(index << dxr_x) + i];
 		hash += (*val << 5);
 		hash += (*val >> 5);
 	}
@@ -599,14 +592,14 @@ trie_ref(struct dxr_aux *da, uint32_t index)
 	uint32_t hash = trie_hash(da, dxr_x, index);
 
 	/* Find an existing descriptor */
-	LIST_FOREACH(tp, &da->trie_hashtbl[hash & TRIE_HASH_MASK], td_hash_le)
+	LIST_FOREACH (tp, &da->trie_hashtbl[hash & TRIE_HASH_MASK], td_hash_le)
 		if (tp->td_hash == hash &&
 		    memcmp(&da->direct_tbl[index << dxr_x],
-		    &da->x_tbl[tp->td_index << dxr_x],
-		    sizeof(*da->x_tbl) << dxr_x) == 0) {
+			&da->x_tbl[tp->td_index << dxr_x],
+			sizeof(*da->x_tbl) << dxr_x) == 0) {
 			tp->td_refcnt++;
 			da->trietbl[index] = tp;
-			return(tp->td_index);
+			return (tp->td_index);
 		}
 
 	tp = LIST_FIRST(&da->unused_trie);
@@ -624,7 +617,7 @@ trie_ref(struct dxr_aux *da, uint32_t index)
 	tp->td_hash = hash;
 	tp->td_refcnt = 1;
 	LIST_INSERT_HEAD(&da->trie_hashtbl[hash & TRIE_HASH_MASK], tp,
-	   td_hash_le);
+	    td_hash_le);
 	memcpy(&da->x_tbl[tp->td_index << dxr_x],
 	    &da->direct_tbl[index << dxr_x], sizeof(*da->x_tbl) << dxr_x);
 	da->trietbl[index] = tp;
@@ -635,7 +628,7 @@ trie_ref(struct dxr_aux *da, uint32_t index)
 		if (da->x_tbl == NULL)
 			return (-1);
 	}
-	return(tp->td_index);
+	return (tp->td_index);
 }
 
 static void
@@ -661,7 +654,7 @@ trie_unref(struct dxr_aux *da, uint32_t index)
 		da->unused_trie_cnt--;
 		LIST_REMOVE(tp, td_all_le);
 		uma_zfree(trie_zone, tp);
-		LIST_FOREACH(tp, &da->unused_trie, td_hash_le)
+		LIST_FOREACH (tp, &da->unused_trie, td_hash_le)
 			if (tp->td_index == da->all_trie_cnt - 1) {
 				LIST_REMOVE(tp, td_hash_le);
 				break;
@@ -710,9 +703,9 @@ dxr_walk(struct rtentry *rt, void *arg)
 	rt_get_inet_prefix_plen(rt, &addr, &preflen, &scopeid);
 	start = ntohl(addr.s_addr);
 	if (start > last)
-		return (-1);	/* Beyond chunk boundaries, we are done */
+		return (-1); /* Beyond chunk boundaries, we are done */
 	if (start < first)
-		return (0);	/* Skip this route */
+		return (0); /* Skip this route */
 
 	end = start;
 	if (preflen < 32)
@@ -783,8 +776,8 @@ update_chunk(struct dxr_aux *da, uint32_t chunk)
 
 	da->work_chunk = chunk;
 	rib_walk_from(da->fibnum, AF_INET, RIB_FLAG_LOCKED,
-	    (struct sockaddr *) &da->dst, (struct sockaddr *) &da->mask,
-	    dxr_walk, da);
+	    (struct sockaddr *)&da->dst, (struct sockaddr *)&da->mask, dxr_walk,
+	    da);
 
 	/* Flush any remaining objects on the heap */
 	fp = &da->range_tbl[da->rtbl_top + da->rtbl_work_frags].re;
@@ -826,7 +819,7 @@ update_chunk(struct dxr_aux *da, uint32_t chunk)
 			break;
 	if (i == da->rtbl_work_frags + 1) {
 		fp = &da->range_tbl[da->rtbl_top].re;
-		fps = (void *) fp;
+		fps = (void *)fp;
 		for (i = 0; i <= da->rtbl_work_frags; i++, fp++, fps++) {
 			start = fp->start;
 			nh = fp->nexthop;
@@ -836,15 +829,15 @@ update_chunk(struct dxr_aux *da, uint32_t chunk)
 		fps->start = start >> 8;
 		fps->nexthop = nh;
 		da->rtbl_work_frags >>= 1;
-		da->direct_tbl[chunk].fragments =
-		    da->rtbl_work_frags | FRAGS_PREF_SHORT;
+		da->direct_tbl[chunk].fragments = da->rtbl_work_frags |
+		    FRAGS_PREF_SHORT;
 	} else
 #endif
-	if (da->rtbl_work_frags >= FRAGS_MARK_HIT) {
+	    if (da->rtbl_work_frags >= FRAGS_MARK_HIT) {
 		da->direct_tbl[chunk].fragments = FRAGS_MARK_XL;
 		memmove(&da->range_tbl[da->rtbl_top + 1],
-		   &da->range_tbl[da->rtbl_top],
-		   (da->rtbl_work_frags + 1) * sizeof(*da->range_tbl));
+		    &da->range_tbl[da->rtbl_top],
+		    (da->rtbl_work_frags + 1) * sizeof(*da->range_tbl));
 		da->range_tbl[da->rtbl_top].fragments = da->rtbl_work_frags;
 		da->rtbl_work_frags++;
 	}
@@ -892,16 +885,17 @@ dxr_build(struct dxr *dxr)
 		da->mask.sin_family = AF_INET;
 	}
 	if (da->range_tbl == NULL) {
-		da->range_tbl = malloc(sizeof(*da->range_tbl) * da->rtbl_size
-		    + FRAGS_PREF_SHORT, M_DXRAUX, M_NOWAIT);
+		da->range_tbl = malloc(sizeof(*da->range_tbl) * da->rtbl_size +
+			FRAGS_PREF_SHORT,
+		    M_DXRAUX, M_NOWAIT);
 		if (da->range_tbl == NULL)
 			return;
 		range_rebuild = 1;
 	}
 #ifdef DXR2
 	if (da->x_tbl == NULL) {
-		da->x_tbl = malloc(sizeof(*da->x_tbl) * da->xtbl_size,
-		    M_DXRAUX, M_NOWAIT);
+		da->x_tbl = malloc(sizeof(*da->x_tbl) * da->xtbl_size, M_DXRAUX,
+		    M_NOWAIT);
 		if (da->x_tbl == NULL)
 			return;
 		trie_rebuild = 1;
@@ -993,7 +987,7 @@ dxr2_try_squeeze:
 	d_tbl_size = (1 << da->d_bits);
 
 	for (i = da->updates_low >> dxr_x; i <= da->updates_high >> dxr_x;
-	    i++) {
+	     i++) {
 		if (!trie_rebuild) {
 			m = 0;
 			for (int j = 0; j < (1 << dxr_x); j += 32)
@@ -1017,8 +1011,8 @@ dxr2_try_squeeze:
 	}
 
 	d_size = sizeof(*da->d_tbl) * d_tbl_size;
-	x_size = sizeof(*da->x_tbl) * DIRECT_TBL_SIZE / d_tbl_size
-	    * da->all_trie_cnt;
+	x_size = sizeof(*da->x_tbl) * DIRECT_TBL_SIZE / d_tbl_size *
+	    da->all_trie_cnt;
 	dxr_tot_size = d_size + x_size + r_size;
 
 	if (trie_rebuild == 1) {
@@ -1043,15 +1037,15 @@ dxr2_try_squeeze:
 		return;
 #ifdef DXR2
 	memcpy(dxr->d, da->d_tbl, d_size);
-	dxr->x = ((char *) dxr->d) + d_size;
+	dxr->x = ((char *)dxr->d) + d_size;
 	memcpy(dxr->x, da->x_tbl, x_size);
-	dxr->r = ((char *) dxr->x) + x_size;
+	dxr->r = ((char *)dxr->x) + x_size;
 	dxr->d_shift = 32 - da->d_bits;
 	dxr->x_shift = dxr_x;
 	dxr->x_mask = 0xffffffffU >> (32 - dxr_x);
 #else /* !DXR2 */
 	memcpy(dxr->d, da->direct_tbl, sizeof(da->direct_tbl));
-	dxr->r = ((char *) dxr->d) + sizeof(da->direct_tbl);
+	dxr->r = ((char *)dxr->d) + sizeof(da->direct_tbl);
 #endif
 	memcpy(dxr->r, da->range_tbl, r_size);
 
@@ -1066,20 +1060,19 @@ dxr2_try_squeeze:
 	FIB_PRINTF(LOG_INFO, da->fd, "D%dX%dR, %d prefixes, %d nhops (max)",
 	    da->d_bits, dxr_x, rinfo.num_prefixes, rinfo.num_nhops);
 #else
-	FIB_PRINTF(LOG_INFO, da->fd, "D%dR, %d prefixes, %d nhops (max)",
-	    DXR_D, rinfo.num_prefixes, rinfo.num_nhops);
+	FIB_PRINTF(LOG_INFO, da->fd, "D%dR, %d prefixes, %d nhops (max)", DXR_D,
+	    rinfo.num_prefixes, rinfo.num_nhops);
 #endif
 	i = dxr_tot_size * 100;
 	if (rinfo.num_prefixes)
 		i /= rinfo.num_prefixes;
 	FIB_PRINTF(LOG_INFO, da->fd, "%d.%02d KBytes, %d.%02d Bytes/prefix",
-	    dxr_tot_size / 1024, dxr_tot_size * 100 / 1024 % 100,
-	    i / 100, i % 100);
+	    dxr_tot_size / 1024, dxr_tot_size * 100 / 1024 % 100, i / 100,
+	    i % 100);
 #ifdef DXR2
 	FIB_PRINTF(LOG_INFO, da->fd,
-	    "%d.%02d%% trie, %d.%02d%% range fragmentation",
-	    trie_frag / 100, trie_frag % 100,
-	    range_frag / 100, range_frag % 100);
+	    "%d.%02d%% trie, %d.%02d%% range fragmentation", trie_frag / 100,
+	    trie_frag % 100, range_frag / 100, range_frag % 100);
 #else
 	FIB_PRINTF(LOG_INFO, da->fd, "%d.%01d%% range fragmentation",
 	    range_frag / 100, range_frag % 100);
@@ -1093,8 +1086,8 @@ dxr2_try_squeeze:
 	    trie_rebuild ? "rebuilt" : "updated", i / 1000, i % 1000);
 #endif
 	i = (t3.tv_sec - t2.tv_sec) * 1000000 + t3.tv_usec - t2.tv_usec;
-	FIB_PRINTF(LOG_INFO, da->fd, "snapshot forked in %u.%03u ms",
-	    i / 1000, i % 1000);
+	FIB_PRINTF(LOG_INFO, da->fd, "snapshot forked in %u.%03u ms", i / 1000,
+	    i % 1000);
 }
 
 /*
@@ -1167,7 +1160,7 @@ dxr_destroy(void *data)
 	free(da, M_DXRAUX);
 }
 
-static void 
+static void
 epoch_dxr_destroy(epoch_context_t ctx)
 {
 	struct dxr *dxr = __containerof(ctx, struct dxr, epoch_ctx);
@@ -1233,13 +1226,12 @@ dxr_dump_end(void *data, struct fib_dp *dp)
 static enum flm_op_result
 dxr_dump_rib_item(struct rtentry *rt, void *data)
 {
-	
+
 	return (FLM_SUCCESS);
 }
 
 static enum flm_op_result
-dxr_change_rib_item(struct rib_head *rnh, struct rib_cmd_info *rc,
-    void *data)
+dxr_change_rib_item(struct rib_head *rnh, struct rib_cmd_info *rc, void *data)
 {
 
 	return (FLM_BATCH);
@@ -1262,8 +1254,8 @@ dxr_change_rib_batch(struct rib_head *rnh, struct fib_change_queue *q,
 
 	KASSERT(data != NULL, ("%s: NULL data", __FUNCTION__));
 	KASSERT(q != NULL, ("%s: NULL q", __FUNCTION__));
-	KASSERT(q->count < q->size, ("%s: q->count %d q->size %d",
-	    __FUNCTION__, q->count, q->size));
+	KASSERT(q->count < q->size,
+	    ("%s: q->count %d q->size %d", __FUNCTION__, q->count, q->size));
 
 	da = dxr->aux;
 	KASSERT(da != NULL, ("%s: NULL dxr->aux", __FUNCTION__));
@@ -1303,7 +1295,7 @@ dxr_change_rib_batch(struct rib_head *rnh, struct fib_change_queue *q,
 	    ("%s: update count mismatch", __FUNCTION__));
 #endif
 
-	res = dxr_init(0, dxr->fd, data, (void **) &new_dxr);
+	res = dxr_init(0, dxr->fd, data, (void **)&new_dxr);
 	if (res != FLM_SUCCESS)
 		return (res);
 
@@ -1377,9 +1369,8 @@ sysctl_dxr_frag_limit(SYSCTL_HANDLER_ARGS)
 }
 
 SYSCTL_PROC(_net_route_algo_dxr, OID_AUTO, frag_limit,
-    CTLTYPE_STRING | CTLFLAG_RW | CTLFLAG_VNET,
-    0, 0, sysctl_dxr_frag_limit, "A",
-    "Fragmentation threshold to full rebuild");
+    CTLTYPE_STRING | CTLFLAG_RW | CTLFLAG_VNET, 0, 0, sysctl_dxr_frag_limit,
+    "A", "Fragmentation threshold to full rebuild");
 
 static struct fib_lookup_module fib_dxr_mod = {
 	.flm_name = "dxr",
@@ -1405,20 +1396,20 @@ dxr_modevent(module_t mod, int type, void *unused)
 		trie_zone = uma_zcreate("dxr trie", sizeof(struct trie_desc),
 		    NULL, NULL, NULL, NULL, UMA_ALIGN_PTR, 0);
 		fib_module_register(&fib_dxr_mod);
-		return(0);
+		return (0);
 	case MOD_UNLOAD:
 		error = fib_module_unregister(&fib_dxr_mod);
 		if (error)
 			return (error);
 		uma_zdestroy(chunk_zone);
 		uma_zdestroy(trie_zone);
-		return(0);
+		return (0);
 	default:
-		return(EOPNOTSUPP);
+		return (EOPNOTSUPP);
 	}
 }
 
-static moduledata_t dxr_mod = {"fib_dxr", dxr_modevent, 0};
+static moduledata_t dxr_mod = { "fib_dxr", dxr_modevent, 0 };
 
 DECLARE_MODULE(fib_dxr, dxr_mod, SI_SUB_PSEUDO, SI_ORDER_ANY);
 MODULE_VERSION(fib_dxr, 1);

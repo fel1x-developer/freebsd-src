@@ -10,39 +10,39 @@
  */
 
 #include <sys/param.h>
+#include <sys/dtrace.h>
 #include <sys/pcpu.h>
 
 #include <machine/cpufunc.h>
 #include <machine/md_var.h>
 
-#include <sys/dtrace.h>
 #include <cddl/dev/dtrace/dtrace_cddl.h>
 #include <dis_tables.h>
 
 #include "kinst.h"
 
-#define KINST_PUSHL_RBP		0x55
-#define KINST_STI		0xfb
-#define KINST_POPF		0x9d
+#define KINST_PUSHL_RBP 0x55
+#define KINST_STI 0xfb
+#define KINST_POPF 0x9d
 
-#define KINST_MODRM_MOD(b)	(((b) & 0xc0) >> 6)
-#define KINST_MODRM_REG(b)	(((b) & 0x38) >> 3)
-#define KINST_MODRM_RM(b)	((b) & 0x07)
+#define KINST_MODRM_MOD(b) (((b) & 0xc0) >> 6)
+#define KINST_MODRM_REG(b) (((b) & 0x38) >> 3)
+#define KINST_MODRM_RM(b) ((b) & 0x07)
 
-#define KINST_SIB_SCALE(s)	(((s) & 0xc0) >> 6)
-#define KINST_SIB_INDEX(s)	(((s) & 0x38) >> 3)
-#define KINST_SIB_BASE(s)	(((s) & 0x07) >> 0)
+#define KINST_SIB_SCALE(s) (((s) & 0xc0) >> 6)
+#define KINST_SIB_INDEX(s) (((s) & 0x38) >> 3)
+#define KINST_SIB_BASE(s) (((s) & 0x07) >> 0)
 
-#define KINST_REX_W(r)		(((r) & 0x08) >> 3)
-#define KINST_REX_R(r)		(((r) & 0x04) >> 2)
-#define KINST_REX_X(r)		(((r) & 0x02) >> 1)
-#define KINST_REX_B(r)		(((r) & 0x01) >> 0)
+#define KINST_REX_W(r) (((r) & 0x08) >> 3)
+#define KINST_REX_R(r) (((r) & 0x04) >> 2)
+#define KINST_REX_X(r) (((r) & 0x02) >> 1)
+#define KINST_REX_B(r) (((r) & 0x01) >> 0)
 
-#define KINST_F_CALL		0x0001	/* instruction is a "call" */
-#define KINST_F_DIRECT_CALL	0x0002	/* instruction is a direct call */
-#define KINST_F_RIPREL		0x0004	/* instruction is position-dependent */
-#define KINST_F_JMP		0x0008	/* instruction is a %rip-relative jmp */
-#define KINST_F_MOD_DIRECT	0x0010	/* operand is not a memory address */
+#define KINST_F_CALL 0x0001	   /* instruction is a "call" */
+#define KINST_F_DIRECT_CALL 0x0002 /* instruction is a direct call */
+#define KINST_F_RIPREL 0x0004	   /* instruction is position-dependent */
+#define KINST_F_JMP 0x0008	   /* instruction is a %rip-relative jmp */
+#define KINST_F_MOD_DIRECT 0x0010  /* operand is not a memory address */
 
 /*
  * Per-CPU trampolines used when the interrupted thread is executing with
@@ -58,27 +58,27 @@ DPCPU_DEFINE_STATIC(uint8_t *, intr_tramp);
 static int
 kinst_regoff(int reg)
 {
-#define	_MATCH_REG(i, reg)			\
-	case i:					\
-		return (offsetof(struct trapframe, tf_ ## reg) / \
-		    sizeof(register_t))
+#define _MATCH_REG(i, reg) \
+	case i:            \
+		return (   \
+		    offsetof(struct trapframe, tf_##reg) / sizeof(register_t))
 	switch (reg) {
-	_MATCH_REG( 0, rax);
-	_MATCH_REG( 1, rcx);
-	_MATCH_REG( 2, rdx);
-	_MATCH_REG( 3, rbx);
-	_MATCH_REG( 4, rsp); /* SIB when mod != 3 */
-	_MATCH_REG( 5, rbp);
-	_MATCH_REG( 6, rsi);
-	_MATCH_REG( 7, rdi);
-	_MATCH_REG( 8, r8); /* REX.R is set */
-	_MATCH_REG( 9, r9);
-	_MATCH_REG(10, r10);
-	_MATCH_REG(11, r11);
-	_MATCH_REG(12, r12);
-	_MATCH_REG(13, r13);
-	_MATCH_REG(14, r14);
-	_MATCH_REG(15, r15);
+		_MATCH_REG(0, rax);
+		_MATCH_REG(1, rcx);
+		_MATCH_REG(2, rdx);
+		_MATCH_REG(3, rbx);
+		_MATCH_REG(4, rsp); /* SIB when mod != 3 */
+		_MATCH_REG(5, rbp);
+		_MATCH_REG(6, rsi);
+		_MATCH_REG(7, rdi);
+		_MATCH_REG(8, r8); /* REX.R is set */
+		_MATCH_REG(9, r9);
+		_MATCH_REG(10, r10);
+		_MATCH_REG(11, r11);
+		_MATCH_REG(12, r12);
+		_MATCH_REG(13, r13);
+		_MATCH_REG(14, r14);
+		_MATCH_REG(15, r15);
 	}
 #undef _MATCH_REG
 	panic("%s: unhandled register index %d", __func__, reg);
@@ -114,7 +114,8 @@ kinst_trampoline_populate(struct kinst_probe *kp, uint8_t *tramp)
 	kinst_memcpy(tramp, kp->kp_md.template, ilen);
 	if ((kp->kp_md.flags & KINST_F_RIPREL) != 0) {
 		disp = kinst_riprel_disp(kp, tramp);
-		kinst_memcpy(&tramp[kp->kp_md.dispoff], &disp, sizeof(uint32_t));
+		kinst_memcpy(&tramp[kp->kp_md.dispoff], &disp,
+		    sizeof(uint32_t));
 	}
 
 	/*
@@ -145,7 +146,7 @@ kinst_invop(uintptr_t addr, struct trapframe *frame, uintptr_t scratch)
 	stack = (uintptr_t *)frame->tf_rsp;
 	cpu = &solaris_cpu[curcpu];
 
-	LIST_FOREACH(kp, KINST_GETPROBE(addr), kp_hashnext) {
+	LIST_FOREACH (kp, KINST_GETPROBE(addr), kp_hashnext) {
 		if ((uintptr_t)kp->kp_patchpoint == addr)
 			break;
 	}
@@ -185,15 +186,15 @@ kinst_invop(uintptr_t addr, struct trapframe *frame, uintptr_t scratch)
 			} else {
 				/* indirect */
 				rval = kinst_regval(frame, kpmd->reg1) +
-				    (kinst_regval(frame, kpmd->reg2) <<
-				    kpmd->scale);
+				    (kinst_regval(frame, kpmd->reg2)
+					<< kpmd->scale);
 			}
 
 			if ((kpmd->flags & KINST_F_MOD_DIRECT) != 0) {
 				frame->tf_rip = rval + kpmd->disp;
 			} else {
-				frame->tf_rip =
-				    *(uintptr_t *)(rval + kpmd->disp);
+				frame->tf_rip = *(
+				    uintptr_t *)(rval + kpmd->disp);
 			}
 		}
 		return (DTRACE_INVOP_CALL);
@@ -457,10 +458,8 @@ kinst_instr_dissect(struct kinst_probe *kp, uint8_t **instr)
 	 */
 	ilen = kpmd->instlen;
 	if ((kpmd->flags & KINST_F_RIPREL) != 0) {
-		if ((kpmd->flags & KINST_F_JMP) == 0 ||
-		    bytes[opcidx] == 0x0f ||
-		    bytes[opcidx] == 0xe9 ||
-		    bytes[opcidx] == 0xff) {
+		if ((kpmd->flags & KINST_F_JMP) == 0 || bytes[opcidx] == 0x0f ||
+		    bytes[opcidx] == 0xe9 || bytes[opcidx] == 0xff) {
 			memcpy(kpmd->template, bytes, dispoff);
 			memcpy(&kpmd->template[dispoff + 4],
 			    &bytes[dispoff + 4], ilen - (dispoff + 4));
@@ -473,7 +472,7 @@ kinst_instr_dissect(struct kinst_probe *kp, uint8_t **instr)
 			/* Instruction length changes from 2 to 5. */
 			kpmd->tinstlen = 5;
 			kpmd->disp -= 3;
-		} else if (bytes[opcidx] >= 0x70 && bytes[opcidx] <= 0x7f)  {
+		} else if (bytes[opcidx] >= 0x70 && bytes[opcidx] <= 0x7f) {
 			memcpy(kpmd->template, bytes, opcidx);
 			kpmd->template[opcidx] = 0x0f;
 			kpmd->template[opcidx + 1] = bytes[opcidx] + 0x10;
@@ -567,7 +566,7 @@ kinst_make_probe(linker_file_t lf, int symindx, linker_symval_t *symval,
 		 * Prevent separate dtrace(1) instances from creating copies of
 		 * the same probe.
 		 */
-		LIST_FOREACH(kp, KINST_GETPROBE(instr), kp_hashnext) {
+		LIST_FOREACH (kp, KINST_GETPROBE(instr), kp_hashnext) {
 			if (strcmp(kp->kp_func, func) == 0 &&
 			    strtol(kp->kp_name, NULL, 10) == off)
 				return (0);
@@ -600,7 +599,7 @@ kinst_md_init(void)
 	uint8_t *tramp;
 	int cpu;
 
-	CPU_FOREACH(cpu) {
+	CPU_FOREACH (cpu) {
 		tramp = kinst_trampoline_alloc(M_WAITOK);
 		if (tramp == NULL)
 			return (ENOMEM);
@@ -616,7 +615,7 @@ kinst_md_deinit(void)
 	uint8_t *tramp;
 	int cpu;
 
-	CPU_FOREACH(cpu) {
+	CPU_FOREACH (cpu) {
 		tramp = DPCPU_ID_GET(cpu, intr_tramp);
 		if (tramp != NULL) {
 			kinst_trampoline_dealloc(tramp);

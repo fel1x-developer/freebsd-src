@@ -40,7 +40,7 @@
 
 #include <machine/cpu.h>
 #include <machine/cputypes.h>
-#include <machine/intr_machdep.h>	/* For x86/apicvar.h */
+#include <machine/intr_machdep.h> /* For x86/apicvar.h */
 #include <machine/md_var.h>
 #include <machine/pmc_mdep.h>
 #include <machine/stack.h>
@@ -77,40 +77,42 @@ pmc_save_user_callchain(uintptr_t *cc, int nframes, struct trapframe *tf)
 	uint32_t instr;
 	uintptr_t fp, oldfp, pc, r, sp;
 
-	KASSERT(TRAPF_USERMODE(tf), ("[x86,%d] Not a user trap frame tf=%p",
-	    __LINE__, (void *) tf));
+	KASSERT(TRAPF_USERMODE(tf),
+	    ("[x86,%d] Not a user trap frame tf=%p", __LINE__, (void *)tf));
 
 	pc = PMC_TRAPFRAME_TO_PC(tf);
 	oldfp = fp = PMC_TRAPFRAME_TO_FP(tf);
 	sp = PMC_TRAPFRAME_TO_USER_SP(tf);
 
-	*cc++ = pc; n = 1;
+	*cc++ = pc;
+	n = 1;
 
 	r = fp + sizeof(uintptr_t); /* points to return address */
 
 	if (!PMC_IN_USERSPACE(pc))
 		return (n);
 
-	if (copyin((void *) pc, &instr, sizeof(instr)) != 0)
+	if (copyin((void *)pc, &instr, sizeof(instr)) != 0)
 		return (n);
 
 	if (PMC_AT_FUNCTION_PROLOGUE_PUSH_BP(instr) ||
 	    PMC_AT_FUNCTION_EPILOGUE_RET(instr)) { /* ret */
-		if (copyin((void *) sp, &pc, sizeof(pc)) != 0)
+		if (copyin((void *)sp, &pc, sizeof(pc)) != 0)
 			return (n);
 	} else if (PMC_AT_FUNCTION_PROLOGUE_MOV_SP_BP(instr)) {
 		sp += sizeof(uintptr_t);
-		if (copyin((void *) sp, &pc, sizeof(pc)) != 0)
+		if (copyin((void *)sp, &pc, sizeof(pc)) != 0)
 			return (n);
-	} else if (copyin((void *) r, &pc, sizeof(pc)) != 0 ||
-	    copyin((void *) fp, &fp, sizeof(fp)) != 0)
+	} else if (copyin((void *)r, &pc, sizeof(pc)) != 0 ||
+	    copyin((void *)fp, &fp, sizeof(fp)) != 0)
 		return (n);
 
 	for (; n < nframes;) {
 		if (pc == 0 || !PMC_IN_USERSPACE(pc))
 			break;
 
-		*cc++ = pc; n++;
+		*cc++ = pc;
+		n++;
 
 		if (fp < oldfp)
 			break;
@@ -118,8 +120,8 @@ pmc_save_user_callchain(uintptr_t *cc, int nframes, struct trapframe *tf)
 		r = fp + sizeof(uintptr_t); /* address of return address */
 		oldfp = fp;
 
-		if (copyin((void *) r, &pc, sizeof(pc)) != 0 ||
-		    copyin((void *) fp, &fp, sizeof(fp)) != 0)
+		if (copyin((void *)r, &pc, sizeof(pc)) != 0 ||
+		    copyin((void *)fp, &fp, sizeof(fp)) != 0)
 			break;
 	}
 
@@ -157,8 +159,8 @@ pmc_save_kernel_callchain(uintptr_t *cc, int nframes, struct trapframe *tf)
 	uint32_t instr;
 	int n;
 
-	KASSERT(TRAPF_USERMODE(tf) == 0,("[x86,%d] not a kernel backtrace",
-	    __LINE__));
+	KASSERT(TRAPF_USERMODE(tf) == 0,
+	    ("[x86,%d] not a kernel backtrace", __LINE__));
 
 	pc = PMC_TRAPFRAME_TO_PC(tf);
 	fp = PMC_TRAPFRAME_TO_FP(tf);
@@ -188,7 +190,7 @@ pmc_save_kernel_callchain(uintptr_t *cc, int nframes, struct trapframe *tf)
 	 */
 	if (PMC_AT_FUNCTION_PROLOGUE_PUSH_BP(instr) ||
 	    PMC_AT_FUNCTION_EPILOGUE_RET(instr))
-		pc = *(uintptr_t *) sp;
+		pc = *(uintptr_t *)sp;
 	else if (PMC_AT_FUNCTION_PROLOGUE_MOV_SP_BP(instr)) {
 		/*
 		 * The code was midway through laying down a frame.

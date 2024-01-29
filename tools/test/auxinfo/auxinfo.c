@@ -4,10 +4,11 @@
  */
 
 #include <sys/mman.h>
+
 #include <err.h>
-#include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 static void

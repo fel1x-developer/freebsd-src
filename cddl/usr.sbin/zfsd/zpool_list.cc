@@ -39,24 +39,22 @@
 #include <sys/byteorder.h>
 #include <sys/fs/zfs.h>
 
+#include <devdctl/consumer.h>
+#include <devdctl/event.h>
+#include <devdctl/event_factory.h>
+#include <devdctl/exception.h>
+#include <devdctl/guid.h>
+#include <libzfs.h>
 #include <stdint.h>
 
-#include <libzfs.h>
+#include "vdev.h"
+#include "vdev_iterator.h"
+#include "zfsd.h"
+#include "zpool_list.h"
 
 #include <list>
 #include <map>
 #include <string>
-
-#include <devdctl/guid.h>
-#include <devdctl/event.h>
-#include <devdctl/event_factory.h>
-#include <devdctl/exception.h>
-#include <devdctl/consumer.h>
-
-#include "vdev.h"
-#include "vdev_iterator.h"
-#include "zpool_list.h"
-#include "zfsd.h"
 
 /*============================ Namespace Control =============================*/
 using DevdCtl::Guid;
@@ -70,16 +68,15 @@ ZpoolList::ZpoolAll(zpool_handle_t *pool, nvlist_t *poolConfig, void *cbArg)
 }
 
 bool
-ZpoolList::ZpoolByGUID(zpool_handle_t *pool, nvlist_t *poolConfig,
-			   void *cbArg)
+ZpoolList::ZpoolByGUID(zpool_handle_t *pool, nvlist_t *poolConfig, void *cbArg)
 {
 	Guid *desiredPoolGUID(static_cast<Guid *>(cbArg));
 	uint64_t poolGUID;
 
 	/* We are only intested in the pool that matches our pool GUID. */
 	return (nvlist_lookup_uint64(poolConfig, ZPOOL_CONFIG_POOL_GUID,
-				     &poolGUID) == 0
-	     && poolGUID == (uint64_t)*desiredPoolGUID);
+		    &poolGUID) == 0 &&
+	    poolGUID == (uint64_t)*desiredPoolGUID);
 }
 
 bool
@@ -95,7 +92,7 @@ int
 ZpoolList::LoadIterator(zpool_handle_t *pool, void *data)
 {
 	ZpoolList *zpl(reinterpret_cast<ZpoolList *>(data));
-	nvlist_t  *poolConfig(zpool_get_config(pool, NULL));
+	nvlist_t *poolConfig(zpool_get_config(pool, NULL));
 
 	if (zpl->m_filter(pool, poolConfig, zpl->m_filterArg))
 		zpl->push_back(pool);
@@ -104,9 +101,9 @@ ZpoolList::LoadIterator(zpool_handle_t *pool, void *data)
 	return (0);
 }
 
-ZpoolList::ZpoolList(PoolFilter_t *filter, void * filterArg)
- : m_filter(filter),
-   m_filterArg(filterArg)
+ZpoolList::ZpoolList(PoolFilter_t *filter, void *filterArg)
+    : m_filter(filter)
+    , m_filterArg(filterArg)
 {
 	zpool_iter(g_zfsHandle, LoadIterator, this);
 }

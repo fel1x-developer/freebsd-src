@@ -26,25 +26,24 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/eventhandler.h>
+#include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/rman.h>
-#include <sys/systm.h>
 #include <sys/watchdog.h>
-
-#include <dev/superio/superio.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
 
+#include <dev/superio/superio.h>
 
 struct itwd_softc {
-	eventhandler_tag	wd_ev;
-	void			*intr_handle;
-	struct resource		*intr_res;
-	int			intr_rid;
+	eventhandler_tag wd_ev;
+	void *intr_handle;
+	struct resource *intr_res;
+	int intr_rid;
 };
 
 static void
@@ -53,7 +52,6 @@ wd_func(void *priv, u_int cmd, int *error)
 	device_t dev = priv;
 	uint64_t timeout;
 	uint8_t val;
-
 
 	if (cmd != 0) {
 		cmd &= WD_INTERVAL;
@@ -171,8 +169,8 @@ itwd_attach(device_t dev)
 		    INTR_TYPE_MISC | INTR_MPSAFE, NULL, itwd_intr, dev,
 		    &sc->intr_handle);
 		if (error != 0) {
-			bus_release_resource(dev, SYS_RES_IRQ,
-			    sc->intr_rid, sc->intr_res);
+			bus_release_resource(dev, SYS_RES_IRQ, sc->intr_rid,
+			    sc->intr_res);
 			device_printf(dev, "Unable to setup irq: error %d\n",
 			    error);
 			return (ENXIO);
@@ -212,19 +210,16 @@ itwd_detach(device_t dev)
 
 static device_method_t itwd_methods[] = {
 	/* Methods from the device interface */
-	DEVMETHOD(device_probe,		itwd_probe),
-	DEVMETHOD(device_attach,	itwd_attach),
-	DEVMETHOD(device_detach,	itwd_detach),
+	DEVMETHOD(device_probe, itwd_probe),
+	DEVMETHOD(device_attach, itwd_attach),
+	DEVMETHOD(device_detach, itwd_detach),
 
 	/* Terminate method list */
 	{ 0, 0 }
 };
 
-static driver_t itwd_driver = {
-	"itwd",
-	itwd_methods,
-	sizeof (struct itwd_softc)
-};
+static driver_t itwd_driver = { "itwd", itwd_methods,
+	sizeof(struct itwd_softc) };
 
 DRIVER_MODULE(itwd, superio, itwd_driver, NULL, NULL);
 MODULE_DEPEND(itwd, superio, 1, 1, 1);

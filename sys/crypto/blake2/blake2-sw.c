@@ -1,6 +1,7 @@
 /* This file is in the public domain. */
 
 #include <sys/cdefs.h>
+
 #include <contrib/libb2/blake2.h>
 #include <opencrypto/xform_auth.h>
 
@@ -46,8 +47,7 @@ blake2b_xform_setkey(void *vctx, const uint8_t *key, u_int klen)
 	struct blake2b_xform_ctx *ctx = vctx;
 	int rc;
 
-	rc = blake2b_init_key_ref(&ctx->state, BLAKE2B_OUTBYTES, key,
-	    klen);
+	rc = blake2b_init_key_ref(&ctx->state, BLAKE2B_OUTBYTES, key, klen);
 	if (rc != 0)
 		panic("blake2b_init_key: invalid arguments");
 }
@@ -109,8 +109,7 @@ blake2s_xform_setkey(void *vctx, const uint8_t *key, u_int klen)
 	struct blake2s_xform_ctx *ctx = vctx;
 	int rc;
 
-	rc = blake2s_init_key_ref(&ctx->state, BLAKE2S_OUTBYTES, key,
-	    klen);
+	rc = blake2s_init_key_ref(&ctx->state, BLAKE2S_OUTBYTES, key, klen);
 	if (rc != 0)
 		panic("blake2s_init_key: invalid arguments");
 }

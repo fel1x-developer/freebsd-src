@@ -37,22 +37,23 @@
 #include <sys/module.h>
 #include <sys/socket.h>
 #include <sys/time.h>
-#include <err.h>
+
+#include <net/pfkeyv2.h>
 #include <net/route.h>
 #include <netinet/in.h>
-#include <net/pfkeyv2.h>
-#include <netipsec/keydb.h>
-#include <netipsec/key_debug.h>
 #include <netipsec/ipsec.h>
+#include <netipsec/key_debug.h>
+#include <netipsec/keydb.h>
 
+#include <ctype.h>
+#include <err.h>
+#include <errno.h>
+#include <limits.h>
+#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <limits.h>
 #include <string.h>
-#include <ctype.h>
 #include <unistd.h>
-#include <errno.h>
-#include <netdb.h>
 
 #include "libpfkey.h"
 
@@ -70,10 +71,10 @@ static void printdate(void);
 static int32_t gmt2local(time_t);
 static int modload(const char *name);
 
-#define MODE_SCRIPT	1
-#define MODE_CMDDUMP	2
-#define MODE_CMDFLUSH	3
-#define MODE_PROMISC	4
+#define MODE_SCRIPT 1
+#define MODE_CMDDUMP 2
+#define MODE_CMDFLUSH 3
+#define MODE_PROMISC 4
 
 static int so;
 
@@ -112,7 +113,7 @@ modload(const char *name)
 		if (kldload(name) < 0 || modfind(name) < 0) {
 			warn("%s: module not found", name);
 			return 0;
-	}
+		}
 	return 1;
 }
 
@@ -202,11 +203,11 @@ main(int ac, char **av)
 
 	switch (f_mode) {
 	case MODE_CMDDUMP:
-		sendkeyshort(f_policy ? SADB_X_SPDDUMP: SADB_DUMP,
-		    f_policy ? f_scope: SADB_SATYPE_UNSPEC);
+		sendkeyshort(f_policy ? SADB_X_SPDDUMP : SADB_DUMP,
+		    f_policy ? f_scope : SADB_SATYPE_UNSPEC);
 		break;
 	case MODE_CMDFLUSH:
-		sendkeyshort(f_policy ? SADB_X_SPDFLUSH: SADB_FLUSH,
+		sendkeyshort(f_policy ? SADB_X_SPDFLUSH : SADB_FLUSH,
 		    SADB_SATYPE_UNSPEC);
 		break;
 	case MODE_SCRIPT:
@@ -215,7 +216,7 @@ main(int ac, char **av)
 			/*NOTREACHED*/
 		}
 		if (parse(&fp))
-			exit (1);
+			exit(1);
 		break;
 	case MODE_PROMISC:
 		promisc();
@@ -264,7 +265,7 @@ void
 promisc(void)
 {
 	struct sadb_msg msg;
-	u_char rbuf[1024 * 32];	/* XXX: Enough ? Should I do MSG_PEEK ? */
+	u_char rbuf[1024 * 32]; /* XXX: Enough ? Should I do MSG_PEEK ? */
 	ssize_t l;
 
 	msg.sadb_msg_version = PF_KEY_V2;
@@ -294,7 +295,7 @@ promisc(void)
 
 		base = (struct sadb_msg *)rbuf;
 		if ((l = recv(so, rbuf, PFKEY_UNUNIT64(base->sadb_msg_len),
-				0)) < 0) {
+			 0)) < 0) {
 			err(1, "recv");
 			/*NOTREACHED*/
 		}
@@ -329,19 +330,20 @@ promisc(void)
 int
 sendkeymsg(char *buf, size_t len)
 {
-	u_char rbuf[1024 * 32];	/* XXX: Enough ? Should I do MSG_PEEK ? */
+	u_char rbuf[1024 * 32]; /* XXX: Enough ? Should I do MSG_PEEK ? */
 	ssize_t l;
 	struct sadb_msg *msg;
 
-    {
-	struct timeval tv;
-	tv.tv_sec = 1;
-	tv.tv_usec = 0;
-	if (setsockopt(so, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
-		perror("setsockopt");
-		goto end;
+	{
+		struct timeval tv;
+		tv.tv_sec = 1;
+		tv.tv_usec = 0;
+		if (setsockopt(so, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) <
+		    0) {
+			perror("setsockopt");
+			goto end;
+		}
 	}
-    }
 
 	if (f_forever)
 		shortdump_hdr();
@@ -395,7 +397,7 @@ again:
 	}
 
 end:
-	return(0);
+	return (0);
 }
 
 int
@@ -407,7 +409,8 @@ postproc(struct sadb_msg *msg)
 		const char *errmsg = NULL;
 
 		if (f_mode == MODE_SCRIPT)
-			snprintf(inf, sizeof(inf), "The result of line %d: ", lineno);
+			snprintf(inf, sizeof(inf),
+			    "The result of line %d: ", lineno);
 		else
 			inf[0] = '\0';
 
@@ -431,7 +434,7 @@ postproc(struct sadb_msg *msg)
 			errmsg = strerror(msg->sadb_msg_errno);
 		}
 		printf("%s%s.\n", inf, errmsg);
-		return(-1);
+		return (-1);
 	}
 
 	switch (msg->sadb_msg_type) {
@@ -456,7 +459,7 @@ postproc(struct sadb_msg *msg)
 		else
 			pfkey_sadump(msg);
 		msg = (struct sadb_msg *)((caddr_t)msg +
-				     PFKEY_UNUNIT64(msg->sadb_msg_len));
+		    PFKEY_UNUNIT64(msg->sadb_msg_len));
 		if (f_verbose) {
 			kdebug_sadb((struct sadb_msg *)msg);
 			printf("\n");
@@ -465,9 +468,10 @@ postproc(struct sadb_msg *msg)
 
 	case SADB_X_SPDDUMP:
 		pfkey_spdump(msg);
-		if (msg->sadb_msg_seq == 0) break;
+		if (msg->sadb_msg_seq == 0)
+			break;
 		msg = (struct sadb_msg *)((caddr_t)msg +
-				     PFKEY_UNUNIT64(msg->sadb_msg_len));
+		    PFKEY_UNUNIT64(msg->sadb_msg_len));
 		if (f_verbose) {
 			kdebug_sadb((struct sadb_msg *)msg);
 			printf("\n");
@@ -475,34 +479,79 @@ postproc(struct sadb_msg *msg)
 		break;
 	}
 
-	return(0);
+	return (0);
 }
 
 /*------------------------------------------------------------*/
-static const char *satype[] = {
-	NULL, NULL, "ah", "esp"
-};
-static const char *sastate[] = {
-	"L", "M", "D", "d"
-};
+static const char *satype[] = { NULL, NULL, "ah", "esp" };
+static const char *sastate[] = { "L", "M", "D", "d" };
 static const char *ipproto[] = {
-/*0*/	"ip", "icmp", "igmp", "ggp", "ip4",
-	NULL, "tcp", NULL, "egp", NULL,
-/*10*/	NULL, NULL, NULL, NULL, NULL,
-	NULL, NULL, "udp", NULL, NULL,
-/*20*/	NULL, NULL, "idp", NULL, NULL,
-	NULL, NULL, NULL, NULL, "tp",
-/*30*/	NULL, NULL, NULL, NULL, NULL,
-	NULL, NULL, NULL, NULL, NULL,
-/*40*/	NULL, "ip6", NULL, "rt6", "frag6",
-	NULL, "rsvp", "gre", NULL, NULL,
-/*50*/	"esp", "ah", NULL, NULL, NULL,
-	NULL, NULL, NULL, "icmp6", "none",
-/*60*/	"dst6",
+	/*0*/ "ip",
+	"icmp",
+	"igmp",
+	"ggp",
+	"ip4",
+	NULL,
+	"tcp",
+	NULL,
+	"egp",
+	NULL,
+	/*10*/ NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	"udp",
+	NULL,
+	NULL,
+	/*20*/ NULL,
+	NULL,
+	"idp",
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	"tp",
+	/*30*/ NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	/*40*/ NULL,
+	"ip6",
+	NULL,
+	"rt6",
+	"frag6",
+	NULL,
+	"rsvp",
+	"gre",
+	NULL,
+	NULL,
+	/*50*/ "esp",
+	"ah",
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	"icmp6",
+	"none",
+	/*60*/ "dst6",
 };
 
-#define STR_OR_ID(x, tab) \
-	(((x) < sizeof(tab)/sizeof(tab[0]) && tab[(x)])	? tab[(x)] : numstr(x))
+#define STR_OR_ID(x, tab)                                              \
+	(((x) < sizeof(tab) / sizeof(tab[0]) && tab[(x)]) ? tab[(x)] : \
+							    numstr(x))
 
 const char *
 numstr(int x)
@@ -515,8 +564,8 @@ numstr(int x)
 void
 shortdump_hdr(void)
 {
-	printf("%-4s %-3s %-1s %-8s %-7s %s -> %s\n",
-		"time", "p", "s", "spi", "ltime", "src", "dst");
+	printf("%-4s %-3s %-1s %-8s %-7s %s -> %s\n", "time", "p", "s", "spi",
+	    "ltime", "src", "dst");
 }
 
 void
@@ -565,16 +614,18 @@ shortdump(struct sadb_msg *msg)
 			snprintf(buf, sizeof(buf), "%-3lu", (u_long)t);
 		printf("%s", buf);
 	} else
-		printf(" ??\?/???");	/* backslash to avoid trigraph ??/ */
+		printf(" ??\?/???"); /* backslash to avoid trigraph ??/ */
 
 	printf(" ");
 
-	if ((saddr = (struct sadb_address *)mhp[SADB_EXT_ADDRESS_SRC]) != NULL) {
+	if ((saddr = (struct sadb_address *)mhp[SADB_EXT_ADDRESS_SRC]) !=
+	    NULL) {
 		if (saddr->sadb_address_proto)
-			printf("%s ", STR_OR_ID(saddr->sadb_address_proto, ipproto));
+			printf("%s ",
+			    STR_OR_ID(saddr->sadb_address_proto, ipproto));
 		s = (struct sockaddr *)(saddr + 1);
-		getnameinfo(s, s->sa_len, buf, sizeof(buf),
-			pbuf, sizeof(pbuf), NI_NUMERICHOST|NI_NUMERICSERV);
+		getnameinfo(s, s->sa_len, buf, sizeof(buf), pbuf, sizeof(pbuf),
+		    NI_NUMERICHOST | NI_NUMERICSERV);
 		if (strcmp(pbuf, "0") != 0)
 			printf("%s[%s]", buf, pbuf);
 		else
@@ -584,13 +635,15 @@ shortdump(struct sadb_msg *msg)
 
 	printf(" -> ");
 
-	if ((saddr = (struct sadb_address *)mhp[SADB_EXT_ADDRESS_DST]) != NULL) {
+	if ((saddr = (struct sadb_address *)mhp[SADB_EXT_ADDRESS_DST]) !=
+	    NULL) {
 		if (saddr->sadb_address_proto)
-			printf("%s ", STR_OR_ID(saddr->sadb_address_proto, ipproto));
+			printf("%s ",
+			    STR_OR_ID(saddr->sadb_address_proto, ipproto));
 
 		s = (struct sockaddr *)(saddr + 1);
-		getnameinfo(s, s->sa_len, buf, sizeof(buf),
-			pbuf, sizeof(pbuf), NI_NUMERICHOST|NI_NUMERICSERV);
+		getnameinfo(s, s->sa_len, buf, sizeof(buf), pbuf, sizeof(pbuf),
+		    NI_NUMERICHOST | NI_NUMERICSERV);
 		if (strcmp(pbuf, "0") != 0)
 			printf("%s[%s]", buf, pbuf);
 		else
@@ -618,13 +671,13 @@ printdate(void)
 
 	if (f_tflag == 1) {
 		/* Default */
-		s = (tp.tv_sec + thiszone ) % 86400;
-		(void)printf("%02d:%02d:%02d.%06u ",
-		    s / 3600, (s % 3600) / 60, s % 60, (u_int32_t)tp.tv_usec);
+		s = (tp.tv_sec + thiszone) % 86400;
+		(void)printf("%02d:%02d:%02d.%06u ", s / 3600, (s % 3600) / 60,
+		    s % 60, (u_int32_t)tp.tv_usec);
 	} else if (f_tflag > 1) {
 		/* Unix timeval style */
-		(void)printf("%u.%06u ",
-		    (u_int32_t)tp.tv_sec, (u_int32_t)tp.tv_usec);
+		(void)printf("%u.%06u ", (u_int32_t)tp.tv_sec,
+		    (u_int32_t)tp.tv_usec);
 	}
 
 	printf("\n");

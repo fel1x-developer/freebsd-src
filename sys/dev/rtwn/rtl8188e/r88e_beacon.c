@@ -14,34 +14,32 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <dev/rtwn/if_rtwnvar.h>
-
 #include <dev/rtwn/rtl8188e/r88e.h>
 #include <dev/rtwn/rtl8188e/r88e_reg.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 void
 r88e_beacon_enable(struct rtwn_softc *sc, int id, int enable)
@@ -49,11 +47,9 @@ r88e_beacon_enable(struct rtwn_softc *sc, int id, int enable)
 
 	if (enable) {
 		rtwn_setbits_1(sc, R92C_MBID_NUM, 0, R88E_MBID_TXBCN_RPT(id));
-		rtwn_setbits_1(sc, R92C_BCN_CTRL(id),
-		    0, R92C_BCN_CTRL_EN_BCN);
+		rtwn_setbits_1(sc, R92C_BCN_CTRL(id), 0, R92C_BCN_CTRL_EN_BCN);
 	} else {
 		rtwn_setbits_1(sc, R92C_MBID_NUM, R88E_MBID_TXBCN_RPT(id), 0);
-		rtwn_setbits_1(sc, R92C_BCN_CTRL(id),
-		    R92C_BCN_CTRL_EN_BCN, 0);
+		rtwn_setbits_1(sc, R92C_BCN_CTRL(id), R92C_BCN_CTRL_EN_BCN, 0);
 	}
 }

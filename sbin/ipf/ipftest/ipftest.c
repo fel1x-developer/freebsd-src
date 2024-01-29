@@ -4,39 +4,39 @@
  *
  * See the IPFILTER.LICENCE file for details on licencing.
  */
+#include <sys/file.h>
+#include <sys/ioctl.h>
+
 #include "ipf.h"
 #include "ipt.h"
-#include <sys/ioctl.h>
-#include <sys/file.h>
 
+extern char *optarg;
+extern struct ipread pcap, iptext, iphex;
+extern struct ifnet *get_unit(char *, int);
+extern void init_ifp(void);
+extern ipnat_t *natparse(char *, int);
+extern hostmap_t **ipf_hm_maptable;
+extern hostmap_t *ipf_hm_maplist;
 
-extern	char	*optarg;
-extern	struct ipread	pcap, iptext, iphex;
-extern	struct ifnet	*get_unit(char *, int);
-extern	void	init_ifp(void);
-extern	ipnat_t	*natparse(char *, int);
-extern	hostmap_t **ipf_hm_maptable;
-extern	hostmap_t *ipf_hm_maplist;
-
-ipfmutex_t	ipl_mutex, ipf_auth_mx, ipf_rw, ipf_stinsert;
-ipfmutex_t	ipf_nat_new, ipf_natio, ipf_timeoutlock;
-ipfrwlock_t	ipf_mutex, ipf_global, ipf_ipidfrag, ip_poolrw, ipf_frcache;
-ipfrwlock_t	ipf_frag, ipf_state, ipf_nat, ipf_natfrag, ipf_authlk;
-ipfrwlock_t	ipf_tokens;
-int	opts = OPT_DONTOPEN;
-int	use_inet6 = 0;
-int	docksum = 0;
-int	pfil_delayed_copy = 0;
-int	main(int, char *[]);
-int	loadrules(char *, int);
-int	kmemcpy(char *, long, int);
-int     kstrncpy(char *, long, int n);
-int	blockreason;
-void	dumpnat(void *);
-void	dumpgroups(ipf_main_softc_t *);
-void	dumprules(frentry_t *);
-void	drain_log(char *);
-void	fixv4sums(mb_t *, ip_t *);
+ipfmutex_t ipl_mutex, ipf_auth_mx, ipf_rw, ipf_stinsert;
+ipfmutex_t ipf_nat_new, ipf_natio, ipf_timeoutlock;
+ipfrwlock_t ipf_mutex, ipf_global, ipf_ipidfrag, ip_poolrw, ipf_frcache;
+ipfrwlock_t ipf_frag, ipf_state, ipf_nat, ipf_natfrag, ipf_authlk;
+ipfrwlock_t ipf_tokens;
+int opts = OPT_DONTOPEN;
+int use_inet6 = 0;
+int docksum = 0;
+int pfil_delayed_copy = 0;
+int main(int, char *[]);
+int loadrules(char *, int);
+int kmemcpy(char *, long, int);
+int kstrncpy(char *, long, int n);
+int blockreason;
+void dumpnat(void *);
+void dumpgroups(ipf_main_softc_t *);
+void dumprules(frentry_t *);
+void drain_log(char *);
+void fixv4sums(mb_t *, ip_t *);
 
 int ipftestioctl(int, ioctlcmd_t, ...);
 int ipnattestioctl(int, ioctlcmd_t, ...);
@@ -46,27 +46,21 @@ int ipscantestioctl(int, ioctlcmd_t, ...);
 int ipsynctestioctl(int, ioctlcmd_t, ...);
 int ipooltestioctl(int, ioctlcmd_t, ...);
 
-static	ioctlfunc_t	iocfunctions[IPL_LOGSIZE] = { ipftestioctl,
-						      ipnattestioctl,
-						      ipstatetestioctl,
-						      ipauthtestioctl,
-						      ipsynctestioctl,
-						      ipscantestioctl,
-						      ipooltestioctl,
-						      NULL };
-static	ipf_main_softc_t	*softc = NULL;
-
+static ioctlfunc_t iocfunctions[IPL_LOGSIZE] = { ipftestioctl, ipnattestioctl,
+	ipstatetestioctl, ipauthtestioctl, ipsynctestioctl, ipscantestioctl,
+	ipooltestioctl, NULL };
+static ipf_main_softc_t *softc = NULL;
 
 int
 main(int argc, char *argv[])
 {
-	char	*datain, *iface, *ifname, *logout;
-	int	fd, i, dir, c, loaded, dump, hlen;
-	struct	in_addr	sip;
-	struct	ifnet	*ifp;
-	struct	ipread	*r;
-	mb_t	mb, *m, *n;
-	ip_t	*ip;
+	char *datain, *iface, *ifname, *logout;
+	int fd, i, dir, c, loaded, dump, hlen;
+	struct in_addr sip;
+	struct ifnet *ifp;
+	struct ipread *r;
+	mb_t mb, *m, *n;
+	ip_t *ip;
 
 	m = &mb;
 	dir = 0;
@@ -96,29 +90,28 @@ main(int argc, char *argv[])
 		exit(1);
 
 	while ((c = getopt(argc, argv, "6bCdDF:i:I:l:N:P:or:RS:T:vxX")) != -1)
-		switch (c)
-		{
-		case '6' :
-#ifdef	USE_INET6
+		switch (c) {
+		case '6':
+#ifdef USE_INET6
 			use_inet6 = 1;
 #else
 			fprintf(stderr, "IPv6 not supported\n");
 			exit(1);
 #endif
 			break;
-		case 'b' :
+		case 'b':
 			opts |= OPT_BRIEF;
 			break;
-		case 'd' :
+		case 'd':
 			opts |= OPT_DEBUG;
 			break;
-		case 'C' :
+		case 'C':
 			docksum = 1;
 			break;
-		case 'D' :
+		case 'D':
 			dump = 1;
 			break;
-		case 'F' :
+		case 'F':
 			if (strcasecmp(optarg, "pcap") == 0)
 				r = &pcap;
 			else if (strcasecmp(optarg, "hex") == 0)
@@ -126,55 +119,55 @@ main(int argc, char *argv[])
 			else if (strcasecmp(optarg, "text") == 0)
 				r = &iptext;
 			break;
-		case 'i' :
+		case 'i':
 			datain = optarg;
 			break;
-		case 'I' :
+		case 'I':
 			ifname = optarg;
 			break;
-		case 'l' :
+		case 'l':
 			logout = optarg;
 			break;
-		case 'N' :
+		case 'N':
 			if (ipnat_parsefile(-1, ipnat_addrule, ipnattestioctl,
-					    optarg) == -1)
+				optarg) == -1)
 				return (-1);
 			loaded = 1;
 			opts |= OPT_NAT;
 			break;
-		case 'o' :
+		case 'o':
 			opts |= OPT_SAVEOUT;
 			break;
-		case 'P' :
+		case 'P':
 			if (ippool_parsefile(-1, optarg, ipooltestioctl) == -1)
 				return (-1);
 			loaded = 1;
 			break;
-		case 'r' :
+		case 'r':
 			if (ipf_parsefile(-1, ipf_addrule, iocfunctions,
-					  optarg) == -1)
+				optarg) == -1)
 				return (-1);
 			loaded = 1;
 			break;
-		case 'S' :
+		case 'S':
 			sip.s_addr = inet_addr(optarg);
 			break;
-		case 'R' :
+		case 'R':
 			opts |= OPT_NORESOLVE;
 			break;
-		case 'T' :
+		case 'T':
 			ipf_dotuning(-1, optarg, ipftestioctl);
 			break;
-		case 'v' :
+		case 'v':
 			opts |= OPT_VERBOSE;
 			break;
-		case 'x' :
+		case 'x':
 			opts |= OPT_HEX;
 			break;
 		}
 
 	if (loaded == 0) {
-		(void)fprintf(stderr,"no rules loaded\n");
+		(void)fprintf(stderr, "no rules loaded\n");
 		exit(-1);
 	}
 
@@ -207,7 +200,7 @@ main(int argc, char *argv[])
 			if (sip.s_addr)
 				dir = !(sip.s_addr == ip->ip_src.s_addr);
 		}
-#ifdef	USE_INET6
+#ifdef USE_INET6
 		else
 			hlen = sizeof(ip6_t);
 #endif
@@ -218,39 +211,38 @@ main(int argc, char *argv[])
 		m->mb_len = i;
 		i = ipf_check(softc, ip, hlen, ifp, dir, &m);
 		if ((opts & OPT_NAT) == 0)
-			switch (i)
-			{
-			case -4 :
+			switch (i) {
+			case -4:
 				(void)printf("preauth");
 				break;
-			case -3 :
+			case -3:
 				(void)printf("account");
 				break;
-			case -2 :
+			case -2:
 				(void)printf("auth");
 				break;
-			case -1 :
+			case -1:
 				(void)printf("block");
 				break;
-			case 0 :
+			case 0:
 				(void)printf("pass");
 				break;
-			case 1 :
+			case 1:
 				if (m == NULL)
 					(void)printf("bad-packet");
 				else
 					(void)printf("nomatch");
 				break;
-			case 3 :
+			case 3:
 				(void)printf("block return-rst");
 				break;
-			case 4 :
+			case 4:
 				(void)printf("block return-icmp");
 				break;
-			case 5 :
+			case 5:
 				(void)printf("block return-icmp-as-dest");
 				break;
-			default :
+			default:
 				(void)printf("recognised( return %#x\n", i));
 				break;
 			}
@@ -262,8 +254,8 @@ main(int argc, char *argv[])
 			else
 				printpacket(dir, &mb);
 			printf("--------------");
-		} else if ((opts & (OPT_BRIEF|OPT_NAT)) ==
-			   (OPT_NAT|OPT_BRIEF)) {
+		} else if ((opts & (OPT_BRIEF | OPT_NAT)) ==
+		    (OPT_NAT | OPT_BRIEF)) {
 			if (m != NULL)
 				printpacket(dir, m);
 			else
@@ -281,7 +273,7 @@ main(int argc, char *argv[])
 			m = n;
 		}
 
-		if ((opts & (OPT_BRIEF|OPT_NAT)) != (OPT_NAT|OPT_BRIEF))
+		if ((opts & (OPT_BRIEF | OPT_NAT)) != (OPT_NAT | OPT_BRIEF))
 			putchar('\n');
 		dir = 0;
 		if (iface != ifname) {
@@ -300,7 +292,7 @@ main(int argc, char *argv[])
 		drain_log(logout);
 	}
 
-	if (dump == 1)  {
+	if (dump == 1) {
 		dumpnat(softc->ipf_nat_soft);
 		ipf_state_dump(softc, softc->ipf_state_soft);
 		ipf_lookup_dump(softc, softc->ipf_state_soft);
@@ -323,29 +315,28 @@ main(int argc, char *argv[])
 	return (0);
 }
 
-
-int ipftestioctl(int dev, ioctlcmd_t cmd, ...)
+int
+ipftestioctl(int dev, ioctlcmd_t cmd, ...)
 {
 	caddr_t data;
 	va_list ap;
 	int i;
 
-	dev = dev;	/* gcc -Wextra */
+	dev = dev; /* gcc -Wextra */
 	va_start(ap, cmd);
 	data = va_arg(ap, caddr_t);
 	va_end(ap);
 
-	i = ipfioctl(softc, IPL_LOGIPF, cmd, data, FWRITE|FREAD);
+	i = ipfioctl(softc, IPL_LOGIPF, cmd, data, FWRITE | FREAD);
 	if (opts & OPT_DEBUG)
-		fprintf(stderr, "ipfioctl(IPF,%#x,%p) = %d (%d)\n",
-			(u_int)cmd, data, i, softc->ipf_interror);
+		fprintf(stderr, "ipfioctl(IPF,%#x,%p) = %d (%d)\n", (u_int)cmd,
+		    data, i, softc->ipf_interror);
 	if (i != 0) {
 		errno = i;
 		return (-1);
 	}
 	return (0);
 }
-
 
 int
 ipnattestioctl(int dev, ioctlcmd_t cmd, ...)
@@ -354,22 +345,21 @@ ipnattestioctl(int dev, ioctlcmd_t cmd, ...)
 	va_list ap;
 	int i;
 
-	dev = dev;	/* gcc -Wextra */
+	dev = dev; /* gcc -Wextra */
 	va_start(ap, cmd);
 	data = va_arg(ap, caddr_t);
 	va_end(ap);
 
-	i = ipfioctl(softc, IPL_LOGNAT, cmd, data, FWRITE|FREAD);
+	i = ipfioctl(softc, IPL_LOGNAT, cmd, data, FWRITE | FREAD);
 	if (opts & OPT_DEBUG)
-		fprintf(stderr, "ipfioctl(NAT,%#x,%p) = %d\n",
-			(u_int)cmd, data, i);
+		fprintf(stderr, "ipfioctl(NAT,%#x,%p) = %d\n", (u_int)cmd, data,
+		    i);
 	if (i != 0) {
 		errno = i;
 		return (-1);
 	}
 	return (0);
 }
-
 
 int
 ipstatetestioctl(int dev, ioctlcmd_t cmd, ...)
@@ -378,22 +368,21 @@ ipstatetestioctl(int dev, ioctlcmd_t cmd, ...)
 	va_list ap;
 	int i;
 
-	dev = dev;	/* gcc -Wextra */
+	dev = dev; /* gcc -Wextra */
 	va_start(ap, cmd);
 	data = va_arg(ap, caddr_t);
 	va_end(ap);
 
-	i = ipfioctl(softc, IPL_LOGSTATE, cmd, data, FWRITE|FREAD);
+	i = ipfioctl(softc, IPL_LOGSTATE, cmd, data, FWRITE | FREAD);
 	if ((opts & OPT_DEBUG) || (i != 0))
-		fprintf(stderr, "ipfioctl(STATE,%#x,%p) = %d\n",
-			(u_int)cmd, data, i);
+		fprintf(stderr, "ipfioctl(STATE,%#x,%p) = %d\n", (u_int)cmd,
+		    data, i);
 	if (i != 0) {
 		errno = i;
 		return (-1);
 	}
 	return (0);
 }
-
 
 int
 ipauthtestioctl(int dev, ioctlcmd_t cmd, ...)
@@ -402,22 +391,21 @@ ipauthtestioctl(int dev, ioctlcmd_t cmd, ...)
 	va_list ap;
 	int i;
 
-	dev = dev;	/* gcc -Wextra */
+	dev = dev; /* gcc -Wextra */
 	va_start(ap, cmd);
 	data = va_arg(ap, caddr_t);
 	va_end(ap);
 
-	i = ipfioctl(softc, IPL_LOGAUTH, cmd, data, FWRITE|FREAD);
+	i = ipfioctl(softc, IPL_LOGAUTH, cmd, data, FWRITE | FREAD);
 	if ((opts & OPT_DEBUG) || (i != 0))
-		fprintf(stderr, "ipfioctl(AUTH,%#x,%p) = %d\n",
-			(u_int)cmd, data, i);
+		fprintf(stderr, "ipfioctl(AUTH,%#x,%p) = %d\n", (u_int)cmd,
+		    data, i);
 	if (i != 0) {
 		errno = i;
 		return (-1);
 	}
 	return (0);
 }
-
 
 int
 ipscantestioctl(int dev, ioctlcmd_t cmd, ...)
@@ -426,22 +414,21 @@ ipscantestioctl(int dev, ioctlcmd_t cmd, ...)
 	va_list ap;
 	int i;
 
-	dev = dev;	/* gcc -Wextra */
+	dev = dev; /* gcc -Wextra */
 	va_start(ap, cmd);
 	data = va_arg(ap, caddr_t);
 	va_end(ap);
 
-	i = ipfioctl(softc, IPL_LOGSCAN, cmd, data, FWRITE|FREAD);
+	i = ipfioctl(softc, IPL_LOGSCAN, cmd, data, FWRITE | FREAD);
 	if ((opts & OPT_DEBUG) || (i != 0))
-		fprintf(stderr, "ipfioctl(SCAN,%#x,%p) = %d\n",
-			(u_int)cmd, data, i);
+		fprintf(stderr, "ipfioctl(SCAN,%#x,%p) = %d\n", (u_int)cmd,
+		    data, i);
 	if (i != 0) {
 		errno = i;
 		return (-1);
 	}
 	return (0);
 }
-
 
 int
 ipsynctestioctl(int dev, ioctlcmd_t cmd, ...)
@@ -450,22 +437,21 @@ ipsynctestioctl(int dev, ioctlcmd_t cmd, ...)
 	va_list ap;
 	int i;
 
-	dev = dev;	/* gcc -Wextra */
+	dev = dev; /* gcc -Wextra */
 	va_start(ap, cmd);
 	data = va_arg(ap, caddr_t);
 	va_end(ap);
 
-	i = ipfioctl(softc, IPL_LOGSYNC, cmd, data, FWRITE|FREAD);
+	i = ipfioctl(softc, IPL_LOGSYNC, cmd, data, FWRITE | FREAD);
 	if ((opts & OPT_DEBUG) || (i != 0))
-		fprintf(stderr, "ipfioctl(SYNC,%#x,%p) = %d\n",
-			(u_int)cmd, data, i);
+		fprintf(stderr, "ipfioctl(SYNC,%#x,%p) = %d\n", (u_int)cmd,
+		    data, i);
 	if (i != 0) {
 		errno = i;
 		return (-1);
 	}
 	return (0);
 }
-
 
 int
 ipooltestioctl(int dev, ioctlcmd_t cmd, ...)
@@ -474,15 +460,15 @@ ipooltestioctl(int dev, ioctlcmd_t cmd, ...)
 	va_list ap;
 	int i;
 
-	dev = dev;	/* gcc -Wextra */
+	dev = dev; /* gcc -Wextra */
 	va_start(ap, cmd);
 	data = va_arg(ap, caddr_t);
 	va_end(ap);
 
-	i = ipfioctl(softc, IPL_LOGLOOKUP, cmd, data, FWRITE|FREAD);
+	i = ipfioctl(softc, IPL_LOGLOOKUP, cmd, data, FWRITE | FREAD);
 	if ((opts & OPT_DEBUG) || (i != 0))
-		fprintf(stderr, "ipfioctl(POOL,%#x,%p) = %d (%d)\n",
-			(u_int)cmd, data, i, softc->ipf_interror);
+		fprintf(stderr, "ipfioctl(POOL,%#x,%p) = %d (%d)\n", (u_int)cmd,
+		    data, i, softc->ipf_interror);
 	if (i != 0) {
 		errno = i;
 		return (-1);
@@ -490,14 +476,12 @@ ipooltestioctl(int dev, ioctlcmd_t cmd, ...)
 	return (0);
 }
 
-
 int
 kmemcpy(char *addr, long offset, int size)
 {
 	bcopy((char *)offset, addr, size);
 	return (0);
 }
-
 
 int
 kstrncpy(char *buf, long pos, int n)
@@ -511,7 +495,6 @@ kstrncpy(char *buf, long pos, int n)
 	return (0);
 }
 
-
 /*
  * Display the built up NAT table rules and mapping entries.
  */
@@ -520,12 +503,12 @@ dumpnat(void *arg)
 {
 	ipf_nat_softc_t *softn = arg;
 	hostmap_t *hm;
-	ipnat_t	*ipn;
+	ipnat_t *ipn;
 	nat_t *nat;
 
 	printf("List of active MAP/Redirect filters:\n");
 	for (ipn = softn->ipf_nat_list; ipn != NULL; ipn = ipn->in_next)
-		printnat(ipn, opts & (OPT_DEBUG|OPT_VERBOSE));
+		printnat(ipn, opts & (OPT_DEBUG | OPT_VERBOSE));
 	printf("\nList of active sessions:\n");
 	for (nat = softn->ipf_nat_instances; nat; nat = nat->nat_next) {
 		printactivenat(nat, opts, 0);
@@ -538,7 +521,6 @@ dumpnat(void *arg)
 		printhostmap(hm, hm->hm_hv);
 }
 
-
 void
 dumpgroups(ipf_main_softc_t *softc)
 {
@@ -547,19 +529,19 @@ dumpgroups(ipf_main_softc_t *softc)
 
 	printf("List of groups configured (set 0)\n");
 	for (i = 0; i < IPL_LOGSIZE; i++)
-		for (fg =  softc->ipf_groups[i][0]; fg != NULL;
+		for (fg = softc->ipf_groups[i][0]; fg != NULL;
 		     fg = fg->fg_next) {
-			printf("Dev.%d. Group %s Ref %d Flags %#x\n",
-				i, fg->fg_name, fg->fg_ref, fg->fg_flags);
+			printf("Dev.%d. Group %s Ref %d Flags %#x\n", i,
+			    fg->fg_name, fg->fg_ref, fg->fg_flags);
 			dumprules(fg->fg_start);
 		}
 
 	printf("List of groups configured (set 1)\n");
 	for (i = 0; i < IPL_LOGSIZE; i++)
-		for (fg =  softc->ipf_groups[i][1]; fg != NULL;
+		for (fg = softc->ipf_groups[i][1]; fg != NULL;
 		     fg = fg->fg_next) {
-			printf("Dev.%d. Group %s Ref %d Flags %#x\n",
-				i, fg->fg_name, fg->fg_ref, fg->fg_flags);
+			printf("Dev.%d. Group %s Ref %d Flags %#x\n", i,
+			    fg->fg_name, fg->fg_ref, fg->fg_flags);
 			dumprules(fg->fg_start);
 		}
 
@@ -588,15 +570,14 @@ dumprules(frentry_t *rulehead)
 	frentry_t *fr;
 
 	for (fr = rulehead; fr != NULL; fr = fr->fr_next) {
-#ifdef	USE_QUAD_T
-		printf("%"PRIu64" ",(unsigned long long)fr->fr_hits);
+#ifdef USE_QUAD_T
+		printf("%" PRIu64 " ", (unsigned long long)fr->fr_hits);
 #else
 		printf("%ld ", fr->fr_hits);
 #endif
 		printfr(fr, ipftestioctl);
 	}
 }
-
 
 void
 drain_log(char *filename)
@@ -607,7 +588,7 @@ drain_log(char *filename)
 	size_t resid;
 	int fd, i;
 
-	fd = open(filename, O_CREAT|O_TRUNC|O_WRONLY, 0644);
+	fd = open(filename, O_CREAT | O_TRUNC | O_WRONLY, 0644);
 	if (fd == -1) {
 		perror("drain_log:open");
 		return;
@@ -634,11 +615,10 @@ drain_log(char *filename)
 				write(fd, buffer, resid - uio.uio_resid);
 			} else
 				break;
-	}
+		}
 
 	close(fd);
 }
-
 
 void
 fixv4sums(mb_t *m, ip_t *ip)
@@ -671,21 +651,20 @@ fixv4sums(mb_t *m, ip_t *ip)
 	tmp.fin_plen = len;
 	tmp.fin_dlen = len - tmp.fin_hlen;
 
-	switch (p)
-	{
-	case IPPROTO_TCP :
+	switch (p) {
+	case IPPROTO_TCP:
 		hdr = csump;
 		csump += offsetof(tcphdr_t, th_sum);
 		break;
-	case IPPROTO_UDP :
+	case IPPROTO_UDP:
 		hdr = csump;
 		csump += offsetof(udphdr_t, uh_sum);
 		break;
-	case IPPROTO_ICMP :
+	case IPPROTO_ICMP:
 		hdr = csump;
 		csump += offsetof(icmphdr_t, icmp_cksum);
 		break;
-	default :
+	default:
 		csump = NULL;
 		hdr = NULL;
 		break;

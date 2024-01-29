@@ -47,12 +47,12 @@
 #include <string.h>
 #include <unistd.h>
 
-static void	a_gid(const char *);
-static void	a_uid(const char *);
-static void	chownerr(const char *);
-static uid_t	id(const char *, const char *);
-static void	usage(void);
-static void	print_info(const FTSENT *, int);
+static void a_gid(const char *);
+static void a_uid(const char *);
+static void chownerr(const char *);
+static uid_t id(const char *, const char *);
+static void usage(void);
+static void print_info(const FTSENT *, int);
 
 static uid_t uid;
 static gid_t gid;
@@ -121,8 +121,10 @@ main(int argc, char **argv)
 
 	if (Rflag) {
 		if (hflag && (Hflag || Lflag))
-			errx(1, "the -R%c and -h options may not be "
-			    "specified together", Hflag ? 'H' : 'L');
+			errx(1,
+			    "the -R%c and -h options may not be "
+			    "specified together",
+			    Hflag ? 'H' : 'L');
 		if (Lflag) {
 			fts_options = FTS_LOGICAL;
 		} else {
@@ -150,7 +152,8 @@ main(int argc, char **argv)
 		}
 #ifdef SUPPORT_DOT
 		else if ((cp = strchr(*argv, '.')) != NULL) {
-			warnx("separation of user and group with a period is deprecated");
+			warnx(
+			    "separation of user and group with a period is deprecated");
 			*cp++ = '\0';
 			a_gid(cp);
 		}
@@ -167,21 +170,21 @@ main(int argc, char **argv)
 
 		if ((fts_options & FTS_LOGICAL) ||
 		    ((fts_options & FTS_COMFOLLOW) &&
-		    p->fts_level == FTS_ROOTLEVEL))
+			p->fts_level == FTS_ROOTLEVEL))
 			atflag = 0;
 		else
 			atflag = AT_SYMLINK_NOFOLLOW;
 
 		switch (p->fts_info) {
-		case FTS_D:			/* Change it at FTS_DP. */
+		case FTS_D: /* Change it at FTS_DP. */
 			if (!Rflag)
 				fts_set(ftsp, p, FTS_SKIP);
 			continue;
-		case FTS_DNR:			/* Warn, chown. */
+		case FTS_DNR: /* Warn, chown. */
 			warnx("%s: %s", p->fts_path, strerror(p->fts_errno));
 			rval = 1;
 			break;
-		case FTS_ERR:			/* Warn, continue. */
+		case FTS_ERR: /* Warn, continue. */
 		case FTS_NS:
 			warnx("%s: %s", p->fts_path, strerror(p->fts_errno));
 			rval = 1;
@@ -196,8 +199,9 @@ main(int argc, char **argv)
 		if ((uid == (uid_t)-1 || uid == p->fts_statp->st_uid) &&
 		    (gid == (gid_t)-1 || gid == p->fts_statp->st_gid))
 			continue;
-		if (fchownat(AT_FDCWD, p->fts_accpath, uid, gid, atflag)
-		    == -1 && !fflag) {
+		if (fchownat(AT_FDCWD, p->fts_accpath, uid, gid, atflag) ==
+			-1 &&
+		    !fflag) {
 			chownerr(p->fts_path);
 			rval = 1;
 		} else if (vflag)
@@ -213,7 +217,7 @@ a_gid(const char *s)
 {
 	struct group *gr;
 
-	if (*s == '\0')			/* Argument was "uid[:.]". */
+	if (*s == '\0') /* Argument was "uid[:.]". */
 		return;
 	gname = s;
 	gid = ((gr = getgrnam(s)) != NULL) ? gr->gr_gid : id(s, "group");
@@ -224,7 +228,7 @@ a_uid(const char *s)
 {
 	struct passwd *pw;
 
-	if (*s == '\0')			/* Argument was "[:.]gid". */
+	if (*s == '\0') /* Argument was "[:.]gid". */
 		return;
 	uid = ((pw = getpwnam(s)) != NULL) ? pw->pw_uid : id(s, "user");
 }
@@ -252,20 +256,22 @@ chownerr(const char *file)
 	gid_t *groups;
 
 	/* Check for chown without being root. */
-	if (errno != EPERM || (uid != (uid_t)-1 &&
-	    euid == (uid_t)-1 && (euid = geteuid()) != 0)) {
+	if (errno != EPERM ||
+	    (uid != (uid_t)-1 && euid == (uid_t)-1 &&
+		(euid = geteuid()) != 0)) {
 		warn("%s", file);
 		return;
 	}
 
 	/* Check group membership; kernel just returns EPERM. */
-	if (gid != (gid_t)-1 && ngroups == -1 &&
-	    euid == (uid_t)-1 && (euid = geteuid()) != 0) {
+	if (gid != (gid_t)-1 && ngroups == -1 && euid == (uid_t)-1 &&
+	    (euid = geteuid()) != 0) {
 		ngroups_max = sysconf(_SC_NGROUPS_MAX) + 1;
 		if ((groups = malloc(sizeof(gid_t) * ngroups_max)) == NULL)
 			err(1, "malloc");
 		ngroups = getgroups(ngroups_max, groups);
-		while (--ngroups >= 0 && gid != groups[ngroups]);
+		while (--ngroups >= 0 && gid != groups[ngroups])
+			;
 		free(groups);
 		if (ngroups < 0) {
 			warnx("you are not a member of group %s", gname);
@@ -298,16 +304,19 @@ print_info(const FTSENT *p, int vflag)
 	if (vflag > 1) {
 		if (ischown) {
 			printf(": %ju:%ju -> %ju:%ju",
-			    (uintmax_t)p->fts_statp->st_uid, 
+			    (uintmax_t)p->fts_statp->st_uid,
 			    (uintmax_t)p->fts_statp->st_gid,
-			    (uid == (uid_t)-1) ? 
-			    (uintmax_t)p->fts_statp->st_uid : (uintmax_t)uid,
-			    (gid == (gid_t)-1) ? 
-			    (uintmax_t)p->fts_statp->st_gid : (uintmax_t)gid);
+			    (uid == (uid_t)-1) ?
+				(uintmax_t)p->fts_statp->st_uid :
+				(uintmax_t)uid,
+			    (gid == (gid_t)-1) ?
+				(uintmax_t)p->fts_statp->st_gid :
+				(uintmax_t)gid);
 		} else {
 			printf(": %ju -> %ju", (uintmax_t)p->fts_statp->st_gid,
-			    (gid == (gid_t)-1) ? 
-			    (uintmax_t)p->fts_statp->st_gid : (uintmax_t)gid);
+			    (gid == (gid_t)-1) ?
+				(uintmax_t)p->fts_statp->st_gid :
+				(uintmax_t)gid);
 		}
 	}
 	printf("\n");

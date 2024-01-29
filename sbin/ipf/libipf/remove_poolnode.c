@@ -7,16 +7,16 @@
  * $Id$
  */
 
-#include <fcntl.h>
 #include <sys/ioctl.h>
+
+#include <fcntl.h>
+
 #include "ipf.h"
 #include "netinet/ip_lookup.h"
 #include "netinet/ip_pool.h"
 
-
 int
-remove_poolnode(int unit, char *name, ip_pool_node_t *node,
-	ioctlfunc_t iocfunc)
+remove_poolnode(int unit, char *name, ip_pool_node_t *node, ioctlfunc_t iocfunc)
 {
 	ip_pool_node_t pn;
 	iplookupop_t op;
@@ -33,16 +33,16 @@ remove_poolnode(int unit, char *name, ip_pool_node_t *node,
 
 	bzero((char *)&pn, sizeof(pn));
 	bcopy((char *)&node->ipn_addr, (char *)&pn.ipn_addr,
-	      sizeof(pn.ipn_addr));
+	    sizeof(pn.ipn_addr));
 	bcopy((char *)&node->ipn_mask, (char *)&pn.ipn_mask,
-	      sizeof(pn.ipn_mask));
+	    sizeof(pn.ipn_mask));
 	pn.ipn_info = node->ipn_info;
 	strncpy(pn.ipn_name, node->ipn_name, sizeof(pn.ipn_name));
 
 	if (pool_ioctl(iocfunc, SIOCLOOKUPDELNODE, &op)) {
 		if ((opts & OPT_DONOTHING) == 0) {
 			return (ipf_perror_fd(pool_fd(), iocfunc,
-					     "remove lookup pool node"));
+			    "remove lookup pool node"));
 		}
 	}
 

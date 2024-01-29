@@ -27,18 +27,18 @@
  */
 
 struct iplist_cur {
-  struct in_addr ip;
-  int pos;
-  char *srcptr;
-  u_long srcitem;
-  u_int32_t lstart;
-  u_long nItems;
+	struct in_addr ip;
+	int pos;
+	char *srcptr;
+	u_long srcitem;
+	u_int32_t lstart;
+	u_long nItems;
 };
 
 struct iplist {
-  struct iplist_cur cur;
-  u_long nItems;
-  char src[LINE_LEN];
+	struct iplist_cur cur;
+	u_long nItems;
+	char src[LINE_LEN];
 };
 
 extern int iplist_setsrc(struct iplist *, const char *);

@@ -31,7 +31,7 @@
 
 #include <paths.h>
 
-#define	_PATH_GATEWAYS	"/etc/gateways"
+#define _PATH_GATEWAYS "/etc/gateways"
 
 /* All remotely requested trace files must either start with this prefix
  * or be the same as the tracefile specified when the daemon was started.
@@ -43,4 +43,4 @@
  * Leave this undefined, and only the trace file originally specified
  * when routed was started, if any, will be appended to.
  */
-#define _PATH_TRACE	"/etc/routed.trace"
+#define _PATH_TRACE "/etc/routed.trace"

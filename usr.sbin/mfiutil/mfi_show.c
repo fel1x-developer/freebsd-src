@@ -31,6 +31,7 @@
 
 #include <sys/types.h>
 #include <sys/errno.h>
+
 #include <err.h>
 #include <fcntl.h>
 #include <libutil.h>
@@ -38,9 +39,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "mfiutil.h"
 
-static const char* foreign_state = " (FOREIGN)";
+static const char *foreign_state = " (FOREIGN)";
 
 MFI_TABLE(top, show);
 
@@ -161,7 +163,7 @@ show_battery(int ac, char **av __unused)
 	}
 
 	if (mfi_dcmd_command(fd, MFI_DCMD_BBU_GET_CAPACITY_INFO, &cap,
-	    sizeof(cap), NULL, 0, &status) < 0) {
+		sizeof(cap), NULL, 0, &status) < 0) {
 		error = errno;
 		warn("Failed to get capacity info");
 		close(fd);
@@ -175,7 +177,7 @@ show_battery(int ac, char **av __unused)
 	show_capacity = (status == MFI_STAT_OK);
 
 	if (mfi_dcmd_command(fd, MFI_DCMD_BBU_GET_DESIGN_INFO, &design,
-	    sizeof(design), NULL, 0, NULL) < 0) {
+		sizeof(design), NULL, 0, NULL) < 0) {
 		error = errno;
 		warn("Failed to get design info");
 		close(fd);
@@ -183,7 +185,7 @@ show_battery(int ac, char **av __unused)
 	}
 
 	if (mfi_dcmd_command(fd, MFI_DCMD_BBU_GET_STATUS, &stat, sizeof(stat),
-	    NULL, 0, NULL) < 0) {
+		NULL, 0, NULL) < 0) {
 		error = errno;
 		warn("Failed to get status");
 		close(fd);
@@ -300,8 +302,8 @@ print_ld(struct mfi_ld_info *info, int state_len)
 	const char *level;
 	char size[6], stripe[5];
 
-	humanize_number(size, sizeof(size), info->size * 512,
-	    "", HN_AUTOSCALE, HN_B | HN_NOSPACE | HN_DECIMAL);
+	humanize_number(size, sizeof(size), info->size * 512, "", HN_AUTOSCALE,
+	    HN_B | HN_NOSPACE | HN_DECIMAL);
 	format_stripe(stripe, sizeof(stripe),
 	    info->ld_config.params.stripe_size);
 	level = mfi_raid_level(params->primary_raid_level,
@@ -320,18 +322,19 @@ print_pd(struct mfi_pd_info *info, int state_len)
 	const char *s;
 	char buf[256];
 
-	humanize_number(buf, 6, info->raw_size * 512, "",
-	    HN_AUTOSCALE, HN_B | HN_NOSPACE |HN_DECIMAL);
+	humanize_number(buf, 6, info->raw_size * 512, "", HN_AUTOSCALE,
+	    HN_B | HN_NOSPACE | HN_DECIMAL);
 	printf("(%6s) ", buf);
 	if (info->state.ddf.v.pd_type.is_foreign) {
-		sprintf(buf, "%s%s", mfi_pdstate(info->fw_state), foreign_state);
+		sprintf(buf, "%s%s", mfi_pdstate(info->fw_state),
+		    foreign_state);
 		s = buf;
 	} else
 		s = mfi_pdstate(info->fw_state);
 	if (state_len > 0)
 		printf("%-*s", state_len, s);
 	else
-		printf("%s",s);
+		printf("%s", s);
 	s = mfi_pd_inq_string(info);
 	if (s != NULL)
 		printf(" %s", s);
@@ -382,12 +385,12 @@ show_config(int ac, char **av __unused)
 		    ar->num_drives);
 		for (j = 0; j < ar->num_drives; j++) {
 			device_id = ar->pd[j].ref.v.device_id;
-			printf("        drive %s ", mfi_drive_name(NULL,
-			    device_id,
-			    MFI_DNAME_DEVICE_ID|MFI_DNAME_HONOR_OPTS));
+			printf("        drive %s ",
+			    mfi_drive_name(NULL, device_id,
+				MFI_DNAME_DEVICE_ID | MFI_DNAME_HONOR_OPTS));
 			if (device_id != 0xffff) {
 				if (mfi_pd_get_info(fd, device_id, &pinfo,
-				    NULL) < 0)
+					NULL) < 0)
 					printf("%s",
 					    mfi_pdstate(ar->pd[j].fw_state));
 				else
@@ -403,7 +406,7 @@ show_config(int ac, char **av __unused)
 		printf("    volume %s ",
 		    mfi_volume_name(fd, ld->properties.ld.v.target_id));
 		if (mfi_ld_get_info(fd, ld->properties.ld.v.target_id, &linfo,
-		    NULL) < 0) {
+			NULL) < 0) {
 			printf("%s %s",
 			    mfi_raid_level(ld->params.primary_raid_level,
 				ld->params.secondary_raid_level),
@@ -422,8 +425,9 @@ show_config(int ac, char **av __unused)
 		sp = (struct mfi_spare *)p;
 		printf("    %s spare %s ",
 		    sp->spare_type & MFI_SPARE_DEDICATED ? "dedicated" :
-		    "global", mfi_drive_name(NULL, sp->ref.v.device_id,
-		    MFI_DNAME_DEVICE_ID|MFI_DNAME_HONOR_OPTS));
+							   "global",
+		    mfi_drive_name(NULL, sp->ref.v.device_id,
+			MFI_DNAME_DEVICE_ID | MFI_DNAME_HONOR_OPTS));
 		if (mfi_pd_get_info(fd, sp->ref.v.device_id, &pinfo, NULL) < 0)
 			printf("%s", mfi_pdstate(MFI_PD_STATE_HOT_SPARE));
 		else
@@ -489,7 +493,7 @@ show_volumes(int ac, char **av __unused)
 	printf("  Cache   Name\n");
 	for (i = 0; i < list.ld_count; i++) {
 		if (mfi_ld_get_info(fd, list.ld_list[i].ld.v.target_id, &info,
-		    NULL) < 0) {
+			NULL) < 0) {
 			error = errno;
 			warn("Failed to get info for volume %d",
 			    list.ld_list[i].ld.v.target_id);
@@ -501,7 +505,7 @@ show_volumes(int ac, char **av __unused)
 		print_ld(&info, state_len);
 		switch (info.ld_config.properties.current_cache_policy &
 		    (MR_LD_CACHE_ALLOW_WRITE_CACHE |
-		    MR_LD_CACHE_ALLOW_READ_CACHE)) {
+			MR_LD_CACHE_ALLOW_READ_CACHE)) {
 		case 0:
 			printf(" Disabled");
 			break;
@@ -559,8 +563,8 @@ show_drives(int ac, char **av __unused)
 		if (list->addr[i].scsi_dev_type != 0)
 			continue;
 
-		if (mfi_pd_get_info(fd, list->addr[i].device_id, &info,
-		    NULL) < 0) {
+		if (mfi_pd_get_info(fd, list->addr[i].device_id, &info, NULL) <
+		    0) {
 			error = errno;
 			warn("Failed to fetch info for drive %u",
 			    list->addr[i].device_id);
@@ -582,19 +586,21 @@ show_drives(int ac, char **av __unused)
 			continue;
 
 		/* Fetch details for this drive. */
-		if (mfi_pd_get_info(fd, list->addr[i].device_id, &info,
-		    NULL) < 0) {
+		if (mfi_pd_get_info(fd, list->addr[i].device_id, &info, NULL) <
+		    0) {
 			error = errno;
 			warn("Failed to fetch info for drive %u",
 			    list->addr[i].device_id);
 			goto error;
 		}
 
-		printf("%s ", mfi_drive_name(&info, list->addr[i].device_id,
-		    MFI_DNAME_DEVICE_ID));
+		printf("%s ",
+		    mfi_drive_name(&info, list->addr[i].device_id,
+			MFI_DNAME_DEVICE_ID));
 		print_pd(&info, state_len);
-		printf(" %s", mfi_drive_name(&info, list->addr[i].device_id,
-		    MFI_DNAME_ES));
+		printf(" %s",
+		    mfi_drive_name(&info, list->addr[i].device_id,
+			MFI_DNAME_ES));
 		printf("\n");
 	}
 	error = 0;
@@ -750,21 +756,24 @@ show_progress(int ac, char **av __unused)
 		}
 
 		if (pinfo.prog_info.active & MFI_PD_PROGRESS_REBUILD) {
-			printf("drive %s ", mfi_drive_name(NULL, device_id,
-			    MFI_DNAME_DEVICE_ID|MFI_DNAME_HONOR_OPTS));
+			printf("drive %s ",
+			    mfi_drive_name(NULL, device_id,
+				MFI_DNAME_DEVICE_ID | MFI_DNAME_HONOR_OPTS));
 			mfi_display_progress("Rebuild", &pinfo.prog_info.rbld);
 			busy = 1;
 		}
 		if (pinfo.prog_info.active & MFI_PD_PROGRESS_PATROL) {
-			printf("drive %s ", mfi_drive_name(NULL, device_id,
-			    MFI_DNAME_DEVICE_ID|MFI_DNAME_HONOR_OPTS));
+			printf("drive %s ",
+			    mfi_drive_name(NULL, device_id,
+				MFI_DNAME_DEVICE_ID | MFI_DNAME_HONOR_OPTS));
 			mfi_display_progress("Patrol Read",
 			    &pinfo.prog_info.patrol);
 			busy = 1;
 		}
 		if (pinfo.prog_info.active & MFI_PD_PROGRESS_CLEAR) {
-			printf("drive %s ", mfi_drive_name(NULL, device_id,
-			    MFI_DNAME_DEVICE_ID|MFI_DNAME_HONOR_OPTS));
+			printf("drive %s ",
+			    mfi_drive_name(NULL, device_id,
+				MFI_DNAME_DEVICE_ID | MFI_DNAME_HONOR_OPTS));
 			mfi_display_progress("Clear", &pinfo.prog_info.clear);
 			busy = 1;
 		}
@@ -774,8 +783,7 @@ show_progress(int ac, char **av __unused)
 	close(fd);
 
 	if (!busy)
-		printf("No activity in progress for adapter %s\n",
-		    mfi_device);
+		printf("No activity in progress for adapter %s\n", mfi_device);
 
 	return (0);
 }
@@ -784,6 +792,7 @@ MFI_COMMAND(show, progress, show_progress);
 static int
 show_foreign(int ac, char **av)
 {
-	return(display_format(ac, av, 0/*normal display*/, MFI_DCMD_CFG_FOREIGN_DISPLAY));
+	return (display_format(ac, av, 0 /*normal display*/,
+	    MFI_DCMD_CFG_FOREIGN_DISPLAY));
 }
 MFI_COMMAND(show, foreign, show_foreign);

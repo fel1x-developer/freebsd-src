@@ -26,8 +26,8 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 
@@ -46,22 +46,22 @@
 #include <unistd.h>
 #include <utmpx.h>
 
-static void	heading(void);
-static void	process_utmp(void);
-static void	quick(void);
-static void	row(const struct utmpx *);
-static int	ttywidth(void);
-static void	usage(void);
-static void	whoami(void);
+static void heading(void);
+static void process_utmp(void);
+static void quick(void);
+static void row(const struct utmpx *);
+static int ttywidth(void);
+static void usage(void);
+static void whoami(void);
 
-static int	Hflag;			/* Write column headings */
-static int	aflag;			/* Print all entries */
-static int	bflag;			/* Show date of the last reboot */
-static int	mflag;			/* Show info about current terminal */
-static int	qflag;			/* "Quick" mode */
-static int	sflag;			/* Show name, line, time */
-static int	Tflag;			/* Show terminal state */
-static int	uflag;			/* Show idle time */
+static int Hflag; /* Write column headings */
+static int aflag; /* Print all entries */
+static int bflag; /* Show date of the last reboot */
+static int mflag; /* Show info about current terminal */
+static int qflag; /* "Quick" mode */
+static int sflag; /* Show name, line, time */
+static int Tflag; /* Show terminal state */
+static int uflag; /* Show idle time */
 
 int
 main(int argc, char *argv[])
@@ -72,28 +72,28 @@ main(int argc, char *argv[])
 
 	while ((ch = getopt(argc, argv, "HTabmqsu")) != -1) {
 		switch (ch) {
-		case 'H':		/* Write column headings */
+		case 'H': /* Write column headings */
 			Hflag = 1;
 			break;
-		case 'T':		/* Show terminal state */
+		case 'T': /* Show terminal state */
 			Tflag = 1;
 			break;
-		case 'a':		/* Same as -bdlprtTu */
+		case 'a': /* Same as -bdlprtTu */
 			aflag = bflag = Tflag = uflag = 1;
 			break;
-		case 'b':		/* Show date of the last reboot */
+		case 'b': /* Show date of the last reboot */
 			bflag = 1;
 			break;
-		case 'm':		/* Show info about current terminal */
+		case 'm': /* Show info about current terminal */
 			mflag = 1;
 			break;
-		case 'q':		/* "Quick" mode */
+		case 'q': /* "Quick" mode */
 			qflag = 1;
 			break;
-		case 's':		/* Show name, line, time */
+		case 's': /* Show name, line, time */
 			sflag = 1;
 			break;
-		case 'u':		/* Show idle time */
+		case 'u': /* Show idle time */
 			uflag = 1;
 			break;
 		default:
@@ -176,8 +176,7 @@ row(const struct utmpx *ut)
 	if (Tflag || uflag) {
 		snprintf(tty, sizeof(tty), "%s%s", _PATH_DEV, ut->ut_line);
 		if (stat(tty, &sb) == 0) {
-			state = sb.st_mode & (S_IWOTH|S_IWGRP) ?
-			    '+' : '-';
+			state = sb.st_mode & (S_IWOTH | S_IWGRP) ? '+' : '-';
 			idle = time(NULL) - sb.st_mtime;
 		}
 	}
@@ -232,7 +231,7 @@ process_utmp(void)
 			if (ttystat(utx->ut_line) == 0)
 				row(utx);
 		} else if (bflag && utx->ut_type == BOOT_TIME)
-				row(utx);
+			row(utx);
 	}
 }
 

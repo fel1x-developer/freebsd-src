@@ -36,26 +36,28 @@
  */
 
 #include <sys/param.h>
+
 #include <inttypes.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <string.h>
 #include <unistd.h>
-#include "rtld_printf.h"
+
 #include "rtld_libc.h"
+#include "rtld_printf.h"
 
-#define MAXNBUF	(sizeof(intmax_t) * NBBY + 1)
+#define MAXNBUF (sizeof(intmax_t) * NBBY + 1)
 
-#define	PRINT_METHOD_SNPRINTF	1
-#define	PRINT_METHOD_WRITE	2
+#define PRINT_METHOD_SNPRINTF 1
+#define PRINT_METHOD_WRITE 2
 
 struct snprintf_arg {
-	int	method;
-	char	*str;
-	char	*buf;
-	size_t	remain;
-	size_t	buf_total;
-	int	fd;
+	int method;
+	char *str;
+	char *buf;
+	size_t remain;
+	size_t buf_total;
+	int fd;
 };
 
 static void
@@ -92,8 +94,8 @@ snprintf_func(int ch, struct snprintf_arg *const info)
 
 static char const hex2ascii_lower[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 static char const hex2ascii_upper[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-#define	hex2ascii(hex)	(hex2ascii_lower[hex])
-#define	hex2ascii_upper(hex)	(hex2ascii_upper[hex])
+#define hex2ascii(hex) (hex2ascii_lower[hex])
+#define hex2ascii_upper(hex) (hex2ascii_upper[hex])
 
 static __inline int
 imax(int a, int b)
@@ -110,8 +112,7 @@ ksprintn(char *nbuf, uintmax_t num, int base, int *lenp, int upper)
 	p = nbuf;
 	*p = '\0';
 	do {
-		c = upper ? hex2ascii_upper(num % base) :
-		    hex2ascii(num % base);
+		c = upper ? hex2ascii_upper(num % base) : hex2ascii(num % base);
 		*++p = c;
 	} while (num /= base);
 	if (lenp)
@@ -151,10 +152,22 @@ kvprintf(char const *fmt, struct snprintf_arg *arg, int radix, va_list ap)
 			PCHAR(ch);
 		}
 		percent = fmt - 1;
-		qflag = 0; lflag = 0; ladjust = 0; sharpflag = 0; neg = 0;
-		sign = 0; dot = 0; dwidth = 0; upper = 0;
-		cflag = 0; hflag = 0; jflag = 0; tflag = 0; zflag = 0;
-reswitch:	switch (ch = (u_char)*fmt++) {
+		qflag = 0;
+		lflag = 0;
+		ladjust = 0;
+		sharpflag = 0;
+		neg = 0;
+		sign = 0;
+		dot = 0;
+		dwidth = 0;
+		upper = 0;
+		cflag = 0;
+		hflag = 0;
+		jflag = 0;
+		tflag = 0;
+		zflag = 0;
+	reswitch:
+		switch (ch = (u_char)*fmt++) {
 		case '.':
 			dot = 1;
 			goto reswitch;
@@ -187,14 +200,21 @@ reswitch:	switch (ch = (u_char)*fmt++) {
 				goto reswitch;
 			}
 			/* FALLTHROUGH */
-		case '1': case '2': case '3': case '4':
-		case '5': case '6': case '7': case '8': case '9':
-				for (n = 0;; ++fmt) {
-					n = n * 10 + ch - '0';
-					ch = *fmt;
-					if (ch < '0' || ch > '9')
-						break;
-				}
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
+			for (n = 0;; ++fmt) {
+				n = n * 10 + ch - '0';
+				ch = *fmt;
+				if (ch < '0' || ch > '9')
+					break;
+			}
 			if (dot)
 				dwidth = n;
 			else
@@ -231,12 +251,12 @@ reswitch:	switch (ch = (u_char)*fmt++) {
 			p = va_arg(ap, char *);
 			if (!width)
 				width = 16;
-			while(width--) {
+			while (width--) {
 				PCHAR(hex2ascii(*up >> 4));
 				PCHAR(hex2ascii(*up & 0x0f));
 				up++;
 				if (width)
-					for (q=p;*q;q++)
+					for (q = p; *q; q++)
 						PCHAR(*q);
 			}
 			break;
@@ -300,7 +320,7 @@ reswitch:	switch (ch = (u_char)*fmt++) {
 			if (p == NULL)
 				p = "(null)";
 			if (!dot)
-				n = strlen (p);
+				n = strlen(p);
 			else
 				for (n = 0; n < dwidth && p[n]; n++)
 					continue;
@@ -335,7 +355,7 @@ reswitch:	switch (ch = (u_char)*fmt++) {
 		case 'z':
 			zflag = 1;
 			goto reswitch;
-handle_nosign:
+		handle_nosign:
 			sign = 0;
 			if (jflag)
 				num = va_arg(ap, uintmax_t);
@@ -354,7 +374,7 @@ handle_nosign:
 			else
 				num = va_arg(ap, u_int);
 			goto number;
-handle_sign:
+		handle_sign:
 			if (jflag)
 				num = va_arg(ap, intmax_t);
 			else if (qflag)
@@ -371,7 +391,7 @@ handle_sign:
 				num = (char)va_arg(ap, int);
 			else
 				num = va_arg(ap, int);
-number:
+		number:
 			if (sign && (intmax_t)num < 0) {
 				neg = 1;
 				num = -(intmax_t)num;

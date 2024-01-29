@@ -30,11 +30,9 @@
 #include <sys/socket.h>
 
 #include <net/if.h>
-
 #include <netinet/in.h>
 
 #include <arpa/inet.h>
-
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -59,11 +57,11 @@
 /*
  * XXX: The following hopefully don't conflict with the local configuration.
  */
-#define	MULTICAST_IP	"224.100.100.100"
-#define	DISC_IP		"192.0.2.100"
-#define	DISC_MASK	"255.255.255.0"
-#define	DISC_IFNAME	"disc"
-#define	DISC_IFUNIT	100
+#define MULTICAST_IP "224.100.100.100"
+#define DISC_IP "192.0.2.100"
+#define DISC_MASK "255.255.255.0"
+#define DISC_IFNAME "disc"
+#define DISC_IFUNIT 100
 
 static int
 disc_setup(void)
@@ -179,10 +177,11 @@ multicast_open(int *sockp, int type, const char *type_string)
 	imr.imr_multiaddr.s_addr = inet_addr(MULTICAST_IP);
 	imr.imr_interface.s_addr = inet_addr(DISC_IP);
 
-	if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &imr,
-	    sizeof(imr)) < 0) {
+	if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &imr, sizeof(imr)) <
+	    0) {
 		warn("multicast_test: setsockopt(IPPROTO_IP, "
-		    "IP_ADD_MEMBERSHIP, {%s, %s})", MULTICAST_IP, DISC_IP);
+		     "IP_ADD_MEMBERSHIP, {%s, %s})",
+		    MULTICAST_IP, DISC_IP);
 		close(sock);
 		return (-1);
 	}

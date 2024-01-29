@@ -35,7 +35,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define	LEN_PATH_DEV	(sizeof(_PATH_DEV) - 1)
+#define LEN_PATH_DEV (sizeof(_PATH_DEV) - 1)
 
 char *
 ctermid(char *s)
@@ -55,8 +55,8 @@ ctermid(char *s)
 	/* Attempt to perform a lookup of the actual TTY pathname. */
 	sverrno = errno;
 	if (stat(_PATH_TTY, &sb) == 0 && S_ISCHR(sb.st_mode))
-		(void)sysctlbyname("kern.devname", s + LEN_PATH_DEV,
-		    &dlen, &sb.st_rdev, sizeof(sb.st_rdev));
+		(void)sysctlbyname("kern.devname", s + LEN_PATH_DEV, &dlen,
+		    &sb.st_rdev, sizeof(sb.st_rdev));
 	errno = sverrno;
 	return (s);
 }

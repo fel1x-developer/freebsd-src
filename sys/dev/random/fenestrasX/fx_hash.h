@@ -27,18 +27,18 @@
 #pragma once
 
 #include <dev/random/fenestrasX/fx_priv.h>
-#define	blake2b_init	blake2b_init_ref
-#define	blake2b_update	blake2b_update_ref
-#define	blake2b_final	blake2b_final_ref
+#define blake2b_init blake2b_init_ref
+#define blake2b_update blake2b_update_ref
+#define blake2b_final blake2b_final_ref
 #include <contrib/libb2/blake2.h>
 
-#define	FXRNG_HASH_SZ	BLAKE2B_OUTBYTES	/* 64 */
+#define FXRNG_HASH_SZ BLAKE2B_OUTBYTES /* 64 */
 
 /*
  * Wrappers for hash function abstraction.
  */
 struct fxrng_hash {
-	blake2b_state	state;
+	blake2b_state state;
 };
 
 static inline void
@@ -60,7 +60,8 @@ fxrng_hash_update(struct fxrng_hash *h, const void *buf, size_t sz)
 }
 
 static inline void
-fxrng_hash_finish(struct fxrng_hash *h, uint8_t buf[static FXRNG_HASH_SZ], size_t sz)
+fxrng_hash_finish(struct fxrng_hash *h, uint8_t buf[static FXRNG_HASH_SZ],
+    size_t sz)
 {
 	int rc;
 

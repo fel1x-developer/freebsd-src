@@ -26,15 +26,14 @@
  */
 
 #include <arpa/inet.h>
-#include <rpc/rpc.h>
+#include <atf-c.h>
 #include <errno.h>
+#include <rpc/rpc.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stringlist.h>
 #include <unistd.h>
-
-#include <atf-c.h>
 
 #include "testutil.h"
 
@@ -59,8 +58,7 @@ static void free_rpcent(struct rpcent *);
 static void sdump_rpcent(struct rpcent *, char *, size_t);
 static int rpcent_read_snapshot_func(struct rpcent *, char *);
 
-static int rpcent_check_ambiguity(struct rpcent_test_data *,
-	struct rpcent *);
+static int rpcent_check_ambiguity(struct rpcent_test_data *, struct rpcent *);
 static int rpcent_fill_test_data(struct rpcent_test_data *);
 static int rpcent_test_correctness(struct rpcent *, void *);
 static int rpcent_test_getrpcbyname(struct rpcent *, void *);
@@ -100,7 +98,8 @@ clone_rpcent(struct rpcent *dest, struct rpcent const *src)
 
 		for (cp = src->r_aliases; *cp; ++cp) {
 			dest->r_aliases[cp - src->r_aliases] = strdup(*cp);
-			ATF_REQUIRE(dest->r_aliases[cp - src->r_aliases] != NULL);
+			ATF_REQUIRE(
+			    dest->r_aliases[cp - src->r_aliases] != NULL);
 		}
 	}
 }
@@ -119,7 +118,7 @@ free_rpcent(struct rpcent *rpc)
 	free(rpc->r_aliases);
 }
 
-static  int
+static int
 compare_rpcent(struct rpcent *rpc1, struct rpcent *rpc2, void *mdata)
 {
 	char **c1, **c2;
@@ -131,8 +130,8 @@ compare_rpcent(struct rpcent *rpc1, struct rpcent *rpc2, void *mdata)
 		goto errfin;
 
 	if ((strcmp(rpc1->r_name, rpc2->r_name) != 0) ||
-		(rpc1->r_number != rpc2->r_number))
-			goto errfin;
+	    (rpc1->r_number != rpc2->r_number))
+		goto errfin;
 
 	c1 = rpc1->r_aliases;
 	c2 = rpc2->r_aliases;
@@ -140,7 +139,7 @@ compare_rpcent(struct rpcent *rpc1, struct rpcent *rpc2, void *mdata)
 	if ((rpc1->r_aliases == NULL) || (rpc2->r_aliases == NULL))
 		goto errfin;
 
-	for (;*c1 && *c2; ++c1, ++c2)
+	for (; *c1 && *c2; ++c1, ++c2)
 		if (strcmp(*c1, *c2) != 0)
 			goto errfin;
 
@@ -165,8 +164,7 @@ sdump_rpcent(struct rpcent *rpc, char *buffer, size_t buflen)
 	char **cp;
 	int written;
 
-	written = snprintf(buffer, buflen, "%s %d",
-		rpc->r_name, rpc->r_number);
+	written = snprintf(buffer, buflen, "%s %d", rpc->r_name, rpc->r_number);
 	buffer += written;
 	if (written > (int)buflen)
 		return;
@@ -206,8 +204,8 @@ rpcent_read_snapshot_func(struct rpcent *rpc, char *line)
 	while ((s = strsep(&ps, " ")) != NULL) {
 		switch (i) {
 		case 0:
-				rpc->r_name = strdup(s);
-				ATF_REQUIRE(rpc->r_name != NULL);
+			rpc->r_name = strdup(s);
+			ATF_REQUIRE(rpc->r_name != NULL);
 			break;
 
 		case 1:
@@ -320,8 +318,9 @@ static int
 rpcent_check_ambiguity(struct rpcent_test_data *td, struct rpcent *rpc)
 {
 
-	return (TEST_DATA_FIND(rpcent, td, rpc, compare_rpcent,
-		NULL) != NULL ? 0 : -1);
+	return (TEST_DATA_FIND(rpcent, td, rpc, compare_rpcent, NULL) != NULL ?
+		0 :
+		-1);
 }
 
 static int
@@ -338,9 +337,9 @@ rpcent_test_getrpcbyname(struct rpcent *rpc_model, void *mdata)
 		goto errfin;
 
 	if ((compare_rpcent(rpc, rpc_model, NULL) != 0) &&
-	    (rpcent_check_ambiguity((struct rpcent_test_data *)mdata, rpc)
-	    !=0))
-	    goto errfin;
+	    (rpcent_check_ambiguity((struct rpcent_test_data *)mdata, rpc) !=
+		0))
+		goto errfin;
 
 	for (alias = rpc_model->r_aliases; *alias; ++alias) {
 		rpc = getrpcbyname(*alias);
@@ -349,9 +348,9 @@ rpcent_test_getrpcbyname(struct rpcent *rpc_model, void *mdata)
 			goto errfin;
 
 		if ((compare_rpcent(rpc, rpc_model, NULL) != 0) &&
-		    (rpcent_check_ambiguity(
-		    (struct rpcent_test_data *)mdata, rpc) != 0))
-		    goto errfin;
+		    (rpcent_check_ambiguity((struct rpcent_test_data *)mdata,
+			 rpc) != 0))
+			goto errfin;
 	}
 
 	printf("ok\n");
@@ -374,8 +373,8 @@ rpcent_test_getrpcbynumber(struct rpcent *rpc_model, void *mdata)
 	rpc = getrpcbynumber(rpc_model->r_number);
 	if (rpcent_test_correctness(rpc, NULL) != 0 ||
 	    (compare_rpcent(rpc, rpc_model, NULL) != 0 &&
-	     rpcent_check_ambiguity((struct rpcent_test_data *)mdata, rpc)
-	    != 0)) {
+		rpcent_check_ambiguity((struct rpcent_test_data *)mdata, rpc) !=
+		    0)) {
 		printf("not ok\n");
 		return (-1);
 	} else {
@@ -420,8 +419,8 @@ run_tests(const char *snapshot_file, enum test_methods method)
 				goto fin;
 			}
 
-			TEST_SNAPSHOT_FILE_READ(rpcent, snapshot_file,
-				&td_snap, rpcent_read_snapshot_func);
+			TEST_SNAPSHOT_FILE_READ(rpcent, snapshot_file, &td_snap,
+			    rpcent_read_snapshot_func);
 		}
 	}
 
@@ -432,39 +431,39 @@ run_tests(const char *snapshot_file, enum test_methods method)
 	case TEST_GETRPCBYNAME:
 		if (snapshot_file == NULL)
 			rv = DO_1PASS_TEST(rpcent, &td,
-				rpcent_test_getrpcbyname, (void *)&td);
+			    rpcent_test_getrpcbyname, (void *)&td);
 		else
 			rv = DO_1PASS_TEST(rpcent, &td_snap,
-				rpcent_test_getrpcbyname, (void *)&td_snap);
+			    rpcent_test_getrpcbyname, (void *)&td_snap);
 		break;
 	case TEST_GETRPCBYNUMBER:
 		if (snapshot_file == NULL)
 			rv = DO_1PASS_TEST(rpcent, &td,
-				rpcent_test_getrpcbynumber, (void *)&td);
+			    rpcent_test_getrpcbynumber, (void *)&td);
 		else
 			rv = DO_1PASS_TEST(rpcent, &td_snap,
-				rpcent_test_getrpcbynumber, (void *)&td_snap);
+			    rpcent_test_getrpcbynumber, (void *)&td_snap);
 		break;
 	case TEST_GETRPCENT:
 		if (snapshot_file == NULL)
 			rv = DO_1PASS_TEST(rpcent, &td, rpcent_test_getrpcent,
-				(void *)&td);
+			    (void *)&td);
 		else
 			rv = DO_2PASS_TEST(rpcent, &td, &td_snap,
-				compare_rpcent, NULL);
+			    compare_rpcent, NULL);
 		break;
 	case TEST_GETRPCENT_2PASS:
-			TEST_DATA_INIT(rpcent, &td_2pass, clone_rpcent, free_rpcent);
-			rv = rpcent_fill_test_data(&td_2pass);
-			if (rv != -1)
-				rv = DO_2PASS_TEST(rpcent, &td, &td_2pass,
-					compare_rpcent, NULL);
-			TEST_DATA_DESTROY(rpcent, &td_2pass);
+		TEST_DATA_INIT(rpcent, &td_2pass, clone_rpcent, free_rpcent);
+		rv = rpcent_fill_test_data(&td_2pass);
+		if (rv != -1)
+			rv = DO_2PASS_TEST(rpcent, &td, &td_2pass,
+			    compare_rpcent, NULL);
+		TEST_DATA_DESTROY(rpcent, &td_2pass);
 		break;
 	case TEST_BUILD_SNAPSHOT:
 		if (snapshot_file != NULL)
-		    rv = TEST_SNAPSHOT_FILE_WRITE(rpcent, snapshot_file, &td,
-			sdump_rpcent);
+			rv = TEST_SNAPSHOT_FILE_WRITE(rpcent, snapshot_file,
+			    &td, sdump_rpcent);
 		break;
 	default:
 		rv = 0;
@@ -478,7 +477,7 @@ fin:
 	return (rv);
 }
 
-#define	SNAPSHOT_FILE	"snapshot_rpc"
+#define SNAPSHOT_FILE "snapshot_rpc"
 
 ATF_TC_WITHOUT_HEAD(build_snapshot);
 ATF_TC_BODY(build_snapshot, tc)

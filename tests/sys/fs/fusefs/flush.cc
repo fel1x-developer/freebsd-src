@@ -38,46 +38,53 @@ extern "C" {
 
 using namespace testing;
 
-class Flush: public FuseTest {
+class Flush : public FuseTest {
 
-public:
-void
-expect_flush(uint64_t ino, int times, pid_t lo, ProcessMockerT r)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_FLUSH &&
-				in.header.nodeid == ino &&
-				in.body.flush.lock_owner == (uint64_t)lo &&
-				in.body.flush.fh == FH);
-		}, Eq(true)),
-		_)
-	).Times(times)
-	.WillRepeatedly(Invoke(r));
-}
+    public:
+	void expect_flush(uint64_t ino, int times, pid_t lo, ProcessMockerT r)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					return (
+					    in.header.opcode == FUSE_FLUSH &&
+					    in.header.nodeid == ino &&
+					    in.body.flush.lock_owner ==
+						(uint64_t)lo &&
+					    in.body.flush.fh == FH);
+				},
+				Eq(true)),
+			_))
+		    .Times(times)
+		    .WillRepeatedly(Invoke(r));
+	}
 
-void expect_lookup(const char *relpath, uint64_t ino, int times)
-{
-	FuseTest::expect_lookup(relpath, ino, S_IFREG | 0644, 0, times);
-}
+	void expect_lookup(const char *relpath, uint64_t ino, int times)
+	{
+		FuseTest::expect_lookup(relpath, ino, S_IFREG | 0644, 0, times);
+	}
 
-/*
- * When testing FUSE_FLUSH, the FUSE_RELEASE calls are uninteresting.  This
- * expectation will silence googlemock warnings
- */
-void expect_release()
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_RELEASE);
-		}, Eq(true)),
-		_)
-	).WillRepeatedly(Invoke(ReturnErrno(0)));
-}
+	/*
+	 * When testing FUSE_FLUSH, the FUSE_RELEASE calls are uninteresting.
+	 * This expectation will silence googlemock warnings
+	 */
+	void expect_release()
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					return (
+					    in.header.opcode == FUSE_RELEASE);
+				},
+				Eq(true)),
+			_))
+		    .WillRepeatedly(Invoke(ReturnErrno(0)));
+	}
 };
 
-class FlushWithLocks: public Flush {
-	virtual void SetUp() {
+class FlushWithLocks : public Flush {
+	virtual void SetUp()
+	{
 		m_init_flags = FUSE_POSIX_LOCKS;
 		Flush::SetUp();
 	}
@@ -204,24 +211,28 @@ TEST_F(FlushWithLocks, unlock_on_close)
 
 	expect_lookup(RELPATH, ino, 2);
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_SETLK &&
-				in.header.nodeid == ino &&
-				in.body.setlk.lk.type == F_RDLCK &&
-				in.body.setlk.fh == FH);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(0)));
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_SETLK &&
-				in.header.nodeid == ino &&
-				in.body.setlk.lk.type == F_UNLCK &&
-				in.body.setlk.fh == FH);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(0)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_SETLK &&
+				    in.header.nodeid == ino &&
+				    in.body.setlk.lk.type == F_RDLCK &&
+				    in.body.setlk.fh == FH);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnErrno(0)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_SETLK &&
+				    in.header.nodeid == ino &&
+				    in.body.setlk.lk.type == F_UNLCK &&
+				    in.body.setlk.fh == FH);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnErrno(0)));
 	expect_flush(ino, 1, pid, ReturnErrno(0));
 
 	fd = open(FULLPATH, O_RDWR);

@@ -38,36 +38,33 @@
 #include "opt_wlan.h"
 
 #include <sys/param.h>
-#include <sys/systm.h> 
-#include <sys/sysctl.h>
+#include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/errno.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
-#include <sys/errno.h>
+#include <sys/socket.h>
+#include <sys/sysctl.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/bus.h>
-
-#include <sys/socket.h>
-
-#include <net/if.h>
-#include <net/if_media.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>		/* XXX for ether_sprintf */
-
-#include <net80211/ieee80211_var.h>
 
 #include <net/bpf.h>
+#include <net/ethernet.h> /* XXX for ether_sprintf */
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_var.h>
 
 #ifdef INET
-#include <netinet/in.h> 
 #include <netinet/if_ether.h>
+#include <netinet/in.h>
 #endif
 
-#include <dev/ath/if_athvar.h>
-#include <dev/ath/ath_rate/onoe/onoe.h>
 #include <dev/ath/ath_hal/ah_desc.h>
+#include <dev/ath/ath_rate/onoe/onoe.h>
+#include <dev/ath/if_athvar.h>
 
 /*
  * Default parameters for the rate control algorithm.  These are
@@ -88,14 +85,14 @@
  *
  * XXX this algorithm is flawed.
  */
-static	int ath_rateinterval = 1000;		/* rate ctl interval (ms)  */
-static	int ath_rate_raise = 10;		/* add credit threshold */
-static	int ath_rate_raise_threshold = 10;	/* rate ctl raise threshold */
+static int ath_rateinterval = 1000;	  /* rate ctl interval (ms)  */
+static int ath_rate_raise = 10;		  /* add credit threshold */
+static int ath_rate_raise_threshold = 10; /* rate ctl raise threshold */
 
-static void	ath_rate_update(struct ath_softc *, struct ieee80211_node *,
-			int rate);
-static void	ath_rate_ctl_start(struct ath_softc *, struct ieee80211_node *);
-static void	ath_rate_ctl(void *, struct ieee80211_node *);
+static void ath_rate_update(struct ath_softc *, struct ieee80211_node *,
+    int rate);
+static void ath_rate_ctl_start(struct ath_softc *, struct ieee80211_node *);
+static void ath_rate_ctl(void *, struct ieee80211_node *);
 
 void
 ath_rate_node_init(struct ath_softc *sc, struct ath_node *an)
@@ -109,10 +106,9 @@ ath_rate_node_cleanup(struct ath_softc *sc, struct ath_node *an)
 }
 
 void
-ath_rate_findrate(struct ath_softc *sc, struct ath_node *an,
-	int shortPreamble, size_t frameLen, int tid, int is_aggr,
-	u_int8_t *rix, int *try0, u_int8_t *txrate, int *maxdur,
-	int *maxpktlen)
+ath_rate_findrate(struct ath_softc *sc, struct ath_node *an, int shortPreamble,
+    size_t frameLen, int tid, int is_aggr, u_int8_t *rix, int *try0,
+    u_int8_t *txrate, int *maxdur, int *maxpktlen)
 {
 	struct onoe_node *on = ATH_NODE_ONOE(an);
 
@@ -133,8 +129,8 @@ ath_rate_findrate(struct ath_softc *sc, struct ath_node *an,
  * the returned rate with the relevant preamble rate flag.
  */
 void
-ath_rate_getxtxrates(struct ath_softc *sc, struct ath_node *an,
-    uint8_t rix0, int is_aggr, struct ath_rc_series *rc)
+ath_rate_getxtxrates(struct ath_softc *sc, struct ath_node *an, uint8_t rix0,
+    int is_aggr, struct ath_rc_series *rc)
 {
 	struct onoe_node *on = ATH_NODE_ONOE(an);
 
@@ -153,21 +149,22 @@ ath_rate_getxtxrates(struct ath_softc *sc, struct ath_node *an,
 
 void
 ath_rate_setupxtxdesc(struct ath_softc *sc, struct ath_node *an,
-	struct ath_desc *ds, int shortPreamble, u_int8_t rix)
+    struct ath_desc *ds, int shortPreamble, u_int8_t rix)
 {
 	struct onoe_node *on = ATH_NODE_ONOE(an);
 
-	ath_hal_setupxtxdesc(sc->sc_ah, ds
-		, on->on_tx_rate1sp, 2	/* series 1 */
-		, on->on_tx_rate2sp, 2	/* series 2 */
-		, on->on_tx_rate3sp, 2	/* series 3 */
+	ath_hal_setupxtxdesc(sc->sc_ah, ds, on->on_tx_rate1sp, 2 /* series 1 */
+	    ,
+	    on->on_tx_rate2sp, 2 /* series 2 */
+	    ,
+	    on->on_tx_rate3sp, 2 /* series 3 */
 	);
 }
 
 void
 ath_rate_tx_complete(struct ath_softc *sc, struct ath_node *an,
-	const struct ath_rc_series *rc, const struct ath_tx_status *ts,
-	int frame_size, int rc_framesize, int nframes, int nbad)
+    const struct ath_rc_series *rc, const struct ath_tx_status *ts,
+    int frame_size, int rc_framesize, int nframes, int nbad)
 {
 	struct onoe_node *on = ATH_NODE_ONOE(an);
 
@@ -175,8 +172,7 @@ ath_rate_tx_complete(struct ath_softc *sc, struct ath_node *an,
 		on->on_tx_ok++;
 	else
 		on->on_tx_err++;
-	on->on_tx_retr += ts->ts_shortretry
-			+ ts->ts_longretry;
+	on->on_tx_retr += ts->ts_shortretry + ts->ts_longretry;
 	if (on->on_interval != 0 && ticks - on->on_ticks > on->on_interval) {
 		ath_rate_ctl(sc, &an->an_node);
 		on->on_ticks = ticks;
@@ -207,9 +203,10 @@ ath_rate_update(struct ath_softc *sc, struct ieee80211_node *ni, int rate)
 	KASSERT(rt != NULL, ("no rate table, mode %u", sc->sc_curmode));
 
 	IEEE80211_NOTE(vap, IEEE80211_MSG_RATECTL, ni,
-	     "%s: set xmit rate to %dM", __func__,
-	     ni->ni_rates.rs_nrates > 0 ?
-		(ni->ni_rates.rs_rates[rate] & IEEE80211_RATE_VAL) / 2 : 0);
+	    "%s: set xmit rate to %dM", __func__,
+	    ni->ni_rates.rs_nrates > 0 ?
+		(ni->ni_rates.rs_rates[rate] & IEEE80211_RATE_VAL) / 2 :
+		0);
 
 	/*
 	 * Before associating a node has no rate set setup
@@ -226,7 +223,7 @@ ath_rate_update(struct ath_softc *sc, struct ieee80211_node *ni, int rate)
 	on->on_tx_rate0 = rt->info[on->on_tx_rix0].rateCode;
 
 	on->on_tx_rate0sp = on->on_tx_rate0 |
-		rt->info[on->on_tx_rix0].shortPreamble;
+	    rt->info[on->on_tx_rix0].shortPreamble;
 	if (sc->sc_mrretry) {
 		/*
 		 * Hardware supports multi-rate retry; setup two
@@ -235,35 +232,35 @@ ath_rate_update(struct ath_softc *sc, struct ieee80211_node *ni, int rate)
 		 * respectively (4 is set here, the rest are fixed
 		 * in the xmit routine).
 		 */
-		on->on_tx_try0 = 1 + 3;		/* 4 tries at rate 0 */
+		on->on_tx_try0 = 1 + 3; /* 4 tries at rate 0 */
 		if (--rate >= 0) {
-			rix = sc->sc_rixmap[
-				ni->ni_rates.rs_rates[rate]&IEEE80211_RATE_VAL];
+			rix = sc->sc_rixmap[ni->ni_rates.rs_rates[rate] &
+			    IEEE80211_RATE_VAL];
 			on->on_tx_rate1 = rt->info[rix].rateCode;
 			on->on_tx_rate1sp = on->on_tx_rate1 |
-				rt->info[rix].shortPreamble;
+			    rt->info[rix].shortPreamble;
 		} else {
 			on->on_tx_rate1 = on->on_tx_rate1sp = 0;
 		}
 		if (--rate >= 0) {
-			rix = sc->sc_rixmap[
-				ni->ni_rates.rs_rates[rate]&IEEE80211_RATE_VAL];
+			rix = sc->sc_rixmap[ni->ni_rates.rs_rates[rate] &
+			    IEEE80211_RATE_VAL];
 			on->on_tx_rate2 = rt->info[rix].rateCode;
 			on->on_tx_rate2sp = on->on_tx_rate2 |
-				rt->info[rix].shortPreamble;
+			    rt->info[rix].shortPreamble;
 		} else {
 			on->on_tx_rate2 = on->on_tx_rate2sp = 0;
 		}
 		if (rate > 0) {
 			/* NB: only do this if we didn't already do it above */
 			on->on_tx_rate3 = rt->info[0].rateCode;
-			on->on_tx_rate3sp =
-				on->on_tx_rate3 | rt->info[0].shortPreamble;
+			on->on_tx_rate3sp = on->on_tx_rate3 |
+			    rt->info[0].shortPreamble;
 		} else {
 			on->on_tx_rate3 = on->on_tx_rate3sp = 0;
 		}
 	} else {
-		on->on_tx_try0 = ATH_TXMAXTRY;	/* max tries at rate 0 */
+		on->on_tx_try0 = ATH_TXMAXTRY; /* max tries at rate 0 */
 		on->on_tx_rate1 = on->on_tx_rate1sp = 0;
 		on->on_tx_rate2 = on->on_tx_rate2sp = 0;
 		on->on_tx_rate3 = on->on_tx_rate3sp = 0;
@@ -283,7 +280,7 @@ done:
 static void
 ath_rate_ctl_start(struct ath_softc *sc, struct ieee80211_node *ni)
 {
-#define	RATE(_ix)	(ni->ni_rates.rs_rates[(_ix)] & IEEE80211_RATE_VAL)
+#define RATE(_ix) (ni->ni_rates.rs_rates[(_ix)] & IEEE80211_RATE_VAL)
 	const struct ieee80211_txparam *tp = ni->ni_txparms;
 	int srate;
 
@@ -327,7 +324,7 @@ ath_rate_ctl_start(struct ath_softc *sc, struct ieee80211_node *ni)
 #undef RATE
 }
 
-/* 
+/*
  * Examine and potentially adjust the transmit rate.
  */
 static void
@@ -358,8 +355,8 @@ ath_rate_ctl(void *arg, struct ieee80211_node *ni)
 		dir = 1;
 
 	IEEE80211_NOTE(ni->ni_vap, IEEE80211_MSG_RATECTL, ni,
-	    "ok %d err %d retr %d upper %d dir %d",
-	    on->on_tx_ok, on->on_tx_err, on->on_tx_retr, on->on_tx_upper, dir);
+	    "ok %d err %d retr %d upper %d dir %d", on->on_tx_ok, on->on_tx_err,
+	    on->on_tx_retr, on->on_tx_upper, dir);
 
 	nrate = on->on_rix;
 	switch (dir) {
@@ -403,16 +400,16 @@ ath_rate_sysctlattach(struct ath_softc *sc)
 	struct sysctl_ctx_list *ctx = device_get_sysctl_ctx(sc->sc_dev);
 	struct sysctl_oid *tree = device_get_sysctl_tree(sc->sc_dev);
 
-	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		"rate_interval", CTLFLAG_RW, &ath_rateinterval, 0,
-		"rate control: operation interval (ms)");
+	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "rate_interval",
+	    CTLFLAG_RW, &ath_rateinterval, 0,
+	    "rate control: operation interval (ms)");
 	/* XXX bounds check values */
+	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "rate_raise",
+	    CTLFLAG_RW, &ath_rate_raise, 0,
+	    "rate control: retry threshold to credit rate raise (%%)");
 	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		"rate_raise", CTLFLAG_RW, &ath_rate_raise, 0,
-		"rate control: retry threshold to credit rate raise (%%)");
-	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		"rate_raise_threshold", CTLFLAG_RW, &ath_rate_raise_threshold,0,
-		"rate control: # good periods before raising rate");
+	    "rate_raise_threshold", CTLFLAG_RW, &ath_rate_raise_threshold, 0,
+	    "rate control: # good periods before raising rate");
 }
 
 static int
@@ -428,7 +425,7 @@ ath_rate_attach(struct ath_softc *sc)
 {
 	struct onoe_softc *osc;
 
-	osc = malloc(sizeof(struct onoe_softc), M_DEVBUF, M_NOWAIT|M_ZERO);
+	osc = malloc(sizeof(struct onoe_softc), M_DEVBUF, M_NOWAIT | M_ZERO);
 	if (osc == NULL)
 		return NULL;
 	osc->arc.arc_space = sizeof(struct onoe_node);
@@ -440,7 +437,7 @@ ath_rate_attach(struct ath_softc *sc)
 void
 ath_rate_detach(struct ath_ratectrl *arc)
 {
-	struct onoe_softc *osc = (struct onoe_softc *) arc;
+	struct onoe_softc *osc = (struct onoe_softc *)arc;
 
 	free(osc, M_DEVBUF);
 }

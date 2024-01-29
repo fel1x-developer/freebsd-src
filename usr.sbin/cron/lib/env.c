@@ -19,51 +19,46 @@
  * SOFTWARE.
  */
 
-
-
 #include "cron.h"
-
 
 char **
 env_init(void)
 {
-	char	**p = (char **) malloc(sizeof(char **));
+	char **p = (char **)malloc(sizeof(char **));
 
 	if (p)
 		p[0] = NULL;
 	return (p);
 }
 
-
 void
 env_free(char **envp)
 {
-	char	**p;
+	char **p;
 
 	if ((p = envp))
-	    for (;  *p;  p++)
-		free(*p);
+		for (; *p; p++)
+			free(*p);
 	free(envp);
 }
-
 
 char **
 env_copy(char **envp)
 {
-	int	count, i;
-	char	**p;
+	int count, i;
+	char **p;
 
-	for (count = 0;  envp[count] != NULL;  count++)
+	for (count = 0; envp[count] != NULL; count++)
 		;
-	p = (char **) malloc((count+1) * sizeof(char *)); /* 1 for the NULL */
+	p = (char **)malloc((count + 1) * sizeof(char *)); /* 1 for the NULL */
 	if (p == NULL) {
 		errno = ENOMEM;
 		return NULL;
 	}
-	for (i = 0;  i < count;  i++)
+	for (i = 0; i < count; i++)
 		if ((p[i] = strdup(envp[i])) == NULL) {
 			while (--i >= 0)
-				(void) free(p[i]);
+				(void)free(p[i]);
 			free(p);
 			errno = ENOMEM;
 			return NULL;
@@ -72,24 +67,23 @@ env_copy(char **envp)
 	return (p);
 }
 
-
 char **
 env_set(char **envp, char *envstr)
 {
-	int	count, found;
-	char	**p;
-	char	*q;
+	int count, found;
+	char **p;
+	char *q;
 
 	/*
 	 * count the number of elements, including the null pointer;
 	 * also set 'found' to -1 or index of entry if already in here.
 	 */
 	found = -1;
-	for (count = 0;  envp[count] != NULL;  count++) {
+	for (count = 0; envp[count] != NULL; count++) {
 		if (!strcmp_until(envp[count], envstr, '='))
 			found = count;
 	}
-	count++;	/* for the NULL */
+	count++; /* for the NULL */
 
 	if (found != -1) {
 		/*
@@ -112,22 +106,21 @@ env_set(char **envp, char *envstr)
 	 * one, save our string over the old null pointer, and return resized
 	 * array.
 	 */
-	p = (char **) realloc((void *) envp,
-			      (unsigned) ((count+1) * sizeof(char *)));
-	if (p == NULL) 	{
+	p = (char **)realloc((void *)envp,
+	    (unsigned)((count + 1) * sizeof(char *)));
+	if (p == NULL) {
 		/* XXX env_free(envp); */
 		errno = ENOMEM;
 		return NULL;
 	}
-	p[count] = p[count-1];
-	if ((p[count-1] = strdup(envstr)) == NULL) {
+	p[count] = p[count - 1];
+	if ((p[count - 1] = strdup(envstr)) == NULL) {
 		env_free(p);
 		errno = ENOMEM;
 		return NULL;
 	}
 	return (p);
 }
-
 
 /* return	ERR = end of file
  *		FALSE = not an env setting (file was repositioned)
@@ -136,21 +129,21 @@ env_set(char **envp, char *envstr)
 int
 load_env(char *envstr, FILE *f)
 {
-	long	filepos;
-	int	fileline;
-	char	name[MAX_ENVSTR], val[MAX_ENVSTR];
-	char	quotechar, *c, *str;
-	int	state;
+	long filepos;
+	int fileline;
+	char name[MAX_ENVSTR], val[MAX_ENVSTR];
+	char quotechar, *c, *str;
+	int state;
 
 	/* The following states are traversed in order: */
-#define NAMEI	0	/* First char of NAME, may be quote */
-#define NAME	1	/* Subsequent chars of NAME */
-#define EQ1	2	/* After end of name, looking for '=' sign */
-#define EQ2	3	/* After '=', skipping whitespace */
-#define VALUEI	4	/* First char of VALUE, may be quote */
-#define VALUE	5	/* Subsequent chars of VALUE */
-#define FINI	6	/* All done, skipping trailing whitespace */
-#define ERROR	7	/* Error */
+#define NAMEI 0	 /* First char of NAME, may be quote */
+#define NAME 1	 /* Subsequent chars of NAME */
+#define EQ1 2	 /* After end of name, looking for '=' sign */
+#define EQ2 3	 /* After '=', skipping whitespace */
+#define VALUEI 4 /* First char of VALUE, may be quote */
+#define VALUE 5	 /* Subsequent chars of VALUE */
+#define FINI 6	 /* All done, skipping trailing whitespace */
+#define ERROR 7	 /* Error */
 
 	filepos = ftell(f);
 	fileline = LineNumber;
@@ -160,8 +153,8 @@ load_env(char *envstr, FILE *f)
 
 	Debug(DPARS, ("load_env, read <%s>\n", envstr));
 
-	bzero (name, sizeof name);
-	bzero (val, sizeof val);
+	bzero(name, sizeof name);
+	bzero(val, sizeof val);
 	str = name;
 	state = NAMEI;
 	quotechar = '\0';
@@ -188,7 +181,7 @@ load_env(char *envstr, FILE *f)
 				}
 			} else {
 				if (state == NAME) {
-					if (isspace (*c)) {
+					if (isspace(*c)) {
 						c++;
 						state++;
 						break;
@@ -208,14 +201,14 @@ load_env(char *envstr, FILE *f)
 				str = val;
 				quotechar = '\0';
 			} else {
-				if (!isspace (*c))
+				if (!isspace(*c))
 					state = ERROR;
 			}
 			c++;
 			break;
 		case EQ2:
 		case FINI:
-			if (isspace (*c))
+			if (isspace(*c))
 				c++;
 			else
 				state++;
@@ -224,14 +217,14 @@ load_env(char *envstr, FILE *f)
 	}
 	if (state != FINI && !(state == VALUE && !quotechar)) {
 		Debug(DPARS, ("load_env, parse error, state = %d\n", state))
-		fseek(f, filepos, 0);
+		    fseek(f, filepos, 0);
 		Set_LineNum(fileline);
 		return (FALSE);
 	}
 	if (state == VALUE) {
 		/* End of unquoted value: trim trailing whitespace */
-		c = val + strlen (val);
-		while (c > val && isspace (*(c - 1)))
+		c = val + strlen(val);
+		while (c > val && isspace(*(c - 1)))
 			*(--c) = '\0';
 	}
 
@@ -239,22 +232,21 @@ load_env(char *envstr, FILE *f)
 
 	if (snprintf(envstr, MAX_ENVSTR, "%s=%s", name, val) >= MAX_ENVSTR)
 		return (FALSE);
-	Debug(DPARS, ("load_env, <%s> <%s> -> <%s>\n", name, val, envstr))
-	return (TRUE);
+	Debug(DPARS,
+	    ("load_env, <%s> <%s> -> <%s>\n", name, val, envstr)) return (TRUE);
 }
-
 
 char *
 env_get(char *name, char **envp)
 {
-	int	len = strlen(name);
-	char	*p, *q;
+	int len = strlen(name);
+	char *p, *q;
 
 	while ((p = *envp++) != NULL) {
 		if (!(q = strchr(p, '=')))
 			continue;
 		if ((q - p) == len && !strncmp(p, name, len))
-			return (q+1);
+			return (q + 1);
 	}
 	return (NULL);
 }

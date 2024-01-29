@@ -109,12 +109,12 @@ assign_address(struct sockaddr_un *serveraddr)
 	strcpy(serveraddr->sun_path, SERVER_PATH);
 }
 
-
 ATF_TC_WITH_CLEANUP(socket_success);
 ATF_TC_HEAD(socket_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"socket(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "socket(2) call");
 }
 
 ATF_TC_BODY(socket_success, tc)
@@ -132,12 +132,12 @@ ATF_TC_CLEANUP(socket_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(socket_failure);
 ATF_TC_HEAD(socket_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"socket(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "socket(2) call");
 }
 
 ATF_TC_BODY(socket_failure, tc)
@@ -154,12 +154,12 @@ ATF_TC_CLEANUP(socket_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(socketpair_success);
 ATF_TC_HEAD(socketpair_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"socketpair(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "socketpair(2) call");
 }
 
 ATF_TC_BODY(socketpair_success, tc)
@@ -179,12 +179,12 @@ ATF_TC_CLEANUP(socketpair_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(socketpair_failure);
 ATF_TC_HEAD(socketpair_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"socketpair(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "socketpair(2) call");
 }
 
 ATF_TC_BODY(socketpair_failure, tc)
@@ -201,12 +201,12 @@ ATF_TC_CLEANUP(socketpair_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(setsockopt_success);
 ATF_TC_HEAD(setsockopt_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"setsockopt(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "setsockopt(2) call");
 }
 
 ATF_TC_BODY(setsockopt_success, tc)
@@ -214,12 +214,12 @@ ATF_TC_BODY(setsockopt_success, tc)
 	int tr = 1;
 	ATF_REQUIRE((sockfd = socket(PF_UNIX, SOCK_STREAM, 0)) != -1);
 	/* Check the presence of sockfd in audit record */
-	snprintf(extregex, sizeof(extregex),
-			"setsockopt.*0x%x.*return,success", sockfd);
+	snprintf(extregex, sizeof(extregex), "setsockopt.*0x%x.*return,success",
+	    sockfd);
 
 	FILE *pipefd = setup(fds, auclass);
-	ATF_REQUIRE_EQ(0, setsockopt(sockfd, SOL_SOCKET,
-		SO_REUSEADDR, &tr, sizeof(int)));
+	ATF_REQUIRE_EQ(0,
+	    setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &tr, sizeof(int)));
 	check_audit(fds, extregex, pipefd);
 	close(sockfd);
 }
@@ -229,12 +229,12 @@ ATF_TC_CLEANUP(setsockopt_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(setsockopt_failure);
 ATF_TC_HEAD(setsockopt_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"setsockopt(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "setsockopt(2) call");
 }
 
 ATF_TC_BODY(setsockopt_failure, tc)
@@ -251,12 +251,12 @@ ATF_TC_CLEANUP(setsockopt_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(bind_success);
 ATF_TC_HEAD(bind_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"bind(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "bind(2) call");
 }
 
 ATF_TC_BODY(bind_success, tc)
@@ -265,8 +265,8 @@ ATF_TC_BODY(bind_success, tc)
 	/* Preliminary socket setup */
 	ATF_REQUIRE((sockfd = socket(PF_UNIX, SOCK_STREAM, 0)) != -1);
 	/* Check the presence of AF_UNIX address path in audit record */
-	snprintf(extregex, sizeof(extregex),
-		"bind.*unix.*%s.*return,success", SERVER_PATH);
+	snprintf(extregex, sizeof(extregex), "bind.*unix.*%s.*return,success",
+	    SERVER_PATH);
 
 	FILE *pipefd = setup(fds, auclass);
 	ATF_REQUIRE_EQ(0, bind(sockfd, (struct sockaddr *)&server, len));
@@ -279,20 +279,20 @@ ATF_TC_CLEANUP(bind_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(bind_failure);
 ATF_TC_HEAD(bind_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"bind(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "bind(2) call");
 }
 
 ATF_TC_BODY(bind_failure, tc)
 {
 	assign_address(&server);
 	/* Check the presence of AF_UNIX path in audit record */
-	snprintf(extregex, sizeof(extregex),
-			"bind.*%s.*return,failure", SERVER_PATH);
+	snprintf(extregex, sizeof(extregex), "bind.*%s.*return,failure",
+	    SERVER_PATH);
 
 	FILE *pipefd = setup(fds, auclass);
 	/* Failure reason: Invalid socket descriptor */
@@ -305,12 +305,12 @@ ATF_TC_CLEANUP(bind_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(bindat_success);
 ATF_TC_HEAD(bindat_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"bindat(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "bindat(2) call");
 }
 
 ATF_TC_BODY(bindat_success, tc)
@@ -319,12 +319,12 @@ ATF_TC_BODY(bindat_success, tc)
 	/* Preliminary socket setup */
 	ATF_REQUIRE((sockfd = socket(PF_UNIX, SOCK_STREAM, 0)) != -1);
 	/* Check the presence of socket descriptor in audit record */
-	snprintf(extregex, sizeof(extregex),
-			"bindat.*0x%x.*return,success", sockfd);
+	snprintf(extregex, sizeof(extregex), "bindat.*0x%x.*return,success",
+	    sockfd);
 
 	FILE *pipefd = setup(fds, auclass);
-	ATF_REQUIRE_EQ(0, bindat(AT_FDCWD, sockfd,
-			(struct sockaddr *)&server, len));
+	ATF_REQUIRE_EQ(0,
+	    bindat(AT_FDCWD, sockfd, (struct sockaddr *)&server, len));
 	check_audit(fds, extregex, pipefd);
 	close(sockfd);
 }
@@ -334,12 +334,12 @@ ATF_TC_CLEANUP(bindat_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(bindat_failure);
 ATF_TC_HEAD(bindat_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"bindat(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "bindat(2) call");
 }
 
 ATF_TC_BODY(bindat_failure, tc)
@@ -349,8 +349,8 @@ ATF_TC_BODY(bindat_failure, tc)
 
 	FILE *pipefd = setup(fds, auclass);
 	/* Failure reason: Invalid socket descriptor */
-	ATF_REQUIRE_EQ(-1, bindat(AT_FDCWD, -1,
-			(struct sockaddr *)&server, len));
+	ATF_REQUIRE_EQ(-1,
+	    bindat(AT_FDCWD, -1, (struct sockaddr *)&server, len));
 	check_audit(fds, extregex, pipefd);
 }
 
@@ -359,12 +359,12 @@ ATF_TC_CLEANUP(bindat_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(listen_success);
 ATF_TC_HEAD(listen_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"listen(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "listen(2) call");
 }
 
 ATF_TC_BODY(listen_success, tc)
@@ -374,8 +374,8 @@ ATF_TC_BODY(listen_success, tc)
 	ATF_REQUIRE((sockfd = socket(PF_UNIX, SOCK_STREAM, 0)) != -1);
 	ATF_REQUIRE_EQ(0, bind(sockfd, (struct sockaddr *)&server, len));
 	/* Check the presence of socket descriptor in the audit record */
-	snprintf(extregex, sizeof(extregex),
-			"listen.*0x%x.*return,success", sockfd);
+	snprintf(extregex, sizeof(extregex), "listen.*0x%x.*return,success",
+	    sockfd);
 
 	FILE *pipefd = setup(fds, auclass);
 	ATF_REQUIRE_EQ(0, listen(sockfd, 1));
@@ -388,12 +388,12 @@ ATF_TC_CLEANUP(listen_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(listen_failure);
 ATF_TC_HEAD(listen_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"listen(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "listen(2) call");
 }
 
 ATF_TC_BODY(listen_failure, tc)
@@ -410,12 +410,12 @@ ATF_TC_CLEANUP(listen_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(connect_success);
 ATF_TC_HEAD(connect_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"connect(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "connect(2) call");
 }
 
 ATF_TC_BODY(connect_success, tc)
@@ -430,8 +430,8 @@ ATF_TC_BODY(connect_success, tc)
 	ATF_REQUIRE((sockfd2 = socket(PF_UNIX, SOCK_STREAM, 0)) != -1);
 
 	/* Audit record must contain AF_UNIX address path & sockfd2 */
-	snprintf(extregex, sizeof(extregex),
-			"connect.*0x%x.*%s.*success", sockfd2, SERVER_PATH);
+	snprintf(extregex, sizeof(extregex), "connect.*0x%x.*%s.*success",
+	    sockfd2, SERVER_PATH);
 
 	FILE *pipefd = setup(fds, auclass);
 	ATF_REQUIRE_EQ(0, connect(sockfd2, (struct sockaddr *)&server, len));
@@ -446,20 +446,20 @@ ATF_TC_CLEANUP(connect_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(connect_failure);
 ATF_TC_HEAD(connect_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"connect(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "connect(2) call");
 }
 
 ATF_TC_BODY(connect_failure, tc)
 {
 	assign_address(&server);
 	/* Audit record must contain AF_UNIX address path */
-	snprintf(extregex, sizeof(extregex),
-			"connect.*%s.*return,failure", SERVER_PATH);
+	snprintf(extregex, sizeof(extregex), "connect.*%s.*return,failure",
+	    SERVER_PATH);
 
 	FILE *pipefd = setup(fds, auclass);
 	/* Failure reason: Invalid socket descriptor */
@@ -472,12 +472,12 @@ ATF_TC_CLEANUP(connect_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(connectat_success);
 ATF_TC_HEAD(connectat_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"connectat(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "connectat(2) call");
 }
 
 ATF_TC_BODY(connectat_success, tc)
@@ -492,12 +492,12 @@ ATF_TC_BODY(connectat_success, tc)
 	ATF_REQUIRE((sockfd2 = socket(PF_UNIX, SOCK_STREAM, 0)) != -1);
 
 	/* Audit record must contain sockfd2 */
-	snprintf(extregex, sizeof(extregex),
-			"connectat.*0x%x.*return,success", sockfd2);
+	snprintf(extregex, sizeof(extregex), "connectat.*0x%x.*return,success",
+	    sockfd2);
 
 	FILE *pipefd = setup(fds, auclass);
-	ATF_REQUIRE_EQ(0, connectat(AT_FDCWD, sockfd2,
-			(struct sockaddr *)&server, len));
+	ATF_REQUIRE_EQ(0,
+	    connectat(AT_FDCWD, sockfd2, (struct sockaddr *)&server, len));
 	check_audit(fds, extregex, pipefd);
 
 	/* Close all socket descriptors */
@@ -509,12 +509,12 @@ ATF_TC_CLEANUP(connectat_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(connectat_failure);
 ATF_TC_HEAD(connectat_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"connectat(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "connectat(2) call");
 }
 
 ATF_TC_BODY(connectat_failure, tc)
@@ -524,8 +524,8 @@ ATF_TC_BODY(connectat_failure, tc)
 
 	FILE *pipefd = setup(fds, auclass);
 	/* Failure reason: Invalid socket descriptor */
-	ATF_REQUIRE_EQ(-1, connectat(AT_FDCWD, -1,
-			(struct sockaddr *)&server, len));
+	ATF_REQUIRE_EQ(-1,
+	    connectat(AT_FDCWD, -1, (struct sockaddr *)&server, len));
 	check_audit(fds, extregex, pipefd);
 }
 
@@ -534,12 +534,12 @@ ATF_TC_CLEANUP(connectat_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(accept_success);
 ATF_TC_HEAD(accept_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"accept(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "accept(2) call");
 }
 
 ATF_TC_BODY(accept_success, tc)
@@ -558,8 +558,8 @@ ATF_TC_BODY(accept_success, tc)
 	ATF_REQUIRE((connectfd = accept(sockfd, NULL, &len)) != -1);
 
 	/* Audit record must contain connectfd & sockfd */
-	snprintf(extregex, sizeof(extregex),
-			"accept.*0x%x.*return,success,%d", sockfd, connectfd);
+	snprintf(extregex, sizeof(extregex), "accept.*0x%x.*return,success,%d",
+	    sockfd, connectfd);
 	check_audit(fds, extregex, pipefd);
 
 	/* Close all socket descriptors */
@@ -571,12 +571,12 @@ ATF_TC_CLEANUP(accept_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(accept_failure);
 ATF_TC_HEAD(accept_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"accept(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "accept(2) call");
 }
 
 ATF_TC_BODY(accept_failure, tc)
@@ -593,12 +593,12 @@ ATF_TC_CLEANUP(accept_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(send_success);
 ATF_TC_HEAD(send_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"send(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "send(2) call");
 }
 
 ATF_TC_BODY(send_success, tc)
@@ -616,12 +616,12 @@ ATF_TC_BODY(send_success, tc)
 
 	/* Send a sample message to the connected socket */
 	FILE *pipefd = setup(fds, auclass);
-	ATF_REQUIRE((data_bytes =
-		send(sockfd2, msgbuff, strlen(msgbuff), 0)) != -1);
+	ATF_REQUIRE(
+	    (data_bytes = send(sockfd2, msgbuff, strlen(msgbuff), 0)) != -1);
 
 	/* Audit record must contain sockfd2 and data_bytes */
-	snprintf(extregex, sizeof(extregex),
-		"send.*0x%x.*return,success,%zd", sockfd2, data_bytes);
+	snprintf(extregex, sizeof(extregex), "send.*0x%x.*return,success,%zd",
+	    sockfd2, data_bytes);
 	check_audit(fds, extregex, pipefd);
 
 	/* Close all socket descriptors */
@@ -633,12 +633,12 @@ ATF_TC_CLEANUP(send_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(send_failure);
 ATF_TC_HEAD(send_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"send(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "send(2) call");
 }
 
 ATF_TC_BODY(send_failure, tc)
@@ -655,12 +655,12 @@ ATF_TC_CLEANUP(send_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(recv_success);
 ATF_TC_HEAD(recv_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"recv(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "recv(2) call");
 }
 
 ATF_TC_BODY(recv_success, tc)
@@ -683,8 +683,8 @@ ATF_TC_BODY(recv_success, tc)
 	ATF_REQUIRE((data_bytes = recv(connectfd, data, MAX_DATA, 0)) != 0);
 
 	/* Audit record must contain connectfd and data_bytes */
-	snprintf(extregex, sizeof(extregex),
-		"recv.*0x%x.*return,success,%zd", connectfd, data_bytes);
+	snprintf(extregex, sizeof(extregex), "recv.*0x%x.*return,success,%zd",
+	    connectfd, data_bytes);
 	check_audit(fds, extregex, pipefd);
 
 	/* Close all socket descriptors */
@@ -696,12 +696,12 @@ ATF_TC_CLEANUP(recv_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(recv_failure);
 ATF_TC_HEAD(recv_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"recv(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "recv(2) call");
 }
 
 ATF_TC_BODY(recv_failure, tc)
@@ -718,12 +718,12 @@ ATF_TC_CLEANUP(recv_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(sendto_success);
 ATF_TC_HEAD(sendto_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"sendto(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "sendto(2) call");
 }
 
 ATF_TC_BODY(sendto_success, tc)
@@ -738,12 +738,12 @@ ATF_TC_BODY(sendto_success, tc)
 
 	/* Send a sample message to server's address */
 	FILE *pipefd = setup(fds, auclass);
-	ATF_REQUIRE((data_bytes = sendto(sockfd2, msgbuff,
-		strlen(msgbuff), 0, (struct sockaddr *)&server, len)) != -1);
+	ATF_REQUIRE((data_bytes = sendto(sockfd2, msgbuff, strlen(msgbuff), 0,
+			 (struct sockaddr *)&server, len)) != -1);
 
 	/* Audit record must contain sockfd2 and data_bytes */
-	snprintf(extregex, sizeof(extregex),
-		"sendto.*0x%x.*return,success,%zd", sockfd2, data_bytes);
+	snprintf(extregex, sizeof(extregex), "sendto.*0x%x.*return,success,%zd",
+	    sockfd2, data_bytes);
 	check_audit(fds, extregex, pipefd);
 
 	/* Close all socket descriptors */
@@ -755,12 +755,12 @@ ATF_TC_CLEANUP(sendto_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(sendto_failure);
 ATF_TC_HEAD(sendto_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"sendto(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "sendto(2) call");
 }
 
 ATF_TC_BODY(sendto_failure, tc)
@@ -777,12 +777,12 @@ ATF_TC_CLEANUP(sendto_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(recvfrom_success);
 ATF_TC_HEAD(recvfrom_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"recvfrom(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "recvfrom(2) call");
 }
 
 ATF_TC_BODY(recvfrom_success, tc)
@@ -795,16 +795,16 @@ ATF_TC_BODY(recvfrom_success, tc)
 	/* Set up client socket to be used for sending the data */
 	ATF_REQUIRE((sockfd2 = socket(PF_UNIX, SOCK_DGRAM, 0)) != -1);
 	ATF_REQUIRE(sendto(sockfd2, msgbuff, strlen(msgbuff), 0,
-		(struct sockaddr *)&server, len) != -1);
+			(struct sockaddr *)&server, len) != -1);
 
 	/* Receive data once sockfd is ready for reading */
 	FILE *pipefd = setup(fds, auclass);
-	ATF_REQUIRE((data_bytes = recvfrom(sockfd, data,
-		MAX_DATA, 0, NULL, &len)) != 0);
+	ATF_REQUIRE((data_bytes = recvfrom(sockfd, data, MAX_DATA, 0, NULL,
+			 &len)) != 0);
 
 	/* Audit record must contain sockfd and data_bytes */
 	snprintf(extregex, sizeof(extregex),
-		"recvfrom.*0x%x.*return,success,%zd", sockfd, data_bytes);
+	    "recvfrom.*0x%x.*return,success,%zd", sockfd, data_bytes);
 	check_audit(fds, extregex, pipefd);
 
 	/* Close all socket descriptors */
@@ -816,12 +816,12 @@ ATF_TC_CLEANUP(recvfrom_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(recvfrom_failure);
 ATF_TC_HEAD(recvfrom_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"recvfrom(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "recvfrom(2) call");
 }
 
 ATF_TC_BODY(recvfrom_failure, tc)
@@ -838,12 +838,12 @@ ATF_TC_CLEANUP(recvfrom_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(sendmsg_success);
 ATF_TC_HEAD(sendmsg_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"recvmsg(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "recvmsg(2) call");
 }
 
 ATF_TC_BODY(sendmsg_success, tc)
@@ -866,7 +866,7 @@ ATF_TC_BODY(sendmsg_success, tc)
 
 	/* Audit record must contain sockfd2 and data_bytes */
 	snprintf(extregex, sizeof(extregex),
-		"sendmsg.*0x%x.*return,success,%zd", sockfd2, data_bytes);
+	    "sendmsg.*0x%x.*return,success,%zd", sockfd2, data_bytes);
 	check_audit(fds, extregex, pipefd);
 
 	/* Close all socket descriptors */
@@ -878,18 +878,18 @@ ATF_TC_CLEANUP(sendmsg_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(sendmsg_failure);
 ATF_TC_HEAD(sendmsg_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"sendmsg(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "sendmsg(2) call");
 }
 
 ATF_TC_BODY(sendmsg_failure, tc)
 {
 	snprintf(extregex, sizeof(extregex),
-		"sendmsg.*return,failure : Bad address");
+	    "sendmsg.*return,failure : Bad address");
 	FILE *pipefd = setup(fds, auclass);
 	ATF_REQUIRE_EQ(-1, sendmsg(-1, NULL, 0));
 	check_audit(fds, extregex, pipefd);
@@ -900,12 +900,12 @@ ATF_TC_CLEANUP(sendmsg_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(recvmsg_success);
 ATF_TC_HEAD(recvmsg_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"recvmsg(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "recvmsg(2) call");
 }
 
 ATF_TC_BODY(recvmsg_success, tc)
@@ -933,8 +933,8 @@ ATF_TC_BODY(recvmsg_success, tc)
 	ATF_REQUIRE((data_bytes = recvmsg(sockfd, &recvbuf, 0)) != -1);
 
 	/* Audit record must contain sockfd and data_bytes */
-	snprintf(extregex, sizeof(extregex),
-		"recvmsg.*%#x.*return,success,%zd", sockfd, data_bytes);
+	snprintf(extregex, sizeof(extregex), "recvmsg.*%#x.*return,success,%zd",
+	    sockfd, data_bytes);
 	check_audit(fds, extregex, pipefd);
 
 	/* Close all socket descriptors */
@@ -946,18 +946,18 @@ ATF_TC_CLEANUP(recvmsg_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(recvmsg_failure);
 ATF_TC_HEAD(recvmsg_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"recvmsg(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "recvmsg(2) call");
 }
 
 ATF_TC_BODY(recvmsg_failure, tc)
 {
 	snprintf(extregex, sizeof(extregex),
-		"recvmsg.*return,failure : Bad address");
+	    "recvmsg.*return,failure : Bad address");
 	FILE *pipefd = setup(fds, auclass);
 	ATF_REQUIRE_EQ(-1, recvmsg(-1, NULL, 0));
 	check_audit(fds, extregex, pipefd);
@@ -968,12 +968,12 @@ ATF_TC_CLEANUP(recvmsg_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(shutdown_success);
 ATF_TC_HEAD(shutdown_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"shutdown(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "shutdown(2) call");
 }
 
 ATF_TC_BODY(shutdown_success, tc)
@@ -990,8 +990,8 @@ ATF_TC_BODY(shutdown_success, tc)
 	ATF_REQUIRE((connectfd = accept(sockfd, NULL, &len)) != -1);
 
 	/* Audit record must contain clientfd */
-	snprintf(extregex, sizeof(extregex),
-		"shutdown.*%#x.*return,success", connectfd);
+	snprintf(extregex, sizeof(extregex), "shutdown.*%#x.*return,success",
+	    connectfd);
 
 	FILE *pipefd = setup(fds, auclass);
 	ATF_REQUIRE_EQ(0, shutdown(connectfd, SHUT_RDWR));
@@ -1006,19 +1006,19 @@ ATF_TC_CLEANUP(shutdown_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(shutdown_failure);
 ATF_TC_HEAD(shutdown_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"shutdown(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "shutdown(2) call");
 }
 
 ATF_TC_BODY(shutdown_failure, tc)
 {
 	pid = getpid();
-	snprintf(extregex, sizeof(extregex),
-		"shutdown.*%d.*return,failure", pid);
+	snprintf(extregex, sizeof(extregex), "shutdown.*%d.*return,failure",
+	    pid);
 
 	FILE *pipefd = setup(fds, auclass);
 	/* Failure reason: Invalid socket descriptor */
@@ -1031,12 +1031,12 @@ ATF_TC_CLEANUP(shutdown_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(sendfile_success);
 ATF_TC_HEAD(sendfile_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"sendfile(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "sendfile(2) call");
 }
 
 ATF_TC_BODY(sendfile_success, tc)
@@ -1047,7 +1047,7 @@ ATF_TC_BODY(sendfile_success, tc)
 	ATF_REQUIRE((sockfd = socket(PF_UNIX, SOCK_STREAM, 0)) != -1);
 	/* Check the presence of sockfd, non-file in the audit record */
 	snprintf(extregex, sizeof(extregex),
-		"sendfile.*%#x,non-file.*return,success", filedesc);
+	    "sendfile.*%#x,non-file.*return,success", filedesc);
 
 	FILE *pipefd = setup(fds, auclass);
 	ATF_REQUIRE_EQ(0, sendfile(filedesc, sockfd, 0, 0, NULL, NULL, 0));
@@ -1062,19 +1062,19 @@ ATF_TC_CLEANUP(sendfile_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(sendfile_failure);
 ATF_TC_HEAD(sendfile_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"sendfile(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "sendfile(2) call");
 }
 
 ATF_TC_BODY(sendfile_failure, tc)
 {
 	pid = getpid();
-	snprintf(extregex, sizeof(extregex),
-		"sendfile.*%d.*return,failure", pid);
+	snprintf(extregex, sizeof(extregex), "sendfile.*%d.*return,failure",
+	    pid);
 	FILE *pipefd = setup(fds, auclass);
 	ATF_REQUIRE_EQ(-1, sendfile(-1, -1, 0, 0, NULL, NULL, 0));
 	check_audit(fds, extregex, pipefd);
@@ -1085,12 +1085,12 @@ ATF_TC_CLEANUP(sendfile_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(setfib_success);
 ATF_TC_HEAD(setfib_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"setfib(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "setfib(2) call");
 }
 
 ATF_TC_BODY(setfib_success, tc)
@@ -1108,12 +1108,12 @@ ATF_TC_CLEANUP(setfib_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(setfib_failure);
 ATF_TC_HEAD(setfib_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"setfib(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "setfib(2) call");
 }
 
 ATF_TC_BODY(setfib_failure, tc)
@@ -1130,7 +1130,6 @@ ATF_TC_CLEANUP(setfib_failure, tc)
 {
 	cleanup();
 }
-
 
 ATF_TP_ADD_TCS(tp)
 {

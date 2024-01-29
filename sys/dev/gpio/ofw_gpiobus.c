@@ -40,11 +40,11 @@
 
 #include "gpiobus_if.h"
 
-static struct ofw_gpiobus_devinfo *ofw_gpiobus_setup_devinfo(device_t,
-	device_t, phandle_t);
+static struct ofw_gpiobus_devinfo *ofw_gpiobus_setup_devinfo(device_t, device_t,
+    phandle_t);
 static void ofw_gpiobus_destroy_devinfo(device_t, struct ofw_gpiobus_devinfo *);
 static int ofw_gpiobus_parse_gpios_impl(device_t, phandle_t, char *,
-	struct gpiobus_softc *, struct gpiobus_pin **);
+    struct gpiobus_softc *, struct gpiobus_pin **);
 
 /*
  * Utility functions for easier handling of OFW GPIO pins.
@@ -55,8 +55,8 @@ static int ofw_gpiobus_parse_gpios_impl(device_t, phandle_t, char *,
  *
  */
 int
-gpio_pin_get_by_ofw_propidx(device_t consumer, phandle_t cnode,
-    char *prop_name, int idx, gpio_pin_t *out_pin)
+gpio_pin_get_by_ofw_propidx(device_t consumer, phandle_t cnode, char *prop_name,
+    int idx, gpio_pin_t *out_pin)
 {
 	phandle_t xref;
 	pcell_t *cells;
@@ -67,8 +67,8 @@ gpio_pin_get_by_ofw_propidx(device_t consumer, phandle_t cnode,
 	KASSERT(consumer != NULL && cnode > 0,
 	    ("both consumer and cnode required"));
 
-	rv = ofw_bus_parse_xref_list_alloc(cnode, prop_name, "#gpio-cells",
-	    idx, &xref, &ncells, &cells);
+	rv = ofw_bus_parse_xref_list_alloc(cnode, prop_name, "#gpio-cells", idx,
+	    &xref, &ncells, &cells);
 	if (rv != 0)
 		return (rv);
 
@@ -105,24 +105,24 @@ gpio_pin_get_by_ofw_propidx(device_t consumer, phandle_t cnode,
 }
 
 int
-gpio_pin_get_by_ofw_idx(device_t consumer, phandle_t node,
-    int idx, gpio_pin_t *pin)
+gpio_pin_get_by_ofw_idx(device_t consumer, phandle_t node, int idx,
+    gpio_pin_t *pin)
 {
 
 	return (gpio_pin_get_by_ofw_propidx(consumer, node, "gpios", idx, pin));
 }
 
 int
-gpio_pin_get_by_ofw_property(device_t consumer, phandle_t node,
-    char *name, gpio_pin_t *pin)
+gpio_pin_get_by_ofw_property(device_t consumer, phandle_t node, char *name,
+    gpio_pin_t *pin)
 {
 
 	return (gpio_pin_get_by_ofw_propidx(consumer, node, name, 0, pin));
 }
 
 int
-gpio_pin_get_by_ofw_name(device_t consumer, phandle_t node,
-    char *name, gpio_pin_t *pin)
+gpio_pin_get_by_ofw_name(device_t consumer, phandle_t node, char *name,
+    gpio_pin_t *pin)
 {
 	int rv, idx;
 
@@ -181,7 +181,7 @@ ofw_gpiobus_add_fdt_child(device_t bus, const char *drvname, phandle_t child)
 
 int
 ofw_gpiobus_parse_gpios(device_t consumer, char *pname,
-	struct gpiobus_pin **pins)
+    struct gpiobus_pin **pins)
 {
 
 	return (ofw_gpiobus_parse_gpios_impl(consumer,
@@ -277,18 +277,19 @@ ofw_gpiobus_destroy_devinfo(device_t bus, struct ofw_gpiobus_devinfo *dinfo)
 
 static int
 ofw_gpiobus_parse_gpios_impl(device_t consumer, phandle_t cnode, char *pname,
-	struct gpiobus_softc *bussc, struct gpiobus_pin **pins)
+    struct gpiobus_softc *bussc, struct gpiobus_pin **pins)
 {
 	int gpiocells, i, j, ncells, npins;
 	pcell_t *gpios;
 	phandle_t gpio;
 
 	ncells = OF_getencprop_alloc_multi(cnode, pname, sizeof(*gpios),
-            (void **)&gpios);
+	    (void **)&gpios);
 	if (ncells == -1) {
 		device_printf(consumer,
 		    "Warning: No %s specified in fdt data; "
-		    "device may not function.\n", pname);
+		    "device may not function.\n",
+		    pname);
 		return (-1);
 	}
 	/*
@@ -316,7 +317,7 @@ ofw_gpiobus_parse_gpios_impl(device_t consumer, phandle_t cnode, char *pname,
 		 */
 		if (!OF_hasprop(gpio, "gpio-controller") ||
 		    OF_getencprop(gpio, "#gpio-cells", &gpiocells,
-		    sizeof(gpiocells)) < 0) {
+			sizeof(gpiocells)) < 0) {
 			device_printf(consumer,
 			    "gpio reference is not a gpio-controller.\n");
 			OF_prop_free(gpios);
@@ -356,7 +357,7 @@ ofw_gpiobus_parse_gpios_impl(device_t consumer, phandle_t cnode, char *pname,
 		gpio = OF_node_from_xref(gpios[i]);
 		/* Read gpio-cells property for this GPIO controller. */
 		if (OF_getencprop(gpio, "#gpio-cells", &gpiocells,
-		    sizeof(gpiocells)) < 0) {
+			sizeof(gpiocells)) < 0) {
 			device_printf(consumer,
 			    "gpio does not have the #gpio-cells property.\n");
 			goto fail;
@@ -384,7 +385,8 @@ ofw_gpiobus_parse_gpios_impl(device_t consumer, phandle_t cnode, char *pname,
 		}
 		/* Get the GPIO pin number and flags. */
 		if (gpio_map_gpios((*pins)[j].dev, cnode, gpio, gpiocells,
-		    &gpios[i + 1], &(*pins)[j].pin, &(*pins)[j].flags) != 0) {
+			&gpios[i + 1], &(*pins)[j].pin,
+			&(*pins)[j].flags) != 0) {
 			device_printf(consumer,
 			    "cannot map the gpios specifier.\n");
 			goto fail;
@@ -431,7 +433,7 @@ ofw_gpiobus_attach(device_t dev)
 	 * Attach the children represented in the device tree.
 	 */
 	for (child = OF_child(ofw_bus_get_node(dev)); child != 0;
-	    child = OF_peer(child)) {
+	     child = OF_peer(child)) {
 		if (OF_hasprop(child, "gpio-hog"))
 			continue;
 		if (!OF_hasprop(child, "gpios"))
@@ -486,20 +488,20 @@ ofw_gpiobus_get_devinfo(device_t bus, device_t dev)
 
 static device_method_t ofw_gpiobus_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		ofw_gpiobus_probe),
-	DEVMETHOD(device_attach,	ofw_gpiobus_attach),
+	DEVMETHOD(device_probe, ofw_gpiobus_probe),
+	DEVMETHOD(device_attach, ofw_gpiobus_attach),
 
 	/* Bus interface */
-	DEVMETHOD(bus_child_pnpinfo,	ofw_bus_gen_child_pnpinfo),
-	DEVMETHOD(bus_add_child,	ofw_gpiobus_add_child),
+	DEVMETHOD(bus_child_pnpinfo, ofw_bus_gen_child_pnpinfo),
+	DEVMETHOD(bus_add_child, ofw_gpiobus_add_child),
 
 	/* ofw_bus interface */
-	DEVMETHOD(ofw_bus_get_devinfo,	ofw_gpiobus_get_devinfo),
-	DEVMETHOD(ofw_bus_get_compat,	ofw_bus_gen_get_compat),
-	DEVMETHOD(ofw_bus_get_model,	ofw_bus_gen_get_model),
-	DEVMETHOD(ofw_bus_get_name,	ofw_bus_gen_get_name),
-	DEVMETHOD(ofw_bus_get_node,	ofw_bus_gen_get_node),
-	DEVMETHOD(ofw_bus_get_type,	ofw_bus_gen_get_type),
+	DEVMETHOD(ofw_bus_get_devinfo, ofw_gpiobus_get_devinfo),
+	DEVMETHOD(ofw_bus_get_compat, ofw_bus_gen_get_compat),
+	DEVMETHOD(ofw_bus_get_model, ofw_bus_gen_get_model),
+	DEVMETHOD(ofw_bus_get_name, ofw_bus_gen_get_name),
+	DEVMETHOD(ofw_bus_get_node, ofw_bus_gen_get_node),
+	DEVMETHOD(ofw_bus_get_type, ofw_bus_gen_get_type),
 
 	DEVMETHOD_END
 };

@@ -42,50 +42,49 @@
 
 #include <compat/linux/linux_util.h>
 
-#define	LINUX_XATTR_SIZE_MAX	65536
-#define	LINUX_XATTR_LIST_MAX	65536
-#define	LINUX_XATTR_NAME_MAX	255
+#define LINUX_XATTR_SIZE_MAX 65536
+#define LINUX_XATTR_LIST_MAX 65536
+#define LINUX_XATTR_NAME_MAX 255
 
-#define	LINUX_XATTR_CREATE	0x1
-#define	LINUX_XATTR_REPLACE	0x2
-#define	LINUX_XATTR_FLAGS	LINUX_XATTR_CREATE|LINUX_XATTR_REPLACE
+#define LINUX_XATTR_CREATE 0x1
+#define LINUX_XATTR_REPLACE 0x2
+#define LINUX_XATTR_FLAGS LINUX_XATTR_CREATE | LINUX_XATTR_REPLACE
 
 struct listxattr_args {
-	int		fd;
-	const char	*path;
-	char		*list;
-	l_size_t	size;
-	int		follow;
+	int fd;
+	const char *path;
+	char *list;
+	l_size_t size;
+	int follow;
 };
 
 struct setxattr_args {
-	int		fd;
-	const char	*path;
-	const char	*name;
-	void 		*value;
-	l_size_t	size;
-	l_int		flags;
-	int		follow;
+	int fd;
+	const char *path;
+	const char *name;
+	void *value;
+	l_size_t size;
+	l_int flags;
+	int follow;
 };
 
 struct getxattr_args {
-	int		fd;
-	const char	*path;
-	const char	*name;
-	void 		*value;
-	l_size_t	size;
-	int		follow;
+	int fd;
+	const char *path;
+	const char *name;
+	void *value;
+	l_size_t size;
+	int follow;
 };
 
 struct removexattr_args {
-	int		fd;
-	const char	*path;
-	const char	*name;
-	int		follow;
+	int fd;
+	const char *path;
+	const char *name;
+	int follow;
 };
 
 static char *extattr_namespace_names[] = EXTATTR_NAMESPACE_NAMES;
-
 
 static int
 error_to_xattrerror(int attrnamespace, int error)
@@ -114,10 +113,10 @@ xatrr_to_extattr(const char *uattrname, int *attrnamespace, char *attrname)
 		return (ENOTSUP);
 	*dot = '\0';
 	for (*attrnamespace = EXTATTR_NAMESPACE_USER;
-	    *attrnamespace < nitems(extattr_namespace_names);
-	    (*attrnamespace)++) {
+	     *attrnamespace < nitems(extattr_namespace_names);
+	     (*attrnamespace)++) {
 		if (bcmp(uname, extattr_namespace_names[*attrnamespace],
-		    dot - uname + 1) == 0) {
+			dot - uname + 1) == 0) {
 			dot++;
 			len = strlen(dot) + 1;
 			bcopy(dot, attrname, len);
@@ -151,8 +150,7 @@ listxattr(struct thread *td, struct listxattr_args *args)
 	auio.uio_td = td;
 	cnt = 0;
 	for (attrnamespace = EXTATTR_NAMESPACE_USER;
-	    attrnamespace < nitems(extattr_namespace_names);
-	    attrnamespace++) {
+	     attrnamespace < nitems(extattr_namespace_names); attrnamespace++) {
 		aiov.iov_base = data;
 		aiov.iov_len = sz;
 		auio.uio_resid = sz;
@@ -191,7 +189,8 @@ listxattr(struct thread *td, struct listxattr_args *args)
 			}
 			++key;
 			if (args->list != NULL && args->size > 0) {
-				sprintf(attrname, "%s.%.*s", prefix, keylen, key);
+				sprintf(attrname, "%s.%.*s", prefix, keylen,
+				    key);
 				error = copyout(attrname, args->list, pairlen);
 				if (error != 0)
 					break;
@@ -317,7 +316,8 @@ getxattr(struct thread *td, struct getxattr_args *args)
 		return (error);
 	if (args->path != NULL)
 		error = kern_extattr_get_path(td, args->path, attrnamespace,
-		    attrname, args->value, args->size, args->follow, UIO_USERSPACE);
+		    attrname, args->value, args->size, args->follow,
+		    UIO_USERSPACE);
 	else
 		error = kern_extattr_get_fd(td, args->fd, attrnamespace,
 		    attrname, args->value, args->size);
@@ -382,14 +382,14 @@ setxattr(struct thread *td, struct setxattr_args *args)
 	if (error != 0)
 		return (error);
 
-	if ((args->flags & (LINUX_XATTR_FLAGS)) != 0 ) {
+	if ((args->flags & (LINUX_XATTR_FLAGS)) != 0) {
 		if (args->path != NULL)
 			error = kern_extattr_get_path(td, args->path,
 			    attrnamespace, attrname, NULL, args->size,
 			    args->follow, UIO_USERSPACE);
 		else
-			error = kern_extattr_get_fd(td, args->fd,
-			    attrnamespace, attrname, NULL, args->size);
+			error = kern_extattr_get_fd(td, args->fd, attrnamespace,
+			    attrname, NULL, args->size);
 		if ((args->flags & LINUX_XATTR_CREATE) != 0) {
 			if (error == 0)
 				error = EEXIST;

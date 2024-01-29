@@ -32,7 +32,6 @@
  * SUCH DAMAGE.
  */
 
-
 /*
  * Compatibility routines that implement the old re_comp/re_exec interface in
  * terms of the regcomp/regexec interface.  It's possible that some programs

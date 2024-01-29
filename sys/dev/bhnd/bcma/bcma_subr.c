@@ -34,10 +34,10 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/limits.h>
-#include <sys/systm.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
@@ -45,16 +45,15 @@
 #include <dev/bhnd/bhndvar.h>
 
 #include "bcma_dmp.h"
-
 #include "bcmavar.h"
 
 /* Return the resource ID for a device's agent register allocation */
-#define	BCMA_AGENT_RID(_dinfo)	\
-    (BCMA_AGENT_RID_BASE + BCMA_DINFO_COREIDX(_dinfo))
+#define BCMA_AGENT_RID(_dinfo) \
+	(BCMA_AGENT_RID_BASE + BCMA_DINFO_COREIDX(_dinfo))
 
- /**
+/**
  * Allocate and initialize new core config structure.
- * 
+ *
  * @param core_index Core index on the bus.
  * @param core_unit Core unit number.
  * @param vendor Core designer.
@@ -71,13 +70,11 @@ bcma_alloc_corecfg(u_int core_index, int core_unit, uint16_t vendor,
 	if (cfg == NULL)
 		return NULL;
 
-	cfg->core_info = (struct bhnd_core_info) {
-		.vendor = vendor,
+	cfg->core_info = (struct bhnd_core_info) { .vendor = vendor,
 		.device = device,
 		.hwrev = hwrev,
 		.core_idx = core_index,
-		.unit = core_unit
-	};
+		.unit = core_unit };
 
 	STAILQ_INIT(&cfg->master_ports);
 	cfg->num_master_ports = 0;
@@ -96,7 +93,7 @@ bcma_alloc_corecfg(u_int core_index, int core_unit, uint16_t vendor,
 
 /**
  * Deallocate the given core config and any associated resources.
- * 
+ *
  * @param corecfg Core info to be deallocated.
  */
 void
@@ -105,19 +102,19 @@ bcma_free_corecfg(struct bcma_corecfg *corecfg)
 	struct bcma_mport *mport, *mnext;
 	struct bcma_sport *sport, *snext;
 
-	STAILQ_FOREACH_SAFE(mport, &corecfg->master_ports, mp_link, mnext) {
+	STAILQ_FOREACH_SAFE (mport, &corecfg->master_ports, mp_link, mnext) {
 		free(mport, M_BHND);
 	}
 
-	STAILQ_FOREACH_SAFE(sport, &corecfg->dev_ports, sp_link, snext) {
+	STAILQ_FOREACH_SAFE (sport, &corecfg->dev_ports, sp_link, snext) {
 		bcma_free_sport(sport);
 	}
 
-	STAILQ_FOREACH_SAFE(sport, &corecfg->bridge_ports, sp_link, snext) {
+	STAILQ_FOREACH_SAFE (sport, &corecfg->bridge_ports, sp_link, snext) {
 		bcma_free_sport(sport);
 	}
 
-	STAILQ_FOREACH_SAFE(sport, &corecfg->wrapper_ports, sp_link, snext) {
+	STAILQ_FOREACH_SAFE (sport, &corecfg->wrapper_ports, sp_link, snext) {
 		bcma_free_sport(sport);
 	}
 
@@ -126,7 +123,7 @@ bcma_free_corecfg(struct bcma_corecfg *corecfg)
 
 /**
  * Return the @p cfg port list for @p type.
- * 
+ *
  * @param cfg The core configuration.
  * @param type The requested port type.
  */
@@ -151,7 +148,7 @@ bcma_corecfg_get_port_list(struct bcma_corecfg *cfg, bhnd_port_type type)
 /**
  * Populate the resource list and bcma_map RIDs using the maps defined on
  * @p ports.
- * 
+ *
  * @param bus The requesting bus device.
  * @param dinfo The device info instance to be initialized.
  * @param ports The set of ports to be enumerated
@@ -160,19 +157,19 @@ static void
 bcma_dinfo_init_port_resource_info(device_t bus, struct bcma_devinfo *dinfo,
     struct bcma_sport_list *ports)
 {
-	struct bcma_map		*map;
-	struct bcma_sport	*port;
-	bhnd_addr_t		 end;
+	struct bcma_map *map;
+	struct bcma_sport *port;
+	bhnd_addr_t end;
 
-	STAILQ_FOREACH(port, ports, sp_link) {
-		STAILQ_FOREACH(map, &port->sp_maps, m_link) {
+	STAILQ_FOREACH (port, ports, sp_link) {
+		STAILQ_FOREACH (map, &port->sp_maps, m_link) {
 			/*
 			 * Create the corresponding device resource list entry.
-			 * 
+			 *
 			 * We necessarily skip registration if the region's
 			 * device memory range is not representable via
 			 * rman_res_t.
-			 * 
+			 *
 			 * When rman_res_t is migrated to uintmax_t, any
 			 * range should be representable.
 			 */
@@ -184,12 +181,12 @@ bcma_dinfo_init_port_resource_info(device_t bus, struct bcma_devinfo *dinfo,
 			} else if (bootverbose) {
 				device_printf(bus,
 				    "core%u %s%u.%u: region %llx-%llx extends "
-				        "beyond supported addressable range\n",
+				    "beyond supported addressable range\n",
 				    dinfo->corecfg->core_info.core_idx,
 				    bhnd_port_type_name(port->sp_type),
 				    port->sp_num, map->m_region_num,
-				    (unsigned long long) map->m_base,
-				    (unsigned long long) end);
+				    (unsigned long long)map->m_base,
+				    (unsigned long long)end);
 			}
 		}
 	}
@@ -197,38 +194,40 @@ bcma_dinfo_init_port_resource_info(device_t bus, struct bcma_devinfo *dinfo,
 
 /**
  * Allocate the per-core agent register block for a device info structure.
- * 
+ *
  * If an agent0.0 region is not defined on @p dinfo, the device info
  * agent resource is set to NULL and 0 is returned.
- * 
+ *
  * @param bus The requesting bus device.
  * @param child The bcma child device.
  * @param dinfo The device info associated with @p child
- * 
+ *
  * @retval 0 success
  * @retval non-zero resource allocation failed.
  */
 static int
 bcma_dinfo_init_agent(device_t bus, device_t child, struct bcma_devinfo *dinfo)
 {
-	bhnd_addr_t	addr;
-	bhnd_size_t	size;
-	rman_res_t	r_start, r_count, r_end;
-	int		error;
+	bhnd_addr_t addr;
+	bhnd_size_t size;
+	rman_res_t r_start, r_count, r_end;
+	int error;
 
 	KASSERT(dinfo->res_agent == NULL, ("double allocation of agent"));
 
 	/* Verify that the agent register block exists and is
 	 * mappable */
 	if (bhnd_get_port_rid(child, BHND_PORT_AGENT, 0, 0) == -1)
-		return (0);	/* nothing to do */
+		return (0); /* nothing to do */
 
 	/* Fetch the address of the agent register block */
-	error = bhnd_get_region_addr(child, BHND_PORT_AGENT, 0, 0,
-	    &addr, &size);
+	error = bhnd_get_region_addr(child, BHND_PORT_AGENT, 0, 0, &addr,
+	    &size);
 	if (error) {
-		device_printf(bus, "failed fetching agent register block "
-		    "address for core %u\n", BCMA_DINFO_COREIDX(dinfo));
+		device_printf(bus,
+		    "failed fetching agent register block "
+		    "address for core %u\n",
+		    BCMA_DINFO_COREIDX(dinfo));
 		return (error);
 	}
 
@@ -239,10 +238,13 @@ bcma_dinfo_init_agent(device_t bus, device_t child, struct bcma_devinfo *dinfo)
 
 	dinfo->rid_agent = BCMA_AGENT_RID(dinfo);
 	dinfo->res_agent = BHND_BUS_ALLOC_RESOURCE(bus, bus, SYS_RES_MEMORY,
-	    &dinfo->rid_agent, r_start, r_end, r_count, RF_ACTIVE|RF_SHAREABLE);
+	    &dinfo->rid_agent, r_start, r_end, r_count,
+	    RF_ACTIVE | RF_SHAREABLE);
 	if (dinfo->res_agent == NULL) {
-		device_printf(bus, "failed allocating agent register block for "
-		    "core %u\n", BCMA_DINFO_COREIDX(dinfo));
+		device_printf(bus,
+		    "failed allocating agent register block for "
+		    "core %u\n",
+		    BCMA_DINFO_COREIDX(dinfo));
 		return (ENXIO);
 	}
 
@@ -252,16 +254,15 @@ bcma_dinfo_init_agent(device_t bus, device_t child, struct bcma_devinfo *dinfo)
 /**
  * Populate the list of interrupts for a device info structure
  * previously initialized via bcma_dinfo_alloc_agent().
- * 
+ *
  * If an agent0.0 region is not mapped on @p dinfo, the OOB interrupt bank is
  * assumed to be unavailable and 0 is returned.
- * 
+ *
  * @param bus The requesting bus device.
  * @param dinfo The device info instance to be initialized.
  */
 static int
-bcma_dinfo_init_intrs(device_t bus, device_t child,
-    struct bcma_devinfo *dinfo)
+bcma_dinfo_init_intrs(device_t bus, device_t child, struct bcma_devinfo *dinfo)
 {
 	uint32_t dmpcfg, oobw;
 
@@ -276,34 +277,37 @@ bcma_dinfo_init_intrs(device_t bus, device_t child,
 
 	/* Fetch width of the OOB interrupt bank */
 	oobw = bhnd_bus_read_4(dinfo->res_agent,
-	     BCMA_DMP_OOB_OUTWIDTH(BCMA_OOB_BANK_INTR));
+	    BCMA_DMP_OOB_OUTWIDTH(BCMA_OOB_BANK_INTR));
 	if (oobw >= BCMA_OOB_NUM_SEL) {
-		device_printf(bus, "ignoring invalid OOBOUTWIDTH for core %u: "
-		    "%#x\n", BCMA_DINFO_COREIDX(dinfo), oobw);
+		device_printf(bus,
+		    "ignoring invalid OOBOUTWIDTH for core %u: "
+		    "%#x\n",
+		    BCMA_DINFO_COREIDX(dinfo), oobw);
 		return (0);
 	}
 
 	/* Fetch OOBSEL busline values and populate list of interrupt
 	 * descriptors */
 	for (uint32_t sel = 0; sel < oobw; sel++) {
-		struct bcma_intr	*intr;
-		uint32_t		 selout;
-		uint8_t			 line;
+		struct bcma_intr *intr;
+		uint32_t selout;
+		uint8_t line;
 
 		if (dinfo->num_intrs == UINT_MAX)
 			return (ENOMEM);
 
-		selout = bhnd_bus_read_4(dinfo->res_agent, BCMA_DMP_OOBSELOUT(
-		    BCMA_OOB_BANK_INTR, sel));
+		selout = bhnd_bus_read_4(dinfo->res_agent,
+		    BCMA_DMP_OOBSELOUT(BCMA_OOB_BANK_INTR, sel));
 
 		line = (selout >> BCMA_DMP_OOBSEL_SHIFT(sel)) &
 		    BCMA_DMP_OOBSEL_BUSLINE_MASK;
 
 		intr = bcma_alloc_intr(BCMA_OOB_BANK_INTR, sel, line);
 		if (intr == NULL) {
-			device_printf(bus, "failed allocating interrupt "
-			    "descriptor %#x for core %u\n", sel,
-			    BCMA_DINFO_COREIDX(dinfo));
+			device_printf(bus,
+			    "failed allocating interrupt "
+			    "descriptor %#x for core %u\n",
+			    sel, BCMA_DINFO_COREIDX(dinfo));
 			return (ENOMEM);
 		}
 
@@ -316,9 +320,9 @@ bcma_dinfo_init_intrs(device_t bus, device_t child,
 
 /**
  * Allocate and return a new empty device info structure.
- * 
+ *
  * @param bus The requesting bus device.
- * 
+ *
  * @retval NULL if allocation failed.
  */
 struct bcma_devinfo *
@@ -326,7 +330,7 @@ bcma_alloc_dinfo(device_t bus)
 {
 	struct bcma_devinfo *dinfo;
 
-	dinfo = malloc(sizeof(struct bcma_devinfo), M_BHND, M_NOWAIT|M_ZERO);
+	dinfo = malloc(sizeof(struct bcma_devinfo), M_BHND, M_NOWAIT | M_ZERO);
 	if (dinfo == NULL)
 		return (NULL);
 
@@ -346,13 +350,13 @@ bcma_alloc_dinfo(device_t bus)
  * Initialize a device info structure previously allocated via
  * bcma_alloc_dinfo, assuming ownership of the provided core
  * configuration.
- * 
+ *
  * @param bus The requesting bus device.
  * @param child The bcma child device.
  * @param dinfo The device info associated with @p child
  * @param corecfg Device core configuration; ownership of this value
  * will be assumed by @p dinfo.
- * 
+ *
  * @retval 0 success
  * @retval non-zero initialization failed.
  */
@@ -360,8 +364,8 @@ int
 bcma_init_dinfo(device_t bus, device_t child, struct bcma_devinfo *dinfo,
     struct bcma_corecfg *corecfg)
 {
-	struct bcma_intr	*intr;
-	int			 error;
+	struct bcma_intr *intr;
+	int error;
 
 	KASSERT(dinfo->corecfg == NULL, ("dinfo previously initialized"));
 
@@ -385,7 +389,7 @@ bcma_init_dinfo(device_t bus, device_t child, struct bcma_devinfo *dinfo,
 		goto failed;
 
 	/* Finally, map the interrupt descriptors */
-	STAILQ_FOREACH(intr, &dinfo->intrs, i_link) {
+	STAILQ_FOREACH (intr, &dinfo->intrs, i_link) {
 		/* Already mapped? */
 		if (intr->i_mapped)
 			continue;
@@ -394,9 +398,10 @@ bcma_init_dinfo(device_t bus, device_t child, struct bcma_devinfo *dinfo,
 		error = BHND_BUS_MAP_INTR(bus, child, intr->i_sel,
 		    &intr->i_irq);
 		if (error) {
-			device_printf(bus, "failed mapping interrupt line %u "
-			    "for core %u: %d\n", intr->i_sel,
-			    BCMA_DINFO_COREIDX(dinfo), error);
+			device_printf(bus,
+			    "failed mapping interrupt line %u "
+			    "for core %u: %d\n",
+			    intr->i_sel, BCMA_DINFO_COREIDX(dinfo), error);
 			goto failed;
 		}
 
@@ -418,7 +423,7 @@ failed:
 
 /**
  * Deallocate the given device info structure and any associated resources.
- * 
+ *
  * @param bus The requesting bus device.
  * @param dinfo Device info to be deallocated.
  */
@@ -439,7 +444,7 @@ bcma_free_dinfo(device_t bus, device_t child, struct bcma_devinfo *dinfo)
 	}
 
 	/* Clean up interrupt descriptors */
-	STAILQ_FOREACH_SAFE(intr, &dinfo->intrs, i_link, inext) {
+	STAILQ_FOREACH_SAFE (intr, &dinfo->intrs, i_link, inext) {
 		STAILQ_REMOVE(&dinfo->intrs, intr, bcma_intr, i_link);
 
 		/* Release our IRQ mapping */
@@ -456,7 +461,7 @@ bcma_free_dinfo(device_t bus, device_t child, struct bcma_devinfo *dinfo)
 
 /**
  * Allocate and initialize a new interrupt descriptor.
- * 
+ *
  * @param bank OOB bank.
  * @param sel OOB selector.
  * @param line OOB bus line.
@@ -490,7 +495,7 @@ bcma_alloc_intr(uint8_t bank, uint8_t sel, uint8_t line)
 
 /**
  * Deallocate all resources associated with the given interrupt descriptor.
- * 
+ *
  * @param intr Interrupt descriptor to be deallocated.
  */
 void
@@ -503,7 +508,7 @@ bcma_free_intr(struct bcma_intr *intr)
 
 /**
  * Allocate and initialize new slave port descriptor.
- * 
+ *
  * @param port_num Per-core port number.
  * @param port_type Port type.
  */
@@ -526,14 +531,15 @@ bcma_alloc_sport(bcma_pid_t port_num, bhnd_port_type port_type)
 
 /**
  * Deallocate all resources associated with the given port descriptor.
- * 
+ *
  * @param sport Port descriptor to be deallocated.
  */
 void
-bcma_free_sport(struct bcma_sport *sport) {
+bcma_free_sport(struct bcma_sport *sport)
+{
 	struct bcma_map *map, *mapnext;
 
-	STAILQ_FOREACH_SAFE(map, &sport->sp_maps, m_link, mapnext) {
+	STAILQ_FOREACH_SAFE (map, &sport->sp_maps, m_link, mapnext) {
 		free(map, M_BHND);
 	}
 
@@ -543,10 +549,10 @@ bcma_free_sport(struct bcma_sport *sport) {
 /**
  * Given a bcma(4) child's device info, spin waiting for the device's DMP
  * resetstatus register to clear.
- * 
+ *
  * @param child The bcma(4) child device.
  * @param dinfo The @p child device info.
- * 
+ *
  * @retval 0 success
  * @retval ENODEV if @p dinfo does not map an agent register resource.
  * @retval ETIMEDOUT if timeout occurs
@@ -577,11 +583,11 @@ bcma_dmp_wait_reset(device_t child, struct bcma_devinfo *dinfo)
 /**
  * Set the bcma(4) child's DMP resetctrl register value, and then wait
  * for all backplane operations to complete.
- * 
+ *
  * @param child The bcma(4) child device.
  * @param dinfo The @p child device info.
  * @param value The new ioctrl value to set.
- * 
+ *
  * @retval 0 success
  * @retval ENODEV if @p dinfo does not map an agent register resource.
  * @retval ETIMEDOUT if timeout occurs waiting for reset completion

@@ -25,28 +25,26 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef	_POWERPC_ADBVAR_H_
-#define	_POWERPC_ADBVAR_H_
+#ifndef _POWERPC_ADBVAR_H_
+#define _POWERPC_ADBVAR_H_
 
 #include "adb.h"
 
-enum {
-	ADB_COMMAND_BUS_RESET = 0
-};
+enum { ADB_COMMAND_BUS_RESET = 0 };
 
 struct adb_softc {
-	device_t	sc_dev;
-	device_t	parent;
+	device_t sc_dev;
+	device_t parent;
 
 	struct intr_config_hook enum_hook;
 
-	volatile int 	sync_packet;
-	volatile int	packet_reply;
+	volatile int sync_packet;
+	volatile int packet_reply;
 
-	uint16_t	autopoll_mask;
-	uint8_t		syncreg[8];
+	uint16_t autopoll_mask;
+	uint8_t syncreg[8];
 
-	device_t	children[16];
+	device_t children[16];
 	struct adb_devinfo devinfo[16];
 };
 

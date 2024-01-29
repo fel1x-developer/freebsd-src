@@ -44,8 +44,7 @@
  * It is possible for the compiler to emit relocations for unaligned data.
  * We handle this situation with these inlines.
  */
-#define	RELOC_ALIGNED_P(x) \
-	(((uintptr_t)(x) & (sizeof(void *) - 1)) == 0)
+#define RELOC_ALIGNED_P(x) (((uintptr_t)(x) & (sizeof(void *) - 1)) == 0)
 
 uint64_t
 set_gp(Obj_Entry *obj)
@@ -64,7 +63,7 @@ set_gp(Obj_Entry *obj)
 
 	if (res == 0) {
 		gp = req.sym_out->st_value;
-		__asm __volatile("mv    gp, %0" :: "r"(gp));
+		__asm __volatile("mv    gp, %0" ::"r"(gp));
 	}
 
 	return (old);
@@ -126,7 +125,7 @@ do_copy_relocations(Obj_Entry *dstobj)
 		}
 		if (srcobj == NULL) {
 			_rtld_error(
-"Undefined symbol \"%s\" referenced from COPY relocation in %s",
+			    "Undefined symbol \"%s\" referenced from COPY relocation in %s",
 			    name, dstobj->path);
 			return (-1);
 		}
@@ -178,10 +177,10 @@ reloc_jmpslots(Obj_Entry *obj, int flags, RtldLockState *lockstate)
 		Elf_Addr *where;
 
 		where = (Elf_Addr *)(obj->relocbase + rela->r_offset);
-		switch(ELF_R_TYPE(rela->r_info)) {
+		switch (ELF_R_TYPE(rela->r_info)) {
 		case R_RISCV_JUMP_SLOT:
-			def = find_symdef(ELF_R_SYM(rela->r_info), obj,
-			    &defobj, SYMLOOK_IN_PLT | flags, NULL, lockstate);
+			def = find_symdef(ELF_R_SYM(rela->r_info), obj, &defobj,
+			    SYMLOOK_IN_PLT | flags, NULL, lockstate);
 			if (def == NULL) {
 				dbg("reloc_jmpslots: sym not found");
 				return (-1);
@@ -219,7 +218,7 @@ reloc_iresolve_nonplt(Obj_Entry *obj __unused,
 
 int
 reloc_gnu_ifunc(Obj_Entry *obj __unused, int flags __unused,
-   struct Struct_RtldLockState *lockstate __unused)
+    struct Struct_RtldLockState *lockstate __unused)
 {
 
 	/* XXX not implemented */
@@ -266,7 +265,7 @@ reloc_non_plt(Obj_Entry *obj, Obj_Entry *obj_rtld, int flags,
 		cache = NULL;
 	else
 		cache = calloc(obj->dynsymcount, sizeof(SymCache));
-		/* No need to check for NULL here */
+	/* No need to check for NULL here */
 
 	relalim = (const Elf_Rela *)((const char *)obj->rela + obj->relasize);
 	for (rela = obj->rela; rela < relalim; rela++) {
@@ -305,7 +304,8 @@ reloc_non_plt(Obj_Entry *obj, Obj_Entry *obj_rtld, int flags,
 			 */
 			if (!obj->mainprog) {
 				_rtld_error("%s: Unexpected R_RISCV_COPY "
-				    "relocation in shared library", obj->path);
+					    "relocation in shared library",
+				    obj->path);
 				return (-1);
 			}
 			break;
@@ -324,16 +324,17 @@ reloc_non_plt(Obj_Entry *obj, Obj_Entry *obj_rtld, int flags,
 			 */
 			if (!defobj->tls_static) {
 				if (!allocate_tls_offset(
-				    __DECONST(Obj_Entry *, defobj))) {
+					__DECONST(Obj_Entry *, defobj))) {
 					_rtld_error(
 					    "%s: No space available for static "
-					    "Thread Local Storage", obj->path);
+					    "Thread Local Storage",
+					    obj->path);
 					return (-1);
 				}
 			}
 
-			*where += (Elf_Addr)(def->st_value + rela->r_addend
-			    - TLS_DTV_OFFSET);
+			*where += (Elf_Addr)(def->st_value + rela->r_addend -
+			    TLS_DTV_OFFSET);
 			break;
 		case R_RISCV_TLS_TPREL64:
 			def = find_symdef(symnum, obj, &defobj, flags, cache,
@@ -351,10 +352,11 @@ reloc_non_plt(Obj_Entry *obj, Obj_Entry *obj_rtld, int flags,
 			 */
 			if (!defobj->tls_static) {
 				if (!allocate_tls_offset(
-				    __DECONST(Obj_Entry *, defobj))) {
+					__DECONST(Obj_Entry *, defobj))) {
 					_rtld_error(
 					    "%s: No space available for static "
-					    "Thread Local Storage", obj->path);
+					    "Thread Local Storage",
+					    obj->path);
 					return (-1);
 				}
 			}
@@ -366,8 +368,8 @@ reloc_non_plt(Obj_Entry *obj, Obj_Entry *obj_rtld, int flags,
 			*where = (Elf_Addr)(obj->relocbase + rela->r_addend);
 			break;
 		default:
-			rtld_printf("%s: Unhandled relocation %lu\n",
-			    obj->path, ELF_R_TYPE(rela->r_info));
+			rtld_printf("%s: Unhandled relocation %lu\n", obj->path,
+			    ELF_R_TYPE(rela->r_info));
 			return (-1);
 		}
 	}
@@ -378,7 +380,6 @@ reloc_non_plt(Obj_Entry *obj, Obj_Entry *obj_rtld, int flags,
 void
 ifunc_init(Elf_Auxinfo aux_info[__min_size(AT_COUNT)] __unused)
 {
-
 }
 
 void
@@ -397,7 +398,7 @@ allocate_initial_tls(Obj_Entry *objs)
 }
 
 void *
-__tls_get_addr(tls_index* ti)
+__tls_get_addr(tls_index *ti)
 {
 	uintptr_t **dtvp;
 	void *p;
@@ -405,5 +406,5 @@ __tls_get_addr(tls_index* ti)
 	dtvp = &_tcb_get()->tcb_dtv;
 	p = tls_get_addr_common(dtvp, ti->ti_module, ti->ti_offset);
 
-	return ((char*)p + TLS_DTV_OFFSET);
+	return ((char *)p + TLS_DTV_OFFSET);
 }

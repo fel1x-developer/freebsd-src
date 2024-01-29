@@ -34,73 +34,67 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/gpio.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/proc.h>
-#include <sys/systm.h>
 #include <sys/sysctl.h>
 
 #include <machine/bus.h>
 
-#include <dev/ofw/openfirm.h>
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-
+#include <dev/gpio/gpiobusvar.h>
 #include <dev/iicbus/iicbus.h>
 #include <dev/iicbus/iiconf.h>
-
-#include <dev/gpio/gpiobusvar.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
 
 #include "gpio_if.h"
 
 /* Base addresses of registers. LSB omitted. */
 
-#define TCA64XX_PINS_PER_REG		8
+#define TCA64XX_PINS_PER_REG 8
 
-#define TCA64XX_BIT_FROM_PIN(pin)	(pin % TCA64XX_PINS_PER_REG)
-#define TCA64XX_REG_ADDR(pin, baseaddr)	(baseaddr | (pin / \
-					TCA64XX_PINS_PER_REG))
-#define	TCA64XX_PIN_CAPS		(GPIO_PIN_OUTPUT | GPIO_PIN_INPUT \
-					| GPIO_PIN_PUSHPULL | GPIO_PIN_INVIN)
+#define TCA64XX_BIT_FROM_PIN(pin) (pin % TCA64XX_PINS_PER_REG)
+#define TCA64XX_REG_ADDR(pin, baseaddr) \
+	(baseaddr | (pin / TCA64XX_PINS_PER_REG))
+#define TCA64XX_PIN_CAPS \
+	(GPIO_PIN_OUTPUT | GPIO_PIN_INPUT | GPIO_PIN_PUSHPULL | GPIO_PIN_INVIN)
 
-#define TCA6416_IN_PORT_REG		0x0
-#define	TCA6416_OUT_PORT_REG		0x2
-#define	TCA6416_POLARITY_INV_REG	0x4
-#define	TCA6416_CONF_REG		0x6
-#define	TCA6416_NUM_PINS		16
+#define TCA6416_IN_PORT_REG 0x0
+#define TCA6416_OUT_PORT_REG 0x2
+#define TCA6416_POLARITY_INV_REG 0x4
+#define TCA6416_CONF_REG 0x6
+#define TCA6416_NUM_PINS 16
 
-#define TCA6408_IN_PORT_REG		0x0
-#define TCA6408_OUT_PORT_REG		0x1
-#define TCA6408_POLARITY_INV_REG	0x2
-#define TCA6408_CONF_REG		0x3
-#define TCA6408_NUM_PINS		8
+#define TCA6408_IN_PORT_REG 0x0
+#define TCA6408_OUT_PORT_REG 0x1
+#define TCA6408_POLARITY_INV_REG 0x2
+#define TCA6408_CONF_REG 0x3
+#define TCA6408_NUM_PINS 8
 
 #ifdef DEBUG
-#define	dbg_dev_printf(dev, fmt, args...)	\
-	device_printf(dev, fmt, ##args)
+#define dbg_dev_printf(dev, fmt, args...) device_printf(dev, fmt, ##args)
 #else
-#define	dbg_dev_printf(dev, fmt, args...)
+#define dbg_dev_printf(dev, fmt, args...)
 #endif
 
-enum chip_type{
-	TCA6416_TYPE = 1,
-	TCA6408_TYPE
-};
+enum chip_type { TCA6416_TYPE = 1, TCA6408_TYPE };
 
 struct tca64xx_softc {
-	device_t	dev;
-	device_t	busdev;
-	enum chip_type	chip;
-	struct mtx	mtx;
-	uint32_t	addr;
-	uint8_t		num_pins;
-	uint8_t 	in_port_reg;
-	uint8_t		out_port_reg;
-	uint8_t		polarity_inv_reg;
-	uint8_t		conf_reg;
-	uint8_t		pin_caps;
+	device_t dev;
+	device_t busdev;
+	enum chip_type chip;
+	struct mtx mtx;
+	uint32_t addr;
+	uint8_t num_pins;
+	uint8_t in_port_reg;
+	uint8_t out_port_reg;
+	uint8_t polarity_inv_reg;
+	uint8_t conf_reg;
+	uint8_t pin_caps;
 };
 
 static int tca64xx_read(device_t, uint8_t, uint8_t *);
@@ -123,41 +117,33 @@ static void tca6416_regdump_setup(device_t dev);
 static int tca64xx_regdump_sysctl(SYSCTL_HANDLER_ARGS);
 #endif
 
-static device_method_t tca64xx_methods[] = {
-	DEVMETHOD(device_probe,		tca64xx_probe),
-	DEVMETHOD(device_attach,	tca64xx_attach),
-	DEVMETHOD(device_detach,	tca64xx_detach),
+static device_method_t tca64xx_methods[] = { DEVMETHOD(device_probe,
+						 tca64xx_probe),
+	DEVMETHOD(device_attach, tca64xx_attach),
+	DEVMETHOD(device_detach, tca64xx_detach),
 
 	/* GPIO methods */
-	DEVMETHOD(gpio_get_bus,		tca64xx_get_bus),
-	DEVMETHOD(gpio_pin_max,		tca64xx_pin_max),
-	DEVMETHOD(gpio_pin_getcaps,	tca64xx_pin_getcaps),
-	DEVMETHOD(gpio_pin_getflags,	tca64xx_pin_getflags),
-	DEVMETHOD(gpio_pin_setflags,	tca64xx_pin_setflags),
-	DEVMETHOD(gpio_pin_getname,	tca64xx_pin_getname),
-	DEVMETHOD(gpio_pin_get,		tca64xx_pin_get),
-	DEVMETHOD(gpio_pin_set,		tca64xx_pin_set),
-	DEVMETHOD(gpio_pin_toggle,	tca64xx_pin_toggle),
+	DEVMETHOD(gpio_get_bus, tca64xx_get_bus),
+	DEVMETHOD(gpio_pin_max, tca64xx_pin_max),
+	DEVMETHOD(gpio_pin_getcaps, tca64xx_pin_getcaps),
+	DEVMETHOD(gpio_pin_getflags, tca64xx_pin_getflags),
+	DEVMETHOD(gpio_pin_setflags, tca64xx_pin_setflags),
+	DEVMETHOD(gpio_pin_getname, tca64xx_pin_getname),
+	DEVMETHOD(gpio_pin_get, tca64xx_pin_get),
+	DEVMETHOD(gpio_pin_set, tca64xx_pin_set),
+	DEVMETHOD(gpio_pin_toggle, tca64xx_pin_toggle),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
-static driver_t tca64xx_driver = {
-	"gpio",
-	tca64xx_methods,
-	sizeof(struct tca64xx_softc)
-};
+static driver_t tca64xx_driver = { "gpio", tca64xx_methods,
+	sizeof(struct tca64xx_softc) };
 
 DRIVER_MODULE(tca64xx, iicbus, tca64xx_driver, 0, 0);
 MODULE_VERSION(tca64xx, 1);
 
-static struct ofw_compat_data compat_data[] = {
-	{"nxp,pca9555",	TCA6416_TYPE},
-	{"ti,tca6408",	TCA6408_TYPE},
-	{"ti,tca6416",	TCA6416_TYPE},
-	{"ti,tca9539",	TCA6416_TYPE},
-	{0,0}
-};
+static struct ofw_compat_data compat_data[] = { { "nxp,pca9555", TCA6416_TYPE },
+	{ "ti,tca6408", TCA6408_TYPE }, { "ti,tca6416", TCA6416_TYPE },
+	{ "ti,tca9539", TCA6416_TYPE }, { 0, 0 } };
 
 static int
 tca64xx_read(device_t dev, uint8_t reg, uint8_t *data)
@@ -190,7 +176,7 @@ tca64xx_write(device_t dev, uint8_t reg, uint8_t val)
 	struct iic_msg msg;
 	struct tca64xx_softc *sc;
 	int error;
-	uint8_t buffer[2] = {reg, val};
+	uint8_t buffer[2] = { reg, val };
 
 	sc = device_get_softc(dev);
 
@@ -320,7 +306,7 @@ tca64xx_pin_max(device_t dev __unused, int *maxpin)
 	if (maxpin == NULL)
 		return (EINVAL);
 
-	*maxpin = sc->num_pins-1;
+	*maxpin = sc->num_pins - 1;
 
 	return (0);
 }
@@ -566,8 +552,7 @@ tca6416_regdump_setup(device_t dev)
 	    "Input port 2");
 	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(node), OID_AUTO, "out_reg_1",
 	    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, dev,
-	    TCA6416_OUT_PORT_REG, tca64xx_regdump_sysctl, "A",
-	    "Output port 1");
+	    TCA6416_OUT_PORT_REG, tca64xx_regdump_sysctl, "A", "Output port 1");
 	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(node), OID_AUTO, "out_reg_2",
 	    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, dev,
 	    TCA6416_OUT_PORT_REG | 1, tca64xx_regdump_sysctl, "A",
@@ -581,8 +566,8 @@ tca6416_regdump_setup(device_t dev)
 	    TCA6416_POLARITY_INV_REG | 1, tca64xx_regdump_sysctl, "A",
 	    "Polarity inv 2");
 	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(node), OID_AUTO, "conf_reg_1",
-	    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, dev,
-	    TCA6416_CONF_REG, tca64xx_regdump_sysctl, "A", "Configuration 1");
+	    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, dev, TCA6416_CONF_REG,
+	    tca64xx_regdump_sysctl, "A", "Configuration 1");
 	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(node), OID_AUTO, "conf_reg_2",
 	    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, dev,
 	    TCA6416_CONF_REG | 1, tca64xx_regdump_sysctl, "A",
@@ -603,15 +588,14 @@ tca6408_regdump_setup(device_t dev)
 	    TCA6408_IN_PORT_REG, tca64xx_regdump_sysctl, "A", "Input port 1");
 	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(node), OID_AUTO, "out_reg_1",
 	    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, dev,
-	    TCA6408_OUT_PORT_REG, tca64xx_regdump_sysctl, "A",
-	    "Output port 1");
+	    TCA6408_OUT_PORT_REG, tca64xx_regdump_sysctl, "A", "Output port 1");
 	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(node), OID_AUTO, "pol_inv_1",
 	    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, dev,
-	    TCA6408_POLARITY_INV_REG, tca64xx_regdump_sysctl,
-	    "A", "Polarity inv 1");
+	    TCA6408_POLARITY_INV_REG, tca64xx_regdump_sysctl, "A",
+	    "Polarity inv 1");
 	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(node), OID_AUTO, "conf_reg_1",
-	    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, dev,
-	    TCA6408_CONF_REG, tca64xx_regdump_sysctl, "A", "Configuration 1");
+	    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, dev, TCA6408_CONF_REG,
+	    tca64xx_regdump_sysctl, "A", "Configuration 1");
 }
 
 static int

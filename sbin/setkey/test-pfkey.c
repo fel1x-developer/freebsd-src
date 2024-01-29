@@ -34,21 +34,22 @@
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/socket.h>
-#include <net/route.h>
-#include <net/pfkeyv2.h>
-#include <netinet/in.h>
-#include <netipsec/keydb.h>
-#include <netipsec/key_var.h>
-#include <netipsec/key_debug.h>
 
+#include <net/pfkeyv2.h>
+#include <net/route.h>
+#include <netinet/in.h>
+#include <netipsec/key_debug.h>
+#include <netipsec/key_var.h>
+#include <netipsec/keydb.h>
+
+#include <ctype.h>
+#include <errno.h>
+#include <limits.h>
+#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <limits.h>
 #include <string.h>
-#include <ctype.h>
 #include <unistd.h>
-#include <errno.h>
-#include <netdb.h>
 
 u_char m_buf[BUFSIZ];
 u_int m_len;
@@ -76,14 +77,15 @@ Usage()
 
 int
 main(ac, av)
-	int ac;
-	char **av;
+int ac;
+char **av;
 {
 	pname = *av;
 
-	if (ac == 1) Usage();
+	if (ac == 1)
+		Usage();
 
-	key_setsadbmsg(atoi(*(av+1)));
+	key_setsadbmsg(atoi(*(av + 1)));
 	sendkeymsg();
 
 	exit(0);
@@ -93,7 +95,7 @@ main(ac, av)
 int
 sendkeymsg()
 {
-	u_char rbuf[1024 * 32];	/* XXX: Enough ? Should I do MSG_PEEK ? */
+	u_char rbuf[1024 * 32]; /* XXX: Enough ? Should I do MSG_PEEK ? */
 	int so, len;
 
 	if ((so = socket(PF_KEY, SOCK_RAW, PF_KEY_V2)) < 0) {
@@ -129,12 +131,10 @@ sendkeymsg()
 
 end:
 	(void)close(so);
-	return(0);
+	return (0);
 }
 
-void
-key_setsadbmsg(type)
-	u_int type;
+void key_setsadbmsg(type) u_int type;
 {
 	struct sadb_msg m_msg;
 
@@ -294,9 +294,8 @@ key_setsadbsens()
 	m_sens.sadb_sens_integ_len = PFKEY_ALIGN8(ilen);
 	m_sens.sadb_sens_reserved = 0;
 
-	key_setsadbextbuf(m_buf, m_len,
-			(caddr_t)&m_sens, sizeof(struct sadb_sens),
-			buf, slen + ilen);
+	key_setsadbextbuf(m_buf, m_len, (caddr_t)&m_sens,
+	    sizeof(struct sadb_sens), buf, slen + ilen);
 	m_len += len;
 
 	return;
@@ -356,18 +355,15 @@ key_setsadbprop()
 	m_comb->sadb_comb_soft_usetime = 0;
 	m_comb->sadb_comb_hard_usetime = 0;
 
-	key_setsadbextbuf(m_buf, m_len,
-			(caddr_t)&m_prop, sizeof(struct sadb_prop),
-			buf, sizeof(*m_comb) * 2);
+	key_setsadbextbuf(m_buf, m_len, (caddr_t)&m_prop,
+	    sizeof(struct sadb_prop), buf, sizeof(*m_comb) * 2);
 	m_len += len;
 
 	return;
 }
 
-void
-key_setsadbid(ext, str)
-	u_int ext;
-	caddr_t str;
+void key_setsadbid(ext, str) u_int ext;
+caddr_t str;
 {
 	struct sadb_ident m_id;
 	u_int idlen = strlen(str), len;
@@ -379,17 +375,14 @@ key_setsadbid(ext, str)
 	m_id.sadb_ident_reserved = 0;
 	m_id.sadb_ident_id = getpid();
 
-	key_setsadbextbuf(m_buf, m_len,
-			(caddr_t)&m_id, sizeof(struct sadb_ident),
-			str, idlen);
+	key_setsadbextbuf(m_buf, m_len, (caddr_t)&m_id,
+	    sizeof(struct sadb_ident), str, idlen);
 	m_len += len;
 
 	return;
 }
 
-void
-key_setsadblft(ext, time)
-	u_int ext, time;
+void key_setsadblft(ext, time) u_int ext, time;
 {
 	struct sadb_lifetime m_lft;
 
@@ -423,10 +416,8 @@ key_setspirange()
 	return;
 }
 
-void
-key_setsadbkey(ext, str)
-	u_int ext;
-	caddr_t str;
+void key_setsadbkey(ext, str) u_int ext;
+caddr_t str;
 {
 	struct sadb_key m_key;
 	u_int keylen = strlen(str);
@@ -438,9 +429,8 @@ key_setsadbkey(ext, str)
 	m_key.sadb_key_bits = keylen * 8;
 	m_key.sadb_key_reserved = 0;
 
-	key_setsadbextbuf(m_buf, m_len,
-			(caddr_t)&m_key, sizeof(struct sadb_key),
-			str, keylen);
+	key_setsadbextbuf(m_buf, m_len, (caddr_t)&m_key,
+	    sizeof(struct sadb_key), str, keylen);
 	m_len += len;
 
 	return;
@@ -466,10 +456,8 @@ key_setsadbsa()
 	return;
 }
 
-void
-key_setsadbaddr(ext, af, str)
-	u_int ext, af;
-	caddr_t str;
+void key_setsadbaddr(ext, af, str) u_int ext, af;
+caddr_t str;
 {
 	struct sadb_address m_addr;
 	u_int len;
@@ -492,25 +480,26 @@ key_setsadbaddr(ext, af, str)
 	/* make sockaddr buffer */
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = af;
-	hints.ai_socktype = SOCK_DGRAM;	/*dummy*/
+	hints.ai_socktype = SOCK_DGRAM; /*dummy*/
 	hints.ai_flags = AI_NUMERICHOST;
-	serv = (ext == SADB_EXT_ADDRESS_PROXY ? "0" : "4660");	/*0x1234*/
+	serv = (ext == SADB_EXT_ADDRESS_PROXY ? "0" : "4660"); /*0x1234*/
 	if (getaddrinfo(str, serv, &hints, &res) != 0 || res->ai_next) {
 		/* XXX bark */
 		exit(1);
 	}
-	
+
 	len = sizeof(struct sadb_address) + PFKEY_ALIGN8(res->ai_addrlen);
 	m_addr.sadb_address_len = PFKEY_UNIT64(len);
 	m_addr.sadb_address_exttype = ext;
-	m_addr.sadb_address_proto =
-		(ext == SADB_EXT_ADDRESS_PROXY ? 0 : IPPROTO_TCP);
+	m_addr.sadb_address_proto = (ext == SADB_EXT_ADDRESS_PROXY ?
+		0 :
+		IPPROTO_TCP);
 	m_addr.sadb_address_prefixlen = plen;
 	m_addr.sadb_address_reserved = 0;
 
-	key_setsadbextbuf(m_buf, m_len,
-			(caddr_t)&m_addr, sizeof(struct sadb_address),
-			(caddr_t)res->ai_addr, res->ai_addrlen);
+	key_setsadbextbuf(m_buf, m_len, (caddr_t)&m_addr,
+	    sizeof(struct sadb_address), (caddr_t)res->ai_addr,
+	    res->ai_addrlen);
 	m_len += len;
 
 	freeaddrinfo(res);
@@ -518,10 +507,9 @@ key_setsadbaddr(ext, af, str)
 	return;
 }
 
-void
-key_setsadbextbuf(dst, off, ebuf, elen, vbuf, vlen)
-	caddr_t dst, ebuf, vbuf;
-	int off, elen, vlen;
+void key_setsadbextbuf(dst, off, ebuf, elen, vbuf, vlen) caddr_t dst, ebuf,
+    vbuf;
+int off, elen, vlen;
 {
 	memset(dst + off, 0, elen + vlen);
 	memcpy(dst + off, (caddr_t)ebuf, elen);
@@ -529,4 +517,3 @@ key_setsadbextbuf(dst, off, ebuf, elen, vbuf, vlen)
 
 	return;
 }
-

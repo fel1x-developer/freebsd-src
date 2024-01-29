@@ -26,6 +26,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <be.h>
 
 /*
@@ -34,15 +35,17 @@
  * argv[3] = snapshot to create boot environment from
  * argv[4] = depth
  */
-int main(int argc, char *argv[]) {
+int
+main(int argc, char *argv[])
+{
 
-        libbe_handle_t *lbh;
+	libbe_handle_t *lbh;
 
 	if (argc != 5)
 		return -1;
 
-        if ((lbh = libbe_init(argv[1])) == NULL)
-                return -1;
+	if ((lbh = libbe_init(argv[1])) == NULL)
+		return -1;
 
 	libbe_print_on_error(lbh, true);
 

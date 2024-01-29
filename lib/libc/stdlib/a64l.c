@@ -10,14 +10,15 @@ __RCSID("$NetBSD: a64l.c,v 1.8 2000/01/22 22:19:19 mycroft Exp $");
 #endif
 
 #include <sys/cdefs.h>
-#include <stdlib.h>
-#include <inttypes.h>
 
-#define	ADOT	46		/* ASCII '.' */
-#define	ASLASH	47		/* ASCII '/' */
-#define	A0	48		/* ASCII '0' */
-#define	AA	65		/* ASCII 'A' */
-#define	Aa	97		/* ASCII 'a' */
+#include <inttypes.h>
+#include <stdlib.h>
+
+#define ADOT 46	  /* ASCII '.' */
+#define ASLASH 47 /* ASCII '/' */
+#define A0 48	  /* ASCII '0' */
+#define AA 65	  /* ASCII 'A' */
+#define Aa 97	  /* ASCII 'a' */
 
 long
 a64l(const char *s)

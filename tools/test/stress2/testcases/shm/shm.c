@@ -32,6 +32,7 @@
 #include <sys/msg.h>
 #include <sys/sem.h>
 #include <sys/shm.h>
+
 #include <err.h>
 #include <errno.h>
 #include <signal.h>
@@ -41,16 +42,16 @@
 
 #include "stress.h"
 
-static int	shmid = -1;
-static key_t	shmkey;
-static char	*shm_buf;
+static int shmid = -1;
+static key_t shmkey;
+static char *shm_buf;
 
-static int	semid = -1;
-static key_t	semkey;
-static struct	sembuf sop[2];
+static int semid = -1;
+static key_t semkey;
+static struct sembuf sop[2];
 
-static size_t	pgsize;
-static pid_t	pid;
+static size_t pgsize;
+static pid_t pid;
 
 int
 setup(int nb __unused)
@@ -61,7 +62,8 @@ setup(int nb __unused)
 
 	seed = getpid();
 	shmkey = ftok("/tmp", seed);
-	if ((shmid = shmget(shmkey, 10 * pgsize, IPC_CREAT | IPC_EXCL | 0640)) == -1) {
+	if ((shmid = shmget(shmkey, 10 * pgsize,
+		 IPC_CREAT | IPC_EXCL | 0640)) == -1) {
 		if (errno == ENOSPC) {
 			fprintf(stderr, "Max number of semaphores reached.\n");
 			exit(1);
@@ -70,7 +72,7 @@ setup(int nb __unused)
 	}
 
 	shm_buf = 0;
-	if ((shm_buf = shmat(shmid, NULL, 0)) == (void *) -1)
+	if ((shm_buf = shmat(shmid, NULL, 0)) == (void *)-1)
 		err(1, "sender: shmat (%s:%d)", __FILE__, __LINE__);
 
 	semkey = ftok("/var", seed);
@@ -81,16 +83,16 @@ setup(int nb __unused)
 		}
 		err(1, "semget (%s:%d)", __FILE__, __LINE__);
 	}
-        /* Initialize the semaphore. */
-        sop[0].sem_num = 0;
-        sop[0].sem_op  = 0;  /* This is the number of runs without queuing. */
-        sop[0].sem_flg = 0;
-        sop[1].sem_num = 1;
-        sop[1].sem_op  = 0;  /* This is the number of runs without queuing. */
-        sop[1].sem_flg = 0;
-        if (semop(semid, sop, 2) == -1)
-            err(1, "init: semop (%s:%d)", __FILE__, __LINE__);
-        return (0);
+	/* Initialize the semaphore. */
+	sop[0].sem_num = 0;
+	sop[0].sem_op = 0; /* This is the number of runs without queuing. */
+	sop[0].sem_flg = 0;
+	sop[1].sem_num = 1;
+	sop[1].sem_op = 0; /* This is the number of runs without queuing. */
+	sop[1].sem_flg = 0;
+	if (semop(semid, sop, 2) == -1)
+		err(1, "init: semop (%s:%d)", __FILE__, __LINE__);
+	return (0);
 }
 
 void
@@ -105,25 +107,27 @@ cleanup(void)
 }
 
 static void
-Wait(int i) {
-		sop[0].sem_num = i;
-		sop[0].sem_op = -1;
-		if (semop(semid, sop, 1) == -1) {
-			if (errno != EINTR && errno != EIDRM && errno != EINVAL)
-				warn("Wait: semop (%s:%d)", __FILE__, __LINE__);
-			done_testing = 1;
-		}
+Wait(int i)
+{
+	sop[0].sem_num = i;
+	sop[0].sem_op = -1;
+	if (semop(semid, sop, 1) == -1) {
+		if (errno != EINTR && errno != EIDRM && errno != EINVAL)
+			warn("Wait: semop (%s:%d)", __FILE__, __LINE__);
+		done_testing = 1;
+	}
 }
 
 static void
-Sig(int i) {
-		sop[0].sem_num = i;
-		sop[0].sem_op = 1;
-		if (semop(semid, sop, 1) == -1) {
-			if (errno != EINTR && errno != EIDRM && errno != EINVAL)
+Sig(int i)
+{
+	sop[0].sem_num = i;
+	sop[0].sem_op = 1;
+	if (semop(semid, sop, 1) == -1) {
+		if (errno != EINTR && errno != EIDRM && errno != EINVAL)
 			warn("Sig: semop (%s:%d)", __FILE__, __LINE__);
-			done_testing = 1;
-		}
+		done_testing = 1;
+	}
 }
 
 int
@@ -137,7 +141,7 @@ test(void)
 		exit(2);
 	}
 
-	if (pid == 0) {	/* child */
+	if (pid == 0) { /* child */
 		i = 0;
 		for (;;) {
 			Wait(1);
@@ -145,8 +149,8 @@ test(void)
 				break;
 			if (shm_buf[i] != (i % 128)) {
 				fprintf(stderr,
-					"child %d: expected %d, got %d\n",
-					getpid(), i % 128, shm_buf[i]);
+				    "child %d: expected %d, got %d\n", getpid(),
+				    i % 128, shm_buf[i]);
 				break;
 			}
 			shm_buf[i] = 0;
@@ -157,7 +161,7 @@ test(void)
 		}
 		_exit(0);
 
-	} else {	/* parent */
+	} else { /* parent */
 		i = 0;
 		for (;;) {
 			shm_buf[i] = (i % 128);
@@ -168,8 +172,8 @@ test(void)
 				break;
 			if (shm_buf[i] != (i % 128)) {
 				fprintf(stderr,
-					"parent(%d): expected %d, got %d\n",
-					getpid(), i % 128, shm_buf[i]);
+				    "parent(%d): expected %d, got %d\n",
+				    getpid(), i % 128, shm_buf[i]);
 				break;
 			}
 			shm_buf[i] = 0;
@@ -178,5 +182,5 @@ test(void)
 		kill(pid, SIGHUP);
 		kill(pid, SIGKILL);
 	}
-        return (0);
+	return (0);
 }

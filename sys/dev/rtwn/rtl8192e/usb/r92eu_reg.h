@@ -31,4 +31,4 @@
 #include <dev/rtwn/rtl8192e/r92e_reg.h>
 #include <dev/rtwn/rtl8812a/r12a_reg.h>
 
-#endif	/* R92EU_REG_H */
+#endif /* R92EU_REG_H */

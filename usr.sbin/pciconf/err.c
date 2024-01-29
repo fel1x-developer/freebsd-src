@@ -30,10 +30,10 @@
 #include <sys/param.h>
 #include <sys/pciio.h>
 
+#include <dev/pci/pcireg.h>
+
 #include <err.h>
 #include <stdio.h>
-
-#include <dev/pci/pcireg.h>
 
 #include "pciconf.h"
 
@@ -54,24 +54,23 @@ static struct bit_table pci_status[] = {
 };
 
 /* Valid error indicator bits in PCIR_STATUS. */
-#define	PCI_ERRORS	(PCIM_STATUS_MDPERR | PCIM_STATUS_STABORT |	\
-			 PCIM_STATUS_RTABORT | PCIM_STATUS_RMABORT |	\
-			 PCIM_STATUS_SERR | PCIM_STATUS_PERR)
+#define PCI_ERRORS                                                        \
+	(PCIM_STATUS_MDPERR | PCIM_STATUS_STABORT | PCIM_STATUS_RTABORT | \
+	    PCIM_STATUS_RMABORT | PCIM_STATUS_SERR | PCIM_STATUS_PERR)
 
 /* Error indicators in the PCI-Express device status register. */
 static struct bit_table pcie_device_status[] = {
 	{ PCIEM_STA_CORRECTABLE_ERROR, "Correctable Error Detected" },
-	{ PCIEM_STA_NON_FATAL_ERROR, "Non-Fatal Error Detected" },	
-	{ PCIEM_STA_FATAL_ERROR, "Fatal Error Detected" },	
-	{ PCIEM_STA_UNSUPPORTED_REQ, "Unsupported Request Detected" },	
+	{ PCIEM_STA_NON_FATAL_ERROR, "Non-Fatal Error Detected" },
+	{ PCIEM_STA_FATAL_ERROR, "Fatal Error Detected" },
+	{ PCIEM_STA_UNSUPPORTED_REQ, "Unsupported Request Detected" },
 	{ 0, NULL },
 };
 
 /* Valid error indicator bits in the PCI-Express device status register. */
-#define	PCIE_ERRORS	(PCIEM_STA_CORRECTABLE_ERROR |		\
-			 PCIEM_STA_NON_FATAL_ERROR |			\
-			 PCIEM_STA_FATAL_ERROR |			\
-			 PCIEM_STA_UNSUPPORTED_REQ)
+#define PCIE_ERRORS                                                \
+	(PCIEM_STA_CORRECTABLE_ERROR | PCIEM_STA_NON_FATAL_ERROR | \
+	    PCIEM_STA_FATAL_ERROR | PCIEM_STA_UNSUPPORTED_REQ)
 
 /* AER Uncorrected errors. */
 static struct bit_table aer_uc[] = {
@@ -160,7 +159,7 @@ list_errors(int fd, struct pci_conf *p)
 
 	/* Check for uncorrected errors. */
 	mask = read_config(fd, &p->pc_sel, aer + PCIR_AER_UC_STATUS, 4);
-        severity = read_config(fd, &p->pc_sel, aer + PCIR_AER_UC_SEVERITY, 4);
+	severity = read_config(fd, &p->pc_sel, aer + PCIR_AER_UC_SEVERITY, 4);
 	print_bits("Fatal", aer_uc, mask & severity);
 	print_bits("Non-fatal", aer_uc, mask & ~severity);
 

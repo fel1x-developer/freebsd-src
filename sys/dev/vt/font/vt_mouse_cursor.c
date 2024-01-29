@@ -29,6 +29,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <dev/vt/vt.h>
 
 #ifndef SC_NO_CUTPASTE

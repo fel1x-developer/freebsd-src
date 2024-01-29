@@ -28,40 +28,38 @@
 /* Driver for Qualcomm MSM entropy device. */
 
 #include <sys/param.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
-#include <sys/sglist.h>
 #include <sys/random.h>
+#include <sys/sglist.h>
 #include <sys/stdatomic.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/bus.h>
 
 #include <dev/fdt/fdt_common.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/random/randomdev.h>
-#include <dev/random/random_harvestq.h>
-
 #include <dev/qcom_rnd/qcom_rnd_reg.h>
+#include <dev/random/random_harvestq.h>
+#include <dev/random/randomdev.h>
 
 struct qcom_rnd_softc {
-	device_t	 dev;
-	int		reg_rid;
-	struct resource	*reg;
+	device_t dev;
+	int reg_rid;
+	struct resource *reg;
 };
 
-static int	qcom_rnd_modevent(module_t, int, void *);
+static int qcom_rnd_modevent(module_t, int, void *);
 
-static int	qcom_rnd_probe(device_t);
-static int	qcom_rnd_attach(device_t);
-static int	qcom_rnd_detach(device_t);
+static int qcom_rnd_probe(device_t);
+static int qcom_rnd_attach(device_t);
+static int qcom_rnd_detach(device_t);
 
-static int	qcom_rnd_harvest(struct qcom_rnd_softc *, void *, size_t *);
-static unsigned	qcom_rnd_read(void *, unsigned);
+static int qcom_rnd_harvest(struct qcom_rnd_softc *, void *, size_t *);
+static unsigned qcom_rnd_read(void *, unsigned);
 
 static struct random_source random_qcom_rnd = {
 	.rs_ident = "Qualcomm Entropy Adapter",
@@ -95,7 +93,7 @@ qcom_rnd_modevent(module_t mod, int type, void *unused)
 static int
 qcom_rnd_probe(device_t dev)
 {
-	if (! ofw_bus_status_okay(dev)) {
+	if (!ofw_bus_status_okay(dev)) {
 		return (ENXIO);
 	}
 
@@ -114,20 +112,19 @@ qcom_rnd_attach(device_t dev)
 
 	sc = device_get_softc(dev);
 
-
 	/* Found a compatible device! */
 
 	sc->dev = dev;
 
 	exp = NULL;
 	if (!atomic_compare_exchange_strong_explicit(&g_qcom_rnd_softc, &exp,
-	    sc, memory_order_release, memory_order_acquire)) {
+		sc, memory_order_release, memory_order_acquire)) {
 		return (ENXIO);
 	}
 
 	sc->reg_rid = 0;
-	sc->reg = bus_alloc_resource_anywhere(dev, SYS_RES_MEMORY,
-	    &sc->reg_rid, 0x140, RF_ACTIVE);
+	sc->reg = bus_alloc_resource_anywhere(dev, SYS_RES_MEMORY, &sc->reg_rid,
+	    0x140, RF_ACTIVE);
 	if (sc->reg == NULL) {
 		device_printf(dev, "Couldn't allocate memory resource!\n");
 		return (ENXIO);
@@ -160,7 +157,6 @@ qcom_rnd_attach(device_t dev)
 
 	random_source_register(&random_qcom_rnd);
 	return (0);
-
 }
 
 static int
@@ -169,13 +165,14 @@ qcom_rnd_detach(device_t dev)
 	struct qcom_rnd_softc *sc;
 
 	sc = device_get_softc(dev);
-	KASSERT(
-	    atomic_load_explicit(&g_qcom_rnd_softc, memory_order_acquire) == sc,
+	KASSERT(atomic_load_explicit(&g_qcom_rnd_softc, memory_order_acquire) ==
+		sc,
 	    ("only one global instance at a time"));
 
 	random_source_deregister(&random_qcom_rnd);
 	if (sc->reg != NULL) {
-		bus_release_resource(sc->dev, SYS_RES_MEMORY, sc->reg_rid, sc->reg);
+		bus_release_resource(sc->dev, SYS_RES_MEMORY, sc->reg_rid,
+		    sc->reg);
 	}
 	atomic_store_explicit(&g_qcom_rnd_softc, NULL, memory_order_release);
 	return (0);
@@ -201,7 +198,7 @@ qcom_rnd_harvest(struct qcom_rnd_softc *sc, void *buf, size_t *sz)
 		if ((reg & QCOM_RND_PRNG_STATUS_DATA_AVAIL) == 0)
 			break;
 		reg = bus_read_4(sc->reg, QCOM_RND_PRNG_DATA_OUT);
-		memcpy(((char *) buf) + rz, &reg, sizeof(uint32_t));
+		memcpy(((char *)buf) + rz, &reg, sizeof(uint32_t));
 		rz += sizeof(uint32_t);
 	}
 
@@ -232,22 +229,18 @@ qcom_rnd_read(void *buf, unsigned usz)
 
 static device_method_t qcom_rnd_methods[] = {
 	/* Device methods. */
-	DEVMETHOD(device_probe,		qcom_rnd_probe),
-	DEVMETHOD(device_attach,	qcom_rnd_attach),
-	DEVMETHOD(device_detach,	qcom_rnd_detach),
+	DEVMETHOD(device_probe, qcom_rnd_probe),
+	DEVMETHOD(device_attach, qcom_rnd_attach),
+	DEVMETHOD(device_detach, qcom_rnd_detach),
 
 	DEVMETHOD_END
 };
 
-static driver_t qcom_rnd_driver = {
-	"qcom_rnd",
-	qcom_rnd_methods,
-	sizeof(struct qcom_rnd_softc)
-};
+static driver_t qcom_rnd_driver = { "qcom_rnd", qcom_rnd_methods,
+	sizeof(struct qcom_rnd_softc) };
 
-DRIVER_MODULE(qcom_rnd_random, simplebus, qcom_rnd_driver,
-    qcom_rnd_modevent, 0);
-DRIVER_MODULE(qcom_rnd_random, ofwbus, qcom_rnd_driver,
-    qcom_rnd_modevent, 0);
+DRIVER_MODULE(qcom_rnd_random, simplebus, qcom_rnd_driver, qcom_rnd_modevent,
+    0);
+DRIVER_MODULE(qcom_rnd_random, ofwbus, qcom_rnd_driver, qcom_rnd_modevent, 0);
 MODULE_DEPEND(qcom_rnd_random, random_device, 1, 1, 1);
 MODULE_VERSION(qcom_rnd_random, 1);

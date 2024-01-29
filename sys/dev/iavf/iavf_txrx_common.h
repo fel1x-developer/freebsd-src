@@ -54,7 +54,7 @@ static inline int iavf_ptype_to_hash(u8 ptype);
 static inline int
 iavf_ptype_to_hash(u8 ptype)
 {
-        struct iavf_rx_ptype_decoded decoded;
+	struct iavf_rx_ptype_decoded decoded;
 
 	decoded = decode_rx_desc_ptype(ptype);
 
@@ -65,7 +65,7 @@ iavf_ptype_to_hash(u8 ptype)
 		return M_HASHTYPE_OPAQUE;
 
 	/* Note: anything that gets to this point is IP */
-        if (decoded.outer_ip_ver == IAVF_RX_PTYPE_OUTER_IPV6) {
+	if (decoded.outer_ip_ver == IAVF_RX_PTYPE_OUTER_IPV6) {
 		switch (decoded.inner_prot) {
 		case IAVF_RX_PTYPE_INNER_PROT_TCP:
 			return M_HASHTYPE_RSS_TCP_IPV6;
@@ -75,7 +75,7 @@ iavf_ptype_to_hash(u8 ptype)
 			return M_HASHTYPE_RSS_IPV6;
 		}
 	}
-        if (decoded.outer_ip_ver == IAVF_RX_PTYPE_OUTER_IPV4) {
+	if (decoded.outer_ip_ver == IAVF_RX_PTYPE_OUTER_IPV4) {
 		switch (decoded.inner_prot) {
 		case IAVF_RX_PTYPE_INNER_PROT_TCP:
 			return M_HASHTYPE_RSS_TCP_IPV4;

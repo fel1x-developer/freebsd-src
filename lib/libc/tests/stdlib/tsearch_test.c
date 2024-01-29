@@ -27,8 +27,8 @@
 #define _SEARCH_PRIVATE
 #include <search.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 static int n_nodes = 0;
 static int n_seen = 0;
@@ -102,7 +102,7 @@ ATF_TC_BODY(tsearch_test, tc)
 			sample = nrand48(random_state) % 3;
 
 		switch (sample) {
-		case 0:  /* tdelete(). */
+		case 0: /* tdelete(). */
 			if (present[key]) {
 				ATF_CHECK(tdelete(&key, &root, compar) != NULL);
 				present[key] = false;
@@ -113,7 +113,7 @@ ATF_TC_BODY(tsearch_test, tc)
 				    tdelete(&key, &root, compar));
 			}
 			break;
-		case 1:  /* tfind(). */
+		case 1: /* tfind(). */
 			if (present[key]) {
 				ATF_CHECK_EQ(&keys[key],
 				    *(int **)tfind(&key, &root, compar));
@@ -121,13 +121,14 @@ ATF_TC_BODY(tsearch_test, tc)
 				ATF_CHECK_EQ(NULL, tfind(&key, &root, compar));
 			}
 			break;
-		case 2:  /* tsearch(). */
+		case 2: /* tsearch(). */
 			if (present[key]) {
 				ATF_CHECK_EQ(&keys[key],
 				    *(int **)tsearch(&key, &root, compar));
 			} else {
-				ATF_CHECK_EQ(&keys[key], *(int **)tsearch(
-				    &keys[key], &root, compar));
+				ATF_CHECK_EQ(&keys[key],
+				    *(int **)tsearch(&keys[key], &root,
+					compar));
 				present[key] = true;
 				n_nodes++;
 			}

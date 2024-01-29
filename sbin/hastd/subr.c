@@ -37,19 +37,19 @@
 #include <sys/stat.h>
 #ifdef HAVE_CAPSICUM
 #include <sys/capsicum.h>
+
 #include <geom/gate/g_gate.h>
 #endif
 
 #include <errno.h>
 #include <fcntl.h>
+#include <pjdlog.h>
 #include <pwd.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <pjdlog.h>
 
 #include "hast.h"
 #include "subr.h"
@@ -80,8 +80,8 @@ provinfo(struct hast_resource *res, bool dowrite)
 {
 	struct stat sb;
 
-	PJDLOG_ASSERT(res->hr_localpath != NULL &&
-	    res->hr_localpath[0] != '\0');
+	PJDLOG_ASSERT(
+	    res->hr_localpath != NULL && res->hr_localpath[0] != '\0');
 
 	if (res->hr_localfd == -1) {
 		res->hr_localfd = open(res->hr_localpath,
@@ -101,14 +101,14 @@ provinfo(struct hast_resource *res, bool dowrite)
 		 * If this is character device, it is most likely GEOM provider.
 		 */
 		if (ioctl(res->hr_localfd, DIOCGMEDIASIZE,
-		    &res->hr_local_mediasize) == -1) {
+			&res->hr_local_mediasize) == -1) {
 			pjdlog_errno(LOG_ERR,
 			    "Unable obtain provider %s mediasize",
 			    res->hr_localpath);
 			return (-1);
 		}
 		if (ioctl(res->hr_localfd, DIOCGSECTORSIZE,
-		    &res->hr_local_sectorsize) == -1) {
+			&res->hr_local_sectorsize) == -1) {
 			pjdlog_errno(LOG_ERR,
 			    "Unable obtain provider %s sectorsize",
 			    res->hr_localpath);
@@ -197,8 +197,8 @@ drop_privs(const struct hast_resource *res)
 		jailed = true;
 	} else {
 		jailed = false;
-		pjdlog_errno(LOG_WARNING,
-		    "Unable to jail to directory to %s", pw->pw_dir);
+		pjdlog_errno(LOG_WARNING, "Unable to jail to directory to %s",
+		    pw->pw_dir);
 		if (chroot(pw->pw_dir) == -1) {
 			pjdlog_errno(LOG_ERR,
 			    "Unable to change root directory to %s",
@@ -231,10 +231,8 @@ drop_privs(const struct hast_resource *res)
 		    "Unable to sandbox using capsicum");
 	} else if (res != NULL) {
 		cap_rights_t rights;
-		static const unsigned long geomcmds[] = {
-		    DIOCGDELETE,
-		    DIOCGFLUSH
-		};
+		static const unsigned long geomcmds[] = { DIOCGDELETE,
+			DIOCGFLUSH };
 
 		PJDLOG_ASSERT(res->hr_role == HAST_ROLE_PRIMARY ||
 		    res->hr_role == HAST_ROLE_SECONDARY);
@@ -246,17 +244,15 @@ drop_privs(const struct hast_resource *res)
 			    "Unable to limit capability rights on local descriptor");
 		}
 		if (cap_ioctls_limit(res->hr_localfd, geomcmds,
-		    nitems(geomcmds)) == -1) {
+			nitems(geomcmds)) == -1) {
 			pjdlog_errno(LOG_ERR,
 			    "Unable to limit allowed GEOM ioctls");
 		}
 
 		if (res->hr_role == HAST_ROLE_PRIMARY) {
 			static const unsigned long ggatecmds[] = {
-			    G_GATE_CMD_MODIFY,
-			    G_GATE_CMD_START,
-			    G_GATE_CMD_DONE,
-			    G_GATE_CMD_DESTROY
+				G_GATE_CMD_MODIFY, G_GATE_CMD_START,
+				G_GATE_CMD_DONE, G_GATE_CMD_DESTROY
 			};
 
 			cap_rights_init(&rights, CAP_IOCTL);
@@ -265,7 +261,7 @@ drop_privs(const struct hast_resource *res)
 				    "Unable to limit capability rights to CAP_IOCTL on ggate descriptor");
 			}
 			if (cap_ioctls_limit(res->hr_ggatefd, ggatecmds,
-			    nitems(ggatecmds)) == -1) {
+				nitems(ggatecmds)) == -1) {
 				pjdlog_errno(LOG_ERR,
 				    "Unable to limit allowed ggate ioctls");
 			}

@@ -34,25 +34,24 @@
  */
 
 #include <sys/param.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/bus.h>
 
 #include <dev/pci/pcivar.h>
 
-static int	ignore_pci_probe(device_t dev);
+static int ignore_pci_probe(device_t dev);
 
 static device_method_t ignore_pci_methods[] = {
-    /* Device interface */
-    DEVMETHOD(device_probe,		ignore_pci_probe),
-    DEVMETHOD(device_attach,		bus_generic_attach),
-    { 0, 0 }
+	/* Device interface */
+	DEVMETHOD(device_probe, ignore_pci_probe),
+	DEVMETHOD(device_attach, bus_generic_attach), { 0, 0 }
 };
 
 static driver_t ignore_pci_driver = {
-    "ignore_pci",
-    ignore_pci_methods,
-    0,
+	"ignore_pci",
+	ignore_pci_methods,
+	0,
 };
 
 DRIVER_MODULE(ignore_pci, pci, ignore_pci_driver, 0, 0);
@@ -60,11 +59,11 @@ DRIVER_MODULE(ignore_pci, pci, ignore_pci_driver, 0, 0);
 static int
 ignore_pci_probe(device_t dev)
 {
-    switch (pci_get_devid(dev)) {
-    case 0x10001042ul:	/* SMC 37C665 */
-	device_set_desc(dev, "ignored");
-	device_quiet(dev);
-	return(-10000);
-    }
-    return(ENXIO);
+	switch (pci_get_devid(dev)) {
+	case 0x10001042ul: /* SMC 37C665 */
+		device_set_desc(dev, "ignored");
+		device_quiet(dev);
+		return (-10000);
+	}
+	return (ENXIO);
 }

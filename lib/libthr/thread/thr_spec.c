@@ -30,17 +30,18 @@
  */
 
 #include <sys/cdefs.h>
-#include "namespace.h"
 #include <sys/mman.h>
+
+#include <errno.h>
+#include <pthread.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
-#include <pthread.h>
-#include "un-namespace.h"
-#include "libc_private.h"
 
+#include "libc_private.h"
+#include "namespace.h"
 #include "thr_private.h"
+#include "un-namespace.h"
 
 /* Used in symbol lookup of libthread_db */
 struct pthread_key _thread_keytable[PTHREAD_KEYS_MAX];
@@ -76,7 +77,6 @@ _thr_key_create(pthread_key_t *key, void (*destructor)(void *))
 			*key = i + 1;
 			return (0);
 		}
-
 	}
 	THR_LOCK_RELEASE(curthread, &_keytable_lock);
 	return (EAGAIN);
@@ -103,7 +103,7 @@ _thr_key_delete(pthread_key_t userkey)
 	return (ret);
 }
 
-void 
+void
 _thread_cleanupspecific(void)
 {
 	struct pthread *curthread;
@@ -116,9 +116,11 @@ _thread_cleanupspecific(void)
 		return;
 	THR_LOCK_ACQUIRE(curthread, &_keytable_lock);
 	for (i = 0; i < PTHREAD_DESTRUCTOR_ITERATIONS &&
-	    curthread->specific_data_count > 0; i++) {
+	     curthread->specific_data_count > 0;
+	     i++) {
 		for (key = 0; key < PTHREAD_KEYS_MAX &&
-		    curthread->specific_data_count > 0; key++) {
+		     curthread->specific_data_count > 0;
+		     key++) {
 			destructor = NULL;
 
 			if (_thread_keytable[key].allocated &&
@@ -126,13 +128,13 @@ _thread_cleanupspecific(void)
 				if (curthread->specific[key].seqno ==
 				    _thread_keytable[key].seqno) {
 					data = curthread->specific[key].data;
-					destructor = _thread_keytable[key].
-					    destructor;
+					destructor =
+					    _thread_keytable[key].destructor;
 				}
 				curthread->specific[key].data = NULL;
 				curthread->specific_data_count--;
 			} else if (curthread->specific[key].data != NULL) {
-				/* 
+				/*
 				 * This can happen if the key is
 				 * deleted via pthread_key_delete
 				 * without first setting the value to
@@ -159,13 +161,14 @@ _thread_cleanupspecific(void)
 	__thr_free(curthread->specific);
 	curthread->specific = NULL;
 	if (curthread->specific_data_count > 0) {
-		stderr_debug("Thread %p has exited with leftover "
+		stderr_debug(
+		    "Thread %p has exited with leftover "
 		    "thread-specific data after %d destructor iterations\n",
 		    curthread, PTHREAD_DESTRUCTOR_ITERATIONS);
 	}
 }
 
-int 
+int
 _thr_setspecific(pthread_key_t userkey, const void *value)
 {
 	struct pthread *pthread;

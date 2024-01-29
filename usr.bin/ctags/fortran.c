@@ -30,6 +30,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <ctype.h>
 #include <limits.h>
 #include <stdio.h>
@@ -39,14 +40,14 @@
 
 static void takeprec(void);
 
-char *lbp;				/* line buffer pointer */
+char *lbp; /* line buffer pointer */
 
 int
 PF_funcs(void)
 {
-	bool	pfcnt;			/* pascal/fortran functions found */
-	char	*cp;
-	char	tok[MAXTOKEN];
+	bool pfcnt; /* pascal/fortran functions found */
+	char *cp;
+	char tok[MAXTOKEN];
 
 	for (pfcnt = NO;;) {
 		lineftell = ftell(inf);
@@ -54,13 +55,13 @@ PF_funcs(void)
 			return (pfcnt);
 		++lineno;
 		lbp = lbuf;
-		if (*lbp == '%')	/* Ratfor escape to fortran */
+		if (*lbp == '%') /* Ratfor escape to fortran */
 			++lbp;
 		for (; isspace(*lbp); ++lbp)
 			continue;
 		if (!*lbp)
 			continue;
-		switch (*lbp | ' ') {	/* convert to lower-case */
+		switch (*lbp | ' ') { /* convert to lower-case */
 		case 'c':
 			if (cicmp("complex") || cicmp("character"))
 				takeprec();
@@ -117,8 +118,8 @@ PF_funcs(void)
 		if (cp == lbp + 1)
 			continue;
 		*cp = EOS;
-		(void)strlcpy(tok, lbp, sizeof(tok));	/* possible trunc */
-		get_line();			/* process line for ex(1) */
+		(void)strlcpy(tok, lbp, sizeof(tok)); /* possible trunc */
+		get_line(); /* process line for ex(1) */
 		pfnote(tok, lineno);
 		pfcnt = YES;
 	}
@@ -132,11 +133,11 @@ PF_funcs(void)
 int
 cicmp(const char *cp)
 {
-	int	len;
-	char	*bp;
+	int len;
+	char *bp;
 
-	for (len = 0, bp = lbp; *cp && (*cp &~ ' ') == (*bp++ &~ ' ');
-	    ++cp, ++len)
+	for (len = 0, bp = lbp; *cp && (*cp & ~' ') == (*bp++ & ~' ');
+	     ++cp, ++len)
 		continue;
 	if (!*cp) {
 		lbp += len;
@@ -154,7 +155,7 @@ takeprec(void)
 		for (++lbp; isspace(*lbp); ++lbp)
 			continue;
 		if (!isdigit(*lbp))
-			--lbp;			/* force failure */
+			--lbp; /* force failure */
 		else
 			while (isdigit(*++lbp))
 				continue;

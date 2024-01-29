@@ -28,13 +28,13 @@
  * SUCH DAMAGE.
  */
 
-#define	PIO_DATA	0x00
-#define	PIO_DIR		0x04
-#define	 PIO_OUT(n)	(1 << n)
-#define	 PIO_OUT_ALL	0xffffffff
-#define	PIO_INT_MASK	0x08
-#define	 PIO_UNMASK(n)	(1 << n)
-#define	 PIO_UNMASK_ALL	0xffffffff
-#define	PIO_EDGECAPT	0x0c
-#define	PIO_OUTSET	0x10
-#define	PIO_OUTCLR	0x14
+#define PIO_DATA 0x00
+#define PIO_DIR 0x04
+#define PIO_OUT(n) (1 << n)
+#define PIO_OUT_ALL 0xffffffff
+#define PIO_INT_MASK 0x08
+#define PIO_UNMASK(n) (1 << n)
+#define PIO_UNMASK_ALL 0xffffffff
+#define PIO_EDGECAPT 0x0c
+#define PIO_OUTSET 0x10
+#define PIO_OUTCLR 0x14

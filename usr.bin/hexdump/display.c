@@ -43,12 +43,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "hexdump.h"
 
 enum _vflag vflag = FIRST;
 
-static off_t address;			/* address/offset in stream */
-static off_t eaddress;			/* end address */
+static off_t address;  /* address/offset in stream */
+static off_t eaddress; /* end address */
 
 static void print(PR *, u_char *);
 static void noseek(void);
@@ -66,26 +67,29 @@ display(void)
 
 	savech = 0;
 	while ((bp = get()))
-	    for (fs = fshead, savebp = bp, saveaddress = address; fs;
-		fs = fs->nextfs, bp = savebp, address = saveaddress)
-		    for (fu = fs->nextfu; fu; fu = fu->nextfu) {
-			if (fu->flags&F_IGNORE)
-				break;
-			for (cnt = fu->reps; cnt; --cnt)
-			    for (pr = fu->nextpr; pr; address += pr->bcnt,
-				bp += pr->bcnt, pr = pr->nextpr) {
-				    if (eaddress && address >= eaddress &&
-					!(pr->flags & (F_TEXT|F_BPAD)))
-					    bpad(pr);
-				    if (cnt == 1 && pr->nospace) {
-					savech = *pr->nospace;
-					*pr->nospace = '\0';
-				    }
-				    print(pr, bp);
-				    if (cnt == 1 && pr->nospace)
-					*pr->nospace = savech;
-			    }
-		    }
+		for (fs = fshead, savebp = bp, saveaddress = address; fs;
+		     fs = fs->nextfs, bp = savebp, address = saveaddress)
+			for (fu = fs->nextfu; fu; fu = fu->nextfu) {
+				if (fu->flags & F_IGNORE)
+					break;
+				for (cnt = fu->reps; cnt; --cnt)
+					for (pr = fu->nextpr; pr;
+					     address += pr->bcnt,
+					    bp += pr->bcnt, pr = pr->nextpr) {
+						if (eaddress &&
+						    address >= eaddress &&
+						    !(pr->flags &
+							(F_TEXT | F_BPAD)))
+							bpad(pr);
+						if (cnt == 1 && pr->nospace) {
+							savech = *pr->nospace;
+							*pr->nospace = '\0';
+						}
+						print(pr, bp);
+						if (cnt == 1 && pr->nospace)
+							*pr->nospace = savech;
+					}
+			}
 	if (endfu) {
 		/*
 		 * If eaddress not set, error or file size was multiple of
@@ -97,7 +101,7 @@ display(void)
 			eaddress = address;
 		}
 		for (pr = endfu->nextpr; pr; pr = pr->nextpr)
-			switch(pr->flags) {
+			switch (pr->flags) {
 			case F_ADDRESS:
 				(void)printf(pr->fmt, (quad_t)eaddress);
 				break;
@@ -112,16 +116,16 @@ static void
 print(PR *pr, u_char *bp)
 {
 	long double ldbl;
-	   double f8;
-	    float f4;
-	  int16_t s2;
-	  int32_t s4;
-	  int64_t s8;
+	double f8;
+	float f4;
+	int16_t s2;
+	int32_t s4;
+	int64_t s8;
 	u_int16_t u2;
 	u_int32_t u4;
 	u_int64_t u8;
 
-	switch(pr->flags) {
+	switch (pr->flags) {
 	case F_ADDRESS:
 		(void)printf(pr->fmt, (quad_t)address);
 		break;
@@ -129,14 +133,15 @@ print(PR *pr, u_char *bp)
 		(void)printf(pr->fmt, "");
 		break;
 	case F_C:
-		conv_c(pr, bp, eaddress ? eaddress - address :
-		    blocksize - address % blocksize);
+		conv_c(pr, bp,
+		    eaddress ? eaddress - address :
+			       blocksize - address % blocksize);
 		break;
 	case F_CHAR:
 		(void)printf(pr->fmt, *bp);
 		break;
 	case F_DBL:
-		switch(pr->bcnt) {
+		switch (pr->bcnt) {
 		case 4:
 			bcopy(bp, &f4, sizeof(f4));
 			(void)printf(pr->fmt, f4);
@@ -154,7 +159,7 @@ print(PR *pr, u_char *bp)
 		}
 		break;
 	case F_INT:
-		switch(pr->bcnt) {
+		switch (pr->bcnt) {
 		case 1:
 			(void)printf(pr->fmt, (quad_t)(signed char)*bp);
 			break;
@@ -185,7 +190,7 @@ print(PR *pr, u_char *bp)
 		conv_u(pr, bp);
 		break;
 	case F_UINT:
-		switch(pr->bcnt) {
+		switch (pr->bcnt) {
 		case 1:
 			(void)printf(pr->fmt, (u_quad_t)*bp);
 			break;
@@ -219,9 +224,12 @@ bpad(PR *pr)
 	pr->flags = F_BPAD;
 	pr->cchar[0] = 's';
 	pr->cchar[1] = '\0';
-	for (p1 = pr->fmt; *p1 != '%'; ++p1);
-	for (p2 = ++p1; *p1 && strchr(spec, *p1); ++p1);
-	while ((*p2++ = *p1++));
+	for (p1 = pr->fmt; *p1 != '%'; ++p1)
+		;
+	for (p2 = ++p1; *p1 && strchr(spec, *p1); ++p1)
+		;
+	while ((*p2++ = *p1++))
+		;
 }
 
 static char **_argv;
@@ -258,23 +266,22 @@ get(void)
 			if (odmode && skip > 0)
 				errx(1, "cannot skip past end of input");
 			if (need == blocksize)
-				return((u_char *)NULL);
+				return ((u_char *)NULL);
 			/*
 			 * XXX bcmp() is not quite right in the presence
 			 * of multibyte characters.
 			 */
-			if (need == 0 && vflag != ALL &&
-			    valid_save && 
+			if (need == 0 && vflag != ALL && valid_save &&
 			    bcmp(curp, savp, nread) == 0) {
 				if (vflag != DUP) {
 					(void)printf("*\n");
 					(void)fflush(stdout);
 				}
-				return((u_char *)NULL);
+				return ((u_char *)NULL);
 			}
 			bzero((char *)curp + nread, need);
 			eaddress = address + nread;
-			return(curp);
+			return (curp);
 		}
 		n = fread((char *)curp + nread, sizeof(u_char),
 		    length == -1 ? need : MIN(length, need), stdin);
@@ -292,12 +299,11 @@ get(void)
 			 * XXX bcmp() is not quite right in the presence
 			 * of multibyte characters.
 			 */
-			if (vflag == ALL || vflag == FIRST ||
-			    valid_save == 0 ||
+			if (vflag == ALL || vflag == FIRST || valid_save == 0 ||
 			    bcmp(curp, savp, blocksize) != 0) {
 				if (vflag == DUP || vflag == FIRST)
 					vflag = WAIT;
-				return(curp);
+				return (curp);
 			}
 			if (vflag == WAIT) {
 				(void)printf("*\n");
@@ -307,8 +313,7 @@ get(void)
 			address += blocksize;
 			need = blocksize;
 			nread = 0;
-		}
-		else
+		} else
 			nread += n;
 	}
 }
@@ -342,7 +347,7 @@ next(char **argv)
 
 	if (argv) {
 		_argv = argv;
-		return(1);
+		return (1);
 	}
 	for (;;) {
 		if (*_argv) {
@@ -356,7 +361,7 @@ next(char **argv)
 			statok = 1;
 		} else {
 			if (done++)
-				return(0);
+				return (0);
 			statok = 0;
 		}
 
@@ -377,7 +382,7 @@ next(char **argv)
 		if (*_argv)
 			++_argv;
 		if (!skip)
-			return(1);
+			return (1);
 	}
 	/* NOTREACHED */
 }
@@ -391,13 +396,14 @@ doskip(const char *fname, int statok)
 	if (statok) {
 		if (fstat(fileno(stdin), &sb))
 			err(1, "%s", fname);
-		if (S_ISREG(sb.st_mode) && skip > sb.st_size && sb.st_size > 0) {
+		if (S_ISREG(sb.st_mode) && skip > sb.st_size &&
+		    sb.st_size > 0) {
 			address += sb.st_size;
 			skip -= sb.st_size;
 			return;
 		}
 	}
-	if (!statok || S_ISFIFO(sb.st_mode) || S_ISSOCK(sb.st_mode) || \
+	if (!statok || S_ISFIFO(sb.st_mode) || S_ISSOCK(sb.st_mode) ||
 	    (S_ISREG(sb.st_mode) && sb.st_size == 0)) {
 		noseek();
 		return;

@@ -29,9 +29,9 @@
 
 #define _RB_DIAGNOSTIC 1
 #include <sys/tree.h>
-#include <stdlib.h>
 
 #include <atf-c.h>
+#include <stdlib.h>
 
 struct node {
 	RB_ENTRY(node) node;
@@ -43,8 +43,10 @@ static RB_HEAD(tree, node) root;
 static int
 compare(struct node *a, struct node *b)
 {
-	if (a->key < b->key) return (-1);
-	else if (a->key > b->key) return (1);
+	if (a->key < b->key)
+		return (-1);
+	else if (a->key > b->key)
+		return (1);
 	return (0);
 }
 

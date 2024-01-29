@@ -37,98 +37,81 @@
 #include <bluetooth.h>
 #include <sdp.h>
 #include <string.h>
+
 #include "profile.h"
 #include "provider.h"
 
 static int32_t
-nap_profile_create_service_class_id_list(
-		uint8_t *buf, uint8_t const * const eob,
-		uint8_t const *data, uint32_t datalen)
+nap_profile_create_service_class_id_list(uint8_t *buf, uint8_t const *const eob,
+    uint8_t const *data, uint32_t datalen)
 {
-	static uint16_t	service_classes[] = {
-		SDP_SERVICE_CLASS_NAP
-	};
+	static uint16_t service_classes[] = { SDP_SERVICE_CLASS_NAP };
 
-	return (common_profile_create_service_class_id_list(
-			buf, eob,
-			(uint8_t const *) service_classes,
-			sizeof(service_classes)));
+	return (common_profile_create_service_class_id_list(buf, eob,
+	    (uint8_t const *)service_classes, sizeof(service_classes)));
 }
 
 static int32_t
-nap_profile_create_bluetooth_profile_descriptor_list(
-		uint8_t *buf, uint8_t const * const eob,
-		uint8_t const *data, uint32_t datalen)
+nap_profile_create_bluetooth_profile_descriptor_list(uint8_t *buf,
+    uint8_t const *const eob, uint8_t const *data, uint32_t datalen)
 {
-	static uint16_t	profile_descriptor_list[] = {
-		SDP_SERVICE_CLASS_NAP,
-		0x0100
-	};
+	static uint16_t profile_descriptor_list[] = { SDP_SERVICE_CLASS_NAP,
+		0x0100 };
 
-	return (common_profile_create_bluetooth_profile_descriptor_list(
-			buf, eob,
-			(uint8_t const *) profile_descriptor_list,
-			sizeof(profile_descriptor_list)));
+	return (common_profile_create_bluetooth_profile_descriptor_list(buf,
+	    eob, (uint8_t const *)profile_descriptor_list,
+	    sizeof(profile_descriptor_list)));
 }
 
 static int32_t
-nap_profile_create_service_name(
-		uint8_t *buf, uint8_t const * const eob,
-		uint8_t const *data, uint32_t datalen)
+nap_profile_create_service_name(uint8_t *buf, uint8_t const *const eob,
+    uint8_t const *data, uint32_t datalen)
 {
-	static char	service_name[] = "Network Access Point";
+	static char service_name[] = "Network Access Point";
 
-	return (common_profile_create_string8(
-			buf, eob,
-			(uint8_t const *) service_name, strlen(service_name)));
+	return (common_profile_create_string8(buf, eob,
+	    (uint8_t const *)service_name, strlen(service_name)));
 }
 
 static int32_t
-nap_profile_create_service_description(
-		uint8_t *buf, uint8_t const * const eob,
-		uint8_t const *data, uint32_t datalen)
+nap_profile_create_service_description(uint8_t *buf, uint8_t const *const eob,
+    uint8_t const *data, uint32_t datalen)
 {
-	static char	service_descr[] = "Personal Ad-hoc Network Service";
+	static char service_descr[] = "Personal Ad-hoc Network Service";
 
-	return (common_profile_create_string8(
-			buf, eob,
-			(uint8_t const *) service_descr,
-			strlen(service_descr)));
+	return (common_profile_create_string8(buf, eob,
+	    (uint8_t const *)service_descr, strlen(service_descr)));
 }
 
 static int32_t
-nap_profile_create_protocol_descriptor_list(
-		uint8_t *buf, uint8_t const * const eob,
-		uint8_t const *data, uint32_t datalen)
+nap_profile_create_protocol_descriptor_list(uint8_t *buf,
+    uint8_t const *const eob, uint8_t const *data, uint32_t datalen)
 {
-	provider_p		provider = (provider_p) data; 
-	sdp_nap_profile_p	nap = (sdp_nap_profile_p) provider->data; 
+	provider_p provider = (provider_p)data;
+	sdp_nap_profile_p nap = (sdp_nap_profile_p)provider->data;
 
-	return (bnep_profile_create_protocol_descriptor_list(
-			buf, eob, (uint8_t const *) &nap->psm,
-			sizeof(nap->psm))); 
+	return (bnep_profile_create_protocol_descriptor_list(buf, eob,
+	    (uint8_t const *)&nap->psm, sizeof(nap->psm)));
 }
 
 static int32_t
-nap_profile_create_security_description(
-		uint8_t *buf, uint8_t const * const eob,
-		uint8_t const *data, uint32_t datalen)
+nap_profile_create_security_description(uint8_t *buf, uint8_t const *const eob,
+    uint8_t const *data, uint32_t datalen)
 {
-	provider_p		provider = (provider_p) data; 
-	sdp_nap_profile_p	nap = (sdp_nap_profile_p) provider->data; 
+	provider_p provider = (provider_p)data;
+	sdp_nap_profile_p nap = (sdp_nap_profile_p)provider->data;
 
 	return (bnep_profile_create_security_description(buf, eob,
-			(uint8_t const *) &nap->security_description,
-			sizeof(nap->security_description)));
+	    (uint8_t const *)&nap->security_description,
+	    sizeof(nap->security_description)));
 }
 
 static int32_t
-nap_profile_create_net_access_type(
-		uint8_t *buf, uint8_t const * const eob,
-		uint8_t const *data, uint32_t datalen)
+nap_profile_create_net_access_type(uint8_t *buf, uint8_t const *const eob,
+    uint8_t const *data, uint32_t datalen)
 {
-	provider_p		provider = (provider_p) data; 
-	sdp_nap_profile_p	nap = (sdp_nap_profile_p) provider->data; 
+	provider_p provider = (provider_p)data;
+	sdp_nap_profile_p nap = (sdp_nap_profile_p)provider->data;
 
 	if (buf + 3 > eob)
 		return (-1);
@@ -140,12 +123,11 @@ nap_profile_create_net_access_type(
 }
 
 static int32_t
-nap_profile_create_max_net_access_rate(
-		uint8_t *buf, uint8_t const * const eob,
-		uint8_t const *data, uint32_t datalen)
+nap_profile_create_max_net_access_rate(uint8_t *buf, uint8_t const *const eob,
+    uint8_t const *data, uint32_t datalen)
 {
-	provider_p		provider = (provider_p) data; 
-	sdp_nap_profile_p	nap = (sdp_nap_profile_p) provider->data; 
+	provider_p provider = (provider_p)data;
+	sdp_nap_profile_p nap = (sdp_nap_profile_p)provider->data;
 
 	if (buf + 3 > eob)
 		return (-1);
@@ -157,55 +139,50 @@ nap_profile_create_max_net_access_rate(
 }
 
 static int32_t
-nap_profile_create_service_availability(
-		uint8_t *buf, uint8_t const * const eob,
-		uint8_t const *data, uint32_t datalen)
+nap_profile_create_service_availability(uint8_t *buf, uint8_t const *const eob,
+    uint8_t const *data, uint32_t datalen)
 {
-	provider_p		provider = (provider_p) data; 
-	sdp_nap_profile_p	nap = (sdp_nap_profile_p) provider->data; 
+	provider_p provider = (provider_p)data;
+	sdp_nap_profile_p nap = (sdp_nap_profile_p)provider->data;
 
 	return (common_profile_create_service_availability(buf, eob,
-			&nap->load_factor, 1));
+	    &nap->load_factor, 1));
 }
 
 static int32_t
 nap_profile_data_valid(uint8_t const *data, uint32_t datalen)
 {
-	sdp_nap_profile_p	nap = (sdp_nap_profile_p) data;
+	sdp_nap_profile_p nap = (sdp_nap_profile_p)data;
 
-	return ((nap->psm == 0)? 0 : 1);
+	return ((nap->psm == 0) ? 0 : 1);
 }
 
-static attr_t	nap_profile_attrs[] = {
+static attr_t nap_profile_attrs[] = {
 	{ SDP_ATTR_SERVICE_RECORD_HANDLE,
-	  common_profile_create_service_record_handle },
+	    common_profile_create_service_record_handle },
 	{ SDP_ATTR_SERVICE_CLASS_ID_LIST,
-	  nap_profile_create_service_class_id_list },
+	    nap_profile_create_service_class_id_list },
 	{ SDP_ATTR_PROTOCOL_DESCRIPTOR_LIST,
-	  nap_profile_create_protocol_descriptor_list },
+	    nap_profile_create_protocol_descriptor_list },
 	{ SDP_ATTR_LANGUAGE_BASE_ATTRIBUTE_ID_LIST,
-	  common_profile_create_language_base_attribute_id_list },
+	    common_profile_create_language_base_attribute_id_list },
 	{ SDP_ATTR_SERVICE_AVAILABILITY,
-	  nap_profile_create_service_availability },
+	    nap_profile_create_service_availability },
 	{ SDP_ATTR_BLUETOOTH_PROFILE_DESCRIPTOR_LIST,
-	  nap_profile_create_bluetooth_profile_descriptor_list },
-	{ SDP_ATTR_PRIMARY_LANGUAGE_BASE_ID + SDP_ATTR_SERVICE_NAME_OFFSET, 
-	  nap_profile_create_service_name },
-	{ SDP_ATTR_PRIMARY_LANGUAGE_BASE_ID + SDP_ATTR_SERVICE_DESCRIPTION_OFFSET, 
-	  nap_profile_create_service_description },
-	{ SDP_ATTR_SECURITY_DESCRIPTION, 
-	  nap_profile_create_security_description },
-	{ SDP_ATTR_NET_ACCESS_TYPE, 
-	  nap_profile_create_net_access_type },
-	{ SDP_ATTR_MAX_NET_ACCESS_RATE, 
-	  nap_profile_create_max_net_access_rate },
+	    nap_profile_create_bluetooth_profile_descriptor_list },
+	{ SDP_ATTR_PRIMARY_LANGUAGE_BASE_ID + SDP_ATTR_SERVICE_NAME_OFFSET,
+	    nap_profile_create_service_name },
+	{ SDP_ATTR_PRIMARY_LANGUAGE_BASE_ID +
+		SDP_ATTR_SERVICE_DESCRIPTION_OFFSET,
+	    nap_profile_create_service_description },
+	{ SDP_ATTR_SECURITY_DESCRIPTION,
+	    nap_profile_create_security_description },
+	{ SDP_ATTR_NET_ACCESS_TYPE, nap_profile_create_net_access_type },
+	{ SDP_ATTR_MAX_NET_ACCESS_RATE,
+	    nap_profile_create_max_net_access_rate },
 	{ 0, NULL } /* end entry */
 };
 
-profile_t	nap_profile_descriptor = {
-	SDP_SERVICE_CLASS_NAP,
-	sizeof(sdp_nap_profile_t),
-	nap_profile_data_valid,
-	(attr_t const * const) &nap_profile_attrs
-};
-
+profile_t nap_profile_descriptor = { SDP_SERVICE_CLASS_NAP,
+	sizeof(sdp_nap_profile_t), nap_profile_data_valid,
+	(attr_t const *const)&nap_profile_attrs };

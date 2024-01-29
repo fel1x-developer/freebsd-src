@@ -33,15 +33,16 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <errno.h>
+#include <spinlock.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "un-namespace.h"
-#include <spinlock.h>
+
 #include "libc_private.h"
 #include "local.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 static int
 cleanfile(FILE *fp, bool c)
@@ -61,7 +62,7 @@ cleanfile(FILE *fp, bool c)
 	if (HASLB(fp))
 		FREELB(fp);
 	fp->_file = -1;
-	fp->_r = fp->_w = 0;	/* Mess up if reaccessed. */
+	fp->_r = fp->_w = 0; /* Mess up if reaccessed. */
 
 	/*
 	 * Lock the spinlock used to protect __sglue list walk in
@@ -74,7 +75,7 @@ cleanfile(FILE *fp, bool c)
 	 * it is considered available.
 	 */
 	STDIO_THREAD_LOCK();
-	fp->_flags = 0;		/* Release this FILE for reuse. */
+	fp->_flags = 0; /* Release this FILE for reuse. */
 	STDIO_THREAD_UNLOCK();
 
 	return (r);
@@ -88,7 +89,7 @@ fdclose(FILE *fp, int *fdp)
 	if (fdp != NULL)
 		*fdp = -1;
 
-	if (fp->_flags == 0) {	/* not open! */
+	if (fp->_flags == 0) { /* not open! */
 		errno = EBADF;
 		return (EOF);
 	}
@@ -121,7 +122,7 @@ fclose(FILE *fp)
 {
 	int r;
 
-	if (fp->_flags == 0) {	/* not open! */
+	if (fp->_flags == 0) { /* not open! */
 		errno = EBADF;
 		return (EOF);
 	}

@@ -27,6 +27,8 @@
  * SUCH DAMAGE.
  */
 
+#include "opt_mmccam.h"
+
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -36,27 +38,24 @@
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/queue.h>
 #include <sys/resource.h>
 #include <sys/rman.h>
 #include <sys/sysctl.h>
-#include <sys/queue.h>
 #include <sys/taskqueue.h>
 
 #include <machine/bus.h>
 
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/mmc/bridge.h>
-#include <dev/mmc/mmcbrvar.h>
-#include <dev/mmc/mmc_fdt_helpers.h>
-
-#include <arm/allwinner/aw_mmc.h>
 #include <dev/clk/clk.h>
 #include <dev/hwreset/hwreset.h>
+#include <dev/mmc/bridge.h>
+#include <dev/mmc/mmc_fdt_helpers.h>
+#include <dev/mmc/mmcbrvar.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
 #include <dev/regulator/regulator.h>
 
-#include "opt_mmccam.h"
+#include <arm/allwinner/aw_mmc.h>
 
 #ifdef MMCCAM
 #include <cam/cam.h>
@@ -71,22 +70,22 @@
 
 #include "mmc_pwrseq_if.h"
 
-#define	AW_MMC_MEMRES		0
-#define	AW_MMC_IRQRES		1
-#define	AW_MMC_RESSZ		2
-#define	AW_MMC_DMA_SEGS		(PAGE_SIZE / sizeof(struct aw_mmc_dma_desc))
-#define	AW_MMC_DMA_DESC_SIZE	(sizeof(struct aw_mmc_dma_desc) * AW_MMC_DMA_SEGS)
-#define	AW_MMC_DMA_FTRGLEVEL	0x20070008
+#define AW_MMC_MEMRES 0
+#define AW_MMC_IRQRES 1
+#define AW_MMC_RESSZ 2
+#define AW_MMC_DMA_SEGS (PAGE_SIZE / sizeof(struct aw_mmc_dma_desc))
+#define AW_MMC_DMA_DESC_SIZE (sizeof(struct aw_mmc_dma_desc) * AW_MMC_DMA_SEGS)
+#define AW_MMC_DMA_FTRGLEVEL 0x20070008
 
-#define	AW_MMC_RESET_RETRY	1000
+#define AW_MMC_RESET_RETRY 1000
 
-#define	CARD_ID_FREQUENCY	400000
+#define CARD_ID_FREQUENCY 400000
 
 struct aw_mmc_conf {
-	uint32_t	dma_xferlen;
-	bool		mask_data0;
-	bool		can_calibrate;
-	bool		new_timing;
+	uint32_t dma_xferlen;
+	bool mask_data0;
+	bool can_calibrate;
+	bool new_timing;
 };
 
 static const struct aw_mmc_conf a10_mmc_conf = {
@@ -110,55 +109,52 @@ static const struct aw_mmc_conf a64_emmc_conf = {
 };
 
 static struct ofw_compat_data compat_data[] = {
-	{"allwinner,sun4i-a10-mmc", (uintptr_t)&a10_mmc_conf},
-	{"allwinner,sun5i-a13-mmc", (uintptr_t)&a13_mmc_conf},
-	{"allwinner,sun7i-a20-mmc", (uintptr_t)&a13_mmc_conf},
-	{"allwinner,sun50i-a64-mmc", (uintptr_t)&a64_mmc_conf},
-	{"allwinner,sun50i-a64-emmc", (uintptr_t)&a64_emmc_conf},
-	{NULL,             0}
+	{ "allwinner,sun4i-a10-mmc", (uintptr_t)&a10_mmc_conf },
+	{ "allwinner,sun5i-a13-mmc", (uintptr_t)&a13_mmc_conf },
+	{ "allwinner,sun7i-a20-mmc", (uintptr_t)&a13_mmc_conf },
+	{ "allwinner,sun50i-a64-mmc", (uintptr_t)&a64_mmc_conf },
+	{ "allwinner,sun50i-a64-emmc", (uintptr_t)&a64_emmc_conf }, { NULL, 0 }
 };
 
 struct aw_mmc_softc {
-	device_t		aw_dev;
-	clk_t			aw_clk_ahb;
-	clk_t			aw_clk_mmc;
-	hwreset_t		aw_rst_ahb;
-	int			aw_bus_busy;
-	int			aw_resid;
-	int			aw_timeout;
-	struct callout		aw_timeoutc;
-	struct mmc_host		aw_host;
-	struct mmc_helper	mmc_helper;
+	device_t aw_dev;
+	clk_t aw_clk_ahb;
+	clk_t aw_clk_mmc;
+	hwreset_t aw_rst_ahb;
+	int aw_bus_busy;
+	int aw_resid;
+	int aw_timeout;
+	struct callout aw_timeoutc;
+	struct mmc_host aw_host;
+	struct mmc_helper mmc_helper;
 #ifdef MMCCAM
-	union ccb *		ccb;
-	struct mmc_sim		mmc_sim;
+	union ccb *ccb;
+	struct mmc_sim mmc_sim;
 #else
-	struct mmc_request *	aw_req;
+	struct mmc_request *aw_req;
 #endif
-	struct mtx		aw_mtx;
-	struct resource *	aw_res[AW_MMC_RESSZ];
-	struct aw_mmc_conf *	aw_mmc_conf;
-	uint32_t		aw_intr;
-	uint32_t		aw_intr_wait;
-	void *			aw_intrhand;
-	unsigned int		aw_clock;
-	device_t		child;
+	struct mtx aw_mtx;
+	struct resource *aw_res[AW_MMC_RESSZ];
+	struct aw_mmc_conf *aw_mmc_conf;
+	uint32_t aw_intr;
+	uint32_t aw_intr_wait;
+	void *aw_intrhand;
+	unsigned int aw_clock;
+	device_t child;
 
 	/* Fields required for DMA access. */
-	bus_addr_t	  	aw_dma_desc_phys;
-	bus_dmamap_t		aw_dma_map;
-	bus_dma_tag_t 		aw_dma_tag;
-	void * 			aw_dma_desc;
-	bus_dmamap_t		aw_dma_buf_map;
-	bus_dma_tag_t		aw_dma_buf_tag;
-	int			aw_dma_map_err;
+	bus_addr_t aw_dma_desc_phys;
+	bus_dmamap_t aw_dma_map;
+	bus_dma_tag_t aw_dma_tag;
+	void *aw_dma_desc;
+	bus_dmamap_t aw_dma_buf_map;
+	bus_dma_tag_t aw_dma_buf_tag;
+	int aw_dma_map_err;
 };
 
-static struct resource_spec aw_mmc_res_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ SYS_RES_IRQ,		0,	RF_ACTIVE | RF_SHAREABLE },
-	{ -1,			0,	0 }
-};
+static struct resource_spec aw_mmc_res_spec[] = { { SYS_RES_MEMORY, 0,
+						      RF_ACTIVE },
+	{ SYS_RES_IRQ, 0, RF_ACTIVE | RF_SHAREABLE }, { -1, 0, 0 } };
 
 static int aw_mmc_probe(device_t);
 static int aw_mmc_attach(device_t);
@@ -181,11 +177,10 @@ static int aw_mmc_acquire_host(device_t, device_t);
 static int aw_mmc_release_host(device_t, device_t);
 #endif
 
-#define	AW_MMC_LOCK(_sc)	mtx_lock(&(_sc)->aw_mtx)
-#define	AW_MMC_UNLOCK(_sc)	mtx_unlock(&(_sc)->aw_mtx)
-#define	AW_MMC_READ_4(_sc, _reg)					\
-	bus_read_4((_sc)->aw_res[AW_MMC_MEMRES], _reg)
-#define	AW_MMC_WRITE_4(_sc, _reg, _value)				\
+#define AW_MMC_LOCK(_sc) mtx_lock(&(_sc)->aw_mtx)
+#define AW_MMC_UNLOCK(_sc) mtx_unlock(&(_sc)->aw_mtx)
+#define AW_MMC_READ_4(_sc, _reg) bus_read_4((_sc)->aw_res[AW_MMC_MEMRES], _reg)
+#define AW_MMC_WRITE_4(_sc, _reg, _value) \
 	bus_write_4((_sc)->aw_res[AW_MMC_MEMRES], _reg, _value)
 
 SYSCTL_NODE(_hw, OID_AUTO, aw_mmc, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
@@ -194,10 +189,10 @@ SYSCTL_NODE(_hw, OID_AUTO, aw_mmc, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
 static int aw_mmc_debug = 0;
 SYSCTL_INT(_hw_aw_mmc, OID_AUTO, debug, CTLFLAG_RWTUN, &aw_mmc_debug, 0,
     "Debug level bit0=card changes bit1=ios changes, bit2=interrupts, bit3=commands");
-#define	AW_MMC_DEBUG_CARD	0x1
-#define	AW_MMC_DEBUG_IOS	0x2
-#define	AW_MMC_DEBUG_INT	0x4
-#define	AW_MMC_DEBUG_CMD	0x8
+#define AW_MMC_DEBUG_CARD 0x1
+#define AW_MMC_DEBUG_IOS 0x2
+#define AW_MMC_DEBUG_INT 0x4
+#define AW_MMC_DEBUG_CMD 0x8
 
 #ifdef MMCCAM
 static int
@@ -211,8 +206,8 @@ aw_mmc_get_tran_settings(device_t dev, struct ccb_trans_settings_mmc *cts)
 	cts->host_f_min = sc->aw_host.f_min;
 	cts->host_f_max = sc->aw_host.f_max;
 	cts->host_caps = sc->aw_host.caps;
-	cts->host_max_data = (sc->aw_mmc_conf->dma_xferlen *
-	    AW_MMC_DMA_SEGS) / MMC_SECTOR_SIZE;
+	cts->host_max_data = (sc->aw_mmc_conf->dma_xferlen * AW_MMC_DMA_SEGS) /
+	    MMC_SECTOR_SIZE;
 	memcpy(&cts->ios, &sc->aw_host.ios, sizeof(struct mmc_ios));
 
 	return (0);
@@ -243,27 +238,32 @@ aw_mmc_set_tran_settings(device_t dev, struct ccb_trans_settings_mmc *cts)
 	if (cts->ios_valid & MMC_CS) {
 		ios->chip_select = new_ios->chip_select;
 		if (__predict_false(aw_mmc_debug & AW_MMC_DEBUG_IOS))
-			device_printf(sc->aw_dev, "CS => %d\n", ios->chip_select);
+			device_printf(sc->aw_dev, "CS => %d\n",
+			    ios->chip_select);
 	}
 	if (cts->ios_valid & MMC_BW) {
 		ios->bus_width = new_ios->bus_width;
 		if (__predict_false(aw_mmc_debug & AW_MMC_DEBUG_IOS))
-			device_printf(sc->aw_dev, "Bus width => %d\n", ios->bus_width);
+			device_printf(sc->aw_dev, "Bus width => %d\n",
+			    ios->bus_width);
 	}
 	if (cts->ios_valid & MMC_PM) {
 		ios->power_mode = new_ios->power_mode;
 		if (__predict_false(aw_mmc_debug & AW_MMC_DEBUG_IOS))
-			device_printf(sc->aw_dev, "Power mode => %d\n", ios->power_mode);
+			device_printf(sc->aw_dev, "Power mode => %d\n",
+			    ios->power_mode);
 	}
 	if (cts->ios_valid & MMC_BT) {
 		ios->timing = new_ios->timing;
 		if (__predict_false(aw_mmc_debug & AW_MMC_DEBUG_IOS))
-			device_printf(sc->aw_dev, "Timing => %d\n", ios->timing);
+			device_printf(sc->aw_dev, "Timing => %d\n",
+			    ios->timing);
 	}
 	if (cts->ios_valid & MMC_BM) {
 		ios->bus_mode = new_ios->bus_mode;
 		if (__predict_false(aw_mmc_debug & AW_MMC_DEBUG_IOS))
-			device_printf(sc->aw_dev, "Bus mode => %d\n", ios->bus_mode);
+			device_printf(sc->aw_dev, "Bus mode => %d\n",
+			    ios->bus_mode);
 	}
 
 	return (aw_mmc_update_ios(sc->aw_dev, NULL));
@@ -281,18 +281,23 @@ aw_mmc_cam_request(device_t dev, union ccb *ccb)
 	AW_MMC_LOCK(sc);
 
 	if (__predict_false(aw_mmc_debug & AW_MMC_DEBUG_CMD)) {
-		device_printf(sc->aw_dev, "CMD%u arg %#x flags %#x dlen %u dflags %#x\n",
-			    mmcio->cmd.opcode, mmcio->cmd.arg, mmcio->cmd.flags,
-			    mmcio->cmd.data != NULL ? (unsigned int) mmcio->cmd.data->len : 0,
-			    mmcio->cmd.data != NULL ? mmcio->cmd.data->flags: 0);
+		device_printf(sc->aw_dev,
+		    "CMD%u arg %#x flags %#x dlen %u dflags %#x\n",
+		    mmcio->cmd.opcode, mmcio->cmd.arg, mmcio->cmd.flags,
+		    mmcio->cmd.data != NULL ?
+			(unsigned int)mmcio->cmd.data->len :
+			0,
+		    mmcio->cmd.data != NULL ? mmcio->cmd.data->flags : 0);
 	}
 	if (mmcio->cmd.data != NULL) {
 		if (mmcio->cmd.data->len == 0 || mmcio->cmd.data->flags == 0)
-			panic("data->len = %d, data->flags = %d -- something is b0rked",
-			      (int)mmcio->cmd.data->len, mmcio->cmd.data->flags);
+			panic(
+			    "data->len = %d, data->flags = %d -- something is b0rked",
+			    (int)mmcio->cmd.data->len, mmcio->cmd.data->flags);
 	}
 	if (sc->ccb != NULL) {
-		device_printf(sc->aw_dev, "Controller still has an active command\n");
+		device_printf(sc->aw_dev,
+		    "Controller still has an active command\n");
 		return (EBUSY);
 	}
 	sc->ccb = ccb;
@@ -376,7 +381,9 @@ aw_mmc_attach(device_t dev)
 	sc = device_get_softc(dev);
 	sc->aw_dev = dev;
 
-	sc->aw_mmc_conf = (struct aw_mmc_conf *)ofw_bus_search_compatible(dev, compat_data)->ocd_data;
+	sc->aw_mmc_conf = (struct aw_mmc_conf *)ofw_bus_search_compatible(dev,
+	    compat_data)
+			      ->ocd_data;
 
 #ifndef MMCCAM
 	sc->aw_req = NULL;
@@ -386,8 +393,8 @@ aw_mmc_attach(device_t dev)
 		return (ENXIO);
 	}
 	if (bus_setup_intr(dev, sc->aw_res[AW_MMC_IRQRES],
-	    INTR_TYPE_NET | INTR_MPSAFE, NULL, aw_mmc_intr, sc,
-	    &sc->aw_intrhand)) {
+		INTR_TYPE_NET | INTR_MPSAFE, NULL, aw_mmc_intr, sc,
+		&sc->aw_intrhand)) {
 		bus_release_resources(dev, aw_mmc_res_spec, sc->aw_res);
 		device_printf(dev, "cannot setup interrupt handler\n");
 		return (ENXIO);
@@ -534,52 +541,46 @@ aw_mmc_setup_dma(struct aw_mmc_softc *sc)
 	int error;
 
 	/* Allocate the DMA descriptor memory. */
-	error = bus_dma_tag_create(
-	    bus_get_dma_tag(sc->aw_dev),	/* parent */
-	    AW_MMC_DMA_ALIGN, 0,		/* align, boundary */
-	    BUS_SPACE_MAXADDR_32BIT,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,			/* highaddr */
-	    NULL, NULL,				/* filter, filterarg*/
-	    AW_MMC_DMA_DESC_SIZE, 1,		/* maxsize, nsegment */
-	    AW_MMC_DMA_DESC_SIZE,		/* maxsegsize */
-	    0,					/* flags */
-	    NULL, NULL,				/* lock, lockarg*/
+	error = bus_dma_tag_create(bus_get_dma_tag(sc->aw_dev), /* parent */
+	    AW_MMC_DMA_ALIGN, 0,     /* align, boundary */
+	    BUS_SPACE_MAXADDR_32BIT, /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filter, filterarg*/
+	    AW_MMC_DMA_DESC_SIZE, 1, /* maxsize, nsegment */
+	    AW_MMC_DMA_DESC_SIZE,    /* maxsegsize */
+	    0,			     /* flags */
+	    NULL, NULL,		     /* lock, lockarg*/
 	    &sc->aw_dma_tag);
 	if (error)
 		return (error);
 
 	error = bus_dmamem_alloc(sc->aw_dma_tag, &sc->aw_dma_desc,
-	    BUS_DMA_COHERENT | BUS_DMA_WAITOK | BUS_DMA_ZERO,
-	    &sc->aw_dma_map);
+	    BUS_DMA_COHERENT | BUS_DMA_WAITOK | BUS_DMA_ZERO, &sc->aw_dma_map);
 	if (error)
 		return (error);
 
-	error = bus_dmamap_load(sc->aw_dma_tag,
-	    sc->aw_dma_map,
-	    sc->aw_dma_desc, AW_MMC_DMA_DESC_SIZE,
-	    aw_dma_desc_cb, sc, 0);
+	error = bus_dmamap_load(sc->aw_dma_tag, sc->aw_dma_map, sc->aw_dma_desc,
+	    AW_MMC_DMA_DESC_SIZE, aw_dma_desc_cb, sc, 0);
 	if (error)
 		return (error);
 	if (sc->aw_dma_map_err)
 		return (sc->aw_dma_map_err);
 
 	/* Create the DMA map for data transfers. */
-	error = bus_dma_tag_create(
-	    bus_get_dma_tag(sc->aw_dev),	/* parent */
-	    AW_MMC_DMA_ALIGN, 0,		/* align, boundary */
-	    BUS_SPACE_MAXADDR_32BIT,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,			/* highaddr */
-	    NULL, NULL,				/* filter, filterarg*/
-	    sc->aw_mmc_conf->dma_xferlen *
-	    AW_MMC_DMA_SEGS, AW_MMC_DMA_SEGS,	/* maxsize, nsegments */
-	    sc->aw_mmc_conf->dma_xferlen,	/* maxsegsize */
-	    BUS_DMA_ALLOCNOW,			/* flags */
-	    NULL, NULL,				/* lock, lockarg*/
+	error = bus_dma_tag_create(bus_get_dma_tag(sc->aw_dev), /* parent */
+	    AW_MMC_DMA_ALIGN, 0,     /* align, boundary */
+	    BUS_SPACE_MAXADDR_32BIT, /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filter, filterarg*/
+	    sc->aw_mmc_conf->dma_xferlen * AW_MMC_DMA_SEGS,
+	    AW_MMC_DMA_SEGS,		  /* maxsize, nsegments */
+	    sc->aw_mmc_conf->dma_xferlen, /* maxsegsize */
+	    BUS_DMA_ALLOCNOW,		  /* flags */
+	    NULL, NULL,			  /* lock, lockarg*/
 	    &sc->aw_dma_buf_tag);
 	if (error)
 		return (error);
-	error = bus_dmamap_create(sc->aw_dma_buf_tag, 0,
-	    &sc->aw_dma_buf_map);
+	error = bus_dmamap_create(sc->aw_dma_buf_tag, 0, &sc->aw_dma_buf_map);
 	if (error)
 		return (error);
 
@@ -617,20 +618,21 @@ aw_dma_cb(void *arg, bus_dma_segment_t *segs, int nsegs, int err)
 	dma_desc = sc->aw_dma_desc;
 	for (i = 0; i < nsegs; i++) {
 		if (segs[i].ds_len == sc->aw_mmc_conf->dma_xferlen)
-			dma_desc[i].buf_size = 0;		/* Size of 0 indicate max len */
+			dma_desc[i].buf_size =
+			    0; /* Size of 0 indicate max len */
 		else
 			dma_desc[i].buf_size = segs[i].ds_len;
 		dma_desc[i].buf_addr = segs[i].ds_addr;
 		dma_desc[i].config = AW_MMC_DMA_CONFIG_CH |
-			AW_MMC_DMA_CONFIG_OWN | AW_MMC_DMA_CONFIG_DIC;
+		    AW_MMC_DMA_CONFIG_OWN | AW_MMC_DMA_CONFIG_DIC;
 
 		dma_desc[i].next = sc->aw_dma_desc_phys +
-			((i + 1) * sizeof(struct aw_mmc_dma_desc));
+		    ((i + 1) * sizeof(struct aw_mmc_dma_desc));
 	}
 
 	dma_desc[0].config |= AW_MMC_DMA_CONFIG_FD;
 	dma_desc[nsegs - 1].config |= AW_MMC_DMA_CONFIG_LD |
-		AW_MMC_DMA_CONFIG_ER;
+	    AW_MMC_DMA_CONFIG_ER;
 	dma_desc[nsegs - 1].config &= ~AW_MMC_DMA_CONFIG_DIC;
 	dma_desc[nsegs - 1].next = 0;
 }
@@ -729,7 +731,7 @@ aw_mmc_init(struct aw_mmc_softc *sc)
 	/* Set the timeout. */
 	AW_MMC_WRITE_4(sc, AW_MMC_TMOR,
 	    AW_MMC_TMOR_DTO_LMT_SHIFT(AW_MMC_TMOR_DTO_LMT_MASK) |
-	    AW_MMC_TMOR_RTO_LMT_SHIFT(AW_MMC_TMOR_RTO_LMT_MASK));
+		AW_MMC_TMOR_RTO_LMT_SHIFT(AW_MMC_TMOR_RTO_LMT_MASK));
 
 	/* Unmask interrupts. */
 	AW_MMC_WRITE_4(sc, AW_MMC_IMKR, 0);
@@ -774,7 +776,8 @@ aw_mmc_req_done(struct aw_mmc_softc *sc)
 	cmd = sc->aw_req->cmd;
 #endif
 	if (__predict_false(aw_mmc_debug & AW_MMC_DEBUG_CMD)) {
-		device_printf(sc->aw_dev, "%s: cmd %d err %d\n", __func__, cmd->opcode, cmd->error);
+		device_printf(sc->aw_dev, "%s: cmd %d err %d\n", __func__,
+		    cmd->opcode, cmd->error);
 	}
 	if (cmd->error != MMC_ERR_NONE) {
 		/* Reset the FIFO and DMA engines. */
@@ -785,7 +788,7 @@ aw_mmc_req_done(struct aw_mmc_softc *sc)
 		retry = AW_MMC_RESET_RETRY;
 		while (--retry > 0) {
 			if ((AW_MMC_READ_4(sc, AW_MMC_GCTL) &
-			    AW_MMC_GCTL_RESET) == 0)
+				AW_MMC_GCTL_RESET) == 0)
 				break;
 			DELAY(100);
 		}
@@ -803,8 +806,8 @@ aw_mmc_req_done(struct aw_mmc_softc *sc)
 	sc->aw_intr_wait = 0;
 #ifdef MMCCAM
 	sc->ccb = NULL;
-	ccb->ccb_h.status =
-		(ccb->mmcio.cmd.error == 0 ? CAM_REQ_CMP : CAM_REQ_CMP_ERR);
+	ccb->ccb_h.status = (ccb->mmcio.cmd.error == 0 ? CAM_REQ_CMP :
+							 CAM_REQ_CMP_ERR);
 	xpt_done(ccb);
 #else
 	req = sc->aw_req;
@@ -884,7 +887,7 @@ aw_mmc_timeout(void *arg)
 static void
 aw_mmc_print_error(uint32_t err)
 {
-	if(err & AW_MMC_INT_RESP_ERR)
+	if (err & AW_MMC_INT_RESP_ERR)
 		printf("AW_MMC_INT_RESP_ERR ");
 	if (err & AW_MMC_INT_RESP_CRC_ERR)
 		printf("AW_MMC_INT_RESP_CRC_ERR ");
@@ -1010,10 +1013,11 @@ aw_mmc_request(device_t bus, device_t child, struct mmc_request *req)
 	cmd = req->cmd;
 
 	if (__predict_false(aw_mmc_debug & AW_MMC_DEBUG_CMD)) {
-		device_printf(sc->aw_dev, "CMD%u arg %#x flags %#x dlen %u dflags %#x\n",
-			      cmd->opcode, cmd->arg, cmd->flags,
-			      cmd->data != NULL ? (unsigned int)cmd->data->len : 0,
-			      cmd->data != NULL ? cmd->data->flags: 0);
+		device_printf(sc->aw_dev,
+		    "CMD%u arg %#x flags %#x dlen %u dflags %#x\n", cmd->opcode,
+		    cmd->arg, cmd->flags,
+		    cmd->data != NULL ? (unsigned int)cmd->data->len : 0,
+		    cmd->data != NULL ? cmd->data->flags : 0);
 	}
 #endif
 	cmdreg = AW_MMC_CMDR_LOAD;
@@ -1072,7 +1076,7 @@ aw_mmc_request(device_t bus, device_t child, struct mmc_request *req)
 	/* Write the command argument */
 	AW_MMC_WRITE_4(sc, AW_MMC_CAGR, cmd->arg);
 
-	/* 
+	/*
 	 * If we don't have data start the request
 	 * if we do prepare the dma request and start the request
 	 */
@@ -1081,7 +1085,8 @@ aw_mmc_request(device_t bus, device_t child, struct mmc_request *req)
 	} else {
 		err = aw_mmc_prepare_dma(sc);
 		if (err != 0)
-			device_printf(sc->aw_dev, "prepare_dma failed: %d\n", err);
+			device_printf(sc->aw_dev, "prepare_dma failed: %d\n",
+			    err);
 
 		AW_MMC_WRITE_4(sc, AW_MMC_CMDR, cmdreg | cmd->opcode);
 	}
@@ -1096,8 +1101,7 @@ aw_mmc_request(device_t bus, device_t child, struct mmc_request *req)
 }
 
 static int
-aw_mmc_read_ivar(device_t bus, device_t child, int which,
-    uintptr_t *result)
+aw_mmc_read_ivar(device_t bus, device_t child, int which, uintptr_t *result)
 {
 	struct aw_mmc_softc *sc;
 
@@ -1149,7 +1153,8 @@ aw_mmc_read_ivar(device_t bus, device_t child, int which,
 		break;
 	case MMCBR_IVAR_MAX_DATA:
 		*(int *)result = (sc->aw_mmc_conf->dma_xferlen *
-		    AW_MMC_DMA_SEGS) / MMC_SECTOR_SIZE;
+				     AW_MMC_DMA_SEGS) /
+		    MMC_SECTOR_SIZE;
 		break;
 	case MMCBR_IVAR_RETUNE_REQ:
 		*(int *)result = retune_req_none;
@@ -1160,8 +1165,7 @@ aw_mmc_read_ivar(device_t bus, device_t child, int which,
 }
 
 static int
-aw_mmc_write_ivar(device_t bus, device_t child, int which,
-    uintptr_t value)
+aw_mmc_write_ivar(device_t bus, device_t child, int which, uintptr_t value)
 {
 	struct aw_mmc_softc *sc;
 
@@ -1218,8 +1222,8 @@ aw_mmc_update_clock(struct aw_mmc_softc *sc, uint32_t clkon)
 	int retry;
 
 	reg = AW_MMC_READ_4(sc, AW_MMC_CKCR);
-	reg &= ~(AW_MMC_CKCR_ENB | AW_MMC_CKCR_LOW_POWER |
-	    AW_MMC_CKCR_MASK_DATA0);
+	reg &= ~(
+	    AW_MMC_CKCR_ENB | AW_MMC_CKCR_LOW_POWER | AW_MMC_CKCR_MASK_DATA0);
 
 	if (clkon)
 		reg |= AW_MMC_CKCR_ENB;
@@ -1278,10 +1282,8 @@ aw_mmc_switch_vccq(device_t bus, device_t child)
 
 	err = regulator_set_voltage(sc->mmc_helper.vqmmc_supply, uvolt, uvolt);
 	if (err != 0) {
-		device_printf(sc->aw_dev,
-		    "Cannot set vqmmc to %d<->%d\n",
-		    uvolt,
-		    uvolt);
+		device_printf(sc->aw_dev, "Cannot set vqmmc to %d<->%d\n",
+		    uvolt, uvolt);
 		return (err);
 	}
 
@@ -1325,12 +1327,14 @@ aw_mmc_update_ios(device_t bus, device_t child)
 			device_printf(sc->aw_dev, "Powering down sd/mmc\n");
 
 		if (sc->mmc_helper.vmmc_supply) {
-			rv = regulator_status(sc->mmc_helper.vmmc_supply, &reg_status);
+			rv = regulator_status(sc->mmc_helper.vmmc_supply,
+			    &reg_status);
 			if (rv == 0 && reg_status == REGULATOR_STATUS_ENABLED)
 				regulator_disable(sc->mmc_helper.vmmc_supply);
 		}
 		if (sc->mmc_helper.vqmmc_supply) {
-			rv = regulator_status(sc->mmc_helper.vqmmc_supply, &reg_status);
+			rv = regulator_status(sc->mmc_helper.vqmmc_supply,
+			    &reg_status);
 			if (rv == 0 && reg_status == REGULATOR_STATUS_ENABLED)
 				regulator_disable(sc->mmc_helper.vqmmc_supply);
 		}
@@ -1345,12 +1349,14 @@ aw_mmc_update_ios(device_t bus, device_t child)
 			device_printf(sc->aw_dev, "Powering up sd/mmc\n");
 
 		if (sc->mmc_helper.vmmc_supply) {
-			rv = regulator_status(sc->mmc_helper.vmmc_supply, &reg_status);
+			rv = regulator_status(sc->mmc_helper.vmmc_supply,
+			    &reg_status);
 			if (rv == 0 && reg_status != REGULATOR_STATUS_ENABLED)
 				regulator_enable(sc->mmc_helper.vmmc_supply);
 		}
 		if (sc->mmc_helper.vqmmc_supply) {
-			rv = regulator_status(sc->mmc_helper.vqmmc_supply, &reg_status);
+			rv = regulator_status(sc->mmc_helper.vqmmc_supply,
+			    &reg_status);
 			if (rv == 0 && reg_status != REGULATOR_STATUS_ENABLED)
 				regulator_enable(sc->mmc_helper.vqmmc_supply);
 		}
@@ -1364,7 +1370,7 @@ aw_mmc_update_ios(device_t bus, device_t child)
 	/* Enable ddr mode if needed */
 	reg = AW_MMC_READ_4(sc, AW_MMC_GCTL);
 	if (ios->timing == bus_timing_uhs_ddr50 ||
-	  ios->timing == bus_timing_mmc_ddr52)
+	    ios->timing == bus_timing_mmc_ddr52)
 		reg |= AW_MMC_GCTL_DDR_MOD_SEL;
 	else
 		reg &= ~AW_MMC_GCTL_DDR_MOD_SEL;
@@ -1380,7 +1386,7 @@ aw_mmc_update_ios(device_t bus, device_t child)
 
 		if (ios->timing == bus_timing_mmc_ddr52 &&
 		    (sc->aw_mmc_conf->new_timing ||
-		    ios->bus_width == bus_width_8)) {
+			ios->bus_width == bus_width_8)) {
 			div = 2;
 			clock <<= 1;
 		}
@@ -1402,22 +1408,22 @@ aw_mmc_update_ios(device_t bus, device_t child)
 		error = clk_disable(sc->aw_clk_mmc);
 		if (error != 0 && bootverbose)
 			device_printf(sc->aw_dev,
-			  "failed to disable mmc clock: %d\n", error);
-		error = clk_set_freq(sc->aw_clk_mmc, clock,
-		    CLK_SET_ROUND_DOWN);
+			    "failed to disable mmc clock: %d\n", error);
+		error = clk_set_freq(sc->aw_clk_mmc, clock, CLK_SET_ROUND_DOWN);
 		if (error != 0) {
 			device_printf(sc->aw_dev,
-			    "failed to set frequency to %u Hz: %d\n",
-			    clock, error);
+			    "failed to set frequency to %u Hz: %d\n", clock,
+			    error);
 			return (error);
 		}
 		error = clk_enable(sc->aw_clk_mmc);
 		if (error != 0 && bootverbose)
 			device_printf(sc->aw_dev,
-			  "failed to re-enable mmc clock: %d\n", error);
+			    "failed to re-enable mmc clock: %d\n", error);
 
 		if (sc->aw_mmc_conf->can_calibrate)
-			AW_MMC_WRITE_4(sc, AW_MMC_SAMP_DL, AW_MMC_SAMP_DL_SW_EN);
+			AW_MMC_WRITE_4(sc, AW_MMC_SAMP_DL,
+			    AW_MMC_SAMP_DL_SW_EN);
 
 		/* Enable clock. */
 		error = aw_mmc_update_clock(sc, 1);
@@ -1475,33 +1481,32 @@ aw_mmc_release_host(device_t bus, device_t child)
 }
 #endif
 
-static device_method_t aw_mmc_methods[] = {
-	/* Device interface */
-	DEVMETHOD(device_probe,		aw_mmc_probe),
-	DEVMETHOD(device_attach,	aw_mmc_attach),
-	DEVMETHOD(device_detach,	aw_mmc_detach),
+static device_method_t aw_mmc_methods[] = { /* Device interface */
+	DEVMETHOD(device_probe, aw_mmc_probe),
+	DEVMETHOD(device_attach, aw_mmc_attach),
+	DEVMETHOD(device_detach, aw_mmc_detach),
 
 	/* Bus interface */
-	DEVMETHOD(bus_read_ivar,	aw_mmc_read_ivar),
-	DEVMETHOD(bus_write_ivar,	aw_mmc_write_ivar),
-	DEVMETHOD(bus_add_child,        bus_generic_add_child),
+	DEVMETHOD(bus_read_ivar, aw_mmc_read_ivar),
+	DEVMETHOD(bus_write_ivar, aw_mmc_write_ivar),
+	DEVMETHOD(bus_add_child, bus_generic_add_child),
 
 #ifndef MMCCAM
 	/* MMC bridge interface */
-	DEVMETHOD(mmcbr_update_ios,	aw_mmc_update_ios),
-	DEVMETHOD(mmcbr_request,	aw_mmc_request),
-	DEVMETHOD(mmcbr_get_ro,		aw_mmc_get_ro),
-	DEVMETHOD(mmcbr_switch_vccq,	aw_mmc_switch_vccq),
-	DEVMETHOD(mmcbr_acquire_host,	aw_mmc_acquire_host),
-	DEVMETHOD(mmcbr_release_host,	aw_mmc_release_host),
+	DEVMETHOD(mmcbr_update_ios, aw_mmc_update_ios),
+	DEVMETHOD(mmcbr_request, aw_mmc_request),
+	DEVMETHOD(mmcbr_get_ro, aw_mmc_get_ro),
+	DEVMETHOD(mmcbr_switch_vccq, aw_mmc_switch_vccq),
+	DEVMETHOD(mmcbr_acquire_host, aw_mmc_acquire_host),
+	DEVMETHOD(mmcbr_release_host, aw_mmc_release_host),
 #endif
 
 #ifdef MMCCAM
 	/* MMCCAM interface */
-	DEVMETHOD(mmc_sim_get_tran_settings,	aw_mmc_get_tran_settings),
-	DEVMETHOD(mmc_sim_set_tran_settings,	aw_mmc_set_tran_settings),
-	DEVMETHOD(mmc_sim_cam_request,		aw_mmc_cam_request),
-	DEVMETHOD(mmc_sim_cam_poll,		aw_mmc_cam_poll),
+	DEVMETHOD(mmc_sim_get_tran_settings, aw_mmc_get_tran_settings),
+	DEVMETHOD(mmc_sim_set_tran_settings, aw_mmc_set_tran_settings),
+	DEVMETHOD(mmc_sim_cam_request, aw_mmc_cam_request),
+	DEVMETHOD(mmc_sim_cam_poll, aw_mmc_cam_poll),
 #endif
 
 	DEVMETHOD_END

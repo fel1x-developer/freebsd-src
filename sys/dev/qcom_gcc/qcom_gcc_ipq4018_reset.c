@@ -28,30 +28,27 @@
 /* Driver for Qualcomm IPQ4018 clock and reset device */
 
 #include <sys/param.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
-#include <sys/sglist.h>
-#include <sys/random.h>
-#include <sys/stdatomic.h>
 #include <sys/mutex.h>
+#include <sys/random.h>
+#include <sys/sglist.h>
+#include <sys/stdatomic.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/bus.h>
 
 #include <dev/fdt/fdt_common.h>
+#include <dev/hwreset/hwreset.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include <dev/hwreset/hwreset.h>
-
-#include "hwreset_if.h"
-
 #include <dt-bindings/clock/qcom,gcc-ipq4019.h>
 
+#include "hwreset_if.h"
 #include "qcom_gcc_ipq4018_var.h"
-
 
 static const struct qcom_gcc_ipq4018_reset_entry gcc_ipq4019_reset_list[] = {
 	[WIFI0_CPU_INIT_RESET] = { 0x1f008, 5 },
@@ -83,48 +80,48 @@ static const struct qcom_gcc_ipq4018_reset_entry gcc_ipq4019_reset_list[] = {
 	[PCIE_PIPE_ARES] = { 0x1d010, 2 },
 	[PCIE_AXI_S_ARES] = { 0x1d010, 1 },
 	[PCIE_AXI_M_ARES] = { 0x1d010, 0 },
-	[ESS_RESET] = { 0x12008, 0},
-	[GCC_BLSP1_BCR] = {0x01000, 0},
-	[GCC_BLSP1_QUP1_BCR] = {0x02000, 0},
-	[GCC_BLSP1_UART1_BCR] = {0x02038, 0},
-	[GCC_BLSP1_QUP2_BCR] = {0x03008, 0},
-	[GCC_BLSP1_UART2_BCR] = {0x03028, 0},
-	[GCC_BIMC_BCR] = {0x04000, 0},
-	[GCC_TLMM_BCR] = {0x05000, 0},
-	[GCC_IMEM_BCR] = {0x0E000, 0},
-	[GCC_ESS_BCR] = {0x12008, 0},
-	[GCC_PRNG_BCR] = {0x13000, 0},
-	[GCC_BOOT_ROM_BCR] = {0x13008, 0},
-	[GCC_CRYPTO_BCR] = {0x16000, 0},
-	[GCC_SDCC1_BCR] = {0x18000, 0},
-	[GCC_SEC_CTRL_BCR] = {0x1A000, 0},
-	[GCC_AUDIO_BCR] = {0x1B008, 0},
-	[GCC_QPIC_BCR] = {0x1C000, 0},
-	[GCC_PCIE_BCR] = {0x1D000, 0},
-	[GCC_USB2_BCR] = {0x1E008, 0},
-	[GCC_USB2_PHY_BCR] = {0x1E018, 0},
-	[GCC_USB3_BCR] = {0x1E024, 0},
-	[GCC_USB3_PHY_BCR] = {0x1E034, 0},
-	[GCC_SYSTEM_NOC_BCR] = {0x21000, 0},
-	[GCC_PCNOC_BCR] = {0x2102C, 0},
-	[GCC_DCD_BCR] = {0x21038, 0},
-	[GCC_SNOC_BUS_TIMEOUT0_BCR] = {0x21064, 0},
-	[GCC_SNOC_BUS_TIMEOUT1_BCR] = {0x2106C, 0},
-	[GCC_SNOC_BUS_TIMEOUT2_BCR] = {0x21074, 0},
-	[GCC_SNOC_BUS_TIMEOUT3_BCR] = {0x2107C, 0},
-	[GCC_PCNOC_BUS_TIMEOUT0_BCR] = {0x21084, 0},
-	[GCC_PCNOC_BUS_TIMEOUT1_BCR] = {0x2108C, 0},
-	[GCC_PCNOC_BUS_TIMEOUT2_BCR] = {0x21094, 0},
-	[GCC_PCNOC_BUS_TIMEOUT3_BCR] = {0x2109C, 0},
-	[GCC_PCNOC_BUS_TIMEOUT4_BCR] = {0x210A4, 0},
-	[GCC_PCNOC_BUS_TIMEOUT5_BCR] = {0x210AC, 0},
-	[GCC_PCNOC_BUS_TIMEOUT6_BCR] = {0x210B4, 0},
-	[GCC_PCNOC_BUS_TIMEOUT7_BCR] = {0x210BC, 0},
-	[GCC_PCNOC_BUS_TIMEOUT8_BCR] = {0x210C4, 0},
-	[GCC_PCNOC_BUS_TIMEOUT9_BCR] = {0x210CC, 0},
-	[GCC_TCSR_BCR] = {0x22000, 0},
-	[GCC_MPM_BCR] = {0x24000, 0},
-	[GCC_SPDM_BCR] = {0x25000, 0},
+	[ESS_RESET] = { 0x12008, 0 },
+	[GCC_BLSP1_BCR] = { 0x01000, 0 },
+	[GCC_BLSP1_QUP1_BCR] = { 0x02000, 0 },
+	[GCC_BLSP1_UART1_BCR] = { 0x02038, 0 },
+	[GCC_BLSP1_QUP2_BCR] = { 0x03008, 0 },
+	[GCC_BLSP1_UART2_BCR] = { 0x03028, 0 },
+	[GCC_BIMC_BCR] = { 0x04000, 0 },
+	[GCC_TLMM_BCR] = { 0x05000, 0 },
+	[GCC_IMEM_BCR] = { 0x0E000, 0 },
+	[GCC_ESS_BCR] = { 0x12008, 0 },
+	[GCC_PRNG_BCR] = { 0x13000, 0 },
+	[GCC_BOOT_ROM_BCR] = { 0x13008, 0 },
+	[GCC_CRYPTO_BCR] = { 0x16000, 0 },
+	[GCC_SDCC1_BCR] = { 0x18000, 0 },
+	[GCC_SEC_CTRL_BCR] = { 0x1A000, 0 },
+	[GCC_AUDIO_BCR] = { 0x1B008, 0 },
+	[GCC_QPIC_BCR] = { 0x1C000, 0 },
+	[GCC_PCIE_BCR] = { 0x1D000, 0 },
+	[GCC_USB2_BCR] = { 0x1E008, 0 },
+	[GCC_USB2_PHY_BCR] = { 0x1E018, 0 },
+	[GCC_USB3_BCR] = { 0x1E024, 0 },
+	[GCC_USB3_PHY_BCR] = { 0x1E034, 0 },
+	[GCC_SYSTEM_NOC_BCR] = { 0x21000, 0 },
+	[GCC_PCNOC_BCR] = { 0x2102C, 0 },
+	[GCC_DCD_BCR] = { 0x21038, 0 },
+	[GCC_SNOC_BUS_TIMEOUT0_BCR] = { 0x21064, 0 },
+	[GCC_SNOC_BUS_TIMEOUT1_BCR] = { 0x2106C, 0 },
+	[GCC_SNOC_BUS_TIMEOUT2_BCR] = { 0x21074, 0 },
+	[GCC_SNOC_BUS_TIMEOUT3_BCR] = { 0x2107C, 0 },
+	[GCC_PCNOC_BUS_TIMEOUT0_BCR] = { 0x21084, 0 },
+	[GCC_PCNOC_BUS_TIMEOUT1_BCR] = { 0x2108C, 0 },
+	[GCC_PCNOC_BUS_TIMEOUT2_BCR] = { 0x21094, 0 },
+	[GCC_PCNOC_BUS_TIMEOUT3_BCR] = { 0x2109C, 0 },
+	[GCC_PCNOC_BUS_TIMEOUT4_BCR] = { 0x210A4, 0 },
+	[GCC_PCNOC_BUS_TIMEOUT5_BCR] = { 0x210AC, 0 },
+	[GCC_PCNOC_BUS_TIMEOUT6_BCR] = { 0x210B4, 0 },
+	[GCC_PCNOC_BUS_TIMEOUT7_BCR] = { 0x210BC, 0 },
+	[GCC_PCNOC_BUS_TIMEOUT8_BCR] = { 0x210C4, 0 },
+	[GCC_PCNOC_BUS_TIMEOUT9_BCR] = { 0x210CC, 0 },
+	[GCC_TCSR_BCR] = { 0x22000, 0 },
+	[GCC_MPM_BCR] = { 0x24000, 0 },
+	[GCC_SPDM_BCR] = { 0x25000, 0 },
 };
 
 int
@@ -174,4 +171,3 @@ qcom_gcc_ipq4018_hwreset_is_asserted(device_t dev, intptr_t id, bool *reset)
 	device_printf(dev, "called; id=%d\n", id);
 	return (0);
 }
-

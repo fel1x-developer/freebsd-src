@@ -104,7 +104,7 @@ uart_cpu_getdev(int devtype, struct uart_devinfo *di)
 		di->bas.chan = 0;
 		di->bas.bst = uart_bus_space_io;
 		if (bus_space_map(di->bas.bst, ivar, uart_getrange(class), 0,
-		    &di->bas.bsh) != 0)
+			&di->bas.bsh) != 0)
 			continue;
 		di->bas.regshft = 0;
 		di->bas.rclk = 0;

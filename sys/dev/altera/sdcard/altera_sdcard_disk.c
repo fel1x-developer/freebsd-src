@@ -31,25 +31,25 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/bio.h>
 #include <sys/bus.h>
 #include <sys/condvar.h>
 #include <sys/conf.h>
-#include <sys/bio.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
-#include <sys/systm.h>
 #include <sys/taskqueue.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
 
-#include <geom/geom_disk.h>
-
 #include <dev/altera/sdcard/altera_sdcard.h>
+
+#include <geom/geom_disk.h>
 
 static int
 altera_sdcard_disk_dump(void *arg, void *virtual, vm_offset_t physical,

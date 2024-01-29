@@ -28,29 +28,29 @@
  */
 
 #ifndef _ACPIDUMP_H_
-#define	_ACPIDUMP_H_
+#define _ACPIDUMP_H_
 
-#include <contrib/dev/acpica/include/acpi.h>
 #include <contrib/dev/acpica/include/acconfig.h>
+#include <contrib/dev/acpica/include/acpi.h>
 #include <contrib/dev/acpica/include/actbl1.h>
 
 /* GAS address space ID constants. */
-#define	ACPI_GAS_MEMORY		0
-#define	ACPI_GAS_IO		1
-#define	ACPI_GAS_PCI		2
-#define	ACPI_GAS_EMBEDDED	3
-#define	ACPI_GAS_SMBUS		4
-#define	ACPI_GAS_CMOS		5
-#define	ACPI_GAS_PCIBAR		6
-#define	ACPI_GAS_DATATABLE	7
-#define	ACPI_GAS_FIXED		0x7f
+#define ACPI_GAS_MEMORY 0
+#define ACPI_GAS_IO 1
+#define ACPI_GAS_PCI 2
+#define ACPI_GAS_EMBEDDED 3
+#define ACPI_GAS_SMBUS 4
+#define ACPI_GAS_CMOS 5
+#define ACPI_GAS_PCIBAR 6
+#define ACPI_GAS_DATATABLE 7
+#define ACPI_GAS_FIXED 0x7f
 
 /* Subfields in the HPET Id member. */
-#define	ACPI_HPET_ID_HARDWARE_REV_ID	0x000000ff
-#define	ACPI_HPET_ID_COMPARATORS	0x00001f00
-#define	ACPI_HPET_ID_COUNT_SIZE_CAP	0x00002000
-#define	ACPI_HPET_ID_LEGACY_CAPABLE	0x00008000
-#define	ACPI_HPET_ID_PCI_VENDOR_ID	0xffff0000
+#define ACPI_HPET_ID_HARDWARE_REV_ID 0x000000ff
+#define ACPI_HPET_ID_COMPARATORS 0x00001f00
+#define ACPI_HPET_ID_COUNT_SIZE_CAP 0x00002000
+#define ACPI_HPET_ID_LEGACY_CAPABLE 0x00008000
+#define ACPI_HPET_ID_PCI_VENDOR_ID 0xffff0000
 
 /* Find and map the RSD PTR structure and return it for parsing */
 ACPI_TABLE_HEADER *sdt_load_devmem(void);
@@ -58,34 +58,34 @@ ACPI_TABLE_HEADER *sdt_load_devmem(void);
 /* TCPA */
 struct TCPAbody {
 	ACPI_TABLE_HEADER header;
-	uint16_t	platform_class;
-#define ACPI_TCPA_BIOS_CLIENT	0x00
-#define ACPI_TCPA_BIOS_SERVER	0x01
+	uint16_t platform_class;
+#define ACPI_TCPA_BIOS_CLIENT 0x00
+#define ACPI_TCPA_BIOS_SERVER 0x01
 	union {
 		struct client_hdr {
-			uint32_t	log_max_len __packed;
-			uint64_t	log_start_addr __packed;
+			uint32_t log_max_len __packed;
+			uint64_t log_start_addr __packed;
 		} client;
 		struct server_hdr {
-			uint16_t	reserved;
-			uint64_t	log_max_len __packed;
-			uint64_t	log_start_addr __packed;
+			uint16_t reserved;
+			uint64_t log_max_len __packed;
+			uint64_t log_start_addr __packed;
 		} server;
 	};
 } __packed;
 
 struct TCPAevent {
-	u_int32_t	pcr_index;
-	u_int32_t	event_type;
-	u_int8_t	pcr_value[20];
-	u_int32_t	event_size;
-	u_int8_t	event_data[0];
+	u_int32_t pcr_index;
+	u_int32_t event_type;
+	u_int8_t pcr_value[20];
+	u_int32_t event_size;
+	u_int8_t event_data[0];
 };
 
 struct TCPApc_event {
-	u_int32_t	event_id;
-	u_int32_t	event_size;
-	u_int8_t	event_data[0];
+	u_int32_t event_id;
+	u_int32_t event_size;
+	u_int8_t event_data[0];
 };
 
 enum TCPAevent_types {
@@ -134,25 +134,25 @@ enum TCPApcclient_ids {
 ACPI_TABLE_HEADER *dsdt_load_file(char *);
 
 /* Save the DSDT to a file */
-void	 dsdt_save_file(char *, ACPI_TABLE_HEADER *, ACPI_TABLE_HEADER *);
+void dsdt_save_file(char *, ACPI_TABLE_HEADER *, ACPI_TABLE_HEADER *);
 
 /* Print out as many fixed tables as possible, given the RSD PTR */
-void	 sdt_print_all(ACPI_TABLE_HEADER *);
+void sdt_print_all(ACPI_TABLE_HEADER *);
 
 /* Disassemble the AML in the DSDT */
-void	 aml_disassemble(ACPI_TABLE_HEADER *, ACPI_TABLE_HEADER *);
+void aml_disassemble(ACPI_TABLE_HEADER *, ACPI_TABLE_HEADER *);
 
 /* Routines for accessing tables in physical memory */
 ACPI_TABLE_RSDP *acpi_find_rsd_ptr(void);
-void	*acpi_map_physical(vm_offset_t, size_t);
+void *acpi_map_physical(vm_offset_t, size_t);
 ACPI_TABLE_HEADER *sdt_from_rsdt(ACPI_TABLE_HEADER *, const char *,
-	    ACPI_TABLE_HEADER *);
+    ACPI_TABLE_HEADER *);
 ACPI_TABLE_HEADER *dsdt_from_fadt(ACPI_TABLE_FADT *);
-int	 acpi_checksum(void *, size_t);
+int acpi_checksum(void *, size_t);
 
 /* Command line flags */
-extern int	dflag;
-extern int	tflag;
-extern int	vflag;
+extern int dflag;
+extern int tflag;
+extern int vflag;
 
-#endif	/* !_ACPIDUMP_H_ */
+#endif /* !_ACPIDUMP_H_ */

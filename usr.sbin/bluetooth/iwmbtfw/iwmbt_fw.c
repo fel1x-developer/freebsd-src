@@ -38,8 +38,8 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "iwmbt_fw.h"
 #include "iwmbt_dbg.h"
+#include "iwmbt_fw.h"
 
 int
 iwmbt_fw_read(struct iwmbt_firmware *fw, const char *fwname)
@@ -78,9 +78,8 @@ iwmbt_fw_read(struct iwmbt_firmware *fw, const char *fwname)
 	}
 
 	if (r != sb.st_size) {
-		iwmbt_err("read len %d != file size %d",
-		    (int) r,
-		    (int) sb.st_size);
+		iwmbt_err("read len %d != file size %d", (int)r,
+		    (int)sb.st_size);
 		free(buf);
 		close(fd);
 		return (0);
@@ -116,18 +115,13 @@ iwmbt_get_fwname(struct iwmbt_version *ver, struct iwmbt_boot_params *params,
 	char *fwname;
 
 	switch (ver->hw_variant) {
-	case 0x07:	/* 7260 */
-	case 0x08:	/* 7265 */
+	case 0x07: /* 7260 */
+	case 0x08: /* 7265 */
 		asprintf(&fwname, "%s/ibt-hw-%x.%x.%x-fw-%x.%x.%x.%x.%x.%s",
-		    prefix,
-		    le16toh(ver->hw_platform),
-		    le16toh(ver->hw_variant),
-		    le16toh(ver->hw_revision),
-		    le16toh(ver->fw_variant),
-		    le16toh(ver->fw_revision),
-		    le16toh(ver->fw_build_num),
-		    le16toh(ver->fw_build_ww),
-		    le16toh(ver->fw_build_yy),
+		    prefix, le16toh(ver->hw_platform), le16toh(ver->hw_variant),
+		    le16toh(ver->hw_revision), le16toh(ver->fw_variant),
+		    le16toh(ver->fw_revision), le16toh(ver->fw_build_num),
+		    le16toh(ver->fw_build_ww), le16toh(ver->fw_build_yy),
 		    suffix);
 		/*
 		 * Fallback to the default firmware patch if
@@ -135,33 +129,26 @@ iwmbt_get_fwname(struct iwmbt_version *ver, struct iwmbt_boot_params *params,
 		 */
 		if (stat(fwname, &sb) != 0 && errno == ENOENT) {
 			free(fwname);
-			asprintf(&fwname, "%s/ibt-hw-%x.%x.%s",
-			    prefix,
-			    le16toh(ver->hw_platform),
-			    le16toh(ver->hw_variant),
+			asprintf(&fwname, "%s/ibt-hw-%x.%x.%s", prefix,
+			    le16toh(ver->hw_platform), le16toh(ver->hw_variant),
 			    suffix);
 		}
 		break;
 
-	case 0x0b:	/* 8260 */
-	case 0x0c:	/* 8265 */
-		asprintf(&fwname, "%s/ibt-%u-%u.%s",
-		    prefix,
-		    le16toh(ver->hw_variant),
-		    le16toh(params->dev_revid),
+	case 0x0b: /* 8260 */
+	case 0x0c: /* 8265 */
+		asprintf(&fwname, "%s/ibt-%u-%u.%s", prefix,
+		    le16toh(ver->hw_variant), le16toh(params->dev_revid),
 		    suffix);
 		break;
 
-	case 0x11:	/* 9560 */
-	case 0x12:	/* 9260 */
+	case 0x11: /* 9560 */
+	case 0x12: /* 9260 */
 	case 0x13:
-	case 0x14:	/* 22161 */
-		asprintf(&fwname, "%s/ibt-%u-%u-%u.%s",
-		    prefix,
-		    le16toh(ver->hw_variant),
-		    le16toh(ver->hw_revision),
-		    le16toh(ver->fw_revision),
-		    suffix);
+	case 0x14: /* 22161 */
+		asprintf(&fwname, "%s/ibt-%u-%u-%u.%s", prefix,
+		    le16toh(ver->hw_variant), le16toh(ver->hw_revision),
+		    le16toh(ver->fw_revision), suffix);
 		break;
 
 	default:

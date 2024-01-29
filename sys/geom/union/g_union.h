@@ -25,12 +25,12 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_G_UNION_H_
-#define	_G_UNION_H_
+#ifndef _G_UNION_H_
+#define _G_UNION_H_
 
-#define	G_UNION_CLASS_NAME	"UNION"
-#define	G_UNION_VERSION		1
-#define	G_UNION_SUFFIX		".union"
+#define G_UNION_CLASS_NAME "UNION"
+#define G_UNION_VERSION 1
+#define G_UNION_SUFFIX ".union"
 /*
  * Special flag to instruct gunion to passthrough the underlying provider's
  * physical path
@@ -38,11 +38,11 @@
 #define G_UNION_PHYSPATH_PASSTHROUGH "\255"
 
 #ifdef _KERNEL
-#define	G_UNION_DEBUG(lvl, ...) \
-    _GEOM_DEBUG("GEOM_UNION", g_union_debug, (lvl), NULL, __VA_ARGS__)
+#define G_UNION_DEBUG(lvl, ...) \
+	_GEOM_DEBUG("GEOM_UNION", g_union_debug, (lvl), NULL, __VA_ARGS__)
 #define G_UNION_LOGREQLVL(lvl, bp, ...) \
-    _GEOM_DEBUG("GEOM_UNION", g_union_debug, (lvl), (bp), __VA_ARGS__)
-#define	G_UNION_LOGREQ(bp, ...)	G_UNION_LOGREQLVL(3, (bp), __VA_ARGS__)
+	_GEOM_DEBUG("GEOM_UNION", g_union_debug, (lvl), (bp), __VA_ARGS__)
+#define G_UNION_LOGREQ(bp, ...) G_UNION_LOGREQLVL(3, (bp), __VA_ARGS__)
 
 TAILQ_HEAD(wiplist, g_union_wip);
 
@@ -50,36 +50,36 @@ TAILQ_HEAD(wiplist, g_union_wip);
  * State maintained by each instance of a UNION GEOM.
  */
 struct g_union_softc {
-	struct rwlock	   sc_rwlock;		/* writemap lock */
-	uint64_t	 **sc_writemap_root;	/* root of write map */
-	uint64_t	  *sc_leafused;		/* 1 => leaf has allocation */
-	uint64_t	   sc_map_size;		/* size of write map */
-	long		   sc_root_size;	/* entries in root node */
-	long		   sc_leaf_size;	/* entries in leaf node */
-	long		   sc_bits_per_leaf;	/* bits per leaf node entry */
-	long		   sc_writemap_memory;	/* memory used by writemap */
-	off_t		   sc_offset;		/* starting offset in lower */
-	off_t		   sc_size;		/* size of union geom */
-	off_t		   sc_sectorsize;	/* sector size of geom */
-	struct g_consumer *sc_uppercp;		/* upper-level provider */
-	struct g_consumer *sc_lowercp;		/* lower-level provider */
-	struct wiplist	   sc_wiplist;		/* I/O work-in-progress list */
-	long		   sc_flags;		/* see flags below */
-	long		   sc_reads;		/* number of reads done */
-	long		   sc_wrotebytes;	/* number of bytes written */
-	long		   sc_writes;		/* number of writes done */
-	long		   sc_readbytes;	/* number of bytes read */
-	long		   sc_deletes;		/* number of deletes done */
-	long		   sc_getattrs;		/* number of getattrs done */
-	long		   sc_flushes;		/* number of flushes done */
-	long		   sc_cmd0s;		/* number of cmd0's done */
-	long		   sc_cmd1s;		/* number of cmd1's done */
-	long		   sc_cmd2s;		/* number of cmd2's done */
-	long		   sc_speedups;		/* number of speedups done */
-	long		   sc_readcurrentread;	/* reads current with read */
-	long		   sc_readblockwrite;	/* writes blocked by read */
-	long		   sc_writeblockread;	/* reads blocked by write */
-	long		   sc_writeblockwrite;	/* writes blocked by write */
+	struct rwlock sc_rwlock;       /* writemap lock */
+	uint64_t **sc_writemap_root;   /* root of write map */
+	uint64_t *sc_leafused;	       /* 1 => leaf has allocation */
+	uint64_t sc_map_size;	       /* size of write map */
+	long sc_root_size;	       /* entries in root node */
+	long sc_leaf_size;	       /* entries in leaf node */
+	long sc_bits_per_leaf;	       /* bits per leaf node entry */
+	long sc_writemap_memory;       /* memory used by writemap */
+	off_t sc_offset;	       /* starting offset in lower */
+	off_t sc_size;		       /* size of union geom */
+	off_t sc_sectorsize;	       /* sector size of geom */
+	struct g_consumer *sc_uppercp; /* upper-level provider */
+	struct g_consumer *sc_lowercp; /* lower-level provider */
+	struct wiplist sc_wiplist;     /* I/O work-in-progress list */
+	long sc_flags;		       /* see flags below */
+	long sc_reads;		       /* number of reads done */
+	long sc_wrotebytes;	       /* number of bytes written */
+	long sc_writes;		       /* number of writes done */
+	long sc_readbytes;	       /* number of bytes read */
+	long sc_deletes;	       /* number of deletes done */
+	long sc_getattrs;	       /* number of getattrs done */
+	long sc_flushes;	       /* number of flushes done */
+	long sc_cmd0s;		       /* number of cmd0's done */
+	long sc_cmd1s;		       /* number of cmd1's done */
+	long sc_cmd2s;		       /* number of cmd2's done */
+	long sc_speedups;	       /* number of speedups done */
+	long sc_readcurrentread;       /* reads current with read */
+	long sc_readblockwrite;	       /* writes blocked by read */
+	long sc_writeblockread;	       /* reads blocked by write */
+	long sc_writeblockwrite;       /* writes blocked by write */
 };
 
 /*
@@ -94,28 +94,28 @@ struct g_union_softc {
  * completes, it restarts all the I/O operations on its wip_waiting list.
  */
 struct g_union_wip {
-	struct wiplist		 wip_waiting;	/* list of I/Os waiting on me */
-	TAILQ_ENTRY(g_union_wip) wip_next;	/* pending or active I/O list */
-	struct bio		*wip_bp;	/* bio for this I/O */
-	struct g_union_softc	*wip_sc;	/* g_union's softc */
-	off_t			 wip_start;	/* starting offset of I/O */
-	off_t			 wip_end;	/* ending offset of I/O */
-	long			 wip_numios;	/* BIO_READs in progress */
-	long			 wip_error;	/* merged I/O errors */
+	struct wiplist wip_waiting;	   /* list of I/Os waiting on me */
+	TAILQ_ENTRY(g_union_wip) wip_next; /* pending or active I/O list */
+	struct bio *wip_bp;		   /* bio for this I/O */
+	struct g_union_softc *wip_sc;	   /* g_union's softc */
+	off_t wip_start;		   /* starting offset of I/O */
+	off_t wip_end;			   /* ending offset of I/O */
+	long wip_numios;		   /* BIO_READs in progress */
+	long wip_error;			   /* merged I/O errors */
 };
 
 /*
  * UNION flags
  */
-#define DOING_COMMIT	0x00000001	/* a commit command is in progress */
+#define DOING_COMMIT 0x00000001 /* a commit command is in progress */
 
-#define DOING_COMMIT_BITNUM	 0	/* a commit command is in progress */
+#define DOING_COMMIT_BITNUM 0 /* a commit command is in progress */
 
-#define BITS_PER_ENTRY	(sizeof(uint64_t) * NBBY)
-#define G_RLOCK(sc)	rw_rlock(&(sc)->sc_rwlock)
-#define G_RUNLOCK(sc)	rw_runlock(&(sc)->sc_rwlock)
-#define G_WLOCK(sc)	rw_wlock(&(sc)->sc_rwlock)
-#define G_WUNLOCK(sc)	rw_wunlock(&(sc)->sc_rwlock)
+#define BITS_PER_ENTRY (sizeof(uint64_t) * NBBY)
+#define G_RLOCK(sc) rw_rlock(&(sc)->sc_rwlock)
+#define G_RUNLOCK(sc) rw_runlock(&(sc)->sc_rwlock)
+#define G_WLOCK(sc) rw_wlock(&(sc)->sc_rwlock)
+#define G_WUNLOCK(sc) rw_wunlock(&(sc)->sc_rwlock)
 #define G_WLOCKOWNED(sc) rw_assert(&(sc)->sc_rwlock, RA_WLOCKED)
 
 /*
@@ -139,6 +139,6 @@ g_union_rel_writelock(struct g_union_softc *sc)
 	KASSERT(ret != 0, ("UNION GEOM releasing unheld lock"));
 }
 
-#endif	/* _KERNEL */
+#endif /* _KERNEL */
 
-#endif	/* _G_UNION_H_ */
+#endif /* _G_UNION_H_ */

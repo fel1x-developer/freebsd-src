@@ -25,25 +25,25 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_DPAA2_CHANNEL_H
-#define	_DPAA2_CHANNEL_H
+#ifndef _DPAA2_CHANNEL_H
+#define _DPAA2_CHANNEL_H
 
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/buf_ring.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/mutex.h>
 #include <sys/queue.h>
 #include <sys/taskqueue.h>
-#include <sys/buf_ring.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
 
-#include "dpaa2_types.h"
 #include "dpaa2_io.h"
 #include "dpaa2_ni.h"
+#include "dpaa2_types.h"
 
-#define DPAA2_TX_BUFRING_SZ	 (4096u)
+#define DPAA2_TX_BUFRING_SZ (4096u)
 
 /**
  * @brief QBMan channel to process ingress traffic.
@@ -51,39 +51,39 @@
  * NOTE: Several WQs are organized into a single channel.
  */
 struct dpaa2_channel {
-	device_t		 ni_dev;
-	device_t		 io_dev;
-	device_t		 con_dev;
-	uint16_t		 id;
-	uint16_t		 flowid;
+	device_t ni_dev;
+	device_t io_dev;
+	device_t con_dev;
+	uint16_t id;
+	uint16_t flowid;
 
-	uint64_t		 tx_frames;
-	uint64_t		 tx_dropped;
+	uint64_t tx_frames;
+	uint64_t tx_dropped;
 
-	struct mtx		 dma_mtx;
-	bus_dma_tag_t		 rx_dmat;
-	bus_dma_tag_t		 tx_dmat;
-	bus_dma_tag_t		 sgt_dmat;
+	struct mtx dma_mtx;
+	bus_dma_tag_t rx_dmat;
+	bus_dma_tag_t tx_dmat;
+	bus_dma_tag_t sgt_dmat;
 
-	struct dpaa2_io_notif_ctx ctx;		/* to configure CDANs */
+	struct dpaa2_io_notif_ctx ctx; /* to configure CDANs */
 
-	struct dpaa2_buf	 store;		/* to keep VDQ responses */
-	uint32_t		 store_sz;	/* in frames */
-	uint32_t		 store_idx;	/* frame index */
+	struct dpaa2_buf store; /* to keep VDQ responses */
+	uint32_t store_sz;	/* in frames */
+	uint32_t store_idx;	/* frame index */
 
-	uint32_t		 recycled_n;
-	struct dpaa2_buf	*recycled[DPAA2_SWP_BUFS_PER_CMD];
+	uint32_t recycled_n;
+	struct dpaa2_buf *recycled[DPAA2_SWP_BUFS_PER_CMD];
 
-	uint32_t		 rxq_n;
-	struct dpaa2_ni_fq	 rx_queues[DPAA2_MAX_TCS];
-	struct dpaa2_ni_fq	 txc_queue;
+	uint32_t rxq_n;
+	struct dpaa2_ni_fq rx_queues[DPAA2_MAX_TCS];
+	struct dpaa2_ni_fq txc_queue;
 
-	struct taskqueue	*cleanup_tq;
-	struct task		 cleanup_task;
-	struct task		 bp_task;
+	struct taskqueue *cleanup_tq;
+	struct task cleanup_task;
+	struct task bp_task;
 
-	struct mtx		 xmit_mtx;
-	struct buf_ring		*xmit_br;
+	struct mtx xmit_mtx;
+	struct buf_ring *xmit_br;
 } __aligned(CACHE_LINE_SIZE);
 
 int dpaa2_chan_setup(device_t, device_t, device_t, device_t,

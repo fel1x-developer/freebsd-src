@@ -31,7 +31,9 @@
 
 #include <sys/types.h>
 #include <sys/wait.h>
+
 #include <signal.h>
+
 #include "libc_private.h"
 
 __weak_reference(__sys_wait6, __wait6);
@@ -42,7 +44,7 @@ wait6(idtype_t idtype, id_t id, int *status, int options, struct __wrusage *ru,
     siginfo_t *infop)
 {
 
-	return (((pid_t (*)(idtype_t, id_t, int *, int, struct __wrusage *,
-	    siginfo_t *))__libc_interposing[INTERPOS_wait6])(idtype, id,
-	    status, options, ru, infop));
+	return (((pid_t(*)(idtype_t, id_t, int *, int, struct __wrusage *,
+	    siginfo_t *))__libc_interposing[INTERPOS_wait6])(idtype, id, status,
+	    options, ru, infop));
 }

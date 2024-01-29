@@ -44,22 +44,22 @@
  */
 struct jobspec {
 	STAILQ_ENTRY(jobspec) nextjs;
-	char	*wantedhost;
-	char	*wanteduser;
-	char	*matcheduser;		/* only valid for "doentry()" */
-	char	*fmtoutput;		/* set by format_jobspec() */
-	long	 startnum;
-	long	 endrange;
-	int	 pluralfmt;		/* boolean set by format_jobspec() */
-	uint	 matchcnt;
+	char *wantedhost;
+	char *wanteduser;
+	char *matcheduser; /* only valid for "doentry()" */
+	char *fmtoutput;   /* set by format_jobspec() */
+	long startnum;
+	long endrange;
+	int pluralfmt; /* boolean set by format_jobspec() */
+	uint matchcnt;
 };
 STAILQ_HEAD(jobspec_hdr, jobspec);
 
 /*
  * Format options for format_jobspec.
  */
-#define FMTJS_TERSE	1		/* user:jobrange@host */
-#define FMTJS_VERBOSE	2		/* jobrange from user@host */
+#define FMTJS_TERSE 1	/* user:jobrange@host */
+#define FMTJS_VERBOSE 2 /* jobrange from user@host */
 
 /*
  * Options for scanq_jobspec.
@@ -82,22 +82,20 @@ STAILQ_HEAD(jobspec_hdr, jobspec);
  * provides a way for the caller to print out a summary message for
  * each jobspec that was given.
  */
-#define SCQ_JSORDER	0x0001		/* follow the user-specified order */
-#define SCQ_QORDER	0x0002		/* the order of jobs in the queue */
+#define SCQ_JSORDER 0x0001 /* follow the user-specified order */
+#define SCQ_QORDER 0x0002  /* the order of jobs in the queue */
 
-#include "lp.cdefs.h"		/* A cross-platform version of <sys/cdefs.h> */
+#include "lp.cdefs.h" /* A cross-platform version of <sys/cdefs.h> */
 
 __BEGIN_DECLS
-struct	 jobqueue;
+struct jobqueue;
 
-typedef	int	 process_jqe(void *_myinfo, struct jobqueue *_jq,
-		    struct jobspec *_jspec);
+typedef int process_jqe(void *_myinfo, struct jobqueue *_jq,
+    struct jobspec *_jspec);
 
-void	 format_jobspec(struct jobspec *_jspec, int _fmt_wanted);
-void	 free_jobspec(struct jobspec_hdr *_js_hdr);
-int	 scanq_jobspec(int _qitems, struct jobqueue **_squeue, int _sopts,
-	    struct jobspec_hdr *_js_hdr, process_jqe _doentry,
-	    void *_doentryinfo);
-int	 parse_jobspec(char *_jobstr, struct jobspec_hdr *_js_hdr);
+void format_jobspec(struct jobspec *_jspec, int _fmt_wanted);
+void free_jobspec(struct jobspec_hdr *_js_hdr);
+int scanq_jobspec(int _qitems, struct jobqueue **_squeue, int _sopts,
+    struct jobspec_hdr *_js_hdr, process_jqe _doentry, void *_doentryinfo);
+int parse_jobspec(char *_jobstr, struct jobspec_hdr *_js_hdr);
 __END_DECLS
-

@@ -28,39 +28,38 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #include <sys/cdefs.h>
 #ifndef lint
 __RCSID("$NetBSD: dir.c,v 1.20 2006/06/05 16:51:18 christos Exp $");
 #endif /* not lint */
 
+#include <sys/param.h>
+
 #include <assert.h>
+#include <ctype.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
-#include <unistd.h>
 #include <time.h>
-
-#include <sys/param.h>
+#include <unistd.h>
 
 #include "ext.h"
 #include "fsutil.h"
 
-#define	SLOT_EMPTY	0x00		/* slot has never been used */
-#define	SLOT_E5		0x05		/* the real value is 0xe5 */
-#define	SLOT_DELETED	0xe5		/* file in this slot deleted */
+#define SLOT_EMPTY 0x00	  /* slot has never been used */
+#define SLOT_E5 0x05	  /* the real value is 0xe5 */
+#define SLOT_DELETED 0xe5 /* file in this slot deleted */
 
-#define	ATTR_NORMAL	0x00		/* normal file */
-#define	ATTR_READONLY	0x01		/* file is readonly */
-#define	ATTR_HIDDEN	0x02		/* file is hidden */
-#define	ATTR_SYSTEM	0x04		/* file is a system file */
-#define	ATTR_VOLUME	0x08		/* entry is a volume label */
-#define	ATTR_DIRECTORY	0x10		/* entry is a directory name */
-#define	ATTR_ARCHIVE	0x20		/* file is new or modified */
+#define ATTR_NORMAL 0x00    /* normal file */
+#define ATTR_READONLY 0x01  /* file is readonly */
+#define ATTR_HIDDEN 0x02    /* file is hidden */
+#define ATTR_SYSTEM 0x04    /* file is a system file */
+#define ATTR_VOLUME 0x08    /* entry is a volume label */
+#define ATTR_DIRECTORY 0x10 /* entry is a directory name */
+#define ATTR_ARCHIVE 0x20   /* file is new or modified */
 
-#define	ATTR_WIN95	0x0f		/* long name record */
+#define ATTR_WIN95 0x0f /* long name record */
 
 /*
  * This is the format of the contents of the deTime field in the direntry
@@ -68,24 +67,23 @@ __RCSID("$NetBSD: dir.c,v 1.20 2006/06/05 16:51:18 christos Exp $");
  * We don't use bitfields because we don't know how compilers for
  * arbitrary machines will lay them out.
  */
-#define DT_2SECONDS_MASK	0x1F	/* seconds divided by 2 */
-#define DT_2SECONDS_SHIFT	0
-#define DT_MINUTES_MASK		0x7E0	/* minutes */
-#define DT_MINUTES_SHIFT	5
-#define DT_HOURS_MASK		0xF800	/* hours */
-#define DT_HOURS_SHIFT		11
+#define DT_2SECONDS_MASK 0x1F /* seconds divided by 2 */
+#define DT_2SECONDS_SHIFT 0
+#define DT_MINUTES_MASK 0x7E0 /* minutes */
+#define DT_MINUTES_SHIFT 5
+#define DT_HOURS_MASK 0xF800 /* hours */
+#define DT_HOURS_SHIFT 11
 
 /*
  * This is the format of the contents of the deDate field in the direntry
  * structure.
  */
-#define DD_DAY_MASK		0x1F	/* day of month */
-#define DD_DAY_SHIFT		0
-#define DD_MONTH_MASK		0x1E0	/* month */
-#define DD_MONTH_SHIFT		5
-#define DD_YEAR_MASK		0xFE00	/* year - 1980 */
-#define DD_YEAR_SHIFT		9
-
+#define DD_DAY_MASK 0x1F /* day of month */
+#define DD_DAY_SHIFT 0
+#define DD_MONTH_MASK 0x1E0 /* month */
+#define DD_MONTH_SHIFT 5
+#define DD_YEAR_MASK 0xFE00 /* year - 1980 */
+#define DD_YEAR_SHIFT 9
 
 /* dir.c */
 static struct dosDirEntry *newDosDirEntry(void);
@@ -95,8 +93,8 @@ static void freeDirTodo(struct dirTodoNode *);
 static char *fullpath(struct dosDirEntry *);
 static u_char calcShortSum(u_char *);
 static int delete(struct fat_descriptor *, cl_t, int, cl_t, int, int);
-static int removede(struct fat_descriptor *, u_char *, u_char *,
-    cl_t, cl_t, cl_t, char *, int);
+static int removede(struct fat_descriptor *, u_char *, u_char *, cl_t, cl_t,
+    cl_t, char *, int);
 static int checksize(struct fat_descriptor *, u_char *, struct dosDirEntry *);
 static int readDosDirSection(struct fat_descriptor *, struct dosDirEntry *);
 
@@ -168,7 +166,7 @@ fullpath(struct dosDirEntry *dir)
 	cp = namebuf + sizeof namebuf;
 	*--cp = '\0';
 
-	for(;;) {
+	for (;;) {
 		np = dir->lname[0] ? dir->lname : dir->name;
 		nl = strlen(np);
 		if (cp <= namebuf + 1 + nl) {
@@ -196,7 +194,7 @@ calcShortSum(u_char *p)
 	int i;
 
 	for (i = 0; i < 11; i++) {
-		sum = (sum << 7)|(sum >> 1);	/* rotate right */
+		sum = (sum << 7) | (sum >> 1); /* rotate right */
 		sum += p[i];
 	}
 
@@ -292,9 +290,8 @@ finishDosDirSection(void)
 /*
  * Delete directory entries between startcl, startoff and endcl, endoff.
  */
-static int
-delete(struct fat_descriptor *fat, cl_t startcl,
-    int startoff, cl_t endcl, int endoff, int notlast)
+static int delete(struct fat_descriptor *fat, cl_t startcl, int startoff,
+    cl_t endcl, int endoff, int notlast)
 {
 	u_char *s, *e;
 	off_t off;
@@ -313,7 +310,8 @@ delete(struct fat_descriptor *fat, cl_t startcl,
 				break;
 			e = delbuf + endoff;
 		}
-		off = (startcl - CLUST_FIRST) * boot->bpbSecPerClust + boot->FirstCluster;
+		off = (startcl - CLUST_FIRST) * boot->bpbSecPerClust +
+		    boot->FirstCluster;
 
 		off *= boot->bpbBytesPerSec;
 		if (lseek(fd, off, SEEK_SET) != off) {
@@ -345,9 +343,8 @@ delete(struct fat_descriptor *fat, cl_t startcl,
 }
 
 static int
-removede(struct fat_descriptor *fat, u_char *start,
-    u_char *end, cl_t startcl, cl_t endcl, cl_t curcl,
-    char *path, int type)
+removede(struct fat_descriptor *fat, u_char *start, u_char *end, cl_t startcl,
+    cl_t endcl, cl_t curcl, char *path, int type)
 {
 	switch (type) {
 	case 0:
@@ -363,10 +360,8 @@ removede(struct fat_descriptor *fat, u_char *start,
 	}
 	if (ask(0, "Remove")) {
 		if (startcl != curcl) {
-			if (delete(fat,
-				   startcl, start - buffer,
-				   endcl, end - buffer,
-				   endcl == curcl) == FSFATAL)
+			if (delete (fat, startcl, start - buffer, endcl,
+				end - buffer, endcl == curcl) == FSFATAL)
 				return FSFATAL;
 			start = buffer;
 		}
@@ -398,8 +393,10 @@ checksize(struct fat_descriptor *fat, u_char *p, struct dosDirEntry *dir)
 	if (dir->head == CLUST_FREE) {
 		physicalSize = 0;
 	} else {
-		if (!fat_is_valid_cl(fat, dir->head) || !fat_is_cl_head(fat, dir->head)) {
-			pwarn("Directory entry %s of size %u referencing invalid cluster %u\n",
+		if (!fat_is_valid_cl(fat, dir->head) ||
+		    !fat_is_cl_head(fat, dir->head)) {
+			pwarn(
+			    "Directory entry %s of size %u referencing invalid cluster %u\n",
 			    fullpath(dir), dir->size, dir->head);
 			if (ask(1, "Truncate")) {
 				p[28] = p[29] = p[30] = p[31] = 0;
@@ -434,7 +431,7 @@ checksize(struct fat_descriptor *fat, u_char *p, struct dosDirEntry *dir)
 	}
 	if (physicalSize < dir->size) {
 		pwarn("size of %s is %u, should at most be %ju\n",
-		      fullpath(dir), dir->size, (uintmax_t)physicalSize);
+		    fullpath(dir), dir->size, (uintmax_t)physicalSize);
 		if (ask(1, "Truncate")) {
 			dir->size = physicalSize;
 			p[28] = (u_char)physicalSize;
@@ -445,14 +442,13 @@ checksize(struct fat_descriptor *fat, u_char *p, struct dosDirEntry *dir)
 		} else
 			return FSERROR;
 	} else if (physicalSize - dir->size >= boot->ClusterSize) {
-		pwarn("%s has too many clusters allocated\n",
-		      fullpath(dir));
+		pwarn("%s has too many clusters allocated\n", fullpath(dir));
 		if (ask(1, "Drop superfluous clusters")) {
 			cl_t cl;
 			u_int32_t sz, len;
 
 			for (cl = dir->head, len = sz = 0;
-			    (sz += boot->ClusterSize) < dir->size; len++)
+			     (sz += boot->ClusterSize) < dir->size; len++)
 				cl = fat_get_cl_next(fat, cl);
 			clearchain(fat, fat_get_cl_next(fat, cl));
 			ret = fat_set_cl_next(fat, cl, CLUST_EOF);
@@ -463,7 +459,7 @@ checksize(struct fat_descriptor *fat, u_char *p, struct dosDirEntry *dir)
 	return FSOK;
 }
 
-static const u_char dot_name[11]    = ".          ";
+static const u_char dot_name[11] = ".          ";
 static const u_char dotdot_name[11] = "..         ";
 
 /*
@@ -490,10 +486,10 @@ check_subdirectory(struct fat_descriptor *fat, struct dosDirEntry *dir)
 	}
 
 	if (!(boot->flags & FAT32) && !dir->parent) {
-		off = boot->bpbResSectors + boot->bpbFATs *
-			boot->FATsecs;
+		off = boot->bpbResSectors + boot->bpbFATs * boot->FATsecs;
 	} else {
-		off = (cl - CLUST_FIRST) * boot->bpbSecPerClust + boot->FirstCluster;
+		off = (cl - CLUST_FIRST) * boot->bpbSecPerClust +
+		    boot->FirstCluster;
 	}
 
 	/*
@@ -510,7 +506,8 @@ check_subdirectory(struct fat_descriptor *fat, struct dosDirEntry *dir)
 
 	off *= boot->bpbBytesPerSec;
 	if (lseek(fd, off, SEEK_SET) != off ||
-	    read(fd, buf, boot->bpbBytesPerSec) != (ssize_t)boot->bpbBytesPerSec) {
+	    read(fd, buf, boot->bpbBytesPerSec) !=
+		(ssize_t)boot->bpbBytesPerSec) {
 		perr("Unable to read directory");
 		free(buf);
 		return FSFATAL;
@@ -558,7 +555,7 @@ readDosDirSection(struct fat_descriptor *fat, struct dosDirEntry *dir)
 	int shortSum;
 	int mod = FSOK;
 	size_t dirclusters;
-#define	THISMOD	0x8000			/* Only used within this routine */
+#define THISMOD 0x8000 /* Only used within this routine */
 
 	boot = fat_get_boot(fat);
 	fd = fat_get_fd(fat);
@@ -598,14 +595,15 @@ readDosDirSection(struct fat_descriptor *fat, struct dosDirEntry *dir)
 			 * Special case for FAT12/FAT16 root -- read
 			 * in the whole root directory.
 			 */
-			off = boot->bpbResSectors + boot->bpbFATs *
-			    boot->FATsecs;
+			off = boot->bpbResSectors +
+			    boot->bpbFATs * boot->FATsecs;
 		} else {
 			/*
 			 * Otherwise, read in a cluster of the
 			 * directory.
 			 */
-			off = (cl - CLUST_FIRST) * boot->bpbSecPerClust + boot->FirstCluster;
+			off = (cl - CLUST_FIRST) * boot->bpbSecPerClust +
+			    boot->FirstCluster;
 		}
 
 		off *= boot->bpbBytesPerSec;
@@ -632,27 +630,30 @@ readDosDirSection(struct fat_descriptor *fat, struct dosDirEntry *dir)
 
 			if (dir->fsckflags & DIREMPTY) {
 				if (!(dir->fsckflags & DIREMPWARN)) {
-					pwarn("%s has entries after end of directory\n",
-					      fullpath(dir));
+					pwarn(
+					    "%s has entries after end of directory\n",
+					    fullpath(dir));
 					if (ask(1, "Extend")) {
 						u_char *q;
 
 						dir->fsckflags &= ~DIREMPTY;
-						if (delete(fat,
-							   empcl, empty - buffer,
-							   cl, p - buffer, 1) == FSFATAL)
+						if (delete (fat, empcl,
+							empty - buffer, cl,
+							p - buffer,
+							1) == FSFATAL)
 							return FSFATAL;
-						q = ((empcl == cl) ? empty : buffer);
+						q = ((empcl == cl) ? empty :
+								     buffer);
 						assert(q != NULL);
 						for (; q < p; q += 32)
 							*q = SLOT_DELETED;
-						mod |= THISMOD|FSDIRMOD;
+						mod |= THISMOD | FSDIRMOD;
 					} else if (ask(0, "Truncate"))
 						dir->fsckflags |= DIREMPWARN;
 				}
 				if (dir->fsckflags & DIREMPWARN) {
 					*p = SLOT_DELETED;
-					mod |= THISMOD|FSDIRMOD;
+					mod |= THISMOD | FSDIRMOD;
 					continue;
 				} else if (dir->fsckflags & DIREMPTY)
 					mod |= FSERROR;
@@ -671,8 +672,8 @@ readDosDirSection(struct fat_descriptor *fat, struct dosDirEntry *dir)
 					shortSum = p[13];
 					vallfn = p;
 					valcl = cl;
-				} else if (shortSum != p[13]
-					   || lidx != (*p & LRNOMASK)) {
+				} else if (shortSum != p[13] ||
+				    lidx != (*p & LRNOMASK)) {
 					if (!invlfn) {
 						invlfn = vallfn;
 						invcl = valcl;
@@ -694,19 +695,23 @@ readDosDirSection(struct fat_descriptor *fat, struct dosDirEntry *dir)
 					continue;
 				}
 				t = longName + --lidx * 13;
-				for (k = 1; k < 11 && t < longName +
-				    sizeof(longName); k += 2) {
+				for (k = 1;
+				     k < 11 && t < longName + sizeof(longName);
+				     k += 2) {
 					if (!p[k] && !p[k + 1])
 						break;
 					*t++ = p[k];
 					/*
-					 * Warn about those unusable chars in msdosfs here?	XXX
+					 * Warn about those unusable chars in
+					 * msdosfs here?	XXX
 					 */
 					if (p[k + 1])
 						t[-1] = '?';
 				}
 				if (k >= 11)
-					for (k = 14; k < 26 && t < longName + sizeof(longName); k += 2) {
+					for (k = 14; k < 26 &&
+					     t < longName + sizeof(longName);
+					     k += 2) {
 						if (!p[k] && !p[k + 1])
 							break;
 						*t++ = p[k];
@@ -714,7 +719,9 @@ readDosDirSection(struct fat_descriptor *fat, struct dosDirEntry *dir)
 							t[-1] = '?';
 					}
 				if (k >= 26)
-					for (k = 28; k < 32 && t < longName + sizeof(longName); k += 2) {
+					for (k = 28; k < 32 &&
+					     t < longName + sizeof(longName);
+					     k += 2) {
 						if (!p[k] && !p[k + 1])
 							break;
 						*t++ = p[k];
@@ -730,15 +737,16 @@ readDosDirSection(struct fat_descriptor *fat, struct dosDirEntry *dir)
 					vallfn = NULL;
 				}
 				if (p[26] | (p[27] << 8)) {
-					pwarn("long filename record cluster start != 0\n");
+					pwarn(
+					    "long filename record cluster start != 0\n");
 					if (!invlfn) {
 						invlfn = vallfn;
 						invcl = cl;
 					}
 					vallfn = NULL;
 				}
-				continue;	/* long records don't carry further
-						 * information */
+				continue; /* long records don't carry further
+					   * information */
 			}
 
 			/*
@@ -768,9 +776,9 @@ readDosDirSection(struct fat_descriptor *fat, struct dosDirEntry *dir)
 			if (dirent.flags & ATTR_VOLUME) {
 				if (vallfn || invlfn) {
 					mod |= removede(fat,
-							invlfn ? invlfn : vallfn, p,
-							invlfn ? invcl : valcl, -1, 0,
-							fullpath(dir), 2);
+					    invlfn ? invlfn : vallfn, p,
+					    invlfn ? invcl : valcl, -1, 0,
+					    fullpath(dir), 2);
 					vallfn = NULL;
 					invlfn = NULL;
 				}
@@ -780,7 +788,7 @@ readDosDirSection(struct fat_descriptor *fat, struct dosDirEntry *dir)
 			if (p[8] != ' ')
 				dirent.name[k++] = '.';
 			for (j = 0; j < 3; j++)
-				dirent.name[k++] = p[j+8];
+				dirent.name[k++] = p[j + 8];
 			dirent.name[k] = '\0';
 			for (k--; k >= 0 && dirent.name[k] == ' '; k--)
 				dirent.name[k] = '\0';
@@ -795,7 +803,8 @@ readDosDirSection(struct fat_descriptor *fat, struct dosDirEntry *dir)
 			dirent.head = p[26] | (p[27] << 8);
 			if (boot->ClustMask == CLUST32_MASK)
 				dirent.head |= (p[20] << 16) | (p[21] << 24);
-			dirent.size = p[28] | (p[29] << 8) | (p[30] << 16) | (p[31] << 24);
+			dirent.size = p[28] | (p[29] << 8) | (p[30] << 16) |
+			    (p[31] << 24);
 			if (vallfn) {
 				strlcpy(dirent.lname, longName,
 				    sizeof(dirent.lname));
@@ -807,15 +816,14 @@ readDosDirSection(struct fat_descriptor *fat, struct dosDirEntry *dir)
 			dirent.next = dir->child;
 
 			if (invlfn) {
-				mod |= k = removede(fat,
-						    invlfn, vallfn ? vallfn : p,
-						    invcl, vallfn ? valcl : cl, cl,
-						    fullpath(&dirent), 0);
+				mod |= k = removede(fat, invlfn,
+				    vallfn ? vallfn : p, invcl,
+				    vallfn ? valcl : cl, cl, fullpath(&dirent),
+				    0);
 				if (mod & FSFATAL)
 					return FSFATAL;
-				if (vallfn
-				    ? (valcl == cl && vallfn != buffer)
-				    : p != buffer)
+				if (vallfn ? (valcl == cl && vallfn != buffer) :
+					     p != buffer)
 					if (k & FSDIRMOD)
 						mod |= THISMOD;
 			}
@@ -844,35 +852,44 @@ readDosDirSection(struct fat_descriptor *fat, struct dosDirEntry *dir)
 			 */
 			if (!(dirent.flags & ATTR_DIRECTORY) ||
 			    (strcmp(dirent.name, ".") != 0 &&
-			    strcmp(dirent.name, "..") != 0)) {
-				if ((dirent.size != 0 || (dirent.flags & ATTR_DIRECTORY)) &&
+				strcmp(dirent.name, "..") != 0)) {
+				if ((dirent.size != 0 ||
+					(dirent.flags & ATTR_DIRECTORY)) &&
 				    ((!fat_is_valid_cl(fat, dirent.head) ||
-				    !fat_is_cl_head(fat, dirent.head)))) {
-					if (!fat_is_valid_cl(fat, dirent.head)) {
-						pwarn("%s starts with cluster out of range(%u)\n",
+					!fat_is_cl_head(fat, dirent.head)))) {
+					if (!fat_is_valid_cl(fat,
+						dirent.head)) {
+						pwarn(
+						    "%s starts with cluster out of range(%u)\n",
 						    fullpath(&dirent),
 						    dirent.head);
 					} else {
-						pwarn("%s doesn't start a new cluster chain\n",
+						pwarn(
+						    "%s doesn't start a new cluster chain\n",
 						    fullpath(&dirent));
 					}
 
 					if (dirent.flags & ATTR_DIRECTORY) {
 						if (ask(0, "Remove")) {
 							*p = SLOT_DELETED;
-							mod |= THISMOD|FSDIRMOD;
+							mod |= THISMOD |
+							    FSDIRMOD;
 						} else
 							mod |= FSERROR;
 						continue;
 					} else {
 						if (ask(1, "Truncate")) {
-							p[28] = p[29] = p[30] = p[31] = 0;
+							p[28] = p[29] = p[30] =
+							    p[31] = 0;
 							p[26] = p[27] = 0;
-							if (boot->ClustMask == CLUST32_MASK)
-								p[20] = p[21] = 0;
+							if (boot->ClustMask ==
+							    CLUST32_MASK)
+								p[20] = p[21] =
+								    0;
 							dirent.size = 0;
 							dirent.head = 0;
-							mod |= THISMOD|FSDIRMOD;
+							mod |= THISMOD |
+							    FSDIRMOD;
 						} else
 							mod |= FSERROR;
 					}
@@ -886,11 +903,12 @@ readDosDirSection(struct fat_descriptor *fat, struct dosDirEntry *dir)
 
 				if (dirent.size) {
 					pwarn("Directory %s has size != 0\n",
-					      fullpath(&dirent));
+					    fullpath(&dirent));
 					if (ask(1, "Correct")) {
-						p[28] = p[29] = p[30] = p[31] = 0;
+						p[28] = p[29] = p[30] = p[31] =
+						    0;
 						dirent.size = 0;
-						mod |= THISMOD|FSDIRMOD;
+						mod |= THISMOD | FSDIRMOD;
 					} else
 						mod |= FSERROR;
 				}
@@ -899,48 +917,91 @@ readDosDirSection(struct fat_descriptor *fat, struct dosDirEntry *dir)
 				 */
 				if (strcmp(dirent.name, ".") == 0) {
 					if (dirent.head != dir->head) {
-						pwarn("`.' entry in %s has incorrect start cluster\n",
-						      fullpath(dir));
+						pwarn(
+						    "`.' entry in %s has incorrect start cluster\n",
+						    fullpath(dir));
 						if (ask(1, "Correct")) {
 							dirent.head = dir->head;
-							p[26] = (u_char)dirent.head;
-							p[27] = (u_char)(dirent.head >> 8);
-							if (boot->ClustMask == CLUST32_MASK) {
-								p[20] = (u_char)(dirent.head >> 16);
-								p[21] = (u_char)(dirent.head >> 24);
+							p[26] = (u_char)
+								    dirent.head;
+							p[27] =
+							    (u_char)(dirent
+									 .head >>
+								8);
+							if (boot->ClustMask ==
+							    CLUST32_MASK) {
+								p[20] =
+								    (u_char)(dirent
+										 .head >>
+									16);
+								p[21] =
+								    (u_char)(dirent
+										 .head >>
+									24);
 							}
-							mod |= THISMOD|FSDIRMOD;
+							mod |= THISMOD |
+							    FSDIRMOD;
 						} else
 							mod |= FSERROR;
 					}
 					continue;
 				} else if (strcmp(dirent.name, "..") == 0) {
-					if (dir->parent) {		/* XXX */
+					if (dir->parent) { /* XXX */
 						if (!dir->parent->parent) {
 							if (dirent.head) {
-								pwarn("`..' entry in %s has non-zero start cluster\n",
-								      fullpath(dir));
-								if (ask(1, "Correct")) {
-									dirent.head = 0;
-									p[26] = p[27] = 0;
-									if (boot->ClustMask == CLUST32_MASK)
-										p[20] = p[21] = 0;
-									mod |= THISMOD|FSDIRMOD;
+								pwarn(
+								    "`..' entry in %s has non-zero start cluster\n",
+								    fullpath(
+									dir));
+								if (ask(1,
+									"Correct")) {
+									dirent
+									    .head =
+									    0;
+									p[26] = p
+									    [27] =
+										0;
+									if (boot->ClustMask ==
+									    CLUST32_MASK)
+										p[20] =
+										    p[21] =
+											0;
+									mod |=
+									    THISMOD |
+									    FSDIRMOD;
 								} else
-									mod |= FSERROR;
+									mod |=
+									    FSERROR;
 							}
-						} else if (dirent.head != dir->parent->head) {
-							pwarn("`..' entry in %s has incorrect start cluster\n",
-							      fullpath(dir));
+						} else if (dirent.head !=
+						    dir->parent->head) {
+							pwarn(
+							    "`..' entry in %s has incorrect start cluster\n",
+							    fullpath(dir));
 							if (ask(1, "Correct")) {
-								dirent.head = dir->parent->head;
-								p[26] = (u_char)dirent.head;
-								p[27] = (u_char)(dirent.head >> 8);
-								if (boot->ClustMask == CLUST32_MASK) {
-									p[20] = (u_char)(dirent.head >> 16);
-									p[21] = (u_char)(dirent.head >> 24);
+								dirent.head =
+								    dir->parent
+									->head;
+								p[26] =
+								    (u_char)dirent
+									.head;
+								p[27] =
+								    (u_char)(dirent
+										 .head >>
+									8);
+								if (boot->ClustMask ==
+								    CLUST32_MASK) {
+									p[20] =
+									    (u_char)(dirent
+											 .head >>
+										16);
+									p[21] =
+									    (u_char)(dirent
+											 .head >>
+										24);
 								}
-								mod |= THISMOD|FSDIRMOD;
+								mod |= THISMOD |
+								    FSDIRMOD;
 							} else
 								mod |= FSERROR;
 						}
@@ -952,16 +1013,19 @@ readDosDirSection(struct fat_descriptor *fat, struct dosDirEntry *dir)
 					 * to dir->head, it's '.'.
 					 */
 					if (dirent.head == dir->head) {
-						pwarn("%s entry in %s has incorrect start cluster\n",
-								dirent.name, fullpath(dir));
+						pwarn(
+						    "%s entry in %s has incorrect start cluster\n",
+						    dirent.name, fullpath(dir));
 						if (ask(1, "Remove")) {
 							*p = SLOT_DELETED;
-							mod |= THISMOD|FSDIRMOD;
+							mod |= THISMOD |
+							    FSDIRMOD;
 						} else
 							mod |= FSERROR;
 						continue;
 					} else if ((check_subdirectory(fat,
-					    &dirent) & FSERROR) == FSERROR) {
+							&dirent) &
+						       FSERROR) == FSERROR) {
 						/*
 						 * A subdirectory should have
 						 * a dot (.) entry and a dot-dot
@@ -971,7 +1035,8 @@ readDosDirSection(struct fat_descriptor *fat, struct dosDirEntry *dir)
 						 */
 						if (ask(1, "Remove")) {
 							*p = SLOT_DELETED;
-							mod |= THISMOD|FSDIRMOD;
+							mod |= THISMOD |
+							    FSDIRMOD;
 						} else
 							mod |= FSERROR;
 						continue;
@@ -1011,8 +1076,8 @@ readDosDirSection(struct fat_descriptor *fat, struct dosDirEntry *dir)
 			 */
 			break;
 		} else if (mod & THISMOD) {
-			if (lseek(fd, off, SEEK_SET) != off
-			    || write(fd, buffer, iosize) != iosize) {
+			if (lseek(fd, off, SEEK_SET) != off ||
+			    write(fd, buffer, iosize) != iosize) {
 				perr("Unable to write directory");
 				return FSFATAL;
 			}
@@ -1020,10 +1085,8 @@ readDosDirSection(struct fat_descriptor *fat, struct dosDirEntry *dir)
 		}
 	} while (fat_is_valid_cl(fat, (cl = fat_get_cl_next(fat, cl))));
 	if (invlfn || vallfn)
-		mod |= removede(fat,
-				invlfn ? invlfn : vallfn, p,
-				invlfn ? invcl : valcl, -1, 0,
-				fullpath(dir), 1);
+		mod |= removede(fat, invlfn ? invlfn : vallfn, p,
+		    invlfn ? invcl : valcl, -1, 0, fullpath(dir), 1);
 
 	/*
 	 * The root directory of non-FAT32 filesystems is in a special
@@ -1031,8 +1094,8 @@ readDosDirSection(struct fat_descriptor *fat, struct dosDirEntry *dir)
 	 * being written out.
 	 */
 	if ((mod & FSDIRMOD) && is_legacyroot) {
-		if (lseek(fd, off, SEEK_SET) != off
-		    || write(fd, buffer, iosize) != iosize) {
+		if (lseek(fd, off, SEEK_SET) != off ||
+		    write(fd, buffer, iosize) != iosize) {
 			perr("Unable to write directory");
 			return FSFATAL;
 		}
@@ -1096,11 +1159,12 @@ reconnect(struct fat_descriptor *fat, cl_t head, size_t length)
 		return FSERROR;
 
 	if (!lostDir) {
-		for (lostDir = rootDir->child; lostDir; lostDir = lostDir->next) {
+		for (lostDir = rootDir->child; lostDir;
+		     lostDir = lostDir->next) {
 			if (!strcmp(lostDir->name, LOSTDIR))
 				break;
 		}
-		if (!lostDir) {		/* Create LOSTDIR?		XXX */
+		if (!lostDir) { /* Create LOSTDIR?		XXX */
 			pwarn("No %s directory\n", LOSTDIR);
 			return FSERROR;
 		}
@@ -1117,8 +1181,7 @@ reconnect(struct fat_descriptor *fat, cl_t head, size_t length)
 	while (1) {
 		if (p)
 			for (; p < lfbuf + boot->ClusterSize; p += 32)
-				if (*p == SLOT_EMPTY
-				    || *p == SLOT_DELETED)
+				if (*p == SLOT_EMPTY || *p == SLOT_DELETED)
 					break;
 		if (p && p < lfbuf + boot->ClusterSize)
 			break;
@@ -1126,14 +1189,17 @@ reconnect(struct fat_descriptor *fat, cl_t head, size_t length)
 		if (lfcl < CLUST_FIRST || lfcl >= boot->NumClusters) {
 			/* Extend LOSTDIR?				XXX */
 			pwarn("No space in %s\n", LOSTDIR);
-			lfcl = (lostDir->head < boot->NumClusters) ? lostDir->head : 0;
+			lfcl = (lostDir->head < boot->NumClusters) ?
+			    lostDir->head :
+			    0;
 			return FSERROR;
 		}
-		lfoff = (lfcl - CLUST_FIRST) * boot->ClusterSize
-		    + boot->FirstCluster * boot->bpbBytesPerSec;
+		lfoff = (lfcl - CLUST_FIRST) * boot->ClusterSize +
+		    boot->FirstCluster * boot->bpbBytesPerSec;
 
-		if (lseek(dosfs, lfoff, SEEK_SET) != lfoff
-		    || (size_t)read(dosfs, lfbuf, boot->ClusterSize) != boot->ClusterSize) {
+		if (lseek(dosfs, lfoff, SEEK_SET) != lfoff ||
+		    (size_t)read(dosfs, lfbuf, boot->ClusterSize) !=
+			boot->ClusterSize) {
 			perr("could not read LOST.DIR");
 			return FSFATAL;
 		}
@@ -1162,8 +1228,9 @@ reconnect(struct fat_descriptor *fat, cl_t head, size_t length)
 	p[29] = (u_char)(d.size >> 8);
 	p[30] = (u_char)(d.size >> 16);
 	p[31] = (u_char)(d.size >> 24);
-	if (lseek(dosfs, lfoff, SEEK_SET) != lfoff
-	    || (size_t)write(dosfs, lfbuf, boot->ClusterSize) != boot->ClusterSize) {
+	if (lseek(dosfs, lfoff, SEEK_SET) != lfoff ||
+	    (size_t)write(dosfs, lfbuf, boot->ClusterSize) !=
+		boot->ClusterSize) {
 		perr("could not write LOST.DIR");
 		return FSFATAL;
 	}

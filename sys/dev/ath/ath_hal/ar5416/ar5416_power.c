@@ -20,7 +20,6 @@
 
 #include "ah.h"
 #include "ah_internal.h"
-
 #include "ar5416/ar5416.h"
 #include "ar5416/ar5416reg.h"
 
@@ -36,7 +35,7 @@
 static HAL_BOOL
 ar5416SetPowerModeAwake(struct ath_hal *ah, int setChip)
 {
-#define	POWER_UP_TIME	200000
+#define POWER_UP_TIME 200000
 	uint32_t val;
 	int i = 0;
 
@@ -46,10 +45,10 @@ ar5416SetPowerModeAwake(struct ath_hal *ah, int setChip)
 		 * the NetBSD driver  power-cycles the Cardbus slot
 		 * as part of the reset procedure.
 		 */
-		if ((OS_REG_READ(ah, AR_RTC_STATUS) 
-			& AR_RTC_PM_STATUS_M) == AR_RTC_STATUS_SHUTDOWN) {
+		if ((OS_REG_READ(ah, AR_RTC_STATUS) & AR_RTC_PM_STATUS_M) ==
+		    AR_RTC_STATUS_SHUTDOWN) {
 			if (!ar5416SetResetReg(ah, HAL_RESET_POWER_ON))
-				goto bad;			
+				goto bad;
 			AH5416(ah)->ah_initPLL(ah, AH_NULL);
 		}
 
@@ -60,24 +59,25 @@ ar5416SetPowerModeAwake(struct ath_hal *ah, int setChip)
 		if (AR_SREV_HOWL(ah))
 			OS_DELAY(10000);
 		else
-			OS_DELAY(50);   /* Give chip the chance to awake */
+			OS_DELAY(50); /* Give chip the chance to awake */
 
 		for (i = POWER_UP_TIME / 50; i != 0; i--) {
 			val = OS_REG_READ(ah, AR_RTC_STATUS) & AR_RTC_STATUS_M;
 			if (val == AR_RTC_STATUS_ON)
 				break;
 			OS_DELAY(50);
-			OS_REG_SET_BIT(ah, AR_RTC_FORCE_WAKE, AR_RTC_FORCE_WAKE_EN);
-		}		
+			OS_REG_SET_BIT(ah, AR_RTC_FORCE_WAKE,
+			    AR_RTC_FORCE_WAKE_EN);
+		}
 	bad:
 		if (i == 0) {
 #ifdef AH_DEBUG
 			ath_hal_printf(ah, "%s: Failed to wakeup in %ums\n",
-				__func__, POWER_UP_TIME/1000);
+			    __func__, POWER_UP_TIME / 1000);
 #endif
 			return AH_FALSE;
 		}
-	} 
+	}
 
 	OS_REG_CLR_BIT(ah, AR_STA_ID1, AR_STA_ID1_PWR_SAV);
 	return AH_TRUE;
@@ -95,10 +95,10 @@ ar5416SetPowerModeSleep(struct ath_hal *ah, int setChip)
 	if (setChip) {
 		/* Clear the RTC force wake bit to allow the mac to sleep */
 		OS_REG_CLR_BIT(ah, AR_RTC_FORCE_WAKE, AR_RTC_FORCE_WAKE_EN);
-		if (! AR_SREV_HOWL(ah))
-			OS_REG_WRITE(ah, AR_RC, AR_RC_AHB|AR_RC_HOSTIF);
+		if (!AR_SREV_HOWL(ah))
+			OS_REG_WRITE(ah, AR_RC, AR_RC_AHB | AR_RC_HOSTIF);
 		/* Shutdown chip. Active low */
-		if (! AR_SREV_OWL(ah))
+		if (!AR_SREV_OWL(ah))
 			OS_REG_CLR_BIT(ah, AR_RTC_RESET, AR_RTC_RESET_EN);
 	}
 }
@@ -125,12 +125,8 @@ HAL_BOOL
 ar5416SetPowerMode(struct ath_hal *ah, HAL_POWER_MODE mode, int setChip)
 {
 #ifdef AH_DEBUG
-	static const char* modes[] = {
-		"AWAKE",
-		"FULL-SLEEP",
-		"NETWORK SLEEP",
-		"UNDEFINED"
-	};
+	static const char *modes[] = { "AWAKE", "FULL-SLEEP", "NETWORK SLEEP",
+		"UNDEFINED" };
 #endif
 	int status = AH_TRUE;
 
@@ -182,8 +178,8 @@ ar5416GetPowerMode(struct ath_hal *ah)
 		return HAL_PM_FULL_SLEEP;
 	default:
 		HALDEBUG(ah, HAL_DEBUG_ANY,
-		    "%s: unknown power mode, RTC_STATUS 0x%x\n",
-		    __func__, mode);
-		return HAL_PM_UNDEFINED;	
+		    "%s: unknown power mode, RTC_STATUS 0x%x\n", __func__,
+		    mode);
+		return HAL_PM_UNDEFINED;
 	}
 }

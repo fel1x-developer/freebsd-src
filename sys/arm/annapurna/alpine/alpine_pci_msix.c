@@ -28,12 +28,12 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/bus.h>
 #include <sys/rman.h>
 #include <sys/vmem.h>
 
@@ -43,13 +43,13 @@
 #include "msi_if.h"
 #include "pic_if.h"
 
-#define	AL_SPI_INTR		0
-#define	AL_EDGE_HIGH		1
-#define	ERR_NOT_IN_MAP		-1
-#define	IRQ_OFFSET		1
-#define	GIC_INTR_CELL_CNT	3
-#define	INTR_RANGE_COUNT	2
-#define	MAX_MSIX_COUNT		160
+#define AL_SPI_INTR 0
+#define AL_EDGE_HIGH 1
+#define ERR_NOT_IN_MAP -1
+#define IRQ_OFFSET 1
+#define GIC_INTR_CELL_CNT 3
+#define INTR_RANGE_COUNT 2
+#define MAX_MSIX_COUNT 160
 
 static int al_msix_attach(device_t);
 static int al_msix_probe(device_t);
@@ -62,40 +62,37 @@ static msi_map_msi_t al_msix_map_msi;
 
 static int al_find_intr_pos_in_map(device_t, struct intr_irqsrc *);
 
-static struct ofw_compat_data compat_data[] = {
-	{"annapurna-labs,al-msix",	true},
-	{"annapurna-labs,alpine-msix",	true},
-	{NULL,				false}
-};
+static struct ofw_compat_data compat_data[] = { { "annapurna-labs,al-msix",
+						    true },
+	{ "annapurna-labs,alpine-msix", true }, { NULL, false } };
 
 /*
  * Bus interface definitions.
  */
-static device_method_t al_msix_methods[] = {
-	DEVMETHOD(device_probe,		al_msix_probe),
-	DEVMETHOD(device_attach,	al_msix_attach),
+static device_method_t al_msix_methods[] = { DEVMETHOD(device_probe,
+						 al_msix_probe),
+	DEVMETHOD(device_attach, al_msix_attach),
 
 	/* Interrupt controller interface */
-	DEVMETHOD(msi_alloc_msi,	al_msix_alloc_msi),
-	DEVMETHOD(msi_release_msi,	al_msix_release_msi),
-	DEVMETHOD(msi_alloc_msix,	al_msix_alloc_msix),
-	DEVMETHOD(msi_release_msix,	al_msix_release_msix),
-	DEVMETHOD(msi_map_msi,		al_msix_map_msi),
+	DEVMETHOD(msi_alloc_msi, al_msix_alloc_msi),
+	DEVMETHOD(msi_release_msi, al_msix_release_msi),
+	DEVMETHOD(msi_alloc_msix, al_msix_alloc_msix),
+	DEVMETHOD(msi_release_msix, al_msix_release_msix),
+	DEVMETHOD(msi_map_msi, al_msix_map_msi),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 struct al_msix_softc {
-	bus_addr_t	base_addr;
-	struct resource	*res;
-	uint32_t	irq_min;
-	uint32_t	irq_max;
-	uint32_t	irq_count;
-	struct mtx	msi_mtx;
-	vmem_t		*irq_alloc;
-	device_t	gic_dev;
+	bus_addr_t base_addr;
+	struct resource *res;
+	uint32_t irq_min;
+	uint32_t irq_max;
+	uint32_t irq_count;
+	struct mtx msi_mtx;
+	vmem_t *irq_alloc;
+	device_t gic_dev;
 	/* Table of isrcs maps isrc pointer to vmem_alloc'd irq number */
-	struct intr_irqsrc	*isrcs[MAX_MSIX_COUNT];
+	struct intr_irqsrc *isrcs[MAX_MSIX_COUNT];
 };
 
 static driver_t al_msix_driver = {
@@ -127,14 +124,14 @@ al_msix_probe(device_t dev)
 static int
 al_msix_attach(device_t dev)
 {
-	struct al_msix_softc	*sc;
-	device_t		gic_dev;
-	phandle_t		iparent;
-	phandle_t		node;
-	intptr_t		xref;
-	int			interrupts[INTR_RANGE_COUNT];
-	int			nintr, i, rid;
-	uint32_t		icells, *intr;
+	struct al_msix_softc *sc;
+	device_t gic_dev;
+	phandle_t iparent;
+	phandle_t node;
+	intptr_t xref;
+	int interrupts[INTR_RANGE_COUNT];
+	int nintr, i, rid;
+	uint32_t icells, *intr;
 
 	sc = device_get_softc(dev);
 
@@ -155,21 +152,22 @@ al_msix_attach(device_t dev)
 	if (intr_msi_register(dev, xref) != 0) {
 		device_printf(dev, "could not register MSI-X controller\n");
 		return (ENXIO);
-	}
-	else
+	} else
 		device_printf(dev, "MSI-X controller registered\n");
 
 	/* Find root interrupt controller */
 	iparent = ofw_bus_find_iparent(node);
 	if (iparent == 0) {
-		device_printf(dev, "No interrupt-parrent found. "
-				"Error in DTB\n");
+		device_printf(dev,
+		    "No interrupt-parrent found. "
+		    "Error in DTB\n");
 		return (ENXIO);
 	} else {
 		/* While at parent - store interrupt cells prop */
 		if (OF_searchencprop(OF_node_from_xref(iparent),
-		    "#interrupt-cells", &icells, sizeof(icells)) == -1) {
-			device_printf(dev, "DTB: Missing #interrupt-cells "
+			"#interrupt-cells", &icells, sizeof(icells)) == -1) {
+			device_printf(dev,
+			    "DTB: Missing #interrupt-cells "
 			    "property in GIC node\n");
 			return (ENXIO);
 		}
@@ -190,8 +188,9 @@ al_msix_attach(device_t dev)
 		return (ENXIO);
 	} else if ((nintr / icells) != INTR_RANGE_COUNT) {
 		/* Supposed to have min and max value only */
-		device_printf(dev, "Unexpected count of interrupts "
-				"in DTB node\n");
+		device_printf(dev,
+		    "Unexpected count of interrupts "
+		    "in DTB node\n");
 		return (EINVAL);
 	}
 
@@ -204,15 +203,17 @@ al_msix_attach(device_t dev)
 	sc->irq_count = (sc->irq_max - sc->irq_min + 1);
 
 	if (sc->irq_count > MAX_MSIX_COUNT) {
-		device_printf(dev, "Available MSI-X count exceeds buffer size."
-				" Capping to %d\n", MAX_MSIX_COUNT);
+		device_printf(dev,
+		    "Available MSI-X count exceeds buffer size."
+		    " Capping to %d\n",
+		    MAX_MSIX_COUNT);
 		sc->irq_count = MAX_MSIX_COUNT;
 	}
 
 	mtx_init(&sc->msi_mtx, "msi_mtx", NULL, MTX_DEF);
 
-	sc->irq_alloc = vmem_create("Alpine MSI-X IRQs", 0, sc->irq_count,
-	    1, 0, M_FIRSTFIT | M_WAITOK);
+	sc->irq_alloc = vmem_create("Alpine MSI-X IRQs", 0, sc->irq_count, 1, 0,
+	    M_FIRSTFIT | M_WAITOK);
 
 	device_printf(dev, "MSI-X SPI IRQ %d-%d\n", sc->irq_min, sc->irq_max);
 
@@ -303,18 +304,19 @@ al_msix_alloc_msi(device_t dev, device_t child, int count, int maxcount,
 		return (EINVAL);
 
 	if (vmem_alloc(sc->irq_alloc, count, M_FIRSTFIT | M_NOWAIT,
-	    &irq_base) != 0)
+		&irq_base) != 0)
 		return (ENOMEM);
 
 	/* Fabricate OFW data to get ISRC from GIC and return it */
 	fdt_data = malloc(sizeof(*fdt_data) +
-	    GIC_INTR_CELL_CNT * sizeof(pcell_t), M_AL_MSIX, M_WAITOK);
+		GIC_INTR_CELL_CNT * sizeof(pcell_t),
+	    M_AL_MSIX, M_WAITOK);
 	fdt_data->hdr.type = INTR_MAP_DATA_FDT;
 	fdt_data->iparent = 0;
 	fdt_data->ncells = GIC_INTR_CELL_CNT;
-	fdt_data->cells[0] = AL_SPI_INTR;	/* code for SPI interrupt */
-	fdt_data->cells[1] = 0;			/* SPI number (uninitialized) */
-	fdt_data->cells[2] = AL_EDGE_HIGH;	/* trig = edge, pol = high */
+	fdt_data->cells[0] = AL_SPI_INTR;  /* code for SPI interrupt */
+	fdt_data->cells[1] = 0;		   /* SPI number (uninitialized) */
+	fdt_data->cells[2] = AL_EDGE_HIGH; /* trig = edge, pol = high */
 
 	mtx_lock(&sc->msi_mtx);
 
@@ -339,8 +341,7 @@ al_msix_alloc_msi(device_t dev, device_t child, int count, int maxcount,
 	free(fdt_data, M_AL_MSIX);
 
 	if (bootverbose)
-		device_printf(dev,
-		    "MSI-X allocation: start SPI %d, count %d\n",
+		device_printf(dev, "MSI-X allocation: start SPI %d, count %d\n",
 		    (int)irq_base + sc->irq_min, count);
 
 	*pic = sc->gic_dev;

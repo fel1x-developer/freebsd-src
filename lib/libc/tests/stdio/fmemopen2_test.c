@@ -28,12 +28,11 @@ SUCH DAMAGE.
  * a FILE * retrieved using fmemopen()
  */
 
+#include <atf-c.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
 #include <strings.h>
-
-#include <atf-c.h>
 
 ATF_TC_WITHOUT_HEAD(test_preexisting);
 ATF_TC_BODY(test_preexisting, tc)
@@ -41,7 +40,7 @@ ATF_TC_BODY(test_preexisting, tc)
 	/* Use a pre-existing buffer. */
 	char buf[512];
 	char buf2[512];
-	char str[]  = "Test writing some stuff";
+	char str[] = "Test writing some stuff";
 	char str2[] = "AAAAAAAAA";
 	char str3[] = "AAAA writing some stuff";
 	FILE *fp;
@@ -146,10 +145,10 @@ ATF_TC_BODY(test_data_length, tc)
 	 * data, not of the whole buffer.
 	 */
 	FILE *fp;
-	char buf[512] = {'\0'};
-	char str[]  = "Test data length. ";
+	char buf[512] = { '\0' };
+	char str[] = "Test data length. ";
 	char str2[] = "Do we have two sentences?";
-	char str3[sizeof(str) + sizeof(str2) -1];
+	char str3[sizeof(str) + sizeof(str2) - 1];
 	long pos;
 	size_t nofw, nofr;
 	int rc;

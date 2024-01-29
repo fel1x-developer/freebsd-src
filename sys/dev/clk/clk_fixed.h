@@ -25,7 +25,7 @@
  */
 
 #ifndef _DEV_CLK_FIXED_H_
-#define	_DEV_CLK_FIXED_H_
+#define _DEV_CLK_FIXED_H_
 
 #include <dev/clk/clk.h>
 
@@ -39,12 +39,12 @@
 
 struct clk_fixed_def {
 	struct clknode_init_def clkdef;
-	uint64_t		freq;
-	uint32_t		mult;
-	uint32_t		div;
-	int			fixed_flags;
+	uint64_t freq;
+	uint32_t mult;
+	uint32_t div;
+	int fixed_flags;
 };
 
 int clknode_fixed_register(struct clkdom *clkdom, struct clk_fixed_def *clkdef);
 
-#endif	/*_DEV_CLK_FIXED_H_*/
+#endif /*_DEV_CLK_FIXED_H_*/

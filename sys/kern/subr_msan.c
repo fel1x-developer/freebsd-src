@@ -32,7 +32,7 @@
  * SUCH DAMAGE.
  */
 
-#define	SAN_RUNTIME
+#define SAN_RUNTIME
 
 #include <sys/cdefs.h>
 #if 0
@@ -76,8 +76,8 @@ typedef struct {
 	msan_orig_t *orig;
 } msan_meta_t;
 
-#define MSAN_PARAM_SIZE		800
-#define MSAN_RETVAL_SIZE	800
+#define MSAN_PARAM_SIZE 800
+#define MSAN_RETVAL_SIZE 800
 typedef struct {
 	uint8_t param_shadow[MSAN_PARAM_SIZE];
 	uint8_t retval_shadow[MSAN_RETVAL_SIZE];
@@ -90,8 +90,8 @@ typedef struct {
 
 /* -------------------------------------------------------------------------- */
 
-#define MSAN_NCONTEXT	4
-#define MSAN_ORIG_MASK	(~0x3)
+#define MSAN_NCONTEXT 4
+#define MSAN_ORIG_MASK (~0x3)
 
 typedef struct kmsan_td {
 	size_t ctx;
@@ -113,22 +113,24 @@ static bool kmsan_reporting = false;
 /*
  * Avoid clobbering any thread-local state before we panic.
  */
-#define	kmsan_panic(f, ...) do {			\
-	kmsan_disabled = true;				\
-	panic(f, __VA_ARGS__);				\
-} while (0)
+#define kmsan_panic(f, ...)            \
+	do {                           \
+		kmsan_disabled = true; \
+		panic(f, __VA_ARGS__); \
+	} while (0)
 
-#define	REPORT(f, ...) do {				\
-	if (panic_on_violation) {			\
-		kmsan_panic(f, __VA_ARGS__);		\
-	} else {					\
-		struct stack st;			\
-							\
-		stack_save(&st);			\
-		printf(f "\n", __VA_ARGS__);		\
-		stack_print_ddb(&st);			\
-	}						\
-} while (0)
+#define REPORT(f, ...)                               \
+	do {                                         \
+		if (panic_on_violation) {            \
+			kmsan_panic(f, __VA_ARGS__); \
+		} else {                             \
+			struct stack st;             \
+                                                     \
+			stack_save(&st);             \
+			printf(f "\n", __VA_ARGS__); \
+			stack_print_ddb(&st);        \
+		}                                    \
+	} while (0)
 
 FEATURE(kmsan, "Kernel memory sanitizer");
 
@@ -137,8 +139,7 @@ static SYSCTL_NODE(_debug, OID_AUTO, kmsan, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
 
 static bool panic_on_violation = 1;
 SYSCTL_BOOL(_debug_kmsan, OID_AUTO, panic_on_violation, CTLFLAG_RWTUN,
-    &panic_on_violation, 0,
-    "Panic if an invalid access is detected");
+    &panic_on_violation, 0, "Panic if an invalid access is detected");
 
 static bool kmsan_disabled __read_mostly = true;
 #define kmsan_enabled (!kmsan_disabled)
@@ -184,18 +185,18 @@ kmsan_report_hook(const void *addr, msan_orig_t *orig, size_t size, size_t off,
 	__compiler_membar();
 
 	if (*orig == 0) {
-		REPORT("MSan: Uninitialized memory in %s, offset %zu",
-		    hook, off);
+		REPORT("MSan: Uninitialized memory in %s, offset %zu", hook,
+		    off);
 		goto out;
 	}
 
 	kmsan_md_orig_decode(*orig, &type, &ptr);
 	typename = kmsan_orig_name(type);
 
-	if (linker_ddb_search_symbol_name((caddr_t)ptr, buf,
-	    sizeof(buf), &foff) == 0) {
+	if (linker_ddb_search_symbol_name((caddr_t)ptr, buf, sizeof(buf),
+		&foff) == 0) {
 		REPORT("MSan: Uninitialized %s memory in %s, "
-		    "offset %zu/%zu, addr %p, from %s+%#lx",
+		       "offset %zu/%zu, addr %p, from %s+%#lx",
 		    typename, hook, off, size, addr, buf, foff);
 	} else if (__builtin_memcmp((void *)ptr, "----", 4) == 0) {
 		/*
@@ -208,10 +209,11 @@ kmsan_report_hook(const void *addr, msan_orig_t *orig, size_t size, size_t off,
 		fn = strchr(buf, '@');
 		*fn++ = '\0';
 		REPORT("MSan: Uninitialized %s memory in %s, offset %zu, "
-		    "variable '%s' from %s", typename, hook, off, var, fn);
+		       "variable '%s' from %s",
+		    typename, hook, off, var, fn);
 	} else {
 		REPORT("MSan: Uninitialized %s memory in %s, "
-		    "offset %zu/%zu, addr %p, PC %p",
+		       "offset %zu/%zu, addr %p, PC %p",
 		    typename, hook, off, size, addr, (void *)ptr);
 	}
 
@@ -244,10 +246,10 @@ kmsan_report_inline(msan_orig_t orig, unsigned long pc)
 	kmsan_md_orig_decode(orig, &type, &ptr);
 	typename = kmsan_orig_name(type);
 
-	if (linker_ddb_search_symbol_name((caddr_t)ptr, buf,
-	    sizeof(buf), &foff) == 0) {
-		REPORT("MSan: Uninitialized %s memory from %s+%#lx",
-		    typename, buf, foff);
+	if (linker_ddb_search_symbol_name((caddr_t)ptr, buf, sizeof(buf),
+		&foff) == 0) {
+		REPORT("MSan: Uninitialized %s memory from %s+%#lx", typename,
+		    buf, foff);
 	} else if (__builtin_memcmp((void *)ptr, "----", 4) == 0) {
 		/*
 		 * The format of the string is: "----var@function". Parse it to
@@ -260,8 +262,8 @@ kmsan_report_inline(msan_orig_t orig, unsigned long pc)
 		*fn++ = '\0';
 		REPORT("MSan: Uninitialized variable '%s' from %s", var, fn);
 	} else {
-		REPORT("MSan: Uninitialized %s memory, origin %x",
-		    typename, orig);
+		REPORT("MSan: Uninitialized %s memory, origin %x", typename,
+		    orig);
 	}
 
 out:
@@ -284,8 +286,8 @@ kmsan_meta_get(const void *addr, size_t size, const bool write)
 		ret.orig = (msan_orig_t *)msan_dummy_orig;
 	} else {
 		ret.shad = (void *)kmsan_md_addr_to_shad((vm_offset_t)addr);
-		ret.orig =
-		    (msan_orig_t *)kmsan_md_addr_to_orig((vm_offset_t)addr);
+		ret.orig = (msan_orig_t *)kmsan_md_addr_to_orig(
+		    (vm_offset_t)addr);
 		ret.orig = (msan_orig_t *)((uintptr_t)ret.orig &
 		    MSAN_ORIG_MASK);
 	}
@@ -631,16 +633,16 @@ __msan_metadata_ptr_for_store_n(void *addr, size_t size)
 	return (kmsan_meta_get(addr, size, true));
 }
 
-#define MSAN_META_FUNC(size)						\
-	msan_meta_t __msan_metadata_ptr_for_load_##size(void *);	\
-	msan_meta_t __msan_metadata_ptr_for_load_##size(void *addr)	\
-	{								\
-		return (kmsan_meta_get(addr, size, false));		\
-	}								\
-	msan_meta_t __msan_metadata_ptr_for_store_##size(void *);	\
-	msan_meta_t __msan_metadata_ptr_for_store_##size(void *addr)	\
-	{								\
-		return (kmsan_meta_get(addr, size, true));		\
+#define MSAN_META_FUNC(size)                                         \
+	msan_meta_t __msan_metadata_ptr_for_load_##size(void *);     \
+	msan_meta_t __msan_metadata_ptr_for_load_##size(void *addr)  \
+	{                                                            \
+		return (kmsan_meta_get(addr, size, false));          \
+	}                                                            \
+	msan_meta_t __msan_metadata_ptr_for_store_##size(void *);    \
+	msan_meta_t __msan_metadata_ptr_for_store_##size(void *addr) \
+	{                                                            \
+		return (kmsan_meta_get(addr, size, true));           \
 	}
 
 MSAN_META_FUNC(1)
@@ -744,8 +746,7 @@ kmsan_memcmp(const void *b1, const void *b2, size_t len)
 	const uint8_t *_b1 = b1, *_b2 = b2;
 	size_t i;
 
-	kmsan_check_arg(sizeof(b1) + sizeof(b2) + sizeof(len),
-	    "memcmp():args");
+	kmsan_check_arg(sizeof(b1) + sizeof(b2) + sizeof(len), "memcmp():args");
 	kmsan_init_ret(sizeof(int));
 
 	for (i = 0; i < len; i++) {
@@ -823,8 +824,10 @@ kmsan_strcmp(const char *s1, const char *s2)
 		if (*s1 != *s2)
 			break;
 		if (*s1 == '\0') {
-			kmsan_shadow_check((uintptr_t)_s1, len, "strcmp():arg1");
-			kmsan_shadow_check((uintptr_t)_s2, len, "strcmp():arg2");
+			kmsan_shadow_check((uintptr_t)_s1, len,
+			    "strcmp():arg1");
+			kmsan_shadow_check((uintptr_t)_s2, len,
+			    "strcmp():arg2");
 			return (0);
 		}
 		s1++, s2++;
@@ -850,14 +853,15 @@ kmsan_strlen(const char *str)
 		s++;
 	}
 
-	kmsan_shadow_check((uintptr_t)str, (size_t)(s - str) + 1, "strlen():arg1");
+	kmsan_shadow_check((uintptr_t)str, (size_t)(s - str) + 1,
+	    "strlen():arg1");
 	kmsan_init_ret(sizeof(size_t));
 	return (s - str);
 }
 
-int	kmsan_copyin(const void *, void *, size_t);
-int	kmsan_copyout(const void *, void *, size_t);
-int	kmsan_copyinstr(const void *, void *, size_t, size_t *);
+int kmsan_copyin(const void *, void *, size_t);
+int kmsan_copyout(const void *, void *, size_t);
+int kmsan_copyinstr(const void *, void *, size_t, size_t *);
 
 int
 kmsan_copyin(const void *uaddr, void *kaddr, size_t len)
@@ -889,14 +893,16 @@ kmsan_copyinstr(const void *uaddr, void *kaddr, size_t len, size_t *done)
 	size_t _done;
 	int ret;
 
-	kmsan_check_arg(sizeof(uaddr) + sizeof(kaddr) +
-	    sizeof(len) + sizeof(done), "copyinstr():args");
+	kmsan_check_arg(sizeof(uaddr) + sizeof(kaddr) + sizeof(len) +
+		sizeof(done),
+	    "copyinstr():args");
 	ret = copyinstr(uaddr, kaddr, len, &_done);
 	if (ret == 0)
 		kmsan_shadow_fill((uintptr_t)kaddr, KMSAN_STATE_INITED, _done);
 	if (done != NULL) {
 		*done = _done;
-		kmsan_shadow_fill((uintptr_t)done, KMSAN_STATE_INITED, sizeof(size_t));
+		kmsan_shadow_fill((uintptr_t)done, KMSAN_STATE_INITED,
+		    sizeof(size_t));
 	}
 	kmsan_init_ret(sizeof(int));
 	return (ret);
@@ -1030,7 +1036,8 @@ kmsan_casueword32(volatile uint32_t *base, uint32_t oldval, uint32_t *oldvalp,
 	int ret;
 
 	kmsan_check_arg(sizeof(base) + sizeof(oldval) + sizeof(oldvalp) +
-	    sizeof(newval), "casueword32(): args");
+		sizeof(newval),
+	    "casueword32(): args");
 	ret = casueword32(base, oldval, oldvalp, newval);
 	kmsan_shadow_fill((uintptr_t)oldvalp, KMSAN_STATE_INITED,
 	    sizeof(*oldvalp));
@@ -1045,7 +1052,8 @@ kmsan_casueword(volatile u_long *base, u_long oldval, u_long *oldvalp,
 	int ret;
 
 	kmsan_check_arg(sizeof(base) + sizeof(oldval) + sizeof(oldvalp) +
-	    sizeof(newval), "casueword32(): args");
+		sizeof(newval),
+	    "casueword32(): args");
 	ret = casueword(base, oldval, oldvalp, newval);
 	kmsan_shadow_fill((uintptr_t)oldvalp, KMSAN_STATE_INITED,
 	    sizeof(*oldvalp));
@@ -1055,191 +1063,191 @@ kmsan_casueword(volatile u_long *base, u_long oldval, u_long *oldvalp,
 
 /* -------------------------------------------------------------------------- */
 
-#include <machine/atomic.h>
 #include <sys/atomic_san.h>
 
-#define _MSAN_ATOMIC_FUNC_ADD(name, type)				\
-	void kmsan_atomic_add_##name(volatile type *ptr, type val)	\
-	{								\
-		kmsan_check_arg(sizeof(ptr) + sizeof(val),		\
-		    "atomic_add_" #name "():args");			\
-		kmsan_shadow_check((uintptr_t)ptr, sizeof(type),	\
-		    "atomic_add_" #name "():ptr");			\
-		atomic_add_##name(ptr, val);				\
+#include <machine/atomic.h>
+
+#define _MSAN_ATOMIC_FUNC_ADD(name, type)                          \
+	void kmsan_atomic_add_##name(volatile type *ptr, type val) \
+	{                                                          \
+		kmsan_check_arg(sizeof(ptr) + sizeof(val),         \
+		    "atomic_add_" #name "():args");                \
+		kmsan_shadow_check((uintptr_t)ptr, sizeof(type),   \
+		    "atomic_add_" #name "():ptr");                 \
+		atomic_add_##name(ptr, val);                       \
 	}
 
-#define	MSAN_ATOMIC_FUNC_ADD(name, type)				\
-	_MSAN_ATOMIC_FUNC_ADD(name, type)				\
-	_MSAN_ATOMIC_FUNC_ADD(acq_##name, type)				\
+#define MSAN_ATOMIC_FUNC_ADD(name, type)        \
+	_MSAN_ATOMIC_FUNC_ADD(name, type)       \
+	_MSAN_ATOMIC_FUNC_ADD(acq_##name, type) \
 	_MSAN_ATOMIC_FUNC_ADD(rel_##name, type)
 
-#define _MSAN_ATOMIC_FUNC_SUBTRACT(name, type)				\
-	void kmsan_atomic_subtract_##name(volatile type *ptr, type val)	\
-	{								\
-		kmsan_check_arg(sizeof(ptr) + sizeof(val),		\
-		    "atomic_subtract_" #name "():args");		\
-		kmsan_shadow_check((uintptr_t)ptr, sizeof(type),	\
-		    "atomic_subtract_" #name "():ptr");			\
-		atomic_subtract_##name(ptr, val);			\
+#define _MSAN_ATOMIC_FUNC_SUBTRACT(name, type)                          \
+	void kmsan_atomic_subtract_##name(volatile type *ptr, type val) \
+	{                                                               \
+		kmsan_check_arg(sizeof(ptr) + sizeof(val),              \
+		    "atomic_subtract_" #name "():args");                \
+		kmsan_shadow_check((uintptr_t)ptr, sizeof(type),        \
+		    "atomic_subtract_" #name "():ptr");                 \
+		atomic_subtract_##name(ptr, val);                       \
 	}
 
-#define	MSAN_ATOMIC_FUNC_SUBTRACT(name, type)				\
-	_MSAN_ATOMIC_FUNC_SUBTRACT(name, type)				\
-	_MSAN_ATOMIC_FUNC_SUBTRACT(acq_##name, type)			\
+#define MSAN_ATOMIC_FUNC_SUBTRACT(name, type)        \
+	_MSAN_ATOMIC_FUNC_SUBTRACT(name, type)       \
+	_MSAN_ATOMIC_FUNC_SUBTRACT(acq_##name, type) \
 	_MSAN_ATOMIC_FUNC_SUBTRACT(rel_##name, type)
 
-#define _MSAN_ATOMIC_FUNC_SET(name, type)				\
-	void kmsan_atomic_set_##name(volatile type *ptr, type val)	\
-	{								\
-		kmsan_check_arg(sizeof(ptr) + sizeof(val),		\
-		    "atomic_set_" #name "():args");			\
-		kmsan_shadow_check((uintptr_t)ptr, sizeof(type),	\
-		    "atomic_set_" #name "():ptr");			\
-		atomic_set_##name(ptr, val);				\
+#define _MSAN_ATOMIC_FUNC_SET(name, type)                          \
+	void kmsan_atomic_set_##name(volatile type *ptr, type val) \
+	{                                                          \
+		kmsan_check_arg(sizeof(ptr) + sizeof(val),         \
+		    "atomic_set_" #name "():args");                \
+		kmsan_shadow_check((uintptr_t)ptr, sizeof(type),   \
+		    "atomic_set_" #name "():ptr");                 \
+		atomic_set_##name(ptr, val);                       \
 	}
 
-#define	MSAN_ATOMIC_FUNC_SET(name, type)				\
-	_MSAN_ATOMIC_FUNC_SET(name, type)				\
-	_MSAN_ATOMIC_FUNC_SET(acq_##name, type)				\
+#define MSAN_ATOMIC_FUNC_SET(name, type)        \
+	_MSAN_ATOMIC_FUNC_SET(name, type)       \
+	_MSAN_ATOMIC_FUNC_SET(acq_##name, type) \
 	_MSAN_ATOMIC_FUNC_SET(rel_##name, type)
 
-#define _MSAN_ATOMIC_FUNC_CLEAR(name, type)				\
-	void kmsan_atomic_clear_##name(volatile type *ptr, type val)	\
-	{								\
-		kmsan_check_arg(sizeof(ptr) + sizeof(val),		\
-		    "atomic_clear_" #name "():args");			\
-		kmsan_shadow_check((uintptr_t)ptr, sizeof(type),	\
-		    "atomic_clear_" #name "():ptr");			\
-		atomic_clear_##name(ptr, val);				\
+#define _MSAN_ATOMIC_FUNC_CLEAR(name, type)                          \
+	void kmsan_atomic_clear_##name(volatile type *ptr, type val) \
+	{                                                            \
+		kmsan_check_arg(sizeof(ptr) + sizeof(val),           \
+		    "atomic_clear_" #name "():args");                \
+		kmsan_shadow_check((uintptr_t)ptr, sizeof(type),     \
+		    "atomic_clear_" #name "():ptr");                 \
+		atomic_clear_##name(ptr, val);                       \
 	}
 
-#define	MSAN_ATOMIC_FUNC_CLEAR(name, type)				\
-	_MSAN_ATOMIC_FUNC_CLEAR(name, type)				\
-	_MSAN_ATOMIC_FUNC_CLEAR(acq_##name, type)			\
+#define MSAN_ATOMIC_FUNC_CLEAR(name, type)        \
+	_MSAN_ATOMIC_FUNC_CLEAR(name, type)       \
+	_MSAN_ATOMIC_FUNC_CLEAR(acq_##name, type) \
 	_MSAN_ATOMIC_FUNC_CLEAR(rel_##name, type)
 
-#define	MSAN_ATOMIC_FUNC_FETCHADD(name, type)				\
-	type kmsan_atomic_fetchadd_##name(volatile type *ptr, type val)	\
-	{								\
-		kmsan_check_arg(sizeof(ptr) + sizeof(val),		\
-		    "atomic_fetchadd_" #name "():args");		\
-		kmsan_shadow_check((uintptr_t)ptr, sizeof(type),	\
-		    "atomic_fetchadd_" #name "():ptr");			\
-		kmsan_init_ret(sizeof(type));				\
-		return (atomic_fetchadd_##name(ptr, val));		\
+#define MSAN_ATOMIC_FUNC_FETCHADD(name, type)                           \
+	type kmsan_atomic_fetchadd_##name(volatile type *ptr, type val) \
+	{                                                               \
+		kmsan_check_arg(sizeof(ptr) + sizeof(val),              \
+		    "atomic_fetchadd_" #name "():args");                \
+		kmsan_shadow_check((uintptr_t)ptr, sizeof(type),        \
+		    "atomic_fetchadd_" #name "():ptr");                 \
+		kmsan_init_ret(sizeof(type));                           \
+		return (atomic_fetchadd_##name(ptr, val));              \
 	}
 
-#define	MSAN_ATOMIC_FUNC_READANDCLEAR(name, type)			\
-	type kmsan_atomic_readandclear_##name(volatile type *ptr)	\
-	{								\
-		kmsan_check_arg(sizeof(ptr),				\
-		    "atomic_readandclear_" #name "():args");		\
-		kmsan_shadow_check((uintptr_t)ptr, sizeof(type),	\
-		    "atomic_readandclear_" #name "():ptr");		\
-		kmsan_init_ret(sizeof(type));				\
-		return (atomic_readandclear_##name(ptr));		\
+#define MSAN_ATOMIC_FUNC_READANDCLEAR(name, type)                 \
+	type kmsan_atomic_readandclear_##name(volatile type *ptr) \
+	{                                                         \
+		kmsan_check_arg(sizeof(ptr),                      \
+		    "atomic_readandclear_" #name "():args");      \
+		kmsan_shadow_check((uintptr_t)ptr, sizeof(type),  \
+		    "atomic_readandclear_" #name "():ptr");       \
+		kmsan_init_ret(sizeof(type));                     \
+		return (atomic_readandclear_##name(ptr));         \
 	}
 
-#define	MSAN_ATOMIC_FUNC_TESTANDCLEAR(name, type)			\
+#define MSAN_ATOMIC_FUNC_TESTANDCLEAR(name, type)                         \
 	int kmsan_atomic_testandclear_##name(volatile type *ptr, u_int v) \
-	{								\
-		kmsan_check_arg(sizeof(ptr) + sizeof(v),		\
-		    "atomic_testandclear_" #name "():args");		\
-		kmsan_shadow_check((uintptr_t)ptr, sizeof(type),	\
-		    "atomic_testandclear_" #name "():ptr");		\
-		kmsan_init_ret(sizeof(int));				\
-		return (atomic_testandclear_##name(ptr, v));		\
+	{                                                                 \
+		kmsan_check_arg(sizeof(ptr) + sizeof(v),                  \
+		    "atomic_testandclear_" #name "():args");              \
+		kmsan_shadow_check((uintptr_t)ptr, sizeof(type),          \
+		    "atomic_testandclear_" #name "():ptr");               \
+		kmsan_init_ret(sizeof(int));                              \
+		return (atomic_testandclear_##name(ptr, v));              \
 	}
 
-#define	MSAN_ATOMIC_FUNC_TESTANDSET(name, type)				\
+#define MSAN_ATOMIC_FUNC_TESTANDSET(name, type)                         \
 	int kmsan_atomic_testandset_##name(volatile type *ptr, u_int v) \
-	{								\
-		kmsan_check_arg(sizeof(ptr) + sizeof(v),		\
-		    "atomic_testandset_" #name "():args");		\
-		kmsan_shadow_check((uintptr_t)ptr, sizeof(type),	\
-		    "atomic_testandset_" #name "():ptr");		\
-		kmsan_init_ret(sizeof(int));				\
-		return (atomic_testandset_##name(ptr, v));		\
+	{                                                               \
+		kmsan_check_arg(sizeof(ptr) + sizeof(v),                \
+		    "atomic_testandset_" #name "():args");              \
+		kmsan_shadow_check((uintptr_t)ptr, sizeof(type),        \
+		    "atomic_testandset_" #name "():ptr");               \
+		kmsan_init_ret(sizeof(int));                            \
+		return (atomic_testandset_##name(ptr, v));              \
 	}
 
-#define	MSAN_ATOMIC_FUNC_SWAP(name, type)				\
-	type kmsan_atomic_swap_##name(volatile type *ptr, type val)	\
-	{								\
-		kmsan_check_arg(sizeof(ptr) + sizeof(val),		\
-		    "atomic_swap_" #name "():args");			\
-		kmsan_shadow_check((uintptr_t)ptr, sizeof(type),	\
-		    "atomic_swap_" #name "():ptr");			\
-		kmsan_init_ret(sizeof(type));				\
-		return (atomic_swap_##name(ptr, val));			\
+#define MSAN_ATOMIC_FUNC_SWAP(name, type)                           \
+	type kmsan_atomic_swap_##name(volatile type *ptr, type val) \
+	{                                                           \
+		kmsan_check_arg(sizeof(ptr) + sizeof(val),          \
+		    "atomic_swap_" #name "():args");                \
+		kmsan_shadow_check((uintptr_t)ptr, sizeof(type),    \
+		    "atomic_swap_" #name "():ptr");                 \
+		kmsan_init_ret(sizeof(type));                       \
+		return (atomic_swap_##name(ptr, val));              \
 	}
 
-#define _MSAN_ATOMIC_FUNC_CMPSET(name, type)				\
-	int kmsan_atomic_cmpset_##name(volatile type *ptr, type oval,	\
-	    type nval)							\
-	{								\
-		kmsan_check_arg(sizeof(ptr) + sizeof(oval) +		\
-		    sizeof(nval), "atomic_cmpset_" #name "():args");	\
-		kmsan_shadow_check((uintptr_t)ptr, sizeof(type),	\
-		    "atomic_cmpset_" #name "():ptr");			\
-		kmsan_init_ret(sizeof(int));				\
-		return (atomic_cmpset_##name(ptr, oval, nval));		\
+#define _MSAN_ATOMIC_FUNC_CMPSET(name, type)                               \
+	int kmsan_atomic_cmpset_##name(volatile type *ptr, type oval,      \
+	    type nval)                                                     \
+	{                                                                  \
+		kmsan_check_arg(sizeof(ptr) + sizeof(oval) + sizeof(nval), \
+		    "atomic_cmpset_" #name "():args");                     \
+		kmsan_shadow_check((uintptr_t)ptr, sizeof(type),           \
+		    "atomic_cmpset_" #name "():ptr");                      \
+		kmsan_init_ret(sizeof(int));                               \
+		return (atomic_cmpset_##name(ptr, oval, nval));            \
 	}
 
-#define	MSAN_ATOMIC_FUNC_CMPSET(name, type)				\
-	_MSAN_ATOMIC_FUNC_CMPSET(name, type)				\
-	_MSAN_ATOMIC_FUNC_CMPSET(acq_##name, type)			\
+#define MSAN_ATOMIC_FUNC_CMPSET(name, type)        \
+	_MSAN_ATOMIC_FUNC_CMPSET(name, type)       \
+	_MSAN_ATOMIC_FUNC_CMPSET(acq_##name, type) \
 	_MSAN_ATOMIC_FUNC_CMPSET(rel_##name, type)
 
-#define _MSAN_ATOMIC_FUNC_FCMPSET(name, type)				\
-	int kmsan_atomic_fcmpset_##name(volatile type *ptr, type *oval,	\
-	    type nval)							\
-	{								\
-		kmsan_check_arg(sizeof(ptr) + sizeof(oval) +		\
-		    sizeof(nval), "atomic_fcmpset_" #name "():args");	\
-		kmsan_shadow_check((uintptr_t)ptr, sizeof(type),	\
-		    "atomic_fcmpset_" #name "():ptr");			\
-		kmsan_init_ret(sizeof(int));				\
-		return (atomic_fcmpset_##name(ptr, oval, nval));	\
+#define _MSAN_ATOMIC_FUNC_FCMPSET(name, type)                              \
+	int kmsan_atomic_fcmpset_##name(volatile type *ptr, type *oval,    \
+	    type nval)                                                     \
+	{                                                                  \
+		kmsan_check_arg(sizeof(ptr) + sizeof(oval) + sizeof(nval), \
+		    "atomic_fcmpset_" #name "():args");                    \
+		kmsan_shadow_check((uintptr_t)ptr, sizeof(type),           \
+		    "atomic_fcmpset_" #name "():ptr");                     \
+		kmsan_init_ret(sizeof(int));                               \
+		return (atomic_fcmpset_##name(ptr, oval, nval));           \
 	}
 
-#define	MSAN_ATOMIC_FUNC_FCMPSET(name, type)				\
-	_MSAN_ATOMIC_FUNC_FCMPSET(name, type)				\
-	_MSAN_ATOMIC_FUNC_FCMPSET(acq_##name, type)			\
+#define MSAN_ATOMIC_FUNC_FCMPSET(name, type)        \
+	_MSAN_ATOMIC_FUNC_FCMPSET(name, type)       \
+	_MSAN_ATOMIC_FUNC_FCMPSET(acq_##name, type) \
 	_MSAN_ATOMIC_FUNC_FCMPSET(rel_##name, type)
 
-#define MSAN_ATOMIC_FUNC_THREAD_FENCE(name)				\
-	void kmsan_atomic_thread_fence_##name(void)			\
-	{								\
-		atomic_thread_fence_##name();				\
+#define MSAN_ATOMIC_FUNC_THREAD_FENCE(name)         \
+	void kmsan_atomic_thread_fence_##name(void) \
+	{                                           \
+		atomic_thread_fence_##name();       \
 	}
 
-#define	_MSAN_ATOMIC_FUNC_LOAD(name, type)				\
-	type kmsan_atomic_load_##name(volatile type *ptr)		\
-	{								\
-		kmsan_check_arg(sizeof(ptr),				\
-		    "atomic_load_" #name "():args");			\
-		kmsan_shadow_check((uintptr_t)ptr, sizeof(type),	\
-		    "atomic_load_" #name "():ptr");			\
-		kmsan_init_ret(sizeof(type));				\
-		return (atomic_load_##name(ptr));			\
+#define _MSAN_ATOMIC_FUNC_LOAD(name, type)                                    \
+	type kmsan_atomic_load_##name(volatile type *ptr)                     \
+	{                                                                     \
+		kmsan_check_arg(sizeof(ptr), "atomic_load_" #name "():args"); \
+		kmsan_shadow_check((uintptr_t)ptr, sizeof(type),              \
+		    "atomic_load_" #name "():ptr");                           \
+		kmsan_init_ret(sizeof(type));                                 \
+		return (atomic_load_##name(ptr));                             \
 	}
 
-#define	MSAN_ATOMIC_FUNC_LOAD(name, type)				\
-	_MSAN_ATOMIC_FUNC_LOAD(name, type)				\
+#define MSAN_ATOMIC_FUNC_LOAD(name, type)  \
+	_MSAN_ATOMIC_FUNC_LOAD(name, type) \
 	_MSAN_ATOMIC_FUNC_LOAD(acq_##name, type)
 
-#define	_MSAN_ATOMIC_FUNC_STORE(name, type)				\
-	void kmsan_atomic_store_##name(volatile type *ptr, type val)	\
-	{								\
-		kmsan_check_arg(sizeof(ptr) + sizeof(val),		\
-		    "atomic_store_" #name "():args");			\
-		kmsan_shadow_fill((uintptr_t)ptr, KMSAN_STATE_INITED,	\
-		    sizeof(type));					\
-		atomic_store_##name(ptr, val);				\
+#define _MSAN_ATOMIC_FUNC_STORE(name, type)                           \
+	void kmsan_atomic_store_##name(volatile type *ptr, type val)  \
+	{                                                             \
+		kmsan_check_arg(sizeof(ptr) + sizeof(val),            \
+		    "atomic_store_" #name "():args");                 \
+		kmsan_shadow_fill((uintptr_t)ptr, KMSAN_STATE_INITED, \
+		    sizeof(type));                                    \
+		atomic_store_##name(ptr, val);                        \
 	}
 
-#define	MSAN_ATOMIC_FUNC_STORE(name, type)				\
-	_MSAN_ATOMIC_FUNC_STORE(name, type)				\
+#define MSAN_ATOMIC_FUNC_STORE(name, type)  \
+	_MSAN_ATOMIC_FUNC_STORE(name, type) \
 	_MSAN_ATOMIC_FUNC_STORE(rel_##name, type)
 
 MSAN_ATOMIC_FUNC_ADD(8, uint8_t);
@@ -1353,8 +1361,9 @@ kmsan_atomic_interrupt_fence(void)
 /* -------------------------------------------------------------------------- */
 
 #include <sys/bus.h>
-#include <machine/bus.h>
 #include <sys/bus_san.h>
+
+#include <machine/bus.h>
 
 int
 kmsan_bus_space_map(bus_space_tag_t tag, bus_addr_t hnd, bus_size_t size,
@@ -1392,28 +1401,27 @@ kmsan_bus_space_barrier(bus_space_tag_t tag, bus_space_handle_t hnd,
 }
 
 /* XXXMJ x86-specific */
-#define MSAN_BUS_READ_FUNC(func, width, type)				\
-	type kmsan_bus_space_read##func##_##width(bus_space_tag_t tag,	\
-	    bus_space_handle_t hnd, bus_size_t offset)			\
-	{								\
-		type ret;						\
-		if ((tag) != X86_BUS_SPACE_IO)				\
-			kmsan_shadow_fill((uintptr_t)(hnd + offset),	\
-			    KMSAN_STATE_INITED, (width));		\
-		ret = bus_space_read##func##_##width(tag, hnd, offset);	\
-		kmsan_init_ret(sizeof(type));				\
-		return (ret);						\
-	}								\
+#define MSAN_BUS_READ_FUNC(func, width, type)                           \
+	type kmsan_bus_space_read##func##_##width(bus_space_tag_t tag,  \
+	    bus_space_handle_t hnd, bus_size_t offset)                  \
+	{                                                               \
+		type ret;                                               \
+		if ((tag) != X86_BUS_SPACE_IO)                          \
+			kmsan_shadow_fill((uintptr_t)(hnd + offset),    \
+			    KMSAN_STATE_INITED, (width));               \
+		ret = bus_space_read##func##_##width(tag, hnd, offset); \
+		kmsan_init_ret(sizeof(type));                           \
+		return (ret);                                           \
+	}
 
-#define MSAN_BUS_READ_PTR_FUNC(func, width, type)			\
-	void kmsan_bus_space_read_##func##_##width(bus_space_tag_t tag,	\
-	    bus_space_handle_t hnd, bus_size_t size, type *buf,		\
-	    bus_size_t count)						\
-	{								\
-		kmsan_shadow_fill((uintptr_t)buf, KMSAN_STATE_INITED,	\
-		    (width) * count);					\
-		bus_space_read_##func##_##width(tag, hnd, size, buf, 	\
-		    count);						\
+#define MSAN_BUS_READ_PTR_FUNC(func, width, type)                            \
+	void kmsan_bus_space_read_##func##_##width(bus_space_tag_t tag,      \
+	    bus_space_handle_t hnd, bus_size_t size, type *buf,              \
+	    bus_size_t count)                                                \
+	{                                                                    \
+		kmsan_shadow_fill((uintptr_t)buf, KMSAN_STATE_INITED,        \
+		    (width) * count);                                        \
+		bus_space_read_##func##_##width(tag, hnd, size, buf, count); \
 	}
 
 MSAN_BUS_READ_FUNC(, 1, uint8_t)
@@ -1439,22 +1447,21 @@ MSAN_BUS_READ_PTR_FUNC(region_stream, 4, uint32_t)
 
 MSAN_BUS_READ_FUNC(, 8, uint64_t)
 
-#define	MSAN_BUS_WRITE_FUNC(func, width, type)				\
-	void kmsan_bus_space_write##func##_##width(bus_space_tag_t tag,	\
-	    bus_space_handle_t hnd, bus_size_t offset, type value)	\
-	{								\
-		bus_space_write##func##_##width(tag, hnd, offset, value);\
-	}								\
+#define MSAN_BUS_WRITE_FUNC(func, width, type)                            \
+	void kmsan_bus_space_write##func##_##width(bus_space_tag_t tag,   \
+	    bus_space_handle_t hnd, bus_size_t offset, type value)        \
+	{                                                                 \
+		bus_space_write##func##_##width(tag, hnd, offset, value); \
+	}
 
-#define	MSAN_BUS_WRITE_PTR_FUNC(func, width, type)			\
-	void kmsan_bus_space_write_##func##_##width(bus_space_tag_t tag,\
-	    bus_space_handle_t hnd, bus_size_t size, const type *buf,	\
-	    bus_size_t count)						\
-	{								\
-		kmsan_shadow_check((uintptr_t)buf, sizeof(type) * count,\
-		    "bus_space_write()");				\
-		bus_space_write_##func##_##width(tag, hnd, size, buf, 	\
-		    count);						\
+#define MSAN_BUS_WRITE_PTR_FUNC(func, width, type)                            \
+	void kmsan_bus_space_write_##func##_##width(bus_space_tag_t tag,      \
+	    bus_space_handle_t hnd, bus_size_t size, const type *buf,         \
+	    bus_size_t count)                                                 \
+	{                                                                     \
+		kmsan_shadow_check((uintptr_t)buf, sizeof(type) * count,      \
+		    "bus_space_write()");                                     \
+		bus_space_write_##func##_##width(tag, hnd, size, buf, count); \
 	}
 
 MSAN_BUS_WRITE_FUNC(, 1, uint8_t)
@@ -1480,13 +1487,13 @@ MSAN_BUS_WRITE_PTR_FUNC(region_stream, 4, uint32_t)
 
 MSAN_BUS_WRITE_FUNC(, 8, uint64_t)
 
-#define	MSAN_BUS_SET_FUNC(func, width, type)				\
-	void kmsan_bus_space_set_##func##_##width(bus_space_tag_t tag,	\
-	    bus_space_handle_t hnd, bus_size_t offset, type value,	\
-	    bus_size_t count)						\
-	{								\
-		bus_space_set_##func##_##width(tag, hnd, offset, value,	\
-		    count);						\
+#define MSAN_BUS_SET_FUNC(func, width, type)                            \
+	void kmsan_bus_space_set_##func##_##width(bus_space_tag_t tag,  \
+	    bus_space_handle_t hnd, bus_size_t offset, type value,      \
+	    bus_size_t count)                                           \
+	{                                                               \
+		bus_space_set_##func##_##width(tag, hnd, offset, value, \
+		    count);                                             \
 	}
 
 MSAN_BUS_SET_FUNC(multi, 1, uint8_t)
@@ -1519,8 +1526,7 @@ kmsan_bus_dmamap_sync(struct memdesc *desc, bus_dmasync_op_t op)
 	    BUS_DMASYNC_PREWRITE) {
 		switch (desc->md_type) {
 		case MEMDESC_VADDR:
-			kmsan_check(desc->u.md_vaddr, desc->md_len,
-			    "dmasync");
+			kmsan_check(desc->u.md_vaddr, desc->md_len, "dmasync");
 			break;
 		case MEMDESC_MBUF:
 			kmsan_check_mbuf(desc->u.md_mbuf, "dmasync");

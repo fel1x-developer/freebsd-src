@@ -32,10 +32,12 @@
  */
 
 #include <wchar.h>
+
 #include "mblocal.h"
 
 size_t
-mbrlen_l(const char * __restrict s, size_t n, mbstate_t * __restrict ps, locale_t locale)
+mbrlen_l(const char *__restrict s, size_t n, mbstate_t *__restrict ps,
+    locale_t locale)
 {
 	FIX_LOCALE(locale);
 	if (ps == NULL)
@@ -44,7 +46,7 @@ mbrlen_l(const char * __restrict s, size_t n, mbstate_t * __restrict ps, locale_
 }
 
 size_t
-mbrlen(const char * __restrict s, size_t n, mbstate_t * __restrict ps)
+mbrlen(const char *__restrict s, size_t n, mbstate_t *__restrict ps)
 {
 	return mbrlen_l(s, n, ps, __get_locale());
 }

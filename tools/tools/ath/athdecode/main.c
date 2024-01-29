@@ -26,32 +26,31 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
-#include "diag.h"
+#include <sys/file.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 
-#include "ah.h"
-#include "ah_internal.h"
-#include "ah_decode.h"
-
-#include "dumpregs.h"
-
+#include <err.h>
 #include <stdlib.h>
 #include <string.h>
-#include <err.h>
-#include <sys/file.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
+
+#include "ah.h"
+#include "ah_decode.h"
+#include "ah_internal.h"
+#include "diag.h"
+#include "dumpregs.h"
 
 typedef struct {
 	HAL_REVS revs;
 	int chipnum;
-#define	MAXREGS	5*1024
+#define MAXREGS 5 * 1024
 	struct dumpreg *regs[MAXREGS];
 	u_int nregs;
 } dumpregs_t;
-static	dumpregs_t state;
+static dumpregs_t state;
 
 static void opdevice(const struct athregrec *r);
-static const char* opmark(FILE *, int, const struct athregrec *);
+static const char *opmark(FILE *, int, const struct athregrec *);
 static void oprw(FILE *fd, int recnum, struct athregrec *r);
 
 int
@@ -70,17 +69,17 @@ main(int argc, char *argv[])
 		err(1, "open: %s", filename);
 	if (fstat(fd, &sb) < 0)
 		err(1, "fstat");
-	addr = mmap(0, sb.st_size, PROT_READ, MAP_PRIVATE|MAP_NOCORE, fd, 0);
+	addr = mmap(0, sb.st_size, PROT_READ, MAP_PRIVATE | MAP_NOCORE, fd, 0);
 	if (addr == MAP_FAILED)
 		err(1, "mmap");
-	nrecs = sb.st_size / sizeof (struct athregrec);
+	nrecs = sb.st_size / sizeof(struct athregrec);
 	printf("%u records", nrecs);
 	rprev = NULL;
 	same = 0;
 	state.chipnum = 5210;
 	for (i = 0; i < nrecs; i++) {
-		struct athregrec *r = &((struct athregrec *) addr)[i];
-		if (rprev && bcmp(r, rprev, sizeof (*r)) == 0) {
+		struct athregrec *r = &((struct athregrec *)addr)[i];
+		if (rprev && bcmp(r, rprev, sizeof(*r)) == 0) {
 			same++;
 			continue;
 		}
@@ -105,14 +104,14 @@ main(int argc, char *argv[])
 	return 0;
 }
 
-static const char*
+static const char *
 opmark(FILE *fd, int i, const struct athregrec *r)
 {
 	fprintf(fd, "\n%05d: ", i);
 	switch (r->reg) {
 	case AH_MARK_RESET:
 		fprintf(fd, "ar%uReset %s", state.chipnum,
-			r->val ? "change channel" : "no channel change");
+		    r->val ? "change channel" : "no channel change");
 		break;
 	case AH_MARK_RESET_LINE:
 		fprintf(fd, "ar%u_reset.c; line %u", state.chipnum, r->val);
@@ -120,18 +119,21 @@ opmark(FILE *fd, int i, const struct athregrec *r)
 	case AH_MARK_RESET_DONE:
 		if (r->val)
 			fprintf(fd, "ar%uReset (done), FAIL, error %u",
-				state.chipnum, r->val);
+			    state.chipnum, r->val);
 		else
 			fprintf(fd, "ar%uReset (done), OK", state.chipnum);
 		break;
 	case AH_MARK_CHIPRESET:
-		fprintf(fd, "ar%uChipReset, channel %u MHz", state.chipnum, r->val);
+		fprintf(fd, "ar%uChipReset, channel %u MHz", state.chipnum,
+		    r->val);
 		break;
 	case AH_MARK_PERCAL:
-		fprintf(fd, "ar%uPerCalibration, channel %u MHz", state.chipnum, r->val);
+		fprintf(fd, "ar%uPerCalibration, channel %u MHz", state.chipnum,
+		    r->val);
 		break;
 	case AH_MARK_SETCHANNEL:
-		fprintf(fd, "ar%uSetChannel, channel %u MHz", state.chipnum, r->val);
+		fprintf(fd, "ar%uSetChannel, channel %u MHz", state.chipnum,
+		    r->val);
 		break;
 	case AH_MARK_ANI_RESET:
 		switch (r->val) {
@@ -142,18 +144,22 @@ opmark(FILE *fd, int i, const struct athregrec *r)
 			fprintf(fd, "ar%uAniReset, HAL_M_IBSS", state.chipnum);
 			break;
 		case HAL_M_HOSTAP:
-			fprintf(fd, "ar%uAniReset, HAL_M_HOSTAP", state.chipnum);
+			fprintf(fd, "ar%uAniReset, HAL_M_HOSTAP",
+			    state.chipnum);
 			break;
 		case HAL_M_MONITOR:
-			fprintf(fd, "ar%uAniReset, HAL_M_MONITOR", state.chipnum);
+			fprintf(fd, "ar%uAniReset, HAL_M_MONITOR",
+			    state.chipnum);
 			break;
 		default:
-			fprintf(fd, "ar%uAniReset, opmode %u", state.chipnum, r->val);
+			fprintf(fd, "ar%uAniReset, opmode %u", state.chipnum,
+			    r->val);
 			break;
 		}
 		break;
 	case AH_MARK_ANI_POLL:
-		fprintf(fd, "ar%uAniPoll, listenTime %u", state.chipnum, r->val);
+		fprintf(fd, "ar%uAniPoll, listenTime %u", state.chipnum,
+		    r->val);
 		break;
 	case AH_MARK_ANI_CONTROL:
 		switch (r->val) {
@@ -161,28 +167,35 @@ opmark(FILE *fd, int i, const struct athregrec *r)
 			fprintf(fd, "ar%uAniControl, PRESENT", state.chipnum);
 			break;
 		case HAL_ANI_NOISE_IMMUNITY_LEVEL:
-			fprintf(fd, "ar%uAniControl, NOISE_IMMUNITY", state.chipnum);
+			fprintf(fd, "ar%uAniControl, NOISE_IMMUNITY",
+			    state.chipnum);
 			break;
 		case HAL_ANI_OFDM_WEAK_SIGNAL_DETECTION:
-			fprintf(fd, "ar%uAniControl, OFDM_WEAK_SIGNAL", state.chipnum);
+			fprintf(fd, "ar%uAniControl, OFDM_WEAK_SIGNAL",
+			    state.chipnum);
 			break;
 		case HAL_ANI_CCK_WEAK_SIGNAL_THR:
-			fprintf(fd, "ar%uAniControl, CCK_WEAK_SIGNAL", state.chipnum);
+			fprintf(fd, "ar%uAniControl, CCK_WEAK_SIGNAL",
+			    state.chipnum);
 			break;
 		case HAL_ANI_FIRSTEP_LEVEL:
-			fprintf(fd, "ar%uAniControl, FIRSTEP_LEVEL", state.chipnum);
+			fprintf(fd, "ar%uAniControl, FIRSTEP_LEVEL",
+			    state.chipnum);
 			break;
 		case HAL_ANI_SPUR_IMMUNITY_LEVEL:
-			fprintf(fd, "ar%uAniControl, SPUR_IMMUNITY", state.chipnum);
+			fprintf(fd, "ar%uAniControl, SPUR_IMMUNITY",
+			    state.chipnum);
 			break;
 		case HAL_ANI_MODE:
 			fprintf(fd, "ar%uAniControl, MODE", state.chipnum);
 			break;
 		case HAL_ANI_PHYERR_RESET:
-			fprintf(fd, "ar%uAniControl, PHYERR_RESET", state.chipnum);
+			fprintf(fd, "ar%uAniControl, PHYERR_RESET",
+			    state.chipnum);
 			break;
 		default:
-			fprintf(fd, "ar%uAniControl, cmd %u", state.chipnum, r->val);
+			fprintf(fd, "ar%uAniControl, cmd %u", state.chipnum,
+			    r->val);
 			break;
 		}
 		break;
@@ -280,8 +293,8 @@ regcompar(const void *a, const void *b)
 }
 
 void
-register_regs(struct dumpreg *chipregs, u_int nchipregs,
-	int def_srev_min, int def_srev_max, int def_phy_min, int def_phy_max)
+register_regs(struct dumpreg *chipregs, u_int nchipregs, int def_srev_min,
+    int def_srev_max, int def_phy_min, int def_phy_max)
 {
 	const int existing_regs = state.nregs;
 	int i, j;
@@ -304,17 +317,17 @@ register_regs(struct dumpreg *chipregs, u_int nchipregs,
 			 */
 			if (nr->addr == r->addr &&
 			    (nr->name == r->name ||
-			     (nr->name != NULL && r->name != NULL &&
-			     strcmp(nr->name, r->name) == 0))) {
+				(nr->name != NULL && r->name != NULL &&
+				    strcmp(nr->name, r->name) == 0))) {
 				if (nr->srevMin < r->srevMin &&
 				    (r->srevMin <= nr->srevMax &&
-				     nr->srevMax+1 <= r->srevMax)) {
+					nr->srevMax + 1 <= r->srevMax)) {
 					r->srevMin = nr->srevMin;
 					goto skip;
 				}
 				if (nr->srevMax > r->srevMax &&
 				    (r->srevMin <= nr->srevMin &&
-				     nr->srevMin <= r->srevMax)) {
+					nr->srevMin <= r->srevMax)) {
 					r->srevMax = nr->srevMax;
 					goto skip;
 				}
@@ -328,22 +341,21 @@ register_regs(struct dumpreg *chipregs, u_int nchipregs,
 		if (state.nregs == MAXREGS)
 			errx(-1, "too many registers; bump MAXREGS");
 		state.regs[state.nregs++] = nr;
-	skip:
-		;
+	skip:;
 	}
 	qsort(state.regs, state.nregs, sizeof(struct dumpreg *), regcompar);
 }
 
 void
-register_keycache(u_int nslots,
-	int def_srev_min, int def_srev_max, int def_phy_min, int def_phy_max)
+register_keycache(u_int nslots, int def_srev_min, int def_srev_max,
+    int def_phy_min, int def_phy_max)
 {
 	/* discard, no use */
 }
 
 void
-register_range(u_int brange, u_int erange, int type,
-	int def_srev_min, int def_srev_max, int def_phy_min, int def_phy_max)
+register_range(u_int brange, u_int erange, int type, int def_srev_min,
+    int def_srev_max, int def_phy_min, int def_phy_max)
 {
 	/* discard, no use */
 }
@@ -364,28 +376,28 @@ findreg(int reg)
 }
 
 /* XXX cheat, 5212 has a superset of the key table defs */
-#include "ar5212/ar5212reg.h"
 #include "ar5212/ar5212phy.h"
+#include "ar5212/ar5212reg.h"
 
-#define PWR_TABLE_SIZE	64
+#define PWR_TABLE_SIZE 64
 
 static void
 oprw(FILE *fd, int recnum, struct athregrec *r)
 {
 	const struct dumpreg *dr;
 	char buf[64];
-	const char* bits;
+	const char *bits;
 	int i;
 
 	fprintf(fd, "\n%05d: [%d] ", recnum, r->threadid);
 	dr = findreg(r->reg);
 	if (dr != NULL && dr->name != NULL) {
-		snprintf(buf, sizeof (buf), "AR_%s (0x%x)", dr->name, r->reg);
+		snprintf(buf, sizeof(buf), "AR_%s (0x%x)", dr->name, r->reg);
 		bits = dr->bits;
 	} else if (AR_KEYTABLE(0) <= r->reg && r->reg < AR_KEYTABLE(128)) {
-		snprintf(buf, sizeof (buf), "AR_KEYTABLE%u(%u) (0x%x)",
-			((r->reg - AR_KEYTABLE_0) >> 2) & 7,
-			(r->reg - AR_KEYTABLE_0) >> 5, r->reg);
+		snprintf(buf, sizeof(buf), "AR_KEYTABLE%u(%u) (0x%x)",
+		    ((r->reg - AR_KEYTABLE_0) >> 2) & 7,
+		    (r->reg - AR_KEYTABLE_0) >> 5, r->reg);
 		bits = NULL;
 #if 0
 	} else if (AR_PHY_PCDAC_TX_POWER(0) <= r->reg && r->reg < AR_PHY_PCDAC_TX_POWER(PWR_TABLE_SIZE/2)) {
@@ -393,16 +405,17 @@ oprw(FILE *fd, int recnum, struct athregrec *r)
 			(r->reg - AR_PHY_PCDAC_TX_POWER_0) >> 2, r->reg);
 		bits = NULL;
 #endif
-	} else if (AR_RATE_DURATION(0) <= r->reg && r->reg < AR_RATE_DURATION(32)) {
-		snprintf(buf, sizeof (buf), "AR_RATE_DURATION(0x%x) (0x%x)",
-			(r->reg - AR_RATE_DURATION_0) >> 2, r->reg);
+	} else if (AR_RATE_DURATION(0) <= r->reg &&
+	    r->reg < AR_RATE_DURATION(32)) {
+		snprintf(buf, sizeof(buf), "AR_RATE_DURATION(0x%x) (0x%x)",
+		    (r->reg - AR_RATE_DURATION_0) >> 2, r->reg);
 		bits = NULL;
 	} else if (AR_PHY_BASE <= r->reg) {
-		snprintf(buf, sizeof (buf), "AR_PHY(%u) (0x%x)",
-			(r->reg - AR_PHY_BASE) >> 2, r->reg);
+		snprintf(buf, sizeof(buf), "AR_PHY(%u) (0x%x)",
+		    (r->reg - AR_PHY_BASE) >> 2, r->reg);
 		bits = NULL;
 	} else {
-		snprintf(buf, sizeof (buf), "0x%x", r->reg);
+		snprintf(buf, sizeof(buf), "0x%x", r->reg);
 		bits = NULL;
 	}
 	fprintf(fd, "%-30s %s 0x%x", buf, r->op ? "<=" : "=>", r->val);

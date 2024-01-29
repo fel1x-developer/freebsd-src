@@ -30,10 +30,10 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/reboot.h>
 #include <sys/devmap.h>
-#include <sys/physmem.h>
 #include <sys/lock.h>
+#include <sys/physmem.h>
+#include <sys/reboot.h>
 
 #include <vm/vm.h>
 
@@ -76,11 +76,9 @@ ipq4018_late_init(platform_t plat)
 	 * These will be unnecessary once the parser and setup
 	 * code is fixed.
 	 */
-	physmem_exclude_region(IPQ4018_MEM_SMEM_START,
-	    IPQ4018_MEM_SMEM_SIZE,
+	physmem_exclude_region(IPQ4018_MEM_SMEM_START, IPQ4018_MEM_SMEM_SIZE,
 	    EXFLAG_NODUMP | EXFLAG_NOALLOC);
-	physmem_exclude_region(IPQ4018_MEM_TZ_START,
-	    IPQ4018_MEM_TZ_SIZE,
+	physmem_exclude_region(IPQ4018_MEM_TZ_START, IPQ4018_MEM_TZ_SIZE,
 	    EXFLAG_NODUMP | EXFLAG_NOALLOC);
 }
 
@@ -137,7 +135,7 @@ ipq4018_cpu_reset(platform_t plat)
 
 	/* Spin */
 	printf("%s: spinning\n", __func__);
-	while(1)
+	while (1)
 		;
 }
 
@@ -177,7 +175,7 @@ qca_msm_early_putc(int c)
 	volatile uint32_t * UART_DM_TFWR = (uint32_t *)(UART_BASE + 0x1c);
 #define UART_DM_TFW_VALUE 0
 	volatile uint32_t * UART_DM_IPR = (uint32_t *)(UART_BASE + 0x18);
-#define  UART_DM_STALE_TIMEOUT_LSB 0xf
+#define UART_DM_STALE_TIMEOUT_LSB 0xf
 
 	if (is_init == 0) {
 		is_init = 1;
@@ -216,18 +214,18 @@ early_putc_t *early_putc = qca_msm_early_putc;
 #endif
 
 static platform_method_t ipq4018_methods[] = {
-	PLATFORMMETHOD(platform_attach,         ipq4018_attach),
-	PLATFORMMETHOD(platform_devmap_init,    ipq4018_devmap_init),
-	PLATFORMMETHOD(platform_late_init,      ipq4018_late_init),
-	PLATFORMMETHOD(platform_cpu_reset,      ipq4018_cpu_reset),
+	PLATFORMMETHOD(platform_attach, ipq4018_attach),
+	PLATFORMMETHOD(platform_devmap_init, ipq4018_devmap_init),
+	PLATFORMMETHOD(platform_late_init, ipq4018_late_init),
+	PLATFORMMETHOD(platform_cpu_reset, ipq4018_cpu_reset),
 
 #ifdef SMP
-	PLATFORMMETHOD(platform_mp_start_ap,    ipq4018_mp_start_ap),
-	PLATFORMMETHOD(platform_mp_setmaxid,    ipq4018_mp_setmaxid),
+	PLATFORMMETHOD(platform_mp_start_ap, ipq4018_mp_start_ap),
+	PLATFORMMETHOD(platform_mp_setmaxid, ipq4018_mp_setmaxid),
 #endif
 
 	PLATFORMMETHOD_END,
 };
 
-FDT_PLATFORM_DEF2(ipq4018, ipq4018_ac58u, "ASUS RT-AC58U", 0,
-    "asus,rt-ac58u", 80);
+FDT_PLATFORM_DEF2(ipq4018, ipq4018_ac58u, "ASUS RT-AC58U", 0, "asus,rt-ac58u",
+    80);

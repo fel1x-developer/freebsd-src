@@ -26,9 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_watchdog.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/conf.h>
@@ -37,13 +37,15 @@
 #include <sys/kerneldump.h>
 #include <sys/msgbuf.h>
 #include <sys/watchdog.h>
+
 #include <vm/vm.h>
 #include <vm/pmap.h>
+
 #include <machine/atomic.h>
 #include <machine/elf.h>
 #include <machine/md_var.h>
-#include <machine/vmparam.h>
 #include <machine/minidump.h>
+#include <machine/vmparam.h>
 
 CTASSERT(sizeof(struct kerneldumpheader) == 512);
 
@@ -52,5 +54,5 @@ cpu_minidumpsys(struct dumperinfo *di, const struct minidumpstate *state)
 {
 
 	return (pae_mode ? cpu_minidumpsys_pae(di, state) :
-	    cpu_minidumpsys_nopae(di, state));
+			   cpu_minidumpsys_nopae(di, state));
 }

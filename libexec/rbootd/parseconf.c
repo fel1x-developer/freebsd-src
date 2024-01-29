@@ -52,6 +52,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
+
 #include "defs.h"
 
 /*
@@ -81,15 +82,15 @@ ParseConfig(void)
 	int i, j;
 	int omask, linecnt = 0;
 
-	if (BootAny)				/* ignore config file */
-		return(1);
+	if (BootAny) /* ignore config file */
+		return (1);
 
-	FreeClients();				/* delete old list of clients */
+	FreeClients(); /* delete old list of clients */
 
 	if ((fp = fopen(ConfigFile, "r")) == NULL) {
 		syslog(LOG_ERR, "ParseConfig: can't open config file (%s)",
-		       ConfigFile);
-		return(0);
+		    ConfigFile);
+		return (0);
 	}
 
 	/*
@@ -106,26 +107,30 @@ ParseConfig(void)
 	 *  and null terminates it.  `cp' is positioned at the start
 	 *  of the next token.  spaces & commas are separators.
 	 */
-#define GETSTR	while (isspace(*cp) || *cp == ',') cp++;	\
-		bcp = cp;					\
-		while (*cp && *cp!=',' && !isspace(*cp)) cp++;	\
-		if (*cp) *cp++ = '\0'
+#define GETSTR                                     \
+	while (isspace(*cp) || *cp == ',')         \
+		cp++;                              \
+	bcp = cp;                                  \
+	while (*cp && *cp != ',' && !isspace(*cp)) \
+		cp++;                              \
+	if (*cp)                                   \
+	*cp++ = '\0'
 
 	/*
 	 *  For each line, parse it into a new CLIENT struct.
 	 */
 	while (fgets(line, C_LINELEN, fp) != NULL) {
-		linecnt++;				/* line counter */
+		linecnt++; /* line counter */
 
-		if (*line == '\0' || *line == '#')	/* ignore comment */
+		if (*line == '\0' || *line == '#') /* ignore comment */
 			continue;
 
-		if ((cp = strchr(line,'#')) != NULL)	/* trash comments */
+		if ((cp = strchr(line, '#')) != NULL) /* trash comments */
 			*cp = '\0';
 
-		cp = line;				/* init `cp' */
-		GETSTR;					/* get RMP addr */
-		if (bcp == cp)				/* all delimiters */
+		cp = line;     /* init `cp' */
+		GETSTR;	       /* get RMP addr */
+		if (bcp == cp) /* all delimiters */
 			continue;
 
 		/*
@@ -133,15 +138,15 @@ ParseConfig(void)
 		 */
 		if ((addr = ParseAddr(bcp)) == NULL) {
 			syslog(LOG_ERR,
-			       "ParseConfig: line %d: can't parse <%s>",
-			       linecnt, bcp);
+			    "ParseConfig: line %d: can't parse <%s>", linecnt,
+			    bcp);
 			continue;
 		}
 
-		if ((client = NewClient(addr)) == NULL)	/* alloc new client */
+		if ((client = NewClient(addr)) == NULL) /* alloc new client */
 			continue;
 
-		GETSTR;					/* get first file */
+		GETSTR; /* get first file */
 
 		/*
 		 *  If no boot files are spec'd, use the default list.
@@ -149,7 +154,7 @@ ParseConfig(void)
 		 *  list of boot-able files.
 		 */
 		i = 0;
-		if (bcp == cp)				/* no files spec'd */
+		if (bcp == cp) /* no files spec'd */
 			for (; i < C_MAXFILE && BootFiles[i] != NULL; i++)
 				client->files[i] = BootFiles[i];
 		else {
@@ -159,10 +164,12 @@ ParseConfig(void)
 				 *  in our list.  If so, include a pointer to
 				 *  it in the CLIENT's list of boot files.
 				 */
-				for (j = 0; ; j++) {
-					if (j==C_MAXFILE||BootFiles[j]==NULL) {
-						syslog(LOG_ERR, "ParseConfig: line %d: no boot file (%s)",
-						       linecnt, bcp);
+				for (j = 0;; j++) {
+					if (j == C_MAXFILE ||
+					    BootFiles[j] == NULL) {
+						syslog(LOG_ERR,
+						    "ParseConfig: line %d: no boot file (%s)",
+						    linecnt, bcp);
 						break;
 					}
 					if (STREQN(BootFiles[j], bcp)) {
@@ -170,12 +177,13 @@ ParseConfig(void)
 							client->files[i++] =
 							    BootFiles[j];
 						else
-							syslog(LOG_ERR, "ParseConfig: line %d: too many boot files (%s)",
-							       linecnt, bcp);
+							syslog(LOG_ERR,
+							    "ParseConfig: line %d: too many boot files (%s)",
+							    linecnt, bcp);
 						break;
 					}
 				}
-				GETSTR;			/* get next file */
+				GETSTR; /* get next file */
 			} while (bcp != cp);
 
 			/*
@@ -199,11 +207,11 @@ ParseConfig(void)
 		Clients = client;
 	}
 
-	(void) fclose(fp);				/* close config file */
+	(void)fclose(fp); /* close config file */
 
-	(void) sigsetmask(omask);			/* reset signal mask */
+	(void)sigsetmask(omask); /* reset signal mask */
 
-	return(1);					/* return success */
+	return (1); /* return success */
 }
 
 /*
@@ -243,7 +251,7 @@ ParseAddr(char *str)
 	unsigned i;
 	int part, subpart;
 
-	memset((char *)&addr[0], 0, RMP_ADDRLEN);	/* zero static buffer */
+	memset((char *)&addr[0], 0, RMP_ADDRLEN); /* zero static buffer */
 
 	part = subpart = 0;
 	for (cp = str; *cp; cp++) {
@@ -251,8 +259,8 @@ ParseAddr(char *str)
 		 *  A colon (`:') must be used to delimit each octet.
 		 */
 		if (*cp == ':') {
-			if (++part == RMP_ADDRLEN)	/* too many parts */
-				return(NULL);
+			if (++part == RMP_ADDRLEN) /* too many parts */
+				return (NULL);
 			subpart = 0;
 			continue;
 		}
@@ -263,23 +271,23 @@ ParseAddr(char *str)
 		if (isdigit(*cp))
 			i = *cp - '0';
 		else {
-			i = (isupper(*cp)? tolower(*cp): *cp) - 'a' + 10;
-			if (i < 10 || i > 15)		/* not a hex char */
-				return(NULL);
+			i = (isupper(*cp) ? tolower(*cp) : *cp) - 'a' + 10;
+			if (i < 10 || i > 15) /* not a hex char */
+				return (NULL);
 		}
 
 		if (subpart++) {
-			if (subpart > 2)		/* too many hex chars */
-				return(NULL);
+			if (subpart > 2) /* too many hex chars */
+				return (NULL);
 			addr[part] <<= 4;
 		}
 		addr[part] |= i;
 	}
 
-	if (part != (RMP_ADDRLEN-1))			/* too few parts */
-		return(NULL);
+	if (part != (RMP_ADDRLEN - 1)) /* too few parts */
+		return (NULL);
 
-	return(&addr[0]);
+	return (&addr[0]);
 }
 
 /*
@@ -317,10 +325,10 @@ GetBootFiles(void)
 	/*
 	 *  Open current directory to read boot file names.
 	 */
-	if ((dfd = opendir(".")) == NULL) {	/* open BootDir */
+	if ((dfd = opendir(".")) == NULL) { /* open BootDir */
 		syslog(LOG_ERR, "GetBootFiles: can't open directory (%s)\n",
-		       BootDir);
-		return(0);
+		    BootDir);
+		return (0);
 	}
 
 	/*
@@ -335,16 +343,16 @@ GetBootFiles(void)
 			continue;
 		if (i == C_MAXFILE)
 			syslog(LOG_ERR,
-			       "GetBootFiles: too many boot files (%s ignored)",
-			       dp->d_name);
+			    "GetBootFiles: too many boot files (%s ignored)",
+			    dp->d_name);
 		else if ((BootFiles[i] = NewStr(dp->d_name)) != NULL)
 			i++;
 	}
 
-	(void) closedir(dfd);			/* close BootDir */
+	(void)closedir(dfd); /* close BootDir */
 
-	if (i == 0)				/* can't find any boot files */
+	if (i == 0) /* can't find any boot files */
 		syslog(LOG_ERR, "GetBootFiles: no boot files (%s)\n", BootDir);
 
-	return(i);
+	return (i);
 }

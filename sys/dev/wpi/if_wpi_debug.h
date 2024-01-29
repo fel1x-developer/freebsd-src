@@ -22,43 +22,48 @@
 
 #ifdef WPI_DEBUG
 enum {
-	WPI_DEBUG_XMIT		= 0x00000001,	/* basic xmit operation */
-	WPI_DEBUG_RECV		= 0x00000002,	/* basic recv operation */
-	WPI_DEBUG_STATE		= 0x00000004,	/* 802.11 state transitions */
-	WPI_DEBUG_HW		= 0x00000008,	/* Stage 1 (eeprom) debugging */
-	WPI_DEBUG_RESET		= 0x00000010,	/* reset processing */
-	WPI_DEBUG_FIRMWARE	= 0x00000020,	/* firmware(9) loading debug */
-	WPI_DEBUG_BEACON	= 0x00000040,	/* beacon handling */
-	WPI_DEBUG_WATCHDOG	= 0x00000080,	/* watchdog timeout */
-	WPI_DEBUG_INTR		= 0x00000100,	/* ISR */
-	WPI_DEBUG_SCAN		= 0x00000200,	/* Scan related operations */
-	WPI_DEBUG_NOTIFY	= 0x00000400,	/* State 2 Notif intr debug */
-	WPI_DEBUG_TEMP		= 0x00000800,	/* TXPower/Temp Calibration */
-	WPI_DEBUG_CMD		= 0x00001000,	/* cmd submission */
-	WPI_DEBUG_TRACE		= 0x00002000,	/* Print begin and start driver function */
-	WPI_DEBUG_PWRSAVE	= 0x00004000,	/* Power save operations */
-	WPI_DEBUG_EEPROM	= 0x00008000,	/* EEPROM info */
-	WPI_DEBUG_NODE		= 0x00010000,	/* node addition/removal */
-	WPI_DEBUG_KEY		= 0x00020000,	/* node key management */
-	WPI_DEBUG_EDCA		= 0x00040000,	/* WME info */
-	WPI_DEBUG_REGISTER	= 0x00080000,	/* print chipset register */
-	WPI_DEBUG_BMISS		= 0x00100000,	/* print number of missed beacons */
-	WPI_DEBUG_ANY		= 0xffffffff
+	WPI_DEBUG_XMIT = 0x00000001,	 /* basic xmit operation */
+	WPI_DEBUG_RECV = 0x00000002,	 /* basic recv operation */
+	WPI_DEBUG_STATE = 0x00000004,	 /* 802.11 state transitions */
+	WPI_DEBUG_HW = 0x00000008,	 /* Stage 1 (eeprom) debugging */
+	WPI_DEBUG_RESET = 0x00000010,	 /* reset processing */
+	WPI_DEBUG_FIRMWARE = 0x00000020, /* firmware(9) loading debug */
+	WPI_DEBUG_BEACON = 0x00000040,	 /* beacon handling */
+	WPI_DEBUG_WATCHDOG = 0x00000080, /* watchdog timeout */
+	WPI_DEBUG_INTR = 0x00000100,	 /* ISR */
+	WPI_DEBUG_SCAN = 0x00000200,	 /* Scan related operations */
+	WPI_DEBUG_NOTIFY = 0x00000400,	 /* State 2 Notif intr debug */
+	WPI_DEBUG_TEMP = 0x00000800,	 /* TXPower/Temp Calibration */
+	WPI_DEBUG_CMD = 0x00001000,	 /* cmd submission */
+	WPI_DEBUG_TRACE =
+	    0x00002000, /* Print begin and start driver function */
+	WPI_DEBUG_PWRSAVE = 0x00004000,	 /* Power save operations */
+	WPI_DEBUG_EEPROM = 0x00008000,	 /* EEPROM info */
+	WPI_DEBUG_NODE = 0x00010000,	 /* node addition/removal */
+	WPI_DEBUG_KEY = 0x00020000,	 /* node key management */
+	WPI_DEBUG_EDCA = 0x00040000,	 /* WME info */
+	WPI_DEBUG_REGISTER = 0x00080000, /* print chipset register */
+	WPI_DEBUG_BMISS = 0x00100000,	 /* print number of missed beacons */
+	WPI_DEBUG_ANY = 0xffffffff
 };
 
-#define DPRINTF(sc, m, ...) do {		\
-	if (sc->sc_debug & (m))			\
-		printf(__VA_ARGS__);		\
-} while (0)
+#define DPRINTF(sc, m, ...)                  \
+	do {                                 \
+		if (sc->sc_debug & (m))      \
+			printf(__VA_ARGS__); \
+	} while (0)
 
-#define TRACE_STR_BEGIN		"->%s: begin\n"
-#define TRACE_STR_DOING		"->Doing %s\n"
-#define TRACE_STR_END		"->%s: end\n"
-#define TRACE_STR_END_ERR	"->%s: end in error\n"
+#define TRACE_STR_BEGIN "->%s: begin\n"
+#define TRACE_STR_DOING "->Doing %s\n"
+#define TRACE_STR_END "->%s: end\n"
+#define TRACE_STR_END_ERR "->%s: end in error\n"
 
-#define WPI_DESC(x) case x:	return #x
+#define WPI_DESC(x) \
+	case x:     \
+		return #x
 
-static const char *wpi_cmd_str(int cmd)
+static const char *
+wpi_cmd_str(int cmd)
 {
 	switch (cmd) {
 		/* Notifications. */
@@ -98,7 +103,8 @@ static const char *wpi_cmd_str(int cmd)
 /*
  * Translate CSR code to string
  */
-static const char *wpi_get_csr_string(size_t csr)
+static const char *
+wpi_get_csr_string(size_t csr)
 {
 	switch (csr) {
 		WPI_DESC(WPI_HW_IF_CONFIG);
@@ -122,7 +128,8 @@ static const char *wpi_get_csr_string(size_t csr)
 	}
 }
 
-static const char *wpi_get_prph_string(size_t prph)
+static const char *
+wpi_get_prph_string(size_t prph)
 {
 	switch (prph) {
 		WPI_DESC(WPI_APMG_CLK_CTRL);
@@ -136,7 +143,10 @@ static const char *wpi_get_prph_string(size_t prph)
 }
 
 #else
-#define DPRINTF(sc, m, ...)	do { (void) sc; } while (0)
+#define DPRINTF(sc, m, ...) \
+	do {                \
+		(void)sc;   \
+	} while (0)
 #endif
 
-#endif	/* __IF_WPI_DEBUG_H__ */
+#endif /* __IF_WPI_DEBUG_H__ */

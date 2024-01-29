@@ -33,9 +33,9 @@
 
 #include <sys/types.h>
 #include <sys/param.h>
+#include <sys/mount.h>
 #include <sys/sysctl.h>
 #include <sys/vmmeter.h>
-#include <sys/mount.h>
 
 #include <vm/vm_param.h>
 
@@ -46,31 +46,31 @@
 #include <paths.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sysexits.h>
 #include <syslog.h>
 #include <unistd.h> /* for getpagesize() */
-#include <sysexits.h>
 
-#include "hostres_snmp.h"
 #include "hostres_oid.h"
+#include "hostres_snmp.h"
 #include "hostres_tree.h"
 
 /* maximum length for description string according to MIB */
-#define	SE_DESC_MLEN	(255 + 1)
+#define SE_DESC_MLEN (255 + 1)
 
 /*
  * This structure is used to hold a SNMP table entry
  * for HOST-RESOURCES-MIB's hrStorageTable
  */
 struct storage_entry {
-	int32_t		index;
+	int32_t index;
 	const struct asn_oid *type;
-	u_char		*descr;
-	int32_t		allocationUnits;
-	int32_t		size;
-	int32_t		used;
-	uint32_t	allocationFailures;
-#define	HR_STORAGE_FOUND 0x001
-	uint32_t	flags;	/* to be used internally*/
+	u_char *descr;
+	int32_t allocationUnits;
+	int32_t size;
+	int32_t used;
+	uint32_t allocationFailures;
+#define HR_STORAGE_FOUND 0x001
+	uint32_t flags; /* to be used internally*/
 	TAILQ_ENTRY(storage_entry) link;
 };
 TAILQ_HEAD(storage_tbl, storage_entry);
@@ -82,10 +82,10 @@ TAILQ_HEAD(storage_tbl, storage_entry);
  * run.
  */
 struct storage_map_entry {
-	int32_t		hrIndex; /* used for storage_entry::index */
+	int32_t hrIndex; /* used for storage_entry::index */
 
 	/* map key, also used for storage_entry::descr */
-	u_char		*a_name;
+	u_char *a_name;
 
 	/*
 	 * next may be NULL if the respective storage_entry
@@ -100,8 +100,7 @@ STAILQ_HEAD(storage_map, storage_map_entry);
 static struct storage_tbl storage_tbl = TAILQ_HEAD_INITIALIZER(storage_tbl);
 
 /*for consistent table indexing*/
-static struct storage_map storage_map =
-    STAILQ_HEAD_INITIALIZER(storage_map);
+static struct storage_map storage_map = STAILQ_HEAD_INITIALIZER(storage_map);
 
 /* last (agent) tick when hrStorageTable was updated */
 static uint64_t storage_tick;
@@ -111,11 +110,11 @@ uint32_t storage_tbl_refresh = HR_STORAGE_TBL_REFRESH * 100;
 
 /* for kvm_getswapinfo, malloc'd */
 static struct kvm_swap *swap_devs;
-static size_t swap_devs_len;		/* item count for swap_devs */
+static size_t swap_devs_len; /* item count for swap_devs */
 
 /* for getfsstat, malloc'd */
 static struct statfs *fs_buf;
-static size_t fs_buf_count;		/* item count for fs_buf */
+static size_t fs_buf_count; /* item count for fs_buf */
 
 static struct vmtotal mem_stats;
 
@@ -144,20 +143,20 @@ storage_entry_create(const char *name)
 	assert(name != NULL);
 	assert(strlen(name) > 0);
 
-	STAILQ_FOREACH(map, &storage_map, link)
+	STAILQ_FOREACH (map, &storage_map, link)
 		if (strcmp(map->a_name, name) == 0)
 			break;
 
 	if (map == NULL) {
 		/* new object - get a new index */
 		if (next_storage_index > INT_MAX) {
-			syslog(LOG_ERR,
-			    "%s: hrStorageTable index wrap", __func__);
+			syslog(LOG_ERR, "%s: hrStorageTable index wrap",
+			    __func__);
 			errx(EX_SOFTWARE, "hrStorageTable index wrap");
 		}
 
 		if ((map = malloc(sizeof(*map))) == NULL) {
-			syslog(LOG_ERR, "hrStorageTable: %s: %m", __func__ );
+			syslog(LOG_ERR, "hrStorageTable: %s: %m", __func__);
 			return (NULL);
 		}
 
@@ -175,11 +174,11 @@ storage_entry_create(const char *name)
 
 		STAILQ_INSERT_TAIL(&storage_map, map, link);
 
-		HRDBG("%s added into hrStorageMap at index=%d",
-		    name, map->hrIndex);
+		HRDBG("%s added into hrStorageMap at index=%d", name,
+		    map->hrIndex);
 	} else {
-		HRDBG("%s exists in hrStorageMap index=%d\n",
-		    name, map->hrIndex);
+		HRDBG("%s exists in hrStorageMap index=%d\n", name,
+		    map->hrIndex);
 	}
 
 	if ((entry = malloc(sizeof(*entry))) == NULL) {
@@ -213,7 +212,7 @@ storage_entry_delete(struct storage_entry *entry)
 	assert(entry != NULL);
 
 	TAILQ_REMOVE(&storage_tbl, entry, link);
-	STAILQ_FOREACH(map, &storage_map, link)
+	STAILQ_FOREACH (map, &storage_map, link)
 		if (map->entry == entry) {
 			map->entry = NULL;
 			break;
@@ -230,7 +229,7 @@ storage_find_by_name(const char *name)
 {
 	struct storage_entry *entry;
 
-	TAILQ_FOREACH(entry, &storage_tbl, link)
+	TAILQ_FOREACH (entry, &storage_tbl, link)
 		if (strcmp(entry->descr, name) == 0)
 			return (entry);
 
@@ -251,7 +250,8 @@ storage_OS_get_vm(void)
 	if (sysctl(mib, 2, &mem_stats, &len, NULL, 0) < 0) {
 		syslog(LOG_ERR,
 		    "hrStoragetable: %s: sysctl({CTL_VM, VM_METER}) "
-		    "failed: %m", __func__);
+		    "failed: %m",
+		    __func__);
 		assert(0);
 		return;
 	}
@@ -272,9 +272,9 @@ storage_OS_get_vm(void)
 
 	/* Shared Real Memory Metrics */
 	if ((entry = storage_find_by_name("Shared Real Memory Metrics")) ==
-	    NULL &&
+		NULL &&
 	    (entry = storage_entry_create("Shared Real Memory Metrics")) ==
-	    NULL)
+		NULL)
 		return;
 
 	entry->flags |= HR_STORAGE_FOUND;
@@ -295,12 +295,12 @@ storage_OS_get_memstat(void)
 	if (mt_list == NULL) {
 		if ((mt_list = memstat_mtl_alloc()) == NULL)
 			/* again? we have a serious problem */
-		return;
+			return;
 	}
 
 	if (memstat_sysctl_all(mt_list, 0) < 0) {
 		syslog(LOG_ERR, "memstat_sysctl_all failed: %s",
-		    memstat_strerror(memstat_mtl_geterror(mt_list)) );
+		    memstat_strerror(memstat_mtl_geterror(mt_list)));
 		return;
 	}
 
@@ -323,17 +323,17 @@ storage_OS_get_memstat(void)
 
 		switch (allocator = memstat_get_allocator(mt_item)) {
 
-		  case ALLOCATOR_MALLOC:
-			snprintf(alloc_descr, sizeof(alloc_descr),
-			    "MALLOC: %s", memstat_name);
+		case ALLOCATOR_MALLOC:
+			snprintf(alloc_descr, sizeof(alloc_descr), "MALLOC: %s",
+			    memstat_name);
 			break;
 
-		  case ALLOCATOR_UMA:
-			snprintf(alloc_descr, sizeof(alloc_descr),
-			    "UMA: %s", memstat_name);
+		case ALLOCATOR_UMA:
+			snprintf(alloc_descr, sizeof(alloc_descr), "UMA: %s",
+			    memstat_name);
 			break;
 
-		  default:
+		default:
 			snprintf(alloc_descr, sizeof(alloc_descr),
 			    "UNKNOWN%d: %s", allocator, memstat_name);
 			break;
@@ -348,22 +348,24 @@ storage_OS_get_memstat(void)
 
 		if ((tmp_size = memstat_get_size(mt_item)) == 0)
 			tmp_size = memstat_get_sizemask(mt_item);
-		entry->allocationUnits =
-		    (tmp_size  > INT_MAX ? INT_MAX : (int32_t)tmp_size);
+		entry->allocationUnits = (tmp_size > INT_MAX ?
+			INT_MAX :
+			(int32_t)tmp_size);
 
-		tmp_size  = memstat_get_countlimit(mt_item);
-		entry->size =
-		    (tmp_size  > INT_MAX ? INT_MAX : (int32_t)tmp_size);
+		tmp_size = memstat_get_countlimit(mt_item);
+		entry->size = (tmp_size > INT_MAX ? INT_MAX :
+						    (int32_t)tmp_size);
 
 		tmp_size = memstat_get_count(mt_item);
-		entry->used =
-		    (tmp_size  > INT_MAX ? INT_MAX : (int32_t)tmp_size);
+		entry->used = (tmp_size > INT_MAX ? INT_MAX :
+						    (int32_t)tmp_size);
 
 		tmp_size = memstat_get_failures(mt_item);
-		entry->allocationFailures =
-		    (tmp_size  > INT_MAX ? INT_MAX : (int32_t)tmp_size);
+		entry->allocationFailures = (tmp_size > INT_MAX ?
+			INT_MAX :
+			(int32_t)tmp_size);
 
-	} while((mt_item = memstat_mtl_next(mt_item)) != NULL);
+	} while ((mt_item = memstat_mtl_next(mt_item)) != NULL);
 }
 
 /**
@@ -380,7 +382,7 @@ storage_OS_get_swap(void)
 	len = sizeof(nswapdev);
 	nswapdev = 0;
 
-	if (sysctlbyname("vm.nswapdev", &nswapdev, &len, NULL,0 ) < 0) {
+	if (sysctlbyname("vm.nswapdev", &nswapdev, &len, NULL, 0) < 0) {
 		syslog(LOG_ERR,
 		    "hrStorageTable: sysctlbyname(\"vm.nswapdev\") "
 		    "failed. %m");
@@ -407,22 +409,21 @@ storage_OS_get_swap(void)
 
 	nswapdev = kvm_getswapinfo(hr_kd, swap_devs, swap_devs_len, 0);
 	if (nswapdev < 0) {
-		syslog(LOG_ERR,
-		    "hrStorageTable: kvm_getswapinfo failed. %m\n");
+		syslog(LOG_ERR, "hrStorageTable: kvm_getswapinfo failed. %m\n");
 		assert(0);
 		return;
 	}
 
 	for (len = 0; len < (size_t)nswapdev; len++) {
 		memset(&swap_w_prefix[0], '\0', sizeof(swap_w_prefix));
-		snprintf(swap_w_prefix, sizeof(swap_w_prefix) - 1,
-		    "Swap:%s%s", _PATH_DEV, swap_devs[len].ksw_devname);
+		snprintf(swap_w_prefix, sizeof(swap_w_prefix) - 1, "Swap:%s%s",
+		    _PATH_DEV, swap_devs[len].ksw_devname);
 
 		entry = storage_find_by_name(swap_w_prefix);
 		if (entry == NULL)
 			entry = storage_entry_create(swap_w_prefix);
 
-		assert (entry != NULL);
+		assert(entry != NULL);
 		if (entry == NULL)
 			return; /* Out of luck */
 
@@ -463,7 +464,7 @@ storage_OS_get_fs(void)
 	}
 
 	if ((mounted_fs_count = getfsstat(fs_buf,
-	    fs_buf_count * sizeof(struct statfs), MNT_NOWAIT)) < 0) {
+		 fs_buf_count * sizeof(struct statfs), MNT_NOWAIT)) < 0) {
 		syslog(LOG_ERR, "hrStorageTable: getfsstat() failed: %m");
 		return; /* out of luck this time */
 	}
@@ -473,15 +474,15 @@ storage_OS_get_fs(void)
 	fs_tbl_pre_refresh();
 
 	for (i = 0; i < mounted_fs_count; i++) {
-		snprintf(fs_string, sizeof(fs_string),
-		    "%s, type: %s, dev: %s", fs_buf[i].f_mntonname,
-		    fs_buf[i].f_fstypename, fs_buf[i].f_mntfromname);
+		snprintf(fs_string, sizeof(fs_string), "%s, type: %s, dev: %s",
+		    fs_buf[i].f_mntonname, fs_buf[i].f_fstypename,
+		    fs_buf[i].f_mntfromname);
 
 		entry = storage_find_by_name(fs_string);
 		if (entry == NULL)
 			entry = storage_entry_create(fs_string);
 
-		assert (entry != NULL);
+		assert(entry != NULL);
 		if (entry == NULL)
 			return; /* Out of luck */
 
@@ -564,7 +565,7 @@ refresh_storage_tbl(int force)
 	}
 
 	/* mark each entry as missing */
-	TAILQ_FOREACH(entry, &storage_tbl, link)
+	TAILQ_FOREACH (entry, &storage_tbl, link)
 		entry->flags &= ~HR_STORAGE_FOUND;
 
 	storage_OS_get_vm();
@@ -575,7 +576,7 @@ refresh_storage_tbl(int force)
 	/*
 	 * Purge items that disappeared
 	 */
-	TAILQ_FOREACH_SAFE(entry, &storage_tbl, link, entry_tmp)
+	TAILQ_FOREACH_SAFE (entry, &storage_tbl, link, entry_tmp)
 		if (!(entry->flags & HR_STORAGE_FOUND))
 			storage_entry_delete(entry);
 
@@ -600,8 +601,8 @@ op_hrStorageTable(struct snmp_context *ctx __unused, struct snmp_value *value,
 	switch (curr_op) {
 
 	case SNMP_OP_GETNEXT:
-		if ((entry = NEXT_OBJECT_INT(&storage_tbl,
-		    &value->var, sub)) == NULL)
+		if ((entry = NEXT_OBJECT_INT(&storage_tbl, &value->var, sub)) ==
+		    NULL)
 			return (SNMP_ERR_NOSUCHNAME);
 
 		value->var.len = sub + 1;
@@ -609,14 +610,14 @@ op_hrStorageTable(struct snmp_context *ctx __unused, struct snmp_value *value,
 		goto get;
 
 	case SNMP_OP_GET:
-		if ((entry = FIND_OBJECT_INT(&storage_tbl,
-		    &value->var, sub)) == NULL)
+		if ((entry = FIND_OBJECT_INT(&storage_tbl, &value->var, sub)) ==
+		    NULL)
 			return (SNMP_ERR_NOSUCHNAME);
 		goto get;
 
 	case SNMP_OP_SET:
-		if ((entry = FIND_OBJECT_INT(&storage_tbl,
-		    &value->var, sub)) == NULL)
+		if ((entry = FIND_OBJECT_INT(&storage_tbl, &value->var, sub)) ==
+		    NULL)
 			return (SNMP_ERR_NO_CREATION);
 		return (SNMP_ERR_NOT_WRITEABLE);
 
@@ -626,7 +627,7 @@ op_hrStorageTable(struct snmp_context *ctx __unused, struct snmp_value *value,
 	}
 	abort();
 
-  get:
+get:
 	switch (value->var.subs[sub - 1]) {
 
 	case LEAF_hrStorageIndex:

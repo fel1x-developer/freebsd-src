@@ -27,34 +27,34 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/param.h>
+#include <sys/extattr.h>
+#include <sys/mount.h>
+#include <sys/socket.h>
+
+#include <netinet/in.h>
+
 #include <err.h>
+#include <fs/nfs/nfs.h>
+#include <fs/nfs/nfskpiport.h>
+#include <fs/nfs/nfsproto.h>
+#include <fs/nfs/nfsrvstate.h>
 #include <getopt.h>
 #include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/param.h>
-#include <sys/extattr.h>
-#include <sys/mount.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <fs/nfs/nfskpiport.h>
-#include <fs/nfs/nfsproto.h>
-#include <fs/nfs/nfs.h>
-#include <fs/nfs/nfsrvstate.h>
 
 static void usage(void) __dead2;
 
-static struct option longopts[] = {
-	{ "changeds",	required_argument,	NULL,	'c'	},
-	{ "mirror",	required_argument,	NULL,	'm'	},
-	{ "quiet",	no_argument,		NULL,	'q'	},
-	{ "zerods",	required_argument,	NULL,	'r'	},
-	{ "ds",		required_argument,	NULL,	's'	},
-	{ "zerofh",	no_argument,		NULL,	'z'	},
-	{ NULL,		0,			NULL,	0	}
-};
+static struct option longopts[] = { { "changeds", required_argument, NULL,
+					'c' },
+	{ "mirror", required_argument, NULL, 'm' },
+	{ "quiet", no_argument, NULL, 'q' },
+	{ "zerods", required_argument, NULL, 'r' },
+	{ "ds", required_argument, NULL, 's' },
+	{ "zerofh", no_argument, NULL, 'z' }, { NULL, 0, NULL, 0 } };
 
 /*
  * This program displays the location information of a data storage file
@@ -89,7 +89,8 @@ main(int argc, char *argv[])
 			/* Replace the first DS server with the second one. */
 			if (zerofh != 0 || zerods != 0 || mirrorit != 0 ||
 			    newres != NULL || res != NULL)
-				errx(1, "-c, -m, -r, -s and -z are mutually "
+				errx(1,
+				    "-c, -m, -r, -s and -z are mutually "
 				    "exclusive and only can be used once");
 			strlcpy(hostn, optarg, 2 * NI_MAXHOST + 2);
 			cp = strchr(hostn, ',');
@@ -106,7 +107,8 @@ main(int argc, char *argv[])
 			/* Add 0.0.0.0 entries up to mirror level. */
 			if (zerofh != 0 || zerods != 0 || mirrorit != 0 ||
 			    newres != NULL || res != NULL)
-				errx(1, "-c, -m, -r, -s and -z are mutually "
+				errx(1,
+				    "-c, -m, -r, -s and -z are mutually "
 				    "exclusive and only can be used once");
 			mirrorit = atoi(optarg);
 			if (mirrorit < 2 || mirrorit > NFSDEV_MAXMIRRORS)
@@ -119,7 +121,8 @@ main(int argc, char *argv[])
 			/* Reset the DS server in a mirror with 0.0.0.0. */
 			if (zerofh != 0 || zerods != 0 || mirrorit != 0 ||
 			    newres != NULL || res != NULL)
-				errx(1, "-c, -m, -r, -s and -z are mutually "
+				errx(1,
+				    "-c, -m, -r, -s and -z are mutually "
 				    "exclusive and only can be used once");
 			zerods = 1;
 			/* Translate the server name to an IP address. */
@@ -130,7 +133,8 @@ main(int argc, char *argv[])
 			/* Translate the server name to an IP address. */
 			if (zerods != 0 || mirrorit != 0 || newres != NULL ||
 			    res != NULL)
-				errx(1, "-c, -m and -r are mutually exclusive "
+				errx(1,
+				    "-c, -m and -r are mutually exclusive "
 				    "from use with -s and -z");
 			if (getaddrinfo(optarg, NULL, NULL, &res) != 0)
 				errx(1, "Can't get IP# for %s", optarg);
@@ -138,7 +142,8 @@ main(int argc, char *argv[])
 		case 'z':
 			if (zerofh != 0 || zerods != 0 || mirrorit != 0 ||
 			    newres != NULL)
-				errx(1, "-c, -m and -r are mutually exclusive "
+				errx(1,
+				    "-c, -m and -r are mutually exclusive "
 				    "from use with -s and -z");
 			zerofh = 1;
 			break;
@@ -171,7 +176,7 @@ main(int argc, char *argv[])
 		if (zerofh != 0) {
 			if (geteuid() != 0)
 				errx(1, "Must be root/su to zerofh");
-	
+
 			/*
 			 * Do it for the server specified by -s/--ds or all
 			 * servers, if -s/--ds was not specified.
@@ -195,7 +200,7 @@ main(int argc, char *argv[])
 					memcpy(&adsin6, ad->ai_addr,
 					    sizeof(adsin6));
 					if (IN6_ARE_ADDR_EQUAL(&sin6->sin6_addr,
-					    &adsin6.sin6_addr))
+						&adsin6.sin6_addr))
 						break;
 				}
 				ad = ad->ai_next;
@@ -205,12 +210,12 @@ main(int argc, char *argv[])
 				dosetxattr = 1;
 			}
 		}
-	
+
 		/* Do the zerods option. You must be root. */
 		if (zerods != 0 && mirrorcnt > 1) {
 			if (geteuid() != 0)
 				errx(1, "Must be root/su to zerods");
-	
+
 			/*
 			 * Do it for the server specified.
 			 */
@@ -233,7 +238,7 @@ main(int argc, char *argv[])
 					memcpy(&adsin6, ad->ai_addr,
 					    sizeof(adsin6));
 					if (IN6_ARE_ADDR_EQUAL(&sin6->sin6_addr,
-					    &adsin6.sin6_addr))
+						&adsin6.sin6_addr))
 						break;
 				}
 				ad = ad->ai_next;
@@ -246,13 +251,14 @@ main(int argc, char *argv[])
 				dosetxattr = 1;
 			}
 		}
-	
+
 		/* Do the -c option to replace the DS host address. */
 		if (newres != NULL) {
 			if (geteuid() != 0)
-				errx(1, "Must be root/su to replace the host"
+				errx(1,
+				    "Must be root/su to replace the host"
 				    " addr");
-	
+
 			/*
 			 * Check that the old host address matches.
 			 */
@@ -275,7 +281,7 @@ main(int argc, char *argv[])
 					memcpy(&adsin6, ad->ai_addr,
 					    sizeof(adsin6));
 					if (IN6_ARE_ADDR_EQUAL(&sin6->sin6_addr,
-					    &adsin6.sin6_addr))
+						&adsin6.sin6_addr))
 						break;
 				}
 				ad = ad->ai_next;
@@ -294,8 +300,10 @@ main(int argc, char *argv[])
 				    newres->ai_addr->sa_family != AF_INET6) {
 					newres = newres->ai_next;
 					if (newres == NULL)
-						errx(1, "Hostname %s has no"
-						    " IP#", cp);
+						errx(1,
+						    "Hostname %s has no"
+						    " IP#",
+						    cp);
 				}
 				if (newres->ai_addr->sa_family == AF_INET) {
 					memcpy(sin, newres->ai_addr,
@@ -310,12 +318,12 @@ main(int argc, char *argv[])
 				dosetxattr = 1;
 			}
 		}
-	
+
 		if (quiet == 0) {
 			/* Translate the IP address to a hostname. */
 			if (getnameinfo((struct sockaddr *)&dsfile[i].dsf_sin,
-			    dsfile[i].dsf_sin.sin_len, hostn, sizeof(hostn),
-			    NULL, 0, 0) < 0)
+				dsfile[i].dsf_sin.sin_len, hostn, sizeof(hostn),
+				NULL, 0, 0) < 0)
 				err(1, "Can't get hostname");
 			printf("%s\tds%d/%s", hostn, dsfile[i].dsf_dir,
 			    dsfile[i].dsf_filename);
@@ -341,8 +349,9 @@ main(int argc, char *argv[])
 	if (quiet == 0)
 		printf("\n");
 
-	if (dosetxattr != 0 && extattr_set_file(*argv, EXTATTR_NAMESPACE_SYSTEM,
-	    "pnfsd.dsfile", dsfile, xattrsize) != xattrsize)
+	if (dosetxattr != 0 &&
+	    extattr_set_file(*argv, EXTATTR_NAMESPACE_SYSTEM, "pnfsd.dsfile",
+		dsfile, xattrsize) != xattrsize)
 		err(1, "Can't set pnfsd.dsfile");
 }
 
@@ -350,11 +359,11 @@ static void
 usage(void)
 {
 
-	fprintf(stderr, "pnfsdsfile [-q/--quiet] [-z/--zerofh] "
+	fprintf(stderr,
+	    "pnfsdsfile [-q/--quiet] [-z/--zerofh] "
 	    "[-c/--changeds <old dshostname> <new dshostname>] "
 	    "[-r/--zerods <dshostname>] "
 	    "[-s/--ds <dshostname>] "
 	    "<filename>\n");
 	exit(1);
 }
-

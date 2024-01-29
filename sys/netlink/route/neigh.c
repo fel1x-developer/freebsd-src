@@ -25,9 +25,10 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
+
+#include <sys/cdefs.h>
 #include <sys/types.h>
 #include <sys/eventhandler.h>
 #include <sys/kernel.h>
@@ -36,20 +37,19 @@
 #include <sys/syslog.h>
 
 #include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_private.h>
 #include <net/if_llatbl.h>
+#include <net/if_private.h>
+#include <net/if_var.h>
+#include <netinet6/in6_var.h>	 /* nd6.h requires this */
+#include <netinet6/nd6.h>	 /* nd6 state machine */
+#include <netinet6/scope6_var.h> /* scope deembedding */
 #include <netlink/netlink.h>
 #include <netlink/netlink_ctl.h>
 #include <netlink/netlink_route.h>
 #include <netlink/route/route_var.h>
 
-#include <netinet6/in6_var.h>		/* nd6.h requires this */
-#include <netinet6/nd6.h>		/* nd6 state machine */
-#include <netinet6/scope6_var.h>	/* scope deembedding */
-
-#define	DEBUG_MOD_NAME	nl_neigh
-#define	DEBUG_MAX_LEVEL	LOG_DEBUG3
+#define DEBUG_MOD_NAME nl_neigh
+#define DEBUG_MAX_LEVEL LOG_DEBUG3
 #include <netlink/netlink_debug.h>
 _DECLARE_DEBUG(LOG_INFO);
 
@@ -127,7 +127,8 @@ get_lle_next_ts(const struct llentry *lle)
 {
 	if (lle->la_expire == 0)
 		return (0);
-	return (lle->la_expire + lle->lle_remtime / hz + time_second - time_uptime);
+	return (
+	    lle->la_expire + lle->lle_remtime / hz + time_second - time_uptime);
 }
 
 static int
@@ -139,12 +140,13 @@ dump_lle_locked(struct llentry *lle, void *arg)
 	struct ndmsg *ndm;
 #if defined(INET) || defined(INET6)
 	union {
-		struct in_addr	in;
-		struct in6_addr	in6;
+		struct in_addr in;
+		struct in6_addr in6;
 	} addr;
 #endif
 
-	IF_DEBUG_LEVEL(LOG_DEBUG2) {
+	IF_DEBUG_LEVEL(LOG_DEBUG2)
+	{
 		char llebuf[NHOP_PRINT_BUFSIZE];
 		llentry_print_buf_lltable(lle, llebuf, sizeof(llebuf));
 		NL_LOG(LOG_DEBUG2, "dumping %s", llebuf);
@@ -197,12 +199,12 @@ dump_lle_locked(struct llentry *lle, void *arg)
 		nlattr_set_len(nw, off);
 	}
 
-        if (nlmsg_end(nw))
+	if (nlmsg_end(nw))
 		return (0);
 enomem:
-        NL_LOG(LOG_DEBUG, "unable to dump lle state (ENOMEM)");
-        nlmsg_abort(nw);
-        return (ENOMEM);
+	NL_LOG(LOG_DEBUG, "unable to dump lle state (ENOMEM)");
+	nlmsg_abort(nw);
+	return (ENOMEM);
 }
 
 static int
@@ -249,7 +251,8 @@ dump_llts_iface(struct netlink_walkargs *wa, if_t ifp, int family)
 static int
 dump_llts(struct netlink_walkargs *wa, if_t ifp, int family)
 {
-	NL_LOG(LOG_DEBUG2, "Start dump ifp=%s family=%d", ifp ? if_name(ifp) : "NULL", family);
+	NL_LOG(LOG_DEBUG2, "Start dump ifp=%s family=%d",
+	    ifp ? if_name(ifp) : "NULL", family);
 
 	wa->hdr.nlmsg_flags |= NLM_F_MULTI;
 
@@ -258,18 +261,20 @@ dump_llts(struct netlink_walkargs *wa, if_t ifp, int family)
 	} else {
 		struct if_iter it;
 
-		for (ifp = if_iter_start(&it); ifp != NULL; ifp = if_iter_next(&it)) {
+		for (ifp = if_iter_start(&it); ifp != NULL;
+		     ifp = if_iter_next(&it)) {
 			dump_llts_iface(wa, ifp, family);
 		}
 		if_iter_finish(&it);
 	}
 
-	NL_LOG(LOG_DEBUG2, "End dump, iterated %d dumped %d", wa->count, wa->dumped);
+	NL_LOG(LOG_DEBUG2, "End dump, iterated %d dumped %d", wa->count,
+	    wa->dumped);
 
 	if (!nlmsg_end_dump(wa->nw, wa->error, &wa->hdr)) {
-                NL_LOG(LOG_DEBUG, "Unable to add new message");
-                return (ENOMEM);
-        }
+		NL_LOG(LOG_DEBUG, "Unable to add new message");
+		return (ENOMEM);
+	}
 
 	return (0);
 }
@@ -299,41 +304,56 @@ set_scope6(struct sockaddr *sa, if_t ifp)
 		struct sockaddr_in6 *sa6 = (struct sockaddr_in6 *)sa;
 
 		if (IN6_IS_ADDR_LINKLOCAL(&sa6->sin6_addr))
-			in6_set_unicast_scopeid(&sa6->sin6_addr, if_getindex(ifp));
+			in6_set_unicast_scopeid(&sa6->sin6_addr,
+			    if_getindex(ifp));
 	}
 #endif
 }
 
 struct nl_parsed_neigh {
-	struct sockaddr	*nda_dst;
-	struct ifnet	*nda_ifp;
-	struct nlattr	*nda_lladdr;
-	uint32_t	ndaf_next_ts;
-	uint32_t	ndm_flags;
-	uint16_t	ndm_state;
-	uint8_t		ndm_family;
+	struct sockaddr *nda_dst;
+	struct ifnet *nda_ifp;
+	struct nlattr *nda_lladdr;
+	uint32_t ndaf_next_ts;
+	uint32_t ndm_flags;
+	uint16_t ndm_state;
+	uint8_t ndm_family;
 };
 
-#define	_IN(_field)	offsetof(struct ndmsg, _field)
-#define	_OUT(_field)	offsetof(struct nl_parsed_neigh, _field)
+#define _IN(_field) offsetof(struct ndmsg, _field)
+#define _OUT(_field) offsetof(struct nl_parsed_neigh, _field)
 static const struct nlattr_parser nla_p_neigh_fbsd[] = {
-	{ .type = NDAF_NEXT_STATE_TS, .off = _OUT(ndaf_next_ts), .cb = nlattr_get_uint32 },
+	{ .type = NDAF_NEXT_STATE_TS,
+	    .off = _OUT(ndaf_next_ts),
+	    .cb = nlattr_get_uint32 },
 };
 NL_DECLARE_ATTR_PARSER(neigh_fbsd_parser, nla_p_neigh_fbsd);
 
 static const struct nlfield_parser nlf_p_neigh[] = {
-	{ .off_in = _IN(ndm_family), .off_out = _OUT(ndm_family), .cb = nlf_get_u8 },
-	{ .off_in = _IN(ndm_flags), .off_out = _OUT(ndm_flags), .cb = nlf_get_u8_u32 },
-	{ .off_in = _IN(ndm_state), .off_out = _OUT(ndm_state), .cb = nlf_get_u16 },
-	{ .off_in = _IN(ndm_ifindex), .off_out = _OUT(nda_ifp), .cb = nlf_get_ifpz },
+	{ .off_in = _IN(ndm_family),
+	    .off_out = _OUT(ndm_family),
+	    .cb = nlf_get_u8 },
+	{ .off_in = _IN(ndm_flags),
+	    .off_out = _OUT(ndm_flags),
+	    .cb = nlf_get_u8_u32 },
+	{ .off_in = _IN(ndm_state),
+	    .off_out = _OUT(ndm_state),
+	    .cb = nlf_get_u16 },
+	{ .off_in = _IN(ndm_ifindex),
+	    .off_out = _OUT(nda_ifp),
+	    .cb = nlf_get_ifpz },
 };
 
 static const struct nlattr_parser nla_p_neigh[] = {
 	{ .type = NDA_DST, .off = _OUT(nda_dst), .cb = nlattr_get_ip },
 	{ .type = NDA_LLADDR, .off = _OUT(nda_lladdr), .cb = nlattr_get_nla },
 	{ .type = NDA_IFINDEX, .off = _OUT(nda_ifp), .cb = nlattr_get_ifp },
-	{ .type = NDA_FLAGS_EXT, .off = _OUT(ndm_flags), .cb = nlattr_get_uint32 },
-	{ .type = NDA_FREEBSD, .arg = &neigh_fbsd_parser, .cb = nlattr_get_nested },
+	{ .type = NDA_FLAGS_EXT,
+	    .off = _OUT(ndm_flags),
+	    .cb = nlattr_get_uint32 },
+	{ .type = NDA_FREEBSD,
+	    .arg = &neigh_fbsd_parser,
+	    .cb = nlattr_get_nested },
 };
 #undef _IN
 #undef _OUT
@@ -346,19 +366,23 @@ post_p_neigh(void *_attrs, struct nl_pstate *npt __unused)
 	set_scope6(attrs->nda_dst, attrs->nda_ifp);
 	return (true);
 }
-NL_DECLARE_PARSER_EXT(ndmsg_parser, struct ndmsg, NULL, nlf_p_neigh, nla_p_neigh, post_p_neigh);
-
+NL_DECLARE_PARSER_EXT(ndmsg_parser, struct ndmsg, NULL, nlf_p_neigh,
+    nla_p_neigh, post_p_neigh);
 
 /*
- * type=RTM_NEWNEIGH, flags=NLM_F_REQUEST|NLM_F_ACK|NLM_F_EXCL|NLM_F_CREATE, seq=1661941473, pid=0},
- * {ndm_family=AF_INET6, ndm_ifindex=if_nametoindex("enp0s31f6"), ndm_state=NUD_PERMANENT, ndm_flags=0, ndm_type=RTN_UNSPEC},
+ * type=RTM_NEWNEIGH, flags=NLM_F_REQUEST|NLM_F_ACK|NLM_F_EXCL|NLM_F_CREATE,
+ * seq=1661941473, pid=0}, {ndm_family=AF_INET6,
+ * ndm_ifindex=if_nametoindex("enp0s31f6"), ndm_state=NUD_PERMANENT,
+ * ndm_flags=0, ndm_type=RTN_UNSPEC},
  * [
- *  {{nla_len=20, nla_type=NDA_DST}, inet_pton(AF_INET6, "2a01:4f8:13a:70c::3")},
+ *  {{nla_len=20, nla_type=NDA_DST}, inet_pton(AF_INET6,
+ * "2a01:4f8:13a:70c::3")},
  *  {{nla_len=10, nla_type=NDA_LLADDR}, 20:4e:71:62:ae:f2}]}, iov_len=60}
  */
 
 static int
-rtnl_handle_newneigh(struct nlmsghdr *hdr, struct nlpcb *nlp, struct nl_pstate *npt)
+rtnl_handle_newneigh(struct nlmsghdr *hdr, struct nlpcb *nlp,
+    struct nl_pstate *npt)
 {
 	int error;
 
@@ -367,9 +391,11 @@ rtnl_handle_newneigh(struct nlmsghdr *hdr, struct nlpcb *nlp, struct nl_pstate *
 	if (error != 0)
 		return (error);
 
-	if (attrs.nda_ifp == NULL || attrs.nda_dst == NULL || attrs.nda_lladdr == NULL) {
+	if (attrs.nda_ifp == NULL || attrs.nda_dst == NULL ||
+	    attrs.nda_lladdr == NULL) {
 		if (attrs.nda_ifp == NULL)
-			NLMSG_REPORT_ERR_MSG(npt, "NDA_IFINDEX / ndm_ifindex not set");
+			NLMSG_REPORT_ERR_MSG(npt,
+			    "NDA_IFINDEX / ndm_ifindex not set");
 		if (attrs.nda_dst == NULL)
 			NLMSG_REPORT_ERR_MSG(npt, "NDA_DST not set");
 		if (attrs.nda_lladdr == NULL)
@@ -388,14 +414,15 @@ rtnl_handle_newneigh(struct nlmsghdr *hdr, struct nlpcb *nlp, struct nl_pstate *
 	if (attrs.nda_lladdr->nla_len != sizeof(struct nlattr) + addrlen) {
 		NLMSG_REPORT_ERR_MSG(npt,
 		    "NDA_LLADDR address length (%d) is different from expected (%d)",
-		    (int)attrs.nda_lladdr->nla_len - (int)sizeof(struct nlattr), addrlen);
+		    (int)attrs.nda_lladdr->nla_len - (int)sizeof(struct nlattr),
+		    addrlen);
 		return (EINVAL);
 	}
 
 	const uint16_t supported_flags = NTF_PROXY | NTF_STICKY;
 	if ((attrs.ndm_flags & supported_flags) != attrs.ndm_flags) {
 		NLMSG_REPORT_ERR_MSG(npt, "ndm_flags %X not supported",
-		    attrs.ndm_flags &~ supported_flags);
+		    attrs.ndm_flags & ~supported_flags);
 		return (ENOTSUP);
 	}
 
@@ -407,23 +434,26 @@ rtnl_handle_newneigh(struct nlmsghdr *hdr, struct nlpcb *nlp, struct nl_pstate *
 	if (llt == NULL)
 		return (EAFNOSUPPORT);
 
-
 	uint8_t linkhdr[LLE_MAX_LINKHDR];
 	size_t linkhdrsize = sizeof(linkhdr);
 	int lladdr_off = 0;
 	if (lltable_calc_llheader(attrs.nda_ifp, attrs.ndm_family,
-	    (char *)(attrs.nda_lladdr + 1), linkhdr, &linkhdrsize, &lladdr_off) != 0) {
-		NLMSG_REPORT_ERR_MSG(npt, "unable to calculate lle prepend data");
+		(char *)(attrs.nda_lladdr + 1), linkhdr, &linkhdrsize,
+		&lladdr_off) != 0) {
+		NLMSG_REPORT_ERR_MSG(npt,
+		    "unable to calculate lle prepend data");
 		return (EINVAL);
 	}
 
 	int lle_flags = (attrs.ndm_flags & NTF_PROXY) ? LLE_PUB : 0;
 	if (attrs.ndm_flags & NTF_STICKY)
 		lle_flags |= LLE_STATIC;
-	struct llentry *lle = lltable_alloc_entry(llt, lle_flags, attrs.nda_dst);
+	struct llentry *lle = lltable_alloc_entry(llt, lle_flags,
+	    attrs.nda_dst);
 	if (lle == NULL)
 		return (ENOMEM);
-	lltable_set_entry_addr(attrs.nda_ifp, lle, linkhdr, linkhdrsize, lladdr_off);
+	lltable_set_entry_addr(attrs.nda_ifp, lle, linkhdr, linkhdrsize,
+	    lladdr_off);
 
 	if (attrs.ndm_flags & NTF_STICKY)
 		lle->la_expire = 0;
@@ -471,7 +501,8 @@ rtnl_handle_newneigh(struct nlmsghdr *hdr, struct nlpcb *nlp, struct nl_pstate *
 }
 
 static int
-rtnl_handle_delneigh(struct nlmsghdr *hdr, struct nlpcb *nlp, struct nl_pstate *npt)
+rtnl_handle_delneigh(struct nlmsghdr *hdr, struct nlpcb *nlp,
+    struct nl_pstate *npt)
 {
 	int error;
 
@@ -498,7 +529,8 @@ rtnl_handle_delneigh(struct nlmsghdr *hdr, struct nlpcb *nlp, struct nl_pstate *
 }
 
 static int
-rtnl_handle_getneigh(struct nlmsghdr *hdr, struct nlpcb *nlp, struct nl_pstate *npt)
+rtnl_handle_getneigh(struct nlmsghdr *hdr, struct nlpcb *nlp,
+    struct nl_pstate *npt)
 {
 	int error;
 
@@ -508,7 +540,8 @@ rtnl_handle_getneigh(struct nlmsghdr *hdr, struct nlpcb *nlp, struct nl_pstate *
 		return (error);
 
 	if (attrs.nda_dst != NULL && attrs.nda_ifp == NULL) {
-		NLMSG_REPORT_ERR_MSG(npt, "has NDA_DST but no ifindex provided");
+		NLMSG_REPORT_ERR_MSG(npt,
+		    "has NDA_DST but no ifindex provided");
 		return (EINVAL);
 	}
 
@@ -524,28 +557,29 @@ rtnl_handle_getneigh(struct nlmsghdr *hdr, struct nlpcb *nlp, struct nl_pstate *
 	if (attrs.nda_dst == NULL)
 		error = dump_llts(&wa, attrs.nda_ifp, attrs.ndm_family);
 	else
-		error = get_lle(&wa, attrs.nda_ifp, attrs.ndm_family, attrs.nda_dst);
+		error = get_lle(&wa, attrs.nda_ifp, attrs.ndm_family,
+		    attrs.nda_dst);
 
 	return (error);
 }
 
 static const struct rtnl_cmd_handler cmd_handlers[] = {
 	{
-		.cmd = NL_RTM_NEWNEIGH,
-		.name = "RTM_NEWNEIGH",
-		.cb = &rtnl_handle_newneigh,
-		.priv = PRIV_NET_ROUTE,
+	    .cmd = NL_RTM_NEWNEIGH,
+	    .name = "RTM_NEWNEIGH",
+	    .cb = &rtnl_handle_newneigh,
+	    .priv = PRIV_NET_ROUTE,
 	},
 	{
-		.cmd = NL_RTM_DELNEIGH,
-		.name = "RTM_DELNEIGH",
-		.cb = &rtnl_handle_delneigh,
-		.priv = PRIV_NET_ROUTE,
+	    .cmd = NL_RTM_DELNEIGH,
+	    .name = "RTM_DELNEIGH",
+	    .cb = &rtnl_handle_delneigh,
+	    .priv = PRIV_NET_ROUTE,
 	},
 	{
-		.cmd = NL_RTM_GETNEIGH,
-		.name = "RTM_GETNEIGH",
-		.cb = &rtnl_handle_getneigh,
+	    .cmd = NL_RTM_GETNEIGH,
+	    .name = "RTM_GETNEIGH",
+	    .cb = &rtnl_handle_getneigh,
 	}
 };
 
@@ -563,10 +597,12 @@ rtnl_lle_event(void *arg __unused, struct llentry *lle, int evt)
 	if (family != AF_INET && family != AF_INET6)
 		return;
 
-	int nlmsgs_type = evt == LLENTRY_RESOLVED ? NL_RTM_NEWNEIGH : NL_RTM_DELNEIGH;
+	int nlmsgs_type = evt == LLENTRY_RESOLVED ? NL_RTM_NEWNEIGH :
+						    NL_RTM_DELNEIGH;
 
 	struct nl_writer nw = {};
-	if (!nlmsg_get_group_writer(&nw, NLMSG_SMALL, NETLINK_ROUTE, RTNLGRP_NEIGH)) {
+	if (!nlmsg_get_group_writer(&nw, NLMSG_SMALL, NETLINK_ROUTE,
+		RTNLGRP_NEIGH)) {
 		NL_LOG(LOG_DEBUG, "error allocating group writer");
 		return;
 	}
@@ -582,7 +618,8 @@ rtnl_lle_event(void *arg __unused, struct llentry *lle, int evt)
 	nlmsg_flush(&nw);
 }
 
-static const struct nlhdr_parser *all_parsers[] = { &ndmsg_parser, &neigh_fbsd_parser };
+static const struct nlhdr_parser *all_parsers[] = { &ndmsg_parser,
+	&neigh_fbsd_parser };
 
 void
 rtnl_neighs_init(void)

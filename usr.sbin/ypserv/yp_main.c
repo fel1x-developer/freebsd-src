@@ -45,46 +45,50 @@
 #include <sys/queue.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
-#include "yp.h"
+
 #include <err.h>
 #include <errno.h>
 #include <memory.h>
-#include <stdio.h>
 #include <signal.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h> /* getenv, exit */
 #include <string.h> /* strcmp */
 #include <syslog.h>
 #include <unistd.h>
+
+#include "yp.h"
 #ifdef __cplusplus
 #include <sysent.h> /* getdtablesize, open */
-#endif /* __cplusplus */
+#endif		    /* __cplusplus */
 #include <netinet/in.h>
-#include <netdb.h>
-#include "yp_extern.h"
+
 #include <netconfig.h>
+#include <netdb.h>
 #include <rpc/rpc.h>
 #include <rpc/rpc_com.h>
 
+#include "yp_extern.h"
+
 #ifndef SIG_PF
-#define	SIG_PF void(*)(int)
+#define SIG_PF void (*)(int)
 #endif
 
-#define	_RPCSVC_CLOSEDOWN 120
-int _rpcpmstart;		/* Started by a port monitor ? */
-static int _rpcfdtype;  /* Whether Stream or Datagram? */
+#define _RPCSVC_CLOSEDOWN 120
+int _rpcpmstart;       /* Started by a port monitor ? */
+static int _rpcfdtype; /* Whether Stream or Datagram? */
 static int _rpcaf;
 static int _rpcfd;
 
 /* States a server can be in wrt request */
-#define	_IDLE 0
-#define	_SERVED 1
-#define	_SERVING 2
+#define _IDLE 0
+#define _SERVED 1
+#define _SERVING 2
 
 extern void ypprog_1(struct svc_req *, SVCXPRT *);
 extern void ypprog_2(struct svc_req *, SVCXPRT *);
 extern int _rpc_dtablesize(void);
-extern int _rpcsvcstate;	 /* Set when a request is serviced */
+extern int _rpcsvcstate; /* Set when a request is serviced */
 char *progname = "ypserv";
 char *yp_dir = _PATH_YP;
 int debug;
@@ -92,24 +96,23 @@ int do_dns = 0;
 int resfd;
 
 struct socklistent {
-	int				sle_sock;
-	struct sockaddr_storage		sle_ss;
-	SLIST_ENTRY(socklistent)	sle_next;
+	int sle_sock;
+	struct sockaddr_storage sle_ss;
+	SLIST_ENTRY(socklistent) sle_next;
 };
-static SLIST_HEAD(, socklistent) sle_head =
-	SLIST_HEAD_INITIALIZER(sle_head);
+static SLIST_HEAD(, socklistent) sle_head = SLIST_HEAD_INITIALIZER(sle_head);
 
 struct bindaddrlistent {
-	const char			*ble_hostname;
-	SLIST_ENTRY(bindaddrlistent)	ble_next;
+	const char *ble_hostname;
+	SLIST_ENTRY(bindaddrlistent) ble_next;
 };
-static SLIST_HEAD(, bindaddrlistent) ble_head =
-	SLIST_HEAD_INITIALIZER(ble_head);
+static SLIST_HEAD(, bindaddrlistent) ble_head = SLIST_HEAD_INITIALIZER(
+    ble_head);
 
 static char *servname = "0";
 
-static
-void _msgout(char* msg, ...)
+static void
+_msgout(char *msg, ...)
 {
 	va_list ap;
 
@@ -124,7 +127,7 @@ void _msgout(char* msg, ...)
 	va_end(ap);
 }
 
-pid_t	yp_pid;
+pid_t yp_pid;
 
 static void
 yp_svc_run(void)
@@ -151,8 +154,7 @@ yp_svc_run(void)
 
 		timeout.tv_sec = RESOLVER_TIMEOUT;
 		timeout.tv_usec = 0;
-		switch (select(fd_setsize, &readfds, NULL, NULL,
-			       &timeout)) {
+		switch (select(fd_setsize, &readfds, NULL, NULL, &timeout)) {
 		case -1:
 			if (errno == EINTR) {
 				continue;
@@ -187,8 +189,8 @@ unregister(void)
 static void
 reaper(int sig)
 {
-	int			status;
-	int			saved_errno;
+	int status;
+	int saved_errno;
 
 	saved_errno = errno;
 
@@ -214,7 +216,8 @@ reaper(int sig)
 static void
 usage(void)
 {
-	fprintf(stderr, "usage: ypserv [-h addr] [-d] [-n] [-p path] [-P port]\n");
+	fprintf(stderr,
+	    "usage: ypserv [-h addr] [-d] [-n] [-p path] [-P port]\n");
 	exit(1);
 }
 
@@ -244,13 +247,13 @@ closedown(int sig)
 	if (_rpcsvcstate == _SERVED)
 		_rpcsvcstate = _IDLE;
 
-	(void) signal(SIGALRM, (SIG_PF) closedown);
-	(void) alarm(_RPCSVC_CLOSEDOWN/2);
+	(void)signal(SIGALRM, (SIG_PF)closedown);
+	(void)alarm(_RPCSVC_CLOSEDOWN / 2);
 }
 
 static int
 create_service(const int sock, const struct netconfig *nconf,
-	const struct __rpc_sockinfo *si)
+    const struct __rpc_sockinfo *si)
 {
 	int error;
 
@@ -272,13 +275,13 @@ create_service(const int sock, const struct netconfig *nconf,
 	 * Build socketlist from bindaddrlist.
 	 */
 	if (sock == RPC_ANYFD) {
-		SLIST_FOREACH(blep, &ble_head, ble_next) {
+		SLIST_FOREACH (blep, &ble_head, ble_next) {
 			if (blep->ble_hostname == NULL)
 				hints.ai_flags = AI_PASSIVE;
 			else
 				hints.ai_flags = 0;
 			error = getaddrinfo(blep->ble_hostname, servname,
-				    &hints, &res0);
+			    &hints, &res0);
 			if (error) {
 				_msgout("getaddrinfo(): %s",
 				    gai_strerror(error));
@@ -291,11 +294,11 @@ create_service(const int sock, const struct netconfig *nconf,
 				if (s < 0) {
 					if (errno == EAFNOSUPPORT)
 						_msgout("unsupported"
-						    " transport: %s",
+							" transport: %s",
 						    nconf->nc_netid);
 					else
 						_msgout("cannot create"
-						    " %s socket: %s",
+							" %s socket: %s",
 						    nconf->nc_netid,
 						    strerror(errno));
 					freeaddrinfo(res0);
@@ -304,11 +307,11 @@ create_service(const int sock, const struct netconfig *nconf,
 				if (bindresvport_sa(s, res->ai_addr) == -1) {
 					if ((errno != EPERM) ||
 					    (bind(s, res->ai_addr,
-					    res->ai_addrlen) == -1)) {
+						 res->ai_addrlen) == -1)) {
 						_msgout("cannot bind "
-						    "%s socket: %s",
+							"%s socket: %s",
 						    nconf->nc_netid,
-						strerror(errno));
+						    strerror(errno));
 						freeaddrinfo(res0);
 						close(sock);
 						return -1;
@@ -361,8 +364,7 @@ create_service(const int sock, const struct netconfig *nconf,
 						free(sname);
 						return -1;
 					}
-					error = getnameinfo(sap, slen,
-					    NULL, 0,
+					error = getnameinfo(sap, slen, NULL, 0,
 					    sname, NI_MAXSERV,
 					    NI_NUMERICHOST | NI_NUMERICSERV);
 					if (error) {
@@ -392,7 +394,7 @@ create_service(const int sock, const struct netconfig *nconf,
 	/*
 	 * Traverse socketlist and create rpc service handles for each socket.
 	 */
-	SLIST_FOREACH(slep, &sle_head, sle_next) {
+	SLIST_FOREACH (slep, &sle_head, sle_next) {
 		if (nconf->nc_semantics == NC_TPI_CLTS)
 			transp = svc_dg_create(slep->sle_sock, 0, 0);
 		else
@@ -407,7 +409,8 @@ create_service(const int sock, const struct netconfig *nconf,
 			svc_destroy(transp);
 			close(slep->sle_sock);
 			_msgout("unable to register (YPPROG, YPOLDVERS, %s):"
-			    " %s", nconf->nc_netid, strerror(errno));
+				" %s",
+			    nconf->nc_netid, strerror(errno));
 			continue;
 		}
 		if (!svc_reg(transp, YPPROG, YPVERS, ypprog_2, NULL)) {
@@ -418,7 +421,7 @@ create_service(const int sock, const struct netconfig *nconf,
 			continue;
 		}
 	}
-	while(!(SLIST_EMPTY(&sle_head)))
+	while (!(SLIST_EMPTY(&sle_head)))
 		SLIST_REMOVE_HEAD(&sle_head, sle_next);
 
 	/*
@@ -449,7 +452,7 @@ main(int argc, char *argv[])
 	int ch;
 	int error;
 	int ntrans;
-	
+
 	void *nc_handle;
 	struct netconfig *nconf;
 	struct __rpc_sockinfo si;
@@ -512,8 +515,8 @@ main(int argc, char *argv[])
 	} else {
 		/* standalone mode */
 		if (!debug) {
-			if (daemon(0,0)) {
-				err(1,"cannot fork");
+			if (daemon(0, 0)) {
+				err(1, "cannot fork");
 			}
 			openlog("ypserv", LOG_PID, LOG_DAEMON);
 		}
@@ -530,11 +533,12 @@ main(int argc, char *argv[])
 	 * Create RPC service for each transport.
 	 */
 	ntrans = 0;
-	while((nconf = getnetconfig(nc_handle))) {
+	while ((nconf = getnetconfig(nc_handle))) {
 		if ((nconf->nc_flag & NC_VISIBLE)) {
 			if (__rpc_nconf2sockinfo(nconf, &si) == 0) {
 				_msgout("cannot get information for %s.  "
-				    "Ignored.", nconf->nc_netid);
+					"Ignored.",
+				    nconf->nc_netid);
 				continue;
 			}
 			if (_rpcpmstart) {
@@ -542,7 +546,7 @@ main(int argc, char *argv[])
 				    si.si_af != _rpcaf)
 					continue;
 			} else if (si.si_af != _rpcaf)
-					continue;
+				continue;
 			error = create_service(_rpcfd, nconf, &si);
 			if (error) {
 				endnetconfig(nc_handle);
@@ -552,25 +556,25 @@ main(int argc, char *argv[])
 		}
 	}
 	endnetconfig(nc_handle);
-	while(!(SLIST_EMPTY(&ble_head)))
+	while (!(SLIST_EMPTY(&ble_head)))
 		SLIST_REMOVE_HEAD(&ble_head, ble_next);
 	if (ntrans == 0) {
 		_msgout("no transport is available.  Aborted.");
 		exit(1);
 	}
 	if (_rpcpmstart) {
-		(void) signal(SIGALRM, (SIG_PF) closedown);
-		(void) alarm(_RPCSVC_CLOSEDOWN/2);
+		(void)signal(SIGALRM, (SIG_PF)closedown);
+		(void)alarm(_RPCSVC_CLOSEDOWN / 2);
 	}
-/*
- * Make sure SIGPIPE doesn't blow us away while servicing TCP
- * connections.
- */
-	(void) signal(SIGPIPE, SIG_IGN);
-	(void) signal(SIGCHLD, (SIG_PF) reaper);
-	(void) signal(SIGTERM, (SIG_PF) reaper);
-	(void) signal(SIGINT, (SIG_PF) reaper);
-	(void) signal(SIGHUP, (SIG_PF) reaper);
+	/*
+	 * Make sure SIGPIPE doesn't blow us away while servicing TCP
+	 * connections.
+	 */
+	(void)signal(SIGPIPE, SIG_IGN);
+	(void)signal(SIGCHLD, (SIG_PF)reaper);
+	(void)signal(SIGTERM, (SIG_PF)reaper);
+	(void)signal(SIGINT, (SIG_PF)reaper);
+	(void)signal(SIGHUP, (SIG_PF)reaper);
 	yp_svc_run();
 	_msgout("svc_run returned");
 	exit(1);

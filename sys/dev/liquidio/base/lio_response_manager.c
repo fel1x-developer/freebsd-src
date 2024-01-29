@@ -33,44 +33,44 @@
 
 #include "lio_bsd.h"
 #include "lio_common.h"
+#include "lio_device.h"
 #include "lio_droq.h"
 #include "lio_iq.h"
-#include "lio_response_manager.h"
-#include "lio_device.h"
 #include "lio_main.h"
+#include "lio_response_manager.h"
 
-static void	lio_poll_req_completion(void *arg, int pending);
+static void lio_poll_req_completion(void *arg, int pending);
 
 int
 lio_setup_response_list(struct octeon_device *oct)
 {
-	struct lio_tq	*ctq;
-	int		i, ret = 0;
+	struct lio_tq *ctq;
+	int i, ret = 0;
 
 	for (i = 0; i < LIO_MAX_RESPONSE_LISTS; i++) {
 		STAILQ_INIT(&oct->response_list[i].head);
 		mtx_init(&oct->response_list[i].lock, "response_list_lock",
-			 NULL, MTX_DEF);
+		    NULL, MTX_DEF);
 		atomic_store_rel_int(&oct->response_list[i].pending_req_count,
-				     0);
+		    0);
 	}
 	mtx_init(&oct->cmd_resp_wqlock, "cmd_resp_wqlock", NULL, MTX_DEF);
 
 	ctq = &oct->dma_comp_tq;
 	ctq->tq = taskqueue_create("lio_dma_comp", M_WAITOK,
-				   taskqueue_thread_enqueue, &ctq->tq);
+	    taskqueue_thread_enqueue, &ctq->tq);
 	if (ctq->tq == NULL) {
 		lio_dev_err(oct, "failed to create wq thread\n");
 		return (-ENOMEM);
 	}
 
 	TIMEOUT_TASK_INIT(ctq->tq, &ctq->work, 0, lio_poll_req_completion,
-			  (void *)ctq);
+	    (void *)ctq);
 	ctq->ctxptr = oct;
 
 	oct->cmd_resp_state = LIO_DRV_ONLINE;
 	taskqueue_start_threads(&ctq->tq, 1, PI_NET, "lio%d_dma_comp",
-				oct->octeon_id);
+	    oct->octeon_id);
 	taskqueue_enqueue_timeout(ctq->tq, &ctq->work, lio_ms_to_ticks(50));
 
 	return (ret);
@@ -82,24 +82,23 @@ lio_delete_response_list(struct octeon_device *oct)
 
 	if (oct->dma_comp_tq.tq != NULL) {
 		while (taskqueue_cancel_timeout(oct->dma_comp_tq.tq,
-						&oct->dma_comp_tq.work, NULL))
+		    &oct->dma_comp_tq.work, NULL))
 			taskqueue_drain_timeout(oct->dma_comp_tq.tq,
-						&oct->dma_comp_tq.work);
+			    &oct->dma_comp_tq.work);
 		taskqueue_free(oct->dma_comp_tq.tq);
 		oct->dma_comp_tq.tq = NULL;
 	}
 }
 
 int
-lio_process_ordered_list(struct octeon_device *octeon_dev,
-			 uint32_t force_quit)
+lio_process_ordered_list(struct octeon_device *octeon_dev, uint32_t force_quit)
 {
-	struct lio_response_list	*ordered_sc_list;
-	struct lio_soft_command		*sc;
-	uint64_t			status64;
-	uint32_t			status;
-	int				request_complete = 0;
-	int				resp_to_process;
+	struct lio_response_list *ordered_sc_list;
+	struct lio_soft_command *sc;
+	uint64_t status64;
+	uint32_t status;
+	int request_complete = 0;
+	int resp_to_process;
 
 	resp_to_process = LIO_MAX_ORD_REQS_TO_PROCESS;
 
@@ -118,7 +117,7 @@ lio_process_ordered_list(struct octeon_device *octeon_dev,
 		}
 
 		sc = LIO_STAILQ_FIRST_ENTRY(&ordered_sc_list->head,
-					    struct lio_soft_command, node);
+		    struct lio_soft_command, node);
 
 		status = LIO_REQUEST_PENDING;
 
@@ -142,37 +141,40 @@ lio_process_ordered_list(struct octeon_device *octeon_dev,
 				if (((status64 & 0xff) != 0xff)) {
 					/* retrieve 16-bit firmware status */
 					status = (uint32_t)(status64 &
-							    0xffffULL);
+					    0xffffULL);
 					if (status) {
 						status = LIO_FW_STATUS_CODE(
-									status);
+						    status);
 					} else {
 						/* i.e. no error */
 						status = LIO_REQUEST_DONE;
 					}
 				}
 			}
-		} else if (force_quit || (sc->timeout &&
-			   lio_check_timeout(ticks, sc->timeout))) {
-			lio_dev_err(octeon_dev, "%s: cmd failed, timeout (%u, %u)\n",
-				    __func__, ticks, sc->timeout);
+		} else if (force_quit ||
+		    (sc->timeout && lio_check_timeout(ticks, sc->timeout))) {
+			lio_dev_err(octeon_dev,
+			    "%s: cmd failed, timeout (%u, %u)\n", __func__,
+			    ticks, sc->timeout);
 			status = LIO_REQUEST_TIMEOUT;
 		}
 
 		if (status != LIO_REQUEST_PENDING) {
 			/* we have received a response or we have timed out */
 			/* remove node from linked list */
-			STAILQ_REMOVE(&octeon_dev->response_list
-				      [LIO_ORDERED_SC_LIST].head,
-				      &sc->node, lio_stailq_node, entries);
-			atomic_subtract_int(&octeon_dev->response_list
-					    [LIO_ORDERED_SC_LIST].
-					    pending_req_count, 1);
+			STAILQ_REMOVE(&octeon_dev
+					   ->response_list[LIO_ORDERED_SC_LIST]
+					   .head,
+			    &sc->node, lio_stailq_node, entries);
+			atomic_subtract_int(
+			    &octeon_dev->response_list[LIO_ORDERED_SC_LIST]
+				 .pending_req_count,
+			    1);
 			mtx_unlock(&ordered_sc_list->lock);
 
 			if (sc->callback != NULL)
 				sc->callback(octeon_dev, status,
-					     sc->callback_arg);
+				    sc->callback_arg);
 
 			request_complete++;
 
@@ -199,8 +201,8 @@ lio_process_ordered_list(struct octeon_device *octeon_dev,
 static void
 lio_poll_req_completion(void *arg, int pending)
 {
-	struct lio_tq		*ctq = (struct lio_tq *)arg;
-	struct octeon_device	*oct = (struct octeon_device *)ctq->ctxptr;
+	struct lio_tq *ctq = (struct lio_tq *)arg;
+	struct octeon_device *oct = (struct octeon_device *)ctq->ctxptr;
 
 	lio_process_ordered_list(oct, 0);
 	taskqueue_enqueue_timeout(ctq->tq, &ctq->work, lio_ms_to_ticks(50));

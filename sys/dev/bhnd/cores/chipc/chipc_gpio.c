@@ -29,45 +29,37 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
 #include <sys/gpio.h>
+#include <sys/kernel.h>
 #include <sys/limits.h>
 #include <sys/module.h>
+#include <sys/rman.h>
 
 #include <machine/_inttypes.h>
 #include <machine/bus.h>
-#include <sys/rman.h>
 #include <machine/resource.h>
 
 #include <dev/bhnd/bhnd.h>
 #include <dev/gpio/gpiobusvar.h>
 
-#include "gpio_if.h"
-
 #include "bhnd_nvram_map.h"
-
-#include "chipcreg.h"
 #include "chipc_gpiovar.h"
+#include "chipcreg.h"
+#include "gpio_if.h"
 
 /*
  * ChipCommon GPIO driver
  */
 
-static int			chipc_gpio_check_flags(
-				    struct chipc_gpio_softc *sc,
-				    uint32_t pin_num, uint32_t flags,
-				    chipc_gpio_pin_mode *mode);
-static int			chipc_gpio_pin_update(
-				    struct chipc_gpio_softc *sc,
-				    struct chipc_gpio_update *update,
-				    uint32_t pin_num, uint32_t flags);
-static int			chipc_gpio_commit_update(
-				    struct chipc_gpio_softc *sc,
-				    struct chipc_gpio_update *update);
-static chipc_gpio_pin_mode	chipc_gpio_pin_get_mode(
-				    struct chipc_gpio_softc *sc,
-				    uint32_t pin_num);
+static int chipc_gpio_check_flags(struct chipc_gpio_softc *sc, uint32_t pin_num,
+    uint32_t flags, chipc_gpio_pin_mode *mode);
+static int chipc_gpio_pin_update(struct chipc_gpio_softc *sc,
+    struct chipc_gpio_update *update, uint32_t pin_num, uint32_t flags);
+static int chipc_gpio_commit_update(struct chipc_gpio_softc *sc,
+    struct chipc_gpio_update *update);
+static chipc_gpio_pin_mode chipc_gpio_pin_get_mode(struct chipc_gpio_softc *sc,
+    uint32_t pin_num);
 
 /* Debugging flags */
 static u_long chipc_gpio_debug = 0;
@@ -75,11 +67,11 @@ TUNABLE_ULONG("hw.bhnd_chipc.gpio_debug", &chipc_gpio_debug);
 
 enum {
 	/** Allow userspace GPIO access on bridged network (e.g. wi-fi)
-	  * adapters */
+	 * adapters */
 	CC_GPIO_DEBUG_ADAPTER_GPIOC = 1 << 0,
 };
 
-#define	CC_GPIO_DEBUG(_type)	(CC_GPIO_DEBUG_ ## _type & chipc_gpio_debug)
+#define CC_GPIO_DEBUG(_type) (CC_GPIO_DEBUG_##_type & chipc_gpio_debug)
 
 static struct bhnd_device_quirk chipc_gpio_quirks[];
 
@@ -91,9 +83,9 @@ static const struct bhnd_device chipc_gpio_devices[] = {
 
 /* Device quirks table */
 static struct bhnd_device_quirk chipc_gpio_quirks[] = {
-	BHND_CORE_QUIRK	(HWREV_LTE(10),	CC_GPIO_QUIRK_NO_EVENTS),
-	BHND_CORE_QUIRK	(HWREV_LTE(15),	CC_GPIO_QUIRK_NO_DCTIMER),
-	BHND_CORE_QUIRK	(HWREV_LTE(19),	CC_GPIO_QUIRK_NO_PULLUPDOWN),
+	BHND_CORE_QUIRK(HWREV_LTE(10), CC_GPIO_QUIRK_NO_EVENTS),
+	BHND_CORE_QUIRK(HWREV_LTE(15), CC_GPIO_QUIRK_NO_DCTIMER),
+	BHND_CORE_QUIRK(HWREV_LTE(19), CC_GPIO_QUIRK_NO_PULLUPDOWN),
 
 	BHND_DEVICE_QUIRK_END
 };
@@ -101,8 +93,8 @@ static struct bhnd_device_quirk chipc_gpio_quirks[] = {
 static int
 chipc_gpio_probe(device_t dev)
 {
-	const struct bhnd_device	*id;
-	device_t			 chipc;
+	const struct bhnd_device *id;
+	device_t chipc;
 
 	/* Look for compatible chipc parent */
 	chipc = device_get_parent(dev);
@@ -118,9 +110,9 @@ chipc_gpio_probe(device_t dev)
 static int
 chipc_gpio_attach(device_t dev)
 {
-	struct chipc_gpio_softc	*sc;
-	device_t		 chipc;
-	int			 error;
+	struct chipc_gpio_softc *sc;
+	device_t chipc;
+	int error;
 
 	chipc = device_get_parent(dev);
 
@@ -140,7 +132,7 @@ chipc_gpio_attach(device_t dev)
 
 	sc->mem_rid = 0;
 	sc->mem_res = bhnd_alloc_resource_any(dev, SYS_RES_MEMORY, &sc->mem_rid,
-	    RF_ACTIVE|RF_SHAREABLE);
+	    RF_ACTIVE | RF_SHAREABLE);
 	if (sc->mem_res == NULL) {
 		device_printf(dev, "failed to allocate chipcommon registers\n");
 		error = ENXIO;
@@ -205,8 +197,8 @@ failed:
 static int
 chipc_gpio_detach(device_t dev)
 {
-	struct chipc_gpio_softc	*sc;
-	int			 error;
+	struct chipc_gpio_softc *sc;
+	int error;
 
 	sc = device_get_softc(dev);
 
@@ -233,16 +225,16 @@ chipc_gpio_get_bus(device_t dev)
 static int
 chipc_gpio_pin_max(device_t dev, int *maxpin)
 {
-	*maxpin = CC_GPIO_NPINS-1;
+	*maxpin = CC_GPIO_NPINS - 1;
 	return (0);
 }
 
 static int
 chipc_gpio_pin_set(device_t dev, uint32_t pin_num, uint32_t pin_value)
 {
-	struct chipc_gpio_softc	*sc;
-	bool			 pin_high;
-	int			 error;
+	struct chipc_gpio_softc *sc;
+	bool pin_high;
+	int error;
 
 	sc = device_get_softc(dev);
 	error = 0;
@@ -282,8 +274,8 @@ chipc_gpio_pin_set(device_t dev, uint32_t pin_num, uint32_t pin_value)
 static int
 chipc_gpio_pin_get(device_t dev, uint32_t pin_num, uint32_t *pin_value)
 {
-	struct chipc_gpio_softc	*sc;
-	bool			 pin_high;
+	struct chipc_gpio_softc *sc;
+	bool pin_high;
 
 	if (!CC_GPIO_VALID_PIN(pin_num))
 		return (EINVAL);
@@ -317,9 +309,9 @@ chipc_gpio_pin_get(device_t dev, uint32_t pin_num, uint32_t *pin_value)
 static int
 chipc_gpio_pin_toggle(device_t dev, uint32_t pin_num)
 {
-	struct chipc_gpio_softc	*sc;
-	bool			 pin_high;
-	int			 error;
+	struct chipc_gpio_softc *sc;
+	bool pin_high;
+	int error;
 
 	if (!CC_GPIO_VALID_PIN(pin_num))
 		return (EINVAL);
@@ -349,7 +341,7 @@ chipc_gpio_pin_toggle(device_t dev, uint32_t pin_num)
 static int
 chipc_gpio_pin_getcaps(device_t dev, uint32_t pin_num, uint32_t *caps)
 {
-	struct chipc_gpio_softc	*sc = device_get_softc(dev);
+	struct chipc_gpio_softc *sc = device_get_softc(dev);
 
 	if (!CC_GPIO_VALID_PIN(pin_num))
 		return (EINVAL);
@@ -399,7 +391,7 @@ chipc_gpio_pin_getflags(device_t dev, uint32_t pin_num, uint32_t *flags)
 		break;
 
 	case CC_GPIO_PIN_TRISTATE:
-		*flags = GPIO_PIN_TRISTATE|GPIO_PIN_OUTPUT;
+		*flags = GPIO_PIN_TRISTATE | GPIO_PIN_OUTPUT;
 		break;
 	}
 
@@ -430,9 +422,9 @@ chipc_gpio_pin_getname(device_t dev, uint32_t pin_num, char *name)
 static int
 chipc_gpio_pin_setflags(device_t dev, uint32_t pin_num, uint32_t flags)
 {
-	struct chipc_gpio_softc		*sc;
-	struct chipc_gpio_update	 upd;
-	int				 error;
+	struct chipc_gpio_softc *sc;
+	struct chipc_gpio_update upd;
+	int error;
 
 	sc = device_get_softc(dev);
 
@@ -456,11 +448,11 @@ static int
 chipc_gpio_pin_access_32(device_t dev, uint32_t first_pin, uint32_t clear_pins,
     uint32_t change_pins, uint32_t *orig_pins)
 {
-	struct chipc_gpio_softc		*sc;
-	struct chipc_gpio_update	 upd;
-	uint32_t			 out, outen, ctrl;
-	uint32_t			 num_pins;
-	int				 error;
+	struct chipc_gpio_softc *sc;
+	struct chipc_gpio_update upd;
+	uint32_t out, outen, ctrl;
+	uint32_t num_pins;
+	int error;
 
 	sc = device_get_softc(dev);
 
@@ -492,8 +484,8 @@ chipc_gpio_pin_access_32(device_t dev, uint32_t first_pin, uint32_t clear_pins,
 	ctrl = CC_GPIO_RD4(sc, CHIPC_GPIOCTRL);
 
 	for (uint32_t i = 0; i < num_pins; i++) {
-		uint32_t	pin;
-		bool		pin_high;
+		uint32_t pin;
+		bool pin_high;
 
 		pin = first_pin + i;
 
@@ -538,9 +530,9 @@ static int
 chipc_gpio_pin_config_32(device_t dev, uint32_t first_pin, uint32_t num_pins,
     uint32_t *pin_flags)
 {
-	struct chipc_gpio_softc		*sc;
-	struct chipc_gpio_update	 upd;
-	int				 error;
+	struct chipc_gpio_softc *sc;
+	struct chipc_gpio_update upd;
+	int error;
 
 	sc = device_get_softc(dev);
 
@@ -558,7 +550,7 @@ chipc_gpio_pin_config_32(device_t dev, uint32_t first_pin, uint32_t num_pins,
 		/* As per the gpio_config_32 API documentation, any pins for
 		 * which neither GPIO_PIN_OUTPUT or GPIO_PIN_INPUT are set
 		 * should be ignored and left unmodified */
-		if ((flags & (GPIO_PIN_OUTPUT|GPIO_PIN_INPUT)) == 0)
+		if ((flags & (GPIO_PIN_OUTPUT | GPIO_PIN_INPUT)) == 0)
 			continue;
 
 		if ((error = chipc_gpio_pin_update(sc, &upd, pin, flags)))
@@ -627,8 +619,8 @@ static int
 chipc_gpio_pin_update(struct chipc_gpio_softc *sc,
     struct chipc_gpio_update *update, uint32_t pin_num, uint32_t flags)
 {
-	chipc_gpio_pin_mode	mode;
-	int			error;
+	chipc_gpio_pin_mode mode;
+	int error;
 
 	if (!CC_GPIO_VALID_PIN(pin_num))
 		return (EINVAL);
@@ -694,13 +686,13 @@ chipc_gpio_pin_update(struct chipc_gpio_softc *sc,
 /**
  * Verify that @p flags are valid for use with @p pin_num, and on success,
  * return the pin mode described by @p flags in @p mode.
- * 
+ *
  * @param	sc	GPIO driver instance state.
  * @param	pin_num	The pin number to configure.
  * @param	flags	The pin flags to be validated.
  * @param[out]	mode	On success, will be populated with the GPIO pin mode
  *			defined by @p flags.
- * 
+ *
  * @retval 0		success
  * @retval EINVAL	if @p flags are invalid.
  */
@@ -712,10 +704,10 @@ chipc_gpio_check_flags(struct chipc_gpio_softc *sc, uint32_t pin_num,
 
 	CC_GPIO_ASSERT_VALID_PIN(sc, pin_num);
 
-	mode_flag = flags & (GPIO_PIN_OUTPUT | GPIO_PIN_INPUT |
-	    GPIO_PIN_TRISTATE);
-	output_flag = flags & (GPIO_PIN_PRESET_HIGH | GPIO_PIN_PRESET_LOW
-	    | GPIO_PIN_PULSATE);
+	mode_flag = flags &
+	    (GPIO_PIN_OUTPUT | GPIO_PIN_INPUT | GPIO_PIN_TRISTATE);
+	output_flag = flags &
+	    (GPIO_PIN_PRESET_HIGH | GPIO_PIN_PRESET_LOW | GPIO_PIN_PULSATE);
 	input_flag = flags & (GPIO_PIN_PULLUP | GPIO_PIN_PULLDOWN);
 
 	switch (mode_flag) {
@@ -728,8 +720,8 @@ chipc_gpio_check_flags(struct chipc_gpio_softc *sc, uint32_t pin_num,
 		switch (output_flag) {
 		case GPIO_PIN_PRESET_HIGH:
 		case GPIO_PIN_PRESET_LOW:
-		case (GPIO_PIN_PRESET_HIGH|GPIO_PIN_PULSATE):
-		case (GPIO_PIN_PRESET_LOW|GPIO_PIN_PULSATE):
+		case (GPIO_PIN_PRESET_HIGH | GPIO_PIN_PULSATE):
+		case (GPIO_PIN_PRESET_LOW | GPIO_PIN_PULSATE):
 		case 0:
 			/* Check for unhandled flags */
 			if ((flags & ~(mode_flag | output_flag)) != 0)
@@ -767,7 +759,7 @@ chipc_gpio_check_flags(struct chipc_gpio_softc *sc, uint32_t pin_num,
 
 		break;
 
-	case (GPIO_PIN_TRISTATE|GPIO_PIN_OUTPUT):
+	case (GPIO_PIN_TRISTATE | GPIO_PIN_OUTPUT):
 	case GPIO_PIN_TRISTATE:
 		/* No input or output flag(s) should be set */
 		if (input_flag != 0 || output_flag != 0)
@@ -788,7 +780,7 @@ chipc_gpio_check_flags(struct chipc_gpio_softc *sc, uint32_t pin_num,
 
 /**
  * Return the current pin mode for @p pin_num.
- * 
+ *
  * @param sc		GPIO driver instance state.
  * @param pin_num	The pin number to query.
  */
@@ -809,27 +801,28 @@ chipc_gpio_pin_get_mode(struct chipc_gpio_softc *sc, uint32_t pin_num)
 
 static device_method_t chipc_gpio_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		chipc_gpio_probe),
-	DEVMETHOD(device_attach,	chipc_gpio_attach),
-	DEVMETHOD(device_detach,	chipc_gpio_detach),
+	DEVMETHOD(device_probe, chipc_gpio_probe),
+	DEVMETHOD(device_attach, chipc_gpio_attach),
+	DEVMETHOD(device_detach, chipc_gpio_detach),
 
 	/* GPIO interface */
-	DEVMETHOD(gpio_get_bus,		chipc_gpio_get_bus),
-	DEVMETHOD(gpio_pin_max,		chipc_gpio_pin_max),
-	DEVMETHOD(gpio_pin_getname,	chipc_gpio_pin_getname),
-	DEVMETHOD(gpio_pin_getflags,	chipc_gpio_pin_getflags),
-	DEVMETHOD(gpio_pin_getcaps,	chipc_gpio_pin_getcaps),
-	DEVMETHOD(gpio_pin_setflags,	chipc_gpio_pin_setflags),
-	DEVMETHOD(gpio_pin_get,		chipc_gpio_pin_get),
-	DEVMETHOD(gpio_pin_set,		chipc_gpio_pin_set),
-	DEVMETHOD(gpio_pin_toggle,	chipc_gpio_pin_toggle),
-	DEVMETHOD(gpio_pin_access_32,	chipc_gpio_pin_access_32),
-	DEVMETHOD(gpio_pin_config_32,	chipc_gpio_pin_config_32),
+	DEVMETHOD(gpio_get_bus, chipc_gpio_get_bus),
+	DEVMETHOD(gpio_pin_max, chipc_gpio_pin_max),
+	DEVMETHOD(gpio_pin_getname, chipc_gpio_pin_getname),
+	DEVMETHOD(gpio_pin_getflags, chipc_gpio_pin_getflags),
+	DEVMETHOD(gpio_pin_getcaps, chipc_gpio_pin_getcaps),
+	DEVMETHOD(gpio_pin_setflags, chipc_gpio_pin_setflags),
+	DEVMETHOD(gpio_pin_get, chipc_gpio_pin_get),
+	DEVMETHOD(gpio_pin_set, chipc_gpio_pin_set),
+	DEVMETHOD(gpio_pin_toggle, chipc_gpio_pin_toggle),
+	DEVMETHOD(gpio_pin_access_32, chipc_gpio_pin_access_32),
+	DEVMETHOD(gpio_pin_config_32, chipc_gpio_pin_config_32),
 
 	DEVMETHOD_END
 };
 
-DEFINE_CLASS_0(gpio, chipc_gpio_driver, chipc_gpio_methods, sizeof(struct chipc_gpio_softc));
+DEFINE_CLASS_0(gpio, chipc_gpio_driver, chipc_gpio_methods,
+    sizeof(struct chipc_gpio_softc));
 EARLY_DRIVER_MODULE(chipc_gpio, bhnd_chipc, chipc_gpio_driver, NULL, NULL,
     BUS_PASS_RESOURCE + BUS_PASS_ORDER_MIDDLE);
 

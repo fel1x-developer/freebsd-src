@@ -32,28 +32,24 @@
 #define CAMELLIA_SUBKEYWORD 68 /* (34*8/4) */
 
 typedef struct {
-    int	bits;				      /* key-length */
-    uint32_t subkey[CAMELLIA_SUBKEYWORD]; /* encrypt/decrypt key schedule */
+	int bits;			      /* key-length */
+	uint32_t subkey[CAMELLIA_SUBKEYWORD]; /* encrypt/decrypt key schedule */
 } camellia_ctx;
 
 void camellia_set_key(camellia_ctx *, const u_char *, int);
 void camellia_decrypt(const camellia_ctx *, const u_char *, u_char *);
 void camellia_encrypt(const camellia_ctx *, const u_char *, u_char *);
 
-
-void Camellia_Ekeygen(const int keyBitLength,
-		      const unsigned char *rawKey, 
-		      uint32_t *subkey);
+void Camellia_Ekeygen(const int keyBitLength, const unsigned char *rawKey,
+    uint32_t *subkey);
 
 void Camellia_EncryptBlock(const int keyBitLength,
-			   const unsigned char *plaintext, 
-			   const uint32_t *subkey,
-			   unsigned char *cipherText);
+    const unsigned char *plaintext, const uint32_t *subkey,
+    unsigned char *cipherText);
 
-void Camellia_DecryptBlock(const int keyBitLength, 
-			   const unsigned char *cipherText, 
-			   const uint32_t *subkey,
-			   unsigned char *plaintext);
+void Camellia_DecryptBlock(const int keyBitLength,
+    const unsigned char *cipherText, const uint32_t *subkey,
+    unsigned char *plaintext);
 
 void camellia_setup128(const unsigned char *key, uint32_t *subkey);
 void camellia_setup192(const unsigned char *key, uint32_t *subkey);
@@ -62,6 +58,5 @@ void camellia_encrypt128(const uint32_t *subkey, uint32_t *io);
 void camellia_encrypt256(const uint32_t *subkey, uint32_t *io);
 void camellia_decrypt128(const uint32_t *subkey, uint32_t *io);
 void camellia_decrypt256(const uint32_t *subkey, uint32_t *io);
-
 
 #endif /* _CAMELLIA_H */

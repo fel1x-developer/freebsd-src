@@ -47,5 +47,5 @@ main(int argc __unused, char **argv __unused)
 	if (modstat(modid, &stat) != 0)
 		err(1, "modstat");
 	syscall_num = stat.data.intval;
-	return syscall (syscall_num);
+	return syscall(syscall_num);
 }

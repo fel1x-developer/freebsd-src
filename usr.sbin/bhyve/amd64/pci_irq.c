@@ -28,6 +28,7 @@
  */
 
 #include <sys/param.h>
+
 #include <machine/vmm.h>
 
 #include <assert.h>
@@ -49,25 +50,25 @@
  */
 
 /* Fields in each PIRQ register. */
-#define	PIRQ_DIS	0x80
-#define	PIRQ_IRQ	0x0f
+#define PIRQ_DIS 0x80
+#define PIRQ_IRQ 0x0f
 
 /* Only IRQs 3-7, 9-12, and 14-15 are permitted. */
-#define	PERMITTED_IRQS	0xdef8
-#define	IRQ_PERMITTED(irq)	(((1U << (irq)) & PERMITTED_IRQS) != 0)
+#define PERMITTED_IRQS 0xdef8
+#define IRQ_PERMITTED(irq) (((1U << (irq)) & PERMITTED_IRQS) != 0)
 
 /* IRQ count to disable an IRQ. */
-#define	IRQ_DISABLED	0xff
+#define IRQ_DISABLED 0xff
 
-#define	NPIRQS		8
+#define NPIRQS 8
 static struct pirq {
-	uint8_t	reg;
-	int	use_count;
-	int	active_count;
+	uint8_t reg;
+	int use_count;
+	int active_count;
 	pthread_mutex_t lock;
 } pirqs[NPIRQS];
 
-#define	NIRQ_COUNTS	16
+#define NIRQ_COUNTS 16
 static u_char irq_counts[NIRQ_COUNTS];
 static int pirq_cold = 1;
 
@@ -323,8 +324,8 @@ pirq_dsdt(void)
 		dsdt_line("    IRQ (Level, ActiveLow, Shared, )");
 		dsdt_line("      {}");
 		dsdt_line("  })");
-		dsdt_line("  CreateWordField (CB%02X, 0x01, CIR%c)",
-		    pin + 1, 'A' + pin);
+		dsdt_line("  CreateWordField (CB%02X, 0x01, CIR%c)", pin + 1,
+		    'A' + pin);
 		dsdt_line("  Method (_CRS, 0, NotSerialized)");
 		dsdt_line("  {");
 		dsdt_line("    And (PIR%c, 0x%02X, Local0)", 'A' + pin,

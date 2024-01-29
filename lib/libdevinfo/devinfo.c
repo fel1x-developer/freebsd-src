@@ -36,7 +36,7 @@
  * hw.bus
  * hw.bus.devices
  * hw.bus.rman
- * 
+ *
  * sysctls.  The interface is not meant for general user application
  * consumption.
  *
@@ -61,36 +61,39 @@
  * this library through a variety of interfaces.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/sysctl.h>
+
 #include <err.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "devinfo.h"
 #include "devinfo_var.h"
 
-static int	devinfo_init_devices(int generation);
-static int	devinfo_init_resources(int generation);
-static void	devinfo_free_dev(struct devinfo_i_dev *dd);
+static int devinfo_init_devices(int generation);
+static int devinfo_init_resources(int generation);
+static void devinfo_free_dev(struct devinfo_i_dev *dd);
 
-TAILQ_HEAD(,devinfo_i_dev)	devinfo_dev;
-TAILQ_HEAD(,devinfo_i_rman)	devinfo_rman;
-TAILQ_HEAD(,devinfo_i_res)	devinfo_res;
+TAILQ_HEAD(, devinfo_i_dev) devinfo_dev;
+TAILQ_HEAD(, devinfo_i_rman) devinfo_rman;
+TAILQ_HEAD(, devinfo_i_res) devinfo_res;
 
-static int	devinfo_initted = 0;
-static int	devinfo_generation = 0;
+static int devinfo_initted = 0;
+static int devinfo_generation = 0;
 
 #if 0
-# define debug(...)	do { \
-	fprintf(stderr, "%s:", __func__); \
-	fprintf(stderr, __VA_ARGS__); \
-	fprintf(stderr, "\n"); \
-} while (0)
+#define debug(...)                                \
+	do {                                      \
+		fprintf(stderr, "%s:", __func__); \
+		fprintf(stderr, __VA_ARGS__);     \
+		fprintf(stderr, "\n");            \
+	} while (0)
 #else
-# define debug(...)
+#define debug(...)
 #endif
 
 /*
@@ -100,9 +103,9 @@ static int	devinfo_generation = 0;
 int
 devinfo_init(void)
 {
-	struct u_businfo	ubus;
-	size_t		ub_size;
-	int			error, retries;
+	struct u_businfo ubus;
+	size_t ub_size;
+	int error, retries;
 
 	if (!devinfo_initted) {
 		TAILQ_INIT(&devinfo_dev);
@@ -111,22 +114,23 @@ devinfo_init(void)
 	}
 
 	/*
-	 * Get the generation count and interface version, verify that we 
+	 * Get the generation count and interface version, verify that we
 	 * are compatible with the kernel.
 	 */
 	for (retries = 0; retries < 10; retries++) {
 		debug("get interface version");
 		ub_size = sizeof(ubus);
-		if (sysctlbyname("hw.bus.info", &ubus,
-		    &ub_size, NULL, 0) != 0) {
+		if (sysctlbyname("hw.bus.info", &ubus, &ub_size, NULL, 0) !=
+		    0) {
 			warn("sysctlbyname(\"hw.bus.info\", ...) failed");
-			return(EINVAL);
+			return (EINVAL);
 		}
 		if ((ub_size != sizeof(ubus)) ||
 		    (ubus.ub_version != BUS_USER_VERSION)) {
-			warnx("kernel bus interface version mismatch: kernel %d expected %d",
+			warnx(
+			    "kernel bus interface version mismatch: kernel %d expected %d",
 			    ubus.ub_version, BUS_USER_VERSION);
-			return(EINVAL);
+			return (EINVAL);
 		}
 		debug("generation count is %d", ubus.ub_generation);
 
@@ -134,7 +138,7 @@ devinfo_init(void)
 		 * Don't rescan if the generation count hasn't changed.
 		 */
 		if (ubus.ub_generation == devinfo_generation)
-			return(0);
+			return (0);
 
 		/*
 		 * Generation count changed, rescan
@@ -157,27 +161,27 @@ devinfo_init(void)
 		}
 		devinfo_initted = 1;
 		devinfo_generation = ubus.ub_generation;
-		return(0);
+		return (0);
 	}
 	debug("scan failed after %d retries", retries);
 	errno = error;
-	return(1);
+	return (1);
 }
 
 static int
 devinfo_init_devices(int generation)
 {
-	struct u_device		udev;
-	struct devinfo_i_dev	*dd;
-	int			dev_idx;
-	int			dev_ptr;
-	int			name2oid[2];
-	int			oid[CTL_MAXNAME + 12];
-	size_t			oidlen, rlen;
-	char			*name, *walker, *ep;
-	int			error;
+	struct u_device udev;
+	struct devinfo_i_dev *dd;
+	int dev_idx;
+	int dev_ptr;
+	int name2oid[2];
+	int oid[CTL_MAXNAME + 12];
+	size_t oidlen, rlen;
+	char *name, *walker, *ep;
+	int error;
 
-	/* 
+	/*
 	 * Find the OID for the rman interface node.
 	 * This is just the usual evil, undocumented sysctl juju.
 	 */
@@ -188,12 +192,12 @@ devinfo_init_devices(int generation)
 	error = sysctl(name2oid, 2, oid, &oidlen, name, strlen(name));
 	if (error < 0) {
 		warnx("can't find hw.bus.devices sysctl node");
-		return(ENOENT);
+		return (ENOENT);
 	}
 	oidlen /= sizeof(int);
 	if (oidlen > CTL_MAXNAME) {
 		warnx("hw.bus.devices oid is too large");
-		return(EINVAL);
+		return (EINVAL);
 	}
 	oid[oidlen++] = generation;
 	dev_ptr = oidlen++;
@@ -213,19 +217,20 @@ devinfo_init_devices(int generation)
 		rlen = sizeof(udev);
 		error = sysctl(oid, oidlen, &udev, &rlen, NULL, 0);
 		if (error < 0) {
-			if (errno == ENOENT)	/* end of list */
+			if (errno == ENOENT) /* end of list */
 				break;
-			if (errno != EINVAL)	/* gen count skip, restart */
+			if (errno != EINVAL) /* gen count skip, restart */
 				warn("sysctl hw.bus.devices.%d", dev_idx);
-			return(errno);
+			return (errno);
 		}
 		if (rlen != sizeof(udev)) {
-			warnx("sysctl returned wrong data %zd bytes instead of %zd",
+			warnx(
+			    "sysctl returned wrong data %zd bytes instead of %zd",
 			    rlen, sizeof(udev));
 			return (EINVAL);
 		}
 		if ((dd = calloc(1, sizeof(*dd))) == NULL)
-			return(ENOMEM);
+			return (ENOMEM);
 		dd->dd_dev.dd_handle = udev.dv_handle;
 		dd->dd_dev.dd_parent = udev.dv_parent;
 		dd->dd_dev.dd_devflags = udev.dv_devflags;
@@ -239,17 +244,17 @@ devinfo_init_devices(int generation)
 		dd->dd_drivername = NULL;
 		dd->dd_pnpinfo = NULL;
 		dd->dd_location = NULL;
-#define UNPACK(x)							\
-		dd->dd_dev.x = dd->x = strdup(walker);			\
-		if (dd->x == NULL) {					\
-			devinfo_free_dev(dd);				\
-			return(ENOMEM);					\
-		}							\
-		if (walker + strnlen(walker, ep - walker) >= ep) {	\
-			devinfo_free_dev(dd);				\
-			return(EINVAL);					\
-		}							\
-		walker += strlen(walker) + 1;
+#define UNPACK(x)                                          \
+	dd->dd_dev.x = dd->x = strdup(walker);             \
+	if (dd->x == NULL) {                               \
+		devinfo_free_dev(dd);                      \
+		return (ENOMEM);                           \
+	}                                                  \
+	if (walker + strnlen(walker, ep - walker) >= ep) { \
+		devinfo_free_dev(dd);                      \
+		return (EINVAL);                           \
+	}                                                  \
+	walker += strlen(walker) + 1;
 
 		UNPACK(dd_name);
 		UNPACK(dd_desc);
@@ -260,25 +265,25 @@ devinfo_init_devices(int generation)
 		TAILQ_INSERT_TAIL(&devinfo_dev, dd, dd_link);
 	}
 	debug("fetched %d devices", dev_idx);
-	return(0);
+	return (0);
 }
 
 static int
 devinfo_init_resources(int generation)
 {
-	struct u_rman		urman;
-	struct devinfo_i_rman	*dm;
-	struct u_resource	ures;
-	struct devinfo_i_res	*dr;
-	int			rman_idx, res_idx;
-	int			rman_ptr, res_ptr;
-	int			name2oid[2];
-	int			oid[CTL_MAXNAME + 12];
-	size_t			oidlen, rlen;
-	char			*name;
-	int			error;
+	struct u_rman urman;
+	struct devinfo_i_rman *dm;
+	struct u_resource ures;
+	struct devinfo_i_res *dr;
+	int rman_idx, res_idx;
+	int rman_ptr, res_ptr;
+	int name2oid[2];
+	int oid[CTL_MAXNAME + 12];
+	size_t oidlen, rlen;
+	char *name;
+	int error;
 
-	/* 
+	/*
 	 * Find the OID for the rman interface node.
 	 * This is just the usual evil, undocumented sysctl juju.
 	 */
@@ -289,12 +294,12 @@ devinfo_init_resources(int generation)
 	error = sysctl(name2oid, 2, oid, &oidlen, name, strlen(name));
 	if (error < 0) {
 		warnx("can't find hw.bus.rman sysctl node");
-		return(ENOENT);
+		return (ENOENT);
 	}
 	oidlen /= sizeof(int);
 	if (oidlen > CTL_MAXNAME) {
 		warnx("hw.bus.rman oid is too large");
-		return(EINVAL);
+		return (EINVAL);
 	}
 	oid[oidlen++] = generation;
 	rman_ptr = oidlen++;
@@ -316,14 +321,14 @@ devinfo_init_resources(int generation)
 		rlen = sizeof(urman);
 		error = sysctl(oid, oidlen, &urman, &rlen, NULL, 0);
 		if (error < 0) {
-			if (errno == ENOENT)	/* end of list */
+			if (errno == ENOENT) /* end of list */
 				break;
-			if (errno != EINVAL)	/* gen count skip, restart */
+			if (errno != EINVAL) /* gen count skip, restart */
 				warn("sysctl hw.bus.rman.%d", rman_idx);
-			return(errno);
+			return (errno);
 		}
 		if ((dm = malloc(sizeof(*dm))) == NULL)
-			return(ENOMEM);
+			return (ENOMEM);
 		dm->dm_rman.dm_handle = urman.rm_handle;
 		dm->dm_rman.dm_start = urman.rm_start;
 		dm->dm_rman.dm_size = urman.rm_size;
@@ -338,22 +343,22 @@ devinfo_init_resources(int generation)
 		 * of kernel corruption.
 		 */
 		for (res_idx = 0; res_idx < 1000; res_idx++) {
-			/* 
+			/*
 			 * Get the resource information.
 			 */
 			oid[res_ptr] = res_idx;
 			rlen = sizeof(ures);
 			error = sysctl(oid, oidlen, &ures, &rlen, NULL, 0);
 			if (error < 0) {
-				if (errno == ENOENT)	/* end of list */
+				if (errno == ENOENT) /* end of list */
 					break;
-				if (errno != EINVAL)	/* gen count skip */
+				if (errno != EINVAL) /* gen count skip */
 					warn("sysctl hw.bus.rman.%d.%d",
 					    rman_idx, res_idx);
-				return(errno);
+				return (errno);
 			}
 			if ((dr = malloc(sizeof(*dr))) == NULL)
-				return(ENOMEM);
+				return (ENOMEM);
 			dr->dr_res.dr_handle = ures.r_handle;
 			dr->dr_res.dr_rman = ures.r_parent;
 			dr->dr_res.dr_device = ures.r_device;
@@ -364,7 +369,7 @@ devinfo_init_resources(int generation)
 		debug("fetched %d resources", res_idx);
 	}
 	debug("scanned %d resource managers", rman_idx);
-	return(0);
+	return (0);
 }
 
 /*
@@ -379,7 +384,7 @@ devinfo_free_dev(struct devinfo_i_dev *dd)
 	free(dd->dd_pnpinfo);
 	free(dd->dd_location);
 	free(dd);
-}	
+}
 
 /*
  * Free the list contents.
@@ -387,9 +392,9 @@ devinfo_free_dev(struct devinfo_i_dev *dd)
 void
 devinfo_free(void)
 {
-	struct devinfo_i_dev	*dd;
-	struct devinfo_i_rman	*dm;
-	struct devinfo_i_res	*dr;
+	struct devinfo_i_dev *dd;
+	struct devinfo_i_rman *dm;
+	struct devinfo_i_res *dr;
 
 	while ((dd = TAILQ_FIRST(&devinfo_dev)) != NULL) {
 		TAILQ_REMOVE(&devinfo_dev, dd, dd_link);
@@ -413,25 +418,25 @@ devinfo_free(void)
 struct devinfo_dev *
 devinfo_handle_to_device(devinfo_handle_t handle)
 {
-	struct devinfo_i_dev	*dd;
+	struct devinfo_i_dev *dd;
 
 	/*
 	 * Find the root device, whose parent is NULL
 	 */
 	if (handle == DEVINFO_ROOT_DEVICE) {
-		TAILQ_FOREACH(dd, &devinfo_dev, dd_link)
-		    if (dd->dd_dev.dd_parent == DEVINFO_ROOT_DEVICE)
-			    return(&dd->dd_dev);
-		return(NULL);
+		TAILQ_FOREACH (dd, &devinfo_dev, dd_link)
+			if (dd->dd_dev.dd_parent == DEVINFO_ROOT_DEVICE)
+				return (&dd->dd_dev);
+		return (NULL);
 	}
 
 	/*
 	 * Scan for the device
 	 */
-	TAILQ_FOREACH(dd, &devinfo_dev, dd_link)
-	    if (dd->dd_dev.dd_handle == handle)
-		    return(&dd->dd_dev);
-	return(NULL);
+	TAILQ_FOREACH (dd, &devinfo_dev, dd_link)
+		if (dd->dd_dev.dd_handle == handle)
+			return (&dd->dd_dev);
+	return (NULL);
 }
 
 /*
@@ -440,12 +445,12 @@ devinfo_handle_to_device(devinfo_handle_t handle)
 struct devinfo_res *
 devinfo_handle_to_resource(devinfo_handle_t handle)
 {
-	struct devinfo_i_res	*dr;
+	struct devinfo_i_res *dr;
 
-	TAILQ_FOREACH(dr, &devinfo_res, dr_link)
-	    if (dr->dr_res.dr_handle == handle)
-		    return(&dr->dr_res);
-	return(NULL);
+	TAILQ_FOREACH (dr, &devinfo_res, dr_link)
+		if (dr->dr_res.dr_handle == handle)
+			return (&dr->dr_res);
+	return (NULL);
 }
 
 /*
@@ -454,12 +459,12 @@ devinfo_handle_to_resource(devinfo_handle_t handle)
 struct devinfo_rman *
 devinfo_handle_to_rman(devinfo_handle_t handle)
 {
-	struct devinfo_i_rman	*dm;
+	struct devinfo_i_rman *dm;
 
-	TAILQ_FOREACH(dm, &devinfo_rman, dm_link)
-	    if (dm->dm_rman.dm_handle == handle)
-		    return(&dm->dm_rman);
-	return(NULL);
+	TAILQ_FOREACH (dm, &devinfo_rman, dm_link)
+		if (dm->dm_rman.dm_handle == handle)
+			return (&dm->dm_rman);
+	return (NULL);
 }
 
 /*
@@ -467,18 +472,17 @@ devinfo_handle_to_rman(devinfo_handle_t handle)
  * (fn) returns nonzero, abort the scan and return.
  */
 int
-devinfo_foreach_device_child(struct devinfo_dev *parent, 
-    int (* fn)(struct devinfo_dev *child, void *arg), 
-    void *arg)
+devinfo_foreach_device_child(struct devinfo_dev *parent,
+    int (*fn)(struct devinfo_dev *child, void *arg), void *arg)
 {
-	struct devinfo_i_dev	*dd;
-	int				error;
+	struct devinfo_i_dev *dd;
+	int error;
 
-	TAILQ_FOREACH(dd, &devinfo_dev, dd_link)
-	    if (dd->dd_dev.dd_parent == parent->dd_handle)
-		    if ((error = fn(&dd->dd_dev, arg)) != 0)
-			    return(error);
-	return(0);
+	TAILQ_FOREACH (dd, &devinfo_dev, dd_link)
+		if (dd->dd_dev.dd_parent == parent->dd_handle)
+			if ((error = fn(&dd->dd_dev, arg)) != 0)
+				return (error);
+	return (0);
 }
 
 /*
@@ -487,17 +491,17 @@ devinfo_foreach_device_child(struct devinfo_dev *parent,
  */
 int
 devinfo_foreach_device_resource(struct devinfo_dev *dev,
-    int (* fn)(struct devinfo_dev *dev, struct devinfo_res *res, void *arg),
+    int (*fn)(struct devinfo_dev *dev, struct devinfo_res *res, void *arg),
     void *arg)
 {
-	struct devinfo_i_res	*dr;
-	int				error;
+	struct devinfo_i_res *dr;
+	int error;
 
-	TAILQ_FOREACH(dr, &devinfo_res, dr_link)
-	    if (dr->dr_res.dr_device == dev->dd_handle)
-		    if ((error = fn(dev, &dr->dr_res, arg)) != 0)
-			    return(error);
-	return(0);
+	TAILQ_FOREACH (dr, &devinfo_res, dr_link)
+		if (dr->dr_res.dr_device == dev->dd_handle)
+			if ((error = fn(dev, &dr->dr_res, arg)) != 0)
+				return (error);
+	return (0);
 }
 
 /*
@@ -506,17 +510,16 @@ devinfo_foreach_device_resource(struct devinfo_dev *dev,
  */
 extern int
 devinfo_foreach_rman_resource(struct devinfo_rman *rman,
-    int (* fn)(struct devinfo_res *res, void *arg),
-    void *arg)
+    int (*fn)(struct devinfo_res *res, void *arg), void *arg)
 {
-	struct devinfo_i_res	*dr;
-	int				error;
+	struct devinfo_i_res *dr;
+	int error;
 
-	TAILQ_FOREACH(dr, &devinfo_res, dr_link)
-	    if (dr->dr_res.dr_rman == rman->dm_handle)
-		    if ((error = fn(&dr->dr_res, arg)) != 0)
-			    return(error);
-	return(0);
+	TAILQ_FOREACH (dr, &devinfo_res, dr_link)
+		if (dr->dr_res.dr_rman == rman->dm_handle)
+			if ((error = fn(&dr->dr_res, arg)) != 0)
+				return (error);
+	return (0);
 }
 
 /*
@@ -524,14 +527,13 @@ devinfo_foreach_rman_resource(struct devinfo_rman *rman,
  * returns nonzero, abort the scan and return.
  */
 extern int
-devinfo_foreach_rman(int (* fn)(struct devinfo_rman *rman, void *arg),
-    void *arg)
+devinfo_foreach_rman(int (*fn)(struct devinfo_rman *rman, void *arg), void *arg)
 {
-    struct devinfo_i_rman	*dm;
-    int				error;
+	struct devinfo_i_rman *dm;
+	int error;
 
-    TAILQ_FOREACH(dm, &devinfo_rman, dm_link)
-	if ((error = fn(&dm->dm_rman, arg)) != 0)
-	    return(error);
-    return(0);
+	TAILQ_FOREACH (dm, &devinfo_rman, dm_link)
+		if ((error = fn(&dm->dm_rman, arg)) != 0)
+			return (error);
+	return (0);
 }

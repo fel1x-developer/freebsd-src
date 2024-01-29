@@ -27,19 +27,19 @@
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <sys/wait.h>
+
+#include <atf-c.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <atf-c.h>
-
 /*
  * BUFSIZE is the number of bytes of rc4 output to compare.  The probability
  * that this test fails spuriously is 2**(-BUFSIZE * 8).
  */
-#define	BUFSIZE		8
+#define BUFSIZE 8
 
 /*
  * Test whether arc4random_buf() returns the same sequence of bytes in both
@@ -56,7 +56,7 @@ ATF_TC_BODY(test_arc4random, tc)
 	char c;
 
 	page = mmap(NULL, sizeof(struct shared_page), PROT_READ | PROT_WRITE,
-		    MAP_ANON | MAP_SHARED, -1, 0);
+	    MAP_ANON | MAP_SHARED, -1, 0);
 	ATF_REQUIRE_MSG(page != MAP_FAILED, "mmap failed; errno=%d", errno);
 
 	arc4random_buf(&c, 1);

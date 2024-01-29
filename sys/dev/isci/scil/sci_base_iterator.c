@@ -89,11 +89,10 @@
  * @return U32 : size of iterator object in bytes.
  *
  */
-U32 sci_iterator_get_object_size(
-   void
-)
+U32
+sci_iterator_get_object_size(void)
 {
-    return sizeof(SCI_BASE_ITERATOR_T);
+	return sizeof(SCI_BASE_ITERATOR_T);
 }
 
 /**
@@ -107,16 +106,15 @@ U32 sci_iterator_get_object_size(
  *
  * @return none
  */
-void sci_base_iterator_construct(
-   SCI_ITERATOR_HANDLE_T   iterator_handle,
-   SCI_ABSTRACT_LIST_T   * list
-)
+void
+sci_base_iterator_construct(SCI_ITERATOR_HANDLE_T iterator_handle,
+    SCI_ABSTRACT_LIST_T *list)
 {
-    SCI_BASE_ITERATOR_T * iterator = (SCI_BASE_ITERATOR_T *) iterator_handle;
+	SCI_BASE_ITERATOR_T *iterator = (SCI_BASE_ITERATOR_T *)iterator_handle;
 
-    memset(iterator, 0, sizeof(SCI_BASE_ITERATOR_T));
-    iterator->list = list;
-    sci_iterator_first(iterator);
+	memset(iterator, 0, sizeof(SCI_BASE_ITERATOR_T));
+	iterator->list = list;
+	sci_iterator_first(iterator);
 }
 
 /**
@@ -127,20 +125,19 @@ void sci_base_iterator_construct(
  * @return void * : Object pointed to by this iterator.
  * @retval NULL If iterator is not currently pointing to a valid element.
  */
-void * sci_iterator_get_current(
-   SCI_ITERATOR_HANDLE_T iterator_handle
-)
+void *
+sci_iterator_get_current(SCI_ITERATOR_HANDLE_T iterator_handle)
 {
-   SCI_BASE_ITERATOR_T * iterator = (SCI_BASE_ITERATOR_T *)iterator_handle;
+	SCI_BASE_ITERATOR_T *iterator = (SCI_BASE_ITERATOR_T *)iterator_handle;
 
-   void *current_object = NULL;
+	void *current_object = NULL;
 
-   if (iterator->current != NULL)
-   {
-      current_object = sci_abstract_list_get_object(iterator->current);
-   }
+	if (iterator->current != NULL) {
+		current_object = sci_abstract_list_get_object(
+		    iterator->current);
+	}
 
-   return current_object;
+	return current_object;
 }
 
 /**
@@ -150,13 +147,12 @@ void * sci_iterator_get_current(
  *
  * @return none
  */
-void sci_iterator_first(
-   SCI_ITERATOR_HANDLE_T iterator_handle
-)
+void
+sci_iterator_first(SCI_ITERATOR_HANDLE_T iterator_handle)
 {
-   SCI_BASE_ITERATOR_T * iterator = (SCI_BASE_ITERATOR_T *)iterator_handle;
+	SCI_BASE_ITERATOR_T *iterator = (SCI_BASE_ITERATOR_T *)iterator_handle;
 
-   iterator->current = sci_abstract_list_get_front(iterator->list);
+	iterator->current = sci_abstract_list_get_front(iterator->list);
 }
 
 /**
@@ -166,17 +162,15 @@ void sci_iterator_first(
  *
  * @return none
  */
-void sci_iterator_next(
-   SCI_ITERATOR_HANDLE_T iterator_handle
-)
+void
+sci_iterator_next(SCI_ITERATOR_HANDLE_T iterator_handle)
 {
-   SCI_BASE_ITERATOR_T * iterator = (SCI_BASE_ITERATOR_T *)iterator_handle;
+	SCI_BASE_ITERATOR_T *iterator = (SCI_BASE_ITERATOR_T *)iterator_handle;
 
-   if (iterator->current != NULL)
-   {
-      iterator->current = sci_abstract_list_get_next(iterator->current);
-   }
+	if (iterator->current != NULL) {
+		iterator->current = sci_abstract_list_get_next(
+		    iterator->current);
+	}
 }
 
 #endif // !defined(DISABLE_SCI_ITERATORS)
-

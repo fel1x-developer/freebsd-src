@@ -232,14 +232,14 @@ tcp_pair(u_short port, int sock[2])
 	if (connect(connect_sock, (struct sockaddr *)&sin, sizeof(sin)) < 0)
 		err(-1, "tcp_pair: connect");
 
-	sleep(1);				/* Time for TCP to settle. */
+	sleep(1); /* Time for TCP to settle. */
 
 	len = sizeof(sin);
 	accept_sock = accept(listen_sock, (struct sockaddr *)&sin, &len);
 	if (accept_sock < 0)
 		err(-1, "tcp_pair: accept");
 
-	sleep(1);				/* Time for TCP to settle. */
+	sleep(1); /* Time for TCP to settle. */
 
 	sock[0] = accept_sock;
 	sock[1] = connect_sock;
@@ -295,13 +295,11 @@ main(int argc, char *argv[])
 	 */
 	tcp_setup(port);
 	tcp_pair(port, sock);
-	test_send_wantsignal("test_send_wantsignal(PF_INET)", sock[0],
-	    sock[1]);
+	test_send_wantsignal("test_send_wantsignal(PF_INET)", sock[0], sock[1]);
 
 #ifdef SO_NOSIGPIPE
 	tcp_pair(port, sock);
-	test_send_dontsignal("test_send_dontsignal(PF_INET)", sock[0],
-	    sock[1]);
+	test_send_dontsignal("test_send_dontsignal(PF_INET)", sock[0], sock[1]);
 #endif
 
 	tcp_pair(port, sock);

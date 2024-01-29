@@ -38,11 +38,10 @@
 #include <net/if_var.h>
 #include <net/vnet.h>
 
+#include <compat/linsysfs/linsysfs.h>
 #include <compat/linux/linux.h>
 #include <compat/linux/linux_common.h>
 #include <fs/pseudofs/pseudofs.h>
-
-#include <compat/linsysfs/linsysfs.h>
 
 struct pfs_node *net;
 static eventhandler_tag if_arrival_tag, if_departure_tag;
@@ -57,7 +56,7 @@ struct ifp_nodes_queue {
 	struct vnet *vnet;
 	struct pfs_node *pn;
 };
-TAILQ_HEAD(,ifp_nodes_queue) ifp_nodes_q;
+TAILQ_HEAD(, ifp_nodes_queue) ifp_nodes_q;
 
 static void
 linsysfs_net_latch_hold(void)
@@ -92,7 +91,8 @@ linsysfs_if_addr(PFS_FILL_ARGS)
 	NET_EPOCH_ENTER(et);
 	ifp = ifname_linux_to_ifp(td, pn->pn_parent->pn_name);
 	if (ifp != NULL && (error = linux_ifhwaddr(ifp, &lsa)) == 0)
-		error = sbuf_printf(sb, "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx\n",
+		error = sbuf_printf(sb,
+		    "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx\n",
 		    lsa.sa_data[0], lsa.sa_data[1], lsa.sa_data[2],
 		    lsa.sa_data[3], lsa.sa_data[4], lsa.sa_data[5]);
 	else
@@ -209,7 +209,7 @@ linsysfs_if_visible(PFS_VIS_ARGS)
 	NET_EPOCH_ENTER(et);
 	ifp = ifname_linux_to_ifp(td, pn->pn_name);
 	if (ifp != NULL) {
-		TAILQ_FOREACH_SAFE(nq, &ifp_nodes_q, ifp_nodes_next, nq_tmp) {
+		TAILQ_FOREACH_SAFE (nq, &ifp_nodes_q, ifp_nodes_next, nq_tmp) {
 			if (nq->ifp == ifp && nq->vnet == curvnet) {
 				visible = 1;
 				break;
@@ -239,26 +239,26 @@ linsysfs_net_addif(if_t ifp, void *arg)
 	if (nic == NULL) {
 		nic = pfs_create_dir(dir, ifname, NULL, linsysfs_if_visible,
 		    NULL, 0);
-		pfs_create_file(nic, "address", &linsysfs_if_addr,
-		    NULL, NULL, NULL, PFS_RD);
-		pfs_create_file(nic, "addr_len", &linsysfs_if_addrlen,
-		    NULL, NULL, NULL, PFS_RD);
-		pfs_create_file(nic, "flags", &linsysfs_if_flags,
-		    NULL, NULL, NULL, PFS_RD);
-		pfs_create_file(nic, "ifindex", &linsysfs_if_ifindex,
-		    NULL, NULL, NULL, PFS_RD);
-		pfs_create_file(nic, "mtu", &linsysfs_if_mtu,
-		    NULL, NULL, NULL, PFS_RD);
-		pfs_create_file(nic, "tx_queue_len", &linsysfs_if_txq_len,
-		    NULL, NULL, NULL, PFS_RD);
-		pfs_create_file(nic, "type", &linsysfs_if_type,
-		NULL, NULL, NULL, PFS_RD);
+		pfs_create_file(nic, "address", &linsysfs_if_addr, NULL, NULL,
+		    NULL, PFS_RD);
+		pfs_create_file(nic, "addr_len", &linsysfs_if_addrlen, NULL,
+		    NULL, NULL, PFS_RD);
+		pfs_create_file(nic, "flags", &linsysfs_if_flags, NULL, NULL,
+		    NULL, PFS_RD);
+		pfs_create_file(nic, "ifindex", &linsysfs_if_ifindex, NULL,
+		    NULL, NULL, PFS_RD);
+		pfs_create_file(nic, "mtu", &linsysfs_if_mtu, NULL, NULL, NULL,
+		    PFS_RD);
+		pfs_create_file(nic, "tx_queue_len", &linsysfs_if_txq_len, NULL,
+		    NULL, NULL, PFS_RD);
+		pfs_create_file(nic, "type", &linsysfs_if_type, NULL, NULL,
+		    NULL, PFS_RD);
 	}
 	/*
 	 * There is a small window between registering the if_arrival
 	 * eventhandler and creating a list of interfaces.
 	 */
-	TAILQ_FOREACH_SAFE(nq, &ifp_nodes_q, ifp_nodes_next, nq_tmp) {
+	TAILQ_FOREACH_SAFE (nq, &ifp_nodes_q, ifp_nodes_next, nq_tmp) {
 		if (nq->ifp == ifp && nq->vnet == curvnet)
 			return (0);
 	}
@@ -277,7 +277,7 @@ linsysfs_net_delif(if_t ifp)
 	struct pfs_node *pn;
 
 	pn = NULL;
-	TAILQ_FOREACH_SAFE(nq, &ifp_nodes_q, ifp_nodes_next, nq_tmp) {
+	TAILQ_FOREACH_SAFE (nq, &ifp_nodes_q, ifp_nodes_next, nq_tmp) {
 		if (nq->ifp == ifp && nq->vnet == curvnet) {
 			TAILQ_REMOVE(&ifp_nodes_q, nq, ifp_nodes_next);
 			pn = nq->pn;
@@ -287,7 +287,7 @@ linsysfs_net_delif(if_t ifp)
 	}
 	if (pn == NULL)
 		return;
-	TAILQ_FOREACH_SAFE(nq, &ifp_nodes_q, ifp_nodes_next, nq_tmp) {
+	TAILQ_FOREACH_SAFE (nq, &ifp_nodes_q, ifp_nodes_next, nq_tmp) {
 		if (nq->pn == pn)
 			return;
 	}
@@ -327,7 +327,8 @@ linsysfs_net_init(void)
 
 	linsysfs_net_latch_hold();
 	VNET_LIST_RLOCK();
-	VNET_FOREACH(vnet_iter) {
+	VNET_FOREACH(vnet_iter)
+	{
 		CURVNET_SET(vnet_iter);
 		if_foreach_sleep(NULL, NULL, linsysfs_net_addif, net);
 		CURVNET_RESTORE();
@@ -345,7 +346,7 @@ linsysfs_net_uninit(void)
 	EVENTHANDLER_DEREGISTER(ifnet_departure_event, if_departure_tag);
 
 	linsysfs_net_latch_hold();
-	TAILQ_FOREACH_SAFE(nq, &ifp_nodes_q, ifp_nodes_next, nq_tmp) {
+	TAILQ_FOREACH_SAFE (nq, &ifp_nodes_q, ifp_nodes_next, nq_tmp) {
 		TAILQ_REMOVE(&ifp_nodes_q, nq, ifp_nodes_next);
 		free(nq, M_LINSYSFS);
 	}

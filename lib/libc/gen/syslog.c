@@ -29,19 +29,19 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/syslog.h>
 #include <sys/time.h>
 #include <sys/uio.h>
 #include <sys/un.h>
-#include <netdb.h>
 
 #include <errno.h>
 #include <fcntl.h>
+#include <netdb.h>
 #include <paths.h>
 #include <pthread.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,48 +49,49 @@
 #include <time.h>
 #include <unistd.h>
 
-#include <stdarg.h>
+#include "libc_private.h"
+#include "namespace.h"
 #include "un-namespace.h"
 
-#include "libc_private.h"
-
 /* Maximum number of characters of syslog message */
-#define	MAXLINE		8192
+#define MAXLINE 8192
 
-static int	LogFile = -1;		/* fd for log */
-static bool	connected;		/* have done connect */
-static int	opened;			/* have done openlog() */
-static int	LogStat = 0;		/* status bits, set by openlog() */
-static pid_t	LogPid = -1;		/* process id to tag the entry with */
-static const char *LogTag = NULL;	/* string to tag the entry with */
-static int	LogTagLength = -1;	/* usable part of LogTag */
-static int	LogFacility = LOG_USER;	/* default facility code */
-static int	LogMask = 0xff;		/* mask of priorities to be logged */
-static pthread_mutex_t	syslog_mutex = PTHREAD_MUTEX_INITIALIZER;
+static int LogFile = -1;	   /* fd for log */
+static bool connected;		   /* have done connect */
+static int opened;		   /* have done openlog() */
+static int LogStat = 0;		   /* status bits, set by openlog() */
+static pid_t LogPid = -1;	   /* process id to tag the entry with */
+static const char *LogTag = NULL;  /* string to tag the entry with */
+static int LogTagLength = -1;	   /* usable part of LogTag */
+static int LogFacility = LOG_USER; /* default facility code */
+static int LogMask = 0xff;	   /* mask of priorities to be logged */
+static pthread_mutex_t syslog_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-#define	THREAD_LOCK()							\
-	do { 								\
-		if (__isthreaded) _pthread_mutex_lock(&syslog_mutex);	\
-	} while(0)
-#define	THREAD_UNLOCK()							\
-	do {								\
-		if (__isthreaded) _pthread_mutex_unlock(&syslog_mutex);	\
-	} while(0)
+#define THREAD_LOCK()                                       \
+	do {                                                \
+		if (__isthreaded)                           \
+			_pthread_mutex_lock(&syslog_mutex); \
+	} while (0)
+#define THREAD_UNLOCK()                                       \
+	do {                                                  \
+		if (__isthreaded)                             \
+			_pthread_mutex_unlock(&syslog_mutex); \
+	} while (0)
 
 /* RFC5424 defined value. */
 #define NILVALUE "-"
 
-static void	disconnectlog(void); /* disconnect from syslogd */
-static void	connectlog(void);	/* (re)connect to syslogd */
-static void	openlog_unlocked(const char *, int, int);
-static void	parse_tag(void);	/* parse ident[NNN] if needed */
+static void disconnectlog(void); /* disconnect from syslogd */
+static void connectlog(void);	 /* (re)connect to syslogd */
+static void openlog_unlocked(const char *, int, int);
+static void parse_tag(void); /* parse ident[NNN] if needed */
 
 /*
  * Format of the magic cookie passed through the stdio hook
  */
 struct bufcookie {
-	char	*base;	/* start of buffer */
-	int	left;
+	char *base; /* start of buffer */
+	int left;
 };
 
 /*
@@ -101,7 +102,7 @@ struct bufcookie {
 static int
 writehook(void *cookie, const char *buf, int len)
 {
-	struct bufcookie *h;	/* private `handle' */
+	struct bufcookie *h; /* private `handle' */
 
 	h = (struct bufcookie *)cookie;
 	if (len > h->left) {
@@ -144,12 +145,12 @@ vsyslog1(int pri, const char *fmt, va_list ap)
 	struct bufcookie tbuf_cookie;
 	struct bufcookie fmt_cookie;
 
-#define	INTERNALLOG	LOG_ERR|LOG_CONS|LOG_PERROR|LOG_PID
+#define INTERNALLOG LOG_ERR | LOG_CONS | LOG_PERROR | LOG_PID
 	/* Check for invalid bits. */
-	if (pri & ~(LOG_PRIMASK|LOG_FACMASK)) {
-		syslog(INTERNALLOG,
-		    "syslog: unknown facility/priority: %x", pri);
-		pri &= LOG_PRIMASK|LOG_FACMASK;
+	if (pri & ~(LOG_PRIMASK | LOG_FACMASK)) {
+		syslog(INTERNALLOG, "syslog: unknown facility/priority: %x",
+		    pri);
+		pri &= LOG_PRIMASK | LOG_FACMASK;
 	}
 
 	saved_errno = errno;
@@ -183,18 +184,17 @@ vsyslog1(int pri, const char *fmt, va_list ap)
 		}
 
 		(void)fprintf(fp,
-		    "%04d-%02d-%02d"		/* Date. */
-		    "T%02d:%02d:%02d.%06ld"	/* Time. */
-		    "%c%02ld:%02ld ",		/* Time zone offset. */
-		    tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
-		    tm.tm_hour, tm.tm_min, tm.tm_sec, now.tv_usec,
-		    tz_sign, tz_offset / 3600, (tz_offset % 3600) / 60);
+		    "%04d-%02d-%02d"	    /* Date. */
+		    "T%02d:%02d:%02d.%06ld" /* Time. */
+		    "%c%02ld:%02ld ",	    /* Time zone offset. */
+		    tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour,
+		    tm.tm_min, tm.tm_sec, now.tv_usec, tz_sign,
+		    tz_offset / 3600, (tz_offset % 3600) / 60);
 	} else
 		(void)fputs(NILVALUE " ", fp);
 	/* Hostname. */
 	(void)gethostname(hostname, sizeof(hostname));
-	(void)fprintf(fp, "%s ",
-	    hostname[0] == '\0' ? NILVALUE : hostname);
+	(void)fprintf(fp, "%s ", hostname[0] == '\0' ? NILVALUE : hostname);
 	if (LogStat & LOG_PERROR) {
 		/* Transfer to string buffer */
 		(void)fflush(fp);
@@ -239,7 +239,7 @@ vsyslog1(int pri, const char *fmt, va_list ap)
 		 * molest an escaped percent "%%m".  We want to pass it
 		 * on untouched as the format is later parsed by vfprintf.
 		 */
-		for ( ; (ch = *fmt); ++fmt) {
+		for (; (ch = *fmt); ++fmt) {
 			if (ch == '%' && fmt[1] == 'm') {
 				++fmt;
 				strerror_r(saved_errno, errstr, sizeof(errstr));
@@ -315,8 +315,8 @@ vsyslog1(int pri, const char *fmt, va_list ap)
 	 * Make sure the error reported is the one from the syslogd failure.
 	 */
 	if (LogStat & LOG_CONS &&
-	    (fd = _open(_PATH_CONSOLE, O_WRONLY|O_NONBLOCK|O_CLOEXEC, 0)) >=
-	    0) {
+	    (fd = _open(_PATH_CONSOLE, O_WRONLY | O_NONBLOCK | O_CLOEXEC, 0)) >=
+		0) {
 		struct iovec iov[2];
 		struct iovec *v = iov;
 
@@ -361,27 +361,27 @@ disconnectlog(void)
 		_close(LogFile);
 		LogFile = -1;
 	}
-	connected = false;			/* retry connect */
+	connected = false; /* retry connect */
 }
 
 /* Should be called with mutex acquired */
 static void
 connectlog(void)
 {
-	struct sockaddr_un SyslogAddr;	/* AF_UNIX address of local logger */
+	struct sockaddr_un SyslogAddr; /* AF_UNIX address of local logger */
 
 	if (LogFile == -1) {
 		socklen_t len;
 
 		if ((LogFile = _socket(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC,
-		    0)) == -1)
+			 0)) == -1)
 			return;
 		if (_getsockopt(LogFile, SOL_SOCKET, SO_SNDBUF, &len,
-		    &(socklen_t){sizeof(len)}) == 0) {
+			&(socklen_t) { sizeof(len) }) == 0) {
 			if (len < MAXLINE) {
 				len = MAXLINE;
-				(void)_setsockopt(LogFile, SOL_SOCKET, SO_SNDBUF,
-				    &len, sizeof(len));
+				(void)_setsockopt(LogFile, SOL_SOCKET,
+				    SO_SNDBUF, &len, sizeof(len));
 			}
 		}
 	}
@@ -392,7 +392,7 @@ connectlog(void)
 		(void)strncpy(SyslogAddr.sun_path, _PATH_LOG,
 		    sizeof SyslogAddr.sun_path);
 		if (_connect(LogFile, (struct sockaddr *)&SyslogAddr,
-		    sizeof(SyslogAddr)) != -1)
+			sizeof(SyslogAddr)) != -1)
 			connected = true;
 		else {
 			(void)_close(LogFile);
@@ -410,13 +410,13 @@ openlog_unlocked(const char *ident, int logstat, int logfac)
 	}
 	LogStat = logstat;
 	parse_tag();
-	if (logfac != 0 && (logfac &~ LOG_FACMASK) == 0)
+	if (logfac != 0 && (logfac & ~LOG_FACMASK) == 0)
 		LogFacility = logfac;
 
-	if (LogStat & LOG_NDELAY)	/* open immediately */
+	if (LogStat & LOG_NDELAY) /* open immediately */
 		connectlog();
 
-	opened = 1;	/* ident and facility has been set */
+	opened = 1; /* ident and facility has been set */
 }
 
 void
@@ -428,7 +428,6 @@ openlog(const char *ident, int logstat, int logfac)
 	openlog_unlocked(ident, logstat, logfac);
 	pthread_cleanup_pop(1);
 }
-
 
 void
 closelog(void)

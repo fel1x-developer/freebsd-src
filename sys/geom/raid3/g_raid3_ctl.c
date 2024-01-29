@@ -28,19 +28,22 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
 #include <sys/bio.h>
-#include <sys/sysctl.h>
-#include <sys/malloc.h>
 #include <sys/bitstring.h>
-#include <vm/uma.h>
-#include <machine/atomic.h>
-#include <geom/geom.h>
-#include <sys/proc.h>
+#include <sys/kernel.h>
 #include <sys/kthread.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/proc.h>
+#include <sys/sysctl.h>
+
+#include <vm/uma.h>
+
+#include <machine/atomic.h>
+
+#include <geom/geom.h>
 #include <geom/raid3/g_raid3.h>
 
 static struct g_raid3_softc *
@@ -50,7 +53,7 @@ g_raid3_find_device(struct g_class *mp, const char *name)
 	struct g_geom *gp;
 
 	g_topology_lock();
-	LIST_FOREACH(gp, &mp->geom, geom) {
+	LIST_FOREACH (gp, &mp->geom, geom) {
 		sc = gp->softc;
 		if (sc == NULL)
 			continue;
@@ -385,8 +388,8 @@ static void
 g_raid3_ctl_insert_orphan(struct g_consumer *cp)
 {
 
-	KASSERT(1 == 0, ("%s called while inserting %s.", __func__,
-	    cp->provider->name));
+	KASSERT(1 == 0,
+	    ("%s called while inserting %s.", __func__, cp->provider->name));
 }
 
 static void
@@ -466,7 +469,8 @@ g_raid3_ctl_insert(struct gctl_req *req, struct g_class *mp)
 		}
 	} else {
 		disk = NULL;
-		for (autono = 0; autono < sc->sc_ndisks && disk == NULL; autono++)
+		for (autono = 0; autono < sc->sc_ndisks && disk == NULL;
+		     autono++)
 			if (sc->sc_disks[autono].d_state ==
 			    G_RAID3_DISK_STATE_NODISK)
 				disk = &sc->sc_disks[autono];

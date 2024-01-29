@@ -35,44 +35,41 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/bus.h>
 #include <sys/rman.h>
+
+#include <machine/bus.h>
 
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include <machine/bus.h>
-
-#include <arm/freescale/imx/imx_ccmvar.h>
 #include <arm/freescale/imx/imx6_anatopreg.h>
 #include <arm/freescale/imx/imx6_anatopvar.h>
+#include <arm/freescale/imx/imx_ccmvar.h>
 
 /*
  * Hardware register defines.
  */
-#define	PWD_REG				0x0000
-#define	CTRL_STATUS_REG			0x0030
-#define	CTRL_SET_REG			0x0034
-#define	CTRL_CLR_REG			0x0038
-#define	CTRL_TOGGLE_REG			0x003c
-#define	  CTRL_SFTRST			  (1U << 31)
-#define	  CTRL_CLKGATE			  (1 << 30)
-#define	  CTRL_ENUTMILEVEL3		  (1 << 15)
-#define	  CTRL_ENUTMILEVEL2		  (1 << 14)
+#define PWD_REG 0x0000
+#define CTRL_STATUS_REG 0x0030
+#define CTRL_SET_REG 0x0034
+#define CTRL_CLR_REG 0x0038
+#define CTRL_TOGGLE_REG 0x003c
+#define CTRL_SFTRST (1U << 31)
+#define CTRL_CLKGATE (1 << 30)
+#define CTRL_ENUTMILEVEL3 (1 << 15)
+#define CTRL_ENUTMILEVEL2 (1 << 14)
 
 struct usbphy_softc {
-	device_t	dev;
-	struct resource	*mem_res;
-	u_int		phy_num;
+	device_t dev;
+	struct resource *mem_res;
+	u_int phy_num;
 };
 
-static struct ofw_compat_data compat_data[] = {
-	{"fsl,imx6q-usbphy",	true},
-	{"fsl,imx6ul-usbphy",	true},
-	{NULL,			false}
-};
+static struct ofw_compat_data compat_data[] = { { "fsl,imx6q-usbphy", true },
+	{ "fsl,imx6ul-usbphy", true }, { NULL, false } };
 
 static int
 usbphy_detach(device_t dev)
@@ -127,13 +124,13 @@ usbphy_attach(device_t dev)
 	 * detection, because of the screwball mix of active-high and active-low
 	 * bits in this register.
 	 */
-	imx6_anatop_write_4(IMX6_ANALOG_USB1_CHRG_DETECT + regoff, 
-	    IMX6_ANALOG_USB_CHRG_DETECT_N_ENABLE | 
-	    IMX6_ANALOG_USB_CHRG_DETECT_N_CHK_CHRG);
+	imx6_anatop_write_4(IMX6_ANALOG_USB1_CHRG_DETECT + regoff,
+	    IMX6_ANALOG_USB_CHRG_DETECT_N_ENABLE |
+		IMX6_ANALOG_USB_CHRG_DETECT_N_CHK_CHRG);
 
-	imx6_anatop_write_4(IMX6_ANALOG_USB1_CHRG_DETECT + regoff, 
-	    IMX6_ANALOG_USB_CHRG_DETECT_N_ENABLE | 
-	    IMX6_ANALOG_USB_CHRG_DETECT_N_CHK_CHRG);
+	imx6_anatop_write_4(IMX6_ANALOG_USB1_CHRG_DETECT + regoff,
+	    IMX6_ANALOG_USB_CHRG_DETECT_N_ENABLE |
+		IMX6_ANALOG_USB_CHRG_DETECT_N_CHK_CHRG);
 
 	/* XXX Configure the overcurrent detection here. */
 
@@ -183,18 +180,15 @@ usbphy_probe(device_t dev)
 
 static device_method_t usbphy_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,  usbphy_probe),
+	DEVMETHOD(device_probe, usbphy_probe),
 	DEVMETHOD(device_attach, usbphy_attach),
 	DEVMETHOD(device_detach, usbphy_detach),
 
 	DEVMETHOD_END
 };
 
-static driver_t usbphy_driver = {
-	"usbphy",
-	usbphy_methods,
-	sizeof(struct usbphy_softc)
-};
+static driver_t usbphy_driver = { "usbphy", usbphy_methods,
+	sizeof(struct usbphy_softc) };
 
 /*
  * This driver needs to start before the ehci driver, but later than the usual

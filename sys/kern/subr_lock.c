@@ -30,10 +30,10 @@
  * lock_object structures.
  */
 
-#include <sys/cdefs.h>
 #include "opt_ddb.h"
 #include "opt_mprof.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/kernel.h>
@@ -60,7 +60,7 @@
  * Uncomment to validate that spin argument to acquire/release routines matches
  * the flag in the lock
  */
-//#define	LOCK_PROFILING_DEBUG_SPIN
+// #define	LOCK_PROFILING_DEBUG_SPIN
 
 CTASSERT(LOCK_CLASS_MAX == 15);
 
@@ -111,9 +111,8 @@ lock_destroy(struct lock_object *lock)
 
 static SYSCTL_NODE(_debug, OID_AUTO, lock, CTLFLAG_RD | CTLFLAG_MPSAFE, NULL,
     "lock debugging");
-static SYSCTL_NODE(_debug_lock, OID_AUTO, delay,
-    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL,
-    "lock delay");
+static SYSCTL_NODE(_debug_lock, OID_AUTO, delay, CTLFLAG_RD | CTLFLAG_MPSAFE,
+    NULL, "lock delay");
 
 void
 lock_delay(struct lock_delay_arg *la)
@@ -153,12 +152,12 @@ struct lock_delay_config __read_frequently locks_delay;
 u_short __read_frequently locks_delay_retries;
 u_short __read_frequently locks_delay_loops;
 
-SYSCTL_U16(_debug_lock, OID_AUTO, delay_base, CTLFLAG_RW, &locks_delay.base,
-    0, "");
-SYSCTL_U16(_debug_lock, OID_AUTO, delay_max, CTLFLAG_RW, &locks_delay.max,
-    0, "");
-SYSCTL_U16(_debug_lock, OID_AUTO, delay_retries, CTLFLAG_RW, &locks_delay_retries,
-    0, "");
+SYSCTL_U16(_debug_lock, OID_AUTO, delay_base, CTLFLAG_RW, &locks_delay.base, 0,
+    "");
+SYSCTL_U16(_debug_lock, OID_AUTO, delay_max, CTLFLAG_RW, &locks_delay.max, 0,
+    "");
+SYSCTL_U16(_debug_lock, OID_AUTO, delay_retries, CTLFLAG_RW,
+    &locks_delay_retries, 0, "");
 SYSCTL_U16(_debug_lock, OID_AUTO, delay_loops, CTLFLAG_RW, &locks_delay_loops,
     0, "");
 
@@ -201,13 +200,13 @@ DB_SHOW_COMMAND(lock, db_show_lock)
 struct lock_profile_object {
 	LIST_ENTRY(lock_profile_object) lpo_link;
 	struct lock_object *lpo_obj;
-	const char	*lpo_file;
-	int		lpo_line;
-	uint16_t	lpo_ref;
-	uint16_t	lpo_cnt;
-	uint64_t	lpo_acqtime;
-	uint64_t	lpo_waittime;
-	u_int		lpo_contest_locking;
+	const char *lpo_file;
+	int lpo_line;
+	uint16_t lpo_ref;
+	uint16_t lpo_cnt;
+	uint64_t lpo_acqtime;
+	uint64_t lpo_waittime;
+	u_int lpo_contest_locking;
 };
 
 /*
@@ -216,23 +215,23 @@ struct lock_profile_object {
 struct lock_prof {
 	SLIST_ENTRY(lock_prof) link;
 	struct lock_class *class;
-	const char	*file;
-	const char	*name;
-	int		line;
-	int		ticks;
-	uintmax_t	cnt_wait_max;
-	uintmax_t	cnt_max;
-	uintmax_t	cnt_tot;
-	uintmax_t	cnt_wait;
-	uintmax_t	cnt_cur;
-	uintmax_t	cnt_contest_locking;
+	const char *file;
+	const char *name;
+	int line;
+	int ticks;
+	uintmax_t cnt_wait_max;
+	uintmax_t cnt_max;
+	uintmax_t cnt_tot;
+	uintmax_t cnt_wait;
+	uintmax_t cnt_cur;
+	uintmax_t cnt_contest_locking;
 };
 
 SLIST_HEAD(lphead, lock_prof);
 
-#define	LPROF_HASH_SIZE		4096
-#define	LPROF_HASH_MASK		(LPROF_HASH_SIZE - 1)
-#define	LPROF_CACHE_SIZE	4096
+#define LPROF_HASH_SIZE 4096
+#define LPROF_HASH_MASK (LPROF_HASH_SIZE - 1)
+#define LPROF_CACHE_SIZE 4096
 
 /*
  * Array of objects and profs for each type of object for each cpu.  Spinlocks
@@ -241,26 +240,26 @@ SLIST_HEAD(lphead, lock_prof);
  * we only need a critical section to protect the per-cpu lists.
  */
 struct lock_prof_type {
-	struct lphead		lpt_lpalloc;
-	struct lpohead		lpt_lpoalloc;
-	struct lphead		lpt_hash[LPROF_HASH_SIZE];
-	struct lock_prof	lpt_prof[LPROF_CACHE_SIZE];
+	struct lphead lpt_lpalloc;
+	struct lpohead lpt_lpoalloc;
+	struct lphead lpt_hash[LPROF_HASH_SIZE];
+	struct lock_prof lpt_prof[LPROF_CACHE_SIZE];
 	struct lock_profile_object lpt_objs[LPROF_CACHE_SIZE];
 };
 
 struct lock_prof_cpu {
-	struct lock_prof_type	lpc_types[2]; /* One for spin one for other. */
+	struct lock_prof_type lpc_types[2]; /* One for spin one for other. */
 };
 
 DPCPU_DEFINE_STATIC(struct lock_prof_cpu, lp);
-#define	LP_CPU_SELF	(DPCPU_PTR(lp))
-#define	LP_CPU(cpu)	(DPCPU_ID_PTR((cpu), lp))
+#define LP_CPU_SELF (DPCPU_PTR(lp))
+#define LP_CPU(cpu) (DPCPU_ID_PTR((cpu), lp))
 
 volatile int __read_mostly lock_prof_enable;
 int __read_mostly lock_contested_only;
 static volatile int lock_prof_resetting;
 
-#define LPROF_SBUF_SIZE		256
+#define LPROF_SBUF_SIZE 256
 
 static int lock_prof_rejected;
 static int lock_prof_skipspin;
@@ -288,8 +287,7 @@ lock_prof_init_type(struct lock_prof_type *type)
 	SLIST_INIT(&type->lpt_lpalloc);
 	LIST_INIT(&type->lpt_lpoalloc);
 	for (i = 0; i < LPROF_CACHE_SIZE; i++) {
-		SLIST_INSERT_HEAD(&type->lpt_lpalloc, &type->lpt_prof[i],
-		    link);
+		SLIST_INSERT_HEAD(&type->lpt_lpalloc, &type->lpt_prof[i], link);
 		LIST_INSERT_HEAD(&type->lpt_lpoalloc, &type->lpt_objs[i],
 		    lpo_link);
 	}
@@ -300,7 +298,7 @@ lock_prof_init(void *arg)
 {
 	int cpu;
 
-	CPU_FOREACH(cpu) {
+	CPU_FOREACH (cpu) {
 		lock_prof_init_type(&LP_CPU(cpu)->lpc_types[0]);
 		lock_prof_init_type(&LP_CPU(cpu)->lpc_types[1]);
 	}
@@ -347,14 +345,14 @@ lock_prof_reset(void)
 	 * before we zero the structures.  Some items may still be linked
 	 * into per-thread lists as well.
 	 */
-	CPU_FOREACH(cpu) {
+	CPU_FOREACH (cpu) {
 		lpc = LP_CPU(cpu);
 		for (i = 0; i < LPROF_CACHE_SIZE; i++) {
 			LIST_REMOVE(&lpc->lpc_types[0].lpt_objs[i], lpo_link);
 			LIST_REMOVE(&lpc->lpc_types[1].lpt_objs[i], lpo_link);
 		}
 	}
-	CPU_FOREACH(cpu) {
+	CPU_FOREACH (cpu) {
 		lpc = LP_CPU(cpu);
 		bzero(lpc, sizeof(*lpc));
 		lock_prof_init_type(&lpc->lpc_types[0]);
@@ -372,17 +370,18 @@ lock_prof_output(struct lock_prof *lp, struct sbuf *sb)
 {
 	const char *p;
 
-	for (p = lp->file; p != NULL && strncmp(p, "../", 3) == 0; p += 3);
+	for (p = lp->file; p != NULL && strncmp(p, "../", 3) == 0; p += 3)
+		;
 	sbuf_printf(sb,
 	    "%8ju %9ju %11ju %11ju %11ju %6ju %6ju %2ju %6ju %s:%d (%s:%s)\n",
 	    lp->cnt_max / 1000, lp->cnt_wait_max / 1000, lp->cnt_tot / 1000,
 	    lp->cnt_wait / 1000, lp->cnt_cur,
 	    lp->cnt_cur == 0 ? (uintmax_t)0 :
-	    lp->cnt_tot / (lp->cnt_cur * 1000),
+			       lp->cnt_tot / (lp->cnt_cur * 1000),
 	    lp->cnt_cur == 0 ? (uintmax_t)0 :
-	    lp->cnt_wait / (lp->cnt_cur * 1000),
-	    (uintmax_t)0, lp->cnt_contest_locking,
-	    p, lp->line, lp->class->lc_name, lp->name);
+			       lp->cnt_wait / (lp->cnt_cur * 1000),
+	    (uintmax_t)0, lp->cnt_contest_locking, p, lp->line,
+	    lp->class->lc_name, lp->name);
 }
 
 static void
@@ -398,9 +397,9 @@ lock_prof_sum(struct lock_prof *match, struct lock_prof *dst, int hash,
 	dst->class = match->class;
 	dst->name = match->name;
 
-	CPU_FOREACH(cpu) {
+	CPU_FOREACH (cpu) {
 		type = &LP_CPU(cpu)->lpc_types[spin];
-		SLIST_FOREACH(l, &type->lpt_hash[hash], link) {
+		SLIST_FOREACH (l, &type->lpt_hash[hash], link) {
 			if (l->ticks == t)
 				continue;
 			if (l->file != match->file || l->line != match->line ||
@@ -427,7 +426,7 @@ lock_prof_type_stats(struct lock_prof_type *type, struct sbuf *sb, int spin,
 	int i;
 
 	for (i = 0; i < LPROF_HASH_SIZE; ++i) {
-		SLIST_FOREACH(l, &type->lpt_hash[i], link) {
+		SLIST_FOREACH (l, &type->lpt_hash[i], link) {
 			struct lock_prof lp = {};
 
 			if (l->ticks == t)
@@ -449,8 +448,9 @@ dump_lock_prof_stats(SYSCTL_HANDLER_ARGS)
 	if (error != 0)
 		return (error);
 	sb = sbuf_new_for_sysctl(NULL, NULL, LPROF_SBUF_SIZE, req);
-	sbuf_printf(sb, "\n%8s %9s %11s %11s %11s %6s %6s %2s %6s %s\n",
-	    "max", "wait_max", "total", "wait_total", "count", "avg", "wait_avg", "cnt_hold", "cnt_lock", "name");
+	sbuf_printf(sb, "\n%8s %9s %11s %11s %11s %6s %6s %2s %6s %s\n", "max",
+	    "wait_max", "total", "wait_total", "count", "avg", "wait_avg",
+	    "cnt_hold", "cnt_lock", "name");
 	enabled = lock_prof_enable;
 	lock_prof_enable = 0;
 	/*
@@ -459,7 +459,7 @@ dump_lock_prof_stats(SYSCTL_HANDLER_ARGS)
 	cpus_fence_seq_cst();
 	quiesce_all_critical();
 	t = ticks;
-	CPU_FOREACH(cpu) {
+	CPU_FOREACH (cpu) {
 		lock_prof_type_stats(&LP_CPU(cpu)->lpc_types[0], sb, 0, t);
 		lock_prof_type_stats(&LP_CPU(cpu)->lpc_types[1], sb, 1, t);
 	}
@@ -530,7 +530,7 @@ lock_profile_lookup(struct lock_object *lo, int spin, const char *file,
 	hash &= LPROF_HASH_MASK;
 	type = &LP_CPU_SELF->lpc_types[spin];
 	head = &type->lpt_hash[hash];
-	SLIST_FOREACH(lp, head, link) {
+	SLIST_FOREACH (lp, head, link) {
 		if (lp->line == line && lp->file == p &&
 		    lp->name == lo->lo_name)
 			return (lp);
@@ -558,7 +558,7 @@ lock_profile_object_lookup(struct lock_object *lo, int spin, const char *file,
 	struct lpohead *head;
 
 	head = &curthread->td_lprof[spin];
-	LIST_FOREACH(l, head, lpo_link)
+	LIST_FOREACH (l, head, lpo_link)
 		if (l->lpo_obj == lo && l->lpo_file == file &&
 		    l->lpo_line == line)
 			return (l);
@@ -587,8 +587,8 @@ lock_profile_obtain_lock_success(struct lock_object *lo, bool spin,
 #ifdef LOCK_PROFILING_DEBUG_SPIN
 	bool is_spin = (LOCK_CLASS(lo)->lc_flags & LC_SPINLOCK);
 	if ((spin && !is_spin) || (!spin && is_spin))
-		printf("%s: lock %s spin mismatch (arg %d, flag %d)\n", __func__,
-		    lo->lo_name, spin, is_spin);
+		printf("%s: lock %s spin mismatch (arg %d, flag %d)\n",
+		    __func__, lo->lo_name, spin, is_spin);
 #endif
 
 	/* don't reset the timer when/if recursing */
@@ -613,7 +613,7 @@ lock_profile_obtain_lock_success(struct lock_object *lo, bool spin,
 	if (++l->lpo_ref > 1)
 		goto out;
 	l->lpo_contest_locking = contested;
-	l->lpo_acqtime = nanoseconds(); 
+	l->lpo_acqtime = nanoseconds();
 	if (waittime && (l->lpo_acqtime > waittime))
 		l->lpo_waittime = l->lpo_acqtime - waittime;
 	else
@@ -640,10 +640,10 @@ lock_profile_thread_exit(struct thread *td)
 	 */
 	lock_prof_reset_wait();
 #ifdef INVARIANTS
-	LIST_FOREACH(l, &td->td_lprof[0], lpo_link)
+	LIST_FOREACH (l, &td->td_lprof[0], lpo_link)
 		printf("thread still holds lock acquired at %s:%d\n",
 		    l->lpo_file, l->lpo_line);
-	LIST_FOREACH(l, &td->td_lprof[1], lpo_link)
+	LIST_FOREACH (l, &td->td_lprof[1], lpo_link)
 		printf("thread still holds lock acquired at %s:%d\n",
 		    l->lpo_file, l->lpo_line);
 #endif
@@ -663,8 +663,8 @@ lock_profile_release_lock(struct lock_object *lo, bool spin)
 #ifdef LOCK_PROFILING_DEBUG_SPIN
 	bool is_spin = (LOCK_CLASS(lo)->lc_flags & LC_SPINLOCK);
 	if ((spin && !is_spin) || (!spin && is_spin))
-		printf("%s: lock %s spin mismatch (arg %d, flag %d)\n", __func__,
-		    lo->lo_name, spin, is_spin);
+		printf("%s: lock %s spin mismatch (arg %d, flag %d)\n",
+		    __func__, lo->lo_name, spin, is_spin);
 #endif
 
 	if (lo->lo_flags & LO_NOPROFILE)
@@ -682,7 +682,7 @@ lock_profile_release_lock(struct lock_object *lo, bool spin)
 	 * If lock profiling is not enabled we still want to remove the
 	 * lpo from our queue.
 	 */
-	LIST_FOREACH(l, head, lpo_link)
+	LIST_FOREACH (l, head, lpo_link)
 		if (l->lpo_obj == lo)
 			break;
 	if (l == NULL)
@@ -721,9 +721,8 @@ out:
 	critical_exit();
 }
 
-static SYSCTL_NODE(_debug_lock, OID_AUTO, prof,
-    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL,
-    "lock profiling");
+static SYSCTL_NODE(_debug_lock, OID_AUTO, prof, CTLFLAG_RD | CTLFLAG_MPSAFE,
+    NULL, "lock profiling");
 SYSCTL_INT(_debug_lock_prof, OID_AUTO, skipspin, CTLFLAG_RW,
     &lock_prof_skipspin, 0, "Skip profiling on spinlocks.");
 SYSCTL_INT(_debug_lock_prof, OID_AUTO, rejected, CTLFLAG_RD,
@@ -731,16 +730,13 @@ SYSCTL_INT(_debug_lock_prof, OID_AUTO, rejected, CTLFLAG_RD,
 SYSCTL_INT(_debug_lock_prof, OID_AUTO, contested_only, CTLFLAG_RW,
     &lock_contested_only, 0, "Only profile contested acquires");
 SYSCTL_PROC(_debug_lock_prof, OID_AUTO, stats,
-    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, 0,
-    dump_lock_prof_stats, "A",
-    "Lock profiling statistics");
+    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, 0, dump_lock_prof_stats,
+    "A", "Lock profiling statistics");
 SYSCTL_PROC(_debug_lock_prof, OID_AUTO, reset,
     CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, NULL, 0,
-    reset_lock_prof_stats, "I",
-    "Reset lock profiling statistics");
+    reset_lock_prof_stats, "I", "Reset lock profiling statistics");
 SYSCTL_PROC(_debug_lock_prof, OID_AUTO, enable,
-    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, NULL, 0,
-    enable_lock_prof, "I",
+    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, NULL, 0, enable_lock_prof, "I",
     "Enable lock profiling");
 
 #endif

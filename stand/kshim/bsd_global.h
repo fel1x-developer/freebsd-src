@@ -24,44 +24,44 @@
  */
 
 #ifndef _BSD_GLOBAL_H_
-#define	_BSD_GLOBAL_H_
-
-#include <bsd_kernel.h>
+#define _BSD_GLOBAL_H_
 
 #include <sys/gpio.h>
 
-#define	USB_DEBUG_VAR usb_debug
-#include <dev/usb/usb_freebsd_loader.h>
-#include <dev/usb/usb_endian.h>
+#include <bsd_kernel.h>
+
+#define USB_DEBUG_VAR usb_debug
+#include <dev/usb/controller/ehci.h>
+#include <dev/usb/controller/ehcireg.h>
+#include <dev/usb/quirk/usb_quirk.h>
+#include <dev/usb/template/usb_template.h>
 #include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
+#include <dev/usb/usb_bus.h>
+#include <dev/usb/usb_busdma.h>
+#include <dev/usb/usb_cdc.h>
+#include <dev/usb/usb_controller.h>
 #include <dev/usb/usb_core.h>
 #include <dev/usb/usb_debug.h>
-#include <dev/usb/usb_process.h>
-#include <dev/usb/usb_busdma.h>
-#include <dev/usb/usb_dynamic.h>
-#include <dev/usb/usb_transfer.h>
-#include <dev/usb/usb_device.h>
-#include <dev/usb/usb_hub.h>
-#include <dev/usb/usb_controller.h>
-#include <dev/usb/usb_bus.h>
-#include <dev/usb/usbdi_util.h>
-#include <dev/usb/usb_cdc.h>
 #include <dev/usb/usb_dev.h>
+#include <dev/usb/usb_device.h>
+#include <dev/usb/usb_dynamic.h>
+#include <dev/usb/usb_endian.h>
+#include <dev/usb/usb_freebsd_loader.h>
+#include <dev/usb/usb_generic.h>
+#include <dev/usb/usb_hub.h>
+#include <dev/usb/usb_ioctl.h>
 #include <dev/usb/usb_mbuf.h>
 #include <dev/usb/usb_msctest.h>
 #include <dev/usb/usb_pci.h>
 #include <dev/usb/usb_pf.h>
+#include <dev/usb/usb_process.h>
 #include <dev/usb/usb_request.h>
+#include <dev/usb/usb_transfer.h>
 #include <dev/usb/usb_util.h>
+#include <dev/usb/usbdi.h>
+#include <dev/usb/usbdi_util.h>
 #include <dev/usb/usbhid.h>
-#include <dev/usb/usb_ioctl.h>
-#include <dev/usb/usb_generic.h>
-#include <dev/usb/quirk/usb_quirk.h>
-#include <dev/usb/template/usb_template.h>
-#include <dev/usb/controller/ehci.h>
-#include <dev/usb/controller/ehcireg.h>
 
 extern struct usb_process usb_process[USB_PROC_MAX];
 
-#endif					/* _BSD_GLOBAL_H_ */
+#endif /* _BSD_GLOBAL_H_ */

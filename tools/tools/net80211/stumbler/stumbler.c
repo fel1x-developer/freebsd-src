@@ -24,32 +24,33 @@
  * SUCH DAMAGE.
  */
 #include <sys/types.h>
-#include <sys/socket.h>
+#include <sys/endian.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
+#include <sys/socket.h>
 #include <sys/time.h>
+
+#include <net/bpf.h>
+#include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_media.h>
-#include <net/bpf.h>
-#include <net80211/ieee80211_ioctl.h>
 #include <net80211/ieee80211.h>
-#include <net/ethernet.h>
+#include <net80211/ieee80211_ioctl.h>
 #include <net80211/ieee80211_radiotap.h>
-#include <sys/endian.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <curses.h>
-#include <signal.h>
-#include <unistd.h>
+
 #include <assert.h>
+#include <curses.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
-//int hopfreq = 3*1000; // ms
-int hopfreq = 500; // ms
-int sig_reset = 1*1000; // ms
-
+// int hopfreq = 3*1000; // ms
+int hopfreq = 500;	  // ms
+int sig_reset = 1 * 1000; // ms
 
 int ioctl_s = -1;
 int bpf_s = -1;
@@ -61,18 +62,17 @@ struct chan_info {
 	struct timeval last_hop;
 } chaninfo;
 
-
-#define CRYPT_NONE		0
-#define CRYPT_WEP		1
-#define CRYPT_WPA1		2
-#define CRYPT_WPA		3
-#define CRYPT_WPA1_TKIP		4
-#define CRYPT_WPA1_TKIP_PSK	5
-#define CRYPT_WPA1_CCMP		6
-#define CRYPT_WPA1_CCMP_PSK	7
-#define CRYPT_80211i		8
-#define CRYPT_80211i_TKIP	9
-#define CRYPT_80211i_TKIP_PSK	10
+#define CRYPT_NONE 0
+#define CRYPT_WEP 1
+#define CRYPT_WPA1 2
+#define CRYPT_WPA 3
+#define CRYPT_WPA1_TKIP 4
+#define CRYPT_WPA1_TKIP_PSK 5
+#define CRYPT_WPA1_CCMP 6
+#define CRYPT_WPA1_CCMP_PSK 7
+#define CRYPT_80211i 8
+#define CRYPT_80211i_TKIP 9
+#define CRYPT_80211i_TKIP_PSK 10
 
 struct node_info {
 	unsigned char mac[6];
@@ -87,12 +87,14 @@ struct node_info {
 
 	struct timeval seen;
 
-	struct node_info* prev;
-	struct node_info* next;
+	struct node_info *prev;
+	struct node_info *next;
 } *nodes = 0;
 
-void clean_crap() {
-	struct node_info* next;
+void
+clean_crap()
+{
+	struct node_info *next;
 
 	if (ioctl_s != -1)
 		close(ioctl_s);
@@ -106,17 +108,21 @@ void clean_crap() {
 	}
 }
 
-char* mac2str(unsigned char* mac) {
-        static char ret[6*3];
+char *
+mac2str(unsigned char *mac)
+{
+	static char ret[6 * 3];
 
-        sprintf(ret, "%.2X:%.2X:%.2X:%.2X:%.2X:%.2X",
-                mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+	sprintf(ret, "%.2X:%.2X:%.2X:%.2X:%.2X:%.2X", mac[0], mac[1], mac[2],
+	    mac[3], mac[4], mac[5]);
 
-        return ret;
+	return ret;
 }
 
-char* wep2str(int w) {
-	char* wep = 0;
+char *
+wep2str(int w)
+{
+	char *wep = 0;
 	static char res[14];
 
 	switch (w) {
@@ -127,11 +133,11 @@ char* wep2str(int w) {
 	case CRYPT_WEP:
 		wep = "WEP";
 		break;
-		
+
 	case CRYPT_WPA1:
 		wep = "WPA1";
 		break;
-	
+
 	case CRYPT_WPA:
 		wep = "WPA?";
 		break;
@@ -139,7 +145,7 @@ char* wep2str(int w) {
 	case CRYPT_WPA1_TKIP:
 		wep = "WPA1-TKIP";
 		break;
-	
+
 	case CRYPT_WPA1_TKIP_PSK:
 		wep = "WPA1-TKIP-PSK";
 		break;
@@ -159,7 +165,7 @@ char* wep2str(int w) {
 	case CRYPT_80211i_TKIP:
 		wep = "11i-TKIP";
 		break;
-	
+
 	case CRYPT_80211i_TKIP_PSK:
 		wep = "11i-TKIP-PSK";
 		break;
@@ -172,16 +178,18 @@ char* wep2str(int w) {
 	memset(res, ' ', sizeof(res));
 	assert(strlen(wep) < sizeof(res));
 	memcpy(res, wep, strlen(wep));
-	res[sizeof(res)-1] = 0;
+	res[sizeof(res) - 1] = 0;
 	return res;
 }
 
-char* ssid2str(struct node_info* node) {
+char *
+ssid2str(struct node_info *node)
+{
 	static char res[24];
 
 	memset(res, ' ', sizeof(res));
 	res[0] = '[';
-	strcpy(&res[sizeof(res)-2], "]");
+	strcpy(&res[sizeof(res) - 2], "]");
 
 	if (node->ap) {
 		int left = sizeof(res) - 3;
@@ -189,62 +197,68 @@ char* ssid2str(struct node_info* node) {
 		if (strlen(node->ssid) < left)
 			left = strlen(node->ssid);
 		memcpy(&res[1], node->ssid, left);
-	}	
-	else {
+	} else {
 		memcpy(&res[1], "<client>", 8);
 	}
 	return res;
 }
 
-void save_state() {
-	FILE* f;
-	struct node_info* node = nodes;
+void
+save_state()
+{
+	FILE *f;
+	struct node_info *node = nodes;
 
 	f = fopen("stumbler.log", "w");
 	if (!f) {
 		perror("fopen()");
 		exit(1);
-	}	
+	}
 
 	while (node) {
-		struct tm* t;
+		struct tm *t;
 		char tim[16];
 
-		t = localtime( (time_t*) &node->seen.tv_sec);
+		t = localtime((time_t *)&node->seen.tv_sec);
 		if (!t) {
 			perror("localtime()");
 			exit(1);
 		}
 		tim[0] = 0;
 		strftime(tim, sizeof(tim), "%H:%M:%S", t);
-	
-		fprintf(f, "%s %s %s %2d %s 0x%.2x\n", tim,
-			mac2str(node->mac), wep2str(node->wep),
-			node->chan, ssid2str(node), node->max);
 
-		node = node->next;	
+		fprintf(f, "%s %s %s %2d %s 0x%.2x\n", tim, mac2str(node->mac),
+		    wep2str(node->wep), node->chan, ssid2str(node), node->max);
+
+		node = node->next;
 	}
 
 	fclose(f);
 }
 
-void cleanup(int x) {
+void
+cleanup(int x)
+{
 	endwin();
 	clean_crap();
 	exit(0);
 }
 
-void die(int p, char* msg) {
+void
+die(int p, char *msg)
+{
 	endwin();
 	if (p)
 		perror(msg);
 	else
 		printf("%s\n", msg);
-	clean_crap();	
+	clean_crap();
 	exit(1);
 }
 
-void display_chan() {
+void
+display_chan()
+{
 	int x, y;
 	char tmp[3];
 
@@ -256,12 +270,14 @@ void display_chan() {
 	refresh();
 }
 
-void set_chan(int c) {
-        chaninfo.ireq.i_val = c;
+void
+set_chan(int c)
+{
+	chaninfo.ireq.i_val = c;
 
-        if (ioctl(ioctl_s, SIOCS80211, &chaninfo.ireq) == -1)
-                die(1, "ioctl(SIOCS80211) [chan]");
-        
+	if (ioctl(ioctl_s, SIOCS80211, &chaninfo.ireq) == -1)
+		die(1, "ioctl(SIOCS80211) [chan]");
+
 	chaninfo.chan = c;
 
 	if (gettimeofday(&chaninfo.last_hop, NULL) == -1)
@@ -270,73 +286,78 @@ void set_chan(int c) {
 	display_chan();
 }
 
-void setup_if(char *dev) {
-        struct ifreq ifr;
-        unsigned int flags;
+void
+setup_if(char *dev)
+{
+	struct ifreq ifr;
+	unsigned int flags;
 
-        // set chan
-        memset(&chaninfo.ireq, 0, sizeof(chaninfo.ireq));
-        strcpy(chaninfo.ireq.i_name, dev);
-        chaninfo.ireq.i_type = IEEE80211_IOC_CHANNEL;
+	// set chan
+	memset(&chaninfo.ireq, 0, sizeof(chaninfo.ireq));
+	strcpy(chaninfo.ireq.i_name, dev);
+	chaninfo.ireq.i_type = IEEE80211_IOC_CHANNEL;
 
-        set_chan(1);
+	set_chan(1);
 
-        // set iface up and promisc
-        memset(&ifr, 0, sizeof(ifr));
-        strcpy(ifr.ifr_name, dev);
-        if (ioctl(ioctl_s, SIOCGIFFLAGS, &ifr) == -1)
-                die(1, "ioctl(SIOCGIFFLAGS)");
-        
-        flags = (ifr.ifr_flags & 0xffff) | (ifr.ifr_flagshigh << 16);
-        flags |= IFF_UP | IFF_PPROMISC;
-        
-        memset(&ifr, 0, sizeof(ifr));
-        strcpy(ifr.ifr_name, dev);
-        ifr.ifr_flags = flags & 0xffff;
-        ifr.ifr_flagshigh = flags >> 16;
-        if (ioctl(ioctl_s, SIOCSIFFLAGS, &ifr) == -1)
-                die(1, "ioctl(SIOCSIFFLAGS)");
+	// set iface up and promisc
+	memset(&ifr, 0, sizeof(ifr));
+	strcpy(ifr.ifr_name, dev);
+	if (ioctl(ioctl_s, SIOCGIFFLAGS, &ifr) == -1)
+		die(1, "ioctl(SIOCGIFFLAGS)");
+
+	flags = (ifr.ifr_flags & 0xffff) | (ifr.ifr_flagshigh << 16);
+	flags |= IFF_UP | IFF_PPROMISC;
+
+	memset(&ifr, 0, sizeof(ifr));
+	strcpy(ifr.ifr_name, dev);
+	ifr.ifr_flags = flags & 0xffff;
+	ifr.ifr_flagshigh = flags >> 16;
+	if (ioctl(ioctl_s, SIOCSIFFLAGS, &ifr) == -1)
+		die(1, "ioctl(SIOCSIFFLAGS)");
 }
 
-void open_bpf(char *dev, int dlt) {
-        int i;
-        char buf[64];
-        int fd = -1;
-        struct ifreq ifr;
+void
+open_bpf(char *dev, int dlt)
+{
+	int i;
+	char buf[64];
+	int fd = -1;
+	struct ifreq ifr;
 
-        for(i = 0;i < 16; i++) {
-                sprintf(buf, "/dev/bpf%d", i);
+	for (i = 0; i < 16; i++) {
+		sprintf(buf, "/dev/bpf%d", i);
 
-                fd = open(buf, O_RDWR);
-                if(fd < 0) {
-                        if(errno != EBUSY)
-				die(1,"can't open /dev/bpf");
-                        continue;
-                }
-                else
-                        break;
-        }
+		fd = open(buf, O_RDWR);
+		if (fd < 0) {
+			if (errno != EBUSY)
+				die(1, "can't open /dev/bpf");
+			continue;
+		} else
+			break;
+	}
 
-        if(fd < 0)
-                die(1, "can't open /dev/bpf");
+	if (fd < 0)
+		die(1, "can't open /dev/bpf");
 
-        strncpy(ifr.ifr_name, dev, sizeof(ifr.ifr_name)-1);
-        ifr.ifr_name[sizeof(ifr.ifr_name)-1] = 0;
+	strncpy(ifr.ifr_name, dev, sizeof(ifr.ifr_name) - 1);
+	ifr.ifr_name[sizeof(ifr.ifr_name) - 1] = 0;
 
-        if(ioctl(fd, BIOCSETIF, &ifr) < 0)
-                die(1, "ioctl(BIOCSETIF)");
+	if (ioctl(fd, BIOCSETIF, &ifr) < 0)
+		die(1, "ioctl(BIOCSETIF)");
 
-        if (ioctl(fd, BIOCSDLT, &dlt) < 0)
-                die(1, "ioctl(BIOCSDLT)");
+	if (ioctl(fd, BIOCSDLT, &dlt) < 0)
+		die(1, "ioctl(BIOCSDLT)");
 
-        i = 1;
-        if(ioctl(fd, BIOCIMMEDIATE, &i) < 0)
-                die(1, "ioctl(BIOCIMMEDIATE)");
+	i = 1;
+	if (ioctl(fd, BIOCIMMEDIATE, &i) < 0)
+		die(1, "ioctl(BIOCIMMEDIATE)");
 
 	bpf_s = fd;
 }
 
-void user_input() {
+void
+user_input()
+{
 	static char chan[3];
 	static int pos = 0;
 	int c;
@@ -344,57 +365,59 @@ void user_input() {
 	c = getch();
 
 	switch (c) {
-		case 'w':
-			save_state();
-			break;
+	case 'w':
+		save_state();
+		break;
 
-		case 'q':
-			cleanup(0);
-			break;
+	case 'q':
+		cleanup(0);
+		break;
 
-		case 'c':
-			chaninfo.locked = !chaninfo.locked;
-			break;
+	case 'c':
+		chaninfo.locked = !chaninfo.locked;
+		break;
 
-		case ERR:
-			die(0, "getch()");
-			break;
+	case ERR:
+		die(0, "getch()");
+		break;
 
-		case '0':
-		case '1':
-		case '2':
-		case '3':
-		case '4':
-		case '5':
-		case '6':
-		case '7':
-		case '8':
-		case '9':
-			chan[pos++] = c;
-			if (pos == 2) {
-				int ch = atoi(chan);
-				if (ch <= 11 && ch >= 1) {
-					set_chan(atoi(chan));
-					chaninfo.locked = 1;
-				}	
-				pos = 0;
-			}	
-			break;
-
-		default:
+	case '0':
+	case '1':
+	case '2':
+	case '3':
+	case '4':
+	case '5':
+	case '6':
+	case '7':
+	case '8':
+	case '9':
+		chan[pos++] = c;
+		if (pos == 2) {
+			int ch = atoi(chan);
+			if (ch <= 11 && ch >= 1) {
+				set_chan(atoi(chan));
+				chaninfo.locked = 1;
+			}
 			pos = 0;
-			break;
-	}		
+		}
+		break;
+
+	default:
+		pos = 0;
+		break;
+	}
 }
 
-void display_node(struct node_info* node) {
+void
+display_node(struct node_info *node)
+{
 	int x = 0;
 	int y = 0;
 	int i;
 	char chan[3];
-	char* ssid = 0;
+	char *ssid = 0;
 	int sig, max, left, noise;
-	char* wep = 0;
+	char *wep = 0;
 
 	y = node->pos;
 	if (y == -1) // offscreen
@@ -404,14 +427,14 @@ void display_node(struct node_info* node) {
 
 	// MAC
 	mvaddstr(y, x, mac2str(node->mac));
-	x += 6*3;
+	x += 6 * 3;
 
 	// WEP
 	wep = wep2str(node->wep);
 	assert(wep);
 	mvaddstr(y, x, wep);
 	x += strlen(wep);
-	x++;	
+	x++;
 
 	// CHAN
 	sprintf(chan, "%.2d", node->chan);
@@ -427,29 +450,31 @@ void display_node(struct node_info* node) {
 
 	left = COLS - x - 1;
 
-	sig = (int)  ( ((double)node->signal)*left/100.0 );
-	noise=(int)  ( ((double)node->noise)*left/100.0 );
-	max = (int)  ( ((double)node->max)*left/100.0 );
+	sig = (int)(((double)node->signal) * left / 100.0);
+	noise = (int)(((double)node->noise) * left / 100.0);
+	max = (int)(((double)node->max) * left / 100.0);
 
 	// SIGNAL BAR
 	for (i = 0; i < noise; i++)
 		mvaddch(y, x++, 'N');
 
 	for (; i < sig; i++)
-		mvaddch(y,x++, 'X');
+		mvaddch(y, x++, 'X');
 
 	for (; i < max; i++)
-		mvaddch(y,x++, ' ');
-	mvaddch(y,x++, '|');
+		mvaddch(y, x++, ' ');
+	mvaddch(y, x++, '|');
 
-	for (; x < COLS-1; x++)
+	for (; x < COLS - 1; x++)
 		mvaddch(y, x, ' ');
 
-	assert (x <= COLS);
+	assert(x <= COLS);
 }
 
-void update_node(struct node_info* data) {
-	struct node_info* node;
+void
+update_node(struct node_info *data)
+{
+	struct node_info *node;
 	int sort = 0;
 
 	assert(data->signal <= 100);
@@ -458,7 +483,7 @@ void update_node(struct node_info* data) {
 
 	// first time [virgin]
 	if (!node) {
-		node = (struct node_info*) malloc(sizeof(struct node_info));
+		node = (struct node_info *)malloc(sizeof(struct node_info));
 		if (!node)
 			die(1, "malloc()");
 
@@ -474,15 +499,15 @@ void update_node(struct node_info* data) {
 
 		// end of chain
 		if (!node->next) {
-			node->next = (struct node_info*) 
-				      malloc(sizeof(struct node_info));
+			node->next = (struct node_info *)malloc(
+			    sizeof(struct node_info));
 			if (!node->next)
 				die(1, "malloc()");
-			
+
 			memset(node->next, 0, sizeof(*node->next));
 			memcpy(node->next->mac, data->mac, 6);
 			node->next->prev = node;
-			node->next->pos = node->pos+1;
+			node->next->pos = node->pos + 1;
 
 			node = node->next;
 			if (node->pos == LINES)
@@ -496,21 +521,21 @@ void update_node(struct node_info* data) {
 
 	// too many nodes for screen
 	if (sort) {
-		struct node_info* ni = nodes;
+		struct node_info *ni = nodes;
 
 		while (ni) {
 			if (ni->pos != -1)
 				ni->pos--;
 
-			display_node(ni);	
-			ni = ni->next;	
+			display_node(ni);
+			ni = ni->next;
 		}
 	}
-	
+
 	node->signal = data->signal;
 	if (data->signal > node->max)
 		node->max = data->signal;
-	
+
 	if (gettimeofday(&node->seen, NULL) == -1)
 		die(1, "gettimeofday()");
 
@@ -521,25 +546,24 @@ void update_node(struct node_info* data) {
 	if (data->wep != -1) {
 		// XXX LAME --- won't detect if AP changes WEP mode in
 		// beacons...
-		if (node->wep != CRYPT_WEP && 
-		    node->wep != CRYPT_NONE &&
+		if (node->wep != CRYPT_WEP && node->wep != CRYPT_NONE &&
 		    data->wep == CRYPT_WEP) {
-		}
-		else
+		} else
 			node->wep = data->wep;
-	}	
-	if (data->ap != -1)	
+	}
+	if (data->ap != -1)
 		node->ap = data->ap;
 
 	display_node(node);
 	refresh();
 }
 
-void get_beacon_info(unsigned char* data, int rd, 
-		     struct node_info* node) {
+void
+get_beacon_info(unsigned char *data, int rd, struct node_info *node)
+{
 
 	int blen = 8 + 2 + 2;
-	
+
 	strcpy(node->ssid, "<hidden>");
 	node->chan = 0;
 	node->wep = CRYPT_NONE;
@@ -553,70 +577,68 @@ void get_beacon_info(unsigned char* data, int rd,
 	rd -= blen;
 
 	while (rd > 2) {
-                int eid, elen;
+		int eid, elen;
 
-                eid = *data;
-                data++;
-                elen = *data;
-                data++;
-                rd -= 2;
+		eid = *data;
+		data++;
+		elen = *data;
+		data++;
+		rd -= 2;
 
 		// short!
-                if (rd < elen) {
-                        return;
-                }
+		if (rd < elen) {
+			return;
+		}
 
-                // ssid
-                if (eid == 0) {
+		// ssid
+		if (eid == 0) {
 			if (elen == 1 && data[0] == 0) {
-			// hidden
+				// hidden
+			} else {
+				memcpy(node->ssid, data, elen);
+				node->ssid[elen] = 0;
 			}
-			else {
-                        	memcpy(node->ssid, data, elen);
-                        	node->ssid[elen] = 0;
-			}	
-                }
-                // chan
-                else if(eid == 3) {
+		}
+		// chan
+		else if (eid == 3) {
 			// weird chan!
-                        if( elen != 1) 
+			if (elen != 1)
 				goto next;
 
-                        node->chan = *data;
-                }
-		// WPA 
+			node->chan = *data;
+		}
+		// WPA
 		else if (eid == 221 && node->wep == CRYPT_WEP) {
-			struct ieee80211_ie_wpa* wpa;
+			struct ieee80211_ie_wpa *wpa;
 
-			wpa = (struct ieee80211_ie_wpa*) data;
+			wpa = (struct ieee80211_ie_wpa *)data;
 			if (elen < 6)
 				goto next;
-			
+
 			if (!memcmp(wpa->wpa_oui, "\x00\x50\xf2", 3)) {
-			//	node->wep = CRYPT_WPA;
-			}	
-			else
+				//	node->wep = CRYPT_WPA;
+			} else
 				goto next;
 
 			if (wpa->wpa_type == WPA_OUI_TYPE &&
 			    le16toh(wpa->wpa_version) == WPA_VERSION) {
-			    	int cipher, auth;
-				unsigned char* ptr;
-				
+				int cipher, auth;
+				unsigned char *ptr;
+
 				node->wep = CRYPT_WPA1;
-				
+
 				if (elen < 12)
 					goto next;
 
-				cipher = ((unsigned char*) wpa->wpa_mcipher)[3];
+				cipher = ((unsigned char *)wpa->wpa_mcipher)[3];
 
-				ptr = (unsigned char*)wpa + 12 + 
-				      4 * le16toh(wpa->wpa_uciphercnt);
-				
+				ptr = (unsigned char *)wpa + 12 +
+				    4 * le16toh(wpa->wpa_uciphercnt);
+
 				if (elen < (ptr - data + 6))
 					goto next;
 
-				if ( *((unsigned short*) ptr) == 0)
+				if (*((unsigned short *)ptr) == 0)
 					goto next;
 
 				ptr += 2 + 3;
@@ -624,27 +646,26 @@ void get_beacon_info(unsigned char* data, int rd,
 
 				if (cipher == WPA_CSE_TKIP) {
 					node->wep = CRYPT_WPA1_TKIP;
-					
+
 					if (auth == WPA_ASE_8021X_PSK)
 						node->wep = CRYPT_WPA1_TKIP_PSK;
 				}
 
 				if (cipher == WPA_CSE_CCMP) {
 					node->wep = CRYPT_WPA1_CCMP;
-					
+
 					if (auth == WPA_ASE_8021X_PSK)
 						node->wep = CRYPT_WPA1_CCMP_PSK;
 				}
 			}
-		}
-		else if (eid == 48 && node->wep == CRYPT_WEP) {
-			unsigned char* ptr;
+		} else if (eid == 48 && node->wep == CRYPT_WEP) {
+			unsigned char *ptr;
 
 			// XXX no bounds checking
 			ptr = data;
 
 			if (ptr[0] == 1 && ptr[1] == 0) {
-				unsigned short* count;
+				unsigned short *count;
 				int cipher = 0;
 
 				ptr += 2;
@@ -656,62 +677,65 @@ void get_beacon_info(unsigned char* data, int rd,
 				}
 
 				ptr += 4;
-				count = (unsigned short*) ptr;
-				ptr +=2 + *count*4;
+				count = (unsigned short *)ptr;
+				ptr += 2 + *count * 4;
 
-				count = (unsigned short*) ptr;
+				count = (unsigned short *)ptr;
 				if (*count) {
 					ptr += 2;
 
-					if (!memcmp(ptr,"\x00\x0f\xac\x02", 4)) {
+					if (!memcmp(ptr, "\x00\x0f\xac\x02",
+						4)) {
 						if (cipher)
-							node->wep = CRYPT_80211i_TKIP_PSK;
+							node->wep =
+							    CRYPT_80211i_TKIP_PSK;
 					}
 				}
 			}
 		}
 
-next:
-                data += elen;
-                rd -= elen;
+	next:
+		data += elen;
+		rd -= elen;
 	}
 }
 
-int get_packet_info(struct ieee80211_frame* wh, 
-		     unsigned char* body, int bodylen,
-		     struct node_info* node) {
-	
+int
+get_packet_info(struct ieee80211_frame *wh, unsigned char *body, int bodylen,
+    struct node_info *node)
+{
+
 	int type, stype;
 
 	node->chan = chaninfo.chan;
 	node->wep = -1;
 	node->ssid[0] = 0;
 	node->ap = -1;
-	
+
 	type = wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK;
-	
+
 	if (type == IEEE80211_FC0_TYPE_CTL)
 		return 0;
 #if 0
 	if (wh->i_addr2[0] != 0) {
 		mvprintw(30,30,"%s %x",mac2str(wh->i_addr2), wh->i_fc[0]);
-	}	
+	}
 #endif
 
 	stype = wh->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK;
-	
+
 	if (type == IEEE80211_FC0_TYPE_MGT &&
 	    stype == IEEE80211_FC0_SUBTYPE_BEACON) {
 		get_beacon_info(body, bodylen, node);
 		node->ap = 1;
-	}	
+	}
 
 	else if (type == IEEE80211_FC0_TYPE_DATA &&
 	    stype == IEEE80211_FC0_SUBTYPE_DATA) {
-	
+
 		if (wh->i_fc[1] & IEEE80211_FC1_PROTECTED) {
-			unsigned char* iv;
-			
+			unsigned char *iv;
+
 			node->wep = CRYPT_WEP;
 
 			iv = body;
@@ -723,24 +747,26 @@ int get_packet_info(struct ieee80211_frame* wh,
 				node->wep = CRYPT_WPA;
 				mvprintw(20,20, "shei");
 				exit(1);
-#endif				
+#endif
 			}
-		}	
-	
+		}
+
 		if (wh->i_fc[1] & IEEE80211_FC1_DIR_FROMDS)
 			node->ap = 1;
 		else
 			node->ap = 0;
-	}    
-	
-	memcpy(node->mac, wh->i_addr2, 6);
-	return 1;	
-}		     
+	}
 
-void radiotap(unsigned char* data, int rd) {
-	struct ieee80211_radiotap_header* rth;
-	struct ieee80211_frame* wh;
-	char* body;
+	memcpy(node->mac, wh->i_addr2, 6);
+	return 1;
+}
+
+void
+radiotap(unsigned char *data, int rd)
+{
+	struct ieee80211_radiotap_header *rth;
+	struct ieee80211_frame *wh;
+	char *body;
 	struct node_info node;
 	int8_t signal_dbm, noise_dbm;
 	uint8_t signal_db, noise_db;
@@ -751,69 +777,68 @@ void radiotap(unsigned char* data, int rd) {
 	rd -= 4; // 802.11 CRC
 
 	// radiotap
-	rth = (struct ieee80211_radiotap_header*) data;
+	rth = (struct ieee80211_radiotap_header *)data;
 
 	// 802.11
-	wh = (struct ieee80211_frame*)
-	     ((char*)rth + rth->it_len);
-        rd -= rth->it_len;
+	wh = (struct ieee80211_frame *)((char *)rth + rth->it_len);
+	rd -= rth->it_len;
 
-	assert (rd >= 0);
+	assert(rd >= 0);
 
 	// body
-	body = (char*) wh + sizeof(*wh);
+	body = (char *)wh + sizeof(*wh);
 	rd -= sizeof(*wh);
 
 	if (!get_packet_info(wh, body, rd, &node))
 		return;
 
 	// signal and noise
-	body = (char*) rth + sizeof(*rth);
+	body = (char *)rth + sizeof(*rth);
 	signal_dbm = noise_dbm = signal_db = noise_db = 0;
 
 	for (i = IEEE80211_RADIOTAP_TSFT; i <= IEEE80211_RADIOTAP_EXT; i++) {
 		if (!(rth->it_present & (1 << i)))
 			continue;
-		
+
 		switch (i) {
 		case IEEE80211_RADIOTAP_TSFT:
 			body += sizeof(uint64_t);
 			break;
-		
+
 		case IEEE80211_RADIOTAP_FLAGS:
 		case IEEE80211_RADIOTAP_RATE:
 			body += sizeof(uint8_t);
 			break;
-		
+
 		case IEEE80211_RADIOTAP_CHANNEL:
-			body += sizeof(uint16_t)*2;
+			body += sizeof(uint16_t) * 2;
 			break;
-		
+
 		case IEEE80211_RADIOTAP_FHSS:
 			body += sizeof(uint16_t);
 			break;
-		
+
 		case IEEE80211_RADIOTAP_DBM_ANTSIGNAL:
 			signal_dbm = *body;
 			body++;
 			dbm = 1;
 			break;
-		
+
 		case IEEE80211_RADIOTAP_DBM_ANTNOISE:
 			noise_dbm = *body;
 			body++;
 			break;
-		
+
 		case IEEE80211_RADIOTAP_DB_ANTSIGNAL:
-			signal_db = *((unsigned char*)body);
+			signal_db = *((unsigned char *)body);
 			body++;
 			break;
 
 		case IEEE80211_RADIOTAP_DB_ANTNOISE:
-			noise_db = *((unsigned char*)body);
+			noise_db = *((unsigned char *)body);
 			body++;
 			break;
-		
+
 		case IEEE80211_RADIOTAP_EXT:
 			abort();
 			break;
@@ -821,8 +846,7 @@ void radiotap(unsigned char* data, int rd) {
 	}
 	if (dbm) {
 		signal = signal_dbm - noise_dbm;
-	}
-	else {
+	} else {
 		signal = signal_db - noise_db;
 	}
 	if (signal < 0)
@@ -832,58 +856,62 @@ void radiotap(unsigned char* data, int rd) {
 #if 0
 	if (node.signal > 100 || node.signal < 0) {
 		mvprintw(25,25, "sig=%d", node.signal);
-	}	
-#else		
-	assert (node.signal <= 100 && node.signal >= 0);
+	}
+#else
+	assert(node.signal <= 100 && node.signal >= 0);
 #endif
 
 	update_node(&node);
 }
 
-void bpf_input() {
+void
+bpf_input()
+{
 	static unsigned char buf[4096];
 	int rd;
-	struct bpf_hdr* bpfh;
-	unsigned char* data;
+	struct bpf_hdr *bpfh;
+	unsigned char *data;
 
 	rd = read(bpf_s, buf, sizeof(buf));
 	if (rd == -1)
-		die(1,"read()");
-	
-	bpfh = (struct bpf_hdr*) buf;
+		die(1, "read()");
+
+	bpfh = (struct bpf_hdr *)buf;
 	rd -= bpfh->bh_hdrlen;
 
 	if (rd != bpfh->bh_caplen) {
-		assert( rd > bpfh->bh_caplen);
+		assert(rd > bpfh->bh_caplen);
 		rd = bpfh->bh_caplen;
 	}
 
-	data = (unsigned char*) bpfh + bpfh->bh_hdrlen;
+	data = (unsigned char *)bpfh + bpfh->bh_hdrlen;
 	radiotap(data, rd);
 }
 
-unsigned long elapsed_ms(struct timeval* now, struct timeval* prev) {
+unsigned long
+elapsed_ms(struct timeval *now, struct timeval *prev)
+{
 	unsigned long elapsed = 0;
 
 	if (now->tv_sec > prev->tv_sec)
-		elapsed = 1000*1000 - prev->tv_usec +
-			  now->tv_usec;
+		elapsed = 1000 * 1000 - prev->tv_usec + now->tv_usec;
 	else {
 		assert(now->tv_sec == prev->tv_sec);
 		elapsed = now->tv_usec - prev->tv_usec;
-	}	
-	elapsed /= 1000; //ms
+	}
+	elapsed /= 1000; // ms
 
-	elapsed += (now->tv_sec - prev->tv_sec)*1000;
+	elapsed += (now->tv_sec - prev->tv_sec) * 1000;
 	return elapsed;
 }
 
-void chanhop(struct timeval* tv) {
+void
+chanhop(struct timeval *tv)
+{
 	unsigned long elapsed = 0;
 
 	if (gettimeofday(tv, NULL) == -1)
 		die(1, "gettimeofday()");
-
 
 	elapsed = elapsed_ms(tv, &chaninfo.last_hop);
 
@@ -899,33 +927,35 @@ void chanhop(struct timeval* tv) {
 		set_chan(c);
 
 		elapsed = hopfreq;
-	} 
+	}
 	// how much can we sleep?
 	else {
 		elapsed = hopfreq - elapsed;
 	}
 
 	// ok calculate sleeping time...
-	tv->tv_sec = elapsed/1000;
-	tv->tv_usec = (elapsed - tv->tv_sec*1000)*1000;
+	tv->tv_sec = elapsed / 1000;
+	tv->tv_usec = (elapsed - tv->tv_sec * 1000) * 1000;
 }
 
-void check_seen(struct timeval* tv) {
-	unsigned long elapsed  = 0;
+void
+check_seen(struct timeval *tv)
+{
+	unsigned long elapsed = 0;
 	struct timeval now;
 	int need_refresh = 0;
 	unsigned long min_wait = 0;
 	unsigned long will_wait;
 
-	will_wait = tv->tv_sec*1000+tv->tv_usec/1000;
+	will_wait = tv->tv_sec * 1000 + tv->tv_usec / 1000;
 	min_wait = will_wait;
 
-	struct node_info* node = nodes;
+	struct node_info *node = nodes;
 
 	if (gettimeofday(&now, NULL) == -1)
 		die(1, "gettimeofday()");
 
-	while(node) {
+	while (node) {
 		if (node->signal) {
 			elapsed = elapsed_ms(&now, &node->seen);
 
@@ -944,7 +974,7 @@ void check_seen(struct timeval* tv) {
 				if (left < min_wait)
 					left = min_wait;
 			}
-		}	
+		}
 		node = node->next;
 	}
 
@@ -953,12 +983,14 @@ void check_seen(struct timeval* tv) {
 
 	// need to sleep for less...
 	if (min_wait < will_wait) {
-		tv->tv_sec = min_wait/1000;
-		tv->tv_usec = (min_wait - tv->tv_sec*1000)*1000;
+		tv->tv_sec = min_wait / 1000;
+		tv->tv_usec = (min_wait - tv->tv_sec * 1000) * 1000;
 	}
 }
 
-void own(char* ifname) {
+void
+own(char *ifname)
+{
 	int rd;
 	fd_set fds;
 	struct timeval tv;
@@ -969,23 +1001,23 @@ void own(char* ifname) {
 	setup_if(ifname);
 	open_bpf(ifname, dlt);
 
-	while(1) {
+	while (1) {
 		// XXX innefficient all of this...
 		if (!chaninfo.locked)
 			chanhop(&tv);
 		else {
 			tv.tv_sec = 1;
 			tv.tv_usec = 0;
-		}	
+		}
 
 		// especially this...
-		check_seen(&tv);	
+		check_seen(&tv);
 
 		FD_ZERO(&fds);
 		FD_SET(0, &fds);
 		FD_SET(bpf_s, &fds);
 
-		rd = select(bpf_s+1, &fds,NULL , NULL, &tv);
+		rd = select(bpf_s + 1, &fds, NULL, NULL, &tv);
 		if (rd == -1)
 			die(1, "select()");
 		if (FD_ISSET(0, &fds))
@@ -995,7 +1027,9 @@ void own(char* ifname) {
 	}
 }
 
-void init_globals() {
+void
+init_globals()
+{
 	ioctl_s = socket(PF_INET, SOCK_DGRAM, 0);
 	if (ioctl_s == -1) {
 		perror("socket()");
@@ -1006,8 +1040,9 @@ void init_globals() {
 	chaninfo.chan = 0;
 }
 
-int main(int argc, char *argv[]) {
-
+int
+main(int argc, char *argv[])
+{
 
 	if (argc < 2) {
 		printf("Usage: %s <iface>\n", argv[0]);
@@ -1016,8 +1051,10 @@ int main(int argc, char *argv[]) {
 
 	init_globals();
 
-	initscr(); cbreak(); noecho();
-	
+	initscr();
+	cbreak();
+	noecho();
+
 	nonl();
 	intrflush(stdscr, FALSE);
 	keypad(stdscr, TRUE);
@@ -1029,7 +1066,7 @@ int main(int argc, char *argv[]) {
 
 	signal(SIGINT, cleanup);
 	signal(SIGTERM, cleanup);
-	
+
 	own(argv[1]);
 
 	cleanup(0);

@@ -58,34 +58,34 @@
 #define CSS_FWSK_PADDING_LEN 252
 #define CSS_SIGNATURE_LEN 256 // RSA2K
 
-#define ICP_QAT_CSS_FWSK_MODULUS_LEN(ID)                                       \
+#define ICP_QAT_CSS_FWSK_MODULUS_LEN(ID) \
 	(IS_QAT_GEN4(ID) ? DSS_FWSK_MODULUS_LEN : CSS_FWSK_MODULUS_LEN)
 
-#define ICP_QAT_CSS_FWSK_EXPONENT_LEN(ID)                                      \
+#define ICP_QAT_CSS_FWSK_EXPONENT_LEN(ID) \
 	(IS_QAT_GEN4(ID) ? DSS_FWSK_EXPONENT_LEN : CSS_FWSK_EXPONENT_LEN)
 
-#define ICP_QAT_CSS_FWSK_PAD_LEN(ID)                                           \
+#define ICP_QAT_CSS_FWSK_PAD_LEN(ID) \
 	(IS_QAT_GEN4(ID) ? DSS_FWSK_PADDING_LEN : CSS_FWSK_PADDING_LEN)
 
-#define ICP_QAT_CSS_FWSK_PUB_LEN(ID)                                           \
-	(ICP_QAT_CSS_FWSK_MODULUS_LEN(ID) +                                    \
-	 ICP_QAT_CSS_FWSK_EXPONENT_LEN(ID) + ICP_QAT_CSS_FWSK_PAD_LEN(ID))
+#define ICP_QAT_CSS_FWSK_PUB_LEN(ID)        \
+	(ICP_QAT_CSS_FWSK_MODULUS_LEN(ID) + \
+	    ICP_QAT_CSS_FWSK_EXPONENT_LEN(ID) + ICP_QAT_CSS_FWSK_PAD_LEN(ID))
 
-#define ICP_QAT_CSS_SIGNATURE_LEN(ID)                                          \
+#define ICP_QAT_CSS_SIGNATURE_LEN(ID) \
 	(IS_QAT_GEN4(ID) ? DSS_SIGNATURE_LEN : CSS_SIGNATURE_LEN)
 
-#define ICP_QAT_CSS_AE_IMG_LEN                                                 \
-	(sizeof(struct icp_qat_simg_ae_mode) + ICP_QAT_SIMG_AE_INIT_SEQ_LEN +  \
-	 ICP_QAT_SIMG_AE_INSTS_LEN)
-#define ICP_QAT_CSS_AE_SIMG_LEN(ID)                                            \
-	(sizeof(struct icp_qat_css_hdr) + ICP_QAT_CSS_FWSK_PUB_LEN(ID) +       \
-	 ICP_QAT_CSS_SIGNATURE_LEN(ID) + ICP_QAT_CSS_AE_IMG_LEN)
-#define ICP_QAT_AE_IMG_OFFSET(ID)                                              \
-	(sizeof(struct icp_qat_css_hdr) + ICP_QAT_CSS_FWSK_MODULUS_LEN(ID) +   \
-	 ICP_QAT_CSS_FWSK_EXPONENT_LEN(ID) + ICP_QAT_CSS_SIGNATURE_LEN(ID))
+#define ICP_QAT_CSS_AE_IMG_LEN                                                \
+	(sizeof(struct icp_qat_simg_ae_mode) + ICP_QAT_SIMG_AE_INIT_SEQ_LEN + \
+	    ICP_QAT_SIMG_AE_INSTS_LEN)
+#define ICP_QAT_CSS_AE_SIMG_LEN(ID)                                      \
+	(sizeof(struct icp_qat_css_hdr) + ICP_QAT_CSS_FWSK_PUB_LEN(ID) + \
+	    ICP_QAT_CSS_SIGNATURE_LEN(ID) + ICP_QAT_CSS_AE_IMG_LEN)
+#define ICP_QAT_AE_IMG_OFFSET(ID)                                            \
+	(sizeof(struct icp_qat_css_hdr) + ICP_QAT_CSS_FWSK_MODULUS_LEN(ID) + \
+	    ICP_QAT_CSS_FWSK_EXPONENT_LEN(ID) + ICP_QAT_CSS_SIGNATURE_LEN(ID))
 #define ICP_QAT_CSS_MAX_IMAGE_LEN 0x40000
 
-#define ICP_QAT_CTX_MODE(ae_mode) ((ae_mode)&0xf)
+#define ICP_QAT_CTX_MODE(ae_mode) ((ae_mode) & 0xf)
 #define ICP_QAT_NN_MODE(ae_mode) (((ae_mode) >> 0x4) & 0xf)
 #define ICP_QAT_SHARED_USTORE_MODE(ae_mode) (((ae_mode) >> 0xb) & 0x1)
 #define RELOADABLE_CTX_SHARED_MODE(ae_mode) (((ae_mode) >> 0xc) & 0x1)

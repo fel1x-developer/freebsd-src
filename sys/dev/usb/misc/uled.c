@@ -26,49 +26,49 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
-#include <sys/malloc.h>
-#include <sys/priv.h>
+#include <sys/condvar.h>
 #include <sys/conf.h>
 #include <sys/fcntl.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbhid.h>
+
 #include "usbdevs.h"
 
-#define	USB_DEBUG_VAR usb_debug
+#define USB_DEBUG_VAR usb_debug
+#include <dev/usb/uled_ioctl.h>
 #include <dev/usb/usb_debug.h>
 
-#include <dev/usb/uled_ioctl.h>
-
 struct uled_softc {
-	struct usb_fifo_sc	sc_fifo;
-	struct mtx		sc_mtx;
+	struct usb_fifo_sc sc_fifo;
+	struct mtx sc_mtx;
 
-	struct usb_device	*sc_udev;
-	struct uled_color	sc_color;
+	struct usb_device *sc_udev;
+	struct uled_color sc_color;
 
-	uint8_t			sc_state;
-#define	ULED_ENABLED	0x01
+	uint8_t sc_state;
+#define ULED_ENABLED 0x01
 
-	int			sc_flags;
-#define	ULED_FLAG_BLINK1	0x0001
+	int sc_flags;
+#define ULED_FLAG_BLINK1 0x0001
 };
 
 /* Initial commands. */
@@ -76,13 +76,13 @@ static uint8_t blink1[] = { 0x1, 'v', 0, 0, 0, 0, 0, 0 };
 static uint8_t dl100b[] = { 0x1f, 0x2, 0, 0x5f, 0, 0, 0x1a, 0x3 };
 
 /* Prototypes. */
-static device_probe_t	uled_probe;
-static device_attach_t	uled_attach;
-static device_detach_t	uled_detach;
+static device_probe_t uled_probe;
+static device_attach_t uled_attach;
+static device_detach_t uled_detach;
 
-static usb_fifo_open_t	uled_open;
-static usb_fifo_close_t	uled_close;
-static usb_fifo_ioctl_t	uled_ioctl;
+static usb_fifo_open_t uled_open;
+static usb_fifo_close_t uled_close;
+static usb_fifo_ioctl_t uled_ioctl;
 
 static struct usb_fifo_methods uled_fifo_methods = {
 	.f_open = &uled_open,
@@ -91,17 +91,15 @@ static struct usb_fifo_methods uled_fifo_methods = {
 	.basename[0] = "uled",
 };
 
-static usb_error_t	uled_ctrl_msg(struct uled_softc *, uint8_t, uint8_t,
-			    uint16_t, uint16_t, void *, uint16_t);
-static int		uled_enable(struct uled_softc *);
+static usb_error_t uled_ctrl_msg(struct uled_softc *, uint8_t, uint8_t,
+    uint16_t, uint16_t, void *, uint16_t);
+static int uled_enable(struct uled_softc *);
 
-static device_method_t uled_methods[] = {
-	DEVMETHOD(device_probe,		uled_probe),
-	DEVMETHOD(device_attach,	uled_attach),
-	DEVMETHOD(device_detach,	uled_detach),
+static device_method_t uled_methods[] = { DEVMETHOD(device_probe, uled_probe),
+	DEVMETHOD(device_attach, uled_attach),
+	DEVMETHOD(device_detach, uled_detach),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 static driver_t uled_driver = {
 	.name = "uled",
@@ -110,7 +108,10 @@ static driver_t uled_driver = {
 };
 
 static const STRUCT_USB_HOST_ID uled_devs[] = {
-#define	ULED_DEV(v,p,i)	{ USB_VPI(USB_VENDOR_##v, USB_PRODUCT_##v##_##p, i) }
+#define ULED_DEV(v, p, i)                                         \
+	{                                                         \
+		USB_VPI(USB_VENDOR_##v, USB_PRODUCT_##v##_##p, i) \
+	}
 	ULED_DEV(DREAMLINK, DL100B, 0),
 	ULED_DEV(THINGM, BLINK1, ULED_FLAG_BLINK1),
 #undef ULED_DEV
@@ -154,8 +155,8 @@ uled_attach(device_t dev)
 	sc->sc_udev = uaa->device;
 
 	error = usb_fifo_attach(uaa->device, sc, &sc->sc_mtx,
-	    &uled_fifo_methods, &sc->sc_fifo, unit, -1,
-	    uaa->info.bIfaceIndex, UID_ROOT, GID_OPERATOR, 0644);
+	    &uled_fifo_methods, &sc->sc_fifo, unit, -1, uaa->info.bIfaceIndex,
+	    UID_ROOT, GID_OPERATOR, 0644);
 	if (error != 0)
 		goto detach;
 
@@ -182,8 +183,8 @@ uled_detach(device_t dev)
 }
 
 static usb_error_t
-uled_ctrl_msg(struct uled_softc *sc, uint8_t rt, uint8_t reqno,
-    uint16_t value, uint16_t index, void *buf, uint16_t buflen)
+uled_ctrl_msg(struct uled_softc *sc, uint8_t rt, uint8_t reqno, uint16_t value,
+    uint16_t index, void *buf, uint16_t buflen)
 {
 	struct usb_device_request req;
 
@@ -193,8 +194,8 @@ uled_ctrl_msg(struct uled_softc *sc, uint8_t rt, uint8_t reqno,
 	USETW(req.wIndex, index);
 	USETW(req.wLength, buflen);
 
-	return (usbd_do_request_flags(sc->sc_udev, &sc->sc_mtx, &req, buf,
-	    0, NULL, 2000));
+	return (usbd_do_request_flags(sc->sc_udev, &sc->sc_mtx, &req, buf, 0,
+	    NULL, 2000));
 }
 
 static int
@@ -252,7 +253,7 @@ uled_ioctl(struct usb_fifo *fifo, u_long cmd, void *addr, int fflags)
 
 	mtx_lock(&sc->sc_mtx);
 
-	switch(cmd) {
+	switch (cmd) {
 	case ULED_GET_COLOR:
 		*(struct uled_color *)addr = sc->sc_color;
 		break;

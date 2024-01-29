@@ -31,84 +31,84 @@
 
 #include <sys/types.h>
 
-#include <stdbool.h>
 #include <regex.h>
+#include <stdbool.h>
 
 /*
  * Output format options
  */
-#define	D_NORMAL	0	/* Normal output */
-#define	D_EDIT		-1	/* Editor script out */
-#define	D_REVERSE	1	/* Reverse editor script */
-#define	D_CONTEXT	2	/* Diff with context */
-#define	D_UNIFIED	3	/* Unified context diff */
-#define	D_IFDEF		4	/* Diff with merged #ifdef's */
-#define	D_NREVERSE	5	/* Reverse ed script with numbered
-				   lines and no trailing . */
-#define	D_BRIEF		6	/* Say if the files differ */
-#define	D_GFORMAT	7	/* Diff with defined changed group format */
-#define D_SIDEBYSIDE    8	/* Side by side */
+#define D_NORMAL 0  /* Normal output */
+#define D_EDIT -1   /* Editor script out */
+#define D_REVERSE 1 /* Reverse editor script */
+#define D_CONTEXT 2 /* Diff with context */
+#define D_UNIFIED 3 /* Unified context diff */
+#define D_IFDEF 4   /* Diff with merged #ifdef's */
+#define D_NREVERSE                                        \
+	5	       /* Reverse ed script with numbered \
+			  lines and no trailing . */
+#define D_BRIEF 6      /* Say if the files differ */
+#define D_GFORMAT 7    /* Diff with defined changed group format */
+#define D_SIDEBYSIDE 8 /* Side by side */
 
-#define	D_UNSET		-2
-
+#define D_UNSET -2
 
 /*
  * Output flags
  */
-#define	D_HEADER	0x001	/* Print a header/footer between files */
-#define	D_EMPTY1	0x002	/* Treat first file as empty (/dev/null) */
-#define	D_EMPTY2	0x004	/* Treat second file as empty (/dev/null) */
+#define D_HEADER 0x001 /* Print a header/footer between files */
+#define D_EMPTY1 0x002 /* Treat first file as empty (/dev/null) */
+#define D_EMPTY2 0x004 /* Treat second file as empty (/dev/null) */
 
 /*
  * Command line flags
  */
-#define D_FORCEASCII		0x008	/* Treat file as ascii regardless of content */
-#define D_FOLDBLANKS		0x010	/* Treat all white space as equal */
-#define D_MINIMAL		0x020	/* Make diff as small as possible */
-#define D_IGNORECASE		0x040	/* Case-insensitive matching */
-#define D_PROTOTYPE		0x080	/* Display C function prototype */
-#define D_EXPANDTABS		0x100	/* Expand tabs to spaces */
-#define D_IGNOREBLANKS		0x200	/* Ignore white space changes */
-#define D_STRIPCR		0x400	/* Strip trailing cr */
-#define D_SKIPBLANKLINES	0x800	/* Skip blank lines */
-#define D_MATCHLAST		0x1000	/* Display last line matching provided regex */
+#define D_FORCEASCII 0x008     /* Treat file as ascii regardless of content */
+#define D_FOLDBLANKS 0x010     /* Treat all white space as equal */
+#define D_MINIMAL 0x020	       /* Make diff as small as possible */
+#define D_IGNORECASE 0x040     /* Case-insensitive matching */
+#define D_PROTOTYPE 0x080      /* Display C function prototype */
+#define D_EXPANDTABS 0x100     /* Expand tabs to spaces */
+#define D_IGNOREBLANKS 0x200   /* Ignore white space changes */
+#define D_STRIPCR 0x400	       /* Strip trailing cr */
+#define D_SKIPBLANKLINES 0x800 /* Skip blank lines */
+#define D_MATCHLAST 0x1000     /* Display last line matching provided regex */
 
 /*
  * Status values for print_status() and diffreg() return values
  */
-#define	D_SAME		0	/* Files are the same */
-#define	D_DIFFER	1	/* Files are different */
-#define	D_BINARY	2	/* Binary files are different */
-#define	D_MISMATCH1	3	/* path1 was a dir, path2 a file */
-#define	D_MISMATCH2	4	/* path1 was a file, path2 a dir */
-#define	D_SKIPPED1	5	/* path1 was a special file */
-#define	D_SKIPPED2	6	/* path2 was a special file */
-#define	D_ERROR		7	/* A file access error occurred */
+#define D_SAME 0      /* Files are the same */
+#define D_DIFFER 1    /* Files are different */
+#define D_BINARY 2    /* Binary files are different */
+#define D_MISMATCH1 3 /* path1 was a dir, path2 a file */
+#define D_MISMATCH2 4 /* path1 was a file, path2 a dir */
+#define D_SKIPPED1 5  /* path1 was a special file */
+#define D_SKIPPED2 6  /* path2 was a special file */
+#define D_ERROR 7     /* A file access error occurred */
 
 /*
  * Color options
  */
-#define COLORFLAG_NEVER		0
-#define COLORFLAG_AUTO		1
-#define COLORFLAG_ALWAYS	2
+#define COLORFLAG_NEVER 0
+#define COLORFLAG_AUTO 1
+#define COLORFLAG_ALWAYS 2
 
 struct excludes {
 	char *pattern;
 	struct excludes *next;
 };
 
-extern bool	lflag, Nflag, Pflag, rflag, sflag, Tflag, cflag;
-extern bool	ignore_file_case, suppress_common, color, noderef;
-extern int	diff_format, diff_context, status;
-extern int	tabsize, width;
-extern char	*start, *ifdefname, *diffargs, *label[2];
-extern char	*ignore_pats, *most_recent_pat;
-extern char	*group_format;
-extern const char	*add_code, *del_code;
-extern struct	stat stb1, stb2;
-extern struct	excludes *excludes_list;
-extern regex_t	ignore_re, most_recent_re;
+extern bool lflag, Nflag, Pflag, rflag, sflag, Tflag, cflag;
+extern bool ignore_file_case, suppress_common, color, noderef;
+extern int diff_format, diff_context, status;
+extern int tabsize, width;
+extern char *start, *ifdefname, *diffargs, *label[2];
+extern char *ignore_pats, *most_recent_pat;
+extern char *group_format;
+extern const char *add_code, *del_code;
+extern struct stat stb1, stb2;
+extern struct excludes *excludes_list;
+extern regex_t ignore_re, most_recent_re;
 
-int	diffreg(char *, char *, int, int);
-void	diffdir(char *, char *, int);
-void	print_status(int, char *, char *, const char *);
+int diffreg(char *, char *, int, int);
+void diffdir(char *, char *, int);
+void print_status(int, char *, char *, const char *);

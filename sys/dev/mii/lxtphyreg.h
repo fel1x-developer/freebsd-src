@@ -34,51 +34,51 @@
  */
 
 #ifndef _DEV_MII_LXTPHYREG_H_
-#define	_DEV_MII_LXTPHYREG_H_
+#define _DEV_MII_LXTPHYREG_H_
 
 /*
  * LXT970 registers.
  */
 
-#define	MII_LXTPHY_MIRROR	0x10	/* Mirror register */
-	/* All bits user-defined */
+#define MII_LXTPHY_MIRROR 0x10 /* Mirror register */
+			       /* All bits user-defined */
 
-#define	MII_LXTPHY_IER		0x11	/* Interrupt Enable Register */
-#define	IER_MIIDRVLVL		0x0008	/* Rediced MII driver levels */
-#define	IER_LNK_CRITERIA	0x0004	/* Enhanced Link Loss Criteria */
-#define	IER_INTEN		0x0002	/* Interrupt Enable */
-#define	IER_TINT		0x0001	/* Force Interrupt */
+#define MII_LXTPHY_IER 0x11	/* Interrupt Enable Register */
+#define IER_MIIDRVLVL 0x0008	/* Rediced MII driver levels */
+#define IER_LNK_CRITERIA 0x0004 /* Enhanced Link Loss Criteria */
+#define IER_INTEN 0x0002	/* Interrupt Enable */
+#define IER_TINT 0x0001		/* Force Interrupt */
 
-#define	MII_LXTPHY_ISR		0x12	/* Interrupt Status Register */
-#define	ISR_MINT		0x8000	/* MII Interrupt Pending */
-#define	ISR_XTALOK		0x4000	/* Clocks OK */
+#define MII_LXTPHY_ISR 0x12 /* Interrupt Status Register */
+#define ISR_MINT 0x8000	    /* MII Interrupt Pending */
+#define ISR_XTALOK 0x4000   /* Clocks OK */
 
-#define	MII_LXTPHY_CONFIG	0x13	/* Configuration Register */
-#define	CONFIG_TXMIT_TEST	0x4000	/* 100base-T Transmit Test */
-#define	CONFIG_REPEATER		0x2000	/* Repeater Mode */
-#define	CONFIG_MDIO_INT		0x1000	/* Enable intr signalling on MDIO */
-#define	CONFIG_TPLOOP		0x0800	/* Disable 10base-T Loopback */
-#define	CONFIG_SQE		0x0400	/* Enable SQE */
-#define	CONFIG_DISJABBER	0x0200	/* Disable Jabber */
-#define	CONFIG_DISLINKTEST	0x0100	/* Disable Link Test */
-#define	CONFIG_LEDC1		0x0080	/* LEDC configuration */
-#define	CONFIG_LEDC0		0x0040	/* ... */
-					/* 0 0 LEDC indicates collision */
-					/* 0 1 LEDC is off */
-					/* 1 0 LEDC indicates activity */
-					/* 1 1 LEDC is on */
-#define	CONFIG_ADVTXCLK		0x0020	/* Advance TX clock */
-#define	CONFIG_5BSYMBOL		0x0010	/* 5-bit Symbol mode */
-#define	CONFIG_SCRAMBLER	0x0008	/* Bypass scrambler */
-#define	CONFIG_100BASEFX	0x0004	/* 100base-FX */
-#define	CONFIG_TXDISCON		0x0001	/* Disconnect TP transmitter */
+#define MII_LXTPHY_CONFIG 0x13	  /* Configuration Register */
+#define CONFIG_TXMIT_TEST 0x4000  /* 100base-T Transmit Test */
+#define CONFIG_REPEATER 0x2000	  /* Repeater Mode */
+#define CONFIG_MDIO_INT 0x1000	  /* Enable intr signalling on MDIO */
+#define CONFIG_TPLOOP 0x0800	  /* Disable 10base-T Loopback */
+#define CONFIG_SQE 0x0400	  /* Enable SQE */
+#define CONFIG_DISJABBER 0x0200	  /* Disable Jabber */
+#define CONFIG_DISLINKTEST 0x0100 /* Disable Link Test */
+#define CONFIG_LEDC1 0x0080	  /* LEDC configuration */
+#define CONFIG_LEDC0 0x0040	  /* ... */
+				  /* 0 0 LEDC indicates collision */
+				  /* 0 1 LEDC is off */
+				  /* 1 0 LEDC indicates activity */
+				  /* 1 1 LEDC is on */
+#define CONFIG_ADVTXCLK 0x0020	  /* Advance TX clock */
+#define CONFIG_5BSYMBOL 0x0010	  /* 5-bit Symbol mode */
+#define CONFIG_SCRAMBLER 0x0008	  /* Bypass scrambler */
+#define CONFIG_100BASEFX 0x0004	  /* 100base-FX */
+#define CONFIG_TXDISCON 0x0001	  /* Disconnect TP transmitter */
 
-#define	MII_LXTPHY_CSR		0x14	/* Chip Status Register */
-#define	CSR_LINK		0x2000	/* Link is up */
-#define	CSR_DUPLEX		0x1000	/* Full-duplex */
-#define	CSR_SPEED		0x0800	/* 100Mbps */
-#define	CSR_ACOMP		0x0400	/* Autonegotiation complete */
-#define	CSR_PAGERCVD		0x0200	/* Link page received */
-#define	CSR_LOWVCC		0x0004	/* Low Voltage Fault */
+#define MII_LXTPHY_CSR 0x14 /* Chip Status Register */
+#define CSR_LINK 0x2000	    /* Link is up */
+#define CSR_DUPLEX 0x1000   /* Full-duplex */
+#define CSR_SPEED 0x0800    /* 100Mbps */
+#define CSR_ACOMP 0x0400    /* Autonegotiation complete */
+#define CSR_PAGERCVD 0x0200 /* Link page received */
+#define CSR_LOWVCC 0x0004   /* Low Voltage Fault */
 
 #endif /* _DEV_MII_LXTPHYREG_H_ */

@@ -33,26 +33,24 @@
  *
  * Include <stdlib.h> before <xlocale.h> to expose these.
  */
-double			 atof_l(const char *, locale_t);
-int			 atoi_l(const char *, locale_t);
-long			 atol_l(const char *, locale_t);
-long long		 atoll_l(const char *, locale_t);
-int			 mblen_l(const char *, size_t, locale_t);
-size_t			 mbstowcs_l(wchar_t * __restrict,
-			    const char * __restrict, size_t, locale_t);
-int			 mbtowc_l(wchar_t * __restrict,
-			    const char * __restrict, size_t, locale_t);
-double			 strtod_l(const char *, char **, locale_t);
-float			 strtof_l(const char *, char **, locale_t);
-long			 strtol_l(const char *, char **, int, locale_t);
-long double		 strtold_l(const char *, char **, locale_t);
-long long		 strtoll_l(const char *, char **, int, locale_t);
-unsigned long		 strtoul_l(const char *, char **, int, locale_t);
-unsigned long long	 strtoull_l(const char *, char **, int, locale_t);
-size_t			 wcstombs_l(char * __restrict,
-			    const wchar_t * __restrict, size_t, locale_t);
-int			 wctomb_l(char *, wchar_t, locale_t);
+double atof_l(const char *, locale_t);
+int atoi_l(const char *, locale_t);
+long atol_l(const char *, locale_t);
+long long atoll_l(const char *, locale_t);
+int mblen_l(const char *, size_t, locale_t);
+size_t mbstowcs_l(wchar_t *__restrict, const char *__restrict, size_t,
+    locale_t);
+int mbtowc_l(wchar_t *__restrict, const char *__restrict, size_t, locale_t);
+double strtod_l(const char *, char **, locale_t);
+float strtof_l(const char *, char **, locale_t);
+long strtol_l(const char *, char **, int, locale_t);
+long double strtold_l(const char *, char **, locale_t);
+long long strtoll_l(const char *, char **, int, locale_t);
+unsigned long strtoul_l(const char *, char **, int, locale_t);
+unsigned long long strtoull_l(const char *, char **, int, locale_t);
+size_t wcstombs_l(char *__restrict, const wchar_t *__restrict, size_t,
+    locale_t);
+int wctomb_l(char *, wchar_t, locale_t);
 
-int			 ___mb_cur_max_l(locale_t);
+int ___mb_cur_max_l(locale_t);
 #define MB_CUR_MAX_L(x) ((size_t)___mb_cur_max_l(x))
-

@@ -44,8 +44,8 @@
 #include <machine/cpufunc.h>
 #include <machine/resource.h>
 
-#include <dev/pci/pcivar.h>
 #include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include <opencrypto/cryptodev.h>
 #include <opencrypto/xform.h>
@@ -53,94 +53,94 @@
 #include "cryptodev_if.h"
 #include "glxsb.h"
 
-#define PCI_VENDOR_AMD			0x1022	/* AMD */
-#define PCI_PRODUCT_AMD_GEODE_LX_CRYPTO	0x2082	/* Geode LX Crypto */
+#define PCI_VENDOR_AMD 0x1022		       /* AMD */
+#define PCI_PRODUCT_AMD_GEODE_LX_CRYPTO 0x2082 /* Geode LX Crypto */
 
-#define SB_GLD_MSR_CAP		0x58002000	/* RO - Capabilities */
-#define SB_GLD_MSR_CONFIG	0x58002001	/* RW - Master Config */
-#define SB_GLD_MSR_SMI		0x58002002	/* RW - SMI */
-#define SB_GLD_MSR_ERROR	0x58002003	/* RW - Error */
-#define SB_GLD_MSR_PM		0x58002004	/* RW - Power Mgmt */
-#define SB_GLD_MSR_DIAG		0x58002005	/* RW - Diagnostic */
-#define SB_GLD_MSR_CTRL		0x58002006	/* RW - Security Block Cntrl */
+#define SB_GLD_MSR_CAP 0x58002000    /* RO - Capabilities */
+#define SB_GLD_MSR_CONFIG 0x58002001 /* RW - Master Config */
+#define SB_GLD_MSR_SMI 0x58002002    /* RW - SMI */
+#define SB_GLD_MSR_ERROR 0x58002003  /* RW - Error */
+#define SB_GLD_MSR_PM 0x58002004     /* RW - Power Mgmt */
+#define SB_GLD_MSR_DIAG 0x58002005   /* RW - Diagnostic */
+#define SB_GLD_MSR_CTRL 0x58002006   /* RW - Security Block Cntrl */
 
-						/* For GLD_MSR_CTRL: */
-#define SB_GMC_DIV0		0x0000		/* AES update divisor values */
-#define SB_GMC_DIV1		0x0001
-#define SB_GMC_DIV2		0x0002
-#define SB_GMC_DIV3		0x0003
-#define SB_GMC_DIV_MASK		0x0003
-#define SB_GMC_SBI		0x0004		/* AES swap bits */
-#define SB_GMC_SBY		0x0008		/* AES swap bytes */
-#define SB_GMC_TW		0x0010		/* Time write (EEPROM) */
-#define SB_GMC_T_SEL0		0x0000		/* RNG post-proc: none */
-#define SB_GMC_T_SEL1		0x0100		/* RNG post-proc: LFSR */
-#define SB_GMC_T_SEL2		0x0200		/* RNG post-proc: whitener */
-#define SB_GMC_T_SEL3		0x0300		/* RNG LFSR+whitener */
-#define SB_GMC_T_SEL_MASK	0x0300
-#define SB_GMC_T_NE		0x0400		/* Noise (generator) Enable */
-#define SB_GMC_T_TM		0x0800		/* RNG test mode */
-						/*     (deterministic) */
+/* For GLD_MSR_CTRL: */
+#define SB_GMC_DIV0 0x0000 /* AES update divisor values */
+#define SB_GMC_DIV1 0x0001
+#define SB_GMC_DIV2 0x0002
+#define SB_GMC_DIV3 0x0003
+#define SB_GMC_DIV_MASK 0x0003
+#define SB_GMC_SBI 0x0004    /* AES swap bits */
+#define SB_GMC_SBY 0x0008    /* AES swap bytes */
+#define SB_GMC_TW 0x0010     /* Time write (EEPROM) */
+#define SB_GMC_T_SEL0 0x0000 /* RNG post-proc: none */
+#define SB_GMC_T_SEL1 0x0100 /* RNG post-proc: LFSR */
+#define SB_GMC_T_SEL2 0x0200 /* RNG post-proc: whitener */
+#define SB_GMC_T_SEL3 0x0300 /* RNG LFSR+whitener */
+#define SB_GMC_T_SEL_MASK 0x0300
+#define SB_GMC_T_NE 0x0400 /* Noise (generator) Enable */
+#define SB_GMC_T_TM 0x0800 /* RNG test mode */
+			   /*     (deterministic) */
 
 /* Security Block configuration/control registers (offsets from base) */
-#define SB_CTL_A		0x0000		/* RW - SB Control A */
-#define SB_CTL_B		0x0004		/* RW - SB Control B */
-#define SB_AES_INT		0x0008		/* RW - SB AES Interrupt */
-#define SB_SOURCE_A		0x0010		/* RW - Source A */
-#define SB_DEST_A		0x0014		/* RW - Destination A */
-#define SB_LENGTH_A		0x0018		/* RW - Length A */
-#define SB_SOURCE_B		0x0020		/* RW - Source B */
-#define SB_DEST_B		0x0024		/* RW - Destination B */
-#define SB_LENGTH_B		0x0028		/* RW - Length B */
-#define SB_WKEY			0x0030		/* WO - Writable Key 0-3 */
-#define SB_WKEY_0		0x0030		/* WO - Writable Key 0 */
-#define SB_WKEY_1		0x0034		/* WO - Writable Key 1 */
-#define SB_WKEY_2		0x0038		/* WO - Writable Key 2 */
-#define SB_WKEY_3		0x003C		/* WO - Writable Key 3 */
-#define SB_CBC_IV		0x0040		/* RW - CBC IV 0-3 */
-#define SB_CBC_IV_0		0x0040		/* RW - CBC IV 0 */
-#define SB_CBC_IV_1		0x0044		/* RW - CBC IV 1 */
-#define SB_CBC_IV_2		0x0048		/* RW - CBC IV 2 */
-#define SB_CBC_IV_3		0x004C		/* RW - CBC IV 3 */
-#define SB_RANDOM_NUM		0x0050		/* RW - Random Number */
-#define SB_RANDOM_NUM_STATUS	0x0054		/* RW - Random Number Status */
-#define SB_EEPROM_COMM		0x0800		/* RW - EEPROM Command */
-#define SB_EEPROM_ADDR		0x0804		/* RW - EEPROM Address */
-#define SB_EEPROM_DATA		0x0808		/* RW - EEPROM Data */
-#define SB_EEPROM_SEC_STATE	0x080C		/* RW - EEPROM Security State */
+#define SB_CTL_A 0x0000		    /* RW - SB Control A */
+#define SB_CTL_B 0x0004		    /* RW - SB Control B */
+#define SB_AES_INT 0x0008	    /* RW - SB AES Interrupt */
+#define SB_SOURCE_A 0x0010	    /* RW - Source A */
+#define SB_DEST_A 0x0014	    /* RW - Destination A */
+#define SB_LENGTH_A 0x0018	    /* RW - Length A */
+#define SB_SOURCE_B 0x0020	    /* RW - Source B */
+#define SB_DEST_B 0x0024	    /* RW - Destination B */
+#define SB_LENGTH_B 0x0028	    /* RW - Length B */
+#define SB_WKEY 0x0030		    /* WO - Writable Key 0-3 */
+#define SB_WKEY_0 0x0030	    /* WO - Writable Key 0 */
+#define SB_WKEY_1 0x0034	    /* WO - Writable Key 1 */
+#define SB_WKEY_2 0x0038	    /* WO - Writable Key 2 */
+#define SB_WKEY_3 0x003C	    /* WO - Writable Key 3 */
+#define SB_CBC_IV 0x0040	    /* RW - CBC IV 0-3 */
+#define SB_CBC_IV_0 0x0040	    /* RW - CBC IV 0 */
+#define SB_CBC_IV_1 0x0044	    /* RW - CBC IV 1 */
+#define SB_CBC_IV_2 0x0048	    /* RW - CBC IV 2 */
+#define SB_CBC_IV_3 0x004C	    /* RW - CBC IV 3 */
+#define SB_RANDOM_NUM 0x0050	    /* RW - Random Number */
+#define SB_RANDOM_NUM_STATUS 0x0054 /* RW - Random Number Status */
+#define SB_EEPROM_COMM 0x0800	    /* RW - EEPROM Command */
+#define SB_EEPROM_ADDR 0x0804	    /* RW - EEPROM Address */
+#define SB_EEPROM_DATA 0x0808	    /* RW - EEPROM Data */
+#define SB_EEPROM_SEC_STATE 0x080C  /* RW - EEPROM Security State */
 
-						/* For SB_CTL_A and _B */
-#define SB_CTL_ST		0x0001		/* Start operation (enc/dec) */
-#define SB_CTL_ENC		0x0002		/* Encrypt (0 is decrypt) */
-#define SB_CTL_DEC		0x0000		/* Decrypt */
-#define SB_CTL_WK		0x0004		/* Use writable key (we set) */
-#define SB_CTL_DC		0x0008		/* Destination coherent */
-#define SB_CTL_SC		0x0010		/* Source coherent */
-#define SB_CTL_CBC		0x0020		/* CBC (0 is ECB) */
+/* For SB_CTL_A and _B */
+#define SB_CTL_ST 0x0001  /* Start operation (enc/dec) */
+#define SB_CTL_ENC 0x0002 /* Encrypt (0 is decrypt) */
+#define SB_CTL_DEC 0x0000 /* Decrypt */
+#define SB_CTL_WK 0x0004  /* Use writable key (we set) */
+#define SB_CTL_DC 0x0008  /* Destination coherent */
+#define SB_CTL_SC 0x0010  /* Source coherent */
+#define SB_CTL_CBC 0x0020 /* CBC (0 is ECB) */
 
-						/* For SB_AES_INT */
-#define SB_AI_DISABLE_AES_A	0x0001		/* Disable AES A compl int */
-#define SB_AI_ENABLE_AES_A	0x0000		/* Enable AES A compl int */
-#define SB_AI_DISABLE_AES_B	0x0002		/* Disable AES B compl int */
-#define SB_AI_ENABLE_AES_B	0x0000		/* Enable AES B compl int */
-#define SB_AI_DISABLE_EEPROM	0x0004		/* Disable EEPROM op comp int */
-#define SB_AI_ENABLE_EEPROM	0x0000		/* Enable EEPROM op compl int */
-#define SB_AI_AES_A_COMPLETE   0x10000		/* AES A operation complete */
-#define SB_AI_AES_B_COMPLETE   0x20000		/* AES B operation complete */
-#define SB_AI_EEPROM_COMPLETE  0x40000		/* EEPROM operation complete */
+/* For SB_AES_INT */
+#define SB_AI_DISABLE_AES_A 0x0001    /* Disable AES A compl int */
+#define SB_AI_ENABLE_AES_A 0x0000     /* Enable AES A compl int */
+#define SB_AI_DISABLE_AES_B 0x0002    /* Disable AES B compl int */
+#define SB_AI_ENABLE_AES_B 0x0000     /* Enable AES B compl int */
+#define SB_AI_DISABLE_EEPROM 0x0004   /* Disable EEPROM op comp int */
+#define SB_AI_ENABLE_EEPROM 0x0000    /* Enable EEPROM op compl int */
+#define SB_AI_AES_A_COMPLETE 0x10000  /* AES A operation complete */
+#define SB_AI_AES_B_COMPLETE 0x20000  /* AES B operation complete */
+#define SB_AI_EEPROM_COMPLETE 0x40000 /* EEPROM operation complete */
 
-#define SB_AI_CLEAR_INTR \
-	(SB_AI_DISABLE_AES_A | SB_AI_DISABLE_AES_B |\
-	SB_AI_DISABLE_EEPROM | SB_AI_AES_A_COMPLETE |\
-	SB_AI_AES_B_COMPLETE | SB_AI_EEPROM_COMPLETE)
+#define SB_AI_CLEAR_INTR                                                    \
+	(SB_AI_DISABLE_AES_A | SB_AI_DISABLE_AES_B | SB_AI_DISABLE_EEPROM | \
+	    SB_AI_AES_A_COMPLETE | SB_AI_AES_B_COMPLETE |                   \
+	    SB_AI_EEPROM_COMPLETE)
 
-#define SB_RNS_TRNG_VALID	0x0001		/* in SB_RANDOM_NUM_STATUS */
+#define SB_RNS_TRNG_VALID 0x0001 /* in SB_RANDOM_NUM_STATUS */
 
-#define SB_MEM_SIZE		0x0810		/* Size of memory block */
+#define SB_MEM_SIZE 0x0810 /* Size of memory block */
 
-#define SB_AES_ALIGN		0x0010		/* Source and dest buffers */
-						/* must be 16-byte aligned */
-#define SB_AES_BLOCK_SIZE	0x0010
+#define SB_AES_ALIGN 0x0010 /* Source and dest buffers */
+			    /* must be 16-byte aligned */
+#define SB_AES_BLOCK_SIZE 0x0010
 
 /*
  * The Geode LX security block AES acceleration doesn't perform scatter-
@@ -152,38 +152,38 @@
  * and output) then we have to perform multiple encryptions/decryptions.
  */
 
-#define GLXSB_MAX_AES_LEN	16384
+#define GLXSB_MAX_AES_LEN 16384
 
 MALLOC_DEFINE(M_GLXSB, "glxsb_data", "Glxsb Data");
 
 struct glxsb_dma_map {
-	bus_dmamap_t		dma_map;	/* DMA map */
-	bus_dma_segment_t	dma_seg;	/* segments */
-	int			dma_nsegs;	/* #segments */
-	int			dma_size;	/* size */
-	caddr_t			dma_vaddr;	/* virtual address */
-	bus_addr_t		dma_paddr;	/* physical address */
+	bus_dmamap_t dma_map;	   /* DMA map */
+	bus_dma_segment_t dma_seg; /* segments */
+	int dma_nsegs;		   /* #segments */
+	int dma_size;		   /* size */
+	caddr_t dma_vaddr;	   /* virtual address */
+	bus_addr_t dma_paddr;	   /* physical address */
 };
 
 struct glxsb_taskop {
-	struct glxsb_session	*to_ses;	/* crypto session */
-	struct cryptop		*to_crp;	/* cryptop to perfom */
+	struct glxsb_session *to_ses; /* crypto session */
+	struct cryptop *to_crp;	      /* cryptop to perfom */
 };
 
 struct glxsb_softc {
-	device_t		sc_dev;		/* device backpointer */
-	struct resource		*sc_sr;		/* resource */
-	int			sc_rid;		/* resource rid */
-	struct callout		sc_rngco;	/* RNG callout */
-	int			sc_rnghz;	/* RNG callout ticks */
-	bus_dma_tag_t		sc_dmat;	/* DMA tag */
-	struct glxsb_dma_map	sc_dma;		/* DMA map */
-	int32_t			sc_cid;		/* crypto tag */
-	struct mtx		sc_task_mtx;	/* task mutex */
-	struct taskqueue	*sc_tq;		/* task queue */
-	struct task		sc_cryptotask;	/* task */
-	struct glxsb_taskop	sc_to;		/* task's crypto operation */
-	int			sc_task_count;	/* tasks count */
+	device_t sc_dev;	     /* device backpointer */
+	struct resource *sc_sr;	     /* resource */
+	int sc_rid;		     /* resource rid */
+	struct callout sc_rngco;     /* RNG callout */
+	int sc_rnghz;		     /* RNG callout ticks */
+	bus_dma_tag_t sc_dmat;	     /* DMA tag */
+	struct glxsb_dma_map sc_dma; /* DMA map */
+	int32_t sc_cid;		     /* crypto tag */
+	struct mtx sc_task_mtx;	     /* task mutex */
+	struct taskqueue *sc_tq;     /* task queue */
+	struct task sc_cryptotask;   /* task */
+	struct glxsb_taskop sc_to;   /* task's crypto operation */
+	int sc_task_count;	     /* tasks count */
 };
 
 static int glxsb_probe(device_t);
@@ -191,47 +191,44 @@ static int glxsb_attach(device_t);
 static int glxsb_detach(device_t);
 
 static void glxsb_dmamap_cb(void *, bus_dma_segment_t *, int, int);
-static int  glxsb_dma_alloc(struct glxsb_softc *);
+static int glxsb_dma_alloc(struct glxsb_softc *);
 static void glxsb_dma_pre_op(struct glxsb_softc *, struct glxsb_dma_map *);
 static void glxsb_dma_post_op(struct glxsb_softc *, struct glxsb_dma_map *);
 static void glxsb_dma_free(struct glxsb_softc *, struct glxsb_dma_map *);
 
 static void glxsb_rnd(void *);
-static int  glxsb_crypto_setup(struct glxsb_softc *);
-static int  glxsb_crypto_probesession(device_t,
-	const struct crypto_session_params *);
-static int  glxsb_crypto_newsession(device_t, crypto_session_t,
-	const struct crypto_session_params *);
+static int glxsb_crypto_setup(struct glxsb_softc *);
+static int glxsb_crypto_probesession(device_t,
+    const struct crypto_session_params *);
+static int glxsb_crypto_newsession(device_t, crypto_session_t,
+    const struct crypto_session_params *);
 static void glxsb_crypto_freesession(device_t, crypto_session_t);
-static int  glxsb_aes(struct glxsb_softc *, uint32_t, uint32_t,
-	uint32_t, const void *, int, const void *);
+static int glxsb_aes(struct glxsb_softc *, uint32_t, uint32_t, uint32_t,
+    const void *, int, const void *);
 
-static int  glxsb_crypto_encdec(struct cryptop *, struct glxsb_session *,
-	struct glxsb_softc *);
+static int glxsb_crypto_encdec(struct cryptop *, struct glxsb_session *,
+    struct glxsb_softc *);
 
 static void glxsb_crypto_task(void *, int);
-static int  glxsb_crypto_process(device_t, struct cryptop *, int);
+static int glxsb_crypto_process(device_t, struct cryptop *, int);
 
 static device_method_t glxsb_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		glxsb_probe),
-	DEVMETHOD(device_attach,	glxsb_attach),
-	DEVMETHOD(device_detach,	glxsb_detach),
+	DEVMETHOD(device_probe, glxsb_probe),
+	DEVMETHOD(device_attach, glxsb_attach),
+	DEVMETHOD(device_detach, glxsb_detach),
 
 	/* crypto device methods */
-	DEVMETHOD(cryptodev_probesession,	glxsb_crypto_probesession),
-	DEVMETHOD(cryptodev_newsession,		glxsb_crypto_newsession),
-	DEVMETHOD(cryptodev_freesession,	glxsb_crypto_freesession),
-	DEVMETHOD(cryptodev_process,		glxsb_crypto_process),
+	DEVMETHOD(cryptodev_probesession, glxsb_crypto_probesession),
+	DEVMETHOD(cryptodev_newsession, glxsb_crypto_newsession),
+	DEVMETHOD(cryptodev_freesession, glxsb_crypto_freesession),
+	DEVMETHOD(cryptodev_process, glxsb_crypto_process),
 
-	{0,0}
+	{ 0, 0 }
 };
 
-static driver_t glxsb_driver = {
-	"glxsb",
-	glxsb_methods,
-	sizeof(struct glxsb_softc)
-};
+static driver_t glxsb_driver = { "glxsb", glxsb_methods,
+	sizeof(struct glxsb_softc) };
 
 DRIVER_MODULE(glxsb, pci, glxsb_driver, 0, 0);
 MODULE_VERSION(glxsb, 1);
@@ -308,7 +305,7 @@ glxsb_attach(device_t dev)
 		goto fail0;
 	}
 	if (taskqueue_start_threads(&sc->sc_tq, 1, PI_NET, "%s taskq",
-	    device_get_nameunit(dev)) != 0) {
+		device_get_nameunit(dev)) != 0) {
 		device_printf(dev, "cannot start task queue\n");
 		goto fail1;
 	}
@@ -359,7 +356,7 @@ static void
 glxsb_dmamap_cb(void *arg, bus_dma_segment_t *seg, int nseg, int error)
 {
 
-	bus_addr_t *paddr = (bus_addr_t*) arg;
+	bus_addr_t *paddr = (bus_addr_t *)arg;
 	*paddr = seg[0].ds_addr;
 }
 
@@ -373,20 +370,19 @@ glxsb_dma_alloc(struct glxsb_softc *sc)
 	dma->dma_size = GLXSB_MAX_AES_LEN * 2;
 
 	/* Setup DMA descriptor area */
-	rc = bus_dma_tag_create(bus_get_dma_tag(sc->sc_dev),	/* parent */
-				SB_AES_ALIGN, 0,	/* alignments, bounds */
-				BUS_SPACE_MAXADDR_32BIT,/* lowaddr */
-				BUS_SPACE_MAXADDR,	/* highaddr */
-				NULL, NULL,		/* filter, filterarg */
-				dma->dma_size,		/* maxsize */
-				dma->dma_nsegs,		/* nsegments */
-				dma->dma_size,		/* maxsegsize */
-				BUS_DMA_ALLOCNOW,	/* flags */
-				NULL, NULL,		/* lockfunc, lockarg */
-				&sc->sc_dmat);
+	rc = bus_dma_tag_create(bus_get_dma_tag(sc->sc_dev), /* parent */
+	    SB_AES_ALIGN, 0,	     /* alignments, bounds */
+	    BUS_SPACE_MAXADDR_32BIT, /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filter, filterarg */
+	    dma->dma_size,	     /* maxsize */
+	    dma->dma_nsegs,	     /* nsegments */
+	    dma->dma_size,	     /* maxsegsize */
+	    BUS_DMA_ALLOCNOW,	     /* flags */
+	    NULL, NULL,		     /* lockfunc, lockarg */
+	    &sc->sc_dmat);
 	if (rc != 0) {
-		device_printf(sc->sc_dev,
-		    "cannot allocate DMA tag (%d)\n", rc);
+		device_printf(sc->sc_dev, "cannot allocate DMA tag (%d)\n", rc);
 		return (rc);
 	}
 
@@ -395,7 +391,7 @@ glxsb_dma_alloc(struct glxsb_softc *sc)
 	if (rc != 0) {
 		device_printf(sc->sc_dev,
 		    "cannot allocate DMA memory of %d bytes (%d)\n",
-			dma->dma_size, rc);
+		    dma->dma_size, rc);
 		goto fail0;
 	}
 
@@ -403,8 +399,8 @@ glxsb_dma_alloc(struct glxsb_softc *sc)
 	    dma->dma_size, glxsb_dmamap_cb, &dma->dma_paddr, BUS_DMA_NOWAIT);
 	if (rc != 0) {
 		device_printf(sc->sc_dev,
-		    "cannot load DMA memory for %d bytes (%d)\n",
-		   dma->dma_size, rc);
+		    "cannot load DMA memory for %d bytes (%d)\n", dma->dma_size,
+		    rc);
 		goto fail1;
 	}
 
@@ -610,7 +606,7 @@ glxsb_aes(struct glxsb_softc *sc, uint32_t control, uint32_t psrc,
 
 	for (i = 0; i < GLXSB_MAX_AES_LEN * 10; i++) {
 		status = bus_read_4(sc->sc_sr, SB_CTL_A);
-		if ((status & SB_CTL_ST) == 0)		/* Done */
+		if ((status & SB_CTL_ST) == 0) /* Done */
 			return (0);
 	}
 
@@ -636,7 +632,8 @@ glxsb_crypto_encdec(struct cryptop *crp, struct glxsb_session *ses,
 
 	/* How much of our buffer will we need to use? */
 	xlen = crp->crp_payload_length > GLXSB_MAX_AES_LEN ?
-	    GLXSB_MAX_AES_LEN : crp->crp_payload_length;
+	    GLXSB_MAX_AES_LEN :
+	    crp->crp_payload_length;
 
 	/*
 	 * XXX Check if we can have input == output on Geode LX.
@@ -654,7 +651,7 @@ glxsb_crypto_encdec(struct cryptop *crp, struct glxsb_session *ses,
 		control = SB_CTL_DEC;
 
 	crypto_read_iv(crp, op_iv);
-	
+
 	offset = 0;
 	tlen = crp->crp_payload_length;
 
@@ -763,5 +760,5 @@ glxsb_crypto_process(device_t dev, struct cryptop *crp, int hint)
 	mtx_unlock(&sc->sc_task_mtx);
 
 	taskqueue_enqueue(sc->sc_tq, &sc->sc_cryptotask);
-	return(0);
+	return (0);
 }

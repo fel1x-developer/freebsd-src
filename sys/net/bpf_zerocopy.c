@@ -29,9 +29,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_bpf.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
@@ -42,19 +42,19 @@
 #include <sys/socket.h>
 #include <sys/uio.h>
 
-#include <machine/atomic.h>
-
-#include <net/if.h>
-#include <net/bpf.h>
-#include <net/bpf_zerocopy.h>
-#include <net/bpfdesc.h>
-
 #include <vm/vm.h>
-#include <vm/vm_param.h>
 #include <vm/pmap.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_map.h>
 #include <vm/vm_page.h>
+#include <vm/vm_param.h>
+
+#include <machine/atomic.h>
+
+#include <net/bpf.h>
+#include <net/bpf_zerocopy.h>
+#include <net/bpfdesc.h>
+#include <net/if.h>
 
 /*
  * Zero-copy buffer scheme for BPF: user space "donates" two buffers, which
@@ -74,7 +74,7 @@
  * sf_bufs may be an issue, so do not set this too high.  On older systems,
  * kernel address space limits may also be an issue.
  */
-#define	BPF_MAX_PAGES	512
+#define BPF_MAX_PAGES 512
 
 /*
  * struct zbuf describes a memory buffer loaned by a user process to the
@@ -91,12 +91,12 @@
  * knows that the space is not available.
  */
 struct zbuf {
-	vm_offset_t	 zb_uaddr;	/* User address at time of setup. */
-	size_t		 zb_size;	/* Size of buffer, incl. header. */
-	u_int		 zb_numpages;	/* Number of pages. */
-	int		 zb_flags;	/* Flags on zbuf. */
-	struct sf_buf	**zb_pages;	/* Pages themselves. */
-	struct bpf_zbuf_header	*zb_header;	/* Shared header. */
+	vm_offset_t zb_uaddr;		   /* User address at time of setup. */
+	size_t zb_size;			   /* Size of buffer, incl. header. */
+	u_int zb_numpages;		   /* Number of pages. */
+	int zb_flags;			   /* Flags on zbuf. */
+	struct sf_buf **zb_pages;	   /* Pages themselves. */
+	struct bpf_zbuf_header *zb_header; /* Shared header. */
 };
 
 /*
@@ -104,7 +104,7 @@ struct zbuf {
  * buffer may remain in the store position as a result of the user process
  * not yet having acknowledged the buffer in the hold position yet.
  */
-#define	ZBUF_FLAG_ASSIGNED	0x00000001	/* Set when owned by user. */
+#define ZBUF_FLAG_ASSIGNED 0x00000001 /* Set when owned by user. */
 
 /*
  * Release a page we've previously wired.
@@ -158,8 +158,8 @@ zbuf_sfbuf_get(struct vm_map *map, vm_offset_t uaddr)
 	struct sf_buf *sf;
 	vm_page_t pp;
 
-	if (vm_fault_quick_hold_pages(map, uaddr, PAGE_SIZE, VM_PROT_READ |
-	    VM_PROT_WRITE, &pp, 1) < 0)
+	if (vm_fault_quick_hold_pages(map, uaddr, PAGE_SIZE,
+		VM_PROT_READ | VM_PROT_WRITE, &pp, 1) < 0)
 		return (NULL);
 	sf = sf_buf_alloc(pp, SFB_NOWAIT);
 	if (sf == NULL) {
@@ -174,8 +174,7 @@ zbuf_sfbuf_get(struct vm_map *map, vm_offset_t uaddr)
  * page alignment, size requirements, etc.
  */
 static int
-zbuf_setup(struct thread *td, vm_offset_t uaddr, size_t len,
-    struct zbuf **zbp)
+zbuf_setup(struct thread *td, vm_offset_t uaddr, size_t len, struct zbuf **zbp)
 {
 	struct zbuf *zb;
 	struct vm_map *map;
@@ -209,19 +208,17 @@ zbuf_setup(struct thread *td, vm_offset_t uaddr, size_t len,
 	zb->zb_uaddr = uaddr;
 	zb->zb_size = len;
 	zb->zb_numpages = len / PAGE_SIZE;
-	zb->zb_pages = malloc(sizeof(struct sf_buf *) *
-	    zb->zb_numpages, M_BPF, M_ZERO | M_WAITOK);
+	zb->zb_pages = malloc(sizeof(struct sf_buf *) * zb->zb_numpages, M_BPF,
+	    M_ZERO | M_WAITOK);
 	map = &td->td_proc->p_vmspace->vm_map;
 	for (i = 0; i < zb->zb_numpages; i++) {
-		zb->zb_pages[i] = zbuf_sfbuf_get(map,
-		    uaddr + (i * PAGE_SIZE));
+		zb->zb_pages[i] = zbuf_sfbuf_get(map, uaddr + (i * PAGE_SIZE));
 		if (zb->zb_pages[i] == NULL) {
 			error = EFAULT;
 			goto error;
 		}
 	}
-	zb->zb_header =
-	    (struct bpf_zbuf_header *)sf_buf_kva(zb->zb_pages[0]);
+	zb->zb_header = (struct bpf_zbuf_header *)sf_buf_kva(zb->zb_pages[0]);
 	bzero(zb->zb_header, sizeof(*zb->zb_header));
 	*zbp = zb;
 	return (0);
@@ -236,8 +233,8 @@ error:
  * responsible for performing bounds checking, etc.
  */
 void
-bpf_zerocopy_append_bytes(struct bpf_d *d, caddr_t buf, u_int offset,
-    void *src, u_int len)
+bpf_zerocopy_append_bytes(struct bpf_d *d, caddr_t buf, u_int offset, void *src,
+    u_int len)
 {
 	u_int count, page, poffset;
 	u_char *src_bytes;
@@ -261,12 +258,15 @@ bpf_zerocopy_append_bytes(struct bpf_d *d, caddr_t buf, u_int offset,
 	page = offset / PAGE_SIZE;
 	poffset = offset % PAGE_SIZE;
 	while (len > 0) {
-		KASSERT(page < zb->zb_numpages, ("bpf_zerocopy_append_bytes:"
-		   " page overflow (%d p %d np)\n", page, zb->zb_numpages));
+		KASSERT(page < zb->zb_numpages,
+		    ("bpf_zerocopy_append_bytes:"
+		     " page overflow (%d p %d np)\n",
+			page, zb->zb_numpages));
 
 		count = min(len, PAGE_SIZE - poffset);
-		bcopy(src_bytes, ((u_char *)sf_buf_kva(zb->zb_pages[page])) +
-		    poffset, count);
+		bcopy(src_bytes,
+		    ((u_char *)sf_buf_kva(zb->zb_pages[page])) + poffset,
+		    count);
 		poffset += count;
 		if (poffset == PAGE_SIZE) {
 			poffset = 0;
@@ -274,7 +274,7 @@ bpf_zerocopy_append_bytes(struct bpf_d *d, caddr_t buf, u_int offset,
 		}
 		KASSERT(poffset < PAGE_SIZE,
 		    ("bpf_zerocopy_append_bytes: page offset overflow (%d)",
-		    poffset));
+			poffset));
 		len -= count;
 		src_bytes += count;
 	}
@@ -288,8 +288,8 @@ bpf_zerocopy_append_bytes(struct bpf_d *d, caddr_t buf, u_int offset,
  * checking that this will not exceed the buffer limit.
  */
 void
-bpf_zerocopy_append_mbuf(struct bpf_d *d, caddr_t buf, u_int offset,
-    void *src, u_int len)
+bpf_zerocopy_append_mbuf(struct bpf_d *d, caddr_t buf, u_int offset, void *src,
+    u_int len)
 {
 	u_int count, moffset, page, poffset;
 	const struct mbuf *m;
@@ -319,7 +319,8 @@ bpf_zerocopy_append_mbuf(struct bpf_d *d, caddr_t buf, u_int offset,
 	while (len > 0) {
 		KASSERT(page < zb->zb_numpages,
 		    ("bpf_zerocopy_append_mbuf: page overflow (%d p %d "
-		    "np)\n", page, zb->zb_numpages));
+		     "np)\n",
+			page, zb->zb_numpages));
 		KASSERT(m != NULL,
 		    ("bpf_zerocopy_append_mbuf: end of mbuf chain"));
 
@@ -335,7 +336,7 @@ bpf_zerocopy_append_mbuf(struct bpf_d *d, caddr_t buf, u_int offset,
 		}
 		KASSERT(poffset < PAGE_SIZE,
 		    ("bpf_zerocopy_append_mbuf: page offset overflow (%d)",
-		    poffset));
+			poffset));
 		moffset += count;
 		if (moffset == m->m_len) {
 			m = m->m_next;
@@ -548,12 +549,10 @@ bpf_zerocopy_ioctl_setzbuf(struct thread *td, struct bpf_d *d,
 	/*
 	 * Allocate new buffers.
 	 */
-	error = zbuf_setup(td, (vm_offset_t)bz->bz_bufa, bz->bz_buflen,
-	    &zba);
+	error = zbuf_setup(td, (vm_offset_t)bz->bz_bufa, bz->bz_buflen, &zba);
 	if (error)
 		return (error);
-	error = zbuf_setup(td, (vm_offset_t)bz->bz_bufb, bz->bz_buflen,
-	    &zbb);
+	error = zbuf_setup(td, (vm_offset_t)bz->bz_bufb, bz->bz_buflen, &zbb);
 	if (error) {
 		zbuf_free(zba);
 		return (error);

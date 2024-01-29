@@ -30,30 +30,30 @@
  * Options
  */
 
-void		init_options(void);
-uint16_t	make_options(int peer, char *buffer, uint16_t size);
-int		parse_options(int peer, char *buffer, uint16_t size);
+void init_options(void);
+uint16_t make_options(int peer, char *buffer, uint16_t size);
+int parse_options(int peer, char *buffer, uint16_t size);
 
 /* Call back functions */
-int	option_tsize(int peer, struct tftphdr *, int, struct stat *);
-int	option_timeout(int peer);
-int	option_blksize(int peer);
-int	option_blksize2(int peer);
-int	option_rollover(int peer);
-int	option_windowsize(int peer);
+int option_tsize(int peer, struct tftphdr *, int, struct stat *);
+int option_timeout(int peer);
+int option_blksize(int peer);
+int option_blksize2(int peer);
+int option_rollover(int peer);
+int option_windowsize(int peer);
 
 extern int options_extra_enabled;
 extern int options_rfc_enabled;
 
 struct options {
-	const char	*o_type;
-	char		*o_request;
-	char		*o_reply;
-	int		(*o_handler)(int peer);
-	int		rfc;
+	const char *o_type;
+	char *o_request;
+	char *o_reply;
+	int (*o_handler)(int peer);
+	int rfc;
 };
 
-extern struct options	options[];
+extern struct options options[];
 enum opt_enum {
 	OPT_TSIZE = 0,
 	OPT_TIMEOUT,
@@ -63,7 +63,5 @@ enum opt_enum {
 	OPT_WINDOWSIZE,
 };
 
-int	options_set_request(enum opt_enum, const char *, ...)
-	__printf0like(2, 3);
-int	options_set_reply(enum opt_enum, const char *, ...)
-	__printf0like(2, 3);
+int options_set_request(enum opt_enum, const char *, ...) __printf0like(2, 3);
+int options_set_reply(enum opt_enum, const char *, ...) __printf0like(2, 3);

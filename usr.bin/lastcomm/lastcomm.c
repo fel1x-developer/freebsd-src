@@ -30,8 +30,8 @@
  */
 
 #include <sys/param.h>
-#include <sys/stat.h>
 #include <sys/acct.h>
+#include <sys/stat.h>
 
 #include <ctype.h>
 #include <err.h>
@@ -42,17 +42,18 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+
 #include "pathnames.h"
 
-/*XXX*/#include <inttypes.h>
+/*XXX*/ #include<inttypes.h>
 
-time_t	 expand(u_int);
-char	*flagbits(int);
-const	 char *getdev(dev_t);
-int	 readrec_forward(FILE *f, struct acctv3 *av3);
-int	 readrec_backward(FILE *f, struct acctv3 *av3);
-int	 requested(char *[], struct acctv3 *);
-static	 void usage(void);
+time_t expand(u_int);
+char *flagbits(int);
+const char *getdev(dev_t);
+int readrec_forward(FILE *f, struct acctv3 *av3);
+int readrec_backward(FILE *f, struct acctv3 *av3);
+int requested(char *[], struct acctv3 *);
+static void usage(void);
 
 #define AC_UTIME 1 /* user */
 #define AC_STIME 2 /* system */
@@ -78,12 +79,12 @@ main(int argc, char *argv[])
 	acctfile = _PATH_ACCT;
 	format = NULL;
 	while ((ch = getopt(argc, argv, "f:usecSE")) != -1)
-		switch((char)ch) {
+		switch ((char)ch) {
 		case 'f':
 			acctfile = optarg;
 			break;
 
-		case 'u': 
+		case 'u':
 			flags |= AC_UTIME; /* user time */
 			break;
 		case 's':
@@ -92,16 +93,16 @@ main(int argc, char *argv[])
 		case 'e':
 			flags |= AC_ETIME; /* elapsed time */
 			break;
-        	case 'c':
-                        flags |= AC_CTIME; /* user + system time */
+		case 'c':
+			flags |= AC_CTIME; /* user + system time */
 			break;
 
-        	case 'S':
-                        flags |= AC_BTIME; /* starting time */
+		case 'S':
+			flags |= AC_BTIME; /* starting time */
 			break;
-        	case 'E':
+		case 'E':
 			/* exit time (starting time + elapsed time )*/
-                        flags |= AC_FTIME; 
+			flags |= AC_FTIME;
 			break;
 
 		case '?':
@@ -111,7 +112,7 @@ main(int argc, char *argv[])
 
 	/* default user + system time and starting time */
 	if (!flags) {
-	    flags = AC_CTIME | AC_BTIME;
+		flags = AC_CTIME | AC_BTIME;
 	}
 
 	argc -= optind;
@@ -136,42 +137,39 @@ main(int argc, char *argv[])
 	}
 
 	while ((rv = readrec(fp, &ab)) == 1) {
-		for (p = &ab.ac_comm[0];
-		    p < &ab.ac_comm[AC_COMM_LEN] && *p; ++p)
+		for (p = &ab.ac_comm[0]; p < &ab.ac_comm[AC_COMM_LEN] && *p;
+		     ++p)
 			if (!isprint(*p))
 				*p = '?';
 
 		if (*argv && !requested(argv, &ab))
 			continue;
 
-		(void)printf("%-*.*s %-7s %-*s %-8s",
-			     AC_COMM_LEN, AC_COMM_LEN, ab.ac_comm,
-			     flagbits(ab.ac_flagx),
-			     MAXLOGNAME - 1, user_from_uid(ab.ac_uid, 0),
-			     getdev(ab.ac_tty));
-		
-		
+		(void)printf("%-*.*s %-7s %-*s %-8s", AC_COMM_LEN, AC_COMM_LEN,
+		    ab.ac_comm, flagbits(ab.ac_flagx), MAXLOGNAME - 1,
+		    user_from_uid(ab.ac_uid, 0), getdev(ab.ac_tty));
+
 		/* user + system time */
 		if (flags & AC_CTIME) {
-			(void)printf(" %6.3f secs", 
+			(void)printf(" %6.3f secs",
 			    (ab.ac_utime + ab.ac_stime) / 1000000);
 		}
-		
+
 		/* usr time */
 		if (flags & AC_UTIME) {
 			(void)printf(" %6.3f us", ab.ac_utime / 1000000);
 		}
-		
+
 		/* system time */
 		if (flags & AC_STIME) {
 			(void)printf(" %6.3f sy", ab.ac_stime / 1000000);
 		}
-		
+
 		/* elapsed time */
 		if (flags & AC_ETIME) {
 			(void)printf(" %8.3f es", ab.ac_etime / 1000000);
 		}
-		
+
 		/* starting time */
 		if (flags & AC_BTIME) {
 			if (format != NULL) {
@@ -181,7 +179,7 @@ main(int argc, char *argv[])
 			} else
 				(void)printf(" %.19s", ctime(&ab.ac_btime));
 		}
-		
+
 		/* exit time (starting time + elapsed time )*/
 		if (flags & AC_FTIME) {
 			t = ab.ac_btime;
@@ -194,13 +192,13 @@ main(int argc, char *argv[])
 				(void)printf(" %.19s", ctime(&t));
 		}
 		printf("\n");
- 	}
+	}
 	if (rv == EOF)
 		err(1, "read record from %s failed", acctfile);
 
 	if (fflush(stdout))
 		err(1, "stdout");
- 	exit(0);
+	exit(0);
 }
 
 char *
@@ -209,7 +207,9 @@ flagbits(int f)
 	static char flags[20] = "-";
 	char *p;
 
-#define	BIT(flag, ch)	if (f & flag) *p++ = ch
+#define BIT(flag, ch) \
+	if (f & flag) \
+	*p++ = ch
 
 	p = flags + 1;
 	BIT(ASU, 'S');
@@ -244,9 +244,9 @@ getdev(dev_t dev)
 	static dev_t lastdev = (dev_t)-1;
 	static const char *lastname;
 
-	if (dev == NODEV)			/* Special case. */
+	if (dev == NODEV) /* Special case. */
 		return ("__");
-	if (dev == lastdev)			/* One-element cache. */
+	if (dev == lastdev) /* One-element cache. */
 		return (lastname);
 	lastdev = dev;
 	lastname = devname(dev, S_IFCHR);

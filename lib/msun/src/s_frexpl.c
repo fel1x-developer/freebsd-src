@@ -42,7 +42,7 @@ frexpl(long double x, int *ex)
 
 	u.e = x;
 	switch (u.bits.exp) {
-	case 0:		/* 0 or subnormal */
+	case 0: /* 0 or subnormal */
 		if ((u.bits.manl | u.bits.manh) == 0) {
 			*ex = 0;
 		} else {
@@ -51,9 +51,9 @@ frexpl(long double x, int *ex)
 			u.bits.exp = 0x3ffe;
 		}
 		break;
-	case 0x7fff:	/* infinity or NaN; value of *ex is unspecified */
+	case 0x7fff: /* infinity or NaN; value of *ex is unspecified */
 		break;
-	default:	/* normal */
+	default: /* normal */
 		*ex = u.bits.exp - 0x3ffe;
 		u.bits.exp = 0x3ffe;
 		break;

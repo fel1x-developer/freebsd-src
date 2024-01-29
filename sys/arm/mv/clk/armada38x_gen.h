@@ -29,9 +29,8 @@
 
 #include <dev/clk/clk.h>
 
-struct armada38x_gen_clknode_def
-{
-	struct clknode_init_def		def;
+struct armada38x_gen_clknode_def {
+	struct clknode_init_def def;
 };
 
 int armada38x_gen_register(struct clkdom *clkdom,

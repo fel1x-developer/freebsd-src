@@ -24,21 +24,21 @@
  * Use is subject to license terms.
  */
 #include <sys/cdefs.h>
-
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/kernel.h>
-#include <sys/stack.h>
 #include <sys/pcpu.h>
+#include <sys/stack.h>
+
+#include <vm/vm.h>
+#include <vm/pmap.h>
+#include <vm/vm_param.h>
 
 #include <machine/frame.h>
 #include <machine/md_var.h>
 #include <machine/stack.h>
-#include <x86/ifunc.h>
 
-#include <vm/vm.h>
-#include <vm/vm_param.h>
-#include <vm/pmap.h>
+#include <x86/ifunc.h>
 
 #include "regset.h"
 
@@ -47,7 +47,7 @@ uint16_t dtrace_fuword16_nocheck(void *);
 uint32_t dtrace_fuword32_nocheck(void *);
 uint64_t dtrace_fuword64_nocheck(void *);
 
-int	dtrace_ustackdepth_max = 2048;
+int dtrace_ustackdepth_max = 2048;
 
 void
 dtrace_getpcstack(pc_t *pcstack, int pcstack_limit, int aframes,
@@ -58,20 +58,20 @@ dtrace_getpcstack(pc_t *pcstack, int pcstack_limit, int aframes,
 	register_t rbp;
 	struct amd64_frame *frame;
 	vm_offset_t callpc;
-	pc_t caller = (pc_t) solaris_cpu[curcpu].cpu_dtrace_caller;
+	pc_t caller = (pc_t)solaris_cpu[curcpu].cpu_dtrace_caller;
 
 	if (intrpc != 0)
-		pcstack[depth++] = (pc_t) intrpc;
+		pcstack[depth++] = (pc_t)intrpc;
 
 	aframes++;
 
-	__asm __volatile("movq %%rbp,%0" : "=r" (rbp));
+	__asm __volatile("movq %%rbp,%0" : "=r"(rbp));
 
 	frame = (struct amd64_frame *)rbp;
 	td = curthread;
 	while (depth < pcstack_limit) {
 		if (!kstack_contains(curthread, (vm_offset_t)frame,
-		    sizeof(*frame)))
+			sizeof(*frame)))
 			break;
 
 		callpc = frame->f_retaddr;
@@ -133,8 +133,8 @@ dtrace_getustack_common(uint64_t *pcstack, int pcstack_limit, uintptr_t pc,
 
 		oldsp = sp;
 
-		pc = dtrace_fuword64((void *)(sp +
-			offsetof(struct amd64_frame, f_retaddr)));
+		pc = dtrace_fuword64(
+		    (void *)(sp + offsetof(struct amd64_frame, f_retaddr)));
 		sp = dtrace_fuword64((void *)sp);
 
 		if (sp == oldsp) {
@@ -190,12 +190,12 @@ dtrace_getupcstack(uint64_t *pcstack, int pcstack_limit)
 	sp = tf->tf_rsp;
 
 	if (DTRACE_CPUFLAG_ISSET(CPU_DTRACE_ENTRY)) {
-		/* 
+		/*
 		 * In an entry probe.  The frame pointer has not yet been
 		 * pushed (that happens in the function prologue).  The
 		 * best approach is to add the current pc as a missing top
 		 * of stack and back the pc up to the caller, which is stored
-		 * at the current stack pointer address since the call 
+		 * at the current stack pointer address since the call
 		 * instruction puts it there right before the branch.
 		 */
 
@@ -204,7 +204,7 @@ dtrace_getupcstack(uint64_t *pcstack, int pcstack_limit)
 		if (pcstack_limit <= 0)
 			return;
 
-		pc = dtrace_fuword64((void *) sp);
+		pc = dtrace_fuword64((void *)sp);
 	}
 
 	n = dtrace_getustack_common(pcstack, pcstack_limit, pc, fp);
@@ -238,16 +238,16 @@ dtrace_getustackdepth(void)
 	sp = tf->tf_rsp;
 
 	if (DTRACE_CPUFLAG_ISSET(CPU_DTRACE_ENTRY)) {
-		/* 
+		/*
 		 * In an entry probe.  The frame pointer has not yet been
 		 * pushed (that happens in the function prologue).  The
 		 * best approach is to add the current pc as a missing top
 		 * of stack and back the pc up to the caller, which is stored
-		 * at the current stack pointer address since the call 
+		 * at the current stack pointer address since the call
 		 * instruction puts it there right before the branch.
 		 */
 
-		pc = dtrace_fuword64((void *) sp);
+		pc = dtrace_fuword64((void *)sp);
 		n++;
 	}
 
@@ -264,7 +264,7 @@ dtrace_getufpstack(uint64_t *pcstack, uint64_t *fpstack, int pcstack_limit)
 	uintptr_t pc, sp, fp;
 	volatile uint16_t *flags =
 	    (volatile uint16_t *)&cpu_core[curcpu].cpuc_dtrace_flags;
-#ifdef notyet	/* XXX signal stack */
+#ifdef notyet /* XXX signal stack */
 	uintptr_t oldcontext;
 	size_t s1, s2;
 #endif
@@ -293,8 +293,8 @@ dtrace_getufpstack(uint64_t *pcstack, uint64_t *fpstack, int pcstack_limit)
 
 #ifdef notyet /* XXX signal stack */
 	oldcontext = lwp->lwp_oldcontext;
-	s1 = sizeof (struct xframe) + 2 * sizeof (long);
-	s2 = s1 + sizeof (siginfo_t);
+	s1 = sizeof(struct xframe) + 2 * sizeof(long);
+	s2 = s1 + sizeof(siginfo_t);
 #endif
 
 	if (DTRACE_CPUFLAG_ISSET(CPU_DTRACE_ENTRY)) {
@@ -330,7 +330,7 @@ dtrace_getufpstack(uint64_t *pcstack, uint64_t *fpstack, int pcstack_limit)
 #endif /* XXX */
 		{
 			pc = dtrace_fuword64((void *)(fp +
-				offsetof(struct amd64_frame, f_retaddr)));
+			    offsetof(struct amd64_frame, f_retaddr)));
 			fp = dtrace_fuword64((void *)fp);
 		}
 
@@ -413,7 +413,6 @@ dtrace_getarg(int arg, int aframes)
 			}
 			goto load;
 		}
-
 	}
 
 	/*
@@ -458,9 +457,9 @@ dtrace_getstackdepth(int aframes)
 	rbp = dtrace_getfp();
 	frame = (struct amd64_frame *)rbp;
 	depth++;
-	for(;;) {
+	for (;;) {
 		if (!kstack_contains(curthread, (vm_offset_t)frame,
-		    sizeof(*frame)))
+			sizeof(*frame)))
 			break;
 		depth++;
 		if (frame->f_frame <= frame)
@@ -478,29 +477,29 @@ dtrace_getreg(struct trapframe *frame, uint_t reg)
 {
 	/* This table is dependent on reg.d. */
 	int regmap[] = {
-		REG_GS,		/* 0  GS */
-		REG_FS,		/* 1  FS */
-		REG_ES,		/* 2  ES */
-		REG_DS,		/* 3  DS */
-		REG_RDI,	/* 4  EDI */
-		REG_RSI,	/* 5  ESI */
-		REG_RBP,	/* 6  EBP, REG_FP */
-		REG_RSP,	/* 7  ESP */
-		REG_RBX,	/* 8  EBX, REG_R1 */
-		REG_RDX,	/* 9  EDX */
-		REG_RCX,	/* 10 ECX */
-		REG_RAX,	/* 11 EAX, REG_R0 */
-		REG_TRAPNO,	/* 12 TRAPNO */
-		REG_ERR,	/* 13 ERR */
-		REG_RIP,	/* 14 EIP, REG_PC */
-		REG_CS,		/* 15 CS */
-		REG_RFL,	/* 16 EFL, REG_PS */
-		REG_RSP,	/* 17 UESP, REG_SP */
-		REG_SS		/* 18 SS */
+		REG_GS,	    /* 0  GS */
+		REG_FS,	    /* 1  FS */
+		REG_ES,	    /* 2  ES */
+		REG_DS,	    /* 3  DS */
+		REG_RDI,    /* 4  EDI */
+		REG_RSI,    /* 5  ESI */
+		REG_RBP,    /* 6  EBP, REG_FP */
+		REG_RSP,    /* 7  ESP */
+		REG_RBX,    /* 8  EBX, REG_R1 */
+		REG_RDX,    /* 9  EDX */
+		REG_RCX,    /* 10 ECX */
+		REG_RAX,    /* 11 EAX, REG_R0 */
+		REG_TRAPNO, /* 12 TRAPNO */
+		REG_ERR,    /* 13 ERR */
+		REG_RIP,    /* 14 EIP, REG_PC */
+		REG_CS,	    /* 15 CS */
+		REG_RFL,    /* 16 EFL, REG_PS */
+		REG_RSP,    /* 17 UESP, REG_SP */
+		REG_SS	    /* 18 SS */
 	};
 
 	if (reg <= GS) {
-		if (reg >= sizeof (regmap) / sizeof (int)) {
+		if (reg >= sizeof(regmap) / sizeof(int)) {
 			DTRACE_CPUFLAG_SET(CPU_DTRACE_ILLOP);
 			return (0);
 		}
@@ -669,17 +668,19 @@ DEFINE_IFUNC(, void, dtrace_copy, (uintptr_t, uintptr_t, size_t))
 {
 
 	return ((cpu_stdext_feature & CPUID_STDEXT_SMAP) != 0 ?
-	    dtrace_copy_smap : dtrace_copy_nosmap);
+		dtrace_copy_smap :
+		dtrace_copy_nosmap);
 }
 
 void dtrace_copystr_nosmap(uintptr_t, uintptr_t, size_t, volatile uint16_t *);
 void dtrace_copystr_smap(uintptr_t, uintptr_t, size_t, volatile uint16_t *);
-DEFINE_IFUNC(, void, dtrace_copystr, (uintptr_t, uintptr_t, size_t,
-    volatile uint16_t *))
+DEFINE_IFUNC(, void, dtrace_copystr,
+    (uintptr_t, uintptr_t, size_t, volatile uint16_t *))
 {
 
 	return ((cpu_stdext_feature & CPUID_STDEXT_SMAP) != 0 ?
-	    dtrace_copystr_smap : dtrace_copystr_nosmap);
+		dtrace_copystr_smap :
+		dtrace_copystr_nosmap);
 }
 
 uintptr_t dtrace_fulword_nosmap(void *);
@@ -688,7 +689,8 @@ DEFINE_IFUNC(, uintptr_t, dtrace_fulword, (void *))
 {
 
 	return ((cpu_stdext_feature & CPUID_STDEXT_SMAP) != 0 ?
-	    dtrace_fulword_smap : dtrace_fulword_nosmap);
+		dtrace_fulword_smap :
+		dtrace_fulword_nosmap);
 }
 
 uint8_t dtrace_fuword8_nocheck_nosmap(void *);
@@ -697,7 +699,8 @@ DEFINE_IFUNC(, uint8_t, dtrace_fuword8_nocheck, (void *))
 {
 
 	return ((cpu_stdext_feature & CPUID_STDEXT_SMAP) != 0 ?
-	    dtrace_fuword8_nocheck_smap : dtrace_fuword8_nocheck_nosmap);
+		dtrace_fuword8_nocheck_smap :
+		dtrace_fuword8_nocheck_nosmap);
 }
 
 uint16_t dtrace_fuword16_nocheck_nosmap(void *);
@@ -706,7 +709,8 @@ DEFINE_IFUNC(, uint16_t, dtrace_fuword16_nocheck, (void *))
 {
 
 	return ((cpu_stdext_feature & CPUID_STDEXT_SMAP) != 0 ?
-	    dtrace_fuword16_nocheck_smap : dtrace_fuword16_nocheck_nosmap);
+		dtrace_fuword16_nocheck_smap :
+		dtrace_fuword16_nocheck_nosmap);
 }
 
 uint32_t dtrace_fuword32_nocheck_nosmap(void *);
@@ -715,7 +719,8 @@ DEFINE_IFUNC(, uint32_t, dtrace_fuword32_nocheck, (void *))
 {
 
 	return ((cpu_stdext_feature & CPUID_STDEXT_SMAP) != 0 ?
-	    dtrace_fuword32_nocheck_smap : dtrace_fuword32_nocheck_nosmap);
+		dtrace_fuword32_nocheck_smap :
+		dtrace_fuword32_nocheck_nosmap);
 }
 
 uint64_t dtrace_fuword64_nocheck_nosmap(void *);
@@ -724,5 +729,6 @@ DEFINE_IFUNC(, uint64_t, dtrace_fuword64_nocheck, (void *))
 {
 
 	return ((cpu_stdext_feature & CPUID_STDEXT_SMAP) != 0 ?
-	    dtrace_fuword64_nocheck_smap : dtrace_fuword64_nocheck_nosmap);
+		dtrace_fuword64_nocheck_smap :
+		dtrace_fuword64_nocheck_nosmap);
 }

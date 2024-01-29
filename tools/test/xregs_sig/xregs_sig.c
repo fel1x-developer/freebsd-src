@@ -11,9 +11,10 @@
  */
 
 #include <sys/param.h>
-#include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/syscall.h>
+#include <sys/time.h>
+
 #include <errno.h>
 #include <pthread.h>
 #ifdef __FreeBSD__
@@ -38,20 +39,20 @@
 
 /* SIGALRM interval in seconds. */
 #ifndef TIMO
-#define	TIMO		5
+#define TIMO 5
 #endif
 
 #ifndef __unused
-#define	__unused	__attribute__((__unused__))
+#define __unused __attribute__((__unused__))
 #endif
 
 struct xregs_bank {
-	const char	*b_name;
-	const char	*r_name;
-	uint32_t	regs;
-	uint32_t	bytes;
-	void		(*x2c)(uint8_t *);
-	void		(*c2x)(uint8_t *);
+	const char *b_name;
+	const char *r_name;
+	uint32_t regs;
+	uint32_t bytes;
+	void (*x2c)(uint8_t *);
+	void (*c2x)(uint8_t *);
 };
 
 int xregs_banks_max(void);
@@ -64,20 +65,20 @@ void avx_to_cpu(uint8_t *);
 
 static const struct xregs_bank xregs_banks[] = {
 	{
-		.b_name	= "SSE",
-		.r_name	= "xmm",
-		.regs	= 16,
-		.bytes	= 16,
-		.x2c	= xmm_to_cpu,
-		.c2x	= cpu_to_xmm,
+	    .b_name = "SSE",
+	    .r_name = "xmm",
+	    .regs = 16,
+	    .bytes = 16,
+	    .x2c = xmm_to_cpu,
+	    .c2x = cpu_to_xmm,
 	},
 	{
-		.b_name	= "AVX",
-		.r_name	= "ymm",
-		.regs	= 16,
-		.bytes	= 32,
-		.x2c	= avx_to_cpu,
-		.c2x	= cpu_to_avx,
+	    .b_name = "AVX",
+	    .r_name = "ymm",
+	    .regs = 16,
+	    .bytes = 32,
+	    .x2c = avx_to_cpu,
+	    .c2x = cpu_to_avx,
 	},
 };
 #elif defined(__aarch64__)
@@ -86,19 +87,18 @@ void vfp_to_cpu(uint8_t *);
 
 static const struct xregs_bank xregs_banks[] = {
 	{
-		.b_name	= "VFP",
-		.r_name	= "q",
-		.regs	= 32,
-		.bytes	= 16,
-		.x2c	= vfp_to_cpu,
-		.c2x	= cpu_to_vfp,
+	    .b_name = "VFP",
+	    .r_name = "q",
+	    .regs = 32,
+	    .bytes = 16,
+	    .x2c = vfp_to_cpu,
+	    .c2x = cpu_to_vfp,
 	},
 };
 #endif
 
 static atomic_uint sigs;
 static int max_bank_idx;
-
 
 static void
 sigusr1_handler(int sig __unused, siginfo_t *si __unused, void *m __unused)
@@ -112,12 +112,11 @@ sigalrm_handler(int sig __unused)
 	struct rusage r;
 
 	if (getrusage(RUSAGE_SELF, &r) == 0) {
-		printf("%lu vctx %lu nvctx %lu nsigs %u SIGUSR1\n",
-		    r.ru_nvcsw, r.ru_nivcsw, r.ru_nsignals, sigs);
+		printf("%lu vctx %lu nvctx %lu nsigs %u SIGUSR1\n", r.ru_nvcsw,
+		    r.ru_nivcsw, r.ru_nsignals, sigs);
 	}
 	alarm(TIMO);
 }
-
 
 static void
 fill_xregs(uint8_t *xregs, int bank)
@@ -240,8 +239,9 @@ main(void)
 	bank = 0;
 	pthread_t wt[ncpu];
 nextbank:
-	printf("Starting %d threads for registers bank %s sized [%d][%d]\n", ncpu,
-	    xregs_banks[bank].b_name, xregs_banks[bank].regs, xregs_banks[bank].bytes);
+	printf("Starting %d threads for registers bank %s sized [%d][%d]\n",
+	    ncpu, xregs_banks[bank].b_name, xregs_banks[bank].regs,
+	    xregs_banks[bank].bytes);
 	for (i = 0; i < ncpu; i++) {
 		error = pthread_create(&wt[i], NULL, worker_thread,
 		    (void *)(uintptr_t)bank);

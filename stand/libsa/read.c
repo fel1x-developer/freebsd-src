@@ -59,6 +59,7 @@
  */
 
 #include <sys/param.h>
+
 #include "stand.h"
 
 ssize_t
@@ -93,7 +94,7 @@ read(int fd, void *dest, size_t bcount)
 	 */
 	resid = bcount;
 	for (;;) {
-		size_t	ccount, cresid;
+		size_t ccount, cresid;
 		/* how much can we supply? */
 		ccount = imin(f->f_ralen, resid);
 		if (ccount > 0) {

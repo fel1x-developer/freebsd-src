@@ -25,6 +25,7 @@
  */
 
 #include <sys/types.h>
+
 #include <errno.h>
 
 #include "bus.h"
@@ -114,7 +115,7 @@ busdma_tag_create(const char *dev, bus_addr_t align, bus_addr_t bndry,
 
 int
 busdma_tag_derive(busdma_tag_t tag, bus_addr_t align, bus_addr_t bndry,
-    bus_addr_t maxaddr, bus_size_t maxsz, u_int nsegs, bus_size_t maxsegsz, 
+    bus_addr_t maxaddr, bus_size_t maxsz, u_int nsegs, bus_size_t maxsegsz,
     u_int datarate, u_int flags, busdma_tag_t *out_p)
 {
 	int res;
@@ -198,7 +199,7 @@ busdma_md_first_seg(busdma_md_t md, int space)
 busdma_seg_t
 busdma_md_next_seg(busdma_md_t md, busdma_seg_t seg)
 {
- 
+
 	seg = bd_md_next_seg(md, seg);
 	return (seg);
 }

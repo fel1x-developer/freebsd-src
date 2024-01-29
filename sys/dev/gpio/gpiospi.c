@@ -25,44 +25,42 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_gpio.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-
 #include <sys/bus.h>
+#include <sys/gpio.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/rman.h>
 #include <sys/sysctl.h>
 
-#include <sys/gpio.h>
-#include "gpiobus_if.h"
-
 #include <dev/gpio/gpiobusvar.h>
-
 #include <dev/spibus/spi.h>
 #include <dev/spibus/spibusvar.h>
+
+#include "gpiobus_if.h"
 #include "spibus_if.h"
 
-#ifdef	GPIO_SPI_DEBUG
-#define	dprintf printf
+#ifdef GPIO_SPI_DEBUG
+#define dprintf printf
 #else
-#define	dprintf(x, arg...)
-#endif	/* GPIO_SPI_DEBUG */
+#define dprintf(x, arg...)
+#endif /* GPIO_SPI_DEBUG */
 
 struct gpio_spi_softc {
-	device_t	sc_dev;
-	device_t	sc_busdev;
-	int		sc_freq;
-	uint8_t		sc_sclk;
-	uint8_t		sc_miso;
-	uint8_t		sc_mosi;
-	uint8_t		sc_cs0;
-	uint8_t		sc_cs1;
-	uint8_t		sc_cs2;
-	uint8_t		sc_cs3;
+	device_t sc_dev;
+	device_t sc_busdev;
+	int sc_freq;
+	uint8_t sc_sclk;
+	uint8_t sc_miso;
+	uint8_t sc_mosi;
+	uint8_t sc_cs0;
+	uint8_t sc_cs1;
+	uint8_t sc_cs2;
+	uint8_t sc_cs3;
 };
 
 static void gpio_spi_chip_activate(struct gpio_spi_softc *, int);
@@ -98,82 +96,81 @@ gpio_spi_attach(device_t dev)
 	sc->sc_busdev = device_get_parent(dev);
 
 	/* Required variables */
-	if (resource_int_value(device_get_name(dev),
-	    device_get_unit(dev), "sclk", &value))
-		 return (ENXIO);
+	if (resource_int_value(device_get_name(dev), device_get_unit(dev),
+		"sclk", &value))
+		return (ENXIO);
 	sc->sc_sclk = value & 0xff;
 
-	if (resource_int_value(device_get_name(dev),
-	    device_get_unit(dev), "mosi", &value))
-		 return (ENXIO);
+	if (resource_int_value(device_get_name(dev), device_get_unit(dev),
+		"mosi", &value))
+		return (ENXIO);
 	sc->sc_mosi = value & 0xff;
 
 	/* Handle no miso; we just never read back from the device */
-	if (resource_int_value(device_get_name(dev),
-	    device_get_unit(dev), "miso", &value))
-		 value = 0xff;
+	if (resource_int_value(device_get_name(dev), device_get_unit(dev),
+		"miso", &value))
+		value = 0xff;
 	sc->sc_miso = value & 0xff;
 
-	if (resource_int_value(device_get_name(dev),
-	    device_get_unit(dev), "cs0", &value))
-		 return (ENXIO);
+	if (resource_int_value(device_get_name(dev), device_get_unit(dev),
+		"cs0", &value))
+		return (ENXIO);
 	sc->sc_cs0 = value & 0xff;
 
 	/* Optional variables */
-	if (resource_int_value(device_get_name(dev),
-	    device_get_unit(dev), "cs1", &value))
+	if (resource_int_value(device_get_name(dev), device_get_unit(dev),
+		"cs1", &value))
 		value = 0xff;
 	sc->sc_cs1 = value & 0xff;
 
-	if (resource_int_value(device_get_name(dev),
-	    device_get_unit(dev), "cs2", &value))
+	if (resource_int_value(device_get_name(dev), device_get_unit(dev),
+		"cs2", &value))
 		value = 0xff;
 	sc->sc_cs2 = value & 0xff;
 
-	if (resource_int_value(device_get_name(dev),
-	    device_get_unit(dev), "cs3", &value))
+	if (resource_int_value(device_get_name(dev), device_get_unit(dev),
+		"cs3", &value))
 		value = 0xff;
 	sc->sc_cs3 = value & 0xff;
 
 	/* Default to 100KHz */
-	if (resource_int_value(device_get_name(dev),
-	    device_get_unit(dev), "freq", &value)) {
+	if (resource_int_value(device_get_name(dev), device_get_unit(dev),
+		"freq", &value)) {
 		value = 100000;
 	}
 	sc->sc_freq = value;
 
 	if (bootverbose) {
-		device_printf(dev, "frequency: %d Hz\n",
-		    sc->sc_freq);
+		device_printf(dev, "frequency: %d Hz\n", sc->sc_freq);
 		device_printf(dev,
 		    "Use GPIO pins: sclk=%d, mosi=%d, miso=%d, "
 		    "cs0=%d, cs1=%d, cs2=%d, cs3=%d\n",
-		    sc->sc_sclk, sc->sc_mosi, sc->sc_miso,
-		    sc->sc_cs0, sc->sc_cs1, sc->sc_cs2, sc->sc_cs3);
+		    sc->sc_sclk, sc->sc_mosi, sc->sc_miso, sc->sc_cs0,
+		    sc->sc_cs1, sc->sc_cs2, sc->sc_cs3);
 	}
 
 	/* Set directions */
 	GPIOBUS_PIN_SETFLAGS(sc->sc_busdev, sc->sc_dev, sc->sc_sclk,
-	    GPIO_PIN_OUTPUT|GPIO_PIN_PULLDOWN);
+	    GPIO_PIN_OUTPUT | GPIO_PIN_PULLDOWN);
 	GPIOBUS_PIN_SETFLAGS(sc->sc_busdev, sc->sc_dev, sc->sc_mosi,
-	    GPIO_PIN_OUTPUT|GPIO_PIN_PULLDOWN);
+	    GPIO_PIN_OUTPUT | GPIO_PIN_PULLDOWN);
 	if (sc->sc_miso != 0xff) {
 		GPIOBUS_PIN_SETFLAGS(sc->sc_busdev, sc->sc_dev, sc->sc_miso,
-		    GPIO_PIN_INPUT|GPIO_PIN_PULLDOWN);
+		    GPIO_PIN_INPUT | GPIO_PIN_PULLDOWN);
 	}
 
 	GPIOBUS_PIN_SETFLAGS(sc->sc_busdev, sc->sc_dev, sc->sc_cs0,
-	    GPIO_PIN_OUTPUT|GPIO_PIN_PULLUP);
+	    GPIO_PIN_OUTPUT | GPIO_PIN_PULLUP);
 
 	if (sc->sc_cs1 != 0xff)
 		GPIOBUS_PIN_SETFLAGS(sc->sc_busdev, sc->sc_dev, sc->sc_cs1,
-		    GPIO_PIN_OUTPUT|GPIO_PIN_PULLUP);
+		    GPIO_PIN_OUTPUT | GPIO_PIN_PULLUP);
 	if (sc->sc_cs2 != 0xff)
 		GPIOBUS_PIN_SETFLAGS(sc->sc_busdev, sc->sc_dev, sc->sc_cs2,
-		    GPIO_PIN_OUTPUT|GPIO_PIN_PULLUP);
+		    GPIO_PIN_OUTPUT | GPIO_PIN_PULLUP);
 	if (sc->sc_cs3 != 0xff)
 		GPIOBUS_PIN_SETFLAGS(sc->sc_busdev, sc->sc_dev, sc->sc_cs3,
-		    GPIO_PIN_OUTPUT|GPIO_PIN_PULLUP);
+		    GPIO_PIN_OUTPUT | GPIO_PIN_PULLUP);
 
 	gpio_spi_chip_deactivate(sc, -1);
 
@@ -195,20 +192,16 @@ gpio_spi_chip_activate(struct gpio_spi_softc *sc, int cs)
 	/* called with locked gpiobus */
 	switch (cs) {
 	case 0:
-		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev,
-		    sc->sc_cs0, 0);
+		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev, sc->sc_cs0, 0);
 		break;
 	case 1:
-		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev,
-		    sc->sc_cs1, 0);
+		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev, sc->sc_cs1, 0);
 		break;
 	case 2:
-		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev,
-		    sc->sc_cs2, 0);
+		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev, sc->sc_cs2, 0);
 		break;
 	case 3:
-		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev,
-		    sc->sc_cs3, 0);
+		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev, sc->sc_cs3, 0);
 		break;
 	default:
 		device_printf(sc->sc_dev, "don't have CS%d\n", cs);
@@ -228,33 +221,28 @@ gpio_spi_chip_deactivate(struct gpio_spi_softc *sc, int cs)
 	switch (cs) {
 	case -1:
 		/* All CS */
-		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev,
-		    sc->sc_cs0, 1);
-		if (sc->sc_cs1 == 0xff) break;
-		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev,
-		    sc->sc_cs1, 1);
-		if (sc->sc_cs2 == 0xff) break;
-		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev,
-		    sc->sc_cs2, 1);
-		if (sc->sc_cs3 == 0xff) break;
-		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev,
-		    sc->sc_cs3, 1);
+		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev, sc->sc_cs0, 1);
+		if (sc->sc_cs1 == 0xff)
+			break;
+		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev, sc->sc_cs1, 1);
+		if (sc->sc_cs2 == 0xff)
+			break;
+		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev, sc->sc_cs2, 1);
+		if (sc->sc_cs3 == 0xff)
+			break;
+		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev, sc->sc_cs3, 1);
 		break;
 	case 0:
-		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev,
-		    sc->sc_cs0, 1);
+		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev, sc->sc_cs0, 1);
 		break;
 	case 1:
-		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev,
-		    sc->sc_cs1, 1);
+		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev, sc->sc_cs1, 1);
 		break;
 	case 2:
-		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev,
-		    sc->sc_cs2, 1);
+		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev, sc->sc_cs2, 1);
 		break;
 	case 3:
-		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev,
-		    sc->sc_cs3, 1);
+		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev, sc->sc_cs3, 1);
 		break;
 	default:
 		device_printf(sc->sc_dev, "don't have CS%d\n", cs);
@@ -267,50 +255,48 @@ gpio_spi_txrx(struct gpio_spi_softc *sc, int cs, int mode, uint8_t data)
 	uint32_t mask, out = 0;
 	unsigned int bit;
 
-
 	/* called with locked gpiobus */
 
 	for (mask = 0x80; mask > 0; mask >>= 1) {
-		if ((mode == SPIBUS_MODE_CPOL) ||
-		    (mode == SPIBUS_MODE_CPHA)) {
+		if ((mode == SPIBUS_MODE_CPOL) || (mode == SPIBUS_MODE_CPHA)) {
 			/* If mode 1 or 2 */
 
 			/* first step */
-			GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev,
-			    sc->sc_mosi, (data & mask)?1:0);
-			GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev,
-			    sc->sc_sclk, 0);
+			GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev, sc->sc_mosi,
+			    (data & mask) ? 1 : 0);
+			GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev, sc->sc_sclk,
+			    0);
 			gpio_delay(sc);
 			/* second step */
 			if (sc->sc_miso != 0xff) {
 				GPIOBUS_PIN_GET(sc->sc_busdev, sc->sc_dev,
 				    sc->sc_miso, &bit);
-				out |= bit?mask:0;
+				out |= bit ? mask : 0;
 			}
 			/* Data captured */
 			gpio_delay(sc);
-			GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev,
-			    sc->sc_sclk, 1);
+			GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev, sc->sc_sclk,
+			    1);
 			gpio_delay(sc);
 		} else {
 			/* If mode 0 or 3 */
 
 			/* first step */
-			GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev,
-			    sc->sc_mosi, (data & mask)?1:0);
-			GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev,
-			    sc->sc_sclk, 1);
+			GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev, sc->sc_mosi,
+			    (data & mask) ? 1 : 0);
+			GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev, sc->sc_sclk,
+			    1);
 			gpio_delay(sc);
 			/* second step */
 			if (sc->sc_miso != 0xff) {
 				GPIOBUS_PIN_GET(sc->sc_busdev, sc->sc_dev,
 				    sc->sc_miso, &bit);
-				out |= bit?mask:0;
+				out |= bit ? mask : 0;
 			}
-			 /* Data captured */
+			/* Data captured */
 			gpio_delay(sc);
-			GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev,
-			    sc->sc_sclk, 0);
+			GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev, sc->sc_sclk,
+			    0);
 			gpio_delay(sc);
 		}
 	}
@@ -328,9 +314,9 @@ gpio_spi_transfer(device_t dev, device_t child, struct spi_command *cmd)
 
 	sc = device_get_softc(dev);
 
-	KASSERT(cmd->tx_cmd_sz == cmd->rx_cmd_sz, 
+	KASSERT(cmd->tx_cmd_sz == cmd->rx_cmd_sz,
 	    ("TX/RX command sizes should be equal"));
-	KASSERT(cmd->tx_data_sz == cmd->rx_data_sz, 
+	KASSERT(cmd->tx_data_sz == cmd->rx_data_sz,
 	    ("TX/RX data sizes should be equal"));
 
 	gpio_spi_chip_activate(sc, devi->cs);
@@ -338,11 +324,9 @@ gpio_spi_transfer(device_t dev, device_t child, struct spi_command *cmd)
 	/* Preset pins */
 	if ((devi->mode == SPIBUS_MODE_CPOL) ||
 	    (devi->mode == SPIBUS_MODE_CPHA)) {
-		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev,
-		    sc->sc_sclk, 1);
+		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev, sc->sc_sclk, 1);
 	} else {
-		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev,
-		    sc->sc_sclk, 0);
+		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev, sc->sc_sclk, 0);
 	}
 
 	/*
@@ -365,11 +349,9 @@ gpio_spi_transfer(device_t dev, device_t child, struct spi_command *cmd)
 	/* Return pins to mode default */
 	if ((devi->mode == SPIBUS_MODE_CPOL) ||
 	    (devi->mode == SPIBUS_MODE_CPHA)) {
-		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev,
-		    sc->sc_sclk, 1);
+		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev, sc->sc_sclk, 1);
 	} else {
-		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev,
-		    sc->sc_sclk, 0);
+		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev, sc->sc_sclk, 0);
 	}
 
 	gpio_spi_chip_deactivate(sc, devi->cs);
@@ -379,13 +361,13 @@ gpio_spi_transfer(device_t dev, device_t child, struct spi_command *cmd)
 
 static device_method_t gpio_spi_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		gpio_spi_probe),
-	DEVMETHOD(device_attach,	gpio_spi_attach),
-	DEVMETHOD(device_detach,	gpio_spi_detach),
+	DEVMETHOD(device_probe, gpio_spi_probe),
+	DEVMETHOD(device_attach, gpio_spi_attach),
+	DEVMETHOD(device_detach, gpio_spi_detach),
 
-	DEVMETHOD(spibus_transfer,	gpio_spi_transfer),
+	DEVMETHOD(spibus_transfer, gpio_spi_transfer),
 
-	{0, 0}
+	{ 0, 0 }
 };
 
 static driver_t gpio_spi_driver = {

@@ -24,25 +24,22 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "opt_mmccam.h"
+
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/queue.h>
 #include <sys/taskqueue.h>
 
 #include <machine/bus.h>
 
-#include <dev/mmc/bridge.h>
-#include <dev/mmc/mmc_fdt_helpers.h>
-
-#include <dev/ofw/ofw_bus_subr.h>
-
 #include <dev/clk/clk.h>
-
+#include <dev/mmc/bridge.h>
 #include <dev/mmc/host/dwmmc_var.h>
-
-#include "opt_mmccam.h"
+#include <dev/mmc/mmc_fdt_helpers.h>
+#include <dev/ofw/ofw_bus_subr.h>
 
 enum RKTYPE {
 	RK2928 = 1,
@@ -50,12 +47,13 @@ enum RKTYPE {
 };
 
 static struct ofw_compat_data compat_data[] = {
-	{"rockchip,rk2928-dw-mshc",	RK2928},
-	{"rockchip,rk3288-dw-mshc",	RK3288},
-	{NULL,				0},
+	{ "rockchip,rk2928-dw-mshc", RK2928 },
+	{ "rockchip,rk3288-dw-mshc", RK3288 },
+	{ NULL, 0 },
 };
 
-static int dwmmc_rockchip_update_ios(struct dwmmc_softc *sc, struct mmc_ios *ios);
+static int dwmmc_rockchip_update_ios(struct dwmmc_softc *sc,
+    struct mmc_ios *ios);
 
 static int
 rockchip_dwmmc_probe(device_t dev)
@@ -67,7 +65,8 @@ rockchip_dwmmc_probe(device_t dev)
 	if (ofw_bus_search_compatible(dev, compat_data)->ocd_data == 0)
 		return (ENXIO);
 
-	device_set_desc(dev, "Synopsys DesignWare Mobile "
+	device_set_desc(dev,
+	    "Synopsys DesignWare Mobile "
 	    "Storage Host Controller (RockChip)");
 
 	return (BUS_PROBE_VENDOR);
@@ -104,7 +103,7 @@ dwmmc_rockchip_update_ios(struct dwmmc_softc *sc, struct mmc_ios *ios)
 		sc->bus_hz = clock = ios->clock;
 		/* Set the MMC clock. */
 		if (sc->ciu) {
-			/* 
+			/*
 			 * Apparently you need to set the ciu clock to
 			 * the double of bus_hz
 			 */

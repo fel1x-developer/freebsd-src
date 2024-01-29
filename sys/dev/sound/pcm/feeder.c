@@ -37,7 +37,7 @@
 
 static MALLOC_DEFINE(M_FEEDER, "feeder", "pcm feeder");
 
-#define MAXFEEDERS 	256
+#define MAXFEEDERS 256
 #undef FEEDER_DEBUG
 
 struct feedertab_entry {
@@ -61,7 +61,8 @@ feeder_register(void *p)
 	int i;
 
 	if (feedercnt == 0) {
-		KASSERT(fc->desc == NULL, ("first feeder not root: %s", fc->name));
+		KASSERT(fc->desc == NULL,
+		    ("first feeder not root: %s", fc->name));
 
 		SLIST_INIT(&feedertab);
 		fte = malloc(sizeof(*fte), M_FEEDER, M_NOWAIT | M_ZERO);
@@ -86,9 +87,8 @@ feeder_register(void *p)
 		snd_unit_init();
 		if (snd_unit < 0 || snd_unit > PCMMAXUNIT)
 			snd_unit = -1;
-		
-		if (snd_maxautovchans < 0 ||
-		    snd_maxautovchans > SND_MAXVCHANS)
+
+		if (snd_maxautovchans < 0 || snd_maxautovchans > SND_MAXVCHANS)
 			snd_maxautovchans = 0;
 
 		if (chn_latency < CHN_LATENCY_MIN ||
@@ -100,29 +100,29 @@ feeder_register(void *p)
 			chn_latency_profile = CHN_LATENCY_PROFILE_DEFAULT;
 
 		if (feeder_rate_min < FEEDRATE_MIN ||
-			    feeder_rate_max < FEEDRATE_MIN ||
-			    feeder_rate_min > FEEDRATE_MAX ||
-			    feeder_rate_max > FEEDRATE_MAX ||
-			    !(feeder_rate_min < feeder_rate_max)) {
+		    feeder_rate_max < FEEDRATE_MIN ||
+		    feeder_rate_min > FEEDRATE_MAX ||
+		    feeder_rate_max > FEEDRATE_MAX ||
+		    !(feeder_rate_min < feeder_rate_max)) {
 			feeder_rate_min = FEEDRATE_RATEMIN;
 			feeder_rate_max = FEEDRATE_RATEMAX;
 		}
 
 		if (feeder_rate_round < FEEDRATE_ROUNDHZ_MIN ||
-		    	    feeder_rate_round > FEEDRATE_ROUNDHZ_MAX)
+		    feeder_rate_round > FEEDRATE_ROUNDHZ_MAX)
 			feeder_rate_round = FEEDRATE_ROUNDHZ;
 
 		if (bootverbose)
 			printf("%s: snd_unit=%d snd_maxautovchans=%d "
-			    "latency=%d "
-			    "feeder_rate_min=%d feeder_rate_max=%d "
-			    "feeder_rate_round=%d\n",
-			    __func__, snd_unit, snd_maxautovchans,
-			    chn_latency,
+			       "latency=%d "
+			       "feeder_rate_min=%d feeder_rate_max=%d "
+			       "feeder_rate_round=%d\n",
+			    __func__, snd_unit, snd_maxautovchans, chn_latency,
 			    feeder_rate_min, feeder_rate_max,
 			    feeder_rate_round);
 
-		/* we've got our root feeder so don't veto pcm loading anymore */
+		/* we've got our root feeder so don't veto pcm loading anymore
+		 */
 		pcm_veto_load = 0;
 
 		return;
@@ -130,13 +130,17 @@ feeder_register(void *p)
 
 	KASSERT(fc->desc != NULL, ("feeder '%s' has no descriptor", fc->name));
 
-	/* beyond this point failure is non-fatal but may result in some translations being unavailable */
+	/* beyond this point failure is non-fatal but may result in some
+	 * translations being unavailable */
 	i = 0;
 	while ((feedercnt < MAXFEEDERS) && (fc->desc[i].type > 0)) {
-		/* printf("adding feeder %s, %x -> %x\n", fc->name, fc->desc[i].in, fc->desc[i].out); */
+		/* printf("adding feeder %s, %x -> %x\n", fc->name,
+		 * fc->desc[i].in, fc->desc[i].out); */
 		fte = malloc(sizeof(*fte), M_FEEDER, M_NOWAIT | M_ZERO);
 		if (fte == NULL) {
-			printf("can't allocate memory for feeder '%s', %x -> %x\n", fc->name, fc->desc[i].in, fc->desc[i].out);
+			printf(
+			    "can't allocate memory for feeder '%s', %x -> %x\n",
+			    fc->name, fc->desc[i].in, fc->desc[i].out);
 
 			return;
 		}
@@ -149,7 +153,8 @@ feeder_register(void *p)
 	}
 	feedercnt++;
 	if (feedercnt >= MAXFEEDERS)
-		printf("MAXFEEDERS (%d >= %d) exceeded\n", feedercnt, MAXFEEDERS);
+		printf("MAXFEEDERS (%d >= %d) exceeded\n", feedercnt,
+		    MAXFEEDERS);
 }
 
 static void
@@ -168,10 +173,8 @@ feeder_unregisterall(void *p)
 static int
 cmpdesc(struct pcm_feederdesc *n, struct pcm_feederdesc *m)
 {
-	return ((n->type == m->type) &&
-		((n->in == 0) || (n->in == m->in)) &&
-		((n->out == 0) || (n->out == m->out)) &&
-		(n->flags == m->flags));
+	return ((n->type == m->type) && ((n->in == 0) || (n->in == m->in)) &&
+	    ((n->out == 0) || (n->out == m->out)) && (n->flags == m->flags));
 }
 
 static void
@@ -187,7 +190,8 @@ feeder_create(struct feeder_class *fc, struct pcm_feederdesc *desc)
 	struct pcm_feeder *f;
 	int err;
 
-	f = (struct pcm_feeder *)kobj_create((kobj_class_t)fc, M_FEEDER, M_NOWAIT | M_ZERO);
+	f = (struct pcm_feeder *)kobj_create((kobj_class_t)fc, M_FEEDER,
+	    M_NOWAIT | M_ZERO);
 	if (f == NULL)
 		return NULL;
 
@@ -223,17 +227,19 @@ feeder_getclass(struct pcm_feederdesc *desc)
 {
 	struct feedertab_entry *fte;
 
-	SLIST_FOREACH(fte, &feedertab, link) {
+	SLIST_FOREACH (fte, &feedertab, link) {
 		if ((desc == NULL) && (fte->desc == NULL))
 			return fte->feederclass;
-		if ((fte->desc != NULL) && (desc != NULL) && cmpdesc(desc, fte->desc))
+		if ((fte->desc != NULL) && (desc != NULL) &&
+		    cmpdesc(desc, fte->desc))
 			return fte->feederclass;
 	}
 	return NULL;
 }
 
 int
-chn_addfeeder(struct pcm_channel *c, struct feeder_class *fc, struct pcm_feederdesc *desc)
+chn_addfeeder(struct pcm_channel *c, struct feeder_class *fc,
+    struct pcm_feederdesc *desc)
 {
 	struct pcm_feeder *nf;
 
@@ -306,13 +312,13 @@ chn_findfeeder(struct pcm_channel *c, u_int32_t type)
  *   |
  *   +--------------------------------------------> AFMT_32BIT
  */
-#define score_signeq(s1, s2)	(((s1) & 0x1) == ((s2) & 0x1))
-#define score_endianeq(s1, s2)	(((s1) & 0x2) == ((s2) & 0x2))
-#define score_cheq(s1, s2)	(((s1) & 0xfc) == ((s2) & 0xfc))
-#define score_chgt(s1, s2)	(((s1) & 0xfc) > ((s2) & 0xfc))
-#define score_chlt(s1, s2)	(((s1) & 0xfc) < ((s2) & 0xfc))
-#define score_val(s1)		((s1) & 0x3f00)
-#define score_cse(s1)		((s1) & 0x7f)
+#define score_signeq(s1, s2) (((s1) & 0x1) == ((s2) & 0x1))
+#define score_endianeq(s1, s2) (((s1) & 0x2) == ((s2) & 0x2))
+#define score_cheq(s1, s2) (((s1) & 0xfc) == ((s2) & 0xfc))
+#define score_chgt(s1, s2) (((s1) & 0xfc) > ((s2) & 0xfc))
+#define score_chlt(s1, s2) (((s1) & 0xfc) < ((s2) & 0xfc))
+#define score_val(s1) ((s1) & 0x3f00)
+#define score_cse(s1) ((s1) & 0x7f)
 
 u_int32_t
 snd_fmtscore(u_int32_t fmt)
@@ -364,24 +370,23 @@ snd_fmtbestfunc(u_int32_t fmt, u_int32_t *fmts, int cheq)
 		score2 = snd_fmtscore(fmts[i]);
 		if (cheq && !score_cheq(score, score2) &&
 		    (score_chlt(score2, score) ||
-		    (oldscore != 0 && score_chgt(score2, oldscore))))
-				continue;
-		if (oldscore == 0 ||
-			    (score_val(score2) == score_val(score)) ||
-			    (score_val(score2) == score_val(oldscore)) ||
-			    (score_val(score2) > score_val(oldscore) &&
-			    score_val(score2) < score_val(score)) ||
-			    (score_val(score2) < score_val(oldscore) &&
-			    score_val(score2) > score_val(score)) ||
-			    (score_val(oldscore) < score_val(score) &&
-			    score_val(score2) > score_val(oldscore))) {
+			(oldscore != 0 && score_chgt(score2, oldscore))))
+			continue;
+		if (oldscore == 0 || (score_val(score2) == score_val(score)) ||
+		    (score_val(score2) == score_val(oldscore)) ||
+		    (score_val(score2) > score_val(oldscore) &&
+			score_val(score2) < score_val(score)) ||
+		    (score_val(score2) < score_val(oldscore) &&
+			score_val(score2) > score_val(score)) ||
+		    (score_val(oldscore) < score_val(score) &&
+			score_val(score2) > score_val(oldscore))) {
 			if (score_val(oldscore) != score_val(score2) ||
-				    score_cse(score) == score_cse(score2) ||
-				    ((score_cse(oldscore) != score_cse(score) &&
-				    !score_endianeq(score, oldscore) &&
-				    (score_endianeq(score, score2) ||
+			    score_cse(score) == score_cse(score2) ||
+			    ((score_cse(oldscore) != score_cse(score) &&
+				!score_endianeq(score, oldscore) &&
+				(score_endianeq(score, score2) ||
 				    (!score_signeq(score, oldscore) &&
-				    score_signeq(score, score2)))))) {
+					score_signeq(score, score2)))))) {
 				best = fmts[i];
 				oldscore = score2;
 			}
@@ -453,7 +458,8 @@ feeder_printchain(struct pcm_feeder *head)
 /*****************************************************************************/
 
 static int
-feed_root(struct pcm_feeder *feeder, struct pcm_channel *ch, u_int8_t *buffer, u_int32_t count, void *source)
+feed_root(struct pcm_feeder *feeder, struct pcm_channel *ch, u_int8_t *buffer,
+    u_int32_t count, void *source)
 {
 	struct snd_dbuf *src = source;
 	int l, offset;
@@ -476,15 +482,15 @@ feed_root(struct pcm_feeder *feeder, struct pcm_channel *ch, u_int8_t *buffer, u
 	if (offset > 0) {
 		if (snd_verbose > 3)
 			printf("%s: (%s) %spending %d bytes "
-			    "(count=%d l=%d feed=%d)\n",
+			       "(count=%d l=%d feed=%d)\n",
 			    __func__,
-			    (ch->flags & CHN_F_VIRTUAL) ? "virtual" : "hardware",
-			    (ch->feedcount == 1) ? "pre" : "ap",
-			    offset, count, l, ch->feedcount);
+			    (ch->flags & CHN_F_VIRTUAL) ? "virtual" :
+							  "hardware",
+			    (ch->feedcount == 1) ? "pre" : "ap", offset, count,
+			    l, ch->feedcount);
 
 		if (ch->feedcount == 1) {
-			memset(buffer,
-			    sndbuf_zerodata(sndbuf_getfmt(src)),
+			memset(buffer, sndbuf_zerodata(sndbuf_getfmt(src)),
 			    offset);
 			if (l > 0)
 				sndbuf_dispose(src, buffer + offset, l);
@@ -493,8 +499,7 @@ feed_root(struct pcm_feeder *feeder, struct pcm_channel *ch, u_int8_t *buffer, u
 		} else {
 			if (l > 0)
 				sndbuf_dispose(src, buffer, l);
-			memset(buffer + l,
-			    sndbuf_zerodata(sndbuf_getfmt(src)),
+			memset(buffer + l, sndbuf_zerodata(sndbuf_getfmt(src)),
 			    offset);
 			if (!(ch->flags & CHN_F_CLOSING))
 				ch->xruns++;
@@ -506,15 +511,16 @@ feed_root(struct pcm_feeder *feeder, struct pcm_channel *ch, u_int8_t *buffer, u
 }
 
 static kobj_method_t feeder_root_methods[] = {
-    	KOBJMETHOD(feeder_feed,		feed_root),
-	KOBJMETHOD_END
+	KOBJMETHOD(feeder_feed, feed_root), KOBJMETHOD_END
 };
 static struct feeder_class feeder_root_class = {
-	.name =		"feeder_root",
-	.methods =	feeder_root_methods,
-	.size =		sizeof(struct pcm_feeder),
-	.desc =		NULL,
-	.data =		NULL,
+	.name = "feeder_root",
+	.methods = feeder_root_methods,
+	.size = sizeof(struct pcm_feeder),
+	.desc = NULL,
+	.data = NULL,
 };
-SYSINIT(feeder_root, SI_SUB_DRIVERS, SI_ORDER_FIRST, feeder_register, &feeder_root_class);
-SYSUNINIT(feeder_root, SI_SUB_DRIVERS, SI_ORDER_FIRST, feeder_unregisterall, NULL);
+SYSINIT(feeder_root, SI_SUB_DRIVERS, SI_ORDER_FIRST, feeder_register,
+    &feeder_root_class);
+SYSUNINIT(feeder_root, SI_SUB_DRIVERS, SI_ORDER_FIRST, feeder_unregisterall,
+    NULL);

@@ -25,20 +25,22 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- *	from: FreeBSD: src/sys/isa/atkbdc_isa.c,v 1.31 2005/05/29 04:42:28 nyan Exp
+ *	from: FreeBSD: src/sys/isa/atkbdc_isa.c,v 1.31 2005/05/29 04:42:28 nyan
+ *Exp
  */
 
-#include <sys/cdefs.h>
 #include "opt_kbd.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
-#include <machine/resource.h>
+#include <sys/module.h>
 #include <sys/rman.h>
+
+#include <machine/resource.h>
 
 #include <dev/atkbdc/atkbdc_subr.h>
 #include <dev/atkbdc/atkbdcreg.h>
@@ -117,8 +119,8 @@ atkbdc_write_ivar(device_t bus, device_t dev, int index, uintptr_t val)
 	return 0;
 }
 
-struct resource_list
-*atkbdc_get_resource_list(device_t bus, device_t dev)
+struct resource_list *
+atkbdc_get_resource_list(device_t bus, device_t dev)
 {
 	atkbdc_device_t *ivar;
 

@@ -140,7 +140,7 @@ main(int argc, char *argv[])
 			err(1, "%s", filename);
 		ret = randomize_fd(fd, random_type, unique_output, denom);
 		if (!random_exit)
-			return(ret);
+			return (ret);
 	}
 
 	/* Compute a random exit status between 0 and denom - 1. */
@@ -169,13 +169,14 @@ main(int argc, char *argv[])
 	} while (ch != EOF);
 	if (ferror(stdin))
 		err(2, "stdin");
-	exit (0);
+	exit(0);
 }
 
 static void
 usage(void)
 {
 
-	fprintf(stderr, "usage: random [-elrUuw] [-f filename] [denominator]\n");
+	fprintf(stderr,
+	    "usage: random [-elrUuw] [-f filename] [denominator]\n");
 	exit(1);
 }

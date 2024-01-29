@@ -84,7 +84,7 @@ main(int argc, char *argv[])
 			if (end == optarg || errno == ERANGE || timeout < 0) {
 				errx(EX_DATAERR, "timeout value");
 			}
-			switch(*end) {
+			switch (*end) {
 			case 0:
 			case 's':
 				break;
@@ -102,8 +102,8 @@ main(int argc, char *argv[])
 			}
 			itv.it_value.tv_sec = (time_t)timeout;
 			timeout -= (time_t)timeout;
-			itv.it_value.tv_usec =
-			    (suseconds_t)(timeout * 1000000UL);
+			itv.it_value.tv_usec = (suseconds_t)(timeout *
+			    1000000UL);
 			break;
 		case 'v':
 			verbose = 1;
@@ -202,8 +202,7 @@ main(int argc, char *argv[])
 					    WEXITSTATUS(status));
 				} else if (WIFSIGNALED(status)) {
 					printf("%ld: killed by signal %d.\n",
-					    (long)e[i].ident,
-					    WTERMSIG(status));
+					    (long)e[i].ident, WTERMSIG(status));
 				} else {
 					printf("%ld: terminated.\n",
 					    (long)e[i].ident);

@@ -51,8 +51,8 @@ procstat_cs(struct procstat *procstat, struct kinfo_proc *kipp)
 	int once, twice, lastcpu, cpu;
 
 	if ((procstat_opts & PS_OPT_NOHEADER) == 0)
-		xo_emit("{T:/%5s %6s %-19s %-19s %2s %4s %-7s}\n", "PID",
-		    "TID", "COMM", "TDNAME", "CPU", "CSID", "CPU MASK");
+		xo_emit("{T:/%5s %6s %-19s %-19s %2s %4s %-7s}\n", "PID", "TID",
+		    "COMM", "TDNAME", "CPU", "CSID", "CPU MASK");
 
 	kip = procstat_getprocs(procstat, KERN_PROC_PID | KERN_PROC_INC_THREAD,
 	    kipp->ki_pid, &count);
@@ -63,24 +63,24 @@ procstat_cs(struct procstat *procstat, struct kinfo_proc *kipp)
 		kipp = &kip[i];
 		xo_emit("{k:process_id/%5d/%d} ", kipp->ki_pid);
 		xo_emit("{:thread_id/%6d/%d} ", kipp->ki_tid);
-		xo_emit("{:command/%-19s/%s} ", strlen(kipp->ki_comm) ?
-		    kipp->ki_comm : "-");
+		xo_emit("{:command/%-19s/%s} ",
+		    strlen(kipp->ki_comm) ? kipp->ki_comm : "-");
 		xo_emit("{:thread_name/%-19s/%s} ",
-                    kinfo_proc_thread_name(kipp));
+		    kinfo_proc_thread_name(kipp));
 		if (kipp->ki_oncpu != 255)
 			xo_emit("{:cpu/%3d/%d} ", kipp->ki_oncpu);
 		else if (kipp->ki_lastcpu != 255)
 			xo_emit("{:cpu/%3d/%d} ", kipp->ki_lastcpu);
 		else
 			xo_emit("{:cpu/%3s/%s} ", "-");
-		if (cpuset_getid(CPU_LEVEL_CPUSET, CPU_WHICH_TID,
-		    kipp->ki_tid, &cs) != 0) {
+		if (cpuset_getid(CPU_LEVEL_CPUSET, CPU_WHICH_TID, kipp->ki_tid,
+			&cs) != 0) {
 			cs = CPUSET_INVALID;
 		}
 		xo_emit("{:cpu_set_id/%4d/%d} ", cs);
-		if ((cs != CPUSET_INVALID) && 
+		if ((cs != CPUSET_INVALID) &&
 		    (cpuset_getaffinity(CPU_LEVEL_WHICH, CPU_WHICH_TID,
-		    kipp->ki_tid, sizeof(mask), &mask) == 0)) {
+			 kipp->ki_tid, sizeof(mask), &mask) == 0)) {
 			lastcpu = -1;
 			once = 0;
 			twice = 0;

@@ -33,29 +33,27 @@ struct fb_info;
 enum vt_color_format {
 	COLOR_FORMAT_BW = 0,
 	COLOR_FORMAT_GRAY,
-	COLOR_FORMAT_VGA,		/* Color Index. */
+	COLOR_FORMAT_VGA, /* Color Index. */
 	COLOR_FORMAT_RGB,
 	COLOR_FORMAT_ARGB,
-        COLOR_FORMAT_CMYK,
-        COLOR_FORMAT_HSL,
-        COLOR_FORMAT_YUV,
-        COLOR_FORMAT_YCbCr,
-        COLOR_FORMAT_YPbPr,
+	COLOR_FORMAT_CMYK,
+	COLOR_FORMAT_HSL,
+	COLOR_FORMAT_YUV,
+	COLOR_FORMAT_YCbCr,
+	COLOR_FORMAT_YPbPr,
 
-        COLOR_FORMAT_MAX = 15,
+	COLOR_FORMAT_MAX = 15,
 };
 
-#define NCOLORS	16
+#define NCOLORS 16
 
 /*
  * Between console's palette and VGA's one:
  *   - blue and red are swapped (1 <-> 4)
  *   - yellow and cyan are swapped (3 <-> 6)
  */
-static const int cons_to_vga_colors[NCOLORS] = {
-	0,  4,  2,  6,  1,  5,  3,  7,
-	8, 12, 10, 14,  9, 13, 11, 15
-};
+static const int cons_to_vga_colors[NCOLORS] = { 0, 4, 2, 6, 1, 5, 3, 7, 8, 12,
+	10, 14, 9, 13, 11, 15 };
 
 /* Helper to fill color map and set RGB offsets used by driver */
 int vt_config_cons_colors(struct fb_info *info, int format, uint32_t rmax,

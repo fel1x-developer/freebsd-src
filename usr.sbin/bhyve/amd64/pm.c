@@ -28,6 +28,7 @@
  */
 
 #include <sys/types.h>
+
 #include <machine/vmm.h>
 
 #include <assert.h>
@@ -57,8 +58,8 @@ static const unsigned gpe0_valid = (1u << GPE_VMGENC);
  * reset.
  */
 static int
-reset_handler(struct vmctx *ctx __unused, int in,
-    int port __unused, int bytes, uint32_t *eax, void *arg __unused)
+reset_handler(struct vmctx *ctx __unused, int in, int port __unused, int bytes,
+    uint32_t *eax, void *arg __unused)
 {
 	int error;
 
@@ -114,19 +115,19 @@ sci_deassert(struct vmctx *ctx)
  */
 static uint16_t pm1_enable, pm1_status;
 
-#define	PM1_TMR_STS		0x0001
-#define	PM1_BM_STS		0x0010
-#define	PM1_GBL_STS		0x0020
-#define	PM1_PWRBTN_STS		0x0100
-#define	PM1_SLPBTN_STS		0x0200
-#define	PM1_RTC_STS		0x0400
-#define	PM1_WAK_STS		0x8000
+#define PM1_TMR_STS 0x0001
+#define PM1_BM_STS 0x0010
+#define PM1_GBL_STS 0x0020
+#define PM1_PWRBTN_STS 0x0100
+#define PM1_SLPBTN_STS 0x0200
+#define PM1_RTC_STS 0x0400
+#define PM1_WAK_STS 0x8000
 
-#define	PM1_TMR_EN		0x0001
-#define	PM1_GBL_EN		0x0020
-#define	PM1_PWRBTN_EN		0x0100
-#define	PM1_SLPBTN_EN		0x0200
-#define	PM1_RTC_EN		0x0400
+#define PM1_TMR_EN 0x0001
+#define PM1_GBL_EN 0x0020
+#define PM1_PWRBTN_EN 0x0100
+#define PM1_SLPBTN_EN 0x0200
+#define PM1_RTC_EN 0x0400
 
 static void
 sci_update(struct vmctx *ctx)
@@ -155,8 +156,8 @@ sci_update(struct vmctx *ctx)
 }
 
 static int
-pm1_status_handler(struct vmctx *ctx, int in,
-    int port __unused, int bytes, uint32_t *eax, void *arg __unused)
+pm1_status_handler(struct vmctx *ctx, int in, int port __unused, int bytes,
+    uint32_t *eax, void *arg __unused)
 {
 
 	if (bytes != 2)
@@ -170,8 +171,9 @@ pm1_status_handler(struct vmctx *ctx, int in,
 		 * Writes are only permitted to clear certain bits by
 		 * writing 1 to those flags.
 		 */
-		pm1_status &= ~(*eax & (PM1_WAK_STS | PM1_RTC_STS |
-		    PM1_SLPBTN_STS | PM1_PWRBTN_STS | PM1_BM_STS));
+		pm1_status &= ~(*eax &
+		    (PM1_WAK_STS | PM1_RTC_STS | PM1_SLPBTN_STS |
+			PM1_PWRBTN_STS | PM1_BM_STS));
 		sci_update(ctx);
 	}
 	pthread_mutex_unlock(&pm_lock);
@@ -179,8 +181,8 @@ pm1_status_handler(struct vmctx *ctx, int in,
 }
 
 static int
-pm1_enable_handler(struct vmctx *ctx, int in,
-    int port __unused, int bytes, uint32_t *eax, void *arg __unused)
+pm1_enable_handler(struct vmctx *ctx, int in, int port __unused, int bytes,
+    uint32_t *eax, void *arg __unused)
 {
 
 	if (bytes != 2)
@@ -226,14 +228,14 @@ power_button_handler(int signal __unused, enum ev_type type __unused, void *arg)
  */
 static uint16_t pm1_control;
 
-#define	PM1_SCI_EN	0x0001
-#define	PM1_SLP_TYP	0x1c00
-#define	PM1_SLP_EN	0x2000
-#define	PM1_ALWAYS_ZERO	0xc003
+#define PM1_SCI_EN 0x0001
+#define PM1_SLP_TYP 0x1c00
+#define PM1_SLP_EN 0x2000
+#define PM1_ALWAYS_ZERO 0xc003
 
 static int
-pm1_control_handler(struct vmctx *ctx, int in,
-    int port __unused, int bytes, uint32_t *eax, void *arg __unused)
+pm1_control_handler(struct vmctx *ctx, int in, int port __unused, int bytes,
+    uint32_t *eax, void *arg __unused)
 {
 	int error;
 
@@ -282,8 +284,8 @@ acpi_raise_gpe(struct vmctx *ctx, unsigned bit)
 }
 
 static int
-gpe0_sts(struct vmctx *ctx, int in, int port __unused,
-    int bytes, uint32_t *eax, void *arg __unused)
+gpe0_sts(struct vmctx *ctx, int in, int port __unused, int bytes, uint32_t *eax,
+    void *arg __unused)
 {
 	/*
 	 * ACPI 6.2 specifies the GPE register blocks are accessed
@@ -306,8 +308,8 @@ gpe0_sts(struct vmctx *ctx, int in, int port __unused,
 INOUT_PORT(gpe0_sts, IO_GPE0_STS, IOPORT_F_INOUT, gpe0_sts);
 
 static int
-gpe0_en(struct vmctx *ctx, int in, int port __unused,
-    int bytes, uint32_t *eax, void *arg __unused)
+gpe0_en(struct vmctx *ctx, int in, int port __unused, int bytes, uint32_t *eax,
+    void *arg __unused)
 {
 	if (bytes != 1)
 		return (-1);
@@ -330,8 +332,8 @@ INOUT_PORT(gpe0_en, IO_GPE0_EN, IOPORT_F_INOUT, gpe0_en);
  * This write-only register is used to enable and disable ACPI.
  */
 static int
-smi_cmd_handler(struct vmctx *ctx, int in, int port __unused,
-    int bytes, uint32_t *eax, void *arg __unused)
+smi_cmd_handler(struct vmctx *ctx, int in, int port __unused, int bytes,
+    uint32_t *eax, void *arg __unused)
 {
 
 	assert(!in);

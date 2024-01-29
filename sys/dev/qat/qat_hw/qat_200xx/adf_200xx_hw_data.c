@@ -1,28 +1,30 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
 #include <adf_accel_devices.h>
-#include <adf_common_drv.h>
 #include <adf_cfg.h>
-#include <adf_pfvf_msg.h>
+#include <adf_common_drv.h>
 #include <adf_dev_err.h>
 #include <adf_gen2_hw_data.h>
 #include <adf_gen2_pfvf.h>
+#include <adf_pfvf_msg.h>
+
 #include "adf_200xx_hw_data.h"
-#include "icp_qat_hw.h"
 #include "adf_heartbeat.h"
+#include "icp_qat_hw.h"
 
 /* Worker thread to service arbiter mappings */
-static const u32 thrd_to_arb_map[ADF_200XX_MAX_ACCELENGINES] =
-    { 0x12222AAA, 0x11222AAA, 0x12222AAA, 0x11222AAA, 0x12222AAA, 0x11222AAA };
+static const u32 thrd_to_arb_map[ADF_200XX_MAX_ACCELENGINES] = { 0x12222AAA,
+	0x11222AAA, 0x12222AAA, 0x11222AAA, 0x12222AAA, 0x11222AAA };
 
 enum { DEV_200XX_SKU_1 = 0, DEV_200XX_SKU_2 = 1, DEV_200XX_SKU_3 = 2 };
 
 static u32 thrd_to_arb_map_gen[ADF_200XX_MAX_ACCELENGINES] = { 0 };
 
-static struct adf_hw_device_class qat_200xx_class = {.name =
-							 ADF_200XX_DEVICE_NAME,
-						     .type = DEV_200XX,
-						     .instances = 0 };
+static struct adf_hw_device_class qat_200xx_class = {
+	.name = ADF_200XX_DEVICE_NAME,
+	.type = DEV_200XX,
+	.instances = 0
+};
 
 static u32
 get_accel_mask(struct adf_accel_dev *accel_dev)
@@ -52,8 +54,8 @@ get_ae_mask(struct adf_accel_dev *accel_dev)
 	me_straps = pci_read_config(pdev, ADF_200XX_SOFTSTRAP_CSR_OFFSET, 4);
 
 	/* If SSMs are disabled, then disable the corresponding MEs */
-	ssms_disabled =
-	    (~get_accel_mask(accel_dev)) & ADF_200XX_ACCELERATORS_MASK;
+	ssms_disabled = (~get_accel_mask(accel_dev)) &
+	    ADF_200XX_ACCELERATORS_MASK;
 	me_disable = 0x3;
 	while (ssms_disabled) {
 		if (ssms_disabled & 1)
@@ -126,7 +128,7 @@ get_sku(struct adf_hw_device_data *self)
 
 static void
 adf_get_arbiter_mapping(struct adf_accel_dev *accel_dev,
-			u32 const **arb_map_config)
+    u32 const **arb_map_config)
 {
 	int i;
 	struct adf_hw_device_data *hw_device = accel_dev->hw_device;
@@ -136,10 +138,8 @@ adf_get_arbiter_mapping(struct adf_accel_dev *accel_dev,
 		if (hw_device->ae_mask & (1 << i))
 			thrd_to_arb_map_gen[i] = thrd_to_arb_map[i];
 	}
-	adf_cfg_gen_dispatch_arbiter(accel_dev,
-				     thrd_to_arb_map,
-				     thrd_to_arb_map_gen,
-				     ADF_200XX_MAX_ACCELENGINES);
+	adf_cfg_gen_dispatch_arbiter(accel_dev, thrd_to_arb_map,
+	    thrd_to_arb_map_gen, ADF_200XX_MAX_ACCELENGINES);
 	*arb_map_config = thrd_to_arb_map_gen;
 }
 
@@ -201,13 +201,11 @@ adf_disable_error_interrupts(struct adf_accel_dev *accel_dev)
 	struct resource *csr = misc_bar->virt_addr;
 
 	/* ME0-ME3 */
-	ADF_CSR_WR(csr,
-		   ADF_ERRMSK0,
-		   ADF_200XX_ERRMSK0_UERR | ADF_200XX_ERRMSK0_CERR);
+	ADF_CSR_WR(csr, ADF_ERRMSK0,
+	    ADF_200XX_ERRMSK0_UERR | ADF_200XX_ERRMSK0_CERR);
 	/* ME4-ME5 */
-	ADF_CSR_WR(csr,
-		   ADF_ERRMSK1,
-		   ADF_200XX_ERRMSK1_UERR | ADF_200XX_ERRMSK1_CERR);
+	ADF_CSR_WR(csr, ADF_ERRMSK1,
+	    ADF_200XX_ERRMSK1_UERR | ADF_200XX_ERRMSK1_CERR);
 	/* CPP Push Pull, RI, TI, SSM0-SSM1, CFC */
 	ADF_CSR_WR(csr, ADF_ERRMSK3, ADF_200XX_ERRMSK3_UERR);
 	/* SSM2 */
@@ -230,7 +228,7 @@ adf_check_uncorrectable_error(struct adf_accel_dev *accel_dev)
 
 static void
 adf_enable_mmp_error_correction(struct resource *csr,
-				struct adf_hw_device_data *hw_data)
+    struct adf_hw_device_data *hw_data)
 {
 	unsigned int dev, mmp;
 	unsigned int mask;
@@ -240,9 +238,8 @@ adf_enable_mmp_error_correction(struct resource *csr,
 		if (!(mask & 1))
 			continue;
 		/* Set power-up */
-		adf_csr_fetch_and_and(csr,
-				      ADF_200XX_SLICEPWRDOWN(dev),
-				      ~ADF_200XX_MMP_PWR_UP_MSK);
+		adf_csr_fetch_and_and(csr, ADF_200XX_SLICEPWRDOWN(dev),
+		    ~ADF_200XX_MMP_PWR_UP_MSK);
 
 		if (hw_data->accel_capabilities_mask &
 		    ADF_ACCEL_CAPABILITIES_CRYPTO_ASYMMETRIC) {
@@ -252,15 +249,15 @@ adf_enable_mmp_error_correction(struct resource *csr,
 				 * so enable error reporting from MMP memory
 				 */
 				adf_csr_fetch_and_or(csr,
-						     ADF_UERRSSMMMP(dev, mmp),
-						     ADF_200XX_UERRSSMMMP_EN);
+				    ADF_UERRSSMMMP(dev, mmp),
+				    ADF_200XX_UERRSSMMMP_EN);
 				/*
 				 * The device supports PKE,
 				 * so enable error correction from MMP memory
 				 */
 				adf_csr_fetch_and_or(csr,
-						     ADF_CERRSSMMMP(dev, mmp),
-						     ADF_200XX_CERRSSMMMP_EN);
+				    ADF_CERRSSMMMP(dev, mmp),
+				    ADF_200XX_CERRSSMMMP_EN);
 			}
 		} else {
 			for (mmp = 0; mmp < ADF_MAX_MMP; ++mmp) {
@@ -269,27 +266,25 @@ adf_enable_mmp_error_correction(struct resource *csr,
 				 * so disable error reporting from MMP memory
 				 */
 				adf_csr_fetch_and_and(csr,
-						      ADF_UERRSSMMMP(dev, mmp),
-						      ~ADF_200XX_UERRSSMMMP_EN);
+				    ADF_UERRSSMMMP(dev, mmp),
+				    ~ADF_200XX_UERRSSMMMP_EN);
 				/*
 				 * The device doesn't support PKE,
 				 * so disable error correction from MMP memory
 				 */
 				adf_csr_fetch_and_and(csr,
-						      ADF_CERRSSMMMP(dev, mmp),
-						      ~ADF_200XX_CERRSSMMMP_EN);
+				    ADF_CERRSSMMMP(dev, mmp),
+				    ~ADF_200XX_CERRSSMMMP_EN);
 			}
 		}
 
 		/* Restore power-down value */
-		adf_csr_fetch_and_or(csr,
-				     ADF_200XX_SLICEPWRDOWN(dev),
-				     ADF_200XX_MMP_PWR_UP_MSK);
+		adf_csr_fetch_and_or(csr, ADF_200XX_SLICEPWRDOWN(dev),
+		    ADF_200XX_MMP_PWR_UP_MSK);
 
 		/* Disabling correctable error interrupts. */
-		ADF_CSR_WR(csr,
-			   ADF_200XX_INTMASKSSM(dev),
-			   ADF_200XX_INTMASKSSM_UERR);
+		ADF_CSR_WR(csr, ADF_200XX_INTMASKSSM(dev),
+		    ADF_200XX_INTMASKSSM_UERR);
 	}
 }
 
@@ -376,10 +371,8 @@ measure_clock(struct adf_accel_dev *accel_dev)
 	u32 frequency;
 	int ret = 0;
 
-	ret = adf_dev_measure_clock(accel_dev,
-				    &frequency,
-				    ADF_200XX_MIN_AE_FREQ,
-				    ADF_200XX_MAX_AE_FREQ);
+	ret = adf_dev_measure_clock(accel_dev, &frequency,
+	    ADF_200XX_MIN_AE_FREQ, ADF_200XX_MAX_AE_FREQ);
 	if (ret)
 		return ret;
 
@@ -409,13 +402,13 @@ adf_200xx_get_hw_cap(struct adf_accel_dev *accel_dev)
 	    ICP_ACCEL_CAPABILITIES_EXT_ALGCHAIN;
 	if (legfuses & ICP_ACCEL_MASK_CIPHER_SLICE)
 		capabilities &= ~(ICP_ACCEL_CAPABILITIES_CRYPTO_SYMMETRIC |
-				  ICP_ACCEL_CAPABILITIES_CIPHER |
-				  ICP_ACCEL_CAPABILITIES_EXT_ALGCHAIN);
+		    ICP_ACCEL_CAPABILITIES_CIPHER |
+		    ICP_ACCEL_CAPABILITIES_EXT_ALGCHAIN);
 	if (legfuses & ICP_ACCEL_MASK_AUTH_SLICE)
 		capabilities &= ~ICP_ACCEL_CAPABILITIES_AUTHENTICATION;
 	if (legfuses & ICP_ACCEL_MASK_PKE_SLICE)
 		capabilities &= ~(ICP_ACCEL_CAPABILITIES_CRYPTO_ASYMMETRIC |
-				  ICP_ACCEL_CAPABILITIES_ECEDMONT);
+		    ICP_ACCEL_CAPABILITIES_ECEDMONT);
 	if (legfuses & ICP_ACCEL_MASK_COMPRESS_SLICE)
 		capabilities &= ~ICP_ACCEL_CAPABILITIES_COMPRESSION;
 	if (legfuses & ICP_ACCEL_MASK_EIA3_SLICE)
@@ -434,7 +427,7 @@ adf_200xx_get_hw_cap(struct adf_accel_dev *accel_dev)
 
 static const char *
 get_obj_name(struct adf_accel_dev *accel_dev,
-	     enum adf_accel_unit_services service)
+    enum adf_accel_unit_services service)
 {
 	return ADF_CXXX_AE_FW_NAME_CUSTOM1;
 }
@@ -447,7 +440,7 @@ get_objs_num(struct adf_accel_dev *accel_dev)
 
 static uint32_t
 get_obj_cfg_ae_mask(struct adf_accel_dev *accel_dev,
-		    enum adf_accel_unit_services services)
+    enum adf_accel_unit_services services)
 {
 	return accel_dev->hw_device->ae_mask;
 }

@@ -27,6 +27,7 @@
 
 #include <sys/cdefs.h>
 #include <sys/endian.h>
+
 #include "nvmecontrol.h"
 
 char *

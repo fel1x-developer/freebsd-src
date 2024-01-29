@@ -29,8 +29,8 @@
  * SUCH DAMAGE.
  */
 
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
 /*
  * Get next token from string *stringp, where tokens are possibly-empty

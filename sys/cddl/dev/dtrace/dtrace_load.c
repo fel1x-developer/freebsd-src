@@ -29,11 +29,11 @@ dtrace_ap_start(void *dummy)
 	mutex_enter(&cpu_lock);
 
 	/* Setup the rest of the CPUs. */
-	CPU_FOREACH(i) {
+	CPU_FOREACH (i) {
 		if (i == 0)
 			continue;
 
-		(void) dtrace_cpu_setup(CPU_CONFIG, i);
+		(void)dtrace_cpu_setup(CPU_CONFIG, i);
 	}
 
 	mutex_exit(&cpu_lock);
@@ -54,7 +54,7 @@ dtrace_load(void *dummy)
 	/*
 	 * DTrace uses negative logic for the destructive mode switch, so it
 	 * is required to translate from the sysctl which uses positive logic.
-	 */ 
+	 */
 	if (dtrace_allow_destructive)
 		dtrace_destructive_disallow = 0;
 	else
@@ -75,8 +75,8 @@ dtrace_load(void *dummy)
 	dtrace_arena = new_unrhdr(1, INT_MAX, &dtrace_unr_mtx);
 
 	/* Register callbacks for linker file load and unload events. */
-	dtrace_kld_load_tag = EVENTHANDLER_REGISTER(kld_load,
-	    dtrace_kld_load, NULL, EVENTHANDLER_PRI_ANY);
+	dtrace_kld_load_tag = EVENTHANDLER_REGISTER(kld_load, dtrace_kld_load,
+	    NULL, EVENTHANDLER_PRI_ANY);
 	dtrace_kld_unload_try_tag = EVENTHANDLER_REGISTER(kld_unload_try,
 	    dtrace_kld_unload_try, NULL, EVENTHANDLER_PRI_ANY);
 
@@ -88,11 +88,13 @@ dtrace_load(void *dummy)
 	 * low memory situation. And that low memory situation might be
 	 * the very problem we are trying to trace.
 	 */
-	mutex_init(&dtrace_lock,"dtrace probe state", MUTEX_DEFAULT, NULL);
-	mutex_init(&dtrace_provider_lock,"dtrace provider state", MUTEX_DEFAULT, NULL);
-	mutex_init(&dtrace_meta_lock,"dtrace meta-provider state", MUTEX_DEFAULT, NULL);
+	mutex_init(&dtrace_lock, "dtrace probe state", MUTEX_DEFAULT, NULL);
+	mutex_init(&dtrace_provider_lock, "dtrace provider state",
+	    MUTEX_DEFAULT, NULL);
+	mutex_init(&dtrace_meta_lock, "dtrace meta-provider state",
+	    MUTEX_DEFAULT, NULL);
 #ifdef DEBUG
-	mutex_init(&dtrace_errlock,"dtrace error lock", MUTEX_DEFAULT, NULL);
+	mutex_init(&dtrace_errlock, "dtrace error lock", MUTEX_DEFAULT, NULL);
 #endif
 
 	mutex_enter(&cpu_lock);
@@ -100,8 +102,8 @@ dtrace_load(void *dummy)
 	mutex_enter(&dtrace_lock);
 
 	dtrace_state_cache = kmem_cache_create("dtrace_state_cache",
-	    sizeof (dtrace_dstate_percpu_t) * NCPU, DTRACE_STATE_ALIGN,
-	    NULL, NULL, NULL, NULL, NULL, 0);
+	    sizeof(dtrace_dstate_percpu_t) * NCPU, DTRACE_STATE_ALIGN, NULL,
+	    NULL, NULL, NULL, NULL, 0);
 
 	ASSERT(MUTEX_HELD(&cpu_lock));
 	dtrace_bymod = dtrace_hash_create(offsetof(dtrace_probe_t, dtpr_mod),
@@ -117,8 +119,10 @@ dtrace_load(void *dummy)
 	    offsetof(dtrace_probe_t, dtpr_prevname));
 
 	if (dtrace_retain_max < 1) {
-		cmn_err(CE_WARN, "illegal value (%zu) for dtrace_retain_max; "
-		    "setting to 1", dtrace_retain_max);
+		cmn_err(CE_WARN,
+		    "illegal value (%zu) for dtrace_retain_max; "
+		    "setting to 1",
+		    dtrace_retain_max);
 		dtrace_retain_max = 1;
 	}
 
@@ -134,29 +138,31 @@ dtrace_load(void *dummy)
 	 * Once we've registered, we can assert that dtrace_provider is our
 	 * pseudo provider.
 	 */
-	(void) dtrace_register("dtrace", &dtrace_provider_attr,
-	    DTRACE_PRIV_NONE, 0, &dtrace_provider_ops, NULL, &id);
+	(void)dtrace_register("dtrace", &dtrace_provider_attr, DTRACE_PRIV_NONE,
+	    0, &dtrace_provider_ops, NULL, &id);
 
 	ASSERT(dtrace_provider != NULL);
 	ASSERT((dtrace_provider_id_t)dtrace_provider == id);
 
-	dtrace_probeid_begin = dtrace_probe_create((dtrace_provider_id_t)
-	    dtrace_provider, NULL, NULL, "BEGIN", 0, NULL);
-	dtrace_probeid_end = dtrace_probe_create((dtrace_provider_id_t)
-	    dtrace_provider, NULL, NULL, "END", 0, NULL);
-	dtrace_probeid_error = dtrace_probe_create((dtrace_provider_id_t)
-	    dtrace_provider, NULL, NULL, "ERROR", 1, NULL);
+	dtrace_probeid_begin =
+	    dtrace_probe_create((dtrace_provider_id_t)dtrace_provider, NULL,
+		NULL, "BEGIN", 0, NULL);
+	dtrace_probeid_end = dtrace_probe_create(
+	    (dtrace_provider_id_t)dtrace_provider, NULL, NULL, "END", 0, NULL);
+	dtrace_probeid_error =
+	    dtrace_probe_create((dtrace_provider_id_t)dtrace_provider, NULL,
+		NULL, "ERROR", 1, NULL);
 
 	mutex_exit(&dtrace_lock);
 	mutex_exit(&dtrace_provider_lock);
 
 #ifdef EARLY_AP_STARTUP
-	CPU_FOREACH(i) {
-		(void) dtrace_cpu_setup(CPU_CONFIG, i);
+	CPU_FOREACH (i) {
+		(void)dtrace_cpu_setup(CPU_CONFIG, i);
 	}
 #else
 	/* Setup the boot CPU */
-	(void) dtrace_cpu_setup(CPU_CONFIG, 0);
+	(void)dtrace_cpu_setup(CPU_CONFIG, 0);
 #endif
 
 	mutex_exit(&cpu_lock);

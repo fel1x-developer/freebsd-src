@@ -6,15 +6,14 @@
  *
  */
 
-#include <dlfcn.h>
-
 #include <atf-c.h>
+#include <dlfcn.h>
 
 int get_value(void);
 void set_value(int);
 
-#define	APP_VALUE	5
-#define	LIB_VALUE	20
+#define APP_VALUE 5
+#define LIB_VALUE 20
 
 ATF_TC_WITHOUT_HEAD(deepbind_simple);
 ATF_TC_BODY(deepbind_simple, tc)

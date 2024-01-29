@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018 Cavium, Inc. 
+ * Copyright (c) 2017-2018 Cavium, Inc.
  * All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -29,8 +29,8 @@
 #ifndef __ECORE_VF_API_H__
 #define __ECORE_VF_API_H__
 
-#include "ecore_sp_api.h"
 #include "ecore_mcp_api.h"
+#include "ecore_sp_api.h"
 
 #ifdef CONFIG_ECORE_SRIOV
 /**
@@ -42,7 +42,7 @@
  * @return enum _ecore_status
  */
 enum _ecore_status_t ecore_vf_read_bulletin(struct ecore_hwfn *p_hwfn,
-					    u8 *p_change);
+    u8 *p_change);
 
 /**
  * @brief Get link parameters for VF from ecore
@@ -51,7 +51,7 @@ enum _ecore_status_t ecore_vf_read_bulletin(struct ecore_hwfn *p_hwfn,
  * @param params - the link params structure to be filled for the VF
  */
 void ecore_vf_get_link_params(struct ecore_hwfn *p_hwfn,
-			      struct ecore_mcp_link_params *params);
+    struct ecore_mcp_link_params *params);
 
 /**
  * @brief Get link state for VF from ecore
@@ -60,7 +60,7 @@ void ecore_vf_get_link_params(struct ecore_hwfn *p_hwfn,
  * @param link - the link state structure to be filled for the VF
  */
 void ecore_vf_get_link_state(struct ecore_hwfn *p_hwfn,
-			     struct ecore_mcp_link_state *link);
+    struct ecore_mcp_link_state *link);
 
 /**
  * @brief Get link capabilities for VF from ecore
@@ -69,7 +69,7 @@ void ecore_vf_get_link_state(struct ecore_hwfn *p_hwfn,
  * @param p_link_caps - the link capabilities structure to be filled for the VF
  */
 void ecore_vf_get_link_caps(struct ecore_hwfn *p_hwfn,
-			    struct ecore_mcp_link_capabilities *p_link_caps);
+    struct ecore_mcp_link_capabilities *p_link_caps);
 
 /**
  * @brief Get number of Rx queues allocated for VF by ecore
@@ -77,8 +77,7 @@ void ecore_vf_get_link_caps(struct ecore_hwfn *p_hwfn,
  *  @param p_hwfn
  *  @param num_rxqs - allocated RX queues
  */
-void ecore_vf_get_num_rxqs(struct ecore_hwfn *p_hwfn,
-			   u8 *num_rxqs);
+void ecore_vf_get_num_rxqs(struct ecore_hwfn *p_hwfn, u8 *num_rxqs);
 
 /**
  * @brief Get number of Rx queues allocated for VF by ecore
@@ -86,8 +85,7 @@ void ecore_vf_get_num_rxqs(struct ecore_hwfn *p_hwfn,
  *  @param p_hwfn
  *  @param num_txqs - allocated RX queues
  */
-void ecore_vf_get_num_txqs(struct ecore_hwfn *p_hwfn,
-			   u8 *num_txqs);
+void ecore_vf_get_num_txqs(struct ecore_hwfn *p_hwfn, u8 *num_txqs);
 
 /**
  * @brief Get number of available connections [both Rx and Tx] for VF
@@ -103,8 +101,7 @@ void ecore_vf_get_num_cids(struct ecore_hwfn *p_hwfn, u8 *num_cids);
  * @param p_hwfn
  * @param port_mac - destination location for port mac
  */
-void ecore_vf_get_port_mac(struct ecore_hwfn *p_hwfn,
-			   u8 *port_mac);
+void ecore_vf_get_port_mac(struct ecore_hwfn *p_hwfn, u8 *port_mac);
 
 /**
  * @brief Get number of VLAN filters allocated for VF by ecore
@@ -113,7 +110,7 @@ void ecore_vf_get_port_mac(struct ecore_hwfn *p_hwfn,
  *  @param num_rxqs - allocated VLAN filters
  */
 void ecore_vf_get_num_vlan_filters(struct ecore_hwfn *p_hwfn,
-				   u8 *num_vlan_filters);
+    u8 *num_vlan_filters);
 
 /**
  * @brief Get number of MAC filters allocated for VF by ecore
@@ -122,7 +119,7 @@ void ecore_vf_get_num_vlan_filters(struct ecore_hwfn *p_hwfn,
  *  @param num_rxqs - allocated MAC filters
  */
 void ecore_vf_get_num_mac_filters(struct ecore_hwfn *p_hwfn,
-				  u8 *num_mac_filters);
+    u8 *num_mac_filters);
 
 /**
  * @brief Check if VF can set a MAC address
@@ -142,12 +139,12 @@ bool ecore_vf_check_mac(struct ecore_hwfn *p_hwfn, u8 *mac);
  * @param dst_mac
  * @param p_is_forced - out param which indicate in case mac
  *      	        exist if it forced or not.
- *  
+ *
  * @return bool       - return true if mac exist and false if
  *                      not.
  */
 bool ecore_vf_bulletin_get_forced_mac(struct ecore_hwfn *hwfn, u8 *dst_mac,
-				      u8 *p_is_forced);
+    u8 *p_is_forced);
 
 /**
  * @brief Check if force vlan is set and copy the forced vlan
@@ -172,7 +169,8 @@ bool ecore_vf_get_pre_fp_hsi(struct ecore_hwfn *p_hwfn);
 #endif
 
 /**
- * @brief Set firmware version information in dev_info from VFs acquire response tlv
+ * @brief Set firmware version information in dev_info from VFs acquire response
+ * tlv
  *
  * @param p_hwfn
  * @param fw_major
@@ -180,13 +178,10 @@ bool ecore_vf_get_pre_fp_hsi(struct ecore_hwfn *p_hwfn);
  * @param fw_rev
  * @param fw_eng
  */
-void ecore_vf_get_fw_version(struct ecore_hwfn *p_hwfn,
-			     u16 *fw_major,
-			     u16 *fw_minor,
-			     u16 *fw_rev,
-			     u16 *fw_eng);
+void ecore_vf_get_fw_version(struct ecore_hwfn *p_hwfn, u16 *fw_major,
+    u16 *fw_minor, u16 *fw_rev, u16 *fw_eng);
 void ecore_vf_bulletin_get_udp_ports(struct ecore_hwfn *p_hwfn,
-				     u16 *p_vxlan_port, u16 *p_geneve_port);
+    u16 *p_vxlan_port, u16 *p_geneve_port);
 
 #ifdef CONFIG_ECORE_SW_CHANNEL
 /**
@@ -201,33 +196,95 @@ void ecore_vf_bulletin_get_udp_ports(struct ecore_hwfn *p_hwfn,
 void ecore_vf_set_hw_channel(struct ecore_hwfn *p_hwfn, bool b_is_hw);
 #endif
 #else
-static OSAL_INLINE enum _ecore_status_t ecore_vf_read_bulletin(struct ecore_hwfn OSAL_UNUSED *p_hwfn, u8 OSAL_UNUSED *p_change) {return ECORE_INVAL;}
-static OSAL_INLINE void ecore_vf_get_link_params(struct ecore_hwfn OSAL_UNUSED *p_hwfn, struct ecore_mcp_link_params OSAL_UNUSED *params) {}
-static OSAL_INLINE void ecore_vf_get_link_state(struct ecore_hwfn OSAL_UNUSED *p_hwfn, struct ecore_mcp_link_state OSAL_UNUSED *link) {}
-static OSAL_INLINE void ecore_vf_get_link_caps(struct ecore_hwfn OSAL_UNUSED *p_hwfn, struct ecore_mcp_link_capabilities OSAL_UNUSED *p_link_caps) {}
-static OSAL_INLINE void ecore_vf_get_num_rxqs(struct ecore_hwfn OSAL_UNUSED *p_hwfn, u8 OSAL_UNUSED *num_rxqs) {}
-static OSAL_INLINE void ecore_vf_get_num_txqs(struct ecore_hwfn OSAL_UNUSED *p_hwfn, u8 OSAL_UNUSED *num_txqs) {}
+static OSAL_INLINE enum _ecore_status_t
+ecore_vf_read_bulletin(struct ecore_hwfn OSAL_UNUSED *p_hwfn,
+    u8 OSAL_UNUSED *p_change)
+{
+	return ECORE_INVAL;
+}
+static OSAL_INLINE void
+ecore_vf_get_link_params(struct ecore_hwfn OSAL_UNUSED *p_hwfn,
+    struct ecore_mcp_link_params OSAL_UNUSED *params)
+{
+}
+static OSAL_INLINE void
+ecore_vf_get_link_state(struct ecore_hwfn OSAL_UNUSED *p_hwfn,
+    struct ecore_mcp_link_state OSAL_UNUSED *link)
+{
+}
+static OSAL_INLINE void
+ecore_vf_get_link_caps(struct ecore_hwfn OSAL_UNUSED *p_hwfn,
+    struct ecore_mcp_link_capabilities OSAL_UNUSED *p_link_caps)
+{
+}
+static OSAL_INLINE void
+ecore_vf_get_num_rxqs(struct ecore_hwfn OSAL_UNUSED *p_hwfn,
+    u8 OSAL_UNUSED *num_rxqs)
+{
+}
+static OSAL_INLINE void
+ecore_vf_get_num_txqs(struct ecore_hwfn OSAL_UNUSED *p_hwfn,
+    u8 OSAL_UNUSED *num_txqs)
+{
+}
 
 static OSAL_INLINE void
 ecore_vf_get_num_cids(struct ecore_hwfn OSAL_UNUSED *p_hwfn,
-		      u8 OSAL_UNUSED *num_cids)
+    u8 OSAL_UNUSED *num_cids)
 {
 }
-static OSAL_INLINE void ecore_vf_get_port_mac(struct ecore_hwfn OSAL_UNUSED *p_hwfn, u8 OSAL_UNUSED *port_mac) {}
-static OSAL_INLINE void ecore_vf_get_num_vlan_filters(struct ecore_hwfn OSAL_UNUSED *p_hwfn, u8 OSAL_UNUSED *num_vlan_filters) {}
-static OSAL_INLINE void ecore_vf_get_num_mac_filters(struct ecore_hwfn OSAL_UNUSED *p_hwfn, u8 OSAL_UNUSED *num_mac_filters) {}
-static OSAL_INLINE bool ecore_vf_check_mac(struct ecore_hwfn OSAL_UNUSED *p_hwfn, u8 OSAL_UNUSED *mac) {return false;}
+static OSAL_INLINE void
+ecore_vf_get_port_mac(struct ecore_hwfn OSAL_UNUSED *p_hwfn,
+    u8 OSAL_UNUSED *port_mac)
+{
+}
+static OSAL_INLINE void
+ecore_vf_get_num_vlan_filters(struct ecore_hwfn OSAL_UNUSED *p_hwfn,
+    u8 OSAL_UNUSED *num_vlan_filters)
+{
+}
+static OSAL_INLINE void
+ecore_vf_get_num_mac_filters(struct ecore_hwfn OSAL_UNUSED *p_hwfn,
+    u8 OSAL_UNUSED *num_mac_filters)
+{
+}
+static OSAL_INLINE bool
+ecore_vf_check_mac(struct ecore_hwfn OSAL_UNUSED *p_hwfn, u8 OSAL_UNUSED *mac)
+{
+	return false;
+}
 #ifndef LINUX_REMOVE
-static OSAL_INLINE bool ecore_vf_bulletin_get_forced_mac(struct ecore_hwfn OSAL_UNUSED *hwfn, u8 OSAL_UNUSED *dst_mac, u8 OSAL_UNUSED *p_is_forced) {return false;}
-static OSAL_INLINE bool ecore_vf_get_pre_fp_hsi(struct ecore_hwfn OSAL_UNUSED *p_hwfn) {return false; }
+static OSAL_INLINE bool
+ecore_vf_bulletin_get_forced_mac(struct ecore_hwfn OSAL_UNUSED *hwfn,
+    u8 OSAL_UNUSED *dst_mac, u8 OSAL_UNUSED *p_is_forced)
+{
+	return false;
+}
+static OSAL_INLINE bool
+ecore_vf_get_pre_fp_hsi(struct ecore_hwfn OSAL_UNUSED *p_hwfn)
+{
+	return false;
+}
 #endif
-static OSAL_INLINE void ecore_vf_get_fw_version(struct ecore_hwfn OSAL_UNUSED *p_hwfn, u16 OSAL_UNUSED *fw_major, u16 OSAL_UNUSED *fw_minor, u16 OSAL_UNUSED *fw_rev, u16 OSAL_UNUSED *fw_eng) {}
-static OSAL_INLINE void ecore_vf_bulletin_get_udp_ports(struct ecore_hwfn OSAL_UNUSED *p_hwfn, u16 OSAL_UNUSED *p_vxlan_port, u16 OSAL_UNUSED *p_geneve_port) { return; }
+static OSAL_INLINE void
+ecore_vf_get_fw_version(struct ecore_hwfn OSAL_UNUSED *p_hwfn,
+    u16 OSAL_UNUSED *fw_major, u16 OSAL_UNUSED *fw_minor,
+    u16 OSAL_UNUSED *fw_rev, u16 OSAL_UNUSED *fw_eng)
+{
+}
+static OSAL_INLINE void
+ecore_vf_bulletin_get_udp_ports(struct ecore_hwfn OSAL_UNUSED *p_hwfn,
+    u16 OSAL_UNUSED *p_vxlan_port, u16 OSAL_UNUSED *p_geneve_port)
+{
+	return;
+}
 
 #ifdef CONFIG_ECORE_SW_CHANNEL
 static OSAL_INLINE void
 ecore_vf_set_hw_channel(struct ecore_hwfn OSAL_UNUSED *p_hwfn,
-			bool OSAL_UNUSED b_is_hw) {}
+    bool OSAL_UNUSED b_is_hw)
+{
+}
 #endif
 #endif
 #endif

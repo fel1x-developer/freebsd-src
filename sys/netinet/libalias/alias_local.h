@@ -44,20 +44,20 @@
  */
 
 #ifndef _ALIAS_LOCAL_H_
-#define	_ALIAS_LOCAL_H_
+#define _ALIAS_LOCAL_H_
 
-#include <sys/tree.h>
 #include <sys/types.h>
 #include <sys/sysctl.h>
+#include <sys/tree.h>
 
 #ifdef _KERNEL
-#include <sys/malloc.h>
 #include <sys/param.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
 #include <sys/mutex.h>
 
 /* XXX: LibAliasSetTarget() uses this constant. */
-#define	INADDR_NONE	0xffffffff
+#define INADDR_NONE 0xffffffff
 
 #include <netinet/libalias/alias_sctp.h>
 #else
@@ -65,8 +65,8 @@
 #endif
 
 /* Sizes of input and output link tables */
-#define	GET_ALIAS_PORT		-1
-#define	GET_ALIAS_ID		GET_ALIAS_PORT
+#define GET_ALIAS_PORT -1
+#define GET_ALIAS_ID GET_ALIAS_PORT
 
 #ifdef _KERNEL
 #define INET_NTOA_BUF(buf) (buf)
@@ -77,78 +77,78 @@
 struct proxy_entry;
 
 struct group_in {
-	struct in_addr	alias_addr;
-	u_short		alias_port;
-	int		link_type;
-	SPLAY_ENTRY(group_in)	in;
-	LIST_HEAD(, alias_link)	full, partial;
+	struct in_addr alias_addr;
+	u_short alias_port;
+	int link_type;
+	SPLAY_ENTRY(group_in) in;
+	LIST_HEAD(, alias_link) full, partial;
 };
 
 struct libalias {
 	LIST_ENTRY(libalias) instancelist;
 	/* Mode flags documented in alias.h */
-	int		packetAliasMode;
+	int packetAliasMode;
 	/* Address written onto source field of IP packet. */
-	struct in_addr	aliasAddress;
+	struct in_addr aliasAddress;
 	/* IP address incoming packets are sent to
 	 * if no aliasing link already exists */
-	struct in_addr	targetAddress;
+	struct in_addr targetAddress;
 	/* Lookup table of pointers to chains of link records.
 	 * Each link record is doubly indexed into input and
 	 * output lookup tables. */
 	SPLAY_HEAD(splay_out, alias_link) linkSplayOut;
-	SPLAY_HEAD(splay_in,  group_in)   linkSplayIn;
-	LIST_HEAD (, alias_link) pptpList;
+	SPLAY_HEAD(splay_in, group_in) linkSplayIn;
+	LIST_HEAD(, alias_link) pptpList;
 	/* HouseKeeping */
-	TAILQ_HEAD    (, alias_link) checkExpire;
+	TAILQ_HEAD(, alias_link) checkExpire;
 	/* Link statistics */
-	unsigned int	icmpLinkCount;
-	unsigned int	udpLinkCount;
-	unsigned int	tcpLinkCount;
-	unsigned int	pptpLinkCount;
-	unsigned int	protoLinkCount;
-	unsigned int	fragmentIdLinkCount;
-	unsigned int	fragmentPtrLinkCount;
-	unsigned int	sockCount;
+	unsigned int icmpLinkCount;
+	unsigned int udpLinkCount;
+	unsigned int tcpLinkCount;
+	unsigned int pptpLinkCount;
+	unsigned int protoLinkCount;
+	unsigned int fragmentIdLinkCount;
+	unsigned int fragmentPtrLinkCount;
+	unsigned int sockCount;
 	/* log descriptor */
 #ifdef _KERNEL
-	char	       *logDesc;
+	char *logDesc;
 #else
-	FILE	       *logDesc;
+	FILE *logDesc;
 #endif
 
 #ifndef NO_FW_PUNCH
 	/* File descriptor to be able to control firewall.
 	 * Opened by PacketAliasSetMode on first setting
 	 * the PKT_ALIAS_PUNCH_FW flag. */
-	int		fireWallFD;
+	int fireWallFD;
 	/* The first firewall entry free for our use */
-	int		fireWallBaseNum;
+	int fireWallBaseNum;
 	/* How many entries can we use? */
-	int		fireWallNumNums;
+	int fireWallNumNums;
 	/* Which entry did we last use? */
-	int		fireWallActiveNum;
+	int fireWallActiveNum;
 	/* bool array for entries */
-	char	       *fireWallField;
+	char *fireWallField;
 #endif
 	/* TCP port used by the Skinny protocol. */
-	unsigned int	skinnyPort;
+	unsigned int skinnyPort;
 
 	struct proxy_entry *proxyList;
 
-	struct in_addr	true_addr;	/* in network byte order. */
-	u_short		true_port;	/* in host byte order. */
+	struct in_addr true_addr; /* in network byte order. */
+	u_short true_port;	  /* in host byte order. */
 
 	/* Port ranges for aliasing. */
-	u_short		aliasPortLower;
-	u_short		aliasPortLength;
+	u_short aliasPortLower;
+	u_short aliasPortLength;
 
 	/*
 	 * sctp code support
 	 */
 
 	/* counts associations that have progressed to UP and not yet removed */
-	int		sctpLinkCount;
+	int sctpLinkCount;
 #ifdef _KERNEL
 	/* timing queue for keeping track of association timeouts */
 	struct sctp_nat_timer sctpNatTimer;
@@ -172,7 +172,7 @@ struct libalias {
 #define LIBALIAS_LOCK_ASSERT(l) mtx_assert(&l->mutex, MA_OWNED)
 #define LIBALIAS_LOCK(l) mtx_lock(&l->mutex)
 #define LIBALIAS_UNLOCK(l) mtx_unlock(&l->mutex)
-#define LIBALIAS_LOCK_DESTROY(l)	mtx_destroy(&l->mutex)
+#define LIBALIAS_LOCK_DESTROY(l) mtx_destroy(&l->mutex)
 #else
 #define LIBALIAS_LOCK_INIT(l)
 #define LIBALIAS_LOCK_ASSERT(l)
@@ -189,19 +189,19 @@ struct libalias {
  * subtracting out old words), and "cksum"
  * is the checksum value to be updated.
  */
-#define	ADJUST_CHECKSUM(acc, cksum) \
-	do { \
-		acc += cksum; \
-		if (acc < 0) { \
-			acc = -acc; \
+#define ADJUST_CHECKSUM(acc, cksum)                         \
+	do {                                                \
+		acc += cksum;                               \
+		if (acc < 0) {                              \
+			acc = -acc;                         \
 			acc = (acc >> 16) + (acc & 0xffff); \
-			acc += acc >> 16; \
-			cksum = (u_short) ~acc; \
-		} else { \
+			acc += acc >> 16;                   \
+			cksum = (u_short)~acc;              \
+		} else {                                    \
 			acc = (acc >> 16) + (acc & 0xffff); \
-			acc += acc >> 16; \
-			cksum = (u_short) acc; \
-		} \
+			acc += acc >> 16;                   \
+			cksum = (u_short)acc;               \
+		}                                           \
 	} while (0)
 
 /* Prototypes */
@@ -226,120 +226,107 @@ int SctpAlias(struct libalias *la, struct ip *ip, int direction);
  * should be used.
  */
 #ifndef _KERNEL
-u_short		IpChecksum(struct ip *_pip);
-u_short		TcpChecksum(struct ip *_pip);
+u_short IpChecksum(struct ip *_pip);
+u_short TcpChecksum(struct ip *_pip);
 #endif
-void
-DifferentialChecksum(u_short * _cksum, void * _new, void * _old, int _n);
+void DifferentialChecksum(u_short *_cksum, void *_new, void *_old, int _n);
 
 /* Internal data access */
-struct alias_link *
-AddLink(struct libalias *la, struct in_addr src_addr, struct in_addr dst_addr,
-    struct in_addr alias_addr, u_short src_port, u_short dst_port,
-    int alias_param, int link_type);
-struct alias_link *
-FindIcmpIn(struct libalias *la, struct in_addr _dst_addr, struct in_addr _alias_addr,
-    u_short _id_alias, int _create);
-struct alias_link *
-FindIcmpOut(struct libalias *la, struct in_addr _src_addr, struct in_addr _dst_addr,
-    u_short _id, int _create);
-struct alias_link *
-FindFragmentIn1(struct libalias *la, struct in_addr _dst_addr, struct in_addr _alias_addr,
-    u_short _ip_id);
-struct alias_link *
-FindFragmentIn2(struct libalias *la, struct in_addr _dst_addr, struct in_addr _alias_addr,
-    u_short _ip_id);
-struct alias_link *
-AddFragmentPtrLink(struct libalias *la, struct in_addr _dst_addr, u_short _ip_id);
-struct alias_link *
-FindFragmentPtr(struct libalias *la, struct in_addr _dst_addr, u_short _ip_id);
-struct alias_link *
-FindProtoIn(struct libalias *la, struct in_addr _dst_addr, struct in_addr _alias_addr,
+struct alias_link *AddLink(struct libalias *la, struct in_addr src_addr,
+    struct in_addr dst_addr, struct in_addr alias_addr, u_short src_port,
+    u_short dst_port, int alias_param, int link_type);
+struct alias_link *FindIcmpIn(struct libalias *la, struct in_addr _dst_addr,
+    struct in_addr _alias_addr, u_short _id_alias, int _create);
+struct alias_link *FindIcmpOut(struct libalias *la, struct in_addr _src_addr,
+    struct in_addr _dst_addr, u_short _id, int _create);
+struct alias_link *FindFragmentIn1(struct libalias *la,
+    struct in_addr _dst_addr, struct in_addr _alias_addr, u_short _ip_id);
+struct alias_link *FindFragmentIn2(struct libalias *la,
+    struct in_addr _dst_addr, struct in_addr _alias_addr, u_short _ip_id);
+struct alias_link *AddFragmentPtrLink(struct libalias *la,
+    struct in_addr _dst_addr, u_short _ip_id);
+struct alias_link *FindFragmentPtr(struct libalias *la,
+    struct in_addr _dst_addr, u_short _ip_id);
+struct alias_link *FindProtoIn(struct libalias *la, struct in_addr _dst_addr,
+    struct in_addr _alias_addr, u_char _proto);
+struct alias_link *FindProtoOut(struct libalias *la, struct in_addr _src_addr,
+    struct in_addr _dst_addr, u_char _proto);
+struct alias_link *FindUdpTcpIn(struct libalias *la, struct in_addr _dst_addr,
+    struct in_addr _alias_addr, u_short _dst_port, u_short _alias_port,
+    u_char _proto, int _create);
+struct alias_link *FindUdpTcpOut(struct libalias *la, struct in_addr _src_addr,
+    struct in_addr _dst_addr, u_short _src_port, u_short _dst_port,
+    u_char _proto, int _create);
+struct alias_link *AddPptp(struct libalias *la, struct in_addr _src_addr,
+    struct in_addr _dst_addr, struct in_addr _alias_addr,
+    u_int16_t _src_call_id);
+struct alias_link *FindPptpOutByCallId(struct libalias *la,
+    struct in_addr _src_addr, struct in_addr _dst_addr, u_int16_t _src_call_id);
+struct alias_link *FindPptpInByCallId(struct libalias *la,
+    struct in_addr _dst_addr, struct in_addr _alias_addr,
+    u_int16_t _dst_call_id);
+struct alias_link *FindPptpOutByPeerCallId(struct libalias *la,
+    struct in_addr _src_addr, struct in_addr _dst_addr, u_int16_t _dst_call_id);
+struct alias_link *FindPptpInByPeerCallId(struct libalias *la,
+    struct in_addr _dst_addr, struct in_addr _alias_addr,
+    u_int16_t _alias_call_id);
+struct alias_link *FindRtspOut(struct libalias *la, struct in_addr _src_addr,
+    struct in_addr _dst_addr, u_short _src_port, u_short _alias_port,
     u_char _proto);
-struct alias_link *
-FindProtoOut(struct libalias *la, struct in_addr _src_addr, struct in_addr _dst_addr,
-    u_char _proto);
-struct alias_link *
-FindUdpTcpIn(struct libalias *la, struct in_addr _dst_addr, struct in_addr _alias_addr,
-    u_short _dst_port, u_short _alias_port, u_char _proto, int _create);
-struct alias_link *
-FindUdpTcpOut(struct libalias *la, struct in_addr _src_addr, struct in_addr _dst_addr,
-    u_short _src_port, u_short _dst_port, u_char _proto, int _create);
-struct alias_link *
-AddPptp(struct libalias *la, struct in_addr _src_addr, struct in_addr _dst_addr,
-    struct in_addr _alias_addr, u_int16_t _src_call_id);
-struct alias_link *
-FindPptpOutByCallId(struct libalias *la, struct in_addr _src_addr,
-    struct in_addr _dst_addr, u_int16_t _src_call_id);
-struct alias_link *
-FindPptpInByCallId(struct libalias *la, struct in_addr _dst_addr,
-    struct in_addr _alias_addr, u_int16_t _dst_call_id);
-struct alias_link *
-FindPptpOutByPeerCallId(struct libalias *la, struct in_addr _src_addr,
-    struct in_addr _dst_addr, u_int16_t _dst_call_id);
-struct alias_link *
-FindPptpInByPeerCallId(struct libalias *la, struct in_addr _dst_addr,
-    struct in_addr _alias_addr, u_int16_t _alias_call_id);
-struct alias_link *
-FindRtspOut(struct libalias *la, struct in_addr _src_addr, struct in_addr _dst_addr,
-    u_short _src_port, u_short _alias_port, u_char _proto);
-struct in_addr
-FindOriginalAddress(struct libalias *la, struct in_addr _alias_addr);
-struct in_addr
-FindAliasAddress(struct libalias *la, struct in_addr _original_addr);
-struct in_addr
-FindSctpRedirectAddress(struct libalias *la,  struct sctp_nat_msg *sm);
+struct in_addr FindOriginalAddress(struct libalias *la,
+    struct in_addr _alias_addr);
+struct in_addr FindAliasAddress(struct libalias *la,
+    struct in_addr _original_addr);
+struct in_addr FindSctpRedirectAddress(struct libalias *la,
+    struct sctp_nat_msg *sm);
 
 /* External data access/modification */
-int		FindNewPortGroup(struct libalias *la, struct in_addr _dst_addr,
-		    struct in_addr _alias_addr, u_short _src_port,
-		    u_short _dst_port, u_short _port_count, u_char _proto,
-		    u_char _align);
-void		GetFragmentAddr(struct alias_link *_lnk, struct in_addr *_src_addr);
-void		SetFragmentAddr(struct alias_link *_lnk, struct in_addr _src_addr);
-void		GetFragmentPtr(struct alias_link *_lnk, void **_fptr);
-void		SetFragmentPtr(struct alias_link *_lnk, void *fptr);
-void		SetStateIn(struct alias_link *_lnk, int _state);
-void		SetStateOut(struct alias_link *_lnk, int _state);
-int		GetStateIn (struct alias_link *_lnk);
-int		GetStateOut(struct alias_link *_lnk);
-struct in_addr	GetOriginalAddress(struct alias_link *_lnk);
-struct in_addr	GetDestAddress(struct alias_link *_lnk);
-struct in_addr	GetAliasAddress(struct alias_link *_lnk);
-struct in_addr	GetDefaultAliasAddress(struct libalias *la);
-void		SetDefaultAliasAddress(struct libalias *la, struct in_addr _alias_addr);
-u_short		GetOriginalPort(struct alias_link *_lnk);
-u_short		GetAliasPort(struct alias_link *_lnk);
-struct in_addr	GetProxyAddress(struct alias_link *_lnk);
-void		SetProxyAddress(struct alias_link *_lnk, struct in_addr _addr);
-u_short		GetProxyPort(struct alias_link *_lnk);
-void		SetProxyPort(struct alias_link *_lnk, u_short _port);
-void		SetAckModified(struct alias_link *_lnk);
-int		GetAckModified(struct alias_link *_lnk);
-int		GetDeltaAckIn(u_long, struct alias_link *_lnk);
-int		GetDeltaSeqOut(u_long, struct alias_link *lnk);
-void		AddSeq(struct alias_link *lnk, int delta, u_int ip_hl,
-		    u_short ip_len, u_long th_seq, u_int th_off);
-void		SetExpire (struct alias_link *_lnk, int _expire);
-void		SetProtocolFlags(struct alias_link *_lnk, int _pflags);
-int		GetProtocolFlags(struct alias_link *_lnk);
-void		SetDestCallId(struct alias_link *_lnk, u_int16_t _cid);
+int FindNewPortGroup(struct libalias *la, struct in_addr _dst_addr,
+    struct in_addr _alias_addr, u_short _src_port, u_short _dst_port,
+    u_short _port_count, u_char _proto, u_char _align);
+void GetFragmentAddr(struct alias_link *_lnk, struct in_addr *_src_addr);
+void SetFragmentAddr(struct alias_link *_lnk, struct in_addr _src_addr);
+void GetFragmentPtr(struct alias_link *_lnk, void **_fptr);
+void SetFragmentPtr(struct alias_link *_lnk, void *fptr);
+void SetStateIn(struct alias_link *_lnk, int _state);
+void SetStateOut(struct alias_link *_lnk, int _state);
+int GetStateIn(struct alias_link *_lnk);
+int GetStateOut(struct alias_link *_lnk);
+struct in_addr GetOriginalAddress(struct alias_link *_lnk);
+struct in_addr GetDestAddress(struct alias_link *_lnk);
+struct in_addr GetAliasAddress(struct alias_link *_lnk);
+struct in_addr GetDefaultAliasAddress(struct libalias *la);
+void SetDefaultAliasAddress(struct libalias *la, struct in_addr _alias_addr);
+u_short GetOriginalPort(struct alias_link *_lnk);
+u_short GetAliasPort(struct alias_link *_lnk);
+struct in_addr GetProxyAddress(struct alias_link *_lnk);
+void SetProxyAddress(struct alias_link *_lnk, struct in_addr _addr);
+u_short GetProxyPort(struct alias_link *_lnk);
+void SetProxyPort(struct alias_link *_lnk, u_short _port);
+void SetAckModified(struct alias_link *_lnk);
+int GetAckModified(struct alias_link *_lnk);
+int GetDeltaAckIn(u_long, struct alias_link *_lnk);
+int GetDeltaSeqOut(u_long, struct alias_link *lnk);
+void AddSeq(struct alias_link *lnk, int delta, u_int ip_hl, u_short ip_len,
+    u_long th_seq, u_int th_off);
+void SetExpire(struct alias_link *_lnk, int _expire);
+void SetProtocolFlags(struct alias_link *_lnk, int _pflags);
+int GetProtocolFlags(struct alias_link *_lnk);
+void SetDestCallId(struct alias_link *_lnk, u_int16_t _cid);
 
 #ifndef NO_FW_PUNCH
-void		PunchFWHole(struct alias_link *_lnk);
+void PunchFWHole(struct alias_link *_lnk);
 
 #endif
 
 /* Housekeeping function */
-void		HouseKeeping(struct libalias *);
+void HouseKeeping(struct libalias *);
 
 /* Transparent proxy routines */
-int
-ProxyCheck(struct libalias *la, struct in_addr *proxy_server_addr,
-    u_short * proxy_server_port, struct in_addr src_addr,
+int ProxyCheck(struct libalias *la, struct in_addr *proxy_server_addr,
+    u_short *proxy_server_port, struct in_addr src_addr,
     struct in_addr dst_addr, u_short dst_port, u_char ip_p);
-void
-ProxyModify(struct libalias *la, struct alias_link *_lnk, struct ip *_pip,
+void ProxyModify(struct libalias *la, struct alias_link *_lnk, struct ip *_pip,
     int _maxpacketsize, int _proxy_type);
 
 /* Tcp specific routines */
@@ -377,4 +364,4 @@ udp_next(struct udphdr *udphdr)
 }
 #endif
 
-#endif				/* !_ALIAS_LOCAL_H_ */
+#endif /* !_ALIAS_LOCAL_H_ */

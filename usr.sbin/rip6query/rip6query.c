@@ -5,7 +5,7 @@
  *
  * Copyright (C) 1995, 1996, 1997, and 1998 WIDE Project.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -17,7 +17,7 @@
  * 3. Neither the name of the project nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE PROJECT AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -31,33 +31,32 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
-
-#include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include <signal.h>
-#include <errno.h>
-#include <err.h>
-
 #include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/queue.h>
+#include <sys/socket.h>
 
 #include <net/if.h>
 #include <netinet/in.h>
 #include <netinet/in_var.h>
+
 #include <arpa/inet.h>
+#include <ctype.h>
+#include <err.h>
+#include <errno.h>
 #include <netdb.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "route6d.h"
 
-static int	s;
+static int s;
 static struct sockaddr_in6 sin6;
-static struct rip6	*ripbuf;
+static struct rip6 *ripbuf;
 
-#define	RIPSIZE(n)	(sizeof(struct rip6) + (n-1) * sizeof(struct netinfo6))
+#define RIPSIZE(n) (sizeof(struct rip6) + (n - 1) * sizeof(struct netinfo6))
 
 int main(int, char **);
 static void usage(void) __dead2;
@@ -139,25 +138,25 @@ main(int argc, char *argv[])
 	np->rip6_plen = 0;
 	np->rip6_metric = HOPCNT_INFINITY6;
 	if (sendto(s, ripbuf, RIPSIZE(1), 0, (struct sockaddr *)&sin6,
-			sizeof(struct sockaddr_in6)) < 0) {
+		sizeof(struct sockaddr_in6)) < 0) {
 		err(1, "send");
 		/*NOTREACHED*/
 	}
 	do {
 		flen = sizeof(fsock);
 		if ((len = recvfrom(s, ripbuf, BUFSIZ, 0,
-				(struct sockaddr *)&fsock, &flen)) < 0) {
+			 (struct sockaddr *)&fsock, &flen)) < 0) {
 			err(1, "recvfrom");
 			/*NOTREACHED*/
 		}
 		printf("Response from %s len %d\n",
-			sa_n2a((struct sockaddr *)&fsock), len);
+		    sa_n2a((struct sockaddr *)&fsock), len);
 		n = (len - sizeof(struct rip6) + sizeof(struct netinfo6)) /
-			sizeof(struct netinfo6);
+		    sizeof(struct netinfo6);
 		np = ripbuf->rip6_nets;
 		for (i = 0; i < n; i++, np++) {
 			printf("\t%s/%d [%d]", inet6_n2a(&np->rip6_dest),
-				np->rip6_plen, np->rip6_metric);
+			    np->rip6_plen, np->rip6_metric);
 			if (np->rip6_tag)
 				printf(" tag=0x%x", ntohs(np->rip6_tag));
 			printf("\n");
@@ -180,8 +179,8 @@ sa_n2a(struct sockaddr *sa)
 {
 	static char buf[NI_MAXHOST];
 
-	if (getnameinfo(sa, sa->sa_len, buf, sizeof(buf),
-			NULL, 0, NI_NUMERICHOST) != 0) {
+	if (getnameinfo(sa, sa->sa_len, buf, sizeof(buf), NULL, 0,
+		NI_NUMERICHOST) != 0) {
 		snprintf(buf, sizeof(buf), "%s", "(invalid)");
 	}
 	return buf;

@@ -29,6 +29,9 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/types.h>
+#include <sys/ioctl.h>
+
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
@@ -37,8 +40,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/types.h>
-#include <sys/ioctl.h>
 
 static void usage(void) __dead2;
 
@@ -46,17 +47,17 @@ static void
 usage(void)
 {
 	fprintf(stderr,
-	"usage: comcontrol <filename> [dtrwait <n>] [drainwait <n>]\n");
+	    "usage: comcontrol <filename> [dtrwait <n>] [drainwait <n>]\n");
 	exit(1);
 }
 
 int
 main(int argc, char *argv[])
 {
-	int	fd;
-	int     res = 0;
-	int     print_dtrwait = 1, print_drainwait = 1;
-	int     dtrwait = -1, drainwait = -1;
+	int fd;
+	int res = 0;
+	int print_dtrwait = 1, print_drainwait = 1;
+	int dtrwait = -1, drainwait = -1;
 
 	if (argc < 2)
 		usage();
@@ -64,7 +65,7 @@ main(int argc, char *argv[])
 	if (strcmp(argv[1], "-") == 0)
 		fd = STDIN_FILENO;
 	else {
-		fd = open(argv[1], O_RDONLY|O_NONBLOCK, 0);
+		fd = open(argv[1], O_RDONLY | O_NONBLOCK, 0);
 		if (fd < 0) {
 			warn("couldn't open file %s", argv[1]);
 			return 1;
@@ -92,14 +93,14 @@ main(int argc, char *argv[])
 		printf("\n");
 	} else {
 		while (argv[2] != NULL) {
-			if (!strcmp(argv[2],"dtrwait")) {
+			if (!strcmp(argv[2], "dtrwait")) {
 				if (dtrwait >= 0)
 					usage();
 				if (argv[3] == NULL || !isdigit(argv[3][0]))
 					usage();
 				dtrwait = atoi(argv[3]);
 				argv += 2;
-			} else if (!strcmp(argv[2],"drainwait")) {
+			} else if (!strcmp(argv[2], "drainwait")) {
 				if (drainwait >= 0)
 					usage();
 				if (argv[3] == NULL || !isdigit(argv[3][0]))

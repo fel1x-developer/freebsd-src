@@ -30,13 +30,14 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/bus.h>
 
 #include <dev/smbus/smbconf.h>
 #include <dev/smbus/smbus.h>
+
 #include "smbus_if.h"
 
 /*
@@ -89,8 +90,8 @@ smbus_poll(struct smbus_softc *sc, int how)
 	int error;
 
 	switch (how) {
-	case SMB_WAIT | SMB_INTR:		
-		error = msleep(sc, &sc->lock, SMBPRI|PCATCH, "smbreq", 0);
+	case SMB_WAIT | SMB_INTR:
+		error = msleep(sc, &sc->lock, SMBPRI | PCATCH, "smbreq", 0);
 		break;
 
 	case SMB_WAIT | SMB_NOINTR:

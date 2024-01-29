@@ -25,21 +25,22 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/eventhandler.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/bus.h>
+#include <sys/eventhandler.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rwlock.h>
-#include <sys/socket.h>
 #include <sys/sbuf.h>
+#include <sys/socket.h>
+
 #include <netinet/in.h>
 
 #include "common/common.h"
@@ -124,7 +125,6 @@ t4_write_sme(struct smt_entry *e)
 	MPASS(wrq->adapter != NULL);
 	s = sc->smt;
 
-
 	if (chip_id(sc) <= CHELSIO_T5) {
 		/* Source MAC Table (SMT) contains 256 SMAC entries
 		 * organized in 128 rows of 2 entries each.
@@ -145,7 +145,7 @@ t4_write_sme(struct smt_entry *e)
 			 */
 			req->pfvf0 = 0x0;
 			memcpy(req->src_mac0, s->smtab[e->idx - 1].smac,
-					ETHER_ADDR_LEN);
+			    ETHER_ADDR_LEN);
 		} else {
 			req->pfvf0 = 0x0;
 			memcpy(req->src_mac0, e->smac, ETHER_ADDR_LEN);
@@ -154,7 +154,7 @@ t4_write_sme(struct smt_entry *e)
 			 */
 			req->pfvf1 = 0x0;
 			memcpy(req->src_mac1, s->smtab[e->idx + 1].smac,
-					ETHER_ADDR_LEN);
+			    ETHER_ADDR_LEN);
 		}
 	} else {
 		/* Source MAC Table (SMT) contains 256 SMAC entries */
@@ -169,11 +169,10 @@ t4_write_sme(struct smt_entry *e)
 		memcpy(req->src_mac0, s->smtab[e->idx].smac, ETHER_ADDR_LEN);
 		row = e->idx;
 	}
-	OPCODE_TID(req) = htonl(MK_OPCODE_TID(CPL_SMT_WRITE_REQ, e->idx |
-					V_TID_QID(e->iqid)));
-	req->params = htonl(V_SMTW_NORPL(0) |
-			V_SMTW_IDX(row) |
-			V_SMTW_OVLAN_IDX(0));
+	OPCODE_TID(req) = htonl(
+	    MK_OPCODE_TID(CPL_SMT_WRITE_REQ, e->idx | V_TID_QID(e->iqid)));
+	req->params = htonl(
+	    V_SMTW_NORPL(0) | V_SMTW_IDX(row) | V_SMTW_OVLAN_IDX(0));
 
 	commit_wrq_wr(wrq, req, &cookie);
 
@@ -201,7 +200,7 @@ t4_smt_alloc_switching(struct smt_data *s, uint8_t *smac)
  */
 int
 t4_smt_set_switching(struct adapter *sc, struct smt_entry *e, uint16_t pfvf,
-								uint8_t *smac)
+    uint8_t *smac)
 {
 	int rc = 0;
 
@@ -210,7 +209,7 @@ t4_smt_set_switching(struct adapter *sc, struct smt_entry *e, uint16_t pfvf,
 		mtx_lock(&e->lock);
 		e->wrq = &sc->sge.ctrlq[0];
 		e->iqid = sc->sge.fwq.abs_id;
-		e->pfvf =  pfvf;
+		e->pfvf = pfvf;
 		e->state = SMT_STATE_SWITCHING;
 		memcpy(e->smac, smac, ETHER_ADDR_LEN);
 		rc = t4_write_sme(e);
@@ -227,7 +226,7 @@ t4_init_smt(struct adapter *sc, int flags)
 	struct smt_data *s;
 
 	smt_size = SMT_SIZE;
-	s = malloc(sizeof(*s) + smt_size * sizeof (struct smt_entry), M_CXGBE,
+	s = malloc(sizeof(*s) + smt_size * sizeof(struct smt_entry), M_CXGBE,
 	    M_ZERO | flags);
 	if (!s)
 		return (ENOMEM);
@@ -264,7 +263,7 @@ t4_free_smt(struct smt_data *s)
 
 int
 do_smt_write_rpl(struct sge_iq *iq, const struct rss_header *rss,
-		struct mbuf *m)
+    struct mbuf *m)
 {
 	struct adapter *sc = iq->adapter;
 	const struct cpl_smt_write_rpl *rpl = (const void *)(rss + 1);
@@ -289,9 +288,12 @@ static char
 smt_state(const struct smt_entry *e)
 {
 	switch (e->state) {
-	case SMT_STATE_SWITCHING: return 'X';
-	case SMT_STATE_ERROR: return 'E';
-	default: return 'U';
+	case SMT_STATE_SWITCHING:
+		return 'X';
+	case SMT_STATE_ERROR:
+		return 'E';
+	default:
+		return 'U';
 	}
 }
 
@@ -322,16 +324,18 @@ sysctl_smt(SYSCTL_HANDLER_ARGS)
 			goto skip;
 
 		if (header == 0) {
-			sbuf_printf(sb, " Idx "
+			sbuf_printf(sb,
+			    " Idx "
 			    "Ethernet address  State Users");
 			header = 1;
 		}
-		sbuf_printf(sb, "\n%4u %02x:%02x:%02x:%02x:%02x:%02x "
-			   "%c   %5u",
-			   e->idx, e->smac[0], e->smac[1], e->smac[2],
-			   e->smac[3], e->smac[4], e->smac[5],
-			   smt_state(e), atomic_load_acq_int(&e->refcnt));
-skip:
+		sbuf_printf(sb,
+		    "\n%4u %02x:%02x:%02x:%02x:%02x:%02x "
+		    "%c   %5u",
+		    e->idx, e->smac[0], e->smac[1], e->smac[2], e->smac[3],
+		    e->smac[4], e->smac[5], smt_state(e),
+		    atomic_load_acq_int(&e->refcnt));
+	skip:
 		mtx_unlock(&e->lock);
 	}
 

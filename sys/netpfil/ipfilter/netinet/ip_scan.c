@@ -4,66 +4,59 @@
  * See the IPFILTER.LICENCE file for details on licencing.
  */
 #if defined(KERNEL) || defined(_KERNEL)
-# undef KERNEL
-# undef _KERNEL
-# define        KERNEL	1
-# define        _KERNEL	1
+#undef KERNEL
+#undef _KERNEL
+#define KERNEL 1
+#define _KERNEL 1
 #endif
-#include <sys/param.h>
 #include <sys/types.h>
-#include <sys/time.h>
+#include <sys/param.h>
 #include <sys/errno.h>
+#include <sys/time.h>
 #if !defined(_KERNEL)
-# include <stdlib.h>
-# include <string.h>
-# define _KERNEL
-# include <sys/uio.h>
-# undef _KERNEL
+#include <stdlib.h>
+#include <string.h>
+#define _KERNEL
+#include <sys/uio.h>
+#undef _KERNEL
 #else
-# include <sys/systm.h>
-# if !defined(__SVR4)
-#  include <sys/mbuf.h>
-# endif
+#include <sys/systm.h>
+#if !defined(__SVR4)
+#include <sys/mbuf.h>
 #endif
+#endif
+#include <sys/ioccom.h>
 #include <sys/socket.h>
-# include <sys/ioccom.h>
 #ifdef __FreeBSD__
-# include <sys/filio.h>
-# include <sys/malloc.h>
+#include <sys/filio.h>
+#include <sys/malloc.h>
 #else
-# include <sys/ioctl.h>
+#include <sys/ioctl.h>
 #endif
 
+#include <net/if.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
 
-#include <net/if.h>
-
-
 #include "netinet/ip_compat.h"
 #include "netinet/ip_fil.h"
-#include "netinet/ip_state.h"
 #include "netinet/ip_scan.h"
+#include "netinet/ip_state.h"
 /* END OF INCLUDES */
 
+#ifdef IPFILTER_SCAN /* endif at bottom of file */
 
-#ifdef	IPFILTER_SCAN	/* endif at bottom of file */
+ipscan_t *ipf_scan_list = NULL, *ipf_scan_tail = NULL;
+ipscanstat_t ipf_scan_stat;
+#ifdef USE_MUTEXES
+ipfrwlock_t ipf_scan_rwlock;
+#endif
 
-
-ipscan_t	*ipf_scan_list = NULL,
-		*ipf_scan_tail = NULL;
-ipscanstat_t	ipf_scan_stat;
-# ifdef USE_MUTEXES
-ipfrwlock_t	ipf_scan_rwlock;
-# endif
-
-# ifndef isalpha
-#  define	isalpha(x)	(((x) >= 'A' && 'Z' >= (x)) || \
-				 ((x) >= 'a' && 'z' >= (x)))
-# endif
-
+#ifndef isalpha
+#define isalpha(x) (((x) >= 'A' && 'Z' >= (x)) || ((x) >= 'a' && 'z' >= (x)))
+#endif
 
 int ipf_scan_add(caddr_t);
 int ipf_scan_remove(caddr_t);
@@ -72,8 +65,7 @@ int ipf_scan_matchstr(sinfo_t *, char *, int);
 int ipf_scan_matchisc(ipscan_t *, ipstate_t *, int, int, int *);
 int ipf_scan_match(ipstate_t *);
 
-static int	ipf_scan_inited = 0;
-
+static int ipf_scan_inited = 0;
 
 int
 ipf_scan_init(void)
@@ -83,7 +75,6 @@ ipf_scan_init(void)
 	return (0);
 }
 
-
 void
 ipf_scan_unload(ipf_main_softc_t *arg)
 {
@@ -92,7 +83,6 @@ ipf_scan_unload(ipf_main_softc_t *arg)
 		ipf_scan_inited = 0;
 	}
 }
-
 
 int
 ipf_scan_add(caddr_t data)
@@ -143,7 +133,6 @@ ipf_scan_add(caddr_t data)
 	return (0);
 }
 
-
 int
 ipf_scan_remove(caddr_t data)
 {
@@ -183,7 +172,6 @@ ipf_scan_remove(caddr_t data)
 	return (err);
 }
 
-
 struct ipscan *
 ipf_scan_lookup(char *tag)
 {
@@ -194,7 +182,6 @@ ipf_scan_lookup(char *tag)
 			return (i);
 	return (NULL);
 }
-
 
 int
 ipf_scan_attachfr(struct frentry *fr)
@@ -216,7 +203,6 @@ ipf_scan_attachfr(struct frentry *fr)
 	}
 	return (0);
 }
-
 
 int
 ipf_scan_attachis(struct ipstate *is)
@@ -245,7 +231,6 @@ ipf_scan_attachis(struct ipstate *is)
 	return (0);
 }
 
-
 int
 ipf_scan_detachfr(struct frentry *fr)
 {
@@ -258,10 +243,9 @@ ipf_scan_detachfr(struct frentry *fr)
 	return (0);
 }
 
-
 int
 ipf_scan_detachis(is)
-	struct ipstate *is;
+struct ipstate *is;
 {
 	ipscan_t *i;
 
@@ -269,12 +253,11 @@ ipf_scan_detachis(is)
 	if ((i = is->is_isc) && (i != (ipscan_t *)-1)) {
 		ATOMIC_DEC32(i->ipsc_sref);
 		is->is_isc = NULL;
-		is->is_flags &= ~(IS_SC_CLIENT|IS_SC_SERVER);
+		is->is_flags &= ~(IS_SC_CLIENT | IS_SC_SERVER);
 	}
 	RWLOCK_EXIT(&ipf_scan_rwlock);
 	return (0);
 }
-
 
 /*
  * 'string' compare for scanning
@@ -290,22 +273,20 @@ ipf_scan_matchstr(sinfo_t *sp, char *str, int n)
 	up = str;
 
 	for (s = sp->s_txt, t = sp->s_msk; i; i--, s++, t++, up++)
-		switch ((int)*t)
-		{
-		case '.' :
+		switch ((int)*t) {
+		case '.':
 			if (*s != *up)
 				return (1);
 			break;
-		case '?' :
+		case '?':
 			if (!ISALPHA(*up) || ((*s & 0x5f) != (*up & 0x5f)))
 				return (1);
 			break;
-		case '*' :
+		case '*':
 			break;
 		}
 	return (0);
 }
-
 
 /*
  * Returns 3 if both server and client match, 2 if just server,
@@ -336,13 +317,13 @@ ipf_scan_matchisc(ipscan_t *isc, ipstate_t *is, int cl, int sl, int maxm[2])
 
 	if (!isc->ipsc_clen)
 		ret = 1;
-	else if (((flags & (IS_SC_MATCHC|IS_SC_CLIENT)) == IS_SC_CLIENT) &&
-		 cl && isc->ipsc_clen) {
+	else if (((flags & (IS_SC_MATCHC | IS_SC_CLIENT)) == IS_SC_CLIENT) &&
+	    cl && isc->ipsc_clen) {
 		i = 0;
 		n = MIN(cl, isc->ipsc_clen);
 		if ((n > 0) && (!maxm || (n >= maxm[1]))) {
-			if (!ipf_scan_matchstr(&isc->ipsc_cl,
-					       is->is_sbuf[0], n)) {
+			if (!ipf_scan_matchstr(&isc->ipsc_cl, is->is_sbuf[0],
+				n)) {
 				i++;
 				ret |= 1;
 				if (n > j)
@@ -353,13 +334,13 @@ ipf_scan_matchisc(ipscan_t *isc, ipstate_t *is, int cl, int sl, int maxm[2])
 
 	if (!isc->ipsc_slen)
 		ret |= 2;
-	else if (((flags & (IS_SC_MATCHS|IS_SC_SERVER)) == IS_SC_SERVER) &&
-		 sl && isc->ipsc_slen) {
+	else if (((flags & (IS_SC_MATCHS | IS_SC_SERVER)) == IS_SC_SERVER) &&
+	    sl && isc->ipsc_slen) {
 		i = 0;
 		n = MIN(cl, isc->ipsc_slen);
 		if ((n > 0) && (!maxm || (n >= maxm[1]))) {
-			if (!ipf_scan_matchstr(&isc->ipsc_sl,
-					       is->is_sbuf[1], n)) {
+			if (!ipf_scan_matchstr(&isc->ipsc_sl, is->is_sbuf[1],
+				n)) {
 				i++;
 				ret |= 2;
 				if (n > k)
@@ -374,7 +355,6 @@ ipf_scan_matchisc(ipscan_t *isc, ipstate_t *is, int cl, int sl, int maxm[2])
 	}
 	return (ret);
 }
-
 
 int
 ipf_scan_match(ipstate_t *is)
@@ -447,8 +427,8 @@ ipf_scan_match(ipstate_t *is)
 		 * If we found the best match, then set flags appropriately.
 		 */
 		if ((j == 3) && (k == 1)) {
-			is->is_flags &= ~(IS_SC_SERVER|IS_SC_CLIENT);
-			is->is_flags |= (IS_SC_MATCHS|IS_SC_MATCHC);
+			is->is_flags &= ~(IS_SC_SERVER | IS_SC_CLIENT);
+			is->is_flags |= (IS_SC_MATCHS | IS_SC_MATCHC);
 		}
 	}
 
@@ -472,8 +452,8 @@ ipf_scan_match(ipstate_t *is)
 		j = isc->ipsc_action;
 		ipf_scan_stat.iscs_acted++;
 	} else if ((is->is_isc != NULL) &&
-		   ((is->is_flags & IS_SC_MATCHALL) != IS_SC_MATCHALL) &&
-		   !(is->is_flags & (IS_SC_CLIENT|IS_SC_SERVER))) {
+	    ((is->is_flags & IS_SC_MATCHALL) != IS_SC_MATCHALL) &&
+	    !(is->is_flags & (IS_SC_CLIENT | IS_SC_SERVER))) {
 		/*
 		 * Matching failed...
 		 */
@@ -481,9 +461,8 @@ ipf_scan_match(ipstate_t *is)
 		ipf_scan_stat.iscs_else++;
 	}
 
-	switch (j)
-	{
-	case  ISC_A_CLOSE :
+	switch (j) {
+	case ISC_A_CLOSE:
 		/*
 		 * If as a result of a successful match we are to
 		 * close a connection, change the "keep state" info.
@@ -492,13 +471,12 @@ ipf_scan_match(ipstate_t *is)
 		is->is_pass &= ~FR_RETICMP;
 		is->is_pass |= FR_RETRST;
 		break;
-	default :
+	default:
 		break;
 	}
 
 	return (i);
 }
-
 
 /*
  * check if a packet matches what we're scanning for
@@ -538,7 +516,7 @@ ipf_scan_packet(fr_info_t *fin, ipstate_t *is)
 	i = (0xffff & j) << off;
 #ifdef _KERNEL
 	COPYDATA(*(mb_t **)fin->fin_mp, fin->fin_plen - fin->fin_dlen + thoff,
-		 dlen, (caddr_t)is->is_sbuf[rv] + off);
+	    dlen, (caddr_t)is->is_sbuf[rv] + off);
 #endif
 	is->is_smsk[rv] |= i;
 	for (j = 0, i = is->is_smsk[rv]; i & 1; i >>= 1)
@@ -546,7 +524,7 @@ ipf_scan_packet(fr_info_t *fin, ipstate_t *is)
 	if (j == 0)
 		return (1);
 
-	(void) ipf_scan_match(is);
+	(void)ipf_scan_match(is);
 #if 0
 	/*
 	 * There is the potential here for plain text passwords to get
@@ -560,22 +538,20 @@ ipf_scan_packet(fr_info_t *fin, ipstate_t *is)
 	return (0);
 }
 
-
 int
 ipf_scan_ioctl(caddr_t data, ioctlcmd_t cmd, int mode, int uid, void *ctx)
 {
 	ipscanstat_t ipscs;
 	int err = 0;
 
-	switch (cmd)
-	{
-	case SIOCADSCA :
+	switch (cmd) {
+	case SIOCADSCA:
 		err = ipf_scan_add(data);
 		break;
-	case SIOCRMSCA :
+	case SIOCRMSCA:
 		err = ipf_scan_remove(data);
 		break;
-	case SIOCGSCST :
+	case SIOCGSCST:
 		bcopy((char *)&ipf_scan_stat, (char *)&ipscs, sizeof(ipscs));
 		ipscs.iscs_list = ipf_scan_list;
 		err = BCOPYOUT(&ipscs, data, sizeof(ipscs));
@@ -584,11 +560,11 @@ ipf_scan_ioctl(caddr_t data, ioctlcmd_t cmd, int mode, int uid, void *ctx)
 			err = EFAULT;
 		}
 		break;
-	default :
+	default:
 		err = EINVAL;
 		break;
 	}
 
 	return (err);
 }
-#endif	/* IPFILTER_SCAN */
+#endif /* IPFILTER_SCAN */

@@ -31,15 +31,16 @@
  * Machine-dependent thread prototypes/definitions.
  */
 #ifndef _PTHREAD_MD_H_
-#define	_PTHREAD_MD_H_
+#define _PTHREAD_MD_H_
 
 #include <sys/types.h>
+
 #include <machine/tls.h>
 
-#define	CPU_SPINWAIT
+#define CPU_SPINWAIT
 
 /* For use in _Static_assert to check structs will fit in a page */
-#define	THR_PAGE_SIZE_MIN	PAGE_SIZE
+#define THR_PAGE_SIZE_MIN PAGE_SIZE
 
 static __inline struct pthread *
 _get_curthread(void)
@@ -49,6 +50,6 @@ _get_curthread(void)
 	return (NULL);
 }
 
-#define	HAS__UMTX_OP_ERR	1
+#define HAS__UMTX_OP_ERR 1
 
 #endif /* _PTHREAD_MD_H_ */

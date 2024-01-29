@@ -30,39 +30,35 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/rman.h>
+
 #include <machine/bus.h>
 
+#include <dev/clk/clk.h>
 #include <dev/fdt/simplebus.h>
-
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include <dev/clk/clk.h>
-
 #include "clkdev_if.h"
 
-#define	CCU_BASE	0x01c20000
-#define	CCU_SIZE	0x400
+#define CCU_BASE 0x01c20000
+#define CCU_SIZE 0x400
 
 struct aw_ccu_softc {
-	struct simplebus_softc	sc;
-	bus_space_tag_t		bst;
-	bus_space_handle_t	bsh;
-	struct mtx		mtx;
-	int			flags;
+	struct simplebus_softc sc;
+	bus_space_tag_t bst;
+	bus_space_handle_t bsh;
+	struct mtx mtx;
+	int flags;
 };
 
-static struct ofw_compat_data compat_data[] = {
-	{ "allwinner,sun7i-a20",	1 },
-	{ "allwinner,sun6i-a31",	1 },
-	{ "allwinner,sun6i-a31s",	1 },
-	{ NULL, 0 }
-};
+static struct ofw_compat_data compat_data[] = { { "allwinner,sun7i-a20", 1 },
+	{ "allwinner,sun6i-a31", 1 }, { "allwinner,sun6i-a31s", 1 },
+	{ NULL, 0 } };
 
 static int
 aw_ccu_check_addr(struct aw_ccu_softc *sc, bus_addr_t addr,
@@ -153,7 +149,7 @@ aw_ccu_device_unlock(device_t dev)
 }
 
 static const struct ofw_compat_data *
-aw_ccu_search_compatible(void) 
+aw_ccu_search_compatible(void)
 {
 	const struct ofw_compat_data *compat;
 	phandle_t root;
@@ -204,8 +200,7 @@ aw_ccu_attach(device_t dev)
 	 * properties.
 	 */
 	sc->bst = bus_get_bus_tag(dev);
-	error = bus_space_map(sc->bst, CCU_BASE, CCU_SIZE, 0,
-	    &sc->bsh);
+	error = bus_space_map(sc->bst, CCU_BASE, CCU_SIZE, 0, &sc->bsh);
 	if (error != 0) {
 		device_printf(dev, "couldn't map CCU: %d\n", error);
 		return (error);
@@ -225,15 +220,15 @@ aw_ccu_attach(device_t dev)
 
 static device_method_t aw_ccu_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		aw_ccu_probe),
-	DEVMETHOD(device_attach,	aw_ccu_attach),
+	DEVMETHOD(device_probe, aw_ccu_probe),
+	DEVMETHOD(device_attach, aw_ccu_attach),
 
 	/* clkdev interface */
-	DEVMETHOD(clkdev_write_4,	aw_ccu_write_4),
-	DEVMETHOD(clkdev_read_4,	aw_ccu_read_4),
-	DEVMETHOD(clkdev_modify_4,	aw_ccu_modify_4),
-	DEVMETHOD(clkdev_device_lock,	aw_ccu_device_lock),
-	DEVMETHOD(clkdev_device_unlock,	aw_ccu_device_unlock),
+	DEVMETHOD(clkdev_write_4, aw_ccu_write_4),
+	DEVMETHOD(clkdev_read_4, aw_ccu_read_4),
+	DEVMETHOD(clkdev_modify_4, aw_ccu_modify_4),
+	DEVMETHOD(clkdev_device_lock, aw_ccu_device_lock),
+	DEVMETHOD(clkdev_device_unlock, aw_ccu_device_unlock),
 
 	DEVMETHOD_END
 };

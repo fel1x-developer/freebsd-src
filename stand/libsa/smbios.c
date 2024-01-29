@@ -25,14 +25,15 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
 #include <sys/endian.h>
 
-#define PTOV(x)		ptov(x)
+#include <stand.h>
+
+#define PTOV(x) ptov(x)
 
 /* Only enable 64-bit entry point if it makes sense */
 #if __SIZEOF_POINTER__ > 4
-#define	HAS_SMBV3	1
+#define HAS_SMBV3 1
 #endif
 
 /*
@@ -87,12 +88,12 @@
  * See section 2.3 of the UEFI Specification for how to report the containing
  * memory type."
  */
-#define	SMBIOS_START		0xf0000
-#define	SMBIOS_LENGTH		0x10000
-#define	SMBIOS_STEP		0x10
-#define	SMBIOS_SIG		"_SM_"
-#define	SMBIOS3_SIG		"_SM3_"
-#define	SMBIOS_DMI_SIG		"_DMI_"
+#define SMBIOS_START 0xf0000
+#define SMBIOS_LENGTH 0x10000
+#define SMBIOS_STEP 0x10
+#define SMBIOS_SIG "_SM_"
+#define SMBIOS3_SIG "_SM3_"
+#define SMBIOS_DMI_SIG "_DMI_"
 
 /*
  * 5.1 General
@@ -107,7 +108,11 @@
  * because those can optimize to an unaligned load (which often is fine, but not
  * for mmap'd /dev/mem which has special memory attributes).
  */
-static inline uint8_t SMBIOS_GET8(const caddr_t base, int off) { return (base[off]); }
+static inline uint8_t
+SMBIOS_GET8(const caddr_t base, int off)
+{
+	return (base[off]);
+}
 
 static inline uint16_t
 SMBIOS_GET16(const caddr_t base, int off)
@@ -136,24 +141,24 @@ SMBIOS_GET64(const caddr_t base, int off)
 	return (le64toh(v));
 }
 
-#define	SMBIOS_GETLEN(base)	SMBIOS_GET8(base, 0x01)
-#define	SMBIOS_GETSTR(base)	((base) + SMBIOS_GETLEN(base))
+#define SMBIOS_GETLEN(base) SMBIOS_GET8(base, 0x01)
+#define SMBIOS_GETSTR(base) ((base) + SMBIOS_GETLEN(base))
 
 struct smbios_attr {
-	int		probed;
-	caddr_t 	addr;
-	size_t		length;
-	size_t		count;
-	int		major;
-	int		minor;
-	int		ver;
-	const char*	bios_vendor;
-	const char*	maker;
-	const char*	product;
-	uint32_t	enabled_memory;
-	uint32_t	old_enabled_memory;
-	uint8_t		enabled_sockets;
-	uint8_t		populated_sockets;
+	int probed;
+	caddr_t addr;
+	size_t length;
+	size_t count;
+	int major;
+	int minor;
+	int ver;
+	const char *bios_vendor;
+	const char *maker;
+	const char *product;
+	uint32_t enabled_memory;
+	uint32_t old_enabled_memory;
+	uint8_t enabled_sockets;
+	uint8_t populated_sockets;
 };
 
 static struct smbios_attr smbios;
@@ -164,8 +169,8 @@ static int isv3;
 static uint8_t
 smbios_checksum(const caddr_t addr, const uint8_t len)
 {
-	uint8_t		sum;
-	int		i;
+	uint8_t sum;
+	int i;
 
 	for (sum = 0, i = 0; i < len; i++)
 		sum += SMBIOS_GET8(addr, i);
@@ -175,7 +180,7 @@ smbios_checksum(const caddr_t addr, const uint8_t len)
 static caddr_t
 smbios_sigsearch(const caddr_t addr, const uint32_t len)
 {
-	caddr_t		cp;
+	caddr_t cp;
 
 	/* Search on 16-byte boundaries. */
 	for (cp = addr; cp < addr + len; cp += SMBIOS_STEP) {
@@ -198,11 +203,11 @@ smbios_sigsearch(const caddr_t addr, const uint32_t len)
 	return (NULL);
 }
 
-static const char*
+static const char *
 smbios_getstring(caddr_t addr, const int offset)
 {
-	caddr_t		cp;
-	int		i, idx;
+	caddr_t cp;
+	int i, idx;
 
 	idx = SMBIOS_GET8(addr, offset);
 	if (idx != 0) {
@@ -217,7 +222,7 @@ smbios_getstring(caddr_t addr, const int offset)
 static void
 smbios_setenv(const char *name, caddr_t addr, const int offset)
 {
-	const char*	val;
+	const char *val;
 
 	val = smbios_getstring(addr, offset);
 	if (val != NULL)
@@ -226,20 +231,20 @@ smbios_setenv(const char *name, caddr_t addr, const int offset)
 
 #ifdef SMBIOS_SERIAL_NUMBERS
 
-#define	UUID_SIZE		16
-#define	UUID_TYPE		uint32_t
-#define	UUID_STEP		sizeof(UUID_TYPE)
-#define	UUID_ALL_BITS		(UUID_SIZE / UUID_STEP)
-#define	UUID_GET(base, off)	SMBIOS_GET32(base, off)
+#define UUID_SIZE 16
+#define UUID_TYPE uint32_t
+#define UUID_STEP sizeof(UUID_TYPE)
+#define UUID_ALL_BITS (UUID_SIZE / UUID_STEP)
+#define UUID_GET(base, off) SMBIOS_GET32(base, off)
 
 static void
 smbios_setuuid(const char *name, const caddr_t addr, const int ver __unused)
 {
-	char		uuid[37];
-	int		byteorder, i, ones, zeros;
-	UUID_TYPE	n;
-	uint32_t	f1;
-	uint16_t	f2, f3;
+	char uuid[37];
+	int byteorder, i, ones, zeros;
+	UUID_TYPE n;
+	uint32_t f1;
+	uint16_t f2, f3;
 
 	for (i = 0, ones = 0, zeros = 0; i < UUID_SIZE; i += UUID_STEP) {
 		n = UUID_GET(addr, i) + 1;
@@ -283,8 +288,8 @@ smbios_setuuid(const char *name, const caddr_t addr, const int ver __unused)
 			f3 = le16toh(SMBIOS_GET16(addr, 6));
 		}
 		sprintf(uuid,
-		    "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-		    f1, f2, f3, SMBIOS_GET8(addr, 8), SMBIOS_GET8(addr, 9),
+		    "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x", f1, f2,
+		    f3, SMBIOS_GET8(addr, 8), SMBIOS_GET8(addr, 9),
 		    SMBIOS_GET8(addr, 10), SMBIOS_GET8(addr, 11),
 		    SMBIOS_GET8(addr, 12), SMBIOS_GET8(addr, 13),
 		    SMBIOS_GET8(addr, 14), SMBIOS_GET8(addr, 15));
@@ -303,7 +308,7 @@ smbios_setuuid(const char *name, const caddr_t addr, const int ver __unused)
 static const char *
 smbios_parse_chassis_type(caddr_t addr)
 {
-	int		type;
+	int type;
 
 	type = SMBIOS_GET8(addr, 0x5);
 	switch (type) {
@@ -387,27 +392,27 @@ smbios_parse_chassis_type(caddr_t addr)
 static caddr_t
 smbios_parse_table(const caddr_t addr)
 {
-	caddr_t		cp;
-	int		proc, size, osize, type;
-	uint8_t		bios_minor, bios_major;
-	char		buf[16];
+	caddr_t cp;
+	int proc, size, osize, type;
+	uint8_t bios_minor, bios_major;
+	char buf[16];
 
-	type = SMBIOS_GET8(addr, 0);	/* 3.1.2 Structure Header Format */
-	switch(type) {
-	case 0:		/* 3.3.1 BIOS Information (Type 0) */
+	type = SMBIOS_GET8(addr, 0); /* 3.1.2 Structure Header Format */
+	switch (type) {
+	case 0: /* 3.3.1 BIOS Information (Type 0) */
 		smbios_setenv("smbios.bios.vendor", addr, 0x04);
 		smbios_setenv("smbios.bios.version", addr, 0x05);
 		smbios_setenv("smbios.bios.reldate", addr, 0x08);
 		bios_major = SMBIOS_GET8(addr, 0x14);
 		bios_minor = SMBIOS_GET8(addr, 0x15);
 		if (bios_minor != 0xFF && bios_major != 0xFF) {
-			snprintf(buf, sizeof(buf), "%u.%u",
-			    bios_major, bios_minor);
+			snprintf(buf, sizeof(buf), "%u.%u", bios_major,
+			    bios_minor);
 			setenv("smbios.bios.revision", buf, 1);
 		}
 		break;
 
-	case 1:		/* 3.3.2 System Information (Type 1) */
+	case 1: /* 3.3.2 System Information (Type 1) */
 		smbios_setenv("smbios.system.maker", addr, 0x04);
 		smbios_setenv("smbios.system.product", addr, 0x05);
 		smbios_setenv("smbios.system.version", addr, 0x06);
@@ -422,7 +427,7 @@ smbios_parse_table(const caddr_t addr)
 		}
 		break;
 
-	case 2:		/* 3.3.3 Base Board (or Module) Information (Type 2) */
+	case 2: /* 3.3.3 Base Board (or Module) Information (Type 2) */
 		smbios_setenv("smbios.planar.maker", addr, 0x04);
 		smbios_setenv("smbios.planar.product", addr, 0x05);
 		smbios_setenv("smbios.planar.version", addr, 0x06);
@@ -433,9 +438,10 @@ smbios_parse_table(const caddr_t addr)
 		smbios_setenv("smbios.planar.location", addr, 0x0a);
 		break;
 
-	case 3:		/* 3.3.4 System Enclosure or Chassis (Type 3) */
+	case 3: /* 3.3.4 System Enclosure or Chassis (Type 3) */
 		smbios_setenv("smbios.chassis.maker", addr, 0x04);
-		setenv("smbios.chassis.type", smbios_parse_chassis_type(addr), 1);
+		setenv("smbios.chassis.type", smbios_parse_chassis_type(addr),
+		    1);
 		smbios_setenv("smbios.chassis.version", addr, 0x06);
 #ifdef SMBIOS_SERIAL_NUMBERS
 		smbios_setenv("smbios.chassis.serial", addr, 0x07);
@@ -443,7 +449,7 @@ smbios_parse_table(const caddr_t addr)
 #endif
 		break;
 
-	case 4:		/* 3.3.5 Processor Information (Type 4) */
+	case 4: /* 3.3.5 Processor Information (Type 4) */
 		/*
 		 * Offset 18h: Processor Status
 		 *
@@ -468,7 +474,7 @@ smbios_parse_table(const caddr_t addr)
 			smbios.populated_sockets++;
 		break;
 
-	case 6:		/* 3.3.7 Memory Module Information (Type 6, Obsolete) */
+	case 6: /* 3.3.7 Memory Module Information (Type 6, Obsolete) */
 		/*
 		 * Offset 0Ah: Enabled Size
 		 *
@@ -486,7 +492,7 @@ smbios_parse_table(const caddr_t addr)
 			smbios.old_enabled_memory += 1 << (osize + 10);
 		break;
 
-	case 17:	/* 3.3.18 Memory Device (Type 17) */
+	case 17: /* 3.3.18 Memory Device (Type 17) */
 		/*
 		 * Offset 0Ch: Size
 		 *
@@ -498,10 +504,11 @@ smbios_parse_table(const caddr_t addr)
 		size = SMBIOS_GET16(addr, 0x0c);
 		if (size != 0 && size != 0xffff)
 			smbios.enabled_memory += (size & 0x8000) != 0 ?
-			    (size & 0x7fff) : (size << 10);
+			    (size & 0x7fff) :
+			    (size << 10);
 		break;
 
-	default:	/* skip other types */
+	default: /* skip other types */
 		break;
 	}
 
@@ -516,16 +523,15 @@ smbios_parse_table(const caddr_t addr)
 static caddr_t
 smbios_find_struct(int type)
 {
-	caddr_t		dmi;
-	size_t		i;
-	caddr_t		ep;
+	caddr_t dmi;
+	size_t i;
+	caddr_t ep;
 
 	if (smbios.addr == NULL)
 		return (NULL);
 
 	ep = smbios.addr + smbios.length;
-	for (dmi = smbios.addr, i = 0;
-	     dmi < ep && i < smbios.count; i++) {
+	for (dmi = smbios.addr, i = 0; dmi < ep && i < smbios.count; i++) {
 		if (SMBIOS_GET8(dmi, 0) == type) {
 			return dmi;
 		}
@@ -534,7 +540,7 @@ smbios_find_struct(int type)
 		while (SMBIOS_GET16(dmi, 0) != 0 && dmi < ep) {
 			dmi++;
 		}
-		dmi += 2;	/* For checksum */
+		dmi += 2; /* For checksum */
 	}
 
 	return (NULL);
@@ -543,10 +549,10 @@ smbios_find_struct(int type)
 static void
 smbios_probe(const caddr_t addr)
 {
-	caddr_t		saddr, info;
-	uintptr_t	paddr;
-	int		maj_off;
-	int		min_off;
+	caddr_t saddr, info;
+	uintptr_t paddr;
+	int maj_off;
+	int min_off;
 
 	if (smbios.probed)
 		return;
@@ -560,23 +566,25 @@ smbios_probe(const caddr_t addr)
 
 #ifdef HAS_SMBV3
 	if (isv3) {
-		smbios.length = SMBIOS_GET32(saddr, 0x0c);	/* Structure Table Length */
-		paddr = SMBIOS_GET64(saddr, 0x10);		/* Structure Table Address */
-		smbios.count = -1;				/* not present in V3 */
-		smbios.ver = 0;					/* not present in V3 */
+		smbios.length = SMBIOS_GET32(saddr,
+		    0x0c);			   /* Structure Table Length */
+		paddr = SMBIOS_GET64(saddr, 0x10); /* Structure Table Address */
+		smbios.count = -1;		   /* not present in V3 */
+		smbios.ver = 0;			   /* not present in V3 */
 		maj_off = 0x07;
 		min_off = 0x08;
 	} else
 #endif
 	{
-		smbios.length = SMBIOS_GET16(saddr, 0x16);	/* Structure Table Length */
-		paddr = SMBIOS_GET32(saddr, 0x18);		/* Structure Table Address */
-		smbios.count = SMBIOS_GET16(saddr, 0x1c);	/* No of SMBIOS Structures */
-		smbios.ver = SMBIOS_GET8(saddr, 0x1e);		/* SMBIOS BCD Revision */
+		smbios.length = SMBIOS_GET16(saddr,
+		    0x16);			   /* Structure Table Length */
+		paddr = SMBIOS_GET32(saddr, 0x18); /* Structure Table Address */
+		smbios.count = SMBIOS_GET16(saddr,
+		    0x1c); /* No of SMBIOS Structures */
+		smbios.ver = SMBIOS_GET8(saddr, 0x1e); /* SMBIOS BCD Revision */
 		maj_off = 0x06;
 		min_off = 0x07;
 	}
-
 
 	if (smbios.ver != 0) {
 		smbios.major = smbios.ver >> 4;
@@ -585,8 +593,10 @@ smbios_probe(const caddr_t addr)
 			smbios.ver = 0;
 	}
 	if (smbios.ver == 0) {
-		smbios.major = SMBIOS_GET8(saddr, maj_off);/* SMBIOS Major Version */
-		smbios.minor = SMBIOS_GET8(saddr, min_off);/* SMBIOS Minor Version */
+		smbios.major = SMBIOS_GET8(saddr,
+		    maj_off); /* SMBIOS Major Version */
+		smbios.minor = SMBIOS_GET8(saddr,
+		    min_off); /* SMBIOS Minor Version */
 	}
 	smbios.ver = (smbios.major << 8) | smbios.minor;
 	smbios.addr = PTOV(paddr);
@@ -606,9 +616,9 @@ smbios_probe(const caddr_t addr)
 void
 smbios_detect(const caddr_t addr)
 {
-	char		buf[16];
-	caddr_t		dmi;
-	size_t		i;
+	char buf[16];
+	caddr_t dmi;
+	size_t i;
 
 	smbios_probe(addr);
 	if (smbios.addr == NULL)
@@ -621,8 +631,9 @@ smbios_detect(const caddr_t addr)
 	sprintf(buf, "%d.%d", smbios.major, smbios.minor);
 	setenv("smbios.version", buf, 1);
 	if (smbios.enabled_memory > 0 || smbios.old_enabled_memory > 0) {
-		sprintf(buf, "%u", smbios.enabled_memory > 0 ?
-		    smbios.enabled_memory : smbios.old_enabled_memory);
+		sprintf(buf, "%u",
+		    smbios.enabled_memory > 0 ? smbios.enabled_memory :
+						smbios.old_enabled_memory);
 		setenv("smbios.memory.enabled", buf, 1);
 	}
 	if (smbios.enabled_sockets > 0) {
@@ -636,14 +647,13 @@ smbios_detect(const caddr_t addr)
 }
 
 static int
-smbios_match_str(const char* s1, const char* s2)
+smbios_match_str(const char *s1, const char *s2)
 {
 	return (s1 == NULL || (s2 != NULL && !strcmp(s1, s2)));
 }
 
 int
-smbios_match(const char* bios_vendor, const char* maker,
-    const char* product)
+smbios_match(const char *bios_vendor, const char *maker, const char *product)
 {
 	/* XXXRP currently, only called from non-EFI. */
 	smbios_probe(NULL);

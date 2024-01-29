@@ -44,10 +44,10 @@
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
+#include <vm/vm_extern.h>
 #include <vm/vm_kern.h>
 #include <vm/vm_map.h>
 #include <vm/vm_param.h>
-#include <vm/vm_extern.h>
 
 #include <machine/frame.h>
 #include <machine/md_var.h>
@@ -68,8 +68,8 @@
 #endif
 
 #ifdef DDB
-#include <ddb/ddb.h>
 #include <ddb/db_sym.h>
+#include <ddb/ddb.h>
 #endif
 
 /* Called from exception.S */
@@ -84,7 +84,7 @@ static void print_registers(struct trapframe *frame);
 
 int (*dtrace_invop_jump_addr)(struct trapframe *);
 
-typedef void (abort_handler)(struct thread *, struct trapframe *, uint64_t,
+typedef void(abort_handler)(struct thread *, struct trapframe *, uint64_t,
     uint64_t, int);
 
 static abort_handler align_abort;
@@ -103,16 +103,16 @@ static abort_handler *abort_handlers[] = {
 	[ISS_DATA_DFSC_PF_L2] = data_abort,
 	[ISS_DATA_DFSC_PF_L3] = data_abort,
 	[ISS_DATA_DFSC_ALIGN] = align_abort,
-	[ISS_DATA_DFSC_EXT] =  external_abort,
-	[ISS_DATA_DFSC_EXT_L0] =  external_abort,
-	[ISS_DATA_DFSC_EXT_L1] =  external_abort,
-	[ISS_DATA_DFSC_EXT_L2] =  external_abort,
-	[ISS_DATA_DFSC_EXT_L3] =  external_abort,
-	[ISS_DATA_DFSC_ECC] =  external_abort,
-	[ISS_DATA_DFSC_ECC_L0] =  external_abort,
-	[ISS_DATA_DFSC_ECC_L1] =  external_abort,
-	[ISS_DATA_DFSC_ECC_L2] =  external_abort,
-	[ISS_DATA_DFSC_ECC_L3] =  external_abort,
+	[ISS_DATA_DFSC_EXT] = external_abort,
+	[ISS_DATA_DFSC_EXT_L0] = external_abort,
+	[ISS_DATA_DFSC_EXT_L1] = external_abort,
+	[ISS_DATA_DFSC_EXT_L2] = external_abort,
+	[ISS_DATA_DFSC_EXT_L3] = external_abort,
+	[ISS_DATA_DFSC_ECC] = external_abort,
+	[ISS_DATA_DFSC_ECC_L0] = external_abort,
+	[ISS_DATA_DFSC_ECC_L1] = external_abort,
+	[ISS_DATA_DFSC_ECC_L2] = external_abort,
+	[ISS_DATA_DFSC_ECC_L3] = external_abort,
 };
 
 static __inline void
@@ -143,7 +143,8 @@ cpu_fetch_syscall_args(struct thread *td)
 	sa->code = td->td_frame->tf_x[8];
 	sa->original_code = sa->code;
 
-	if (__predict_false(sa->code == SYS_syscall || sa->code == SYS___syscall)) {
+	if (__predict_false(
+		sa->code == SYS_syscall || sa->code == SYS___syscall)) {
 		sa->code = *ap++;
 	} else {
 		*dst_ap++ = *ap++;
@@ -179,14 +180,10 @@ extern uint32_t generic_bs_poke_4f, generic_bs_poke_8f;
 static bool
 test_bs_fault(void *addr)
 {
-	return (addr == &generic_bs_peek_1f ||
-	    addr == &generic_bs_peek_2f ||
-	    addr == &generic_bs_peek_4f ||
-	    addr == &generic_bs_peek_8f ||
-	    addr == &generic_bs_poke_1f ||
-	    addr == &generic_bs_poke_2f ||
-	    addr == &generic_bs_poke_4f ||
-	    addr == &generic_bs_poke_8f);
+	return (addr == &generic_bs_peek_1f || addr == &generic_bs_peek_2f ||
+	    addr == &generic_bs_peek_4f || addr == &generic_bs_peek_8f ||
+	    addr == &generic_bs_poke_1f || addr == &generic_bs_poke_2f ||
+	    addr == &generic_bs_poke_4f || addr == &generic_bs_poke_8f);
 }
 
 static void
@@ -218,7 +215,6 @@ align_abort(struct thread *td, struct trapframe *frame, uint64_t esr,
 	    ESR_ELx_EXCEPTION(frame->tf_esr));
 	userret(td, frame);
 }
-
 
 static void
 external_abort(struct thread *td, struct trapframe *frame, uint64_t esr,
@@ -337,8 +333,9 @@ data_abort(struct thread *td, struct trapframe *frame, uint64_t esr,
 		    td->td_md.md_spinlock_count);
 	}
 #endif
-	if (td->td_critnest != 0 || WITNESS_CHECK(WARN_SLEEPOK |
-	    WARN_GIANTOK, NULL, "Kernel page fault") != 0) {
+	if (td->td_critnest != 0 ||
+	    WITNESS_CHECK(WARN_SLEEPOK | WARN_GIANTOK, NULL,
+		"Kernel page fault") != 0) {
 		print_registers(frame);
 		print_gp_register("far", far);
 		printf(" esr: 0x%.16lx\n", esr);
@@ -371,7 +368,7 @@ data_abort(struct thread *td, struct trapframe *frame, uint64_t esr,
 			call_trapsignal(td, sig, ucode, (void *)far,
 			    ESR_ELx_EXCEPTION(esr));
 		} else {
-bad_far:
+		bad_far:
 			if (td->td_intr_nesting_level == 0 &&
 			    pcb->pcb_onfault != 0) {
 				frame->tf_x[0] = error;
@@ -394,8 +391,8 @@ bad_far:
 					return;
 			}
 #endif
-			panic("vm_fault failed: 0x%lx error %d",
-			    frame->tf_elr, error);
+			panic("vm_fault failed: 0x%lx error %d", frame->tf_elr,
+			    error);
 		}
 	}
 
@@ -488,8 +485,8 @@ do_el1h_sync(struct thread *td, struct trapframe *frame)
 		return;
 #endif
 
-	CTR4(KTR_TRAP, "%s: exception=%lu, elr=0x%lx, esr=0x%lx",
-	    __func__, exception, frame->tf_elr, esr);
+	CTR4(KTR_TRAP, "%s: exception=%lu, elr=0x%lx, esr=0x%lx", __func__,
+	    exception, frame->tf_elr, esr);
 
 	/*
 	 * Enable debug exceptions if we aren't already handling one. They will
@@ -525,12 +522,13 @@ do_el1h_sync(struct thread *td, struct trapframe *frame)
 			printf(" esr: 0x%.16lx\n", esr);
 			panic("Unhandled EL1 %s abort: 0x%x",
 			    exception == EXCP_INSN_ABORT ? "instruction" :
-			    "data", dfsc);
+							   "data",
+			    dfsc);
 		}
 		break;
 	case EXCP_BRK:
 #ifdef KDTRACE_HOOKS
-		if ((esr & ESR_ELx_ISS_MASK) == 0x40d && \
+		if ((esr & ESR_ELx_ISS_MASK) == 0x40d &&
 		    dtrace_invop_jump_addr != 0) {
 			dtrace_invop_jump_addr(frame);
 			break;
@@ -587,8 +585,8 @@ do_el0_sync(struct thread *td, struct trapframe *frame)
 
 	/* Check we have a sane environment when entering from userland */
 	KASSERT((uintptr_t)get_pcpu() >= VM_MIN_KERNEL_ADDRESS,
-	    ("Invalid pcpu address from userland: %p (tpidr 0x%lx)",
-	     get_pcpu(), READ_SPECIALREG(tpidr_el1)));
+	    ("Invalid pcpu address from userland: %p (tpidr 0x%lx)", get_pcpu(),
+		READ_SPECIALREG(tpidr_el1)));
 
 	kasan_mark(frame, sizeof(*frame), sizeof(*frame), 0);
 	far = frame->tf_far;
@@ -606,8 +604,8 @@ do_el0_sync(struct thread *td, struct trapframe *frame)
 	}
 	intr_enable();
 
-	CTR4(KTR_TRAP, "%s: exception=%lu, elr=0x%lx, esr=0x%lx",
-	    __func__, exception, frame->tf_elr, esr);
+	CTR4(KTR_TRAP, "%s: exception=%lu, elr=0x%lx, esr=0x%lx", __func__,
+	    exception, frame->tf_elr, esr);
 
 	switch (exception) {
 	case EXCP_FP_SIMD:
@@ -647,7 +645,8 @@ do_el0_sync(struct thread *td, struct trapframe *frame)
 			printf(" esr: 0x%.16lx\n", esr);
 			panic("Unhandled EL0 %s abort: 0x%x",
 			    exception == EXCP_INSN_ABORT_L ? "instruction" :
-			    "data", dfsc);
+							     "data",
+			    dfsc);
 		}
 		break;
 	case EXCP_UNKNOWN:
@@ -705,8 +704,8 @@ do_el0_sync(struct thread *td, struct trapframe *frame)
 			    READ_SPECIALREG(mdscr_el1) & ~MDSCR_SS);
 		}
 		PROC_UNLOCK(td->td_proc);
-		call_trapsignal(td, SIGTRAP, TRAP_TRACE,
-		    (void *)frame->tf_elr, exception);
+		call_trapsignal(td, SIGTRAP, TRAP_TRACE, (void *)frame->tf_elr,
+		    exception);
 		userret(td, frame);
 		break;
 	case EXCP_BTI:
@@ -723,8 +722,7 @@ do_el0_sync(struct thread *td, struct trapframe *frame)
 
 	KASSERT((td->td_pcb->pcb_fpflags & ~PCB_FP_USERMASK) == 0,
 	    ("Kernel VFP flags set while entering userspace"));
-	KASSERT(
-	    td->td_pcb->pcb_fpusaved == &td->td_pcb->pcb_fpustate,
+	KASSERT(td->td_pcb->pcb_fpusaved == &td->td_pcb->pcb_fpustate,
 	    ("Kernel VFP state in use when entering userspace"));
 }
 

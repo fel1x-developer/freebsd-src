@@ -30,6 +30,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <ctype.h>
 #include <limits.h>
 #include <stdio.h>
@@ -44,10 +45,10 @@
 void
 l_entries(void)
 {
-	int	special;
-	char	*cp;
-	char	savedc;
-	char	tok[MAXTOKEN];
+	int special;
+	char *cp;
+	char savedc;
+	char tok[MAXTOKEN];
 
 	for (;;) {
 		lineftell = ftell(inf);
@@ -58,7 +59,7 @@ l_entries(void)
 		if (!cicmp("(def"))
 			continue;
 		special = NO;
-		switch(*lbp | ' ') {
+		switch (*lbp | ' ') {
 		case 'm':
 			if (cicmp("method"))
 				special = YES;
@@ -84,14 +85,13 @@ l_entries(void)
 			lbp = cp;
 			for (; *cp && *cp != ')' && *cp != ' '; ++cp)
 				continue;
-		}
-		else
-			for (cp = lbp + 1;
-			    *cp && *cp != '(' && *cp != ' '; ++cp)
+		} else
+			for (cp = lbp + 1; *cp && *cp != '(' && *cp != ' ';
+			     ++cp)
 				continue;
 		savedc = *cp;
 		*cp = EOS;
-		(void)strlcpy(tok, lbp, sizeof(tok));	/* possible trunc */
+		(void)strlcpy(tok, lbp, sizeof(tok)); /* possible trunc */
 		*cp = savedc;
 		get_line();
 		pfnote(tok, lineno);

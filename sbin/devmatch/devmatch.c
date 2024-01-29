@@ -24,6 +24,11 @@
  */
 
 #include <sys/param.h>
+#include <sys/linker.h>
+#include <sys/module.h>
+#include <sys/stat.h>
+#include <sys/sysctl.h>
+
 #include <ctype.h>
 #include <devinfo.h>
 #include <err.h>
@@ -35,24 +40,17 @@
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
-#include <sys/linker.h>
-#include <sys/module.h>
-#include <sys/stat.h>
-#include <sys/sysctl.h>
 
 /* options descriptor */
-static struct option longopts[] = {
-	{ "all",		no_argument,		NULL,	'a' },
-	{ "dump",		no_argument,		NULL,	'd' },
-	{ "hints",		required_argument,	NULL,	'h' },
-	{ "nomatch",		required_argument,	NULL,	'p' },
-	{ "quiet",		no_argument,		NULL,	'q' },
-	{ "unbound",		no_argument,		NULL,	'u' },
-	{ "verbose",		no_argument,		NULL,	'v' },
-	{ NULL,			0,			NULL,	0 }
-};
+static struct option longopts[] = { { "all", no_argument, NULL, 'a' },
+	{ "dump", no_argument, NULL, 'd' },
+	{ "hints", required_argument, NULL, 'h' },
+	{ "nomatch", required_argument, NULL, 'p' },
+	{ "quiet", no_argument, NULL, 'q' },
+	{ "unbound", no_argument, NULL, 'u' },
+	{ "verbose", no_argument, NULL, 'v' }, { NULL, 0, NULL, 0 } };
 
-#define	DEVMATCH_MAX_HITS 256
+#define DEVMATCH_MAX_HITS 256
 
 static int all_flag;
 static int dump_flag;
@@ -83,9 +81,11 @@ read_hints(const char *fn, size_t *len)
 		err(1, "Can't fstat %s\n", fn);
 	h = malloc(sb.st_size);
 	if (h == NULL)
-		err(1, "not enough space to read hints file of %ju bytes", (uintmax_t)sb.st_size);
+		err(1, "not enough space to read hints file of %ju bytes",
+		    (uintmax_t)sb.st_size);
 	if (read(fd, h, sb.st_size) != sb.st_size)
-		err(1, "Can't read in %ju bytes from %s", (uintmax_t)sb.st_size, fn);
+		err(1, "Can't read in %ju bytes from %s", (uintmax_t)sb.st_size,
+		    fn);
 	close(fd);
 	*len = sb.st_size;
 	return h;
@@ -99,12 +99,14 @@ read_linker_hints(void)
 	size_t buflen, len;
 
 	if (linker_hints == NULL) {
-		if (sysctlbyname("kern.module_path", NULL, &buflen, NULL, 0) < 0)
+		if (sysctlbyname("kern.module_path", NULL, &buflen, NULL, 0) <
+		    0)
 			errx(1, "Can't find kernel module path.");
 		modpath = malloc(buflen);
 		if (modpath == NULL)
 			err(1, "Can't get memory for modpath.");
-		if (sysctlbyname("kern.module_path", modpath, &buflen, NULL, 0) < 0)
+		if (sysctlbyname("kern.module_path", modpath, &buflen, NULL,
+			0) < 0)
 			errx(1, "Can't find kernel module path.");
 		p = modpath;
 		while ((q = strsep(&p, ";")) != NULL) {
@@ -118,7 +120,8 @@ read_linker_hints(void)
 			if (quiet_flag)
 				exit(EX_UNAVAILABLE);
 			else
-				errx(EX_UNAVAILABLE, "Can't read linker hints file.");
+				errx(EX_UNAVAILABLE,
+				    "Can't read linker hints file.");
 		}
 	} else {
 		hints = read_hints(linker_hints, &len);
@@ -250,8 +253,8 @@ search_hints(const char *bus, const char *dev, const char *pnpinfo)
 	getint(&walker);
 	found = 0;
 	if (verbose_flag)
-		printf("Searching bus %s dev %s for pnpinfo %s\n",
-		    bus, dev, pnpinfo);
+		printf("Searching bus %s dev %s for pnpinfo %s\n", bus, dev,
+		    pnpinfo);
 	while (walker < hints_end) {
 		len = getint(&walker);
 		ival = getint(&walker);
@@ -262,7 +265,8 @@ search_hints(const char *bus, const char *dev, const char *pnpinfo)
 			ival = getint(&ptr);
 			getstr(&ptr, val2);
 			if (dump_flag || verbose_flag)
-				printf("Version: if %s.%d kmod %s\n", val1, ival, val2);
+				printf("Version: if %s.%d kmod %s\n", val1,
+				    ival, val2);
 			break;
 		case MDT_MODULE:
 			getstr(&ptr, val1);
@@ -274,28 +278,34 @@ search_hints(const char *bus, const char *dev, const char *pnpinfo)
 				printf("Module %s in %s\n", val1, val2);
 			break;
 		case MDT_PNP_INFO:
-			if (!dump_flag && !unbound_flag && lastmod && strcmp(lastmod, "kernel") == 0)
+			if (!dump_flag && !unbound_flag && lastmod &&
+			    strcmp(lastmod, "kernel") == 0)
 				break;
 			getstr(&ptr, val1);
 			getstr(&ptr, val2);
 			ents = getint(&ptr);
 			if (dump_flag || verbose_flag)
-				printf("PNP info for bus %s format %s %d entries (%s)\n",
+				printf(
+				    "PNP info for bus %s format %s %d entries (%s)\n",
 				    val1, val2, ents, lastmod);
 			if (strcmp(val1, "usb") == 0) {
 				if (verbose_flag)
-					printf("Treating usb as uhub -- bug in source table still?\n");
+					printf(
+					    "Treating usb as uhub -- bug in source table still?\n");
 				strcpy(val1, "uhub");
 			}
 			if (bus && strcmp(val1, bus) != 0) {
 				if (verbose_flag)
-					printf("Skipped because table for bus %s, looking for %s\n",
+					printf(
+					    "Skipped because table for bus %s, looking for %s\n",
 					    val1, bus);
 				break;
 			}
 			for (i = 0; i < ents; i++) {
 				if (verbose_flag)
-					printf("---------- Entry %d ----------\n", i);
+					printf(
+					    "---------- Entry %d ----------\n",
+					    i);
 				if (dump_flag)
 					printf("   ");
 				cp = val2;
@@ -315,19 +325,25 @@ search_hints(const char *bus, const char *dev, const char *pnpinfo)
 							printf("%#x:", ival);
 							break;
 						}
-						if (bit >= 0 && ((1 << bit) & mask) == 0)
+						if (bit >= 0 &&
+						    ((1 << bit) & mask) == 0)
 							break;
 						if (cp[2] == '#') {
 							if (verbose_flag) {
-								printf("Ignoring %s (%c) table=%#x tomatch=%#x\n",
-								    cp + 2, *cp, v, ival);
+								printf(
+								    "Ignoring %s (%c) table=%#x tomatch=%#x\n",
+								    cp + 2, *cp,
+								    v, ival);
 							}
 							break;
 						}
-						v = pnpval_as_int(cp + 2, pnpinfo);
+						v = pnpval_as_int(cp + 2,
+						    pnpinfo);
 						if (verbose_flag)
-							printf("Matching %s (%c) table=%#x tomatch=%#x\n",
-							    cp + 2, *cp, v, ival);
+							printf(
+							    "Matching %s (%c) table=%#x tomatch=%#x\n",
+							    cp + 2, *cp, v,
+							    ival);
 						switch (*cp) {
 						case 'J':
 							if (ival == -1)
@@ -360,40 +376,59 @@ search_hints(const char *bus, const char *dev, const char *pnpinfo)
 						}
 						if (*cp == 'D')
 							break;
-						if (bit >= 0 && ((1 << bit) & mask) == 0)
+						if (bit >= 0 &&
+						    ((1 << bit) & mask) == 0)
 							break;
 						if (cp[2] == '#') {
 							if (verbose_flag) {
-								printf("Ignoring %s (%c) table=%#x tomatch=%#x\n",
-								    cp + 2, *cp, v, ival);
+								printf(
+								    "Ignoring %s (%c) table=%#x tomatch=%#x\n",
+								    cp + 2, *cp,
+								    v, ival);
 							}
 							break;
 						}
-						s = pnpval_as_str(cp + 2, pnpinfo);
+						s = pnpval_as_str(cp + 2,
+						    pnpinfo);
 						if (verbose_flag)
-							printf("Matching %s (%c) table=%s tomatch=%s\n",
-							    cp + 2, *cp, s, val1);
+							printf(
+							    "Matching %s (%c) table=%s tomatch=%s\n",
+							    cp + 2, *cp, s,
+							    val1);
 						if (strcmp(s, val1) != 0)
 							notme++;
 						break;
-						/* Key override fields, required to be last in the string */
+						/* Key override fields, required
+						 * to be last in the string */
 					case 'T':
 						/*
-						 * This is imperfect and only does one key and will be redone
-						 * to be more general for multiple keys. Currently, nothing
-						 * does that.
+						 * This is imperfect and only
+						 * does one key and will be
+						 * redone to be more general for
+						 * multiple keys. Currently,
+						 * nothing does that.
 						 */
-						if (dump_flag)				/* No per-row data stored */
+						if (dump_flag) /* No per-row
+								  data stored */
 							break;
-						if (cp[strlen(cp) - 1] == ';')		/* Skip required ; at end */
-							cp[strlen(cp) - 1] = '\0';	/* in case it's not there */
-						if ((s = strstr(pnpinfo, cp + 2)) == NULL)
+						if (cp[strlen(cp) - 1] ==
+						    ';') /* Skip required ; at
+							    end */
+							cp[strlen(cp) - 1] =
+							    '\0'; /* in case
+								     it's not
+								     there */
+						if ((s = strstr(pnpinfo,
+							 cp + 2)) == NULL)
 							notme++;
-						else if (s > pnpinfo && s[-1] != ' ')
+						else if (s > pnpinfo &&
+						    s[-1] != ' ')
 							notme++;
 						break;
 					default:
-						fprintf(stderr, "Unknown field type %c\n:", *cp);
+						fprintf(stderr,
+						    "Unknown field type %c\n:",
+						    *cp);
 						break;
 					}
 					bit++;
@@ -406,11 +441,16 @@ search_hints(const char *bus, const char *dev, const char *pnpinfo)
 				else if (!notme) {
 					if (!unbound_flag) {
 						if (all_flag)
-							printf("%s: %s", *dev ? dev : "unattached", lastmod);
+							printf("%s: %s",
+							    *dev ? dev :
+								   "unattached",
+							    lastmod);
 						else
 							printf("%s\n", lastmod);
 						if (verbose_flag)
-							printf("Matches --- %s ---\n", lastmod);
+							printf(
+							    "Matches --- %s ---\n",
+							    lastmod);
 					}
 					found++;
 				}
@@ -426,7 +466,8 @@ search_hints(const char *bus, const char *dev, const char *pnpinfo)
 	if (unbound_flag && found == 0 && *pnpinfo) {
 		if (verbose_flag)
 			printf("------------------------- ");
-		printf("%s on %s pnpinfo %s", *dev ? dev : "unattached", bus, pnpinfo);
+		printf("%s on %s pnpinfo %s", *dev ? dev : "unattached", bus,
+		    pnpinfo);
 		if (verbose_flag)
 			printf(" -------------------------");
 		printf("\n");
@@ -455,7 +496,8 @@ find_unmatched(struct devinfo_dev *dev, void *arg)
 		*++p = '\0';
 		if (verbose_flag)
 			printf("Searching %s %s bus at %s for pnpinfo %s\n",
-			    dev->dd_name, bus, dev->dd_location, dev->dd_pnpinfo);
+			    dev->dd_name, bus, dev->dd_location,
+			    dev->dd_pnpinfo);
 		search_hints(bus, dev->dd_name, dev->dd_pnpinfo);
 		free(bus);
 	} while (0);
@@ -463,8 +505,7 @@ find_unmatched(struct devinfo_dev *dev, void *arg)
 	return (devinfo_foreach_device_child(dev, find_unmatched, arg));
 }
 
-struct exact_info
-{
+struct exact_info {
 	const char *bus;
 	const char *loc;
 	struct devinfo_dev *dev;
@@ -569,8 +610,8 @@ main(int argc, char **argv)
 {
 	int ch;
 
-	while ((ch = getopt_long(argc, argv, "adh:p:quv",
-		    longopts, NULL)) != -1) {
+	while (
+	    (ch = getopt_long(argc, argv, "adh:p:quv", longopts, NULL)) != -1) {
 		switch (ch) {
 		case 'a':
 			all_flag++;

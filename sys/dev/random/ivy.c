@@ -31,31 +31,30 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
+#include <sys/systm.h>
 #include <sys/conf.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/random.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
 #include <machine/md_var.h>
 #include <machine/specialreg.h>
+
 #include <x86/ifunc.h>
 
 #include <dev/random/randomdev.h>
 
-#define	RETRY_COUNT	10
+#define RETRY_COUNT 10
 
 static bool has_rdrand, has_rdseed;
 static u_int random_ivy_read(void *, u_int);
 
-static struct random_source random_ivy = {
-	.rs_ident = "Intel Secure Key RNG",
+static struct random_source random_ivy = { .rs_ident = "Intel Secure Key RNG",
 	.rs_source = RANDOM_PURE_RDRAND,
-	.rs_read = random_ivy_read
-};
+	.rs_read = random_ivy_read };
 
 SYSCTL_NODE(_kern_random, OID_AUTO, rdrand, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "rdrand (ivy) entropy source");
@@ -75,7 +74,8 @@ x86_rdrand_store(u_long *buf)
 	 * machines lacking RDSEED will guarantee RDRAND is reseeded every 8kB
 	 * of generated output.
 	 *
-	 * [1]: https://software.intel.com/en-us/articles/intel-digital-random-number-generator-drng-software-implementation-guide#inpage-nav-6-8
+	 * [1]:
+	 * https://software.intel.com/en-us/articles/intel-digital-random-number-generator-drng-software-implementation-guide#inpage-nav-6-8
 	 */
 	if (acquire_independent_seed_samples)
 		seed_iterations = 8 * 1024 / sizeof(*buf);
@@ -86,12 +86,16 @@ x86_rdrand_store(u_long *buf)
 		retry = RETRY_COUNT;
 		__asm __volatile(
 		    "1:\n\t"
-		    "rdrand	%1\n\t"	/* read randomness into rndval */
-		    "jc		2f\n\t" /* CF is set on success, exit retry loop */
+		    "rdrand	%1\n\t" /* read randomness into rndval */
+		    "jc		2f\n\t" /* CF is set on success, exit retry loop
+					 */
 		    "dec	%0\n\t" /* otherwise, retry-- */
-		    "jne	1b\n\t" /* and loop if retries are not exhausted */
+		    "jne	1b\n\t" /* and loop if retries are not exhausted
+					 */
 		    "2:"
-		    : "+r" (retry), "=r" (rndval) : : "cc");
+		    : "+r"(retry), "=r"(rndval)
+		    :
+		    : "cc");
 		if (retry == 0)
 			return (false);
 	}
@@ -108,12 +112,14 @@ x86_rdseed_store(u_long *buf)
 	retry = RETRY_COUNT;
 	__asm __volatile(
 	    "1:\n\t"
-	    "rdseed	%1\n\t"	/* read randomness into rndval */
+	    "rdseed	%1\n\t" /* read randomness into rndval */
 	    "jc		2f\n\t" /* CF is set on success, exit retry loop */
 	    "dec	%0\n\t" /* otherwise, retry-- */
 	    "jne	1b\n\t" /* and loop if retries are not exhausted */
 	    "2:"
-	    : "+r" (retry), "=r" (rndval) : : "cc");
+	    : "+r"(retry), "=r"(rndval)
+	    :
+	    : "cc");
 	*buf = rndval;
 	return (retry != 0);
 }
@@ -125,7 +131,7 @@ x86_unimpl_store(u_long *buf __unused)
 	panic("%s called", __func__);
 }
 
-DEFINE_IFUNC(static, bool, x86_rng_store, (u_long *buf))
+DEFINE_IFUNC(static, bool, x86_rng_store, (u_long * buf))
 {
 	has_rdrand = (cpu_feature2 & CPUID2_RDRAND);
 	has_rdseed = (cpu_stdext_feature & CPUID_STDEXT_RDSEED);
@@ -164,7 +170,8 @@ rdrand_modevent(module_t mod, int type, void *unused)
 	case MOD_LOAD:
 		if (has_rdrand || has_rdseed) {
 			random_source_register(&random_ivy);
-			printf("random: fast provider: \"%s\"\n", random_ivy.rs_ident);
+			printf("random: fast provider: \"%s\"\n",
+			    random_ivy.rs_ident);
 		}
 		break;
 
@@ -179,17 +186,12 @@ rdrand_modevent(module_t mod, int type, void *unused)
 	default:
 		error = EOPNOTSUPP;
 		break;
-
 	}
 
 	return (error);
 }
 
-static moduledata_t rdrand_mod = {
-	"rdrand",
-	rdrand_modevent,
-	0
-};
+static moduledata_t rdrand_mod = { "rdrand", rdrand_modevent, 0 };
 
 DECLARE_MODULE(rdrand, rdrand_mod, SI_SUB_RANDOM, SI_ORDER_FOURTH);
 MODULE_VERSION(rdrand, 1);

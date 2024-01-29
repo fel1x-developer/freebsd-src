@@ -20,10 +20,8 @@ read_csr_ring_head(struct resource *csr_base_addr, u32 bank, u32 ring)
 }
 
 static void
-write_csr_ring_head(struct resource *csr_base_addr,
-		    u32 bank,
-		    u32 ring,
-		    u32 value)
+write_csr_ring_head(struct resource *csr_base_addr, u32 bank, u32 ring,
+    u32 value)
 {
 	WRITE_CSR_RING_HEAD(csr_base_addr, bank, ring, value);
 }
@@ -35,10 +33,8 @@ read_csr_ring_tail(struct resource *csr_base_addr, u32 bank, u32 ring)
 }
 
 static void
-write_csr_ring_tail(struct resource *csr_base_addr,
-		    u32 bank,
-		    u32 ring,
-		    u32 value)
+write_csr_ring_tail(struct resource *csr_base_addr, u32 bank, u32 ring,
+    u32 value)
 {
 	WRITE_CSR_RING_TAIL(csr_base_addr, bank, ring, value);
 }
@@ -50,10 +46,8 @@ read_csr_e_stat(struct resource *csr_base_addr, u32 bank)
 }
 
 static void
-write_csr_ring_config(struct resource *csr_base_addr,
-		      u32 bank,
-		      u32 ring,
-		      u32 value)
+write_csr_ring_config(struct resource *csr_base_addr, u32 bank, u32 ring,
+    u32 value)
 {
 	WRITE_CSR_RING_CONFIG(csr_base_addr, bank, ring, value);
 }
@@ -65,10 +59,8 @@ read_csr_ring_base(struct resource *csr_base_addr, u32 bank, u32 ring)
 }
 
 static void
-write_csr_ring_base(struct resource *csr_base_addr,
-		    u32 bank,
-		    u32 ring,
-		    bus_addr_t addr)
+write_csr_ring_base(struct resource *csr_base_addr, u32 bank, u32 ring,
+    bus_addr_t addr)
 {
 	WRITE_CSR_RING_BASE(csr_base_addr, bank, ring, addr);
 }
@@ -163,9 +155,8 @@ reset_ring_pair(struct resource *csr, u32 bank_number)
 	 * NOTE: bit#12-bit#31 are WO, the write operation only takes
 	 * effect when bit#1 is written 1 for pasid level reset
 	 */
-	ADF_CSR_WR(csr,
-		   ADF_WQM_CSR_RPRESETCTL(bank_number),
-		   BIT(ADF_WQM_CSR_RPRESETCTL_SHIFT));
+	ADF_CSR_WR(csr, ADF_WQM_CSR_RPRESETCTL(bank_number),
+	    BIT(ADF_WQM_CSR_RPRESETCTL_SHIFT));
 
 	/* Read rpresetsts register to wait for rp reset complete */
 	while (reset_timeout > 0) {
@@ -179,9 +170,8 @@ reset_ring_pair(struct resource *csr, u32 bank_number)
 		return EFAULT;
 
 	/* When rp reset is done, clear rpresetsts bit0 */
-	ADF_CSR_WR(csr,
-		   ADF_WQM_CSR_RPRESETSTS(bank_number),
-		   BIT(ADF_WQM_CSR_RPRESETSTS_SHIFT));
+	ADF_CSR_WR(csr, ADF_WQM_CSR_RPRESETSTS(bank_number),
+	    BIT(ADF_WQM_CSR_RPRESETSTS_SHIFT));
 	return 0;
 }
 
@@ -201,7 +191,7 @@ adf_gen4_ring_pair_reset(struct adf_accel_dev *accel_dev, u32 bank_number)
 	ret = reset_ring_pair(csr, bank_number);
 	if (ret)
 		device_printf(GET_DEV(accel_dev),
-			      "ring pair reset failure (timeout)\n");
+		    "ring pair reset failure (timeout)\n");
 
 	return ret;
 }
@@ -235,9 +225,8 @@ adf_gen4_set_ssm_wdtimer(struct adf_accel_dev *accel_dev)
 	 * mmio write to 32bit CSRs.
 	 */
 	adf_gen4_unpack_ssm_wdtimer(timer_val, &ssm_wdt_high, &ssm_wdt_low);
-	adf_gen4_unpack_ssm_wdtimer(timer_val_pke,
-				    &ssm_wdt_pke_high,
-				    &ssm_wdt_pke_low);
+	adf_gen4_unpack_ssm_wdtimer(timer_val_pke, &ssm_wdt_pke_high,
+	    &ssm_wdt_pke_low);
 
 	/* Enable WDT for sym and dc */
 	ADF_CSR_WR(pmisc_addr, ADF_SSMWDTL_OFFSET, ssm_wdt_low);

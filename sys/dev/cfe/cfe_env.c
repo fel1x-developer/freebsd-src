@@ -30,8 +30,8 @@
 #include <sys/kenv.h>
 
 #include <dev/cfe/cfe_api.h>
-#ifndef	CFE_ENV_SIZE
-#define	CFE_ENV_SIZE	PAGE_SIZE	/* default is one page */
+#ifndef CFE_ENV_SIZE
+#define CFE_ENV_SIZE PAGE_SIZE /* default is one page */
 #endif
 
 extern void cfe_env_init(void);
@@ -52,8 +52,8 @@ cfe_env_init(void)
 			break;
 
 		if (kern_setenv(name, val) != 0) {
-			printf("No space to store CFE env: \"%s=%s\"\n",
-				name, val);
+			printf("No space to store CFE env: \"%s=%s\"\n", name,
+			    val);
 		}
 		++idx;
 	}

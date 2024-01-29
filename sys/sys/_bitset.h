@@ -30,22 +30,22 @@
  */
 
 #ifndef _SYS__BITSET_H_
-#define	_SYS__BITSET_H_
+#define _SYS__BITSET_H_
 
 /*
  * Macros addressing word and bit within it, tuned to make compiler
  * optimize cases when SETSIZE fits into single machine word.
  */
-#define	_BITSET_BITS		(sizeof(long) * 8)
+#define _BITSET_BITS (sizeof(long) * 8)
 
-#define	__howmany(x, y)	(((x) + ((y) - 1)) / (y))
+#define __howmany(x, y) (((x) + ((y)-1)) / (y))
 
-#define	__bitset_words(_s)	(__howmany(_s, _BITSET_BITS))
+#define __bitset_words(_s) (__howmany(_s, _BITSET_BITS))
 
-#define	__BITSET_DEFINE(_t, _s)						\
-struct _t {								\
-        long    __bits[__bitset_words((_s))];				\
-}
+#define __BITSET_DEFINE(_t, _s)                    \
+	struct _t {                                \
+		long __bits[__bitset_words((_s))]; \
+	}
 
 /*
  * Helper to declare a bitset without it's size being a constant.
@@ -53,7 +53,7 @@ struct _t {								\
  * Sadly we cannot declare a bitset struct with 'bits[]', because it's
  * the only member of the struct and the compiler complains.
  */
-#define __BITSET_DEFINE_VAR(_t)	__BITSET_DEFINE(_t, 1)
+#define __BITSET_DEFINE_VAR(_t) __BITSET_DEFINE(_t, 1)
 
 /*
  * Define a default type that can be used while manually specifying size
@@ -63,8 +63,8 @@ struct _t {								\
 #if defined(_KERNEL) || defined(_WANT_FREEBSD_BITSET)
 __BITSET_DEFINE(bitset, 1);
 
-#define	BITSET_DEFINE(_t, _s)	__BITSET_DEFINE(_t, _s)
-#define	BITSET_DEFINE_VAR(_t)	__BITSET_DEFINE_VAR(_t)
+#define BITSET_DEFINE(_t, _s) __BITSET_DEFINE(_t, _s)
+#define BITSET_DEFINE_VAR(_t) __BITSET_DEFINE_VAR(_t)
 #endif /* defined(_KERNEL) || defined(_WANT_FREEBSD_BITSET) */
 
 #endif /* !_SYS__BITSET_H_ */

@@ -17,27 +17,27 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "port_before.h"
-
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/nameser.h>
-#include <arpa/inet.h>
 
+#include <netinet/in.h>
+
+#include <arpa/inet.h>
+#include <arpa/nameser.h>
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "port_after.h"
+#include "port_before.h"
 
 #ifdef SPRINTF_CHAR
-# define SPRINTF(x) strlen(sprintf/**/x)
+#define SPRINTF(x) strlen(sprintf /**/ x)
 #else
-# define SPRINTF(x) ((size_t)sprintf x)
+#define SPRINTF(x) ((size_t)sprintf x)
 #endif
 
 /*%
@@ -57,21 +57,22 @@
  *	Paul Vixie (ISC), June 1996
  */
 static int
-inet_net_pton_ipv4(const char *src, u_char *dst, size_t size) {
+inet_net_pton_ipv4(const char *src, u_char *dst, size_t size)
+{
 	static const char xdigits[] = "0123456789abcdef";
 	static const char digits[] = "0123456789";
 	int n, ch, tmp = 0, dirty, bits;
 	const u_char *odst = dst;
 
 	ch = *src++;
-	if (ch == '0' && (src[0] == 'x' || src[0] == 'X')
-	    && isascii((unsigned char)(src[1]))
-	    && isxdigit((unsigned char)(src[1]))) {
+	if (ch == '0' && (src[0] == 'x' || src[0] == 'X') &&
+	    isascii((unsigned char)(src[1])) &&
+	    isxdigit((unsigned char)(src[1]))) {
 		/* Hexadecimal: Eat nybble string. */
 		if (size <= 0U)
 			goto emsgsize;
 		dirty = 0;
-		src++;	/*%< skip x or X. */
+		src++; /*%< skip x or X. */
 		while ((ch = *src++) != '\0' && isascii(ch) && isxdigit(ch)) {
 			if (isupper(ch))
 				ch = tolower(ch);
@@ -84,14 +85,14 @@ inet_net_pton_ipv4(const char *src, u_char *dst, size_t size) {
 			if (++dirty == 2) {
 				if (size-- <= 0U)
 					goto emsgsize;
-				*dst++ = (u_char) tmp;
+				*dst++ = (u_char)tmp;
 				dirty = 0;
 			}
 		}
-		if (dirty) {  /*%< Odd trailing nybble? */
+		if (dirty) { /*%< Odd trailing nybble? */
 			if (size-- <= 0U)
 				goto emsgsize;
-			*dst++ = (u_char) (tmp << 4);
+			*dst++ = (u_char)(tmp << 4);
 		}
 	} else if (isascii(ch) && isdigit(ch)) {
 		/* Decimal: eat dotted digit string. */
@@ -104,11 +105,11 @@ inet_net_pton_ipv4(const char *src, u_char *dst, size_t size) {
 				tmp += n;
 				if (tmp > 255)
 					goto enoent;
-			} while ((ch = *src++) != '\0' &&
-				 isascii(ch) && isdigit(ch));
+			} while ((ch = *src++) != '\0' && isascii(ch) &&
+			    isdigit(ch));
 			if (size-- <= 0U)
 				goto emsgsize;
-			*dst++ = (u_char) tmp;
+			*dst++ = (u_char)tmp;
 			if (ch == '\0' || ch == '/')
 				break;
 			if (ch != '.')
@@ -124,7 +125,7 @@ inet_net_pton_ipv4(const char *src, u_char *dst, size_t size) {
 	if (ch == '/' && isascii((unsigned char)(src[0])) &&
 	    isdigit((unsigned char)(src[0])) && dst > odst) {
 		/* CIDR width specifier.  Nothing can follow it. */
-		ch = *src++;	/*%< Skip over the /. */
+		ch = *src++; /*%< Skip over the /. */
 		bits = 0;
 		do {
 			n = strchr(digits, ch) - digits;
@@ -147,15 +148,15 @@ inet_net_pton_ipv4(const char *src, u_char *dst, size_t size) {
 		goto enoent;
 	/* If no CIDR spec was given, infer width from net class. */
 	if (bits == -1) {
-		if (*odst >= 240)	/*%< Class E */
+		if (*odst >= 240) /*%< Class E */
 			bits = 32;
-		else if (*odst >= 224)	/*%< Class D */
+		else if (*odst >= 224) /*%< Class D */
 			bits = 8;
-		else if (*odst >= 192)	/*%< Class C */
+		else if (*odst >= 192) /*%< Class C */
 			bits = 24;
-		else if (*odst >= 128)	/*%< Class B */
+		else if (*odst >= 128) /*%< Class B */
 			bits = 16;
-		else			/*%< Class A */
+		else /*%< Class A */
 			bits = 8;
 		/* If imputed mask is narrower than specified octets, widen. */
 		if (bits < ((dst - odst) * 8))
@@ -175,17 +176,18 @@ inet_net_pton_ipv4(const char *src, u_char *dst, size_t size) {
 	}
 	return (bits);
 
- enoent:
+enoent:
 	errno = ENOENT;
 	return (-1);
 
- emsgsize:
+emsgsize:
 	errno = EMSGSIZE;
 	return (-1);
 }
 
 static int
-getbits(const char *src, int *bitsp) {
+getbits(const char *src, int *bitsp)
+{
 	static const char digits[] = "0123456789";
 	int n;
 	int val;
@@ -198,11 +200,11 @@ getbits(const char *src, int *bitsp) {
 
 		pch = strchr(digits, ch);
 		if (pch != NULL) {
-			if (n++ != 0 && val == 0)	/*%< no leading zeros */
+			if (n++ != 0 && val == 0) /*%< no leading zeros */
 				return (0);
 			val *= 10;
 			val += (pch - digits);
-			if (val > 128)			/*%< range */
+			if (val > 128) /*%< range */
 				return (0);
 			continue;
 		}
@@ -215,7 +217,8 @@ getbits(const char *src, int *bitsp) {
 }
 
 static int
-getv4(const char *src, u_char *dst, int *bitsp) {
+getv4(const char *src, u_char *dst, int *bitsp)
+{
 	static const char digits[] = "0123456789";
 	u_char *odst = dst;
 	int n;
@@ -229,16 +232,16 @@ getv4(const char *src, u_char *dst, int *bitsp) {
 
 		pch = strchr(digits, ch);
 		if (pch != NULL) {
-			if (n++ != 0 && val == 0)	/*%< no leading zeros */
+			if (n++ != 0 && val == 0) /*%< no leading zeros */
 				return (0);
 			val *= 10;
 			val += (pch - digits);
-			if (val > 255)			/*%< range */
+			if (val > 255) /*%< range */
 				return (0);
 			continue;
 		}
 		if (ch == '.' || ch == '/') {
-			if (dst - odst > 3)		/*%< too many octets? */
+			if (dst - odst > 3) /*%< too many octets? */
 				return (0);
 			*dst++ = val;
 			if (ch == '/')
@@ -251,14 +254,15 @@ getv4(const char *src, u_char *dst, int *bitsp) {
 	}
 	if (n == 0)
 		return (0);
-	if (dst - odst > 3)		/*%< too many octets? */
+	if (dst - odst > 3) /*%< too many octets? */
 		return (0);
 	*dst++ = val;
 	return (1);
 }
 
 static int
-inet_net_pton_ipv6(const char *src, u_char *dst, size_t size) {
+inet_net_pton_ipv6(const char *src, u_char *dst, size_t size)
+{
 	static const char xdigits_l[] = "0123456789abcdef",
 			  xdigits_u[] = "0123456789ABCDEF";
 	u_char tmp[NS_IN6ADDRSZ], *tp, *endp, *colonp;
@@ -308,19 +312,19 @@ inet_net_pton_ipv6(const char *src, u_char *dst, size_t size) {
 				goto enoent;
 			if (tp + NS_INT16SZ > endp)
 				return (0);
-			*tp++ = (u_char) (val >> 8) & 0xff;
-			*tp++ = (u_char) val & 0xff;
+			*tp++ = (u_char)(val >> 8) & 0xff;
+			*tp++ = (u_char)val & 0xff;
 			saw_xdigit = 0;
 			digits = 0;
 			val = 0;
 			continue;
 		}
 		if (ch == '.' && ((tp + NS_INADDRSZ) <= endp) &&
-		     getv4(curtok, tp, &bits) > 0) {
+		    getv4(curtok, tp, &bits) > 0) {
 			tp += NS_INADDRSZ;
 			saw_xdigit = 0;
 			ipv4 = 1;
-			break;	/*%< '\\0' was seen by inet_pton4(). */
+			break; /*%< '\\0' was seen by inet_pton4(). */
 		}
 		if (ch == '/' && getbits(src, &bits) > 0)
 			break;
@@ -329,8 +333,8 @@ inet_net_pton_ipv6(const char *src, u_char *dst, size_t size) {
 	if (saw_xdigit) {
 		if (tp + NS_INT16SZ > endp)
 			goto enoent;
-		*tp++ = (u_char) (val >> 8) & 0xff;
-		*tp++ = (u_char) val & 0xff;
+		*tp++ = (u_char)(val >> 8) & 0xff;
+		*tp++ = (u_char)val & 0xff;
 	}
 	if (bits == -1)
 		bits = 128;
@@ -340,7 +344,7 @@ inet_net_pton_ipv6(const char *src, u_char *dst, size_t size) {
 		words = 2;
 	if (ipv4)
 		words = 8;
-	endp =  tmp + 2 * words;
+	endp = tmp + 2 * words;
 
 	if (colonp != NULL) {
 		/*
@@ -353,7 +357,7 @@ inet_net_pton_ipv6(const char *src, u_char *dst, size_t size) {
 		if (tp == endp)
 			goto enoent;
 		for (i = 1; i <= n; i++) {
-			endp[- i] = colonp[n - i];
+			endp[-i] = colonp[n - i];
 			colonp[n - i] = 0;
 		}
 		tp = endp;
@@ -367,11 +371,11 @@ inet_net_pton_ipv6(const char *src, u_char *dst, size_t size) {
 	memcpy(dst, tmp, bytes);
 	return (bits);
 
- enoent:
+enoent:
 	errno = ENOENT;
 	return (-1);
 
- emsgsize:
+emsgsize:
 	errno = EMSGSIZE;
 	return (-1);
 }
@@ -390,7 +394,8 @@ inet_net_pton_ipv6(const char *src, u_char *dst, size_t size) {
  *	Paul Vixie (ISC), June 1996
  */
 int
-inet_net_pton(int af, const char *src, void *dst, size_t size) {
+inet_net_pton(int af, const char *src, void *dst, size_t size)
+{
 	switch (af) {
 	case AF_INET:
 		return (inet_net_pton_ipv4(src, dst, size));

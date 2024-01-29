@@ -29,15 +29,15 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_bus.h"
 #include "opt_iommu.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/conf.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/callout.h>
+#include <sys/conf.h>
 #include <sys/ktr.h>
 #include <sys/limits.h>
 #include <sys/lock.h>
@@ -48,13 +48,13 @@
 #include <sys/uio.h>
 
 #include <vm/vm.h>
-#include <vm/vm_page.h>
-#include <vm/vm_map.h>
 #include <vm/pmap.h>
-
-#include <opencrypto/cryptodev.h>
+#include <vm/vm_map.h>
+#include <vm/vm_page.h>
 
 #include <machine/bus.h>
+
+#include <opencrypto/cryptodev.h>
 
 /*
  * Convenience function for manipulating driver locks from busdma (during
@@ -91,7 +91,6 @@ _busdma_dflt_lock(void *arg, bus_dma_lock_op_t op)
 
 	panic("driver error: _bus_dma_dflt_lock called");
 }
-
 
 /*
  * Load up data starting at offset within a region specified by a
@@ -151,8 +150,8 @@ _bus_dmamap_load_plist(bus_dma_tag_t dmat, bus_dmamap_t map,
  * Load an unmapped mbuf
  */
 static int
-_bus_dmamap_load_mbuf_epg(bus_dma_tag_t dmat, bus_dmamap_t map,
-    struct mbuf *m, bus_dma_segment_t *segs, int *nsegs, int flags)
+_bus_dmamap_load_mbuf_epg(bus_dma_tag_t dmat, bus_dmamap_t map, struct mbuf *m,
+    bus_dma_segment_t *segs, int *nsegs, int flags)
 {
 	int error, i, off, len, pglen, pgoff, seglen, segoff;
 
@@ -174,8 +173,8 @@ _bus_dmamap_load_mbuf_epg(bus_dma_tag_t dmat, bus_dmamap_t map,
 			off = 0;
 			len -= seglen;
 			error = _bus_dmamap_load_buffer(dmat, map,
-			    &m->m_epg_hdr[segoff], seglen, kernel_pmap,
-			    flags, segs, nsegs);
+			    &m->m_epg_hdr[segoff], seglen, kernel_pmap, flags,
+			    segs, nsegs);
 		}
 	}
 	pgoff = m->m_epg_1st_off;
@@ -198,10 +197,9 @@ _bus_dmamap_load_mbuf_epg(bus_dma_tag_t dmat, bus_dmamap_t map,
 	if (len != 0 && error == 0) {
 		KASSERT((off + len) <= m->m_epg_trllen,
 		    ("off + len > trail (%d + %d > %d)", off, len,
-		    m->m_epg_trllen));
-		error = _bus_dmamap_load_buffer(dmat, map,
-		    &m->m_epg_trail[off], len, kernel_pmap, flags, segs,
-		    nsegs);
+			m->m_epg_trllen));
+		error = _bus_dmamap_load_buffer(dmat, map, &m->m_epg_trail[off],
+		    len, kernel_pmap, flags, segs, nsegs);
 	}
 	return (error);
 }
@@ -231,8 +229,8 @@ _bus_dmamap_load_single_mbuf(bus_dma_tag_t dmat, bus_dmamap_t map,
  * Load an mbuf chain.
  */
 static int
-_bus_dmamap_load_mbuf_sg(bus_dma_tag_t dmat, bus_dmamap_t map,
-    struct mbuf *m0, bus_dma_segment_t *segs, int *nsegs, int flags)
+_bus_dmamap_load_mbuf_sg(bus_dma_tag_t dmat, bus_dmamap_t map, struct mbuf *m0,
+    bus_dma_segment_t *segs, int *nsegs, int flags)
 {
 	struct mbuf *m;
 	int error;
@@ -241,8 +239,8 @@ _bus_dmamap_load_mbuf_sg(bus_dma_tag_t dmat, bus_dmamap_t map,
 	for (m = m0; m != NULL && error == 0; m = m->m_next) {
 		if (m->m_len > 0) {
 			if ((m->m_flags & M_EXTPG) != 0)
-				error = _bus_dmamap_load_mbuf_epg(dmat,
-				    map, m, segs, nsegs, flags);
+				error = _bus_dmamap_load_mbuf_epg(dmat, map, m,
+				    segs, nsegs, flags);
 			else
 				error = _bus_dmamap_load_buffer(dmat, map,
 				    m->m_data, m->m_len, kernel_pmap,
@@ -267,8 +265,8 @@ bus_dmamap_load_ma_triv(bus_dma_tag_t dmat, bus_dmamap_t map,
 	for (i = 0; tlen > 0; i++, tlen -= len) {
 		len = min(PAGE_SIZE - ma_offs, tlen);
 		paddr = VM_PAGE_TO_PHYS(ma[i]) + ma_offs;
-		error = _bus_dmamap_load_phys(dmat, map, paddr, len,
-		    flags, segs, segp);
+		error = _bus_dmamap_load_phys(dmat, map, paddr, len, flags,
+		    segs, segp);
 		if (error != 0)
 			break;
 		ma_offs = 0;
@@ -292,7 +290,7 @@ _bus_dmamap_load_uio(bus_dma_tag_t dmat, bus_dmamap_t map, struct uio *uio,
 
 	if (uio->uio_segflg == UIO_USERSPACE) {
 		KASSERT(uio->uio_td != NULL,
-			("bus_dmamap_load_uio: USERSPACE but no proc"));
+		    ("bus_dmamap_load_uio: USERSPACE but no proc"));
 		pmap = vmspace_pmap(uio->uio_td->td_proc->p_vmspace);
 	} else
 		pmap = kernel_pmap;
@@ -306,11 +304,11 @@ _bus_dmamap_load_uio(bus_dma_tag_t dmat, bus_dmamap_t map, struct uio *uio,
 		 * until we have exhausted the residual count.
 		 */
 
-		addr = (caddr_t) iov[i].iov_base;
+		addr = (caddr_t)iov[i].iov_base;
 		minlen = resid < iov[i].iov_len ? resid : iov[i].iov_len;
 		if (minlen > 0) {
-			error = _bus_dmamap_load_buffer(dmat, map, addr,
-			    minlen, pmap, flags, NULL, nsegs);
+			error = _bus_dmamap_load_buffer(dmat, map, addr, minlen,
+			    pmap, flags, NULL, nsegs);
 			resid -= minlen;
 		}
 	}
@@ -323,8 +321,8 @@ _bus_dmamap_load_uio(bus_dma_tag_t dmat, bus_dmamap_t map, struct uio *uio,
  */
 int
 bus_dmamap_load(bus_dma_tag_t dmat, bus_dmamap_t map, void *buf,
-    bus_size_t buflen, bus_dmamap_callback_t *callback,
-    void *callback_arg, int flags)
+    bus_size_t buflen, bus_dmamap_callback_t *callback, void *callback_arg,
+    int flags)
 {
 	bus_dma_segment_t *segs;
 	struct memdesc mem;
@@ -447,8 +445,7 @@ bus_dmamap_load_uio(bus_dma_tag_t dmat, bus_dmamap_t map, struct uio *uio,
 
 int
 bus_dmamap_load_bio(bus_dma_tag_t dmat, bus_dmamap_t map, struct bio *bio,
-		    bus_dmamap_callback_t *callback, void *callback_arg,
-		    int flags)
+    bus_dmamap_callback_t *callback, void *callback_arg, int flags)
 {
 	struct memdesc mem;
 
@@ -458,9 +455,8 @@ bus_dmamap_load_bio(bus_dma_tag_t dmat, bus_dmamap_t map, struct bio *bio,
 }
 
 int
-bus_dmamap_load_mem(bus_dma_tag_t dmat, bus_dmamap_t map,
-    struct memdesc *mem, bus_dmamap_callback_t *callback,
-    void *callback_arg, int flags)
+bus_dmamap_load_mem(bus_dma_tag_t dmat, bus_dmamap_t map, struct memdesc *mem,
+    bus_dmamap_callback_t *callback, void *callback_arg, int flags)
 {
 	bus_dma_segment_t *segs;
 	int error;
@@ -493,8 +489,8 @@ bus_dmamap_load_mem(bus_dma_tag_t dmat, bus_dmamap_t map,
 		    mem->md_nseg, &nsegs, flags);
 		break;
 	case MEMDESC_UIO:
-		error = _bus_dmamap_load_uio(dmat, map, mem->u.md_uio,
-		    &nsegs, flags);
+		error = _bus_dmamap_load_uio(dmat, map, mem->u.md_uio, &nsegs,
+		    flags);
 		break;
 	case MEMDESC_MBUF:
 		error = _bus_dmamap_load_mbuf_sg(dmat, map, mem->u.md_mbuf,
@@ -547,8 +543,8 @@ bus_dmamap_load_crp_buffer(bus_dma_tag_t dmat, bus_dmamap_t map,
 		    cb->cb_buf_len, kernel_pmap, flags, NULL, &nsegs);
 		break;
 	case CRYPTO_BUF_MBUF:
-		error = _bus_dmamap_load_mbuf_sg(dmat, map, cb->cb_mbuf,
-		    NULL, &nsegs, flags);
+		error = _bus_dmamap_load_mbuf_sg(dmat, map, cb->cb_mbuf, NULL,
+		    &nsegs, flags);
 		break;
 	case CRYPTO_BUF_SINGLE_MBUF:
 		error = _bus_dmamap_load_single_mbuf(dmat, map, cb->cb_mbuf,
@@ -624,9 +620,8 @@ bus_dma_template_tag(bus_dma_template_t *t, bus_dma_tag_t *dmat)
 		return (EINVAL);
 
 	return (bus_dma_tag_create(t->parent, t->alignment, t->boundary,
-	    t->lowaddr, t->highaddr, NULL, NULL, t->maxsize,
-	    t->nsegments, t->maxsegsize, t->flags, t->lockfunc, t->lockfuncarg,
-	    dmat));
+	    t->lowaddr, t->highaddr, NULL, NULL, t->maxsize, t->nsegments,
+	    t->maxsegsize, t->flags, t->lockfunc, t->lockfuncarg, dmat));
 }
 
 void
@@ -694,8 +689,8 @@ bus_dma_iommu_set_buswide(device_t dev)
 }
 
 int
-bus_dma_iommu_load_ident(bus_dma_tag_t dmat, bus_dmamap_t map,
-    vm_paddr_t start, vm_size_t length, int flags)
+bus_dma_iommu_load_ident(bus_dma_tag_t dmat, bus_dmamap_t map, vm_paddr_t start,
+    vm_size_t length, int flags)
 {
 	return (0);
 }

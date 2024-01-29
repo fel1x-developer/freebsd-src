@@ -30,50 +30,50 @@
 /*
  * Global definitions.
  */
-#define R92E_PUBQ_NPAGES	222
-#define R92E_TX_PAGE_COUNT	243
+#define R92E_PUBQ_NPAGES 222
+#define R92E_TX_PAGE_COUNT 243
 
-#define R92E_TX_PAGE_SIZE	256
-#define R92E_RX_DMA_BUFFER_SIZE	0x3d00
+#define R92E_TX_PAGE_SIZE 256
+#define R92E_RX_DMA_BUFFER_SIZE 0x3d00
 
-#define R92E_MAX_FW_SIZE	0x8000
+#define R92E_MAX_FW_SIZE 0x8000
 
 /*
  * Function declarations.
  */
 /* r92e_attach.c */
-void	r92e_detach_private(struct rtwn_softc *);
+void r92e_detach_private(struct rtwn_softc *);
 
 /* r92e_chan.c */
-void	r92e_set_chan(struct rtwn_softc *, struct ieee80211_channel *);
+void r92e_set_chan(struct rtwn_softc *, struct ieee80211_channel *);
 
 /* r92e_fw.c */
 #ifndef RTWN_WITHOUT_UCODE
-void	r92e_fw_reset(struct rtwn_softc *, int);
-void	r92e_set_media_status(struct rtwn_softc *, int);
-int	r92e_set_pwrmode(struct rtwn_softc *, struct ieee80211vap *, int);
+void r92e_fw_reset(struct rtwn_softc *, int);
+void r92e_set_media_status(struct rtwn_softc *, int);
+int r92e_set_pwrmode(struct rtwn_softc *, struct ieee80211vap *, int);
 #endif
 
 /* r92e_init.c */
-int	r92e_llt_init(struct rtwn_softc *);
-void	r92e_init_bb(struct rtwn_softc *);
-void	r92e_init_rf(struct rtwn_softc *);
-int	r92e_power_on(struct rtwn_softc *);
-void	r92e_power_off(struct rtwn_softc *);
+int r92e_llt_init(struct rtwn_softc *);
+void r92e_init_bb(struct rtwn_softc *);
+void r92e_init_rf(struct rtwn_softc *);
+int r92e_power_on(struct rtwn_softc *);
+void r92e_power_off(struct rtwn_softc *);
 
 /* r92e_led.c */
-void	r92e_set_led(struct rtwn_softc *, int, int);
+void r92e_set_led(struct rtwn_softc *, int, int);
 
 /* r92e_rf.c */
-uint32_t	r92e_rf_read(struct rtwn_softc *, int, uint8_t);
-void		r92e_rf_write(struct rtwn_softc *, int, uint8_t, uint32_t);
+uint32_t r92e_rf_read(struct rtwn_softc *, int, uint8_t);
+void r92e_rf_write(struct rtwn_softc *, int, uint8_t, uint32_t);
 
 /* r92e_rom.c */
-void	r92e_parse_rom_common(struct rtwn_softc *, uint8_t *);
-void	r92e_parse_rom(struct rtwn_softc *, uint8_t *);
+void r92e_parse_rom_common(struct rtwn_softc *, uint8_t *);
+void r92e_parse_rom(struct rtwn_softc *, uint8_t *);
 
 /* r92e_rx.c */
-void	r92e_handle_c2h_report(struct rtwn_softc *, uint8_t *, int);
-int8_t	r92e_get_rssi_cck(struct rtwn_softc *, void *);
+void r92e_handle_c2h_report(struct rtwn_softc *, uint8_t *, int);
+int8_t r92e_get_rssi_cck(struct rtwn_softc *, void *);
 
-#endif	/* RTL8192E_H */
+#endif /* RTL8192E_H */

@@ -49,8 +49,8 @@
 #ifndef _TTM_LOCK_H_
 #define _TTM_LOCK_H_
 
-#include <dev/drm2/drmP.h>
 #include <dev/drm2/drm.h>
+#include <dev/drm2/drmP.h>
 #include <dev/drm2/ttm/ttm_object.h>
 
 /**
@@ -75,7 +75,6 @@ struct ttm_lock {
 	int signal;
 	struct ttm_object_file *vt_holder;
 };
-
 
 /**
  * ttm_lock_init
@@ -163,7 +162,7 @@ extern void ttm_suspend_unlock(struct ttm_lock *lock);
  * -ENOMEM: Out of memory when locking.
  */
 extern int ttm_vt_lock(struct ttm_lock *lock, bool interruptible,
-		       struct ttm_object_file *tfile);
+    struct ttm_object_file *tfile);
 
 /**
  * ttm_vt_unlock
@@ -216,8 +215,8 @@ void ttm_write_lock_downgrade(struct ttm_lock *lock);
  * - Another dri client wants to render, takes the lock and is killed.
  *
  */
-static inline void ttm_lock_set_kill(struct ttm_lock *lock, bool val,
-				     int signal)
+static inline void
+ttm_lock_set_kill(struct ttm_lock *lock, bool val, int signal)
 {
 	lock->kill_takers = val;
 	if (val)

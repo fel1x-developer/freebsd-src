@@ -31,19 +31,18 @@
 #include <sys/sockio.h>
 #include <sys/stdint.h>
 
-#include <stdlib.h>
-#include <unistd.h>
-
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_ipsec.h>
 #include <net/route.h>
 
 #include <ctype.h>
-#include <stdio.h>
-#include <string.h>
 #include <err.h>
 #include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "ifconfig.h"
 
@@ -77,12 +76,12 @@ setreqid(if_ctx *ctx, const char *val, int dummy __unused)
 }
 
 static struct cmd ipsec_cmds[] = {
-	DEF_CMD_ARG("reqid",		setreqid),
+	DEF_CMD_ARG("reqid", setreqid),
 };
 
 static struct afswtch af_ipsec = {
-	.af_name	= "af_ipsec",
-	.af_af		= AF_UNSPEC,
+	.af_name = "af_ipsec",
+	.af_af = AF_UNSPEC,
 	.af_other_status = ipsec_status,
 };
 

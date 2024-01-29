@@ -23,7 +23,6 @@
  * SUCH DAMAGE.
  */
 
-
 #include "smartpqi_includes.h"
 
 /*
@@ -31,8 +30,8 @@
  */
 static inline boolean_t
 pqi_is_firmware_feature_supported(
-	struct pqi_config_table_firmware_features *firmware_features,
-	unsigned int bit_position)
+    struct pqi_config_table_firmware_features *firmware_features,
+    unsigned int bit_position)
 {
 	unsigned int byte_index;
 
@@ -40,12 +39,14 @@ pqi_is_firmware_feature_supported(
 
 	if (byte_index >= firmware_features->num_elements) {
 		DBG_ERR_NO_SOFTS("Invalid byte index for bit position %u\n",
-			bit_position);
+		    bit_position);
 		return false;
 	}
 
 	return (firmware_features->features_supported[byte_index] &
-		(1 << (bit_position % BITS_PER_BYTE))) ? true : false;
+		   (1 << (bit_position % BITS_PER_BYTE))) ?
+	    true :
+	    false;
 }
 
 /*
@@ -55,22 +56,24 @@ pqi_is_firmware_feature_supported(
  */
 static inline boolean_t
 pqi_is_firmware_feature_enabled(
-	struct pqi_config_table_firmware_features *firmware_features,
-	uint8_t *firmware_features_iomem_addr,
-	unsigned int bit_position)
+    struct pqi_config_table_firmware_features *firmware_features,
+    uint8_t *firmware_features_iomem_addr, unsigned int bit_position)
 {
 	unsigned int byte_index;
 	uint8_t *features_enabled_iomem_addr;
 
 	byte_index = (bit_position / BITS_PER_BYTE) +
-		(firmware_features->num_elements * 2);
+	    (firmware_features->num_elements * 2);
 
 	features_enabled_iomem_addr = firmware_features_iomem_addr +
-		offsetof(struct pqi_config_table_firmware_features,
-			features_supported) + byte_index;
+	    offsetof(struct pqi_config_table_firmware_features,
+		features_supported) +
+	    byte_index;
 
 	return (*features_enabled_iomem_addr &
-		(1 << (bit_position % BITS_PER_BYTE))) ? true : false;
+		   (1 << (bit_position % BITS_PER_BYTE))) ?
+	    true :
+	    false;
 }
 
 /*
@@ -79,18 +82,18 @@ pqi_is_firmware_feature_enabled(
  */
 static inline void
 pqi_request_firmware_feature(
-	struct pqi_config_table_firmware_features *firmware_features,
-	unsigned int bit_position)
+    struct pqi_config_table_firmware_features *firmware_features,
+    unsigned int bit_position)
 {
 	unsigned int byte_index;
 
 	/* byte_index adjusted to index into requested start bits */
 	byte_index = (bit_position / BITS_PER_BYTE) +
-		firmware_features->num_elements;
+	    firmware_features->num_elements;
 
 	/* setting requested bits of local firmware_features */
-	firmware_features->features_supported[byte_index] |=
-		(1 << (bit_position % BITS_PER_BYTE));
+	firmware_features->features_supported[byte_index] |= (1
+	    << (bit_position % BITS_PER_BYTE));
 }
 
 /*
@@ -98,8 +101,8 @@ pqi_request_firmware_feature(
  * table.
  */
 static int
-pqi_config_table_update(pqisrc_softstate_t *softs,
-	uint16_t first_section, uint16_t last_section)
+pqi_config_table_update(pqisrc_softstate_t *softs, uint16_t first_section,
+    uint16_t last_section)
 {
 	struct pqi_vendor_general_request request;
 	int ret;
@@ -115,7 +118,9 @@ pqi_config_table_update(pqisrc_softstate_t *softs,
 	ret = pqisrc_build_send_vendor_request(softs, &request);
 
 	if (ret != PQI_STATUS_SUCCESS) {
-		DBG_ERR("Failed to submit vendor general request IU, Ret status: %d\n", ret);
+		DBG_ERR(
+		    "Failed to submit vendor general request IU, Ret status: %d\n",
+		    ret);
 	}
 
 	return ret;
@@ -127,8 +132,8 @@ pqi_config_table_update(pqisrc_softstate_t *softs,
  */
 static int
 pqi_enable_firmware_features(pqisrc_softstate_t *softs,
-	struct pqi_config_table_firmware_features *firmware_features,
-	uint8_t *firmware_features_abs_addr)
+    struct pqi_config_table_firmware_features *firmware_features,
+    uint8_t *firmware_features_abs_addr)
 {
 	uint8_t *features_requested;
 	uint8_t *features_requested_abs_addr;
@@ -136,53 +141,54 @@ pqi_enable_firmware_features(pqisrc_softstate_t *softs,
 	uint16_t pqi_max_feature = PQI_FIRMWARE_FEATURE_MAXIMUM;
 
 	features_requested = firmware_features->features_supported +
-		firmware_features->num_elements;
+	    firmware_features->num_elements;
 
 	features_requested_abs_addr = firmware_features_abs_addr +
-		(features_requested - (uint8_t*)firmware_features);
+	    (features_requested - (uint8_t *)firmware_features);
 	/*
 	 * NOTE: This memcpy is writing to a BAR-mapped address
 	 * which may not be safe for all OSes without proper API
 	 */
 	memcpy(features_requested_abs_addr, features_requested,
-		firmware_features->num_elements);
+	    firmware_features->num_elements);
 
 	if (pqi_is_firmware_feature_supported(firmware_features,
 		PQI_FIRMWARE_FEATURE_MAX_KNOWN_FEATURE)) {
 		host_max_known_feature_iomem_addr =
-			(uint16_t*)(features_requested_abs_addr +
-			(firmware_features->num_elements * 2) + sizeof(uint16_t));
-			/*
-			 * NOTE: This writes to a BAR-mapped address
-			 * which may not be safe for all OSes without proper API
-			 */
-			*host_max_known_feature_iomem_addr = pqi_max_feature;
+		    (uint16_t *)(features_requested_abs_addr +
+			(firmware_features->num_elements * 2) +
+			sizeof(uint16_t));
+		/*
+		 * NOTE: This writes to a BAR-mapped address
+		 * which may not be safe for all OSes without proper API
+		 */
+		*host_max_known_feature_iomem_addr = pqi_max_feature;
 	}
 
 	return pqi_config_table_update(softs,
-		PQI_CONF_TABLE_SECTION_FIRMWARE_FEATURES,
-		PQI_CONF_TABLE_SECTION_FIRMWARE_FEATURES);
+	    PQI_CONF_TABLE_SECTION_FIRMWARE_FEATURES,
+	    PQI_CONF_TABLE_SECTION_FIRMWARE_FEATURES);
 }
 
 typedef struct pqi_firmware_feature pqi_firmware_feature_t;
 typedef void (*feature_status_fn)(pqisrc_softstate_t *softs,
-	pqi_firmware_feature_t *firmware_feature);
+    pqi_firmware_feature_t *firmware_feature);
 
 struct pqi_firmware_feature {
-	char		*feature_name;
-	unsigned int	feature_bit;
-	boolean_t		supported;
-	boolean_t		enabled;
-	feature_status_fn	feature_status;
+	char *feature_name;
+	unsigned int feature_bit;
+	boolean_t supported;
+	boolean_t enabled;
+	feature_status_fn feature_status;
 };
 
 static void
 pqi_firmware_feature_status(pqisrc_softstate_t *softs,
-	struct pqi_firmware_feature *firmware_feature)
+    struct pqi_firmware_feature *firmware_feature)
 {
 	if (!firmware_feature->supported) {
 		DBG_NOTE("%s not supported by controller\n",
-			firmware_feature->feature_name);
+		    firmware_feature->feature_name);
 		return;
 	}
 
@@ -196,7 +202,7 @@ pqi_firmware_feature_status(pqisrc_softstate_t *softs,
 
 static void
 pqi_ctrl_update_feature_flags(pqisrc_softstate_t *softs,
-	struct pqi_firmware_feature *firmware_feature)
+    struct pqi_firmware_feature *firmware_feature)
 {
 	switch (firmware_feature->feature_bit) {
 	case PQI_FIRMWARE_FEATURE_RAID_1_WRITE_BYPASS:
@@ -228,10 +234,9 @@ pqi_ctrl_update_feature_flags(pqisrc_softstate_t *softs,
 	pqi_firmware_feature_status(softs, firmware_feature);
 }
 
-
 static inline void
 pqi_firmware_feature_update(pqisrc_softstate_t *softs,
-	struct pqi_firmware_feature *firmware_feature)
+    struct pqi_firmware_feature *firmware_feature)
 {
 	if (firmware_feature->feature_status)
 		firmware_feature->feature_status(softs, firmware_feature);
@@ -252,71 +257,71 @@ static struct pqi_firmware_feature pqi_firmware_features[] = {
 	},
 #endif
 	{
-		.feature_name = "SATA WWN Unique ID",
-		.feature_bit = PQI_FIRMWARE_FEATURE_UNIQUE_SATA_WWN,
-		.feature_status = pqi_ctrl_update_feature_flags,
+	    .feature_name = "SATA WWN Unique ID",
+	    .feature_bit = PQI_FIRMWARE_FEATURE_UNIQUE_SATA_WWN,
+	    .feature_status = pqi_ctrl_update_feature_flags,
 	},
 	{
-		.feature_name = "RAID IU Timeout",
-		.feature_bit = PQI_FIRMWARE_FEATURE_RAID_IU_TIMEOUT,
-		.feature_status = pqi_ctrl_update_feature_flags,
+	    .feature_name = "RAID IU Timeout",
+	    .feature_bit = PQI_FIRMWARE_FEATURE_RAID_IU_TIMEOUT,
+	    .feature_status = pqi_ctrl_update_feature_flags,
 	},
 	{
-		.feature_name = "TMF IU Timeout",
-		.feature_bit = PQI_FIRMWARE_FEATURE_TMF_IU_TIMEOUT,
-		.feature_status = pqi_ctrl_update_feature_flags,
+	    .feature_name = "TMF IU Timeout",
+	    .feature_bit = PQI_FIRMWARE_FEATURE_TMF_IU_TIMEOUT,
+	    .feature_status = pqi_ctrl_update_feature_flags,
 	},
 	{
-		.feature_name = "Support for RPL WWID filled by Page83 identifier",
-		.feature_bit = PQI_FIRMWARE_FEATURE_PAGE83_IDENTIFIER_FOR_RPL_WWID,
-		.feature_status = pqi_ctrl_update_feature_flags,
+	    .feature_name = "Support for RPL WWID filled by Page83 identifier",
+	    .feature_bit = PQI_FIRMWARE_FEATURE_PAGE83_IDENTIFIER_FOR_RPL_WWID,
+	    .feature_status = pqi_ctrl_update_feature_flags,
 	},
 	/* Features independent of Maximum Known Feature should be added
 	before Maximum Known Feature*/
 	{
-		.feature_name = "Maximum Known Feature",
-		.feature_bit = PQI_FIRMWARE_FEATURE_MAX_KNOWN_FEATURE,
-		.feature_status = pqi_firmware_feature_status,
+	    .feature_name = "Maximum Known Feature",
+	    .feature_bit = PQI_FIRMWARE_FEATURE_MAX_KNOWN_FEATURE,
+	    .feature_status = pqi_firmware_feature_status,
 	},
 	{
-		.feature_name = "RAID 0 Read Bypass",
-		.feature_bit = PQI_FIRMWARE_FEATURE_RAID_0_READ_BYPASS,
-		.feature_status = pqi_firmware_feature_status,
+	    .feature_name = "RAID 0 Read Bypass",
+	    .feature_bit = PQI_FIRMWARE_FEATURE_RAID_0_READ_BYPASS,
+	    .feature_status = pqi_firmware_feature_status,
 	},
 	{
-		.feature_name = "RAID 1 Read Bypass",
-		.feature_bit = PQI_FIRMWARE_FEATURE_RAID_1_READ_BYPASS,
-		.feature_status = pqi_firmware_feature_status,
+	    .feature_name = "RAID 1 Read Bypass",
+	    .feature_bit = PQI_FIRMWARE_FEATURE_RAID_1_READ_BYPASS,
+	    .feature_status = pqi_firmware_feature_status,
 	},
 	{
-		.feature_name = "RAID 5 Read Bypass",
-		.feature_bit = PQI_FIRMWARE_FEATURE_RAID_5_READ_BYPASS,
-		.feature_status = pqi_firmware_feature_status,
+	    .feature_name = "RAID 5 Read Bypass",
+	    .feature_bit = PQI_FIRMWARE_FEATURE_RAID_5_READ_BYPASS,
+	    .feature_status = pqi_firmware_feature_status,
 	},
 	{
-		.feature_name = "RAID 6 Read Bypass",
-		.feature_bit = PQI_FIRMWARE_FEATURE_RAID_6_READ_BYPASS,
-		.feature_status = pqi_firmware_feature_status,
+	    .feature_name = "RAID 6 Read Bypass",
+	    .feature_bit = PQI_FIRMWARE_FEATURE_RAID_6_READ_BYPASS,
+	    .feature_status = pqi_firmware_feature_status,
 	},
 	{
-		.feature_name = "RAID 0 Write Bypass",
-		.feature_bit = PQI_FIRMWARE_FEATURE_RAID_0_WRITE_BYPASS,
-		.feature_status = pqi_firmware_feature_status,
+	    .feature_name = "RAID 0 Write Bypass",
+	    .feature_bit = PQI_FIRMWARE_FEATURE_RAID_0_WRITE_BYPASS,
+	    .feature_status = pqi_firmware_feature_status,
 	},
 	{
-		.feature_name = "RAID 1 Write Bypass",
-		.feature_bit = PQI_FIRMWARE_FEATURE_RAID_1_WRITE_BYPASS,
-		.feature_status = pqi_ctrl_update_feature_flags,
+	    .feature_name = "RAID 1 Write Bypass",
+	    .feature_bit = PQI_FIRMWARE_FEATURE_RAID_1_WRITE_BYPASS,
+	    .feature_status = pqi_ctrl_update_feature_flags,
 	},
 	{
-		.feature_name = "RAID 5 Write Bypass",
-		.feature_bit = PQI_FIRMWARE_FEATURE_RAID_5_WRITE_BYPASS,
-		.feature_status = pqi_ctrl_update_feature_flags,
+	    .feature_name = "RAID 5 Write Bypass",
+	    .feature_bit = PQI_FIRMWARE_FEATURE_RAID_5_WRITE_BYPASS,
+	    .feature_status = pqi_ctrl_update_feature_flags,
 	},
 	{
-		.feature_name = "RAID 6 Write Bypass",
-		.feature_bit = PQI_FIRMWARE_FEATURE_RAID_6_WRITE_BYPASS,
-		.feature_status = pqi_ctrl_update_feature_flags,
+	    .feature_name = "RAID 6 Write Bypass",
+	    .feature_bit = PQI_FIRMWARE_FEATURE_RAID_6_WRITE_BYPASS,
+	    .feature_status = pqi_ctrl_update_feature_flags,
 	},
 #if 0
 	{
@@ -329,8 +334,8 @@ static struct pqi_firmware_feature pqi_firmware_features[] = {
 };
 
 static void
-pqi_process_firmware_features(pqisrc_softstate_t *softs,
-	void *features, void *firmware_features_abs_addr)
+pqi_process_firmware_features(pqisrc_softstate_t *softs, void *features,
+    void *firmware_features_abs_addr)
 {
 	int rc;
 	struct pqi_config_table_firmware_features *firmware_features = features;
@@ -340,12 +345,12 @@ pqi_process_firmware_features(pqisrc_softstate_t *softs,
 	/* Iterates through local PQI feature support list to
 	see if the controller also supports the feature */
 	for (i = 0, num_features_supported = 0;
-		i < ARRAY_SIZE(pqi_firmware_features); i++) {
-		/*Check if SATA_WWN_FOR_DEV_UNIQUE_ID feature enabled by setting module
-		parameter if not avoid checking for the feature*/
+	     i < ARRAY_SIZE(pqi_firmware_features); i++) {
+		/*Check if SATA_WWN_FOR_DEV_UNIQUE_ID feature enabled by setting
+		module parameter if not avoid checking for the feature*/
 		if ((pqi_firmware_features[i].feature_bit ==
 			PQI_FIRMWARE_FEATURE_UNIQUE_SATA_WWN) &&
-			(!softs->sata_unique_wwn)) {
+		    (!softs->sata_unique_wwn)) {
 			continue;
 		}
 		if (pqi_is_firmware_feature_supported(firmware_features,
@@ -354,20 +359,21 @@ pqi_process_firmware_features(pqisrc_softstate_t *softs,
 			num_features_supported++;
 		} else {
 			DBG_WARN("Feature %s is not supported by firmware\n",
-			pqi_firmware_features[i].feature_name);
+			    pqi_firmware_features[i].feature_name);
 			pqi_firmware_feature_update(softs,
-				&pqi_firmware_features[i]);
+			    &pqi_firmware_features[i]);
 
 			/* if max known feature bit isn't supported,
- 			 * then no other feature bits are supported.
- 			 */
+			 * then no other feature bits are supported.
+			 */
 			if (pqi_firmware_features[i].feature_bit ==
-				PQI_FIRMWARE_FEATURE_MAX_KNOWN_FEATURE)
+			    PQI_FIRMWARE_FEATURE_MAX_KNOWN_FEATURE)
 				break;
 		}
 	}
 
-	DBG_INFO("Num joint features supported : %u \n", num_features_supported);
+	DBG_INFO("Num joint features supported : %u \n",
+	    num_features_supported);
 
 	if (num_features_supported == 0)
 		return;
@@ -377,23 +383,25 @@ pqi_process_firmware_features(pqisrc_softstate_t *softs,
 		if (!pqi_firmware_features[i].supported)
 			continue;
 #ifdef DEVICE_HINT
-		if (check_device_hint_status(softs, pqi_firmware_features[i].feature_bit))
+		if (check_device_hint_status(softs,
+			pqi_firmware_features[i].feature_bit))
 			continue;
 #endif
 		pqi_request_firmware_feature(firmware_features,
-			pqi_firmware_features[i].feature_bit);
+		    pqi_firmware_features[i].feature_bit);
 	}
 
 	/* enable the features that were successfully requested. */
 	rc = pqi_enable_firmware_features(softs, firmware_features,
-		firmware_features_abs_addr);
+	    firmware_features_abs_addr);
 	if (rc) {
-		DBG_ERR("failed to enable firmware features in PQI configuration table\n");
+		DBG_ERR(
+		    "failed to enable firmware features in PQI configuration table\n");
 		for (i = 0; i < ARRAY_SIZE(pqi_firmware_features); i++) {
 			if (!pqi_firmware_features[i].supported)
 				continue;
 			pqi_firmware_feature_update(softs,
-				&pqi_firmware_features[i]);
+			    &pqi_firmware_features[i]);
 		}
 		return;
 	}
@@ -405,13 +413,12 @@ pqi_process_firmware_features(pqisrc_softstate_t *softs,
 		if (pqi_is_firmware_feature_enabled(firmware_features,
 			firmware_features_abs_addr,
 			pqi_firmware_features[i].feature_bit)) {
-				pqi_firmware_features[i].enabled = true;
+			pqi_firmware_features[i].enabled = true;
 		} else {
 			DBG_WARN("Feature %s could not be enabled.\n",
-				pqi_firmware_features[i].feature_name);
+			    pqi_firmware_features[i].feature_name);
 		}
-		pqi_firmware_feature_update(softs,
-			&pqi_firmware_features[i]);
+		pqi_firmware_feature_update(softs, &pqi_firmware_features[i]);
 	}
 }
 
@@ -427,13 +434,13 @@ pqi_init_firmware_features(void)
 }
 
 static void
-pqi_process_firmware_features_section(pqisrc_softstate_t *softs,
-	void *features, void *firmware_features_abs_addr)
+pqi_process_firmware_features_section(pqisrc_softstate_t *softs, void *features,
+    void *firmware_features_abs_addr)
 {
 	pqi_init_firmware_features();
-	pqi_process_firmware_features(softs, features, firmware_features_abs_addr);
+	pqi_process_firmware_features(softs, features,
+	    firmware_features_abs_addr);
 }
-
 
 /*
  * Get the PQI configuration table parameters.
@@ -452,9 +459,9 @@ pqisrc_process_config_table(pqisrc_softstate_t *softs)
 	config_table_size = softs->pqi_cap.conf_tab_sz;
 
 	if (config_table_size < sizeof(*conf_table) ||
-		config_table_size > PQI_CONF_TABLE_MAX_LEN) {
+	    config_table_size > PQI_CONF_TABLE_MAX_LEN) {
 		DBG_ERR("Invalid PQI conf table length of %u\n",
-			config_table_size);
+		    config_table_size);
 		return ret;
 	}
 
@@ -465,14 +472,14 @@ pqisrc_process_config_table(pqisrc_softstate_t *softs)
 	}
 
 	config_table_abs_addr = (uint8_t *)(softs->pci_mem_base_vaddr +
-					softs->pqi_cap.conf_tab_off);
+	    softs->pqi_cap.conf_tab_off);
 
 	PCI_MEM_GET_BUF(softs, config_table_abs_addr,
-			softs->pqi_cap.conf_tab_off,
-			(uint8_t*)conf_table, config_table_size);
+	    softs->pqi_cap.conf_tab_off, (uint8_t *)conf_table,
+	    config_table_size);
 
 	if (memcmp(conf_table->sign, PQI_CONF_TABLE_SIGNATURE,
-			sizeof(conf_table->sign)) != 0) {
+		sizeof(conf_table->sign)) != 0) {
 		DBG_ERR("Invalid PQI config signature\n");
 		goto out;
 	}
@@ -481,40 +488,46 @@ pqisrc_process_config_table(pqisrc_softstate_t *softs)
 
 	while (section_off) {
 
-		if (section_off+ sizeof(*section_hdr) >= config_table_size) {
-			DBG_INFO("Reached end of PQI config table. Breaking off.\n");
+		if (section_off + sizeof(*section_hdr) >= config_table_size) {
+			DBG_INFO(
+			    "Reached end of PQI config table. Breaking off.\n");
 			break;
 		}
 
-		section_hdr = (struct pqi_conf_table_section_header *)((uint8_t *)conf_table + section_off);
+		section_hdr = (struct pqi_conf_table_section_header
+			*)((uint8_t *)conf_table + section_off);
 
 		switch (LE_16(section_hdr->section_id)) {
 		case PQI_CONF_TABLE_SECTION_GENERAL_INFO:
 			break;
 		case PQI_CONF_TABLE_SECTION_FIRMWARE_FEATURES:
-			pqi_process_firmware_features_section(softs, section_hdr, (config_table_abs_addr + section_off));
+			pqi_process_firmware_features_section(softs,
+			    section_hdr, (config_table_abs_addr + section_off));
 			break;
 		case PQI_CONF_TABLE_SECTION_FIRMWARE_ERRATA:
 		case PQI_CONF_TABLE_SECTION_DEBUG:
 			break;
 		case PQI_CONF_TABLE_SECTION_HEARTBEAT:
-			softs->heartbeat_counter_off = softs->pqi_cap.conf_tab_off +
-				section_off +
-				offsetof(struct pqi_conf_table_heartbeat, heartbeat_counter);
-			softs->heartbeat_counter_abs_addr = (uint64_t *)(softs->pci_mem_base_vaddr +
+			softs->heartbeat_counter_off =
+			    softs->pqi_cap.conf_tab_off + section_off +
+			    offsetof(struct pqi_conf_table_heartbeat,
+				heartbeat_counter);
+			softs->heartbeat_counter_abs_addr =
+			    (uint64_t *)(softs->pci_mem_base_vaddr +
 				softs->heartbeat_counter_off);
 			ret = PQI_STATUS_SUCCESS;
 			break;
 		case PQI_CONF_TABLE_SOFT_RESET:
 			break;
 		default:
-			DBG_NOTE("unrecognized PQI config table section ID: 0x%x\n",
-				LE_16(section_hdr->section_id));
+			DBG_NOTE(
+			    "unrecognized PQI config table section ID: 0x%x\n",
+			    LE_16(section_hdr->section_id));
 			break;
 		}
 		section_off = LE_16(section_hdr->next_section_off);
 	}
 out:
-	os_mem_free(softs, (void *)conf_table,config_table_size);
+	os_mem_free(softs, (void *)conf_table, config_table_size);
 	return ret;
 }

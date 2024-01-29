@@ -59,27 +59,26 @@
 #include "opt_snd.h"
 #endif
 
-#include <dev/sound/pcm/sound.h>
-#include <dev/sound/pcm/ac97.h>
+#include <sys/endian.h>
+#include <sys/sysctl.h>
 
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
-#include <sys/sysctl.h>
-#include <sys/endian.h>
-
 #include <dev/sound/pci/atiixp.h>
+#include <dev/sound/pcm/ac97.h>
+#include <dev/sound/pcm/sound.h>
 
-#define ATI_IXP_DMA_RETRY_MAX	100
+#define ATI_IXP_DMA_RETRY_MAX 100
 
-#define ATI_IXP_BUFSZ_MIN	4096
-#define ATI_IXP_BUFSZ_MAX	65536
-#define ATI_IXP_BUFSZ_DEFAULT	16384
+#define ATI_IXP_BUFSZ_MIN 4096
+#define ATI_IXP_BUFSZ_MAX 65536
+#define ATI_IXP_BUFSZ_DEFAULT 16384
 
-#define ATI_IXP_BLK_MIN		32
-#define ATI_IXP_BLK_ALIGN	(~(ATI_IXP_BLK_MIN - 1))
+#define ATI_IXP_BLK_MIN 32
+#define ATI_IXP_BLK_ALIGN (~(ATI_IXP_BLK_MIN - 1))
 
-#define ATI_IXP_CHN_RUNNING	0x00000001
-#define ATI_IXP_CHN_SUSPEND	0x00000002
+#define ATI_IXP_CHN_RUNNING 0x00000001
+#define ATI_IXP_CHN_SUSPEND 0x00000002
 
 struct atiixp_dma_op {
 	volatile uint32_t addr;
@@ -134,42 +133,29 @@ struct atiixp_info {
 	int poll_ticks, polling;
 };
 
-#define atiixp_rd(_sc, _reg)	\
-		bus_space_read_4((_sc)->st, (_sc)->sh, _reg)
-#define atiixp_wr(_sc, _reg, _val)	\
-		bus_space_write_4((_sc)->st, (_sc)->sh, _reg, _val)
+#define atiixp_rd(_sc, _reg) bus_space_read_4((_sc)->st, (_sc)->sh, _reg)
+#define atiixp_wr(_sc, _reg, _val) \
+	bus_space_write_4((_sc)->st, (_sc)->sh, _reg, _val)
 
-#define atiixp_lock(_sc)	snd_mtxlock((_sc)->lock)
-#define atiixp_unlock(_sc)	snd_mtxunlock((_sc)->lock)
-#define atiixp_assert(_sc)	snd_mtxassert((_sc)->lock)
+#define atiixp_lock(_sc) snd_mtxlock((_sc)->lock)
+#define atiixp_unlock(_sc) snd_mtxunlock((_sc)->lock)
+#define atiixp_assert(_sc) snd_mtxassert((_sc)->lock)
 
-static uint32_t atiixp_fmt_32bit[] = {
-	SND_FORMAT(AFMT_S16_LE, 2, 0),
-	SND_FORMAT(AFMT_S32_LE, 2, 0),
-	0
-};
+static uint32_t atiixp_fmt_32bit[] = { SND_FORMAT(AFMT_S16_LE, 2, 0),
+	SND_FORMAT(AFMT_S32_LE, 2, 0), 0 };
 
-static uint32_t atiixp_fmt[] = {
-	SND_FORMAT(AFMT_S16_LE, 2, 0),
-	0
-};
+static uint32_t atiixp_fmt[] = { SND_FORMAT(AFMT_S16_LE, 2, 0), 0 };
 
-static struct pcmchan_caps atiixp_caps_32bit = {
-	ATI_IXP_BASE_RATE,
-	ATI_IXP_BASE_RATE,
-	atiixp_fmt_32bit, 0
-};
+static struct pcmchan_caps atiixp_caps_32bit = { ATI_IXP_BASE_RATE,
+	ATI_IXP_BASE_RATE, atiixp_fmt_32bit, 0 };
 
-static struct pcmchan_caps atiixp_caps = {
-	ATI_IXP_BASE_RATE,
-	ATI_IXP_BASE_RATE,
-	atiixp_fmt, 0
-};
+static struct pcmchan_caps atiixp_caps = { ATI_IXP_BASE_RATE, ATI_IXP_BASE_RATE,
+	atiixp_fmt, 0 };
 
 static const struct {
 	uint16_t vendor;
 	uint16_t devid;
-	char	 *desc;
+	char *desc;
 } atiixp_hw[] = {
 	{ ATI_VENDOR_ID, ATI_IXP_200_ID, "ATI IXP 200" },
 	{ ATI_VENDOR_ID, ATI_IXP_300_ID, "ATI IXP 300" },
@@ -188,16 +174,16 @@ static int atiixp_waitready_codec(struct atiixp_info *);
 static int atiixp_rdcd(kobj_t, void *, int);
 static int atiixp_wrcd(kobj_t, void *, int, uint32_t);
 
-static void  *atiixp_chan_init(kobj_t, void *, struct snd_dbuf *,
-						struct pcm_channel *, int);
-static int    atiixp_chan_setformat(kobj_t, void *, uint32_t);
-static uint32_t    atiixp_chan_setspeed(kobj_t, void *, uint32_t);
-static int         atiixp_chan_setfragments(kobj_t, void *, uint32_t, uint32_t);
-static uint32_t    atiixp_chan_setblocksize(kobj_t, void *, uint32_t);
-static void   atiixp_buildsgdt(struct atiixp_chinfo *);
-static int    atiixp_chan_trigger(kobj_t, void *, int);
+static void *atiixp_chan_init(kobj_t, void *, struct snd_dbuf *,
+    struct pcm_channel *, int);
+static int atiixp_chan_setformat(kobj_t, void *, uint32_t);
+static uint32_t atiixp_chan_setspeed(kobj_t, void *, uint32_t);
+static int atiixp_chan_setfragments(kobj_t, void *, uint32_t, uint32_t);
+static uint32_t atiixp_chan_setblocksize(kobj_t, void *, uint32_t);
+static void atiixp_buildsgdt(struct atiixp_chinfo *);
+static int atiixp_chan_trigger(kobj_t, void *, int);
 static __inline uint32_t atiixp_dmapos(struct atiixp_chinfo *);
-static uint32_t          atiixp_chan_getptr(kobj_t, void *);
+static uint32_t atiixp_chan_getptr(kobj_t, void *);
 static struct pcmchan_caps *atiixp_chan_getcaps(kobj_t, void *);
 
 static void atiixp_intr(void *);
@@ -205,11 +191,11 @@ static void atiixp_dma_cb(void *, bus_dma_segment_t *, int, int);
 static void atiixp_chip_pre_init(struct atiixp_info *);
 static void atiixp_chip_post_init(void *);
 static void atiixp_release_resource(struct atiixp_info *);
-static int  atiixp_pci_probe(device_t);
-static int  atiixp_pci_attach(device_t);
-static int  atiixp_pci_detach(device_t);
-static int  atiixp_pci_suspend(device_t);
-static int  atiixp_pci_resume(device_t);
+static int atiixp_pci_probe(device_t);
+static int atiixp_pci_attach(device_t);
+static int atiixp_pci_detach(device_t);
+static int atiixp_pci_suspend(device_t);
+static int atiixp_pci_resume(device_t);
 
 /*
  * ATI IXP helper functions
@@ -272,16 +258,16 @@ atiixp_reset_aclink(struct atiixp_info *sc)
 	}
 
 	/* perform a soft reset */
-	value  = atiixp_rd(sc, ATI_REG_CMD);
+	value = atiixp_rd(sc, ATI_REG_CMD);
 	value |= ATI_REG_CMD_AC_SOFT_RESET;
 	atiixp_wr(sc, ATI_REG_CMD, value);
 
 	/* need to read the CMD reg and wait aprox. 10 usec to init */
-	value  = atiixp_rd(sc, ATI_REG_CMD);
+	value = atiixp_rd(sc, ATI_REG_CMD);
 	DELAY(20);
 
 	/* clear soft reset flag again */
-	value  = atiixp_rd(sc, ATI_REG_CMD);
+	value = atiixp_rd(sc, ATI_REG_CMD);
 	value &= ~ATI_REG_CMD_AC_SOFT_RESET;
 	atiixp_wr(sc, ATI_REG_CMD, value);
 
@@ -295,7 +281,7 @@ atiixp_reset_aclink(struct atiixp_info *sc)
 
 		/* dip aclink reset but keep the acsync */
 		value &= ~ATI_REG_CMD_AC_RESET;
-		value |=  ATI_REG_CMD_AC_SYNC;
+		value |= ATI_REG_CMD_AC_SYNC;
 		atiixp_wr(sc, ATI_REG_CMD, value);
 
 		/* need to read CMD again and wait again (clocking in issue?) */
@@ -304,7 +290,7 @@ atiixp_reset_aclink(struct atiixp_info *sc)
 
 		/* assert aclink reset again */
 		value = atiixp_rd(sc, ATI_REG_CMD);
-		value |=  ATI_REG_CMD_AC_RESET;
+		value |= ATI_REG_CMD_AC_RESET;
 		atiixp_wr(sc, ATI_REG_CMD, value);
 
 		/* check if its active now */
@@ -319,7 +305,7 @@ atiixp_reset_aclink(struct atiixp_info *sc)
 #endif
 
 	/* assert reset and sync for safety */
-	value  = atiixp_rd(sc, ATI_REG_CMD);
+	value = atiixp_rd(sc, ATI_REG_CMD);
 	value |= ATI_REG_CMD_AC_SYNC | ATI_REG_CMD_AC_RESET;
 	atiixp_wr(sc, ATI_REG_CMD, value);
 }
@@ -364,7 +350,7 @@ atiixp_waitready_codec(struct atiixp_info *sc)
 
 	do {
 		if ((atiixp_rd(sc, ATI_REG_PHYS_OUT_ADDR) &
-		    ATI_REG_PHYS_OUT_ADDR_EN) == 0)
+			ATI_REG_PHYS_OUT_ADDR_EN) == 0)
 			return (0);
 		DELAY(1);
 	} while (--timeout);
@@ -382,8 +368,8 @@ atiixp_rdcd(kobj_t obj, void *devinfo, int reg)
 	if (atiixp_waitready_codec(sc))
 		return (-1);
 
-	data = (reg << ATI_REG_PHYS_OUT_ADDR_SHIFT) |
-	    ATI_REG_PHYS_OUT_ADDR_EN | ATI_REG_PHYS_OUT_RW | sc->codec_idx;
+	data = (reg << ATI_REG_PHYS_OUT_ADDR_SHIFT) | ATI_REG_PHYS_OUT_ADDR_EN |
+	    ATI_REG_PHYS_OUT_RW | sc->codec_idx;
 
 	atiixp_wr(sc, ATI_REG_PHYS_OUT_ADDR, data);
 
@@ -421,11 +407,9 @@ atiixp_wrcd(kobj_t obj, void *devinfo, int reg, uint32_t data)
 	return (0);
 }
 
-static kobj_method_t atiixp_ac97_methods[] = {
-	KOBJMETHOD(ac97_read,		atiixp_rdcd),
-	KOBJMETHOD(ac97_write,		atiixp_wrcd),
-	KOBJMETHOD_END
-};
+static kobj_method_t atiixp_ac97_methods[] = { KOBJMETHOD(ac97_read,
+						   atiixp_rdcd),
+	KOBJMETHOD(ac97_write, atiixp_wrcd), KOBJMETHOD_END };
 AC97_DECLARE(atiixp_ac97);
 
 /*
@@ -433,7 +417,7 @@ AC97_DECLARE(atiixp_ac97);
  */
 static void *
 atiixp_chan_init(kobj_t obj, void *devinfo, struct snd_dbuf *b,
-					struct pcm_channel *c, int dir)
+    struct pcm_channel *c, int dir)
 {
 	struct atiixp_info *sc = devinfo;
 	struct atiixp_chinfo *ch;
@@ -474,8 +458,8 @@ atiixp_chan_init(kobj_t obj, void *devinfo, struct snd_dbuf *b,
 	atiixp_lock(sc);
 	num = sc->registered_channels++;
 	ch->sgd_table = &sc->sgd_table[num * ATI_IXP_DMA_CHSEGS_MAX];
-	ch->sgd_addr = sc->sgd_addr + (num * ATI_IXP_DMA_CHSEGS_MAX *
-	    sizeof(struct atiixp_dma_op));
+	ch->sgd_addr = sc->sgd_addr +
+	    (num * ATI_IXP_DMA_CHSEGS_MAX * sizeof(struct atiixp_dma_op));
 	atiixp_disable_dma(ch);
 	atiixp_unlock(sc);
 
@@ -527,8 +511,8 @@ atiixp_chan_setspeed(kobj_t obj, void *data, uint32_t spd)
 }
 
 static int
-atiixp_chan_setfragments(kobj_t obj, void *data,
-					uint32_t blksz, uint32_t blkcnt)
+atiixp_chan_setfragments(kobj_t obj, void *data, uint32_t blksz,
+    uint32_t blkcnt)
 {
 	struct atiixp_chinfo *ch = data;
 	struct atiixp_info *sc = ch->parent;
@@ -554,7 +538,7 @@ atiixp_chan_setfragments(kobj_t obj, void *data,
 	}
 
 	if ((sndbuf_getblksz(ch->buffer) != blksz ||
-	    sndbuf_getblkcnt(ch->buffer) != blkcnt) &&
+		sndbuf_getblkcnt(ch->buffer) != blkcnt) &&
 	    sndbuf_resize(ch->buffer, blkcnt, blksz) != 0)
 		device_printf(sc->dev, "%s: failed blksz=%u blkcnt=%u\n",
 		    __func__, blksz, blkcnt);
@@ -681,8 +665,8 @@ atiixp_poll_channel(struct atiixp_chinfo *ch)
 	return (1);
 }
 
-#define atiixp_chan_active(sc)	(((sc)->pch.flags | (sc)->rch.flags) &	\
-				 ATI_IXP_CHN_RUNNING)
+#define atiixp_chan_active(sc) \
+	(((sc)->pch.flags | (sc)->rch.flags) & ATI_IXP_CHN_RUNNING)
 
 static void
 atiixp_poll_callback(void *arg)
@@ -703,7 +687,7 @@ atiixp_poll_callback(void *arg)
 	trigger |= (atiixp_poll_channel(&sc->rch) != 0) ? 2 : 0;
 
 	/* XXX */
-	callout_reset(&sc->poll_timer, 1/*sc->poll_ticks*/,
+	callout_reset(&sc->poll_timer, 1 /*sc->poll_ticks*/,
 	    atiixp_poll_callback, sc);
 
 	atiixp_unlock(sc);
@@ -740,7 +724,7 @@ atiixp_chan_trigger(kobj_t obj, void *data, int go)
 			ch->prevptr = 0;
 			pollticks = ((uint64_t)hz * ch->blksz) /
 			    ((uint64_t)sndbuf_getalign(ch->buffer) *
-			    sndbuf_getspd(ch->buffer));
+				sndbuf_getspd(ch->buffer));
 			pollticks >>= 2;
 			if (pollticks > hz)
 				pollticks = hz;
@@ -748,7 +732,7 @@ atiixp_chan_trigger(kobj_t obj, void *data, int go)
 				pollticks = 1;
 			if (atiixp_chan_active(sc) == 0 ||
 			    pollticks < sc->poll_ticks) {
-			    	if (bootverbose) {
+				if (bootverbose) {
 					if (atiixp_chan_active(sc) == 0)
 						device_printf(sc->dev,
 						    "%s: pollticks=%d\n",
@@ -782,7 +766,7 @@ atiixp_chan_trigger(kobj_t obj, void *data, int go)
 					ch = &sc->rch;
 				pollticks = ((uint64_t)hz * ch->blksz) /
 				    ((uint64_t)sndbuf_getalign(ch->buffer) *
-				    sndbuf_getspd(ch->buffer));
+					sndbuf_getspd(ch->buffer));
 				pollticks >>= 2;
 				if (pollticks > hz)
 					pollticks = hz;
@@ -795,9 +779,8 @@ atiixp_chan_trigger(kobj_t obj, void *data, int go)
 						    __func__, sc->poll_ticks,
 						    pollticks);
 					sc->poll_ticks = pollticks;
-					callout_reset(&sc->poll_timer,
-					    1, atiixp_poll_callback,
-					    sc);
+					callout_reset(&sc->poll_timer, 1,
+					    atiixp_poll_callback, sc);
 				}
 			}
 		}
@@ -810,8 +793,9 @@ atiixp_chan_trigger(kobj_t obj, void *data, int go)
 
 	/* Update bus busy status */
 	value = atiixp_rd(sc, ATI_REG_IER);
-	if (atiixp_rd(sc, ATI_REG_CMD) & (ATI_REG_CMD_SEND_EN |
-	    ATI_REG_CMD_RECEIVE_EN | ATI_REG_CMD_SPDF_OUT_EN))
+	if (atiixp_rd(sc, ATI_REG_CMD) &
+	    (ATI_REG_CMD_SEND_EN | ATI_REG_CMD_RECEIVE_EN |
+		ATI_REG_CMD_SPDF_OUT_EN))
 		value |= ATI_REG_IER_SET_BUS_BUSY;
 	else
 		value &= ~ATI_REG_IER_SET_BUS_BUSY;
@@ -849,17 +833,15 @@ atiixp_chan_getcaps(kobj_t obj, void *data)
 	return (&atiixp_caps);
 }
 
-static kobj_method_t atiixp_chan_methods[] = {
-	KOBJMETHOD(channel_init,		atiixp_chan_init),
-	KOBJMETHOD(channel_setformat,		atiixp_chan_setformat),
-	KOBJMETHOD(channel_setspeed,		atiixp_chan_setspeed),
-	KOBJMETHOD(channel_setblocksize,	atiixp_chan_setblocksize),
-	KOBJMETHOD(channel_setfragments,	atiixp_chan_setfragments),
-	KOBJMETHOD(channel_trigger,		atiixp_chan_trigger),
-	KOBJMETHOD(channel_getptr,		atiixp_chan_getptr),
-	KOBJMETHOD(channel_getcaps,		atiixp_chan_getcaps),
-	KOBJMETHOD_END
-};
+static kobj_method_t atiixp_chan_methods[] = { KOBJMETHOD(channel_init,
+						   atiixp_chan_init),
+	KOBJMETHOD(channel_setformat, atiixp_chan_setformat),
+	KOBJMETHOD(channel_setspeed, atiixp_chan_setspeed),
+	KOBJMETHOD(channel_setblocksize, atiixp_chan_setblocksize),
+	KOBJMETHOD(channel_setfragments, atiixp_chan_setfragments),
+	KOBJMETHOD(channel_trigger, atiixp_chan_trigger),
+	KOBJMETHOD(channel_getptr, atiixp_chan_getptr),
+	KOBJMETHOD(channel_getcaps, atiixp_chan_getcaps), KOBJMETHOD_END };
 CHANNEL_DECLARE(atiixp_chan);
 
 /*
@@ -908,7 +890,7 @@ atiixp_intr(void *p)
 		sc->codec_not_ready_bits |= detected_codecs;
 
 		/* disable detected interrupt sources */
-		enable  = atiixp_rd(sc, ATI_REG_IER);
+		enable = atiixp_rd(sc, ATI_REG_IER);
 		enable &= ~detected_codecs;
 		atiixp_wr(sc, ATI_REG_IER, enable);
 		wakeup(sc);
@@ -944,7 +926,7 @@ atiixp_chip_pre_init(struct atiixp_info *sc)
 	/* clear all DMA enables (preserving rest of settings) */
 	value = atiixp_rd(sc, ATI_REG_CMD);
 	value &= ~(ATI_REG_CMD_IN_DMA_EN | ATI_REG_CMD_OUT_DMA_EN |
-	    ATI_REG_CMD_SPDF_OUT_EN );
+	    ATI_REG_CMD_SPDF_OUT_EN);
 	atiixp_wr(sc, ATI_REG_CMD, value);
 
 	/* reset aclink */
@@ -1031,8 +1013,8 @@ atiixp_chip_post_init(void *arg)
 
 	if (sc->codec_not_ready_bits == 0 && timeout == 0) {
 		device_printf(sc->dev,
-			"WARNING: timeout during codec detection; "
-			"codecs might be present but haven't interrupted\n");
+		    "WARNING: timeout during codec detection; "
+		    "codecs might be present but haven't interrupted\n");
 		atiixp_unlock(sc);
 		goto postinitbad;
 	}
@@ -1073,10 +1055,10 @@ atiixp_chip_post_init(void *arg)
 	subdev = (pci_get_subdevice(sc->dev) << 16) |
 	    pci_get_subvendor(sc->dev);
 	switch (subdev) {
-	case 0x11831043:	/* ASUS A6R */
-	case 0x2043161f:	/* Maxselect x710s - http://maxselect.ru/ */
-		ac97_setflags(sc->codec, ac97_getflags(sc->codec) |
-		    AC97_F_EAPD_INV);
+	case 0x11831043: /* ASUS A6R */
+	case 0x2043161f: /* Maxselect x710s - http://maxselect.ru/ */
+		ac97_setflags(sc->codec,
+		    ac97_getflags(sc->codec) | AC97_F_EAPD_INV);
 		break;
 	default:
 		break;
@@ -1198,7 +1180,8 @@ atiixp_pci_attach(device_t dev)
 	sc->poll_ticks = 1;
 
 	if (resource_int_value(device_get_name(sc->dev),
-	    device_get_unit(sc->dev), "polling", &i) == 0 && i != 0)
+		device_get_unit(sc->dev), "polling", &i) == 0 &&
+	    i != 0)
 		sc->polling = 1;
 	else
 		sc->polling = 0;
@@ -1207,8 +1190,8 @@ atiixp_pci_attach(device_t dev)
 
 	sc->regid = PCIR_BAR(0);
 	sc->regtype = SYS_RES_MEMORY;
-	sc->reg = bus_alloc_resource_any(dev, sc->regtype,
-	    &sc->regid, RF_ACTIVE);
+	sc->reg = bus_alloc_resource_any(dev, sc->regtype, &sc->regid,
+	    RF_ACTIVE);
 
 	if (!sc->reg) {
 		device_printf(dev, "unable to allocate register space\n");
@@ -1224,8 +1207,9 @@ atiixp_pci_attach(device_t dev)
 	sc->irqid = 0;
 	sc->irq = bus_alloc_resource_any(dev, SYS_RES_IRQ, &sc->irqid,
 	    RF_ACTIVE | RF_SHAREABLE);
-	if (!sc->irq || snd_setup_intr(dev, sc->irq, INTR_MPSAFE,
-	    atiixp_intr, sc, &sc->ih)) {
+	if (!sc->irq ||
+	    snd_setup_intr(dev, sc->irq, INTR_MPSAFE, atiixp_intr, sc,
+		&sc->ih)) {
 		device_printf(dev, "unable to map interrupt\n");
 		goto bad;
 	}
@@ -1233,8 +1217,9 @@ atiixp_pci_attach(device_t dev)
 	/*
 	 * Let the user choose the best DMA segments.
 	 */
-	if (resource_int_value(device_get_name(dev),
-	    device_get_unit(dev), "blocksize", &i) == 0 && i > 0) {
+	if (resource_int_value(device_get_name(dev), device_get_unit(dev),
+		"blocksize", &i) == 0 &&
+	    i > 0) {
 		i &= ATI_IXP_BLK_ALIGN;
 		if (i < ATI_IXP_BLK_MIN)
 			i = ATI_IXP_BLK_MIN;
@@ -1254,47 +1239,47 @@ atiixp_pci_attach(device_t dev)
 	/*
 	 * DMA tag for scatter-gather buffers and link pointers
 	 */
-	if (bus_dma_tag_create(/*parent*/bus_get_dma_tag(dev), /*alignment*/2,
-		/*boundary*/0,
-		/*lowaddr*/BUS_SPACE_MAXADDR_32BIT,
-		/*highaddr*/BUS_SPACE_MAXADDR,
-		/*filter*/NULL, /*filterarg*/NULL,
-		/*maxsize*/sc->bufsz, /*nsegments*/1, /*maxsegz*/0x3ffff,
-		/*flags*/0, /*lockfunc*/NULL,
-		/*lockarg*/NULL, &sc->parent_dmat) != 0) {
+	if (bus_dma_tag_create(/*parent*/ bus_get_dma_tag(dev), /*alignment*/ 2,
+		/*boundary*/ 0,
+		/*lowaddr*/ BUS_SPACE_MAXADDR_32BIT,
+		/*highaddr*/ BUS_SPACE_MAXADDR,
+		/*filter*/ NULL, /*filterarg*/ NULL,
+		/*maxsize*/ sc->bufsz, /*nsegments*/ 1, /*maxsegz*/ 0x3ffff,
+		/*flags*/ 0, /*lockfunc*/ NULL,
+		/*lockarg*/ NULL, &sc->parent_dmat) != 0) {
 		device_printf(dev, "unable to create dma tag\n");
 		goto bad;
 	}
 
-	if (bus_dma_tag_create(/*parent*/bus_get_dma_tag(dev), /*alignment*/2,
-		/*boundary*/0,
-		/*lowaddr*/BUS_SPACE_MAXADDR_32BIT,
-		/*highaddr*/BUS_SPACE_MAXADDR,
-		/*filter*/NULL, /*filterarg*/NULL,
-		/*maxsize*/ATI_IXP_DMA_CHSEGS_MAX * ATI_IXP_NCHANS *
-		sizeof(struct atiixp_dma_op),
-		/*nsegments*/1, /*maxsegz*/0x3ffff,
-		/*flags*/0, /*lockfunc*/NULL,
-		/*lockarg*/NULL, &sc->sgd_dmat) != 0) {
+	if (bus_dma_tag_create(/*parent*/ bus_get_dma_tag(dev), /*alignment*/ 2,
+		/*boundary*/ 0,
+		/*lowaddr*/ BUS_SPACE_MAXADDR_32BIT,
+		/*highaddr*/ BUS_SPACE_MAXADDR,
+		/*filter*/ NULL, /*filterarg*/ NULL,
+		/*maxsize*/ ATI_IXP_DMA_CHSEGS_MAX * ATI_IXP_NCHANS *
+		    sizeof(struct atiixp_dma_op),
+		/*nsegments*/ 1, /*maxsegz*/ 0x3ffff,
+		/*flags*/ 0, /*lockfunc*/ NULL,
+		/*lockarg*/ NULL, &sc->sgd_dmat) != 0) {
 		device_printf(dev, "unable to create dma tag\n");
 		goto bad;
 	}
 
 	if (bus_dmamem_alloc(sc->sgd_dmat, (void **)&sc->sgd_table,
-	    BUS_DMA_NOWAIT, &sc->sgd_dmamap) == -1)
+		BUS_DMA_NOWAIT, &sc->sgd_dmamap) == -1)
 		goto bad;
 
 	if (bus_dmamap_load(sc->sgd_dmat, sc->sgd_dmamap, sc->sgd_table,
-	    ATI_IXP_DMA_CHSEGS_MAX * ATI_IXP_NCHANS *
-	    sizeof(struct atiixp_dma_op), atiixp_dma_cb, sc, 0))
+		ATI_IXP_DMA_CHSEGS_MAX * ATI_IXP_NCHANS *
+		    sizeof(struct atiixp_dma_op),
+		atiixp_dma_cb, sc, 0))
 		goto bad;
 
 	atiixp_chip_pre_init(sc);
 
 	sc->delayed_attach.ich_func = atiixp_chip_post_init;
 	sc->delayed_attach.ich_arg = sc;
-	if (cold == 0 ||
-	    config_intrhook_establish(&sc->delayed_attach) != 0) {
+	if (cold == 0 || config_intrhook_establish(&sc->delayed_attach) != 0) {
 		sc->delayed_attach.ich_func = NULL;
 		atiixp_chip_post_init(sc);
 	}
@@ -1400,14 +1385,12 @@ atiixp_pci_resume(device_t dev)
 	return (0);
 }
 
-static device_method_t atiixp_methods[] = {
-	DEVMETHOD(device_probe,		atiixp_pci_probe),
-	DEVMETHOD(device_attach,	atiixp_pci_attach),
-	DEVMETHOD(device_detach,	atiixp_pci_detach),
-	DEVMETHOD(device_suspend,	atiixp_pci_suspend),
-	DEVMETHOD(device_resume,	atiixp_pci_resume),
-	{ 0, 0 }
-};
+static device_method_t atiixp_methods[] = { DEVMETHOD(device_probe,
+						atiixp_pci_probe),
+	DEVMETHOD(device_attach, atiixp_pci_attach),
+	DEVMETHOD(device_detach, atiixp_pci_detach),
+	DEVMETHOD(device_suspend, atiixp_pci_suspend),
+	DEVMETHOD(device_resume, atiixp_pci_resume), { 0, 0 } };
 
 static driver_t atiixp_driver = {
 	"pcm",

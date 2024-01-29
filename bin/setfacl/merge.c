@@ -98,8 +98,9 @@ merge_acl(acl_t acl, acl_t *prev_acl, const char *filename)
 
 	if (branding_mismatch(acl_brand, prev_acl_brand)) {
 		warnx("%s: branding mismatch; existing ACL is %s, "
-		    "entry to be merged is %s", filename,
-		    brand_name(prev_acl_brand), brand_name(acl_brand));
+		      "entry to be merged is %s",
+		    filename, brand_name(prev_acl_brand),
+		    brand_name(acl_brand));
 		return (-1);
 	}
 
@@ -116,8 +117,10 @@ merge_acl(acl_t acl, acl_t *prev_acl, const char *filename)
 
 		/* keep track of existing ACL_MASK entries */
 		if (acl_get_tag_type(entry, &tag) == -1)
-			err(1, "%s: acl_get_tag_type() failed - "
-			    "invalid ACL entry", filename);
+			err(1,
+			    "%s: acl_get_tag_type() failed - "
+			    "invalid ACL entry",
+			    filename);
 		if (tag == ACL_MASK)
 			have_mask = true;
 
@@ -141,16 +144,21 @@ merge_acl(acl_t acl, acl_t *prev_acl, const char *filename)
 			 */
 			if (acl_brand == ACL_BRAND_NFS4) {
 				if (acl_get_entry_type_np(entry, &entry_type))
-					err(1, "%s: acl_get_entry_type_np() "
-					    "failed", filename);
-				if (acl_get_entry_type_np(entry_new, &entry_type_new))
-					err(1, "%s: acl_get_entry_type_np() "
-					    "failed", filename);
+					err(1,
+					    "%s: acl_get_entry_type_np() "
+					    "failed",
+					    filename);
+				if (acl_get_entry_type_np(entry_new,
+					&entry_type_new))
+					err(1,
+					    "%s: acl_get_entry_type_np() "
+					    "failed",
+					    filename);
 				if (entry_type != entry_type_new)
 					continue;
 			}
-		
-			switch(tag) {
+
+			switch (tag) {
 			case ACL_USER:
 			case ACL_GROUP:
 				have_entry = merge_user_group(&entry,
@@ -171,24 +179,32 @@ merge_acl(acl_t acl, acl_t *prev_acl, const char *filename)
 					    filename);
 
 				if (acl_brand == ACL_BRAND_NFS4) {
-					if (acl_get_entry_type_np(entry, &entry_type))
-						err(1, "%s: acl_get_entry_type_np() failed",
+					if (acl_get_entry_type_np(entry,
+						&entry_type))
+						err(1,
+						    "%s: acl_get_entry_type_np() failed",
 						    filename);
-					if (acl_set_entry_type_np(entry_new, entry_type))
-						err(1, "%s: acl_set_entry_type_np() failed",
+					if (acl_set_entry_type_np(entry_new,
+						entry_type))
+						err(1,
+						    "%s: acl_set_entry_type_np() failed",
 						    filename);
 					if (acl_get_flagset_np(entry, &flagset))
-						err(1, "%s: acl_get_flagset_np() failed",
+						err(1,
+						    "%s: acl_get_flagset_np() failed",
 						    filename);
-					if (acl_set_flagset_np(entry_new, flagset))
-						err(1, "%s: acl_set_flagset_np() failed",
+					if (acl_set_flagset_np(entry_new,
+						flagset))
+						err(1,
+						    "%s: acl_set_flagset_np() failed",
 						    filename);
 				}
 				had_entry = have_entry = 1;
 				break;
 			default:
 				/* should never be here */
-				errx(1, "%s: invalid tag type: %i", filename, tag);
+				errx(1, "%s: invalid tag type: %i", filename,
+				    tag);
 				break;
 			}
 		}
@@ -202,8 +218,10 @@ merge_acl(acl_t acl, acl_t *prev_acl, const char *filename)
 			 * in most cases they wouldn't even get evaluated.
 			 */
 			if (acl_brand == ACL_BRAND_NFS4) {
-				if (acl_create_entry_np(&acl_new, &entry_new, entry_number) == -1) {
-					warn("%s: acl_create_entry_np() failed", filename); 
+				if (acl_create_entry_np(&acl_new, &entry_new,
+					entry_number) == -1) {
+					warn("%s: acl_create_entry_np() failed",
+					    filename);
 					acl_free(acl_new);
 					return (-1);
 				}
@@ -215,8 +233,10 @@ merge_acl(acl_t acl, acl_t *prev_acl, const char *filename)
 				 */
 				entry_number++;
 			} else {
-				if (acl_create_entry(&acl_new, &entry_new) == -1) {
-					warn("%s: acl_create_entry() failed", filename); 
+				if (acl_create_entry(&acl_new, &entry_new) ==
+				    -1) {
+					warn("%s: acl_create_entry() failed",
+					    filename);
 					acl_free(acl_new);
 					return (-1);
 				}
@@ -250,8 +270,8 @@ add_acl(acl_t acl, uint entry_number, acl_t *prev_acl, const char *filename)
 
 	if (branding_mismatch(acl_brand, ACL_BRAND_NFS4)) {
 		warnx("%s: branding mismatch; existing ACL is NFSv4, "
-		    "entry to be added is %s", filename,
-		    brand_name(acl_brand));
+		      "entry to be added is %s",
+		    filename, brand_name(acl_brand));
 		return (-1);
 	}
 
@@ -264,8 +284,9 @@ add_acl(acl_t acl, uint entry_number, acl_t *prev_acl, const char *filename)
 	while (acl_get_entry(acl, entry_id, &entry) == 1) {
 		entry_id = ACL_NEXT_ENTRY;
 
-		if (acl_create_entry_np(&acl_new, &entry_new, entry_number) == -1) {
-			warn("%s: acl_create_entry_np() failed", filename); 
+		if (acl_create_entry_np(&acl_new, &entry_new, entry_number) ==
+		    -1) {
+			warn("%s: acl_create_entry_np() failed", filename);
 			acl_free(acl_new);
 			return (-1);
 		}

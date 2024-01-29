@@ -56,12 +56,11 @@
  * mode in the command line.
  */
 
-
 #include <sys/types.h>
 
-#include "systat.h"
 #include "extern.h"
 #include "mode.h"
+#include "systat.h"
 
 enum mode currentmode = display_RATE;
 
@@ -88,7 +87,7 @@ cmdmode(const char *cmd, const char *args)
 		}
 		return 1;
 	}
-	if(prefix(cmd, "reset")) {
+	if (prefix(cmd, "reset")) {
 		curcmd->c_reset();
 		return 1;
 	}

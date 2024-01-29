@@ -25,6 +25,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "csu_common.h"
 
 void _start(char *, ...) __dead2;

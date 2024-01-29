@@ -43,7 +43,7 @@
  * conversions are supported, ceil(log10(LDBL_MAX_EXP)).  But since it
  * is presently never greater than 5 in practice, we fudge it.
  */
-#define	MAXEXPDIG	6
+#define MAXEXPDIG 6
 #if LDBL_MAX_EXP > 999999
 #error "floating point buffers too small"
 #endif

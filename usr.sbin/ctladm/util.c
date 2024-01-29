@@ -46,14 +46,14 @@
  * from: scsi.c,v 1.17 1998/01/12 07:57:57 charnier Exp $";
  */
 #include <sys/cdefs.h>
-#include <sys/stdint.h>
 #include <sys/types.h>
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include <sys/stdint.h>
 
 #include <camlib.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "ctladm.h"
 
 static int verbose;
@@ -66,8 +66,7 @@ iget(void *hook, char *name)
 	struct get_hook *h = (struct get_hook *)hook;
 	int arg;
 
-	if (h->got >= h->argc)
-	{
+	if (h->got >= h->argc) {
 		fprintf(stderr, "Expecting an integer argument.\n");
 		usage(0);
 		exit(1);
@@ -89,8 +88,7 @@ cget(void *hook, char *name)
 	struct get_hook *h = (struct get_hook *)hook;
 	char *arg;
 
-	if (h->got >= h->argc)
-	{
+	if (h->got >= h->argc) {
 		fprintf(stderr, "Expecting a character pointer argument.\n");
 		usage(0);
 		exit(1);
@@ -112,43 +110,40 @@ arg_put(void *hook __unused, int letter, void *arg, int count, char *name)
 	if (verbose && name && *name)
 		printf("%s:  ", name);
 
-	switch(letter)
-	{
-		case 'i':
-		case 'b':
+	switch (letter) {
+	case 'i':
+	case 'b':
 		printf("%jd ", (intmax_t)(intptr_t)arg);
 		break;
 
-		case 'c':
-		case 'z':
-		{
-			char *p;
+	case 'c':
+	case 'z': {
+		char *p;
 
-			p = malloc(count + 1);
-			if (p == NULL) {
-				fprintf(stderr, "can't malloc memory for p\n");
-				exit(1);
-			}
-
-			bzero(p, count +1);
-			strncpy(p, (char *)arg, count);
-			if (letter == 'z')
-			{
-				int i;
-				for (i = count - 1; i >= 0; i--)
-					if (p[i] == ' ')
-						p[i] = 0;
-					else
-						break;
-			}
-			printf("%s ", p);
-
-			free(p);
+		p = malloc(count + 1);
+		if (p == NULL) {
+			fprintf(stderr, "can't malloc memory for p\n");
+			exit(1);
 		}
 
-		break;
+		bzero(p, count + 1);
+		strncpy(p, (char *)arg, count);
+		if (letter == 'z') {
+			int i;
+			for (i = count - 1; i >= 0; i--)
+				if (p[i] == ' ')
+					p[i] = 0;
+				else
+					break;
+		}
+		printf("%s ", p);
 
-		default:
+		free(p);
+	}
+
+	break;
+
+	default:
 		printf("Unknown format letter: '%c'\n", letter);
 	}
 	if (verbose)

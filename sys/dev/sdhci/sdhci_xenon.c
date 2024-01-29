@@ -29,6 +29,9 @@
  * Marvell Xenon SDHCI controller driver.
  */
 
+#include "opt_mmccam.h"
+#include "opt_soc.h"
+
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -45,22 +48,17 @@
 #include <machine/bus.h>
 #include <machine/resource.h>
 
-#include <dev/regulator/regulator.h>
-
 #include <dev/mmc/bridge.h>
 #include <dev/mmc/mmcbrvar.h>
 #include <dev/mmc/mmcreg.h>
-
+#include <dev/regulator/regulator.h>
 #include <dev/sdhci/sdhci.h>
 #include <dev/sdhci/sdhci_xenon.h>
 
 #include "mmcbr_if.h"
 #include "sdhci_if.h"
 
-#include "opt_mmccam.h"
-#include "opt_soc.h"
-
-#define	MAX_SLOTS		6
+#define MAX_SLOTS 6
 
 static uint8_t
 sdhci_xenon_read_1(device_t dev, struct sdhci_slot *slot __unused,
@@ -173,8 +171,7 @@ sdhci_xenon_set_uhs_timing(device_t brdev, struct sdhci_slot *slot)
 			hostctrl2 |= XENON_CTRL2_MMC_HS200;
 		else
 			hostctrl2 |= SDHCI_CTRL2_UHS_SDR104;
-	}
-	else if (ios->clock > SD_SDR25_MAX)
+	} else if (ios->clock > SD_SDR25_MAX)
 		hostctrl2 |= SDHCI_CTRL2_UHS_SDR50;
 	else if (ios->clock > SD_SDR12_MAX) {
 		if (ios->timing == bus_timing_uhs_ddr50 ||
@@ -194,7 +191,7 @@ sdhci_xenon_phy_init(device_t brdev, struct mmc_ios *ios)
 	struct sdhci_xenon_softc *sc;
 	uint32_t reg;
 
- 	sc = device_get_softc(brdev);
+	sc = device_get_softc(brdev);
 	reg = bus_read_4(sc->mem_res, XENON_EMMC_PHY_TIMING_ADJUST);
 	reg |= XENON_SAMPL_INV_QSP_PHASE_SELECT;
 	switch (ios->timing) {
@@ -239,11 +236,11 @@ sdhci_xenon_phy_set(device_t brdev, struct mmc_ios *ios)
 	struct sdhci_xenon_softc *sc;
 	uint32_t reg;
 
- 	sc = device_get_softc(brdev);
+	sc = device_get_softc(brdev);
 	/* Setup pad, set bit[28] and bits[26:24] */
 	reg = bus_read_4(sc->mem_res, XENON_EMMC_PHY_PAD_CONTROL);
-	reg |= (XENON_FC_DQ_RECEN | XENON_FC_CMD_RECEN |
-		XENON_FC_QSP_RECEN | XENON_OEN_QSN);
+	reg |= (XENON_FC_DQ_RECEN | XENON_FC_CMD_RECEN | XENON_FC_QSP_RECEN |
+	    XENON_OEN_QSN);
 	/* All FC_XX_RECEIVCE should be set as CMOS Type */
 	reg |= XENON_FC_ALL_CMOS_RECEIVER;
 	bus_write_4(sc->mem_res, XENON_EMMC_PHY_PAD_CONTROL, reg);
@@ -332,9 +329,9 @@ sdhci_xenon_update_ios(device_t brdev, device_t reqdev)
 	if (err != 0)
 		return (err);
 
- 	sc = device_get_softc(brdev);
+	sc = device_get_softc(brdev);
 	slot = device_get_ivars(reqdev);
- 	ios = &slot->host.ios;
+	ios = &slot->host.ios;
 
 	switch (ios->power_mode) {
 	case power_on:
@@ -403,12 +400,11 @@ sdhci_xenon_switch_vccq(device_t brdev, device_t reqdev)
 
 		if (!sc->skip_regulators) {
 			uvolt = 3300000;
-			err = regulator_set_voltage(sc->vqmmc_supply,
-			    uvolt, uvolt);
+			err = regulator_set_voltage(sc->vqmmc_supply, uvolt,
+			    uvolt);
 			if (err != 0) {
 				device_printf(sc->dev,
-				    "Cannot set vqmmc to %d<->%d\n",
-				    uvolt,
+				    "Cannot set vqmmc to %d<->%d\n", uvolt,
 				    uvolt);
 				return (err);
 			}
@@ -436,13 +432,12 @@ sdhci_xenon_switch_vccq(device_t brdev, device_t reqdev)
 
 		if (!sc->skip_regulators) {
 			uvolt = 1800000;
-			err = regulator_set_voltage(sc->vqmmc_supply,
-				uvolt, uvolt);
+			err = regulator_set_voltage(sc->vqmmc_supply, uvolt,
+			    uvolt);
 			if (err != 0) {
 				device_printf(sc->dev,
-					"Cannot set vqmmc to %d<->%d\n",
-					uvolt,
-					uvolt);
+				    "Cannot set vqmmc to %d<->%d\n", uvolt,
+				    uvolt);
 				return (err);
 			}
 		}
@@ -474,16 +469,16 @@ sdhci_xenon_parse_prop(device_t dev)
 	sc = device_get_softc(dev);
 	val = 0;
 
-	if (device_get_property(dev, "quirks",
-	    &val, sizeof(val), DEVICE_PROP_UINT32) > 0)
+	if (device_get_property(dev, "quirks", &val, sizeof(val),
+		DEVICE_PROP_UINT32) > 0)
 		sc->slot->quirks = val;
 	sc->znr = XENON_ZNR_DEF_VALUE;
-	if (device_get_property(dev, "marvell,xenon-phy-znr",
-	    &val, sizeof(val), DEVICE_PROP_UINT32) > 0)
+	if (device_get_property(dev, "marvell,xenon-phy-znr", &val, sizeof(val),
+		DEVICE_PROP_UINT32) > 0)
 		sc->znr = val & XENON_ZNR_MASK;
 	sc->zpr = XENON_ZPR_DEF_VALUE;
-	if (device_get_property(dev, "marvell,xenon-phy-zpr",
-	    &val, sizeof(val), DEVICE_PROP_UINT32) > 0)
+	if (device_get_property(dev, "marvell,xenon-phy-zpr", &val, sizeof(val),
+		DEVICE_PROP_UINT32) > 0)
 		sc->zpr = val & XENON_ZPR_MASK;
 	if (device_has_property(dev, "marvell,xenon-phy-slow-mode"))
 		sc->slow_mode = true;
@@ -501,8 +496,7 @@ sdhci_xenon_attach(device_t dev)
 
 	/* Allocate IRQ. */
 	rid = 0;
-	sc->irq_res = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid,
-	    RF_ACTIVE);
+	sc->irq_res = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid, RF_ACTIVE);
 	if (sc->irq_res == NULL) {
 		device_printf(dev, "Can't allocate IRQ\n");
 		return (ENOMEM);
@@ -510,8 +504,8 @@ sdhci_xenon_attach(device_t dev)
 
 	/* Allocate memory. */
 	rid = 0;
-	sc->mem_res = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-	    &rid, RF_ACTIVE);
+	sc->mem_res = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
+	    RF_ACTIVE);
 	if (sc->mem_res == NULL) {
 		bus_release_resource(dev, SYS_RES_IRQ,
 		    rman_get_rid(sc->irq_res), sc->irq_res);
@@ -607,28 +601,28 @@ sdhci_xenon_detach(device_t dev)
 
 static device_method_t sdhci_xenon_methods[] = {
 	/* Bus interface */
-	DEVMETHOD(bus_read_ivar,	sdhci_generic_read_ivar),
-	DEVMETHOD(bus_write_ivar,	sdhci_generic_write_ivar),
+	DEVMETHOD(bus_read_ivar, sdhci_generic_read_ivar),
+	DEVMETHOD(bus_write_ivar, sdhci_generic_write_ivar),
 
 	/* mmcbr_if */
-	DEVMETHOD(mmcbr_update_ios,	sdhci_xenon_update_ios),
-	DEVMETHOD(mmcbr_request,	sdhci_generic_request),
-	DEVMETHOD(mmcbr_get_ro,		sdhci_xenon_get_ro),
-	DEVMETHOD(mmcbr_acquire_host,	sdhci_generic_acquire_host),
-	DEVMETHOD(mmcbr_release_host,	sdhci_generic_release_host),
-	DEVMETHOD(mmcbr_switch_vccq,	sdhci_xenon_switch_vccq),
-	DEVMETHOD(mmcbr_tune,		sdhci_generic_tune),
-	DEVMETHOD(mmcbr_retune,		sdhci_generic_retune),
+	DEVMETHOD(mmcbr_update_ios, sdhci_xenon_update_ios),
+	DEVMETHOD(mmcbr_request, sdhci_generic_request),
+	DEVMETHOD(mmcbr_get_ro, sdhci_xenon_get_ro),
+	DEVMETHOD(mmcbr_acquire_host, sdhci_generic_acquire_host),
+	DEVMETHOD(mmcbr_release_host, sdhci_generic_release_host),
+	DEVMETHOD(mmcbr_switch_vccq, sdhci_xenon_switch_vccq),
+	DEVMETHOD(mmcbr_tune, sdhci_generic_tune),
+	DEVMETHOD(mmcbr_retune, sdhci_generic_retune),
 
 	/* SDHCI registers accessors */
-	DEVMETHOD(sdhci_read_1,		sdhci_xenon_read_1),
-	DEVMETHOD(sdhci_read_2,		sdhci_xenon_read_2),
-	DEVMETHOD(sdhci_read_4,		sdhci_xenon_read_4),
-	DEVMETHOD(sdhci_read_multi_4,	sdhci_xenon_read_multi_4),
-	DEVMETHOD(sdhci_write_1,	sdhci_xenon_write_1),
-	DEVMETHOD(sdhci_write_2,	sdhci_xenon_write_2),
-	DEVMETHOD(sdhci_write_4,	sdhci_xenon_write_4),
-	DEVMETHOD(sdhci_write_multi_4,	sdhci_xenon_write_multi_4),
+	DEVMETHOD(sdhci_read_1, sdhci_xenon_read_1),
+	DEVMETHOD(sdhci_read_2, sdhci_xenon_read_2),
+	DEVMETHOD(sdhci_read_4, sdhci_xenon_read_4),
+	DEVMETHOD(sdhci_read_multi_4, sdhci_xenon_read_multi_4),
+	DEVMETHOD(sdhci_write_1, sdhci_xenon_write_1),
+	DEVMETHOD(sdhci_write_2, sdhci_xenon_write_2),
+	DEVMETHOD(sdhci_write_4, sdhci_xenon_write_4),
+	DEVMETHOD(sdhci_write_multi_4, sdhci_xenon_write_multi_4),
 	DEVMETHOD(sdhci_set_uhs_timing, sdhci_xenon_set_uhs_timing),
 
 	DEVMETHOD_END

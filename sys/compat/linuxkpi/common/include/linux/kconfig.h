@@ -28,8 +28,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_LINUXKPI_LINUX_KCONFIG_H_
-#define	_LINUXKPI_LINUX_KCONFIG_H_
+#ifndef _LINUXKPI_LINUX_KCONFIG_H_
+#define _LINUXKPI_LINUX_KCONFIG_H_
 
 /*
  * Checking if an option is defined would be easy if we could do CPP inside CPP.
@@ -48,17 +48,17 @@
  * exactly what we need.  Use 1 for true and 0 for false to also allow
  * #if IS_*() checks pre-compiler checks which do not like #if true.
  */
-#define ___XAB_1		dontcare,
-#define ___IS_XAB(_ignore, _x, ...)	(_x)
-#define	__IS_XAB(_x)		___IS_XAB(_x 1, 0)
-#define	_IS_XAB(_x)		__IS_XAB(__CONCAT(___XAB_, _x))
+#define ___XAB_1 dontcare,
+#define ___IS_XAB(_ignore, _x, ...) (_x)
+#define __IS_XAB(_x) ___IS_XAB(_x 1, 0)
+#define _IS_XAB(_x) __IS_XAB(__CONCAT(___XAB_, _x))
 
 /* This is if CONFIG_ccc=y. */
-#define	IS_BUILTIN(_x)		_IS_XAB(_x)
+#define IS_BUILTIN(_x) _IS_XAB(_x)
 /* This is if CONFIG_ccc=m. */
-#define	IS_MODULE(_x)		_IS_XAB(_x ## _MODULE)
+#define IS_MODULE(_x) _IS_XAB(_x##_MODULE)
 /* This is if CONFIG_ccc is compiled in(=y) or a module(=m). */
-#define	IS_ENABLED(_x)		(IS_BUILTIN(_x) || IS_MODULE(_x))
+#define IS_ENABLED(_x) (IS_BUILTIN(_x) || IS_MODULE(_x))
 /*
  * This is weird case.  If the CONFIG_ccc is builtin (=y) this returns true;
  * or if the CONFIG_ccc is a module (=m) and the caller is built as a module
@@ -70,7 +70,7 @@
  * XXX -- I'd hope the module-to-module case would be handled by a proper
  * module dependency definition (MODULE_DEPEND() in FreeBSD).
  */
-#define	IS_REACHABLE(_x)	(IS_BUILTIN(_x) || \
-				    (IS_MODULE(_x) && IS_BUILTIN(MODULE)))
+#define IS_REACHABLE(_x) \
+	(IS_BUILTIN(_x) || (IS_MODULE(_x) && IS_BUILTIN(MODULE)))
 
 #endif /* _LINUXKPI_LINUX_KCONFIG_H_ */

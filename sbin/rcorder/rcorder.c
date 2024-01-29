@@ -1,4 +1,4 @@
-# if 0
+#if 0
 /*	$NetBSD: rcorder.c,v 1.7 2000/08/04 07:33:55 enami Exp $	*/
 #endif
 
@@ -43,41 +43,45 @@
 #include <sys/stat.h>
 
 #include <err.h>
-#include <stdio.h>
+#include <libgen.h>
 #include <libutil.h>
+#include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <libgen.h>
-#include <stdbool.h>
 
 #include "ealloc.h"
-#include "sprite.h"
 #include "hash.h"
+#include "sprite.h"
 
 #ifdef DEBUG
 static int debug = 0;
-# define	DPRINTF(args) if (debug) { fflush(stdout); fprintf args; }
+#define DPRINTF(args)           \
+	if (debug) {            \
+		fflush(stdout); \
+		fprintf args;   \
+	}
 #else
-# define	DPRINTF(args)
+#define DPRINTF(args)
 #endif
 
-#define REQUIRE_STR	"# REQUIRE:"
-#define REQUIRE_LEN	(sizeof(REQUIRE_STR) - 1)
-#define REQUIRES_STR	"# REQUIRES:"
-#define REQUIRES_LEN	(sizeof(REQUIRES_STR) - 1)
-#define PROVIDE_STR	"# PROVIDE:"
-#define PROVIDE_LEN	(sizeof(PROVIDE_STR) - 1)
-#define PROVIDES_STR	"# PROVIDES:"
-#define PROVIDES_LEN	(sizeof(PROVIDES_STR) - 1)
-#define BEFORE_STR	"# BEFORE:"
-#define BEFORE_LEN	(sizeof(BEFORE_STR) - 1)
-#define KEYWORD_STR	"# KEYWORD:"
-#define KEYWORD_LEN	(sizeof(KEYWORD_STR) - 1)
-#define KEYWORDS_STR	"# KEYWORDS:"
-#define KEYWORDS_LEN	(sizeof(KEYWORDS_STR) - 1)
+#define REQUIRE_STR "# REQUIRE:"
+#define REQUIRE_LEN (sizeof(REQUIRE_STR) - 1)
+#define REQUIRES_STR "# REQUIRES:"
+#define REQUIRES_LEN (sizeof(REQUIRES_STR) - 1)
+#define PROVIDE_STR "# PROVIDE:"
+#define PROVIDE_LEN (sizeof(PROVIDE_STR) - 1)
+#define PROVIDES_STR "# PROVIDES:"
+#define PROVIDES_LEN (sizeof(PROVIDES_STR) - 1)
+#define BEFORE_STR "# BEFORE:"
+#define BEFORE_LEN (sizeof(BEFORE_STR) - 1)
+#define KEYWORD_STR "# KEYWORD:"
+#define KEYWORD_LEN (sizeof(KEYWORD_STR) - 1)
+#define KEYWORDS_STR "# KEYWORDS:"
+#define KEYWORDS_LEN (sizeof(KEYWORDS_STR) - 1)
 
-#define	FAKE_PROV_NAME	"fake_prov_"
+#define FAKE_PROV_NAME "fake_prov_"
 
 static int exit_code;
 static int file_count;
@@ -101,39 +105,39 @@ typedef struct f_reqnode f_reqnode;
 typedef struct strnodelist strnodelist;
 
 struct provnode {
-	flag		head;
-	flag		in_progress;
-	int		sequence;
-	filenode	*fnode;
-	provnode	*next, *last;
+	flag head;
+	flag in_progress;
+	int sequence;
+	filenode *fnode;
+	provnode *next, *last;
 };
 
 struct f_provnode {
-	provnode	*pnode;
-	Hash_Entry	*entry;
-	f_provnode	*next;
+	provnode *pnode;
+	Hash_Entry *entry;
+	f_provnode *next;
 };
 
 struct f_reqnode {
-	Hash_Entry	*entry;
-	f_reqnode	*next;
+	Hash_Entry *entry;
+	f_reqnode *next;
 };
 
 struct strnodelist {
-	filenode	*node;
-	strnodelist	*next;
-	char		s[1];
+	filenode *node;
+	strnodelist *next;
+	char s[1];
 };
 
 struct filenode {
-	char		*filename;
-	flag		in_progress;
-	filenode	*next, *last;
-	f_reqnode	*req_list;
-	f_provnode	*prov_list;
-	strnodelist	*keyword_list;
-	int		issues_count;
-	int		sequence;
+	char *filename;
+	flag in_progress;
+	filenode *next, *last;
+	f_reqnode *req_list;
+	f_provnode *prov_list;
+	strnodelist *keyword_list;
+	int issues_count;
+	int sequence;
 };
 
 static filenode fn_head_s, *fn_head, **fn_seqlist;
@@ -416,7 +420,7 @@ static void
 parse_require(filenode *node, char *buffer)
 {
 	char *s;
-	
+
 	while ((s = strsep(&buffer, " \t\n")) != NULL)
 		if (*s != '\0')
 			add_require(node, s);
@@ -430,7 +434,7 @@ static void
 parse_provide(filenode *node, char *buffer)
 {
 	char *s;
-	
+
 	while ((s = strsep(&buffer, " \t\n")) != NULL)
 		if (*s != '\0')
 			add_provide(node, s);
@@ -444,7 +448,7 @@ static void
 parse_before(filenode *node, char *buffer)
 {
 	char *s;
-	
+
 	while ((s = strsep(&buffer, " \t\n")) != NULL)
 		if (*s != '\0')
 			add_before(node, s);
@@ -458,7 +462,7 @@ static void
 parse_keywords(filenode *node, char *buffer)
 {
 	char *s;
-	
+
 	while ((s = strsep(&buffer, " \t\n")) != NULL)
 		if (*s != '\0')
 			add_keyword(node, s);
@@ -505,7 +509,8 @@ crunch_file(char *filename)
 	 * and have no flags.
 	 */
 	for (state = BEFORE_PARSING; state != PARSING_DONE &&
-	    (buf = fparseln(fp, NULL, NULL, delims, 0)) != NULL; free(buf)) {
+	     (buf = fparseln(fp, NULL, NULL, delims, 0)) != NULL;
+	     free(buf)) {
 		require_flag = provide_flag = before_flag = keywords_flag = 0;
 		if (strncmp(REQUIRE_STR, buf, REQUIRE_LEN) == 0)
 			require_flag = REQUIRE_LEN;
@@ -546,8 +551,8 @@ make_fake_provision(filenode *node)
 	Hash_Entry *entry;
 	f_provnode *f_pnode;
 	provnode *head, *pnode;
-	static	int i = 0;
-	int	new;
+	static int i = 0;
+	int new;
 	char buffer[30];
 
 	do {
@@ -595,7 +600,7 @@ insert_before(void)
 	f_reqnode *rnode;
 	strnodelist *bl;
 	int new;
-	
+
 	while (bl_list != NULL) {
 		bl = bl_list->next;
 
@@ -603,7 +608,8 @@ insert_before(void)
 
 		entry = Hash_CreateEntry(provide_hash, bl_list->s, &new);
 		if (new == 1)
-			warnx("file `%s' is before unknown provision `%s'", bl_list->node->filename, bl_list->s);
+			warnx("file `%s' is before unknown provision `%s'",
+			    bl_list->node->filename, bl_list->s);
 
 		if (new == 1 && do_graphviz == true)
 			generate_graphviz_file_links(
@@ -634,7 +640,7 @@ static void
 crunch_all_files(void)
 {
 	int i;
-	
+
 	for (i = 0; i < file_count; i++)
 		crunch_file(file_list[i]);
 	insert_before();
@@ -662,7 +668,7 @@ generate_graphviz_file_links(Hash_Entry *entry, filenode *fnode)
 	head = Hash_GetValue(entry);
 
 	for (fpnode = fnode->prov_list; fpnode && fpnode->entry;
-	    fpnode = fpnode->next) {
+	     fpnode = fpnode->next) {
 		fname = Hash_GetKey(fpnode->entry);
 		if (is_fake_prov(fname))
 			continue;
@@ -674,14 +680,17 @@ generate_graphviz_file_links(Hash_Entry *entry, filenode *fnode)
 				dep_name = Hash_GetKey(entry);
 
 			if (!is_fake_prov(dep_name)) {
-				printf("\"%s\" -> \"%s\" [%s%s];\n",
-				    fname, dep_name,
+				printf("\"%s\" -> \"%s\" [%s%s];\n", fname,
+				    dep_name,
 				    /* edge style */
-				    (is_before ? "style=dashed" : "style=solid"),
+				    (is_before ? "style=dashed" :
+						 "style=solid"),
 				    /* circular dep? */
 				    ((head == NULL ||
-				    (head->next && head->in_progress == SET)) ?
-				    ", color=red, penwidth=4" : ""));
+					 (head->next &&
+					     head->in_progress == SET)) ?
+					    ", color=red, penwidth=4" :
+					    ""));
 				if (rfpnode == NULL)
 					break;
 			}
@@ -704,8 +713,7 @@ generate_graphviz_file_links(Hash_Entry *entry, filenode *fnode)
  * pointer.
  */
 static char *
-generate_loop_for_req(strnodelist *stack_tail, provnode *head,
-    filenode *fnode)
+generate_loop_for_req(strnodelist *stack_tail, provnode *head, filenode *fnode)
 {
 	provnode *pnode;
 	strnodelist *stack_ptr, *loop_entry;
@@ -720,7 +728,7 @@ generate_loop_for_req(strnodelist *stack_tail, provnode *head,
 			break;
 		stack_depth = 0;
 		for (stack_ptr = stack_tail; stack_ptr;
-		    stack_ptr = stack_ptr->next) {
+		     stack_ptr = stack_ptr->next) {
 			stack_depth++;
 			if (stack_ptr->node == pnode->fnode) {
 				loop_entry = stack_ptr;
@@ -807,18 +815,17 @@ satisfy_req(f_reqnode *rnode, filenode *fnode, strnodelist *stack_ptr)
 	if (head->next == NULL)
 		return;
 
-	/* 
+	/*
 	 * if list is marked as in progress,
 	 *	print that there is a circular dependency on it and abort
 	 */
 	if (head->in_progress == SET) {
 		exit_code = 1;
-		buf = generate_loop_for_req(stack_ptr, head,
-		    fnode);
+		buf = generate_loop_for_req(stack_ptr, head, fnode);
 
 		if (buf == NULL) {
 			warnx("Circular dependency on provision `%s' in "
-			    "file `%s' (tracing has failed).",
+			      "file `%s' (tracing has failed).",
 			    Hash_GetKey(entry), fnode->filename);
 			return;
 		}
@@ -830,7 +837,7 @@ satisfy_req(f_reqnode *rnode, filenode *fnode, strnodelist *stack_ptr)
 	}
 
 	head->in_progress = SET;
-	
+
 	stack_item.next = stack_ptr;
 	stack_item.node = fnode;
 
@@ -887,7 +894,7 @@ do_file(filenode *fnode, strnodelist *stack_ptr)
 	f_reqnode *r;
 	f_provnode *p, *p_tmp;
 	provnode *pnode, *head;
-	int was_set;	
+	int was_set;
 	char *dep_name;
 
 	DPRINTF((stderr, "do_file on %s.\n", fnode->filename));
@@ -897,8 +904,7 @@ do_file(filenode *fnode, strnodelist *stack_ptr)
 	 *	 print that fnode; is circularly depended upon and abort.
 	 */
 	if (fnode->in_progress == SET) {
-		warnx("Circular dependency on file `%s'.",
-			fnode->filename);
+		warnx("Circular dependency on file `%s'.", fnode->filename);
 		was_set = exit_code = 1;
 	} else
 		was_set = 0;
@@ -972,7 +978,7 @@ do_file(filenode *fnode, strnodelist *stack_ptr)
 		*fn_seqlist = fnode;
 		fn_seqlist++;
 	}
-	
+
 	if (fnode->next != NULL) {
 		fnode->next->last = fnode->last;
 	}
@@ -995,9 +1001,9 @@ generate_graphviz_header(void)
 		return;
 
 	printf("digraph rcorder {\n"
-	    "rankdir=\"BT\";\n"
-	    "node [style=rounded, shape=record];\n"
-	    "graph [overlap = false];\n");
+	       "rankdir=\"BT\";\n"
+	       "node [style=rounded, shape=record];\n"
+	       "graph [overlap = false];\n");
 }
 
 static void
@@ -1031,15 +1037,15 @@ generate_graphviz_providers(void)
 		/* no providers for this requirement */
 		if (head == NULL || head->next == NULL) {
 			printf("\"%s\" [label=\"{ %s | ENOENT }\", "
-			    "style=\"rounded,filled\", color=red];\n",
+			       "style=\"rounded,filled\", color=red];\n",
 			    dep_name, dep_name);
 			continue;
 		}
 		/* one PROVIDE word for one file that matches */
 		if (head->next->next == NULL &&
-		    strcmp(dep_name,
-		    basename(head->next->fnode->filename)) == 0) {
-		        continue;
+		    strcmp(dep_name, basename(head->next->fnode->filename)) ==
+			0) {
+			continue;
 		}
 		printf("\"%s\" [label=\"{ %s | ", dep_name, dep_name);
 		for (pnode = head->next; pnode; pnode = pnode->next)
@@ -1052,15 +1058,15 @@ generate_graphviz_providers(void)
 static int
 sequence_cmp(const void *a, const void *b)
 {
-	const filenode *fna = *((const filenode * const *)a);
-	const filenode *fnb = *((const filenode * const *)b);
+	const filenode *fna = *((const filenode *const *)a);
+	const filenode *fnb = *((const filenode *const *)b);
 	int left, right;
 
 	/* push phantom files to the end */
 	if (fna == NULL || fnb == NULL)
 		return ((fna < fnb) - (fna > fnb));
 
-	left =  fna->sequence;
+	left = fna->sequence;
 	right = fnb->sequence;
 
 	return ((left > right) - (left < right));
@@ -1102,9 +1108,11 @@ generate_ordering(void)
 	for (psl = seqlist; *psl; psl++) {
 		printf("%s%s",
 		    (last_seq == 0 ? "" :
-		    (do_parallel != true || last_seq != (*psl)->sequence) ?
-		    "\n" : " "),
-		(*psl)->filename);
+			    (do_parallel != true ||
+				last_seq != (*psl)->sequence) ?
+				     "\n" :
+				     " "),
+		    (*psl)->filename);
 		last_seq = (*psl)->sequence;
 		free((*psl)->filename);
 		free(*psl);

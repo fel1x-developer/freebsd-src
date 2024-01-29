@@ -3,9 +3,10 @@
  */
 
 #include <sys/types.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>			/* inet_ntoa */
 
+#include <netinet/in.h>
+
+#include <arpa/inet.h> /* inet_ntoa */
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
@@ -13,11 +14,11 @@
 #include <time.h>
 
 #include "bootp.h"
+#include "bootpd.h"
 #include "hash.h"
 #include "hwaddr.h"
-#include "report.h"
 #include "patchlevel.h"
-#include "bootpd.h"
+#include "report.h"
 
 #ifdef DEBUG
 static void dump_generic(FILE *, struct shared_bindata *);
@@ -25,7 +26,7 @@ static void dump_host(FILE *, struct host *);
 static void list_ipaddresses(FILE *, struct in_addr_list *);
 #endif
 
-#ifndef	DEBUG
+#ifndef DEBUG
 void
 dumptab(char *filename)
 {
@@ -89,8 +90,8 @@ dumptab(char *filename)
 	 * Open bootpd.dump file.
 	 */
 	if ((fp = fopen(filename, "w")) == NULL) {
-		report(LOG_ERR, "error opening \"%s\": %s",
-			   filename, get_errmsg());
+		report(LOG_ERR, "error opening \"%s\": %s", filename,
+		    get_errmsg());
 		exit(1);
 	}
 	t = time(NULL);
@@ -100,8 +101,8 @@ dumptab(char *filename)
 	fwrite(legend, 1, sizeof(legend) - 1, fp);
 
 	n = 0;
-	for (hp = (struct host *) hash_FirstEntry(nmhashtable); hp != NULL;
-		 hp = (struct host *) hash_NextEntry(nmhashtable)) {
+	for (hp = (struct host *)hash_FirstEntry(nmhashtable); hp != NULL;
+	     hp = (struct host *)hash_NextEntry(nmhashtable)) {
 		dump_host(fp, hp);
 		fprintf(fp, "\n");
 		n++;
@@ -110,8 +111,6 @@ dumptab(char *filename)
 
 	report(LOG_INFO, "dumped %d entries to \"%s\".", n, filename);
 }
-
-
 
 /*
  * Dump all the available information on the host pointed to by "hp".
@@ -123,8 +122,7 @@ dump_host(FILE *fp, struct host *hp)
 {
 	/* Print symbols in alphabetical order for reader's convenience. */
 	if (hp) {
-		fprintf(fp, "%s:", (hp->hostname ?
-							hp->hostname->string : "?"));
+		fprintf(fp, "%s:", (hp->hostname ? hp->hostname->string : "?"));
 		if (hp->flags.bootfile) {
 			fprintf(fp, "\\\n\t:bf=%s:", hp->bootfile->string);
 		}
@@ -175,10 +173,10 @@ dump_host(FILE *fp, struct host *hp)
 		}
 		if (hp->flags.htype) {
 			int hlen = haddrlength(hp->htype);
-			fprintf(fp, "\\\n\t:ht=%u:", (unsigned) hp->htype);
+			fprintf(fp, "\\\n\t:ht=%u:", (unsigned)hp->htype);
 			if (hp->flags.haddr) {
-				fprintf(fp, "ha=\"%s\":",
-						haddrtoa(hp->haddr, hlen));
+				fprintf(fp,
+				    "ha=\"%s\":", haddrtoa(hp->haddr, hlen));
 			}
 		}
 		if (hp->flags.impress_server) {
@@ -231,10 +229,12 @@ dump_host(FILE *fp, struct host *hp)
 			fprintf(fp, "\\\n\t:sa=%s:", inet_ntoa(hp->bootserver));
 		}
 		if (hp->flags.subnet_mask) {
-			fprintf(fp, "\\\n\t:sm=%s:", inet_ntoa(hp->subnet_mask));
+			fprintf(fp,
+			    "\\\n\t:sm=%s:", inet_ntoa(hp->subnet_mask));
 		}
 		if (hp->flags.swap_server) {
-			fprintf(fp, "\\\n\t:sw=%s:", inet_ntoa(hp->subnet_mask));
+			fprintf(fp,
+			    "\\\n\t:sw=%s:", inet_ntoa(hp->subnet_mask));
 		}
 		if (hp->flags.tftpdir) {
 			fprintf(fp, "\\\n\t:td=%s:", hp->tftpdir->string);
@@ -257,16 +257,15 @@ dump_host(FILE *fp, struct host *hp)
 			} else if (!bcmp(hp->vm_cookie, vm_cmu, 4)) {
 				fprintf(fp, "cmu:");
 			} else {
-				fprintf(fp, "%d.%d.%d.%d:",
-						(int) ((hp->vm_cookie)[0]),
-						(int) ((hp->vm_cookie)[1]),
-						(int) ((hp->vm_cookie)[2]),
-						(int) ((hp->vm_cookie)[3]));
+				fprintf(fp,
+				    "%d.%d.%d.%d:", (int)((hp->vm_cookie)[0]),
+				    (int)((hp->vm_cookie)[1]),
+				    (int)((hp->vm_cookie)[2]),
+				    (int)((hp->vm_cookie)[3]));
 			}
 		}
 		if (hp->flags.nis_domain) {
-			fprintf(fp, "\\\n\t:yd=%s:",
-					hp->nis_domain->string);
+			fprintf(fp, "\\\n\t:yd=%s:", hp->nis_domain->string);
 		}
 		if (hp->flags.nis_server) {
 			fprintf(fp, "\\\n\t:ys=");
@@ -283,7 +282,6 @@ dump_host(FILE *fp, struct host *hp)
 		}
 	}
 }
-
 
 static void
 dump_generic(FILE *fp, struct shared_bindata *generic)
@@ -315,8 +313,6 @@ dump_generic(FILE *fp, struct shared_bindata *generic)
 		fprintf(fp, ":");
 	}
 }
-
-
 
 /*
  * Dump an entire struct in_addr_list of IP addresses to the indicated file.

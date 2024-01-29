@@ -36,72 +36,66 @@
 #include <sys/param.h>
 
 /* Log Levels */
-#define MANA_ALERT	(1 << 0) /* Alerts are providing more error info.     */
-#define MANA_WARNING	(1 << 1) /* Driver output is more error sensitive.    */
-#define MANA_INFO	(1 << 2) /* Provides additional driver info.	      */
-#define MANA_DBG	(1 << 3) /* Driver output for debugging.	      */
+#define MANA_ALERT (1 << 0)   /* Alerts are providing more error info.     */
+#define MANA_WARNING (1 << 1) /* Driver output is more error sensitive.    */
+#define MANA_INFO (1 << 2)    /* Provides additional driver info.	      */
+#define MANA_DBG (1 << 3)     /* Driver output for debugging.	      */
 
 extern int mana_log_level;
 
-#define mana_trace_raw(ctx, level, fmt, args...)			\
-	do {							\
-		((void)(ctx));					\
-		if (((level) & mana_log_level) != (level))	\
-			break;					\
-		printf(fmt, ##args);				\
+#define mana_trace_raw(ctx, level, fmt, args...)           \
+	do {                                               \
+		((void)(ctx));                             \
+		if (((level) & mana_log_level) != (level)) \
+			break;                             \
+		printf(fmt, ##args);                       \
 	} while (0)
 
-#define mana_trace(ctx, level, fmt, args...)			\
-	mana_trace_raw(ctx, level, "%s() [TID:%d]: "		\
-	    fmt, __func__, curthread->td_tid, ##args)
+#define mana_trace(ctx, level, fmt, args...)                        \
+	mana_trace_raw(ctx, level, "%s() [TID:%d]: " fmt, __func__, \
+	    curthread->td_tid, ##args)
 
-
-#define mana_dbg(ctx, format, arg...)		\
-	mana_trace(ctx, MANA_DBG, format, ##arg)
-#define mana_info(ctx, format, arg...)		\
-	mana_trace(ctx, MANA_INFO, format, ##arg)
-#define mana_warn(ctx, format, arg...)		\
+#define mana_dbg(ctx, format, arg...) mana_trace(ctx, MANA_DBG, format, ##arg)
+#define mana_info(ctx, format, arg...) mana_trace(ctx, MANA_INFO, format, ##arg)
+#define mana_warn(ctx, format, arg...) \
 	mana_trace(ctx, MANA_WARNING, format, ##arg)
-#define mana_err(ctx, format, arg...)		\
-	mana_trace(ctx, MANA_ALERT, format, ##arg)
+#define mana_err(ctx, format, arg...) mana_trace(ctx, MANA_ALERT, format, ##arg)
 
-#define unlikely(x)	__predict_false(!!(x))
-#define likely(x)	__predict_true(!!(x))
+#define unlikely(x) __predict_false(!!(x))
+#define likely(x) __predict_true(!!(x))
 
+#define BITS_PER_LONG (sizeof(long) * NBBY)
 
-#define BITS_PER_LONG			(sizeof(long) * NBBY)
+#define BITMAP_FIRST_WORD_MASK(start) (~0UL << ((start) % BITS_PER_LONG))
+#define BITMAP_LAST_WORD_MASK(n) (~0UL >> (BITS_PER_LONG - (n)))
+#define BITS_TO_LONGS(n) howmany((n), BITS_PER_LONG)
+#define BIT_MASK(nr) (1UL << ((nr) & (BITS_PER_LONG - 1)))
+#define BIT_WORD(nr) ((nr) / BITS_PER_LONG)
 
-#define BITMAP_FIRST_WORD_MASK(start)	(~0UL << ((start) % BITS_PER_LONG))
-#define BITMAP_LAST_WORD_MASK(n)	(~0UL >> (BITS_PER_LONG - (n)))
-#define	BITS_TO_LONGS(n)	howmany((n), BITS_PER_LONG)
-#define	BIT_MASK(nr)		(1UL << ((nr) & (BITS_PER_LONG - 1)))
-#define	BIT_WORD(nr)		((nr) / BITS_PER_LONG)
+#undef ALIGN
+#define ALIGN(x, y) roundup2((x), (y))
+#define IS_ALIGNED(x, a) (((x) & ((__typeof(x))(a)-1)) == 0)
 
-#undef	ALIGN
-#define ALIGN(x, y)		roundup2((x), (y))
-#define IS_ALIGNED(x, a)	(((x) & ((__typeof(x))(a) - 1)) == 0)
+#define BIT(n) (1ULL << (n))
 
-#define BIT(n)			(1ULL << (n))
+#define PHYS_PFN(x) ((unsigned long)((x) >> PAGE_SHIFT))
+#define offset_in_page(x) ((x) & PAGE_MASK)
 
-#define PHYS_PFN(x)		((unsigned long)((x) >> PAGE_SHIFT))
-#define offset_in_page(x)	((x) & PAGE_MASK)
+#define min_t(type, _x, _y) ((type)(_x) < (type)(_y) ? (type)(_x) : (type)(_y))
 
-#define min_t(type, _x, _y)						\
-    ((type)(_x) < (type)(_y) ? (type)(_x) : (type)(_y))
-
-#define test_bit(i, a)							\
-    ((((volatile const unsigned long *)(a))[BIT_WORD(i)]) & BIT_MASK(i))
+#define test_bit(i, a) \
+	((((volatile const unsigned long *)(a))[BIT_WORD(i)]) & BIT_MASK(i))
 
 typedef volatile uint32_t atomic_t;
 
-#define	atomic_add_return(v, p)		(atomic_fetchadd_int(p, v) + (v))
-#define	atomic_sub_return(v, p)		(atomic_fetchadd_int(p, -(v)) - (v))
-#define	atomic_inc_return(p)		atomic_add_return(1, p)
-#define	atomic_dec_return(p)		atomic_sub_return(1, p)
-#define atomic_read(p)			atomic_add_return(0, p)
+#define atomic_add_return(v, p) (atomic_fetchadd_int(p, v) + (v))
+#define atomic_sub_return(v, p) (atomic_fetchadd_int(p, -(v)) - (v))
+#define atomic_inc_return(p) atomic_add_return(1, p)
+#define atomic_dec_return(p) atomic_sub_return(1, p)
+#define atomic_read(p) atomic_add_return(0, p)
 
-#define usleep_range(_1, _2)						\
-    pause_sbt("gdma-usleep-range", SBT_1US * _1, SBT_1US * 1, C_ABSOLUTE)
+#define usleep_range(_1, _2) \
+	pause_sbt("gdma-usleep-range", SBT_1US *_1, SBT_1US * 1, C_ABSOLUTE)
 
 static inline void
 gdma_msleep(unsigned int ms)

@@ -31,29 +31,27 @@
  */
 
 #ifndef __TEST_H__
-#define	__TEST_H__
+#define __TEST_H__
 
 #include <sys/linker_set.h>
 
 struct regression_test {
-	void	(*rt_function)(void);
+	void (*rt_function)(void);
 	const char *rt_name;
 };
 
-#define	TEST(function, name)						\
-	static struct regression_test _regtest_##function = {		\
-		(function),						\
-		(name)							\
-	};								\
+#define TEST(function, name)                                              \
+	static struct regression_test _regtest_##function = { (function), \
+		(name) };                                                 \
 	DATA_SET(regression_tests_set, _regtest_##function)
 
-void	fail(void);
-void	fail_err(const char *fmt, ...);
-void	pass(void);
-void	run_tests(void);
-void	skip(const char *reason);
-void	todo(const char *reason);
+void fail(void);
+void fail_err(const char *fmt, ...);
+void pass(void);
+void run_tests(void);
+void skip(const char *reason);
+void todo(const char *reason);
 
-#define	fail_errno(tag)		fail_err("%s: %s", (tag), strerror(errno))
+#define fail_errno(tag) fail_err("%s: %s", (tag), strerror(errno))
 
 #endif /* !__TEST_H__ */

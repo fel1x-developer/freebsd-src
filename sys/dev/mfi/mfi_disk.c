@@ -26,10 +26,11 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_mfi.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bio.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
@@ -39,45 +40,39 @@
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/rman.h>
 #include <sys/selinfo.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 #include <sys/uio.h>
-
-#include <geom/geom_disk.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
 
-#include <machine/md_var.h>
 #include <machine/bus.h>
-#include <sys/rman.h>
+#include <machine/md_var.h>
 
-#include <dev/mfi/mfireg.h>
 #include <dev/mfi/mfi_ioctl.h>
+#include <dev/mfi/mfireg.h>
 #include <dev/mfi/mfivar.h>
 
-static int	mfi_disk_probe(device_t dev);
-static int	mfi_disk_attach(device_t dev);
-static int	mfi_disk_detach(device_t dev);
+#include <geom/geom_disk.h>
 
-static disk_open_t	mfi_disk_open;
-static disk_close_t	mfi_disk_close;
-static disk_strategy_t	mfi_disk_strategy;
-static dumper_t		mfi_disk_dump;
+static int mfi_disk_probe(device_t dev);
+static int mfi_disk_attach(device_t dev);
+static int mfi_disk_detach(device_t dev);
 
-static device_method_t mfi_disk_methods[] = {
-	DEVMETHOD(device_probe,		mfi_disk_probe),
-	DEVMETHOD(device_attach,	mfi_disk_attach),
-	DEVMETHOD(device_detach,	mfi_disk_detach),
-	{ 0, 0 }
-};
+static disk_open_t mfi_disk_open;
+static disk_close_t mfi_disk_close;
+static disk_strategy_t mfi_disk_strategy;
+static dumper_t mfi_disk_dump;
 
-static driver_t mfi_disk_driver = {
-	"mfid",
-	mfi_disk_methods,
-	sizeof(struct mfi_disk)
-};
+static device_method_t mfi_disk_methods[] = { DEVMETHOD(device_probe,
+						  mfi_disk_probe),
+	DEVMETHOD(device_attach, mfi_disk_attach),
+	DEVMETHOD(device_detach, mfi_disk_detach), { 0, 0 } };
+
+static driver_t mfi_disk_driver = { "mfid", mfi_disk_methods,
+	sizeof(struct mfi_disk) };
 
 DRIVER_MODULE(mfid, mfi, mfi_disk_driver, 0, 0);
 
@@ -112,10 +107,9 @@ mfi_disk_attach(device_t dev)
 	secsize = MFI_SECTOR_LEN;
 	mtx_lock(&sc->ld_controller->mfi_io_lock);
 	TAILQ_INSERT_TAIL(&sc->ld_controller->mfi_ld_tqh, sc, ld_link);
-	TAILQ_FOREACH(ld_pend, &sc->ld_controller->mfi_ld_pend_tqh,
-	    ld_link) {
-		TAILQ_REMOVE(&sc->ld_controller->mfi_ld_pend_tqh,
-		    ld_pend, ld_link);
+	TAILQ_FOREACH (ld_pend, &sc->ld_controller->mfi_ld_pend_tqh, ld_link) {
+		TAILQ_REMOVE(&sc->ld_controller->mfi_ld_pend_tqh, ld_pend,
+		    ld_link);
 		free(ld_pend, M_MFIBUF);
 		break;
 	}
@@ -139,15 +133,15 @@ mfi_disk_attach(device_t dev)
 		break;
 	}
 
-	if ( strlen(ld_info->ld_config.properties.name) == 0 ) {
+	if (strlen(ld_info->ld_config.properties.name) == 0) {
 		device_printf(dev,
-		      "%juMB (%ju sectors) RAID volume (no label) is %s\n",
-		       sectors / (1024 * 1024 / secsize), sectors, state);
+		    "%juMB (%ju sectors) RAID volume (no label) is %s\n",
+		    sectors / (1024 * 1024 / secsize), sectors, state);
 	} else {
 		device_printf(dev,
-		      "%juMB (%ju sectors) RAID volume '%s' is %s\n",
-		      sectors / (1024 * 1024 / secsize), sectors,
-		      ld_info->ld_config.properties.name, state);
+		    "%juMB (%ju sectors) RAID volume '%s' is %s\n",
+		    sectors / (1024 * 1024 / secsize), sectors,
+		    ld_info->ld_config.properties.name, state);
 	}
 
 	sc->ld_disk = disk_alloc();
@@ -184,9 +178,9 @@ mfi_disk_detach(device_t dev)
 
 	mtx_lock(&sc->ld_controller->mfi_io_lock);
 	if (((sc->ld_disk->d_flags & DISKFLAG_OPEN) ||
-	    (sc->ld_flags & MFI_DISK_FLAGS_OPEN)) &&
+		(sc->ld_flags & MFI_DISK_FLAGS_OPEN)) &&
 	    (sc->ld_controller->mfi_keep_deleted_volumes ||
-	    sc->ld_controller->mfi_detaching)) {
+		sc->ld_controller->mfi_detaching)) {
 		mtx_unlock(&sc->ld_controller->mfi_io_lock);
 		return (EBUSY);
 	}
@@ -325,8 +319,8 @@ mfi_disk_dump(void *arg, void *virt, off_t offset, size_t len)
 	parent_sc = sc->ld_controller;
 
 	if (len > 0) {
-		if ((error = mfi_dump_blocks(parent_sc, sc->ld_id, offset /
-		    MFI_SECTOR_LEN, virt, len)) != 0)
+		if ((error = mfi_dump_blocks(parent_sc, sc->ld_id,
+			 offset / MFI_SECTOR_LEN, virt, len)) != 0)
 			return (error);
 	} else {
 		/* mfi_sync_cache(parent_sc, sc->ld_id); */

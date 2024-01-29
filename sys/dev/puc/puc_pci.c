@@ -61,27 +61,26 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/rman.h>
 #include <sys/sysctl.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
 
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
-
-#include <dev/puc/puc_cfg.h>
 #include <dev/puc/puc_bfe.h>
+#include <dev/puc/puc_cfg.h>
 #include <dev/puc/pucdata.c>
 
 static int puc_msi_disable;
-SYSCTL_INT(_hw_puc, OID_AUTO, msi_disable, CTLFLAG_RDTUN,
-    &puc_msi_disable, 0, "Disable use of MSI interrupts by puc(9)");
+SYSCTL_INT(_hw_puc, OID_AUTO, msi_disable, CTLFLAG_RDTUN, &puc_msi_disable, 0,
+    "Disable use of MSI interrupts by puc(9)");
 
 static const struct puc_cfg *
 puc_pci_match(device_t dev, const struct puc_cfg *desc)
@@ -98,7 +97,7 @@ puc_pci_match(device_t dev, const struct puc_cfg *desc)
 		if (desc->vendor == vendor && desc->device == device) {
 			/* exact match */
 			if (desc->subvendor == subvendor &&
-		            desc->subdevice == subdevice)
+			    desc->subdevice == subdevice)
 				return (desc);
 			/* wildcard match */
 			if (desc->subvendor == 0xffff)
@@ -170,22 +169,22 @@ puc_pci_detach(device_t dev)
 }
 
 static device_method_t puc_pci_methods[] = {
-    /* Device interface */
-    DEVMETHOD(device_probe,		puc_pci_probe),
-    DEVMETHOD(device_attach,		puc_pci_attach),
-    DEVMETHOD(device_detach,		puc_pci_detach),
+	/* Device interface */
+	DEVMETHOD(device_probe, puc_pci_probe),
+	DEVMETHOD(device_attach, puc_pci_attach),
+	DEVMETHOD(device_detach, puc_pci_detach),
 
-    DEVMETHOD(bus_alloc_resource,	puc_bus_alloc_resource),
-    DEVMETHOD(bus_release_resource,	puc_bus_release_resource),
-    DEVMETHOD(bus_get_resource,		puc_bus_get_resource),
-    DEVMETHOD(bus_read_ivar,		puc_bus_read_ivar),
-    DEVMETHOD(bus_setup_intr,		puc_bus_setup_intr),
-    DEVMETHOD(bus_teardown_intr,	puc_bus_teardown_intr),
-    DEVMETHOD(bus_print_child,		puc_bus_print_child),
-    DEVMETHOD(bus_child_pnpinfo,	puc_bus_child_pnpinfo),
-    DEVMETHOD(bus_child_location,	puc_bus_child_location),
+	DEVMETHOD(bus_alloc_resource, puc_bus_alloc_resource),
+	DEVMETHOD(bus_release_resource, puc_bus_release_resource),
+	DEVMETHOD(bus_get_resource, puc_bus_get_resource),
+	DEVMETHOD(bus_read_ivar, puc_bus_read_ivar),
+	DEVMETHOD(bus_setup_intr, puc_bus_setup_intr),
+	DEVMETHOD(bus_teardown_intr, puc_bus_teardown_intr),
+	DEVMETHOD(bus_print_child, puc_bus_print_child),
+	DEVMETHOD(bus_child_pnpinfo, puc_bus_child_pnpinfo),
+	DEVMETHOD(bus_child_location, puc_bus_child_location),
 
-    DEVMETHOD_END
+	DEVMETHOD_END
 };
 
 static driver_t puc_pci_driver = {

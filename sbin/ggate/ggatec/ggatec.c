@@ -12,7 +12,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -26,35 +26,35 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <string.h>
-#include <ctype.h>
-#include <inttypes.h>
-#include <libgen.h>
-#include <pthread.h>
-#include <signal.h>
-#include <err.h>
-#include <errno.h>
-#include <assert.h>
-
 #include <sys/param.h>
+#include <sys/bio.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
 #include <sys/syslog.h>
 #include <sys/time.h>
-#include <sys/bio.h>
+
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+
 #include <arpa/inet.h>
-
+#include <assert.h>
+#include <ctype.h>
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <geom/gate/g_gate.h>
-#include "ggate.h"
+#include <inttypes.h>
+#include <libgen.h>
+#include <pthread.h>
+#include <signal.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
+#include "ggate.h"
 
 static enum { UNSET, CREATE, DESTROY, LIST, RESCUE } action = UNSET;
 
@@ -78,11 +78,15 @@ static void
 usage(void)
 {
 
-	fprintf(stderr, "usage: %s create [-nv] [-o <ro|wo|rw>] [-p port] "
+	fprintf(stderr,
+	    "usage: %s create [-nv] [-o <ro|wo|rw>] [-p port] "
 	    "[-q queue_size] [-R rcvbuf] [-S sndbuf] [-s sectorsize] "
-	    "[-t timeout] [-u unit] <host> <path>\n", getprogname());
-	fprintf(stderr, "       %s rescue [-nv] [-o <ro|wo|rw>] [-p port] "
-	    "[-R rcvbuf] [-S sndbuf] <-u unit> <host> <path>\n", getprogname());
+	    "[-t timeout] [-u unit] <host> <path>\n",
+	    getprogname());
+	fprintf(stderr,
+	    "       %s rescue [-nv] [-o <ro|wo|rw>] [-p port] "
+	    "[-R rcvbuf] [-S sndbuf] <-u unit> <host> <path>\n",
+	    getprogname());
 	fprintf(stderr, "       %s destroy [-f] <-u unit>\n", getprogname());
 	fprintf(stderr, "       %s list [-v] [-u unit]\n", getprogname());
 	exit(EXIT_FAILURE);
@@ -125,8 +129,7 @@ send_thread(void *arg __unused)
 			g_gate_close_device();
 			exit(EXIT_SUCCESS);
 
-		case ENOMEM:
-		{
+		case ENOMEM: {
 			/* Buffer too small. */
 			g_gate_log(LOG_DEBUG, "buffer too small. new size: %u",
 			    ggio.gctl_length);
@@ -173,7 +176,8 @@ send_thread(void *arg __unused)
 		hdr.gh_error = 0;
 		g_gate_swap2n_hdr(&hdr);
 
-		numbytesprocd = g_gate_send(sendfd, &hdr, sizeof(hdr), MSG_NOSIGNAL);
+		numbytesprocd = g_gate_send(sendfd, &hdr, sizeof(hdr),
+		    MSG_NOSIGNAL);
 		g_gate_log(LOG_DEBUG, "Sent hdr packet.");
 		g_gate_swap2h_hdr(&hdr);
 		if (reconnect)
@@ -191,15 +195,17 @@ send_thread(void *arg __unused)
 			if (reconnect)
 				break;
 			if (numbytesprocd != ggio.gctl_length) {
-				g_gate_log(LOG_ERR, "Lost connection 2 (%zd != %zd).",
+				g_gate_log(LOG_ERR,
+				    "Lost connection 2 (%zd != %zd).",
 				    numbytesprocd, (ssize_t)ggio.gctl_length);
 				reconnect = 1;
 				pthread_kill(recvtd, SIGUSR1);
 				break;
 			}
-			g_gate_log(LOG_DEBUG, "Sent %zd bytes (offset=%"
-			    PRIu64 ", length=%" PRIu32 ").", numbytesprocd,
-			    hdr.gh_offset, hdr.gh_length);
+			g_gate_log(LOG_DEBUG,
+			    "Sent %zd bytes (offset=%" PRIu64
+			    ", length=%" PRIu32 ").",
+			    numbytesprocd, hdr.gh_offset, hdr.gh_length);
 		}
 	}
 	g_gate_log(LOG_DEBUG, "%s: Died.", __func__);
@@ -228,7 +234,8 @@ recv_thread(void *arg __unused)
 	}
 
 	for (;;) {
-		numbytesprocd = g_gate_recv(recvfd, &hdr, sizeof(hdr), MSG_WAITALL);
+		numbytesprocd = g_gate_recv(recvfd, &hdr, sizeof(hdr),
+		    MSG_WAITALL);
 		if (reconnect)
 			break;
 		g_gate_swap2h_hdr(&hdr);
@@ -255,7 +262,8 @@ recv_thread(void *arg __unused)
 				ggio.gctl_data = newbuf;
 				buf_capacity = ggio.gctl_length;
 			} else {
-				g_gate_log(LOG_ERR, "Received too big response: %zd",
+				g_gate_log(LOG_ERR,
+				    "Received too big response: %zd",
 				    ggio.gctl_length);
 				break;
 			}
@@ -273,9 +281,10 @@ recv_thread(void *arg __unused)
 				pthread_kill(sendtd, SIGUSR1);
 				break;
 			}
-			g_gate_log(LOG_DEBUG, "Received %d bytes (offset=%"
-			    PRIu64 ", length=%" PRIu32 ").", numbytesprocd,
-			    hdr.gh_offset, hdr.gh_length);
+			g_gate_log(LOG_DEBUG,
+			    "Received %d bytes (offset=%" PRIu64
+			    ", length=%" PRIu32 ").",
+			    numbytesprocd, hdr.gh_offset, hdr.gh_length);
 		}
 
 		g_gate_ioctl(G_GATE_CMD_DONE, &ggio);
@@ -366,7 +375,7 @@ handshake(int dir)
 	cinit.gc_nconn = 2;
 	g_gate_swap2n_cinit(&cinit);
 	if (g_gate_send(sfd, &cinit, sizeof(cinit), MSG_NOSIGNAL) == -1) {
-	        g_gate_log(LOG_DEBUG, "Error while sending initial packet: %s.",
+		g_gate_log(LOG_DEBUG, "Error while sending initial packet: %s.",
 		    strerror(errno));
 		close(sfd);
 		return (-1);
@@ -385,7 +394,7 @@ handshake(int dir)
 	}
 	g_gate_swap2h_sinit(&sinit);
 	if (sinit.gs_error != 0) {
-	        g_gate_log(LOG_DEBUG, "Error from server: %s.",
+		g_gate_log(LOG_DEBUG, "Error from server: %s.",
 		    strerror(sinit.gs_error));
 		close(sfd);
 		return (-1);

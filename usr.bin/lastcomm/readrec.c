@@ -27,18 +27,18 @@
  *
  */
 
-#include <sys/param.h>
-#include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/acct.h>
+#include <sys/stat.h>
 
 #include <errno.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
 
-int	 readrec_forward(FILE *f, struct acctv3 *av2);
-int	 readrec_backward(FILE *f, struct acctv3 *av2);
+int readrec_forward(FILE *f, struct acctv3 *av2);
+int readrec_backward(FILE *f, struct acctv3 *av2);
 
 /*
  * Reverse offsetof: return the offset of field f
@@ -168,8 +168,7 @@ readrec_vx(FILE *f, struct acctv3 *av3)
 
 	if (fread_record(&magic, sizeof(magic), f) == EOF ||
 	    fread_record(&version, sizeof(version), f) == EOF ||
-	    ungetc(version, f) == EOF ||
-	    ungetc(magic, f) == EOF)
+	    ungetc(version, f) == EOF || ungetc(magic, f) == EOF)
 		return (EOF);
 	switch (version) {
 	case 2:
@@ -177,7 +176,7 @@ readrec_vx(FILE *f, struct acctv3 *av3)
 	case 3:
 		return (readrec_v3(f, av3));
 
-	/* Add handling for more versions here. */
+		/* Add handling for more versions here. */
 
 	default:
 		errno = EFTYPE;
@@ -232,8 +231,7 @@ readrec_backward(FILE *f, struct acctv3 *av3)
 		return (EOF);
 	if (pos == 0)
 		return (0);
-	if (fseek(f, -roffsetof(struct acctv3, ac_trailer),
-	    SEEK_CUR) == EOF ||
+	if (fseek(f, -roffsetof(struct acctv3, ac_trailer), SEEK_CUR) == EOF ||
 	    (c = getc(f)) == EOF)
 		return (EOF);
 	if (c & ANVER) {
@@ -242,7 +240,7 @@ readrec_backward(FILE *f, struct acctv3 *av3)
 		 * end for ac_len2 should be same.
 		 */
 		if (fseeko(f, pos - roffsetof(struct acctv2, ac_len2),
-		    SEEK_SET) == EOF ||
+			SEEK_SET) == EOF ||
 		    fread_record(&len, sizeof(len), f) == EOF ||
 		    fseeko(f, pos - len, SEEK_SET) == EOF ||
 		    readrec_vx(f, av3) == EOF ||

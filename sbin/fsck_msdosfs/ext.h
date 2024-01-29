@@ -27,7 +27,7 @@
  */
 
 #ifndef EXT_H
-#define	EXT_H
+#define EXT_H
 
 #include <sys/types.h>
 
@@ -35,17 +35,17 @@
 
 #include "dosfs.h"
 
-#define	LOSTDIR	"LOST.DIR"
+#define LOSTDIR "LOST.DIR"
 
 /*
  * Options:
  */
-extern int alwaysno;	/* assume "no" for all questions */
-extern int alwaysyes;	/* assume "yes" for all questions */
-extern int preen;	/* we are preening */
-extern int rdonly;	/* device is opened read only (supersedes above) */
-extern int skipclean;	/* skip clean file systems if preening */
-extern int allow_mmap;  /* allow the use of mmap() */
+extern int alwaysno;   /* assume "no" for all questions */
+extern int alwaysyes;  /* assume "yes" for all questions */
+extern int preen;      /* we are preening */
+extern int rdonly;     /* device is opened read only (supersedes above) */
+extern int skipclean;  /* skip clean file systems if preening */
+extern int allow_mmap; /* allow the use of mmap() */
 
 /*
  * function declarations
@@ -67,13 +67,13 @@ int checkfilesys(const char *);
 /*
  * Return values of various functions
  */
-#define	FSOK		0		/* Check was OK */
-#define	FSBOOTMOD	1		/* Boot block was modified */
-#define	FSDIRMOD	2		/* Some directory was modified */
-#define	FSFATMOD	4		/* The FAT was modified */
-#define	FSERROR		8		/* Some unrecovered error remains */
-#define	FSFATAL		16		/* Some unrecoverable error occurred */
-#define	FSDIRTY		32		/* File system is dirty */
+#define FSOK 0	    /* Check was OK */
+#define FSBOOTMOD 1 /* Boot block was modified */
+#define FSDIRMOD 2  /* Some directory was modified */
+#define FSFATMOD 4  /* The FAT was modified */
+#define FSERROR 8   /* Some unrecovered error remains */
+#define FSFATAL 16  /* Some unrecoverable error occurred */
+#define FSDIRTY 32  /* File system is dirty */
 
 /*
  * read a boot block in a machine independent fashion and translate
@@ -100,7 +100,7 @@ int fat_set_cl_next(struct fat_descriptor *, cl_t, cl_t);
 
 cl_t fat_allocate_cluster(struct fat_descriptor *fat);
 
-struct bootblock* fat_get_boot(struct fat_descriptor *);
+struct bootblock *fat_get_boot(struct fat_descriptor *);
 int fat_get_fd(struct fat_descriptor *);
 bool fat_is_valid_cl(struct fat_descriptor *, cl_t);
 

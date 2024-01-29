@@ -40,4 +40,4 @@ __ttyslot(void)
 	return (0);
 }
 
-__sym_compat(ttyslot, __ttyslot, FBSD_1.0);
+__sym_compat(ttyslot, __ttyslot, FBSD_1 .0);

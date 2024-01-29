@@ -42,9 +42,9 @@
 #include <dev/iicbus/iicbus.h>
 #include <dev/iicbus/iiconf.h>
 #ifdef FDT
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
 #endif
 
 #include <dev/iicbus/rtc/ds3231reg.h>
@@ -53,14 +53,14 @@
 #include "iicbus_if.h"
 
 struct ds3231_softc {
-	device_t	sc_dev;
-	int		sc_last_c;
-	int		sc_year0;
-	struct intr_config_hook	enum_hook;
-	uint16_t	sc_addr;	/* DS3231 slave address. */
-	uint8_t		sc_ctrl;
-	uint8_t		sc_status;
-	bool		sc_use_ampm;
+	device_t sc_dev;
+	int sc_last_c;
+	int sc_year0;
+	struct intr_config_hook enum_hook;
+	uint16_t sc_addr; /* DS3231 slave address. */
+	uint8_t sc_ctrl;
+	uint8_t sc_status;
+	bool sc_use_ampm;
 };
 
 static void ds3231_start(void *);
@@ -508,13 +508,13 @@ ds3231_gettime(device_t dev, struct timespec *ts)
 		hourmask = DS3231_HOUR_MASK_24HR;
 
 	bct.nsec = 0;
-	bct.sec  = data[DS3231_SECS]  & DS3231_SECS_MASK;
-	bct.min  = data[DS3231_MINS]  & DS3231_MINS_MASK;
-	bct.hour = data[DS3231_HOUR]  & hourmask;
-	bct.day  = data[DS3231_DATE]  & DS3231_DATE_MASK;
-	bct.mon  = data[DS3231_MONTH] & DS3231_MONTH_MASK;
-	bct.year = data[DS3231_YEAR]  & DS3231_YEAR_MASK;
-	bct.ispm = data[DS3231_HOUR]  & DS3231_HOUR_IS_PM;
+	bct.sec = data[DS3231_SECS] & DS3231_SECS_MASK;
+	bct.min = data[DS3231_MINS] & DS3231_MINS_MASK;
+	bct.hour = data[DS3231_HOUR] & hourmask;
+	bct.day = data[DS3231_DATE] & DS3231_DATE_MASK;
+	bct.mon = data[DS3231_MONTH] & DS3231_MONTH_MASK;
+	bct.year = data[DS3231_YEAR] & DS3231_YEAR_MASK;
+	bct.ispm = data[DS3231_HOUR] & DS3231_HOUR_IS_PM;
 
 	/*
 	 * If the century flag has toggled since we last saw it, there has been
@@ -530,7 +530,7 @@ ds3231_gettime(device_t dev, struct timespec *ts)
 	}
 	bct.year |= sc->sc_year0;
 
-	clock_dbgprint_bcd(sc->sc_dev, CLOCK_DBG_READ, &bct); 
+	clock_dbgprint_bcd(sc->sc_dev, CLOCK_DBG_READ, &bct);
 	return (clock_bcd_to_ts(&bct, ts, sc->sc_use_ampm));
 }
 
@@ -551,7 +551,7 @@ ds3231_settime(device_t dev, struct timespec *ts)
 	 */
 	ts->tv_sec -= utc_offset();
 	clock_ts_to_bcd(ts, &bct, sc->sc_use_ampm);
-	clock_dbgprint_bcd(sc->sc_dev, CLOCK_DBG_WRITE, &bct); 
+	clock_dbgprint_bcd(sc->sc_dev, CLOCK_DBG_WRITE, &bct);
 
 	/* If the chip is in AM/PM mode, adjust hour and set flags as needed. */
 	if (sc->sc_use_ampm) {
@@ -561,13 +561,13 @@ ds3231_settime(device_t dev, struct timespec *ts)
 	} else
 		pmflags = 0;
 
-	data[DS3231_SECS]    = bct.sec;
-	data[DS3231_MINS]    = bct.min;
-	data[DS3231_HOUR]    = bct.hour | pmflags;
-	data[DS3231_DATE]    = bct.day;
+	data[DS3231_SECS] = bct.sec;
+	data[DS3231_MINS] = bct.min;
+	data[DS3231_HOUR] = bct.hour | pmflags;
+	data[DS3231_DATE] = bct.day;
 	data[DS3231_WEEKDAY] = bct.dow + 1;
-	data[DS3231_MONTH]   = bct.mon;
-	data[DS3231_YEAR]    = bct.year & 0xff;
+	data[DS3231_MONTH] = bct.mon;
+	data[DS3231_YEAR] = bct.year & 0xff;
 	if (sc->sc_last_c)
 		data[DS3231_MONTH] |= DS3231_C_MASK;
 
@@ -598,16 +598,15 @@ ds3231_settime(device_t dev, struct timespec *ts)
 	return (error);
 }
 
-static device_method_t ds3231_methods[] = {
-	DEVMETHOD(device_probe,		ds3231_probe),
-	DEVMETHOD(device_attach,	ds3231_attach),
-	DEVMETHOD(device_detach,	ds3231_detach),
+static device_method_t ds3231_methods[] = { DEVMETHOD(device_probe,
+						ds3231_probe),
+	DEVMETHOD(device_attach, ds3231_attach),
+	DEVMETHOD(device_detach, ds3231_detach),
 
-	DEVMETHOD(clock_gettime,	ds3231_gettime),
-	DEVMETHOD(clock_settime,	ds3231_settime),
+	DEVMETHOD(clock_gettime, ds3231_gettime),
+	DEVMETHOD(clock_settime, ds3231_settime),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 static driver_t ds3231_driver = {
 	"ds3231",

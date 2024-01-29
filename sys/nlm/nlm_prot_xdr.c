@@ -3,8 +3,9 @@
  * It was generated using rpcgen.
  */
 
-#include <nlm/nlm_prot.h>
 #include <sys/cdefs.h>
+
+#include <nlm/nlm_prot.h>
 #ifndef lint
 __RCSID("$NetBSD: nlm_prot.x,v 1.6 2000/06/07 14:30:15 bouyer Exp $");
 #endif /* not lint */

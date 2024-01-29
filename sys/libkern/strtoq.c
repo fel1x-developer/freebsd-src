@@ -69,8 +69,7 @@ strtoq(const char *nptr, char **endptr, int base)
 		if (c == '+')
 			c = *s++;
 	}
-	if ((base == 0 || base == 16) &&
-	    c == '0' && (*s == 'x' || *s == 'X')) {
+	if ((base == 0 || base == 16) && c == '0' && (*s == 'x' || *s == 'X')) {
 		c = s[1];
 		s += 2;
 		base = 16;
@@ -97,7 +96,7 @@ strtoq(const char *nptr, char **endptr, int base)
 	 * overflow.
 	 */
 	qbase = (unsigned)base;
-	cutoff = neg ? (u_quad_t)-(QUAD_MIN + QUAD_MAX) + QUAD_MAX : QUAD_MAX;
+	cutoff = neg ? (u_quad_t) - (QUAD_MIN + QUAD_MAX) + QUAD_MAX : QUAD_MAX;
 	cutlim = cutoff % qbase;
 	cutoff /= qbase;
 	for (acc = 0, any = 0;; c = *s++) {

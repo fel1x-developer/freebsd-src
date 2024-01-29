@@ -28,13 +28,13 @@
  */
 
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/sysctl.h>
 
-#include <arpa/inet.h>
 #include <netinet/in.h>
 
+#include <arpa/inet.h>
 #include <err.h>
 #include <errno.h>
 #include <stdarg.h>
@@ -45,12 +45,12 @@
 
 #include "jailp.h"
 
-#define JP_RDTUN(jp)	(((jp)->jp_ctltype & CTLFLAG_RDTUN) == CTLFLAG_RDTUN)
+#define JP_RDTUN(jp) (((jp)->jp_ctltype & CTLFLAG_RDTUN) == CTLFLAG_RDTUN)
 
 struct permspec {
-	const char	*name;
-	enum intparam	ipnum;
-	int		rev;
+	const char *name;
+	enum intparam ipnum;
+	int rev;
 };
 
 int iflag;
@@ -73,60 +73,37 @@ static void quoted_print(FILE *fp, char *str);
 static void usage(void) __dead2;
 
 static struct permspec perm_sysctl[] = {
-    { "security.jail.set_hostname_allowed", KP_ALLOW_SET_HOSTNAME, 0 },
-    { "security.jail.sysvipc_allowed", KP_ALLOW_SYSVIPC, 0 },
-    { "security.jail.allow_raw_sockets", KP_ALLOW_RAW_SOCKETS, 0 },
-    { "security.jail.chflags_allowed", KP_ALLOW_CHFLAGS, 0 },
-    { "security.jail.mount_allowed", KP_ALLOW_MOUNT, 0 },
-    { "security.jail.socket_unixiproute_only", KP_ALLOW_SOCKET_AF, 1 },
+	{ "security.jail.set_hostname_allowed", KP_ALLOW_SET_HOSTNAME, 0 },
+	{ "security.jail.sysvipc_allowed", KP_ALLOW_SYSVIPC, 0 },
+	{ "security.jail.allow_raw_sockets", KP_ALLOW_RAW_SOCKETS, 0 },
+	{ "security.jail.chflags_allowed", KP_ALLOW_CHFLAGS, 0 },
+	{ "security.jail.mount_allowed", KP_ALLOW_MOUNT, 0 },
+	{ "security.jail.socket_unixiproute_only", KP_ALLOW_SOCKET_AF, 1 },
 };
 
-static const enum intparam startcommands[] = {
-    IP__NULL,
-    IP_EXEC_PREPARE,
+static const enum intparam startcommands[] = { IP__NULL, IP_EXEC_PREPARE,
 #ifdef INET
-    IP__IP4_IFADDR,
+	IP__IP4_IFADDR,
 #endif
 #ifdef INET6
-    IP__IP6_IFADDR,
+	IP__IP6_IFADDR,
 #endif
-    IP_MOUNT,
-    IP__MOUNT_FROM_FSTAB,
-    IP_MOUNT_DEVFS,
-    IP_MOUNT_FDESCFS,
-    IP_MOUNT_PROCFS,
-    IP_EXEC_PRESTART,
-    IP__OP,
-    IP_EXEC_CREATED,
-    IP_ZFS_DATASET,
-    IP_VNET_INTERFACE,
-    IP_EXEC_START,
-    IP_COMMAND,
-    IP_EXEC_POSTSTART,
-    IP__NULL
-};
+	IP_MOUNT, IP__MOUNT_FROM_FSTAB, IP_MOUNT_DEVFS, IP_MOUNT_FDESCFS,
+	IP_MOUNT_PROCFS, IP_EXEC_PRESTART, IP__OP, IP_EXEC_CREATED,
+	IP_ZFS_DATASET, IP_VNET_INTERFACE, IP_EXEC_START, IP_COMMAND,
+	IP_EXEC_POSTSTART, IP__NULL };
 
-static const enum intparam stopcommands[] = {
-    IP__NULL,
-    IP_EXEC_PRESTOP,
-    IP_EXEC_STOP,
-    IP_STOP_TIMEOUT,
-    IP__OP,
-    IP_EXEC_POSTSTOP,
-    IP_MOUNT_PROCFS,
-    IP_MOUNT_FDESCFS,
-    IP_MOUNT_DEVFS,
-    IP__MOUNT_FROM_FSTAB,
-    IP_MOUNT,
+static const enum intparam stopcommands[] = { IP__NULL, IP_EXEC_PRESTOP,
+	IP_EXEC_STOP, IP_STOP_TIMEOUT, IP__OP, IP_EXEC_POSTSTOP,
+	IP_MOUNT_PROCFS, IP_MOUNT_FDESCFS, IP_MOUNT_DEVFS, IP__MOUNT_FROM_FSTAB,
+	IP_MOUNT,
 #ifdef INET6
-    IP__IP6_IFADDR,
+	IP__IP6_IFADDR,
 #endif
 #ifdef INET
-    IP__IP4_IFADDR,
+	IP__IP4_IFADDR,
 #endif
-    IP_EXEC_RELEASE,
-    IP__NULL
-};
+	IP_EXEC_RELEASE, IP__NULL };
 
 int
 main(int argc, char **argv)
@@ -260,8 +237,9 @@ main(int argc, char **argv)
 					*ncs = '\0';
 				add_param(NULL, NULL,
 #if defined(INET) && defined(INET6)
-				    inet_pton(AF_INET6, cs, &addr6) == 1
-				    ? KP_IP6_ADDR : KP_IP4_ADDR,
+				    inet_pton(AF_INET6, cs, &addr6) == 1 ?
+					KP_IP6_ADDR :
+					KP_IP4_ADDR,
 #elif defined(INET)
 				    KP_IP4_ADDR,
 #elif defined(INET6)
@@ -278,17 +256,20 @@ main(int argc, char **argv)
 		/* Emulate the defaults from security.jail.* sysctls. */
 		sysvallen = sizeof(sysval);
 		if (sysctlbyname("security.jail.jailed", &sysval, &sysvallen,
-		    NULL, 0) == 0 && sysval == 0) {
-			for (pi = 0; pi < sizeof(perm_sysctl) /
-			     sizeof(perm_sysctl[0]); pi++) {
+			NULL, 0) == 0 &&
+		    sysval == 0) {
+			for (pi = 0;
+			     pi < sizeof(perm_sysctl) / sizeof(perm_sysctl[0]);
+			     pi++) {
 				sysvallen = sizeof(sysval);
-				if (sysctlbyname(perm_sysctl[pi].name,
-				    &sysval, &sysvallen, NULL, 0) == 0)
+				if (sysctlbyname(perm_sysctl[pi].name, &sysval,
+					&sysvallen, NULL, 0) == 0)
 					add_param(NULL, NULL,
 					    perm_sysctl[pi].ipnum,
 					    (sysval ? 1 : 0) ^
-					    perm_sysctl[pi].rev
-					    ? NULL : "false");
+						    perm_sysctl[pi].rev ?
+						NULL :
+						"false");
 			}
 		}
 	} else if (op == JF_STOP) {
@@ -300,7 +281,7 @@ main(int argc, char **argv)
 				if (strchr(argv[i], '='))
 					usage();
 		if ((docf = !Rflag &&
-		     (!strcmp(cfname, "-") || stat(cfname, &st) == 0)))
+			    (!strcmp(cfname, "-") || stat(cfname, &st) == 0)))
 			load_config(cfname);
 		note_remove = docf || argc > 1 || wild_jail_name(argv[0]);
 	} else if (argc > 1 || (argc == 1 && strchr(argv[0], '='))) {
@@ -311,7 +292,7 @@ main(int argc, char **argv)
 		for (i = 0; i < argc; i++) {
 			if (!strncmp(argv[i], "command", 7) &&
 			    (argv[i][7] == '\0' || argv[i][7] == '=')) {
-				if (argv[i][7]  == '=')
+				if (argv[i][7] == '=')
 					add_param(NULL, NULL, IP_COMMAND,
 					    argv[i] + 8);
 				for (i++; i < argc; i++)
@@ -379,8 +360,7 @@ main(int argc, char **argv)
 	 * or it may go back for the next step.
 	 */
 	dying_warned = 0;
-	while ((j = next_jail()))
-	{
+	while ((j = next_jail())) {
 		if (j->flags & JF_FAILED) {
 			error = 1;
 			if (j->comparam == NULL) {
@@ -388,8 +368,7 @@ main(int argc, char **argv)
 				continue;
 			}
 		}
-		if (!(j->flags & JF_PARAMS))
-		{
+		if (!(j->flags & JF_PARAMS)) {
 			j->flags |= JF_PARAMS;
 			if (dflag)
 				add_param(j, NULL, IP_ALLOW_DYING, NULL);
@@ -400,7 +379,8 @@ main(int argc, char **argv)
 				continue;
 		}
 		if (j->intparams[IP_ALLOW_DYING] && !dying_warned) {
-			warnx("%s", "the 'allow.dying' parameter and '-d' flag"
+			warnx("%s",
+			    "the 'allow.dying' parameter and '-d' flag"
 			    "are deprecated and have no effect.");
 			dying_warned = 1;
 		}
@@ -429,8 +409,9 @@ main(int argc, char **argv)
 				dep_reset(j);
 			break;
 		case JF_START_SET_RESTART:
-			j->flags = j->jid < 0 ? JF_START
-			    : rdtun_params(j, 0) ? JF_RESTART : JF_SET;
+			j->flags = j->jid < 0  ? JF_START :
+			    rdtun_params(j, 0) ? JF_RESTART :
+						 JF_SET;
 			if (j->flags == JF_RESTART)
 				dep_reset(j);
 		}
@@ -486,7 +467,8 @@ main(int argc, char **argv)
 				if (dep_check(j))
 					continue;
 				if (j->jid < 0) {
-					if (!(j->flags & (JF_DEPEND|JF_WILD))) {
+					if (!(j->flags &
+						(JF_DEPEND | JF_WILD))) {
 						if (verbose >= 0)
 							jail_quoted_warnx(j,
 							    "not found", NULL);
@@ -648,9 +630,9 @@ create_jail(struct cfjail *j)
 	 */
 	dopersist = !bool_param(j->intparams[KP_PERSIST]) &&
 	    (j->intparams[IP_EXEC_START] || j->intparams[IP_COMMAND] ||
-	     j->intparams[IP_EXEC_POSTSTART]);
-	sjp = setparams =
-	    alloca((j->njp + dopersist) * sizeof(struct jailparam));
+		j->intparams[IP_EXEC_POSTSTART]);
+	sjp = setparams = alloca(
+	    (j->njp + dopersist) * sizeof(struct jailparam));
 	if (dopersist && jailparam_init(sjp++, "persist") < 0) {
 		jail_warnx(j, "%s", jail_errmsg);
 		return -1;
@@ -774,8 +756,9 @@ rdtun_params(struct cfjail *j, int dofail)
 				jp_value = jp->jp_value;
 				jp_valuelen = jp->jp_valuelen;
 				if (jp_value == NULL && jp_valuelen > 0) {
-					if (jp->jp_flags & (JP_BOOL |
-					    JP_NOBOOL | JP_JAILSYS)) {
+					if (jp->jp_flags &
+					    (JP_BOOL | JP_NOBOOL |
+						JP_JAILSYS)) {
 						bool_true = 1;
 						jp_value = &bool_true;
 						jp_valuelen = sizeof(bool_true);
@@ -786,12 +769,14 @@ rdtun_params(struct cfjail *j, int dofail)
 						jp_valuelen = 0;
 				}
 				if (rtjp->jp_valuelen != jp_valuelen ||
-				    (CTLTYPE_STRING ? strncmp(rtjp->jp_value,
-				    jp_value, jp_valuelen)
-				    : memcmp(rtjp->jp_value, jp_value,
-				    jp_valuelen))) {
+				    (CTLTYPE_STRING ?
+					    strncmp(rtjp->jp_value, jp_value,
+						jp_valuelen) :
+					    memcmp(rtjp->jp_value, jp_value,
+						jp_valuelen))) {
 					if (dofail) {
-						jail_warnx(j, "%s cannot be "
+						jail_warnx(j,
+						    "%s cannot be "
 						    "changed after creation",
 						    jp->jp_name);
 						failed(j);
@@ -870,8 +855,9 @@ jailparam_set_note(const struct cfjail *j, struct jailparam *jp, unsigned njp,
 	jid = jailparam_set(jp, njp, flags);
 	if (verbose > 0) {
 		jail_note(j, "jail_set(%s)",
-		    (flags & (JAIL_CREATE | JAIL_UPDATE)) == JAIL_CREATE
-		    ? "JAIL_CREATE" : "JAIL_UPDATE");
+		    (flags & (JAIL_CREATE | JAIL_UPDATE)) == JAIL_CREATE ?
+			"JAIL_CREATE" :
+			"JAIL_UPDATE");
 		for (i = 0; i < njp; i++) {
 			printf(" %s", jp[i].jp_name);
 			if (jp[i].jp_value == NULL)
@@ -913,7 +899,7 @@ print_jail(FILE *fp, struct cfjail *j, int oldcl, int running)
 		    !TAILQ_EMPTY(&j->intparams[KP_IP4_ADDR]->val) &&
 		    j->intparams[KP_IP6_ADDR] &&
 		    !TAILQ_EMPTY(&j->intparams[KP_IP6_ADDR]->val))
-		    putc(',', fp);
+			putc(',', fp);
 #endif
 #endif
 #ifdef INET6
@@ -927,7 +913,7 @@ print_jail(FILE *fp, struct cfjail *j, int oldcl, int running)
 			fprintf(fp, "jid=%d", j->jid);
 			printsep = 1;
 		}
-		TAILQ_FOREACH(p, &j->params, tq)
+		TAILQ_FOREACH (p, &j->params, tq)
 			if (strcmp(p->name, "jid")) {
 				if (printsep)
 					fputs(separator, fp);
@@ -946,8 +932,8 @@ static void
 show_jails(void)
 {
 	struct cfjail *j;
-	
-	TAILQ_FOREACH(j, &cfjails, tq)
+
+	TAILQ_FOREACH (j, &cfjails, tq)
 		print_jail(stdout, j, 0, 0);
 }
 
@@ -965,7 +951,7 @@ print_param(FILE *fp, const struct cfparam *p, int sep, int doname)
 		return;
 	if (doname)
 		putc('=', fp);
-	TAILQ_FOREACH_SAFE(s, &p->val, tq, ts) {
+	TAILQ_FOREACH_SAFE (s, &p->val, tq, ts) {
 		quoted_print(fp, s->s);
 		if (ts != NULL)
 			putc(sep, fp);
@@ -981,11 +967,11 @@ quoted_print(FILE *fp, char *str)
 	int c, qc;
 	char *p = str;
 
-	qc = !*p ? '"'
-	    : strchr(p, '\'') ? '"'
-	    : strchr(p, '"') ? '\''
-	    : strchr(p, ' ') || strchr(p, '\t') ? '"'
-	    : 0;
+	qc = !*p			      ? '"' :
+	    strchr(p, '\'')		      ? '"' :
+	    strchr(p, '"')		      ? '\'' :
+	    strchr(p, ' ') || strchr(p, '\t') ? '"' :
+						0;
 	if (qc)
 		putc(qc, fp);
 	while ((c = *p++)) {

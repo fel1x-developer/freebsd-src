@@ -12,8 +12,8 @@
 void
 printtunable(ipftune_t *tup)
 {
-	PRINTF("%s\tmin %lu\tmax %lu\tcurrent ",
-		tup->ipft_name, tup->ipft_min, tup->ipft_max);
+	PRINTF("%s\tmin %lu\tmax %lu\tcurrent ", tup->ipft_name, tup->ipft_min,
+	    tup->ipft_max);
 	if (tup->ipft_sz == sizeof(u_long))
 		PRINTF("%lu\n", tup->ipft_vlong);
 	else if (tup->ipft_sz == sizeof(u_int))

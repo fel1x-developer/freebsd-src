@@ -17,34 +17,34 @@
  * OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "port_before.h"
-
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/nameser.h>
-#include <arpa/inet.h>
 
+#include <netinet/in.h>
+
+#include <arpa/inet.h>
+#include <arpa/nameser.h>
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "port_after.h"
+#include "port_before.h"
 
 #ifdef SPRINTF_CHAR
-# define SPRINTF(x) strlen(sprintf/**/x)
+#define SPRINTF(x) strlen(sprintf /**/ x)
 #else
-# define SPRINTF(x) ((size_t)sprintf x)
+#define SPRINTF(x) ((size_t)sprintf x)
 #endif
 
-static int	inet_cidr_pton_ipv4 (const char *src, u_char *dst, int *bits,
-				     int ipv6);
-static int	inet_cidr_pton_ipv6 (const char *src, u_char *dst, int *bits);
+static int inet_cidr_pton_ipv4(const char *src, u_char *dst, int *bits,
+    int ipv6);
+static int inet_cidr_pton_ipv6(const char *src, u_char *dst, int *bits);
 
-static int	getbits(const char *, int ipv6);
+static int getbits(const char *, int ipv6);
 
 /*%
  * int
@@ -64,7 +64,8 @@ static int	getbits(const char *, int ipv6);
  *	Paul Vixie (ISC), October 1998
  */
 int
-inet_cidr_pton(int af, const char *src, void *dst, int *bits) {
+inet_cidr_pton(int af, const char *src, void *dst, int *bits)
+{
 	switch (af) {
 	case AF_INET:
 		return (inet_cidr_pton_ipv4(src, dst, bits, 0));
@@ -79,7 +80,8 @@ inet_cidr_pton(int af, const char *src, void *dst, int *bits) {
 static const char digits[] = "0123456789";
 
 static int
-inet_cidr_pton_ipv4(const char *src, u_char *dst, int *pbits, int ipv6) {
+inet_cidr_pton_ipv4(const char *src, u_char *dst, int *pbits, int ipv6)
+{
 	const u_char *odst = dst;
 	int n, ch, tmp, bits;
 	size_t size = 4;
@@ -97,7 +99,7 @@ inet_cidr_pton_ipv4(const char *src, u_char *dst, int *pbits, int ipv6) {
 		} while ((ch = *src++) != '\0' && isascii(ch) && isdigit(ch));
 		if (size-- == 0U)
 			goto emsgsize;
-		*dst++ = (u_char) tmp;
+		*dst++ = (u_char)tmp;
 		if (ch == '\0' || ch == '/')
 			break;
 		if (ch != '.')
@@ -136,17 +138,18 @@ inet_cidr_pton_ipv4(const char *src, u_char *dst, int *pbits, int ipv6) {
 	*pbits = bits;
 	return (0);
 
- enoent:
+enoent:
 	errno = ENOENT;
 	return (-1);
 
- emsgsize:
+emsgsize:
 	errno = EMSGSIZE;
 	return (-1);
 }
 
 static int
-inet_cidr_pton_ipv6(const char *src, u_char *dst, int *pbits) {
+inet_cidr_pton_ipv6(const char *src, u_char *dst, int *pbits)
+{
 	static const char xdigits_l[] = "0123456789abcdef",
 			  xdigits_u[] = "0123456789ABCDEF";
 	u_char tmp[NS_IN6ADDRSZ], *tp, *endp, *colonp;
@@ -191,8 +194,8 @@ inet_cidr_pton_ipv6(const char *src, u_char *dst, int *pbits) {
 			}
 			if (tp + NS_INT16SZ > endp)
 				return (0);
-			*tp++ = (u_char) (val >> 8) & 0xff;
-			*tp++ = (u_char) val & 0xff;
+			*tp++ = (u_char)(val >> 8) & 0xff;
+			*tp++ = (u_char)val & 0xff;
 			saw_xdigit = 0;
 			val = 0;
 			continue;
@@ -201,7 +204,7 @@ inet_cidr_pton_ipv6(const char *src, u_char *dst, int *pbits) {
 		    inet_cidr_pton_ipv4(curtok, tp, &bits, 1) == 0) {
 			tp += NS_INADDRSZ;
 			saw_xdigit = 0;
-			break;	/*%< '\\0' was seen by inet_pton4(). */
+			break; /*%< '\\0' was seen by inet_pton4(). */
 		}
 		if (ch == '/') {
 			bits = getbits(src, 1);
@@ -214,8 +217,8 @@ inet_cidr_pton_ipv6(const char *src, u_char *dst, int *pbits) {
 	if (saw_xdigit) {
 		if (tp + NS_INT16SZ > endp)
 			goto emsgsize;
-		*tp++ = (u_char) (val >> 8) & 0xff;
-		*tp++ = (u_char) val & 0xff;
+		*tp++ = (u_char)(val >> 8) & 0xff;
+		*tp++ = (u_char)val & 0xff;
 	}
 	if (colonp != NULL) {
 		/*
@@ -228,7 +231,7 @@ inet_cidr_pton_ipv6(const char *src, u_char *dst, int *pbits) {
 		if (tp == endp)
 			goto enoent;
 		for (i = 1; i <= n; i++) {
-			endp[- i] = colonp[n - i];
+			endp[-i] = colonp[n - i];
 			colonp[n - i] = 0;
 		}
 		tp = endp;
@@ -239,32 +242,33 @@ inet_cidr_pton_ipv6(const char *src, u_char *dst, int *pbits) {
 	*pbits = bits;
 	return (0);
 
- enoent:
+enoent:
 	errno = ENOENT;
 	return (-1);
 
- emsgsize:
+emsgsize:
 	errno = EMSGSIZE;
 	return (-1);
 }
 
 static int
-getbits(const char *src, int ipv6) {
+getbits(const char *src, int ipv6)
+{
 	int bits = 0;
 	char *cp, ch;
-	
-	if (*src == '\0')			/*%< syntax */
+
+	if (*src == '\0') /*%< syntax */
 		return (-2);
 	do {
 		ch = *src++;
 		cp = strchr(digits, ch);
-		if (cp == NULL)			/*%< syntax */
+		if (cp == NULL) /*%< syntax */
 			return (-2);
 		bits *= 10;
 		bits += cp - digits;
-		if (bits == 0 && *src != '\0')	/*%< no leading zeros */
+		if (bits == 0 && *src != '\0') /*%< no leading zeros */
 			return (-2);
-		if (bits > (ipv6 ? 128 : 32))	/*%< range error */
+		if (bits > (ipv6 ? 128 : 32)) /*%< range error */
 			return (-2);
 	} while (*src != '\0');
 

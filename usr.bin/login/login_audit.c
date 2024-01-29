@@ -35,9 +35,8 @@
 
 #include <sys/types.h>
 
-#include <bsm/libbsm.h>
 #include <bsm/audit_uevents.h>
-
+#include <bsm/libbsm.h>
 #include <err.h>
 #include <errno.h>
 #include <pwd.h>
@@ -69,7 +68,7 @@ au_login_success(void)
 	int au_cond;
 
 	/* If we are not auditing, don't cut an audit record; just return. */
- 	if (auditon(A_GETCOND, &au_cond, sizeof(au_cond)) < 0) {
+	if (auditon(A_GETCOND, &au_cond, sizeof(au_cond)) < 0) {
 		if (errno == ENOSYS)
 			return;
 		errx(1, "could not determine audit condition");
@@ -93,7 +92,7 @@ au_login_success(void)
 		errx(1, "audit error: au_open() failed");
 
 	if ((tok = au_to_subject32(uid, geteuid(), getegid(), uid, gid, pid,
-	    pid, &tid)) == NULL)
+		 pid, &tid)) == NULL)
 		errx(1, "audit error: au_to_subject32() failed");
 	au_write(aufd, tok);
 
@@ -120,7 +119,7 @@ au_login_fail(const char *errmsg, int na)
 	pid_t pid = getpid();
 
 	/* If we are not auditing, don't cut an audit record; just return. */
- 	if (auditon(A_GETCOND, &au_cond, sizeof(au_cond)) < 0) {
+	if (auditon(A_GETCOND, &au_cond, sizeof(au_cond)) < 0) {
 		if (errno == ENOSYS)
 			return;
 		errx(1, "could not determine audit condition");
@@ -137,14 +136,14 @@ au_login_fail(const char *errmsg, int na)
 		 * within a user's session => auid,asid == -1.
 		 */
 		if ((tok = au_to_subject32(-1, geteuid(), getegid(), -1, -1,
-		    pid, -1, &tid)) == NULL)
+			 pid, -1, &tid)) == NULL)
 			errx(1, "audit error: au_to_subject32() failed");
 	} else {
 		/* We know the subject -- so use its value instead. */
 		uid = pwd->pw_uid;
 		gid = pwd->pw_gid;
-		if ((tok = au_to_subject32(uid, geteuid(), getegid(), uid,
-		    gid, pid, pid, &tid)) == NULL)
+		if ((tok = au_to_subject32(uid, geteuid(), getegid(), uid, gid,
+			 pid, pid, &tid)) == NULL)
 			errx(1, "audit error: au_to_subject32() failed");
 	}
 	au_write(aufd, tok);
@@ -190,7 +189,7 @@ audit_logout(void)
 
 	/* The subject that is created (euid, egid of the current process). */
 	if ((tok = au_to_subject32(uid, geteuid(), getegid(), uid, gid, pid,
-	    pid, &tid)) == NULL)
+		 pid, &tid)) == NULL)
 		errx(1, "audit error: au_to_subject32() failed");
 	au_write(aufd, tok);
 

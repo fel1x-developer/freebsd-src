@@ -25,53 +25,54 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 #include "opt_route.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/epoch.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
-#include <sys/rwlock.h>
 #include <sys/malloc.h>
+#include <sys/rwlock.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
-#include <sys/kernel.h>
-#include <sys/epoch.h>
 
 #include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_private.h>
 #include <net/if_dl.h>
+#include <net/if_private.h>
+#include <net/if_var.h>
 #include <net/route.h>
+#include <net/route/nhop.h>
+#include <net/route/nhop_utils.h>
+#include <net/route/nhop_var.h>
 #include <net/route/route_ctl.h>
 #include <net/route/route_var.h>
-#include <net/route/nhop_utils.h>
-#include <net/route/nhop.h>
-#include <net/route/nhop_var.h>
 #include <net/vnet.h>
 
-#define	DEBUG_MOD_NAME	nhop_ctl
-#define	DEBUG_MAX_LEVEL	LOG_DEBUG
+#define DEBUG_MOD_NAME nhop_ctl
+#define DEBUG_MAX_LEVEL LOG_DEBUG
 #include <net/route/route_debug.h>
 _DECLARE_DEBUG(LOG_INFO);
 
 /*
- * This file contains core functionality for the nexthop ("nhop") route subsystem.
- * The business logic needed to create nexhop objects is implemented here.
+ * This file contains core functionality for the nexthop ("nhop") route
+ * subsystem. The business logic needed to create nexhop objects is implemented
+ * here.
  *
  * Nexthops in the original sense are the objects containing all the necessary
  * information to forward the packet to the selected destination.
  * In particular, nexthop is defined by a combination of
- *  ifp, ifa, aifp, mtu, gw addr(if set), nh_type, nh_upper_family, mask of rt_flags and
- *    NHF_DEFAULT
+ *  ifp, ifa, aifp, mtu, gw addr(if set), nh_type, nh_upper_family, mask of
+ * rt_flags and NHF_DEFAULT
  *
  * Additionally, each nexthop gets assigned its unique index (nexthop index).
- * It serves two purposes: first one is to ease the ability of userland programs to
- *  reference nexthops by their index. The second one allows lookup algorithms to
- *  to store index instead of pointer (2 bytes vs 8) as a lookup result.
- * All nexthops are stored in the resizable hash table.
+ * It serves two purposes: first one is to ease the ability of userland programs
+ * to reference nexthops by their index. The second one allows lookup algorithms
+ * to to store index instead of pointer (2 bytes vs 8) as a lookup result. All
+ * nexthops are stored in the resizable hash table.
  *
  * Basically, this file revolves around supporting 3 functions:
  * 1) nhop_create_from_info / nhop_create_from_nhop, which contains all
@@ -83,11 +84,14 @@ _DECLARE_DEBUG(LOG_INFO);
  * 2) exported function starts with the subsystem prefix: "nhop"
  */
 
-static int dump_nhop_entry(struct rib_head *rh, struct nhop_object *nh, struct sysctl_req *w);
+static int dump_nhop_entry(struct rib_head *rh, struct nhop_object *nh,
+    struct sysctl_req *w);
 
-static int finalize_nhop(struct nh_control *ctl, struct nhop_object *nh, bool link);
+static int finalize_nhop(struct nh_control *ctl, struct nhop_object *nh,
+    bool link);
 static struct ifnet *get_aifp(const struct nhop_object *nh);
-static void fill_sdl_from_ifp(struct sockaddr_dl_short *sdl, const struct ifnet *ifp);
+static void fill_sdl_from_ifp(struct sockaddr_dl_short *sdl,
+    const struct ifnet *ifp);
 
 static void destroy_nhop_epoch(epoch_context_t ctx);
 static void destroy_nhop(struct nhop_object *nh);
@@ -97,19 +101,19 @@ _Static_assert(__offsetof(struct nhop_object, nh_ifp) == 32,
 _Static_assert(sizeof(struct nhop_object) <= 128,
     "nhop_object: size exceeds 128 bytes");
 
-static uma_zone_t nhops_zone;	/* Global zone for each and every nexthop */
+static uma_zone_t nhops_zone; /* Global zone for each and every nexthop */
 
-#define	NHOP_OBJECT_ALIGNED_SIZE	roundup2(sizeof(struct nhop_object), \
-							2 * CACHE_LINE_SIZE)
-#define	NHOP_PRIV_ALIGNED_SIZE		roundup2(sizeof(struct nhop_priv), \
-							2 * CACHE_LINE_SIZE)
+#define NHOP_OBJECT_ALIGNED_SIZE \
+	roundup2(sizeof(struct nhop_object), 2 * CACHE_LINE_SIZE)
+#define NHOP_PRIV_ALIGNED_SIZE \
+	roundup2(sizeof(struct nhop_priv), 2 * CACHE_LINE_SIZE)
 void
 nhops_init(void)
 {
 
 	nhops_zone = uma_zcreate("routing nhops",
-	    NHOP_OBJECT_ALIGNED_SIZE + NHOP_PRIV_ALIGNED_SIZE,
-	    NULL, NULL, NULL, NULL, UMA_ALIGN_PTR, 0);
+	    NHOP_OBJECT_ALIGNED_SIZE + NHOP_PRIV_ALIGNED_SIZE, NULL, NULL, NULL,
+	    NULL, UMA_ALIGN_PTR, 0);
 }
 
 /*
@@ -135,11 +139,12 @@ get_aifp(const struct nhop_object *nh)
 	 * our own addresses).
 	 */
 	if ((nh->nh_ifp->if_flags & IFF_LOOPBACK) &&
-			nh->gw_sa.sa_family == AF_LINK) {
+	    nh->gw_sa.sa_family == AF_LINK) {
 		aifp = ifnet_byindex(nh->gwl_sa.sdl_index);
 		if (aifp == NULL) {
-			FIB_NH_LOG(LOG_WARNING, nh, "unable to get aifp for %s index %d",
-				if_name(nh->nh_ifp), nh->gwl_sa.sdl_index);
+			FIB_NH_LOG(LOG_WARNING, nh,
+			    "unable to get aifp for %s index %d",
+			    if_name(nh->nh_ifp), nh->gwl_sa.sdl_index);
 		}
 	}
 
@@ -200,12 +205,12 @@ set_nhop_gw_from_info(struct nhop_object *nh, struct rt_addrinfo *info)
 
 		/*
 		 * Interface route with interface specified by the interface
-		 * index in sockadd_dl structure. It is used in the IPv6 loopback
-		 * output code, where we need to preserve the original interface
-		 * to maintain proper scoping.
-		 * Despite the fact that nexthop code stores original interface
-		 * in the separate field (nh_aifp, see below), write AF_LINK
-		 * compatible sa with shorter total length.
+		 * index in sockadd_dl structure. It is used in the IPv6
+		 * loopback output code, where we need to preserve the original
+		 * interface to maintain proper scoping. Despite the fact that
+		 * nexthop code stores original interface in the separate field
+		 * (nh_aifp, see below), write AF_LINK compatible sa with
+		 * shorter total length.
 		 */
 		struct sockaddr_dl *sdl = (struct sockaddr_dl *)gw;
 		struct ifnet *ifp = ifnet_byindex(sdl->sdl_index);
@@ -235,13 +240,15 @@ set_nhop_gw_from_info(struct nhop_object *nh, struct rt_addrinfo *info)
 }
 
 static void
-set_nhop_expire_from_info(struct nhop_object *nh, const struct rt_addrinfo *info)
+set_nhop_expire_from_info(struct nhop_object *nh,
+    const struct rt_addrinfo *info)
 {
 	uint32_t nh_expire = 0;
 
 	/* Kernel -> userland timebase conversion. */
 	if ((info->rti_mflags & RTV_EXPIRE) && (info->rti_rmx->rmx_expire > 0))
-		nh_expire = info->rti_rmx->rmx_expire - time_second + time_uptime;
+		nh_expire = info->rti_rmx->rmx_expire - time_second +
+		    time_uptime;
 	nhop_set_expire(nh, nh_expire);
 }
 
@@ -280,8 +287,8 @@ nhop_create_from_info(struct rib_head *rnh, struct rt_addrinfo *info,
 
 	nhop_set_blackhole(nh, info->rti_flags & (RTF_BLACKHOLE | RTF_REJECT));
 
-	error = rnh->rnh_set_nh_pfxflags(rnh->rib_fibnum, info->rti_info[RTAX_DST],
-	    info->rti_info[RTAX_NETMASK], nh);
+	error = rnh->rnh_set_nh_pfxflags(rnh->rib_fibnum,
+	    info->rti_info[RTAX_DST], info->rti_info[RTAX_NETMASK], nh);
 
 	nhop_set_redirect(nh, info->rti_flags & RTF_DYNAMIC);
 	nhop_set_pinned(nh, info->rti_flags & RTF_PINNED);
@@ -324,7 +331,8 @@ nhop_get_nhop(struct nhop_object *nh, int *perror)
 }
 
 struct nhop_object *
-nhop_get_nhop_internal(struct rib_head *rnh, struct nhop_object *nh, int *perror)
+nhop_get_nhop_internal(struct rib_head *rnh, struct nhop_object *nh,
+    int *perror)
 {
 	struct nhop_priv *tmp_priv;
 	int error;
@@ -379,7 +387,6 @@ nhop_get_unlinked(struct nhop_object *nh)
 
 	return (finalize_nhop(rnh->nh_control, nh, false));
 }
-
 
 /*
  * Update @nh with data supplied in @info.
@@ -534,7 +541,8 @@ finalize_nhop(struct nh_control *ctl, struct nhop_object *nh, bool link)
 		return (ENOBUFS);
 	}
 
-	IF_DEBUG_LEVEL(LOG_DEBUG) {
+	IF_DEBUG_LEVEL(LOG_DEBUG)
+	{
 		char nhbuf[NHOP_PRINT_BUFSIZE] __unused;
 		FIB_NH_LOG(LOG_DEBUG, nh, "finalized: %s",
 		    nhop_print_buf(nh, nhbuf, sizeof(nhbuf)));
@@ -599,7 +607,8 @@ nhop_free(struct nhop_object *nh)
 		return;
 	}
 
-	IF_DEBUG_LEVEL(LOG_DEBUG) {
+	IF_DEBUG_LEVEL(LOG_DEBUG)
+	{
 		char nhbuf[NHOP_PRINT_BUFSIZE] __unused;
 		FIB_NH_LOG(LOG_DEBUG, nh, "deleting %s",
 		    nhop_print_buf(nh, nhbuf, sizeof(nhbuf)));
@@ -725,7 +734,8 @@ nhop_set_direct_gw(struct nhop_object *nh, struct ifnet *ifp)
 	nh->nh_priv->nh_neigh_family = nh->nh_priv->nh_upper_family;
 
 	fill_sdl_from_ifp(&nh->gwl_sa, ifp);
-	memset(&nh->gw_buf[nh->gw_sa.sa_len], 0, sizeof(nh->gw_buf) - nh->gw_sa.sa_len);
+	memset(&nh->gw_buf[nh->gw_sa.sa_len], 0,
+	    sizeof(nh->gw_buf) - nh->gw_sa.sa_len);
 }
 
 bool
@@ -971,7 +981,6 @@ nhop_set_transmit_ifp(struct nhop_object *nh, struct ifnet *ifp)
 	nh->nh_ifp = ifp;
 }
 
-
 struct vnet *
 nhop_get_vnet(const struct nhop_object *nh)
 {
@@ -1061,7 +1070,8 @@ nhops_update_ifmtu(struct rib_head *rh, struct ifnet *ifp, uint32_t mtu)
 	ctl = rh->nh_control;
 
 	NHOPS_WLOCK(ctl);
-	CHT_SLIST_FOREACH(&ctl->nh_head, nhops, nh_priv) {
+	CHT_SLIST_FOREACH(&ctl->nh_head, nhops, nh_priv)
+	{
 		nh = nh_priv->nh;
 		if (nh->nh_ifp == ifp) {
 			if ((nh_priv->rt_flags & RTF_FIXEDMTU) == 0 ||
@@ -1070,9 +1080,9 @@ nhops_update_ifmtu(struct rib_head *rh, struct ifnet *ifp, uint32_t mtu)
 				nh->nh_mtu = mtu;
 			}
 		}
-	} CHT_SLIST_FOREACH_END;
+	}
+	CHT_SLIST_FOREACH_END;
 	NHOPS_WUNLOCK(ctl);
-
 }
 
 struct nhop_object *
@@ -1142,24 +1152,24 @@ nhop_print_buf(const struct nhop_object *nh, char *buf, size_t bufsize)
 #ifdef INET
 	case AF_INET:
 		inet_ntop(AF_INET, &nh->gw4_sa.sin_addr, abuf, sizeof(abuf));
-		snprintf(buf, bufsize, "nh#%d/%s/%s/%s", nh_priv->nh_idx, upper_str,
-		    if_name(nh->nh_ifp), abuf);
+		snprintf(buf, bufsize, "nh#%d/%s/%s/%s", nh_priv->nh_idx,
+		    upper_str, if_name(nh->nh_ifp), abuf);
 		break;
 #endif
 #ifdef INET6
 	case AF_INET6:
 		inet_ntop(AF_INET6, &nh->gw6_sa.sin6_addr, abuf, sizeof(abuf));
-		snprintf(buf, bufsize, "nh#%d/%s/%s/%s", nh_priv->nh_idx, upper_str,
-		    if_name(nh->nh_ifp), abuf);
+		snprintf(buf, bufsize, "nh#%d/%s/%s/%s", nh_priv->nh_idx,
+		    upper_str, if_name(nh->nh_ifp), abuf);
 		break;
 #endif
 	case AF_LINK:
-		snprintf(buf, bufsize, "nh#%d/%s/%s/resolve", nh_priv->nh_idx, upper_str,
-		    if_name(nh->nh_ifp));
+		snprintf(buf, bufsize, "nh#%d/%s/%s/resolve", nh_priv->nh_idx,
+		    upper_str, if_name(nh->nh_ifp));
 		break;
 	default:
-		snprintf(buf, bufsize, "nh#%d/%s/%s/????", nh_priv->nh_idx, upper_str,
-		    if_name(nh->nh_ifp));
+		snprintf(buf, bufsize, "nh#%d/%s/%s/????", nh_priv->nh_idx,
+		    upper_str, if_name(nh->nh_ifp));
 		break;
 	}
 
@@ -1171,7 +1181,8 @@ nhop_print_buf_any(const struct nhop_object *nh, char *buf, size_t bufsize)
 {
 #ifdef ROUTE_MPATH
 	if (NH_IS_NHGRP(nh))
-		return (nhgrp_print_buf((const struct nhgrp_object *)nh, buf, bufsize));
+		return (nhgrp_print_buf((const struct nhgrp_object *)nh, buf,
+		    bufsize));
 	else
 #endif
 		return (nhop_print_buf(nh, buf, bufsize));
@@ -1181,17 +1192,18 @@ nhop_print_buf_any(const struct nhop_object *nh, char *buf, size_t bufsize)
  * Dumps a single entry to sysctl buffer.
  *
  * Layout:
- *  rt_msghdr - generic RTM header to allow users to skip non-understood messages
- *  nhop_external - nexhop description structure (with length)
+ *  rt_msghdr - generic RTM header to allow users to skip non-understood
+ * messages nhop_external - nexhop description structure (with length)
  *  nhop_addrs - structure encapsulating GW/SRC sockaddrs
  */
 static int
-dump_nhop_entry(struct rib_head *rh, struct nhop_object *nh, struct sysctl_req *w)
+dump_nhop_entry(struct rib_head *rh, struct nhop_object *nh,
+    struct sysctl_req *w)
 {
 	struct {
-		struct rt_msghdr	rtm;
-		struct nhop_external	nhe;
-		struct nhop_addrs	na;
+		struct rt_msghdr rtm;
+		struct nhop_external nhe;
+		struct nhop_addrs na;
 	} arpc;
 	struct nhop_external *pnhe;
 	struct sockaddr *gw_sa, *src_sa;
@@ -1204,7 +1216,7 @@ dump_nhop_entry(struct rib_head *rh, struct nhop_object *nh, struct sysctl_req *
 	arpc.rtm.rtm_msglen = sizeof(arpc);
 	arpc.rtm.rtm_version = RTM_VERSION;
 	arpc.rtm.rtm_type = RTM_GET;
-	//arpc.rtm.rtm_flags = RTF_UP;
+	// arpc.rtm.rtm_flags = RTF_UP;
 	arpc.rtm.rtm_flags = nh->nh_priv->rt_flags;
 
 	/* nhop_external */
@@ -1281,13 +1293,15 @@ nhops_dump_sysctl(struct rib_head *rh, struct sysctl_req *w)
 
 	NHOPS_RLOCK(ctl);
 	FIB_RH_LOG(LOG_DEBUG, rh, "dump %u items", ctl->nh_head.items_count);
-	CHT_SLIST_FOREACH(&ctl->nh_head, nhops, nh_priv) {
+	CHT_SLIST_FOREACH(&ctl->nh_head, nhops, nh_priv)
+	{
 		error = dump_nhop_entry(rh, nh_priv->nh, w);
 		if (error != 0) {
 			NHOPS_RUNLOCK(ctl);
 			return (error);
 		}
-	} CHT_SLIST_FOREACH_END;
+	}
+	CHT_SLIST_FOREACH_END;
 	NHOPS_RUNLOCK(ctl);
 
 	return (0);

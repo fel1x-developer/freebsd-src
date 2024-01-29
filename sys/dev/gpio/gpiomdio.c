@@ -25,9 +25,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -36,46 +36,44 @@
 #include <sys/module.h>
 #include <sys/socket.h>
 
-#include <net/if.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
-
 #include <dev/fdt/fdt_common.h>
 #include <dev/gpio/gpiobusvar.h>
 #include <dev/mii/mii_bitbang.h>
 #include <dev/mii/miivar.h>
 #include <dev/ofw/ofw_bus.h>
 
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+
 #include "gpiobus_if.h"
 #include "miibus_if.h"
 
-#define	GPIOMDIO_MDC_DFLT	0
-#define	GPIOMDIO_MDIO_DFLT	1
-#define	GPIOMDIO_MIN_PINS	2
+#define GPIOMDIO_MDC_DFLT 0
+#define GPIOMDIO_MDIO_DFLT 1
+#define GPIOMDIO_MIN_PINS 2
 
-#define	MDO_BIT			0x01
-#define	MDI_BIT			0x02
-#define	MDC_BIT			0x04
-#define	MDIRPHY_BIT		0x08
-#define	MDIRHOST_BIT		0x10
-#define	MDO			sc->miibb_ops.mbo_bits[MII_BIT_MDO]
-#define	MDI			sc->miibb_ops.mbo_bits[MII_BIT_MDI]
-#define	MDC			sc->miibb_ops.mbo_bits[MII_BIT_MDC]
-#define	MDIRPHY			sc->miibb_ops.mbo_bits[MII_BIT_DIR_HOST_PHY]
-#define	MDIRHOST		sc->miibb_ops.mbo_bits[MII_BIT_DIR_PHY_HOST]
+#define MDO_BIT 0x01
+#define MDI_BIT 0x02
+#define MDC_BIT 0x04
+#define MDIRPHY_BIT 0x08
+#define MDIRHOST_BIT 0x10
+#define MDO sc->miibb_ops.mbo_bits[MII_BIT_MDO]
+#define MDI sc->miibb_ops.mbo_bits[MII_BIT_MDI]
+#define MDC sc->miibb_ops.mbo_bits[MII_BIT_MDC]
+#define MDIRPHY sc->miibb_ops.mbo_bits[MII_BIT_DIR_HOST_PHY]
+#define MDIRHOST sc->miibb_ops.mbo_bits[MII_BIT_DIR_PHY_HOST]
 
 static uint32_t gpiomdio_bb_read(device_t);
 static void gpiomdio_bb_write(device_t, uint32_t);
 
-struct gpiomdio_softc
-{
-	device_t		sc_dev;
-	device_t		sc_busdev;
-	int			mdc_pin;
-	int			mdio_pin;
-	struct mii_bitbang_ops	miibb_ops;
+struct gpiomdio_softc {
+	device_t sc_dev;
+	device_t sc_busdev;
+	int mdc_pin;
+	int mdio_pin;
+	struct mii_bitbang_ops miibb_ops;
 };
-
 
 static int
 gpiomdio_probe(device_t dev)
@@ -101,10 +99,10 @@ gpiomdio_probe(device_t dev)
 static int
 gpiomdio_attach(device_t dev)
 {
-	phandle_t		node;
-	pcell_t			pin;
-	struct gpiobus_ivar	*devi;
-	struct gpiomdio_softc	*sc;
+	phandle_t node;
+	pcell_t pin;
+	struct gpiobus_ivar *devi;
+	struct gpiomdio_softc *sc;
 
 	sc = device_get_softc(dev);
 	sc->sc_dev = dev;
@@ -184,7 +182,7 @@ gpiomdio_bb_write(device_t dev, uint32_t val)
 static int
 gpiomdio_readreg(device_t dev, int phy, int reg)
 {
-	struct gpiomdio_softc	*sc;
+	struct gpiomdio_softc *sc;
 
 	sc = device_get_softc(dev);
 
@@ -194,7 +192,7 @@ gpiomdio_readreg(device_t dev, int phy, int reg)
 static int
 gpiomdio_writereg(device_t dev, int phy, int reg, int val)
 {
-	struct gpiomdio_softc	*sc;
+	struct gpiomdio_softc *sc;
 
 	sc = device_get_softc(dev);
 	mii_bitbang_writereg(dev, &sc->miibb_ops, phy, reg, val);
@@ -211,16 +209,16 @@ gpiomdio_get_node(device_t bus, device_t dev)
 
 static device_method_t gpiomdio_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		gpiomdio_probe),
-	DEVMETHOD(device_attach,	gpiomdio_attach),
-	DEVMETHOD(device_detach,	bus_generic_detach),
+	DEVMETHOD(device_probe, gpiomdio_probe),
+	DEVMETHOD(device_attach, gpiomdio_attach),
+	DEVMETHOD(device_detach, bus_generic_detach),
 
 	/* MDIO interface */
-	DEVMETHOD(miibus_readreg,	gpiomdio_readreg),
-	DEVMETHOD(miibus_writereg,	gpiomdio_writereg),
+	DEVMETHOD(miibus_readreg, gpiomdio_readreg),
+	DEVMETHOD(miibus_writereg, gpiomdio_writereg),
 
 	/* OFW bus interface */
-	DEVMETHOD(ofw_bus_get_node,	gpiomdio_get_node),
+	DEVMETHOD(ofw_bus_get_node, gpiomdio_get_node),
 
 	DEVMETHOD_END
 };

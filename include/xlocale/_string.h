@@ -27,7 +27,7 @@
 
 #ifndef _LOCALE_T_DEFINED
 #define _LOCALE_T_DEFINED
-typedef struct	_xlocale *locale_t;
+typedef struct _xlocale *locale_t;
 #endif
 
 /*
@@ -42,9 +42,9 @@ typedef struct	_xlocale *locale_t;
 /*
  * POSIX2008 functions
  */
-int	 strcoll_l(const char *, const char *, locale_t);
-char	*strerror_l(int num, locale_t);
-size_t	 strxfrm_l(char *, const char *, size_t, locale_t);
+int strcoll_l(const char *, const char *, locale_t);
+char *strerror_l(int num, locale_t);
+size_t strxfrm_l(char *, const char *, size_t, locale_t);
 #endif /* _XLOCALE_STRING1_H */
 
 /*
@@ -53,7 +53,7 @@ size_t	 strxfrm_l(char *, const char *, size_t, locale_t);
 #ifdef _XLOCALE_H_
 #ifndef _XLOCALE_STRING2_H
 #define _XLOCALE_STRING2_H
-char	*strcasestr_l(const char *, const char *, locale_t);
+char *strcasestr_l(const char *, const char *, locale_t);
 
 #endif /* _XLOCALE_STRING2_H */
 #endif /* _XLOCALE_H_ */

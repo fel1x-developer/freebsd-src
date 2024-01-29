@@ -31,27 +31,23 @@
  */
 
 #include <sys/cdefs.h>
-#include <dev/isci/isci.h>
-
-#include <sys/sysctl.h>
 #include <sys/malloc.h>
+#include <sys/sysctl.h>
 
-#include <cam/cam_periph.h>
-
-#include <dev/led/led.h>
-
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
-
-#include <dev/isci/scil/scic_logger.h>
+#include <dev/isci/isci.h>
 #include <dev/isci/scil/scic_library.h>
+#include <dev/isci/scil/scic_logger.h>
 #include <dev/isci/scil/scic_sgpio.h>
 #include <dev/isci/scil/scic_user_callback.h>
-
 #include <dev/isci/scil/scif_controller.h>
 #include <dev/isci/scil/scif_library.h>
 #include <dev/isci/scil/scif_logger.h>
 #include <dev/isci/scil/scif_user_callback.h>
+#include <dev/led/led.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
+#include <cam/cam_periph.h>
 
 MALLOC_DEFINE(M_ISCI, "isci", "isci driver memory allocations");
 
@@ -68,61 +64,59 @@ void isci_allocate_dma_buffer_callback(void *arg, bus_dma_segment_t *seg,
     int nseg, int error);
 
 static device_method_t isci_pci_methods[] = {
-	 /* Device interface */
-	 DEVMETHOD(device_probe,  isci_probe),
-	 DEVMETHOD(device_attach, isci_attach),
-	 DEVMETHOD(device_detach, isci_detach),
-	 { 0, 0 }
+	/* Device interface */
+	DEVMETHOD(device_probe, isci_probe),
+	DEVMETHOD(device_attach, isci_attach),
+	DEVMETHOD(device_detach, isci_detach), { 0, 0 }
 };
 
 static driver_t isci_pci_driver = {
-	 "isci",
-	 isci_pci_methods,
-	 sizeof(struct isci_softc),
+	"isci",
+	isci_pci_methods,
+	sizeof(struct isci_softc),
 };
 
 DRIVER_MODULE(isci, pci, isci_pci_driver, 0, 0);
 MODULE_DEPEND(isci, cam, 1, 1, 1);
 
-static struct _pcsid
-{
-	 u_int32_t	type;
-	 const char	*desc;
-} pci_ids[] = {
-	 { 0x1d608086,	"Intel(R) C600 Series Chipset SAS Controller"  },
-	 { 0x1d618086,	"Intel(R) C600 Series Chipset SAS Controller (SATA mode)"  },
-	 { 0x1d628086,	"Intel(R) C600 Series Chipset SAS Controller"  },
-	 { 0x1d638086,	"Intel(R) C600 Series Chipset SAS Controller"  },
-	 { 0x1d648086,	"Intel(R) C600 Series Chipset SAS Controller"  },
-	 { 0x1d658086,	"Intel(R) C600 Series Chipset SAS Controller"  },
-	 { 0x1d668086,	"Intel(R) C600 Series Chipset SAS Controller"  },
-	 { 0x1d678086,	"Intel(R) C600 Series Chipset SAS Controller"  },
-	 { 0x1d688086,	"Intel(R) C600 Series Chipset SAS Controller"  },
-	 { 0x1d698086,	"Intel(R) C600 Series Chipset SAS Controller"  },
-	 { 0x1d6a8086,	"Intel(R) C600 Series Chipset SAS Controller (SATA mode)"  },
-	 { 0x1d6b8086,  "Intel(R) C600 Series Chipset SAS Controller (SATA mode)"  },
-	 { 0x1d6c8086,	"Intel(R) C600 Series Chipset SAS Controller"  },
-	 { 0x1d6d8086,	"Intel(R) C600 Series Chipset SAS Controller"  },
-	 { 0x1d6e8086,	"Intel(R) C600 Series Chipset SAS Controller"  },
-	 { 0x1d6f8086,	"Intel(R) C600 Series Chipset SAS Controller (SATA mode)"  },
-	 { 0x00000000,	NULL				}
-};
+static struct _pcsid {
+	u_int32_t type;
+	const char *desc;
+} pci_ids[] = { { 0x1d608086, "Intel(R) C600 Series Chipset SAS Controller" },
+	{ 0x1d618086,
+	    "Intel(R) C600 Series Chipset SAS Controller (SATA mode)" },
+	{ 0x1d628086, "Intel(R) C600 Series Chipset SAS Controller" },
+	{ 0x1d638086, "Intel(R) C600 Series Chipset SAS Controller" },
+	{ 0x1d648086, "Intel(R) C600 Series Chipset SAS Controller" },
+	{ 0x1d658086, "Intel(R) C600 Series Chipset SAS Controller" },
+	{ 0x1d668086, "Intel(R) C600 Series Chipset SAS Controller" },
+	{ 0x1d678086, "Intel(R) C600 Series Chipset SAS Controller" },
+	{ 0x1d688086, "Intel(R) C600 Series Chipset SAS Controller" },
+	{ 0x1d698086, "Intel(R) C600 Series Chipset SAS Controller" },
+	{ 0x1d6a8086,
+	    "Intel(R) C600 Series Chipset SAS Controller (SATA mode)" },
+	{ 0x1d6b8086,
+	    "Intel(R) C600 Series Chipset SAS Controller (SATA mode)" },
+	{ 0x1d6c8086, "Intel(R) C600 Series Chipset SAS Controller" },
+	{ 0x1d6d8086, "Intel(R) C600 Series Chipset SAS Controller" },
+	{ 0x1d6e8086, "Intel(R) C600 Series Chipset SAS Controller" },
+	{ 0x1d6f8086,
+	    "Intel(R) C600 Series Chipset SAS Controller (SATA mode)" },
+	{ 0x00000000, NULL } };
 
 static int
-isci_probe (device_t device)
+isci_probe(device_t device)
 {
-	u_int32_t	type = pci_get_devid(device);
-	struct _pcsid	*ep = pci_ids;
+	u_int32_t type = pci_get_devid(device);
+	struct _pcsid *ep = pci_ids;
 
 	while (ep->type && ep->type != type)
 		++ep;
 
-	if (ep->desc)
-	{
+	if (ep->desc) {
 		device_set_desc(device, ep->desc);
 		return (BUS_PROBE_DEFAULT);
-	}
-	else
+	} else
 		return (ENXIO);
 }
 
@@ -131,22 +125,20 @@ isci_allocate_pci_memory(struct isci_softc *isci)
 {
 	int i;
 
-	for (i = 0; i < ISCI_NUM_PCI_BARS; i++)
-	{
+	for (i = 0; i < ISCI_NUM_PCI_BARS; i++) {
 		struct ISCI_PCI_BAR *pci_bar = &isci->pci_bar[i];
 
-		pci_bar->resource_id = PCIR_BAR(i*2);
+		pci_bar->resource_id = PCIR_BAR(i * 2);
 		pci_bar->resource = bus_alloc_resource_any(isci->device,
-		    SYS_RES_MEMORY, &pci_bar->resource_id,
-		    RF_ACTIVE);
+		    SYS_RES_MEMORY, &pci_bar->resource_id, RF_ACTIVE);
 
-		if(pci_bar->resource == NULL)
+		if (pci_bar->resource == NULL)
 			isci_log_message(0, "ISCI",
 			    "unable to allocate pci resource\n");
 		else {
 			pci_bar->bus_tag = rman_get_bustag(pci_bar->resource);
-			pci_bar->bus_handle =
-			    rman_get_bushandle(pci_bar->resource);
+			pci_bar->bus_handle = rman_get_bushandle(
+			    pci_bar->resource);
 		}
 	}
 
@@ -167,8 +159,7 @@ isci_attach(device_t device)
 
 	error = isci_initialize(isci);
 
-	if (error)
-	{
+	if (error) {
 		isci_detach(device);
 		return (error);
 	}
@@ -192,15 +183,17 @@ isci_detach(device_t device)
 
 		if (controller->scif_controller_handle != NULL) {
 			scic_controller_disable_interrupts(
-			    scif_controller_get_scic_handle(controller->scif_controller_handle));
+			    scif_controller_get_scic_handle(
+				controller->scif_controller_handle));
 
 			mtx_lock(&controller->lock);
-			status = scif_controller_stop(controller->scif_controller_handle, 0);
+			status = scif_controller_stop(
+			    controller->scif_controller_handle, 0);
 			mtx_unlock(&controller->lock);
 
 			while (controller->is_started == TRUE) {
-				/* Now poll for interrupts until the controller stop complete
-				 *  callback is received.
+				/* Now poll for interrupts until the controller
+				 * stop complete callback is received.
 				 */
 				mtx_lock(&controller->lock);
 				isci_interrupt_poll_handler(controller);
@@ -208,10 +201,11 @@ isci_detach(device_t device)
 				pause("isci", 1);
 			}
 
-			if(controller->sim != NULL) {
+			if (controller->sim != NULL) {
 				mtx_lock(&controller->lock);
 				xpt_free_path(controller->path);
-				xpt_bus_deregister(cam_sim_path(controller->sim));
+				xpt_bus_deregister(
+				    cam_sim_path(controller->sim));
 				cam_sim_free(controller->sim, TRUE);
 				mtx_unlock(&controller->lock);
 			}
@@ -232,7 +226,8 @@ isci_detach(device_t device)
 		}
 
 		while (1) {
-			sci_pool_get(controller->unmap_buffer_pool, unmap_buffer);
+			sci_pool_get(controller->unmap_buffer_pool,
+			    unmap_buffer);
 			if (unmap_buffer == NULL)
 				break;
 			contigfree(unmap_buffer, PAGE_SIZE, M_ISCI);
@@ -245,8 +240,7 @@ isci_detach(device_t device)
 	if (isci->sci_library_memory != NULL)
 		free(isci->sci_library_memory, M_ISCI);
 
-	for (i = 0; i < ISCI_NUM_PCI_BARS; i++)
-	{
+	for (i = 0; i < ISCI_NUM_PCI_BARS; i++) {
 		struct ISCI_PCI_BAR *pci_bar = &isci->pci_bar[i];
 
 		if (pci_bar->resource != NULL)
@@ -254,17 +248,16 @@ isci_detach(device_t device)
 			    pci_bar->resource_id, pci_bar->resource);
 	}
 
-	for (i = 0; i < isci->num_interrupts; i++)
-	{
+	for (i = 0; i < isci->num_interrupts; i++) {
 		struct ISCI_INTERRUPT_INFO *interrupt_info;
 
 		interrupt_info = &isci->interrupt_info[i];
 
-		if(interrupt_info->tag != NULL)
+		if (interrupt_info->tag != NULL)
 			bus_teardown_intr(device, interrupt_info->res,
 			    interrupt_info->tag);
 
-		if(interrupt_info->res != NULL)
+		if (interrupt_info->res != NULL)
 			bus_release_resource(device, SYS_RES_IRQ,
 			    rman_get_rid(interrupt_info->res),
 			    interrupt_info->res);
@@ -289,17 +282,17 @@ isci_initialize(struct isci_softc *isci)
 
 	library_object_size = scif_library_get_object_size(SCI_MAX_CONTROLLERS);
 
-	isci->sci_library_memory =
-	    malloc(library_object_size, M_ISCI, M_NOWAIT | M_ZERO );
+	isci->sci_library_memory = malloc(library_object_size, M_ISCI,
+	    M_NOWAIT | M_ZERO);
 
 	isci->sci_library_handle = scif_library_construct(
 	    isci->sci_library_memory, SCI_MAX_CONTROLLERS);
 
-	sci_object_set_association( isci->sci_library_handle, (void *)isci);
+	sci_object_set_association(isci->sci_library_handle, (void *)isci);
 
-	verbosity_mask = (1<<SCI_LOG_VERBOSITY_ERROR) |
-	    (1<<SCI_LOG_VERBOSITY_WARNING) | (1<<SCI_LOG_VERBOSITY_INFO) |
-	    (1<<SCI_LOG_VERBOSITY_TRACE);
+	verbosity_mask = (1 << SCI_LOG_VERBOSITY_ERROR) |
+	    (1 << SCI_LOG_VERBOSITY_WARNING) | (1 << SCI_LOG_VERBOSITY_INFO) |
+	    (1 << SCI_LOG_VERBOSITY_TRACE);
 
 	scic_log_object_mask = 0xFFFFFFFF;
 	scic_log_object_mask &= ~SCIC_LOG_OBJECT_COMPLETION_QUEUE;
@@ -317,16 +310,16 @@ isci_initialize(struct isci_softc *isci)
 	sci_logger_enable(sci_object_get_logger(isci->sci_library_handle),
 	    scif_log_object_mask, verbosity_mask);
 
-	sci_logger_enable(sci_object_get_logger(
-	    scif_library_get_scic_handle(isci->sci_library_handle)),
+	sci_logger_enable(sci_object_get_logger(scif_library_get_scic_handle(
+			      isci->sci_library_handle)),
 	    scic_log_object_mask, verbosity_mask);
 
 	header_buffer = (uint8_t *)&isci->pci_common_header;
 	for (uint8_t i = 0; i < sizeof(isci->pci_common_header); i++)
 		header_buffer[i] = pci_read_config(isci->device, i, 1);
 
-	scic_library_set_pci_info(
-	    scif_library_get_scic_handle(isci->sci_library_handle),
+	scic_library_set_pci_info(scif_library_get_scic_handle(
+				      isci->sci_library_handle),
 	    &isci->pci_common_header);
 
 	isci->oem_parameters_found = FALSE;
@@ -355,10 +348,9 @@ isci_initialize(struct isci_softc *isci)
 
 		status = isci_controller_initialize(controller);
 
-		if(status != SCI_SUCCESS) {
+		if (status != SCI_SUCCESS) {
 			isci_log_message(0, "ISCI",
-			    "isci_controller_initialize FAILED: %x\n",
-			    status);
+			    "isci_controller_initialize FAILED: %x\n", status);
 			return (status);
 		}
 
@@ -389,8 +381,8 @@ isci_initialize(struct isci_softc *isci)
 }
 
 void
-isci_allocate_dma_buffer_callback(void *arg, bus_dma_segment_t *seg,
-    int nseg, int error)
+isci_allocate_dma_buffer_callback(void *arg, bus_dma_segment_t *seg, int nseg,
+    int error)
 {
 	struct ISCI_MEMORY *memory = (struct ISCI_MEMORY *)arg;
 
@@ -410,14 +402,12 @@ isci_allocate_dma_buffer(device_t device, struct ISCI_CONTROLLER *controller,
 	uint32_t status;
 
 	status = bus_dma_tag_create(bus_get_dma_tag(device),
-	    0x40 /* cacheline alignment */,
-	    ISCI_DMA_BOUNDARY, BUS_SPACE_MAXADDR,
-	    BUS_SPACE_MAXADDR, NULL, NULL, memory->size,
-	    0x1 /* we want physically contiguous */,
-	    memory->size, 0, busdma_lock_mutex, &controller->lock,
-	    &memory->dma_tag);
+	    0x40 /* cacheline alignment */, ISCI_DMA_BOUNDARY,
+	    BUS_SPACE_MAXADDR, BUS_SPACE_MAXADDR, NULL, NULL, memory->size,
+	    0x1 /* we want physically contiguous */, memory->size, 0,
+	    busdma_lock_mutex, &controller->lock, &memory->dma_tag);
 
-	if(status == ENOMEM) {
+	if (status == ENOMEM) {
 		isci_log_message(0, "ISCI", "bus_dma_tag_create failed\n");
 		return (status);
 	}
@@ -425,8 +415,7 @@ isci_allocate_dma_buffer(device_t device, struct ISCI_CONTROLLER *controller,
 	status = bus_dmamem_alloc(memory->dma_tag,
 	    (void **)&memory->virtual_address, BUS_DMA_ZERO, &memory->dma_map);
 
-	if(status == ENOMEM)
-	{
+	if (status == ENOMEM) {
 		isci_log_message(0, "ISCI", "bus_dmamem_alloc failed\n");
 		return (status);
 	}
@@ -435,8 +424,7 @@ isci_allocate_dma_buffer(device_t device, struct ISCI_CONTROLLER *controller,
 	    (void *)memory->virtual_address, memory->size,
 	    isci_allocate_dma_buffer_callback, memory, 0);
 
-	if(status == EINVAL)
-	{
+	if (status == EINVAL) {
 		isci_log_message(0, "ISCI", "bus_dmamap_load failed\n");
 		return (status);
 	}
@@ -462,7 +450,6 @@ void
 scif_cb_lock_associate(SCI_CONTROLLER_HANDLE_T controller,
     SCI_LOCK_HANDLE_T lock)
 {
-
 }
 
 /**
@@ -483,9 +470,7 @@ void
 scif_cb_lock_disassociate(SCI_CONTROLLER_HANDLE_T controller,
     SCI_LOCK_HANDLE_T lock)
 {
-
 }
-
 
 /**
  * @brief This callback method asks the user to acquire/get the lock.
@@ -498,10 +483,8 @@ scif_cb_lock_disassociate(SCI_CONTROLLER_HANDLE_T controller,
  * @return none
  */
 void
-scif_cb_lock_acquire(SCI_CONTROLLER_HANDLE_T controller,
-    SCI_LOCK_HANDLE_T lock)
+scif_cb_lock_acquire(SCI_CONTROLLER_HANDLE_T controller, SCI_LOCK_HANDLE_T lock)
 {
-
 }
 
 /**
@@ -514,8 +497,7 @@ scif_cb_lock_acquire(SCI_CONTROLLER_HANDLE_T controller,
  * @return none
  */
 void
-scif_cb_lock_release(SCI_CONTROLLER_HANDLE_T controller,
-    SCI_LOCK_HANDLE_T lock)
+scif_cb_lock_release(SCI_CONTROLLER_HANDLE_T controller, SCI_LOCK_HANDLE_T lock)
 {
 }
 
@@ -532,7 +514,6 @@ scif_cb_lock_release(SCI_CONTROLLER_HANDLE_T controller,
 void
 scif_cb_start_internal_io_task_create(SCI_CONTROLLER_HANDLE_T controller)
 {
-
 }
 
 /**
@@ -574,13 +555,13 @@ scif_cb_start_internal_io_task_schedule(SCI_CONTROLLER_HANDLE_T scif_controller,
  * @todo These PCI memory access calls likely needs to be optimized into macros?
  */
 void
-scic_cb_pci_write_dword(SCI_CONTROLLER_HANDLE_T scic_controller,
-    void *address, uint32_t write_value)
+scic_cb_pci_write_dword(SCI_CONTROLLER_HANDLE_T scic_controller, void *address,
+    uint32_t write_value)
 {
-	SCI_CONTROLLER_HANDLE_T scif_controller =
-	    (SCI_CONTROLLER_HANDLE_T) sci_object_get_association(scic_controller);
-	struct ISCI_CONTROLLER *isci_controller =
-	    (struct ISCI_CONTROLLER *) sci_object_get_association(scif_controller);
+	SCI_CONTROLLER_HANDLE_T scif_controller = (SCI_CONTROLLER_HANDLE_T)
+	    sci_object_get_association(scic_controller);
+	struct ISCI_CONTROLLER *isci_controller = (struct ISCI_CONTROLLER *)
+	    sci_object_get_association(scif_controller);
 	struct isci_softc *isci = isci_controller->isci;
 	uint32_t bar = (uint32_t)(((POINTER_UINT)address & 0xF0000000) >> 28);
 	bus_size_t offset = (bus_size_t)((POINTER_UINT)address & 0x0FFFFFFF);
@@ -604,10 +585,10 @@ scic_cb_pci_write_dword(SCI_CONTROLLER_HANDLE_T scic_controller,
 uint32_t
 scic_cb_pci_read_dword(SCI_CONTROLLER_HANDLE_T scic_controller, void *address)
 {
-	SCI_CONTROLLER_HANDLE_T scif_controller =
-		(SCI_CONTROLLER_HANDLE_T)sci_object_get_association(scic_controller);
-	struct ISCI_CONTROLLER *isci_controller =
-		(struct ISCI_CONTROLLER *)sci_object_get_association(scif_controller);
+	SCI_CONTROLLER_HANDLE_T scif_controller = (SCI_CONTROLLER_HANDLE_T)
+	    sci_object_get_association(scic_controller);
+	struct ISCI_CONTROLLER *isci_controller = (struct ISCI_CONTROLLER *)
+	    sci_object_get_association(scif_controller);
 	struct isci_softc *isci = isci_controller->isci;
 	uint32_t bar = (uint32_t)(((POINTER_UINT)address & 0xF0000000) >> 28);
 	bus_size_t offset = (bus_size_t)((POINTER_UINT)address & 0x0FFFFFFF);
@@ -646,8 +627,7 @@ scic_cb_stall_execution(uint32_t microseconds)
  * @retval All other values indicate a valid VIRTUAL address from the BAR.
  */
 void *
-scic_cb_pci_get_bar(SCI_CONTROLLER_HANDLE_T controller,
-    uint16_t bar_number)
+scic_cb_pci_get_bar(SCI_CONTROLLER_HANDLE_T controller, uint16_t bar_number)
 {
 
 	return ((void *)(POINTER_UINT)((uint32_t)bar_number << 28));
@@ -673,5 +653,4 @@ void
 scic_cb_port_invalid_link_up(SCI_CONTROLLER_HANDLE_T controller,
     SCI_PORT_HANDLE_T port, SCI_PHY_HANDLE_T phy)
 {
-
 }

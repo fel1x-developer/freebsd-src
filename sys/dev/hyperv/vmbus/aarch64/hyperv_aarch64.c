@@ -45,8 +45,9 @@
 #include <dev/hyperv/include/hyperv_busdma.h>
 #include <dev/hyperv/vmbus/aarch64/hyperv_machdep.h>
 #include <dev/hyperv/vmbus/aarch64/hyperv_reg.h>
-#include <dev/hyperv/vmbus/hyperv_var.h>
 #include <dev/hyperv/vmbus/hyperv_common_reg.h>
+#include <dev/hyperv/vmbus/hyperv_var.h>
+
 #include <contrib/dev/acpica/include/acpi.h>
 
 void hyperv_init_tc(void);

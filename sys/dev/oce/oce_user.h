@@ -36,7 +36,6 @@
  * Costa Mesa, CA 92626
  */
 
-
 struct oce_mbx;
 struct oce_softc;
 struct mbx_hdr;
@@ -47,9 +46,9 @@ enum oce_interrupt_mode {
 	OCE_INTERRUPT_MODE_MSI = 2,
 };
 
-#define MAX_ROCE_MSIX_VECTORS   16
-#define MIN_ROCE_MSIX_VECTORS   1
-#define ROCE_MSIX_VECTORS       2
+#define MAX_ROCE_MSIX_VECTORS 16
+#define MIN_ROCE_MSIX_VECTORS 1
+#define ROCE_MSIX_VECTORS 2
 
 struct oce_dev_info {
 	device_t dev;
@@ -74,15 +73,15 @@ struct oce_dev_info {
 		uint32_t vector_list[MAX_ROCE_MSIX_VECTORS];
 	} msix;
 	uint32_t flags;
-#define OCE_RDMA_INFO_RDMA_SUPPORTED     0x00000001
+#define OCE_RDMA_INFO_RDMA_SUPPORTED 0x00000001
 };
 
-#define OCE_GEN2_FAMILY     2
+#define OCE_GEN2_FAMILY 2
 
 #ifdef notdef
 struct oce_mbx_ctx {
 	struct oce_mbx *mbx;
-	void (*cb) (void *ctx);
+	void (*cb)(void *ctx);
 	void *cb_ctx;
 };
 #endif
@@ -92,19 +91,12 @@ struct oce_mbx_ctx;
 typedef struct oce_rdma_info {
 	int size;
 	void (*close)(void);
-	int (*mbox_post)(struct oce_softc *sc, 
-			 struct oce_mbx *mbx, 
-			 struct oce_mbx_ctx *mbxctx);
-	void (*common_req_hdr_init)(struct mbx_hdr *hdr,
-				    uint8_t dom,
-				    uint8_t port,
-				    uint8_t subsys,
-				    uint8_t opcode,
-				    uint32_t timeout,
-				    uint32_t pyld_len,
-				    uint8_t version);
-	void (*get_mac_addr)(struct oce_softc *sc,
-			     uint8_t *macaddr);
+	int (*mbox_post)(struct oce_softc *sc, struct oce_mbx *mbx,
+	    struct oce_mbx_ctx *mbxctx);
+	void (*common_req_hdr_init)(struct mbx_hdr *hdr, uint8_t dom,
+	    uint8_t port, uint8_t subsys, uint8_t opcode, uint32_t timeout,
+	    uint32_t pyld_len, uint8_t version);
+	void (*get_mac_addr)(struct oce_softc *sc, uint8_t *macaddr);
 } OCE_RDMA_INFO, *POCE_RDMA_INFO;
 
 #define OCE_RDMA_INFO_SIZE (sizeof(OCE_RDMA_INFO))

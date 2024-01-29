@@ -48,7 +48,8 @@ static int runtime, utime;
 void
 usage(void)
 {
-	fprintf(stderr, "Usage: %s [-d delay] [-p pct] [-t runtime] "
+	fprintf(stderr,
+	    "Usage: %s [-d delay] [-p pct] [-t runtime] "
 	    "[-v]\n",
 	    getprogname());
 	exit(1);
@@ -64,8 +65,7 @@ usermem(void)
 		err(1, "sysctlbyname() %s:%d", __FILE__, __LINE__);
 
 #if defined(DEBUG)
-	printf("Total free user memory %lu Mb\n",
-		mem / 1024 / 1024);
+	printf("Total free user memory %lu Mb\n", mem / 1024 / 1024);
 #endif
 
 	return (mem);
@@ -84,7 +84,7 @@ swap(void)
 	if (sysctlnametomib("vm.swap_info", mib, &mibsize) == -1)
 		err(1, "sysctlnametomib()");
 
-	for (n = 0; ; ++n) {
+	for (n = 0;; ++n) {
 		mib[mibsize] = n;
 		size = sizeof xsw;
 		if (sysctl(mib, mibsize + 1, &xsw, &size, NULL, 0) == -1)
@@ -98,7 +98,7 @@ swap(void)
 
 #if defined(DEBUG)
 	printf("Total free swap space %jd Mb\n",
-		sz * getpagesize() / 1024 / 1024);
+	    sz * getpagesize() / 1024 / 1024);
 #endif
 
 	return (sz * getpagesize());
@@ -115,7 +115,7 @@ setup(void)
 		errx(1, "Argument too small");
 
 	if (getrlimit(RLIMIT_DATA, &rlp) < 0)
-		err(1,"getrlimit");
+		err(1, "getrlimit");
 	rlp.rlim_cur -= 1024 * 1024;
 
 	if (size > (unsigned long)rlp.rlim_cur)
@@ -142,7 +142,7 @@ test(void)
 
 	c = malloc(size);
 	while (c == NULL) {
-		size -=  1024 * 1024;
+		size -= 1024 * 1024;
 		c = malloc(size);
 	}
 	if (size != original)
@@ -176,28 +176,28 @@ main(int argc, char **argv)
 	s = swap();
 	u = usermem();
 
-	runtime = 120;	/* 2 minutes */
-	utime = 1000;	/* 0.001 sec */
+	runtime = 120; /* 2 minutes */
+	utime = 1000;  /* 0.001 sec */
 	verbose = 0;
 	if (s == 0)
 		pct = 80;
 	else
 		pct = 101;
 	while ((ch = getopt(argc, argv, "d:p:t:v")) != -1) {
-		switch(ch) {
-		case 'd':	/* delay in usec */
+		switch (ch) {
+		case 'd': /* delay in usec */
 			if (sscanf(optarg, "%d", &utime) != 1)
 				usage();
 			break;
-		case 'p':	/* % of usermem */
+		case 'p': /* % of usermem */
 			if (sscanf(optarg, "%d", &pct) != 1)
 				usage();
 			break;
-		case 't':	/* runtime in sec*/
+		case 't': /* runtime in sec*/
 			if (sscanf(optarg, "%d", &runtime) != 1)
 				usage();
 			break;
-		case 'v':	/* verbose*/
+		case 'v': /* verbose*/
 			verbose = 1;
 			break;
 		default:
@@ -205,7 +205,7 @@ main(int argc, char **argv)
 		}
 	}
 
-	if (s == 0 &&  pct > 80)
+	if (s == 0 && pct > 80)
 		errx(1, "pct range with no swap is 0-80");
 	size = u / 100 * pct;
 	if (verbose == 1)

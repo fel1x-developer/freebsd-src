@@ -33,28 +33,27 @@
 #include <sys/mount.h>
 #include <sys/stat.h>
 
-#include <ufs/ufs/quota.h>
-
 #include <errno.h>
 #include <fcntl.h>
 #include <fstab.h>
 #include <grp.h>
-#include <pwd.h>
 #include <libutil.h>
+#include <pwd.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ufs/ufs/quota.h>
 #include <unistd.h>
 
 struct quotafile {
-	int fd;				/* -1 means using quotactl for access */
-	int accmode;			/* access mode */
-	int wordsize;			/* 32-bit or 64-bit limits */
-	int quotatype;			/* USRQUOTA or GRPQUOTA */
-	dev_t dev;			/* device */
-	char fsname[MAXPATHLEN + 1];	/* mount point of filesystem */
-	char qfname[MAXPATHLEN + 1];	/* quota file if not using quotactl */
+	int fd;			     /* -1 means using quotactl for access */
+	int accmode;		     /* access mode */
+	int wordsize;		     /* 32-bit or 64-bit limits */
+	int quotatype;		     /* USRQUOTA or GRPQUOTA */
+	dev_t dev;		     /* device */
+	char fsname[MAXPATHLEN + 1]; /* mount point of filesystem */
+	char qfname[MAXPATHLEN + 1]; /* quota file if not using quotactl */
 };
 
 static const char *qfextension[] = INITQFNAMES;
@@ -147,7 +146,7 @@ quota_open(struct fstab *fs, int quotatype, int openflags)
 		goto error;
 	}
 	qf->accmode = openflags & O_ACCMODE;
-	if ((qf->fd = open(qf->qfname, qf->accmode|O_CLOEXEC)) < 0 &&
+	if ((qf->fd = open(qf->qfname, qf->accmode | O_CLOEXEC)) < 0 &&
 	    (openflags & O_CREAT) != O_CREAT)
 		goto error;
 	/* File open worked, so process it */
@@ -178,8 +177,8 @@ quota_open(struct fstab *fs, int quotatype, int openflags)
 		/* not reached */
 	}
 	/* open failed, but O_CREAT was specified, so create a new file */
-	if ((qf->fd = open(qf->qfname, O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC, 0)) <
-	    0)
+	if ((qf->fd = open(qf->qfname, O_RDWR | O_CREAT | O_TRUNC | O_CLOEXEC,
+		 0)) < 0)
 		goto error;
 	qf->wordsize = 64;
 	memset(&dqh, 0, sizeof(dqh));
@@ -479,16 +478,14 @@ quota_write_limits(struct quotafile *qf, struct dqblk *dqb, int id)
 	    dqbuf.dqb_curblocks < dqbuf.dqb_bsoftlimit &&
 	    dqbuf.dqb_curblocks >= dqb->dqb_bsoftlimit)
 		dqb->dqb_btime = 0;
-	if (dqbuf.dqb_bsoftlimit == 0 && id != 0 &&
-	    dqb->dqb_bsoftlimit > 0 &&
+	if (dqbuf.dqb_bsoftlimit == 0 && id != 0 && dqb->dqb_bsoftlimit > 0 &&
 	    dqbuf.dqb_curblocks >= dqb->dqb_bsoftlimit)
 		dqb->dqb_btime = 0;
 	if (dqbuf.dqb_isoftlimit && id != 0 &&
 	    dqbuf.dqb_curinodes < dqbuf.dqb_isoftlimit &&
 	    dqbuf.dqb_curinodes >= dqb->dqb_isoftlimit)
 		dqb->dqb_itime = 0;
-	if (dqbuf.dqb_isoftlimit == 0 && id !=0 &&
-	    dqb->dqb_isoftlimit > 0 &&
+	if (dqbuf.dqb_isoftlimit == 0 && id != 0 && dqb->dqb_isoftlimit > 0 &&
 	    dqbuf.dqb_curinodes >= dqb->dqb_isoftlimit)
 		dqb->dqb_itime = 0;
 	dqb->dqb_curinodes = dqbuf.dqb_curinodes;
@@ -528,8 +525,7 @@ quota_convert(struct quotafile *qf, int wordsize)
 		errno = EBADF;
 		return (-1);
 	}
-	if ((wordsize != 32 && wordsize != 64) ||
-	     wordsize == qf->wordsize) {
+	if ((wordsize != 32 && wordsize != 64) || wordsize == qf->wordsize) {
 		errno = EINVAL;
 		return (-1);
 	}
@@ -545,8 +541,8 @@ quota_convert(struct quotafile *qf, int wordsize)
 		free(newqf);
 		return (-1);
 	}
-	if ((newqf->fd = open(qf->qfname, O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC,
-	    0)) < 0) {
+	if ((newqf->fd = open(qf->qfname,
+		 O_RDWR | O_CREAT | O_TRUNC | O_CLOEXEC, 0)) < 0) {
 		serrno = errno;
 		goto error;
 	}
@@ -598,7 +594,7 @@ quota_convert(struct quotafile *qf, int wordsize)
 	return (0);
 error:
 	/* put back the original file */
-	(void) rename(newqf->qfname, qf->qfname);
+	(void)rename(newqf->qfname, qf->qfname);
 	quota_close(newqf);
 	errno = serrno;
 	return (-1);

@@ -31,9 +31,9 @@
 #ifndef _CITRUS_FIX_GROUPING_H_
 #define _CITRUS_FIX_GROUPING_H_
 
-#define _CITRUS_LC_GROUPING_VALUE_MIN		0
-#define _CITRUS_LC_GROUPING_VALUE_MAX		126
-#define _CITRUS_LC_GROUPING_VALUE_NO_FUTHER	127
+#define _CITRUS_LC_GROUPING_VALUE_MIN 0
+#define _CITRUS_LC_GROUPING_VALUE_MAX 126
+#define _CITRUS_LC_GROUPING_VALUE_NO_FUTHER 127
 
 #if CHAR_MAX != _CITRUS_LC_GROUPING_VALUE_NO_FUTHER
 static __inline void
@@ -46,9 +46,9 @@ _citrus_fixup_char_max_md(char *grouping)
 			*p = (char)CHAR_MAX;
 }
 #define _CITRUS_FIXUP_CHAR_MAX_MD(grouping) \
-    _citrus_fixup_char_max_md(__DECONST(void *, grouping))
+	_citrus_fixup_char_max_md(__DECONST(void *, grouping))
 #else
-#define _CITRUS_FIXUP_CHAR_MAX_MD(grouping)	/* nothing to do */
+#define _CITRUS_FIXUP_CHAR_MAX_MD(grouping) /* nothing to do */
 #endif
 
 #endif /*_CITRUS_FIX_GROUPING_H_*/

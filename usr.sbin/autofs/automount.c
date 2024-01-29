@@ -30,15 +30,16 @@
  */
 
 #include <sys/types.h>
-#include <sys/time.h>
-#include <sys/ioctl.h>
 #include <sys/param.h>
+#include <sys/ioctl.h>
 #include <sys/linker.h>
 #include <sys/mount.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/wait.h>
+#include <sys/time.h>
 #include <sys/utsname.h>
+#include <sys/wait.h>
+
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
@@ -63,8 +64,8 @@ unmount_by_statfs(const struct statfs *sb, bool force)
 	char *fsid_str;
 	int error, ret, flags;
 
-	ret = asprintf(&fsid_str, "FSID:%d:%d",
-	    sb->f_fsid.val[0], sb->f_fsid.val[1]);
+	ret = asprintf(&fsid_str, "FSID:%d:%d", sb->f_fsid.val[0],
+	    sb->f_fsid.val[1]);
 	if (ret < 0)
 		log_err(1, "asprintf");
 
@@ -106,33 +107,31 @@ mount_autofs(const char *from, const char *fspath, const char *options,
 
 	create_directory(fspath);
 
-	log_debugx("mounting %s on %s, prefix \"%s\", options \"%s\"",
-	    from, fspath, prefix, options);
+	log_debugx("mounting %s on %s, prefix \"%s\", options \"%s\"", from,
+	    fspath, prefix, options);
 	memset(errmsg, 0, sizeof(errmsg));
 
-	build_iovec(&iov, &iovlen, "fstype",
-	    __DECONST(void *, "autofs"), (size_t)-1);
-	build_iovec(&iov, &iovlen, "fspath",
-	    __DECONST(void *, fspath), (size_t)-1);
-	build_iovec(&iov, &iovlen, "from",
-	    __DECONST(void *, from), (size_t)-1);
-	build_iovec(&iov, &iovlen, "errmsg",
-	    errmsg, sizeof(errmsg));
+	build_iovec(&iov, &iovlen, "fstype", __DECONST(void *, "autofs"),
+	    (size_t)-1);
+	build_iovec(&iov, &iovlen, "fspath", __DECONST(void *, fspath),
+	    (size_t)-1);
+	build_iovec(&iov, &iovlen, "from", __DECONST(void *, from), (size_t)-1);
+	build_iovec(&iov, &iovlen, "errmsg", errmsg, sizeof(errmsg));
 
 	/*
 	 * Append the options and mountpoint defined in auto_master(5);
 	 * this way automountd(8) does not need to parse it.
 	 */
-	build_iovec(&iov, &iovlen, "master_options",
-	    __DECONST(void *, options), (size_t)-1);
-	build_iovec(&iov, &iovlen, "master_prefix",
-	    __DECONST(void *, prefix), (size_t)-1);
+	build_iovec(&iov, &iovlen, "master_options", __DECONST(void *, options),
+	    (size_t)-1);
+	build_iovec(&iov, &iovlen, "master_prefix", __DECONST(void *, prefix),
+	    (size_t)-1);
 
 	error = nmount(iov, iovlen, 0);
 	if (error != 0) {
 		if (*errmsg != '\0') {
-			log_err(1, "cannot mount %s on %s: %s",
-			    from, fspath, errmsg);
+			log_err(1, "cannot mount %s on %s: %s", from, fspath,
+			    errmsg);
 		} else {
 			log_err(1, "cannot mount %s on %s", from, fspath);
 		}
@@ -157,21 +156,22 @@ mount_if_not_already(const struct node *n, const char *map, const char *options,
 	if (sb != NULL) {
 		if (strcmp(sb->f_fstypename, "autofs") != 0) {
 			log_debugx("unknown filesystem mounted "
-			    "on %s; mounting", mountpoint);
+				   "on %s; mounting",
+			    mountpoint);
 			/*
 			 * XXX: Compare options and 'from',
 			 *	and update the mount if necessary.
 			 */
 		} else {
 			log_debugx("autofs already mounted "
-			    "on %s", mountpoint);
+				   "on %s",
+			    mountpoint);
 			free(from);
 			free(mountpoint);
 			return;
 		}
 	} else {
-		log_debugx("nothing mounted on %s; mounting",
-		    mountpoint);
+		log_debugx("nothing mounted on %s; mounting", mountpoint);
 	}
 
 	mount_autofs(from, mountpoint, options, prefix);
@@ -207,22 +207,23 @@ mount_unmount(struct node *root)
 		}
 
 		log_debugx("autofs mounted on %s not found "
-		    "in new configuration; unmounting", mntbuf[i].f_mntonname);
+			   "in new configuration; unmounting",
+		    mntbuf[i].f_mntonname);
 		unmount_by_statfs(&(mntbuf[i]), false);
 	}
 
 	log_debugx("mounting new autofs mounts");
 
-	TAILQ_FOREACH(n, &root->n_children, n_next) {
+	TAILQ_FOREACH (n, &root->n_children, n_next) {
 		if (!node_is_direct_map(n)) {
 			mount_if_not_already(n, n->n_map, n->n_options,
 			    n->n_key, mntbuf, nitems);
 			continue;
 		}
 
-		TAILQ_FOREACH(n2, &n->n_children, n_next) {
-			mount_if_not_already(n2, n->n_map, n->n_options,
-			    "/", mntbuf, nitems);
+		TAILQ_FOREACH (n2, &n->n_children, n_next) {
+			mount_if_not_already(n2, n->n_map, n->n_options, "/",
+			    mntbuf, nitems);
 		}
 	}
 }
@@ -237,20 +238,18 @@ flush_autofs(const char *fspath, const fsid_t *fsid)
 	log_debugx("flushing %s", fspath);
 	memset(errmsg, 0, sizeof(errmsg));
 
-	build_iovec(&iov, &iovlen, "fstype",
-	    __DECONST(void *, "autofs"), (size_t)-1);
-	build_iovec(&iov, &iovlen, "fspath",
-	    __DECONST(void *, fspath), (size_t)-1);
-	build_iovec(&iov, &iovlen, "fsid",
-	    __DECONST(void *, fsid), sizeof(*fsid));
-	build_iovec(&iov, &iovlen, "errmsg",
-	    errmsg, sizeof(errmsg));
+	build_iovec(&iov, &iovlen, "fstype", __DECONST(void *, "autofs"),
+	    (size_t)-1);
+	build_iovec(&iov, &iovlen, "fspath", __DECONST(void *, fspath),
+	    (size_t)-1);
+	build_iovec(&iov, &iovlen, "fsid", __DECONST(void *, fsid),
+	    sizeof(*fsid));
+	build_iovec(&iov, &iovlen, "errmsg", errmsg, sizeof(errmsg));
 
 	error = nmount(iov, iovlen, MNT_UPDATE);
 	if (error != 0) {
 		if (*errmsg != '\0') {
-			log_err(1, "cannot flush %s: %s",
-			    fspath, errmsg);
+			log_err(1, "cannot flush %s: %s", fspath, errmsg);
 		} else {
 			log_err(1, "cannot flush %s", fspath);
 		}

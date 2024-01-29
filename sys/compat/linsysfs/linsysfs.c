@@ -28,22 +28,21 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/ctype.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/mount.h>
+#include <sys/pciio.h>
 #include <sys/sbuf.h>
 #include <sys/smp.h>
-#include <sys/bus.h>
-#include <sys/pciio.h>
 
-#include <dev/pci/pcivar.h>
 #include <dev/pci/pcireg.h>
-
-#include <compat/linux/linux_util.h>
-#include <fs/pseudofs/pseudofs.h>
+#include <dev/pci/pcivar.h>
 
 #include <compat/linsysfs/linsysfs.h>
+#include <compat/linux/linux_util.h>
+#include <fs/pseudofs/pseudofs.h>
 
 MALLOC_DEFINE(M_LINSYSFS, "linsysfs", "Linsysfs structures");
 
@@ -53,7 +52,7 @@ struct scsi_host_queue {
 	char *name;
 };
 
-TAILQ_HEAD(,scsi_host_queue) scsi_host_q;
+TAILQ_HEAD(, scsi_host_queue) scsi_host_q;
 
 static int host_number = 0;
 
@@ -78,7 +77,7 @@ linsysfs_scsiname(PFS_FILL_ARGS)
 		sbuf_printf(sb, "unknown\n");
 		return (0);
 	}
-	TAILQ_FOREACH(scsi_host, &scsi_host_q, scsi_host_next) {
+	TAILQ_FOREACH (scsi_host, &scsi_host_q, scsi_host_next) {
 		if (index-- == 0) {
 			sbuf_printf(sb, "%s\n", scsi_host->name);
 			return (0);
@@ -103,10 +102,10 @@ linsysfs_link_scsi_host(PFS_FILL_ARGS)
 		sbuf_printf(sb, "unknown\n");
 		return (0);
 	}
-	TAILQ_FOREACH(scsi_host, &scsi_host_q, scsi_host_next) {
+	TAILQ_FOREACH (scsi_host, &scsi_host_q, scsi_host_next) {
 		if (index-- == 0) {
 			sbuf_printf(sb, "../../../devices%s", scsi_host->path);
-			return(0);
+			return (0);
 		}
 	}
 	sbuf_printf(sb, "unknown\n");
@@ -191,7 +190,8 @@ linsysfs_fill_uevent_pci(PFS_FILL_ARGS)
 	device_t dev;
 
 	dev = (device_t)pn->pn_data;
-	sbuf_printf(sb, "DRIVER=%s\nPCI_CLASS=%X\nPCI_ID=%04X:%04X\n"
+	sbuf_printf(sb,
+	    "DRIVER=%s\nPCI_CLASS=%X\nPCI_ID=%04X:%04X\n"
 	    "PCI_SUBSYS_ID=%04X:%04X\nPCI_SLOT_NAME=%04d:%02x:%02x.%x\n",
 	    linux_driver_get_name_dev(dev), pci_get_class(dev),
 	    pci_get_vendor(dev), pci_get_device(dev), pci_get_subvendor(dev),
@@ -245,7 +245,7 @@ linsysfs_fill_vgapci(PFS_FILL_ARGS)
 {
 	char *path;
 
-	path = get_full_pfs_path((struct pfs_node*)pn->pn_data);
+	path = get_full_pfs_path((struct pfs_node *)pn->pn_data);
 	sbuf_printf(sb, "../../../%s", path);
 	free(path, M_TEMP);
 	return (0);
@@ -279,54 +279,52 @@ linsysfs_run_bus(device_t dev, struct pfs_node *dir, struct pfs_node *scsi,
 			dinfo = device_get_ivars(dev);
 			if (dinfo) {
 				device = malloc(MAXPATHLEN, M_TEMP, M_WAITOK);
-				new_path = malloc(MAXPATHLEN, M_TEMP,
-				    M_WAITOK);
+				new_path = malloc(MAXPATHLEN, M_TEMP, M_WAITOK);
 				new_path[0] = '\000';
 				strcpy(new_path, path);
 				host = malloc(MAXPATHLEN, M_TEMP, M_WAITOK);
 				device[0] = '\000';
-				sprintf(device, "%s:%02x:%02x.%x",
-				    prefix,
-				    dinfo->cfg.bus,
-				    dinfo->cfg.slot,
+				sprintf(device, "%s:%02x:%02x.%x", prefix,
+				    dinfo->cfg.bus, dinfo->cfg.slot,
 				    dinfo->cfg.func);
 				strcat(new_path, "/");
 				strcat(new_path, device);
-				dir = pfs_create_dir(dir, device,
-				    NULL, NULL, NULL, 0);
+				dir = pfs_create_dir(dir, device, NULL, NULL,
+				    NULL, 0);
 				cur_file = pfs_create_file(dir, "vendor",
 				    &linsysfs_fill_vendor, NULL, NULL, NULL,
 				    PFS_RD);
-				cur_file->pn_data = (void*)dev;
+				cur_file->pn_data = (void *)dev;
 				cur_file = pfs_create_file(dir, "device",
 				    &linsysfs_fill_device, NULL, NULL, NULL,
 				    PFS_RD);
-				cur_file->pn_data = (void*)dev;
+				cur_file->pn_data = (void *)dev;
 				cur_file = pfs_create_file(dir,
 				    "subsystem_vendor",
 				    &linsysfs_fill_subvendor, NULL, NULL, NULL,
 				    PFS_RD);
-				cur_file->pn_data = (void*)dev;
+				cur_file->pn_data = (void *)dev;
 				cur_file = pfs_create_file(dir,
 				    "subsystem_device",
 				    &linsysfs_fill_subdevice, NULL, NULL, NULL,
 				    PFS_RD);
-				cur_file->pn_data = (void*)dev;
+				cur_file->pn_data = (void *)dev;
 				cur_file = pfs_create_file(dir, "revision",
 				    &linsysfs_fill_revid, NULL, NULL, NULL,
 				    PFS_RD);
-				cur_file->pn_data = (void*)dev;
+				cur_file->pn_data = (void *)dev;
 				cur_file = pfs_create_file(dir, "config",
 				    &linsysfs_fill_config, NULL, NULL, NULL,
 				    PFS_RD);
-				cur_file->pn_data = (void*)dev;
+				cur_file->pn_data = (void *)dev;
 				cur_file = pfs_create_file(dir, "uevent",
-				    &linsysfs_fill_uevent_pci, NULL, NULL,
-				    NULL, PFS_RD);
-				cur_file->pn_data = (void*)dev;
+				    &linsysfs_fill_uevent_pci, NULL, NULL, NULL,
+				    PFS_RD);
+				cur_file->pn_data = (void *)dev;
 				cur_file = pfs_create_link(dir, "subsystem",
 				    &linsysfs_fill_data, NULL, NULL, NULL, 0);
-				/* libdrm just checks that the link ends in "/pci" */
+				/* libdrm just checks that the link ends in
+				 * "/pci" */
 				cur_file->pn_data = "/sys/bus/pci";
 
 				if (dinfo->cfg.baseclass == PCIC_STORAGE) {
@@ -334,14 +332,14 @@ linsysfs_run_bus(device_t dev, struct pfs_node *dir, struct pfs_node *scsi,
 					sprintf(host, "host%d", host_number++);
 					strcat(new_path, "/");
 					strcat(new_path, host);
-					pfs_create_dir(dir, host,
-					    NULL, NULL, NULL, 0);
-					scsi_host = malloc(sizeof(
-					    struct scsi_host_queue),
+					pfs_create_dir(dir, host, NULL, NULL,
+					    NULL, 0);
+					scsi_host = malloc(
+					    sizeof(struct scsi_host_queue),
 					    M_DEVBUF, M_NOWAIT);
-					scsi_host->path = malloc(
-					    strlen(new_path) + 1,
-					    M_DEVBUF, M_NOWAIT);
+					scsi_host->path =
+					    malloc(strlen(new_path) + 1,
+						M_DEVBUF, M_NOWAIT);
 					scsi_host->path[0] = '\000';
 					bcopy(new_path, scsi_host->path,
 					    strlen(new_path) + 1);
@@ -350,13 +348,13 @@ linsysfs_run_bus(device_t dev, struct pfs_node *dir, struct pfs_node *scsi,
 					sub_dir = pfs_create_dir(scsi, host,
 					    NULL, NULL, NULL, 0);
 					pfs_create_link(sub_dir, "device",
-					    &linsysfs_link_scsi_host,
-					    NULL, NULL, NULL, 0);
+					    &linsysfs_link_scsi_host, NULL,
+					    NULL, NULL, 0);
 					pfs_create_file(sub_dir, "proc_name",
-					    &linsysfs_scsiname,
-					    NULL, NULL, NULL, PFS_RD);
-					scsi_host->name
-					    = linux_driver_get_name_dev(dev);
+					    &linsysfs_scsiname, NULL, NULL,
+					    NULL, PFS_RD);
+					scsi_host->name =
+					    linux_driver_get_name_dev(dev);
 					TAILQ_INSERT_TAIL(&scsi_host_q,
 					    scsi_host, scsi_host_next);
 				}
@@ -373,28 +371,29 @@ linsysfs_run_bus(device_t dev, struct pfs_node *dir, struct pfs_node *scsi,
 		if (name != NULL && strcmp(name, DRMN_DEV) == 0 &&
 		    device_get_unit(dev) >= 0) {
 			dinfo = device_get_ivars(parent);
-			if (dinfo != NULL && dinfo->cfg.baseclass == PCIC_DISPLAY) {
+			if (dinfo != NULL &&
+			    dinfo->cfg.baseclass == PCIC_DISPLAY) {
 				pfs_create_dir(dir, "drm", NULL, NULL, NULL, 0);
 				sprintf(devname, "226:%d",
 				    device_get_unit(dev));
-				sub_dir = pfs_create_dir(chardev,
-				    devname, NULL, NULL, NULL, 0);
-				cur_file = pfs_create_link(sub_dir,
-				    "device", &linsysfs_fill_vgapci, NULL,
-				    NULL, NULL, PFS_RD);
-				cur_file->pn_data = (void*)dir;
-				cur_file = pfs_create_file(sub_dir,
-				    "uevent", &linsysfs_fill_uevent_drm, NULL,
-				    NULL, NULL, PFS_RD);
-				cur_file->pn_data = (void*)dev;
+				sub_dir = pfs_create_dir(chardev, devname, NULL,
+				    NULL, NULL, 0);
+				cur_file = pfs_create_link(sub_dir, "device",
+				    &linsysfs_fill_vgapci, NULL, NULL, NULL,
+				    PFS_RD);
+				cur_file->pn_data = (void *)dir;
+				cur_file = pfs_create_file(sub_dir, "uevent",
+				    &linsysfs_fill_uevent_drm, NULL, NULL, NULL,
+				    PFS_RD);
+				cur_file->pn_data = (void *)dev;
 				sprintf(devname, "card%d",
 				    device_get_unit(dev));
-				sub_dir = pfs_create_dir(drm,
-				    devname, NULL, NULL, NULL, 0);
-				cur_file = pfs_create_link(sub_dir,
-				    "device", &linsysfs_fill_vgapci, NULL,
-				    NULL, NULL, PFS_RD);
-				cur_file->pn_data = (void*)dir;
+				sub_dir = pfs_create_dir(drm, devname, NULL,
+				    NULL, NULL, 0);
+				cur_file = pfs_create_link(sub_dir, "device",
+				    &linsysfs_fill_vgapci, NULL, NULL, NULL,
+				    PFS_RD);
+				cur_file->pn_data = (void *)dir;
 			}
 		}
 	}
@@ -457,8 +456,8 @@ linsysfs_listcpus(struct pfs_node *dir)
 		sprintf(name, "cpu%d", i);
 		cpu = pfs_create_dir(dir, name, NULL, NULL, NULL, 0);
 
-		pfs_create_file(cpu, "online", &linsysfs_cpuxonline,
-		    NULL, NULL, NULL, PFS_RD);
+		pfs_create_file(cpu, "online", &linsysfs_cpuxonline, NULL, NULL,
+		    NULL, PFS_RD);
 	}
 	free(name, M_TEMP);
 }
@@ -518,12 +517,12 @@ linsysfs_init(PFS_INIT_ARGS)
 	/* /sys/devices/system/cpu */
 	cpu = pfs_create_dir(sys, "cpu", NULL, NULL, NULL, 0);
 
-	pfs_create_file(cpu, "online", &linsysfs_cpuonline,
-	    NULL, NULL, NULL, PFS_RD);
-	pfs_create_file(cpu, "possible", &linsysfs_cpuonline,
-	    NULL, NULL, NULL, PFS_RD);
-	pfs_create_file(cpu, "present", &linsysfs_cpuonline,
-	    NULL, NULL, NULL, PFS_RD);
+	pfs_create_file(cpu, "online", &linsysfs_cpuonline, NULL, NULL, NULL,
+	    PFS_RD);
+	pfs_create_file(cpu, "possible", &linsysfs_cpuonline, NULL, NULL, NULL,
+	    PFS_RD);
+	pfs_create_file(cpu, "present", &linsysfs_cpuonline, NULL, NULL, NULL,
+	    PFS_RD);
 
 	linsysfs_listcpus(cpu);
 
@@ -545,7 +544,7 @@ linsysfs_uninit(PFS_INIT_ARGS)
 {
 	struct scsi_host_queue *scsi_host, *scsi_host_tmp;
 
-	TAILQ_FOREACH_SAFE(scsi_host, &scsi_host_q, scsi_host_next,
+	TAILQ_FOREACH_SAFE (scsi_host, &scsi_host_q, scsi_host_next,
 	    scsi_host_tmp) {
 		TAILQ_REMOVE(&scsi_host_q, scsi_host, scsi_host_next);
 		free(scsi_host->path, M_TEMP);

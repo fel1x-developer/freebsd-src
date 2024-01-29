@@ -23,21 +23,20 @@
  * SUCH DAMAGE.
  */
 
-#include "opt_rss.h"
 #include "opt_ratelimit.h"
+#include "opt_rss.h"
 
-#include <linux/types.h>
-#include <linux/etherdevice.h>
-
-#include <dev/mlx5/mlx5_ifc.h>
 #include <dev/mlx5/device.h>
-#include <dev/mlx5/mpfs.h>
 #include <dev/mlx5/driver.h>
-
 #include <dev/mlx5/mlx5_core/mlx5_core.h>
+#include <dev/mlx5/mlx5_ifc.h>
+#include <dev/mlx5/mpfs.h>
 
-#define	MPFS_LOCK(dev) spin_lock(&(dev)->mpfs.spinlock)
-#define	MPFS_UNLOCK(dev) spin_unlock(&(dev)->mpfs.spinlock)
+#include <linux/etherdevice.h>
+#include <linux/types.h>
+
+#define MPFS_LOCK(dev) spin_lock(&(dev)->mpfs.spinlock)
+#define MPFS_UNLOCK(dev) spin_unlock(&(dev)->mpfs.spinlock)
 
 int
 mlx5_mpfs_add_mac(struct mlx5_core_dev *dev, u32 *p_index, const u8 *mac,
@@ -65,7 +64,8 @@ mlx5_mpfs_add_mac(struct mlx5_core_dev *dev, u32 *p_index, const u8 *mac,
 	if (index >= l2table_size)
 		return (-ENOMEM);
 
-	MLX5_SET(set_l2_table_entry_in, in, opcode, MLX5_CMD_OP_SET_L2_TABLE_ENTRY);
+	MLX5_SET(set_l2_table_entry_in, in, opcode,
+	    MLX5_CMD_OP_SET_L2_TABLE_ENTRY);
 	MLX5_SET(set_l2_table_entry_in, in, table_index, index);
 	MLX5_SET(set_l2_table_entry_in, in, vlan_valid, vlan_valid);
 	MLX5_SET(set_l2_table_entry_in, in, vlan, vlan);
@@ -97,7 +97,8 @@ mlx5_mpfs_del_mac(struct mlx5_core_dev *dev, u32 index)
 		return (0);
 	}
 
-	MLX5_SET(delete_l2_table_entry_in, in, opcode, MLX5_CMD_OP_DELETE_L2_TABLE_ENTRY);
+	MLX5_SET(delete_l2_table_entry_in, in, opcode,
+	    MLX5_CMD_OP_DELETE_L2_TABLE_ENTRY);
 	MLX5_SET(delete_l2_table_entry_in, in, table_index, index);
 
 	err = mlx5_cmd_exec(dev, in, sizeof(in), out, sizeof(out));

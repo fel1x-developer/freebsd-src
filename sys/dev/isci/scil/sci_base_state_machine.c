@@ -62,22 +62,22 @@
 
 #include <dev/isci/scil/sci_base_state_machine.h>
 
-#define SCI_STATE_MACHINE_EXIT_STATE(state_machine) \
-   if ( \
-       ((state_machine)->state_table[(state_machine)->current_state_id].\
-          exit_state != NULL) \
-      ) \
-   { \
-      ((state_machine)->state_table[(state_machine)->current_state_id].\
-      exit_state((state_machine)->state_machine_owner)); \
-   }
+#define SCI_STATE_MACHINE_EXIT_STATE(state_machine)                         \
+	if (((state_machine)                                                \
+		    ->state_table[(state_machine)->current_state_id]        \
+		    .exit_state != NULL)) {                                 \
+		((state_machine)                                            \
+			->state_table[(state_machine)->current_state_id]    \
+			.exit_state((state_machine)->state_machine_owner)); \
+	}
 
-#define SCI_STATE_MACHINE_ENTER_STATE(state_machine) \
-      ((state_machine)->state_table[(state_machine)->current_state_id].\
-      enter_state((state_machine)->state_machine_owner))
+#define SCI_STATE_MACHINE_ENTER_STATE(state_machine)             \
+	((state_machine)                                         \
+		->state_table[(state_machine)->current_state_id] \
+		.enter_state((state_machine)->state_machine_owner))
 
 #define SCI_STATE_MACHINE_SET_STATE(state_machine, id) \
-   ((state_machine)->current_state_id = (id))
+	((state_machine)->current_state_id = (id))
 
 //******************************************************************************
 //* P R O T E C T E D    M E T H O D S
@@ -100,22 +100,20 @@
  *
  * @return none
  */
-void sci_base_state_machine_construct(
-   SCI_BASE_STATE_MACHINE_T * this_state_machine,
-   SCI_BASE_OBJECT_T        * my_state_machine_owner,
-   SCI_BASE_STATE_T         * state_table,
-   U32                        initial_state
-)
+void
+sci_base_state_machine_construct(SCI_BASE_STATE_MACHINE_T *this_state_machine,
+    SCI_BASE_OBJECT_T *my_state_machine_owner, SCI_BASE_STATE_T *state_table,
+    U32 initial_state)
 {
 #if defined(SCI_LOGGING)
-   sci_base_subject_construct(&this_state_machine->parent);
+	sci_base_subject_construct(&this_state_machine->parent);
 #endif // defined(SCI_LOGGING)
 
-   this_state_machine->state_machine_owner = my_state_machine_owner;
-   this_state_machine->initial_state_id  = initial_state;
-   this_state_machine->previous_state_id = initial_state;
-   this_state_machine->current_state_id  = initial_state;
-   this_state_machine->state_table       = state_table;
+	this_state_machine->state_machine_owner = my_state_machine_owner;
+	this_state_machine->initial_state_id = initial_state;
+	this_state_machine->previous_state_id = initial_state;
+	this_state_machine->current_state_id = initial_state;
+	this_state_machine->state_table = state_table;
 }
 
 /**
@@ -129,19 +127,17 @@ void sci_base_state_machine_construct(
  *
  * @return none
  */
-void sci_base_state_machine_start(
-   SCI_BASE_STATE_MACHINE_T *this_state_machine
-)
+void
+sci_base_state_machine_start(SCI_BASE_STATE_MACHINE_T *this_state_machine)
 {
-   SCI_STATE_MACHINE_SET_STATE(
-      this_state_machine, this_state_machine->initial_state_id
-   );
+	SCI_STATE_MACHINE_SET_STATE(this_state_machine,
+	    this_state_machine->initial_state_id);
 
 #if defined(SCI_BASE_ENABLE_SUBJECT_NOTIFICATION)
-   sci_base_subject_notify(&this_state_machine->parent);
+	sci_base_subject_notify(&this_state_machine->parent);
 #endif
 
-   SCI_STATE_MACHINE_ENTER_STATE(this_state_machine);
+	SCI_STATE_MACHINE_ENTER_STATE(this_state_machine);
 }
 
 /**
@@ -153,14 +149,13 @@ void sci_base_state_machine_start(
  *
  * @return none
  */
-void sci_base_state_machine_stop(
-   SCI_BASE_STATE_MACHINE_T *this_state_machine
-)
+void
+sci_base_state_machine_stop(SCI_BASE_STATE_MACHINE_T *this_state_machine)
 {
-   SCI_STATE_MACHINE_EXIT_STATE(this_state_machine);
+	SCI_STATE_MACHINE_EXIT_STATE(this_state_machine);
 
 #if defined(SCI_BASE_ENABLE_SUBJECT_NOTIFICATION)
-   sci_base_subject_notify(&this_state_machine->parent);
+	sci_base_subject_notify(&this_state_machine->parent);
 #endif
 }
 
@@ -175,22 +170,22 @@ void sci_base_state_machine_stop(
  *
  * @return none
  */
-void sci_base_state_machine_change_state(
-   SCI_BASE_STATE_MACHINE_T *this_state_machine,
-   U32   next_state
-)
+void
+sci_base_state_machine_change_state(
+    SCI_BASE_STATE_MACHINE_T *this_state_machine, U32 next_state)
 {
-   SCI_STATE_MACHINE_EXIT_STATE(this_state_machine);
+	SCI_STATE_MACHINE_EXIT_STATE(this_state_machine);
 
-   this_state_machine->previous_state_id = this_state_machine->current_state_id;
-   SCI_STATE_MACHINE_SET_STATE(this_state_machine, next_state);
+	this_state_machine->previous_state_id =
+	    this_state_machine->current_state_id;
+	SCI_STATE_MACHINE_SET_STATE(this_state_machine, next_state);
 
 #if defined(SCI_BASE_ENABLE_SUBJECT_NOTIFICATION)
-   // Notify of the state change prior to entering the state.
-   sci_base_subject_notify(&this_state_machine->parent);
+	// Notify of the state change prior to entering the state.
+	sci_base_subject_notify(&this_state_machine->parent);
 #endif
 
-   SCI_STATE_MACHINE_ENTER_STATE(this_state_machine);
+	SCI_STATE_MACHINE_ENTER_STATE(this_state_machine);
 }
 
 /**
@@ -203,10 +198,8 @@ void sci_base_state_machine_change_state(
  * @return This method returns a U32 value indicating the current state for
  *         the supplied state machine.
  */
-U32 sci_base_state_machine_get_state(
-   SCI_BASE_STATE_MACHINE_T *this_state_machine
-)
+U32
+sci_base_state_machine_get_state(SCI_BASE_STATE_MACHINE_T *this_state_machine)
 {
-   return this_state_machine->current_state_id;
+	return this_state_machine->current_state_id;
 }
-

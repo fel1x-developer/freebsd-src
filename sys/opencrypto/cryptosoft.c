@@ -33,37 +33,36 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/endian.h>
+#include <sys/errno.h>
+#include <sys/kernel.h>
+#include <sys/kobj.h>
+#include <sys/limits.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
 #include <sys/module.h>
-#include <sys/sysctl.h>
-#include <sys/errno.h>
 #include <sys/random.h>
-#include <sys/kernel.h>
+#include <sys/sysctl.h>
 #include <sys/uio.h>
-#include <sys/endian.h>
-#include <sys/limits.h>
 
 #include <crypto/sha1.h>
-#include <opencrypto/rmd160.h>
-
 #include <opencrypto/cryptodev.h>
+#include <opencrypto/rmd160.h>
 #include <opencrypto/xform.h>
 
-#include <sys/kobj.h>
-#include <sys/bus.h>
 #include "cryptodev_if.h"
 
 struct swcr_auth {
-	void		*sw_ictx;
-	void		*sw_octx;
+	void *sw_ictx;
+	void *sw_octx;
 	const struct auth_hash *sw_axf;
-	uint16_t	sw_mlen;
-	bool		sw_hmac;
+	uint16_t sw_mlen;
+	bool sw_hmac;
 };
 
 struct swcr_encdec {
-	void		*sw_ctx;
+	void *sw_ctx;
 	const struct enc_xform *sw_exf;
 };
 
@@ -72,16 +71,16 @@ struct swcr_compdec {
 };
 
 struct swcr_session {
-	int	(*swcr_process)(const struct swcr_session *, struct cryptop *);
+	int (*swcr_process)(const struct swcr_session *, struct cryptop *);
 
 	struct swcr_auth swcr_auth;
 	struct swcr_encdec swcr_encdec;
 	struct swcr_compdec swcr_compdec;
 };
 
-static	int32_t swcr_id;
+static int32_t swcr_id;
 
-static	void swcr_freesession(device_t dev, crypto_session_t cses);
+static void swcr_freesession(device_t dev, crypto_session_t cses);
 
 /* Used for CRYPTO_NULL_CBC. */
 static int
@@ -207,8 +206,8 @@ swcr_encdec(const struct swcr_session *ses, struct cryptop *crp)
 	/* Handle trailing partial block for stream ciphers. */
 	if (resid > 0) {
 		KASSERT(exf->native_blocksize != 0,
-		    ("%s: partial block of %d bytes for cipher %s",
-		    __func__, resid, exf->name));
+		    ("%s: partial block of %d bytes for cipher %s", __func__,
+			resid, exf->name));
 		KASSERT(resid < blksz, ("%s: partial block too big", __func__));
 
 		inblk = crypto_cursor_segment(&cc_in, &inlen);
@@ -220,11 +219,9 @@ swcr_encdec(const struct swcr_session *ses, struct cryptop *crp)
 		if (outlen < resid)
 			outblk = blk;
 		if (encrypting)
-			exf->encrypt_last(ctx, inblk, outblk,
-			    resid);
+			exf->encrypt_last(ctx, inblk, outblk, resid);
 		else
-			exf->decrypt_last(ctx, inblk, outblk,
-			    resid);
+			exf->decrypt_last(ctx, inblk, outblk, resid);
 		if (outlen < resid)
 			crypto_cursor_copyback(&cc_out, resid, blk);
 	}
@@ -275,8 +272,7 @@ swcr_authcompute(const struct swcr_session *ses, struct cryptop *crp)
 	if (err)
 		goto out;
 
-	if (CRYPTO_HAS_OUTPUT_BUFFER(crp) &&
-	    CRYPTO_OP_IS_ENCRYPT(crp->crp_op))
+	if (CRYPTO_HAS_OUTPUT_BUFFER(crp) && CRYPTO_OP_IS_ENCRYPT(crp->crp_op))
 		err = crypto_apply_buf(&crp->crp_obuf,
 		    crp->crp_payload_output_start, crp->crp_payload_length,
 		    axf->Update, &s.ctx);
@@ -301,19 +297,21 @@ swcr_authcompute(const struct swcr_session *ses, struct cryptop *crp)
 	}
 
 	if (crp->crp_op & CRYPTO_OP_VERIFY_DIGEST) {
-		crypto_copydata(crp, crp->crp_digest_start, sw->sw_mlen, s.uaalg);
+		crypto_copydata(crp, crp->crp_digest_start, sw->sw_mlen,
+		    s.uaalg);
 		if (timingsafe_bcmp(s.aalg, s.uaalg, sw->sw_mlen) != 0)
 			err = EBADMSG;
 	} else {
 		/* Inject the authentication data */
-		crypto_copyback(crp, crp->crp_digest_start, sw->sw_mlen, s.aalg);
+		crypto_copyback(crp, crp->crp_digest_start, sw->sw_mlen,
+		    s.aalg);
 	}
 out:
 	explicit_bzero(&s, sizeof(s));
 	return (err);
 }
 
-CTASSERT(INT_MAX <= (1ll<<39) - 256);	/* GCM: plain text < 2^39-256 */
+CTASSERT(INT_MAX <= (1ll << 39) - 256); /* GCM: plain text < 2^39-256 */
 CTASSERT(INT_MAX <= (uint64_t)-1);	/* GCM: associated data <= 2^64-1 */
 
 static int
@@ -337,8 +335,8 @@ swcr_gmac(const struct swcr_session *ses, struct cryptop *crp)
 	swa = &ses->swcr_auth;
 	axf = swa->sw_axf;
 	blksz = GMAC_BLOCK_LEN;
-	KASSERT(axf->blocksize == blksz, ("%s: axf block size mismatch",
-	    __func__));
+	KASSERT(axf->blocksize == blksz,
+	    ("%s: axf block size mismatch", __func__));
 
 	if (crp->crp_auth_key != NULL) {
 		axf->Init(&s.ctx);
@@ -389,7 +387,8 @@ swcr_gmac(const struct swcr_session *ses, struct cryptop *crp)
 			error = EBADMSG;
 	} else {
 		/* Inject the authentication data */
-		crypto_copyback(crp, crp->crp_digest_start, swa->sw_mlen, s.tag);
+		crypto_copyback(crp, crp->crp_digest_start, swa->sw_mlen,
+		    s.tag);
 	}
 	explicit_bzero(&s, sizeof(s));
 	return (error);
@@ -505,7 +504,8 @@ swcr_gcm(const struct swcr_session *ses, struct cryptop *crp)
 
 			if (outblk == blk) {
 				crypto_cursor_copyback(&cc_out, blksz, blk);
-				outblk = crypto_cursor_segment(&cc_out, &outlen);
+				outblk = crypto_cursor_segment(&cc_out,
+				    &outlen);
 			} else {
 				crypto_cursor_advance(&cc_out, todo);
 				outlen -= todo;
@@ -565,7 +565,8 @@ swcr_gcm(const struct swcr_session *ses, struct cryptop *crp)
 			if (inlen == 0)
 				inblk = crypto_cursor_segment(&cc_in, &inlen);
 			if (outlen == 0)
-				outblk = crypto_cursor_segment(&cc_out, &outlen);
+				outblk = crypto_cursor_segment(&cc_out,
+				    &outlen);
 			if (inlen < blksz) {
 				crypto_cursor_copydata(&cc_in, blksz, blk);
 				inblk = blk;
@@ -635,9 +636,7 @@ build_ccm_b0(const char *nonce, u_int nonce_length, u_int aad_length,
 	 */
 	L = 15 - nonce_length;
 
-	flags = ((aad_length > 0) << 6) +
-	    (((tag_length - 2) / 2) << 3) +
-	    L - 1;
+	flags = ((aad_length > 0) << 6) + (((tag_length - 2) / 2) << 3) + L - 1;
 
 	/*
 	 * Now we need to set up the first block, which has flags, nonce,
@@ -835,7 +834,8 @@ swcr_ccm(const struct swcr_session *ses, struct cryptop *crp)
 
 			if (outblk == blk) {
 				crypto_cursor_copyback(&cc_out, blksz, blk);
-				outblk = crypto_cursor_segment(&cc_out, &outlen);
+				outblk = crypto_cursor_segment(&cc_out,
+				    &outlen);
 			} else {
 				crypto_cursor_advance(&cc_out, todo);
 				outlen -= todo;
@@ -958,7 +958,8 @@ swcr_chacha20_poly1305(const struct swcr_session *ses, struct cryptop *crp)
 {
 	const struct crypto_session_params *csp;
 	struct {
-		uint64_t blkbuf[howmany(CHACHA20_NATIVE_BLOCK_LEN, sizeof(uint64_t))];
+		uint64_t blkbuf[howmany(CHACHA20_NATIVE_BLOCK_LEN,
+		    sizeof(uint64_t))];
 		u_char tag[POLY1305_HASH_LEN];
 		u_char tag2[POLY1305_HASH_LEN];
 	} s;
@@ -978,7 +979,8 @@ swcr_chacha20_poly1305(const struct swcr_session *ses, struct cryptop *crp)
 	swe = &ses->swcr_encdec;
 	exf = swe->sw_exf;
 	blksz = exf->native_blocksize;
-	KASSERT(blksz <= sizeof(s.blkbuf), ("%s: blocksize mismatch", __func__));
+	KASSERT(blksz <= sizeof(s.blkbuf),
+	    ("%s: blocksize mismatch", __func__));
 
 	if ((crp->crp_flags & CRYPTO_F_IV_SEPARATE) == 0)
 		return (EINVAL);
@@ -987,8 +989,7 @@ swcr_chacha20_poly1305(const struct swcr_session *ses, struct cryptop *crp)
 
 	ctx = __builtin_alloca(exf->ctxsize);
 	if (crp->crp_cipher_key != NULL)
-		exf->setkey(ctx, crp->crp_cipher_key,
-		    csp->csp_cipher_klen);
+		exf->setkey(ctx, crp->crp_cipher_key, csp->csp_cipher_klen);
 	else
 		memcpy(ctx, swe->sw_ctx, exf->ctxsize);
 	exf->reinit(ctx, crp->crp_iv, csp->csp_ivlen);
@@ -1002,8 +1003,9 @@ swcr_chacha20_poly1305(const struct swcr_session *ses, struct cryptop *crp)
 	if (crp->crp_aad_length % POLY1305_BLOCK_LEN != 0) {
 		/* padding1 */
 		memset(blk, 0, POLY1305_BLOCK_LEN);
-		exf->update(ctx, blk, POLY1305_BLOCK_LEN -
-		    crp->crp_aad_length % POLY1305_BLOCK_LEN);
+		exf->update(ctx, blk,
+		    POLY1305_BLOCK_LEN -
+			crp->crp_aad_length % POLY1305_BLOCK_LEN);
 	}
 
 	/* Do encryption with MAC */
@@ -1052,7 +1054,8 @@ swcr_chacha20_poly1305(const struct swcr_session *ses, struct cryptop *crp)
 
 			if (outblk == blk) {
 				crypto_cursor_copyback(&cc_out, blksz, blk);
-				outblk = crypto_cursor_segment(&cc_out, &outlen);
+				outblk = crypto_cursor_segment(&cc_out,
+				    &outlen);
 			} else {
 				crypto_cursor_advance(&cc_out, todo);
 				outlen -= todo;
@@ -1071,8 +1074,9 @@ swcr_chacha20_poly1305(const struct swcr_session *ses, struct cryptop *crp)
 	if (crp->crp_payload_length % POLY1305_BLOCK_LEN != 0) {
 		/* padding2 */
 		memset(blk, 0, POLY1305_BLOCK_LEN);
-		exf->update(ctx, blk, POLY1305_BLOCK_LEN -
-		    crp->crp_payload_length % POLY1305_BLOCK_LEN);
+		exf->update(ctx, blk,
+		    POLY1305_BLOCK_LEN -
+			crp->crp_payload_length % POLY1305_BLOCK_LEN);
 	}
 
 	/* lengths */
@@ -1195,7 +1199,7 @@ swcr_compdec(const struct swcr_session *ses, struct cryptop *crp)
 	 * copy in a buffer.
 	 */
 
-	data = malloc(crp->crp_payload_length, M_CRYPTO_DATA,  M_NOWAIT);
+	data = malloc(crp->crp_payload_length, M_CRYPTO_DATA, M_NOWAIT);
 	if (data == NULL)
 		return (EINVAL);
 	crypto_copydata(crp, crp->crp_payload_start, crp->crp_payload_length,
@@ -1249,8 +1253,7 @@ swcr_compdec(const struct swcr_session *ses, struct cryptop *crp)
 				ind--;
 				uio->uio_iovcnt--;
 			}
-			}
-			break;
+		} break;
 		case CRYPTO_BUF_VMPAGE:
 			adj = crp->crp_payload_length - result;
 			crp->crp_buf.cb_vm_page_len -= adj;
@@ -1280,8 +1283,8 @@ swcr_setup_cipher(struct swcr_session *ses,
 			if (swe->sw_ctx == NULL)
 				return (ENOMEM);
 		}
-		error = txf->setkey(swe->sw_ctx,
-		    csp->csp_cipher_key, csp->csp_cipher_klen);
+		error = txf->setkey(swe->sw_ctx, csp->csp_cipher_key,
+		    csp->csp_cipher_klen);
 		if (error)
 			return (error);
 	}
@@ -1307,8 +1310,7 @@ swcr_setup_auth(struct swcr_session *ses,
 	else
 		swa->sw_mlen = csp->csp_auth_mlen;
 	if (csp->csp_auth_klen == 0 || csp->csp_auth_key != NULL) {
-		swa->sw_ictx = malloc(axf->ctxsize, M_CRYPTO_DATA,
-		    M_NOWAIT);
+		swa->sw_ictx = malloc(axf->ctxsize, M_CRYPTO_DATA, M_NOWAIT);
 		if (swa->sw_ictx == NULL)
 			return (ENOBUFS);
 	}
@@ -1532,8 +1534,7 @@ swcr_probesession(device_t dev, const struct crypto_session_params *csp)
 			return (EINVAL);
 		}
 
-		if (!swcr_cipher_supported(csp) ||
-		    !swcr_auth_supported(csp))
+		if (!swcr_cipher_supported(csp) || !swcr_auth_supported(csp))
 			return (EINVAL);
 		break;
 	default:
@@ -1704,7 +1705,7 @@ swcr_attach(device_t dev)
 {
 
 	swcr_id = crypto_get_driverid(dev, sizeof(struct swcr_session),
-			CRYPTOCAP_F_SOFTWARE | CRYPTOCAP_F_SYNC);
+	    CRYPTOCAP_F_SOFTWARE | CRYPTOCAP_F_SYNC);
 	if (swcr_id < 0) {
 		device_printf(dev, "cannot initialize!");
 		return (ENXIO);
@@ -1721,23 +1722,21 @@ swcr_detach(device_t dev)
 }
 
 static device_method_t swcr_methods[] = {
-	DEVMETHOD(device_identify,	swcr_identify),
-	DEVMETHOD(device_probe,		swcr_probe),
-	DEVMETHOD(device_attach,	swcr_attach),
-	DEVMETHOD(device_detach,	swcr_detach),
+	DEVMETHOD(device_identify, swcr_identify),
+	DEVMETHOD(device_probe, swcr_probe),
+	DEVMETHOD(device_attach, swcr_attach),
+	DEVMETHOD(device_detach, swcr_detach),
 
 	DEVMETHOD(cryptodev_probesession, swcr_probesession),
-	DEVMETHOD(cryptodev_newsession,	swcr_newsession),
-	DEVMETHOD(cryptodev_freesession,swcr_freesession),
-	DEVMETHOD(cryptodev_process,	swcr_process),
+	DEVMETHOD(cryptodev_newsession, swcr_newsession),
+	DEVMETHOD(cryptodev_freesession, swcr_freesession),
+	DEVMETHOD(cryptodev_process, swcr_process),
 
-	{0, 0},
+	{ 0, 0 },
 };
 
 static driver_t swcr_driver = {
-	"cryptosoft",
-	swcr_methods,
-	0,		/* NB: no softc */
+	"cryptosoft", swcr_methods, 0, /* NB: no softc */
 };
 
 /*

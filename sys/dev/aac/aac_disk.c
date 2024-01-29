@@ -29,27 +29,26 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_aac.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-
+#include <sys/aac_ioctl.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/disk.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
+#include <sys/rman.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
 
-#include <machine/md_var.h>
 #include <machine/bus.h>
-#include <sys/rman.h>
+#include <machine/md_var.h>
 
 #include <dev/aac/aacreg.h>
-#include <sys/aac_ioctl.h>
 #include <dev/aac/aacvar.h>
 
 /*
@@ -62,23 +61,18 @@ static int aac_disk_detach(device_t dev);
 /*
  * Interface to the device switch.
  */
-static	disk_open_t	aac_disk_open;
-static	disk_close_t	aac_disk_close;
-static	disk_strategy_t	aac_disk_strategy;
-static	dumper_t	aac_disk_dump;
+static disk_open_t aac_disk_open;
+static disk_close_t aac_disk_close;
+static disk_strategy_t aac_disk_strategy;
+static dumper_t aac_disk_dump;
 
-static device_method_t aac_disk_methods[] = {
-	DEVMETHOD(device_probe,	aac_disk_probe),
-	DEVMETHOD(device_attach,	aac_disk_attach),
-	DEVMETHOD(device_detach,	aac_disk_detach),
-	DEVMETHOD_END
-};
+static device_method_t aac_disk_methods[] = { DEVMETHOD(device_probe,
+						  aac_disk_probe),
+	DEVMETHOD(device_attach, aac_disk_attach),
+	DEVMETHOD(device_detach, aac_disk_detach), DEVMETHOD_END };
 
-static driver_t aac_disk_driver = {
-	"aacd",
-	aac_disk_methods,
-	sizeof(struct aac_disk)
-};
+static driver_t aac_disk_driver = { "aacd", aac_disk_methods,
+	sizeof(struct aac_disk) };
 
 DRIVER_MODULE(aacd, aac, aac_disk_driver, NULL, NULL);
 
@@ -91,7 +85,7 @@ DRIVER_MODULE(aacd, aac, aac_disk_driver, NULL, NULL);
 static int
 aac_disk_open(struct disk *dp)
 {
-	struct aac_disk	*sc;
+	struct aac_disk *sc;
 
 	fwprintf(NULL, HBA_FLAGS_DBG_FUNCTION_ENTRY_B, "");
 
@@ -107,7 +101,7 @@ aac_disk_open(struct disk *dp)
 		device_printf(sc->ad_controller->aac_dev,
 		    "Controller Suspended controller state = 0x%x\n",
 		    sc->ad_controller->aac_state);
-		return(ENXIO);
+		return (ENXIO);
 	}
 
 	sc->ad_flags |= AAC_DISK_OPEN;
@@ -120,7 +114,7 @@ aac_disk_open(struct disk *dp)
 static int
 aac_disk_close(struct disk *dp)
 {
-	struct aac_disk	*sc;
+	struct aac_disk *sc;
 
 	fwprintf(NULL, HBA_FLAGS_DBG_FUNCTION_ENTRY_B, "");
 
@@ -139,7 +133,7 @@ aac_disk_close(struct disk *dp)
 static void
 aac_disk_strategy(struct bio *bp)
 {
-	struct aac_disk	*sc;
+	struct aac_disk *sc;
 
 	sc = (struct aac_disk *)bp->bio_disk->d_drv1;
 	fwprintf(NULL, HBA_FLAGS_DBG_FUNCTION_ENTRY_B, "");
@@ -249,7 +243,7 @@ aac_disk_dump(void *arg, void *virtual, off_t offset, size_t length)
 	if (ad == NULL)
 		return (EINVAL);
 
-	sc= ad->ad_controller;
+	sc = ad->ad_controller;
 
 	if (!first) {
 		first = 1;
@@ -298,7 +292,7 @@ aac_disk_dump(void *arg, void *virtual, off_t offset, size_t length)
 		 * is too much required context.
 		 */
 		if (bus_dmamap_load(sc->aac_buffer_dmat, dump_datamap, virtual,
-		    len, callback, fib, BUS_DMA_NOWAIT) != 0)
+			len, callback, fib, BUS_DMA_NOWAIT) != 0)
 			return (ENOMEM);
 
 		bus_dmamap_sync(sc->aac_buffer_dmat, dump_datamap,
@@ -309,8 +303,8 @@ aac_disk_dump(void *arg, void *virtual, off_t offset, size_t length)
 
 		if (aac_sync_fib(sc, command, 0, fib, size)) {
 			device_printf(sc->aac_dev,
-			     "Error dumping block to 0x%jx\n",
-			     (uintmax_t)offset);
+			    "Error dumping block to 0x%jx\n",
+			    (uintmax_t)offset);
 			return (EIO);
 		}
 
@@ -361,14 +355,14 @@ aac_disk_probe(device_t dev)
 static int
 aac_disk_attach(device_t dev)
 {
-	struct aac_disk	*sc;
+	struct aac_disk *sc;
 
 	sc = (struct aac_disk *)device_get_softc(dev);
 	fwprintf(NULL, HBA_FLAGS_DBG_FUNCTION_ENTRY_B, "");
 
 	/* initialise our softc */
-	sc->ad_controller =
-	    (struct aac_softc *)device_get_softc(device_get_parent(dev));
+	sc->ad_controller = (struct aac_softc *)device_get_softc(
+	    device_get_parent(dev));
 	sc->ad_container = device_get_ivars(dev);
 	sc->ad_dev = dev;
 
@@ -378,12 +372,12 @@ aac_disk_attach(device_t dev)
 	 */
 	sc->ad_size = sc->ad_container->co_mntobj.Capacity;
 	if (sc->ad_controller->flags & AAC_FLAGS_LBA_64BIT)
-		sc->ad_size += (u_int64_t)
-			sc->ad_container->co_mntobj.CapacityHigh << 32;
-	if (sc->ad_size >= (2 * 1024 * 1024)) {		/* 2GB */
+		sc->ad_size +=
+		    (u_int64_t)sc->ad_container->co_mntobj.CapacityHigh << 32;
+	if (sc->ad_size >= (2 * 1024 * 1024)) { /* 2GB */
 		sc->ad_heads = 255;
 		sc->ad_sectors = 63;
-	} else if (sc->ad_size >= (1 * 1024 * 1024)) {	/* 1GB */
+	} else if (sc->ad_size >= (1 * 1024 * 1024)) { /* 1GB */
 		sc->ad_heads = 128;
 		sc->ad_sectors = 32;
 	} else {
@@ -393,8 +387,8 @@ aac_disk_attach(device_t dev)
 	sc->ad_cylinders = (sc->ad_size / (sc->ad_heads * sc->ad_sectors));
 
 	device_printf(dev, "%juMB (%ju sectors)\n",
-		      (intmax_t)sc->ad_size / ((1024 * 1024) / AAC_BLOCK_SIZE),
-		      (intmax_t)sc->ad_size);
+	    (intmax_t)sc->ad_size / ((1024 * 1024) / AAC_BLOCK_SIZE),
+	    (intmax_t)sc->ad_size);
 
 	/* attach a generic disk device to ourselves */
 	sc->unit = device_get_unit(dev);
@@ -429,9 +423,9 @@ aac_disk_detach(device_t dev)
 	fwprintf(NULL, HBA_FLAGS_DBG_FUNCTION_ENTRY_B, "");
 
 	if (sc->ad_flags & AAC_DISK_OPEN)
-		return(EBUSY);
+		return (EBUSY);
 
 	disk_destroy(sc->ad_disk);
 
-	return(0);
+	return (0);
 }

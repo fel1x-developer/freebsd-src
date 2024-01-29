@@ -31,14 +31,16 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#include <unistd.h>
-#include <stdio.h>
-#include <errno.h>
 #include <sys/mman.h>
+
+#include <errno.h>
+#include <stdio.h>
+#include <unistd.h>
 
 #include "prutil.h"
 
-int memlock(int argc, char *argv[])
+int
+memlock(int argc, char *argv[])
 {
 	int e = 0;
 
@@ -50,10 +52,9 @@ int memlock(int argc, char *argv[])
 			/* This isn't valid - may be a standard violation
 			 */
 			quit("(should not happen) sysconf(_SC_MEMLOCK)");
-		}
-		else {
+		} else {
 			fprintf(stderr,
-			"Memory locking is not supported in this environment.\n");
+			    "Memory locking is not supported in this environment.\n");
 			e = -1;
 		}
 	}
@@ -63,8 +64,7 @@ int memlock(int argc, char *argv[])
 	if (mlockall(MCL_CURRENT | MCL_FUTURE) == -1) {
 		perror("mlockall(MCL_CURRENT | MCL_FUTURE)");
 		e = errno;
-	}
-	else if (munlockall() == -1) {
+	} else if (munlockall() == -1) {
 		perror("munlockall");
 		e = errno;
 	}
@@ -73,19 +73,24 @@ int memlock(int argc, char *argv[])
 }
 
 #ifdef NO_MEMLOCK
-int mlockall(int flags)
+int
+mlockall(int flags)
 {
 	return EOPNOTSUPP;
 }
 
-int munlockall(void)
+int
+munlockall(void)
 {
 	return EOPNOTSUPP;
 }
-	
 
 #endif
 
 #ifdef STANDALONE_TESTS
-int main(int argc, char *argv[]) { return memlock(argc, argv); }
+int
+main(int argc, char *argv[])
+{
+	return memlock(argc, argv);
+}
 #endif

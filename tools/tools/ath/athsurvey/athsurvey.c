@@ -26,18 +26,17 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
-#include "diag.h"
+#include <ctype.h>
+#include <err.h>
+#include <errno.h>
+#include <getopt.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "ah.h"
 #include "ah_internal.h"
-
-#include <getopt.h>
-#include <errno.h>
-#include <err.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include <unistd.h>
+#include "diag.h"
 
 const char *progname;
 
@@ -60,7 +59,7 @@ get_survey_stats(int s, const char *ifname, HAL_CHANNEL_SURVEY *hs)
 	atd.ad_in_size = 0;
 	atd.ad_in_data = NULL;
 	atd.ad_out_size = sizeof(HAL_CHANNEL_SURVEY);
-	atd.ad_out_data = (caddr_t) hs;
+	atd.ad_out_data = (caddr_t)hs;
 	strncpy(atd.ad_name, ifname, sizeof(atd.ad_name));
 
 	if (ioctl(s, SIOCGATHDIAG, &atd) < 0) {
@@ -100,13 +99,13 @@ process_survey_stats(HAL_CHANNEL_SURVEY *hs)
 		/*
 		 * Calculate percentage
 		 */
-		tx = (float) hs->samples[i].tx_busy * 100.0 /
+		tx = (float)hs->samples[i].tx_busy * 100.0 /
 		    hs->samples[i].cycle_count;
-		rx = (float) hs->samples[i].rx_busy * 100.0 /
+		rx = (float)hs->samples[i].rx_busy * 100.0 /
 		    hs->samples[i].cycle_count;
-		cc = (float) hs->samples[i].chan_busy * 100.0 /
+		cc = (float)hs->samples[i].chan_busy * 100.0 /
 		    hs->samples[i].cycle_count;
-		cext = (float) hs->samples[i].ext_chan_busy * 100.0 /
+		cext = (float)hs->samples[i].ext_chan_busy * 100.0 /
 		    hs->samples[i].cycle_count;
 
 		/*
@@ -114,13 +113,13 @@ process_survey_stats(HAL_CHANNEL_SURVEY *hs)
 		 * XXX to preserve some accuracy, keep two decimal points
 		 * using "fixed" point math.
 		 */
-		avg_tx += (uint64_t) hs->samples[i].tx_busy * 10000 /
+		avg_tx += (uint64_t)hs->samples[i].tx_busy * 10000 /
 		    hs->samples[i].cycle_count;
-		avg_rx += (uint64_t) hs->samples[i].rx_busy * 10000 /
+		avg_rx += (uint64_t)hs->samples[i].rx_busy * 10000 /
 		    hs->samples[i].cycle_count;
-		avg_cc += (uint64_t) hs->samples[i].chan_busy * 10000 /
+		avg_cc += (uint64_t)hs->samples[i].chan_busy * 10000 /
 		    hs->samples[i].cycle_count;
-		avg_cext += (uint64_t) hs->samples[i].ext_chan_busy * 10000 /
+		avg_cext += (uint64_t)hs->samples[i].ext_chan_busy * 10000 /
 		    hs->samples[i].cycle_count;
 
 		/*
@@ -148,15 +147,13 @@ process_survey_stats(HAL_CHANNEL_SURVEY *hs)
 			min_cext = cext;
 	}
 
+	printf("(%4.1f %4.1f %4.1f %4.1f) ", min_tx, min_rx, min_cc, min_cext);
 	printf("(%4.1f %4.1f %4.1f %4.1f) ",
-	    min_tx, min_rx, min_cc, min_cext);
-	printf("(%4.1f %4.1f %4.1f %4.1f) ",
-	    n == 0 ? 0.0 : (float) (avg_tx / n) / 100.0,
-	    n == 0 ? 0.0 : (float) (avg_rx / n) / 100.0,
-	    n == 0 ? 0.0 : (float) (avg_cc / n) / 100.0,
-	    n == 0 ? 0.0 : (float) (avg_cext / n) / 100.0);
-	printf("(%4.1f %4.1f %4.1f %4.1f)\n",
-	    max_tx, max_rx, max_cc, max_cext);
+	    n == 0 ? 0.0 : (float)(avg_tx / n) / 100.0,
+	    n == 0 ? 0.0 : (float)(avg_rx / n) / 100.0,
+	    n == 0 ? 0.0 : (float)(avg_cc / n) / 100.0,
+	    n == 0 ? 0.0 : (float)(avg_cext / n) / 100.0);
+	printf("(%4.1f %4.1f %4.1f %4.1f)\n", max_tx, max_rx, max_cc, max_cext);
 }
 
 int
@@ -196,9 +193,9 @@ main(int argc, char *argv[])
 		/* XXX screen height! */
 		if (l % 23 == 0) {
 			printf("         "
-			    "min                   "
-			    "avg                   "
-			    "max\n");
+			       "min                   "
+			       "avg                   "
+			       "max\n");
 			printf("  tx%%  rx%%  bc%%  ec%%  ");
 			printf("  tx%%  rx%%  bc%%  ec%%  ");
 			printf("  tx%%  rx%%  bc%%  ec%%\n");
@@ -210,5 +207,3 @@ main(int argc, char *argv[])
 
 	return (0);
 }
-
-

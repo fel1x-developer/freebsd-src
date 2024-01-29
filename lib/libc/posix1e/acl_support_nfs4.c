@@ -25,55 +25,54 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/acl.h>
+
+#include <assert.h>
+#include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
-#include <err.h>
-#include <sys/acl.h>
+
 #include "acl_support.h"
 
 struct flagnames_struct {
-	uint32_t	flag;
-	const char	*name;
-	char		letter;
+	uint32_t flag;
+	const char *name;
+	char letter;
 };
 
-struct flagnames_struct a_flags[] =
-    {{ ACL_ENTRY_FILE_INHERIT, "file_inherit", 'f'},
-     { ACL_ENTRY_DIRECTORY_INHERIT, "dir_inherit", 'd'},
-     { ACL_ENTRY_INHERIT_ONLY, "inherit_only", 'i'},
-     { ACL_ENTRY_NO_PROPAGATE_INHERIT, "no_propagate", 'n'},
-     { ACL_ENTRY_SUCCESSFUL_ACCESS, "successfull_access", 'S'},
-     { ACL_ENTRY_FAILED_ACCESS, "failed_access", 'F'},
-     { ACL_ENTRY_INHERITED, "inherited", 'I' },
-     /*
-      * There is no ACE_IDENTIFIER_GROUP here - SunOS does not show it
-      * in the "flags" field.  There is no ACE_OWNER, ACE_GROUP or
-      * ACE_EVERYONE either, for obvious reasons.
-      */
-     { 0, 0, 0}};
+struct flagnames_struct a_flags[] = { { ACL_ENTRY_FILE_INHERIT, "file_inherit",
+					  'f' },
+	{ ACL_ENTRY_DIRECTORY_INHERIT, "dir_inherit", 'd' },
+	{ ACL_ENTRY_INHERIT_ONLY, "inherit_only", 'i' },
+	{ ACL_ENTRY_NO_PROPAGATE_INHERIT, "no_propagate", 'n' },
+	{ ACL_ENTRY_SUCCESSFUL_ACCESS, "successfull_access", 'S' },
+	{ ACL_ENTRY_FAILED_ACCESS, "failed_access", 'F' },
+	{ ACL_ENTRY_INHERITED, "inherited", 'I' },
+	/*
+	 * There is no ACE_IDENTIFIER_GROUP here - SunOS does not show it
+	 * in the "flags" field.  There is no ACE_OWNER, ACE_GROUP or
+	 * ACE_EVERYONE either, for obvious reasons.
+	 */
+	{ 0, 0, 0 } };
 
-struct flagnames_struct a_access_masks[] =
-    {{ ACL_READ_DATA, "read_data", 'r'},
-     { ACL_WRITE_DATA, "write_data", 'w'},
-     { ACL_EXECUTE, "execute", 'x'},
-     { ACL_APPEND_DATA, "append_data", 'p'},
-     { ACL_DELETE_CHILD, "delete_child", 'D'},
-     { ACL_DELETE, "delete", 'd'},
-     { ACL_READ_ATTRIBUTES, "read_attributes", 'a'},
-     { ACL_WRITE_ATTRIBUTES, "write_attributes", 'A'},
-     { ACL_READ_NAMED_ATTRS, "read_xattr", 'R'},
-     { ACL_WRITE_NAMED_ATTRS, "write_xattr", 'W'},
-     { ACL_READ_ACL, "read_acl", 'c'},
-     { ACL_WRITE_ACL, "write_acl", 'C'},
-     { ACL_WRITE_OWNER, "write_owner", 'o'},
-     { ACL_SYNCHRONIZE, "synchronize", 's'},
-     { ACL_FULL_SET, "full_set", '\0'},
-     { ACL_MODIFY_SET, "modify_set", '\0'},
-     { ACL_READ_SET, "read_set", '\0'},
-     { ACL_WRITE_SET, "write_set", '\0'},
-     { 0, 0, 0}};
+struct flagnames_struct a_access_masks[] = { { ACL_READ_DATA, "read_data",
+						 'r' },
+	{ ACL_WRITE_DATA, "write_data", 'w' }, { ACL_EXECUTE, "execute", 'x' },
+	{ ACL_APPEND_DATA, "append_data", 'p' },
+	{ ACL_DELETE_CHILD, "delete_child", 'D' },
+	{ ACL_DELETE, "delete", 'd' },
+	{ ACL_READ_ATTRIBUTES, "read_attributes", 'a' },
+	{ ACL_WRITE_ATTRIBUTES, "write_attributes", 'A' },
+	{ ACL_READ_NAMED_ATTRS, "read_xattr", 'R' },
+	{ ACL_WRITE_NAMED_ATTRS, "write_xattr", 'W' },
+	{ ACL_READ_ACL, "read_acl", 'c' }, { ACL_WRITE_ACL, "write_acl", 'C' },
+	{ ACL_WRITE_OWNER, "write_owner", 'o' },
+	{ ACL_SYNCHRONIZE, "synchronize", 's' },
+	{ ACL_FULL_SET, "full_set", '\0' },
+	{ ACL_MODIFY_SET, "modify_set", '\0' },
+	{ ACL_READ_SET, "read_set", '\0' },
+	{ ACL_WRITE_SET, "write_set", '\0' }, { 0, 0, 0 } };
 
 static const char *
 format_flag(uint32_t *var, const struct flagnames_struct *flags)
@@ -99,7 +98,7 @@ format_flags_verbose(char *str, size_t size, uint32_t var,
 
 	while ((tmp = format_flag(&var, flags)) != NULL) {
 		off += snprintf(str + off, size - off, "%s/", tmp);
-		assert (off < size);
+		assert(off < size);
 	}
 
 	/* If there were any flags added... */
@@ -107,7 +106,7 @@ format_flags_verbose(char *str, size_t size, uint32_t var,
 		off--;
 		/* ... then remove the last slash. */
 		assert(str[off] == '/');
-	} 
+	}
 
 	str[off] = '\0';
 
@@ -161,7 +160,8 @@ parse_flags_verbose(const char *strp, uint32_t *var,
 		if (!found) {
 			if (ever_found)
 				warnx("malformed ACL: \"%s\" field contains "
-				    "invalid flag \"%s\"", flags_name, flag);
+				      "invalid flag \"%s\"",
+				    flags_name, flag);
 			else
 				*try_compact = 1;
 			free(to_free);
@@ -201,7 +201,8 @@ parse_flags_compact(const char *str, uint32_t *var,
 
 		if (!found) {
 			warnx("malformed ACL: \"%s\" field contains "
-			    "invalid flag \"%c\"", flags_name, str[i]);
+			      "invalid flag \"%c\"",
+			    flags_name, str[i]);
 			return (-1);
 		}
 	}
@@ -233,7 +234,8 @@ _nfs4_parse_flags(const char *str, acl_flag_t *flags)
 	int error, try_compact;
 	int tmpflags;
 
-	error = parse_flags_verbose(str, &tmpflags, a_flags, "flags", &try_compact);
+	error = parse_flags_verbose(str, &tmpflags, a_flags, "flags",
+	    &try_compact);
 	if (error && try_compact)
 		error = parse_flags_compact(str, &tmpflags, a_flags, "flags");
 
@@ -251,8 +253,8 @@ _nfs4_parse_access_mask(const char *str, acl_perm_t *perms)
 	error = parse_flags_verbose(str, &tmpperms, a_access_masks,
 	    "access permissions", &try_compact);
 	if (error && try_compact)
-		error = parse_flags_compact(str, &tmpperms,
-		    a_access_masks, "access permissions");
+		error = parse_flags_compact(str, &tmpperms, a_access_masks,
+		    "access permissions");
 
 	*perms = tmpperms;
 

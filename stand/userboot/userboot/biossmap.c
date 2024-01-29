@@ -25,12 +25,14 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
 #include <sys/param.h>
-#include <sys/reboot.h>
 #include <sys/linker.h>
-#include <machine/pc/bios.h>
+#include <sys/reboot.h>
+
 #include <machine/metadata.h>
+#include <machine/pc/bios.h>
+
+#include <stand.h>
 
 #include "bootstrap.h"
 #include "libuserboot.h"
@@ -48,25 +50,25 @@ bios_addsmapdata(struct preloaded_file *kfp)
 
 	sm = &smap[0];
 
-	sm->base = 0;				/* base memory */
+	sm->base = 0; /* base memory */
 	sm->length = 640 * 1024;
 	sm->type = SMAP_TYPE_MEMORY;
 	sm++;
 
-	sm->base = 0x100000;			/* extended memory */
+	sm->base = 0x100000; /* extended memory */
 	sm->length = lowmem - 0x100000;
 	sm->type = SMAP_TYPE_MEMORY;
 	sm++;
 
 	smapnum = 2;
 
-        if (highmem != 0) {
-                sm->base = 4 * GB;
-                sm->length = highmem;
-                sm->type = SMAP_TYPE_MEMORY;
+	if (highmem != 0) {
+		sm->base = 4 * GB;
+		sm->length = highmem;
+		sm->type = SMAP_TYPE_MEMORY;
 		smapnum++;
-        }
+	}
 
-        len = smapnum * sizeof(struct bios_smap);
-        file_addmetadata(kfp, MODINFOMD_SMAP, len, &smap[0]);
+	len = smapnum * sizeof(struct bios_smap);
+	file_addmetadata(kfp, MODINFOMD_SMAP, len, &smap[0]);
 }

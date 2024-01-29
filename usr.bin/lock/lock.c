@@ -41,15 +41,17 @@
  */
 
 #include <sys/param.h>
-#include <sys/stat.h>
-#include <sys/signal.h>
 #include <sys/consio.h>
+#include <sys/signal.h>
+#include <sys/stat.h>
 
-#include <err.h>
 #include <ctype.h>
+#include <err.h>
 #include <errno.h>
 #include <paths.h>
 #include <pwd.h>
+#include <security/openpam.h> /* for openpam_ttyconv() */
+#include <security/pam_appl.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,22 +61,19 @@
 #include <time.h>
 #include <unistd.h>
 
-#include <security/pam_appl.h>
-#include <security/openpam.h>	/* for openpam_ttyconv() */
-
-#define	TIMEOUT	15
+#define TIMEOUT 15
 
 static void quit(int);
 static void bye(int);
 static void hi(int);
 static void usage(void) __dead2;
 
-static struct timeval	timeout;
-static struct timeval	zerotime;
-static struct termios	tty, ntty;
-static long		nexttime;		/* keep the timeout time */
-static int		no_timeout;		/* lock terminal forever */
-static int		vtyunlock;		/* Unlock flag and code. */
+static struct timeval timeout;
+static struct timeval zerotime;
+static struct termios tty, ntty;
+static long nexttime;  /* keep the timeout time */
+static int no_timeout; /* lock terminal forever */
+static int vtyunlock;  /* Unlock flag and code. */
 
 /*ARGSUSED*/
 int
@@ -101,7 +100,7 @@ main(int argc, char **argv)
 	no_timeout = 0;
 	vtylock = 0;
 	while ((ch = getopt(argc, argv, "npt:v")) != -1)
-		switch((char)ch) {
+		switch ((char)ch) {
 		case 't':
 			if ((sectimeout = atoi(optarg)) <= 0)
 				errx(1, "illegal timeout value");
@@ -123,13 +122,13 @@ main(int argc, char **argv)
 		}
 	timeout.tv_sec = sectimeout * 60;
 
-	if (!usemine) {	/* -p with PAM or S/key needs privs */
+	if (!usemine) { /* -p with PAM or S/key needs privs */
 		/* discard privs */
 		if (setuid(getuid()) != 0)
 			errx(1, "setuid failed");
 	}
 
-	if (tcgetattr(0, &tty))		/* get information for header */
+	if (tcgetattr(0, &tty)) /* get information for header */
 		exit(1);
 	gethostname(hostname, sizeof(hostname));
 	if (!(ttynam = ttyname(0)))
@@ -144,8 +143,9 @@ main(int argc, char **argv)
 
 	(void)signal(SIGINT, quit);
 	(void)signal(SIGQUIT, quit);
-	ntty = tty; ntty.c_lflag &= ~ECHO;
-	(void)tcsetattr(0, TCSADRAIN|TCSASOFT, &ntty);
+	ntty = tty;
+	ntty.c_lflag &= ~ECHO;
+	(void)tcsetattr(0, TCSADRAIN | TCSASOFT, &ntty);
 
 	if (usemine) {
 		pam_err = pam_start("lock", pw->pw_name, &pamc, &pamh);
@@ -165,7 +165,7 @@ main(int argc, char **argv)
 		(void)putchar('\n');
 		if (strcmp(s1, s)) {
 			(void)printf("\07lock: passwords didn't match.\n");
-			(void)tcsetattr(0, TCSADRAIN|TCSASOFT, &tty);
+			(void)tcsetattr(0, TCSADRAIN | TCSASOFT, &tty);
 			exit(1);
 		}
 		s[0] = '\0';
@@ -189,7 +189,7 @@ main(int argc, char **argv)
 		 * "Key:" prompt.
 		 */
 		if (ioctl(0, VT_LOCKSWITCH, &vtylock) == -1) {
-			(void)tcsetattr(0, TCSADRAIN|TCSASOFT, &tty);
+			(void)tcsetattr(0, TCSADRAIN | TCSASOFT, &tty);
 			err(1, "locking vty");
 		}
 		vtyunlock = 0x2;
@@ -197,8 +197,8 @@ main(int argc, char **argv)
 
 	/* header info */
 	if (pw != NULL)
-		(void)printf("lock: %s using %s on %s.", pw->pw_name,
-		    ttynam, hostname);
+		(void)printf("lock: %s using %s on %s.", pw->pw_name, ttynam,
+		    hostname);
 	else
 		(void)printf("lock: %s on %s.", ttynam, hostname);
 	if (no_timeout)
@@ -224,7 +224,7 @@ main(int argc, char **argv)
 				syslog(LOG_ERR, "pam_authenticate: %s",
 				    pam_strerror(pamh, pam_err));
 			}
-			
+
 			goto tryagain;
 		}
 		(void)printf("Key: ");
@@ -236,14 +236,15 @@ main(int argc, char **argv)
 		if (!strcmp(s, s1))
 			break;
 		(void)printf("\07\n");
-	    	failures++;
+		failures++;
 		if (getuid() == 0)
-	    	    syslog(LOG_NOTICE, "%d ROOT UNLOCK FAILURE%s (%s on %s)",
-			failures, failures > 1 ? "S": "", ttynam, hostname);
-tryagain:
+			syslog(LOG_NOTICE,
+			    "%d ROOT UNLOCK FAILURE%s (%s on %s)", failures,
+			    failures > 1 ? "S" : "", ttynam, hostname);
+	tryagain:
 		if (tcgetattr(0, &ntty) && (errno != EINTR))
 			exit(1);
-		sleep(1);		/* to discourage guessing */
+		sleep(1); /* to discourage guessing */
 	}
 	if (getuid() == 0)
 		syslog(LOG_NOTICE, "ROOT UNLOCK ON hostname %s port %s",
@@ -251,9 +252,8 @@ tryagain:
 	if (usemine)
 		(void)pam_end(pamh, pam_err);
 	quit(0);
-	return(0); /* not reached */
+	return (0); /* not reached */
 }
-
 
 static void
 usage(void)
@@ -282,7 +282,7 @@ static void
 quit(int signo __unused)
 {
 	(void)putchar('\n');
-	(void)tcsetattr(0, TCSADRAIN|TCSASOFT, &tty);
+	(void)tcsetattr(0, TCSADRAIN | TCSASOFT, &tty);
 	if (vtyunlock)
 		(void)ioctl(0, VT_LOCKSWITCH, &vtyunlock);
 	exit(0);
@@ -292,7 +292,7 @@ static void
 bye(int signo __unused)
 {
 	if (!no_timeout) {
-		(void)tcsetattr(0, TCSADRAIN|TCSASOFT, &tty);
+		(void)tcsetattr(0, TCSADRAIN | TCSASOFT, &tty);
 		if (vtyunlock)
 			(void)ioctl(0, VT_LOCKSWITCH, &vtyunlock);
 		(void)printf("lock: timeout\n");

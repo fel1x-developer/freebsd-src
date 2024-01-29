@@ -21,22 +21,22 @@
 #include <sys/socket.h>
 #include <sys/uio.h>
 
-#include <limits.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "imsg.h"
 
-int	ibuf_realloc(struct ibuf *, size_t);
-void	ibuf_enqueue(struct msgbuf *, struct ibuf *);
-void	ibuf_dequeue(struct msgbuf *, struct ibuf *);
+int ibuf_realloc(struct ibuf *, size_t);
+void ibuf_enqueue(struct msgbuf *, struct ibuf *);
+void ibuf_dequeue(struct msgbuf *, struct ibuf *);
 
 struct ibuf *
 ibuf_open(size_t len)
 {
-	struct ibuf	*buf;
+	struct ibuf *buf;
 
 	if ((buf = calloc(1, sizeof(struct ibuf))) == NULL)
 		return (NULL);
@@ -53,7 +53,7 @@ ibuf_open(size_t len)
 struct ibuf *
 ibuf_dynamic(size_t len, size_t max)
 {
-	struct ibuf	*buf;
+	struct ibuf *buf;
 
 	if (max < len)
 		return (NULL);
@@ -70,7 +70,7 @@ ibuf_dynamic(size_t len, size_t max)
 int
 ibuf_realloc(struct ibuf *buf, size_t len)
 {
-	u_char	*b;
+	u_char *b;
 
 	/* on static buffers max is eq size and so the following fails */
 	if (buf->wpos + len > buf->max) {
@@ -102,7 +102,7 @@ ibuf_add(struct ibuf *buf, const void *data, size_t len)
 void *
 ibuf_reserve(struct ibuf *buf, size_t len)
 {
-	void	*b;
+	void *b;
 
 	if (buf->wpos + len > buf->size)
 		if (ibuf_realloc(buf, len) == -1)
@@ -144,13 +144,13 @@ ibuf_close(struct msgbuf *msgbuf, struct ibuf *buf)
 int
 ibuf_write(struct msgbuf *msgbuf)
 {
-	struct iovec	 iov[IOV_MAX];
-	struct ibuf	*buf;
-	unsigned int	 i = 0;
-	ssize_t	n;
+	struct iovec iov[IOV_MAX];
+	struct ibuf *buf;
+	unsigned int i = 0;
+	ssize_t n;
 
 	memset(&iov, 0, sizeof(iov));
-	TAILQ_FOREACH(buf, &msgbuf->bufs, entry) {
+	TAILQ_FOREACH (buf, &msgbuf->bufs, entry) {
 		if (i >= IOV_MAX)
 			break;
 		iov[i].iov_base = buf->buf + buf->rpos;
@@ -167,7 +167,7 @@ again:
 		return (-1);
 	}
 
-	if (n == 0) {			/* connection closed */
+	if (n == 0) { /* connection closed */
 		errno = 0;
 		return (0);
 	}
@@ -195,10 +195,10 @@ msgbuf_init(struct msgbuf *msgbuf)
 void
 msgbuf_drain(struct msgbuf *msgbuf, size_t n)
 {
-	struct ibuf	*buf, *next;
+	struct ibuf *buf, *next;
 
 	for (buf = TAILQ_FIRST(&msgbuf->bufs); buf != NULL && n > 0;
-	    buf = next) {
+	     buf = next) {
 		next = TAILQ_NEXT(buf, entry);
 		if (buf->rpos + n >= buf->wpos) {
 			n -= buf->wpos - buf->rpos;
@@ -213,7 +213,7 @@ msgbuf_drain(struct msgbuf *msgbuf, size_t n)
 void
 msgbuf_clear(struct msgbuf *msgbuf)
 {
-	struct ibuf	*buf;
+	struct ibuf *buf;
 
 	while ((buf = TAILQ_FIRST(&msgbuf->bufs)) != NULL)
 		ibuf_dequeue(msgbuf, buf);
@@ -222,21 +222,21 @@ msgbuf_clear(struct msgbuf *msgbuf)
 int
 msgbuf_write(struct msgbuf *msgbuf)
 {
-	struct iovec	 iov[IOV_MAX];
-	struct ibuf	*buf;
-	unsigned int	 i = 0;
-	ssize_t		 n;
-	struct msghdr	 msg;
-	struct cmsghdr	*cmsg;
+	struct iovec iov[IOV_MAX];
+	struct ibuf *buf;
+	unsigned int i = 0;
+	ssize_t n;
+	struct msghdr msg;
+	struct cmsghdr *cmsg;
 	union {
-		struct cmsghdr	hdr;
-		char		buf[CMSG_SPACE(sizeof(int))];
+		struct cmsghdr hdr;
+		char buf[CMSG_SPACE(sizeof(int))];
 	} cmsgbuf;
 
 	memset(&iov, 0, sizeof(iov));
 	memset(&msg, 0, sizeof(msg));
 	memset(&cmsgbuf, 0, sizeof(cmsgbuf));
-	TAILQ_FOREACH(buf, &msgbuf->bufs, entry) {
+	TAILQ_FOREACH (buf, &msgbuf->bufs, entry) {
 		if (i >= IOV_MAX)
 			break;
 		iov[i].iov_base = buf->buf + buf->rpos;
@@ -268,7 +268,7 @@ again:
 		return (-1);
 	}
 
-	if (n == 0) {			/* connection closed */
+	if (n == 0) { /* connection closed */
 		errno = 0;
 		return (0);
 	}

@@ -30,8 +30,8 @@
  * Authors: Ken Merry           (Spectra Logic Corporation)
  */
 
-#ifndef	_MTLIB_H
-#define	_MTLIB_H
+#ifndef _MTLIB_H
+#define _MTLIB_H
 
 typedef enum {
 	MT_TYPE_NONE,
@@ -72,10 +72,10 @@ struct mt_status_data {
 };
 
 typedef enum {
-	MT_PF_NONE		= 0x00,
-	MT_PF_VERBOSE		= 0x01,
-	MT_PF_FULL_PATH		= 0x02,
-	MT_PF_INCLUDE_ROOT	= 0x04
+	MT_PF_NONE = 0x00,
+	MT_PF_VERBOSE = 0x01,
+	MT_PF_FULL_PATH = 0x02,
+	MT_PF_INCLUDE_ROOT = 0x04
 } mt_print_flags;
 
 struct mt_print_params {
@@ -88,28 +88,29 @@ void mt_start_element(void *user_data, const char *name, const char **attr);
 void mt_end_element(void *user_data, const char *name);
 void mt_char_handler(void *user_data, const XML_Char *str, int len);
 void mt_status_tree_sbuf(struct sbuf *sb, struct mt_status_entry *entry,
-			 int indent, void (*sbuf_func)(struct sbuf *sb,
-			 struct mt_status_entry *entry, void *arg), void *arg);
+    int indent,
+    void (
+	*sbuf_func)(struct sbuf *sb, struct mt_status_entry *entry, void *arg),
+    void *arg);
 void mt_status_tree_print(struct mt_status_entry *entry, int indent,
-			  void (*print_func)(struct mt_status_entry *entry,
-			  void *arg), void *arg);
+    void (*print_func)(struct mt_status_entry *entry, void *arg), void *arg);
 struct mt_status_entry *mt_entry_find(struct mt_status_entry *entry,
-				      char *name);
+    char *name);
 struct mt_status_entry *mt_status_entry_find(struct mt_status_data *status_data,
-					     char *name);
+    char *name);
 void mt_status_entry_free(struct mt_status_entry *entry);
 void mt_status_free(struct mt_status_data *status_data);
 void mt_entry_sbuf(struct sbuf *sb, struct mt_status_entry *entry, char *fmt);
 void mt_param_parent_print(struct mt_status_entry *entry,
-			   struct mt_print_params *print_params);
+    struct mt_print_params *print_params);
 void mt_param_parent_sbuf(struct sbuf *sb, struct mt_status_entry *entry,
-			  struct mt_print_params *print_params);
+    struct mt_print_params *print_params);
 void mt_param_entry_sbuf(struct sbuf *sb, struct mt_status_entry *entry,
-			 void *arg);
+    void *arg);
 void mt_param_entry_print(struct mt_status_entry *entry, void *arg);
 int mt_protect_print(struct mt_status_data *status_data, int verbose);
 int mt_param_list(struct mt_status_data *status_data, char *param_name,
-		  int quiet);
+    int quiet);
 const char *mt_density_name(int density_num);
 int mt_density_bp(int density_num, int bpi);
 int mt_density_num(const char *density_name);

@@ -27,11 +27,13 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "thr_private.h"
 #include "thr_umtx.h"
 
 #ifndef HAS__UMTX_OP_ERR
-int _umtx_op_err(void *obj, int op, u_long val, void *uaddr, void *uaddr2)
+int
+_umtx_op_err(void *obj, int op, u_long val, void *uaddr, void *uaddr2)
 {
 
 	if (_umtx_op(obj, op, val, uaddr, uaddr2) == -1)
@@ -62,16 +64,16 @@ __thr_umutex_lock(struct umutex *mtx, uint32_t id)
 	uint32_t owner;
 
 	if ((mtx->m_flags & (UMUTEX_PRIO_PROTECT | UMUTEX_PRIO_INHERIT)) != 0)
-		return	(_umtx_op_err(mtx, UMTX_OP_MUTEX_LOCK, 0, 0, 0));
+		return (_umtx_op_err(mtx, UMTX_OP_MUTEX_LOCK, 0, 0, 0));
 
 	for (;;) {
 		owner = mtx->m_owner;
 		if ((owner & ~UMUTEX_CONTESTED) == 0 &&
-		     atomic_cmpset_acq_32(&mtx->m_owner, owner, id | owner))
+		    atomic_cmpset_acq_32(&mtx->m_owner, owner, id | owner))
 			return (0);
 		if (owner == UMUTEX_RB_OWNERDEAD &&
-		     atomic_cmpset_acq_32(&mtx->m_owner, owner,
-		     id | UMUTEX_CONTESTED))
+		    atomic_cmpset_acq_32(&mtx->m_owner, owner,
+			id | UMUTEX_CONTESTED))
 			return (EOWNERDEAD);
 		if (owner == UMUTEX_RB_NOTRECOV)
 			return (ENOTRECOVERABLE);
@@ -92,7 +94,7 @@ __thr_umutex_lock_spin(struct umutex *mtx, uint32_t id)
 	if (!_thr_is_smp)
 		return (__thr_umutex_lock(mtx, id));
 	if ((mtx->m_flags & (UMUTEX_PRIO_PROTECT | UMUTEX_PRIO_INHERIT)) != 0)
-		return	(_umtx_op_err(mtx, UMTX_OP_MUTEX_LOCK, 0, 0, 0));
+		return (_umtx_op_err(mtx, UMTX_OP_MUTEX_LOCK, 0, 0, 0));
 
 	for (;;) {
 		count = SPINLOOPS;
@@ -100,11 +102,11 @@ __thr_umutex_lock_spin(struct umutex *mtx, uint32_t id)
 			owner = mtx->m_owner;
 			if ((owner & ~UMUTEX_CONTESTED) == 0 &&
 			    atomic_cmpset_acq_32(&mtx->m_owner, owner,
-			    id | owner))
+				id | owner))
 				return (0);
 			if (__predict_false(owner == UMUTEX_RB_OWNERDEAD) &&
 			    atomic_cmpset_acq_32(&mtx->m_owner, owner,
-			    id | UMUTEX_CONTESTED))
+				id | UMUTEX_CONTESTED))
 				return (EOWNERDEAD);
 			if (__predict_false(owner == UMUTEX_RB_NOTRECOV))
 				return (ENOTRECOVERABLE);
@@ -118,7 +120,7 @@ __thr_umutex_lock_spin(struct umutex *mtx, uint32_t id)
 
 int
 __thr_umutex_timedlock(struct umutex *mtx, uint32_t id,
-	const struct timespec *abstime)
+    const struct timespec *abstime)
 {
 	struct _umtx_time *tm_p, timeout;
 	size_t tm_size;
@@ -137,17 +139,17 @@ __thr_umutex_timedlock(struct umutex *mtx, uint32_t id,
 	}
 
 	for (;;) {
-		if ((mtx->m_flags & (UMUTEX_PRIO_PROTECT |
-		    UMUTEX_PRIO_INHERIT)) == 0) {
+		if ((mtx->m_flags &
+			(UMUTEX_PRIO_PROTECT | UMUTEX_PRIO_INHERIT)) == 0) {
 			/* try to lock it */
 			owner = mtx->m_owner;
 			if ((owner & ~UMUTEX_CONTESTED) == 0 &&
-			     atomic_cmpset_acq_32(&mtx->m_owner, owner,
-			     id | owner))
+			    atomic_cmpset_acq_32(&mtx->m_owner, owner,
+				id | owner))
 				return (0);
 			if (__predict_false(owner == UMUTEX_RB_OWNERDEAD) &&
-			     atomic_cmpset_acq_32(&mtx->m_owner, owner,
-			     id | UMUTEX_CONTESTED))
+			    atomic_cmpset_acq_32(&mtx->m_owner, owner,
+				id | UMUTEX_CONTESTED))
 				return (EOWNERDEAD);
 			if (__predict_false(owner == UMUTEX_RB_NOTRECOV))
 				return (ENOTRECOVERABLE);
@@ -155,7 +157,7 @@ __thr_umutex_timedlock(struct umutex *mtx, uint32_t id,
 			ret = _umtx_op_err(mtx, UMTX_OP_MUTEX_WAIT, 0,
 			    (void *)tm_size, __DECONST(void *, tm_p));
 		} else {
-			ret = _umtx_op_err(mtx, UMTX_OP_MUTEX_LOCK, 0, 
+			ret = _umtx_op_err(mtx, UMTX_OP_MUTEX_LOCK, 0,
 			    (void *)tm_size, __DECONST(void *, tm_p));
 			if (ret == 0 || ret == EOWNERDEAD ||
 			    ret == ENOTRECOVERABLE)
@@ -193,11 +195,12 @@ int
 _thr_umtx_wait(volatile long *mtx, long id, const struct timespec *timeout)
 {
 
-	if (timeout && (timeout->tv_sec < 0 || (timeout->tv_sec == 0 &&
-	    timeout->tv_nsec <= 0)))
+	if (timeout &&
+	    (timeout->tv_sec < 0 ||
+		(timeout->tv_sec == 0 && timeout->tv_nsec <= 0)))
 		return (ETIMEDOUT);
 	return (_umtx_op_err(__DEVOLATILE(void *, mtx), UMTX_OP_WAIT, id, 0,
-	    __DECONST(void*, timeout)));
+	    __DECONST(void *, timeout)));
 }
 
 int
@@ -205,12 +208,13 @@ _thr_umtx_wait_uint(volatile u_int *mtx, u_int id,
     const struct timespec *timeout, int shared)
 {
 
-	if (timeout && (timeout->tv_sec < 0 || (timeout->tv_sec == 0 &&
-	    timeout->tv_nsec <= 0)))
+	if (timeout &&
+	    (timeout->tv_sec < 0 ||
+		(timeout->tv_sec == 0 && timeout->tv_nsec <= 0)))
 		return (ETIMEDOUT);
-	return (_umtx_op_err(__DEVOLATILE(void *, mtx), shared ?
-	    UMTX_OP_WAIT_UINT : UMTX_OP_WAIT_UINT_PRIVATE, id, 0,
-	    __DECONST(void*, timeout)));
+	return (_umtx_op_err(__DEVOLATILE(void *, mtx),
+	    shared ? UMTX_OP_WAIT_UINT : UMTX_OP_WAIT_UINT_PRIVATE, id, 0,
+	    __DECONST(void *, timeout)));
 }
 
 int
@@ -231,8 +235,8 @@ _thr_umtx_timedwait_uint(volatile u_int *mtx, u_int id, int clockid,
 		tm_size = sizeof(timeout);
 	}
 
-	return (_umtx_op_err(__DEVOLATILE(void *, mtx), shared ?
-	    UMTX_OP_WAIT_UINT : UMTX_OP_WAIT_UINT_PRIVATE, id,
+	return (_umtx_op_err(__DEVOLATILE(void *, mtx),
+	    shared ? UMTX_OP_WAIT_UINT : UMTX_OP_WAIT_UINT_PRIVATE, id,
 	    (void *)tm_size, __DECONST(void *, tm_p)));
 }
 
@@ -240,8 +244,8 @@ int
 _thr_umtx_wake(volatile void *mtx, int nr_wakeup, int shared)
 {
 
-	return (_umtx_op_err(__DEVOLATILE(void *, mtx), shared ?
-	    UMTX_OP_WAKE : UMTX_OP_WAKE_PRIVATE, nr_wakeup, 0, 0));
+	return (_umtx_op_err(__DEVOLATILE(void *, mtx),
+	    shared ? UMTX_OP_WAKE : UMTX_OP_WAKE_PRIVATE, nr_wakeup, 0, 0));
 }
 
 void
@@ -253,20 +257,21 @@ _thr_ucond_init(struct ucond *cv)
 
 int
 _thr_ucond_wait(struct ucond *cv, struct umutex *m,
-	const struct timespec *timeout, int flags)
+    const struct timespec *timeout, int flags)
 {
 	struct pthread *curthread;
 
-	if (timeout && (timeout->tv_sec < 0 || (timeout->tv_sec == 0 &&
-	    timeout->tv_nsec <= 0))) {
+	if (timeout &&
+	    (timeout->tv_sec < 0 ||
+		(timeout->tv_sec == 0 && timeout->tv_nsec <= 0))) {
 		curthread = _get_curthread();
 		_thr_umutex_unlock(m, TID(curthread));
-                return (ETIMEDOUT);
+		return (ETIMEDOUT);
 	}
 	return (_umtx_op_err(cv, UMTX_OP_CV_WAIT, flags, m,
-	    __DECONST(void*, timeout)));
+	    __DECONST(void *, timeout)));
 }
- 
+
 int
 _thr_ucond_signal(struct ucond *cv)
 {
@@ -287,7 +292,7 @@ _thr_ucond_broadcast(struct ucond *cv)
 
 int
 __thr_rwlock_rdlock(struct urwlock *rwlock, int flags,
-	const struct timespec *tsp)
+    const struct timespec *tsp)
 {
 	struct _umtx_time timeout, *tm_p;
 	size_t tm_size;
@@ -302,8 +307,8 @@ __thr_rwlock_rdlock(struct urwlock *rwlock, int flags,
 		tm_p = &timeout;
 		tm_size = sizeof(timeout);
 	}
-	return (_umtx_op_err(rwlock, UMTX_OP_RW_RDLOCK, flags,
-	    (void *)tm_size, tm_p));
+	return (_umtx_op_err(rwlock, UMTX_OP_RW_RDLOCK, flags, (void *)tm_size,
+	    tm_p));
 }
 
 int
@@ -322,8 +327,8 @@ __thr_rwlock_wrlock(struct urwlock *rwlock, const struct timespec *tsp)
 		tm_p = &timeout;
 		tm_size = sizeof(timeout);
 	}
-	return (_umtx_op_err(rwlock, UMTX_OP_RW_WRLOCK, 0, (void *)tm_size,
-	    tm_p));
+	return (
+	    _umtx_op_err(rwlock, UMTX_OP_RW_WRLOCK, 0, (void *)tm_size, tm_p));
 }
 
 int

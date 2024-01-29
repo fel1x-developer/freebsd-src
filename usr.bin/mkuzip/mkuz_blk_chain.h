@@ -28,6 +28,6 @@ struct mkuz_blk;
 struct mkuz_bchain_link;
 
 struct mkuz_bchain_link {
-    struct mkuz_blk *this;
-    struct mkuz_bchain_link *prev;
+	struct mkuz_blk *this;
+	struct mkuz_bchain_link *prev;
 };

@@ -30,8 +30,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_LIBCASPER_H_
-#define	_LIBCASPER_H_
+#ifndef _LIBCASPER_H_
+#define _LIBCASPER_H_
 
 #ifdef HAVE_CASPER
 #define WITH_CASPER
@@ -43,29 +43,29 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define	CASPER_NO_UNIQ	0x00000001
+#define CASPER_NO_UNIQ 0x00000001
 
-#ifndef	_NVLIST_T_DECLARED
-#define	_NVLIST_T_DECLARED
+#ifndef _NVLIST_T_DECLARED
+#define _NVLIST_T_DECLARED
 struct nvlist;
 
 typedef struct nvlist nvlist_t;
 #endif
 
-#ifndef	_CAP_CHANNEL_T_DECLARED
-#define	_CAP_CHANNEL_T_DECLARED
+#ifndef _CAP_CHANNEL_T_DECLARED
+#define _CAP_CHANNEL_T_DECLARED
 #ifdef WITH_CASPER
 struct cap_channel;
 
 typedef struct cap_channel cap_channel_t;
-#define	CASPER_SUPPORT	(1)
+#define CASPER_SUPPORT (1)
 #else
 struct cap_channel {
 	int cch_fd;
 	int cch_flags;
 };
 typedef struct cap_channel cap_channel_t;
-#define	CASPER_SUPPORT	(0)
+#define CASPER_SUPPORT (0)
 #endif /* ! WITH_CASPER */
 #endif /* ! _CAP_CHANNEL_T_DECLARED */
 
@@ -117,13 +117,12 @@ cap_init(void)
  * The functions to communicate with service.
  */
 #ifdef WITH_CASPER
-cap_channel_t	*cap_service_open(const cap_channel_t *chan, const char *name);
-int		 cap_service_limit(const cap_channel_t *chan,
-		    const char * const *names, size_t nnames);
+cap_channel_t *cap_service_open(const cap_channel_t *chan, const char *name);
+int cap_service_limit(const cap_channel_t *chan, const char *const *names,
+    size_t nnames);
 #else
 static inline cap_channel_t *
-cap_service_open(const cap_channel_t *chan __unused,
-    const char *name __unused)
+cap_service_open(const cap_channel_t *chan __unused, const char *name __unused)
 {
 
 	return (cap_init());
@@ -131,7 +130,7 @@ cap_service_open(const cap_channel_t *chan __unused,
 
 static inline int
 cap_service_limit(const cap_channel_t *chan __unused,
-    const char * const *names __unused, size_t nnames __unused)
+    const char *const *names __unused, size_t nnames __unused)
 {
 
 	return (0);
@@ -162,7 +161,7 @@ cap_wrap(int sock, int flags)
  * The function returns communication socket and frees cap_channel_t.
  */
 #ifdef WITH_CASPER
-int	cap_unwrap(cap_channel_t *chan, int *flags);
+int cap_unwrap(cap_channel_t *chan, int *flags);
 #else
 static inline int
 cap_unwrap(cap_channel_t *chan)
@@ -210,7 +209,7 @@ cap_clone(const cap_channel_t *chan)
  * The function closes the given capability.
  */
 #ifdef WITH_CASPER
-void	cap_close(cap_channel_t *chan);
+void cap_close(cap_channel_t *chan);
 #else
 static inline void
 cap_close(cap_channel_t *chan)
@@ -228,9 +227,9 @@ cap_close(cap_channel_t *chan)
  * cap_channel_t for use with select(2)/kqueue(2)/etc.
  */
 #ifdef WITH_CASPER
-int	cap_sock(const cap_channel_t *chan);
+int cap_sock(const cap_channel_t *chan);
 #else
-#define	cap_sock(chan)	(chan->cch_fd)
+#define cap_sock(chan) (chan->cch_fd)
 #endif
 
 /*
@@ -238,11 +237,10 @@ int	cap_sock(const cap_channel_t *chan);
  * It always destroys 'limits' on return.
  */
 #ifdef WITH_CASPER
-int	cap_limit_set(const cap_channel_t *chan, nvlist_t *limits);
+int cap_limit_set(const cap_channel_t *chan, nvlist_t *limits);
 #else
 static inline int
-cap_limit_set(const cap_channel_t *chan __unused,
-    nvlist_t *limits __unused)
+cap_limit_set(const cap_channel_t *chan __unused, nvlist_t *limits __unused)
 {
 
 	return (0);
@@ -253,7 +251,7 @@ cap_limit_set(const cap_channel_t *chan __unused,
  * The function returns current limits of the given capability.
  */
 #ifdef WITH_CASPER
-int	cap_limit_get(const cap_channel_t *chan, nvlist_t **limitsp);
+int cap_limit_get(const cap_channel_t *chan, nvlist_t **limitsp);
 #else
 static inline int
 cap_limit_get(const cap_channel_t *chan __unused, nvlist_t **limitsp)
@@ -268,9 +266,9 @@ cap_limit_get(const cap_channel_t *chan __unused, nvlist_t **limitsp)
  * Function sends nvlist over the given capability.
  */
 #ifdef WITH_CASPER
-int	cap_send_nvlist(const cap_channel_t *chan, const nvlist_t *nvl);
+int cap_send_nvlist(const cap_channel_t *chan, const nvlist_t *nvl);
 #else
-#define	cap_send_nvlist(chan, nvl)	(0)
+#define cap_send_nvlist(chan, nvl) (0)
 #endif
 
 /*
@@ -279,7 +277,7 @@ int	cap_send_nvlist(const cap_channel_t *chan, const nvlist_t *nvl);
 #ifdef WITH_CASPER
 nvlist_t *cap_recv_nvlist(const cap_channel_t *chan);
 #else
-#define	cap_recv_nvlist(chan)		(nvlist_create(chan->cch_flags))
+#define cap_recv_nvlist(chan) (nvlist_create(chan->cch_flags))
 #endif
 
 /*
@@ -300,4 +298,4 @@ cap_xfer_nvlist(const cap_channel_t *chan, nvlist_t *nvl)
 
 __END_DECLS
 
-#endif	/* !_LIBCASPER_H_ */
+#endif /* !_LIBCASPER_H_ */

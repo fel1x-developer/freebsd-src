@@ -29,63 +29,63 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */ 
+ */
 
 #ifndef _DEV_VIDEOMODE_EDIDVAR_H
 #define _DEV_VIDEOMODE_EDIDVAR_H
 
 struct edid_chroma {
-	uint16_t	ec_redx;
-	uint16_t	ec_redy;
-	uint16_t	ec_greenx;
-	uint16_t	ec_greeny;
-	uint16_t	ec_bluex;
-	uint16_t	ec_bluey;
-	uint16_t	ec_whitex;
-	uint16_t	ec_whitey;
+	uint16_t ec_redx;
+	uint16_t ec_redy;
+	uint16_t ec_greenx;
+	uint16_t ec_greeny;
+	uint16_t ec_bluex;
+	uint16_t ec_bluey;
+	uint16_t ec_whitex;
+	uint16_t ec_whitey;
 };
 
 struct edid_range {
-	uint16_t	er_min_vfreq;	/* Hz */
-	uint16_t	er_max_vfreq;	/* Hz */
-	uint16_t	er_min_hfreq;	/* kHz */
-	uint16_t	er_max_hfreq;	/* kHz */
-	uint16_t	er_max_clock;	/* MHz */
-	int		er_have_gtf2;
-	uint16_t	er_gtf2_hfreq;
-	uint16_t	er_gtf2_c;
-	uint16_t	er_gtf2_m;
-	uint16_t	er_gtf2_k;
-	uint16_t	er_gtf2_j;
+	uint16_t er_min_vfreq; /* Hz */
+	uint16_t er_max_vfreq; /* Hz */
+	uint16_t er_min_hfreq; /* kHz */
+	uint16_t er_max_hfreq; /* kHz */
+	uint16_t er_max_clock; /* MHz */
+	int er_have_gtf2;
+	uint16_t er_gtf2_hfreq;
+	uint16_t er_gtf2_c;
+	uint16_t er_gtf2_m;
+	uint16_t er_gtf2_k;
+	uint16_t er_gtf2_j;
 };
 
 struct edid_info {
-	uint8_t		edid_vendor[4];
-	char		edid_vendorname[16];
-	char		edid_productname[16];
-	char		edid_comment[16];
-	char		edid_serial[16];
-	uint16_t	edid_product;
-	uint8_t		edid_version;
-	uint8_t		edid_revision;
-	int		edid_year;
-	int		edid_week;
-	uint8_t		edid_video_input;	/* see edidregs.h */
-	uint8_t		edid_max_hsize;		/* in cm */
-	uint8_t		edid_max_vsize;		/* in cm */
-	uint8_t		edid_gamma;
-	uint8_t		edid_features;
-	uint8_t		edid_ext_block_count;
+	uint8_t edid_vendor[4];
+	char edid_vendorname[16];
+	char edid_productname[16];
+	char edid_comment[16];
+	char edid_serial[16];
+	uint16_t edid_product;
+	uint8_t edid_version;
+	uint8_t edid_revision;
+	int edid_year;
+	int edid_week;
+	uint8_t edid_video_input; /* see edidregs.h */
+	uint8_t edid_max_hsize;	  /* in cm */
+	uint8_t edid_max_vsize;	  /* in cm */
+	uint8_t edid_gamma;
+	uint8_t edid_features;
+	uint8_t edid_ext_block_count;
 
-	int			edid_have_range;
-	struct edid_range	edid_range;
+	int edid_have_range;
+	struct edid_range edid_range;
 
-	struct edid_chroma	edid_chroma;
+	struct edid_chroma edid_chroma;
 
 	/* parsed modes */
-	struct videomode	*edid_preferred_mode;
-	int			edid_nmodes;
-	struct videomode	edid_modes[64];
+	struct videomode *edid_preferred_mode;
+	int edid_nmodes;
+	struct videomode edid_modes[64];
 };
 
 int edid_is_valid(uint8_t *);

@@ -34,7 +34,7 @@
  */
 
 #ifdef SAN_NEEDS_INTERCEPTORS
-#define	SAN_RUNTIME
+#define SAN_RUNTIME
 #endif
 
 #include <sys/param.h>

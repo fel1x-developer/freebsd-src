@@ -32,14 +32,16 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/types.h>
+
 #include <errno.h>
 #include <limits.h>
 #include <stdio.h>
-#include "un-namespace.h"
-#include "local.h"
+
 #include "libc_private.h"
+#include "local.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 /*
  * standard ftell function.
@@ -71,7 +73,7 @@ ftello(FILE *fp)
 	FUNLOCKFILE(fp);
 	if (ret)
 		return (-1);
-	if (rv < 0) {   /* Unspecified value because of ungetc() at 0 */
+	if (rv < 0) { /* Unspecified value because of ungetc() at 0 */
 		errno = ESPIPE;
 		return (-1);
 	}
@@ -85,7 +87,7 @@ _ftello(FILE *fp, fpos_t *offset)
 	size_t n;
 
 	if (fp->_seek == NULL) {
-		errno = ESPIPE;			/* historic practice */
+		errno = ESPIPE; /* historic practice */
 		return (1);
 	}
 
@@ -93,8 +95,8 @@ _ftello(FILE *fp, fpos_t *offset)
 	 * Find offset of underlying I/O object, then
 	 * adjust for buffered bytes.
 	 */
-	if (!(fp->_flags & __SRD) && (fp->_flags & __SWR) &&
-	    fp->_p != NULL && fp->_p - fp->_bf._base > 0 &&
+	if (!(fp->_flags & __SRD) && (fp->_flags & __SWR) && fp->_p != NULL &&
+	    fp->_p - fp->_bf._base > 0 &&
 	    ((fp->_flags & __SAPP) || (fp->_flags2 & __S2OAP))) {
 		pos = _sseek(fp, (fpos_t)0, SEEK_END);
 		if (pos == -1)
@@ -118,7 +120,7 @@ _ftello(FILE *fp, fpos_t *offset)
 			return (1);
 		}
 		if (HASUB(fp))
-			pos -= fp->_r;  /* Can be negative at this point. */
+			pos -= fp->_r; /* Can be negative at this point. */
 	} else if ((fp->_flags & __SWR) && fp->_p != NULL &&
 	    (n = fp->_p - fp->_bf._base) > 0) {
 		/*

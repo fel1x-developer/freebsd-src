@@ -31,8 +31,8 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#include <atf-c.h>
 #include <alias.h>
+#include <atf-c.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -54,7 +54,8 @@ ATF_TC_BODY(1_portforward, dummy)
 	/*
 	 * Fully specified
 	 */
-	pf1 = LibAliasRedirectPort(la, prv1, ntohs(0x1234), ext, ntohs(0x5678), masq, ntohs(0xabcd), IPPROTO_UDP);
+	pf1 = LibAliasRedirectPort(la, prv1, ntohs(0x1234), ext, ntohs(0x5678),
+	    masq, ntohs(0xabcd), IPPROTO_UDP);
 	ATF_REQUIRE(pf1 != NULL);
 
 	p = ip_packet(0, 64);
@@ -76,7 +77,8 @@ ATF_TC_BODY(1_portforward, dummy)
 	/*
 	 * Any external port
 	 */
-	pf2 = LibAliasRedirectPort(la, prv2, ntohs(0x1234), ext, ntohs(0), masq, ntohs(0xabcd), IPPROTO_UDP);
+	pf2 = LibAliasRedirectPort(la, prv2, ntohs(0x1234), ext, ntohs(0), masq,
+	    ntohs(0xabcd), IPPROTO_UDP);
 	ATF_REQUIRE(pf2 != NULL);
 
 	UDP_UNNAT_CHECK(p, u, ext, 0x5678, masq, 0xabcd, prv2, 0x1234);
@@ -97,7 +99,8 @@ ATF_TC_BODY(1_portforward, dummy)
 	/*
 	 * Any external host
 	 */
-	pf3 = LibAliasRedirectPort(la, prv3, ntohs(0x1234), ANY_ADDR, ntohs(0x5678), masq, ntohs(0xabcd), IPPROTO_UDP);
+	pf3 = LibAliasRedirectPort(la, prv3, ntohs(0x1234), ANY_ADDR,
+	    ntohs(0x5678), masq, ntohs(0xabcd), IPPROTO_UDP);
 	ATF_REQUIRE(pf3 != NULL);
 
 	UDP_UNNAT_CHECK(p, u, ext, 0x5678, masq, 0xabcd, prv3, 0x1234);
@@ -118,7 +121,8 @@ ATF_TC_BODY(1_portforward, dummy)
 	/*
 	 * Any external host, any port
 	 */
-	pf4 = LibAliasRedirectPort(la, cgn, ntohs(0x1234), ANY_ADDR, ntohs(0), masq, ntohs(0xabcd), IPPROTO_UDP);
+	pf4 = LibAliasRedirectPort(la, cgn, ntohs(0x1234), ANY_ADDR, ntohs(0),
+	    masq, ntohs(0xabcd), IPPROTO_UDP);
 	ATF_REQUIRE(pf4 != NULL);
 
 	UDP_UNNAT_CHECK(p, u, ext, 0x5678, masq, 0xabcd, cgn, 0x1234);
@@ -156,7 +160,8 @@ ATF_TC_BODY(2_portoverlap, dummy)
 	/*
 	 * Fully specified
 	 */
-	pf1 = LibAliasRedirectPort(la, prv2, ntohs(0x1234), ext, ntohs(0x5678), masq, ntohs(0xabcd), IPPROTO_UDP);
+	pf1 = LibAliasRedirectPort(la, prv2, ntohs(0x1234), ext, ntohs(0x5678),
+	    masq, ntohs(0xabcd), IPPROTO_UDP);
 	ATF_REQUIRE(pf1 != NULL);
 
 	p = ip_packet(0, 64);
@@ -169,7 +174,8 @@ ATF_TC_BODY(2_portoverlap, dummy)
 	/*
 	 * Fully specified (override)
 	 */
-	pf1 = LibAliasRedirectPort(la, prv1, ntohs(0x1234), ext, ntohs(0x5678), masq, ntohs(0xabcd), IPPROTO_UDP);
+	pf1 = LibAliasRedirectPort(la, prv1, ntohs(0x1234), ext, ntohs(0x5678),
+	    masq, ntohs(0xabcd), IPPROTO_UDP);
 	ATF_REQUIRE(pf1 != NULL);
 
 	UDP_UNNAT_CHECK(p, u, ext, 0x5678, masq, 0xabcd, prv1, 0x1234);
@@ -181,7 +187,8 @@ ATF_TC_BODY(2_portoverlap, dummy)
 	/*
 	 * Any external port
 	 */
-	pf2 = LibAliasRedirectPort(la, prv2, ntohs(0x1234), ext, ntohs(0), masq, ntohs(0xabcd), IPPROTO_UDP);
+	pf2 = LibAliasRedirectPort(la, prv2, ntohs(0x1234), ext, ntohs(0), masq,
+	    ntohs(0xabcd), IPPROTO_UDP);
 	ATF_REQUIRE(pf2 != NULL);
 
 	UDP_UNNAT_CHECK(p, u, ext, 0x5679, masq, 0xabcd, prv2, 0x1234);
@@ -195,7 +202,8 @@ ATF_TC_BODY(2_portoverlap, dummy)
 	/*
 	 * Any external host
 	 */
-	pf3 = LibAliasRedirectPort(la, prv3, ntohs(0x1234), ANY_ADDR, ntohs(0x5678), masq, ntohs(0xabcd), IPPROTO_UDP);
+	pf3 = LibAliasRedirectPort(la, prv3, ntohs(0x1234), ANY_ADDR,
+	    ntohs(0x5678), masq, ntohs(0xabcd), IPPROTO_UDP);
 	ATF_REQUIRE(pf3 != NULL);
 
 	UDP_UNNAT_CHECK(p, u, pub, 0x5678, masq, 0xabcd, prv3, 0x1234);
@@ -210,7 +218,8 @@ ATF_TC_BODY(2_portoverlap, dummy)
 	/*
 	 * Any external host, any port
 	 */
-	pf4 = LibAliasRedirectPort(la, cgn, ntohs(0x1234), ANY_ADDR, ntohs(0), masq, ntohs(0xabcd), IPPROTO_UDP);
+	pf4 = LibAliasRedirectPort(la, cgn, ntohs(0x1234), ANY_ADDR, ntohs(0),
+	    masq, ntohs(0xabcd), IPPROTO_UDP);
 	ATF_REQUIRE(pf4 != NULL);
 
 	UDP_UNNAT_CHECK(p, u, prv1, 0x5679, masq, 0xabcd, cgn, 0x1234);
@@ -235,7 +244,8 @@ ATF_TC_BODY(3_redirectany, dummy)
 	LibAliasSetMode(la, PKT_ALIAS_DENY_INCOMING, ~0);
 	p = ip_packet(0, 64);
 
-	pf = LibAliasRedirectPort(la, prv1, ntohs(0x1234), ANY_ADDR, 0, ANY_ADDR, ntohs(0xabcd), IPPROTO_UDP);
+	pf = LibAliasRedirectPort(la, prv1, ntohs(0x1234), ANY_ADDR, 0,
+	    ANY_ADDR, ntohs(0xabcd), IPPROTO_UDP);
 	ATF_REQUIRE(pf != NULL);
 
 	LibAliasSetAddress(la, masq);
@@ -269,27 +279,27 @@ ATF_TC_BODY(4_redirectaddr, dummy)
 	pf2 = LibAliasRedirectAddr(la, prv2, pub);
 	ATF_REQUIRE(pf2 != NULL);
 	UNNAT_CHECK(p, ext, pub, prv1);
-	p->ip_p = 253;		       /* new flows */
+	p->ip_p = 253; /* new flows */
 	UNNAT_CHECK(p, ext, pub, prv2);
 	UNNAT_CHECK(p, ext, masq, masq);
 
-	p->ip_p = 252;		       /* new flows */
+	p->ip_p = 252; /* new flows */
 	NAT_CHECK(p, prv1, ext, pub);
 	NAT_CHECK(p, prv2, ext, pub);
 	NAT_CHECK(p, prv3, ext, masq);
 
 	LibAliasSetMode(la, PKT_ALIAS_DENY_INCOMING, ~0);
-	p->ip_p = 251;		       /* new flows */
+	p->ip_p = 251; /* new flows */
 	UNNAT_FAIL(p, ext, pub);
 	UNNAT_FAIL(p, ext, masq);
 
 	/* unhide older version */
 	LibAliasRedirectDelete(la, pf2);
 	LibAliasSetMode(la, 0, ~0);
-	p->ip_p = 250;		       /* new flows */
+	p->ip_p = 250; /* new flows */
 	UNNAT_CHECK(p, ext, pub, prv1);
 
-	p->ip_p = 249;		       /* new flows */
+	p->ip_p = 249; /* new flows */
 	NAT_CHECK(p, prv1, ext, pub);
 	NAT_CHECK(p, prv2, ext, masq);
 	NAT_CHECK(p, prv3, ext, masq);
@@ -310,7 +320,8 @@ ATF_TC_BODY(5_lsnat, dummy)
 	LibAliasSetMode(la, 0, ~0);
 	p = ip_packet(0, 64);
 
-	pf = LibAliasRedirectPort(la, cgn, ntohs(0xdead), ANY_ADDR, 0, masq, ntohs(0xabcd), IPPROTO_UDP);
+	pf = LibAliasRedirectPort(la, cgn, ntohs(0xdead), ANY_ADDR, 0, masq,
+	    ntohs(0xabcd), IPPROTO_UDP);
 	ATF_REQUIRE(pf != NULL);
 
 	ATF_REQUIRE(0 == LibAliasAddServer(la, pf, prv1, ntohs(0x1234)));
@@ -341,13 +352,15 @@ ATF_TC_BODY(6_oneshot, dummy)
 	LibAliasSetMode(la, PKT_ALIAS_RESET_ON_ADDR_CHANGE, ~0);
 	LibAliasSetMode(la, PKT_ALIAS_DENY_INCOMING, PKT_ALIAS_DENY_INCOMING);
 
-	pf = LibAliasRedirectPort(la, prv1, ntohs(0x1234), ANY_ADDR, 0, masq, ntohs(0xabcd), IPPROTO_UDP);
+	pf = LibAliasRedirectPort(la, prv1, ntohs(0x1234), ANY_ADDR, 0, masq,
+	    ntohs(0xabcd), IPPROTO_UDP);
 	ATF_REQUIRE(pf != NULL);
 	/* only for fully specified links */
 	ATF_CHECK(-1 == LibAliasRedirectDynamic(la, pf));
 	LibAliasRedirectDelete(la, pf);
 
-	pf = LibAliasRedirectPort(la, prv1, ntohs(0x1234), ext, ntohs(0x5678), masq, ntohs(0xabcd), IPPROTO_UDP);
+	pf = LibAliasRedirectPort(la, prv1, ntohs(0x1234), ext, ntohs(0x5678),
+	    masq, ntohs(0xabcd), IPPROTO_UDP);
 	ATF_REQUIRE(pf != NULL);
 	ATF_CHECK(0 == LibAliasRedirectDynamic(la, pf));
 

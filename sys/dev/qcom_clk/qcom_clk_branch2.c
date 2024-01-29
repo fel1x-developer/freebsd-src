@@ -29,6 +29,7 @@
 #include <sys/lock.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
+
 #include <machine/bus.h>
 
 #include <dev/clk/clk.h>
@@ -36,10 +37,9 @@
 #include <dev/clk/clk_fixed.h>
 #include <dev/clk/clk_mux.h>
 
+#include "clkdev_if.h"
 #include "qcom_clk_branch2.h"
 #include "qcom_clk_branch2_reg.h"
-
-#include "clkdev_if.h"
 
 /*
  * This is a combination gate/status and dynamic hardware clock gating with
@@ -96,11 +96,10 @@ qcom_clk_branch2_in_hwcg_mode_locked(struct qcom_clk_branch2_sc *sc)
 
 	if (sc->hwcg_reg == 0)
 		return (false);
-	
-	CLKDEV_READ_4(clknode_get_device(sc->clknode), sc->hwcg_reg,
-	    &reg);
 
-	return (!! (reg & (1U << sc->hwcg_bit)));
+	CLKDEV_READ_4(clknode_get_device(sc->clknode), sc->hwcg_reg, &reg);
+
+	return (!!(reg & (1U << sc->hwcg_bit)));
 }
 
 static bool
@@ -122,9 +121,9 @@ qcom_clk_branch2_check_halt_locked(struct qcom_clk_branch2_sc *sc, bool enable)
 		 * how we'd ever need to check FSM_STATUS_ON - the only
 		 * valid check for the FSM status also requires clk_off=0.
 		 */
-		return !! ((reg & QCOM_CLK_BRANCH2_CLK_OFF) == 0);
+		return !!((reg & QCOM_CLK_BRANCH2_CLK_OFF) == 0);
 	} else {
-		return !! (reg & QCOM_CLK_BRANCH2_CLK_OFF);
+		return !!(reg & QCOM_CLK_BRANCH2_CLK_OFF);
 	}
 }
 
@@ -132,11 +131,11 @@ qcom_clk_branch2_check_halt_locked(struct qcom_clk_branch2_sc *sc, bool enable)
  * Check if the given type/voted flag match what is configured.
  */
 static bool
-qcom_clk_branch2_halt_check_type(struct qcom_clk_branch2_sc *sc,
-    uint32_t type, bool voted)
+qcom_clk_branch2_halt_check_type(struct qcom_clk_branch2_sc *sc, uint32_t type,
+    bool voted)
 {
-	return ((sc->halt_check_type == type) &&
-	    (sc->halt_check_voted == voted));
+	return (
+	    (sc->halt_check_type == type) && (sc->halt_check_voted == voted));
 }
 
 static bool
@@ -144,22 +143,22 @@ qcom_clk_branch2_wait_locked(struct qcom_clk_branch2_sc *sc, bool enable)
 {
 
 	if (qcom_clk_branch2_halt_check_type(sc,
-	    QCOM_CLK_BRANCH2_BRANCH_HALT_SKIP, false))
+		QCOM_CLK_BRANCH2_BRANCH_HALT_SKIP, false))
 		return (true);
 	if (qcom_clk_branch2_in_hwcg_mode_locked(sc))
 		return (true);
 
 	if ((qcom_clk_branch2_halt_check_type(sc,
-	      QCOM_CLK_BRANCH2_BRANCH_HALT_DELAY, false)) ||
+		QCOM_CLK_BRANCH2_BRANCH_HALT_DELAY, false)) ||
 	    (enable == false && sc->halt_check_voted)) {
 		DELAY(10);
 		return (true);
 	}
 
 	if ((qcom_clk_branch2_halt_check_type(sc,
-	      QCOM_CLK_BRANCH2_BRANCH_HALT_INVERTED, false)) ||
-	    (qcom_clk_branch2_halt_check_type(sc,
-	      QCOM_CLK_BRANCH2_BRANCH_HALT, false)) ||
+		QCOM_CLK_BRANCH2_BRANCH_HALT_INVERTED, false)) ||
+	    (qcom_clk_branch2_halt_check_type(sc, QCOM_CLK_BRANCH2_BRANCH_HALT,
+		false)) ||
 	    (enable && sc->halt_check_voted)) {
 		int count;
 
@@ -188,29 +187,27 @@ qcom_clk_branch2_set_gate(struct clknode *clk, bool enable)
 	DPRINTF(clknode_get_device(sc->clknode), "%s: called\n", __func__);
 
 	if (sc->enable_offset == 0) {
-		DPRINTF(clknode_get_device(sc->clknode),
-		    "%s: no enable_offset", __func__);
+		DPRINTF(clknode_get_device(sc->clknode), "%s: no enable_offset",
+		    __func__);
 		return (ENXIO);
 	}
 
-	DPRINTF(clknode_get_device(sc->clknode),
-	    "%s: called; enable=%d\n", __func__, enable);
+	DPRINTF(clknode_get_device(sc->clknode), "%s: called; enable=%d\n",
+	    __func__, enable);
 
 	CLKDEV_DEVICE_LOCK(clknode_get_device(sc->clknode));
-	CLKDEV_READ_4(clknode_get_device(sc->clknode), sc->enable_offset,
-	    &reg);
+	CLKDEV_READ_4(clknode_get_device(sc->clknode), sc->enable_offset, &reg);
 	if (enable) {
 		reg |= (1U << sc->enable_shift);
 	} else {
 		reg &= ~(1U << sc->enable_shift);
 	}
-	CLKDEV_WRITE_4(clknode_get_device(sc->clknode), sc->enable_offset,
-	    reg);
+	CLKDEV_WRITE_4(clknode_get_device(sc->clknode), sc->enable_offset, reg);
 
 	/*
 	 * Now wait for the clock branch to update!
 	 */
-	if (! qcom_clk_branch2_wait_locked(sc, enable)) {
+	if (!qcom_clk_branch2_wait_locked(sc, enable)) {
 		CLKDEV_DEVICE_UNLOCK(clknode_get_device(sc->clknode));
 		DPRINTF(clknode_get_device(sc->clknode),
 		    "%s: failed to wait!\n", __func__);
@@ -241,12 +238,11 @@ qcom_clk_branch2_set_freq(struct clknode *clk, uint64_t fin, uint64_t *fout,
 	return (0);
 }
 
-
 static clknode_method_t qcom_clk_branch2_methods[] = {
 	/* Device interface */
-	CLKNODEMETHOD(clknode_init,		qcom_clk_branch2_init),
-	CLKNODEMETHOD(clknode_set_gate,		qcom_clk_branch2_set_gate),
-	CLKNODEMETHOD(clknode_set_freq,		qcom_clk_branch2_set_freq),
+	CLKNODEMETHOD(clknode_init, qcom_clk_branch2_init),
+	CLKNODEMETHOD(clknode_set_gate, qcom_clk_branch2_set_gate),
+	CLKNODEMETHOD(clknode_set_freq, qcom_clk_branch2_set_freq),
 	CLKNODEMETHOD_END
 };
 
@@ -264,8 +260,7 @@ qcom_clk_branch2_register(struct clkdom *clkdom,
 	if (clkdef->flags & QCOM_CLK_BRANCH2_FLAGS_CRITICAL)
 		clkdef->clkdef.flags |= CLK_NODE_CANNOT_STOP;
 
-	clk = clknode_create(clkdom, &qcom_clk_branch2_class,
-	    &clkdef->clkdef);
+	clk = clknode_create(clkdom, &qcom_clk_branch2_class, &clkdef->clkdef);
 	if (clk == NULL)
 		return (1);
 

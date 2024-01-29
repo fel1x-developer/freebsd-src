@@ -46,7 +46,8 @@ static int freespace;
 static char file[128];
 
 static int
-get(void) {
+get(void)
+{
 	int r, sem;
 
 	do {
@@ -55,7 +56,7 @@ get(void) {
 	if (r == -1)
 		err(1, "lockf(%s, F_LOCK)", file);
 	if (lseek(fd, 0, SEEK_SET) == -1) // XXX
-		err(1, "lseek"); // XXX
+		err(1, "lseek");	  // XXX
 	r = read(fd, &sem, sizeof(sem));
 	if (r == -1)
 		err(1, "get: read(%d)", fd);
@@ -71,7 +72,8 @@ get(void) {
 }
 
 static void
-incr(void) {
+incr(void)
+{
 	int r, sem;
 
 	do {
@@ -104,15 +106,17 @@ setup(int nb)
 		getdf(&bl, &in);
 
 		/* Resource requirements: */
-		reserve_in =    1 * op->incarnations;
+		reserve_in = 1 * op->incarnations;
 		reserve_bl = 4096 * op->incarnations;
 		freespace = (reserve_bl <= bl && reserve_in <= in);
 		if (!freespace)
 			reserve_bl = reserve_in = 0;
 
 		if (op->verbose > 1)
-			printf("lockf(incarnations=%d). Free(%jdk, %jd), reserve(%jdk, %jd)\n",
-			    op->incarnations, bl/1024, in, reserve_bl/1024, reserve_in);
+			printf(
+			    "lockf(incarnations=%d). Free(%jdk, %jd), reserve(%jdk, %jd)\n",
+			    op->incarnations, bl / 1024, in, reserve_bl / 1024,
+			    reserve_in);
 		reservedf(reserve_bl, reserve_in);
 		putval(freespace);
 	} else {
@@ -121,7 +125,7 @@ setup(int nb)
 	if (!freespace)
 		exit(0);
 
-        return (0);
+	return (0);
 }
 
 void
@@ -136,7 +140,7 @@ test(void)
 	int sem = 0;
 
 	sprintf(file, "lockf.0.%d", getpid());
-	if ((fd = open(file,O_CREAT | O_TRUNC | O_RDWR, 0600)) == -1) {
+	if ((fd = open(file, O_CREAT | O_TRUNC | O_RDWR, 0600)) == -1) {
 		if (errno == ENOENT)
 			return (0);
 		else
@@ -153,24 +157,24 @@ test(void)
 		exit(2);
 	}
 
-	if (pid == 0) {	/* child */
+	if (pid == 0) { /* child */
 		alarm(60);
 		for (i = 0; i < 100 && done_testing == 0; i++) {
 			while ((get() & 1) == 0 && done_testing == 0)
 				;
 			if (op->verbose > 3)
 				printf("Child  %d, sem = %d\n", i, get()),
-					fflush(stdout);
+				    fflush(stdout);
 			incr();
 		}
 		_exit(0);
-	} else {	/* parent */
+	} else { /* parent */
 		for (i = 0; i < 100 && done_testing == 0; i++) {
 			while ((get() & 1) == 1 && done_testing == 0)
 				;
 			if (op->verbose > 3)
 				printf("Parent %d, sem = %d\n", i, get()),
-					fflush(stdout);
+				    fflush(stdout);
 			incr();
 		}
 	}
@@ -180,5 +184,5 @@ test(void)
 	waitpid(pid, &i, 0);
 	unlink(file);
 
-        return (0);
+	return (0);
 }

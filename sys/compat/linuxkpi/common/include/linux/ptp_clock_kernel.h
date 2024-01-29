@@ -26,28 +26,29 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_LINUXKPI_LINUX_PTP_CLOCK_KERNEL_H
-#define	_LINUXKPI_LINUX_PTP_CLOCK_KERNEL_H
+#ifndef _LINUXKPI_LINUX_PTP_CLOCK_KERNEL_H
+#define _LINUXKPI_LINUX_PTP_CLOCK_KERNEL_H
 
-#include <linux/types.h>
 #include <linux/device.h>
-#include <linux/kernel.h>	/* pr_debug */
-#include <linux/ktime.h>	/* system_device_crosststamp */
+#include <linux/kernel.h> /* pr_debug */
+#include <linux/ktime.h>  /* system_device_crosststamp */
+#include <linux/types.h>
 
 /* This very likely belongs elsewhere. */
 struct system_device_crosststamp {
-	ktime_t	device;
-	ktime_t	sys_realtime;
-	ktime_t	sys_monotonic_raw;	/* name guessed based on comment */
+	ktime_t device;
+	ktime_t sys_realtime;
+	ktime_t sys_monotonic_raw; /* name guessed based on comment */
 };
 
 struct ptp_clock_info {
-	char		name[32];
-	int		max_adj;
-	void		*owner;			/* THIS_MODULE */
+	char name[32];
+	int max_adj;
+	void *owner; /* THIS_MODULE */
 	int (*adjfine)(struct ptp_clock_info *, long);
 	int (*adjtime)(struct ptp_clock_info *, s64);
-	int (*getcrosststamp)(struct ptp_clock_info *, struct system_device_crosststamp *);
+	int (*getcrosststamp)(struct ptp_clock_info *,
+	    struct system_device_crosststamp *);
 	int (*gettime64)(struct ptp_clock_info *, struct timespec *);
 };
 
@@ -72,4 +73,4 @@ ptp_clock_index(struct ptp_clock *ptpc)
 	return (0);
 }
 
-#endif	/* _LINUXKPI_LINUX_PTP_CLOCK_KERNEL_H */
+#endif /* _LINUXKPI_LINUX_PTP_CLOCK_KERNEL_H */

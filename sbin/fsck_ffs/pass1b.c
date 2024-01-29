@@ -31,14 +31,13 @@
 
 #include <sys/param.h>
 
-#include <ufs/ufs/dinode.h>
-#include <ufs/ffs/fs.h>
-
 #include <string.h>
+#include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
 
 #include "fsck.h"
 
-static  struct dups *duphead;
+static struct dups *duphead;
 static int pass1bcheck(struct inodesc *);
 
 void

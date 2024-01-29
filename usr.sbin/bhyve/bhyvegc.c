@@ -28,14 +28,14 @@
 
 #include <sys/types.h>
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "bhyvegc.h"
 
 struct bhyvegc {
-	struct bhyvegc_image	*gc_image;
+	struct bhyvegc_image *gc_image;
 	int raw;
 };
 
@@ -45,7 +45,7 @@ bhyvegc_init(int width, int height, void *fbaddr)
 	struct bhyvegc *gc;
 	struct bhyvegc_image *gc_image;
 
-	gc = calloc(1, sizeof (struct bhyvegc));
+	gc = calloc(1, sizeof(struct bhyvegc));
 
 	gc_image = calloc(1, sizeof(struct bhyvegc_image));
 	gc_image->width = width;
@@ -54,7 +54,7 @@ bhyvegc_init(int width, int height, void *fbaddr)
 		gc_image->data = fbaddr;
 		gc->raw = 1;
 	} else {
-		gc_image->data = calloc(width * height, sizeof (uint32_t));
+		gc_image->data = calloc(width * height, sizeof(uint32_t));
 		gc->raw = 0;
 	}
 
@@ -83,10 +83,10 @@ bhyvegc_resize(struct bhyvegc *gc, int width, int height)
 	gc_image->height = height;
 	if (!gc->raw) {
 		gc_image->data = reallocarray(gc_image->data, width * height,
-		    sizeof (uint32_t));
+		    sizeof(uint32_t));
 		if (gc_image->data != NULL)
-			memset(gc_image->data, 0, width * height *
-			    sizeof (uint32_t));
+			memset(gc_image->data, 0,
+			    width * height * sizeof(uint32_t));
 	}
 }
 

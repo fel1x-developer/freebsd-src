@@ -28,9 +28,9 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/sysctl.h>
-#include <sys/types.h>
 
 #include <err.h>
 #include <errno.h>
@@ -53,7 +53,7 @@
 #include "file.h"
 #include "sort.h"
 
-#define	OPTIONS	"bcCdfghik:Mmno:RrsS:t:T:uVz"
+#define OPTIONS "bcCdfghik:Mmno:RrsS:t:T:uVz"
 
 static bool need_random;
 
@@ -63,28 +63,30 @@ MD5_CTX md5_ctx;
  * Default messages to use
  */
 const char *nlsstr[] = { "",
-/* 1*/"mutually exclusive flags",
-/* 2*/"extra argument not allowed with -c",
-/* 3*/"Unknown feature",
-/* 4*/"Wrong memory buffer specification",
-/* 5*/"0 field in key specs",
-/* 6*/"0 column in key specs",
-/* 7*/"Wrong file mode",
-/* 8*/"Cannot open file for reading",
-/* 9*/"Radix sort cannot be used with these sort options",
-/*10*/"The chosen sort method cannot be used with stable and/or unique sort",
-/*11*/"Invalid key position",
-/*12*/"Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ] "
-      "[+POS1 [-POS2]] [-S memsize] [-T tmpdir] [-t separator] "
-      "[-o outfile] [--batch-size size] [--files0-from file] "
-      "[--heapsort] [--mergesort] [--radixsort] [--qsort] "
-      "[--mmap] "
+	/* 1*/ "mutually exclusive flags",
+	/* 2*/ "extra argument not allowed with -c",
+	/* 3*/ "Unknown feature",
+	/* 4*/ "Wrong memory buffer specification",
+	/* 5*/ "0 field in key specs",
+	/* 6*/ "0 column in key specs",
+	/* 7*/ "Wrong file mode",
+	/* 8*/ "Cannot open file for reading",
+	/* 9*/ "Radix sort cannot be used with these sort options",
+	/*10*/
+	"The chosen sort method cannot be used with stable and/or unique sort",
+	/*11*/ "Invalid key position",
+	/*12*/
+	"Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ] "
+	"[+POS1 [-POS2]] [-S memsize] [-T tmpdir] [-t separator] "
+	"[-o outfile] [--batch-size size] [--files0-from file] "
+	"[--heapsort] [--mergesort] [--radixsort] [--qsort] "
+	"[--mmap] "
 #if defined(SORT_THREADS)
-      "[--parallel thread_no] "
+	"[--parallel thread_no] "
 #endif
-      "[--human-numeric-sort] "
-      "[--version-sort] [--random-sort [--random-source file]] "
-      "[--compress-program program] [file ...]\n" };
+	"[--human-numeric-sort] "
+	"[--version-sort] [--random-sort [--random-source file]] "
+	"[--compress-program program] [file ...]\n" };
 
 struct sort_opts sort_opts_vals;
 
@@ -101,7 +103,7 @@ size_t nthreads = 1;
 static bool gnusort_numeric_compatibility;
 
 static struct sort_mods default_sort_mods_object;
-struct sort_mods * const default_sort_mods = &default_sort_mods_object;
+struct sort_mods *const default_sort_mods = &default_sort_mods_object;
 
 static bool print_symbols_on_debug;
 
@@ -114,8 +116,7 @@ static char **argv_from_file0;
 /*
  * Placeholder symbols for options which have no single-character equivalent
  */
-enum
-{
+enum {
 	SORT_OPT = CHAR_MAX + 1,
 	HELP_OPT,
 	FF_OPT,
@@ -134,50 +135,51 @@ enum
 	MMAP_OPT
 };
 
-#define	NUMBER_OF_MUTUALLY_EXCLUSIVE_FLAGS 6
-static const char mutually_exclusive_flags[NUMBER_OF_MUTUALLY_EXCLUSIVE_FLAGS] = { 'M', 'n', 'g', 'R', 'h', 'V' };
+#define NUMBER_OF_MUTUALLY_EXCLUSIVE_FLAGS 6
+static const char
+    mutually_exclusive_flags[NUMBER_OF_MUTUALLY_EXCLUSIVE_FLAGS] = { 'M', 'n',
+	    'g', 'R', 'h', 'V' };
 
-static struct option long_options[] = {
-				{ "batch-size", required_argument, NULL, BS_OPT },
-				{ "buffer-size", required_argument, NULL, 'S' },
-				{ "check", optional_argument, NULL, 'c' },
-				{ "check=silent|quiet", optional_argument, NULL, 'C' },
-				{ "compress-program", required_argument, NULL, COMPRESSPROGRAM_OPT },
-				{ "debug", no_argument, NULL, DEBUG_OPT },
-				{ "dictionary-order", no_argument, NULL, 'd' },
-				{ "field-separator", required_argument, NULL, 't' },
-				{ "files0-from", required_argument, NULL, FF_OPT },
-				{ "general-numeric-sort", no_argument, NULL, 'g' },
-				{ "heapsort", no_argument, NULL, HEAPSORT_OPT },
-				{ "help",no_argument, NULL, HELP_OPT },
-				{ "human-numeric-sort", no_argument, NULL, 'h' },
-				{ "ignore-leading-blanks", no_argument, NULL, 'b' },
-				{ "ignore-case", no_argument, NULL, 'f' },
-				{ "ignore-nonprinting", no_argument, NULL, 'i' },
-				{ "key", required_argument, NULL, 'k' },
-				{ "merge", no_argument, NULL, 'm' },
-				{ "mergesort", no_argument, NULL, MERGESORT_OPT },
-				{ "mmap", no_argument, NULL, MMAP_OPT },
-				{ "month-sort", no_argument, NULL, 'M' },
-				{ "numeric-sort", no_argument, NULL, 'n' },
-				{ "output", required_argument, NULL, 'o' },
+static struct option long_options[] = { { "batch-size", required_argument, NULL,
+					    BS_OPT },
+	{ "buffer-size", required_argument, NULL, 'S' },
+	{ "check", optional_argument, NULL, 'c' },
+	{ "check=silent|quiet", optional_argument, NULL, 'C' },
+	{ "compress-program", required_argument, NULL, COMPRESSPROGRAM_OPT },
+	{ "debug", no_argument, NULL, DEBUG_OPT },
+	{ "dictionary-order", no_argument, NULL, 'd' },
+	{ "field-separator", required_argument, NULL, 't' },
+	{ "files0-from", required_argument, NULL, FF_OPT },
+	{ "general-numeric-sort", no_argument, NULL, 'g' },
+	{ "heapsort", no_argument, NULL, HEAPSORT_OPT },
+	{ "help", no_argument, NULL, HELP_OPT },
+	{ "human-numeric-sort", no_argument, NULL, 'h' },
+	{ "ignore-leading-blanks", no_argument, NULL, 'b' },
+	{ "ignore-case", no_argument, NULL, 'f' },
+	{ "ignore-nonprinting", no_argument, NULL, 'i' },
+	{ "key", required_argument, NULL, 'k' },
+	{ "merge", no_argument, NULL, 'm' },
+	{ "mergesort", no_argument, NULL, MERGESORT_OPT },
+	{ "mmap", no_argument, NULL, MMAP_OPT },
+	{ "month-sort", no_argument, NULL, 'M' },
+	{ "numeric-sort", no_argument, NULL, 'n' },
+	{ "output", required_argument, NULL, 'o' },
 #if defined(SORT_THREADS)
-				{ "parallel", required_argument, NULL, PARALLEL_OPT },
+	{ "parallel", required_argument, NULL, PARALLEL_OPT },
 #endif
-				{ "qsort", no_argument, NULL, QSORT_OPT },
-				{ "radixsort", no_argument, NULL, RADIXSORT_OPT },
-				{ "random-sort", no_argument, NULL, 'R' },
-				{ "random-source", required_argument, NULL, RANDOMSOURCE_OPT },
-				{ "reverse", no_argument, NULL, 'r' },
-				{ "sort", required_argument, NULL, SORT_OPT },
-				{ "stable", no_argument, NULL, 's' },
-				{ "temporary-directory",required_argument, NULL, 'T' },
-				{ "unique", no_argument, NULL, 'u' },
-				{ "version", no_argument, NULL, VERSION_OPT },
-				{ "version-sort",no_argument, NULL, 'V' },
-				{ "zero-terminated", no_argument, NULL, 'z' },
-				{ NULL, no_argument, NULL, 0 }
-};
+	{ "qsort", no_argument, NULL, QSORT_OPT },
+	{ "radixsort", no_argument, NULL, RADIXSORT_OPT },
+	{ "random-sort", no_argument, NULL, 'R' },
+	{ "random-source", required_argument, NULL, RANDOMSOURCE_OPT },
+	{ "reverse", no_argument, NULL, 'r' },
+	{ "sort", required_argument, NULL, SORT_OPT },
+	{ "stable", no_argument, NULL, 's' },
+	{ "temporary-directory", required_argument, NULL, 'T' },
+	{ "unique", no_argument, NULL, 'u' },
+	{ "version", no_argument, NULL, VERSION_OPT },
+	{ "version-sort", no_argument, NULL, 'V' },
+	{ "zero-terminated", no_argument, NULL, 'z' },
+	{ NULL, no_argument, NULL, 0 } };
 
 void fix_obsolete_keys(int *argc, char **argv);
 
@@ -230,7 +232,7 @@ read_fns_from_file0(const char *fn)
 
 	while ((linelen = getdelim(&line, &linesize, '\0', f)) != -1) {
 		if (*line != '\0') {
-			if (argc_from_file0 == (size_t) - 1)
+			if (argc_from_file0 == (size_t)-1)
 				argc_from_file0 = 0;
 			++argc_from_file0;
 			argv_from_file0 = sort_realloc(argv_from_file0,
@@ -276,13 +278,13 @@ set_hw_params(void)
 	ncpu = (unsigned int)sysconf(_SC_NPROCESSORS_ONLN);
 	if (ncpu < 1)
 		ncpu = 1;
-	else if(ncpu > 32)
+	else if (ncpu > 32)
 		ncpu = 32;
 
 	nthreads = ncpu;
 #endif
 
-	free_memory = (unsigned long long) pages * (unsigned long long) psize;
+	free_memory = (unsigned long long)pages * (unsigned long long)psize;
 	available_free_memory = free_memory / 2;
 
 	if (available_free_memory < 1024)
@@ -389,10 +391,10 @@ parse_memory_buffer_value(const char *value)
 		membuf = strtoll(value, &endptr, 10);
 
 		if (errno != 0) {
-			warn("%s",getstr(4));
+			warn("%s", getstr(4));
 			membuf = available_free_memory;
 		} else {
-			switch (*endptr){
+			switch (*endptr) {
 			case 'Y':
 				membuf *= 1024;
 				/* FALLTHROUGH */
@@ -421,8 +423,7 @@ parse_memory_buffer_value(const char *value)
 			case 'b':
 				break;
 			case '%':
-				membuf = (available_free_memory * membuf) /
-				    100;
+				membuf = (available_free_memory * membuf) / 100;
 				break;
 			default:
 				warnc(EINVAL, "%s", optarg);
@@ -529,7 +530,9 @@ check_mutually_exclusive_flags(char c, bool *mef_flags)
 			}
 		} else {
 			if (found_others)
-				errx(1, "%c:%c: %s", c, mutually_exclusive_flags[fo_index], getstr(1));
+				errx(1, "%c:%c: %s", c,
+				    mutually_exclusive_flags[fo_index],
+				    getstr(1));
 			mef_flags[i] = true;
 			found_this = true;
 		}
@@ -543,11 +546,10 @@ static void
 set_sort_opts(void)
 {
 
-	memset(&default_sort_mods_object, 0,
-	    sizeof(default_sort_mods_object));
+	memset(&default_sort_mods_object, 0, sizeof(default_sort_mods_object));
 	memset(&sort_opts_vals, 0, sizeof(sort_opts_vals));
-	default_sort_mods_object.func =
-	    get_sort_func(&default_sort_mods_object);
+	default_sort_mods_object.func = get_sort_func(
+	    &default_sort_mods_object);
 }
 
 /*
@@ -560,7 +562,7 @@ set_sort_modifier(struct sort_mods *sm, int c)
 	if (sm == NULL)
 		return (true);
 
-	switch (c){
+	switch (c) {
 	case 'b':
 		sm->bflag = true;
 		break;
@@ -649,20 +651,20 @@ parse_pos(const char *s, struct key_specs *ks, bool *mef_flags, bool second)
 
 	if (second) {
 		errno = 0;
-		ks->f2 = (size_t) strtoul(f, NULL, 10);
+		ks->f2 = (size_t)strtoul(f, NULL, 10);
 		if (errno != 0)
 			err(2, "-k");
 		if (ks->f2 == 0) {
-			warn("%s",getstr(5));
+			warn("%s", getstr(5));
 			goto end;
 		}
 	} else {
 		errno = 0;
-		ks->f1 = (size_t) strtoul(f, NULL, 10);
+		ks->f1 = (size_t)strtoul(f, NULL, 10);
 		if (errno != 0)
 			err(2, "-k");
 		if (ks->f1 == 0) {
-			warn("%s",getstr(5));
+			warn("%s", getstr(5));
 			goto end;
 		}
 	}
@@ -676,16 +678,16 @@ parse_pos(const char *s, struct key_specs *ks, bool *mef_flags, bool second)
 
 		if (second) {
 			errno = 0;
-			ks->c2 = (size_t) strtoul(c, NULL, 10);
+			ks->c2 = (size_t)strtoul(c, NULL, 10);
 			if (errno != 0)
 				err(2, "-k");
 		} else {
 			errno = 0;
-			ks->c1 = (size_t) strtoul(c, NULL, 10);
+			ks->c1 = (size_t)strtoul(c, NULL, 10);
 			if (errno != 0)
 				err(2, "-k");
 			if (ks->c1 == 0) {
-				warn("%s",getstr(6));
+				warn("%s", getstr(6));
 				goto end;
 			}
 		}
@@ -731,8 +733,8 @@ static int
 parse_k(const char *s, struct key_specs *ks)
 {
 	int ret = -1;
-	bool mef_flags[NUMBER_OF_MUTUALLY_EXCLUSIVE_FLAGS] =
-	    { false, false, false, false, false, false };
+	bool mef_flags[NUMBER_OF_MUTUALLY_EXCLUSIVE_FLAGS] = { false, false,
+		false, false, false, false };
 
 	if (s && *s) {
 		char *sptr;
@@ -771,7 +773,7 @@ parse_k(const char *s, struct key_specs *ks)
  * Parse POS in +POS -POS option.
  */
 static int
-parse_pos_obs(const char *s, int *nf, int *nc, char* sopts)
+parse_pos_obs(const char *s, int *nf, int *nc, char *sopts)
 {
 	regex_t re;
 	regmatch_t pmatch[4];
@@ -804,7 +806,7 @@ parse_pos_obs(const char *s, int *nf, int *nc, char* sopts)
 	f[len] = '\0';
 
 	errno = 0;
-	*nf = (size_t) strtoul(f, NULL, 10);
+	*nf = (size_t)strtoul(f, NULL, 10);
 	if (errno != 0)
 		errx(2, "%s", getstr(11));
 
@@ -816,7 +818,7 @@ parse_pos_obs(const char *s, int *nf, int *nc, char* sopts)
 		c[len] = '\0';
 
 		errno = 0;
-		*nc = (size_t) strtoul(c, NULL, 10);
+		*nc = (size_t)strtoul(c, NULL, 10);
 		if (errno != 0)
 			errx(2, "%s", getstr(11));
 	}
@@ -882,15 +884,20 @@ fix_obsolete_keys(int *argc, char **argv)
 						sopts2[0] = 0;
 						c2 = f2 = 0;
 
-						if (parse_pos_obs(arg2 + 1,
-						    &f2, &c2, sopts2) >= 0) {
+						if (parse_pos_obs(arg2 + 1, &f2,
+							&c2, sopts2) >= 0) {
 							if (c2 > 0)
 								f2 += 1;
-							sprintf(sopt, "-k%d.%d%s,%d.%d%s",
-							    f1, c1, sopts1, f2, c2, sopts2);
-							argv[i] = sort_strdup(sopt);
-							for (int j = i + 1; j + 1 < *argc; j++)
-								argv[j] = argv[j + 1];
+							sprintf(sopt,
+							    "-k%d.%d%s,%d.%d%s",
+							    f1, c1, sopts1, f2,
+							    c2, sopts2);
+							argv[i] = sort_strdup(
+							    sopt);
+							for (int j = i + 1;
+							     j + 1 < *argc; j++)
+								argv[j] =
+								    argv[j + 1];
 							*argc -= 1;
 							continue;
 						}
@@ -940,11 +947,13 @@ get_random_seed(const char *random_source)
 	 */
 	if (S_ISREG(fsb.st_mode)) {
 		if (fsb.st_size > (off_t)sizeof(randseed))
-			errx(EX_USAGE, "random seed is too large (%jd >"
-			    " %zu)!", (intmax_t)fsb.st_size,
-			    sizeof(randseed));
+			errx(EX_USAGE,
+			    "random seed is too large (%jd >"
+			    " %zu)!",
+			    (intmax_t)fsb.st_size, sizeof(randseed));
 		else if (fsb.st_size < 1)
-			errx(EX_USAGE, "random seed is too small ("
+			errx(EX_USAGE,
+			    "random seed is too small ("
 			    "0 bytes)");
 
 		memset(randseed, 0, sizeof(randseed));
@@ -959,9 +968,9 @@ get_random_seed(const char *random_source)
 		if (stat("/dev/random", &rsb) < 0)
 			err(EX_SOFTWARE, "stat");
 
-		if (fsb.st_dev != rsb.st_dev ||
-		    fsb.st_ino != rsb.st_ino)
-			errx(EX_USAGE, "random seed is a character "
+		if (fsb.st_dev != rsb.st_dev || fsb.st_ino != rsb.st_ino)
+			errx(EX_USAGE,
+			    "random seed is a character "
 			    "device other than /dev/random");
 
 		if (getentropy(randseed, sizeof(randseed)) < 0)
@@ -985,8 +994,8 @@ main(int argc, char **argv)
 	char *outfile, *real_outfile;
 	char *random_source = NULL;
 	int c, result;
-	bool mef_flags[NUMBER_OF_MUTUALLY_EXCLUSIVE_FLAGS] =
-	    { false, false, false, false, false, false };
+	bool mef_flags[NUMBER_OF_MUTUALLY_EXCLUSIVE_FLAGS] = { false, false,
+		false, false, false, false };
 
 	result = 0;
 	outfile = sort_strdup("-");
@@ -1005,8 +1014,8 @@ main(int argc, char **argv)
 
 	fix_obsolete_keys(&argc, argv);
 
-	while (((c = getopt_long(argc, argv, OPTIONS, long_options, NULL))
-	    != -1)) {
+	while ((
+	    (c = getopt_long(argc, argv, OPTIONS, long_options, NULL)) != -1)) {
 
 		check_mutually_exclusive_flags(c, mef_flags);
 
@@ -1020,7 +1029,8 @@ main(int argc, char **argv)
 						;
 					else if (!strcmp(optarg, "silent") ||
 					    !strcmp(optarg, "quiet"))
-						sort_opts_vals.csilentflag = true;
+						sort_opts_vals.csilentflag =
+						    true;
 					else if (*optarg)
 						unknown(optarg);
 				}
@@ -1029,19 +1039,18 @@ main(int argc, char **argv)
 				sort_opts_vals.cflag = true;
 				sort_opts_vals.csilentflag = true;
 				break;
-			case 'k':
-			{
+			case 'k': {
 				sort_opts_vals.complex_sort = true;
 				sort_opts_vals.kflag = true;
 
 				keys_num++;
-				keys = sort_realloc(keys, keys_num *
-				    sizeof(struct key_specs));
+				keys = sort_realloc(keys,
+				    keys_num * sizeof(struct key_specs));
 				memset(&(keys[keys_num - 1]), 0,
 				    sizeof(struct key_specs));
 
-				if (parse_k(optarg, &(keys[keys_num - 1]))
-				    < 0) {
+				if (parse_k(optarg, &(keys[keys_num - 1])) <
+				    0) {
 					errc(2, EINVAL, "-k %s", optarg);
 				}
 
@@ -1051,7 +1060,8 @@ main(int argc, char **argv)
 				sort_opts_vals.mflag = true;
 				break;
 			case 'o':
-				outfile = sort_realloc(outfile, (strlen(optarg) + 1));
+				outfile = sort_realloc(outfile,
+				    (strlen(optarg) + 1));
 				strcpy(outfile, optarg);
 				break;
 			case 's':
@@ -1082,13 +1092,17 @@ main(int argc, char **argv)
 					err(2, NULL);
 				}
 				if (!gnusort_numeric_compatibility) {
-					if (symbol_decimal_point == sort_opts_vals.field_sep)
+					if (symbol_decimal_point ==
+					    sort_opts_vals.field_sep)
 						symbol_decimal_point = WEOF;
-					if (symbol_thousands_sep == sort_opts_vals.field_sep)
+					if (symbol_thousands_sep ==
+					    sort_opts_vals.field_sep)
 						symbol_thousands_sep = WEOF;
-					if (symbol_negative_sign == sort_opts_vals.field_sep)
+					if (symbol_negative_sign ==
+					    sort_opts_vals.field_sep)
 						symbol_negative_sign = WEOF;
-					if (symbol_positive_sign == sort_opts_vals.field_sep)
+					if (symbol_positive_sign ==
+					    sort_opts_vals.field_sep)
 						symbol_positive_sign = WEOF;
 				}
 				break;
@@ -1104,7 +1118,8 @@ main(int argc, char **argv)
 				if (optarg) {
 					if (!strcmp(optarg, "general-numeric"))
 						set_sort_modifier(sm, 'g');
-					else if (!strcmp(optarg, "human-numeric"))
+					else if (!strcmp(optarg,
+						     "human-numeric"))
 						set_sort_modifier(sm, 'h');
 					else if (!strcmp(optarg, "numeric"))
 						set_sort_modifier(sm, 'n');
@@ -1149,16 +1164,14 @@ main(int argc, char **argv)
 			case FF_OPT:
 				read_fns_from_file0(optarg);
 				break;
-			case BS_OPT:
-			{
+			case BS_OPT: {
 				errno = 0;
 				long mof = strtol(optarg, NULL, 10);
 				if (errno != 0)
 					err(2, "--batch-size");
 				if (mof >= 2)
-					max_open_files = (size_t) mof + 1;
-			}
-				break;
+					max_open_files = (size_t)mof + 1;
+			} break;
 			case VERSION_OPT:
 				printf("%s\n", VERSION);
 				exit(EXIT_SUCCESS);
@@ -1216,9 +1229,10 @@ main(int argc, char **argv)
 	}
 
 	if (debug_sort) {
-		printf("Memory to be used for sorting: %llu\n",available_free_memory);
+		printf("Memory to be used for sorting: %llu\n",
+		    available_free_memory);
 #if defined(SORT_THREADS)
-		printf("Number of CPUs: %d\n",(int)ncpu);
+		printf("Number of CPUs: %d\n", (int)ncpu);
 		nthreads = 1;
 #endif
 		printf("Using collate rules of %s locale\n",
@@ -1241,12 +1255,13 @@ main(int argc, char **argv)
 	/* Case when the outfile equals one of the input files: */
 	if (strcmp(outfile, "-")) {
 
-		for(int i = 0; i < argc; ++i) {
+		for (int i = 0; i < argc; ++i) {
 			if (strcmp(argv[i], outfile) == 0) {
 				real_outfile = sort_strdup(outfile);
-				for(;;) {
-					char* tmp = sort_malloc(strlen(outfile) +
-					    strlen(".tmp") + 1);
+				for (;;) {
+					char *tmp = sort_malloc(
+					    strlen(outfile) + strlen(".tmp") +
+					    1);
 
 					strcpy(tmp, outfile);
 					strcpy(tmp + strlen(tmp), ".tmp");

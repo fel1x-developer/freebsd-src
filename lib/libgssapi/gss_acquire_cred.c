@@ -26,28 +26,24 @@
  * SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <gssapi/gssapi.h>
 #include <stdlib.h>
-#include <errno.h>
 
+#include "cred.h"
 #include "mech_switch.h"
 #include "name.h"
-#include "cred.h"
 
 OM_uint32
-gss_acquire_cred(OM_uint32 *minor_status,
-    const gss_name_t desired_name,
-    OM_uint32 time_req,
-    const gss_OID_set desired_mechs,
-    gss_cred_usage_t cred_usage,
-    gss_cred_id_t *output_cred_handle,
-    gss_OID_set *actual_mechs,
-    OM_uint32 *time_rec)
+gss_acquire_cred(OM_uint32 *minor_status, const gss_name_t desired_name,
+    OM_uint32 time_req, const gss_OID_set desired_mechs,
+    gss_cred_usage_t cred_usage, gss_cred_id_t *output_cred_handle,
+    gss_OID_set *actual_mechs, OM_uint32 *time_rec)
 {
 	OM_uint32 major_status;
 	gss_OID_set mechs = desired_mechs;
 	gss_OID_set_desc set;
-	struct _gss_name *name = (struct _gss_name *) desired_name;
+	struct _gss_name *name = (struct _gss_name *)desired_name;
 	struct _gss_mech_switch *m;
 	struct _gss_cred *cred;
 	struct _gss_mechanism_cred *mc;
@@ -110,7 +106,7 @@ gss_acquire_cred(OM_uint32 *minor_status,
 
 		if (desired_name != GSS_C_NO_NAME) {
 			major_status = _gss_find_mn(minor_status, name,
-						    &mechs->elements[i], &mn);
+			    &mechs->elements[i], &mn);
 			if (major_status != GSS_S_COMPLETE)
 				continue;
 		}
@@ -127,10 +123,10 @@ gss_acquire_cred(OM_uint32 *minor_status,
 		 */
 		set.elements = &mechs->elements[i];
 		major_status = m->gm_acquire_cred(minor_status,
-		    (desired_name != GSS_C_NO_NAME
-			? mn->gmn_name : GSS_C_NO_NAME),
-		    time_req, &set, cred_usage,
-		    &mc->gmc_cred, NULL, &cred_time);
+		    (desired_name != GSS_C_NO_NAME ? mn->gmn_name :
+						     GSS_C_NO_NAME),
+		    time_req, &set, cred_usage, &mc->gmc_cred, NULL,
+		    &cred_time);
 		if (major_status) {
 			free(mc);
 			continue;
@@ -142,8 +138,7 @@ gss_acquire_cred(OM_uint32 *minor_status,
 			major_status = gss_add_oid_set_member(minor_status,
 			    mc->gmc_mech_oid, actual_mechs);
 			if (major_status) {
-				m->gm_release_cred(minor_status,
-				    &mc->gmc_cred);
+				m->gm_release_cred(minor_status, &mc->gmc_cred);
 				free(mc);
 				continue;
 			}
@@ -166,7 +161,7 @@ gss_acquire_cred(OM_uint32 *minor_status,
 
 	if (time_rec)
 		*time_rec = min_time;
-	*output_cred_handle = (gss_cred_id_t) cred;
+	*output_cred_handle = (gss_cred_id_t)cred;
 	*minor_status = 0;
 	return (GSS_S_COMPLETE);
 }

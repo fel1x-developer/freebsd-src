@@ -29,6 +29,7 @@
  * ISO/IEC 9899:1999.
  */
 
+#include <atf-c.h>
 #include <err.h>
 #include <errno.h>
 #include <limits.h>
@@ -37,8 +38,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <atf-c.h>
 
 static char tmpfil[PATH_MAX];
 
@@ -86,13 +85,12 @@ ATF_TC_BODY(perror_test, tc)
 	    "message obtained was: %s", s);
 	s = fgets(lbuf, sizeof(lbuf), stderr);
 	ATF_REQUIRE(s != NULL);
-	ATF_REQUIRE_MSG(
-	    strcmp(s, "perror_test: Operation not permitted\n") == 0,
+	ATF_REQUIRE_MSG(strcmp(s, "perror_test: Operation not permitted\n") ==
+		0,
 	    "message obtained was: %s", s);
 	s = fgets(lbuf, sizeof(lbuf), stderr);
 	ATF_REQUIRE(s == NULL);
 	fclose(stderr);
-
 }
 
 ATF_TP_ADD_TCS(tp)

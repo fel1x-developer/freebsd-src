@@ -34,10 +34,11 @@
 #define __MLX5_FPGA_CONN_H__
 
 #include <dev/mlx5/cq.h>
-#include <dev/mlx5/qp.h>
+#include <dev/mlx5/mlx5_core/wq.h>
 #include <dev/mlx5/mlx5_fpga/core.h>
 #include <dev/mlx5/mlx5_fpga/sdk.h>
-#include <dev/mlx5/mlx5_core/wq.h>
+#include <dev/mlx5/qp.h>
+
 #include <linux/interrupt.h>
 
 struct mlx5_fpga_conn {
@@ -84,12 +85,10 @@ struct mlx5_fpga_conn {
 
 int mlx5_fpga_conn_device_init(struct mlx5_fpga_device *fdev);
 void mlx5_fpga_conn_device_cleanup(struct mlx5_fpga_device *fdev);
-struct mlx5_fpga_conn *
-mlx5_fpga_conn_create(struct mlx5_fpga_device *fdev,
-		      struct mlx5_fpga_conn_attr *attr,
-		      enum mlx5_ifc_fpga_qp_type qp_type);
+struct mlx5_fpga_conn *mlx5_fpga_conn_create(struct mlx5_fpga_device *fdev,
+    struct mlx5_fpga_conn_attr *attr, enum mlx5_ifc_fpga_qp_type qp_type);
 void mlx5_fpga_conn_destroy(struct mlx5_fpga_conn *conn);
 int mlx5_fpga_conn_send(struct mlx5_fpga_conn *conn,
-			struct mlx5_fpga_dma_buf *buf);
+    struct mlx5_fpga_dma_buf *buf);
 
 #endif /* __MLX5_FPGA_CONN_H__ */

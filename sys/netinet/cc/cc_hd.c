@@ -54,6 +54,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/khelp.h>
 #include <sys/limits.h>
@@ -63,35 +64,32 @@
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
 #include <net/vnet.h>
-
+#include <netinet/cc/cc.h>
+#include <netinet/cc/cc_module.h>
 #include <netinet/in.h>
 #include <netinet/in_pcb.h>
+#include <netinet/khelp/h_ertt.h>
 #include <netinet/tcp_seq.h>
 #include <netinet/tcp_timer.h>
 #include <netinet/tcp_var.h>
-#include <netinet/cc/cc.h>
-#include <netinet/cc/cc_module.h>
-
-#include <netinet/khelp/h_ertt.h>
 
 /* Largest possible number returned by random(). */
-#define	RANDOM_MAX	INT_MAX
+#define RANDOM_MAX INT_MAX
 
-static void	hd_ack_received(struct cc_var *ccv, uint16_t ack_type);
-static int	hd_mod_init(void);
-static size_t	hd_data_sz(void);
+static void hd_ack_received(struct cc_var *ccv, uint16_t ack_type);
+static int hd_mod_init(void);
+static size_t hd_data_sz(void);
 
 static int ertt_id;
 
 VNET_DEFINE_STATIC(uint32_t, hd_qthresh) = 20;
 VNET_DEFINE_STATIC(uint32_t, hd_qmin) = 5;
 VNET_DEFINE_STATIC(uint32_t, hd_pmax) = 5;
-#define	V_hd_qthresh	VNET(hd_qthresh)
-#define	V_hd_qmin	VNET(hd_qmin)
-#define	V_hd_pmax	VNET(hd_pmax)
+#define V_hd_qthresh VNET(hd_qthresh)
+#define V_hd_qmin VNET(hd_qmin)
+#define V_hd_pmax VNET(hd_pmax)
 
 struct cc_algo hd_cc_algo = {
 	.name = "hd",
@@ -119,11 +117,13 @@ should_backoff(int qdly, int maxqdly)
 
 	if (qdly < V_hd_qthresh) {
 		p = (((RANDOM_MAX / 100) * V_hd_pmax) /
-		    (V_hd_qthresh - V_hd_qmin)) * (qdly - V_hd_qmin);
+			(V_hd_qthresh - V_hd_qmin)) *
+		    (qdly - V_hd_qmin);
 	} else {
 		if (qdly > V_hd_qthresh)
 			p = (((RANDOM_MAX / 100) * V_hd_pmax) /
-			    (maxqdly - V_hd_qthresh)) * (maxqdly - qdly);
+				(maxqdly - V_hd_qthresh)) *
+			    (maxqdly - qdly);
 		else
 			p = (RANDOM_MAX / 100) * V_hd_pmax;
 	}
@@ -153,14 +153,13 @@ hd_ack_received(struct cc_var *ccv, uint16_t ack_type)
 			    !IN_RECOVERY(CCV(ccv, t_flags))) {
 				/* Probabilistic backoff of cwnd. */
 				if (should_backoff(qdly,
-				    e_t->maxrtt - e_t->minrtt)) {
+					e_t->maxrtt - e_t->minrtt)) {
 					/*
 					 * Update cwnd and ssthresh update to
 					 * half cwnd and behave like an ECN (ie
 					 * not a packet loss).
 					 */
-					newreno_cc_cong_signal(ccv,
-					    CC_ECN);
+					newreno_cc_cong_signal(ccv, CC_ECN);
 					return;
 				}
 			}

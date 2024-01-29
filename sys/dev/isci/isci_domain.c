@@ -31,15 +31,15 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <dev/isci/isci.h>
+#include <dev/isci/scil/scif_controller.h>
+#include <dev/isci/scil/scif_domain.h>
+#include <dev/isci/scil/scif_remote_device.h>
+#include <dev/isci/scil/scif_user_callback.h>
 
 #include <cam/cam_periph.h>
 #include <cam/cam_xpt_periph.h>
-
-#include <dev/isci/scil/scif_domain.h>
-#include <dev/isci/scil/scif_remote_device.h>
-#include <dev/isci/scil/scif_controller.h>
-#include <dev/isci/scil/scif_user_callback.h>
 
 /**
  * @brief This callback method informs the framework user that something
@@ -66,19 +66,19 @@ void
 scif_cb_domain_change_notification(SCI_CONTROLLER_HANDLE_T controller,
     SCI_DOMAIN_HANDLE_T domain)
 {
-	struct ISCI_CONTROLLER *isci_controller =
-	    (struct ISCI_CONTROLLER *)sci_object_get_association(controller);
+	struct ISCI_CONTROLLER *isci_controller = (struct ISCI_CONTROLLER *)
+	    sci_object_get_association(controller);
 
 	/* When the controller start is complete, we will explicitly discover
 	 *  all of the domains then.  This is because SCIF will not allow
 	 *  any I/O to start until the controller is ready, meaning internal SMP
-	 *  requests triggered by domain discovery won't work until the controller
-	 *  is ready.
+	 *  requests triggered by domain discovery won't work until the
+	 * controller is ready.
 	 */
 	if (isci_controller->is_started == TRUE)
-	    scif_domain_discover(domain,
-	        scif_domain_get_suggested_discover_timeout(domain),
-	        DEVICE_TIMEOUT);
+		scif_domain_discover(domain,
+		    scif_domain_get_suggested_discover_timeout(domain),
+		    DEVICE_TIMEOUT);
 }
 
 /**
@@ -99,14 +99,14 @@ scif_cb_domain_discovery_complete(SCI_CONTROLLER_HANDLE_T controller,
     SCI_DOMAIN_HANDLE_T domain, SCI_STATUS completion_status)
 {
 
-	if(completion_status != SCI_SUCCESS)
+	if (completion_status != SCI_SUCCESS)
 		isci_log_message(0, "ISCI",
 		    "scif_cb_domain_discovery_complete status = 0x%x\n",
 		    completion_status);
 
 	isci_controller_domain_discovery_complete(
 	    (struct ISCI_CONTROLLER *)sci_object_get_association(controller),
-	    (struct ISCI_DOMAIN *) sci_object_get_association(domain));
+	    (struct ISCI_DOMAIN *)sci_object_get_association(domain));
 }
 
 /**
@@ -126,7 +126,6 @@ void
 scif_cb_domain_reset_complete(SCI_CONTROLLER_HANDLE_T controller,
     SCI_DOMAIN_HANDLE_T domain, SCI_STATUS completion_status)
 {
-
 }
 
 /**
@@ -147,8 +146,8 @@ scif_cb_domain_ready(SCI_CONTROLLER_HANDLE_T controller,
 {
 	uint32_t i;
 	struct ISCI_DOMAIN *isci_domain = sci_object_get_association(domain);
-	struct ISCI_CONTROLLER *isci_controller =
-	    sci_object_get_association(controller);
+	struct ISCI_CONTROLLER *isci_controller = sci_object_get_association(
+	    controller);
 
 	for (i = 0; i < SCI_MAX_REMOTE_DEVICES; i++) {
 		struct ISCI_REMOTE_DEVICE *remote_device =
@@ -176,7 +175,6 @@ void
 scif_cb_domain_not_ready(SCI_CONTROLLER_HANDLE_T controller,
     SCI_DOMAIN_HANDLE_T domain)
 {
-
 }
 
 /**
@@ -200,8 +198,8 @@ scif_cb_domain_da_device_added(SCI_CONTROLLER_HANDLE_T controller,
     SCI_SAS_IDENTIFY_ADDRESS_FRAME_PROTOCOLS_T *protocols)
 {
 	struct ISCI_REMOTE_DEVICE *remote_device;
-	struct ISCI_DOMAIN *isci_domain =
-	    (struct ISCI_DOMAIN *)sci_object_get_association(domain);
+	struct ISCI_DOMAIN *isci_domain = (struct ISCI_DOMAIN *)
+	    sci_object_get_association(domain);
 
 	/*
 	 * For direct-attached devices, do not pull the device object from
@@ -212,7 +210,7 @@ scif_cb_domain_da_device_added(SCI_CONTROLLER_HANDLE_T controller,
 	remote_device = isci_domain->da_remote_device;
 
 	scif_remote_device_construct(domain,
-	    (uint8_t*)remote_device + sizeof(struct ISCI_REMOTE_DEVICE),
+	    (uint8_t *)remote_device + sizeof(struct ISCI_REMOTE_DEVICE),
 	    &(remote_device->sci_object));
 
 	sci_object_set_association(remote_device->sci_object, remote_device);
@@ -249,15 +247,15 @@ scif_cb_domain_ea_device_added(SCI_CONTROLLER_HANDLE_T controller,
     SMP_RESPONSE_DISCOVER_T *smp_response)
 {
 	struct ISCI_REMOTE_DEVICE *remote_device;
-	struct ISCI_DOMAIN *isci_domain =
-		(struct ISCI_DOMAIN *)sci_object_get_association(domain);
-	struct ISCI_CONTROLLER *isci_controller =
-		(struct ISCI_CONTROLLER *)sci_object_get_association(controller);
+	struct ISCI_DOMAIN *isci_domain = (struct ISCI_DOMAIN *)
+	    sci_object_get_association(domain);
+	struct ISCI_CONTROLLER *isci_controller = (struct ISCI_CONTROLLER *)
+	    sci_object_get_association(controller);
 
 	sci_pool_get(isci_controller->remote_device_pool, remote_device);
 
-	scif_remote_device_construct( domain,
-	    (uint8_t*)remote_device + sizeof(struct ISCI_REMOTE_DEVICE),
+	scif_remote_device_construct(domain,
+	    (uint8_t *)remote_device + sizeof(struct ISCI_REMOTE_DEVICE),
 	    &(remote_device->sci_object));
 
 	sci_object_set_association(remote_device->sci_object, remote_device);
@@ -290,18 +288,19 @@ scif_cb_domain_device_removed(SCI_CONTROLLER_HANDLE_T controller,
     SCI_DOMAIN_HANDLE_T domain, SCI_REMOTE_DEVICE_HANDLE_T remote_device)
 {
 	struct ISCI_REMOTE_DEVICE *isci_remote_device =
-	    (struct ISCI_REMOTE_DEVICE *)sci_object_get_association(remote_device);
-	struct ISCI_DOMAIN *isci_domain =
-	    (struct ISCI_DOMAIN *)sci_object_get_association(domain);
-	struct ISCI_CONTROLLER *isci_controller =
-	    (struct ISCI_CONTROLLER *)sci_object_get_association(controller);
+	    (struct ISCI_REMOTE_DEVICE *)sci_object_get_association(
+		remote_device);
+	struct ISCI_DOMAIN *isci_domain = (struct ISCI_DOMAIN *)
+	    sci_object_get_association(domain);
+	struct ISCI_CONTROLLER *isci_controller = (struct ISCI_CONTROLLER *)
+	    sci_object_get_association(controller);
 	uint32_t path = cam_sim_path(isci_controller->sim);
 	union ccb *ccb = xpt_alloc_ccb_nowait();
 
 	isci_controller->remote_device[isci_remote_device->index] = NULL;
 
-	xpt_create_path(&ccb->ccb_h.path, NULL, path,
-	    isci_remote_device->index, CAM_LUN_WILDCARD);
+	xpt_create_path(&ccb->ccb_h.path, NULL, path, isci_remote_device->index,
+	    CAM_LUN_WILDCARD);
 
 	xpt_rescan(ccb);
 
@@ -321,7 +320,7 @@ isci_domain_construct(struct ISCI_DOMAIN *domain, uint32_t domain_index,
     struct ISCI_CONTROLLER *controller)
 {
 
-	scif_controller_get_domain_handle( controller->scif_controller_handle,
+	scif_controller_get_domain_handle(controller->scif_controller_handle,
 	    domain_index, &domain->sci_object);
 
 	domain->index = domain_index;

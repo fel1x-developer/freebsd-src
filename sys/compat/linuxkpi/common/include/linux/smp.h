@@ -25,7 +25,7 @@
  */
 
 #ifndef _LINUXKPI_LINUX_SMP_H_
-#define	_LINUXKPI_LINUX_SMP_H_
+#define _LINUXKPI_LINUX_SMP_H_
 
 #include <asm/smp.h>
 
@@ -41,11 +41,12 @@
  *
  * Enabling witness(4) when testing, can catch such issues.
  */
-#define	on_each_cpu(cb, data, wait) ({				\
-	CTASSERT(wait);						\
-	linux_on_each_cpu(cb, data);				\
-})
+#define on_each_cpu(cb, data, wait)          \
+	({                                   \
+		CTASSERT(wait);              \
+		linux_on_each_cpu(cb, data); \
+	})
 
-extern int	linux_on_each_cpu(void (*)(void *), void *);
+extern int linux_on_each_cpu(void (*)(void *), void *);
 
 #endif /* _LINUXKPI_LINUX_SMP_H_ */

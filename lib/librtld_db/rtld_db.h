@@ -34,7 +34,7 @@
 
 #include <sys/param.h>
 
-#define	RD_VERSION	1
+#define RD_VERSION 1
 
 typedef enum {
 	RD_OK,
@@ -60,15 +60,15 @@ typedef struct rd_agent {
 } rd_agent_t;
 
 typedef struct rd_loadobj {
-	uintptr_t	rdl_saddr;		/* start address */
-	uintptr_t	rdl_eaddr;		/* end address */
-	uint32_t	rdl_offset;
-	uint8_t		rdl_prot;
-#define RD_RDL_R	0x01
-#define RD_RDL_W	0x02
-#define RD_RDL_X	0x04
+	uintptr_t rdl_saddr; /* start address */
+	uintptr_t rdl_eaddr; /* end address */
+	uint32_t rdl_offset;
+	uint8_t rdl_prot;
+#define RD_RDL_R 0x01
+#define RD_RDL_W 0x02
+#define RD_RDL_X 0x04
 	enum {
-		RDL_TYPE_NONE	= 0,
+		RDL_TYPE_NONE = 0,
 		RDL_TYPE_DEF,
 		RDL_TYPE_VNODE,
 		RDL_TYPE_SWAP,
@@ -76,15 +76,10 @@ typedef struct rd_loadobj {
 		/* XXX some types missing */
 		RDL_TYPE_UNKNOWN = 255
 	} rdl_type;
-	unsigned char	rdl_path[PATH_MAX];
+	unsigned char rdl_path[PATH_MAX];
 } rd_loadobj_t;
 
-typedef enum {
-	RD_NONE = 0,
-	RD_PREINIT,
-	RD_POSTINIT,
-	RD_DLACTIVITY
-} rd_event_e;
+typedef enum { RD_NONE = 0, RD_PREINIT, RD_POSTINIT, RD_DLACTIVITY } rd_event_e;
 
 typedef enum {
 	RD_NOTIFY_BPT,
@@ -96,16 +91,11 @@ typedef struct rd_notify {
 	rd_notify_e type;
 	union {
 		uintptr_t bptaddr;
-		long      syscallno;
+		long syscallno;
 	} u;
 } rd_notify_t;
 
-typedef enum {
-	RD_NOSTATE = 0,
-	RD_CONSISTENT,
-	RD_ADD,
-	RD_DELETE
-} rd_state_e;
+typedef enum { RD_NOSTATE = 0, RD_CONSISTENT, RD_ADD, RD_DELETE } rd_state_e;
 
 typedef struct rd_event_msg {
 	rd_event_e type;
@@ -123,32 +113,32 @@ typedef enum {
 
 typedef struct rd_plt_info {
 	rd_skip_e pi_skip_method;
-	long	  pi_nstep;
+	long pi_nstep;
 	uintptr_t pi_target;
 	uintptr_t pi_baddr;
 	unsigned int pi_flags;
 } rd_plt_info_t;
 
-#define RD_FLG_PI_PLTBOUND	0x0001
+#define RD_FLG_PI_PLTBOUND 0x0001
 
 __BEGIN_DECLS
 
 struct proc_handle;
-void		rd_delete(rd_agent_t *);
-const char 	*rd_errstr(rd_err_e);
-rd_err_e	rd_event_addr(rd_agent_t *, rd_event_e, rd_notify_t *);
-rd_err_e	rd_event_enable(rd_agent_t *, int);
-rd_err_e	rd_event_getmsg(rd_agent_t *, rd_event_msg_t *);
-rd_err_e	rd_init(int);
+void rd_delete(rd_agent_t *);
+const char *rd_errstr(rd_err_e);
+rd_err_e rd_event_addr(rd_agent_t *, rd_event_e, rd_notify_t *);
+rd_err_e rd_event_enable(rd_agent_t *, int);
+rd_err_e rd_event_getmsg(rd_agent_t *, rd_event_msg_t *);
+rd_err_e rd_init(int);
 typedef int rl_iter_f(const rd_loadobj_t *, void *);
-rd_err_e	rd_loadobj_iter(rd_agent_t *, rl_iter_f *, void *);
-void		rd_log(const int);
-rd_agent_t 	*rd_new(struct proc_handle *);
-rd_err_e	rd_objpad_enable(rd_agent_t *, size_t);
+rd_err_e rd_loadobj_iter(rd_agent_t *, rl_iter_f *, void *);
+void rd_log(const int);
+rd_agent_t *rd_new(struct proc_handle *);
+rd_err_e rd_objpad_enable(rd_agent_t *, size_t);
 struct proc;
-rd_err_e	rd_plt_resolution(rd_agent_t *, uintptr_t, struct proc *,
-		    uintptr_t, rd_plt_info_t *);
-rd_err_e	rd_reset(rd_agent_t *);
+rd_err_e rd_plt_resolution(rd_agent_t *, uintptr_t, struct proc *, uintptr_t,
+    rd_plt_info_t *);
+rd_err_e rd_reset(rd_agent_t *);
 
 __END_DECLS
 

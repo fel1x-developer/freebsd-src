@@ -35,18 +35,17 @@
 #include <sys/kernel.h>
 #include <sys/module.h>
 
-#include <dev/fdt/simplebus.h>
 #include <dev/fdt/fdt_common.h>
+#include <dev/fdt/simplebus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
 #include "mmio_sram_if.h"
-
 #include "scmi.h"
 
 struct shmem_softc {
-	device_t		dev;
-	device_t		parent;
-	int			reg;
+	device_t dev;
+	device_t parent;
+	int reg;
 };
 
 static int
@@ -128,12 +127,9 @@ scmi_shmem_write(device_t dev, bus_size_t offset, const void *buf,
 		MMIO_SRAM_WRITE_1(sc->parent, sc->reg + offset + i, addr[i]);
 }
 
-static device_method_t shmem_methods[] = {
-	DEVMETHOD(device_probe,		shmem_probe),
-	DEVMETHOD(device_attach,	shmem_attach),
-	DEVMETHOD(device_detach,	shmem_detach),
-	DEVMETHOD_END
-};
+static device_method_t shmem_methods[] = { DEVMETHOD(device_probe, shmem_probe),
+	DEVMETHOD(device_attach, shmem_attach),
+	DEVMETHOD(device_detach, shmem_detach), DEVMETHOD_END };
 
 DEFINE_CLASS_1(shmem, shmem_driver, shmem_methods, sizeof(struct shmem_softc),
     simplebus_driver);

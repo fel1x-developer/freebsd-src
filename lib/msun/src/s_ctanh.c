@@ -100,10 +100,10 @@ ctanh(double complex z)
 	 * y is infinite.
 	 */
 	if (ix >= 0x7ff00000) {
-		if ((ix & 0xfffff) | lx)	/* x is NaN */
-			return (CMPLX(nan_mix(x, y),
-			    y == 0 ? y : nan_mix(x, y)));
-		SET_HIGH_WORD(x, hx - 0x40000000);	/* x = copysign(1, x) */
+		if ((ix & 0xfffff) | lx) /* x is NaN */
+			return (
+			    CMPLX(nan_mix(x, y), y == 0 ? y : nan_mix(x, y)));
+		SET_HIGH_WORD(x, hx - 0x40000000); /* x = copysign(1, x) */
 		return (CMPLX(x, copysign(0, isinf(y) ? y : sin(y) * cos(y))));
 	}
 
@@ -121,7 +121,7 @@ ctanh(double complex z)
 	 * approximation sinh^2(huge) ~= exp(2*huge) / 4.
 	 * We use a modified formula to avoid spurious overflow.
 	 */
-	if (ix >= 0x40360000) {	/* |x| >= 22 */
+	if (ix >= 0x40360000) { /* |x| >= 22 */
 		double exp_mx = exp(-fabs(x));
 		return (CMPLX(copysign(1, x),
 		    4 * sin(y) * cos(y) * exp_mx * exp_mx));
@@ -129,9 +129,9 @@ ctanh(double complex z)
 
 	/* Kahan's algorithm */
 	t = tan(y);
-	beta = 1.0 + t * t;	/* = 1 / cos^2(y) */
+	beta = 1.0 + t * t; /* = 1 / cos^2(y) */
 	s = sinh(x);
-	rho = sqrt(1 + s * s);	/* = cosh(x) */
+	rho = sqrt(1 + s * s); /* = cosh(x) */
 	denom = 1 + beta * s * s;
 	return (CMPLX((beta * rho * s) / denom, t / denom));
 }

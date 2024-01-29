@@ -29,17 +29,18 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/param.h>
+
 #include <dirent.h>
 #include <errno.h>
-#include <string.h>
 #include <pthread.h>
-#include "un-namespace.h"
+#include <string.h>
 
-#include "libc_private.h"
 #include "gen-private.h"
+#include "libc_private.h"
+#include "namespace.h"
 #include "telldir.h"
+#include "un-namespace.h"
 
 /*
  * get next entry in a directory.
@@ -70,7 +71,7 @@ _readdir_unlocked(DIR *dirp, int flags)
 		}
 		dirp->dd_flags &= ~__DTF_SKIPREAD;
 		dp = (struct dirent *)(dirp->dd_buf + dirp->dd_loc);
-		if ((long)dp & 03L)	/* bogus pointer check */
+		if ((long)dp & 03L) /* bogus pointer check */
 			return (NULL);
 		if (dp->d_reclen <= 0 ||
 		    dp->d_reclen > dirp->dd_len + 1 - dirp->dd_loc)

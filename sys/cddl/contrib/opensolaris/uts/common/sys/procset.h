@@ -27,18 +27,17 @@
 /*	Copyright (c) 1984, 1986, 1987, 1988, 1989 AT&T	*/
 /*	  All Rights Reserved  	*/
 
-
 #ifndef _SYS_PROCSET_H
-#define	_SYS_PROCSET_H
+#define _SYS_PROCSET_H
 
-#pragma ident	"%Z%%M%	%I%	%E% SMI"	/* SVr4.0 1.6 */
+#pragma ident "%Z%%M%	%I%	%E% SMI" /* SVr4.0 1.6 */
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <sys/feature_tests.h>
 #include <sys/types.h>
+#include <sys/feature_tests.h>
 #include <sys/signal.h>
 
 /*
@@ -47,9 +46,9 @@ extern "C" {
  *	priocntl, priocntlset, waitid, evexit, and evexitset system
  *	calls.
  */
-#define	P_INITPID	1
-#define	P_INITUID	0
-#define	P_INITPGID	0
+#define P_INITPID 1
+#define P_INITUID 0
+#define P_INITPGID 0
 
 #ifndef _IDTYPE_T_DECLARED
 
@@ -60,29 +59,28 @@ extern "C" {
  */
 typedef enum
 #if !defined(_XPG4_2) || defined(__EXTENSIONS__)
-	idtype		/* pollutes XPG4.2 namespace */
+    idtype /* pollutes XPG4.2 namespace */
 #endif
-		{
-	P_PID,		/* A process identifier.		*/
-	P_PPID,		/* A parent process identifier.		*/
-	P_PGID,		/* A process group (job control group)	*/
-			/* identifier.				*/
-	P_SID,		/* A session identifier.		*/
-	P_CID,		/* A scheduling class identifier.	*/
-	P_UID,		/* A user identifier.			*/
-	P_GID,		/* A group identifier.			*/
-	P_ALL,		/* All processes.			*/
-	P_LWPID,	/* An LWP identifier.			*/
-	P_TASKID,	/* A task identifier.			*/
-	P_PROJID,	/* A project identifier.		*/
-	P_POOLID,	/* A pool identifier.			*/
-	P_ZONEID,	/* A zone identifier.			*/
-	P_CTID,		/* A (process) contract identifier.	*/
-	P_CPUID,	/* CPU identifier.			*/
-	P_PSETID	/* Processor set identifier		*/
+{ P_PID,	  /* A process identifier.		*/
+	P_PPID,	  /* A parent process identifier.		*/
+	P_PGID,	  /* A process group (job control group)	*/
+		  /* identifier.				*/
+	P_SID,	  /* A session identifier.		*/
+	P_CID,	  /* A scheduling class identifier.	*/
+	P_UID,	  /* A user identifier.			*/
+	P_GID,	  /* A group identifier.			*/
+	P_ALL,	  /* All processes.			*/
+	P_LWPID,  /* An LWP identifier.			*/
+	P_TASKID, /* A task identifier.			*/
+	P_PROJID, /* A project identifier.		*/
+	P_POOLID, /* A pool identifier.			*/
+	P_ZONEID, /* A zone identifier.			*/
+	P_CTID,	  /* A (process) contract identifier.	*/
+	P_CPUID,  /* CPU identifier.			*/
+	P_PSETID  /* Processor set identifier		*/
 } idtype_t;
 
-#define	_IDTYPE_T_DECLARED
+#define _IDTYPE_T_DECLARED
 
 #endif
 
@@ -93,20 +91,19 @@ typedef enum
  */
 #if !defined(_XPG4_2) || defined(__EXTENSIONS__)
 typedef enum idop {
-	POP_DIFF,	/* Set difference.  The processes which	*/
-			/* are in the left operand set and not	*/
-			/* in the right operand set.		*/
-	POP_AND,	/* Set disjunction.  The processes	*/
-			/* which are in both the left and right	*/
-			/* operand sets.			*/
-	POP_OR,		/* Set conjunction.  The processes	*/
-			/* which are in either the left or the	*/
-			/* right operand sets (or both).	*/
-	POP_XOR		/* Set exclusive or.  The processes 	*/
-			/* which are in either the left or	*/
-			/* right operand sets but not in both.	*/
+	POP_DIFF, /* Set difference.  The processes which	*/
+		  /* are in the left operand set and not	*/
+		  /* in the right operand set.		*/
+	POP_AND,  /* Set disjunction.  The processes	*/
+		  /* which are in both the left and right	*/
+		  /* operand sets.			*/
+	POP_OR,	  /* Set conjunction.  The processes	*/
+		  /* which are in either the left or the	*/
+		  /* right operand sets (or both).	*/
+	POP_XOR	  /* Set exclusive or.  The processes 	*/
+		  /* which are in either the left or	*/
+		  /* right operand sets but not in both.	*/
 } idop_t;
-
 
 /*
  *	The following structure is used to define a set of processes.
@@ -114,32 +111,32 @@ typedef enum idop {
  *	and an operator which operates on these two operand sets.
  */
 typedef struct procset {
-	idop_t		p_op;	/* The operator connection the	*/
-				/* following two operands each	*/
-				/* of which is a simple set of	*/
-				/* processes.			*/
+	idop_t p_op; /* The operator connection the	*/
+		     /* following two operands each	*/
+		     /* of which is a simple set of	*/
+		     /* processes.			*/
 
-	idtype_t	p_lidtype;
-				/* The type of the left operand	*/
-				/* simple set.			*/
-	id_t		p_lid;	/* The id of the left operand.	*/
+	idtype_t p_lidtype;
+	/* The type of the left operand	*/
+	/* simple set.			*/
+	id_t p_lid; /* The id of the left operand.	*/
 
-	idtype_t	p_ridtype;
-				/* The type of the right	*/
-				/* operand simple set.		*/
-	id_t		p_rid;	/* The id of the right operand.	*/
+	idtype_t p_ridtype;
+	/* The type of the right	*/
+	/* operand simple set.		*/
+	id_t p_rid; /* The id of the right operand.	*/
 } procset_t;
 
 /*
  *	The following macro can be used to initialize a procset_t
  *	structure.
  */
-#define	setprocset(psp, op, ltype, lid, rtype, rid) \
-			(psp)->p_op		= (op); \
-			(psp)->p_lidtype	= (ltype); \
-			(psp)->p_lid		= (lid); \
-			(psp)->p_ridtype	= (rtype); \
-			(psp)->p_rid		= (rid);
+#define setprocset(psp, op, ltype, lid, rtype, rid) \
+	(psp)->p_op = (op);                         \
+	(psp)->p_lidtype = (ltype);                 \
+	(psp)->p_lid = (lid);                       \
+	(psp)->p_ridtype = (rtype);                 \
+	(psp)->p_rid = (rid);
 
 #endif /* !defined(_XPG4_2) || defined(__EXTENSIONS__) */
 
@@ -156,11 +153,11 @@ extern int sigsendset(procset_t *, sigsend_t *);
 extern boolean_t cur_inset_only(procset_t *);
 extern id_t getmyid(idtype_t);
 
-#endif	/* _KERNEL */
+#endif /* _KERNEL */
 #endif
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* _SYS_PROCSET_H */
+#endif /* _SYS_PROCSET_H */

@@ -32,31 +32,29 @@
 #include <sys/capsicum.h>
 #include <sys/nv.h>
 
-#include <arpa/inet.h>
 #include <netinet/in.h>
 
+#include <arpa/inet.h>
 #include <assert.h>
+#include <atf-c.h>
+#include <casper/cap_dns.h>
 #include <err.h>
 #include <errno.h>
+#include <libcasper.h>
 #include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <libcasper.h>
-#include <casper/cap_dns.h>
-
-#include <atf-c.h>
-
-#define	GETHOSTBYNAME			0x01
-#define	GETHOSTBYNAME2_AF_INET		0x02
-#define	GETHOSTBYNAME2_AF_INET6		0x04
-#define	GETHOSTBYADDR_AF_INET		0x08
-#define	GETHOSTBYADDR_AF_INET6		0x10
-#define	GETADDRINFO_AF_UNSPEC		0x20
-#define	GETADDRINFO_AF_INET		0x40
-#define	GETADDRINFO_AF_INET6		0x80
+#define GETHOSTBYNAME 0x01
+#define GETHOSTBYNAME2_AF_INET 0x02
+#define GETHOSTBYNAME2_AF_INET6 0x04
+#define GETHOSTBYADDR_AF_INET 0x08
+#define GETHOSTBYADDR_AF_INET6 0x10
+#define GETADDRINFO_AF_UNSPEC 0x20
+#define GETADDRINFO_AF_INET 0x40
+#define GETADDRINFO_AF_INET6 0x80
 
 static bool
 addrinfo_compare(struct addrinfo *ai0, struct addrinfo *ai1)
@@ -76,12 +74,12 @@ addrinfo_compare(struct addrinfo *ai0, struct addrinfo *ai1)
 		    (at0->ai_socktype == at1->ai_socktype) &&
 		    (at0->ai_protocol == at1->ai_protocol) &&
 		    (at0->ai_addrlen == at1->ai_addrlen) &&
-		    (memcmp(at0->ai_addr, at1->ai_addr,
-			at0->ai_addrlen) == 0)) {
+		    (memcmp(at0->ai_addr, at1->ai_addr, at0->ai_addrlen) ==
+			0)) {
 			if (at0->ai_canonname != NULL &&
 			    at1->ai_canonname != NULL) {
 				if (strcmp(at0->ai_canonname,
-				    at1->ai_canonname) != 0) {
+					at1->ai_canonname) != 0) {
 					return (false);
 				}
 			}
@@ -185,11 +183,11 @@ hostent_compare(const struct hostent *hp0, const struct hostent *hp1)
 		return (false);
 
 	if (!hostent_addr_list_compare(hp0->h_addr_list, hp1->h_addr_list,
-	    hp0->h_length)) {
+		hp0->h_length)) {
 		return (false);
 	}
 	if (!hostent_addr_list_compare(hp1->h_addr_list, hp0->h_addr_list,
-	    hp0->h_length)) {
+		hp0->h_length)) {
 		return (false);
 	}
 
@@ -303,8 +301,8 @@ runtest(cap_channel_t *capdns, unsigned int expected)
 	}
 
 	/* XXX: hardcoded addresses for "google-public-dns-a.google.com". */
-#define	GOOGLE_DNS_IPV4	"8.8.8.8"
-#define	GOOGLE_DNS_IPV6	"2001:4860:4860::8888"
+#define GOOGLE_DNS_IPV4 "8.8.8.8"
+#define GOOGLE_DNS_IPV6 "2001:4860:4860::8888"
 
 	inet_pton(AF_INET, GOOGLE_DNS_IPV4, &ip4);
 	hps = gethostbyaddr(&ip4, sizeof(ip4), AF_INET);
@@ -336,17 +334,17 @@ runtest(cap_channel_t *capdns, unsigned int expected)
 	 * and we should not fail silently.
 	 */
 	if (failure != 0) {
-		ATF_REQUIRE_MSG(failure == (GETHOSTBYNAME |
-		    GETHOSTBYNAME2_AF_INET | GETHOSTBYNAME2_AF_INET6 |
-		    GETADDRINFO_AF_UNSPEC | GETADDRINFO_AF_INET |
-		    GETADDRINFO_AF_INET6 |
-		    GETHOSTBYADDR_AF_INET | GETHOSTBYADDR_AF_INET6),
+		ATF_REQUIRE_MSG(failure ==
+			(GETHOSTBYNAME | GETHOSTBYNAME2_AF_INET |
+			    GETHOSTBYNAME2_AF_INET6 | GETADDRINFO_AF_UNSPEC |
+			    GETADDRINFO_AF_INET | GETADDRINFO_AF_INET6 |
+			    GETHOSTBYADDR_AF_INET | GETHOSTBYADDR_AF_INET6),
 		    "expected all tests to fail, got 0x%x", failure);
 		atf_tc_skip(
 		    "no name lookups succeeded, tests require Internet access");
 	}
-	ATF_REQUIRE_MSG(result == expected,
-	    "expected 0x%x, got 0x%x", expected, result);
+	ATF_REQUIRE_MSG(result == expected, "expected 0x%x, got 0x%x", expected,
+	    result);
 }
 
 static cap_channel_t *
@@ -377,9 +375,9 @@ ATF_TC_BODY(dns_no_limits, tc)
 
 	runtest(capdns,
 	    (GETHOSTBYNAME | GETHOSTBYNAME2_AF_INET | GETHOSTBYNAME2_AF_INET6 |
-	     GETHOSTBYADDR_AF_INET | GETHOSTBYADDR_AF_INET6 |
-	     GETADDRINFO_AF_UNSPEC | GETADDRINFO_AF_INET |
-	     GETADDRINFO_AF_INET6));
+		GETHOSTBYADDR_AF_INET | GETHOSTBYADDR_AF_INET6 |
+		GETADDRINFO_AF_UNSPEC | GETADDRINFO_AF_INET |
+		GETADDRINFO_AF_INET6));
 
 	cap_close(capdns);
 }
@@ -409,8 +407,8 @@ ATF_TC_BODY(dns_all_limits, tc)
 
 	runtest(capdns,
 	    (GETHOSTBYNAME | GETHOSTBYNAME2_AF_INET | GETHOSTBYNAME2_AF_INET6 |
-	     GETHOSTBYADDR_AF_INET | GETHOSTBYADDR_AF_INET6 |
-	     GETADDRINFO_AF_INET | GETADDRINFO_AF_INET6));
+		GETHOSTBYADDR_AF_INET | GETHOSTBYADDR_AF_INET6 |
+		GETADDRINFO_AF_INET | GETADDRINFO_AF_INET6));
 
 	cap_close(capdns);
 }
@@ -441,7 +439,7 @@ ATF_TC_BODY(dns_name_limit, tc)
 
 	runtest(capdns,
 	    (GETHOSTBYNAME | GETHOSTBYNAME2_AF_INET | GETHOSTBYNAME2_AF_INET6 |
-	    GETADDRINFO_AF_INET | GETADDRINFO_AF_INET6));
+		GETADDRINFO_AF_INET | GETADDRINFO_AF_INET6));
 
 	cap_close(capdns);
 }
@@ -470,8 +468,7 @@ ATF_TC_BODY(dns_addr_limit, tc)
 	families[1] = AF_INET6;
 	ATF_REQUIRE(cap_dns_family_limit(capdns, families, 2) == 0);
 
-	runtest(capdns,
-	    (GETHOSTBYADDR_AF_INET | GETHOSTBYADDR_AF_INET6));
+	runtest(capdns, (GETHOSTBYADDR_AF_INET | GETHOSTBYADDR_AF_INET6));
 
 	cap_close(capdns);
 }
@@ -502,7 +499,7 @@ ATF_TC_BODY(dns_inet_limit, tc)
 
 	runtest(capdns,
 	    (GETHOSTBYNAME | GETHOSTBYNAME2_AF_INET | GETHOSTBYADDR_AF_INET |
-	    GETADDRINFO_AF_INET));
+		GETADDRINFO_AF_INET));
 
 	cap_close(capdns);
 }
@@ -533,7 +530,7 @@ ATF_TC_BODY(dns_inet6_limit, tc)
 
 	runtest(capdns,
 	    (GETHOSTBYNAME2_AF_INET6 | GETHOSTBYADDR_AF_INET6 |
-	    GETADDRINFO_AF_INET6));
+		GETADDRINFO_AF_INET6));
 
 	cap_close(capdns);
 }
@@ -614,8 +611,7 @@ ATF_TC_BODY(dns_name_inet6_limit, tc)
 	ATF_REQUIRE_ERRNO(ENOTCAPABLE,
 	    cap_dns_family_limit(capdns, families, 1) == -1);
 
-	runtest(capdns,
-	    (GETHOSTBYNAME2_AF_INET6 | GETADDRINFO_AF_INET6));
+	runtest(capdns, (GETHOSTBYNAME2_AF_INET6 | GETADDRINFO_AF_INET6));
 
 	cap_close(capdns);
 }

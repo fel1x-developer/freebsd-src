@@ -26,13 +26,14 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
+
 #include <machine/cpu.h>
 
-#ifndef	MEMSET_EARLY_FUNC
-#define	MEMSET_EARLY_FUNC	memset
+#ifndef MEMSET_EARLY_FUNC
+#define MEMSET_EARLY_FUNC memset
 #else
 void *MEMSET_EARLY_FUNC(void *, int, size_t);
 #endif
@@ -44,8 +45,8 @@ memset_early(void *buf, int c, size_t len)
 	return (MEMSET_EARLY_FUNC(buf, c, len));
 }
 
-#ifndef	MEMCPY_EARLY_FUNC
-#define	MEMCPY_EARLY_FUNC	memcpy
+#ifndef MEMCPY_EARLY_FUNC
+#define MEMCPY_EARLY_FUNC memcpy
 #else
 void *MEMCPY_EARLY_FUNC(void *, const void *, size_t);
 #endif
@@ -57,8 +58,8 @@ memcpy_early(void *to, const void *from, size_t len)
 	return (MEMCPY_EARLY_FUNC(to, from, len));
 }
 
-#ifndef	MEMMOVE_EARLY_FUNC
-#define	MEMMOVE_EARLY_FUNC	memmove
+#ifndef MEMMOVE_EARLY_FUNC
+#define MEMMOVE_EARLY_FUNC memmove
 #else
 void *MEMMOVE_EARLY_FUNC(void *, const void *, size_t);
 #endif

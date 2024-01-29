@@ -56,12 +56,11 @@ extern int ql_alloc_dma(qla_host_t *ha);
 extern void ql_free_dma(qla_host_t *ha);
 extern void ql_hw_add_sysctls(qla_host_t *ha);
 extern int ql_hw_send(qla_host_t *ha, bus_dma_segment_t *segs, int nsegs,
-                uint32_t tx_idx, struct mbuf *mp, uint32_t txr_idx,
-		uint32_t iscsi_pdu);
+    uint32_t tx_idx, struct mbuf *mp, uint32_t txr_idx, uint32_t iscsi_pdu);
 extern void qla_confirm_9kb_enable(qla_host_t *ha);
 extern int ql_init_hw_if(qla_host_t *ha);
 extern int ql_hw_set_multi(qla_host_t *ha, uint8_t *mta, uint32_t mcnt,
-		uint32_t add_multi);
+    uint32_t add_multi);
 extern void ql_del_hw_if(qla_host_t *ha);
 extern int ql_set_promisc(qla_host_t *ha);
 extern void qla_reset_promisc(qla_host_t *ha);
@@ -75,7 +74,7 @@ extern void ql_hw_link_status(qla_host_t *ha);
 extern int ql_hw_check_health(qla_host_t *ha);
 extern void qla_hw_async_event(qla_host_t *ha);
 extern int qla_get_nic_partition(qla_host_t *ha, uint32_t *supports_9kb,
-		uint32_t *num_rcvq);
+    uint32_t *num_rcvq);
 extern int qla_hw_del_all_mcast(qla_host_t *ha);
 
 extern int ql_iscsi_pdu(qla_host_t *ha, struct mbuf *mp);
@@ -87,14 +86,14 @@ extern int ql_minidump_init(qla_host_t *ha);
  */
 extern int ql_init_hw(qla_host_t *ha);
 extern int ql_rdwr_indreg32(qla_host_t *ha, uint32_t addr, uint32_t *val,
-		uint32_t rd);
+    uint32_t rd);
 extern int ql_rd_flash32(qla_host_t *ha, uint32_t addr, uint32_t *data);
 extern int ql_rdwr_offchip_mem(qla_host_t *ha, uint64_t addr,
-		q80_offchip_mem_val_t *val, uint32_t rd);
+    q80_offchip_mem_val_t *val, uint32_t rd);
 extern void ql_read_mac_addr(qla_host_t *ha);
 extern int ql_erase_flash(qla_host_t *ha, uint32_t off, uint32_t size);
 extern int ql_wr_flash_buffer(qla_host_t *ha, uint32_t off, uint32_t size,
-		void *buf);
+    void *buf);
 extern int ql_stop_sequence(qla_host_t *ha);
 extern int ql_start_sequence(qla_host_t *ha, uint16_t index);
 
@@ -117,8 +116,8 @@ extern void ql_alloc_drvr_state_buffer(qla_host_t *ha);
 extern void ql_free_drvr_state_buffer(qla_host_t *ha);
 extern void ql_capture_drvr_state(qla_host_t *ha);
 extern void ql_sp_log(qla_host_t *ha, uint16_t fmtstr_idx, uint16_t num_params,
-		uint32_t param0, uint32_t param1, uint32_t param2,
-		uint32_t param3, uint32_t param4);
+    uint32_t param0, uint32_t param1, uint32_t param2, uint32_t param3,
+    uint32_t param4);
 extern void ql_alloc_sp_log_buffer(qla_host_t *ha);
 extern void ql_free_sp_log_buffer(qla_host_t *ha);
 

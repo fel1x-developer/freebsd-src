@@ -34,37 +34,39 @@ struct cq_desc {
 	u8 type_color;
 };
 
-#define CQ_DESC_TYPE_BITS        4
-#define CQ_DESC_TYPE_MASK        ((1 << CQ_DESC_TYPE_BITS) - 1)
-#define CQ_DESC_COLOR_MASK       1
-#define CQ_DESC_COLOR_SHIFT      7
+#define CQ_DESC_TYPE_BITS 4
+#define CQ_DESC_TYPE_MASK ((1 << CQ_DESC_TYPE_BITS) - 1)
+#define CQ_DESC_COLOR_MASK 1
+#define CQ_DESC_COLOR_SHIFT 7
 #define CQ_DESC_COLOR_MASK_NOSHIFT 0x80
-#define CQ_DESC_Q_NUM_BITS       10
-#define CQ_DESC_Q_NUM_MASK       ((1 << CQ_DESC_Q_NUM_BITS) - 1)
-#define CQ_DESC_COMP_NDX_BITS    12
-#define CQ_DESC_COMP_NDX_MASK    ((1 << CQ_DESC_COMP_NDX_BITS) - 1)
+#define CQ_DESC_Q_NUM_BITS 10
+#define CQ_DESC_Q_NUM_MASK ((1 << CQ_DESC_Q_NUM_BITS) - 1)
+#define CQ_DESC_COMP_NDX_BITS 12
+#define CQ_DESC_COMP_NDX_MASK ((1 << CQ_DESC_COMP_NDX_BITS) - 1)
 
-static inline void cq_color_enc(struct cq_desc *desc, const u8 color)
+static inline void
+cq_color_enc(struct cq_desc *desc, const u8 color)
 {
 	if (color)
-		desc->type_color |=  (1 << CQ_DESC_COLOR_SHIFT);
+		desc->type_color |= (1 << CQ_DESC_COLOR_SHIFT);
 	else
 		desc->type_color &= ~(1 << CQ_DESC_COLOR_SHIFT);
 }
 
-static inline void cq_desc_enc(struct cq_desc *desc,
-	const u8 type, const u8 color, const u16 q_number,
-	const u16 completed_index)
+static inline void
+cq_desc_enc(struct cq_desc *desc, const u8 type, const u8 color,
+    const u16 q_number, const u16 completed_index)
 {
 	desc->type_color = (type & CQ_DESC_TYPE_MASK) |
-		((color & CQ_DESC_COLOR_MASK) << CQ_DESC_COLOR_SHIFT);
+	    ((color & CQ_DESC_COLOR_MASK) << CQ_DESC_COLOR_SHIFT);
 	desc->q_number = cpu_to_le16(q_number & CQ_DESC_Q_NUM_MASK);
-	desc->completed_index = cpu_to_le16(completed_index &
-		CQ_DESC_COMP_NDX_MASK);
+	desc->completed_index = cpu_to_le16(
+	    completed_index & CQ_DESC_COMP_NDX_MASK);
 }
 
-static inline void cq_desc_dec(const struct cq_desc *desc_arg,
-	u8 *type, u8 *color, u16 *q_number, u16 *completed_index)
+static inline void
+cq_desc_dec(const struct cq_desc *desc_arg, u8 *type, u8 *color, u16 *q_number,
+    u16 *completed_index)
 {
 	const struct cq_desc *desc = desc_arg;
 	const u8 type_color = desc->type_color;
@@ -84,10 +86,11 @@ static inline void cq_desc_dec(const struct cq_desc *desc_arg,
 	*type = type_color & CQ_DESC_TYPE_MASK;
 	*q_number = le16_to_cpu(desc->q_number) & CQ_DESC_Q_NUM_MASK;
 	*completed_index = le16_to_cpu(desc->completed_index) &
-		CQ_DESC_COMP_NDX_MASK;
+	    CQ_DESC_COMP_NDX_MASK;
 }
 
-static inline void cq_color_dec(const struct cq_desc *desc_arg, u8 *color)
+static inline void
+cq_color_dec(const struct cq_desc *desc_arg, u8 *color)
 {
 	volatile const struct cq_desc *desc = desc_arg;
 

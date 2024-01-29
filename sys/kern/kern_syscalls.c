@@ -27,6 +27,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
@@ -37,7 +38,7 @@
 #include <sys/syscall.h>
 #include <sys/sysent.h>
 #include <sys/sysproto.h>
-#include <sys/systm.h>
+
 #include <machine/atomic.h>
 
 /*
@@ -61,14 +62,14 @@ lkmressys(struct thread *td, struct nosys_args *args)
 }
 
 struct sysent nosys_sysent = {
-	.sy_call =	(sy_call_t *)nosys,
+	.sy_call = (sy_call_t *)nosys,
 	.sy_systrace_args_func = NULL,
-	.sy_narg =	0,
-	.sy_flags =	SYF_CAPENABLED,
-	.sy_auevent =	AUE_NULL,
-	.sy_entry =	0, /* DTRACE_IDNONE */
-	.sy_return =	0,
-	.sy_thrcnt =	SY_THR_STATIC,
+	.sy_narg = 0,
+	.sy_flags = SYF_CAPENABLED,
+	.sy_auevent = AUE_NULL,
+	.sy_entry = 0, /* DTRACE_IDNONE */
+	.sy_return = 0,
+	.sy_thrcnt = SY_THR_STATIC,
 };
 
 static void
@@ -83,8 +84,8 @@ syscall_thread_drain(struct sysent *se)
 		cnt = oldcnt | SY_THR_DRAINING;
 	} while (atomic_cmpset_acq_32(&se->sy_thrcnt, oldcnt, cnt) == 0);
 	while (atomic_cmpset_32(&se->sy_thrcnt, SY_THR_DRAINING,
-	    SY_THR_ABSENT) == 0)
-		pause("scdrn", hz/2);
+		   SY_THR_ABSENT) == 0)
+		pause("scdrn", hz / 2);
 }
 
 int

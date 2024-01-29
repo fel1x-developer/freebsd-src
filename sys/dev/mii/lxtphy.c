@@ -65,59 +65,49 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
-#include <sys/errno.h>
-#include <sys/module.h>
 #include <sys/bus.h>
+#include <sys/errno.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
+#include <sys/socket.h>
+
+#include <dev/mii/lxtphyreg.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
 
 #include <net/if.h>
 #include <net/if_media.h>
 
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include "miidevs.h"
-
-#include <dev/mii/lxtphyreg.h>
-
 #include "miibus_if.h"
+#include "miidevs.h"
 
 static int lxtphy_probe(device_t);
 static int lxtphy_attach(device_t);
 
 static device_method_t lxtphy_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		lxtphy_probe),
-	DEVMETHOD(device_attach,	lxtphy_attach),
-	DEVMETHOD(device_detach,	mii_phy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, lxtphy_probe),
+	DEVMETHOD(device_attach, lxtphy_attach),
+	DEVMETHOD(device_detach, mii_phy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), DEVMETHOD_END
 };
 
-static driver_t lxtphy_driver = {
-	"lxtphy",
-	lxtphy_methods,
-	sizeof(struct mii_softc)
-};
+static driver_t lxtphy_driver = { "lxtphy", lxtphy_methods,
+	sizeof(struct mii_softc) };
 
 DRIVER_MODULE(lxtphy, miibus, lxtphy_driver, 0, 0);
 
-static int	lxtphy_service(struct mii_softc *, struct mii_data *, int);
-static void	lxtphy_status(struct mii_softc *);
-static void	lxtphy_reset(struct mii_softc *);
-static void	lxtphy_set_tp(struct mii_softc *);
-static void	lxtphy_set_fx(struct mii_softc *);
+static int lxtphy_service(struct mii_softc *, struct mii_data *, int);
+static void lxtphy_status(struct mii_softc *);
+static void lxtphy_reset(struct mii_softc *);
+static void lxtphy_set_tp(struct mii_softc *);
+static void lxtphy_set_fx(struct mii_softc *);
 
-static const struct mii_phydesc lxtphys[] = {
-	MII_PHY_DESC(xxLEVEL1, LXT970),
-	MII_PHY_END
-};
+static const struct mii_phydesc lxtphys[] = { MII_PHY_DESC(xxLEVEL1, LXT970),
+	MII_PHY_END };
 
-static const struct mii_phy_funcs lxtphy_funcs = {
-	lxtphy_service,
-	lxtphy_status,
-	lxtphy_reset
-};
+static const struct mii_phy_funcs lxtphy_funcs = { lxtphy_service,
+	lxtphy_status, lxtphy_reset };
 
 static int
 lxtphy_probe(device_t dev)
@@ -140,7 +130,7 @@ lxtphy_attach(device_t dev)
 	sc->mii_capabilities = PHY_READ(sc, MII_BMSR) & sc->mii_capmask;
 	device_printf(dev, " ");
 
-#define	ADD(m)	ifmedia_add(&sc->mii_pdata->mii_media, (m), 0, NULL)
+#define ADD(m) ifmedia_add(&sc->mii_pdata->mii_media, (m), 0, NULL)
 	ADD(IFM_MAKEWORD(IFM_ETHER, IFM_100_FX, 0, sc->mii_inst));
 	printf("100baseFX, ");
 	ADD(IFM_MAKEWORD(IFM_ETHER, IFM_100_FX, IFM_FDX, sc->mii_inst));
@@ -227,8 +217,8 @@ lxtphy_status(struct mii_softc *sc)
 		else
 			mii->mii_media_active |= IFM_10_T;
 		if (csr & CSR_DUPLEX)
-			mii->mii_media_active |=
-			    IFM_FDX | mii_phy_flowstatus(sc);
+			mii->mii_media_active |= IFM_FDX |
+			    mii_phy_flowstatus(sc);
 		else
 			mii->mii_media_active |= IFM_HDX;
 	} else

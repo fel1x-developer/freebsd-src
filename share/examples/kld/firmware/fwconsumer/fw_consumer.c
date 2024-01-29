@@ -27,13 +27,13 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
-#include <sys/errno.h>
 #include <sys/systm.h>
-#include <sys/linker.h>
+#include <sys/errno.h>
 #include <sys/firmware.h>
-#include <sys/proc.h>
+#include <sys/kernel.h>
+#include <sys/linker.h>
 #include <sys/module.h>
+#include <sys/proc.h>
 
 static const struct firmware *fp;
 
@@ -67,11 +67,8 @@ fw_consumer_modevent(module_t mod, int type, void *unused)
 	return (EINVAL);
 }
 
-static moduledata_t fw_consumer_mod = {
-	"fw_consumer",
-	fw_consumer_modevent,
-	0
-};
+static moduledata_t fw_consumer_mod = { "fw_consumer", fw_consumer_modevent,
+	0 };
 DECLARE_MODULE(fw_consumer, fw_consumer_mod, SI_SUB_DRIVERS, SI_ORDER_ANY);
 MODULE_VERSION(fw_consumer, 1);
 MODULE_DEPEND(fw_consumer, firmware, 1, 1, 1);

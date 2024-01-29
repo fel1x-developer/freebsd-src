@@ -25,26 +25,26 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_LINUXKPI_LINUX_PLATFORM_DEVICE_H
-#define	_LINUXKPI_LINUX_PLATFORM_DEVICE_H
+#ifndef _LINUXKPI_LINUX_PLATFORM_DEVICE_H
+#define _LINUXKPI_LINUX_PLATFORM_DEVICE_H
 
-#include <linux/kernel.h>
 #include <linux/device.h>
+#include <linux/kernel.h>
 
 struct platform_device {
-	const char			*name;
-	int				id;
-	bool				id_auto;
-	struct device			dev;
+	const char *name;
+	int id;
+	bool id_auto;
+	struct device dev;
 };
 
 struct platform_driver {
-	int				(*remove)(struct platform_device *);
-	struct device_driver		driver;
+	int (*remove)(struct platform_device *);
+	struct device_driver driver;
 };
 
-#define	dev_is_platform(dev)	(false)
-#define	to_platform_device(dev)	(NULL)
+#define dev_is_platform(dev) (false)
+#define to_platform_device(dev) (NULL)
 
 static __inline int
 platform_driver_register(struct platform_driver *pdrv)
@@ -64,7 +64,7 @@ dev_get_platdata(struct device *dev)
 
 static __inline int
 platform_driver_probe(struct platform_driver *pdrv,
-    int(*pd_probe_f)(struct platform_device *))
+    int (*pd_probe_f)(struct platform_device *))
 {
 
 	pr_debug("%s: TODO\n", __func__);
@@ -94,4 +94,4 @@ platform_device_unregister(struct platform_device *pdev)
 	return;
 }
 
-#endif	/* _LINUXKPI_LINUX_PLATFORM_DEVICE_H */
+#endif /* _LINUXKPI_LINUX_PLATFORM_DEVICE_H */

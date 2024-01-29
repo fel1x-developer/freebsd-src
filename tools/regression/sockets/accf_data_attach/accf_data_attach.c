@@ -38,7 +38,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define	ACCF_NAME	"dataready"
+#define ACCF_NAME "dataready"
 
 /*
  * A number of small tests to confirm that attaching ACCF_DATA accept filters
@@ -96,8 +96,10 @@ main(void)
 	if (ret != -1)
 		errx(-1, "not ok 2 - getsockopt() after socket() succeeded");
 	if (errno != EINVAL)
-		errx(-1, "not ok 2 - getsockopt() after socket() failed with "
-		    "%d (%s)", errno, strerror(errno));
+		errx(-1,
+		    "not ok 2 - getsockopt() after socket() failed with "
+		    "%d (%s)",
+		    errno, strerror(errno));
 	printf("ok 2 - getsockopt\n");
 
 	/*
@@ -122,7 +124,8 @@ main(void)
 	if (ret != -1)
 		errx(-1, "not ok 4 - getsockopt() after bind() succeeded");
 	if (errno != EINVAL)
-		errx(-1, "not ok 4 -  getsockopt() after bind() failed with %d (%s)",
+		errx(-1,
+		    "not ok 4 -  getsockopt() after bind() failed with %d (%s)",
 		    errno, strerror(errno));
 	printf("ok 4 - getsockopt\n");
 
@@ -144,10 +147,12 @@ main(void)
 	len = sizeof(afa);
 	ret = getsockopt(lso, SOL_SOCKET, SO_ACCEPTFILTER, &afa, &len);
 	if (ret == 0)
-		errx(-1, "not ok 6 - getsockopt() after pre-listen() setsockopt() "
+		errx(-1,
+		    "not ok 6 - getsockopt() after pre-listen() setsockopt() "
 		    "succeeded");
 	if (errno != EINVAL)
-		errx(-1, "not ok 6 - pre-listen() getsockopt() failed with %d (%s)",
+		errx(-1,
+		    "not ok 6 - pre-listen() getsockopt() failed with %d (%s)",
 		    errno, strerror(errno));
 	printf("ok 6 - getsockopt\n");
 
@@ -165,11 +170,14 @@ main(void)
 	len = sizeof(afa);
 	ret = getsockopt(lso, SOL_SOCKET, SO_ACCEPTFILTER, &afa, &len);
 	if (ret == 0)
-		errx(-1, "not ok 8 - getsockopt() after listen() but before "
+		errx(-1,
+		    "not ok 8 - getsockopt() after listen() but before "
 		    "setsockopt() succeeded");
 	if (errno != EINVAL)
-		errx(-1, "not ok 8 - getsockopt() after listen() but before "
-		    "setsockopt() failed with %d (%s)", errno, strerror(errno));
+		errx(-1,
+		    "not ok 8 - getsockopt() after listen() but before "
+		    "setsockopt() failed with %d (%s)",
+		    errno, strerror(errno));
 	printf("ok 8 - getsockopt\n");
 
 	/*
@@ -179,8 +187,10 @@ main(void)
 	strncpy(afa.af_name, ACCF_NAME, sizeof(afa.af_name));
 	ret = setsockopt(lso, SOL_SOCKET, SO_ACCEPTFILTER, &afa, sizeof(afa));
 	if (ret != 0)
-		errx(-1, "not ok 9 - setsockopt() after listen() failed with %d "
-		    "(%s)", errno, strerror(errno));
+		errx(-1,
+		    "not ok 9 - setsockopt() after listen() failed with %d "
+		    "(%s)",
+		    errno, strerror(errno));
 	printf("ok 9 - setsockopt\n");
 
 	/*
@@ -191,16 +201,20 @@ main(void)
 	len = sizeof(afa);
 	ret = getsockopt(lso, SOL_SOCKET, SO_ACCEPTFILTER, &afa, &len);
 	if (ret != 0)
-		errx(-1, "not ok 10 - getsockopt() after listen() setsockopt() "
-		    "failed with %d (%s)", errno, strerror(errno));
+		errx(-1,
+		    "not ok 10 - getsockopt() after listen() setsockopt() "
+		    "failed with %d (%s)",
+		    errno, strerror(errno));
 	if (len != sizeof(afa))
-		errx(-1, "not ok 10 - getsockopt() after setsockopet()  after "
-		    "listen() returned wrong size (got %d expected %zd)", len,
-		    sizeof(afa));
+		errx(-1,
+		    "not ok 10 - getsockopt() after setsockopet()  after "
+		    "listen() returned wrong size (got %d expected %zd)",
+		    len, sizeof(afa));
 	if (strcmp(afa.af_name, ACCF_NAME) != 0)
-		errx(-1, "not ok 10 - getsockopt() after setsockopt() after "
-		    "listen() mismatch (got %s expected %s)", afa.af_name,
-		    ACCF_NAME);
+		errx(-1,
+		    "not ok 10 - getsockopt() after setsockopt() after "
+		    "listen() mismatch (got %s expected %s)",
+		    afa.af_name, ACCF_NAME);
 	printf("ok 10 - getsockopt\n");
 
 	/*
@@ -248,8 +262,10 @@ main(void)
 	linger.l_linger = 0;
 	ret = setsockopt(so, SOL_SOCKET, SO_LINGER, &linger, sizeof(linger));
 	if (ret != 0)
-		errx(-1, "not ok 12 - setsockopt(SO_LINGER) failed with %d "
-		    "(%s)", errno, strerror(errno));
+		errx(-1,
+		    "not ok 12 - setsockopt(SO_LINGER) failed with %d "
+		    "(%s)",
+		    errno, strerror(errno));
 	if (close(so) != 0)
 		errx(-1, "not ok 12 - close(): %s", strerror(errno));
 	if (accept(lso, NULL, 0) != -1 && errno != ECONNABORTED)
@@ -276,18 +292,23 @@ main(void)
 	 */
 	ret = setsockopt(lso, SOL_SOCKET, SO_ACCEPTFILTER, NULL, 0);
 	if (ret != 0)
-		errx(-1, "not ok 13 - setsockopt() after listen() "
-		    "failed with %d (%s)", errno, strerror(errno));
+		errx(-1,
+		    "not ok 13 - setsockopt() after listen() "
+		    "failed with %d (%s)",
+		    errno, strerror(errno));
 	bzero(&afa, sizeof(afa));
 	len = sizeof(afa);
 	ret = getsockopt(lso, SOL_SOCKET, SO_ACCEPTFILTER, &afa, &len);
 	if (ret == 0)
-		errx(-1, "not ok 13 - getsockopt() after removing "
+		errx(-1,
+		    "not ok 13 - getsockopt() after removing "
 		    "the accept filter returns valid accept filter %s",
 		    afa.af_name);
 	if (errno != EINVAL)
-		errx(-1, "not ok 13 - getsockopt() after removing the accept"
-		    "filter failed with %d (%s)", errno, strerror(errno));
+		errx(-1,
+		    "not ok 13 - getsockopt() after removing the accept"
+		    "filter failed with %d (%s)",
+		    errno, strerror(errno));
 	if (close(lso) != 0)
 		errx(-1, "not ok 13 - close() of listening socket: %s",
 		    strerror(errno));

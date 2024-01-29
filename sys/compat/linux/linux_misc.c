@@ -31,8 +31,8 @@
 
 #include <sys/param.h>
 #include <sys/fcntl.h>
-#include <sys/jail.h>
 #include <sys/imgact.h>
+#include <sys/jail.h>
 #include <sys/limits.h>
 #include <sys/lock.h>
 #include <sys/msgbuf.h>
@@ -41,8 +41,8 @@
 #include <sys/priv.h>
 #include <sys/proc.h>
 #include <sys/procctl.h>
-#include <sys/reboot.h>
 #include <sys/random.h>
+#include <sys/reboot.h>
 #include <sys/resourcevar.h>
 #include <sys/rtprio.h>
 #include <sys/sched.h>
@@ -56,12 +56,12 @@
 #include <sys/vmmeter.h>
 #include <sys/vnode.h>
 
+#include <vm/pmap.h>
+#include <vm/swap_pager.h>
+#include <vm/vm_map.h>
+
 #include <security/audit/audit.h>
 #include <security/mac/mac_framework.h>
-
-#include <vm/pmap.h>
-#include <vm/vm_map.h>
-#include <vm/swap_pager.h>
 
 #ifdef COMPAT_LINUX32
 #include <machine/../linux32/linux.h>
@@ -73,64 +73,59 @@
 
 #include <compat/linux/linux_common.h>
 #include <compat/linux/linux_dtrace.h>
+#include <compat/linux/linux_emul.h>
 #include <compat/linux/linux_file.h>
 #include <compat/linux/linux_mib.h>
+#include <compat/linux/linux_misc.h>
 #include <compat/linux/linux_mmap.h>
 #include <compat/linux/linux_signal.h>
 #include <compat/linux/linux_time.h>
 #include <compat/linux/linux_util.h>
-#include <compat/linux/linux_emul.h>
-#include <compat/linux/linux_misc.h>
 
-int stclohz;				/* Statistics clock frequency */
+int stclohz; /* Statistics clock frequency */
 
-static unsigned int linux_to_bsd_resource[LINUX_RLIM_NLIMITS] = {
-	RLIMIT_CPU, RLIMIT_FSIZE, RLIMIT_DATA, RLIMIT_STACK,
-	RLIMIT_CORE, RLIMIT_RSS, RLIMIT_NPROC, RLIMIT_NOFILE,
-	RLIMIT_MEMLOCK, RLIMIT_AS
-};
+static unsigned int linux_to_bsd_resource[LINUX_RLIM_NLIMITS] = { RLIMIT_CPU,
+	RLIMIT_FSIZE, RLIMIT_DATA, RLIMIT_STACK, RLIMIT_CORE, RLIMIT_RSS,
+	RLIMIT_NPROC, RLIMIT_NOFILE, RLIMIT_MEMLOCK, RLIMIT_AS };
 
 struct l_sysinfo {
-	l_long		uptime;		/* Seconds since boot */
-	l_ulong		loads[3];	/* 1, 5, and 15 minute load averages */
+	l_long uptime;	  /* Seconds since boot */
+	l_ulong loads[3]; /* 1, 5, and 15 minute load averages */
 #define LINUX_SYSINFO_LOADS_SCALE 65536
-	l_ulong		totalram;	/* Total usable main memory size */
-	l_ulong		freeram;	/* Available memory size */
-	l_ulong		sharedram;	/* Amount of shared memory */
-	l_ulong		bufferram;	/* Memory used by buffers */
-	l_ulong		totalswap;	/* Total swap space size */
-	l_ulong		freeswap;	/* swap space still available */
-	l_ushort	procs;		/* Number of current processes */
-	l_ushort	pads;
-	l_ulong		totalhigh;
-	l_ulong		freehigh;
-	l_uint		mem_unit;
-	char		_f[20-2*sizeof(l_long)-sizeof(l_int)];	/* padding */
+	l_ulong totalram;  /* Total usable main memory size */
+	l_ulong freeram;   /* Available memory size */
+	l_ulong sharedram; /* Amount of shared memory */
+	l_ulong bufferram; /* Memory used by buffers */
+	l_ulong totalswap; /* Total swap space size */
+	l_ulong freeswap;  /* swap space still available */
+	l_ushort procs;	   /* Number of current processes */
+	l_ushort pads;
+	l_ulong totalhigh;
+	l_ulong freehigh;
+	l_uint mem_unit;
+	char _f[20 - 2 * sizeof(l_long) - sizeof(l_int)]; /* padding */
 };
 
 struct l_pselect6arg {
-	l_uintptr_t	ss;
-	l_size_t	ss_len;
+	l_uintptr_t ss;
+	l_size_t ss_len;
 };
 
-static int	linux_utimensat_lts_to_ts(struct l_timespec *,
-			struct timespec *);
+static int linux_utimensat_lts_to_ts(struct l_timespec *, struct timespec *);
 #if defined(__i386__) || (defined(__amd64__) && defined(COMPAT_LINUX32))
-static int	linux_utimensat_lts64_to_ts(struct l_timespec64 *,
-			struct timespec *);
+static int linux_utimensat_lts64_to_ts(struct l_timespec64 *,
+    struct timespec *);
 #endif
-static int	linux_common_utimensat(struct thread *, int,
-			const char *, struct timespec *, int);
-static int	linux_common_pselect6(struct thread *, l_int,
-			l_fd_set *, l_fd_set *, l_fd_set *,
-			struct timespec *, l_uintptr_t *);
-static int	linux_common_ppoll(struct thread *, struct pollfd *,
-			uint32_t, struct timespec *, l_sigset_t *,
-			l_size_t);
-static int	linux_pollin(struct thread *, struct pollfd *,
-			struct pollfd *, u_int);
-static int	linux_pollout(struct thread *, struct pollfd *,
-			struct pollfd *, u_int);
+static int linux_common_utimensat(struct thread *, int, const char *,
+    struct timespec *, int);
+static int linux_common_pselect6(struct thread *, l_int, l_fd_set *, l_fd_set *,
+    l_fd_set *, struct timespec *, l_uintptr_t *);
+static int linux_common_ppoll(struct thread *, struct pollfd *, uint32_t,
+    struct timespec *, l_sigset_t *, l_size_t);
+static int linux_pollin(struct thread *, struct pollfd *, struct pollfd *,
+    u_int);
+static int linux_pollout(struct thread *, struct pollfd *, struct pollfd *,
+    u_int);
 
 int
 linux_sysinfo(struct thread *td, struct linux_sysinfo_args *args)
@@ -221,8 +216,8 @@ linux_brk(struct thread *td, struct linux_brk_args *args)
 
 	old = (uintptr_t)vm->vm_daddr + ctob(vm->vm_dsize);
 	new = (uintptr_t)args->dsend;
-	if ((caddr_t)new > vm->vm_daddr && !kern_break(td, &new))
-		td->td_retval[0] = (register_t)new;
+	if ((caddr_t) new > vm->vm_daddr && !kern_break(td, &new))
+		td->td_retval[0] = (register_t) new;
 	else
 		td->td_retval[0] = (register_t)old;
 
@@ -336,32 +331,32 @@ linux_mremap(struct thread *td, struct linux_mremap_args *args)
 	return (error);
 }
 
-#define LINUX_MS_ASYNC       0x0001
-#define LINUX_MS_INVALIDATE  0x0002
-#define LINUX_MS_SYNC        0x0004
+#define LINUX_MS_ASYNC 0x0001
+#define LINUX_MS_INVALIDATE 0x0002
+#define LINUX_MS_SYNC 0x0004
 
 int
 linux_msync(struct thread *td, struct linux_msync_args *args)
 {
 
-	return (kern_msync(td, args->addr, args->len,
-	    args->fl & ~LINUX_MS_SYNC));
+	return (
+	    kern_msync(td, args->addr, args->len, args->fl & ~LINUX_MS_SYNC));
 }
 
 int
 linux_mprotect(struct thread *td, struct linux_mprotect_args *uap)
 {
 
-	return (linux_mprotect_common(td, PTROUT(uap->addr), uap->len,
-	    uap->prot));
+	return (
+	    linux_mprotect_common(td, PTROUT(uap->addr), uap->len, uap->prot));
 }
 
 int
 linux_madvise(struct thread *td, struct linux_madvise_args *uap)
 {
 
-	return (linux_madvise_common(td, PTROUT(uap->addr), uap->len,
-	    uap->behav));
+	return (
+	    linux_madvise_common(td, PTROUT(uap->addr), uap->len, uap->behav));
 }
 
 int
@@ -399,10 +394,10 @@ linux_time(struct thread *td, struct linux_time_args *args)
 #endif
 
 struct l_times_argv {
-	l_clock_t	tms_utime;
-	l_clock_t	tms_stime;
-	l_clock_t	tms_cutime;
-	l_clock_t	tms_cstime;
+	l_clock_t tms_utime;
+	l_clock_t tms_stime;
+	l_clock_t tms_cutime;
+	l_clock_t tms_cstime;
 };
 
 /*
@@ -410,13 +405,14 @@ struct l_times_argv {
  * Since 2.2.1 Glibc uses value exported from kernel via AT_CLKTCK
  * auxiliary vector entry.
  */
-#define	CLK_TCK		100
+#define CLK_TCK 100
 
-#define	CONVOTCK(r)	(r.tv_sec * CLK_TCK + r.tv_usec / (1000000 / CLK_TCK))
-#define	CONVNTCK(r)	(r.tv_sec * stclohz + r.tv_usec / (1000000 / stclohz))
+#define CONVOTCK(r) (r.tv_sec * CLK_TCK + r.tv_usec / (1000000 / CLK_TCK))
+#define CONVNTCK(r) (r.tv_sec * stclohz + r.tv_usec / (1000000 / stclohz))
 
-#define	CONVTCK(r)	(linux_kernver(td) >= LINUX_KERNVER(2,4,0) ?	\
-			    CONVNTCK(r) : CONVOTCK(r))
+#define CONVTCK(r)                                                   \
+	(linux_kernver(td) >= LINUX_KERNVER(2, 4, 0) ? CONVNTCK(r) : \
+						       CONVOTCK(r))
 
 int
 linux_times(struct thread *td, struct linux_times_args *args)
@@ -473,18 +469,18 @@ linux_newuname(struct thread *td, struct linux_newuname_args *args)
 			break;
 		}
 #if defined(__amd64__)
-	/*
-	 * On amd64, Linux uname(2) needs to return "x86_64"
-	 * for both 64-bit and 32-bit applications.  On 32-bit,
-	 * the string returned by getauxval(AT_PLATFORM) needs
-	 * to remain "i686", though.
-	 */
+		/*
+		 * On amd64, Linux uname(2) needs to return "x86_64"
+		 * for both 64-bit and 32-bit applications.  On 32-bit,
+		 * the string returned by getauxval(AT_PLATFORM) needs
+		 * to remain "i686", though.
+		 */
 #if defined(COMPAT_LINUX32)
 	if (linux32_emulate_i386)
 		strlcpy(utsname.machine, "i686", LINUX_MAX_UTSNAME);
 	else
 #endif
-	strlcpy(utsname.machine, "x86_64", LINUX_MAX_UTSNAME);
+		strlcpy(utsname.machine, "x86_64", LINUX_MAX_UTSNAME);
 #elif defined(__aarch64__)
 	strlcpy(utsname.machine, "aarch64", LINUX_MAX_UTSNAME);
 #elif defined(__i386__)
@@ -518,8 +514,8 @@ linux_utime(struct thread *td, struct linux_utime_args *args)
 	} else
 		tvp = NULL;
 
-	return (kern_utimesat(td, AT_FDCWD, args->fname, UIO_USERSPACE,
-	    tvp, UIO_SYSSPACE));
+	return (kern_utimesat(td, AT_FDCWD, args->fname, UIO_USERSPACE, tvp,
+	    UIO_SYSSPACE));
 }
 #endif
 
@@ -541,8 +537,8 @@ linux_utimes(struct thread *td, struct linux_utimes_args *args)
 		tvp = tv;
 	}
 
-	return (kern_utimesat(td, AT_FDCWD, args->fname, UIO_USERSPACE,
-	    tvp, UIO_SYSSPACE));
+	return (kern_utimesat(td, AT_FDCWD, args->fname, UIO_USERSPACE, tvp,
+	    UIO_SYSSPACE));
 }
 #endif
 
@@ -556,8 +552,7 @@ linux_utimensat_lts_to_ts(struct l_timespec *l_times, struct timespec *times)
 		return (EINVAL);
 
 	times->tv_sec = l_times->tv_sec;
-	switch (l_times->tv_nsec)
-	{
+	switch (l_times->tv_nsec) {
 	case LINUX_UTIME_OMIT:
 		times->tv_nsec = UTIME_OMIT;
 		break;
@@ -597,8 +592,8 @@ linux_common_utimensat(struct thread *td, int ldfd, const char *pathname,
 		flags |= AT_EMPTY_PATH;
 
 	if (pathname != NULL)
-		return (kern_utimensat(td, dfd, pathname,
-		    UIO_USERSPACE, timesp, UIO_SYSSPACE, flags));
+		return (kern_utimensat(td, dfd, pathname, UIO_USERSPACE, timesp,
+		    UIO_SYSSPACE, flags));
 
 	if (lflags != 0)
 		return (EINVAL);
@@ -628,13 +623,14 @@ linux_utimensat(struct thread *td, struct linux_utimensat_args *args)
 	} else
 		timesp = NULL;
 
-	return (linux_common_utimensat(td, args->dfd, args->pathname,
-	    timesp, args->flags));
+	return (linux_common_utimensat(td, args->dfd, args->pathname, timesp,
+	    args->flags));
 }
 
 #if defined(__i386__) || (defined(__amd64__) && defined(COMPAT_LINUX32))
 static int
-linux_utimensat_lts64_to_ts(struct l_timespec64 *l_times, struct timespec *times)
+linux_utimensat_lts64_to_ts(struct l_timespec64 *l_times,
+    struct timespec *times)
 {
 
 	/* Zero out the padding in compat mode. */
@@ -646,8 +642,7 @@ linux_utimensat_lts64_to_ts(struct l_timespec64 *l_times, struct timespec *times
 		return (EINVAL);
 
 	times->tv_sec = l_times->tv_sec;
-	switch (l_times->tv_nsec)
-	{
+	switch (l_times->tv_nsec) {
 	case LINUX_UTIME_OMIT:
 		times->tv_nsec = UTIME_OMIT;
 		break;
@@ -662,7 +657,8 @@ linux_utimensat_lts64_to_ts(struct l_timespec64 *l_times, struct timespec *times
 }
 
 int
-linux_utimensat_time64(struct thread *td, struct linux_utimensat_time64_args *args)
+linux_utimensat_time64(struct thread *td,
+    struct linux_utimensat_time64_args *args)
 {
 	struct l_timespec64 l_times[2];
 	struct timespec times[2], *timesp;
@@ -683,8 +679,8 @@ linux_utimensat_time64(struct thread *td, struct linux_utimensat_time64_args *ar
 	} else
 		timesp = NULL;
 
-	return (linux_common_utimensat(td, args->dfd, args->pathname,
-	    timesp, args->flags));
+	return (linux_common_utimensat(td, args->dfd, args->pathname, timesp,
+	    args->flags));
 }
 #endif /* __i386__ || (__amd64__ && COMPAT_LINUX32) */
 
@@ -708,8 +704,8 @@ linux_futimesat(struct thread *td, struct linux_futimesat_args *args)
 		tvp = tv;
 	}
 
-	return (kern_utimesat(td, dfd, args->filename, UIO_USERSPACE,
-	    tvp, UIO_SYSSPACE));
+	return (kern_utimesat(td, dfd, args->filename, UIO_USERSPACE, tvp,
+	    UIO_SYSSPACE));
 }
 #endif
 
@@ -776,8 +772,9 @@ linux_wait4(struct thread *td, struct linux_wait4_args *args)
 	struct proc *p;
 	int options, id, idtype;
 
-	if (args->options & ~(LINUX_WUNTRACED | LINUX_WNOHANG |
-	    LINUX_WCONTINUED | __WCLONE | __WNOTHREAD | __WALL))
+	if (args->options &
+	    ~(LINUX_WUNTRACED | LINUX_WNOHANG | LINUX_WCONTINUED | __WCLONE |
+		__WNOTHREAD | __WALL))
 		return (EINVAL);
 
 	/* -INT_MIN is not defined. */
@@ -822,8 +819,9 @@ linux_waitid(struct thread *td, struct linux_waitid_args *args)
 	struct proc *p;
 	pid_t id;
 
-	if (args->options & ~(LINUX_WNOHANG | LINUX_WNOWAIT | LINUX_WEXITED |
-	    LINUX_WSTOPPED | LINUX_WCONTINUED | __WCLONE | __WNOTHREAD | __WALL))
+	if (args->options &
+	    ~(LINUX_WNOHANG | LINUX_WNOWAIT | LINUX_WEXITED | LINUX_WSTOPPED |
+		LINUX_WCONTINUED | __WCLONE | __WNOTHREAD | __WALL))
 		return (EINVAL);
 
 	options = 0;
@@ -840,7 +838,8 @@ linux_waitid(struct thread *td, struct linux_waitid_args *args)
 		idtype = P_PID;
 		break;
 	case LINUX_P_PGID:
-		if (linux_kernver(td) >= LINUX_KERNVER(5,4,0) && args->id == 0) {
+		if (linux_kernver(td) >= LINUX_KERNVER(5, 4, 0) &&
+		    args->id == 0) {
 			p = td->td_proc;
 			PROC_LOCK(p);
 			id = p->p_pgid;
@@ -856,8 +855,8 @@ linux_waitid(struct thread *td, struct linux_waitid_args *args)
 		return (EINVAL);
 	}
 
-	error = linux_common_wait(td, idtype, id, NULL, options,
-	    args->rusage, args->info);
+	error = linux_common_wait(td, idtype, id, NULL, options, args->rusage,
+	    args->info);
 	td->td_retval[0] = 0;
 
 	return (error);
@@ -971,10 +970,10 @@ struct l_itimerval {
 	l_timeval it_value;
 };
 
-#define	B2L_ITIMERVAL(bip, lip)						\
-	(bip)->it_interval.tv_sec = (lip)->it_interval.tv_sec;		\
-	(bip)->it_interval.tv_usec = (lip)->it_interval.tv_usec;	\
-	(bip)->it_value.tv_sec = (lip)->it_value.tv_sec;		\
+#define B2L_ITIMERVAL(bip, lip)                                  \
+	(bip)->it_interval.tv_sec = (lip)->it_interval.tv_sec;   \
+	(bip)->it_interval.tv_usec = (lip)->it_interval.tv_usec; \
+	(bip)->it_value.tv_sec = (lip)->it_value.tv_sec;         \
 	(bip)->it_value.tv_usec = (lip)->it_value.tv_usec;
 
 int
@@ -986,7 +985,8 @@ linux_setitimer(struct thread *td, struct linux_setitimer_args *uap)
 
 	if (uap->itv == NULL) {
 		uap->itv = uap->oitv;
-		return (linux_getitimer(td, (struct linux_getitimer_args *)uap));
+		return (
+		    linux_getitimer(td, (struct linux_getitimer_args *)uap));
 	}
 
 	error = copyin(uap->itv, &ls, sizeof(ls));
@@ -1108,8 +1108,8 @@ linux_getgroups(struct thread *td, struct linux_getgroups_args *args)
 		return (EINVAL);
 
 	ngrp = 0;
-	linux_gidset = malloc(bsd_gidsetsz * sizeof(*linux_gidset),
-	    M_LINUX, M_WAITOK);
+	linux_gidset = malloc(bsd_gidsetsz * sizeof(*linux_gidset), M_LINUX,
+	    M_WAITOK);
 	while (ngrp < bsd_gidsetsz) {
 		linux_gidset[ngrp] = bsd_gidset[ngrp + 1];
 		ngrp++;
@@ -1274,8 +1274,8 @@ linux_sched_setscheduler(struct thread *td,
 			if (sched_param.sched_priority != 0)
 				return (EINVAL);
 
-			sched_param.sched_priority =
-			    PRI_MAX_TIMESHARE - PRI_MIN_TIMESHARE;
+			sched_param.sched_priority = PRI_MAX_TIMESHARE -
+			    PRI_MIN_TIMESHARE;
 			break;
 		case SCHED_FIFO:
 		case SCHED_RR:
@@ -1404,16 +1404,16 @@ linux_sched_get_priority_min(struct thread *td,
 	return (sys_sched_get_priority_min(td, &bsd));
 }
 
-#define REBOOT_CAD_ON	0x89abcdef
-#define REBOOT_CAD_OFF	0
-#define REBOOT_HALT	0xcdef0123
-#define REBOOT_RESTART	0x01234567
-#define REBOOT_RESTART2	0xA1B2C3D4
-#define REBOOT_POWEROFF	0x4321FEDC
-#define REBOOT_MAGIC1	0xfee1dead
-#define REBOOT_MAGIC2	0x28121969
-#define REBOOT_MAGIC2A	0x05121996
-#define REBOOT_MAGIC2B	0x16041998
+#define REBOOT_CAD_ON 0x89abcdef
+#define REBOOT_CAD_OFF 0
+#define REBOOT_HALT 0xcdef0123
+#define REBOOT_RESTART 0x01234567
+#define REBOOT_RESTART2 0xA1B2C3D4
+#define REBOOT_POWEROFF 0x4321FEDC
+#define REBOOT_MAGIC1 0xfee1dead
+#define REBOOT_MAGIC2 0x28121969
+#define REBOOT_MAGIC2A 0x05121996
+#define REBOOT_MAGIC2B 0x16041998
 
 int
 linux_reboot(struct thread *td, struct linux_reboot_args *args)
@@ -1522,8 +1522,8 @@ linux_sethostname(struct thread *td, struct linux_sethostname_args *args)
 
 	name[0] = CTL_KERN;
 	name[1] = KERN_HOSTNAME;
-	return (userland_sysctl(td, name, 2, 0, 0, 0, args->hostname,
-	    args->len, 0, 0));
+	return (userland_sysctl(td, name, 2, 0, 0, 0, args->hostname, args->len,
+	    0, 0));
 }
 
 int
@@ -1533,16 +1533,15 @@ linux_setdomainname(struct thread *td, struct linux_setdomainname_args *args)
 
 	name[0] = CTL_KERN;
 	name[1] = KERN_NISDOMAINNAME;
-	return (userland_sysctl(td, name, 2, 0, 0, 0, args->name,
-	    args->len, 0, 0));
+	return (
+	    userland_sysctl(td, name, 2, 0, 0, 0, args->name, args->len, 0, 0));
 }
 
 int
 linux_exit_group(struct thread *td, struct linux_exit_group_args *args)
 {
 
-	LINUX_CTR2(exit_group, "thread(%d) (%d)", td->td_tid,
-	    args->error_code);
+	LINUX_CTR2(exit_group, "thread(%d) (%d)", td->td_tid, args->error_code);
 
 	/*
 	 * XXX: we should send a signal to the parent if
@@ -1550,22 +1549,22 @@ linux_exit_group(struct thread *td, struct linux_exit_group_args *args)
 	 * as it doesnt occur often.
 	 */
 	exit1(td, args->error_code, 0);
-		/* NOTREACHED */
+	/* NOTREACHED */
 }
 
-#define _LINUX_CAPABILITY_VERSION_1  0x19980330
-#define _LINUX_CAPABILITY_VERSION_2  0x20071026
-#define _LINUX_CAPABILITY_VERSION_3  0x20080522
+#define _LINUX_CAPABILITY_VERSION_1 0x19980330
+#define _LINUX_CAPABILITY_VERSION_2 0x20071026
+#define _LINUX_CAPABILITY_VERSION_3 0x20080522
 
 struct l_user_cap_header {
-	l_int	version;
-	l_int	pid;
+	l_int version;
+	l_int pid;
 };
 
 struct l_user_cap_data {
-	l_int	effective;
-	l_int	permitted;
-	l_int	inheritable;
+	l_int effective;
+	l_int permitted;
+	l_int inheritable;
 };
 
 int
@@ -1658,8 +1657,8 @@ linux_capset(struct thread *td, struct linux_capset_args *uap)
 		    lucd[i].inheritable) {
 			linux_msg(td,
 			    "capset[%d] effective=0x%x, permitted=0x%x, "
-			    "inheritable=0x%x is not implemented", i,
-			    (int)lucd[i].effective, (int)lucd[i].permitted,
+			    "inheritable=0x%x is not implemented",
+			    i, (int)lucd[i].effective, (int)lucd[i].permitted,
 			    (int)lucd[i].inheritable);
 			return (EPERM);
 		}
@@ -1689,8 +1688,7 @@ linux_prctl(struct thread *td, struct linux_prctl_args *args)
 		if (error != 0)
 			return (error);
 		pdeath_signal = bsd_to_linux_signal(pdeath_signal);
-		return (copyout(&pdeath_signal,
-		    (void *)(register_t)args->arg2,
+		return (copyout(&pdeath_signal, (void *)(register_t)args->arg2,
 		    sizeof(pdeath_signal)));
 	/*
 	 * In Linux, this flag controls if set[gu]id processes can coredump.
@@ -1802,10 +1800,10 @@ linux_prctl(struct thread *td, struct linux_prctl_args *args)
 		error = EINVAL;
 		break;
 	case LINUX_PR_SET_NO_NEW_PRIVS:
-		arg = args->arg2 == 1 ?
-		    PROC_NO_NEW_PRIVS_ENABLE : PROC_NO_NEW_PRIVS_DISABLE;
-		error = kern_procctl(td, P_PID, p->p_pid,
-		    PROC_NO_NEW_PRIVS_CTL, &arg);
+		arg = args->arg2 == 1 ? PROC_NO_NEW_PRIVS_ENABLE :
+					PROC_NO_NEW_PRIVS_DISABLE;
+		error = kern_procctl(td, P_PID, p->p_pid, PROC_NO_NEW_PRIVS_CTL,
+		    &arg);
 		break;
 	case LINUX_PR_SET_PTRACER:
 		linux_msg(td, "unsupported prctl PR_SET_PTRACER");
@@ -1821,8 +1819,7 @@ linux_prctl(struct thread *td, struct linux_prctl_args *args)
 }
 
 int
-linux_sched_setparam(struct thread *td,
-    struct linux_sched_setparam_args *uap)
+linux_sched_setparam(struct thread *td, struct linux_sched_setparam_args *uap)
 {
 	struct sched_param sched_param;
 	struct thread *tdt;
@@ -1847,8 +1844,8 @@ linux_sched_setparam(struct thread *td,
 				error = EINVAL;
 				goto out;
 			}
-			sched_param.sched_priority =
-			    PRI_MAX_TIMESHARE - PRI_MIN_TIMESHARE;
+			sched_param.sched_priority = PRI_MAX_TIMESHARE -
+			    PRI_MIN_TIMESHARE;
 			break;
 		case SCHED_FIFO:
 		case SCHED_RR:
@@ -1870,13 +1867,13 @@ linux_sched_setparam(struct thread *td,
 	}
 
 	error = kern_sched_setparam(td, tdt, &sched_param);
-out:	PROC_UNLOCK(tdt->td_proc);
+out:
+	PROC_UNLOCK(tdt->td_proc);
 	return (error);
 }
 
 int
-linux_sched_getparam(struct thread *td,
-    struct linux_sched_getparam_args *uap)
+linux_sched_getparam(struct thread *td, struct linux_sched_getparam_args *uap)
 {
 	struct sched_param sched_param;
 	struct thread *tdt;
@@ -1910,9 +1907,10 @@ linux_sched_getparam(struct thread *td,
 			 */
 			sched_param.sched_priority =
 			    (sched_param.sched_priority *
-			    (LINUX_MAX_RT_PRIO - 1) +
-			    (RTP_PRIO_MAX - RTP_PRIO_MIN - 1)) /
-			    (RTP_PRIO_MAX - RTP_PRIO_MIN) + 1;
+				    (LINUX_MAX_RT_PRIO - 1) +
+				(RTP_PRIO_MAX - RTP_PRIO_MIN - 1)) /
+				(RTP_PRIO_MAX - RTP_PRIO_MIN) +
+			    1;
 			break;
 		}
 	} else
@@ -1943,11 +1941,11 @@ linux_sched_getaffinity(struct thread *td,
 
 	mask = malloc(sizeof(cpuset_t), M_LINUX, M_WAITOK | M_ZERO);
 	size = min(args->len, sizeof(cpuset_t));
-	error = kern_cpuset_getaffinity(td, CPU_LEVEL_WHICH, CPU_WHICH_TID,
-	    tid, size, mask);
+	error = kern_cpuset_getaffinity(td, CPU_LEVEL_WHICH, CPU_WHICH_TID, tid,
+	    size, mask);
 	if (error == ERANGE)
 		error = EINVAL;
- 	if (error == 0)
+	if (error == 0)
 		error = copyout(mask, args->user_mask_ptr, size);
 	if (error == 0)
 		td->td_retval[0] = size;
@@ -1975,17 +1973,18 @@ linux_sched_setaffinity(struct thread *td,
 	PROC_UNLOCK(tdt->td_proc);
 
 	len = min(args->len, sizeof(cpuset_t));
-	mask = malloc(sizeof(cpuset_t), M_TEMP, M_WAITOK | M_ZERO);;
+	mask = malloc(sizeof(cpuset_t), M_TEMP, M_WAITOK | M_ZERO);
+	;
 	error = copyin(args->user_mask_ptr, mask, len);
 	if (error != 0)
 		goto out;
 	/* Linux ignore high bits */
-	CPU_FOREACH_ISSET(cpu, mask)
+	CPU_FOREACH_ISSET (cpu, mask)
 		if (cpu > mp_maxid)
 			CPU_CLR(cpu, mask);
 
-	error = kern_cpuset_setaffinity(td, CPU_LEVEL_WHICH, CPU_WHICH_TID,
-	    tid, mask);
+	error = kern_cpuset_setaffinity(td, CPU_LEVEL_WHICH, CPU_WHICH_TID, tid,
+	    mask);
 	if (error == EDEADLK)
 		error = EINVAL;
 out:
@@ -1994,8 +1993,8 @@ out:
 }
 
 struct linux_rlimit64 {
-	uint64_t	rlim_cur;
-	uint64_t	rlim_max;
+	uint64_t rlim_cur;
+	uint64_t rlim_max;
 };
 
 int
@@ -2067,7 +2066,7 @@ linux_prlimit64(struct thread *td, struct linux_prlimit64_args *args)
 	if (args->new != NULL)
 		error = kern_proc_setrlimit(td, p, which, &nrlim);
 
- out:
+out:
 	PRELE(p);
 	return (error);
 }
@@ -2110,10 +2109,10 @@ linux_common_pselect6(struct thread *td, l_int nfds, l_fd_set *readfds,
 		error = copyin(sig, &lpse6, sizeof(lpse6));
 		if (error != 0)
 			return (error);
-		error = linux_copyin_sigset(td, PTRIN(lpse6.ss),
-		    lpse6.ss_len, &ss, &ssp);
+		error = linux_copyin_sigset(td, PTRIN(lpse6.ss), lpse6.ss_len,
+		    &ss, &ssp);
 		if (error != 0)
-		    return (error);
+			return (error);
 	} else
 		ssp = NULL;
 
@@ -2131,8 +2130,8 @@ linux_common_pselect6(struct thread *td, l_int nfds, l_fd_set *readfds,
 	} else
 		tvp = NULL;
 
-	error = kern_pselect(td, nfds, readfds, writefds,
-	    exceptfds, tvp, ssp, LINUX_NFDBITS);
+	error = kern_pselect(td, nfds, readfds, writefds, exceptfds, tvp, ssp,
+	    LINUX_NFDBITS);
 
 	if (tsp != NULL) {
 		/*
@@ -2190,8 +2189,8 @@ linux_ppoll(struct thread *td, struct linux_ppoll_args *args)
 	} else
 		tsp = NULL;
 
-	error = linux_common_ppoll(td, args->fds, args->nfds, tsp,
-	    args->sset, args->ssize);
+	error = linux_common_ppoll(td, args->fds, args->nfds, tsp, args->sset,
+	    args->ssize);
 	if (error == 0 && args->tsp != NULL)
 		error = linux_put_timespec(&uts, args->tsp);
 	return (error);
@@ -2204,16 +2203,16 @@ linux_common_ppoll(struct thread *td, struct pollfd *fds, uint32_t nfds,
 	struct timespec ts0, ts1;
 	struct pollfd stackfds[32];
 	struct pollfd *kfds;
- 	sigset_t *ssp;
- 	sigset_t ss;
- 	int error;
+	sigset_t *ssp;
+	sigset_t ss;
+	int error;
 
 	if (kern_poll_maxfds(nfds))
 		return (EINVAL);
 	if (sset != NULL) {
 		error = linux_copyin_sigset(td, sset, ssize, &ss, &ssp);
 		if (error != 0)
-		    return (error);
+			return (error);
 	} else
 		ssp = NULL;
 	if (tsp != NULL)
@@ -2261,9 +2260,9 @@ linux_ppoll_time64(struct thread *td, struct linux_ppoll_time64_args *args)
 			return (error);
 		tsp = &uts;
 	} else
- 		tsp = NULL;
-	error = linux_common_ppoll(td, args->fds, args->nfds, tsp,
-	    args->sset, args->ssize);
+		tsp = NULL;
+	error = linux_common_ppoll(td, args->fds, args->nfds, tsp, args->sset,
+	    args->ssize);
 	if (error == 0 && args->tsp != NULL)
 		error = linux_put_timespec64(&uts, args->tsp);
 	return (error);
@@ -2271,7 +2270,8 @@ linux_ppoll_time64(struct thread *td, struct linux_ppoll_time64_args *args)
 #endif /* __i386__ || (__amd64__ && COMPAT_LINUX32) */
 
 static int
-linux_pollin(struct thread *td, struct pollfd *fds, struct pollfd *ufds, u_int nfd)
+linux_pollin(struct thread *td, struct pollfd *fds, struct pollfd *ufds,
+    u_int nfd)
 {
 	int error;
 	u_int i;
@@ -2282,23 +2282,23 @@ linux_pollin(struct thread *td, struct pollfd *fds, struct pollfd *ufds, u_int n
 
 	for (i = 0; i < nfd; i++) {
 		if (fds->events != 0)
-			linux_to_bsd_poll_events(td, fds->fd,
-			    fds->events, &fds->events);
+			linux_to_bsd_poll_events(td, fds->fd, fds->events,
+			    &fds->events);
 		fds++;
 	}
 	return (0);
 }
 
 static int
-linux_pollout(struct thread *td, struct pollfd *fds, struct pollfd *ufds, u_int nfd)
+linux_pollout(struct thread *td, struct pollfd *fds, struct pollfd *ufds,
+    u_int nfd)
 {
 	int error = 0;
 	u_int i, n = 0;
 
 	for (i = 0; i < nfd; i++) {
 		if (fds->revents != 0) {
-			bsd_to_linux_poll_events(fds->revents,
-			    &fds->revents);
+			bsd_to_linux_poll_events(fds->revents, &fds->revents);
 			n++;
 		}
 		error = copyout(&fds->revents, &ufds->revents,
@@ -2397,7 +2397,7 @@ linux_tdfind(struct thread *td, lwpid_t tid, pid_t pid)
 			PROC_UNLOCK(p);
 			return (NULL);
 		}
-		FOREACH_THREAD_IN_PROC(p, tdt) {
+		FOREACH_THREAD_IN_PROC (p, tdt) {
 			em = em_find(tdt);
 			if (tid == em->em_tid)
 				return (tdt);
@@ -2433,7 +2433,7 @@ linux_getrandom(struct thread *td, struct linux_getrandom_args *args)
 	struct iovec iov;
 	int error;
 
-	if (args->flags & ~(LINUX_GRND_NONBLOCK|LINUX_GRND_RANDOM))
+	if (args->flags & ~(LINUX_GRND_NONBLOCK | LINUX_GRND_RANDOM))
 		return (EINVAL);
 	if (args->count > INT_MAX)
 		args->count = INT_MAX;
@@ -2464,7 +2464,7 @@ linux_mincore(struct thread *td, struct linux_mincore_args *args)
 	return (kern_mincore(td, args->start, args->len, args->vec));
 }
 
-#define	SYSLOG_TAG	"<6>"
+#define SYSLOG_TAG "<6>"
 
 int
 linux_syslog(struct thread *td, struct linux_syslog_args *args)
@@ -2516,8 +2516,8 @@ linux_syslog(struct thread *td, struct linux_syslog_args *args)
 
 			if (*src == '\n' && *(src + 1) != '<' &&
 			    dst + sizeof(SYSLOG_TAG) < args->buf + args->len) {
-				error = copyout(&SYSLOG_TAG,
-				    dst, sizeof(SYSLOG_TAG));
+				error = copyout(&SYSLOG_TAG, dst,
+				    sizeof(SYSLOG_TAG));
 				dst += sizeof(SYSLOG_TAG) - 1;
 			}
 		}
@@ -2558,8 +2558,7 @@ linux_poll(struct thread *td, struct linux_poll_args *args)
 	} else
 		tsp = NULL;
 
-	return (linux_common_ppoll(td, args->fds, args->nfds,
-	    tsp, NULL, 0));
+	return (linux_common_ppoll(td, args->fds, args->nfds, tsp, NULL, 0));
 }
 #endif /* __i386__ || __amd64__ */
 
@@ -2684,15 +2683,14 @@ linux_up_rtprio_if(struct thread *td1, struct rtprio *rtp)
 	struct rtprio rtp2;
 
 	pri_to_rtp(td1, &rtp2);
-	if (rtp2.type <  rtp->type ||
-	    (rtp2.type == rtp->type &&
-	    rtp2.prio < rtp->prio)) {
+	if (rtp2.type < rtp->type ||
+	    (rtp2.type == rtp->type && rtp2.prio < rtp->prio)) {
 		rtp->type = rtp2.type;
 		rtp->prio = rtp2.prio;
 	}
 }
 
-#define	LINUX_PRIO_DIVIDER	RTP_PRIO_MAX / LINUX_IOPRIO_MAX
+#define LINUX_PRIO_DIVIDER RTP_PRIO_MAX / LINUX_IOPRIO_MAX
 
 static int
 linux_rtprio2ioprio(struct rtprio *rtp)
@@ -2780,7 +2778,7 @@ linux_ioprio_get(struct thread *td, struct linux_ioprio_get_args *args)
 		if (td1 != NULL) {
 			pri_to_rtp(td1, &rtp);
 		} else {
-			FOREACH_THREAD_IN_PROC(p, td1) {
+			FOREACH_THREAD_IN_PROC (p, td1) {
 				linux_up_rtprio_if(td1, &rtp);
 			}
 		}
@@ -2801,11 +2799,10 @@ linux_ioprio_get(struct thread *td, struct linux_ioprio_get_args *args)
 			}
 		}
 		sx_sunlock(&proctree_lock);
-		LIST_FOREACH(p, &pg->pg_members, p_pglist) {
+		LIST_FOREACH (p, &pg->pg_members, p_pglist) {
 			PROC_LOCK(p);
-			if (p->p_state == PRS_NORMAL &&
-			    p_cansee(td, p) == 0) {
-				FOREACH_THREAD_IN_PROC(p, td1) {
+			if (p->p_state == PRS_NORMAL && p_cansee(td, p) == 0) {
+				FOREACH_THREAD_IN_PROC (p, td1) {
 					linux_up_rtprio_if(td1, &rtp);
 					found++;
 				}
@@ -2818,12 +2815,12 @@ linux_ioprio_get(struct thread *td, struct linux_ioprio_get_args *args)
 		if (args->who == 0)
 			args->who = td->td_ucred->cr_uid;
 		sx_slock(&allproc_lock);
-		FOREACH_PROC_IN_SYSTEM(p) {
+		FOREACH_PROC_IN_SYSTEM (p) {
 			PROC_LOCK(p);
 			if (p->p_state == PRS_NORMAL &&
 			    p->p_ucred->cr_uid == args->who &&
 			    p_cansee(td, p) == 0) {
-				FOREACH_THREAD_IN_PROC(p, td1) {
+				FOREACH_THREAD_IN_PROC (p, td1) {
 					linux_up_rtprio_if(td1, &rtp);
 					found++;
 				}
@@ -2884,7 +2881,7 @@ linux_ioprio_set(struct thread *td, struct linux_ioprio_set_args *args)
 		if (td1 != NULL) {
 			error = rtp_to_pri(&rtp, td1);
 		} else {
-			FOREACH_THREAD_IN_PROC(p, td1) {
+			FOREACH_THREAD_IN_PROC (p, td1) {
 				if ((error = rtp_to_pri(&rtp, td1)) != 0)
 					break;
 			}
@@ -2905,12 +2902,13 @@ linux_ioprio_set(struct thread *td, struct linux_ioprio_set_args *args)
 			}
 		}
 		sx_sunlock(&proctree_lock);
-		LIST_FOREACH(p, &pg->pg_members, p_pglist) {
+		LIST_FOREACH (p, &pg->pg_members, p_pglist) {
 			PROC_LOCK(p);
 			if (p->p_state == PRS_NORMAL &&
 			    p_cansched(td, p) == 0) {
-				FOREACH_THREAD_IN_PROC(p, td1) {
-					if ((error = rtp_to_pri(&rtp, td1)) != 0)
+				FOREACH_THREAD_IN_PROC (p, td1) {
+					if ((error = rtp_to_pri(&rtp, td1)) !=
+					    0)
 						break;
 				}
 			}
@@ -2924,13 +2922,14 @@ linux_ioprio_set(struct thread *td, struct linux_ioprio_set_args *args)
 		if (args->who == 0)
 			args->who = td->td_ucred->cr_uid;
 		sx_slock(&allproc_lock);
-		FOREACH_PROC_IN_SYSTEM(p) {
+		FOREACH_PROC_IN_SYSTEM (p) {
 			PROC_LOCK(p);
 			if (p->p_state == PRS_NORMAL &&
 			    p->p_ucred->cr_uid == args->who &&
 			    p_cansched(td, p) == 0) {
-				FOREACH_THREAD_IN_PROC(p, td1) {
-					if ((error = rtp_to_pri(&rtp, td1)) != 0)
+				FOREACH_THREAD_IN_PROC (p, td1) {
+					if ((error = rtp_to_pri(&rtp, td1)) !=
+					    0)
 						break;
 				}
 			}

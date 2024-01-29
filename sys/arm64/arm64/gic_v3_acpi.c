@@ -40,20 +40,21 @@
 #include <machine/intr.h>
 #include <machine/resource.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
 #include <dev/acpica/acpivar.h>
+
+#include <contrib/dev/acpica/include/acpi.h>
 
 #include "gic_v3_reg.h"
 #include "gic_v3_var.h"
 
-#define	GICV3_PRIV_VGIC		0x80000000
-#define	GICV3_PRIV_FLAGS	0x80000000
-#define HV_MSI_SPI_START 	64
-#define HV_MSI_SPI_LAST 	0
+#define GICV3_PRIV_VGIC 0x80000000
+#define GICV3_PRIV_FLAGS 0x80000000
+#define HV_MSI_SPI_START 64
+#define HV_MSI_SPI_LAST 0
 
 struct gic_v3_acpi_devinfo {
-	struct gic_v3_devinfo	di_gic_dinfo;
-	struct resource_list	di_rl;
+	struct gic_v3_devinfo di_gic_dinfo;
+	struct resource_list di_rl;
 };
 
 static device_identify_t gic_v3_acpi_identify;
@@ -65,12 +66,12 @@ static void gic_v3_acpi_bus_attach(device_t);
 
 static device_method_t gic_v3_acpi_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,		gic_v3_acpi_identify),
-	DEVMETHOD(device_probe,			gic_v3_acpi_probe),
-	DEVMETHOD(device_attach,		gic_v3_acpi_attach),
+	DEVMETHOD(device_identify, gic_v3_acpi_identify),
+	DEVMETHOD(device_probe, gic_v3_acpi_probe),
+	DEVMETHOD(device_attach, gic_v3_acpi_attach),
 
 	/* Bus interface */
-	DEVMETHOD(bus_get_resource_list,	gic_v3_acpi_get_resource_list),
+	DEVMETHOD(bus_get_resource_list, gic_v3_acpi_get_resource_list),
 
 	/* End */
 	DEVMETHOD_END
@@ -98,7 +99,7 @@ madt_handler(ACPI_SUBTABLE_HEADER *entry, void *arg)
 
 	madt_data = (struct madt_table_data *)arg;
 
-	switch(entry->Type) {
+	switch (entry->Type) {
 	case ACPI_MADT_TYPE_GENERIC_DISTRIBUTOR:
 		if (madt_data->dist != NULL) {
 			if (bootverbose)
@@ -127,7 +128,7 @@ rdist_map(ACPI_SUBTABLE_HEADER *entry, void *arg)
 
 	madt_data = (struct madt_table_data *)arg;
 
-	switch(entry->Type) {
+	switch (entry->Type) {
 	case ACPI_MADT_TYPE_GENERIC_REDISTRIBUTOR:
 		if (madt_data->rdist_use_gicc)
 			break;
@@ -195,7 +196,7 @@ gic_v3_acpi_identify(driver_t *driver, device_t parent)
 	}
 
 	/* Check the GIC version is supported by thiss driver */
-	switch(madt_data.dist->Version) {
+	switch (madt_data.dist->Version) {
 	case ACPI_MADT_GIC_VERSION_V3:
 	case ACPI_MADT_GIC_VERSION_V4:
 		break;
@@ -225,14 +226,14 @@ gic_v3_acpi_identify(driver_t *driver, device_t parent)
 		 * address from the GICC sub-table.
 		 */
 		madt_data.rdist_use_gicc = true;
-		acpi_walk_subtables(madt + 1, (char *)madt + madt->Header.Length,
-		    rdist_map, &madt_data);
+		acpi_walk_subtables(madt + 1,
+		    (char *)madt + madt->Header.Length, rdist_map, &madt_data);
 	}
 
 	private = madt_data.dist->Version;
 	/* Flag that the VGIC is in use */
 	if (madt_data.have_vgic)
-		private |= GICV3_PRIV_VGIC;
+	private |= GICV3_PRIV_VGIC;
 
 	acpi_set_private(dev, (void *)private);
 
@@ -244,7 +245,7 @@ static int
 gic_v3_acpi_probe(device_t dev)
 {
 
-	switch((uintptr_t)acpi_get_private(dev) & ~GICV3_PRIV_FLAGS) {
+	switch ((uintptr_t)acpi_get_private(dev) & ~GICV3_PRIV_FLAGS) {
 	case ACPI_MADT_GIC_VERSION_V3:
 	case ACPI_MADT_GIC_VERSION_V4:
 		break;
@@ -345,8 +346,8 @@ gic_v3_acpi_attach(device_t dev)
 		}
 	}
 
-	if (intr_pic_claim_root(dev, ACPI_INTR_XREF, arm_gic_v3_intr, sc)
-	    != 0) {
+	if (intr_pic_claim_root(dev, ACPI_INTR_XREF, arm_gic_v3_intr, sc) !=
+	    0) {
 		err = ENXIO;
 		goto error;
 	}
@@ -366,7 +367,8 @@ gic_v3_acpi_attach(device_t dev)
 	 */
 	gic_v3_acpi_bus_attach(dev);
 
-	if (device_get_children(dev, &sc->gic_children, &sc->gic_nchildren) !=0)
+	if (device_get_children(dev, &sc->gic_children, &sc->gic_nchildren) !=
+	    0)
 		sc->gic_nchildren = 0;
 
 	return (0);
@@ -376,8 +378,7 @@ error:
 	gic_v3_detach(dev);
 count_error:
 	if (bootverbose) {
-		device_printf(dev,
-		    "Failed to attach. Error %d\n", err);
+		device_printf(dev, "Failed to attach. Error %d\n", err);
 	}
 
 	return (err);

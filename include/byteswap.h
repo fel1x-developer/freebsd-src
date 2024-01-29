@@ -14,9 +14,9 @@
 /*
  * sys/_endian.h brings in the shared interfaces between BSD's sys/endian.h, and
  * glibc's endian.h. However, we need to include it here to get the
- * __bswap{16,32,64} definitions that we use. sys/_endian.h has been consturcted to
- * be compatible with including <endian.h>, <byteswap.h> or both in either order,
- * as well as providing the BSD the bulk of sys/endian.h functionality.
+ * __bswap{16,32,64} definitions that we use. sys/_endian.h has been consturcted
+ * to be compatible with including <endian.h>, <byteswap.h> or both in either
+ * order, as well as providing the BSD the bulk of sys/endian.h functionality.
  */
 #include <sys/_endian.h>
 

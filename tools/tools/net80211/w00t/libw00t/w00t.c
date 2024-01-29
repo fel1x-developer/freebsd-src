@@ -23,93 +23,99 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#include <stdio.h>
-#include <assert.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/endian.h>
-#include <sys/uio.h>
-#include <unistd.h>
-#include <net/if.h>
-#include <string.h>
 #include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <sys/uio.h>
+
 #include <net/bpf.h>
-#include <net80211/ieee80211_radiotap.h>
+#include <net/if.h>
 #include <net80211/ieee80211.h>
+#include <net80211/ieee80211_radiotap.h>
+
+#include <assert.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <openssl/rc4.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 #include <zlib.h>
+
 #include "w00t.h"
 
-int str2mac(char *mac, char *str)
+int
+str2mac(char *mac, char *str)
 {
 	unsigned int macf[6];
 	int i;
 
-	if (sscanf(str, "%x:%x:%x:%x:%x:%x",
-		   &macf[0], &macf[1], &macf[2],
-		   &macf[3], &macf[4], &macf[5]) != 6)
+	if (sscanf(str, "%x:%x:%x:%x:%x:%x", &macf[0], &macf[1], &macf[2],
+		&macf[3], &macf[4], &macf[5]) != 6)
 		return -1;
 
 	for (i = 0; i < 6; i++)
-		*mac++ = (char) macf[i];
-	
+		*mac++ = (char)macf[i];
+
 	return 0;
 }
 
-void mac2str(char *str, char* m)
+void
+mac2str(char *str, char *m)
 {
 	unsigned char *mac = m;
-	sprintf(str, "%.2X:%.2X:%.2X:%.2X:%.2X:%.2X",
-		mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+	sprintf(str, "%.2X:%.2X:%.2X:%.2X:%.2X:%.2X", mac[0], mac[1], mac[2],
+	    mac[3], mac[4], mac[5]);
 }
 
-short seqfn(unsigned short seq, unsigned short fn)
+short
+seqfn(unsigned short seq, unsigned short fn)
 {
 	unsigned short r = 0;
 
 	assert(fn < 16);
 
 	r = fn;
-	r |=  ( (seq % 4096) << IEEE80211_SEQ_SEQ_SHIFT);
+	r |= ((seq % 4096) << IEEE80211_SEQ_SEQ_SHIFT);
 	return r;
 }
 
-unsigned short seqno(struct ieee80211_frame *wh)
+unsigned short
+seqno(struct ieee80211_frame *wh)
 {
-	unsigned short *s = (unsigned short*) wh->i_seq;
+	unsigned short *s = (unsigned short *)wh->i_seq;
 
 	return (*s & IEEE80211_SEQ_SEQ_MASK) >> IEEE80211_SEQ_SEQ_SHIFT;
 }
 
-int open_bpf(char *dev, int dlt)
+int
+open_bpf(char *dev, int dlt)
 {
 	int i;
 	char buf[64];
 	int fd = -1;
 	struct ifreq ifr;
 
-	for(i = 0;i < 16; i++) {
+	for (i = 0; i < 16; i++) {
 		sprintf(buf, "/dev/bpf%d", i);
 
 		fd = open(buf, O_RDWR);
-		if(fd == -1) {
-			if(errno != EBUSY)
+		if (fd == -1) {
+			if (errno != EBUSY)
 				return -1;
 			continue;
-		}
-		else
+		} else
 			break;
 	}
 
-	if(fd == -1)
+	if (fd == -1)
 		return -1;
 
-	strncpy(ifr.ifr_name, dev, sizeof(ifr.ifr_name)-1);
-	ifr.ifr_name[sizeof(ifr.ifr_name)-1] = 0;
+	strncpy(ifr.ifr_name, dev, sizeof(ifr.ifr_name) - 1);
+	ifr.ifr_name[sizeof(ifr.ifr_name) - 1] = 0;
 
-	if(ioctl(fd, BIOCSETIF, &ifr) < 0)
+	if (ioctl(fd, BIOCSETIF, &ifr) < 0)
 		return -1;
 
 	if (ioctl(fd, BIOCSDLT, &dlt) < 0)
@@ -122,17 +128,20 @@ int open_bpf(char *dev, int dlt)
 	return fd;
 }
 
-int open_tx(char *iface)
+int
+open_tx(char *iface)
 {
 	return open_bpf(iface, DLT_IEEE802_11_RADIO);
 }
 
-int open_rx(char *iface)
+int
+open_rx(char *iface)
 {
 	return open_bpf(iface, DLT_IEEE802_11_RADIO);
 }
 
-int open_rxtx(char *iface, int *rx, int *tx)
+int
+open_rxtx(char *iface, int *rx, int *tx)
 {
 	*rx = open_bpf(iface, DLT_IEEE802_11_RADIO);
 	*tx = *rx;
@@ -140,23 +149,24 @@ int open_rxtx(char *iface, int *rx, int *tx)
 	return *rx;
 }
 
-int inject(int fd, void *buf, int len)
+int
+inject(int fd, void *buf, int len)
 {
 	return inject_params(fd, buf, len, NULL);
 }
 
-int inject_params(int fd, void *buf, int len,
-		  struct ieee80211_bpf_params *params)
+int
+inject_params(int fd, void *buf, int len, struct ieee80211_bpf_params *params)
 {
 	static struct ieee80211_bpf_params defaults = {
 		.ibp_vers = IEEE80211_BPF_VERSION,
 		/* NB: no need to pass series 2-4 rate+try */
 		.ibp_len = sizeof(struct ieee80211_bpf_params) - 6,
-		.ibp_rate0 = 2,		/* 1 MB/s XXX */
-		.ibp_try0 = 1,		/* no retransmits */
+		.ibp_rate0 = 2, /* 1 MB/s XXX */
+		.ibp_try0 = 1,	/* no retransmits */
 		.ibp_flags = IEEE80211_BPF_NOACK,
-		.ibp_power = 100,	/* nominal max */
-		.ibp_pri = WME_AC_VO,	/* high priority */
+		.ibp_power = 100,     /* nominal max */
+		.ibp_pri = WME_AC_VO, /* high priority */
 	};
 	struct iovec iov[2];
 	int rc;
@@ -176,16 +186,18 @@ int inject_params(int fd, void *buf, int len,
 	return rc;
 }
 
-int sniff(int fd, void *buf, int len)
+int
+sniff(int fd, void *buf, int len)
 {
 	return read(fd, buf, len);
 }
 
-void *get_wifi(void *buf, int *len)
+void *
+get_wifi(void *buf, int *len)
 {
-#define	BIT(n)	(1<<(n))
-	struct bpf_hdr* bpfh = (struct bpf_hdr*) buf;
-	struct ieee80211_radiotap_header* rth;
+#define BIT(n) (1 << (n))
+	struct bpf_hdr *bpfh = (struct bpf_hdr *)buf;
+	struct ieee80211_radiotap_header *rth;
 	uint32_t present;
 	uint8_t rflags;
 	void *ptr;
@@ -200,8 +212,8 @@ void *get_wifi(void *buf, int *len)
 	assert(bpfh->bh_caplen == *len);
 
 	/* radiotap */
-	rth = (struct ieee80211_radiotap_header*)
-	      ((char*)bpfh + bpfh->bh_hdrlen);
+	rth = (struct ieee80211_radiotap_header *)((char *)bpfh +
+	    bpfh->bh_hdrlen);
 	/* XXX cache; drivers won't change this per-packet */
 	/* check if FCS/CRC is included in packet */
 	present = le32toh(rth->it_present);
@@ -218,14 +230,15 @@ void *get_wifi(void *buf, int *len)
 	if (rflags & IEEE80211_RADIOTAP_F_FCS)
 		*len -= IEEE80211_CRC_LEN;
 
-	ptr = (char*)rth + rth->it_len;
+	ptr = (char *)rth + rth->it_len;
 	return ptr;
 #undef BIT
 }
 
-int send_ack(int fd, char *mac)
+int
+send_ack(int fd, char *mac)
 {
-	static char buf[2+2+6];
+	static char buf[2 + 2 + 6];
 	static char *p = 0;
 	int rc;
 
@@ -241,7 +254,8 @@ int send_ack(int fd, char *mac)
 	return rc;
 }
 
-int open_tap(char *iface)
+int
+open_tap(char *iface)
 {
 	char buf[64];
 
@@ -249,7 +263,8 @@ int open_tap(char *iface)
 	return open(buf, O_RDWR);
 }
 
-int set_iface_mac(char *iface, char *mac)
+int
+set_iface_mac(char *iface, char *mac)
 {
 	int s, rc;
 	struct ifreq ifr;
@@ -257,7 +272,7 @@ int set_iface_mac(char *iface, char *mac)
 	s = socket(PF_INET, SOCK_DGRAM, 0);
 	if (s == -1)
 		return -1;
-	
+
 	memset(&ifr, 0, sizeof(ifr));
 	strcpy(ifr.ifr_name, iface);
 
@@ -272,7 +287,8 @@ int set_iface_mac(char *iface, char *mac)
 	return rc;
 }
 
-int str2wep(char *wep, int *len, char *str)
+int
+str2wep(char *wep, int *len, char *str)
 {
 	int klen;
 
@@ -291,8 +307,8 @@ int str2wep(char *wep, int *len, char *str)
 
 		if (sscanf(str, "%2x", &x) != 1)
 			return -1;
-		
-		*wep = (unsigned char) x;
+
+		*wep = (unsigned char)x;
 		wep++;
 		str += 2;
 	}
@@ -300,11 +316,12 @@ int str2wep(char *wep, int *len, char *str)
 	return 0;
 }
 
-int wep_decrypt(struct ieee80211_frame *wh, int len, char *key, int klen)
+int
+wep_decrypt(struct ieee80211_frame *wh, int len, char *key, int klen)
 {
 	RC4_KEY k;
 	char seed[64];
-	char *p = (char*) (wh+1);
+	char *p = (char *)(wh + 1);
 	uLong crc = crc32(0L, Z_NULL, 0);
 	uLong *pcrc;
 
@@ -312,15 +329,15 @@ int wep_decrypt(struct ieee80211_frame *wh, int len, char *key, int klen)
 	memcpy(seed, p, 3);
 	memcpy(&seed[3], key, klen);
 
-	RC4_set_key(&k, klen+3, seed);
-	
+	RC4_set_key(&k, klen + 3, seed);
+
 	len -= sizeof(*wh);
 	len -= 4;
 	p += 4;
 	RC4(&k, len, p, p);
 
 	crc = crc32(crc, p, len - 4);
-	pcrc = (uLong*) (p+len-4);
+	pcrc = (uLong *)(p + len - 4);
 
 	if (*pcrc == crc)
 		return 0;
@@ -328,11 +345,12 @@ int wep_decrypt(struct ieee80211_frame *wh, int len, char *key, int klen)
 	return -1;
 }
 
-void wep_encrypt(struct ieee80211_frame *wh, int len, char *key, int klen)
+void
+wep_encrypt(struct ieee80211_frame *wh, int len, char *key, int klen)
 {
 	RC4_KEY k;
 	char seed[64];
-	char *p = (char*) (wh+1);
+	char *p = (char *)(wh + 1);
 	uLong crc = crc32(0L, Z_NULL, 0);
 	uLong *pcrc;
 
@@ -340,64 +358,69 @@ void wep_encrypt(struct ieee80211_frame *wh, int len, char *key, int klen)
 	memcpy(seed, p, 3);
 	memcpy(&seed[3], key, klen);
 
-	RC4_set_key(&k, klen+3, seed);
-	
+	RC4_set_key(&k, klen + 3, seed);
+
 	len -= sizeof(*wh);
 	p += 4;
 	crc = crc32(crc, p, len - 4);
-	pcrc = (uLong*) (p+len-4);
+	pcrc = (uLong *)(p + len - 4);
 	*pcrc = crc;
 
 	RC4(&k, len, p, p);
 }
 
-int frame_type(struct ieee80211_frame *wh, int type, int stype)
-{       
-        if ((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) != type)
-                return 0;
+int
+frame_type(struct ieee80211_frame *wh, int type, int stype)
+{
+	if ((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) != type)
+		return 0;
 
-        if ((wh->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK) != stype)
-                return 0;
+	if ((wh->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK) != stype)
+		return 0;
 
-        return 1;
+	return 1;
 }
 
-void hexdump(void *b, int len)
+void
+hexdump(void *b, int len)
 {
-	unsigned char *p = (unsigned char*) b;
+	unsigned char *p = (unsigned char *)b;
 
 	while (len--)
 		printf("%.2X ", *p++);
-	printf("\n");	
+	printf("\n");
 }
 
-int elapsed(struct timeval *past, struct timeval *now)
-{       
-        int el;
-        
-        el = now->tv_sec - past->tv_sec;
-        assert(el >= 0);
-        if (el == 0) {
-                el = now->tv_usec - past->tv_usec;
-        } else {
-                el = (el - 1)*1000*1000;
-                el += 1000*1000-past->tv_usec;
-                el += now->tv_usec;
-        }
-        
-        return el;
+int
+elapsed(struct timeval *past, struct timeval *now)
+{
+	int el;
+
+	el = now->tv_sec - past->tv_sec;
+	assert(el >= 0);
+	if (el == 0) {
+		el = now->tv_usec - past->tv_usec;
+	} else {
+		el = (el - 1) * 1000 * 1000;
+		el += 1000 * 1000 - past->tv_usec;
+		el += now->tv_usec;
+	}
+
+	return el;
 }
 
-static int is_arp(struct ieee80211_frame *wh, int len)
-{       
-        /* XXX */
-        if (len > (sizeof(*wh) + 4 + 4 + 39))
-                return 0;
+static int
+is_arp(struct ieee80211_frame *wh, int len)
+{
+	/* XXX */
+	if (len > (sizeof(*wh) + 4 + 4 + 39))
+		return 0;
 
-        return 1;
+	return 1;
 }
 
-char *known_pt(struct ieee80211_frame *wh, int *len)
+char *
+known_pt(struct ieee80211_frame *wh, int *len)
 {
 	static char *known_pt_arp = "\xAA\xAA\x03\x00\x00\x00\x08\x06";
 	static char *known_pt_ip = "\xAA\xAA\x03\x00\x00\x00\x08\x00";

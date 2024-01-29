@@ -31,34 +31,33 @@
 #ifndef _DEV_HWPMC_ARMV7_H_
 #define _DEV_HWPMC_ARMV7_H_
 
-#define	ARMV7_PMC_CAPS		(PMC_CAP_INTERRUPT | PMC_CAP_USER |     \
-				 PMC_CAP_SYSTEM | PMC_CAP_EDGE |	\
-				 PMC_CAP_THRESHOLD | PMC_CAP_READ |	\
-				 PMC_CAP_WRITE | PMC_CAP_INVERT |	\
-				 PMC_CAP_QUALIFIER)
+#define ARMV7_PMC_CAPS                                                      \
+	(PMC_CAP_INTERRUPT | PMC_CAP_USER | PMC_CAP_SYSTEM | PMC_CAP_EDGE | \
+	    PMC_CAP_THRESHOLD | PMC_CAP_READ | PMC_CAP_WRITE |              \
+	    PMC_CAP_INVERT | PMC_CAP_QUALIFIER)
 
-#define	ARMV7_PMNC_ENABLE	(1 << 0) /* Enable all counters */
-#define	ARMV7_PMNC_P		(1 << 1) /* Reset all counters */
-#define	ARMV7_PMNC_C		(1 << 2) /* Cycle counter reset */
-#define	ARMV7_PMNC_D		(1 << 3) /* CCNT counts every 64th cpu cycle */  
-#define	ARMV7_PMNC_X		(1 << 4) /* Export to ext. monitoring (ETM) */
-#define	ARMV7_PMNC_DP		(1 << 5) /* Disable CCNT if non-invasive debug*/
-#define	ARMV7_PMNC_N_SHIFT	11       /* Number of counters implemented */
-#define	ARMV7_PMNC_N_MASK	0x1f
-#define	ARMV7_PMNC_MASK		0x3f     /* Writable bits */
-#define	ARMV7_IDCODE_SHIFT	16       /* Identification code */
-#define	ARMV7_IDCODE_MASK	(0xff << ARMV7_IDCODE_SHIFT)
-#define	ARMV7_IDCODE_CORTEX_A9	9
-#define	ARMV7_IDCODE_CORTEX_A8	8
+#define ARMV7_PMNC_ENABLE (1 << 0) /* Enable all counters */
+#define ARMV7_PMNC_P (1 << 1)	   /* Reset all counters */
+#define ARMV7_PMNC_C (1 << 2)	   /* Cycle counter reset */
+#define ARMV7_PMNC_D (1 << 3)	   /* CCNT counts every 64th cpu cycle */
+#define ARMV7_PMNC_X (1 << 4)	   /* Export to ext. monitoring (ETM) */
+#define ARMV7_PMNC_DP (1 << 5)	   /* Disable CCNT if non-invasive debug*/
+#define ARMV7_PMNC_N_SHIFT 11	   /* Number of counters implemented */
+#define ARMV7_PMNC_N_MASK 0x1f
+#define ARMV7_PMNC_MASK 0x3f  /* Writable bits */
+#define ARMV7_IDCODE_SHIFT 16 /* Identification code */
+#define ARMV7_IDCODE_MASK (0xff << ARMV7_IDCODE_SHIFT)
+#define ARMV7_IDCODE_CORTEX_A9 9
+#define ARMV7_IDCODE_CORTEX_A8 8
 
-#define	ARMV7_RELOAD_COUNT_TO_PERFCTR_VALUE(R)	(-(R))
-#define	ARMV7_PERFCTR_VALUE_TO_RELOAD_COUNT(P)	(-(P))
-#define	EVENT_ID_MASK	0xFF
+#define ARMV7_RELOAD_COUNT_TO_PERFCTR_VALUE(R) (-(R))
+#define ARMV7_PERFCTR_VALUE_TO_RELOAD_COUNT(P) (-(P))
+#define EVENT_ID_MASK 0xFF
 
 #ifdef _KERNEL
 /* MD extension for 'struct pmc' */
 struct pmc_md_armv7_pmc {
-	uint32_t	pm_armv7_evsel;
+	uint32_t pm_armv7_evsel;
 };
 #endif /* _KERNEL */
 #endif /* _DEV_HWPMC_ARMV7_H_ */

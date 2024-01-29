@@ -44,40 +44,36 @@
 #include <sys/sysctl.h>
 #include <sys/time.h>
 
+#include <dev/backlight/backlight.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/regulator/regulator.h>
-
-#include <dev/backlight/backlight.h>
-
 #include <dev/pwm/ofw_pwm.h>
+#include <dev/regulator/regulator.h>
 
 #include "backlight_if.h"
 #include "pwmbus_if.h"
 
 struct pwm_backlight_softc {
-	device_t	pwmdev;
-	struct cdev	*cdev;
+	device_t pwmdev;
+	struct cdev *cdev;
 
-	pwm_channel_t	channel;
-	uint32_t	*levels;
-	ssize_t		nlevels;
-	int		default_level;
-	ssize_t		current_level;
+	pwm_channel_t channel;
+	uint32_t *levels;
+	ssize_t nlevels;
+	int default_level;
+	ssize_t current_level;
 
-	regulator_t	power_supply;
-	uint64_t	period;
-	uint64_t	duty;
-	bool		enabled;
+	regulator_t power_supply;
+	uint64_t period;
+	uint64_t duty;
+	bool enabled;
 };
 
-static int pwm_backlight_find_level_per_percent(struct pwm_backlight_softc *sc, int percent);
+static int pwm_backlight_find_level_per_percent(struct pwm_backlight_softc *sc,
+    int percent);
 
-static struct ofw_compat_data compat_data[] = {
-	{ "pwm-backlight",	1 },
-	{ NULL,			0 }
-};
+static struct ofw_compat_data compat_data[] = { { "pwm-backlight", 1 },
+	{ NULL, 0 } };
 
 static int
 pwm_backlight_probe(device_t dev)
@@ -107,7 +103,7 @@ pwm_backlight_attach(device_t dev)
 	}
 
 	if (regulator_get_by_ofw_property(dev, 0, "power-supply",
-	    &sc->power_supply) != 0) {
+		&sc->power_supply) != 0) {
 		device_printf(dev, "No power-supply property\n");
 		return (ENXIO);
 	}
@@ -122,33 +118,40 @@ pwm_backlight_attach(device_t dev)
 		sc->nlevels /= sizeof(uint32_t);
 
 		if (OF_getencprop(node, "default-brightness-level",
-		    &sc->default_level, sizeof(uint32_t)) <= 0) {
-			device_printf(dev, "No default-brightness-level while brightness-levels is specified\n");
+			&sc->default_level, sizeof(uint32_t)) <= 0) {
+			device_printf(dev,
+			    "No default-brightness-level while brightness-levels is specified\n");
 			return (ENXIO);
 		} else {
 			if (sc->default_level > sc->nlevels) {
-				device_printf(dev, "default-brightness-level isn't present in brightness-levels range\n");
+				device_printf(dev,
+				    "default-brightness-level isn't present in brightness-levels range\n");
 				return (ENXIO);
 			}
-			sc->channel->duty = sc->channel->period * sc->levels[sc->default_level] / 100;
+			sc->channel->duty = sc->channel->period *
+			    sc->levels[sc->default_level] / 100;
 		}
 
 		if (bootverbose) {
-			device_printf(dev, "Number of levels: %zd\n", sc->nlevels);
-			device_printf(dev, "Configured period time: %ju\n", (uintmax_t)sc->channel->period);
-			device_printf(dev, "Default duty cycle: %ju\n", (uintmax_t)sc->channel->duty);
+			device_printf(dev, "Number of levels: %zd\n",
+			    sc->nlevels);
+			device_printf(dev, "Configured period time: %ju\n",
+			    (uintmax_t)sc->channel->period);
+			device_printf(dev, "Default duty cycle: %ju\n",
+			    (uintmax_t)sc->channel->duty);
 		}
 	} else {
 		/* Get the current backlight level */
 		PWMBUS_CHANNEL_GET_CONFIG(sc->channel->dev,
-		    sc->channel->channel,
-		    (unsigned int *)&sc->channel->period,
+		    sc->channel->channel, (unsigned int *)&sc->channel->period,
 		    (unsigned int *)&sc->channel->duty);
 		if (sc->channel->duty > sc->channel->period)
 			sc->channel->duty = sc->channel->period;
 		if (bootverbose) {
-			device_printf(dev, "Configured period time: %ju\n", (uintmax_t)sc->channel->period);
-			device_printf(dev, "Default duty cycle: %ju\n", (uintmax_t)sc->channel->duty);
+			device_printf(dev, "Configured period time: %ju\n",
+			    (uintmax_t)sc->channel->period);
+			device_printf(dev, "Default duty cycle: %ju\n",
+			    (uintmax_t)sc->channel->duty);
 		}
 	}
 
@@ -182,7 +185,8 @@ pwm_backlight_detach(device_t dev)
 }
 
 static int
-pwm_backlight_find_level_per_percent(struct pwm_backlight_softc *sc, int percent)
+pwm_backlight_find_level_per_percent(struct pwm_backlight_softc *sc,
+    int percent)
 {
 	int i;
 	int diff;
@@ -222,12 +226,12 @@ pwm_backlight_update_status(device_t dev, struct backlight_props *props)
 			return (ERANGE);
 		sc->current_level = error;
 		sc->channel->duty = sc->channel->period *
-			sc->levels[sc->current_level] / 100;
+		    sc->levels[sc->current_level] / 100;
 	} else {
 		if (props->brightness > 100 || props->brightness < 0)
 			return (ERANGE);
-		sc->channel->duty = sc->channel->period *
-			props->brightness / 100;
+		sc->channel->duty = sc->channel->period * props->brightness /
+		    100;
 	}
 	sc->channel->enabled = true;
 	PWMBUS_CHANNEL_CONFIG(sc->channel->dev, sc->channel->channel,
@@ -236,8 +240,8 @@ pwm_backlight_update_status(device_t dev, struct backlight_props *props)
 	    sc->channel->enabled);
 	error = regulator_status(sc->power_supply, &reg_status);
 	if (error != 0)
-		device_printf(dev,
-		    "Cannot get power-supply status: %d\n", error);
+		device_printf(dev, "Cannot get power-supply status: %d\n",
+		    error);
 	else {
 		if (props->brightness > 0) {
 			if (reg_status != REGULATOR_STATUS_ENABLED)
@@ -265,7 +269,8 @@ pwm_backlight_get_status(device_t dev, struct backlight_props *props)
 		for (i = 0; i < sc->nlevels; i++)
 			props->levels[i] = sc->levels[i];
 	} else {
-		props->brightness = sc->channel->duty * 100 / sc->channel->period;
+		props->brightness = sc->channel->duty * 100 /
+		    sc->channel->period;
 		props->nlevels = 0;
 	}
 	return (0);
@@ -289,8 +294,7 @@ static device_method_t pwm_backlight_methods[] = {
 	/* backlight interface */
 	DEVMETHOD(backlight_update_status, pwm_backlight_update_status),
 	DEVMETHOD(backlight_get_status, pwm_backlight_get_status),
-	DEVMETHOD(backlight_get_info, pwm_backlight_get_info),
-	DEVMETHOD_END
+	DEVMETHOD(backlight_get_info, pwm_backlight_get_info), DEVMETHOD_END
 };
 
 driver_t pwm_backlight_driver = {

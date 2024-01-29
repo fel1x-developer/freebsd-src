@@ -28,7 +28,7 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
- * 
+ *
  * Bases on NetBSD lib/libc/arch/arm/misc/arm_initfini.c
  * $NetBSD: arm_initfini.c,v 1.2 2013/01/31 06:47:55 matt Exp $
  */
@@ -52,7 +52,7 @@ extern int __sysctl(int *name, u_int namelen, void *oldp, size_t *oldlenp,
 int _libc_arm_fpu_present;
 static bool _libc_aapcs_initialized;
 
-void	_libc_aapcs_init(void) __attribute__((__constructor__, __used__));
+void _libc_aapcs_init(void) __attribute__((__constructor__, __used__));
 
 void
 _libc_aapcs_init(void)

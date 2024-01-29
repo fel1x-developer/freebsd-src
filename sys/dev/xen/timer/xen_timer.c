@@ -36,50 +36,51 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/time.h>
-#include <sys/timetc.h>
-#include <sys/timeet.h>
-#include <sys/smp.h>
-#include <sys/limits.h>
 #include <sys/clock.h>
+#include <sys/kernel.h>
+#include <sys/limits.h>
+#include <sys/module.h>
 #include <sys/proc.h>
+#include <sys/smp.h>
+#include <sys/time.h>
+#include <sys/timeet.h>
+#include <sys/timetc.h>
 
-#include <xen/xen-os.h>
-#include <xen/features.h>
-#include <xen/xen_intr.h>
-#include <xen/hypervisor.h>
-#include <contrib/xen/io/xenbus.h>
-#include <contrib/xen/vcpu.h>
-#include <xen/error.h>
-
+#include <machine/_inttypes.h>
+#include <machine/clock.h>
 #include <machine/cpu.h>
 #include <machine/cpufunc.h>
-#include <machine/clock.h>
-#include <machine/_inttypes.h>
-#include <machine/smp.h>
 #include <machine/pvclock.h>
+#include <machine/smp.h>
+
+#include <xen/error.h>
+#include <xen/features.h>
+#include <xen/hypervisor.h>
+#include <xen/xen-os.h>
+#include <xen/xen_intr.h>
 
 #include <dev/xen/timer/timer.h>
 
+#include <contrib/xen/io/xenbus.h>
+#include <contrib/xen/vcpu.h>
+
 #include "clock_if.h"
 
-#define	NSEC_IN_SEC	1000000000ULL
-#define	NSEC_IN_USEC	1000ULL
+#define NSEC_IN_SEC 1000000000ULL
+#define NSEC_IN_USEC 1000ULL
 /* 18446744073 = int(2^64 / NSEC_IN_SC) = 1 ns in 64-bit fractions */
-#define	FRAC_IN_NSEC	18446744073LL
+#define FRAC_IN_NSEC 18446744073LL
 
 /* Xen timers may fire up to 100us off */
-#define	XENTIMER_MIN_PERIOD_IN_NSEC	100*NSEC_IN_USEC
+#define XENTIMER_MIN_PERIOD_IN_NSEC 100 * NSEC_IN_USEC
 
 /*
  * The real resolution of the PV clock is 1ns, but the highest
  * resolution that FreeBSD supports is 1us, so just use that.
  */
-#define	XENCLOCK_RESOLUTION		1
+#define XENCLOCK_RESOLUTION 1
 
-#define	XENTIMER_QUALITY	950
+#define XENTIMER_QUALITY 950
 
 struct xentimer_pcpu_data {
 	uint64_t timer;
@@ -125,23 +126,23 @@ xentimer_probe(device_t dev)
 	 * - The maximum number of CPUs supported by FreeBSD must not exceed
 	 *   the number of VCPUs supported by the hypervisor.
 	 */
-#define	XTREQUIRES(condition, reason...)	\
-	if (!(condition)) {			\
-		device_printf(dev, ## reason);	\
-		device_detach(dev);		\
-		return (ENXIO);			\
+#define XTREQUIRES(condition, reason...)      \
+	if (!(condition)) {                   \
+		device_printf(dev, ##reason); \
+		device_detach(dev);           \
+		return (ENXIO);               \
 	}
 
 	if (xen_hvm_domain()) {
 		XTREQUIRES(xen_vector_callback_enabled,
-		           "vector callbacks unavailable\n");
+		    "vector callbacks unavailable\n");
 		XTREQUIRES(xen_feature(XENFEAT_hvm_safe_pvclock),
-		           "HVM safe pvclock unavailable\n");
+		    "HVM safe pvclock unavailable\n");
 	}
 	XTREQUIRES(HYPERVISOR_shared_info != NULL,
-	           "shared info page unavailable\n");
+	    "shared info page unavailable\n");
 	XTREQUIRES(HYPERVISOR_vcpu_op(VCPUOP_stop_periodic_timer, 0, NULL) == 0,
-	           "VCPUOPs interface unavailable\n");
+	    "VCPUOPs interface unavailable\n");
 #undef XTREQUIRES
 	device_set_desc(dev, "Xen PV Clock");
 	return (BUS_PROBE_NOWILDCARD);
@@ -158,7 +159,7 @@ xen_fetch_vcpu_time(struct vcpu_info *vcpu)
 {
 	struct pvclock_vcpu_time_info *time;
 
-	time = (struct pvclock_vcpu_time_info *) &vcpu->time;
+	time = (struct pvclock_vcpu_time_info *)&vcpu->time;
 
 	return (pvclock_get_timecount(time));
 }
@@ -195,7 +196,7 @@ xen_fetch_wallclock(struct timespec *ts)
 	shared_info_t *src = HYPERVISOR_shared_info;
 	struct pvclock_wall_clock *wc;
 
-	wc = (struct pvclock_wall_clock *) &src->wc_version;
+	wc = (struct pvclock_wall_clock *)&src->wc_version;
 
 	pvclock_get_wallclock(wc, ts);
 }
@@ -228,8 +229,8 @@ xentimer_settime(device_t dev __unused, struct timespec *ts)
 	settime.u.settime64.mbz = 0;
 	settime.u.settime64.secs = ts->tv_sec;
 	settime.u.settime64.nsecs = ts->tv_nsec;
-	settime.u.settime64.system_time =
-		xen_fetch_vcpu_time(DPCPU_GET(vcpu_info));
+	settime.u.settime64.system_time = xen_fetch_vcpu_time(
+	    DPCPU_GET(vcpu_info));
 
 	ret = HYPERVISOR_platform_op(&settime);
 	ret = ret != 0 ? xen_translate_error(ret) : 0;
@@ -287,7 +288,7 @@ xentimer_vcpu_start_timer(int vcpu, uint64_t next_time)
 
 	single.timeout_abs_ns = next_time;
 	/* Get an event anyway, even if the timeout is already expired */
-	single.flags          = 0;
+	single.flags = 0;
 	return (HYPERVISOR_vcpu_op(VCPUOP_set_singleshot_timer, vcpu, &single));
 }
 
@@ -306,13 +307,12 @@ xentimer_vcpu_stop_timer(int vcpu)
  * \param period Not used.
  *
  * \note See eventtimers(9) for more information.
- * \note 
+ * \note
  *
  * \returns 0
  */
 static int
-xentimer_et_start(struct eventtimer *et,
-    sbintime_t first, sbintime_t period)
+xentimer_et_start(struct eventtimer *et, sbintime_t first, sbintime_t period)
 {
 	int error;
 	struct xentimer_softc *sc = et->et_priv;
@@ -329,12 +329,12 @@ xentimer_et_start(struct eventtimer *et,
 
 	/* See sbttots() for this formula. */
 	first_in_ns = (((first >> 32) * NSEC_IN_SEC) +
-	               (((uint64_t)NSEC_IN_SEC * (uint32_t)first) >> 32));
+	    (((uint64_t)NSEC_IN_SEC * (uint32_t)first) >> 32));
 
 	next_time = xen_fetch_vcpu_time(vcpu) + first_in_ns;
 	error = xentimer_vcpu_start_timer(cpu, next_time);
 	if (error)
-		panic("%s: Error %d setting singleshot timer to %"PRIu64"\n",
+		panic("%s: Error %d setting singleshot timer to %" PRIu64 "\n",
 		    device_get_nameunit(sc->dev), error, next_time);
 
 	pcpu->timer = next_time;
@@ -356,11 +356,11 @@ xentimer_et_stop(struct eventtimer *et)
 
 /**
  * \brief Attach a Xen PV timer driver instance.
- * 
+ *
  * \param dev	Bus device object to attach.
  *
  * \note
- * \returns EINVAL 
+ * \returns EINVAL
  */
 static int
 xentimer_attach(device_t dev)
@@ -371,22 +371,26 @@ xentimer_attach(device_t dev)
 	sc->dev = dev;
 
 	/* Bind an event channel to a VIRQ on each VCPU. */
-	CPU_FOREACH(i) {
+	CPU_FOREACH (i) {
 		struct xentimer_pcpu_data *pcpu;
 
 		pcpu = DPCPU_ID_PTR(i, xentimer_pcpu);
 		error = HYPERVISOR_vcpu_op(VCPUOP_stop_periodic_timer, i, NULL);
 		if (error) {
-			device_printf(dev, "Error disabling Xen periodic timer "
-			                   "on CPU %d\n", i);
+			device_printf(dev,
+			    "Error disabling Xen periodic timer "
+			    "on CPU %d\n",
+			    i);
 			return (error);
 		}
 
 		error = xen_intr_bind_virq(dev, VIRQ_TIMER, i, xentimer_intr,
 		    NULL, sc, INTR_TYPE_CLK, &pcpu->irq_handle);
 		if (error) {
-			device_printf(dev, "Error %d binding VIRQ_TIMER "
-			    "to VCPU %d\n", error, i);
+			device_printf(dev,
+			    "Error %d binding VIRQ_TIMER "
+			    "to VCPU %d\n",
+			    error, i);
 			return (error);
 		}
 		xen_intr_describe(pcpu->irq_handle, "c%d", i);
@@ -399,7 +403,8 @@ xentimer_attach(device_t dev)
 	sc->et.et_frequency = NSEC_IN_SEC;
 	/* See tstosbt() for this formula */
 	sc->et.et_min_period = (XENTIMER_MIN_PERIOD_IN_NSEC *
-	                        (((uint64_t)1 << 63) / 500000000) >> 32);
+		(((uint64_t)1 << 63) / 500000000) >>
+	    32);
 	sc->et.et_max_period = ((sbintime_t)4 << 32);
 	sc->et.et_start = xentimer_et_start;
 	sc->et.et_stop = xentimer_et_stop;
@@ -422,7 +427,7 @@ xentimer_attach(device_t dev)
 	 *
 	 * sc->tc.tc_flags = TC_FLAGS_SUSPEND_SAFE;
 	 */
-    	/*
+	/*
 	 * The underlying resolution is in nanoseconds, since the timer info
 	 * scales TSC frequencies using a fraction that represents time in
 	 * terms of nanoseconds.
@@ -455,7 +460,7 @@ xentimer_detach(device_t dev)
 static void
 xentimer_percpu_resume(void *arg)
 {
-	device_t dev = (device_t) arg;
+	device_t dev = (device_t)arg;
 	struct xentimer_softc *sc = device_get_softc(dev);
 
 	xentimer_et_start(&sc->et, sc->et.et_min_period, 0);
@@ -468,7 +473,7 @@ xentimer_resume(device_t dev)
 	int i;
 
 	/* Disable the periodic timer */
-	CPU_FOREACH(i) {
+	CPU_FOREACH (i) {
 		error = HYPERVISOR_vcpu_op(VCPUOP_stop_periodic_timer, i, NULL);
 		if (error != 0) {
 			device_printf(dev,
@@ -531,8 +536,8 @@ xen_delay(int n)
 	}
 }
 
-static device_method_t xentimer_methods[] = {
-	DEVMETHOD(device_identify, xentimer_identify),
+static device_method_t xentimer_methods[] = { DEVMETHOD(device_identify,
+						  xentimer_identify),
 	DEVMETHOD(device_probe, xentimer_probe),
 	DEVMETHOD(device_attach, xentimer_attach),
 	DEVMETHOD(device_detach, xentimer_detach),
@@ -540,9 +545,7 @@ static device_method_t xentimer_methods[] = {
 	DEVMETHOD(device_resume, xentimer_resume),
 	/* clock interface */
 	DEVMETHOD(clock_gettime, xentimer_gettime),
-	DEVMETHOD(clock_settime, xentimer_settime),
-	DEVMETHOD_END
-};
+	DEVMETHOD(clock_settime, xentimer_settime), DEVMETHOD_END };
 
 static driver_t xentimer_driver = {
 	"xen_et",

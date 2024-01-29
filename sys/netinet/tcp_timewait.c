@@ -29,33 +29,32 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 #include "opt_ipsec.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/callout.h>
 #include <sys/kernel.h>
-#include <sys/sysctl.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
 #include <sys/priv.h>
 #include <sys/proc.h>
-#include <sys/socket.h>
-#include <sys/socketvar.h>
-#include <sys/syslog.h>
 #include <sys/protosw.h>
 #include <sys/random.h>
+#include <sys/socket.h>
+#include <sys/socketvar.h>
+#include <sys/sysctl.h>
+#include <sys/syslog.h>
 
 #include <vm/uma.h>
 
-#include <net/route.h>
 #include <net/if.h>
 #include <net/if_var.h>
+#include <net/route.h>
 #include <net/vnet.h>
-
 #include <netinet/in.h>
 #include <netinet/in_kdtrace.h>
 #include <netinet/in_pcb.h>
@@ -68,29 +67,27 @@
 #include <netinet/ip6.h>
 #include <netinet6/in6_pcb.h>
 #include <netinet6/ip6_var.h>
-#include <netinet6/scope6_var.h>
 #include <netinet6/nd6.h>
+#include <netinet6/scope6_var.h>
 #endif
+#include <machine/in_cksum.h>
+
 #include <netinet/tcp.h>
 #include <netinet/tcp_fsm.h>
 #include <netinet/tcp_seq.h>
 #include <netinet/tcp_timer.h>
 #include <netinet/tcp_var.h>
 #include <netinet/tcpip.h>
-
 #include <netinet/udp.h>
 #include <netinet/udp_var.h>
-
 #include <netipsec/ipsec_support.h>
-
-#include <machine/in_cksum.h>
 
 #include <security/mac/mac_framework.h>
 
 VNET_DEFINE_STATIC(bool, nolocaltimewait) = true;
-#define	V_nolocaltimewait	VNET(nolocaltimewait)
-SYSCTL_BOOL(_net_inet_tcp, OID_AUTO, nolocaltimewait,
-    CTLFLAG_VNET | CTLFLAG_RW, &VNET_NAME(nolocaltimewait), true,
+#define V_nolocaltimewait VNET(nolocaltimewait)
+SYSCTL_BOOL(_net_inet_tcp, OID_AUTO, nolocaltimewait, CTLFLAG_VNET | CTLFLAG_RW,
+    &VNET_NAME(nolocaltimewait), true,
     "Do not create TCP TIME_WAIT state for local connections");
 
 /*
@@ -115,8 +112,9 @@ tcp_twstart(struct tcpcb *tp)
 	INP_WLOCK_ASSERT(inp);
 
 	/* A dropped inp should never transition to TIME_WAIT state. */
-	KASSERT((inp->inp_flags & INP_DROPPED) == 0, ("tcp_twstart: "
-	    "(inp->inp_flags & INP_DROPPED) != 0"));
+	KASSERT((inp->inp_flags & INP_DROPPED) == 0,
+	    ("tcp_twstart: "
+	     "(inp->inp_flags & INP_DROPPED) != 0"));
 
 	tcp_state_change(tp, TCPS_TIME_WAIT);
 	soisdisconnected(inp->inp_socket);
@@ -124,16 +122,17 @@ tcp_twstart(struct tcpcb *tp)
 	if (tp->t_flags & TF_ACKNOW)
 		tcp_output(tp);
 
-	if (V_nolocaltimewait && (
+	if (V_nolocaltimewait &&
+	    (
 #ifdef INET6
-	    isipv6 ? in6_localaddr(&inp->in6p_faddr) :
+		isipv6 ? in6_localaddr(&inp->in6p_faddr) :
 #endif
 #ifdef INET
-	    in_localip(inp->inp_faddr)
+			 in_localip(inp->inp_faddr)
 #else
-	    false
+		false
 #endif
-	    )) {
+		    )) {
 		if ((tp = tcp_close(tp)) != NULL)
 			INP_WUNLOCK(inp);
 		return;
@@ -171,7 +170,7 @@ tcp_twcheck(struct inpcb *inp, struct tcpopt *to, struct tcphdr *th,
 		INP_WLOCK_ASSERT(inp);
 		KASSERT(to != NULL,
 		    ("%s: called without options on a non-SYN segment",
-		    __func__));
+			__func__));
 	}
 #endif
 
@@ -208,9 +207,11 @@ tcp_twcheck(struct inpcb *inp, struct tcpopt *to, struct tcphdr *th,
 	/* Honor the drop_synfin sysctl variable. */
 	if ((thflags & TH_SYN) && (thflags & TH_FIN) && V_drop_synfin) {
 		if ((s = tcp_log_addrs(&inp->inp_inc, th, NULL, NULL))) {
-			log(LOG_DEBUG, "%s; %s: "
+			log(LOG_DEBUG,
+			    "%s; %s: "
 			    "SYN|FIN segment ignored (based on "
-			    "sysctl setting)\n", s, __func__);
+			    "sysctl setting)\n",
+			    s, __func__);
 			free(s, M_TCPLOG);
 		}
 		goto drop;
@@ -242,15 +243,15 @@ tcp_twcheck(struct inpcb *inp, struct tcpopt *to, struct tcphdr *th,
 	 */
 	if (tp->t_port != m->m_pkthdr.tcp_tun_port) {
 		if (tcp_get_flags(th) & TH_ACK) {
-			tcp_respond(tp, mtod(m, void *), th, m,
-			    (tcp_seq)0, th->th_ack, TH_RST);
+			tcp_respond(tp, mtod(m, void *), th, m, (tcp_seq)0,
+			    th->th_ack, TH_RST);
 		} else {
 			if (tcp_get_flags(th) & TH_SYN)
 				tlen++;
 			if (tcp_get_flags(th) & TH_FIN)
 				tlen++;
 			tcp_respond(tp, mtod(m, void *), th, m,
-			    th->th_seq+tlen, (tcp_seq)0, TH_RST|TH_ACK);
+			    th->th_seq + tlen, (tcp_seq)0, TH_RST | TH_ACK);
 		}
 		INP_UNLOCK(inp);
 		TCPSTAT_INC(tcps_tw_resets);
@@ -288,8 +289,8 @@ tcp_twcheck(struct inpcb *inp, struct tcpopt *to, struct tcphdr *th,
 	/*
 	 * Acknowledge the segment if it has data or is not a duplicate ACK.
 	 */
-	if (thflags != TH_ACK || tlen != 0 ||
-	    th->th_seq != tp->rcv_nxt || th->th_ack != tp->snd_nxt) {
+	if (thflags != TH_ACK || tlen != 0 || th->th_seq != tp->rcv_nxt ||
+	    th->th_ack != tp->snd_nxt) {
 		TCP_PROBE5(receive, NULL, NULL, m, NULL, th);
 		tcp_respond(tp, mtod(m, void *), th, m, tp->rcv_nxt,
 		    tp->snd_nxt, TH_ACK);

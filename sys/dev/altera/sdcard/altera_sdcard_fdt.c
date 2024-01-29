@@ -31,30 +31,29 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/bio.h>
 #include <sys/bus.h>
 #include <sys/condvar.h>
 #include <sys/conf.h>
-#include <sys/bio.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
-#include <sys/systm.h>
 #include <sys/taskqueue.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
 
-#include <geom/geom_disk.h>
-
 #include <dev/altera/sdcard/altera_sdcard.h>
-
 #include <dev/fdt/fdt_common.h>
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
+
+#include <geom/geom_disk.h>
 
 /*
  * FDT bus attachment for the Altera SD Card IP core.
@@ -82,8 +81,8 @@ altera_sdcard_fdt_attach(device_t dev)
 	sc->as_dev = dev;
 	sc->as_unit = device_get_unit(dev);
 	sc->as_rid = 0;
-	sc->as_res = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-	    &sc->as_rid, RF_ACTIVE);
+	sc->as_res = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &sc->as_rid,
+	    RF_ACTIVE);
 	if (sc->as_res == NULL) {
 		device_printf(dev, "couldn't map memory\n");
 		return (ENXIO);
@@ -98,18 +97,16 @@ altera_sdcard_fdt_detach(device_t dev)
 	struct altera_sdcard_softc *sc;
 
 	sc = device_get_softc(dev);
-	KASSERT(sc->as_res != NULL, ("%s: resources not allocated",
-	    __func__));
+	KASSERT(sc->as_res != NULL, ("%s: resources not allocated", __func__));
 	altera_sdcard_detach(sc);
 	bus_release_resource(dev, SYS_RES_MEMORY, sc->as_rid, sc->as_res);
 	return (0);
 }
 
 static device_method_t altera_sdcard_fdt_methods[] = {
-	DEVMETHOD(device_probe,		altera_sdcard_fdt_probe),
-	DEVMETHOD(device_attach,	altera_sdcard_fdt_attach),
-	DEVMETHOD(device_detach,	altera_sdcard_fdt_detach),
-	{ 0, 0 }
+	DEVMETHOD(device_probe, altera_sdcard_fdt_probe),
+	DEVMETHOD(device_attach, altera_sdcard_fdt_attach),
+	DEVMETHOD(device_detach, altera_sdcard_fdt_detach), { 0, 0 }
 };
 
 static driver_t altera_sdcard_fdt_driver = {

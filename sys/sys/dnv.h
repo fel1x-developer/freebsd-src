@@ -28,21 +28,22 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_DNV_H_
-#define	_DNV_H_
+#ifndef _DNV_H_
+#define _DNV_H_
 
 #include <sys/cdefs.h>
 
 #ifndef _KERNEL
+#include <sys/nv_namespace.h>
+
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <sys/nv_namespace.h>
 #endif
 
-#ifndef	_NVLIST_T_DECLARED
-#define	_NVLIST_T_DECLARED
+#ifndef _NVLIST_T_DECLARED
+#define _NVLIST_T_DECLARED
 struct nvlist;
 
 typedef struct nvlist nvlist_t;
@@ -59,11 +60,15 @@ __BEGIN_DECLS
  */
 
 bool dnvlist_get_bool(const nvlist_t *nvl, const char *name, bool defval);
-uint64_t dnvlist_get_number(const nvlist_t *nvl, const char *name, uint64_t defval);
-const char *dnvlist_get_string(const nvlist_t *nvl, const char *name, const char *defval);
-const nvlist_t *dnvlist_get_nvlist(const nvlist_t *nvl, const char *name, const nvlist_t *defval);
+uint64_t dnvlist_get_number(const nvlist_t *nvl, const char *name,
+    uint64_t defval);
+const char *dnvlist_get_string(const nvlist_t *nvl, const char *name,
+    const char *defval);
+const nvlist_t *dnvlist_get_nvlist(const nvlist_t *nvl, const char *name,
+    const nvlist_t *defval);
 int dnvlist_get_descriptor(const nvlist_t *nvl, const char *name, int defval);
-const void *dnvlist_get_binary(const nvlist_t *nvl, const char *name, size_t *sizep, const void *defval, size_t defsize);
+const void *dnvlist_get_binary(const nvlist_t *nvl, const char *name,
+    size_t *sizep, const void *defval, size_t defsize);
 
 /*
  * The dnvlist_take functions returns value associated with the given name and
@@ -76,10 +81,12 @@ const void *dnvlist_get_binary(const nvlist_t *nvl, const char *name, size_t *si
 bool dnvlist_take_bool(nvlist_t *nvl, const char *name, bool defval);
 uint64_t dnvlist_take_number(nvlist_t *nvl, const char *name, uint64_t defval);
 char *dnvlist_take_string(nvlist_t *nvl, const char *name, char *defval);
-nvlist_t *dnvlist_take_nvlist(nvlist_t *nvl, const char *name, nvlist_t *defval);
+nvlist_t *dnvlist_take_nvlist(nvlist_t *nvl, const char *name,
+    nvlist_t *defval);
 int dnvlist_take_descriptor(nvlist_t *nvl, const char *name, int defval);
-void *dnvlist_take_binary(nvlist_t *nvl, const char *name, size_t *sizep, void *defval, size_t defsize);
+void *dnvlist_take_binary(nvlist_t *nvl, const char *name, size_t *sizep,
+    void *defval, size_t defsize);
 
 __END_DECLS
 
-#endif	/* !_DNV_H_ */
+#endif /* !_DNV_H_ */

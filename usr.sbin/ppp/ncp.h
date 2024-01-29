@@ -27,32 +27,34 @@
  */
 
 struct port_range {
-  unsigned nports;		/* How many ports */
-  unsigned maxports;		/* How many allocated (malloc) ports */
-  u_short *port;		/* The actual ports */
+	unsigned nports;   /* How many ports */
+	unsigned maxports; /* How many allocated (malloc) ports */
+	u_short *port;	   /* The actual ports */
 };
 
 struct ncp {
-  struct {
-    u_long sendpipe;			/* route sendpipe size */
-    u_long recvpipe;			/* route recvpipe size */
+	struct {
+		u_long sendpipe; /* route sendpipe size */
+		u_long recvpipe; /* route recvpipe size */
 
-    struct {
-      struct port_range tcp, udp;	/* The range of urgent ports */
-      unsigned tos : 1;			/* Urgent IPTOS_LOWDELAY packets ? */
-      int len;				/* The size below which traffic is prioritised */
-    } urgent;
-  } cfg;
+		struct {
+			struct port_range tcp,
+			    udp;	  /* The range of urgent ports */
+			unsigned tos : 1; /* Urgent IPTOS_LOWDELAY packets ? */
+			int len; /* The size below which traffic is prioritised
+				  */
+		} urgent;
+	} cfg;
 
-  int afq;			/* Next address family to queue */
+	int afq; /* Next address family to queue */
 
-  struct sticky_route *route;	/* List of dynamic routes */
+	struct sticky_route *route; /* List of dynamic routes */
 
-  struct ipcp ipcp;		/* Our IPCP FSM */
+	struct ipcp ipcp; /* Our IPCP FSM */
 #ifndef NOINET6
-  struct ipv6cp ipv6cp;		/* Our IPV6CP FSM */
+	struct ipv6cp ipv6cp; /* Our IPV6CP FSM */
 #endif
-  struct mp mp;			/* Our MP */
+	struct mp mp; /* Our MP */
 };
 
 extern void ncp_Init(struct ncp *, struct bundle *);
@@ -79,21 +81,21 @@ extern void ncp_Close(struct ncp *);
 extern void ncp2initial(struct ncp *);
 
 #define ncp_IsUrgentTcpPort(ncp, p1, p2) \
-          ncp_IsUrgentPort(&(ncp)->cfg.urgent.tcp, p1, p2)
+	ncp_IsUrgentPort(&(ncp)->cfg.urgent.tcp, p1, p2)
 #define ncp_IsUrgentUdpPort(ncp, p1, p2) \
-          ncp_IsUrgentPort(&(ncp)->cfg.urgent.udp, p1, p2)
+	ncp_IsUrgentPort(&(ncp)->cfg.urgent.udp, p1, p2)
 #define ncp_AddUrgentTcpPort(ncp, p) \
-          ncp_AddUrgentPort(&(ncp)->cfg.urgent.tcp, p)
+	ncp_AddUrgentPort(&(ncp)->cfg.urgent.tcp, p)
 #define ncp_AddUrgentUdpPort(ncp, p) \
-          ncp_AddUrgentPort(&(ncp)->cfg.urgent.udp, p)
+	ncp_AddUrgentPort(&(ncp)->cfg.urgent.udp, p)
 #define ncp_RemoveUrgentTcpPort(ncp, p) \
-          ncp_RemoveUrgentPort(&(ncp)->cfg.urgent.tcp, p)
+	ncp_RemoveUrgentPort(&(ncp)->cfg.urgent.tcp, p)
 #define ncp_RemoveUrgentUdpPort(ncp, p) \
-          ncp_RemoveUrgentPort(&(ncp)->cfg.urgent.udp, p)
+	ncp_RemoveUrgentPort(&(ncp)->cfg.urgent.udp, p)
 #define ncp_ClearUrgentTcpPorts(ncp) \
-          ncp_ClearUrgentPorts(&(ncp)->cfg.urgent.tcp)
+	ncp_ClearUrgentPorts(&(ncp)->cfg.urgent.tcp)
 #define ncp_ClearUrgentUdpPorts(ncp) \
-          ncp_ClearUrgentPorts(&(ncp)->cfg.urgent.udp)
+	ncp_ClearUrgentPorts(&(ncp)->cfg.urgent.udp)
 #define ncp_ClearUrgentTOS(ncp) (ncp)->cfg.urgent.tos = 0
 #define ncp_SetUrgentTOS(ncp) (ncp)->cfg.urgent.tos = 1
 

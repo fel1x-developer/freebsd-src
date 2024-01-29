@@ -26,13 +26,13 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/stat.h>
 #include <sys/param.h>
-#include <sys/mman.h>
 #include <sys/endian.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 
-#include <errno.h>
 #include <err.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -62,8 +62,7 @@ slot_set(int argc, char **argv)
 	}
 
 	if (strcmp(argv[1], "status") != 0) {
-		warnx("Invalid argument '%s', expecting 'status'",
-		    argv[1]);
+		warnx("Invalid argument '%s', expecting 'status'", argv[1]);
 		return (EINVAL);
 	}
 
@@ -99,7 +98,7 @@ slot_set(int argc, char **argv)
 	}
 
 	if (mps_set_slot_status(fd, htole16(handle), htole16(slot),
-	    htole32(status)) != 0) {
+		htole32(status)) != 0) {
 		warnx("Failed to set status");
 		close(fd);
 		return (1);
@@ -110,5 +109,7 @@ slot_set(int argc, char **argv)
 	return (0);
 }
 
-MPS_COMMAND(slot, set, slot_set, "status <enclosure handle> <slot number> "
-    "<status>", "\n      Set status of the slot in the directly attached enclosure");
+MPS_COMMAND(slot, set, slot_set,
+    "status <enclosure handle> <slot number> "
+    "<status>",
+    "\n      Set status of the slot in the directly attached enclosure");

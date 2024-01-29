@@ -45,56 +45,55 @@
  * sharing of code between *BSD's
  */
 
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-
-#include <dev/usb/usb_core.h>
-#include <dev/usb/usb_busdma.h>
-#include <dev/usb/usb_process.h>
-#include <dev/usb/usb_util.h>
-
-#include <dev/usb/usb_controller.h>
-#include <dev/usb/usb_bus.h>
-#include <dev/usb/usb_pci.h>
 #include <dev/usb/controller/ehci.h>
 #include <dev/usb/controller/ehcireg.h>
+#include <dev/usb/usb.h>
+#include <dev/usb/usb_bus.h>
+#include <dev/usb/usb_busdma.h>
+#include <dev/usb/usb_controller.h>
+#include <dev/usb/usb_core.h>
+#include <dev/usb/usb_pci.h>
+#include <dev/usb/usb_process.h>
+#include <dev/usb/usb_util.h>
+#include <dev/usb/usbdi.h>
+
 #include "usb_if.h"
 
-#define	PCI_EHCI_VENDORID_ACERLABS	0x10b9
-#define	PCI_EHCI_VENDORID_AMD		0x1022
-#define	PCI_EHCI_VENDORID_APPLE		0x106b
-#define	PCI_EHCI_VENDORID_ATI		0x1002
-#define	PCI_EHCI_VENDORID_CMDTECH	0x1095
-#define	PCI_EHCI_VENDORID_HYGON		0x1d94
-#define	PCI_EHCI_VENDORID_INTEL		0x8086
-#define	PCI_EHCI_VENDORID_NEC		0x1033
-#define	PCI_EHCI_VENDORID_OPTI		0x1045
-#define	PCI_EHCI_VENDORID_PHILIPS	0x1131
-#define	PCI_EHCI_VENDORID_SIS		0x1039
-#define	PCI_EHCI_VENDORID_NVIDIA	0x12D2
-#define	PCI_EHCI_VENDORID_NVIDIA2	0x10DE
-#define	PCI_EHCI_VENDORID_VIA		0x1106
-#define	PCI_EHCI_VENDORID_VMWARE	0x15ad
-#define	PCI_EHCI_VENDORID_ZHAOXIN	0x1d17
+#define PCI_EHCI_VENDORID_ACERLABS 0x10b9
+#define PCI_EHCI_VENDORID_AMD 0x1022
+#define PCI_EHCI_VENDORID_APPLE 0x106b
+#define PCI_EHCI_VENDORID_ATI 0x1002
+#define PCI_EHCI_VENDORID_CMDTECH 0x1095
+#define PCI_EHCI_VENDORID_HYGON 0x1d94
+#define PCI_EHCI_VENDORID_INTEL 0x8086
+#define PCI_EHCI_VENDORID_NEC 0x1033
+#define PCI_EHCI_VENDORID_OPTI 0x1045
+#define PCI_EHCI_VENDORID_PHILIPS 0x1131
+#define PCI_EHCI_VENDORID_SIS 0x1039
+#define PCI_EHCI_VENDORID_NVIDIA 0x12D2
+#define PCI_EHCI_VENDORID_NVIDIA2 0x10DE
+#define PCI_EHCI_VENDORID_VIA 0x1106
+#define PCI_EHCI_VENDORID_VMWARE 0x15ad
+#define PCI_EHCI_VENDORID_ZHAOXIN 0x1d17
 
 static device_probe_t ehci_pci_probe;
 static device_attach_t ehci_pci_attach;
@@ -235,12 +234,12 @@ ehci_pci_match(device_t self)
 		break;
 	}
 
-	if ((pci_get_class(self) == PCIC_SERIALBUS)
-	    && (pci_get_subclass(self) == PCIS_SERIALBUS_USB)
-	    && (pci_get_progif(self) == PCI_INTERFACE_EHCI)) {
+	if ((pci_get_class(self) == PCIC_SERIALBUS) &&
+	    (pci_get_subclass(self) == PCIS_SERIALBUS_USB) &&
+	    (pci_get_progif(self) == PCI_INTERFACE_EHCI)) {
 		return ("EHCI (generic) USB 2.0 controller");
 	}
-	return (NULL);			/* dunno */
+	return (NULL); /* dunno */
 }
 
 static int
@@ -289,7 +288,7 @@ ehci_pci_via_quirk(device_t self)
 {
 	uint32_t val;
 
-	if ((pci_get_device(self) == 0x3104) && 
+	if ((pci_get_device(self) == 0x3104) &&
 	    ((pci_get_revid(self) & 0xf0) == 0x60)) {
 		/* Correct schedule sleep time to 10us */
 		val = pci_read_config(self, 0x4b, 1);
@@ -315,8 +314,8 @@ ehci_pci_attach(device_t self)
 	sc->sc_bus.dma_bits = 32;
 
 	/* get all DMA memory */
-	if (usb_bus_mem_alloc_all(&sc->sc_bus,
-	    USB_GET_DMA_TAG(self), &ehci_iterate_hw_softc)) {
+	if (usb_bus_mem_alloc_all(&sc->sc_bus, USB_GET_DMA_TAG(self),
+		&ehci_iterate_hw_softc)) {
 		return (ENOMEM);
 	}
 
@@ -338,7 +337,8 @@ ehci_pci_attach(device_t self)
 		break;
 	default:
 		/* Quirk for Parallels Desktop 4.0 */
-		device_printf(self, "USB revision is unknown. Assuming v2.0.\n");
+		device_printf(self,
+		    "USB revision is unknown. Assuming v2.0.\n");
 		break;
 	}
 
@@ -479,8 +479,7 @@ ehci_pci_attach(device_t self)
 	case PCI_EHCI_VENDORID_NVIDIA2:
 		sc->sc_flags |= EHCI_SCFLG_IAADBUG;
 		if (bootverbose)
-			device_printf(self,
-			    "Doorbell workaround enabled\n");
+			device_printf(self, "Doorbell workaround enabled\n");
 		break;
 	default:
 		break;
@@ -517,7 +516,8 @@ ehci_pci_detach(device_t self)
 		 */
 		ehci_detach(sc);
 
-		int err = bus_teardown_intr(self, sc->sc_irq_res, sc->sc_intr_hdl);
+		int err = bus_teardown_intr(self, sc->sc_irq_res,
+		    sc->sc_intr_hdl);
 
 		if (err)
 			/* XXX or should we panic? */
@@ -553,24 +553,24 @@ ehci_pci_take_controller(device_t self)
 
 	/* Synchronise with the BIOS if it owns the controller. */
 	for (eecp = EHCI_HCC_EECP(cparams); eecp != 0;
-	    eecp = EHCI_EECP_NEXT(eec)) {
+	     eecp = EHCI_EECP_NEXT(eec)) {
 		eec = pci_read_config(self, eecp, 4);
 		if (EHCI_EECP_ID(eec) != EHCI_EC_LEGSUP) {
 			continue;
 		}
-		bios_sem = pci_read_config(self, eecp +
-		    EHCI_LEGSUP_BIOS_SEM, 1);
+		bios_sem = pci_read_config(self, eecp + EHCI_LEGSUP_BIOS_SEM,
+		    1);
 		if (bios_sem == 0) {
 			continue;
 		}
-		device_printf(sc->sc_bus.bdev, "waiting for BIOS "
+		device_printf(sc->sc_bus.bdev,
+		    "waiting for BIOS "
 		    "to give up control\n");
-		pci_write_config(self, eecp +
-		    EHCI_LEGSUP_OS_SEM, 1, 1);
+		pci_write_config(self, eecp + EHCI_LEGSUP_OS_SEM, 1, 1);
 		to = 500;
 		while (1) {
-			bios_sem = pci_read_config(self, eecp +
-			    EHCI_LEGSUP_BIOS_SEM, 1);
+			bios_sem = pci_read_config(self,
+			    eecp + EHCI_LEGSUP_BIOS_SEM, 1);
 			if (bios_sem == 0)
 				break;
 
@@ -579,7 +579,7 @@ ehci_pci_take_controller(device_t self)
 				    "timed out waiting for BIOS\n");
 				break;
 			}
-			usb_pause_mtx(NULL, hz / 100);	/* wait 10ms */
+			usb_pause_mtx(NULL, hz / 100); /* wait 10ms */
 		}
 	}
 	return (0);

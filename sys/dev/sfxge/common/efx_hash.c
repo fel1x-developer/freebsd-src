@@ -40,11 +40,12 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "efx.h"
 #include "efx_impl.h"
 
 /* Hash initial value */
-#define	EFX_HASH_INITIAL_VALUE	0xdeadbeef
+#define EFX_HASH_INITIAL_VALUE 0xdeadbeef
 
 /*
  * Rotate a 32-bit value left
@@ -54,66 +55,63 @@
  */
 #if EFSYS_HAS_ROTL_DWORD
 
-#define	EFX_HASH_ROTATE(_value, _shift)					\
-	EFSYS_ROTL_DWORD(_value, _shift)
+#define EFX_HASH_ROTATE(_value, _shift) EFSYS_ROTL_DWORD(_value, _shift)
 
 #else
 
-#define	EFX_HASH_ROTATE(_value, _shift)					\
+#define EFX_HASH_ROTATE(_value, _shift) \
 	(((_value) << (_shift)) | ((_value) >> (32 - (_shift))))
 
 #endif
 
 /* Mix three 32-bit values reversibly */
-#define	EFX_HASH_MIX(_a, _b, _c)					\
-	do {								\
-		_a -= _c;						\
-		_a ^= EFX_HASH_ROTATE(_c, 4);				\
-		_c += _b;						\
-		_b -= _a;						\
-		_b ^= EFX_HASH_ROTATE(_a, 6);				\
-		_a += _c;						\
-		_c -= _b;						\
-		_c ^= EFX_HASH_ROTATE(_b, 8);				\
-		_b += _a;						\
-		_a -= _c;						\
-		_a ^= EFX_HASH_ROTATE(_c, 16);				\
-		_c += _b;						\
-		_b -= _a;						\
-		_b ^= EFX_HASH_ROTATE(_a, 19);				\
-		_a += _c;						\
-		_c -= _b;						\
-		_c ^= EFX_HASH_ROTATE(_b, 4);				\
-		_b += _a;						\
-	_NOTE(CONSTANTCONDITION)					\
+#define EFX_HASH_MIX(_a, _b, _c)               \
+	do {                                   \
+		_a -= _c;                      \
+		_a ^= EFX_HASH_ROTATE(_c, 4);  \
+		_c += _b;                      \
+		_b -= _a;                      \
+		_b ^= EFX_HASH_ROTATE(_a, 6);  \
+		_a += _c;                      \
+		_c -= _b;                      \
+		_c ^= EFX_HASH_ROTATE(_b, 8);  \
+		_b += _a;                      \
+		_a -= _c;                      \
+		_a ^= EFX_HASH_ROTATE(_c, 16); \
+		_c += _b;                      \
+		_b -= _a;                      \
+		_b ^= EFX_HASH_ROTATE(_a, 19); \
+		_a += _c;                      \
+		_c -= _b;                      \
+		_c ^= EFX_HASH_ROTATE(_b, 4);  \
+		_b += _a;                      \
+		_NOTE(CONSTANTCONDITION)       \
 	} while (B_FALSE)
 
 /* Final mixing of three 32-bit values into one (_c) */
-#define	EFX_HASH_FINALISE(_a, _b, _c)					\
-	do {								\
-		_c ^= _b;						\
-		_c -= EFX_HASH_ROTATE(_b, 14);				\
-		_a ^= _c;						\
-		_a -= EFX_HASH_ROTATE(_c, 11);				\
-		_b ^= _a;						\
-		_b -= EFX_HASH_ROTATE(_a, 25);				\
-		_c ^= _b;						\
-		_c -= EFX_HASH_ROTATE(_b, 16);				\
-		_a ^= _c;						\
-		_a -= EFX_HASH_ROTATE(_c, 4);				\
-		_b ^= _a;						\
-		_b -= EFX_HASH_ROTATE(_a, 14);				\
-		_c ^= _b;						\
-		_c -= EFX_HASH_ROTATE(_b, 24);				\
-	_NOTE(CONSTANTCONDITION)					\
+#define EFX_HASH_FINALISE(_a, _b, _c)          \
+	do {                                   \
+		_c ^= _b;                      \
+		_c -= EFX_HASH_ROTATE(_b, 14); \
+		_a ^= _c;                      \
+		_a -= EFX_HASH_ROTATE(_c, 11); \
+		_b ^= _a;                      \
+		_b -= EFX_HASH_ROTATE(_a, 25); \
+		_c ^= _b;                      \
+		_c -= EFX_HASH_ROTATE(_b, 16); \
+		_a ^= _c;                      \
+		_a -= EFX_HASH_ROTATE(_c, 4);  \
+		_b ^= _a;                      \
+		_b -= EFX_HASH_ROTATE(_a, 14); \
+		_c ^= _b;                      \
+		_c -= EFX_HASH_ROTATE(_b, 24); \
+		_NOTE(CONSTANTCONDITION)       \
 	} while (B_FALSE)
 
 /* Produce a 32-bit hash from 32-bit aligned input */
-	__checkReturn		uint32_t
-efx_hash_dwords(
-	__in_ecount(count)	uint32_t const *input,
-	__in			size_t count,
-	__in			uint32_t init)
+__checkReturn uint32_t
+efx_hash_dwords(__in_ecount(count) uint32_t const *input, __in size_t count,
+    __in uint32_t init)
 {
 	uint32_t a;
 	uint32_t b;
@@ -121,7 +119,7 @@ efx_hash_dwords(
 
 	/* Set up the initial internal state */
 	a = b = c = EFX_HASH_INITIAL_VALUE +
-		(((uint32_t)count) * sizeof (uint32_t)) + init;
+	    (((uint32_t)count) * sizeof(uint32_t)) + init;
 
 	/* Handle all but the last three dwords of the input */
 	while (count > 3) {
@@ -158,11 +156,9 @@ efx_hash_dwords(
 #if EFSYS_IS_BIG_ENDIAN
 
 /* Produce a 32-bit hash from arbitrarily aligned input */
-	__checkReturn		uint32_t
-efx_hash_bytes(
-	__in_ecount(length)	uint8_t const *input,
-	__in			size_t length,
-	__in			uint32_t init)
+__checkReturn uint32_t
+efx_hash_bytes(__in_ecount(length) uint8_t const *input, __in size_t length,
+    __in uint32_t init)
 {
 	uint32_t a;
 	uint32_t b;
@@ -241,11 +237,9 @@ efx_hash_bytes(
 #elif EFSYS_IS_LITTLE_ENDIAN
 
 /* Produce a 32-bit hash from arbitrarily aligned input */
-	__checkReturn		uint32_t
-efx_hash_bytes(
-	__in_ecount(length)	uint8_t const *input,
-	__in			size_t length,
-	__in			uint32_t init)
+__checkReturn uint32_t
+efx_hash_bytes(__in_ecount(length) uint8_t const *input, __in size_t length,
+    __in uint32_t init)
 {
 	uint32_t a;
 	uint32_t b;

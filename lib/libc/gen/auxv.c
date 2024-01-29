@@ -26,15 +26,17 @@
  *
  */
 
-#include "namespace.h"
+#include <sys/auxv.h>
+
 #include <elf.h>
 #include <errno.h>
 #include <link.h>
 #include <pthread.h>
 #include <string.h>
-#include <sys/auxv.h>
-#include "un-namespace.h"
+
 #include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 extern int _DYNAMIC;
 #pragma weak _DYNAMIC
@@ -156,7 +158,7 @@ init_aux(void)
 		 * value 21, the existence of AT_STACKPROT proves we are
 		 * on the common format.
 		 */
-		case AT_STACKPROT:	/* 23 */
+		case AT_STACKPROT: /* 23 */
 			powerpc_new_auxv_format = 1;
 			break;
 #endif

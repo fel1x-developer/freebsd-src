@@ -7,6 +7,7 @@
 /* VMCI QueuePair API implementation. */
 
 #include <sys/cdefs.h>
+
 #include "vmci.h"
 #include "vmci_driver.h"
 #include "vmci_event.h"
@@ -14,63 +15,62 @@
 #include "vmci_kernel_defs.h"
 #include "vmci_queue_pair.h"
 
-#define LGPFX	"vmci_queue_pair: "
+#define LGPFX "vmci_queue_pair: "
 
 struct queue_pair_entry {
 	vmci_list_item(queue_pair_entry) list_item;
 	struct vmci_handle handle;
-	vmci_id		peer;
-	uint32_t	flags;
-	uint64_t	produce_size;
-	uint64_t	consume_size;
-	uint32_t	ref_count;
+	vmci_id peer;
+	uint32_t flags;
+	uint64_t produce_size;
+	uint64_t consume_size;
+	uint32_t ref_count;
 };
 
 struct qp_guest_endpoint {
 	struct queue_pair_entry qp;
-	uint64_t	num_ppns;
-	void		*produce_q;
-	void		*consume_q;
-	bool		hibernate_failure;
-	struct ppn_set	ppn_set;
+	uint64_t num_ppns;
+	void *produce_q;
+	void *consume_q;
+	bool hibernate_failure;
+	struct ppn_set ppn_set;
 };
 
 struct queue_pair_list {
 	vmci_list(queue_pair_entry) head;
-	volatile int	hibernate;
-	vmci_mutex	mutex;
+	volatile int hibernate;
+	vmci_mutex mutex;
 };
 
-#define QPE_NUM_PAGES(_QPE)						\
-	((uint32_t)(CEILING(_QPE.produce_size, PAGE_SIZE) +		\
-	CEILING(_QPE.consume_size, PAGE_SIZE) + 2))
+#define QPE_NUM_PAGES(_QPE)                                 \
+	((uint32_t)(CEILING(_QPE.produce_size, PAGE_SIZE) + \
+	    CEILING(_QPE.consume_size, PAGE_SIZE) + 2))
 
 static struct queue_pair_list qp_guest_endpoints;
 
-static struct	queue_pair_entry *queue_pair_list_find_entry(
-		    struct queue_pair_list *qp_list, struct vmci_handle handle);
-static void	queue_pair_list_add_entry(struct queue_pair_list *qp_list,
-		    struct queue_pair_entry *entry);
-static void	queue_pair_list_remove_entry(struct queue_pair_list *qp_list,
-		    struct queue_pair_entry *entry);
-static struct	queue_pair_entry *queue_pair_list_get_head(
-		    struct queue_pair_list *qp_list);
-static int	queue_pair_notify_peer_local(bool attach,
-		    struct vmci_handle handle);
-static struct	qp_guest_endpoint *qp_guest_endpoint_create(
-		    struct vmci_handle handle, vmci_id peer, uint32_t flags,
-		    uint64_t produce_size, uint64_t consume_size,
-		    void *produce_q, void *consume_q);
-static void	qp_guest_endpoint_destroy(struct qp_guest_endpoint *entry);
-static int	vmci_queue_pair_alloc_hypercall(
-		    const struct qp_guest_endpoint *entry);
-static int	vmci_queue_pair_alloc_guest_work(struct vmci_handle *handle,
-		    struct vmci_queue **produce_q, uint64_t produce_size,
-		    struct vmci_queue **consume_q, uint64_t consume_size,
-		    vmci_id peer, uint32_t flags,
-		    vmci_privilege_flags priv_flags);
-static int	vmci_queue_pair_detach_guest_work(struct vmci_handle handle);
-static int	vmci_queue_pair_detach_hypercall(struct vmci_handle handle);
+static struct queue_pair_entry *
+queue_pair_list_find_entry(struct queue_pair_list *qp_list,
+    struct vmci_handle handle);
+static void queue_pair_list_add_entry(struct queue_pair_list *qp_list,
+    struct queue_pair_entry *entry);
+static void queue_pair_list_remove_entry(struct queue_pair_list *qp_list,
+    struct queue_pair_entry *entry);
+static struct queue_pair_entry *queue_pair_list_get_head(
+    struct queue_pair_list *qp_list);
+static int queue_pair_notify_peer_local(bool attach, struct vmci_handle handle);
+static struct qp_guest_endpoint *
+qp_guest_endpoint_create(struct vmci_handle handle, vmci_id peer,
+    uint32_t flags, uint64_t produce_size, uint64_t consume_size,
+    void *produce_q, void *consume_q);
+static void qp_guest_endpoint_destroy(struct qp_guest_endpoint *entry);
+static int vmci_queue_pair_alloc_hypercall(
+    const struct qp_guest_endpoint *entry);
+static int vmci_queue_pair_alloc_guest_work(struct vmci_handle *handle,
+    struct vmci_queue **produce_q, uint64_t produce_size,
+    struct vmci_queue **consume_q, uint64_t consume_size, vmci_id peer,
+    uint32_t flags, vmci_privilege_flags priv_flags);
+static int vmci_queue_pair_detach_guest_work(struct vmci_handle handle);
+static int vmci_queue_pair_detach_hypercall(struct vmci_handle handle);
 
 /*
  *------------------------------------------------------------------------------
@@ -207,7 +207,8 @@ queue_pair_list_find_entry(struct queue_pair_list *qp_list,
 	if (VMCI_HANDLE_INVALID(handle))
 		return (NULL);
 
-	vmci_list_scan(next, &qp_list->head, list_item) {
+	vmci_list_scan(next, &qp_list->head, list_item)
+	{
 		if (VMCI_HANDLE_EQUAL(next->handle, handle))
 			return (next);
 	}
@@ -341,9 +342,8 @@ vmci_qp_guest_endpoints_exit(void)
 
 	vmci_mutex_acquire(&qp_guest_endpoints.mutex);
 
-	while ((entry =
-	    (struct qp_guest_endpoint *)queue_pair_list_get_head(
-	    &qp_guest_endpoints)) != NULL) {
+	while ((entry = (struct qp_guest_endpoint *)queue_pair_list_get_head(
+		    &qp_guest_endpoints)) != NULL) {
 		/*
 		 * Don't make a hypercall for local QueuePairs.
 		 */
@@ -432,17 +432,16 @@ qp_guest_endpoint_create(struct vmci_handle handle, vmci_id peer,
 		ASSERT(old_rid > VMCI_RESERVED_RESOURCE_ID_MAX);
 		do {
 			handle = VMCI_MAKE_HANDLE(context_id, queue_pair_rid);
-			entry =
-			    (struct qp_guest_endpoint *)
+			entry = (struct qp_guest_endpoint *)
 			    queue_pair_list_find_entry(&qp_guest_endpoints,
-			    handle);
+				handle);
 			queue_pair_rid++;
 			if (UNLIKELY(!queue_pair_rid)) {
 				/*
 				 * Skip the reserved rids.
 				 */
-				queue_pair_rid =
-				    VMCI_RESERVED_RESOURCE_ID_MAX + 1;
+				queue_pair_rid = VMCI_RESERVED_RESOURCE_ID_MAX +
+				    1;
 			}
 		} while (entry && queue_pair_rid != old_rid);
 
@@ -546,7 +545,8 @@ vmci_queue_pair_alloc_hypercall(const struct qp_guest_endpoint *entry)
 	alloc_msg->consume_size = entry->qp.consume_size;
 	alloc_msg->num_ppns = entry->num_ppns;
 	result = vmci_populate_ppn_list((uint8_t *)alloc_msg +
-	    sizeof(*alloc_msg), &entry->ppn_set);
+		sizeof(*alloc_msg),
+	    &entry->ppn_set);
 	if (result == VMCI_SUCCESS)
 		result = vmci_send_datagram((struct vmci_datagram *)alloc_msg);
 	vmci_free_kernel_mem(alloc_msg, msg_size);
@@ -585,8 +585,8 @@ vmci_queue_pair_alloc_guest_work(struct vmci_handle *handle,
 	const uint64_t num_produce_pages = CEILING(produce_size, PAGE_SIZE) + 1;
 	int result;
 
-	ASSERT(handle && produce_q && consume_q &&
-	    (produce_size || consume_size));
+	ASSERT(
+	    handle && produce_q && consume_q && (produce_size || consume_size));
 
 	if (priv_flags != VMCI_NO_PRIVILEGE_FLAGS)
 		return (VMCI_ERROR_NO_ACCESS);
@@ -594,7 +594,7 @@ vmci_queue_pair_alloc_guest_work(struct vmci_handle *handle,
 	vmci_mutex_acquire(&qp_guest_endpoints.mutex);
 
 	if ((atomic_load_int(&qp_guest_endpoints.hibernate) == 1) &&
-		 !(flags & VMCI_QPFLAG_LOCAL)) {
+	    !(flags & VMCI_QPFLAG_LOCAL)) {
 		/*
 		 * While guest OS is in hibernate state, creating non-local
 		 * queue pairs is not allowed after the point where the VMCI
@@ -606,14 +606,15 @@ vmci_queue_pair_alloc_guest_work(struct vmci_handle *handle,
 		goto error;
 	}
 
-	if ((queue_pair_entry =
-	    (struct qp_guest_endpoint *)queue_pair_list_find_entry(
-	    &qp_guest_endpoints, *handle)) != NULL) {
+	if ((queue_pair_entry = (struct qp_guest_endpoint *)
+		    queue_pair_list_find_entry(&qp_guest_endpoints, *handle)) !=
+	    NULL) {
 		if (queue_pair_entry->qp.flags & VMCI_QPFLAG_LOCAL) {
 			/* Local attach case. */
 			if (queue_pair_entry->qp.ref_count > 1) {
-				VMCI_LOG_DEBUG(LGPFX"Error attempting to "
-				    "attach more than once.\n");
+				VMCI_LOG_DEBUG(
+				    LGPFX "Error attempting to "
+					  "attach more than once.\n");
 				result = VMCI_ERROR_UNAVAILABLE;
 				goto error_keep_entry;
 			}
@@ -621,9 +622,10 @@ vmci_queue_pair_alloc_guest_work(struct vmci_handle *handle,
 			if (queue_pair_entry->qp.produce_size != consume_size ||
 			    queue_pair_entry->qp.consume_size != produce_size ||
 			    queue_pair_entry->qp.flags !=
-			    (flags & ~VMCI_QPFLAG_ATTACH_ONLY)) {
-				VMCI_LOG_DEBUG(LGPFX"Error mismatched "
-				    "queue pair in local attach.\n");
+				(flags & ~VMCI_QPFLAG_ATTACH_ONLY)) {
+				VMCI_LOG_DEBUG(
+				    LGPFX "Error mismatched "
+					  "queue pair in local attach.\n");
 				result = VMCI_ERROR_QUEUEPAIR_MISMATCH;
 				goto error_keep_entry;
 			}
@@ -645,16 +647,16 @@ vmci_queue_pair_alloc_guest_work(struct vmci_handle *handle,
 
 	my_produce_q = vmci_alloc_queue(produce_size, flags);
 	if (!my_produce_q) {
-		VMCI_LOG_WARNING(LGPFX"Error allocating pages for produce "
-		    "queue.\n");
+		VMCI_LOG_WARNING(LGPFX "Error allocating pages for produce "
+				       "queue.\n");
 		result = VMCI_ERROR_NO_MEM;
 		goto error;
 	}
 
 	my_consume_q = vmci_alloc_queue(consume_size, flags);
 	if (!my_consume_q) {
-		VMCI_LOG_WARNING(LGPFX"Error allocating pages for consume "
-		    "queue.\n");
+		VMCI_LOG_WARNING(LGPFX "Error allocating pages for consume "
+				       "queue.\n");
 		result = VMCI_ERROR_NO_MEM;
 		goto error;
 	}
@@ -662,7 +664,7 @@ vmci_queue_pair_alloc_guest_work(struct vmci_handle *handle,
 	queue_pair_entry = qp_guest_endpoint_create(*handle, peer, flags,
 	    produce_size, consume_size, my_produce_q, my_consume_q);
 	if (!queue_pair_entry) {
-		VMCI_LOG_WARNING(LGPFX"Error allocating memory in %s.\n",
+		VMCI_LOG_WARNING(LGPFX "Error allocating memory in %s.\n",
 		    __FUNCTION__);
 		result = VMCI_ERROR_NO_MEM;
 		goto error;
@@ -671,7 +673,7 @@ vmci_queue_pair_alloc_guest_work(struct vmci_handle *handle,
 	result = vmci_alloc_ppn_set(my_produce_q, num_produce_pages,
 	    my_consume_q, num_consume_pages, &queue_pair_entry->ppn_set);
 	if (result < VMCI_SUCCESS) {
-		VMCI_LOG_WARNING(LGPFX"vmci_alloc_ppn_set failed.\n");
+		VMCI_LOG_WARNING(LGPFX "vmci_alloc_ppn_set failed.\n");
 		goto error;
 	}
 
@@ -693,7 +695,7 @@ vmci_queue_pair_alloc_guest_work(struct vmci_handle *handle,
 		 */
 		if (queue_pair_entry->qp.handle.context != context_id ||
 		    (queue_pair_entry->qp.peer != VMCI_INVALID_ID &&
-		    queue_pair_entry->qp.peer != context_id)) {
+			queue_pair_entry->qp.peer != context_id)) {
 			result = VMCI_ERROR_NO_ACCESS;
 			goto error;
 		}
@@ -705,9 +707,10 @@ vmci_queue_pair_alloc_guest_work(struct vmci_handle *handle,
 	} else {
 		result = vmci_queue_pair_alloc_hypercall(queue_pair_entry);
 		if (result < VMCI_SUCCESS) {
-			VMCI_LOG_WARNING(
-			    LGPFX"vmci_queue_pair_alloc_hypercall result = "
-			    "%d.\n", result);
+			VMCI_LOG_WARNING(LGPFX
+			    "vmci_queue_pair_alloc_hypercall result = "
+			    "%d.\n",
+			    result);
 			goto error;
 		}
 	}
@@ -814,8 +817,8 @@ vmci_queue_pair_detach_guest_work(struct vmci_handle handle)
 
 	vmci_mutex_acquire(&qp_guest_endpoints.mutex);
 
-	entry = (struct qp_guest_endpoint *)queue_pair_list_find_entry(
-	    &qp_guest_endpoints, handle);
+	entry = (struct qp_guest_endpoint *)
+	    queue_pair_list_find_entry(&qp_guest_endpoints, handle);
 	if (!entry) {
 		vmci_mutex_release(&qp_guest_endpoints.mutex);
 		return (VMCI_ERROR_NOT_FOUND);
@@ -881,10 +884,10 @@ vmci_queue_pair_detach_guest_work(struct vmci_handle handle)
 
 	/* If we didn't remove the entry, this could change once we unlock. */
 	ref_count = entry ? entry->qp.ref_count :
-	    0xffffffff; /*
-			 * Value does not matter, silence the
-			 * compiler.
-			 */
+			    0xffffffff; /*
+					 * Value does not matter, silence the
+					 * compiler.
+					 */
 
 	vmci_mutex_release(&qp_guest_endpoints.mutex);
 
@@ -929,7 +932,7 @@ queue_pair_notify_peer_local(bool attach, struct vmci_handle handle)
 	e_msg->hdr.payload_size = sizeof(*e_msg) + sizeof(*e_payload) -
 	    sizeof(e_msg->hdr);
 	e_msg->event_data.event = attach ? VMCI_EVENT_QP_PEER_ATTACH :
-	    VMCI_EVENT_QP_PEER_DETACH;
+					   VMCI_EVENT_QP_PEER_DETACH;
 	e_payload->peer_id = context_id;
 	e_payload->handle = handle;
 

@@ -36,43 +36,41 @@
  */
 
 #include <sys/param.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
+#include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
 
 #include <machine/bus.h>
-#include <sys/bus.h>
-#include <sys/rman.h>
- 
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_media.h>
-#include <net/ethernet.h>
-
-#include <net80211/ieee80211_var.h>
 
 #include <dev/malo/if_malo.h>
-
-#include <dev/pci/pcivar.h>
 #include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_var.h>
+#include <net80211/ieee80211_var.h>
 
 /*
  * PCI glue.
  */
 
-#define MALO_RESOURCE_MAX		2
-#define MALO_MSI_MESSAGES		1
+#define MALO_RESOURCE_MAX 2
+#define MALO_MSI_MESSAGES 1
 
 struct malo_pci_softc {
-	struct malo_softc		malo_sc;
-	struct resource_spec		*malo_mem_spec;
-	struct resource			*malo_res_mem[MALO_RESOURCE_MAX];
-	struct resource_spec		*malo_irq_spec;
-	struct resource			*malo_res_irq[MALO_MSI_MESSAGES];
-	void				*malo_intrhand[MALO_MSI_MESSAGES];
-	int				malo_msi;
+	struct malo_softc malo_sc;
+	struct resource_spec *malo_mem_spec;
+	struct resource *malo_res_mem[MALO_RESOURCE_MAX];
+	struct resource_spec *malo_irq_spec;
+	struct resource *malo_res_irq[MALO_MSI_MESSAGES];
+	void *malo_intrhand[MALO_MSI_MESSAGES];
+	int malo_msi;
 };
 
 /*
@@ -82,48 +80,43 @@ SYSCTL_DECL(_hw_malo);
 static SYSCTL_NODE(_hw_malo, OID_AUTO, pci, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
     "Marvell 88W8335 driver PCI parameters");
 
-static int msi_disable = 0;				/* MSI disabled  */
-SYSCTL_INT(_hw_malo_pci, OID_AUTO, msi_disable, CTLFLAG_RWTUN, &msi_disable,
-	    0, "MSI disabled");
+static int msi_disable = 0; /* MSI disabled  */
+SYSCTL_INT(_hw_malo_pci, OID_AUTO, msi_disable, CTLFLAG_RWTUN, &msi_disable, 0,
+    "MSI disabled");
 
 /*
  * Devices supported by this driver.
  */
-#define	VENDORID_MARVELL		0X11AB
-#define	DEVICEID_MRVL_88W8310		0X1FA7
-#define	DEVICEID_MRVL_88W8335R1		0X1FAA
-#define	DEVICEID_MRVL_88W8335R2		0X1FAB
+#define VENDORID_MARVELL 0X11AB
+#define DEVICEID_MRVL_88W8310 0X1FA7
+#define DEVICEID_MRVL_88W8335R1 0X1FAA
+#define DEVICEID_MRVL_88W8335R2 0X1FAB
 
 static struct malo_product {
-	uint16_t			mp_vendorid;
-	uint16_t			mp_deviceid;
-	const char			*mp_name;
-} malo_products[] = {
-	{ VENDORID_MARVELL, DEVICEID_MRVL_88W8310,
-	    "Marvell Libertas 88W8310 802.11g Wireless Adapter" },
+	uint16_t mp_vendorid;
+	uint16_t mp_deviceid;
+	const char *mp_name;
+} malo_products[] = { { VENDORID_MARVELL, DEVICEID_MRVL_88W8310,
+			  "Marvell Libertas 88W8310 802.11g Wireless Adapter" },
 	{ VENDORID_MARVELL, DEVICEID_MRVL_88W8335R1,
 	    "Marvell Libertas 88W8335 802.11g Wireless Adapter" },
 	{ VENDORID_MARVELL, DEVICEID_MRVL_88W8335R2,
-	    "Marvell Libertas 88W8335 802.11g Wireless Adapter" }
-};
+	    "Marvell Libertas 88W8335 802.11g Wireless Adapter" } };
 
 static struct resource_spec malo_res_spec_mem[] = {
-	{ SYS_RES_MEMORY,	PCIR_BAR(0),	RF_ACTIVE },
-	{ SYS_RES_MEMORY,	PCIR_BAR(1),	RF_ACTIVE },
-	{ -1,			0,		0 }
+	{ SYS_RES_MEMORY, PCIR_BAR(0), RF_ACTIVE },
+	{ SYS_RES_MEMORY, PCIR_BAR(1), RF_ACTIVE }, { -1, 0, 0 }
 };
 
 static struct resource_spec malo_res_spec_legacy[] = {
-	{ SYS_RES_IRQ,		0,		RF_ACTIVE | RF_SHAREABLE },
-	{ -1,			0,		0 }
+	{ SYS_RES_IRQ, 0, RF_ACTIVE | RF_SHAREABLE }, { -1, 0, 0 }
 };
 
 static struct resource_spec malo_res_spec_msi[] = {
-	{ SYS_RES_IRQ,		1,		RF_ACTIVE },
-	{ -1,			0,		0 }
+	{ SYS_RES_IRQ, 1, RF_ACTIVE }, { -1, 0, 0 }
 };
 
-static int	malo_pci_detach(device_t);
+static int malo_pci_detach(device_t);
 
 static int
 malo_pci_probe(device_t dev)
@@ -154,10 +147,10 @@ malo_pci_attach(device_t dev)
 	struct malo_softc *sc = &psc->malo_sc;
 
 	sc->malo_dev = dev;
-	
+
 	pci_enable_busmaster(dev);
 
-	/* 
+	/*
 	 * Setup memory-mapping of PCI registers.
 	 */
 	psc->malo_mem_spec = malo_res_spec_mem;
@@ -215,18 +208,18 @@ malo_pci_attach(device_t dev)
 	/*
 	 * Setup DMA descriptor area.
 	 */
-	if (bus_dma_tag_create(bus_get_dma_tag(dev),	/* parent */
-			       1, 0,			/* alignment, bounds */
-			       BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-			       BUS_SPACE_MAXADDR,	/* highaddr */
-			       NULL, NULL,		/* filter, filterarg */
-			       BUS_SPACE_MAXSIZE,	/* maxsize */
-			       0,			/* nsegments */
-			       BUS_SPACE_MAXSIZE,	/* maxsegsize */
-			       0,			/* flags */
-			       NULL,			/* lockfunc */
-			       NULL,			/* lockarg */
-			       &sc->malo_dmat)) {
+	if (bus_dma_tag_create(bus_get_dma_tag(dev), /* parent */
+		1, 0,				     /* alignment, bounds */
+		BUS_SPACE_MAXADDR_32BIT,	     /* lowaddr */
+		BUS_SPACE_MAXADDR,		     /* highaddr */
+		NULL, NULL,			     /* filter, filterarg */
+		BUS_SPACE_MAXSIZE,		     /* maxsize */
+		0,				     /* nsegments */
+		BUS_SPACE_MAXSIZE,		     /* maxsegsize */
+		0,				     /* flags */
+		NULL,				     /* lockfunc */
+		NULL,				     /* lockarg */
+		&sc->malo_dmat)) {
 		device_printf(dev, "cannot allocate DMA tag\n");
 		goto bad1;
 	}
@@ -327,22 +320,18 @@ malo_pci_resume(device_t dev)
 
 static device_method_t malo_pci_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		malo_pci_probe),
-	DEVMETHOD(device_attach,	malo_pci_attach),
-	DEVMETHOD(device_detach,	malo_pci_detach),
-	DEVMETHOD(device_shutdown,	malo_pci_shutdown),
-	DEVMETHOD(device_suspend,	malo_pci_suspend),
-	DEVMETHOD(device_resume,	malo_pci_resume),
-	{ 0,0 }
+	DEVMETHOD(device_probe, malo_pci_probe),
+	DEVMETHOD(device_attach, malo_pci_attach),
+	DEVMETHOD(device_detach, malo_pci_detach),
+	DEVMETHOD(device_shutdown, malo_pci_shutdown),
+	DEVMETHOD(device_suspend, malo_pci_suspend),
+	DEVMETHOD(device_resume, malo_pci_resume), { 0, 0 }
 };
 
-static driver_t malo_pci_driver = {
-	"malo",
-	malo_pci_methods,
-	sizeof(struct malo_pci_softc)
-};
+static driver_t malo_pci_driver = { "malo", malo_pci_methods,
+	sizeof(struct malo_pci_softc) };
 
 DRIVER_MODULE(malo, pci, malo_pci_driver, 0, 0);
 MODULE_VERSION(malo, 1);
-MODULE_DEPEND(malo, wlan, 1, 1, 1);		/* 802.11 media layer */
+MODULE_DEPEND(malo, wlan, 1, 1, 1); /* 802.11 media layer */
 MODULE_DEPEND(malo, firmware, 1, 1, 1);

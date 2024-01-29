@@ -29,39 +29,39 @@
  */
 
 #ifndef __VMD_PRIVATE_H__
-#define	__VMD_PRIVATE_H__
+#define __VMD_PRIVATE_H__
 
 #include <dev/pci/pcib_private.h>
 
 struct vmd_irq_user {
-	LIST_ENTRY(vmd_irq_user)	viu_link;
-	device_t			viu_child;
-	int				viu_vector;
+	LIST_ENTRY(vmd_irq_user) viu_link;
+	device_t viu_child;
+	int viu_vector;
 };
 
 struct vmd_irq {
-	struct resource			*vi_res;
-	int				vi_rid;
-	int				vi_irq;
-	void				*vi_handle;
-	int				vi_nusers;
+	struct resource *vi_res;
+	int vi_rid;
+	int vi_irq;
+	void *vi_handle;
+	int vi_nusers;
 };
 
 struct vmd_softc {
-	struct pcib_softc		psc;
+	struct pcib_softc psc;
 
-#define VMD_MAX_BAR		3
-	int				vmd_regs_rid[VMD_MAX_BAR];
-	struct resource			*vmd_regs_res[VMD_MAX_BAR];
-	bus_space_handle_t		vmd_bhandle;
-	bus_space_tag_t			vmd_btag;
-	struct vmd_irq			*vmd_irq;
-	LIST_HEAD(,vmd_irq_user)	vmd_users;
-	int				vmd_fist_vector;
-	int				vmd_msix_count;
-	uint8_t				vmd_bus_start;
-	uint8_t				vmd_bus_end;
-	bus_dma_tag_t			vmd_dma_tag;
+#define VMD_MAX_BAR 3
+	int vmd_regs_rid[VMD_MAX_BAR];
+	struct resource *vmd_regs_res[VMD_MAX_BAR];
+	bus_space_handle_t vmd_bhandle;
+	bus_space_tag_t vmd_btag;
+	struct vmd_irq *vmd_irq;
+	LIST_HEAD(, vmd_irq_user) vmd_users;
+	int vmd_fist_vector;
+	int vmd_msix_count;
+	uint8_t vmd_bus_start;
+	uint8_t vmd_bus_end;
+	bus_dma_tag_t vmd_dma_tag;
 };
 
 #endif

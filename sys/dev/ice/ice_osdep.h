@@ -39,20 +39,22 @@
 #ifndef _ICE_OSDEP_H_
 #define _ICE_OSDEP_H_
 
-#include <sys/endian.h>
 #include <sys/param.h>
-#include <sys/kernel.h>
-#include <sys/malloc.h>
-#include <sys/proc.h>
 #include <sys/systm.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
 #include <sys/bus.h>
-#include <machine/bus.h>
 #include <sys/bus_dma.h>
-#include <netinet/in.h>
 #include <sys/counter.h>
+#include <sys/endian.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mutex.h>
+#include <sys/proc.h>
 #include <sys/sbuf.h>
+
+#include <machine/bus.h>
+
+#include <netinet/in.h>
 
 #include "ice_alloc.h"
 
@@ -65,11 +67,12 @@ struct ice_hw;
 device_t ice_hw_to_dev(struct ice_hw *hw);
 
 /* configure hw->debug_mask to enable debug prints */
-void ice_debug(struct ice_hw *hw, uint64_t mask, char *fmt, ...) __printflike(3, 4);
+void ice_debug(struct ice_hw *hw, uint64_t mask, char *fmt, ...)
+    __printflike(3, 4);
 void ice_debug_array(struct ice_hw *hw, uint64_t mask, uint32_t rowsize,
-		     uint32_t groupsize, uint8_t *buf, size_t len);
+    uint32_t groupsize, uint8_t *buf, size_t len);
 void ice_info_fwlog(struct ice_hw *hw, uint32_t rowsize, uint32_t groupsize,
-		    uint8_t *buf, size_t len);
+    uint8_t *buf, size_t len);
 
 #define ice_fls(_n) flsl(_n)
 
@@ -134,7 +137,7 @@ ice_malloc(struct ice_hw __unused *hw, size_t size)
  */
 static inline void *
 ice_memdup(struct ice_hw __unused *hw, const void *src, size_t size,
-	   enum ice_memcpy_type __unused dir)
+    enum ice_memcpy_type __unused dir)
 {
 	void *dst = malloc(size, M_ICE_OSDEP, M_NOWAIT);
 
@@ -158,7 +161,8 @@ ice_free(struct ice_hw __unused *hw, void *mem)
 	free(mem, M_ICE_OSDEP);
 }
 
-/* These are macros in order to drop the unused direction enumeration constant */
+/* These are macros in order to drop the unused direction enumeration constant
+ */
 #define ice_memset(addr, c, len, unused) memset((addr), (c), (len))
 #define ice_memcpy(dst, src, len, unused) memcpy((dst), (src), (len))
 
@@ -168,33 +172,38 @@ void ice_msec_pause(uint32_t time);
 void ice_msec_spin(uint32_t time);
 
 #define UNREFERENCED_PARAMETER(_p) _p = _p
-#define UNREFERENCED_1PARAMETER(_p) do {			\
-	UNREFERENCED_PARAMETER(_p);				\
-} while (0)
-#define UNREFERENCED_2PARAMETER(_p, _q) do {			\
-	UNREFERENCED_PARAMETER(_p);				\
-	UNREFERENCED_PARAMETER(_q);				\
-} while (0)
-#define UNREFERENCED_3PARAMETER(_p, _q, _r) do {		\
-	UNREFERENCED_PARAMETER(_p);				\
-	UNREFERENCED_PARAMETER(_q);				\
-	UNREFERENCED_PARAMETER(_r);				\
-} while (0)
-#define UNREFERENCED_4PARAMETER(_p, _q, _r, _s) do {		\
-	UNREFERENCED_PARAMETER(_p);				\
-	UNREFERENCED_PARAMETER(_q);				\
-	UNREFERENCED_PARAMETER(_r);				\
-	UNREFERENCED_PARAMETER(_s);				\
-} while (0)
-#define UNREFERENCED_5PARAMETER(_p, _q, _r, _s, _t) do {	\
-	UNREFERENCED_PARAMETER(_p);				\
-	UNREFERENCED_PARAMETER(_q);				\
-	UNREFERENCED_PARAMETER(_r);				\
-	UNREFERENCED_PARAMETER(_s);				\
-	UNREFERENCED_PARAMETER(_t);				\
-} while (0)
+#define UNREFERENCED_1PARAMETER(_p)         \
+	do {                                \
+		UNREFERENCED_PARAMETER(_p); \
+	} while (0)
+#define UNREFERENCED_2PARAMETER(_p, _q)     \
+	do {                                \
+		UNREFERENCED_PARAMETER(_p); \
+		UNREFERENCED_PARAMETER(_q); \
+	} while (0)
+#define UNREFERENCED_3PARAMETER(_p, _q, _r) \
+	do {                                \
+		UNREFERENCED_PARAMETER(_p); \
+		UNREFERENCED_PARAMETER(_q); \
+		UNREFERENCED_PARAMETER(_r); \
+	} while (0)
+#define UNREFERENCED_4PARAMETER(_p, _q, _r, _s) \
+	do {                                    \
+		UNREFERENCED_PARAMETER(_p);     \
+		UNREFERENCED_PARAMETER(_q);     \
+		UNREFERENCED_PARAMETER(_r);     \
+		UNREFERENCED_PARAMETER(_s);     \
+	} while (0)
+#define UNREFERENCED_5PARAMETER(_p, _q, _r, _s, _t) \
+	do {                                        \
+		UNREFERENCED_PARAMETER(_p);         \
+		UNREFERENCED_PARAMETER(_q);         \
+		UNREFERENCED_PARAMETER(_r);         \
+		UNREFERENCED_PARAMETER(_s);         \
+		UNREFERENCED_PARAMETER(_t);         \
+	} while (0)
 
-#define FIELD_SIZEOF(t, f) (sizeof(((t*)0)->f))
+#define FIELD_SIZEOF(t, f) (sizeof(((t *)0)->f))
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 #define MAKEMASK(_m, _s) ((_m) << (_s))
 
@@ -229,22 +238,24 @@ LIST_HEAD(ice_list_head, ice_list_node);
 #define LIST_ADD(entry, head) LIST_INSERT_HEAD(head, entry, entries)
 #define LIST_ADD_AFTER(entry, elem) LIST_INSERT_AFTER(elem, entry, entries)
 #define LIST_DEL(entry) LIST_REMOVE(entry, entries)
-#define _osdep_LIST_ENTRY(ptr, type, member) \
-	__containerof(ptr, type, member)
+#define _osdep_LIST_ENTRY(ptr, type, member) __containerof(ptr, type, member)
 #define LIST_FIRST_ENTRY(head, type, member) \
 	_osdep_LIST_ENTRY(LIST_FIRST(head), type, member)
-#define LIST_NEXT_ENTRY(ptr, unused, member) \
-	_osdep_LIST_ENTRY(LIST_NEXT(&(ptr->member), entries), __typeof(*ptr), member)
-#define LIST_REPLACE_INIT(old_head, new_head) do {			\
-	__typeof(new_head) _new_head = (new_head);			\
-	LIST_INIT(_new_head);						\
-	LIST_SWAP(old_head, _new_head, ice_list_node, entries);		\
-} while (0)
+#define LIST_NEXT_ENTRY(ptr, unused, member)                                  \
+	_osdep_LIST_ENTRY(LIST_NEXT(&(ptr->member), entries), __typeof(*ptr), \
+	    member)
+#define LIST_REPLACE_INIT(old_head, new_head)                           \
+	do {                                                            \
+		__typeof(new_head) _new_head = (new_head);              \
+		LIST_INIT(_new_head);                                   \
+		LIST_SWAP(old_head, _new_head, ice_list_node, entries); \
+	} while (0)
 
-#define LIST_ENTRY_SAFE(_ptr, _type, _member) \
-({ __typeof(_ptr) ____ptr = (_ptr); \
-   ____ptr ? _osdep_LIST_ENTRY(____ptr, _type, _member) : NULL; \
-})
+#define LIST_ENTRY_SAFE(_ptr, _type, _member)                                \
+	({                                                                   \
+		__typeof(_ptr) ____ptr = (_ptr);                             \
+		____ptr ? _osdep_LIST_ENTRY(____ptr, _type, _member) : NULL; \
+	})
 
 /**
  * ice_get_list_tail - Return the pointer to the last node in the list
@@ -275,15 +286,16 @@ ice_get_list_tail(struct ice_list_head *head)
 
 /* TODO: This is O(N). An O(1) implementation would require a different
  * underlying list structure, such as a circularly linked list. */
-#define LIST_ADD_TAIL(entry, head) do {					\
-	struct ice_list_node *node = ice_get_list_tail(head);		\
-									\
-	if (node == NULL) {						\
-		LIST_ADD(entry, head);					\
-	} else {							\
-		LIST_INSERT_AFTER(node, entry, entries);		\
-	}								\
-} while (0)
+#define LIST_ADD_TAIL(entry, head)                                    \
+	do {                                                          \
+		struct ice_list_node *node = ice_get_list_tail(head); \
+                                                                      \
+		if (node == NULL) {                                   \
+			LIST_ADD(entry, head);                        \
+		} else {                                              \
+			LIST_INSERT_AFTER(node, entry, entries);      \
+		}                                                     \
+	} while (0)
 
 #define LIST_LAST_ENTRY(head, type, member) \
 	LIST_ENTRY_SAFE(ice_get_list_tail(head), type, member)
@@ -291,17 +303,20 @@ ice_get_list_tail(struct ice_list_head *head)
 #define LIST_FIRST_ENTRY_SAFE(head, type, member) \
 	LIST_ENTRY_SAFE(LIST_FIRST(head), type, member)
 
-#define LIST_NEXT_ENTRY_SAFE(ptr, member) \
-	LIST_ENTRY_SAFE(LIST_NEXT(&(ptr->member), entries), __typeof(*ptr), member)
+#define LIST_NEXT_ENTRY_SAFE(ptr, member)                                   \
+	LIST_ENTRY_SAFE(LIST_NEXT(&(ptr->member), entries), __typeof(*ptr), \
+	    member)
 
-#define LIST_FOR_EACH_ENTRY(pos, head, unused, member) \
-	for (pos = LIST_FIRST_ENTRY_SAFE(head, __typeof(*pos), member);		\
-	    pos;								\
-	    pos = LIST_NEXT_ENTRY_SAFE(pos, member))
+#define LIST_FOR_EACH_ENTRY(pos, head, unused, member)                       \
+	for (pos = LIST_FIRST_ENTRY_SAFE(head, __typeof(*pos), member); pos; \
+	     pos = LIST_NEXT_ENTRY_SAFE(pos, member))
 
-#define LIST_FOR_EACH_ENTRY_SAFE(pos, n, head, unused, member) \
-	for (pos = LIST_FIRST_ENTRY_SAFE(head, __typeof(*pos), member);		\
-	     pos && ({ n = LIST_NEXT_ENTRY_SAFE(pos, member); 1; });		\
+#define LIST_FOR_EACH_ENTRY_SAFE(pos, n, head, unused, member)          \
+	for (pos = LIST_FIRST_ENTRY_SAFE(head, __typeof(*pos), member); \
+	     pos && ({                                                  \
+		     n = LIST_NEXT_ENTRY_SAFE(pos, member);             \
+		     1;                                                 \
+	     });                                                        \
 	     pos = n)
 
 #define STATIC static
@@ -325,7 +340,7 @@ ice_get_list_tail(struct ice_list_head *head)
  * @typedef u8
  * @brief compatibility typedef for uint8_t
  */
-typedef uint8_t  u8;
+typedef uint8_t u8;
 
 /**
  * @typedef u16
@@ -349,7 +364,7 @@ typedef uint64_t u64;
  * @typedef s8
  * @brief compatibility typedef for int8_t
  */
-typedef int8_t  s8;
+typedef int8_t s8;
 
 /**
  * @typedef s16
@@ -392,13 +407,12 @@ struct ice_dma_mem {
 	uint64_t pa;
 	size_t size;
 
-	bus_dma_tag_t		tag;
-	bus_dmamap_t		map;
-	bus_dma_segment_t	seg;
+	bus_dma_tag_t tag;
+	bus_dmamap_t map;
+	bus_dma_segment_t seg;
 };
 
-
-void * ice_alloc_dma_mem(struct ice_hw *hw, struct ice_dma_mem *mem, u64 size);
+void *ice_alloc_dma_mem(struct ice_hw *hw, struct ice_dma_mem *mem, u64 size);
 void ice_free_dma_mem(struct ice_hw __unused *hw, struct ice_dma_mem *mem);
 
 /**
@@ -498,7 +512,8 @@ ice_destroy_lock(struct ice_lock *lock)
  *
  */
 static inline int
-ice_ilog2(u64 n) {
+ice_ilog2(u64 n)
+{
 	if (n == 0)
 		return 0;
 	return flsll(n) - 1;
@@ -516,7 +531,8 @@ ice_ilog2(u64 n) {
  * @returns true or false
  */
 static inline bool
-ice_is_pow2(u64 n) {
+ice_is_pow2(u64 n)
+{
 	if (n == 0)
 		return false;
 	return powerof2(n);

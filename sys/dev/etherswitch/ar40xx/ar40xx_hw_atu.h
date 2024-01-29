@@ -24,14 +24,13 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#ifndef	__AR40XX_HW_ATU_H__
-#define	__AR40XX_HW_ATU_H__
+#ifndef __AR40XX_HW_ATU_H__
+#define __AR40XX_HW_ATU_H__
 
-extern	int ar40xx_hw_atu_wait_busy(struct ar40xx_softc *sc);
-extern	int ar40xx_hw_atu_flush_all(struct ar40xx_softc *sc);
-extern	int ar40xx_hw_atu_flush_port(struct ar40xx_softc *sc, int port);
-extern	int ar40xx_hw_atu_fetch_entry(struct ar40xx_softc *sc,
-	    etherswitch_atu_entry_t *e, int atu_fetch_op);
+extern int ar40xx_hw_atu_wait_busy(struct ar40xx_softc *sc);
+extern int ar40xx_hw_atu_flush_all(struct ar40xx_softc *sc);
+extern int ar40xx_hw_atu_flush_port(struct ar40xx_softc *sc, int port);
+extern int ar40xx_hw_atu_fetch_entry(struct ar40xx_softc *sc,
+    etherswitch_atu_entry_t *e, int atu_fetch_op);
 
-#endif	/* __AR40XX_HW_ATU_H__ */
-
+#endif /* __AR40XX_HW_ATU_H__ */

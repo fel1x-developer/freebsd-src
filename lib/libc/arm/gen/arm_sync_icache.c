@@ -26,16 +26,18 @@
  */
 
 #include <sys/types.h>
+
 #include <machine/sysarch.h>
+
 #include <stddef.h>
 
 int
 arm_sync_icache(u_int addr, int len)
 {
 	struct arm_sync_icache_args args;
-	
+
 	args.addr = addr;
-	args.len  = len;
+	args.len = len;
 	sysarch(ARM_SYNC_ICACHE, &args);
 	return (0);
 }

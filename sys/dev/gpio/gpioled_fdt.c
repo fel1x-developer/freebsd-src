@@ -24,9 +24,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -38,26 +38,23 @@
 #include <sys/mutex.h>
 
 #include <dev/fdt/fdt_common.h>
-#include <dev/ofw/ofw_bus.h>
-
 #include <dev/gpio/gpiobusvar.h>
 #include <dev/led/led.h>
+#include <dev/ofw/ofw_bus.h>
 
 #include "gpiobus_if.h"
 
-struct gpioled
-{
-	struct gpioleds_softc	*parent_sc;
-	gpio_pin_t		pin;
-	struct cdev		*leddev;
+struct gpioled {
+	struct gpioleds_softc *parent_sc;
+	gpio_pin_t pin;
+	struct cdev *leddev;
 };
 
-struct gpioleds_softc
-{
-	device_t	sc_dev;
-	device_t	sc_busdev;
-	struct gpioled	*sc_leds;
-	int		sc_total_leds;
+struct gpioleds_softc {
+	device_t sc_dev;
+	device_t sc_busdev;
+	struct gpioled *sc_leds;
+	int sc_total_leds;
 };
 
 static void gpioled_control(void *, int);
@@ -86,8 +83,8 @@ gpioleds_attach_led(struct gpioleds_softc *sc, phandle_t node,
 	led->parent_sc = sc;
 
 	state = 0;
-	if (OF_getprop_alloc(node, "default-state",
-	    (void **)&default_state) != -1) {
+	if (OF_getprop_alloc(node, "default-state", (void **)&default_state) !=
+	    -1) {
 		if (strcasecmp(default_state, "on") == 0)
 			state = 1;
 		else if (strcasecmp(default_state, "off") == 0)
@@ -121,8 +118,7 @@ gpioleds_attach_led(struct gpioleds_softc *sc, phandle_t node,
 	}
 	gpio_pin_setflags(led->pin, GPIO_PIN_OUTPUT);
 
-	led->leddev = led_create_state(gpioled_control, led, name,
-	    state);
+	led->leddev = led_create_state(gpioled_control, led, name, state);
 
 	if (name != NULL)
 		OF_prop_free(name);
@@ -175,15 +171,17 @@ gpioled_attach(device_t dev)
 	}
 
 	if (total_leds) {
-		sc->sc_leds =  malloc(sizeof(struct gpioled) * total_leds,
+		sc->sc_leds = malloc(sizeof(struct gpioled) * total_leds,
 		    M_DEVBUF, M_WAITOK | M_ZERO);
 
 		sc->sc_total_leds = 0;
 		/* Traverse the 'gpio-leds' node and count leds */
-		for (child = OF_child(leds); child != 0; child = OF_peer(child)) {
+		for (child = OF_child(leds); child != 0;
+		     child = OF_peer(child)) {
 			if (!OF_hasprop(child, "gpios"))
 				continue;
-			gpioleds_attach_led(sc, child, &sc->sc_leds[sc->sc_total_leds]);
+			gpioleds_attach_led(sc, child,
+			    &sc->sc_leds[sc->sc_total_leds]);
 			sc->sc_total_leds++;
 		}
 	}
@@ -210,9 +208,9 @@ gpioled_detach(device_t dev)
 
 static device_method_t gpioled_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		gpioled_probe),
-	DEVMETHOD(device_attach,	gpioled_attach),
-	DEVMETHOD(device_detach,	gpioled_detach),
+	DEVMETHOD(device_probe, gpioled_probe),
+	DEVMETHOD(device_attach, gpioled_attach),
+	DEVMETHOD(device_detach, gpioled_detach),
 
 	DEVMETHOD_END
 };

@@ -27,26 +27,30 @@
  */
 
 #include <sys/param.h>
-#include <sys/module.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/ata.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
-#include <sys/malloc.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/rman.h>
 #include <sys/sema.h>
 #include <sys/taskqueue.h>
+
 #include <vm/uma.h>
-#include <machine/stdarg.h>
-#include <machine/resource.h>
+
 #include <machine/bus.h>
-#include <sys/rman.h>
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
+#include <machine/resource.h>
+#include <machine/stdarg.h>
+
 #include <dev/ata/ata-all.h>
 #include <dev/ata/ata-pci.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
 #include <ata_if.h>
 
 /*
@@ -55,16 +59,16 @@
 static int
 ata_micron_probe(device_t dev)
 {
-    struct ata_pci_controller *ctlr = device_get_softc(dev);
+	struct ata_pci_controller *ctlr = device_get_softc(dev);
 
-    if (pci_get_devid(dev) == ATA_MICRON_RZ1000 ||
-	pci_get_devid(dev) == ATA_MICRON_RZ1001) {
-	device_set_desc(dev,
-	    "RZ 100? ATA controller !WARNING! data loss/corruption risk");
-	ctlr->chipinit = ata_generic_chipinit;
-	return (BUS_PROBE_LOW_PRIORITY);
-    }
-    return (ENXIO);
+	if (pci_get_devid(dev) == ATA_MICRON_RZ1000 ||
+	    pci_get_devid(dev) == ATA_MICRON_RZ1001) {
+		device_set_desc(dev,
+		    "RZ 100? ATA controller !WARNING! data loss/corruption risk");
+		ctlr->chipinit = ata_generic_chipinit;
+		return (BUS_PROBE_LOW_PRIORITY);
+	}
+	return (ENXIO);
 }
 
 ATA_DECLARE_DRIVER(ata_micron);

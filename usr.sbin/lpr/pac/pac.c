@@ -30,7 +30,7 @@
  * SUCH DAMAGE.
  */
 
-#include "lp.cdefs.h"		/* A cross-platform version of <sys/cdefs.h> */
+#include "lp.cdefs.h" /* A cross-platform version of <sys/cdefs.h> */
 /*
  * Do Printer accounting summary.
  * Currently, usage is
@@ -42,26 +42,27 @@
 
 #include <dirent.h>
 #include <err.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "lp.h"
 #include "lp.local.h"
 
-static char	*acctfile;	/* accounting file (input data) */
-static int	 allflag = 1;	/* Get stats on everybody */
-static int	 errs;
-static size_t	 hcount;	/* Count of hash entries */
-static int	 mflag = 0;	/* disregard machine names */
-static int	 pflag = 0;	/* 1 if -p on cmd line */
-static float	 price = 0.02;	/* cost per page (or what ever) */
-static int	 reverse;	/* Reverse sort order */
-static int	 sort;		/* Sort by cost */
-static char	*sumfile;	/* summary file */
-static int	 summarize;	/* Compress accounting file */
+static char *acctfile;	/* accounting file (input data) */
+static int allflag = 1; /* Get stats on everybody */
+static int errs;
+static size_t hcount;	   /* Count of hash entries */
+static int mflag = 0;	   /* disregard machine names */
+static int pflag = 0;	   /* 1 if -p on cmd line */
+static float price = 0.02; /* cost per page (or what ever) */
+static int reverse;	   /* Reverse sort order */
+static int sort;	   /* Sort by cost */
+static char *sumfile;	   /* summary file */
+static int summarize;	   /* Compress accounting file */
 
-uid_t	uid, euid;
+uid_t uid, euid;
 
 /*
  * Grossness follows:
@@ -69,28 +70,28 @@ uid_t	uid, euid;
  *  table.
  */
 
-#define	HSHSIZE	97			/* Number of hash buckets */
+#define HSHSIZE 97 /* Number of hash buckets */
 
 struct hent {
-	struct	hent *h_link;		/* Forward hash link */
-	char	*h_name;		/* Name of this user */
-	float	h_feetpages;		/* Feet or pages of paper */
-	int	h_count;		/* Number of runs */
+	struct hent *h_link; /* Forward hash link */
+	char *h_name;	     /* Name of this user */
+	float h_feetpages;   /* Feet or pages of paper */
+	int h_count;	     /* Number of runs */
 };
 
-static struct	hent	*hashtab[HSHSIZE];	/* Hash table proper */
+static struct hent *hashtab[HSHSIZE]; /* Hash table proper */
 
-int		 main(int argc, char **_argv);
-static void	 account(FILE *_acctf);
-static int	 any(int _ch, const char _str[]);
-static int	 chkprinter(const char *_ptrname);
-static void	 dumpit(void);
-static int	 hash(const char _name[]);
-static struct hent 	*enter(const char _name[]);
-static struct hent 	*lookup(const char _name[]);
-static int	 qucmp(const void *_a, const void *_b);
-static void	 rewrite(void);
-static void	 usage(void);
+int main(int argc, char **_argv);
+static void account(FILE *_acctf);
+static int any(int _ch, const char _str[]);
+static int chkprinter(const char *_ptrname);
+static void dumpit(void);
+static int hash(const char _name[]);
+static struct hent *enter(const char _name[]);
+static struct hent *lookup(const char _name[]);
+static int qucmp(const void *_a, const void *_b);
+static void rewrite(void);
+static void usage(void);
 
 int
 main(int argc, char **argv)
@@ -99,12 +100,12 @@ main(int argc, char **argv)
 	const char *cp, *printer;
 
 	printer = NULL;
-	euid = geteuid();	/* these aren't used in pac(1) */
+	euid = geteuid(); /* these aren't used in pac(1) */
 	uid = getuid();
 	while (--argc) {
 		cp = *++argv;
 		if (*cp++ == '-') {
-			switch(*cp++) {
+			switch (*cp++) {
 			case 'P':
 				/*
 				 * Printer name.
@@ -152,7 +153,7 @@ main(int argc, char **argv)
 				usage();
 			}
 		}
-		(void) enter(--cp);
+		(void)enter(--cp);
 		allflag = 0;
 	}
 	if (printer == NULL && (printer = getenv("PRINTER")) == NULL)
@@ -183,7 +184,7 @@ static void
 usage(void)
 {
 	fprintf(stderr,
-	"usage: pac [-Pprinter] [-pprice] [-s] [-c] [-r] [-m] [user ...]\n");
+	    "usage: pac [-Pprinter] [-pprice] [-s] [-c] [-r] [-m] [user ...]\n");
 	exit(1);
 }
 
@@ -218,7 +219,7 @@ account(FILE *acctf)
 		ic = atoi(cp2);
 		*cp2 = '\0';
 		if (mflag && strchr(cp, ':'))
-		    cp = strchr(cp, ':') + 1;
+			cp = strchr(cp, ':') + 1;
 		hp = lookup(cp);
 		if (hp == NULL) {
 			if (!allflag)
@@ -248,7 +249,7 @@ dumpit(void)
 
 	hp = hashtab[0];
 	hno = 1;
-	base = (struct hent **) calloc(sizeof hp, hcount);
+	base = (struct hent **)calloc(sizeof hp, hcount);
 	for (ap = base, c = hcount; c--; ap++) {
 		while (hp == NULL)
 			hp = hashtab[hno++];
@@ -268,8 +269,8 @@ dumpit(void)
 	}
 	if (allflag) {
 		printf("\n");
-		printf("%-24s %7.2f %4d   $%6.2f\n", "total", feet,
-		    runs, feet * price);
+		printf("%-24s %7.2f %4d   $%6.2f\n", "total", feet, runs,
+		    feet * price);
 	}
 }
 
@@ -323,17 +324,17 @@ enter(const char name[])
 	register int h;
 
 	if ((hp = lookup(name)) != NULL)
-		return(hp);
+		return (hp);
 	h = hash(name);
 	hcount++;
-	hp = (struct hent *) calloc(sizeof *hp, (size_t)1);
-	hp->h_name = (char *) calloc(sizeof(char), strlen(name)+1);
+	hp = (struct hent *)calloc(sizeof *hp, (size_t)1);
+	hp->h_name = (char *)calloc(sizeof(char), strlen(name) + 1);
 	strcpy(hp->h_name, name);
 	hp->h_feetpages = 0.0;
 	hp->h_count = 0;
 	hp->h_link = hashtab[h];
 	hashtab[h] = hp;
-	return(hp);
+	return (hp);
 }
 
 /*
@@ -350,8 +351,8 @@ lookup(const char name[])
 	h = hash(name);
 	for (hp = hashtab[h]; hp != NULL; hp = hp->h_link)
 		if (strcmp(hp->h_name, name) == 0)
-			return(hp);
-	return(NULL);
+			return (hp);
+	return (NULL);
 }
 
 /*
@@ -366,7 +367,7 @@ hash(const char name[])
 
 	for (cp = name, h = 0; *cp; h = (h << 2) + *cp++)
 		;
-	return((h & 0x7fffffff) % HSHSIZE);
+	return ((h & 0x7fffffff) % HSHSIZE);
 }
 
 /*
@@ -380,8 +381,8 @@ any(int ch, const char str[])
 
 	while (*cp)
 		if (*cp++ == c)
-			return(1);
-	return(0);
+			return (1);
+	return (0);
 }
 
 /*
@@ -395,14 +396,15 @@ qucmp(const void *a, const void *b)
 	register const struct hent *h1, *h2;
 	register int r;
 
-	h1 = *(const struct hent * const *)a;
-	h2 = *(const struct hent * const *)b;
+	h1 = *(const struct hent *const *)a;
+	h2 = *(const struct hent *const *)b;
 	if (sort)
 		r = h1->h_feetpages < h2->h_feetpages ?
-		    -1 : h1->h_feetpages > h2->h_feetpages;
+		    -1 :
+		    h1->h_feetpages > h2->h_feetpages;
 	else
 		r = strcmp(h1->h_name, h2->h_name);
-	return(reverse ? -r : r);
+	return (reverse ? -r : r);
 }
 
 /*
@@ -416,7 +418,7 @@ chkprinter(const char *ptrname)
 
 	init_printer(&myprinter);
 	stat = getprintcap(ptrname, pp);
-	switch(stat) {
+	switch (stat) {
 	case PCAPERR_OSERR:
 		printf("pac: getprintcap: %s\n", pcaperr(stat));
 		exit(3);
@@ -428,11 +430,11 @@ chkprinter(const char *ptrname)
 	if ((acctfile = pp->acct_file) == NULL)
 		errx(3, "accounting not enabled for printer %s", ptrname);
 	if (!pflag && pp->price100)
-		price = pp->price100/10000.0;
-	sumfile = (char *) calloc(sizeof(char), strlen(acctfile)+5);
+		price = pp->price100 / 10000.0;
+	sumfile = (char *)calloc(sizeof(char), strlen(acctfile) + 5);
 	if (sumfile == NULL)
 		errx(1, "calloc failed");
 	strcpy(sumfile, acctfile);
 	strcat(sumfile, "_sum");
-	return(1);
+	return (1);
 }

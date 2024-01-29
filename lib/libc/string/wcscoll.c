@@ -36,6 +36,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+
 #include "collate.h"
 
 int
@@ -47,8 +48,8 @@ wcscoll_l(const wchar_t *ws1, const wchar_t *ws2, locale_t locale)
 	int ret = wcscmp(ws1, ws2);
 
 	FIX_LOCALE(locale);
-	struct xlocale_collate *table =
-		(struct xlocale_collate*)locale->components[XLC_COLLATE];
+	struct xlocale_collate *table = (struct xlocale_collate *)
+					    locale->components[XLC_COLLATE];
 
 	if (table->__collate_load_error || ret == 0)
 		return (ret);
@@ -74,8 +75,8 @@ wcscoll_l(const wchar_t *ws1, const wchar_t *ws2, locale_t locale)
 
 		const int32_t *st1 = NULL;
 		const int32_t *st2 = NULL;
-		const wchar_t	*w1 = ws1;
-		const wchar_t	*w2 = ws2;
+		const wchar_t *w1 = ws1;
+		const wchar_t *w2 = ws2;
 
 		/* special pass for UNDEFINED */
 		if (pass == table->info->directive_count) {
@@ -117,27 +118,29 @@ wcscoll_l(const wchar_t *ws1, const wchar_t *ws2, locale_t locale)
 				check1 = check2 = 1;
 				while ((pri1 == pri2) && (check1 || check2)) {
 					if (check1) {
-						_collate_lookup(table, w1, &len1,
-						    &pri1, pass, &st1);
+						_collate_lookup(table, w1,
+						    &len1, &pri1, pass, &st1);
 						if (pri1 < 0) {
 							errno = EINVAL;
 							goto end;
 						}
 						if (!pri1) {
-							pri1 = COLLATE_MAX_PRIORITY;
+							pri1 =
+							    COLLATE_MAX_PRIORITY;
 							st1 = NULL;
 						}
 						check1 = (st1 != NULL);
 					}
 					if (check2) {
-						_collate_lookup(table, w2, &len2,
-						    &pri2, pass, &st2);
+						_collate_lookup(table, w2,
+						    &len2, &pri2, pass, &st2);
 						if (pri2 < 0) {
 							errno = EINVAL;
 							goto end;
 						}
 						if (!pri2) {
-							pri2 = COLLATE_MAX_PRIORITY;
+							pri2 =
+							    COLLATE_MAX_PRIORITY;
 							st2 = NULL;
 						}
 						check2 = (st2 != NULL);

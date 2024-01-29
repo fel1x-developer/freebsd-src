@@ -25,40 +25,38 @@
  * ath_hal_9280 struct; so it's convienent to locate the
  * define here.
  */
-#define AR9280_TX_GAIN_TABLE_SIZE               22
+#define AR9280_TX_GAIN_TABLE_SIZE 22
 
 struct ath_hal_9280 {
 	struct ath_hal_5416 ah_5416;
 
-	HAL_INI_ARRAY	ah_ini_xmodes;
-	HAL_INI_ARRAY	ah_ini_rxgain;
-	HAL_INI_ARRAY	ah_ini_txgain;
+	HAL_INI_ARRAY ah_ini_xmodes;
+	HAL_INI_ARRAY ah_ini_rxgain;
+	HAL_INI_ARRAY ah_ini_txgain;
 
 	int PDADCdelta;
 
-	uint32_t	originalGain[AR9280_TX_GAIN_TABLE_SIZE];
+	uint32_t originalGain[AR9280_TX_GAIN_TABLE_SIZE];
 };
-#define	AH9280(_ah)	((struct ath_hal_9280 *)(_ah))
+#define AH9280(_ah) ((struct ath_hal_9280 *)(_ah))
 
-#define	AR9280_DEFAULT_RXCHAINMASK	3
-#define	AR9285_DEFAULT_RXCHAINMASK	1
-#define	AR9280_DEFAULT_TXCHAINMASK	1
-#define	AR9285_DEFAULT_TXCHAINMASK	1
+#define AR9280_DEFAULT_RXCHAINMASK 3
+#define AR9285_DEFAULT_RXCHAINMASK 1
+#define AR9280_DEFAULT_TXCHAINMASK 1
+#define AR9285_DEFAULT_TXCHAINMASK 1
 
-#define	AR_PHY_CCA_NOM_VAL_9280_2GHZ		-112
-#define	AR_PHY_CCA_NOM_VAL_9280_5GHZ		-112
-#define	AR_PHY_CCA_MIN_GOOD_VAL_9280_2GHZ	-127
-#define	AR_PHY_CCA_MIN_GOOD_VAL_9280_5GHZ	-122
-#define	AR_PHY_CCA_MAX_GOOD_VAL_9280_2GHZ	-97
-#define	AR_PHY_CCA_MAX_GOOD_VAL_9280_5GHZ	-102
+#define AR_PHY_CCA_NOM_VAL_9280_2GHZ -112
+#define AR_PHY_CCA_NOM_VAL_9280_5GHZ -112
+#define AR_PHY_CCA_MIN_GOOD_VAL_9280_2GHZ -127
+#define AR_PHY_CCA_MIN_GOOD_VAL_9280_5GHZ -122
+#define AR_PHY_CCA_MAX_GOOD_VAL_9280_2GHZ -97
+#define AR_PHY_CCA_MAX_GOOD_VAL_9280_5GHZ -102
 
 HAL_BOOL ar9280RfAttach(struct ath_hal *, HAL_STATUS *);
 
 struct ath_hal;
 
-HAL_BOOL	ar9280SetAntennaSwitch(struct ath_hal *, HAL_ANT_SETTING);
-void		ar9280SpurMitigate(struct ath_hal *,
-    			const struct ieee80211_channel *);
-void		ar9280InitPLL(struct ath_hal *ah, 
-			const struct ieee80211_channel *chan);
-#endif	/* _ATH_AR9280_H_ */
+HAL_BOOL ar9280SetAntennaSwitch(struct ath_hal *, HAL_ANT_SETTING);
+void ar9280SpurMitigate(struct ath_hal *, const struct ieee80211_channel *);
+void ar9280InitPLL(struct ath_hal *ah, const struct ieee80211_channel *chan);
+#endif /* _ATH_AR9280_H_ */

@@ -41,13 +41,13 @@
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/errno.h>
+#include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/time.h>
-#include <sys/ioctl.h>
 
+#include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_dl.h>
-#include <net/ethernet.h>
 #ifdef INET
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
@@ -59,57 +59,56 @@
 #include <netinet/ip6.h>
 #endif
 
+#include <arpa/inet.h>
 #include <assert.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include <ctype.h>
-#include <errno.h>
 #include <err.h>
+#include <errno.h>
+#include <ifaddrs.h>
+#include <netdb.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <ifaddrs.h>
-
 union sockunion {
-	struct sockaddr_storage	ss;
-	struct sockaddr		sa;
-	struct sockaddr_dl	sdl;
+	struct sockaddr_storage ss;
+	struct sockaddr sa;
+	struct sockaddr_dl sdl;
 #ifdef INET
-	struct sockaddr_in	sin;
+	struct sockaddr_in sin;
 #endif
 #ifdef INET6
-	struct sockaddr_in6	sin6;
+	struct sockaddr_in6 sin6;
 #endif
 };
 typedef union sockunion sockunion_t;
 
 union mrequnion {
 #ifdef INET
-	struct ip_mreq	 	 mr;
-	struct ip_mreq_source	 mrs;
+	struct ip_mreq mr;
+	struct ip_mreq_source mrs;
 #endif
 #ifdef INET6
-	struct ipv6_mreq	 mr6;
-	struct group_source_req	 gr;
+	struct ipv6_mreq mr6;
+	struct group_source_req gr;
 #endif
 };
 typedef union mrequnion mrequnion_t;
 
-#define	MAX_ADDRS	20
-#define	STR_SIZE	20
-#define	LINE_LENGTH	80
+#define MAX_ADDRS 20
+#define STR_SIZE 20
+#define LINE_LENGTH 80
 
 #ifdef INET
-static int	__ifindex_to_primary_ip(const uint32_t, struct in_addr *);
+static int __ifindex_to_primary_ip(const uint32_t, struct in_addr *);
 #endif
-static uint32_t	parse_cmd_args(sockunion_t *, sockunion_t *,
-		    const char *, const char *, const char *);
-static void	process_file(char *, int, int);
-static void	process_cmd(char*, int, int, FILE *);
-static int	su_cmp(const void *, const void *);
-static void	usage(void);
+static uint32_t parse_cmd_args(sockunion_t *, sockunion_t *, const char *,
+    const char *, const char *);
+static void process_file(char *, int, int);
+static void process_cmd(char *, int, int, FILE *);
+static int su_cmp(const void *, const void *);
+static void usage(void);
 
 /*
  * Ordering predicate for qsort().
@@ -117,16 +116,16 @@ static void	usage(void);
 static int
 su_cmp(const void *a, const void *b)
 {
-	const sockunion_t	*sua = (const sockunion_t *)a;
-	const sockunion_t	*sub = (const sockunion_t *)b;
+	const sockunion_t *sua = (const sockunion_t *)a;
+	const sockunion_t *sub = (const sockunion_t *)b;
 
 	assert(sua->sa.sa_family == sub->sa.sa_family);
 
 	switch (sua->sa.sa_family) {
 #ifdef INET
 	case AF_INET:
-		return ((int)(sua->sin.sin_addr.s_addr -
-		    sub->sin.sin_addr.s_addr));
+		return (
+		    (int)(sua->sin.sin_addr.s_addr - sub->sin.sin_addr.s_addr));
 		break;
 #endif
 #ifdef INET6
@@ -153,11 +152,11 @@ su_cmp(const void *a, const void *b)
 static int
 __ifindex_to_primary_ip(const uint32_t ifindex, struct in_addr *pina)
 {
-	char		 ifname[IFNAMSIZ];
-	struct ifaddrs	*ifa;
-	struct ifaddrs	*ifaddrs;
-	sockunion_t	*psu;
-	int		 retval;
+	char ifname[IFNAMSIZ];
+	struct ifaddrs *ifa;
+	struct ifaddrs *ifaddrs;
+	sockunion_t *psu;
+	int retval;
 
 	assert(ifindex != 0);
 
@@ -185,7 +184,7 @@ __ifindex_to_primary_ip(const uint32_t ifindex, struct in_addr *pina)
 	}
 
 	if (retval != 0)
-		errno = EADDRNOTAVAIL;	/* XXX */
+		errno = EADDRNOTAVAIL; /* XXX */
 
 	freeifaddrs(ifaddrs);
 	return (retval);
@@ -195,9 +194,9 @@ __ifindex_to_primary_ip(const uint32_t ifindex, struct in_addr *pina)
 int
 main(int argc, char **argv)
 {
-	char	 line[LINE_LENGTH];
-	char	*p;
-	int	 i, s, s6;
+	char line[LINE_LENGTH];
+	char *p;
+	int i, s, s6;
 
 	s = -1;
 	s6 = -1;
@@ -217,7 +216,7 @@ main(int argc, char **argv)
 	if (argc < 2) {
 		if (isatty(STDIN_FILENO)) {
 			printf("multicast membership test program; "
-			    "enter ? for list of commands\n");
+			       "enter ? for list of commands\n");
 		}
 		do {
 			if (fgets(line, sizeof(line), stdin) != NULL) {
@@ -225,9 +224,10 @@ main(int argc, char **argv)
 					process_cmd(line, s, s6, stdin);
 				else {
 					/* Get the filename */
-					for (i = 1; isblank(line[i]); i++);
-					if ((p = (char*)strchr(line, '\n'))
-					    != NULL)
+					for (i = 1; isblank(line[i]); i++)
+						;
+					if ((p = (char *)strchr(line, '\n')) !=
+					    NULL)
 						*p = '\0';
 					process_file(&line[i], s, s6);
 				}
@@ -244,7 +244,7 @@ main(int argc, char **argv)
 	if (s6 != -1)
 		close(s6);
 
-	exit (0);
+	exit(0);
 }
 
 static void
@@ -281,13 +281,13 @@ process_file(char *fname, int s, int s6)
  * Return the ifindex of ifname, or 0 if any parse element failed.
  */
 static uint32_t
-parse_cmd_args(sockunion_t *psu, sockunion_t *psu2,
-    const char *str1, const char *str2, const char *str3)
+parse_cmd_args(sockunion_t *psu, sockunion_t *psu2, const char *str1,
+    const char *str2, const char *str3)
 {
-	struct addrinfo		 hints;
-	struct addrinfo		*res;
-	uint32_t		 ifindex;
-	int			 af, error;
+	struct addrinfo hints;
+	struct addrinfo *res;
+	uint32_t ifindex;
+	int af, error;
 
 	assert(psu != NULL);
 	assert(str1 != NULL);
@@ -374,19 +374,19 @@ af2socklen(const int af)
 static void
 process_cmd(char *cmd, int s, int s6, FILE *fp __unused)
 {
-	char			 str1[STR_SIZE];
-	char			 str2[STR_SIZE];
-	char			 str3[STR_SIZE];
-	mrequnion_t		 mr;
-	sockunion_t		 su, su2;
-	struct ifreq		 ifr;
-	char			*line;
-	char			*toptname;
-	void			*optval;
-	uint32_t		 fmode, ifindex;
-	socklen_t		 optlen;
-	size_t			 j;
-	int			 af, error, f, flags, i, level, n, optname;
+	char str1[STR_SIZE];
+	char str2[STR_SIZE];
+	char str3[STR_SIZE];
+	mrequnion_t mr;
+	sockunion_t su, su2;
+	struct ifreq ifr;
+	char *line;
+	char *toptname;
+	void *optval;
+	uint32_t fmode, ifindex;
+	socklen_t optlen;
+	size_t j;
+	int af, error, f, flags, i, level, n, optname;
 
 	af = AF_UNSPEC;
 	su.sa.sa_family = AF_UNSPEC;
@@ -394,7 +394,7 @@ process_cmd(char *cmd, int s, int s6, FILE *fp __unused)
 
 	line = cmd;
 	while (isblank(*++line))
-		;	/* Skip whitespace. */
+		; /* Skip whitespace. */
 
 	n = 0;
 	switch (*cmd) {
@@ -453,10 +453,10 @@ process_cmd(char *cmd, int s, int s6, FILE *fp __unused)
 			} else {
 				mr.mr.imr_multiaddr = su.sin.sin_addr;
 				mr.mr.imr_interface = ina;
-				optname = (*cmd == 'j') ?
-				    IP_ADD_MEMBERSHIP : IP_DROP_MEMBERSHIP;
-				toptname = (*cmd == 'j') ?
-				    "IP_ADD_MEMBERSHIP" : "IP_DROP_MEMBERSHIP";
+				optname = (*cmd == 'j') ? IP_ADD_MEMBERSHIP :
+							  IP_DROP_MEMBERSHIP;
+				toptname = (*cmd == 'j') ? "IP_ADD_MEMBERSHIP" :
+							   "IP_DROP_MEMBERSHIP";
 				optval = (void *)&mr.mr;
 				optlen = sizeof(mr.mr);
 			}
@@ -464,7 +464,7 @@ process_cmd(char *cmd, int s, int s6, FILE *fp __unused)
 				warnc(EPROTONOSUPPORT, "setsockopt %s",
 				    toptname);
 			} else if (setsockopt(s, level, optname, optval,
-			    optlen) == 0) {
+				       optlen) == 0) {
 				printf("ok\n");
 				break;
 			} else {
@@ -476,29 +476,27 @@ process_cmd(char *cmd, int s, int s6, FILE *fp __unused)
 #endif /* INET with INET6 */
 #endif /* INET */
 #ifdef INET6
-		if (af == AF_INET6) {
+		    if (af == AF_INET6) {
 			level = IPPROTO_IPV6;
 			if (su2.sa.sa_family != AF_UNSPEC) {
 				mr.gr.gsr_interface = ifindex;
 				mr.gr.gsr_group = su.ss;
 				mr.gr.gsr_source = su2.ss;
 				optname = (*cmd == 'j') ?
-				    MCAST_JOIN_SOURCE_GROUP:
+				    MCAST_JOIN_SOURCE_GROUP :
 				    MCAST_LEAVE_SOURCE_GROUP;
 				toptname = (*cmd == 'j') ?
-				    "MCAST_JOIN_SOURCE_GROUP":
+				    "MCAST_JOIN_SOURCE_GROUP" :
 				    "MCAST_LEAVE_SOURCE_GROUP";
 				optval = (void *)&mr.gr;
 				optlen = sizeof(mr.gr);
 			} else {
 				mr.mr6.ipv6mr_multiaddr = su.sin6.sin6_addr;
 				mr.mr6.ipv6mr_interface = ifindex;
-				optname = (*cmd == 'j') ?
-				    IPV6_JOIN_GROUP :
-				    IPV6_LEAVE_GROUP;
-				toptname = (*cmd == 'j') ?
-				    "IPV6_JOIN_GROUP" :
-				    "IPV6_LEAVE_GROUP";
+				optname = (*cmd == 'j') ? IPV6_JOIN_GROUP :
+							  IPV6_LEAVE_GROUP;
+				toptname = (*cmd == 'j') ? "IPV6_JOIN_GROUP" :
+							   "IPV6_LEAVE_GROUP";
 				optval = (void *)&mr.mr6;
 				optlen = sizeof(mr.mr6);
 			}
@@ -506,7 +504,7 @@ process_cmd(char *cmd, int s, int s6, FILE *fp __unused)
 				warnc(EPROTONOSUPPORT, "setsockopt %s",
 				    toptname);
 			} else if (setsockopt(s6, level, optname, optval,
-			    optlen) == 0) {
+				       optlen) == 0) {
 				printf("ok\n");
 				break;
 			} else {
@@ -524,11 +522,11 @@ process_cmd(char *cmd, int s, int s6, FILE *fp __unused)
 	 */
 	case 'i':
 	case 'e': {
-		sockunion_t	 sources[MAX_ADDRS];
-		struct addrinfo	 hints;
-		struct addrinfo	*res;
-		char		*cp;
-		int		 af1;
+		sockunion_t sources[MAX_ADDRS];
+		struct addrinfo hints;
+		struct addrinfo *res;
+		char *cp;
+		int af1;
 
 		n = 0;
 		fmode = (*cmd == 'i') ? MCAST_INCLUDE : MCAST_EXCLUDE;
@@ -584,8 +582,8 @@ process_cmd(char *cmd, int s, int s6, FILE *fp __unused)
 			printf("-1\n");
 			break;
 		}
-		if (setsourcefilter(af2sock(af, s, s6), ifindex,
-		    &su.sa, su.sa.sa_len, fmode, n, &sources[0].ss) != 0)
+		if (setsourcefilter(af2sock(af, s, s6), ifindex, &su.sa,
+			su.sa.sa_len, fmode, n, &sources[0].ss) != 0)
 			warn("setsourcefilter");
 		else
 			printf("ok\n");
@@ -612,8 +610,8 @@ process_cmd(char *cmd, int s, int s6, FILE *fp __unused)
 		}
 
 		/* First determine our current filter mode. */
-		if (getsourcefilter(af2sock(af, s, s6), ifindex,
-		    &su.sa, su.sa.sa_len, &fmode, &n, NULL) != 0) {
+		if (getsourcefilter(af2sock(af, s, s6), ifindex, &su.sa,
+			su.sa.sa_len, &fmode, &n, NULL) != 0) {
 			warn("getsourcefilter");
 			break;
 		}
@@ -635,12 +633,10 @@ process_cmd(char *cmd, int s, int s6, FILE *fp __unused)
 			mr.mrs.imr_interface = ina;
 			if (fmode == MCAST_EXCLUDE) {
 				/* Any-source mode socket membership. */
-				optname = (*cmd == 't') ?
-				    IP_UNBLOCK_SOURCE :
-				    IP_BLOCK_SOURCE;
-				toptname = (*cmd == 't') ?
-				    "IP_UNBLOCK_SOURCE" :
-				    "IP_BLOCK_SOURCE";
+				optname = (*cmd == 't') ? IP_UNBLOCK_SOURCE :
+							  IP_BLOCK_SOURCE;
+				toptname = (*cmd == 't') ? "IP_UNBLOCK_SOURCE" :
+							   "IP_BLOCK_SOURCE";
 			} else {
 				/* Source-specific mode socket membership. */
 				optname = (*cmd == 't') ?
@@ -650,8 +646,8 @@ process_cmd(char *cmd, int s, int s6, FILE *fp __unused)
 				    "IP_ADD_SOURCE_MEMBERSHIP" :
 				    "IP_DROP_SOURCE_MEMBERSHIP";
 			}
-			if (setsockopt(s, level, optname, optval,
-			    optlen) == 0) {
+			if (setsockopt(s, level, optname, optval, optlen) ==
+			    0) {
 				printf("ok\n");
 				break;
 			} else {
@@ -663,16 +659,15 @@ process_cmd(char *cmd, int s, int s6, FILE *fp __unused)
 #endif /* INET with INET6 */
 #endif /* INET */
 #ifdef INET6
-		if (af == AF_INET6) {
+		    if (af == AF_INET6) {
 			level = IPPROTO_IPV6;
 			mr.gr.gsr_interface = ifindex;
 			mr.gr.gsr_group = su.ss;
 			mr.gr.gsr_source = su2.ss;
 			if (fmode == MCAST_EXCLUDE) {
 				/* Any-source mode socket membership. */
-				optname = (*cmd == 't') ?
-				    MCAST_UNBLOCK_SOURCE :
-				    MCAST_BLOCK_SOURCE;
+				optname = (*cmd == 't') ? MCAST_UNBLOCK_SOURCE :
+							  MCAST_BLOCK_SOURCE;
 				toptname = (*cmd == 't') ?
 				    "MCAST_UNBLOCK_SOURCE" :
 				    "MCAST_BLOCK_SOURCE";
@@ -682,13 +677,13 @@ process_cmd(char *cmd, int s, int s6, FILE *fp __unused)
 				    MCAST_JOIN_SOURCE_GROUP :
 				    MCAST_LEAVE_SOURCE_GROUP;
 				toptname = (*cmd == 't') ?
-				    "MCAST_JOIN_SOURCE_GROUP":
+				    "MCAST_JOIN_SOURCE_GROUP" :
 				    "MCAST_LEAVE_SOURCE_GROUP";
 			}
 			optval = (void *)&mr.gr;
 			optlen = sizeof(mr.gr);
-			if (setsockopt(s6, level, optname, optval,
-			    optlen) == 0) {
+			if (setsockopt(s6, level, optname, optval, optlen) ==
+			    0) {
 				printf("ok\n");
 				break;
 			} else {
@@ -701,9 +696,9 @@ process_cmd(char *cmd, int s, int s6, FILE *fp __unused)
 	} break;
 
 	case 'g': {
-		sockunion_t	 sources[MAX_ADDRS];
-		char		 addrbuf[NI_MAXHOST];
-		int		 nreqsrc, nsrc;
+		sockunion_t sources[MAX_ADDRS];
+		char addrbuf[NI_MAXHOST];
+		int nreqsrc, nsrc;
 
 		if ((sscanf(line, "%s %s %d", str1, str2, &nreqsrc)) != 3) {
 			printf("-1\n");
@@ -722,13 +717,13 @@ process_cmd(char *cmd, int s, int s6, FILE *fp __unused)
 		}
 		nsrc = nreqsrc;
 		if (getsourcefilter(af2sock(af, s, s6), ifindex, &su.sa,
-		    su.sa.sa_len, &fmode, &nsrc, &sources[0].ss) != 0) {
+			su.sa.sa_len, &fmode, &nsrc, &sources[0].ss) != 0) {
 			warn("getsourcefilter");
 			printf("-1\n");
 			break;
 		}
-		printf("%s\n", (fmode == MCAST_INCLUDE) ? "include" :
-		    "exclude");
+		printf("%s\n",
+		    (fmode == MCAST_INCLUDE) ? "include" : "exclude");
 		printf("%d\n", nsrc);
 
 		nsrc = MIN(nreqsrc, nsrc);
@@ -743,9 +738,8 @@ process_cmd(char *cmd, int s, int s6, FILE *fp __unused)
 		for (i = 0; i < nsrc; i++) {
 			sockunion_t *psu = (sockunion_t *)&sources[i];
 			addrbuf[0] = '\0';
-			error = getnameinfo(&psu->sa, psu->sa.sa_len,
-			    addrbuf, sizeof(addrbuf), NULL, 0,
-			    NI_NUMERICHOST);
+			error = getnameinfo(&psu->sa, psu->sa.sa_len, addrbuf,
+			    sizeof(addrbuf), NULL, 0, NI_NUMERICHOST);
 			if (error)
 				warnx("getnameinfo: %s", gai_strerror(error));
 			else
@@ -754,12 +748,12 @@ process_cmd(char *cmd, int s, int s6, FILE *fp __unused)
 		printf("ok\n");
 	} break;
 
-	/* link-layer stuff follows. */
+		/* link-layer stuff follows. */
 
 	case 'a':
 	case 'd': {
-		struct sockaddr_dl	*dlp;
-		struct ether_addr	*ep;
+		struct sockaddr_dl *dlp;
+		struct ether_addr *ep;
 
 		memset(&ifr, 0, sizeof(struct ifreq));
 		dlp = (struct sockaddr_dl *)&ifr.ifr_addr;
@@ -781,7 +775,7 @@ process_cmd(char *cmd, int s, int s6, FILE *fp __unused)
 		strlcpy(ifr.ifr_name, str1, IF_NAMESIZE);
 		memcpy(LLADDR(dlp), ep, ETHER_ADDR_LEN);
 		if (ioctl(s, (*cmd == 'a') ? SIOCADDMULTI : SIOCDELMULTI,
-		    &ifr) == -1) {
+			&ifr) == -1) {
 			warn("ioctl SIOCADDMULTI/SIOCDELMULTI");
 			printf("-1\n");
 		} else
@@ -816,7 +810,7 @@ process_cmd(char *cmd, int s, int s6, FILE *fp __unused)
 		if (ioctl(s, SIOCSIFFLAGS, &ifr) == -1)
 			warn("ioctl SIOCGIFFLAGS");
 		else
-			printf( "changed to 0x%08x\n", flags );
+			printf("changed to 0x%08x\n", flags);
 		break;
 
 	case '\n':
@@ -834,9 +828,9 @@ usage(void)
 	printf("j mcast-addr ifname [src-addr] - join IP multicast group\n");
 	printf("l mcast-addr ifname [src-addr] - leave IP multicast group\n");
 	printf(
-"i mcast-addr ifname n          - set n include mode src filter\n");
+	    "i mcast-addr ifname n          - set n include mode src filter\n");
 	printf(
-"e mcast-addr ifname n          - set n exclude mode src filter\n");
+	    "e mcast-addr ifname n          - set n exclude mode src filter\n");
 	printf("t mcast-addr ifname src-addr  - allow traffic from src\n");
 	printf("b mcast-addr ifname src-addr  - block traffic from src\n");
 	printf("g mcast-addr ifname n        - get and show n src filters\n");
@@ -848,4 +842,3 @@ usage(void)
 	printf("s seconds                  - sleep for some time\n");
 	printf("q                          - quit\n");
 }
-

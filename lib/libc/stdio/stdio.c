@@ -32,15 +32,16 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "un-namespace.h"
+
 #include "local.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 /*
  * Small standard I/O/seek/close functions.
@@ -50,7 +51,7 @@ __sread(void *cookie, char *buf, int n)
 {
 	FILE *fp = cookie;
 
-	return(_read(fp->_file, buf, (size_t)n));
+	return (_read(fp->_file, buf, (size_t)n));
 }
 
 int
@@ -164,7 +165,7 @@ _sseek(FILE *fp, fpos_t offset, int whence)
 }
 
 void
-__stdio_cancel_cleanup(void * arg)
+__stdio_cancel_cleanup(void *arg)
 {
 
 	if (arg != NULL)

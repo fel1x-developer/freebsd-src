@@ -32,9 +32,10 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
+#include <sys/rman.h>
+
 #include <machine/bus.h>
 
 #include <dev/ofw/ofw_bus.h>
@@ -45,10 +46,8 @@
 
 #include "coresight_if.h"
 
-static struct ofw_compat_data compat_data[] = {
-	{ "arm,coresight-etm4x",		1 },
-	{ NULL,					0 }
-};
+static struct ofw_compat_data compat_data[] = { { "arm,coresight-etm4x", 1 },
+	{ NULL, 0 } };
 
 static int
 etm_fdt_probe(device_t dev)
@@ -77,13 +76,12 @@ etm_fdt_attach(device_t dev)
 
 static device_method_t etm_fdt_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		etm_fdt_probe),
-	DEVMETHOD(device_attach,	etm_fdt_attach),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, etm_fdt_probe),
+	DEVMETHOD(device_attach, etm_fdt_attach), DEVMETHOD_END
 };
 
-DEFINE_CLASS_1(etm, etm_fdt_driver, etm_fdt_methods,
-    sizeof(struct etm_softc), etm_driver);
+DEFINE_CLASS_1(etm, etm_fdt_driver, etm_fdt_methods, sizeof(struct etm_softc),
+    etm_driver);
 
 EARLY_DRIVER_MODULE(etm, simplebus, etm_fdt_driver, 0, 0,
     BUS_PASS_INTERRUPT + BUS_PASS_ORDER_MIDDLE);

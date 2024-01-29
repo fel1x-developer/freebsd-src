@@ -25,12 +25,13 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/conf.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/conf.h>
+#include <sys/kdb.h>
+#include <sys/kernel.h>
 #include <sys/limits.h>
-#include <sys/module.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
 #include <sys/sysctl.h>
@@ -39,8 +40,6 @@
 
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <sys/kdb.h>
 
 #include "cpld.h"
 
@@ -56,73 +55,68 @@
  */
 
 /* Resource access addresses. */
-#define	CPLD_MEM_ADDR_H		0x00
-#define	CPLD_MEM_ADDR_L		0x01
-#define	CPLD_MEM_DATA		0x80
+#define CPLD_MEM_ADDR_H 0x00
+#define CPLD_MEM_ADDR_L 0x01
+#define CPLD_MEM_DATA 0x80
 
-#define	CPLD_MAX_DRAM_WORDS	0x800
+#define CPLD_MAX_DRAM_WORDS 0x800
 
 /* CPLD Registers. */
-#define	CPLD_REG_SIG1		0x00
-#define	CPLD_REG_SIG2		0x01
-#define	CPLD_REG_HWREV		0x02
-#define	CPLD_REG_CPLDREV	0x03
-#define	CPLD_REG_MBC2X		0x04
-#define	CPLD_REG_MBX2C		0x05
-#define	CPLD_REG_FAN1_TACHO_U	0x10
-#define	CPLD_REG_FAN1_TACHO_L	0x11
-#define	CPLD_REG_FAN2_TACHO_U	0x12
-#define	CPLD_REG_FAN2_TACHO_L	0x13
-#define	CPLD_REG_FAN3_TACHO_U	0x14
-#define	CPLD_REG_FAN3_TACHO_L	0x15
-#define	CPLD_REG_DATE_UU	0x20
-#define	CPLD_REG_DATE_UL	0x21
-#define	CPLD_REG_DATE_LU	0x22
-#define	CPLD_REG_DATE_LL	0x23
-#define	CPLD_REG_TIME_UU	0x24
-#define	CPLD_REG_TIME_UL	0x25
-#define	CPLD_REG_TIME_LU	0x26
-#define	CPLD_REG_TIME_LL	0x27
-#define	CPLD_REG_SCR1		0x5c
-#define	CPLD_REG_SCR2		0x6a
-#define	CPLD_REG_RAM		0x80
+#define CPLD_REG_SIG1 0x00
+#define CPLD_REG_SIG2 0x01
+#define CPLD_REG_HWREV 0x02
+#define CPLD_REG_CPLDREV 0x03
+#define CPLD_REG_MBC2X 0x04
+#define CPLD_REG_MBX2C 0x05
+#define CPLD_REG_FAN1_TACHO_U 0x10
+#define CPLD_REG_FAN1_TACHO_L 0x11
+#define CPLD_REG_FAN2_TACHO_U 0x12
+#define CPLD_REG_FAN2_TACHO_L 0x13
+#define CPLD_REG_FAN3_TACHO_U 0x14
+#define CPLD_REG_FAN3_TACHO_L 0x15
+#define CPLD_REG_DATE_UU 0x20
+#define CPLD_REG_DATE_UL 0x21
+#define CPLD_REG_DATE_LU 0x22
+#define CPLD_REG_DATE_LL 0x23
+#define CPLD_REG_TIME_UU 0x24
+#define CPLD_REG_TIME_UL 0x25
+#define CPLD_REG_TIME_LU 0x26
+#define CPLD_REG_TIME_LL 0x27
+#define CPLD_REG_SCR1 0x5c
+#define CPLD_REG_SCR2 0x6a
+#define CPLD_REG_RAM 0x80
 
 struct cpld_softc {
-	device_t	 sc_dev;
-	struct resource	*sc_mem;
-	struct cdev	*sc_cdev;
-	struct mtx	 sc_mutex;
-	bool		 sc_isopen;
+	device_t sc_dev;
+	struct resource *sc_mem;
+	struct cdev *sc_cdev;
+	struct mtx sc_mutex;
+	bool sc_isopen;
 };
 
-static d_open_t		cpld_open;
-static d_close_t	cpld_close;
-static d_ioctl_t	cpld_ioctl;
+static d_open_t cpld_open;
+static d_close_t cpld_close;
+static d_ioctl_t cpld_ioctl;
 
 static struct cdevsw cpld_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_open =	cpld_open,
-	.d_close =	cpld_close,
-	.d_ioctl =	cpld_ioctl,
-	.d_name =	"nvram",
+	.d_version = D_VERSION,
+	.d_open = cpld_open,
+	.d_close = cpld_close,
+	.d_ioctl = cpld_ioctl,
+	.d_name = "nvram",
 };
 
-static device_probe_t	cpld_probe;
-static device_attach_t	cpld_attach;
-static int		cpld_fan_sysctl(SYSCTL_HANDLER_ARGS);
+static device_probe_t cpld_probe;
+static device_attach_t cpld_attach;
+static int cpld_fan_sysctl(SYSCTL_HANDLER_ARGS);
 
-static device_method_t cpld_methods[] = {
-	DEVMETHOD(device_probe,		cpld_probe),
-	DEVMETHOD(device_attach,	cpld_attach),
+static device_method_t cpld_methods[] = { DEVMETHOD(device_probe, cpld_probe),
+	DEVMETHOD(device_attach, cpld_attach),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
-static driver_t cpld_driver = {
-	"cpld",
-	cpld_methods,
-	sizeof(struct cpld_softc)
-};
+static driver_t cpld_driver = { "cpld", cpld_methods,
+	sizeof(struct cpld_softc) };
 
 DRIVER_MODULE(cpld, lbc, cpld_driver, 0, 0);
 
@@ -195,7 +189,7 @@ cpld_attach(device_t dev)
 
 	rid = 0;
 	sc->sc_mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
-	    RF_ACTIVE|RF_SHAREABLE);
+	    RF_ACTIVE | RF_SHAREABLE);
 	if (sc->sc_mem == NULL) {
 		device_printf(dev, "Unable to allocate memory resource.\n");
 		return (ENXIO);
@@ -223,31 +217,33 @@ cpld_attach(device_t dev)
 	ctx = device_get_sysctl_ctx(dev);
 	tree = device_get_sysctl_tree(dev);
 
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "cpu_fan", CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, sc,
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "cpu_fan",
+	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, sc,
 	    CPLD_REG_FAN1_TACHO_U, cpld_fan_sysctl, "I",
 	    "CPU Fan speed in RPM");
 
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "case_1_fan", CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, sc,
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "case_1_fan",
+	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, sc,
 	    CPLD_REG_FAN2_TACHO_U, cpld_fan_sysctl, "I",
 	    "Case fan 1 speed in RPM");
 
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "case_2_fan", CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, sc,
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "case_2_fan",
+	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, sc,
 	    CPLD_REG_FAN3_TACHO_U, cpld_fan_sysctl, "I",
 	    "Case fan 2 speed in RPM");
 
 	make_dev_args_init(&mda);
-	mda.mda_flags =  MAKEDEV_CHECKNAME;
+	mda.mda_flags = MAKEDEV_CHECKNAME;
 	mda.mda_devsw = &cpld_cdevsw;
 	mda.mda_uid = UID_ROOT;
 	mda.mda_gid = GID_WHEEL;
 	mda.mda_mode = 0660;
 	err = make_dev_s(&mda, &sc->sc_cdev, "cpld");
 	if (err != 0) {
-		device_printf(dev, "Error creating character device: %d\n", err);
-		device_printf(dev, "Only sysctl interfaces will be available.\n");
+		device_printf(dev, "Error creating character device: %d\n",
+		    err);
+		device_printf(dev,
+		    "Only sysctl interfaces will be available.\n");
 	}
 
 	return (0);

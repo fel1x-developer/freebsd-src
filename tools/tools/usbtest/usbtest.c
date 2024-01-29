@@ -23,25 +23,24 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <stdint.h>
-#include <err.h>
-#include <string.h>
-#include <errno.h>
-#include <stdarg.h>
-#include <stdlib.h>
-
 #include <sys/types.h>
 #include <sys/sysctl.h>
 
 #include <dev/usb/usb_ioctl.h>
 
-#include "usbtest.h"
-
-#include <g_keyboard.h>
-#include <g_mouse.h>
-#include <g_modem.h>
+#include <err.h>
+#include <errno.h>
 #include <g_audio.h>
+#include <g_keyboard.h>
+#include <g_modem.h>
+#include <g_mouse.h>
+#include <stdarg.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "usbtest.h"
 
 static uint8_t usb_ts_select[USB_TS_MAX_LEVELS];
 
@@ -82,7 +81,7 @@ usb_ts_rand_noise(void)
 }
 
 uint8_t
-usb_ts_show_menu(uint8_t level, const char *title, const char *fmt,...)
+usb_ts_show_menu(uint8_t level, const char *title, const char *fmt, ...)
 {
 	va_list args;
 	uint8_t x;
@@ -175,12 +174,13 @@ set_template(int template)
 {
 	int error;
 
-	error = sysctlbyname("hw.usb.template", NULL, NULL,
-	    &template, sizeof(template));
+	error = sysctlbyname("hw.usb.template", NULL, NULL, &template,
+	    sizeof(template));
 
 	if (error != 0) {
 		printf("WARNING: Could not set USB template "
-		    "to %d (error=%d)\n", template, errno);
+		       "to %d (error=%d)\n",
+		    template, errno);
 	}
 }
 
@@ -193,41 +193,45 @@ show_default_audio_select(uint8_t level)
 	int pattern_interval = 128;
 	int throughput = 0;
 	size_t len;
-	char pattern[G_AUDIO_MAX_STRLEN] = {"0123456789abcdef"};
+	char pattern[G_AUDIO_MAX_STRLEN] = { "0123456789abcdef" };
 
 	set_template(USB_TEMP_AUDIO);
 
 	while (1) {
 
-		error = sysctlbyname("hw.usb.g_audio.mode", NULL, NULL,
-		    &mode, sizeof(mode));
+		error = sysctlbyname("hw.usb.g_audio.mode", NULL, NULL, &mode,
+		    sizeof(mode));
 
 		if (error != 0) {
 			printf("WARNING: Could not set audio mode "
-			    "to %d (error=%d)\n", mode, errno);
+			       "to %d (error=%d)\n",
+			    mode, errno);
 		}
-		error = sysctlbyname("hw.usb.g_audio.pattern_interval", NULL, NULL,
-		    &pattern_interval, sizeof(pattern_interval));
+		error = sysctlbyname("hw.usb.g_audio.pattern_interval", NULL,
+		    NULL, &pattern_interval, sizeof(pattern_interval));
 
 		if (error != 0) {
 			printf("WARNING: Could not set pattern interval "
-			    "to %d (error=%d)\n", pattern_interval, errno);
+			       "to %d (error=%d)\n",
+			    pattern_interval, errno);
 		}
 		len = sizeof(throughput);
 
-		error = sysctlbyname("hw.usb.g_audio.throughput",
-		    &throughput, &len, 0, 0);
+		error = sysctlbyname("hw.usb.g_audio.throughput", &throughput,
+		    &len, 0, 0);
 
 		if (error != 0) {
 			printf("WARNING: Could not get throughput "
-			    "(error=%d)\n", errno);
+			       "(error=%d)\n",
+			    errno);
 		}
 		error = sysctlbyname("hw.usb.g_audio.pattern", NULL, NULL,
 		    &pattern, strlen(pattern));
 
 		if (error != 0) {
 			printf("WARNING: Could not set audio pattern "
-			    "to '%s' (error=%d)\n", pattern, errno);
+			       "to '%s' (error=%d)\n",
+			    pattern, errno);
 		}
 		retval = usb_ts_show_menu(level, "Default Audio Settings",
 		    "1) Set Silent mode %s\n"
@@ -242,8 +246,8 @@ show_default_audio_select(uint8_t level)
 		    (mode == G_AUDIO_MODE_SILENT) ? "(selected)" : "",
 		    (mode == G_AUDIO_MODE_DUMP) ? "(selected)" : "",
 		    (mode == G_AUDIO_MODE_LOOP) ? "(selected)" : "",
-		    (mode == G_AUDIO_MODE_PATTERN) ? "(selected)" : "",
-		    pattern, pattern_interval, throughput);
+		    (mode == G_AUDIO_MODE_PATTERN) ? "(selected)" : "", pattern,
+		    pattern_interval, throughput);
 
 		switch (retval) {
 		case 0:
@@ -314,7 +318,7 @@ show_default_keyboard_select(uint8_t level)
 	int retval;
 	int mode = 0;
 	int interval = 1023;
-	char pattern[G_KEYBOARD_MAX_STRLEN] = {"abcdefpattern"};
+	char pattern[G_KEYBOARD_MAX_STRLEN] = { "abcdefpattern" };
 
 	set_template(USB_TEMP_KBD);
 
@@ -325,21 +329,24 @@ show_default_keyboard_select(uint8_t level)
 
 		if (error != 0) {
 			printf("WARNING: Could not set keyboard mode "
-			    " to %d (error=%d) \n", mode, errno);
+			       " to %d (error=%d) \n",
+			    mode, errno);
 		}
-		error = sysctlbyname("hw.usb.g_keyboard.key_press_interval", NULL, NULL,
-		    &interval, sizeof(interval));
+		error = sysctlbyname("hw.usb.g_keyboard.key_press_interval",
+		    NULL, NULL, &interval, sizeof(interval));
 
 		if (error != 0) {
 			printf("WARNING: Could not set key press interval "
-			    "to %d (error=%d)\n", interval, errno);
+			       "to %d (error=%d)\n",
+			    interval, errno);
 		}
-		error = sysctlbyname("hw.usb.g_keyboard.key_press_pattern", NULL, NULL,
-		    &pattern, strlen(pattern));
+		error = sysctlbyname("hw.usb.g_keyboard.key_press_pattern",
+		    NULL, NULL, &pattern, strlen(pattern));
 
 		if (error != 0) {
 			printf("WARNING: Could not set key pattern "
-			    "to '%s' (error=%d)\n", pattern, errno);
+			       "to '%s' (error=%d)\n",
+			    pattern, errno);
 		}
 		retval = usb_ts_show_menu(level, "Default Keyboard Settings",
 		    "1) Set silent mode %s\n"
@@ -410,33 +417,37 @@ show_default_mouse_select(uint8_t level)
 
 	while (1) {
 
-		error = sysctlbyname("hw.usb.g_mouse.mode", NULL, NULL,
-		    &mode, sizeof(mode));
+		error = sysctlbyname("hw.usb.g_mouse.mode", NULL, NULL, &mode,
+		    sizeof(mode));
 
 		if (error != 0) {
 			printf("WARNING: Could not set mouse mode "
-			    "to %d (error=%d)\n", mode, errno);
+			       "to %d (error=%d)\n",
+			    mode, errno);
 		}
-		error = sysctlbyname("hw.usb.g_mouse.cursor_update_interval", NULL, NULL,
-		    &cursor_interval, sizeof(cursor_interval));
+		error = sysctlbyname("hw.usb.g_mouse.cursor_update_interval",
+		    NULL, NULL, &cursor_interval, sizeof(cursor_interval));
 
 		if (error != 0) {
 			printf("WARNING: Could not set cursor update interval "
-			    "to %d (error=%d)\n", cursor_interval, errno);
+			       "to %d (error=%d)\n",
+			    cursor_interval, errno);
 		}
-		error = sysctlbyname("hw.usb.g_mouse.button_press_interval", NULL, NULL,
-		    &button_interval, sizeof(button_interval));
+		error = sysctlbyname("hw.usb.g_mouse.button_press_interval",
+		    NULL, NULL, &button_interval, sizeof(button_interval));
 
 		if (error != 0) {
 			printf("WARNING: Could not set button press interval "
-			    "to %d (error=%d)\n", button_interval, errno);
+			       "to %d (error=%d)\n",
+			    button_interval, errno);
 		}
 		error = sysctlbyname("hw.usb.g_mouse.cursor_radius", NULL, NULL,
 		    &cursor_radius, sizeof(cursor_radius));
 
 		if (error != 0) {
 			printf("WARNING: Could not set cursor radius "
-			    "to %d (error=%d)\n", cursor_radius, errno);
+			       "to %d (error=%d)\n",
+			    cursor_radius, errno);
 		}
 		retval = usb_ts_show_menu(level, "Default Mouse Settings",
 		    "1) Set Silent mode %s\n"
@@ -522,41 +533,45 @@ show_default_modem_select(uint8_t level)
 	int pattern_interval = 128;
 	int throughput = 0;
 	size_t len;
-	char pattern[G_MODEM_MAX_STRLEN] = {"abcdefpattern"};
+	char pattern[G_MODEM_MAX_STRLEN] = { "abcdefpattern" };
 
 	set_template(USB_TEMP_MODEM);
 
 	while (1) {
 
-		error = sysctlbyname("hw.usb.g_modem.mode", NULL, NULL,
-		    &mode, sizeof(mode));
+		error = sysctlbyname("hw.usb.g_modem.mode", NULL, NULL, &mode,
+		    sizeof(mode));
 
 		if (error != 0) {
 			printf("WARNING: Could not set modem mode "
-			    "to %d (error=%d)\n", mode, errno);
+			       "to %d (error=%d)\n",
+			    mode, errno);
 		}
-		error = sysctlbyname("hw.usb.g_modem.pattern_interval", NULL, NULL,
-		    &pattern_interval, sizeof(pattern_interval));
+		error = sysctlbyname("hw.usb.g_modem.pattern_interval", NULL,
+		    NULL, &pattern_interval, sizeof(pattern_interval));
 
 		if (error != 0) {
 			printf("WARNING: Could not set pattern interval "
-			    "to %d (error=%d)\n", pattern_interval, errno);
+			       "to %d (error=%d)\n",
+			    pattern_interval, errno);
 		}
 		len = sizeof(throughput);
 
-		error = sysctlbyname("hw.usb.g_modem.throughput",
-		    &throughput, &len, 0, 0);
+		error = sysctlbyname("hw.usb.g_modem.throughput", &throughput,
+		    &len, 0, 0);
 
 		if (error != 0) {
 			printf("WARNING: Could not get throughput "
-			    "(error=%d)\n", errno);
+			       "(error=%d)\n",
+			    errno);
 		}
 		error = sysctlbyname("hw.usb.g_modem.pattern", NULL, NULL,
 		    &pattern, strlen(pattern));
 
 		if (error != 0) {
 			printf("WARNING: Could not set modem pattern "
-			    "to '%s' (error=%d)\n", pattern, errno);
+			       "to '%s' (error=%d)\n",
+			    pattern, errno);
 		}
 		retval = usb_ts_show_menu(level, "Default Modem Settings",
 		    "1) Set Silent mode %s\n"
@@ -571,8 +586,8 @@ show_default_modem_select(uint8_t level)
 		    (mode == G_MODEM_MODE_SILENT) ? "(selected)" : "",
 		    (mode == G_MODEM_MODE_DUMP) ? "(selected)" : "",
 		    (mode == G_MODEM_MODE_LOOP) ? "(selected)" : "",
-		    (mode == G_MODEM_MODE_PATTERN) ? "(selected)" : "",
-		    pattern, pattern_interval, throughput);
+		    (mode == G_MODEM_MODE_PATTERN) ? "(selected)" : "", pattern,
+		    pattern_interval, throughput);
 
 		switch (retval) {
 		case 0:
@@ -636,7 +651,8 @@ show_device_select(uint8_t level)
 
 	while (1) {
 
-		retval = usb_ts_show_menu(level, "Select Device Mode Test Group",
+		retval = usb_ts_show_menu(level,
+		    "Select Device Mode Test Group",
 		    "1) Audio (UAUDIO)\n"
 		    "2) Mass Storage (MSC)\n"
 		    "3) Ethernet (CDCE)\n"
@@ -693,14 +709,16 @@ show_host_select(uint8_t level)
 
 	while (1) {
 
-		error = sysctlbyname("hw.usb.ehci.no_hs", NULL, NULL,
-		    &force_fs, sizeof(force_fs));
+		error = sysctlbyname("hw.usb.ehci.no_hs", NULL, NULL, &force_fs,
+		    sizeof(force_fs));
 
 		if (error != 0) {
 			printf("WARNING: Could not set non-FS mode "
-			    "to %d (error=%d)\n", force_fs, errno);
+			       "to %d (error=%d)\n",
+			    force_fs, errno);
 		}
-		retval = usb_ts_show_menu(level, "Select Host Mode Test (via LibUSB)",
+		retval = usb_ts_show_menu(level,
+		    "Select Host Mode Test (via LibUSB)",
 		    " 1) Select USB device (VID=0x%04x, PID=0x%04x, ugen%u.%u)\n"
 		    " 2) Manually enter USB vendor and product ID\n"
 		    " 3) Force FULL speed operation: <%s>\n"
@@ -717,8 +735,7 @@ show_host_select(uint8_t level)
 		    "30) Duration: <%d> seconds\n"
 		    "x) Return to previous menu\n",
 		    uaddr.vid, uaddr.pid, uaddr.bus, uaddr.addr,
-		    force_fs ? "YES" : "NO",
-		    (int)duration);
+		    force_fs ? "YES" : "NO", (int)duration);
 
 		switch (retval) {
 		case 0:

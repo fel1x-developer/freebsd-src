@@ -26,8 +26,9 @@
  * SUCH DAMAGE.
  */
 
-#define	_WANT_P_OSREL
+#define _WANT_P_OSREL
 #include <sys/param.h>
+
 #include <errno.h>
 #include <sched.h>
 #include <string.h>
@@ -48,8 +49,8 @@ sched_getaffinity(pid_t pid, size_t cpusetsz, cpuset_t *cpuset)
 	} else
 		which = CPU_WHICH_TIDPID;
 
-	error = cpuset_getaffinity(CPU_LEVEL_WHICH, which,
-	    pid == 0 ? -1 : pid, cpusetsz, cpuset);
+	error = cpuset_getaffinity(CPU_LEVEL_WHICH, which, pid == 0 ? -1 : pid,
+	    cpusetsz, cpuset);
 	if (error == -1 && errno == ERANGE)
 		errno = EINVAL;
 	return (error);

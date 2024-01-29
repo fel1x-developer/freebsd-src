@@ -25,60 +25,60 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdbool.h>
-#include <err.h>
-#include <errno.h>
-#include <netdb.h>
-
-#include <sys/bitcount.h>
+#include <sys/types.h>
 #include <sys/param.h>
+#include <sys/bitcount.h>
 #include <sys/linker.h>
 #include <sys/module.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
 #include <sys/time.h>
-#include <sys/types.h>
-
-#include <netinet/in.h>
-#include <arpa/inet.h>
 
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_dl.h>
 #include <net/if_strings.h>
 #include <net/if_types.h>
+#include <netinet/in.h>
+
+#include <arpa/inet.h>
+#include <err.h>
+#include <errno.h>
+#include <netdb.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "ifconfig.h"
 #include "ifconfig_netlink.h"
 
-static const char	*IFFBITS[] = {
-	"UP",			/* 00:0x1 IFF_UP*/
-	"BROADCAST",		/* 01:0x2 IFF_BROADCAST*/
-	"DEBUG",		/* 02:0x4 IFF_DEBUG*/
-	"LOOPBACK",		/* 03:0x8 IFF_LOOPBACK*/
-	"POINTOPOINT",		/* 04:0x10 IFF_POINTOPOINT*/
-	"NEEDSEPOCH",		/* 05:0x20 IFF_NEEDSEPOCH*/
-	"RUNNING",		/* 06:0x40 IFF_DRV_RUNNING*/
-	"NOARP",		/* 07:0x80 IFF_NOARP*/
-	"PROMISC",		/* 08:0x100 IFF_PROMISC*/
-	"ALLMULTI",		/* 09:0x200 IFF_ALLMULTI*/
-	"DRV_OACTIVE",		/* 10:0x400 IFF_DRV_OACTIVE*/
-	"SIMPLEX",		/* 11:0x800 IFF_SIMPLEX*/
-	"LINK0",		/* 12:0x1000 IFF_LINK0*/
-	"LINK1",		/* 13:0x2000 IFF_LINK1*/
-	"LINK2",		/* 14:0x4000 IFF_LINK2*/
-	"MULTICAST",		/* 15:0x8000 IFF_MULTICAST*/
-	"CANTCONFIG",		/* 16:0x10000 IFF_CANTCONFIG*/
-	"PPROMISC",		/* 17:0x20000 IFF_PPROMISC*/
-	"MONITOR",		/* 18:0x40000 IFF_MONITOR*/
-	"STATICARP",		/* 19:0x80000 IFF_STATICARP*/
-	"STICKYARP",		/* 20:0x100000 IFF_STICKYARP*/
-	"DYING",		/* 21:0x200000 IFF_DYING*/
-	"RENAMING",		/* 22:0x400000 IFF_RENAMING*/
-	"NOGROUP",		/* 23:0x800000 IFF_NOGROUP*/
-	"LOWER_UP",		/* 24:0x1000000 IFF_NETLINK_1*/
+static const char *IFFBITS[] = {
+	"UP",	       /* 00:0x1 IFF_UP*/
+	"BROADCAST",   /* 01:0x2 IFF_BROADCAST*/
+	"DEBUG",       /* 02:0x4 IFF_DEBUG*/
+	"LOOPBACK",    /* 03:0x8 IFF_LOOPBACK*/
+	"POINTOPOINT", /* 04:0x10 IFF_POINTOPOINT*/
+	"NEEDSEPOCH",  /* 05:0x20 IFF_NEEDSEPOCH*/
+	"RUNNING",     /* 06:0x40 IFF_DRV_RUNNING*/
+	"NOARP",       /* 07:0x80 IFF_NOARP*/
+	"PROMISC",     /* 08:0x100 IFF_PROMISC*/
+	"ALLMULTI",    /* 09:0x200 IFF_ALLMULTI*/
+	"DRV_OACTIVE", /* 10:0x400 IFF_DRV_OACTIVE*/
+	"SIMPLEX",     /* 11:0x800 IFF_SIMPLEX*/
+	"LINK0",       /* 12:0x1000 IFF_LINK0*/
+	"LINK1",       /* 13:0x2000 IFF_LINK1*/
+	"LINK2",       /* 14:0x4000 IFF_LINK2*/
+	"MULTICAST",   /* 15:0x8000 IFF_MULTICAST*/
+	"CANTCONFIG",  /* 16:0x10000 IFF_CANTCONFIG*/
+	"PPROMISC",    /* 17:0x20000 IFF_PPROMISC*/
+	"MONITOR",     /* 18:0x40000 IFF_MONITOR*/
+	"STATICARP",   /* 19:0x80000 IFF_STATICARP*/
+	"STICKYARP",   /* 20:0x100000 IFF_STICKYARP*/
+	"DYING",       /* 21:0x200000 IFF_DYING*/
+	"RENAMING",    /* 22:0x400000 IFF_RENAMING*/
+	"NOGROUP",     /* 23:0x800000 IFF_NOGROUP*/
+	"LOWER_UP",    /* 24:0x1000000 IFF_NETLINK_1*/
 };
 
 static void
@@ -122,8 +122,7 @@ nl_init_socket(struct snl_state *ss)
 }
 
 int
-ifconfig_nl(if_ctx *ctx, int iscreate,
-    const struct afswtch *uafp)
+ifconfig_nl(if_ctx *ctx, int iscreate, const struct afswtch *uafp)
 {
 	struct snl_state ss = {};
 
@@ -139,22 +138,22 @@ ifconfig_nl(if_ctx *ctx, int iscreate,
 }
 
 struct ifa {
-	struct ifa		*next;
-	uint32_t		idx;
-	struct snl_parsed_addr	addr;
+	struct ifa *next;
+	uint32_t idx;
+	struct snl_parsed_addr addr;
 };
 
 struct iface {
-	struct snl_parsed_link	link;
-	struct ifa		*ifa;
-	uint32_t		ifa_count;
-	uint32_t		idx;
+	struct snl_parsed_link link;
+	struct ifa *ifa;
+	uint32_t ifa_count;
+	uint32_t idx;
 };
 
 struct ifmap {
-	uint32_t		size;
-	uint32_t		count;
-	struct iface		**ifaces;
+	uint32_t size;
+	uint32_t count;
+	struct iface **ifaces;
 };
 
 /*
@@ -171,7 +170,7 @@ prepare_ifmap(struct snl_state *ss)
 	hdr->nlmsg_flags |= NLM_F_DUMP;
 	snl_reserve_msg_object(&nw, struct ifinfomsg);
 
-	if (! (hdr = snl_finalize_msg(&nw)) || !snl_send_message(ss, hdr))
+	if (!(hdr = snl_finalize_msg(&nw)) || !snl_send_message(ss, hdr))
 		return (NULL);
 
 	uint32_t nlmsg_seq = hdr->nlmsg_seq;
@@ -181,7 +180,8 @@ prepare_ifmap(struct snl_state *ss)
 	while ((hdr = snl_read_reply_multi(ss, nlmsg_seq, &e)) != NULL) {
 		struct iface *iface = snl_allocz(ss, sizeof(*iface));
 
-		if (!snl_parse_nlmsg(ss, hdr, &snl_rtm_link_parser, &iface->link))
+		if (!snl_parse_nlmsg(ss, hdr, &snl_rtm_link_parser,
+			&iface->link))
 			continue;
 		if (iface->link.ifi_index >= ifmap->size) {
 			size_t new_size = MAX(ifmap->size, 32);
@@ -189,8 +189,10 @@ prepare_ifmap(struct snl_state *ss)
 			while (new_size <= iface->link.ifi_index + 1)
 				new_size *= 2;
 
-			struct iface **ifaces= snl_allocz(ss, new_size * sizeof(void *));
-			memcpy(ifaces, ifmap->ifaces, ifmap->size * sizeof(void *));
+			struct iface **ifaces = snl_allocz(ss,
+			    new_size * sizeof(void *));
+			memcpy(ifaces, ifmap->ifaces,
+			    ifmap->size * sizeof(void *));
 			ifmap->ifaces = ifaces;
 			ifmap->size = new_size;
 		}
@@ -212,7 +214,7 @@ if_nametoindex_nl(struct snl_state *ss, const char *ifname)
 	snl_reserve_msg_object(&nw, struct ifinfomsg);
 	snl_add_msg_attr_string(&nw, IFLA_IFNAME, ifname);
 
-	if (! (hdr = snl_finalize_msg(&nw)) || !snl_send_message(ss, hdr))
+	if (!(hdr = snl_finalize_msg(&nw)) || !snl_send_message(ss, hdr))
 		return (0);
 
 	hdr = snl_read_reply(ss, hdr->nlmsg_seq);
@@ -247,7 +249,7 @@ prepare_ifaddrs(struct snl_state *ss, struct ifmap *ifmap)
 	hdr->nlmsg_flags |= NLM_F_DUMP;
 	snl_reserve_msg_object(&nw, struct ifaddrmsg);
 
-	if (! (hdr = snl_finalize_msg(&nw)) || !snl_send_message(ss, hdr))
+	if (!(hdr = snl_finalize_msg(&nw)) || !snl_send_message(ss, hdr))
 		return;
 
 	uint32_t nlmsg_seq = hdr->nlmsg_seq;
@@ -319,8 +321,8 @@ match_iface(struct ifconfig_args *args, struct iface *iface)
 static int
 cmp_iface(const void *_a, const void *_b)
 {
-	const struct iface *a = *((const void * const *)_a);
-	const struct iface *b = *((const void * const *)_b);
+	const struct iface *a = *((const void *const *)_a);
+	const struct iface *b = *((const void *const *)_b);
 
 	return ((a->idx > b->idx) * 2 - 1);
 }
@@ -328,8 +330,8 @@ cmp_iface(const void *_a, const void *_b)
 static int
 cmp_ifaddr(const void *_a, const void *_b)
 {
-	const struct ifa *a = *((const void * const *)_a);
-	const struct ifa *b = *((const void * const *)_b);
+	const struct ifa *a = *((const void *const *)_a);
+	const struct ifa *b = *((const void *const *)_b);
 
 	if (a->addr.ifa_family != b->addr.ifa_family)
 		return ((a->addr.ifa_family > b->addr.ifa_family) * 2 - 1);
@@ -342,7 +344,8 @@ sort_iface_ifaddrs(struct snl_state *ss, struct iface *iface)
 	if (iface->ifa_count == 0)
 		return;
 
-	struct ifa **sorted_ifaddrs = snl_allocz(ss, iface->ifa_count * sizeof(void *));
+	struct ifa **sorted_ifaddrs = snl_allocz(ss,
+	    iface->ifa_count * sizeof(void *));
 	struct ifa *ifa = iface->ifa;
 
 	for (uint32_t i = 0; i < iface->ifa_count; i++) {
@@ -370,7 +373,8 @@ print_ifcaps(if_ctx *ctx, if_link_t *link)
 		uint32_t *caps = link->iflaf_caps.nla_bitset_value;
 
 		printf("\toptions=%x", caps[0]);
-		print_bits("IFCAPS", caps, sz_u32, ifcap_bit_names, nitems(ifcap_bit_names));
+		print_bits("IFCAPS", caps, sz_u32, ifcap_bit_names,
+		    nitems(ifcap_bit_names));
 		putchar('\n');
 	}
 
@@ -378,7 +382,8 @@ print_ifcaps(if_ctx *ctx, if_link_t *link)
 		uint32_t *caps = link->iflaf_caps.nla_bitset_mask;
 
 		printf("\tcapabilities=%x", caps[0]);
-		print_bits("IFCAPS", caps, sz_u32, ifcap_bit_names, nitems(ifcap_bit_names));
+		print_bits("IFCAPS", caps, sz_u32, ifcap_bit_names,
+		    nitems(ifcap_bit_names));
 		putchar('\n');
 	}
 }
@@ -404,7 +409,8 @@ status_nl(if_ctx *ctx, struct iface *iface)
 	print_ifcaps(ctx, link);
 	tunnel_status(ctx);
 
-	if (args->allfamilies | (args->afp != NULL && args->afp->af_af == AF_LINK)) {
+	if (args->allfamilies |
+	    (args->afp != NULL && args->afp->af_af == AF_LINK)) {
 		/* Start with link-level */
 		const struct afswtch *p = af_getbyfamily(AF_LINK);
 		if (p != NULL && link->ifla_address != NULL)
@@ -415,7 +421,8 @@ status_nl(if_ctx *ctx, struct iface *iface)
 
 	for (struct ifa *ifa = iface->ifa; ifa != NULL; ifa = ifa->next) {
 		if (args->allfamilies) {
-			const struct afswtch *p = af_getbyfamily(ifa->addr.ifa_family);
+			const struct afswtch *p = af_getbyfamily(
+			    ifa->addr.ifa_family);
 
 			if (p != NULL)
 				p->af_status(ctx, link, &ifa->addr);
@@ -435,7 +442,7 @@ status_nl(if_ctx *ctx, struct iface *iface)
 	print_ifstatus(ctx);
 	if (args->drivername || args->verbose) {
 		if (ifconfig_get_orig_name(lifh, link->ifla_ifname,
-		    &drivername) != 0) {
+			&drivername) != 0) {
 			if (ifconfig_err_errtype(lifh) == OTHER)
 				fprintf(stderr, "get original name: %s\n",
 				    strerror(ifconfig_err_errno(lifh)));
@@ -477,7 +484,8 @@ list_interfaces_nl(struct ifconfig_args *args)
 	nl_init_socket(&ss);
 
 	struct ifmap *ifmap = prepare_ifmap(&ss);
-	struct iface **sorted_ifaces = snl_allocz(&ss, ifmap->count * sizeof(void *));
+	struct iface **sorted_ifaces = snl_allocz(&ss,
+	    ifmap->count * sizeof(void *));
 	for (uint32_t i = 0, num = 0; i < ifmap->size; i++) {
 		if (ifmap->ifaces[i] != NULL) {
 			sorted_ifaces[num++] = ifmap->ifaces[i];
@@ -511,4 +519,3 @@ list_interfaces_nl(struct ifconfig_args *args)
 	close(ctx->io_s);
 	snl_free(&ss);
 }
-

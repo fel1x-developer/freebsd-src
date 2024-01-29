@@ -26,6 +26,8 @@
  * SUCH DAMAGE.
  */
 
+#include "opt_snd.h"
+
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -33,109 +35,107 @@
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/rman.h>
 #include <sys/resource.h>
-#include <machine/bus.h>
+#include <sys/rman.h>
 
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
+#include <machine/bus.h>
 
 #include <dev/clk/clk.h>
 #include <dev/hwreset/hwreset.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+#include <dev/sound/fdt/audio_dai.h>
+#include <dev/sound/pcm/sound.h>
 
+#include "audio_dai_if.h"
 #include "syscon_if.h"
 
-#include "opt_snd.h"
-#include <dev/sound/pcm/sound.h>
-#include <dev/sound/fdt/audio_dai.h>
-#include "audio_dai_if.h"
+#define FIFO_LEVEL 0x40
 
-#define	FIFO_LEVEL	0x40
+#define DA_CTL 0x00
+#define DA_CTL_BCLK_OUT (1 << 18) /* sun8i */
+#define DA_CLK_LRCK_OUT (1 << 17) /* sun8i */
+#define DA_CTL_SDO_EN (1 << 8)
+#define DA_CTL_MS (1 << 5)	      /* sun4i */
+#define DA_CTL_PCM (1 << 4)	      /* sun4i */
+#define DA_CTL_MODE_SEL_MASK (3 << 4) /* sun8i */
+#define DA_CTL_MODE_SEL_PCM (0 << 4)  /* sun8i */
+#define DA_CTL_MODE_SEL_LJ (1 << 4)   /* sun8i */
+#define DA_CTL_MODE_SEL_RJ (2 << 4)   /* sun8i */
+#define DA_CTL_TXEN (1 << 2)
+#define DA_CTL_RXEN (1 << 1)
+#define DA_CTL_GEN (1 << 0)
+#define DA_FAT0 0x04
+#define DA_FAT0_LRCK_PERIOD_MASK (0x3ff << 8)	     /* sun8i */
+#define DA_FAT0_LRCK_PERIOD(n) (((n) & 0x3fff) << 8) /* sun8i */
+#define DA_FAT0_LRCP_MASK (1 << 7)
+#define DA_LRCP_NORMAL (0 << 7)
+#define DA_LRCP_INVERTED (1 << 7)
+#define DA_FAT0_BCP_MASK (1 << 6)
+#define DA_BCP_NORMAL (0 << 6)
+#define DA_BCP_INVERTED (1 << 6)
+#define DA_FAT0_SR __BITS(5, 4)
+#define DA_FAT0_WSS __BITS(3, 2)
+#define DA_FAT0_FMT_MASK (3 << 0)
+#define DA_FMT_I2S 0
+#define DA_FMT_LJ 1
+#define DA_FMT_RJ 2
+#define DA_FAT1 0x08
+#define DA_ISTA 0x0c
+#define DA_ISTA_TXUI_INT (1 << 6)
+#define DA_ISTA_TXEI_INT (1 << 4)
+#define DA_ISTA_RXAI_INT (1 << 0)
+#define DA_RXFIFO 0x10
+#define DA_FCTL 0x14
+#define DA_FCTL_HUB_EN (1 << 31)
+#define DA_FCTL_FTX (1 << 25)
+#define DA_FCTL_FRX (1 << 24)
+#define DA_FCTL_TXTL_MASK (0x7f << 12)
+#define DA_FCTL_TXTL(v) (((v) & 0x7f) << 12)
+#define DA_FCTL_TXIM (1 << 2)
+#define DA_FSTA 0x18
+#define DA_FSTA_TXE_CNT(v) (((v) >> 16) & 0xff)
+#define DA_FSTA_RXA_CNT(v) ((v) & 0x3f)
+#define DA_INT 0x1c
+#define DA_INT_TX_DRQ (1 << 7)
+#define DA_INT_TXUI_EN (1 << 6)
+#define DA_INT_TXEI_EN (1 << 4)
+#define DA_INT_RX_DRQ (1 << 3)
+#define DA_INT_RXAI_EN (1 << 0)
+#define DA_TXFIFO 0x20
+#define DA_CLKD 0x24
+#define DA_CLKD_MCLKO_EN_SUN8I (1 << 8)
+#define DA_CLKD_MCLKO_EN_SUN4I (1 << 7)
+#define DA_CLKD_BCLKDIV_SUN8I(n) (((n) & 0xf) << 4)
+#define DA_CLKD_BCLKDIV_SUN8I_MASK (0xf << 4)
+#define DA_CLKD_BCLKDIV_SUN4I(n) (((n) & 7) << 4)
+#define DA_CLKD_BCLKDIV_SUN4I_MASK (7 << 4)
+#define DA_CLKD_BCLKDIV_8 3
+#define DA_CLKD_BCLKDIV_16 5
+#define DA_CLKD_MCLKDIV(n) (((n) & 0xff) << 0)
+#define DA_CLKD_MCLKDIV_MASK (0xf << 0)
+#define DA_CLKD_MCLKDIV_1 0
+#define DA_TXCNT 0x28
+#define DA_RXCNT 0x2c
+#define DA_CHCFG 0x30 /* sun8i */
+#define DA_CHCFG_TX_SLOT_HIZ (1 << 9)
+#define DA_CHCFG_TXN_STATE (1 << 8)
+#define DA_CHCFG_RX_SLOT_NUM_MASK (7 << 4)
+#define DA_CHCFG_RX_SLOT_NUM(n) (((n) & 7) << 4)
+#define DA_CHCFG_TX_SLOT_NUM_MASK (7 << 0)
+#define DA_CHCFG_TX_SLOT_NUM(n) (((n) & 7) << 0)
 
-#define	DA_CTL		0x00
-#define		DA_CTL_BCLK_OUT (1 << 18)	/* sun8i */
-#define		DA_CLK_LRCK_OUT (1 << 17)	/* sun8i */
-#define		DA_CTL_SDO_EN	(1 << 8)
-#define		DA_CTL_MS	(1 << 5)	/* sun4i */
-#define		DA_CTL_PCM	(1 << 4)	/* sun4i */
-#define		DA_CTL_MODE_SEL_MASK	(3 << 4) /* sun8i */
-#define		DA_CTL_MODE_SEL_PCM	(0 << 4) /* sun8i */
-#define		DA_CTL_MODE_SEL_LJ	(1 << 4) /* sun8i */
-#define		DA_CTL_MODE_SEL_RJ	(2 << 4) /* sun8i */
-#define		DA_CTL_TXEN	(1 << 2)
-#define		DA_CTL_RXEN	(1 << 1)
-#define		DA_CTL_GEN	(1 << 0)
-#define	DA_FAT0		0x04
-#define		DA_FAT0_LRCK_PERIOD_MASK	(0x3ff << 8) /* sun8i */
-#define		DA_FAT0_LRCK_PERIOD(n)		(((n) & 0x3fff) << 8) /* sun8i */
-#define		DA_FAT0_LRCP_MASK	(1 << 7)
-#define		DA_LRCP_NORMAL		(0 << 7)
-#define		DA_LRCP_INVERTED	(1 << 7)
-#define		DA_FAT0_BCP_MASK	(1 << 6)
-#define		DA_BCP_NORMAL		(0 << 6)
-#define		DA_BCP_INVERTED		(1 << 6)
-#define		DA_FAT0_SR	__BITS(5,4)
-#define		DA_FAT0_WSS	__BITS(3,2)
-#define		DA_FAT0_FMT_MASK	(3 << 0)
-#define		 DA_FMT_I2S	0
-#define		 DA_FMT_LJ	1
-#define		 DA_FMT_RJ	2
-#define	DA_FAT1		0x08
-#define	DA_ISTA		0x0c
-#define		DA_ISTA_TXUI_INT	(1 << 6)
-#define		DA_ISTA_TXEI_INT	(1 << 4)
-#define		DA_ISTA_RXAI_INT	(1 << 0)
-#define	DA_RXFIFO	0x10
-#define	DA_FCTL		0x14
-#define		DA_FCTL_HUB_EN	(1 << 31)
-#define		DA_FCTL_FTX	(1 << 25)
-#define		DA_FCTL_FRX	(1 << 24)
-#define		DA_FCTL_TXTL_MASK	(0x7f << 12)
-#define		DA_FCTL_TXTL(v)		(((v) & 0x7f) << 12)
-#define		DA_FCTL_TXIM	(1 << 2)
-#define	DA_FSTA		0x18
-#define		DA_FSTA_TXE_CNT(v)	(((v) >> 16) & 0xff)
-#define		DA_FSTA_RXA_CNT(v)	((v) & 0x3f)
-#define	DA_INT		0x1c
-#define		DA_INT_TX_DRQ	(1 << 7)
-#define		DA_INT_TXUI_EN	(1 << 6)
-#define		DA_INT_TXEI_EN	(1 << 4)
-#define		DA_INT_RX_DRQ	(1 << 3)
-#define		DA_INT_RXAI_EN	(1 << 0)
-#define	DA_TXFIFO	0x20
-#define	DA_CLKD		0x24
-#define		DA_CLKD_MCLKO_EN_SUN8I (1 << 8)
-#define		DA_CLKD_MCLKO_EN_SUN4I (1 << 7)
-#define		DA_CLKD_BCLKDIV_SUN8I(n)	(((n) & 0xf) << 4)
-#define		DA_CLKD_BCLKDIV_SUN8I_MASK	(0xf << 4)
-#define		DA_CLKD_BCLKDIV_SUN4I(n)	(((n) & 7) << 4)
-#define		DA_CLKD_BCLKDIV_SUN4I_MASK	(7 << 4)
-#define		 DA_CLKD_BCLKDIV_8	3
-#define		 DA_CLKD_BCLKDIV_16	5
-#define		DA_CLKD_MCLKDIV(n)	(((n) & 0xff) << 0)
-#define		DA_CLKD_MCLKDIV_MASK	(0xf << 0)
-#define		 DA_CLKD_MCLKDIV_1	0
-#define	DA_TXCNT	0x28
-#define	DA_RXCNT	0x2c
-#define	DA_CHCFG	0x30		/* sun8i */
-#define		DA_CHCFG_TX_SLOT_HIZ	(1 << 9)
-#define		DA_CHCFG_TXN_STATE	(1 << 8)
-#define		DA_CHCFG_RX_SLOT_NUM_MASK	(7 << 4)
-#define		DA_CHCFG_RX_SLOT_NUM(n)		(((n) & 7) << 4)
-#define		DA_CHCFG_TX_SLOT_NUM_MASK	(7 << 0)
-#define		DA_CHCFG_TX_SLOT_NUM(n)		(((n) & 7) << 0)
+#define DA_CHSEL_OFFSET(n) (((n) & 3) << 12) /* sun8i */
+#define DA_CHSEL_OFFSET_MASK (3 << 12)	     /* sun8i */
+#define DA_CHSEL_EN(n) (((n) & 0xff) << 4)
+#define DA_CHSEL_EN_MASK (0xff << 4)
+#define DA_CHSEL_SEL(n) (((n) & 7) << 0)
+#define DA_CHSEL_SEL_MASK (7 << 0)
 
-#define	DA_CHSEL_OFFSET(n)	(((n) & 3) << 12)	/* sun8i */
-#define	DA_CHSEL_OFFSET_MASK	(3 << 12)	/* sun8i */
-#define	DA_CHSEL_EN(n)		(((n) & 0xff) << 4)
-#define	DA_CHSEL_EN_MASK	(0xff << 4)
-#define	DA_CHSEL_SEL(n)		(((n) & 7) << 0)
-#define	DA_CHSEL_SEL_MASK	(7 << 0)
+#define AUDIO_BUFFER_SIZE 48000 * 4
 
-#define	AUDIO_BUFFER_SIZE	48000 * 4
-
-#define	AW_I2S_SAMPLE_RATE	48000
-#define	AW_I2S_CLK_RATE		24576000
+#define AW_I2S_SAMPLE_RATE 48000
+#define AW_I2S_CLK_RATE 24576000
 
 enum sunxi_i2s_type {
 	SUNXI_I2S_SUN4I,
@@ -143,12 +143,12 @@ enum sunxi_i2s_type {
 };
 
 struct sunxi_i2s_config {
-	const char	*name;
+	const char *name;
 	enum sunxi_i2s_type type;
-	bus_size_t	txchsel;
-	bus_size_t	txchmap;
-	bus_size_t	rxchsel;
-	bus_size_t	rxchmap;
+	bus_size_t txchsel;
+	bus_size_t txchmap;
+	bus_size_t rxchsel;
+	bus_size_t rxchmap;
 };
 
 static const struct sunxi_i2s_config sun50i_a64_codec_config = {
@@ -207,36 +207,32 @@ static const u_int sun8i_i2s_divmap[] = {
 	[15] = 192,
 };
 
-
 static struct ofw_compat_data compat_data[] = {
-	{ "allwinner,sun50i-a64-codec-i2s", (uintptr_t)&sun50i_a64_codec_config },
-	{ "allwinner,sun8i-h3-i2s", (uintptr_t)&sun8i_h3_config },
-	{ NULL,					0 }
+	{ "allwinner,sun50i-a64-codec-i2s",
+	    (uintptr_t)&sun50i_a64_codec_config },
+	{ "allwinner,sun8i-h3-i2s", (uintptr_t)&sun8i_h3_config }, { NULL, 0 }
 };
 
-static struct resource_spec aw_i2s_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ SYS_RES_IRQ,		0,	RF_ACTIVE | RF_SHAREABLE },
-	{ -1, 0 }
-};
+static struct resource_spec aw_i2s_spec[] = { { SYS_RES_MEMORY, 0, RF_ACTIVE },
+	{ SYS_RES_IRQ, 0, RF_ACTIVE | RF_SHAREABLE }, { -1, 0 } };
 
 struct aw_i2s_softc {
-	device_t	dev;
-	struct resource	*res[2];
-	struct mtx	mtx;
-	clk_t		clk;
-	struct sunxi_i2s_config	*cfg;
-	void *		intrhand;
+	device_t dev;
+	struct resource *res[2];
+	struct mtx mtx;
+	clk_t clk;
+	struct sunxi_i2s_config *cfg;
+	void *intrhand;
 	/* pointers to playback/capture buffers */
-	uint32_t	play_ptr;
-	uint32_t	rec_ptr;
+	uint32_t play_ptr;
+	uint32_t rec_ptr;
 };
 
-#define	I2S_LOCK(sc)		mtx_lock(&(sc)->mtx)
-#define	I2S_UNLOCK(sc)		mtx_unlock(&(sc)->mtx)
-#define	I2S_READ(sc, reg)	bus_read_4((sc)->res[0], (reg))
-#define	I2S_WRITE(sc, reg, val)	bus_write_4((sc)->res[0], (reg), (val))
-#define	I2S_TYPE(sc)		((sc)->cfg->type)
+#define I2S_LOCK(sc) mtx_lock(&(sc)->mtx)
+#define I2S_UNLOCK(sc) mtx_unlock(&(sc)->mtx)
+#define I2S_READ(sc, reg) bus_read_4((sc)->res[0], (reg))
+#define I2S_WRITE(sc, reg, val) bus_write_4((sc)->res[0], (reg), (val))
+#define I2S_TYPE(sc) ((sc)->cfg->type)
 
 static int aw_i2s_probe(device_t dev);
 static int aw_i2s_attach(device_t dev);
@@ -254,12 +250,9 @@ sunxi_i2s_div_to_regval(const u_int *divmap, u_int divmaplen, u_int div)
 	return -1;
 }
 
-static uint32_t sc_fmt[] = {
-	SND_FORMAT(AFMT_S16_LE, 2, 0),
-	0
-};
-static struct pcmchan_caps aw_i2s_caps = {AW_I2S_SAMPLE_RATE, AW_I2S_SAMPLE_RATE, sc_fmt, 0};
-
+static uint32_t sc_fmt[] = { SND_FORMAT(AFMT_S16_LE, 2, 0), 0 };
+static struct pcmchan_caps aw_i2s_caps = { AW_I2S_SAMPLE_RATE,
+	AW_I2S_SAMPLE_RATE, sc_fmt, 0 };
 
 static int
 aw_i2s_init(struct aw_i2s_softc *sc)
@@ -275,11 +268,11 @@ aw_i2s_init(struct aw_i2s_softc *sc)
 
 	/* Reset */
 	val = I2S_READ(sc, DA_CTL);
-	val &= ~(DA_CTL_TXEN|DA_CTL_RXEN|DA_CTL_GEN);
+	val &= ~(DA_CTL_TXEN | DA_CTL_RXEN | DA_CTL_GEN);
 	I2S_WRITE(sc, DA_CTL, val);
 
 	val = I2S_READ(sc, DA_FCTL);
-	val &= ~(DA_FCTL_FTX|DA_FCTL_FRX);
+	val &= ~(DA_FCTL_FTX | DA_FCTL_FRX);
 	val &= ~(DA_FCTL_TXTL_MASK);
 	val |= DA_FCTL_TXTL(FIFO_LEVEL);
 	I2S_WRITE(sc, DA_FCTL, val);
@@ -347,7 +340,7 @@ aw_i2s_attach(device_t dev)
 	sc = device_get_softc(dev);
 	sc->dev = dev;
 
-	sc->cfg  = (void*)ofw_bus_search_compatible(dev, compat_data)->ocd_data;
+	sc->cfg = (void *)ofw_bus_search_compatible(dev, compat_data)->ocd_data;
 
 	mtx_init(&sc->mtx, device_get_nameunit(dev), NULL, MTX_DEF);
 
@@ -484,7 +477,7 @@ aw_i2s_dai_init(device_t dev, uint32_t format)
 		I2S_WRITE(sc, sc->cfg->rxchsel, chsel);
 	}
 
-	fat0 &= ~(DA_FAT0_LRCP_MASK|DA_FAT0_BCP_MASK);
+	fat0 &= ~(DA_FAT0_LRCP_MASK | DA_FAT0_BCP_MASK);
 	if (I2S_TYPE(sc) == SUNXI_I2S_SUN4I) {
 		if (AUDIO_DAI_POLARITY_INVERTED_BCLK(pol))
 			fat0 |= DA_BCP_INVERTED;
@@ -506,9 +499,9 @@ aw_i2s_dai_init(device_t dev, uint32_t format)
 	return (0);
 }
 
-
 static int
-aw_i2s_dai_intr(device_t dev, struct snd_dbuf *play_buf, struct snd_dbuf *rec_buf)
+aw_i2s_dai_intr(device_t dev, struct snd_dbuf *play_buf,
+    struct snd_dbuf *rec_buf)
 {
 	struct aw_i2s_softc *sc;
 	int ret = 0;
@@ -527,13 +520,13 @@ aw_i2s_dai_intr(device_t dev, struct snd_dbuf *play_buf, struct snd_dbuf *rec_bu
 		uint8_t *samples;
 		uint32_t count, size, readyptr, written, empty;
 
-		val  = I2S_READ(sc, DA_FSTA);
+		val = I2S_READ(sc, DA_FSTA);
 		empty = DA_FSTA_TXE_CNT(val);
 		count = sndbuf_getready(play_buf);
 		size = sndbuf_getsize(play_buf);
 		readyptr = sndbuf_getreadyptr(play_buf);
 
-		samples = (uint8_t*)sndbuf_getbuf(play_buf);
+		samples = (uint8_t *)sndbuf_getbuf(play_buf);
 		written = 0;
 		if (empty > count / 2)
 			empty = count / 2;
@@ -552,13 +545,13 @@ aw_i2s_dai_intr(device_t dev, struct snd_dbuf *play_buf, struct snd_dbuf *rec_bu
 		uint8_t *samples;
 		uint32_t count, size, freeptr, recorded, available;
 
-		val  = I2S_READ(sc, DA_FSTA);
+		val = I2S_READ(sc, DA_FSTA);
 		available = DA_FSTA_RXA_CNT(val);
 
 		count = sndbuf_getfree(rec_buf);
 		size = sndbuf_getsize(rec_buf);
 		freeptr = sndbuf_getfreeptr(rec_buf);
-		samples = (uint8_t*)sndbuf_getbuf(rec_buf);
+		samples = (uint8_t *)sndbuf_getbuf(rec_buf);
 		recorded = 0;
 		if (available > count / 2)
 			available = count / 2;
@@ -588,7 +581,7 @@ aw_i2s_dai_get_caps(device_t dev)
 static int
 aw_i2s_dai_trigger(device_t dev, int go, int pcm_dir)
 {
-	struct aw_i2s_softc 	*sc = device_get_softc(dev);
+	struct aw_i2s_softc *sc = device_get_softc(dev);
 	uint32_t val;
 
 	if ((pcm_dir != PCMDIR_PLAY) && (pcm_dir != PCMDIR_REC))
@@ -688,11 +681,10 @@ aw_i2s_dai_get_ptr(device_t dev, int pcm_dir)
 static int
 aw_i2s_dai_setup_intr(device_t dev, driver_intr_t intr_handler, void *intr_arg)
 {
-	struct aw_i2s_softc 	*sc = device_get_softc(dev);
+	struct aw_i2s_softc *sc = device_get_softc(dev);
 
-	if (bus_setup_intr(dev, sc->res[1],
-	    INTR_TYPE_MISC | INTR_MPSAFE, NULL, intr_handler, intr_arg,
-	    &sc->intrhand)) {
+	if (bus_setup_intr(dev, sc->res[1], INTR_TYPE_MISC | INTR_MPSAFE, NULL,
+		intr_handler, intr_arg, &sc->intrhand)) {
 		device_printf(dev, "cannot setup interrupt handler\n");
 		return (ENXIO);
 	}
@@ -720,17 +712,20 @@ aw_i2s_dai_set_sysclk(device_t dev, unsigned int rate, int dai_dir)
 	error = clk_set_freq(sc->clk, AW_I2S_CLK_RATE, CLK_SET_ROUND_DOWN);
 	if (error != 0) {
 		device_printf(sc->dev,
-		    "couldn't set mod clock rate to %u Hz: %d\n", AW_I2S_CLK_RATE, error);
+		    "couldn't set mod clock rate to %u Hz: %d\n",
+		    AW_I2S_CLK_RATE, error);
 		return error;
 	}
 	error = clk_enable(sc->clk);
 	if (error != 0) {
-		device_printf(sc->dev,
-		    "couldn't enable mod clock: %d\n", error);
+		device_printf(sc->dev, "couldn't enable mod clock: %d\n",
+		    error);
 		return error;
 	}
 
-	const u_int bclk_prate = I2S_TYPE(sc) == SUNXI_I2S_SUN4I ? rate : AW_I2S_CLK_RATE;
+	const u_int bclk_prate = I2S_TYPE(sc) == SUNXI_I2S_SUN4I ?
+	    rate :
+	    AW_I2S_CLK_RATE;
 
 	const u_int bclk_div = bclk_prate / (2 * 32 * AW_I2S_SAMPLE_RATE);
 	const u_int mclk_div = AW_I2S_CLK_RATE / rate;
@@ -747,7 +742,8 @@ aw_i2s_dai_set_sysclk(device_t dev, unsigned int rate, int dai_dir)
 		    nitems(sun8i_i2s_divmap), mclk_div);
 	}
 	if (bclk_val == -1 || mclk_val == -1) {
-		device_printf(sc->dev, "couldn't configure bclk/mclk dividers\n");
+		device_printf(sc->dev,
+		    "couldn't configure bclk/mclk dividers\n");
 		return EIO;
 	}
 
@@ -765,7 +761,6 @@ aw_i2s_dai_set_sysclk(device_t dev, unsigned int rate, int dai_dir)
 	val |= DA_CLKD_MCLKDIV(mclk_val);
 	I2S_WRITE(sc, DA_CLKD, val);
 
-
 	return (0);
 }
 
@@ -778,19 +773,19 @@ aw_i2s_dai_set_chanspeed(device_t dev, uint32_t speed)
 
 static device_method_t aw_i2s_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		aw_i2s_probe),
-	DEVMETHOD(device_attach,	aw_i2s_attach),
-	DEVMETHOD(device_detach,	aw_i2s_detach),
+	DEVMETHOD(device_probe, aw_i2s_probe),
+	DEVMETHOD(device_attach, aw_i2s_attach),
+	DEVMETHOD(device_detach, aw_i2s_detach),
 
-	DEVMETHOD(audio_dai_init,	aw_i2s_dai_init),
-	DEVMETHOD(audio_dai_setup_intr,	aw_i2s_dai_setup_intr),
-	DEVMETHOD(audio_dai_set_sysclk,	aw_i2s_dai_set_sysclk),
-	DEVMETHOD(audio_dai_set_chanspeed,	aw_i2s_dai_set_chanspeed),
-	DEVMETHOD(audio_dai_set_chanformat,	aw_i2s_dai_set_chanformat),
-	DEVMETHOD(audio_dai_intr,	aw_i2s_dai_intr),
-	DEVMETHOD(audio_dai_get_caps,	aw_i2s_dai_get_caps),
-	DEVMETHOD(audio_dai_trigger,	aw_i2s_dai_trigger),
-	DEVMETHOD(audio_dai_get_ptr,	aw_i2s_dai_get_ptr),
+	DEVMETHOD(audio_dai_init, aw_i2s_dai_init),
+	DEVMETHOD(audio_dai_setup_intr, aw_i2s_dai_setup_intr),
+	DEVMETHOD(audio_dai_set_sysclk, aw_i2s_dai_set_sysclk),
+	DEVMETHOD(audio_dai_set_chanspeed, aw_i2s_dai_set_chanspeed),
+	DEVMETHOD(audio_dai_set_chanformat, aw_i2s_dai_set_chanformat),
+	DEVMETHOD(audio_dai_intr, aw_i2s_dai_intr),
+	DEVMETHOD(audio_dai_get_caps, aw_i2s_dai_get_caps),
+	DEVMETHOD(audio_dai_trigger, aw_i2s_dai_trigger),
+	DEVMETHOD(audio_dai_get_ptr, aw_i2s_dai_get_ptr),
 
 	DEVMETHOD_END
 };

@@ -15,8 +15,8 @@ enum ib_signature_prot_cap {
 };
 
 enum ib_signature_guard_cap {
-	IB_GUARD_T10DIF_CRC	= 1,
-	IB_GUARD_T10DIF_CSUM	= 1 << 1,
+	IB_GUARD_T10DIF_CRC = 1,
+	IB_GUARD_T10DIF_CSUM = 1 << 1,
 };
 
 /**
@@ -54,14 +54,14 @@ enum ib_t10_dif_bg_type {
  */
 struct ib_t10_dif_domain {
 	enum ib_t10_dif_bg_type bg_type;
-	u16			pi_interval;
-	u16			bg;
-	u16			app_tag;
-	u32			ref_tag;
-	bool			ref_remap;
-	bool			app_escape;
-	bool			ref_escape;
-	u16			apptag_check_mask;
+	u16 pi_interval;
+	u16 bg;
+	u16 app_tag;
+	u32 ref_tag;
+	bool ref_remap;
+	bool app_escape;
+	bool ref_escape;
+	u16 apptag_check_mask;
 };
 
 /**
@@ -85,10 +85,10 @@ struct ib_sig_domain {
  * @meta_length: metadata length
  */
 struct ib_sig_attrs {
-	u8			check_mask;
-	struct ib_sig_domain	mem;
-	struct ib_sig_domain	wire;
-	int			meta_length;
+	u8 check_mask;
+	struct ib_sig_domain mem;
+	struct ib_sig_domain wire;
+	int meta_length;
 };
 
 enum ib_sig_err_type {
@@ -114,11 +114,11 @@ enum {
  * struct ib_sig_err - signature error descriptor
  */
 struct ib_sig_err {
-	enum ib_sig_err_type	err_type;
-	u32			expected;
-	u32			actual;
-	u64			sig_err_offset;
-	u32			key;
+	enum ib_sig_err_type err_type;
+	u32 expected;
+	u32 actual;
+	u64 sig_err_offset;
+	u32 key;
 };
 
 #endif /* _RDMA_SIGNATURE_H_ */

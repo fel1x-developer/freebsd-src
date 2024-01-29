@@ -32,21 +32,21 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 
+#include <db.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <unistd.h>
-#include "un-namespace.h"
 
-#include <db.h>
+#include "namespace.h"
 #include "recno.h"
+#include "un-namespace.h"
 
 DB *
 __rec_open(const char *fname, int flags, int mode, const RECNOINFO *openinfo,
@@ -76,8 +76,8 @@ __rec_open(const char *fname, int flags, int mode, const RECNOINFO *openinfo,
 		btopeninfo.compare = NULL;
 		btopeninfo.prefix = NULL;
 		btopeninfo.lorder = openinfo->lorder;
-		dbp = __bt_open(openinfo->bfname,
-		    O_RDWR, S_IRUSR | S_IWUSR, &btopeninfo, dflags);
+		dbp = __bt_open(openinfo->bfname, O_RDWR, S_IRUSR | S_IWUSR,
+		    &btopeninfo, dflags);
 	} else
 		dbp = __bt_open(NULL, O_RDWR, S_IRUSR | S_IWUSR, NULL, dflags);
 	if (dbp == NULL)
@@ -122,11 +122,12 @@ __rec_open(const char *fname, int flags, int mode, const RECNOINFO *openinfo,
 			default:
 				goto einval;
 			}
-slow:			if ((t->bt_rfp = fdopen(rfd, "r")) == NULL)
+		slow:
+			if ((t->bt_rfp = fdopen(rfd, "r")) == NULL)
 				goto err;
 			F_SET(t, R_CLOSEFP);
-			t->bt_irec =
-			    F_ISSET(t, R_FIXLEN) ? __rec_fpipe : __rec_vpipe;
+			t->bt_irec = F_ISSET(t, R_FIXLEN) ? __rec_fpipe :
+							    __rec_vpipe;
 		} else {
 			switch (flags & O_ACCMODE) {
 			case O_RDONLY:
@@ -162,13 +163,13 @@ slow:			if ((t->bt_rfp = fdopen(rfd, "r")) == NULL)
 				 */
 				t->bt_msize = sb.st_size;
 				if ((t->bt_smap = mmap(NULL, t->bt_msize,
-				    PROT_READ, MAP_PRIVATE, rfd,
-				    (off_t)0)) == MAP_FAILED)
+					 PROT_READ, MAP_PRIVATE, rfd,
+					 (off_t)0)) == MAP_FAILED)
 					goto slow;
 				t->bt_cmap = t->bt_smap;
 				t->bt_emap = t->bt_smap + sb.st_size;
-				t->bt_irec = F_ISSET(t, R_FIXLEN) ?
-				    __rec_fmap : __rec_vmap;
+				t->bt_irec = F_ISSET(t, R_FIXLEN) ? __rec_fmap :
+								    __rec_vmap;
 				F_SET(t, R_MEMMAPPED);
 #else
 				goto slow;
@@ -202,8 +203,10 @@ slow:			if ((t->bt_rfp = fdopen(rfd, "r")) == NULL)
 		goto err;
 	return (dbp);
 
-einval:	errno = EINVAL;
-err:	sverrno = errno;
+einval:
+	errno = EINVAL;
+err:
+	sverrno = errno;
 	if (dbp != NULL)
 		(void)__bt_close(dbp);
 	if (fname != NULL)

@@ -6,7 +6,7 @@
  * Copyright (c) 2005, WHEEL Sp. z o.o.
  * Copyright (c) 2004, 2005 Justin T. Gibbs
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
@@ -20,7 +20,7 @@
  * 3. Neither the names of the above listed copyright holders nor the names
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -41,8 +41,8 @@
  * Support from LSI-Logic has also gone a great deal toward making this a
  * workable subsystem and is gratefully acknowledged.
  */
-#ifndef  _MPT_RAID_H_
-#define  _MPT_RAID_H_
+#ifndef _MPT_RAID_H_
+#define _MPT_RAID_H_
 
 #include <cam/cam.h>
 union ccb;
@@ -57,12 +57,12 @@ typedef enum {
 cam_status mpt_map_physdisk(struct mpt_softc *, union ccb *, target_id_t *);
 int mpt_is_raid_member(struct mpt_softc *, target_id_t);
 int mpt_is_raid_volume(struct mpt_softc *, target_id_t);
-#if	0
+#if 0
 cam_status
 mpt_raid_quiesce_disk(struct mpt_softc *, struct mpt_raid_disk *, request_t *);
 #endif
 
-void	mpt_raid_free_mem(struct mpt_softc *);
+void mpt_raid_free_mem(struct mpt_softc *);
 
 static __inline void
 mpt_raid_wakeup(struct mpt_softc *mpt)
@@ -81,9 +81,9 @@ mpt_raid_wakeup(struct mpt_softc *mpt)
 
 #define MPT_RAID_MWCE_DEFAULT MPT_RAID_MWCE_NC
 
-#define RAID_VOL_FOREACH(mpt, mpt_vol)					\
-	for (mpt_vol = (mpt)->raid_volumes;				\
-	     mpt_vol != (mpt)->raid_volumes + (mpt)->raid_max_volumes;	\
+#define RAID_VOL_FOREACH(mpt, mpt_vol)                                 \
+	for (mpt_vol = (mpt)->raid_volumes;                            \
+	     mpt_vol != (mpt)->raid_volumes + (mpt)->raid_max_volumes; \
 	     mpt_vol++)
 
 #endif /*_MPT_RAID_H_ */

@@ -40,21 +40,22 @@
 #include <string.h>
 #endif
 
-#include <ufs/ufs/dinode.h>
-#include "ffs/ufs_bswap.h"
 #include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
+
 #include "ffs/ffs_extern.h"
+#include "ffs/ufs_bswap.h"
 
-#define	fs_old_postbloff	fs_spare5[0]
-#define	fs_old_rotbloff		fs_spare5[1]
-#define	fs_old_postbl_start	fs_maxbsize
-#define	fs_old_headswitch	fs_id[0]
-#define	fs_old_trkseek	fs_id[1]
-#define	fs_old_csmask	fs_spare1[0]
-#define	fs_old_csshift	fs_spare1[1]
+#define fs_old_postbloff fs_spare5[0]
+#define fs_old_rotbloff fs_spare5[1]
+#define fs_old_postbl_start fs_maxbsize
+#define fs_old_headswitch fs_id[0]
+#define fs_old_trkseek fs_id[1]
+#define fs_old_csmask fs_spare1[0]
+#define fs_old_csshift fs_spare1[1]
 
-#define	FS_42POSTBLFMT		-1	/* 4.2BSD rotational table format */
-#define	FS_DYNAMICPOSTBLFMT	1	/* dynamic rotational table format */
+#define FS_42POSTBLFMT -1     /* 4.2BSD rotational table format */
+#define FS_DYNAMICPOSTBLFMT 1 /* dynamic rotational table format */
 
 void ffs_csum_swap(struct csum *o, struct csum *n, int size);
 void ffs_csumtotal_swap(struct csum_total *o, struct csum_total *n);
@@ -172,8 +173,8 @@ ffs_csum_swap(struct csum *o, struct csum *n, int size)
 	size_t i;
 	u_int32_t *oint, *nint;
 
-	oint = (u_int32_t*)o;
-	nint = (u_int32_t*)n;
+	oint = (u_int32_t *)o;
+	nint = (u_int32_t *)n;
 
 	for (i = 0; i < size / sizeof(u_int32_t); i++)
 		nint[i] = bswap32(oint[i]);
@@ -215,7 +216,7 @@ ffs_cg_swap(struct cg *o, struct cg *n, struct fs *fs)
 	n->cg_irotor = bswap32(o->cg_irotor);
 	for (i = 0; i < MAXFRAG; i++)
 		n->cg_frsum[i] = bswap32(o->cg_frsum[i]);
-	
+
 	n->cg_old_btotoff = bswap32(o->cg_old_btotoff);
 	n->cg_old_boff = bswap32(o->cg_old_boff);
 	n->cg_iusedoff = bswap32(o->cg_iusedoff);
@@ -247,7 +248,7 @@ ffs_cg_swap(struct cg *o, struct cg *n, struct fs *fs)
 
 	for (i = 0; i < fs->fs_old_cpg; i++)
 		n32[i] = bswap32(o32[i]);
-	
+
 	for (i = 0; i < fs->fs_old_cpg * fs->fs_old_nrpos; i++)
 		n16[i] = bswap16(o16[i]);
 

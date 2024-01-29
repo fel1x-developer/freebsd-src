@@ -25,9 +25,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -36,34 +36,33 @@
 #include <sys/lock.h>
 #include <sys/module.h>
 
+#include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/iicbus/iiconf.h>
-#include <dev/iicbus/iicbus.h>
 
 #include "clock_if.h"
 #include "iicbus_if.h"
 
-#define BIT(x)				(1 << (x))
+#define BIT(x) (1 << (x))
 
-#define PCF85063_CTRL1_REG		0x0
-#define PCF85063_TIME_REG		0x4
+#define PCF85063_CTRL1_REG 0x0
+#define PCF85063_TIME_REG 0x4
 
-#define PCF85063_CTRL1_TIME_FORMAT	BIT(1)
-#define PCF85063_CTRL1_RTC_CLK_STOP	BIT(5)
-#define PCF85063_TIME_REG_OSC_STOP	BIT(7)
+#define PCF85063_CTRL1_TIME_FORMAT BIT(1)
+#define PCF85063_CTRL1_RTC_CLK_STOP BIT(5)
+#define PCF85063_TIME_REG_OSC_STOP BIT(7)
 
-#define PCF85063_HALF_OF_SEC_NS		500000000
+#define PCF85063_HALF_OF_SEC_NS 500000000
 
 struct pcf85063_time {
-	uint8_t		sec;
-	uint8_t		min;
-	uint8_t		hour;
-	uint8_t		day;
-	uint8_t		dow;
-	uint8_t		mon;
-	uint8_t		year;
+	uint8_t sec;
+	uint8_t min;
+	uint8_t hour;
+	uint8_t day;
+	uint8_t dow;
+	uint8_t mon;
+	uint8_t year;
 };
 
 static int pcf85063_attach(device_t dev);
@@ -75,10 +74,8 @@ static int pcf85063_set_time(device_t dev, struct timespec *ts);
 
 static int pcf85063_check_status(device_t dev);
 
-static struct ofw_compat_data pcf85063_compat_data[] = {
-	{ "nxp,pcf85063",		1},
-	{ NULL,				0}
-};
+static struct ofw_compat_data pcf85063_compat_data[] = { { "nxp,pcf85063", 1 },
+	{ NULL, 0 } };
 
 static int
 pcf85063_check_status(device_t dev)
@@ -252,22 +249,17 @@ pcf85063_probe(device_t dev)
 	return (BUS_PROBE_GENERIC);
 }
 
-static device_method_t pcf85063_methods [] = {
-	DEVMETHOD(device_attach, pcf85063_attach),
+static device_method_t pcf85063_methods[] = { DEVMETHOD(device_attach,
+						  pcf85063_attach),
 	DEVMETHOD(device_detach, pcf85063_detach),
 	DEVMETHOD(device_probe, pcf85063_probe),
 
 	DEVMETHOD(clock_gettime, pcf85063_get_time),
 	DEVMETHOD(clock_settime, pcf85063_set_time),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
-static driver_t pcf85063_driver = {
-	"pcf85063",
-	pcf85063_methods,
-	0
-};
+static driver_t pcf85063_driver = { "pcf85063", pcf85063_methods, 0 };
 
 DRIVER_MODULE(pcf85063, iicbus, pcf85063_driver, NULL, NULL);
 IICBUS_FDT_PNP_INFO(pcf85063_compat_data);

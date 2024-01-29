@@ -27,22 +27,22 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "calendar.h"
 
-#define	PASKHA		"paskha"
-#define	PASKHALEN	(sizeof(PASKHA) - 1)
+#define PASKHA "paskha"
+#define PASKHALEN (sizeof(PASKHA) - 1)
 
 /* return difference in days between Julian and Gregorian calendars */
 int
 j2g(int year)
 {
-	return (year < 1500) ?
-		0 :
-		10 + (year/100 - 16) - ((year/100 - 16) / 4);
+	return (year < 1500) ? 0 :
+			       10 + (year / 100 - 16) - ((year / 100 - 16) / 4);
 }
 
 /* return year day for Orthodox Easter using Gauss formula */

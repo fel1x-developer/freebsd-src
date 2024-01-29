@@ -23,23 +23,22 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <err.h>
-#include <string.h>
-#include <errno.h>
-#include <unistd.h>
-
 #include <sys/sysctl.h>
 #include <sys/time.h>
 
-#include <libusb20.h>
-#include <libusb20_desc.h>
-
-#include <dev/usb/usb_endian.h>
 #include <dev/usb/usb.h>
 #include <dev/usb/usb_cdc.h>
+#include <dev/usb/usb_endian.h>
+
+#include <err.h>
+#include <errno.h>
+#include <libusb20.h>
+#include <libusb20_desc.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "usbtest.h"
 
@@ -59,15 +58,15 @@ static struct modem {
 	uint32_t errors;
 
 	uint8_t use_vendor_specific;
-	uint8_t	loop_data;
-	uint8_t	modem_at_mode;
-	uint8_t	data_stress_test;
-	uint8_t	control_ep_test;
-	uint8_t	usb_iface;
-	uint8_t	random_tx_length;
-	uint8_t	random_tx_delay;
+	uint8_t loop_data;
+	uint8_t modem_at_mode;
+	uint8_t data_stress_test;
+	uint8_t control_ep_test;
+	uint8_t usb_iface;
+	uint8_t random_tx_length;
+	uint8_t random_tx_delay;
 
-}	modem;
+} modem;
 
 static void
 set_defaults(struct modem *p)
@@ -76,7 +75,7 @@ set_defaults(struct modem *p)
 
 	p->data_stress_test = 1;
 	p->control_ep_test = 1;
-	p->duration = 60;		/* seconds */
+	p->duration = 60; /* seconds */
 }
 
 void
@@ -200,9 +199,7 @@ usb_modem_control_ep_test(struct modem *p, uint32_t duration, uint8_t flag)
 		if (last_sec != sub_tv.tv_sec) {
 
 			printf("STATUS: ID=%u, COUNT=%u tests/sec ERR=%u\n",
-			    (int)id,
-			    (int)iter,
-			    (int)p->errors);
+			    (int)id, (int)iter, (int)p->errors);
 
 			fflush(stdout);
 
@@ -226,7 +223,8 @@ usb_modem_control_ep_test(struct modem *p, uint32_t duration, uint8_t flag)
 			setup.wIndex = iface_no;
 			setup.wLength = 0x0002;
 
-			if (libusb20_dev_request_sync(p->usb_dev, &setup, buf, NULL, 250, 0)) {
+			if (libusb20_dev_request_sync(p->usb_dev, &setup, buf,
+				NULL, 250, 0)) {
 				p->errors++;
 			}
 		}
@@ -238,7 +236,8 @@ usb_modem_control_ep_test(struct modem *p, uint32_t duration, uint8_t flag)
 			setup.wLength = UCDC_ABSTRACT_STATE_LENGTH;
 			USETW(ast.wState, state);
 
-			if (libusb20_dev_request_sync(p->usb_dev, &setup, &ast, NULL, 250, 0)) {
+			if (libusb20_dev_request_sync(p->usb_dev, &setup, &ast,
+				NULL, 250, 0)) {
 				p->errors++;
 			}
 		}
@@ -254,7 +253,8 @@ usb_modem_control_ep_test(struct modem *p, uint32_t duration, uint8_t flag)
 			setup.wIndex = iface_no;
 			setup.wLength = sizeof(ls);
 
-			if (libusb20_dev_request_sync(p->usb_dev, &setup, &ls, NULL, 250, 0)) {
+			if (libusb20_dev_request_sync(p->usb_dev, &setup, &ls,
+				NULL, 250, 0)) {
 				p->errors++;
 			}
 		}
@@ -299,7 +299,8 @@ usb_modem_data_stress_test(struct modem *p, uint32_t duration)
 	io_max = (in_max < out_max) ? in_max : out_max;
 
 	if (in_max != out_max)
-		printf("WARNING: Buffer sizes are un-equal: %u vs %u\n", in_max, out_max);
+		printf("WARNING: Buffer sizes are un-equal: %u vs %u\n", in_max,
+		    out_max);
 
 	in_buffer = malloc(io_max);
 	if (in_buffer == NULL)
@@ -315,11 +316,10 @@ usb_modem_data_stress_test(struct modem *p, uint32_t duration)
 
 		if (last_sec != sub_tv.tv_sec) {
 
-			printf("STATUS: ID=%u, RX=%u bytes/sec, TX=%u bytes/sec, ERR=%d\n",
-			    (int)id,
-			    (int)p->rx_bytes.bytes,
-			    (int)p->tx_bytes.bytes,
-			    (int)p->errors);
+			printf(
+			    "STATUS: ID=%u, RX=%u bytes/sec, TX=%u bytes/sec, ERR=%d\n",
+			    (int)id, (int)p->rx_bytes.bytes,
+			    (int)p->tx_bytes.bytes, (int)p->errors);
 
 			p->rx_bytes.bytes = 0;
 			p->tx_bytes.bytes = 0;
@@ -340,7 +340,9 @@ usb_modem_data_stress_test(struct modem *p, uint32_t duration)
 		if (!libusb20_tr_pending(p->xfer_in)) {
 			if (in_pending) {
 				if (libusb20_tr_get_status(p->xfer_in) == 0) {
-					modem_read(in_buffer, libusb20_tr_get_length(p->xfer_in, 0));
+					modem_read(in_buffer,
+					    libusb20_tr_get_length(p->xfer_in,
+						0));
 				} else {
 					p->errors++;
 					usleep(10000);
@@ -349,7 +351,8 @@ usb_modem_data_stress_test(struct modem *p, uint32_t duration)
 				in_ready = 1;
 			}
 			if (p->loop_data == 0) {
-				libusb20_tr_setup_bulk(p->xfer_in, in_buffer, io_max, 0);
+				libusb20_tr_setup_bulk(p->xfer_in, in_buffer,
+				    io_max, 0);
 				libusb20_tr_start(p->xfer_in);
 				in_pending = 1;
 				in_ready = 0;
@@ -367,7 +370,8 @@ usb_modem_data_stress_test(struct modem *p, uint32_t duration)
 				}
 			}
 			if (p->random_tx_length) {
-				len = ((uint32_t)usb_ts_rand_noise()) % ((uint32_t)io_max);
+				len = ((uint32_t)usb_ts_rand_noise()) %
+				    ((uint32_t)io_max);
 			} else {
 				len = io_max;
 			}
@@ -380,14 +384,16 @@ usb_modem_data_stress_test(struct modem *p, uint32_t duration)
 
 			if (p->loop_data != 0) {
 				if (in_ready != 0) {
-					len = libusb20_tr_get_length(p->xfer_in, 0);
+					len = libusb20_tr_get_length(p->xfer_in,
+					    0);
 					memcpy(out_buffer, in_buffer, len);
 					in_ready = 0;
 				} else {
 					len = io_max + 1;
 				}
 				if (!libusb20_tr_pending(p->xfer_in)) {
-					libusb20_tr_setup_bulk(p->xfer_in, in_buffer, io_max, 0);
+					libusb20_tr_setup_bulk(p->xfer_in,
+					    in_buffer, io_max, 0);
 					libusb20_tr_start(p->xfer_in);
 					in_pending = 1;
 				}
@@ -396,7 +402,8 @@ usb_modem_data_stress_test(struct modem *p, uint32_t duration)
 			}
 
 			if (len <= io_max) {
-				libusb20_tr_setup_bulk(p->xfer_out, out_buffer, len, 0);
+				libusb20_tr_setup_bulk(p->xfer_out, out_buffer,
+				    len, 0);
 
 				if (dly != 0)
 					usleep(dly);
@@ -446,17 +453,19 @@ exec_host_modem_test(struct modem *p, struct uaddr uaddr)
 	}
 
 	if (p->use_vendor_specific)
-		find_usb_endpoints(pdev, 255, 255, 255, 0, &iface, &in_ep, &out_ep, 0);
+		find_usb_endpoints(pdev, 255, 255, 255, 0, &iface, &in_ep,
+		    &out_ep, 0);
 	else
-		find_usb_endpoints(pdev, 2, 2, 1, 0, &iface, &in_ep, &out_ep, 1);
+		find_usb_endpoints(pdev, 2, 2, 1, 0, &iface, &in_ep, &out_ep,
+		    1);
 
 	if ((in_ep == 0) || (out_ep == 0)) {
 		printf("Could not find USB endpoints\n");
 		libusb20_dev_free(pdev);
 		return;
 	}
-	printf("Attaching to: %s @ iface %d\n",
-	    libusb20_dev_get_desc(pdev), iface);
+	printf("Attaching to: %s @ iface %d\n", libusb20_dev_get_desc(pdev),
+	    iface);
 
 	if (libusb20_dev_open(pdev, 2)) {
 		printf("Could not open USB device\n");
@@ -539,8 +548,7 @@ show_host_modem_test(uint8_t level, struct uaddr uaddr, uint32_t duration)
 		    (modem.random_tx_length ? "YES" : "NO"),
 		    (modem.random_tx_delay ? "16" : "0"),
 		    (modem.use_vendor_specific ? "YES" : "NO"),
-		    (modem.loop_data ? "YES" : "NO"),
-		    (int)(modem.duration),
+		    (modem.loop_data ? "YES" : "NO"), (int)(modem.duration),
 		    (int)uaddr.vid, (int)uaddr.pid);
 
 		switch (retval) {

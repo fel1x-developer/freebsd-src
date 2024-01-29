@@ -31,19 +31,18 @@
  * are in nanoseconds, and assume that all timings are < 4s.
  * See owll_if.m for timings, and refer to AN937 for details.
  */
-struct ow_timing 
-{
-	uint32_t	t_slot;		/* Slot time */
-	uint32_t	t_low0;		/* Time low for a 0 bit. */
-	uint32_t	t_low1;		/* Time low for a 1 bit. */
-	uint32_t	t_lowr;		/* Time slave holds line down per bit */
-	uint32_t	t_release;	/* Time after t_rdv to float high */
-	uint32_t	t_rec;		/* After sample before M low */
-	uint32_t	t_rdv;		/* Time to poll the bit after M low */
-	uint32_t	t_rstl;		/* Time M low on reset */
-	uint32_t	t_rsth;		/* Time M high on reset */
-	uint32_t	t_pdl;		/* Time S low on reset */
-	uint32_t	t_pdh;		/* Time R high after M low on reset */
+struct ow_timing {
+	uint32_t t_slot;    /* Slot time */
+	uint32_t t_low0;    /* Time low for a 0 bit. */
+	uint32_t t_low1;    /* Time low for a 1 bit. */
+	uint32_t t_lowr;    /* Time slave holds line down per bit */
+	uint32_t t_release; /* Time after t_rdv to float high */
+	uint32_t t_rec;	    /* After sample before M low */
+	uint32_t t_rdv;	    /* Time to poll the bit after M low */
+	uint32_t t_rstl;    /* Time M low on reset */
+	uint32_t t_rsth;    /* Time M high on reset */
+	uint32_t t_pdl;	    /* Time S low on reset */
+	uint32_t t_pdh;	    /* Time R high after M low on reset */
 };
 
 #include "owll_if.h"

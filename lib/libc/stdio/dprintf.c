@@ -26,13 +26,14 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <stdarg.h>
 #include <stdio.h>
+
+#include "namespace.h"
 #include "un-namespace.h"
 
 int
-dprintf(int fd, const char * __restrict fmt, ...)
+dprintf(int fd, const char *__restrict fmt, ...)
 {
 	va_list ap;
 	int ret;

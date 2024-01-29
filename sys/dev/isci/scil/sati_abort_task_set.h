@@ -61,22 +61,18 @@
  *        for the task request.
  */
 
-#include <dev/isci/scil/sati_types.h>
 #include <dev/isci/scil/sati_translator_sequence.h>
+#include <dev/isci/scil/sati_types.h>
 
 #if !defined(DISABLE_SATI_ABORT_TASK_SET)
 
-SATI_STATUS sati_abort_task_set_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_task,
-   void                       * ata_io
-);
+SATI_STATUS
+sati_abort_task_set_translate_command(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_task, void *ata_io);
 
-SATI_STATUS sati_abort_task_set_translate_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * ata_input_data,
-   void                       * scsi_task
-);
+SATI_STATUS
+sati_abort_task_set_translate_data(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *ata_input_data, void *scsi_task);
 
 #endif // !defined(DISABLE_SATI_ABORT_TASK_SET)
 

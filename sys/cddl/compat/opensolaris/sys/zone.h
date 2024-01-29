@@ -25,7 +25,7 @@
  */
 
 #ifndef _OPENSOLARIS_SYS_ZONE_H_
-#define	_OPENSOLARIS_SYS_ZONE_H_
+#define _OPENSOLARIS_SYS_ZONE_H_
 
 #ifdef _KERNEL
 
@@ -38,7 +38,7 @@
 /*
  * Is thread in the global zone?
  */
-#define	INGLOBALZONE(thread)	(!jailed((thread)->td_ucred))
+#define INGLOBALZONE(thread) (!jailed((thread)->td_ucred))
 
 /*
  * Attach the given dataset to the given jail.
@@ -62,10 +62,10 @@ extern int zone_dataset_visible(const char *, int *);
  */
 extern uint32_t zone_get_hostid(void *);
 
-#else	/* !_KERNEL */
+#else /* !_KERNEL */
 
-#define	GLOBAL_ZONEID	0
+#define GLOBAL_ZONEID 0
 
-#endif	/* _KERNEL */
+#endif /* _KERNEL */
 
-#endif	/* !_OPENSOLARIS_SYS_ZONE_H_ */
+#endif /* !_OPENSOLARIS_SYS_ZONE_H_ */

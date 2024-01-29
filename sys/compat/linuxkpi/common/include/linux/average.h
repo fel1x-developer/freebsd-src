@@ -31,9 +31,10 @@
 #ifndef _LINUXKPI_LINUX_AVERAGE_H
 #define _LINUXKPI_LINUX_AVERAGE_H
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/types.h>
+
 #include <linux/log2.h>
 
 /* EWMA stands for Exponentially Weighted Moving Average. */
@@ -52,39 +53,38 @@
  * we hit the CTASSERT.
  */
 
-#define	DECLARE_EWMA(_name, _p, _d)						\
-										\
-	CTASSERT((sizeof(unsigned long) <= 4) ? (_p < 30) : (_p < 60));		\
-	CTASSERT(_d > 0 && powerof2(_d));					\
-										\
-	struct ewma_ ## _name {							\
-		unsigned long zt;						\
-	};									\
-										\
-	static __inline void							\
-	ewma_ ## _name ## _init(struct ewma_ ## _name *ewma)			\
-	{									\
-		/* No target (no historical data). */				\
-		ewma->zt = 0;							\
-	}									\
-										\
-	static __inline void							\
-	ewma_ ## _name ## _add(struct ewma_ ## _name *ewma, unsigned long x)	\
-	{									\
-		unsigned long ztm1 = ewma->zt;	/* Z_(t-1). */			\
-		int d = ilog2(_d);						\
-										\
-		if (ewma->zt == 0)						\
-			ewma->zt = x << (_p);					\
-		else								\
-			ewma->zt = ((x << (_p)) >> d) +				\
-			    (((ztm1 << d) - ztm1) >> d);			\
-	}									\
-										\
-	static __inline unsigned long						\
-	ewma_ ## _name ## _read(struct ewma_ ## _name *ewma)			\
-	{									\
-		return (ewma->zt >> (_p));					\
-	}									\
+#define DECLARE_EWMA(_name, _p, _d)                                         \
+                                                                            \
+	CTASSERT((sizeof(unsigned long) <= 4) ? (_p < 30) : (_p < 60));     \
+	CTASSERT(_d > 0 && powerof2(_d));                                   \
+                                                                            \
+	struct ewma_##_name {                                               \
+		unsigned long zt;                                           \
+	};                                                                  \
+                                                                            \
+	static __inline void ewma_##_name##_init(struct ewma_##_name *ewma) \
+	{                                                                   \
+		/* No target (no historical data). */                       \
+		ewma->zt = 0;                                               \
+	}                                                                   \
+                                                                            \
+	static __inline void ewma_##_name##_add(struct ewma_##_name *ewma,  \
+	    unsigned long x)                                                \
+	{                                                                   \
+		unsigned long ztm1 = ewma->zt; /* Z_(t-1). */               \
+		int d = ilog2(_d);                                          \
+                                                                            \
+		if (ewma->zt == 0)                                          \
+			ewma->zt = x << (_p);                               \
+		else                                                        \
+			ewma->zt = ((x << (_p)) >> d) +                     \
+			    (((ztm1 << d) - ztm1) >> d);                    \
+	}                                                                   \
+                                                                            \
+	static __inline unsigned long ewma_##_name##_read(                  \
+	    struct ewma_##_name *ewma)                                      \
+	{                                                                   \
+		return (ewma->zt >> (_p));                                  \
+	}
 
 #endif /* _LINUXKPI_LINUX_AVERAGE_H */

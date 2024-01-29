@@ -36,14 +36,17 @@
 #include <sys/mutex.h>
 #include <sys/rman.h>
 #include <sys/sysctl.h>
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
+
+#include <vm/vm.h>
+#include <vm/pmap.h>
+#include <vm/vm_param.h>
+
 #include <machine/bus.h>
 #include <machine/resource.h>
 #include <machine/stdarg.h>
-#include <vm/vm.h>
-#include <vm/vm_param.h>
-#include <vm/pmap.h>
+
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include "ioat.h"
 #include "ioat_hw.h"
@@ -51,32 +54,32 @@
 #include "ioat_test.h"
 
 #ifndef time_after
-#define	time_after(a,b)		((long)(b) - (long)(a) < 0)
+#define time_after(a, b) ((long)(b) - (long)(a) < 0)
 #endif
 
 MALLOC_DEFINE(M_IOAT_TEST, "ioat_test", "ioat test allocations");
 
-#define	IOAT_MAX_BUFS	256
+#define IOAT_MAX_BUFS 256
 
 struct test_transaction {
-	void			*buf[IOAT_MAX_BUFS];
-	uint32_t		length;
-	uint32_t		depth;
-	uint32_t		crc[IOAT_MAX_BUFS];
-	struct ioat_test	*test;
-	TAILQ_ENTRY(test_transaction)	entry;
+	void *buf[IOAT_MAX_BUFS];
+	uint32_t length;
+	uint32_t depth;
+	uint32_t crc[IOAT_MAX_BUFS];
+	struct ioat_test *test;
+	TAILQ_ENTRY(test_transaction) entry;
 };
 
-#define	IT_LOCK()	mtx_lock(&ioat_test_lk)
-#define	IT_UNLOCK()	mtx_unlock(&ioat_test_lk)
-#define	IT_ASSERT()	mtx_assert(&ioat_test_lk, MA_OWNED)
+#define IT_LOCK() mtx_lock(&ioat_test_lk)
+#define IT_UNLOCK() mtx_unlock(&ioat_test_lk)
+#define IT_ASSERT() mtx_assert(&ioat_test_lk, MA_OWNED)
 static struct mtx ioat_test_lk;
 MTX_SYSINIT(ioat_test_lk, &ioat_test_lk, "test coordination mtx", MTX_DEF);
 
 static int g_thread_index = 1;
 static struct cdev *g_ioat_cdev = NULL;
 
-#define	ioat_test_log(v, ...)	_ioat_test_log((v), "ioat_test: " __VA_ARGS__)
+#define ioat_test_log(v, ...) _ioat_test_log((v), "ioat_test: " __VA_ARGS__)
 static void _ioat_test_log(int verbosity, const char *fmt, ...);
 
 static void
@@ -100,9 +103,8 @@ ioat_test_transaction_destroy(struct test_transaction *tx)
 	free(tx, M_IOAT_TEST);
 }
 
-static struct
-test_transaction *ioat_test_transaction_create(struct ioat_test *test,
-    unsigned num_buffers)
+static struct test_transaction *
+ioat_test_transaction_create(struct ioat_test *test, unsigned num_buffers)
 {
 	struct test_transaction *tx;
 	unsigned i;
@@ -158,8 +160,8 @@ ioat_compare_ok(struct test_transaction *tx)
 		if (test->testkind == IOAT_TEST_FILL) {
 			for (j = 0; j < tx->length; j += sizeof(uint64_t)) {
 				if (memcmp(src, &dst[j],
-					MIN(sizeof(uint64_t), tx->length - j))
-				    != 0)
+					MIN(sizeof(uint64_t),
+					    tx->length - j)) != 0)
 					return (false);
 			}
 		} else if (test->testkind == IOAT_TEST_DMA) {
@@ -223,8 +225,8 @@ ioat_test_prealloc_memory(struct ioat_test *test, int index)
 			uint32_t val = j + (index << 28);
 
 			for (k = 0; k < test->chain_depth; k++) {
-				((uint32_t *)tx->buf[2*k])[j] = ~val;
-				((uint32_t *)tx->buf[2*k+1])[j] = val;
+				((uint32_t *)tx->buf[2 * k])[j] = ~val;
+				((uint32_t *)tx->buf[2 * k + 1])[j] = val;
 			}
 		}
 	}
@@ -236,11 +238,11 @@ ioat_test_release_memory(struct ioat_test *test)
 {
 	struct test_transaction *tx, *s;
 
-	TAILQ_FOREACH_SAFE(tx, &test->free_q, entry, s)
+	TAILQ_FOREACH_SAFE (tx, &test->free_q, entry, s)
 		ioat_test_transaction_destroy(tx);
 	TAILQ_INIT(&test->free_q);
 
-	TAILQ_FOREACH_SAFE(tx, &test->pend_q, entry, s)
+	TAILQ_FOREACH_SAFE (tx, &test->pend_q, entry, s)
 		ioat_test_transaction_destroy(tx);
 	TAILQ_INIT(&test->pend_q);
 }
@@ -276,8 +278,8 @@ ioat_test_submit_1_tx(struct ioat_test *test, bus_dmaengine_t dma)
 			continue;
 		}
 
-		src = vtophys((vm_offset_t)tx->buf[2*i]);
-		dest = vtophys((vm_offset_t)tx->buf[2*i+1]);
+		src = vtophys((vm_offset_t)tx->buf[2 * i]);
+		dest = vtophys((vm_offset_t)tx->buf[2 * i + 1]);
 
 		if (test->testkind == IOAT_TEST_RAW_DMA) {
 			if (test->raw_write)
@@ -299,22 +301,24 @@ ioat_test_submit_1_tx(struct ioat_test *test, bus_dmaengine_t dma)
 			desc = ioat_copy(dma, dest, src, tx->length, cb, tx,
 			    flags);
 		else if (test->testkind == IOAT_TEST_FILL) {
-			fillpattern = *(uint64_t *)tx->buf[2*i];
+			fillpattern = *(uint64_t *)tx->buf[2 * i];
 			desc = ioat_blockfill(dma, dest, fillpattern,
 			    tx->length, cb, tx, flags);
 		} else if (test->testkind == IOAT_TEST_DMA_8K) {
 			bus_addr_t src2, dst2;
 
-			src2 = vtophys((vm_offset_t)tx->buf[2*i] + PAGE_SIZE);
-			dst2 = vtophys((vm_offset_t)tx->buf[2*i+1] + PAGE_SIZE);
+			src2 = vtophys((vm_offset_t)tx->buf[2 * i] + PAGE_SIZE);
+			dst2 = vtophys(
+			    (vm_offset_t)tx->buf[2 * i + 1] + PAGE_SIZE);
 
 			desc = ioat_copy_8k_aligned(dma, dest, dst2, src, src2,
 			    cb, tx, flags);
 		} else if (test->testkind == IOAT_TEST_DMA_8K_PB) {
 			bus_addr_t src2, dst2;
 
-			src2 = vtophys((vm_offset_t)tx->buf[2*i+1] + PAGE_SIZE);
-			dst2 = vtophys((vm_offset_t)tx->buf[2*i] + PAGE_SIZE);
+			src2 = vtophys(
+			    (vm_offset_t)tx->buf[2 * i + 1] + PAGE_SIZE);
+			dst2 = vtophys((vm_offset_t)tx->buf[2 * i] + PAGE_SIZE);
 
 			desc = ioat_copy_8k_aligned(dma, dest, dst2, src, src2,
 			    cb, tx, flags);
@@ -323,15 +327,15 @@ ioat_test_submit_1_tx(struct ioat_test *test, bus_dmaengine_t dma)
 
 			tx->crc[i] = 0;
 			crc = vtophys((vm_offset_t)&tx->crc[i]);
-			desc = ioat_crc(dma, src, tx->length,
-			    NULL, crc, cb, tx, flags | DMA_CRC_STORE);
+			desc = ioat_crc(dma, src, tx->length, NULL, crc, cb, tx,
+			    flags | DMA_CRC_STORE);
 		} else if (test->testkind == IOAT_TEST_DMA_CRC_COPY) {
 			bus_addr_t crc;
 
 			tx->crc[i] = 0;
 			crc = vtophys((vm_offset_t)&tx->crc[i]);
-			desc = ioat_copy_crc(dma, dest, src, tx->length,
-			    NULL, crc, cb, tx, flags | DMA_CRC_STORE);
+			desc = ioat_copy_crc(dma, dest, src, tx->length, NULL,
+			    crc, cb, tx, flags | DMA_CRC_STORE);
 		}
 		if (desc == NULL)
 			break;
@@ -346,7 +350,8 @@ ioat_test_submit_1_tx(struct ioat_test *test, bus_dmaengine_t dma)
 	 * our timer expires.
 	 */
 	if (desc == NULL && tx->depth > 0) {
-		atomic_add_32(&test->status[IOAT_TEST_NO_DMA_ENGINE], tx->depth);
+		atomic_add_32(&test->status[IOAT_TEST_NO_DMA_ENGINE],
+		    tx->depth);
 		IT_LOCK();
 		TAILQ_REMOVE(&test->pend_q, tx, entry);
 		TAILQ_INSERT_HEAD(&test->free_q, tx, entry);
@@ -367,9 +372,10 @@ ioat_dma_test(void *arg)
 	memset(__DEVOLATILE(void *, test->status), 0, sizeof(test->status));
 
 	if ((test->testkind == IOAT_TEST_DMA_8K ||
-	    test->testkind == IOAT_TEST_DMA_8K_PB) &&
+		test->testkind == IOAT_TEST_DMA_8K_PB) &&
 	    test->buffer_size != 2 * PAGE_SIZE) {
-		ioat_test_log(0, "Asked for 8k test and buffer size isn't 8k\n");
+		ioat_test_log(0,
+		    "Asked for 8k test and buffer size isn't 8k\n");
 		test->status[IOAT_TEST_INVALID_INPUT]++;
 		return;
 	}
@@ -388,23 +394,24 @@ ioat_dma_test(void *arg)
 	}
 
 	if (btoc((uint64_t)test->buffer_size * test->chain_depth *
-	    test->transactions) > (physmem / 4)) {
-		ioat_test_log(0, "Sanity check failed -- test would "
+		test->transactions) > (physmem / 4)) {
+		ioat_test_log(0,
+		    "Sanity check failed -- test would "
 		    "use more than 1/4 of phys mem.\n");
 		test->status[IOAT_TEST_NO_MEMORY]++;
 		return;
 	}
 
-	if ((uint64_t)test->transactions * test->chain_depth > (1<<16)) {
-		ioat_test_log(0, "Sanity check failed -- test would "
+	if ((uint64_t)test->transactions * test->chain_depth > (1 << 16)) {
+		ioat_test_log(0,
+		    "Sanity check failed -- test would "
 		    "use more than available IOAT ring space.\n");
 		test->status[IOAT_TEST_NO_MEMORY]++;
 		return;
 	}
 
 	if (test->testkind >= IOAT_NUM_TESTKINDS) {
-		ioat_test_log(0, "Invalid kind %u\n",
-		    (unsigned)test->testkind);
+		ioat_test_log(0, "Invalid kind %u\n", (unsigned)test->testkind);
 		test->status[IOAT_TEST_INVALID_INPUT]++;
 		return;
 	}
@@ -418,8 +425,7 @@ ioat_dma_test(void *arg)
 	ioat = to_ioat_softc(dmaengine);
 
 	if (test->testkind == IOAT_TEST_FILL &&
-	    (ioat->capabilities & IOAT_DMACAP_BFILL) == 0)
-	{
+	    (ioat->capabilities & IOAT_DMACAP_BFILL) == 0) {
 		ioat_test_log(0,
 		    "Hardware doesn't support block fill, aborting test\n");
 		test->status[IOAT_TEST_INVALID_INPUT]++;
@@ -535,12 +541,12 @@ ioat_test_ioctl(struct cdev *dev, unsigned long cmd, caddr_t arg, int flag,
 }
 
 static struct cdevsw ioat_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_flags =	0,
-	.d_open =	ioat_test_open,
-	.d_close =	ioat_test_close,
-	.d_ioctl =	ioat_test_ioctl,
-	.d_name =	"ioat_test",
+	.d_version = D_VERSION,
+	.d_flags = 0,
+	.d_open = ioat_test_open,
+	.d_close = ioat_test_close,
+	.d_ioctl = ioat_test_ioctl,
+	.d_name = "ioat_test",
 };
 
 static int
@@ -576,9 +582,8 @@ sysctl_enable_ioat_test(SYSCTL_HANDLER_ARGS)
 	return (enable_ioat_test(enabled));
 }
 SYSCTL_PROC(_hw_ioat, OID_AUTO, enable_ioat_test,
-    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, 0, 0,
-    sysctl_enable_ioat_test, "I",
-    "Non-zero: Enable the /dev/ioat_test device");
+    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, 0, 0, sysctl_enable_ioat_test,
+    "I", "Non-zero: Enable the /dev/ioat_test device");
 
 void
 ioat_test_attach(void)

@@ -33,16 +33,9 @@
  * tunefs: change layout parameters to an existing file system.
  */
 #include <sys/param.h>
-#include <sys/mount.h>
 #include <sys/disklabel.h>
+#include <sys/mount.h>
 #include <sys/stat.h>
-
-#include <ufs/ufs/extattr.h>
-#include <ufs/ufs/quota.h>
-#include <ufs/ufs/ufsmount.h>
-#include <ufs/ufs/dinode.h>
-#include <ufs/ffs/fs.h>
-#include <ufs/ufs/dir.h>
 
 #include <ctype.h>
 #include <err.h>
@@ -51,20 +44,26 @@
 #include <libufs.h>
 #include <mntopts.h>
 #include <paths.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
 #include <time.h>
+#include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
+#include <ufs/ufs/dir.h>
+#include <ufs/ufs/extattr.h>
+#include <ufs/ufs/quota.h>
+#include <ufs/ufs/ufsmount.h>
 #include <unistd.h>
 
 /* the optimization warning string template */
-#define	OPTWARN	"should optimize for %s with minfree %s %d%%"
+#define OPTWARN "should optimize for %s with minfree %s %d%%"
 
 static int blocks;
 static char clrbuf[MAXBSIZE];
 static struct uufsd disk;
-#define	sblock disk.d_fs
+#define sblock disk.d_fs
 
 static void usage(void) __dead2;
 static void printfs(void);
@@ -75,7 +74,8 @@ static void sbdirty(void);
 int
 main(int argc, char *argv[])
 {
-	const char *avalue, *jvalue, *Jvalue, *Lvalue, *lvalue, *Nvalue, *nvalue;
+	const char *avalue, *jvalue, *Jvalue, *Lvalue, *lvalue, *Nvalue,
+	    *nvalue;
 	const char *tvalue;
 	const char *special;
 	const char *name;
@@ -92,9 +92,9 @@ main(int argc, char *argv[])
 	lflag = mflag = Nflag = nflag = oflag = pflag = sflag = tflag = 0;
 	avalue = jvalue = Jvalue = Lvalue = lvalue = Nvalue = nvalue = NULL;
 	evalue = fvalue = mvalue = ovalue = svalue = Svalue = 0;
-	found_arg = 0;		/* At least one arg is required. */
-	while ((ch = getopt(argc, argv, "Aa:e:f:j:J:k:L:l:m:N:n:o:ps:S:t:"))
-	    != -1)
+	found_arg = 0; /* At least one arg is required. */
+	while (
+	    (ch = getopt(argc, argv, "Aa:e:f:j:J:k:L:l:m:N:n:o:ps:S:t:")) != -1)
 		switch (ch) {
 
 		case 'A':
@@ -108,8 +108,8 @@ main(int argc, char *argv[])
 			avalue = optarg;
 			if (strcmp(avalue, "enable") &&
 			    strcmp(avalue, "disable")) {
-				errx(10, "bad %s (options are %s)",
-				    name, "`enable' or `disable'");
+				errx(10, "bad %s (options are %s)", name,
+				    "`enable' or `disable'");
 			}
 			aflag = 1;
 			break;
@@ -119,8 +119,8 @@ main(int argc, char *argv[])
 			name = "maximum blocks per file in a cylinder group";
 			evalue = atoi(optarg);
 			if (evalue < 1)
-				errx(10, "%s must be >= 1 (was %s)",
-				    name, optarg);
+				errx(10, "%s must be >= 1 (was %s)", name,
+				    optarg);
 			eflag = 1;
 			break;
 
@@ -129,8 +129,8 @@ main(int argc, char *argv[])
 			name = "average file size";
 			fvalue = atoi(optarg);
 			if (fvalue < 1)
-				errx(10, "%s must be >= 1 (was %s)",
-				    name, optarg);
+				errx(10, "%s must be >= 1 (was %s)", name,
+				    optarg);
 			fflag = 1;
 			break;
 
@@ -140,8 +140,8 @@ main(int argc, char *argv[])
 			jvalue = optarg;
 			if (strcmp(jvalue, "enable") &&
 			    strcmp(jvalue, "disable")) {
-				errx(10, "bad %s (options are %s)",
-				    name, "`enable' or `disable'");
+				errx(10, "bad %s (options are %s)", name,
+				    "`enable' or `disable'");
 			}
 			jflag = 1;
 			break;
@@ -152,8 +152,8 @@ main(int argc, char *argv[])
 			Jvalue = optarg;
 			if (strcmp(Jvalue, "enable") &&
 			    strcmp(Jvalue, "disable")) {
-				errx(10, "bad %s (options are %s)",
-				    name, "`enable' or `disable'");
+				errx(10, "bad %s (options are %s)", name,
+				    "`enable' or `disable'");
 			}
 			Jflag = 1;
 			break;
@@ -176,7 +176,8 @@ main(int argc, char *argv[])
 			    Lvalue[i] == '-')
 				;
 			if (Lvalue[i] != '\0') {
-				errx(10, "bad %s. Valid characters are "
+				errx(10,
+				    "bad %s. Valid characters are "
 				    "alphanumerics, dashes, and underscores.",
 				    name);
 			}
@@ -193,8 +194,8 @@ main(int argc, char *argv[])
 			lvalue = optarg;
 			if (strcmp(lvalue, "enable") &&
 			    strcmp(lvalue, "disable")) {
-				errx(10, "bad %s (options are %s)",
-				    name, "`enable' or `disable'");
+				errx(10, "bad %s (options are %s)", name,
+				    "`enable' or `disable'");
 			}
 			lflag = 1;
 			break;
@@ -214,8 +215,8 @@ main(int argc, char *argv[])
 			Nvalue = optarg;
 			if (strcmp(Nvalue, "enable") &&
 			    strcmp(Nvalue, "disable")) {
-				errx(10, "bad %s (options are %s)",
-				    name, "`enable' or `disable'");
+				errx(10, "bad %s (options are %s)", name,
+				    "`enable' or `disable'");
 			}
 			Nflag = 1;
 			break;
@@ -226,8 +227,8 @@ main(int argc, char *argv[])
 			nvalue = optarg;
 			if (strcmp(nvalue, "enable") != 0 &&
 			    strcmp(nvalue, "disable") != 0) {
-				errx(10, "bad %s (options are %s)",
-				    name, "`enable' or `disable'");
+				errx(10, "bad %s (options are %s)", name,
+				    "`enable' or `disable'");
 			}
 			nflag = 1;
 			break;
@@ -256,8 +257,8 @@ main(int argc, char *argv[])
 			name = "expected number of files per directory";
 			svalue = atoi(optarg);
 			if (svalue < 1)
-				errx(10, "%s must be >= 1 (was %s)",
-				    name, optarg);
+				errx(10, "%s must be >= 1 (was %s)", name,
+				    optarg);
 			sflag = 1;
 			break;
 
@@ -266,8 +267,8 @@ main(int argc, char *argv[])
 			name = "Softdep Journal Size";
 			Svalue = atoi(optarg);
 			if (Svalue < SUJ_MIN)
-				errx(10, "%s must be >= %d (was %s)",
-				    name, SUJ_MIN, optarg);
+				errx(10, "%s must be >= %d (was %s)", name,
+				    SUJ_MIN, optarg);
 			break;
 
 		case 't':
@@ -276,8 +277,8 @@ main(int argc, char *argv[])
 			tvalue = optarg;
 			if (strcmp(tvalue, "enable") != 0 &&
 			    strcmp(tvalue, "disable") != 0) {
-				errx(10, "bad %s (options are %s)",
-				    name, "`enable' or `disable'");
+				errx(10, "bad %s (options are %s)", name,
+				    "`enable' or `disable'");
 			}
 			tflag = 1;
 			break;
@@ -297,7 +298,7 @@ main(int argc, char *argv[])
 	 * Check for unclean filesystem.
 	 */
 	if ((sblock.fs_clean == 0 ||
-	    (sblock.fs_flags & (FS_UNCLEAN | FS_NEEDSFSCK)) != 0) &&
+		(sblock.fs_flags & (FS_UNCLEAN | FS_NEEDSFSCK)) != 0) &&
 	    (found_arg > 1 || !pflag))
 		errx(1, "%s is not clean - run fsck.\n", special);
 	if (pflag) {
@@ -315,16 +316,15 @@ main(int argc, char *argv[])
 				warnx("%s remains unchanged as enabled", name);
 			} else if (sblock.fs_flags & FS_NFS4ACLS) {
 				warnx("%s and NFSv4 ACLs are mutually "
-				    "exclusive", name);
+				      "exclusive",
+				    name);
 			} else {
 				sblock.fs_flags |= FS_ACLS;
 				warnx("%s set", name);
 			}
 		} else if (strcmp(avalue, "disable") == 0) {
-			if ((~sblock.fs_flags & FS_ACLS) ==
-			    FS_ACLS) {
-				warnx("%s remains unchanged as disabled",
-				    name);
+			if ((~sblock.fs_flags & FS_ACLS) == FS_ACLS) {
+				warnx("%s remains unchanged as disabled", name);
 			} else {
 				sblock.fs_flags &= ~FS_ACLS;
 				warnx("%s cleared", name);
@@ -336,8 +336,8 @@ main(int argc, char *argv[])
 		if (sblock.fs_maxbpg == evalue)
 			warnx("%s remains unchanged as %d", name, evalue);
 		else {
-			warnx("%s changes from %d to %d",
-			    name, sblock.fs_maxbpg, evalue);
+			warnx("%s changes from %d to %d", name,
+			    sblock.fs_maxbpg, evalue);
 			sblock.fs_maxbpg = evalue;
 		}
 	}
@@ -345,16 +345,15 @@ main(int argc, char *argv[])
 		name = "average file size";
 		if (sblock.fs_avgfilesize == (unsigned)fvalue) {
 			warnx("%s remains unchanged as %d", name, fvalue);
-		}
-		else {
-			warnx("%s changes from %d to %d",
-					name, sblock.fs_avgfilesize, fvalue);
+		} else {
+			warnx("%s changes from %d to %d", name,
+			    sblock.fs_avgfilesize, fvalue);
 			sblock.fs_avgfilesize = fvalue;
 		}
 	}
 	if (jflag) {
- 		name = "soft updates journaling";
- 		if (strcmp(jvalue, "enable") == 0) {
+		name = "soft updates journaling";
+		if (strcmp(jvalue, "enable") == 0) {
 			if ((sblock.fs_flags & (FS_DOSOFTDEP | FS_SUJ)) ==
 			    (FS_DOSOFTDEP | FS_SUJ)) {
 				warnx("%s remains unchanged as enabled", name);
@@ -364,22 +363,22 @@ main(int argc, char *argv[])
 			} else if (journal_alloc(Svalue) != 0) {
 				warnx("%s cannot be enabled", name);
 			} else {
- 				sblock.fs_flags |= FS_DOSOFTDEP | FS_SUJ;
- 				warnx("%s set", name);
+				sblock.fs_flags |= FS_DOSOFTDEP | FS_SUJ;
+				warnx("%s set", name);
 			}
- 		} else if (strcmp(jvalue, "disable") == 0) {
+		} else if (strcmp(jvalue, "disable") == 0) {
 			if ((~sblock.fs_flags & FS_SUJ) == FS_SUJ) {
 				warnx("%s remains unchanged as disabled", name);
 			} else {
 				journal_clear();
- 				sblock.fs_flags &= ~FS_SUJ;
+				sblock.fs_flags &= ~FS_SUJ;
 				sblock.fs_sujfree = 0;
- 				warnx("%s cleared but soft updates still set.",
+				warnx("%s cleared but soft updates still set.",
 				    name);
 
 				warnx("remove .sujournal to reclaim space");
 			}
- 		}
+		}
 	}
 	if (Jflag) {
 		name = "gjournal";
@@ -391,10 +390,8 @@ main(int argc, char *argv[])
 				warnx("%s set", name);
 			}
 		} else if (strcmp(Jvalue, "disable") == 0) {
-			if ((~sblock.fs_flags & FS_GJOURNAL) ==
-			    FS_GJOURNAL) {
-				warnx("%s remains unchanged as disabled",
-				    name);
+			if ((~sblock.fs_flags & FS_GJOURNAL) == FS_GJOURNAL) {
+				warnx("%s remains unchanged as disabled", name);
 			} else {
 				sblock.fs_flags &= ~FS_GJOURNAL;
 				warnx("%s cleared", name);
@@ -410,10 +407,11 @@ main(int argc, char *argv[])
 			if (kvalue > sblock.fs_fpg / 2) {
 				kvalue = blknum(&sblock, sblock.fs_fpg / 2);
 				warnx("%s cannot exceed half the file system "
-				    "space", name);
+				      "space",
+				    name);
 			}
-			warnx("%s changes from %jd to %d",
-				    name, sblock.fs_metaspace, kvalue);
+			warnx("%s changes from %jd to %d", name,
+			    sblock.fs_metaspace, kvalue);
 			sblock.fs_metaspace = kvalue;
 		}
 	}
@@ -429,8 +427,7 @@ main(int argc, char *argv[])
 		} else if (strcmp(lvalue, "disable") == 0) {
 			if ((~sblock.fs_flags & FS_MULTILABEL) ==
 			    FS_MULTILABEL) {
-				warnx("%s remains unchanged as disabled",
-				    name);
+				warnx("%s remains unchanged as disabled", name);
 			} else {
 				sblock.fs_flags &= ~FS_MULTILABEL;
 				warnx("%s cleared", name);
@@ -442,8 +439,8 @@ main(int argc, char *argv[])
 		if (sblock.fs_minfree == mvalue)
 			warnx("%s remains unchanged as %d%%", name, mvalue);
 		else {
-			warnx("%s changes from %d%% to %d%%",
-				    name, sblock.fs_minfree, mvalue);
+			warnx("%s changes from %d%% to %d%%", name,
+			    sblock.fs_minfree, mvalue);
 			sblock.fs_minfree = mvalue;
 			if (mvalue >= MINFREE && sblock.fs_optim == FS_OPTSPACE)
 				warnx(OPTWARN, "time", ">=", MINFREE);
@@ -458,16 +455,15 @@ main(int argc, char *argv[])
 				warnx("%s remains unchanged as enabled", name);
 			} else if (sblock.fs_flags & FS_ACLS) {
 				warnx("%s and POSIX.1e ACLs are mutually "
-				    "exclusive", name);
+				      "exclusive",
+				    name);
 			} else {
 				sblock.fs_flags |= FS_NFS4ACLS;
 				warnx("%s set", name);
 			}
 		} else if (strcmp(Nvalue, "disable") == 0) {
-			if ((~sblock.fs_flags & FS_NFS4ACLS) ==
-			    FS_NFS4ACLS) {
-				warnx("%s remains unchanged as disabled",
-				    name);
+			if ((~sblock.fs_flags & FS_NFS4ACLS) == FS_NFS4ACLS) {
+				warnx("%s remains unchanged as disabled", name);
 			} else {
 				sblock.fs_flags &= ~FS_NFS4ACLS;
 				warnx("%s cleared", name);
@@ -475,25 +471,25 @@ main(int argc, char *argv[])
 		}
 	}
 	if (nflag) {
- 		name = "soft updates";
- 		if (strcmp(nvalue, "enable") == 0) {
+		name = "soft updates";
+		if (strcmp(nvalue, "enable") == 0) {
 			if (sblock.fs_flags & FS_DOSOFTDEP)
 				warnx("%s remains unchanged as enabled", name);
 			else if (sblock.fs_clean == 0) {
 				warnx("%s cannot be enabled until fsck is run",
 				    name);
 			} else {
- 				sblock.fs_flags |= FS_DOSOFTDEP;
- 				warnx("%s set", name);
+				sblock.fs_flags |= FS_DOSOFTDEP;
+				warnx("%s set", name);
 			}
- 		} else if (strcmp(nvalue, "disable") == 0) {
+		} else if (strcmp(nvalue, "disable") == 0) {
 			if ((~sblock.fs_flags & FS_DOSOFTDEP) == FS_DOSOFTDEP)
 				warnx("%s remains unchanged as disabled", name);
 			else {
- 				sblock.fs_flags &= ~FS_DOSOFTDEP;
- 				warnx("%s cleared", name);
+				sblock.fs_flags &= ~FS_DOSOFTDEP;
+				warnx("%s cleared", name);
 			}
- 		}
+		}
 	}
 	if (oflag) {
 		name = "optimization preference";
@@ -502,8 +498,8 @@ main(int argc, char *argv[])
 		if (sblock.fs_optim == ovalue)
 			warnx("%s remains unchanged as %s", name, chg[ovalue]);
 		else {
-			warnx("%s changes from %s to %s",
-				    name, chg[sblock.fs_optim], chg[ovalue]);
+			warnx("%s changes from %s to %s", name,
+			    chg[sblock.fs_optim], chg[ovalue]);
 			sblock.fs_optim = ovalue;
 			if (sblock.fs_minfree >= MINFREE &&
 			    ovalue == FS_OPTSPACE)
@@ -516,30 +512,29 @@ main(int argc, char *argv[])
 		name = "expected number of files per directory";
 		if (sblock.fs_avgfpdir == (unsigned)svalue) {
 			warnx("%s remains unchanged as %d", name, svalue);
-		}
-		else {
-			warnx("%s changes from %d to %d",
-					name, sblock.fs_avgfpdir, svalue);
+		} else {
+			warnx("%s changes from %d to %d", name,
+			    sblock.fs_avgfpdir, svalue);
 			sblock.fs_avgfpdir = svalue;
 		}
 	}
 	if (tflag) {
 		name = "issue TRIM to the disk";
- 		if (strcmp(tvalue, "enable") == 0) {
+		if (strcmp(tvalue, "enable") == 0) {
 			if (sblock.fs_flags & FS_TRIM)
 				warnx("%s remains unchanged as enabled", name);
 			else {
- 				sblock.fs_flags |= FS_TRIM;
- 				warnx("%s set", name);
+				sblock.fs_flags |= FS_TRIM;
+				warnx("%s set", name);
 			}
- 		} else if (strcmp(tvalue, "disable") == 0) {
+		} else if (strcmp(tvalue, "disable") == 0) {
 			if ((~sblock.fs_flags & FS_TRIM) == FS_TRIM)
 				warnx("%s remains unchanged as disabled", name);
 			else {
- 				sblock.fs_flags &= ~FS_TRIM;
- 				warnx("%s cleared", name);
+				sblock.fs_flags &= ~FS_TRIM;
+				warnx("%s cleared", name);
 			}
- 		}
+		}
 	}
 
 	if (sbwrite(&disk, Aflag) == -1)
@@ -608,8 +603,8 @@ journal_balloc(void)
 		warnx("Failed to find sufficient free blocks for the journal");
 		return -1;
 	}
-	if (bwrite(&disk, fsbtodb(&sblock, blk), clrbuf,
-	    sblock.fs_bsize) <= 0) {
+	if (bwrite(&disk, fsbtodb(&sblock, blk), clrbuf, sblock.fs_bsize) <=
+	    0) {
 		warn("Failed to initialize new block");
 		return -1;
 	}
@@ -670,7 +665,8 @@ journal_findfile(void)
 			if (dp.dp1->di_db[i] == 0)
 				break;
 			if ((ino = dir_search(dp.dp1->di_db[i],
-			    sblksize(&sblock, (off_t)dp.dp1->di_size, i))) != 0)
+				 sblksize(&sblock, (off_t)dp.dp1->di_size,
+				     i))) != 0)
 				return (ino);
 		}
 	} else {
@@ -682,7 +678,8 @@ journal_findfile(void)
 			if (dp.dp2->di_db[i] == 0)
 				break;
 			if ((ino = dir_search(dp.dp2->di_db[i],
-			    sblksize(&sblock, (off_t)dp.dp2->di_size, i))) != 0)
+				 sblksize(&sblock, (off_t)dp.dp2->di_size,
+				     i))) != 0)
 				return (ino);
 		}
 	}
@@ -743,13 +740,13 @@ dir_extend(ufs2_daddr_t blk, ufs2_daddr_t nblk, off_t size, ino_t ino)
 	char block[MAXBSIZE];
 
 	if (bread(&disk, fsbtodb(&sblock, blk), block,
-	    roundup(size, sblock.fs_fsize)) <= 0) {
+		roundup(size, sblock.fs_fsize)) <= 0) {
 		warn("Failed to read dir block");
 		return (-1);
 	}
 	dir_clear_block(block, size);
-	if (bwrite(&disk, fsbtodb(&sblock, nblk), block, sblock.fs_bsize)
-	    <= 0) {
+	if (bwrite(&disk, fsbtodb(&sblock, nblk), block, sblock.fs_bsize) <=
+	    0) {
 		warn("Failed to write dir block");
 		return (-1);
 	}
@@ -809,11 +806,11 @@ journal_insertfile(ino_t ino)
 	if (sblock.fs_magic == FS_UFS1_MAGIC) {
 		dp.dp1->di_blocks += (sblock.fs_bsize - size) / DEV_BSIZE;
 		dp.dp1->di_db[lbn] = nblk;
-		dp.dp1->di_size = lblktosize(&sblock, lbn+1);
+		dp.dp1->di_size = lblktosize(&sblock, lbn + 1);
 	} else {
 		dp.dp2->di_blocks += (sblock.fs_bsize - size) / DEV_BSIZE;
 		dp.dp2->di_db[lbn] = nblk;
-		dp.dp2->di_size = lblktosize(&sblock, lbn+1);
+		dp.dp2->di_size = lblktosize(&sblock, lbn + 1);
 	}
 	if (putinode(&disk) < 0) {
 		warn("Failed to write root inode: %s", disk.d_error);
@@ -863,11 +860,11 @@ indir_fill(ufs2_daddr_t blk, int level, int *resid)
 			if (ncnt <= 0)
 				return (-1);
 			cnt += ncnt;
-		} else 
+		} else
 			(*resid)--;
 	}
-	if (bwrite(&disk, fsbtodb(&sblock, blk), indirbuf,
-	    sblock.fs_bsize) <= 0) {
+	if (bwrite(&disk, fsbtodb(&sblock, blk), indirbuf, sblock.fs_bsize) <=
+	    0) {
 		warn("Failed to write indirect");
 		return (-1);
 	}
@@ -978,8 +975,8 @@ journal_alloc(int64_t size)
 			dp.dp1->di_size = size;
 			dp.dp1->di_mode = IFREG | IREAD;
 			dp.dp1->di_nlink = 1;
-			dp.dp1->di_flags =
-			    SF_IMMUTABLE | SF_NOUNLINK | UF_NODUMP;
+			dp.dp1->di_flags = SF_IMMUTABLE | SF_NOUNLINK |
+			    UF_NODUMP;
 			dp.dp1->di_atime = utime;
 			dp.dp1->di_mtime = utime;
 			dp.dp1->di_ctime = utime;
@@ -988,8 +985,8 @@ journal_alloc(int64_t size)
 			dp.dp2->di_size = size;
 			dp.dp2->di_mode = IFREG | IREAD;
 			dp.dp2->di_nlink = 1;
-			dp.dp2->di_flags =
-			    SF_IMMUTABLE | SF_NOUNLINK | UF_NODUMP;
+			dp.dp2->di_flags = SF_IMMUTABLE | SF_NOUNLINK |
+			    UF_NODUMP;
 			dp.dp2->di_atime = utime;
 			dp.dp2->di_mtime = utime;
 			dp.dp2->di_ctime = utime;
@@ -1055,12 +1052,12 @@ static void
 usage(void)
 {
 	fprintf(stderr, "%s\n%s\n%s\n%s\n%s\n%s\n",
-"usage: tunefs [-A] [-a enable | disable] [-e maxbpg] [-f avgfilesize]",
-"              [-J enable | disable] [-j enable | disable] [-k metaspace]",
-"              [-L volname] [-l enable | disable] [-m minfree]",
-"              [-N enable | disable] [-n enable | disable]",
-"              [-o space | time] [-p] [-s avgfpdir] [-t enable | disable]",
-"              special | filesystem");
+	    "usage: tunefs [-A] [-a enable | disable] [-e maxbpg] [-f avgfilesize]",
+	    "              [-J enable | disable] [-j enable | disable] [-k metaspace]",
+	    "              [-L volname] [-l enable | disable] [-m minfree]",
+	    "              [-N enable | disable] [-n enable | disable]",
+	    "              [-o space | time] [-p] [-s avgfpdir] [-t enable | disable]",
+	    "              special | filesystem");
 	exit(2);
 }
 
@@ -1068,37 +1065,35 @@ static void
 printfs(void)
 {
 	warnx("POSIX.1e ACLs: (-a)                                %s",
-		(sblock.fs_flags & FS_ACLS)? "enabled" : "disabled");
+	    (sblock.fs_flags & FS_ACLS) ? "enabled" : "disabled");
 	warnx("NFSv4 ACLs: (-N)                                   %s",
-		(sblock.fs_flags & FS_NFS4ACLS)? "enabled" : "disabled");
+	    (sblock.fs_flags & FS_NFS4ACLS) ? "enabled" : "disabled");
 	warnx("MAC multilabel: (-l)                               %s",
-		(sblock.fs_flags & FS_MULTILABEL)? "enabled" : "disabled");
-	warnx("soft updates: (-n)                                 %s", 
-		(sblock.fs_flags & FS_DOSOFTDEP)? "enabled" : "disabled");
-	warnx("soft update journaling: (-j)                       %s", 
-		(sblock.fs_flags & FS_SUJ)? "enabled" : "disabled");
+	    (sblock.fs_flags & FS_MULTILABEL) ? "enabled" : "disabled");
+	warnx("soft updates: (-n)                                 %s",
+	    (sblock.fs_flags & FS_DOSOFTDEP) ? "enabled" : "disabled");
+	warnx("soft update journaling: (-j)                       %s",
+	    (sblock.fs_flags & FS_SUJ) ? "enabled" : "disabled");
 	warnx("gjournal: (-J)                                     %s",
-		(sblock.fs_flags & FS_GJOURNAL)? "enabled" : "disabled");
-	warnx("trim: (-t)                                         %s", 
-		(sblock.fs_flags & FS_TRIM)? "enabled" : "disabled");
+	    (sblock.fs_flags & FS_GJOURNAL) ? "enabled" : "disabled");
+	warnx("trim: (-t)                                         %s",
+	    (sblock.fs_flags & FS_TRIM) ? "enabled" : "disabled");
 	warnx("maximum blocks per file in a cylinder group: (-e)  %d",
-	      sblock.fs_maxbpg);
+	    sblock.fs_maxbpg);
 	warnx("average file size: (-f)                            %d",
-	      sblock.fs_avgfilesize);
+	    sblock.fs_avgfilesize);
 	warnx("average number of files in a directory: (-s)       %d",
-	      sblock.fs_avgfpdir);
+	    sblock.fs_avgfpdir);
 	warnx("minimum percentage of free space: (-m)             %d%%",
-	      sblock.fs_minfree);
+	    sblock.fs_minfree);
 	warnx("space to hold for metadata blocks: (-k)            %jd",
-	      sblock.fs_metaspace);
+	    sblock.fs_metaspace);
 	warnx("optimization preference: (-o)                      %s",
-	      sblock.fs_optim == FS_OPTSPACE ? "space" : "time");
-	if (sblock.fs_minfree >= MINFREE &&
-	    sblock.fs_optim == FS_OPTSPACE)
+	    sblock.fs_optim == FS_OPTSPACE ? "space" : "time");
+	if (sblock.fs_minfree >= MINFREE && sblock.fs_optim == FS_OPTSPACE)
 		warnx(OPTWARN, "time", ">=", MINFREE);
-	if (sblock.fs_minfree < MINFREE &&
-	    sblock.fs_optim == FS_OPTTIME)
+	if (sblock.fs_minfree < MINFREE && sblock.fs_optim == FS_OPTTIME)
 		warnx(OPTWARN, "space", "<", MINFREE);
 	warnx("volume label: (-L)                                 %s",
-		sblock.fs_volname);
+	    sblock.fs_volname);
 }

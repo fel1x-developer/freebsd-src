@@ -29,13 +29,14 @@
 #ifndef _PSDATE_H_
 #define _PSDATE_H_
 
-#include <time.h>
 #include <sys/cdefs.h>
 
+#include <time.h>
+
 __BEGIN_DECLS
-int numerics(char const * str);
-time_t parse_date(time_t dt, char const * str);
+int numerics(char const *str);
+time_t parse_date(time_t dt, char const *str);
 void print_date(char *buf, time_t t, int dotime);
 __END_DECLS
 
-#endif				/* !_PSDATE_H_ */
+#endif /* !_PSDATE_H_ */

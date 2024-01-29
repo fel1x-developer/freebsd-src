@@ -32,7 +32,7 @@
 
 #include <vis.h>
 
-#define	_UNVIS_END	1
+#define _UNVIS_END 1
 
 int __unvis_44bsd(char *, int, int *, int);
 
@@ -45,4 +45,4 @@ __unvis_44bsd(char *cp, int c, int *astate, int flag)
 	return unvis(cp, c, astate, flag);
 }
 
-__sym_compat(unvis, __vis_44bsd, FBSD_1.0);
+__sym_compat(unvis, __vis_44bsd, FBSD_1 .0);

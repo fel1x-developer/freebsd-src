@@ -30,25 +30,22 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 
-#include <stdlib.h>
-#include <unistd.h>
-
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_gif.h>
 #include <net/route.h>
 
 #include <ctype.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <err.h>
 #include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "ifconfig.h"
 
-#define	GIFBITS	"\020\2IGNORE_SOURCE"
+#define GIFBITS "\020\2IGNORE_SOURCE"
 
 static void
 gif_status(if_ctx *ctx)
@@ -87,13 +84,13 @@ setgifopts(if_ctx *ctx, const char *val __unused, int d)
 }
 
 static struct cmd gif_cmds[] = {
-	DEF_CMD("ignore_source",	GIF_IGNORE_SOURCE,	setgifopts),
-	DEF_CMD("-ignore_source",	-GIF_IGNORE_SOURCE,	setgifopts),
+	DEF_CMD("ignore_source", GIF_IGNORE_SOURCE, setgifopts),
+	DEF_CMD("-ignore_source", -GIF_IGNORE_SOURCE, setgifopts),
 };
 
 static struct afswtch af_gif = {
-	.af_name	= "af_gif",
-	.af_af		= AF_UNSPEC,
+	.af_name = "af_gif",
+	.af_af = AF_UNSPEC,
 	.af_other_status = gif_status,
 };
 

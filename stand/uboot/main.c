@@ -36,32 +36,29 @@
 #include "libuboot.h"
 
 #ifndef nitems
-#define	nitems(x)	(sizeof((x)) / sizeof((x)[0]))
+#define nitems(x) (sizeof((x)) / sizeof((x)[0]))
 #endif
 
 #ifndef HEAP_SIZE
-#define	HEAP_SIZE	(2 * 1024 * 1024)
+#define HEAP_SIZE (2 * 1024 * 1024)
 #endif
 
 struct uboot_devdesc currdev;
-struct arch_switch archsw;		/* MI/MD interface boundary */
+struct arch_switch archsw; /* MI/MD interface boundary */
 int devs_no;
 
 uintptr_t uboot_heap_start;
 uintptr_t uboot_heap_end;
 
-struct device_type { 
+struct device_type {
 	const char *name;
 	int type;
-} device_types[] = {
-	{ "disk", DEV_TYP_STOR },
-	{ "ide",  DEV_TYP_STOR | DT_STOR_IDE },
-	{ "mmc",  DEV_TYP_STOR | DT_STOR_MMC },
+} device_types[] = { { "disk", DEV_TYP_STOR },
+	{ "ide", DEV_TYP_STOR | DT_STOR_IDE },
+	{ "mmc", DEV_TYP_STOR | DT_STOR_MMC },
 	{ "sata", DEV_TYP_STOR | DT_STOR_SATA },
 	{ "scsi", DEV_TYP_STOR | DT_STOR_SCSI },
-	{ "usb",  DEV_TYP_STOR | DT_STOR_USB },
-	{ "net",  DEV_TYP_NET }
-};
+	{ "usb", DEV_TYP_STOR | DT_STOR_USB }, { "net", DEV_TYP_NET } };
 
 extern char end[];
 
@@ -216,7 +213,8 @@ get_load_device(int *type, int *unit, int *slice, int *partition)
 
 	devstr = ub_env_get("loaderdev");
 	if (devstr == NULL) {
-		printf("U-Boot env: loaderdev not set, will probe all devices.\n");
+		printf(
+		    "U-Boot env: loaderdev not set, will probe all devices.\n");
 		return;
 	}
 	printf("U-Boot env: loaderdev='%s'\n", devstr);
@@ -241,7 +239,8 @@ get_load_device(int *type, int *unit, int *slice, int *partition)
 	if (*type & DEV_TYP_STOR) {
 		size_t len = strlen(p);
 		if (strcspn(p, " .") == len && strcspn(p, ":") >= len - 1 &&
-		    disk_parsedev((struct devdesc **)&dev, p - 4, NULL) == 0) { /* Hack */
+		    disk_parsedev((struct devdesc **)&dev, p - 4, NULL) ==
+			0) { /* Hack */
 			*unit = dev->dd.d_unit;
 			*slice = dev->d_slice;
 			*partition = dev->d_partition;
@@ -284,7 +283,7 @@ get_load_device(int *type, int *unit, int *slice, int *partition)
 	p++;
 
 	/* No slice and partition specification. */
-	if ('\0' == *p )
+	if ('\0' == *p)
 		return;
 
 	/* Only DEV_TYP_STOR devices can have a slice specification. */
@@ -305,7 +304,7 @@ get_load_device(int *type, int *unit, int *slice, int *partition)
 	}
 
 	p = endp;
-	
+
 	/* No partition specification. */
 	if (*p == '\0')
 		return;
@@ -336,7 +335,7 @@ get_load_device(int *type, int *unit, int *slice, int *partition)
 	*unit = -1;
 	*slice = D_SLICEWILD;
 	*partition = D_PARTWILD;
-} 
+}
 
 static void
 print_disk_probe_info(void)
@@ -359,13 +358,12 @@ print_disk_probe_info(void)
 		snprintf(partition, sizeof(partition), "%d",
 		    currdev.d_disk.d_partition);
 
-	printf("  Checking unit=%d slice=%s partition=%s...",
-	    currdev.dd.d_unit, slice, partition);
-
+	printf("  Checking unit=%d slice=%s partition=%s...", currdev.dd.d_unit,
+	    slice, partition);
 }
 
 static int
-probe_disks(int devidx, int load_type, int load_unit, int load_slice, 
+probe_disks(int devidx, int load_type, int load_unit, int load_slice,
     int load_partition)
 {
 	int open_result, unit;
@@ -394,7 +392,8 @@ probe_disks(int devidx, int load_type, int load_unit, int load_slice,
 	}
 
 	if (load_unit == -1) {
-		printf("  Probing all %s devices...\n", device_typename(load_type));
+		printf("  Probing all %s devices...\n",
+		    device_typename(load_type));
 		/* Try each disk of given type in succession until one works. */
 		for (unit = 0; unit < UB_MAX_DEV; unit++) {
 			currdev.dd.d_unit = uboot_diskgetunit(load_type, unit);
@@ -411,9 +410,10 @@ probe_disks(int devidx, int load_type, int load_unit, int load_slice,
 		return (-1);
 	}
 
-	if ((currdev.dd.d_unit = uboot_diskgetunit(load_type, load_unit)) != -1) {
+	if ((currdev.dd.d_unit = uboot_diskgetunit(load_type, load_unit)) !=
+	    -1) {
 		print_disk_probe_info();
-		open_result = devsw[devidx]->dv_open(&f,&currdev);
+		open_result = devsw[devidx]->dv_open(&f, &currdev);
 		if (open_result == 0) {
 			printf(" good.\n");
 			return (0);
@@ -452,7 +452,7 @@ main(int argc, char **argv)
 	if (sig->version > API_SIG_VERSION)
 		return (0x03badab1);
 
-        /* Clear BSS sections */
+	/* Clear BSS sections */
 	bzero(__sbss_start, __sbss_end - __sbss_start);
 	bzero(__bss_start, _end - __bss_start);
 
@@ -463,7 +463,7 @@ main(int argc, char **argv)
 	 * of our bss and the bottom of the u-boot stack to avoid overlap.
 	 */
 	uboot_heap_start = round_page((uintptr_t)end);
-	uboot_heap_end   = uboot_heap_start + HEAP_SIZE;
+	uboot_heap_end = uboot_heap_start + HEAP_SIZE;
 	setheap((void *)uboot_heap_start, (void *)uboot_heap_end);
 
 	/*
@@ -518,8 +518,8 @@ main(int argc, char **argv)
 
 		if ((load_type == DEV_TYP_NONE || (load_type & DEV_TYP_STOR)) &&
 		    strcmp(devsw[i]->dv_name, "disk") == 0) {
-			if (probe_disks(i, load_type, load_unit, load_slice, 
-			    load_partition) == 0)
+			if (probe_disks(i, load_type, load_unit, load_slice,
+				load_partition) == 0)
 				break;
 		}
 
@@ -544,17 +544,16 @@ main(int argc, char **argv)
 	printf("Booting from %s\n", ldev);
 
 do_interact:
-	setenv("LINES", "24", 1);		/* optional */
+	setenv("LINES", "24", 1); /* optional */
 	setenv("prompt", "loader>", 1);
 #ifdef __powerpc__
 	setenv("usefdt", "1", 1);
 #endif
 
-	interact();				/* doesn't return */
+	interact(); /* doesn't return */
 
 	return (0);
 }
-
 
 COMMAND_SET(heap, "heap", "show heap usage", command_heap);
 static int
@@ -576,7 +575,8 @@ command_reboot(int argc, char *argv[])
 	ub_reset();
 
 	printf("Reset failed!\n");
-	while (1);
+	while (1)
+		;
 	__unreachable();
 }
 
@@ -590,7 +590,7 @@ command_devinfo(int argc, char *argv[])
 		command_errmsg = "no U-Boot devices found!?";
 		return (CMD_ERROR);
 	}
-	
+
 	printf("U-Boot devices:\n");
 	for (i = 0; i < devs_no; i++) {
 		ub_dump_di(i);
@@ -615,14 +615,10 @@ command_sysinfo(int argc, char *argv[])
 	return (CMD_OK);
 }
 
-enum ubenv_action {
-	UBENV_UNKNOWN,
-	UBENV_SHOW,
-	UBENV_IMPORT
-};
+enum ubenv_action { UBENV_UNKNOWN, UBENV_SHOW, UBENV_IMPORT };
 
 static void
-handle_uboot_env_var(enum ubenv_action action, const char * var)
+handle_uboot_env_var(enum ubenv_action action, const char *var)
 {
 	char ldvar[128];
 	const char *val;
@@ -634,7 +630,7 @@ handle_uboot_env_var(enum ubenv_action action, const char * var)
 	 * import the uboot variable ubname into the loader variable ldname,
 	 * otherwise the historical behavior is to import to uboot.ubname.
 	 */
-	if (action == UBENV_IMPORT) { 
+	if (action == UBENV_IMPORT) {
 		len = strcspn(var, "=");
 		if (len == 0) {
 			printf("name cannot start with '=': '%s'\n", var);

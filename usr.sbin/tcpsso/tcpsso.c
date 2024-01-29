@@ -27,8 +27,8 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 #include <sys/sysctl.h>
@@ -102,18 +102,17 @@ tcpssoall(const char *ca_name, const char *stack, int state,
 
 	head = getxpcblist("net.inet.tcp.pcblist");
 
-#define	XINP_NEXT(xinp)							\
+#define XINP_NEXT(xinp) \
 	((struct xinpgen *)(uintptr_t)((uintptr_t)(xinp) + (xinp)->xig_len))
 
 	for (xinp = XINP_NEXT(head); xinp->xig_len > sizeof *xinp;
-	    xinp = XINP_NEXT(xinp)) {
+	     xinp = XINP_NEXT(xinp)) {
 		xtp = (struct xtcpcb *)xinp;
 		xip = &xtp->xt_inp;
 
 		/* Ignore PCBs which were freed during copyout. */
 		if (xip->inp_gencnt > head->xig_gen)
 			continue;
-
 
 		/* If requested, skip sockets not having the requested state. */
 		if ((state != -1) && (xtp->t_state != state))
@@ -146,15 +145,14 @@ struct so_level {
 	const char *name;
 };
 
-#define level_entry(level) { level, #level }
+#define level_entry(level)    \
+	{                     \
+		level, #level \
+	}
 
-static struct so_level so_levels[] = {
-	level_entry(SOL_SOCKET),
-	level_entry(IPPROTO_IP),
-	level_entry(IPPROTO_IPV6),
-	level_entry(IPPROTO_TCP),
-	{ 0, NULL }
-};
+static struct so_level so_levels[] = { level_entry(SOL_SOCKET),
+	level_entry(IPPROTO_IP), level_entry(IPPROTO_IPV6),
+	level_entry(IPPROTO_TCP), { 0, NULL } };
 
 struct so_name {
 	int level;
@@ -162,128 +160,140 @@ struct so_name {
 	const char *name;
 };
 
-#define sol_entry(name) { SOL_SOCKET, name, #name }
-#define ip4_entry(name) { IPPROTO_IP, name, #name }
-#define ip6_entry(name) { IPPROTO_IPV6, name, #name }
-#define tcp_entry(name) { IPPROTO_TCP, name, #name }
+#define sol_entry(name)                 \
+	{                               \
+		SOL_SOCKET, name, #name \
+	}
+#define ip4_entry(name)                 \
+	{                               \
+		IPPROTO_IP, name, #name \
+	}
+#define ip6_entry(name)                   \
+	{                                 \
+		IPPROTO_IPV6, name, #name \
+	}
+#define tcp_entry(name)                  \
+	{                                \
+		IPPROTO_TCP, name, #name \
+	}
 
 static struct so_name so_names[] = {
 	/* SOL_SOCKET level socket options. */
-	sol_entry(SO_DEBUG),			/* int */
-	sol_entry(SO_RCVBUF),			/* int */
-	sol_entry(SO_SNDBUF),			/* int */
-	sol_entry(SO_RCVLOWAT),			/* int */
-	sol_entry(SO_SNDLOWAT),			/* int */
+	sol_entry(SO_DEBUG),	/* int */
+	sol_entry(SO_RCVBUF),	/* int */
+	sol_entry(SO_SNDBUF),	/* int */
+	sol_entry(SO_RCVLOWAT), /* int */
+	sol_entry(SO_SNDLOWAT), /* int */
 	/* IPPROTO_IP level socket options. */
-	ip4_entry(IP_TTL),			/* int */
-	ip4_entry(IP_TOS),			/* int */
+	ip4_entry(IP_TTL), /* int */
+	ip4_entry(IP_TOS), /* int */
 	/* IPPROTO_IPV6 level socket options. */
-	ip6_entry(IPV6_UNICAST_HOPS),		/* int */
-	ip6_entry(IPV6_TCLASS),			/* int */
-	ip6_entry(IPV6_USE_MIN_MTU),		/* int */
+	ip6_entry(IPV6_UNICAST_HOPS), /* int */
+	ip6_entry(IPV6_TCLASS),	      /* int */
+	ip6_entry(IPV6_USE_MIN_MTU),  /* int */
 	/* IPPROTO_TCP level socket options. */
-	tcp_entry(TCP_NODELAY),			/* int */
-	tcp_entry(TCP_NOOPT),			/* int */
-	tcp_entry(TCP_NOPUSH),			/* int */
-	tcp_entry(TCP_REMOTE_UDP_ENCAPS_PORT),	/* int */
-	tcp_entry(TCP_MAXSEG),			/* int */
-	tcp_entry(TCP_TXTLS_MODE),		/* unsigned int */
-	tcp_entry(TCP_MAXUNACKTIME),		/* unsigned int */
-	tcp_entry(TCP_KEEPIDLE),		/* unsigned int */
-	tcp_entry(TCP_KEEPINTVL),		/* unsigned int */
-	tcp_entry(TCP_KEEPINIT),		/* unsigned int */
-	tcp_entry(TCP_KEEPCNT),			/* unsigned int */
-	tcp_entry(TCP_PCAP_OUT),		/* int */
-	tcp_entry(TCP_PCAP_IN),			/* int */
-	tcp_entry(TCP_LOG),			/* int */
-	tcp_entry(TCP_LOGID),			/* char * */
-	tcp_entry(TCP_LOGDUMP),			/* char * */
-	tcp_entry(TCP_LOGDUMPID),		/* char * */
-	tcp_entry(TCP_CONGESTION),		/* char * */
-	tcp_entry(TCP_FUNCTION_BLK),		/* char * */
-	tcp_entry(TCP_NO_PRR),			/* int */
-	tcp_entry(TCP_HDWR_RATE_CAP),		/* int */
+	tcp_entry(TCP_NODELAY),		       /* int */
+	tcp_entry(TCP_NOOPT),		       /* int */
+	tcp_entry(TCP_NOPUSH),		       /* int */
+	tcp_entry(TCP_REMOTE_UDP_ENCAPS_PORT), /* int */
+	tcp_entry(TCP_MAXSEG),		       /* int */
+	tcp_entry(TCP_TXTLS_MODE),	       /* unsigned int */
+	tcp_entry(TCP_MAXUNACKTIME),	       /* unsigned int */
+	tcp_entry(TCP_KEEPIDLE),	       /* unsigned int */
+	tcp_entry(TCP_KEEPINTVL),	       /* unsigned int */
+	tcp_entry(TCP_KEEPINIT),	       /* unsigned int */
+	tcp_entry(TCP_KEEPCNT),		       /* unsigned int */
+	tcp_entry(TCP_PCAP_OUT),	       /* int */
+	tcp_entry(TCP_PCAP_IN),		       /* int */
+	tcp_entry(TCP_LOG),		       /* int */
+	tcp_entry(TCP_LOGID),		       /* char * */
+	tcp_entry(TCP_LOGDUMP),		       /* char * */
+	tcp_entry(TCP_LOGDUMPID),	       /* char * */
+	tcp_entry(TCP_CONGESTION),	       /* char * */
+	tcp_entry(TCP_FUNCTION_BLK),	       /* char * */
+	tcp_entry(TCP_NO_PRR),		       /* int */
+	tcp_entry(TCP_HDWR_RATE_CAP),	       /* int */
 #if notyet
-	tcp_entry(TCP_PACING_RATE_CAP),		/* uint64_t */
+	tcp_entry(TCP_PACING_RATE_CAP), /* uint64_t */
 #endif
-	tcp_entry(TCP_HDWR_UP_ONLY),		/* int */
-	tcp_entry(TCP_FAST_RSM_HACK),		/* int */
-	tcp_entry(TCP_DELACK),			/* int */
-	tcp_entry(TCP_REC_ABC_VAL),		/* int */
-	tcp_entry(TCP_USE_CMP_ACKS),		/* int */
-	tcp_entry(TCP_SHARED_CWND_TIME_LIMIT),	/* int */
-	tcp_entry(TCP_SHARED_CWND_ENABLE),	/* int */
-	tcp_entry(TCP_DATA_AFTER_CLOSE),	/* int */
-	tcp_entry(TCP_DEFER_OPTIONS),		/* int */
-	tcp_entry(TCP_MAXPEAKRATE),		/* int */
-	tcp_entry(TCP_TIMELY_DYN_ADJ),		/* int */
-	tcp_entry(TCP_RACK_TLP_REDUCE),		/* int */
-	tcp_entry(TCP_RACK_PACE_ALWAYS),	/* int */
-	tcp_entry(TCP_RACK_PACE_MAX_SEG),	/* int */
-	tcp_entry(TCP_RACK_FORCE_MSEG),		/* int */
-	tcp_entry(TCP_RACK_PACE_RATE_CA),	/* int */
-	tcp_entry(TCP_RACK_PACE_RATE_SS),	/* int */
-	tcp_entry(TCP_RACK_PACE_RATE_REC),	/* int */
-	tcp_entry(TCP_RACK_GP_INCREASE_CA),	/* int */
-	tcp_entry(TCP_RACK_GP_INCREASE_SS),	/* int */
-	tcp_entry(TCP_RACK_GP_INCREASE_REC),	/* int */
-	tcp_entry(TCP_RACK_RR_CONF),		/* int */
-	tcp_entry(TCP_RACK_PRR_SENDALOT),	/* int */
-	tcp_entry(TCP_RACK_MIN_TO),		/* int */
-	tcp_entry(TCP_RACK_EARLY_SEG),		/* int */
-	tcp_entry(TCP_RACK_REORD_THRESH),	/* int */
-	tcp_entry(TCP_RACK_REORD_FADE),		/* int */
-	tcp_entry(TCP_RACK_TLP_THRESH),		/* int */
-	tcp_entry(TCP_RACK_PKT_DELAY),		/* int */
-	tcp_entry(TCP_RACK_TLP_USE),		/* int */
-	tcp_entry(TCP_RACK_DO_DETECTION),	/* int */
-	tcp_entry(TCP_RACK_NONRXT_CFG_RATE),	/* int */
-	tcp_entry(TCP_RACK_MBUF_QUEUE),		/* int */
-	tcp_entry(TCP_RACK_NO_PUSH_AT_MAX),	/* int */
-	tcp_entry(TCP_RACK_PACE_TO_FILL),	/* int */
-	tcp_entry(TCP_RACK_PROFILE),		/* int */
-	tcp_entry(TCP_RACK_ABC_VAL),		/* int */
-	tcp_entry(TCP_RACK_MEASURE_CNT),	/* int */
-	tcp_entry(TCP_RACK_DSACK_OPT),		/* int */
-	tcp_entry(TCP_RACK_PACING_BETA),	/* int */
-	tcp_entry(TCP_RACK_PACING_BETA_ECN),	/* int */
-	tcp_entry(TCP_RACK_TIMER_SLOP),		/* int */
-	tcp_entry(TCP_RACK_ENABLE_HYSTART),	/* int */
-	tcp_entry(TCP_BBR_RACK_RTT_USE),	/* int */
-	tcp_entry(TCP_BBR_USE_RACK_RR),		/* int */
-	tcp_entry(TCP_BBR_HDWR_PACE),		/* int */
-	tcp_entry(TCP_BBR_RACK_INIT_RATE),	/* int */
-	tcp_entry(TCP_BBR_IWINTSO),		/* int */
-	tcp_entry(TCP_BBR_ALGORITHM),		/* int */
-	tcp_entry(TCP_BBR_TSLIMITS),		/* int */
-	tcp_entry(TCP_BBR_RECFORCE),		/* int */
-	tcp_entry(TCP_BBR_STARTUP_PG),		/* int */
-	tcp_entry(TCP_BBR_DRAIN_PG),		/* int */
-	tcp_entry(TCP_BBR_RWND_IS_APP),		/* int */
-	tcp_entry(TCP_BBR_PROBE_RTT_INT),	/* int */
-	tcp_entry(TCP_BBR_PROBE_RTT_GAIN),	/* int */
-	tcp_entry(TCP_BBR_PROBE_RTT_LEN),	/* int */
-	tcp_entry(TCP_BBR_STARTUP_LOSS_EXIT),	/* int */
-	tcp_entry(TCP_BBR_USEDEL_RATE),		/* int */
-	tcp_entry(TCP_BBR_MIN_RTO),		/* int */
-	tcp_entry(TCP_BBR_MAX_RTO),		/* int */
-	tcp_entry(TCP_BBR_PACE_PER_SEC),	/* int */
-	tcp_entry(TCP_BBR_PACE_DEL_TAR),	/* int */
-	tcp_entry(TCP_BBR_SEND_IWND_IN_TSO),	/* int */
-	tcp_entry(TCP_BBR_EXTRA_STATE),		/* int */
-	tcp_entry(TCP_BBR_UTTER_MAX_TSO),	/* int */
-	tcp_entry(TCP_BBR_MIN_TOPACEOUT),	/* int */
-	tcp_entry(TCP_BBR_FLOOR_MIN_TSO),	/* int */
-	tcp_entry(TCP_BBR_TSTMP_RAISES),	/* int */
-	tcp_entry(TCP_BBR_POLICER_DETECT),	/* int */
-	tcp_entry(TCP_BBR_USE_RACK_CHEAT),	/* int */
-	tcp_entry(TCP_BBR_PACE_SEG_MAX),	/* int */
-	tcp_entry(TCP_BBR_PACE_SEG_MIN),	/* int */
-	tcp_entry(TCP_BBR_PACE_CROSS),		/* int */
-	tcp_entry(TCP_BBR_PACE_OH),		/* int */
-	tcp_entry(TCP_BBR_TMR_PACE_OH),		/* int */
-	tcp_entry(TCP_BBR_RETRAN_WTSO),		/* int */
-	{0, 0, NULL}
+	tcp_entry(TCP_HDWR_UP_ONLY),	       /* int */
+	tcp_entry(TCP_FAST_RSM_HACK),	       /* int */
+	tcp_entry(TCP_DELACK),		       /* int */
+	tcp_entry(TCP_REC_ABC_VAL),	       /* int */
+	tcp_entry(TCP_USE_CMP_ACKS),	       /* int */
+	tcp_entry(TCP_SHARED_CWND_TIME_LIMIT), /* int */
+	tcp_entry(TCP_SHARED_CWND_ENABLE),     /* int */
+	tcp_entry(TCP_DATA_AFTER_CLOSE),       /* int */
+	tcp_entry(TCP_DEFER_OPTIONS),	       /* int */
+	tcp_entry(TCP_MAXPEAKRATE),	       /* int */
+	tcp_entry(TCP_TIMELY_DYN_ADJ),	       /* int */
+	tcp_entry(TCP_RACK_TLP_REDUCE),	       /* int */
+	tcp_entry(TCP_RACK_PACE_ALWAYS),       /* int */
+	tcp_entry(TCP_RACK_PACE_MAX_SEG),      /* int */
+	tcp_entry(TCP_RACK_FORCE_MSEG),	       /* int */
+	tcp_entry(TCP_RACK_PACE_RATE_CA),      /* int */
+	tcp_entry(TCP_RACK_PACE_RATE_SS),      /* int */
+	tcp_entry(TCP_RACK_PACE_RATE_REC),     /* int */
+	tcp_entry(TCP_RACK_GP_INCREASE_CA),    /* int */
+	tcp_entry(TCP_RACK_GP_INCREASE_SS),    /* int */
+	tcp_entry(TCP_RACK_GP_INCREASE_REC),   /* int */
+	tcp_entry(TCP_RACK_RR_CONF),	       /* int */
+	tcp_entry(TCP_RACK_PRR_SENDALOT),      /* int */
+	tcp_entry(TCP_RACK_MIN_TO),	       /* int */
+	tcp_entry(TCP_RACK_EARLY_SEG),	       /* int */
+	tcp_entry(TCP_RACK_REORD_THRESH),      /* int */
+	tcp_entry(TCP_RACK_REORD_FADE),	       /* int */
+	tcp_entry(TCP_RACK_TLP_THRESH),	       /* int */
+	tcp_entry(TCP_RACK_PKT_DELAY),	       /* int */
+	tcp_entry(TCP_RACK_TLP_USE),	       /* int */
+	tcp_entry(TCP_RACK_DO_DETECTION),      /* int */
+	tcp_entry(TCP_RACK_NONRXT_CFG_RATE),   /* int */
+	tcp_entry(TCP_RACK_MBUF_QUEUE),	       /* int */
+	tcp_entry(TCP_RACK_NO_PUSH_AT_MAX),    /* int */
+	tcp_entry(TCP_RACK_PACE_TO_FILL),      /* int */
+	tcp_entry(TCP_RACK_PROFILE),	       /* int */
+	tcp_entry(TCP_RACK_ABC_VAL),	       /* int */
+	tcp_entry(TCP_RACK_MEASURE_CNT),       /* int */
+	tcp_entry(TCP_RACK_DSACK_OPT),	       /* int */
+	tcp_entry(TCP_RACK_PACING_BETA),       /* int */
+	tcp_entry(TCP_RACK_PACING_BETA_ECN),   /* int */
+	tcp_entry(TCP_RACK_TIMER_SLOP),	       /* int */
+	tcp_entry(TCP_RACK_ENABLE_HYSTART),    /* int */
+	tcp_entry(TCP_BBR_RACK_RTT_USE),       /* int */
+	tcp_entry(TCP_BBR_USE_RACK_RR),	       /* int */
+	tcp_entry(TCP_BBR_HDWR_PACE),	       /* int */
+	tcp_entry(TCP_BBR_RACK_INIT_RATE),     /* int */
+	tcp_entry(TCP_BBR_IWINTSO),	       /* int */
+	tcp_entry(TCP_BBR_ALGORITHM),	       /* int */
+	tcp_entry(TCP_BBR_TSLIMITS),	       /* int */
+	tcp_entry(TCP_BBR_RECFORCE),	       /* int */
+	tcp_entry(TCP_BBR_STARTUP_PG),	       /* int */
+	tcp_entry(TCP_BBR_DRAIN_PG),	       /* int */
+	tcp_entry(TCP_BBR_RWND_IS_APP),	       /* int */
+	tcp_entry(TCP_BBR_PROBE_RTT_INT),      /* int */
+	tcp_entry(TCP_BBR_PROBE_RTT_GAIN),     /* int */
+	tcp_entry(TCP_BBR_PROBE_RTT_LEN),      /* int */
+	tcp_entry(TCP_BBR_STARTUP_LOSS_EXIT),  /* int */
+	tcp_entry(TCP_BBR_USEDEL_RATE),	       /* int */
+	tcp_entry(TCP_BBR_MIN_RTO),	       /* int */
+	tcp_entry(TCP_BBR_MAX_RTO),	       /* int */
+	tcp_entry(TCP_BBR_PACE_PER_SEC),       /* int */
+	tcp_entry(TCP_BBR_PACE_DEL_TAR),       /* int */
+	tcp_entry(TCP_BBR_SEND_IWND_IN_TSO),   /* int */
+	tcp_entry(TCP_BBR_EXTRA_STATE),	       /* int */
+	tcp_entry(TCP_BBR_UTTER_MAX_TSO),      /* int */
+	tcp_entry(TCP_BBR_MIN_TOPACEOUT),      /* int */
+	tcp_entry(TCP_BBR_FLOOR_MIN_TSO),      /* int */
+	tcp_entry(TCP_BBR_TSTMP_RAISES),       /* int */
+	tcp_entry(TCP_BBR_POLICER_DETECT),     /* int */
+	tcp_entry(TCP_BBR_USE_RACK_CHEAT),     /* int */
+	tcp_entry(TCP_BBR_PACE_SEG_MAX),       /* int */
+	tcp_entry(TCP_BBR_PACE_SEG_MIN),       /* int */
+	tcp_entry(TCP_BBR_PACE_CROSS),	       /* int */
+	tcp_entry(TCP_BBR_PACE_OH),	       /* int */
+	tcp_entry(TCP_BBR_TMR_PACE_OH),	       /* int */
+	tcp_entry(TCP_BBR_RETRAN_WTSO),	       /* int */
+	{ 0, 0, NULL }
 };
 
 static struct sockopt_parameters *
@@ -391,11 +401,11 @@ static void
 usage(void)
 {
 	fprintf(stderr,
-"usage: tcpsso -i id [level] opt-name opt-value\n"
-"       tcpsso -a [level] opt-name opt-value\n"
-"       tcpsso -C cc-algo [-S stack] [-s state] [level] opt-name opt-value\n"
-"       tcpsso [-C cc-algo] -S stack [-s state] [level] opt-name opt-value\n"
-"       tcpsso [-C cc-algo] [-S stack] -s state [level] opt-name opt-value\n");
+	    "usage: tcpsso -i id [level] opt-name opt-value\n"
+	    "       tcpsso -a [level] opt-name opt-value\n"
+	    "       tcpsso -C cc-algo [-S stack] [-s state] [level] opt-name opt-value\n"
+	    "       tcpsso [-C cc-algo] -S stack [-s state] [level] opt-name opt-value\n"
+	    "       tcpsso [-C cc-algo] [-S stack] -s state [level] opt-name opt-value\n");
 	exit(1);
 }
 
@@ -448,10 +458,8 @@ main(int argc, char *argv[])
 	}
 	argc -= optind;
 	argv += optind;
-	if ((state == TCP_NSTATES) ||
-	    (argc < 2) || (argc > 3) ||
-	    (apply_all && apply_subset) ||
-	    (apply_all && apply_specific) ||
+	if ((state == TCP_NSTATES) || (argc < 2) || (argc > 3) ||
+	    (apply_all && apply_subset) || (apply_all && apply_specific) ||
 	    (apply_subset && apply_specific) ||
 	    !(apply_all || apply_subset || apply_specific))
 		usage();

@@ -5,53 +5,53 @@
  * See the IPFILTER.LICENCE file for details on licencing.
  *
  */
-#include <sys/param.h>
 #include <sys/types.h>
-#include <sys/time.h>
+#include <sys/param.h>
 #include <sys/socket.h>
+#include <sys/time.h>
+
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include <netinet/ip_var.h>
 #include <netinet/tcp.h>
+
 #include <arpa/inet.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "ipsend.h"
 
-
-#ifndef	__P
-#  define	__P(x)	x
+#ifndef __P
+#define __P(x) x
 #endif
 
-
 struct ipopt_names ionames[] = {
-	{ IPOPT_EOL,	0x01,	1, "eol" },
-	{ IPOPT_NOP,	0x02,	1, "nop" },
-	{ IPOPT_RR,	0x04,	3, "rr" },	/* 1 route */
-	{ IPOPT_TS,	0x08,	8, "ts" },	/* 1 TS */
-	{ IPOPT_SECURITY, 0x08,	11, "sec-level" },
-	{ IPOPT_LSRR,	0x10,	7, "lsrr" },	/* 1 route */
-	{ IPOPT_SATID,	0x20,	4, "satid" },
-	{ IPOPT_SSRR,	0x40,	7, "ssrr" },	/* 1 route */
-	{ 0, 0, 0, NULL }	/* must be last */
+	{ IPOPT_EOL, 0x01, 1, "eol" }, { IPOPT_NOP, 0x02, 1, "nop" },
+	{ IPOPT_RR, 0x04, 3, "rr" }, /* 1 route */
+	{ IPOPT_TS, 0x08, 8, "ts" }, /* 1 TS */
+	{ IPOPT_SECURITY, 0x08, 11, "sec-level" },
+	{ IPOPT_LSRR, 0x10, 7, "lsrr" }, /* 1 route */
+	{ IPOPT_SATID, 0x20, 4, "satid" },
+	{ IPOPT_SSRR, 0x40, 7, "ssrr" }, /* 1 route */
+	{ 0, 0, 0, NULL }		 /* must be last */
 };
 
-struct	ipopt_names secnames[] = {
-	{ IPOPT_SECUR_UNCLASS,	0x0100,	0, "unclass" },
-	{ IPOPT_SECUR_CONFID,	0x0200,	0, "confid" },
-	{ IPOPT_SECUR_EFTO,	0x0400,	0, "efto" },
-	{ IPOPT_SECUR_MMMM,	0x0800,	0, "mmmm" },
-	{ IPOPT_SECUR_RESTR,	0x1000,	0, "restr" },
-	{ IPOPT_SECUR_SECRET,	0x2000,	0, "secret" },
-	{ IPOPT_SECUR_TOPSECRET, 0x4000,0, "topsecret" },
-	{ 0, 0, 0, NULL }	/* must be last */
+struct ipopt_names secnames[] = {
+	{ IPOPT_SECUR_UNCLASS, 0x0100, 0, "unclass" },
+	{ IPOPT_SECUR_CONFID, 0x0200, 0, "confid" },
+	{ IPOPT_SECUR_EFTO, 0x0400, 0, "efto" },
+	{ IPOPT_SECUR_MMMM, 0x0800, 0, "mmmm" },
+	{ IPOPT_SECUR_RESTR, 0x1000, 0, "restr" },
+	{ IPOPT_SECUR_SECRET, 0x2000, 0, "secret" },
+	{ IPOPT_SECUR_TOPSECRET, 0x4000, 0, "topsecret" },
+	{ 0, 0, 0, NULL } /* must be last */
 };
 
-
-u_short ipseclevel(slevel)
-	char *slevel;
+u_short
+ipseclevel(slevel)
+char *slevel;
 {
 	struct ipopt_names *so;
 
@@ -65,7 +65,6 @@ u_short ipseclevel(slevel)
 	}
 	return (so->on_value);
 }
-
 
 int
 addipopt(char *op, struct ipopt_names *io, int len, char *class)
@@ -99,14 +98,13 @@ addipopt(char *op, struct ipopt_names *io, int len, char *class)
 
 		while (class && *class) {
 			t = NULL;
-			switch (io->on_value)
-			{
-			case IPOPT_SECURITY :
+			switch (io->on_value) {
+			case IPOPT_SECURITY:
 				lvl = ipseclevel(class);
 				*(op - 1) = lvl;
 				break;
-			case IPOPT_LSRR :
-			case IPOPT_SSRR :
+			case IPOPT_LSRR:
+			case IPOPT_SSRR:
 				if ((t = strchr(class, ',')))
 					*t = '\0';
 				ipadr.s_addr = inet_addr(class);
@@ -114,7 +112,7 @@ addipopt(char *op, struct ipopt_names *io, int len, char *class)
 				bcopy((char *)&ipadr, op, sizeof(ipadr));
 				op += sizeof(ipadr);
 				break;
-			case IPOPT_SATID :
+			case IPOPT_SATID:
 				val = atoi(class);
 				bcopy((char *)&val, op, 2);
 				break;
@@ -134,11 +132,8 @@ addipopt(char *op, struct ipopt_names *io, int len, char *class)
 	return (len - olen);
 }
 
-
-u_32_t
-buildopts(char *cp, char *op, int len)
-	char *cp, *op;
-	int len;
+u_32_t buildopts(char *cp, char *op, int len) char *cp, *op;
+int len;
 {
 	struct ipopt_names *io;
 	u_32_t msk = 0;

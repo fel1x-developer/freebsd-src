@@ -23,7 +23,9 @@
  * SUCH DAMAGE.
  */
 
-{# THIS IS A TEMPLATE PROCESSED BY lib/libifconfig/sfp.lua #}
+{
+#THIS IS A TEMPLATE PROCESSED BY lib / libifconfig / sfp.lua #
+}
 
 #pragma once
 
@@ -39,26 +41,27 @@ for _, ent in ipairs(enums) do
     if type(ent) == "table" then
         local enum = ent
         local name = "sfp_"..enum.name
-%}
-extern const struct sfp_enum_metadata *{*name*}_table;
-{%
-    end
-end
-%}
+%
+}
+extern const struct sfp_enum_metadata * { *name * } _table;
+{
+	% end end %
+}
 
 static inline void
 get_sfp_info_strings(const struct ifconfig_sfp_info *sfp,
     struct ifconfig_sfp_info_strings *strings)
 {
-{%
+	{%
 for _, ent in ipairs(enums) do
     if type(ent) == "table" then
         local enum = ent
         local name = "sfp_"..enum.name
-%}
-	strings->{*name*} = ifconfig_{*name*}_description(sfp->{*name*});
-{%
-    end
-end
-%}
+%
+	}
+	strings-> { *name *} = ifconfig_ { *name * } _description(
+	    sfp-> { *name * });
+	{
+		% end end %
+	}
 }

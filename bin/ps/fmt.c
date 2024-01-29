@@ -30,13 +30,13 @@
  */
 
 #include <sys/types.h>
-#include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/time.h>
 
 #include <err.h>
 #include <limits.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -71,7 +71,7 @@ shquote(char **argv)
 		return (buf);
 	}
 	dst = buf;
-	for (p = argv; (src = *p++) != NULL; ) {
+	for (p = argv; (src = *p++) != NULL;) {
 		if (*src == '\0')
 			continue;
 		len = (buf_size - 1 - (dst - buf)) / 4;

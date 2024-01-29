@@ -58,16 +58,16 @@ struct ice_fwlog_module_entry {
 struct ice_fwlog_cfg {
 	/* list of modules for configuring log level */
 	struct ice_fwlog_module_entry module_entries[ICE_AQC_FW_LOG_ID_MAX];
-#define ICE_FWLOG_OPTION_ARQ_ENA		BIT(0)
-#define ICE_FWLOG_OPTION_UART_ENA		BIT(1)
+#define ICE_FWLOG_OPTION_ARQ_ENA BIT(0)
+#define ICE_FWLOG_OPTION_UART_ENA BIT(1)
 	/* set before calling ice_fwlog_init() so the PF registers for firmware
 	 * logging on initialization
 	 */
-#define ICE_FWLOG_OPTION_REGISTER_ON_INIT	BIT(2)
+#define ICE_FWLOG_OPTION_REGISTER_ON_INIT BIT(2)
 	/* set in the ice_fwlog_get() response if the PF is registered for FW
 	 * logging events over ARQ
 	 */
-#define ICE_FWLOG_OPTION_IS_REGISTERED		BIT(3)
+#define ICE_FWLOG_OPTION_IS_REGISTERED BIT(3)
 	/* options used to configure firmware logging */
 	u16 options;
 	/* minimum number of log events sent per Admin Receive Queue event */
@@ -79,12 +79,10 @@ bool ice_fwlog_supported(struct ice_hw *hw);
 enum ice_status ice_fwlog_init(struct ice_hw *hw, struct ice_fwlog_cfg *cfg);
 enum ice_status ice_fwlog_set(struct ice_hw *hw, struct ice_fwlog_cfg *cfg);
 enum ice_status ice_fwlog_get(struct ice_hw *hw, struct ice_fwlog_cfg *cfg);
-enum ice_status
-ice_fwlog_update_modules(struct ice_hw *hw,
-			 struct ice_fwlog_module_entry *entries,
-			 u16 num_entries);
+enum ice_status ice_fwlog_update_modules(struct ice_hw *hw,
+    struct ice_fwlog_module_entry *entries, u16 num_entries);
 enum ice_status ice_fwlog_register(struct ice_hw *hw);
 enum ice_status ice_fwlog_unregister(struct ice_hw *hw);
-void
-ice_fwlog_event_dump(struct ice_hw *hw, struct ice_aq_desc *desc, void *buf);
+void ice_fwlog_event_dump(struct ice_hw *hw, struct ice_aq_desc *desc,
+    void *buf);
 #endif /* _ICE_FWLOG_H_ */

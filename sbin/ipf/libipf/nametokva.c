@@ -7,10 +7,11 @@
  * $Id$
  */
 
-#include "ipf.h"
-
 #include <sys/ioctl.h>
+
 #include <fcntl.h>
+
+#include "ipf.h"
 
 ipfunc_t
 nametokva(char *name, ioctlfunc_t iocfunc)
@@ -27,7 +28,7 @@ nametokva(char *name, ioctlfunc_t iocfunc)
 		if (fd == -1)
 			return (NULL);
 	}
-	(void) (*iocfunc)(fd, SIOCFUNCL, &res);
+	(void)(*iocfunc)(fd, SIOCFUNCL, &res);
 	if (fd >= 0)
 		close(fd);
 	if (res.ipfu_addr == NULL)

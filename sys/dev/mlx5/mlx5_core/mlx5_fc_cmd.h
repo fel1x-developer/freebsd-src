@@ -37,18 +37,18 @@
 
 int mlx5_cmd_fc_alloc(struct mlx5_core_dev *dev, u32 *id);
 int mlx5_cmd_fc_bulk_alloc(struct mlx5_core_dev *dev,
-			   enum mlx5_fc_bulk_alloc_bitmask alloc_bitmask,
-			   u32 *id);
+    enum mlx5_fc_bulk_alloc_bitmask alloc_bitmask, u32 *id);
 int mlx5_cmd_fc_free(struct mlx5_core_dev *dev, u32 id);
-int mlx5_cmd_fc_query(struct mlx5_core_dev *dev, u32 id,
-		      u64 *packets, u64 *bytes);
+int mlx5_cmd_fc_query(struct mlx5_core_dev *dev, u32 id, u64 *packets,
+    u64 *bytes);
 
 int mlx5_cmd_fc_bulk_query(struct mlx5_core_dev *dev, u32 base_id, int bulk_len,
-			   u32 *out);
-static inline int mlx5_cmd_fc_get_bulk_query_out_len(int bulk_len)
+    u32 *out);
+static inline int
+mlx5_cmd_fc_get_bulk_query_out_len(int bulk_len)
 {
 	return MLX5_ST_SZ_BYTES(query_flow_counter_out) +
-		MLX5_ST_SZ_BYTES(traffic_counter) * bulk_len;
+	    MLX5_ST_SZ_BYTES(traffic_counter) * bulk_len;
 }
 
 #endif

@@ -27,6 +27,7 @@
  */
 
 #include <sys/types.h>
+
 #include <err.h>
 #include <limits.h>
 #include <stdbool.h>
@@ -71,7 +72,7 @@ c_link(const char *file1, off_t skip1, const char *file2, off_t skip2,
 	dfound = 0;
 	byte = 1;
 	for (p1 = buf1 + skip1, p2 = buf2 + skip2;
-	    *p1 && *p2 && (limit == 0 || byte <= limit); p1++, p2++) {
+	     *p1 && *p2 && (limit == 0 || byte <= limit); p1++, p2++) {
 		if ((ch = *p1) != *p2) {
 			if (xflag) {
 				dfound = 1;
@@ -87,13 +88,13 @@ c_link(const char *file1, off_t skip1, const char *file2, off_t skip2,
 					    (long long)byte, ch, *p2);
 			} else
 				diffmsg(file1, file2, byte, 1, ch, *p2);
-				/* NOTREACHED */
+			/* NOTREACHED */
 		}
 		byte++;
 	}
 
 	if (*p1 || *p2)
-		eofmsg (*p1 ? file2 : file1);
+		eofmsg(*p1 ? file2 : file1);
 	if (dfound)
 		exit(DIFF_EXIT);
 }

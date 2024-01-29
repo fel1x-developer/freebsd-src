@@ -1,25 +1,17 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <err.h>
-#include <errno.h>
-
-#include <sys/bitcount.h>
+#include <sys/types.h>
 #include <sys/param.h>
+#include <sys/bitcount.h>
 #include <sys/linker.h>
 #include <sys/module.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
 #include <sys/time.h>
-#include <sys/types.h>
-
-#include <netinet/in.h>
-#include <arpa/inet.h>
 
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_dl.h>
 #include <net/if_types.h>
+#include <netinet/in.h>
 #include <netlink/netlink.h>
 #include <netlink/netlink_route.h>
 #include <netlink/netlink_snl.h>
@@ -27,14 +19,21 @@
 #include <netlink/netlink_snl_route_compat.h>
 #include <netlink/netlink_snl_route_parsers.h>
 
+#include <arpa/inet.h>
+#include <err.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 const char *routename(struct sockaddr *);
 const char *netname(struct sockaddr *);
 void printb(int, const char *);
 extern const char routeflags[];
 extern int verbose, debugonly;
 
-int rtmsg_nl(int cmd, int rtm_flags, int fib, int rtm_addrs, struct sockaddr_storage *so,
-    struct rt_metrics *rt_metrics);
+int rtmsg_nl(int cmd, int rtm_flags, int fib, int rtm_addrs,
+    struct sockaddr_storage *so, struct rt_metrics *rt_metrics);
 int flushroutes_fib_nl(int fib, int af);
 void monitor_nl(int fib);
 
@@ -46,13 +45,14 @@ static void print_nlmsg(struct nl_helper *h, struct nlmsghdr *hdr,
     struct snl_msg_info *cinfo);
 
 #define s6_addr32 __u6_addr.__u6_addr32
-#define	bitcount32(x)	__bitcount32((uint32_t)(x))
+#define bitcount32(x) __bitcount32((uint32_t)(x))
 static int
 inet6_get_plen(const struct in6_addr *addr)
 {
 
-	return (bitcount32(addr->s6_addr32[0]) + bitcount32(addr->s6_addr32[1]) +
-	    bitcount32(addr->s6_addr32[2]) + bitcount32(addr->s6_addr32[3]));
+	return (bitcount32(addr->s6_addr32[0]) +
+	    bitcount32(addr->s6_addr32[1]) + bitcount32(addr->s6_addr32[2]) +
+	    bitcount32(addr->s6_addr32[3]));
 }
 
 static void
@@ -77,7 +77,8 @@ get_netmask(struct snl_state *ss, int family, int plen)
 
 		sin->sin_len = sizeof(*sin);
 		sin->sin_family = family;
-		sin->sin_addr.s_addr = htonl(plen ? ~((1 << (32 - plen)) - 1) : 0);
+		sin->sin_addr.s_addr = htonl(
+		    plen ? ~((1 << (32 - plen)) - 1) : 0);
 
 		return (struct sockaddr *)sin;
 	} else if (family == AF_INET6) {
@@ -139,8 +140,8 @@ get_addr(struct sockaddr_storage *so, int rtm_addrs, int addr_type)
 }
 
 static int
-rtmsg_nl_int(struct nl_helper *h, int cmd, int rtm_flags, int fib, int rtm_addrs,
-    struct sockaddr_storage *so, struct rt_metrics *rt_metrics)
+rtmsg_nl_int(struct nl_helper *h, int cmd, int rtm_flags, int fib,
+    int rtm_addrs, struct sockaddr_storage *so, struct rt_metrics *rt_metrics)
 {
 	struct snl_state *ss = &h->ss_cmd;
 	struct snl_writer nw;
@@ -151,7 +152,8 @@ rtmsg_nl_int(struct nl_helper *h, int cmd, int rtm_flags, int fib, int rtm_addrs
 	switch (cmd) {
 	case RTSOCK_RTM_ADD:
 		nl_type = RTM_NEWROUTE;
-		nl_flags = NLM_F_CREATE | NLM_F_APPEND; /* Do append by default */
+		nl_flags = NLM_F_CREATE |
+		    NLM_F_APPEND; /* Do append by default */
 		break;
 	case RTSOCK_RTM_CHANGE:
 		nl_type = RTM_NEWROUTE;
@@ -181,8 +183,7 @@ rtmsg_nl_int(struct nl_helper *h, int cmd, int rtm_flags, int fib, int rtm_addrs
 	int rtm_type = RTN_UNICAST;
 
 	switch (dst->sa_family) {
-	case AF_INET:
-	    {
+	case AF_INET: {
 		struct sockaddr_in *mask4 = (struct sockaddr_in *)mask;
 
 		if ((rtm_flags & RTF_HOST) == 0 && mask4 != NULL)
@@ -190,9 +191,8 @@ rtmsg_nl_int(struct nl_helper *h, int cmd, int rtm_flags, int fib, int rtm_addrs
 		else
 			plen = 32;
 		break;
-	    }
-	case AF_INET6:
-	    {
+	}
+	case AF_INET6: {
 		struct sockaddr_in6 *mask6 = (struct sockaddr_in6 *)mask;
 
 		if ((rtm_flags & RTF_HOST) == 0 && mask6 != NULL)
@@ -200,7 +200,7 @@ rtmsg_nl_int(struct nl_helper *h, int cmd, int rtm_flags, int fib, int rtm_addrs
 		else
 			plen = 128;
 		break;
-	    }
+	}
 	default:
 		return (ENOTSUP);
 	}
@@ -232,7 +232,8 @@ rtmsg_nl_int(struct nl_helper *h, int cmd, int rtm_flags, int fib, int rtm_addrs
 			else
 				snl_add_msg_attr_ipvia(&nw, RTA_VIA, gw);
 			if (gw->sa_family == AF_INET6) {
-				struct sockaddr_in6 *gw6 = (struct sockaddr_in6 *)gw;
+				struct sockaddr_in6 *gw6 =
+				    (struct sockaddr_in6 *)gw;
 
 				if (IN6_IS_ADDR_LINKLOCAL(&gw6->sin6_addr))
 					rta_oif = gw6->sin6_scope_id;
@@ -264,7 +265,8 @@ rtmsg_nl_int(struct nl_helper *h, int cmd, int rtm_flags, int fib, int rtm_addrs
 	}
 
 	if (rt_metrics->rmx_weight > 0)
-		snl_add_msg_attr_u32(&nw, NL_RTA_WEIGHT, rt_metrics->rmx_weight);
+		snl_add_msg_attr_u32(&nw, NL_RTA_WEIGHT,
+		    rt_metrics->rmx_weight);
 
 	if ((hdr = snl_finalize_msg(&nw)) && snl_send_message(ss, hdr)) {
 		struct snl_errmsg_data e = {};
@@ -302,14 +304,16 @@ rtmsg_nl(int cmd, int rtm_flags, int fib, int rtm_addrs,
 	struct nl_helper h = {};
 
 	nl_helper_init(&h);
-	int error = rtmsg_nl_int(&h, cmd, rtm_flags, fib, rtm_addrs, so, rt_metrics);
+	int error = rtmsg_nl_int(&h, cmd, rtm_flags, fib, rtm_addrs, so,
+	    rt_metrics);
 	nl_helper_free(&h);
 
 	return (error);
 }
 
 static void
-get_ifdata(struct nl_helper *h, uint32_t ifindex, struct snl_parsed_link_simple *link)
+get_ifdata(struct nl_helper *h, uint32_t ifindex,
+    struct snl_parsed_link_simple *link)
 {
 	struct snl_state *ss = &h->ss_cmd;
 	struct snl_writer nw;
@@ -319,7 +323,7 @@ get_ifdata(struct nl_helper *h, uint32_t ifindex, struct snl_parsed_link_simple 
 	struct ifinfomsg *ifmsg = snl_reserve_msg_object(&nw, struct ifinfomsg);
 	if (ifmsg != NULL)
 		ifmsg->ifi_index = ifindex;
-	if (! (hdr = snl_finalize_msg(&nw)) || !snl_send_message(ss, hdr))
+	if (!(hdr = snl_finalize_msg(&nw)) || !snl_send_message(ss, hdr))
 		return;
 
 	hdr = snl_read_reply(ss, hdr->nlmsg_seq);
@@ -377,8 +381,8 @@ print_getmsg(struct nl_helper *h, struct nlmsghdr *hdr, struct sockaddr *dst)
 		.rmx_expire = r.rta_expire,
 	};
 
-	printf("\n%9s %9s %9s %9s %9s %10s %9s\n", "recvpipe",
-	    "sendpipe", "ssthresh", "rtt,msec", "mtu   ", "weight", "expire");
+	printf("\n%9s %9s %9s %9s %9s %10s %9s\n", "recvpipe", "sendpipe",
+	    "ssthresh", "rtt,msec", "mtu   ", "weight", "expire");
 	printf("%8lu  ", rmx.rmx_recvpipe);
 	printf("%8lu  ", rmx.rmx_sendpipe);
 	printf("%8lu  ", rmx.rmx_ssthresh);
@@ -393,7 +397,8 @@ print_getmsg(struct nl_helper *h, struct nlmsghdr *hdr, struct sockaddr *dst)
 }
 
 static void
-print_prefix(struct nl_helper *h, char *buf, int bufsize, struct sockaddr *sa, int plen)
+print_prefix(struct nl_helper *h, char *buf, int bufsize, struct sockaddr *sa,
+    int plen)
 {
 	int sz = 0;
 
@@ -403,36 +408,34 @@ print_prefix(struct nl_helper *h, char *buf, int bufsize, struct sockaddr *sa, i
 	}
 
 	switch (sa->sa_family) {
-	case AF_INET:
-		{
-			struct sockaddr_in *sin = (struct sockaddr_in *)sa;
-			char abuf[INET_ADDRSTRLEN];
+	case AF_INET: {
+		struct sockaddr_in *sin = (struct sockaddr_in *)sa;
+		char abuf[INET_ADDRSTRLEN];
 
-			inet_ntop(AF_INET, &sin->sin_addr, abuf, sizeof(abuf));
-			sz = snprintf(buf, bufsize, "%s", abuf);
-			break;
-		}
-	case AF_INET6:
-		{
-			struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)sa;
-			char abuf[INET6_ADDRSTRLEN];
-			char *ifname = NULL;
+		inet_ntop(AF_INET, &sin->sin_addr, abuf, sizeof(abuf));
+		sz = snprintf(buf, bufsize, "%s", abuf);
+		break;
+	}
+	case AF_INET6: {
+		struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)sa;
+		char abuf[INET6_ADDRSTRLEN];
+		char *ifname = NULL;
 
-			inet_ntop(AF_INET6, &sin6->sin6_addr, abuf, sizeof(abuf));
-			if (IN6_IS_ADDR_LINKLOCAL(&sin6->sin6_addr)) {
-				struct snl_parsed_link_simple link = {};
+		inet_ntop(AF_INET6, &sin6->sin6_addr, abuf, sizeof(abuf));
+		if (IN6_IS_ADDR_LINKLOCAL(&sin6->sin6_addr)) {
+			struct snl_parsed_link_simple link = {};
 
-				if (sin6->sin6_scope_id != 0) {
-					get_ifdata(h, sin6->sin6_scope_id, &link);
-					ifname = link.ifla_ifname;
-				}
+			if (sin6->sin6_scope_id != 0) {
+				get_ifdata(h, sin6->sin6_scope_id, &link);
+				ifname = link.ifla_ifname;
 			}
-			if (ifname == NULL)
-				sz = snprintf(buf, bufsize, "%s", abuf);
-			else
-				sz = snprintf(buf, bufsize, "%s%%%s", abuf, ifname);
-			break;
 		}
+		if (ifname == NULL)
+			sz = snprintf(buf, bufsize, "%s", abuf);
+		else
+			sz = snprintf(buf, bufsize, "%s%%%s", abuf, ifname);
+		break;
+	}
 	default:
 		snprintf(buf, bufsize, "unknown_af#%d", sa->sa_family);
 		plen = -1;
@@ -464,7 +467,8 @@ static const char *
 get_action_name(struct nlmsghdr *hdr, int new_cmd)
 {
 	if (hdr->nlmsg_type == new_cmd) {
-		//return ((hdr->nlmsg_flags & NLM_F_REPLACE) ? "replace" : "add");
+		// return ((hdr->nlmsg_flags & NLM_F_REPLACE) ? "replace" :
+		// "add");
 		return ("add/repl");
 	} else
 		return ("delete");
@@ -494,12 +498,12 @@ print_nlmsg_route_nhop(struct nl_helper *h, struct snl_parsed_route *r,
 
 	if (first) {
 		switch (r->rtm_family) {
-			case AF_INET:
-				printf("table inet.%d", r->rta_table);
-				break;
-			case AF_INET6:
-				printf("table inet6.%d", r->rta_table);
-				break;
+		case AF_INET:
+			printf("table inet.%d", r->rta_table);
+			break;
+		case AF_INET6:
+			printf("table inet6.%d", r->rta_table);
+			break;
 		}
 	}
 
@@ -516,7 +520,8 @@ print_nlmsg_route(struct nl_helper *h, struct nlmsghdr *hdr,
 	if (!snl_parse_nlmsg(ss, hdr, &snl_rtm_route_parser, &r))
 		return;
 
-	// 20:19:41.333 add route 10.0.0.0/24 gw 10.0.0.1 ifp vtnet0 mtu 1500 table inet.0
+	// 20:19:41.333 add route 10.0.0.0/24 gw 10.0.0.1 ifp vtnet0 mtu 1500
+	// table inet.0
 
 	const char *cmd = get_action_name(hdr, RTM_NEWROUTE);
 	int len = print_line_prefix(hdr, cinfo, cmd, "route");
@@ -564,13 +569,13 @@ print_nlmsg_route(struct nl_helper *h, struct nlmsghdr *hdr,
 }
 
 static const char *operstate[] = {
-	"UNKNOWN",	/* 0, IF_OPER_UNKNOWN */
-	"NOTPRESENT",	/* 1, IF_OPER_NOTPRESENT */
-	"DOWN",		/* 2, IF_OPER_DOWN */
-	"LLDOWN",	/* 3, IF_OPER_LOWERLAYERDOWN */
-	"TESTING",	/* 4, IF_OPER_TESTING */
-	"DORMANT",	/* 5, IF_OPER_DORMANT */
-	"UP",		/* 6, IF_OPER_UP */
+	"UNKNOWN",    /* 0, IF_OPER_UNKNOWN */
+	"NOTPRESENT", /* 1, IF_OPER_NOTPRESENT */
+	"DOWN",	      /* 2, IF_OPER_DOWN */
+	"LLDOWN",     /* 3, IF_OPER_LOWERLAYERDOWN */
+	"TESTING",    /* 4, IF_OPER_TESTING */
+	"DORMANT",    /* 5, IF_OPER_DORMANT */
+	"UP",	      /* 6, IF_OPER_UP */
 };
 
 static void
@@ -583,7 +588,8 @@ print_nlmsg_link(struct nl_helper *h, struct nlmsghdr *hdr,
 	if (!snl_parse_nlmsg(ss, hdr, &snl_rtm_link_parser, &l))
 		return;
 
-	// 20:19:41.333 add iface#3 vtnet0 admin UP oper UP mtu 1500 table inet.0
+	// 20:19:41.333 add iface#3 vtnet0 admin UP oper UP mtu 1500 table
+	// inet.0
 	const char *cmd = get_action_name(hdr, RTM_NEWLINK);
 	print_line_prefix(hdr, cinfo, cmd, "iface");
 
@@ -612,7 +618,8 @@ print_nlmsg_addr(struct nl_helper *h, struct nlmsghdr *hdr,
 	print_line_prefix(hdr, cinfo, cmd, "addr");
 
 	char buf[128];
-	struct sockaddr *addr = attrs.ifa_local ? attrs.ifa_local : attrs.ifa_address;
+	struct sockaddr *addr = attrs.ifa_local ? attrs.ifa_local :
+						  attrs.ifa_address;
 	print_prefix(h, buf, sizeof(buf), addr, attrs.ifa_prefixlen);
 	printf("%s ", buf);
 
@@ -631,21 +638,20 @@ print_nlmsg_addr(struct nl_helper *h, struct nlmsghdr *hdr,
 }
 
 static const char *nudstate[] = {
-	"INCOMPLETE",		/* 0x01(0) */
-	"REACHABLE",		/* 0x02(1) */
-	"STALE",		/* 0x04(2) */
-	"DELAY",		/* 0x08(3) */
-	"PROBE",		/* 0x10(4) */
-	"FAILED",		/* 0x20(5) */
+	"INCOMPLETE", /* 0x01(0) */
+	"REACHABLE",  /* 0x02(1) */
+	"STALE",      /* 0x04(2) */
+	"DELAY",      /* 0x08(3) */
+	"PROBE",      /* 0x10(4) */
+	"FAILED",     /* 0x20(5) */
 };
 
-#define	NUD_INCOMPLETE		0x01	/* No lladdr, address resolution in progress */
-#define	NUD_REACHABLE		0x02	/* reachable & recently resolved */
-#define	NUD_STALE		0x04	/* has lladdr but it's stale */
-#define	NUD_DELAY		0x08	/* has lladdr, is stale, probes delayed */
-#define	NUD_PROBE		0x10	/* has lladdr, is stale, probes sent */
-#define	NUD_FAILED		0x20	/* unused */
-
+#define NUD_INCOMPLETE 0x01 /* No lladdr, address resolution in progress */
+#define NUD_REACHABLE 0x02  /* reachable & recently resolved */
+#define NUD_STALE 0x04	    /* has lladdr but it's stale */
+#define NUD_DELAY 0x08	    /* has lladdr, is stale, probes delayed */
+#define NUD_PROBE 0x10	    /* has lladdr, is stale, probes sent */
+#define NUD_FAILED 0x20	    /* unused */
 
 static void
 print_nlmsg_neigh(struct nl_helper *h, struct nlmsghdr *hdr,
@@ -678,7 +684,8 @@ print_nlmsg_neigh(struct nl_helper *h, struct nlmsghdr *hdr,
 	if (attrs.nda_lladdr != NULL) {
 		int if_type = link.ifi_type;
 
-		if ((if_type == IFT_ETHER || if_type == IFT_L2VLAN || if_type == IFT_BRIDGE) &&
+		if ((if_type == IFT_ETHER || if_type == IFT_L2VLAN ||
+			if_type == IFT_BRIDGE) &&
 		    NLA_DATA_LEN(attrs.nda_lladdr) == ETHER_ADDR_LEN) {
 			struct ether_addr *ll;
 
@@ -707,7 +714,8 @@ print_nlmsg_neigh(struct nl_helper *h, struct nlmsghdr *hdr,
 }
 
 static void
-print_nlmsg_generic(struct nl_helper *h, struct nlmsghdr *hdr, struct snl_msg_info *cinfo)
+print_nlmsg_generic(struct nl_helper *h, struct nlmsghdr *hdr,
+    struct snl_msg_info *cinfo)
 {
 	const char *cmd = get_action_name(hdr, 0);
 	print_line_prefix(hdr, cinfo, cmd, "unknown message");
@@ -715,7 +723,8 @@ print_nlmsg_generic(struct nl_helper *h, struct nlmsghdr *hdr, struct snl_msg_in
 }
 
 static void
-print_nlmsg(struct nl_helper *h, struct nlmsghdr *hdr, struct snl_msg_info *cinfo)
+print_nlmsg(struct nl_helper *h, struct nlmsghdr *hdr,
+    struct snl_msg_info *cinfo)
 {
 	switch (hdr->nlmsg_type) {
 	case RTM_NEWLINK:
@@ -780,8 +789,7 @@ monitor_nl(int fib)
 
 	struct snl_msg_info attrs = {};
 	struct nlmsghdr *hdr;
-	while ((hdr = snl_read_message_dbg(&ss_event, &attrs)) != NULL)
-	{
+	while ((hdr = snl_read_message_dbg(&ss_event, &attrs)) != NULL) {
 		print_nlmsg(&h, hdr, &attrs);
 		snl_clear_lb(&h.ss_cmd);
 		snl_clear_lb(&ss_event);
@@ -797,8 +805,8 @@ print_flushed_route(struct snl_parsed_route *r, struct sockaddr *gw)
 {
 	struct sockaddr *sa = r->rta_dst;
 
-	printf("%-20.20s ", r->rta_rtflags & RTF_HOST ?
-	    routename(sa) : netname(sa));
+	printf("%-20.20s ",
+	    r->rta_rtflags & RTF_HOST ? routename(sa) : netname(sa));
 	sa = gw;
 	printf("%-20.20s ", routename(sa));
 	printf("-fib %-3d ", r->rta_table);
@@ -822,7 +830,7 @@ flushroute_one(struct nl_helper *h, struct snl_parsed_route *r)
 	snl_add_msg_attr_u32(&nw, RTA_TABLE, r->rta_table);
 	snl_add_msg_attr_ip(&nw, RTA_DST, r->rta_dst);
 
-	if (! (hdr = snl_finalize_msg(&nw)) || !snl_send_message(ss, hdr))
+	if (!(hdr = snl_finalize_msg(&nw)) || !snl_send_message(ss, hdr))
 		return (ENOMEM);
 
 	if (!snl_read_reply_code(ss, hdr->nlmsg_seq, &e)) {
@@ -837,11 +845,12 @@ flushroute_one(struct nl_helper *h, struct snl_parsed_route *r)
 	if (verbose) {
 		struct snl_msg_info attrs = {};
 		print_nlmsg(h, hdr, &attrs);
-	}
-	else {
+	} else {
 		if (r->rta_multipath.num_nhops != 0) {
-			for (uint32_t i = 0; i < r->rta_multipath.num_nhops; i++) {
-				struct rta_mpath_nh *nh = r->rta_multipath.nhops[i];
+			for (uint32_t i = 0; i < r->rta_multipath.num_nhops;
+			     i++) {
+				struct rta_mpath_nh *nh =
+				    r->rta_multipath.nhops[i];
 
 				print_flushed_route(r, nh->gw);
 			}
@@ -869,7 +878,7 @@ flushroutes_fib_nl(int fib, int af)
 	rtm->rtm_family = af;
 	snl_add_msg_attr_u32(&nw, RTA_TABLE, fib);
 
-	if (! (hdr = snl_finalize_msg(&nw)) || !snl_send_message(&ss, hdr)) {
+	if (!(hdr = snl_finalize_msg(&nw)) || !snl_send_message(&ss, hdr)) {
 		snl_free(&ss);
 		return (EINVAL);
 	}
@@ -878,9 +887,11 @@ flushroutes_fib_nl(int fib, int af)
 	uint32_t nlm_seq = hdr->nlmsg_seq;
 
 	nl_helper_init(&h);
-	
+
 	while ((hdr = snl_read_reply_multi(&ss, nlm_seq, &e)) != NULL) {
-		struct snl_parsed_route r = { .rtax_weight = RT_DEFAULT_WEIGHT };
+		struct snl_parsed_route r = {
+			.rtax_weight = RT_DEFAULT_WEIGHT
+		};
 		int error;
 
 		if (!snl_parse_nlmsg(&ss, hdr, &snl_rtm_route_parser, &r))
@@ -910,4 +921,3 @@ flushroutes_fib_nl(int fib, int af)
 
 	return (e.error);
 }
-

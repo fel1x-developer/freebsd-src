@@ -38,22 +38,21 @@
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
-#include <sys/smp.h>
 #include <sys/sglist.h>
+#include <sys/smp.h>
 #include <sys/sysctl.h>
 
 #include <machine/atomic.h>
 #include <machine/bus.h>
 
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+
 #include <crypto/rijndael/rijndael.h>
 #include <opencrypto/cryptodev.h>
 #include <opencrypto/xform.h>
 
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-
 #include "cryptodev_if.h"
-
 #include "safexcel_reg.h"
 #include "safexcel_var.h"
 
@@ -61,35 +60,34 @@
  * We only support the EIP97 for now.
  */
 static struct ofw_compat_data safexcel_compat[] = {
-	{ "inside-secure,safexcel-eip97ies",	(uintptr_t)97 },
-	{ "inside-secure,safexcel-eip97",	(uintptr_t)97 },
-	{ NULL,					0 }
+	{ "inside-secure,safexcel-eip97ies", (uintptr_t)97 },
+	{ "inside-secure,safexcel-eip97", (uintptr_t)97 }, { NULL, 0 }
 };
 
 const struct safexcel_reg_offsets eip97_regs_offset = {
-	.hia_aic	= SAFEXCEL_EIP97_HIA_AIC_BASE,
-	.hia_aic_g	= SAFEXCEL_EIP97_HIA_AIC_G_BASE,
-	.hia_aic_r	= SAFEXCEL_EIP97_HIA_AIC_R_BASE,
-	.hia_aic_xdr	= SAFEXCEL_EIP97_HIA_AIC_xDR_BASE,
-	.hia_dfe	= SAFEXCEL_EIP97_HIA_DFE_BASE,
-	.hia_dfe_thr	= SAFEXCEL_EIP97_HIA_DFE_THR_BASE,
-	.hia_dse	= SAFEXCEL_EIP97_HIA_DSE_BASE,
-	.hia_dse_thr	= SAFEXCEL_EIP97_HIA_DSE_THR_BASE,
-	.hia_gen_cfg	= SAFEXCEL_EIP97_HIA_GEN_CFG_BASE,
-	.pe		= SAFEXCEL_EIP97_PE_BASE,
+	.hia_aic = SAFEXCEL_EIP97_HIA_AIC_BASE,
+	.hia_aic_g = SAFEXCEL_EIP97_HIA_AIC_G_BASE,
+	.hia_aic_r = SAFEXCEL_EIP97_HIA_AIC_R_BASE,
+	.hia_aic_xdr = SAFEXCEL_EIP97_HIA_AIC_xDR_BASE,
+	.hia_dfe = SAFEXCEL_EIP97_HIA_DFE_BASE,
+	.hia_dfe_thr = SAFEXCEL_EIP97_HIA_DFE_THR_BASE,
+	.hia_dse = SAFEXCEL_EIP97_HIA_DSE_BASE,
+	.hia_dse_thr = SAFEXCEL_EIP97_HIA_DSE_THR_BASE,
+	.hia_gen_cfg = SAFEXCEL_EIP97_HIA_GEN_CFG_BASE,
+	.pe = SAFEXCEL_EIP97_PE_BASE,
 };
 
 const struct safexcel_reg_offsets eip197_regs_offset = {
-	.hia_aic	= SAFEXCEL_EIP197_HIA_AIC_BASE,
-	.hia_aic_g	= SAFEXCEL_EIP197_HIA_AIC_G_BASE,
-	.hia_aic_r	= SAFEXCEL_EIP197_HIA_AIC_R_BASE,
-	.hia_aic_xdr	= SAFEXCEL_EIP197_HIA_AIC_xDR_BASE,
-	.hia_dfe	= SAFEXCEL_EIP197_HIA_DFE_BASE,
-	.hia_dfe_thr	= SAFEXCEL_EIP197_HIA_DFE_THR_BASE,
-	.hia_dse	= SAFEXCEL_EIP197_HIA_DSE_BASE,
-	.hia_dse_thr	= SAFEXCEL_EIP197_HIA_DSE_THR_BASE,
-	.hia_gen_cfg	= SAFEXCEL_EIP197_HIA_GEN_CFG_BASE,
-	.pe		= SAFEXCEL_EIP197_PE_BASE,
+	.hia_aic = SAFEXCEL_EIP197_HIA_AIC_BASE,
+	.hia_aic_g = SAFEXCEL_EIP197_HIA_AIC_G_BASE,
+	.hia_aic_r = SAFEXCEL_EIP197_HIA_AIC_R_BASE,
+	.hia_aic_xdr = SAFEXCEL_EIP197_HIA_AIC_xDR_BASE,
+	.hia_dfe = SAFEXCEL_EIP197_HIA_DFE_BASE,
+	.hia_dfe_thr = SAFEXCEL_EIP197_HIA_DFE_THR_BASE,
+	.hia_dse = SAFEXCEL_EIP197_HIA_DSE_BASE,
+	.hia_dse_thr = SAFEXCEL_EIP197_HIA_DSE_THR_BASE,
+	.hia_gen_cfg = SAFEXCEL_EIP197_HIA_GEN_CFG_BASE,
+	.pe = SAFEXCEL_EIP197_PE_BASE,
 };
 
 static struct safexcel_request *
@@ -175,8 +173,8 @@ safexcel_rdr_intr(struct safexcel_softc *sc, int ringidx)
 	nreqs >>= SAFEXCEL_xDR_PROC_xD_PKT_OFFSET;
 	nreqs &= SAFEXCEL_xDR_PROC_xD_PKT_MASK;
 	if (nreqs == 0) {
-		SAFEXCEL_DPRINTF(sc, 1,
-		    "zero pending requests on ring %d\n", ringidx);
+		SAFEXCEL_DPRINTF(sc, 1, "zero pending requests on ring %d\n",
+		    ringidx);
 		mtx_lock(&ring->mtx);
 		goto out;
 	}
@@ -231,13 +229,13 @@ safexcel_rdr_intr(struct safexcel_softc *sc, int ringidx)
 	if (nreqs != 0) {
 		KASSERT(ring->queued >= nreqs,
 		    ("%s: request count underflow, %d queued %d completed",
-		    __func__, ring->queued, nreqs));
+			__func__, ring->queued, nreqs));
 		ring->queued -= nreqs;
 
 		SAFEXCEL_WRITE(sc,
 		    SAFEXCEL_HIA_RDR(sc, ringidx) + SAFEXCEL_HIA_xDR_PROC_COUNT,
 		    SAFEXCEL_xDR_PROC_xD_PKT(nreqs) |
-		    (sc->sc_config.rd_offset * nrdescs * sizeof(uint32_t)));
+			(sc->sc_config.rd_offset * nrdescs * sizeof(uint32_t)));
 		blocked = ring->blocked;
 		ring->blocked = 0;
 	}
@@ -252,7 +250,7 @@ out:
 	if (blocked)
 		crypto_unblock(sc->sc_cid, blocked);
 
-	TAILQ_FOREACH_SAFE(crp, &cq, crp_next, tmp)
+	TAILQ_FOREACH_SAFE (crp, &cq, crp_next, tmp)
 		crypto_done(crp);
 }
 
@@ -269,8 +267,8 @@ safexcel_ring_intr(void *arg)
 	sc = ih->sc;
 	ring = ih->ring;
 
-	status = SAFEXCEL_READ(sc, SAFEXCEL_HIA_AIC_R(sc) +
-	    SAFEXCEL_HIA_AIC_R_ENABLED_STAT(ring));
+	status = SAFEXCEL_READ(sc,
+	    SAFEXCEL_HIA_AIC_R(sc) + SAFEXCEL_HIA_AIC_R_ENABLED_STAT(ring));
 	/* CDR interrupts */
 	if (status & SAFEXCEL_CDR_IRQ(ring)) {
 		stat = SAFEXCEL_READ(sc,
@@ -291,8 +289,7 @@ safexcel_ring_intr(void *arg)
 		    stat & SAFEXCEL_RDR_INTR_MASK);
 	}
 	SAFEXCEL_WRITE(sc,
-	    SAFEXCEL_HIA_AIC_R(sc) + SAFEXCEL_HIA_AIC_R_ACK(ring),
-	    status);
+	    SAFEXCEL_HIA_AIC_R(sc) + SAFEXCEL_HIA_AIC_R_ACK(ring), status);
 
 	if (rdrpending)
 		safexcel_rdr_intr(sc, ring);
@@ -313,8 +310,8 @@ safexcel_configure(struct safexcel_softc *sc)
 
 	/* Scan for valid ring interrupt controllers. */
 	for (i = 0; i < SAFEXCEL_MAX_RING_AIC; i++) {
-		reg = SAFEXCEL_READ(sc, SAFEXCEL_HIA_AIC_R(sc) +
-		    SAFEXCEL_HIA_AIC_R_VERSION(i));
+		reg = SAFEXCEL_READ(sc,
+		    SAFEXCEL_HIA_AIC_R(sc) + SAFEXCEL_HIA_AIC_R_VERSION(i));
 		if (SAFEXCEL_REG_LO16(reg) != EIP201_VERSION_LE)
 			break;
 	}
@@ -328,11 +325,11 @@ safexcel_configure(struct safexcel_softc *sc)
 		return (-1);
 	/* Check alignment constraints (which we do not support). */
 	if (((reg & SAFEXCEL_OPT_TGT_ALIGN_MASK) >>
-	    SAFEXCEL_OPT_TGT_ALIGN_OFFSET) != 0)
+		SAFEXCEL_OPT_TGT_ALIGN_OFFSET) != 0)
 		return (-1);
 
-	sc->sc_config.hdw =
-	    (reg & SAFEXCEL_xDR_HDW_MASK) >> SAFEXCEL_xDR_HDW_OFFSET;
+	sc->sc_config.hdw = (reg & SAFEXCEL_xDR_HDW_MASK) >>
+	    SAFEXCEL_xDR_HDW_OFFSET;
 	mask = (1 << sc->sc_config.hdw) - 1;
 
 	sc->sc_config.rings = reg & SAFEXCEL_N_RINGS_MASK;
@@ -341,12 +338,12 @@ safexcel_configure(struct safexcel_softc *sc)
 
 	sc->sc_config.pes = (reg & pemask) >> SAFEXCEL_N_PES_OFFSET;
 
-	sc->sc_config.cd_size =
-	    sizeof(struct safexcel_cmd_descr) / sizeof(uint32_t);
+	sc->sc_config.cd_size = sizeof(struct safexcel_cmd_descr) /
+	    sizeof(uint32_t);
 	sc->sc_config.cd_offset = (sc->sc_config.cd_size + mask) & ~mask;
 
-	sc->sc_config.rd_size =
-	    sizeof(struct safexcel_res_descr) / sizeof(uint32_t);
+	sc->sc_config.rd_size = sizeof(struct safexcel_res_descr) /
+	    sizeof(uint32_t);
 	sc->sc_config.rd_offset = (sc->sc_config.rd_size + mask) & ~mask;
 
 	sc->sc_config.atok_offset =
@@ -369,15 +366,14 @@ safexcel_init_hia_bus_access(struct safexcel_softc *sc)
 		val = SAFEXCEL_READ(sc,
 		    SAFEXCEL_HIA_AIC(sc) + SAFEXCEL_HIA_MST_CTRL);
 		val = val ^ (SAFEXCEL_MST_CTRL_NO_BYTE_SWAP >> 24);
-		SAFEXCEL_WRITE(sc,
-		    SAFEXCEL_HIA_AIC(sc) + SAFEXCEL_HIA_MST_CTRL,
+		SAFEXCEL_WRITE(sc, SAFEXCEL_HIA_AIC(sc) + SAFEXCEL_HIA_MST_CTRL,
 		    val);
 	}
 
 	/* Configure wr/rd cache values. */
 	SAFEXCEL_WRITE(sc, SAFEXCEL_HIA_GEN_CFG(sc) + SAFEXCEL_HIA_MST_CTRL,
 	    SAFEXCEL_MST_CTRL_RD_CACHE(RD_CACHE_4BITS) |
-	    SAFEXCEL_MST_CTRL_WD_CACHE(WR_CACHE_4BITS));
+		SAFEXCEL_MST_CTRL_WD_CACHE(WR_CACHE_4BITS));
 }
 
 static void
@@ -386,8 +382,7 @@ safexcel_disable_global_interrupts(struct safexcel_softc *sc)
 	/* Disable and clear pending interrupts. */
 	SAFEXCEL_WRITE(sc,
 	    SAFEXCEL_HIA_AIC_G(sc) + SAFEXCEL_HIA_AIC_G_ENABLE_CTRL, 0);
-	SAFEXCEL_WRITE(sc,
-	    SAFEXCEL_HIA_AIC_G(sc) + SAFEXCEL_HIA_AIC_G_ACK,
+	SAFEXCEL_WRITE(sc, SAFEXCEL_HIA_AIC_G(sc) + SAFEXCEL_HIA_AIC_G_ACK,
 	    SAFEXCEL_AIC_G_ACK_ALL_MASK);
 }
 
@@ -411,20 +406,20 @@ safexcel_configure_dfe_engine(struct safexcel_softc *sc, int pe)
 	/* DMA transfer size to use. */
 	SAFEXCEL_WRITE(sc, SAFEXCEL_HIA_DFE(sc) + SAFEXCEL_HIA_DFE_CFG(pe),
 	    SAFEXCEL_HIA_DFE_CFG_DIS_DEBUG |
-	    SAFEXCEL_HIA_DxE_CFG_MIN_DATA_SIZE(6) |
-	    SAFEXCEL_HIA_DxE_CFG_MAX_DATA_SIZE(9) |
-	    SAFEXCEL_HIA_DxE_CFG_MIN_CTRL_SIZE(6) |
-	    SAFEXCEL_HIA_DxE_CFG_MAX_CTRL_SIZE(7) |
-	    SAFEXCEL_HIA_DxE_CFG_DATA_CACHE_CTRL(RD_CACHE_3BITS) |
-	    SAFEXCEL_HIA_DxE_CFG_CTRL_CACHE_CTRL(RD_CACHE_3BITS));
+		SAFEXCEL_HIA_DxE_CFG_MIN_DATA_SIZE(6) |
+		SAFEXCEL_HIA_DxE_CFG_MAX_DATA_SIZE(9) |
+		SAFEXCEL_HIA_DxE_CFG_MIN_CTRL_SIZE(6) |
+		SAFEXCEL_HIA_DxE_CFG_MAX_CTRL_SIZE(7) |
+		SAFEXCEL_HIA_DxE_CFG_DATA_CACHE_CTRL(RD_CACHE_3BITS) |
+		SAFEXCEL_HIA_DxE_CFG_CTRL_CACHE_CTRL(RD_CACHE_3BITS));
 
 	/* Configure the PE DMA transfer thresholds. */
 	SAFEXCEL_WRITE(sc, SAFEXCEL_PE(sc) + SAFEXCEL_PE_IN_DBUF_THRES(pe),
 	    SAFEXCEL_PE_IN_xBUF_THRES_MIN(6) |
-	    SAFEXCEL_PE_IN_xBUF_THRES_MAX(9));
+		SAFEXCEL_PE_IN_xBUF_THRES_MAX(9));
 	SAFEXCEL_WRITE(sc, SAFEXCEL_PE(sc) + SAFEXCEL_PE_IN_TBUF_THRES(pe),
 	    SAFEXCEL_PE_IN_xBUF_THRES_MIN(6) |
-	    SAFEXCEL_PE_IN_xBUF_THRES_MAX(7));
+		SAFEXCEL_PE_IN_xBUF_THRES_MAX(7));
 }
 
 /*
@@ -463,16 +458,15 @@ safexcel_configure_dse(struct safexcel_softc *sc, int pe)
 	/* DMA transfer size to use */
 	SAFEXCEL_WRITE(sc, SAFEXCEL_HIA_DSE(sc) + SAFEXCEL_HIA_DSE_CFG(pe),
 	    SAFEXCEL_HIA_DSE_CFG_DIS_DEBUG |
-	    SAFEXCEL_HIA_DxE_CFG_MIN_DATA_SIZE(7) |
-	    SAFEXCEL_HIA_DxE_CFG_MAX_DATA_SIZE(8) |
-	    SAFEXCEL_HIA_DxE_CFG_DATA_CACHE_CTRL(WR_CACHE_3BITS) |
-	    SAFEXCEL_HIA_DSE_CFG_ALLWAYS_BUFFERABLE);
+		SAFEXCEL_HIA_DxE_CFG_MIN_DATA_SIZE(7) |
+		SAFEXCEL_HIA_DxE_CFG_MAX_DATA_SIZE(8) |
+		SAFEXCEL_HIA_DxE_CFG_DATA_CACHE_CTRL(WR_CACHE_3BITS) |
+		SAFEXCEL_HIA_DSE_CFG_ALLWAYS_BUFFERABLE);
 
 	/* Configure the procesing engine thresholds */
-	SAFEXCEL_WRITE(sc,
-	    SAFEXCEL_PE(sc) + SAFEXCEL_PE_OUT_DBUF_THRES(pe),
+	SAFEXCEL_WRITE(sc, SAFEXCEL_PE(sc) + SAFEXCEL_PE_OUT_DBUF_THRES(pe),
 	    SAFEXCEL_PE_OUT_DBUF_THRES_MIN(7) |
-	    SAFEXCEL_PE_OUT_DBUF_THRES_MAX(8));
+		SAFEXCEL_PE_OUT_DBUF_THRES_MAX(8));
 
 	return (0);
 }
@@ -514,7 +508,7 @@ safexcel_hw_prepare_rings(struct safexcel_softc *sc)
 		SAFEXCEL_WRITE(sc,
 		    SAFEXCEL_HIA_CDR(sc, i) + SAFEXCEL_HIA_xDR_RING_SIZE,
 		    SAFEXCEL_RING_SIZE * sc->sc_config.cd_offset *
-		    sizeof(uint32_t));
+			sizeof(uint32_t));
 
 		/*
 		 * Result descriptors.
@@ -543,7 +537,7 @@ safexcel_hw_prepare_rings(struct safexcel_softc *sc)
 		SAFEXCEL_WRITE(sc,
 		    SAFEXCEL_HIA_RDR(sc, i) + SAFEXCEL_HIA_xDR_RING_SIZE,
 		    SAFEXCEL_RING_SIZE * sc->sc_config.rd_offset *
-		    sizeof(uint32_t));
+			sizeof(uint32_t));
 	}
 }
 
@@ -557,7 +551,8 @@ safexcel_hw_setup_rings(struct safexcel_softc *sc)
 	mask = (1 << sc->sc_config.hdw) - 1;
 	cd_size_rnd = (sc->sc_config.cd_size + mask) >> sc->sc_config.hdw;
 	val = (sizeof(struct safexcel_res_descr) -
-	    sizeof(struct safexcel_res_data)) / sizeof(uint32_t);
+		  sizeof(struct safexcel_res_data)) /
+	    sizeof(uint32_t);
 	rd_size_rnd = (val + mask) >> sc->sc_config.hdw;
 
 	for (i = 0; i < sc->sc_config.rings; i++) {
@@ -568,30 +563,33 @@ safexcel_hw_setup_rings(struct safexcel_softc *sc)
 		 */
 
 		/* Ring base address. */
-		SAFEXCEL_WRITE(sc, SAFEXCEL_HIA_CDR(sc, i) +
-		    SAFEXCEL_HIA_xDR_RING_BASE_ADDR_LO,
+		SAFEXCEL_WRITE(sc,
+		    SAFEXCEL_HIA_CDR(sc, i) +
+			SAFEXCEL_HIA_xDR_RING_BASE_ADDR_LO,
 		    SAFEXCEL_ADDR_LO(ring->cdr.dma.paddr));
-		SAFEXCEL_WRITE(sc, SAFEXCEL_HIA_CDR(sc, i) +
-		    SAFEXCEL_HIA_xDR_RING_BASE_ADDR_HI,
+		SAFEXCEL_WRITE(sc,
+		    SAFEXCEL_HIA_CDR(sc, i) +
+			SAFEXCEL_HIA_xDR_RING_BASE_ADDR_HI,
 		    SAFEXCEL_ADDR_HI(ring->cdr.dma.paddr));
 
 		SAFEXCEL_WRITE(sc,
 		    SAFEXCEL_HIA_CDR(sc, i) + SAFEXCEL_HIA_xDR_DESC_SIZE,
 		    SAFEXCEL_xDR_DESC_MODE_64BIT | SAFEXCEL_CDR_DESC_MODE_ADCP |
-		    (sc->sc_config.cd_offset << SAFEXCEL_xDR_DESC_xD_OFFSET) |
-		    sc->sc_config.cd_size);
+			(sc->sc_config.cd_offset
+			    << SAFEXCEL_xDR_DESC_xD_OFFSET) |
+			sc->sc_config.cd_size);
 
 		SAFEXCEL_WRITE(sc,
 		    SAFEXCEL_HIA_CDR(sc, i) + SAFEXCEL_HIA_xDR_CFG,
-		    ((SAFEXCEL_FETCH_COUNT * (cd_size_rnd << sc->sc_config.hdw)) <<
-		      SAFEXCEL_xDR_xD_FETCH_THRESH) |
-		    (SAFEXCEL_FETCH_COUNT * sc->sc_config.cd_offset));
+		    ((SAFEXCEL_FETCH_COUNT * (cd_size_rnd << sc->sc_config.hdw))
+			<< SAFEXCEL_xDR_xD_FETCH_THRESH) |
+			(SAFEXCEL_FETCH_COUNT * sc->sc_config.cd_offset));
 
 		/* Configure DMA tx control. */
 		SAFEXCEL_WRITE(sc,
 		    SAFEXCEL_HIA_CDR(sc, i) + SAFEXCEL_HIA_xDR_DMA_CFG,
 		    SAFEXCEL_HIA_xDR_CFG_WR_CACHE(WR_CACHE_3BITS) |
-		    SAFEXCEL_HIA_xDR_CFG_RD_CACHE(RD_CACHE_3BITS));
+			SAFEXCEL_HIA_xDR_CFG_RD_CACHE(RD_CACHE_3BITS));
 
 		/* Clear any pending interrupt. */
 		SAFEXCEL_WRITE(sc,
@@ -603,31 +601,35 @@ safexcel_hw_setup_rings(struct safexcel_softc *sc)
 		 */
 
 		/* Ring base address. */
-		SAFEXCEL_WRITE(sc, SAFEXCEL_HIA_RDR(sc, i) +
-		    SAFEXCEL_HIA_xDR_RING_BASE_ADDR_LO,
+		SAFEXCEL_WRITE(sc,
+		    SAFEXCEL_HIA_RDR(sc, i) +
+			SAFEXCEL_HIA_xDR_RING_BASE_ADDR_LO,
 		    SAFEXCEL_ADDR_LO(ring->rdr.dma.paddr));
-		SAFEXCEL_WRITE(sc, SAFEXCEL_HIA_RDR(sc, i) +
-		    SAFEXCEL_HIA_xDR_RING_BASE_ADDR_HI,
+		SAFEXCEL_WRITE(sc,
+		    SAFEXCEL_HIA_RDR(sc, i) +
+			SAFEXCEL_HIA_xDR_RING_BASE_ADDR_HI,
 		    SAFEXCEL_ADDR_HI(ring->rdr.dma.paddr));
 
 		SAFEXCEL_WRITE(sc,
 		    SAFEXCEL_HIA_RDR(sc, i) + SAFEXCEL_HIA_xDR_DESC_SIZE,
 		    SAFEXCEL_xDR_DESC_MODE_64BIT |
-		    (sc->sc_config.rd_offset << SAFEXCEL_xDR_DESC_xD_OFFSET) |
-		    sc->sc_config.rd_size);
+			(sc->sc_config.rd_offset
+			    << SAFEXCEL_xDR_DESC_xD_OFFSET) |
+			sc->sc_config.rd_size);
 
 		SAFEXCEL_WRITE(sc,
 		    SAFEXCEL_HIA_RDR(sc, i) + SAFEXCEL_HIA_xDR_CFG,
-		    ((SAFEXCEL_FETCH_COUNT * (rd_size_rnd << sc->sc_config.hdw)) <<
-		    SAFEXCEL_xDR_xD_FETCH_THRESH) |
-		    (SAFEXCEL_FETCH_COUNT * sc->sc_config.rd_offset));
+		    ((SAFEXCEL_FETCH_COUNT * (rd_size_rnd << sc->sc_config.hdw))
+			<< SAFEXCEL_xDR_xD_FETCH_THRESH) |
+			(SAFEXCEL_FETCH_COUNT * sc->sc_config.rd_offset));
 
 		/* Configure DMA tx control. */
 		SAFEXCEL_WRITE(sc,
 		    SAFEXCEL_HIA_RDR(sc, i) + SAFEXCEL_HIA_xDR_DMA_CFG,
 		    SAFEXCEL_HIA_xDR_CFG_WR_CACHE(WR_CACHE_3BITS) |
-		    SAFEXCEL_HIA_xDR_CFG_RD_CACHE(RD_CACHE_3BITS) |
-		    SAFEXCEL_HIA_xDR_WR_RES_BUF | SAFEXCEL_HIA_xDR_WR_CTRL_BUF);
+			SAFEXCEL_HIA_xDR_CFG_RD_CACHE(RD_CACHE_3BITS) |
+			SAFEXCEL_HIA_xDR_WR_RES_BUF |
+			SAFEXCEL_HIA_xDR_WR_CTRL_BUF);
 
 		/* Clear any pending interrupt. */
 		SAFEXCEL_WRITE(sc,
@@ -653,10 +655,14 @@ safexcel_hw_reset_rings(struct safexcel_softc *sc)
 		 */
 
 		/* Reset ring base address. */
-		SAFEXCEL_WRITE(sc, SAFEXCEL_HIA_RDR(sc, i) +
-		    SAFEXCEL_HIA_xDR_RING_BASE_ADDR_LO, 0);
-		SAFEXCEL_WRITE(sc, SAFEXCEL_HIA_RDR(sc, i) +
-		    SAFEXCEL_HIA_xDR_RING_BASE_ADDR_HI, 0);
+		SAFEXCEL_WRITE(sc,
+		    SAFEXCEL_HIA_RDR(sc, i) +
+			SAFEXCEL_HIA_xDR_RING_BASE_ADDR_LO,
+		    0);
+		SAFEXCEL_WRITE(sc,
+		    SAFEXCEL_HIA_RDR(sc, i) +
+			SAFEXCEL_HIA_xDR_RING_BASE_ADDR_HI,
+		    0);
 
 		/* Clear the pending prepared counter. */
 		SAFEXCEL_WRITE(sc,
@@ -691,10 +697,14 @@ safexcel_hw_reset_rings(struct safexcel_softc *sc)
 		 */
 
 		/* Reset ring base address. */
-		SAFEXCEL_WRITE(sc, SAFEXCEL_HIA_CDR(sc, i) +
-		    SAFEXCEL_HIA_xDR_RING_BASE_ADDR_LO, 0);
-		SAFEXCEL_WRITE(sc, SAFEXCEL_HIA_CDR(sc, i) +
-		    SAFEXCEL_HIA_xDR_RING_BASE_ADDR_HI, 0);
+		SAFEXCEL_WRITE(sc,
+		    SAFEXCEL_HIA_CDR(sc, i) +
+			SAFEXCEL_HIA_xDR_RING_BASE_ADDR_LO,
+		    0);
+		SAFEXCEL_WRITE(sc,
+		    SAFEXCEL_HIA_CDR(sc, i) +
+			SAFEXCEL_HIA_xDR_RING_BASE_ADDR_HI,
+		    0);
 
 		/* Clear the pending prepared counter. */
 		SAFEXCEL_WRITE(sc,
@@ -732,11 +742,13 @@ safexcel_enable_pe_engine(struct safexcel_softc *sc, int pe)
 	}
 
 	/* Enable command descriptor rings. */
-	SAFEXCEL_WRITE(sc, SAFEXCEL_HIA_DFE_THR(sc) + SAFEXCEL_HIA_DFE_THR_CTRL(pe),
+	SAFEXCEL_WRITE(sc,
+	    SAFEXCEL_HIA_DFE_THR(sc) + SAFEXCEL_HIA_DFE_THR_CTRL(pe),
 	    SAFEXCEL_DxE_THR_CTRL_EN | ring_mask);
 
 	/* Enable result descriptor rings. */
-	SAFEXCEL_WRITE(sc, SAFEXCEL_HIA_DSE_THR(sc) + SAFEXCEL_HIA_DSE_THR_CTRL(pe),
+	SAFEXCEL_WRITE(sc,
+	    SAFEXCEL_HIA_DSE_THR(sc) + SAFEXCEL_HIA_DSE_THR_CTRL(pe),
 	    SAFEXCEL_DxE_THR_CTRL_EN | ring_mask);
 
 	/* Clear any HIA interrupt. */
@@ -835,14 +847,14 @@ safexcel_dma_alloc_mem(struct safexcel_softc *sc, struct safexcel_dma_mem *sdm,
 	    ("%s: DMA memory descriptor in use.", __func__));
 
 	error = bus_dma_tag_create(bus_get_dma_tag(sc->sc_dev), /* parent */
-	    PAGE_SIZE, 0,		/* alignment, boundary */
-	    BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filtfunc, filtfuncarg */
-	    size, 1,			/* maxsize, nsegments */
-	    size, BUS_DMA_COHERENT,	/* maxsegsz, flags */
-	    NULL, NULL,			/* lockfunc, lockfuncarg */
-	    &sdm->tag);			/* dmat */
+	    PAGE_SIZE, 0,	     /* alignment, boundary */
+	    BUS_SPACE_MAXADDR_32BIT, /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filtfunc, filtfuncarg */
+	    size, 1,		     /* maxsize, nsegments */
+	    size, BUS_DMA_COHERENT,  /* maxsegsz, flags */
+	    NULL, NULL,		     /* lockfunc, lockfuncarg */
+	    &sdm->tag);		     /* dmat */
 	if (error != 0) {
 		device_printf(sc->sc_dev,
 		    "failed to allocate busdma tag, error %d\n", error);
@@ -910,21 +922,22 @@ safexcel_dma_init(struct safexcel_softc *sc)
 	for (i = 0; i < sc->sc_config.rings; i++) {
 		ring = &sc->sc_ring[i];
 
-		error = bus_dma_tag_create(
-		    bus_get_dma_tag(sc->sc_dev),/* parent */
-		    1, 0,			/* alignment, boundary */
-		    BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-		    BUS_SPACE_MAXADDR,		/* highaddr */
-		    NULL, NULL,			/* filtfunc, filtfuncarg */
-		    SAFEXCEL_MAX_REQUEST_SIZE,	/* maxsize */
-		    SAFEXCEL_MAX_FRAGMENTS,	/* nsegments */
-		    SAFEXCEL_MAX_REQUEST_SIZE,	/* maxsegsz */
-		    BUS_DMA_COHERENT,		/* flags */
-		    NULL, NULL,			/* lockfunc, lockfuncarg */
-		    &ring->data_dtag);		/* dmat */
+		error = bus_dma_tag_create(bus_get_dma_tag(
+					       sc->sc_dev), /* parent */
+		    1, 0,		       /* alignment, boundary */
+		    BUS_SPACE_MAXADDR_32BIT,   /* lowaddr */
+		    BUS_SPACE_MAXADDR,	       /* highaddr */
+		    NULL, NULL,		       /* filtfunc, filtfuncarg */
+		    SAFEXCEL_MAX_REQUEST_SIZE, /* maxsize */
+		    SAFEXCEL_MAX_FRAGMENTS,    /* nsegments */
+		    SAFEXCEL_MAX_REQUEST_SIZE, /* maxsegsz */
+		    BUS_DMA_COHERENT,	       /* flags */
+		    NULL, NULL,		       /* lockfunc, lockfuncarg */
+		    &ring->data_dtag);	       /* dmat */
 		if (error != 0) {
 			device_printf(sc->sc_dev,
-			    "bus_dma_tag_create main failed; error %d\n", error);
+			    "bus_dma_tag_create main failed; error %d\n",
+			    error);
 			return (error);
 		}
 
@@ -937,8 +950,8 @@ safexcel_dma_init(struct safexcel_softc *sc)
 			    error);
 			goto err;
 		}
-		ring->cdr.desc =
-		    (struct safexcel_cmd_descr *)ring->cdr.dma.vaddr;
+		ring->cdr.desc = (struct safexcel_cmd_descr *)
+				     ring->cdr.dma.vaddr;
 
 		/* Allocate additional CDR token memory. */
 		size = (bus_size_t)sc->sc_config.atok_offset *
@@ -960,8 +973,8 @@ safexcel_dma_init(struct safexcel_softc *sc)
 			    error);
 			goto err;
 		}
-		ring->rdr.desc =
-		    (struct safexcel_res_descr *)ring->rdr.dma.vaddr;
+		ring->rdr.desc = (struct safexcel_res_descr *)
+				     ring->rdr.dma.vaddr;
 	}
 
 	return (0);
@@ -1036,8 +1049,8 @@ safexcel_setup_dev_interrupts(struct safexcel_softc *sc)
 		sc->sc_ih[i].ring = i;
 
 		if (bus_setup_intr(sc->sc_dev, sc->sc_intr[i],
-		    INTR_TYPE_NET | INTR_MPSAFE, NULL, safexcel_ring_intr,
-		    &sc->sc_ih[i], &sc->sc_ih[i].handle)) {
+			INTR_TYPE_NET | INTR_MPSAFE, NULL, safexcel_ring_intr,
+			&sc->sc_ih[i], &sc->sc_ih[i].handle)) {
 			device_printf(sc->sc_dev,
 			    "couldn't setup interrupt %d\n", i);
 			goto err;
@@ -1045,8 +1058,8 @@ safexcel_setup_dev_interrupts(struct safexcel_softc *sc)
 
 		error = bus_bind_intr(sc->sc_dev, sc->sc_intr[i], i % mp_ncpus);
 		if (error != 0)
-			device_printf(sc->sc_dev,
-			    "failed to bind ring %d\n", error);
+			device_printf(sc->sc_dev, "failed to bind ring %d\n",
+			    error);
 	}
 
 	return (0);
@@ -1184,15 +1197,15 @@ safexcel_attach(device_t dev)
 			req = &ring->requests[i];
 			req->sc = sc;
 			req->ringidx = ringidx;
-			if (bus_dmamap_create(ring->data_dtag,
-			    BUS_DMA_COHERENT, &req->dmap) != 0) {
+			if (bus_dmamap_create(ring->data_dtag, BUS_DMA_COHERENT,
+				&req->dmap) != 0) {
 				for (j = 0; j < i; j++)
 					bus_dmamap_destroy(ring->data_dtag,
 					    ring->requests[j].dmap);
 				goto err2;
 			}
 			if (safexcel_dma_alloc_mem(sc, &req->ctx,
-			    sizeof(struct safexcel_context_record)) != 0) {
+				sizeof(struct safexcel_context_record)) != 0) {
 				for (j = 0; j < i; j++) {
 					bus_dmamap_destroy(ring->data_dtag,
 					    ring->requests[j].dmap);
@@ -1431,8 +1444,8 @@ safexcel_set_context(struct safexcel_context_record *ctx, int op,
 	case CRYPTO_SHA2_256_HMAC:
 	case CRYPTO_SHA2_384_HMAC:
 	case CRYPTO_SHA2_512_HMAC:
-		safexcel_setkey_hmac(csp, akey, aklen,
-		    data + off, data + off + sess->statelen);
+		safexcel_setkey_hmac(csp, akey, aklen, data + off,
+		    data + off + sess->statelen);
 		off += sess->statelen * 2;
 		break;
 	}
@@ -1628,7 +1641,8 @@ safexcel_instr_eta(struct safexcel_request *req, struct safexcel_instr *instr,
 	instr->opcode = SAFEXCEL_INSTR_OPCODE_DIRECTION;
 	instr->length = crp->crp_aad_length;
 	instr->status = crp->crp_payload_length == 0 ?
-	    SAFEXCEL_INSTR_STATUS_LAST_HASH : 0;
+	    SAFEXCEL_INSTR_STATUS_LAST_HASH :
+	    0;
 	instr->instructions = SAFEXCEL_INSTR_INS_LAST |
 	    SAFEXCEL_INSTR_DEST_HASH;
 	instr++;
@@ -1639,8 +1653,7 @@ safexcel_instr_eta(struct safexcel_request *req, struct safexcel_instr *instr,
 		instr->length = crp->crp_payload_length;
 		instr->status = SAFEXCEL_INSTR_STATUS_LAST_HASH;
 		instr->instructions = SAFEXCEL_INSTR_INS_LAST |
-		    SAFEXCEL_INSTR_DEST_CRYPTO |
-		    SAFEXCEL_INSTR_DEST_HASH |
+		    SAFEXCEL_INSTR_DEST_CRYPTO | SAFEXCEL_INSTR_DEST_HASH |
 		    SAFEXCEL_INSTR_DEST_OUTPUT;
 		instr++;
 	}
@@ -1724,8 +1737,7 @@ safexcel_instr_ccm(struct safexcel_request *req, struct safexcel_instr *instr,
 
 	b0 = (uint8_t *)instr;
 	memset(b0, 0, blen);
-	b0[0] =
-	    (L - 1) | /* payload length size */
+	b0[0] = (L - 1) | /* payload length size */
 	    ((req->sess->digestlen - 2) / 2) << 3 /* digest length */ |
 	    (crp->crp_aad_length > 0 ? 1 : 0) << 6 /* AAD present bit */;
 	memcpy(&b0[1], req->iv, csp->csp_ivlen);
@@ -1751,10 +1763,12 @@ safexcel_instr_ccm(struct safexcel_request *req, struct safexcel_instr *instr,
 		/* Insert zero padding. */
 		aalign = (crp->crp_aad_length + 2) & (blen - 1);
 		instr->opcode = SAFEXCEL_INSTR_OPCODE_INSERT;
-		instr->length = aalign == 0 ? 0 :
+		instr->length = aalign == 0 ?
+		    0 :
 		    blen - ((crp->crp_aad_length + 2) & (blen - 1));
 		instr->status = crp->crp_payload_length == 0 ?
-		    SAFEXCEL_INSTR_STATUS_LAST_HASH : 0;
+		    SAFEXCEL_INSTR_STATUS_LAST_HASH :
+		    0;
 		instr->instructions = SAFEXCEL_INSTR_DEST_HASH;
 		instr++;
 	}
@@ -1766,10 +1780,10 @@ safexcel_instr_ccm(struct safexcel_request *req, struct safexcel_instr *instr,
 		instr->opcode = SAFEXCEL_INSTR_OPCODE_DIRECTION;
 		instr->length = crp->crp_payload_length;
 		instr->status = (crp->crp_payload_length & (blen - 1)) == 0 ?
-		    SAFEXCEL_INSTR_STATUS_LAST_HASH : 0;
+		    SAFEXCEL_INSTR_STATUS_LAST_HASH :
+		    0;
 		instr->instructions = SAFEXCEL_INSTR_DEST_OUTPUT |
-		    SAFEXCEL_INSTR_DEST_CRYPTO |
-		    SAFEXCEL_INSTR_DEST_HASH |
+		    SAFEXCEL_INSTR_DEST_CRYPTO | SAFEXCEL_INSTR_DEST_HASH |
 		    SAFEXCEL_INSTR_INS_LAST;
 		instr++;
 
@@ -1812,7 +1826,8 @@ safexcel_instr_gcm(struct safexcel_request *req, struct safexcel_instr *instr,
 	instr->opcode = SAFEXCEL_INSTR_OPCODE_DIRECTION;
 	instr->length = crp->crp_aad_length;
 	instr->status = crp->crp_payload_length == 0 ?
-	    SAFEXCEL_INSTR_STATUS_LAST_HASH : 0;
+	    SAFEXCEL_INSTR_STATUS_LAST_HASH :
+	    0;
 	instr->instructions = SAFEXCEL_INSTR_INS_LAST |
 	    SAFEXCEL_INSTR_DEST_HASH;
 	instr++;
@@ -1907,7 +1922,8 @@ safexcel_set_token(struct safexcel_request *req)
 		 * initialization time.
 		 */
 		ctxtmp = CRYPTO_OP_IS_ENCRYPT(crp->crp_op) ?
-		    &req->sess->encctx : &req->sess->decctx;
+		    &req->sess->encctx :
+		    &req->sess->decctx;
 		ctx = &ctxtmp->ctx;
 		memcpy(req->ctx.vaddr + 2 * sizeof(uint32_t), ctx->data,
 		    ctxtmp->len);
@@ -1926,7 +1942,7 @@ safexcel_set_token(struct safexcel_request *req)
 	} else {
 		instr = (void *)(sc->sc_ring[ringidx].dma_atok.vaddr +
 		    sc->sc_config.atok_offset *
-		    (cdesc - sc->sc_ring[ringidx].cdr.desc));
+			(cdesc - sc->sc_ring[ringidx].cdr.desc));
 		cdesc->control_data.options |= SAFEXCEL_OPTION_4_TOKEN_IV_CMD;
 	}
 
@@ -1940,7 +1956,8 @@ safexcel_set_token(struct safexcel_request *req)
 	case CRYPTO_AES_XTS:
 		memcpy(cdesc->control_data.token, req->iv, AES_XTS_IV_LEN);
 		memset(cdesc->control_data.token +
-		    AES_XTS_IV_LEN / sizeof(uint32_t), 0, AES_XTS_IV_LEN);
+			AES_XTS_IV_LEN / sizeof(uint32_t),
+		    0, AES_XTS_IV_LEN);
 
 		safexcel_instr_cipher(req, instr, cdesc);
 		break;
@@ -1998,8 +2015,8 @@ safexcel_res_descr_add(struct safexcel_ring *ring, bool first, bool last,
 	rdesc->buffer_overflow = 0;
 	rdesc->last_seg = last;
 	rdesc->first_seg = first;
-	rdesc->result_size =
-	    sizeof(struct safexcel_res_data) / sizeof(uint32_t);
+	rdesc->result_size = sizeof(struct safexcel_res_data) /
+	    sizeof(uint32_t);
 	rdesc->rsvd1 = 0;
 	rdesc->data_lo = SAFEXCEL_ADDR_LO(data);
 	rdesc->data_hi = SAFEXCEL_ADDR_HI(data);
@@ -2148,8 +2165,8 @@ safexcel_create_chain_cb(void *arg, bus_dma_segment_t *segs, int nseg,
 		safexcel_append_segs(segs, nseg, ring->cmd_data,
 		    crp->crp_aad_start, crp->crp_aad_length);
 	}
-	safexcel_append_segs(segs, nseg, ring->cmd_data,
-	    crp->crp_payload_start, crp->crp_payload_length);
+	safexcel_append_segs(segs, nseg, ring->cmd_data, crp->crp_payload_start,
+	    crp->crp_payload_length);
 	if (csp->csp_cipher_alg != 0) {
 		safexcel_append_segs(segs, nseg, ring->res_data,
 		    crp->crp_payload_start, crp->crp_payload_length);
@@ -2211,7 +2228,8 @@ safexcel_create_chain_cb(void *arg, bus_dma_segment_t *segs, int nseg,
 		last = i == sg->sg_nseg - 1;
 
 		if (safexcel_res_descr_add(ring, first, last,
-		    sg->sg_segs[i].ss_paddr, sg->sg_segs[i].ss_len) == NULL) {
+			sg->sg_segs[i].ss_paddr,
+			sg->sg_segs[i].ss_len) == NULL) {
 			safexcel_cmd_descr_rollback(ring,
 			    ring->cmd_data->sg_nseg);
 			safexcel_res_descr_rollback(ring, i);
@@ -2507,11 +2525,9 @@ safexcel_newsession(device_t dev, crypto_session_t cses,
 		sess->digestlen = csp->csp_auth_mlen;
 
 	sess->encctx.len = safexcel_set_context(&sess->encctx.ctx,
-	    CRYPTO_OP_ENCRYPT, csp->csp_cipher_key, csp->csp_auth_key,
-	    sess);
+	    CRYPTO_OP_ENCRYPT, csp->csp_cipher_key, csp->csp_auth_key, sess);
 	sess->decctx.len = safexcel_set_context(&sess->decctx.ctx,
-	    CRYPTO_OP_DECRYPT, csp->csp_cipher_key, csp->csp_auth_key,
-	    sess);
+	    CRYPTO_OP_DECRYPT, csp->csp_cipher_key, csp->csp_auth_key, sess);
 
 	return (0);
 }
@@ -2528,8 +2544,8 @@ safexcel_process(device_t dev, struct cryptop *crp, int hint)
 	sc = device_get_softc(dev);
 	sess = crypto_get_driver_session(crp->crp_session);
 
-	if (__predict_false(crypto_buffer_len(&crp->crp_buf) >
-	    SAFEXCEL_MAX_REQUEST_SIZE)) {
+	if (__predict_false(
+		crypto_buffer_len(&crp->crp_buf) > SAFEXCEL_MAX_REQUEST_SIZE)) {
 		crp->crp_etype = E2BIG;
 		crypto_done(crp);
 		return (0);
@@ -2587,22 +2603,22 @@ safexcel_process(device_t dev, struct cryptop *crp, int hint)
 
 static device_method_t safexcel_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		safexcel_probe),
-	DEVMETHOD(device_attach,	safexcel_attach),
-	DEVMETHOD(device_detach,	safexcel_detach),
+	DEVMETHOD(device_probe, safexcel_probe),
+	DEVMETHOD(device_attach, safexcel_attach),
+	DEVMETHOD(device_detach, safexcel_detach),
 
 	/* Cryptodev interface */
 	DEVMETHOD(cryptodev_probesession, safexcel_probesession),
-	DEVMETHOD(cryptodev_newsession,	safexcel_newsession),
-	DEVMETHOD(cryptodev_process,	safexcel_process),
+	DEVMETHOD(cryptodev_newsession, safexcel_newsession),
+	DEVMETHOD(cryptodev_process, safexcel_process),
 
 	DEVMETHOD_END
 };
 
 static driver_t safexcel_driver = {
-	.name 		= "safexcel",
-	.methods 	= safexcel_methods,
-	.size		= sizeof(struct safexcel_softc),
+	.name = "safexcel",
+	.methods = safexcel_methods,
+	.size = sizeof(struct safexcel_softc),
 };
 
 DRIVER_MODULE(safexcel, simplebus, safexcel_driver, 0, 0);

@@ -23,23 +23,22 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <err.h>
-#include <string.h>
-#include <errno.h>
-#include <unistd.h>
-
 #include <sys/sysctl.h>
 #include <sys/time.h>
 
-#include <libusb20.h>
-#include <libusb20_desc.h>
-
-#include <dev/usb/usb_endian.h>
 #include <dev/usb/usb.h>
 #include <dev/usb/usb_cdc.h>
+#include <dev/usb/usb_endian.h>
+
+#include <err.h>
+#include <errno.h>
+#include <libusb20.h>
+#include <libusb20_desc.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "usbtest.h"
 
@@ -48,23 +47,23 @@ set_ctrl_ep_fail(int bus, int dev, int ds_fail, int ss_fail)
 {
 	int error;
 
-	error = sysctlbyname("hw.usb.ctrl_bus_fail", NULL, NULL,
-	    &bus, sizeof(bus));
+	error = sysctlbyname("hw.usb.ctrl_bus_fail", NULL, NULL, &bus,
+	    sizeof(bus));
 	if (error != 0)
 		goto emissing;
 
-	error = sysctlbyname("hw.usb.ctrl_dev_fail", NULL, NULL,
-	    &dev, sizeof(dev));
+	error = sysctlbyname("hw.usb.ctrl_dev_fail", NULL, NULL, &dev,
+	    sizeof(dev));
 	if (error != 0)
 		goto emissing;
 
-	error = sysctlbyname("hw.usb.ctrl_ds_fail", NULL, NULL,
-	    &ds_fail, sizeof(ds_fail));
+	error = sysctlbyname("hw.usb.ctrl_ds_fail", NULL, NULL, &ds_fail,
+	    sizeof(ds_fail));
 	if (error != 0)
 		goto emissing;
 
-	error = sysctlbyname("hw.usb.ctrl_ss_fail", NULL, NULL,
-	    &ss_fail, sizeof(ss_fail));
+	error = sysctlbyname("hw.usb.ctrl_ss_fail", NULL, NULL, &ss_fail,
+	    sizeof(ss_fail));
 	if (error != 0)
 		goto emissing;
 	return;
@@ -103,18 +102,18 @@ usb_control_ep_error_test(struct uaddr uaddr)
 	for (cfg = 0; cfg != 255; cfg++) {
 
 		LIBUSB20_INIT(LIBUSB20_CONTROL_SETUP, &req);
-		req.bmRequestType = 0x80; /* read */
-		req.bRequest = 0x06; /* descriptor */
+		req.bmRequestType = 0x80;  /* read */
+		req.bRequest = 0x06;	   /* descriptor */
 		req.wValue = 0x0200 | cfg; /* config descriptor */
 		req.wIndex = 0;
 		req.wLength = 255;
 
 		printf("Test #%d.1/3 ...\n", cfg);
 
-		set_ctrl_ep_fail(-1,-1,0,0);
+		set_ctrl_ep_fail(-1, -1, 0, 0);
 
-		error = libusb20_dev_request_sync(pdev, &req, buffer,
-		    NULL, 1000, 0);
+		error = libusb20_dev_request_sync(pdev, &req, buffer, NULL,
+		    1000, 0);
 		if (error != 0) {
 			printf("Last configuration index is: %d\n", cfg - 1);
 			break;
@@ -122,15 +121,15 @@ usb_control_ep_error_test(struct uaddr uaddr)
 
 		printf("Test #%d.2/3 ...\n", cfg);
 
-		set_ctrl_ep_fail(bus,dev,1,1);
+		set_ctrl_ep_fail(bus, dev, 1, 1);
 
-		error = libusb20_dev_request_sync(pdev, &req, buffer,
-		    NULL, 1000, 0);
+		error = libusb20_dev_request_sync(pdev, &req, buffer, NULL,
+		    1000, 0);
 
-		set_ctrl_ep_fail(-1,-1,0,0);
+		set_ctrl_ep_fail(-1, -1, 0, 0);
 
-		error = libusb20_dev_request_sync(pdev, &req, buffer,
-		    NULL, 1000, 0);
+		error = libusb20_dev_request_sync(pdev, &req, buffer, NULL,
+		    1000, 0);
 		if (error != 0) {
 			printf("Cannot fetch descriptor (unexpected)\n");
 			fail++;
@@ -138,15 +137,15 @@ usb_control_ep_error_test(struct uaddr uaddr)
 
 		printf("Test #%d.3/3 ...\n", cfg);
 
-		set_ctrl_ep_fail(bus,dev,0,1);
+		set_ctrl_ep_fail(bus, dev, 0, 1);
 
-		error = libusb20_dev_request_sync(pdev, &req, buffer,
-		    NULL, 1000, 0);
+		error = libusb20_dev_request_sync(pdev, &req, buffer, NULL,
+		    1000, 0);
 
-		set_ctrl_ep_fail(-1,-1,0,0);
+		set_ctrl_ep_fail(-1, -1, 0, 0);
 
-		error = libusb20_dev_request_sync(pdev, &req, buffer,
-		    NULL, 1000, 0);
+		error = libusb20_dev_request_sync(pdev, &req, buffer, NULL,
+		    1000, 0);
 		if (error != 0) {
 			printf("Cannot fetch descriptor (unexpected)\n");
 			fail++;
@@ -189,7 +188,8 @@ usb_get_string_desc_test(struct uaddr uaddr)
 	valid = 0;
 
 	printf("Starting string descriptor test for "
-	    "VID=0x%04x PID=0x%04x\n", uaddr.vid, uaddr.pid);
+	       "VID=0x%04x PID=0x%04x\n",
+	    uaddr.vid, uaddr.pid);
 
 	for (x = 0; x != 256; x++) {
 
@@ -204,7 +204,8 @@ usb_get_string_desc_test(struct uaddr uaddr)
 		error = libusb20_dev_req_string_simple_sync(pdev, x, buf, 255);
 
 		if (error == 0) {
-			printf("\nINDEX=%d, STRING='%s' (Default language)\n", (int)x, buf);
+			printf("\nINDEX=%d, STRING='%s' (Default language)\n",
+			    (int)x, buf);
 			fflush(stdout);
 		} else {
 			continue;
@@ -218,13 +219,15 @@ usb_get_string_desc_test(struct uaddr uaddr)
 				printf("Device disconnected\n");
 				break;
 			}
-			error = libusb20_dev_req_string_sync(pdev, x, y, buf, 256);
+			error = libusb20_dev_req_string_sync(pdev, x, y, buf,
+			    256);
 			if (error == 0)
 				valid++;
 		}
 
 		printf("String at INDEX=%d responds to %d "
-		    "languages\n", (int)x, (int)valid);
+		       "languages\n",
+		    (int)x, (int)valid);
 	}
 
 	printf("\nDone\n");
@@ -276,8 +279,8 @@ usb_port_reset_test(struct uaddr uaddr, uint32_t duration)
 
 		if (last_sec != sub_tv.tv_sec) {
 
-			printf("STATUS: ID=%u, ERR=%u\n",
-			    (int)iter, (int)errcnt);
+			printf("STATUS: ID=%u, ERR=%u\n", (int)iter,
+			    (int)errcnt);
 
 			fflush(stdout);
 
@@ -328,7 +331,8 @@ usb_set_config_test(struct uaddr uaddr, uint32_t duration)
 	failed = 0;
 
 	printf("Starting set config test for "
-	    "VID=0x%04x PID=0x%04x\n", uaddr.vid, uaddr.pid);
+	       "VID=0x%04x PID=0x%04x\n",
+	    uaddr.vid, uaddr.pid);
 
 	for (x = 255; x > -1; x--) {
 
@@ -336,10 +340,11 @@ usb_set_config_test(struct uaddr uaddr, uint32_t duration)
 		if (error == 0) {
 			if (x == 255) {
 				printf("Unconfiguring USB device "
-				    "was successful\n");
+				       "was successful\n");
 			} else {
 				printf("Setting configuration %d "
-				    "was successful\n", x);
+				       "was successful\n",
+				    x);
 			}
 		} else {
 			failed++;
@@ -353,12 +358,11 @@ usb_set_config_test(struct uaddr uaddr, uint32_t duration)
 		exp = 1;
 
 	printf("\n\n"
-	    "Set configuration summary\n"
-	    "Valid count:  %d/%d %s\n"
-	    "Failed count: %d\n",
+	       "Set configuration summary\n"
+	       "Valid count:  %d/%d %s\n"
+	       "Failed count: %d\n",
 	    256 - failed, exp,
-	    (exp == (256 - failed)) ? "(expected)" : "(unexpected)",
-	    failed);
+	    (exp == (256 - failed)) ? "(expected)" : "(unexpected)", failed);
 
 	libusb20_dev_free(pdev);
 }
@@ -393,14 +397,15 @@ usb_suspend_resume_test(struct uaddr uaddr, uint32_t duration)
 	int errcnt;
 	int power_old;
 
-	ptimo = 1;			/* second(s) */
+	ptimo = 1; /* second(s) */
 
-	error = sysctlbyname("hw.usb.power_timeout", NULL, NULL,
-	    &ptimo, sizeof(ptimo));
+	error = sysctlbyname("hw.usb.power_timeout", NULL, NULL, &ptimo,
+	    sizeof(ptimo));
 
 	if (error != 0) {
 		printf("WARNING: Could not set power "
-		    "timeout to 1 (error=%d) \n", errno);
+		       "timeout to 1 (error=%d) \n",
+		    errno);
 	}
 	pdev = find_usb_device(uaddr);
 	if (pdev == NULL) {
@@ -416,7 +421,8 @@ usb_suspend_resume_test(struct uaddr uaddr, uint32_t duration)
 	power_old = libusb20_dev_get_power_mode(pdev);
 
 	printf("Starting suspend and resume "
-	    "test for VID=0x%04x PID=0x%04x\n", uaddr.vid, uaddr.pid);
+	       "test for VID=0x%04x PID=0x%04x\n",
+	    uaddr.vid, uaddr.pid);
 
 	iter = 0;
 	errcnt = 0;
@@ -435,8 +441,8 @@ usb_suspend_resume_test(struct uaddr uaddr, uint32_t duration)
 
 		if (last_sec != sub_tv.tv_sec) {
 
-			printf("STATUS: ID=%u, ERR=%u\n",
-			    (int)iter, (int)errcnt);
+			printf("STATUS: ID=%u, ERR=%u\n", (int)iter,
+			    (int)errcnt);
 
 			fflush(stdout);
 
@@ -447,15 +453,14 @@ usb_suspend_resume_test(struct uaddr uaddr, uint32_t duration)
 		if ((res_tv.tv_sec < 0) || (res_tv.tv_sec >= (int)duration))
 			break;
 
-		error = libusb20_dev_set_power_mode(pdev, (iter & 1) ?
-		    LIBUSB20_POWER_ON : LIBUSB20_POWER_SAVE);
+		error = libusb20_dev_set_power_mode(pdev,
+		    (iter & 1) ? LIBUSB20_POWER_ON : LIBUSB20_POWER_SAVE);
 
 		if (error)
 			errcnt++;
 
 		/* wait before switching power mode */
-		usleep(4100000 +
-		    (((uint32_t)usb_ts_rand_noise()) % 2000000U));
+		usleep(4100000 + (((uint32_t)usb_ts_rand_noise()) % 2000000U));
 
 		iter++;
 	}
@@ -489,7 +494,8 @@ usb_set_and_clear_stall_test(struct uaddr uaddr)
 		return;
 	}
 	printf("Starting set and clear stall test "
-	    "for VID=0x%04x PID=0x%04x\n", uaddr.vid, uaddr.pid);
+	       "for VID=0x%04x PID=0x%04x\n",
+	    uaddr.vid, uaddr.pid);
 
 	iter = 0;
 	errcnt = 0;
@@ -503,15 +509,15 @@ usb_set_and_clear_stall_test(struct uaddr uaddr)
 		uint8_t buf[1];
 
 		LIBUSB20_INIT(LIBUSB20_CONTROL_SETUP, &setup_set_stall);
-		setup_set_stall.bmRequestType = 0x02;	/* write endpoint */
-		setup_set_stall.bRequest = 0x03;	/* set feature */
-		setup_set_stall.wValue = 0x00;	/* UF_ENDPOINT_HALT */
+		setup_set_stall.bmRequestType = 0x02; /* write endpoint */
+		setup_set_stall.bRequest = 0x03;      /* set feature */
+		setup_set_stall.wValue = 0x00;	      /* UF_ENDPOINT_HALT */
 		setup_set_stall.wIndex = epno;
 		setup_set_stall.wLength = 0;
 
 		LIBUSB20_INIT(LIBUSB20_CONTROL_SETUP, &setup_get_status);
-		setup_get_status.bmRequestType = 0x82;	/* read endpoint */
-		setup_get_status.bRequest = 0x00;	/* get status */
+		setup_get_status.bmRequestType = 0x82; /* read endpoint */
+		setup_get_status.bRequest = 0x00;      /* get status */
 		setup_get_status.wValue = 0x00;
 		setup_get_status.wIndex = epno;
 		setup_get_status.wLength = 1;
@@ -526,36 +532,37 @@ usb_set_and_clear_stall_test(struct uaddr uaddr)
 
 		if (error != 0) {
 			printf("Endpoint 0x%02x does not exist "
-			    "in current setting. (%s, ignored)\n",
+			       "in current setting. (%s, ignored)\n",
 			    epno, libusb20_strerror(error));
 			continue;
 		}
 		printf("Stalling endpoint 0x%02x\n", epno);
 
 		/* set stall */
-		error = libusb20_dev_request_sync(pdev,
-		    &setup_set_stall, NULL, NULL, 250, 0);
+		error = libusb20_dev_request_sync(pdev, &setup_set_stall, NULL,
+		    NULL, 250, 0);
 
 		if (error != 0) {
 			printf("Endpoint 0x%02x does not allow "
-			    "setting of stall. (%s)\n",
+			       "setting of stall. (%s)\n",
 			    epno, libusb20_strerror(error));
 			errcnt++;
 		}
 		/* get EP status */
 		buf[0] = 0;
-		error = libusb20_dev_request_sync(pdev,
-		    &setup_get_status, buf, NULL, 250, 0);
+		error = libusb20_dev_request_sync(pdev, &setup_get_status, buf,
+		    NULL, 250, 0);
 
 		if (error != 0) {
 			printf("Endpoint 0x%02x does not allow "
-			    "reading status. (%s)\n",
+			       "reading status. (%s)\n",
 			    epno, libusb20_strerror(error));
 			errcnt++;
 		} else {
 			if (!(buf[0] & 1)) {
 				printf("Endpoint 0x%02x status is "
-				    "not set to stalled\n", epno);
+				       "not set to stalled\n",
+				    epno);
 				errcnt++;
 			}
 		}
@@ -564,7 +571,8 @@ usb_set_and_clear_stall_test(struct uaddr uaddr)
 		error = libusb20_tr_bulk_intr_sync(pxfer, buf, 1, NULL, 250);
 		if (error != LIBUSB20_TRANSFER_STALL) {
 			printf("Endpoint 0x%02x does not appear to "
-			    "have stalled. Missing stall PID!\n", epno);
+			       "have stalled. Missing stall PID!\n",
+			    epno);
 			errcnt++;
 		}
 		printf("Unstalling endpoint 0x%02x\n", epno);
@@ -573,18 +581,19 @@ usb_set_and_clear_stall_test(struct uaddr uaddr)
 
 		/* get EP status */
 		buf[0] = 0;
-		error = libusb20_dev_request_sync(pdev,
-		    &setup_get_status, buf, NULL, 250, 0);
+		error = libusb20_dev_request_sync(pdev, &setup_get_status, buf,
+		    NULL, 250, 0);
 
 		if (error != 0) {
 			printf("Endpoint 0x%02x does not allow "
-			    "reading status. (%s)\n",
+			       "reading status. (%s)\n",
 			    epno, libusb20_strerror(error));
 			errcnt++;
 		} else {
 			if (buf[0] & 1) {
 				printf("Endpoint 0x%02x status is "
-				    "still stalled\n", epno);
+				       "still stalled\n",
+				    epno);
 				errcnt++;
 			}
 		}
@@ -596,10 +605,11 @@ usb_set_and_clear_stall_test(struct uaddr uaddr)
 	libusb20_dev_free(pdev);
 
 	printf("\n"
-	    "Test summary\n"
-	    "============\n"
-	    "Endpoints tested: %d\n"
-	    "Errors: %d\n", iter, errcnt);
+	       "Test summary\n"
+	       "============\n"
+	       "Endpoints tested: %d\n"
+	       "Errors: %d\n",
+	    iter, errcnt);
 }
 
 void
@@ -620,7 +630,8 @@ usb_set_alt_interface_test(struct uaddr uaddr)
 		return;
 	}
 	printf("Starting set alternate setting test "
-	    "for VID=0x%04x PID=0x%04x\n", uaddr.vid, uaddr.pid);
+	       "for VID=0x%04x PID=0x%04x\n",
+	    uaddr.vid, uaddr.pid);
 
 	config = libusb20_dev_alloc_config(pdev,
 	    libusb20_dev_get_config_index(pdev));
@@ -646,7 +657,8 @@ usb_set_alt_interface_test(struct uaddr uaddr)
 			iter++;
 
 			if (libusb20_dev_set_alt_index(pdev, n, m + 1)) {
-				printf("ERROR on interface %d alt %d\n", n, m + 1);
+				printf("ERROR on interface %d alt %d\n", n,
+				    m + 1);
 				errcnt++;
 			}
 		}
@@ -665,8 +677,9 @@ usb_set_alt_interface_test(struct uaddr uaddr)
 	libusb20_dev_free(pdev);
 
 	printf("\n"
-	    "Test summary\n"
-	    "============\n"
-	    "Interfaces tested: %d\n"
-	    "Errors: %d\n", iter, errcnt);
+	       "Test summary\n"
+	       "============\n"
+	       "Interfaces tested: %d\n"
+	       "Errors: %d\n",
+	    iter, errcnt);
 }

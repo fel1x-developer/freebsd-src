@@ -29,6 +29,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "efx.h"
 #include "efx_impl.h"
 #if EFSYS_OPT_MON_MCDI
@@ -39,10 +40,9 @@
 
 #include "ef10_tlv_layout.h"
 
-static	__checkReturn	efx_rc_t
-hunt_nic_get_required_pcie_bandwidth(
-	__in		efx_nic_t *enp,
-	__out		uint32_t *bandwidth_mbpsp)
+static __checkReturn efx_rc_t
+hunt_nic_get_required_pcie_bandwidth(__in efx_nic_t *enp,
+    __out uint32_t *bandwidth_mbpsp)
 {
 	uint32_t port_modes;
 	uint32_t bandwidth;
@@ -54,8 +54,7 @@ hunt_nic_get_required_pcie_bandwidth(
 	 * capable mode is in use.
 	 */
 
-	if ((rc = efx_mcdi_get_port_modes(enp, &port_modes,
-		    NULL, NULL)) != 0) {
+	if ((rc = efx_mcdi_get_port_modes(enp, &port_modes, NULL, NULL)) != 0) {
 		/* No port mode info available */
 		bandwidth = 0;
 		goto out;
@@ -67,7 +66,7 @@ hunt_nic_get_required_pcie_bandwidth(
 		 * more) - roughly 64 Gbit/s for 8 lanes of Gen3.
 		 */
 		if ((rc = efx_nic_calculate_pcie_link_bandwidth(8,
-			    EFX_PCIE_LINK_SPEED_GEN3, &bandwidth)) != 0)
+			 EFX_PCIE_LINK_SPEED_GEN3, &bandwidth)) != 0)
 			goto fail1;
 	} else {
 		if (port_modes & (1U << TLV_PORT_MODE_40G)) {
@@ -91,9 +90,8 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-hunt_board_cfg(
-	__in		efx_nic_t *enp)
+__checkReturn efx_rc_t
+hunt_board_cfg(__in efx_nic_t *enp)
 {
 	efx_nic_cfg_t *encp = &(enp->en_nic_cfg);
 	efx_port_t *epp = &(enp->en_port);
@@ -164,8 +162,8 @@ hunt_board_cfg(
 	 * We must recheck if the workaround is enabled after inserting the
 	 * first hardware filter, in case it has been changed since this check.
 	 */
-	rc = efx_mcdi_set_workaround(enp, MC_CMD_WORKAROUND_BUG26807,
-	    B_TRUE, &flags);
+	rc = efx_mcdi_set_workaround(enp, MC_CMD_WORKAROUND_BUG26807, B_TRUE,
+	    &flags);
 	if (rc == 0) {
 		encp->enc_bug26807_workaround = B_TRUE;
 		if (flags & (1 << MC_CMD_WORKAROUND_EXT_OUT_FLR_DONE_LBN)) {
@@ -199,11 +197,14 @@ hunt_board_cfg(
 	 */
 	encp->enc_evq_timer_quantum_ns = 1536000UL / sysclk; /* 1536 cycles */
 	if (encp->enc_bug35388_workaround) {
-		encp->enc_evq_timer_max_us = (encp->enc_evq_timer_quantum_ns <<
-		ERF_DD_EVQ_IND_TIMER_VAL_WIDTH) / 1000;
+		encp->enc_evq_timer_max_us =
+		    (encp->enc_evq_timer_quantum_ns
+			<< ERF_DD_EVQ_IND_TIMER_VAL_WIDTH) /
+		    1000;
 	} else {
-		encp->enc_evq_timer_max_us = (encp->enc_evq_timer_quantum_ns <<
-		FRF_CZ_TC_TIMER_VAL_WIDTH) / 1000;
+		encp->enc_evq_timer_max_us = (encp->enc_evq_timer_quantum_ns
+						 << FRF_CZ_TC_TIMER_VAL_WIDTH) /
+		    1000;
 	}
 
 	encp->enc_bug61265_workaround = B_FALSE; /* Medford only */
@@ -249,4 +250,4 @@ fail1:
 	return (rc);
 }
 
-#endif	/* EFSYS_OPT_HUNTINGTON */
+#endif /* EFSYS_OPT_HUNTINGTON */

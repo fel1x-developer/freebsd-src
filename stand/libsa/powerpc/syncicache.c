@@ -32,9 +32,10 @@
  */
 
 #include <sys/param.h>
-#if	defined(_KERNEL) || defined(_STANDALONE)
-#include <sys/time.h>
+#if defined(_KERNEL) || defined(_STANDALONE)
 #include <sys/proc.h>
+#include <sys/time.h>
+
 #include <vm/vm.h>
 #endif
 #include <sys/sysctl.h>
@@ -46,7 +47,7 @@
 int cacheline_size = 32;
 #endif
 
-#if	!defined(_KERNEL) && !defined(_STANDALONE)
+#if !defined(_KERNEL) && !defined(_STANDALONE)
 #include <stdlib.h>
 
 int cacheline_size = 0;
@@ -56,13 +57,14 @@ static void getcachelinesize(void);
 static void
 getcachelinesize(void)
 {
-	static int	cachemib[] = { CTL_MACHDEP, CPU_CACHELINE };
-	int		clen;
+	static int cachemib[] = { CTL_MACHDEP, CPU_CACHELINE };
+	int clen;
 
 	clen = sizeof(cacheline_size);
 
 	if (sysctl(cachemib, sizeof(cachemib) / sizeof(cachemib[0]),
-	    &cacheline_size, &clen, NULL, 0) < 0 || !cacheline_size) {
+		&cacheline_size, &clen, NULL, 0) < 0 ||
+	    !cacheline_size) {
 		abort();
 	}
 }
@@ -71,28 +73,27 @@ getcachelinesize(void)
 void
 __syncicache(void *from, int len)
 {
-	int	l, off;
-	char	*p;
+	int l, off;
+	char *p;
 
-#if	!defined(_KERNEL) && !defined(_STANDALONE)
+#if !defined(_KERNEL) && !defined(_STANDALONE)
 	if (!cacheline_size)
 		getcachelinesize();
-#endif	
+#endif
 
 	off = (u_int)from & (cacheline_size - 1);
 	l = len += off;
 	p = (char *)from - off;
 
 	do {
-		__asm __volatile ("dcbst 0,%0" :: "r"(p));
+		__asm __volatile("dcbst 0,%0" ::"r"(p));
 		p += cacheline_size;
 	} while ((l -= cacheline_size) > 0);
-	__asm __volatile ("sync");
+	__asm __volatile("sync");
 	p = (char *)from - off;
 	do {
-		__asm __volatile ("icbi 0,%0" :: "r"(p));
+		__asm __volatile("icbi 0,%0" ::"r"(p));
 		p += cacheline_size;
 	} while ((len -= cacheline_size) > 0);
-	__asm __volatile ("sync; isync");
+	__asm __volatile("sync; isync");
 }
-

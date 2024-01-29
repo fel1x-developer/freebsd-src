@@ -27,98 +27,86 @@
  */
 
 #include <sys/param.h>
-#include <sys/eventhandler.h>
 #include <sys/systm.h>
-#include <sys/watchdog.h>
-#include <sys/reboot.h>
 #include <sys/bus.h>
+#include <sys/eventhandler.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/reboot.h>
 #include <sys/rman.h>
-
-#include <dev/ofw/openfirm.h>
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
+#include <sys/watchdog.h>
 
 #include <machine/bus.h>
 
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
+
 #include <arm/allwinner/aw_wdog.h>
 
-#define	READ(_sc, _r) bus_read_4((_sc)->res, (_r))
-#define	WRITE(_sc, _r, _v) bus_write_4((_sc)->res, (_r), (_v))
+#define READ(_sc, _r) bus_read_4((_sc)->res, (_r))
+#define WRITE(_sc, _r, _v) bus_write_4((_sc)->res, (_r), (_v))
 
-#define	A10_WDOG_CTRL		0x00
-#define	A31_WDOG_CTRL		0x10
-#define	D1_WDOG_CTRL		0x10
-#define	 WDOG_CTRL_RESTART	(1 << 0)
-#define	 A31_WDOG_CTRL_KEY	(0xa57 << 1)
-#define	 D1_WDOG_CTRL_KEY	(0xa57 << 1)
-#define	A10_WDOG_MODE		0x04
-#define	A31_WDOG_MODE		0x18
-#define	D1_WDOG_MODE		0x18
-#define	 D1_WDOG_MODE_KEY	(0x16AA << 16)
-#define	 A10_WDOG_MODE_INTVL_SHIFT	3
-#define	 A31_WDOG_MODE_INTVL_SHIFT	4
-#define	 D1_WDOG_MODE_INTVL_SHIFT	4
-#define	 A10_WDOG_MODE_RST_EN	(1 << 1)
-#define	 WDOG_MODE_EN		(1 << 0)
-#define	A31_WDOG_CONFIG		0x14
-#define	D1_WDOG_CONFIG		0x14
-#define	 A31_WDOG_CONFIG_RST_EN_SYSTEM	(1 << 0)
-#define	 A31_WDOG_CONFIG_RST_EN_INT	(2 << 0)
-#define	 D1_WDOG_CONFIG_KEY		(0x16AA << 16)
-#define	 D1_WDOG_CONFIG_RST_EN_SYSTEM	(1 << 0)
-#define	 D1_WDOG_CONFIG_RST_EN_INT	(2 << 0)
+#define A10_WDOG_CTRL 0x00
+#define A31_WDOG_CTRL 0x10
+#define D1_WDOG_CTRL 0x10
+#define WDOG_CTRL_RESTART (1 << 0)
+#define A31_WDOG_CTRL_KEY (0xa57 << 1)
+#define D1_WDOG_CTRL_KEY (0xa57 << 1)
+#define A10_WDOG_MODE 0x04
+#define A31_WDOG_MODE 0x18
+#define D1_WDOG_MODE 0x18
+#define D1_WDOG_MODE_KEY (0x16AA << 16)
+#define A10_WDOG_MODE_INTVL_SHIFT 3
+#define A31_WDOG_MODE_INTVL_SHIFT 4
+#define D1_WDOG_MODE_INTVL_SHIFT 4
+#define A10_WDOG_MODE_RST_EN (1 << 1)
+#define WDOG_MODE_EN (1 << 0)
+#define A31_WDOG_CONFIG 0x14
+#define D1_WDOG_CONFIG 0x14
+#define A31_WDOG_CONFIG_RST_EN_SYSTEM (1 << 0)
+#define A31_WDOG_CONFIG_RST_EN_INT (2 << 0)
+#define D1_WDOG_CONFIG_KEY (0x16AA << 16)
+#define D1_WDOG_CONFIG_RST_EN_SYSTEM (1 << 0)
+#define D1_WDOG_CONFIG_RST_EN_INT (2 << 0)
 
 struct aw_wdog_interval {
-	uint64_t	milliseconds;
-	unsigned int	value;
+	uint64_t milliseconds;
+	unsigned int value;
 };
 
 struct aw_wdog_interval wd_intervals[] = {
-	{   500,	 0 },
-	{  1000,	 1 },
-	{  2000,	 2 },
-	{  3000,	 3 },
-	{  4000,	 4 },
-	{  5000,	 5 },
-	{  6000,	 6 },
-	{  8000,	 7 },
-	{ 10000,	 8 },
-	{ 12000,	 9 },
-	{ 14000,	10 },
-	{ 16000,	11 },
-	{ 0,		 0 } /* sentinel */
+	{ 500, 0 }, { 1000, 1 }, { 2000, 2 }, { 3000, 3 }, { 4000, 4 },
+	{ 5000, 5 }, { 6000, 6 }, { 8000, 7 }, { 10000, 8 }, { 12000, 9 },
+	{ 14000, 10 }, { 16000, 11 }, { 0, 0 } /* sentinel */
 };
 
 static struct aw_wdog_softc *aw_wdog_sc = NULL;
 
 struct aw_wdog_softc {
-	device_t		dev;
-	struct resource *	res;
-	struct mtx		mtx;
-	uint8_t			wdog_ctrl;
-	uint32_t		wdog_ctrl_key;
-	uint8_t			wdog_mode;
-	uint32_t		wdog_mode_key;
-	uint8_t			wdog_mode_intvl_shift;
-	uint8_t			wdog_mode_en;
-	uint8_t			wdog_config;
-	uint32_t		wdog_config_value;
+	device_t dev;
+	struct resource *res;
+	struct mtx mtx;
+	uint8_t wdog_ctrl;
+	uint32_t wdog_ctrl_key;
+	uint8_t wdog_mode;
+	uint32_t wdog_mode_key;
+	uint8_t wdog_mode_intvl_shift;
+	uint8_t wdog_mode_en;
+	uint8_t wdog_config;
+	uint32_t wdog_config_value;
 };
 
-#define	A10_WATCHDOG	1
-#define	A31_WATCHDOG	2
-#define	D1_WATCHDOG	3
+#define A10_WATCHDOG 1
+#define A31_WATCHDOG 2
+#define D1_WATCHDOG 3
 
-static struct ofw_compat_data compat_data[] = {
-	{"allwinner,sun4i-a10-wdt", A10_WATCHDOG},
-	{"allwinner,sun6i-a31-wdt", A31_WATCHDOG},
-	{"allwinner,sun20i-d1-wdt", D1_WATCHDOG},
-	{NULL,             0}
-};
+static struct ofw_compat_data compat_data[] = { { "allwinner,sun4i-a10-wdt",
+						    A10_WATCHDOG },
+	{ "allwinner,sun6i-a31-wdt", A31_WATCHDOG },
+	{ "allwinner,sun20i-d1-wdt", D1_WATCHDOG }, { NULL, 0 } };
 
 static void aw_wdog_watchdog_fn(void *, u_int, int *);
 static void aw_wdog_shutdown_fn(void *, int);
@@ -190,7 +178,8 @@ aw_wdog_attach(device_t dev)
 		sc->wdog_mode_intvl_shift = D1_WDOG_MODE_INTVL_SHIFT;
 		sc->wdog_mode_en = WDOG_MODE_EN;
 		sc->wdog_config = D1_WDOG_CONFIG;
-		sc->wdog_config_value = D1_WDOG_CONFIG_KEY | D1_WDOG_CONFIG_RST_EN_SYSTEM;
+		sc->wdog_config_value = D1_WDOG_CONFIG_KEY |
+		    D1_WDOG_CONFIG_RST_EN_SYSTEM;
 		break;
 	default:
 		bus_release_resource(dev, SYS_RES_MEMORY, rid, sc->res);
@@ -224,17 +213,18 @@ aw_wdog_watchdog_fn(void *private, u_int cmd, int *error)
 		    (ms > wd_intervals[i].milliseconds))
 			i++;
 		if (wd_intervals[i].milliseconds) {
-			WRITE(sc, sc->wdog_mode, sc->wdog_mode_key |
-			  (wd_intervals[i].value << sc->wdog_mode_intvl_shift) |
-			    sc->wdog_mode_en);
+			WRITE(sc, sc->wdog_mode,
+			    sc->wdog_mode_key |
+				(wd_intervals[i].value
+				    << sc->wdog_mode_intvl_shift) |
+				sc->wdog_mode_en);
 			WRITE(sc, sc->wdog_ctrl,
 			    WDOG_CTRL_RESTART | sc->wdog_ctrl_key);
 			if (sc->wdog_config)
 				WRITE(sc, sc->wdog_config,
 				    sc->wdog_config_value);
 			*error = 0;
-		}
-		else {
+		} else {
 			/*
 			 * Can't arm
 			 * disable watchdog as watchdog(9) requires
@@ -245,8 +235,7 @@ aw_wdog_watchdog_fn(void *private, u_int cmd, int *error)
 			WRITE(sc, sc->wdog_mode, sc->wdog_mode_key);
 			return;
 		}
-	}
-	else
+	} else
 		WRITE(sc, sc->wdog_mode, sc->wdog_mode_key);
 
 	mtx_unlock(&sc->mtx);
@@ -255,7 +244,7 @@ aw_wdog_watchdog_fn(void *private, u_int cmd, int *error)
 static void
 aw_wdog_shutdown_fn(void *private, int howto)
 {
-	if ((howto & (RB_POWEROFF|RB_HALT)) == 0)
+	if ((howto & (RB_POWEROFF | RB_HALT)) == 0)
 		aw_wdog_watchdog_reset();
 }
 
@@ -268,25 +257,24 @@ aw_wdog_watchdog_reset(void)
 		return;
 	}
 
-	WRITE(aw_wdog_sc, aw_wdog_sc->wdog_mode, aw_wdog_sc->wdog_mode_key |
-	    (wd_intervals[0].value << aw_wdog_sc->wdog_mode_intvl_shift) |
-	    aw_wdog_sc->wdog_mode_en);
+	WRITE(aw_wdog_sc, aw_wdog_sc->wdog_mode,
+	    aw_wdog_sc->wdog_mode_key |
+		(wd_intervals[0].value << aw_wdog_sc->wdog_mode_intvl_shift) |
+		aw_wdog_sc->wdog_mode_en);
 	if (aw_wdog_sc->wdog_config)
 		WRITE(aw_wdog_sc, aw_wdog_sc->wdog_config,
-		      aw_wdog_sc->wdog_config_value);
+		    aw_wdog_sc->wdog_config_value);
 	WRITE(aw_wdog_sc, aw_wdog_sc->wdog_ctrl,
 	    WDOG_CTRL_RESTART | aw_wdog_sc->wdog_ctrl_key);
-	while(1)
+	while (1)
 		;
-
 }
 
-static device_method_t aw_wdog_methods[] = {
-	DEVMETHOD(device_probe, aw_wdog_probe),
+static device_method_t aw_wdog_methods[] = { DEVMETHOD(device_probe,
+						 aw_wdog_probe),
 	DEVMETHOD(device_attach, aw_wdog_attach),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 static driver_t aw_wdog_driver = {
 	"aw_wdog",

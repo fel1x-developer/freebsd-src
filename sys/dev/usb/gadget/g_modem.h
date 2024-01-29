@@ -26,15 +26,15 @@
  */
 
 #ifndef _G_MODEM_H_
-#define	_G_MODEM_H_
+#define _G_MODEM_H_
 
-#define	G_MODEM_MAX_STRLEN 32		/* chars */
-#define	G_MODEM_BUFSIZE	4096		/* bytes */
+#define G_MODEM_MAX_STRLEN 32 /* chars */
+#define G_MODEM_BUFSIZE 4096  /* bytes */
 
-#define	G_MODEM_MODE_SILENT 0
-#define	G_MODEM_MODE_DUMP 1
-#define	G_MODEM_MODE_LOOP 2
-#define	G_MODEM_MODE_PATTERN 3
-#define	G_MODEM_MODE_MAX 4
+#define G_MODEM_MODE_SILENT 0
+#define G_MODEM_MODE_DUMP 1
+#define G_MODEM_MODE_LOOP 2
+#define G_MODEM_MODE_PATTERN 3
+#define G_MODEM_MODE_MAX 4
 
-#endif					/* _G_MODEM_H_ */
+#endif /* _G_MODEM_H_ */

@@ -25,19 +25,19 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/param.h>
 #include <sys/elf_common.h>
 #include <sys/exec.h>
 #include <sys/sysctl.h>
 
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
-#include "un-namespace.h"
 
 #include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 /*
  * Older FreeBSD 2.0, 2.1 and 2.2 had different ps_strings structures and
@@ -61,7 +61,7 @@ struct old_ps_strings {
 
 #include <stdarg.h>
 
-#define SPT_BUFSIZE 2048	/* from other parts of sendmail */
+#define SPT_BUFSIZE 2048 /* from other parts of sendmail */
 
 static char *
 setproctitle_internal(const char *fmt, va_list ap)
@@ -85,7 +85,7 @@ setproctitle_internal(const char *fmt, va_list ap)
 		nargv[0] = buf;
 	}
 
-	if (obuf == NULL ) {
+	if (obuf == NULL) {
 		obuf = malloc(SPT_BUFSIZE);
 		if (obuf == NULL)
 			return (NULL);
@@ -101,7 +101,8 @@ setproctitle_internal(const char *fmt, va_list ap)
 			len = 0;
 		} else {
 			/* print program name heading for grep */
-			(void)snprintf(buf, SPT_BUFSIZE, "%s: ", _getprogname());
+			(void)snprintf(buf, SPT_BUFSIZE,
+			    "%s: ", _getprogname());
 			len = strlen(buf);
 		}
 
@@ -125,7 +126,7 @@ setproctitle_internal(const char *fmt, va_list ap)
 	if (ps_strings == NULL) {
 		len = sizeof(ul_ps_strings);
 		if (sysctlbyname("kern.ps_strings", &ul_ps_strings, &len, NULL,
-		    0) == -1)
+			0) == -1)
 			return (NULL);
 		ps_strings = (struct ps_strings *)ul_ps_strings;
 	}

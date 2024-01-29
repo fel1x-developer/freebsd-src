@@ -33,11 +33,11 @@
  */
 
 #include <sys/param.h>
-#include <sys/mount.h>
-#include <sys/stat.h>
 #include <sys/iconv.h>
 #include <sys/linker.h>
 #include <sys/module.h>
+#include <sys/mount.h>
+#include <sys/stat.h>
 
 #include <ctype.h>
 #include <err.h>
@@ -55,11 +55,12 @@
 
 #include "mntopts.h"
 
-static gid_t	a_gid(char *);
-static uid_t	a_uid(char *);
-static mode_t	a_mask(char *);
-static void	usage(void) __dead2;
-static int	set_charset(struct iovec **iov, int *iovlen, const char *, const char *);
+static gid_t a_gid(char *);
+static uid_t a_uid(char *);
+static mode_t a_mask(char *);
+static void usage(void) __dead2;
+static int set_charset(struct iovec **iov, int *iovlen, const char *,
+    const char *);
 
 int
 main(int argc, char **argv)
@@ -70,7 +71,7 @@ main(int argc, char **argv)
 	int c, set_gid, set_uid, set_mask, set_dirmask;
 	char *dev, *dir, mntpath[MAXPATHLEN], *csp;
 	char fstype[] = "msdosfs";
-	char errmsg[255] = {0};
+	char errmsg[255] = { 0 };
 	char *cs_dos = NULL;
 	char *cs_local = NULL;
 	mode_t mask = 0, dirmask = 0;
@@ -82,13 +83,16 @@ main(int argc, char **argv)
 	while ((c = getopt(argc, argv, "sl9u:g:m:M:o:L:D:W:")) != -1) {
 		switch (c) {
 		case 's':
-			build_iovec(&iov, &iovlen, "shortnames", NULL, (size_t)-1);
+			build_iovec(&iov, &iovlen, "shortnames", NULL,
+			    (size_t)-1);
 			break;
 		case 'l':
-			build_iovec(&iov, &iovlen, "longnames", NULL, (size_t)-1);
+			build_iovec(&iov, &iovlen, "longnames", NULL,
+			    (size_t)-1);
 			break;
 		case '9':
-			build_iovec_argf(&iov, &iovlen, "nowin95", "", (size_t)-1);
+			build_iovec_argf(&iov, &iovlen, "nowin95", "",
+			    (size_t)-1);
 			break;
 		case 'u':
 			uid = a_uid(optarg);
@@ -110,17 +114,17 @@ main(int argc, char **argv)
 			const char *quirk = NULL;
 			if (setlocale(LC_CTYPE, optarg) == NULL)
 				err(EX_CONFIG, "%s", optarg);
-			csp = strchr(optarg,'.');
+			csp = strchr(optarg, '.');
 			if (!csp)
 				err(EX_CONFIG, "%s", optarg);
 			quirk = kiconv_quirkcs(csp + 1, KICONV_VENDOR_MICSFT);
 			build_iovec_argf(&iov, &iovlen, "cs_local", quirk);
 			cs_local = strdup(quirk);
-			}
-			break;
+		} break;
 		case 'D':
 			cs_dos = strdup(optarg);
-			build_iovec_argf(&iov, &iovlen, "cs_dos", cs_dos, (size_t)-1);
+			build_iovec_argf(&iov, &iovlen, "cs_dos", cs_dos,
+			    (size_t)-1);
 			break;
 		case 'o': {
 			char *p = NULL;
@@ -132,8 +136,7 @@ main(int argc, char **argv)
 				val = p + 1;
 			}
 			build_iovec(&iov, &iovlen, optarg, val, (size_t)-1);
-			}
-			break;
+		} break;
 		case 'W':
 			if (strcmp(optarg, "iso22dos") == 0) {
 				cs_local = strdup("ISO8859-2");
@@ -150,8 +153,10 @@ main(int argc, char **argv)
 			} else {
 				err(EX_NOINPUT, "%s", optarg);
 			}
-			build_iovec(&iov, &iovlen, "cs_local", cs_local, (size_t)-1);
-			build_iovec(&iov, &iovlen, "cs_dos", cs_dos, (size_t)-1);
+			build_iovec(&iov, &iovlen, "cs_local", cs_local,
+			    (size_t)-1);
+			build_iovec(&iov, &iovlen, "cs_dos", cs_dos,
+			    (size_t)-1);
 			break;
 		case '?':
 		default:
@@ -166,8 +171,7 @@ main(int argc, char **argv)
 	if (set_mask && !set_dirmask) {
 		dirmask = mask;
 		set_dirmask = 1;
-	}
-	else if (set_dirmask && !set_mask) {
+	} else if (set_dirmask && !set_mask) {
 		mask = dirmask;
 		set_mask = 1;
 	}
@@ -203,8 +207,8 @@ main(int argc, char **argv)
 		if (!set_gid)
 			gid = sb.st_gid;
 		if (!set_mask)
-			mask = dirmask =
-				sb.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO);
+			mask = dirmask = sb.st_mode &
+			    (S_IRWXU | S_IRWXG | S_IRWXO);
 	}
 
 	build_iovec(&iov, &iovlen, "fstype", fstype, (size_t)-1);
@@ -223,7 +227,7 @@ main(int argc, char **argv)
 			err(1, "%s", dev);
 	}
 
-	exit (0);
+	exit(0);
 }
 
 gid_t
@@ -236,7 +240,8 @@ a_gid(char *s)
 	if ((gr = getgrnam(s)) != NULL)
 		gid = gr->gr_gid;
 	else {
-		for (gname = s; *s && isdigit(*s); ++s);
+		for (gname = s; *s && isdigit(*s); ++s)
+			;
 		if (!*s)
 			gid = atoi(gname);
 		else
@@ -255,7 +260,8 @@ a_uid(char *s)
 	if ((pw = getpwnam(s)) != NULL)
 		uid = pw->pw_uid;
 	else {
-		for (uname = s; *s && isdigit(*s); ++s);
+		for (uname = s; *s && isdigit(*s); ++s)
+			;
 		if (!*s)
 			uid = atoi(uname);
 		else
@@ -285,20 +291,23 @@ void
 usage(void)
 {
 	fprintf(stderr, "%s\n%s\n%s\n",
-	"usage: mount_msdosfs [-9ls] [-D DOS_codepage] [-g gid] [-L locale]",
-	"                     [-M mask] [-m mask] [-o options] [-u uid]",
-	"		      [-W table] special node");
+	    "usage: mount_msdosfs [-9ls] [-D DOS_codepage] [-g gid] [-L locale]",
+	    "                     [-M mask] [-m mask] [-o options] [-u uid]",
+	    "		      [-W table] special node");
 	exit(EX_USAGE);
 }
 
 int
-set_charset(struct iovec **iov, int *iovlen, const char *cs_local, const char *cs_dos)
+set_charset(struct iovec **iov, int *iovlen, const char *cs_local,
+    const char *cs_dos)
 {
 	int error;
 
 	if (modfind("msdosfs_iconv") < 0)
-		if (kldload("msdosfs_iconv") < 0 || modfind("msdosfs_iconv") < 0) {
-			warnx("cannot find or load \"msdosfs_iconv\" kernel module");
+		if (kldload("msdosfs_iconv") < 0 ||
+		    modfind("msdosfs_iconv") < 0) {
+			warnx(
+			    "cannot find or load \"msdosfs_iconv\" kernel module");
 			return (-1);
 		}
 
@@ -313,7 +322,7 @@ set_charset(struct iovec **iov, int *iovlen, const char *cs_local, const char *c
 	} else {
 		build_iovec_argf(iov, iovlen, "cs_dos", cs_local);
 		error = kiconv_add_xlat16_cspair(cs_local, cs_local,
-				KICONV_FROM_UPPER | KICONV_LOWER);
+		    KICONV_FROM_UPPER | KICONV_LOWER);
 		if (error && errno != EEXIST)
 			return (-1);
 	}

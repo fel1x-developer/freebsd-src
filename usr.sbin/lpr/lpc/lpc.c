@@ -30,49 +30,49 @@
  * SUCH DAMAGE.
  */
 
-#include "lp.cdefs.h"		/* A cross-platform version of <sys/cdefs.h> */
 #include <sys/param.h>
 
 #include <ctype.h>
 #include <dirent.h>
 #include <err.h>
 #include <grp.h>
+#include <histedit.h>
 #include <setjmp.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <syslog.h>
 #include <string.h>
+#include <syslog.h>
 #include <unistd.h>
-#include <histedit.h>
 
+#include "extern.h"
+#include "lp.cdefs.h" /* A cross-platform version of <sys/cdefs.h> */
 #include "lp.h"
 #include "lpc.h"
-#include "extern.h"
 
 #ifndef LPR_OPER
-#define LPR_OPER	"operator"	/* group name of lpr operators */
+#define LPR_OPER "operator" /* group name of lpr operators */
 #endif
 
 /*
  * lpc -- line printer control program
  */
 
-#define MAX_CMDLINE	200
-#define MAX_MARGV	20
-static int	fromatty;
+#define MAX_CMDLINE 200
+#define MAX_MARGV 20
+static int fromatty;
 
-static char	cmdline[MAX_CMDLINE];
-static int	margc;
-static char	*margv[MAX_MARGV];
-uid_t		uid, euid;
+static char cmdline[MAX_CMDLINE];
+static int margc;
+static char *margv[MAX_MARGV];
+uid_t uid, euid;
 
-int			 main(int _argc, char *_argv[]);
-static void		 cmdscanner(void);
-static struct cmd	*getcmd(const char *_name);
-static void		 intr(int _signo);
-static void		 makeargv(void);
-static int		 ingroup(const char *_grname);
+int main(int _argc, char *_argv[]);
+static void cmdscanner(void);
+static struct cmd *getcmd(const char *_name);
+static void intr(int _signo);
+static void makeargv(void);
+static int ingroup(const char *_grname);
 
 int
 main(int argc, char *argv[])
@@ -101,8 +101,8 @@ main(int argc, char *argv[])
 			exit(1);
 		}
 		if (c->c_generic != NULL)
-			generic(c->c_generic, c->c_opts, c->c_handler,
-			    argc, argv);
+			generic(c->c_generic, c->c_opts, c->c_handler, argc,
+			    argv);
 		else
 			(*c->c_handler)(argc, argv);
 		exit(0);
@@ -172,7 +172,7 @@ cmdscanner(void)
 
 			len = MIN(MAX_CMDLINE - 1, num);
 			memcpy(cmdline, bp, len);
-			cmdline[len] = 0; 
+			cmdline[len] = 0;
 			history(hist, &he, H_ENTER, bp);
 
 		} else {
@@ -185,7 +185,8 @@ cmdscanner(void)
 		makeargv();
 		if (margc == 0)
 			continue;
-		if (el != NULL && el_parse(el, margc, (const char **)margv) != -1)
+		if (el != NULL &&
+		    el_parse(el, margc, (const char **)margv) != -1)
 			continue;
 
 		c = getcmd(margv[0]);
@@ -211,8 +212,8 @@ cmdscanner(void)
 		 * initial parameter processing.
 		 */
 		if (c->c_generic != NULL)
-			generic(c->c_generic, c->c_opts, c->c_handler,
-			    margc, margv);
+			generic(c->c_generic, c->c_opts, c->c_handler, margc,
+			    margv);
 		else
 			(*c->c_handler)(margc, margv);
 	}
@@ -230,9 +231,9 @@ getcmd(const char *name)
 	found = NULL;
 	for (c = cmdtab; (p = c->c_name); c++) {
 		for (q = name; *q == *p++; q++)
-			if (*q == 0)		/* exact match? */
-				return(c);
-		if (!*q) {			/* the name was a prefix */
+			if (*q == 0) /* exact match? */
+				return (c);
+		if (!*q) { /* the name was a prefix */
 			if (q - name > longest) {
 				longest = q - name;
 				nmatches = 1;
@@ -242,8 +243,8 @@ getcmd(const char *name)
 		}
 	}
 	if (nmatches > 1)
-		return((struct cmd *)-1);
-	return(found);
+		return ((struct cmd *)-1);
+	return (found);
 }
 
 /*
@@ -258,7 +259,8 @@ makeargv(void)
 
 	margc = 0;
 	for (cp = cmdline; *cp && (size_t)(cp - cmdline) < sizeof(cmdline) &&
-	    n < MAX_MARGV - 1; n++) {
+	     n < MAX_MARGV - 1;
+	     n++) {
 		while (isspace(*cp))
 			cp++;
 		if (*cp == '\0')
@@ -274,7 +276,7 @@ makeargv(void)
 	*argp++ = NULL;
 }
 
-#define HELPINDENT (sizeof ("directory"))
+#define HELPINDENT (sizeof("directory"))
 
 /*
  * Help command.
@@ -295,7 +297,7 @@ help(int argc, char *argv[])
 			if (len > width)
 				width = len;
 		}
-		width = (width + 8) &~ 7;
+		width = (width + 8) & ~7;
 		columns = 80 / width;
 		if (columns == 0)
 			columns = 1;
@@ -311,7 +313,7 @@ help(int argc, char *argv[])
 				}
 				w = strlen(c->c_name);
 				while (w < width) {
-					w = (w + 8) &~ 7;
+					w = (w + 8) & ~7;
 					putchar('\t');
 				}
 			}
@@ -327,8 +329,8 @@ help(int argc, char *argv[])
 		else if (c == (struct cmd *)0)
 			printf("?Invalid help command %s\n", arg);
 		else
-			printf("%-*s\t%s\n", (int) HELPINDENT,
-				c->c_name, c->c_help);
+			printf("%-*s\t%s\n", (int)HELPINDENT, c->c_name,
+			    c->c_help);
 	}
 }
 
@@ -338,7 +340,7 @@ help(int argc, char *argv[])
 static int
 ingroup(const char *grname)
 {
-	static struct group *gptr=NULL;
+	static struct group *gptr = NULL;
 	static int ngroups = 0;
 	static long ngroups_max;
 	static gid_t *groups;
@@ -348,7 +350,7 @@ ingroup(const char *grname)
 	if (gptr == NULL) {
 		if ((gptr = getgrnam(grname)) == NULL) {
 			warnx("warning: unknown group '%s'", grname);
-			return(0);
+			return (0);
 		}
 		ngroups_max = sysconf(_SC_NGROUPS_MAX);
 		if ((groups = malloc(sizeof(gid_t) * ngroups_max)) == NULL)
@@ -360,8 +362,8 @@ ingroup(const char *grname)
 	gid = gptr->gr_gid;
 	for (i = 0; i < ngroups; i++)
 		if (gid == groups[i])
-			return(1);
-	return(0);
+			return (1);
+	return (0);
 }
 
 /*

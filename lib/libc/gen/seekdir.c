@@ -29,15 +29,16 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/param.h>
+
 #include <dirent.h>
 #include <pthread.h>
-#include "un-namespace.h"
 
-#include "libc_private.h"
 #include "gen-private.h"
+#include "libc_private.h"
+#include "namespace.h"
 #include "telldir.h"
+#include "un-namespace.h"
 
 /*
  * Seek to an entry in a directory.

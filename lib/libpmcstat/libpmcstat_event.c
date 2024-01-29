@@ -48,19 +48,19 @@ pmcstat_clone_event_descriptor(struct pmcstat_ev *ev, const cpuset_t *cpumask,
 
 		if ((ev_clone = malloc(sizeof(*ev_clone))) == NULL)
 			errx(EX_SOFTWARE, "ERROR: Out of memory");
-		(void) memset(ev_clone, 0, sizeof(*ev_clone));
+		(void)memset(ev_clone, 0, sizeof(*ev_clone));
 
 		ev_clone->ev_count = ev->ev_count;
-		ev_clone->ev_cpu   = cpu;
+		ev_clone->ev_cpu = cpu;
 		ev_clone->ev_cumulative = ev->ev_cumulative;
 		ev_clone->ev_flags = ev->ev_flags;
-		ev_clone->ev_mode  = ev->ev_mode;
-		ev_clone->ev_name  = strdup(ev->ev_name);
+		ev_clone->ev_mode = ev->ev_mode;
+		ev_clone->ev_name = strdup(ev->ev_name);
 		if (ev_clone->ev_name == NULL)
 			errx(EX_SOFTWARE, "ERROR: Out of memory");
 		ev_clone->ev_pmcid = ev->ev_pmcid;
 		ev_clone->ev_saved = ev->ev_saved;
-		ev_clone->ev_spec  = strdup(ev->ev_spec);
+		ev_clone->ev_spec = strdup(ev->ev_spec);
 		if (ev_clone->ev_spec == NULL)
 			errx(EX_SOFTWARE, "ERROR: Out of memory");
 

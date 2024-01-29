@@ -35,18 +35,19 @@
 #include <vm/vm.h>
 /* XXX: enable this once the KPI is available */
 /* #include <x86/physmem.h> */
-#include <machine/pci_cfgreg.h>
 #include <machine/md_var.h>
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
+#include <machine/pci_cfgreg.h>
 
 #include <x86/pci/pci_early_quirks.h>
 
-#define	MiB(v) ((unsigned long)(v) << 20)
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
+#define MiB(v) ((unsigned long)(v) << 20)
 
 struct pci_device_id {
-	uint32_t	vendor;
-	uint32_t	device;
+	uint32_t vendor;
+	uint32_t device;
 	const struct intel_stolen_ops *data;
 };
 
@@ -85,8 +86,9 @@ intel_stolen_base_gen11(int domain, int bus, int slot, int func)
 
 	ctrl = pci_cfgregread(domain, bus, slot, func, INTEL_GEN11_BSM_DW0, 4);
 	val = ctrl & INTEL_BSM_MASK;
-	val |= (uint64_t)pci_cfgregread(
-	    domain, bus, slot, func, INTEL_GEN11_BSM_DW1, 4) << 32;
+	val |= (uint64_t)pci_cfgregread(domain, bus, slot, func,
+		   INTEL_GEN11_BSM_DW1, 4)
+	    << 32;
 	return (val);
 }
 

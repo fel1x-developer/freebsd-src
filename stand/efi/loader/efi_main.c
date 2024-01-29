@@ -25,6 +25,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <bootstrap.h>
 #include <efi.h>
 #include <eficonsctl.h>
@@ -98,7 +99,8 @@ efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table)
 	status = BS->AllocatePages(AllocateAnyPages, EfiLoaderData,
 	    EFI_SIZE_TO_PAGES(heapsize), &heap);
 	if (status != EFI_SUCCESS) {
-		ST->ConOut->OutputString(ST->ConOut, (CHAR16 *)L"Failed to allocate memory for heap.\r\n");
+		ST->ConOut->OutputString(ST->ConOut,
+		    (CHAR16 *)L"Failed to allocate memory for heap.\r\n");
 		BS->Exit(IH, status, 0, NULL);
 	}
 
@@ -109,7 +111,7 @@ efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table)
 
 	/* Use efi_exit() from here on... */
 
-	status = OpenProtocolByHandle(IH, &image_protocol, (void**)&img);
+	status = OpenProtocolByHandle(IH, &image_protocol, (void **)&img);
 	if (status != EFI_SUCCESS)
 		efi_exit(status);
 
@@ -129,7 +131,7 @@ efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table)
 		if (img->LoadOptionsSize == strlen(img->LoadOptions) + 1) {
 			args = malloc(img->LoadOptionsSize << 1);
 			for (argc = 0; argc < (int)img->LoadOptionsSize; argc++)
-				args[argc] = ((char*)img->LoadOptions)[argc];
+				args[argc] = ((char *)img->LoadOptions)[argc];
 		} else {
 			args = malloc(img->LoadOptionsSize);
 			memcpy(args, img->LoadOptions, img->LoadOptionsSize);
@@ -151,13 +153,17 @@ efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table)
 	 */
 	/* Part 1: Figure out if we need to add our program name. */
 	addprog = (args == NULL || img->ParentHandle == NULL ||
-	    img->FilePath == NULL) ? 1 : 0;
+		      img->FilePath == NULL) ?
+	    1 :
+	    0;
 	if (!addprog) {
-		addprog =
-		    (DevicePathType(img->FilePath) != MEDIA_DEVICE_PATH ||
-		     DevicePathSubType(img->FilePath) != MEDIA_FILEPATH_DP ||
-		     DevicePathNodeLength(img->FilePath) <=
-			sizeof(FILEPATH_DEVICE_PATH)) ? 1 : 0;
+		addprog = (DevicePathType(img->FilePath) != MEDIA_DEVICE_PATH ||
+			      DevicePathSubType(img->FilePath) !=
+				  MEDIA_FILEPATH_DP ||
+			      DevicePathNodeLength(img->FilePath) <=
+				  sizeof(FILEPATH_DEVICE_PATH)) ?
+		    1 :
+		    0;
 		if (!addprog) {
 			/* XXX todo. */
 		}
@@ -173,7 +179,7 @@ efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table)
 		argp = arg_skipword(argp);
 	}
 	/* Part 3: build vector. */
-	argv = malloc((argc + 1) * sizeof(CHAR16*));
+	argv = malloc((argc + 1) * sizeof(CHAR16 *));
 	argc = 0;
 	if (addprog)
 		argv[argc++] = (CHAR16 *)L"loader.efi";

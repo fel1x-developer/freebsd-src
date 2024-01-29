@@ -29,7 +29,6 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/param.h>
 
 #include <dirent.h>
@@ -38,12 +37,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "un-namespace.h"
 
 #include "gen-private.h"
+#include "namespace.h"
 #include "telldir.h"
+#include "un-namespace.h"
 
-static DIR * __opendir_common(int, int, bool);
+static DIR *__opendir_common(int, int, bool);
 
 /*
  * Open a directory.
@@ -52,7 +52,7 @@ DIR *
 opendir(const char *name)
 {
 
-	return (__opendir2(name, DTF_HIDEW|DTF_NODUP));
+	return (__opendir2(name, DTF_HIDEW | DTF_NODUP));
 }
 
 /*
@@ -64,7 +64,7 @@ fdopendir(int fd)
 
 	if (_fcntl(fd, F_SETFD, FD_CLOEXEC) == -1)
 		return (NULL);
-	return (__opendir_common(fd, DTF_HIDEW|DTF_NODUP, true));
+	return (__opendir_common(fd, DTF_HIDEW | DTF_NODUP, true));
 }
 
 DIR *
@@ -77,7 +77,7 @@ __opendir2(const char *name, int flags)
 	if ((flags & (__DTF_READALL | __DTF_SKIPREAD)) != 0)
 		return (NULL);
 	if ((fd = _open(name,
-	    O_RDONLY | O_NONBLOCK | O_DIRECTORY | O_CLOEXEC)) == -1)
+		 O_RDONLY | O_NONBLOCK | O_DIRECTORY | O_CLOEXEC)) == -1)
 		return (NULL);
 
 	dir = __opendir_common(fd, flags, false);
@@ -93,8 +93,8 @@ static int
 opendir_compar(const void *p1, const void *p2)
 {
 
-	return (strcmp((*(const struct dirent * const *)p1)->d_name,
-	    (*(const struct dirent * const *)p2)->d_name));
+	return (strcmp((*(const struct dirent *const *)p1)->d_name,
+	    (*(const struct dirent *const *)p2)->d_name));
 }
 
 /*
@@ -114,7 +114,7 @@ _filldir(DIR *dirp, bool use_current_pos)
 	char *buf, *ddptr, *ddeptr;
 	off_t pos;
 	int fd2, incr, len, n, saved_errno, space;
-	
+
 	len = 0;
 	space = 0;
 	buf = NULL;
@@ -126,7 +126,7 @@ _filldir(DIR *dirp, bool use_current_pos)
 	 * trades to user space to be done by _getdirentries().
 	 */
 	incr = getpagesize();
-	if ((incr % DIRBLKSIZ) != 0) 
+	if ((incr % DIRBLKSIZ) != 0)
 		incr = DIRBLKSIZ;
 
 	/*
@@ -209,7 +209,7 @@ _filldir(DIR *dirp, bool use_current_pos)
 		while (ddptr < ddeptr) {
 			struct dirent *dp;
 
-			dp = (struct dirent *) ddptr;
+			dp = (struct dirent *)ddptr;
 			if ((long)dp & 03L)
 				break;
 			if ((dp->d_reclen <= 0) ||
@@ -256,7 +256,7 @@ _filldir(DIR *dirp, bool use_current_pos)
 			free(dpv);
 			break;
 		} else {
-			dpv = malloc((n+1) * sizeof(struct dirent *));
+			dpv = malloc((n + 1) * sizeof(struct dirent *));
 			if (dpv == NULL)
 				break;
 		}
@@ -313,7 +313,7 @@ __opendir_common(int fd, int flags, bool use_current_pos)
 	 * trades to user space to be done by _getdirentries().
 	 */
 	incr = getpagesize();
-	if ((incr % DIRBLKSIZ) != 0) 
+	if ((incr % DIRBLKSIZ) != 0)
 		incr = DIRBLKSIZ;
 
 	/*

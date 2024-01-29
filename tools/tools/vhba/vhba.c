@@ -24,13 +24,14 @@
  * SUCH DAMAGE.
  */
 /*
- * Virtual HBA infrastructure, to be used for testing as well as other cute hacks.
+ * Virtual HBA infrastructure, to be used for testing as well as other cute
+ * hacks.
  */
 #include "vhba.h"
 static vhba_softc_t *vhba;
 
-#ifndef	VHBA_MOD
-#define	VHBA_MOD	"vhba"
+#ifndef VHBA_MOD
+#define VHBA_MOD "vhba"
 #endif
 
 static void vhba_action(struct cam_sim *, union ccb *);
@@ -45,7 +46,8 @@ vhba_attach(vhba_softc_t *vhba)
 	if (vhba->devq == NULL) {
 		return (ENOMEM);
 	}
-	vhba->sim = cam_sim_alloc(vhba_action, vhba_poll, VHBA_MOD, vhba, 0, &vhba->lock, VHBA_MAXCMDS, VHBA_MAXCMDS, vhba->devq);
+	vhba->sim = cam_sim_alloc(vhba_action, vhba_poll, VHBA_MOD, vhba, 0,
+	    &vhba->lock, VHBA_MAXCMDS, VHBA_MAXCMDS, vhba->devq);
 	if (vhba->sim == NULL) {
 		cam_simq_free(vhba->devq);
 		return (ENOMEM);
@@ -116,11 +118,11 @@ vhba_action(struct cam_sim *sim, union ccb *ccb)
 		cam_calc_geometry(&ccb->ccg, 1);
 		break;
 
-	case XPT_RESET_BUS:		/* Reset the specified bus */
+	case XPT_RESET_BUS: /* Reset the specified bus */
 		ccb->ccb_h.status = CAM_REQ_CMP;
 		break;
 
-	case XPT_PATH_INQ:		/* Path routing inquiry */
+	case XPT_PATH_INQ: /* Path routing inquiry */
 	{
 		struct ccb_pathinq *cpi = &ccb->cpi;
 
@@ -153,18 +155,19 @@ vhba_action(struct cam_sim *sim, union ccb *ccb)
 void
 vhba_fill_sense(struct ccb_scsiio *csio, uint8_t key, uint8_t asc, uint8_t ascq)
 {
-	csio->ccb_h.status = CAM_SCSI_STATUS_ERROR|CAM_AUTOSNS_VALID;
+	csio->ccb_h.status = CAM_SCSI_STATUS_ERROR | CAM_AUTOSNS_VALID;
 	csio->scsi_status = SCSI_STATUS_CHECK_COND;
-	csio->sense_data.error_code = SSD_ERRCODE_VALID|SSD_CURRENT_ERROR;
+	csio->sense_data.error_code = SSD_ERRCODE_VALID | SSD_CURRENT_ERROR;
 	csio->sense_data.flags = key;
 	csio->sense_data.extra_len = 10;
 	csio->sense_data.add_sense_code = asc;
 	csio->sense_data.add_sense_code_qual = ascq;
-	csio->sense_len = sizeof (csio->sense_data);
+	csio->sense_len = sizeof(csio->sense_data);
 }
 
 int
-vhba_rwparm(uint8_t *cdb, uint64_t *offset, uint32_t *tl, uint64_t nblks, uint32_t blk_shift)
+vhba_rwparm(uint8_t *cdb, uint64_t *offset, uint32_t *tl, uint64_t nblks,
+    uint32_t blk_shift)
 {
 	uint32_t cnt;
 	uint64_t lba;
@@ -172,40 +175,29 @@ vhba_rwparm(uint8_t *cdb, uint64_t *offset, uint32_t *tl, uint64_t nblks, uint32
 	switch (cdb[0]) {
 	case WRITE_16:
 	case READ_16:
-		cnt =	(((uint32_t)cdb[10]) <<  24) |
-			(((uint32_t)cdb[11]) <<  16) |
-			(((uint32_t)cdb[12]) <<   8) |
-			((uint32_t)cdb[13]);
+		cnt = (((uint32_t)cdb[10]) << 24) |
+		    (((uint32_t)cdb[11]) << 16) | (((uint32_t)cdb[12]) << 8) |
+		    ((uint32_t)cdb[13]);
 
-		lba =	(((uint64_t)cdb[2]) << 56) |
-			(((uint64_t)cdb[3]) << 48) |
-			(((uint64_t)cdb[4]) << 40) |
-			(((uint64_t)cdb[5]) << 32) |
-			(((uint64_t)cdb[6]) << 24) |
-			(((uint64_t)cdb[7]) << 16) |
-			(((uint64_t)cdb[8]) <<  8) |
-			((uint64_t)cdb[9]);
+		lba = (((uint64_t)cdb[2]) << 56) | (((uint64_t)cdb[3]) << 48) |
+		    (((uint64_t)cdb[4]) << 40) | (((uint64_t)cdb[5]) << 32) |
+		    (((uint64_t)cdb[6]) << 24) | (((uint64_t)cdb[7]) << 16) |
+		    (((uint64_t)cdb[8]) << 8) | ((uint64_t)cdb[9]);
 		break;
 	case WRITE_12:
 	case READ_12:
-		cnt =	(((uint32_t)cdb[6]) <<  16) |
-			(((uint32_t)cdb[7]) <<   8) |
-			((u_int32_t)cdb[8]);
+		cnt = (((uint32_t)cdb[6]) << 16) | (((uint32_t)cdb[7]) << 8) |
+		    ((u_int32_t)cdb[8]);
 
-		lba =	(((uint32_t)cdb[2]) << 24) |
-			(((uint32_t)cdb[3]) << 16) |
-			(((uint32_t)cdb[4]) <<  8) |
-			((uint32_t)cdb[5]);
+		lba = (((uint32_t)cdb[2]) << 24) | (((uint32_t)cdb[3]) << 16) |
+		    (((uint32_t)cdb[4]) << 8) | ((uint32_t)cdb[5]);
 		break;
 	case WRITE_10:
 	case READ_10:
-		cnt =	(((uint32_t)cdb[7]) <<  8) |
-			((u_int32_t)cdb[8]);
+		cnt = (((uint32_t)cdb[7]) << 8) | ((u_int32_t)cdb[8]);
 
-		lba =	(((uint32_t)cdb[2]) << 24) |
-			(((uint32_t)cdb[3]) << 16) |
-			(((uint32_t)cdb[4]) <<  8) |
-			((uint32_t)cdb[5]);
+		lba = (((uint32_t)cdb[2]) << 24) | (((uint32_t)cdb[3]) << 16) |
+		    (((uint32_t)cdb[4]) << 8) | ((uint32_t)cdb[5]);
 		break;
 	case WRITE_6:
 	case READ_6:
@@ -213,9 +205,8 @@ vhba_rwparm(uint8_t *cdb, uint64_t *offset, uint32_t *tl, uint64_t nblks, uint32
 		if (cnt == 0) {
 			cnt = 256;
 		}
-		lba =	(((uint32_t)cdb[1] & 0x1f) << 16) |
-			(((uint32_t)cdb[2]) << 8) |
-			((uint32_t)cdb[3]);
+		lba = (((uint32_t)cdb[1] & 0x1f) << 16) |
+		    (((uint32_t)cdb[2]) << 8) | ((uint32_t)cdb[3]);
 		break;
 	default:
 		return (-1);
@@ -230,23 +221,18 @@ vhba_rwparm(uint8_t *cdb, uint64_t *offset, uint32_t *tl, uint64_t nblks, uint32
 }
 
 void
-vhba_default_cmd(struct ccb_scsiio *csio, lun_id_t max_lun, uint8_t *sparse_lun_map)
+vhba_default_cmd(struct ccb_scsiio *csio, lun_id_t max_lun,
+    uint8_t *sparse_lun_map)
 {
 	char junk[128];
-	const uint8_t niliqd[SHORT_INQUIRY_LENGTH] = {
-		0x7f, 0x0, SCSI_REV_SPC3, 0x2, 32, 0, 0, 0x32,
-		'P', 'A', 'N', 'A', 'S', 'A', 'S', ' ',
-		'N', 'U', 'L', 'L', ' ', 'D', 'E', 'V',
-		'I', 'C', 'E', ' ', ' ', ' ', ' ', ' ',
-		'0', '0', '0', '1'
-	};
-	const uint8_t iqd[SHORT_INQUIRY_LENGTH] = {
-		0, 0x0, SCSI_REV_SPC3, 0x2, 32, 0, 0, 0x32,
-		'P', 'A', 'N', 'A', 'S', 'A', 'S', ' ',
-		'V', 'I', 'R', 'T', ' ', 'M', 'E', 'M',
-		'O', 'R', 'Y', ' ', 'D', 'I', 'S', 'K',
-		'0', '0', '0', '1'
-	};
+	const uint8_t niliqd[SHORT_INQUIRY_LENGTH] = { 0x7f, 0x0, SCSI_REV_SPC3,
+		0x2, 32, 0, 0, 0x32, 'P', 'A', 'N', 'A', 'S', 'A', 'S', ' ',
+		'N', 'U', 'L', 'L', ' ', 'D', 'E', 'V', 'I', 'C', 'E', ' ', ' ',
+		' ', ' ', ' ', '0', '0', '0', '1' };
+	const uint8_t iqd[SHORT_INQUIRY_LENGTH] = { 0, 0x0, SCSI_REV_SPC3, 0x2,
+		32, 0, 0, 0x32, 'P', 'A', 'N', 'A', 'S', 'A', 'S', ' ', 'V',
+		'I', 'R', 'T', ' ', 'M', 'E', 'M', 'O', 'R', 'Y', ' ', 'D', 'I',
+		'S', 'K', '0', '0', '0', '1' };
 	const uint8_t vp0data[6] = { 0, 0, 0, 0x2, 0, 0x80 };
 	const uint8_t vp80data[36] = { 0, 0x80, 0, 0x20 };
 	int i, attached_lun;
@@ -256,7 +242,7 @@ vhba_default_cmd(struct ccb_scsiio *csio, lun_id_t max_lun, uint8_t *sparse_lun_
 	data_len = 0;
 	status = SCSI_STATUS_OK;
 
-	memset(&csio->sense_data, 0, sizeof (csio->sense_data));
+	memset(&csio->sense_data, 0, sizeof(csio->sense_data));
 	cdb = csio->cdb_io.cdb_bytes;
 
 	attached_lun = 1;
@@ -264,11 +250,13 @@ vhba_default_cmd(struct ccb_scsiio *csio, lun_id_t max_lun, uint8_t *sparse_lun_
 		attached_lun = 0;
 	} else if (sparse_lun_map) {
 		i = csio->ccb_h.target_lun & 0x7;
-		if ((sparse_lun_map[csio->ccb_h.target_lun >> 3] & (1 << i)) == 0) {
+		if ((sparse_lun_map[csio->ccb_h.target_lun >> 3] & (1 << i)) ==
+		    0) {
 			attached_lun = 0;
 		}
 	}
-	if (attached_lun == 0 && cdb[0] != INQUIRY && cdb[0] != REPORT_LUNS && cdb[0] != REQUEST_SENSE) {
+	if (attached_lun == 0 && cdb[0] != INQUIRY && cdb[0] != REPORT_LUNS &&
+	    cdb[0] != REQUEST_SENSE) {
 		vhba_fill_sense(csio, SSD_KEY_ILLEGAL_REQUEST, 0x25, 0x0);
 		return;
 	}
@@ -279,52 +267,57 @@ vhba_default_cmd(struct ccb_scsiio *csio, lun_id_t max_lun, uint8_t *sparse_lun_
 		if (cdb[4] < csio->dxfer_len)
 			data_len = cdb[4];
 		if (data_len) {
-			memset(junk, 0, sizeof (junk));
-			junk[0] = SSD_ERRCODE_VALID|SSD_CURRENT_ERROR;
+			memset(junk, 0, sizeof(junk));
+			junk[0] = SSD_ERRCODE_VALID | SSD_CURRENT_ERROR;
 			junk[2] = SSD_KEY_NO_SENSE;
 			junk[7] = 10;
 			memcpy(csio->data_ptr, junk,
-			    (data_len > sizeof junk)? sizeof junk : data_len);
+			    (data_len > sizeof junk) ? sizeof junk : data_len);
 		}
 		csio->resid = csio->dxfer_len - data_len;
 		break;
 	case INQUIRY:
 		i = 0;
 		if ((cdb[1] & 0x1f) == SI_EVPD) {
-			if ((cdb[2] != 0 && cdb[2] != 0x80) || cdb[3] || cdb[5]) {
+			if ((cdb[2] != 0 && cdb[2] != 0x80) || cdb[3] ||
+			    cdb[5]) {
 				i = 1;
 			}
 		} else if ((cdb[1] & 0x1f) || cdb[2] || cdb[3] || cdb[5]) {
 			i = 1;
 		}
 		if (i) {
-			vhba_fill_sense(csio, SSD_KEY_ILLEGAL_REQUEST, 0x24, 0x0);
+			vhba_fill_sense(csio, SSD_KEY_ILLEGAL_REQUEST, 0x24,
+			    0x0);
 			break;
 		}
 		if (attached_lun == 0) {
 			if (cdb[1] & 0x1f) {
-				vhba_fill_sense(csio, SSD_KEY_ILLEGAL_REQUEST, 0x24, 0x0);
+				vhba_fill_sense(csio, SSD_KEY_ILLEGAL_REQUEST,
+				    0x24, 0x0);
 				break;
 			}
-			memcpy(junk, niliqd, sizeof (niliqd));
-			data_len = sizeof (niliqd);
+			memcpy(junk, niliqd, sizeof(niliqd));
+			data_len = sizeof(niliqd);
 		} else if (cdb[1] & 0x1f) {
 			if (cdb[2] == 0) {
-				memcpy(junk, vp0data, sizeof (vp0data));
-				data_len = sizeof (vp0data);
+				memcpy(junk, vp0data, sizeof(vp0data));
+				data_len = sizeof(vp0data);
 			} else {
-				memcpy(junk, vp80data, sizeof (vp80data));
-				snprintf(&junk[4], sizeof (vp80data) - 4, "TGT%dLUN%d", csio->ccb_h.target_id, csio->ccb_h.target_lun);
-				for (i = 0; i < sizeof (vp80data); i++) {
+				memcpy(junk, vp80data, sizeof(vp80data));
+				snprintf(&junk[4], sizeof(vp80data) - 4,
+				    "TGT%dLUN%d", csio->ccb_h.target_id,
+				    csio->ccb_h.target_lun);
+				for (i = 0; i < sizeof(vp80data); i++) {
 					if (junk[i] == 0) {
 						junk[i] = ' ';
 					}
-                                }
-                        }
-			data_len = sizeof (vp80data);
+				}
+			}
+			data_len = sizeof(vp80data);
 		} else {
-			memcpy(junk, iqd, sizeof (iqd));
-			data_len = sizeof (iqd);
+			memcpy(junk, iqd, sizeof(iqd));
+			data_len = sizeof(iqd);
 		}
 		if (data_len > cdb[4]) {
 			data_len = cdb[4];
@@ -348,7 +341,8 @@ vhba_default_cmd(struct ccb_scsiio *csio, lun_id_t max_lun, uint8_t *sparse_lun_
 		ptr = NULL;
 		for (nlun = i = 0; i < max_lun; i++) {
 			if (sparse_lun_map) {
-				if ((sparse_lun_map[i >> 3] & (1 << (i & 0x7))) == 0) {
+				if ((sparse_lun_map[i >> 3] &
+					(1 << (i & 0x7))) == 0) {
 					continue;
 				}
 			}
@@ -365,13 +359,13 @@ vhba_default_cmd(struct ccb_scsiio *csio, lun_id_t max_lun, uint8_t *sparse_lun_
 		junk[1] = (nlun << 3) >> 16;
 		junk[2] = (nlun << 3) >> 8;
 		junk[3] = (nlun << 3);
-		memset(junk+4, 0, 4);
+		memset(junk + 4, 0, 4);
 		if (csio->dxfer_len) {
 			u_int amt;
 
 			amt = MIN(csio->dxfer_len, 8);
 			memcpy(csio->data_ptr, junk, amt);
-			amt = MIN((nlun << 3) + 8,  csio->dxfer_len);
+			amt = MIN((nlun << 3) + 8, csio->dxfer_len);
 			csio->resid = csio->dxfer_len - amt;
 		}
 		break;
@@ -402,7 +396,7 @@ vhba_modprobe(module_t mod, int cmd, void *arg)
 
 	switch (cmd) {
 	case MOD_LOAD:
-		vhba = malloc(sizeof (*vhba), M_DEVBUF, M_WAITOK|M_ZERO);
+		vhba = malloc(sizeof(*vhba), M_DEVBUF, M_WAITOK | M_ZERO);
 		mtx_init(&vhba->lock, "vhba", NULL, MTX_DEF);
 		error = vhba_attach(vhba);
 		if (error) {
@@ -411,7 +405,7 @@ vhba_modprobe(module_t mod, int cmd, void *arg)
 		}
 		break;
 	case MOD_UNLOAD:
-        	mtx_lock(&vhba->lock);
+		mtx_lock(&vhba->lock);
 		if (TAILQ_FIRST(&vhba->done) || TAILQ_FIRST(&vhba->actv)) {
 			error = EBUSY;
 			mtx_unlock(&vhba->lock);

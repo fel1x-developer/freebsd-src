@@ -25,17 +25,17 @@
  */
 
 #ifndef _LINUXKPI_LINUX_PREEMPT_H_
-#define	_LINUXKPI_LINUX_PREEMPT_H_
+#define _LINUXKPI_LINUX_PREEMPT_H_
 
 #include <linux/hardirq.h>
 #include <linux/list.h>
 
-#define	in_interrupt() \
+#define in_interrupt() \
 	(curthread->td_intr_nesting_level || curthread->td_critnest)
 
-#define	in_task() (curthread->td_priority >= PI_SOFT)
+#define in_task() (curthread->td_priority >= PI_SOFT)
 
-#define	preempt_disable()	critical_enter()
-#define	preempt_enable()	critical_exit()
+#define preempt_disable() critical_enter()
+#define preempt_enable() critical_exit()
 
-#endif					/* _LINUXKPI_LINUX_PREEMPT_H_ */
+#endif /* _LINUXKPI_LINUX_PREEMPT_H_ */

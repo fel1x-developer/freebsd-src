@@ -33,12 +33,14 @@
  */
 
 #include <sys/cdefs.h>
-#include <stdio.h>
-#include <time.h>
 #include <sys/types.h>
+
 #include <rpc/rpc.h>
 #include <rpc/xdr.h>
 #include <rpcsvc/yp.h>
+#include <stdio.h>
+#include <time.h>
+
 #include "ypxfr_extern.h"
 
 extern bool_t xdr_ypresp_all_seq(XDR *, unsigned long *);
@@ -59,7 +61,7 @@ extern enum ypstat yp_errno;
  */
 int
 ypxfr_get_map(char *map, char *domain, char *host,
-    int (*callback)(int, char *, int, char *, int, char*))
+    int (*callback)(int, char *, int, char *, int, char *))
 {
 	CLIENT *clnt;
 	ypreq_nokey req;
@@ -74,7 +76,7 @@ ypxfr_get_map(char *map, char *domain, char *host,
 		yp_error("%s", clnt_spcreateerror("failed to \
 create tcp handle"));
 		yp_errno = (enum ypstat)YPXFR_YPERR;
-		return(1);
+		return (1);
 	}
 
 	req.domain = domain;
@@ -88,12 +90,12 @@ create tcp handle"));
 	clnt_destroy(clnt);
 
 	if (status == YP_NOMORE)
-		return(0);
+		return (0);
 
 	if (status != YP_TRUE) {
 		yp_errno = (enum ypstat)YPXFR_YPERR;
-		return(1);
+		return (1);
 	}
 
-	return(0);
+	return (0);
 }

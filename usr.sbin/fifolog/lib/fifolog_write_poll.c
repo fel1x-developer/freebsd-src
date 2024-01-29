@@ -26,37 +26,37 @@
  * SUCH DAMAGE.
  */
 
-#include <assert.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <stdint.h>
-#include <time.h>
 #include <sys/endian.h>
 
+#include <assert.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <unistd.h>
 #include <zlib.h>
 
 #include "fifolog.h"
-#include "libfifolog_int.h"
 #include "fifolog_write.h"
+#include "libfifolog_int.h"
 #include "miniobj.h"
 
 static int fifolog_write_gzip(struct fifolog_writer *f, time_t now);
 
-#define ALLOC(ptr, size) do {                   \
-	(*(ptr)) = calloc(1, size);             \
-	assert(*(ptr) != NULL);                 \
-} while (0)
-
+#define ALLOC(ptr, size)                    \
+	do {                                \
+		(*(ptr)) = calloc(1, size); \
+		assert(*(ptr) != NULL);     \
+	} while (0)
 
 const char *fifolog_write_statnames[] = {
-	[FIFOLOG_PT_BYTES_PRE] =	"Bytes before compression",
-	[FIFOLOG_PT_BYTES_POST] =	"Bytes after compression",
-	[FIFOLOG_PT_WRITES] =		"Writes",
-	[FIFOLOG_PT_FLUSH] =		"Flushes",
-	[FIFOLOG_PT_SYNC] =		"Syncs",
-	[FIFOLOG_PT_RUNTIME] =		"Runtime"
+	[FIFOLOG_PT_BYTES_PRE] = "Bytes before compression",
+	[FIFOLOG_PT_BYTES_POST] = "Bytes after compression",
+	[FIFOLOG_PT_WRITES] = "Writes",
+	[FIFOLOG_PT_FLUSH] = "Flushes",
+	[FIFOLOG_PT_SYNC] = "Syncs",
+	[FIFOLOG_PT_RUNTIME] = "Runtime"
 };
 
 /**********************************************************************
@@ -67,7 +67,7 @@ fifolog_write_assert(const struct fifolog_writer *f)
 {
 
 	CHECK_OBJ_NOTNULL(f, FIFOLOG_WRITER_MAGIC);
-	assert(f->ff->zs->next_out + f->ff->zs->avail_out == \
+	assert(f->ff->zs->next_out + f->ff->zs->avail_out ==
 	    f->obuf + f->obufsize);
 }
 
@@ -115,8 +115,8 @@ fifolog_write_close(struct fifolog_writer *f)
 }
 
 const char *
-fifolog_write_open(struct fifolog_writer *f, const char *fn,
-    unsigned writerate, unsigned syncrate, unsigned compression)
+fifolog_write_open(struct fifolog_writer *f, const char *fn, unsigned writerate,
+    unsigned syncrate, unsigned compression)
 {
 	const char *es;
 	int i;
@@ -190,16 +190,16 @@ fifolog_write_output(struct fifolog_writer *f, int fl, time_t now)
 	ssize_t i, w;
 	int retval = 0;
 
-	h = 4;					/* seq */
+	h = 4; /* seq */
 	be32enc(f->obuf, f->seq);
 	f->obuf[h] = f->flag;
-	h += 1;					/* flag */
+	h += 1; /* flag */
 	if (f->flag & FIFOLOG_FLG_SYNC) {
 		be32enc(f->obuf + h, now);
-		h += 4;				/* timestamp */
+		h += 4; /* timestamp */
 	}
 
-	assert(l <= (long)f->ff->recsize);	/* NB: l includes h */
+	assert(l <= (long)f->ff->recsize); /* NB: l includes h */
 	assert(l >= h);
 
 	/* We will never write an entirely empty buffer */
@@ -210,7 +210,7 @@ fifolog_write_output(struct fifolog_writer *f, int fl, time_t now)
 		return (0);
 
 	w = f->ff->recsize - l;
-	if (w >  255) {
+	if (w > 255) {
 		be32enc(f->obuf + f->ff->recsize - 4, w);
 		f->obuf[4] |= FIFOLOG_FLG_4BYTE;
 	} else if (w > 0) {
@@ -329,7 +329,7 @@ fifolog_write_record(struct fifolog_writer *f, uint32_t id, time_t now,
 	ssize_t bufl;
 
 	fifolog_write_assert(f);
-	assert(!(id & (FIFOLOG_TIMESTAMP|FIFOLOG_LENGTH)));
+	assert(!(id & (FIFOLOG_TIMESTAMP | FIFOLOG_LENGTH)));
 	assert(ptr != NULL);
 
 	p = ptr;
@@ -340,7 +340,7 @@ fifolog_write_record(struct fifolog_writer *f, uint32_t id, time_t now,
 		assert(len <= 255);
 		id |= FIFOLOG_LENGTH;
 	}
-	assert (len > 0);
+	assert(len > 0);
 
 	/* Do a timestamp, if needed */
 	if (now == 0)
@@ -392,7 +392,7 @@ fifolog_write_record_poll(struct fifolog_writer *f, uint32_t id, time_t now,
 		time(&now);
 	fifolog_write_assert(f);
 
-	assert(!(id & (FIFOLOG_TIMESTAMP|FIFOLOG_LENGTH)));
+	assert(!(id & (FIFOLOG_TIMESTAMP | FIFOLOG_LENGTH)));
 	assert(ptr != NULL);
 
 	if (len == 0) {

@@ -35,15 +35,15 @@
 #include <sys/sysctl.h>
 #include <sys/time.h>
 
-#include <signal.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <pwd.h>
-#include <syslog.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <syslog.h>
 #include <unistd.h>
 #include <utmpx.h>
 
@@ -68,7 +68,7 @@ main(int argc, char *argv[])
 		howto = 0;
 	lflag = nflag = qflag = Nflag = 0;
 	while ((ch = getopt(argc, argv, "cdk:lNnpqr")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case 'c':
 			howto |= RB_POWERCYCLE;
 			break;
@@ -138,10 +138,9 @@ main(int argc, char *argv[])
 	}
 
 	/* Log the reboot. */
-	if (!lflag)  {
+	if (!lflag) {
 		if ((user = getlogin()) == NULL)
-			user = (pw = getpwuid(getuid())) ?
-			    pw->pw_name : "???";
+			user = (pw = getpwuid(getuid())) ? pw->pw_name : "???";
 		if (dohalt) {
 			openlog("halt", 0, LOG_AUTH | LOG_CONS);
 			syslog(LOG_CRIT, "halted by %s", user);
@@ -175,8 +174,8 @@ main(int argc, char *argv[])
 	 * Ignore signals that we can get as a result of killing
 	 * parents, group leaders, etc.
 	 */
-	(void)signal(SIGHUP,  SIG_IGN);
-	(void)signal(SIGINT,  SIG_IGN);
+	(void)signal(SIGHUP, SIG_IGN);
+	(void)signal(SIGINT, SIG_IGN);
 	(void)signal(SIGQUIT, SIG_IGN);
 	(void)signal(SIGTERM, SIG_IGN);
 	(void)signal(SIGTSTP, SIG_IGN);
@@ -254,9 +253,9 @@ static void
 usage(void)
 {
 
-	(void)fprintf(stderr, dohalt ?
-	    "usage: halt [-clNnpq] [-k kernel]\n" :
-	    "usage: reboot [-cdlNnpqr] [-k kernel]\n");
+	(void)fprintf(stderr,
+	    dohalt ? "usage: halt [-clNnpq] [-k kernel]\n" :
+		     "usage: reboot [-cdlNnpqr] [-k kernel]\n");
 	exit(1);
 }
 
@@ -267,8 +266,8 @@ get_pageins(void)
 	size_t len;
 
 	len = sizeof(pageins);
-	if (sysctlbyname("vm.stats.vm.v_swappgsin", &pageins, &len, NULL, 0)
-	    != 0) {
+	if (sysctlbyname("vm.stats.vm.v_swappgsin", &pageins, &len, NULL, 0) !=
+	    0) {
 		warn("v_swappgsin");
 		return (0);
 	}

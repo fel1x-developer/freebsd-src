@@ -48,13 +48,13 @@ enum mlx5_ib_alloc_dm_attrs {
 };
 
 enum mlx5_ib_devx_methods {
-	MLX5_IB_METHOD_DEVX_OTHER  = (1U << UVERBS_ID_NS_SHIFT),
+	MLX5_IB_METHOD_DEVX_OTHER = (1U << UVERBS_ID_NS_SHIFT),
 	MLX5_IB_METHOD_DEVX_QUERY_UAR,
 	MLX5_IB_METHOD_DEVX_QUERY_EQN,
 	MLX5_IB_METHOD_DEVX_SUBSCRIBE_EVENT,
 };
 
-enum  mlx5_ib_devx_other_attrs {
+enum mlx5_ib_devx_other_attrs {
 	MLX5_IB_ATTR_DEVX_OTHER_CMD_IN = (1U << UVERBS_ID_NS_SHIFT),
 	MLX5_IB_ATTR_DEVX_OTHER_CMD_OUT,
 };
@@ -65,7 +65,7 @@ enum mlx5_ib_devx_obj_create_attrs {
 	MLX5_IB_ATTR_DEVX_OBJ_CREATE_CMD_OUT,
 };
 
-enum  mlx5_ib_devx_query_uar_attrs {
+enum mlx5_ib_devx_query_uar_attrs {
 	MLX5_IB_ATTR_DEVX_QUERY_UAR_USER_IDX = (1U << UVERBS_ID_NS_SHIFT),
 	MLX5_IB_ATTR_DEVX_QUERY_UAR_DEV_IDX,
 };
@@ -95,14 +95,15 @@ enum mlx5_ib_devx_obj_query_async_attrs {
 };
 
 enum mlx5_ib_devx_subscribe_event_attrs {
-	MLX5_IB_ATTR_DEVX_SUBSCRIBE_EVENT_FD_HANDLE = (1U << UVERBS_ID_NS_SHIFT),
+	MLX5_IB_ATTR_DEVX_SUBSCRIBE_EVENT_FD_HANDLE = (1U
+	    << UVERBS_ID_NS_SHIFT),
 	MLX5_IB_ATTR_DEVX_SUBSCRIBE_EVENT_OBJ_HANDLE,
 	MLX5_IB_ATTR_DEVX_SUBSCRIBE_EVENT_TYPE_NUM_LIST,
 	MLX5_IB_ATTR_DEVX_SUBSCRIBE_EVENT_FD_NUM,
 	MLX5_IB_ATTR_DEVX_SUBSCRIBE_EVENT_COOKIE,
 };
 
-enum  mlx5_ib_devx_query_eqn_attrs {
+enum mlx5_ib_devx_query_eqn_attrs {
 	MLX5_IB_ATTR_DEVX_QUERY_EQN_USER_VEC = (1U << UVERBS_ID_NS_SHIFT),
 	MLX5_IB_ATTR_DEVX_QUERY_EQN_DEV_EQN,
 };
@@ -182,11 +183,13 @@ enum mlx5_ib_devx_umem_methods {
 };
 
 enum mlx5_ib_devx_async_cmd_fd_alloc_attrs {
-	MLX5_IB_ATTR_DEVX_ASYNC_CMD_FD_ALLOC_HANDLE = (1U << UVERBS_ID_NS_SHIFT),
+	MLX5_IB_ATTR_DEVX_ASYNC_CMD_FD_ALLOC_HANDLE = (1U
+	    << UVERBS_ID_NS_SHIFT),
 };
 
 enum mlx5_ib_devx_async_event_fd_alloc_attrs {
-	MLX5_IB_ATTR_DEVX_ASYNC_EVENT_FD_ALLOC_HANDLE = (1U << UVERBS_ID_NS_SHIFT),
+	MLX5_IB_ATTR_DEVX_ASYNC_EVENT_FD_ALLOC_HANDLE = (1U
+	    << UVERBS_ID_NS_SHIFT),
 	MLX5_IB_ATTR_DEVX_ASYNC_EVENT_FD_ALLOC_FLAGS,
 };
 
@@ -231,7 +234,7 @@ enum mlx5_ib_flow_matcher_methods {
 #define MLX5_IB_DW_MATCH_PARAM 0x80
 
 struct mlx5_ib_match_params {
-	__u32	match_params[MLX5_IB_DW_MATCH_PARAM];
+	__u32 match_params[MLX5_IB_DW_MATCH_PARAM];
 };
 
 enum mlx5_ib_flow_type {
@@ -263,7 +266,8 @@ enum mlx5_ib_flow_methods {
 };
 
 enum mlx5_ib_flow_action_methods {
-	MLX5_IB_METHOD_FLOW_ACTION_CREATE_MODIFY_HEADER = (1U << UVERBS_ID_NS_SHIFT),
+	MLX5_IB_METHOD_FLOW_ACTION_CREATE_MODIFY_HEADER = (1U
+	    << UVERBS_ID_NS_SHIFT),
 	MLX5_IB_METHOD_FLOW_ACTION_CREATE_PACKET_REFORMAT,
 };
 

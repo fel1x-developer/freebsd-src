@@ -24,6 +24,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <libsecureboot.h>
 
 #include "decode.h"
@@ -38,7 +39,7 @@ octets2hex(unsigned char *ptr, size_t n)
 	hex = malloc(2 * n + 1);
 	if (hex != NULL) {
 		for (i = 0, cp = hex; i < n; i++) {
-			snprintf(&cp[i*2], 3, "%02X", ptr[i]);
+			snprintf(&cp[i * 2], 3, "%02X", ptr[i]);
 		}
 	}
 	return (hex);
@@ -88,10 +89,10 @@ decode_tag(unsigned char *ptr, int *isnew, int *ltype)
 	tag = *ptr;
 
 	if (!(tag & OPENPGP_TAG_ISTAG))
-		return (-1);		/* we are lost! */
+		return (-1); /* we are lost! */
 	*isnew = tag & OPENPGP_TAG_ISNEW;
 	if (*isnew) {
-		*ltype = -1;		/* irrelevant */
+		*ltype = -1; /* irrelevant */
 		tag &= OPENPGP_TAG_NEW_MASK;
 	} else {
 		*ltype = tag & OPENPGP_TAG_OLD_TYPE;
@@ -116,12 +117,12 @@ decode_new_len(unsigned char **pptr)
 	ptr = *pptr;
 
 	if (!(*ptr < 224 || *ptr == 255))
-		return (-1);		/* not supported */
+		return (-1); /* not supported */
 
 	if (*ptr < 192)
 		len = *ptr++;
 	else if (*ptr < 224) {
-		len = ((*ptr - 192) << 8) + *(ptr+1) + 192;
+		len = ((*ptr - 192) << 8) + *(ptr + 1) + 192;
 		ptr++;
 	} else if (*ptr == 255) {
 		len = (*ptr++ << 24);
@@ -162,7 +163,7 @@ decode_len(unsigned char **pptr, int ltype)
 		len |= *ptr++;
 		break;
 	case 2:
-		len =  *ptr++ << 24;
+		len = *ptr++ << 24;
 		len |= *ptr++ << 16;
 		len |= *ptr++ << 8;
 		len |= *ptr++;
@@ -195,8 +196,8 @@ decode_mpi(unsigned char **pptr, size_t *sz)
 	ptr = *pptr;
 
 	mlen = (size_t)(*ptr++ << 8);
-	mlen |= (size_t)*ptr++;		/* number of bits */
-	mlen = (mlen + 7) / 8;		/* number of bytes */
+	mlen |= (size_t)*ptr++; /* number of bits */
+	mlen = (mlen + 7) / 8;	/* number of bytes */
 	*sz = mlen;
 	data = ptr;
 	ptr += mlen;
@@ -229,8 +230,8 @@ mpi2bn(unsigned char **pptr)
 	ptr = *pptr;
 
 	mlen = (*ptr++ << 8);
-	mlen |= *ptr++;			/* number of bits */
-	mlen = (mlen + 7) / 8;		/* number of bytes */
+	mlen |= *ptr++;	       /* number of bits */
+	mlen = (mlen + 7) / 8; /* number of bytes */
 	bn = BN_bin2bn(ptr, mlen, NULL);
 	ptr += mlen;
 	*pptr = ptr;
@@ -250,8 +251,8 @@ mpi2bn(unsigned char **pptr)
  * @sa rfc4880:4.2
  */
 int
-decode_packet(int want, unsigned char **pptr, size_t nbytes,
-    decoder_t decoder, void *decoder_arg)
+decode_packet(int want, unsigned char **pptr, size_t nbytes, decoder_t decoder,
+    void *decoder_arg)
 {
 	int tag;
 	unsigned char *ptr;
@@ -271,15 +272,15 @@ decode_packet(int want, unsigned char **pptr, size_t nbytes,
 
 	len = rc = decode_len(&ptr, ltype);
 	hlen = (int)(ptr - nptr);
-	nptr = ptr + len;		/* consume it */
+	nptr = ptr + len; /* consume it */
 
 	if (decoder)
 		rc = decoder(tag, &ptr, len, decoder_arg);
 	*pptr = nptr;
 	nbytes -= (size_t)(hlen + len);
 	if (rc < 0)
-		return (rc);		/* error */
-	return ((int)nbytes);		/* unconsumed data */
+		return (rc);  /* error */
+	return ((int)nbytes); /* unconsumed data */
 }
 
 /**

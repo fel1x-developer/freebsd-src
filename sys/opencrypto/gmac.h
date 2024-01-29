@@ -30,18 +30,19 @@
 #ifndef _GMAC_H_
 #define _GMAC_H_
 
-#include "gfmult.h"
 #include <crypto/rijndael/rijndael.h>
 
-#define	GMAC_BLOCK_LEN	16
-#define	GMAC_DIGEST_LEN	16
+#include "gfmult.h"
+
+#define GMAC_BLOCK_LEN 16
+#define GMAC_DIGEST_LEN 16
 
 struct aes_gmac_ctx {
-	struct gf128table4	ghashtbl;
-	struct gf128		hash;
-	uint32_t		keysched[4*(RIJNDAEL_MAXNR + 1)];
-	uint8_t			counter[GMAC_BLOCK_LEN];
-	int			rounds;
+	struct gf128table4 ghashtbl;
+	struct gf128 hash;
+	uint32_t keysched[4 * (RIJNDAEL_MAXNR + 1)];
+	uint8_t counter[GMAC_BLOCK_LEN];
+	int rounds;
 };
 
 void AES_GMAC_Init(void *);

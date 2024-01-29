@@ -25,6 +25,7 @@
  * SUCH DAMAGE.
  */
 
+#include <atf-c.h>
 #include <err.h>
 #include <errno.h>
 #include <limits.h>
@@ -33,8 +34,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-
-#include <atf-c.h>
 
 static char *buf;
 static size_t len;
@@ -72,8 +71,8 @@ ATF_TC_BODY(open_group_test, tc)
 ATF_TC_WITHOUT_HEAD(simple_tests);
 ATF_TC_BODY(simple_tests, tc)
 {
-	static const char zerobuf[] =
-	    { 'f', 'o', 'o', 0, 0, 0, 0, 'b', 'a', 'r', 0 };
+	static const char zerobuf[] = { 'f', 'o', 'o', 0, 0, 0, 0, 'b', 'a',
+		'r', 0 };
 	char c;
 	FILE *fp;
 
@@ -153,27 +152,28 @@ ATF_TC_BODY(seek_tests, tc)
 	fp = open_memstream(&buf, &len);
 	ATF_REQUIRE_MSG(fp != NULL, "open_memstream failed: %d", errno);
 
-#define SEEK_FAIL(offset, whence, error) do {			\
-	errno = 0;						\
-	ATF_REQUIRE_MSG(fseeko(fp, (offset), (whence)) != 0,	\
-	    "fseeko(%s, %s) did not fail, set pos to %jd",	\
-	    __STRING(offset), __STRING(whence),			\
-	    (intmax_t)ftello(fp));				\
-	ATF_REQUIRE_MSG(errno == (error),			\
-	    "fseeko(%s, %s) failed with %d rather than %s",	\
-	    __STRING(offset), __STRING(whence),	errno,		\
-	    __STRING(error));					\
-} while (0)
+#define SEEK_FAIL(offset, whence, error)                                       \
+	do {                                                                   \
+		errno = 0;                                                     \
+		ATF_REQUIRE_MSG(fseeko(fp, (offset), (whence)) != 0,           \
+		    "fseeko(%s, %s) did not fail, set pos to %jd",             \
+		    __STRING(offset), __STRING(whence), (intmax_t)ftello(fp)); \
+		ATF_REQUIRE_MSG(errno == (error),                              \
+		    "fseeko(%s, %s) failed with %d rather than %s",            \
+		    __STRING(offset), __STRING(whence), errno,                 \
+		    __STRING(error));                                          \
+	} while (0)
 
-#define SEEK_OK(offset, whence, result) do {			\
-	ATF_REQUIRE_MSG(fseeko(fp, (offset), (whence)) == 0,	\
-	    "fseeko(%s, %s) failed: %s",			\
-	    __STRING(offset), __STRING(whence), strerror(errno)); \
-	ATF_REQUIRE_MSG(ftello(fp) == (result),			\
-	    "fseeko(%s, %s) seeked to %jd rather than %s",	\
-	    __STRING(offset), __STRING(whence),			\
-	    (intmax_t)ftello(fp), __STRING(result));		\
-} while (0)
+#define SEEK_OK(offset, whence, result)                                       \
+	do {                                                                  \
+		ATF_REQUIRE_MSG(fseeko(fp, (offset), (whence)) == 0,          \
+		    "fseeko(%s, %s) failed: %s", __STRING(offset),            \
+		    __STRING(whence), strerror(errno));                       \
+		ATF_REQUIRE_MSG(ftello(fp) == (result),                       \
+		    "fseeko(%s, %s) seeked to %jd rather than %s",            \
+		    __STRING(offset), __STRING(whence), (intmax_t)ftello(fp), \
+		    __STRING(result));                                        \
+	} while (0)
 
 	SEEK_FAIL(-1, SEEK_SET, EINVAL);
 	SEEK_FAIL(-1, SEEK_CUR, EINVAL);

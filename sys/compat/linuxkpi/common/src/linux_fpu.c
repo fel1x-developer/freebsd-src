@@ -1,6 +1,6 @@
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
- * 
+ *
  * Copyright (c) 2020 Val Packett <val@packett.cool>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -11,7 +11,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -27,15 +27,14 @@
 
 #include <sys/types.h>
 #include <sys/param.h>
-#include <sys/proc.h>
 #include <sys/kernel.h>
+#include <sys/proc.h>
 
+#include <asm/fpu/api.h>
 #include <linux/compat.h>
 #include <linux/sched.h>
 
-#include <asm/fpu/api.h>
-
-#if defined(__aarch64__) || defined(__arm__) || defined(__amd64__) ||	\
+#if defined(__aarch64__) || defined(__arm__) || defined(__amd64__) || \
     defined(__i386__) || defined(__powerpc64__)
 
 #include <machine/fpu.h>

@@ -24,17 +24,16 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_ETDUMP_H_
-#define	_ETDUMP_H_
+#ifndef _ETDUMP_H_
+#define _ETDUMP_H_
 
 struct outputter {
 	void (*output_image)(FILE *outfile, const char *filename,
-			     boot_volume_descriptor *bvd);
+	    boot_volume_descriptor *bvd);
 	void (*output_section)(FILE *outfile, const char *filename,
-			       boot_catalog_section_header *bcsh);
+	    boot_catalog_section_header *bcsh);
 	void (*output_entry)(FILE *outfile, const char *filename,
-			     boot_catalog_section_entry *bcse,
-			     u_char platform_id, bool initial);
+	    boot_catalog_section_entry *bcse, u_char platform_id, bool initial);
 };
 
 extern struct outputter *output_text;
@@ -43,5 +42,4 @@ extern struct outputter *output_shell;
 const char *system_id_string(u_char system_id);
 const char *media_type_string(u_char media_type);
 
-#endif	/* _ETDUMP_H_ */
-
+#endif /* _ETDUMP_H_ */

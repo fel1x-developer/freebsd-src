@@ -32,30 +32,24 @@
 #include "fpmath.h"
 #include "math.h"
 
-#define	TBLBITS	7
-#define	TBLSIZE	(1 << TBLBITS)
+#define TBLBITS 7
+#define TBLSIZE (1 << TBLBITS)
 
-#define	BIAS	(LDBL_MAX_EXP - 1)
-#define	EXPMASK	(BIAS + LDBL_MAX_EXP)
+#define BIAS (LDBL_MAX_EXP - 1)
+#define EXPMASK (BIAS + LDBL_MAX_EXP)
 
-static volatile long double
-    huge      = 0x1p10000L,
-    twom10000 = 0x1p-10000L;
+static volatile long double huge = 0x1p10000L, twom10000 = 0x1p-10000L;
 
-static const long double
-    P1        = 0x1.62e42fefa39ef35793c7673007e6p-1L,
-    P2	      = 0x1.ebfbdff82c58ea86f16b06ec9736p-3L,
-    P3        = 0x1.c6b08d704a0bf8b33a762bad3459p-5L,
-    P4        = 0x1.3b2ab6fba4e7729ccbbe0b4f3fc2p-7L,
-    P5        = 0x1.5d87fe78a67311071dee13fd11d9p-10L,
-    P6        = 0x1.430912f86c7876f4b663b23c5fe5p-13L;
+static const long double P1 = 0x1.62e42fefa39ef35793c7673007e6p-1L,
+			 P2 = 0x1.ebfbdff82c58ea86f16b06ec9736p-3L,
+			 P3 = 0x1.c6b08d704a0bf8b33a762bad3459p-5L,
+			 P4 = 0x1.3b2ab6fba4e7729ccbbe0b4f3fc2p-7L,
+			 P5 = 0x1.5d87fe78a67311071dee13fd11d9p-10L,
+			 P6 = 0x1.430912f86c7876f4b663b23c5fe5p-13L;
 
-static const double
-    P7        = 0x1.ffcbfc588b041p-17,
-    P8        = 0x1.62c0223a5c7c7p-20,
-    P9        = 0x1.b52541ff59713p-24,
-    P10       = 0x1.e4cf56a391e22p-28,
-    redux     = 0x1.8p112 / TBLSIZE;
+static const double P7 = 0x1.ffcbfc588b041p-17, P8 = 0x1.62c0223a5c7c7p-20,
+		    P9 = 0x1.b52541ff59713p-24, P10 = 0x1.e4cf56a391e22p-28,
+		    redux = 0x1.8p112 / TBLSIZE;
 
 static const long double tbl[TBLSIZE] = {
 	0x1.6a09e667f3bcc908b2fb1366dfeap-1L,
@@ -191,44 +185,44 @@ static const long double tbl[TBLSIZE] = {
 static const float eps[TBLSIZE] = {
 	-0x1.5c50p-101,
 	-0x1.5d00p-106,
-	 0x1.8e90p-102,
+	0x1.8e90p-102,
 	-0x1.5340p-103,
-	 0x1.1bd0p-102,
+	0x1.1bd0p-102,
 	-0x1.4600p-105,
 	-0x1.7a40p-104,
-	 0x1.d590p-102,
+	0x1.d590p-102,
 	-0x1.d590p-101,
-	 0x1.b100p-103,
+	0x1.b100p-103,
 	-0x1.0d80p-105,
-	 0x1.6b00p-103,
+	0x1.6b00p-103,
 	-0x1.9f00p-105,
-	 0x1.c400p-103,
-	 0x1.e120p-103,
+	0x1.c400p-103,
+	0x1.e120p-103,
 	-0x1.c100p-104,
 	-0x1.9d20p-103,
-	 0x1.a800p-108,
-	 0x1.4c00p-106,
+	0x1.a800p-108,
+	0x1.4c00p-106,
 	-0x1.9500p-106,
-	 0x1.6900p-105,
+	0x1.6900p-105,
 	-0x1.29d0p-100,
-	 0x1.4c60p-103,
-	 0x1.13a0p-102,
+	0x1.4c60p-103,
+	0x1.13a0p-102,
 	-0x1.5b60p-103,
 	-0x1.1c40p-103,
-	 0x1.db80p-102,
-	 0x1.91a0p-102,
-	 0x1.dc00p-105,
-	 0x1.44c0p-104,
-	 0x1.9710p-102,
-	 0x1.8760p-103,
+	0x1.db80p-102,
+	0x1.91a0p-102,
+	0x1.dc00p-105,
+	0x1.44c0p-104,
+	0x1.9710p-102,
+	0x1.8760p-103,
 	-0x1.a720p-103,
-	 0x1.ed20p-103,
+	0x1.ed20p-103,
 	-0x1.49c0p-102,
 	-0x1.e000p-111,
-	 0x1.86a0p-103,
-	 0x1.2b40p-103,
+	0x1.86a0p-103,
+	0x1.2b40p-103,
 	-0x1.b400p-108,
-	 0x1.1280p-99,
+	0x1.1280p-99,
 	-0x1.02d8p-102,
 	-0x1.e3d0p-103,
 	-0x1.b080p-105,
@@ -236,87 +230,87 @@ static const float eps[TBLSIZE] = {
 	-0x1.16c0p-105,
 	-0x1.1190p-103,
 	-0x1.a7d2p-100,
-	 0x1.3450p-103,
+	0x1.3450p-103,
 	-0x1.67c0p-105,
-	 0x1.4b80p-104,
+	0x1.4b80p-104,
 	-0x1.c4e0p-103,
-	 0x1.6000p-108,
+	0x1.6000p-108,
 	-0x1.3f60p-105,
-	 0x1.93f0p-104,
-	 0x1.5fe0p-105,
-	 0x1.6f80p-107,
+	0x1.93f0p-104,
+	0x1.5fe0p-105,
+	0x1.6f80p-107,
 	-0x1.7600p-106,
-	 0x1.21e0p-106,
+	0x1.21e0p-106,
 	-0x1.3a40p-106,
 	-0x1.40c0p-104,
 	-0x1.9860p-105,
 	-0x1.5d40p-108,
 	-0x1.1d70p-106,
-	 0x1.2760p-105,
-	 0x0.0000p+0,
-	 0x1.21e2p-104,
+	0x1.2760p-105,
+	0x0.0000p+0,
+	0x1.21e2p-104,
 	-0x1.9520p-108,
 	-0x1.5720p-106,
 	-0x1.4810p-106,
 	-0x1.be00p-109,
-	 0x1.0080p-105,
+	0x1.0080p-105,
 	-0x1.5780p-108,
 	-0x1.d460p-105,
 	-0x1.6140p-105,
-	 0x1.4630p-104,
-	 0x1.ad50p-103,
-	 0x1.82e0p-105,
-	 0x1.1d3cp-101,
-	 0x1.6100p-107,
-	 0x1.ec30p-104,
-	 0x1.f200p-108,
-	 0x1.0b40p-103,
-	 0x1.3660p-102,
-	 0x1.d9d0p-103,
+	0x1.4630p-104,
+	0x1.ad50p-103,
+	0x1.82e0p-105,
+	0x1.1d3cp-101,
+	0x1.6100p-107,
+	0x1.ec30p-104,
+	0x1.f200p-108,
+	0x1.0b40p-103,
+	0x1.3660p-102,
+	0x1.d9d0p-103,
 	-0x1.02d0p-102,
-	 0x1.b070p-103,
-	 0x1.b9c0p-104,
+	0x1.b070p-103,
+	0x1.b9c0p-104,
 	-0x1.01c0p-103,
 	-0x1.dfe0p-103,
-	 0x1.1b60p-104,
+	0x1.1b60p-104,
 	-0x1.ae94p-101,
 	-0x1.3340p-104,
-	 0x1.b3d8p-102,
+	0x1.b3d8p-102,
 	-0x1.6e40p-105,
 	-0x1.3670p-103,
-	 0x1.c140p-104,
-	 0x1.1840p-101,
-	 0x1.1ab0p-102,
+	0x1.c140p-104,
+	0x1.1840p-101,
+	0x1.1ab0p-102,
 	-0x1.a400p-104,
-	 0x1.1f00p-104,
+	0x1.1f00p-104,
 	-0x1.7180p-103,
-	 0x1.4ce0p-102,
-	 0x1.9200p-107,
+	0x1.4ce0p-102,
+	0x1.9200p-107,
 	-0x1.54c0p-103,
-	 0x1.1b80p-105,
+	0x1.1b80p-105,
 	-0x1.1828p-101,
-	 0x1.5720p-102,
+	0x1.5720p-102,
 	-0x1.a060p-100,
-	 0x1.9160p-102,
-	 0x1.a280p-104,
-	 0x1.3400p-107,
-	 0x1.2b20p-102,
-	 0x1.7800p-108,
-	 0x1.cfd0p-101,
-	 0x1.2ef0p-102,
+	0x1.9160p-102,
+	0x1.a280p-104,
+	0x1.3400p-107,
+	0x1.2b20p-102,
+	0x1.7800p-108,
+	0x1.cfd0p-101,
+	0x1.2ef0p-102,
 	-0x1.2760p-99,
-	 0x1.b380p-104,
-	 0x1.0048p-101,
+	0x1.b380p-104,
+	0x1.0048p-101,
 	-0x1.60b0p-102,
-	 0x1.a1ccp-100,
+	0x1.a1ccp-100,
 	-0x1.a640p-104,
 	-0x1.08a0p-101,
-	 0x1.7e60p-102,
-	 0x1.22c0p-103,
+	0x1.7e60p-102,
+	0x1.22c0p-103,
 	-0x1.7200p-106,
-	 0x1.f0f0p-102,
-	 0x1.eb4ep-99,
-	 0x1.c6e0p-103,
+	0x1.f0f0p-102,
+	0x1.eb4ep-99,
+	0x1.c6e0p-103,
 };
 
 /*
@@ -362,20 +356,19 @@ exp2l(long double x)
 	/* Filter out exceptional cases. */
 	hx = u.xbits.expsign;
 	ix = hx & EXPMASK;
-	if (ix >= BIAS + 14) {		/* |x| >= 16384 */
+	if (ix >= BIAS + 14) { /* |x| >= 16384 */
 		if (ix == BIAS + LDBL_MAX_EXP) {
-			if (u.xbits.manh != 0
-			    || u.xbits.manl != 0
-			    || (hx & 0x8000) == 0)
-				return (x + x);	/* x is NaN or +Inf */
-			else 
-				return (0.0);	/* x is -Inf */
+			if (u.xbits.manh != 0 || u.xbits.manl != 0 ||
+			    (hx & 0x8000) == 0)
+				return (x + x); /* x is NaN or +Inf */
+			else
+				return (0.0); /* x is -Inf */
 		}
 		if (x >= 16384)
 			return (huge * huge); /* overflow */
 		if (x <= -16495)
 			return (twom10000 * twom10000); /* underflow */
-	} else if (ix <= BIAS - 115) {		/* |x| < 0x1p-115 */
+	} else if (ix <= BIAS - 115) {			/* |x| < 0x1p-115 */
 		return (1.0 + x);
 	}
 
@@ -410,13 +403,31 @@ exp2l(long double x)
 	}
 
 	/* Compute r = exp2(y) = exp2t[i0] * p(z - eps[i]). */
-	t = tbl[i0];		/* exp2t[i0] */
-	z -= eps[i0];		/* eps[i0]   */
-	r = t + t * z * (P1 + z * (P2 + z * (P3 + z * (P4 + z * (P5 + z * (P6
-	    + z * (P7 + z * (P8 + z * (P9 + z * P10)))))))));
+	t = tbl[i0];  /* exp2t[i0] */
+	z -= eps[i0]; /* eps[i0]   */
+	r = t +
+	    t * z *
+		(P1 +
+		    z *
+			(P2 +
+			    z *
+				(P3 +
+				    z *
+					(P4 +
+					    z *
+						(P5 +
+						    z *
+							(P6 +
+							    z *
+								(P7 +
+								    z *
+									(P8 +
+									    z *
+										(P9 +
+										    z * P10)))))))));
 
 	/* Scale by 2**k. */
-	if(k >= LDBL_MIN_EXP) {
+	if (k >= LDBL_MIN_EXP) {
 		if (k == LDBL_MAX_EXP)
 			return (r * 2.0 * 0x1p16383L);
 		return (r * twopk);

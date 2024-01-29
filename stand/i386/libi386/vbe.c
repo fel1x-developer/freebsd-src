@@ -28,15 +28,19 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
 #include <sys/param.h>
-#include <machine/psl.h>
+
 #include <machine/cpufunc.h>
-#include <stdbool.h>
+#include <machine/psl.h>
+
+#include <dev/vt/hw/vga/vt_vga_reg.h>
+
 #include <bootstrap.h>
 #include <btxv86.h>
 #include <gfx_fb.h>
-#include <dev/vt/hw/vga/vt_vga_reg.h>
+#include <stand.h>
+#include <stdbool.h>
+
 #include "libi386.h"
 #include "vbe.h"
 
@@ -54,7 +58,7 @@ struct vesa_edid_info *edid_info = NULL;
 /* The default VGA color palette format is 6 bits per primary color. */
 int palette_format = 6;
 
-#define	VESA_MODE_BASE	0x100
+#define VESA_MODE_BASE 0x100
 
 /*
  * palette array for 8-bit indexed colors. In this case, cmap does store
@@ -68,39 +72,37 @@ static struct named_resolution {
 	const char *alias;
 	unsigned int width;
 	unsigned int height;
-} resolutions[] = {
+} resolutions[] = { {
+			.name = "480p",
+			.width = 640,
+			.height = 480,
+		    },
 	{
-		.name = "480p",
-		.width = 640,
-		.height = 480,
+	    .name = "720p",
+	    .width = 1280,
+	    .height = 720,
 	},
 	{
-		.name = "720p",
-		.width = 1280,
-		.height = 720,
+	    .name = "1080p",
+	    .width = 1920,
+	    .height = 1080,
 	},
 	{
-		.name = "1080p",
-		.width = 1920,
-		.height = 1080,
+	    .name = "1440p",
+	    .width = 2560,
+	    .height = 1440,
 	},
 	{
-		.name = "1440p",
-		.width = 2560,
-		.height = 1440,
+	    .name = "2160p",
+	    .alias = "4k",
+	    .width = 3840,
+	    .height = 2160,
 	},
 	{
-		.name = "2160p",
-		.alias = "4k",
-		.width = 3840,
-		.height = 2160,
-	},
-	{
-		.name = "5k",
-		.width = 5120,
-		.height = 2880,
-	}
-};
+	    .name = "5k",
+	    .width = 5120,
+	    .height = 2880,
+	} };
 
 static bool
 vbe_resolution_compare(struct named_resolution *res, const char *cmp)
@@ -163,11 +165,11 @@ vga_get_atr(int reg, int i)
 {
 	int ret;
 
-	(void) inb(reg + VGA_GEN_INPUT_STAT_1);
+	(void)inb(reg + VGA_GEN_INPUT_STAT_1);
 	outb(reg + VGA_AC_WRITE, i);
 	ret = inb(reg + VGA_AC_READ);
 
-	(void) inb(reg + VGA_GEN_INPUT_STAT_1);
+	(void)inb(reg + VGA_GEN_INPUT_STAT_1);
 
 	return (ret);
 }
@@ -175,11 +177,11 @@ vga_get_atr(int reg, int i)
 void
 vga_set_atr(int reg, int i, int v)
 {
-	(void) inb(reg + VGA_GEN_INPUT_STAT_1);
+	(void)inb(reg + VGA_GEN_INPUT_STAT_1);
 	outb(reg + VGA_AC_WRITE, i);
 	outb(reg + VGA_AC_WRITE, v);
 
-	(void) inb(reg + VGA_GEN_INPUT_STAT_1);
+	(void)inb(reg + VGA_GEN_INPUT_STAT_1);
 }
 
 void
@@ -259,12 +261,12 @@ bios_set_text_mode(int mode)
 		 * palette, so we switch to 6-bit here.
 		 */
 		m = 0x0600;
-		(void) biosvbe_palette_format(&m);
+		(void)biosvbe_palette_format(&m);
 		palette_format = m;
 	}
 	v86.ctl = V86_FLAGS;
 	v86.addr = 0x10;
-	v86.eax = mode;				/* set VGA text mode */
+	v86.eax = mode; /* set VGA text mode */
 	v86int();
 	atr = vga_get_atr(VGA_REG_BASE, VGA_AC_MODE_CONTROL);
 	atr &= ~VGA_AC_MC_BI;
@@ -298,7 +300,7 @@ biosvbe_info(struct vbeinfoblock *vbep)
 		return (VBE_FAILED);
 
 	/* Now check if we have vesa. */
-	memset(rvbe, 0, sizeof (*vbe));
+	memset(rvbe, 0, sizeof(*vbe));
 	memcpy(rvbe->VbeSignature, "VBE2", 4);
 
 	v86.ctl = V86_FLAGS;
@@ -371,7 +373,7 @@ biosvbe_set_mode(int mode, struct crtciinfoblock *ci)
 	v86.ctl = V86_FLAGS;
 	v86.addr = 0x10;
 	v86.eax = 0x4f02;
-	v86.ebx = mode | 0x4000;	/* set linear FB bit */
+	v86.ebx = mode | 0x4000; /* set linear FB bit */
 	v86.es = VTOPSEG(ci);
 	v86.edi = VTOPOFF(ci);
 	v86int();
@@ -396,7 +398,7 @@ biosvbe_get_mode(int *mode)
 	v86.addr = 0x10;
 	v86.eax = 0x4f03;
 	v86int();
-	*mode = v86.ebx & 0x3fff;	/* Bits 0-13 */
+	*mode = v86.ebx & 0x3fff; /* Bits 0-13 */
 	return (v86.eax & 0xffff);
 }
 
@@ -440,9 +442,9 @@ biosvbe_ddc_caps(void)
 {
 	v86.ctl = V86_FLAGS;
 	v86.addr = 0x10;
-	v86.eax = 0x4f15;	/* display identification extensions */
-	v86.ebx = 0;		/* report DDC capabilities */
-	v86.ecx = 0;		/* controller unit number (00h = primary) */
+	v86.eax = 0x4f15; /* display identification extensions */
+	v86.ebx = 0;	  /* report DDC capabilities */
+	v86.ecx = 0;	  /* controller unit number (00h = primary) */
 	v86.es = 0;
 	v86.edi = 0;
 	v86int();
@@ -457,8 +459,8 @@ biosvbe_ddc_read_flat_panel_info(void *buf)
 {
 	v86.ctl = V86_FLAGS;
 	v86.addr = 0x10;
-	v86.eax = 0x4f11;	/* Flat Panel Interface extensions */
-	v86.ebx = 1;		/* Return Flat Panel Information */
+	v86.eax = 0x4f11; /* Flat Panel Interface extensions */
+	v86.ebx = 1;	  /* Return Flat Panel Information */
 	v86.es = VTOPSEG(buf);
 	v86.edi = VTOPOFF(buf);
 	v86int();
@@ -471,9 +473,9 @@ biosvbe_ddc_read_edid(int blockno, void *buf)
 {
 	v86.ctl = V86_FLAGS;
 	v86.addr = 0x10;
-	v86.eax = 0x4f15;	/* display identification extensions */
-	v86.ebx = 1;		/* read EDID */
-	v86.ecx = 0;		/* controller unit number (00h = primary) */
+	v86.eax = 0x4f15; /* display identification extensions */
+	v86.ebx = 1;	  /* read EDID */
+	v86.ecx = 0;	  /* controller unit number (00h = primary) */
 	v86.edx = blockno;
 	v86.es = VTOPSEG(buf);
 	v86.edi = VTOPOFF(buf);
@@ -485,16 +487,16 @@ static int
 vbe_mode_is_supported(struct modeinfoblock *mi)
 {
 	if ((mi->ModeAttributes & 0x01) == 0)
-		return (0);	/* mode not supported by hardware */
+		return (0); /* mode not supported by hardware */
 	if ((mi->ModeAttributes & 0x08) == 0)
-		return (0);	/* linear fb not available */
+		return (0); /* linear fb not available */
 	if ((mi->ModeAttributes & 0x10) == 0)
-		return (0);	/* text mode */
+		return (0); /* text mode */
 	if (mi->NumberOfPlanes != 1)
-		return (0);	/* planar mode not supported */
+		return (0); /* planar mode not supported */
 	if (mi->MemoryModel != 0x04 /* Packed pixel */ &&
 	    mi->MemoryModel != 0x06 /* Direct Color */)
-		return (0);	/* unsupported pixel format */
+		return (0); /* unsupported pixel format */
 	return (1);
 }
 
@@ -525,18 +527,18 @@ mode_set(struct env_var *ev, int flags __unused, const void *value)
 		if (errno != 0 || *(char *)value == '\0' || *end != '\0' ||
 		    (v != 0 && v != 1))
 			return (EINVAL);
-		env_setenv("screen.textmode", EV_VOLATILE | EV_NOHOOK,
-		    value, NULL, NULL);
+		env_setenv("screen.textmode", EV_VOLATILE | EV_NOHOOK, value,
+		    NULL, NULL);
 		if (v == 1) {
 			reset_font_flags();
 			bios_text_font(true);
 			bios_set_text_mode(VGA_TEXT_MODE);
-			(void) cons_update_mode(false);
+			(void)cons_update_mode(false);
 			return (0);
 		}
 	} else if (strcmp(ev->ev_name, "vbe_max_resolution") == 0) {
-		env_setenv("vbe_max_resolution", EV_VOLATILE | EV_NOHOOK,
-		    value, NULL, NULL);
+		env_setenv("vbe_max_resolution", EV_VOLATILE | EV_NOHOOK, value,
+		    NULL, NULL);
 	} else {
 		return (EINVAL);
 	}
@@ -569,8 +571,7 @@ vbe_init(void)
 	gfx_state.tg_ctype = CT_INDEXED;
 	gfx_state.tg_mode = 3;
 
-	env_setenv("screen.textmode", EV_VOLATILE, "1", mode_set,
-	    env_nounset);
+	env_setenv("screen.textmode", EV_VOLATILE, "1", mode_set, env_nounset);
 	env_setenv("vbe_max_resolution", EV_VOLATILE, NULL, mode_set,
 	    env_nounset);
 
@@ -601,7 +602,7 @@ vbe_init(void)
 	 * corrupt the provided list (vbox 6.1 is one example).
 	 */
 	p = ml = vbe_farptr(vbe->VideoModePtr);
-	while(*p++ != 0xFFFF)
+	while (*p++ != 0xFFFF)
 		;
 
 	vbe_mode_list_size = (uintptr_t)p - (uintptr_t)ml;
@@ -705,7 +706,7 @@ vbe_set_mode(int modenum)
 	gfx_state.tg_mode = modenum;
 	gfx_state.tg_fb_type = FB_VBE;
 	/* make sure we have current MI in vbestate */
-	memcpy(vbe_mode, &mi, sizeof (*vbe_mode));
+	memcpy(vbe_mode, &mi, sizeof(*vbe_mode));
 
 	gfx_state.tg_fb.fb_addr = (uint64_t)mi.PhysBasePtr & 0xffffffff;
 	gfx_state.tg_fb.fb_height = mi.YResolution;
@@ -713,8 +714,8 @@ vbe_set_mode(int modenum)
 	gfx_state.tg_fb.fb_bpp = mi.BitsPerPixel;
 
 	free(gfx_state.tg_shadow_fb);
-	gfx_state.tg_shadow_fb = malloc(mi.YResolution * mi.XResolution *
-	    sizeof(struct paletteentry));
+	gfx_state.tg_shadow_fb = malloc(
+	    mi.YResolution * mi.XResolution * sizeof(struct paletteentry));
 
 	/* Bytes per pixel */
 	bpp = roundup2(mi.BitsPerPixel, NBBY) / NBBY;
@@ -729,29 +730,28 @@ vbe_set_mode(int modenum)
 		break;
 	}
 
-#define	COLOR_MASK(size, pos) (((1 << size) - 1) << pos)
+#define COLOR_MASK(size, pos) (((1 << size) - 1) << pos)
 	if (gfx_state.tg_ctype == CT_INDEXED) {
 		gfx_state.tg_fb.fb_mask_red = COLOR_MASK(palette_format, 16);
 		gfx_state.tg_fb.fb_mask_green = COLOR_MASK(palette_format, 8);
 		gfx_state.tg_fb.fb_mask_blue = COLOR_MASK(palette_format, 0);
 	} else if (vbe->VbeVersion >= 0x300) {
-		gfx_state.tg_fb.fb_mask_red =
-		    COLOR_MASK(mi.LinRedMaskSize, mi.LinRedFieldPosition);
-		gfx_state.tg_fb.fb_mask_green =
-		    COLOR_MASK(mi.LinGreenMaskSize, mi.LinGreenFieldPosition);
-		gfx_state.tg_fb.fb_mask_blue =
-		    COLOR_MASK(mi.LinBlueMaskSize, mi.LinBlueFieldPosition);
+		gfx_state.tg_fb.fb_mask_red = COLOR_MASK(mi.LinRedMaskSize,
+		    mi.LinRedFieldPosition);
+		gfx_state.tg_fb.fb_mask_green = COLOR_MASK(mi.LinGreenMaskSize,
+		    mi.LinGreenFieldPosition);
+		gfx_state.tg_fb.fb_mask_blue = COLOR_MASK(mi.LinBlueMaskSize,
+		    mi.LinBlueFieldPosition);
 	} else {
-		gfx_state.tg_fb.fb_mask_red =
-		    COLOR_MASK(mi.RedMaskSize, mi.RedFieldPosition);
-		gfx_state.tg_fb.fb_mask_green =
-		    COLOR_MASK(mi.GreenMaskSize, mi.GreenFieldPosition);
-		gfx_state.tg_fb.fb_mask_blue =
-		    COLOR_MASK(mi.BlueMaskSize, mi.BlueFieldPosition);
+		gfx_state.tg_fb.fb_mask_red = COLOR_MASK(mi.RedMaskSize,
+		    mi.RedFieldPosition);
+		gfx_state.tg_fb.fb_mask_green = COLOR_MASK(mi.GreenMaskSize,
+		    mi.GreenFieldPosition);
+		gfx_state.tg_fb.fb_mask_blue = COLOR_MASK(mi.BlueMaskSize,
+		    mi.BlueFieldPosition);
 	}
 	gfx_state.tg_fb.fb_mask_reserved = ~(gfx_state.tg_fb.fb_mask_red |
-	    gfx_state.tg_fb.fb_mask_green |
-	    gfx_state.tg_fb.fb_mask_blue);
+	    gfx_state.tg_fb.fb_mask_green | gfx_state.tg_fb.fb_mask_blue);
 
 	if (vbe->VbeVersion >= 0x300)
 		gfx_state.tg_fb.fb_stride = mi.LinBytesPerScanLine / bpp;
@@ -776,7 +776,7 @@ vbe_find_mode_xydm(int x, int y, int depth, int m)
 	uint16_t mode;
 	int idx, nentries, i;
 
-	memset(vbe, 0, sizeof (*vbe));
+	memset(vbe, 0, sizeof(*vbe));
 	if (biosvbe_info(vbe) != VBE_SUCCESS)
 		return (0);
 
@@ -809,8 +809,7 @@ vbe_find_mode_xydm(int x, int y, int depth, int m)
 					continue;
 			}
 
-			if (mi.XResolution == x &&
-			    mi.YResolution == y &&
+			if (mi.XResolution == x && mi.YResolution == y &&
 			    mi.BitsPerPixel == i)
 				return (mode);
 		}
@@ -837,8 +836,8 @@ vbe_find_mode(char *str)
 static void
 vbe_dump_mode(int modenum, struct modeinfoblock *mi)
 {
-	printf("0x%x=%dx%dx%d", modenum,
-	    mi->XResolution, mi->YResolution, mi->BitsPerPixel);
+	printf("0x%x=%dx%dx%d", modenum, mi->XResolution, mi->YResolution,
+	    mi->BitsPerPixel);
 }
 
 static bool
@@ -875,7 +874,7 @@ vbe_get_edid(edid_res_list_t *res)
 	ret = gfx_get_edid_resolution(edidp, res);
 	edid_info = malloc(sizeof(*edid_info));
 	if (edid_info != NULL)
-		memcpy(edid_info, edidp, sizeof (*edid_info));
+		memcpy(edid_info, edidp, sizeof(*edid_info));
 done:
 	bio_free(edidp, sizeof(*edidp));
 	return (ret);
@@ -887,10 +886,10 @@ vbe_get_flatpanel(uint32_t *pwidth, uint32_t *pheight)
 	struct vesa_flat_panel_info *fp_info;
 	bool ret = false;
 
-	fp_info = bio_alloc(sizeof (*fp_info));
+	fp_info = bio_alloc(sizeof(*fp_info));
 	if (fp_info == NULL)
 		return (ret);
-	memset(fp_info, 0, sizeof (*fp_info));
+	memset(fp_info, 0, sizeof(*fp_info));
 
 	if (VBE_ERROR(biosvbe_ddc_read_flat_panel_info(fp_info)))
 		goto done;
@@ -900,7 +899,7 @@ vbe_get_flatpanel(uint32_t *pwidth, uint32_t *pheight)
 	ret = true;
 
 done:
-	bio_free(fp_info, sizeof (*fp_info));
+	bio_free(fp_info, sizeof(*fp_info));
 	return (ret);
 }
 
@@ -993,7 +992,7 @@ vbe_modelist(int depth)
 			printf(": Panel %dx%d\n", width, height);
 
 	nmodes = 0;
-	memset(vbe, 0, sizeof (*vbe));
+	memset(vbe, 0, sizeof(*vbe));
 	memcpy(vbe->VbeSignature, "VBE2", 4);
 	if (biosvbe_info(vbe) != VBE_SUCCESS)
 		goto done;
@@ -1042,7 +1041,7 @@ vbe_print_mode(bool verbose __unused)
 
 	nc = NCOLORS;
 
-	memset(vbe, 0, sizeof (*vbe));
+	memset(vbe, 0, sizeof(*vbe));
 	if (biosvbe_info(vbe) != VBE_SUCCESS)
 		return;
 
@@ -1063,30 +1062,28 @@ vbe_print_mode(bool verbose __unused)
 	vbe_dump_mode(mode, vbe_mode);
 	printf("\n");
 
-	printf("%ux%ux%u, stride=%u\n",
-	    gfx_state.tg_fb.fb_width,
-	    gfx_state.tg_fb.fb_height,
-	    gfx_state.tg_fb.fb_bpp,
+	printf("%ux%ux%u, stride=%u\n", gfx_state.tg_fb.fb_width,
+	    gfx_state.tg_fb.fb_height, gfx_state.tg_fb.fb_bpp,
 	    gfx_state.tg_fb.fb_stride *
-	    (roundup2(gfx_state.tg_fb.fb_bpp, NBBY) / NBBY));
+		(roundup2(gfx_state.tg_fb.fb_bpp, NBBY) / NBBY));
 	printf("    frame buffer: address=%jx, size=%jx\n",
 	    (uintmax_t)gfx_state.tg_fb.fb_addr,
 	    (uintmax_t)gfx_state.tg_fb.fb_size);
 
 	if (vbe_mode->MemoryModel == 0x6) {
 		printf("    color mask: R=%08x, G=%08x, B=%08x\n",
-		    gfx_state.tg_fb.fb_mask_red,
-		    gfx_state.tg_fb.fb_mask_green,
+		    gfx_state.tg_fb.fb_mask_red, gfx_state.tg_fb.fb_mask_green,
 		    gfx_state.tg_fb.fb_mask_blue);
 		pager_open();
 		for (i = 0; i < nc; i++) {
 			printf("%d: R=%02x, G=%02x, B=%02x %08x", i,
 			    (cmap[i] & gfx_state.tg_fb.fb_mask_red) >>
-			    ffs(gfx_state.tg_fb.fb_mask_red) - 1,
+				ffs(gfx_state.tg_fb.fb_mask_red) - 1,
 			    (cmap[i] & gfx_state.tg_fb.fb_mask_green) >>
-			    ffs(gfx_state.tg_fb.fb_mask_green) - 1,
+				ffs(gfx_state.tg_fb.fb_mask_green) - 1,
 			    (cmap[i] & gfx_state.tg_fb.fb_mask_blue) >>
-			    ffs(gfx_state.tg_fb.fb_mask_blue) - 1, cmap[i]);
+				ffs(gfx_state.tg_fb.fb_mask_blue) - 1,
+			    cmap[i]);
 			if (pager_output("\n") != 0)
 				break;
 		}
@@ -1094,7 +1091,7 @@ vbe_print_mode(bool verbose __unused)
 		return;
 	}
 
-	mode = 1;	/* get DAC palette width */
+	mode = 1; /* get DAC palette width */
 	rc = biosvbe_palette_format(&mode);
 	if (rc != VBE_SUCCESS)
 		return;
@@ -1105,8 +1102,8 @@ vbe_print_mode(bool verbose __unused)
 
 	pager_open();
 	for (i = 0; i < nc; i++) {
-		printf("%d: R=%02x, G=%02x, B=%02x", i,
-		    pe8[i].Red, pe8[i].Green, pe8[i].Blue);
+		printf("%d: R=%02x, G=%02x, B=%02x", i, pe8[i].Red,
+		    pe8[i].Green, pe8[i].Blue);
 		if (pager_output("\n") != 0)
 			break;
 	}
@@ -1135,16 +1132,15 @@ vbe_default_mode(void)
 	if (vbe_get_edid(&res)) {
 		while ((rp = TAILQ_FIRST(&res)) != NULL) {
 			if (modenum == 0) {
-				modenum = vbe_find_mode_xydm(
-				    rp->width, rp->height, -1, -1);
+				modenum = vbe_find_mode_xydm(rp->width,
+				    rp->height, -1, -1);
 			}
 			TAILQ_REMOVE(&res, rp, next);
 			free(rp);
 		}
 	}
 
-	if (modenum == 0 &&
-	    vbe_get_flatpanel(&width, &height)) {
+	if (modenum == 0 && vbe_get_flatpanel(&width, &height)) {
 		modenum = vbe_find_mode_xydm(width, height, -1, -1);
 	}
 
@@ -1178,8 +1174,7 @@ command_vesa(int argc, char *argv[])
 			errno = 0;
 			n = strtoul(arg, &cp, 0);
 			if (errno != 0 || *arg == '\0' || cp[0] != '\0') {
-				snprintf(command_errbuf,
-				    sizeof (command_errbuf),
+				snprintf(command_errbuf, sizeof(command_errbuf),
 				    "depth should be an integer");
 				return (CMD_ERROR);
 			}
@@ -1220,7 +1215,7 @@ command_vesa(int argc, char *argv[])
 
 		modenum = vbe_default_mode();
 		if (modenum == 0) {
-			snprintf(command_errbuf, sizeof (command_errbuf),
+			snprintf(command_errbuf, sizeof(command_errbuf),
 			    "%s: no suitable VBE mode number found", argv[0]);
 			return (CMD_ERROR);
 		}
@@ -1233,8 +1228,7 @@ command_vesa(int argc, char *argv[])
 			errno = 0;
 			n = strtoul(arg, &cp, 0);
 			if (errno != 0 || *arg == '\0' || cp[0] != '\0') {
-				snprintf(command_errbuf,
-				    sizeof (command_errbuf),
+				snprintf(command_errbuf, sizeof(command_errbuf),
 				    "mode should be an integer");
 				return (CMD_ERROR);
 			}
@@ -1247,9 +1241,9 @@ command_vesa(int argc, char *argv[])
 	}
 
 	if (modenum == 0) {
-		snprintf(command_errbuf, sizeof (command_errbuf),
-		    "%s: mode %s not supported by firmware\n",
-		    argv[0], argv[2]);
+		snprintf(command_errbuf, sizeof(command_errbuf),
+		    "%s: mode %s not supported by firmware\n", argv[0],
+		    argv[2]);
 		return (CMD_ERROR);
 	}
 
@@ -1262,14 +1256,15 @@ command_vesa(int argc, char *argv[])
 		}
 		return (CMD_OK);
 	} else {
-		snprintf(command_errbuf, sizeof (command_errbuf),
+		snprintf(command_errbuf, sizeof(command_errbuf),
 		    "%s: mode %s is not framebuffer mode\n", argv[0], argv[2]);
 		return (CMD_ERROR);
 	}
 
 usage:
-	snprintf(command_errbuf, sizeof (command_errbuf),
+	snprintf(command_errbuf, sizeof(command_errbuf),
 	    "usage: %s on | off | get | list [depth] | "
-	    "set <display or VBE mode number>", argv[0]);
+	    "set <display or VBE mode number>",
+	    argv[0]);
 	return (CMD_ERROR);
 }

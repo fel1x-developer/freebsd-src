@@ -29,44 +29,44 @@
  */
 
 #ifndef _ARM64_IOMMU_IOMMU_PTE_H_
-#define	_ARM64_IOMMU_IOMMU_PTE_H_
+#define _ARM64_IOMMU_IOMMU_PTE_H_
 
 /* Level 0 table, 512GiB per entry */
-#define	IOMMU_L0_SHIFT		39
-#define	IOMMU_L0_INVAL		0x0 /* An invalid address */
-		/* 0x1 Level 0 doesn't support block translation */
-		/* 0x2 also marks an invalid address */
-#define	IOMMU_L0_TABLE		0x3 /* A next-level table */
+#define IOMMU_L0_SHIFT 39
+#define IOMMU_L0_INVAL 0x0 /* An invalid address */
+			   /* 0x1 Level 0 doesn't support block translation */
+			   /* 0x2 also marks an invalid address */
+#define IOMMU_L0_TABLE 0x3 /* A next-level table */
 
 /* Level 1 table, 1GiB per entry */
-#define	IOMMU_L1_SHIFT		30
-#define	IOMMU_L1_INVAL		IOMMU_L0_INVAL
-#define	IOMMU_L1_BLOCK		0x1
-#define	IOMMU_L1_TABLE		IOMMU_L0_TABLE
+#define IOMMU_L1_SHIFT 30
+#define IOMMU_L1_INVAL IOMMU_L0_INVAL
+#define IOMMU_L1_BLOCK 0x1
+#define IOMMU_L1_TABLE IOMMU_L0_TABLE
 
 /* Level 2 table, 2MiB per entry */
-#define	IOMMU_L2_SHIFT		21
-#define	IOMMU_L2_INVAL		IOMMU_L1_INVAL
-#define	IOMMU_L2_BLOCK		IOMMU_L1_BLOCK
-#define	IOMMU_L2_TABLE		IOMMU_L1_TABLE
+#define IOMMU_L2_SHIFT 21
+#define IOMMU_L2_INVAL IOMMU_L1_INVAL
+#define IOMMU_L2_BLOCK IOMMU_L1_BLOCK
+#define IOMMU_L2_TABLE IOMMU_L1_TABLE
 
 /* Level 3 table, 4KiB per entry */
-#define	IOMMU_L3_SHIFT		12
-#define	IOMMU_L3_SIZE 		(1 << IOMMU_L3_SHIFT)
-#define	IOMMU_L3_SHIFT		12
-#define	IOMMU_L3_INVAL		0x0
-	/* 0x1 is reserved */
-	/* 0x2 also marks an invalid address */
-#define	IOMMU_L3_PAGE		0x3
-#define	IOMMU_L3_BLOCK		IOMMU_L2_BLOCK	/* Mali GPU only. */
+#define IOMMU_L3_SHIFT 12
+#define IOMMU_L3_SIZE (1 << IOMMU_L3_SHIFT)
+#define IOMMU_L3_SHIFT 12
+#define IOMMU_L3_INVAL 0x0
+/* 0x1 is reserved */
+/* 0x2 also marks an invalid address */
+#define IOMMU_L3_PAGE 0x3
+#define IOMMU_L3_BLOCK IOMMU_L2_BLOCK /* Mali GPU only. */
 
-#define	IOMMU_L0_ENTRIES_SHIFT	9
-#define	IOMMU_L0_ENTRIES	(1 << IOMMU_L0_ENTRIES_SHIFT)
-#define	IOMMU_L0_ADDR_MASK	(IOMMU_L0_ENTRIES - 1)
+#define IOMMU_L0_ENTRIES_SHIFT 9
+#define IOMMU_L0_ENTRIES (1 << IOMMU_L0_ENTRIES_SHIFT)
+#define IOMMU_L0_ADDR_MASK (IOMMU_L0_ENTRIES - 1)
 
-#define	IOMMU_Ln_ENTRIES_SHIFT	9
-#define	IOMMU_Ln_ENTRIES	(1 << IOMMU_Ln_ENTRIES_SHIFT)
-#define	IOMMU_Ln_ADDR_MASK	(IOMMU_Ln_ENTRIES - 1)
-#define	IOMMU_Ln_TABLE_MASK	((1 << 12) - 1)
+#define IOMMU_Ln_ENTRIES_SHIFT 9
+#define IOMMU_Ln_ENTRIES (1 << IOMMU_Ln_ENTRIES_SHIFT)
+#define IOMMU_Ln_ADDR_MASK (IOMMU_Ln_ENTRIES - 1)
+#define IOMMU_Ln_TABLE_MASK ((1 << 12) - 1)
 
 #endif /* !_ARM64_IOMMU_IOMMU_PTE_H_ */

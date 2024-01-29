@@ -103,7 +103,7 @@ bhnd_nvram_io_read_ptr(struct bhnd_nvram_io *io, size_t offset,
  * @param offset The offset within @p io at which to perform the write.
  * @param buffer Data to be written to @p io.
  * @param nbytes The number of bytes to be written from @p buffer.
- * 
+ *
  * @retval 0 success
  * @retval EIO if an output error occurs writing to @p io.
  * @retval ENODEV if @p io does not support writing.
@@ -127,7 +127,7 @@ bhnd_nvram_io_write(struct bhnd_nvram_io *io, size_t offset, void *buffer,
  * The returned pointer is only gauranteed to be valid until the next I/O
  * operation performed on @p io; concrete implementations of bhnd_nvram_io
  * may provide stronger gaurantees.
- * 
+ *
  * @param io NVRAM I/O context.
  * @param offset The offset within @p io for which to return a buffer pointer.
  * @param[in,out] ptr On success, will be initialized with a pointer to @p io's
@@ -136,7 +136,7 @@ bhnd_nvram_io_write(struct bhnd_nvram_io *io, size_t offset, void *buffer,
  * @param[out] navail The actual number of writable bytes, which may be greater
  * than @p nbytes. If this value is not required, a NULL pointer may be
  * provided.
- * 
+ *
  * @retval 0 success
  * @retval EIO if an output error occurs preparing @p io's write buffer.
  * @retval ENODEV if @p io does not support direct access to its backing write
@@ -156,7 +156,7 @@ bhnd_nvram_io_write_ptr(struct bhnd_nvram_io *io, size_t offset, void **ptr,
 
 /**
  * Return the total number of bytes readable via @p io.
- * 
+ *
  * @param io NVRAM I/O context.
  */
 size_t

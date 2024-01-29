@@ -7,7 +7,7 @@
  *      This header file that contains the prototypes and definitions required
  *      for ADF debug feature.
  *
-*****************************************************************************/
+ *****************************************************************************/
 #ifndef ICP_ADF_DEBUG_H
 #define ICP_ADF_DEBUG_H
 
@@ -56,10 +56,8 @@ typedef int (*file_read)(void *private_data, char *buff, int size);
  * Function should return 0 (zero) if all info is printed or
  * offset from where to start in next step.
  */
-typedef int (*file_read_seq)(void *private_data,
-			     char *buff,
-			     int size,
-			     int offset);
+typedef int (
+    *file_read_seq)(void *private_data, char *buff, int size, int offset);
 
 /*
  * debug_file_info_t
@@ -95,7 +93,7 @@ typedef struct debug_file_info_s {
  *   CPA_STATUS_FAIL       on failure
  */
 CpaStatus icp_adf_debugAddDir(icp_accel_dev_t *accel_dev,
-			      debug_dir_info_t *dir_info);
+    debug_dir_info_t *dir_info);
 
 /*
  * icp_adf_debugRemoveDir
@@ -105,7 +103,7 @@ CpaStatus icp_adf_debugAddDir(icp_accel_dev_t *accel_dev,
  *  directory for which debug output may be stored
  *  in the proc filesystem.
  *
-*/
+ */
 void icp_adf_debugRemoveDir(debug_dir_info_t *dir_info);
 
 /*
@@ -120,7 +118,7 @@ void icp_adf_debugRemoveDir(debug_dir_info_t *dir_info);
  *   CPA_STATUS_FAIL      on failure
  */
 CpaStatus icp_adf_debugAddFile(icp_accel_dev_t *accel_dev,
-			       debug_file_info_t *file_info);
+    debug_file_info_t *file_info);
 
 /*
  * icp_adf_debugRemoveFile

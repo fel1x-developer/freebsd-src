@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
-#include "adf_cfg_instance.h"
 #include "adf_cfg_device.h"
+#include "adf_cfg_instance.h"
 #include "adf_cfg_section.h"
 
 static bool
@@ -13,8 +13,8 @@ adf_cfg_is_svc_enabled(struct adf_accel_dev *accel_dev, const u8 svc)
 
 	for (ring_pair_index = 0; ring_pair_index < ADF_CFG_NUM_SERVICES;
 	     ring_pair_index++) {
-		serv_type =
-		    GET_SRV_TYPE(hw_data->ring_to_svc_map, ring_pair_index);
+		serv_type = GET_SRV_TYPE(hw_data->ring_to_svc_map,
+		    ring_pair_index);
 		if (serv_type == svc)
 			return true;
 	}
@@ -23,10 +23,8 @@ adf_cfg_is_svc_enabled(struct adf_accel_dev *accel_dev, const u8 svc)
 
 static int
 adf_cfg_set_core_number_for_instance(struct adf_accel_dev *accel_dev,
-				     const char *sec_name,
-				     const char *inst_name,
-				     int process_num,
-				     unsigned long *core_number)
+    const char *sec_name, const char *inst_name, int process_num,
+    unsigned long *core_number)
 {
 	char *core_val = NULL;
 	char *pos = NULL;
@@ -40,21 +38,19 @@ adf_cfg_set_core_number_for_instance(struct adf_accel_dev *accel_dev,
 	unsigned long start, end;
 
 	/* do memory allocation */
-	core_val =
-	    malloc(ADF_CFG_MAX_VAL_LEN_IN_BYTES, M_QAT, M_WAITOK | M_ZERO);
+	core_val = malloc(ADF_CFG_MAX_VAL_LEN_IN_BYTES, M_QAT,
+	    M_WAITOK | M_ZERO);
 
-	tokens = malloc(sizeof(char *) * ADF_CFG_MAX_TOKENS,
-			M_QAT,
-			M_WAITOK | M_ZERO);
+	tokens = malloc(sizeof(char *) * ADF_CFG_MAX_TOKENS, M_QAT,
+	    M_WAITOK | M_ZERO);
 
 	for (i = 0; i < ADF_CFG_MAX_TOKENS; i++) {
-		tokens[i] =
-		    malloc(ADF_CFG_MAX_TOKEN_LEN, M_QAT, M_WAITOK | M_ZERO);
+		tokens[i] = malloc(ADF_CFG_MAX_TOKEN_LEN, M_QAT,
+		    M_WAITOK | M_ZERO);
 	}
 
 	core_num_arr = malloc(sizeof(unsigned long) * ADF_CFG_MAX_CORE_NUM,
-			      M_QAT,
-			      M_WAITOK | M_ZERO);
+	    M_QAT, M_WAITOK | M_ZERO);
 
 	/* parse the core_val */
 	ret = EFAULT;
@@ -68,16 +64,14 @@ adf_cfg_set_core_number_for_instance(struct adf_accel_dev *accel_dev,
 		strlcpy(core_val, pos + 1, ADF_CFG_MAX_VAL_LEN_IN_BYTES);
 		pos = strchr(core_val, ',');
 		if (!pos)
-			strlcpy(tokens[token_index++],
-				core_val,
-				ADF_CFG_MAX_VAL_LEN_IN_BYTES);
+			strlcpy(tokens[token_index++], core_val,
+			    ADF_CFG_MAX_VAL_LEN_IN_BYTES);
 	}
 
 	/* in case there is only N-M */
 	if (token_index == 0)
-		strlcpy(tokens[token_index++],
-			core_val,
-			ADF_CFG_MAX_VAL_LEN_IN_BYTES);
+		strlcpy(tokens[token_index++], core_val,
+		    ADF_CFG_MAX_VAL_LEN_IN_BYTES);
 
 	/* parse the tokens such as N-M */
 	for (i = 0; i < token_index; i++) {
@@ -125,16 +119,13 @@ failed:
 
 	if (ret)
 		device_printf(GET_DEV(accel_dev),
-			      "Get core number failed with error %d\n",
-			      ret);
+		    "Get core number failed with error %d\n", ret);
 	return ret;
 }
 
 static int
-adf_cfg_set_value(struct adf_accel_dev *accel_dev,
-		  const char *sec,
-		  const char *key,
-		  unsigned long *value)
+adf_cfg_set_value(struct adf_accel_dev *accel_dev, const char *sec,
+    const char *key, unsigned long *value)
 {
 	char *val = NULL;
 	int ret = EFAULT;
@@ -156,9 +147,8 @@ out:
 
 static void
 adf_cfg_add_cy_inst_info(struct adf_accel_dev *accel_dev,
-			 struct adf_cfg_instance *crypto_inst,
-			 const char *derived_sec,
-			 int inst_index)
+    struct adf_cfg_instance *crypto_inst, const char *derived_sec,
+    int inst_index)
 {
 	char *key = NULL;
 	unsigned long bank_number = 0;
@@ -168,76 +158,60 @@ adf_cfg_add_cy_inst_info(struct adf_accel_dev *accel_dev,
 
 	key = malloc(ADF_CFG_MAX_KEY_LEN_IN_BYTES, M_QAT, M_WAITOK | M_ZERO);
 
-	snprintf(key,
-		 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-		 ADF_CY_BANK_NUM_FORMAT,
-		 inst_index);
+	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, ADF_CY_BANK_NUM_FORMAT,
+	    inst_index);
 	bank_number = crypto_inst->bundle;
-	adf_cfg_add_key_value_param(
-	    accel_dev, derived_sec, key, (void *)&bank_number, ADF_DEC);
+	adf_cfg_add_key_value_param(accel_dev, derived_sec, key,
+	    (void *)&bank_number, ADF_DEC);
 
-	snprintf(key,
-		 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-		 ADF_CY_ASYM_TX_FORMAT,
-		 inst_index);
+	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, ADF_CY_ASYM_TX_FORMAT,
+	    inst_index);
 	ring_number = crypto_inst->asym_tx;
-	adf_cfg_add_key_value_param(
-	    accel_dev, derived_sec, key, (void *)&ring_number, ADF_DEC);
+	adf_cfg_add_key_value_param(accel_dev, derived_sec, key,
+	    (void *)&ring_number, ADF_DEC);
 
-	snprintf(key,
-		 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-		 ADF_CY_SYM_TX_FORMAT,
-		 inst_index);
+	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, ADF_CY_SYM_TX_FORMAT,
+	    inst_index);
 	ring_number = crypto_inst->sym_tx;
-	adf_cfg_add_key_value_param(
-	    accel_dev, derived_sec, key, (void *)&ring_number, ADF_DEC);
+	adf_cfg_add_key_value_param(accel_dev, derived_sec, key,
+	    (void *)&ring_number, ADF_DEC);
 
-	snprintf(key,
-		 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-		 ADF_CY_ASYM_RX_FORMAT,
-		 inst_index);
+	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, ADF_CY_ASYM_RX_FORMAT,
+	    inst_index);
 	ring_number = crypto_inst->asym_rx;
-	adf_cfg_add_key_value_param(
-	    accel_dev, derived_sec, key, (void *)&ring_number, ADF_DEC);
+	adf_cfg_add_key_value_param(accel_dev, derived_sec, key,
+	    (void *)&ring_number, ADF_DEC);
 
-	snprintf(key,
-		 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-		 ADF_CY_SYM_RX_FORMAT,
-		 inst_index);
+	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, ADF_CY_SYM_RX_FORMAT,
+	    inst_index);
 	ring_number = crypto_inst->sym_rx;
-	adf_cfg_add_key_value_param(
-	    accel_dev, derived_sec, key, (void *)&ring_number, ADF_DEC);
+	adf_cfg_add_key_value_param(accel_dev, derived_sec, key,
+	    (void *)&ring_number, ADF_DEC);
 
 	strlcpy(key, ADF_CY_RING_ASYM_SIZE, ADF_CFG_MAX_KEY_LEN_IN_BYTES);
 	if (adf_cfg_set_value(accel_dev, ADF_GENERAL_SEC, key, &asym_req))
 		asym_req = ADF_CFG_DEF_CY_RING_ASYM_SIZE;
 
-	snprintf(key,
-		 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-		 ADF_CY_RING_ASYM_SIZE_FORMAT,
-		 inst_index);
-	adf_cfg_add_key_value_param(
-	    accel_dev, derived_sec, key, (void *)&asym_req, ADF_DEC);
+	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES,
+	    ADF_CY_RING_ASYM_SIZE_FORMAT, inst_index);
+	adf_cfg_add_key_value_param(accel_dev, derived_sec, key,
+	    (void *)&asym_req, ADF_DEC);
 
 	strlcpy(key, ADF_CY_RING_SYM_SIZE, ADF_CFG_MAX_KEY_LEN_IN_BYTES);
 	if (adf_cfg_set_value(accel_dev, ADF_GENERAL_SEC, key, &sym_req))
 		sym_req = ADF_CFG_DEF_CY_RING_SYM_SIZE;
 
-	snprintf(key,
-		 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-		 ADF_CY_RING_SYM_SIZE_FORMAT,
-		 inst_index);
-	adf_cfg_add_key_value_param(
-	    accel_dev, derived_sec, key, (void *)&sym_req, ADF_DEC);
+	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, ADF_CY_RING_SYM_SIZE_FORMAT,
+	    inst_index);
+	adf_cfg_add_key_value_param(accel_dev, derived_sec, key,
+	    (void *)&sym_req, ADF_DEC);
 
 	free(key, M_QAT);
 }
 
 static void
 adf_cfg_add_dc_inst_info(struct adf_accel_dev *accel_dev,
-			 struct adf_cfg_instance *dc_inst,
-			 const char *derived_sec,
-			 int inst_index)
+    struct adf_cfg_instance *dc_inst, const char *derived_sec, int inst_index)
 {
 	char *key = NULL;
 	unsigned long bank_number = 0;
@@ -248,35 +222,33 @@ adf_cfg_add_dc_inst_info(struct adf_accel_dev *accel_dev,
 
 	snprintf(key, ADF_CFG_MAX_STR_LEN, ADF_DC_BANK_NUM_FORMAT, inst_index);
 	bank_number = dc_inst->bundle;
-	adf_cfg_add_key_value_param(
-	    accel_dev, derived_sec, key, (void *)&bank_number, ADF_DEC);
+	adf_cfg_add_key_value_param(accel_dev, derived_sec, key,
+	    (void *)&bank_number, ADF_DEC);
 
 	snprintf(key, ADF_CFG_MAX_STR_LEN, ADF_DC_TX_FORMAT, inst_index);
 	ring_number = dc_inst->dc_tx;
-	adf_cfg_add_key_value_param(
-	    accel_dev, derived_sec, key, (void *)&ring_number, ADF_DEC);
+	adf_cfg_add_key_value_param(accel_dev, derived_sec, key,
+	    (void *)&ring_number, ADF_DEC);
 
 	snprintf(key, ADF_CFG_MAX_STR_LEN, ADF_DC_RX_FORMAT, inst_index);
 	ring_number = dc_inst->dc_rx;
-	adf_cfg_add_key_value_param(
-	    accel_dev, derived_sec, key, (void *)&ring_number, ADF_DEC);
+	adf_cfg_add_key_value_param(accel_dev, derived_sec, key,
+	    (void *)&ring_number, ADF_DEC);
 
 	strlcpy(key, ADF_DC_RING_SIZE, ADF_CFG_MAX_KEY_LEN_IN_BYTES);
 	if (adf_cfg_set_value(accel_dev, ADF_GENERAL_SEC, key, &dc_req))
 		dc_req = ADF_CFG_DEF_DC_RING_SIZE;
 
 	snprintf(key, ADF_CFG_MAX_STR_LEN, ADF_DC_RING_SIZE_FORMAT, inst_index);
-	adf_cfg_add_key_value_param(
-	    accel_dev, derived_sec, key, (void *)&dc_req, ADF_DEC);
+	adf_cfg_add_key_value_param(accel_dev, derived_sec, key,
+	    (void *)&dc_req, ADF_DEC);
 
 	free(key, M_QAT);
 }
 
 static void
 adf_cfg_add_asym_inst_info(struct adf_accel_dev *accel_dev,
-			   struct adf_cfg_instance *asym_inst,
-			   const char *derived_sec,
-			   int inst_index)
+    struct adf_cfg_instance *asym_inst, const char *derived_sec, int inst_index)
 {
 	char *key = NULL;
 	unsigned long bank_number = 0;
@@ -286,54 +258,42 @@ adf_cfg_add_asym_inst_info(struct adf_accel_dev *accel_dev,
 	key = malloc(ADF_CFG_MAX_KEY_LEN_IN_BYTES, M_QAT, M_WAITOK | M_ZERO);
 
 	if (adf_cy_inst_cross_banks(accel_dev))
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_CY_ASYM_BANK_NUM_FORMAT,
-			 inst_index);
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES,
+		    ADF_CY_ASYM_BANK_NUM_FORMAT, inst_index);
 	else
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_CY_BANK_NUM_FORMAT,
-			 inst_index);
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES,
+		    ADF_CY_BANK_NUM_FORMAT, inst_index);
 	bank_number = asym_inst->bundle;
-	adf_cfg_add_key_value_param(
-	    accel_dev, derived_sec, key, (void *)&bank_number, ADF_DEC);
+	adf_cfg_add_key_value_param(accel_dev, derived_sec, key,
+	    (void *)&bank_number, ADF_DEC);
 
-	snprintf(key,
-		 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-		 ADF_CY_ASYM_TX_FORMAT,
-		 inst_index);
+	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, ADF_CY_ASYM_TX_FORMAT,
+	    inst_index);
 	ring_number = asym_inst->asym_tx;
-	adf_cfg_add_key_value_param(
-	    accel_dev, derived_sec, key, (void *)&ring_number, ADF_DEC);
+	adf_cfg_add_key_value_param(accel_dev, derived_sec, key,
+	    (void *)&ring_number, ADF_DEC);
 
-	snprintf(key,
-		 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-		 ADF_CY_ASYM_RX_FORMAT,
-		 inst_index);
+	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, ADF_CY_ASYM_RX_FORMAT,
+	    inst_index);
 	ring_number = asym_inst->asym_rx;
-	adf_cfg_add_key_value_param(
-	    accel_dev, derived_sec, key, (void *)&ring_number, ADF_DEC);
+	adf_cfg_add_key_value_param(accel_dev, derived_sec, key,
+	    (void *)&ring_number, ADF_DEC);
 
 	strlcpy(key, ADF_CY_RING_ASYM_SIZE, ADF_CFG_MAX_KEY_LEN_IN_BYTES);
 	if (adf_cfg_set_value(accel_dev, ADF_GENERAL_SEC, key, &asym_req))
 		asym_req = ADF_CFG_DEF_CY_RING_ASYM_SIZE;
 
-	snprintf(key,
-		 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-		 ADF_CY_RING_ASYM_SIZE_FORMAT,
-		 inst_index);
-	adf_cfg_add_key_value_param(
-	    accel_dev, derived_sec, key, (void *)&asym_req, ADF_DEC);
+	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES,
+	    ADF_CY_RING_ASYM_SIZE_FORMAT, inst_index);
+	adf_cfg_add_key_value_param(accel_dev, derived_sec, key,
+	    (void *)&asym_req, ADF_DEC);
 
 	free(key, M_QAT);
 }
 
 static void
 adf_cfg_add_sym_inst_info(struct adf_accel_dev *accel_dev,
-			  struct adf_cfg_instance *sym_inst,
-			  const char *derived_sec,
-			  int inst_index)
+    struct adf_cfg_instance *sym_inst, const char *derived_sec, int inst_index)
 {
 	char *key = NULL;
 	unsigned long bank_number = 0;
@@ -343,66 +303,55 @@ adf_cfg_add_sym_inst_info(struct adf_accel_dev *accel_dev,
 	key = malloc(ADF_CFG_MAX_KEY_LEN_IN_BYTES, M_QAT, M_WAITOK | M_ZERO);
 
 	if (adf_cy_inst_cross_banks(accel_dev))
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_CY_SYM_BANK_NUM_FORMAT,
-			 inst_index);
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES,
+		    ADF_CY_SYM_BANK_NUM_FORMAT, inst_index);
 	else
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_CY_BANK_NUM_FORMAT,
-			 inst_index);
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES,
+		    ADF_CY_BANK_NUM_FORMAT, inst_index);
 
 	bank_number = sym_inst->bundle;
-	adf_cfg_add_key_value_param(
-	    accel_dev, derived_sec, key, (void *)&bank_number, ADF_DEC);
+	adf_cfg_add_key_value_param(accel_dev, derived_sec, key,
+	    (void *)&bank_number, ADF_DEC);
 
-	snprintf(key,
-		 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-		 ADF_CY_SYM_TX_FORMAT,
-		 inst_index);
+	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, ADF_CY_SYM_TX_FORMAT,
+	    inst_index);
 	ring_number = sym_inst->sym_tx;
-	adf_cfg_add_key_value_param(
-	    accel_dev, derived_sec, key, (void *)&ring_number, ADF_DEC);
+	adf_cfg_add_key_value_param(accel_dev, derived_sec, key,
+	    (void *)&ring_number, ADF_DEC);
 
-	snprintf(key,
-		 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-		 ADF_CY_SYM_RX_FORMAT,
-		 inst_index);
+	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, ADF_CY_SYM_RX_FORMAT,
+	    inst_index);
 	ring_number = sym_inst->sym_rx;
-	adf_cfg_add_key_value_param(
-	    accel_dev, derived_sec, key, (void *)&ring_number, ADF_DEC);
+	adf_cfg_add_key_value_param(accel_dev, derived_sec, key,
+	    (void *)&ring_number, ADF_DEC);
 
 	strlcpy(key, ADF_CY_RING_SYM_SIZE, ADF_CFG_MAX_KEY_LEN_IN_BYTES);
 	if (adf_cfg_set_value(accel_dev, ADF_GENERAL_SEC, key, &sym_req))
 		sym_req = ADF_CFG_DEF_CY_RING_SYM_SIZE;
 
-	snprintf(key,
-		 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-		 ADF_CY_RING_SYM_SIZE_FORMAT,
-		 inst_index);
-	adf_cfg_add_key_value_param(
-	    accel_dev, derived_sec, key, (void *)&sym_req, ADF_DEC);
+	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, ADF_CY_RING_SYM_SIZE_FORMAT,
+	    inst_index);
+	adf_cfg_add_key_value_param(accel_dev, derived_sec, key,
+	    (void *)&sym_req, ADF_DEC);
 
 	free(key, M_QAT);
 }
 
 static int
-adf_cfg_section_copy(struct adf_accel_dev *accel_dev,
-		     const char *processed_sec,
-		     const char *derived_sec)
+adf_cfg_section_copy(struct adf_accel_dev *accel_dev, const char *processed_sec,
+    const char *derived_sec)
 {
 	unsigned long val = 0;
 	struct list_head *list;
-	struct adf_cfg_section *sec_process =
-	    adf_cfg_sec_find(accel_dev, processed_sec);
+	struct adf_cfg_section *sec_process = adf_cfg_sec_find(accel_dev,
+	    processed_sec);
 	if (!sec_process)
 		return EFAULT;
 
 	list_for_each(list, &sec_process->param_head)
 	{
-		struct adf_cfg_key_val *ptr =
-		    list_entry(list, struct adf_cfg_key_val, list);
+		struct adf_cfg_key_val *ptr = list_entry(list,
+		    struct adf_cfg_key_val, list);
 
 		/*
 		 * ignore CoreAffinity since it will be generated later, and
@@ -416,23 +365,16 @@ adf_cfg_section_copy(struct adf_accel_dev *accel_dev,
 		if (ptr->type == ADF_DEC) {
 			if (!compat_strtoul(ptr->val, 10, &val))
 				adf_cfg_add_key_value_param(accel_dev,
-							    derived_sec,
-							    ptr->key,
-							    (void *)&val,
-							    ptr->type);
+				    derived_sec, ptr->key, (void *)&val,
+				    ptr->type);
 		} else if (ptr->type == ADF_STR) {
-			adf_cfg_add_key_value_param(accel_dev,
-						    derived_sec,
-						    ptr->key,
-						    (void *)ptr->val,
-						    ptr->type);
+			adf_cfg_add_key_value_param(accel_dev, derived_sec,
+			    ptr->key, (void *)ptr->val, ptr->type);
 		} else if (ptr->type == ADF_HEX) {
 			if (!compat_strtoul(ptr->val, 16, &val))
 				adf_cfg_add_key_value_param(accel_dev,
-							    derived_sec,
-							    ptr->key,
-							    (void *)val,
-							    ptr->type);
+				    derived_sec, ptr->key, (void *)val,
+				    ptr->type);
 		}
 	}
 	return 0;
@@ -440,10 +382,8 @@ adf_cfg_section_copy(struct adf_accel_dev *accel_dev,
 
 static int
 adf_cfg_create_rings_entries_for_cy_inst(struct adf_accel_dev *accel_dev,
-					 const char *processed_sec,
-					 const char *derived_sec,
-					 int process_num,
-					 enum adf_cfg_service_type serv_type)
+    const char *processed_sec, const char *derived_sec, int process_num,
+    enum adf_cfg_service_type serv_type)
 {
 	int i = 0;
 	int ret = EFAULT;
@@ -466,12 +406,11 @@ adf_cfg_create_rings_entries_for_cy_inst(struct adf_accel_dev *accel_dev,
 	    (!strncmp(val, ADF_CFG_ASYM, ADF_CFG_MAX_VAL_LEN_IN_BYTES)) ||
 	    (!strncmp(val, ADF_CFG_SYM, ADF_CFG_MAX_VAL_LEN_IN_BYTES))) {
 		strlcpy(key, ADF_NUM_DC, ADF_CFG_MAX_KEY_LEN_IN_BYTES);
-		if (adf_cfg_set_value(
-			accel_dev, processed_sec, key, &num_dc_inst))
+		if (adf_cfg_set_value(accel_dev, processed_sec, key,
+			&num_dc_inst))
 			goto failed;
 		if (num_dc_inst > 0) {
-			device_printf(
-			    GET_DEV(accel_dev),
+			device_printf(GET_DEV(accel_dev),
 			    "NumDcInstances > 0,when CY only is enabled\n");
 			goto failed;
 		}
@@ -487,70 +426,50 @@ adf_cfg_create_rings_entries_for_cy_inst(struct adf_accel_dev *accel_dev,
 	for (i = 0; i < num_inst; i++) {
 		memset(crypto_inst, 0, sizeof(*crypto_inst));
 		crypto_inst->stype = serv_type;
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_CY_CORE_AFFINITY_FORMAT,
-			 i);
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES,
+		    ADF_CY_CORE_AFFINITY_FORMAT, i);
 		if (adf_cfg_set_core_number_for_instance(accel_dev,
-							 processed_sec,
-							 key,
-							 process_num,
-							 &core_number))
+			processed_sec, key, process_num, &core_number))
 			goto failed;
 
 		if (strcmp(processed_sec, ADF_KERNEL_SEC) &&
 		    strcmp(processed_sec, ADF_KERNEL_SAL_SEC))
-			adf_cfg_add_key_value_param(accel_dev,
-						    derived_sec,
-						    key,
-						    (void *)&core_number,
-						    ADF_DEC);
+			adf_cfg_add_key_value_param(accel_dev, derived_sec, key,
+			    (void *)&core_number, ADF_DEC);
 
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_CY_NAME_FORMAT,
-			 i);
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, ADF_CY_NAME_FORMAT,
+		    i);
 		if (adf_cfg_get_param_value(accel_dev, processed_sec, key, val))
 			goto failed;
 
 		strlcpy(crypto_inst->name, val, sizeof(crypto_inst->name));
 
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_CY_POLL_MODE_FORMAT,
-			 i);
-		if (adf_cfg_set_value(
-			accel_dev, processed_sec, key, &polling_mode))
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES,
+		    ADF_CY_POLL_MODE_FORMAT, i);
+		if (adf_cfg_set_value(accel_dev, processed_sec, key,
+			&polling_mode))
 			goto failed;
 
 		crypto_inst->polling_mode = polling_mode;
 		CPU_ZERO(&crypto_inst->affinity_mask);
 		CPU_SET(core_number, &crypto_inst->affinity_mask);
 
-		if (adf_cfg_get_ring_pairs(accel_dev->cfg->dev,
-					   crypto_inst,
-					   derived_sec,
-					   accel_dev))
+		if (adf_cfg_get_ring_pairs(accel_dev->cfg->dev, crypto_inst,
+			derived_sec, accel_dev))
 			goto failed;
 
 		switch (serv_type) {
 		case CRYPTO:
-			adf_cfg_add_cy_inst_info(accel_dev,
-						 crypto_inst,
-						 derived_sec,
-						 i);
+			adf_cfg_add_cy_inst_info(accel_dev, crypto_inst,
+			    derived_sec, i);
 			break;
 		case ASYM:
-			adf_cfg_add_asym_inst_info(accel_dev,
-						   crypto_inst,
-						   derived_sec,
-						   i);
+			adf_cfg_add_asym_inst_info(accel_dev, crypto_inst,
+			    derived_sec, i);
 			break;
 		case SYM:
-			adf_cfg_add_sym_inst_info(accel_dev,
-						  crypto_inst,
-						  derived_sec,
-						  i);
+			adf_cfg_add_sym_inst_info(accel_dev, crypto_inst,
+			    derived_sec, i);
 			break;
 		default:
 			pr_err("unknown crypto instance type %d.\n", serv_type);
@@ -566,16 +485,14 @@ failed:
 
 	if (ret)
 		device_printf(GET_DEV(accel_dev),
-			      "Failed to create rings for cy\n");
+		    "Failed to create rings for cy\n");
 
 	return ret;
 }
 
 static int
 adf_cfg_create_rings_entries_for_dc_inst(struct adf_accel_dev *accel_dev,
-					 const char *processed_sec,
-					 const char *derived_sec,
-					 int process_num)
+    const char *processed_sec, const char *derived_sec, int process_num)
 {
 	int i = 0;
 	int ret = EFAULT;
@@ -599,12 +516,11 @@ adf_cfg_create_rings_entries_for_dc_inst(struct adf_accel_dev *accel_dev,
 
 	if (!strncmp(val, ADF_CFG_DC, ADF_CFG_MAX_VAL_LEN_IN_BYTES)) {
 		strlcpy(key, ADF_NUM_CY, ADF_CFG_MAX_KEY_LEN_IN_BYTES);
-		if (adf_cfg_set_value(
-			accel_dev, processed_sec, key, &num_cy_inst))
+		if (adf_cfg_set_value(accel_dev, processed_sec, key,
+			&num_cy_inst))
 			goto failed;
 		if (num_cy_inst > 0) {
-			device_printf(
-			    GET_DEV(accel_dev),
+			device_printf(GET_DEV(accel_dev),
 			    "NumCyInstances > 0,when DC only is enabled\n");
 			goto failed;
 		}
@@ -619,50 +535,38 @@ adf_cfg_create_rings_entries_for_dc_inst(struct adf_accel_dev *accel_dev,
 	for (i = 0; i < num_inst; i++) {
 		memset(dc_inst, 0, sizeof(*dc_inst));
 		dc_inst->stype = COMP;
-		snprintf(key,
-			 ADF_CFG_MAX_STR_LEN,
-			 ADF_DC_CORE_AFFINITY_FORMAT,
-			 i);
+		snprintf(key, ADF_CFG_MAX_STR_LEN, ADF_DC_CORE_AFFINITY_FORMAT,
+		    i);
 
 		if (adf_cfg_set_core_number_for_instance(accel_dev,
-							 processed_sec,
-							 key,
-							 process_num,
-							 &core_number))
+			processed_sec, key, process_num, &core_number))
 			goto failed;
 
 		if (strcmp(processed_sec, ADF_KERNEL_SEC) &&
 		    strcmp(processed_sec, ADF_KERNEL_SAL_SEC)) {
-			adf_cfg_add_key_value_param(accel_dev,
-						    derived_sec,
-						    key,
-						    (void *)&core_number,
-						    ADF_DEC);
+			adf_cfg_add_key_value_param(accel_dev, derived_sec, key,
+			    (void *)&core_number, ADF_DEC);
 		}
 
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_DC_NAME_FORMAT,
-			 i);
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, ADF_DC_NAME_FORMAT,
+		    i);
 		if (adf_cfg_get_param_value(accel_dev, processed_sec, key, val))
 			goto failed;
 
 		strlcpy(dc_inst->name, val, sizeof(dc_inst->name));
 
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_DC_POLL_MODE_FORMAT,
-			 i);
-		if (adf_cfg_set_value(
-			accel_dev, processed_sec, key, &polling_mode))
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES,
+		    ADF_DC_POLL_MODE_FORMAT, i);
+		if (adf_cfg_set_value(accel_dev, processed_sec, key,
+			&polling_mode))
 			goto failed;
 
 		dc_inst->polling_mode = polling_mode;
 		CPU_ZERO(&dc_inst->affinity_mask);
 		CPU_SET(core_number, &dc_inst->affinity_mask);
 
-		if (adf_cfg_get_ring_pairs(
-			accel_dev->cfg->dev, dc_inst, derived_sec, accel_dev))
+		if (adf_cfg_get_ring_pairs(accel_dev->cfg->dev, dc_inst,
+			derived_sec, accel_dev))
 			goto failed;
 
 		adf_cfg_add_dc_inst_info(accel_dev, dc_inst, derived_sec, i);
@@ -676,15 +580,14 @@ failed:
 
 	if (ret)
 		device_printf(GET_DEV(accel_dev),
-			      "Failed to create rings for dc\n");
+		    "Failed to create rings for dc\n");
 
 	return ret;
 }
 
 static int
 adf_cfg_process_user_section(struct adf_accel_dev *accel_dev,
-			     const char *sec_name,
-			     int dev)
+    const char *sec_name, int dev)
 {
 	int i = 0;
 	int ret = EFAULT;
@@ -700,8 +603,8 @@ adf_cfg_process_user_section(struct adf_accel_dev *accel_dev,
 
 	val = malloc(ADF_CFG_MAX_VAL_LEN_IN_BYTES, M_QAT, M_WAITOK | M_ZERO);
 
-	derived_sec_name =
-	    malloc(ADF_CFG_MAX_STR_LEN, M_QAT, M_WAITOK | M_ZERO);
+	derived_sec_name = malloc(ADF_CFG_MAX_STR_LEN, M_QAT,
+	    M_WAITOK | M_ZERO);
 
 	strlcpy(key, ADF_NUM_PROCESSES, ADF_CFG_MAX_KEY_LEN_IN_BYTES);
 	if (adf_cfg_set_value(accel_dev, sec_name, key, &num_processes))
@@ -713,18 +616,12 @@ adf_cfg_process_user_section(struct adf_accel_dev *accel_dev,
 
 	for (i = 0; i < num_processes; i++) {
 		if (limit_dev_acc)
-			snprintf(derived_sec_name,
-				 ADF_CFG_MAX_STR_LEN,
-				 ADF_LIMITED_USER_SECTION_NAME_FORMAT,
-				 sec_name,
-				 dev,
-				 i);
+			snprintf(derived_sec_name, ADF_CFG_MAX_STR_LEN,
+			    ADF_LIMITED_USER_SECTION_NAME_FORMAT, sec_name, dev,
+			    i);
 		else
-			snprintf(derived_sec_name,
-				 ADF_CFG_MAX_STR_LEN,
-				 ADF_USER_SECTION_NAME_FORMAT,
-				 sec_name,
-				 i);
+			snprintf(derived_sec_name, ADF_CFG_MAX_STR_LEN,
+			    ADF_USER_SECTION_NAME_FORMAT, sec_name, i);
 
 		if (adf_cfg_derived_section_add(accel_dev, derived_sec_name))
 			goto failed;
@@ -740,24 +637,20 @@ adf_cfg_process_user_section(struct adf_accel_dev *accel_dev,
 			case ASYM:
 			case SYM:
 				if (adf_cfg_is_svc_enabled(accel_dev,
-							   serv_type))
+					serv_type))
 					if (adf_cfg_create_rings_entries_for_cy_inst(
-						accel_dev,
-						sec_name,
-						derived_sec_name,
-						i,
+						accel_dev, sec_name,
+						derived_sec_name, i,
 						(enum adf_cfg_service_type)
 						    serv_type))
 						goto failed;
 				break;
 			case COMP:
 				if (adf_cfg_is_svc_enabled(accel_dev,
-							   serv_type))
+					serv_type))
 					if (adf_cfg_create_rings_entries_for_dc_inst(
-						accel_dev,
-						sec_name,
-						derived_sec_name,
-						i))
+						accel_dev, sec_name,
+						derived_sec_name, i))
 						goto failed;
 				break;
 			case USED:
@@ -777,15 +670,14 @@ failed:
 
 	if (ret)
 		device_printf(GET_DEV(accel_dev),
-			      "Failed to process user section %s\n",
-			      sec_name);
+		    "Failed to process user section %s\n", sec_name);
 
 	return ret;
 }
 
 static int
 adf_cfg_cleanup_user_section(struct adf_accel_dev *accel_dev,
-			     const char *sec_name)
+    const char *sec_name)
 {
 	struct adf_cfg_section *sec = adf_cfg_sec_find(accel_dev, sec_name);
 	struct list_head *head;
@@ -800,8 +692,8 @@ adf_cfg_cleanup_user_section(struct adf_accel_dev *accel_dev,
 	head = &sec->param_head;
 	list_for_each_prev_safe(list_ptr, tmp, head)
 	{
-		struct adf_cfg_key_val *ptr =
-		    list_entry(list_ptr, struct adf_cfg_key_val, list);
+		struct adf_cfg_key_val *ptr = list_entry(list_ptr,
+		    struct adf_cfg_key_val, list);
 
 		if (!strcmp(ptr->key, ADF_LIMIT_DEV_ACCESS))
 			continue;
@@ -814,14 +706,14 @@ adf_cfg_cleanup_user_section(struct adf_accel_dev *accel_dev,
 
 static int
 adf_cfg_process_section_no_op(struct adf_accel_dev *accel_dev,
-			      const char *sec_name)
+    const char *sec_name)
 {
 	return 0;
 }
 
 static int
 adf_cfg_cleanup_general_section(struct adf_accel_dev *accel_dev,
-				const char *sec_name)
+    const char *sec_name)
 {
 	unsigned long first_used_bundle = 0;
 	int ret = EFAULT;
@@ -852,8 +744,8 @@ adf_cfg_cleanup_general_section(struct adf_accel_dev *accel_dev,
 	/* After all processing done, set the "FirstUserBundle" value */
 	first_used_bundle = accel_dev->cfg->dev->max_kernel_bundle_nr + 1;
 	strlcpy(key, ADF_FIRST_USER_BUNDLE, ADF_CFG_MAX_KEY_LEN_IN_BYTES);
-	if (adf_cfg_add_key_value_param(
-		accel_dev, sec_name, key, (void *)&first_used_bundle, ADF_DEC))
+	if (adf_cfg_add_key_value_param(accel_dev, sec_name, key,
+		(void *)&first_used_bundle, ADF_DEC))
 		goto failed;
 
 	ret = 0;
@@ -863,14 +755,14 @@ failed:
 
 	if (ret)
 		device_printf(GET_DEV(accel_dev),
-			      "Failed to clean up general section\n");
+		    "Failed to clean up general section\n");
 
 	return ret;
 }
 
 static int
 adf_cfg_process_kernel_section(struct adf_accel_dev *accel_dev,
-			       const char *sec_name)
+    const char *sec_name)
 {
 	u8 serv_type = 0;
 
@@ -883,10 +775,7 @@ adf_cfg_process_kernel_section(struct adf_accel_dev *accel_dev,
 		case SYM:
 			if (adf_cfg_is_svc_enabled(accel_dev, serv_type))
 				if (adf_cfg_create_rings_entries_for_cy_inst(
-					accel_dev,
-					sec_name,
-					sec_name,
-					0,
+					accel_dev, sec_name, sec_name, 0,
 					(enum adf_cfg_service_type)serv_type))
 					goto failed;
 			break;
@@ -900,7 +789,7 @@ adf_cfg_process_kernel_section(struct adf_accel_dev *accel_dev,
 			break;
 		default:
 			pr_err("Unknown service type of instance %d.\n",
-			       serv_type);
+			    serv_type);
 		}
 	}
 
@@ -912,14 +801,14 @@ failed:
 
 static int
 adf_cfg_cleanup_kernel_section(struct adf_accel_dev *accel_dev,
-			       const char *sec_name)
+    const char *sec_name)
 {
 	return 0;
 }
 
 static int
 adf_cfg_create_accel_section(struct adf_accel_dev *accel_dev,
-			     const char *sec_name)
+    const char *sec_name)
 {
 	/* Find global settings for coalescing. Use defaults if not found */
 	unsigned long accel_coales = 0;
@@ -939,60 +828,50 @@ adf_cfg_create_accel_section(struct adf_accel_dev *accel_dev,
 
 	val = malloc(ADF_CFG_MAX_VAL_LEN_IN_BYTES, M_QAT, M_WAITOK | M_ZERO);
 
-	strlcpy(key,
-		ADF_ETRMGR_COALESCING_ENABLED,
-		ADF_CFG_MAX_KEY_LEN_IN_BYTES);
+	strlcpy(key, ADF_ETRMGR_COALESCING_ENABLED,
+	    ADF_CFG_MAX_KEY_LEN_IN_BYTES);
 	if (adf_cfg_set_value(accel_dev, ADF_GENERAL_SEC, key, &accel_coales))
 		accel_coales = ADF_CFG_ACCEL_DEF_COALES;
 
 	strlcpy(key, ADF_ETRMGR_COALESCE_TIMER, ADF_CFG_MAX_KEY_LEN_IN_BYTES);
-	if (adf_cfg_set_value(
-		accel_dev, ADF_GENERAL_SEC, key, &accel_coales_timer))
+	if (adf_cfg_set_value(accel_dev, ADF_GENERAL_SEC, key,
+		&accel_coales_timer))
 		accel_coales_timer = ADF_CFG_ACCEL_DEF_COALES_TIMER;
 
-	strlcpy(key,
-		ADF_ETRMGR_COALESCING_MSG_ENABLED,
-		ADF_CFG_MAX_KEY_LEN_IN_BYTES);
-	if (adf_cfg_set_value(
-		accel_dev, ADF_GENERAL_SEC, key, &accel_coales_num_msg))
+	strlcpy(key, ADF_ETRMGR_COALESCING_MSG_ENABLED,
+	    ADF_CFG_MAX_KEY_LEN_IN_BYTES);
+	if (adf_cfg_set_value(accel_dev, ADF_GENERAL_SEC, key,
+		&accel_coales_num_msg))
 		accel_coales_num_msg = ADF_CFG_ACCEL_DEF_COALES_NUM_MSG;
 
 	for (index = 0; index < hw_device->num_banks; index++) {
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_ETRMGR_COALESCING_ENABLED_FORMAT,
-			 index);
-		ret = adf_cfg_add_key_value_param(
-		    accel_dev, sec_name, key, &accel_coales, ADF_DEC);
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES,
+		    ADF_ETRMGR_COALESCING_ENABLED_FORMAT, index);
+		ret = adf_cfg_add_key_value_param(accel_dev, sec_name, key,
+		    &accel_coales, ADF_DEC);
 		if (ret != 0)
 			goto failed;
 
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_ETRMGR_COALESCE_TIMER_FORMAT,
-			 index);
-		ret = adf_cfg_add_key_value_param(
-		    accel_dev, sec_name, key, &accel_coales_timer, ADF_DEC);
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES,
+		    ADF_ETRMGR_COALESCE_TIMER_FORMAT, index);
+		ret = adf_cfg_add_key_value_param(accel_dev, sec_name, key,
+		    &accel_coales_timer, ADF_DEC);
 		if (ret != 0)
 			goto failed;
 
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_ETRMGR_COALESCING_MSG_ENABLED_FORMAT,
-			 index);
-		ret = adf_cfg_add_key_value_param(
-		    accel_dev, sec_name, key, &accel_coales_num_msg, ADF_DEC);
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES,
+		    ADF_ETRMGR_COALESCING_MSG_ENABLED_FORMAT, index);
+		ret = adf_cfg_add_key_value_param(accel_dev, sec_name, key,
+		    &accel_coales_num_msg, ADF_DEC);
 		if (ret != 0)
 			goto failed;
 
 		cpu = ADF_CFG_AFFINITY_WHATEVER;
 
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_ETRMGR_CORE_AFFINITY_FORMAT,
-			 index);
-		ret = adf_cfg_add_key_value_param(
-		    accel_dev, sec_name, key, &cpu, ADF_DEC);
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES,
+		    ADF_ETRMGR_CORE_AFFINITY_FORMAT, index);
+		ret = adf_cfg_add_key_value_param(accel_dev, sec_name, key,
+		    &cpu, ADF_DEC);
 		if (ret != 0)
 			goto failed;
 	}
@@ -1005,21 +884,21 @@ failed:
 
 	if (ret)
 		device_printf(GET_DEV(accel_dev),
-			      "Failed to create accel section\n");
+		    "Failed to create accel section\n");
 
 	return ret;
 }
 
 static int
 adf_cfg_cleanup_accel_section(struct adf_accel_dev *accel_dev,
-			      const char *sec_name)
+    const char *sec_name)
 {
 	return 0;
 }
 
 static int
 adf_cfg_process_accel_section(struct adf_accel_dev *accel_dev,
-			      const char *sec_name)
+    const char *sec_name)
 {
 	int accel_num = 0;
 	struct adf_hw_device_data *hw_device = accel_dev->hw_device;
@@ -1032,15 +911,13 @@ adf_cfg_process_accel_section(struct adf_accel_dev *accel_dev,
 	if (hw_device->num_logical_accel == 0)
 		goto failed;
 
-	derived_name =
-	    malloc(ADF_CFG_MAX_SECTION_LEN_IN_BYTES, M_QAT, M_WAITOK | M_ZERO);
+	derived_name = malloc(ADF_CFG_MAX_SECTION_LEN_IN_BYTES, M_QAT,
+	    M_WAITOK | M_ZERO);
 
 	for (accel_num = 0; accel_num < hw_device->num_logical_accel;
 	     accel_num++) {
-		snprintf(derived_name,
-			 ADF_CFG_MAX_SECTION_LEN_IN_BYTES,
-			 ADF_ACCEL_STR,
-			 accel_num);
+		snprintf(derived_name, ADF_CFG_MAX_SECTION_LEN_IN_BYTES,
+		    ADF_ACCEL_STR, accel_num);
 		ret = adf_cfg_section_add(accel_dev, derived_name);
 		if (ret != 0)
 			goto failed;
@@ -1056,21 +933,20 @@ failed:
 
 	if (ret)
 		device_printf(GET_DEV(accel_dev),
-			      "Failed to process accel section\n");
+		    "Failed to process accel section\n");
 
 	return ret;
 }
 
 int
-adf_cfg_process_section(struct adf_accel_dev *accel_dev,
-			const char *sec_name,
-			int dev)
+adf_cfg_process_section(struct adf_accel_dev *accel_dev, const char *sec_name,
+    int dev)
 {
 	if (!strcmp(sec_name, ADF_GENERAL_SEC) ||
 	    !strcmp(sec_name, ADF_INLINE_SEC))
 		return adf_cfg_process_section_no_op(accel_dev, sec_name);
 	else if (!strcmp(sec_name, ADF_KERNEL_SEC) ||
-		 !strcmp(sec_name, ADF_KERNEL_SAL_SEC))
+	    !strcmp(sec_name, ADF_KERNEL_SAL_SEC))
 		return adf_cfg_process_kernel_section(accel_dev, sec_name);
 	else if (!strcmp(sec_name, ADF_ACCEL_SEC))
 		return adf_cfg_process_accel_section(accel_dev, sec_name);
@@ -1079,16 +955,15 @@ adf_cfg_process_section(struct adf_accel_dev *accel_dev,
 }
 
 int
-adf_cfg_cleanup_section(struct adf_accel_dev *accel_dev,
-			const char *sec_name,
-			int dev)
+adf_cfg_cleanup_section(struct adf_accel_dev *accel_dev, const char *sec_name,
+    int dev)
 {
 	if (!strcmp(sec_name, ADF_GENERAL_SEC))
 		return adf_cfg_cleanup_general_section(accel_dev, sec_name);
 	else if (!strcmp(sec_name, ADF_INLINE_SEC))
 		return adf_cfg_process_section_no_op(accel_dev, sec_name);
 	else if (!strcmp(sec_name, ADF_KERNEL_SEC) ||
-		 !strcmp(sec_name, ADF_KERNEL_SAL_SEC))
+	    !strcmp(sec_name, ADF_KERNEL_SAL_SEC))
 		return adf_cfg_cleanup_kernel_section(accel_dev, sec_name);
 	else if (strstr(sec_name, ADF_ACCEL_SEC))
 		return adf_cfg_cleanup_accel_section(accel_dev, sec_name);
@@ -1114,8 +989,8 @@ adf_cfg_setup_irq(struct adf_accel_dev *accel_dev)
 	if (!cfg_dev)
 		goto failed;
 
-	msixe =
-	    (struct msix_entry *)accel_dev->accel_pci_dev.msix_entries.entries;
+	msixe = (struct msix_entry *)
+		    accel_dev->accel_pci_dev.msix_entries.entries;
 	num_msix = accel_dev->accel_pci_dev.msix_entries.num_entries;
 	if (!msixe)
 		goto cleanup_and_fail;
@@ -1140,9 +1015,8 @@ adf_cfg_setup_irq(struct adf_accel_dev *accel_dev)
 			goto cleanup_and_fail;
 
 		computed_core = CPU_FFS(&bundle->affinity_mask) - 1;
-		bus_bind_intr(info_pci_dev->pci_dev,
-			      msixe[index].irq,
-			      computed_core);
+		bus_bind_intr(info_pci_dev->pci_dev, msixe[index].irq,
+		    computed_core);
 	}
 	ret = 0;
 

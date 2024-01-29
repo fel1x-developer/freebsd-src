@@ -36,30 +36,24 @@
 #include <sys/mutex.h>
 #include <sys/rman.h>
 
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-
-#include <dev/usb/usb_core.h>
-#include <dev/usb/usb_busdma.h>
-#include <dev/usb/usb_process.h>
-#include <dev/usb/usb_util.h>
-
-#include <dev/usb/usb_controller.h>
-#include <dev/usb/usb_bus.h>
-
+#include <dev/ofw/openfirm.h>
 #include <dev/usb/controller/dwc_otg.h>
 #include <dev/usb/controller/dwc_otg_fdt.h>
+#include <dev/usb/usb.h>
+#include <dev/usb/usb_bus.h>
+#include <dev/usb/usb_busdma.h>
+#include <dev/usb/usb_controller.h>
+#include <dev/usb/usb_core.h>
+#include <dev/usb/usb_process.h>
+#include <dev/usb/usb_util.h>
+#include <dev/usb/usbdi.h>
 
 static device_probe_t dwc_otg_probe;
 
 static struct ofw_compat_data compat_data[] = {
-	{ "synopsys,designware-hs-otg2",	1 },
-	{ "snps,dwc2",				1 },
-	{ NULL,					0 }
+	{ "synopsys,designware-hs-otg2", 1 }, { "snps,dwc2", 1 }, { NULL, 0 }
 };
 
 static int
@@ -102,8 +96,8 @@ dwc_otg_attach(device_t dev)
 	sc->sc_otg.sc_bus.parent = dev;
 
 	/* get USB mode, if any */
-	if (OF_getprop(ofw_bus_get_node(dev), "dr_mode",
-	    &usb_mode, sizeof(usb_mode)) > 0) {
+	if (OF_getprop(ofw_bus_get_node(dev), "dr_mode", &usb_mode,
+		sizeof(usb_mode)) > 0) {
 		/* ensure proper zero termination */
 		usb_mode[sizeof(usb_mode) - 1] = 0;
 
@@ -118,8 +112,8 @@ dwc_otg_attach(device_t dev)
 	}
 
 	rid = 0;
-	sc->sc_otg.sc_io_res =
-	    bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid, RF_ACTIVE);
+	sc->sc_otg.sc_io_res = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
+	    RF_ACTIVE);
 
 	if (!(sc->sc_otg.sc_io_res))
 		goto error;
@@ -135,8 +129,8 @@ dwc_otg_attach(device_t dev)
 	 */
 	if (dwc_otg_irq_index(dev, &rid) != 0)
 		rid = ofw_bus_is_compatible(dev, "brcm,bcm2708-usb") ? 1 : 0;
-	sc->sc_otg.sc_irq_res =
-	    bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid, RF_ACTIVE);
+	sc->sc_otg.sc_irq_res = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid,
+	    RF_ACTIVE);
 	if (sc->sc_otg.sc_irq_res == NULL)
 		goto error;
 

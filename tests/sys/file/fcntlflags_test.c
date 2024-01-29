@@ -45,11 +45,11 @@ subtests(const char *path, int omode, const char *omodetext)
 
 	fd = open(path, omode);
 	if (fd == -1)
-		printf("not ok %d - open(\"%s\", %s) failed\n",
-		    testnum++, path, omodetext);
+		printf("not ok %d - open(\"%s\", %s) failed\n", testnum++, path,
+		    omodetext);
 	else
-		printf("ok %d - open(\"%s\", %s) succeeded\n",
-		    testnum++, path, omodetext);
+		printf("ok %d - open(\"%s\", %s) succeeded\n", testnum++, path,
+		    omodetext);
 	flags1 = fcntl(fd, F_GETFL);
 	if (flags1 == -1)
 		printf("not ok %d - fcntl(F_GETFL) failed\n", testnum++);
@@ -58,7 +58,7 @@ subtests(const char *path, int omode, const char *omodetext)
 		    testnum++);
 	else
 		printf("not ok %d - fcntl(F_GETFL) gave incorrect result "
-		    "(%#x & %#x != %#x)\n",
+		       "(%#x & %#x != %#x)\n",
 		    testnum++, flags1, CORRECT_O_ACCMODE, omode);
 	if (fcntl(fd, F_SETFL, flags1) == -1)
 		printf("not ok %d - fcntl(F_SETFL) same flags failed\n",
@@ -70,11 +70,10 @@ subtests(const char *path, int omode, const char *omodetext)
 	if (flags2 == -1)
 		printf("not ok %d - fcntl(F_GETFL) failed\n", testnum++);
 	else if (flags2 == flags1)
-		printf("ok %d - fcntl(F_GETFL) gave same result\n",
-		    testnum++);
+		printf("ok %d - fcntl(F_GETFL) gave same result\n", testnum++);
 	else
 		printf("not ok %d - fcntl(F_SETFL) caused fcntl(F_GETFL) to "
-		    "change from %#x to %#x\n",
+		       "change from %#x to %#x\n",
 		    testnum++, flags1, flags2);
 	if (fcntl(fd, F_SETFL, flags2 | O_NONBLOCK) == -1)
 		printf("not ok %d - fcntl(F_SETFL) O_NONBLOCK failed\n",
@@ -90,7 +89,7 @@ subtests(const char *path, int omode, const char *omodetext)
 		    testnum++);
 	else
 		printf("not ok %d - fcntl(F_SETFL) gave unexpected result "
-		    "(%#x != %#x)\n",
+		       "(%#x != %#x)\n",
 		    testnum++, flags3, flags2 | O_NONBLOCK);
 	(void)close(fd);
 }

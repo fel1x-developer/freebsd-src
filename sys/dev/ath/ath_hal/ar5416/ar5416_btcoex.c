@@ -21,17 +21,17 @@
 #include "opt_ah.h"
 
 #include "ah.h"
-#include "ah_internal.h"
 #include "ah_devid.h"
-#ifdef	AH_DEBUG
-#include "ah_desc.h"                    /* NB: for HAL_PHYERR* */
+#include "ah_internal.h"
+#ifdef AH_DEBUG
+#include "ah_desc.h" /* NB: for HAL_PHYERR* */
 #endif
 
 #include "ar5416/ar5416.h"
-#include "ar5416/ar5416reg.h"
-#include "ar5416/ar5416phy.h"
-#include "ar5416/ar5416desc.h" /* AR5416_CONTTXMODE */
 #include "ar5416/ar5416_btcoex.h"
+#include "ar5416/ar5416desc.h" /* AR5416_CONTTXMODE */
+#include "ar5416/ar5416phy.h"
+#include "ar5416/ar5416reg.h"
 
 void
 ar5416SetBTCoexInfo(struct ath_hal *ah, HAL_BT_COEX_INFO *btinfo)
@@ -72,8 +72,7 @@ ar5416BTCoexConfig(struct ath_hal *ah, HAL_BT_COEX_CONFIG *btconf)
 	    SM(btconf->bt_priority_time, AR_BT_PRIORITY_TIME) |
 	    SM(btconf->bt_first_slot_time, AR_BT_FIRST_SLOT_TIME);
 
-	ahp->ah_btCoexMode2 |= SM(btconf->bt_hold_rxclear,
-	    AR_BT_HOLD_RX_CLEAR);
+	ahp->ah_btCoexMode2 |= SM(btconf->bt_hold_rxclear, AR_BT_HOLD_RX_CLEAR);
 
 	if (ahp->ah_btCoexSingleAnt == AH_FALSE) {
 		/* Enable ACK to go out even though BT has higher priority. */
@@ -219,7 +218,7 @@ ar5416BTCoexSetParameter(struct ath_hal *ah, u_int32_t type, u_int32_t value)
             break;
 #endif
 	default:
-			break;
+		break;
 	}
 }
 
@@ -244,8 +243,7 @@ ar5416BTCoexDisable(struct ath_hal *ah)
 	if (ahp->ah_btCoexSingleAnt == AH_TRUE) {
 		OS_REG_RMW_FIELD(ah, AR_QUIET1, AR_QUIET1_QUIET_ACK_CTS_ENABLE,
 		    1);
-		OS_REG_RMW_FIELD(ah, AR_MISC_MODE, AR_PCU_BT_ANT_PREVENT_RX,
-		    0);
+		OS_REG_RMW_FIELD(ah, AR_MISC_MODE, AR_PCU_BT_ANT_PREVENT_RX, 0);
 	}
 
 	OS_REG_WRITE(ah, AR_BT_COEX_MODE, AR_BT_QUIET | AR_BT_MODE);
@@ -266,10 +264,10 @@ ar5416BTCoexEnable(struct ath_hal *ah)
 	OS_REG_WRITE(ah, AR_BT_COEX_MODE, ahp->ah_btCoexMode);
 	OS_REG_WRITE(ah, AR_BT_COEX_WEIGHT,
 	    SM(ahp->ah_btCoexWLANWeight & 0xFFFF, AR_BT_WL_WGHT) |
-	    SM(ahp->ah_btCoexBTWeight & 0xFFFF, AR_BT_BT_WGHT));
+		SM(ahp->ah_btCoexBTWeight & 0xFFFF, AR_BT_BT_WGHT));
 	if (AR_SREV_KIWI_10_OR_LATER(ah)) {
-	OS_REG_WRITE(ah, AR_BT_COEX_WEIGHT2,
-	    SM(ahp->ah_btCoexWLANWeight >> 16, AR_BT_WL_WGHT));
+		OS_REG_WRITE(ah, AR_BT_COEX_WEIGHT2,
+		    SM(ahp->ah_btCoexWLANWeight >> 16, AR_BT_WL_WGHT));
 	}
 	OS_REG_WRITE(ah, AR_BT_COEX_MODE2, ahp->ah_btCoexMode2);
 
@@ -288,17 +286,15 @@ ar5416BTCoexEnable(struct ath_hal *ah)
 		OS_REG_WRITE(ah, AR_TPC, HAL_BT_COEX_HIGH_ACK_POWER);
 
 	if (ahp->ah_btCoexSingleAnt == AH_TRUE) {
-		OS_REG_RMW_FIELD(ah, AR_QUIET1,
-		    AR_QUIET1_QUIET_ACK_CTS_ENABLE, 1);
+		OS_REG_RMW_FIELD(ah, AR_QUIET1, AR_QUIET1_QUIET_ACK_CTS_ENABLE,
+		    1);
 		/* XXX should update miscMode? */
-		OS_REG_RMW_FIELD(ah, AR_MISC_MODE,
-		    AR_PCU_BT_ANT_PREVENT_RX, 1);
+		OS_REG_RMW_FIELD(ah, AR_MISC_MODE, AR_PCU_BT_ANT_PREVENT_RX, 1);
 	} else {
-		OS_REG_RMW_FIELD(ah, AR_QUIET1,
-		    AR_QUIET1_QUIET_ACK_CTS_ENABLE, 1);
+		OS_REG_RMW_FIELD(ah, AR_QUIET1, AR_QUIET1_QUIET_ACK_CTS_ENABLE,
+		    1);
 		/* XXX should update miscMode? */
-		OS_REG_RMW_FIELD(ah, AR_MISC_MODE,
-		    AR_PCU_BT_ANT_PREVENT_RX, 0);
+		OS_REG_RMW_FIELD(ah, AR_MISC_MODE, AR_PCU_BT_ANT_PREVENT_RX, 0);
 	}
 
 	if (ahp->ah_btCoexConfigType == HAL_BT_COEX_CFG_3WIRE) {
@@ -318,8 +314,7 @@ ar5416BTCoexEnable(struct ath_hal *ah)
 	 * Enable a weak pull down on BT_ACTIVE.
 	 * When BT device is disabled, BT_ACTIVE might be floating.
 	 */
-	OS_REG_RMW(ah, AR_GPIO_PDPU,
-	    (0x2 << (ahp->ah_btActiveGpioSelect * 2)),
+	OS_REG_RMW(ah, AR_GPIO_PDPU, (0x2 << (ahp->ah_btActiveGpioSelect * 2)),
 	    (0x3 << (ahp->ah_btActiveGpioSelect * 2)));
 
 	ahp->ah_btCoexEnabled = AH_TRUE;
@@ -332,23 +327,20 @@ ar5416InitBTCoex(struct ath_hal *ah)
 {
 	struct ath_hal_5416 *ahp = AH5416(ah);
 
-	HALDEBUG(ah, HAL_DEBUG_BT_COEX,
-	    "%s: called; configType=%d\n",
-	    __func__,
+	HALDEBUG(ah, HAL_DEBUG_BT_COEX, "%s: called; configType=%d\n", __func__,
 	    ahp->ah_btCoexConfigType);
 
 	if (ahp->ah_btCoexConfigType == HAL_BT_COEX_CFG_3WIRE) {
 		OS_REG_SET_BIT(ah, AR_GPIO_INPUT_EN_VAL,
 		    (AR_GPIO_INPUT_EN_VAL_BT_PRIORITY_BB |
-		    AR_GPIO_INPUT_EN_VAL_BT_ACTIVE_BB));
+			AR_GPIO_INPUT_EN_VAL_BT_ACTIVE_BB));
 
 		/*
 		 * Set input mux for bt_prority_async and
 		 * bt_active_async to GPIO pins
 		 */
 		OS_REG_RMW_FIELD(ah, AR_GPIO_INPUT_MUX1,
-		    AR_GPIO_INPUT_MUX1_BT_ACTIVE,
-		    ahp->ah_btActiveGpioSelect);
+		    AR_GPIO_INPUT_MUX1_BT_ACTIVE, ahp->ah_btActiveGpioSelect);
 		OS_REG_RMW_FIELD(ah, AR_GPIO_INPUT_MUX1,
 		    AR_GPIO_INPUT_MUX1_BT_PRIORITY,
 		    ahp->ah_btPriorityGpioSelect);
@@ -376,7 +368,7 @@ ar5416InitBTCoex(struct ath_hal *ah)
 			/* Connect bt_active_async to baseband */
 			OS_REG_CLR_BIT(ah, AR_GPIO_INPUT_EN_VAL,
 			    (AR_GPIO_INPUT_EN_VAL_BT_PRIORITY_DEF |
-			     AR_GPIO_INPUT_EN_VAL_BT_FREQUENCY_DEF));
+				AR_GPIO_INPUT_EN_VAL_BT_FREQUENCY_DEF));
 			OS_REG_SET_BIT(ah, AR_GPIO_INPUT_EN_VAL,
 			    AR_GPIO_INPUT_EN_VAL_BT_ACTIVE_BB);
 
@@ -386,7 +378,7 @@ ar5416InitBTCoex(struct ath_hal *ah)
 			 */
 			OS_REG_RMW_FIELD(ah, AR_GPIO_INPUT_MUX1,
 			    AR_GPIO_INPUT_MUX1_BT_ACTIVE,
-                            ahp->ah_btActiveGpioSelect);
+			    ahp->ah_btActiveGpioSelect);
 
 			/* Configure the desired GPIO ports for input */
 			ar5416GpioCfgInput(ah, ahp->ah_btActiveGpioSelect);

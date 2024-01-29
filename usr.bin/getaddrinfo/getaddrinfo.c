@@ -39,21 +39,21 @@
 #include <netdb.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <util.h>
 
 #include "tables.h"
 
-static void	usage(void) __dead;
-static void	printaddrinfo(struct addrinfo *);
-static bool	parse_af(const char *, int *);
-static bool	parse_protocol(const char *, int *);
-static bool	parse_socktype(const char *, int *);
-static bool	parse_numeric_tabular(const char *, int *, const char *const *,
-		    size_t);
+static void usage(void) __dead;
+static void printaddrinfo(struct addrinfo *);
+static bool parse_af(const char *, int *);
+static bool parse_protocol(const char *, int *);
+static bool parse_socktype(const char *, int *);
+static bool parse_numeric_tabular(const char *, int *, const char *const *,
+    size_t);
 
 int
 main(int argc, char **argv)
@@ -222,8 +222,8 @@ parse_socktype(const char *string, int *typep)
 }
 
 static bool
-parse_numeric_tabular(const char *string, int *valuep,
-    const char *const *table, size_t n)
+parse_numeric_tabular(const char *string, int *valuep, const char *const *table,
+    size_t n)
 {
 	char *end;
 	long value;

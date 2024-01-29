@@ -48,7 +48,7 @@ int getmnt_silent = 0;
 
 void
 getmntopts(const char *options, const struct mntopt *m0, int *flagp,
-	int *altflagp)
+    int *altflagp)
 {
 	const struct mntopt *m;
 	int negative, len;
@@ -73,7 +73,7 @@ getmntopts(const char *options, const struct mntopt *m0, int *flagp,
 		 */
 		p = strchr(opt, '=');
 		if (p != NULL)
-			 *++p = '\0';
+			*++p = '\0';
 
 		/* Scan option table. */
 		for (m = m0; m->m_option != NULL; ++m) {
@@ -108,7 +108,7 @@ rmslashes(char *rrpin, char *rrpout)
 
 		/* skip all double slashes */
 		while (*rrpin == '/' && *(rrpin + 1) == '/')
-			 rrpin++;
+			rrpin++;
 	}
 
 	/* remove trailing slash if necessary */
@@ -177,7 +177,7 @@ getmntpoint(const char *name)
 		ddevname = statfsp->f_mntfromname;
 		if (*ddevname != '/') {
 			if ((len = strlen(_PATH_DEV) + strlen(ddevname) + 1) >
-			    sizeof(statfsp->f_mntfromname) ||
+				sizeof(statfsp->f_mntfromname) ||
 			    len > sizeof(device))
 				continue;
 			strncpy(device, _PATH_DEV, len);
@@ -199,7 +199,7 @@ getmntpoint(const char *name)
  */
 int
 chkdoreload(struct statfs *mntp,
-	void (*prtmsg)(const char *, ...) __printflike(1,2))
+    void (*prtmsg)(const char *, ...) __printflike(1, 2))
 {
 	struct iovec *iov;
 	int iovlen, error;
@@ -243,7 +243,7 @@ chkdoreload(struct statfs *mntp,
 
 void
 build_iovec(struct iovec **iov, int *iovlen, const char *name, void *val,
-	    size_t len)
+    size_t len)
 {
 	int i;
 

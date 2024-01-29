@@ -34,10 +34,10 @@
 #ifndef _LIO_IOCTL_H_
 #define _LIO_IOCTL_H_
 
-int	lio_ioctl(if_t ifp, u_long cmd, caddr_t data);
-void	lio_add_hw_stats(struct lio *lio);
-void	lio_stop(if_t ifp);
-void	lio_open(void *arg);
-int	lio_set_mac(if_t ifp, uint8_t *p);
+int lio_ioctl(if_t ifp, u_long cmd, caddr_t data);
+void lio_add_hw_stats(struct lio *lio);
+void lio_stop(if_t ifp);
+void lio_open(void *arg);
+int lio_set_mac(if_t ifp, uint8_t *p);
 
-#endif	/* _LIO_IOCTL_H_ */
+#endif /* _LIO_IOCTL_H_ */

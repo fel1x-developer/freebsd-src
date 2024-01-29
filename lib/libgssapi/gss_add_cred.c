@@ -26,12 +26,12 @@
  * SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <gssapi/gssapi.h>
 #include <stdlib.h>
-#include <errno.h>
 
-#include "mech_switch.h"
 #include "cred.h"
+#include "mech_switch.h"
 #include "name.h"
 #include "utils.h"
 
@@ -46,17 +46,16 @@ _gss_copy_cred(struct _gss_mechanism_cred *mc)
 	OM_uint32 initiator_lifetime, acceptor_lifetime;
 	gss_cred_usage_t cred_usage;
 
-	major_status = m->gm_inquire_cred_by_mech(&minor_status,
-	    mc->gmc_cred, mc->gmc_mech_oid,
-	    &name, &initiator_lifetime, &acceptor_lifetime, &cred_usage);
+	major_status = m->gm_inquire_cred_by_mech(&minor_status, mc->gmc_cred,
+	    mc->gmc_mech_oid, &name, &initiator_lifetime, &acceptor_lifetime,
+	    &cred_usage);
 	if (major_status) {
 		_gss_mg_error(m, major_status, minor_status);
 		return (0);
 	}
 
-	major_status = m->gm_add_cred(&minor_status,
-	    GSS_C_NO_CREDENTIAL, name, mc->gmc_mech_oid,
-	    cred_usage, initiator_lifetime, acceptor_lifetime,
+	major_status = m->gm_add_cred(&minor_status, GSS_C_NO_CREDENTIAL, name,
+	    mc->gmc_mech_oid, cred_usage, initiator_lifetime, acceptor_lifetime,
 	    &cred, 0, 0, 0);
 	m->gm_release_name(&minor_status, &name);
 
@@ -78,21 +77,16 @@ _gss_copy_cred(struct _gss_mechanism_cred *mc)
 }
 
 OM_uint32
-gss_add_cred(OM_uint32 *minor_status,
-    const gss_cred_id_t input_cred_handle,
-    const gss_name_t desired_name,
-    const gss_OID desired_mech,
-    gss_cred_usage_t cred_usage,
-    OM_uint32 initiator_time_req,
-    OM_uint32 acceptor_time_req,
-    gss_cred_id_t *output_cred_handle,
-    gss_OID_set *actual_mechs,
-    OM_uint32 *initiator_time_rec,
+gss_add_cred(OM_uint32 *minor_status, const gss_cred_id_t input_cred_handle,
+    const gss_name_t desired_name, const gss_OID desired_mech,
+    gss_cred_usage_t cred_usage, OM_uint32 initiator_time_req,
+    OM_uint32 acceptor_time_req, gss_cred_id_t *output_cred_handle,
+    gss_OID_set *actual_mechs, OM_uint32 *initiator_time_rec,
     OM_uint32 *acceptor_time_rec)
 {
 	OM_uint32 major_status;
 	struct _gss_mech_switch *m;
-	struct _gss_cred *cred = (struct _gss_cred *) input_cred_handle;
+	struct _gss_cred *cred = (struct _gss_cred *)input_cred_handle;
 	struct _gss_cred *new_cred;
 	gss_cred_id_t release_cred;
 	struct _gss_mechanism_cred *mc, *target_mc, *copy_mc;
@@ -123,13 +117,13 @@ gss_add_cred(OM_uint32 *minor_status,
 	 */
 	target_mc = NULL;
 	if (cred) {
-		SLIST_FOREACH(mc, &cred->gc_mc, gmc_link) {
+		SLIST_FOREACH (mc, &cred->gc_mc, gmc_link) {
 			if (gss_oid_equal(mc->gmc_mech_oid, desired_mech)) {
 				target_mc = mc;
 			}
 			copy_mc = _gss_copy_cred(mc);
 			if (!copy_mc) {
-				release_cred = (gss_cred_id_t) new_cred;
+				release_cred = (gss_cred_id_t)new_cred;
 				gss_release_cred(&junk, &release_cred);
 				*minor_status = ENOMEM;
 				return (GSS_S_FAILURE);
@@ -143,9 +137,7 @@ gss_add_cred(OM_uint32 *minor_status,
 	 */
 	if (desired_name) {
 		major_status = _gss_find_mn(minor_status,
-					    (struct _gss_name *) desired_name,
-					    desired_mech,
-					    &mn);
+		    (struct _gss_name *)desired_name, desired_mech, &mn);
 		if (major_status != GSS_S_COMPLETE) {
 			free(new_cred);
 			return (major_status);
@@ -158,7 +150,7 @@ gss_add_cred(OM_uint32 *minor_status,
 
 	mc = malloc(sizeof(struct _gss_mechanism_cred));
 	if (!mc) {
-		release_cred = (gss_cred_id_t) new_cred;
+		release_cred = (gss_cred_id_t)new_cred;
 		gss_release_cred(&junk, &release_cred);
 		*minor_status = ENOMEM;
 		return (GSS_S_FAILURE);
@@ -168,26 +160,19 @@ gss_add_cred(OM_uint32 *minor_status,
 
 	major_status = m->gm_add_cred(minor_status,
 	    target_mc ? target_mc->gmc_cred : GSS_C_NO_CREDENTIAL,
-	    desired_name ? mn->gmn_name : GSS_C_NO_NAME,
-	    desired_mech,
-	    cred_usage,
-	    initiator_time_req,
-	    acceptor_time_req,
-	    &mc->gmc_cred,
-	    actual_mechs,
-	    initiator_time_rec,
-	    acceptor_time_rec);
+	    desired_name ? mn->gmn_name : GSS_C_NO_NAME, desired_mech,
+	    cred_usage, initiator_time_req, acceptor_time_req, &mc->gmc_cred,
+	    actual_mechs, initiator_time_rec, acceptor_time_rec);
 
 	if (major_status) {
 		_gss_mg_error(m, major_status, *minor_status);
-		release_cred = (gss_cred_id_t) new_cred;
+		release_cred = (gss_cred_id_t)new_cred;
 		gss_release_cred(&junk, &release_cred);
 		free(mc);
 		return (major_status);
 	}
 	SLIST_INSERT_HEAD(&new_cred->gc_mc, mc, gmc_link);
-	*output_cred_handle = (gss_cred_id_t) new_cred;
+	*output_cred_handle = (gss_cred_id_t)new_cred;
 
 	return (GSS_S_COMPLETE);
 }
-

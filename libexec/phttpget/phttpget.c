@@ -27,8 +27,8 @@
  */
 
 #include <sys/types.h>
-#include <sys/time.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 
 #include <ctype.h>
 #include <err.h>
@@ -43,14 +43,14 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-static const char *	env_HTTP_PROXY;
-static char *		env_HTTP_PROXY_AUTH;
-static const char *	env_HTTP_USER_AGENT;
-static char *		env_HTTP_TIMEOUT;
-static const char *	proxyport;
-static char *		proxyauth;
+static const char *env_HTTP_PROXY;
+static char *env_HTTP_PROXY_AUTH;
+static const char *env_HTTP_USER_AGENT;
+static char *env_HTTP_TIMEOUT;
+static const char *proxyport;
+static char *proxyauth;
 
-static struct timeval	timo = { 15, 0};
+static struct timeval timo = { 15, 0 };
 
 static void
 usage(void)
@@ -67,10 +67,9 @@ usage(void)
 static char *
 b64enc(const char *ptext)
 {
-	static const char base64[] =
-	    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	    "abcdefghijklmnopqrstuvwxyz"
-	    "0123456789+/";
+	static const char base64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+				     "abcdefghijklmnopqrstuvwxyz"
+				     "0123456789+/";
 	const char *pt;
 	char *ctext, *pc;
 	size_t ptlen, ctlen;
@@ -83,7 +82,7 @@ b64enc(const char *ptext)
 	 */
 	ptlen = strlen(ptext);
 	if (ptlen > ((SIZE_MAX - 1) / 4) * 3 - 2)
-		return NULL;	/* Possible integer overflow */
+		return NULL; /* Possible integer overflow */
 	ctlen = 4 * ((ptlen + 2) / 3) + 1;
 	if ((ctext = malloc(ctlen)) == NULL)
 		return NULL;
@@ -144,14 +143,13 @@ readenv(void)
 	}
 
 	env_HTTP_PROXY_AUTH = getenv("HTTP_PROXY_AUTH");
-	if ((env_HTTP_PROXY != NULL) &&
-	    (env_HTTP_PROXY_AUTH != NULL) &&
-	    (strncasecmp(env_HTTP_PROXY_AUTH, "basic:" , 6) == 0)) {
+	if ((env_HTTP_PROXY != NULL) && (env_HTTP_PROXY_AUTH != NULL) &&
+	    (strncasecmp(env_HTTP_PROXY_AUTH, "basic:", 6) == 0)) {
 		/* Ignore authentication scheme */
-		(void) strsep(&env_HTTP_PROXY_AUTH, ":");
+		(void)strsep(&env_HTTP_PROXY_AUTH, ":");
 
 		/* Ignore realm */
-		(void) strsep(&env_HTTP_PROXY_AUTH, ":");
+		(void)strsep(&env_HTTP_PROXY_AUTH, ":");
 
 		/* Obtain username and password */
 		proxy_auth_user = strsep(&env_HTTP_PROXY_AUTH, ":");
@@ -159,8 +157,8 @@ readenv(void)
 	}
 
 	if ((proxy_auth_user != NULL) && (proxy_auth_pass != NULL)) {
-		asprintf(&proxy_auth_userpass, "%s:%s",
-		    proxy_auth_user, proxy_auth_pass);
+		asprintf(&proxy_auth_userpass, "%s:%s", proxy_auth_user,
+		    proxy_auth_pass);
 		if (proxy_auth_userpass == NULL)
 			err(1, "asprintf");
 
@@ -195,7 +193,7 @@ readenv(void)
 }
 
 static int
-makerequest(char ** buf, char * path, char * server, int connclose)
+makerequest(char **buf, char *path, char *server, int connclose)
 {
 	int buflen;
 
@@ -206,23 +204,21 @@ makerequest(char ** buf, char * path, char * server, int connclose)
 	    "%s"
 	    "%s"
 	    "\r\n",
-	    env_HTTP_PROXY ? "http://" : "",
-	    env_HTTP_PROXY ? server : "",
-	    path, server, env_HTTP_USER_AGENT,
-	    proxyauth ? proxyauth : "",
+	    env_HTTP_PROXY ? "http://" : "", env_HTTP_PROXY ? server : "", path,
+	    server, env_HTTP_USER_AGENT, proxyauth ? proxyauth : "",
 	    connclose ? "Connection: Close\r\n" : "Connection: Keep-Alive\r\n");
 	if (buflen == -1)
 		err(1, "asprintf");
-	return(buflen);
+	return (buflen);
 }
 
 static int
-readln(int sd, char * resbuf, int * resbuflen, int * resbufpos)
+readln(int sd, char *resbuf, int *resbuflen, int *resbufpos)
 {
 	ssize_t len;
 
-	while (strnstr(resbuf + *resbufpos, "\r\n",
-	    *resbuflen - *resbufpos) == NULL) {
+	while (strnstr(resbuf + *resbufpos, "\r\n", *resbuflen - *resbufpos) ==
+	    NULL) {
 		/* Move buffered data to the start of the buffer */
 		if (*resbufpos != 0) {
 			memmove(resbuf, resbuf + *resbufpos,
@@ -237,8 +233,7 @@ readln(int sd, char * resbuf, int * resbuflen, int * resbufpos)
 
 		/* Read more data into the buffer */
 		len = recv(sd, resbuf + *resbuflen, BUFSIZ - *resbuflen, 0);
-		if ((len == 0) ||
-		    ((len == -1) && (errno != EINTR)))
+		if ((len == 0) || ((len == -1) && (errno != EINTR)))
 			return -1;
 
 		if (len != -1)
@@ -249,8 +244,8 @@ readln(int sd, char * resbuf, int * resbuflen, int * resbufpos)
 }
 
 static int
-copybytes(int sd, int fd, off_t copylen, char * resbuf, int * resbuflen,
-    int * resbufpos)
+copybytes(int sd, int fd, off_t copylen, char *resbuf, int *resbuflen,
+    int *resbufpos)
 {
 	ssize_t len;
 
@@ -289,34 +284,34 @@ copybytes(int sd, int fd, off_t copylen, char * resbuf, int * resbuflen,
 int
 main(int argc, char *argv[])
 {
-	struct addrinfo hints;	/* Hints to getaddrinfo */
-	struct addrinfo *res;	/* Pointer to server address being used */
-	struct addrinfo *res0;	/* Pointer to server addresses */
-	char * resbuf = NULL;	/* Response buffer */
-	int resbufpos = 0;	/* Response buffer position */
-	int resbuflen = 0;	/* Response buffer length */
-	char * eolp;		/* Pointer to "\r\n" within resbuf */
-	char * hln;		/* Pointer within header line */
-	char * servername;	/* Name of server */
-	char * fname = NULL;	/* Name of downloaded file */
-	char * reqbuf = NULL;	/* Request buffer */
-	int reqbufpos = 0;	/* Request buffer position */
-	int reqbuflen = 0;	/* Request buffer length */
-	ssize_t len;		/* Length sent or received */
-	int nreq = 0;		/* Number of next request to send */
-	int nres = 0;		/* Number of next reply to receive */
-	int pipelined = 0;	/* != 0 if connection in pipelined mode. */
-	int keepalive;		/* != 0 if HTTP/1.0 keep-alive rcvd. */
-	int sd = -1;		/* Socket descriptor */
-	int sdflags = 0;	/* Flags on the socket sd */
-	int fd = -1;		/* Descriptor for download target file */
-	int error;		/* Error code */
-	int statuscode;		/* HTTP Status code */
-	off_t contentlength;	/* Value from Content-Length header */
-	int chunked;		/* != if transfer-encoding is chunked */
-	off_t clen;		/* Chunk length */
-	int firstreq = 0;	/* # of first request for this connection */
-	int val;		/* Value used for setsockopt call */
+	struct addrinfo hints; /* Hints to getaddrinfo */
+	struct addrinfo *res;  /* Pointer to server address being used */
+	struct addrinfo *res0; /* Pointer to server addresses */
+	char *resbuf = NULL;   /* Response buffer */
+	int resbufpos = 0;     /* Response buffer position */
+	int resbuflen = 0;     /* Response buffer length */
+	char *eolp;	       /* Pointer to "\r\n" within resbuf */
+	char *hln;	       /* Pointer within header line */
+	char *servername;      /* Name of server */
+	char *fname = NULL;    /* Name of downloaded file */
+	char *reqbuf = NULL;   /* Request buffer */
+	int reqbufpos = 0;     /* Request buffer position */
+	int reqbuflen = 0;     /* Request buffer length */
+	ssize_t len;	       /* Length sent or received */
+	int nreq = 0;	       /* Number of next request to send */
+	int nres = 0;	       /* Number of next reply to receive */
+	int pipelined = 0;     /* != 0 if connection in pipelined mode. */
+	int keepalive;	       /* != 0 if HTTP/1.0 keep-alive rcvd. */
+	int sd = -1;	       /* Socket descriptor */
+	int sdflags = 0;       /* Flags on the socket sd */
+	int fd = -1;	       /* Descriptor for download target file */
+	int error;	       /* Error code */
+	int statuscode;	       /* HTTP Status code */
+	off_t contentlength;   /* Value from Content-Length header */
+	int chunked;	       /* != if transfer-encoding is chunked */
+	off_t clen;	       /* Chunk length */
+	int firstreq = 0;      /* # of first request for this connection */
+	int val;	       /* Value used for setsockopt call */
 
 	/* Check that the arguments are sensible */
 	if (argc < 2)
@@ -344,8 +339,7 @@ main(int argc, char *argv[])
 	if (error)
 		errx(1, "host = %s, port = %s: %s",
 		    env_HTTP_PROXY ? env_HTTP_PROXY : servername,
-		    env_HTTP_PROXY ? proxyport : "http",
-		    gai_strerror(error));
+		    env_HTTP_PROXY ? proxyport : "http", gai_strerror(error));
 	if (res0 == NULL)
 		errx(1, "could not look up %s", servername);
 	res = res0;
@@ -365,18 +359,18 @@ main(int argc, char *argv[])
 				continue;
 
 			/* ... set 15-second timeouts ... */
-			setsockopt(sd, SOL_SOCKET, SO_SNDTIMEO,
-			    (void *)&timo, (socklen_t)sizeof(timo));
-			setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO,
-			    (void *)&timo, (socklen_t)sizeof(timo));
+			setsockopt(sd, SOL_SOCKET, SO_SNDTIMEO, (void *)&timo,
+			    (socklen_t)sizeof(timo));
+			setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, (void *)&timo,
+			    (socklen_t)sizeof(timo));
 
 			/* ... disable SIGPIPE generation ... */
 			val = 1;
-			setsockopt(sd, SOL_SOCKET, SO_NOSIGPIPE,
-			    (void *)&val, sizeof(int));
+			setsockopt(sd, SOL_SOCKET, SO_NOSIGPIPE, (void *)&val,
+			    sizeof(int));
 
 			/* ... and connect to the server. */
-			if(connect(sd, res->ai_addr, res->ai_addrlen)) {
+			if (connect(sd, res->ai_addr, res->ai_addrlen)) {
 				close(sd);
 				sd = -1;
 				continue;
@@ -468,7 +462,7 @@ main(int argc, char *argv[])
 			if (statuscode == 0) {
 				/* The first line MUST be HTTP/1.x xxx ... */
 				if ((strncmp(hln, "HTTP/1.", 7) != 0) ||
-				    ! isdigit(hln[7]))
+				    !isdigit(hln[7]))
 					goto conndied;
 
 				/*
@@ -492,8 +486,8 @@ main(int argc, char *argv[])
 
 				/* Read the status code */
 				while (isdigit(*hln)) {
-					statuscode = statuscode * 10 +
-					    *hln - '0';
+					statuscode = statuscode * 10 + *hln -
+					    '0';
 					hln++;
 				}
 
@@ -655,8 +649,8 @@ main(int argc, char *argv[])
 			 * Read everything until the server closes the
 			 * socket.
 			 */
-			error = copybytes(sd, fd, OFF_MAX, resbuf,
-			    &resbuflen, &resbufpos);
+			error = copybytes(sd, fd, OFF_MAX, resbuf, &resbuflen,
+			    &resbufpos);
 			if (error == -1)
 				goto conndied;
 			pipelined = 0;
@@ -689,7 +683,7 @@ main(int argc, char *argv[])
 			goto cleanupconn;
 		continue;
 
-conndied:
+	conndied:
 		/*
 		 * Something went wrong -- our connection died, the server
 		 * sent us garbage, etc.  If this happened on the first
@@ -700,7 +694,7 @@ conndied:
 		if (nres == firstreq)
 			errx(1, "Connection failure");
 
-cleanupconn:
+	cleanupconn:
 		/*
 		 * Clean up our connection and keep on going
 		 */

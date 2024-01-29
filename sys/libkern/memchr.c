@@ -33,8 +33,8 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/libkern.h>
 #include <sys/param.h>
+#include <sys/libkern.h>
 
 void *
 memchr(const void *s, int c, size_t n)

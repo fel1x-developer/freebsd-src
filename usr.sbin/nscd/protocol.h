@@ -36,87 +36,86 @@
 
 /* structures below represent the data that are sent/received by the daemon */
 struct cache_write_request {
-	char	*entry;
-	char	*cache_key;
-	char	*data;
+	char *entry;
+	char *cache_key;
+	char *data;
 
-	size_t	entry_length;
-	size_t	cache_key_size;
-	size_t	data_size;
+	size_t entry_length;
+	size_t cache_key_size;
+	size_t data_size;
 };
 
 struct cache_write_response {
-	int	error_code;
+	int error_code;
 };
 
 struct cache_read_request {
-	char	*entry;
-	char	*cache_key;
+	char *entry;
+	char *cache_key;
 
-	size_t	entry_length;
-	size_t	cache_key_size;
+	size_t entry_length;
+	size_t cache_key_size;
 };
 
 struct cache_read_response {
-	char	*data;			// ignored if error_code is not 0
-	size_t	data_size;		// ignored if error_code is not 0
+	char *data;	  // ignored if error_code is not 0
+	size_t data_size; // ignored if error_code is not 0
 
-	int	error_code;
+	int error_code;
 };
 
 enum transformation_type {
-	TT_USER = 0,	// transform only the entries of the caller
-	TT_ALL = 1	// transform all entries
+	TT_USER = 0, // transform only the entries of the caller
+	TT_ALL = 1   // transform all entries
 };
 
 struct cache_transform_request {
-	char	*entry; 		// ignored if entry_length is 0
-	size_t	entry_length;
+	char *entry; // ignored if entry_length is 0
+	size_t entry_length;
 
-	int	transformation_type;
+	int transformation_type;
 };
 
 struct cache_transform_response {
-	int	error_code;
+	int error_code;
 };
 
 struct cache_mp_write_session_request {
-	char	*entry;
-	size_t	entry_length;
+	char *entry;
+	size_t entry_length;
 };
 
 struct cache_mp_write_session_response {
-	int	error_code;
+	int error_code;
 };
 
 struct cache_mp_write_session_write_request {
-	char	*data;
-	size_t	data_size;
+	char *data;
+	size_t data_size;
 };
 
 struct cache_mp_write_session_write_response {
-	int	error_code;
+	int error_code;
 };
 
 struct cache_mp_read_session_request {
-	char	*entry;
-	size_t	entry_length;
+	char *entry;
+	size_t entry_length;
 };
 
 struct cache_mp_read_session_response {
-	int	error_code;
+	int error_code;
 };
 
 struct cache_mp_read_session_read_response {
-	char	*data;
-	size_t	data_size;
+	char *data;
+	size_t data_size;
 
-	int	error_code;
+	int error_code;
 };
 
-
 enum comm_element_t {
-	CET_UNDEFINED 	= 0,
+	CET_UNDEFINED = 0,
 	CET_WRITE_REQUEST = 1,
 	CET_WRITE_RESPONSE = 2,
 	CET_READ_REQUEST = 3,
@@ -143,21 +142,24 @@ enum comm_element_t {
  */
 struct comm_element {
 	union {
-	struct cache_write_request c_write_request;
-	struct cache_write_response c_write_response;
-	struct cache_read_request c_read_request;
-	struct cache_read_response c_read_response;
-	struct cache_transform_request c_transform_request;
-	struct cache_transform_response c_transform_response;
+		struct cache_write_request c_write_request;
+		struct cache_write_response c_write_response;
+		struct cache_read_request c_read_request;
+		struct cache_read_response c_read_response;
+		struct cache_transform_request c_transform_request;
+		struct cache_transform_response c_transform_response;
 
-	struct cache_mp_write_session_request c_mp_ws_request;
-	struct cache_mp_write_session_response c_mp_ws_response;
-	struct cache_mp_write_session_write_request c_mp_ws_write_request;
-	struct cache_mp_write_session_write_response c_mp_ws_write_response;
+		struct cache_mp_write_session_request c_mp_ws_request;
+		struct cache_mp_write_session_response c_mp_ws_response;
+		struct cache_mp_write_session_write_request
+		    c_mp_ws_write_request;
+		struct cache_mp_write_session_write_response
+		    c_mp_ws_write_response;
 
-	struct cache_mp_read_session_request c_mp_rs_request;
-	struct cache_mp_read_session_response c_mp_rs_response;
-	struct cache_mp_read_session_read_response c_mp_rs_read_response;
+		struct cache_mp_read_session_request c_mp_rs_request;
+		struct cache_mp_read_session_response c_mp_rs_response;
+		struct cache_mp_read_session_read_response
+		    c_mp_rs_read_response;
 	} /* anonymous */;
 	enum comm_element_t type;
 };
@@ -188,60 +190,59 @@ struct cache_read_response *get_cache_read_response(struct comm_element *);
 void init_cache_transform_request(struct cache_transform_request *);
 void finalize_cache_transform_request(struct cache_transform_request *);
 struct cache_transform_request *get_cache_transform_request(
-	struct comm_element *);
+    struct comm_element *);
 
 void init_cache_transform_response(struct cache_transform_response *);
 void finalize_cache_transform_response(struct cache_transform_response *);
 struct cache_transform_response *get_cache_transform_response(
-	struct comm_element *);
+    struct comm_element *);
 
 void init_cache_mp_write_session_request(
-	struct cache_mp_write_session_request *);
+    struct cache_mp_write_session_request *);
 void finalize_cache_mp_write_session_request(
-	struct cache_mp_write_session_request *);
-struct cache_mp_write_session_request *
-    	get_cache_mp_write_session_request(struct comm_element *);
+    struct cache_mp_write_session_request *);
+struct cache_mp_write_session_request *get_cache_mp_write_session_request(
+    struct comm_element *);
 
 void init_cache_mp_write_session_response(
-	struct cache_mp_write_session_response *);
+    struct cache_mp_write_session_response *);
 void finalize_cache_mp_write_session_response(
-	struct cache_mp_write_session_response *);
-struct cache_mp_write_session_response *
-	get_cache_mp_write_session_response(struct comm_element *);
+    struct cache_mp_write_session_response *);
+struct cache_mp_write_session_response *get_cache_mp_write_session_response(
+    struct comm_element *);
 
 void init_cache_mp_write_session_write_request(
-	struct cache_mp_write_session_write_request *);
+    struct cache_mp_write_session_write_request *);
 void finalize_cache_mp_write_session_write_request(
-	struct cache_mp_write_session_write_request *);
+    struct cache_mp_write_session_write_request *);
 struct cache_mp_write_session_write_request *
-	get_cache_mp_write_session_write_request(struct comm_element *);
+get_cache_mp_write_session_write_request(struct comm_element *);
 
 void init_cache_mp_write_session_write_response(
-	struct cache_mp_write_session_write_response *);
+    struct cache_mp_write_session_write_response *);
 void finalize_cache_mp_write_session_write_response(
-	struct cache_mp_write_session_write_response *);
+    struct cache_mp_write_session_write_response *);
 struct cache_mp_write_session_write_response *
-	get_cache_mp_write_session_write_response(struct comm_element *);
+get_cache_mp_write_session_write_response(struct comm_element *);
 
-void init_cache_mp_read_session_request(
-	struct cache_mp_read_session_request *);
+void init_cache_mp_read_session_request(struct cache_mp_read_session_request *);
 void finalize_cache_mp_read_session_request(
-	struct cache_mp_read_session_request *);
+    struct cache_mp_read_session_request *);
 struct cache_mp_read_session_request *get_cache_mp_read_session_request(
-	struct comm_element *);
+    struct comm_element *);
 
 void init_cache_mp_read_session_response(
-	struct cache_mp_read_session_response *);
+    struct cache_mp_read_session_response *);
 void finalize_cache_mp_read_session_response(
-	struct cache_mp_read_session_response *);
-struct cache_mp_read_session_response *
-    	get_cache_mp_read_session_response(struct comm_element *);
+    struct cache_mp_read_session_response *);
+struct cache_mp_read_session_response *get_cache_mp_read_session_response(
+    struct comm_element *);
 
 void init_cache_mp_read_session_read_response(
-	struct cache_mp_read_session_read_response *);
+    struct cache_mp_read_session_read_response *);
 void finalize_cache_mp_read_session_read_response(
-	struct cache_mp_read_session_read_response *);
+    struct cache_mp_read_session_read_response *);
 struct cache_mp_read_session_read_response *
-	get_cache_mp_read_session_read_response(struct comm_element *);
+get_cache_mp_read_session_read_response(struct comm_element *);
 
 #endif

@@ -33,44 +33,45 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/types.h>
+#include <sys/param.h>
+#include <sys/stat.h>
+
 #include <err.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <rpc/rpc.h>
+#include <rpcsvc/yp.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-#include <rpc/rpc.h>
-#include <rpcsvc/yp.h>
-#include <sys/param.h>
-#include <sys/types.h>
-#include <sys/stat.h>
+
 #include "yp_extern.h"
 #include "ypxfr_extern.h"
 
-char *yp_dir = "";	/* No particular default needed. */
+char *yp_dir = ""; /* No particular default needed. */
 int debug = 1;
 
 static void
 usage(void)
 {
-	fprintf(stderr, "%s\n%s\n%s\n%s\n",
-	"usage: yp_mkdb -c",
-	"       yp_mkdb -u dbname",
-	"       yp_mkdb [-c] [-b] [-s] [-f] [-i inputfile] [-o outputfile]",
-	"               [-d domainname ] [-m mastername] inputfile dbname");
+	fprintf(stderr, "%s\n%s\n%s\n%s\n", "usage: yp_mkdb -c",
+	    "       yp_mkdb -u dbname",
+	    "       yp_mkdb [-c] [-b] [-s] [-f] [-i inputfile] [-o outputfile]",
+	    "               [-d domainname ] [-m mastername] inputfile dbname");
 	exit(1);
 }
 
-#define PERM_SECURE (S_IRUSR|S_IWUSR)
+#define PERM_SECURE (S_IRUSR | S_IWUSR)
 static DB *
 open_db(char *path, int flags)
 {
 	extern HASHINFO openinfo;
 
-	return(dbopen(path, flags, PERM_SECURE, DB_HASH, &openinfo));
+	return (dbopen(path, flags, PERM_SECURE, DB_HASH, &openinfo));
 }
 
 static void
@@ -159,7 +160,6 @@ main(int argc, char *argv[])
 			usage();
 		unwind(map);
 		exit(0);
-
 	}
 
 	infile = argv[0];
@@ -189,7 +189,7 @@ main(int argc, char *argv[])
 			err(1, "failed to open %s", infile);
 	}
 
-	if ((dbp = open_db(map, O_RDWR|O_EXLOCK|O_EXCL|O_CREAT)) == NULL)
+	if ((dbp = open_db(map, O_RDWR | O_EXLOCK | O_EXCL | O_CREAT)) == NULL)
 		err(1, "open_db(%s) failed", map);
 
 	if (interdom) {
@@ -256,7 +256,7 @@ main(int argc, char *argv[])
 		/* handle backslash line continuations */
 		while (buf[strlen(buf) - 1] == '\\') {
 			fgets((char *)&buf[strlen(buf) - 1],
-					sizeof(buf) - strlen(buf), ifp);
+			    sizeof(buf) - strlen(buf), ifp);
 			if ((sep = strchr(buf, '\n')))
 				*sep = '\0';
 		}
@@ -278,10 +278,11 @@ main(int argc, char *argv[])
 
 		/* Check for silliness. */
 		if (filter_plusminus) {
-			if  (*keybuf == '+' || *keybuf == '-' ||
-			     *datbuf == '+' || *datbuf == '-') {
+			if (*keybuf == '+' || *keybuf == '-' ||
+			    *datbuf == '+' || *datbuf == '-') {
 				warnx("bad character at "
-				    "start of line: %s", buf);
+				      "start of line: %s",
+				    buf);
 				continue;
 			}
 		}
@@ -313,11 +314,10 @@ main(int argc, char *argv[])
 				break;
 			case YP_BADDB:
 			default:
-				err(1,"failed to write new record - exiting");
+				err(1, "failed to write new record - exiting");
 				break;
 			}
 		}
-
 	}
 
 	(void)(dbp->close)(dbp);
@@ -327,11 +327,11 @@ doclear:
 		char in = 0;
 		char *out = NULL;
 		int stat;
-		if ((stat = callrpc("localhost", YPPROG,YPVERS, YPPROC_CLEAR,
-			(xdrproc_t)xdr_void, &in,
-			(xdrproc_t)xdr_void, out)) != RPC_SUCCESS) {
+		if ((stat = callrpc("localhost", YPPROG, YPVERS, YPPROC_CLEAR,
+			 (xdrproc_t)xdr_void, &in, (xdrproc_t)xdr_void, out)) !=
+		    RPC_SUCCESS) {
 			warnx("failed to send 'clear' to local ypserv: %s",
-				clnt_sperrno((enum clnt_stat) stat));
+			    clnt_sperrno((enum clnt_stat)stat));
 		}
 	}
 

@@ -26,75 +26,72 @@
  */
 
 #include <sys/param.h>
-#include <sys/bus.h>
 #include <sys/systm.h>
-#include <sys/module.h>
+#include <sys/bus.h>
 #include <sys/callout.h>
 #include <sys/conf.h>
 #include <sys/cpu.h>
 #include <sys/ctype.h>
 #include <sys/kernel.h>
+#include <sys/limits.h>
+#include <sys/module.h>
 #include <sys/reboot.h>
 #include <sys/rman.h>
 #include <sys/sysctl.h>
-#include <sys/limits.h>
 
 #include <machine/bus.h>
 #include <machine/md_var.h>
 
 #include <dev/iicbus/iicbus.h>
 #include <dev/iicbus/iiconf.h>
-
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/openfirm.h>
+
 #include <powerpc/powermac/powermac_thermal.h>
 
 /* Inlet, Backside, U3 Heatsink sensor: MAX6690. */
 
-#define MAX6690_INT_TEMP    0x0
-#define MAX6690_EXT_TEMP    0x1
-#define MAX6690_RSL_STATUS  0x2
-#define MAX6690_EEXT_TEMP   0x10
-#define MAX6690_IEXT_TEMP   0x11
-#define MAX6690_TEMP_MASK   0xe0
+#define MAX6690_INT_TEMP 0x0
+#define MAX6690_EXT_TEMP 0x1
+#define MAX6690_RSL_STATUS 0x2
+#define MAX6690_EEXT_TEMP 0x10
+#define MAX6690_IEXT_TEMP 0x11
+#define MAX6690_TEMP_MASK 0xe0
 
 struct max6690_sensor {
 	struct pmac_therm therm;
 	device_t dev;
 
-	int     id;
+	int id;
 };
 
 /* Regular bus attachment functions */
-static int  max6690_probe(device_t);
-static int  max6690_attach(device_t);
+static int max6690_probe(device_t);
+static int max6690_attach(device_t);
 
 /* Utility functions */
-static int  max6690_sensor_read(struct max6690_sensor *sens);
-static int  max6690_sensor_sysctl(SYSCTL_HANDLER_ARGS);
+static int max6690_sensor_read(struct max6690_sensor *sens);
+static int max6690_sensor_sysctl(SYSCTL_HANDLER_ARGS);
 static void max6690_start(void *xdev);
-static int  max6690_read(device_t dev, uint32_t addr, uint8_t reg,
-			 uint8_t *data);
+static int max6690_read(device_t dev, uint32_t addr, uint8_t reg,
+    uint8_t *data);
 
 struct max6690_softc {
-	device_t		sc_dev;
+	device_t sc_dev;
 	struct intr_config_hook enum_hook;
-	uint32_t                sc_addr;
-	struct max6690_sensor   *sc_sensors;
-	int                     sc_nsensors;
+	uint32_t sc_addr;
+	struct max6690_sensor *sc_sensors;
+	int sc_nsensors;
 };
-static device_method_t  max6690_methods[] = {
+static device_method_t max6690_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		max6690_probe),
-	DEVMETHOD(device_attach,	max6690_attach),
+	DEVMETHOD(device_probe, max6690_probe),
+	DEVMETHOD(device_attach, max6690_attach),
 	{ 0, 0 },
 };
 
-static driver_t max6690_driver = {
-	"max6690",
-	max6690_methods,
-	sizeof(struct max6690_softc)
-};
+static driver_t max6690_driver = { "max6690", max6690_methods,
+	sizeof(struct max6690_softc) };
 
 DRIVER_MODULE(max6690, iicbus, max6690_driver, 0, 0);
 static MALLOC_DEFINE(M_MAX6690, "max6690", "Temp-Monitor MAX6690");
@@ -110,14 +107,13 @@ max6690_read(device_t dev, uint32_t addr, uint8_t reg, uint8_t *data)
 	rsl = MAX6690_RSL_STATUS;
 	/* first read the status register, 0x2. If busy, retry. */
 	struct iic_msg msg[4] = {
-	    { addr, IIC_M_WR | IIC_M_NOSTOP, 1, &rsl },
-	    { addr, IIC_M_RD, 1, busy },
-	    { addr, IIC_M_WR | IIC_M_NOSTOP, 1, &reg },
-	    { addr, IIC_M_RD, 1, buf },
+		{ addr, IIC_M_WR | IIC_M_NOSTOP, 1, &rsl },
+		{ addr, IIC_M_RD, 1, busy },
+		{ addr, IIC_M_WR | IIC_M_NOSTOP, 1, &reg },
+		{ addr, IIC_M_RD, 1, buf },
 	};
 
-	for (;;)
-	{
+	for (;;) {
 		err = iicbus_transfer(dev, msg, nitems(msg));
 		if (err != 0)
 			goto retry;
@@ -127,7 +123,7 @@ max6690_read(device_t dev, uint32_t addr, uint8_t reg, uint8_t *data)
 		if (buf[0] == 0xff)
 			goto retry;
 
-		*data = *((uint8_t*)buf);
+		*data = *((uint8_t *)buf);
 		return (0);
 
 	retry:
@@ -142,7 +138,7 @@ max6690_read(device_t dev, uint32_t addr, uint8_t reg, uint8_t *data)
 static int
 max6690_probe(device_t dev)
 {
-	const char  *name, *compatible;
+	const char *name, *compatible;
 	struct max6690_softc *sc;
 
 	name = ofw_bus_get_name(dev);
@@ -183,7 +179,7 @@ max6690_fill_sensor_prop(device_t dev)
 
 	/* Fill the sensor location property. */
 	prop_len = OF_getprop(child, "hwsensor-location", location,
-			      sizeof(location));
+	    sizeof(location));
 	while (len < prop_len) {
 		if (sc->sc_sensors != NULL)
 			strcpy(sc->sc_sensors[i].therm.name, location + len);
@@ -220,8 +216,8 @@ max6690_fill_sensor_prop(device_t dev)
 			sc->sc_sensors[j].therm.target_temp = 400 + ZERO_C_TO_K;
 		sc->sc_sensors[j].therm.max_temp = 850 + ZERO_C_TO_K;
 
-		sc->sc_sensors[j].therm.read =
-		    (int (*)(struct pmac_therm *))(max6690_sensor_read);
+		sc->sc_sensors[j].therm.read = (int (*)(struct pmac_therm *))(
+		    max6690_sensor_read);
 	}
 
 	return (i);
@@ -273,8 +269,8 @@ max6690_start(void *xdev)
 	if (sc->sc_nsensors == 0)
 		device_printf(dev, "WARNING: No MAX6690 sensors detected!\n");
 
-	sc->sc_sensors = malloc (sc->sc_nsensors * sizeof(struct max6690_sensor),
-				 M_MAX6690, M_WAITOK | M_ZERO);
+	sc->sc_sensors = malloc(sc->sc_nsensors * sizeof(struct max6690_sensor),
+	    M_MAX6690, M_WAITOK | M_ZERO);
 
 	ctx = device_get_sysctl_ctx(dev);
 	sensroot_oid = SYSCTL_ADD_NODE(ctx,
@@ -291,32 +287,29 @@ max6690_start(void *xdev)
 	/* Add sysctls for the sensors. */
 	for (i = 0; i < sc->sc_nsensors; i++) {
 		for (j = 0; j < strlen(sc->sc_sensors[i].therm.name); j++) {
-			sysctl_name[j] =
-			    tolower(sc->sc_sensors[i].therm.name[j]);
+			sysctl_name[j] = tolower(
+			    sc->sc_sensors[i].therm.name[j]);
 			if (isspace(sysctl_name[j]))
 				sysctl_name[j] = '_';
 		}
 		sysctl_name[j] = 0;
 
-		sprintf(sysctl_desc,"%s %s", sc->sc_sensors[i].therm.name,
-			"(C)");
+		sprintf(sysctl_desc, "%s %s", sc->sc_sensors[i].therm.name,
+		    "(C)");
 		oid = SYSCTL_ADD_NODE(ctx, SYSCTL_CHILDREN(sensroot_oid),
 		    OID_AUTO, sysctl_name, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
 		    "Sensor Information");
 		/* I use i to pass the sensor id. */
 		SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(oid), OID_AUTO, "temp",
-				CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE,
-				dev, i % 2,
-				max6690_sensor_sysctl, "IK", sysctl_desc);
-
+		    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, dev, i % 2,
+		    max6690_sensor_sysctl, "IK", sysctl_desc);
 	}
 	/* Dump sensor location & ID. */
 	if (bootverbose) {
 		device_printf(dev, "Sensors\n");
 		for (i = 0; i < sc->sc_nsensors; i++) {
 			device_printf(dev, "Location : %s ID: %d\n",
-				      sc->sc_sensors[i].therm.name,
-				      sc->sc_sensors[i].id);
+			    sc->sc_sensors[i].therm.name, sc->sc_sensors[i].id);
 		}
 	}
 

@@ -1,4 +1,5 @@
-/*	$NetBSD: citrus_memstream.c,v 1.5 2012/03/13 21:13:31 christos Exp $	*/
+/*	$NetBSD: citrus_memstream.c,v 1.5 2012/03/13 21:13:31 christos Exp $
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
@@ -28,25 +29,24 @@
  * SUCH DAMAGE.
  */
 
-
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "citrus_bcs.h"
+#include "citrus_memstream.h"
 #include "citrus_namespace.h"
 #include "citrus_region.h"
-#include "citrus_memstream.h"
-#include "citrus_bcs.h"
 
 const char *
-_citrus_memory_stream_getln(struct _citrus_memory_stream * __restrict ms,
-    size_t * __restrict rlen)
+_citrus_memory_stream_getln(struct _citrus_memory_stream *__restrict ms,
+    size_t *__restrict rlen)
 {
 	const uint8_t *h, *p;
 	size_t i, ret;
 
-	if (ms->ms_pos>=_region_size(&ms->ms_region))
+	if (ms->ms_pos >= _region_size(&ms->ms_region))
 		return (NULL);
 
 	h = p = (uint8_t *)_region_offset(&ms->ms_region, ms->ms_pos);
@@ -63,17 +63,17 @@ _citrus_memory_stream_getln(struct _citrus_memory_stream * __restrict ms,
 	return ((const char *)h);
 }
 
-#define T_COMM	'#'
+#define T_COMM '#'
 
 const char *
-_citrus_memory_stream_matchline(struct _citrus_memory_stream * __restrict ms,
-    const char * __restrict key, size_t * __restrict rlen, int iscasesensitive)
+_citrus_memory_stream_matchline(struct _citrus_memory_stream *__restrict ms,
+    const char *__restrict key, size_t *__restrict rlen, int iscasesensitive)
 {
 	const char *p, *q;
 	size_t keylen, len;
 
 	keylen = strlen(key);
-	for(;;) {
+	for (;;) {
 		p = _citrus_memory_stream_getln(ms, &len);
 		if (p == NULL)
 			return (NULL);

@@ -63,164 +63,156 @@ __KERNEL_RCSID(0, "$NetBSD: qat_ae.c,v 1.1 2019/11/20 09:37:46 hikaru Exp $");
 #endif
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/firmware.h>
 #include <sys/limits.h>
-#include <sys/systm.h>
 
 #include <machine/bus.h>
 
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
 
+#include "qat_aevar.h"
 #include "qatreg.h"
 #include "qatvar.h"
-#include "qat_aevar.h"
 
-static int	qat_ae_write_4(struct qat_softc *, u_char, bus_size_t,
-		    uint32_t);
-static int	qat_ae_read_4(struct qat_softc *, u_char, bus_size_t,
-		    uint32_t *);
-static void	qat_ae_ctx_indr_write(struct qat_softc *, u_char, uint32_t,
-		    bus_size_t, uint32_t);
-static int	qat_ae_ctx_indr_read(struct qat_softc *, u_char, uint32_t,
-		    bus_size_t, uint32_t *);
+static int qat_ae_write_4(struct qat_softc *, u_char, bus_size_t, uint32_t);
+static int qat_ae_read_4(struct qat_softc *, u_char, bus_size_t, uint32_t *);
+static void qat_ae_ctx_indr_write(struct qat_softc *, u_char, uint32_t,
+    bus_size_t, uint32_t);
+static int qat_ae_ctx_indr_read(struct qat_softc *, u_char, uint32_t,
+    bus_size_t, uint32_t *);
 
-static u_short	qat_aereg_get_10bit_addr(enum aereg_type, u_short);
-static int	qat_aereg_rel_data_write(struct qat_softc *, u_char, u_char,
-		    enum aereg_type, u_short, uint32_t);
-static int	qat_aereg_rel_data_read(struct qat_softc *, u_char, u_char,
-		    enum aereg_type, u_short, uint32_t *);
-static int	qat_aereg_rel_rdxfer_write(struct qat_softc *, u_char, u_char,
-		    enum aereg_type, u_short, uint32_t);
-static int	qat_aereg_rel_wrxfer_write(struct qat_softc *, u_char, u_char,
-		    enum aereg_type, u_short, uint32_t);
-static int	qat_aereg_rel_nn_write(struct qat_softc *, u_char, u_char,
-		    enum aereg_type, u_short, uint32_t);
-static int	qat_aereg_abs_to_rel(struct qat_softc *, u_char, u_short,
-		    u_short *, u_char *);
-static int	qat_aereg_abs_data_write(struct qat_softc *, u_char,
-		    enum aereg_type, u_short, uint32_t);
+static u_short qat_aereg_get_10bit_addr(enum aereg_type, u_short);
+static int qat_aereg_rel_data_write(struct qat_softc *, u_char, u_char,
+    enum aereg_type, u_short, uint32_t);
+static int qat_aereg_rel_data_read(struct qat_softc *, u_char, u_char,
+    enum aereg_type, u_short, uint32_t *);
+static int qat_aereg_rel_rdxfer_write(struct qat_softc *, u_char, u_char,
+    enum aereg_type, u_short, uint32_t);
+static int qat_aereg_rel_wrxfer_write(struct qat_softc *, u_char, u_char,
+    enum aereg_type, u_short, uint32_t);
+static int qat_aereg_rel_nn_write(struct qat_softc *, u_char, u_char,
+    enum aereg_type, u_short, uint32_t);
+static int qat_aereg_abs_to_rel(struct qat_softc *, u_char, u_short, u_short *,
+    u_char *);
+static int qat_aereg_abs_data_write(struct qat_softc *, u_char, enum aereg_type,
+    u_short, uint32_t);
 
-static void	qat_ae_enable_ctx(struct qat_softc *, u_char, u_int);
-static void	qat_ae_disable_ctx(struct qat_softc *, u_char, u_int);
-static void	qat_ae_write_ctx_mode(struct qat_softc *, u_char, u_char);
-static void	qat_ae_write_nn_mode(struct qat_softc *, u_char, u_char);
-static void	qat_ae_write_lm_mode(struct qat_softc *, u_char,
-		    enum aereg_type, u_char);
-static void	qat_ae_write_shared_cs_mode0(struct qat_softc *, u_char,
-		    u_char);
-static void	qat_ae_write_shared_cs_mode(struct qat_softc *, u_char, u_char);
-static int	qat_ae_set_reload_ustore(struct qat_softc *, u_char, u_int, int,
-		    u_int);
+static void qat_ae_enable_ctx(struct qat_softc *, u_char, u_int);
+static void qat_ae_disable_ctx(struct qat_softc *, u_char, u_int);
+static void qat_ae_write_ctx_mode(struct qat_softc *, u_char, u_char);
+static void qat_ae_write_nn_mode(struct qat_softc *, u_char, u_char);
+static void qat_ae_write_lm_mode(struct qat_softc *, u_char, enum aereg_type,
+    u_char);
+static void qat_ae_write_shared_cs_mode0(struct qat_softc *, u_char, u_char);
+static void qat_ae_write_shared_cs_mode(struct qat_softc *, u_char, u_char);
+static int qat_ae_set_reload_ustore(struct qat_softc *, u_char, u_int, int,
+    u_int);
 
 static enum qat_ae_status qat_ae_get_status(struct qat_softc *, u_char);
-static int	qat_ae_is_active(struct qat_softc *, u_char);
-static int	qat_ae_wait_num_cycles(struct qat_softc *, u_char, int, int);
+static int qat_ae_is_active(struct qat_softc *, u_char);
+static int qat_ae_wait_num_cycles(struct qat_softc *, u_char, int, int);
 
-static int	qat_ae_clear_reset(struct qat_softc *);
-static int	qat_ae_check(struct qat_softc *);
-static int	qat_ae_reset_timestamp(struct qat_softc *);
-static void	qat_ae_clear_xfer(struct qat_softc *);
-static int	qat_ae_clear_gprs(struct qat_softc *);
+static int qat_ae_clear_reset(struct qat_softc *);
+static int qat_ae_check(struct qat_softc *);
+static int qat_ae_reset_timestamp(struct qat_softc *);
+static void qat_ae_clear_xfer(struct qat_softc *);
+static int qat_ae_clear_gprs(struct qat_softc *);
 
-static void	qat_ae_get_shared_ustore_ae(u_char, u_char *);
-static u_int	qat_ae_ucode_parity64(uint64_t);
-static uint64_t	qat_ae_ucode_set_ecc(uint64_t);
-static int	qat_ae_ucode_write(struct qat_softc *, u_char, u_int, u_int,
-		    const uint64_t *);
-static int	qat_ae_ucode_read(struct qat_softc *, u_char, u_int, u_int,
-		    uint64_t *);
-static u_int	qat_ae_concat_ucode(uint64_t *, u_int, u_int, u_int, u_int *);
-static int	qat_ae_exec_ucode(struct qat_softc *, u_char, u_char,
-		    uint64_t *, u_int, int, u_int, u_int *);
-static int	qat_ae_exec_ucode_init_lm(struct qat_softc *, u_char, u_char,
-		    int *, uint64_t *, u_int,
-		    u_int *, u_int *, u_int *, u_int *, u_int *);
-static int	qat_ae_restore_init_lm_gprs(struct qat_softc *, u_char, u_char,
-		    u_int, u_int, u_int, u_int, u_int);
-static int	qat_ae_get_inst_num(int);
-static int	qat_ae_batch_put_lm(struct qat_softc *, u_char,
-		    struct qat_ae_batch_init_list *, size_t);
-static int	qat_ae_write_pc(struct qat_softc *, u_char, u_int, u_int);
+static void qat_ae_get_shared_ustore_ae(u_char, u_char *);
+static u_int qat_ae_ucode_parity64(uint64_t);
+static uint64_t qat_ae_ucode_set_ecc(uint64_t);
+static int qat_ae_ucode_write(struct qat_softc *, u_char, u_int, u_int,
+    const uint64_t *);
+static int qat_ae_ucode_read(struct qat_softc *, u_char, u_int, u_int,
+    uint64_t *);
+static u_int qat_ae_concat_ucode(uint64_t *, u_int, u_int, u_int, u_int *);
+static int qat_ae_exec_ucode(struct qat_softc *, u_char, u_char, uint64_t *,
+    u_int, int, u_int, u_int *);
+static int qat_ae_exec_ucode_init_lm(struct qat_softc *, u_char, u_char, int *,
+    uint64_t *, u_int, u_int *, u_int *, u_int *, u_int *, u_int *);
+static int qat_ae_restore_init_lm_gprs(struct qat_softc *, u_char, u_char,
+    u_int, u_int, u_int, u_int, u_int);
+static int qat_ae_get_inst_num(int);
+static int qat_ae_batch_put_lm(struct qat_softc *, u_char,
+    struct qat_ae_batch_init_list *, size_t);
+static int qat_ae_write_pc(struct qat_softc *, u_char, u_int, u_int);
 
-static u_int	qat_aefw_csum(char *, int);
+static u_int qat_aefw_csum(char *, int);
 static const char *qat_aefw_uof_string(struct qat_softc *, size_t);
 static struct uof_chunk_hdr *qat_aefw_uof_find_chunk(struct qat_softc *,
-		    const char *, struct uof_chunk_hdr *);
+    const char *, struct uof_chunk_hdr *);
 
-static int	qat_aefw_load_mof(struct qat_softc *);
-static void	qat_aefw_unload_mof(struct qat_softc *);
-static int	qat_aefw_load_mmp(struct qat_softc *);
-static void	qat_aefw_unload_mmp(struct qat_softc *);
+static int qat_aefw_load_mof(struct qat_softc *);
+static void qat_aefw_unload_mof(struct qat_softc *);
+static int qat_aefw_load_mmp(struct qat_softc *);
+static void qat_aefw_unload_mmp(struct qat_softc *);
 
-static int	qat_aefw_mof_find_uof0(struct qat_softc *,
-		    struct mof_uof_hdr *, struct mof_uof_chunk_hdr *,
-		    u_int, size_t, const char *,
-		    size_t *, void **);
-static int	qat_aefw_mof_find_uof(struct qat_softc *);
-static int	qat_aefw_mof_parse(struct qat_softc *);
+static int qat_aefw_mof_find_uof0(struct qat_softc *, struct mof_uof_hdr *,
+    struct mof_uof_chunk_hdr *, u_int, size_t, const char *, size_t *, void **);
+static int qat_aefw_mof_find_uof(struct qat_softc *);
+static int qat_aefw_mof_parse(struct qat_softc *);
 
-static int	qat_aefw_uof_parse_image(struct qat_softc *,
-		    struct qat_uof_image *, struct uof_chunk_hdr *uch);
-static int	qat_aefw_uof_parse_images(struct qat_softc *);
-static int	qat_aefw_uof_parse(struct qat_softc *);
+static int qat_aefw_uof_parse_image(struct qat_softc *, struct qat_uof_image *,
+    struct uof_chunk_hdr *uch);
+static int qat_aefw_uof_parse_images(struct qat_softc *);
+static int qat_aefw_uof_parse(struct qat_softc *);
 
-static int	qat_aefw_alloc_auth_dmamem(struct qat_softc *, char *, size_t,
-		    struct qat_dmamem *);
-static int	qat_aefw_auth(struct qat_softc *, struct qat_dmamem *);
-static int	qat_aefw_suof_load(struct qat_softc *sc,
-		    struct qat_dmamem *dma);
-static int	qat_aefw_suof_parse_image(struct qat_softc *,
-		    struct qat_suof_image *, struct suof_chunk_hdr *);
-static int	qat_aefw_suof_parse(struct qat_softc *);
-static int	qat_aefw_suof_write(struct qat_softc *);
+static int qat_aefw_alloc_auth_dmamem(struct qat_softc *, char *, size_t,
+    struct qat_dmamem *);
+static int qat_aefw_auth(struct qat_softc *, struct qat_dmamem *);
+static int qat_aefw_suof_load(struct qat_softc *sc, struct qat_dmamem *dma);
+static int qat_aefw_suof_parse_image(struct qat_softc *,
+    struct qat_suof_image *, struct suof_chunk_hdr *);
+static int qat_aefw_suof_parse(struct qat_softc *);
+static int qat_aefw_suof_write(struct qat_softc *);
 
-static int	qat_aefw_uof_assign_image(struct qat_softc *, struct qat_ae *,
-		    struct qat_uof_image *);
-static int	qat_aefw_uof_init_ae(struct qat_softc *, u_char);
-static int	qat_aefw_uof_init(struct qat_softc *);
+static int qat_aefw_uof_assign_image(struct qat_softc *, struct qat_ae *,
+    struct qat_uof_image *);
+static int qat_aefw_uof_init_ae(struct qat_softc *, u_char);
+static int qat_aefw_uof_init(struct qat_softc *);
 
-static int	qat_aefw_init_memory_one(struct qat_softc *,
-		    struct uof_init_mem *);
-static void	qat_aefw_free_lm_init(struct qat_softc *, u_char);
-static int	qat_aefw_init_ustore(struct qat_softc *);
-static int	qat_aefw_init_reg(struct qat_softc *, u_char, u_char,
-		    enum aereg_type, u_short, u_int);
-static int	qat_aefw_init_reg_sym_expr(struct qat_softc *, u_char,
-		    struct qat_uof_image *);
-static int	qat_aefw_init_memory(struct qat_softc *);
-static int	qat_aefw_init_globals(struct qat_softc *);
-static uint64_t	qat_aefw_get_uof_inst(struct qat_softc *,
-		    struct qat_uof_page *, u_int);
-static int	qat_aefw_do_pagein(struct qat_softc *, u_char,
-		    struct qat_uof_page *);
-static int	qat_aefw_uof_write_one(struct qat_softc *,
-		    struct qat_uof_image *);
-static int	qat_aefw_uof_write(struct qat_softc *);
+static int qat_aefw_init_memory_one(struct qat_softc *, struct uof_init_mem *);
+static void qat_aefw_free_lm_init(struct qat_softc *, u_char);
+static int qat_aefw_init_ustore(struct qat_softc *);
+static int qat_aefw_init_reg(struct qat_softc *, u_char, u_char,
+    enum aereg_type, u_short, u_int);
+static int qat_aefw_init_reg_sym_expr(struct qat_softc *, u_char,
+    struct qat_uof_image *);
+static int qat_aefw_init_memory(struct qat_softc *);
+static int qat_aefw_init_globals(struct qat_softc *);
+static uint64_t qat_aefw_get_uof_inst(struct qat_softc *, struct qat_uof_page *,
+    u_int);
+static int qat_aefw_do_pagein(struct qat_softc *, u_char,
+    struct qat_uof_page *);
+static int qat_aefw_uof_write_one(struct qat_softc *, struct qat_uof_image *);
+static int qat_aefw_uof_write(struct qat_softc *);
 
 static int
 qat_ae_write_4(struct qat_softc *sc, u_char ae, bus_size_t offset,
-	uint32_t value)
+    uint32_t value)
 {
 	int times = TIMEOUT_AE_CSR;
 
 	do {
 		qat_ae_local_write_4(sc, ae, offset, value);
 		if ((qat_ae_local_read_4(sc, ae, LOCAL_CSR_STATUS) &
-		    LOCAL_CSR_STATUS_STATUS) == 0)
+			LOCAL_CSR_STATUS_STATUS) == 0)
 			return 0;
 
 	} while (times--);
 
 	device_printf(sc->sc_dev,
-	    "couldn't write AE CSR: ae 0x%hhx offset 0x%lx\n", ae, (long)offset);
+	    "couldn't write AE CSR: ae 0x%hhx offset 0x%lx\n", ae,
+	    (long)offset);
 	return EFAULT;
 }
 
 static int
 qat_ae_read_4(struct qat_softc *sc, u_char ae, bus_size_t offset,
-	uint32_t *value)
+    uint32_t *value)
 {
 	int times = TIMEOUT_AE_CSR;
 	uint32_t v;
@@ -228,7 +220,7 @@ qat_ae_read_4(struct qat_softc *sc, u_char ae, bus_size_t offset,
 	do {
 		v = qat_ae_local_read_4(sc, ae, offset);
 		if ((qat_ae_local_read_4(sc, ae, LOCAL_CSR_STATUS) &
-		    LOCAL_CSR_STATUS_STATUS) == 0) {
+			LOCAL_CSR_STATUS_STATUS) == 0) {
 			*value = v;
 			return 0;
 		}
@@ -250,8 +242,7 @@ qat_ae_ctx_indr_write(struct qat_softc *sc, u_char ae, uint32_t ctx_mask,
 	    offset == FUTURE_COUNT_SIGNAL_INDIRECT ||
 	    offset == CTX_STS_INDIRECT ||
 	    offset == CTX_WAKEUP_EVENTS_INDIRECT ||
-	    offset == CTX_SIG_EVENTS_INDIRECT ||
-	    offset == LM_ADDR_0_INDIRECT ||
+	    offset == CTX_SIG_EVENTS_INDIRECT || offset == LM_ADDR_0_INDIRECT ||
 	    offset == LM_ADDR_1_INDIRECT ||
 	    offset == INDIRECT_LM_ADDR_0_BYTE_INDEX ||
 	    offset == INDIRECT_LM_ADDR_1_BYTE_INDEX);
@@ -277,8 +268,7 @@ qat_ae_ctx_indr_read(struct qat_softc *sc, u_char ae, uint32_t ctx,
 	    offset == FUTURE_COUNT_SIGNAL_INDIRECT ||
 	    offset == CTX_STS_INDIRECT ||
 	    offset == CTX_WAKEUP_EVENTS_INDIRECT ||
-	    offset == CTX_SIG_EVENTS_INDIRECT ||
-	    offset == LM_ADDR_0_INDIRECT ||
+	    offset == CTX_SIG_EVENTS_INDIRECT || offset == LM_ADDR_0_INDIRECT ||
 	    offset == LM_ADDR_1_INDIRECT ||
 	    offset == INDIRECT_LM_ADDR_0_BYTE_INDEX ||
 	    offset == INDIRECT_LM_ADDR_1_BYTE_INDEX);
@@ -357,10 +347,10 @@ qat_aereg_rel_data_write(struct qat_softc *sc, u_char ae, u_char ctx,
 {
 	uint16_t srchi, srclo, destaddr, data16hi, data16lo;
 	uint64_t inst[] = {
-		0x0F440000000ull,	/* immed_w1[reg, val_hi16] */
-		0x0F040000000ull,	/* immed_w0[reg, val_lo16] */
-		0x0F0000C0300ull,	/* nop */
-		0x0E000010000ull	/* ctx_arb[kill] */
+		0x0F440000000ull, /* immed_w1[reg, val_hi16] */
+		0x0F040000000ull, /* immed_w0[reg, val_lo16] */
+		0x0F0000C0300ull, /* nop */
+		0x0E000010000ull  /* ctx_arb[kill] */
 	};
 	const int ninst = nitems(inst);
 	const int imm_w1 = 0, imm_w0 = 1;
@@ -395,12 +385,12 @@ qat_aereg_rel_data_write(struct qat_softc *sc, u_char ae, u_char ctx,
 	data16lo = 0xffff & value;
 	data16hi = 0xffff & (value >> 16);
 	srchi = qat_aereg_get_10bit_addr(AEREG_NO_DEST,
-		(uint16_t)(0xff & data16hi));
+	    (uint16_t)(0xff & data16hi));
 	srclo = qat_aereg_get_10bit_addr(AEREG_NO_DEST,
-		(uint16_t)(0xff & data16lo));
+	    (uint16_t)(0xff & data16lo));
 
 	switch (regtype) {
-	case AEREG_GPA_REL:	/* A rel source */
+	case AEREG_GPA_REL: /* A rel source */
 		inst[imm_w1] = inst[imm_w1] | ((data16hi >> 8) << 20) |
 		    ((srchi & 0x3ff) << 10) | (destaddr & 0x3ff);
 		inst[imm_w0] = inst[imm_w0] | ((data16lo >> 8) << 20) |
@@ -435,8 +425,7 @@ qat_aereg_rel_data_read(struct qat_softc *sc, u_char ae, u_char ctx,
 
 	if ((regtype == AEREG_GPA_REL) || (regtype == AEREG_GPB_REL) ||
 	    (regtype == AEREG_SR_REL) || (regtype == AEREG_SR_RD_REL) ||
-	    (regtype == AEREG_DR_REL) || (regtype == AEREG_DR_RD_REL))
-	{
+	    (regtype == AEREG_DR_REL) || (regtype == AEREG_DR_RD_REL)) {
 		/* determine the context mode */
 		qat_ae_read_4(sc, ae, CTX_ENABLES, &ctxen);
 		if (ctxen & CTX_ENABLES_INUSE_CONTEXTS) {
@@ -631,8 +620,8 @@ qat_aereg_rel_nn_write(struct qat_softc *sc, u_char ae, u_char ctx,
 }
 
 static int
-qat_aereg_abs_to_rel(struct qat_softc *sc, u_char ae,
-	u_short absreg, u_short *relreg, u_char *ctx)
+qat_aereg_abs_to_rel(struct qat_softc *sc, u_char ae, u_short absreg,
+    u_short *relreg, u_char *ctx)
 {
 	uint32_t ctxen;
 
@@ -652,7 +641,7 @@ qat_aereg_abs_to_rel(struct qat_softc *sc, u_char ae,
 
 static int
 qat_aereg_abs_data_write(struct qat_softc *sc, u_char ae,
-	enum aereg_type regtype, u_short absreg, uint32_t value)
+    enum aereg_type regtype, u_short absreg, uint32_t value)
 {
 	int error;
 	u_short relreg;
@@ -769,8 +758,8 @@ qat_ae_write_nn_mode(struct qat_softc *sc, u_char ae, u_char mode)
 }
 
 static void
-qat_ae_write_lm_mode(struct qat_softc *sc, u_char ae,
-	enum aereg_type lm, u_char mode)
+qat_ae_write_lm_mode(struct qat_softc *sc, u_char ae, enum aereg_type lm,
+    u_char mode)
 {
 	uint32_t val, nval;
 	uint32_t bit;
@@ -830,8 +819,8 @@ qat_ae_write_shared_cs_mode(struct qat_softc *sc, u_char ae, u_char mode)
 }
 
 static int
-qat_ae_set_reload_ustore(struct qat_softc *sc, u_char ae,
-	u_int reload_size, int shared_mode, u_int ustore_dram_addr)
+qat_ae_set_reload_ustore(struct qat_softc *sc, u_char ae, u_int reload_size,
+    int shared_mode, u_int ustore_dram_addr)
 {
 	uint32_t val, cs_reload;
 
@@ -858,8 +847,8 @@ qat_ae_set_reload_ustore(struct qat_softc *sc, u_char ae,
 	QAT_AE(sc, ae).qae_reload_size = reload_size;
 
 	qat_ae_read_4(sc, ae, AE_MISC_CONTROL, &val);
-	val &= ~(AE_MISC_CONTROL_ONE_CTX_RELOAD |
-	    AE_MISC_CONTROL_CS_RELOAD | AE_MISC_CONTROL_SHARE_CS);
+	val &= ~(AE_MISC_CONTROL_ONE_CTX_RELOAD | AE_MISC_CONTROL_CS_RELOAD |
+	    AE_MISC_CONTROL_SHARE_CS);
 	val |= __SHIFTIN(cs_reload, AE_MISC_CONTROL_CS_RELOAD) |
 	    __SHIFTIN(shared_mode, AE_MISC_CONTROL_ONE_CTX_RELOAD);
 	qat_ae_write_4(sc, ae, AE_MISC_CONTROL, val);
@@ -883,7 +872,6 @@ qat_ae_get_status(struct qat_softc *sc, u_char ae)
 
 	return QAT_AE_DISABLED;
 }
-
 
 static int
 qat_ae_is_active(struct qat_softc *sc, u_char ae)
@@ -929,8 +917,8 @@ qat_ae_wait_num_cycles(struct qat_softc *sc, u_char ae, int cycles, int check)
 			elapsed += 0x10000;
 
 		if (elapsed >= CYCLES_FROM_READY2EXE && check) {
-			if (qat_ae_read_4(sc, ae, ACTIVE_CTX_STATUS,
-			    &actx) == 0) {
+			if (qat_ae_read_4(sc, ae, ACTIVE_CTX_STATUS, &actx) ==
+			    0) {
 				if ((actx & ACTIVE_CTX_STATUS_ABO) == 0)
 					return 0;
 			}
@@ -1037,7 +1025,8 @@ qat_ae_clear_reset(struct qat_softc *sc)
 
 	reset = qat_cap_global_read_4(sc, CAP_GLOBAL_CTL_RESET);
 	reset &= ~(__SHIFTIN(sc->sc_ae_mask, CAP_GLOBAL_CTL_RESET_AE_MASK));
-	reset &= ~(__SHIFTIN(sc->sc_accel_mask, CAP_GLOBAL_CTL_RESET_ACCEL_MASK));
+	reset &= ~(
+	    __SHIFTIN(sc->sc_accel_mask, CAP_GLOBAL_CTL_RESET_ACCEL_MASK));
 	times = TIMEOUT_AE_RESET;
 	do {
 		qat_cap_global_write_4(sc, CAP_GLOBAL_CTL_RESET, reset);
@@ -1046,9 +1035,10 @@ qat_ae_clear_reset(struct qat_softc *sc)
 			return EBUSY;
 		}
 		reg = qat_cap_global_read_4(sc, CAP_GLOBAL_CTL_RESET);
-	} while ((__SHIFTIN(sc->sc_ae_mask, CAP_GLOBAL_CTL_RESET_AE_MASK) |
-	    __SHIFTIN(sc->sc_accel_mask, CAP_GLOBAL_CTL_RESET_ACCEL_MASK))
-	    & reg);
+	} while (
+	    (__SHIFTIN(sc->sc_ae_mask, CAP_GLOBAL_CTL_RESET_AE_MASK) |
+		__SHIFTIN(sc->sc_accel_mask, CAP_GLOBAL_CTL_RESET_ACCEL_MASK)) &
+	    reg);
 
 	/* Enable clock for AE and QAT */
 	clock = qat_cap_global_read_4(sc, CAP_GLOBAL_CTL_CLK_EN);
@@ -1069,27 +1059,22 @@ qat_ae_clear_reset(struct qat_softc *sc)
 			continue;
 
 		/* init the ctx_enable */
-		qat_ae_write_4(sc, ae, CTX_ENABLES,
-		    CTX_ENABLES_INIT);
+		qat_ae_write_4(sc, ae, CTX_ENABLES, CTX_ENABLES_INIT);
 
 		/* initialize the PCs */
-		qat_ae_ctx_indr_write(sc, ae, AE_ALL_CTX,
-		    CTX_STS_INDIRECT,
+		qat_ae_ctx_indr_write(sc, ae, AE_ALL_CTX, CTX_STS_INDIRECT,
 		    UPC_MASK & CTX_STS_INDIRECT_UPC_INIT);
 
 		/* init the ctx_arb */
-		qat_ae_write_4(sc, ae, CTX_ARB_CNTL,
-		    CTX_ARB_CNTL_INIT);
+		qat_ae_write_4(sc, ae, CTX_ARB_CNTL, CTX_ARB_CNTL_INIT);
 
 		/* enable cc */
-		qat_ae_write_4(sc, ae, CC_ENABLE,
-		    CC_ENABLE_INIT);
+		qat_ae_write_4(sc, ae, CC_ENABLE, CC_ENABLE_INIT);
 		qat_ae_ctx_indr_write(sc, ae, AE_ALL_CTX,
 		    CTX_WAKEUP_EVENTS_INDIRECT,
 		    CTX_WAKEUP_EVENTS_INDIRECT_INIT);
 		qat_ae_ctx_indr_write(sc, ae, AE_ALL_CTX,
-		    CTX_SIG_EVENTS_INDIRECT,
-		    CTX_SIG_EVENTS_INDIRECT_INIT);
+		    CTX_SIG_EVENTS_INDIRECT, CTX_SIG_EVENTS_INDIRECT_INIT);
 	}
 
 	if ((sc->sc_ae_mask != 0) &&
@@ -1097,8 +1082,7 @@ qat_ae_clear_reset(struct qat_softc *sc)
 		/* XXX XXX XXX init eSram only when this is boot time */
 	}
 
-	if ((sc->sc_ae_mask != 0) &&
-	    sc->sc_flags & QAT_FLAG_SHRAM_WAIT_READY) {
+	if ((sc->sc_ae_mask != 0) && sc->sc_flags & QAT_FLAG_SHRAM_WAIT_READY) {
 		/* XXX XXX XXX wait shram to complete initialization */
 	}
 
@@ -1120,15 +1104,14 @@ qat_ae_check(struct qat_softc *sc)
 		times = TIMEOUT_AE_CHECK;
 		error = qat_ae_read_4(sc, ae, PROFILE_COUNT, &cnt);
 		if (error) {
-			device_printf(sc->sc_dev,
-			    "couldn't access AE %d CSR\n", ae);
+			device_printf(sc->sc_dev, "couldn't access AE %d CSR\n",
+			    ae);
 			return error;
 		}
 		pcnt = cnt & 0xffff;
 
 		while (1) {
-			error = qat_ae_read_4(sc, ae,
-			    PROFILE_COUNT, &cnt);
+			error = qat_ae_read_4(sc, ae, PROFILE_COUNT, &cnt);
 			if (error) {
 				device_printf(sc->sc_dev,
 				    "couldn't access AE %d CSR\n", ae);
@@ -1188,10 +1171,10 @@ qat_ae_clear_xfer(struct qat_softc *sc)
 			continue;
 
 		for (reg = 0; reg < MAX_GPR_REG; reg++) {
-			qat_aereg_abs_data_write(sc, ae, AEREG_SR_RD_ABS,
-			    reg, 0);
-			qat_aereg_abs_data_write(sc, ae, AEREG_DR_RD_ABS,
-			    reg, 0);
+			qat_aereg_abs_data_write(sc, ae, AEREG_SR_RD_ABS, reg,
+			    0);
+			qat_aereg_abs_data_write(sc, ae, AEREG_DR_RD_ABS, reg,
+			    0);
 		}
 	}
 }
@@ -1256,8 +1239,7 @@ qat_ae_clear_gprs(struct qat_softc *sc)
 			rv = qat_ae_wait_num_cycles(sc, ae, AE_EXEC_CYCLE, 1);
 		} while (rv && times--);
 		if (times <= 0) {
-			device_printf(sc->sc_dev,
-			    "qat_ae_clear_gprs timeout");
+			device_printf(sc->sc_dev, "qat_ae_clear_gprs timeout");
 			return ETIMEDOUT;
 		}
 		qat_ae_disable_ctx(sc, ae, AE_ALL_CTX);
@@ -1267,16 +1249,17 @@ qat_ae_clear_gprs(struct qat_softc *sc)
 		/* init the ctx_enable */
 		qat_ae_write_4(sc, ae, CTX_ENABLES, CTX_ENABLES_INIT);
 		/* initialize the PCs */
-		qat_ae_ctx_indr_write(sc, ae, AE_ALL_CTX,
-		    CTX_STS_INDIRECT, UPC_MASK & CTX_STS_INDIRECT_UPC_INIT);
+		qat_ae_ctx_indr_write(sc, ae, AE_ALL_CTX, CTX_STS_INDIRECT,
+		    UPC_MASK & CTX_STS_INDIRECT_UPC_INIT);
 		/* init the ctx_arb */
 		qat_ae_write_4(sc, ae, CTX_ARB_CNTL, CTX_ARB_CNTL_INIT);
 		/* enable cc */
 		qat_ae_write_4(sc, ae, CC_ENABLE, CC_ENABLE_INIT);
 		qat_ae_ctx_indr_write(sc, ae, AE_ALL_CTX,
-		    CTX_WAKEUP_EVENTS_INDIRECT, CTX_WAKEUP_EVENTS_INDIRECT_INIT);
-		qat_ae_ctx_indr_write(sc, ae, AE_ALL_CTX, CTX_SIG_EVENTS_INDIRECT,
-		    CTX_SIG_EVENTS_INDIRECT_INIT);
+		    CTX_WAKEUP_EVENTS_INDIRECT,
+		    CTX_WAKEUP_EVENTS_INDIRECT_INIT);
+		qat_ae_ctx_indr_write(sc, ae, AE_ALL_CTX,
+		    CTX_SIG_EVENTS_INDIRECT, CTX_SIG_EVENTS_INDIRECT_INIT);
 	}
 
 	return 0;
@@ -1308,36 +1291,38 @@ qat_ae_ucode_parity64(uint64_t ucode)
 static uint64_t
 qat_ae_ucode_set_ecc(uint64_t ucode)
 {
-	static const uint64_t
-		bit0mask=0xff800007fffULL, bit1mask=0x1f801ff801fULL,
-		bit2mask=0xe387e0781e1ULL, bit3mask=0x7cb8e388e22ULL,
-		bit4mask=0xaf5b2c93244ULL, bit5mask=0xf56d5525488ULL,
-		bit6mask=0xdaf69a46910ULL;
+	static const uint64_t bit0mask = 0xff800007fffULL,
+			      bit1mask = 0x1f801ff801fULL,
+			      bit2mask = 0xe387e0781e1ULL,
+			      bit3mask = 0x7cb8e388e22ULL,
+			      bit4mask = 0xaf5b2c93244ULL,
+			      bit5mask = 0xf56d5525488ULL,
+			      bit6mask = 0xdaf69a46910ULL;
 
 	/* clear the ecc bits */
 	ucode &= ~(0x7fULL << USTORE_ECC_BIT_0);
 
-	ucode |= (uint64_t)qat_ae_ucode_parity64(bit0mask & ucode) <<
-	    USTORE_ECC_BIT_0;
-	ucode |= (uint64_t)qat_ae_ucode_parity64(bit1mask & ucode) <<
-	    USTORE_ECC_BIT_1;
-	ucode |= (uint64_t)qat_ae_ucode_parity64(bit2mask & ucode) <<
-	    USTORE_ECC_BIT_2;
-	ucode |= (uint64_t)qat_ae_ucode_parity64(bit3mask & ucode) <<
-	    USTORE_ECC_BIT_3;
-	ucode |= (uint64_t)qat_ae_ucode_parity64(bit4mask & ucode) <<
-	    USTORE_ECC_BIT_4;
-	ucode |= (uint64_t)qat_ae_ucode_parity64(bit5mask & ucode) <<
-	    USTORE_ECC_BIT_5;
-	ucode |= (uint64_t)qat_ae_ucode_parity64(bit6mask & ucode) <<
-	    USTORE_ECC_BIT_6;
+	ucode |= (uint64_t)qat_ae_ucode_parity64(bit0mask & ucode)
+	    << USTORE_ECC_BIT_0;
+	ucode |= (uint64_t)qat_ae_ucode_parity64(bit1mask & ucode)
+	    << USTORE_ECC_BIT_1;
+	ucode |= (uint64_t)qat_ae_ucode_parity64(bit2mask & ucode)
+	    << USTORE_ECC_BIT_2;
+	ucode |= (uint64_t)qat_ae_ucode_parity64(bit3mask & ucode)
+	    << USTORE_ECC_BIT_3;
+	ucode |= (uint64_t)qat_ae_ucode_parity64(bit4mask & ucode)
+	    << USTORE_ECC_BIT_4;
+	ucode |= (uint64_t)qat_ae_ucode_parity64(bit5mask & ucode)
+	    << USTORE_ECC_BIT_5;
+	ucode |= (uint64_t)qat_ae_ucode_parity64(bit6mask & ucode)
+	    << USTORE_ECC_BIT_6;
 
 	return (ucode);
 }
 
 static int
 qat_ae_ucode_write(struct qat_softc *sc, u_char ae, u_int uaddr, u_int ninst,
-	const uint64_t *ucode)
+    const uint64_t *ucode)
 {
 	uint64_t tmp;
 	uint32_t ustore_addr, ulo, uhi;
@@ -1393,7 +1378,7 @@ qat_ae_ucode_read(struct qat_softc *sc, u_char ae, u_int uaddr, u_int ninst,
 	/* save ustore-addr csr */
 	qat_ae_read_4(sc, ae, USTORE_ADDRESS, &ustore_addr);
 
-	uaddr |= USTORE_ADDRESS_ECS;	/* enable ecs bit */
+	uaddr |= USTORE_ADDRESS_ECS; /* enable ecs bit */
 	for (ii = 0; ii < ninst; ii++) {
 		qat_ae_write_4(sc, ae, USTORE_ADDRESS, uaddr);
 
@@ -1477,16 +1462,14 @@ qat_ae_concat_ucode(uint64_t *ucode, u_int ninst, u_int size, u_int addr,
 		size -= sizeof(u_int);
 	}
 	/* call this function recusive when the left size less than 4 */
-	ninst +=
-	    qat_ae_concat_ucode(ucode, ninst, size, addr, value + vali);
+	ninst += qat_ae_concat_ucode(ucode, ninst, size, addr, value + vali);
 
 	return (ninst - ninst0);
 }
 
 static int
-qat_ae_exec_ucode(struct qat_softc *sc, u_char ae, u_char ctx,
-    uint64_t *ucode, u_int ninst, int cond_code_off, u_int max_cycles,
-    u_int *endpc)
+qat_ae_exec_ucode(struct qat_softc *sc, u_char ae, u_char ctx, uint64_t *ucode,
+    u_int ninst, int cond_code_off, u_int max_cycles, u_int *endpc)
 {
 	int error = 0, share_cs = 0;
 	uint64_t savucode[MAX_EXEC_INST];
@@ -1563,8 +1546,7 @@ qat_ae_exec_ucode(struct qat_softc *sc, u_char ae, u_char ctx,
 	/* set PC */
 	qat_ae_ctx_indr_write(sc, ae, 1 << ctx, CTX_STS_INDIRECT, 0);
 	/* change the active context */
-	qat_ae_write_4(sc, ae, ACTIVE_CTX_STATUS,
-	    ctx & ACTIVE_CTX_STATUS_ACNO);
+	qat_ae_write_4(sc, ae, ACTIVE_CTX_STATUS, ctx & ACTIVE_CTX_STATUS_ACNO);
 
 	if (cond_code_off) {
 		/* disable conditional-code*/
@@ -1572,8 +1554,8 @@ qat_ae_exec_ucode(struct qat_softc *sc, u_char ae, u_char ctx,
 	}
 
 	/* wakeup-event voluntary */
-	qat_ae_ctx_indr_write(sc, ae, 1 << ctx,
-	    CTX_WAKEUP_EVENTS_INDIRECT, CTX_WAKEUP_EVENTS_INDIRECT_VOLUNTARY);
+	qat_ae_ctx_indr_write(sc, ae, 1 << ctx, CTX_WAKEUP_EVENTS_INDIRECT,
+	    CTX_WAKEUP_EVENTS_INDIRECT_VOLUNTARY);
 
 	/* clean signals */
 	qat_ae_ctx_indr_write(sc, ae, 1 << ctx, CTX_SIG_EVENTS_INDIRECT, 0);
@@ -1657,8 +1639,8 @@ qat_ae_exec_ucode(struct qat_softc *sc, u_char ae, u_char ctx,
 
 static int
 qat_ae_exec_ucode_init_lm(struct qat_softc *sc, u_char ae, u_char ctx,
-    int *first_exec, uint64_t *ucode, u_int ninst,
-    u_int *gpr_a0, u_int *gpr_a1, u_int *gpr_a2, u_int *gpr_b0, u_int *gpr_b1)
+    int *first_exec, uint64_t *ucode, u_int ninst, u_int *gpr_a0, u_int *gpr_a1,
+    u_int *gpr_a2, u_int *gpr_b0, u_int *gpr_b1)
 {
 
 	if (*first_exec) {
@@ -1697,8 +1679,7 @@ qat_ae_get_inst_num(int lmsize)
 	left = lmsize % sizeof(u_int);
 
 	if (left) {
-		ninst = nitems(ae_inst_1b) +
-		    qat_ae_get_inst_num(lmsize - left);
+		ninst = nitems(ae_inst_1b) + qat_ae_get_inst_num(lmsize - left);
 	} else {
 		/* 3 instruction is needed for further code */
 		ninst = (lmsize - sizeof(u_int)) * 3 / 4 + nitems(ae_inst_4b);
@@ -1724,7 +1705,7 @@ qat_ae_batch_put_lm(struct qat_softc *sc, u_char ae,
 	ucode = qat_alloc_mem(sizeof(uint64_t) * alloc_ninst);
 
 	ninst = 0;
-	STAILQ_FOREACH(qabi, qabi_list, qabi_next) {
+	STAILQ_FOREACH (qabi, qabi_list, qabi_next) {
 		insnsz = qat_ae_get_inst_num(qabi->qabi_size);
 		if (insnsz + ninst > alloc_ninst) {
 			/* add ctx_arb[kill] */
@@ -1732,32 +1713,31 @@ qat_ae_batch_put_lm(struct qat_softc *sc, u_char ae,
 			execed = 1;
 
 			error = qat_ae_exec_ucode_init_lm(sc, ae, 0,
-			    &first_exec, ucode, ninst,
-			    &gpr_a0, &gpr_a1, &gpr_a2, &gpr_b0, &gpr_b1);
+			    &first_exec, ucode, ninst, &gpr_a0, &gpr_a1,
+			    &gpr_a2, &gpr_b0, &gpr_b1);
 			if (error) {
-				qat_ae_restore_init_lm_gprs(sc, ae, 0,
-				    gpr_a0, gpr_a1, gpr_a2, gpr_b0, gpr_b1);
+				qat_ae_restore_init_lm_gprs(sc, ae, 0, gpr_a0,
+				    gpr_a1, gpr_a2, gpr_b0, gpr_b1);
 				qat_free_mem(ucode);
 				return error;
 			}
 			/* run microExec to execute the microcode */
 			ninst = 0;
 		}
-		ninst += qat_ae_concat_ucode(ucode, ninst,
-		    qabi->qabi_size, qabi->qabi_addr, qabi->qabi_value);
+		ninst += qat_ae_concat_ucode(ucode, ninst, qabi->qabi_size,
+		    qabi->qabi_addr, qabi->qabi_value);
 	}
 
 	if (ninst > 0) {
 		ucode[ninst++] = 0x0E000010000ull;
 		execed = 1;
 
-		error = qat_ae_exec_ucode_init_lm(sc, ae, 0,
-		    &first_exec, ucode, ninst,
-		    &gpr_a0, &gpr_a1, &gpr_a2, &gpr_b0, &gpr_b1);
+		error = qat_ae_exec_ucode_init_lm(sc, ae, 0, &first_exec, ucode,
+		    ninst, &gpr_a0, &gpr_a1, &gpr_a2, &gpr_b0, &gpr_b1);
 	}
 	if (execed) {
-		qat_ae_restore_init_lm_gprs(sc, ae, 0,
-		    gpr_a0, gpr_a1, gpr_a2, gpr_b0, gpr_b1);
+		qat_ae_restore_init_lm_gprs(sc, ae, 0, gpr_a0, gpr_a1, gpr_a2,
+		    gpr_b0, gpr_b1);
 	}
 
 	qat_free_mem(ucode);
@@ -1819,8 +1799,8 @@ qat_aefw_uof_string(struct qat_softc *sc, size_t offset)
 }
 
 static struct uof_chunk_hdr *
-qat_aefw_uof_find_chunk(struct qat_softc *sc,
-	const char *id, struct uof_chunk_hdr *cur)
+qat_aefw_uof_find_chunk(struct qat_softc *sc, const char *id,
+    struct uof_chunk_hdr *cur)
 {
 	struct uof_obj_hdr *uoh = sc->sc_aefw_uof.qafu_obj_hdr;
 	struct uof_chunk_hdr *uch;
@@ -1895,10 +1875,9 @@ qat_aefw_unload_mmp(struct qat_softc *sc)
 }
 
 static int
-qat_aefw_mof_find_uof0(struct qat_softc *sc,
-	struct mof_uof_hdr *muh, struct mof_uof_chunk_hdr *head,
-	u_int nchunk, size_t size, const char *id,
-	size_t *fwsize, void **fwptr)
+qat_aefw_mof_find_uof0(struct qat_softc *sc, struct mof_uof_hdr *muh,
+    struct mof_uof_chunk_hdr *head, u_int nchunk, size_t size, const char *id,
+    size_t *fwsize, void **fwptr)
 {
 	int i;
 	char *uof_name;
@@ -1957,8 +1936,8 @@ qat_aefw_mof_find_uof(struct qat_softc *sc)
 	if (uof_hdr != NULL) {
 		error = qat_aefw_mof_find_uof0(sc, uof_hdr,
 		    (struct mof_uof_chunk_hdr *)(uof_hdr + 1), nuof_chunks,
-		    sc->sc_mof.qmf_uof_objs_size, UOF_IMAG,
-		    &sc->sc_fw_uof_size, &sc->sc_fw_uof);
+		    sc->sc_mof.qmf_uof_objs_size, UOF_IMAG, &sc->sc_fw_uof_size,
+		    &sc->sc_fw_uof);
 		if (error && error != ENOENT)
 			return error;
 	}
@@ -1999,14 +1978,12 @@ qat_aefw_mof_parse(struct qat_softc *sc)
 		return EINVAL;
 
 	csum = qat_aefw_csum((char *)((uintptr_t)sc->sc_fw_mof +
-	    offsetof(struct mof_file_hdr, mfh_min_ver)),
-	    sc->sc_fw_mof_size -
-	    offsetof(struct mof_file_hdr, mfh_min_ver));
+				 offsetof(struct mof_file_hdr, mfh_min_ver)),
+	    sc->sc_fw_mof_size - offsetof(struct mof_file_hdr, mfh_min_ver));
 	if (mfh->mfh_csum != csum)
 		return EINVAL;
 
-	if (mfh->mfh_min_ver != MOF_MIN_VER ||
-	    mfh->mfh_maj_ver != MOF_MAJ_VER)
+	if (mfh->mfh_min_ver != MOF_MIN_VER || mfh->mfh_maj_ver != MOF_MAJ_VER)
 		return EINVAL;
 
 	if (mfh->mfh_max_chunks < mfh->mfh_num_chunks)
@@ -2024,20 +2001,20 @@ qat_aefw_mof_parse(struct qat_softc *sc)
 			if (sc->sc_mof.qmf_sym != NULL)
 				return EINVAL;
 
-			sc->sc_mof.qmf_sym =
-			    (void *)((uintptr_t)sc->sc_fw_mof +
+			sc->sc_mof.qmf_sym = (void *)((uintptr_t)sc->sc_fw_mof +
 			    (uintptr_t)mfch->mfch_offset + sizeof(u_int));
-			sc->sc_mof.qmf_sym_size =
-			    *(u_int *)((uintptr_t)sc->sc_fw_mof +
+			sc->sc_mof.qmf_sym_size = *(
+			    u_int *)((uintptr_t)sc->sc_fw_mof +
 			    (uintptr_t)mfch->mfch_offset);
 
 			if (sc->sc_mof.qmf_sym_size % sizeof(u_int) != 0)
 				return EINVAL;
-			if (mfch->mfch_size != sc->sc_mof.qmf_sym_size +
-			    sizeof(u_int) || mfch->mfch_size == 0)
+			if (mfch->mfch_size !=
+				sc->sc_mof.qmf_sym_size + sizeof(u_int) ||
+			    mfch->mfch_size == 0)
 				return EINVAL;
 			if (*(char *)((uintptr_t)sc->sc_mof.qmf_sym +
-			    sc->sc_mof.qmf_sym_size - 1) != '\0')
+				sc->sc_mof.qmf_sym_size - 1) != '\0')
 				return EINVAL;
 
 		} else if (!strncmp(mfch->mfch_id, UOF_OBJS, MOF_OBJ_ID_LEN)) {
@@ -2046,7 +2023,7 @@ qat_aefw_mof_parse(struct qat_softc *sc)
 
 			sc->sc_mof.qmf_uof_objs =
 			    (void *)((uintptr_t)sc->sc_fw_mof +
-			    (uintptr_t)mfch->mfch_offset);
+				(uintptr_t)mfch->mfch_offset);
 			sc->sc_mof.qmf_uof_objs_size = mfch->mfch_size;
 
 		} else if (!strncmp(mfch->mfch_id, SUOF_OBJS, MOF_OBJ_ID_LEN)) {
@@ -2055,14 +2032,14 @@ qat_aefw_mof_parse(struct qat_softc *sc)
 
 			sc->sc_mof.qmf_suof_objs =
 			    (void *)((uintptr_t)sc->sc_fw_mof +
-			    (uintptr_t)mfch->mfch_offset);
+				(uintptr_t)mfch->mfch_offset);
 			sc->sc_mof.qmf_suof_objs_size = mfch->mfch_size;
 		}
 	}
 
 	if (sc->sc_mof.qmf_sym == NULL ||
 	    (sc->sc_mof.qmf_uof_objs == NULL &&
-	    sc->sc_mof.qmf_suof_objs == NULL))
+		sc->sc_mof.qmf_suof_objs == NULL))
 		return EINVAL;
 
 	error = qat_aefw_mof_find_uof(sc);
@@ -2072,8 +2049,8 @@ qat_aefw_mof_parse(struct qat_softc *sc)
 }
 
 static int
-qat_aefw_uof_parse_image(struct qat_softc *sc,
-	struct qat_uof_image *qui, struct uof_chunk_hdr *uch)
+qat_aefw_uof_parse_image(struct qat_softc *sc, struct qat_uof_image *qui,
+    struct uof_chunk_hdr *uch)
 {
 	struct uof_image *image;
 	struct uof_code_page *page;
@@ -2086,23 +2063,24 @@ qat_aefw_uof_parse_image(struct qat_softc *sc,
 		return EINVAL;
 	size -= sizeof(struct uof_image);
 
-	qui->qui_image = image =
-	    (struct uof_image *)(base + uch->uch_offset);
+	qui->qui_image = image = (struct uof_image *)(base + uch->uch_offset);
 
-#define ASSIGN_OBJ_TAB(np, typep, type, base, off, lim)			\
-do {									\
-	u_int nent;							\
-	nent = ((struct uof_obj_table *)((base) + (off)))->uot_nentries;\
-	if ((lim) < off + sizeof(struct uof_obj_table) +		\
-	    sizeof(type) * nent)					\
-		return EINVAL;						\
-	*(np) = nent;							\
-	if (nent > 0)							\
-		*(typep) = (type)((struct uof_obj_table *)		\
-		    ((base) + (off)) + 1);				\
-	else								\
-		*(typep) = NULL;					\
-} while (0)
+#define ASSIGN_OBJ_TAB(np, typep, type, base, off, lim)                       \
+	do {                                                                  \
+		u_int nent;                                                   \
+		nent =                                                        \
+		    ((struct uof_obj_table *)((base) + (off)))->uot_nentries; \
+		if ((lim) <                                                   \
+		    off + sizeof(struct uof_obj_table) + sizeof(type) * nent) \
+			return EINVAL;                                        \
+		*(np) = nent;                                                 \
+		if (nent > 0)                                                 \
+			*(typep) = (type)((struct uof_obj_table *)((base) +   \
+					      (off)) +                        \
+			    1);                                               \
+		else                                                          \
+			*(typep) = NULL;                                      \
+	} while (0)
 
 	ASSIGN_OBJ_TAB(&qui->qui_num_ae_reg, &qui->qui_ae_reg,
 	    struct uof_ae_reg *, base, image->ui_reg_tab, lim);
@@ -2129,17 +2107,15 @@ do {									\
 		qup->qup_beg_paddr = page->ucp_beg_paddr;
 
 		ASSIGN_OBJ_TAB(&qup->qup_num_uc_var, &qup->qup_uc_var,
-		    struct uof_uword_fixup *, base,
-		    page->ucp_uc_var_tab, lim);
+		    struct uof_uword_fixup *, base, page->ucp_uc_var_tab, lim);
 		ASSIGN_OBJ_TAB(&qup->qup_num_imp_var, &qup->qup_imp_var,
-		    struct uof_import_var *, base,
-		    page->ucp_imp_var_tab, lim);
+		    struct uof_import_var *, base, page->ucp_imp_var_tab, lim);
 		ASSIGN_OBJ_TAB(&qup->qup_num_imp_expr, &qup->qup_imp_expr,
-		    struct uof_uword_fixup *, base,
-		    page->ucp_imp_expr_tab, lim);
+		    struct uof_uword_fixup *, base, page->ucp_imp_expr_tab,
+		    lim);
 		ASSIGN_OBJ_TAB(&qup->qup_num_neigh_reg, &qup->qup_neigh_reg,
-		    struct uof_uword_fixup *, base,
-		    page->ucp_neigh_reg_tab, lim);
+		    struct uof_uword_fixup *, base, page->ucp_neigh_reg_tab,
+		    lim);
 
 		if (lim < page->ucp_code_area + sizeof(struct uof_code_area))
 			return EINVAL;
@@ -2152,14 +2128,15 @@ do {									\
 		    uca->uca_uword_block_tab, lim);
 
 		for (i = 0; i < qup->qup_num_uw_blocks; i++) {
-			u_int uwordoff = ((struct uof_uword_block *)(
-			    &qup->qup_uw_blocks[i]))->uub_uword_offset;
+			u_int uwordoff =
+			    ((struct uof_uword_block *)(&qup->qup_uw_blocks[i]))
+				->uub_uword_offset;
 
 			if (lim < uwordoff)
 				return EINVAL;
 
-			qup->qup_uw_blocks[i].quub_micro_words =
-			    (base + uwordoff);
+			qup->qup_uw_blocks[i].quub_micro_words = (base +
+			    uwordoff);
 		}
 	}
 
@@ -2182,7 +2159,8 @@ qat_aefw_uof_parse_images(struct qat_softc *sc)
 		if (i >= nitems(sc->sc_aefw_uof.qafu_imgs))
 			return ENOENT;
 
-		error = qat_aefw_uof_parse_image(sc, &sc->sc_aefw_uof.qafu_imgs[i], uch);
+		error = qat_aefw_uof_parse_image(sc,
+		    &sc->sc_aefw_uof.qafu_imgs[i], uch);
 		if (error)
 			return error;
 
@@ -2232,8 +2210,7 @@ qat_aefw_uof_parse(struct qat_softc *sc)
 			if (uof != NULL)
 				return EINVAL;
 
-			uof =
-			    (void *)((uintptr_t)sc->sc_fw_uof +
+			uof = (void *)((uintptr_t)sc->sc_fw_uof +
 			    ufch->ufch_offset);
 			uof_size = ufch->ufch_size;
 
@@ -2273,8 +2250,8 @@ qat_aefw_uof_parse(struct qat_softc *sc)
 	uch = qat_aefw_uof_find_chunk(sc, UOF_STRT, NULL);
 	if (uch != NULL) {
 		hdr_size = offsetof(struct uof_str_tab, ust_strings);
-		sc->sc_aefw_uof.qafu_str_tab =
-		    (void *)(base + uch->uch_offset + hdr_size);
+		sc->sc_aefw_uof.qafu_str_tab = (void *)(base + uch->uch_offset +
+		    hdr_size);
 		sc->sc_aefw_uof.qafu_str_tab_size = uch->uch_size - hdr_size;
 	}
 
@@ -2283,25 +2260,26 @@ qat_aefw_uof_parse(struct qat_softc *sc)
 	if (uch != NULL) {
 		if (uch->uch_size < sizeof(struct uof_obj_table))
 			return EINVAL;
-		sc->sc_aefw_uof.qafu_num_init_mem = ((struct uof_obj_table *)(base +
-		    uch->uch_offset))->uot_nentries;
+		sc->sc_aefw_uof.qafu_num_init_mem =
+		    ((struct uof_obj_table *)(base + uch->uch_offset))
+			->uot_nentries;
 		if (sc->sc_aefw_uof.qafu_num_init_mem) {
 			sc->sc_aefw_uof.qafu_init_mem =
 			    (struct uof_init_mem *)(base + uch->uch_offset +
-			    sizeof(struct uof_obj_table));
-			sc->sc_aefw_uof.qafu_init_mem_size =
-			    uch->uch_size - sizeof(struct uof_obj_table);
+				sizeof(struct uof_obj_table));
+			sc->sc_aefw_uof.qafu_init_mem_size = uch->uch_size -
+			    sizeof(struct uof_obj_table);
 		}
 	}
 
 	uch = qat_aefw_uof_find_chunk(sc, UOF_MSEG, NULL);
 	if (uch != NULL) {
 		if (uch->uch_size < sizeof(struct uof_obj_table) +
-		    sizeof(struct uof_var_mem_seg))
+			sizeof(struct uof_var_mem_seg))
 			return EINVAL;
 		sc->sc_aefw_uof.qafu_var_mem_seg =
 		    (struct uof_var_mem_seg *)(base + uch->uch_offset +
-		    sizeof(struct uof_obj_table));
+			sizeof(struct uof_obj_table));
 	}
 
 	return qat_aefw_uof_parse_images(sc);
@@ -2317,14 +2295,14 @@ qat_aefw_suof_parse_image(struct qat_softc *sc, struct qat_suof_image *qsi,
 
 	qsi->qsi_simg_buf = qafs->qafs_suof_buf + sch->sch_offset +
 	    sizeof(struct suof_obj_hdr);
-	qsi->qsi_simg_len =
-	    ((struct suof_obj_hdr *)
-	    (qafs->qafs_suof_buf + sch->sch_offset))->soh_img_length;
+	qsi->qsi_simg_len = ((struct suof_obj_hdr *)(qafs->qafs_suof_buf +
+				 sch->sch_offset))
+				->soh_img_length;
 
 	qsi->qsi_css_header = qsi->qsi_simg_buf;
 	qsi->qsi_css_key = qsi->qsi_css_header + sizeof(struct css_hdr);
-	qsi->qsi_css_signature = qsi->qsi_css_key +
-	    CSS_FWSK_MODULUS_LEN + CSS_FWSK_EXPONENT_LEN;
+	qsi->qsi_css_signature = qsi->qsi_css_key + CSS_FWSK_MODULUS_LEN +
+	    CSS_FWSK_EXPONENT_LEN;
 	qsi->qsi_css_simg = qsi->qsi_css_signature + CSS_SIGNATURE_LEN;
 
 	ae_mode = (struct simg_ae_mode *)qsi->qsi_css_simg;
@@ -2397,8 +2375,9 @@ qat_aefw_suof_parse(struct qat_softc *sc)
 		return EINVAL;
 	size -= offsetof(struct suof_str_tab, sst_strings);
 
-	qafs->qafs_sym_size = ((struct suof_str_tab *)
-	    (qafs->qafs_suof_buf + sch->sch_offset))->sst_tab_length;
+	qafs->qafs_sym_size = ((struct suof_str_tab *)(qafs->qafs_suof_buf +
+				   sch->sch_offset))
+				  ->sst_tab_length;
 	if (size < qafs->qafs_sym_size)
 		return EINVAL;
 	qafs->qafs_sym_str = qafs->qafs_suof_buf + sch->sch_offset +
@@ -2427,8 +2406,7 @@ qat_aefw_suof_parse(struct qat_softc *sc)
 		    sizeof(struct qat_suof_image));
 		memcpy(&qsi[qafs->qafs_num_simgs - 1], &qsi[ae0_img],
 		    sizeof(struct qat_suof_image));
-		memcpy(&qsi[ae0_img], &last_qsi,
-		    sizeof(struct qat_suof_image));
+		memcpy(&qsi[ae0_img], &last_qsi, sizeof(struct qat_suof_image));
 	}
 
 	return 0;
@@ -2554,8 +2532,8 @@ qat_aefw_auth(struct qat_softc *sc, struct qat_dmamem *dma)
 
 fail:
 	device_printf(sc->sc_dev,
-	   "firmware authentication error: status 0x%08x retry %d\n",
-	   fcu, retry);
+	    "firmware authentication error: status 0x%08x retry %d\n", fcu,
+	    retry);
 	return EINVAL;
 }
 
@@ -2635,7 +2613,7 @@ qat_aefw_suof_write(struct qat_softc *sc)
 
 static int
 qat_aefw_uof_assign_image(struct qat_softc *sc, struct qat_ae *qae,
-	struct qat_uof_image *qui)
+    struct qat_uof_image *qui)
 {
 	struct qat_ae_slice *slice;
 	int i, npages, nregions;
@@ -2737,8 +2715,9 @@ qat_aefw_uof_init(struct qat_softc *sc)
 		qae = &(QAT_AE(sc, ae));
 
 		for (i = 0; i < sc->sc_aefw_uof.qafu_num_imgs; i++) {
-			if ((sc->sc_aefw_uof.qafu_imgs[i].qui_image->ui_ae_assigned &
-			    (1 << ae)) == 0)
+			if ((sc->sc_aefw_uof.qafu_imgs[i]
+				    .qui_image->ui_ae_assigned &
+				(1 << ae)) == 0)
 				continue;
 
 			error = qat_aefw_uof_assign_image(sc, qae,
@@ -2896,12 +2875,12 @@ qat_aefw_init_memory_one(struct qat_softc *sc, struct uof_init_mem *uim)
 			STAILQ_INSERT_TAIL(qabi_list, qabi, qabi_next);
 
 			qabi->qabi_ae = (u_int)ael;
-			qabi->qabi_addr =
-			    uim->uim_addr + memattr->umva_byte_offset;
+			qabi->qabi_addr = uim->uim_addr +
+			    memattr->umva_byte_offset;
 			qabi->qabi_value = &memattr->umva_value;
 			qabi->qabi_size = 4;
-			qafu->qafu_num_lm_init_inst[ael] +=
-			    qat_ae_get_inst_num(qabi->qabi_size);
+			qafu->qafu_num_lm_init_inst[ael] += qat_ae_get_inst_num(
+			    qabi->qabi_size);
 			(*curinit)++;
 			if (*curinit >= MAX_LMEM_REG) {
 				device_printf(sc->sc_dev,
@@ -2919,8 +2898,7 @@ qat_aefw_init_memory_one(struct qat_softc *sc, struct uof_init_mem *uim)
 		/* fallthrough */
 	default:
 		device_printf(sc->sc_dev,
-		    "unsupported memory region to init: %d\n",
-		    uim->uim_region);
+		    "unsupported memory region to init: %d\n", uim->uim_region);
 		return ENOTSUP;
 	}
 
@@ -2974,8 +2952,8 @@ qat_aefw_init_ustore(struct qat_softc *sc)
 				continue;
 
 			for (i = qup->qup_beg_paddr;
-			    i < qup->qup_beg_paddr + qup->qup_num_micro_words;
-			    i++ ) {
+			     i < qup->qup_beg_paddr + qup->qup_num_micro_words;
+			     i++) {
 				fill[i] = (uint64_t)dont_init;
 			}
 		}
@@ -2995,7 +2973,8 @@ qat_aefw_init_ustore(struct qat_softc *sc)
 			/* initialize the areas not going to be overwritten */
 			end = -1;
 			do {
-				/* find next uword that needs to be initialized */
+				/* find next uword that needs to be initialized
+				 */
 				for (start = end + 1; start < usz; start++) {
 					if ((uint32_t)fill[start] != dont_init)
 						break;
@@ -3060,8 +3039,8 @@ qat_aefw_init_reg(struct qat_softc *sc, u_char ae, u_char ctx_mask,
 	case AEREG_DR_ABS:
 	case AEREG_DR_RD_ABS:
 	case AEREG_DR_WR_ABS:
-		error = qat_aereg_abs_data_write(sc, ae, regtype,
-		    regaddr, value);
+		error = qat_aereg_abs_data_write(sc, ae, regtype, regaddr,
+		    value);
 		break;
 	default:
 		error = EINVAL;
@@ -3093,7 +3072,7 @@ qat_aefw_init_reg_sym_expr(struct qat_softc *sc, u_char ae,
 		switch (uirs->uirs_init_type) {
 		case INIT_REG:
 			if (__SHIFTOUT(qui->qui_image->ui_ae_mode,
-			    AE_MODE_CTX_MODE) == MAX_AE_CTX) {
+				AE_MODE_CTX_MODE) == MAX_AE_CTX) {
 				ctx_mask = 0xff; /* 8-ctx mode */
 			} else {
 				ctx_mask = 0x55; /* 4-ctx mode */
@@ -3104,7 +3083,7 @@ qat_aefw_init_reg_sym_expr(struct qat_softc *sc, u_char ae,
 			break;
 		case INIT_REG_CTX:
 			if (__SHIFTOUT(qui->qui_image->ui_ae_mode,
-			    AE_MODE_CTX_MODE) == MAX_AE_CTX) {
+				AE_MODE_CTX_MODE) == MAX_AE_CTX) {
 				ctx_mask = 0xff; /* 8-ctx mode */
 			} else {
 				ctx_mask = 0x55; /* 4-ctx mode */
@@ -3199,7 +3178,9 @@ qat_aefw_init_globals(struct qat_softc *sc)
 	/* XXX bind the uC global variables
 	 * local variables will done on-the-fly */
 	for (i = 0; i < sc->sc_aefw_uof.qafu_num_imgs; i++) {
-		for (p = 0; p < sc->sc_aefw_uof.qafu_imgs[i].qui_image->ui_num_pages; p++) {
+		for (p = 0;
+		     p < sc->sc_aefw_uof.qafu_imgs[i].qui_image->ui_num_pages;
+		     p++) {
 			struct qat_uof_page *qup =
 			    &sc->sc_aefw_uof.qafu_imgs[i].qui_pages[p];
 			if (qup->qup_num_uw_blocks &&
@@ -3220,8 +3201,8 @@ qat_aefw_init_globals(struct qat_softc *sc)
 			if (qas->qas_image == NULL)
 				continue;
 
-			error =
-			    qat_aefw_init_reg_sym_expr(sc, ae, qas->qas_image);
+			error = qat_aefw_init_reg_sym_expr(sc, ae,
+			    qas->qas_image);
 			if (error)
 				return error;
 		}
@@ -3242,10 +3223,10 @@ qat_aefw_get_uof_inst(struct qat_softc *sc, struct qat_uof_page *qup,
 		struct qat_uof_uword_block *quub = &qup->qup_uw_blocks[i];
 
 		if ((addr >= quub->quub_start_addr) &&
-		    (addr <= (quub->quub_start_addr +
-		    (quub->quub_num_words - 1)))) {
-			/* unpack n bytes and assigned to the 64-bit uword value.
-			note: the microwords are stored as packed bytes.
+		    (addr <=
+			(quub->quub_start_addr + (quub->quub_num_words - 1)))) {
+			/* unpack n bytes and assigned to the 64-bit uword
+			value. note: the microwords are stored as packed bytes.
 			*/
 			addr -= quub->quub_start_addr;
 			addr *= AEV2_PACKED_UWORD_BYTES;
@@ -3270,8 +3251,7 @@ qat_aefw_do_pagein(struct qat_softc *sc, u_char ae, struct qat_uof_page *qup)
 
 	if (qup->qup_num_uc_var || qup->qup_num_neigh_reg ||
 	    qup->qup_num_imp_var || qup->qup_num_imp_expr) {
-		device_printf(sc->sc_dev,
-		    "does not support fixup locals\n");
+		device_printf(sc->sc_dev, "does not support fixup locals\n");
 		return ENOTSUP;
 	}
 
@@ -3307,8 +3287,8 @@ qat_aefw_do_pagein(struct qat_softc *sc, u_char ae, struct qat_uof_page *qup)
 					ucode_cpybuf[i] = qat_aefw_get_uof_inst(
 					    sc, qup, upaddr + i);
 					if (ucode_cpybuf[i] == INVLD_UWORD) {
-					    /* fill hole in the uof */
-					    ucode_cpybuf[i] = fill;
+						/* fill hole in the uof */
+						ucode_cpybuf[i] = fill;
 					}
 				}
 			} else {
@@ -3389,8 +3369,7 @@ qat_aefw_uof_write_one(struct qat_softc *sc, struct qat_uof_image *qui)
 
 		metadata = qas->qas_image->qui_image->ui_app_metadata;
 		if (metadata != 0xffffffff && bootverbose) {
-			device_printf(sc->sc_dev,
-			    "loaded firmware: %s\n",
+			device_printf(sc->sc_dev, "loaded firmware: %s\n",
 			    qat_aefw_uof_string(sc, metadata));
 		}
 
@@ -3426,8 +3405,7 @@ qat_aefw_uof_write(struct qat_softc *sc)
 
 	error = qat_aefw_init_globals(sc);
 	if (error) {
-		device_printf(sc->sc_dev,
-		    "Could not initialize globals\n");
+		device_printf(sc->sc_dev, "Could not initialize globals\n");
 		return error;
 	}
 

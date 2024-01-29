@@ -34,38 +34,38 @@
  */
 
 #include <sys/param.h>
+#include <sys/stat.h>
+
+#include <arpa/inet.h>
+#include <err.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <err.h>
-#include <arpa/inet.h>
-#include <stdio.h>
-#include <sys/stat.h>
 
 #include "locate.h"
 #include "pathnames.h"
 
-char 	**colon(char **, char*, char*);
-char 	*patprep(char *);
-u_char 	*tolower_word(u_char *);
-int 	getwm(caddr_t);
-int 	getwf(FILE *);
-int	check_bigram_char(int);
+char **colon(char **, char *, char *);
+char *patprep(char *);
+u_char *tolower_word(u_char *);
+int getwm(caddr_t);
+int getwf(FILE *);
+int check_bigram_char(int);
 
-/* 
- * Validate bigram chars. If the test failed the database is corrupt 
+/*
+ * Validate bigram chars. If the test failed the database is corrupt
  * or the database is obviously not a locate database.
  */
 int
 check_bigram_char(int ch)
 {
 	/* legal bigram: 0, ASCII_MIN ... ASCII_MAX */
-	if (ch == 0 ||
-	    (ch >= ASCII_MIN && ch <= ASCII_MAX))
+	if (ch == 0 || (ch >= ASCII_MIN && ch <= ASCII_MAX))
 		return (ch);
 
 	errx(1,
-		"locate database header corrupt, bigram char outside 0, %d-%d: %d",  
-		ASCII_MIN, ASCII_MAX, ch);
+	    "locate database header corrupt, bigram char outside 0, %d-%d: %d",
+	    ASCII_MIN, ASCII_MAX, ch);
 	exit(1);
 }
 
@@ -97,26 +97,27 @@ colon(char **dbv, char *path, char *dot)
 	}
 
 	/* length of string vector */
-	for(vlen = 0, pv = dbv; *pv != NULL; pv++, vlen++);
+	for (vlen = 0, pv = dbv; *pv != NULL; pv++, vlen++)
+		;
 
-	for (ch = c = path; ; ch++) {
+	for (ch = c = path;; ch++) {
 		if (*ch == ':' ||
-		    (!*ch && !(*(ch - 1) == ':' && ch == 1+ path))) {
+		    (!*ch && !(*(ch - 1) == ':' && ch == 1 + path))) {
 			/* single colon -> dot */
 			if (ch == c)
 				p = dot;
 			else {
 				/* a string */
 				slen = ch - c;
-				if ((p = malloc(sizeof(char) * (slen + 1))) 
-				    == NULL)
+				if ((p = malloc(sizeof(char) * (slen + 1))) ==
+				    NULL)
 					err(1, "malloc");
 				bcopy(c, p, slen);
 				*(p + slen) = '\0';
 			}
 			/* increase dbv with element p */
-			if ((dbv = realloc(dbv, sizeof(char *) * (vlen + 2)))
-			    == NULL)
+			if ((dbv = realloc(dbv, sizeof(char *) * (vlen + 2))) ==
+			    NULL)
 				err(1, "realloc");
 			*(dbv + vlen) = p;
 			*(dbv + ++vlen) = NULL;
@@ -140,7 +141,7 @@ patprep(char *name)
 	char *endmark, *p, *subp;
 
 	subp = globfree;
-	*subp++ = '\0';   /* set first element to '\0' */
+	*subp++ = '\0'; /* set first element to '\0' */
 	p = name + strlen(name) - 1;
 
 	/* skip trailing metacharacters */
@@ -148,20 +149,19 @@ patprep(char *name)
 		if (strchr(LOCATE_REG, *p) == NULL)
 			break;
 
-	/* 
+	/*
 	 * check if maybe we are in a character class
 	 *
 	 * 'foo.[ch]'
 	 *        |----< p
 	 */
-	if (p >= name && 
-	    (strchr(p, '[') != NULL || strchr(p, ']') != NULL)) {
+	if (p >= name && (strchr(p, '[') != NULL || strchr(p, ']') != NULL)) {
 		for (p = name; *p != '\0'; p++)
 			if (*p == ']' || *p == '[')
 				break;
 		p--;
 
-		/* 
+		/*
 		 * cannot find a non-meta character, give up
 		 * '*\*[a-z]'
 		 *    |-------< p
@@ -169,8 +169,8 @@ patprep(char *name)
 		if (p >= name && strchr(LOCATE_REG, *p) != NULL)
 			p = name - 1;
 	}
-	
-	if (p < name) 			
+
+	if (p < name)
 		/* only meta chars: "???", force '/' search */
 		*subp++ = '/';
 
@@ -179,7 +179,7 @@ patprep(char *name)
 			if (strchr(LOCATE_REG, *p) != NULL)
 				break;
 		for (++p;
-		    (p <= endmark) && subp < (globfree + sizeof(globfree));)
+		     (p <= endmark) && subp < (globfree + sizeof(globfree));)
 			*subp++ = *p++;
 	}
 	*subp = '\0';
@@ -192,12 +192,11 @@ tolower_word(u_char *word)
 {
 	u_char *p;
 
-	for(p = word; *p != '\0'; p++)
+	for (p = word; *p != '\0'; p++)
 		*p = TOLOWER(*p);
 
 	return (word);
 }
-
 
 /*
  * Read integer from mmap pointer.
@@ -219,8 +218,8 @@ getwm(caddr_t p)
 	int i, hi;
 
 	/* the integer is stored by an offset of 14 (!!!) */
-        int i_max = LOCATE_PATH_MAX + OFFSET;
-        int i_min = -(LOCATE_PATH_MAX - OFFSET);
+	int i_max = LOCATE_PATH_MAX + OFFSET;
+	int i_min = -(LOCATE_PATH_MAX - OFFSET);
 
 	for (i = 0; i < (int)INTSIZE; i++)
 		u.buf[i] = *p++;
@@ -230,8 +229,8 @@ getwm(caddr_t p)
 	if (i >= i_max || i <= i_min) {
 		hi = ntohl(i);
 		if (hi >= i_max || hi <= i_min)
-			errx(1, "integer out of range: %d < %d < %d",
-			    i_min, abs(i) < abs(hi) ? i : hi, i_max);
+			errx(1, "integer out of range: %d < %d < %d", i_min,
+			    abs(i) < abs(hi) ? i : hi, i_max);
 		return (hi);
 	}
 	return (i);
@@ -249,16 +248,16 @@ int
 getwf(FILE *fp)
 {
 	int word, hword;
-        int i_max = LOCATE_PATH_MAX + OFFSET;
-        int i_min = -(LOCATE_PATH_MAX - OFFSET);
+	int i_max = LOCATE_PATH_MAX + OFFSET;
+	int i_min = -(LOCATE_PATH_MAX - OFFSET);
 
 	word = getw(fp);
 
 	if (word >= i_max || word <= i_min) {
 		hword = ntohl(word);
 		if (hword >= i_max || hword <= i_min)
-			errx(1, "integer out of range: %d < %d < %d",
-			    i_min, abs(word) < abs(hword) ? word : hword, i_max);
+			errx(1, "integer out of range: %d < %d < %d", i_min,
+			    abs(word) < abs(hword) ? word : hword, i_max);
 		return (hword);
 	}
 	return (word);
@@ -269,16 +268,17 @@ rebuild_message(char *db)
 {
 	/* only for the default locate database */
 	if (strcmp(_PATH_FCODES, db) == 0) {
-		fprintf(stderr, "\nTo create a new database, please run the following command as root:\n\n");
+		fprintf(stderr,
+		    "\nTo create a new database, please run the following command as root:\n\n");
 		fprintf(stderr, "  /etc/periodic/weekly/310.locate\n\n");
 	}
 }
 
 int
-check_size(char *db) 
+check_size(char *db)
 {
-        struct stat sb;
-        off_t len;
+	struct stat sb;
+	off_t len;
 
 	if (stat(db, &sb) == -1) {
 		warnx("the locate database '%s' does not exist.", db);
@@ -288,7 +288,9 @@ check_size(char *db)
 	len = sb.st_size;
 
 	if (len < (2 * NBG)) {
-		warnx("the locate database '%s' is smaller than %d bytes large.", db, (2 * NBG));
+		warnx(
+		    "the locate database '%s' is smaller than %d bytes large.",
+		    db, (2 * NBG));
 		rebuild_message(db);
 		return (0);
 	}

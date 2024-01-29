@@ -26,7 +26,7 @@
  */
 
 #ifndef _USB_DYNAMIC_H_
-#define	_USB_DYNAMIC_H_
+#define _USB_DYNAMIC_H_
 
 /* prototypes */
 
@@ -36,14 +36,14 @@ struct usb_device_request;
 
 /* typedefs */
 
-typedef usb_error_t	(usb_temp_setup_by_index_t)(struct usb_device *udev,
-			    uint16_t index);
-typedef uint8_t		(usb_test_quirk_t)(const struct usbd_lookup_info *info,
-			    uint16_t quirk);
-typedef int		(usb_quirk_ioctl_t)(unsigned long cmd, caddr_t data,
-			    int fflag, struct thread *td);
-typedef void		(usb_temp_unsetup_t)(struct usb_device *udev);
-typedef void		(usb_linux_free_device_t)(struct usb_device *udev);
+typedef usb_error_t(
+    usb_temp_setup_by_index_t)(struct usb_device *udev, uint16_t index);
+typedef uint8_t(
+    usb_test_quirk_t)(const struct usbd_lookup_info *info, uint16_t quirk);
+typedef int(usb_quirk_ioctl_t)(unsigned long cmd, caddr_t data, int fflag,
+    struct thread *td);
+typedef void(usb_temp_unsetup_t)(struct usb_device *udev);
+typedef void(usb_linux_free_device_t)(struct usb_device *udev);
 
 /* global function pointers */
 
@@ -57,9 +57,9 @@ extern devclass_t usb_devclass_ptr;
 
 /* function prototypes */
 
-void	usb_linux_unload(void *);
-void	usb_temp_unload(void *);
-void	usb_quirk_unload(void *);
-void	usb_bus_unload(void *);
+void usb_linux_unload(void *);
+void usb_temp_unload(void *);
+void usb_quirk_unload(void *);
+void usb_bus_unload(void *);
 
-#endif					/* _USB_DYNAMIC_H_ */
+#endif /* _USB_DYNAMIC_H_ */

@@ -100,7 +100,8 @@
 #define ldm_register_adapter hptrr_ldm_register_adapter
 #define ldm_register_device hptrr_ldm_register_device
 #define ldm_register_him_R_6_46_69_43_16 hptrr_ldm_register_him_R_6_46_69_43_16
-#define ldm_register_vdev_class_R_6_46_69_43_16 hptrr_ldm_register_vdev_class_R_6_46_69_43_16
+#define ldm_register_vdev_class_R_6_46_69_43_16 \
+	hptrr_ldm_register_vdev_class_R_6_46_69_43_16
 #define ldm_release_lock hptrr_ldm_release_lock
 #define ldm_release_vbus hptrr_ldm_release_vbus
 #define ldm_release_vdev hptrr_ldm_release_vdev

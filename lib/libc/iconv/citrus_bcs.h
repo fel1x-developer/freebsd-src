@@ -41,8 +41,11 @@
  * defined in the POSIX.
  */
 
-#define _CITRUS_BCS_PRED(_name_, _cond_) \
-static __inline int _citrus_bcs_##_name_(uint8_t c) { return (_cond_); }
+#define _CITRUS_BCS_PRED(_name_, _cond_)                    \
+	static __inline int _citrus_bcs_##_name_(uint8_t c) \
+	{                                                   \
+		return (_cond_);                            \
+	}
 
 /*
  * predicates.
@@ -50,15 +53,15 @@ static __inline int _citrus_bcs_##_name_(uint8_t c) { return (_cond_); }
  */
 _CITRUS_BCS_PRED(isblank, c == ' ' || c == '\t')
 _CITRUS_BCS_PRED(iseol, c == '\n' || c == '\r')
-_CITRUS_BCS_PRED(isspace, _citrus_bcs_isblank(c) || _citrus_bcs_iseol(c) ||
-    c == '\f' || c == '\v')
+_CITRUS_BCS_PRED(isspace,
+    _citrus_bcs_isblank(c) || _citrus_bcs_iseol(c) || c == '\f' || c == '\v')
 _CITRUS_BCS_PRED(isdigit, c >= '0' && c <= '9')
 _CITRUS_BCS_PRED(isupper, c >= 'A' && c <= 'Z')
 _CITRUS_BCS_PRED(islower, c >= 'a' && c <= 'z')
 _CITRUS_BCS_PRED(isalpha, _citrus_bcs_isupper(c) || _citrus_bcs_islower(c))
 _CITRUS_BCS_PRED(isalnum, _citrus_bcs_isdigit(c) || _citrus_bcs_isalpha(c))
-_CITRUS_BCS_PRED(isxdigit, _citrus_bcs_isdigit(c) ||
-    (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))
+_CITRUS_BCS_PRED(isxdigit,
+    _citrus_bcs_isdigit(c) || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))
 
 /*
  * transliterate between uppercase and lowercase.
@@ -79,25 +82,21 @@ _citrus_bcs_tolower(uint8_t c)
 }
 
 __BEGIN_DECLS
-int		 _citrus_bcs_strcasecmp(const char * __restrict,
-		    const char * __restrict);
-int		 _citrus_bcs_strncasecmp(const char * __restrict,
-		    const char * __restrict, size_t);
-const char	*_citrus_bcs_skip_ws(const char * __restrict);
-const char	*_citrus_bcs_skip_nonws(const char * __restrict);
-const char	*_citrus_bcs_skip_ws_len(const char * __restrict,
-		    size_t * __restrict);
-const char	*_citrus_bcs_skip_nonws_len(const char * __restrict,
-		    size_t * __restrict);
-void		 _citrus_bcs_trunc_rws_len(const char * __restrict,
-		    size_t * __restrict);
-void		 _citrus_bcs_convert_to_lower(char *);
-void		 _citrus_bcs_convert_to_upper(char *);
+int _citrus_bcs_strcasecmp(const char *__restrict, const char *__restrict);
+int _citrus_bcs_strncasecmp(const char *__restrict, const char *__restrict,
+    size_t);
+const char *_citrus_bcs_skip_ws(const char *__restrict);
+const char *_citrus_bcs_skip_nonws(const char *__restrict);
+const char *_citrus_bcs_skip_ws_len(const char *__restrict, size_t *__restrict);
+const char *_citrus_bcs_skip_nonws_len(const char *__restrict,
+    size_t *__restrict);
+void _citrus_bcs_trunc_rws_len(const char *__restrict, size_t *__restrict);
+void _citrus_bcs_convert_to_lower(char *);
+void _citrus_bcs_convert_to_upper(char *);
 
-long int	 _citrus_bcs_strtol(const char * __restrict,
-		    char ** __restrict, int);
-unsigned long	 _citrus_bcs_strtoul(const char * __restrict,
-		    char ** __restrict, int);
+long int _citrus_bcs_strtol(const char *__restrict, char **__restrict, int);
+unsigned long _citrus_bcs_strtoul(const char *__restrict, char **__restrict,
+    int);
 __END_DECLS
 
 #endif

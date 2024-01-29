@@ -32,12 +32,14 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
+#include <sys/time.h>
+
+#include <assert.h>
 #include <namespace.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <wchar.h>
-#include <stdint.h>
-#include <assert.h>
-#include <sys/time.h>
+
 #include "printf.h"
 
 int
@@ -49,12 +51,13 @@ __printf_arginfo_time(const struct printf_info *pi, size_t n, int *argt)
 	return (1);
 }
 #define MINUTE 60
-#define HOUR	(60 * MINUTE)
-#define DAY	(24 * HOUR)
-#define YEAR	(365 * DAY)
+#define HOUR (60 * MINUTE)
+#define DAY (24 * HOUR)
+#define YEAR (365 * DAY)
 
 int
-__printf_render_time(struct __printf_io *io, const struct printf_info *pi, const void *const *arg)
+__printf_render_time(struct __printf_io *io, const struct printf_info *pi,
+    const void *const *arg)
 {
 	char buf[100];
 	char *p;
@@ -81,7 +84,7 @@ __printf_render_time(struct __printf_io *io, const struct printf_info *pi, const
 		prec = 0;
 	}
 	if (pi->is_long || pi->is_long_double) {
-		if (pi->prec >= 0) 
+		if (pi->prec >= 0)
 			prec = pi->prec;
 		if (prec == 0)
 			nsec = 0;
@@ -108,7 +111,7 @@ __printf_render_time(struct __printf_io *io, const struct printf_info *pi, const
 		}
 		if (t != 0 || tx == 0 || prec != 0)
 			p += sprintf(p, "%jds", t);
-	} else  {
+	} else {
 		p += sprintf(p, "%jd", (intmax_t)t);
 	}
 	if (prec != 0) {

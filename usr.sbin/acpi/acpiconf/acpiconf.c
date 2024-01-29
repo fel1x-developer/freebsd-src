@@ -29,21 +29,20 @@
  */
 
 #include <sys/param.h>
-
-#include <err.h>
-#include <fcntl.h>
-#include <stdio.h>
 #include <sys/ioctl.h>
-#include <sysexits.h>
-#include <unistd.h>
 
 #include <dev/acpica/acpiio.h>
 
 #include <contrib/dev/acpica/include/acpi.h>
+#include <err.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <sysexits.h>
+#include <unistd.h>
 
-#define ACPIDEV		"/dev/acpi"
+#define ACPIDEV "/dev/acpi"
 
-static int	acpifd;
+static int acpifd;
 
 static void
 acpi_init(void)
@@ -60,7 +59,7 @@ static void
 acpi_sleep(int sleep_type)
 {
 	int ret;
-  
+
 	/* Notify OS that we want to sleep.  devd(8) gets this notify. */
 	ret = ioctl(acpifd, ACPIIO_REQSLPSTATE, &sleep_type);
 	if (ret != 0)
@@ -109,8 +108,9 @@ acpi_battinfo(int num)
 	else
 		printf("Last full capacity:\t%d %sh\n", battio.bix.lfcap,
 		    pwr_units);
-	printf("Technology:\t\t%s\n", battio.bix.btech == 0 ?
-	    "primary (non-rechargeable)" : "secondary (rechargeable)");
+	printf("Technology:\t\t%s\n",
+	    battio.bix.btech == 0 ? "primary (non-rechargeable)" :
+				    "secondary (rechargeable)");
 	if (ACPI_BIX_REV_MIN_CHECK(battio.bix.rev, ACPI_BIX_REV_1)) {
 		printf("Battery Swappable Capability:\t");
 		if (battio.bix.scap == ACPI_BIX_SCAP_NO)
@@ -134,15 +134,11 @@ acpi_battinfo(int num)
 		printf("Measurement Accuracy:\t%d%%\n",
 		    battio.bix.accuracy / 1000);
 		if (battio.bix.stmax != ACPI_BATT_UNKNOWN)
-			printf("Max Sampling Time:\t%d ms\n",
-			    battio.bix.stmax);
+			printf("Max Sampling Time:\t%d ms\n", battio.bix.stmax);
 		if (battio.bix.stmin != ACPI_BATT_UNKNOWN)
-			printf("Min Sampling Time:\t%d ms\n",
-			    battio.bix.stmin);
-		printf("Max Average Interval:\t%d ms\n",
-		    battio.bix.aimax);
-		printf("Min Average Interval:\t%d ms\n",
-		    battio.bix.aimin);
+			printf("Min Sampling Time:\t%d ms\n", battio.bix.stmin);
+		printf("Max Average Interval:\t%d ms\n", battio.bix.aimax);
+		printf("Min Average Interval:\t%d ms\n", battio.bix.aimin);
 	}
 	printf("Low/warn granularity:\t%d %sh\n", battio.bix.gra1, pwr_units);
 	printf("Warn/full granularity:\t%d %sh\n", battio.bix.gra2, pwr_units);
@@ -207,8 +203,8 @@ acpi_battinfo(int num)
 			    battio.battinfo.rate,
 			    battio.battinfo.rate * volt / 1000);
 		} else
-			printf("Present rate:\t\t%d %s\n",
-			    battio.battinfo.rate, pwr_units);
+			printf("Present rate:\t\t%d %s\n", battio.battinfo.rate,
+			    pwr_units);
 	} else
 		printf("State:\t\t\tnot present\n");
 
@@ -222,7 +218,7 @@ acpi_battinfo(int num)
 }
 
 static void
-usage(const char* prog)
+usage(const char *prog)
 {
 	printf("usage: %s [-h] [-i batt] [-k ack] [-s 1-4]\n", prog);
 	exit(0);
@@ -231,14 +227,14 @@ usage(const char* prog)
 int
 main(int argc, char *argv[])
 {
-	char	*prog, *end;
-	int	c, sleep_type, battery, ack;
-	int	iflag = 0, kflag = 0, sflag = 0;
+	char *prog, *end;
+	int c, sleep_type, battery, ack;
+	int iflag = 0, kflag = 0, sflag = 0;
 
 	prog = argv[0];
 	if (argc < 2)
 		usage(prog);
-		/* NOTREACHED */
+	/* NOTREACHED */
 
 	sleep_type = -1;
 	acpi_init();
@@ -248,13 +244,13 @@ main(int argc, char *argv[])
 			iflag = 1;
 			battery = strtol(optarg, &end, 10);
 			if ((size_t)(end - optarg) != strlen(optarg))
-			    errx(EX_USAGE, "invalid battery");
+				errx(EX_USAGE, "invalid battery");
 			break;
 		case 'k':
 			kflag = 1;
 			ack = strtol(optarg, &end, 10);
 			if ((size_t)(end - optarg) != strlen(optarg))
-			    errx(EX_USAGE, "invalid ack argument");
+				errx(EX_USAGE, "invalid ack argument");
 			break;
 		case 's':
 			sflag = 1;
@@ -262,10 +258,10 @@ main(int argc, char *argv[])
 				optarg++;
 			sleep_type = strtol(optarg, &end, 10);
 			if ((size_t)(end - optarg) != strlen(optarg))
-			    errx(EX_USAGE, "invalid sleep type");
+				errx(EX_USAGE, "invalid sleep type");
 			if (sleep_type < 1 || sleep_type > 4)
 				errx(EX_USAGE, "invalid sleep type (%d)",
-				     sleep_type);
+				    sleep_type);
 			break;
 		case 'h':
 		default:
@@ -277,9 +273,9 @@ main(int argc, char *argv[])
 	argv += optind;
 
 	if (iflag != 0 && kflag != 0 && sflag != 0)
-			errx(EX_USAGE, "-i, -k and -s are mutually exclusive");
+		errx(EX_USAGE, "-i, -k and -s are mutually exclusive");
 
-	if (iflag  != 0) {
+	if (iflag != 0) {
 		if (kflag != 0)
 			errx(EX_USAGE, "-i and -k are mutually exclusive");
 		if (sflag != 0)
@@ -293,10 +289,9 @@ main(int argc, char *argv[])
 		acpi_sleep_ack(ack);
 	}
 
-
 	if (sflag != 0)
 		acpi_sleep(sleep_type);
 
 	close(acpifd);
-	exit (0);
+	exit(0);
 }

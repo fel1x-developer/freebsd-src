@@ -31,6 +31,7 @@
 #include <limits.h>
 #include <math.h>
 #include <stdlib.h>
+
 #include "../stdio/floatio.h"
 #include "fpmath.h"
 #include "gdtoaimp.h"
@@ -46,12 +47,11 @@ char *
 __ldtoa(long double *ld, int mode, int ndigits, int *decpt, int *sign,
     char **rve)
 {
-	FPI fpi = {
-		LDBL_MANT_DIG,			/* nbits */
-		LDBL_MIN_EXP - LDBL_MANT_DIG,	/* emin */
-		LDBL_MAX_EXP - LDBL_MANT_DIG,	/* emax */
-		FLT_ROUNDS,	       		/* rounding */
-#ifdef Sudden_Underflow	/* unused, but correct anyway */
+	FPI fpi = { LDBL_MANT_DIG,	      /* nbits */
+		LDBL_MIN_EXP - LDBL_MANT_DIG, /* emin */
+		LDBL_MAX_EXP - LDBL_MANT_DIG, /* emax */
+		FLT_ROUNDS,		      /* rounding */
+#ifdef Sudden_Underflow			      /* unused, but correct anyway */
 		1
 #else
 		0
@@ -79,7 +79,7 @@ __ldtoa(long double *ld, int mode, int ndigits, int *decpt, int *sign,
 	switch (fpclassify(u.e)) {
 	case FP_NORMAL:
 		kind = STRTOG_Normal;
-#ifdef	LDBL_IMPLICIT_NBIT
+#ifdef LDBL_IMPLICIT_NBIT
 		bits[LDBL_MANT_DIG / 32] |= 1 << ((LDBL_MANT_DIG - 1) % 32);
 #endif /* LDBL_IMPLICIT_NBIT */
 		break;

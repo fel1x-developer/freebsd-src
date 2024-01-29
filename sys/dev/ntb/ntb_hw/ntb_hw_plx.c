@@ -32,114 +32,116 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/interrupt.h>
+#include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/rman.h>
 #include <sys/sysctl.h>
 #include <sys/taskqueue.h>
 #include <sys/tree.h>
+
 #include <vm/vm.h>
 #include <vm/pmap.h>
+
 #include <machine/bus.h>
 #include <machine/intr_machdep.h>
 #include <machine/resource.h>
+
+#include <dev/iommu/iommu.h>
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
-#include <dev/iommu/iommu.h>
 
 #include "../ntb.h"
 
-#define PLX_MAX_BARS		4	/* There are at most 4 data BARs. */
-#define PLX_NUM_SPAD		8	/* There are 8 scratchpads. */
-#define PLX_NUM_SPAD_PATT	4	/* Use test pattern as 4 more. */
-#define PLX_NUM_DB		16	/* There are 16 doorbells. */
-#define PLX_MAX_SPLIT		128	/* Allow are at most 128 splits. */
+#define PLX_MAX_BARS 4	    /* There are at most 4 data BARs. */
+#define PLX_NUM_SPAD 8	    /* There are 8 scratchpads. */
+#define PLX_NUM_SPAD_PATT 4 /* Use test pattern as 4 more. */
+#define PLX_NUM_DB 16	    /* There are 16 doorbells. */
+#define PLX_MAX_SPLIT 128   /* Allow are at most 128 splits. */
 
 struct ntb_plx_mw_info {
-	int			 mw_bar;
-	int			 mw_64bit;
-	int			 mw_rid;
-	struct resource		*mw_res;
-	vm_paddr_t		 mw_pbase;
-	caddr_t			 mw_vbase;
-	vm_size_t		 mw_size;
+	int mw_bar;
+	int mw_64bit;
+	int mw_rid;
+	struct resource *mw_res;
+	vm_paddr_t mw_pbase;
+	caddr_t mw_vbase;
+	vm_size_t mw_size;
 	struct {
-		vm_memattr_t	 mw_map_mode;
-		bus_addr_t	 mw_xlat_addr;
-		bus_size_t	 mw_xlat_size;
+		vm_memattr_t mw_map_mode;
+		bus_addr_t mw_xlat_addr;
+		bus_size_t mw_xlat_size;
 	} splits[PLX_MAX_SPLIT];
 };
 
 struct ntb_plx_softc {
 	/* ntb.c context. Do not move! Must go first! */
-	void			*ntb_store;
+	void *ntb_store;
 
-	device_t		 dev;
-	struct resource		*conf_res;
-	int			 conf_rid;
-	u_int			 ntx;		/* NTx number within chip. */
-	u_int			 link;		/* Link v/s Virtual side. */
-	u_int			 port;		/* Port number within chip. */
-	u_int			 alut;		/* A-LUT is enabled for NTx */
-	u_int			 split;		/* split BAR2 into 2^x parts */
+	device_t dev;
+	struct resource *conf_res;
+	int conf_rid;
+	u_int ntx;   /* NTx number within chip. */
+	u_int link;  /* Link v/s Virtual side. */
+	u_int port;  /* Port number within chip. */
+	u_int alut;  /* A-LUT is enabled for NTx */
+	u_int split; /* split BAR2 into 2^x parts */
 
-	int			 int_rid;
-	struct resource		*int_res;
-	void			*int_tag;
+	int int_rid;
+	struct resource *int_res;
+	void *int_tag;
 
-	struct ntb_plx_mw_info	 mw_info[PLX_MAX_BARS];
-	int			 mw_count;	/* Number of memory windows. */
+	struct ntb_plx_mw_info mw_info[PLX_MAX_BARS];
+	int mw_count; /* Number of memory windows. */
 
-	int			 spad_count1;	/* Number of standard spads. */
-	int			 spad_count2;	/* Number of extra spads. */
-	uint32_t		 spad_off1;	/* Offset of our spads. */
-	uint32_t		 spad_off2;	/* Offset of our extra spads. */
-	uint32_t		 spad_offp1;	/* Offset of peer spads. */
-	uint32_t		 spad_offp2;	/* Offset of peer extra spads. */
+	int spad_count1;     /* Number of standard spads. */
+	int spad_count2;     /* Number of extra spads. */
+	uint32_t spad_off1;  /* Offset of our spads. */
+	uint32_t spad_off2;  /* Offset of our extra spads. */
+	uint32_t spad_offp1; /* Offset of peer spads. */
+	uint32_t spad_offp2; /* Offset of peer extra spads. */
 
 	/* Parameters of window shared with peer config access in B2B mode. */
-	int			 b2b_mw;	/* Shared window number. */
-	uint64_t		 b2b_off;	/* Offset in shared window. */
+	int b2b_mw;	  /* Shared window number. */
+	uint64_t b2b_off; /* Offset in shared window. */
 };
 
-#define	PLX_NT0_BASE		0x3E000
-#define	PLX_NT1_BASE		0x3C000
-#define	PLX_NTX_BASE(sc)	((sc)->ntx ? PLX_NT1_BASE : PLX_NT0_BASE)
-#define	PLX_NTX_LINK_OFFSET	0x01000
+#define PLX_NT0_BASE 0x3E000
+#define PLX_NT1_BASE 0x3C000
+#define PLX_NTX_BASE(sc) ((sc)->ntx ? PLX_NT1_BASE : PLX_NT0_BASE)
+#define PLX_NTX_LINK_OFFSET 0x01000
 
 /* Bases of NTx our/peer interface registers */
-#define	PLX_NTX_OUR_BASE(sc)				\
-    (PLX_NTX_BASE(sc) + ((sc)->link ? PLX_NTX_LINK_OFFSET : 0))
-#define	PLX_NTX_PEER_BASE(sc)				\
-    (PLX_NTX_BASE(sc) + ((sc)->link ? 0 : PLX_NTX_LINK_OFFSET))
+#define PLX_NTX_OUR_BASE(sc) \
+	(PLX_NTX_BASE(sc) + ((sc)->link ? PLX_NTX_LINK_OFFSET : 0))
+#define PLX_NTX_PEER_BASE(sc) \
+	(PLX_NTX_BASE(sc) + ((sc)->link ? 0 : PLX_NTX_LINK_OFFSET))
 
 /* Read/write NTx our interface registers */
-#define	NTX_READ(sc, reg)				\
-    bus_read_4((sc)->conf_res, PLX_NTX_OUR_BASE(sc) + (reg))
-#define	NTX_WRITE(sc, reg, val)				\
-    bus_write_4((sc)->conf_res, PLX_NTX_OUR_BASE(sc) + (reg), (val))
+#define NTX_READ(sc, reg) \
+	bus_read_4((sc)->conf_res, PLX_NTX_OUR_BASE(sc) + (reg))
+#define NTX_WRITE(sc, reg, val) \
+	bus_write_4((sc)->conf_res, PLX_NTX_OUR_BASE(sc) + (reg), (val))
 
 /* Read/write NTx peer interface registers */
-#define	PNTX_READ(sc, reg)				\
-    bus_read_4((sc)->conf_res, PLX_NTX_PEER_BASE(sc) + (reg))
-#define	PNTX_WRITE(sc, reg, val)			\
-    bus_write_4((sc)->conf_res, PLX_NTX_PEER_BASE(sc) + (reg), (val))
+#define PNTX_READ(sc, reg) \
+	bus_read_4((sc)->conf_res, PLX_NTX_PEER_BASE(sc) + (reg))
+#define PNTX_WRITE(sc, reg, val) \
+	bus_write_4((sc)->conf_res, PLX_NTX_PEER_BASE(sc) + (reg), (val))
 
 /* Read/write B2B NTx registers */
-#define	BNTX_READ(sc, reg)				\
-    bus_read_4((sc)->mw_info[(sc)->b2b_mw].mw_res,	\
-    PLX_NTX_BASE(sc) + (reg))
-#define	BNTX_WRITE(sc, reg, val)			\
-    bus_write_4((sc)->mw_info[(sc)->b2b_mw].mw_res,	\
-    PLX_NTX_BASE(sc) + (reg), (val))
+#define BNTX_READ(sc, reg) \
+	bus_read_4((sc)->mw_info[(sc)->b2b_mw].mw_res, PLX_NTX_BASE(sc) + (reg))
+#define BNTX_WRITE(sc, reg, val)                        \
+	bus_write_4((sc)->mw_info[(sc)->b2b_mw].mw_res, \
+	    PLX_NTX_BASE(sc) + (reg), (val))
 
-#define	PLX_PORT_BASE(p)		((p) << 12)
-#define	PLX_STATION_PORT_BASE(sc)	PLX_PORT_BASE((sc)->port & ~7)
+#define PLX_PORT_BASE(p) ((p) << 12)
+#define PLX_STATION_PORT_BASE(sc) PLX_PORT_BASE((sc)->port & ~7)
 
-#define	PLX_PORT_CONTROL(sc)		(PLX_STATION_PORT_BASE(sc) + 0x208)
+#define PLX_PORT_CONTROL(sc) (PLX_STATION_PORT_BASE(sc) + 0x208)
 
 static int ntb_plx_init(device_t dev);
 static int ntb_plx_detach(device_t dev);
@@ -179,12 +181,12 @@ ntb_plx_init(device_t dev)
 		/* Set peer BAR0/1 size and address for B2B NTx access. */
 		mw = &sc->mw_info[sc->b2b_mw];
 		if (mw->mw_64bit) {
-			PNTX_WRITE(sc, 0xe4, 0x3);	/* 64-bit */
+			PNTX_WRITE(sc, 0xe4, 0x3); /* 64-bit */
 			val64 = 0x2000000000000000 * mw->mw_bar | 0x4;
 			PNTX_WRITE(sc, PCIR_BAR(0), val64);
 			PNTX_WRITE(sc, PCIR_BAR(0) + 4, val64 >> 32);
 		} else {
-			PNTX_WRITE(sc, 0xe4, 0x2);	/* 32-bit */
+			PNTX_WRITE(sc, 0xe4, 0x2); /* 32-bit */
 			val = 0x20000000 * mw->mw_bar;
 			PNTX_WRITE(sc, PCIR_BAR(0), val);
 		}
@@ -194,11 +196,14 @@ ntb_plx_init(device_t dev)
 			mw = &sc->mw_info[i];
 			if (mw->mw_64bit) {
 				val64 = 0x2000000000000000 * mw->mw_bar;
-				NTX_WRITE(sc, 0xc3c + (mw->mw_bar - 2) * 4, val64);
-				NTX_WRITE(sc, 0xc3c + (mw->mw_bar - 2) * 4 + 4, val64 >> 32);
+				NTX_WRITE(sc, 0xc3c + (mw->mw_bar - 2) * 4,
+				    val64);
+				NTX_WRITE(sc, 0xc3c + (mw->mw_bar - 2) * 4 + 4,
+				    val64 >> 32);
 			} else {
 				val = 0x20000000 * mw->mw_bar;
-				NTX_WRITE(sc, 0xc3c + (mw->mw_bar - 2) * 4, val);
+				NTX_WRITE(sc, 0xc3c + (mw->mw_bar - 2) * 4,
+				    val);
 			}
 		}
 
@@ -231,7 +236,8 @@ ntb_plx_init(device_t dev)
 
 	pci_enable_busmaster(dev);
 	if (sc->b2b_mw >= 0)
-		PNTX_WRITE(sc, PCIR_COMMAND, PCIM_CMD_MEMEN | PCIM_CMD_BUSMASTEREN);
+		PNTX_WRITE(sc, PCIR_COMMAND,
+		    PCIM_CMD_MEMEN | PCIM_CMD_BUSMASTEREN);
 
 	return (0);
 }
@@ -245,7 +251,7 @@ ntb_plx_isr(void *arg)
 
 	ntb_db_event((device_t)arg, 0);
 
-	if (sc->link)	/* Link Interface has no Link Error registers. */
+	if (sc->link) /* Link Interface has no Link Error registers. */
 		return;
 
 	val = NTX_READ(sc, 0xfe0);
@@ -280,8 +286,8 @@ ntb_plx_setup_intr(device_t dev)
 	 * that, but I failed to make it work.
 	 */
 	sc->int_rid = 0;
-	sc->int_res = bus_alloc_resource_any(dev, SYS_RES_IRQ,
-	    &sc->int_rid, RF_SHAREABLE|RF_ACTIVE);
+	sc->int_res = bus_alloc_resource_any(dev, SYS_RES_IRQ, &sc->int_rid,
+	    RF_SHAREABLE | RF_ACTIVE);
 	if (sc->int_res == NULL) {
 		device_printf(dev, "bus_alloc_resource failed\n");
 		return (ENOMEM);
@@ -294,8 +300,8 @@ ntb_plx_setup_intr(device_t dev)
 	}
 
 	if (!sc->link) { /* Link Interface has no Link Error registers. */
-		NTX_WRITE(sc, 0xfe0, 0xf);	/* Clear link interrupts. */
-		NTX_WRITE(sc, 0xfe4, 0x0);	/* Unmask link interrupts. */
+		NTX_WRITE(sc, 0xfe0, 0xf); /* Clear link interrupts. */
+		NTX_WRITE(sc, 0xfe4, 0x0); /* Unmask link interrupts. */
 	}
 	return (0);
 }
@@ -305,8 +311,8 @@ ntb_plx_teardown_intr(device_t dev)
 {
 	struct ntb_plx_softc *sc = device_get_softc(dev);
 
-	if (!sc->link)	/* Link Interface has no Link Error registers. */
-		NTX_WRITE(sc, 0xfe4, 0xf);	/* Mask link interrupts. */
+	if (!sc->link) /* Link Interface has no Link Error registers. */
+		NTX_WRITE(sc, 0xfe4, 0xf); /* Mask link interrupts. */
 
 	if (sc->int_res) {
 		bus_teardown_intr(dev, sc->int_res, sc->int_tag);
@@ -389,7 +395,8 @@ ntb_plx_attach(device_t dev)
 		device_printf(dev, "NTB-to-Root Port mode (Link Interface)\n");
 		sc->b2b_mw = -1;
 	} else if (i == 0) {
-		device_printf(dev, "NTB-to-Root Port mode (Virtual Interface)\n");
+		device_printf(dev,
+		    "NTB-to-Root Port mode (Virtual Interface)\n");
 		sc->b2b_mw = -1;
 	} else {
 		device_printf(dev, "NTB-to-NTB (back-to-back) mode\n");
@@ -419,7 +426,8 @@ ntb_plx_attach(device_t dev)
 	} else if (sc->split > 0 && sc->alut == 0) {
 		device_printf(dev, "Can't split with disabled A-LUT\n");
 		sc->split = 0;
-	} else if (sc->split > 0 && (sc->mw_count == 0 || sc->mw_info[0].mw_bar != 2)) {
+	} else if (sc->split > 0 &&
+	    (sc->mw_count == 0 || sc->mw_info[0].mw_bar != 2)) {
 		device_printf(dev, "Can't split disabled BAR2\n");
 		sc->split = 0;
 	} else if (sc->split > 0 && (sc->b2b_mw == 0 && sc->b2b_off == 0)) {
@@ -698,7 +706,7 @@ ntb_plx_mw_get_range(device_t dev, unsigned mw_idx, vm_paddr_t *base,
 	/* Remote to local memory window translation address upper limit. */
 	if (plimit != NULL)
 		*plimit = mw->mw_64bit ? BUS_SPACE_MAXADDR :
-		    BUS_SPACE_MAXADDR_32BIT;
+					 BUS_SPACE_MAXADDR_32BIT;
 	return (0);
 }
 
@@ -767,8 +775,8 @@ ntb_plx_mw_set_trans_internal(device_t dev, unsigned mw_idx)
 
 	/* Configure and enable A-LUT if we need it. */
 	size = split ? 0 : mw->splits[0].mw_xlat_size;
-	if (sc->alut && mw->mw_bar == 2 && (sc->split > 0 ||
-	    ((addr & (bsize - 1)) != 0 || size != bsize))) {
+	if (sc->alut && mw->mw_bar == 2 &&
+	    (sc->split > 0 || ((addr & (bsize - 1)) != 0 || size != bsize))) {
 		esize = bsize / (128 * sc->alut);
 		for (i = sp = 0; i < 128 * sc->alut; i++) {
 			if (i % (128 * sc->alut >> sc->split) == 0) {
@@ -794,7 +802,8 @@ ntb_plx_mw_set_trans_internal(device_t dev, unsigned mw_idx)
 }
 
 static int
-ntb_plx_mw_set_trans(device_t dev, unsigned mw_idx, bus_addr_t addr, size_t size)
+ntb_plx_mw_set_trans(device_t dev, unsigned mw_idx, bus_addr_t addr,
+    size_t size)
 {
 	struct ntb_plx_softc *sc = device_get_softc(dev);
 	struct ntb_plx_mw_info *mw;
@@ -806,7 +815,7 @@ ntb_plx_mw_set_trans(device_t dev, unsigned mw_idx, bus_addr_t addr, size_t size
 	mw = &sc->mw_info[mw_idx];
 	if (!mw->mw_64bit &&
 	    ((addr & UINT32_MAX) != addr ||
-	     ((addr + size) & UINT32_MAX) != (addr + size)))
+		((addr + size) & UINT32_MAX) != (addr + size)))
 		return (ERANGE);
 	mw->splits[sp].mw_xlat_addr = addr;
 	mw->splits[sp].mw_xlat_size = size;
@@ -860,8 +869,8 @@ ntb_plx_mw_set_wc(device_t dev, unsigned mw_idx, vm_memattr_t mode)
 
 	split = (mw->mw_bar == 2) ? sc->split : 0;
 	ss = (mw->mw_size - off) >> split;
-	rc = pmap_change_attr((vm_offset_t)mw->mw_vbase + off + ss * sp,
-	    ss, mode);
+	rc = pmap_change_attr((vm_offset_t)mw->mw_vbase + off + ss * sp, ss,
+	    mode);
 	if (rc == 0)
 		mw->splits[sp].mw_map_mode = mode;
 	return (rc);
@@ -1062,44 +1071,43 @@ ntb_plx_peer_db_set(device_t dev, uint64_t bit)
 
 static device_method_t ntb_plx_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		ntb_plx_probe),
-	DEVMETHOD(device_attach,	ntb_plx_attach),
-	DEVMETHOD(device_detach,	ntb_plx_detach),
+	DEVMETHOD(device_probe, ntb_plx_probe),
+	DEVMETHOD(device_attach, ntb_plx_attach),
+	DEVMETHOD(device_detach, ntb_plx_detach),
 	/* Bus interface */
-	DEVMETHOD(bus_child_location,	ntb_child_location),
-	DEVMETHOD(bus_print_child,	ntb_print_child),
-	DEVMETHOD(bus_get_dma_tag,	ntb_get_dma_tag),
+	DEVMETHOD(bus_child_location, ntb_child_location),
+	DEVMETHOD(bus_print_child, ntb_print_child),
+	DEVMETHOD(bus_get_dma_tag, ntb_get_dma_tag),
 	/* NTB interface */
-	DEVMETHOD(ntb_port_number,	ntb_plx_port_number),
-	DEVMETHOD(ntb_peer_port_count,	ntb_plx_peer_port_count),
-	DEVMETHOD(ntb_peer_port_number,	ntb_plx_peer_port_number),
-	DEVMETHOD(ntb_peer_port_idx, 	ntb_plx_peer_port_idx),
-	DEVMETHOD(ntb_link_is_up,	ntb_plx_link_is_up),
-	DEVMETHOD(ntb_link_enable,	ntb_plx_link_enable),
-	DEVMETHOD(ntb_link_disable,	ntb_plx_link_disable),
-	DEVMETHOD(ntb_link_enabled,	ntb_plx_link_enabled),
-	DEVMETHOD(ntb_mw_count,		ntb_plx_mw_count),
-	DEVMETHOD(ntb_mw_get_range,	ntb_plx_mw_get_range),
-	DEVMETHOD(ntb_mw_set_trans,	ntb_plx_mw_set_trans),
-	DEVMETHOD(ntb_mw_clear_trans,	ntb_plx_mw_clear_trans),
-	DEVMETHOD(ntb_mw_get_wc,	ntb_plx_mw_get_wc),
-	DEVMETHOD(ntb_mw_set_wc,	ntb_plx_mw_set_wc),
-	DEVMETHOD(ntb_spad_count,	ntb_plx_spad_count),
-	DEVMETHOD(ntb_spad_clear,	ntb_plx_spad_clear),
-	DEVMETHOD(ntb_spad_write,	ntb_plx_spad_write),
-	DEVMETHOD(ntb_spad_read,	ntb_plx_spad_read),
-	DEVMETHOD(ntb_peer_spad_write,	ntb_plx_peer_spad_write),
-	DEVMETHOD(ntb_peer_spad_read,	ntb_plx_peer_spad_read),
-	DEVMETHOD(ntb_db_valid_mask,	ntb_plx_db_valid_mask),
-	DEVMETHOD(ntb_db_vector_count,	ntb_plx_db_vector_count),
-	DEVMETHOD(ntb_db_vector_mask,	ntb_plx_db_vector_mask),
-	DEVMETHOD(ntb_db_clear,		ntb_plx_db_clear),
-	DEVMETHOD(ntb_db_clear_mask,	ntb_plx_db_clear_mask),
-	DEVMETHOD(ntb_db_read,		ntb_plx_db_read),
-	DEVMETHOD(ntb_db_set_mask,	ntb_plx_db_set_mask),
-	DEVMETHOD(ntb_peer_db_addr,	ntb_plx_peer_db_addr),
-	DEVMETHOD(ntb_peer_db_set,	ntb_plx_peer_db_set),
-	DEVMETHOD_END
+	DEVMETHOD(ntb_port_number, ntb_plx_port_number),
+	DEVMETHOD(ntb_peer_port_count, ntb_plx_peer_port_count),
+	DEVMETHOD(ntb_peer_port_number, ntb_plx_peer_port_number),
+	DEVMETHOD(ntb_peer_port_idx, ntb_plx_peer_port_idx),
+	DEVMETHOD(ntb_link_is_up, ntb_plx_link_is_up),
+	DEVMETHOD(ntb_link_enable, ntb_plx_link_enable),
+	DEVMETHOD(ntb_link_disable, ntb_plx_link_disable),
+	DEVMETHOD(ntb_link_enabled, ntb_plx_link_enabled),
+	DEVMETHOD(ntb_mw_count, ntb_plx_mw_count),
+	DEVMETHOD(ntb_mw_get_range, ntb_plx_mw_get_range),
+	DEVMETHOD(ntb_mw_set_trans, ntb_plx_mw_set_trans),
+	DEVMETHOD(ntb_mw_clear_trans, ntb_plx_mw_clear_trans),
+	DEVMETHOD(ntb_mw_get_wc, ntb_plx_mw_get_wc),
+	DEVMETHOD(ntb_mw_set_wc, ntb_plx_mw_set_wc),
+	DEVMETHOD(ntb_spad_count, ntb_plx_spad_count),
+	DEVMETHOD(ntb_spad_clear, ntb_plx_spad_clear),
+	DEVMETHOD(ntb_spad_write, ntb_plx_spad_write),
+	DEVMETHOD(ntb_spad_read, ntb_plx_spad_read),
+	DEVMETHOD(ntb_peer_spad_write, ntb_plx_peer_spad_write),
+	DEVMETHOD(ntb_peer_spad_read, ntb_plx_peer_spad_read),
+	DEVMETHOD(ntb_db_valid_mask, ntb_plx_db_valid_mask),
+	DEVMETHOD(ntb_db_vector_count, ntb_plx_db_vector_count),
+	DEVMETHOD(ntb_db_vector_mask, ntb_plx_db_vector_mask),
+	DEVMETHOD(ntb_db_clear, ntb_plx_db_clear),
+	DEVMETHOD(ntb_db_clear_mask, ntb_plx_db_clear_mask),
+	DEVMETHOD(ntb_db_read, ntb_plx_db_read),
+	DEVMETHOD(ntb_db_set_mask, ntb_plx_db_set_mask),
+	DEVMETHOD(ntb_peer_db_addr, ntb_plx_peer_db_addr),
+	DEVMETHOD(ntb_peer_db_set, ntb_plx_peer_db_set), DEVMETHOD_END
 };
 
 static DEFINE_CLASS_0(ntb_hw, ntb_plx_driver, ntb_plx_methods,

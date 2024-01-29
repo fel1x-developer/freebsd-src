@@ -27,23 +27,21 @@
  * SUCH DAMAGE.
  */
 
-
 #include "opt_inet6.h"
 
 #include <sys/param.h>
-#include <sys/mbuf.h>
-#include <sys/socket.h>
-#include <sys/priv.h>
 #include <sys/kernel.h>
-#include <sys/smp.h>
-#include <sys/sysctl.h>
+#include <sys/mbuf.h>
+#include <sys/priv.h>
 #include <sys/sbuf.h>
+#include <sys/smp.h>
+#include <sys/socket.h>
+#include <sys/sysctl.h>
 
 #include <net/if.h>
 #include <net/if_var.h>
 #include <net/netisr.h>
 #include <net/rss_config.h>
-
 #include <netinet/in.h>
 #include <netinet/in_pcb.h>
 #include <netinet/in_rss.h>
@@ -78,8 +76,8 @@ uint32_t
 rss_hash_ip4_4tuple(struct in_addr src, u_short srcport, struct in_addr dst,
     u_short dstport)
 {
-	uint8_t data[sizeof(src) + sizeof(dst) + sizeof(srcport) +
-	    sizeof(dstport)];
+	uint8_t
+	    data[sizeof(src) + sizeof(dst) + sizeof(srcport) + sizeof(dstport)];
 	u_int datalen;
 
 	datalen = 0;
@@ -108,9 +106,8 @@ rss_hash_ip4_4tuple(struct in_addr src, u_short srcport, struct in_addr dst,
  * are in "incoming" packet order (ie, source is "far" address.)
  */
 int
-rss_proto_software_hash_v4(struct in_addr s, struct in_addr d,
-    u_short sp, u_short dp, int proto,
-    uint32_t *hashval, uint32_t *hashtype)
+rss_proto_software_hash_v4(struct in_addr s, struct in_addr d, u_short sp,
+    u_short dp, int proto, uint32_t *hashval, uint32_t *hashtype)
 {
 	uint32_t hash;
 
@@ -155,8 +152,8 @@ rss_proto_software_hash_v4(struct in_addr s, struct in_addr d,
  * are in "outgoing" packet order (ie, destination is "far" address.)
  */
 uint32_t
-xps_proto_software_hash_v4(struct in_addr s, struct in_addr d,
-    u_short sp, u_short dp, int proto, uint32_t *hashtype)
+xps_proto_software_hash_v4(struct in_addr s, struct in_addr d, u_short sp,
+    u_short dp, int proto, uint32_t *hashtype)
 {
 	uint32_t hash;
 
@@ -272,7 +269,8 @@ rss_mbuf_software_hash_v4(const struct mbuf *m, int dir, uint32_t *hashval,
 			 * support 4-tuple for UDP.
 			 */
 			if ((rss_gethashconfig() & RSS_HASHTYPE_RSS_IPV4) &&
-			    ((rss_gethashconfig() & RSS_HASHTYPE_RSS_UDP_IPV4) == 0) &&
+			    ((rss_gethashconfig() &
+				 RSS_HASHTYPE_RSS_UDP_IPV4) == 0) &&
 			    flowtype == M_HASHTYPE_RSS_IPV4) {
 				return (1);
 			}
@@ -288,7 +286,8 @@ rss_mbuf_software_hash_v4(const struct mbuf *m, int dir, uint32_t *hashval,
 			 * support 2-tuple for TCP.
 			 */
 			if ((rss_gethashconfig() & RSS_HASHTYPE_RSS_IPV4) &&
-			    ((rss_gethashconfig() & RSS_HASHTYPE_RSS_TCP_IPV4) == 0) &&
+			    ((rss_gethashconfig() &
+				 RSS_HASHTYPE_RSS_TCP_IPV4) == 0) &&
 			    flowtype == M_HASHTYPE_RSS_IPV4) {
 				return (1);
 			}
@@ -309,41 +308,30 @@ rss_mbuf_software_hash_v4(const struct mbuf *m, int dir, uint32_t *hashval,
 	 *    options are present?
 	 */
 	if ((rss_gethashconfig() & RSS_HASHTYPE_RSS_TCP_IPV4) &&
-	    (proto == IPPROTO_TCP) &&
-	    (is_frag == 0)) {
+	    (proto == IPPROTO_TCP) && (is_frag == 0)) {
 		if (m->m_len < iphlen + sizeof(struct tcphdr)) {
 			RSS_DEBUG("short TCP frame?\n");
 			return (-1);
 		}
 		th = (const struct tcphdr *)((c_caddr_t)ip + iphlen);
 		return rss_proto_software_hash_v4(ip->ip_src, ip->ip_dst,
-		    th->th_sport,
-		    th->th_dport,
-		    proto,
-		    hashval,
-		    hashtype);
+		    th->th_sport, th->th_dport, proto, hashval, hashtype);
 	} else if ((rss_gethashconfig() & RSS_HASHTYPE_RSS_UDP_IPV4) &&
-	    (proto == IPPROTO_UDP) &&
-	    (is_frag == 0)) {
+	    (proto == IPPROTO_UDP) && (is_frag == 0)) {
 		uh = (const struct udphdr *)((c_caddr_t)ip + iphlen);
 		if (m->m_len < iphlen + sizeof(struct udphdr)) {
 			RSS_DEBUG("short UDP frame?\n");
 			return (-1);
 		}
 		return rss_proto_software_hash_v4(ip->ip_src, ip->ip_dst,
-		    uh->uh_sport,
-		    uh->uh_dport,
-		    proto,
-		    hashval,
-		    hashtype);
+		    uh->uh_sport, uh->uh_dport, proto, hashval, hashtype);
 	} else if (rss_gethashconfig() & RSS_HASHTYPE_RSS_IPV4) {
 		/* Default to 2-tuple hash */
 		return rss_proto_software_hash_v4(ip->ip_src, ip->ip_dst,
-		    0,	/* source port */
-		    0,	/* destination port */
-		    0,	/* IPPROTO_IP */
-		    hashval,
-		    hashtype);
+		    0, /* source port */
+		    0, /* destination port */
+		    0, /* IPPROTO_IP */
+		    hashval, hashtype);
 	} else {
 		RSS_DEBUG("no available hashtypes!\n");
 		return (-1);
@@ -371,8 +359,8 @@ rss_soft_m2cpuid_v4(struct mbuf *m, uintptr_t source, u_int *cpuid)
 
 	M_ASSERTPKTHDR(m);
 
-	ret = rss_mbuf_software_hash_v4(m, RSS_HASH_PKT_INGRESS,
-	    &hash_val, &hash_type);
+	ret = rss_mbuf_software_hash_v4(m, RSS_HASH_PKT_INGRESS, &hash_val,
+	    &hash_type);
 	if (ret > 0) {
 		/* mbuf has a valid hash already; don't need to modify it */
 		*cpuid = rss_hash2cpuid(m->m_pkthdr.flowid, M_HASHTYPE_GET(m));

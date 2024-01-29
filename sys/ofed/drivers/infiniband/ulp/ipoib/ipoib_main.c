@@ -35,21 +35,19 @@
  */
 
 #include <sys/cdefs.h>
-#include "ipoib.h"
 #include <sys/eventhandler.h>
-
-#include <linux/module.h>
-
-#include <linux/slab.h>
-#include <linux/kernel.h>
-#include <linux/vmalloc.h>
-
-#include <linux/if_vlan.h>
 
 #include <net/infiniband.h>
 
+#include <linux/if_vlan.h>
+#include <linux/kernel.h>
+#include <linux/module.h>
+#include <linux/slab.h>
+#include <linux/vmalloc.h>
 #include <rdma/ib_addr.h>
 #include <rdma/ib_cache.h>
+
+#include "ipoib.h"
 
 MODULE_AUTHOR("Roland Dreier");
 MODULE_DESCRIPTION("IP-over-InfiniBand net driver");
@@ -72,14 +70,12 @@ MODULE_PARM_DESC(debug_level, "Enable debug tracing if > 0");
 
 struct ipoib_path_iter {
 	struct ipoib_dev_priv *priv;
-	struct ipoib_path  path;
+	struct ipoib_path path;
 };
 
-static const u8 ipv4_bcast_addr[] = {
-	0x00, 0xff, 0xff, 0xff,
-	0xff, 0x12, 0x40, 0x1b,	0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00,	0xff, 0xff, 0xff, 0xff
-};
+static const u8 ipv4_bcast_addr[] = { 0x00, 0xff, 0xff, 0xff, 0xff, 0x12, 0x40,
+	0x1b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff,
+	0xff };
 
 struct workqueue_struct *ipoib_workqueue;
 
@@ -87,10 +83,9 @@ struct ib_sa_client ipoib_sa_client;
 
 static void ipoib_add_one(struct ib_device *device);
 static void ipoib_remove_one(struct ib_device *device, void *client_data);
-static if_t ipoib_get_net_dev_by_params(
-		struct ib_device *dev, u8 port, u16 pkey,
-		const union ib_gid *gid, const struct sockaddr *addr,
-		void *client_data);
+static if_t ipoib_get_net_dev_by_params(struct ib_device *dev, u8 port,
+    u16 pkey, const union ib_gid *gid, const struct sockaddr *addr,
+    void *client_data);
 static void ipoib_start(if_t dev);
 static int ipoib_ioctl(if_t ifp, u_long command, caddr_t data);
 
@@ -102,7 +97,8 @@ ipoib_unrhdr_init(void *arg)
 
 	ipoib_unrhdr = new_unrhdr(0, 65535, NULL);
 }
-SYSINIT(ipoib_unrhdr_init, SI_SUB_KLD - 1, SI_ORDER_ANY, ipoib_unrhdr_init, NULL);
+SYSINIT(ipoib_unrhdr_init, SI_SUB_KLD - 1, SI_ORDER_ANY, ipoib_unrhdr_init,
+    NULL);
 
 static void
 ipoib_unrhdr_uninit(void *arg)
@@ -117,11 +113,12 @@ ipoib_unrhdr_uninit(void *arg)
 		delete_unrhdr(hdr);
 	}
 }
-SYSUNINIT(ipoib_unrhdr_uninit, SI_SUB_KLD - 1, SI_ORDER_ANY, ipoib_unrhdr_uninit, NULL);
+SYSUNINIT(ipoib_unrhdr_uninit, SI_SUB_KLD - 1, SI_ORDER_ANY,
+    ipoib_unrhdr_uninit, NULL);
 
 static struct ib_client ipoib_client = {
-	.name   = "ipoib",
-	.add    = ipoib_add_one,
+	.name = "ipoib",
+	.add = ipoib_add_one,
 	.remove = ipoib_remove_one,
 	.get_net_dev_by_params = ipoib_get_net_dev_by_params,
 };
@@ -149,9 +146,9 @@ ipoib_open(struct ipoib_dev_priv *priv)
 
 		/* Bring up any child interfaces too */
 		mutex_lock(&priv->vlan_mutex);
-		list_for_each_entry(cpriv, &priv->child_intfs, list)
-			if ((if_getdrvflags(cpriv->dev) & IFF_DRV_RUNNING) == 0)
-				ipoib_open(cpriv);
+		list_for_each_entry(cpriv, &priv->child_intfs,
+		    list) if ((if_getdrvflags(cpriv->dev) & IFF_DRV_RUNNING) ==
+		    0) ipoib_open(cpriv);
 		mutex_unlock(&priv->vlan_mutex);
 	}
 	if_setdrvflagbits(dev, IFF_DRV_RUNNING, IFF_DRV_OACTIVE);
@@ -180,7 +177,6 @@ ipoib_init(void *arg)
 	queue_work(ipoib_workqueue, &priv->flush_light);
 }
 
-
 static int
 ipoib_stop(struct ipoib_dev_priv *priv)
 {
@@ -200,9 +196,9 @@ ipoib_stop(struct ipoib_dev_priv *priv)
 
 		/* Bring down any child interfaces too */
 		mutex_lock(&priv->vlan_mutex);
-		list_for_each_entry(cpriv, &priv->child_intfs, list)
-			if ((if_getdrvflags(cpriv->dev) & IFF_DRV_RUNNING) != 0)
-				ipoib_stop(cpriv);
+		list_for_each_entry(cpriv, &priv->child_intfs,
+		    list) if ((if_getdrvflags(cpriv->dev) & IFF_DRV_RUNNING) !=
+		    0) ipoib_stop(cpriv);
 		mutex_unlock(&priv->vlan_mutex);
 	}
 
@@ -244,8 +240,9 @@ ipoib_change_mtu(struct ipoib_dev_priv *priv, int new_mtu, bool propagate)
 			return -EINVAL;
 
 		if (new_mtu > priv->mcast_mtu)
-			ipoib_warn(priv, "mtu > %d will cause multicast packet drops.\n",
-				   priv->mcast_mtu);
+			ipoib_warn(priv,
+			    "mtu > %d will cause multicast packet drops.\n",
+			    priv->mcast_mtu);
 
 		return (ipoib_propagate_ifnet_mtu(priv, new_mtu, propagate));
 	}
@@ -255,8 +252,8 @@ ipoib_change_mtu(struct ipoib_dev_priv *priv, int new_mtu, bool propagate)
 
 	prev_admin_mtu = priv->admin_mtu;
 	priv->admin_mtu = new_mtu;
-	error = ipoib_propagate_ifnet_mtu(priv, min(priv->mcast_mtu,
-	    priv->admin_mtu), propagate);
+	error = ipoib_propagate_ifnet_mtu(priv,
+	    min(priv->mcast_mtu, priv->admin_mtu), propagate);
 	if (error == 0) {
 		/* check for MTU change to avoid infinite loop */
 		if (prev_admin_mtu != new_mtu)
@@ -270,8 +267,8 @@ static int
 ipoib_ioctl(if_t ifp, u_long command, caddr_t data)
 {
 	struct ipoib_dev_priv *priv = if_getsoftc(ifp);
-	struct ifaddr *ifa = (struct ifaddr *) data;
-	struct ifreq *ifr = (struct ifreq *) data;
+	struct ifaddr *ifa = (struct ifaddr *)data;
+	struct ifreq *ifr = (struct ifreq *)data;
 	int error = 0;
 
 	/* check if detaching */
@@ -289,9 +286,8 @@ ipoib_ioctl(if_t ifp, u_long command, caddr_t data)
 		if (if_getflags(ifp) & IFF_UP) {
 			if ((if_getdrvflags(ifp) & IFF_DRV_RUNNING) == 0)
 				error = -ipoib_open(priv);
-		} else
-			if (if_getdrvflags(ifp) & IFF_DRV_RUNNING)
-				ipoib_stop(priv);
+		} else if (if_getdrvflags(ifp) & IFF_DRV_RUNNING)
+			ipoib_stop(priv);
 		break;
 	case SIOCADDMULTI:
 	case SIOCDELMULTI:
@@ -304,7 +300,7 @@ ipoib_ioctl(if_t ifp, u_long command, caddr_t data)
 		switch (ifa->ifa_addr->sa_family) {
 #ifdef INET
 		case AF_INET:
-			if_init(ifp, if_getsoftc(ifp));	/* before arpwhohas */
+			if_init(ifp, if_getsoftc(ifp)); /* before arpwhohas */
 			arp_ifinit(ifp, ifa);
 			break;
 #endif
@@ -315,8 +311,8 @@ ipoib_ioctl(if_t ifp, u_long command, caddr_t data)
 		break;
 
 	case SIOCGIFADDR:
-			bcopy(if_getlladdr(ifp), &ifr->ifr_addr.sa_data[0],
-                            INFINIBAND_ALEN);
+		bcopy(if_getlladdr(ifp), &ifr->ifr_addr.sa_data[0],
+		    INFINIBAND_ALEN);
 		break;
 
 	case SIOCSIFMTU:
@@ -332,7 +328,6 @@ ipoib_ioctl(if_t ifp, u_long command, caddr_t data)
 	return (error);
 }
 
-
 static struct ipoib_path *
 __path_find(struct ipoib_dev_priv *priv, void *gid)
 {
@@ -343,8 +338,7 @@ __path_find(struct ipoib_dev_priv *priv, void *gid)
 	while (n) {
 		path = rb_entry(n, struct ipoib_path, rb_node);
 
-		ret = memcmp(gid, path->pathrec.dgid.raw,
-			     sizeof (union ib_gid));
+		ret = memcmp(gid, path->pathrec.dgid.raw, sizeof(union ib_gid));
 
 		if (ret < 0)
 			n = n->rb_left;
@@ -370,7 +364,7 @@ __path_add(struct ipoib_dev_priv *priv, struct ipoib_path *path)
 		tpath = rb_entry(pn, struct ipoib_path, rb_node);
 
 		ret = memcmp(path->pathrec.dgid.raw, tpath->pathrec.dgid.raw,
-			     sizeof (union ib_gid));
+		    sizeof(union ib_gid));
 		if (ret < 0)
 			n = &pn->rb_left;
 		else if (ret > 0)
@@ -439,7 +433,7 @@ ipoib_path_iter_next(struct ipoib_path_iter *iter)
 		path = rb_entry(n, struct ipoib_path, rb_node);
 
 		if (memcmp(iter->path.pathrec.dgid.raw, path->pathrec.dgid.raw,
-			   sizeof (union ib_gid)) < 0) {
+			sizeof(union ib_gid)) < 0) {
 			iter->path = *path;
 			ret = 0;
 			break;
@@ -468,11 +462,12 @@ ipoib_mark_paths_invalid(struct ipoib_dev_priv *priv)
 
 	spin_lock_irq(&priv->lock);
 
-	list_for_each_entry_safe(path, tp, &priv->path_list, list) {
+	list_for_each_entry_safe(path, tp, &priv->path_list, list)
+	{
 		ipoib_dbg(priv, "mark path LID 0x%04x GID %16D invalid\n",
-			be16_to_cpu(path->pathrec.dlid),
-			path->pathrec.dgid.raw, ":");
-		path->valid =  0;
+		    be16_to_cpu(path->pathrec.dlid), path->pathrec.dgid.raw,
+		    ":");
+		path->valid = 0;
 	}
 
 	spin_unlock_irq(&priv->lock);
@@ -490,9 +485,10 @@ ipoib_flush_paths(struct ipoib_dev_priv *priv)
 	list_splice_init(&priv->path_list, &remove_list);
 
 	list_for_each_entry(path, &remove_list, list)
-		rb_erase(&path->rb_node, &priv->path_tree);
+	    rb_erase(&path->rb_node, &priv->path_tree);
 
-	list_for_each_entry_safe(path, tp, &remove_list, list) {
+	list_for_each_entry_safe(path, tp, &remove_list, list)
+	{
 		if (path->query)
 			ib_sa_cancel_query(path->query_id, path->query);
 		spin_unlock_irqrestore(&priv->lock, flags);
@@ -519,10 +515,10 @@ path_rec_completion(int status, struct ib_sa_path_rec *pathrec, void *path_ptr)
 
 	if (!status)
 		ipoib_dbg(priv, "PathRec LID 0x%04x for GID %16D\n",
-			  be16_to_cpu(pathrec->dlid), pathrec->dgid.raw, ":");
+		    be16_to_cpu(pathrec->dlid), pathrec->dgid.raw, ":");
 	else
-		ipoib_dbg(priv, "PathRec status %d for GID %16D\n",
-			  status, path->pathrec.dgid.raw, ":");
+		ipoib_dbg(priv, "PathRec status %d for GID %16D\n", status,
+		    path->pathrec.dgid.raw, ":");
 
 	bzero(&mbqueue, sizeof(mbqueue));
 
@@ -538,11 +534,12 @@ path_rec_completion(int status, struct ib_sa_path_rec *pathrec, void *path_ptr)
 	if (ah) {
 		path->pathrec = *pathrec;
 
-		old_ah   = path->ah;
+		old_ah = path->ah;
 		path->ah = ah;
 
-		ipoib_dbg(priv, "created address handle %p for LID 0x%04x, SL %d\n",
-			  ah, be16_to_cpu(pathrec->dlid), pathrec->sl);
+		ipoib_dbg(priv,
+		    "created address handle %p for LID 0x%04x, SL %d\n", ah,
+		    be16_to_cpu(pathrec->dlid), pathrec->sl);
 
 		for (;;) {
 			_IF_DEQUEUE(&path->queue, mb);
@@ -574,8 +571,9 @@ path_rec_completion(int status, struct ib_sa_path_rec *pathrec, void *path_ptr)
 			break;
 		mb->m_pkthdr.rcvif = dev;
 		if (if_transmit(dev, mb))
-			ipoib_warn(priv, "dev_queue_xmit failed "
-				   "to requeue packet\n");
+			ipoib_warn(priv,
+			    "dev_queue_xmit failed "
+			    "to requeue packet\n");
 	}
 	NET_EPOCH_EXIT(et);
 }
@@ -599,10 +597,10 @@ path_rec_create(struct ipoib_dev_priv *priv, uint8_t *hwaddr)
 #ifdef CONFIG_INFINIBAND_IPOIB_CM
 	memcpy(&path->hwaddr, hwaddr, INFINIBAND_ALEN);
 #endif
-	memcpy(path->pathrec.dgid.raw, &hwaddr[4], sizeof (union ib_gid));
-	path->pathrec.sgid	    = priv->local_gid;
-	path->pathrec.pkey	    = cpu_to_be16(priv->pkey);
-	path->pathrec.numb_path     = 1;
+	memcpy(path->pathrec.dgid.raw, &hwaddr[4], sizeof(union ib_gid));
+	path->pathrec.sgid = priv->local_gid;
+	path->pathrec.pkey = cpu_to_be16(priv->pkey);
+	path->pathrec.numb_path = 1;
 	path->pathrec.traffic_class = priv->broadcast->mcmember.traffic_class;
 
 	return path;
@@ -613,7 +611,8 @@ path_rec_start(struct ipoib_dev_priv *priv, struct ipoib_path *path)
 {
 	if_t dev = priv->dev;
 
-	ib_sa_comp_mask comp_mask = IB_SA_PATH_REC_MTU_SELECTOR | IB_SA_PATH_REC_MTU;
+	ib_sa_comp_mask comp_mask = IB_SA_PATH_REC_MTU_SELECTOR |
+	    IB_SA_PATH_REC_MTU;
 	struct ib_sa_path_rec p_rec;
 
 	p_rec = path->pathrec;
@@ -640,24 +639,19 @@ path_rec_start(struct ipoib_dev_priv *priv, struct ipoib_path *path)
 	}
 
 	ipoib_dbg(priv, "Start path record lookup for %16D MTU > %d\n",
-		  p_rec.dgid.raw, ":",
-		  comp_mask ? ib_mtu_enum_to_int(p_rec.mtu) : 0);
+	    p_rec.dgid.raw, ":", comp_mask ? ib_mtu_enum_to_int(p_rec.mtu) : 0);
 
 	init_completion(&path->done);
 
-	path->query_id =
-		ib_sa_path_rec_get(&ipoib_sa_client, priv->ca, priv->port,
-				   &p_rec, comp_mask		|
-				   IB_SA_PATH_REC_DGID		|
-				   IB_SA_PATH_REC_SGID		|
-				   IB_SA_PATH_REC_NUMB_PATH	|
-				   IB_SA_PATH_REC_TRAFFIC_CLASS |
-				   IB_SA_PATH_REC_PKEY,
-				   1000, GFP_ATOMIC,
-				   path_rec_completion,
-				   path, &path->query);
+	path->query_id = ib_sa_path_rec_get(&ipoib_sa_client, priv->ca,
+	    priv->port, &p_rec,
+	    comp_mask | IB_SA_PATH_REC_DGID | IB_SA_PATH_REC_SGID |
+		IB_SA_PATH_REC_NUMB_PATH | IB_SA_PATH_REC_TRAFFIC_CLASS |
+		IB_SA_PATH_REC_PKEY,
+	    1000, GFP_ATOMIC, path_rec_completion, path, &path->query);
 	if (path->query_id < 0) {
-		ipoib_warn(priv, "ib_sa_path_rec_get failed: %d\n", path->query_id);
+		ipoib_warn(priv, "ib_sa_path_rec_get failed: %d\n",
+		    path->query_id);
 		path->query = NULL;
 		complete(&path->done);
 		return path->query_id;
@@ -667,7 +661,8 @@ path_rec_start(struct ipoib_dev_priv *priv, struct ipoib_path *path)
 }
 
 static void
-ipoib_unicast_send(struct mbuf *mb, struct ipoib_dev_priv *priv, struct ipoib_header *eh)
+ipoib_unicast_send(struct mbuf *mb, struct ipoib_dev_priv *priv,
+    struct ipoib_header *eh)
 {
 	struct ipoib_path *path;
 
@@ -706,7 +701,7 @@ ipoib_unicast_send(struct mbuf *mb, struct ipoib_dev_priv *priv, struct ipoib_he
 	} else if (path->ah) {
 		ipoib_send(priv, mb, path->ah, IPOIB_QPN(eh->hwaddr));
 	} else if ((path->query || !path_rec_start(priv, path)) &&
-		    path->queue.ifq_len < IPOIB_MAX_PATH_REC_QUEUE) {
+	    path->queue.ifq_len < IPOIB_MAX_PATH_REC_QUEUE) {
 		_IF_ENQUEUE(&path->queue, mb);
 	} else {
 		if_inc_counter(priv->dev, IFCOUNTER_OERRORS, 1);
@@ -753,7 +748,7 @@ static void
 _ipoib_start(if_t dev, struct ipoib_dev_priv *priv)
 {
 
-	if ((if_getdrvflags(dev) & (IFF_DRV_RUNNING|IFF_DRV_OACTIVE)) !=
+	if ((if_getdrvflags(dev) & (IFF_DRV_RUNNING | IFF_DRV_OACTIVE)) !=
 	    IFF_DRV_RUNNING)
 		return;
 
@@ -791,18 +786,21 @@ ipoib_dev_init(struct ipoib_dev_priv *priv, struct ib_device *ca, int port)
 {
 
 	/* Allocate RX/TX "rings" to hold queued mbs */
-	priv->rx_ring =	kzalloc(ipoib_recvq_size * sizeof *priv->rx_ring,
-				GFP_KERNEL);
+	priv->rx_ring = kzalloc(ipoib_recvq_size * sizeof *priv->rx_ring,
+	    GFP_KERNEL);
 	if (!priv->rx_ring) {
-		printk(KERN_WARNING "%s: failed to allocate RX ring (%d entries)\n",
-		       ca->name, ipoib_recvq_size);
+		printk(KERN_WARNING
+		    "%s: failed to allocate RX ring (%d entries)\n",
+		    ca->name, ipoib_recvq_size);
 		goto out;
 	}
 
-	priv->tx_ring = kzalloc(ipoib_sendq_size * sizeof *priv->tx_ring, GFP_KERNEL);
+	priv->tx_ring = kzalloc(ipoib_sendq_size * sizeof *priv->tx_ring,
+	    GFP_KERNEL);
 	if (!priv->tx_ring) {
-		printk(KERN_WARNING "%s: failed to allocate TX ring (%d entries)\n",
-		       ca->name, ipoib_sendq_size);
+		printk(KERN_WARNING
+		    "%s: failed to allocate TX ring (%d entries)\n",
+		    ca->name, ipoib_sendq_size);
 		goto out_rx_ring_cleanup;
 	}
 	memset(priv->tx_ring, 0, ipoib_sendq_size * sizeof *priv->tx_ring);
@@ -857,7 +855,8 @@ ipoib_dev_cleanup(struct ipoib_dev_priv *priv)
 	struct ipoib_dev_priv *cpriv, *tcpriv;
 
 	/* Delete any child interfaces first */
-	list_for_each_entry_safe(cpriv, tcpriv, &priv->child_intfs, list) {
+	list_for_each_entry_safe(cpriv, tcpriv, &priv->child_intfs, list)
+	{
 		ipoib_ifdetach(cpriv);
 		ipoib_dev_cleanup(cpriv);
 		ipoib_detach(cpriv);
@@ -877,7 +876,7 @@ ipoib_priv_alloc(void)
 {
 	struct ipoib_dev_priv *priv;
 
-	priv = malloc(sizeof(struct ipoib_dev_priv), M_TEMP, M_ZERO|M_WAITOK);
+	priv = malloc(sizeof(struct ipoib_dev_priv), M_TEMP, M_ZERO | M_WAITOK);
 	spin_lock_init(&priv->lock);
 	spin_lock_init(&priv->drain_lock);
 	mutex_init(&priv->vlan_mutex);
@@ -886,11 +885,11 @@ ipoib_priv_alloc(void)
 	INIT_LIST_HEAD(&priv->dead_ahs);
 	INIT_LIST_HEAD(&priv->multicast_list);
 	INIT_DELAYED_WORK(&priv->pkey_poll_task, ipoib_pkey_poll);
-	INIT_DELAYED_WORK(&priv->mcast_task,   ipoib_mcast_join_task);
+	INIT_DELAYED_WORK(&priv->mcast_task, ipoib_mcast_join_task);
 	INIT_WORK(&priv->carrier_on_task, ipoib_mcast_carrier_on_task);
-	INIT_WORK(&priv->flush_light,   ipoib_ib_dev_flush_light);
-	INIT_WORK(&priv->flush_normal,   ipoib_ib_dev_flush_normal);
-	INIT_WORK(&priv->flush_heavy,   ipoib_ib_dev_flush_heavy);
+	INIT_WORK(&priv->flush_light, ipoib_ib_dev_flush_light);
+	INIT_WORK(&priv->flush_normal, ipoib_ib_dev_flush_normal);
+	INIT_WORK(&priv->flush_heavy, ipoib_ib_dev_flush_heavy);
 	INIT_WORK(&priv->restart_task, ipoib_mcast_restart_task);
 	INIT_DELAYED_WORK(&priv->ah_reap_task, ipoib_reap_ah);
 	memcpy(priv->broadcastaddr, ipv4_bcast_addr, INFINIBAND_ALEN);
@@ -968,7 +967,6 @@ ipoib_set_dev_features(struct ipoib_dev_priv *priv, struct ib_device *hca)
 	return 0;
 }
 
-
 static if_t
 ipoib_add_port(const char *format, struct ib_device *hca, u8 port)
 {
@@ -983,8 +981,8 @@ ipoib_add_port(const char *format, struct ib_device *hca, u8 port)
 	if (!ib_query_port(hca, port, &attr))
 		priv->max_ib_mtu = ib_mtu_enum_to_int(attr.max_mtu);
 	else {
-		printk(KERN_WARNING "%s: ib_query_port %d failed\n",
-		       hca->name, port);
+		printk(KERN_WARNING "%s: ib_query_port %d failed\n", hca->name,
+		    port);
 		goto device_init_failed;
 	}
 
@@ -994,8 +992,9 @@ ipoib_add_port(const char *format, struct ib_device *hca, u8 port)
 
 	result = ib_query_pkey(hca, port, 0, &priv->pkey);
 	if (result) {
-		printk(KERN_WARNING "%s: ib_query_pkey port %d failed (ret = %d)\n",
-		       hca->name, port, result);
+		printk(KERN_WARNING
+		    "%s: ib_query_pkey port %d failed (ret = %d)\n",
+		    hca->name, port, result);
 		goto device_init_failed;
 	}
 
@@ -1013,33 +1012,35 @@ ipoib_add_port(const char *format, struct ib_device *hca, u8 port)
 
 	result = ib_query_gid(hca, port, 0, &priv->local_gid, NULL);
 	if (result) {
-		printk(KERN_WARNING "%s: ib_query_gid port %d failed (ret = %d)\n",
-		       hca->name, port, result);
+		printk(KERN_WARNING
+		    "%s: ib_query_gid port %d failed (ret = %d)\n",
+		    hca->name, port, result);
 		goto device_init_failed;
 	}
-	memcpy(if_getlladdr(priv->dev) + 4, priv->local_gid.raw, sizeof(union ib_gid));
+	memcpy(if_getlladdr(priv->dev) + 4, priv->local_gid.raw,
+	    sizeof(union ib_gid));
 
 	result = ipoib_dev_init(priv, hca, port);
 	if (result < 0) {
-		printk(KERN_WARNING "%s: failed to initialize port %d (ret = %d)\n",
-		       hca->name, port, result);
+		printk(KERN_WARNING
+		    "%s: failed to initialize port %d (ret = %d)\n",
+		    hca->name, port, result);
 		goto device_init_failed;
 	}
 	if (ipoib_cm_admin_enabled(priv))
 		if_setmtu(priv->dev, IPOIB_CM_MTU(ipoib_cm_max_mtu(priv)));
 
-	INIT_IB_EVENT_HANDLER(&priv->event_handler,
-			      priv->ca, ipoib_event);
+	INIT_IB_EVENT_HANDLER(&priv->event_handler, priv->ca, ipoib_event);
 	result = ib_register_event_handler(&priv->event_handler);
 	if (result < 0) {
 		printk(KERN_WARNING "%s: ib_register_event_handler failed for "
-		       "port %d (ret = %d)\n",
-		       hca->name, port, result);
+				    "port %d (ret = %d)\n",
+		    hca->name, port, result);
 		goto event_failed;
 	}
 	if_printf(priv->dev, "Attached to %s port %d\n", hca->name, port);
 
-	priv->gone = 0;	/* ready */
+	priv->gone = 0; /* ready */
 
 	return priv->dev;
 
@@ -1080,7 +1081,8 @@ ipoib_add_one(struct ib_device *device)
 	}
 
 	for (p = s; p <= e; ++p) {
-		if (rdma_port_get_link_layer(device, p) != IB_LINK_LAYER_INFINIBAND)
+		if (rdma_port_get_link_layer(device, p) !=
+		    IB_LINK_LAYER_INFINIBAND)
 			continue;
 		dev = ipoib_add_port("ib", device, p);
 		if (!IS_ERR(dev)) {
@@ -1104,8 +1106,10 @@ ipoib_remove_one(struct ib_device *device, void *client_data)
 	if (rdma_node_get_transport(device->node_type) != RDMA_TRANSPORT_IB)
 		return;
 
-	list_for_each_entry_safe(priv, tmp, dev_list, list) {
-		if (rdma_port_get_link_layer(device, priv->port) != IB_LINK_LAYER_INFINIBAND)
+	list_for_each_entry_safe(priv, tmp, dev_list, list)
+	{
+		if (rdma_port_get_link_layer(device, priv->port) !=
+		    IB_LINK_LAYER_INFINIBAND)
 			continue;
 
 		ipoib_ifdetach(priv);
@@ -1163,16 +1167,16 @@ ipoib_match_dev_addr(const struct sockaddr *addr, if_t dev)
  * >= 1, with a reference held.
  */
 static int
-ipoib_match_gid_pkey_addr(struct ipoib_dev_priv *priv,
-    const union ib_gid *gid, u16 pkey_index, const struct sockaddr *addr,
-    if_t *found_net_dev)
+ipoib_match_gid_pkey_addr(struct ipoib_dev_priv *priv, const union ib_gid *gid,
+    u16 pkey_index, const struct sockaddr *addr, if_t *found_net_dev)
 {
 	struct ipoib_dev_priv *child_priv;
 	int matches = 0;
 
 	if (priv->pkey_index == pkey_index &&
 	    (!gid || !memcmp(gid, &priv->local_gid, sizeof(*gid)))) {
-		if (addr == NULL || ipoib_match_dev_addr(addr, priv->dev) != 0) {
+		if (addr == NULL ||
+		    ipoib_match_dev_addr(addr, priv->dev) != 0) {
 			if (*found_net_dev == NULL) {
 				if_t net_dev;
 
@@ -1189,7 +1193,8 @@ ipoib_match_gid_pkey_addr(struct ipoib_dev_priv *priv,
 
 	/* Check child interfaces */
 	mutex_lock(&priv->vlan_mutex);
-	list_for_each_entry(child_priv, &priv->child_intfs, list) {
+	list_for_each_entry(child_priv, &priv->child_intfs, list)
+	{
 		matches += ipoib_match_gid_pkey_addr(child_priv, gid,
 		    pkey_index, addr, found_net_dev);
 		if (matches > 1)
@@ -1208,15 +1213,16 @@ ipoib_match_gid_pkey_addr(struct ipoib_dev_priv *priv,
  */
 static int
 __ipoib_get_net_dev_by_params(struct list_head *dev_list, u8 port,
-    u16 pkey_index, const union ib_gid *gid,
-    const struct sockaddr *addr, if_t *net_dev)
+    u16 pkey_index, const union ib_gid *gid, const struct sockaddr *addr,
+    if_t *net_dev)
 {
 	struct ipoib_dev_priv *priv;
 	int matches = 0;
 
 	*net_dev = NULL;
 
-	list_for_each_entry(priv, dev_list, list) {
+	list_for_each_entry(priv, dev_list, list)
+	{
 		if (priv->port != port)
 			continue;
 
@@ -1251,8 +1257,8 @@ ipoib_get_net_dev_by_params(struct ib_device *dev, u8 port, u16 pkey,
 		return NULL;
 
 	/* See if we can find a unique device matching the L2 parameters */
-	matches = __ipoib_get_net_dev_by_params(dev_list, port, pkey_index,
-						gid, NULL, &net_dev);
+	matches = __ipoib_get_net_dev_by_params(dev_list, port, pkey_index, gid,
+	    NULL, &net_dev);
 
 	switch (matches) {
 	case 0:
@@ -1265,14 +1271,14 @@ ipoib_get_net_dev_by_params(struct ib_device *dev, u8 port, u16 pkey,
 
 	/* Couldn't find a unique device with L2 parameters only. Use L3
 	 * address to uniquely match the net device */
-	matches = __ipoib_get_net_dev_by_params(dev_list, port, pkey_index,
-						gid, addr, &net_dev);
+	matches = __ipoib_get_net_dev_by_params(dev_list, port, pkey_index, gid,
+	    addr, &net_dev);
 	switch (matches) {
 	case 0:
 		return NULL;
 	default:
 		dev_warn_ratelimited(&dev->dev,
-				     "duplicate IP address detected\n");
+		    "duplicate IP address detected\n");
 		/* Fall through */
 	case 1:
 		return net_dev;
@@ -1302,12 +1308,13 @@ ipoib_config_vlan(void *arg, if_t ifp, uint16_t vtag)
 	/* We only support 15 bits of pkey. */
 	if (vtag & 0x8000)
 		return;
-	pkey = vtag | 0x8000;	/* Set full membership bit. */
+	pkey = vtag | 0x8000; /* Set full membership bit. */
 	if (pkey == parent->pkey)
 		return;
 	/* Check for dups */
 	mutex_lock(&parent->vlan_mutex);
-	list_for_each_entry(priv, &parent->child_intfs, list) {
+	list_for_each_entry(priv, &parent->child_intfs, list)
+	{
 		if (priv->pkey == pkey) {
 			priv = NULL;
 			error = EBUSY;
@@ -1370,7 +1377,8 @@ ipoib_unconfig_vlan(void *arg, if_t ifp, uint16_t vtag)
 	pkey = vtag | 0x8000;
 	parent = if_getsoftc(ifp);
 	mutex_lock(&parent->vlan_mutex);
-	list_for_each_entry(priv, &parent->child_intfs, list) {
+	list_for_each_entry(priv, &parent->child_intfs, list)
+	{
 		if (priv->pkey == pkey) {
 			ipoib_dev_cleanup(priv);
 			list_del(&priv->list);
@@ -1394,16 +1402,16 @@ ipoib_init_module(void)
 
 	ipoib_sendq_size = roundup_pow_of_two(ipoib_sendq_size);
 	ipoib_sendq_size = min(ipoib_sendq_size, IPOIB_MAX_QUEUE_SIZE);
-	ipoib_sendq_size = max(ipoib_sendq_size, max(2 * MAX_SEND_CQE,
-						     IPOIB_MIN_QUEUE_SIZE));
+	ipoib_sendq_size = max(ipoib_sendq_size,
+	    max(2 * MAX_SEND_CQE, IPOIB_MIN_QUEUE_SIZE));
 #ifdef CONFIG_INFINIBAND_IPOIB_CM
 	ipoib_max_conn_qp = min(ipoib_max_conn_qp, IPOIB_CM_MAX_CONN_QP);
 #endif
 
 	ipoib_vlan_attach = EVENTHANDLER_REGISTER(vlan_config,
-		ipoib_config_vlan, NULL, EVENTHANDLER_PRI_FIRST);
+	    ipoib_config_vlan, NULL, EVENTHANDLER_PRI_FIRST);
 	ipoib_vlan_detach = EVENTHANDLER_REGISTER(vlan_unconfig,
-		ipoib_unconfig_vlan, NULL, EVENTHANDLER_PRI_FIRST);
+	    ipoib_unconfig_vlan, NULL, EVENTHANDLER_PRI_FIRST);
 
 	/*
 	 * We create our own workqueue mainly because we want to be

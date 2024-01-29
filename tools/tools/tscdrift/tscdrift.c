@@ -27,21 +27,23 @@
 
 #include <sys/param.h>
 #include <sys/cpuset.h>
+
 #include <machine/atomic.h>
 #include <machine/cpu.h>
 #include <machine/cpufunc.h>
+
 #include <assert.h>
 #include <err.h>
 #include <errno.h>
 #include <math.h>
 #include <pthread.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-#define	barrier()	__asm __volatile("" ::: "memory")
+#define barrier() __asm __volatile("" ::: "memory")
 
-#define	TESTS		1024
+#define TESTS 1024
 
 static volatile int gate;
 static volatile uint64_t thread_tsc;
@@ -55,7 +57,7 @@ bind_cpu(int cpu)
 	CPU_ZERO(&set);
 	CPU_SET(cpu, &set);
 	if (cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_TID, -1, sizeof(set),
-	    &set) < 0)
+		&set) < 0)
 		err(1, "cpuset_setaffinity(%d)", cpu);
 }
 
@@ -101,7 +103,7 @@ main(int ac __unused, char **av __unused)
 	 * restrict this program to only run on a subset of CPUs.
 	 */
 	if (cpuset_getaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID, -1,
-	    sizeof(all_cpus), &all_cpus) < 0)
+		sizeof(all_cpus), &all_cpus) < 0)
 		err(1, "cpuset_getaffinity");
 	for (ncpu = 0, i = 0; i < CPU_SETSIZE; i++) {
 		if (CPU_ISSET(i, &all_cpus))

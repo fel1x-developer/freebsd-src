@@ -26,7 +26,7 @@
  */
 
 #ifndef _SYS_SYS__CLOCK_ID_H
-#define	_SYS_SYS__CLOCK_ID_H
+#define _SYS_SYS__CLOCK_ID_H
 
 /*
  * These macros are shared between time.h and sys/time.h.
@@ -45,49 +45,49 @@
  * issue is corrected.
  */
 
-#if __POSIX_VISIBLE >= 199309		/* 199506 */
-#define CLOCK_REALTIME		0
+#if __POSIX_VISIBLE >= 199309 /* 199506 */
+#define CLOCK_REALTIME 0
 #endif /* __POSIX_VISIBLE >= 199309 */
 #ifdef __BSD_VISIBLE
-#define CLOCK_VIRTUAL		1
-#define CLOCK_PROF		2
-#endif /* __BSD_VISIBLE */
-#if __POSIX_VISIBLE >= 199309		/* 200112 */
-#define CLOCK_MONOTONIC		4
-#define CLOCK_UPTIME_FAST	8
+#define CLOCK_VIRTUAL 1
+#define CLOCK_PROF 2
+#endif			      /* __BSD_VISIBLE */
+#if __POSIX_VISIBLE >= 199309 /* 200112 */
+#define CLOCK_MONOTONIC 4
+#define CLOCK_UPTIME_FAST 8
 #endif /* __POSIX_VISIBLE >= 199309 */
 #ifdef __BSD_VISIBLE
 /*
  * FreeBSD-specific clocks.
  */
-#define CLOCK_UPTIME		5
-#define CLOCK_UPTIME_PRECISE	7
-#define CLOCK_REALTIME_PRECISE	9
-#define CLOCK_REALTIME_FAST	10
-#define CLOCK_MONOTONIC_PRECISE	11
-#define CLOCK_MONOTONIC_FAST	12
-#define CLOCK_SECOND		13
+#define CLOCK_UPTIME 5
+#define CLOCK_UPTIME_PRECISE 7
+#define CLOCK_REALTIME_PRECISE 9
+#define CLOCK_REALTIME_FAST 10
+#define CLOCK_MONOTONIC_PRECISE 11
+#define CLOCK_MONOTONIC_FAST 12
+#define CLOCK_SECOND 13
 #endif /* __BSD_VISIBLE */
 
-#if __POSIX_VISIBLE >= 199309		/* 200112 */
-#define CLOCK_THREAD_CPUTIME_ID	14
-#define	CLOCK_PROCESS_CPUTIME_ID 15
+#if __POSIX_VISIBLE >= 199309 /* 200112 */
+#define CLOCK_THREAD_CPUTIME_ID 14
+#define CLOCK_PROCESS_CPUTIME_ID 15
 #endif /* __POSIX_VISIBLE >= 199309 */
 
 /*
  * Linux compatible names.
  */
 #if __BSD_VISIBLE
-#define	CLOCK_BOOTTIME		CLOCK_UPTIME
-#define	CLOCK_REALTIME_COARSE	CLOCK_REALTIME_FAST
-#define	CLOCK_MONOTONIC_COARSE	CLOCK_MONOTONIC_FAST
+#define CLOCK_BOOTTIME CLOCK_UPTIME
+#define CLOCK_REALTIME_COARSE CLOCK_REALTIME_FAST
+#define CLOCK_MONOTONIC_COARSE CLOCK_MONOTONIC_FAST
 #endif
 
 #if __BSD_VISIBLE
-#define TIMER_RELTIME	0x0	/* relative timer */
+#define TIMER_RELTIME 0x0 /* relative timer */
 #endif
 #if __POSIX_VISIBLE >= 199309
-#define TIMER_ABSTIME	0x1	/* absolute timer */
-#endif /* __POSIX_VISIBLE >= 199309 */
+#define TIMER_ABSTIME 0x1 /* absolute timer */
+#endif			  /* __POSIX_VISIBLE >= 199309 */
 
 #endif /* _SYS_SYS__CLOCK_ID_H */

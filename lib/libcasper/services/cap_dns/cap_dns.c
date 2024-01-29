@@ -32,17 +32,17 @@
 #include <sys/cdefs.h>
 #include <sys/dnv.h>
 #include <sys/nv.h>
+
 #include <netinet/in.h>
 
 #include <assert.h>
 #include <errno.h>
+#include <libcasper.h>
+#include <libcasper_service.h>
 #include <netdb.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <libcasper.h>
-#include <libcasper_service.h>
 
 #include "cap_dns.h"
 
@@ -91,8 +91,7 @@ hostent_unpack(const nvlist_t *nvl, struct hostent *hp)
 	for (ii = 0; ii < nitems; ii++) {
 		n = snprintf(nvlname, sizeof(nvlname), "alias%u", ii);
 		assert(n > 0 && n < (int)sizeof(nvlname));
-		hp->h_aliases[ii] =
-		    strdup(nvlist_get_string(nvl, nvlname));
+		hp->h_aliases[ii] = strdup(nvlist_get_string(nvl, nvlname));
 		if (hp->h_aliases[ii] == NULL)
 			goto fail;
 	}
@@ -251,7 +250,7 @@ cap_getaddrinfo(cap_channel_t *chan, const char *hostname, const char *servname,
 
 	nvlai = NULL;
 	firstai = prevai = curai = NULL;
-	for (ii = 0; ; ii++) {
+	for (ii = 0;; ii++) {
 		n = snprintf(nvlname, sizeof(nvlname), "res%u", ii);
 		assert(n > 0 && n < (int)sizeof(nvlname));
 		if (!nvlist_exists_nvlist(nvl, nvlname))
@@ -326,8 +325,7 @@ again:
 }
 
 int
-cap_dns_type_limit(cap_channel_t *chan, const char * const *types,
-    size_t ntypes)
+cap_dns_type_limit(cap_channel_t *chan, const char *const *types, size_t ntypes)
 {
 	nvlist_t *limits;
 	unsigned int i;
@@ -349,8 +347,7 @@ cap_dns_type_limit(cap_channel_t *chan, const char * const *types,
 }
 
 int
-cap_dns_family_limit(cap_channel_t *chan, const int *families,
-    size_t nfamilies)
+cap_dns_family_limit(cap_channel_t *chan, const int *families, size_t nfamilies)
 {
 	nvlist_t *limits;
 	unsigned int i;
@@ -560,9 +557,9 @@ dns_getnameinfo(const nvlist_t *limits, const nvlist_t *nvlin, nvlist_t *nvlout)
 	salen = (socklen_t)sabinsize;
 
 	if ((sast.ss_family != AF_INET ||
-	     salen != sizeof(struct sockaddr_in)) &&
+		salen != sizeof(struct sockaddr_in)) &&
 	    (sast.ss_family != AF_INET6 ||
-	     salen != sizeof(struct sockaddr_in6))) {
+		salen != sizeof(struct sockaddr_in6))) {
 		error = EAI_FAIL;
 		goto out;
 	}

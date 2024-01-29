@@ -46,8 +46,8 @@ struct hv_get_vp_registers_output {
 	};
 };
 
-uint64_t hypercall_md(volatile void *hc_addr, u64 in_val,
-    u64 in_paddr, u64 out_paddr);
+uint64_t hypercall_md(volatile void *hc_addr, u64 in_val, u64 in_paddr,
+    u64 out_paddr);
 void hv_get_vpreg_128(u32, struct hv_get_vp_registers_output *);
 void arm_hv_set_vreg(u32 msr, u64 val);
 #define WRMSR(msr, val) arm_hv_set_vreg(msr, val)

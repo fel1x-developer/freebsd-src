@@ -37,23 +37,23 @@ extern "C" {
 
 using namespace testing;
 
-class Unlink: public FuseTest {
-public:
-void expect_lookup(const char *relpath, uint64_t ino, int times, int nlink=1)
-{
-	EXPECT_LOOKUP(FUSE_ROOT_ID, relpath)
-	.Times(times)
-	.WillRepeatedly(Invoke(
-		ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFREG | 0644;
-		out.body.entry.nodeid = ino;
-		out.body.entry.attr.nlink = nlink;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.attr.size = 0;
-	})));
-}
-
+class Unlink : public FuseTest {
+    public:
+	void expect_lookup(const char *relpath, uint64_t ino, int times,
+	    int nlink = 1)
+	{
+		EXPECT_LOOKUP(FUSE_ROOT_ID, relpath)
+		    .Times(times)
+		    .WillRepeatedly(Invoke(
+			ReturnImmediate([=](auto in __unused, auto &out) {
+				SET_OUT_HEADER_LEN(out, entry);
+				out.body.entry.attr.mode = S_IFREG | 0644;
+				out.body.entry.nodeid = ino;
+				out.body.entry.attr.nlink = nlink;
+				out.body.entry.attr_valid = UINT64_MAX;
+				out.body.entry.attr.size = 0;
+			})));
+	}
 };
 
 /*
@@ -102,28 +102,33 @@ TEST_F(Unlink, parent_attr_cache)
 
 	/* Use nlink=2 so we don't get a FUSE_FORGET */
 	expect_lookup(RELPATH, ino, 1, 2);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_UNLINK &&
-				0 == strcmp(RELPATH, in.body.unlink) &&
-				in.header.nodeid == FUSE_ROOT_ID);
-		}, Eq(true)),
-		_)
-	).InSequence(seq)
-	.WillOnce(Invoke(ReturnErrno(0)));
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_GETATTR &&
-				in.header.nodeid == FUSE_ROOT_ID);
-		}, Eq(true)),
-		_)
-	).InSequence(seq)
-	.WillRepeatedly(Invoke(ReturnImmediate([=](auto i __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr.ino = FUSE_ROOT_ID;
-		out.body.attr.attr.mode = S_IFDIR | 0755;
-		out.body.attr.attr_valid = UINT64_MAX;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_UNLINK &&
+				    0 == strcmp(RELPATH, in.body.unlink) &&
+				    in.header.nodeid == FUSE_ROOT_ID);
+			},
+			Eq(true)),
+		_))
+	    .InSequence(seq)
+	    .WillOnce(Invoke(ReturnErrno(0)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_GETATTR &&
+				    in.header.nodeid == FUSE_ROOT_ID);
+			},
+			Eq(true)),
+		_))
+	    .InSequence(seq)
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto i __unused, auto &out) {
+			SET_OUT_HEADER_LEN(out, attr);
+			out.body.attr.attr.ino = FUSE_ROOT_ID;
+			out.body.attr.attr.mode = S_IFDIR | 0755;
+			out.body.attr.attr_valid = UINT64_MAX;
+		})));
 
 	ASSERT_EQ(0, unlink(FULLPATH)) << strerror(errno);
 	EXPECT_EQ(0, stat("mountpoint", &sb)) << strerror(errno);
@@ -172,18 +177,20 @@ TEST_F(Unlink, multiply_linked)
 
 	expect_lookup(RELPATH0, ino, 1, 2);
 	expect_unlink(1, RELPATH0, 0);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_FORGET &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).Times(0);
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_FORGET &&
+				    in.header.nodeid == ino);
+			},
+			Eq(true)),
+		_))
+	    .Times(0);
 	expect_lookup(RELPATH1, ino, 1, 1);
 
 	ASSERT_EQ(0, unlink(FULLPATH0)) << strerror(errno);
 
-	/* 
+	/*
 	 * The final syscall simply ensures that no FUSE_FORGET was ever sent,
 	 * by scheduling an arbitrary different operation after a FUSE_FORGET
 	 * would've been sent.
@@ -228,7 +235,7 @@ TEST_F(Unlink, open_but_deleted)
 	ASSERT_LE(0, fd) << strerror(errno);
 	ASSERT_EQ(0, unlink(FULLPATH0)) << strerror(errno);
 
-	/* 
+	/*
 	 * The final syscall simply ensures that no FUSE_FORGET was ever sent,
 	 * by scheduling an arbitrary different operation after a FUSE_FORGET
 	 * would've been sent.

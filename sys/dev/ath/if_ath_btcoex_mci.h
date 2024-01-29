@@ -26,15 +26,15 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
-#ifndef	__IF_ATH_BTCOEX_MCI_H__
-#define	__IF_ATH_BTCOEX_MCI_H__
+#ifndef __IF_ATH_BTCOEX_MCI_H__
+#define __IF_ATH_BTCOEX_MCI_H__
 
-#define	ATH_MCI_NUM_BT_CHANNELS		79
+#define ATH_MCI_NUM_BT_CHANNELS 79
 
-extern	int ath_btcoex_mci_attach(struct ath_softc *sc);
-extern	int ath_btcoex_mci_detach(struct ath_softc *sc);
-extern	int ath_btcoex_mci_enable(struct ath_softc *sc,
-	    const struct ieee80211_channel *chan);
-extern	void ath_btcoex_mci_intr(struct ath_softc *sc);
+extern int ath_btcoex_mci_attach(struct ath_softc *sc);
+extern int ath_btcoex_mci_detach(struct ath_softc *sc);
+extern int ath_btcoex_mci_enable(struct ath_softc *sc,
+    const struct ieee80211_channel *chan);
+extern void ath_btcoex_mci_intr(struct ath_softc *sc);
 
-#endif	/* __IF_ATH_BTCOEX_MCI_H__ */
+#endif /* __IF_ATH_BTCOEX_MCI_H__ */

@@ -36,7 +36,7 @@
 #include <limits.h>
 #include <stdio.h>
 
-#define	VM_MAX_WIRED "vm.max_user_wired"
+#define VM_MAX_WIRED "vm.max_user_wired"
 
 static void
 vm_max_wired_sysctl(u_long *old_value, u_long *new_value)
@@ -48,12 +48,13 @@ vm_max_wired_sysctl(u_long *old_value, u_long *new_value)
 		printf("Setting the new value to %lu\n", *new_value);
 	else {
 		ATF_REQUIRE_MSG(sysctlbyname(VM_MAX_WIRED, NULL, &old_len,
-		    new_value, new_len) == 0,
-		    "sysctlbyname(%s) failed: %s", VM_MAX_WIRED, strerror(errno));
+				    new_value, new_len) == 0,
+		    "sysctlbyname(%s) failed: %s", VM_MAX_WIRED,
+		    strerror(errno));
 	}
 
 	ATF_REQUIRE_MSG(sysctlbyname(VM_MAX_WIRED, old_value, &old_len,
-	    new_value, new_len) == 0,
+			    new_value, new_len) == 0,
 	    "sysctlbyname(%s) failed: %s", VM_MAX_WIRED, strerror(errno));
 
 	if (old_value != NULL)
@@ -68,15 +69,15 @@ set_vm_max_wired(u_long new_value)
 
 	fp = fopen(VM_MAX_WIRED, "w");
 	if (fp == NULL) {
-		atf_tc_skip("could not open %s for writing: %s",
-		    VM_MAX_WIRED, strerror(errno));
+		atf_tc_skip("could not open %s for writing: %s", VM_MAX_WIRED,
+		    strerror(errno));
 		return;
 	}
 
 	vm_max_wired_sysctl(&old_value, NULL);
 
-	ATF_REQUIRE_MSG(fprintf(fp, "%lu", old_value) > 0,
-	    "saving %s failed", VM_MAX_WIRED);
+	ATF_REQUIRE_MSG(fprintf(fp, "%lu", old_value) > 0, "saving %s failed",
+	    VM_MAX_WIRED);
 
 	fclose(fp);
 

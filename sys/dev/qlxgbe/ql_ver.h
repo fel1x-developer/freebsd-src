@@ -34,8 +34,8 @@
 #ifndef _QL_VER_H_
 #define _QL_VER_H_
 
-#define QLA_VERSION_MAJOR 	3
-#define QLA_VERSION_MINOR	10
-#define QLA_VERSION_BUILD       38
+#define QLA_VERSION_MAJOR 3
+#define QLA_VERSION_MINOR 10
+#define QLA_VERSION_BUILD 38
 
 #endif /* #ifndef _QL_VER_H_ */

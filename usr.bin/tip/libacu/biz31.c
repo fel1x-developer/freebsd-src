@@ -34,19 +34,19 @@
 
 #include "tip.h"
 
-#define MAXRETRY	3		/* sync up retry count */
-#define DISCONNECT_CMD	"\21\25\11\24"	/* disconnection string */
+#define MAXRETRY 3		      /* sync up retry count */
+#define DISCONNECT_CMD "\21\25\11\24" /* disconnection string */
 
-static int	biz_dialer(char *, char *);
-static int	bizsync(int);
-static int	echo(char *);
-static void	sigALRM(int);
-static int	detect(char *);
-static int	flush(char *);
-static int	bizsync(int);
+static int biz_dialer(char *, char *);
+static int bizsync(int);
+static int echo(char *);
+static void sigALRM(int);
+static int detect(char *);
+static int flush(char *);
+static int bizsync(int);
 
-static	int timeout = 0;
-static	jmp_buf timeoutbuf;
+static int timeout = 0;
+static jmp_buf timeoutbuf;
 
 /*
  * Dial up on a BIZCOMP Model 1031 with either
@@ -66,14 +66,14 @@ biz_dialer(char *num, char *mod)
 	}
 	if (boolean(value(VERBOSE)))
 		printf("\nstarting call...");
-	echo("#\rk$\r$\n");			/* disable auto-answer */
-	echo("$>$.$ #\r");			/* tone/pulse dialing */
+	echo("#\rk$\r$\n"); /* disable auto-answer */
+	echo("$>$.$ #\r");  /* tone/pulse dialing */
 	echo(mod);
 	echo("$\r$\n");
-	echo("$>$.$ #\re$ ");			/* disconnection sequence */
+	echo("$>$.$ #\re$ "); /* disconnection sequence */
 	echo(DISCONNECT_CMD);
 	echo("\r$\n$\r$\n");
-	echo("$>$.$ #\rr$ ");			/* repeat dial */
+	echo("$>$.$ #\rr$ "); /* repeat dial */
 	echo(num);
 	echo("\r$\n");
 	if (boolean(value(VERBOSE)))
@@ -89,7 +89,7 @@ biz_dialer(char *num, char *mod)
 		char line[80];
 
 		(void)snprintf(line, sizeof line, "%ld second dial timeout",
-			number(value(DIALTIMEOUT)));
+		    number(value(DIALTIMEOUT)));
 		logent(value(HOST), num, "biz", line);
 	}
 #endif
@@ -98,7 +98,7 @@ biz_dialer(char *num, char *mod)
 	else
 		flush("CONNECTION\r\n\07");
 	if (timeout)
-		biz31_disconnect();	/* insurance */
+		biz31_disconnect(); /* insurance */
 	return (connected);
 }
 
@@ -117,7 +117,7 @@ biz31f_dialer(char *num, char *acu)
 void
 biz31_disconnect(void)
 {
-	write(FD, DISCONNECT_CMD, sizeof(DISCONNECT_CMD)-1);
+	write(FD, DISCONNECT_CMD, sizeof(DISCONNECT_CMD) - 1);
 	sleep(2);
 	tcflush(FD, TCIOFLUSH);
 }
@@ -133,22 +133,23 @@ echo(char *s)
 {
 	char c;
 
-	while (c = *s++) switch (c) {
+	while (c = *s++)
+		switch (c) {
 
-	case '$':
-		read(FD, &c, 1);
-		s++;
-		break;
+		case '$':
+			read(FD, &c, 1);
+			s++;
+			break;
 
-	case '#':
-		c = *s++;
-		write(FD, &c, 1);
-		break;
+		case '#':
+			c = *s++;
+			write(FD, &c, 1);
+			break;
 
-	default:
-		write(FD, &c, 1);
-		read(FD, &c, 1);
-	}
+		default:
+			write(FD, &c, 1);
+			read(FD, &c, 1);
+		}
 }
 
 /*ARGSUSED*/
@@ -198,7 +199,7 @@ flush(char *s)
 		alarm(0);
 	}
 	signal(SIGALRM, f);
-	timeout = 0;			/* guard against disconnection */
+	timeout = 0; /* guard against disconnection */
 }
 
 /*
@@ -211,13 +212,13 @@ bizsync(int fd)
 {
 #ifdef FIOCAPACITY
 	struct capacity b;
-#	define chars(b)	((b).cp_nbytes)
-#	define IOCTL	FIOCAPACITY
+#define chars(b) ((b).cp_nbytes)
+#define IOCTL FIOCAPACITY
 #endif
 #ifdef FIONREAD
 	long b;
-#	define chars(b)	(b)
-#	define IOCTL	FIONREAD
+#define chars(b) (b)
+#define IOCTL FIONREAD
 #endif
 	int already = 0;
 	char buf[10];
@@ -229,7 +230,7 @@ retry:
 	sleep(1);
 	if (ioctl(fd, IOCTL, (caddr_t)&b) >= 0) {
 		if (chars(b) != 10) {
-	nono:
+		nono:
 			if (already > MAXRETRY)
 				return (0);
 			write(fd, DISCONNECT_CMD, 4);

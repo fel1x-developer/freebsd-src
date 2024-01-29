@@ -27,19 +27,20 @@
  */
 
 #include <sys/cdefs.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <pthread.h>
 #include <sys/types.h>
 #include <sys/linker_set.h>
 #include <sys/ptrace.h>
-#include <proc_service.h>
-#include <thread_db.h>
 
-#include "libpthread_db.h"
+#include <proc_service.h>
+#include <pthread.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
+#include <thread_db.h>
+#include <unistd.h>
+
 #include "kse.h"
+#include "libpthread_db.h"
 
 #define P2T(c) ps2td(c)
 
@@ -83,7 +84,7 @@ pt_map_thread(const td_thragent_t *const_ta, psaddr_t pt, enum pt_type type)
 			if (first == -1)
 				first = i;
 		} else if (ta->map[i].type == type && ta->map[i].thr == pt) {
-				return (i);
+			return (i);
 		}
 	}
 
@@ -99,8 +100,8 @@ pt_map_thread(const td_thragent_t *const_ta, psaddr_t pt, enum pt_type type)
 			    2 * sizeof(struct pt_map));
 			if (new == NULL)
 				return (-1);
-			memset(new + ta->map_len, '\0', ta->map_len *
-			    sizeof(struct pt_map));
+			memset(new + ta->map_len, '\0',
+			    ta->map_len * sizeof(struct pt_map));
 			first = ta->map_len;
 			ta->map = new;
 			ta->map_len *= 2;
@@ -122,26 +123,26 @@ pt_init(void)
 static td_err_e
 pt_ta_new(struct ps_prochandle *ph, td_thragent_t **pta)
 {
-#define LOOKUP_SYM(proc, sym, addr) 			\
-	ret = ps_pglobal_lookup(proc, NULL, sym, addr);	\
-	if (ret != 0) {					\
-		TDBG("can not find symbol: %s\n", sym);	\
-		ret = TD_NOLIBTHREAD;			\
-		goto error;				\
+#define LOOKUP_SYM(proc, sym, addr)                     \
+	ret = ps_pglobal_lookup(proc, NULL, sym, addr); \
+	if (ret != 0) {                                 \
+		TDBG("can not find symbol: %s\n", sym); \
+		ret = TD_NOLIBTHREAD;                   \
+		goto error;                             \
 	}
 
-#define	LOOKUP_VAL(proc, sym, val)			\
-	ret = ps_pglobal_lookup(proc, NULL, sym, &vaddr);\
-	if (ret != 0) {					\
-		TDBG("can not find symbol: %s\n", sym);	\
-		ret = TD_NOLIBTHREAD;			\
-		goto error;				\
-	}						\
-	ret = ps_pread(proc, vaddr, val, sizeof(int));	\
-	if (ret != 0) {					\
-		TDBG("can not read value of %s\n", sym);\
-		ret = TD_NOLIBTHREAD;			\
-		goto error;				\
+#define LOOKUP_VAL(proc, sym, val)                        \
+	ret = ps_pglobal_lookup(proc, NULL, sym, &vaddr); \
+	if (ret != 0) {                                   \
+		TDBG("can not find symbol: %s\n", sym);   \
+		ret = TD_NOLIBTHREAD;                     \
+		goto error;                               \
+	}                                                 \
+	ret = ps_pread(proc, vaddr, val, sizeof(int));    \
+	if (ret != 0) {                                   \
+		TDBG("can not read value of %s\n", sym);  \
+		ret = TD_NOLIBTHREAD;                     \
+		goto error;                               \
 	}
 
 	td_thragent_t *ta;
@@ -160,30 +161,35 @@ pt_ta_new(struct ps_prochandle *ph, td_thragent_t **pta)
 	ta->map = NULL;
 	ta->map_len = 0;
 
-	LOOKUP_SYM(ph, "_libkse_debug",		&ta->libkse_debug_addr);
-	LOOKUP_SYM(ph, "_thread_list",		&ta->thread_list_addr);
-	LOOKUP_SYM(ph, "_thread_activated",	&ta->thread_activated_addr);
-	LOOKUP_SYM(ph, "_thread_active_threads",&ta->thread_active_threads_addr);
-	LOOKUP_SYM(ph, "_thread_keytable",	&ta->thread_keytable_addr);
-	LOOKUP_VAL(ph, "_thread_off_dtv",	&ta->thread_off_dtv);
-	LOOKUP_VAL(ph, "_thread_off_kse_locklevel", &ta->thread_off_kse_locklevel);
-	LOOKUP_VAL(ph, "_thread_off_kse",	&ta->thread_off_kse);
-	LOOKUP_VAL(ph, "_thread_off_tlsindex",	&ta->thread_off_tlsindex);
-	LOOKUP_VAL(ph, "_thread_off_attr_flags",	&ta->thread_off_attr_flags);
-	LOOKUP_VAL(ph, "_thread_size_key",	&ta->thread_size_key);
-	LOOKUP_VAL(ph, "_thread_off_tcb",	&ta->thread_off_tcb);
-	LOOKUP_VAL(ph, "_thread_off_linkmap",	&ta->thread_off_linkmap);
-	LOOKUP_VAL(ph, "_thread_off_tmbx",	&ta->thread_off_tmbx);
-	LOOKUP_VAL(ph, "_thread_off_thr_locklevel",	&ta->thread_off_thr_locklevel);
-	LOOKUP_VAL(ph, "_thread_off_next",	&ta->thread_off_next);
-	LOOKUP_VAL(ph, "_thread_off_state",	&ta->thread_off_state);
-	LOOKUP_VAL(ph, "_thread_max_keys",	&ta->thread_max_keys);
-	LOOKUP_VAL(ph, "_thread_off_key_allocated", &ta->thread_off_key_allocated);
-	LOOKUP_VAL(ph, "_thread_off_key_destructor", &ta->thread_off_key_destructor);
+	LOOKUP_SYM(ph, "_libkse_debug", &ta->libkse_debug_addr);
+	LOOKUP_SYM(ph, "_thread_list", &ta->thread_list_addr);
+	LOOKUP_SYM(ph, "_thread_activated", &ta->thread_activated_addr);
+	LOOKUP_SYM(ph, "_thread_active_threads",
+	    &ta->thread_active_threads_addr);
+	LOOKUP_SYM(ph, "_thread_keytable", &ta->thread_keytable_addr);
+	LOOKUP_VAL(ph, "_thread_off_dtv", &ta->thread_off_dtv);
+	LOOKUP_VAL(ph, "_thread_off_kse_locklevel",
+	    &ta->thread_off_kse_locklevel);
+	LOOKUP_VAL(ph, "_thread_off_kse", &ta->thread_off_kse);
+	LOOKUP_VAL(ph, "_thread_off_tlsindex", &ta->thread_off_tlsindex);
+	LOOKUP_VAL(ph, "_thread_off_attr_flags", &ta->thread_off_attr_flags);
+	LOOKUP_VAL(ph, "_thread_size_key", &ta->thread_size_key);
+	LOOKUP_VAL(ph, "_thread_off_tcb", &ta->thread_off_tcb);
+	LOOKUP_VAL(ph, "_thread_off_linkmap", &ta->thread_off_linkmap);
+	LOOKUP_VAL(ph, "_thread_off_tmbx", &ta->thread_off_tmbx);
+	LOOKUP_VAL(ph, "_thread_off_thr_locklevel",
+	    &ta->thread_off_thr_locklevel);
+	LOOKUP_VAL(ph, "_thread_off_next", &ta->thread_off_next);
+	LOOKUP_VAL(ph, "_thread_off_state", &ta->thread_off_state);
+	LOOKUP_VAL(ph, "_thread_max_keys", &ta->thread_max_keys);
+	LOOKUP_VAL(ph, "_thread_off_key_allocated",
+	    &ta->thread_off_key_allocated);
+	LOOKUP_VAL(ph, "_thread_off_key_destructor",
+	    &ta->thread_off_key_destructor);
 	LOOKUP_VAL(ph, "_thread_state_running", &ta->thread_state_running);
 	LOOKUP_VAL(ph, "_thread_state_zoombie", &ta->thread_state_zoombie);
-	LOOKUP_VAL(ph, "_thread_off_sigmask",	&ta->thread_off_sigmask);
-	LOOKUP_VAL(ph, "_thread_off_sigpend",	&ta->thread_off_sigpend);
+	LOOKUP_VAL(ph, "_thread_off_sigmask", &ta->thread_off_sigmask);
+	LOOKUP_VAL(ph, "_thread_off_sigpend", &ta->thread_off_sigpend);
 	dbg = getpid();
 	/*
 	 * If this fails it probably means we're debugging a core file and
@@ -243,8 +249,10 @@ pt_ta_map_id2thr(const td_thragent_t *ta, thread_t id, td_thrhandle_t *th)
 			    &tcb_addr);
 			if (ret != 0)
 				return (TD_ERR);
-			ret = thr_pread_int(ta, tcb_addr + ta->thread_off_tmbx +
-			    offsetof(struct kse_thr_mailbox, tm_lwp), &lwp);
+			ret = thr_pread_int(ta,
+			    tcb_addr + ta->thread_off_tmbx +
+				offsetof(struct kse_thr_mailbox, tm_lwp),
+			    &lwp);
 			if (ret != 0)
 				return (TD_ERR);
 			/*
@@ -307,8 +315,10 @@ pt_ta_map_lwp2thr(const td_thragent_t *ta, lwpid_t lwp, td_thrhandle_t *th)
 		ret = thr_pread_ptr(ta, pt + ta->thread_off_tcb, &tcb_addr);
 		if (ret != 0)
 			return (TD_ERR);
-		ret = thr_pread_int(ta, tcb_addr + ta->thread_off_tmbx +
-		    offsetof(struct kse_thr_mailbox, tm_lwp), &lwp1);
+		ret = thr_pread_int(ta,
+		    tcb_addr + ta->thread_off_tmbx +
+			offsetof(struct kse_thr_mailbox, tm_lwp),
+		    &lwp1);
 		if (ret != 0)
 			return (TD_ERR);
 		if (lwp1 == lwp) {
@@ -331,8 +341,8 @@ pt_ta_map_lwp2thr(const td_thragent_t *ta, lwpid_t lwp, td_thrhandle_t *th)
 }
 
 static td_err_e
-pt_ta_thr_iter(const td_thragent_t *ta, td_thr_iter_f *callback,
-    void *cbdata_p, td_thr_state_e state __unused, int ti_pri __unused,
+pt_ta_thr_iter(const td_thragent_t *ta, td_thr_iter_f *callback, void *cbdata_p,
+    td_thr_state_e state __unused, int ti_pri __unused,
     sigset_t *ti_sigmask_p __unused, unsigned int ti_user_flags __unused)
 {
 	td_thrhandle_t th;
@@ -382,11 +392,11 @@ pt_ta_tsd_iter(const td_thragent_t *ta, td_key_iter_f *ki, void *arg)
 	if (keytable == NULL)
 		return (TD_MALLOC);
 	ret = ps_pread(ta->ph, (psaddr_t)ta->thread_keytable_addr, keytable,
-	               ta->thread_max_keys * ta->thread_size_key);
+	    ta->thread_max_keys * ta->thread_size_key);
 	if (ret != 0) {
 		free(keytable);
 		return (P2T(ret));
-	}	
+	}
 	for (i = 0; i < ta->thread_max_keys; i++) {
 		allocated = *(int *)(void *)((uintptr_t)keytable +
 		    i * ta->thread_size_key + ta->thread_off_key_allocated);
@@ -459,14 +469,13 @@ pt_dbsuspend(const td_thrhandle_t *th, int suspend)
 		return (P2T(ret));
 	}
 
-	ret = ps_pread(ta->ph, ta->map[th->th_tid].thr +
-		ta->thread_off_attr_flags,
-		&attrflags, sizeof(attrflags));
+	ret = ps_pread(ta->ph,
+	    ta->map[th->th_tid].thr + ta->thread_off_attr_flags, &attrflags,
+	    sizeof(attrflags));
 	if (ret != 0)
 		return (P2T(ret));
-	ret = ps_pread(ta->ph, ta->map[th->th_tid].thr +
-	               ta->thread_off_tcb,
-	               &tcb_addr, sizeof(tcb_addr));
+	ret = ps_pread(ta->ph, ta->map[th->th_tid].thr + ta->thread_off_tcb,
+	    &tcb_addr, sizeof(tcb_addr));
 	if (ret != 0)
 		return (P2T(ret));
 	tmbx_addr = tcb_addr + ta->thread_off_tmbx;
@@ -488,15 +497,16 @@ pt_dbsuspend(const td_thrhandle_t *th, int suspend)
 			ret = ps_pread(ta->ph, ptr, &ptr, sizeof(ptr));
 			if (ret != 0)
 				return (P2T(ret));
-			ret = ps_pread(ta->ph, ptr + ta->thread_off_kse_locklevel,
-				&locklevel, sizeof(int));
+			ret = ps_pread(ta->ph,
+			    ptr + ta->thread_off_kse_locklevel, &locklevel,
+			    sizeof(int));
 			if (ret != 0)
 				return (P2T(ret));
 			if (locklevel <= 0) {
 				ptr = ta->map[th->th_tid].thr +
-					ta->thread_off_thr_locklevel;
+				    ta->thread_off_thr_locklevel;
 				ret = ps_pread(ta->ph, ptr, &locklevel,
-					sizeof(int));
+				    sizeof(int));
 				if (ret != 0)
 					return (P2T(ret));
 			}
@@ -527,8 +537,8 @@ pt_dbsuspend(const td_thrhandle_t *th, int suspend)
 	}
 	/* read tm_dflags */
 	ret = ps_pread(ta->ph,
-		tmbx_addr + offsetof(struct kse_thr_mailbox, tm_dflags),
-		&dflags, sizeof(dflags));
+	    tmbx_addr + offsetof(struct kse_thr_mailbox, tm_dflags), &dflags,
+	    sizeof(dflags));
 	if (ret != 0)
 		return (P2T(ret));
 	if (suspend)
@@ -536,8 +546,8 @@ pt_dbsuspend(const td_thrhandle_t *th, int suspend)
 	else
 		dflags &= ~TMDF_SUSPEND;
 	ret = ps_pwrite(ta->ph,
-	       tmbx_addr + offsetof(struct kse_thr_mailbox, tm_dflags),
-	       &dflags, sizeof(dflags));
+	    tmbx_addr + offsetof(struct kse_thr_mailbox, tm_dflags), &dflags,
+	    sizeof(dflags));
 	return (P2T(ret));
 }
 
@@ -565,8 +575,7 @@ pt_thr_validate(const td_thrhandle_t *th)
 
 	TDBG_FUNC();
 
-	ret = pt_ta_map_id2thr(th->th_ta, th->th_tid,
-	                       &temp);
+	ret = pt_ta_map_id2thr(th->th_ta, th->th_tid, &temp);
 	return (ret);
 }
 
@@ -599,31 +608,33 @@ pt_thr_old_get_info(const td_thrhandle_t *th, td_old_thrinfo_t *info)
 		return (TD_OK);
 	}
 
-	ret = ps_pread(ta->ph, ta->map[th->th_tid].thr +
-		ta->thread_off_attr_flags,
-		&attrflags, sizeof(attrflags));
+	ret = ps_pread(ta->ph,
+	    ta->map[th->th_tid].thr + ta->thread_off_attr_flags, &attrflags,
+	    sizeof(attrflags));
 	if (ret != 0)
 		return (P2T(ret));
 	ret = ps_pread(ta->ph, ta->map[th->th_tid].thr + ta->thread_off_tcb,
-	               &tcb_addr, sizeof(tcb_addr));
+	    &tcb_addr, sizeof(tcb_addr));
 	if (ret != 0)
 		return (P2T(ret));
 	ret = ps_pread(ta->ph, ta->map[th->th_tid].thr + ta->thread_off_state,
-	               &state, sizeof(state));
+	    &state, sizeof(state));
 	ret = ps_pread(ta->ph,
-	        tcb_addr + ta->thread_off_tmbx +
-		 offsetof(struct kse_thr_mailbox, tm_lwp),
-	        &info->ti_lid, sizeof(lwpid_t));
+	    tcb_addr + ta->thread_off_tmbx +
+		offsetof(struct kse_thr_mailbox, tm_lwp),
+	    &info->ti_lid, sizeof(lwpid_t));
 	if (ret != 0)
 		return (P2T(ret));
 	ret = ps_pread(ta->ph,
-		tcb_addr + ta->thread_off_tmbx +
-		 offsetof(struct kse_thr_mailbox, tm_dflags),
-		&dflags, sizeof(dflags));
+	    tcb_addr + ta->thread_off_tmbx +
+		offsetof(struct kse_thr_mailbox, tm_dflags),
+	    &dflags, sizeof(dflags));
 	if (ret != 0)
 		return (P2T(ret));
-	ret = ps_pread(ta->ph, tcb_addr + ta->thread_off_tmbx +
-		offsetof(struct kse_thr_mailbox, tm_lwp), &lwp, sizeof(lwpid_t));
+	ret = ps_pread(ta->ph,
+	    tcb_addr + ta->thread_off_tmbx +
+		offsetof(struct kse_thr_mailbox, tm_lwp),
+	    &lwp, sizeof(lwpid_t));
 	if (ret != 0)
 		return (P2T(ret));
 	info->ti_ta_p = th->th_ta;
@@ -638,13 +649,13 @@ pt_thr_old_get_info(const td_thrhandle_t *th, td_old_thrinfo_t *info)
 			return (ret);
 	} else {
 		ret = ps_pread(ta->ph,
-			ta->map[th->th_tid].thr + ta->thread_off_sigmask,
-			&info->ti_sigmask, sizeof(sigset_t));
+		    ta->map[th->th_tid].thr + ta->thread_off_sigmask,
+		    &info->ti_sigmask, sizeof(sigset_t));
 		if (ret)
 			return (ret);
 		ret = ps_pread(ta->ph,
-			ta->map[th->th_tid].thr + ta->thread_off_sigpend,
-			&info->ti_pending, sizeof(sigset_t));
+		    ta->map[th->th_tid].thr + ta->thread_off_sigpend,
+		    &info->ti_pending, sizeof(sigset_t));
 		if (ret)
 			return (ret);
 	}
@@ -694,7 +705,7 @@ pt_thr_getxmmregs(const td_thrhandle_t *th, char *fxsave)
 	}
 
 	ret = ps_pread(ta->ph, ta->map[th->th_tid].thr + ta->thread_off_tcb,
-	               &tcb_addr, sizeof(tcb_addr));
+	    &tcb_addr, sizeof(tcb_addr));
 	if (ret != 0)
 		return (P2T(ret));
 	tmbx_addr = tcb_addr + ta->thread_off_tmbx;
@@ -736,7 +747,7 @@ pt_thr_getfpregs(const td_thrhandle_t *th, prfpregset_t *fpregs)
 	}
 
 	ret = ps_pread(ta->ph, ta->map[th->th_tid].thr + ta->thread_off_tcb,
-	               &tcb_addr, sizeof(tcb_addr));
+	    &tcb_addr, sizeof(tcb_addr));
 	if (ret != 0)
 		return (P2T(ret));
 	tmbx_addr = tcb_addr + ta->thread_off_tmbx;
@@ -772,13 +783,12 @@ pt_thr_getgregs(const td_thrhandle_t *th, prgregset_t gregs)
 		return (ret);
 
 	if (ta->map[th->th_tid].type == PT_LWP) {
-		ret = ps_lgetregs(ta->ph,
-		                  ta->map[th->th_tid].lwp, gregs);
+		ret = ps_lgetregs(ta->ph, ta->map[th->th_tid].lwp, gregs);
 		return (P2T(ret));
 	}
 
 	ret = ps_pread(ta->ph, ta->map[th->th_tid].thr + ta->thread_off_tcb,
-			&tcb_addr, sizeof(tcb_addr));
+	    &tcb_addr, sizeof(tcb_addr));
 	if (ret != 0)
 		return (P2T(ret));
 	tmbx_addr = tcb_addr + ta->thread_off_tmbx;
@@ -820,9 +830,8 @@ pt_thr_setxmmregs(const td_thrhandle_t *th, const char *fxsave)
 		return (P2T(ret));
 	}
 
-	ret = ps_pread(ta->ph, ta->map[th->th_tid].thr +
-	                ta->thread_off_tcb,
-                        &tcb_addr, sizeof(tcb_addr));
+	ret = ps_pread(ta->ph, ta->map[th->th_tid].thr + ta->thread_off_tcb,
+	    &tcb_addr, sizeof(tcb_addr));
 	if (ret != 0)
 		return (P2T(ret));
 	tmbx_addr = tcb_addr + ta->thread_off_tmbx;
@@ -868,9 +877,8 @@ pt_thr_setfpregs(const td_thrhandle_t *th, const prfpregset_t *fpregs)
 		return (P2T(ret));
 	}
 
-	ret = ps_pread(ta->ph, ta->map[th->th_tid].thr +
-	                ta->thread_off_tcb,
-                        &tcb_addr, sizeof(tcb_addr));
+	ret = ps_pread(ta->ph, ta->map[th->th_tid].thr + ta->thread_off_tcb,
+	    &tcb_addr, sizeof(tcb_addr));
 	if (ret != 0)
 		return (P2T(ret));
 	tmbx_addr = tcb_addr + ta->thread_off_tmbx;
@@ -915,9 +923,8 @@ pt_thr_setgregs(const td_thrhandle_t *th, const prgregset_t gregs)
 		return (P2T(ret));
 	}
 
-	ret = ps_pread(ta->ph, ta->map[th->th_tid].thr +
-	                ta->thread_off_tcb,
-	                &tcb_addr, sizeof(tcb_addr));
+	ret = ps_pread(ta->ph, ta->map[th->th_tid].thr + ta->thread_off_tcb,
+	    &tcb_addr, sizeof(tcb_addr));
 	if (ret != 0)
 		return (P2T(ret));
 	tmbx_addr = tcb_addr + ta->thread_off_tmbx;
@@ -993,17 +1000,16 @@ pt_thr_sstep(const td_thrhandle_t *th, int step)
 	if (ta->map[th->th_tid].type == PT_LWP)
 		return (TD_BADTH);
 
-	ret = ps_pread(ta->ph, ta->map[th->th_tid].thr + 
-	                ta->thread_off_tcb,
-	                &tcb_addr, sizeof(tcb_addr));
+	ret = ps_pread(ta->ph, ta->map[th->th_tid].thr + ta->thread_off_tcb,
+	    &tcb_addr, sizeof(tcb_addr));
 	if (ret != 0)
 		return (P2T(ret));
 
 	/* Clear or set single step flag in thread mailbox */
 	ret = ps_pread(ta->ph,
-		tcb_addr + ta->thread_off_tmbx +
-		 offsetof(struct kse_thr_mailbox, tm_dflags),
-		&dflags, sizeof(uint32_t));
+	    tcb_addr + ta->thread_off_tmbx +
+		offsetof(struct kse_thr_mailbox, tm_dflags),
+	    &dflags, sizeof(uint32_t));
 	if (ret != 0)
 		return (P2T(ret));
 	if (step != 0)
@@ -1011,16 +1017,16 @@ pt_thr_sstep(const td_thrhandle_t *th, int step)
 	else
 		dflags &= ~TMDF_SSTEP;
 	ret = ps_pwrite(ta->ph,
-		tcb_addr + ta->thread_off_tmbx +
-		 offsetof(struct kse_thr_mailbox, tm_dflags),
-	        &dflags, sizeof(uint32_t));
+	    tcb_addr + ta->thread_off_tmbx +
+		offsetof(struct kse_thr_mailbox, tm_dflags),
+	    &dflags, sizeof(uint32_t));
 	if (ret != 0)
 		return (P2T(ret));
 	/* Get lwp */
 	ret = ps_pread(ta->ph,
-		tcb_addr + ta->thread_off_tmbx +
-		 offsetof(struct kse_thr_mailbox, tm_lwp),
-		&lwp, sizeof(lwpid_t));
+	    tcb_addr + ta->thread_off_tmbx +
+		offsetof(struct kse_thr_mailbox, tm_lwp),
+	    &lwp, sizeof(lwpid_t));
 	if (ret != 0)
 		return (P2T(ret));
 	if (lwp != 0)
@@ -1038,8 +1044,7 @@ pt_thr_sstep(const td_thrhandle_t *th, int step)
 		/* only write out if it is really changed. */
 		if (pt_reg_sstep(&regs, step) != 0) {
 			pt_reg_to_ucontext(&regs, &tmbx.tm_context);
-			ret = ps_pwrite(ta->ph, tmbx_addr, &tmbx,
-			                 sizeof(tmbx));
+			ret = ps_pwrite(ta->ph, tmbx_addr, &tmbx, sizeof(tmbx));
 		}
 	}
 	return (P2T(ret));
@@ -1080,22 +1085,20 @@ pt_thr_tls_get_addr(const td_thrhandle_t *th, psaddr_t _linkmap, size_t offset,
 	obj_entry = _linkmap - ta->thread_off_linkmap;
 
 	/* get tlsindex of the object file */
-	ret = ps_pread(ta->ph,
-		obj_entry + ta->thread_off_tlsindex,
-		&tls_index, sizeof(tls_index));
+	ret = ps_pread(ta->ph, obj_entry + ta->thread_off_tlsindex, &tls_index,
+	    sizeof(tls_index));
 	if (ret != 0)
 		return (P2T(ret));
 
 	/* get thread tcb */
-	ret = ps_pread(ta->ph, ta->map[th->th_tid].thr +
-		ta->thread_off_tcb,
-		&tcb_addr, sizeof(tcb_addr));
+	ret = ps_pread(ta->ph, ta->map[th->th_tid].thr + ta->thread_off_tcb,
+	    &tcb_addr, sizeof(tcb_addr));
 	if (ret != 0)
 		return (P2T(ret));
 
 	/* get dtv array address */
-	ret = ps_pread(ta->ph, tcb_addr + ta->thread_off_dtv,
-		&dtv_addr, sizeof(dtv_addr));
+	ret = ps_pread(ta->ph, tcb_addr + ta->thread_off_dtv, &dtv_addr,
+	    sizeof(dtv_addr));
 	if (ret != 0)
 		return (P2T(ret));
 	/* now get the object's tls block base address */
@@ -1109,37 +1112,37 @@ pt_thr_tls_get_addr(const td_thrhandle_t *th, psaddr_t _linkmap, size_t offset,
 }
 
 static struct ta_ops libpthread_db_ops = {
-	.to_init		= pt_init,
-	.to_ta_clear_event	= pt_ta_clear_event,
-	.to_ta_delete		= pt_ta_delete,
-	.to_ta_event_addr	= pt_ta_event_addr,
-	.to_ta_event_getmsg	= pt_ta_event_getmsg,
-	.to_ta_map_id2thr	= pt_ta_map_id2thr,
-	.to_ta_map_lwp2thr	= pt_ta_map_lwp2thr,
-	.to_ta_new		= pt_ta_new,
-	.to_ta_set_event	= pt_ta_set_event,
-	.to_ta_thr_iter		= pt_ta_thr_iter,
-	.to_ta_tsd_iter		= pt_ta_tsd_iter,
-	.to_thr_clear_event	= pt_thr_clear_event,
-	.to_thr_dbresume	= pt_thr_dbresume,
-	.to_thr_dbsuspend	= pt_thr_dbsuspend,
-	.to_thr_event_enable	= pt_thr_event_enable,
-	.to_thr_event_getmsg	= pt_thr_event_getmsg,
-	.to_thr_old_get_info	= pt_thr_old_get_info,
-	.to_thr_get_info	= pt_thr_get_info,
-	.to_thr_getfpregs	= pt_thr_getfpregs,
-	.to_thr_getgregs	= pt_thr_getgregs,
-	.to_thr_set_event	= pt_thr_set_event,
-	.to_thr_setfpregs	= pt_thr_setfpregs,
-	.to_thr_setgregs	= pt_thr_setgregs,
-	.to_thr_validate	= pt_thr_validate,
-	.to_thr_tls_get_addr	= pt_thr_tls_get_addr,
+	.to_init = pt_init,
+	.to_ta_clear_event = pt_ta_clear_event,
+	.to_ta_delete = pt_ta_delete,
+	.to_ta_event_addr = pt_ta_event_addr,
+	.to_ta_event_getmsg = pt_ta_event_getmsg,
+	.to_ta_map_id2thr = pt_ta_map_id2thr,
+	.to_ta_map_lwp2thr = pt_ta_map_lwp2thr,
+	.to_ta_new = pt_ta_new,
+	.to_ta_set_event = pt_ta_set_event,
+	.to_ta_thr_iter = pt_ta_thr_iter,
+	.to_ta_tsd_iter = pt_ta_tsd_iter,
+	.to_thr_clear_event = pt_thr_clear_event,
+	.to_thr_dbresume = pt_thr_dbresume,
+	.to_thr_dbsuspend = pt_thr_dbsuspend,
+	.to_thr_event_enable = pt_thr_event_enable,
+	.to_thr_event_getmsg = pt_thr_event_getmsg,
+	.to_thr_old_get_info = pt_thr_old_get_info,
+	.to_thr_get_info = pt_thr_get_info,
+	.to_thr_getfpregs = pt_thr_getfpregs,
+	.to_thr_getgregs = pt_thr_getgregs,
+	.to_thr_set_event = pt_thr_set_event,
+	.to_thr_setfpregs = pt_thr_setfpregs,
+	.to_thr_setgregs = pt_thr_setgregs,
+	.to_thr_validate = pt_thr_validate,
+	.to_thr_tls_get_addr = pt_thr_tls_get_addr,
 
 	/* FreeBSD specific extensions. */
-	.to_thr_sstep		= pt_thr_sstep,
+	.to_thr_sstep = pt_thr_sstep,
 #ifdef __i386__
-	.to_thr_getxmmregs	= pt_thr_getxmmregs,
-	.to_thr_setxmmregs	= pt_thr_setxmmregs,
+	.to_thr_getxmmregs = pt_thr_getxmmregs,
+	.to_thr_setxmmregs = pt_thr_setxmmregs,
 #endif
 };
 

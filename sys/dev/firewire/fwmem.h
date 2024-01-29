@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002-2003
  * 	Hidetoshi Shimokawa. All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -20,7 +20,7 @@
  * 4. Neither the name of the author nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -32,23 +32,23 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- * 
+ *
  */
 
-struct fw_xfer *fwmem_read_quad(struct fw_device *, caddr_t, uint8_t,
-	uint16_t, uint32_t, void *, void (*)(struct fw_xfer *));
-struct fw_xfer *fwmem_write_quad(struct fw_device *, caddr_t, uint8_t,
-	uint16_t, uint32_t, void *, void (*)(struct fw_xfer *));
-struct fw_xfer *fwmem_read_block(struct fw_device *, caddr_t, uint8_t,
-	uint16_t, uint32_t, int, void *, void (*)(struct fw_xfer *));
+struct fw_xfer *fwmem_read_quad(struct fw_device *, caddr_t, uint8_t, uint16_t,
+    uint32_t, void *, void (*)(struct fw_xfer *));
+struct fw_xfer *fwmem_write_quad(struct fw_device *, caddr_t, uint8_t, uint16_t,
+    uint32_t, void *, void (*)(struct fw_xfer *));
+struct fw_xfer *fwmem_read_block(struct fw_device *, caddr_t, uint8_t, uint16_t,
+    uint32_t, int, void *, void (*)(struct fw_xfer *));
 struct fw_xfer *fwmem_write_block(struct fw_device *, caddr_t, uint8_t,
-	uint16_t, uint32_t, int, void *, void (*)(struct fw_xfer *));
+    uint16_t, uint32_t, int, void *, void (*)(struct fw_xfer *));
 
-d_open_t	fwmem_open;
-d_close_t	fwmem_close;
-d_ioctl_t	fwmem_ioctl;
-d_read_t	fwmem_read;
-d_write_t	fwmem_write;
-d_poll_t	fwmem_poll;
-d_mmap_t	fwmem_mmap;
-d_strategy_t	fwmem_strategy;
+d_open_t fwmem_open;
+d_close_t fwmem_close;
+d_ioctl_t fwmem_ioctl;
+d_read_t fwmem_read;
+d_write_t fwmem_write;
+d_poll_t fwmem_poll;
+d_mmap_t fwmem_mmap;
+d_strategy_t fwmem_strategy;

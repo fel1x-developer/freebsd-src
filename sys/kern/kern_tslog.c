@@ -25,13 +25,13 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/linker.h>
 #include <sys/malloc.h>
 #include <sys/proc.h>
 #include <sys/sbuf.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 #include <sys/tslog.h>
 
 #include <machine/atomic.h>
@@ -43,15 +43,15 @@
 
 static volatile long nrecs = 0;
 static struct timestamp {
-	void * td;
+	void *td;
 	int type;
-	const char * f;
-	const char * s;
+	const char *f;
+	const char *s;
 	uint64_t tsc;
 } timestamps[TSLOGSIZE];
 
 void
-tslog(void * td, int type, const char * f, const char * s)
+tslog(void *td, int type, const char *f, const char *s)
 {
 	uint64_t tsc = get_cyclecount();
 	long pos;
@@ -80,7 +80,7 @@ sysctl_debug_tslog(SYSCTL_HANDLER_ARGS)
 	struct sbuf *sb;
 	size_t i, limit;
 	caddr_t loader_tslog;
-	void * loader_tslog_buf;
+	void *loader_tslog_buf;
 	size_t loader_tslog_len;
 
 	/*
@@ -105,8 +105,7 @@ sysctl_debug_tslog(SYSCTL_HANDLER_ARGS)
 	limit = MIN(nrecs, nitems(timestamps));
 	for (i = 0; i < limit; i++) {
 		sbuf_printf(sb, "%p", timestamps[i].td);
-		sbuf_printf(sb, " %llu",
-		    (unsigned long long)timestamps[i].tsc);
+		sbuf_printf(sb, " %llu", (unsigned long long)timestamps[i].tsc);
 		switch (timestamps[i].type) {
 		case TS_ENTER:
 			sbuf_cat(sb, " ENTER");
@@ -121,7 +120,8 @@ sysctl_debug_tslog(SYSCTL_HANDLER_ARGS)
 			sbuf_cat(sb, " EVENT");
 			break;
 		}
-		sbuf_printf(sb, " %s", timestamps[i].f ? timestamps[i].f : "(null)");
+		sbuf_printf(sb, " %s",
+		    timestamps[i].f ? timestamps[i].f : "(null)");
 		if (timestamps[i].s)
 			sbuf_printf(sb, " %s\n", timestamps[i].s);
 		else
@@ -133,21 +133,21 @@ sysctl_debug_tslog(SYSCTL_HANDLER_ARGS)
 }
 
 SYSCTL_PROC(_debug, OID_AUTO, tslog,
-    CTLTYPE_STRING|CTLFLAG_RD|CTLFLAG_MPSAFE|CTLFLAG_SKIP,
-    0, 0, sysctl_debug_tslog, "", "Dump recorded event timestamps");
+    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE | CTLFLAG_SKIP, 0, 0,
+    sysctl_debug_tslog, "", "Dump recorded event timestamps");
 
 MALLOC_DEFINE(M_TSLOGUSER, "tsloguser", "Strings used by userland tslog");
 static struct procdata {
 	pid_t ppid;
 	uint64_t tsc_forked;
 	uint64_t tsc_exited;
-	char * execname;
-	char * namei;
+	char *execname;
+	char *namei;
 	int reused;
 } procs[PID_MAX + 1];
 
 void
-tslog_user(pid_t pid, pid_t ppid, const char * execname, const char * namei)
+tslog_user(pid_t pid, pid_t ppid, const char *execname, const char *namei)
 {
 	uint64_t tsc = get_cyclecount();
 
@@ -205,10 +205,10 @@ sysctl_debug_tslog_user(SYSCTL_HANDLER_ARGS)
 		    (unsigned long long)procs[pid].tsc_forked);
 		sbuf_printf(sb, " %llu",
 		    (unsigned long long)procs[pid].tsc_exited);
-		sbuf_printf(sb, " \"%s\"", procs[pid].execname ?
-		    procs[pid].execname : "");
-		sbuf_printf(sb, " \"%s\"", procs[pid].namei ?
-		    procs[pid].namei : "");
+		sbuf_printf(sb, " \"%s\"",
+		    procs[pid].execname ? procs[pid].execname : "");
+		sbuf_printf(sb, " \"%s\"",
+		    procs[pid].namei ? procs[pid].namei : "");
 		sbuf_putc(sb, '\n');
 	}
 	error = sbuf_finish(sb);
@@ -217,6 +217,5 @@ sysctl_debug_tslog_user(SYSCTL_HANDLER_ARGS)
 }
 
 SYSCTL_PROC(_debug, OID_AUTO, tslog_user,
-    CTLTYPE_STRING|CTLFLAG_RD|CTLFLAG_MPSAFE|CTLFLAG_SKIP,
-    0, 0, sysctl_debug_tslog_user,
-    "", "Dump recorded userland event timestamps");
+    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE | CTLFLAG_SKIP, 0, 0,
+    sysctl_debug_tslog_user, "", "Dump recorded userland event timestamps");

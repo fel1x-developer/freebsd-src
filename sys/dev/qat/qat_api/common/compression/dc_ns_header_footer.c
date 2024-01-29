@@ -28,18 +28,15 @@
 #include "dc_session.h"
 
 CpaStatus
-cpaDcNsGenerateHeader(CpaDcNsSetupData *pSetupData,
-		      CpaFlatBuffer *pDestBuff,
-		      Cpa32U *count)
+cpaDcNsGenerateHeader(CpaDcNsSetupData *pSetupData, CpaFlatBuffer *pDestBuff,
+    Cpa32U *count)
 {
 	return CPA_STATUS_UNSUPPORTED;
 }
 
 CpaStatus
-cpaDcNsGenerateFooter(CpaDcNsSetupData *pSetupData,
-		      Cpa64U totalLength,
-		      CpaFlatBuffer *pDestBuff,
-		      CpaDcRqResults *pResults)
+cpaDcNsGenerateFooter(CpaDcNsSetupData *pSetupData, Cpa64U totalLength,
+    CpaFlatBuffer *pDestBuff, CpaDcRqResults *pResults)
 {
 	return CPA_STATUS_UNSUPPORTED;
 }

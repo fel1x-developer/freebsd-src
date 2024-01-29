@@ -34,7 +34,7 @@
 /*-
  * Copyright (c) 2002, 2006 by Matthew Jacob
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
@@ -48,7 +48,7 @@
  * 3. Neither the names of the above listed copyright holders nor the names
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -72,7 +72,7 @@
  * Copyright (c) 2005, WHEEL Sp. z o.o.
  * Copyright (c) 2004, 2005 Justin T. Gibbs
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
@@ -86,7 +86,7 @@
  * 3. Neither the names of the above listed copyright holders nor the names
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -101,6 +101,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <dev/mpt/mpt.h>
 #include <dev/mpt/mpt_cam.h>
 #include <dev/mpt/mpt_raid.h>
@@ -109,36 +110,36 @@
  * XXX it seems no other MPT driver knows about the following chips.
  */
 
-#ifndef	MPI_MANUFACTPAGE_DEVICEID_FC909_FB
-#define	MPI_MANUFACTPAGE_DEVICEID_FC909_FB	0x0620
+#ifndef MPI_MANUFACTPAGE_DEVICEID_FC909_FB
+#define MPI_MANUFACTPAGE_DEVICEID_FC909_FB 0x0620
 #endif
 
-#ifndef	MPI_MANUFACTPAGE_DEVICEID_FC919_LAN_FB
-#define	MPI_MANUFACTPAGE_DEVICEID_FC919_LAN_FB	0x0625
+#ifndef MPI_MANUFACTPAGE_DEVICEID_FC919_LAN_FB
+#define MPI_MANUFACTPAGE_DEVICEID_FC919_LAN_FB 0x0625
 #endif
 
-#ifndef	MPI_MANUFACTPAGE_DEVICEID_FC929_LAN_FB
-#define	MPI_MANUFACTPAGE_DEVICEID_FC929_LAN_FB	0x0623
+#ifndef MPI_MANUFACTPAGE_DEVICEID_FC929_LAN_FB
+#define MPI_MANUFACTPAGE_DEVICEID_FC929_LAN_FB 0x0623
 #endif
 
-#ifndef	MPI_MANUFACTPAGE_DEVICEID_FC929X_LAN_FB
-#define	MPI_MANUFACTPAGE_DEVICEID_FC929X_LAN_FB	0x0627
+#ifndef MPI_MANUFACTPAGE_DEVICEID_FC929X_LAN_FB
+#define MPI_MANUFACTPAGE_DEVICEID_FC929X_LAN_FB 0x0627
 #endif
 
-#ifndef	MPI_MANUFACTPAGE_DEVICEID_FC919X_LAN_FB
-#define	MPI_MANUFACTPAGE_DEVICEID_FC919X_LAN_FB	0x0629
+#ifndef MPI_MANUFACTPAGE_DEVICEID_FC919X_LAN_FB
+#define MPI_MANUFACTPAGE_DEVICEID_FC919X_LAN_FB 0x0629
 #endif
 
 #ifndef MPI_MANUFACTPAGE_DEVID_SAS1068A_FB
-#define MPI_MANUFACTPAGE_DEVID_SAS1068A_FB	0x0055
+#define MPI_MANUFACTPAGE_DEVID_SAS1068A_FB 0x0055
 #endif
 
-#ifndef	MPI_MANUFACTPAGE_DEVID_SAS1068E_FB
-#define	MPI_MANUFACTPAGE_DEVID_SAS1068E_FB	0x0059
+#ifndef MPI_MANUFACTPAGE_DEVID_SAS1068E_FB
+#define MPI_MANUFACTPAGE_DEVID_SAS1068E_FB 0x0059
 #endif
 
-#ifndef	MPI_MANUFACTPAGE_DEVID_SAS1078DE_FB
-#define	MPI_MANUFACTPAGE_DEVID_SAS1078DE_FB	0x007C
+#ifndef MPI_MANUFACTPAGE_DEVID_SAS1078DE_FB
+#define MPI_MANUFACTPAGE_DEVID_SAS1078DE_FB 0x007C
 #endif
 
 static int mpt_pci_probe(device_t);
@@ -156,16 +157,13 @@ static void mpt_pci_intr(void *);
 
 static device_method_t mpt_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		mpt_pci_probe),
-	DEVMETHOD(device_attach,	mpt_pci_attach),
-	DEVMETHOD(device_detach,	mpt_pci_detach),
-	DEVMETHOD(device_shutdown,	mpt_pci_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, mpt_pci_probe),
+	DEVMETHOD(device_attach, mpt_pci_attach),
+	DEVMETHOD(device_detach, mpt_pci_detach),
+	DEVMETHOD(device_shutdown, mpt_pci_shutdown), DEVMETHOD_END
 };
 
-static driver_t mpt_driver = {
-	"mpt", mpt_methods, sizeof(struct mpt_softc)
-};
+static driver_t mpt_driver = { "mpt", mpt_methods, sizeof(struct mpt_softc) };
 
 DRIVER_MODULE(mpt, pci, mpt_driver, NULL, NULL);
 MODULE_DEPEND(mpt, pci, 1, 1, 1);
@@ -256,13 +254,14 @@ mpt_set_options(struct mpt_softc *mpt)
 
 	tval = 0;
 	if (resource_int_value(device_get_name(mpt->dev),
-	    device_get_unit(mpt->dev), "debug", &tval) == 0 && tval != 0) {
+		device_get_unit(mpt->dev), "debug", &tval) == 0 &&
+	    tval != 0) {
 		mpt->verbose = tval;
 	}
 	tval = -1;
 	if (resource_int_value(device_get_name(mpt->dev),
-	    device_get_unit(mpt->dev), "role", &tval) == 0 && tval >= 0 &&
-	    tval <= 3) {
+		device_get_unit(mpt->dev), "role", &tval) == 0 &&
+	    tval >= 0 && tval <= 3) {
 		mpt->cfg_role = tval;
 		mpt->do_cfg_role = 1;
 	}
@@ -271,7 +270,7 @@ mpt_set_options(struct mpt_softc *mpt)
 	if (mpt->is_sas)
 		mpt->msi_enable = 1;
 	if (resource_int_value(device_get_name(mpt->dev),
-	    device_get_unit(mpt->dev), "msi_enable", &tval) == 0) {
+		device_get_unit(mpt->dev), "msi_enable", &tval) == 0) {
 		mpt->msi_enable = tval;
 	}
 }
@@ -321,11 +320,11 @@ static int
 mpt_pci_attach(device_t dev)
 {
 	struct mpt_softc *mpt;
-	int		  iqd;
-	uint32_t	  val;
-	int		  mpt_io_bar, mpt_mem_bar;
+	int iqd;
+	uint32_t val;
+	int mpt_io_bar, mpt_mem_bar;
 
-	mpt  = (struct mpt_softc*)device_get_softc(dev);
+	mpt = (struct mpt_softc *)device_get_softc(dev);
 
 	switch (pci_get_device(dev)) {
 	case MPI_MANUFACTPAGE_DEVICEID_FC909_FB:
@@ -373,15 +372,15 @@ mpt_pci_attach(device_t dev)
 	if (mpt->verbose == MPT_PRT_NONE) {
 		mpt->verbose = MPT_PRT_WARN;
 		/* Print INFO level (if any) if bootverbose is set */
-		mpt->verbose += (bootverbose != 0)? 1 : 0;
+		mpt->verbose += (bootverbose != 0) ? 1 : 0;
 	}
 
 	/*
 	 * Make sure that SERR, PERR, WRITE INVALIDATE and BUSMASTER are set.
 	 */
 	val = pci_read_config(dev, PCIR_COMMAND, 2);
-	val |= PCIM_CMD_SERRESPEN | PCIM_CMD_PERRESPEN |
-	    PCIM_CMD_BUSMASTEREN | PCIM_CMD_MWRICEN;
+	val |= PCIM_CMD_SERRESPEN | PCIM_CMD_PERRESPEN | PCIM_CMD_BUSMASTEREN |
+	    PCIM_CMD_MWRICEN;
 	pci_write_config(dev, PCIR_COMMAND, val, 2);
 
 	/*
@@ -443,12 +442,11 @@ mpt_pci_attach(device_t dev)
 	}
 
 	mpt_mem_bar = PCIR_BAR(mpt_mem_bar);
-	mpt->pci_reg = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-	    &mpt_mem_bar, RF_ACTIVE);
+	mpt->pci_reg = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &mpt_mem_bar,
+	    RF_ACTIVE);
 	if (mpt->pci_reg == NULL) {
 		if (bootverbose || mpt->is_sas || mpt->pci_pio_reg == NULL) {
-			device_printf(dev,
-			    "Unable to memory map registers.\n");
+			device_printf(dev, "Unable to memory map registers.\n");
 		}
 		if (mpt->is_sas || mpt->pci_pio_reg == NULL) {
 			device_printf(dev, "Giving Up.\n");
@@ -492,7 +490,7 @@ mpt_pci_attach(device_t dev)
 
 	/* Register the interrupt handler */
 	if (bus_setup_intr(dev, mpt->pci_irq, MPT_IFLAGS, NULL, mpt_pci_intr,
-	    mpt, &mpt->ih)) {
+		mpt, &mpt->ih)) {
 		device_printf(dev, "could not setup interrupt\n");
 		goto bad;
 	}
@@ -540,8 +538,8 @@ mpt_pci_attach(device_t dev)
 	if (mpt->eh == NULL) {
 		mpt_prt(mpt, "shutdown event registration failed\n");
 		mpt_disable_ints(mpt);
-		(void) mpt_detach(mpt);
-		mpt_reset(mpt, /*reinit*/FALSE);
+		(void)mpt_detach(mpt);
+		mpt_reset(mpt, /*reinit*/ FALSE);
 		mpt_raid_free_mem(mpt);
 		goto bad;
 	}
@@ -602,12 +600,12 @@ mpt_pci_detach(device_t dev)
 {
 	struct mpt_softc *mpt;
 
-	mpt  = (struct mpt_softc*)device_get_softc(dev);
+	mpt = (struct mpt_softc *)device_get_softc(dev);
 
 	if (mpt) {
 		mpt_disable_ints(mpt);
 		mpt_detach(mpt);
-		mpt_reset(mpt, /*reinit*/FALSE);
+		mpt_reset(mpt, /*reinit*/ FALSE);
 		mpt_raid_free_mem(mpt);
 		mpt_dma_mem_free(mpt);
 		mpt_free_bus_resources(mpt);
@@ -615,11 +613,11 @@ mpt_pci_detach(device_t dev)
 		mpt_unlink_peer(mpt);
 #endif
 		if (mpt->eh != NULL) {
-                        EVENTHANDLER_DEREGISTER(shutdown_post_sync, mpt->eh);
+			EVENTHANDLER_DEREGISTER(shutdown_post_sync, mpt->eh);
 		}
 		MPT_LOCK_DESTROY(mpt);
 	}
-	return(0);
+	return (0);
 }
 
 /*
@@ -633,7 +631,7 @@ mpt_pci_shutdown(device_t dev)
 	mpt = (struct mpt_softc *)device_get_softc(dev);
 	if (mpt)
 		return (mpt_shutdown(mpt));
-	return(0);
+	return (0);
 }
 
 static int
@@ -647,8 +645,9 @@ mpt_dma_mem_alloc(struct mpt_softc *mpt)
 		return 0;
 	}
 
-	len = sizeof (request_t) * MPT_MAX_REQUESTS(mpt);
-	mpt->request_pool = (request_t *)malloc(len, M_DEVBUF, M_WAITOK|M_ZERO);
+	len = sizeof(request_t) * MPT_MAX_REQUESTS(mpt);
+	mpt->request_pool = (request_t *)malloc(len, M_DEVBUF,
+	    M_WAITOK | M_ZERO);
 
 	/*
 	 * Create a parent dma tag for this device.
@@ -656,31 +655,32 @@ mpt_dma_mem_alloc(struct mpt_softc *mpt)
 	 * Align at byte boundaries,
 	 * Limit to 32-bit addressing for request/reply queues.
 	 */
-	if (mpt_dma_tag_create(mpt, /*parent*/bus_get_dma_tag(mpt->dev),
-	    /*alignment*/1, /*boundary*/0, /*lowaddr*/BUS_SPACE_MAXADDR,
-	    /*highaddr*/BUS_SPACE_MAXADDR, /*filter*/NULL, /*filterarg*/NULL,
-	    /*maxsize*/BUS_SPACE_MAXSIZE_32BIT,
-	    /*nsegments*/BUS_SPACE_UNRESTRICTED,
-	    /*maxsegsz*/BUS_SPACE_MAXSIZE_32BIT, /*flags*/0,
-	    &mpt->parent_dmat) != 0) {
+	if (mpt_dma_tag_create(mpt, /*parent*/ bus_get_dma_tag(mpt->dev),
+		/*alignment*/ 1, /*boundary*/ 0, /*lowaddr*/ BUS_SPACE_MAXADDR,
+		/*highaddr*/ BUS_SPACE_MAXADDR, /*filter*/ NULL,
+		/*filterarg*/ NULL,
+		/*maxsize*/ BUS_SPACE_MAXSIZE_32BIT,
+		/*nsegments*/ BUS_SPACE_UNRESTRICTED,
+		/*maxsegsz*/ BUS_SPACE_MAXSIZE_32BIT, /*flags*/ 0,
+		&mpt->parent_dmat) != 0) {
 		mpt_prt(mpt, "cannot create parent dma tag\n");
 		return (1);
 	}
 
 	/* Create a child tag for reply buffers */
 	if (mpt_dma_tag_create(mpt, mpt->parent_dmat, PAGE_SIZE, 0,
-	    BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR,
-	    NULL, NULL, 2 * PAGE_SIZE, 1, BUS_SPACE_MAXSIZE_32BIT, 0,
-	    &mpt->reply_dmat) != 0) {
+		BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR, NULL, NULL,
+		2 * PAGE_SIZE, 1, BUS_SPACE_MAXSIZE_32BIT, 0,
+		&mpt->reply_dmat) != 0) {
 		mpt_prt(mpt, "cannot create a dma tag for replies\n");
 		return (1);
 	}
 
 	/* Allocate some DMA accessible memory for replies */
 	if (bus_dmamem_alloc(mpt->reply_dmat, (void **)&mpt->reply,
-	    BUS_DMA_NOWAIT, &mpt->reply_dmap) != 0) {
+		BUS_DMA_NOWAIT, &mpt->reply_dmap) != 0) {
 		mpt_prt(mpt, "cannot allocate %lu bytes of reply memory\n",
-		    (u_long) (2 * PAGE_SIZE));
+		    (u_long)(2 * PAGE_SIZE));
 		return (1);
 	}
 
@@ -701,18 +701,18 @@ mpt_dma_mem_alloc(struct mpt_softc *mpt)
 	return (0);
 }
 
-/* Deallocate memory that was allocated by mpt_dma_mem_alloc 
+/* Deallocate memory that was allocated by mpt_dma_mem_alloc
  */
 static void
 mpt_dma_mem_free(struct mpt_softc *mpt)
 {
 
-        /* Make sure we aren't double destroying */
-        if (mpt->reply_dmat == 0) {
+	/* Make sure we aren't double destroying */
+	if (mpt->reply_dmat == 0) {
 		mpt_lprt(mpt, MPT_PRT_DEBUG, "already released dma memory\n");
 		return;
-        }
-                
+	}
+
 	bus_dmamap_unload(mpt->reply_dmat, mpt->reply_dmap);
 	bus_dmamem_free(mpt->reply_dmat, mpt->reply, mpt->reply_dmap);
 	bus_dma_tag_destroy(mpt->reply_dmat);
@@ -747,12 +747,11 @@ mpt_set_config_regs(struct mpt_softc *mpt)
 {
 	uint32_t val;
 
-#define MPT_CHECK(reg, offset, size)					\
-	val = pci_read_config(mpt->dev, offset, size);			\
-	if (mpt->pci_cfg.reg != val) {					\
-		mpt_prt(mpt,						\
-		    "Restoring " #reg " to 0x%X from 0x%X\n",		\
-		    mpt->pci_cfg.reg, val);				\
+#define MPT_CHECK(reg, offset, size)                                   \
+	val = pci_read_config(mpt->dev, offset, size);                 \
+	if (mpt->pci_cfg.reg != val) {                                 \
+		mpt_prt(mpt, "Restoring " #reg " to 0x%X from 0x%X\n", \
+		    mpt->pci_cfg.reg, val);                            \
 	}
 
 	if (mpt->verbose >= MPT_PRT_DEBUG) {

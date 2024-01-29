@@ -1,4 +1,5 @@
-/*	$NetBSD: tmpfs_fifoops.c,v 1.5 2005/12/11 12:24:29 christos Exp $	*/
+/*	$NetBSD: tmpfs_fifoops.c,v 1.5 2005/12/11 12:24:29 christos Exp $
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
@@ -63,16 +64,16 @@ tmpfs_fifo_close(struct vop_close_args *v)
  * vnode operations vector used for fifos stored in a tmpfs file system.
  */
 struct vop_vector tmpfs_fifoop_entries = {
-	.vop_default =			&fifo_specops,
-	.vop_close =			tmpfs_fifo_close,
-	.vop_reclaim =			tmpfs_reclaim,
-	.vop_access =			tmpfs_access,
-	.vop_getattr =			tmpfs_getattr,
-	.vop_setattr =			tmpfs_setattr,
-	.vop_pathconf =                 tmpfs_pathconf,
-	.vop_print =			tmpfs_print,
-	.vop_add_writecount =		vop_stdadd_writecount_nomsync,
-	.vop_fplookup_vexec =		VOP_EAGAIN,
-	.vop_fplookup_symlink =		VOP_EAGAIN,
+	.vop_default = &fifo_specops,
+	.vop_close = tmpfs_fifo_close,
+	.vop_reclaim = tmpfs_reclaim,
+	.vop_access = tmpfs_access,
+	.vop_getattr = tmpfs_getattr,
+	.vop_setattr = tmpfs_setattr,
+	.vop_pathconf = tmpfs_pathconf,
+	.vop_print = tmpfs_print,
+	.vop_add_writecount = vop_stdadd_writecount_nomsync,
+	.vop_fplookup_vexec = VOP_EAGAIN,
+	.vop_fplookup_symlink = VOP_EAGAIN,
 };
 VFS_VOP_VECTOR_REGISTER(tmpfs_fifoop_entries);

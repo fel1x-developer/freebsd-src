@@ -28,14 +28,14 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
 
+#include "gdma_util.h"
 #include "mana.h"
 #include "shm_channel.h"
-#include "gdma_util.h"
 
 #define PAGE_FRAME_L48_WIDTH_BYTES 6
 #define PAGE_FRAME_L48_WIDTH_BITS (PAGE_FRAME_L48_WIDTH_BYTES * 8)
@@ -74,18 +74,18 @@ union smc_proto_hdr {
 	uint32_t as_uint32;
 
 	struct {
-		uint8_t msg_type	: 3;
-		uint8_t msg_version	: 3;
-		uint8_t reserved_1	: 1;
-		uint8_t direction	: 1;
+		uint8_t msg_type : 3;
+		uint8_t msg_version : 3;
+		uint8_t reserved_1 : 1;
+		uint8_t direction : 1;
 
 		uint8_t status;
 
 		uint8_t reserved_2;
 
-		uint8_t reset_vf	: 1;
-		uint8_t reserved_3	: 6;
-		uint8_t owner_is_pf	: 1;
+		uint8_t reset_vf : 1;
+		uint8_t reserved_3 : 6;
+		uint8_t owner_is_pf : 1;
 	};
 }; /* HW DATA */
 
@@ -105,7 +105,7 @@ mana_smc_poll_register(void __iomem *base, bool reset)
 	 * but let's do it in a loop just in case the hardware or the PF
 	 * driver are temporarily busy.
 	 */
-	for (i = 0; i < 20 * 1000; i++)  {
+	for (i = 0; i < 20 * 1000; i++) {
 		last_dword = readl(ptr);
 
 		/* shmem reads as 0xFFFFFFFF in the reset case */
@@ -135,8 +135,8 @@ mana_smc_read_response(struct shm_channel *sc, uint32_t msg_type,
 	if (err)
 		return err;
 
-	hdr.as_uint32 =
-	    readl((uint8_t *)base + SMC_LAST_DWORD * SMC_BASIC_UNIT);
+	hdr.as_uint32 = readl(
+	    (uint8_t *)base + SMC_LAST_DWORD * SMC_BASIC_UNIT);
 	mana_dbg(NULL, "shm response 0x%x\n", hdr.as_uint32);
 
 	if (reset_vf && hdr.as_uint32 == SHMEM_VF_RESET_STATE)
@@ -146,15 +146,15 @@ mana_smc_read_response(struct shm_channel *sc, uint32_t msg_type,
 	if (hdr.msg_type != msg_type || hdr.msg_version > msg_version ||
 	    hdr.direction != SMC_MSG_DIRECTION_RESPONSE) {
 		device_printf(sc->dev,
-		    "Wrong SMC response 0x%x, type=%d, ver=%d\n",
-		    hdr.as_uint32, msg_type, msg_version);
+		    "Wrong SMC response 0x%x, type=%d, ver=%d\n", hdr.as_uint32,
+		    msg_type, msg_version);
 		return EPROTO;
 	}
 
 	/* Validate the operation result */
 	if (hdr.status != 0) {
-		device_printf(sc->dev,
-		    "SMC operation failed: 0x%x\n", hdr.status);
+		device_printf(sc->dev, "SMC operation failed: 0x%x\n",
+		    hdr.status);
 		return EPROTO;
 	}
 
@@ -187,15 +187,14 @@ mana_smc_setup_hwc(struct shm_channel *sc, bool reset_vf, uint64_t eq_addr,
 	/* Ensure VF already has possession of shared memory */
 	err = mana_smc_poll_register(sc->base, false);
 	if (err) {
-		device_printf(sc->dev,
-		    "Timeout when setting up HWC: %d\n", err);
+		device_printf(sc->dev, "Timeout when setting up HWC: %d\n",
+		    err);
 		return err;
 	}
 
 	if (!IS_ALIGNED(eq_addr, PAGE_SIZE) ||
 	    !IS_ALIGNED(cq_addr, PAGE_SIZE) ||
-	    !IS_ALIGNED(rq_addr, PAGE_SIZE) ||
-	    !IS_ALIGNED(sq_addr, PAGE_SIZE))
+	    !IS_ALIGNED(rq_addr, PAGE_SIZE) || !IS_ALIGNED(sq_addr, PAGE_SIZE))
 		return EINVAL;
 
 	if ((eq_msix_index & VECTOR_MASK) != eq_msix_index)
@@ -224,32 +223,32 @@ mana_smc_setup_hwc(struct shm_channel *sc, bool reset_vf, uint64_t eq_addr,
 	shmem = (uint64_t *)ptr;
 	frame_addr = PHYS_PFN(eq_addr);
 	*shmem = frame_addr & PAGE_FRAME_L48_MASK;
-	all_addr_h4bits |= (frame_addr >> PAGE_FRAME_L48_WIDTH_BITS) <<
-		(frame_addr_seq++ * PAGE_FRAME_H4_WIDTH_BITS);
+	all_addr_h4bits |= (frame_addr >> PAGE_FRAME_L48_WIDTH_BITS)
+	    << (frame_addr_seq++ * PAGE_FRAME_H4_WIDTH_BITS);
 	ptr += PAGE_FRAME_L48_WIDTH_BYTES;
 
 	/* CQ addr: low 48 bits of frame address */
 	shmem = (uint64_t *)ptr;
 	frame_addr = PHYS_PFN(cq_addr);
 	*shmem = frame_addr & PAGE_FRAME_L48_MASK;
-	all_addr_h4bits |= (frame_addr >> PAGE_FRAME_L48_WIDTH_BITS) <<
-		(frame_addr_seq++ * PAGE_FRAME_H4_WIDTH_BITS);
+	all_addr_h4bits |= (frame_addr >> PAGE_FRAME_L48_WIDTH_BITS)
+	    << (frame_addr_seq++ * PAGE_FRAME_H4_WIDTH_BITS);
 	ptr += PAGE_FRAME_L48_WIDTH_BYTES;
 
 	/* RQ addr: low 48 bits of frame address */
 	shmem = (uint64_t *)ptr;
 	frame_addr = PHYS_PFN(rq_addr);
 	*shmem = frame_addr & PAGE_FRAME_L48_MASK;
-	all_addr_h4bits |= (frame_addr >> PAGE_FRAME_L48_WIDTH_BITS) <<
-		(frame_addr_seq++ * PAGE_FRAME_H4_WIDTH_BITS);
+	all_addr_h4bits |= (frame_addr >> PAGE_FRAME_L48_WIDTH_BITS)
+	    << (frame_addr_seq++ * PAGE_FRAME_H4_WIDTH_BITS);
 	ptr += PAGE_FRAME_L48_WIDTH_BYTES;
 
 	/* SQ addr: low 48 bits of frame address */
 	shmem = (uint64_t *)ptr;
 	frame_addr = PHYS_PFN(sq_addr);
 	*shmem = frame_addr & PAGE_FRAME_L48_MASK;
-	all_addr_h4bits |= (frame_addr >> PAGE_FRAME_L48_WIDTH_BITS) <<
-		(frame_addr_seq++ * PAGE_FRAME_H4_WIDTH_BITS);
+	all_addr_h4bits |= (frame_addr >> PAGE_FRAME_L48_WIDTH_BITS)
+	    << (frame_addr_seq++ * PAGE_FRAME_H4_WIDTH_BITS);
 	ptr += PAGE_FRAME_L48_WIDTH_BYTES;
 
 	/* High 4 bits of the four frame addresses */
@@ -274,8 +273,7 @@ mana_smc_setup_hwc(struct shm_channel *sc, bool reset_vf, uint64_t eq_addr,
 	 */
 	dword = (uint32_t *)shm_buf;
 	for (i = 0; i < SMC_APERTURE_DWORDS; i++) {
-		mana_dbg(NULL, "write shm_buf %d, val: 0x%x\n",
-		    i, *dword);
+		mana_dbg(NULL, "write shm_buf %d, val: 0x%x\n", i, *dword);
 		writel((char *)sc->base + i * SMC_BASIC_UNIT, *dword++);
 	}
 
@@ -286,8 +284,7 @@ mana_smc_setup_hwc(struct shm_channel *sc, bool reset_vf, uint64_t eq_addr,
 	err = mana_smc_read_response(sc, SMC_MSG_TYPE_ESTABLISH_HWC,
 	    SMC_MSG_TYPE_ESTABLISH_HWC_VERSION, reset_vf);
 	if (err) {
-		device_printf(sc->dev,
-		    "Error when setting up HWC: %d\n", err);
+		device_printf(sc->dev, "Error when setting up HWC: %d\n", err);
 		return err;
 	}
 
@@ -326,8 +323,8 @@ mana_smc_teardown_hwc(struct shm_channel *sc, bool reset_vf)
 	err = mana_smc_read_response(sc, SMC_MSG_TYPE_DESTROY_HWC,
 	    SMC_MSG_TYPE_DESTROY_HWC_VERSION, reset_vf);
 	if (err) {
-		device_printf(sc->dev,
-		    "Error when tearing down HWC: %d\n", err);
+		device_printf(sc->dev, "Error when tearing down HWC: %d\n",
+		    err);
 		return err;
 	}
 

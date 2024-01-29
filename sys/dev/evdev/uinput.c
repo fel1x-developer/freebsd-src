@@ -28,6 +28,7 @@
 #include "opt_evdev.h"
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/conf.h>
 #include <sys/fcntl.h>
 #include <sys/kernel.h>
@@ -37,7 +38,6 @@
 #include <sys/poll.h>
 #include <sys/proc.h>
 #include <sys/selinfo.h>
-#include <sys/systm.h>
 #include <sys/sx.h>
 #include <sys/uio.h>
 
@@ -47,34 +47,29 @@
 #include <dev/evdev/uinput.h>
 
 #ifdef UINPUT_DEBUG
-#define	debugf(state, fmt, args...)	printf("uinput: " fmt "\n", ##args)
+#define debugf(state, fmt, args...) printf("uinput: " fmt "\n", ##args)
 #else
-#define	debugf(state, fmt, args...)
+#define debugf(state, fmt, args...)
 #endif
 
-#define	UINPUT_BUFFER_SIZE	16
+#define UINPUT_BUFFER_SIZE 16
 
-#define	UINPUT_LOCK(state)		sx_xlock(&(state)->ucs_lock)
-#define	UINPUT_UNLOCK(state)		sx_unlock(&(state)->ucs_lock)
-#define	UINPUT_LOCK_ASSERT(state)	sx_assert(&(state)->ucs_lock, SA_LOCKED)
+#define UINPUT_LOCK(state) sx_xlock(&(state)->ucs_lock)
+#define UINPUT_UNLOCK(state) sx_unlock(&(state)->ucs_lock)
+#define UINPUT_LOCK_ASSERT(state) sx_assert(&(state)->ucs_lock, SA_LOCKED)
 #define UINPUT_EMPTYQ(state) \
-    ((state)->ucs_buffer_head == (state)->ucs_buffer_tail)
+	((state)->ucs_buffer_head == (state)->ucs_buffer_tail)
 
-enum uinput_state
-{
-	UINPUT_NEW = 0,
-	UINPUT_CONFIGURED,
-	UINPUT_RUNNING
-};
+enum uinput_state { UINPUT_NEW = 0, UINPUT_CONFIGURED, UINPUT_RUNNING };
 
-static evdev_event_t	uinput_ev_event;
+static evdev_event_t uinput_ev_event;
 
-static d_open_t		uinput_open;
-static d_read_t		uinput_read;
-static d_write_t	uinput_write;
-static d_ioctl_t	uinput_ioctl;
-static d_poll_t		uinput_poll;
-static d_kqfilter_t	uinput_kqfilter;
+static d_open_t uinput_open;
+static d_read_t uinput_read;
+static d_write_t uinput_write;
+static d_ioctl_t uinput_ioctl;
+static d_poll_t uinput_poll;
+static d_kqfilter_t uinput_kqfilter;
 static void uinput_dtor(void *);
 
 static int uinput_kqread(struct knote *kn, long hint);
@@ -106,21 +101,20 @@ static struct filterops uinput_filterops = {
 	.f_event = uinput_kqread,
 };
 
-struct uinput_cdev_state
-{
-	enum uinput_state	ucs_state;
-	struct evdev_dev *	ucs_evdev;
-	struct sx		ucs_lock;
-	size_t			ucs_buffer_head;
-	size_t			ucs_buffer_tail;
-	struct selinfo		ucs_selp;
-	bool			ucs_blocked;
-	bool			ucs_selected;
-	struct input_event      ucs_buffer[UINPUT_BUFFER_SIZE];
+struct uinput_cdev_state {
+	enum uinput_state ucs_state;
+	struct evdev_dev *ucs_evdev;
+	struct sx ucs_lock;
+	size_t ucs_buffer_head;
+	size_t ucs_buffer_tail;
+	struct selinfo ucs_selp;
+	bool ucs_blocked;
+	bool ucs_selected;
+	struct input_event ucs_buffer[UINPUT_BUFFER_SIZE];
 };
 
-static void uinput_enqueue_event(struct uinput_cdev_state *, uint16_t,
-    uint16_t, int32_t);
+static void uinput_enqueue_event(struct uinput_cdev_state *, uint16_t, uint16_t,
+    int32_t);
 static int uinput_setup_provider(struct uinput_cdev_state *,
     struct uinput_user_dev *);
 static int uinput_cdev_create(void);
@@ -147,9 +141,9 @@ uinput_knl_assert_lock(void *arg, int what)
 {
 
 	if (what == LA_LOCKED)
-		sx_assert((struct sx*)arg, SA_XLOCKED);
+		sx_assert((struct sx *)arg, SA_XLOCKED);
 	else
-		sx_assert((struct sx*)arg, SA_UNLOCKED);
+		sx_assert((struct sx *)arg, SA_UNLOCKED);
 }
 
 static void
@@ -257,8 +251,8 @@ uinput_read(struct cdev *dev, struct uio *uio, int ioflag)
 		else {
 			if (remaining != 0) {
 				state->ucs_blocked = true;
-				ret = sx_sleep(state, &state->ucs_lock,
-				    PCATCH, "uiread", 0);
+				ret = sx_sleep(state, &state->ucs_lock, PCATCH,
+				    "uiread", 0);
 			}
 		}
 	}
@@ -296,7 +290,8 @@ uinput_write(struct cdev *dev, struct uio *uio, int ioflag)
 	if (state->ucs_state != UINPUT_RUNNING) {
 		/* Process written struct uinput_user_dev */
 		if (uio->uio_resid != sizeof(struct uinput_user_dev)) {
-			debugf(state, "write size not multiple of "
+			debugf(state,
+			    "write size not multiple of "
 			    "struct uinput_user_dev size");
 			ret = EINVAL;
 		} else {
@@ -308,7 +303,8 @@ uinput_write(struct cdev *dev, struct uio *uio, int ioflag)
 	} else {
 		/* Process written event */
 		if (uio->uio_resid % sizeof(struct input_event) != 0) {
-			debugf(state, "write size not multiple of "
+			debugf(state,
+			    "write size not multiple of "
 			    "struct input_event size");
 			ret = EINVAL;
 		}
@@ -409,12 +405,12 @@ uinput_kqfilter(struct cdev *dev, struct knote *kn)
 	if (ret != 0)
 		return (ret);
 
-	switch(kn->kn_filter) {
+	switch (kn->kn_filter) {
 	case EVFILT_READ:
 		kn->kn_fop = &uinput_filterops;
 		break;
 	default:
-		return(EINVAL);
+		return (EINVAL);
 	}
 	kn->kn_hook = (caddr_t)state;
 
@@ -525,62 +521,61 @@ uinput_ioctl_sub(struct uinput_cdev_state *state, u_long cmd, caddr_t data)
 			return (EINVAL);
 
 		evdev_set_abs_bit(state->ucs_evdev, uabs->code);
-		evdev_set_absinfo(state->ucs_evdev, uabs->code,
-		    &uabs->absinfo);
+		evdev_set_absinfo(state->ucs_evdev, uabs->code, &uabs->absinfo);
 		return (0);
 
 	case UI_SET_EVBIT:
-		if (state->ucs_state == UINPUT_RUNNING ||
-		    intdata > EV_MAX || intdata < 0)
+		if (state->ucs_state == UINPUT_RUNNING || intdata > EV_MAX ||
+		    intdata < 0)
 			return (EINVAL);
 		evdev_support_event(state->ucs_evdev, intdata);
 		return (0);
 
 	case UI_SET_KEYBIT:
-		if (state->ucs_state == UINPUT_RUNNING ||
-		    intdata > KEY_MAX || intdata < 0)
+		if (state->ucs_state == UINPUT_RUNNING || intdata > KEY_MAX ||
+		    intdata < 0)
 			return (EINVAL);
 		evdev_support_key(state->ucs_evdev, intdata);
 		return (0);
 
 	case UI_SET_RELBIT:
-		if (state->ucs_state == UINPUT_RUNNING ||
-		    intdata > REL_MAX || intdata < 0)
+		if (state->ucs_state == UINPUT_RUNNING || intdata > REL_MAX ||
+		    intdata < 0)
 			return (EINVAL);
 		evdev_support_rel(state->ucs_evdev, intdata);
 		return (0);
 
 	case UI_SET_ABSBIT:
-		if (state->ucs_state == UINPUT_RUNNING ||
-		    intdata > ABS_MAX || intdata < 0)
+		if (state->ucs_state == UINPUT_RUNNING || intdata > ABS_MAX ||
+		    intdata < 0)
 			return (EINVAL);
 		evdev_set_abs_bit(state->ucs_evdev, intdata);
 		return (0);
 
 	case UI_SET_MSCBIT:
-		if (state->ucs_state == UINPUT_RUNNING ||
-		    intdata > MSC_MAX || intdata < 0)
+		if (state->ucs_state == UINPUT_RUNNING || intdata > MSC_MAX ||
+		    intdata < 0)
 			return (EINVAL);
 		evdev_support_msc(state->ucs_evdev, intdata);
 		return (0);
 
 	case UI_SET_LEDBIT:
-		if (state->ucs_state == UINPUT_RUNNING ||
-		    intdata > LED_MAX || intdata < 0)
+		if (state->ucs_state == UINPUT_RUNNING || intdata > LED_MAX ||
+		    intdata < 0)
 			return (EINVAL);
 		evdev_support_led(state->ucs_evdev, intdata);
 		return (0);
 
 	case UI_SET_SNDBIT:
-		if (state->ucs_state == UINPUT_RUNNING ||
-		    intdata > SND_MAX || intdata < 0)
+		if (state->ucs_state == UINPUT_RUNNING || intdata > SND_MAX ||
+		    intdata < 0)
 			return (EINVAL);
 		evdev_support_snd(state->ucs_evdev, intdata);
 		return (0);
 
 	case UI_SET_FFBIT:
-		if (state->ucs_state == UINPUT_RUNNING ||
-		    intdata > FF_MAX || intdata < 0)
+		if (state->ucs_state == UINPUT_RUNNING || intdata > FF_MAX ||
+		    intdata < 0)
 			return (EINVAL);
 		/* Fake unsupported ioctl */
 		return (0);
@@ -607,8 +602,8 @@ uinput_ioctl_sub(struct uinput_cdev_state *state, u_long cmd, caddr_t data)
 		return (0);
 
 	case UI_SET_SWBIT:
-		if (state->ucs_state == UINPUT_RUNNING ||
-		    intdata > SW_MAX || intdata < 0)
+		if (state->ucs_state == UINPUT_RUNNING || intdata > SW_MAX ||
+		    intdata < 0)
 			return (EINVAL);
 		evdev_support_sw(state->ucs_evdev, intdata);
 		return (0);

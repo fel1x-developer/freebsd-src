@@ -26,39 +26,39 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
+#include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
-#include <sys/endian.h>
+#include <sys/rman.h>
 #include <sys/socket.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
 #include <dev/acpica/acpivar.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_media.h>
-
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
 
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_var.h>
+
+#include <contrib/dev/acpica/include/acpi.h>
+
+#include "acpi_bus_if.h"
 #include "memac_mdio.h"
 #include "memac_mdio_if.h"
-#include "acpi_bus_if.h"
 #include "miibus_if.h"
 
 /* -------------------------------------------------------------------------- */
 
 struct memacphy_softc_acpi {
-	struct memacphy_softc_common	scc;
-	int				uid;
-	uint64_t			phy_channel;
-	char				compatible[64];
+	struct memacphy_softc_common scc;
+	int uid;
+	uint64_t phy_channel;
+	char compatible[64];
 };
 
 static void
@@ -113,19 +113,21 @@ memacphy_acpi_attach(device_t dev)
 		return (ENXIO);
 	}
 
-	s = device_get_property(dev, "phy-channel",
-	    &sc->phy_channel, sizeof(sc->phy_channel), DEVICE_PROP_UINT64);
+	s = device_get_property(dev, "phy-channel", &sc->phy_channel,
+	    sizeof(sc->phy_channel), DEVICE_PROP_UINT64);
 	if (s != -1)
 		sc->scc.phy = sc->phy_channel;
 	else
 		sc->scc.phy = -1;
-	s = device_get_property(dev, "compatible",
-	    sc->compatible, sizeof(sc->compatible), DEVICE_PROP_ANY);
+	s = device_get_property(dev, "compatible", sc->compatible,
+	    sizeof(sc->compatible), DEVICE_PROP_ANY);
 
 	if (bootverbose)
-		device_printf(dev, "UID %#04x phy-channel %ju compatible '%s' phy %u\n",
+		device_printf(dev,
+		    "UID %#04x phy-channel %ju compatible '%s' phy %u\n",
 		    sc->uid, sc->phy_channel,
-		    sc->compatible[0] != '\0' ? sc->compatible : "", sc->scc.phy);
+		    sc->compatible[0] != '\0' ? sc->compatible : "",
+		    sc->scc.phy);
 
 	if (sc->scc.phy == -1)
 		return (ENXIO);
@@ -134,14 +136,14 @@ memacphy_acpi_attach(device_t dev)
 
 static device_method_t memacphy_acpi_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		memacphy_acpi_probe),
-	DEVMETHOD(device_attach,	memacphy_acpi_attach),
-	DEVMETHOD(device_detach,	bus_generic_detach),
+	DEVMETHOD(device_probe, memacphy_acpi_probe),
+	DEVMETHOD(device_attach, memacphy_acpi_attach),
+	DEVMETHOD(device_detach, bus_generic_detach),
 
 	/* MII interface */
-	DEVMETHOD(miibus_readreg,	memacphy_miibus_readreg),
-	DEVMETHOD(miibus_writereg,	memacphy_miibus_writereg),
-	DEVMETHOD(miibus_statchg,	memacphy_acpi_miibus_statchg),
+	DEVMETHOD(miibus_readreg, memacphy_miibus_readreg),
+	DEVMETHOD(miibus_writereg, memacphy_miibus_writereg),
+	DEVMETHOD(miibus_statchg, memacphy_acpi_miibus_statchg),
 
 	/* memac */
 	DEVMETHOD(memac_mdio_set_ni_dev, memacphy_acpi_set_ni_dev),
@@ -161,7 +163,7 @@ MODULE_DEPEND(memacphy_acpi, miibus, 1, 1, 1);
 /* -------------------------------------------------------------------------- */
 
 struct memac_mdio_softc_acpi {
-	struct memac_mdio_softc_common	scc;
+	struct memac_mdio_softc_common scc;
 };
 
 static int
@@ -184,15 +186,12 @@ memac_acpi_miibus_writereg(device_t dev, int phy, int reg, int data)
 
 /* Context for walking PHY child devices. */
 struct memac_mdio_walk_ctx {
-	device_t	dev;
-	int		count;
-	int		countok;
+	device_t dev;
+	int count;
+	int countok;
 };
 
-static char *memac_mdio_ids[] = {
-	"NXP0006",
-	NULL
-};
+static char *memac_mdio_ids[] = { "NXP0006", NULL };
 
 static int
 memac_mdio_acpi_probe(device_t dev)
@@ -280,18 +279,18 @@ memac_mdio_acpi_detach(device_t dev)
 
 static device_method_t memac_mdio_acpi_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		memac_mdio_acpi_probe),
-	DEVMETHOD(device_attach,	memac_mdio_acpi_attach),
-	DEVMETHOD(device_detach,	memac_mdio_acpi_detach),
+	DEVMETHOD(device_probe, memac_mdio_acpi_probe),
+	DEVMETHOD(device_attach, memac_mdio_acpi_attach),
+	DEVMETHOD(device_detach, memac_mdio_acpi_detach),
 
 	/* MII interface */
-	DEVMETHOD(miibus_readreg,	memac_acpi_miibus_readreg),
-	DEVMETHOD(miibus_writereg,	memac_acpi_miibus_writereg),
+	DEVMETHOD(miibus_readreg, memac_acpi_miibus_readreg),
+	DEVMETHOD(miibus_writereg, memac_acpi_miibus_writereg),
 
 	/* .. */
-	DEVMETHOD(bus_add_child,	bus_generic_add_child),
-	DEVMETHOD(bus_read_ivar,	memac_mdio_read_ivar),
-	DEVMETHOD(bus_get_property,	memac_mdio_get_property),
+	DEVMETHOD(bus_add_child, bus_generic_add_child),
+	DEVMETHOD(bus_read_ivar, memac_mdio_read_ivar),
+	DEVMETHOD(bus_get_property, memac_mdio_get_property),
 
 	DEVMETHOD_END
 };

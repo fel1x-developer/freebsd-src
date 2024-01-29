@@ -77,39 +77,36 @@ struct SCIC_SDS_CONTROLLER;
  *
  * This structure contains data used by the core library.
  */
-typedef struct SCIC_SDS_LIBRARY
-{
-  /*
-   * The SCI_BASE_LIBRARY is the parent object for the SCIC_SDS_LIBRARY
-   * object.
-   */
-   SCI_BASE_LIBRARY_T parent;
+typedef struct SCIC_SDS_LIBRARY {
+	/*
+	 * The SCI_BASE_LIBRARY is the parent object for the SCIC_SDS_LIBRARY
+	 * object.
+	 */
+	SCI_BASE_LIBRARY_T parent;
 
-   /**
-    * This is the count of the maximum number of controllers that this library
-    * can contain.
-    */
-   U32 max_controller_count;
+	/**
+	 * This is the count of the maximum number of controllers that this
+	 * library can contain.
+	 */
+	U32 max_controller_count;
 
-   /**
-    * The PCI header for this library object all libraries must have the same
-    * pci device id.
-    */
-   U16 pci_device;
-   U8  pci_revision;
+	/**
+	 * The PCI header for this library object all libraries must have the
+	 * same pci device id.
+	 */
+	U16 pci_device;
+	U8 pci_revision;
 
-   /**
-    * This field is the array of controllers that are contained within the
-    * library object.
-    */
-   struct SCIC_SDS_CONTROLLER *controllers;
+	/**
+	 * This field is the array of controllers that are contained within the
+	 * library object.
+	 */
+	struct SCIC_SDS_CONTROLLER *controllers;
 
 } SCIC_SDS_LIBRARY_T;
 
-U8 scic_sds_library_get_controller_index(
-   struct SCIC_SDS_LIBRARY    * library,
-   struct SCIC_SDS_CONTROLLER * controller
-);
+U8 scic_sds_library_get_controller_index(struct SCIC_SDS_LIBRARY *library,
+    struct SCIC_SDS_CONTROLLER *controller);
 
 #ifdef __cplusplus
 }

@@ -28,10 +28,10 @@
 #ifndef _PF_NV_H_
 #define _PF_NV_H_
 
+#include <sys/types.h>
 #include <sys/nv.h>
 #include <sys/sdt.h>
 #include <sys/socket.h>
-#include <sys/types.h>
 
 #include <net/if.h>
 #include <net/if_var.h>
@@ -40,50 +40,49 @@
 SDT_PROBE_DECLARE(pf, ioctl, function, error);
 SDT_PROBE_DECLARE(pf, ioctl, nvchk, error);
 
-#define	ERROUT_FUNCTION(target, x)					\
-	do {								\
-		error = (x);						\
-		SDT_PROBE3(pf, ioctl, function, error, __func__, error,	\
-		    __LINE__);						\
-		goto target;						\
+#define ERROUT_FUNCTION(target, x)                                      \
+	do {                                                            \
+		error = (x);                                            \
+		SDT_PROBE3(pf, ioctl, function, error, __func__, error, \
+		    __LINE__);                                          \
+		goto target;                                            \
 	} while (0)
 
-#define	PFNV_CHK(x)	do {	\
-	error = (x);		\
-	SDT_PROBE2(pf, ioctl, nvchk, error, error, __LINE__);	\
-	if (error != 0)		\
-		goto errout;	\
+#define PFNV_CHK(x)                                                   \
+	do {                                                          \
+		error = (x);                                          \
+		SDT_PROBE2(pf, ioctl, nvchk, error, error, __LINE__); \
+		if (error != 0)                                       \
+			goto errout;                                  \
 	} while (0)
 
-#define PF_NV_DEF_UINT(fnname, type, max)				\
-	int pf_nv ## fnname ## _opt(const nvlist_t *, const char *,	\
-	    type *, type);						\
-	int pf_nv ## fnname(const nvlist_t *, const char *, type *);	\
-	int pf_nv ## fnname ## _array(const nvlist_t *, const char *,	\
-	    type *,size_t, size_t *);					\
-	void pf_ ## fnname ## _array_nv(nvlist_t *, const char *,	\
-	    const type *, size_t);
+#define PF_NV_DEF_UINT(fnname, type, max)                                      \
+	int pf_nv##fnname##_opt(const nvlist_t *, const char *, type *, type); \
+	int pf_nv##fnname(const nvlist_t *, const char *, type *);             \
+	int pf_nv##fnname##_array(const nvlist_t *, const char *, type *,      \
+	    size_t, size_t *);                                                 \
+	void pf_##fnname##_array_nv(nvlist_t *, const char *, const type *,    \
+	    size_t);
 
 PF_NV_DEF_UINT(uint8, uint8_t, UINT8_MAX);
 PF_NV_DEF_UINT(uint16, uint16_t, UINT16_MAX);
 PF_NV_DEF_UINT(uint32, uint32_t, UINT32_MAX);
 PF_NV_DEF_UINT(uint64, uint64_t, UINT64_MAX);
 
-int	pf_nvbool(const nvlist_t *, const char *, bool *);
-int	pf_nvbinary(const nvlist_t *, const char *, void *, size_t);
-int	pf_nvint(const nvlist_t *, const char *, int *);
-int	pf_nvstring(const nvlist_t *, const char *, char *, size_t);
+int pf_nvbool(const nvlist_t *, const char *, bool *);
+int pf_nvbinary(const nvlist_t *, const char *, void *, size_t);
+int pf_nvint(const nvlist_t *, const char *, int *);
+int pf_nvstring(const nvlist_t *, const char *, char *, size_t);
 
 /* Translation functions */
 
-int		 pf_check_rule_addr(const struct pf_rule_addr *);
+int pf_check_rule_addr(const struct pf_rule_addr *);
 
-nvlist_t	*pf_krule_to_nvrule(struct pf_krule *);
-int		 pf_nvrule_to_krule(const nvlist_t *, struct pf_krule *);
-int		 pf_nvstate_kill_to_kstate_kill(const nvlist_t *,
-		    struct pf_kstate_kill *);
-nvlist_t	*pf_state_to_nvstate(const struct pf_kstate *);
+nvlist_t *pf_krule_to_nvrule(struct pf_krule *);
+int pf_nvrule_to_krule(const nvlist_t *, struct pf_krule *);
+int pf_nvstate_kill_to_kstate_kill(const nvlist_t *, struct pf_kstate_kill *);
+nvlist_t *pf_state_to_nvstate(const struct pf_kstate *);
 
-nvlist_t	*pf_keth_rule_to_nveth_rule(const struct pf_keth_rule *);
-int		 pf_nveth_rule_to_keth_rule(const nvlist_t *, struct pf_keth_rule *);
+nvlist_t *pf_keth_rule_to_nveth_rule(const struct pf_keth_rule *);
+int pf_nveth_rule_to_keth_rule(const nvlist_t *, struct pf_keth_rule *);
 #endif

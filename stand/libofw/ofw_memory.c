@@ -24,8 +24,8 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 
 #include <stand.h>
 
@@ -33,29 +33,29 @@
 #include "openfirm.h"
 
 struct ofw_mapping {
-        vm_offset_t     va;
-        int             len;
-        vm_offset_t     pa;
-        int             mode;
+	vm_offset_t va;
+	int len;
+	vm_offset_t pa;
+	int mode;
 };
 
 struct ofw_mapping2 {
-        vm_offset_t     va;
-        int             len;
-        vm_offset_t     pa_hi;
-        vm_offset_t     pa_lo;
-        int             mode;
+	vm_offset_t va;
+	int len;
+	vm_offset_t pa_hi;
+	vm_offset_t pa_lo;
+	int mode;
 };
 
 void
 ofw_memmap(int acells)
 {
-	struct		ofw_mapping *mapptr;
-	struct		ofw_mapping2 *mapptr2;
-        phandle_t	mmup;
-        int		nmapping, i;
-        u_char		mappings[256 * sizeof(struct ofw_mapping2)];
-        char		lbuf[80];
+	struct ofw_mapping *mapptr;
+	struct ofw_mapping2 *mapptr2;
+	phandle_t mmup;
+	int nmapping, i;
+	u_char mappings[256 * sizeof(struct ofw_mapping2)];
+	char lbuf[80];
 
 	mmup = OF_instance_to_package(mmu);
 
@@ -63,49 +63,45 @@ ofw_memmap(int acells)
 
 	nmapping = OF_getprop(mmup, "translations", mappings, sizeof(mappings));
 	if (nmapping == -1) {
-		printf("Could not get memory map (%d)\n",
-		    nmapping);
+		printf("Could not get memory map (%d)\n", nmapping);
 		return;
 	}
 
 	pager_open();
 	if (acells == 1) {
 		nmapping /= sizeof(struct ofw_mapping);
-		mapptr = (struct ofw_mapping *) mappings;
+		mapptr = (struct ofw_mapping *)mappings;
 
 		printf("%17s\t%17s\t%8s\t%6s\n", "Virtual Range",
 		    "Physical Range", "#Pages", "Mode");
 
 		for (i = 0; i < nmapping; i++) {
 			sprintf(lbuf, "%08jx-%08jx\t%08jx-%08jx\t%8d\t%6x\n",
-				(uintmax_t)mapptr[i].va,
-				(uintmax_t)mapptr[i].va + mapptr[i].len,
-				(uintmax_t)mapptr[i].pa,
-				(uintmax_t)mapptr[i].pa + mapptr[i].len,
-				mapptr[i].len / 0x1000,
-				mapptr[i].mode);
+			    (uintmax_t)mapptr[i].va,
+			    (uintmax_t)mapptr[i].va + mapptr[i].len,
+			    (uintmax_t)mapptr[i].pa,
+			    (uintmax_t)mapptr[i].pa + mapptr[i].len,
+			    mapptr[i].len / 0x1000, mapptr[i].mode);
 			if (pager_output(lbuf))
 				break;
 		}
 	} else {
 		nmapping /= sizeof(struct ofw_mapping2);
-		mapptr2 = (struct ofw_mapping2 *) mappings;
+		mapptr2 = (struct ofw_mapping2 *)mappings;
 
 		printf("%17s\t%17s\t%8s\t%6s\n", "Virtual Range",
-		       "Physical Range", "#Pages", "Mode");
+		    "Physical Range", "#Pages", "Mode");
 
 		for (i = 0; i < nmapping; i++) {
 			sprintf(lbuf, "%08jx-%08jx\t%08jx-%08jx\t%8d\t%6x\n",
-				(uintmax_t)mapptr2[i].va,
-				(uintmax_t)mapptr2[i].va + mapptr2[i].len,
-				(uintmax_t)mapptr2[i].pa_lo,
-				(uintmax_t)mapptr2[i].pa_lo + mapptr2[i].len,
-				mapptr2[i].len / 0x1000,
-				mapptr2[i].mode);
+			    (uintmax_t)mapptr2[i].va,
+			    (uintmax_t)mapptr2[i].va + mapptr2[i].len,
+			    (uintmax_t)mapptr2[i].pa_lo,
+			    (uintmax_t)mapptr2[i].pa_lo + mapptr2[i].len,
+			    mapptr2[i].len / 0x1000, mapptr2[i].mode);
 			if (pager_output(lbuf))
 				break;
 		}
 	}
 	pager_close();
 }
-

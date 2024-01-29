@@ -35,8 +35,8 @@
 
 #include <machine/atomic.h> /* required by xen/xen-os.h */
 
-#include <xen/xen-os.h>
 #include <xen/hvm.h>
+#include <xen/xen-os.h>
 
 #include <contrib/xen/vcpu.h>
 
@@ -58,7 +58,7 @@ xen_setup_vcpu_info(void)
 {
 	/* This isn't directly accessed outside this function */
 	DPCPU_DEFINE_STATIC(vcpu_info_t, vcpu_local_info)
-	    __attribute__((aligned(64)));
+	__attribute__((aligned(64)));
 
 	vcpu_info_t *vcpu_info = DPCPU_PTR(vcpu_local_info);
 	vcpu_register_vcpu_info_t info = {
@@ -91,7 +91,7 @@ xen_setup_vcpu_info(void)
 		if (bootverbose && !warned) {
 			warned = true;
 			printf(
-		"WARNING: Xen vCPU %u failed to setup vcpu_info rc = %d\n",
+			    "WARNING: Xen vCPU %u failed to setup vcpu_info rc = %d\n",
 			    cpu, rc);
 		}
 	} else

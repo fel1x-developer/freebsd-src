@@ -27,14 +27,13 @@
 
 #include "libsecureboot-priv.h"
 
-
 struct fingerprint_info {
-	char		*fi_prefix;	/**< manifest entries relative to */
-	char		*fi_skip;	/**< manifest entries prefixed with  */
-	const char 	*fi_data;	/**< manifest data */
-	size_t		fi_prefix_len;	/**< length of prefix */
-	size_t		fi_skip_len;	/**< length of skip */
-	dev_t		fi_dev;		/**< device id  */
+	char *fi_prefix;      /**< manifest entries relative to */
+	char *fi_skip;	      /**< manifest entries prefixed with  */
+	const char *fi_data;  /**< manifest data */
+	size_t fi_prefix_len; /**< length of prefix */
+	size_t fi_skip_len;   /**< length of skip */
+	dev_t fi_dev;	      /**< device id  */
 	LIST_ENTRY(fingerprint_info) entries;
 };
 
@@ -67,8 +66,8 @@ fingerprint_info_init(void)
  *	manifest data
  */
 void
-fingerprint_info_add(const char *filename, const char *prefix,
-    const char *skip, const char *data, struct stat *stp)
+fingerprint_info_add(const char *filename, const char *prefix, const char *skip,
+    const char *data, struct stat *stp)
 {
 	struct fingerprint_info *fip, *nfip, *lfip;
 	char *cp;
@@ -105,7 +104,7 @@ fingerprint_info_add(const char *filename, const char *prefix,
 	/* collapse any trailing ..[/] */
 	n = 0;
 	while ((cp = strrchr(nfip->fi_prefix, '/')) > nfip->fi_prefix) {
-		if (cp[1] == '\0') {	/* trailing "/" */
+		if (cp[1] == '\0') { /* trailing "/" */
 			*cp = '\0';
 			continue;
 		}
@@ -140,14 +139,16 @@ fingerprint_info_add(const char *filename, const char *prefix,
 
 	if (LIST_EMPTY(&fi_list)) {
 		LIST_INSERT_HEAD(&fi_list, nfip, entries);
-		DEBUG_PRINTF(4, ("inserted %zu %s at head\n",
-			nfip->fi_prefix_len, nfip->fi_prefix));
+		DEBUG_PRINTF(4,
+		    ("inserted %zu %s at head\n", nfip->fi_prefix_len,
+			nfip->fi_prefix));
 		return;
 	}
-	LIST_FOREACH(fip, &fi_list, entries) {
+	LIST_FOREACH (fip, &fi_list, entries) {
 		if (nfip->fi_prefix_len >= fip->fi_prefix_len) {
 			LIST_INSERT_BEFORE(fip, nfip, entries);
-			DEBUG_PRINTF(4, ("inserted %zu %s before %zu %s\n",
+			DEBUG_PRINTF(4,
+			    ("inserted %zu %s before %zu %s\n",
 				nfip->fi_prefix_len, nfip->fi_prefix,
 				fip->fi_prefix_len, fip->fi_prefix));
 			return;
@@ -155,9 +156,9 @@ fingerprint_info_add(const char *filename, const char *prefix,
 		lfip = fip;
 	}
 	LIST_INSERT_AFTER(lfip, nfip, entries);
-	DEBUG_PRINTF(4, ("inserted %zu %s after %zu %s\n",
-		nfip->fi_prefix_len, nfip->fi_prefix,
-		lfip->fi_prefix_len, lfip->fi_prefix));
+	DEBUG_PRINTF(4,
+	    ("inserted %zu %s after %zu %s\n", nfip->fi_prefix_len,
+		nfip->fi_prefix, lfip->fi_prefix_len, lfip->fi_prefix));
 }
 
 #ifdef MANIFEST_SKIP_MAYBE
@@ -189,8 +190,8 @@ maybe_skip(char *fp, struct fingerprint_info *fip, size_t *nplenp)
 char *
 fingerprint_info_lookup(int fd, const char *path)
 {
-	char pbuf[MAXPATHLEN+1];
-	char nbuf[MAXPATHLEN+1];
+	char pbuf[MAXPATHLEN + 1];
+	char nbuf[MAXPATHLEN + 1];
 	struct stat st;
 	struct fingerprint_info *fip;
 	char *cp, *ep, *fp, *np;
@@ -225,10 +226,10 @@ fingerprint_info_lookup(int fd, const char *path)
 			if (cp < pbuf)
 				break;
 		}
-		nlen = plen = 0;	/* keep gcc quiet */
+		nlen = plen = 0; /* keep gcc quiet */
 		if (cp > pbuf) {
-			for ( ; cp >= pbuf && *cp != '/'; cp--)
-				;	/* nothing */
+			for (; cp >= pbuf && *cp != '/'; cp--)
+				; /* nothing */
 			if (cp > pbuf) {
 				ep = cp++;
 				*ep = '\0';
@@ -253,37 +254,37 @@ fingerprint_info_lookup(int fd, const char *path)
 
 		DEBUG_PRINTF(2, ("looking for %s %zu %s\n", prefix, plen, cp));
 
-		LIST_FOREACH(fip, &fi_list, entries) {
-			DEBUG_PRINTF(4, ("at %zu %s\n",
-				fip->fi_prefix_len, fip->fi_prefix));
+		LIST_FOREACH (fip, &fi_list, entries) {
+			DEBUG_PRINTF(4,
+			    ("at %zu %s\n", fip->fi_prefix_len,
+				fip->fi_prefix));
 
 			if (fip->fi_prefix_len < plen) {
-				DEBUG_PRINTF(3, ("skipping prefix=%s %zu %zu\n",
+				DEBUG_PRINTF(3,
+				    ("skipping prefix=%s %zu %zu\n",
 					fip->fi_prefix, fip->fi_prefix_len,
 					plen));
 				break;
 			}
 			if (fip->fi_prefix_len == plen) {
 				if (fip->fi_dev != 0 && fip->fi_dev != dev) {
-					DEBUG_PRINTF(3, (
-						"skipping dev=%ld != %ld\n",
-						(long)fip->fi_dev,
-						(long)dev));
+					DEBUG_PRINTF(3,
+					    ("skipping dev=%ld != %ld\n",
+						(long)fip->fi_dev, (long)dev));
 					continue;
 				}
 				if (strcmp(prefix, fip->fi_prefix)) {
-					DEBUG_PRINTF(3, (
-						"skipping prefix=%s\n",
+					DEBUG_PRINTF(3,
+					    ("skipping prefix=%s\n",
 						fip->fi_prefix));
 					continue;
 				}
-				DEBUG_PRINTF(3, ("checking prefix=%s\n",
-					fip->fi_prefix));
+				DEBUG_PRINTF(3,
+				    ("checking prefix=%s\n", fip->fi_prefix));
 				if (fip->fi_skip_len) {
 					np = nbuf;
 					nplen = snprintf(nbuf, sizeof(nbuf),
-					    "%s/%s",
-					    fip->fi_skip, cp);
+					    "%s/%s", fip->fi_skip, cp);
 					nplen = MIN(nplen, sizeof(nbuf) - 1);
 				} else {
 					np = cp;
@@ -311,17 +312,19 @@ fingerprint_info_lookup(int fd, const char *path)
 						fp = strstr(fp, np);
 						if (fp) {
 #ifdef MANIFEST_SKIP_MAYBE
-							if (fip->fi_skip_len == 0 &&
+							if (fip->fi_skip_len ==
+								0 &&
 							    fp > fip->fi_data &&
 							    fp[-1] == '/') {
-								fp = maybe_skip(fp, fip, &nplen);
+								fp = maybe_skip(
+								    fp, fip,
+								    &nplen);
 							}
 #endif
 							DEBUG_PRINTF(3,
 							    ("fp[-1]=%#x fp[%zu]=%#x fp=%.78s\n",
 								fp[-1], nplen,
-								fp[nplen],
-								fp));
+								fp[nplen], fp));
 						}
 					} while (fp != NULL &&
 					    !(fp[-1] == '\n' &&
@@ -396,7 +399,6 @@ verify_fingerprint(int fd, const char *path, const char *cp, off_t off)
 	return (ve_check_hash(&mctx, md, path, cp, hlen));
 }
 
-
 /**
  * @brief
  * verify an open file
@@ -424,7 +426,7 @@ verify_fd(int fd, const char *path, off_t off, struct stat *stp)
 			stp = &st;
 	}
 	if (stp && !S_ISREG(stp->st_mode))
-		return (0);		/* not relevant */
+		return (0); /* not relevant */
 	cp = fingerprint_info_lookup(fd, path);
 	if (!cp) {
 		ve_error_set("%s: no entry", path);

@@ -34,15 +34,15 @@
 
 #include "tip.h"
 
-#define DISCONNECT_CMD	"\20\04"	/* disconnection string */
+#define DISCONNECT_CMD "\20\04" /* disconnection string */
 
-static	int dialtimeout = 0;
-static	jmp_buf timeoutbuf;
+static int dialtimeout = 0;
+static jmp_buf timeoutbuf;
 
-static int	biz_dialer(char *, char *);
-static void	sigALRM(int);
-static int	cmd(char *);
-static int	detect(char *);
+static int biz_dialer(char *, char *);
+static void sigALRM(int);
+static int cmd(char *);
+static int detect(char *);
 
 /*
  * Dial up on a BIZCOMP Model 1022 with either
@@ -90,12 +90,12 @@ biz_dialer(char *num, char *mod)
 		char line[80];
 
 		(void)snprintf(line, sizeof line, "%ld second dial timeout",
-			number(value(DIALTIMEOUT)));
+		    number(value(DIALTIMEOUT)));
 		logent(value(HOST), num, "biz1022", line);
 	}
 #endif
 	if (dialtimeout)
-		biz22_disconnect();	/* insurance */
+		biz22_disconnect(); /* insurance */
 	return (connected);
 }
 
@@ -114,7 +114,7 @@ biz22f_dialer(char *num, char *acu)
 void
 biz22_disconnect(void)
 {
-	write(FD, DISCONNECT_CMD, sizeof(DISCONNECT_CMD)-1);
+	write(FD, DISCONNECT_CMD, sizeof(DISCONNECT_CMD) - 1);
 	sleep(2);
 	tcflush(FD, TCIOFLUSH);
 }

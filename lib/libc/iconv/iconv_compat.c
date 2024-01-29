@@ -33,18 +33,20 @@
  * executed except via __sym_compat() references.
  */
 #include <sys/types.h>
+
 #include <iconv.h>
+
 #include "iconv-internal.h"
 
 size_t
-__iconv_compat(iconv_t a, char ** b, size_t * c, char ** d,
-     size_t * e, __uint32_t f, size_t *g)
+__iconv_compat(iconv_t a, char **b, size_t *c, char **d, size_t *e,
+    __uint32_t f, size_t *g)
 {
 	return __bsd___iconv(a, b, c, d, e, f, g);
 }
 
 void
-__iconv_free_list_compat(char ** a, size_t b)
+__iconv_free_list_compat(char **a, size_t b)
 {
 	__bsd___iconv_free_list(a, b);
 }
@@ -56,9 +58,8 @@ __iconv_get_list_compat(char ***a, size_t *b, __iconv_bool c)
 }
 
 size_t
-iconv_compat(iconv_t a, char ** __restrict b,
-      size_t * __restrict c, char ** __restrict d,
-      size_t * __restrict e)
+iconv_compat(iconv_t a, char **__restrict b, size_t *__restrict c,
+    char **__restrict d, size_t *__restrict e)
 {
 	return __bsd_iconv(a, b, c, d, e);
 }
@@ -100,22 +101,23 @@ iconvctl_compat(iconv_t a, int b, void *c)
 }
 
 void
-iconvlist_compat(int (*a) (unsigned int, const char * const *, void *), void *b)
+iconvlist_compat(int (*a)(unsigned int, const char *const *, void *), void *b)
 {
 	return __bsd_iconvlist(a, b);
 }
 
-int _iconv_version_compat = 0x0108;	/* Magic - not used */
+int _iconv_version_compat = 0x0108; /* Magic - not used */
 
-__sym_compat(__iconv, __iconv_compat, FBSD_1.2);
-__sym_compat(__iconv_free_list, __iconv_free_list_compat, FBSD_1.2);
-__sym_compat(__iconv_get_list, __iconv_get_list_compat, FBSD_1.2);
-__sym_compat(_iconv_version, _iconv_version_compat, FBSD_1.3);
-__sym_compat(iconv, iconv_compat, FBSD_1.3);
-__sym_compat(iconv_canonicalize, iconv_canonicalize_compat, FBSD_1.2);
-__sym_compat(iconv_close, iconv_close_compat, FBSD_1.3);
-__sym_compat(iconv_open, iconv_open_compat, FBSD_1.3);
-__sym_compat(iconv_open_into, iconv_open_into_compat, FBSD_1.3);
-__sym_compat(iconv_set_relocation_prefix, iconv_set_relocation_prefix_compat, FBSD_1.3);
-__sym_compat(iconvctl, iconvctl_compat, FBSD_1.3);
-__sym_compat(iconvlist, iconvlist_compat, FBSD_1.3);
+__sym_compat(__iconv, __iconv_compat, FBSD_1 .2);
+__sym_compat(__iconv_free_list, __iconv_free_list_compat, FBSD_1 .2);
+__sym_compat(__iconv_get_list, __iconv_get_list_compat, FBSD_1 .2);
+__sym_compat(_iconv_version, _iconv_version_compat, FBSD_1 .3);
+__sym_compat(iconv, iconv_compat, FBSD_1 .3);
+__sym_compat(iconv_canonicalize, iconv_canonicalize_compat, FBSD_1 .2);
+__sym_compat(iconv_close, iconv_close_compat, FBSD_1 .3);
+__sym_compat(iconv_open, iconv_open_compat, FBSD_1 .3);
+__sym_compat(iconv_open_into, iconv_open_into_compat, FBSD_1 .3);
+__sym_compat(iconv_set_relocation_prefix, iconv_set_relocation_prefix_compat,
+    FBSD_1 .3);
+__sym_compat(iconvctl, iconvctl_compat, FBSD_1 .3);
+__sym_compat(iconvlist, iconvlist_compat, FBSD_1 .3);

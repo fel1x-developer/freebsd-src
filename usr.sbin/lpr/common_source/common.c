@@ -38,11 +38,10 @@
  * SUCH DAMAGE.
  */
 
-#include "lp.cdefs.h"		/* A cross-platform version of <sys/cdefs.h> */
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <sys/types.h>
 
 #include <ctype.h>
 #include <dirent.h>
@@ -54,6 +53,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "lp.cdefs.h" /* A cross-platform version of <sys/cdefs.h> */
 #include "lp.h"
 #include "lp.local.h"
 #include "pathnames.h"
@@ -61,8 +61,8 @@
 /*
  * Routines and data common to all the line printer functions.
  */
-char	line[BUFSIZ];
-const char	*progname;		/* program name */
+char line[BUFSIZ];
+const char *progname; /* program name */
 
 static int compar(const void *_p1, const void *_p2);
 
@@ -71,7 +71,7 @@ static int compar(const void *_p1, const void *_p2);
  * of unsigned char.  Define a wrapper which takes a value of type 'char',
  * whether signed or unsigned, and ensure it ends up in the right range.
  */
-#define	isdigitch(Anychar) isdigit((u_char)(Anychar))
+#define isdigitch(Anychar) isdigit((u_char)(Anychar))
 
 /*
  * get_line reads a line from the control file cfp, removes tabs, converts
@@ -85,22 +85,22 @@ get_line(FILE *cfp)
 	register char *lp = line;
 	register int c;
 
-	while ((c = getc(cfp)) != '\n' && (size_t)(linel+1) < sizeof(line)) {
+	while ((c = getc(cfp)) != '\n' && (size_t)(linel + 1) < sizeof(line)) {
 		if (c == EOF)
-			return(0);
+			return (0);
 		if (c == '\t') {
 			do {
 				*lp++ = ' ';
 				linel++;
-			} while ((linel & 07) != 0 && (size_t)(linel+1) <
-			    sizeof(line));
+			} while ((linel & 07) != 0 &&
+			    (size_t)(linel + 1) < sizeof(line));
 			continue;
 		}
 		*lp++ = c;
 		linel++;
 	}
 	*lp++ = '\0';
-	return(linel);
+	return (linel);
 }
 
 /*
@@ -141,12 +141,12 @@ getq(const struct printer *pp, struct jobqueue *(*namelist[]))
 	nitems = 0;
 	while ((d = readdir(dirp)) != NULL) {
 		if (d->d_name[0] != 'c' || d->d_name[1] != 'f')
-			continue;	/* daemon control files only */
+			continue; /* daemon control files only */
 		PRIV_START
 		statres = stat(d->d_name, &stbuf);
 		PRIV_END
 		if (statres < 0)
-			continue;	/* Doesn't exist */
+			continue; /* Doesn't exist */
 		entrysz = sizeof(struct jobqueue) - sizeof(q->job_cfname) +
 		    strlen(d->d_name) + 1;
 		q = (struct jobqueue *)malloc(entrysz);
@@ -169,13 +169,13 @@ getq(const struct printer *pp, struct jobqueue *(*namelist[]))
 			}
 			arraysz *= 2;
 		}
-		queue[nitems-1] = q;
+		queue[nitems - 1] = q;
 	}
 	closedir(dirp);
 	if (nitems)
 		qsort(queue, nitems, sizeof(struct jobqueue *), compar);
 	*namelist = queue;
-	return(nitems);
+	return (nitems);
 
 errdone:
 	closedir(dirp);
@@ -191,9 +191,9 @@ compar(const void *p1, const void *p2)
 {
 	const struct jobqueue *qe1, *qe2;
 
-	qe1 = *(const struct jobqueue * const *)p1;
-	qe2 = *(const struct jobqueue * const *)p2;
-	
+	qe1 = *(const struct jobqueue *const *)p1;
+	qe2 = *(const struct jobqueue *const *)p2;
+
 	if (qe1->job_time < qe2->job_time)
 		return (-1);
 	if (qe1->job_time > qe2->job_time)
@@ -204,7 +204,7 @@ compar(const void *p1, const void *p2)
 	 * come before 'cfA002some.host'.  Since the jobid ('001') will wrap
 	 * around when it gets to '999', we also assume that '9xx' jobs are
 	 * older than '0xx' jobs.
-	*/
+	 */
 	if ((qe1->job_cfname[3] == '9') && (qe2->job_cfname[3] == '0'))
 		return (-1);
 	if ((qe1->job_cfname[3] == '0') && (qe2->job_cfname[3] == '9'))
@@ -246,7 +246,7 @@ calc_jobnum(const char *cfname, const char **hostpp)
 	 * If the filename was built with an IP number instead of a hostname,
 	 * then recalculate using only the first three digits found.
 	 */
-	while(isdigitch(*cp))
+	while (isdigitch(*cp))
 		cp++;
 	if (*cp == '.') {
 		jnum = 0;
@@ -270,7 +270,7 @@ delay(int millisec)
 		    "unreasonable delay period (%d)", millisec);
 	tdelay.tv_sec = millisec / 1000;
 	tdelay.tv_usec = millisec * 1000 % 1000000;
-	(void) select(0, (fd_set *)0, (fd_set *)0, (fd_set *)0, &tdelay);
+	(void)select(0, (fd_set *)0, (fd_set *)0, (fd_set *)0, &tdelay);
 }
 
 char *
@@ -420,7 +420,7 @@ set_qstate(int action, const char *lfname)
 		 */
 		oldmask = umask(S_IWOTH);
 		PRIV_START
-		fd = open(lfname, O_WRONLY|O_CREAT, newbits);
+		fd = open(lfname, O_WRONLY | O_CREAT, newbits);
 		errsav = errno;
 		PRIV_END
 		umask(oldmask);
@@ -439,8 +439,7 @@ set_qstate(int action, const char *lfname)
 			printf("\t%s\n", okmsg);
 		break;
 	case SQS_CREFAIL:
-		printf("\tcannot create lock file: %s\n",
-		    strerror(errsav));
+		printf("\tcannot create lock file: %s\n", strerror(errsav));
 		break;
 	default:
 		printf("\tcannot %s: %s\n", failmsg, strerror(errsav));
@@ -480,7 +479,7 @@ lpd_gettime(struct timespec *tsp, char *strp, size_t strsize)
 		return;
 
 	strftime(tempstr, TIMESTR_SIZE, LPD_TIMESTAMP_PATTERN,
-		 localtime(&tsp->tv_sec));
+	    localtime(&tsp->tv_sec));
 
 	/*
 	 * This check is for implementations of strftime which treat %z
@@ -501,7 +500,7 @@ lpd_gettime(struct timespec *tsp, char *strp, size_t strsize)
 				tzhr--;
 			strcpy(savday, destp + strlen(destp) - 4);
 			snprintf(destp, (destp - tempstr), "%+03d%02d",
-			    (-1*tzhr), tzmin % 60);
+			    (-1 * tzhr), tzmin % 60);
 			strcat(destp, savday);
 		}
 	}
@@ -509,7 +508,7 @@ lpd_gettime(struct timespec *tsp, char *strp, size_t strsize)
 
 	if (strsize > TIMESTR_SIZE) {
 		strsize = TIMESTR_SIZE;
-		strp[TIMESTR_SIZE+1] = '\0';
+		strp[TIMESTR_SIZE + 1] = '\0';
 	}
 	strlcpy(strp, tempstr, strsize);
 }
@@ -560,10 +559,11 @@ trstat_write(struct printer *pp, tr_sendrecv sendrecv, size_t bytecnt,
 	char *eostat;
 	const char *lprhost, *recvdev, *recvhost, *rectype;
 	const char *sendhost, *statfname;
-#define UPD_EOSTAT(xStr) do {         \
-	eostat = strchr(xStr, '\0');  \
-	remspace = eostat - xStr;     \
-} while(0)
+#define UPD_EOSTAT(xStr)                     \
+	do {                                 \
+		eostat = strchr(xStr, '\0'); \
+		remspace = eostat - xStr;    \
+	} while (0)
 
 	lpd_gettime(&pp->tr_done, NULL, (size_t)0);
 	trtime = DIFFTIME_TS(pp->tr_done, pp->tr_start);
@@ -571,19 +571,19 @@ trstat_write(struct printer *pp, tr_sendrecv sendrecv, size_t bytecnt,
 	gethostname(thishost, sizeof(thishost));
 	lprhost = sendhost = recvhost = recvdev = NULL;
 	switch (sendrecv) {
-	    case TR_SENDING:
+	case TR_SENDING:
 		rectype = "send";
 		statfname = pp->stat_send;
 		sendhost = thishost;
 		recvhost = otherhost;
 		break;
-	    case TR_RECVING:
+	case TR_RECVING:
 		rectype = "recv";
 		statfname = pp->stat_recv;
 		sendhost = otherhost;
 		recvhost = thishost;
 		break;
-	    case TR_PRINTING:
+	case TR_PRINTING:
 		/*
 		 * This case is for copying to a device (presumably local,
 		 * though filters using things like 'net/CAP' can confuse
@@ -593,9 +593,10 @@ trstat_write(struct printer *pp, tr_sendrecv sendrecv, size_t bytecnt,
 		statfname = pp->stat_send;
 		sendhost = thishost;
 		recvdev = _PATH_DEFDEVLP;
-		if (pp->lp) recvdev = pp->lp;
+		if (pp->lp)
+			recvdev = pp->lp;
 		break;
-	    default:
+	default:
 		/* internal error...  should we syslog/printf an error? */
 		return;
 	}
@@ -665,8 +666,8 @@ trstat_write(struct printer *pp, tr_sendrecv sendrecv, size_t bytecnt,
 	 * assume the order or existence of any of these keyword fields.
 	 */
 	snprintf(statline, STATLINE_SIZE, "%s %s %s %s %03ld %s",
-	    pp->tr_timestr, pp->printer, lprhost, pp->jobnum,
-	    pp->jobdfnum, rectype);
+	    pp->tr_timestr, pp->printer, lprhost, pp->jobnum, pp->jobdfnum,
+	    rectype);
 	UPD_EOSTAT(statline);
 
 	if (userid != NULL) {
@@ -683,30 +684,30 @@ trstat_write(struct printer *pp, tr_sendrecv sendrecv, size_t bytecnt,
 	 */
 	if ((bytecnt > 25000) && (trtime > 1.1)) {
 		snprintf(eostat, remspace, " bps=%#.2e",
-		    ((double)bytecnt/trtime));
+		    ((double)bytecnt / trtime));
 		UPD_EOSTAT(statline);
 	}
 
 	if (sendrecv == TR_RECVING) {
-		if (remspace > 5+strlen(from_ip) ) {
+		if (remspace > 5 + strlen(from_ip)) {
 			snprintf(eostat, remspace, " sip=%s", from_ip);
 			UPD_EOSTAT(statline);
 		}
 	}
 	if (0 != strcmp(lprhost, sendhost)) {
-		if (remspace > 7+strlen(sendhost) ) {
+		if (remspace > 7 + strlen(sendhost)) {
 			snprintf(eostat, remspace, " shost=%s", sendhost);
 			UPD_EOSTAT(statline);
 		}
 	}
 	if (recvhost) {
-		if (remspace > 7+strlen(recvhost) ) {
+		if (remspace > 7 + strlen(recvhost)) {
 			snprintf(eostat, remspace, " rhost=%s", recvhost);
 			UPD_EOSTAT(statline);
 		}
 	}
 	if (recvdev) {
-		if (remspace > 6+strlen(recvdev) ) {
+		if (remspace > 6 + strlen(recvdev)) {
 			snprintf(eostat, remspace, " rdev=%s", recvdev);
 			UPD_EOSTAT(statline);
 		}
@@ -715,9 +716,9 @@ trstat_write(struct printer *pp, tr_sendrecv sendrecv, size_t bytecnt,
 		strcpy(eostat, "\n");
 	} else {
 		/* probably should back up to just before the final " x=".. */
-		strcpy(statline+STATLINE_SIZE-2, "\n");
+		strcpy(statline + STATLINE_SIZE - 2, "\n");
 	}
-	statfile = open(statfname, O_WRONLY|O_APPEND, 0664);
+	statfile = open(statfname, O_WRONLY | O_APPEND, 0664);
 	if (statfile < 0) {
 		/* statfile was given, but we can't open it.  should we
 		 * syslog/printf this as an error? */
@@ -757,7 +758,7 @@ closeallfds(int start)
 {
 	int stop;
 
-	if (USE_CLOSEFROM)		/* The faster, modern solution */
+	if (USE_CLOSEFROM) /* The faster, modern solution */
 		closefrom(start);
 	else {
 		/* This older logic can be pretty awful on some OS's.  The
@@ -769,4 +770,3 @@ closeallfds(int start)
 			close(start);
 	}
 }
-

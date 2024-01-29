@@ -28,8 +28,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_MACHINE_FPE_H_
-#define	_MACHINE_FPE_H_
+#ifndef _MACHINE_FPE_H_
+#define _MACHINE_FPE_H_
 
 void fpe_state_save(struct thread *td);
 void fpe_state_clear(void);

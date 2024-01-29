@@ -63,21 +63,13 @@
 //	  - devd needs to document the unix domain socket
 //	  - devd.conf needs more details on the supported statements.
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/sysctl.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 #include <sys/un.h>
-
-#include <cctype>
-#include <cerrno>
-#include <cstdlib>
-#include <cstdio>
-#include <csignal>
-#include <cstring>
-#include <cstdarg>
+#include <sys/wait.h>
 
 #include <dirent.h>
 #include <err.h>
@@ -89,15 +81,22 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include <algorithm>
-#include <map>
-#include <string>
-#include <list>
-#include <stdexcept>
-#include <vector>
+#include "devd.h" /* C compatible definitions */
 
-#include "devd.h"		/* C compatible definitions */
-#include "devd.hh"		/* C++ class definitions */
+#include "devd.hh" /* C++ class definitions */
+#include <algorithm>
+#include <cctype>
+#include <cerrno>
+#include <csignal>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <list>
+#include <map>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
 #define STREAMPIPE "/var/run/devd.pipe"
 #define SEQPACKETPIPE "/var/run/devd.seqpacket.pipe"
@@ -153,12 +152,12 @@ static volatile sig_atomic_t romeo_must_die = 0;
 
 static const char *configfile = CF;
 
-static void devdlog(int priority, const char* message, ...)
-	__printflike(2, 3);
+static void devdlog(int priority, const char *message, ...) __printflike(2, 3);
 static void event_loop(void);
 static void usage(void) __dead2;
 
-template <class T> void
+template <class T>
+void
 delete_and_clear(vector<T *> &v)
 {
 	typename vector<T *>::const_iterator i;
@@ -172,7 +171,8 @@ static config cfg;
 
 static const char *curr_cf = NULL;
 
-event_proc::event_proc() : _prio(-1)
+event_proc::event_proc()
+    : _prio(-1)
 {
 	_epsvec.reserve(4);
 }
@@ -211,7 +211,7 @@ event_proc::run(config &c) const
 }
 
 action::action(const char *cmd)
-	: _cmd(cmd)
+    : _cmd(cmd)
 {
 	// nothing
 }
@@ -229,7 +229,7 @@ my_system(const char *command)
 	struct sigaction ign, intact, quitact;
 	sigset_t newsigblock, oldsigblock;
 
-	if (!command)		/* just checking... */
+	if (!command) /* just checking... */
 		return (1);
 
 	/*
@@ -245,14 +245,14 @@ my_system(const char *command)
 	::sigaddset(&newsigblock, SIGCHLD);
 	::sigprocmask(SIG_BLOCK, &newsigblock, &oldsigblock);
 	switch (pid = ::fork()) {
-	case -1:			/* error */
+	case -1: /* error */
 		break;
-	case 0:				/* child */
+	case 0: /* child */
 		/*
 		 * Restore original signal dispositions and exec the command.
 		 */
 		::sigaction(SIGINT, &intact, NULL);
-		::sigaction(SIGQUIT,  &quitact, NULL);
+		::sigaction(SIGQUIT, &quitact, NULL);
 		::sigprocmask(SIG_SETMASK, &oldsigblock, NULL);
 		/*
 		 * Close the PID file, and all other open descriptors.
@@ -262,7 +262,7 @@ my_system(const char *command)
 		::closefrom(3);
 		::execl(_PATH_BSHELL, "sh", "-c", command, (char *)NULL);
 		::_exit(127);
-	default:			/* parent */
+	default: /* parent */
 		savedpid = pid;
 		do {
 			pid = ::wait4(savedpid, &pstat, 0, (struct rusage *)0);
@@ -270,7 +270,7 @@ my_system(const char *command)
 		break;
 	}
 	::sigaction(SIGINT, &intact, NULL);
-	::sigaction(SIGQUIT,  &quitact, NULL);
+	::sigaction(SIGQUIT, &quitact, NULL);
 	::sigprocmask(SIG_SETMASK, &oldsigblock, NULL);
 	return (pid == -1 ? -1 : pstat);
 }
@@ -284,10 +284,10 @@ action::do_action(config &c)
 	return (true);
 }
 
-match::match(config &c, const char *var, const char *re) :
-	_inv(re[0] == '!'),
-	_var(var),
-	_re(c.expand_string(_inv ? re + 1 : re, "^", "$"))
+match::match(config &c, const char *var, const char *re)
+    : _inv(re[0] == '!')
+    , _var(var)
+    , _re(c.expand_string(_inv ? re + 1 : re, "^", "$"))
 {
 	regcomp(&_regex, _re.c_str(), REG_EXTENDED | REG_NOSUB | REG_ICASE);
 }
@@ -322,17 +322,19 @@ match::do_match(config &c)
 }
 
 #include <sys/sockio.h>
+
 #include <net/if.h>
 #include <net/if_media.h>
 
 media::media(config &, const char *var, const char *type)
-	: _var(var), _type(-1)
+    : _var(var)
+    , _type(-1)
 {
 	static struct ifmedia_description media_types[] = {
-		{ IFM_ETHER,		"Ethernet" },
-		{ IFM_IEEE80211,	"802.11" },
-		{ IFM_ATM,		"ATM" },
-		{ -1,			"unknown" },
+		{ IFM_ETHER, "Ethernet" },
+		{ IFM_IEEE80211, "802.11" },
+		{ IFM_ATM, "ATM" },
+		{ -1, "unknown" },
 		{ 0, NULL },
 	};
 	for (int i = 0; media_types[i].ifmt_string != NULL; ++i)
@@ -363,7 +365,7 @@ media::do_match(config &c)
 	if (value.empty())
 		value = c.get_variable("subsystem");
 	devdlog(LOG_DEBUG, "Testing media type of %s against 0x%x\n",
-		    value.c_str(), _type);
+	    value.c_str(), _type);
 
 	retval = false;
 
@@ -375,11 +377,11 @@ media::do_match(config &c)
 		if (ioctl(s, SIOCGIFMEDIA, (caddr_t)&ifmr) >= 0 &&
 		    ifmr.ifm_status & IFM_AVALID) {
 			devdlog(LOG_DEBUG, "%s has media type 0x%x\n",
-				    value.c_str(), IFM_TYPE(ifmr.ifm_active));
+			    value.c_str(), IFM_TYPE(ifmr.ifm_active));
 			retval = (IFM_TYPE(ifmr.ifm_active) == _type);
 		} else if (_type == -1) {
 			devdlog(LOG_DEBUG, "%s has unknown media type\n",
-				    value.c_str());
+			    value.c_str());
 			retval = true;
 		}
 		close(s);
@@ -417,13 +419,13 @@ var_list::is_set(const string &var) const
 std::string
 var_list::fix_value(const std::string &val) const
 {
-        std::string rv(val);
-        std::string::size_type pos(0);
+	std::string rv(val);
+	std::string::size_type pos(0);
 
-        while ((pos = rv.find("\\\"", pos)) != rv.npos) {
-                rv.erase(pos, 1);
-        }
-        return (rv);
+	while ((pos = rv.find("\\\"", pos)) != rv.npos) {
+		rv.erase(pos, 1);
+	}
+	return (rv);
 }
 
 void
@@ -486,12 +488,12 @@ config::parse_files_in_dir(const char *dirname)
 	dirp = opendir(dirname);
 	if (dirp == NULL)
 		return;
-	readdir(dirp);		/* Skip . */
-	readdir(dirp);		/* Skip .. */
+	readdir(dirp); /* Skip . */
+	readdir(dirp); /* Skip .. */
 	while ((dp = readdir(dirp)) != NULL) {
 		if (strcmp(dp->d_name + dp->d_namlen - 5, ".conf") == 0) {
-			snprintf(path, sizeof(path), "%s/%s",
-			    dirname, dp->d_name);
+			snprintf(path, sizeof(path), "%s/%s", dirname,
+			    dp->d_name);
 			parse_one_file(path);
 		}
 	}
@@ -499,8 +501,8 @@ config::parse_files_in_dir(const char *dirname)
 }
 
 class epv_greater {
-public:
-	int operator()(event_proc *const&l1, event_proc *const&l2) const
+    public:
+	int operator()(event_proc *const &l1, event_proc *const &l2) const
 	{
 		return (l1->get_priority() > l2->get_priority());
 	}
@@ -641,8 +643,8 @@ config::get_variable(const string &var)
 bool
 config::is_id_char(char ch) const
 {
-	return (ch != '\0' && (isalpha(ch) || isdigit(ch) || ch == '_' ||
-	    ch == '-'));
+	return (ch != '\0' &&
+	    (isalpha(ch) || isdigit(ch) || ch == '_' || ch == '-'));
 }
 
 string
@@ -714,7 +716,8 @@ config::expand_one(const char *&src, string &dst, bool is_shell)
 	do {
 		buffer += *src++;
 	} while (is_id_char(*src));
-	dst.append(is_shell ? shell_quote(get_variable(buffer)) : get_variable(buffer));
+	dst.append(is_shell ? shell_quote(get_variable(buffer)) :
+			      get_variable(buffer));
 }
 
 const string
@@ -761,13 +764,14 @@ config::chop_var(char *&buffer, char *&lhs, char *&rhs) const
 		walker++;
 	if (*walker != '=')
 		return (false);
-	walker++;		// skip =
+	walker++; // skip =
 	if (*walker == '"') {
-		walker++;	// skip "
+		walker++; // skip "
 		rhs = walker;
 		while (*walker && *walker != '"') {
-			// Skip \" ... We leave it in the string and strip the \ later.
-			// due to the super simplistic parser that we have here.
+			// Skip \" ... We leave it in the string and strip the
+			// \ later. due to the super simplistic parser that we
+			// have here.
 			if (*walker == '\\' && walker[1] == '"')
 				walker++;
 			walker++;
@@ -789,7 +793,6 @@ config::chop_var(char *&buffer, char *&lhs, char *&rhs) const
 	buffer = walker;
 	return (true);
 }
-
 
 char *
 config::set_vars(char *buffer)
@@ -839,9 +842,7 @@ config::find_and_execute(char type)
 			break;
 		}
 	}
-
 }
-
 
 static void
 process_event(char *buffer)
@@ -878,7 +879,7 @@ process_event(char *buffer)
 		//? at location pnp-info on bus
 		sp = strchr(sp, ' ');
 		if (sp == NULL)
-			return;	/* Can't happen? */
+			return; /* Can't happen? */
 		*sp++ = '\0';
 		while (isspace(*sp))
 			sp++;
@@ -890,11 +891,11 @@ process_event(char *buffer)
 		if (strncmp(sp, "on ", 3) == 0)
 			cfg.set_variable("bus", sp + 3);
 		break;
-	case attach:	/*FALLTHROUGH*/
+	case attach: /*FALLTHROUGH*/
 	case detach:
 		sp = strchr(sp, ' ');
 		if (sp == NULL)
-			return;	/* Can't happen? */
+			return; /* Can't happen? */
 		*sp++ = '\0';
 		cfg.set_variable("device-name", buffer);
 		while (isspace(*sp))
@@ -927,18 +928,19 @@ create_socket(const char *name, int socktype)
 	slen = SUN_LEN(&sun);
 	unlink(name);
 	if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)
-	    	err(1, "fcntl");
-	if (::bind(fd, (struct sockaddr *) & sun, slen) < 0)
+		err(1, "fcntl");
+	if (::bind(fd, (struct sockaddr *)&sun, slen) < 0)
 		err(1, "bind");
 	listen(fd, 4);
-	if (chown(name, 0, 0))	/* XXX - root.wheel */
+	if (chown(name, 0, 0)) /* XXX - root.wheel */
 		err(1, "chown");
 	if (chmod(name, 0666))
 		err(1, "chmod");
 	return (fd);
 }
 
-static unsigned int max_clients = 10;	/* Default, can be overridden on cmdline. */
+static unsigned int max_clients =
+    10; /* Default, can be overridden on cmdline. */
 static unsigned int num_clients;
 
 static list<client_t> clients;
@@ -955,7 +957,7 @@ notify_clients(const char *data, int len)
 	 * (or who are maliciously not reading, to consume buffer space in
 	 * kernel memory or tie up the limited number of available connections).
 	 */
-	for (i = clients.begin(); i != clients.end(); ) {
+	for (i = clients.begin(); i != clients.end();) {
 		int flags;
 		if (i->socktype == SOCK_SEQPACKET)
 			flags = MSG_EOR;
@@ -966,7 +968,8 @@ notify_clients(const char *data, int len)
 			--num_clients;
 			close(i->fd);
 			i = clients.erase(i);
-			devdlog(LOG_WARNING, "notify_clients: send() failed; "
+			devdlog(LOG_WARNING,
+			    "notify_clients: send() failed; "
 			    "dropping unresponsive client\n");
 		} else
 			++i;
@@ -988,15 +991,16 @@ check_clients(void)
 	 * without frequent device-change activity.
 	 */
 	pfd.events = 0;
-	for (i = clients.begin(); i != clients.end(); ) {
+	for (i = clients.begin(); i != clients.end();) {
 		pfd.fd = i->fd;
 		s = poll(&pfd, 1, 0);
-		if ((s < 0 && s != EINTR ) ||
+		if ((s < 0 && s != EINTR) ||
 		    (s > 0 && (pfd.revents & POLLHUP))) {
 			--num_clients;
 			close(i->fd);
 			i = clients.erase(i);
-			devdlog(LOG_NOTICE, "check_clients:  "
+			devdlog(LOG_NOTICE,
+			    "check_clients:  "
 			    "dropping disconnected client\n");
 		} else
 			++i;
@@ -1020,7 +1024,7 @@ new_client(int fd, int socktype)
 	if (s.fd != -1) {
 		sndbuf_size = CLIENT_BUFSIZE;
 		if (setsockopt(s.fd, SOL_SOCKET, SO_SNDBUF, &sndbuf_size,
-		    sizeof(sndbuf_size)))
+			sizeof(sndbuf_size)))
 			err(1, "setsockopt");
 		shutdown(s.fd, SHUT_RD);
 		clients.push_back(s);
@@ -1112,7 +1116,8 @@ event_loop(void)
 			if (rv > 0) {
 				total_events++;
 				if (rv == sizeof(buffer) - 1) {
-					devdlog(LOG_WARNING, "Warning: "
+					devdlog(LOG_WARNING,
+					    "Warning: "
 					    "available event data exceeded "
 					    "buffer space\n");
 				}
@@ -1122,10 +1127,11 @@ event_loop(void)
 					buffer[rv] = '\0';
 				try {
 					process_event(buffer);
-				}
-				catch (const std::length_error& e) {
-					devdlog(LOG_ERR, "Dropping event %s "
-					    "due to low memory", buffer);
+				} catch (const std::length_error &e) {
+					devdlog(LOG_ERR,
+					    "Dropping event %s "
+					    "due to low memory",
+					    buffer);
 				}
 			} else if (rv < 0) {
 				if (errno != EINTR)
@@ -1217,8 +1223,9 @@ new_match(const char *var, const char *re)
 		    curr_cf, lineno);
 		free(const_cast<char *>(var));
 		var = strdup("kernel");
-#elif  __FreeBSD_version < 1600000
-		errx(1, "Encountered deprecated system=\"kern\" rule in %s line %d",
+#elif __FreeBSD_version < 1600000
+		errx(1,
+		    "Encountered deprecated system=\"kern\" rule in %s line %d",
 		    curr_cf, lineno);
 #else
 #error "Remove this gross hack"
@@ -1255,8 +1262,6 @@ set_variable(const char *var, const char *val)
 	free(const_cast<char *>(val));
 }
 
-
-
 static void
 gensighand(int)
 {
@@ -1278,7 +1283,7 @@ siginfohand(int)
  * otherwise.
  */
 static void
-devdlog(int priority, const char* fmt, ...)
+devdlog(int priority, const char *fmt, ...)
 {
 	va_list argp;
 

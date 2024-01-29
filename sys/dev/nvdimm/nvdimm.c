@@ -28,10 +28,10 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_acpi.h"
 #include "opt_ddb.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bio.h>
@@ -45,18 +45,18 @@
 #include <sys/sysctl.h>
 #include <sys/uuid.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
-#include <contrib/dev/acpica/include/acuuid.h>
 #include <dev/acpica/acpivar.h>
-
 #include <dev/nvdimm/nvdimm_var.h>
 
-#define _COMPONENT	ACPI_OEM
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
+#include <contrib/dev/acpica/include/acuuid.h>
+
+#define _COMPONENT ACPI_OEM
 ACPI_MODULE_NAME("NVDIMM")
 
-static struct uuid intel_nvdimm_dsm_uuid =
-    {0x4309AC30,0x0D11,0x11E4,0x91,0x91,{0x08,0x00,0x20,0x0C,0x9A,0x66}};
+static struct uuid intel_nvdimm_dsm_uuid = { 0x4309AC30, 0x0D11, 0x11E4, 0x91,
+	0x91, { 0x08, 0x00, 0x20, 0x0C, 0x9A, 0x66 } };
 #define INTEL_NVDIMM_DSM_REV 1
 #define INTEL_NVDIMM_DSM_GET_LABEL_SIZE 4
 #define INTEL_NVDIMM_DSM_GET_LABEL_DATA 5
@@ -113,8 +113,7 @@ read_label_area(struct nvdimm_dev *nv, uint8_t *dest, off_t offset,
 	error = 0;
 	handle = nvdimm_root_get_acpi_handle(nv->nv_dev);
 	if (offset < 0 || length <= 0 ||
-	    offset + length > nv->label_area_size ||
-	    handle == NULL)
+	    offset + length > nv->label_area_size || handle == NULL)
 		return (ENODEV);
 	params_pkg.Type = ACPI_TYPE_PACKAGE;
 	params_pkg.Package.Count = 1;
@@ -225,11 +224,11 @@ read_label(struct nvdimm_dev *nv, int num)
 	/* Insertion ordered by dimm_phys_addr */
 	if (SLIST_EMPTY(&nv->labels) ||
 	    entry->label.dimm_phys_addr <=
-	    SLIST_FIRST(&nv->labels)->label.dimm_phys_addr) {
+		SLIST_FIRST(&nv->labels)->label.dimm_phys_addr) {
 		SLIST_INSERT_HEAD(&nv->labels, entry, link);
 		return (0);
 	}
-	SLIST_FOREACH_SAFE(i, &nv->labels, link, next) {
+	SLIST_FOREACH_SAFE (i, &nv->labels, link, next) {
 		if (next == NULL ||
 		    entry->label.dimm_phys_addr <= next->label.dimm_phys_addr) {
 			SLIST_INSERT_AFTER(i, entry, link);
@@ -247,9 +246,9 @@ read_labels(struct nvdimm_dev *nv)
 	int error, n;
 	bool index_0_valid, index_1_valid;
 
-	for (index_size = 256; ; index_size += 256) {
-		num_labels = 8 * (index_size -
-		    sizeof(struct nvdimm_label_index));
+	for (index_size = 256;; index_size += 256) {
+		num_labels = 8 *
+		    (index_size - sizeof(struct nvdimm_label_index));
 		if (index_size + num_labels * sizeof(struct nvdimm_label) >=
 		    nv->label_area_size)
 			break;
@@ -357,7 +356,7 @@ nvdimm_attach(device_t dev)
 
 	/* sbuf_new_auto(9) is M_WAITOK; no need to check for NULL. */
 	sb = sbuf_new_auto();
-	(void) sbuf_printf(sb, "0x%b", flags,
+	(void)sbuf_printf(sb, "0x%b", flags,
 	    "\20"
 	    "\001SAVE_FAILED"
 	    "\002RESTORE_FAILED"
@@ -408,7 +407,7 @@ nvdimm_detach(device_t dev)
 	free(nv->nv_flags_str, M_NVDIMM);
 	free(nv->nv_flush_addr, M_NVDIMM);
 	free(nv->label_index, M_NVDIMM);
-	SLIST_FOREACH_SAFE(label, &nv->labels, link, next) {
+	SLIST_FOREACH_SAFE (label, &nv->labels, link, next) {
 		SLIST_REMOVE_HEAD(&nv->labels, link);
 		free(label, M_NVDIMM);
 	}
@@ -429,16 +428,14 @@ nvdimm_resume(device_t dev)
 	return (0);
 }
 
-static device_method_t nvdimm_methods[] = {
-	DEVMETHOD(device_probe, nvdimm_probe),
+static device_method_t nvdimm_methods[] = { DEVMETHOD(device_probe,
+						nvdimm_probe),
 	DEVMETHOD(device_attach, nvdimm_attach),
 	DEVMETHOD(device_detach, nvdimm_detach),
 	DEVMETHOD(device_suspend, nvdimm_suspend),
-	DEVMETHOD(device_resume, nvdimm_resume),
-	DEVMETHOD_END
-};
+	DEVMETHOD(device_resume, nvdimm_resume), DEVMETHOD_END };
 
-static driver_t	nvdimm_driver = {
+static driver_t nvdimm_driver = {
 	"nvdimm",
 	nvdimm_methods,
 	sizeof(struct nvdimm_dev),

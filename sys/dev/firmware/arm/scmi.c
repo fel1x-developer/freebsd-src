@@ -38,22 +38,21 @@
 #include <sys/mutex.h>
 
 #include <dev/clk/clk.h>
-#include <dev/fdt/simplebus.h>
 #include <dev/fdt/fdt_common.h>
+#include <dev/fdt/simplebus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
 #include "dev/mailbox/arm/arm_doorbell.h"
-
 #include "scmi.h"
 #include "scmi_protocols.h"
 
 struct scmi_softc {
-	struct simplebus_softc	simplebus_sc;
-	device_t		dev;
-	device_t		tx_shmem;
-	struct arm_doorbell	*db;
-	struct mtx		mtx;
-	int			req_done;
+	struct simplebus_softc simplebus_sc;
+	device_t dev;
+	device_t tx_shmem;
+	struct arm_doorbell *db;
+	struct mtx mtx;
+	int req_done;
 };
 
 static device_t
@@ -256,12 +255,9 @@ scmi_detach(device_t dev)
 	return (0);
 }
 
-static device_method_t scmi_methods[] = {
-	DEVMETHOD(device_probe,		scmi_probe),
-	DEVMETHOD(device_attach,	scmi_attach),
-	DEVMETHOD(device_detach,	scmi_detach),
-	DEVMETHOD_END
-};
+static device_method_t scmi_methods[] = { DEVMETHOD(device_probe, scmi_probe),
+	DEVMETHOD(device_attach, scmi_attach),
+	DEVMETHOD(device_detach, scmi_detach), DEVMETHOD_END };
 
 DEFINE_CLASS_1(scmi, scmi_driver, scmi_methods, sizeof(struct scmi_softc),
     simplebus_driver);

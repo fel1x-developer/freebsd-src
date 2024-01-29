@@ -26,10 +26,10 @@
  * SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <gssapi/gssapi.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 
 #include "utils.h"
 
@@ -49,8 +49,7 @@ gss_oid_equal(const gss_OID oid1, const gss_OID oid2)
 }
 
 OM_uint32
-_gss_copy_oid(OM_uint32 *minor_status,
-    const gss_OID from_oid, gss_OID to_oid)
+_gss_copy_oid(OM_uint32 *minor_status, const gss_OID from_oid, gss_OID to_oid)
 {
 	size_t len = from_oid->length;
 
@@ -80,8 +79,8 @@ _gss_free_oid(OM_uint32 *minor_status, gss_OID oid)
 }
 
 OM_uint32
-_gss_copy_buffer(OM_uint32 *minor_status,
-    const gss_buffer_t from_buf, gss_buffer_t to_buf)
+_gss_copy_buffer(OM_uint32 *minor_status, const gss_buffer_t from_buf,
+    gss_buffer_t to_buf)
 {
 	size_t len = from_buf->length;
 
@@ -96,4 +95,3 @@ _gss_copy_buffer(OM_uint32 *minor_status,
 	memcpy(to_buf->value, from_buf->value, len);
 	return (GSS_S_COMPLETE);
 }
-

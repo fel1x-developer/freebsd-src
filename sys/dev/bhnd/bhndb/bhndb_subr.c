@@ -38,18 +38,17 @@
 #include "bhndb_private.h"
 #include "bhndbvar.h"
 
-static int	bhndb_dma_tag_create(device_t dev, bus_dma_tag_t parent_dmat,
-		    const struct bhnd_dma_translation *translation,
-		    bus_dma_tag_t *dmat);
+static int bhndb_dma_tag_create(device_t dev, bus_dma_tag_t parent_dmat,
+    const struct bhnd_dma_translation *translation, bus_dma_tag_t *dmat);
 
 /**
  * Attach a BHND bridge device to @p parent.
- * 
+ *
  * @param parent A parent PCI device.
  * @param[out] bhndb On success, the probed and attached bhndb bridge device.
  * @param unit The device unit number, or -1 to select the next available unit
  * number.
- * 
+ *
  * @retval 0 success
  * @retval non-zero Failed to attach the bhndb device.
  */
@@ -80,7 +79,7 @@ bhndb_do_suspend_resources(device_t dev, struct resource_list *rl)
 	struct resource_list_entry *rle;
 
 	/* Suspend all child resources. */
-	STAILQ_FOREACH(rle, rl, link) {
+	STAILQ_FOREACH (rle, rl, link) {
 		/* Skip non-allocated resources */
 		if (rle->res == NULL)
 			continue;
@@ -93,23 +92,23 @@ bhndb_do_suspend_resources(device_t dev, struct resource_list *rl)
 /**
  * Helper function for implementing BUS_RESUME_CHILD() on bridged
  * bhnd(4) buses.
- * 
+ *
  * This implementation of BUS_RESUME_CHILD() uses BUS_GET_RESOURCE_LIST()
  * to find the child's resources and call BHNDB_SUSPEND_RESOURCE() for all
  * child resources, ensuring that the device's allocated bridge resources
  * will be available to other devices during bus resumption.
- * 
- * Before suspending any resources, @p child is suspended by 
+ *
+ * Before suspending any resources, @p child is suspended by
  * calling bhnd_generic_suspend_child().
- * 
+ *
  * If @p child is not a direct child of @p dev, suspension is delegated to
  * the @p dev parent.
  */
 int
 bhnd_generic_br_suspend_child(device_t dev, device_t child)
 {
-	struct resource_list		*rl;
-	int				 error;
+	struct resource_list *rl;
+	int error;
 
 	if (device_get_parent(child) != dev)
 		BUS_SUSPEND_CHILD(device_get_parent(dev), child);
@@ -135,22 +134,22 @@ bhnd_generic_br_suspend_child(device_t dev, device_t child)
 /**
  * Helper function for implementing BUS_RESUME_CHILD() on bridged
  * bhnd(4) bus devices.
- * 
+ *
  * This implementation of BUS_RESUME_CHILD() uses BUS_GET_RESOURCE_LIST()
  * to find the child's resources and call BHNDB_RESUME_RESOURCE() for all
  * child resources, before delegating to bhnd_generic_resume_child().
- * 
+ *
  * If resource resumption fails, @p child will not be resumed.
- * 
+ *
  * If @p child is not a direct child of @p dev, suspension is delegated to
  * the @p dev parent.
  */
 int
 bhnd_generic_br_resume_child(device_t dev, device_t child)
 {
-	struct resource_list		*rl;
-	struct resource_list_entry	*rle;
-	int				 error;
+	struct resource_list *rl;
+	struct resource_list_entry *rle;
+	int error;
 
 	if (device_get_parent(child) != dev)
 		BUS_RESUME_CHILD(device_get_parent(dev), child);
@@ -164,7 +163,7 @@ bhnd_generic_br_resume_child(device_t dev, device_t child)
 		return (bhnd_generic_resume_child(dev, child));
 
 	/* Resume all resources */
-	STAILQ_FOREACH(rle, rl, link) {
+	STAILQ_FOREACH (rle, rl, link) {
 		/* Skip non-allocated resources */
 		if (rle->res == NULL)
 			continue;
@@ -189,12 +188,12 @@ bhnd_generic_br_resume_child(device_t dev, device_t child)
 
 /**
  * Find a host resource of @p type that maps the given range.
- * 
+ *
  * @param hr The resource state to search.
  * @param type The resource type to search for (see SYS_RES_*).
  * @param start The start address of the range to search for.
  * @param count The size of the range to search for.
- * 
+ *
  * @retval resource the host resource containing the requested range.
  * @retval NULL if no resource containing the requested range can be found.
  */
@@ -211,7 +210,7 @@ bhndb_host_resource_for_range(struct bhndb_host_resources *hr, int type,
 		/* Verify range */
 		if (rman_get_start(r) > start)
 			continue;
-		
+
 		if (rman_get_end(r) < (start + count - 1))
 			continue;
 
@@ -223,10 +222,10 @@ bhndb_host_resource_for_range(struct bhndb_host_resources *hr, int type,
 
 /**
  * Find a host resource of that matches the given register window definition.
- * 
+ *
  * @param hr The resource state to search.
  * @param win A register window definition.
- * 
+ *
  * @retval resource the host resource corresponding to @p win.
  * @retval NULL if no resource corresponding to @p win can be found.
  */
@@ -237,7 +236,7 @@ bhndb_host_resource_for_regwin(struct bhndb_host_resources *hr,
 	const struct resource_spec *rspecs;
 
 	rspecs = hr->resource_specs;
-	for (u_int i = 0; rspecs[i].type != -1; i++) {			
+	for (u_int i = 0; rspecs[i].type != -1; i++) {
 		if (win->res.type != rspecs[i].type)
 			continue;
 
@@ -248,17 +247,19 @@ bhndb_host_resource_for_regwin(struct bhndb_host_resources *hr,
 		return (hr->resources[i]);
 	}
 
-	device_printf(hr->owner, "missing regwin resource spec "
-	    "(type=%d, rid=%d)\n", win->res.type, win->res.rid);
+	device_printf(hr->owner,
+	    "missing regwin resource spec "
+	    "(type=%d, rid=%d)\n",
+	    win->res.type, win->res.rid);
 
 	return (NULL);
 }
 
 /**
  * Allocate and initialize a new resource state structure.
- * 
+ *
  * @param dev The bridge device.
- * @param parent_dev The parent device from which host resources should be 
+ * @param parent_dev The parent device from which host resources should be
  * allocated.
  * @param cfg The hardware configuration to be used.
  */
@@ -266,18 +267,18 @@ struct bhndb_resources *
 bhndb_alloc_resources(device_t dev, device_t parent_dev,
     const struct bhndb_hwcfg *cfg)
 {
-	struct bhndb_resources		*r;
-	const struct bhndb_regwin	*win;
-	bus_size_t			 last_window_size;
-	int				 rnid;
-	int				 error;
-	bool				 free_ht_mem, free_br_mem, free_br_irq;
+	struct bhndb_resources *r;
+	const struct bhndb_regwin *win;
+	bus_size_t last_window_size;
+	int rnid;
+	int error;
+	bool free_ht_mem, free_br_mem, free_br_irq;
 
 	free_ht_mem = false;
 	free_br_mem = false;
 	free_br_irq = false;
 
-	r = malloc(sizeof(*r), M_BHND, M_NOWAIT|M_ZERO);
+	r = malloc(sizeof(*r), M_BHND, M_NOWAIT | M_ZERO);
 	if (r == NULL)
 		return (NULL);
 
@@ -363,8 +364,7 @@ bhndb_alloc_resources(device_t dev, device_t parent_dev,
 	rnid = 0;
 	last_window_size = 0;
 	for (win = cfg->register_windows;
-	    win->win_type != BHNDB_REGWIN_T_INVALID; win++)
-	{
+	     win->win_type != BHNDB_REGWIN_T_INVALID; win++) {
 		struct bhndb_dw_alloc *dwa;
 
 		/* Skip non-DYN windows */
@@ -373,21 +373,23 @@ bhndb_alloc_resources(device_t dev, device_t parent_dev,
 
 		/* Validate the window size */
 		if (win->win_size == 0) {
-			device_printf(r->dev, "ignoring zero-length dynamic "
+			device_printf(r->dev,
+			    "ignoring zero-length dynamic "
 			    "register window\n");
 			continue;
 		} else if (last_window_size == 0) {
 			last_window_size = win->win_size;
 		} else if (last_window_size != win->win_size) {
-			/* 
+			/*
 			 * No existing hardware should trigger this.
-			 * 
+			 *
 			 * If you run into this in the future, the dynamic
 			 * window allocator and the resource priority system
 			 * will need to be extended to support multiple register
-			 * window allocation pools. 
+			 * window allocation pools.
 			 */
-			device_printf(r->dev, "devices that vend multiple "
+			device_printf(r->dev,
+			    "devices that vend multiple "
 			    "dynamic register window sizes are not currently "
 			    "supported\n");
 			goto failed;
@@ -398,7 +400,7 @@ bhndb_alloc_resources(device_t dev, device_t parent_dev,
 		dwa->parent_res = NULL;
 		dwa->rnid = rnid;
 		dwa->target = 0x0;
-		
+
 		LIST_INIT(&dwa->refs);
 		rnid++;
 	}
@@ -415,8 +417,8 @@ bhndb_alloc_resources(device_t dev, device_t parent_dev,
 	/* Populate (and validate) parent resource references for all
 	 * dynamic windows */
 	for (size_t i = 0; i < r->dwa_count; i++) {
-		struct bhndb_dw_alloc		*dwa;
-		const struct bhndb_regwin	*win;
+		struct bhndb_dw_alloc *dwa;
+		const struct bhndb_regwin *win;
 
 		dwa = &r->dw_alloc[i];
 		win = dwa->win;
@@ -424,25 +426,25 @@ bhndb_alloc_resources(device_t dev, device_t parent_dev,
 		/* Find and validate corresponding resource. */
 		dwa->parent_res = bhndb_host_resource_for_regwin(r->res, win);
 		if (dwa->parent_res == NULL) {
-			device_printf(r->dev, "no host resource found for %u "
+			device_printf(r->dev,
+			    "no host resource found for %u "
 			    "register window with offset %#jx and "
 			    "size %#jx\n",
-			    win->win_type,
-			    (uintmax_t)win->win_offset,
+			    win->win_type, (uintmax_t)win->win_offset,
 			    (uintmax_t)win->win_size);
 
 			error = ENXIO;
 			goto failed;
 		}
 
-		if (rman_get_size(dwa->parent_res) < win->win_offset +
-		    win->win_size)
-		{
-			device_printf(r->dev, "resource %d too small for "
+		if (rman_get_size(dwa->parent_res) <
+		    win->win_offset + win->win_size) {
+			device_printf(r->dev,
+			    "resource %d too small for "
 			    "register window with offset %llx and size %llx\n",
 			    rman_get_rid(dwa->parent_res),
-			    (unsigned long long) win->win_offset,
-			    (unsigned long long) win->win_size);
+			    (unsigned long long)win->win_offset,
+			    (unsigned long long)win->win_size);
 
 			error = EINVAL;
 			goto failed;
@@ -452,19 +454,20 @@ bhndb_alloc_resources(device_t dev, device_t parent_dev,
 	/* Add allocated memory resources to our host memory resource manager */
 	for (u_int i = 0; r->res->resource_specs[i].type != -1; i++) {
 		struct resource *res;
-		
+
 		/* skip non-memory resources */
 		if (r->res->resource_specs[i].type != SYS_RES_MEMORY)
 			continue;
 
 		/* add host resource to set of managed regions */
 		res = r->res->resources[i];
-		error = rman_manage_region(&r->ht_mem_rman,
-		    rman_get_start(res), rman_get_end(res));
+		error = rman_manage_region(&r->ht_mem_rman, rman_get_start(res),
+		    rman_get_end(res));
 		if (error) {
 			device_printf(r->dev,
 			    "could not register host memory region with "
-			    "ht_mem_rman: %d\n", error);
+			    "ht_mem_rman: %d\n",
+			    error);
 			goto failed;
 		}
 	}
@@ -505,7 +508,7 @@ failed:
  * @param	translation	The DMA translation for which a DMA tag will
  *				be created.
  * @param[out]	dmat		On success, the newly created DMA tag.
- * 
+ *
  * @retval 0		success
  * @retval non-zero	if creating the new DMA tag otherwise fails, a regular
  *			unix error code will be returned.
@@ -514,19 +517,19 @@ static int
 bhndb_dma_tag_create(device_t dev, bus_dma_tag_t parent_dmat,
     const struct bhnd_dma_translation *translation, bus_dma_tag_t *dmat)
 {
-	bus_dma_tag_t	translation_tag;
-	bhnd_addr_t	dt_mask;
-	bus_addr_t	lowaddr, highaddr;
-	bus_size_t	maxsegsz;
-	int		error;
+	bus_dma_tag_t translation_tag;
+	bhnd_addr_t dt_mask;
+	bus_addr_t lowaddr, highaddr;
+	bus_size_t maxsegsz;
+	int error;
 
 	highaddr = BUS_SPACE_MAXADDR;
 	maxsegsz = BUS_SPACE_MAXSIZE;
 
 	/* Determine full addressable mask */
 	dt_mask = (translation->addr_mask | translation->addrext_mask);
-	KASSERT(dt_mask != 0, ("DMA addr_mask invalid: %#jx",
-		(uintmax_t)dt_mask));
+	KASSERT(dt_mask != 0,
+	    ("DMA addr_mask invalid: %#jx", (uintmax_t)dt_mask));
 
 	/* (addr_mask|addrext_mask) is our maximum supported address */
 	lowaddr = MIN(dt_mask, BUS_SPACE_MAXADDR);
@@ -536,13 +539,11 @@ bhndb_dma_tag_create(device_t dev, bus_dma_tag_t parent_dmat,
 		maxsegsz = translation->addr_mask;
 
 	/* Create our DMA tag */
-	error = bus_dma_tag_create(parent_dmat,
-	    1, 0,			/* alignment, boundary */
-	    lowaddr, highaddr,
-	    NULL, NULL,			/* filter, filterarg */
-	    BUS_SPACE_MAXSIZE, 0,	/* maxsize, nsegments */
-	    maxsegsz, 0,		/* maxsegsize, flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(parent_dmat, 1, 0, /* alignment, boundary */
+	    lowaddr, highaddr, NULL, NULL,	      /* filter, filterarg */
+	    BUS_SPACE_MAXSIZE, 0,		      /* maxsize, nsegments */
+	    maxsegsz, 0,			      /* maxsegsize, flags */
+	    NULL, NULL,				      /* lockfunc, lockarg */
 	    &translation_tag);
 	if (error) {
 		device_printf(dev, "failed to create bridge DMA tag: %d\n",
@@ -556,17 +557,17 @@ bhndb_dma_tag_create(device_t dev, bus_dma_tag_t parent_dmat,
 
 /**
  * Deallocate the given bridge resource structure and any associated resources.
- * 
+ *
  * @param br Resource state to be deallocated.
  */
 void
 bhndb_free_resources(struct bhndb_resources *br)
 {
-	struct bhndb_region		*region, *r_next;
-	struct bhndb_dw_alloc		*dwa;
-	struct bhndb_dw_rentry		*dwr, *dwr_next;
-	struct bhndb_intr_handler	*ih;
-	bool				 leaked_regions, leaked_intrs;
+	struct bhndb_region *region, *r_next;
+	struct bhndb_dw_alloc *dwa;
+	struct bhndb_dw_rentry *dwr, *dwr_next;
+	struct bhndb_intr_handler *ih;
+	bool leaked_regions, leaked_intrs;
 
 	leaked_regions = false;
 	leaked_intrs = false;
@@ -587,7 +588,7 @@ bhndb_free_resources(struct bhndb_resources *br)
 	}
 
 	/* There should be no interrupt handlers still registered */
-	STAILQ_FOREACH(ih, &br->bus_intrs, ih_link) {
+	STAILQ_FOREACH (ih, &br->bus_intrs, ih_link) {
 		device_printf(br->dev, "interrupt handler leaked %p\n",
 		    ih->ih_cookiep);
 	}
@@ -605,14 +606,14 @@ bhndb_free_resources(struct bhndb_resources *br)
 	for (size_t i = 0; i < br->dwa_count; i++) {
 		dwa = &br->dw_alloc[i];
 
-		LIST_FOREACH_SAFE(dwr, &dwa->refs, dw_link, dwr_next) {
+		LIST_FOREACH_SAFE (dwr, &dwa->refs, dw_link, dwr_next) {
 			LIST_REMOVE(dwr, dw_link);
 			free(dwr, M_BHND);
 		}
 	}
 
 	/* Release bus regions */
-	STAILQ_FOREACH_SAFE(region, &br->bus_regions, link, r_next) {
+	STAILQ_FOREACH_SAFE (region, &br->bus_regions, link, r_next) {
 		STAILQ_REMOVE(&br->bus_regions, region, bhndb_region, link);
 		free(region, M_BHND);
 	}
@@ -632,7 +633,7 @@ bhndb_free_resources(struct bhndb_resources *br)
 
 /**
  * Allocate host bus resources defined by @p hwcfg.
- * 
+ *
  * On success, the caller assumes ownership of the allocated host resources,
  * which must be freed via bhndb_release_host_resources().
  *
@@ -648,11 +649,11 @@ int
 bhndb_alloc_host_resources(struct bhndb_host_resources **resources,
     device_t dev, device_t parent_dev, const struct bhndb_hwcfg *hwcfg)
 {
-	struct bhndb_host_resources		*hr;
-	const struct bhnd_dma_translation	*dt;
-	bus_dma_tag_t				 parent_dmat;
-	size_t					 nres, ndt;
-	int					 error;
+	struct bhndb_host_resources *hr;
+	const struct bhnd_dma_translation *dt;
+	bus_dma_tag_t parent_dmat;
+	size_t nres, ndt;
+	int error;
 
 	parent_dmat = bus_get_dma_tag(parent_dev);
 
@@ -671,12 +672,12 @@ bhndb_alloc_host_resources(struct bhndb_host_resources **resources,
 
 	/* Determine the total count and validate our DMA translation table. */
 	ndt = 0;
-	for (dt = hwcfg->dma_translations; dt != NULL &&
-	    !BHND_DMA_IS_TRANSLATION_TABLE_END(dt); dt++)
-	{
+	for (dt = hwcfg->dma_translations;
+	     dt != NULL && !BHND_DMA_IS_TRANSLATION_TABLE_END(dt); dt++) {
 		/* Validate the defined translation */
 		if ((dt->base_addr & dt->addr_mask) != 0) {
-			device_printf(dev, "invalid DMA translation; base "
+			device_printf(dev,
+			    "invalid DMA translation; base "
 			    "address %#jx overlaps address mask %#jx",
 			    (uintmax_t)dt->base_addr, (uintmax_t)dt->addr_mask);
 
@@ -685,7 +686,8 @@ bhndb_alloc_host_resources(struct bhndb_host_resources **resources,
 		}
 
 		if ((dt->addrext_mask & dt->addr_mask) != 0) {
-			device_printf(dev, "invalid DMA translation; addrext "
+			device_printf(dev,
+			    "invalid DMA translation; addrext "
 			    "mask %#jx overlaps address mask %#jx",
 			    (uintmax_t)dt->addrext_mask,
 			    (uintmax_t)dt->addr_mask);
@@ -700,7 +702,7 @@ bhndb_alloc_host_resources(struct bhndb_host_resources **resources,
 
 	/* Allocate our DMA tags */
 	hr->dma_tags = malloc(sizeof(*hr->dma_tags) * ndt, M_BHND,
-	    M_WAITOK|M_ZERO);
+	    M_WAITOK | M_ZERO);
 	for (size_t i = 0; i < ndt; i++) {
 		error = bhndb_dma_tag_create(dev, parent_dmat,
 		    &hwcfg->dma_translations[i], &hr->dma_tags[i]);
@@ -730,8 +732,10 @@ bhndb_alloc_host_resources(struct bhndb_host_resources **resources,
 	error = bus_alloc_resources(hr->owner, hr->resource_specs,
 	    hr->resources);
 	if (error) {
-		device_printf(dev, "could not allocate bridge resources via "
-		    "%s: %d\n", device_get_nameunit(parent_dev), error);
+		device_printf(dev,
+		    "could not allocate bridge resources via "
+		    "%s: %d\n",
+		    device_get_nameunit(parent_dev), error);
 		goto failed;
 	}
 
@@ -758,7 +762,7 @@ failed:
 
 /**
  * Deallocate a set of bridge host resources.
- * 
+ *
  * @param hr The resources to be freed.
  */
 void
@@ -777,20 +781,20 @@ bhndb_release_host_resources(struct bhndb_host_resources *hr)
 
 /**
  * Search @p cores for the core serving as the bhnd host bridge.
- * 
+ *
  * This function uses a heuristic valid on all known PCI/PCIe/PCMCIA-bridged
  * bhnd(4) devices to determine the hostb core:
- * 
+ *
  * - The core must have a Broadcom vendor ID.
  * - The core devclass must match the bridge type.
  * - The core must be the first device on the bus with the bridged device
  *   class.
- * 
+ *
  * @param	cores		The core table to search.
  * @param	ncores		The number of cores in @p cores.
  * @param	bridge_devclass	The expected device class of the bridge core.
  * @param[out]	core		If found, the matching host bridge core info.
- * 
+ *
  * @retval 0		success
  * @retval ENOENT	not found
  */
@@ -798,15 +802,13 @@ int
 bhndb_find_hostb_core(struct bhnd_core_info *cores, u_int ncores,
     bhnd_devclass_t bridge_devclass, struct bhnd_core_info *core)
 {
-	struct bhnd_core_match	 md;
-	struct bhnd_core_info	*match;
-	u_int			 match_core_idx;
+	struct bhnd_core_match md;
+	struct bhnd_core_info *match;
+	u_int match_core_idx;
 
 	/* Set up a match descriptor for the required device class. */
-	md = (struct bhnd_core_match) {
-		BHND_MATCH_CORE_CLASS(bridge_devclass),
-		BHND_MATCH_CORE_UNIT(0)
-	};
+	md = (struct bhnd_core_match) { BHND_MATCH_CORE_CLASS(bridge_devclass),
+		BHND_MATCH_CORE_UNIT(0) };
 
 	/* Find the matching core with the lowest core index */
 	match = NULL;
@@ -816,7 +818,7 @@ bhndb_find_hostb_core(struct bhnd_core_info *cores, u_int ncores,
 		if (!bhnd_core_matches(&cores[i], &md))
 			continue;
 
-		/* Lower core indices take precedence */ 
+		/* Lower core indices take precedence */
 		if (match != NULL && match_core_idx < match->core_idx)
 			continue;
 
@@ -833,7 +835,7 @@ bhndb_find_hostb_core(struct bhnd_core_info *cores, u_int ncores,
 
 /**
  * Allocate a host interrupt source and its backing SYS_RES_IRQ host resource.
- * 
+ *
  * @param owner	The device to be used to allocate a SYS_RES_IRQ
  *		resource with @p rid.
  * @param rid	The resource ID of the IRQ to be allocated.
@@ -841,7 +843,7 @@ bhndb_find_hostb_core(struct bhnd_core_info *cores, u_int ncores,
  * @param end	The end value to be passed to bus_alloc_resource().
  * @param count	The count to be passed to bus_alloc_resource().
  * @param flags	The flags to be passed to bus_alloc_resource().
- * 
+ *
  * @retval non-NULL	success
  * @retval NULL		if allocation fails.
  */
@@ -869,7 +871,7 @@ bhndb_alloc_intr_isrc(device_t owner, int rid, rman_res_t start, rman_res_t end,
 
 /**
  * Free a host interrupt source and its backing host resource.
- * 
+ *
  * @param isrc	The interrupt source to be freed.
  */
 void
@@ -882,11 +884,11 @@ bhndb_free_intr_isrc(struct bhndb_intr_isrc *isrc)
 
 /**
  * Allocate and initialize a new interrupt handler entry.
- * 
+ *
  * @param owner	The child device that owns this entry.
  * @param r	The child's interrupt resource.
  * @param isrc	The isrc mapped for this entry.
- * 
+ *
  * @retval non-NULL	success
  * @retval NULL		if allocation fails.
  */
@@ -915,15 +917,15 @@ bhndb_alloc_intr_handler(device_t owner, struct resource *r,
 void
 bhndb_free_intr_handler(struct bhndb_intr_handler *ih)
 {
-	KASSERT(!ih->ih_active, ("free of active interrupt handler %p",
-	    ih->ih_cookiep));
+	KASSERT(!ih->ih_active,
+	    ("free of active interrupt handler %p", ih->ih_cookiep));
 
 	free(ih, M_BHND);
 }
 
 /**
  * Add an active interrupt handler to the given resource state.
-  * 
+ *
  * @param br The resource state to be modified.
  * @param ih The interrupt handler entry to be added.
  */
@@ -931,8 +933,10 @@ void
 bhndb_register_intr_handler(struct bhndb_resources *br,
     struct bhndb_intr_handler *ih)
 {
-	KASSERT(!ih->ih_active, ("duplicate registration of interrupt "
-	    "handler %p", ih->ih_cookiep));
+	KASSERT(!ih->ih_active,
+	    ("duplicate registration of interrupt "
+	     "handler %p",
+		ih->ih_cookiep));
 	KASSERT(ih->ih_cookiep != NULL, ("missing cookiep"));
 
 	ih->ih_active = true;
@@ -941,7 +945,7 @@ bhndb_register_intr_handler(struct bhndb_resources *br,
 
 /**
  * Remove an interrupt handler from the given resource state.
- * 
+ *
  * @param br The resource state containing @p ih.
  * @param ih The interrupt handler entry to be removed.
  */
@@ -949,8 +953,10 @@ void
 bhndb_deregister_intr_handler(struct bhndb_resources *br,
     struct bhndb_intr_handler *ih)
 {
-	KASSERT(ih->ih_active, ("duplicate deregistration of interrupt "
-	    "handler %p", ih->ih_cookiep));
+	KASSERT(ih->ih_active,
+	    ("duplicate deregistration of interrupt "
+	     "handler %p",
+		ih->ih_cookiep));
 
 	KASSERT(bhndb_find_intr_handler(br, ih) == ih,
 	    ("unknown interrupt handler %p", ih));
@@ -962,7 +968,7 @@ bhndb_deregister_intr_handler(struct bhndb_resources *br,
 /**
  * Return the interrupt handler entry corresponding to @p cookiep, or NULL
  * if no entry is found.
- * 
+ *
  * @param br The resource state to search for the given @p cookiep.
  * @param cookiep The interrupt handler's bus-assigned cookiep value.
  */
@@ -971,7 +977,7 @@ bhndb_find_intr_handler(struct bhndb_resources *br, void *cookiep)
 {
 	struct bhndb_intr_handler *ih;
 
-	STAILQ_FOREACH(ih, &br->bus_intrs, ih_link) {
+	STAILQ_FOREACH (ih, &br->bus_intrs, ih_link) {
 		if (ih == cookiep)
 			return (ih);
 	}
@@ -982,16 +988,16 @@ bhndb_find_intr_handler(struct bhndb_resources *br, void *cookiep)
 
 /**
  * Find the maximum start and end limits of the bridged resource @p r.
- * 
+ *
  * If the resource is not currently mapped by the bridge, ENOENT will be
  * returned.
- * 
+ *
  * @param	br		The resource state to search.
  * @param	type The resource type (see SYS_RES_*).
  * @param	r The resource to search for in @p br.
  * @param[out]	start	On success, the minimum supported start address.
  * @param[out]	end	On success, the maximum supported end address.
- * 
+ *
  * @retval 0		success
  * @retval ENOENT	no active mapping found for @p r of @p type
  */
@@ -999,14 +1005,14 @@ int
 bhndb_find_resource_limits(struct bhndb_resources *br, int type,
     struct resource *r, rman_res_t *start, rman_res_t *end)
 {
-	struct bhndb_dw_alloc		*dynamic;
-	struct bhndb_region		*sregion;
-	struct bhndb_intr_handler	*ih;
+	struct bhndb_dw_alloc *dynamic;
+	struct bhndb_region *sregion;
+	struct bhndb_intr_handler *ih;
 
 	switch (type) {
 	case SYS_RES_IRQ:
 		/* Is this one of ours? */
-		STAILQ_FOREACH(ih, &br->bus_intrs, ih_link) {
+		STAILQ_FOREACH (ih, &br->bus_intrs, ih_link) {
 			if (ih->ih_res == r)
 				continue;
 
@@ -1029,7 +1035,7 @@ bhndb_find_resource_limits(struct bhndb_resources *br, int type,
 
 		/* Check for a static region */
 		sregion = bhndb_find_resource_region(br, rman_get_start(r),
-		rman_get_size(r));
+		    rman_get_size(r));
 		if (sregion != NULL && sregion->static_regwin != NULL) {
 			*start = sregion->addr;
 			*end = sregion->addr + sregion->size - 1;
@@ -1049,7 +1055,7 @@ bhndb_find_resource_limits(struct bhndb_resources *br, int type,
 
 /**
  * Add a bus region entry to @p r for the given base @p addr and @p size.
- * 
+ *
  * @param br The resource state to which the bus region entry will be added.
  * @param addr The base address of this region.
  * @param size The size of this region.
@@ -1058,7 +1064,7 @@ bhndb_find_resource_limits(struct bhndb_resources *br, int type,
  * @param alloc_flags resource allocation flags (@see bhndb_alloc_flags)
  * @param static_regwin If available, a static register window mapping this
  * bus region entry. If not available, NULL.
- * 
+ *
  * @retval 0 success
  * @retval non-zero if adding the bus region fails.
  */
@@ -1067,20 +1073,18 @@ bhndb_add_resource_region(struct bhndb_resources *br, bhnd_addr_t addr,
     bhnd_size_t size, bhndb_priority_t priority, uint32_t alloc_flags,
     const struct bhndb_regwin *static_regwin)
 {
-	struct bhndb_region	*reg;
+	struct bhndb_region *reg;
 
 	/* Insert in the bus resource list */
 	reg = malloc(sizeof(*reg), M_BHND, M_NOWAIT);
 	if (reg == NULL)
 		return (ENOMEM);
 
-	*reg = (struct bhndb_region) {
-		.addr = addr,
+	*reg = (struct bhndb_region) { .addr = addr,
 		.size = size,
 		.priority = priority,
 		.alloc_flags = alloc_flags,
-		.static_regwin = static_regwin
-	};
+		.static_regwin = static_regwin };
 
 	STAILQ_INSERT_HEAD(&br->bus_regions, reg, link);
 
@@ -1096,11 +1100,11 @@ bhndb_add_resource_region(struct bhndb_resources *br, bhnd_addr_t addr,
  * @param size The requested size.
  */
 bool
-bhndb_has_static_region_mapping(struct bhndb_resources *br,
-    bhnd_addr_t addr, bhnd_size_t size)
+bhndb_has_static_region_mapping(struct bhndb_resources *br, bhnd_addr_t addr,
+    bhnd_size_t size)
 {
-	struct bhndb_region	*region;
-	bhnd_addr_t		 r_addr;
+	struct bhndb_region *region;
+	bhnd_addr_t r_addr;
 
 	r_addr = addr;
 	while ((region = bhndb_find_resource_region(br, r_addr, 1)) != NULL) {
@@ -1122,11 +1126,11 @@ bhndb_has_static_region_mapping(struct bhndb_resources *br,
 
 /**
  * Find the bus region that maps @p size bytes at @p addr.
- * 
+ *
  * @param br The resource state to search.
  * @param addr The requested starting address.
  * @param size The requested size.
- * 
+ *
  * @retval bhndb_region A region that fully contains the requested range.
  * @retval NULL If no mapping region can be found.
  */
@@ -1136,7 +1140,7 @@ bhndb_find_resource_region(struct bhndb_resources *br, bhnd_addr_t addr,
 {
 	struct bhndb_region *region;
 
-	STAILQ_FOREACH(region, &br->bus_regions, link) {
+	STAILQ_FOREACH (region, &br->bus_regions, link) {
 		/* Request must fit within the region's mapping  */
 		if (addr < region->addr)
 			continue;
@@ -1153,24 +1157,23 @@ bhndb_find_resource_region(struct bhndb_resources *br, bhnd_addr_t addr,
 
 /**
  * Find the entry matching @p r in @p dwa's references, if any.
- * 
+ *
  * @param dwa The dynamic window allocation to search
  * @param r The resource to search for in @p dwa.
  */
 static struct bhndb_dw_rentry *
 bhndb_dw_find_resource_entry(struct bhndb_dw_alloc *dwa, struct resource *r)
 {
-	struct bhndb_dw_rentry	*rentry;
+	struct bhndb_dw_rentry *rentry;
 
-	LIST_FOREACH(rentry, &dwa->refs, dw_link) {
+	LIST_FOREACH (rentry, &dwa->refs, dw_link) {
 		struct resource *dw_res = rentry->dw_res;
 
 		/* Match dev/rid/addr/size */
-		if (rman_get_device(dw_res)	!= rman_get_device(r) ||
-			rman_get_rid(dw_res)	!= rman_get_rid(r) ||
-			rman_get_start(dw_res)	!= rman_get_start(r) ||
-			rman_get_size(dw_res)	!= rman_get_size(r))
-		{
+		if (rman_get_device(dw_res) != rman_get_device(r) ||
+		    rman_get_rid(dw_res) != rman_get_rid(r) ||
+		    rman_get_start(dw_res) != rman_get_start(r) ||
+		    rman_get_size(dw_res) != rman_get_size(r)) {
 			continue;
 		}
 
@@ -1183,17 +1186,17 @@ bhndb_dw_find_resource_entry(struct bhndb_dw_alloc *dwa, struct resource *r)
 
 /**
  * Find the dynamic region allocated for @p r, if any.
- * 
+ *
  * @param br The resource state to search.
  * @param r The resource to search for.
- * 
+ *
  * @retval bhndb_dw_alloc The allocation record for @p r.
  * @retval NULL if no dynamic window is allocated for @p r.
  */
 struct bhndb_dw_alloc *
 bhndb_dw_find_resource(struct bhndb_resources *br, struct resource *r)
 {
-	struct bhndb_dw_alloc	*dwa;
+	struct bhndb_dw_alloc *dwa;
 
 	for (size_t i = 0; i < br->dwa_count; i++) {
 		dwa = &br->dw_alloc[i];
@@ -1213,11 +1216,11 @@ bhndb_dw_find_resource(struct bhndb_resources *br, struct resource *r)
 /**
  * Find an existing dynamic window mapping @p size bytes
  * at @p addr. The window may or may not be free.
- * 
+ *
  * @param br The resource state to search.
  * @param addr The requested starting address.
  * @param size The requested size.
- * 
+ *
  * @retval bhndb_dw_alloc A window allocation that fully contains the requested
  * range.
  * @retval NULL If no mapping region can be found.
@@ -1226,8 +1229,8 @@ struct bhndb_dw_alloc *
 bhndb_dw_find_mapping(struct bhndb_resources *br, bhnd_addr_t addr,
     bhnd_size_t size)
 {
-	struct bhndb_dw_alloc		*dwr;
-	const struct bhndb_regwin	*win;
+	struct bhndb_dw_alloc *dwr;
+	const struct bhndb_regwin *win;
 
 	/* Search for an existing dynamic mapping of this address range. */
 	for (size_t i = 0; i < br->dwa_count; i++) {
@@ -1251,11 +1254,11 @@ bhndb_dw_find_mapping(struct bhndb_resources *br, bhnd_addr_t addr,
 
 /**
  * Retain a reference to @p dwa for use by @p res.
- * 
+ *
  * @param br The resource state owning @p dwa.
  * @param dwa The allocation record to be retained.
  * @param res The resource that will own a reference to @p dwa.
- * 
+ *
  * @retval 0 success
  * @retval ENOMEM Failed to allocate a new reference structure.
  */
@@ -1287,7 +1290,7 @@ bhndb_dw_retain(struct bhndb_resources *br, struct bhndb_dw_alloc *dwa,
  * Release a reference to @p dwa previously retained by @p res. If the
  * reference count of @p dwa reaches zero, it will be added to the
  * free list.
- * 
+ *
  * @param br The resource state owning @p dwa.
  * @param dwa The allocation record to be released.
  * @param res The resource that currently owns a reference to @p dwa.
@@ -1296,7 +1299,7 @@ void
 bhndb_dw_release(struct bhndb_resources *br, struct bhndb_dw_alloc *dwa,
     struct resource *r)
 {
-	struct bhndb_dw_rentry	*rentry;
+	struct bhndb_dw_rentry *rentry;
 
 	/* Find the rentry */
 	rentry = bhndb_dw_find_resource_entry(dwa, r);
@@ -1313,11 +1316,11 @@ bhndb_dw_release(struct bhndb_resources *br, struct bhndb_dw_alloc *dwa,
 /**
  * Attempt to set (or reset) the target address of @p dwa to map @p size bytes
  * at @p addr.
- * 
+ *
  * This will apply any necessary window alignment and verify that
  * the window is capable of mapping the requested range prior to modifying
  * therecord.
- * 
+ *
  * @param dev The device on which to issue the BHNDB_SET_WINDOW_ADDR() request.
  * @param br The resource state owning @p dwa.
  * @param dwa The allocation record to be configured.
@@ -1331,9 +1334,9 @@ int
 bhndb_dw_set_addr(device_t dev, struct bhndb_resources *br,
     struct bhndb_dw_alloc *dwa, bus_addr_t addr, bus_size_t size)
 {
-	const struct bhndb_regwin	*rw;
-	bus_addr_t			 offset;
-	int				 error;
+	const struct bhndb_regwin *rw;
+	bus_addr_t offset;
+	int error;
 
 	rw = dwa->win;
 
@@ -1361,17 +1364,17 @@ bhndb_dw_set_addr(device_t dev, struct bhndb_resources *br,
 /**
  * Steal an in-use allocation record from @p br, returning the record's current
  * target in @p saved on success.
- * 
+ *
  * This function acquires a mutex and disables interrupts; callers should
  * avoid holding a stolen window longer than required to issue an I/O
  * request.
- * 
+ *
  * A successful call to bhndb_dw_steal() must be balanced with a call to
  * bhndb_dw_return_stolen().
- * 
+ *
  * @param br The resource state from which a window should be stolen.
  * @param saved The stolen window's saved target address.
- * 
+ *
  * @retval non-NULL success
  * @retval NULL no dynamic window regions are defined.
  */
@@ -1390,7 +1393,7 @@ bhndb_dw_steal(struct bhndb_resources *br, bus_addr_t *saved)
 	/*
 	 * Acquire our steal spinlock; this will be released in
 	 * bhndb_dw_return_stolen().
-	 * 
+	 *
 	 * Acquiring also disables interrupts, which is required when one is
 	 * stealing an in-use existing register window.
 	 */
@@ -1428,17 +1431,16 @@ bhndb_dw_return_stolen(device_t dev, struct bhndb_resources *br,
 
 /**
  * Return the count of @p type register windows in @p table.
- * 
+ *
  * @param table The table to search.
  * @param type The required window type, or BHNDB_REGWIN_T_INVALID to
  * count all register window types.
  */
 size_t
-bhndb_regwin_count(const struct bhndb_regwin *table,
-    bhndb_regwin_type_t type)
+bhndb_regwin_count(const struct bhndb_regwin *table, bhndb_regwin_type_t type)
 {
-	const struct bhndb_regwin	*rw;
-	size_t				 count;
+	const struct bhndb_regwin *rw;
+	size_t count;
 
 	count = 0;
 	for (rw = table; rw->win_type != BHNDB_REGWIN_T_INVALID; rw++) {
@@ -1451,13 +1453,13 @@ bhndb_regwin_count(const struct bhndb_regwin *table,
 
 /**
  * Search @p table for the first window with the given @p type.
- * 
+ *
  * @param table The table to search.
  * @param type The required window type.
  * @param min_size The minimum window size.
- * 
+ *
  * @retval bhndb_regwin The first matching window.
- * @retval NULL If no window of the requested type could be found. 
+ * @retval NULL If no window of the requested type could be found.
  */
 const struct bhndb_regwin *
 bhndb_regwin_find_type(const struct bhndb_regwin *table,
@@ -1465,8 +1467,7 @@ bhndb_regwin_find_type(const struct bhndb_regwin *table,
 {
 	const struct bhndb_regwin *rw;
 
-	for (rw = table; rw->win_type != BHNDB_REGWIN_T_INVALID; rw++)
-	{
+	for (rw = table; rw->win_type != BHNDB_REGWIN_T_INVALID; rw++) {
 		if (rw->win_type == type && rw->win_size >= min_size)
 			return (rw);
 	}
@@ -1476,7 +1477,7 @@ bhndb_regwin_find_type(const struct bhndb_regwin *table,
 
 /**
  * Search @p windows for the first matching core window.
- * 
+ *
  * @param table The table to search.
  * @param class The required core class.
  * @param unit The required core unit, or -1.
@@ -1487,7 +1488,7 @@ bhndb_regwin_find_type(const struct bhndb_regwin *table,
  * @param min_size The required minimum readable size at @p offset.
  *
  * @retval bhndb_regwin The first matching window.
- * @retval NULL If no matching window was found. 
+ * @retval NULL If no matching window was found.
  */
 const struct bhndb_regwin *
 bhndb_regwin_find_core(const struct bhndb_regwin *table, bhnd_devclass_t class,
@@ -1496,8 +1497,7 @@ bhndb_regwin_find_core(const struct bhndb_regwin *table, bhnd_devclass_t class,
 {
 	const struct bhndb_regwin *rw;
 
-	for (rw = table; rw->win_type != BHNDB_REGWIN_T_INVALID; rw++)
-	{
+	for (rw = table; rw->win_type != BHNDB_REGWIN_T_INVALID; rw++) {
 		bus_size_t rw_offset;
 
 		/* Match on core, port, and region attributes */
@@ -1506,7 +1506,7 @@ bhndb_regwin_find_core(const struct bhndb_regwin *table, bhnd_devclass_t class,
 
 		if (rw->d.core.class != class)
 			continue;
-		
+
 		if (unit != -1 && rw->d.core.unit != unit)
 			continue;
 
@@ -1515,7 +1515,7 @@ bhndb_regwin_find_core(const struct bhndb_regwin *table, bhnd_devclass_t class,
 
 		if (rw->d.core.port != port)
 			continue;
-		
+
 		if (rw->d.core.region != region)
 			continue;
 
@@ -1540,11 +1540,11 @@ bhndb_regwin_find_core(const struct bhndb_regwin *table, bhnd_devclass_t class,
 
 /**
  * Search @p windows for the best available window of at least @p min_size.
- * 
+ *
  * Search order:
  * - BHND_REGWIN_T_CORE
  * - BHND_REGWIN_T_DYN
- * 
+ *
  * @param table The table to search.
  * @param class The required core class.
  * @param unit The required core unit, or -1.
@@ -1555,18 +1555,18 @@ bhndb_regwin_find_core(const struct bhndb_regwin *table, bhnd_devclass_t class,
  * @param min_size The required minimum readable size at @p offset.
  *
  * @retval bhndb_regwin The first matching window.
- * @retval NULL If no matching window was found. 
+ * @retval NULL If no matching window was found.
  */
 const struct bhndb_regwin *
-bhndb_regwin_find_best(const struct bhndb_regwin *table,
-    bhnd_devclass_t class, int unit, bhnd_port_type port_type, u_int port,
-    u_int region, bus_size_t offset, bus_size_t min_size)
+bhndb_regwin_find_best(const struct bhndb_regwin *table, bhnd_devclass_t class,
+    int unit, bhnd_port_type port_type, u_int port, u_int region,
+    bus_size_t offset, bus_size_t min_size)
 {
 	const struct bhndb_regwin *rw;
 
 	/* Prefer a fixed core mapping */
-	rw = bhndb_regwin_find_core(table, class, unit, port_type,
-	    port, region, offset, min_size);
+	rw = bhndb_regwin_find_core(table, class, unit, port_type, port, region,
+	    offset, min_size);
 	if (rw != NULL)
 		return (rw);
 
@@ -1577,7 +1577,7 @@ bhndb_regwin_find_best(const struct bhndb_regwin *table,
 /**
  * Return true if @p regw defines a BHNDB_REGWIN_T_CORE register window
  * that matches against @p core.
- * 
+ *
  * @param regw A register window to match against.
  * @param core The bhnd(4) core info to match against @p regw.
  */
@@ -1604,7 +1604,7 @@ bhndb_regwin_match_core(const struct bhndb_regwin *regw,
 /**
  * Search for a core resource priority descriptor in @p table that matches
  * @p core.
- * 
+ *
  * @param table The table to search.
  * @param core The core to match against @p table.
  */
@@ -1612,7 +1612,7 @@ const struct bhndb_hw_priority *
 bhndb_hw_priority_find_core(const struct bhndb_hw_priority *table,
     struct bhnd_core_info *core)
 {
-	const struct bhndb_hw_priority	*hp;
+	const struct bhndb_hw_priority *hp;
 
 	for (hp = table; hp->ports != NULL; hp++) {
 		if (bhnd_core_matches(core, &hp->match))
@@ -1625,7 +1625,7 @@ bhndb_hw_priority_find_core(const struct bhndb_hw_priority *table,
 
 /**
  * Search for a port resource priority descriptor in @p table.
- * 
+ *
  * @param table The table to search.
  * @param core The core to match against @p table.
  * @param port_type The required port type.
@@ -1637,7 +1637,7 @@ bhndb_hw_priorty_find_port(const struct bhndb_hw_priority *table,
     struct bhnd_core_info *core, bhnd_port_type port_type, u_int port,
     u_int region)
 {
-	const struct bhndb_hw_priority		*hp;
+	const struct bhndb_hw_priority *hp;
 
 	if ((hp = bhndb_hw_priority_find_core(table, core)) == NULL)
 		return (NULL);

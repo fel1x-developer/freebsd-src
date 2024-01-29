@@ -30,17 +30,17 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/param.h>
+#include <sys/disk/bsd.h>
+
+#include <efi.h>
 #include <stdarg.h>
 #include <stdbool.h>
 
-#include <sys/param.h>
-#include <sys/disk/bsd.h>
-#include <efi.h>
-
 #include "boot_module.h"
 
-#define BSD_LABEL_BUFFER	8192
-#define BSD_LABEL_OFFSET	DEV_BSIZE
+#define BSD_LABEL_BUFFER 8192
+#define BSD_LABEL_OFFSET DEV_BSIZE
 
 static dev_info_t *devinfo;
 static dev_info_t *devices;
@@ -60,9 +60,9 @@ dskread(void *buf, uint64_t lba, int nblk)
 
 	if (status != EFI_SUCCESS) {
 		DPRINTF("dskread: failed dev: %p, id: %u, lba: %ju, size: %d, "
-		    "status: %lu\n", devinfo->dev,
-		    devinfo->dev->Media->MediaId, (uintmax_t)lba, size,
-		    EFI_ERROR_CODE(status));
+			"status: %lu\n",
+		    devinfo->dev, devinfo->dev->Media->MediaId, (uintmax_t)lba,
+		    size, EFI_ERROR_CODE(status));
 		return (-1);
 	}
 
@@ -75,7 +75,7 @@ static struct dmadat __dmadat __aligned(512);
 static char ufs_buffer[BSD_LABEL_BUFFER] __aligned(512);
 
 static int
-init_dev(dev_info_t* dev)
+init_dev(dev_info_t *dev)
 {
 	struct disklabel *dl;
 	uint64_t bs;
@@ -123,7 +123,7 @@ init_dev(dev_info_t* dev)
 }
 
 static EFI_STATUS
-probe(dev_info_t* dev)
+probe(dev_info_t *dev)
 {
 
 	if (init_dev(dev) < 0)
@@ -166,8 +166,8 @@ load(const char *filepath, dev_info_t *dev, void **bufp, size_t *bufsize)
 
 	buf = malloc(size);
 	if (buf == NULL) {
-		printf("Failed to allocate read buffer %zu for '%s'\n",
-		    size, filepath);
+		printf("Failed to allocate read buffer %zu for '%s'\n", size,
+		    filepath);
 		return (EFI_OUT_OF_RESOURCES);
 	}
 
@@ -216,11 +216,8 @@ _devices(void)
 	return (devices);
 }
 
-const boot_module_t ufs_module =
-{
-	.name = "UFS",
+const boot_module_t ufs_module = { .name = "UFS",
 	.probe = probe,
 	.load = load,
 	.status = status,
-	.devices = _devices
-};
+	.devices = _devices };

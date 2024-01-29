@@ -12,7 +12,7 @@
  * no representations about the suitability of this software for any
  * purpose.  It is provided "as is" without express or implied
  * warranty.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY M.I.T. ``AS IS''.  M.I.T. DISCLAIMS
  * ALL EXPRESS OR IMPLIED WARRANTIES WITH REGARD TO THIS SOFTWARE,
  * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
@@ -33,14 +33,14 @@
 #include <machine/cpu.h>
 #include <machine/perfmon.h>
 
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <err.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <limits.h>
-#include <errno.h>
 
 static int getnum(const char *, int, int);
 static void usage(const char *) __dead2;
@@ -67,7 +67,7 @@ main(int argc, char **argv)
 	sleeptime = 0;
 
 	while ((c = getopt(argc, argv, "s:l:uoeiU:m:c:")) != -1) {
-		switch(c) {
+		switch (c) {
 		case 'u':
 			pmc.pmc_flags |= PMCF_USR;
 			break;
@@ -107,7 +107,7 @@ main(int argc, char **argv)
 
 	buf = malloc((loops + 1) * sizeof *buf);
 	if (!buf)
-		err(1, "malloc(%lu)", (unsigned long)(loops +1) * sizeof *buf);
+		err(1, "malloc(%lu)", (unsigned long)(loops + 1) * sizeof *buf);
 
 	fd = open(_PATH_PERFMON, O_RDWR, 0);
 	if (fd < 0)
@@ -156,7 +156,7 @@ main(int argc, char **argv)
 	printf("total: %f\nmean: %f\n", total, total / loops);
 
 	printf("clocks (at %d-MHz): %qd\n", now.pmct_rate,
-	       now.pmct_value - then.pmct_value);
+	    now.pmct_value - then.pmct_value);
 
 	return 0;
 }
@@ -171,11 +171,10 @@ getnum(const char *buf, int min, int max)
 	l = strtol(buf, &ep, 0);
 	if (*buf && !*ep && !errno) {
 		if (l < min || l > max) {
-			errx(1, "%s: must be between %d and %d", 
-			     buf, min, max);
+			errx(1, "%s: must be between %d and %d", buf, min, max);
 		}
 		return (int)l;
-	} 
+	}
 
 	errx(1, "%s: parameter must be an integer", buf);
 }
@@ -183,9 +182,9 @@ getnum(const char *buf, int min, int max)
 static void
 usage(const char *pname)
 {
-	fprintf(stderr, 
-	"usage: %s [-eiou] [-c command] [-l nloops] [-m mask] [-s sleeptime]\n"
-	"       [-U unit] counter\n",
-		pname);
+	fprintf(stderr,
+	    "usage: %s [-eiou] [-c command] [-l nloops] [-m mask] [-s sleeptime]\n"
+	    "       [-U unit] counter\n",
+	    pname);
 	exit(1);
 }

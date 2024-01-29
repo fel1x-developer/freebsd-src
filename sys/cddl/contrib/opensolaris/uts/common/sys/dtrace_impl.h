@@ -30,9 +30,9 @@
  */
 
 #ifndef _SYS_DTRACE_IMPL_H
-#define	_SYS_DTRACE_IMPL_H
+#define _SYS_DTRACE_IMPL_H
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -52,21 +52,21 @@ extern "C" {
 
 #ifndef illumos
 #ifdef __sparcv9
-typedef uint32_t		pc_t;
+typedef uint32_t pc_t;
 #else
-typedef uintptr_t		pc_t;
+typedef uintptr_t pc_t;
 #endif
-typedef	u_long			greg_t;
+typedef u_long greg_t;
 #endif
 
 /*
  * DTrace Implementation Constants and Typedefs
  */
-#define	DTRACE_MAXPROPLEN		128
-#define	DTRACE_DYNVAR_CHUNKSIZE		256
+#define DTRACE_MAXPROPLEN 128
+#define DTRACE_DYNVAR_CHUNKSIZE 256
 
 #ifdef __FreeBSD__
-#define	NCPU		MAXCPU
+#define NCPU MAXCPU
 #endif /* __FreeBSD__ */
 
 struct dtrace_probe;
@@ -109,53 +109,53 @@ typedef uint64_t dtrace_genid_t;
  * Enabling Control Blocks", below.)
  */
 struct dtrace_probe {
-	dtrace_id_t dtpr_id;			/* probe identifier */
-	dtrace_ecb_t *dtpr_ecb;			/* ECB list; see below */
-	dtrace_ecb_t *dtpr_ecb_last;		/* last ECB in list */
-	void *dtpr_arg;				/* provider argument */
-	dtrace_cacheid_t dtpr_predcache;	/* predicate cache ID */
-	int dtpr_aframes;			/* artificial frames */
-	dtrace_provider_t *dtpr_provider;	/* pointer to provider */
-	char *dtpr_mod;				/* probe's module name */
-	char *dtpr_func;			/* probe's function name */
-	char *dtpr_name;			/* probe's name */
-	dtrace_probe_t *dtpr_nextmod;		/* next in module hash */
-	dtrace_probe_t *dtpr_prevmod;		/* previous in module hash */
-	dtrace_probe_t *dtpr_nextfunc;		/* next in function hash */
-	dtrace_probe_t *dtpr_prevfunc;		/* previous in function hash */
-	dtrace_probe_t *dtpr_nextname;		/* next in name hash */
-	dtrace_probe_t *dtpr_prevname;		/* previous in name hash */
-	dtrace_genid_t dtpr_gen;		/* probe generation ID */
+	dtrace_id_t dtpr_id;		  /* probe identifier */
+	dtrace_ecb_t *dtpr_ecb;		  /* ECB list; see below */
+	dtrace_ecb_t *dtpr_ecb_last;	  /* last ECB in list */
+	void *dtpr_arg;			  /* provider argument */
+	dtrace_cacheid_t dtpr_predcache;  /* predicate cache ID */
+	int dtpr_aframes;		  /* artificial frames */
+	dtrace_provider_t *dtpr_provider; /* pointer to provider */
+	char *dtpr_mod;			  /* probe's module name */
+	char *dtpr_func;		  /* probe's function name */
+	char *dtpr_name;		  /* probe's name */
+	dtrace_probe_t *dtpr_nextmod;	  /* next in module hash */
+	dtrace_probe_t *dtpr_prevmod;	  /* previous in module hash */
+	dtrace_probe_t *dtpr_nextfunc;	  /* next in function hash */
+	dtrace_probe_t *dtpr_prevfunc;	  /* previous in function hash */
+	dtrace_probe_t *dtpr_nextname;	  /* next in name hash */
+	dtrace_probe_t *dtpr_prevname;	  /* previous in name hash */
+	dtrace_genid_t dtpr_gen;	  /* probe generation ID */
 };
 
 typedef int dtrace_probekey_f(const char *, const char *, int);
 
 typedef struct dtrace_probekey {
-	char *dtpk_prov;			/* provider name to match */
-	dtrace_probekey_f *dtpk_pmatch;		/* provider matching function */
-	char *dtpk_mod;				/* module name to match */
-	dtrace_probekey_f *dtpk_mmatch;		/* module matching function */
-	char *dtpk_func;			/* func name to match */
-	dtrace_probekey_f *dtpk_fmatch;		/* func matching function */
-	char *dtpk_name;			/* name to match */
-	dtrace_probekey_f *dtpk_nmatch;		/* name matching function */
-	dtrace_id_t dtpk_id;			/* identifier to match */
+	char *dtpk_prov;		/* provider name to match */
+	dtrace_probekey_f *dtpk_pmatch; /* provider matching function */
+	char *dtpk_mod;			/* module name to match */
+	dtrace_probekey_f *dtpk_mmatch; /* module matching function */
+	char *dtpk_func;		/* func name to match */
+	dtrace_probekey_f *dtpk_fmatch; /* func matching function */
+	char *dtpk_name;		/* name to match */
+	dtrace_probekey_f *dtpk_nmatch; /* name matching function */
+	dtrace_id_t dtpk_id;		/* identifier to match */
 } dtrace_probekey_t;
 
 typedef struct dtrace_hashbucket {
-	struct dtrace_hashbucket *dthb_next;	/* next on hash chain */
-	dtrace_probe_t *dthb_chain;		/* chain of probes */
-	int dthb_len;				/* number of probes here */
+	struct dtrace_hashbucket *dthb_next; /* next on hash chain */
+	dtrace_probe_t *dthb_chain;	     /* chain of probes */
+	int dthb_len;			     /* number of probes here */
 } dtrace_hashbucket_t;
 
 typedef struct dtrace_hash {
-	dtrace_hashbucket_t **dth_tab;		/* hash table */
-	int dth_size;				/* size of hash table */
-	int dth_mask;				/* mask to index into table */
-	int dth_nbuckets;			/* total number of buckets */
-	uintptr_t dth_nextoffs;			/* offset of next in probe */
-	uintptr_t dth_prevoffs;			/* offset of prev in probe */
-	uintptr_t dth_stroffs;			/* offset of str in probe */
+	dtrace_hashbucket_t **dth_tab; /* hash table */
+	int dth_size;		       /* size of hash table */
+	int dth_mask;		       /* mask to index into table */
+	int dth_nbuckets;	       /* total number of buckets */
+	uintptr_t dth_nextoffs;	       /* offset of next in probe */
+	uintptr_t dth_prevoffs;	       /* offset of prev in probe */
+	uintptr_t dth_stroffs;	       /* offset of str in probe */
 } dtrace_hash_t;
 
 /*
@@ -222,44 +222,44 @@ typedef struct dtrace_hash {
  * the buffer.  This space is used for both recorded data and tuple data.
  */
 struct dtrace_ecb {
-	dtrace_epid_t dte_epid;			/* enabled probe ID */
-	uint32_t dte_alignment;			/* required alignment */
-	size_t dte_needed;			/* space needed for execution */
-	size_t dte_size;			/* size of recorded payload */
-	dtrace_predicate_t *dte_predicate;	/* predicate, if any */
-	dtrace_action_t *dte_action;		/* actions, if any */
-	dtrace_ecb_t *dte_next;			/* next ECB on probe */
-	dtrace_state_t *dte_state;		/* pointer to state */
-	uint32_t dte_cond;			/* security condition */
-	dtrace_probe_t *dte_probe;		/* pointer to probe */
-	dtrace_action_t *dte_action_last;	/* last action on ECB */
-	uint64_t dte_uarg;			/* library argument */
+	dtrace_epid_t dte_epid;		   /* enabled probe ID */
+	uint32_t dte_alignment;		   /* required alignment */
+	size_t dte_needed;		   /* space needed for execution */
+	size_t dte_size;		   /* size of recorded payload */
+	dtrace_predicate_t *dte_predicate; /* predicate, if any */
+	dtrace_action_t *dte_action;	   /* actions, if any */
+	dtrace_ecb_t *dte_next;		   /* next ECB on probe */
+	dtrace_state_t *dte_state;	   /* pointer to state */
+	uint32_t dte_cond;		   /* security condition */
+	dtrace_probe_t *dte_probe;	   /* pointer to probe */
+	dtrace_action_t *dte_action_last;  /* last action on ECB */
+	uint64_t dte_uarg;		   /* library argument */
 };
 
 struct dtrace_predicate {
-	dtrace_difo_t *dtp_difo;		/* DIF object */
-	dtrace_cacheid_t dtp_cacheid;		/* cache identifier */
-	int dtp_refcnt;				/* reference count */
+	dtrace_difo_t *dtp_difo;      /* DIF object */
+	dtrace_cacheid_t dtp_cacheid; /* cache identifier */
+	int dtp_refcnt;		      /* reference count */
 };
 
 struct dtrace_action {
-	dtrace_actkind_t dta_kind;		/* kind of action */
-	uint16_t dta_intuple;			/* boolean:  in aggregation */
-	uint32_t dta_refcnt;			/* reference count */
-	dtrace_difo_t *dta_difo;		/* pointer to DIFO */
-	dtrace_recdesc_t dta_rec;		/* record description */
-	dtrace_action_t *dta_prev;		/* previous action */
-	dtrace_action_t *dta_next;		/* next action */
+	dtrace_actkind_t dta_kind; /* kind of action */
+	uint16_t dta_intuple;	   /* boolean:  in aggregation */
+	uint32_t dta_refcnt;	   /* reference count */
+	dtrace_difo_t *dta_difo;   /* pointer to DIFO */
+	dtrace_recdesc_t dta_rec;  /* record description */
+	dtrace_action_t *dta_prev; /* previous action */
+	dtrace_action_t *dta_next; /* next action */
 };
 
 typedef struct dtrace_aggregation {
-	dtrace_action_t dtag_action;		/* action; must be first */
-	dtrace_aggid_t dtag_id;			/* identifier */
-	dtrace_ecb_t *dtag_ecb;			/* corresponding ECB */
-	dtrace_action_t *dtag_first;		/* first action in tuple */
-	uint32_t dtag_base;			/* base of aggregation */
-	uint8_t dtag_hasarg;			/* boolean:  has argument */
-	uint64_t dtag_initial;			/* initial value */
+	dtrace_action_t dtag_action; /* action; must be first */
+	dtrace_aggid_t dtag_id;	     /* identifier */
+	dtrace_ecb_t *dtag_ecb;	     /* corresponding ECB */
+	dtrace_action_t *dtag_first; /* first action in tuple */
+	uint32_t dtag_base;	     /* base of aggregation */
+	uint8_t dtag_hasarg;	     /* boolean:  has argument */
+	uint64_t dtag_initial;	     /* initial value */
 	void (*dtag_aggregate)(uint64_t *, uint64_t, uint64_t);
 } dtrace_aggregation_t;
 
@@ -419,34 +419,34 @@ typedef struct dtrace_aggregation {
  * valid data.  Ring buffers therefore have their own dedicated scratch buffer
  * from which scratch is allocated.
  */
-#define	DTRACEBUF_RING		0x0001		/* bufpolicy set to "ring" */
-#define	DTRACEBUF_FILL		0x0002		/* bufpolicy set to "fill" */
-#define	DTRACEBUF_NOSWITCH	0x0004		/* do not switch buffer */
-#define	DTRACEBUF_WRAPPED	0x0008		/* ring buffer has wrapped */
-#define	DTRACEBUF_DROPPED	0x0010		/* drops occurred */
-#define	DTRACEBUF_ERROR		0x0020		/* errors occurred */
-#define	DTRACEBUF_FULL		0x0040		/* "fill" buffer is full */
-#define	DTRACEBUF_CONSUMED	0x0080		/* buffer has been consumed */
-#define	DTRACEBUF_INACTIVE	0x0100		/* buffer is not yet active */
+#define DTRACEBUF_RING 0x0001	  /* bufpolicy set to "ring" */
+#define DTRACEBUF_FILL 0x0002	  /* bufpolicy set to "fill" */
+#define DTRACEBUF_NOSWITCH 0x0004 /* do not switch buffer */
+#define DTRACEBUF_WRAPPED 0x0008  /* ring buffer has wrapped */
+#define DTRACEBUF_DROPPED 0x0010  /* drops occurred */
+#define DTRACEBUF_ERROR 0x0020	  /* errors occurred */
+#define DTRACEBUF_FULL 0x0040	  /* "fill" buffer is full */
+#define DTRACEBUF_CONSUMED 0x0080 /* buffer has been consumed */
+#define DTRACEBUF_INACTIVE 0x0100 /* buffer is not yet active */
 
 typedef struct dtrace_buffer {
-	uint64_t dtb_offset;			/* current offset in buffer */
-	uint64_t dtb_size;			/* size of buffer */
-	uint32_t dtb_flags;			/* flags */
-	uint32_t dtb_drops;			/* number of drops */
-	caddr_t dtb_tomax;			/* active buffer */
-	caddr_t dtb_xamot;			/* inactive buffer */
-	uint32_t dtb_xamot_flags;		/* inactive flags */
-	uint32_t dtb_xamot_drops;		/* drops in inactive buffer */
-	uint64_t dtb_xamot_offset;		/* offset in inactive buffer */
-	uint32_t dtb_errors;			/* number of errors */
-	uint32_t dtb_xamot_errors;		/* errors in inactive buffer */
+	uint64_t dtb_offset;	   /* current offset in buffer */
+	uint64_t dtb_size;	   /* size of buffer */
+	uint32_t dtb_flags;	   /* flags */
+	uint32_t dtb_drops;	   /* number of drops */
+	caddr_t dtb_tomax;	   /* active buffer */
+	caddr_t dtb_xamot;	   /* inactive buffer */
+	uint32_t dtb_xamot_flags;  /* inactive flags */
+	uint32_t dtb_xamot_drops;  /* drops in inactive buffer */
+	uint64_t dtb_xamot_offset; /* offset in inactive buffer */
+	uint32_t dtb_errors;	   /* number of errors */
+	uint32_t dtb_xamot_errors; /* errors in inactive buffer */
 #ifndef _LP64
-	uint64_t dtb_pad1;			/* pad out to 64 bytes */
+	uint64_t dtb_pad1; /* pad out to 64 bytes */
 #endif
-	uint64_t dtb_switched;			/* time of last switch */
-	uint64_t dtb_interval;			/* observed switch interval */
-	uint64_t dtb_pad2[6];			/* pad to avoid false sharing */
+	uint64_t dtb_switched; /* time of last switch */
+	uint64_t dtb_interval; /* observed switch interval */
+	uint64_t dtb_pad2[6];  /* pad to avoid false sharing */
 } dtrace_buffer_t;
 
 /*
@@ -506,17 +506,17 @@ typedef struct dtrace_buffer {
  * assertion will fail in dtrace_aggregate().)
  */
 typedef struct dtrace_aggkey {
-	uint32_t dtak_hashval;			/* hash value */
-	uint32_t dtak_action:4;			/* action -- 4 bits */
-	uint32_t dtak_size:28;			/* size -- 28 bits */
-	caddr_t dtak_data;			/* data pointer */
-	struct dtrace_aggkey *dtak_next;	/* next in hash chain */
+	uint32_t dtak_hashval;		 /* hash value */
+	uint32_t dtak_action : 4;	 /* action -- 4 bits */
+	uint32_t dtak_size : 28;	 /* size -- 28 bits */
+	caddr_t dtak_data;		 /* data pointer */
+	struct dtrace_aggkey *dtak_next; /* next in hash chain */
 } dtrace_aggkey_t;
 
 typedef struct dtrace_aggbuffer {
-	uintptr_t dtagb_hashsize;		/* number of buckets */
-	uintptr_t dtagb_free;			/* free list of keys */
-	dtrace_aggkey_t **dtagb_hash;		/* hash table */
+	uintptr_t dtagb_hashsize;     /* number of buckets */
+	uintptr_t dtagb_free;	      /* free list of keys */
+	dtrace_aggkey_t **dtagb_hash; /* hash table */
 } dtrace_aggbuffer_t;
 
 /*
@@ -583,9 +583,9 @@ typedef enum dtrace_speculation_state {
 } dtrace_speculation_state_t;
 
 typedef struct dtrace_speculation {
-	dtrace_speculation_state_t dtsp_state;	/* current speculation state */
-	int dtsp_cleaning;			/* non-zero if being cleaned */
-	dtrace_buffer_t *dtsp_buffer;		/* speculative buffer */
+	dtrace_speculation_state_t dtsp_state; /* current speculation state */
+	int dtsp_cleaning;		       /* non-zero if being cleaned */
+	dtrace_buffer_t *dtsp_buffer;	       /* speculative buffer */
 } dtrace_speculation_t;
 
 /*
@@ -783,21 +783,21 @@ typedef struct dtrace_speculation {
  * emulation code, the hash bucket is unlocked.
  */
 typedef struct dtrace_key {
-	uint64_t dttk_value;			/* data value or data pointer */
-	uint64_t dttk_size;			/* 0 if by-val, >0 if by-ref */
+	uint64_t dttk_value; /* data value or data pointer */
+	uint64_t dttk_size;  /* 0 if by-val, >0 if by-ref */
 } dtrace_key_t;
 
 typedef struct dtrace_tuple {
-	uint32_t dtt_nkeys;			/* number of keys in tuple */
-	uint32_t dtt_pad;			/* padding */
-	dtrace_key_t dtt_key[1];		/* array of tuple keys */
+	uint32_t dtt_nkeys;	 /* number of keys in tuple */
+	uint32_t dtt_pad;	 /* padding */
+	dtrace_key_t dtt_key[1]; /* array of tuple keys */
 } dtrace_tuple_t;
 
 typedef struct dtrace_dynvar {
-	uint64_t dtdv_hashval;			/* hash value -- 0 if free */
-	struct dtrace_dynvar *dtdv_next;	/* next on list or hash chain */
-	void *dtdv_data;			/* pointer to data */
-	dtrace_tuple_t dtdv_tuple;		/* tuple key */
+	uint64_t dtdv_hashval;		 /* hash value -- 0 if free */
+	struct dtrace_dynvar *dtdv_next; /* next on list or hash chain */
+	void *dtdv_data;		 /* pointer to data */
+	dtrace_tuple_t dtdv_tuple;	 /* tuple key */
 } dtrace_dynvar_t;
 
 typedef enum dtrace_dynvar_op {
@@ -807,27 +807,27 @@ typedef enum dtrace_dynvar_op {
 } dtrace_dynvar_op_t;
 
 typedef struct dtrace_dynhash {
-	dtrace_dynvar_t *dtdh_chain;		/* hash chain for this bucket */
-	uintptr_t dtdh_lock;			/* deallocation lock */
+	dtrace_dynvar_t *dtdh_chain; /* hash chain for this bucket */
+	uintptr_t dtdh_lock;	     /* deallocation lock */
 #ifdef _LP64
-	uintptr_t dtdh_pad[6];			/* pad to avoid false sharing */
+	uintptr_t dtdh_pad[6]; /* pad to avoid false sharing */
 #else
-	uintptr_t dtdh_pad[14];			/* pad to avoid false sharing */
+	uintptr_t dtdh_pad[14]; /* pad to avoid false sharing */
 #endif
 } dtrace_dynhash_t;
 
 typedef struct dtrace_dstate_percpu {
-	dtrace_dynvar_t *dtdsc_free;		/* free list for this CPU */
-	dtrace_dynvar_t *dtdsc_dirty;		/* dirty list for this CPU */
-	dtrace_dynvar_t *dtdsc_rinsing;		/* rinsing list for this CPU */
-	dtrace_dynvar_t *dtdsc_clean;		/* clean list for this CPU */
-	uint64_t dtdsc_drops;			/* number of capacity drops */
-	uint64_t dtdsc_dirty_drops;		/* number of dirty drops */
-	uint64_t dtdsc_rinsing_drops;		/* number of rinsing drops */
+	dtrace_dynvar_t *dtdsc_free;	/* free list for this CPU */
+	dtrace_dynvar_t *dtdsc_dirty;	/* dirty list for this CPU */
+	dtrace_dynvar_t *dtdsc_rinsing; /* rinsing list for this CPU */
+	dtrace_dynvar_t *dtdsc_clean;	/* clean list for this CPU */
+	uint64_t dtdsc_drops;		/* number of capacity drops */
+	uint64_t dtdsc_dirty_drops;	/* number of dirty drops */
+	uint64_t dtdsc_rinsing_drops;	/* number of rinsing drops */
 #ifdef _LP64
-	uint64_t dtdsc_pad;			/* pad to avoid false sharing */
+	uint64_t dtdsc_pad; /* pad to avoid false sharing */
 #else
-	uint64_t dtdsc_pad[2];			/* pad to avoid false sharing */
+	uint64_t dtdsc_pad[2]; /* pad to avoid false sharing */
 #endif
 } dtrace_dstate_percpu_t;
 
@@ -839,13 +839,13 @@ typedef enum dtrace_dstate_state {
 } dtrace_dstate_state_t;
 
 typedef struct dtrace_dstate {
-	void *dtds_base;			/* base of dynamic var. space */
-	size_t dtds_size;			/* size of dynamic var. space */
-	size_t dtds_hashsize;			/* number of buckets in hash */
-	size_t dtds_chunksize;			/* size of each chunk */
-	dtrace_dynhash_t *dtds_hash;		/* pointer to hash table */
-	dtrace_dstate_state_t dtds_state;	/* current dynamic var. state */
-	dtrace_dstate_percpu_t *dtds_percpu;	/* per-CPU dyn. var. state */
+	void *dtds_base;		     /* base of dynamic var. space */
+	size_t dtds_size;		     /* size of dynamic var. space */
+	size_t dtds_hashsize;		     /* number of buckets in hash */
+	size_t dtds_chunksize;		     /* size of each chunk */
+	dtrace_dynhash_t *dtds_hash;	     /* pointer to hash table */
+	dtrace_dstate_state_t dtds_state;    /* current dynamic var. state */
+	dtrace_dstate_percpu_t *dtds_percpu; /* per-CPU dyn. var. state */
 } dtrace_dstate_t;
 
 /*
@@ -881,21 +881,21 @@ typedef struct dtrace_dstate {
  *    dynamically-allocated DIFV_SCOPE_GLOBAL variables.
  */
 typedef struct dtrace_statvar {
-	uint64_t dtsv_data;			/* data or pointer to it */
-	size_t dtsv_size;			/* size of pointed-to data */
-	int dtsv_refcnt;			/* reference count */
-	dtrace_difv_t dtsv_var;			/* variable metadata */
+	uint64_t dtsv_data;	/* data or pointer to it */
+	size_t dtsv_size;	/* size of pointed-to data */
+	int dtsv_refcnt;	/* reference count */
+	dtrace_difv_t dtsv_var; /* variable metadata */
 } dtrace_statvar_t;
 
 typedef struct dtrace_vstate {
-	dtrace_state_t *dtvs_state;		/* back pointer to state */
-	dtrace_statvar_t **dtvs_globals;	/* statically-allocated glbls */
-	int dtvs_nglobals;			/* number of globals */
-	dtrace_difv_t *dtvs_tlocals;		/* thread-local metadata */
-	int dtvs_ntlocals;			/* number of thread-locals */
-	dtrace_statvar_t **dtvs_locals;		/* clause-local data */
-	int dtvs_nlocals;			/* number of clause-locals */
-	dtrace_dstate_t dtvs_dynvars;		/* dynamic variable state */
+	dtrace_state_t *dtvs_state;	 /* back pointer to state */
+	dtrace_statvar_t **dtvs_globals; /* statically-allocated glbls */
+	int dtvs_nglobals;		 /* number of globals */
+	dtrace_difv_t *dtvs_tlocals;	 /* thread-local metadata */
+	int dtvs_ntlocals;		 /* number of thread-locals */
+	dtrace_statvar_t **dtvs_locals;	 /* clause-local data */
+	int dtvs_nlocals;		 /* number of clause-locals */
+	dtrace_dstate_t dtvs_dynvars;	 /* dynamic variable state */
 } dtrace_vstate_t;
 
 /*
@@ -907,52 +907,51 @@ typedef struct dtrace_vstate {
  * much of it is not specific to any DTrace consumer, remaining valid across
  * all ECBs.  This state is tracked in the dtrace_mstate structure.
  */
-#define	DTRACE_MSTATE_ARGS		0x00000001
-#define	DTRACE_MSTATE_PROBE		0x00000002
-#define	DTRACE_MSTATE_EPID		0x00000004
-#define	DTRACE_MSTATE_TIMESTAMP		0x00000008
-#define	DTRACE_MSTATE_STACKDEPTH	0x00000010
-#define	DTRACE_MSTATE_CALLER		0x00000020
-#define	DTRACE_MSTATE_IPL		0x00000040
-#define	DTRACE_MSTATE_FLTOFFS		0x00000080
-#define	DTRACE_MSTATE_WALLTIMESTAMP	0x00000100
-#define	DTRACE_MSTATE_USTACKDEPTH	0x00000200
-#define	DTRACE_MSTATE_UCALLER		0x00000400
+#define DTRACE_MSTATE_ARGS 0x00000001
+#define DTRACE_MSTATE_PROBE 0x00000002
+#define DTRACE_MSTATE_EPID 0x00000004
+#define DTRACE_MSTATE_TIMESTAMP 0x00000008
+#define DTRACE_MSTATE_STACKDEPTH 0x00000010
+#define DTRACE_MSTATE_CALLER 0x00000020
+#define DTRACE_MSTATE_IPL 0x00000040
+#define DTRACE_MSTATE_FLTOFFS 0x00000080
+#define DTRACE_MSTATE_WALLTIMESTAMP 0x00000100
+#define DTRACE_MSTATE_USTACKDEPTH 0x00000200
+#define DTRACE_MSTATE_UCALLER 0x00000400
 
 typedef struct dtrace_mstate {
-	uintptr_t dtms_scratch_base;		/* base of scratch space */
-	uintptr_t dtms_scratch_ptr;		/* current scratch pointer */
-	size_t dtms_scratch_size;		/* scratch size */
-	uint32_t dtms_present;			/* variables that are present */
-	uint64_t dtms_arg[5];			/* cached arguments */
-	dtrace_epid_t dtms_epid;		/* current EPID */
-	uint64_t dtms_timestamp;		/* cached timestamp */
-	hrtime_t dtms_walltimestamp;		/* cached wall timestamp */
-	int dtms_stackdepth;			/* cached stackdepth */
-	int dtms_ustackdepth;			/* cached ustackdepth */
-	struct dtrace_probe *dtms_probe;	/* current probe */
-	uintptr_t dtms_caller;			/* cached caller */
-	uint64_t dtms_ucaller;			/* cached user-level caller */
-	int dtms_ipl;				/* cached interrupt pri lev */
-	int dtms_fltoffs;			/* faulting DIFO offset */
-	uintptr_t dtms_strtok;			/* saved strtok() pointer */
-	uintptr_t dtms_strtok_limit;		/* upper bound of strtok ptr */
-	uint32_t dtms_access;			/* memory access rights */
-	dtrace_difo_t *dtms_difo;		/* current dif object */
-	file_t *dtms_getf;			/* cached rval of getf() */
+	uintptr_t dtms_scratch_base;	 /* base of scratch space */
+	uintptr_t dtms_scratch_ptr;	 /* current scratch pointer */
+	size_t dtms_scratch_size;	 /* scratch size */
+	uint32_t dtms_present;		 /* variables that are present */
+	uint64_t dtms_arg[5];		 /* cached arguments */
+	dtrace_epid_t dtms_epid;	 /* current EPID */
+	uint64_t dtms_timestamp;	 /* cached timestamp */
+	hrtime_t dtms_walltimestamp;	 /* cached wall timestamp */
+	int dtms_stackdepth;		 /* cached stackdepth */
+	int dtms_ustackdepth;		 /* cached ustackdepth */
+	struct dtrace_probe *dtms_probe; /* current probe */
+	uintptr_t dtms_caller;		 /* cached caller */
+	uint64_t dtms_ucaller;		 /* cached user-level caller */
+	int dtms_ipl;			 /* cached interrupt pri lev */
+	int dtms_fltoffs;		 /* faulting DIFO offset */
+	uintptr_t dtms_strtok;		 /* saved strtok() pointer */
+	uintptr_t dtms_strtok_limit;	 /* upper bound of strtok ptr */
+	uint32_t dtms_access;		 /* memory access rights */
+	dtrace_difo_t *dtms_difo;	 /* current dif object */
+	file_t *dtms_getf;		 /* cached rval of getf() */
 } dtrace_mstate_t;
 
-#define	DTRACE_COND_OWNER	0x1
-#define	DTRACE_COND_USERMODE	0x2
-#define	DTRACE_COND_ZONEOWNER	0x4
+#define DTRACE_COND_OWNER 0x1
+#define DTRACE_COND_USERMODE 0x2
+#define DTRACE_COND_ZONEOWNER 0x4
 
-#define	DTRACE_PROBEKEY_MAXDEPTH	8	/* max glob recursion depth */
+#define DTRACE_PROBEKEY_MAXDEPTH 8 /* max glob recursion depth */
 
 /*
  * Access flag used by dtrace_mstate.dtms_access.
  */
-#define	DTRACE_ACCESS_KERNEL	0x1		/* the priv to read kmem */
-
+#define DTRACE_ACCESS_KERNEL 0x1 /* the priv to read kmem */
 
 /*
  * DTrace Activity
@@ -997,13 +996,13 @@ typedef struct dtrace_mstate {
  * the DTrace pseudodevice.
  */
 typedef enum dtrace_activity {
-	DTRACE_ACTIVITY_INACTIVE = 0,		/* not yet running */
-	DTRACE_ACTIVITY_WARMUP,			/* while starting */
-	DTRACE_ACTIVITY_ACTIVE,			/* running */
-	DTRACE_ACTIVITY_DRAINING,		/* before stopping */
-	DTRACE_ACTIVITY_COOLDOWN,		/* while stopping */
-	DTRACE_ACTIVITY_STOPPED,		/* after stopping */
-	DTRACE_ACTIVITY_KILLED			/* killed */
+	DTRACE_ACTIVITY_INACTIVE = 0, /* not yet running */
+	DTRACE_ACTIVITY_WARMUP,	      /* while starting */
+	DTRACE_ACTIVITY_ACTIVE,	      /* running */
+	DTRACE_ACTIVITY_DRAINING,     /* before stopping */
+	DTRACE_ACTIVITY_COOLDOWN,     /* while stopping */
+	DTRACE_ACTIVITY_STOPPED,      /* after stopping */
+	DTRACE_ACTIVITY_KILLED	      /* killed */
 } dtrace_activity_t;
 
 /*
@@ -1020,27 +1019,27 @@ typedef enum dtrace_activity {
  * helpers are _duplicated_ across fork(2), and destroyed on exec(2).  No more
  * than dtrace_helpers_max are allowed per-process.
  */
-#define	DTRACE_HELPER_ACTION_USTACK	0
-#define	DTRACE_NHELPER_ACTIONS		1
+#define DTRACE_HELPER_ACTION_USTACK 0
+#define DTRACE_NHELPER_ACTIONS 1
 
 typedef struct dtrace_helper_action {
 	int dtha_generation;			/* helper action generation */
 	int dtha_nactions;			/* number of actions */
 	dtrace_difo_t *dtha_predicate;		/* helper action predicate */
 	dtrace_difo_t **dtha_actions;		/* array of actions */
-	struct dtrace_helper_action *dtha_next;	/* next helper action */
+	struct dtrace_helper_action *dtha_next; /* next helper action */
 } dtrace_helper_action_t;
 
 typedef struct dtrace_helper_provider {
-	int dthp_generation;			/* helper provider generation */
-	uint32_t dthp_ref;			/* reference count */
-	dof_helper_t dthp_prov;			/* DOF w/ provider and probes */
+	int dthp_generation;	/* helper provider generation */
+	uint32_t dthp_ref;	/* reference count */
+	dof_helper_t dthp_prov; /* DOF w/ provider and probes */
 } dtrace_helper_provider_t;
 
 typedef struct dtrace_helpers {
-	dtrace_helper_action_t **dthps_actions;	/* array of helper actions */
+	dtrace_helper_action_t **dthps_actions; /* array of helper actions */
 	dtrace_vstate_t dthps_vstate;		/* helper action var. state */
-	dtrace_helper_provider_t **dthps_provs;	/* array of providers */
+	dtrace_helper_provider_t **dthps_provs; /* array of providers */
 	uint_t dthps_nprovs;			/* count of providers */
 	uint_t dthps_maxprovs;			/* provider array size */
 	int dthps_generation;			/* current generation */
@@ -1062,18 +1061,18 @@ typedef struct dtrace_helpers {
  * The ring buffer may be displayed in a human-readable format with the
  * ::dtrace_helptrace mdb(1) dcmd.
  */
-#define	DTRACE_HELPTRACE_NEXT	(-1)
-#define	DTRACE_HELPTRACE_DONE	(-2)
-#define	DTRACE_HELPTRACE_ERR	(-3)
+#define DTRACE_HELPTRACE_NEXT (-1)
+#define DTRACE_HELPTRACE_DONE (-2)
+#define DTRACE_HELPTRACE_ERR (-3)
 
 typedef struct dtrace_helptrace {
-	dtrace_helper_action_t	*dtht_helper;	/* helper action */
-	int dtht_where;				/* where in helper action */
-	int dtht_nlocals;			/* number of locals */
-	int dtht_fault;				/* type of fault (if any) */
-	int dtht_fltoffs;			/* DIF offset */
-	uint64_t dtht_illval;			/* faulting value */
-	uint64_t dtht_locals[1];		/* local variables */
+	dtrace_helper_action_t *dtht_helper; /* helper action */
+	int dtht_where;			     /* where in helper action */
+	int dtht_nlocals;		     /* number of locals */
+	int dtht_fault;			     /* type of fault (if any) */
+	int dtht_fltoffs;		     /* DIF offset */
+	uint64_t dtht_illval;		     /* faulting value */
+	uint64_t dtht_locals[1];	     /* local variables */
 } dtrace_helptrace_t;
 
 /*
@@ -1086,34 +1085,33 @@ typedef struct dtrace_helptrace {
  * can limit the consumer's breadth of visibility and what actions the
  * consumer may take.
  */
-#define	DTRACE_CRV_ALLPROC		0x01
-#define	DTRACE_CRV_KERNEL		0x02
-#define	DTRACE_CRV_ALLZONE		0x04
+#define DTRACE_CRV_ALLPROC 0x01
+#define DTRACE_CRV_KERNEL 0x02
+#define DTRACE_CRV_ALLZONE 0x04
 
-#define	DTRACE_CRV_ALL		(DTRACE_CRV_ALLPROC | DTRACE_CRV_KERNEL | \
-	DTRACE_CRV_ALLZONE)
+#define DTRACE_CRV_ALL \
+	(DTRACE_CRV_ALLPROC | DTRACE_CRV_KERNEL | DTRACE_CRV_ALLZONE)
 
-#define	DTRACE_CRA_PROC				0x0001
-#define	DTRACE_CRA_PROC_CONTROL			0x0002
-#define	DTRACE_CRA_PROC_DESTRUCTIVE_ALLUSER	0x0004
-#define	DTRACE_CRA_PROC_DESTRUCTIVE_ALLZONE	0x0008
-#define	DTRACE_CRA_PROC_DESTRUCTIVE_CREDCHG	0x0010
-#define	DTRACE_CRA_KERNEL			0x0020
-#define	DTRACE_CRA_KERNEL_DESTRUCTIVE		0x0040
+#define DTRACE_CRA_PROC 0x0001
+#define DTRACE_CRA_PROC_CONTROL 0x0002
+#define DTRACE_CRA_PROC_DESTRUCTIVE_ALLUSER 0x0004
+#define DTRACE_CRA_PROC_DESTRUCTIVE_ALLZONE 0x0008
+#define DTRACE_CRA_PROC_DESTRUCTIVE_CREDCHG 0x0010
+#define DTRACE_CRA_KERNEL 0x0020
+#define DTRACE_CRA_KERNEL_DESTRUCTIVE 0x0040
 
-#define	DTRACE_CRA_ALL		(DTRACE_CRA_PROC | \
-	DTRACE_CRA_PROC_CONTROL | \
-	DTRACE_CRA_PROC_DESTRUCTIVE_ALLUSER | \
-	DTRACE_CRA_PROC_DESTRUCTIVE_ALLZONE | \
-	DTRACE_CRA_PROC_DESTRUCTIVE_CREDCHG | \
-	DTRACE_CRA_KERNEL | \
-	DTRACE_CRA_KERNEL_DESTRUCTIVE)
+#define DTRACE_CRA_ALL                                                \
+	(DTRACE_CRA_PROC | DTRACE_CRA_PROC_CONTROL |                  \
+	    DTRACE_CRA_PROC_DESTRUCTIVE_ALLUSER |                     \
+	    DTRACE_CRA_PROC_DESTRUCTIVE_ALLZONE |                     \
+	    DTRACE_CRA_PROC_DESTRUCTIVE_CREDCHG | DTRACE_CRA_KERNEL | \
+	    DTRACE_CRA_KERNEL_DESTRUCTIVE)
 
 typedef struct dtrace_cred {
-	cred_t			*dcr_cred;
-	uint8_t			dcr_destructive;
-	uint8_t			dcr_visible;
-	uint16_t		dcr_action;
+	cred_t *dcr_cred;
+	uint8_t dcr_destructive;
+	uint8_t dcr_visible;
+	uint16_t dcr_action;
 } dtrace_cred_t;
 
 /*
@@ -1128,69 +1126,69 @@ typedef struct dtrace_cred {
  */
 struct dtrace_state {
 #ifdef illumos
-	dev_t dts_dev;				/* device */
+	dev_t dts_dev; /* device */
 #else
-	struct cdev *dts_dev;			/* device */
+	struct cdev *dts_dev; /* device */
 #endif
-	int dts_necbs;				/* total number of ECBs */
-	dtrace_ecb_t **dts_ecbs;		/* array of ECBs */
-	dtrace_epid_t dts_epid;			/* next EPID to allocate */
-	size_t dts_needed;			/* greatest needed space */
-	struct dtrace_state *dts_anon;		/* anon. state, if grabbed */
-	dtrace_activity_t dts_activity;		/* current activity */
-	dtrace_vstate_t dts_vstate;		/* variable state */
-	dtrace_buffer_t *dts_buffer;		/* principal buffer */
-	dtrace_buffer_t *dts_aggbuffer;		/* aggregation buffer */
-	dtrace_speculation_t *dts_speculations;	/* speculation array */
-	int dts_nspeculations;			/* number of speculations */
-	int dts_naggregations;			/* number of aggregations */
+	int dts_necbs;				 /* total number of ECBs */
+	dtrace_ecb_t **dts_ecbs;		 /* array of ECBs */
+	dtrace_epid_t dts_epid;			 /* next EPID to allocate */
+	size_t dts_needed;			 /* greatest needed space */
+	struct dtrace_state *dts_anon;		 /* anon. state, if grabbed */
+	dtrace_activity_t dts_activity;		 /* current activity */
+	dtrace_vstate_t dts_vstate;		 /* variable state */
+	dtrace_buffer_t *dts_buffer;		 /* principal buffer */
+	dtrace_buffer_t *dts_aggbuffer;		 /* aggregation buffer */
+	dtrace_speculation_t *dts_speculations;	 /* speculation array */
+	int dts_nspeculations;			 /* number of speculations */
+	int dts_naggregations;			 /* number of aggregations */
 	dtrace_aggregation_t **dts_aggregations; /* aggregation array */
 #ifdef illumos
-	vmem_t *dts_aggid_arena;		/* arena for aggregation IDs */
+	vmem_t *dts_aggid_arena; /* arena for aggregation IDs */
 #else
-	struct unrhdr *dts_aggid_arena;		/* arena for aggregation IDs */
+	struct unrhdr *dts_aggid_arena; /* arena for aggregation IDs */
 #endif
-	uint64_t dts_errors;			/* total number of errors */
-	uint32_t dts_speculations_busy;		/* number of spec. busy */
-	uint32_t dts_speculations_unavail;	/* number of spec unavail */
-	uint32_t dts_stkstroverflows;		/* stack string tab overflows */
-	uint32_t dts_dblerrors;			/* errors in ERROR probes */
-	uint32_t dts_reserve;			/* space reserved for END */
-	hrtime_t dts_laststatus;		/* time of last status */
+	uint64_t dts_errors;		   /* total number of errors */
+	uint32_t dts_speculations_busy;	   /* number of spec. busy */
+	uint32_t dts_speculations_unavail; /* number of spec unavail */
+	uint32_t dts_stkstroverflows;	   /* stack string tab overflows */
+	uint32_t dts_dblerrors;		   /* errors in ERROR probes */
+	uint32_t dts_reserve;		   /* space reserved for END */
+	hrtime_t dts_laststatus;	   /* time of last status */
 #ifdef illumos
-	cyclic_id_t dts_cleaner;		/* cleaning cyclic */
-	cyclic_id_t dts_deadman;		/* deadman cyclic */
+	cyclic_id_t dts_cleaner; /* cleaning cyclic */
+	cyclic_id_t dts_deadman; /* deadman cyclic */
 #else
-	struct callout dts_cleaner;		/* Cleaning callout. */
-	struct callout dts_deadman;		/* Deadman callout. */
+	struct callout dts_cleaner; /* Cleaning callout. */
+	struct callout dts_deadman; /* Deadman callout. */
 #endif
-	hrtime_t dts_alive;			/* time last alive */
-	char dts_speculates;			/* boolean: has speculations */
-	char dts_destructive;			/* boolean: has dest. actions */
-	int dts_nformats;			/* number of formats */
-	char **dts_formats;			/* format string array */
+	hrtime_t dts_alive;   /* time last alive */
+	char dts_speculates;  /* boolean: has speculations */
+	char dts_destructive; /* boolean: has dest. actions */
+	int dts_nformats;     /* number of formats */
+	char **dts_formats;   /* format string array */
 	dtrace_optval_t dts_options[DTRACEOPT_MAX]; /* options */
-	dtrace_cred_t dts_cred;			/* credentials */
-	size_t dts_nretained;			/* number of retained enabs */
-	int dts_getf;				/* number of getf() calls */
-	uint64_t dts_rstate[NCPU][2];		/* per-CPU random state */
+	dtrace_cred_t dts_cred;			    /* credentials */
+	size_t dts_nretained;	      /* number of retained enabs */
+	int dts_getf;		      /* number of getf() calls */
+	uint64_t dts_rstate[NCPU][2]; /* per-CPU random state */
 };
 
 struct dtrace_provider {
-	dtrace_pattr_t dtpv_attr;		/* provider attributes */
-	dtrace_ppriv_t dtpv_priv;		/* provider privileges */
-	dtrace_pops_t dtpv_pops;		/* provider operations */
-	char *dtpv_name;			/* provider name */
-	void *dtpv_arg;				/* provider argument */
-	hrtime_t dtpv_defunct;			/* when made defunct */
-	struct dtrace_provider *dtpv_next;	/* next provider */
+	dtrace_pattr_t dtpv_attr;	   /* provider attributes */
+	dtrace_ppriv_t dtpv_priv;	   /* provider privileges */
+	dtrace_pops_t dtpv_pops;	   /* provider operations */
+	char *dtpv_name;		   /* provider name */
+	void *dtpv_arg;			   /* provider argument */
+	hrtime_t dtpv_defunct;		   /* when made defunct */
+	struct dtrace_provider *dtpv_next; /* next provider */
 };
 
 struct dtrace_meta {
-	dtrace_mops_t dtm_mops;			/* meta provider operations */
-	char *dtm_name;				/* meta provider name */
-	void *dtm_arg;				/* meta provider user arg */
-	uint64_t dtm_count;			/* no. of associated provs. */
+	dtrace_mops_t dtm_mops; /* meta provider operations */
+	char *dtm_name;		/* meta provider name */
+	void *dtm_arg;		/* meta provider user arg */
+	uint64_t dtm_count;	/* no. of associated provs. */
 };
 
 /*
@@ -1208,16 +1206,16 @@ struct dtrace_meta {
  * generations.
  */
 typedef struct dtrace_enabling {
-	dtrace_ecbdesc_t **dten_desc;		/* all ECB descriptions */
-	int dten_ndesc;				/* number of ECB descriptions */
-	int dten_maxdesc;			/* size of ECB array */
-	dtrace_vstate_t *dten_vstate;		/* associated variable state */
-	dtrace_genid_t dten_probegen;		/* matched probe generation */
-	dtrace_ecbdesc_t *dten_current;		/* current ECB description */
-	int dten_error;				/* current error value */
-	int dten_primed;			/* boolean: set if primed */
-	struct dtrace_enabling *dten_prev;	/* previous enabling */
-	struct dtrace_enabling *dten_next;	/* next enabling */
+	dtrace_ecbdesc_t **dten_desc;	   /* all ECB descriptions */
+	int dten_ndesc;			   /* number of ECB descriptions */
+	int dten_maxdesc;		   /* size of ECB array */
+	dtrace_vstate_t *dten_vstate;	   /* associated variable state */
+	dtrace_genid_t dten_probegen;	   /* matched probe generation */
+	dtrace_ecbdesc_t *dten_current;	   /* current ECB description */
+	int dten_error;			   /* current error value */
+	int dten_primed;		   /* boolean: set if primed */
+	struct dtrace_enabling *dten_prev; /* previous enabling */
+	struct dtrace_enabling *dten_next; /* next enabling */
 } dtrace_enabling_t;
 
 /*
@@ -1232,28 +1230,28 @@ typedef struct dtrace_enabling {
  * refuse to unload.
  */
 typedef struct dtrace_anon {
-	dtrace_state_t *dta_state;		/* DTrace consumer state */
-	dtrace_enabling_t *dta_enabling;	/* pointer to enabling */
-	processorid_t dta_beganon;		/* which CPU BEGIN ran on */
+	dtrace_state_t *dta_state;	 /* DTrace consumer state */
+	dtrace_enabling_t *dta_enabling; /* pointer to enabling */
+	processorid_t dta_beganon;	 /* which CPU BEGIN ran on */
 } dtrace_anon_t;
 
 /*
  * DTrace Error Debugging
  */
 #ifdef DEBUG
-#define	DTRACE_ERRDEBUG
+#define DTRACE_ERRDEBUG
 #endif
 
 #ifdef DTRACE_ERRDEBUG
 
 typedef struct dtrace_errhash {
-	const char	*dter_msg;	/* error message */
-	int		dter_count;	/* number of times seen */
+	const char *dter_msg; /* error message */
+	int dter_count;	      /* number of times seen */
 } dtrace_errhash_t;
 
-#define	DTRACE_ERRHASHSZ	256	/* must be > number of err msgs */
+#define DTRACE_ERRHASHSZ 256 /* must be > number of err msgs */
 
-#endif	/* DTRACE_ERRDEBUG */
+#endif /* DTRACE_ERRDEBUG */
 
 /*
  * DTrace Toxic Ranges
@@ -1272,8 +1270,8 @@ typedef struct dtrace_errhash {
  * safe load.
  */
 typedef struct dtrace_toxrange {
-	uintptr_t	dtt_base;		/* base of toxic range */
-	uintptr_t	dtt_limit;		/* limit of toxic range */
+	uintptr_t dtt_base;  /* base of toxic range */
+	uintptr_t dtt_limit; /* limit of toxic range */
 } dtrace_toxrange_t;
 
 #ifdef illumos
@@ -1302,8 +1300,8 @@ extern uint8_t dtrace_fuword8(void *);
 extern uint16_t dtrace_fuword16(void *);
 extern uint32_t dtrace_fuword32(void *);
 extern uint64_t dtrace_fuword64(void *);
-extern void dtrace_probe_error(dtrace_state_t *, dtrace_epid_t, int, int,
-    int, uintptr_t);
+extern void dtrace_probe_error(dtrace_state_t *, dtrace_epid_t, int, int, int,
+    uintptr_t);
 extern int dtrace_assfail(const char *, const char *, int);
 extern int dtrace_attached(void);
 #ifdef illumos
@@ -1334,16 +1332,14 @@ extern void dtrace_copystr(uintptr_t, uintptr_t, size_t, volatile uint16_t *);
  */
 #undef ASSERT
 #undef VERIFY
-#define	VERIFY(EX)	((void)((EX) || \
-			dtrace_assfail(#EX, __FILE__, __LINE__)))
+#define VERIFY(EX) ((void)((EX) || dtrace_assfail(#EX, __FILE__, __LINE__)))
 #ifdef DEBUG
-#define	ASSERT(EX)	((void)((EX) || \
-			dtrace_assfail(#EX, __FILE__, __LINE__)))
+#define ASSERT(EX) ((void)((EX) || dtrace_assfail(#EX, __FILE__, __LINE__)))
 #else
-#define	ASSERT(X)	((void)0)
+#define ASSERT(X) ((void)0)
 #endif
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 

@@ -9,15 +9,15 @@
  * ----------------------------------------------------------------------------
  */
 #include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/disk.h>
+#include <sys/queue.h>
 #include <sys/stat.h>
 
 #include <assert.h>
 #include <err.h>
 #include <errno.h>
-#include <math.h>
 #include <fcntl.h>
+#include <math.h>
 #include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -36,18 +36,18 @@
 	} while (0)
 
 struct lump {
-	off_t			start;
-	off_t			len;
-	int			state;
-	TAILQ_ENTRY(lump)	list;
+	off_t start;
+	off_t len;
+	int state;
+	TAILQ_ENTRY(lump) list;
 };
 
 struct period {
-	time_t			t0;
-	time_t			t1;
-	char			str[20];
-	off_t			bytes_read;
-	TAILQ_ENTRY(period)	list;
+	time_t t0;
+	time_t t1;
+	char str[20];
+	off_t bytes_read;
+	TAILQ_ENTRY(period) list;
 };
 TAILQ_HEAD(period_head, period);
 
@@ -115,7 +115,7 @@ report_one_period(const char *period, struct period_head *ph)
 
 	n = 0;
 	printf("%s \xe2\x94\x82", period);
-	TAILQ_FOREACH(pp, ph, list) {
+	TAILQ_FOREACH (pp, ph, list) {
 		if (n == 3) {
 			TAILQ_REMOVE(ph, pp, list);
 			free(pp);
@@ -156,14 +156,8 @@ set_verbose(void)
 static void
 report_header(int eol)
 {
-	printf("%13s %7s %13s %5s %13s %13s %9s",
-	    "start",
-	    "size",
-	    "block-len",
-	    "pass",
-	    "done",
-	    "remaining",
-	    "% done");
+	printf("%13s %7s %13s %5s %13s %13s %9s", "start", "size", "block-len",
+	    "pass", "done", "remaining", "% done");
 	if (eol)
 		printf("\x1b[K");
 	putchar('\n');
@@ -201,7 +195,7 @@ report_histogram(const struct lump *lp)
 		bucket += 1;
 	if (done_size != last_done) {
 		memset(hist, 0, sizeof hist);
-		TAILQ_FOREACH(lp2, &lumps, list) {
+		TAILQ_FOREACH (lp2, &lumps, list) {
 			fp = lp2->start;
 			fe = lp2->start + lp2->len;
 			for (j = fp / bucket; fp < fe; j++) {
@@ -218,7 +212,7 @@ report_histogram(const struct lump *lp)
 	now = lp->start / bucket;
 	for (j = 0; j < REPORTWID; j++) {
 		a = round(8 * (double)hist[j] / bucket);
-		assert (a >= 0 && a < 9);
+		assert(a >= 0 && a < 9);
 		if (a == 0 && hist[j])
 			a = 1;
 		if (j == now)
@@ -251,15 +245,10 @@ report(const struct lump *lp, size_t sz)
 		putchar('\r');
 	}
 
-	printf("%13jd %7zu %13jd %5d %13jd %13jd %9.4f",
-	    (intmax_t)lp->start,
-	    sz,
-	    (intmax_t)lp->len,
-	    lp->state,
-	    (intmax_t)done_size,
+	printf("%13jd %7zu %13jd %5d %13jd %13jd %9.4f", (intmax_t)lp->start,
+	    sz, (intmax_t)lp->len, lp->state, (intmax_t)done_size,
 	    (intmax_t)(tot_size - done_size),
-	    100*(double)done_size/(double)tot_size
-	);
+	    100 * (double)done_size / (double)tot_size);
 
 	if (verbose) {
 		printf("\x1b[K\n");
@@ -318,10 +307,9 @@ save_worklist(void)
 		if (file == NULL)
 			err(1, "Error opening file %s", buf);
 
-		TAILQ_FOREACH(llp, &lumps, list)
-			fprintf(file, "%jd %jd %d\n",
-			    (intmax_t)llp->start, (intmax_t)llp->len,
-			    llp->state);
+		TAILQ_FOREACH (llp, &lumps, list)
+			fprintf(file, "%jd %jd %d\n", (intmax_t)llp->start,
+			    (intmax_t)llp->len, llp->state);
 		(void)fflush(file);
 		if (ferror(file) || fdatasync(fileno(file)) || fclose(file))
 			err(1, "Error writing file %s", buf);
@@ -380,8 +368,7 @@ write_buf(int fd, const void *buf, ssize_t len, off_t where)
 	if (i == len)
 		return;
 
-	printf("\nWrite error at %jd/%zu\n\t%s\n",
-	    where, i, strerror(errno));
+	printf("\nWrite error at %jd/%zu\n\t%s\n", where, i, strerror(errno));
 	save_worklist();
 	if (write_errors_are_fatal)
 		exit(3);
@@ -406,7 +393,8 @@ fill_buf(char *buf, ssize_t len, const char *pattern)
 static void
 usage(void)
 {
-	(void)fprintf(stderr, "usage: recoverdisk [-b bigsize] [-r readlist] "
+	(void)fprintf(stderr,
+	    "usage: recoverdisk [-b bigsize] [-r readlist] "
 	    "[-s interval] [-w writelist] source [destination]\n");
 	/* XXX update */
 	exit(1);
@@ -420,7 +408,7 @@ sighandler(__unused int sig)
 }
 
 int
-main(int argc, char * const argv[])
+main(int argc, char *const argv[])
 {
 	int ch;
 	size_t sz, j;
@@ -579,8 +567,8 @@ if (!(random() & 0xf)) {
 			}
 			error = errno;
 
-			printf("%jd %zu %d read error (%s)\n",
-			    lp->start, sz, lp->state, strerror(error));
+			printf("%jd %zu %d read error (%s)\n", lp->start, sz,
+			    lp->state, strerror(error));
 			if (verbose)
 				report(lp, sz);
 			if (fdw >= 0 && strlen(unreadable_pattern)) {

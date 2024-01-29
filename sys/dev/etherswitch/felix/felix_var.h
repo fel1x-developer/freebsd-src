@@ -29,46 +29,46 @@
 #ifndef _FELIX_VAR_H_
 #define _FELIX_VAR_H_
 
-#define FELIX_INIT_TIMEOUT	5000	/* msec */
+#define FELIX_INIT_TIMEOUT 5000 /* msec */
 
-#define	FELIX_DEV_NAME	"Felix TSN Switch driver"
-#define	FELIX_MAX_PORTS	6
-#define	FELIX_NUM_VLANS	4096
+#define FELIX_DEV_NAME "Felix TSN Switch driver"
+#define FELIX_MAX_PORTS 6
+#define FELIX_NUM_VLANS 4096
 
-#define	PCI_VENDOR_FREESCALE	0x1957
-#define	FELIX_DEV_ID		0xEEF0
+#define PCI_VENDOR_FREESCALE 0x1957
+#define FELIX_DEV_ID 0xEEF0
 
-#define	FELIX_BAR_MDIO		0
-#define	FELIX_BAR_REGS		4
+#define FELIX_BAR_MDIO 0
+#define FELIX_BAR_REGS 4
 
-#define	FELIX_LOCK(_sc)			mtx_lock(&(_sc)->mtx)
-#define	FELIX_UNLOCK(_sc)			mtx_unlock(&(_sc)->mtx)
-#define	FELIX_LOCK_ASSERT(_sc, _what)	mtx_assert(&(_sc)->mtx, (_what))
+#define FELIX_LOCK(_sc) mtx_lock(&(_sc)->mtx)
+#define FELIX_UNLOCK(_sc) mtx_unlock(&(_sc)->mtx)
+#define FELIX_LOCK_ASSERT(_sc, _what) mtx_assert(&(_sc)->mtx, (_what))
 
-#define FELIX_RD4(sc, reg)		bus_read_4((sc)->regs, reg)
-#define FELIX_WR4(sc, reg, value)	bus_write_4((sc)->regs, reg, value)
+#define FELIX_RD4(sc, reg) bus_read_4((sc)->regs, reg)
+#define FELIX_WR4(sc, reg, value) bus_write_4((sc)->regs, reg, value)
 
-#define FELIX_DEVGMII_PORT_RD4(sc, port, reg)	\
-	FELIX_RD4(sc, \
+#define FELIX_DEVGMII_PORT_RD4(sc, port, reg) \
+	FELIX_RD4(sc,                         \
 	    FELIX_DEVGMII_BASE + (FELIX_DEVGMII_PORT_OFFSET * (port)) + reg)
-#define FELIX_DEVGMII_PORT_WR4(sc, port, reg, value)	\
-	FELIX_WR4(sc, \
+#define FELIX_DEVGMII_PORT_WR4(sc, port, reg, value)                         \
+	FELIX_WR4(sc,                                                        \
 	    FELIX_DEVGMII_BASE + (FELIX_DEVGMII_PORT_OFFSET * (port)) + reg, \
 	    value)
 
-#define FELIX_ANA_PORT_RD4(sc, port, reg)	\
-	FELIX_RD4(sc, \
+#define FELIX_ANA_PORT_RD4(sc, port, reg) \
+	FELIX_RD4(sc,                     \
 	    FELIX_ANA_PORT_BASE + (FELIX_ANA_PORT_OFFSET * (port)) + reg)
-#define FELIX_ANA_PORT_WR4(sc, port, reg, value)	\
-	FELIX_WR4(sc, \
+#define FELIX_ANA_PORT_WR4(sc, port, reg, value)                          \
+	FELIX_WR4(sc,                                                     \
 	    FELIX_ANA_PORT_BASE + (FELIX_ANA_PORT_OFFSET * (port)) + reg, \
 	    value)
 
-#define FELIX_REW_PORT_RD4(sc, port, reg)	\
-	FELIX_RD4(sc, \
+#define FELIX_REW_PORT_RD4(sc, port, reg) \
+	FELIX_RD4(sc,                     \
 	    FELIX_REW_PORT_BASE + (FELIX_REW_PORT_OFFSET * (port)) + reg)
-#define FELIX_REW_PORT_WR4(sc, port, reg, value)	\
-	FELIX_WR4(sc, \
+#define FELIX_REW_PORT_WR4(sc, port, reg, value)                          \
+	FELIX_WR4(sc,                                                     \
 	    FELIX_REW_PORT_BASE + (FELIX_REW_PORT_OFFSET * (port)) + reg, \
 	    value)
 
@@ -79,31 +79,31 @@ struct felix_pci_id {
 };
 
 struct felix_port {
-	if_t			ifp;
-	device_t                miibus;
-	char                    *ifname;
+	if_t ifp;
+	device_t miibus;
+	char *ifname;
 
-	uint32_t                phyaddr;
+	uint32_t phyaddr;
 
-	int			fixed_link_status;
-	bool			fixed_port;
-	bool			cpu_port;
+	int fixed_link_status;
+	bool fixed_port;
+	bool cpu_port;
 };
 
 typedef struct felix_softc {
-	device_t		dev;
-	struct resource		*regs;
-	struct resource		*mdio;
+	device_t dev;
+	struct resource *regs;
+	struct resource *mdio;
 
-	etherswitch_info_t	info;
-	struct callout		tick_callout;
-	struct mtx		mtx;
-	struct felix_port	ports[FELIX_MAX_PORTS];
+	etherswitch_info_t info;
+	struct callout tick_callout;
+	struct mtx mtx;
+	struct felix_port ports[FELIX_MAX_PORTS];
 
-	int			vlan_mode;
-	int                     vlans[FELIX_NUM_VLANS];
+	int vlan_mode;
+	int vlans[FELIX_NUM_VLANS];
 
-	uint32_t		timer_ticks;
+	uint32_t timer_ticks;
 } *felix_softc_t;
 
 #endif

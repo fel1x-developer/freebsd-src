@@ -24,14 +24,14 @@
  */
 
 #include <sys/param.h>
-#include <sys/module.h>
-#include <sys/kernel.h>
-#include <sys/malloc.h>
 #include <sys/systm.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/sysctl.h>
 
 #include <cam/cam.h>
@@ -47,18 +47,18 @@ struct mmcnull_softc {
 	device_t dev;
 	struct mtx sc_mtx;
 
-	struct cam_devq		*devq;
-	struct cam_sim		*sim;
-	struct cam_path		*path;
+	struct cam_devq *devq;
+	struct cam_sim *sim;
+	struct cam_path *path;
 
-	struct callout		 tick;
-	union ccb		*cur_ccb;
+	struct callout tick;
+	union ccb *cur_ccb;
 };
 
 static void mmcnull_identify(driver_t *, device_t);
-static int  mmcnull_probe(device_t);
-static int  mmcnull_attach(device_t);
-static int  mmcnull_detach(device_t);
+static int mmcnull_probe(device_t);
+static int mmcnull_attach(device_t);
+static int mmcnull_detach(device_t);
 static void mmcnull_action_sd(struct cam_sim *, union ccb *);
 static void mmcnull_action_sdio(struct cam_sim *, union ccb *);
 static void mmcnull_intr_sd(void *xsc);
@@ -87,7 +87,6 @@ mmcnull_identify(driver_t *driver, device_t parent)
 	}
 }
 
-
 static int
 mmcnull_probe(device_t dev)
 {
@@ -114,8 +113,7 @@ mmcnull_attach(device_t dev)
 	else
 		action_func = mmcnull_action_sd;
 	sc->sim = cam_sim_alloc(action_func, mmcnull_poll, "mmcnull", sc,
-				device_get_unit(dev), &sc->sc_mtx, 1, 1,
-				sc->devq);
+	    device_get_unit(dev), &sc->sc_mtx, 1, 1, sc->devq);
 
 	if (sc->sim == NULL) {
 		cam_simq_free(sc->devq);
@@ -125,8 +123,7 @@ mmcnull_attach(device_t dev)
 
 	mtx_lock(&sc->sc_mtx);
 	if (xpt_bus_register(sc->sim, dev, 0) != 0) {
-		device_printf(dev,
-			      "cannot register SCSI pass-through bus\n");
+		device_printf(dev, "cannot register SCSI pass-through bus\n");
 		cam_sim_free(sc->sim, FALSE);
 		cam_simq_free(sc->devq);
 		mtx_unlock(&sc->sc_mtx);
@@ -134,7 +131,8 @@ mmcnull_attach(device_t dev)
 	}
 	mtx_unlock(&sc->sc_mtx);
 
-	callout_init_mtx(&sc->tick, &sc->sc_mtx, 0);	/* Callout to emulate interrupts */
+	callout_init_mtx(&sc->tick, &sc->sc_mtx,
+	    0); /* Callout to emulate interrupts */
 
 	device_printf(dev, "attached OK\n");
 
@@ -174,18 +172,19 @@ mmcnull_detach(device_t dev)
  * with the mutex already taken
  */
 static void
-mmcnull_intr_sd(void *xsc) {
+mmcnull_intr_sd(void *xsc)
+{
 	struct mmcnull_softc *sc;
 	union ccb *ccb;
 	struct ccb_mmcio *mmcio;
 
-	sc = (struct mmcnull_softc *) xsc;
+	sc = (struct mmcnull_softc *)xsc;
 	mtx_assert(&sc->sc_mtx, MA_OWNED);
 
 	ccb = sc->cur_ccb;
 	mmcio = &ccb->mmcio;
 	device_printf(sc->dev, "mmcnull_intr: MMC command = %d\n",
-		      mmcio->cmd.opcode);
+	    mmcio->cmd.opcode);
 
 	switch (mmcio->cmd.opcode) {
 	case MMC_GO_IDLE_STATE:
@@ -234,17 +233,20 @@ mmcnull_intr_sd(void *xsc) {
 }
 
 static void
-mmcnull_intr_sdio_newintr(void *xsc) {
+mmcnull_intr_sdio_newintr(void *xsc)
+{
 	struct mmcnull_softc *sc;
 	struct cam_path *dpath;
 
-	sc = (struct mmcnull_softc *) xsc;
+	sc = (struct mmcnull_softc *)xsc;
 	mtx_assert(&sc->sc_mtx, MA_OWNED);
 	device_printf(sc->dev, "mmcnull_intr_sdio_newintr()\n");
 
 	/* Our path */
-	if (xpt_create_path(&dpath, NULL, cam_sim_path(sc->sim), 0, 0) != CAM_REQ_CMP) {
-		device_printf(sc->dev, "mmcnull_intr_sdio_newintr(): cannot create path\n");
+	if (xpt_create_path(&dpath, NULL, cam_sim_path(sc->sim), 0, 0) !=
+	    CAM_REQ_CMP) {
+		device_printf(sc->dev,
+		    "mmcnull_intr_sdio_newintr(): cannot create path\n");
 		return;
 	}
 	xpt_async(AC_UNIT_ATTENTION, dpath, NULL);
@@ -252,18 +254,19 @@ mmcnull_intr_sdio_newintr(void *xsc) {
 }
 
 static void
-mmcnull_intr_sdio(void *xsc) {
+mmcnull_intr_sdio(void *xsc)
+{
 	struct mmcnull_softc *sc;
 	union ccb *ccb;
 	struct ccb_mmcio *mmcio;
 
-	sc = (struct mmcnull_softc *) xsc;
+	sc = (struct mmcnull_softc *)xsc;
 	mtx_assert(&sc->sc_mtx, MA_OWNED);
 
 	ccb = sc->cur_ccb;
 	mmcio = &ccb->mmcio;
 	device_printf(sc->dev, "mmcnull_intr: MMC command = %d\n",
-		      mmcio->cmd.opcode);
+	    mmcio->cmd.opcode);
 
 	switch (mmcio->cmd.opcode) {
 	case MMC_GO_IDLE_STATE:
@@ -277,7 +280,7 @@ mmcnull_intr_sdio(void *xsc) {
 		break;
 	case IO_SEND_OP_COND:
 		mmcio->cmd.resp[0] = 0x12345678;
-		mmcio->cmd.resp[0] |= ~ R4_IO_MEM_PRESENT;
+		mmcio->cmd.resp[0] |= ~R4_IO_MEM_PRESENT;
 		break;
 	case SD_SEND_RELATIVE_ADDR:
 	case MMC_SELECT_CARD:
@@ -300,7 +303,8 @@ mmcnull_intr_sdio(void *xsc) {
 		break;
 	case SD_IO_RW_DIRECT:
 		device_printf(sc->dev, "Scheduling interrupt generation...\n");
-		callout_reset(&sc->tick, hz / 10, mmcnull_intr_sdio_newintr, sc);
+		callout_reset(&sc->tick, hz / 10, mmcnull_intr_sdio_newintr,
+		    sc);
 		break;
 	default:
 		device_printf(sc->dev, "mmcnull_intr_sdio: unknown command\n");
@@ -351,8 +355,7 @@ mmcnull_action_sd(struct cam_sim *sim, union ccb *ccb)
 	device_printf(sc->dev, "action: func_code %0x\n", ccb->ccb_h.func_code);
 
 	switch (ccb->ccb_h.func_code) {
-	case XPT_PATH_INQ:
-	{
+	case XPT_PATH_INQ: {
 		struct ccb_pathinq *cpi;
 
 		cpi = &ccb->cpi;
@@ -378,36 +381,36 @@ mmcnull_action_sd(struct cam_sim *sim, union ccb *ccb)
 		cpi->ccb_h.status = CAM_REQ_CMP;
 		break;
 	}
-	case XPT_GET_TRAN_SETTINGS:
-	{
+	case XPT_GET_TRAN_SETTINGS: {
 		struct ccb_trans_settings *cts = &ccb->cts;
 		struct ccb_trans_settings_mmc *mcts;
 		mcts = &ccb->cts.proto_specific.mmc;
 
-                device_printf(sc->dev, "Got XPT_GET_TRAN_SETTINGS\n");
+		device_printf(sc->dev, "Got XPT_GET_TRAN_SETTINGS\n");
 
-                cts->protocol = PROTO_MMCSD;
-                cts->protocol_version = 0;
-                cts->transport = XPORT_MMCSD;
-                cts->transport_version = 0;
-                cts->xport_specific.valid = 0;
+		cts->protocol = PROTO_MMCSD;
+		cts->protocol_version = 0;
+		cts->transport = XPORT_MMCSD;
+		cts->transport_version = 0;
+		cts->xport_specific.valid = 0;
 		mcts->host_f_max = 12000000;
 		mcts->host_f_min = 200000;
 		mcts->host_ocr = 1; /* Fix this */
-                ccb->ccb_h.status = CAM_REQ_CMP;
-                break;
-        }
+		ccb->ccb_h.status = CAM_REQ_CMP;
+		break;
+	}
 	case XPT_SET_TRAN_SETTINGS:
-		device_printf(sc->dev, "Got XPT_SET_TRAN_SETTINGS, should update IOS...\n");
+		device_printf(sc->dev,
+		    "Got XPT_SET_TRAN_SETTINGS, should update IOS...\n");
 		ccb->ccb_h.status = CAM_REQ_CMP;
 		break;
 	case XPT_RESET_BUS:
 		device_printf(sc->dev, "Got XPT_RESET_BUS, ACK it...\n");
 		ccb->ccb_h.status = CAM_REQ_CMP;
-                break;
+		break;
 	case XPT_MMC_IO:
 		/*
-                 * Here is the HW-dependent part of
+		 * Here is the HW-dependent part of
 		 * sending the command to the underlying h/w
 		 * At some point in the future an interrupt comes.
 		 * Then the request will be marked as completed.
@@ -416,13 +419,14 @@ mmcnull_action_sd(struct cam_sim *sim, union ccb *ccb)
 		mmcnull_handle_mmcio(sim, ccb);
 		return;
 		break;
-        case XPT_RESET_DEV:
-                /* This is sent by `camcontrol reset`*/
-                device_printf(sc->dev, "Got XPT_RESET_DEV\n");
+	case XPT_RESET_DEV:
+		/* This is sent by `camcontrol reset`*/
+		device_printf(sc->dev, "Got XPT_RESET_DEV\n");
 		ccb->ccb_h.status = CAM_REQ_CMP;
-                break;
+		break;
 	default:
-		device_printf(sc->dev, "Func code %d is unknown\n", ccb->ccb_h.func_code);
+		device_printf(sc->dev, "Func code %d is unknown\n",
+		    ccb->ccb_h.func_code);
 		ccb->ccb_h.status = CAM_REQ_INVALID;
 		break;
 	}
@@ -431,7 +435,8 @@ mmcnull_action_sd(struct cam_sim *sim, union ccb *ccb)
 }
 
 static void
-mmcnull_action_sdio(struct cam_sim *sim, union ccb *ccb) {
+mmcnull_action_sdio(struct cam_sim *sim, union ccb *ccb)
+{
 	mmcnull_action_sd(sim, ccb);
 }
 
@@ -441,18 +446,15 @@ mmcnull_poll(struct cam_sim *sim)
 	return;
 }
 
-
 static device_method_t mmcnull_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,      mmcnull_identify),
-	DEVMETHOD(device_probe,         mmcnull_probe),
-	DEVMETHOD(device_attach,        mmcnull_attach),
-	DEVMETHOD(device_detach,        mmcnull_detach),
-	DEVMETHOD_END
+	DEVMETHOD(device_identify, mmcnull_identify),
+	DEVMETHOD(device_probe, mmcnull_probe),
+	DEVMETHOD(device_attach, mmcnull_attach),
+	DEVMETHOD(device_detach, mmcnull_detach), DEVMETHOD_END
 };
 
-static driver_t mmcnull_driver = {
-	"mmcnull", mmcnull_methods, sizeof(struct mmcnull_softc)
-};
+static driver_t mmcnull_driver = { "mmcnull", mmcnull_methods,
+	sizeof(struct mmcnull_softc) };
 
 DRIVER_MODULE(mmcnull, isa, mmcnull_driver, 0, 0);

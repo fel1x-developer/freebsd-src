@@ -31,55 +31,51 @@
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
+
 #include <machine/bus.h>
 
-#include <dev/ofw/openfirm.h>
+#include <dev/fdt/simple_mfd.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
+#include <dev/ofw/openfirm.h>
 #include <dev/syscon/syscon.h>
-#include <dev/fdt/simple_mfd.h>
 
 #include "rk_otp.h"
 #include "rk_otp_if.h"
 
-#define	OTPC_SBPI_CTRL			0x0020
-#define	 SBPI_ENABLE_MASK		0x00010000
-#define	 SBPI_ENABLE			1
-#define	 SBPI_DAP_ADDR_MASK		0xff000000
-#define	 SBPI_DAP_ADDR			0x02
-#define	 SBPI_DAP_ADDR_SHIFT		8
-#define	OTPC_SBPI_CMD_VALID_PRE		0x0024
-#define	 SBPI_CMD_VALID_MASK		0xffff0000
-#define	OTPC_SBPI_INT_STATUS		0x0304
-#define	 OTPC_SBPI_DONE			2
-#define	 OTPC_USER_DONE			4
-#define	OTPC_USER_CTRL			0x0100
-#define	 OTPC_USER_MASK			0xffff0000
-#define	 OTPC_USER			1
-#define	OTPC_USER_ADDR			0x0104
-#define	 OTPC_USER_ADDR_MASK 		0xffff0000
-#define	OTPC_USER_ENABLE		0x0108
-#define	 OTPC_USER_FSM_ENABLE_MASK	0xffff0000
-#define	 OTPC_USER_FSM_ENABLE		1
-#define	OTPC_USER_Q			0x0124
-#define	OTPC_SBPI_CMD0_OFFSET		0x1000
-#define	 SBPI_DAP_CMD_WRF		0xc0
-#define	 SBPI_DAP_REG_ECC		0x3a
-#define	OTPC_SBPI_CMD1_OFFSET		0x1004
-#define	 SBPI_ECC_ENABLE		0x00
-#define	 SBPI_ECC_DISABLE		0x09
+#define OTPC_SBPI_CTRL 0x0020
+#define SBPI_ENABLE_MASK 0x00010000
+#define SBPI_ENABLE 1
+#define SBPI_DAP_ADDR_MASK 0xff000000
+#define SBPI_DAP_ADDR 0x02
+#define SBPI_DAP_ADDR_SHIFT 8
+#define OTPC_SBPI_CMD_VALID_PRE 0x0024
+#define SBPI_CMD_VALID_MASK 0xffff0000
+#define OTPC_SBPI_INT_STATUS 0x0304
+#define OTPC_SBPI_DONE 2
+#define OTPC_USER_DONE 4
+#define OTPC_USER_CTRL 0x0100
+#define OTPC_USER_MASK 0xffff0000
+#define OTPC_USER 1
+#define OTPC_USER_ADDR 0x0104
+#define OTPC_USER_ADDR_MASK 0xffff0000
+#define OTPC_USER_ENABLE 0x0108
+#define OTPC_USER_FSM_ENABLE_MASK 0xffff0000
+#define OTPC_USER_FSM_ENABLE 1
+#define OTPC_USER_Q 0x0124
+#define OTPC_SBPI_CMD0_OFFSET 0x1000
+#define SBPI_DAP_CMD_WRF 0xc0
+#define SBPI_DAP_REG_ECC 0x3a
+#define OTPC_SBPI_CMD1_OFFSET 0x1004
+#define SBPI_ECC_ENABLE 0x00
+#define SBPI_ECC_DISABLE 0x09
 
-
-static struct ofw_compat_data compat_data[] = {
-	{"rockchip,rk3568-otp",	1},
-	{NULL,			0}
-};
+static struct ofw_compat_data compat_data[] = { { "rockchip,rk3568-otp", 1 },
+	{ NULL, 0 } };
 
 static struct rk_otp_softc {
 	struct resource *mem;
 } rk_otp_sc;
-
 
 static int
 rk_otp_wait(struct rk_otp_softc *sc, uint32_t status)
@@ -176,11 +172,10 @@ rk_otp_attach(device_t dev)
 	return (0);
 }
 
-
 static device_method_t rk_otp_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		rk_otp_probe),
-	DEVMETHOD(device_attach,	rk_otp_attach),
+	DEVMETHOD(device_probe, rk_otp_probe),
+	DEVMETHOD(device_attach, rk_otp_attach),
 
 	DEVMETHOD_END
 };

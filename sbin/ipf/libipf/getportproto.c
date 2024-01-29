@@ -8,6 +8,7 @@
  */
 
 #include <ctype.h>
+
 #include "ipf.h"
 
 int

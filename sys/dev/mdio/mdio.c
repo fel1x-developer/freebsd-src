@@ -25,8 +25,8 @@
  */
 
 #include <sys/param.h>
-#include <sys/bus.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/module.h>
 
 #include <dev/mdio/mdio.h>
@@ -89,8 +89,7 @@ mdio_readextreg(device_t dev, int phy, int devad, int reg)
 }
 
 static int
-mdio_writeextreg(device_t dev, int phy, int devad, int reg,
-    int val)
+mdio_writeextreg(device_t dev, int phy, int devad, int reg, int val)
 {
 
 	return (MDIO_WRITEEXTREG(device_get_parent(dev), phy, devad, reg, val));
@@ -105,29 +104,25 @@ mdio_hinted_child(device_t dev, const char *name, int unit)
 
 static device_method_t mdio_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_identify,	mdio_identify),
-	DEVMETHOD(device_probe,		mdio_probe),
-	DEVMETHOD(device_attach,	mdio_attach),
-	DEVMETHOD(device_detach,	mdio_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
+	DEVMETHOD(device_identify, mdio_identify),
+	DEVMETHOD(device_probe, mdio_probe),
+	DEVMETHOD(device_attach, mdio_attach),
+	DEVMETHOD(device_detach, mdio_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
 
 	/* bus interface */
-	DEVMETHOD(bus_add_child,	device_add_child_ordered),
-	DEVMETHOD(bus_hinted_child,	mdio_hinted_child),
+	DEVMETHOD(bus_add_child, device_add_child_ordered),
+	DEVMETHOD(bus_hinted_child, mdio_hinted_child),
 
 	/* MDIO access */
-	DEVMETHOD(mdio_readreg,		mdio_readreg),
-	DEVMETHOD(mdio_writereg,	mdio_writereg),
-	DEVMETHOD(mdio_readextreg,	mdio_readextreg),
-	DEVMETHOD(mdio_writeextreg,	mdio_writeextreg),
+	DEVMETHOD(mdio_readreg, mdio_readreg),
+	DEVMETHOD(mdio_writereg, mdio_writereg),
+	DEVMETHOD(mdio_readextreg, mdio_readextreg),
+	DEVMETHOD(mdio_writeextreg, mdio_writeextreg),
 
 	DEVMETHOD_END
 };
 
-driver_t mdio_driver = {
-	"mdio",
-	mdio_methods,
-	0
-};
+driver_t mdio_driver = { "mdio", mdio_methods, 0 };
 
 MODULE_VERSION(mdio, 1);

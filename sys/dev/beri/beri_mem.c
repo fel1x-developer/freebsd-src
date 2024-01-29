@@ -35,41 +35,40 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/conf.h>
 #include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/rman.h>
 #include <sys/timeet.h>
 #include <sys/timetc.h>
-#include <sys/conf.h>
 #include <sys/uio.h>
 
-#include <dev/fdt/fdt_common.h>
-#include <dev/ofw/openfirm.h>
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-
 #include <machine/bus.h>
-#include <machine/fdt.h>
 #include <machine/cpu.h>
+#include <machine/fdt.h>
 #include <machine/intr.h>
 
+#include <dev/fdt/fdt_common.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
+
 struct beri_mem_softc {
-	struct resource		*res[1];
-	struct cdev		*mem_cdev;
-	device_t		dev;
-	int			mem_size;
-	int			mem_start;
+	struct resource *res[1];
+	struct cdev *mem_cdev;
+	device_t dev;
+	int mem_size;
+	int mem_start;
 };
 
 static struct resource_spec beri_mem_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ -1, 0 }
+	{ SYS_RES_MEMORY, 0, RF_ACTIVE }, { -1, 0 }
 };
 
 static int
-mem_open(struct cdev *dev, int flags __unused,
-    int fmt __unused, struct thread *td __unused)
+mem_open(struct cdev *dev, int flags __unused, int fmt __unused,
+    struct thread *td __unused)
 {
 	struct beri_mem_softc *sc;
 
@@ -79,8 +78,8 @@ mem_open(struct cdev *dev, int flags __unused,
 }
 
 static int
-mem_close(struct cdev *dev, int flags __unused,
-    int fmt __unused, struct thread *td __unused)
+mem_close(struct cdev *dev, int flags __unused, int fmt __unused,
+    struct thread *td __unused)
 {
 	struct beri_mem_softc *sc;
 
@@ -108,18 +107,18 @@ mem_mmap(struct cdev *dev, vm_ooffset_t offset, vm_paddr_t *paddr, int nprot,
 	if (offset < sc->mem_size) {
 		*paddr = sc->mem_start + offset;
 		return (0);
-        }
+	}
 
 	return (EINVAL);
 }
 
 static struct cdevsw mem_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_open =	mem_open,
-	.d_close =	mem_close,
-	.d_ioctl =	mem_ioctl,
-	.d_mmap =	mem_mmap,
-	.d_name =	"BERI memory",
+	.d_version = D_VERSION,
+	.d_open = mem_open,
+	.d_close = mem_close,
+	.d_ioctl = mem_ioctl,
+	.d_mmap = mem_mmap,
+	.d_name = "BERI memory",
 };
 
 static int
@@ -153,8 +152,8 @@ beri_mem_attach(device_t dev)
 	sc->mem_size = rman_get_size(sc->res[0]);
 	sc->mem_start = rman_get_start(sc->res[0]);
 
-	sc->mem_cdev = make_dev(&mem_cdevsw, 0, UID_ROOT, GID_WHEEL,
-	    0600, "beri_mem");
+	sc->mem_cdev = make_dev(&mem_cdevsw, 0, UID_ROOT, GID_WHEEL, 0600,
+	    "beri_mem");
 
 	if (sc->mem_cdev == NULL) {
 		device_printf(dev, "Failed to create character device.\n");
@@ -166,11 +165,9 @@ beri_mem_attach(device_t dev)
 	return (0);
 }
 
-static device_method_t beri_mem_methods[] = {
-	DEVMETHOD(device_probe,		beri_mem_probe),
-	DEVMETHOD(device_attach,	beri_mem_attach),
-	{ 0, 0 }
-};
+static device_method_t beri_mem_methods[] = { DEVMETHOD(device_probe,
+						  beri_mem_probe),
+	DEVMETHOD(device_attach, beri_mem_attach), { 0, 0 } };
 
 static driver_t beri_mem_driver = {
 	"beri_mem",

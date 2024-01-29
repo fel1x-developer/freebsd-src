@@ -58,21 +58,22 @@
 
 #include <sys/param.h>
 #include <sys/socket.h>
+
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
 #include <arpa/nameser.h>
-
+#include <ctype.h>
 #include <errno.h>
+#include <netdb.h>
+#include <nsswitch.h>
+#include <resolv.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <netdb.h>
-#include <resolv.h>
-#include <ctype.h>
 #include <string.h>
-#include <unistd.h>
 #include <syslog.h>
-#include <stdarg.h>
-#include <nsswitch.h>
+#include <unistd.h>
 
 #include "netdb_private.h"
 #include "res_config.h"
@@ -80,16 +81,16 @@
 #define BYADDR 0
 #define BYNAME 1
 
-#define MAXPACKET	(64*1024)
+#define MAXPACKET (64 * 1024)
 
 typedef union {
-	HEADER	hdr;
-	u_char	buf[MAXPACKET];
+	HEADER hdr;
+	u_char buf[MAXPACKET];
 } querybuf;
 
 typedef union {
-	long	al;
-	char	ac;
+	long al;
+	char ac;
 } align;
 
 /*
@@ -206,7 +207,7 @@ getnetanswer(querybuf *answer, int anslen, int net_i, struct netent *ne,
 		ans[sizeof(ans) - 1] = '\0';
 		GETSHORT(type, cp);
 		GETSHORT(class, cp);
-		cp += INT32SZ;		/* TTL */
+		cp += INT32SZ; /* TTL */
 		GETSHORT(n, cp);
 		if (class == C_IN && type == T_PTR) {
 			n = dn_expand(answer->buf, eom, cp, bp, ep - bp);
@@ -304,17 +305,17 @@ _dns_getnetbyaddr(void *rval, void *cb_data, va_list ap)
 	for (nn = 4, net2 = net; net2; net2 >>= 8)
 		netbr[--nn] = net2 & 0xff;
 	switch (nn) {
-	case 3: 	/* Class A */
+	case 3: /* Class A */
 		sprintf(qbuf, "0.0.0.%u.in-addr.arpa", netbr[3]);
 		break;
-	case 2: 	/* Class B */
+	case 2: /* Class B */
 		sprintf(qbuf, "0.0.%u.%u.in-addr.arpa", netbr[3], netbr[2]);
 		break;
-	case 1: 	/* Class C */
+	case 1: /* Class C */
 		sprintf(qbuf, "0.%u.%u.%u.in-addr.arpa", netbr[3], netbr[2],
 		    netbr[1]);
 		break;
-	case 0: 	/* Class D - E */
+	case 0: /* Class D - E */
 		sprintf(qbuf, "%u.%u.%u.%u.in-addr.arpa", netbr[3], netbr[2],
 		    netbr[1], netbr[0]);
 		break;

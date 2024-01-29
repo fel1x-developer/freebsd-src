@@ -32,20 +32,18 @@
 #include <net/sff8436.h>
 #include <net/sff8472.h>
 
-#include <math.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <libifconfig.h>
+#include <libifconfig_sfp.h>
+#include <libutil.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <libutil.h>
-
-#include <libifconfig.h>
-#include <libifconfig_sfp.h>
 
 #include "ifconfig.h"
 
@@ -64,16 +62,15 @@ sfp_status(if_ctx *ctx)
 
 	ifconfig_sfp_get_sfp_info_strings(&info, &strings);
 
-	printf("\tplugged: %s %s (%s)\n",
-	    ifconfig_sfp_id_display(info.sfp_id),
-	    ifconfig_sfp_physical_spec(&info, &strings),
-	    strings.sfp_conn);
+	printf("\tplugged: %s %s (%s)\n", ifconfig_sfp_id_display(info.sfp_id),
+	    ifconfig_sfp_physical_spec(&info, &strings), strings.sfp_conn);
 
-	if (ifconfig_sfp_get_sfp_vendor_info(lifh, ctx->ifname, &vendor_info) == -1)
+	if (ifconfig_sfp_get_sfp_vendor_info(lifh, ctx->ifname, &vendor_info) ==
+	    -1)
 		return;
 
-	printf("\tvendor: %s PN: %s SN: %s DATE: %s\n",
-	    vendor_info.name, vendor_info.pn, vendor_info.sn, vendor_info.date);
+	printf("\tvendor: %s PN: %s SN: %s DATE: %s\n", vendor_info.name,
+	    vendor_info.pn, vendor_info.sn, vendor_info.date);
 
 	if (ifconfig_sfp_id_is_qsfp(info.sfp_id)) {
 		if (verbose > 1)
@@ -98,7 +95,8 @@ sfp_status(if_ctx *ctx)
 		for (size_t chan = 0; chan < channel_count; ++chan) {
 			uint16_t rx = status.channel[chan].rx;
 			uint16_t tx = status.channel[chan].tx;
-			printf("\tlane %zu: "
+			printf(
+			    "\tlane %zu: "
 			    "RX power: %.2f mW (%.2f dBm) TX bias: %.2f mA\n",
 			    chan + 1, power_mW(rx), power_dBm(rx), bias_mA(tx));
 		}
@@ -120,8 +118,8 @@ sfp_status(if_ctx *ctx)
 			    "\t", HD_OMIT_COUNT | HD_OMIT_CHARS);
 		} else {
 			printf("\n\tSFF8472 DUMP (0xA0 0..127 range):\n");
-			hexdump(dump.data + SFP_DUMP_START, SFP_DUMP_SIZE,
-			    "\t", HD_OMIT_COUNT | HD_OMIT_CHARS);
+			hexdump(dump.data + SFP_DUMP_START, SFP_DUMP_SIZE, "\t",
+			    HD_OMIT_COUNT | HD_OMIT_CHARS);
 		}
 	}
 }

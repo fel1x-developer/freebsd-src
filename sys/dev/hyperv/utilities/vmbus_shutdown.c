@@ -25,51 +25,43 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/reboot.h>
-#include <sys/systm.h>
 
 #include <dev/hyperv/include/hyperv.h>
 #include <dev/hyperv/include/vmbus.h>
 #include <dev/hyperv/utilities/vmbus_icreg.h>
 #include <dev/hyperv/utilities/vmbus_icvar.h>
 
-#define VMBUS_SHUTDOWN_FWVER_MAJOR	3
-#define VMBUS_SHUTDOWN_FWVER		\
-	VMBUS_IC_VERSION(VMBUS_SHUTDOWN_FWVER_MAJOR, 0)
+#define VMBUS_SHUTDOWN_FWVER_MAJOR 3
+#define VMBUS_SHUTDOWN_FWVER VMBUS_IC_VERSION(VMBUS_SHUTDOWN_FWVER_MAJOR, 0)
 
-#define VMBUS_SHUTDOWN_MSGVER_MAJOR	3
-#define VMBUS_SHUTDOWN_MSGVER		\
-	VMBUS_IC_VERSION(VMBUS_SHUTDOWN_MSGVER_MAJOR, 0)
+#define VMBUS_SHUTDOWN_MSGVER_MAJOR 3
+#define VMBUS_SHUTDOWN_MSGVER VMBUS_IC_VERSION(VMBUS_SHUTDOWN_MSGVER_MAJOR, 0)
 
-static int			vmbus_shutdown_probe(device_t);
-static int			vmbus_shutdown_attach(device_t);
+static int vmbus_shutdown_probe(device_t);
+static int vmbus_shutdown_attach(device_t);
 
 static const struct vmbus_ic_desc vmbus_shutdown_descs[] = {
-	{
-		.ic_guid = { .hv_guid = {
-		    0x31, 0x60, 0x0b, 0x0e, 0x13, 0x52, 0x34, 0x49,
-		    0x81, 0x8b, 0x38, 0xd9, 0x0c, 0xed, 0x39, 0xdb } },
-		.ic_desc = "Hyper-V Shutdown"
-	},
+	{ .ic_guid = { .hv_guid = { 0x31, 0x60, 0x0b, 0x0e, 0x13, 0x52, 0x34,
+			   0x49, 0x81, 0x8b, 0x38, 0xd9, 0x0c, 0xed, 0x39,
+			   0xdb } },
+	    .ic_desc = "Hyper-V Shutdown" },
 	VMBUS_IC_DESC_END
 };
 
 static device_method_t vmbus_shutdown_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		vmbus_shutdown_probe),
-	DEVMETHOD(device_attach,	vmbus_shutdown_attach),
-	DEVMETHOD(device_detach,	vmbus_ic_detach),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, vmbus_shutdown_probe),
+	DEVMETHOD(device_attach, vmbus_shutdown_attach),
+	DEVMETHOD(device_detach, vmbus_ic_detach), DEVMETHOD_END
 };
 
-static driver_t vmbus_shutdown_driver = {
-	"hvshutdown",
-	vmbus_shutdown_methods,
-	sizeof(struct vmbus_ic_softc)
-};
+static driver_t vmbus_shutdown_driver = { "hvshutdown", vmbus_shutdown_methods,
+	sizeof(struct vmbus_ic_softc) };
 
 DRIVER_MODULE(hv_shutdown, vmbus, vmbus_shutdown_driver, NULL, NULL);
 MODULE_VERSION(hv_shutdown, 1);
@@ -106,8 +98,8 @@ vmbus_shutdown_cb(struct vmbus_channel *chan, void *xsc)
 	 */
 	switch (hdr->ic_type) {
 	case VMBUS_ICMSG_TYPE_NEGOTIATE:
-		error = vmbus_ic_negomsg(sc, data, &dlen,
-		    VMBUS_SHUTDOWN_FWVER, VMBUS_SHUTDOWN_MSGVER);
+		error = vmbus_ic_negomsg(sc, data, &dlen, VMBUS_SHUTDOWN_FWVER,
+		    VMBUS_SHUTDOWN_MSGVER);
 		if (error)
 			return;
 		break;
@@ -126,8 +118,10 @@ vmbus_shutdown_cb(struct vmbus_channel *chan, void *xsc)
 			hdr->ic_status = VMBUS_ICMSG_STATUS_OK;
 			do_shutdown = 1;
 		} else {
-			device_printf(sc->ic_dev, "unknown shutdown flags "
-			    "0x%08x\n", msg->ic_haltflags);
+			device_printf(sc->ic_dev,
+			    "unknown shutdown flags "
+			    "0x%08x\n",
+			    msg->ic_haltflags);
 			hdr->ic_status = VMBUS_ICMSG_STATUS_FAIL;
 		}
 		break;

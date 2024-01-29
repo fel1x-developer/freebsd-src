@@ -29,21 +29,15 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/module.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/kernel.h>
+#include <sys/module.h>
 #include <sys/proc.h>
 #include <sys/rman.h>
 
-#include <dev/ofw/openfirm.h>
-#include <dev/ofw/ofw_pci.h>
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-#include <dev/ofw/ofwpci.h>
-
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
+#include <vm/vm.h>
+#include <vm/pmap.h>
 
 #include <machine/bus.h>
 #include <machine/intr_machdep.h>
@@ -51,46 +45,50 @@
 #include <machine/pio.h>
 #include <machine/resource.h>
 
-#include <powerpc/powermac/gracklevar.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/ofw_pci.h>
+#include <dev/ofw/ofwpci.h>
+#include <dev/ofw/openfirm.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
-#include <vm/vm.h>
-#include <vm/pmap.h>
+#include <powerpc/powermac/gracklevar.h>
 
 #include "pcib_if.h"
 
 /*
  * Device interface.
  */
-static int		grackle_probe(device_t);
-static int		grackle_attach(device_t);
+static int grackle_probe(device_t);
+static int grackle_attach(device_t);
 
 /*
  * pcib interface.
  */
-static u_int32_t	grackle_read_config(device_t, u_int, u_int, u_int,
-			    u_int, int);
-static void		grackle_write_config(device_t, u_int, u_int, u_int,
-			    u_int, u_int32_t, int);
+static u_int32_t grackle_read_config(device_t, u_int, u_int, u_int, u_int, int);
+static void grackle_write_config(device_t, u_int, u_int, u_int, u_int,
+    u_int32_t, int);
 
 /*
  * Local routines.
  */
-static int		grackle_enable_config(struct grackle_softc *, u_int,
-			    u_int, u_int, u_int);
-static void		grackle_disable_config(struct grackle_softc *);
-static int		badaddr(void *, size_t);
+static int grackle_enable_config(struct grackle_softc *, u_int, u_int, u_int,
+    u_int);
+static void grackle_disable_config(struct grackle_softc *);
+static int badaddr(void *, size_t);
 
 /*
  * Driver methods.
  */
-static device_method_t	grackle_methods[] = {
+static device_method_t grackle_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		grackle_probe),
-	DEVMETHOD(device_attach,	grackle_attach),
+	DEVMETHOD(device_probe, grackle_probe),
+	DEVMETHOD(device_attach, grackle_attach),
 
 	/* pcib interface */
-	DEVMETHOD(pcib_read_config,	grackle_read_config),
-	DEVMETHOD(pcib_write_config,	grackle_write_config),
+	DEVMETHOD(pcib_read_config, grackle_read_config),
+	DEVMETHOD(pcib_write_config, grackle_write_config),
 
 	DEVMETHOD_END
 };
@@ -102,7 +100,7 @@ DRIVER_MODULE(grackle, ofwbus, grackle_driver, 0, 0);
 static int
 grackle_probe(device_t dev)
 {
-	const char	*type, *compatible;
+	const char *type, *compatible;
 
 	type = ofw_bus_get_type(dev);
 	compatible = ofw_bus_get_compat(dev);
@@ -120,7 +118,7 @@ grackle_probe(device_t dev)
 static int
 grackle_attach(device_t dev)
 {
-	struct		grackle_softc *sc;
+	struct grackle_softc *sc;
 
 	sc = device_get_softc(dev);
 
@@ -140,9 +138,9 @@ static u_int32_t
 grackle_read_config(device_t dev, u_int bus, u_int slot, u_int func, u_int reg,
     int width)
 {
-	struct		grackle_softc *sc;
-	vm_offset_t	caoff;
-	u_int32_t	retval = 0xffffffff;
+	struct grackle_softc *sc;
+	vm_offset_t caoff;
+	u_int32_t retval = 0xffffffff;
 
 	sc = device_get_softc(dev);
 	caoff = sc->sc_data + (reg & 0x03);
@@ -154,9 +152,9 @@ grackle_read_config(device_t dev, u_int bus, u_int slot, u_int func, u_int reg,
 		 * to catch these.
 		 */
 		if (bus > 0) {
-		  if (badaddr((void *)sc->sc_data, 4)) {
-			  return (retval);
-		  }
+			if (badaddr((void *)sc->sc_data, 4)) {
+				return (retval);
+			}
 		}
 
 		switch (width) {
@@ -177,11 +175,11 @@ grackle_read_config(device_t dev, u_int bus, u_int slot, u_int func, u_int reg,
 }
 
 static void
-grackle_write_config(device_t dev, u_int bus, u_int slot, u_int func,
-    u_int reg, u_int32_t val, int width)
+grackle_write_config(device_t dev, u_int bus, u_int slot, u_int func, u_int reg,
+    u_int32_t val, int width)
 {
-	struct		grackle_softc *sc;
-	vm_offset_t	caoff;
+	struct grackle_softc *sc;
+	vm_offset_t caoff;
 
 	sc = device_get_softc(dev);
 	caoff = sc->sc_data + (reg & 0x03);
@@ -209,17 +207,17 @@ static int
 grackle_enable_config(struct grackle_softc *sc, u_int bus, u_int slot,
     u_int func, u_int reg)
 {
-	u_int32_t	cfgval;
+	u_int32_t cfgval;
 
 	/*
 	 * Unlike UniNorth, the format of the config word is the same
 	 * for local (0) and remote busses.
 	 */
-	cfgval = (bus << 16) | (slot << 11) | (func << 8) | (reg & 0xFC)
-	    | GRACKLE_CFG_ENABLE;
+	cfgval = (bus << 16) | (slot << 11) | (func << 8) | (reg & 0xFC) |
+	    GRACKLE_CFG_ENABLE;
 
 	out32rb(sc->sc_addr, cfgval);
-	(void) in32rb(sc->sc_addr);
+	(void)in32rb(sc->sc_addr);
 
 	return (1);
 }
@@ -237,11 +235,11 @@ grackle_disable_config(struct grackle_softc *sc)
 static int
 badaddr(void *addr, size_t size)
 {
-	struct thread	*td;
-	jmp_buf		env, *oldfaultbuf;
+	struct thread *td;
+	jmp_buf env, *oldfaultbuf;
 
 	/* Get rid of any stale machine checks that have been waiting.  */
-	__asm __volatile ("sync; isync");
+	__asm __volatile("sync; isync");
 
 	td = curthread;
 
@@ -249,11 +247,11 @@ badaddr(void *addr, size_t size)
 	td->td_pcb->pcb_onfault = &env;
 	if (setjmp(env)) {
 		td->td_pcb->pcb_onfault = oldfaultbuf;
-		__asm __volatile ("sync");
+		__asm __volatile("sync");
 		return 1;
 	}
 
-	__asm __volatile ("sync");
+	__asm __volatile("sync");
 
 	switch (size) {
 	case 1:
@@ -270,10 +268,10 @@ badaddr(void *addr, size_t size)
 	}
 
 	/* Make sure we took the machine check, if we caused one. */
-	__asm __volatile ("sync; isync");
+	__asm __volatile("sync; isync");
 
 	td->td_pcb->pcb_onfault = oldfaultbuf;
-	__asm __volatile ("sync");	/* To be sure. */
+	__asm __volatile("sync"); /* To be sure. */
 
 	return (0);
 }
@@ -303,9 +301,8 @@ grackle_hb_attach(device_t dev)
 
 static device_method_t grackle_hb_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,         grackle_hb_probe),
-	DEVMETHOD(device_attach,        grackle_hb_attach),
-	{ 0, 0 }
+	DEVMETHOD(device_probe, grackle_hb_probe),
+	DEVMETHOD(device_attach, grackle_hb_attach), { 0, 0 }
 };
 
 static driver_t grackle_hb_driver = {

@@ -27,16 +27,16 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/eventhandler.h>
 #include <sys/power.h>
 #include <sys/proc.h>
-#include <sys/systm.h>
 #include <sys/taskqueue.h>
 
-static u_int		 power_pm_type	= POWER_PM_TYPE_NONE;
-static power_pm_fn_t	 power_pm_fn	= NULL;
-static void		*power_pm_arg	= NULL;
-static struct task	 power_pm_task;
+static u_int power_pm_type = POWER_PM_TYPE_NONE;
+static power_pm_fn_t power_pm_fn = NULL;
+static void *power_pm_arg = NULL;
+static struct task power_pm_task;
 
 static void
 power_pm_deferred_fn(void *arg, int pending)
@@ -49,13 +49,12 @@ power_pm_deferred_fn(void *arg, int pending)
 int
 power_pm_register(u_int pm_type, power_pm_fn_t pm_fn, void *pm_arg)
 {
-	int	error;
+	int error;
 
-	if (power_pm_type == POWER_PM_TYPE_NONE ||
-	    power_pm_type == pm_type) {
-		power_pm_type	= pm_type;
-		power_pm_fn	= pm_fn;
-		power_pm_arg	= pm_arg;
+	if (power_pm_type == POWER_PM_TYPE_NONE || power_pm_type == pm_type) {
+		power_pm_type = pm_type;
+		power_pm_fn = pm_fn;
+		power_pm_arg = pm_arg;
 		error = 0;
 		TASK_INIT(&power_pm_task, 0, power_pm_deferred_fn, NULL);
 	} else {
@@ -90,7 +89,7 @@ power_pm_suspend(int state)
  * Power profile.
  */
 
-static int	power_profile_state = POWER_PROFILE_PERFORMANCE;
+static int power_profile_state = POWER_PROFILE_PERFORMANCE;
 
 int
 power_profile_get_state(void)
@@ -99,17 +98,18 @@ power_profile_get_state(void)
 }
 
 void
-power_profile_set_state(int state) 
+power_profile_set_state(int state)
 {
-	int		changed;
-    
+	int changed;
+
 	if (state != power_profile_state) {
 		power_profile_state = state;
 		changed = 1;
 		if (bootverbose) {
 			printf("system power profile changed to '%s'\n",
-				(state == POWER_PROFILE_PERFORMANCE) ?
-				"performance" : "economy");
+			    (state == POWER_PROFILE_PERFORMANCE) ?
+				"performance" :
+				"economy");
 		}
 	} else {
 		changed = 0;

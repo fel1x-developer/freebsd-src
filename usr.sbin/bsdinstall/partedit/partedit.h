@@ -29,11 +29,12 @@
 #ifndef _PARTEDIT_PARTEDIT_H
 #define _PARTEDIT_PARTEDIT_H
 
-#include <sys/queue.h>
-#include <inttypes.h>
-#include <fstab.h>
-
 #include "opt_osname.h"
+
+#include <sys/queue.h>
+
+#include <fstab.h>
+#include <inttypes.h>
 
 struct gprovider;
 struct gmesh;
@@ -43,11 +44,11 @@ TAILQ_HEAD(pmetadata_head, partition_metadata);
 extern struct pmetadata_head part_metadata;
 
 struct partition_metadata {
-	char *name;		/* name of this partition, as in GEOM */
-	
-	struct fstab *fstab;	/* fstab data for this partition */
-	char *newfs;		/* shell command to initialize partition */
-	
+	char *name; /* name of this partition, as in GEOM */
+
+	struct fstab *fstab; /* fstab data for this partition */
+	char *newfs;	     /* shell command to initialize partition */
+
 	int bootcode;
 
 	TAILQ_ENTRY(partition_metadata) metadata;
@@ -67,8 +68,8 @@ void gpart_delete(struct gprovider *pp);
 void gpart_destroy(struct ggeom *lg_geom);
 void gpart_edit(struct gprovider *pp);
 void gpart_create(struct gprovider *pp, const char *default_type,
-    const char *default_size, const char *default_mountpoint,
-    char **output, int interactive);
+    const char *default_size, const char *default_mountpoint, char **output,
+    int interactive);
 intmax_t gpart_max_free(struct ggeom *gp, intmax_t *start);
 void gpart_revert(struct gprovider *pp);
 void gpart_revert_all(struct gmesh *mesh);
@@ -80,8 +81,8 @@ void gpart_set_root(const char *lg_name, const char *attribute);
 const char *choose_part_type(const char *def_scheme);
 
 /* machine-dependent bootability checks */
-const char *default_scheme(void);		/* Default partition scheme */
-int is_scheme_bootable(const char *scheme);	/* Non-zero if scheme boots */
+const char *default_scheme(void);	    /* Default partition scheme */
+int is_scheme_bootable(const char *scheme); /* Non-zero if scheme boots */
 int is_fs_bootable(const char *scheme, const char *fs); /* Ditto if FS boots */
 
 /* Size of boot partition in bytes. Zero if no boot partition */

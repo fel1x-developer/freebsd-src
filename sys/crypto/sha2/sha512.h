@@ -31,9 +31,9 @@
 #include <sys/types.h>
 #endif
 
-#define SHA512_BLOCK_LENGTH		128
-#define SHA512_DIGEST_LENGTH		64
-#define SHA512_DIGEST_STRING_LENGTH	(SHA512_DIGEST_LENGTH * 2 + 1)
+#define SHA512_BLOCK_LENGTH 128
+#define SHA512_DIGEST_LENGTH 64
+#define SHA512_DIGEST_STRING_LENGTH (SHA512_DIGEST_LENGTH * 2 + 1)
 
 typedef struct SHA512Context {
 	uint64_t state[8];
@@ -45,51 +45,51 @@ __BEGIN_DECLS
 
 /* Ensure libmd symbols do not clash with libcrypto */
 #ifndef SHA512_Init
-#define SHA512_Init		_libmd_SHA512_Init
+#define SHA512_Init _libmd_SHA512_Init
 #endif
 #ifndef SHA512_Update
-#define SHA512_Update		_libmd_SHA512_Update
+#define SHA512_Update _libmd_SHA512_Update
 #endif
 #ifndef SHA512_Final
-#define SHA512_Final		_libmd_SHA512_Final
+#define SHA512_Final _libmd_SHA512_Final
 #endif
 #ifndef SHA512_End
-#define SHA512_End		_libmd_SHA512_End
+#define SHA512_End _libmd_SHA512_End
 #endif
 #ifndef SHA512_Fd
-#define SHA512_Fd		_libmd_SHA512_Fd
+#define SHA512_Fd _libmd_SHA512_Fd
 #endif
 #ifndef SHA512_FdChunk
-#define SHA512_FdChunk		_libmd_SHA512_FdChunk
+#define SHA512_FdChunk _libmd_SHA512_FdChunk
 #endif
 #ifndef SHA512_File
-#define SHA512_File		_libmd_SHA512_File
+#define SHA512_File _libmd_SHA512_File
 #endif
 #ifndef SHA512_FileChunk
-#define SHA512_FileChunk	_libmd_SHA512_FileChunk
+#define SHA512_FileChunk _libmd_SHA512_FileChunk
 #endif
 #ifndef SHA512_Data
-#define SHA512_Data		_libmd_SHA512_Data
+#define SHA512_Data _libmd_SHA512_Data
 #endif
 
 #ifndef SHA512_Transform
-#define SHA512_Transform	_libmd_SHA512_Transform
+#define SHA512_Transform _libmd_SHA512_Transform
 #endif
 #ifndef SHA512_version
-#define SHA512_version		_libmd_SHA512_version
+#define SHA512_version _libmd_SHA512_version
 #endif
 
-void	SHA512_Init(SHA512_CTX *);
-void	SHA512_Update(SHA512_CTX *, const void *, size_t);
-void	SHA512_Final(unsigned char [__min_size(SHA512_DIGEST_LENGTH)],
+void SHA512_Init(SHA512_CTX *);
+void SHA512_Update(SHA512_CTX *, const void *, size_t);
+void SHA512_Final(unsigned char[__min_size(SHA512_DIGEST_LENGTH)],
     SHA512_CTX *);
 #ifndef _KERNEL
-char   *SHA512_End(SHA512_CTX *, char *);
-char   *SHA512_Data(const void *, unsigned int, char *);
-char   *SHA512_Fd(int, char *);
-char   *SHA512_FdChunk(int, char *, off_t, off_t);
-char   *SHA512_File(const char *, char *);
-char   *SHA512_FileChunk(const char *, char *, off_t, off_t);
+char *SHA512_End(SHA512_CTX *, char *);
+char *SHA512_Data(const void *, unsigned int, char *);
+char *SHA512_Fd(int, char *);
+char *SHA512_FdChunk(int, char *, off_t, off_t);
+char *SHA512_File(const char *, char *);
+char *SHA512_FileChunk(const char *, char *, off_t, off_t);
 #endif
 
 __END_DECLS

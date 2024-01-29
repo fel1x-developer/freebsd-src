@@ -40,7 +40,7 @@ main(int argc, char **argv)
 {
 	char buf[8192];
 	char y[2] = { 'y', '\n' };
-	char * exp = y;
+	char *exp = y;
 	size_t buflen = 0;
 	size_t explen = sizeof(y);
 	size_t more;

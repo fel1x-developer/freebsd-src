@@ -25,19 +25,23 @@
  */
 
 #ifndef _LINUXKPI_LINUX_SCHED_MM_H_
-#define	_LINUXKPI_LINUX_SCHED_MM_H_
+#define _LINUXKPI_LINUX_SCHED_MM_H_
 
 #include <linux/gfp.h>
 
-#define	fs_reclaim_acquire(x)		do {	\
+#define fs_reclaim_acquire(x) \
+	do {                  \
 	} while (0)
-#define	fs_reclaim_release(x)		do {	\
+#define fs_reclaim_release(x) \
+	do {                  \
 	} while (0)
-#define	memalloc_nofs_save(x)		0
-#define	memalloc_nofs_restore(x)	do {	\
+#define memalloc_nofs_save(x) 0
+#define memalloc_nofs_restore(x) \
+	do {                     \
 	} while (0)
-#define	memalloc_noreclaim_save(x)	0
-#define	memalloc_noreclaim_restore(x)	do {	\
+#define memalloc_noreclaim_save(x) 0
+#define memalloc_noreclaim_restore(x) \
+	do {                          \
 	} while (0)
 
-#endif	/* _BSD_LKPI_LINUX_SCHED_MM_H_ */
+#endif /* _BSD_LKPI_LINUX_SCHED_MM_H_ */

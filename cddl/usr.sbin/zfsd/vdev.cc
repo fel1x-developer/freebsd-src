@@ -35,34 +35,34 @@
  *
  * Implementation of the Vdev class.
  */
-#include <syslog.h>
 #include <sys/cdefs.h>
 #include <sys/byteorder.h>
 #include <sys/fs/zfs.h>
 
 #include <libzfs.h>
-/* 
+#include <syslog.h>
+/*
  * Undefine flush, defined by cpufunc.h on sparc64, because it conflicts with
  * C++ flush methods
  */
-#undef   flush
+#undef flush
 
-#include <list>
-#include <map>
-#include <string>
-#include <sstream>
-
-#include <devdctl/guid.h>
+#include <devdctl/consumer.h>
 #include <devdctl/event.h>
 #include <devdctl/event_factory.h>
 #include <devdctl/exception.h>
-#include <devdctl/consumer.h>
+#include <devdctl/guid.h>
 
 #include "vdev.h"
 #include "vdev_iterator.h"
 #include "zfsd.h"
 #include "zfsd_exception.h"
 #include "zpool_list.h"
+
+#include <list>
+#include <map>
+#include <sstream>
+#include <string>
 /*============================ Namespace Control =============================*/
 using std::string;
 using std::stringstream;
@@ -76,9 +76,10 @@ Vdev NonexistentVdev;
 
 /* Special constructor for NonexistentVdev. */
 Vdev::Vdev()
- : m_poolConfig(NULL),
-   m_config(NULL)
-{}
+    : m_poolConfig(NULL)
+    , m_config(NULL)
+{
+}
 
 bool
 Vdev::VdevLookupPoolGuid()
@@ -101,8 +102,8 @@ Vdev::VdevLookupGuid()
 }
 
 Vdev::Vdev(zpool_handle_t *pool, nvlist_t *config)
- : m_poolConfig(zpool_get_config(pool, NULL)),
-   m_config(config)
+    : m_poolConfig(zpool_get_config(pool, NULL))
+    , m_config(config)
 {
 	if (!VdevLookupPoolGuid())
 		throw ZfsdException("Can't extract pool GUID from handle.");
@@ -110,8 +111,8 @@ Vdev::Vdev(zpool_handle_t *pool, nvlist_t *config)
 }
 
 Vdev::Vdev(nvlist_t *poolConfig, nvlist_t *config)
- : m_poolConfig(poolConfig),
-   m_config(config)
+    : m_poolConfig(poolConfig)
+    , m_config(config)
 {
 	if (!VdevLookupPoolGuid())
 		throw ZfsdException("Can't extract pool GUID from config.");
@@ -119,8 +120,8 @@ Vdev::Vdev(nvlist_t *poolConfig, nvlist_t *config)
 }
 
 Vdev::Vdev(nvlist_t *labelConfig)
- : m_poolConfig(labelConfig),
-   m_config(labelConfig)
+    : m_poolConfig(labelConfig)
+    , m_config(labelConfig)
 {
 	/*
 	 * Spares do not have a Pool GUID.  Tolerate its absence.
@@ -128,7 +129,7 @@ Vdev::Vdev(nvlist_t *labelConfig)
 	 * required will find it invalid (as it is upon Vdev construction)
 	 * and act accordingly.
 	 */
-	(void) VdevLookupPoolGuid();
+	(void)VdevLookupPoolGuid();
 	VdevLookupGuid();
 
 	try {
@@ -157,9 +158,9 @@ Vdev::IsSpare() const
 vdev_state
 Vdev::State() const
 {
-	uint64_t    *nvlist_array;
+	uint64_t *nvlist_array;
 	vdev_stat_t *vs;
-	uint_t       vsc;
+	uint_t vsc;
 
 	if (m_config == NULL) {
 		/*
@@ -174,7 +175,7 @@ Vdev::State() const
 	}
 
 	if (nvlist_lookup_uint64_array(m_config, ZPOOL_CONFIG_VDEV_STATS,
-				       &nvlist_array, &vsc) == 0) {
+		&nvlist_array, &vsc) == 0) {
 		vs = reinterpret_cast<vdev_stat_t *>(nvlist_array);
 		return (static_cast<vdev_state>(vs->vs_state));
 	}
@@ -205,12 +206,12 @@ Vdev::Children()
 	if (m_poolConfig == NULL || m_config == NULL)
 		return (children);
 
-	result = nvlist_lookup_nvlist_array(m_config,
-	    ZPOOL_CONFIG_CHILDREN, &vdevChildren, &numChildren);
+	result = nvlist_lookup_nvlist_array(m_config, ZPOOL_CONFIG_CHILDREN,
+	    &vdevChildren, &numChildren);
 	if (result != 0)
 		return (children);
 
-	for (u_int c = 0;c < numChildren; c++)
+	for (u_int c = 0; c < numChildren; c++)
 		children.push_back(Vdev(m_poolConfig, vdevChildren[c]));
 
 	return (children);
@@ -225,7 +226,7 @@ Vdev::RootVdev()
 		return (NonexistentVdev);
 
 	if (nvlist_lookup_nvlist(m_poolConfig, ZPOOL_CONFIG_VDEV_TREE,
-	    &rootVdev) != 0)
+		&rootVdev) != 0)
 		return (NonexistentVdev);
 	return (Vdev(m_poolConfig, rootVdev));
 }
@@ -252,7 +253,7 @@ Vdev::Parent()
 		to_examine.pop_front();
 		children = vd.Children();
 		children_it = children.begin();
-		for (;children_it != children.end(); children_it++) {
+		for (; children_it != children.end(); children_it++) {
 			Vdev child = *children_it;
 
 			if (child.GUID() == GUID())
@@ -290,7 +291,7 @@ Vdev::IsActiveSpare() const
 	if (m_poolConfig == NULL)
 		return (false);
 
-	(void) nvlist_lookup_uint64_array(m_config, ZPOOL_CONFIG_VDEV_STATS,
+	(void)nvlist_lookup_uint64_array(m_config, ZPOOL_CONFIG_VDEV_STATS,
 	    reinterpret_cast<uint64_t **>(&vs), &c);
 	if (vs == NULL || vs->vs_aux != VDEV_AUX_SPARED)
 		return (false);
@@ -306,7 +307,7 @@ Vdev::IsResilvering() const
 	if (State() != VDEV_STATE_HEALTHY)
 		return (false);
 
-	(void) nvlist_lookup_uint64_array(m_config, ZPOOL_CONFIG_SCAN_STATS,
+	(void)nvlist_lookup_uint64_array(m_config, ZPOOL_CONFIG_SCAN_STATS,
 	    reinterpret_cast<uint64_t **>(&ps), &c);
 	if (ps == NULL || ps->pss_func != POOL_SCAN_RESILVER)
 		return (false);
@@ -334,8 +335,8 @@ Vdev::Path() const
 {
 	const char *path(NULL);
 
-	if ((m_config != NULL)
-	    && (nvlist_lookup_string(m_config, ZPOOL_CONFIG_PATH, &path) == 0))
+	if ((m_config != NULL) &&
+	    (nvlist_lookup_string(m_config, ZPOOL_CONFIG_PATH, &path) == 0))
 		return (path);
 
 	return ("");
@@ -346,8 +347,9 @@ Vdev::PhysicalPath() const
 {
 	const char *path(NULL);
 
-	if ((m_config != NULL) && (nvlist_lookup_string(m_config,
-				    ZPOOL_CONFIG_PHYS_PATH, &path) == 0))
+	if ((m_config != NULL) &&
+	    (nvlist_lookup_string(m_config, ZPOOL_CONFIG_PHYS_PATH, &path) ==
+		0))
 		return (path);
 
 	return ("");

@@ -32,17 +32,19 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/types.h>
-#include <signal.h>
-#include <unistd.h>
+
 #include <errno.h>
+#include <paths.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <paths.h>
-#include "un-namespace.h"
+#include <unistd.h>
+
 #include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 FILE *
 tmpfile(void)
@@ -50,7 +52,7 @@ tmpfile(void)
 	sigset_t set, oset;
 	FILE *fp;
 	int fd, sverrno;
-#define	TRAILER	"tmp.XXXXXX"
+#define TRAILER "tmp.XXXXXX"
 	char *buf;
 	const char *tmpdir;
 

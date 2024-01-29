@@ -28,42 +28,41 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
+#include <sys/rman.h>
 #include <sys/sbuf.h>
 #include <sys/sysctl.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
 
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
-
+#include <dev/puc/puc_bfe.h>
 #include <dev/puc/puc_bus.h>
 #include <dev/puc/puc_cfg.h>
-#include <dev/puc/puc_bfe.h>
 
-#define	PUC_ISRCCNT	5
+#define PUC_ISRCCNT 5
 
 struct puc_port {
-	struct puc_bar	*p_bar;
+	struct puc_bar *p_bar;
 	struct resource *p_rres;
 	struct resource *p_ires;
-	device_t	p_dev;
-	int		p_nr;
-	int		p_type;
-	int		p_rclk;
+	device_t p_dev;
+	int p_nr;
+	int p_type;
+	int p_rclk;
 
-	bool		p_hasintr:1;
+	bool p_hasintr : 1;
 
-	serdev_intr_t	*p_ihsrc[PUC_ISRCCNT];
-	void		*p_iharg;
+	serdev_intr_t *p_ihsrc[PUC_ISRCCNT];
+	void *p_iharg;
 
-	int		p_ipend;
+	int p_ipend;
 };
 
 const char puc_driver_name[] = "puc";
@@ -257,8 +256,8 @@ puc_bfe_attach(device_t dev)
 	error = puc_config(sc, PUC_CFG_GET_NPORTS, 0, &res);
 	KASSERT(error == 0, ("%s %d", __func__, __LINE__));
 	sc->sc_nports = (int)res;
-	sc->sc_port = malloc(sc->sc_nports * sizeof(struct puc_port),
-	    M_PUC, M_WAITOK|M_ZERO);
+	sc->sc_port = malloc(sc->sc_nports * sizeof(struct puc_port), M_PUC,
+	    M_WAITOK | M_ZERO);
 
 	error = rman_manage_region(&sc->sc_irq, 1, sc->sc_nports);
 	if (error)
@@ -293,8 +292,8 @@ puc_bfe_attach(device_t dev)
 		if (error)
 			goto fail;
 		size = res;
-		rm = (bar->b_type == SYS_RES_IOPORT)
-		    ? &sc->sc_ioport: &sc->sc_iomem;
+		rm = (bar->b_type == SYS_RES_IOPORT) ? &sc->sc_ioport :
+						       &sc->sc_iomem;
 		port->p_rres = rman_reserve_resource(rm, start + ofs,
 		    start + ofs + size - 1, size, 0, NULL);
 		if (port->p_rres != NULL) {
@@ -328,10 +327,10 @@ puc_bfe_attach(device_t dev)
 		device_printf(dev, "using interrupt latch register\n");
 
 	sc->sc_ires = bus_alloc_resource_any(dev, SYS_RES_IRQ, &sc->sc_irid,
-	    RF_ACTIVE|RF_SHAREABLE);
+	    RF_ACTIVE | RF_SHAREABLE);
 	if (sc->sc_ires != NULL) {
-		error = bus_setup_intr(dev, sc->sc_ires,
-		    INTR_TYPE_TTY, puc_intr, NULL, sc, &sc->sc_icookie);
+		error = bus_setup_intr(dev, sc->sc_ires, INTR_TYPE_TTY,
+		    puc_intr, NULL, sc, &sc->sc_icookie);
 		if (error)
 			error = bus_setup_intr(dev, sc->sc_ires,
 			    INTR_TYPE_TTY | INTR_MPSAFE, NULL,
@@ -508,7 +507,7 @@ puc_bus_alloc_resource(device_t dev, device_t child, int type, int *rid,
 		return (NULL);
 
 	assigned = rman_get_device(res);
-	if (assigned == NULL)	/* Not allocated */
+	if (assigned == NULL) /* Not allocated */
 		rman_set_device(res, originator);
 	else if (assigned != originator)
 		return (NULL);
@@ -601,7 +600,8 @@ puc_bus_get_resource(device_t dev, device_t child, int type, int rid,
 
 int
 puc_bus_setup_intr(device_t dev, device_t child, struct resource *res,
-    int flags, driver_filter_t *filt, void (*ihand)(void *), void *arg, void **cookiep)
+    int flags, driver_filter_t *filt, void (*ihand)(void *), void *arg,
+    void **cookiep)
 {
 	struct puc_port *port;
 	struct puc_softc *sc;
@@ -715,7 +715,7 @@ puc_bus_read_ivar(device_t dev, device_t child, int index, uintptr_t *result)
 	if (result == NULL)
 		return (EINVAL);
 
-	switch(index) {
+	switch (index) {
 	case PUC_IVAR_CLOCK:
 		*result = port->p_rclk;
 		break;

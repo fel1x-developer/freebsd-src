@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018 Cavium, Inc. 
+ * Copyright (c) 2017-2018 Cavium, Inc.
  * All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -29,25 +29,25 @@
 #ifndef __ECORE_L2_API_H__
 #define __ECORE_L2_API_H__
 
-#include "ecore_status.h"
-#include "ecore_sp_api.h"
 #include "ecore_int_api.h"
+#include "ecore_sp_api.h"
+#include "ecore_status.h"
 
 #ifndef __EXTRACT__LINUX__
 enum ecore_rss_caps {
-	ECORE_RSS_IPV4		= 0x1,
-	ECORE_RSS_IPV6		= 0x2,
-	ECORE_RSS_IPV4_TCP	= 0x4,
-	ECORE_RSS_IPV6_TCP	= 0x8,
-	ECORE_RSS_IPV4_UDP	= 0x10,
-	ECORE_RSS_IPV6_UDP	= 0x20,
+	ECORE_RSS_IPV4 = 0x1,
+	ECORE_RSS_IPV6 = 0x2,
+	ECORE_RSS_IPV4_TCP = 0x4,
+	ECORE_RSS_IPV6_TCP = 0x8,
+	ECORE_RSS_IPV4_UDP = 0x10,
+	ECORE_RSS_IPV6_UDP = 0x20,
 };
 
 /* Should be the same as ETH_RSS_IND_TABLE_ENTRIES_NUM */
 #define ECORE_RSS_IND_TABLE_SIZE 128
 #define ECORE_RSS_KEY_SIZE 10 /* size in 32b chunks */
 
-#define ECORE_MAX_PHC_DRIFT_PPB	291666666
+#define ECORE_MAX_PHC_DRIFT_PPB 291666666
 
 enum ecore_ptp_filter_type {
 	ECORE_PTP_FILTER_NONE,
@@ -133,7 +133,7 @@ enum ecore_filter_opcode {
 	ECORE_FILTER_REMOVE,
 	ECORE_FILTER_MOVE,
 	ECORE_FILTER_REPLACE, /* Delete all MACs and add new one instead */
-	ECORE_FILTER_FLUSH, /* Removes all filters */
+	ECORE_FILTER_FLUSH,   /* Removes all filters */
 };
 
 enum ecore_filter_ucast_type {
@@ -166,8 +166,8 @@ struct ecore_filter_mcast {
 	enum ecore_filter_opcode opcode;
 	u8 vport_to_add_to;
 	u8 vport_to_remove_from;
-	u8	num_mc_addrs;
-#define ECORE_MAX_MC_ADDRS	64
+	u8 num_mc_addrs;
+#define ECORE_MAX_MC_ADDRS 64
 	unsigned char mac[ECORE_MAX_MC_ADDRS][ETH_ALEN];
 };
 
@@ -176,12 +176,12 @@ struct ecore_filter_accept_flags {
 	u8 update_tx_mode_config;
 	u8 rx_accept_filter;
 	u8 tx_accept_filter;
-#define	ECORE_ACCEPT_NONE		0x01
-#define ECORE_ACCEPT_UCAST_MATCHED	0x02
-#define ECORE_ACCEPT_UCAST_UNMATCHED	0x04
-#define ECORE_ACCEPT_MCAST_MATCHED	0x08
-#define ECORE_ACCEPT_MCAST_UNMATCHED	0x10
-#define ECORE_ACCEPT_BCAST		0x20
+#define ECORE_ACCEPT_NONE 0x01
+#define ECORE_ACCEPT_UCAST_MATCHED 0x02
+#define ECORE_ACCEPT_UCAST_UNMATCHED 0x04
+#define ECORE_ACCEPT_MCAST_MATCHED 0x08
+#define ECORE_ACCEPT_MCAST_UNMATCHED 0x10
+#define ECORE_ACCEPT_BCAST 0x20
 };
 
 #ifndef __EXTRACT__LINUX__
@@ -208,29 +208,20 @@ struct ecore_arfs_config_params {
  * 3. Removing a filter which doesn't exist.
  */
 
-enum _ecore_status_t
-ecore_filter_ucast_cmd(struct ecore_dev *p_dev,
-		       struct ecore_filter_ucast *p_filter_cmd,
-		       enum spq_mode comp_mode,
-		       struct ecore_spq_comp_cb *p_comp_data);
+enum _ecore_status_t ecore_filter_ucast_cmd(struct ecore_dev *p_dev,
+    struct ecore_filter_ucast *p_filter_cmd, enum spq_mode comp_mode,
+    struct ecore_spq_comp_cb *p_comp_data);
 
 /* Add / remove / move multicast MAC filters. */
-enum _ecore_status_t
-ecore_filter_mcast_cmd(struct ecore_dev *p_dev,
-		       struct ecore_filter_mcast *p_filter_cmd,
-		       enum spq_mode comp_mode,
-		       struct ecore_spq_comp_cb *p_comp_data);
+enum _ecore_status_t ecore_filter_mcast_cmd(struct ecore_dev *p_dev,
+    struct ecore_filter_mcast *p_filter_cmd, enum spq_mode comp_mode,
+    struct ecore_spq_comp_cb *p_comp_data);
 
 /* Set "accept" filters */
-enum _ecore_status_t
-ecore_filter_accept_cmd(
-	struct ecore_dev		 *p_dev,
-	u8				 vport,
-	struct ecore_filter_accept_flags accept_flags,
-	u8				 update_accept_any_vlan,
-	u8				 accept_any_vlan,
-	enum spq_mode			 comp_mode,
-	struct ecore_spq_comp_cb	 *p_comp_data);
+enum _ecore_status_t ecore_filter_accept_cmd(struct ecore_dev *p_dev, u8 vport,
+    struct ecore_filter_accept_flags accept_flags, u8 update_accept_any_vlan,
+    u8 accept_any_vlan, enum spq_mode comp_mode,
+    struct ecore_spq_comp_cb *p_comp_data);
 
 /**
  * @brief ecore_eth_rx_queue_start - RX Queue Start Ramrod
@@ -249,15 +240,10 @@ ecore_filter_accept_cmd(
  *
  * @return enum _ecore_status_t
  */
-enum _ecore_status_t
-ecore_eth_rx_queue_start(struct ecore_hwfn *p_hwfn,
-			 u16 opaque_fid,
-			 struct ecore_queue_start_common_params *p_params,
-			 u16 bd_max_bytes,
-			 dma_addr_t bd_chain_phys_addr,
-			 dma_addr_t cqe_pbl_addr,
-			 u16 cqe_pbl_size,
-			 struct ecore_rxq_start_ret_params *p_ret_params);
+enum _ecore_status_t ecore_eth_rx_queue_start(struct ecore_hwfn *p_hwfn,
+    u16 opaque_fid, struct ecore_queue_start_common_params *p_params,
+    u16 bd_max_bytes, dma_addr_t bd_chain_phys_addr, dma_addr_t cqe_pbl_addr,
+    u16 cqe_pbl_size, struct ecore_rxq_start_ret_params *p_ret_params);
 
 /**
  * @brief ecore_eth_rx_queue_stop - This ramrod closes an Rx queue
@@ -273,11 +259,8 @@ ecore_eth_rx_queue_start(struct ecore_hwfn *p_hwfn,
  *				recieve on CQe.
  * @return enum _ecore_status_t
  */
-enum _ecore_status_t
-ecore_eth_rx_queue_stop(struct ecore_hwfn *p_hwfn,
-			void *p_rxq,
-			bool eq_completion_only,
-			bool cqe_completion);
+enum _ecore_status_t ecore_eth_rx_queue_stop(struct ecore_hwfn *p_hwfn,
+    void *p_rxq, bool eq_completion_only, bool cqe_completion);
 
 /**
  * @brief - TX Queue Start Ramrod
@@ -295,14 +278,10 @@ ecore_eth_rx_queue_stop(struct ecore_hwfn *p_hwfn,
  *
  * @return enum _ecore_status_t
  */
-enum _ecore_status_t
-ecore_eth_tx_queue_start(struct ecore_hwfn *p_hwfn,
-			 u16 opaque_fid,
-			 struct ecore_queue_start_common_params *p_params,
-			 u8 tc,
-			 dma_addr_t pbl_addr,
-			 u16 pbl_size,
-			 struct ecore_txq_start_ret_params *p_ret_params);
+enum _ecore_status_t ecore_eth_tx_queue_start(struct ecore_hwfn *p_hwfn,
+    u16 opaque_fid, struct ecore_queue_start_common_params *p_params, u8 tc,
+    dma_addr_t pbl_addr, u16 pbl_size,
+    struct ecore_txq_start_ret_params *p_ret_params);
 
 /**
  * @brief ecore_eth_tx_queue_stop - closes a Tx queue
@@ -313,9 +292,9 @@ ecore_eth_tx_queue_start(struct ecore_hwfn *p_hwfn,
  * @return enum _ecore_status_t
  */
 enum _ecore_status_t ecore_eth_tx_queue_stop(struct ecore_hwfn *p_hwfn,
-					     void *p_txq);
+    void *p_txq);
 
-enum ecore_tpa_mode	{
+enum ecore_tpa_mode {
 	ECORE_TPA_MODE_NONE,
 	ECORE_TPA_MODE_RSC,
 	ECORE_TPA_MODE_GRO,
@@ -324,7 +303,7 @@ enum ecore_tpa_mode	{
 
 struct ecore_sp_vport_start_params {
 	enum ecore_tpa_mode tpa_mode;
-	bool remove_inner_vlan;	/* Inner VLAN removal is enabled */
+	bool remove_inner_vlan; /* Inner VLAN removal is enabled */
 	bool tx_switching;	/* Vport supports tx-switching */
 	bool handle_ptp_pkts;	/* Handle PTP packets */
 	bool only_untagged;	/* Untagged pkt control */
@@ -332,8 +311,8 @@ struct ecore_sp_vport_start_params {
 	u8 max_buffers_per_cqe;
 	u32 concrete_fid;
 	u16 opaque_fid;
-	u8 vport_id;		/* VPORT ID */
-	u16 mtu;		/* VPORT MTU */
+	u8 vport_id; /* VPORT ID */
+	u16 mtu;     /* VPORT MTU */
 	bool zero_placement_offset;
 	bool check_mac;
 	bool check_ethtype;
@@ -359,33 +338,32 @@ struct ecore_sp_vport_start_params {
  *
  * @return enum _ecore_status_t
  */
-enum _ecore_status_t
-ecore_sp_vport_start(struct ecore_hwfn *p_hwfn,
-		     struct ecore_sp_vport_start_params *p_params);
+enum _ecore_status_t ecore_sp_vport_start(struct ecore_hwfn *p_hwfn,
+    struct ecore_sp_vport_start_params *p_params);
 
 struct ecore_sp_vport_update_params {
-	u16			opaque_fid;
-	u8			vport_id;
-	u8			update_vport_active_rx_flg;
-	u8			vport_active_rx_flg;
-	u8			update_vport_active_tx_flg;
-	u8			vport_active_tx_flg;
-	u8			update_inner_vlan_removal_flg;
-	u8			inner_vlan_removal_flg;
-	u8			silent_vlan_removal_flg;
-	u8			update_default_vlan_enable_flg;
-	u8			default_vlan_enable_flg;
-	u8			update_default_vlan_flg;
-	u16			default_vlan;
-	u8			update_tx_switching_flg;
-	u8			tx_switching_flg;
-	u8			update_approx_mcast_flg;
-	u8			update_anti_spoofing_en_flg;
-	u8			anti_spoofing_en;
-	u8			update_accept_any_vlan_flg;
-	u8			accept_any_vlan;
-	u32			bins[8];
-	struct ecore_rss_params	*rss_params;
+	u16 opaque_fid;
+	u8 vport_id;
+	u8 update_vport_active_rx_flg;
+	u8 vport_active_rx_flg;
+	u8 update_vport_active_tx_flg;
+	u8 vport_active_tx_flg;
+	u8 update_inner_vlan_removal_flg;
+	u8 inner_vlan_removal_flg;
+	u8 silent_vlan_removal_flg;
+	u8 update_default_vlan_enable_flg;
+	u8 default_vlan_enable_flg;
+	u8 update_default_vlan_flg;
+	u16 default_vlan;
+	u8 update_tx_switching_flg;
+	u8 tx_switching_flg;
+	u8 update_approx_mcast_flg;
+	u8 update_anti_spoofing_en_flg;
+	u8 anti_spoofing_en;
+	u8 update_accept_any_vlan_flg;
+	u8 accept_any_vlan;
+	u32 bins[8];
+	struct ecore_rss_params *rss_params;
 	struct ecore_filter_accept_flags accept_flags;
 	struct ecore_sge_tpa_params *sge_tpa_params;
 };
@@ -404,11 +382,9 @@ struct ecore_sp_vport_update_params {
  *
  * @return enum _ecore_status_t
  */
-enum _ecore_status_t
-ecore_sp_vport_update(struct ecore_hwfn *p_hwfn,
-		      struct ecore_sp_vport_update_params *p_params,
-		      enum spq_mode comp_mode,
-		      struct ecore_spq_comp_cb *p_comp_data);
+enum _ecore_status_t ecore_sp_vport_update(struct ecore_hwfn *p_hwfn,
+    struct ecore_sp_vport_update_params *p_params, enum spq_mode comp_mode,
+    struct ecore_spq_comp_cb *p_comp_data);
 /**
  * @brief ecore_sp_vport_stop -
  *
@@ -422,15 +398,11 @@ ecore_sp_vport_update(struct ecore_hwfn *p_hwfn,
  * @return enum _ecore_status_t
  */
 enum _ecore_status_t ecore_sp_vport_stop(struct ecore_hwfn *p_hwfn,
-					 u16 opaque_fid,
-					 u8 vport_id);
+    u16 opaque_fid, u8 vport_id);
 
-enum _ecore_status_t
-ecore_sp_eth_filter_ucast(struct ecore_hwfn *p_hwfn,
-			  u16 opaque_fid,
-			  struct ecore_filter_ucast *p_filter_cmd,
-			  enum spq_mode comp_mode,
-			  struct ecore_spq_comp_cb *p_comp_data);
+enum _ecore_status_t ecore_sp_eth_filter_ucast(struct ecore_hwfn *p_hwfn,
+    u16 opaque_fid, struct ecore_filter_ucast *p_filter_cmd,
+    enum spq_mode comp_mode, struct ecore_spq_comp_cb *p_comp_data);
 
 /**
  * @brief ecore_sp_rx_eth_queues_update -
@@ -451,14 +423,10 @@ ecore_sp_eth_filter_ucast(struct ecore_hwfn *p_hwfn,
  * @return enum _ecore_status_t
  */
 
-enum _ecore_status_t
-ecore_sp_eth_rx_queues_update(struct ecore_hwfn *p_hwfn,
-			      void **pp_rxq_handlers,
-			      u8 num_rxqs,
-			      u8 complete_cqe_flg,
-			      u8 complete_event_flg,
-			      enum spq_mode comp_mode,
-			      struct ecore_spq_comp_cb *p_comp_data);
+enum _ecore_status_t ecore_sp_eth_rx_queues_update(struct ecore_hwfn *p_hwfn,
+    void **pp_rxq_handlers, u8 num_rxqs, u8 complete_cqe_flg,
+    u8 complete_event_flg, enum spq_mode comp_mode,
+    struct ecore_spq_comp_cb *p_comp_data);
 
 /**
  * @brief ecore_sp_eth_rx_queues_set_default -
@@ -477,17 +445,14 @@ ecore_sp_eth_rx_queues_update(struct ecore_hwfn *p_hwfn,
 
 enum _ecore_status_t
 ecore_sp_eth_rx_queues_set_default(struct ecore_hwfn *p_hwfn,
-				   void *p_rxq_handler,
-				   enum spq_mode comp_mode,
-				   struct ecore_spq_comp_cb *p_comp_data);
+    void *p_rxq_handler, enum spq_mode comp_mode,
+    struct ecore_spq_comp_cb *p_comp_data);
 
-void __ecore_get_vport_stats(struct ecore_hwfn *p_hwfn,
-			     struct ecore_ptt *p_ptt,
-			     struct ecore_eth_stats *stats,
-			     u16 statistics_bin, bool b_get_port_stats);
+void __ecore_get_vport_stats(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
+    struct ecore_eth_stats *stats, u16 statistics_bin, bool b_get_port_stats);
 
 void ecore_get_vport_stats(struct ecore_dev *p_dev,
-			   struct ecore_eth_stats *stats);
+    struct ecore_eth_stats *stats);
 
 void ecore_reset_vport_stats(struct ecore_dev *p_dev);
 
@@ -503,8 +468,7 @@ void ecore_reset_vport_stats(struct ecore_dev *p_dev);
  *
  */
 void ecore_arfs_mode_configure(struct ecore_hwfn *p_hwfn,
-			       struct ecore_ptt *p_ptt,
-			       struct ecore_arfs_config_params *p_cfg_params);
+    struct ecore_ptt *p_ptt, struct ecore_arfs_config_params *p_cfg_params);
 
 #ifndef __EXTRACT__LINUX__
 struct ecore_ntuple_filter_params {
@@ -543,6 +507,6 @@ struct ecore_ntuple_filter_params {
  */
 enum _ecore_status_t
 ecore_configure_rfs_ntuple_filter(struct ecore_hwfn *p_hwfn,
-				  struct ecore_spq_comp_cb *p_cb,
-				  struct ecore_ntuple_filter_params *p_params);
+    struct ecore_spq_comp_cb *p_cb,
+    struct ecore_ntuple_filter_params *p_params);
 #endif

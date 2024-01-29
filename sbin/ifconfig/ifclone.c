@@ -33,6 +33,7 @@
 #include <sys/ioctl.h>
 #include <sys/queue.h>
 #include <sys/socket.h>
+
 #include <net/if.h>
 
 #include <err.h>
@@ -59,8 +60,7 @@ list_cloners(void)
 		errc(1, ifconfig_err_errno(lifh), "unable to list cloners");
 
 	for (const char *name = cloners;
-	    name < cloners + cloners_count * IFNAMSIZ;
-	    name += IFNAMSIZ) {
+	     name < cloners + cloners_count * IFNAMSIZ; name += IFNAMSIZ) {
 		if (name > cloners)
 			putchar(' ');
 		printf("%s", name);
@@ -79,8 +79,8 @@ struct clone_defcb {
 	SLIST_ENTRY(clone_defcb) next;
 };
 
-static SLIST_HEAD(, clone_defcb) clone_defcbh =
-   SLIST_HEAD_INITIALIZER(clone_defcbh);
+static SLIST_HEAD(, clone_defcb) clone_defcbh = SLIST_HEAD_INITIALIZER(
+    clone_defcbh);
 
 void
 clone_setdefcallback_prefix(const char *ifprefix, clone_callback_func *p)
@@ -88,7 +88,7 @@ clone_setdefcallback_prefix(const char *ifprefix, clone_callback_func *p)
 	struct clone_defcb *dcp;
 
 	dcp = malloc(sizeof(*dcp));
-	strlcpy(dcp->ifprefix, ifprefix, IFNAMSIZ-1);
+	strlcpy(dcp->ifprefix, ifprefix, IFNAMSIZ - 1);
 	dcp->clone_mt = MT_PREFIX;
 	dcp->clone_cb = p;
 	SLIST_INSERT_HEAD(&clone_defcbh, dcp, next);
@@ -100,7 +100,7 @@ clone_setdefcallback_filter(clone_match_func *filter, clone_callback_func *p)
 	struct clone_defcb *dcp;
 
 	dcp = malloc(sizeof(*dcp));
-	dcp->ifmatch  = filter;
+	dcp->ifmatch = filter;
 	dcp->clone_mt = MT_FILTER;
 	dcp->clone_cb = p;
 	SLIST_INSERT_HEAD(&clone_defcbh, dcp, next);
@@ -121,7 +121,7 @@ ifclonecreate(if_ctx *ctx, void *arg __unused)
 	strlcpy(ifr.ifr_name, ctx->ifname, sizeof(ifr.ifr_name));
 
 	/* Try to find a default callback by filter */
-	SLIST_FOREACH(dcp, &clone_defcbh, next) {
+	SLIST_FOREACH (dcp, &clone_defcbh, next) {
 		if (dcp->clone_mt == MT_FILTER &&
 		    dcp->ifmatch(ifr.ifr_name) != 0)
 			break;
@@ -129,10 +129,10 @@ ifclonecreate(if_ctx *ctx, void *arg __unused)
 
 	if (dcp == NULL) {
 		/* Try to find a default callback by prefix */
-		SLIST_FOREACH(dcp, &clone_defcbh, next) {
+		SLIST_FOREACH (dcp, &clone_defcbh, next) {
 			if (dcp->clone_mt == MT_PREFIX &&
 			    strncmp(dcp->ifprefix, ifr.ifr_name,
-			    strlen(dcp->ifprefix)) == 0)
+				strlen(dcp->ifprefix)) == 0)
 				break;
 		}
 	}
@@ -161,10 +161,10 @@ clone_destroy(if_ctx *ctx, const char *cmd __unused, int d __unused)
 }
 
 static struct cmd clone_cmds[] = {
-	DEF_CLONE_CMD("create",	0,	clone_create),
-	DEF_CMD("destroy",	0,	clone_destroy),
-	DEF_CLONE_CMD("plumb",	0,	clone_create),
-	DEF_CMD("unplumb",	0,	clone_destroy),
+	DEF_CLONE_CMD("create", 0, clone_create),
+	DEF_CMD("destroy", 0, clone_destroy),
+	DEF_CLONE_CMD("plumb", 0, clone_create),
+	DEF_CMD("unplumb", 0, clone_destroy),
 };
 
 static void
@@ -173,14 +173,16 @@ clone_Copt_cb(const char *arg __unused)
 	list_cloners();
 	exit(exit_code);
 }
-static struct option clone_Copt = { .opt = "C", .opt_usage = "[-C]", .cb = clone_Copt_cb };
+static struct option clone_Copt = { .opt = "C",
+	.opt_usage = "[-C]",
+	.cb = clone_Copt_cb };
 
 static __constructor void
 clone_ctor(void)
 {
 	size_t i;
 
-	for (i = 0; i < nitems(clone_cmds);  i++)
+	for (i = 0; i < nitems(clone_cmds); i++)
 		cmd_register(&clone_cmds[i]);
 	opt_register(&clone_Copt);
 }

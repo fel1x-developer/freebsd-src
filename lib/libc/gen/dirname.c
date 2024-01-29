@@ -26,8 +26,7 @@
 #include <libgen.h>
 #include <string.h>
 
-char *
-(dirname)(char *path)
+char *(dirname)(char *path)
 {
 	char *end;
 

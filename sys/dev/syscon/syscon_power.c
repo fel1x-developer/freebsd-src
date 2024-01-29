@@ -33,9 +33,9 @@
  * https://www.kernel.org/doc/Documentation/devicetree/bindings/power/reset/syscon-reboot.txt
  */
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/bus.h>
-#include <sys/types.h>
 #include <sys/eventhandler.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
@@ -47,16 +47,16 @@
 #include <dev/ofw/ofw_bus_subr.h>
 #include <dev/ofw/openfirm.h>
 
-#include "syscon_if.h"
 #include "syscon.h"
+#include "syscon_if.h"
 
 struct syscon_power_softc {
-	struct syscon		*regmap;
-	uint32_t		offset;
-	uint32_t		value;
-	uint32_t		mask;
-	bool			reboot;
-	eventhandler_tag	shutdown_tag;
+	struct syscon *regmap;
+	uint32_t offset;
+	uint32_t value;
+	uint32_t mask;
+	bool reboot;
+	eventhandler_tag shutdown_tag;
 };
 
 static void
@@ -179,13 +179,12 @@ syscon_power_detach(device_t dev)
 	return (0);
 }
 
-static device_method_t syscon_power_methods[] = {
-	DEVMETHOD(device_probe,		syscon_power_probe),
-	DEVMETHOD(device_attach,	syscon_power_attach),
-	DEVMETHOD(device_detach,	syscon_power_detach),
+static device_method_t syscon_power_methods[] = { DEVMETHOD(device_probe,
+						      syscon_power_probe),
+	DEVMETHOD(device_attach, syscon_power_attach),
+	DEVMETHOD(device_detach, syscon_power_detach),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 DEFINE_CLASS_0(syscon_power, syscon_power_driver, syscon_power_methods,
     sizeof(struct syscon_power_softc));

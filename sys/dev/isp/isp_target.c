@@ -39,21 +39,22 @@
  * Include header file appropriate for platform we're building on.
  */
 
-#ifdef	__NetBSD__
+#ifdef __NetBSD__
 #include <dev/ic/isp_netbsd.h>
 #endif
-#ifdef	__FreeBSD__
+#ifdef __FreeBSD__
 #include <sys/cdefs.h>
+
 #include <dev/isp/isp_freebsd.h>
 #endif
-#ifdef	__OpenBSD__
+#ifdef __OpenBSD__
 #include <dev/ic/isp_openbsd.h>
 #endif
-#ifdef	__linux__
+#ifdef __linux__
 #include "isp_linux.h"
 #endif
 
-#ifdef	ISP_TARGET_MODE
+#ifdef ISP_TARGET_MODE
 static void isp_got_tmf_24xx(ispsoftc_t *, at7_entry_t *);
 static void isp_handle_abts(ispsoftc_t *, abts_t *);
 static void isp_handle_ctio7(ispsoftc_t *, ct7_entry_t *);
@@ -95,7 +96,6 @@ static void isp_handle_notify_24xx(ispsoftc_t *, in_fcentry_24xx_t *);
  *
  */
 
-
 /*
  * A new response queue entry has arrived. The interrupt service code
  * has already swizzled it into the platform dependent from canonical form.
@@ -109,21 +109,21 @@ int
 isp_target_notify(ispsoftc_t *isp, void *vptr, uint32_t *optrp, uint16_t ql)
 {
 	union {
-		at7_entry_t	*at7iop;
-		ct7_entry_t	*ct7iop;
+		at7_entry_t *at7iop;
+		ct7_entry_t *ct7iop;
 		in_fcentry_24xx_t *inot_24xx;
 		na_fcentry_24xx_t *nack_24xx;
-		isphdr_t	*hp;
-		abts_t		*abts;
-		abts_rsp_t	*abts_rsp;
-		void *		*vp;
-#define	at7iop		unp.at7iop
-#define	ct7iop		unp.ct7iop
-#define	inot_24xx	unp.inot_24xx
-#define	nack_24xx	unp.nack_24xx
-#define	abts		unp.abts
-#define	abts_rsp	unp.abts_rsp
-#define	hdrp		unp.hp
+		isphdr_t *hp;
+		abts_t *abts;
+		abts_rsp_t *abts_rsp;
+		void **vp;
+#define at7iop unp.at7iop
+#define ct7iop unp.ct7iop
+#define inot_24xx unp.inot_24xx
+#define nack_24xx unp.nack_24xx
+#define abts unp.abts
+#define abts_rsp unp.abts_rsp
+#define hdrp unp.hp
 	} unp;
 	uint8_t local[QENTRY_LEN];
 	int type, len, level, rval = 1;
@@ -136,8 +136,8 @@ isp_target_notify(ispsoftc_t *isp, void *vptr, uint32_t *optrp, uint16_t ql)
 
 	switch (type) {
 	case RQSTYPE_ATIO:
-		isp_get_atio7(isp, at7iop, (at7_entry_t *) local);
-		at7iop = (at7_entry_t *) local;
+		isp_get_atio7(isp, at7iop, (at7_entry_t *)local);
+		at7iop = (at7_entry_t *)local;
 		/*
 		 * Check for and do something with commands whose
 		 * IULEN extends past a single queue entry.
@@ -145,7 +145,8 @@ isp_target_notify(ispsoftc_t *isp, void *vptr, uint32_t *optrp, uint16_t ql)
 		len = at7iop->at_ta_len & 0x0fff;
 		if (len > (QENTRY_LEN - 8)) {
 			len -= (QENTRY_LEN - 8);
-			isp_prt(isp, ISP_LOGINFO, "long IU length (%d) ignored", len);
+			isp_prt(isp, ISP_LOGINFO, "long IU length (%d) ignored",
+			    len);
 			while (len > 0) {
 				*optrp = ISP_NXT_QENTRY(*optrp, ql);
 				len -= QENTRY_LEN;
@@ -165,8 +166,8 @@ isp_target_notify(ispsoftc_t *isp, void *vptr, uint32_t *optrp, uint16_t ql)
 		break;
 
 	case RQSTYPE_CTIO7:
-		isp_get_ctio7(isp, ct7iop, (ct7_entry_t *) local);
-		isp_handle_ctio7(isp, (ct7_entry_t *) local);
+		isp_get_ctio7(isp, ct7iop, (ct7_entry_t *)local);
+		isp_handle_ctio7(isp, (ct7_entry_t *)local);
 		break;
 
 	case RQSTYPE_NOTIFY:
@@ -179,13 +180,17 @@ isp_target_notify(ispsoftc_t *isp, void *vptr, uint32_t *optrp, uint16_t ql)
 		 * The ISP is acknowledging our acknowledgement of an
 		 * Immediate Notify entry for some asynchronous event.
 		 */
-		isp_get_notify_ack_24xx(isp, nack_24xx, (na_fcentry_24xx_t *) local);
-		nack_24xx = (na_fcentry_24xx_t *) local;
+		isp_get_notify_ack_24xx(isp, nack_24xx,
+		    (na_fcentry_24xx_t *)local);
+		nack_24xx = (na_fcentry_24xx_t *)local;
 		if (nack_24xx->na_status != NA_OK)
 			level = ISP_LOGINFO;
 		else
 			level = ISP_LOGTDEBUG1;
-		isp_prt(isp, level, "Notify Ack Status=0x%x; Subcode 0x%x seqid=0x%x", nack_24xx->na_status, nack_24xx->na_status_subcode, nack_24xx->na_rxid);
+		isp_prt(isp, level,
+		    "Notify Ack Status=0x%x; Subcode 0x%x seqid=0x%x",
+		    nack_24xx->na_status, nack_24xx->na_status_subcode,
+		    nack_24xx->na_rxid);
 		break;
 
 	case RQSTYPE_ABTS_RCVD:
@@ -194,26 +199,30 @@ isp_target_notify(ispsoftc_t *isp, void *vptr, uint32_t *optrp, uint16_t ql)
 		break;
 	case RQSTYPE_ABTS_RSP:
 		isp_get_abts_rsp(isp, abts_rsp, (abts_rsp_t *)local);
-		abts_rsp = (abts_rsp_t *) local;
+		abts_rsp = (abts_rsp_t *)local;
 		if (abts_rsp->abts_rsp_status)
 			level = ISP_LOGINFO;
 		else
 			level = ISP_LOGTDEBUG0;
-		isp_prt(isp, level, "ABTS RSP response[0x%x]: status=0x%x sub=(0x%x 0x%x)", abts_rsp->abts_rsp_rxid_task, abts_rsp->abts_rsp_status,
-		    abts_rsp->abts_rsp_payload.rsp.subcode1, abts_rsp->abts_rsp_payload.rsp.subcode2);
+		isp_prt(isp, level,
+		    "ABTS RSP response[0x%x]: status=0x%x sub=(0x%x 0x%x)",
+		    abts_rsp->abts_rsp_rxid_task, abts_rsp->abts_rsp_status,
+		    abts_rsp->abts_rsp_payload.rsp.subcode1,
+		    abts_rsp->abts_rsp_payload.rsp.subcode2);
 		break;
 	default:
-		isp_prt(isp, ISP_LOGERR, "%s: unknown entry type 0x%x", __func__, type);
+		isp_prt(isp, ISP_LOGERR, "%s: unknown entry type 0x%x",
+		    __func__, type);
 		rval = 0;
 		break;
 	}
-#undef	at7iop
-#undef	ct7iop
-#undef	inot_24xx
-#undef	hack_24xx
-#undef	abts
-#undef	abts_rsp
-#undef	hdrp
+#undef at7iop
+#undef ct7iop
+#undef inot_24xx
+#undef hack_24xx
+#undef abts
+#undef abts_rsp
+#undef hdrp
 	return (rval);
 }
 
@@ -255,7 +264,8 @@ isp_endcmd(ispsoftc_t *isp, ...)
 	code = va_arg(ap, uint32_t);
 	hdl = va_arg(ap, uint32_t);
 	va_end(ap);
-	isp_prt(isp, ISP_LOGTDEBUG0, "%s: [RX_ID 0x%x] chan %d code %x", __func__, aep->at_rxid, vpidx, code);
+	isp_prt(isp, ISP_LOGTDEBUG0, "%s: [RX_ID 0x%x] chan %d code %x",
+	    __func__, aep->at_rxid, vpidx, code);
 
 	sts = code & 0xff;
 	ISP_MEMZERO(cto, sizeof(*cto));
@@ -275,7 +285,7 @@ isp_endcmd(ispsoftc_t *isp, ...)
 		cto->ct_flags |= CT7_FLAG_MODE1 | CT7_SENDSTATUS;
 		cto->ct_scsi_status |= (FCP_SNSLEN_VALID << 8);
 		cto->ct_senselen = min(16, MAXRESPLEN_24XX);
-		ISP_MEMZERO(cto->rsp.m1.ct_resp, sizeof (cto->rsp.m1.ct_resp));
+		ISP_MEMZERO(cto->rsp.m1.ct_resp, sizeof(cto->rsp.m1.ct_resp));
 		cto->rsp.m1.ct_resp[0] = 0xf0;
 		cto->rsp.m1.ct_resp[2] = (code >> 12) & 0xf;
 		cto->rsp.m1.ct_resp[7] = 8;
@@ -285,7 +295,7 @@ isp_endcmd(ispsoftc_t *isp, ...)
 		cto->ct_flags |= CT7_FLAG_MODE1 | CT7_SENDSTATUS;
 		cto->ct_scsi_status |= (FCP_RSPLEN_VALID << 8);
 		cto->rsp.m1.ct_resplen = 4;
-		ISP_MEMZERO(cto->rsp.m1.ct_resp, sizeof (cto->rsp.m1.ct_resp));
+		ISP_MEMZERO(cto->rsp.m1.ct_resp, sizeof(cto->rsp.m1.ct_resp));
 		cto->rsp.m1.ct_resp[0] = (code >> 12) & 0xf;
 		cto->rsp.m1.ct_resp[1] = (code >> 16) & 0xff;
 		cto->rsp.m1.ct_resp[2] = (code >> 24) & 0xff;
@@ -310,7 +320,7 @@ isp_target_async(ispsoftc_t *isp, int bus, int event)
 {
 	isp_notify_t notify;
 
-	ISP_MEMZERO(&notify, sizeof (isp_notify_t));
+	ISP_MEMZERO(&notify, sizeof(isp_notify_t));
 	notify.nt_hba = isp;
 	notify.nt_wwn = INI_ANY;
 	notify.nt_nphdl = NIL_HANDLE;
@@ -343,7 +353,8 @@ isp_target_async(ispsoftc_t *isp, int bus, int event)
 		isp_async(isp, ISPASYNC_TARGET_NOTIFY, &notify);
 		break;
 	default:
-		isp_prt(isp, ISP_LOGERR, "%s: unknown event 0x%x", __func__, event);
+		isp_prt(isp, ISP_LOGERR, "%s: unknown event 0x%x", __func__,
+		    event);
 		break;
 	}
 }
@@ -353,27 +364,31 @@ isp_got_tmf_24xx(ispsoftc_t *isp, at7_entry_t *aep)
 {
 	isp_notify_t notify;
 	static const char f1[] = "%s from PortID 0x%06x lun %jx seq 0x%08x";
-	static const char f2[] = "unknown Task Flag 0x%x lun %jx PortID 0x%x tag 0x%08x";
+	static const char f2[] =
+	    "unknown Task Flag 0x%x lun %jx PortID 0x%x tag 0x%08x";
 	fcportdb_t *lp;
 	uint16_t chan;
 	uint32_t sid, did;
 
-	ISP_MEMZERO(&notify, sizeof (isp_notify_t));
+	ISP_MEMZERO(&notify, sizeof(isp_notify_t));
 	notify.nt_hba = isp;
 	notify.nt_wwn = INI_ANY;
-	notify.nt_lun = CAM_EXTLUN_BYTE_SWIZZLE(be64dec(aep->at_cmnd.fcp_cmnd_lun));
+	notify.nt_lun = CAM_EXTLUN_BYTE_SWIZZLE(
+	    be64dec(aep->at_cmnd.fcp_cmnd_lun));
 	notify.nt_tagval = aep->at_rxid;
 	notify.nt_tagval |= (((uint64_t)(isp->isp_serno++)) << 32);
 	notify.nt_lreserved = aep;
-	sid = (aep->at_hdr.s_id[0] << 16) | (aep->at_hdr.s_id[1] << 8) | aep->at_hdr.s_id[2];
-	did = (aep->at_hdr.d_id[0] << 16) | (aep->at_hdr.d_id[1] << 8) | aep->at_hdr.d_id[2];
+	sid = (aep->at_hdr.s_id[0] << 16) | (aep->at_hdr.s_id[1] << 8) |
+	    aep->at_hdr.s_id[2];
+	did = (aep->at_hdr.d_id[0] << 16) | (aep->at_hdr.d_id[1] << 8) |
+	    aep->at_hdr.d_id[2];
 	if (ISP_CAP_MULTI_ID(isp) && isp->isp_nchan > 1) {
 		/* Channel has to be derived from D_ID */
 		isp_find_chan_by_did(isp, did, &chan);
 		if (chan == ISP_NOCHAN) {
 			isp_prt(isp, ISP_LOGWARN,
-			    "%s: D_ID 0x%x not found on any channel",
-			    __func__, did);
+			    "%s: D_ID 0x%x not found on any channel", __func__,
+			    did);
 			isp_endcmd(isp, aep, NIL_HANDLE, ISP_NOCHAN,
 			    ECMD_TERMINATE, 0);
 			return;
@@ -388,31 +403,48 @@ isp_got_tmf_24xx(ispsoftc_t *isp, at7_entry_t *aep)
 	notify.nt_sid = sid;
 	notify.nt_did = did;
 	notify.nt_channel = chan;
-	if (aep->at_cmnd.fcp_cmnd_task_management & FCP_CMND_TMF_QUERY_TASK_SET) {
-		isp_prt(isp, ISP_LOGINFO, f1, "QUERY TASK SET", sid, notify.nt_lun, aep->at_rxid);
+	if (aep->at_cmnd.fcp_cmnd_task_management &
+	    FCP_CMND_TMF_QUERY_TASK_SET) {
+		isp_prt(isp, ISP_LOGINFO, f1, "QUERY TASK SET", sid,
+		    notify.nt_lun, aep->at_rxid);
 		notify.nt_ncode = NT_QUERY_TASK_SET;
-	} else if (aep->at_cmnd.fcp_cmnd_task_management & FCP_CMND_TMF_ABORT_TASK_SET) {
-		isp_prt(isp, ISP_LOGINFO, f1, "ABORT TASK SET", sid, notify.nt_lun, aep->at_rxid);
+	} else if (aep->at_cmnd.fcp_cmnd_task_management &
+	    FCP_CMND_TMF_ABORT_TASK_SET) {
+		isp_prt(isp, ISP_LOGINFO, f1, "ABORT TASK SET", sid,
+		    notify.nt_lun, aep->at_rxid);
 		notify.nt_ncode = NT_ABORT_TASK_SET;
-	} else if (aep->at_cmnd.fcp_cmnd_task_management & FCP_CMND_TMF_CLEAR_TASK_SET) {
-		isp_prt(isp, ISP_LOGINFO, f1, "CLEAR TASK SET", sid, notify.nt_lun, aep->at_rxid);
+	} else if (aep->at_cmnd.fcp_cmnd_task_management &
+	    FCP_CMND_TMF_CLEAR_TASK_SET) {
+		isp_prt(isp, ISP_LOGINFO, f1, "CLEAR TASK SET", sid,
+		    notify.nt_lun, aep->at_rxid);
 		notify.nt_ncode = NT_CLEAR_TASK_SET;
-	} else if (aep->at_cmnd.fcp_cmnd_task_management & FCP_CMND_TMF_QUERY_ASYNC_EVENT) {
-		isp_prt(isp, ISP_LOGINFO, f1, "QUERY ASYNC EVENT", sid, notify.nt_lun, aep->at_rxid);
+	} else if (aep->at_cmnd.fcp_cmnd_task_management &
+	    FCP_CMND_TMF_QUERY_ASYNC_EVENT) {
+		isp_prt(isp, ISP_LOGINFO, f1, "QUERY ASYNC EVENT", sid,
+		    notify.nt_lun, aep->at_rxid);
 		notify.nt_ncode = NT_QUERY_ASYNC_EVENT;
-	} else if (aep->at_cmnd.fcp_cmnd_task_management & FCP_CMND_TMF_LUN_RESET) {
-		isp_prt(isp, ISP_LOGINFO, f1, "LUN RESET", sid, notify.nt_lun, aep->at_rxid);
+	} else if (aep->at_cmnd.fcp_cmnd_task_management &
+	    FCP_CMND_TMF_LUN_RESET) {
+		isp_prt(isp, ISP_LOGINFO, f1, "LUN RESET", sid, notify.nt_lun,
+		    aep->at_rxid);
 		notify.nt_ncode = NT_LUN_RESET;
-	} else if (aep->at_cmnd.fcp_cmnd_task_management & FCP_CMND_TMF_TGT_RESET) {
-		isp_prt(isp, ISP_LOGINFO, f1, "TARGET RESET", sid, notify.nt_lun, aep->at_rxid);
+	} else if (aep->at_cmnd.fcp_cmnd_task_management &
+	    FCP_CMND_TMF_TGT_RESET) {
+		isp_prt(isp, ISP_LOGINFO, f1, "TARGET RESET", sid,
+		    notify.nt_lun, aep->at_rxid);
 		notify.nt_ncode = NT_TARGET_RESET;
-	} else if (aep->at_cmnd.fcp_cmnd_task_management & FCP_CMND_TMF_CLEAR_ACA) {
-		isp_prt(isp, ISP_LOGINFO, f1, "CLEAR ACA", sid, notify.nt_lun, aep->at_rxid);
+	} else if (aep->at_cmnd.fcp_cmnd_task_management &
+	    FCP_CMND_TMF_CLEAR_ACA) {
+		isp_prt(isp, ISP_LOGINFO, f1, "CLEAR ACA", sid, notify.nt_lun,
+		    aep->at_rxid);
 		notify.nt_ncode = NT_CLEAR_ACA;
 	} else {
-		isp_prt(isp, ISP_LOGWARN, f2, aep->at_cmnd.fcp_cmnd_task_management, notify.nt_lun, sid, aep->at_rxid);
+		isp_prt(isp, ISP_LOGWARN, f2,
+		    aep->at_cmnd.fcp_cmnd_task_management, notify.nt_lun, sid,
+		    aep->at_rxid);
 		notify.nt_ncode = NT_UNKNOWN;
-		isp_endcmd(isp, aep, notify.nt_nphdl, chan, ECMD_RVALID | (0x4 << 12), 0);
+		isp_endcmd(isp, aep, notify.nt_nphdl, chan,
+		    ECMD_RVALID | (0x4 << 12), 0);
 		return;
 	}
 	isp_async(isp, ISPASYNC_TARGET_NOTIFY, &notify);
@@ -471,10 +503,11 @@ isp_acknak_abts(ispsoftc_t *isp, void *arg, int errno)
 	uint16_t tmpw;
 	uint8_t tmpb;
 	abts_t *abts = arg;
-	abts_rsp_t *rsp = (abts_rsp_t *) storage;
+	abts_rsp_t *rsp = (abts_rsp_t *)storage;
 
 	if (abts->abts_header.rqs_entry_type != RQSTYPE_ABTS_RCVD) {
-		isp_prt(isp, ISP_LOGERR, "%s: called for non-ABTS entry (0x%x)", __func__, abts->abts_header.rqs_entry_type);
+		isp_prt(isp, ISP_LOGERR, "%s: called for non-ABTS entry (0x%x)",
+		    __func__, abts->abts_header.rqs_entry_type);
 		return (0);
 	}
 
@@ -492,11 +525,12 @@ isp_acknak_abts(ispsoftc_t *isp, void *arg, int errno)
 	rsp->abts_rsp_sid_lo = tmpw;
 	rsp->abts_rsp_sid_hi = tmpb;
 
-	rsp->abts_rsp_f_ctl_hi ^= 0x80; 	/* invert Exchange Context */
-	rsp->abts_rsp_f_ctl_hi &= ~0x7f;	/* clear Sequence Initiator and other bits */
-	rsp->abts_rsp_f_ctl_hi |= 0x10;		/* abort the whole exchange */
-	rsp->abts_rsp_f_ctl_hi |= 0x8;		/* last data frame of sequence */
-	rsp->abts_rsp_f_ctl_hi |= 0x1;		/* transfer Sequence Initiative */
+	rsp->abts_rsp_f_ctl_hi ^= 0x80; /* invert Exchange Context */
+	rsp->abts_rsp_f_ctl_hi &=
+	    ~0x7f; /* clear Sequence Initiator and other bits */
+	rsp->abts_rsp_f_ctl_hi |= 0x10; /* abort the whole exchange */
+	rsp->abts_rsp_f_ctl_hi |= 0x8;	/* last data frame of sequence */
+	rsp->abts_rsp_f_ctl_hi |= 0x1;	/* transfer Sequence Initiative */
 	rsp->abts_rsp_f_ctl_lo = 0;
 
 	if (errno == 0) {
@@ -504,19 +538,24 @@ isp_acknak_abts(ispsoftc_t *isp, void *arg, int errno)
 
 		rx_id = rsp->abts_rsp_rx_id;
 		ox_id = rsp->abts_rsp_ox_id;
-		ISP_MEMZERO(&rsp->abts_rsp_payload.ba_acc, sizeof (rsp->abts_rsp_payload.ba_acc));
-                isp_prt(isp, ISP_LOGTINFO, "[0x%x] ABTS of 0x%x being BA_ACC'd", rsp->abts_rsp_rxid_abts, rsp->abts_rsp_rxid_task);
-                rsp->abts_rsp_payload.ba_acc.aborted_rx_id = rx_id;
-                rsp->abts_rsp_payload.ba_acc.aborted_ox_id = ox_id;
-                rsp->abts_rsp_payload.ba_acc.high_seq_cnt = 0xffff;
+		ISP_MEMZERO(&rsp->abts_rsp_payload.ba_acc,
+		    sizeof(rsp->abts_rsp_payload.ba_acc));
+		isp_prt(isp, ISP_LOGTINFO, "[0x%x] ABTS of 0x%x being BA_ACC'd",
+		    rsp->abts_rsp_rxid_abts, rsp->abts_rsp_rxid_task);
+		rsp->abts_rsp_payload.ba_acc.aborted_rx_id = rx_id;
+		rsp->abts_rsp_payload.ba_acc.aborted_ox_id = ox_id;
+		rsp->abts_rsp_payload.ba_acc.high_seq_cnt = 0xffff;
 	} else {
-		ISP_MEMZERO(&rsp->abts_rsp_payload.ba_rjt, sizeof (rsp->abts_rsp_payload.ba_acc));
+		ISP_MEMZERO(&rsp->abts_rsp_payload.ba_rjt,
+		    sizeof(rsp->abts_rsp_payload.ba_acc));
 		switch (errno) {
 		case ENOMEM:
-			rsp->abts_rsp_payload.ba_rjt.reason = 5;	/* Logical Unit Busy */
+			rsp->abts_rsp_payload.ba_rjt.reason =
+			    5; /* Logical Unit Busy */
 			break;
 		default:
-			rsp->abts_rsp_payload.ba_rjt.reason = 9;	/* Unable to perform command request */
+			rsp->abts_rsp_payload.ba_rjt.reason =
+			    9; /* Unable to perform command request */
 			break;
 		}
 	}
@@ -533,7 +572,7 @@ isp_handle_abts(ispsoftc_t *isp, abts_t *abts)
 
 	did = (abts->abts_did_hi << 16) | abts->abts_did_lo;
 	sid = (abts->abts_sid_hi << 16) | abts->abts_sid_lo;
-	ISP_MEMZERO(nt, sizeof (isp_notify_t));
+	ISP_MEMZERO(nt, sizeof(isp_notify_t));
 
 	nt->nt_hba = isp;
 	nt->nt_did = did;
@@ -544,8 +583,8 @@ isp_handle_abts(ispsoftc_t *isp, abts_t *abts)
 		isp_find_chan_by_did(isp, did, &chan);
 		if (chan == ISP_NOCHAN) {
 			isp_prt(isp, ISP_LOGWARN,
-			    "%s: D_ID 0x%x not found on any channel",
-			    __func__, did);
+			    "%s: D_ID 0x%x not found on any channel", __func__,
+			    did);
 			isp_acknak_abts(isp, abts, ENXIO);
 			return;
 		}
@@ -559,8 +598,9 @@ isp_handle_abts(ispsoftc_t *isp, abts_t *abts)
 	nt->nt_lun = LUN_ANY;
 	nt->nt_need_ack = 1;
 	nt->nt_tagval = abts->abts_rxid_task;
-	nt->nt_tagval |= (((uint64_t) abts->abts_rxid_abts) << 32);
-	isp_prt(isp, ISP_LOGTINFO, "[0x%x] ABTS from N-Port handle 0x%x"
+	nt->nt_tagval |= (((uint64_t)abts->abts_rxid_abts) << 32);
+	isp_prt(isp, ISP_LOGTINFO,
+	    "[0x%x] ABTS from N-Port handle 0x%x"
 	    " Port 0x%06x for task 0x%x (rx_id 0x%04x ox_id 0x%04x)",
 	    abts->abts_rxid_abts, abts->abts_nphdl, sid, abts->abts_rxid_task,
 	    abts->abts_rx_id, abts->abts_ox_id);
@@ -616,7 +656,8 @@ isp_handle_ctio7(ispsoftc_t *isp, ct7_entry_t *ct)
 		if (fmsg == NULL) {
 			fmsg = "ABORT";
 		}
-		isp_prt(isp, ISP_LOGTDEBUG0, "CTIO7 destroyed by %s: RX_ID=0x%x", fmsg, ct->ct_rxid);
+		isp_prt(isp, ISP_LOGTDEBUG0,
+		    "CTIO7 destroyed by %s: RX_ID=0x%x", fmsg, ct->ct_rxid);
 		break;
 
 	case CT7_TIMEOUT:
@@ -651,7 +692,8 @@ isp_handle_ctio7(ispsoftc_t *isp, ct7_entry_t *ct)
 		 * CTIO rejected by the firmware because an invalid RX_ID.
 		 * Just print a message.
 		 */
-		isp_prt(isp, ISP_LOGWARN, "CTIO7 completed with Invalid RX_ID 0x%x", ct->ct_rxid);
+		isp_prt(isp, ISP_LOGWARN,
+		    "CTIO7 completed with Invalid RX_ID 0x%x", ct->ct_rxid);
 		break;
 
 	case CT7_REASSY_ERR:
@@ -663,7 +705,8 @@ isp_handle_ctio7(ispsoftc_t *isp, ct7_entry_t *ct)
 		break;
 
 	default:
-		isp_prt(isp, ISP_LOGERR, "Unknown CTIO7 status 0x%x", ct->ct_nphdl);
+		isp_prt(isp, ISP_LOGERR, "Unknown CTIO7 status 0x%x",
+		    ct->ct_nphdl);
 		break;
 	}
 
@@ -677,14 +720,20 @@ isp_handle_ctio7(ispsoftc_t *isp, ct7_entry_t *ct)
 		 */
 		if (ct->ct_syshandle == 0) {
 			if (ct->ct_flags & CT7_TERMINATE) {
-				isp_prt(isp, ISP_LOGINFO, "termination of [RX_ID 0x%x] complete", ct->ct_rxid);
+				isp_prt(isp, ISP_LOGINFO,
+				    "termination of [RX_ID 0x%x] complete",
+				    ct->ct_rxid);
 			} else if ((ct->ct_flags & CT7_SENDSTATUS) == 0) {
-				isp_prt(isp, pl, "intermediate CTIO completed ok");
+				isp_prt(isp, pl,
+				    "intermediate CTIO completed ok");
 			} else {
-				isp_prt(isp, pl, "unmonitored CTIO completed ok");
+				isp_prt(isp, pl,
+				    "unmonitored CTIO completed ok");
 			}
 		} else {
-			isp_prt(isp, pl, "NO xs for CTIO (handle 0x%x) status 0x%x", ct->ct_syshandle, ct->ct_nphdl);
+			isp_prt(isp, pl,
+			    "NO xs for CTIO (handle 0x%x) status 0x%x",
+			    ct->ct_syshandle, ct->ct_nphdl);
 		}
 	} else {
 		ISP_DMAFREE(isp, xs);
@@ -733,19 +782,18 @@ isp_handle_notify_24xx(ispsoftc_t *isp, in_fcentry_24xx_t *inot)
 	}
 
 	chan = ISP_GET_VPIDX(isp, inot->in_vpidx);
-	if (chan >= isp->isp_nchan &&
-	    inot->in_status != IN24XX_LIP_RESET &&
+	if (chan >= isp->isp_nchan && inot->in_status != IN24XX_LIP_RESET &&
 	    inot->in_status != IN24XX_LINK_RESET &&
 	    inot->in_status != IN24XX_LINK_FAILED) {
-		isp_prt(isp, ISP_LOGWARN, "%s: Received INOT with status %x on VP %x",
-		    __func__, inot->in_status, chan);
+		isp_prt(isp, ISP_LOGWARN,
+		    "%s: Received INOT with status %x on VP %x", __func__,
+		    inot->in_status, chan);
 		isp_async(isp, ISPASYNC_TARGET_NOTIFY_ACK, inot);
 		return;
 	}
 
 	switch (inot->in_status) {
-	case IN24XX_ELS_RCVD:
-	{
+	case IN24XX_ELS_RCVD: {
 		/*
 		 * Note that we're just getting notification that an ELS was
 		 * received (possibly with some associated information sent
@@ -765,8 +813,8 @@ isp_handle_notify_24xx(ispsoftc_t *isp, in_fcentry_24xx_t *inot)
 			msg = "PLOGI";
 			wwnn = be64dec(&ptr[IN24XX_PLOGI_WWNN_OFF]);
 			wwpn = be64dec(&ptr[IN24XX_PLOGI_WWPN_OFF]);
-			isp_add_wwn_entry(isp, chan, wwpn, wwnn,
-			    nphdl, portid, prli_options);
+			isp_add_wwn_entry(isp, chan, wwpn, wwnn, nphdl, portid,
+			    prli_options);
 			break;
 		case PRLI:
 			msg = "PRLI";
@@ -774,8 +822,8 @@ isp_handle_notify_24xx(ispsoftc_t *isp, in_fcentry_24xx_t *inot)
 			if (inot->in_flags & IN24XX_FLAG_PN_NN_VALID)
 				wwnn = be64dec(&ptr[IN24XX_PRLI_WWNN_OFF]);
 			wwpn = be64dec(&ptr[IN24XX_PRLI_WWPN_OFF]);
-			isp_add_wwn_entry(isp, chan, wwpn, wwnn,
-			    nphdl, portid, prli_options);
+			isp_add_wwn_entry(isp, chan, wwpn, wwnn, nphdl, portid,
+			    prli_options);
 			break;
 		case TPRLO:
 			msg = "TPRLO";
@@ -787,20 +835,22 @@ isp_handle_notify_24xx(ispsoftc_t *isp, in_fcentry_24xx_t *inot)
 			msg = "ADISC";
 			break;
 		default:
-			ISP_SNPRINTF(buf, sizeof (buf), "ELS 0x%x",
+			ISP_SNPRINTF(buf, sizeof(buf), "ELS 0x%x",
 			    inot->in_status_subcode);
 			msg = buf;
 			break;
 		}
 		if (inot->in_flags & IN24XX_FLAG_PUREX_IOCB) {
-			isp_prt(isp, ISP_LOGERR, "%s Chan %d ELS N-port handle %x"
+			isp_prt(isp, ISP_LOGERR,
+			    "%s Chan %d ELS N-port handle %x"
 			    " PortID 0x%06x marked as needing a PUREX response",
 			    msg, chan, nphdl, portid);
 			break;
 		}
-		isp_prt(isp, ISP_LOGTDEBUG0, "%s Chan %d ELS N-port handle %x"
-		    " PortID 0x%06x RX_ID 0x%x OX_ID 0x%x", msg, chan, nphdl,
-		    portid, inot->in_rxid, inot->in_oxid);
+		isp_prt(isp, ISP_LOGTDEBUG0,
+		    "%s Chan %d ELS N-port handle %x"
+		    " PortID 0x%06x RX_ID 0x%x OX_ID 0x%x",
+		    msg, chan, nphdl, portid, inot->in_rxid, inot->in_oxid);
 		isp_async(isp, ISPASYNC_TARGET_NOTIFY_ACK, inot);
 		break;
 	}
@@ -808,7 +858,8 @@ isp_handle_notify_24xx(ispsoftc_t *isp, in_fcentry_24xx_t *inot)
 	case IN24XX_PORT_LOGOUT:
 		msg = "PORT LOGOUT";
 		if (isp_find_pdb_by_handle(isp, chan, nphdl, &lp))
-			isp_del_wwn_entry(isp, chan, lp->port_wwn, nphdl, lp->portid);
+			isp_del_wwn_entry(isp, chan, lp->port_wwn, nphdl,
+			    lp->portid);
 		/* FALLTHROUGH */
 	case IN24XX_PORT_CHANGED:
 		if (msg == NULL)
@@ -817,7 +868,8 @@ isp_handle_notify_24xx(ispsoftc_t *isp, in_fcentry_24xx_t *inot)
 	case IN24XX_LIP_RESET:
 		if (msg == NULL)
 			msg = "LIP RESET";
-		isp_prt(isp, ISP_LOGINFO, "Chan %d %s (sub-status 0x%x) for "
+		isp_prt(isp, ISP_LOGINFO,
+		    "Chan %d %s (sub-status 0x%x) for "
 		    "N-port handle 0x%x",
 		    chan, msg, inot->in_status_subcode, nphdl);
 
@@ -831,8 +883,8 @@ isp_handle_notify_24xx(ispsoftc_t *isp, in_fcentry_24xx_t *inot)
 		break;
 
 	case IN24XX_SRR_RCVD:
-#ifdef	ISP_TARGET_MODE
-		ISP_MEMZERO(&notify, sizeof (isp_notify_t));
+#ifdef ISP_TARGET_MODE
+		ISP_MEMZERO(&notify, sizeof(isp_notify_t));
 		notify.nt_hba = isp;
 		notify.nt_wwn = INI_ANY;
 		notify.nt_tgt = FCPARAM(isp, chan)->isp_wwpn;
@@ -851,7 +903,7 @@ isp_handle_notify_24xx(ispsoftc_t *isp, in_fcentry_24xx_t *inot)
 #else
 		if (msg == NULL)
 			msg = "SRR RCVD";
-		/* FALLTHROUGH */
+			/* FALLTHROUGH */
 #endif
 	case IN24XX_LINK_RESET:
 		if (msg == NULL)

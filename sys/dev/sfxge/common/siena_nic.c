@@ -31,6 +31,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "efx.h"
 #include "efx_impl.h"
 #include "mcdi_mon.h"
@@ -39,14 +40,12 @@
 
 #if EFSYS_OPT_VPD || EFSYS_OPT_NVRAM
 
-static	__checkReturn		efx_rc_t
-siena_nic_get_partn_mask(
-	__in			efx_nic_t *enp,
-	__out			unsigned int *maskp)
+static __checkReturn efx_rc_t
+siena_nic_get_partn_mask(__in efx_nic_t *enp, __out unsigned int *maskp)
 {
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload, MC_CMD_NVRAM_TYPES_IN_LEN,
-		MC_CMD_NVRAM_TYPES_OUT_LEN);
+	    MC_CMD_NVRAM_TYPES_OUT_LEN);
 	efx_rc_t rc;
 
 	req.emr_cmd = MC_CMD_NVRAM_TYPES;
@@ -81,9 +80,8 @@ fail1:
 
 #endif /* EFSYS_OPT_VPD || EFSYS_OPT_NVRAM */
 
-static	__checkReturn	efx_rc_t
-siena_board_cfg(
-	__in		efx_nic_t *enp)
+static __checkReturn efx_rc_t
+siena_board_cfg(__in efx_nic_t *enp)
 {
 	efx_nic_cfg_t *encp = &(enp->en_nic_cfg);
 	uint8_t mac_addr[6];
@@ -93,15 +91,15 @@ siena_board_cfg(
 	efx_rc_t rc;
 
 	/* Siena has a fixed 8Kbyte VI window size */
-	EFX_STATIC_ASSERT(1U << EFX_VI_WINDOW_SHIFT_8K	== 8192);
+	EFX_STATIC_ASSERT(1U << EFX_VI_WINDOW_SHIFT_8K == 8192);
 	encp->enc_vi_window_shift = EFX_VI_WINDOW_SHIFT_8K;
 
 	/* External port identifier using one-based port numbering */
 	encp->enc_external_port = (uint8_t)enp->en_mcdi.em_emip.emi_port;
 
 	/* Board configuration */
-	if ((rc = efx_mcdi_get_board_cfg(enp, &board_type,
-		    &capabilities, mac_addr)) != 0)
+	if ((rc = efx_mcdi_get_board_cfg(enp, &board_type, &capabilities,
+		 mac_addr)) != 0)
 		goto fail1;
 
 	EFX_MAC_ADDR_COPY(encp->enc_mac_addr, mac_addr);
@@ -126,10 +124,11 @@ siena_board_cfg(
 		}
 	}
 
-	encp->enc_evq_timer_quantum_ns =
-		EFX_EVQ_SIENA_TIMER_QUANTUM_NS / encp->enc_clk_mult;
-	encp->enc_evq_timer_max_us = (encp->enc_evq_timer_quantum_ns <<
-		FRF_CZ_TC_TIMER_VAL_WIDTH) / 1000;
+	encp->enc_evq_timer_quantum_ns = EFX_EVQ_SIENA_TIMER_QUANTUM_NS /
+	    encp->enc_clk_mult;
+	encp->enc_evq_timer_max_us = (encp->enc_evq_timer_quantum_ns
+					 << FRF_CZ_TC_TIMER_VAL_WIDTH) /
+	    1000;
 
 	/* When hash header insertion is enabled, Siena inserts 16 bytes */
 	encp->enc_rx_prefix_size = 16;
@@ -214,13 +213,12 @@ fail1:
 	return (rc);
 }
 
-static	__checkReturn	efx_rc_t
-siena_phy_cfg(
-	__in		efx_nic_t *enp)
+static __checkReturn efx_rc_t
+siena_phy_cfg(__in efx_nic_t *enp)
 {
 #if EFSYS_OPT_PHY_STATS
 	efx_nic_cfg_t *encp = &(enp->en_nic_cfg);
-#endif	/* EFSYS_OPT_PHY_STATS */
+#endif /* EFSYS_OPT_PHY_STATS */
 	efx_rc_t rc;
 
 	/* Fill out fields in enp->en_port and enp->en_nic_cfg from MCDI */
@@ -229,9 +227,9 @@ siena_phy_cfg(
 
 #if EFSYS_OPT_PHY_STATS
 	/* Convert the MCDI statistic mask into the EFX_PHY_STAT mask */
-	siena_phy_decode_stats(enp, encp->enc_mcdi_phy_stat_mask,
-			    NULL, &encp->enc_phy_stat_mask, NULL);
-#endif	/* EFSYS_OPT_PHY_STATS */
+	siena_phy_decode_stats(enp, encp->enc_mcdi_phy_stat_mask, NULL,
+	    &encp->enc_phy_stat_mask, NULL);
+#endif /* EFSYS_OPT_PHY_STATS */
 
 	return (0);
 
@@ -241,12 +239,11 @@ fail1:
 	return (rc);
 }
 
-#define	SIENA_BIU_MAGIC0	0x01234567
-#define	SIENA_BIU_MAGIC1	0xfedcba98
+#define SIENA_BIU_MAGIC0 0x01234567
+#define SIENA_BIU_MAGIC1 0xfedcba98
 
-static	__checkReturn	efx_rc_t
-siena_nic_biu_test(
-	__in		efx_nic_t *enp)
+static __checkReturn efx_rc_t
+siena_nic_biu_test(__in efx_nic_t *enp)
 {
 	efx_oword_t oword;
 	efx_rc_t rc;
@@ -312,9 +309,8 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-siena_nic_probe(
-	__in		efx_nic_t *enp)
+__checkReturn efx_rc_t
+siena_nic_probe(__in efx_nic_t *enp)
 {
 	efx_port_t *epp = &(enp->en_port);
 	efx_nic_cfg_t *encp = &(enp->en_nic_cfg);
@@ -330,11 +326,9 @@ siena_nic_probe(
 		goto fail1;
 
 	/* Clear the region register */
-	EFX_POPULATE_OWORD_4(oword,
-	    FRF_AZ_ADR_REGION0, 0,
-	    FRF_AZ_ADR_REGION1, (1 << 16),
-	    FRF_AZ_ADR_REGION2, (2 << 16),
-	    FRF_AZ_ADR_REGION3, (3 << 16));
+	EFX_POPULATE_OWORD_4(oword, FRF_AZ_ADR_REGION0, 0, FRF_AZ_ADR_REGION1,
+	    (1 << 16), FRF_AZ_ADR_REGION2, (2 << 16), FRF_AZ_ADR_REGION3,
+	    (3 << 16));
 	EFX_BAR_WRITEO(enp, FR_AZ_ADR_REGION_REG, &oword);
 
 	/* Read clear any assertion state */
@@ -425,9 +419,8 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-siena_nic_reset(
-	__in		efx_nic_t *enp)
+__checkReturn efx_rc_t
+siena_nic_reset(__in efx_nic_t *enp)
 {
 	efx_mcdi_req_t req;
 	efx_rc_t rc;
@@ -471,9 +464,8 @@ fail1:
 	return (0);
 }
 
-static			void
-siena_nic_rx_cfg(
-	__in		efx_nic_t *enp)
+static void
+siena_nic_rx_cfg(__in efx_nic_t *enp)
 {
 	efx_oword_t oword;
 
@@ -491,19 +483,17 @@ siena_nic_rx_cfg(
 	EFX_BAR_WRITEO(enp, FR_AZ_RX_FILTER_CTL_REG, &oword);
 }
 
-static			void
-siena_nic_usrev_dis(
-	__in		efx_nic_t *enp)
+static void
+siena_nic_usrev_dis(__in efx_nic_t *enp)
 {
-	efx_oword_t	oword;
+	efx_oword_t oword;
 
 	EFX_POPULATE_OWORD_1(oword, FRF_CZ_USREV_DIS, 1);
 	EFX_BAR_WRITEO(enp, FR_CZ_USR_EV_CFG, &oword);
 }
 
-	__checkReturn	efx_rc_t
-siena_nic_init(
-	__in		efx_nic_t *enp)
+__checkReturn efx_rc_t
+siena_nic_init(__in efx_nic_t *enp)
 {
 	efx_rc_t rc;
 
@@ -537,88 +527,96 @@ fail1:
 	return (rc);
 }
 
-			void
-siena_nic_fini(
-	__in		efx_nic_t *enp)
+void
+siena_nic_fini(__in efx_nic_t *enp)
 {
 	_NOTE(ARGUNUSED(enp))
 }
 
-			void
-siena_nic_unprobe(
-	__in		efx_nic_t *enp)
+void
+siena_nic_unprobe(__in efx_nic_t *enp)
 {
 #if EFSYS_OPT_MON_STATS
 	mcdi_mon_cfg_free(enp);
 #endif /* EFSYS_OPT_MON_STATS */
-	(void) efx_mcdi_drv_attach(enp, B_FALSE);
+	(void)efx_mcdi_drv_attach(enp, B_FALSE);
 }
 
 #if EFSYS_OPT_DIAG
 
-static siena_register_set_t __siena_registers[] = {
-	{ FR_AZ_ADR_REGION_REG_OFST, 0, 1 },
-	{ FR_CZ_USR_EV_CFG_OFST, 0, 1 },
-	{ FR_AZ_RX_CFG_REG_OFST, 0, 1 },
-	{ FR_AZ_TX_CFG_REG_OFST, 0, 1 },
-	{ FR_AZ_TX_RESERVED_REG_OFST, 0, 1 },
+static siena_register_set_t __siena_registers[] = { { FR_AZ_ADR_REGION_REG_OFST,
+							0, 1 },
+	{ FR_CZ_USR_EV_CFG_OFST, 0, 1 }, { FR_AZ_RX_CFG_REG_OFST, 0, 1 },
+	{ FR_AZ_TX_CFG_REG_OFST, 0, 1 }, { FR_AZ_TX_RESERVED_REG_OFST, 0, 1 },
 	{ FR_AZ_SRM_TX_DC_CFG_REG_OFST, 0, 1 },
 	{ FR_AZ_RX_DC_CFG_REG_OFST, 0, 1 },
-	{ FR_AZ_RX_DC_PF_WM_REG_OFST, 0, 1 },
-	{ FR_AZ_DP_CTRL_REG_OFST, 0, 1 },
-	{ FR_BZ_RX_RSS_TKEY_REG_OFST, 0, 1},
-	{ FR_CZ_RX_RSS_IPV6_REG1_OFST, 0, 1},
-	{ FR_CZ_RX_RSS_IPV6_REG2_OFST, 0, 1},
-	{ FR_CZ_RX_RSS_IPV6_REG3_OFST, 0, 1}
-};
+	{ FR_AZ_RX_DC_PF_WM_REG_OFST, 0, 1 }, { FR_AZ_DP_CTRL_REG_OFST, 0, 1 },
+	{ FR_BZ_RX_RSS_TKEY_REG_OFST, 0, 1 },
+	{ FR_CZ_RX_RSS_IPV6_REG1_OFST, 0, 1 },
+	{ FR_CZ_RX_RSS_IPV6_REG2_OFST, 0, 1 },
+	{ FR_CZ_RX_RSS_IPV6_REG3_OFST, 0, 1 } };
 
-static const uint32_t __siena_register_masks[] = {
-	0x0003FFFF, 0x0003FFFF, 0x0003FFFF, 0x0003FFFF,
-	0x000103FF, 0x00000000, 0x00000000, 0x00000000,
-	0xFFFFFFFE, 0xFFFFFFFF, 0x0003FFFF, 0x00000000,
-	0x7FFF0037, 0xFFFF8000, 0xFFFFFFFF, 0x03FFFFFF,
-	0xFFFEFE80, 0x1FFFFFFF, 0x020000FE, 0x007FFFFF,
-	0x001FFFFF, 0x00000000, 0x00000000, 0x00000000,
-	0x00000003, 0x00000000, 0x00000000, 0x00000000,
-	0x000003FF, 0x00000000, 0x00000000, 0x00000000,
-	0x00000FFF, 0x00000000, 0x00000000, 0x00000000,
-	0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
-	0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
-	0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
-	0xFFFFFFFF, 0xFFFFFFFF, 0x00000007, 0x00000000
-};
+static const uint32_t __siena_register_masks[] = { 0x0003FFFF, 0x0003FFFF,
+	0x0003FFFF, 0x0003FFFF, 0x000103FF, 0x00000000, 0x00000000, 0x00000000,
+	0xFFFFFFFE, 0xFFFFFFFF, 0x0003FFFF, 0x00000000, 0x7FFF0037, 0xFFFF8000,
+	0xFFFFFFFF, 0x03FFFFFF, 0xFFFEFE80, 0x1FFFFFFF, 0x020000FE, 0x007FFFFF,
+	0x001FFFFF, 0x00000000, 0x00000000, 0x00000000, 0x00000003, 0x00000000,
+	0x00000000, 0x00000000, 0x000003FF, 0x00000000, 0x00000000, 0x00000000,
+	0x00000FFF, 0x00000000, 0x00000000, 0x00000000, 0xFFFFFFFF, 0xFFFFFFFF,
+	0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+	0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+	0x00000007, 0x00000000 };
 
 static siena_register_set_t __siena_tables[] = {
 	{ FR_AZ_RX_FILTER_TBL0_OFST, FR_AZ_RX_FILTER_TBL0_STEP,
 	    FR_AZ_RX_FILTER_TBL0_ROWS },
 	{ FR_CZ_RX_MAC_FILTER_TBL0_OFST, FR_CZ_RX_MAC_FILTER_TBL0_STEP,
 	    FR_CZ_RX_MAC_FILTER_TBL0_ROWS },
-	{ FR_AZ_RX_DESC_PTR_TBL_OFST,
-	    FR_AZ_RX_DESC_PTR_TBL_STEP, FR_CZ_RX_DESC_PTR_TBL_ROWS },
-	{ FR_AZ_TX_DESC_PTR_TBL_OFST,
-	    FR_AZ_TX_DESC_PTR_TBL_STEP, FR_CZ_TX_DESC_PTR_TBL_ROWS },
+	{ FR_AZ_RX_DESC_PTR_TBL_OFST, FR_AZ_RX_DESC_PTR_TBL_STEP,
+	    FR_CZ_RX_DESC_PTR_TBL_ROWS },
+	{ FR_AZ_TX_DESC_PTR_TBL_OFST, FR_AZ_TX_DESC_PTR_TBL_STEP,
+	    FR_CZ_TX_DESC_PTR_TBL_ROWS },
 	{ FR_AZ_TIMER_TBL_OFST, FR_AZ_TIMER_TBL_STEP, FR_CZ_TIMER_TBL_ROWS },
-	{ FR_CZ_TX_FILTER_TBL0_OFST,
-	    FR_CZ_TX_FILTER_TBL0_STEP, FR_CZ_TX_FILTER_TBL0_ROWS },
-	{ FR_CZ_TX_MAC_FILTER_TBL0_OFST,
-	    FR_CZ_TX_MAC_FILTER_TBL0_STEP, FR_CZ_TX_MAC_FILTER_TBL0_ROWS }
+	{ FR_CZ_TX_FILTER_TBL0_OFST, FR_CZ_TX_FILTER_TBL0_STEP,
+	    FR_CZ_TX_FILTER_TBL0_ROWS },
+	{ FR_CZ_TX_MAC_FILTER_TBL0_OFST, FR_CZ_TX_MAC_FILTER_TBL0_STEP,
+	    FR_CZ_TX_MAC_FILTER_TBL0_ROWS }
 };
 
 static const uint32_t __siena_table_masks[] = {
-	0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x000003FF,
-	0xFFFF0FFF, 0xFFFFFFFF, 0x00000E7F, 0x00000000,
-	0xFFFFFFFE, 0x0FFFFFFF, 0x01800000, 0x00000000,
-	0xFFFFFFFE, 0x0FFFFFFF, 0x0C000000, 0x00000000,
-	0x3FFFFFFF, 0x00000000, 0x00000000, 0x00000000,
-	0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x000013FF,
-	0xFFFF07FF, 0xFFFFFFFF, 0x0000007F, 0x00000000,
+	0xFFFFFFFF,
+	0xFFFFFFFF,
+	0xFFFFFFFF,
+	0x000003FF,
+	0xFFFF0FFF,
+	0xFFFFFFFF,
+	0x00000E7F,
+	0x00000000,
+	0xFFFFFFFE,
+	0x0FFFFFFF,
+	0x01800000,
+	0x00000000,
+	0xFFFFFFFE,
+	0x0FFFFFFF,
+	0x0C000000,
+	0x00000000,
+	0x3FFFFFFF,
+	0x00000000,
+	0x00000000,
+	0x00000000,
+	0xFFFFFFFF,
+	0xFFFFFFFF,
+	0xFFFFFFFF,
+	0x000013FF,
+	0xFFFF07FF,
+	0xFFFFFFFF,
+	0x0000007F,
+	0x00000000,
 };
 
-	__checkReturn	efx_rc_t
-siena_nic_test_registers(
-	__in		efx_nic_t *enp,
-	__in		siena_register_set_t *rsp,
-	__in		size_t count)
+__checkReturn efx_rc_t
+siena_nic_test_registers(__in efx_nic_t *enp, __in siena_register_set_t *rsp,
+    __in size_t count)
 {
 	unsigned int bit;
 	efx_oword_t original;
@@ -631,8 +629,7 @@ siena_nic_test_registers(
 		EFSYS_ASSERT(rsp->rows == 1);
 
 		/* bit sweep on and off */
-		EFSYS_BAR_READO(enp->en_esbp, rsp->address, &original,
-			    B_TRUE);
+		EFSYS_BAR_READO(enp->en_esbp, rsp->address, &original, B_TRUE);
 		for (bit = 0; bit < 128; bit++) {
 			/* Is this bit in the mask? */
 			if (~(rsp->mask.eo_u32[bit >> 5]) & (1 << bit))
@@ -644,12 +641,12 @@ siena_nic_test_registers(
 			EFX_SET_OWORD_BIT(reg, bit);
 
 			EFSYS_BAR_WRITEO(enp->en_esbp, rsp->address, &reg,
-				    B_TRUE);
+			    B_TRUE);
 			EFSYS_BAR_READO(enp->en_esbp, rsp->address, &buf,
-				    B_TRUE);
+			    B_TRUE);
 
 			EFX_AND_OWORD(buf, rsp->mask);
-			if (memcmp(&reg, &buf, sizeof (reg))) {
+			if (memcmp(&reg, &buf, sizeof(reg))) {
 				rc = EIO;
 				goto fail1;
 			}
@@ -659,20 +656,19 @@ siena_nic_test_registers(
 			EFX_CLEAR_OWORD_BIT(reg, bit);
 
 			EFSYS_BAR_WRITEO(enp->en_esbp, rsp->address, &reg,
-				    B_TRUE);
+			    B_TRUE);
 			EFSYS_BAR_READO(enp->en_esbp, rsp->address, &buf,
-				    B_TRUE);
+			    B_TRUE);
 
 			EFX_AND_OWORD(buf, rsp->mask);
-			if (memcmp(&reg, &buf, sizeof (reg))) {
+			if (memcmp(&reg, &buf, sizeof(reg))) {
 				rc = EIO;
 				goto fail2;
 			}
 		}
 
 		/* Restore the old value */
-		EFSYS_BAR_WRITEO(enp->en_esbp, rsp->address, &original,
-			    B_TRUE);
+		EFSYS_BAR_WRITEO(enp->en_esbp, rsp->address, &original, B_TRUE);
 
 		--count;
 		++rsp;
@@ -691,12 +687,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-siena_nic_test_tables(
-	__in		efx_nic_t *enp,
-	__in		siena_register_set_t *rsp,
-	__in		efx_pattern_type_t pattern,
-	__in		size_t count)
+__checkReturn efx_rc_t
+siena_nic_test_tables(__in efx_nic_t *enp, __in siena_register_set_t *rsp,
+    __in efx_pattern_type_t pattern, __in size_t count)
 {
 	efx_sram_pattern_fn_t func;
 	unsigned int index;
@@ -727,7 +720,7 @@ siena_nic_test_tables(
 			func(2 * index + 1, B_FALSE, &reg.eo_qword[1]);
 			EFX_AND_OWORD(reg, rsp->mask);
 			EFSYS_BAR_READO(enp->en_esbp, address, &buf, B_TRUE);
-			if (memcmp(&reg, &buf, sizeof (reg))) {
+			if (memcmp(&reg, &buf, sizeof(reg))) {
 				rc = EIO;
 				goto fail1;
 			}
@@ -747,9 +740,8 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-siena_nic_register_test(
-	__in		efx_nic_t *enp)
+__checkReturn efx_rc_t
+siena_nic_register_test(__in efx_nic_t *enp)
 {
 	siena_register_set_t *rsp;
 	const uint32_t *dwordp;
@@ -758,8 +750,8 @@ siena_nic_register_test(
 	efx_rc_t rc;
 
 	/* Fill out the register mask entries */
-	EFX_STATIC_ASSERT(EFX_ARRAY_SIZE(__siena_register_masks)
-		    == EFX_ARRAY_SIZE(__siena_registers) * 4);
+	EFX_STATIC_ASSERT(EFX_ARRAY_SIZE(__siena_register_masks) ==
+	    EFX_ARRAY_SIZE(__siena_registers) * 4);
 
 	nitems = EFX_ARRAY_SIZE(__siena_registers);
 	dwordp = __siena_register_masks;
@@ -772,8 +764,8 @@ siena_nic_register_test(
 	}
 
 	/* Fill out the register table entries */
-	EFX_STATIC_ASSERT(EFX_ARRAY_SIZE(__siena_table_masks)
-		    == EFX_ARRAY_SIZE(__siena_tables) * 4);
+	EFX_STATIC_ASSERT(EFX_ARRAY_SIZE(__siena_table_masks) ==
+	    EFX_ARRAY_SIZE(__siena_tables) * 4);
 
 	nitems = EFX_ARRAY_SIZE(__siena_tables);
 	dwordp = __siena_table_masks;
@@ -786,21 +778,21 @@ siena_nic_register_test(
 	}
 
 	if ((rc = siena_nic_test_registers(enp, __siena_registers,
-	    EFX_ARRAY_SIZE(__siena_registers))) != 0)
+		 EFX_ARRAY_SIZE(__siena_registers))) != 0)
 		goto fail1;
 
 	if ((rc = siena_nic_test_tables(enp, __siena_tables,
-	    EFX_PATTERN_BYTE_ALTERNATE,
-	    EFX_ARRAY_SIZE(__siena_tables))) != 0)
+		 EFX_PATTERN_BYTE_ALTERNATE, EFX_ARRAY_SIZE(__siena_tables))) !=
+	    0)
 		goto fail2;
 
 	if ((rc = siena_nic_test_tables(enp, __siena_tables,
-	    EFX_PATTERN_BYTE_CHANGING,
-	    EFX_ARRAY_SIZE(__siena_tables))) != 0)
+		 EFX_PATTERN_BYTE_CHANGING, EFX_ARRAY_SIZE(__siena_tables))) !=
+	    0)
 		goto fail3;
 
 	if ((rc = siena_nic_test_tables(enp, __siena_tables,
-	    EFX_PATTERN_BIT_SWEEP, EFX_ARRAY_SIZE(__siena_tables))) != 0)
+		 EFX_PATTERN_BIT_SWEEP, EFX_ARRAY_SIZE(__siena_tables))) != 0)
 		goto fail4;
 
 	return (0);
@@ -817,6 +809,6 @@ fail1:
 	return (rc);
 }
 
-#endif	/* EFSYS_OPT_DIAG */
+#endif /* EFSYS_OPT_DIAG */
 
-#endif	/* EFSYS_OPT_SIENA */
+#endif /* EFSYS_OPT_SIENA */

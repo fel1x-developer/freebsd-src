@@ -31,26 +31,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-#include "opt_syscons.h"
-#include "opt_splash.h"
 #include "opt_ddb.h"
+#include "opt_splash.h"
+#include "opt_syscons.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/cons.h>
 #include <sys/consio.h>
-#include <sys/kdb.h>
 #include <sys/eventhandler.h>
 #include <sys/fbio.h>
 #include <sys/kbio.h>
+#include <sys/kdb.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
 #include <sys/pcpu.h>
+#include <sys/power.h>
 #include <sys/priv.h>
 #include <sys/proc.h>
 #include <sys/random.h>
@@ -60,7 +61,6 @@
 #include <sys/smp.h>
 #include <sys/sysctl.h>
 #include <sys/tty.h>
-#include <sys/power.h>
 
 #include <machine/clock.h>
 #if defined(__arm__) || defined(__powerpc__)
@@ -69,27 +69,27 @@
 #include <machine/pc/display.h>
 #endif
 #if defined(__i386__) || defined(__amd64__)
-#include <machine/psl.h>
 #include <machine/frame.h>
+#include <machine/psl.h>
 #endif
 #include <machine/stdarg.h>
 
 #if defined(__amd64__) || defined(__i386__)
-#include <machine/vmparam.h>
-
 #include <vm/vm.h>
 #include <vm/pmap.h>
+
+#include <machine/vmparam.h>
 #endif
 
-#include <dev/kbd/kbdreg.h>
 #include <dev/fb/fbreg.h>
 #include <dev/fb/splashreg.h>
+#include <dev/kbd/kbdreg.h>
 #include <dev/syscons/syscons.h>
 
 #define COLD 0
 #define WARM 1
 
-#define DEFAULT_BLANKTIME (5 * 60) /* 5 minutes */
+#define DEFAULT_BLANKTIME (5 * 60)	 /* 5 minutes */
 #define MAX_BLANKTIME (7 * 24 * 60 * 60) /* 7 days!? */
 
 #define KEYCODE_BS 0x0e /* "<-- Backspace" key, XXX */
@@ -114,8 +114,8 @@ static int suspend_in_progress = FALSE;
 static char sc_malloc = FALSE;
 
 static int saver_mode = CONS_NO_SAVER; /* LKM/user saver */
-static int run_scrn_saver = FALSE; /* should run the saver? */
-static int enable_bell = TRUE; /* enable beeper */
+static int run_scrn_saver = FALSE;     /* should run the saver? */
+static int enable_bell = TRUE;	       /* enable beeper */
 
 #ifndef SC_DISABLE_REBOOT
 static int enable_reboot = TRUE; /* enable keyboard reboot */
@@ -146,13 +146,12 @@ static int sc_susp_scr;
 
 static SYSCTL_NODE(_hw, OID_AUTO, syscons, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
     "syscons");
-static SYSCTL_NODE(_hw_syscons, OID_AUTO, saver,
-    CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
+static SYSCTL_NODE(_hw_syscons, OID_AUTO, saver, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
     "saver");
 SYSCTL_INT(_hw_syscons_saver, OID_AUTO, keybonly, CTLFLAG_RW,
     &sc_saver_keyb_only, 0, "screen saver interrupted by input only");
-SYSCTL_INT(
-    _hw_syscons, OID_AUTO, bell, CTLFLAG_RW, &enable_bell, 0, "enable bell");
+SYSCTL_INT(_hw_syscons, OID_AUTO, bell, CTLFLAG_RW, &enable_bell, 0,
+    "enable bell");
 #ifndef SC_DISABLE_REBOOT
 SYSCTL_INT(_hw_syscons, OID_AUTO, kbd_reboot, CTLFLAG_RW | CTLFLAG_SECURE,
     &enable_reboot, 0, "enable keyboard reboot");
@@ -208,8 +207,8 @@ static int scsplash_callback(int event, void *arg);
 static void scsplash_saver(sc_softc_t *sc, int show);
 static int add_scrn_saver(void (*this_saver)(sc_softc_t *, int));
 static int remove_scrn_saver(void (*this_saver)(sc_softc_t *, int));
-static int set_scrn_saver_mode(
-    scr_stat *scp, int mode, u_char *pal, int border);
+static int set_scrn_saver_mode(scr_stat *scp, int mode, u_char *pal,
+    int border);
 static int restore_scrn_saver_mode(scr_stat *scp, int changemode);
 static void stop_scrn_saver(sc_softc_t *sc, void (*saver)(sc_softc_t *, int));
 static int wait_scrn_saver_stop(sc_softc_t *sc);
@@ -313,11 +312,11 @@ ec_putc(int c)
 	do {
 		ind = ec_scroffset;
 		column = ind % xsize;
-		width = (c == '\b' ?
-			-1 :
-			c == '\t' ?
-			(column + 8) & ~7 :
-			c == '\r' ? -column : c == '\n' ? xsize - column : 1);
+		width = (c == '\b' ? -1 :
+			c == '\t'  ? (column + 8) & ~7 :
+			c == '\r'  ? -column :
+			c == '\n'  ? xsize - column :
+				     1);
 		if (width == 0 || (width < 0 && ind < -width))
 			return;
 	} while (atomic_cmpset_rel_int(&ec_scroffset, ind, ind + width) == 0);
@@ -588,16 +587,16 @@ sc_attach_unit(int unit, int flags)
 			for (i = 0; i <= mp_maxid; i++) {
 				ts = malloc(sc_console->tsw->te_size, M_DEVBUF,
 				    M_WAITOK | M_ZERO);
-				(*sc_console->tsw->te_init)(
-				    sc_console, &ts, SC_TE_COLD_INIT);
+				(*sc_console->tsw->te_init)(sc_console, &ts,
+				    SC_TE_COLD_INIT);
 				sc_console->ts = ts;
 				(*sc_console->tsw->te_default_attr)(sc_console,
 				    sc_kattrtab[i], SC_KERNEL_CONS_REV_ATTR);
 				sc_kts[i] = ts;
 			}
 			sc_console->ts = oldts;
-			(*sc_console->tsw->te_default_attr)(
-			    sc_console, SC_NORM_ATTR, SC_NORM_REV_ATTR);
+			(*sc_console->tsw->te_default_attr)(sc_console,
+			    SC_NORM_ATTR, SC_NORM_REV_ATTR);
 		}
 	} else {
 		scinit(unit, flags);
@@ -643,12 +642,12 @@ sc_attach_unit(int unit, int flags)
 
 	/* Register suspend/resume/shutdown callbacks for the kernel console. */
 	if (sc_console_unit == unit) {
-		EVENTHANDLER_REGISTER(
-		    power_suspend_early, scsuspend, NULL, EVENTHANDLER_PRI_ANY);
-		EVENTHANDLER_REGISTER(
-		    power_resume, scresume, NULL, EVENTHANDLER_PRI_ANY);
-		EVENTHANDLER_REGISTER(
-		    shutdown_pre_sync, scshutdown, NULL, SHUTDOWN_PRI_DEFAULT);
+		EVENTHANDLER_REGISTER(power_suspend_early, scsuspend, NULL,
+		    EVENTHANDLER_PRI_ANY);
+		EVENTHANDLER_REGISTER(power_resume, scresume, NULL,
+		    EVENTHANDLER_PRI_ANY);
+		EVENTHANDLER_REGISTER(shutdown_pre_sync, scshutdown, NULL,
+		    SHUTDOWN_PRI_DEFAULT);
 	}
 
 	for (vc = 0; vc < sc->vtys; vc++) {
@@ -664,8 +663,8 @@ sc_attach_unit(int unit, int flags)
 		 */
 	}
 
-	dev = make_dev(
-	    &consolectl_devsw, 0, UID_ROOT, GID_WHEEL, 0600, "consolectl");
+	dev = make_dev(&consolectl_devsw, 0, UID_ROOT, GID_WHEEL, 0600,
+	    "consolectl");
 	dev->si_drv1 = sc->dev[0];
 
 	return 0;
@@ -729,8 +728,8 @@ sctty_open(struct tty *tp)
 	    ("scopen: dev:%s, unit:%d, vty:%d\n", devtoname(tp->t_dev), unit,
 		SC_VTY(tp)));
 
-	sc = sc_get_softc(
-	    unit, (sc_console_unit == unit) ? SC_KERNEL_CONSOLE : 0);
+	sc = sc_get_softc(unit,
+	    (sc_console_unit == unit) ? SC_KERNEL_CONSOLE : 0);
 	if (sc == NULL)
 		return ENXIO;
 
@@ -795,8 +794,8 @@ sctty_close(struct tty *tp)
 #endif
 		scp->kbd_mode = K_XLATE;
 		if (scp == scp->sc->cur_scp)
-			(void)kbdd_ioctl(
-			    scp->sc->kbd, KDSKBMODE, (caddr_t)&scp->kbd_mode);
+			(void)kbdd_ioctl(scp->sc->kbd, KDSKBMODE,
+			    (caddr_t)&scp->kbd_mode);
 		DPRINTF(5, ("done.\n"));
 	}
 }
@@ -989,8 +988,8 @@ sctty_ioctl(struct tty *tp, u_long cmd, caddr_t data, struct thread *td)
 
 	case CONS_SETCURSORSHAPE: /* set cursor shape (new interface) */
 		s = spltty();
-		sc_change_cursor_shape(
-		    scp, ((int *)data)[0], ((int *)data)[1], ((int *)data)[2]);
+		sc_change_cursor_shape(scp, ((int *)data)[0], ((int *)data)[1],
+		    ((int *)data)[2]);
 		splx(s);
 		return 0;
 
@@ -1015,8 +1014,9 @@ sctty_ioctl(struct tty *tp, u_long cmd, caddr_t data, struct thread *td)
 			ptr->mv_row = scp->ypos;
 			ptr->mv_csz = scp->xsize;
 			ptr->mv_rsz = scp->ysize;
-			ptr->mv_hsz =
-			    (scp->history != NULL) ? scp->history->vtb_rows : 0;
+			ptr->mv_hsz = (scp->history != NULL) ?
+			    scp->history->vtb_rows :
+			    0;
 			/*
 			 * The following fields are filled by the terminal
 			 * emulator. XXX
@@ -1037,7 +1037,7 @@ sctty_ioctl(struct tty *tp, u_long cmd, caddr_t data, struct thread *td)
 		return EINVAL;
 	}
 
-	case CONS_GETVERS: /* get version number */
+	case CONS_GETVERS:	      /* get version number */
 		*(int *)data = 0x200; /* version 2.0 */
 		return 0;
 
@@ -1309,8 +1309,8 @@ sctty_ioctl(struct tty *tp, u_long cmd, caddr_t data, struct thread *td)
 			return EINVAL;
 		if (i == sc->cur_scp->index)
 			return 0;
-		error =
-		    tsleep(VTY_WCHAN(sc, i), (PZERO + 1) | PCATCH, "waitvt", 0);
+		error = tsleep(VTY_WCHAN(sc, i), (PZERO + 1) | PCATCH, "waitvt",
+		    0);
 		return error;
 
 	case VT_GETACTIVE: /* get active vty # */
@@ -1404,8 +1404,8 @@ sctty_ioctl(struct tty *tp, u_long cmd, caddr_t data, struct thread *td)
 	case KDSKBMODE: /* set keyboard mode */
 		switch (*(int *)data) {
 		case K_XLATE: /* switch to XLT ascii mode */
-		case K_RAW: /* switch to RAW scancode mode */
-		case K_CODE: /* switch to CODE mode */
+		case K_RAW:   /* switch to RAW scancode mode */
+		case K_CODE:  /* switch to CODE mode */
 			scp->kbd_mode = *(int *)data;
 			if (scp == sc->cur_scp)
 				(void)kbdd_ioctl(sc->kbd, KDSKBMODE, data);
@@ -1471,7 +1471,7 @@ sctty_ioctl(struct tty *tp, u_long cmd, caddr_t data, struct thread *td)
 		data = (caddr_t)&ival;
 		/* FALLTHROUGH */
 #endif
-	case KDSETLED: /* set keyboard LED status */
+	case KDSETLED:			      /* set keyboard LED status */
 		if (*(int *)data & ~LED_MASK) /* FIXME: LOCK_MASK? */
 			return EINVAL;
 		scp->status &= ~LED_MASK;
@@ -1518,11 +1518,10 @@ sctty_ioctl(struct tty *tp, u_long cmd, caddr_t data, struct thread *td)
 			if (i >= 0) {
 				if (sc->kbd != NULL) {
 					save_kbd_state(sc->cur_scp);
-					kbd_release(
-					    sc->kbd, (void *)&sc->kbd);
+					kbd_release(sc->kbd, (void *)&sc->kbd);
 				}
-				sc->kbd =
-				    kbd_get_keyboard(i); /* sc->kbd == newkbd */
+				sc->kbd = kbd_get_keyboard(
+				    i); /* sc->kbd == newkbd */
 				(void)kbdd_ioctl(sc->kbd, KDSKBMODE,
 				    (caddr_t)&sc->cur_scp->kbd_mode);
 				update_kbd_state(sc->cur_scp,
@@ -1590,18 +1589,18 @@ sctty_ioctl(struct tty *tp, u_long cmd, caddr_t data, struct thread *td)
 		}
 		return 0;
 
-	case GIO_KEYMAP: /* get keyboard translation table */
-	case PIO_KEYMAP: /* set keyboard translation table */
+	case GIO_KEYMAP:     /* get keyboard translation table */
+	case PIO_KEYMAP:     /* set keyboard translation table */
 	case GIO_DEADKEYMAP: /* get accent key translation table */
 	case PIO_DEADKEYMAP: /* set accent key translation table */
 #ifdef COMPAT_FREEBSD13
-	case OGIO_KEYMAP: /* get keyboard translation table (compat) */
-	case OPIO_KEYMAP: /* set keyboard translation table (compat) */
+	case OGIO_KEYMAP:     /* get keyboard translation table (compat) */
+	case OPIO_KEYMAP:     /* set keyboard translation table (compat) */
 	case OGIO_DEADKEYMAP: /* get accent key translation table (compat) */
 	case OPIO_DEADKEYMAP: /* set accent key translation table (compat) */
-#endif /* COMPAT_FREEBSD13 */
-	case GETFKEY: /* get function key string */
-	case SETFKEY: /* set function key string */
+#endif			      /* COMPAT_FREEBSD13 */
+	case GETFKEY:	      /* get function key string */
+	case SETFKEY:	      /* set function key string */
 		error = kbdd_ioctl(sc->kbd, cmd, data);
 		if (error == ENOIOCTL)
 			error = ENODEV;
@@ -1644,8 +1643,8 @@ sctty_ioctl(struct tty *tp, u_long cmd, caddr_t data, struct thread *td)
 		 */
 		if (ISTEXTSC(sc->cur_scp) && (sc->cur_scp->font_size >= 14) &&
 		    (sc->cur_scp->font_size < 16))
-			sc_load_font(
-			    sc->cur_scp, 0, 14, 8, sc->font_14, 0, 256);
+			sc_load_font(sc->cur_scp, 0, 14, 8, sc->font_14, 0,
+			    256);
 		return 0;
 
 	case GIO_FONT8x14: /* get 8x14 dot font */
@@ -1668,8 +1667,8 @@ sctty_ioctl(struct tty *tp, u_long cmd, caddr_t data, struct thread *td)
 		 * Don't load if the current font size is not 8x16.
 		 */
 		if (ISTEXTSC(sc->cur_scp) && (sc->cur_scp->font_size >= 16))
-			sc_load_font(
-			    sc->cur_scp, 0, 16, 8, sc->font_16, 0, 256);
+			sc_load_font(sc->cur_scp, 0, 16, 8, sc->font_16, 0,
+			    256);
 		return 0;
 
 	case GIO_FONT8x16: /* get 8x16 dot font */
@@ -1691,8 +1690,8 @@ sctty_ioctl(struct tty *tp, u_long cmd, caddr_t data, struct thread *td)
 }
 
 static int
-consolectl_ioctl(
-    struct cdev *dev, u_long cmd, caddr_t data, int fflag, struct thread *td)
+consolectl_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
+    struct thread *td)
 {
 
 	return sctty_ioctl(dev->si_drv1, cmd, data, td);
@@ -1835,8 +1834,8 @@ sccnscrlock(sc_softc_t *sc, struct sc_cnstate *sp)
 	} else {
 		sp->kdb_locked = FALSE;
 		for (retries = 0; retries < 1000; retries++) {
-			sp->mtx_locked = mtx_trylock_spin_flags(
-					     &sc->video_mtx, MTX_QUIET) != 0;
+			sp->mtx_locked = mtx_trylock_spin_flags(&sc->video_mtx,
+					     MTX_QUIET) != 0;
 			if (SCHEDULER_STOPPED()) {
 				sp->kdb_locked = TRUE;
 				sp->mtx_locked = FALSE;
@@ -1919,8 +1918,8 @@ sccnclose(sc_softc_t *sc, struct sc_cnstate *sp)
 	/* Restore keyboard mode (for the current, possibly-changed scp). */
 	kbdd_poll(sc->kbd, FALSE);
 	if (--sc->kbd_open_level == 0)
-		(void)kbdd_ioctl(
-		    sc->kbd, KDSKBMODE, (caddr_t)&sc->cur_scp->kbd_mode);
+		(void)kbdd_ioctl(sc->kbd, KDSKBMODE,
+		    (caddr_t)&sc->cur_scp->kbd_mode);
 
 	kbdd_disable(sc->kbd);
 	sp->kbd_opened = FALSE;
@@ -2058,8 +2057,8 @@ sc_cnputc(struct consdev *cd, int c)
 			(*scp->tsw->te_sync)(scp);
 		} else {
 			/* Only 1 tsw early.  Switch only its attr. */
-			(*scp->tsw->te_default_attr)(
-			    scp, sc_kattrtab[curcpu], SC_KERNEL_CONS_REV_ATTR);
+			(*scp->tsw->te_default_attr)(scp, sc_kattrtab[curcpu],
+			    SC_KERNEL_CONS_REV_ATTR);
 		}
 		sc_puts(scp, buf, 1);
 		if (ts != NULL) {
@@ -2067,8 +2066,8 @@ sc_cnputc(struct consdev *cd, int c)
 			scp->ts = oldts;
 			(*scp->tsw->te_sync)(scp);
 		} else {
-			(*scp->tsw->te_default_attr)(
-			    scp, SC_KERNEL_CONS_ATTR, SC_KERNEL_CONS_REV_ATTR);
+			(*scp->tsw->te_default_attr)(scp, SC_KERNEL_CONS_ATTR,
+			    SC_KERNEL_CONS_REV_ATTR);
 		}
 	}
 
@@ -2133,8 +2132,8 @@ sc_cngetc_locked(struct sc_cnstate *sp)
 			fkeycp = 1;
 			return fkey.str[0];
 		}
-		p = kbdd_get_fkeystr(
-		    scp->sc->kbd, KEYCHAR(c), (size_t *)&fkeycp);
+		p = kbdd_get_fkeystr(scp->sc->kbd, KEYCHAR(c),
+		    (size_t *)&fkeycp);
 		fkey.len = fkeycp;
 		if ((p != NULL) && (fkey.len > 0)) {
 			bcopy(p, fkey.str, fkey.len);
@@ -2271,8 +2270,8 @@ done:
 			rate = 2;
 		else
 			rate = 30;
-		callout_reset_sbt(
-		    &sc->ctimeout, SBT_1S / rate, 0, scrn_timer, sc, C_PREL(1));
+		callout_reset_sbt(&sc->ctimeout, SBT_1S / rate, 0, scrn_timer,
+		    sc, C_PREL(1));
 	}
 }
 
@@ -2350,20 +2349,20 @@ scrn_update(scr_stat *scp, int show_cursor)
 				s = 0;
 				e = start - 1;
 				if (and_region(&s, &e, scp->start, scp->end))
-					(*scp->rndr->draw)(
-					    scp, s, e - s + 1, FALSE);
+					(*scp->rndr->draw)(scp, s, e - s + 1,
+					    FALSE);
 				s = end + 1;
 				e = scp->xsize * scp->ysize - 1;
 				if (and_region(&s, &e, scp->start, scp->end))
-					(*scp->rndr->draw)(
-					    scp, s, e - s + 1, FALSE);
+					(*scp->rndr->draw)(scp, s, e - s + 1,
+					    FALSE);
 			} else {
 				(*scp->rndr->draw)(scp, scp->start,
 				    scp->end - scp->start + 1, FALSE);
 			}
 		} else {
-			(*scp->rndr->draw)(
-			    scp, scp->start, scp->end - scp->start + 1, FALSE);
+			(*scp->rndr->draw)(scp, scp->start,
+			    scp->end - scp->start + 1, FALSE);
 		}
 	}
 
@@ -2382,13 +2381,13 @@ scrn_update(scr_stat *scp, int show_cursor)
 		/* did cursor move since last time ? */
 		if (scp->cursor_pos != scp->cursor_oldpos) {
 			/* do we need to remove old cursor image ? */
-			if (!and_region(
-				&s, &e, scp->cursor_oldpos, scp->cursor_oldpos))
+			if (!and_region(&s, &e, scp->cursor_oldpos,
+				scp->cursor_oldpos))
 				sc_remove_cursor_image(scp);
 			sc_draw_cursor_image(scp);
 		} else {
-			if (and_region(
-				&s, &e, scp->cursor_pos, scp->cursor_pos))
+			if (and_region(&s, &e, scp->cursor_pos,
+				scp->cursor_pos))
 				/* cursor didn't move, but has been overwritten
 				 */
 				sc_draw_cursor_image(scp);
@@ -3046,7 +3045,7 @@ sc_draw_cursor_image(scr_stat *scp)
 	/* assert(scp == scp->sc->cur_scp); */
 	SC_VIDEO_LOCK(scp->sc);
 	(*scp->rndr->draw_cursor)(scp, scp->cursor_pos,
-	    scp->curs_attr.flags & CONS_BLINK_CURSOR, TRUE,
+	    scp->curs_attr.flags &CONS_BLINK_CURSOR, TRUE,
 	    sc_inside_cutmark(scp, scp->cursor_pos));
 	scp->cursor_oldpos = scp->cursor_pos;
 	SC_VIDEO_UNLOCK(scp->sc);
@@ -3058,7 +3057,7 @@ sc_remove_cursor_image(scr_stat *scp)
 	/* assert(scp == scp->sc->cur_scp); */
 	SC_VIDEO_LOCK(scp->sc);
 	(*scp->rndr->draw_cursor)(scp, scp->cursor_oldpos,
-	    scp->curs_attr.flags & CONS_BLINK_CURSOR, FALSE,
+	    scp->curs_attr.flags &CONS_BLINK_CURSOR, FALSE,
 	    sc_inside_cutmark(scp, scp->cursor_oldpos));
 	SC_VIDEO_UNLOCK(scp->sc);
 }
@@ -3082,8 +3081,8 @@ sc_set_cursor_image(scr_stat *scp)
 		scp->curs_attr.flags = CONS_CHAR_CURSOR;
 		scp->curs_attr.base = scp->curs_attr.height = 0;
 	} else if (scp->curs_attr.flags & CONS_CHAR_CURSOR) {
-		scp->curs_attr.base =
-		    imin(scp->base_curs_attr.base, scp->font_size - 1);
+		scp->curs_attr.base = imin(scp->base_curs_attr.base,
+		    scp->font_size - 1);
 		scp->curs_attr.height = imin(scp->base_curs_attr.height,
 		    scp->font_size - scp->curs_attr.base);
 	} else { /* block cursor */
@@ -3094,7 +3093,7 @@ sc_set_cursor_image(scr_stat *scp)
 	/* assert(scp == scp->sc->cur_scp); */
 	SC_VIDEO_LOCK(scp->sc);
 	(*scp->rndr->set_cursor)(scp, scp->curs_attr.base,
-	    scp->curs_attr.height, scp->curs_attr.flags & CONS_BLINK_CURSOR);
+	    scp->curs_attr.height, scp->curs_attr.flags &CONS_BLINK_CURSOR);
 	SC_VIDEO_UNLOCK(scp->sc);
 }
 
@@ -3248,8 +3247,8 @@ scinit(int unit, int flags)
 		sc->adp = NULL;
 	}
 	if (sc->kbd != NULL) {
-		DPRINTF(5, ("sc%d: releasing kbd%d\n", unit,
-		    sc->kbd->kb_index));
+		DPRINTF(5,
+		    ("sc%d: releasing kbd%d\n", unit, sc->kbd->kb_index));
 		i = kbd_release(sc->kbd, (void *)&sc->kbd);
 		DPRINTF(5, ("sc%d: kbd_release returned %d\n", unit, i));
 		if (sc->kbd != NULL) {
@@ -3286,10 +3285,10 @@ scinit(int unit, int flags)
 		} else if (sc->font_8 == NULL) {
 			/* assert(sc_malloc) */
 			sc->font_8 = malloc(sizeof(font_8), M_DEVBUF, M_WAITOK);
-			sc->font_14 =
-			    malloc(sizeof(font_14), M_DEVBUF, M_WAITOK);
-			sc->font_16 =
-			    malloc(sizeof(font_16), M_DEVBUF, M_WAITOK);
+			sc->font_14 = malloc(sizeof(font_14), M_DEVBUF,
+			    M_WAITOK);
+			sc->font_16 = malloc(sizeof(font_16), M_DEVBUF,
+			    M_WAITOK);
 		}
 #endif
 
@@ -3314,8 +3313,8 @@ scinit(int unit, int flags)
 			    scp->ysize, (void *)sc_buffer, FALSE);
 			if (sc_init_emulator(scp, SC_DFLT_TERM))
 				sc_init_emulator(scp, "*");
-			(*scp->tsw->te_default_attr)(
-			    scp, SC_KERNEL_CONS_ATTR, SC_KERNEL_CONS_REV_ATTR);
+			(*scp->tsw->te_default_attr)(scp, SC_KERNEL_CONS_ATTR,
+			    SC_KERNEL_CONS_REV_ATTR);
 		} else {
 			/* assert(sc_malloc) */
 			sc->dev = malloc(sizeof(struct tty *) * sc->vtys,
@@ -3375,23 +3374,23 @@ scinit(int unit, int flags)
 			if (scp->font_size < 14) {
 				sc_load_font(scp, 0, 8, 8, sc->font_8, 0, 256);
 			} else if (scp->font_size >= 16) {
-				sc_load_font(
-				    scp, 0, 16, 8, sc->font_16, 0, 256);
+				sc_load_font(scp, 0, 16, 8, sc->font_16, 0,
+				    256);
 			} else {
-				sc_load_font(
-				    scp, 0, 14, 8, sc->font_14, 0, 256);
+				sc_load_font(scp, 0, 14, 8, sc->font_14, 0,
+				    256);
 			}
-#else /* !SC_DFLT_FONT */
+#else  /* !SC_DFLT_FONT */
 			if (scp->font_size < 14) {
 				sc_save_font(scp, 0, 8, 8, sc->font_8, 0, 256);
 				sc->fonts_loaded = FONT_8;
 			} else if (scp->font_size >= 16) {
-				sc_save_font(
-				    scp, 0, 16, 8, sc->font_16, 0, 256);
+				sc_save_font(scp, 0, 16, 8, sc->font_16, 0,
+				    256);
 				sc->fonts_loaded = FONT_16;
 			} else {
-				sc_save_font(
-				    scp, 0, 14, 8, sc->font_14, 0, 256);
+				sc_save_font(scp, 0, 14, 8, sc->font_14, 0,
+				    256);
 				sc->fonts_loaded = FONT_14;
 			}
 #endif /* SC_DFLT_FONT */
@@ -3780,8 +3779,8 @@ next_code:
 			sccnscrlock(sc, sp);
 		if (c == ERRKEY) {
 			if (!(flags & SCGETC_CN))
-				sc_bell(
-				    scp, bios_value.bell_pitch, BELL_DURATION);
+				sc_bell(scp, bios_value.bell_pitch,
+				    BELL_DURATION);
 		} else if (c == NOKEY)
 			return c;
 		else
@@ -3881,8 +3880,8 @@ next_code:
 			case ALK:
 				break;
 			case SLK:
-				(void)kbdd_ioctl(
-				    sc->kbd, KDGKBSTATE, (caddr_t)&f);
+				(void)kbdd_ioctl(sc->kbd, KDGKBSTATE,
+				    (caddr_t)&f);
 				if (f & SLKED) {
 					scp->status |= SLKED;
 				} else {
@@ -3952,13 +3951,13 @@ next_code:
 					 */
 					if (sc->flags & SC_SCRN_BLANKED) {
 						scsplash_stick(FALSE);
-						stop_scrn_saver(
-						    sc, current_saver);
+						stop_scrn_saver(sc,
+						    current_saver);
 					} else {
 						if (!ISGRAPHSC(scp)) {
 							scsplash_stick(TRUE);
-							(*current_saver)(
-							    sc, TRUE);
+							(*current_saver)(sc,
+							    TRUE);
 						}
 					}
 				}
@@ -4011,11 +4010,11 @@ next_code:
 					 sc->vtys;
 				     sc->first_vty + i != this_scr;
 				     i = (i + 1) % sc->vtys) {
-					struct tty *tp =
-					    SC_DEV(sc, sc->first_vty + i);
+					struct tty *tp = SC_DEV(sc,
+					    sc->first_vty + i);
 					if (tty_opened_ns(tp)) {
-						sc_switch_scr(
-						    scp->sc, sc->first_vty + i);
+						sc_switch_scr(scp->sc,
+						    sc->first_vty + i);
 						break;
 					}
 				}
@@ -4028,11 +4027,11 @@ next_code:
 					 sc->vtys;
 				     sc->first_vty + i != this_scr;
 				     i = (i + sc->vtys - 1) % sc->vtys) {
-					struct tty *tp =
-					    SC_DEV(sc, sc->first_vty + i);
+					struct tty *tp = SC_DEV(sc,
+					    sc->first_vty + i);
 					if (tty_opened_ns(tp)) {
-						sc_switch_scr(
-						    scp->sc, sc->first_vty + i);
+						sc_switch_scr(scp->sc,
+						    sc->first_vty + i);
 						break;
 					}
 				}
@@ -4349,8 +4348,7 @@ sc_allocate_keyboard(sc_softc_t *sc, int unit)
 	keyboard_t *k0, *k;
 	keyboard_info_t ki;
 
-	idx0 =
-	    kbd_allocate("kbdmux", -1, (void *)&sc->kbd, sckbdevent, sc);
+	idx0 = kbd_allocate("kbdmux", -1, (void *)&sc->kbd, sckbdevent, sc);
 	if (idx0 != -1) {
 		k0 = kbd_get_keyboard(idx0);
 
@@ -4368,8 +4366,8 @@ sc_allocate_keyboard(sc_softc_t *sc, int unit)
 			(void)kbdd_ioctl(k0, KBADDKBD, (caddr_t)&ki);
 		}
 	} else
-		idx0 = kbd_allocate(
-		    "*", unit, (void *)&sc->kbd, sckbdevent, sc);
+		idx0 = kbd_allocate("*", unit, (void *)&sc->kbd, sckbdevent,
+		    sc);
 
 	return (idx0);
 }

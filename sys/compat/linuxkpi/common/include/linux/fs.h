@@ -26,24 +26,25 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef	_LINUXKPI_LINUX_FS_H_
-#define	_LINUXKPI_LINUX_FS_H_
+#ifndef _LINUXKPI_LINUX_FS_H_
+#define _LINUXKPI_LINUX_FS_H_
 
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/conf.h>
-#include <sys/vnode.h>
 #include <sys/file.h>
 #include <sys/filedesc.h>
-#include <linux/types.h>
-#include <linux/wait.h>
-#include <linux/semaphore.h>
-#include <linux/spinlock.h>
-#include <linux/dcache.h>
+#include <sys/vnode.h>
+
 #include <linux/capability.h>
-#include <linux/wait_bit.h>
+#include <linux/dcache.h>
 #include <linux/kernel.h>
 #include <linux/mutex.h>
+#include <linux/semaphore.h>
+#include <linux/spinlock.h>
+#include <linux/types.h>
+#include <linux/wait.h>
+#include <linux/wait_bit.h>
 
 struct module;
 struct kiocb;
@@ -58,12 +59,12 @@ struct files_struct;
 struct pfs_node;
 struct linux_cdev;
 
-#define	inode	vnode
-#define	i_cdev	v_rdev
-#define	i_private v_data
+#define inode vnode
+#define i_cdev v_rdev
+#define i_private v_data
 
-#define	S_IRUGO	(S_IRUSR | S_IRGRP | S_IROTH)
-#define	S_IWUGO	(S_IWUSR | S_IWGRP | S_IWOTH)
+#define S_IRUGO (S_IRUSR | S_IRGRP | S_IROTH)
+#define S_IWUGO (S_IWUSR | S_IWGRP | S_IWOTH)
 
 typedef struct files_struct *fl_owner_t;
 
@@ -73,82 +74,84 @@ struct linux_file_wait_queue {
 	struct wait_queue wq;
 	struct wait_queue_head *wqh;
 	atomic_t state;
-#define	LINUX_FWQ_STATE_INIT 0
-#define	LINUX_FWQ_STATE_NOT_READY 1
-#define	LINUX_FWQ_STATE_QUEUED 2
-#define	LINUX_FWQ_STATE_READY 3
-#define	LINUX_FWQ_STATE_MAX 4
+#define LINUX_FWQ_STATE_INIT 0
+#define LINUX_FWQ_STATE_NOT_READY 1
+#define LINUX_FWQ_STATE_QUEUED 2
+#define LINUX_FWQ_STATE_READY 3
+#define LINUX_FWQ_STATE_MAX 4
 };
 
 struct linux_file {
-	struct file	*_file;
-	const struct file_operations	*f_op;
-	void		*private_data;
-	int		f_flags;
-	int		f_mode;	/* Just starting mode. */
-	struct dentry	*f_dentry;
-	struct dentry	f_dentry_store;
-	struct selinfo	f_selinfo;
-	struct sigio	*f_sigio;
-	struct vnode	*f_vnode;
-#define	f_inode	f_vnode
-	volatile u_int	f_count;
+	struct file *_file;
+	const struct file_operations *f_op;
+	void *private_data;
+	int f_flags;
+	int f_mode; /* Just starting mode. */
+	struct dentry *f_dentry;
+	struct dentry f_dentry_store;
+	struct selinfo f_selinfo;
+	struct sigio *f_sigio;
+	struct vnode *f_vnode;
+#define f_inode f_vnode
+	volatile u_int f_count;
 
 	/* anonymous shmem object */
-	vm_object_t	f_shmem;
+	vm_object_t f_shmem;
 
 	/* kqfilter support */
-	int		f_kqflags;
-#define	LINUX_KQ_FLAG_HAS_READ (1 << 0)
-#define	LINUX_KQ_FLAG_HAS_WRITE (1 << 1)
-#define	LINUX_KQ_FLAG_NEED_READ (1 << 2)
-#define	LINUX_KQ_FLAG_NEED_WRITE (1 << 3)
+	int f_kqflags;
+#define LINUX_KQ_FLAG_HAS_READ (1 << 0)
+#define LINUX_KQ_FLAG_HAS_WRITE (1 << 1)
+#define LINUX_KQ_FLAG_NEED_READ (1 << 2)
+#define LINUX_KQ_FLAG_NEED_WRITE (1 << 3)
 	/* protects f_selinfo.si_note */
-	spinlock_t	f_kqlock;
+	spinlock_t f_kqlock;
 	struct linux_file_wait_queue f_wait_queue;
 
 	/* pointer to associated character device, if any */
 	struct linux_cdev *f_cdev;
 
-	struct rcu_head	rcu;
+	struct rcu_head rcu;
 };
 
-#define	file		linux_file
-#define	fasync_struct	sigio *
+#define file linux_file
+#define fasync_struct sigio *
 
-#define	fasync_helper(fd, filp, on, queue)				\
-({									\
-	if ((on))							\
-		*(queue) = &(filp)->f_sigio;				\
-	else								\
-		*(queue) = NULL;					\
-	0;								\
-})
+#define fasync_helper(fd, filp, on, queue)           \
+	({                                           \
+		if ((on))                            \
+			*(queue) = &(filp)->f_sigio; \
+		else                                 \
+			*(queue) = NULL;             \
+		0;                                   \
+	})
 
-#define	kill_fasync(queue, sig, pollstat)				\
-do {									\
-	if (*(queue) != NULL)						\
-		pgsigio(*(queue), (sig), 0);				\
-} while (0)
+#define kill_fasync(queue, sig, pollstat)            \
+	do {                                         \
+		if (*(queue) != NULL)                \
+			pgsigio(*(queue), (sig), 0); \
+	} while (0)
 
 typedef int (*filldir_t)(void *, const char *, int, off_t, u64, unsigned);
 
 struct file_operations {
 	struct module *owner;
 	ssize_t (*read)(struct linux_file *, char __user *, size_t, off_t *);
-	ssize_t (*write)(struct linux_file *, const char __user *, size_t, off_t *);
-	unsigned int (*poll) (struct linux_file *, struct poll_table_struct *);
-	long (*unlocked_ioctl)(struct linux_file *, unsigned int, unsigned long);
+	ssize_t (
+	    *write)(struct linux_file *, const char __user *, size_t, off_t *);
+	unsigned int (*poll)(struct linux_file *, struct poll_table_struct *);
+	long (
+	    *unlocked_ioctl)(struct linux_file *, unsigned int, unsigned long);
 	long (*compat_ioctl)(struct linux_file *, unsigned int, unsigned long);
 	int (*mmap)(struct linux_file *, struct vm_area_struct *);
 	int (*open)(struct inode *, struct file *);
 	int (*release)(struct inode *, struct linux_file *);
 	int (*fasync)(int, struct linux_file *, int);
 
-/* Although not supported in FreeBSD, to align with Linux code
- * we are adding llseek() only when it is mapped to no_llseek which returns
- * an illegal seek error
- */
+	/* Although not supported in FreeBSD, to align with Linux code
+	 * we are adding llseek() only when it is mapped to no_llseek which
+	 * returns an illegal seek error
+	 */
 	off_t (*llseek)(struct linux_file *, off_t, int);
 #if 0
 	/* We do not support these methods.  Don't permit them to compile. */
@@ -177,20 +180,18 @@ struct file_operations {
 	int (*setlease)(struct file *, long, struct file_lock **);
 #endif
 };
-#define	fops_get(fops)		(fops)
-#define	replace_fops(f, fops)	((f)->f_op = (fops))
+#define fops_get(fops) (fops)
+#define replace_fops(f, fops) ((f)->f_op = (fops))
 
-#define	FMODE_READ	FREAD
-#define	FMODE_WRITE	FWRITE
-#define	FMODE_EXEC	FEXEC
-#define	FMODE_UNSIGNED_OFFSET	0x2000
+#define FMODE_READ FREAD
+#define FMODE_WRITE FWRITE
+#define FMODE_EXEC FEXEC
+#define FMODE_UNSIGNED_OFFSET 0x2000
 int __register_chrdev(unsigned int major, unsigned int baseminor,
-    unsigned int count, const char *name,
-    const struct file_operations *fops);
+    unsigned int count, const char *name, const struct file_operations *fops);
 int __register_chrdev_p(unsigned int major, unsigned int baseminor,
-    unsigned int count, const char *name,
-    const struct file_operations *fops, uid_t uid,
-    gid_t gid, int mode);
+    unsigned int count, const char *name, const struct file_operations *fops,
+    uid_t uid, gid_t gid, int mode);
 void __unregister_chrdev(unsigned int major, unsigned int baseminor,
     unsigned int count, const char *name);
 
@@ -233,7 +234,7 @@ unregister_chrdev_region(dev_t dev, unsigned range)
 
 static inline int
 alloc_chrdev_region(dev_t *dev, unsigned baseminor, unsigned count,
-			const char *name)
+    const char *name)
 {
 
 	return 0;
@@ -254,7 +255,7 @@ simple_open(struct inode *inode, struct file *filp)
 }
 
 extern unsigned int linux_iminor(struct inode *);
-#define	iminor(...) linux_iminor(__VA_ARGS__)
+#define iminor(...) linux_iminor(__VA_ARGS__)
 
 static inline struct linux_file *
 get_file(struct linux_file *f)
@@ -353,7 +354,7 @@ static inline ssize_t
 simple_read_from_buffer(void __user *dest, size_t read_size, loff_t *ppos,
     void *orig, size_t buf_size)
 {
-	void *read_pos = ((char *) orig) + *ppos;
+	void *read_pos = ((char *)orig) + *ppos;
 	size_t buf_remain = buf_size - *ppos;
 	ssize_t num_read;
 
@@ -374,20 +375,18 @@ simple_read_from_buffer(void __user *dest, size_t read_size, loff_t *ppos,
 
 MALLOC_DECLARE(M_LSATTR);
 
-#define DEFINE_SIMPLE_ATTRIBUTE(__fops, __get, __set, __fmt)		\
-static inline int							\
-__fops ## _open(struct inode *inode, struct file *filp)			\
-{									\
-	return (simple_attr_open(inode, filp, __get, __set, __fmt));	\
-}									\
-static const struct file_operations __fops = {				\
-	.owner	 = THIS_MODULE,						\
-	.open	 = __fops ## _open,					\
-	.release = simple_attr_release,					\
-	.read	 = simple_attr_read,					\
-	.write	 = simple_attr_write,					\
-	.llseek	 = no_llseek						\
-}
+#define DEFINE_SIMPLE_ATTRIBUTE(__fops, __get, __set, __fmt)                 \
+	static inline int __fops##_open(struct inode *inode,                 \
+	    struct file *filp)                                               \
+	{                                                                    \
+		return (simple_attr_open(inode, filp, __get, __set, __fmt)); \
+	}                                                                    \
+	static const struct file_operations __fops = { .owner = THIS_MODULE, \
+		.open = __fops##_open,                                       \
+		.release = simple_attr_release,                              \
+		.read = simple_attr_read,                                    \
+		.write = simple_attr_write,                                  \
+		.llseek = no_llseek }
 
 int simple_attr_open(struct inode *inode, struct file *filp,
     int (*get)(void *, uint64_t *), int (*set)(void *, uint64_t),
@@ -395,8 +394,10 @@ int simple_attr_open(struct inode *inode, struct file *filp,
 
 int simple_attr_release(struct inode *inode, struct file *filp);
 
-ssize_t simple_attr_read(struct file *filp, char *buf, size_t read_size, loff_t *ppos);
+ssize_t simple_attr_read(struct file *filp, char *buf, size_t read_size,
+    loff_t *ppos);
 
-ssize_t simple_attr_write(struct file *filp, const char *buf, size_t write_size, loff_t *ppos);
+ssize_t simple_attr_write(struct file *filp, const char *buf, size_t write_size,
+    loff_t *ppos);
 
 #endif /* _LINUXKPI_LINUX_FS_H_ */

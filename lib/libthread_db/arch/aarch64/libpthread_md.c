@@ -28,6 +28,7 @@
  */
 
 #include <sys/types.h>
+
 #include <string.h>
 #include <thread_db.h>
 
@@ -77,7 +78,6 @@ pt_ucontext_to_fpreg(const ucontext_t *uc, struct fpreg *r)
 		memcpy(r, &mc->mc_fpregs, sizeof(*r));
 	else
 		memset(r, 0, sizeof(*r));
-
 }
 
 void

@@ -45,8 +45,8 @@ int
 rusers(char *host, utmpidlearr *up)
 {
 	return (callrpc(host, RUSERSPROG, RUSERSVERS_IDLE, RUSERSPROC_NAMES,
-			(xdrproc_t)xdr_void, (char *) NULL,
-			(xdrproc_t)xdr_utmpidlearr, (char *) up));
+	    (xdrproc_t)xdr_void, (char *)NULL, (xdrproc_t)xdr_utmpidlearr,
+	    (char *)up));
 }
 
 int
@@ -55,10 +55,9 @@ rnusers(char *host)
 	int nusers;
 
 	if (callrpc(host, RUSERSPROG, RUSERSVERS_ORIG, RUSERSPROC_NUM,
-			(xdrproc_t)xdr_void, (char *) NULL,
-			(xdrproc_t)xdr_u_long, (char *) &nusers) != 0)
+		(xdrproc_t)xdr_void, (char *)NULL, (xdrproc_t)xdr_u_long,
+		(char *)&nusers) != 0)
 		return (-1);
 	else
 		return (nusers);
 }
-

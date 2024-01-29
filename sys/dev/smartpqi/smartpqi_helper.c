@@ -23,7 +23,6 @@
  * SUCH DAMAGE.
  */
 
-
 #include "smartpqi_includes.h"
 
 /*
@@ -46,13 +45,13 @@ pqisrc_configure_legacy_intx(pqisrc_softstate_t *softs, boolean_t enable_intx)
 {
 	uint32_t intx_mask;
 
- 	DBG_FUNC("IN\n");
+	DBG_FUNC("IN\n");
 
 	intx_mask = PCI_MEM_GET32(softs, 0, PQI_LEGACY_INTR_MASK_CLR);
 	intx_mask |= PQISRC_LEGACY_INTX_MASK;
-	PCI_MEM_PUT32(softs, 0, PQI_LEGACY_INTR_MASK_CLR ,intx_mask);
+	PCI_MEM_PUT32(softs, 0, PQI_LEGACY_INTR_MASK_CLR, intx_mask);
 
- 	DBG_FUNC("OUT\n");
+	DBG_FUNC("OUT\n");
 }
 
 /*
@@ -65,9 +64,9 @@ pqisrc_take_devices_offline(pqisrc_softstate_t *softs)
 	int i;
 
 	DBG_FUNC("IN\n");
-	for(i = 0; i < PQI_MAX_DEVICES; i++) {
+	for (i = 0; i < PQI_MAX_DEVICES; i++) {
 		device = softs->dev_list[i];
-		if(device == NULL)
+		if (device == NULL)
 			continue;
 		pqisrc_remove_device(softs, device);
 	}
@@ -88,11 +87,12 @@ pqisrc_take_ctrl_offline(pqisrc_softstate_t *softs)
 	softs->ctrl_online = false;
 
 	if (SIS_IS_KERNEL_PANIC(softs)) {
-		lockupcode = PCI_MEM_GET32(softs, &softs->ioa_reg->mb[7], LEGACY_SIS_SRCV_OFFSET_MAILBOX_7);
-        DBG_ERR("Controller FW is not running, Lockup code = %x\n", lockupcode);
-	}
-	else {
-	pqisrc_trigger_nmi_sis(softs);
+		lockupcode = PCI_MEM_GET32(softs, &softs->ioa_reg->mb[7],
+		    LEGACY_SIS_SRCV_OFFSET_MAILBOX_7);
+		DBG_ERR("Controller FW is not running, Lockup code = %x\n",
+		    lockupcode);
+	} else {
+		pqisrc_trigger_nmi_sis(softs);
 	}
 
 	os_complete_outstanding_cmds_nodevice(softs);
@@ -115,7 +115,8 @@ pqisrc_heartbeat_timer_handler(pqisrc_softstate_t *softs)
 	DBG_FUNC("IN\n");
 
 	new_heartbeat = CTRLR_HEARTBEAT_CNT(softs);
-	DBG_IO("heartbeat old=%lx new=%lx\n", softs->prev_heartbeat_count, new_heartbeat);
+	DBG_IO("heartbeat old=%lx new=%lx\n", softs->prev_heartbeat_count,
+	    new_heartbeat);
 
 	if (new_heartbeat == softs->prev_heartbeat_count) {
 		take_offline = true;
@@ -133,7 +134,7 @@ pqisrc_heartbeat_timer_handler(pqisrc_softstate_t *softs)
 	softs->prev_heartbeat_count = new_heartbeat;
 
 take_ctrl_offline:
-	if (take_offline){
+	if (take_offline) {
 		DBG_ERR("controller is offline\n");
 		os_stop_heartbeat_timer(softs);
 		pqisrc_take_ctrl_offline(softs);
@@ -146,7 +147,7 @@ take_ctrl_offline:
  */
 int
 pqisrc_wait_on_condition(pqisrc_softstate_t *softs, rcb_t *rcb,
-				uint32_t timeout_in_msec)
+    uint32_t timeout_in_msec)
 {
 	DBG_FUNC("IN\n");
 
@@ -158,13 +159,14 @@ pqisrc_wait_on_condition(pqisrc_softstate_t *softs, rcb_t *rcb,
 
 	while (rcb->req_pending == true) {
 		OS_SLEEP(500); /* Micro sec */
-		/* Polling needed for FreeBSD : since ithread routine is not scheduled
-		 * during bootup, we could use polling until interrupts are
-		 * enabled (using 'if (cold)'to check for the boot time before
-		 * interrupts are enabled). */
+		/* Polling needed for FreeBSD : since ithread routine is not
+		 * scheduled during bootup, we could use polling until
+		 * interrupts are enabled (using 'if (cold)'to check for the
+		 * boot time before interrupts are enabled). */
 		IS_POLLING_REQUIRED(softs);
 
-		if ((timeout_in_msec != TIMEOUT_INFINITE) && (i++ == loop_cnt)) {
+		if ((timeout_in_msec != TIMEOUT_INFINITE) &&
+		    (i++ == loop_cnt)) {
 			DBG_ERR("ERR: Requested cmd timed out !!!\n");
 			ret = PQI_STATUS_TIMEOUT;
 			rcb->timedout = true;
@@ -176,7 +178,6 @@ pqisrc_wait_on_condition(pqisrc_softstate_t *softs, rcb_t *rcb,
 			ret = PQI_STATUS_FAILURE;
 			break;
 		}
-
 	}
 	rcb->req_pending = true;
 
@@ -187,8 +188,7 @@ pqisrc_wait_on_condition(pqisrc_softstate_t *softs, rcb_t *rcb,
 
 /* Function used to validate the device wwid. */
 boolean_t
-pqisrc_device_equal(pqi_scsi_dev_t *dev1,
-	pqi_scsi_dev_t *dev2)
+pqisrc_device_equal(pqi_scsi_dev_t *dev1, pqi_scsi_dev_t *dev2)
 {
 	return dev1->wwid == dev2->wwid;
 }
@@ -255,67 +255,46 @@ pqisrc_raidlevel_to_string(uint8_t raid_level)
 }
 
 /* Debug routine for displaying device info */
-void pqisrc_display_device_info(pqisrc_softstate_t *softs,
-	char *action, pqi_scsi_dev_t *device)
+void
+pqisrc_display_device_info(pqisrc_softstate_t *softs, char *action,
+    pqi_scsi_dev_t *device)
 {
 	if (device->is_physical_device) {
 		DBG_NOTE("%s scsi BTL %d:%d:%d:  %.8s %.16s %-12s "
-		"SSDSmartPathCap%c En%c Exp%c qd=%d\n",
-		action,
-		device->bus,
-		device->target,
-		device->lun,
-		device->vendor,
-		device->model,
-		"Physical",
-		device->offload_config ? '+' : '-',
-		device->offload_enabled_pending ? '+' : '-',
-		device->expose_device ? '+' : '-',
-		device->queue_depth);
+			 "SSDSmartPathCap%c En%c Exp%c qd=%d\n",
+		    action, device->bus, device->target, device->lun,
+		    device->vendor, device->model, "Physical",
+		    device->offload_config ? '+' : '-',
+		    device->offload_enabled_pending ? '+' : '-',
+		    device->expose_device ? '+' : '-', device->queue_depth);
 	} else if (device->devtype == RAID_DEVICE) {
 		DBG_NOTE("%s scsi BTL %d:%d:%d:  %.8s %.16s %-12s "
-		"SSDSmartPathCap%c En%c Exp%c qd=%d\n",
-		action,
-		device->bus,
-		device->target,
-		device->lun,
-		device->vendor,
-		device->model,
-		"Controller",
-		device->offload_config ? '+' : '-',
-		device->offload_enabled_pending ? '+' : '-',
-		device->expose_device ? '+' : '-',
-		device->queue_depth);
+			 "SSDSmartPathCap%c En%c Exp%c qd=%d\n",
+		    action, device->bus, device->target, device->lun,
+		    device->vendor, device->model, "Controller",
+		    device->offload_config ? '+' : '-',
+		    device->offload_enabled_pending ? '+' : '-',
+		    device->expose_device ? '+' : '-', device->queue_depth);
 	} else if (device->devtype == CONTROLLER_DEVICE) {
 		DBG_NOTE("%s scsi BTL %d:%d:%d:  %.8s %.16s %-12s "
-		"SSDSmartPathCap%c En%c Exp%c qd=%d\n",
-		action,
-		device->bus,
-		device->target,
-		device->lun,
-		device->vendor,
-		device->model,
-		"External",
-		device->offload_config ? '+' : '-',
-		device->offload_enabled_pending ? '+' : '-',
-		device->expose_device ? '+' : '-',
-		device->queue_depth);
+			 "SSDSmartPathCap%c En%c Exp%c qd=%d\n",
+		    action, device->bus, device->target, device->lun,
+		    device->vendor, device->model, "External",
+		    device->offload_config ? '+' : '-',
+		    device->offload_enabled_pending ? '+' : '-',
+		    device->expose_device ? '+' : '-', device->queue_depth);
 	} else {
 		DBG_NOTE("%s scsi BTL %d:%d:%d:  %.8s %.16s %-12s "
-		"SSDSmartPathCap%c En%c Exp%c qd=%d devtype=%d\n",
-		action,
-		device->bus,
-		device->target,
-		device->lun,
-		device->vendor,
-		device->model,
-		pqisrc_raidlevel_to_string(device->raid_level),
-		device->offload_config ? '+' : '-',
-		device->offload_enabled_pending ? '+' : '-',
-		device->expose_device ? '+' : '-',
-		device->queue_depth,
-		device->devtype);
-	pqisrc_raidlevel_to_string(device->raid_level); /* To use this function */
+			 "SSDSmartPathCap%c En%c Exp%c qd=%d devtype=%d\n",
+		    action, device->bus, device->target, device->lun,
+		    device->vendor, device->model,
+		    pqisrc_raidlevel_to_string(device->raid_level),
+		    device->offload_config ? '+' : '-',
+		    device->offload_enabled_pending ? '+' : '-',
+		    device->expose_device ? '+' : '-', device->queue_depth,
+		    device->devtype);
+		pqisrc_raidlevel_to_string(
+		    device->raid_level); /* To use this function */
 	}
 }
 
@@ -324,48 +303,47 @@ void
 check_struct_sizes(void)
 {
 
-    ASSERT(sizeof(SCSI3Addr_struct)== 2);
-    ASSERT(sizeof(PhysDevAddr_struct) == 8);
-    ASSERT(sizeof(LogDevAddr_struct)== 8);
-    ASSERT(sizeof(LUNAddr_struct)==8);
-    ASSERT(sizeof(RequestBlock_struct) == 20);
-    ASSERT(sizeof(MoreErrInfo_struct)== 8);
-    ASSERT(sizeof(ErrorInfo_struct)== 48);
-    /* Checking the size of IOCTL_Command_struct for both
-       64 bit and 32 bit system*/
-    ASSERT(sizeof(IOCTL_Command_struct)== 86 ||
-           sizeof(IOCTL_Command_struct)== 82);
-    ASSERT(sizeof(struct bmic_host_wellness_driver_version)== 42);
-    ASSERT(sizeof(struct bmic_host_wellness_time)== 20);
-    ASSERT(sizeof(struct pqi_dev_adminq_cap)== 8);
-    ASSERT(sizeof(struct admin_q_param)== 4);
-    ASSERT(sizeof(struct pqi_registers)== 256);
-    ASSERT(sizeof(struct ioa_registers)== 4128);
-    ASSERT(sizeof(struct pqi_pref_settings)==4);
-    ASSERT(sizeof(struct pqi_cap)== 20);
-    ASSERT(sizeof(iu_header_t)== 4);
-    ASSERT(sizeof(gen_adm_req_iu_t)== 64);
-    ASSERT(sizeof(gen_adm_resp_iu_t)== 64);
-    ASSERT(sizeof(op_q_params) == 9);
-    ASSERT(sizeof(raid_path_error_info_elem_t)== 276);
-    ASSERT(sizeof(aio_path_error_info_elem_t)== 276);
-    ASSERT(sizeof(struct init_base_struct)== 24);
-    ASSERT(sizeof(pqi_iu_layer_desc_t)== 16);
-    ASSERT(sizeof(pqi_dev_cap_t)== 576);
-    ASSERT(sizeof(pqi_aio_req_t)== 128);
-    ASSERT(sizeof(pqisrc_raid_req_t)== 128);
-    ASSERT(sizeof(pqi_raid_tmf_req_t)== 32);
-    ASSERT(sizeof(pqi_aio_tmf_req_t)== 32);
-    ASSERT(sizeof(struct pqi_io_response)== 16);
-    ASSERT(sizeof(struct sense_header_scsi)== 8);
-    ASSERT(sizeof(reportlun_header_t)==8);
-    ASSERT(sizeof(reportlun_ext_entry_t)== 24);
-    ASSERT(sizeof(reportlun_data_ext_t)== 32);
-    ASSERT(sizeof(raidmap_data_t)==8);
-    ASSERT(sizeof(pqisrc_raid_map_t)== 8256);
-    ASSERT(sizeof(bmic_ident_ctrl_t)== 325);
-    ASSERT(sizeof(bmic_ident_physdev_t)==2048);
-
+	ASSERT(sizeof(SCSI3Addr_struct) == 2);
+	ASSERT(sizeof(PhysDevAddr_struct) == 8);
+	ASSERT(sizeof(LogDevAddr_struct) == 8);
+	ASSERT(sizeof(LUNAddr_struct) == 8);
+	ASSERT(sizeof(RequestBlock_struct) == 20);
+	ASSERT(sizeof(MoreErrInfo_struct) == 8);
+	ASSERT(sizeof(ErrorInfo_struct) == 48);
+	/* Checking the size of IOCTL_Command_struct for both
+	   64 bit and 32 bit system*/
+	ASSERT(sizeof(IOCTL_Command_struct) == 86 ||
+	    sizeof(IOCTL_Command_struct) == 82);
+	ASSERT(sizeof(struct bmic_host_wellness_driver_version) == 42);
+	ASSERT(sizeof(struct bmic_host_wellness_time) == 20);
+	ASSERT(sizeof(struct pqi_dev_adminq_cap) == 8);
+	ASSERT(sizeof(struct admin_q_param) == 4);
+	ASSERT(sizeof(struct pqi_registers) == 256);
+	ASSERT(sizeof(struct ioa_registers) == 4128);
+	ASSERT(sizeof(struct pqi_pref_settings) == 4);
+	ASSERT(sizeof(struct pqi_cap) == 20);
+	ASSERT(sizeof(iu_header_t) == 4);
+	ASSERT(sizeof(gen_adm_req_iu_t) == 64);
+	ASSERT(sizeof(gen_adm_resp_iu_t) == 64);
+	ASSERT(sizeof(op_q_params) == 9);
+	ASSERT(sizeof(raid_path_error_info_elem_t) == 276);
+	ASSERT(sizeof(aio_path_error_info_elem_t) == 276);
+	ASSERT(sizeof(struct init_base_struct) == 24);
+	ASSERT(sizeof(pqi_iu_layer_desc_t) == 16);
+	ASSERT(sizeof(pqi_dev_cap_t) == 576);
+	ASSERT(sizeof(pqi_aio_req_t) == 128);
+	ASSERT(sizeof(pqisrc_raid_req_t) == 128);
+	ASSERT(sizeof(pqi_raid_tmf_req_t) == 32);
+	ASSERT(sizeof(pqi_aio_tmf_req_t) == 32);
+	ASSERT(sizeof(struct pqi_io_response) == 16);
+	ASSERT(sizeof(struct sense_header_scsi) == 8);
+	ASSERT(sizeof(reportlun_header_t) == 8);
+	ASSERT(sizeof(reportlun_ext_entry_t) == 24);
+	ASSERT(sizeof(reportlun_data_ext_t) == 32);
+	ASSERT(sizeof(raidmap_data_t) == 8);
+	ASSERT(sizeof(pqisrc_raid_map_t) == 8256);
+	ASSERT(sizeof(bmic_ident_ctrl_t) == 325);
+	ASSERT(sizeof(bmic_ident_physdev_t) == 2048);
 }
 
 #if 0
@@ -417,27 +395,31 @@ check_device_pending_commands_to_complete(pqisrc_softstate_t *softs, pqi_scsi_de
 #endif
 
 void
-pqisrc_wait_for_device_commands_to_complete(pqisrc_softstate_t *softs, pqi_scsi_dev_t *device)
+pqisrc_wait_for_device_commands_to_complete(pqisrc_softstate_t *softs,
+    pqi_scsi_dev_t *device)
 {
-	uint64_t timeout_in_usec = 0, delay_in_usec = 1000; /* In microseconds */
+	uint64_t timeout_in_usec = 0,
+		 delay_in_usec = 1000; /* In microseconds */
 
 	DBG_FUNC("IN\n");
 
-	if(!softs->ctrl_online)
+	if (!softs->ctrl_online)
 		return;
 
 #if PQISRC_DEVICE_IO_COUNTER
-	DBG_WARN_BTL(device,"Device Outstanding IO count = %lu\n", pqisrc_read_device_active_io(softs, device));
+	DBG_WARN_BTL(device, "Device Outstanding IO count = %lu\n",
+	    pqisrc_read_device_active_io(softs, device));
 
-	while(pqisrc_read_device_active_io(softs, device)) {
+	while (pqisrc_read_device_active_io(softs, device)) {
 		OS_BUSYWAIT(delay_in_usec); /* In microseconds */
-		if(!softs->ctrl_online) {
+		if (!softs->ctrl_online) {
 			DBG_WARN("Controller Offline was detected.\n");
 		}
 		timeout_in_usec += delay_in_usec;
-		if(timeout_in_usec >= PQISRC_PENDING_IO_TIMEOUT_USEC) {
-			DBG_WARN_BTL(device,"timed out waiting for pending IO. DeviceOutStandingIo's=%lu\n",
-                                 pqisrc_read_device_active_io(softs, device));
+		if (timeout_in_usec >= PQISRC_PENDING_IO_TIMEOUT_USEC) {
+			DBG_WARN_BTL(device,
+			    "timed out waiting for pending IO. DeviceOutStandingIo's=%lu\n",
+			    pqisrc_read_device_active_io(softs, device));
 			return;
 		}
 	}

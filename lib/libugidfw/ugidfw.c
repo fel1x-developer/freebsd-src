@@ -33,16 +33,15 @@
 #include <sys/param.h>
 #include <sys/errno.h>
 #include <sys/jail.h>
-#include <sys/time.h>
+#include <sys/mount.h>
 #include <sys/sysctl.h>
+#include <sys/time.h>
 #include <sys/ucred.h>
 #include <sys/uio.h>
-#include <sys/mount.h>
-
-#include <security/mac_bsdextended/mac_bsdextended.h>
 
 #include <grp.h>
 #include <pwd.h>
+#include <security/mac_bsdextended/mac_bsdextended.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -56,7 +55,7 @@
  * present.
  */
 
-#define	MIB	"security.mac.bsdextended"
+#define MIB "security.mac.bsdextended"
 
 int
 bsde_rule_to_string(struct mac_bsdextended_rule *rule, char *buf, size_t buflen)
@@ -188,7 +187,8 @@ bsde_rule_to_string(struct mac_bsdextended_rule *rule, char *buf, size_t buflen)
 				cur += len;
 			}
 		}
-		if (!notdone && (rule->mbr_subject.mbs_neg & MBS_PRISON_DEFINED)) {
+		if (!notdone &&
+		    (rule->mbr_subject.mbs_neg & MBS_PRISON_DEFINED)) {
 			len = snprintf(cur, left, "! ");
 			if (len < 0 || len > left)
 				goto truncated;
@@ -333,7 +333,7 @@ bsde_rule_to_string(struct mac_bsdextended_rule *rule, char *buf, size_t buflen)
 			numfs = getmntinfo(&mntbuf, MNT_NOWAIT);
 			for (i = 0; i < numfs; i++)
 				if (fsidcmp(&rule->mbr_object.mbo_fsid,
-				    &mntbuf[i].f_fsid) == 0)
+					&mntbuf[i].f_fsid) == 0)
 					break;
 			len = snprintf(cur, left, "filesys %s ",
 			    i == numfs ? "???" : mntbuf[i].f_mntonname);
@@ -507,8 +507,9 @@ truncated:
 }
 
 static int
-bsde_parse_uidrange(char *spec, uid_t *min, uid_t *max,
-    size_t buflen, char *errstr){
+bsde_parse_uidrange(char *spec, uid_t *min, uid_t *max, size_t buflen,
+    char *errstr)
+{
 	struct passwd *pwd;
 	uid_t uid1, uid2;
 	char *spec1, *spec2, *endp;
@@ -553,8 +554,9 @@ bsde_parse_uidrange(char *spec, uid_t *min, uid_t *max,
 }
 
 static int
-bsde_parse_gidrange(char *spec, gid_t *min, gid_t *max,
-    size_t buflen, char *errstr){
+bsde_parse_gidrange(char *spec, gid_t *min, gid_t *max, size_t buflen,
+    char *errstr)
+{
 	struct group *grp;
 	gid_t gid1, gid2;
 	char *spec1, *spec2, *endp;
@@ -660,8 +662,8 @@ bsde_parse_subject(int argc, char *argv[],
 				snprintf(errstr, buflen, "one uid only");
 				return (-1);
 			}
-			if (bsde_parse_uidrange(argv[current+1],
-			    &uid_min, &uid_max, buflen, errstr) < 0)
+			if (bsde_parse_uidrange(argv[current + 1], &uid_min,
+				&uid_max, buflen, errstr) < 0)
 				return (-1);
 			flags |= MBS_UID_DEFINED;
 			if (nextnot) {
@@ -678,8 +680,8 @@ bsde_parse_subject(int argc, char *argv[],
 				snprintf(errstr, buflen, "one gid only");
 				return (-1);
 			}
-			if (bsde_parse_gidrange(argv[current+1],
-			    &gid_min, &gid_max, buflen, errstr) < 0)
+			if (bsde_parse_gidrange(argv[current + 1], &gid_min,
+				&gid_max, buflen, errstr) < 0)
 				return (-1);
 			flags |= MBS_GID_DEFINED;
 			if (nextnot) {
@@ -696,7 +698,8 @@ bsde_parse_subject(int argc, char *argv[],
 				snprintf(errstr, buflen, "one jail only");
 				return (-1);
 			}
-			jid = bsde_get_jailid(argv[current+1], buflen, errstr);
+			jid = bsde_get_jailid(argv[current + 1], buflen,
+			    errstr);
 			if (jid < 0)
 				return (-1);
 			flags |= MBS_PRISON_DEFINED;
@@ -787,8 +790,8 @@ bsde_parse_fsid(char *spec, struct fsid *fsid, size_t buflen, char *errstr)
 	struct statfs buf;
 
 	if (statfs(spec, &buf) < 0) {
-		snprintf(errstr, buflen, "Unable to get id for %s: %s",
-		    spec, strerror(errno));
+		snprintf(errstr, buflen, "Unable to get id for %s: %s", spec,
+		    strerror(errno));
 		return (-1);
 	}
 
@@ -798,8 +801,8 @@ bsde_parse_fsid(char *spec, struct fsid *fsid, size_t buflen, char *errstr)
 }
 
 static int
-bsde_parse_object(int argc, char *argv[],
-    struct mac_bsdextended_object *object, size_t buflen, char *errstr)
+bsde_parse_object(int argc, char *argv[], struct mac_bsdextended_object *object,
+    size_t buflen, char *errstr)
 {
 	int not_seen, flags;
 	int current, neg, nextnot;
@@ -830,8 +833,8 @@ bsde_parse_object(int argc, char *argv[],
 				snprintf(errstr, buflen, "one uid only");
 				return (-1);
 			}
-			if (bsde_parse_uidrange(argv[current+1],
-			    &uid_min, &uid_max, buflen, errstr) < 0)
+			if (bsde_parse_uidrange(argv[current + 1], &uid_min,
+				&uid_max, buflen, errstr) < 0)
 				return (-1);
 			flags |= MBO_UID_DEFINED;
 			if (nextnot) {
@@ -848,8 +851,8 @@ bsde_parse_object(int argc, char *argv[],
 				snprintf(errstr, buflen, "one gid only");
 				return (-1);
 			}
-			if (bsde_parse_gidrange(argv[current+1],
-			    &gid_min, &gid_max, buflen, errstr) < 0)
+			if (bsde_parse_gidrange(argv[current + 1], &gid_min,
+				&gid_max, buflen, errstr) < 0)
 				return (-1);
 			flags |= MBO_GID_DEFINED;
 			if (nextnot) {
@@ -866,8 +869,8 @@ bsde_parse_object(int argc, char *argv[],
 				snprintf(errstr, buflen, "one fsid only");
 				return (-1);
 			}
-			if (bsde_parse_fsid(argv[current+1], &fsid,
-			    buflen, errstr) < 0)
+			if (bsde_parse_fsid(argv[current + 1], &fsid, buflen,
+				errstr) < 0)
 				return (-1);
 			flags |= MBO_FSID_DEFINED;
 			if (nextnot) {
@@ -912,8 +915,8 @@ bsde_parse_object(int argc, char *argv[],
 				snprintf(errstr, buflen, "one type only");
 				return (-1);
 			}
-			if (bsde_parse_type(argv[current+1], &type,
-			    buflen, errstr) < 0)
+			if (bsde_parse_type(argv[current + 1], &type, buflen,
+				errstr) < 0)
 				return (-1);
 			flags |= MBO_TYPE_DEFINED;
 			if (nextnot) {
@@ -923,8 +926,7 @@ bsde_parse_object(int argc, char *argv[],
 			current += 2;
 		} else if (strcmp(argv[current], "!") == 0) {
 			if (nextnot) {
-				snprintf(errstr, buflen,
-				    "double negative'");
+				snprintf(errstr, buflen, "double negative'");
 				return (-1);
 			}
 			nextnot = 1;
@@ -1130,8 +1132,8 @@ bsde_check_version(size_t buflen, char *errstr)
 		return (-1);
 	}
 	if (version != MB_VERSION) {
-		snprintf(errstr, buflen, "module v%d != library v%d",
-		    version, MB_VERSION);
+		snprintf(errstr, buflen, "module v%d != library v%d", version,
+		    MB_VERSION);
 		return (-1);
 	}
 	return (0);
@@ -1151,8 +1153,7 @@ bsde_get_rule_count(size_t buflen, char *errstr)
 		return (-1);
 	}
 	if (len != sizeof(rule_count)) {
-		snprintf(errstr, buflen, "Data error in %s.rule_count",
-		    MIB);
+		snprintf(errstr, buflen, "Data error in %s.rule_count", MIB);
 		return (-1);
 	}
 
@@ -1208,11 +1209,11 @@ bsde_get_rule(int rulenum, struct mac_bsdextended_rule *rule, size_t errlen,
 	name[len] = rulenum;
 	len++;
 	error = sysctl(name, len, rule, &size, NULL, 0);
-	if (error  == -1 && errno == ENOENT)
+	if (error == -1 && errno == ENOENT)
 		return (-2);
 	if (error) {
-		snprintf(errstr, errlen, "%s.%d: %s", MIB ".rules",
-		    rulenum, strerror(errno));
+		snprintf(errstr, errlen, "%s.%d: %s", MIB ".rules", rulenum,
+		    strerror(errno));
 		return (-1);
 	} else if (size != sizeof(*rule)) {
 		snprintf(errstr, errlen, "Data error in %s.%d: %s",
@@ -1247,8 +1248,8 @@ bsde_delete_rule(int rulenum, size_t buflen, char *errstr)
 
 	error = sysctl(name, len, NULL, NULL, &rule, 0);
 	if (error) {
-		snprintf(errstr, buflen, "%s.%d: %s", MIB ".rules",
-		    rulenum, strerror(errno));
+		snprintf(errstr, buflen, "%s.%d: %s", MIB ".rules", rulenum,
+		    strerror(errno));
 		return (-1);
 	}
 
@@ -1279,8 +1280,8 @@ bsde_set_rule(int rulenum, struct mac_bsdextended_rule *rule, size_t buflen,
 
 	error = sysctl(name, len, NULL, NULL, rule, sizeof(*rule));
 	if (error) {
-		snprintf(errstr, buflen, "%s.%d: %s", MIB ".rules",
-		    rulenum, strerror(errno));
+		snprintf(errstr, buflen, "%s.%d: %s", MIB ".rules", rulenum,
+		    strerror(errno));
 		return (-1);
 	}
 
@@ -1319,8 +1320,8 @@ bsde_add_rule(int *rulenum, struct mac_bsdextended_rule *rule, size_t buflen,
 
 	error = sysctl(name, len, NULL, NULL, rule, sizeof(*rule));
 	if (error) {
-		snprintf(errstr, buflen, "%s.%d: %s", MIB ".rules",
-		    rule_slots, strerror(errno));
+		snprintf(errstr, buflen, "%s.%d: %s", MIB ".rules", rule_slots,
+		    strerror(errno));
 		return (-1);
 	}
 

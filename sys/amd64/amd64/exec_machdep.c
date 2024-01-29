@@ -38,13 +38,12 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_cpu.h"
 #include "opt_ddb.h"
 #include "opt_kstack_pages.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/proc.h>
 #include <sys/systm.h>
 #include <sys/exec.h>
 #include <sys/imgact.h>
@@ -56,6 +55,7 @@
 #include <sys/malloc.h>
 #include <sys/mutex.h>
 #include <sys/pcpu.h>
+#include <sys/proc.h>
 #include <sys/reg.h>
 #include <sys/rwlock.h>
 #include <sys/signalvar.h>
@@ -70,20 +70,19 @@
 #include <sys/vmmeter.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
-#include <vm/vm_extern.h>
 #include <vm/pmap.h>
+#include <vm/vm_extern.h>
 #include <vm/vm_map.h>
+#include <vm/vm_param.h>
 
 #ifdef DDB
 #ifndef KDB
 #error KDB must be enabled in order for DDB to work!
 #endif
-#include <ddb/ddb.h>
 #include <ddb/db_sym.h>
+#include <ddb/ddb.h>
 #endif
 
-#include <machine/vmparam.h>
 #include <machine/frame.h>
 #include <machine/md_var.h>
 #include <machine/pcb.h>
@@ -91,6 +90,7 @@
 #include <machine/sigframe.h>
 #include <machine/specialreg.h>
 #include <machine/trap.h>
+#include <machine/vmparam.h>
 
 _Static_assert(sizeof(mcontext_t) == 800, "mcontext_t size incorrect");
 _Static_assert(sizeof(ucontext_t) == 880, "ucontext_t size incorrect");
@@ -133,8 +133,9 @@ sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 	bzero(&sf, sizeof(sf));
 	sf.sf_uc.uc_sigmask = *mask;
 	sf.sf_uc.uc_stack = td->td_sigstk;
-	sf.sf_uc.uc_stack.ss_flags = (td->td_pflags & TDP_ALTSTACK)
-	    ? ((oonstack) ? SS_ONSTACK : 0) : SS_DISABLE;
+	sf.sf_uc.uc_stack.ss_flags = (td->td_pflags & TDP_ALTSTACK) ?
+	    ((oonstack) ? SS_ONSTACK : 0) :
+	    SS_DISABLE;
 	sf.sf_uc.uc_mcontext.mc_onstack = (oonstack) ? 1 : 0;
 	bcopy(regs, &sf.sf_uc.uc_mcontext.mc_rdi, sizeof(*regs));
 	sf.sf_uc.uc_mcontext.mc_len = sizeof(sf.sf_uc.uc_mcontext); /* magic */
@@ -165,11 +166,11 @@ sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 
 	/* Build the argument list for the signal handler. */
 	regs->tf_rdi = sig;			/* arg 1 in %rdi */
-	regs->tf_rdx = (register_t)&sfp->sf_uc;	/* arg 3 in %rdx */
+	regs->tf_rdx = (register_t)&sfp->sf_uc; /* arg 3 in %rdx */
 	bzero(&sf.sf_si, sizeof(sf.sf_si));
 	if (SIGISMEMBER(psp->ps_siginfo, sig)) {
 		/* Signal handler installed with SA_SIGINFO. */
-		regs->tf_rsi = (register_t)&sfp->sf_si;	/* arg 2 in %rsi */
+		regs->tf_rsi = (register_t)&sfp->sf_si; /* arg 2 in %rsi */
 		sf.sf_ahu.sf_action = (__siginfohandler_t *)catcher;
 
 		/* Fill in POSIX parts */
@@ -178,7 +179,7 @@ sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 		regs->tf_rcx = (register_t)ksi->ksi_addr; /* arg 4 in %rcx */
 	} else {
 		/* Old FreeBSD-style arguments. */
-		regs->tf_rsi = ksi->ksi_code;	/* arg 2 in %rsi */
+		regs->tf_rsi = ksi->ksi_code;		  /* arg 2 in %rsi */
 		regs->tf_rcx = (register_t)ksi->ksi_addr; /* arg 4 in %rcx */
 		sf.sf_ahu.sf_handler = catcher;
 	}
@@ -189,9 +190,9 @@ sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 	 * Copy the sigframe out to the user's stack.
 	 */
 	if (copyout(&sf, sfp, sizeof(*sfp)) != 0 ||
-	    (xfpusave != NULL && copyout(xfpusave,
-	    (void *)sf.sf_uc.uc_mcontext.mc_xfpustate, xfpusave_len)
-	    != 0)) {
+	    (xfpusave != NULL &&
+		copyout(xfpusave, (void *)sf.sf_uc.uc_mcontext.mc_xfpustate,
+		    xfpusave_len) != 0)) {
 		uprintf("pid %d comm %s has trashed its stack, killing\n",
 		    p->p_pid, p->p_comm);
 		PROC_LOCK(p);
@@ -241,8 +242,8 @@ sys_sigreturn(struct thread *td, struct sigreturn_args *uap)
 
 	error = copyin(uap->sigcntxp, &uc, sizeof(uc));
 	if (error != 0) {
-		uprintf("pid %d (%s): sigreturn copyin failed\n",
-		    p->p_pid, td->td_name);
+		uprintf("pid %d (%s): sigreturn copyin failed\n", p->p_pid,
+		    td->td_name);
 		return (error);
 	}
 	ucp = &uc;
@@ -282,8 +283,8 @@ sys_sigreturn(struct thread *td, struct sigreturn_args *uap)
 
 	if ((uc.uc_mcontext.mc_flags & _MC_HASFPXSTATE) != 0) {
 		xfpustate_len = uc.uc_mcontext.mc_xfpustate_len;
-		if (xfpustate_len > cpu_max_ext_state_size -
-		    sizeof(struct savefpu)) {
+		if (xfpustate_len >
+		    cpu_max_ext_state_size - sizeof(struct savefpu)) {
 			uprintf("pid %d (%s): sigreturn xfpusave_len = 0x%zx\n",
 			    p->p_pid, td->td_name, xfpustate_len);
 			return (EINVAL);
@@ -294,7 +295,7 @@ sys_sigreturn(struct thread *td, struct sigreturn_args *uap)
 		if (error != 0) {
 			fpu_save_area_free((struct savefpu *)xfpustate);
 			uprintf(
-	"pid %d (%s): sigreturn copying xfpustate failed\n",
+			    "pid %d (%s): sigreturn copying xfpustate failed\n",
 			    p->p_pid, td->td_name);
 			return (error);
 		}
@@ -388,7 +389,7 @@ exec_setregs(struct thread *td, struct image_params *imgp, uintptr_t stack)
 	bzero((char *)regs, sizeof(struct trapframe));
 	regs->tf_rip = imgp->entry_addr;
 	regs->tf_rsp = ((stack - 8) & ~0xFul) + 8;
-	regs->tf_rdi = stack;		/* argv */
+	regs->tf_rdi = stack; /* argv */
 	regs->tf_rflags = PSL_USER | saved_rflags;
 	regs->tf_ss = _udatasel;
 	regs->tf_cs = _ucodesel;
@@ -426,8 +427,8 @@ fill_frame_regs(struct trapframe *tp, struct reg *regs)
 	regs->r_r12 = tp->tf_r12;
 	regs->r_r11 = tp->tf_r11;
 	regs->r_r10 = tp->tf_r10;
-	regs->r_r9  = tp->tf_r9;
-	regs->r_r8  = tp->tf_r8;
+	regs->r_r9 = tp->tf_r9;
+	regs->r_r8 = tp->tf_r8;
 	regs->r_rdi = tp->tf_rdi;
 	regs->r_rsi = tp->tf_rsi;
 	regs->r_rbp = tp->tf_rbp;
@@ -472,8 +473,8 @@ set_regs(struct thread *td, struct reg *regs)
 	tp->tf_r12 = regs->r_r12;
 	tp->tf_r11 = regs->r_r11;
 	tp->tf_r10 = regs->r_r10;
-	tp->tf_r9  = regs->r_r9;
-	tp->tf_r8  = regs->r_r8;
+	tp->tf_r9 = regs->r_r9;
+	tp->tf_r8 = regs->r_r8;
 	tp->tf_rdi = regs->r_rdi;
 	tp->tf_rsi = regs->r_rsi;
 	tp->tf_rbp = regs->r_rbp;
@@ -486,7 +487,7 @@ set_regs(struct thread *td, struct reg *regs)
 	tp->tf_rflags = rflags;
 	tp->tf_rsp = regs->r_rsp;
 	tp->tf_ss = regs->r_ss;
-	if (0) {	/* XXXKIB */
+	if (0) { /* XXXKIB */
 		tp->tf_ds = regs->r_ds;
 		tp->tf_es = regs->r_es;
 		tp->tf_fs = regs->r_fs;
@@ -562,7 +563,7 @@ fill_fpregs(struct thread *td, struct fpreg *fpregs)
 {
 
 	KASSERT(td == curthread || TD_IS_SUSPENDED(td) ||
-	    P_SHOULDSTOP(td->td_proc),
+		P_SHOULDSTOP(td->td_proc),
 	    ("not suspended thread %p", td));
 	fpugetregs(td);
 	fill_fpregs_xmm(get_pcb_user_save_td(td), fpregs);
@@ -601,8 +602,8 @@ get_mcontext(struct thread *td, mcontext_t *mcp, int flags)
 	mcp->mc_r12 = tp->tf_r12;
 	mcp->mc_r11 = tp->tf_r11;
 	mcp->mc_r10 = tp->tf_r10;
-	mcp->mc_r9  = tp->tf_r9;
-	mcp->mc_r8  = tp->tf_r8;
+	mcp->mc_r9 = tp->tf_r9;
+	mcp->mc_r8 = tp->tf_r8;
 	mcp->mc_rdi = tp->tf_rdi;
 	mcp->mc_rsi = tp->tf_rsi;
 	mcp->mc_rbp = tp->tf_rbp;
@@ -660,8 +661,8 @@ set_mcontext(struct thread *td, mcontext_t *mcp)
 	rflags = (mcp->mc_rflags & PSL_USERCHANGE) |
 	    (tp->tf_rflags & ~PSL_USERCHANGE);
 	if (mcp->mc_flags & _MC_HASFPXSTATE) {
-		if (mcp->mc_xfpustate_len > cpu_max_ext_state_size -
-		    sizeof(struct savefpu))
+		if (mcp->mc_xfpustate_len >
+		    cpu_max_ext_state_size - sizeof(struct savefpu))
 			return (EINVAL);
 		xfpustate = (char *)fpu_save_area_alloc();
 		ret = copyin((void *)mcp->mc_xfpustate, xfpustate,
@@ -682,8 +683,8 @@ set_mcontext(struct thread *td, mcontext_t *mcp)
 	tp->tf_r12 = mcp->mc_r12;
 	tp->tf_r11 = mcp->mc_r11;
 	tp->tf_r10 = mcp->mc_r10;
-	tp->tf_r9  = mcp->mc_r9;
-	tp->tf_r8  = mcp->mc_r8;
+	tp->tf_r9 = mcp->mc_r9;
+	tp->tf_r8 = mcp->mc_r8;
 	tp->tf_rdi = mcp->mc_rdi;
 	tp->tf_rsi = mcp->mc_rsi;
 	tp->tf_rbp = mcp->mc_rbp;
@@ -725,8 +726,8 @@ get_fpcontext(struct thread *td, mcontext_t *mcp, char **xfpusave,
 		*xfpusave = NULL;
 	} else {
 		mcp->mc_flags |= _MC_HASFPXSTATE;
-		*xfpusave_len = mcp->mc_xfpustate_len =
-		    cpu_max_ext_state_size - sizeof(struct savefpu);
+		*xfpusave_len = mcp->mc_xfpustate_len = cpu_max_ext_state_size -
+		    sizeof(struct savefpu);
 		*xfpusave = (char *)(get_pcb_user_save_td(td) + 1);
 	}
 }
@@ -897,7 +898,7 @@ void
 reset_dbregs(void)
 {
 
-	load_dr7(0);	/* Turn off the control bits first */
+	load_dr7(0); /* Turn off the control bits first */
 	load_dr0(0);
 	load_dr1(0);
 	load_dr2(0);
@@ -912,62 +913,62 @@ reset_dbregs(void)
 int
 user_dbreg_trap(register_t dr6)
 {
-        u_int64_t dr7;
-        u_int64_t bp;       /* breakpoint bits extracted from dr6 */
-        int nbp;            /* number of breakpoints that triggered */
-        caddr_t addr[4];    /* breakpoint addresses */
-        int i;
+	u_int64_t dr7;
+	u_int64_t bp;	 /* breakpoint bits extracted from dr6 */
+	int nbp;	 /* number of breakpoints that triggered */
+	caddr_t addr[4]; /* breakpoint addresses */
+	int i;
 
-        bp = dr6 & DBREG_DR6_BMASK;
-        if (bp == 0) {
-                /*
-                 * None of the breakpoint bits are set meaning this
-                 * trap was not caused by any of the debug registers
-                 */
-                return (0);
-        }
-
-        dr7 = rdr7();
-        if ((dr7 & 0x000000ff) == 0) {
-                /*
-                 * all GE and LE bits in the dr7 register are zero,
-                 * thus the trap couldn't have been caused by the
-                 * hardware debug registers
-                 */
+	bp = dr6 & DBREG_DR6_BMASK;
+	if (bp == 0) {
+		/*
+		 * None of the breakpoint bits are set meaning this
+		 * trap was not caused by any of the debug registers
+		 */
 		return (0);
-        }
+	}
 
-        nbp = 0;
+	dr7 = rdr7();
+	if ((dr7 & 0x000000ff) == 0) {
+		/*
+		 * all GE and LE bits in the dr7 register are zero,
+		 * thus the trap couldn't have been caused by the
+		 * hardware debug registers
+		 */
+		return (0);
+	}
 
-        /*
-         * at least one of the breakpoints were hit, check to see
-         * which ones and if any of them are user space addresses
-         */
+	nbp = 0;
 
-        if (bp & 0x01) {
-                addr[nbp++] = (caddr_t)rdr0();
-        }
-        if (bp & 0x02) {
-                addr[nbp++] = (caddr_t)rdr1();
-        }
-        if (bp & 0x04) {
-                addr[nbp++] = (caddr_t)rdr2();
-        }
-        if (bp & 0x08) {
-                addr[nbp++] = (caddr_t)rdr3();
-        }
+	/*
+	 * at least one of the breakpoints were hit, check to see
+	 * which ones and if any of them are user space addresses
+	 */
 
-        for (i = 0; i < nbp; i++) {
-                if (addr[i] < (caddr_t)VM_MAXUSER_ADDRESS) {
-                        /*
-                         * addr[i] is in user space
-                         */
-                        return (nbp);
-                }
-        }
+	if (bp & 0x01) {
+		addr[nbp++] = (caddr_t)rdr0();
+	}
+	if (bp & 0x02) {
+		addr[nbp++] = (caddr_t)rdr1();
+	}
+	if (bp & 0x04) {
+		addr[nbp++] = (caddr_t)rdr2();
+	}
+	if (bp & 0x08) {
+		addr[nbp++] = (caddr_t)rdr3();
+	}
 
-        /*
-         * None of the breakpoints are in user space.
-         */
-        return (0);
+	for (i = 0; i < nbp; i++) {
+		if (addr[i] < (caddr_t)VM_MAXUSER_ADDRESS) {
+			/*
+			 * addr[i] is in user space
+			 */
+			return (nbp);
+		}
+	}
+
+	/*
+	 * None of the breakpoints are in user space.
+	 */
+	return (0);
 }

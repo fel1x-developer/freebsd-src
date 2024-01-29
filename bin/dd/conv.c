@@ -71,7 +71,7 @@ def(void)
 		 * dd_out copies the leftover output to the beginning of
 		 * the buffer and resets the output buffer.  Reset the
 		 * input buffer to match it.
-	 	 */
+		 */
 		in.dbp = out.dbp;
 		in.dbcnt = out.dbcnt;
 	}
@@ -130,11 +130,11 @@ block(void)
 		maxlen = MIN(cbsz, (size_t)in.dbcnt);
 		if ((t = ctab) != NULL)
 			for (cnt = 0; cnt < maxlen && (ch = *inp++) != '\n';
-			    ++cnt)
+			     ++cnt)
 				*outp++ = t[ch];
 		else
 			for (cnt = 0; cnt < maxlen && (ch = *inp++) != '\n';
-			    ++cnt)
+			     ++cnt)
 				*outp++ = ch;
 		/*
 		 * Check for short record without a newline.  Reassemble the
@@ -222,7 +222,8 @@ unblock(void)
 	 * translation has to already be done or we might not recognize the
 	 * spaces.
 	 */
-	for (inp = in.db; (size_t)in.dbcnt >= cbsz; inp += cbsz, in.dbcnt -= cbsz) {
+	for (inp = in.db; (size_t)in.dbcnt >= cbsz;
+	     inp += cbsz, in.dbcnt -= cbsz) {
 		for (t = inp + cbsz - 1; t >= inp && *t == ' '; --t)
 			;
 		if (t >= inp) {

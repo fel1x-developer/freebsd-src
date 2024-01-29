@@ -35,12 +35,12 @@
 #include <sys/rman.h>
 #include <sys/selinfo.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-
 #include <dev/acpica/acpivar.h>
 
+#include <contrib/dev/acpica/include/acpi.h>
+
 /* Hooks for the ACPI CA debugging infrastructure */
-#define _COMPONENT	ACPI_BUTTON
+#define _COMPONENT ACPI_BUTTON
 ACPI_MODULE_NAME("IPMI")
 
 #ifdef LOCAL_MODULE
@@ -48,6 +48,7 @@ ACPI_MODULE_NAME("IPMI")
 #include <ipmivars.h>
 #else
 #include <sys/ipmi.h>
+
 #include <dev/ipmi/ipmivars.h>
 #endif
 
@@ -57,7 +58,7 @@ static int ipmi_acpi_attach(device_t);
 int
 ipmi_acpi_probe(device_t dev)
 {
-	static char *ipmi_ids[] = {"IPI0001", NULL};
+	static char *ipmi_ids[] = { "IPI0001", NULL };
 	int rv;
 
 	if (ipmi_attached)
@@ -119,8 +120,8 @@ ipmi_acpi_attach(device_t dev)
 	}
 
 	sc->ipmi_io_rid = 0;
-	sc->ipmi_io_res[0] = bus_alloc_resource_any(dev, type,
-	    &sc->ipmi_io_rid, RF_ACTIVE);
+	sc->ipmi_io_res[0] = bus_alloc_resource_any(dev, type, &sc->ipmi_io_rid,
+	    RF_ACTIVE);
 	sc->ipmi_io_type = type;
 	sc->ipmi_io_spacing = 1;
 	if (sc->ipmi_io_res[0] == NULL) {
@@ -145,8 +146,8 @@ ipmi_acpi_attach(device_t dev)
 		goto bad;
 	}
 
-	device_printf(dev, "%s mode found at %s 0x%jx on %s\n",
-	    mode, type == SYS_RES_IOPORT ? "io" : "mem",
+	device_printf(dev, "%s mode found at %s 0x%jx on %s\n", mode,
+	    type == SYS_RES_IOPORT ? "io" : "mem",
 	    (uintmax_t)rman_get_start(sc->ipmi_io_res[0]),
 	    device_get_name(device_get_parent(dev)));
 
@@ -194,10 +195,9 @@ bad:
 
 static device_method_t ipmi_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		ipmi_acpi_probe),
-	DEVMETHOD(device_attach,	ipmi_acpi_attach),
-	DEVMETHOD(device_detach,	ipmi_detach),
-	{ 0, 0 }
+	DEVMETHOD(device_probe, ipmi_acpi_probe),
+	DEVMETHOD(device_attach, ipmi_acpi_attach),
+	DEVMETHOD(device_detach, ipmi_detach), { 0, 0 }
 };
 
 static driver_t ipmi_acpi_driver = {

@@ -29,30 +29,29 @@
  */
 
 #if !defined(__SORT_FILE_H__)
-#define	__SORT_FILE_H__
+#define __SORT_FILE_H__
 
 #include "coll.h"
 #include "sort.h"
 
-#define	SORT_DEFAULT	0
-#define	SORT_QSORT	1
-#define	SORT_MERGESORT	2
-#define	SORT_HEAPSORT	3
-#define	SORT_RADIXSORT  4
+#define SORT_DEFAULT 0
+#define SORT_QSORT 1
+#define SORT_MERGESORT 2
+#define SORT_HEAPSORT 3
+#define SORT_RADIXSORT 4
 
-#define	DEFAULT_SORT_ALGORITHM SORT_MERGESORT
-#define	DEFAULT_SORT_FUNC mergesort
+#define DEFAULT_SORT_ALGORITHM SORT_MERGESORT
+#define DEFAULT_SORT_FUNC mergesort
 
 /*
  * List of data to be sorted.
  */
-struct sort_list
-{
-	struct sort_list_item	**list;
-	unsigned long long	 memsize;
-	size_t			 count;
-	size_t			 size;
-	size_t			 sub_list_pos;
+struct sort_list {
+	struct sort_list_item **list;
+	unsigned long long memsize;
+	size_t count;
+	size_t size;
+	size_t sub_list_pos;
 };
 
 /*
@@ -63,12 +62,11 @@ struct file_reader;
 /*
  * List of files to be sorted
  */
-struct file_list
-{
-	const char *		*fns;
-	size_t			 count;
-	size_t			 sz;
-	bool			 tmp;
+struct file_list {
+	const char **fns;
+	size_t count;
+	size_t sz;
+	bool tmp;
 };
 
 /* memory */
@@ -93,7 +91,7 @@ extern size_t max_open_files;
 /*
  * Compress program
  */
-extern const char* compress_program;
+extern const char *compress_program;
 
 /* funcs */
 
@@ -108,7 +106,8 @@ void tmp_file_atexit(const char *tmp_file);
 
 void file_list_init(struct file_list *fl, bool tmp);
 void file_list_add(struct file_list *fl, const char *fn, bool allocate);
-void file_list_populate(struct file_list *fl, int argc, char **argv, bool allocate);
+void file_list_populate(struct file_list *fl, int argc, char **argv,
+    bool allocate);
 void file_list_clean(struct file_list *fl);
 
 int check(const char *);

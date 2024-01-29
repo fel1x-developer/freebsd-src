@@ -35,15 +35,15 @@
 #ifndef IRDMA_VERBS_H
 #define IRDMA_VERBS_H
 
-#define IRDMA_MAX_SAVED_PHY_PGADDR	4
-#define IRDMA_FLUSH_DELAY_MS		20
+#define IRDMA_MAX_SAVED_PHY_PGADDR 4
+#define IRDMA_FLUSH_DELAY_MS 20
 
-#define IRDMA_PKEY_TBL_SZ		1
-#define IRDMA_DEFAULT_PKEY		0xFFFF
+#define IRDMA_PKEY_TBL_SZ 1
+#define IRDMA_DEFAULT_PKEY 0xFFFF
 
-#define IRDMA_SHADOW_PGCNT		1
+#define IRDMA_SHADOW_PGCNT 1
 
-#define iwdev_to_idev(iwdev)	(&(iwdev)->rf->sc_dev)
+#define iwdev_to_idev(iwdev) (&(iwdev)->rf->sc_dev)
 
 struct irdma_ucontext {
 	struct ib_ucontext ibucontext;
@@ -59,12 +59,13 @@ struct irdma_ucontext {
 	spinlock_t cq_reg_mem_list_lock; /* protect CQ memory list */
 	struct list_head qp_reg_mem_list;
 	spinlock_t qp_reg_mem_list_lock; /* protect QP memory list */
-	/* FIXME: Move to kcompat ideally. Used < 4.20.0 for old diassasscoaite flow */
+	/* FIXME: Move to kcompat ideally. Used < 4.20.0 for old diassasscoaite
+	 * flow */
 	struct list_head vma_list;
 	struct mutex vma_list_mutex; /* protect the vma_list */
 	int abi_ver;
-	bool legacy_mode:1;
-	bool use_raw_attrs:1;
+	bool legacy_mode : 1;
+	bool use_raw_attrs : 1;
 };
 
 struct irdma_pd {
@@ -131,8 +132,8 @@ struct irdma_pbl {
 		struct irdma_cq_mr cq_mr;
 	};
 
-	bool pbl_allocated:1;
-	bool on_list:1;
+	bool pbl_allocated : 1;
+	bool on_list : 1;
 	u64 user_base;
 	struct irdma_pble_alloc pble_alloc;
 	struct irdma_mr *iwmr;
@@ -195,8 +196,8 @@ struct if_notify_work {
 	struct irdma_device *iwdev;
 	u32 ipaddr[4];
 	u16 vlan_id;
-	bool ipv4:1;
-	bool ifup:1;
+	bool ipv4 : 1;
+	bool ifup : 1;
 };
 
 struct iw_cm_id;
@@ -248,7 +249,7 @@ struct irdma_qp {
 	int max_send_wr;
 	int max_recv_wr;
 	atomic_t close_timer_started;
-	spinlock_t lock; /* serialize posting WRs to SQ/RQ */
+	spinlock_t lock;	     /* serialize posting WRs to SQ/RQ */
 	spinlock_t dwork_flush_lock; /* protect mod_delayed_work */
 	struct irdma_qp_context *iwqp_context;
 	void *pbl_vbase;
@@ -270,20 +271,20 @@ struct irdma_qp {
 	wait_queue_head_t waitq;
 	wait_queue_head_t mod_qp_waitq;
 	u8 rts_ae_rcvd;
-	bool active_conn:1;
-	bool user_mode:1;
-	bool hte_added:1;
-	bool flush_issued:1;
-	bool sig_all:1;
-	bool pau_mode:1;
-	bool suspend_pending:1;
+	bool active_conn : 1;
+	bool user_mode : 1;
+	bool hte_added : 1;
+	bool flush_issued : 1;
+	bool sig_all : 1;
+	bool pau_mode : 1;
+	bool suspend_pending : 1;
 };
 
 struct irdma_udqs_work {
 	struct work_struct work;
 	struct irdma_qp *iwqp;
 	u8 user_prio;
-	bool qs_change:1;
+	bool qs_change : 1;
 };
 
 enum irdma_mmap_flag {
@@ -297,24 +298,29 @@ struct irdma_user_mmap_entry {
 #else
 	struct irdma_ucontext *ucontext;
 	struct hlist_node hlist;
-	u64 pgoff_key; /* Used to compute offset (in bytes) returned to user libc's mmap */
+	u64 pgoff_key; /* Used to compute offset (in bytes) returned to user
+			  libc's mmap */
 #endif
 	u64 bar_offset;
 	u8 mmap_flag;
 };
 
-static inline u16 irdma_fw_major_ver(struct irdma_sc_dev *dev)
+static inline u16
+irdma_fw_major_ver(struct irdma_sc_dev *dev)
 {
-	return (u16)FIELD_GET(IRDMA_FW_VER_MAJOR, dev->feature_info[IRDMA_FEATURE_FW_INFO]);
+	return (u16)FIELD_GET(IRDMA_FW_VER_MAJOR,
+	    dev->feature_info[IRDMA_FEATURE_FW_INFO]);
 }
 
-static inline u16 irdma_fw_minor_ver(struct irdma_sc_dev *dev)
+static inline u16
+irdma_fw_minor_ver(struct irdma_sc_dev *dev)
 {
-	return (u16)FIELD_GET(IRDMA_FW_VER_MINOR, dev->feature_info[IRDMA_FEATURE_FW_INFO]);
+	return (u16)FIELD_GET(IRDMA_FW_VER_MINOR,
+	    dev->feature_info[IRDMA_FEATURE_FW_INFO]);
 }
 
-static inline void set_ib_wc_op_sq(struct irdma_cq_poll_info *cq_poll_info,
-				   struct ib_wc *entry)
+static inline void
+set_ib_wc_op_sq(struct irdma_cq_poll_info *cq_poll_info, struct ib_wc *entry)
 {
 	struct irdma_sc_qp *qp;
 
@@ -342,13 +348,14 @@ static inline void set_ib_wc_op_sq(struct irdma_cq_poll_info *cq_poll_info,
 	default:
 		qp = cq_poll_info->qp_handle;
 		irdma_dev_err(to_ibdev(qp->dev), "Invalid opcode = %d in CQE\n",
-			  cq_poll_info->op_type);
+		    cq_poll_info->op_type);
 		entry->status = IB_WC_GENERAL_ERR;
 	}
 }
 
-static inline void set_ib_wc_op_rq(struct irdma_cq_poll_info *cq_poll_info,
-				   struct ib_wc *entry, bool send_imm_support)
+static inline void
+set_ib_wc_op_rq(struct irdma_cq_poll_info *cq_poll_info, struct ib_wc *entry,
+    bool send_imm_support)
 {
 	/**
 	 * iWARP does not support sendImm, so the presence of Imm data
@@ -356,8 +363,8 @@ static inline void set_ib_wc_op_rq(struct irdma_cq_poll_info *cq_poll_info,
 	 */
 	if (!send_imm_support) {
 		entry->opcode = cq_poll_info->imm_valid ?
-				IB_WC_RECV_RDMA_WITH_IMM :
-				IB_WC_RECV;
+		    IB_WC_RECV_RDMA_WITH_IMM :
+		    IB_WC_RECV;
 		return;
 	}
 	switch (cq_poll_info->op_type) {
@@ -376,11 +383,12 @@ static inline void set_ib_wc_op_rq(struct irdma_cq_poll_info *cq_poll_info,
  * @mac: pointer to result MAC address
  *
  */
-static inline void irdma_mcast_mac_v4(u32 *ip_addr, u8 *mac)
+static inline void
+irdma_mcast_mac_v4(u32 *ip_addr, u8 *mac)
 {
 	u8 *ip = (u8 *)ip_addr;
-	unsigned char mac4[ETHER_ADDR_LEN] = {0x01, 0x00, 0x5E, ip[2] & 0x7F, ip[1],
-					ip[0]};
+	unsigned char mac4[ETHER_ADDR_LEN] = { 0x01, 0x00, 0x5E, ip[2] & 0x7F,
+		ip[1], ip[0] };
 
 	ether_addr_copy(mac, mac4);
 }
@@ -391,22 +399,24 @@ static inline void irdma_mcast_mac_v4(u32 *ip_addr, u8 *mac)
  * @mac: pointer to result MAC address
  *
  */
-static inline void irdma_mcast_mac_v6(u32 *ip_addr, u8 *mac)
+static inline void
+irdma_mcast_mac_v6(u32 *ip_addr, u8 *mac)
 {
 	u8 *ip = (u8 *)ip_addr;
-	unsigned char mac6[ETHER_ADDR_LEN] = {0x33, 0x33, ip[3], ip[2], ip[1], ip[0]};
+	unsigned char mac6[ETHER_ADDR_LEN] = { 0x33, 0x33, ip[3], ip[2], ip[1],
+		ip[0] };
 
 	ether_addr_copy(mac, mac6);
 }
 
 #if __FreeBSD_version >= 1400026
-struct rdma_user_mmap_entry*
+struct rdma_user_mmap_entry *
 irdma_user_mmap_entry_insert(struct irdma_ucontext *ucontext, u64 bar_offset,
-			     enum irdma_mmap_flag mmap_flag, u64 *mmap_offset);
+    enum irdma_mmap_flag mmap_flag, u64 *mmap_offset);
 #else
 struct irdma_user_mmap_entry *
 irdma_user_mmap_entry_add_hash(struct irdma_ucontext *ucontext, u64 bar_offset,
-			       enum irdma_mmap_flag mmap_flag, u64 *mmap_offset);
+    enum irdma_mmap_flag mmap_flag, u64 *mmap_offset);
 void irdma_user_mmap_entry_del_hash(struct irdma_user_mmap_entry *entry);
 #endif
 int irdma_ib_register_device(struct irdma_device *iwdev);
@@ -414,7 +424,8 @@ void irdma_ib_unregister_device(struct irdma_device *iwdev);
 void irdma_ib_qp_event(struct irdma_qp *iwqp, enum irdma_qp_event_type event);
 void irdma_generate_flush_completions(struct irdma_qp *iwqp);
 void irdma_remove_cmpls_list(struct irdma_cq *iwcq);
-int irdma_generated_cmpls(struct irdma_cq *iwcq, struct irdma_cq_poll_info *cq_poll_info);
+int irdma_generated_cmpls(struct irdma_cq *iwcq,
+    struct irdma_cq_poll_info *cq_poll_info);
 void irdma_sched_qp_flush_work(struct irdma_qp *iwqp);
 void irdma_flush_worker(struct work_struct *work);
 #endif /* IRDMA_VERBS_H */

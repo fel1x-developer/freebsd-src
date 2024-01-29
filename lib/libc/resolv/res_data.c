@@ -17,33 +17,32 @@
  * OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "port_before.h"
-
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
 #include <arpa/nameser.h>
-
 #include <ctype.h>
 #include <netdb.h>
-#include <resolv.h>
 #include <res_update.h>
+#include <resolv.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "port_after.h"
+#include "port_before.h"
 
 const char *_res_opcodes[] = {
 	"QUERY",
 	"IQUERY",
 	"CQUERYM",
-	"CQUERYU",	/*%< experimental */
-	"NOTIFY",	/*%< experimental */
+	"CQUERYU", /*%< experimental */
+	"NOTIFY",  /*%< experimental */
 	"UPDATE",
 	"6",
 	"7",
@@ -70,10 +69,11 @@ const char *_res_sectioncodes[] = {
 
 /* Proto. */
 
-int  res_ourserver_p(const res_state, const struct sockaddr_in *);
+int res_ourserver_p(const res_state, const struct sockaddr_in *);
 
 __noinline int
-res_init(void) {
+res_init(void)
+{
 	extern int __res_vinit(res_state, int);
 	res_state statp = &_res;
 
@@ -107,17 +107,20 @@ res_init(void) {
 }
 
 void
-p_query(const u_char *msg) {
+p_query(const u_char *msg)
+{
 	fp_query(msg, stdout);
 }
 
 void
-fp_query(const u_char *msg, FILE *file) {
+fp_query(const u_char *msg, FILE *file)
+{
 	fp_nquery(msg, PACKETSZ, file);
 }
 
 void
-fp_nquery(const u_char *msg, int len, FILE *file) {
+fp_nquery(const u_char *msg, int len, FILE *file)
+{
 	res_state statp = &_res;
 	if ((statp->options & RES_INIT) == 0U && res_init() == -1)
 		return;
@@ -126,27 +129,27 @@ fp_nquery(const u_char *msg, int len, FILE *file) {
 }
 
 int
-res_mkquery(int op,			/*!< opcode of query  */
-	    const char *dname,		/*!< domain name  */
-	    int class, int type,	/*!< class and type of query  */
-	    const u_char *data,		/*!< resource record data  */
-	    int datalen,		/*!< length of data  */
-	    const u_char *newrr_in,	/*!< new rr for modify or append  */
-	    u_char *buf,		/*!< buffer to put query  */
-	    int buflen)			/*!< size of buffer  */
+res_mkquery(int op,	    /*!< opcode of query  */
+    const char *dname,	    /*!< domain name  */
+    int class, int type,    /*!< class and type of query  */
+    const u_char *data,	    /*!< resource record data  */
+    int datalen,	    /*!< length of data  */
+    const u_char *newrr_in, /*!< new rr for modify or append  */
+    u_char *buf,	    /*!< buffer to put query  */
+    int buflen)		    /*!< size of buffer  */
 {
 	res_state statp = &_res;
 	if ((statp->options & RES_INIT) == 0U && res_init() == -1) {
 		RES_SET_H_ERRNO(statp, NETDB_INTERNAL);
 		return (-1);
 	}
-	return (res_nmkquery(statp, op, dname, class, type,
-			     data, datalen,
-			     newrr_in, buf, buflen));
+	return (res_nmkquery(statp, op, dname, class, type, data, datalen,
+	    newrr_in, buf, buflen));
 }
 
 int
-res_mkupdate(ns_updrec *rrecp_in, u_char *buf, int buflen) {
+res_mkupdate(ns_updrec *rrecp_in, u_char *buf, int buflen)
+{
 	res_state statp = &_res;
 	if ((statp->options & RES_INIT) == 0U && res_init() == -1) {
 		RES_SET_H_ERRNO(statp, NETDB_INTERNAL);
@@ -157,10 +160,10 @@ res_mkupdate(ns_updrec *rrecp_in, u_char *buf, int buflen) {
 }
 
 int
-res_query(const char *name,	/*!< domain name  */
-	  int class, int type,	/*!< class and type of query  */
-	  u_char *answer,	/*!< buffer to put answer  */
-	  int anslen)		/*!< size of answer buffer  */
+res_query(const char *name, /*!< domain name  */
+    int class, int type,    /*!< class and type of query  */
+    u_char *answer,	    /*!< buffer to put answer  */
+    int anslen)		    /*!< size of answer buffer  */
 {
 	res_state statp = &_res;
 	if ((statp->options & RES_INIT) == 0U && res_init() == -1) {
@@ -172,23 +175,27 @@ res_query(const char *name,	/*!< domain name  */
 
 #ifndef _LIBC
 void
-res_send_setqhook(res_send_qhook hook) {
+res_send_setqhook(res_send_qhook hook)
+{
 	_res.qhook = hook;
 }
 
 void
-res_send_setrhook(res_send_rhook hook) {
+res_send_setrhook(res_send_rhook hook)
+{
 	_res.rhook = hook;
 }
 #endif
 
 int
-res_isourserver(const struct sockaddr_in *inp) {
+res_isourserver(const struct sockaddr_in *inp)
+{
 	return (res_ourserver_p(&_res, inp));
 }
 
 int
-res_send(const u_char *buf, int buflen, u_char *ans, int anssiz) {
+res_send(const u_char *buf, int buflen, u_char *ans, int anssiz)
+{
 	res_state statp = &_res;
 	if ((statp->options & RES_INIT) == 0U && res_init() == -1) {
 		/* errno should have been set by res_init() in this case. */
@@ -200,8 +207,8 @@ res_send(const u_char *buf, int buflen, u_char *ans, int anssiz) {
 
 #ifndef _LIBC
 int
-res_sendsigned(const u_char *buf, int buflen, ns_tsig_key *key,
-	       u_char *ans, int anssiz)
+res_sendsigned(const u_char *buf, int buflen, ns_tsig_key *key, u_char *ans,
+    int anssiz)
 {
 	res_state statp = &_res;
 	if ((statp->options & RES_INIT) == 0U && res_init() == -1) {
@@ -214,12 +221,14 @@ res_sendsigned(const u_char *buf, int buflen, ns_tsig_key *key,
 #endif
 
 void
-res_close(void) {
+res_close(void)
+{
 	res_nclose(&_res);
 }
 
 int
-res_update(ns_updrec *rrecp_in) {
+res_update(ns_updrec *rrecp_in)
+{
 	res_state statp = &_res;
 	if ((statp->options & RES_INIT) == 0U && res_init() == -1) {
 		RES_SET_H_ERRNO(statp, NETDB_INTERNAL);
@@ -230,10 +239,10 @@ res_update(ns_updrec *rrecp_in) {
 }
 
 int
-res_search(const char *name,	/*!< domain name  */
-	   int class, int type,	/*!< class and type of query  */
-	   u_char *answer,	/*!< buffer to put answer  */
-	   int anslen)		/*!< size of answer  */
+res_search(const char *name, /*!< domain name  */
+    int class, int type,     /*!< class and type of query  */
+    u_char *answer,	     /*!< buffer to put answer  */
+    int anslen)		     /*!< size of answer  */
 {
 	res_state statp = &_res;
 	if ((statp->options & RES_INIT) == 0U && res_init() == -1) {
@@ -245,11 +254,10 @@ res_search(const char *name,	/*!< domain name  */
 }
 
 int
-res_querydomain(const char *name,
-		const char *domain,
-		int class, int type,	/*!< class and type of query  */
-		u_char *answer,		/*!< buffer to put answer  */
-		int anslen)		/*!< size of answer  */
+res_querydomain(const char *name, const char *domain, int class,
+    int type,	    /*!< class and type of query  */
+    u_char *answer, /*!< buffer to put answer  */
+    int anslen)	    /*!< size of answer  */
 {
 	res_state statp = &_res;
 	if ((statp->options & RES_INIT) == 0U && res_init() == -1) {
@@ -257,13 +265,13 @@ res_querydomain(const char *name,
 		return (-1);
 	}
 
-	return (res_nquerydomain(statp, name, domain,
-				 class, type,
-				 answer, anslen));
+	return (
+	    res_nquerydomain(statp, name, domain, class, type, answer, anslen));
 }
 
 u_int
-res_randomid(void) {
+res_randomid(void)
+{
 	res_state statp = &_res;
 	if ((statp->options & RES_INIT) == 0U && res_init() == -1) {
 		RES_SET_H_ERRNO(statp, NETDB_INTERNAL);
@@ -280,7 +288,8 @@ res_opt(int n0, u_char *buf, int buflen, int anslen)
 }
 
 const char *
-hostalias(const char *name) {
+hostalias(const char *name)
+{
 	static char abuf[MAXDNAME];
 
 	return (res_hostalias(&_res, name, abuf, sizeof abuf));
@@ -288,7 +297,8 @@ hostalias(const char *name) {
 
 #ifdef ultrix
 int
-local_hostname_length(const char *hostname) {
+local_hostname_length(const char *hostname)
+{
 	int len_host, len_domain;
 	res_state statp;
 

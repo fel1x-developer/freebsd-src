@@ -48,47 +48,40 @@
 const char *progname;
 
 enum {
-	MWL_DEBUG_XMIT		= 0x00000001,	/* basic xmit operation */
-	MWL_DEBUG_XMIT_DESC	= 0x00000002,	/* xmit descriptors */
-	MWL_DEBUG_RECV		= 0x00000004,	/* basic recv operation */
-	MWL_DEBUG_RECV_DESC	= 0x00000008,	/* recv descriptors */
-	MWL_DEBUG_RESET		= 0x00000010,	/* reset processing */
-	MWL_DEBUG_BEACON 	= 0x00000020,	/* beacon handling */
-	MWL_DEBUG_INTR		= 0x00000040,	/* ISR */
-	MWL_DEBUG_TX_PROC	= 0x00000080,	/* tx ISR proc */
-	MWL_DEBUG_RX_PROC	= 0x00000100,	/* rx ISR proc */
-	MWL_DEBUG_KEYCACHE	= 0x00000200,	/* key cache management */
-	MWL_DEBUG_STATE		= 0x00000400,	/* 802.11 state transitions */
-	MWL_DEBUG_NODE		= 0x00000800,	/* node management */
-	MWL_DEBUG_RECV_ALL	= 0x00001000,	/* trace all frames (beacons) */
-	MWL_DEBUG_TSO		= 0x00002000,	/* TSO processing */
-	MWL_DEBUG_AMPDU		= 0x00004000,	/* BA stream handling */
-	MWL_DEBUG_ANY		= 0xffffffff
+	MWL_DEBUG_XMIT = 0x00000001,	  /* basic xmit operation */
+	MWL_DEBUG_XMIT_DESC = 0x00000002, /* xmit descriptors */
+	MWL_DEBUG_RECV = 0x00000004,	  /* basic recv operation */
+	MWL_DEBUG_RECV_DESC = 0x00000008, /* recv descriptors */
+	MWL_DEBUG_RESET = 0x00000010,	  /* reset processing */
+	MWL_DEBUG_BEACON = 0x00000020,	  /* beacon handling */
+	MWL_DEBUG_INTR = 0x00000040,	  /* ISR */
+	MWL_DEBUG_TX_PROC = 0x00000080,	  /* tx ISR proc */
+	MWL_DEBUG_RX_PROC = 0x00000100,	  /* rx ISR proc */
+	MWL_DEBUG_KEYCACHE = 0x00000200,  /* key cache management */
+	MWL_DEBUG_STATE = 0x00000400,	  /* 802.11 state transitions */
+	MWL_DEBUG_NODE = 0x00000800,	  /* node management */
+	MWL_DEBUG_RECV_ALL = 0x00001000,  /* trace all frames (beacons) */
+	MWL_DEBUG_TSO = 0x00002000,	  /* TSO processing */
+	MWL_DEBUG_AMPDU = 0x00004000,	  /* BA stream handling */
+	MWL_DEBUG_ANY = 0xffffffff
 };
 
 static struct {
-	const char	*name;
-	u_int		bit;
+	const char *name;
+	u_int bit;
 } flags[] = {
-	{ "xmit",	MWL_DEBUG_XMIT },
-	{ "xmit_desc",	MWL_DEBUG_XMIT_DESC },
-	{ "recv",	MWL_DEBUG_RECV },
-	{ "recv_desc",	MWL_DEBUG_RECV_DESC },
-	{ "reset",	MWL_DEBUG_RESET },
-	{ "beacon",	MWL_DEBUG_BEACON },
-	{ "intr",	MWL_DEBUG_INTR },
-	{ "xmit_proc",	MWL_DEBUG_TX_PROC },
-	{ "recv_proc",	MWL_DEBUG_RX_PROC },
-	{ "keycache",	MWL_DEBUG_KEYCACHE },
-	{ "state",	MWL_DEBUG_STATE },
-	{ "node",	MWL_DEBUG_NODE },
-	{ "recv_all",	MWL_DEBUG_RECV_ALL },
-	{ "tso",	MWL_DEBUG_TSO },
-	{ "ampdu",	MWL_DEBUG_AMPDU },
+	{ "xmit", MWL_DEBUG_XMIT }, { "xmit_desc", MWL_DEBUG_XMIT_DESC },
+	{ "recv", MWL_DEBUG_RECV }, { "recv_desc", MWL_DEBUG_RECV_DESC },
+	{ "reset", MWL_DEBUG_RESET }, { "beacon", MWL_DEBUG_BEACON },
+	{ "intr", MWL_DEBUG_INTR }, { "xmit_proc", MWL_DEBUG_TX_PROC },
+	{ "recv_proc", MWL_DEBUG_RX_PROC }, { "keycache", MWL_DEBUG_KEYCACHE },
+	{ "state", MWL_DEBUG_STATE }, { "node", MWL_DEBUG_NODE },
+	{ "recv_all", MWL_DEBUG_RECV_ALL }, { "tso", MWL_DEBUG_TSO },
+	{ "ampdu", MWL_DEBUG_AMPDU },
 	/* XXX these are a hack; there should be a separate sysctl knob */
-	{ "hal",	0x02000000 },		/* cmd-completion processing */
-	{ "hal2",	0x01000000 },		/* cmd submission processing */
-	{ "halhang",	0x04000000 },		/* disable fw hang stuff */
+	{ "hal", 0x02000000 },	   /* cmd-completion processing */
+	{ "hal2", 0x01000000 },	   /* cmd submission processing */
+	{ "halhang", 0x04000000 }, /* disable fw hang stuff */
 };
 
 static u_int
@@ -151,7 +144,7 @@ main(int argc, char *argv[])
 			usage();
 	}
 
-	snprintf(oid, sizeof(oid), "dev.mwl.%s.debug", ifname+3);
+	snprintf(oid, sizeof(oid), "dev.mwl.%s.debug", ifname + 3);
 	debuglen = sizeof(debug);
 	if (sysctlbyname(oid, &debug, &debuglen, NULL, 0) < 0)
 		err(1, "sysctl-get(%s)", oid);
@@ -171,7 +164,7 @@ main(int argc, char *argv[])
 				op = 0;
 			for (tp = cp; *tp != '\0' && *tp != '+' && *tp != '-';)
 				tp++;
-			bit = getflag(cp, tp-cp);
+			bit = getflag(cp, tp - cp);
 			if (op < 0)
 				ndebug &= ~bit;
 			else if (op > 0)
@@ -183,7 +176,7 @@ main(int argc, char *argv[])
 						bit = strtoul(cp, NULL, 0);
 					else
 						errx(1, "unknown flag %.*s",
-							(int)(tp-cp), cp);
+						    (int)(tp - cp), cp);
 				}
 				ndebug = bit;
 			}

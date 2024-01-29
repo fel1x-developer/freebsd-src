@@ -40,73 +40,69 @@
 
 #include <machine/resource.h>
 
-#include <net/if.h>
-#include <net/if_media.h>
-
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
 
-#include "miidevs.h"
+#include <net/if.h>
+#include <net/if_media.h>
+
 #include "miibus_if.h"
+#include "miidevs.h"
 
-#define BIT(x)			(1 << (x))
+#define BIT(x) (1 << (x))
 
-#define DP83867_PHYCR		0x10
-#define DP83867_PHYSTS		0x11
-#define DP83867_MICR		0x12
-#define DP83867_ISR		0x13
-#define DP83867_CFG3		0x1E
-#define DP83867_CTRL		0x1F
-#define DP83867_CFG4		0x31
-#define DP83867_RGMIICTL	0x32
-#define DP83867_STRP_STS1	0x6E
-#define DP83867_STRP_STS2	0x6F
+#define DP83867_PHYCR 0x10
+#define DP83867_PHYSTS 0x11
+#define DP83867_MICR 0x12
+#define DP83867_ISR 0x13
+#define DP83867_CFG3 0x1E
+#define DP83867_CTRL 0x1F
+#define DP83867_CFG4 0x31
+#define DP83867_RGMIICTL 0x32
+#define DP83867_STRP_STS1 0x6E
+#define DP83867_STRP_STS2 0x6F
 
-#define DP83867_PHYSTS_LINK_UP		BIT(10)
-#define DP83867_PHYSTS_ANEG_PENDING	BIT(11)
-#define DP83867_PHYSTS_FD		BIT(13)
-#define DP83867_PHYSTS_SPEED_MASK	(BIT(15) | BIT(14))
-#define DP83867_PHYSTS_SPEED_1000	BIT(15)
-#define DP83867_PHYSTS_SPEED_100	BIT(14)
-#define DP83867_PHYSTS_SPEED_10		0
+#define DP83867_PHYSTS_LINK_UP BIT(10)
+#define DP83867_PHYSTS_ANEG_PENDING BIT(11)
+#define DP83867_PHYSTS_FD BIT(13)
+#define DP83867_PHYSTS_SPEED_MASK (BIT(15) | BIT(14))
+#define DP83867_PHYSTS_SPEED_1000 BIT(15)
+#define DP83867_PHYSTS_SPEED_100 BIT(14)
+#define DP83867_PHYSTS_SPEED_10 0
 
-#define DP83867_MICR_AN_ERR		BIT(15)
-#define DP83867_MICR_SPEED_CHG		BIT(14)
-#define DP83867_MICR_DP_MODE_CHG	BIT(13)
-#define DP83867_MICR_AN_CMPL		BIT(11)
-#define DP83867_MICR_LINK_CHG		BIT(10)
+#define DP83867_MICR_AN_ERR BIT(15)
+#define DP83867_MICR_SPEED_CHG BIT(14)
+#define DP83867_MICR_DP_MODE_CHG BIT(13)
+#define DP83867_MICR_AN_CMPL BIT(11)
+#define DP83867_MICR_LINK_CHG BIT(10)
 
-#define DP83867_CFG3_INT_OE		BIT(7)
+#define DP83867_CFG3_INT_OE BIT(7)
 
-#define DP83867_CFG4_TST_MODE1		BIT(7)
-#define DP83867_CFG4_ANEG_MASK		(BIT(5) | BIT(6))
-#define DP83867_CFG4_ANEG_16MS		(0 << 5)
+#define DP83867_CFG4_TST_MODE1 BIT(7)
+#define DP83867_CFG4_ANEG_MASK (BIT(5) | BIT(6))
+#define DP83867_CFG4_ANEG_16MS (0 << 5)
 
-#define BMSR_100_MASK	(BMSR_100T4 | BMSR_100TXFDX | BMSR_100TXHDX | \
-			 BMSR_100T2FDX | BMSR_100T2HDX)
+#define BMSR_100_MASK                                                 \
+	(BMSR_100T4 | BMSR_100TXFDX | BMSR_100TXHDX | BMSR_100T2FDX | \
+	    BMSR_100T2HDX)
 
 static int dp_probe(device_t);
 static int dp_attach(device_t);
 
-static int dp_service(struct mii_softc*, struct mii_data*, int);
-static void dp_status(struct mii_softc*);
+static int dp_service(struct mii_softc *, struct mii_data *, int);
+static void dp_status(struct mii_softc *);
 
 struct dp83867_softc {
 	struct mii_softc mii_sc;
 	struct resource *irq_res;
-	void 		*irq_cookie;
+	void *irq_cookie;
 };
 
-static const struct mii_phydesc dpphys[] = {
-	MII_PHY_DESC(xxTI, DP83867),
-	MII_PHY_END
-};
+static const struct mii_phydesc dpphys[] = { MII_PHY_DESC(xxTI, DP83867),
+	MII_PHY_END };
 
-static const struct mii_phy_funcs dpphy_funcs = {
-	dp_service,
-	dp_status,
-	mii_phy_reset
-};
+static const struct mii_phy_funcs dpphy_funcs = { dp_service, dp_status,
+	mii_phy_reset };
 
 static void
 dp_intr(void *arg)
@@ -165,10 +161,8 @@ dp_attach(device_t dev)
 
 	/* Ack and unmask all relevant interrupts. */
 	(void)PHY_READ(mii_sc, DP83867_ISR);
-	value = DP83867_MICR_AN_ERR |
-	    DP83867_MICR_SPEED_CHG |
-	    DP83867_MICR_DP_MODE_CHG |
-	    DP83867_MICR_AN_CMPL |
+	value = DP83867_MICR_AN_ERR | DP83867_MICR_SPEED_CHG |
+	    DP83867_MICR_DP_MODE_CHG | DP83867_MICR_AN_CMPL |
 	    DP83867_MICR_LINK_CHG;
 	PHY_WRITE(mii_sc, DP83867_MICR, value);
 
@@ -272,20 +266,13 @@ dp_status(struct mii_softc *sc)
 		mii->mii_media_active |= IFM_FDX;
 	else
 		mii->mii_media_active |= IFM_HDX;
-
 }
 
-static device_method_t dp_methods[] = {
-	DEVMETHOD(device_probe,         dp_probe),
-	DEVMETHOD(device_attach,        dp_attach),
-	DEVMETHOD(device_detach,        dp_detach),
-	DEVMETHOD_END
-};
+static device_method_t dp_methods[] = { DEVMETHOD(device_probe, dp_probe),
+	DEVMETHOD(device_attach, dp_attach),
+	DEVMETHOD(device_detach, dp_detach), DEVMETHOD_END };
 
-static driver_t dp_driver = {
-	"dp83867phy",
-	dp_methods,
-	sizeof(struct dp83867_softc)
-};
+static driver_t dp_driver = { "dp83867phy", dp_methods,
+	sizeof(struct dp83867_softc) };
 
 DRIVER_MODULE(dp83867phy, miibus, dp_driver, 0, 0);

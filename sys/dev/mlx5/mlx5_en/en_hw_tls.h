@@ -25,56 +25,57 @@
  */
 
 #ifndef _MLX5_TLS_H_
-#define	_MLX5_TLS_H_
+#define _MLX5_TLS_H_
 
-#define	MLX5E_TLS_TAG_LOCK(tag)		mtx_lock(&(tag)->mtx)
-#define	MLX5E_TLS_TAG_UNLOCK(tag)	mtx_unlock(&(tag)->mtx)
+#define MLX5E_TLS_TAG_LOCK(tag) mtx_lock(&(tag)->mtx)
+#define MLX5E_TLS_TAG_UNLOCK(tag) mtx_unlock(&(tag)->mtx)
 
-#define	MLX5E_TLS_STAT_INC(tag, field, num) \
+#define MLX5E_TLS_STAT_INC(tag, field, num) \
 	counter_u64_add((tag)->tls->stats.field, num)
 
 enum {
-      MLX5E_TLS_LOOP = 0,
-      MLX5E_TLS_FAILURE = 1,
-      MLX5E_TLS_DEFERRED = 2,
-      MLX5E_TLS_CONTINUE = 3,
+	MLX5E_TLS_LOOP = 0,
+	MLX5E_TLS_FAILURE = 1,
+	MLX5E_TLS_DEFERRED = 2,
+	MLX5E_TLS_CONTINUE = 3,
 };
 
 struct mlx5e_tls;
 struct mlx5e_tls_tag {
 	struct m_snd_tag tag;
-	uint32_t tisn;		/* HW TIS context number */
-	uint32_t dek_index;	/* HW TLS context number */
+	uint32_t tisn;	    /* HW TIS context number */
+	uint32_t dek_index; /* HW TLS context number */
 	struct mlx5e_tls *tls;
 	struct m_snd_tag *rl_tag;
 	struct mtx mtx;
 	uint32_t expected_seq; /* expected TCP sequence number */
-	uint32_t state;	/* see MLX5E_TLS_ST_XXX */
-#define	MLX5E_TLS_ST_INIT 0
-#define	MLX5E_TLS_ST_SETUP 1
-#define	MLX5E_TLS_ST_TXRDY 2
-#define	MLX5E_TLS_ST_RELEASE 3
-#define	MLX5E_TLS_ST_FREED 4
+	uint32_t state;	       /* see MLX5E_TLS_ST_XXX */
+#define MLX5E_TLS_ST_INIT 0
+#define MLX5E_TLS_ST_SETUP 1
+#define MLX5E_TLS_ST_TXRDY 2
+#define MLX5E_TLS_ST_RELEASE 3
+#define MLX5E_TLS_ST_FREED 4
 	struct work_struct work;
 
-	uint32_t dek_index_ok:1;
+	uint32_t dek_index_ok : 1;
 
 	/* parameters needed */
 	uint8_t crypto_params[128] __aligned(4);
 } __aligned(MLX5E_CACHELINE_SIZE);
 
-#define	MLX5E_TLS_STATS(m)					\
-  m(+1, u64, tx_packets, "tx_packets", "Transmitted packets")	\
-  m(+1, u64, tx_bytes, "tx_bytes", "Transmitted bytes")		\
-  m(+1, u64, tx_packets_ooo, "tx_packets_ooo", "Transmitted packets out of order") \
-  m(+1, u64, tx_bytes_ooo, "tx_bytes_ooo", "Transmitted bytes out of order") \
-  m(+1, u64, tx_error, "tx_error", "Transmitted packets with error")
+#define MLX5E_TLS_STATS(m)                                                   \
+	m(+1, u64, tx_packets, "tx_packets", "Transmitted packets")          \
+	    m(+1, u64, tx_bytes, "tx_bytes", "Transmitted bytes") m(+1, u64, \
+		tx_packets_ooo, "tx_packets_ooo",                            \
+		"Transmitted packets out of order") m(+1, u64, tx_bytes_ooo, \
+		"tx_bytes_ooo", "Transmitted bytes out of order") m(+1, u64, \
+		tx_error, "tx_error", "Transmitted packets with error")
 
-#define	MLX5E_TLS_STATS_NUM (0 MLX5E_TLS_STATS(MLX5E_STATS_COUNT))
+#define MLX5E_TLS_STATS_NUM (0 MLX5E_TLS_STATS(MLX5E_STATS_COUNT))
 
 struct mlx5e_tls_stats {
-	struct	sysctl_ctx_list ctx;
-	counter_u64_t	arg[0];
+	struct sysctl_ctx_list ctx;
+	counter_u64_t arg[0];
 	MLX5E_TLS_STATS(MLX5E_STATS_COUNTER)
 };
 
@@ -83,16 +84,17 @@ struct mlx5e_tls {
 	struct mlx5e_tls_stats stats;
 	struct workqueue_struct *wq;
 	uma_zone_t zone;
-	uint32_t max_resources;		/* max number of resources */
-	volatile uint32_t num_resources;	/* current number of resources */
-	int init;			/* set when ready */
+	uint32_t max_resources;		 /* max number of resources */
+	volatile uint32_t num_resources; /* current number of resources */
+	int init;			 /* set when ready */
 	char zname[32];
 };
 
 int mlx5e_tls_init(struct mlx5e_priv *);
 void mlx5e_tls_cleanup(struct mlx5e_priv *);
-int mlx5e_sq_tls_xmit(struct mlx5e_sq *, struct mlx5e_xmit_args *, struct mbuf **);
+int mlx5e_sq_tls_xmit(struct mlx5e_sq *, struct mlx5e_xmit_args *,
+    struct mbuf **);
 
 if_snd_tag_alloc_t mlx5e_tls_snd_tag_alloc;
 
-#endif					/* _MLX5_TLS_H_ */
+#endif /* _MLX5_TLS_H_ */

@@ -35,16 +35,16 @@
 #include <errno.h>
 #include <limits.h>
 #include <stddef.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
 
-#include "citrus_namespace.h"
-#include "citrus_types.h"
 #include "citrus_module.h"
+#include "citrus_namespace.h"
 #include "citrus_stdenc.h"
+#include "citrus_types.h"
 #include "citrus_zw.h"
 
 /* ----------------------------------------------------------------------
@@ -52,33 +52,31 @@
  */
 
 typedef struct {
-	int	 dummy;
+	int dummy;
 } _ZWEncodingInfo;
 
-typedef enum {
-	NONE, AMBIGIOUS, ASCII, GB2312
-} _ZWCharset;
+typedef enum { NONE, AMBIGIOUS, ASCII, GB2312 } _ZWCharset;
 
 typedef struct {
-	_ZWCharset	 charset;
-	int		 chlen;
-	char		 ch[4];
+	_ZWCharset charset;
+	int chlen;
+	char ch[4];
 } _ZWState;
 
-#define _CEI_TO_EI(_cei_)		(&(_cei_)->ei)
-#define _CEI_TO_STATE(_cei_, _func_)	(_cei_)->states.s_##_func_
+#define _CEI_TO_EI(_cei_) (&(_cei_)->ei)
+#define _CEI_TO_STATE(_cei_, _func_) (_cei_)->states.s_##_func_
 
-#define _FUNCNAME(m)			_citrus_ZW_##m
-#define _ENCODING_INFO			_ZWEncodingInfo
-#define _ENCODING_STATE			_ZWState
-#define _ENCODING_MB_CUR_MAX(_ei_)	MB_LEN_MAX
-#define _ENCODING_IS_STATE_DEPENDENT		1
-#define _STATE_NEEDS_EXPLICIT_INIT(_ps_)	((_ps_)->charset != NONE)
+#define _FUNCNAME(m) _citrus_ZW_##m
+#define _ENCODING_INFO _ZWEncodingInfo
+#define _ENCODING_STATE _ZWState
+#define _ENCODING_MB_CUR_MAX(_ei_) MB_LEN_MAX
+#define _ENCODING_IS_STATE_DEPENDENT 1
+#define _STATE_NEEDS_EXPLICIT_INIT(_ps_) ((_ps_)->charset != NONE)
 
 static __inline void
 /*ARGSUSED*/
-_citrus_ZW_init_state(_ZWEncodingInfo * __restrict ei __unused,
-    _ZWState * __restrict psenc)
+_citrus_ZW_init_state(_ZWEncodingInfo *__restrict ei __unused,
+    _ZWState *__restrict psenc)
 {
 
 	psenc->chlen = 0;
@@ -106,12 +104,12 @@ _citrus_ZW_unpack_state(_ZWEncodingInfo * __restrict ei __unused,
 #endif
 
 static int
-_citrus_ZW_mbrtowc_priv(_ZWEncodingInfo * __restrict ei,
-    wchar_t * __restrict pwc, char **__restrict s, size_t n,
-    _ZWState * __restrict psenc, size_t * __restrict nresult)
+_citrus_ZW_mbrtowc_priv(_ZWEncodingInfo *__restrict ei, wchar_t *__restrict pwc,
+    char **__restrict s, size_t n, _ZWState *__restrict psenc,
+    size_t *__restrict nresult)
 {
 	char *s0;
-	wchar_t  wc;
+	wchar_t wc;
 	int ch, len;
 
 	if (*s == NULL) {
@@ -122,18 +120,18 @@ _citrus_ZW_mbrtowc_priv(_ZWEncodingInfo * __restrict ei,
 	s0 = *s;
 	len = 0;
 
-#define	STORE				\
-do {					\
-	if (n-- < 1) {			\
-		*nresult = (size_t)-2;	\
-		*s = s0;		\
-		return (0);		\
-	}				\
-	ch = (unsigned char)*s0++;	\
-	if (len++ > MB_LEN_MAX || ch > 0x7F)\
-		goto ilseq;		\
-	psenc->ch[psenc->chlen++] = ch;	\
-} while (/*CONSTCOND*/0)
+#define STORE                                        \
+	do {                                         \
+		if (n-- < 1) {                       \
+			*nresult = (size_t)-2;       \
+			*s = s0;                     \
+			return (0);                  \
+		}                                    \
+		ch = (unsigned char)*s0++;           \
+		if (len++ > MB_LEN_MAX || ch > 0x7F) \
+			goto ilseq;                  \
+		psenc->ch[psenc->chlen++] = ch;      \
+	} while (/*CONSTCOND*/ 0)
 
 loop:
 	switch (psenc->charset) {
@@ -142,7 +140,8 @@ loop:
 		case 0:
 			STORE;
 			switch (psenc->ch[0]) {
-			case '\0': case '\n':
+			case '\0':
+			case '\n':
 				psenc->charset = NONE;
 			}
 		/*FALLTHROUGH*/
@@ -226,7 +225,7 @@ loop:
 			wc = (wchar_t)(ch << 8);
 			ch = (unsigned char)psenc->ch[1];
 			if (ch < 0x21 || ch > 0x7E) {
-ilseq:
+			ilseq:
 				*nresult = (size_t)-1;
 				return (EILSEQ);
 			}
@@ -251,9 +250,9 @@ ilseq:
 
 static int
 /*ARGSUSED*/
-_citrus_ZW_wcrtomb_priv(_ZWEncodingInfo * __restrict ei __unused,
-    char *__restrict s, size_t n, wchar_t wc,
-    _ZWState * __restrict psenc, size_t * __restrict nresult)
+_citrus_ZW_wcrtomb_priv(_ZWEncodingInfo *__restrict ei __unused,
+    char *__restrict s, size_t n, wchar_t wc, _ZWState *__restrict psenc,
+    size_t *__restrict nresult)
 {
 	int ch;
 
@@ -323,7 +322,7 @@ _citrus_ZW_wcrtomb_priv(_ZWEncodingInfo * __restrict ei __unused,
 			return (EINVAL);
 		}
 	} else {
-ilseq:
+	ilseq:
 		*nresult = (size_t)-1;
 		return (EILSEQ);
 	}
@@ -336,9 +335,9 @@ ilseq:
 
 static int
 /*ARGSUSED*/
-_citrus_ZW_put_state_reset(_ZWEncodingInfo * __restrict ei __unused,
-    char * __restrict s, size_t n, _ZWState * __restrict psenc,
-    size_t * __restrict nresult)
+_citrus_ZW_put_state_reset(_ZWEncodingInfo *__restrict ei __unused,
+    char *__restrict s, size_t n, _ZWState *__restrict psenc,
+    size_t *__restrict nresult)
 {
 
 	if (psenc->chlen != 0)
@@ -366,8 +365,9 @@ _citrus_ZW_put_state_reset(_ZWEncodingInfo * __restrict ei __unused,
 
 static __inline int
 /*ARGSUSED*/
-_citrus_ZW_stdenc_get_state_desc_generic(_ZWEncodingInfo * __restrict ei __unused,
-    _ZWState * __restrict psenc, int * __restrict rstate)
+_citrus_ZW_stdenc_get_state_desc_generic(
+    _ZWEncodingInfo *__restrict ei __unused, _ZWState *__restrict psenc,
+    int *__restrict rstate)
 {
 
 	switch (psenc->charset) {
@@ -404,8 +404,8 @@ _citrus_ZW_stdenc_get_state_desc_generic(_ZWEncodingInfo * __restrict ei __unuse
 
 static __inline int
 /*ARGSUSED*/
-_citrus_ZW_stdenc_wctocs(_ZWEncodingInfo * __restrict ei __unused,
-    _csid_t * __restrict csid, _index_t * __restrict idx, wchar_t wc)
+_citrus_ZW_stdenc_wctocs(_ZWEncodingInfo *__restrict ei __unused,
+    _csid_t *__restrict csid, _index_t *__restrict idx, wchar_t wc)
 {
 
 	*csid = (_csid_t)(wc <= (wchar_t)0x7FU) ? 0 : 1;
@@ -416,12 +416,13 @@ _citrus_ZW_stdenc_wctocs(_ZWEncodingInfo * __restrict ei __unused,
 
 static __inline int
 /*ARGSUSED*/
-_citrus_ZW_stdenc_cstowc(_ZWEncodingInfo * __restrict ei __unused,
-    wchar_t * __restrict wc, _csid_t csid, _index_t idx)
+_citrus_ZW_stdenc_cstowc(_ZWEncodingInfo *__restrict ei __unused,
+    wchar_t *__restrict wc, _csid_t csid, _index_t idx)
 {
 
 	switch (csid) {
-	case 0: case 1:
+	case 0:
+	case 1:
 		break;
 	default:
 		return (EINVAL);
@@ -435,12 +436,11 @@ static void
 /*ARGSUSED*/
 _citrus_ZW_encoding_module_uninit(_ZWEncodingInfo *ei __unused)
 {
-
 }
 
 static int
 /*ARGSUSED*/
-_citrus_ZW_encoding_module_init(_ZWEncodingInfo * __restrict ei __unused,
+_citrus_ZW_encoding_module_init(_ZWEncodingInfo *__restrict ei __unused,
     const void *__restrict var __unused, size_t lenvar __unused)
 {
 

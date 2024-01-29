@@ -29,31 +29,34 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/ata.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/endian.h>
-#include <sys/ctype.h>
-#include <sys/conf.h>
-#include <sys/bus.h>
 #include <sys/bio.h>
+#include <sys/bus.h>
+#include <sys/conf.h>
+#include <sys/ctype.h>
+#include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
-#include <sys/sysctl.h>
-#include <sys/sema.h>
-#include <sys/taskqueue.h>
-#include <vm/uma.h>
-#include <machine/stdarg.h>
-#include <machine/resource.h>
-#include <machine/bus.h>
+#include <sys/module.h>
 #include <sys/rman.h>
+#include <sys/sema.h>
+#include <sys/sysctl.h>
+#include <sys/taskqueue.h>
+
+#include <vm/uma.h>
+
+#include <machine/bus.h>
+#include <machine/resource.h>
+#include <machine/stdarg.h>
+
 #include <dev/ata/ata-all.h>
 #include <dev/pci/pcivar.h>
-#include <ata_if.h>
 
+#include <ata_if.h>
 #include <cam/cam.h>
 #include <cam/cam_ccb.h>
+#include <cam/cam_debug.h>
 #include <cam/cam_sim.h>
 #include <cam/cam_xpt_sim.h>
-#include <cam/cam_debug.h>
 
 /* prototypes */
 static void ataaction(struct cam_sim *sim, union ccb *ccb);
@@ -76,9 +79,9 @@ int ata_dma_check_80pin = 1;
 /* sysctl vars */
 static SYSCTL_NODE(_hw, OID_AUTO, ata, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
     "ATA driver parameters");
-SYSCTL_INT(_hw_ata, OID_AUTO, ata_dma_check_80pin,
-	   CTLFLAG_RWTUN, &ata_dma_check_80pin, 0,
-	   "Check for 80pin cable before setting ATA DMA mode");
+SYSCTL_INT(_hw_ata, OID_AUTO, ata_dma_check_80pin, CTLFLAG_RWTUN,
+    &ata_dma_check_80pin, 0,
+    "Check for 80pin cable before setting ATA DMA mode");
 FEATURE(ata_cam, "ATA devices are accessed through the cam(4) driver");
 
 /*
@@ -87,46 +90,46 @@ FEATURE(ata_cam, "ATA devices are accessed through the cam(4) driver");
 int
 ata_probe(device_t dev)
 {
-    return (BUS_PROBE_LOW_PRIORITY);
+	return (BUS_PROBE_LOW_PRIORITY);
 }
 
 int
 ata_attach(device_t dev)
 {
-    struct ata_channel *ch = device_get_softc(dev);
-    int error, rid;
-    struct cam_devq *devq;
-    const char *res;
-    char buf[64];
-    int i, mode;
+	struct ata_channel *ch = device_get_softc(dev);
+	int error, rid;
+	struct cam_devq *devq;
+	const char *res;
+	char buf[64];
+	int i, mode;
 
-    /* check that we have a virgin channel to attach */
-    if (ch->r_irq)
-	return EEXIST;
+	/* check that we have a virgin channel to attach */
+	if (ch->r_irq)
+		return EEXIST;
 
-    /* initialize the softc basics */
-    ch->dev = dev;
-    ch->state = ATA_IDLE;
-    bzero(&ch->state_mtx, sizeof(struct mtx));
-    mtx_init(&ch->state_mtx, "ATA state lock", NULL, MTX_DEF);
-    TASK_INIT(&ch->conntask, 0, ata_conn_event, dev);
+	/* initialize the softc basics */
+	ch->dev = dev;
+	ch->state = ATA_IDLE;
+	bzero(&ch->state_mtx, sizeof(struct mtx));
+	mtx_init(&ch->state_mtx, "ATA state lock", NULL, MTX_DEF);
+	TASK_INIT(&ch->conntask, 0, ata_conn_event, dev);
 	for (i = 0; i < 16; i++) {
 		ch->user[i].revision = 0;
 		snprintf(buf, sizeof(buf), "dev%d.sata_rev", i);
 		if (resource_int_value(device_get_name(dev),
-		    device_get_unit(dev), buf, &mode) != 0 &&
+			device_get_unit(dev), buf, &mode) != 0 &&
 		    resource_int_value(device_get_name(dev),
-		    device_get_unit(dev), "sata_rev", &mode) != 0)
+			device_get_unit(dev), "sata_rev", &mode) != 0)
 			mode = -1;
 		if (mode >= 0)
 			ch->user[i].revision = mode;
 		ch->user[i].mode = 0;
 		snprintf(buf, sizeof(buf), "dev%d.mode", i);
 		if (resource_string_value(device_get_name(dev),
-		    device_get_unit(dev), buf, &res) == 0)
+			device_get_unit(dev), buf, &res) == 0)
 			mode = ata_str2mode(res);
 		else if (resource_string_value(device_get_name(dev),
-		    device_get_unit(dev), "mode", &res) == 0)
+			     device_get_unit(dev), "mode", &res) == 0)
 			mode = ata_str2mode(res);
 		else
 			mode = -1;
@@ -150,24 +153,24 @@ ata_attach(device_t dev)
 	}
 	callout_init(&ch->poll_callout, 1);
 
-    /* allocate DMA resources if DMA HW present*/
-    if (ch->dma.alloc)
-	ch->dma.alloc(dev);
+	/* allocate DMA resources if DMA HW present*/
+	if (ch->dma.alloc)
+		ch->dma.alloc(dev);
 
-    /* setup interrupt delivery */
-    rid = ATA_IRQ_RID;
-    ch->r_irq = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid,
-				       RF_SHAREABLE | RF_ACTIVE);
-    if (!ch->r_irq) {
-	device_printf(dev, "unable to allocate interrupt\n");
-	return ENXIO;
-    }
-    if ((error = bus_setup_intr(dev, ch->r_irq, ATA_INTR_FLAGS, NULL,
-				ata_interrupt, ch, &ch->ih))) {
-	bus_release_resource(dev, SYS_RES_IRQ, rid, ch->r_irq);
-	device_printf(dev, "unable to setup interrupt\n");
-	return error;
-    }
+	/* setup interrupt delivery */
+	rid = ATA_IRQ_RID;
+	ch->r_irq = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid,
+	    RF_SHAREABLE | RF_ACTIVE);
+	if (!ch->r_irq) {
+		device_printf(dev, "unable to allocate interrupt\n");
+		return ENXIO;
+	}
+	if ((error = bus_setup_intr(dev, ch->r_irq, ATA_INTR_FLAGS, NULL,
+		 ata_interrupt, ch, &ch->ih))) {
+		bus_release_resource(dev, SYS_RES_IRQ, rid, ch->r_irq);
+		device_printf(dev, "unable to setup interrupt\n");
+		return error;
+	}
 
 	if (ch->flags & ATA_PERIODIC_POLL)
 		callout_reset(&ch->poll_callout, hz, ata_periodic_poll, ch);
@@ -193,8 +196,8 @@ ata_attach(device_t dev)
 		error = ENXIO;
 		goto err2;
 	}
-	if (xpt_create_path(&ch->path, /*periph*/NULL, cam_sim_path(ch->sim),
-	    CAM_TARGET_WILDCARD, CAM_LUN_WILDCARD) != CAM_REQ_CMP) {
+	if (xpt_create_path(&ch->path, /*periph*/ NULL, cam_sim_path(ch->sim),
+		CAM_TARGET_WILDCARD, CAM_LUN_WILDCARD) != CAM_REQ_CMP) {
 		device_printf(dev, "unable to create path\n");
 		error = ENXIO;
 		goto err3;
@@ -205,7 +208,7 @@ ata_attach(device_t dev)
 err3:
 	xpt_bus_deregister(cam_sim_path(ch->sim));
 err2:
-	cam_sim_free(ch->sim, /*free_devq*/TRUE);
+	cam_sim_free(ch->sim, /*free_devq*/ TRUE);
 	ch->sim = NULL;
 err1:
 	bus_release_resource(dev, SYS_RES_IRQ, rid, ch->r_irq);
@@ -218,40 +221,40 @@ err1:
 int
 ata_detach(device_t dev)
 {
-    struct ata_channel *ch = device_get_softc(dev);
+	struct ata_channel *ch = device_get_softc(dev);
 
-    /* check that we have a valid channel to detach */
-    if (!ch->r_irq)
-	return ENXIO;
+	/* check that we have a valid channel to detach */
+	if (!ch->r_irq)
+		return ENXIO;
 
-    /* grap the channel lock so no new requests gets launched */
-    mtx_lock(&ch->state_mtx);
-    ch->state |= ATA_STALL_QUEUE;
-    mtx_unlock(&ch->state_mtx);
-    if (ch->flags & ATA_PERIODIC_POLL)
-	callout_drain(&ch->poll_callout);
+	/* grap the channel lock so no new requests gets launched */
+	mtx_lock(&ch->state_mtx);
+	ch->state |= ATA_STALL_QUEUE;
+	mtx_unlock(&ch->state_mtx);
+	if (ch->flags & ATA_PERIODIC_POLL)
+		callout_drain(&ch->poll_callout);
 
-    taskqueue_drain(taskqueue_thread, &ch->conntask);
+	taskqueue_drain(taskqueue_thread, &ch->conntask);
 
 	mtx_lock(&ch->state_mtx);
 	xpt_async(AC_LOST_DEVICE, ch->path, NULL);
 	xpt_free_path(ch->path);
 	xpt_bus_deregister(cam_sim_path(ch->sim));
-	cam_sim_free(ch->sim, /*free_devq*/TRUE);
+	cam_sim_free(ch->sim, /*free_devq*/ TRUE);
 	ch->sim = NULL;
 	mtx_unlock(&ch->state_mtx);
 
-    /* release resources */
-    bus_teardown_intr(dev, ch->r_irq, ch->ih);
-    bus_release_resource(dev, SYS_RES_IRQ, ATA_IRQ_RID, ch->r_irq);
-    ch->r_irq = NULL;
+	/* release resources */
+	bus_teardown_intr(dev, ch->r_irq, ch->ih);
+	bus_release_resource(dev, SYS_RES_IRQ, ATA_IRQ_RID, ch->r_irq);
+	ch->r_irq = NULL;
 
-    /* free DMA resources if DMA HW present*/
-    if (ch->dma.free)
-	ch->dma.free(dev);
+	/* free DMA resources if DMA HW present*/
+	if (ch->dma.free)
+		ch->dma.free(dev);
 
-    mtx_destroy(&ch->state_mtx);
-    return 0;
+	mtx_destroy(&ch->state_mtx);
+	return 0;
 }
 
 static void
@@ -269,9 +272,8 @@ ata_conn_event(void *context, int dummy)
 	ata_reinit(dev);
 	if ((ccb = xpt_alloc_ccb_nowait()) == NULL)
 		return;
-	if (xpt_create_path(&ccb->ccb_h.path, NULL,
-	    cam_sim_path(ch->sim),
-	    CAM_TARGET_WILDCARD, CAM_LUN_WILDCARD) != CAM_REQ_CMP) {
+	if (xpt_create_path(&ccb->ccb_h.path, NULL, cam_sim_path(ch->sim),
+		CAM_TARGET_WILDCARD, CAM_LUN_WILDCARD) != CAM_REQ_CMP) {
 		xpt_free_ccb(ccb);
 		return;
 	}
@@ -282,17 +284,17 @@ ata_conn_event(void *context, int dummy)
 int
 ata_reinit(device_t dev)
 {
-    struct ata_channel *ch = device_get_softc(dev);
-    struct ata_request *request;
+	struct ata_channel *ch = device_get_softc(dev);
+	struct ata_request *request;
 
 	xpt_freeze_simq(ch->sim, 1);
 	if ((request = ch->running)) {
 		ch->running = NULL;
 		if (ch->state == ATA_ACTIVE)
-		    ch->state = ATA_IDLE;
+			ch->state = ATA_IDLE;
 		callout_stop(&request->callout);
 		if (ch->dma.unload)
-		    ch->dma.unload(request);
+			ch->dma.unload(request);
 		request->result = ERESTART;
 		ata_cam_end_transaction(dev, request);
 	}
@@ -301,37 +303,37 @@ ata_reinit(device_t dev)
 	/* Tell the XPT about the event */
 	xpt_async(AC_BUS_RESET, ch->path, NULL);
 	xpt_release_simq(ch->sim, TRUE);
-	return(0);
+	return (0);
 }
 
 int
 ata_suspend(device_t dev)
 {
-    struct ata_channel *ch;
+	struct ata_channel *ch;
 
-    /* check for valid device */
-    if (!dev || !(ch = device_get_softc(dev)))
-	return ENXIO;
+	/* check for valid device */
+	if (!dev || !(ch = device_get_softc(dev)))
+		return ENXIO;
 
-    if (ch->flags & ATA_PERIODIC_POLL)
-	callout_drain(&ch->poll_callout);
-    mtx_lock(&ch->state_mtx);
-    xpt_freeze_simq(ch->sim, 1);
-    while (ch->state != ATA_IDLE)
-	msleep(ch, &ch->state_mtx, PRIBIO, "atasusp", hz/100);
-    mtx_unlock(&ch->state_mtx);
-    return(0);
+	if (ch->flags & ATA_PERIODIC_POLL)
+		callout_drain(&ch->poll_callout);
+	mtx_lock(&ch->state_mtx);
+	xpt_freeze_simq(ch->sim, 1);
+	while (ch->state != ATA_IDLE)
+		msleep(ch, &ch->state_mtx, PRIBIO, "atasusp", hz / 100);
+	mtx_unlock(&ch->state_mtx);
+	return (0);
 }
 
 int
 ata_resume(device_t dev)
 {
-    struct ata_channel *ch;
-    int error;
+	struct ata_channel *ch;
+	int error;
 
-    /* check for valid device */
-    if (!dev || !(ch = device_get_softc(dev)))
-	return ENXIO;
+	/* check for valid device */
+	if (!dev || !(ch = device_get_softc(dev)))
+		return ENXIO;
 
 	mtx_lock(&ch->state_mtx);
 	error = ata_reinit(dev);
@@ -339,17 +341,17 @@ ata_resume(device_t dev)
 	mtx_unlock(&ch->state_mtx);
 	if (ch->flags & ATA_PERIODIC_POLL)
 		callout_reset(&ch->poll_callout, hz, ata_periodic_poll, ch);
-    return error;
+	return error;
 }
 
 void
 ata_interrupt(void *data)
 {
-    struct ata_channel *ch = (struct ata_channel *)data;
+	struct ata_channel *ch = (struct ata_channel *)data;
 
-    mtx_lock(&ch->state_mtx);
-    ata_interrupt_locked(data);
-    mtx_unlock(&ch->state_mtx);
+	mtx_lock(&ch->state_mtx);
+	ata_interrupt_locked(data);
+	mtx_unlock(&ch->state_mtx);
 }
 
 static void
@@ -370,7 +372,8 @@ ata_interrupt_locked(void *data)
 
 	/* safetycheck for the right state */
 	if (ch->state == ATA_IDLE) {
-		device_printf(request->dev, "interrupt on idle channel ignored\n");
+		device_printf(request->dev,
+		    "interrupt on idle channel ignored\n");
 		return;
 	}
 
@@ -390,17 +393,17 @@ ata_interrupt_locked(void *data)
 static void
 ata_periodic_poll(void *data)
 {
-    struct ata_channel *ch = (struct ata_channel *)data;
+	struct ata_channel *ch = (struct ata_channel *)data;
 
-    callout_reset(&ch->poll_callout, hz, ata_periodic_poll, ch);
-    ata_interrupt(ch);
+	callout_reset(&ch->poll_callout, hz, ata_periodic_poll, ch);
+	ata_interrupt(ch);
 }
 
 void
 ata_print_cable(device_t dev, u_int8_t *who)
 {
-    device_printf(dev,
-                  "DMA limited to UDMA33, %s found non-ATA66 cable\n", who);
+	device_printf(dev, "DMA limited to UDMA33, %s found non-ATA66 cable\n",
+	    who);
 }
 
 /*
@@ -409,27 +412,28 @@ ata_print_cable(device_t dev, u_int8_t *who)
 void
 ata_default_registers(device_t dev)
 {
-    struct ata_channel *ch = device_get_softc(dev);
+	struct ata_channel *ch = device_get_softc(dev);
 
-    /* fill in the defaults from whats setup already */
-    ch->r_io[ATA_ERROR].res = ch->r_io[ATA_FEATURE].res;
-    ch->r_io[ATA_ERROR].offset = ch->r_io[ATA_FEATURE].offset;
-    ch->r_io[ATA_IREASON].res = ch->r_io[ATA_COUNT].res;
-    ch->r_io[ATA_IREASON].offset = ch->r_io[ATA_COUNT].offset;
-    ch->r_io[ATA_STATUS].res = ch->r_io[ATA_COMMAND].res;
-    ch->r_io[ATA_STATUS].offset = ch->r_io[ATA_COMMAND].offset;
-    ch->r_io[ATA_ALTSTAT].res = ch->r_io[ATA_CONTROL].res;
-    ch->r_io[ATA_ALTSTAT].offset = ch->r_io[ATA_CONTROL].offset;
+	/* fill in the defaults from whats setup already */
+	ch->r_io[ATA_ERROR].res = ch->r_io[ATA_FEATURE].res;
+	ch->r_io[ATA_ERROR].offset = ch->r_io[ATA_FEATURE].offset;
+	ch->r_io[ATA_IREASON].res = ch->r_io[ATA_COUNT].res;
+	ch->r_io[ATA_IREASON].offset = ch->r_io[ATA_COUNT].offset;
+	ch->r_io[ATA_STATUS].res = ch->r_io[ATA_COMMAND].res;
+	ch->r_io[ATA_STATUS].offset = ch->r_io[ATA_COMMAND].offset;
+	ch->r_io[ATA_ALTSTAT].res = ch->r_io[ATA_CONTROL].res;
+	ch->r_io[ATA_ALTSTAT].offset = ch->r_io[ATA_CONTROL].offset;
 }
 
 void
 ata_udelay(int interval)
 {
-    /* for now just use DELAY, the timer/sleep subsystems are not there yet */
-    if (1 || interval < (1000000/hz))
-	DELAY(interval);
-    else
-	pause("ataslp", interval/(1000000/hz));
+	/* for now just use DELAY, the timer/sleep subsystems are not there yet
+	 */
+	if (1 || interval < (1000000 / hz))
+		DELAY(interval);
+	else
+		pause("ataslp", interval / (1000000 / hz));
 }
 
 const char *
@@ -439,191 +443,347 @@ ata_cmd2str(struct ata_request *request)
 
 	if (request->flags & ATA_R_ATAPI) {
 		switch (request->u.atapi.sense.key ?
-		    request->u.atapi.saved_cmd : request->u.atapi.ccb[0]) {
-		case 0x00: return ("TEST_UNIT_READY");
-		case 0x01: return ("REZERO");
-		case 0x03: return ("REQUEST_SENSE");
-		case 0x04: return ("FORMAT");
-		case 0x08: return ("READ");
-		case 0x0a: return ("WRITE");
-		case 0x10: return ("WEOF");
-		case 0x11: return ("SPACE");
-		case 0x12: return ("INQUIRY");
-		case 0x15: return ("MODE_SELECT");
-		case 0x19: return ("ERASE");
-		case 0x1a: return ("MODE_SENSE");
-		case 0x1b: return ("START_STOP");
-		case 0x1e: return ("PREVENT_ALLOW");
-		case 0x23: return ("ATAPI_READ_FORMAT_CAPACITIES");
-		case 0x25: return ("READ_CAPACITY");
-		case 0x28: return ("READ_BIG");
-		case 0x2a: return ("WRITE_BIG");
-		case 0x2b: return ("LOCATE");
-		case 0x34: return ("READ_POSITION");
-		case 0x35: return ("SYNCHRONIZE_CACHE");
-		case 0x3b: return ("WRITE_BUFFER");
-		case 0x3c: return ("READ_BUFFER");
-		case 0x42: return ("READ_SUBCHANNEL");
-		case 0x43: return ("READ_TOC");
-		case 0x45: return ("PLAY_10");
-		case 0x47: return ("PLAY_MSF");
-		case 0x48: return ("PLAY_TRACK");
-		case 0x4b: return ("PAUSE");
-		case 0x51: return ("READ_DISK_INFO");
-		case 0x52: return ("READ_TRACK_INFO");
-		case 0x53: return ("RESERVE_TRACK");
-		case 0x54: return ("SEND_OPC_INFO");
-		case 0x55: return ("MODE_SELECT_BIG");
-		case 0x58: return ("REPAIR_TRACK");
-		case 0x59: return ("READ_MASTER_CUE");
-		case 0x5a: return ("MODE_SENSE_BIG");
-		case 0x5b: return ("CLOSE_TRACK/SESSION");
-		case 0x5c: return ("READ_BUFFER_CAPACITY");
-		case 0x5d: return ("SEND_CUE_SHEET");
-		case 0x96: return ("SERVICE_ACTION_IN");
-		case 0xa1: return ("BLANK_CMD");
-		case 0xa3: return ("SEND_KEY");
-		case 0xa4: return ("REPORT_KEY");
-		case 0xa5: return ("PLAY_12");
-		case 0xa6: return ("LOAD_UNLOAD");
-		case 0xad: return ("READ_DVD_STRUCTURE");
-		case 0xb4: return ("PLAY_CD");
-		case 0xbb: return ("SET_SPEED");
-		case 0xbd: return ("MECH_STATUS");
-		case 0xbe: return ("READ_CD");
-		case 0xff: return ("POLL_DSC");
+			request->u.atapi.saved_cmd :
+			request->u.atapi.ccb[0]) {
+		case 0x00:
+			return ("TEST_UNIT_READY");
+		case 0x01:
+			return ("REZERO");
+		case 0x03:
+			return ("REQUEST_SENSE");
+		case 0x04:
+			return ("FORMAT");
+		case 0x08:
+			return ("READ");
+		case 0x0a:
+			return ("WRITE");
+		case 0x10:
+			return ("WEOF");
+		case 0x11:
+			return ("SPACE");
+		case 0x12:
+			return ("INQUIRY");
+		case 0x15:
+			return ("MODE_SELECT");
+		case 0x19:
+			return ("ERASE");
+		case 0x1a:
+			return ("MODE_SENSE");
+		case 0x1b:
+			return ("START_STOP");
+		case 0x1e:
+			return ("PREVENT_ALLOW");
+		case 0x23:
+			return ("ATAPI_READ_FORMAT_CAPACITIES");
+		case 0x25:
+			return ("READ_CAPACITY");
+		case 0x28:
+			return ("READ_BIG");
+		case 0x2a:
+			return ("WRITE_BIG");
+		case 0x2b:
+			return ("LOCATE");
+		case 0x34:
+			return ("READ_POSITION");
+		case 0x35:
+			return ("SYNCHRONIZE_CACHE");
+		case 0x3b:
+			return ("WRITE_BUFFER");
+		case 0x3c:
+			return ("READ_BUFFER");
+		case 0x42:
+			return ("READ_SUBCHANNEL");
+		case 0x43:
+			return ("READ_TOC");
+		case 0x45:
+			return ("PLAY_10");
+		case 0x47:
+			return ("PLAY_MSF");
+		case 0x48:
+			return ("PLAY_TRACK");
+		case 0x4b:
+			return ("PAUSE");
+		case 0x51:
+			return ("READ_DISK_INFO");
+		case 0x52:
+			return ("READ_TRACK_INFO");
+		case 0x53:
+			return ("RESERVE_TRACK");
+		case 0x54:
+			return ("SEND_OPC_INFO");
+		case 0x55:
+			return ("MODE_SELECT_BIG");
+		case 0x58:
+			return ("REPAIR_TRACK");
+		case 0x59:
+			return ("READ_MASTER_CUE");
+		case 0x5a:
+			return ("MODE_SENSE_BIG");
+		case 0x5b:
+			return ("CLOSE_TRACK/SESSION");
+		case 0x5c:
+			return ("READ_BUFFER_CAPACITY");
+		case 0x5d:
+			return ("SEND_CUE_SHEET");
+		case 0x96:
+			return ("SERVICE_ACTION_IN");
+		case 0xa1:
+			return ("BLANK_CMD");
+		case 0xa3:
+			return ("SEND_KEY");
+		case 0xa4:
+			return ("REPORT_KEY");
+		case 0xa5:
+			return ("PLAY_12");
+		case 0xa6:
+			return ("LOAD_UNLOAD");
+		case 0xad:
+			return ("READ_DVD_STRUCTURE");
+		case 0xb4:
+			return ("PLAY_CD");
+		case 0xbb:
+			return ("SET_SPEED");
+		case 0xbd:
+			return ("MECH_STATUS");
+		case 0xbe:
+			return ("READ_CD");
+		case 0xff:
+			return ("POLL_DSC");
 		}
 	} else {
 		switch (request->u.ata.command) {
 		case 0x00:
 			switch (request->u.ata.feature) {
-			case 0x00: return ("NOP FLUSHQUEUE");
-			case 0x01: return ("NOP AUTOPOLL");
+			case 0x00:
+				return ("NOP FLUSHQUEUE");
+			case 0x01:
+				return ("NOP AUTOPOLL");
 			}
 			return ("NOP");
-		case 0x03: return ("CFA_REQUEST_EXTENDED_ERROR");
+		case 0x03:
+			return ("CFA_REQUEST_EXTENDED_ERROR");
 		case 0x06:
 			switch (request->u.ata.feature) {
-			case 0x01: return ("DSM TRIM");
+			case 0x01:
+				return ("DSM TRIM");
 			}
 			return "DSM";
-		case 0x08: return ("DEVICE_RESET");
-		case 0x20: return ("READ");
-		case 0x24: return ("READ48");
-		case 0x25: return ("READ_DMA48");
-		case 0x26: return ("READ_DMA_QUEUED48");
-		case 0x27: return ("READ_NATIVE_MAX_ADDRESS48");
-		case 0x29: return ("READ_MUL48");
-		case 0x2a: return ("READ_STREAM_DMA48");
-		case 0x2b: return ("READ_STREAM48");
-		case 0x2f: return ("READ_LOG_EXT");
-		case 0x30: return ("WRITE");
-		case 0x34: return ("WRITE48");
-		case 0x35: return ("WRITE_DMA48");
-		case 0x36: return ("WRITE_DMA_QUEUED48");
-		case 0x37: return ("SET_MAX_ADDRESS48");
-		case 0x39: return ("WRITE_MUL48");
-		case 0x3a: return ("WRITE_STREAM_DMA48");
-		case 0x3b: return ("WRITE_STREAM48");
-		case 0x3d: return ("WRITE_DMA_FUA48");
-		case 0x3e: return ("WRITE_DMA_QUEUED_FUA48");
-		case 0x3f: return ("WRITE_LOG_EXT");
-		case 0x40: return ("READ_VERIFY");
-		case 0x42: return ("READ_VERIFY48");
+		case 0x08:
+			return ("DEVICE_RESET");
+		case 0x20:
+			return ("READ");
+		case 0x24:
+			return ("READ48");
+		case 0x25:
+			return ("READ_DMA48");
+		case 0x26:
+			return ("READ_DMA_QUEUED48");
+		case 0x27:
+			return ("READ_NATIVE_MAX_ADDRESS48");
+		case 0x29:
+			return ("READ_MUL48");
+		case 0x2a:
+			return ("READ_STREAM_DMA48");
+		case 0x2b:
+			return ("READ_STREAM48");
+		case 0x2f:
+			return ("READ_LOG_EXT");
+		case 0x30:
+			return ("WRITE");
+		case 0x34:
+			return ("WRITE48");
+		case 0x35:
+			return ("WRITE_DMA48");
+		case 0x36:
+			return ("WRITE_DMA_QUEUED48");
+		case 0x37:
+			return ("SET_MAX_ADDRESS48");
+		case 0x39:
+			return ("WRITE_MUL48");
+		case 0x3a:
+			return ("WRITE_STREAM_DMA48");
+		case 0x3b:
+			return ("WRITE_STREAM48");
+		case 0x3d:
+			return ("WRITE_DMA_FUA48");
+		case 0x3e:
+			return ("WRITE_DMA_QUEUED_FUA48");
+		case 0x3f:
+			return ("WRITE_LOG_EXT");
+		case 0x40:
+			return ("READ_VERIFY");
+		case 0x42:
+			return ("READ_VERIFY48");
 		case 0x45:
 			switch (request->u.ata.feature) {
-			case 0x55: return ("WRITE_UNCORRECTABLE48 PSEUDO");
-			case 0xaa: return ("WRITE_UNCORRECTABLE48 FLAGGED");
+			case 0x55:
+				return ("WRITE_UNCORRECTABLE48 PSEUDO");
+			case 0xaa:
+				return ("WRITE_UNCORRECTABLE48 FLAGGED");
 			}
 			return "WRITE_UNCORRECTABLE48";
-		case 0x51: return ("CONFIGURE_STREAM");
-		case 0x60: return ("READ_FPDMA_QUEUED");
-		case 0x61: return ("WRITE_FPDMA_QUEUED");
-		case 0x63: return ("NCQ_NON_DATA");
-		case 0x64: return ("SEND_FPDMA_QUEUED");
-		case 0x65: return ("RECEIVE_FPDMA_QUEUED");
+		case 0x51:
+			return ("CONFIGURE_STREAM");
+		case 0x60:
+			return ("READ_FPDMA_QUEUED");
+		case 0x61:
+			return ("WRITE_FPDMA_QUEUED");
+		case 0x63:
+			return ("NCQ_NON_DATA");
+		case 0x64:
+			return ("SEND_FPDMA_QUEUED");
+		case 0x65:
+			return ("RECEIVE_FPDMA_QUEUED");
 		case 0x67:
 			if (request->u.ata.feature == 0xec)
 				return ("SEP_ATTN IDENTIFY");
 			switch (request->u.ata.lba) {
-			case 0x00: return ("SEP_ATTN READ BUFFER");
-			case 0x02: return ("SEP_ATTN RECEIVE DIAGNOSTIC RESULTS");
-			case 0x80: return ("SEP_ATTN WRITE BUFFER");
-			case 0x82: return ("SEP_ATTN SEND DIAGNOSTIC");
+			case 0x00:
+				return ("SEP_ATTN READ BUFFER");
+			case 0x02:
+				return ("SEP_ATTN RECEIVE DIAGNOSTIC RESULTS");
+			case 0x80:
+				return ("SEP_ATTN WRITE BUFFER");
+			case 0x82:
+				return ("SEP_ATTN SEND DIAGNOSTIC");
 			}
 			return ("SEP_ATTN");
-		case 0x70: return ("SEEK");
-		case 0x87: return ("CFA_TRANSLATE_SECTOR");
-		case 0x90: return ("EXECUTE_DEVICE_DIAGNOSTIC");
-		case 0x92: return ("DOWNLOAD_MICROCODE");
-		case 0xa0: return ("PACKET");
-		case 0xa1: return ("ATAPI_IDENTIFY");
-		case 0xa2: return ("SERVICE");
+		case 0x70:
+			return ("SEEK");
+		case 0x87:
+			return ("CFA_TRANSLATE_SECTOR");
+		case 0x90:
+			return ("EXECUTE_DEVICE_DIAGNOSTIC");
+		case 0x92:
+			return ("DOWNLOAD_MICROCODE");
+		case 0xa0:
+			return ("PACKET");
+		case 0xa1:
+			return ("ATAPI_IDENTIFY");
+		case 0xa2:
+			return ("SERVICE");
 		case 0xb0:
-			switch(request->u.ata.feature) {
-			case 0xd0: return ("SMART READ ATTR VALUES");
-			case 0xd1: return ("SMART READ ATTR THRESHOLDS");
-			case 0xd3: return ("SMART SAVE ATTR VALUES");
-			case 0xd4: return ("SMART EXECUTE OFFLINE IMMEDIATE");
-			case 0xd5: return ("SMART READ LOG DATA");
-			case 0xd8: return ("SMART ENABLE OPERATION");
-			case 0xd9: return ("SMART DISABLE OPERATION");
-			case 0xda: return ("SMART RETURN STATUS");
+			switch (request->u.ata.feature) {
+			case 0xd0:
+				return ("SMART READ ATTR VALUES");
+			case 0xd1:
+				return ("SMART READ ATTR THRESHOLDS");
+			case 0xd3:
+				return ("SMART SAVE ATTR VALUES");
+			case 0xd4:
+				return ("SMART EXECUTE OFFLINE IMMEDIATE");
+			case 0xd5:
+				return ("SMART READ LOG DATA");
+			case 0xd8:
+				return ("SMART ENABLE OPERATION");
+			case 0xd9:
+				return ("SMART DISABLE OPERATION");
+			case 0xda:
+				return ("SMART RETURN STATUS");
 			}
 			return ("SMART");
-		case 0xb1: return ("DEVICE CONFIGURATION");
-		case 0xc0: return ("CFA_ERASE");
-		case 0xc4: return ("READ_MUL");
-		case 0xc5: return ("WRITE_MUL");
-		case 0xc6: return ("SET_MULTI");
-		case 0xc7: return ("READ_DMA_QUEUED");
-		case 0xc8: return ("READ_DMA");
-		case 0xca: return ("WRITE_DMA");
-		case 0xcc: return ("WRITE_DMA_QUEUED");
-		case 0xcd: return ("CFA_WRITE_MULTIPLE_WITHOUT_ERASE");
-		case 0xce: return ("WRITE_MUL_FUA48");
-		case 0xd1: return ("CHECK_MEDIA_CARD_TYPE");
-		case 0xda: return ("GET_MEDIA_STATUS");
-		case 0xde: return ("MEDIA_LOCK");
-		case 0xdf: return ("MEDIA_UNLOCK");
-		case 0xe0: return ("STANDBY_IMMEDIATE");
-		case 0xe1: return ("IDLE_IMMEDIATE");
-		case 0xe2: return ("STANDBY");
-		case 0xe3: return ("IDLE");
-		case 0xe4: return ("READ_BUFFER/PM");
-		case 0xe5: return ("CHECK_POWER_MODE");
-		case 0xe6: return ("SLEEP");
-		case 0xe7: return ("FLUSHCACHE");
-		case 0xe8: return ("WRITE_PM");
-		case 0xea: return ("FLUSHCACHE48");
-		case 0xec: return ("ATA_IDENTIFY");
-		case 0xed: return ("MEDIA_EJECT");
+		case 0xb1:
+			return ("DEVICE CONFIGURATION");
+		case 0xc0:
+			return ("CFA_ERASE");
+		case 0xc4:
+			return ("READ_MUL");
+		case 0xc5:
+			return ("WRITE_MUL");
+		case 0xc6:
+			return ("SET_MULTI");
+		case 0xc7:
+			return ("READ_DMA_QUEUED");
+		case 0xc8:
+			return ("READ_DMA");
+		case 0xca:
+			return ("WRITE_DMA");
+		case 0xcc:
+			return ("WRITE_DMA_QUEUED");
+		case 0xcd:
+			return ("CFA_WRITE_MULTIPLE_WITHOUT_ERASE");
+		case 0xce:
+			return ("WRITE_MUL_FUA48");
+		case 0xd1:
+			return ("CHECK_MEDIA_CARD_TYPE");
+		case 0xda:
+			return ("GET_MEDIA_STATUS");
+		case 0xde:
+			return ("MEDIA_LOCK");
+		case 0xdf:
+			return ("MEDIA_UNLOCK");
+		case 0xe0:
+			return ("STANDBY_IMMEDIATE");
+		case 0xe1:
+			return ("IDLE_IMMEDIATE");
+		case 0xe2:
+			return ("STANDBY");
+		case 0xe3:
+			return ("IDLE");
+		case 0xe4:
+			return ("READ_BUFFER/PM");
+		case 0xe5:
+			return ("CHECK_POWER_MODE");
+		case 0xe6:
+			return ("SLEEP");
+		case 0xe7:
+			return ("FLUSHCACHE");
+		case 0xe8:
+			return ("WRITE_PM");
+		case 0xea:
+			return ("FLUSHCACHE48");
+		case 0xec:
+			return ("ATA_IDENTIFY");
+		case 0xed:
+			return ("MEDIA_EJECT");
 		case 0xef:
 			switch (request->u.ata.feature) {
-			case 0x03: return ("SETFEATURES SET TRANSFER MODE");
-			case 0x02: return ("SETFEATURES ENABLE WCACHE");
-			case 0x82: return ("SETFEATURES DISABLE WCACHE");
-			case 0x06: return ("SETFEATURES ENABLE PUIS");
-			case 0x86: return ("SETFEATURES DISABLE PUIS");
-			case 0x07: return ("SETFEATURES SPIN-UP");
-			case 0x10: return ("SETFEATURES ENABLE SATA FEATURE");
-			case 0x90: return ("SETFEATURES DISABLE SATA FEATURE");
-			case 0xaa: return ("SETFEATURES ENABLE RCACHE");
-			case 0x55: return ("SETFEATURES DISABLE RCACHE");
-			case 0x5d: return ("SETFEATURES ENABLE RELIRQ");
-			case 0xdd: return ("SETFEATURES DISABLE RELIRQ");
-			case 0x5e: return ("SETFEATURES ENABLE SRVIRQ");
-			case 0xde: return ("SETFEATURES DISABLE SRVIRQ");
+			case 0x03:
+				return ("SETFEATURES SET TRANSFER MODE");
+			case 0x02:
+				return ("SETFEATURES ENABLE WCACHE");
+			case 0x82:
+				return ("SETFEATURES DISABLE WCACHE");
+			case 0x06:
+				return ("SETFEATURES ENABLE PUIS");
+			case 0x86:
+				return ("SETFEATURES DISABLE PUIS");
+			case 0x07:
+				return ("SETFEATURES SPIN-UP");
+			case 0x10:
+				return ("SETFEATURES ENABLE SATA FEATURE");
+			case 0x90:
+				return ("SETFEATURES DISABLE SATA FEATURE");
+			case 0xaa:
+				return ("SETFEATURES ENABLE RCACHE");
+			case 0x55:
+				return ("SETFEATURES DISABLE RCACHE");
+			case 0x5d:
+				return ("SETFEATURES ENABLE RELIRQ");
+			case 0xdd:
+				return ("SETFEATURES DISABLE RELIRQ");
+			case 0x5e:
+				return ("SETFEATURES ENABLE SRVIRQ");
+			case 0xde:
+				return ("SETFEATURES DISABLE SRVIRQ");
 			}
 			return "SETFEATURES";
-		case 0xf1: return ("SECURITY_SET_PASSWORD");
-		case 0xf2: return ("SECURITY_UNLOCK");
-		case 0xf3: return ("SECURITY_ERASE_PREPARE");
-		case 0xf4: return ("SECURITY_ERASE_UNIT");
-		case 0xf5: return ("SECURITY_FREEZE_LOCK");
-		case 0xf6: return ("SECURITY_DISABLE_PASSWORD");
-		case 0xf8: return ("READ_NATIVE_MAX_ADDRESS");
-		case 0xf9: return ("SET_MAX_ADDRESS");
+		case 0xf1:
+			return ("SECURITY_SET_PASSWORD");
+		case 0xf2:
+			return ("SECURITY_UNLOCK");
+		case 0xf3:
+			return ("SECURITY_ERASE_PREPARE");
+		case 0xf4:
+			return ("SECURITY_ERASE_UNIT");
+		case 0xf5:
+			return ("SECURITY_FREEZE_LOCK");
+		case 0xf6:
+			return ("SECURITY_DISABLE_PASSWORD");
+		case 0xf8:
+			return ("READ_NATIVE_MAX_ADDRESS");
+		case 0xf9:
+			return ("SET_MAX_ADDRESS");
 		}
 	}
 	sprintf(buffer, "unknown CMD (0x%02x)", request->u.ata.command);
@@ -633,69 +793,110 @@ ata_cmd2str(struct ata_request *request)
 const char *
 ata_mode2str(int mode)
 {
-    switch (mode) {
-    case -1: return "UNSUPPORTED";
-    case ATA_PIO0: return "PIO0";
-    case ATA_PIO1: return "PIO1";
-    case ATA_PIO2: return "PIO2";
-    case ATA_PIO3: return "PIO3";
-    case ATA_PIO4: return "PIO4";
-    case ATA_WDMA0: return "WDMA0";
-    case ATA_WDMA1: return "WDMA1";
-    case ATA_WDMA2: return "WDMA2";
-    case ATA_UDMA0: return "UDMA16";
-    case ATA_UDMA1: return "UDMA25";
-    case ATA_UDMA2: return "UDMA33";
-    case ATA_UDMA3: return "UDMA40";
-    case ATA_UDMA4: return "UDMA66";
-    case ATA_UDMA5: return "UDMA100";
-    case ATA_UDMA6: return "UDMA133";
-    case ATA_SA150: return "SATA150";
-    case ATA_SA300: return "SATA300";
-    case ATA_SA600: return "SATA600";
-    default:
-	if (mode & ATA_DMA_MASK)
-	    return "BIOSDMA";
-	else
-	    return "BIOSPIO";
-    }
+	switch (mode) {
+	case -1:
+		return "UNSUPPORTED";
+	case ATA_PIO0:
+		return "PIO0";
+	case ATA_PIO1:
+		return "PIO1";
+	case ATA_PIO2:
+		return "PIO2";
+	case ATA_PIO3:
+		return "PIO3";
+	case ATA_PIO4:
+		return "PIO4";
+	case ATA_WDMA0:
+		return "WDMA0";
+	case ATA_WDMA1:
+		return "WDMA1";
+	case ATA_WDMA2:
+		return "WDMA2";
+	case ATA_UDMA0:
+		return "UDMA16";
+	case ATA_UDMA1:
+		return "UDMA25";
+	case ATA_UDMA2:
+		return "UDMA33";
+	case ATA_UDMA3:
+		return "UDMA40";
+	case ATA_UDMA4:
+		return "UDMA66";
+	case ATA_UDMA5:
+		return "UDMA100";
+	case ATA_UDMA6:
+		return "UDMA133";
+	case ATA_SA150:
+		return "SATA150";
+	case ATA_SA300:
+		return "SATA300";
+	case ATA_SA600:
+		return "SATA600";
+	default:
+		if (mode & ATA_DMA_MASK)
+			return "BIOSDMA";
+		else
+			return "BIOSPIO";
+	}
 }
 
 static int
 ata_str2mode(const char *str)
 {
 
-	if (!strcasecmp(str, "PIO0")) return (ATA_PIO0);
-	if (!strcasecmp(str, "PIO1")) return (ATA_PIO1);
-	if (!strcasecmp(str, "PIO2")) return (ATA_PIO2);
-	if (!strcasecmp(str, "PIO3")) return (ATA_PIO3);
-	if (!strcasecmp(str, "PIO4")) return (ATA_PIO4);
-	if (!strcasecmp(str, "WDMA0")) return (ATA_WDMA0);
-	if (!strcasecmp(str, "WDMA1")) return (ATA_WDMA1);
-	if (!strcasecmp(str, "WDMA2")) return (ATA_WDMA2);
-	if (!strcasecmp(str, "UDMA0")) return (ATA_UDMA0);
-	if (!strcasecmp(str, "UDMA16")) return (ATA_UDMA0);
-	if (!strcasecmp(str, "UDMA1")) return (ATA_UDMA1);
-	if (!strcasecmp(str, "UDMA25")) return (ATA_UDMA1);
-	if (!strcasecmp(str, "UDMA2")) return (ATA_UDMA2);
-	if (!strcasecmp(str, "UDMA33")) return (ATA_UDMA2);
-	if (!strcasecmp(str, "UDMA3")) return (ATA_UDMA3);
-	if (!strcasecmp(str, "UDMA44")) return (ATA_UDMA3);
-	if (!strcasecmp(str, "UDMA4")) return (ATA_UDMA4);
-	if (!strcasecmp(str, "UDMA66")) return (ATA_UDMA4);
-	if (!strcasecmp(str, "UDMA5")) return (ATA_UDMA5);
-	if (!strcasecmp(str, "UDMA100")) return (ATA_UDMA5);
-	if (!strcasecmp(str, "UDMA6")) return (ATA_UDMA6);
-	if (!strcasecmp(str, "UDMA133")) return (ATA_UDMA6);
+	if (!strcasecmp(str, "PIO0"))
+		return (ATA_PIO0);
+	if (!strcasecmp(str, "PIO1"))
+		return (ATA_PIO1);
+	if (!strcasecmp(str, "PIO2"))
+		return (ATA_PIO2);
+	if (!strcasecmp(str, "PIO3"))
+		return (ATA_PIO3);
+	if (!strcasecmp(str, "PIO4"))
+		return (ATA_PIO4);
+	if (!strcasecmp(str, "WDMA0"))
+		return (ATA_WDMA0);
+	if (!strcasecmp(str, "WDMA1"))
+		return (ATA_WDMA1);
+	if (!strcasecmp(str, "WDMA2"))
+		return (ATA_WDMA2);
+	if (!strcasecmp(str, "UDMA0"))
+		return (ATA_UDMA0);
+	if (!strcasecmp(str, "UDMA16"))
+		return (ATA_UDMA0);
+	if (!strcasecmp(str, "UDMA1"))
+		return (ATA_UDMA1);
+	if (!strcasecmp(str, "UDMA25"))
+		return (ATA_UDMA1);
+	if (!strcasecmp(str, "UDMA2"))
+		return (ATA_UDMA2);
+	if (!strcasecmp(str, "UDMA33"))
+		return (ATA_UDMA2);
+	if (!strcasecmp(str, "UDMA3"))
+		return (ATA_UDMA3);
+	if (!strcasecmp(str, "UDMA44"))
+		return (ATA_UDMA3);
+	if (!strcasecmp(str, "UDMA4"))
+		return (ATA_UDMA4);
+	if (!strcasecmp(str, "UDMA66"))
+		return (ATA_UDMA4);
+	if (!strcasecmp(str, "UDMA5"))
+		return (ATA_UDMA5);
+	if (!strcasecmp(str, "UDMA100"))
+		return (ATA_UDMA5);
+	if (!strcasecmp(str, "UDMA6"))
+		return (ATA_UDMA6);
+	if (!strcasecmp(str, "UDMA133"))
+		return (ATA_UDMA6);
 	return (-1);
 }
 
 int
 ata_atapi(device_t dev, int target)
 {
-    struct ata_channel *ch = device_get_softc(dev);
+	struct ata_channel *ch = device_get_softc(dev);
 
-    return (ch->devices & (ATA_ATAPI_MASTER << target));
+	return (ch->devices & (ATA_ATAPI_MASTER << target));
 }
 
 void
@@ -706,7 +907,7 @@ ata_timeout(void *arg)
 
 	request = arg;
 	ch = device_get_softc(request->parent);
-	//request->flags |= ATA_R_DEBUG;
+	// request->flags |= ATA_R_DEBUG;
 	ATA_DEBUG_RQ(request, "timeout");
 
 	/*
@@ -743,23 +944,26 @@ ata_cam_begin_transaction(device_t dev, union ccb *ccb)
 		request->data = ccb->ataio.data_ptr;
 		request->bytecount = ccb->ataio.dxfer_len;
 		request->u.ata.command = ccb->ataio.cmd.command;
-		request->u.ata.feature = ((uint16_t)ccb->ataio.cmd.features_exp << 8) |
-					  (uint16_t)ccb->ataio.cmd.features;
-		request->u.ata.count = ((uint16_t)ccb->ataio.cmd.sector_count_exp << 8) |
-					(uint16_t)ccb->ataio.cmd.sector_count;
+		request->u.ata.feature = ((uint16_t)ccb->ataio.cmd.features_exp
+					     << 8) |
+		    (uint16_t)ccb->ataio.cmd.features;
+		request->u.ata.count =
+		    ((uint16_t)ccb->ataio.cmd.sector_count_exp << 8) |
+		    (uint16_t)ccb->ataio.cmd.sector_count;
 		if (ccb->ataio.cmd.flags & CAM_ATAIO_48BIT) {
 			request->flags |= ATA_R_48BIT;
 			request->u.ata.lba =
-				     ((uint64_t)ccb->ataio.cmd.lba_high_exp << 40) |
-				     ((uint64_t)ccb->ataio.cmd.lba_mid_exp << 32) |
-				     ((uint64_t)ccb->ataio.cmd.lba_low_exp << 24);
+			    ((uint64_t)ccb->ataio.cmd.lba_high_exp << 40) |
+			    ((uint64_t)ccb->ataio.cmd.lba_mid_exp << 32) |
+			    ((uint64_t)ccb->ataio.cmd.lba_low_exp << 24);
 		} else {
 			request->u.ata.lba =
-				     ((uint64_t)(ccb->ataio.cmd.device & 0x0f) << 24);
+			    ((uint64_t)(ccb->ataio.cmd.device & 0x0f) << 24);
 		}
-		request->u.ata.lba |= ((uint64_t)ccb->ataio.cmd.lba_high << 16) |
-				      ((uint64_t)ccb->ataio.cmd.lba_mid << 8) |
-				       (uint64_t)ccb->ataio.cmd.lba_low;
+		request->u.ata.lba |= ((uint64_t)ccb->ataio.cmd.lba_high
+					  << 16) |
+		    ((uint64_t)ccb->ataio.cmd.lba_mid << 8) |
+		    (uint64_t)ccb->ataio.cmd.lba_low;
 		if (ccb->ataio.cmd.flags & CAM_ATAIO_NEEDRESULT)
 			request->flags |= ATA_R_NEEDRESULT;
 		if ((ccb->ccb_h.flags & CAM_DIR_MASK) != CAM_DIR_NONE &&
@@ -781,7 +985,8 @@ ata_cam_begin_transaction(device_t dev, union ccb *ccb)
 		request->data = ccb->csio.data_ptr;
 		request->bytecount = ccb->csio.dxfer_len;
 		bcopy((ccb->ccb_h.flags & CAM_CDB_POINTER) ?
-		    ccb->csio.cdb_io.cdb_ptr : ccb->csio.cdb_io.cdb_bytes,
+			ccb->csio.cdb_io.cdb_ptr :
+			ccb->csio.cdb_io.cdb_bytes,
 		    request->u.atapi.ccb, ccb->csio.cdb_len);
 		request->flags |= ATA_R_ATAPI;
 		if (ch->curr[ccb->ccb_h.target_id].atapi == 16)
@@ -798,17 +1003,18 @@ ata_cam_begin_transaction(device_t dev, union ccb *ccb)
 	}
 	request->retries = 0;
 	request->timeout = (ccb->ccb_h.timeout + 999) / 1000;
-	callout_init_mtx(&request->callout, &ch->state_mtx, CALLOUT_RETURNUNLOCKED);
+	callout_init_mtx(&request->callout, &ch->state_mtx,
+	    CALLOUT_RETURNUNLOCKED);
 	request->ccb = ccb;
 	request->flags |= ATA_R_DATA_IN_CCB;
 
 	ch->running = request;
 	ch->state = ATA_ACTIVE;
 	if (ch->hw.begin_transaction(request) == ATA_OP_FINISHED) {
-	    ch->running = NULL;
-	    ch->state = ATA_IDLE;
-	    ata_cam_end_transaction(dev, request);
-	    return;
+		ch->running = NULL;
+		ch->state = ATA_IDLE;
+		ata_cam_end_transaction(dev, request);
+		return;
 	}
 }
 
@@ -838,7 +1044,8 @@ ata_cam_request_sense(device_t dev, struct ata_request *request)
 	    ch->curr[ccb->ccb_h.target_id].bytecount);
 	request->retries = 0;
 	request->timeout = (ccb->ccb_h.timeout + 999) / 1000;
-	callout_init_mtx(&request->callout, &ch->state_mtx, CALLOUT_RETURNUNLOCKED);
+	callout_init_mtx(&request->callout, &ch->state_mtx,
+	    CALLOUT_RETURNUNLOCKED);
 	request->ccb = ccb;
 
 	ch->running = request;
@@ -863,8 +1070,7 @@ ata_cam_process_sense(device_t dev, struct ata_request *request)
 	if (request->flags & ATA_R_TIMEOUT)
 		fatalerr = 1;
 	if ((request->flags & ATA_R_TIMEOUT) == 0 &&
-	    (request->status & ATA_S_ERROR) == 0 &&
-	    request->result == 0) {
+	    (request->status & ATA_S_ERROR) == 0 && request->result == 0) {
 		ccb->ccb_h.status |= CAM_AUTOSNS_VALID;
 	} else {
 		ccb->ccb_h.status &= ~CAM_STATUS_MASK;
@@ -915,7 +1121,7 @@ ata_cam_end_transaction(device_t dev, struct ata_request *request)
 	}
 	if (ccb->ccb_h.func_code == XPT_ATA_IO &&
 	    ((request->status & ATA_S_ERROR) ||
-	    (ccb->ataio.cmd.flags & CAM_ATAIO_NEEDRESULT))) {
+		(ccb->ataio.cmd.flags & CAM_ATAIO_NEEDRESULT))) {
 		struct ata_res *res = &ccb->ataio.res;
 		res->status = request->status;
 		res->error = request->error;
@@ -931,11 +1137,11 @@ ata_cam_end_transaction(device_t dev, struct ata_request *request)
 	}
 	if ((ccb->ccb_h.flags & CAM_DIR_MASK) != CAM_DIR_NONE) {
 		if (ccb->ccb_h.func_code == XPT_ATA_IO) {
-			ccb->ataio.resid =
-			    ccb->ataio.dxfer_len - request->donecount;
+			ccb->ataio.resid = ccb->ataio.dxfer_len -
+			    request->donecount;
 		} else {
-			ccb->csio.resid =
-			    ccb->csio.dxfer_len - request->donecount;
+			ccb->csio.resid = ccb->csio.dxfer_len -
+			    request->donecount;
 		}
 	}
 	if ((ccb->ccb_h.status & CAM_STATUS_MASK) == CAM_SCSI_STATUS_ERROR &&
@@ -967,7 +1173,7 @@ ata_check_ids(device_t dev, union ccb *ccb)
 	 * It's a programming error to see AUXILIARY register requests.
 	 */
 	KASSERT(ccb->ccb_h.func_code != XPT_ATA_IO ||
-	    ((ccb->ataio.ata_flags & ATA_FLAG_AUX) == 0),
+		((ccb->ataio.ata_flags & ATA_FLAG_AUX) == 0),
 	    ("AUX register unsupported"));
 	return (0);
 }
@@ -978,19 +1184,20 @@ ataaction(struct cam_sim *sim, union ccb *ccb)
 	device_t dev, parent;
 	struct ata_channel *ch;
 
-	CAM_DEBUG(ccb->ccb_h.path, CAM_DEBUG_TRACE, ("ataaction func_code=%x\n",
-	    ccb->ccb_h.func_code));
+	CAM_DEBUG(ccb->ccb_h.path, CAM_DEBUG_TRACE,
+	    ("ataaction func_code=%x\n", ccb->ccb_h.func_code));
 
 	ch = (struct ata_channel *)cam_sim_softc(sim);
 	dev = ch->dev;
 	switch (ccb->ccb_h.func_code) {
 	/* Common cases first */
-	case XPT_ATA_IO:	/* Execute the requested I/O operation */
+	case XPT_ATA_IO: /* Execute the requested I/O operation */
 	case XPT_SCSI_IO:
 		if (ata_check_ids(dev, ccb))
 			return;
-		if ((ch->devices & ((ATA_ATA_MASTER | ATA_ATAPI_MASTER)
-		    << ccb->ccb_h.target_id)) == 0) {
+		if ((ch->devices &
+			((ATA_ATA_MASTER | ATA_ATAPI_MASTER)
+			    << ccb->ccb_h.target_id)) == 0) {
 			ccb->ccb_h.status = CAM_SEL_TIMEOUT;
 			break;
 		}
@@ -1000,9 +1207,10 @@ ataaction(struct cam_sim *sim, union ccb *ccb)
 		    (ccb->ataio.cmd.flags & CAM_ATAIO_CONTROL) &&
 		    (ccb->ataio.cmd.control & ATA_A_RESET)) {
 			struct ata_res *res = &ccb->ataio.res;
-			
+
 			bzero(res, sizeof(*res));
-			if (ch->devices & (ATA_ATA_MASTER << ccb->ccb_h.target_id)) {
+			if (ch->devices &
+			    (ATA_ATA_MASTER << ccb->ccb_h.target_id)) {
 				res->lba_high = 0;
 				res->lba_mid = 0;
 			} else {
@@ -1014,14 +1222,13 @@ ataaction(struct cam_sim *sim, union ccb *ccb)
 		}
 		ata_cam_begin_transaction(dev, ccb);
 		return;
-	case XPT_ABORT:			/* Abort the specified CCB */
+	case XPT_ABORT: /* Abort the specified CCB */
 		/* XXX Implement */
 		ccb->ccb_h.status = CAM_REQ_INVALID;
 		break;
-	case XPT_SET_TRAN_SETTINGS:
-	{
-		struct	ccb_trans_settings *cts = &ccb->cts;
-		struct	ata_cam_device *d; 
+	case XPT_SET_TRAN_SETTINGS: {
+		struct ccb_trans_settings *cts = &ccb->cts;
+		struct ata_cam_device *d;
 
 		if (ata_check_ids(dev, ccb))
 			return;
@@ -1030,9 +1237,11 @@ ataaction(struct cam_sim *sim, union ccb *ccb)
 		else
 			d = &ch->user[ccb->ccb_h.target_id];
 		if (ch->flags & ATA_SATA) {
-			if (cts->xport_specific.sata.valid & CTS_SATA_VALID_REVISION)
+			if (cts->xport_specific.sata.valid &
+			    CTS_SATA_VALID_REVISION)
 				d->revision = cts->xport_specific.sata.revision;
-			if (cts->xport_specific.sata.valid & CTS_SATA_VALID_MODE) {
+			if (cts->xport_specific.sata.valid &
+			    CTS_SATA_VALID_MODE) {
 				if (cts->type == CTS_TYPE_CURRENT_SETTINGS) {
 					d->mode = ATA_SETMODE(ch->dev,
 					    ccb->ccb_h.target_id,
@@ -1040,14 +1249,19 @@ ataaction(struct cam_sim *sim, union ccb *ccb)
 				} else
 					d->mode = cts->xport_specific.sata.mode;
 			}
-			if (cts->xport_specific.sata.valid & CTS_SATA_VALID_BYTECOUNT)
-				d->bytecount = min(8192, cts->xport_specific.sata.bytecount);
-			if (cts->xport_specific.sata.valid & CTS_SATA_VALID_ATAPI)
+			if (cts->xport_specific.sata.valid &
+			    CTS_SATA_VALID_BYTECOUNT)
+				d->bytecount = min(8192,
+				    cts->xport_specific.sata.bytecount);
+			if (cts->xport_specific.sata.valid &
+			    CTS_SATA_VALID_ATAPI)
 				d->atapi = cts->xport_specific.sata.atapi;
-			if (cts->xport_specific.sata.valid & CTS_SATA_VALID_CAPS)
+			if (cts->xport_specific.sata.valid &
+			    CTS_SATA_VALID_CAPS)
 				d->caps = cts->xport_specific.sata.caps;
 		} else {
-			if (cts->xport_specific.ata.valid & CTS_ATA_VALID_MODE) {
+			if (cts->xport_specific.ata.valid &
+			    CTS_ATA_VALID_MODE) {
 				if (cts->type == CTS_TYPE_CURRENT_SETTINGS) {
 					d->mode = ATA_SETMODE(ch->dev,
 					    ccb->ccb_h.target_id,
@@ -1055,8 +1269,10 @@ ataaction(struct cam_sim *sim, union ccb *ccb)
 				} else
 					d->mode = cts->xport_specific.ata.mode;
 			}
-			if (cts->xport_specific.ata.valid & CTS_ATA_VALID_BYTECOUNT)
-				d->bytecount = cts->xport_specific.ata.bytecount;
+			if (cts->xport_specific.ata.valid &
+			    CTS_ATA_VALID_BYTECOUNT)
+				d->bytecount =
+				    cts->xport_specific.ata.bytecount;
 			if (cts->xport_specific.ata.valid & CTS_ATA_VALID_ATAPI)
 				d->atapi = cts->xport_specific.ata.atapi;
 			if (cts->xport_specific.ata.valid & CTS_ATA_VALID_CAPS)
@@ -1065,10 +1281,9 @@ ataaction(struct cam_sim *sim, union ccb *ccb)
 		ccb->ccb_h.status = CAM_REQ_CMP;
 		break;
 	}
-	case XPT_GET_TRAN_SETTINGS:
-	{
-		struct	ccb_trans_settings *cts = &ccb->cts;
-		struct  ata_cam_device *d;
+	case XPT_GET_TRAN_SETTINGS: {
+		struct ccb_trans_settings *cts = &ccb->cts;
+		struct ata_cam_device *d;
 
 		if (ata_check_ids(dev, ccb))
 			return;
@@ -1085,7 +1300,8 @@ ataaction(struct cam_sim *sim, union ccb *ccb)
 			cts->xport_specific.sata.mode = d->mode;
 			cts->xport_specific.sata.valid |= CTS_SATA_VALID_MODE;
 			cts->xport_specific.sata.bytecount = d->bytecount;
-			cts->xport_specific.sata.valid |= CTS_SATA_VALID_BYTECOUNT;
+			cts->xport_specific.sata.valid |=
+			    CTS_SATA_VALID_BYTECOUNT;
 			if (cts->type == CTS_TYPE_CURRENT_SETTINGS) {
 				cts->xport_specific.sata.revision =
 				    ATA_GETREV(dev, ccb->ccb_h.target_id);
@@ -1093,8 +1309,8 @@ ataaction(struct cam_sim *sim, union ccb *ccb)
 					cts->xport_specific.sata.valid |=
 					    CTS_SATA_VALID_REVISION;
 				}
-				cts->xport_specific.sata.caps =
-				    d->caps & CTS_SATA_CAPS_D;
+				cts->xport_specific.sata.caps = d->caps &
+				    CTS_SATA_CAPS_D;
 				if (ch->pm_level) {
 					cts->xport_specific.sata.caps |=
 					    CTS_SATA_CAPS_H_PMREQ;
@@ -1103,7 +1319,8 @@ ataaction(struct cam_sim *sim, union ccb *ccb)
 				    ch->user[ccb->ccb_h.target_id].caps;
 			} else {
 				cts->xport_specific.sata.revision = d->revision;
-				cts->xport_specific.sata.valid |= CTS_SATA_VALID_REVISION;
+				cts->xport_specific.sata.valid |=
+				    CTS_SATA_VALID_REVISION;
 				cts->xport_specific.sata.caps = d->caps;
 			}
 			cts->xport_specific.sata.valid |= CTS_SATA_VALID_CAPS;
@@ -1116,10 +1333,11 @@ ataaction(struct cam_sim *sim, union ccb *ccb)
 			cts->xport_specific.ata.mode = d->mode;
 			cts->xport_specific.ata.valid |= CTS_ATA_VALID_MODE;
 			cts->xport_specific.ata.bytecount = d->bytecount;
-			cts->xport_specific.ata.valid |= CTS_ATA_VALID_BYTECOUNT;
+			cts->xport_specific.ata.valid |=
+			    CTS_ATA_VALID_BYTECOUNT;
 			if (cts->type == CTS_TYPE_CURRENT_SETTINGS) {
-				cts->xport_specific.ata.caps =
-				    d->caps & CTS_ATA_CAPS_D;
+				cts->xport_specific.ata.caps = d->caps &
+				    CTS_ATA_CAPS_D;
 				if (!(ch->flags & ATA_NO_48BIT_DMA))
 					cts->xport_specific.ata.caps |=
 					    CTS_ATA_CAPS_H_DMA48;
@@ -1134,16 +1352,16 @@ ataaction(struct cam_sim *sim, union ccb *ccb)
 		ccb->ccb_h.status = CAM_REQ_CMP;
 		break;
 	}
-	case XPT_RESET_BUS:		/* Reset the specified SCSI bus */
-	case XPT_RESET_DEV:	/* Bus Device Reset the specified SCSI device */
+	case XPT_RESET_BUS: /* Reset the specified SCSI bus */
+	case XPT_RESET_DEV: /* Bus Device Reset the specified SCSI device */
 		ata_reinit(dev);
 		ccb->ccb_h.status = CAM_REQ_CMP;
 		break;
-	case XPT_TERM_IO:		/* Terminate the I/O process */
+	case XPT_TERM_IO: /* Terminate the I/O process */
 		/* XXX Implement */
 		ccb->ccb_h.status = CAM_REQ_INVALID;
 		break;
-	case XPT_PATH_INQ:		/* Path routing inquiry */
+	case XPT_PATH_INQ: /* Path routing inquiry */
 	{
 		struct ccb_pathinq *cpi = &ccb->cpi;
 
@@ -1208,17 +1426,17 @@ static int
 ata_module_event_handler(module_t mod, int what, void *arg)
 {
 
-    switch (what) {
-    case MOD_LOAD:
-	ata_devclass = devclass_find("ata");
-	return 0;
+	switch (what) {
+	case MOD_LOAD:
+		ata_devclass = devclass_find("ata");
+		return 0;
 
-    case MOD_UNLOAD:
-	return 0;
+	case MOD_UNLOAD:
+		return 0;
 
-    default:
-	return EOPNOTSUPP;
-    }
+	default:
+		return EOPNOTSUPP;
+	}
 }
 
 static moduledata_t ata_moduledata = { "ata", ata_module_event_handler, NULL };

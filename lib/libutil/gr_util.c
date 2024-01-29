@@ -49,7 +49,8 @@ static char group_file[PATH_MAX];
 static char tempname[PATH_MAX];
 static int initialized;
 static size_t grmemlen(const struct group *, const char *, int *);
-static struct group *grcopy(const struct group *gr, char *mem, const char *, int ndx);
+static struct group *grcopy(const struct group *gr, char *mem, const char *,
+    int ndx);
 
 /*
  * Initialize statics
@@ -72,7 +73,7 @@ gr_init(const char *dir, const char *group)
 		if (dir == NULL) {
 			strcpy(group_file, _PATH_GROUP);
 		} else if (snprintf(group_file, sizeof(group_file), "%s/group",
-			group_dir) > (int)sizeof(group_file)) {
+			       group_dir) > (int)sizeof(group_file)) {
 			errno = ENAMETOOLONG;
 			return (-1);
 		}
@@ -100,7 +101,8 @@ gr_lock(void)
 	for (;;) {
 		struct stat st;
 
-		lockfd = flopen(group_file, O_RDONLY|O_NONBLOCK|O_CLOEXEC, 0);
+		lockfd = flopen(group_file, O_RDONLY | O_NONBLOCK | O_CLOEXEC,
+		    0);
 		if (lockfd == -1) {
 			if (errno == EWOULDBLOCK) {
 				errx(1, "the group file is busy");
@@ -171,7 +173,7 @@ gr_copy(int ffd, int tfd, const struct group *gr, struct group *old_gr)
 	char t;
 
 	if (old_gr == NULL && gr == NULL)
-		return(-1);
+		return (-1);
 
 	sgr = old_gr;
 	/* deleting a group */
@@ -204,7 +206,8 @@ gr_copy(int ffd, int tfd, const struct group *gr, struct group *old_gr)
 			if (eof)
 				break;
 			while ((size_t)(q - p) >= size) {
-				if ((tmp = reallocarray(buf, 2, size)) == NULL) {
+				if ((tmp = reallocarray(buf, 2, size)) ==
+				    NULL) {
 					warnx("group line too long");
 					goto err;
 				}
@@ -215,7 +218,7 @@ gr_copy(int ffd, int tfd, const struct group *gr, struct group *old_gr)
 				size = size * 2;
 			}
 			if (p < end) {
-				q = memmove(buf, p, end -p);
+				q = memmove(buf, p, end - p);
 				end -= p - buf;
 			} else {
 				p = q = end = buf;
@@ -231,7 +234,7 @@ gr_copy(int ffd, int tfd, const struct group *gr, struct group *old_gr)
 			len = end - buf;
 			if (len < size) {
 				eof = 1;
-				if (len > 0 && buf[len -1] != '\n')
+				if (len > 0 && buf[len - 1] != '\n')
 					++len, *end++ = '\n';
 			}
 			continue;
@@ -242,7 +245,7 @@ gr_copy(int ffd, int tfd, const struct group *gr, struct group *old_gr)
 			/* nothing */;
 		if (r == q || *r == '#') {
 			/* yep */
-			if (write(tfd, p, q -p + 1) != q - p + 1)
+			if (write(tfd, p, q - p + 1) != q - p + 1)
 				goto err;
 			++q;
 			continue;
@@ -280,7 +283,7 @@ gr_copy(int ffd, int tfd, const struct group *gr, struct group *old_gr)
 		/* it is, replace or remove it */
 		if (line != NULL) {
 			len = strlen(line);
-			if (write(tfd, line, len) != (int) len)
+			if (write(tfd, line, len) != (int)len)
 				goto err;
 		} else {
 			/* when removed, avoid the \n */
@@ -309,14 +312,13 @@ gr_copy(int ffd, int tfd, const struct group *gr, struct group *old_gr)
 		goto err;
 	}
 	len = strlen(line);
-	if ((size_t)write(tfd, line, len) != len ||
-	   write(tfd, "\n", 1) != 1)
+	if ((size_t)write(tfd, line, len) != len || write(tfd, "\n", 1) != 1)
 		goto err;
- done:
+done:
 	free(line);
 	free(buf);
 	return (0);
- err:
+err:
 	free(line);
 	free(buf);
 	return (-1);
@@ -340,7 +342,7 @@ gr_mkdb(void)
 	 * Make sure new group file is safe on disk. To improve performance we
 	 * will call fsync() to the directory where file lies
 	 */
-	if ((fd = open(group_dir, O_RDONLY|O_DIRECTORY)) == -1)
+	if ((fd = open(group_dir, O_RDONLY | O_DIRECTORY)) == -1)
 		return (-1);
 
 	if (fsync(fd) != 0) {
@@ -349,7 +351,7 @@ gr_mkdb(void)
 	}
 
 	close(fd);
-	return(0);
+	return (0);
 }
 
 /*
@@ -399,12 +401,12 @@ gr_equal(const struct group *gr1, const struct group *gr2)
 	 * getgrnam can return gr_mem with a pointer to NULL.
 	 * gr_dup and gr_add strip out this superfluous NULL, setting
 	 * gr_mem to NULL for no members.
-	*/
+	 */
 	if (gr1->gr_mem != NULL && gr2->gr_mem != NULL) {
 		int i;
 
-		for (i = 0;
-		    gr1->gr_mem[i] != NULL && gr2->gr_mem[i] != NULL; i++) {
+		for (i = 0; gr1->gr_mem[i] != NULL && gr2->gr_mem[i] != NULL;
+		     i++) {
 			if (strcmp(gr1->gr_mem[i], gr2->gr_mem[i]) != 0)
 				return (false);
 		}
@@ -434,7 +436,8 @@ gr_make(const struct group *gr)
 
 	/* Calculate the length of the group line. */
 	line_size = snprintf(NULL, 0, group_line_format, gr->gr_name,
-	    gr->gr_passwd, (uintmax_t)gr->gr_gid) + 1;
+			gr->gr_passwd, (uintmax_t)gr->gr_gid) +
+	    1;
 	if (gr->gr_mem != NULL) {
 		for (ndx = 0; gr->gr_mem[ndx] != NULL; ndx++)
 			line_size += strlen(gr->gr_mem[ndx]) + 1;
@@ -498,7 +501,7 @@ gr_add(const struct group *gr, const char *newmember)
  * (int gid)
  * (gr_mem * newgrp + sizeof(struct group) + sizeof(**)) points to gr_mem area
  * gr_mem area
- * (member1 *) 
+ * (member1 *)
  * (member2 *)
  * (NULL)
  * (name string)
@@ -516,10 +519,11 @@ grcopy(const struct group *gr, char *dst, const char *name, int ndx)
 	int i;
 	struct group *newgr;
 
-	newgr = (struct group *)(void *)dst;	/* avoid alignment warning */
+	newgr = (struct group *)(void *)dst; /* avoid alignment warning */
 	dst += sizeof(*newgr);
 	if (ndx != 0) {
-		newgr->gr_mem = (char **)(void *)(dst);	/* avoid alignment warning */
+		newgr->gr_mem =
+		    (char **)(void *)(dst); /* avoid alignment warning */
 		dst += (ndx + 1) * sizeof(*newgr->gr_mem);
 	} else
 		newgr->gr_mem = NULL;
@@ -587,7 +591,7 @@ grmemlen(const struct group *gr, const char *name, int *num_mem)
 	if (i != 0)
 		len += sizeof(*gr->gr_mem);
 	*num_mem = i;
-	return(len);
+	return (len);
 }
 
 /*
@@ -622,8 +626,8 @@ __gr_scan(char *line, struct group *gr)
 	gr->gr_mem = NULL;
 	ndx = 0;
 	do {
-		gr->gr_mem = reallocf(gr->gr_mem, sizeof(*gr->gr_mem) *
-		    (ndx + 1));
+		gr->gr_mem = reallocf(gr->gr_mem,
+		    sizeof(*gr->gr_mem) * (ndx + 1));
 		if (gr->gr_mem == NULL)
 			return (false);
 

@@ -31,13 +31,15 @@
 
 #include <sys/types.h>
 #include <sys/fcntl.h>
+
 #include <stdarg.h>
+
 #include "libc_private.h"
 
 __weak_reference(__sys_openat, __openat);
-__sym_compat(openat, __impl_openat, FBSD_1.1);
+__sym_compat(openat, __impl_openat, FBSD_1 .1);
 __weak_reference(openat, __impl_openat);
-__sym_default(openat, openat, FBSD_1.2);
+__sym_default(openat, openat, FBSD_1 .2);
 
 #pragma weak openat
 int
@@ -53,6 +55,6 @@ openat(int fd, const char *path, int flags, ...)
 	} else {
 		mode = 0;
 	}
-	return (((int (*)(int, const char *, int, ...))
-	    __libc_interposing[INTERPOS_openat])(fd, path, flags, mode));
+	return (((int (*)(int, const char *, int,
+	    ...))__libc_interposing[INTERPOS_openat])(fd, path, flags, mode));
 }

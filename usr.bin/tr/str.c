@@ -29,8 +29,6 @@
  * SUCH DAMAGE.
  */
 
-
-
 #include <sys/types.h>
 
 #include <ctype.h>
@@ -45,12 +43,12 @@
 
 #include "extern.h"
 
-static int      backslash(STR *, int *);
-static int	bracket(STR *);
-static void	genclass(STR *);
-static void	genequiv(STR *);
-static int      genrange(STR *, int);
-static void	genseq(STR *);
+static int backslash(STR *, int *);
+static int bracket(STR *);
+static void genclass(STR *);
+static void genequiv(STR *);
+static int genrange(STR *, int);
+static void genseq(STR *);
 
 wint_t
 next(STR *s)
@@ -135,7 +133,7 @@ bracket(STR *s)
 	char *p;
 
 	switch (s->str[1]) {
-	case ':':				/* "[:class:]" */
+	case ':': /* "[:class:]" */
 		if ((p = strchr(s->str + 2, ']')) == NULL)
 			return (0);
 		if (*(p - 1) != ':' || p - s->str < 4)
@@ -145,7 +143,7 @@ bracket(STR *s)
 		genclass(s);
 		s->str = p + 1;
 		return (1);
-	case '=':				/* "[=equiv=]" */
+	case '=': /* "[=equiv=]" */
 		if (s->str[2] == '\0' || (p = strchr(s->str + 3, ']')) == NULL)
 			return (0);
 		if (*(p - 1) != '=' || p - s->str < 4)
@@ -153,7 +151,7 @@ bracket(STR *s)
 		s->str += 2;
 		genequiv(s);
 		return (1);
-	default:				/* "[\###*n]" or "[#*n]" */
+	default: /* "[\###*n]" or "[#*n]" */
 	repeat:
 		if ((p = strpbrk(s->str + 2, "*]")) == NULL)
 			return (0);
@@ -173,7 +171,7 @@ genclass(STR *s)
 	if ((s->cclass = wctype(s->str)) == 0)
 		errx(1, "unknown class %s", s->str);
 	s->cnt = 0;
-	s->lastch = -1;		/* incremented before check in next() */
+	s->lastch = -1; /* incremented before check in next() */
 	if (strcmp(s->str, "upper") == 0)
 		s->state = CCLASS_UPPER;
 	else if (strcmp(s->str, "lower") == 0)
@@ -273,7 +271,8 @@ genrange(STR *s, int was_octal)
 	if ((s->set = p = malloc((NCHARS_SB + 1) * sizeof(int))) == NULL)
 		err(1, "genrange() malloc");
 	for (cnt = 0; cnt < NCHARS_SB; cnt++)
-		if (charcoll((const void *)&cnt, (const void *)&(s->lastch)) >= 0 &&
+		if (charcoll((const void *)&cnt, (const void *)&(s->lastch)) >=
+			0 &&
 		    charcoll((const void *)&cnt, (const void *)&stopval) <= 0)
 			*p++ = cnt;
 	*p = OOBCH;
@@ -343,7 +342,7 @@ backslash(STR *s, int *is_octal)
 	if (is_octal != NULL)
 		*is_octal = 0;
 	for (cnt = val = 0;;) {
-		ch = (u_char)*++s->str;
+		ch = (u_char) * ++s->str;
 		if (!isdigit(ch) || ch > '7')
 			break;
 		val = val * 8 + ch - '0';
@@ -360,24 +359,24 @@ backslash(STR *s, int *is_octal)
 	if (ch != '\0')
 		++s->str;
 	switch (ch) {
-		case 'a':			/* escape characters */
-			return ('\7');
-		case 'b':
-			return ('\b');
-		case 'f':
-			return ('\f');
-		case 'n':
-			return ('\n');
-		case 'r':
-			return ('\r');
-		case 't':
-			return ('\t');
-		case 'v':
-			return ('\13');
-		case '\0':			/*  \" -> \ */
-			s->state = EOS;
-			return ('\\');
-		default:			/* \x" -> x */
-			return (ch);
+	case 'a': /* escape characters */
+		return ('\7');
+	case 'b':
+		return ('\b');
+	case 'f':
+		return ('\f');
+	case 'n':
+		return ('\n');
+	case 'r':
+		return ('\r');
+	case 't':
+		return ('\t');
+	case 'v':
+		return ('\13');
+	case '\0': /*  \" -> \ */
+		s->state = EOS;
+		return ('\\');
+	default: /* \x" -> x */
+		return (ch);
 	}
 }

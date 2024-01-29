@@ -28,39 +28,46 @@
 
 #include <sys/types.h>
 
-#include <machine/specialreg.h>
 #include <machine/segments.h>
+#include <machine/specialreg.h>
 #include <machine/vmm.h>
 
 #include <errno.h>
 #include <string.h>
 
-#include "vmmapi.h"
 #include "internal.h"
+#include "vmmapi.h"
 
-#define	I386_TSS_SIZE		104
+#define I386_TSS_SIZE 104
 
-#define	DESC_PRESENT		0x00000080
-#define	DESC_LONGMODE		0x00002000
-#define	DESC_DEF32		0x00004000
-#define	DESC_GRAN		0x00008000
-#define	DESC_UNUSABLE		0x00010000
+#define DESC_PRESENT 0x00000080
+#define DESC_LONGMODE 0x00002000
+#define DESC_DEF32 0x00004000
+#define DESC_GRAN 0x00008000
+#define DESC_UNUSABLE 0x00010000
 
-#define	GUEST_NULL_SEL		0
-#define	GUEST_CODE_SEL		1
-#define	GUEST_DATA_SEL		2
-#define	GUEST_TSS_SEL		3
-#define	GUEST_GDTR_LIMIT64	(3 * 8 - 1)
+#define GUEST_NULL_SEL 0
+#define GUEST_CODE_SEL 1
+#define GUEST_DATA_SEL 2
+#define GUEST_TSS_SEL 3
+#define GUEST_GDTR_LIMIT64 (3 * 8 - 1)
 
-static struct segment_descriptor i386_gdt[] = {
-	{},						/* NULL */
-	{ .sd_lolimit = 0xffff, .sd_type = SDT_MEMER,	/* CODE */
-	  .sd_p = 1, .sd_hilimit = 0xf, .sd_def32 = 1, .sd_gran = 1 }, 
-	{ .sd_lolimit = 0xffff, .sd_type = SDT_MEMRW,	/* DATA */
-	  .sd_p = 1, .sd_hilimit = 0xf, .sd_def32 = 1, .sd_gran = 1 },
-	{ .sd_lolimit = I386_TSS_SIZE - 1,		/* TSS */
-	  .sd_type = SDT_SYS386TSS, .sd_p = 1 }
-};
+static struct segment_descriptor i386_gdt[] = { {}, /* NULL */
+	{ .sd_lolimit = 0xffff,
+	    .sd_type = SDT_MEMER, /* CODE */
+	    .sd_p = 1,
+	    .sd_hilimit = 0xf,
+	    .sd_def32 = 1,
+	    .sd_gran = 1 },
+	{ .sd_lolimit = 0xffff,
+	    .sd_type = SDT_MEMRW, /* DATA */
+	    .sd_p = 1,
+	    .sd_hilimit = 0xf,
+	    .sd_def32 = 1,
+	    .sd_gran = 1 },
+	{ .sd_lolimit = I386_TSS_SIZE - 1, /* TSS */
+	    .sd_type = SDT_SYS386TSS,
+	    .sd_p = 1 } };
 
 /*
  * Setup the 'vcpu' register set such that it will begin execution at
@@ -68,7 +75,7 @@ static struct segment_descriptor i386_gdt[] = {
  */
 int
 vm_setup_freebsd_registers_i386(struct vcpu *vcpu, uint32_t eip,
-				uint32_t gdtbase, uint32_t esp)
+    uint32_t gdtbase, uint32_t esp)
 {
 	uint64_t cr0, rflags, desc_base;
 	uint32_t desc_access, desc_limit, tssbase;
@@ -76,7 +83,7 @@ vm_setup_freebsd_registers_i386(struct vcpu *vcpu, uint32_t eip,
 	struct segment_descriptor *gdt;
 	int error, tmp;
 
-	/* A 32-bit guest requires unrestricted mode. */	
+	/* A 32-bit guest requires unrestricted mode. */
 	error = vm_get_capability(vcpu, VM_CAP_UNRESTRICTED_GUEST, &tmp);
 	if (error)
 		goto done;
@@ -104,14 +111,13 @@ vm_setup_freebsd_registers_i386(struct vcpu *vcpu, uint32_t eip,
 	memcpy(gdt, i386_gdt, sizeof(i386_gdt));
 	desc_base = gdtbase;
 	desc_limit = sizeof(i386_gdt) - 1;
-	error = vm_set_desc(vcpu, VM_REG_GUEST_GDTR,
-			    desc_base, desc_limit, 0);
+	error = vm_set_desc(vcpu, VM_REG_GUEST_GDTR, desc_base, desc_limit, 0);
 	if (error != 0)
 		goto done;
 
 	/* Place the TSS one page above the GDT. */
 	tssbase = gdtbase + 0x1000;
-	gdt[3].sd_lobase = tssbase;	
+	gdt[3].sd_lobase = tssbase;
 
 	rflags = 0x2;
 	error = vm_set_register(vcpu, VM_REG_GUEST_RFLAGS, rflags);
@@ -121,66 +127,64 @@ vm_setup_freebsd_registers_i386(struct vcpu *vcpu, uint32_t eip,
 	desc_base = 0;
 	desc_limit = 0xffffffff;
 	desc_access = DESC_GRAN | DESC_DEF32 | DESC_PRESENT | SDT_MEMERA;
-	error = vm_set_desc(vcpu, VM_REG_GUEST_CS,
-			    desc_base, desc_limit, desc_access);
+	error = vm_set_desc(vcpu, VM_REG_GUEST_CS, desc_base, desc_limit,
+	    desc_access);
 
 	desc_access = DESC_GRAN | DESC_DEF32 | DESC_PRESENT | SDT_MEMRWA;
-	error = vm_set_desc(vcpu, VM_REG_GUEST_DS,
-			    desc_base, desc_limit, desc_access);
+	error = vm_set_desc(vcpu, VM_REG_GUEST_DS, desc_base, desc_limit,
+	    desc_access);
 	if (error)
 		goto done;
 
-	error = vm_set_desc(vcpu, VM_REG_GUEST_ES,
-			    desc_base, desc_limit, desc_access);
+	error = vm_set_desc(vcpu, VM_REG_GUEST_ES, desc_base, desc_limit,
+	    desc_access);
 	if (error)
 		goto done;
 
-	error = vm_set_desc(vcpu, VM_REG_GUEST_FS,
-			    desc_base, desc_limit, desc_access);
+	error = vm_set_desc(vcpu, VM_REG_GUEST_FS, desc_base, desc_limit,
+	    desc_access);
 	if (error)
 		goto done;
 
-	error = vm_set_desc(vcpu, VM_REG_GUEST_GS,
-			    desc_base, desc_limit, desc_access);
+	error = vm_set_desc(vcpu, VM_REG_GUEST_GS, desc_base, desc_limit,
+	    desc_access);
 	if (error)
 		goto done;
 
-	error = vm_set_desc(vcpu, VM_REG_GUEST_SS,
-			    desc_base, desc_limit, desc_access);
+	error = vm_set_desc(vcpu, VM_REG_GUEST_SS, desc_base, desc_limit,
+	    desc_access);
 	if (error)
 		goto done;
 
 	desc_base = tssbase;
 	desc_limit = I386_TSS_SIZE - 1;
 	desc_access = DESC_PRESENT | SDT_SYS386BSY;
-	error = vm_set_desc(vcpu, VM_REG_GUEST_TR,
-			    desc_base, desc_limit, desc_access);
+	error = vm_set_desc(vcpu, VM_REG_GUEST_TR, desc_base, desc_limit,
+	    desc_access);
 	if (error)
 		goto done;
 
-	
-	error = vm_set_desc(vcpu, VM_REG_GUEST_LDTR, 0, 0,
-			    DESC_UNUSABLE);
+	error = vm_set_desc(vcpu, VM_REG_GUEST_LDTR, 0, 0, DESC_UNUSABLE);
 	if (error)
 		goto done;
 
 	gsel = GSEL(GUEST_CODE_SEL, SEL_KPL);
 	if ((error = vm_set_register(vcpu, VM_REG_GUEST_CS, gsel)) != 0)
 		goto done;
-	
+
 	gsel = GSEL(GUEST_DATA_SEL, SEL_KPL);
 	if ((error = vm_set_register(vcpu, VM_REG_GUEST_DS, gsel)) != 0)
 		goto done;
-	
+
 	if ((error = vm_set_register(vcpu, VM_REG_GUEST_ES, gsel)) != 0)
 		goto done;
 
 	if ((error = vm_set_register(vcpu, VM_REG_GUEST_FS, gsel)) != 0)
 		goto done;
-	
+
 	if ((error = vm_set_register(vcpu, VM_REG_GUEST_GS, gsel)) != 0)
 		goto done;
-	
+
 	if ((error = vm_set_register(vcpu, VM_REG_GUEST_SS, gsel)) != 0)
 		goto done;
 
@@ -204,9 +208,9 @@ done:
 	return (error);
 }
 
-void     
+void
 vm_setup_freebsd_gdt(uint64_t *gdtr)
-{       
+{
 	gdtr[GUEST_NULL_SEL] = 0;
 	gdtr[GUEST_CODE_SEL] = 0x0020980000000000;
 	gdtr[GUEST_DATA_SEL] = 0x0000900000000000;
@@ -217,9 +221,8 @@ vm_setup_freebsd_gdt(uint64_t *gdtr)
  * 'rip' in long mode.
  */
 int
-vm_setup_freebsd_registers(struct vcpu *vcpu,
-			   uint64_t rip, uint64_t cr3, uint64_t gdtbase,
-			   uint64_t rsp)
+vm_setup_freebsd_registers(struct vcpu *vcpu, uint64_t rip, uint64_t cr3,
+    uint64_t gdtbase, uint64_t rsp)
 {
 	int error;
 	uint64_t cr0, cr4, efer, rflags, desc_base;
@@ -246,34 +249,34 @@ vm_setup_freebsd_registers(struct vcpu *vcpu,
 	desc_base = 0;
 	desc_limit = 0;
 	desc_access = 0x0000209B;
-	error = vm_set_desc(vcpu, VM_REG_GUEST_CS,
-			    desc_base, desc_limit, desc_access);
+	error = vm_set_desc(vcpu, VM_REG_GUEST_CS, desc_base, desc_limit,
+	    desc_access);
 	if (error)
 		goto done;
 
 	desc_access = 0x00000093;
-	error = vm_set_desc(vcpu, VM_REG_GUEST_DS,
-			    desc_base, desc_limit, desc_access);
+	error = vm_set_desc(vcpu, VM_REG_GUEST_DS, desc_base, desc_limit,
+	    desc_access);
 	if (error)
 		goto done;
 
-	error = vm_set_desc(vcpu, VM_REG_GUEST_ES,
-			    desc_base, desc_limit, desc_access);
+	error = vm_set_desc(vcpu, VM_REG_GUEST_ES, desc_base, desc_limit,
+	    desc_access);
 	if (error)
 		goto done;
 
-	error = vm_set_desc(vcpu, VM_REG_GUEST_FS,
-			    desc_base, desc_limit, desc_access);
+	error = vm_set_desc(vcpu, VM_REG_GUEST_FS, desc_base, desc_limit,
+	    desc_access);
 	if (error)
 		goto done;
 
-	error = vm_set_desc(vcpu, VM_REG_GUEST_GS,
-			    desc_base, desc_limit, desc_access);
+	error = vm_set_desc(vcpu, VM_REG_GUEST_GS, desc_base, desc_limit,
+	    desc_access);
 	if (error)
 		goto done;
 
-	error = vm_set_desc(vcpu, VM_REG_GUEST_SS,
-			    desc_base, desc_limit, desc_access);
+	error = vm_set_desc(vcpu, VM_REG_GUEST_SS, desc_base, desc_limit,
+	    desc_access);
 	if (error)
 		goto done;
 
@@ -286,28 +289,27 @@ vm_setup_freebsd_registers(struct vcpu *vcpu,
 	if (error)
 		goto done;
 
-	error = vm_set_desc(vcpu, VM_REG_GUEST_LDTR, 0, 0,
-			    DESC_UNUSABLE);
+	error = vm_set_desc(vcpu, VM_REG_GUEST_LDTR, 0, 0, DESC_UNUSABLE);
 	if (error)
 		goto done;
 
 	gsel = GSEL(GUEST_CODE_SEL, SEL_KPL);
 	if ((error = vm_set_register(vcpu, VM_REG_GUEST_CS, gsel)) != 0)
 		goto done;
-	
+
 	gsel = GSEL(GUEST_DATA_SEL, SEL_KPL);
 	if ((error = vm_set_register(vcpu, VM_REG_GUEST_DS, gsel)) != 0)
 		goto done;
-	
+
 	if ((error = vm_set_register(vcpu, VM_REG_GUEST_ES, gsel)) != 0)
 		goto done;
 
 	if ((error = vm_set_register(vcpu, VM_REG_GUEST_FS, gsel)) != 0)
 		goto done;
-	
+
 	if ((error = vm_set_register(vcpu, VM_REG_GUEST_GS, gsel)) != 0)
 		goto done;
-	
+
 	if ((error = vm_set_register(vcpu, VM_REG_GUEST_SS, gsel)) != 0)
 		goto done;
 
@@ -329,8 +331,7 @@ vm_setup_freebsd_registers(struct vcpu *vcpu,
 
 	desc_base = gdtbase;
 	desc_limit = GUEST_GDTR_LIMIT64;
-	error = vm_set_desc(vcpu, VM_REG_GUEST_GDTR,
-			    desc_base, desc_limit, 0);
+	error = vm_set_desc(vcpu, VM_REG_GUEST_GDTR, desc_base, desc_limit, 0);
 	if (error != 0)
 		goto done;
 

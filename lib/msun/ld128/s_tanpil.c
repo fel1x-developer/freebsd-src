@@ -35,9 +35,8 @@
 /*
  * pi_hi contains the leading 56 bits of a 169 bit approximation for pi.
  */
-static const long double
-pi_hi = 3.14159265358979322702026593105983920e+00L,
-pi_lo = 1.14423774522196636802434264184180742e-17L;
+static const long double pi_hi = 3.14159265358979322702026593105983920e+00L,
+			 pi_lo = 1.14423774522196636802434264184180742e-17L;
 
 static inline long double
 __kernel_tanpil(long double x)
@@ -58,7 +57,7 @@ __kernel_tanpil(long double x)
 		lo = lo * (pi_lo + pi_hi) + hi * pi_lo;
 		hi *= pi_hi;
 		_2sumF(hi, lo);
-		t = - __kernel_tanl(hi, lo, 1);
+		t = -__kernel_tanl(hi, lo, 1);
 	} else
 		t = 1;
 
@@ -117,6 +116,6 @@ tanpil(long double x)
 	 * or odd integer to set t = +0 or -0.
 	 * For |x| >= 0x1p113, it is always an even integer, so t = 0.
 	 */
-	t = fmodl(ax,2.L) == 0  ? 0 : copysign(0., -1.);
+	t = fmodl(ax, 2.L) == 0 ? 0 : copysign(0., -1.);
 	return (copysignl(t, x));
 }

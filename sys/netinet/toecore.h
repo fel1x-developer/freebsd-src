@@ -27,14 +27,15 @@
  */
 
 #ifndef _NETINET_TOE_H_
-#define	_NETINET_TOE_H_
+#define _NETINET_TOE_H_
 
 #ifndef _KERNEL
 #error "no user-serviceable parts inside"
 #endif
 
-#include <netinet/tcp.h>
 #include <sys/_eventhandler.h>
+
+#include <netinet/tcp.h>
 
 struct tcpopt;
 struct tcphdr;
@@ -44,15 +45,15 @@ struct nhop_object;
 struct ktls_session;
 
 struct toedev {
-	TAILQ_ENTRY(toedev) link;	/* glue for toedev_list */
-	void *tod_softc;		/* TOE driver private data */
+	TAILQ_ENTRY(toedev) link; /* glue for toedev_list */
+	void *tod_softc;	  /* TOE driver private data */
 
 	/*
 	 * Active open.  If a failure occurs, it is reported back by the driver
 	 * via toe_connect_failed.
 	 */
-	int (*tod_connect)(struct toedev *, struct socket *, struct nhop_object *,
-	    struct sockaddr *);
+	int (*tod_connect)(struct toedev *, struct socket *,
+	    struct nhop_object *, struct sockaddr *);
 
 	/* Passive open. */
 	int (*tod_listen_start)(struct toedev *, struct tcpcb *);
@@ -118,8 +119,8 @@ struct toedev {
 	void (*tod_pmtu_update)(struct toedev *, struct tcpcb *, tcp_seq, int);
 };
 
-typedef	void (*tcp_offload_listen_start_fn)(void *, struct tcpcb *);
-typedef	void (*tcp_offload_listen_stop_fn)(void *, struct tcpcb *);
+typedef void (*tcp_offload_listen_start_fn)(void *, struct tcpcb *);
+typedef void (*tcp_offload_listen_stop_fn)(void *, struct tcpcb *);
 EVENTHANDLER_DECLARE(tcp_offload_listen_start, tcp_offload_listen_start_fn);
 EVENTHANDLER_DECLARE(tcp_offload_listen_stop, tcp_offload_listen_stop_fn);
 
@@ -139,7 +140,7 @@ void toe_connect_failed(struct toedev *, struct inpcb *, int);
 
 void toe_syncache_add(struct in_conninfo *, struct tcpopt *, struct tcphdr *,
     struct inpcb *, void *, void *, uint8_t);
-int  toe_syncache_expand(struct in_conninfo *, struct tcpopt *, struct tcphdr *,
+int toe_syncache_expand(struct in_conninfo *, struct tcpopt *, struct tcphdr *,
     struct socket **);
 
 int toe_4tuple_check(struct in_conninfo *, struct tcphdr *, struct ifnet *);

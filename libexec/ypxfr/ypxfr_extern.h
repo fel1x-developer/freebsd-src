@@ -32,31 +32,33 @@
  * SUCH DAMAGE.
  */
 #include <sys/types.h>
+
+#include <db.h>
 #include <limits.h>
 #include <paths.h>
-#include <db.h>
 #include <rpcsvc/yp.h>
 
-extern HASHINFO	openinfo;
+extern HASHINFO openinfo;
 extern BTREEINFO openinfo_b;
 
 #ifndef _PATH_YP
 #define _PATH_YP "/var/yp/"
 #endif
 
-extern char	*yp_dir;
-extern int	debug;
-extern enum ypstat	yp_errno;
-extern void	yp_error(const char *, ...);
-extern int	_yp_check(char **);
+extern char *yp_dir;
+extern int debug;
+extern enum ypstat yp_errno;
+extern void yp_error(const char *, ...);
+extern int _yp_check(char **);
 extern const char *ypxfrerr_string(ypxfrstat);
-extern DB	*yp_open_db_rw(const char *, const char *, const int);
-extern void	yp_init_dbs(void);
-extern int	yp_put_record(DB *, DBT *, DBT *, int);
-extern int	yp_get_record(const char *, const char *, const DBT *, DBT *, int);
-extern int	ypxfr_get_map(char *, char *, char *, int (*)(int, char *, int, char *, int, char*));
-extern char	*ypxfr_get_master(char *, char *, char *, const int);
-extern unsigned	long ypxfr_get_order(char *, char *, char *, const int);
-extern int	ypxfr_match(char *, char *, char *, char *, unsigned long);
-extern char	*ypxfxerr_string(ypxfrstat);
-extern int	ypxfrd_get_map(char  *, char *, char *, char *);
+extern DB *yp_open_db_rw(const char *, const char *, const int);
+extern void yp_init_dbs(void);
+extern int yp_put_record(DB *, DBT *, DBT *, int);
+extern int yp_get_record(const char *, const char *, const DBT *, DBT *, int);
+extern int ypxfr_get_map(char *, char *, char *,
+    int (*)(int, char *, int, char *, int, char *));
+extern char *ypxfr_get_master(char *, char *, char *, const int);
+extern unsigned long ypxfr_get_order(char *, char *, char *, const int);
+extern int ypxfr_match(char *, char *, char *, char *, unsigned long);
+extern char *ypxfxerr_string(ypxfrstat);
+extern int ypxfrd_get_map(char *, char *, char *, char *);

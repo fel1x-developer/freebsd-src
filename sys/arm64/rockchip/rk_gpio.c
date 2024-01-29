@@ -30,31 +30,29 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-
+#include <sys/gpio.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/rman.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/gpio.h>
 
 #include <machine/bus.h>
-#include <machine/resource.h>
 #include <machine/intr.h>
+#include <machine/resource.h>
 
+#include <dev/clk/clk.h>
 #include <dev/gpio/gpiobusvar.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-#include <dev/clk/clk.h>
 
+#include "fdt_pinctrl_if.h"
 #include "gpio_if.h"
 #include "pic_if.h"
 
-#include "fdt_pinctrl_if.h"
-
 enum gpio_regs {
-	RK_GPIO_SWPORTA_DR = 1,	/* Data register */
+	RK_GPIO_SWPORTA_DR = 1, /* Data register */
 	RK_GPIO_SWPORTA_DDR,	/* Data direction register */
 	RK_GPIO_INTEN,		/* Interrupt enable register */
 	RK_GPIO_INTMASK,	/* Interrupt mask register */
@@ -69,71 +67,67 @@ enum gpio_regs {
 	RK_GPIO_REGNUM
 };
 
-#define	RK_GPIO_LS_SYNC		0x60	/* Level sensitive syncronization enable register */
+#define RK_GPIO_LS_SYNC \
+	0x60 /* Level sensitive syncronization enable register */
 
-#define	RK_GPIO_DEFAULT_CAPS	(GPIO_PIN_INPUT | GPIO_PIN_OUTPUT |	\
-    GPIO_PIN_PULLUP | GPIO_PIN_PULLDOWN | GPIO_INTR_EDGE_BOTH | \
-    GPIO_INTR_EDGE_RISING | GPIO_INTR_EDGE_FALLING | \
-    GPIO_INTR_LEVEL_HIGH | GPIO_INTR_LEVEL_LOW)
+#define RK_GPIO_DEFAULT_CAPS                                                  \
+	(GPIO_PIN_INPUT | GPIO_PIN_OUTPUT | GPIO_PIN_PULLUP |                 \
+	    GPIO_PIN_PULLDOWN | GPIO_INTR_EDGE_BOTH | GPIO_INTR_EDGE_RISING | \
+	    GPIO_INTR_EDGE_FALLING | GPIO_INTR_LEVEL_HIGH |                   \
+	    GPIO_INTR_LEVEL_LOW)
 
-#define	GPIO_FLAGS_PINCTRL	GPIO_PIN_PULLUP | GPIO_PIN_PULLDOWN
-#define	RK_GPIO_MAX_PINS	32
+#define GPIO_FLAGS_PINCTRL GPIO_PIN_PULLUP | GPIO_PIN_PULLDOWN
+#define RK_GPIO_MAX_PINS 32
 
 struct pin_cached {
-	uint8_t		is_gpio;
-	uint32_t	flags;
+	uint8_t is_gpio;
+	uint32_t flags;
 };
 
 struct rk_pin_irqsrc {
-	struct intr_irqsrc	isrc;
-	uint32_t		irq;
-	uint32_t		mode;
+	struct intr_irqsrc isrc;
+	uint32_t irq;
+	uint32_t mode;
 };
 
 struct rk_gpio_softc {
-	device_t		sc_dev;
-	device_t		sc_busdev;
-	struct mtx		sc_mtx;
-	struct resource		*sc_res[2];
-	bus_space_tag_t		sc_bst;
-	bus_space_handle_t	sc_bsh;
-	clk_t			clk;
-	device_t		pinctrl;
-	uint32_t		swporta;
-	uint32_t		swporta_ddr;
-	uint32_t		version;
-	struct pin_cached	pin_cached[RK_GPIO_MAX_PINS];
-	uint8_t			regs[RK_GPIO_REGNUM];
-	void			*ihandle;
-	struct rk_pin_irqsrc	isrcs[RK_GPIO_MAX_PINS];
+	device_t sc_dev;
+	device_t sc_busdev;
+	struct mtx sc_mtx;
+	struct resource *sc_res[2];
+	bus_space_tag_t sc_bst;
+	bus_space_handle_t sc_bsh;
+	clk_t clk;
+	device_t pinctrl;
+	uint32_t swporta;
+	uint32_t swporta_ddr;
+	uint32_t version;
+	struct pin_cached pin_cached[RK_GPIO_MAX_PINS];
+	uint8_t regs[RK_GPIO_REGNUM];
+	void *ihandle;
+	struct rk_pin_irqsrc isrcs[RK_GPIO_MAX_PINS];
 };
 
-static struct ofw_compat_data compat_data[] = {
-	{"rockchip,gpio-bank", 1},
-	{NULL,             0}
-};
+static struct ofw_compat_data compat_data[] = { { "rockchip,gpio-bank", 1 },
+	{ NULL, 0 } };
 
-static struct resource_spec rk_gpio_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ SYS_RES_IRQ,		0,	RF_ACTIVE },
-	{ -1, 0 }
-};
+static struct resource_spec rk_gpio_spec[] = { { SYS_RES_MEMORY, 0, RF_ACTIVE },
+	{ SYS_RES_IRQ, 0, RF_ACTIVE }, { -1, 0 } };
 
-#define	RK_GPIO_VERSION		0x78
-#define	RK_GPIO_TYPE_V1		0x00000000
-#define	RK_GPIO_TYPE_V2		0x01000c2b
-#define	RK_GPIO_ISRC(sc, irq)	(&(sc->isrcs[irq].isrc))
+#define RK_GPIO_VERSION 0x78
+#define RK_GPIO_TYPE_V1 0x00000000
+#define RK_GPIO_TYPE_V2 0x01000c2b
+#define RK_GPIO_ISRC(sc, irq) (&(sc->isrcs[irq].isrc))
 
 static int rk_gpio_detach(device_t dev);
 
-#define	RK_GPIO_LOCK(_sc)		mtx_lock_spin(&(_sc)->sc_mtx)
-#define	RK_GPIO_UNLOCK(_sc)		mtx_unlock_spin(&(_sc)->sc_mtx)
-#define	RK_GPIO_LOCK_ASSERT(_sc)	mtx_assert(&(_sc)->sc_mtx, MA_OWNED)
+#define RK_GPIO_LOCK(_sc) mtx_lock_spin(&(_sc)->sc_mtx)
+#define RK_GPIO_UNLOCK(_sc) mtx_unlock_spin(&(_sc)->sc_mtx)
+#define RK_GPIO_LOCK_ASSERT(_sc) mtx_assert(&(_sc)->sc_mtx, MA_OWNED)
 
-#define	RK_GPIO_WRITE(_sc, _off, _val)		\
-    bus_space_write_4(_sc->sc_bst, _sc->sc_bsh, _off, _val)
-#define	RK_GPIO_READ(_sc, _off)		\
-    bus_space_read_4(_sc->sc_bst, _sc->sc_bsh, _off)
+#define RK_GPIO_WRITE(_sc, _off, _val) \
+	bus_space_write_4(_sc->sc_bst, _sc->sc_bsh, _off, _val)
+#define RK_GPIO_READ(_sc, _off) bus_space_read_4(_sc->sc_bst, _sc->sc_bsh, _off)
 
 static int
 rk_gpio_read_bit(struct rk_gpio_softc *sc, int reg, int bit)
@@ -204,7 +198,8 @@ rk_gpio_write_4(struct rk_gpio_softc *sc, int reg, uint32_t value)
 static int
 rk_gpio_intr(void *arg)
 {
-	struct rk_gpio_softc *sc = (struct rk_gpio_softc *)arg;;
+	struct rk_gpio_softc *sc = (struct rk_gpio_softc *)arg;
+	;
 	struct trapframe *tf = curthread->td_intr_frame;
 	uint32_t status;
 
@@ -218,8 +213,8 @@ rk_gpio_intr(void *arg)
 
 		status &= ~(1 << pin);
 		if (intr_isrc_dispatch(RK_GPIO_ISRC(sc, pin), tf)) {
-			device_printf(sc->sc_dev, "Interrupt pin=%d unhandled\n",
-			    pin);
+			device_printf(sc->sc_dev,
+			    "Interrupt pin=%d unhandled\n", pin);
 			continue;
 		}
 
@@ -294,8 +289,8 @@ rk_gpio_attach(device_t dev)
 	}
 
 	if ((err = bus_setup_intr(dev, sc->sc_res[1],
-	    INTR_TYPE_MISC | INTR_MPSAFE, rk_gpio_intr, NULL,
-	    sc, &sc->ihandle))) {
+		 INTR_TYPE_MISC | INTR_MPSAFE, rk_gpio_intr, NULL, sc,
+		 &sc->ihandle))) {
 		device_printf(dev, "Can not setup IRQ\n");
 		rk_gpio_detach(dev);
 		return (ENXIO);
@@ -348,8 +343,8 @@ rk_gpio_attach(device_t dev)
 	for (i = 0; i < RK_GPIO_MAX_PINS; i++) {
 		sc->isrcs[i].irq = i;
 		sc->isrcs[i].mode = GPIO_INTR_CONFORM;
-		if ((err = intr_isrc_register(RK_GPIO_ISRC(sc, i),
-		    dev, 0, "%s", device_get_nameunit(dev)))) {
+		if ((err = intr_isrc_register(RK_GPIO_ISRC(sc, i), dev, 0, "%s",
+			 device_get_nameunit(dev)))) {
 			device_printf(dev, "Can not register isrc %d\n", err);
 			rk_gpio_detach(dev);
 			return (ENXIO);
@@ -393,7 +388,7 @@ rk_gpio_detach(device_t dev)
 	mtx_destroy(&sc->sc_mtx);
 	clk_disable(sc->clk);
 
-	return(0);
+	return (0);
 }
 
 static device_t
@@ -445,7 +440,8 @@ rk_gpio_pin_getflags(device_t dev, uint32_t pin, uint32_t *flags)
 	sc = device_get_softc(dev);
 
 	if (__predict_false(sc->pin_cached[pin].is_gpio != 1)) {
-		rv = FDT_PINCTRL_IS_GPIO(sc->pinctrl, dev, pin, (bool *)&sc->pin_cached[pin].is_gpio);
+		rv = FDT_PINCTRL_IS_GPIO(sc->pinctrl, dev, pin,
+		    (bool *)&sc->pin_cached[pin].is_gpio);
 		if (rv != 0)
 			return (rv);
 		if (sc->pin_cached[pin].is_gpio == 0)
@@ -488,14 +484,16 @@ rk_gpio_pin_setflags(device_t dev, uint32_t pin, uint32_t flags)
 		return (EINVAL);
 
 	if (__predict_false(sc->pin_cached[pin].is_gpio != 1)) {
-		rv = FDT_PINCTRL_IS_GPIO(sc->pinctrl, dev, pin, (bool *)&sc->pin_cached[pin].is_gpio);
+		rv = FDT_PINCTRL_IS_GPIO(sc->pinctrl, dev, pin,
+		    (bool *)&sc->pin_cached[pin].is_gpio);
 		if (rv != 0)
 			return (rv);
 		if (sc->pin_cached[pin].is_gpio == 0)
 			return (EINVAL);
 	}
 
-	if (__predict_false((flags & GPIO_PIN_INPUT) && ((flags & GPIO_FLAGS_PINCTRL) != sc->pin_cached[pin].flags))) {
+	if (__predict_false((flags & GPIO_PIN_INPUT) &&
+		((flags & GPIO_FLAGS_PINCTRL) != sc->pin_cached[pin].flags))) {
 		rv = FDT_PINCTRL_SET_FLAGS(sc->pinctrl, dev, pin, flags);
 		sc->pin_cached[pin].flags = flags & GPIO_FLAGS_PINCTRL;
 		if (rv != 0)
@@ -675,8 +673,8 @@ rk_pic_map_intr(device_t dev, struct intr_map_data *data,
 }
 
 static int
-rk_pic_setup_intr(device_t dev, struct intr_irqsrc *isrc,
-    struct resource *res, struct intr_map_data *data)
+rk_pic_setup_intr(device_t dev, struct intr_irqsrc *isrc, struct resource *res,
+    struct intr_map_data *data)
 {
 	struct rk_gpio_softc *sc = device_get_softc(dev);
 	struct rk_pin_irqsrc *rkisrc = (struct rk_pin_irqsrc *)isrc;
@@ -721,11 +719,11 @@ rk_pic_setup_intr(device_t dev, struct intr_irqsrc *isrc,
 		rk_gpio_write_bit(sc, RK_GPIO_INTTYPE_LEVEL, pin, 1);
 		if (sc->version == RK_GPIO_TYPE_V1) {
 			if (rk_gpio_read_bit(sc, RK_GPIO_EXT_PORTA, pin))
-				rk_gpio_write_bit(sc, RK_GPIO_INT_POLARITY,
-				    pin, 0);
+				rk_gpio_write_bit(sc, RK_GPIO_INT_POLARITY, pin,
+				    0);
 			else
-				rk_gpio_write_bit(sc, RK_GPIO_INT_POLARITY,
-				    pin, 1);
+				rk_gpio_write_bit(sc, RK_GPIO_INT_POLARITY, pin,
+				    1);
 		} else
 			rk_gpio_write_bit(sc, RK_GPIO_INTTYPE_BOTH, pin, 1);
 		break;
@@ -775,31 +773,31 @@ rk_pic_teardown_intr(device_t dev, struct intr_irqsrc *isrc,
 
 static device_method_t rk_gpio_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		rk_gpio_probe),
-	DEVMETHOD(device_attach,	rk_gpio_attach),
-	DEVMETHOD(device_detach,	rk_gpio_detach),
+	DEVMETHOD(device_probe, rk_gpio_probe),
+	DEVMETHOD(device_attach, rk_gpio_attach),
+	DEVMETHOD(device_detach, rk_gpio_detach),
 
 	/* GPIO protocol */
-	DEVMETHOD(gpio_get_bus,		rk_gpio_get_bus),
-	DEVMETHOD(gpio_pin_max,		rk_gpio_pin_max),
-	DEVMETHOD(gpio_pin_getname,	rk_gpio_pin_getname),
-	DEVMETHOD(gpio_pin_getflags,	rk_gpio_pin_getflags),
-	DEVMETHOD(gpio_pin_getcaps,	rk_gpio_pin_getcaps),
-	DEVMETHOD(gpio_pin_setflags,	rk_gpio_pin_setflags),
-	DEVMETHOD(gpio_pin_get,		rk_gpio_pin_get),
-	DEVMETHOD(gpio_pin_set,		rk_gpio_pin_set),
-	DEVMETHOD(gpio_pin_toggle,	rk_gpio_pin_toggle),
-	DEVMETHOD(gpio_pin_access_32,	rk_gpio_pin_access_32),
-	DEVMETHOD(gpio_pin_config_32,	rk_gpio_pin_config_32),
-	DEVMETHOD(gpio_map_gpios,	rk_gpio_map_gpios),
+	DEVMETHOD(gpio_get_bus, rk_gpio_get_bus),
+	DEVMETHOD(gpio_pin_max, rk_gpio_pin_max),
+	DEVMETHOD(gpio_pin_getname, rk_gpio_pin_getname),
+	DEVMETHOD(gpio_pin_getflags, rk_gpio_pin_getflags),
+	DEVMETHOD(gpio_pin_getcaps, rk_gpio_pin_getcaps),
+	DEVMETHOD(gpio_pin_setflags, rk_gpio_pin_setflags),
+	DEVMETHOD(gpio_pin_get, rk_gpio_pin_get),
+	DEVMETHOD(gpio_pin_set, rk_gpio_pin_set),
+	DEVMETHOD(gpio_pin_toggle, rk_gpio_pin_toggle),
+	DEVMETHOD(gpio_pin_access_32, rk_gpio_pin_access_32),
+	DEVMETHOD(gpio_pin_config_32, rk_gpio_pin_config_32),
+	DEVMETHOD(gpio_map_gpios, rk_gpio_map_gpios),
 
 	/* Interrupt controller interface */
-	DEVMETHOD(pic_map_intr,		rk_pic_map_intr),
-	DEVMETHOD(pic_setup_intr,	rk_pic_setup_intr),
-	DEVMETHOD(pic_teardown_intr,	rk_pic_teardown_intr),
+	DEVMETHOD(pic_map_intr, rk_pic_map_intr),
+	DEVMETHOD(pic_setup_intr, rk_pic_setup_intr),
+	DEVMETHOD(pic_teardown_intr, rk_pic_teardown_intr),
 
 	/* ofw_bus interface */
-	DEVMETHOD(ofw_bus_get_node,	rk_gpio_get_node),
+	DEVMETHOD(ofw_bus_get_node, rk_gpio_get_node),
 
 	DEVMETHOD_END
 };

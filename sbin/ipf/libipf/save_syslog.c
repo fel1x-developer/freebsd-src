@@ -1,6 +1,7 @@
+#include <syslog.h>
+
 #include "ipf.h"
 #include "ipmon.h"
-#include <syslog.h>
 
 static void *syslog_parse(char **);
 static void syslog_destroy(void *);
@@ -8,21 +9,14 @@ static int syslog_send(void *, ipmon_msg_t *);
 static void syslog_print(void *);
 
 typedef struct syslog_opts_s {
-	int	facpri;
-	int	fac;
-	int	pri;
+	int facpri;
+	int fac;
+	int pri;
 } syslog_opts_t;
 
-ipmon_saver_t syslogsaver = {
-	"syslog",
-	syslog_destroy,
-	NULL,			/* dup */
-	NULL,			/* match */
-	syslog_parse,
-	syslog_print,
-	syslog_send
-};
-
+ipmon_saver_t syslogsaver = { "syslog", syslog_destroy, NULL, /* dup */
+	NULL,						      /* match */
+	syslog_parse, syslog_print, syslog_send };
 
 static void *
 syslog_parse(char **strings)
@@ -84,7 +78,6 @@ syslog_parse(char **strings)
 	return (ctx);
 }
 
-
 static void
 syslog_print(void *ctx)
 {
@@ -99,17 +92,15 @@ syslog_print(void *ctx)
 		printf("%s.", fac_toname(sys->fac));
 	} else {
 		printf("%s.%s", fac_toname(sys->facpri & LOG_FACMASK),
-		       pri_toname(sys->facpri & LOG_PRIMASK));
+		    pri_toname(sys->facpri & LOG_PRIMASK));
 	}
 }
-
 
 static void
 syslog_destroy(void *ctx)
 {
 	free(ctx);
 }
-
 
 static int
 syslog_send(void *ctx, ipmon_msg_t *msg)

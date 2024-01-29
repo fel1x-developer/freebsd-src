@@ -29,4 +29,4 @@
  * SUCH DAMAGE.
  */
 
-#define	_PATH_FCODES	"/var/db/locate.database"
+#define _PATH_FCODES "/var/db/locate.database"

@@ -42,7 +42,7 @@
 
 #include "hexdump.h"
 
-#define PADDING	"         "
+#define PADDING "         "
 
 int odmode;
 
@@ -61,7 +61,7 @@ oldsyntax(int argc, char ***argvp)
 	char **argv, *end;
 
 	/* Add initial (default) address format. -A may change it later. */
-#define	TYPE_OFFSET	7
+#define TYPE_OFFSET 7
 	add("\"%07.7_Ao\n\"");
 	add("\"%07.7_ao  \"");
 
@@ -71,7 +71,9 @@ oldsyntax(int argc, char ***argvp)
 		switch (ch) {
 		case 'A':
 			switch (*optarg) {
-			case 'd': case 'o': case 'x':
+			case 'd':
+			case 'o':
+			case 'x':
 				fshead->nextfu->fmt[TYPE_OFFSET] = *optarg;
 				fshead->nextfs->nextfu->fmt[TYPE_OFFSET] =
 				    *optarg;
@@ -103,7 +105,7 @@ oldsyntax(int argc, char ***argvp)
 		case 'D':
 			odformat("u4");
 			break;
-		case 'e':		/* undocumented in od */
+		case 'e': /* undocumented in od */
 		case 'F':
 			odformat("fD");
 			break;
@@ -174,9 +176,8 @@ odusage(void)
 {
 
 	fprintf(stderr,
-"usage: od [-aBbcDdeFfHhIiLlOosvXx] [-A base] [-j skip] [-N length] [-t type]\n");
-	fprintf(stderr,
-"          [[+]offset[.][Bb]] [file ...]\n");
+	    "usage: od [-aBbcDdeFfHhIiLlOosvXx] [-A base] [-j skip] [-N length] [-t type]\n");
+	fprintf(stderr, "          [[+]offset[.][Bb]] [file ...]\n");
 	exit(1);
 }
 
@@ -200,8 +201,8 @@ odoffset(int argc, char ***argvp)
 	 */
 	p = argc == 1 ? (*argvp)[0] : (*argvp)[1];
 
-	if (*p != '+' && (argc < 2 ||
-	    (!isdigit(p[0]) && (p[0] != 'x' || !isxdigit(p[1])))))
+	if (*p != '+' &&
+	    (argc < 2 || (!isdigit(p[0]) && (p[0] != 'x' || !isxdigit(p[1])))))
 		return;
 
 	base = 0;
@@ -221,9 +222,11 @@ odoffset(int argc, char ***argvp)
 
 	/* skip over the number */
 	if (base == 16)
-		for (num = p; isxdigit(*p); ++p);
+		for (num = p; isxdigit(*p); ++p)
+			;
 	else
-		for (num = p; isdigit(*p); ++p);
+		for (num = p; isdigit(*p); ++p)
+			;
 
 	/* check for no number */
 	if (num == p)
@@ -288,7 +291,10 @@ odformat(const char *fmt)
 		case 'c':
 			odadd("16/1 \"%3_c \" \"\\n\"");
 			break;
-		case 'o': case 'u': case 'd': case 'x':
+		case 'o':
+		case 'u':
+		case 'd':
+		case 'x':
 			fmt = odformatint(fchar, fmt);
 			break;
 		case 'f':
@@ -345,8 +351,8 @@ odformatfp(char fchar __unused, const char *fmt)
 			    (u_long)isize);
 	}
 
-	asprintf(&hdfmt, "%lu/%lu \" %%%d.%de \" \"\\n\"",
-	    16UL / (u_long)isize, (u_long)isize, digits + 8, digits);
+	asprintf(&hdfmt, "%lu/%lu \" %%%d.%de \" \"\\n\"", 16UL / (u_long)isize,
+	    (u_long)isize, digits + 8, digits);
 	if (hdfmt == NULL)
 		err(1, NULL);
 	odadd(hdfmt);
@@ -410,8 +416,8 @@ odformatint(char fchar, const char *fmt)
 	if (fchar == 'd')
 		digits++;
 	asprintf(&hdfmt, "%lu/%lu \"%*s%%%s%d%c\" \"\\n\"",
-	    16UL / (u_long)isize, (u_long)isize, (int)(4 * isize - digits),
-	    "", (fchar == 'd' || fchar == 'u') ? "" : "0", digits, fchar);
+	    16UL / (u_long)isize, (u_long)isize, (int)(4 * isize - digits), "",
+	    (fchar == 'd' || fchar == 'u') ? "" : "0", digits, fchar);
 	if (hdfmt == NULL)
 		err(1, NULL);
 	odadd(hdfmt);
@@ -426,7 +432,7 @@ odadd(const char *fmt)
 	static int needpad;
 
 	if (needpad)
-		add("\""PADDING"\"");
+		add("\"" PADDING "\"");
 	add(fmt);
 	needpad = 1;
 }

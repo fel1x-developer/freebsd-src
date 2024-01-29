@@ -31,40 +31,40 @@
 #include <sys/bitset.h>
 #include <sys/bitstring.h>
 #include <sys/bus.h>
+#include <sys/cpuset.h>
 #include <sys/ctype.h>
 #include <sys/endian.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
-#include <sys/rman.h>
+#include <sys/mutex.h>
 #include <sys/pciio.h>
 #include <sys/pcpu.h>
 #include <sys/proc.h>
+#include <sys/rman.h>
 #include <sys/socket.h>
-#include <sys/cpuset.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
+
+#include <dev/mii/miivar.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/openfirm.h>
 
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_media.h>
 
-#include <dev/ofw/openfirm.h>
-#include <dev/ofw/ofw_bus.h>
-#include <dev/mii/miivar.h>
-
 #include "thunder_bgx.h"
 #include "thunder_bgx_var.h"
 
-#define	CONN_TYPE_MAXLEN	16
-#define	CONN_TYPE_OFFSET	2
+#define CONN_TYPE_MAXLEN 16
+#define CONN_TYPE_OFFSET 2
 
-#define	BGX_NODE_NAME		"bgx"
-#define	BGX_MAXID		9
+#define BGX_NODE_NAME "bgx"
+#define BGX_MAXID 9
 /* BGX func. 0, i.e.: reg = <0x8000 0 0 0 0>; DEVFN = 0x80 */
-#define	BGX_DEVFN_0		0x80
+#define BGX_DEVFN_0 0x80
 
-#define	FDT_NAME_MAXLEN		31
+#define FDT_NAME_MAXLEN 31
 
 int bgx_fdt_init_phy(struct bgx *);
 
@@ -200,8 +200,7 @@ bgx_fdt_phy_name_match(struct bgx *bgx, char *phy_name, ssize_t size)
 }
 
 static phandle_t
-bgx_fdt_traverse_nodes(uint8_t unit, phandle_t start, char *name,
-    size_t len)
+bgx_fdt_traverse_nodes(uint8_t unit, phandle_t start, char *name, size_t len)
 {
 	phandle_t node, ret;
 	uint32_t *reg;
@@ -254,8 +253,8 @@ bgx_fdt_traverse_nodes(uint8_t unit, phandle_t start, char *name,
 		 * New way - by reg
 		 */
 		/* Check if even BGX */
-		if (strncmp(node_name,
-		    BGX_NODE_NAME, sizeof(BGX_NODE_NAME) - 1) != 0)
+		if (strncmp(node_name, BGX_NODE_NAME,
+			sizeof(BGX_NODE_NAME) - 1) != 0)
 			continue;
 		/* Get reg */
 		err = OF_getencprop_alloc_multi(node, "reg", sizeof(*reg),
@@ -295,15 +294,17 @@ bgx_find_root_pcib(device_t dev)
 	/* Walk the bridge hierarchy until we find a non-PCI device */
 	for (;;) {
 		bus = device_get_parent(dev);
-		KASSERT(bus != NULL, ("%s: null parent of %s", __func__,
-		    device_get_nameunit(dev)));
+		KASSERT(bus != NULL,
+		    ("%s: null parent of %s", __func__,
+			device_get_nameunit(dev)));
 
 		if (device_get_devclass(bus) != pci_class)
 			return (NULL);
 
 		pcib = device_get_parent(bus);
-		KASSERT(pcib != NULL, ("%s: null bridge of %s", __func__,
-		    device_get_nameunit(bus)));
+		KASSERT(pcib != NULL,
+		    ("%s: null bridge of %s", __func__,
+			device_get_nameunit(bus)));
 
 		/*
 		 * If the parent of this PCIB is not PCI
@@ -333,9 +334,9 @@ bgx_fdt_find_node(struct bgx *bgx)
 	    M_ZERO | M_WAITOK);
 
 	/* Prepare node's name */
-	snprintf(bgx_sel, len + 1, "/"BGX_NODE_NAME"%d", bgx->bgx_id);
+	snprintf(bgx_sel, len + 1, "/" BGX_NODE_NAME "%d", bgx->bgx_id);
 	/* First try the root node */
-	node =  OF_finddevice(bgx_sel);
+	node = OF_finddevice(bgx_sel);
 	if (node != -1) {
 		/* Found relevant node */
 		goto out;
@@ -345,7 +346,7 @@ bgx_fdt_find_node(struct bgx *bgx)
 	 * starting from the parent PCI bridge node.
 	 */
 	memset(bgx_sel, 0, sizeof(*bgx_sel) * (len + 1));
-	snprintf(bgx_sel, len, BGX_NODE_NAME"%d", bgx->bgx_id);
+	snprintf(bgx_sel, len, BGX_NODE_NAME "%d", bgx->bgx_id);
 
 	/* Find PCI bridge that we are connected to */
 
@@ -380,8 +381,8 @@ bgx_fdt_init_phy(struct bgx *bgx)
 
 	node = bgx_fdt_find_node(bgx);
 	if (node == 0) {
-		device_printf(bgx->dev,
-		    "Could not find bgx%d node in FDT\n", bgx->bgx_id);
+		device_printf(bgx->dev, "Could not find bgx%d node in FDT\n",
+		    bgx->bgx_id);
 		return (ENXIO);
 	}
 
@@ -411,7 +412,7 @@ bgx_fdt_init_phy(struct bgx *bgx)
 
 		/* Acquire PHY address */
 		if (OF_getencprop(child, "reg", &bgx->lmac[lmac].phyaddr,
-		    sizeof(bgx->lmac[lmac].phyaddr)) <= 0) {
+			sizeof(bgx->lmac[lmac].phyaddr)) <= 0) {
 			if (bootverbose) {
 				device_printf(bgx->dev,
 				    "Could not retrieve PHY address\n");
@@ -419,8 +420,8 @@ bgx_fdt_init_phy(struct bgx *bgx)
 			bgx->lmac[lmac].phyaddr = MII_PHY_ANY;
 		}
 
-		if (OF_getencprop(child, "phy-handle", &phy,
-		    sizeof(phy)) <= 0) {
+		if (OF_getencprop(child, "phy-handle", &phy, sizeof(phy)) <=
+		    0) {
 			if (bootverbose) {
 				device_printf(bgx->dev,
 				    "No phy-handle in PHY node. Skipping...\n");
@@ -433,8 +434,8 @@ bgx_fdt_init_phy(struct bgx *bgx)
 		 * Driver must be already attached.
 		 */
 		mdio = OF_parent(phy);
-		bgx->lmac[lmac].phy_if_dev =
-		    OF_device_from_xref(OF_xref_from_node(mdio));
+		bgx->lmac[lmac].phy_if_dev = OF_device_from_xref(
+		    OF_xref_from_node(mdio));
 		if (bgx->lmac[lmac].phy_if_dev == NULL) {
 			if (bootverbose) {
 				device_printf(bgx->dev,

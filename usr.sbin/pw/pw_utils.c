@@ -28,9 +28,9 @@
 #include <sys/wait.h>
 
 #include <err.h>
-#include <sysexits.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sysexits.h>
 #include <unistd.h>
 
 #include "pw.h"
@@ -45,8 +45,7 @@ pw_checkfd(char *nptr)
 		return '-';
 	fd = strtonum(nptr, 0, INT_MAX, &errstr);
 	if (errstr != NULL)
-		errx(EX_USAGE, "Bad file descriptor '%s': %s",
-		    nptr, errstr);
+		errx(EX_USAGE, "Bad file descriptor '%s': %s", nptr, errstr);
 	return (fd);
 }
 
@@ -74,7 +73,8 @@ get_userconfig(const char *config)
 }
 
 int
-nis_update(void) {
+nis_update(void)
+{
 	pid_t pid;
 	int i;
 
@@ -84,7 +84,7 @@ nis_update(void) {
 		return (1);
 	}
 	if (pid == 0) {
-		execlp("/usr/bin/make", "make", "-C", "/var/yp/", (char*) NULL);
+		execlp("/usr/bin/make", "make", "-C", "/var/yp/", (char *)NULL);
 		_exit(1);
 	}
 	waitpid(pid, &i, 0);

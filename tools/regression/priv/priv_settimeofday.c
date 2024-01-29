@@ -42,7 +42,7 @@
 
 #include "main.h"
 
-static struct timeval	now;
+static struct timeval now;
 
 int
 priv_settimeofday_setup(int asroot, int injail, struct test *test)
@@ -62,20 +62,16 @@ priv_settimeofday(int asroot, int injail, struct test *test)
 
 	error = settimeofday(&now, NULL);
 	if (asroot && injail)
-		expect("priv_settimeofday(asroot, injail)", error, -1,
-		    EPERM);
+		expect("priv_settimeofday(asroot, injail)", error, -1, EPERM);
 	if (asroot && !injail)
 		expect("priv_settimeofday(asroot, !injail)", error, 0, 0);
 	if (!asroot && injail)
-		expect("priv_settimeofday(!asroot, injail)", error, -1,
-		    EPERM);
+		expect("priv_settimeofday(!asroot, injail)", error, -1, EPERM);
 	if (!asroot && !injail)
-		expect("priv_settimeofday(!asroot, !injail)", error, -1,
-		    EPERM);
+		expect("priv_settimeofday(!asroot, !injail)", error, -1, EPERM);
 }
 
 void
 priv_settimeofday_cleanup(int asroot, int injail, struct test *test)
 {
-
 }

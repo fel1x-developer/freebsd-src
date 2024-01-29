@@ -23,32 +23,36 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#include <sys/uio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in_systm.h>
+#include <sys/uio.h>
+
 #include <netinet/in.h>
-#include <arpa/inet.h>
+#include <netinet/in_systm.h>
 #include <netinet/ip.h>
+
+#include <arpa/inet.h>
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <signal.h>
-#include <err.h>
 
-void hexdump(void *b, int len)
-{       
-        unsigned char *p = (unsigned char*) b;
+void
+hexdump(void *b, int len)
+{
+	unsigned char *p = (unsigned char *)b;
 
-        while (len--)
-                printf("%.2X ", *p++);
-        printf("\n");
+	while (len--)
+		printf("%.2X ", *p++);
+	printf("\n");
 }
 
-int handle_data(int dude, char *buf, int len)
+int
+handle_data(int dude, char *buf, int len)
 {
 	struct ip *ih;
 	unsigned short id;
@@ -56,7 +60,7 @@ int handle_data(int dude, char *buf, int len)
 	struct iovec iov[2];
 	struct msghdr mh;
 
-	ih = (struct ip*) buf;
+	ih = (struct ip *)buf;
 
 	/* XXX IP FRAGS */
 
@@ -88,7 +92,7 @@ int handle_data(int dude, char *buf, int len)
 
 	memset(&mh, 0, sizeof(mh));
 	mh.msg_iov = iov;
-	mh.msg_iovlen = sizeof(iov)/sizeof(struct iovec);
+	mh.msg_iovlen = sizeof(iov) / sizeof(struct iovec);
 
 	/* write */
 	if (sendmsg(dude, &mh, 0) != (4 + len))
@@ -96,7 +100,8 @@ int handle_data(int dude, char *buf, int len)
 	return 0;
 }
 
-void handle_dude(int dude, int raw)
+void
+handle_dude(int dude, int raw)
 {
 	char buf[4096];
 	int rd;
@@ -105,18 +110,20 @@ void handle_dude(int dude, int raw)
 		rd = recv(raw, buf, sizeof(buf), 0);
 		if (rd == -1)
 			err(1, "recv()");
-		
+
 		if (handle_data(dude, buf, rd) == -1)
 			return;
 	}
 }
 
-void hand(int s)
+void
+hand(int s)
 {
 	printf("sigpipe\n");
 }
 
-int main(int argc, char *argv[])
+int
+main(int argc, char *argv[])
 {
 	int s, dude;
 	struct sockaddr_in s_in;
@@ -134,7 +141,7 @@ int main(int argc, char *argv[])
 	if ((s = socket(s_in.sin_family, SOCK_STREAM, IPPROTO_TCP)) == -1)
 		err(1, "socket()");
 
-	if (bind(s, (struct sockaddr*)&s_in, sizeof(s_in)) == -1)
+	if (bind(s, (struct sockaddr *)&s_in, sizeof(s_in)) == -1)
 		err(1, "bind()");
 
 	if (listen(s, 5) == -1)
@@ -145,7 +152,7 @@ int main(int argc, char *argv[])
 
 	while (1) {
 		len = sizeof(s_in);
-		dude = accept(s, (struct sockaddr*)&s_in, &len);
+		dude = accept(s, (struct sockaddr *)&s_in, &len);
 		if (dude == -1)
 			err(1, "accept()");
 

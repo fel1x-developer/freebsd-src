@@ -37,124 +37,124 @@
 #include "ena-com/ena_com.h"
 #include "ena-com/ena_eth_com.h"
 
-#define ENA_DRV_MODULE_VER_MAJOR	2
-#define ENA_DRV_MODULE_VER_MINOR	7
-#define ENA_DRV_MODULE_VER_SUBMINOR	0
+#define ENA_DRV_MODULE_VER_MAJOR 2
+#define ENA_DRV_MODULE_VER_MINOR 7
+#define ENA_DRV_MODULE_VER_SUBMINOR 0
 
-#define ENA_DRV_MODULE_NAME		"ena"
+#define ENA_DRV_MODULE_NAME "ena"
 
 #ifndef ENA_DRV_MODULE_VERSION
-#define ENA_DRV_MODULE_VERSION				\
-	__XSTRING(ENA_DRV_MODULE_VER_MAJOR) "."		\
-	__XSTRING(ENA_DRV_MODULE_VER_MINOR) "."		\
-	__XSTRING(ENA_DRV_MODULE_VER_SUBMINOR)
+#define ENA_DRV_MODULE_VERSION                                 \
+	__XSTRING(ENA_DRV_MODULE_VER_MAJOR)                    \
+	"." __XSTRING(ENA_DRV_MODULE_VER_MINOR) "." __XSTRING( \
+	    ENA_DRV_MODULE_VER_SUBMINOR)
 #endif
-#define ENA_DEVICE_NAME	"Elastic Network Adapter (ENA)"
-#define ENA_DEVICE_DESC	"ENA adapter"
+#define ENA_DEVICE_NAME "Elastic Network Adapter (ENA)"
+#define ENA_DEVICE_DESC "ENA adapter"
 
 /* Calculate DMA mask - width for ena cannot exceed 48, so it is safe */
-#define ENA_DMA_BIT_MASK(x)		((1ULL << (x)) - 1ULL)
+#define ENA_DMA_BIT_MASK(x) ((1ULL << (x)) - 1ULL)
 
 /* 1 for AENQ + ADMIN */
-#define ENA_ADMIN_MSIX_VEC		1
-#define ENA_MAX_MSIX_VEC(io_queues)	(ENA_ADMIN_MSIX_VEC + (io_queues))
+#define ENA_ADMIN_MSIX_VEC 1
+#define ENA_MAX_MSIX_VEC(io_queues) (ENA_ADMIN_MSIX_VEC + (io_queues))
 
-#define ENA_REG_BAR			0
-#define ENA_MEM_BAR			2
+#define ENA_REG_BAR 0
+#define ENA_MEM_BAR 2
 
-#define ENA_BUS_DMA_SEGS		32
+#define ENA_BUS_DMA_SEGS 32
 
-#define ENA_DEFAULT_BUF_RING_SIZE	4096
+#define ENA_DEFAULT_BUF_RING_SIZE 4096
 
-#define ENA_DEFAULT_RING_SIZE		1024
-#define ENA_MIN_RING_SIZE		256
+#define ENA_DEFAULT_RING_SIZE 1024
+#define ENA_MIN_RING_SIZE 256
 
-#define ENA_BASE_CPU_UNSPECIFIED 	-1
+#define ENA_BASE_CPU_UNSPECIFIED -1
 /*
  * Refill Rx queue when number of required descriptors is above
  * QUEUE_SIZE / ENA_RX_REFILL_THRESH_DIVIDER or ENA_RX_REFILL_THRESH_PACKET
  */
-#define ENA_RX_REFILL_THRESH_DIVIDER	8
-#define ENA_RX_REFILL_THRESH_PACKET	256
+#define ENA_RX_REFILL_THRESH_DIVIDER 8
+#define ENA_RX_REFILL_THRESH_PACKET 256
 
-#define ENA_IRQNAME_SIZE		40
+#define ENA_IRQNAME_SIZE 40
 
-#define ENA_PKT_MAX_BUFS 		19
+#define ENA_PKT_MAX_BUFS 19
 
-#define ENA_RX_RSS_TABLE_LOG_SIZE	7
-#define ENA_RX_RSS_TABLE_SIZE		(1 << ENA_RX_RSS_TABLE_LOG_SIZE)
+#define ENA_RX_RSS_TABLE_LOG_SIZE 7
+#define ENA_RX_RSS_TABLE_SIZE (1 << ENA_RX_RSS_TABLE_LOG_SIZE)
 
-#define ENA_HASH_KEY_SIZE		40
+#define ENA_HASH_KEY_SIZE 40
 
-#define ENA_MAX_FRAME_LEN		10000
-#define ENA_MIN_FRAME_LEN 		60
+#define ENA_MAX_FRAME_LEN 10000
+#define ENA_MIN_FRAME_LEN 60
 
-#define ENA_TX_RESUME_THRESH		(ENA_PKT_MAX_BUFS + 2)
+#define ENA_TX_RESUME_THRESH (ENA_PKT_MAX_BUFS + 2)
 
-#define ENA_DB_THRESHOLD	64
+#define ENA_DB_THRESHOLD 64
 
-#define ENA_TX_COMMIT	32
- /*
+#define ENA_TX_COMMIT 32
+/*
  * TX budget for cleaning. It should be half of the RX budget to reduce amount
  *  of TCP retransmissions.
  */
-#define ENA_TX_BUDGET	128
+#define ENA_TX_BUDGET 128
 /* RX cleanup budget. -1 stands for infinity. */
-#define ENA_RX_BUDGET	256
+#define ENA_RX_BUDGET 256
 /*
  * How many times we can repeat cleanup in the io irq handling routine if the
  * RX or TX budget was depleted.
  */
-#define ENA_CLEAN_BUDGET	8
+#define ENA_CLEAN_BUDGET 8
 
-#define ENA_RX_IRQ_INTERVAL	20
-#define ENA_TX_IRQ_INTERVAL	50
+#define ENA_RX_IRQ_INTERVAL 20
+#define ENA_TX_IRQ_INTERVAL 50
 
-#define ENA_MIN_MTU		128
+#define ENA_MIN_MTU 128
 
-#define ENA_TSO_MAXSIZE		65536
+#define ENA_TSO_MAXSIZE 65536
 
-#define ENA_MMIO_DISABLE_REG_READ	BIT(0)
+#define ENA_MMIO_DISABLE_REG_READ BIT(0)
 
-#define ENA_TX_RING_IDX_NEXT(idx, ring_size) (((idx) + 1) & ((ring_size) - 1))
+#define ENA_TX_RING_IDX_NEXT(idx, ring_size) (((idx) + 1) & ((ring_size)-1))
 
-#define ENA_RX_RING_IDX_NEXT(idx, ring_size) (((idx) + 1) & ((ring_size) - 1))
+#define ENA_RX_RING_IDX_NEXT(idx, ring_size) (((idx) + 1) & ((ring_size)-1))
 
-#define ENA_IO_TXQ_IDX(q)		(2 * (q))
-#define ENA_IO_RXQ_IDX(q)		(2 * (q) + 1)
-#define ENA_IO_TXQ_IDX_TO_COMBINED_IDX(q)	((q) / 2)
-#define ENA_IO_RXQ_IDX_TO_COMBINED_IDX(q)	(((q) - 1) / 2)
+#define ENA_IO_TXQ_IDX(q) (2 * (q))
+#define ENA_IO_RXQ_IDX(q) (2 * (q) + 1)
+#define ENA_IO_TXQ_IDX_TO_COMBINED_IDX(q) ((q) / 2)
+#define ENA_IO_RXQ_IDX_TO_COMBINED_IDX(q) (((q)-1) / 2)
 
-#define ENA_MGMNT_IRQ_IDX		0
-#define ENA_IO_IRQ_FIRST_IDX		1
-#define ENA_IO_IRQ_IDX(q)		(ENA_IO_IRQ_FIRST_IDX + (q))
+#define ENA_MGMNT_IRQ_IDX 0
+#define ENA_IO_IRQ_FIRST_IDX 1
+#define ENA_IO_IRQ_IDX(q) (ENA_IO_IRQ_FIRST_IDX + (q))
 
-#define ENA_MAX_NO_INTERRUPT_ITERATIONS	3
+#define ENA_MAX_NO_INTERRUPT_ITERATIONS 3
 
 /*
  * ENA device should send keep alive msg every 1 sec.
  * We wait for 6 sec just to be on the safe side.
  */
-#define ENA_DEFAULT_KEEP_ALIVE_TO	(SBT_1S * 6)
+#define ENA_DEFAULT_KEEP_ALIVE_TO (SBT_1S * 6)
 
 /* Time in jiffies before concluding the transmitter is hung. */
-#define ENA_DEFAULT_TX_CMP_TO		(SBT_1S * 5)
+#define ENA_DEFAULT_TX_CMP_TO (SBT_1S * 5)
 
 /* Number of queues to check for missing queues per timer tick */
-#define ENA_DEFAULT_TX_MONITORED_QUEUES	(4)
+#define ENA_DEFAULT_TX_MONITORED_QUEUES (4)
 
 /* Max number of timeouted packets before device reset */
-#define ENA_DEFAULT_TX_CMP_THRESHOLD	(128)
+#define ENA_DEFAULT_TX_CMP_THRESHOLD (128)
 
 /*
  * Supported PCI vendor and devices IDs
  */
-#define PCI_VENDOR_ID_AMAZON	0x1d0f
+#define PCI_VENDOR_ID_AMAZON 0x1d0f
 
-#define PCI_DEV_ID_ENA_PF		0x0ec2
-#define PCI_DEV_ID_ENA_PF_RSERV0	0x1ec2
-#define PCI_DEV_ID_ENA_VF		0xec20
-#define PCI_DEV_ID_ENA_VF_RSERV0	0xec21
+#define PCI_DEV_ID_ENA_PF 0x0ec2
+#define PCI_DEV_ID_ENA_PF_RSERV0 0x1ec2
+#define PCI_DEV_ID_ENA_VF 0xec20
+#define PCI_DEV_ID_ENA_VF_RSERV0 0xec21
 
 /*
  * Flags indicating current ENA driver state
@@ -174,13 +174,12 @@ enum ena_flags_t {
 BITSET_DEFINE(_ena_state, ENA_FLAGS_NUMBER);
 typedef struct _ena_state ena_state_t;
 
-#define ENA_FLAG_ZERO(adapter)		\
-	BIT_ZERO(ENA_FLAGS_NUMBER, &(adapter)->flags)
-#define ENA_FLAG_ISSET(bit, adapter)	\
+#define ENA_FLAG_ZERO(adapter) BIT_ZERO(ENA_FLAGS_NUMBER, &(adapter)->flags)
+#define ENA_FLAG_ISSET(bit, adapter) \
 	BIT_ISSET(ENA_FLAGS_NUMBER, (bit), &(adapter)->flags)
-#define ENA_FLAG_SET_ATOMIC(bit, adapter)	\
+#define ENA_FLAG_SET_ATOMIC(bit, adapter) \
 	BIT_SET_ATOMIC(ENA_FLAGS_NUMBER, (bit), &(adapter)->flags)
-#define ENA_FLAG_CLEAR_ATOMIC(bit, adapter)	\
+#define ENA_FLAG_CLEAR_ATOMIC(bit, adapter) \
 	BIT_CLR_ATOMIC(ENA_FLAGS_NUMBER, (bit), &(adapter)->flags)
 
 struct msix_entry {
@@ -317,11 +316,11 @@ struct ena_ring {
 	/* Determines if device will use LLQ or normal mode for TX */
 	enum ena_admin_placement_policy_type tx_mem_queue_type;
 	union {
-		/* The maximum length the driver can push to the device (For LLQ) */
+		/* The maximum length the driver can push to the device (For
+		 * LLQ) */
 		uint8_t tx_max_header_size;
 		/* The maximum (and default) mbuf size for the Rx descriptor. */
 		uint16_t rx_mbuf_sz;
-
 	};
 
 	uint8_t first_interrupt;
@@ -401,7 +400,7 @@ struct ena_adapter {
 	/* OS defined structs */
 	if_t ifp;
 	device_t pdev;
-	struct ifmedia	media;
+	struct ifmedia media;
 
 	/* OS resources */
 	struct resource *memory;
@@ -452,16 +451,15 @@ struct ena_adapter {
 	uint8_t rss_enabled;
 
 	/* Queue will represent one TX and one RX ring */
-	struct ena_que que[ENA_MAX_NUM_IO_QUEUES]
-	    __aligned(CACHE_LINE_SIZE);
+	struct ena_que que[ENA_MAX_NUM_IO_QUEUES] __aligned(CACHE_LINE_SIZE);
 
 	/* TX */
-	struct ena_ring tx_ring[ENA_MAX_NUM_IO_QUEUES]
-	    __aligned(CACHE_LINE_SIZE);
+	struct ena_ring tx_ring[ENA_MAX_NUM_IO_QUEUES] __aligned(
+	    CACHE_LINE_SIZE);
 
 	/* RX */
-	struct ena_ring rx_ring[ENA_MAX_NUM_IO_QUEUES]
-	    __aligned(CACHE_LINE_SIZE);
+	struct ena_ring rx_ring[ENA_MAX_NUM_IO_QUEUES] __aligned(
+	    CACHE_LINE_SIZE);
 
 	struct ena_irq irq_tbl[ENA_MAX_MSIX_VEC(ENA_MAX_NUM_IO_QUEUES)];
 
@@ -493,44 +491,40 @@ struct ena_adapter {
 	enum ena_regs_reset_reason_types reset_reason;
 };
 
-#define ENA_RING_MTX_LOCK(_ring)		mtx_lock(&(_ring)->ring_mtx)
-#define ENA_RING_MTX_TRYLOCK(_ring)		mtx_trylock(&(_ring)->ring_mtx)
-#define ENA_RING_MTX_UNLOCK(_ring)		mtx_unlock(&(_ring)->ring_mtx)
-#define ENA_RING_MTX_ASSERT(_ring)		\
-	mtx_assert(&(_ring)->ring_mtx, MA_OWNED)
+#define ENA_RING_MTX_LOCK(_ring) mtx_lock(&(_ring)->ring_mtx)
+#define ENA_RING_MTX_TRYLOCK(_ring) mtx_trylock(&(_ring)->ring_mtx)
+#define ENA_RING_MTX_UNLOCK(_ring) mtx_unlock(&(_ring)->ring_mtx)
+#define ENA_RING_MTX_ASSERT(_ring) mtx_assert(&(_ring)->ring_mtx, MA_OWNED)
 
-#define ENA_LOCK_INIT()					\
-	sx_init(&ena_global_lock,	"ENA global lock")
-#define ENA_LOCK_DESTROY()		sx_destroy(&ena_global_lock)
-#define ENA_LOCK_LOCK()			sx_xlock(&ena_global_lock)
-#define ENA_LOCK_UNLOCK()		sx_unlock(&ena_global_lock)
-#define ENA_LOCK_ASSERT()		sx_assert(&ena_global_lock, SA_XLOCKED)
+#define ENA_LOCK_INIT() sx_init(&ena_global_lock, "ENA global lock")
+#define ENA_LOCK_DESTROY() sx_destroy(&ena_global_lock)
+#define ENA_LOCK_LOCK() sx_xlock(&ena_global_lock)
+#define ENA_LOCK_UNLOCK() sx_unlock(&ena_global_lock)
+#define ENA_LOCK_ASSERT() sx_assert(&ena_global_lock, SA_XLOCKED)
 
-#define ENA_TIMER_INIT(_adapter)					\
-	callout_init(&(_adapter)->timer_service, true)
-#define ENA_TIMER_DRAIN(_adapter)					\
-	callout_drain(&(_adapter)->timer_service)
-#define ENA_TIMER_RESET(_adapter)					\
-	callout_reset_sbt(&(_adapter)->timer_service, SBT_1S, SBT_1S,	\
-			ena_timer_service, (void*)(_adapter), 0)
+#define ENA_TIMER_INIT(_adapter) callout_init(&(_adapter)->timer_service, true)
+#define ENA_TIMER_DRAIN(_adapter) callout_drain(&(_adapter)->timer_service)
+#define ENA_TIMER_RESET(_adapter)                                     \
+	callout_reset_sbt(&(_adapter)->timer_service, SBT_1S, SBT_1S, \
+	    ena_timer_service, (void *)(_adapter), 0)
 
-#define clamp_t(type, _x, min, max)	min_t(type, max_t(type, _x, min), max)
-#define clamp_val(val, lo, hi)		clamp_t(__typeof(val), val, lo, hi)
+#define clamp_t(type, _x, min, max) min_t(type, max_t(type, _x, min), max)
+#define clamp_val(val, lo, hi) clamp_t(__typeof(val), val, lo, hi)
 
 extern struct sx ena_global_lock;
 
-int	ena_up(struct ena_adapter *adapter);
-void	ena_down(struct ena_adapter *adapter);
-int	ena_restore_device(struct ena_adapter *adapter);
-void	ena_destroy_device(struct ena_adapter *adapter, bool graceful);
-int	ena_refill_rx_bufs(struct ena_ring *rx_ring, uint32_t num);
-int	ena_update_buf_ring_size(struct ena_adapter *adapter,
+int ena_up(struct ena_adapter *adapter);
+void ena_down(struct ena_adapter *adapter);
+int ena_restore_device(struct ena_adapter *adapter);
+void ena_destroy_device(struct ena_adapter *adapter, bool graceful);
+int ena_refill_rx_bufs(struct ena_ring *rx_ring, uint32_t num);
+int ena_update_buf_ring_size(struct ena_adapter *adapter,
     uint32_t new_buf_ring_size);
-int	ena_update_queue_size(struct ena_adapter *adapter, uint32_t new_tx_size,
+int ena_update_queue_size(struct ena_adapter *adapter, uint32_t new_tx_size,
     uint32_t new_rx_size);
-int	ena_update_io_queue_nb(struct ena_adapter *adapter, uint32_t new_num);
-int     ena_update_base_cpu(struct ena_adapter *adapter, int new_num);
-int     ena_update_cpu_stride(struct ena_adapter *adapter, uint32_t new_num);
+int ena_update_io_queue_nb(struct ena_adapter *adapter, uint32_t new_num);
+int ena_update_base_cpu(struct ena_adapter *adapter, int new_num);
+int ena_update_cpu_stride(struct ena_adapter *adapter, uint32_t new_num);
 static inline int
 ena_mbuf_count(struct mbuf *mbuf)
 {

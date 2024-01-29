@@ -28,14 +28,14 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/conf.h>
 #include <sys/fcntl.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/module.h>
 #include <sys/proc.h>
 #include <sys/sx.h>
 #include <sys/uio.h>
-#include <sys/module.h>
 
 #include <isa/rtc.h>
 
@@ -52,27 +52,27 @@
  * then presumably we do not know how to make a sum that the bios will accept.
  */
 
-#define NVRAM_FIRST	RTC_DIAG	/* 14 */
-#define NVRAM_LAST	128
+#define NVRAM_FIRST RTC_DIAG /* 14 */
+#define NVRAM_LAST 128
 
-#define CKSUM_FIRST	2
-#define CKSUM_LAST	31
-#define CKSUM_MSB	32
-#define CKSUM_LSB	33
+#define CKSUM_FIRST 2
+#define CKSUM_LAST 31
+#define CKSUM_MSB 32
+#define CKSUM_LSB 33
 
-static d_open_t		nvram_open;
-static d_read_t		nvram_read;
-static d_write_t	nvram_write;
+static d_open_t nvram_open;
+static d_read_t nvram_read;
+static d_write_t nvram_write;
 
 static struct cdev *nvram_dev;
 static struct sx nvram_lock;
 
 static struct cdevsw nvram_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_open =	nvram_open,
-	.d_read =	nvram_read,
-	.d_write =	nvram_write,
-	.d_name =	"nvram",
+	.d_version = D_VERSION,
+	.d_open = nvram_open,
+	.d_read = nvram_read,
+	.d_write = nvram_write,
+	.d_name = "nvram",
 };
 
 static int
@@ -97,13 +97,12 @@ nvram_read(struct cdev *dev, struct uio *uio, int flags)
 	while (uio->uio_resid > 0 && error == 0) {
 		nv_off = uio->uio_offset + NVRAM_FIRST;
 		if (nv_off < NVRAM_FIRST || nv_off >= NVRAM_LAST)
-			return (0);	/* Signal EOF */
+			return (0); /* Signal EOF */
 		/* Single byte at a time */
 		v = rtcin(nv_off);
 		error = uiomove(&v, 1, uio);
 	}
 	return (error);
-
 }
 
 static int
@@ -119,7 +118,7 @@ nvram_write(struct cdev *dev, struct uio *uio, int flags)
 
 	/* Assert that we understand the existing checksum first!  */
 	sum = rtcin(NVRAM_FIRST + CKSUM_MSB) << 8 |
-	      rtcin(NVRAM_FIRST + CKSUM_LSB);
+	    rtcin(NVRAM_FIRST + CKSUM_LSB);
 	for (i = CKSUM_FIRST; i <= CKSUM_LAST; i++)
 		sum -= rtcin(NVRAM_FIRST + i);
 	if (sum != 0) {
@@ -131,7 +130,7 @@ nvram_write(struct cdev *dev, struct uio *uio, int flags)
 		nv_off = uio->uio_offset + NVRAM_FIRST;
 		if (nv_off < NVRAM_FIRST || nv_off >= NVRAM_LAST) {
 			sx_xunlock(&nvram_lock);
-			return (0);	/* Signal EOF */
+			return (0); /* Signal EOF */
 		}
 		/* Single byte at a time */
 		error = uiomove(&v, 1, uio);
@@ -153,8 +152,8 @@ nvram_modevent(module_t mod __unused, int type, void *data __unused)
 	switch (type) {
 	case MOD_LOAD:
 		sx_init(&nvram_lock, "nvram");
-		nvram_dev = make_dev(&nvram_cdevsw, 0,
-		    UID_ROOT, GID_KMEM, 0640, "nvram");
+		nvram_dev = make_dev(&nvram_cdevsw, 0, UID_ROOT, GID_KMEM, 0640,
+		    "nvram");
 		break;
 	case MOD_UNLOAD:
 	case MOD_SHUTDOWN:

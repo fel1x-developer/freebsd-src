@@ -6,25 +6,24 @@
  * $Id: ip_dns_pxy.c,v 1.1.2.10 2012/07/22 08:04:23 darren_r Exp $
  */
 
-#define	IPF_DNS_PROXY
+#define IPF_DNS_PROXY
 
 /*
  * map ... proxy port dns/udp 53 { block .cnn.com; }
  */
-typedef	struct	ipf_dns_filter	{
-	struct	ipf_dns_filter	*idns_next;
-	char			*idns_name;
-	int			idns_namelen;
-	int			idns_pass;
+typedef struct ipf_dns_filter {
+	struct ipf_dns_filter *idns_next;
+	char *idns_name;
+	int idns_namelen;
+	int idns_pass;
 } ipf_dns_filter_t;
 
-
 typedef struct ipf_dns_softc_s {
-	ipf_dns_filter_t	*ipf_p_dns_list;
-	ipfrwlock_t		ipf_p_dns_rwlock;
-	u_long			ipf_p_dns_compress;
-	u_long			ipf_p_dns_toolong;
-	u_long			ipf_p_dns_nospace;
+	ipf_dns_filter_t *ipf_p_dns_list;
+	ipfrwlock_t ipf_p_dns_rwlock;
+	u_long ipf_p_dns_compress;
+	u_long ipf_p_dns_toolong;
+	u_long ipf_p_dns_nospace;
 } ipf_dns_softc_t;
 
 int ipf_p_dns_allow_query(ipf_dns_softc_t *, dnsinfo_t *);
@@ -39,23 +38,22 @@ void *ipf_p_dns_soft_create(ipf_main_softc_t *);
 void ipf_p_dns_soft_destroy(ipf_main_softc_t *, void *);
 
 typedef struct {
-	u_char		dns_id[2];
-	u_short		dns_ctlword;
-	u_short		dns_qdcount;
-	u_short		dns_ancount;
-	u_short		dns_nscount;
-	u_short		dns_arcount;
+	u_char dns_id[2];
+	u_short dns_ctlword;
+	u_short dns_qdcount;
+	u_short dns_ancount;
+	u_short dns_nscount;
+	u_short dns_arcount;
 } ipf_dns_hdr_t;
 
-#define	DNS_QR(x)	((ntohs(x) & 0x8000) >> 15)
-#define	DNS_OPCODE(x)	((ntohs(x) & 0x7800) >> 11)
-#define	DNS_AA(x)	((ntohs(x) & 0x0400) >> 10)
-#define	DNS_TC(x)	((ntohs(x) & 0x0200) >> 9)
-#define	DNS_RD(x)	((ntohs(x) & 0x0100) >> 8)
-#define	DNS_RA(x)	((ntohs(x) & 0x0080) >> 7)
-#define	DNS_Z(x)	((ntohs(x) & 0x0070) >> 4)
-#define	DNS_RCODE(x)	((ntohs(x) & 0x000f) >> 0)
-
+#define DNS_QR(x) ((ntohs(x) & 0x8000) >> 15)
+#define DNS_OPCODE(x) ((ntohs(x) & 0x7800) >> 11)
+#define DNS_AA(x) ((ntohs(x) & 0x0400) >> 10)
+#define DNS_TC(x) ((ntohs(x) & 0x0200) >> 9)
+#define DNS_RD(x) ((ntohs(x) & 0x0100) >> 8)
+#define DNS_RA(x) ((ntohs(x) & 0x0080) >> 7)
+#define DNS_Z(x) ((ntohs(x) & 0x0070) >> 4)
+#define DNS_RCODE(x) ((ntohs(x) & 0x000f) >> 0)
 
 void *
 ipf_p_dns_soft_create(ipf_main_softc_t *softc)
@@ -71,7 +69,6 @@ ipf_p_dns_soft_create(ipf_main_softc_t *softc)
 
 	return (softd);
 }
-
 
 void
 ipf_p_dns_soft_destroy(ipf_main_softc_t *softc, void *arg)
@@ -91,7 +88,6 @@ ipf_p_dns_soft_destroy(ipf_main_softc_t *softc, void *arg)
 	KFREE(softd);
 }
 
-
 int
 ipf_p_dns_ctl(ipf_main_softc_t *softc, void *arg, ap_ctl_t *ctl)
 {
@@ -110,13 +106,12 @@ ipf_p_dns_ctl(ipf_main_softc_t *softc, void *arg, ap_ctl_t *ctl)
 		if (idns->idns_namelen != ctl->apc_dsize)
 			continue;
 		if (!strncmp(ctl->apc_data, idns->idns_name,
-		    idns->idns_namelen))
+			idns->idns_namelen))
 			break;
 	}
 
-	switch (ctl->apc_cmd)
-	{
-	case APC_CMD_DEL :
+	switch (ctl->apc_cmd) {
+	case APC_CMD_DEL:
 		if (idns == NULL) {
 			IPFERROR(80006);
 			error = ESRCH;
@@ -129,7 +124,7 @@ ipf_p_dns_ctl(ipf_main_softc_t *softc, void *arg, ap_ctl_t *ctl)
 		idns->idns_namelen = 0;
 		KFREE(idns);
 		break;
-	case APC_CMD_ADD :
+	case APC_CMD_ADD:
 		if (idns != NULL) {
 			IPFERROR(80007);
 			error = EEXIST;
@@ -150,7 +145,7 @@ ipf_p_dns_ctl(ipf_main_softc_t *softc, void *arg, ap_ctl_t *ctl)
 		ctl->apc_data = NULL;
 		ctl->apc_dsize = 0;
 		break;
-	default :
+	default:
 		IPFERROR(80009);
 		error = EINVAL;
 		break;
@@ -164,7 +159,6 @@ ipf_p_dns_ctl(ipf_main_softc_t *softc, void *arg, ap_ctl_t *ctl)
 
 	return (error);
 }
-
 
 /* ARGSUSED */
 int
@@ -197,11 +191,10 @@ ipf_p_dns_new(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 
 	dlen = fin->fin_dlen - sizeof(udphdr_t);
 	COPYDATA(fin->fin_m, fin->fin_hlen + sizeof(udphdr_t),
-		 MIN(dlen, sizeof(di->dnsi_buffer)), di->dnsi_buffer);
+	    MIN(dlen, sizeof(di->dnsi_buffer)), di->dnsi_buffer);
 	di->dnsi_id = (di->dnsi_buffer[0] << 8) | di->dnsi_buffer[1];
 	return (0);
 }
-
 
 /* ARGSUSED */
 void
@@ -216,7 +209,6 @@ ipf_p_dns_del(ipf_main_softc_t *softc, ap_session_t *aps)
 	aps->aps_data = NULL;
 	aps->aps_psiz = 0;
 }
-
 
 /*
  * Tries to match the base string (in our ACL) with the query from a packet.
@@ -253,10 +245,9 @@ ipf_p_dns_match_names(ipf_dns_filter_t *idns, char *query, int qlen)
 	return (strncasecmp(base, query + qlen - blen, blen));
 }
 
-
 int
-ipf_p_dns_get_name(ipf_dns_softc_t *softd, char *start, int len,
-	char *buffer, int buflen)
+ipf_p_dns_get_name(ipf_dns_softc_t *softd, char *start, int len, char *buffer,
+    int buflen)
 {
 	char *s, *t, clen;
 	int slen, blen;
@@ -264,21 +255,21 @@ ipf_p_dns_get_name(ipf_dns_softc_t *softd, char *start, int len,
 	s = start;
 	t = buffer;
 	slen = len;
-	blen = buflen - 1;	/* Always make room for trailing \0 */
+	blen = buflen - 1; /* Always make room for trailing \0 */
 
 	while (*s != '\0') {
 		clen = *s;
-		if ((clen & 0xc0) == 0xc0) {	/* Doesn't do compression */
+		if ((clen & 0xc0) == 0xc0) { /* Doesn't do compression */
 			softd->ipf_p_dns_compress++;
 			return (0);
 		}
 		if (clen > slen) {
 			softd->ipf_p_dns_toolong++;
-			return (0);	/* Does the name run off the end? */
+			return (0); /* Does the name run off the end? */
 		}
 		if ((clen + 1) > blen) {
 			softd->ipf_p_dns_nospace++;
-			return (0);	/* Enough room for name+.? */
+			return (0); /* Enough room for name+.? */
 		}
 		s++;
 		bcopy(s, t, clen);
@@ -293,7 +284,6 @@ ipf_p_dns_get_name(ipf_dns_softc_t *softd, char *start, int len,
 	return (s - start);
 }
 
-
 int
 ipf_p_dns_allow_query(ipf_dns_softc_t *softd, dnsinfo_t *dnsi)
 {
@@ -307,7 +297,6 @@ ipf_p_dns_allow_query(ipf_dns_softc_t *softd, dnsinfo_t *dnsi)
 			return (idns->idns_pass);
 	return (0);
 }
-
 
 /* ARGSUSED */
 int
@@ -338,7 +327,7 @@ ipf_p_dns_inout(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 		int len;
 
 		len = ipf_p_dns_get_name(softd, data, dlen, di->dnsi_buffer,
-					 sizeof(di->dnsi_buffer));
+		    sizeof(di->dnsi_buffer));
 		if (len == 0) {
 			rc = 1;
 			break;
@@ -354,7 +343,6 @@ ipf_p_dns_inout(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 
 	return (APR_ERR(rc));
 }
-
 
 /* ARGSUSED */
 int

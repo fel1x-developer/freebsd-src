@@ -27,10 +27,10 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_acpi.h"
 #include "opt_ddb.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bio.h>
 #include <sys/bitstring.h>
@@ -42,14 +42,14 @@
 #include <sys/sbuf.h>
 #include <sys/uuid.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
-#include <contrib/dev/acpica/include/acuuid.h>
 #include <dev/acpica/acpivar.h>
-
 #include <dev/nvdimm/nvdimm_var.h>
 
-#define _COMPONENT	ACPI_OEM
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
+#include <contrib/dev/acpica/include/acuuid.h>
+
+#define _COMPONENT ACPI_OEM
 ACPI_MODULE_NAME("NVDIMM_ACPI")
 
 struct nvdimm_root_dev {
@@ -136,7 +136,7 @@ nvdimm_root_create_spas(struct nvdimm_root_dev *dev, ACPI_TABLE_NFIT *nfitbl)
 	acpi_nfit_get_spa_ranges(nfitbl, &spas, &num_spas);
 	for (spa = spas; spa < spas + num_spas; spa++) {
 		spa_type = nvdimm_spa_type_from_uuid(
-			(struct uuid *)(*spa)->RangeGuid);
+		    (struct uuid *)(*spa)->RangeGuid);
 		if (spa_type == SPA_TYPE_UNKNOWN)
 			continue;
 		spa_mapping = malloc(sizeof(struct SPA_mapping), M_NVDIMM_ACPI,
@@ -156,7 +156,7 @@ nvdimm_root_create_spas(struct nvdimm_root_dev *dev, ACPI_TABLE_NFIT *nfitbl)
 	return (error);
 }
 
-static char *nvdimm_root_id[] = {"ACPI0012", NULL};
+static char *nvdimm_root_id[] = { "ACPI0012", NULL };
 
 static int
 nvdimm_root_probe(device_t dev)
@@ -206,7 +206,7 @@ nvdimm_root_detach(device_t dev)
 	int i, error, num_children;
 
 	root = device_get_softc(dev);
-	SLIST_FOREACH_SAFE(spa, &root->spas, link, next) {
+	SLIST_FOREACH_SAFE (spa, &root->spas, link, next) {
 		nvdimm_destroy_namespaces(spa);
 		nvdimm_spa_fini(spa);
 		SLIST_REMOVE_HEAD(&root->spas, link);
@@ -237,8 +237,7 @@ nvdimm_root_read_ivar(device_t dev, device_t child, int index,
 }
 
 static int
-nvdimm_root_write_ivar(device_t dev, device_t child, int index,
-    uintptr_t value)
+nvdimm_root_write_ivar(device_t dev, device_t child, int index, uintptr_t value)
 {
 
 	if (index < 0 || index >= NVDIMM_ROOT_IVAR_MAX)
@@ -267,11 +266,10 @@ static device_method_t nvdimm_acpi_methods[] = {
 	DEVMETHOD(bus_read_ivar, nvdimm_root_read_ivar),
 	DEVMETHOD(bus_write_ivar, nvdimm_root_write_ivar),
 	DEVMETHOD(bus_child_location, nvdimm_root_child_location),
-	DEVMETHOD(bus_get_device_path, acpi_get_acpi_device_path),
-	DEVMETHOD_END
+	DEVMETHOD(bus_get_device_path, acpi_get_acpi_device_path), DEVMETHOD_END
 };
 
-static driver_t	nvdimm_acpi_driver = {
+static driver_t nvdimm_acpi_driver = {
 	"nvdimm_acpi_root",
 	nvdimm_acpi_methods,
 	sizeof(struct nvdimm_root_dev),

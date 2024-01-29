@@ -26,19 +26,18 @@
  * SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <gssapi/gssapi.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 
 #include "mech_switch.h"
-#include "utils.h"
 #include "name.h"
+#include "utils.h"
 
 static OM_uint32
 _gss_import_export_name(OM_uint32 *minor_status,
-    const gss_buffer_t input_name_buffer,
-    gss_name_t *output_name)
+    const gss_buffer_t input_name_buffer, gss_name_t *output_name)
 {
 	OM_uint32 major_status;
 	unsigned char *p = input_name_buffer->value;
@@ -76,7 +75,7 @@ _gss_import_export_name(OM_uint32 *minor_status,
 	 * Check the DER encoded OID to make sure it agrees with the
 	 * length we just decoded.
 	 */
-	if (p[0] != 6)		/* 6=OID */
+	if (p[0] != 6) /* 6=OID */
 		return (GSS_S_BAD_NAME);
 	p++;
 	len--;
@@ -123,8 +122,8 @@ _gss_import_export_name(OM_uint32 *minor_status,
 	/*
 	 * Ask the mechanism to import the name.
 	 */
-	major_status = m->gm_import_name(minor_status,
-	    input_name_buffer, GSS_C_NT_EXPORT_NAME, &new_canonical_name);
+	major_status = m->gm_import_name(minor_status, input_name_buffer,
+	    GSS_C_NT_EXPORT_NAME, &new_canonical_name);
 	if (major_status != GSS_S_COMPLETE) {
 		_gss_mg_error(m, major_status, *minor_status);
 		return (major_status);
@@ -139,21 +138,19 @@ _gss_import_export_name(OM_uint32 *minor_status,
 		return (GSS_S_FAILURE);
 	}
 
-	*output_name = (gss_name_t) name;
+	*output_name = (gss_name_t)name;
 
 	*minor_status = 0;
 	return (GSS_S_COMPLETE);
 }
 
 OM_uint32
-gss_import_name(OM_uint32 *minor_status,
-    const gss_buffer_t input_name_buffer,
-    const gss_OID input_name_type,
-    gss_name_t *output_name)
+gss_import_name(OM_uint32 *minor_status, const gss_buffer_t input_name_buffer,
+    const gss_OID input_name_type, gss_name_t *output_name)
 {
-	gss_OID			name_type = input_name_type;
-	OM_uint32		major_status;
-	struct _gss_name	*name;
+	gss_OID name_type = input_name_type;
+	OM_uint32 major_status;
+	struct _gss_name *name;
 
 	*output_name = GSS_C_NO_NAME;
 
@@ -174,8 +171,8 @@ gss_import_name(OM_uint32 *minor_status,
 	 * section 3.2 for a description of the format.
 	 */
 	if (gss_oid_equal(name_type, GSS_C_NT_EXPORT_NAME)) {
-		return _gss_import_export_name(minor_status,
-		    input_name_buffer, output_name);
+		return _gss_import_export_name(minor_status, input_name_buffer,
+		    output_name);
 	}
 
 	/*
@@ -183,13 +180,13 @@ gss_import_name(OM_uint32 *minor_status,
 	 * should figure out the list of supported name types using
 	 * gss_inquire_names_for_mech.
 	 */
-	if (!gss_oid_equal(name_type, GSS_C_NT_USER_NAME)
-	    && !gss_oid_equal(name_type, GSS_C_NT_MACHINE_UID_NAME)
-	    && !gss_oid_equal(name_type, GSS_C_NT_STRING_UID_NAME)
-	    && !gss_oid_equal(name_type, GSS_C_NT_HOSTBASED_SERVICE_X)
-	    && !gss_oid_equal(name_type, GSS_C_NT_HOSTBASED_SERVICE)
-	    && !gss_oid_equal(name_type, GSS_C_NT_ANONYMOUS)
-	    && !gss_oid_equal(name_type, GSS_KRB5_NT_PRINCIPAL_NAME)) {
+	if (!gss_oid_equal(name_type, GSS_C_NT_USER_NAME) &&
+	    !gss_oid_equal(name_type, GSS_C_NT_MACHINE_UID_NAME) &&
+	    !gss_oid_equal(name_type, GSS_C_NT_STRING_UID_NAME) &&
+	    !gss_oid_equal(name_type, GSS_C_NT_HOSTBASED_SERVICE_X) &&
+	    !gss_oid_equal(name_type, GSS_C_NT_HOSTBASED_SERVICE) &&
+	    !gss_oid_equal(name_type, GSS_C_NT_ANONYMOUS) &&
+	    !gss_oid_equal(name_type, GSS_KRB5_NT_PRINCIPAL_NAME)) {
 		*minor_status = 0;
 		return (GSS_S_BAD_NAMETYPE);
 	}
@@ -202,15 +199,14 @@ gss_import_name(OM_uint32 *minor_status,
 	}
 	memset(name, 0, sizeof(struct _gss_name));
 
-	major_status = _gss_copy_oid(minor_status,
-	    name_type, &name->gn_type);
+	major_status = _gss_copy_oid(minor_status, name_type, &name->gn_type);
 	if (major_status) {
 		free(name);
 		return (GSS_S_FAILURE);
 	}
 
-	major_status = _gss_copy_buffer(minor_status,
-	    input_name_buffer, &name->gn_value);
+	major_status = _gss_copy_buffer(minor_status, input_name_buffer,
+	    &name->gn_value);
 	if (major_status) {
 		gss_name_t rname = (gss_name_t)name;
 		gss_release_name(minor_status, &rname);
@@ -219,6 +215,6 @@ gss_import_name(OM_uint32 *minor_status,
 
 	SLIST_INIT(&name->gn_mn);
 
-	*output_name = (gss_name_t) name;
+	*output_name = (gss_name_t)name;
 	return (GSS_S_COMPLETE);
 }

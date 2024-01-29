@@ -41,9 +41,9 @@
 /* Masks for VF2PF interrupts */
 #define ADF_DH895XCC_VF2PF1_16 (0xFFFF << 9)
 #define ADF_DH895XCC_VF2PF17_32 (0xFFFF)
-#define ADF_DH895XCC_ERRSOU3_VF2PF_L(errsou3) (((errsou3)&0x01FFFE00) >> 9)
-#define ADF_DH895XCC_ERRSOU5_VF2PF_U(errsou5) (((errsou5)&0x0000FFFF) << 16)
-#define ADF_DH895XCC_ERRMSK3_VF2PF_L(vf_mask) (((vf_mask)&0xFFFF) << 9)
+#define ADF_DH895XCC_ERRSOU3_VF2PF_L(errsou3) (((errsou3) & 0x01FFFE00) >> 9)
+#define ADF_DH895XCC_ERRSOU5_VF2PF_U(errsou5) (((errsou5) & 0x0000FFFF) << 16)
+#define ADF_DH895XCC_ERRMSK3_VF2PF_L(vf_mask) (((vf_mask) & 0xFFFF) << 9)
 #define ADF_DH895XCC_ERRMSK5_VF2PF_U(vf_mask) ((vf_mask) >> 16)
 
 /* Masks for correctable error interrupts. */
@@ -56,7 +56,7 @@
 /* Masks for uncorrectable error interrupts. */
 #define ADF_DH895XCC_ERRMSK0_UERR (BIT(25) | BIT(17) | BIT(9) | BIT(1))
 #define ADF_DH895XCC_ERRMSK1_UERR (BIT(25) | BIT(17) | BIT(9) | BIT(1))
-#define ADF_DH895XCC_ERRMSK3_UERR                                              \
+#define ADF_DH895XCC_ERRMSK3_UERR \
 	(BIT(8) | BIT(6) | BIT(5) | BIT(4) | BIT(3) | BIT(2) | BIT(0))
 #define ADF_DH895XCC_ERRMSK4_UERR (BIT(25) | BIT(17) | BIT(9) | BIT(1))
 #define ADF_DH895XCC_ERRMSK5_UERR (BIT(19) | BIT(18) | BIT(17) | BIT(16))
@@ -105,14 +105,14 @@
  */
 #define ADF_DH895XCC_TGT_UERR (BIT(3) | BIT(2))
 
-#define ADF_DH895XCC_SLICEPWRDOWN(i) ((i)*0x4000 + 0x2C)
+#define ADF_DH895XCC_SLICEPWRDOWN(i) ((i) * 0x4000 + 0x2C)
 /* Enabling PKE4-PKE0. */
 #define ADF_DH895XCC_MMP_PWR_UP_MSK (BIT(7) | BIT(6) | BIT(5) | BIT(4) | BIT(3))
 
 /* CPM Uncorrectable Errors */
-#define ADF_DH895XCC_INTMASKSSM(i) ((i)*0x4000 + 0x0)
+#define ADF_DH895XCC_INTMASKSSM(i) ((i) * 0x4000 + 0x0)
 /* Disabling interrupts for correctable errors. */
-#define ADF_DH895XCC_INTMASKSSM_UERR                                           \
+#define ADF_DH895XCC_INTMASKSSM_UERR \
 	(BIT(11) | BIT(9) | BIT(7) | BIT(5) | BIT(3) | BIT(1))
 
 /* MMP */
@@ -122,8 +122,8 @@
 /* BIT(3) enables logging. */
 #define ADF_DH895XCC_UERRSSMMMP_EN (BIT(3))
 
-#define ADF_DH895XCC_PF2VF_OFFSET(i) (0x3A000 + 0x280 + ((i)*0x04))
-#define ADF_DH895XCC_VINTMSK_OFFSET(i) (0x3A000 + 0x200 + ((i)*0x04))
+#define ADF_DH895XCC_PF2VF_OFFSET(i) (0x3A000 + 0x280 + ((i) * 0x04))
+#define ADF_DH895XCC_VINTMSK_OFFSET(i) (0x3A000 + 0x200 + ((i) * 0x04))
 
 /* Arbiter configuration */
 #define ADF_DH895XCC_ARB_OFFSET 0x30000

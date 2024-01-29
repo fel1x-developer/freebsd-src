@@ -8,11 +8,10 @@
 
 #include "ipf.h"
 
-
 void
 printhost(int family, u_32_t *addr)
 {
-#ifdef  USE_INET6
+#ifdef USE_INET6
 	char ipbuf[64];
 #else
 	struct in_addr ipa;
@@ -21,7 +20,7 @@ printhost(int family, u_32_t *addr)
 	if ((family == -1) || !*addr)
 		PRINTF("any");
 	else {
-#ifdef  USE_INET6
+#ifdef USE_INET6
 		void *ptr = addr;
 
 		PRINTF("%s", inet_ntop(family, ptr, ipbuf, sizeof(ipbuf)));

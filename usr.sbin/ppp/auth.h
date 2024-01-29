@@ -34,30 +34,31 @@ struct authinfo;
 typedef void (*auth_func)(struct authinfo *);
 
 struct authinfo {
-  struct {
-    auth_func req;
-    auth_func success;
-    auth_func failure;
-  } fn;
-  struct {
-    struct fsmheader hdr;
-    char name[AUTHLEN];
-  } in;
-  struct pppTimer authtimer;
-  int retry;
-  int id;
-  struct physical *physical;
-  struct {
-    struct fsm_retry fsm;	/* How often/frequently to resend requests */
-  } cfg;
+	struct {
+		auth_func req;
+		auth_func success;
+		auth_func failure;
+	} fn;
+	struct {
+		struct fsmheader hdr;
+		char name[AUTHLEN];
+	} in;
+	struct pppTimer authtimer;
+	int retry;
+	int id;
+	struct physical *physical;
+	struct {
+		struct fsm_retry
+		    fsm; /* How often/frequently to resend requests */
+	} cfg;
 };
 
 #define auth_Failure(a) (*(a)->fn.failure)(a)
 #define auth_Success(a) (*(a)->fn.success)(a)
 
 extern const char *Auth2Nam(u_short, u_char);
-extern void auth_Init(struct authinfo *, struct physical *,
-                      auth_func, auth_func, auth_func);
+extern void auth_Init(struct authinfo *, struct physical *, auth_func,
+    auth_func, auth_func);
 extern void auth_StopTimer(struct authinfo *);
 extern void auth_StartReq(struct authinfo *);
 extern int auth_Validate(struct bundle *, const char *, const char *);

@@ -28,16 +28,17 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+
 #include <netinet/in.h>
+
 #include <arpa/nameser.h>
 #include <resolv.h>
 #include <stdlib.h>
 
 #include "namespace.h"
 #include "reentrant.h"
-#include "un-namespace.h"
-
 #include "res_private.h"
+#include "un-namespace.h"
 
 #undef _res
 
@@ -86,8 +87,8 @@ res_check_reload(res_state statp)
 
 	ext->conf_stat = now.tv_sec;
 	if (stat(_PATH_RESCONF, &sb) == 0 &&
-	    (sb.st_mtim.tv_sec  != ext->conf_mtim.tv_sec ||
-	     sb.st_mtim.tv_nsec != ext->conf_mtim.tv_nsec)) {
+	    (sb.st_mtim.tv_sec != ext->conf_mtim.tv_sec ||
+		sb.st_mtim.tv_nsec != ext->conf_mtim.tv_nsec)) {
 		statp->options &= ~RES_INIT;
 	}
 
@@ -102,8 +103,7 @@ __res_state(void)
 	if (thr_main() != 0)
 		return res_check_reload(&_res);
 
-	if (thr_once(&res_init_once, res_keycreate) != 0 ||
-	    !res_thr_keycreated)
+	if (thr_once(&res_init_once, res_keycreate) != 0 || !res_thr_keycreated)
 		return (&_res);
 
 	statp = thr_getspecific(res_key);
@@ -113,7 +113,7 @@ __res_state(void)
 	if (statp == NULL)
 		return (&_res);
 #ifdef __BIND_RES_TEXT
-	statp->options = RES_TIMEOUT;			/* Motorola, et al. */
+	statp->options = RES_TIMEOUT; /* Motorola, et al. */
 #endif
 	if (thr_setspecific(res_key, statp) == 0)
 		return (statp);

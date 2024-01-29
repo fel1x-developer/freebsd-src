@@ -26,15 +26,16 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
-#include <sys/bus.h>
-#include <machine/bus.h>
-#include <sys/rman.h>
+#include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kobj.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
+#include <sys/rman.h>
+
+#include <machine/bus.h>
 
 #ifdef HAVE_KERNEL_OPTION_HEADERS
 #include "opt_snd.h"
@@ -42,40 +43,37 @@
 
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
-
 #include <dev/sound/chip.h>
-#include <dev/sound/pcm/sound.h>
-
 #include <dev/sound/midi/midi.h>
 #include <dev/sound/midi/mpu401.h>
-
 #include <dev/sound/pci/csareg.h>
 #include <dev/sound/pci/csavar.h>
+#include <dev/sound/pcm/sound.h>
 
 #include "mpufoi_if.h"
 
 /* pulled from mpu401.c */
-#define	MPU_DATAPORT	0
-#define	MPU_CMDPORT	1
-#define	MPU_STATPORT	1
-#define	MPU_RESET	0xff
-#define	MPU_UART	0x3f
-#define	MPU_ACK		0xfe
-#define	MPU_STATMASK	0xc0
-#define	MPU_OUTPUTBUSY	0x40
-#define	MPU_INPUTBUSY	0x80
+#define MPU_DATAPORT 0
+#define MPU_CMDPORT 1
+#define MPU_STATPORT 1
+#define MPU_RESET 0xff
+#define MPU_UART 0x3f
+#define MPU_ACK 0xfe
+#define MPU_STATMASK 0xc0
+#define MPU_OUTPUTBUSY 0x40
+#define MPU_INPUTBUSY 0x80
 
 /* device private data */
 struct csa_midi_softc {
 	/* hardware resources */
-	int		io_rid;		/* io rid */
-	struct resource	*io;		/* io */
+	int io_rid;	     /* io rid */
+	struct resource *io; /* io */
 
-	struct mtx	mtx;
-	device_t	dev;
-	struct mpu401	*mpu;
-	mpu401_intr_t	*mpu_intr;
-	int		mflags;		/* MIDI flags */
+	struct mtx mtx;
+	device_t dev;
+	struct mpu401 *mpu;
+	mpu401_intr_t *mpu_intr;
+	int mflags; /* MIDI flags */
 };
 
 static struct kobj_class csamidi_mpu_class;
@@ -84,7 +82,9 @@ static u_int32_t
 csamidi_readio(struct csa_midi_softc *scp, u_long offset)
 {
 	if (offset < BA0_AC97_RESET)
-		return bus_space_read_4(rman_get_bustag(scp->io), rman_get_bushandle(scp->io), offset) & 0xffffffff;
+		return bus_space_read_4(rman_get_bustag(scp->io),
+			   rman_get_bushandle(scp->io), offset) &
+		    0xffffffff;
 	else
 		return (0);
 }
@@ -93,7 +93,8 @@ static void
 csamidi_writeio(struct csa_midi_softc *scp, u_long offset, u_int32_t data)
 {
 	if (offset < BA0_AC97_RESET)
-		bus_space_write_4(rman_get_bustag(scp->io), rman_get_bushandle(scp->io), offset, data);
+		bus_space_write_4(rman_get_bustag(scp->io),
+		    rman_get_bushandle(scp->io), offset, data);
 }
 
 static void
@@ -118,7 +119,7 @@ csamidi_mread(struct mpu401 *arg __unused, void *cookie, int reg)
 	case MPU_STATPORT:
 		uart_stat = csamidi_readio(scp, BA0_MIDSR);
 		if (uart_stat & MIDSR_TBF)
-			rc |= MPU_OUTPUTBUSY;	/* Tx buffer full */
+			rc |= MPU_OUTPUTBUSY; /* Tx buffer full */
 		if (uart_stat & MIDSR_RBE)
 			rc |= MPU_INPUTBUSY;
 		break;
@@ -133,15 +134,15 @@ csamidi_mread(struct mpu401 *arg __unused, void *cookie, int reg)
 }
 
 static void
-csamidi_mwrite(struct mpu401 *arg __unused, void *cookie, int reg, unsigned char b)
+csamidi_mwrite(struct mpu401 *arg __unused, void *cookie, int reg,
+    unsigned char b)
 {
 	struct csa_midi_softc *scp = cookie;
 	unsigned int val;
 
 	switch (reg) {
 	case MPU_CMDPORT:
-		switch (b)
-		{
+		switch (b) {
 		case MPU_RESET:
 			/* preserve current operation mode */
 			val = csamidi_readio(scp, BA0_MIDCR);
@@ -208,8 +209,8 @@ midicsa_attach(device_t dev)
 
 	/* allocate the required resources */
 	scp->io_rid = PCIR_BAR(0);
-	scp->io = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-	    &scp->io_rid, RF_ACTIVE);
+	scp->io = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &scp->io_rid,
+	    RF_ACTIVE);
 	if (scp->io == NULL)
 		goto err0;
 
@@ -221,8 +222,7 @@ midicsa_attach(device_t dev)
 		goto err1;
 	}
 
-	mtx_init(&scp->mtx, device_get_nameunit(dev), "csamidi softc",
-	    MTX_DEF);
+	mtx_init(&scp->mtx, device_get_nameunit(dev), "csamidi softc", MTX_DEF);
 
 	/* reset the MIDI port */
 	csamidi_writeio(scp, BA0_MIDCR, MIDCR_MRST);
@@ -249,30 +249,26 @@ midicsa_detach(device_t dev)
 	if (rc)
 		return (rc);
 	if (scp->io != NULL) {
-		bus_release_resource(dev, SYS_RES_MEMORY, scp->io_rid,
-		    scp->io);
+		bus_release_resource(dev, SYS_RES_MEMORY, scp->io_rid, scp->io);
 		scp->io = NULL;
 	}
 	mtx_destroy(&scp->mtx);
 	return (rc);
 }
 
-static kobj_method_t csamidi_mpu_methods[] = {
-	KOBJMETHOD(mpufoi_read, csamidi_mread),
+static kobj_method_t csamidi_mpu_methods[] = { KOBJMETHOD(mpufoi_read,
+						   csamidi_mread),
 	KOBJMETHOD(mpufoi_write, csamidi_mwrite),
-	KOBJMETHOD(mpufoi_uninit, csamidi_muninit),
-	KOBJMETHOD_END
-};
+	KOBJMETHOD(mpufoi_uninit, csamidi_muninit), KOBJMETHOD_END };
 
 static DEFINE_CLASS(csamidi_mpu, csamidi_mpu_methods, 0);
 
-static device_method_t midicsa_methods[] = {
-	DEVMETHOD(device_probe, midicsa_probe),
+static device_method_t midicsa_methods[] = { DEVMETHOD(device_probe,
+						 midicsa_probe),
 	DEVMETHOD(device_attach, midicsa_attach),
 	DEVMETHOD(device_detach, midicsa_detach),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 static driver_t midicsa_driver = {
 	"midi",

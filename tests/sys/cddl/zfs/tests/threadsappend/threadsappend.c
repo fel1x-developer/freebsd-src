@@ -24,16 +24,16 @@
  * Use is subject to license terms.
  */
 
-
 #include <sys/types.h>
 #include <sys/stat.h>
+
+#include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
-#include <string.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
-#include <errno.h>
+#include <string.h>
+#include <unistd.h>
 
 /*
  * The size of the output file, "go.out", should be 80*8192*2 = 1310720
@@ -61,12 +61,12 @@ static void *
 go(void *data)
 {
 	int i = 0, n = *(int *)data;
-	ssize_t	ret = 0;
-	char buf[8192] = {0};
-	(void) memset(buf, n, sizeof (buf));
+	ssize_t ret = 0;
+	char buf[8192] = { 0 };
+	(void)memset(buf, n, sizeof(buf));
 
 	for (i = 0; i < 80; i++) {
-		ret = write(outfd, buf, sizeof (buf));
+		ret = write(outfd, buf, sizeof(buf));
 	}
 	return (NULL);
 }
@@ -74,8 +74,7 @@ go(void *data)
 static void
 usage()
 {
-	(void) fprintf(stderr,
-	    "usage: zfs_threadsappend <file name>\n");
+	(void)fprintf(stderr, "usage: zfs_threadsappend <file name>\n");
 	exit(1);
 }
 
@@ -83,9 +82,9 @@ int
 main(int argc, char **argv)
 {
 	pthread_t threads[2];
-	int	  ret = 0;
-	long	  ncpus = 0;
-	int	  i;
+	int ret = 0;
+	long ncpus = 0;
+	int i;
 
 	if (argc != 2) {
 		usage();
@@ -93,23 +92,26 @@ main(int argc, char **argv)
 
 	ncpus = sysconf(_SC_NPROCESSORS_ONLN);
 	if (ncpus < 0) {
-		(void) fprintf(stderr,
+		(void)fprintf(stderr,
 		    "Invalid return from sysconf(_SC_NPROCESSORS_ONLN)"
-		    " : errno (decimal)=%d\n", errno);
+		    " : errno (decimal)=%d\n",
+		    errno);
 		exit(1);
 	}
 	if (ncpus < 2) {
-		(void) fprintf(stderr,
+		(void)fprintf(stderr,
 		    "Must execute this binary on a multi-processor system\n");
 		exit(1);
 	}
 
-	outfd = open(argv[optind++], O_RDWR|O_CREAT|O_APPEND|O_TRUNC, 0777);
+	outfd = open(argv[optind++], O_RDWR | O_CREAT | O_APPEND | O_TRUNC,
+	    0777);
 	if (outfd == -1) {
-		(void) fprintf(stderr,
+		(void)fprintf(stderr,
 		    "zfs_threadsappend: "
 		    "open(%s, O_RDWR|O_CREAT|O_APPEND|O_TRUNC, 0777)"
-		    " failed\n", argv[optind]);
+		    " failed\n",
+		    argv[optind]);
 		perror("open");
 		exit(1);
 	}
@@ -117,9 +119,10 @@ main(int argc, char **argv)
 	for (i = 0; i < 2; i++) {
 		ret = pthread_create(&threads[i], NULL, go, (void *)&i);
 		if (ret != 0) {
-			(void) fprintf(stderr,
+			(void)fprintf(stderr,
 			    "zfs_threadsappend: thr_create(#%d) "
-			    "failed error=%d\n", i+1, ret);
+			    "failed error=%d\n",
+			    i + 1, ret);
 			exit(1);
 		}
 	}

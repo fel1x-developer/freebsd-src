@@ -24,69 +24,72 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#ifndef	__AR40XX_VAR_H__
-#define	__AR40XX_VAR_H__
+#ifndef __AR40XX_VAR_H__
+#define __AR40XX_VAR_H__
 
-#define	AR40XX_LOCK(_sc)		mtx_lock(&(_sc)->sc_mtx)
-#define	AR40XX_UNLOCK(_sc)		mtx_unlock(&(_sc)->sc_mtx)
-#define	AR40XX_LOCK_ASSERT(_sc)		mtx_assert(&(_sc)->sc_mtx, MA_OWNED)
+#define AR40XX_LOCK(_sc) mtx_lock(&(_sc)->sc_mtx)
+#define AR40XX_UNLOCK(_sc) mtx_unlock(&(_sc)->sc_mtx)
+#define AR40XX_LOCK_ASSERT(_sc) mtx_assert(&(_sc)->sc_mtx, MA_OWNED)
 
 /*
  * register space access macros
  */
-#define	AR40XX_REG_WRITE(sc, reg, val)		do {		\
-	    bus_write_4(sc->sc_ess_mem_res, (reg), (val));	\
-	    } while (0)
+#define AR40XX_REG_WRITE(sc, reg, val)                         \
+	do {                                                   \
+		bus_write_4(sc->sc_ess_mem_res, (reg), (val)); \
+	} while (0)
 
-#define	AR40XX_REG_READ(sc, reg)	bus_read_4(sc->sc_ess_mem_res, (reg))
+#define AR40XX_REG_READ(sc, reg) bus_read_4(sc->sc_ess_mem_res, (reg))
 
-#define	AR40XX_REG_BARRIER_WRITE(sc)	bus_barrier((sc)->sc_ess_mem_res,	\
-	    0, (sc)->sc_ess_mem_size, BUS_SPACE_BARRIER_WRITE)
-#define	AR40XX_REG_BARRIER_READ(sc)	bus_barrier((sc)->sc_ess_mem_res,	\
-	    0, (sc)->sc_ess_mem_size, BUS_SPACE_BARRIER_READ)
-#define	AR40XX_REG_BARRIER_RW(sc)	bus_barrier((sc)->sc_ess_mem_res,	\
-	    0, (sc)->sc_ess_mem_size,					\
+#define AR40XX_REG_BARRIER_WRITE(sc)                                \
+	bus_barrier((sc)->sc_ess_mem_res, 0, (sc)->sc_ess_mem_size, \
+	    BUS_SPACE_BARRIER_WRITE)
+#define AR40XX_REG_BARRIER_READ(sc)                                 \
+	bus_barrier((sc)->sc_ess_mem_res, 0, (sc)->sc_ess_mem_size, \
+	    BUS_SPACE_BARRIER_READ)
+#define AR40XX_REG_BARRIER_RW(sc)                                   \
+	bus_barrier((sc)->sc_ess_mem_res, 0, (sc)->sc_ess_mem_size, \
 	    BUS_SPACE_BARRIER_READ | BUS_SPACE_BARRIER_WRITE)
 
 /* Size of the VLAN table itself in hardware */
-#define	AR40XX_NUM_VTU_ENTRIES		64
-#define	AR40XX_NUM_PORTS		6
-#define	AR40XX_NUM_PHYS			5
+#define AR40XX_NUM_VTU_ENTRIES 64
+#define AR40XX_NUM_PORTS 6
+#define AR40XX_NUM_PHYS 5
 /* Size of the ATU table in hardware */
-#define	AR40XX_NUM_ATU_ENTRIES		2048
+#define AR40XX_NUM_ATU_ENTRIES 2048
 
 struct ar40xx_softc {
-	struct mtx	sc_mtx;		/* serialize access to softc */
-	device_t	sc_dev;
-	uint32_t	sc_debug;
+	struct mtx sc_mtx; /* serialize access to softc */
+	device_t sc_dev;
+	uint32_t sc_debug;
 
 	/* ess-switch memory resource */
-	struct resource	*sc_ess_mem_res;
-	int		sc_ess_mem_rid;
-	size_t		sc_ess_mem_size;
+	struct resource *sc_ess_mem_res;
+	int sc_ess_mem_rid;
+	size_t sc_ess_mem_size;
 
 	/* ess-switch clock resource */
-	clk_t		sc_ess_clk;
+	clk_t sc_ess_clk;
 
 	/* ess-switch reset resource */
-	hwreset_t	sc_ess_rst;
+	hwreset_t sc_ess_rst;
 
 	/* phy update callout timer */
-	struct callout	sc_phy_callout;
+	struct callout sc_phy_callout;
 
 	/* memory for the ess-psgmii config interface */
-	bus_space_tag_t		sc_psgmii_mem_tag;
-	bus_space_handle_t	sc_psgmii_mem_handle;
-	bus_size_t		sc_psgmii_mem_size;
+	bus_space_tag_t sc_psgmii_mem_tag;
+	bus_space_handle_t sc_psgmii_mem_handle;
+	bus_size_t sc_psgmii_mem_size;
 
 	/* reference to the ipq4019-mdio interface */
-	phandle_t		sc_mdio_phandle;
-	device_t		sc_mdio_dev;
+	phandle_t sc_mdio_phandle;
+	device_t sc_mdio_dev;
 
-	etherswitch_info_t	sc_info;
+	etherswitch_info_t sc_info;
 
 	struct {
-		uint32_t	phy_t_status;
+		uint32_t phy_t_status;
 	} sc_psgmii;
 
 	struct {
@@ -131,5 +134,4 @@ struct ar40xx_softc {
 	} atu;
 };
 
-#endif	/* __AR40XX_VAR_H__ */
-
+#endif /* __AR40XX_VAR_H__ */

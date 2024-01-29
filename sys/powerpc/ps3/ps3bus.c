@@ -28,13 +28,13 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/malloc.h>
 #include <sys/bus.h>
 #include <sys/clock.h>
 #include <sys/cpu.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/resource.h>
 #include <sys/rman.h>
@@ -46,34 +46,34 @@
 #include <machine/platform.h>
 #include <machine/resource.h>
 
-#include "ps3bus.h"
-#include "ps3-hvcall.h"
-#include "iommu_if.h"
 #include "clock_if.h"
+#include "iommu_if.h"
+#include "ps3-hvcall.h"
+#include "ps3bus.h"
 
-static void	ps3bus_identify(driver_t *, device_t);
-static int	ps3bus_probe(device_t);
-static int	ps3bus_attach(device_t);
-static int	ps3bus_print_child(device_t dev, device_t child);
-static int	ps3bus_read_ivar(device_t bus, device_t child, int which,
-		    uintptr_t *result);
+static void ps3bus_identify(driver_t *, device_t);
+static int ps3bus_probe(device_t);
+static int ps3bus_attach(device_t);
+static int ps3bus_print_child(device_t dev, device_t child);
+static int ps3bus_read_ivar(device_t bus, device_t child, int which,
+    uintptr_t *result);
 static struct rman *ps3bus_get_rman(device_t bus, int type, u_int flags);
 static struct resource *ps3bus_alloc_resource(device_t bus, device_t child,
-		    int type, int *rid, rman_res_t start, rman_res_t end,
-		    rman_res_t count, u_int flags);
-static int	ps3bus_map_resource(device_t bus, device_t child, int type,
-		    struct resource *r, struct resource_map_request *argsp,
-		    struct resource_map *map);
-static int	ps3bus_unmap_resource(device_t bus, device_t child, int type,
-		    struct resource *r, struct resource_map *map);
+    int type, int *rid, rman_res_t start, rman_res_t end, rman_res_t count,
+    u_int flags);
+static int ps3bus_map_resource(device_t bus, device_t child, int type,
+    struct resource *r, struct resource_map_request *argsp,
+    struct resource_map *map);
+static int ps3bus_unmap_resource(device_t bus, device_t child, int type,
+    struct resource *r, struct resource_map *map);
 static bus_dma_tag_t ps3bus_get_dma_tag(device_t dev, device_t child);
-static int	ps3_iommu_map(device_t dev, bus_dma_segment_t *segs, int *nsegs,
-		    bus_addr_t min, bus_addr_t max, bus_size_t alignment,
-		    bus_addr_t boundary, void *cookie);
-static int	ps3_iommu_unmap(device_t dev, bus_dma_segment_t *segs,
-		    int nsegs, void *cookie);
-static int	ps3_gettime(device_t dev, struct timespec *ts);
-static int	ps3_settime(device_t dev, struct timespec *ts);
+static int ps3_iommu_map(device_t dev, bus_dma_segment_t *segs, int *nsegs,
+    bus_addr_t min, bus_addr_t max, bus_size_t alignment, bus_addr_t boundary,
+    void *cookie);
+static int ps3_iommu_unmap(device_t dev, bus_dma_segment_t *segs, int nsegs,
+    void *cookie);
+static int ps3_gettime(device_t dev, struct timespec *ts);
+static int ps3_settime(device_t dev, struct timespec *ts);
 
 struct ps3bus_devinfo {
 	int bus;
@@ -105,33 +105,34 @@ enum ps3bus_reg_type {
 
 static device_method_t ps3bus_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,	ps3bus_identify),
-	DEVMETHOD(device_probe,		ps3bus_probe),
-	DEVMETHOD(device_attach,	ps3bus_attach),
+	DEVMETHOD(device_identify, ps3bus_identify),
+	DEVMETHOD(device_probe, ps3bus_probe),
+	DEVMETHOD(device_attach, ps3bus_attach),
 
 	/* Bus interface */
-	DEVMETHOD(bus_add_child,	bus_generic_add_child),
-	DEVMETHOD(bus_get_dma_tag,	ps3bus_get_dma_tag),
-	DEVMETHOD(bus_print_child,	ps3bus_print_child),
-	DEVMETHOD(bus_read_ivar,	ps3bus_read_ivar),
-	DEVMETHOD(bus_get_rman,		ps3bus_get_rman),
-	DEVMETHOD(bus_alloc_resource,	ps3bus_alloc_resource),
-	DEVMETHOD(bus_adjust_resource,	bus_generic_rman_adjust_resource),
+	DEVMETHOD(bus_add_child, bus_generic_add_child),
+	DEVMETHOD(bus_get_dma_tag, ps3bus_get_dma_tag),
+	DEVMETHOD(bus_print_child, ps3bus_print_child),
+	DEVMETHOD(bus_read_ivar, ps3bus_read_ivar),
+	DEVMETHOD(bus_get_rman, ps3bus_get_rman),
+	DEVMETHOD(bus_alloc_resource, ps3bus_alloc_resource),
+	DEVMETHOD(bus_adjust_resource, bus_generic_rman_adjust_resource),
 	DEVMETHOD(bus_activate_resource, bus_generic_rman_activate_resource),
-	DEVMETHOD(bus_deactivate_resource, bus_generic_rman_deactivate_resource),
-	DEVMETHOD(bus_map_resource,	ps3bus_map_resource),
-	DEVMETHOD(bus_unmap_resource,	ps3bus_unmap_resource),
-	DEVMETHOD(bus_release_resource,	bus_generic_rman_release_resource),
-	DEVMETHOD(bus_setup_intr,	bus_generic_setup_intr),
-	DEVMETHOD(bus_teardown_intr,	bus_generic_teardown_intr),
+	DEVMETHOD(bus_deactivate_resource,
+	    bus_generic_rman_deactivate_resource),
+	DEVMETHOD(bus_map_resource, ps3bus_map_resource),
+	DEVMETHOD(bus_unmap_resource, ps3bus_unmap_resource),
+	DEVMETHOD(bus_release_resource, bus_generic_rman_release_resource),
+	DEVMETHOD(bus_setup_intr, bus_generic_setup_intr),
+	DEVMETHOD(bus_teardown_intr, bus_generic_teardown_intr),
 
 	/* IOMMU interface */
-	DEVMETHOD(iommu_map,		ps3_iommu_map),
-	DEVMETHOD(iommu_unmap,		ps3_iommu_unmap),
+	DEVMETHOD(iommu_map, ps3_iommu_map),
+	DEVMETHOD(iommu_unmap, ps3_iommu_unmap),
 
 	/* Clock interface */
-	DEVMETHOD(clock_gettime,	ps3_gettime),
-	DEVMETHOD(clock_settime,	ps3_settime),
+	DEVMETHOD(clock_gettime, ps3_gettime),
+	DEVMETHOD(clock_settime, ps3_settime),
 
 	DEVMETHOD_END
 };
@@ -143,11 +144,8 @@ struct ps3bus_softc {
 	int rcount;
 };
 
-static driver_t ps3bus_driver = {
-	"ps3bus",
-	ps3bus_methods,
-	sizeof(struct ps3bus_softc)
-};
+static driver_t ps3bus_driver = { "ps3bus", ps3bus_methods,
+	sizeof(struct ps3bus_softc) };
 
 DRIVER_MODULE(ps3bus, nexus, ps3bus_driver, 0, 0);
 
@@ -161,8 +159,8 @@ ps3bus_identify(driver_t *driver, device_t parent)
 		BUS_ADD_CHILD(parent, 0, "ps3bus", 0);
 }
 
-static int 
-ps3bus_probe(device_t dev) 
+static int
+ps3bus_probe(device_t dev)
 {
 	/* Do not attach to any OF nodes that may be present */
 
@@ -216,8 +214,8 @@ ps3bus_resources_init(struct rman *rm, int bus_index, int dev_index,
 			break;
 		}
 
-		resource_list_add(&dinfo->resources, SYS_RES_IRQ, i,
-		    outlet, outlet, 1);
+		resource_list_add(&dinfo->resources, SYS_RES_IRQ, i, outlet,
+		    outlet, 1);
 	}
 
 	/* Scan for registers */
@@ -225,7 +223,7 @@ ps3bus_resources_init(struct rman *rm, int bus_index, int dev_index,
 		result = lv1_get_repository_node_value(PS3_LPAR_ID_PME,
 		    (lv1_repository_string("bus") >> 32) | bus_index,
 		    lv1_repository_string("dev") | dev_index,
-		    lv1_repository_string("reg") | i, 
+		    lv1_repository_string("reg") | i,
 		    lv1_repository_string("type"), &reg_type, &junk);
 
 		if (result != 0)
@@ -234,7 +232,7 @@ ps3bus_resources_init(struct rman *rm, int bus_index, int dev_index,
 		result = lv1_get_repository_node_value(PS3_LPAR_ID_PME,
 		    (lv1_repository_string("bus") >> 32) | bus_index,
 		    lv1_repository_string("dev") | dev_index,
-		    lv1_repository_string("reg") | i, 
+		    lv1_repository_string("reg") | i,
 		    lv1_repository_string("data"), &paddr, &len);
 
 		result = lv1_map_device_mmio_region(dinfo->bus, dinfo->dev,
@@ -242,14 +240,15 @@ ps3bus_resources_init(struct rman *rm, int bus_index, int dev_index,
 
 		if (result != 0) {
 			printf("Mapping registers failed for device "
-			    "%d.%d (%ld.%ld): %d\n", dinfo->bus, dinfo->dev,
-			    dinfo->bustype, dinfo->devtype, result);
+			       "%d.%d (%ld.%ld): %d\n",
+			    dinfo->bus, dinfo->dev, dinfo->bustype,
+			    dinfo->devtype, result);
 			continue;
 		}
 
 		rman_manage_region(rm, paddr, paddr + len - 1);
-		resource_list_add(&dinfo->resources, SYS_RES_MEMORY, i,
-		    paddr, paddr + len, len);
+		resource_list_add(&dinfo->resources, SYS_RES_MEMORY, i, paddr,
+		    paddr + len, len);
 	}
 }
 
@@ -282,10 +281,9 @@ ps3bus_resources_init_by_type(struct rman *rm, int bus_index, int dev_index,
 			continue;
 
 		lv1_construct_io_irq_outlet(irq, &outlet);
-		lv1_connect_irq_plug_ext(ppe, thread, outlet, outlet,
-		    0);
-		resource_list_add(&dinfo->resources, SYS_RES_IRQ, i,
-		    outlet, outlet, 1);
+		lv1_connect_irq_plug_ext(ppe, thread, outlet, outlet, 0);
+		resource_list_add(&dinfo->resources, SYS_RES_IRQ, i, outlet,
+		    outlet, 1);
 	}
 
 	/* Scan for registers */
@@ -293,7 +291,7 @@ ps3bus_resources_init_by_type(struct rman *rm, int bus_index, int dev_index,
 		result = lv1_get_repository_node_value(PS3_LPAR_ID_PME,
 		    (lv1_repository_string("bus") >> 32) | bus_index,
 		    lv1_repository_string("dev") | dev_index,
-		    lv1_repository_string("reg") | i, 
+		    lv1_repository_string("reg") | i,
 		    lv1_repository_string("type"), &_reg_type, &junk);
 
 		if (result != 0)
@@ -305,7 +303,7 @@ ps3bus_resources_init_by_type(struct rman *rm, int bus_index, int dev_index,
 		result = lv1_get_repository_node_value(PS3_LPAR_ID_PME,
 		    (lv1_repository_string("bus") >> 32) | bus_index,
 		    lv1_repository_string("dev") | dev_index,
-		    lv1_repository_string("reg") | i, 
+		    lv1_repository_string("reg") | i,
 		    lv1_repository_string("data"), &paddr, &len);
 
 		result = lv1_map_device_mmio_region(dinfo->bus, dinfo->dev,
@@ -313,19 +311,20 @@ ps3bus_resources_init_by_type(struct rman *rm, int bus_index, int dev_index,
 
 		if (result != 0) {
 			printf("Mapping registers failed for device "
-			    "%d.%d (%ld.%ld): %d\n", dinfo->bus, dinfo->dev,
-			    dinfo->bustype, dinfo->devtype, result);
+			       "%d.%d (%ld.%ld): %d\n",
+			    dinfo->bus, dinfo->dev, dinfo->bustype,
+			    dinfo->devtype, result);
 			break;
 		}
 
 		rman_manage_region(rm, paddr, paddr + len - 1);
-		resource_list_add(&dinfo->resources, SYS_RES_MEMORY, i,
-		    paddr, paddr + len, len);
+		resource_list_add(&dinfo->resources, SYS_RES_MEMORY, i, paddr,
+		    paddr + len, len);
 	}
 }
 
-static int 
-ps3bus_attach(device_t self) 
+static int
+ps3bus_attach(device_t self)
 {
 	struct ps3bus_softc *sc;
 	struct ps3bus_devinfo *dinfo;
@@ -386,10 +385,11 @@ ps3bus_attach(device_t self)
 
 			if (result != 0)
 				continue;
-			
+
 			switch (devtype) {
 			case PS3_DEVTYPE_USB:
-				/* USB device has OHCI and EHCI USB host controllers */
+				/* USB device has OHCI and EHCI USB host
+				 * controllers */
 
 				lv1_open_device(bus, dev, 0);
 
@@ -405,8 +405,9 @@ ps3bus_attach(device_t self)
 				dinfo->busidx = bus_index;
 				dinfo->devidx = dev_index;
 
-				ps3bus_resources_init_by_type(&sc->sc_mem_rman, bus_index,
-				    dev_index, OHCI_IRQ, OHCI_REG, dinfo);
+				ps3bus_resources_init_by_type(&sc->sc_mem_rman,
+				    bus_index, dev_index, OHCI_IRQ, OHCI_REG,
+				    dinfo);
 
 				cdev = device_add_child(self, "ohci", -1);
 				if (cdev == NULL) {
@@ -416,7 +417,8 @@ ps3bus_attach(device_t self)
 					continue;
 				}
 
-				mtx_init(&dinfo->iommu_mtx, "iommu", NULL, MTX_DEF);
+				mtx_init(&dinfo->iommu_mtx, "iommu", NULL,
+				    MTX_DEF);
 				device_set_ivars(cdev, dinfo);
 
 				/* EHCI host controller */
@@ -431,8 +433,9 @@ ps3bus_attach(device_t self)
 				dinfo->busidx = bus_index;
 				dinfo->devidx = dev_index;
 
-				ps3bus_resources_init_by_type(&sc->sc_mem_rman, bus_index,
-				    dev_index, EHCI_IRQ, EHCI_REG, dinfo);
+				ps3bus_resources_init_by_type(&sc->sc_mem_rman,
+				    bus_index, dev_index, EHCI_IRQ, EHCI_REG,
+				    dinfo);
 
 				cdev = device_add_child(self, "ehci", -1);
 				if (cdev == NULL) {
@@ -442,7 +445,8 @@ ps3bus_attach(device_t self)
 					continue;
 				}
 
-				mtx_init(&dinfo->iommu_mtx, "iommu", NULL, MTX_DEF);
+				mtx_init(&dinfo->iommu_mtx, "iommu", NULL,
+				    MTX_DEF);
 				device_set_ivars(cdev, dinfo);
 				break;
 			default:
@@ -460,8 +464,8 @@ ps3bus_attach(device_t self)
 				    dinfo->bustype == PS3_BUSTYPE_STORAGE)
 					lv1_open_device(bus, dev, 0);
 
-				ps3bus_resources_init(&sc->sc_mem_rman, bus_index,
-				    dev_index, dinfo);
+				ps3bus_resources_init(&sc->sc_mem_rman,
+				    bus_index, dev_index, dinfo);
 
 				cdev = device_add_child(self, NULL, -1);
 				if (cdev == NULL) {
@@ -471,7 +475,8 @@ ps3bus_attach(device_t self)
 					continue;
 				}
 
-				mtx_init(&dinfo->iommu_mtx, "iommu", NULL, MTX_DEF);
+				mtx_init(&dinfo->iommu_mtx, "iommu", NULL,
+				    MTX_DEF);
 				device_set_ivars(cdev, dinfo);
 			}
 		}
@@ -533,7 +538,7 @@ ps3bus_read_ivar(device_t bus, device_t child, int which, uintptr_t *result)
 static struct rman *
 ps3bus_get_rman(device_t bus, int type, u_int flags)
 {
-	struct	ps3bus_softc *sc;
+	struct ps3bus_softc *sc;
 
 	sc = device_get_softc(bus);
 	switch (type) {
@@ -550,9 +555,9 @@ static struct resource *
 ps3bus_alloc_resource(device_t bus, device_t child, int type, int *rid,
     rman_res_t start, rman_res_t end, rman_res_t count, u_int flags)
 {
-	struct	ps3bus_devinfo *dinfo;
-        rman_res_t	adjstart, adjend, adjcount;
-        struct	resource_list_entry *rle;
+	struct ps3bus_devinfo *dinfo;
+	rman_res_t adjstart, adjend, adjcount;
+	struct resource_list_entry *rle;
 
 	dinfo = device_get_ivars(child);
 
@@ -562,7 +567,7 @@ ps3bus_alloc_resource(device_t bus, device_t child, int type, int *rid,
 		    *rid);
 		if (rle == NULL) {
 			device_printf(bus, "no rle for %s memory %d\n",
-				      device_get_nameunit(child), *rid);
+			    device_get_nameunit(child), *rid);
 			return (NULL);
 		}
 
@@ -583,17 +588,16 @@ ps3bus_alloc_resource(device_t bus, device_t child, int type, int *rid,
 		adjcount = adjend - adjstart;
 		break;
 	case SYS_RES_IRQ:
-		rle = resource_list_find(&dinfo->resources, SYS_RES_IRQ,
-		    *rid);
+		rle = resource_list_find(&dinfo->resources, SYS_RES_IRQ, *rid);
 		adjstart = rle->start;
 		adjcount = ulmax(count, rle->count);
 		adjend = ulmax(rle->end, rle->start + adjcount - 1);
 		break;
 	default:
 		device_printf(bus, "unknown resource request from %s\n",
-			      device_get_nameunit(child));
+		    device_get_nameunit(child));
 		return (NULL);
-        }
+	}
 
 	return (bus_generic_rman_alloc_resource(bus, child, type, rid, adjstart,
 	    adjend, adjcount, flags));
@@ -697,10 +701,9 @@ ps3bus_get_dma_tag(device_t dev, device_t child)
 		}
 	}
 
-	err = bus_dma_tag_create(bus_get_dma_tag(dev),
-	    1, 0, BUS_SPACE_MAXADDR, BUS_SPACE_MAXADDR,
-	    NULL, NULL, BUS_SPACE_MAXSIZE, 0, BUS_SPACE_MAXSIZE,
-	    0, NULL, NULL, &dinfo->dma_tag);
+	err = bus_dma_tag_create(bus_get_dma_tag(dev), 1, 0, BUS_SPACE_MAXADDR,
+	    BUS_SPACE_MAXADDR, NULL, NULL, BUS_SPACE_MAXSIZE, 0,
+	    BUS_SPACE_MAXSIZE, 0, NULL, NULL, &dinfo->dma_tag);
 
 	/*
 	 * Note: storage devices have IOMMU mappings set up by the hypervisor,
@@ -722,9 +725,8 @@ fail:
 }
 
 static int
-ps3_iommu_map(device_t dev, bus_dma_segment_t *segs, int *nsegs,
-    bus_addr_t min, bus_addr_t max, bus_size_t alignment, bus_addr_t boundary,
-    void *cookie)
+ps3_iommu_map(device_t dev, bus_dma_segment_t *segs, int *nsegs, bus_addr_t min,
+    bus_addr_t max, bus_size_t alignment, bus_addr_t boundary, void *cookie)
 {
 	struct ps3bus_devinfo *dinfo = cookie;
 	struct ps3bus_softc *sc = device_get_softc(dev);
@@ -734,12 +736,12 @@ ps3_iommu_map(device_t dev, bus_dma_segment_t *segs, int *nsegs,
 		for (j = 0; j < sc->rcount; j++) {
 			if (segs[i].ds_addr >= sc->regions[j].mr_start &&
 			    segs[i].ds_addr < sc->regions[j].mr_start +
-			      sc->regions[j].mr_size)
+				    sc->regions[j].mr_size)
 				break;
 		}
 		KASSERT(j < sc->rcount,
 		    ("Trying to map address %#lx not in physical memory",
-		    segs[i].ds_addr));
+			segs[i].ds_addr));
 
 		segs[i].ds_addr = dinfo->dma_base[j] +
 		    (segs[i].ds_addr - sc->regions[j].mr_start);

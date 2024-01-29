@@ -34,6 +34,7 @@
 #include <sys/pcpu.h>
 #include <sys/resource.h>
 #include <sys/sysctl.h>
+
 #include <errno.h>
 #include <kvm.h>
 #include <limits.h>
@@ -43,11 +44,11 @@
 #include "kvm_private.h"
 
 static struct nlist kvm_cp_time_nl[] = {
-	{ .n_name = "_cp_time" },		/* (deprecated) */
+	{ .n_name = "_cp_time" }, /* (deprecated) */
 	{ .n_name = NULL },
 };
 
-#define	NL_CP_TIME		0
+#define NL_CP_TIME 0
 
 static int kvm_cp_time_cached;
 
@@ -92,8 +93,8 @@ kvm_getcptime(kvm_t *kd, long *cp_time)
 	}
 
 	if (ISALIVE(kd))
-		return (getsysctl(kd, "kern.cp_time", cp_time, sizeof(long) *
-		    CPUSTATES));
+		return (getsysctl(kd, "kern.cp_time", cp_time,
+		    sizeof(long) * CPUSTATES));
 
 	if (!kd->arch->ka_native(kd)) {
 		_kvm_err(kd, kd->program,
@@ -109,7 +110,7 @@ kvm_getcptime(kvm_t *kd, long *cp_time)
 	/* If this kernel has a "cp_time[]" symbol, then just read that. */
 	if (kvm_cp_time_nl[NL_CP_TIME].n_value != 0) {
 		if (kvm_read(kd, kvm_cp_time_nl[NL_CP_TIME].n_value, cp_time,
-		    sizeof(long) * CPUSTATES) != sizeof(long) * CPUSTATES) {
+			sizeof(long) * CPUSTATES) != sizeof(long) * CPUSTATES) {
 			_kvm_err(kd, kd->program, "cannot read cp_time array");
 			return (-1);
 		}

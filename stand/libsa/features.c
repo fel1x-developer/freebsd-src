@@ -11,13 +11,16 @@
 
 static uint32_t loader_features;
 
-#define	FEATURE_ENTRY(name, desc)	{ FEATURE_##name, #name, desc }
+#define FEATURE_ENTRY(name, desc)           \
+	{                                   \
+		FEATURE_##name, #name, desc \
+	}
 static const struct feature_entry {
-	uint32_t	value;
-	const char	*name;
-	const char	*desc;
+	uint32_t value;
+	const char *name;
+	const char *desc;
 } feature_map[] = {
-	FEATURE_ENTRY(EARLY_ACPI,  "Loader probes ACPI in early startup"),
+	FEATURE_ENTRY(EARLY_ACPI, "Loader probes ACPI in early startup"),
 };
 
 void

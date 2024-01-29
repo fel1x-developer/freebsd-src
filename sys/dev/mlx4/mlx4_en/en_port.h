@@ -34,73 +34,70 @@
 #ifndef _MLX4_EN_PORT_H_
 #define _MLX4_EN_PORT_H_
 
+#define SET_PORT_GEN_ALL_VALID 0x7
+#define SET_PORT_PROMISC_SHIFT 31
+#define SET_PORT_MC_PROMISC_SHIFT 30
 
-#define SET_PORT_GEN_ALL_VALID	0x7
-#define SET_PORT_PROMISC_SHIFT	31
-#define SET_PORT_MC_PROMISC_SHIFT	30
+#define MLX4_EN_NUM_TC 8
 
-#define MLX4_EN_NUM_TC		8
-
-#define VLAN_FLTR_SIZE	128
+#define VLAN_FLTR_SIZE 128
 struct mlx4_set_vlan_fltr_mbox {
 	__be32 entry[VLAN_FLTR_SIZE];
 };
 
-
 enum {
-	MLX4_MCAST_CONFIG       = 0,
-	MLX4_MCAST_DISABLE      = 1,
-	MLX4_MCAST_ENABLE       = 2,
+	MLX4_MCAST_CONFIG = 0,
+	MLX4_MCAST_DISABLE = 1,
+	MLX4_MCAST_ENABLE = 2,
 };
 
 enum mlx4_link_mode {
-	MLX4_1000BASE_CX_SGMII	 = 0,
-	MLX4_1000BASE_KX	 = 1,
-	MLX4_10GBASE_CX4	 = 2,
-	MLX4_10GBASE_KX4	 = 3,
-	MLX4_10GBASE_KR		 = 4,
-	MLX4_20GBASE_KR2	 = 5,
-	MLX4_40GBASE_CR4	 = 6,
-	MLX4_40GBASE_KR4	 = 7,
-	MLX4_56GBASE_KR4	 = 8,
-	MLX4_10GBASE_CR		 = 12,
-	MLX4_10GBASE_SR		 = 13,
-	MLX4_40GBASE_SR4	 = 15,
-	MLX4_56GBASE_CR4	 = 17,
-	MLX4_56GBASE_SR4	 = 18,
-	MLX4_100BASE_TX		 = 24,
-	MLX4_1000BASE_T		 = 25,
-	MLX4_10GBASE_T		 = 26,
+	MLX4_1000BASE_CX_SGMII = 0,
+	MLX4_1000BASE_KX = 1,
+	MLX4_10GBASE_CX4 = 2,
+	MLX4_10GBASE_KX4 = 3,
+	MLX4_10GBASE_KR = 4,
+	MLX4_20GBASE_KR2 = 5,
+	MLX4_40GBASE_CR4 = 6,
+	MLX4_40GBASE_KR4 = 7,
+	MLX4_56GBASE_KR4 = 8,
+	MLX4_10GBASE_CR = 12,
+	MLX4_10GBASE_SR = 13,
+	MLX4_40GBASE_SR4 = 15,
+	MLX4_56GBASE_CR4 = 17,
+	MLX4_56GBASE_SR4 = 18,
+	MLX4_100BASE_TX = 24,
+	MLX4_1000BASE_T = 25,
+	MLX4_10GBASE_T = 26,
 };
 
-#define MLX4_PROT_MASK(link_mode) (1<<(link_mode))
+#define MLX4_PROT_MASK(link_mode) (1 << (link_mode))
 
 enum {
-	MLX4_EN_100M_SPEED	= 0x04,
-	MLX4_EN_10G_SPEED_XAUI	= 0x00,
-	MLX4_EN_10G_SPEED_XFI	= 0x01,
-	MLX4_EN_1G_SPEED	= 0x02,
-	MLX4_EN_20G_SPEED	= 0x08,
-	MLX4_EN_40G_SPEED	= 0x40,
-	MLX4_EN_56G_SPEED	= 0x20,
-	MLX4_EN_OTHER_SPEED	= 0x0f,
+	MLX4_EN_100M_SPEED = 0x04,
+	MLX4_EN_10G_SPEED_XAUI = 0x00,
+	MLX4_EN_10G_SPEED_XFI = 0x01,
+	MLX4_EN_1G_SPEED = 0x02,
+	MLX4_EN_20G_SPEED = 0x08,
+	MLX4_EN_40G_SPEED = 0x40,
+	MLX4_EN_56G_SPEED = 0x20,
+	MLX4_EN_OTHER_SPEED = 0x0f,
 };
 
 struct mlx4_en_query_port_context {
 	u8 link_up;
-#define MLX4_EN_LINK_UP_MASK	0x80
-#define MLX4_EN_ANC_MASK	0x40
+#define MLX4_EN_LINK_UP_MASK 0x80
+#define MLX4_EN_ANC_MASK 0x40
 	u8 autoneg;
-#define MLX4_EN_AUTONEG_MASK	0x80
+#define MLX4_EN_AUTONEG_MASK 0x80
 	__be16 mtu;
 	u8 reserved2;
 	u8 link_speed;
-#define MLX4_EN_SPEED_MASK	0x6f
+#define MLX4_EN_SPEED_MASK 0x6f
 	u16 reserved3[5];
 	__be64 mac;
 	u8 transceiver;
 };
-
 
 struct mlx4_en_stat_out_mbox {
 	/* Received frames with a length of 64 octets */
@@ -234,7 +231,8 @@ struct mlx4_en_stat_out_mbox {
 	__be64 RTOTG_prio_7;
 	__be64 RTOTG_novlan;
 
-	/* Count of total octets of received frames, includes framing characters */
+	/* Count of total octets of received frames, includes framing characters
+	 */
 	__be64 RTTLOCT_prio_0;
 	/* Count of total octets of received frames, not including framing
 	   characters */
@@ -277,7 +275,8 @@ struct mlx4_en_stat_out_mbox {
 
 	/* Count of Total received frames including bad frames */
 	__be64 RTOT_prio_0;
-	/* Count of  Total number of received frames with 802.1Q encapsulation */
+	/* Count of  Total number of received frames with 802.1Q encapsulation
+	 */
 	__be64 R1Q_prio_0;
 	__be64 reserved1;
 
@@ -319,8 +318,8 @@ struct mlx4_en_stat_out_mbox {
 	__be64 reserved11;
 	__be64 reserved12;
 	/* Count of received frames with a length/type field  value between 46
-	   (42 for VLANtagged frames) and 1500 (also 1500 for VLAN-tagged frames),
-	   inclusive */
+	   (42 for VLANtagged frames) and 1500 (also 1500 for VLAN-tagged
+	   frames), inclusive */
 	__be64 RInRangeLengthErr;
 	/* Count of received frames with length/type field between 1501 and 1535
 	   decimal, inclusive */
@@ -430,7 +429,8 @@ struct mlx4_en_stat_out_mbox {
 	__be64 T2MTU_prio_7;
 	__be64 T2MTU_novlan;
 	__be64 T2MTU_loopbk;
-	/* Transmit frames with a length greater than MTU octets and a good CRC. */
+	/* Transmit frames with a length greater than MTU octets and a good CRC.
+	 */
 	__be64 TGIANT_prio_0;
 	__be64 TGIANT_prio_1;
 	__be64 TGIANT_prio_2;
@@ -477,7 +477,8 @@ struct mlx4_en_stat_out_mbox {
 
 	/* total octets of transmitted frames, including framing characters */
 	__be64 TTTLOCT_prio_0;
-	/* total octets of transmitted frames, not including framing characters */
+	/* total octets of transmitted frames, not including framing characters
+	 */
 	__be64 TTTLOCT_NOFRM_prio_0;
 	/* ifOutOctets */
 	__be64 TOCT_prio_0;
@@ -560,7 +561,8 @@ struct mlx4_en_stat_out_mbox {
 	__be64 T1Q_loopbk;
 	__be64 reserved22;
 
-	/* Received frames with a length greater than MTU octets and a bad CRC */
+	/* Received frames with a length greater than MTU octets and a bad CRC
+	 */
 	__be32 RJBBR;
 	/* Received frames with a bad CRC that are not runts, jabbers,
 	   or alignment errors */

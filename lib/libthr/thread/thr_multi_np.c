@@ -30,9 +30,11 @@
  */
 
 #include <sys/cdefs.h>
-#include "namespace.h"
+
 #include <pthread.h>
 #include <pthread_np.h>
+
+#include "namespace.h"
 #include "un-namespace.h"
 
 __weak_reference(_pthread_multi_np, pthread_multi_np);

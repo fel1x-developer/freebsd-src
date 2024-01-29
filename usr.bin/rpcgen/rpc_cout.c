@@ -34,20 +34,21 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
+
 #include "rpc_parse.h"
 #include "rpc_scan.h"
 #include "rpc_util.h"
 
-static void print_header( definition * );
-static void print_trailer( void );
-static void print_stat( int , declaration * );
-static void emit_enum( definition * );
-static void emit_program( definition * );
-static void emit_union( definition * );
-static void emit_struct( definition * );
-static void emit_typedef( definition * );
-static void emit_inline( int, declaration *, int );
-static void emit_single_in_line( int, declaration *, int, relation );
+static void print_header(definition *);
+static void print_trailer(void);
+static void print_stat(int, declaration *);
+static void emit_enum(definition *);
+static void emit_program(definition *);
+static void emit_union(definition *);
+static void emit_struct(definition *);
+static void emit_typedef(definition *);
+static void emit_inline(int, declaration *, int);
+static void emit_single_in_line(int, declaration *, int, relation);
 
 /*
  * Emit the C-routine for the given definition
@@ -66,7 +67,8 @@ emit(definition *def)
 		/*
 		 * now we need to handle declarations like
 		 * struct typedef foo foo;
-		 * since we dont want this to be expanded into 2 calls to xdr_foo
+		 * since we dont want this to be expanded into 2 calls to
+		 * xdr_foo
 		 */
 
 		if (strcmp(def->def.ty.old_type, def->def_name) == 0)
@@ -109,10 +111,9 @@ undefined(const char *type)
 {
 	definition *def;
 
-	def = (definition *) FINDVAL(defined, type, findtype);
+	def = (definition *)FINDVAL(defined, type, findtype);
 	return (def == NULL);
 }
-
 
 static void
 print_generic_header(const char *procname, int pointerp)
@@ -131,9 +132,8 @@ static void
 print_header(definition *def)
 {
 	print_generic_header(def->def_name,
-			    def->def_kind != DEF_TYPEDEF ||
-			    !isvectordef(def->def.ty.old_type,
-					 def->def.ty.rel));
+	    def->def_kind != DEF_TYPEDEF ||
+		!isvectordef(def->def.ty.old_type, def->def.ty.rel));
 	/* Now add Inline support */
 
 	if (inline_size == 0)
@@ -155,7 +155,6 @@ print_trailer(void)
 	f_print(fout, "}\n");
 }
 
-
 static void
 print_ifopen(int indent, const char *name)
 {
@@ -175,7 +174,7 @@ print_ifsizeof(int indent, const char *prefix, const char *type)
 	if (indent) {
 		f_print(fout, ",\n");
 		tabify(fout, indent);
-	} else  {
+	} else {
 		f_print(fout, ", ");
 	}
 	if (streq(type, "bool")) {
@@ -253,11 +252,11 @@ print_ifstat(int indent, const char *prefix, const char *type, relation rel,
 			print_ifarg("(char **)");
 			if (*objname == '&') {
 				f_print(fout, "%s.%s_val, (u_int *) %s.%s_len",
-					objname, name, objname, name);
+				    objname, name, objname, name);
 			} else {
 				f_print(fout,
-					"&%s->%s_val, (u_int *) &%s->%s_len",
-					objname, name, objname, name);
+				    "&%s->%s_val, (u_int *) &%s->%s_len",
+				    objname, name, objname, name);
 			}
 		}
 		print_ifarg(amax);
@@ -294,13 +293,11 @@ emit_program(definition *def)
 			if (!newstyle || plist->arg_num < 2)
 				continue; /* old style, or single argument */
 			print_prog_header(plist);
-			for (dl = plist->args.decls; dl != NULL;
-			     dl = dl->next)
+			for (dl = plist->args.decls; dl != NULL; dl = dl->next)
 				print_stat(1, &dl->decl);
 			print_trailer();
 		}
 }
-
 
 static void
 emit_union(definition *def)
@@ -322,16 +319,16 @@ emit_union(definition *def)
 		cs = &cl->case_decl;
 		if (!streq(cs->type, "void")) {
 			object = xmalloc(strlen(def->def_name) +
-			                 strlen(format) + strlen(cs->name) + 1);
-			if (isvectordef (cs->type, cs->rel)) {
+			    strlen(format) + strlen(cs->name) + 1);
+			if (isvectordef(cs->type, cs->rel)) {
 				s_print(object, vecformat, def->def_name,
-					cs->name);
+				    cs->name);
 			} else {
 				s_print(object, format, def->def_name,
-					cs->name);
+				    cs->name);
 			}
 			print_ifstat(2, cs->prefix, cs->type, cs->rel,
-				     cs->array_max, object, cs->name);
+			    cs->array_max, object, cs->name);
 			free(object);
 		}
 		f_print(fout, "\t\tbreak;\n");
@@ -341,17 +338,17 @@ emit_union(definition *def)
 		if (!streq(dflt->type, "void")) {
 			f_print(fout, "\tdefault:\n");
 			object = xmalloc(strlen(def->def_name) +
-			                 strlen(format) + strlen(dflt->name) + 1);
-			if (isvectordef (dflt->type, dflt->rel)) {
+			    strlen(format) + strlen(dflt->name) + 1);
+			if (isvectordef(dflt->type, dflt->rel)) {
 				s_print(object, vecformat, def->def_name,
-					dflt->name);
+				    dflt->name);
 			} else {
 				s_print(object, format, def->def_name,
-					dflt->name);
+				    dflt->name);
 			}
 
 			print_ifstat(2, dflt->prefix, dflt->type, dflt->rel,
-				    dflt->array_max, object, dflt->name);
+			    dflt->array_max, object, dflt->name);
 			free(object);
 			f_print(fout, "\t\tbreak;\n");
 		} else {
@@ -382,7 +379,8 @@ inline_struct(definition *def, int flag)
 	if (flag == PUT)
 		f_print(fout, "\n\tif (xdrs->x_op == XDR_ENCODE) {\n");
 	else
-		f_print(fout, "\t\treturn (TRUE);\n\t} else if (xdrs->x_op == XDR_DECODE) {\n");
+		f_print(fout,
+		    "\t\treturn (TRUE);\n\t} else if (xdrs->x_op == XDR_DECODE) {\n");
 
 	i = 0;
 	size = 0;
@@ -392,7 +390,7 @@ inline_struct(definition *def, int flag)
 		if ((dl->decl.prefix == NULL) &&
 		    ((ptr = find_type(dl->decl.type)) != NULL) &&
 		    ((dl->decl.rel == REL_ALIAS) ||
-		     (dl->decl.rel == REL_VECTOR))){
+			(dl->decl.rel == REL_VECTOR))) {
 			if (i == 0)
 				cur = dl;
 			i++;
@@ -407,69 +405,70 @@ inline_struct(definition *def, int flag)
 					plus = " + ";
 
 				if (ptr->length != 1)
-					s_print(ptemp, "%s%s * %d",
-						plus, dl->decl.array_max,
-						ptr->length);
+					s_print(ptemp, "%s%s * %d", plus,
+					    dl->decl.array_max, ptr->length);
 				else
 					s_print(ptemp, "%s%s", plus,
-						dl->decl.array_max);
+					    dl->decl.array_max);
 
 				/* now concatenate to sizestr !!!! */
 				if (sizestr == NULL) {
 					sizestr = xstrdup(ptemp);
-				}
-				else{
+				} else {
 					sizestr = xrealloc(sizestr,
-							  strlen(sizestr)
-							  +strlen(ptemp)+1);
+					    strlen(sizestr) + strlen(ptemp) +
+						1);
 					sizestr = strcat(sizestr, ptemp);
 					/* build up length of array */
 				}
 			}
 		} else {
 			if (i > 0) {
-				if (sizestr == NULL && size < inline_size){
+				if (sizestr == NULL && size < inline_size) {
 					/*
 					 * don't expand into inline code
 					 * if size < inline_size
 					 */
-					while (cur != dl){
-						print_stat(indent + 1, &cur->decl);
+					while (cur != dl) {
+						print_stat(indent + 1,
+						    &cur->decl);
 						cur = cur->next;
 					}
 				} else {
-					/* were already looking at a xdr_inlineable structure */
+					/* were already looking at a
+					 * xdr_inlineable structure */
 					tabify(fout, indent + 1);
 					if (sizestr == NULL)
-						f_print(fout, "buf = XDR_INLINE(xdrs, %d * BYTES_PER_XDR_UNIT);",
-							size);
+						f_print(fout,
+						    "buf = XDR_INLINE(xdrs, %d * BYTES_PER_XDR_UNIT);",
+						    size);
 					else {
 						if (size == 0)
 							f_print(fout,
-								"buf = XDR_INLINE(xdrs, (%s) * BYTES_PER_XDR_UNIT);",
-								sizestr);
+							    "buf = XDR_INLINE(xdrs, (%s) * BYTES_PER_XDR_UNIT);",
+							    sizestr);
 						else
 							f_print(fout,
-								"buf = XDR_INLINE(xdrs, (%d + (%s)) * BYTES_PER_XDR_UNIT);",
-								size, sizestr);
-
+							    "buf = XDR_INLINE(xdrs, (%d + (%s)) * BYTES_PER_XDR_UNIT);",
+							    size, sizestr);
 					}
 					f_print(fout, "\n");
 					tabify(fout, indent + 1);
-					f_print(fout,
-						"if (buf == NULL) {\n");
+					f_print(fout, "if (buf == NULL) {\n");
 
 					psav = cur;
-					while (cur != dl){
-						print_stat(indent + 2, &cur->decl);
+					while (cur != dl) {
+						print_stat(indent + 2,
+						    &cur->decl);
 						cur = cur->next;
 					}
 
 					f_print(fout, "\n\t\t} else {\n");
 
 					cur = psav;
-					while (cur != dl){
-						emit_inline(indent + 2, &cur->decl, flag);
+					while (cur != dl) {
+						emit_inline(indent + 2,
+						    &cur->decl, flag);
 						cur = cur->next;
 					}
 
@@ -486,37 +485,38 @@ inline_struct(definition *def, int flag)
 	}
 
 	if (i > 0) {
-		if (sizestr == NULL && size < inline_size){
-			/* don't expand into inline code if size < inline_size */
-			while (cur != dl){
+		if (sizestr == NULL && size < inline_size) {
+			/* don't expand into inline code if size < inline_size
+			 */
+			while (cur != dl) {
 				print_stat(indent + 1, &cur->decl);
 				cur = cur->next;
 			}
 		} else {
 			/* were already looking at a xdr_inlineable structure */
 			if (sizestr == NULL)
-				f_print(fout, "\t\tbuf = XDR_INLINE(xdrs, %d * BYTES_PER_XDR_UNIT);",
-					size);
+				f_print(fout,
+				    "\t\tbuf = XDR_INLINE(xdrs, %d * BYTES_PER_XDR_UNIT);",
+				    size);
+			else if (size == 0)
+				f_print(fout,
+				    "\t\tbuf = XDR_INLINE(xdrs, (%s) * BYTES_PER_XDR_UNIT);",
+				    sizestr);
 			else
-				if (size == 0)
-					f_print(fout,
-						"\t\tbuf = XDR_INLINE(xdrs, (%s) * BYTES_PER_XDR_UNIT);",
-						sizestr);
-				else
-					f_print(fout,
-						"\t\tbuf = XDR_INLINE(xdrs, (%d + (%s)) * BYTES_PER_XDR_UNIT);",
-						size, sizestr);
+				f_print(fout,
+				    "\t\tbuf = XDR_INLINE(xdrs, (%d + (%s)) * BYTES_PER_XDR_UNIT);",
+				    size, sizestr);
 
 			f_print(fout, "\n\t\tif (buf == NULL) {\n");
 			psav = cur;
-			while (cur != NULL){
+			while (cur != NULL) {
 				print_stat(indent + 2, &cur->decl);
 				cur = cur->next;
 			}
 			f_print(fout, "\t\t} else {\n");
 
 			cur = psav;
-			while (cur != dl){
+			while (cur != dl) {
 				emit_inline(indent + 2, &cur->decl, flag);
 				cur = cur->next;
 			}
@@ -542,7 +542,7 @@ emit_struct(definition *def)
 
 	for (dl = def->def.st.decls; dl != NULL; dl = dl->next)
 		if (dl->decl.rel == REL_VECTOR &&
-		    strcmp(dl->decl.type, "opaque") != 0){
+		    strcmp(dl->decl.type, "opaque") != 0) {
 			f_print(fout, "\tint i;\n");
 			break;
 		}
@@ -555,8 +555,8 @@ emit_struct(definition *def)
 	for (dl = def->def.st.decls; dl != NULL; dl = dl->next)
 		if ((dl->decl.prefix == NULL) &&
 		    ((ptr = find_type(dl->decl.type)) != NULL) &&
-		    ((dl->decl.rel == REL_ALIAS)||
-		     (dl->decl.rel == REL_VECTOR))){
+		    ((dl->decl.rel == REL_ALIAS) ||
+			(dl->decl.rel == REL_VECTOR))) {
 			if (dl->decl.rel == REL_ALIAS)
 				size += ptr->length;
 			else {
@@ -564,7 +564,7 @@ emit_struct(definition *def)
 				break; /* can be inlined */
 			}
 		} else {
-			if (size >= inline_size){
+			if (size >= inline_size) {
 				can_inline = 1;
 				break; /* can be inlined */
 			}
@@ -573,14 +573,14 @@ emit_struct(definition *def)
 	if (size >= inline_size)
 		can_inline = 1;
 
-	if (can_inline == 0){	/* can not inline, drop back to old mode */
+	if (can_inline == 0) { /* can not inline, drop back to old mode */
 		for (dl = def->def.st.decls; dl != NULL; dl = dl->next)
 			print_stat(1, &dl->decl);
 		return;
 	}
 
 	flag = PUT;
-	for (j = 0; j < 2; j++){
+	for (j = 0; j < 2; j++) {
 		inline_struct(def, flag);
 		if (flag == PUT)
 			flag = GET;
@@ -592,7 +592,6 @@ emit_struct(definition *def)
 
 	for (dl = def->def.st.decls; dl != NULL; dl = dl->next)
 		print_stat(1, &dl->decl);
-
 }
 
 static void
@@ -623,24 +622,22 @@ print_stat(int indent, declaration *dec)
 	print_ifstat(indent, prefix, type, rel, amax, name, dec->name);
 }
 
-
 char *upcase(const char *);
 
 static void
 emit_inline(int indent, declaration *decl, int flag)
 {
 	switch (decl->rel) {
-	case  REL_ALIAS :
+	case REL_ALIAS:
 		emit_single_in_line(indent, decl, flag, REL_ALIAS);
 		break;
-	case REL_VECTOR :
+	case REL_VECTOR:
 		tabify(fout, indent);
 		f_print(fout, "{\n");
 		tabify(fout, indent + 1);
 		f_print(fout, "%s *genp;\n\n", decl->type);
 		tabify(fout, indent + 1);
-		f_print(fout,
-			"for (i = 0, genp = objp->%s;\n", decl->name);
+		f_print(fout, "for (i = 0, genp = objp->%s;\n", decl->name);
 		tabify(fout, indent + 2);
 		f_print(fout, "i < %s; i++) {\n", decl->array_max);
 		emit_single_in_line(indent + 2, decl, flag, REL_VECTOR);
@@ -662,30 +659,27 @@ emit_single_in_line(int indent, declaration *decl, int flag, relation rel)
 	tabify(fout, indent);
 	if (flag == PUT)
 		f_print(fout, "IXDR_PUT_");
+	else if (rel == REL_ALIAS)
+		f_print(fout, "objp->%s = IXDR_GET_", decl->name);
 	else
-		if (rel == REL_ALIAS)
-			f_print(fout, "objp->%s = IXDR_GET_", decl->name);
-		else
-			f_print(fout, "*genp++ = IXDR_GET_");
+		f_print(fout, "*genp++ = IXDR_GET_");
 
 	upp_case = upcase(decl->type);
 
 	/* hack	 - XX */
-	if (strcmp(upp_case, "INT") == 0)
-	{
+	if (strcmp(upp_case, "INT") == 0) {
 		free(upp_case);
 		upp_case = strdup("LONG");
 	}
 
-	if (strcmp(upp_case, "U_INT") == 0)
-	{
+	if (strcmp(upp_case, "U_INT") == 0) {
 		free(upp_case);
 		upp_case = strdup("U_LONG");
 	}
 	if (flag == PUT)
 		if (rel == REL_ALIAS)
-			f_print(fout,
-				"%s(buf, objp->%s);\n", upp_case, decl->name);
+			f_print(fout, "%s(buf, objp->%s);\n", upp_case,
+			    decl->name);
 		else
 			f_print(fout, "%s(buf, *genp++);\n", upp_case);
 
@@ -699,7 +693,7 @@ upcase(const char *str)
 {
 	char *ptr, *hptr;
 
-	ptr = (char *)xmalloc(strlen(str)+1);
+	ptr = (char *)xmalloc(strlen(str) + 1);
 
 	hptr = ptr;
 	while (*str != '\0')

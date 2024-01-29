@@ -31,10 +31,10 @@
 
 #include <sys/param.h>
 #include <sys/file.h>
+#include <sys/ktrace.h>
 #include <sys/proc.h>
 #include <sys/time.h>
 #include <sys/uio.h>
-#include <sys/ktrace.h>
 
 #include <stdio.h>
 
@@ -50,7 +50,7 @@ getpoints(char *s)
 	int facs = 0;
 
 	while (*s) {
-		switch(*s) {
+		switch (*s) {
 		case 'c':
 			facs |= KTRFAC_SYSCALL | KTRFAC_SYSRET;
 			break;

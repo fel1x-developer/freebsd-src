@@ -30,10 +30,10 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/module.h>
-#include <sys/kernel.h>
 #include <sys/consio.h>
 #include <sys/fbio.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
 
 #include <machine/pc/display.h>
 
@@ -45,18 +45,18 @@ static int splash_on = FALSE;
 
 static int txt_init(video_adapter_t *adp);
 static int txt_end(video_adapter_t *adp);
-static int txt_splash(video_adapter_t * adp, const int on);
+static int txt_splash(video_adapter_t *adp, const int on);
 
 /* These are rows by columns of the text-mode display device. */
-#define BIN_IMAGE_WIDTH		80
-#define BIN_IMAGE_HEIGHT	25
+#define BIN_IMAGE_WIDTH 80
+#define BIN_IMAGE_HEIGHT 25
 
 static splash_decoder_t txt_decoder = {
-       .name = "splash_txt",
-       .init = txt_init,
-       .term = txt_end,
-       .splash = txt_splash,
-       .data_type = SPLASH_IMAGE,
+	.name = "splash_txt",
+	.init = txt_init,
+	.term = txt_end,
+	.splash = txt_splash,
+	.data_type = SPLASH_IMAGE,
 };
 
 SPLASH_DECODER(splash_txt, txt_decoder);
@@ -76,8 +76,8 @@ draw_text_splash(sc_softc_t *sc)
 			ch = *pdata++;
 			attr = *pdata++;
 			sc_vtb_putc(&sc->cur_scp->scr,
-			    (y * sc->cur_scp->xsize) + x,
-			    sc->scr_map[ch], (int)attr << 8);
+			    (y * sc->cur_scp->xsize) + x, sc->scr_map[ch],
+			    (int)attr << 8);
 		}
 	}
 }
@@ -131,5 +131,3 @@ txt_splash(video_adapter_t *adp, const int on)
 		return (0);
 	}
 }
-
-

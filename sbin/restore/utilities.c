@@ -32,18 +32,17 @@
 #include <sys/param.h>
 #include <sys/stat.h>
 
-#include <ufs/ufs/dinode.h>
-#include <ufs/ufs/dir.h>
-
 #include <errno.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ufs/ufs/dinode.h>
+#include <ufs/ufs/dir.h>
 #include <unistd.h>
 
-#include "restore.h"
 #include "extern.h"
+#include "restore.h"
 
 /*
  * Insure that all the components of a pathname exist.
@@ -68,7 +67,7 @@ pathcheck(char *name)
 			ep = addentry(name, pathsearch(name)->d_ino, NODE);
 			newnode(ep);
 		}
-		ep->e_flags |= NEW|KEEP;
+		ep->e_flags |= NEW | KEEP;
 		*cp = '/';
 	}
 }
@@ -84,7 +83,7 @@ mktempname(struct entry *ep)
 	if (ep->e_flags & TMPNAME)
 		badentry(ep, "mktempname: called with TMPNAME");
 	ep->e_flags |= TMPNAME;
-	(void) strcpy(oldname, myname(ep));
+	(void)strcpy(oldname, myname(ep));
 	freename(ep->e_name);
 	ep->e_name = savename(gentempname(ep));
 	ep->e_namlen = strlen(ep->e_name);
@@ -101,12 +100,12 @@ gentempname(struct entry *ep)
 	struct entry *np;
 	long i = 0;
 
-	for (np = lookupino(ep->e_ino);
-	    np != NULL && np != ep; np = np->e_links)
+	for (np = lookupino(ep->e_ino); np != NULL && np != ep;
+	     np = np->e_links)
 		i++;
 	if (np == NULL)
 		badentry(ep, "not on ino list");
-	(void) sprintf(name, "%s%ld%lu", TMPHDR, i, (u_long)ep->e_ino);
+	(void)sprintf(name, "%s%ld%lu", TMPHDR, i, (u_long)ep->e_ino);
 	return (name);
 }
 
@@ -117,8 +116,8 @@ void
 renameit(char *from, char *to)
 {
 	if (!Nflag && rename(from, to) < 0) {
-		fprintf(stderr, "warning: cannot rename %s to %s: %s\n",
-		    from, to, strerror(errno));
+		fprintf(stderr, "warning: cannot rename %s to %s: %s\n", from,
+		    to, strerror(errno));
 		return;
 	}
 	vprintf(stdout, "rename %s to %s\n", from, to);
@@ -219,7 +218,8 @@ linkit(char *existing, char *new, int type)
 				chflags(existing, s.st_flags);
 			}
 			if (ret < 0) {
-				fprintf(stderr, "warning: cannot create "
+				fprintf(stderr,
+				    "warning: cannot create "
 				    "hard link %s->%s: %s\n",
 				    new, existing, strerror(errno));
 				return (FAIL);
@@ -230,7 +230,7 @@ linkit(char *existing, char *new, int type)
 		return (FAIL);
 	}
 	vprintf(stdout, "Create %s link %s->%s\n",
-		type == SYMLINK ? "symbolic" : "hard", new, existing);
+	    type == SYMLINK ? "symbolic" : "hard", new, existing);
 	return (GOOD);
 }
 
@@ -279,11 +279,11 @@ lowerbnd(ino_t start)
 {
 	struct entry *ep;
 
-	for ( ; start < maxino; start++) {
+	for (; start < maxino; start++) {
 		ep = lookupino(start);
 		if (ep == NULL || ep->e_type == NODE)
 			continue;
-		if (ep->e_flags & (NEW|EXTRACT))
+		if (ep->e_flags & (NEW | EXTRACT))
 			return (start);
 	}
 	return (start);
@@ -297,11 +297,11 @@ upperbnd(ino_t start)
 {
 	struct entry *ep;
 
-	for ( ; start > UFS_ROOTINO; start--) {
+	for (; start > UFS_ROOTINO; start--) {
 		ep = lookupino(start);
 		if (ep == NULL || ep->e_type == NODE)
 			continue;
-		if (ep->e_flags & (NEW|EXTRACT))
+		if (ep->e_flags & (NEW | EXTRACT))
 			return (start);
 	}
 	return (start);
@@ -324,10 +324,10 @@ badentry(struct entry *ep, char *msg)
 	if (ep->e_links != NULL)
 		fprintf(stderr, "next link name: %s\n", myname(ep->e_links));
 	if (ep->e_next != NULL)
-		fprintf(stderr,
-		    "next hashchain name: %s\n", myname(ep->e_next));
+		fprintf(stderr, "next hashchain name: %s\n",
+		    myname(ep->e_next));
 	fprintf(stderr, "entry type: %s\n",
-		ep->e_type == NODE ? "NODE" : "LEAF");
+	    ep->e_type == NODE ? "NODE" : "LEAF");
 	fprintf(stderr, "inode number: %lu\n", (u_long)ep->e_ino);
 	panic("flags: %s\n", flagvalues(ep));
 }
@@ -340,20 +340,20 @@ flagvalues(struct entry *ep)
 {
 	static char flagbuf[BUFSIZ];
 
-	(void) strcpy(flagbuf, "|NIL");
+	(void)strcpy(flagbuf, "|NIL");
 	flagbuf[0] = '\0';
 	if (ep->e_flags & REMOVED)
-		(void) strcat(flagbuf, "|REMOVED");
+		(void)strcat(flagbuf, "|REMOVED");
 	if (ep->e_flags & TMPNAME)
-		(void) strcat(flagbuf, "|TMPNAME");
+		(void)strcat(flagbuf, "|TMPNAME");
 	if (ep->e_flags & EXTRACT)
-		(void) strcat(flagbuf, "|EXTRACT");
+		(void)strcat(flagbuf, "|EXTRACT");
 	if (ep->e_flags & NEW)
-		(void) strcat(flagbuf, "|NEW");
+		(void)strcat(flagbuf, "|NEW");
 	if (ep->e_flags & KEEP)
-		(void) strcat(flagbuf, "|KEEP");
+		(void)strcat(flagbuf, "|KEEP");
 	if (ep->e_flags & EXISTED)
-		(void) strcat(flagbuf, "|EXISTED");
+		(void)strcat(flagbuf, "|EXISTED");
 	return (&flagbuf[1]);
 }
 
@@ -381,9 +381,9 @@ reply(char *question)
 {
 	int c;
 
-	do	{
+	do {
 		fprintf(stderr, "%s? [yn] ", question);
-		(void) fflush(stderr);
+		(void)fflush(stderr);
 		c = getc(terminal);
 		while (c != '\n' && getc(terminal) != '\n')
 			if (c == EOF)

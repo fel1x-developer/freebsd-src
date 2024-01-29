@@ -27,6 +27,7 @@
 #include <sys/param.h>
 #include <sys/iov.h>
 #include <sys/nv.h>
+
 #include <net/ethernet.h>
 
 #include <err.h>
@@ -110,7 +111,8 @@ add_uint_config(const char *key, const ucl_object_t *obj, nvlist_t *config,
  * address, and then adds the value to the configuration.
  */
 static void
-add_unicast_mac_config(const char *key, const ucl_object_t *obj, nvlist_t *config)
+add_unicast_mac_config(const char *key, const ucl_object_t *obj,
+    nvlist_t *config)
 {
 	uint8_t mac[ETHER_ADDR_LEN];
 	const char *val, *token;
@@ -262,7 +264,7 @@ parse_config_file(const char *filename, const nvlist_t *schema)
 	regex_t vf_pat;
 	int regex_err, processed_vf;
 
-	regex_err = regcomp(&vf_pat, "^"VF_PREFIX"([1-9][0-9]*|0)$",
+	regex_err = regcomp(&vf_pat, "^" VF_PREFIX "([1-9][0-9]*|0)$",
 	    REG_EXTENDED | REG_ICASE);
 	if (regex_err != 0)
 		errx(1, "Could not compile VF regex");
@@ -307,7 +309,7 @@ parse_config_file(const char *filename, const nvlist_t *schema)
 			 */
 			if (processed_vf)
 				errx(1,
-			"'default' section must precede all VF sections");
+				    "'default' section must precede all VF sections");
 
 			parse_device_config(obj, config, key, vf_schema);
 		} else if (regexec(&vf_pat, key, 0, NULL, 0) == 0) {
@@ -343,8 +345,7 @@ find_pf_device(const ucl_object_t *pf)
 
 		if (strcasecmp(key, "device") == 0) {
 			if (!ucl_object_tostring_safe(obj, &device))
-				err(1,
-				    "Config PF.device must be a string");
+				err(1, "Config PF.device must be a string");
 
 			return (device);
 		}
@@ -388,7 +389,7 @@ find_device(const char *filename)
 	if (errmsg != NULL)
 		errx(1, "Could not parse '%s': %s", filename, errmsg);
 
-	top = ucl_parser_get_object (parser);
+	top = ucl_parser_get_object(parser);
 	it = NULL;
 	while ((obj = ucl_iterate_object(top, &it, true)) != NULL) {
 		key = ucl_object_key(obj);

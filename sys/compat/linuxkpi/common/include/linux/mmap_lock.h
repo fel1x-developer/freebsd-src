@@ -25,7 +25,7 @@
  */
 
 #ifndef _LINUXKPI_LINUX_MMAP_LOCK_H_
-#define	_LINUXKPI_LINUX_MMAP_LOCK_H_
+#define _LINUXKPI_LINUX_MMAP_LOCK_H_
 
 #include <linux/mm_types.h>
 #include <linux/rwsem.h>
@@ -51,4 +51,4 @@ mmap_write_lock_killable(struct mm_struct *mm)
 	down_write_killable(&mm->mmap_sem);
 }
 
-#endif	/* _LINUXKPI_LINUX_MMAP_LOCK_H_ */
+#endif /* _LINUXKPI_LINUX_MMAP_LOCK_H_ */

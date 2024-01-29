@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: ISC
  *
- * Copyright (C) 2015-2021 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
- * Copyright (C) 2019-2021 Matt Dunwoodie <ncon@noconroy.net>
+ * Copyright (C) 2015-2021 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights
+ * Reserved. Copyright (C) 2019-2021 Matt Dunwoodie <ncon@noconroy.net>
  * Copyright (c) 2022 The FreeBSD Foundation
  */
 
@@ -16,74 +16,75 @@
 #include <sys/mutex.h>
 #include <sys/refcount.h>
 #include <sys/rwlock.h>
+
 #include <crypto/siphash/siphash.h>
 
 #include "crypto.h"
 #include "wg_noise.h"
 
 /* Protocol string constants */
-#define NOISE_HANDSHAKE_NAME	"Noise_IKpsk2_25519_ChaChaPoly_BLAKE2s"
-#define NOISE_IDENTIFIER_NAME	"WireGuard v1 zx2c4 Jason@zx2c4.com"
+#define NOISE_HANDSHAKE_NAME "Noise_IKpsk2_25519_ChaChaPoly_BLAKE2s"
+#define NOISE_IDENTIFIER_NAME "WireGuard v1 zx2c4 Jason@zx2c4.com"
 
 /* Constants for the counter */
-#define COUNTER_BITS_TOTAL	8192
+#define COUNTER_BITS_TOTAL 8192
 #ifdef __LP64__
-#define COUNTER_ORDER		6
-#define COUNTER_BITS		64
+#define COUNTER_ORDER 6
+#define COUNTER_BITS 64
 #else
-#define COUNTER_ORDER		5
-#define COUNTER_BITS		32
+#define COUNTER_ORDER 5
+#define COUNTER_BITS 32
 #endif
-#define COUNTER_REDUNDANT_BITS	COUNTER_BITS
-#define COUNTER_WINDOW_SIZE	(COUNTER_BITS_TOTAL - COUNTER_REDUNDANT_BITS)
+#define COUNTER_REDUNDANT_BITS COUNTER_BITS
+#define COUNTER_WINDOW_SIZE (COUNTER_BITS_TOTAL - COUNTER_REDUNDANT_BITS)
 
 /* Constants for the keypair */
-#define REKEY_AFTER_MESSAGES	(1ull << 60)
-#define REJECT_AFTER_MESSAGES	(UINT64_MAX - COUNTER_WINDOW_SIZE - 1)
-#define REKEY_AFTER_TIME	120
-#define REKEY_AFTER_TIME_RECV	165
-#define REJECT_INTERVAL		(1000000000 / 50) /* fifty times per sec */
+#define REKEY_AFTER_MESSAGES (1ull << 60)
+#define REJECT_AFTER_MESSAGES (UINT64_MAX - COUNTER_WINDOW_SIZE - 1)
+#define REKEY_AFTER_TIME 120
+#define REKEY_AFTER_TIME_RECV 165
+#define REJECT_INTERVAL (1000000000 / 50) /* fifty times per sec */
 /* 24 = floor(log2(REJECT_INTERVAL)) */
-#define REJECT_INTERVAL_MASK	(~((1ull<<24)-1))
-#define TIMER_RESET		(SBT_1S * -(REKEY_TIMEOUT+1))
+#define REJECT_INTERVAL_MASK (~((1ull << 24) - 1))
+#define TIMER_RESET (SBT_1S * -(REKEY_TIMEOUT + 1))
 
-#define HT_INDEX_SIZE		(1 << 13)
-#define HT_INDEX_MASK		(HT_INDEX_SIZE - 1)
-#define HT_REMOTE_SIZE		(1 << 11)
-#define HT_REMOTE_MASK		(HT_REMOTE_SIZE - 1)
-#define MAX_REMOTE_PER_LOCAL	(1 << 20)
+#define HT_INDEX_SIZE (1 << 13)
+#define HT_INDEX_MASK (HT_INDEX_SIZE - 1)
+#define HT_REMOTE_SIZE (1 << 11)
+#define HT_REMOTE_MASK (HT_REMOTE_SIZE - 1)
+#define MAX_REMOTE_PER_LOCAL (1 << 20)
 
 struct noise_index {
-	CK_LIST_ENTRY(noise_index)	 i_entry;
-	uint32_t			 i_local_index;
-	uint32_t			 i_remote_index;
-	int				 i_is_keypair;
+	CK_LIST_ENTRY(noise_index) i_entry;
+	uint32_t i_local_index;
+	uint32_t i_remote_index;
+	int i_is_keypair;
 };
 
 struct noise_keypair {
-	struct noise_index		 kp_index;
-	u_int				 kp_refcnt;
-	bool				 kp_can_send;
-	bool				 kp_is_initiator;
-	sbintime_t			 kp_birthdate; /* sbinuptime */
-	struct noise_remote		*kp_remote;
+	struct noise_index kp_index;
+	u_int kp_refcnt;
+	bool kp_can_send;
+	bool kp_is_initiator;
+	sbintime_t kp_birthdate; /* sbinuptime */
+	struct noise_remote *kp_remote;
 
-	uint8_t				 kp_send[NOISE_SYMMETRIC_KEY_LEN];
-	uint8_t				 kp_recv[NOISE_SYMMETRIC_KEY_LEN];
+	uint8_t kp_send[NOISE_SYMMETRIC_KEY_LEN];
+	uint8_t kp_recv[NOISE_SYMMETRIC_KEY_LEN];
 
 	/* Counter elements */
-	struct rwlock			 kp_nonce_lock;
-	uint64_t			 kp_nonce_send;
-	uint64_t			 kp_nonce_recv;
-	unsigned long			 kp_backtrack[COUNTER_BITS_TOTAL / COUNTER_BITS];
+	struct rwlock kp_nonce_lock;
+	uint64_t kp_nonce_send;
+	uint64_t kp_nonce_recv;
+	unsigned long kp_backtrack[COUNTER_BITS_TOTAL / COUNTER_BITS];
 
-	struct epoch_context		 kp_smr;
+	struct epoch_context kp_smr;
 };
 
 struct noise_handshake {
-	uint8_t	 			 hs_e[NOISE_PUBLIC_KEY_LEN];
-	uint8_t	 			 hs_hash[NOISE_HASH_LEN];
-	uint8_t	 			 hs_ck[NOISE_HASH_LEN];
+	uint8_t hs_e[NOISE_PUBLIC_KEY_LEN];
+	uint8_t hs_hash[NOISE_HASH_LEN];
+	uint8_t hs_ck[NOISE_HASH_LEN];
 };
 
 enum noise_handshake_state {
@@ -93,85 +94,88 @@ enum noise_handshake_state {
 };
 
 struct noise_remote {
-	struct noise_index		 r_index;
+	struct noise_index r_index;
 
-	CK_LIST_ENTRY(noise_remote) 	 r_entry;
-	bool				 r_entry_inserted;
-	uint8_t				 r_public[NOISE_PUBLIC_KEY_LEN];
+	CK_LIST_ENTRY(noise_remote) r_entry;
+	bool r_entry_inserted;
+	uint8_t r_public[NOISE_PUBLIC_KEY_LEN];
 
-	struct rwlock			 r_handshake_lock;
-	struct noise_handshake		 r_handshake;
-	enum noise_handshake_state	 r_handshake_state;
-	sbintime_t			 r_last_sent; /* sbinuptime */
-	sbintime_t			 r_last_init_recv; /* sbinuptime */
-	uint8_t				 r_timestamp[NOISE_TIMESTAMP_LEN];
-	uint8_t				 r_psk[NOISE_SYMMETRIC_KEY_LEN];
-	uint8_t		 		 r_ss[NOISE_PUBLIC_KEY_LEN];
+	struct rwlock r_handshake_lock;
+	struct noise_handshake r_handshake;
+	enum noise_handshake_state r_handshake_state;
+	sbintime_t r_last_sent;	     /* sbinuptime */
+	sbintime_t r_last_init_recv; /* sbinuptime */
+	uint8_t r_timestamp[NOISE_TIMESTAMP_LEN];
+	uint8_t r_psk[NOISE_SYMMETRIC_KEY_LEN];
+	uint8_t r_ss[NOISE_PUBLIC_KEY_LEN];
 
-	u_int				 r_refcnt;
-	struct noise_local		*r_local;
-	void				*r_arg;
+	u_int r_refcnt;
+	struct noise_local *r_local;
+	void *r_arg;
 
-	struct mtx			 r_keypair_mtx;
-	struct noise_keypair		*r_next, *r_current, *r_previous;
+	struct mtx r_keypair_mtx;
+	struct noise_keypair *r_next, *r_current, *r_previous;
 
-	struct epoch_context		 r_smr;
-	void				(*r_cleanup)(struct noise_remote *);
+	struct epoch_context r_smr;
+	void (*r_cleanup)(struct noise_remote *);
 };
 
 struct noise_local {
-	struct rwlock			 l_identity_lock;
-	bool				 l_has_identity;
-	uint8_t				 l_public[NOISE_PUBLIC_KEY_LEN];
-	uint8_t				 l_private[NOISE_PUBLIC_KEY_LEN];
+	struct rwlock l_identity_lock;
+	bool l_has_identity;
+	uint8_t l_public[NOISE_PUBLIC_KEY_LEN];
+	uint8_t l_private[NOISE_PUBLIC_KEY_LEN];
 
-	u_int				 l_refcnt;
-	uint8_t				 l_hash_key[SIPHASH_KEY_LENGTH];
-	void				*l_arg;
-	void				(*l_cleanup)(struct noise_local *);
+	u_int l_refcnt;
+	uint8_t l_hash_key[SIPHASH_KEY_LENGTH];
+	void *l_arg;
+	void (*l_cleanup)(struct noise_local *);
 
-	struct mtx			 l_remote_mtx;
-	size_t				 l_remote_num;
-	CK_LIST_HEAD(,noise_remote)	 l_remote_hash[HT_REMOTE_SIZE];
+	struct mtx l_remote_mtx;
+	size_t l_remote_num;
+	CK_LIST_HEAD(, noise_remote) l_remote_hash[HT_REMOTE_SIZE];
 
-	struct mtx			 l_index_mtx;
-	CK_LIST_HEAD(,noise_index)	 l_index_hash[HT_INDEX_SIZE];
+	struct mtx l_index_mtx;
+	CK_LIST_HEAD(, noise_index) l_index_hash[HT_INDEX_SIZE];
 };
 
-static void	noise_precompute_ss(struct noise_local *, struct noise_remote *);
+static void noise_precompute_ss(struct noise_local *, struct noise_remote *);
 
-static void	noise_remote_index_insert(struct noise_local *, struct noise_remote *);
-static struct noise_remote *
-		noise_remote_index_lookup(struct noise_local *, uint32_t, bool);
-static int	noise_remote_index_remove(struct noise_local *, struct noise_remote *);
-static void	noise_remote_expire_current(struct noise_remote *);
+static void noise_remote_index_insert(struct noise_local *,
+    struct noise_remote *);
+static struct noise_remote *noise_remote_index_lookup(struct noise_local *,
+    uint32_t, bool);
+static int noise_remote_index_remove(struct noise_local *,
+    struct noise_remote *);
+static void noise_remote_expire_current(struct noise_remote *);
 
-static void	noise_add_new_keypair(struct noise_local *, struct noise_remote *, struct noise_keypair *);
-static int	noise_begin_session(struct noise_remote *);
-static void	noise_keypair_drop(struct noise_keypair *);
+static void noise_add_new_keypair(struct noise_local *, struct noise_remote *,
+    struct noise_keypair *);
+static int noise_begin_session(struct noise_remote *);
+static void noise_keypair_drop(struct noise_keypair *);
 
-static void	noise_kdf(uint8_t *, uint8_t *, uint8_t *, const uint8_t *,
-		    size_t, size_t, size_t, size_t,
-		    const uint8_t [NOISE_HASH_LEN]);
-static int	noise_mix_dh(uint8_t [NOISE_HASH_LEN], uint8_t [NOISE_SYMMETRIC_KEY_LEN],
-		    const uint8_t [NOISE_PUBLIC_KEY_LEN],
-		    const uint8_t [NOISE_PUBLIC_KEY_LEN]);
-static int	noise_mix_ss(uint8_t ck[NOISE_HASH_LEN], uint8_t [NOISE_SYMMETRIC_KEY_LEN],
-		    const uint8_t [NOISE_PUBLIC_KEY_LEN]);
-static void	noise_mix_hash(uint8_t [NOISE_HASH_LEN], const uint8_t *, size_t);
-static void	noise_mix_psk(uint8_t [NOISE_HASH_LEN], uint8_t [NOISE_HASH_LEN],
-		    uint8_t [NOISE_SYMMETRIC_KEY_LEN], const uint8_t [NOISE_SYMMETRIC_KEY_LEN]);
-static void	noise_param_init(uint8_t [NOISE_HASH_LEN], uint8_t [NOISE_HASH_LEN],
-		    const uint8_t [NOISE_PUBLIC_KEY_LEN]);
-static void	noise_msg_encrypt(uint8_t *, const uint8_t *, size_t,
-		    uint8_t [NOISE_SYMMETRIC_KEY_LEN], uint8_t [NOISE_HASH_LEN]);
-static int	noise_msg_decrypt(uint8_t *, const uint8_t *, size_t,
-		    uint8_t [NOISE_SYMMETRIC_KEY_LEN], uint8_t [NOISE_HASH_LEN]);
-static void	noise_msg_ephemeral(uint8_t [NOISE_HASH_LEN], uint8_t [NOISE_HASH_LEN],
-		    const uint8_t [NOISE_PUBLIC_KEY_LEN]);
-static void	noise_tai64n_now(uint8_t [NOISE_TIMESTAMP_LEN]);
-static int	noise_timer_expired(sbintime_t, uint32_t, uint32_t);
-static uint64_t siphash24(const uint8_t [SIPHASH_KEY_LENGTH], const void *, size_t);
+static void noise_kdf(uint8_t *, uint8_t *, uint8_t *, const uint8_t *, size_t,
+    size_t, size_t, size_t, const uint8_t[NOISE_HASH_LEN]);
+static int noise_mix_dh(uint8_t[NOISE_HASH_LEN],
+    uint8_t[NOISE_SYMMETRIC_KEY_LEN], const uint8_t[NOISE_PUBLIC_KEY_LEN],
+    const uint8_t[NOISE_PUBLIC_KEY_LEN]);
+static int noise_mix_ss(uint8_t ck[NOISE_HASH_LEN],
+    uint8_t[NOISE_SYMMETRIC_KEY_LEN], const uint8_t[NOISE_PUBLIC_KEY_LEN]);
+static void noise_mix_hash(uint8_t[NOISE_HASH_LEN], const uint8_t *, size_t);
+static void noise_mix_psk(uint8_t[NOISE_HASH_LEN], uint8_t[NOISE_HASH_LEN],
+    uint8_t[NOISE_SYMMETRIC_KEY_LEN], const uint8_t[NOISE_SYMMETRIC_KEY_LEN]);
+static void noise_param_init(uint8_t[NOISE_HASH_LEN], uint8_t[NOISE_HASH_LEN],
+    const uint8_t[NOISE_PUBLIC_KEY_LEN]);
+static void noise_msg_encrypt(uint8_t *, const uint8_t *, size_t,
+    uint8_t[NOISE_SYMMETRIC_KEY_LEN], uint8_t[NOISE_HASH_LEN]);
+static int noise_msg_decrypt(uint8_t *, const uint8_t *, size_t,
+    uint8_t[NOISE_SYMMETRIC_KEY_LEN], uint8_t[NOISE_HASH_LEN]);
+static void noise_msg_ephemeral(uint8_t[NOISE_HASH_LEN],
+    uint8_t[NOISE_HASH_LEN], const uint8_t[NOISE_PUBLIC_KEY_LEN]);
+static void noise_tai64n_now(uint8_t[NOISE_TIMESTAMP_LEN]);
+static int noise_timer_expired(sbintime_t, uint32_t, uint32_t);
+static uint64_t siphash24(const uint8_t[SIPHASH_KEY_LENGTH], const void *,
+    size_t);
 
 MALLOC_DEFINE(M_NOISE, "NOISE", "wgnoise");
 
@@ -240,7 +244,8 @@ noise_local_arg(struct noise_local *l)
 }
 
 void
-noise_local_private(struct noise_local *l, const uint8_t private[NOISE_PUBLIC_KEY_LEN])
+noise_local_private(struct noise_local *l,
+    const uint8_t private[NOISE_PUBLIC_KEY_LEN])
 {
 	struct epoch_tracker et;
 	struct noise_remote *r;
@@ -249,11 +254,13 @@ noise_local_private(struct noise_local *l, const uint8_t private[NOISE_PUBLIC_KE
 	rw_wlock(&l->l_identity_lock);
 	memcpy(l->l_private, private, NOISE_PUBLIC_KEY_LEN);
 	curve25519_clamp_secret(l->l_private);
-	l->l_has_identity = curve25519_generate_public(l->l_public, l->l_private);
+	l->l_has_identity = curve25519_generate_public(l->l_public,
+	    l->l_private);
 
 	NET_EPOCH_ENTER(et);
 	for (i = 0; i < HT_REMOTE_SIZE; i++) {
-		CK_LIST_FOREACH(r, &l->l_remote_hash[i], r_entry) {
+		CK_LIST_FOREACH(r, &l->l_remote_hash[i], r_entry)
+		{
 			noise_precompute_ss(l, r);
 			noise_remote_expire_current(r);
 		}
@@ -325,7 +332,8 @@ noise_remote_enable(struct noise_remote *r)
 	int ret = 0;
 
 	/* Insert to hashtable */
-	idx = siphash24(l->l_hash_key, r->r_public, NOISE_PUBLIC_KEY_LEN) & HT_REMOTE_MASK;
+	idx = siphash24(l->l_hash_key, r->r_public, NOISE_PUBLIC_KEY_LEN) &
+	    HT_REMOTE_MASK;
 
 	mtx_lock(&l->l_remote_mtx);
 	if (!r->r_entry_inserted) {
@@ -357,17 +365,21 @@ noise_remote_disable(struct noise_remote *r)
 }
 
 struct noise_remote *
-noise_remote_lookup(struct noise_local *l, const uint8_t public[NOISE_PUBLIC_KEY_LEN])
+noise_remote_lookup(struct noise_local *l,
+    const uint8_t public[NOISE_PUBLIC_KEY_LEN])
 {
 	struct epoch_tracker et;
 	struct noise_remote *r, *ret = NULL;
 	uint64_t idx;
 
-	idx = siphash24(l->l_hash_key, public, NOISE_PUBLIC_KEY_LEN) & HT_REMOTE_MASK;
+	idx = siphash24(l->l_hash_key, public, NOISE_PUBLIC_KEY_LEN) &
+	    HT_REMOTE_MASK;
 
 	NET_EPOCH_ENTER(et);
-	CK_LIST_FOREACH(r, &l->l_remote_hash[idx], r_entry) {
-		if (timingsafe_bcmp(r->r_public, public, NOISE_PUBLIC_KEY_LEN) == 0) {
+	CK_LIST_FOREACH(r, &l->l_remote_hash[idx], r_entry)
+	{
+		if (timingsafe_bcmp(r->r_public, public,
+			NOISE_PUBLIC_KEY_LEN) == 0) {
 			if (refcount_acquire_if_not_zero(&r->r_refcnt))
 				ret = r;
 			break;
@@ -390,13 +402,15 @@ noise_remote_index_insert(struct noise_local *l, struct noise_remote *r)
 assign_id:
 	r_i->i_local_index = arc4random();
 	idx = r_i->i_local_index & HT_INDEX_MASK;
-	CK_LIST_FOREACH(i, &l->l_index_hash[idx], i_entry) {
+	CK_LIST_FOREACH(i, &l->l_index_hash[idx], i_entry)
+	{
 		if (i->i_local_index == r_i->i_local_index)
 			goto assign_id;
 	}
 
 	mtx_lock(&l->l_index_mtx);
-	CK_LIST_FOREACH(i, &l->l_index_hash[idx], i_entry) {
+	CK_LIST_FOREACH(i, &l->l_index_hash[idx], i_entry)
+	{
 		if (i->i_local_index == r_i->i_local_index) {
 			mtx_unlock(&l->l_index_mtx);
 			goto assign_id;
@@ -409,7 +423,8 @@ assign_id:
 }
 
 static struct noise_remote *
-noise_remote_index_lookup(struct noise_local *l, uint32_t idx0, bool lookup_keypair)
+noise_remote_index_lookup(struct noise_local *l, uint32_t idx0,
+    bool lookup_keypair)
 {
 	struct epoch_tracker et;
 	struct noise_index *i;
@@ -418,12 +433,13 @@ noise_remote_index_lookup(struct noise_local *l, uint32_t idx0, bool lookup_keyp
 	uint32_t idx = idx0 & HT_INDEX_MASK;
 
 	NET_EPOCH_ENTER(et);
-	CK_LIST_FOREACH(i, &l->l_index_hash[idx], i_entry) {
+	CK_LIST_FOREACH(i, &l->l_index_hash[idx], i_entry)
+	{
 		if (i->i_local_index == idx0) {
 			if (!i->i_is_keypair) {
-				r = (struct noise_remote *) i;
+				r = (struct noise_remote *)i;
 			} else if (lookup_keypair) {
-				kp = (struct noise_keypair *) i;
+				kp = (struct noise_keypair *)i;
 				r = kp->kp_remote;
 			} else {
 				break;
@@ -485,7 +501,8 @@ noise_remote_put(struct noise_remote *r)
 }
 
 void
-noise_remote_free(struct noise_remote *r, void (*cleanup)(struct noise_remote *))
+noise_remote_free(struct noise_remote *r,
+    void (*cleanup)(struct noise_remote *))
 {
 	r->r_cleanup = cleanup;
 	noise_remote_disable(r);
@@ -626,7 +643,6 @@ noise_add_new_keypair(struct noise_local *l, struct noise_remote *r,
 		noise_keypair_drop(next);
 		atomic_store_ptr(&r->r_previous, NULL);
 		noise_keypair_drop(previous);
-
 	}
 	mtx_unlock(&r->r_keypair_mtx);
 
@@ -686,9 +702,10 @@ noise_keypair_lookup(struct noise_local *l, uint32_t idx0)
 	uint32_t idx = idx0 & HT_INDEX_MASK;
 
 	NET_EPOCH_ENTER(et);
-	CK_LIST_FOREACH(i, &l->l_index_hash[idx], i_entry) {
+	CK_LIST_FOREACH(i, &l->l_index_hash[idx], i_entry)
+	{
 		if (i->i_local_index == idx0 && i->i_is_keypair) {
-			kp = (struct noise_keypair *) i;
+			kp = (struct noise_keypair *)i;
 			if (refcount_acquire_if_not_zero(&kp->kp_refcnt))
 				ret = kp;
 			break;
@@ -818,7 +835,7 @@ noise_keypair_nonce_check(struct noise_keypair *kp, uint64_t recv)
 	rw_wlock(&kp->kp_nonce_lock);
 
 	if (__predict_false(kp->kp_nonce_recv >= REJECT_AFTER_MESSAGES + 1 ||
-			    recv >= REJECT_AFTER_MESSAGES))
+		recv >= REJECT_AFTER_MESSAGES))
 		goto error;
 
 	++recv;
@@ -830,11 +847,11 @@ noise_keypair_nonce_check(struct noise_keypair *kp, uint64_t recv)
 
 	if (__predict_true(recv > kp->kp_nonce_recv)) {
 		index_current = kp->kp_nonce_recv >> COUNTER_ORDER;
-		top = MIN(index - index_current, COUNTER_BITS_TOTAL / COUNTER_BITS);
+		top = MIN(index - index_current,
+		    COUNTER_BITS_TOTAL / COUNTER_BITS);
 		for (i = 1; i <= top; i++)
-			kp->kp_backtrack[
-			    (i + index_current) &
-				((COUNTER_BITS_TOTAL / COUNTER_BITS) - 1)] = 0;
+			kp->kp_backtrack[(i + index_current) &
+			    ((COUNTER_BITS_TOTAL / COUNTER_BITS) - 1)] = 0;
 #ifdef __LP64__
 		atomic_store_64(&kp->kp_nonce_recv, recv);
 #else
@@ -864,7 +881,8 @@ noise_keep_key_fresh_send(struct noise_remote *r)
 
 	NET_EPOCH_ENTER(et);
 	current = atomic_load_ptr(&r->r_current);
-	keep_key_fresh = current != NULL && atomic_load_bool(&current->kp_can_send);
+	keep_key_fresh = current != NULL &&
+	    atomic_load_bool(&current->kp_can_send);
 	if (!keep_key_fresh)
 		goto out;
 #ifdef __LP64__
@@ -877,7 +895,8 @@ noise_keep_key_fresh_send(struct noise_remote *r)
 	keep_key_fresh = nonce > REKEY_AFTER_MESSAGES;
 	if (keep_key_fresh)
 		goto out;
-	keep_key_fresh = current->kp_is_initiator && noise_timer_expired(current->kp_birthdate, REKEY_AFTER_TIME, 0);
+	keep_key_fresh = current->kp_is_initiator &&
+	    noise_timer_expired(current->kp_birthdate, REKEY_AFTER_TIME, 0);
 
 out:
 	NET_EPOCH_EXIT(et);
@@ -893,16 +912,19 @@ noise_keep_key_fresh_recv(struct noise_remote *r)
 
 	NET_EPOCH_ENTER(et);
 	current = atomic_load_ptr(&r->r_current);
-	keep_key_fresh = current != NULL && atomic_load_bool(&current->kp_can_send) &&
-	    current->kp_is_initiator && noise_timer_expired(current->kp_birthdate,
-	    REJECT_AFTER_TIME - KEEPALIVE_TIMEOUT - REKEY_TIMEOUT, 0);
+	keep_key_fresh = current != NULL &&
+	    atomic_load_bool(&current->kp_can_send) &&
+	    current->kp_is_initiator &&
+	    noise_timer_expired(current->kp_birthdate,
+		REJECT_AFTER_TIME - KEEPALIVE_TIMEOUT - REKEY_TIMEOUT, 0);
 	NET_EPOCH_EXIT(et);
 
 	return (keep_key_fresh ? ESTALE : 0);
 }
 
 int
-noise_keypair_encrypt(struct noise_keypair *kp, uint32_t *r_idx, uint64_t nonce, struct mbuf *m)
+noise_keypair_encrypt(struct noise_keypair *kp, uint32_t *r_idx, uint64_t nonce,
+    struct mbuf *m)
 {
 	int ret;
 
@@ -941,8 +963,7 @@ noise_keypair_decrypt(struct noise_keypair *kp, uint64_t nonce, struct mbuf *m)
 
 /* Handshake functions */
 int
-noise_create_initiation(struct noise_remote *r,
-    uint32_t *s_idx,
+noise_create_initiation(struct noise_remote *r, uint32_t *s_idx,
     uint8_t ue[NOISE_PUBLIC_KEY_LEN],
     uint8_t es[NOISE_PUBLIC_KEY_LEN + NOISE_AUTHTAG_LEN],
     uint8_t ets[NOISE_TIMESTAMP_LEN + NOISE_AUTHTAG_LEN])
@@ -971,8 +992,8 @@ noise_create_initiation(struct noise_remote *r,
 		goto error;
 
 	/* s */
-	noise_msg_encrypt(es, l->l_public,
-	    NOISE_PUBLIC_KEY_LEN, key, hs->hs_hash);
+	noise_msg_encrypt(es, l->l_public, NOISE_PUBLIC_KEY_LEN, key,
+	    hs->hs_hash);
 
 	/* ss */
 	if (noise_mix_ss(hs->hs_ck, key, r->r_ss) != 0)
@@ -980,8 +1001,7 @@ noise_create_initiation(struct noise_remote *r,
 
 	/* {t} */
 	noise_tai64n_now(ets);
-	noise_msg_encrypt(ets, ets,
-	    NOISE_TIMESTAMP_LEN, key, hs->hs_hash);
+	noise_msg_encrypt(ets, ets, NOISE_TIMESTAMP_LEN, key, hs->hs_hash);
 
 	noise_remote_index_insert(l, r);
 	r->r_handshake_state = HANDSHAKE_INITIATOR;
@@ -997,8 +1017,7 @@ error:
 
 int
 noise_consume_initiation(struct noise_local *l, struct noise_remote **rp,
-    uint32_t s_idx,
-    uint8_t ue[NOISE_PUBLIC_KEY_LEN],
+    uint32_t s_idx, uint8_t ue[NOISE_PUBLIC_KEY_LEN],
     uint8_t es[NOISE_PUBLIC_KEY_LEN + NOISE_AUTHTAG_LEN],
     uint8_t ets[NOISE_TIMESTAMP_LEN + NOISE_AUTHTAG_LEN])
 {
@@ -1006,7 +1025,7 @@ noise_consume_initiation(struct noise_local *l, struct noise_remote **rp,
 	struct noise_handshake hs;
 	uint8_t key[NOISE_SYMMETRIC_KEY_LEN];
 	uint8_t r_public[NOISE_PUBLIC_KEY_LEN];
-	uint8_t	timestamp[NOISE_TIMESTAMP_LEN];
+	uint8_t timestamp[NOISE_TIMESTAMP_LEN];
 	int ret = EINVAL;
 
 	rw_rlock(&l->l_identity_lock);
@@ -1023,7 +1042,7 @@ noise_consume_initiation(struct noise_local *l, struct noise_remote **rp,
 
 	/* s */
 	if (noise_msg_decrypt(r_public, es,
-	    NOISE_PUBLIC_KEY_LEN + NOISE_AUTHTAG_LEN, key, hs.hs_hash) != 0)
+		NOISE_PUBLIC_KEY_LEN + NOISE_AUTHTAG_LEN, key, hs.hs_hash) != 0)
 		goto error;
 
 	/* Lookup the remote we received from */
@@ -1036,7 +1055,7 @@ noise_consume_initiation(struct noise_local *l, struct noise_remote **rp,
 
 	/* {t} */
 	if (noise_msg_decrypt(timestamp, ets,
-	    NOISE_TIMESTAMP_LEN + NOISE_AUTHTAG_LEN, key, hs.hs_hash) != 0)
+		NOISE_TIMESTAMP_LEN + NOISE_AUTHTAG_LEN, key, hs.hs_hash) != 0)
 		goto error_put;
 
 	memcpy(hs.hs_e, ue, NOISE_PUBLIC_KEY_LEN);
@@ -1075,10 +1094,8 @@ error:
 }
 
 int
-noise_create_response(struct noise_remote *r,
-    uint32_t *s_idx, uint32_t *r_idx,
-    uint8_t ue[NOISE_PUBLIC_KEY_LEN],
-    uint8_t en[0 + NOISE_AUTHTAG_LEN])
+noise_create_response(struct noise_remote *r, uint32_t *s_idx, uint32_t *r_idx,
+    uint8_t ue[NOISE_PUBLIC_KEY_LEN], uint8_t en[0 + NOISE_AUTHTAG_LEN])
 {
 	struct noise_handshake *hs = &r->r_handshake;
 	struct noise_local *l = r->r_local;
@@ -1127,8 +1144,7 @@ error:
 
 int
 noise_consume_response(struct noise_local *l, struct noise_remote **rp,
-    uint32_t s_idx, uint32_t r_idx,
-    uint8_t ue[NOISE_PUBLIC_KEY_LEN],
+    uint32_t s_idx, uint32_t r_idx, uint8_t ue[NOISE_PUBLIC_KEY_LEN],
     uint8_t en[0 + NOISE_AUTHTAG_LEN])
 {
 	uint8_t preshared_key[NOISE_SYMMETRIC_KEY_LEN];
@@ -1168,8 +1184,8 @@ noise_consume_response(struct noise_local *l, struct noise_remote **rp,
 	noise_mix_psk(hs.hs_ck, hs.hs_hash, key, preshared_key);
 
 	/* {} */
-	if (noise_msg_decrypt(NULL, en,
-	    0 + NOISE_AUTHTAG_LEN, key, hs.hs_hash) != 0)
+	if (noise_msg_decrypt(NULL, en, 0 + NOISE_AUTHTAG_LEN, key,
+		hs.hs_hash) != 0)
 		goto error_zero;
 
 	rw_wlock(&r->r_handshake_lock);
@@ -1193,7 +1209,7 @@ error:
 
 static void
 hmac(uint8_t *out, const uint8_t *in, const uint8_t *key, const size_t outlen,
-     const size_t inlen, const size_t keylen)
+    const size_t inlen, const size_t keylen)
 {
 	struct blake2s_state state;
 	uint8_t x_key[BLAKE2S_BLOCK_SIZE] __aligned(sizeof(uint32_t)) = { 0 };
@@ -1230,9 +1246,8 @@ hmac(uint8_t *out, const uint8_t *in, const uint8_t *key, const size_t outlen,
 
 /* Handshake helper functions */
 static void
-noise_kdf(uint8_t *a, uint8_t *b, uint8_t *c, const uint8_t *x,
-    size_t a_len, size_t b_len, size_t c_len, size_t x_len,
-    const uint8_t ck[NOISE_HASH_LEN])
+noise_kdf(uint8_t *a, uint8_t *b, uint8_t *c, const uint8_t *x, size_t a_len,
+    size_t b_len, size_t c_len, size_t x_len, const uint8_t ck[NOISE_HASH_LEN])
 {
 	uint8_t out[BLAKE2S_HASH_SIZE + 1];
 	uint8_t sec[BLAKE2S_HASH_SIZE];
@@ -1253,7 +1268,8 @@ noise_kdf(uint8_t *a, uint8_t *b, uint8_t *c, const uint8_t *x,
 
 	/* Expand second key: key = sec, data = "a" || 0x2 */
 	out[BLAKE2S_HASH_SIZE] = 2;
-	hmac(out, out, sec, BLAKE2S_HASH_SIZE, BLAKE2S_HASH_SIZE + 1, BLAKE2S_HASH_SIZE);
+	hmac(out, out, sec, BLAKE2S_HASH_SIZE, BLAKE2S_HASH_SIZE + 1,
+	    BLAKE2S_HASH_SIZE);
 	memcpy(b, out, b_len);
 
 	if (c == NULL || c_len == 0)
@@ -1261,7 +1277,8 @@ noise_kdf(uint8_t *a, uint8_t *b, uint8_t *c, const uint8_t *x,
 
 	/* Expand third key: key = sec, data = "b" || 0x3 */
 	out[BLAKE2S_HASH_SIZE] = 3;
-	hmac(out, out, sec, BLAKE2S_HASH_SIZE, BLAKE2S_HASH_SIZE + 1, BLAKE2S_HASH_SIZE);
+	hmac(out, out, sec, BLAKE2S_HASH_SIZE, BLAKE2S_HASH_SIZE + 1,
+	    BLAKE2S_HASH_SIZE);
 	memcpy(c, out, c_len);
 
 out:
@@ -1279,8 +1296,8 @@ noise_mix_dh(uint8_t ck[NOISE_HASH_LEN], uint8_t key[NOISE_SYMMETRIC_KEY_LEN],
 
 	if (!curve25519(dh, private, public))
 		return (EINVAL);
-	noise_kdf(ck, key, NULL, dh,
-	    NOISE_HASH_LEN, NOISE_SYMMETRIC_KEY_LEN, 0, NOISE_PUBLIC_KEY_LEN, ck);
+	noise_kdf(ck, key, NULL, dh, NOISE_HASH_LEN, NOISE_SYMMETRIC_KEY_LEN, 0,
+	    NOISE_PUBLIC_KEY_LEN, ck);
 	explicit_bzero(dh, NOISE_PUBLIC_KEY_LEN);
 	return (0);
 }
@@ -1292,14 +1309,13 @@ noise_mix_ss(uint8_t ck[NOISE_HASH_LEN], uint8_t key[NOISE_SYMMETRIC_KEY_LEN],
 	static uint8_t null_point[NOISE_PUBLIC_KEY_LEN];
 	if (timingsafe_bcmp(ss, null_point, NOISE_PUBLIC_KEY_LEN) == 0)
 		return (ENOENT);
-	noise_kdf(ck, key, NULL, ss,
-	    NOISE_HASH_LEN, NOISE_SYMMETRIC_KEY_LEN, 0, NOISE_PUBLIC_KEY_LEN, ck);
+	noise_kdf(ck, key, NULL, ss, NOISE_HASH_LEN, NOISE_SYMMETRIC_KEY_LEN, 0,
+	    NOISE_PUBLIC_KEY_LEN, ck);
 	return (0);
 }
 
 static void
-noise_mix_hash(uint8_t hash[NOISE_HASH_LEN], const uint8_t *src,
-    size_t src_len)
+noise_mix_hash(uint8_t hash[NOISE_HASH_LEN], const uint8_t *src, size_t src_len)
 {
 	struct blake2s_state blake;
 
@@ -1316,9 +1332,8 @@ noise_mix_psk(uint8_t ck[NOISE_HASH_LEN], uint8_t hash[NOISE_HASH_LEN],
 {
 	uint8_t tmp[NOISE_HASH_LEN];
 
-	noise_kdf(ck, tmp, key, psk,
-	    NOISE_HASH_LEN, NOISE_HASH_LEN, NOISE_SYMMETRIC_KEY_LEN,
-	    NOISE_SYMMETRIC_KEY_LEN, ck);
+	noise_kdf(ck, tmp, key, psk, NOISE_HASH_LEN, NOISE_HASH_LEN,
+	    NOISE_SYMMETRIC_KEY_LEN, NOISE_SYMMETRIC_KEY_LEN, ck);
 	noise_mix_hash(hash, tmp, NOISE_HASH_LEN);
 	explicit_bzero(tmp, NOISE_HASH_LEN);
 }
@@ -1329,8 +1344,8 @@ noise_param_init(uint8_t ck[NOISE_HASH_LEN], uint8_t hash[NOISE_HASH_LEN],
 {
 	struct blake2s_state blake;
 
-	blake2s(ck, (uint8_t *)NOISE_HANDSHAKE_NAME, NULL,
-	    NOISE_HASH_LEN, strlen(NOISE_HANDSHAKE_NAME), 0);
+	blake2s(ck, (uint8_t *)NOISE_HANDSHAKE_NAME, NULL, NOISE_HASH_LEN,
+	    strlen(NOISE_HANDSHAKE_NAME), 0);
 	blake2s_init(&blake, NOISE_HASH_LEN);
 	blake2s_update(&blake, ck, NOISE_HASH_LEN);
 	blake2s_update(&blake, (uint8_t *)NOISE_IDENTIFIER_NAME,
@@ -1345,8 +1360,8 @@ noise_msg_encrypt(uint8_t *dst, const uint8_t *src, size_t src_len,
     uint8_t key[NOISE_SYMMETRIC_KEY_LEN], uint8_t hash[NOISE_HASH_LEN])
 {
 	/* Nonce always zero for Noise_IK */
-	chacha20poly1305_encrypt(dst, src, src_len,
-	    hash, NOISE_HASH_LEN, 0, key);
+	chacha20poly1305_encrypt(dst, src, src_len, hash, NOISE_HASH_LEN, 0,
+	    key);
 	noise_mix_hash(hash, dst, src_len + NOISE_AUTHTAG_LEN);
 }
 
@@ -1355,8 +1370,8 @@ noise_msg_decrypt(uint8_t *dst, const uint8_t *src, size_t src_len,
     uint8_t key[NOISE_SYMMETRIC_KEY_LEN], uint8_t hash[NOISE_HASH_LEN])
 {
 	/* Nonce always zero for Noise_IK */
-	if (!chacha20poly1305_decrypt(dst, src, src_len,
-	    hash, NOISE_HASH_LEN, 0, key))
+	if (!chacha20poly1305_decrypt(dst, src, src_len, hash, NOISE_HASH_LEN,
+		0, key))
 		return (EINVAL);
 	noise_mix_hash(hash, src, src_len);
 	return (0);
@@ -1368,7 +1383,7 @@ noise_msg_ephemeral(uint8_t ck[NOISE_HASH_LEN], uint8_t hash[NOISE_HASH_LEN],
 {
 	noise_mix_hash(hash, src, NOISE_PUBLIC_KEY_LEN);
 	noise_kdf(ck, NULL, NULL, src, NOISE_HASH_LEN, 0, 0,
-		  NOISE_PUBLIC_KEY_LEN, ck);
+	    NOISE_PUBLIC_KEY_LEN, ck);
 }
 
 static void
@@ -1399,7 +1414,8 @@ noise_timer_expired(sbintime_t timer, uint32_t sec, uint32_t nsec)
 	return (now > (timer + sec * SBT_1S + nstosbt(nsec))) ? ETIMEDOUT : 0;
 }
 
-static uint64_t siphash24(const uint8_t key[SIPHASH_KEY_LENGTH], const void *src, size_t len)
+static uint64_t
+siphash24(const uint8_t key[SIPHASH_KEY_LENGTH], const void *src, size_t len)
 {
 	SIPHASH_CTX ctx;
 	return (SipHashX(&ctx, 2, 4, key, src, len));

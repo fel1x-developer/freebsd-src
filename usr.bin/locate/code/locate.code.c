@@ -63,40 +63,42 @@
  *	128-255 bigram codes (128 most common, as determined by 'updatedb')
  *	32-127  single character (printable) ascii residue (ie, literal)
  *
- * The locate database store any character except newline ('\n') 
+ * The locate database store any character except newline ('\n')
  * and NUL ('\0'). The 8-bit character support don't wast extra
  * space until you have characters in file names less than 32
  * or greather than 127.
- * 
+ *
  *
  * SEE ALSO:	updatedb.sh, ../bigram/locate.bigram.c
  *
  * AUTHOR:	James A. Woods, Informatics General Corp.,
  *		NASA Ames Research Center, 10/82
- *              8-bit file names characters: 
+ *              8-bit file names characters:
  *              	Wolfram Schneider, Berlin September 1996
  */
 
 #include <sys/param.h>
+
 #include <err.h>
 #include <errno.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 #include <unistd.h>
+
 #include "locate.h"
 
-#define	BGBUFSIZE	(NBG * 2)	/* size of bigram buffer */
+#define BGBUFSIZE (NBG * 2) /* size of bigram buffer */
 
 u_char buf1[LOCATE_PATH_MAX] = " ";
 u_char buf2[LOCATE_PATH_MAX];
 u_char bigrams[BGBUFSIZE + 1] = { 0 };
 
 /* use a lookup array instead a function, 3x faster than linear search */
-int big [UCHAR_MAX + 1][UCHAR_MAX + 1];
-#define BGINDEX(x) (big[(u_char)*x][(u_char)*(x + 1)])
+int big[UCHAR_MAX + 1][UCHAR_MAX + 1];
+#define BGINDEX(x) (big[(u_char) * x][(u_char) * (x + 1)])
 
-void   usage(void);
+void usage(void);
 
 int
 main(int argc, char *argv[])
@@ -107,7 +109,7 @@ main(int argc, char *argv[])
 	FILE *fp;
 
 	while ((ch = getopt(argc, argv, "")) != -1)
-		switch(ch) {
+		switch (ch) {
 		default:
 			usage();
 		}
@@ -132,11 +134,11 @@ main(int argc, char *argv[])
 
 	/* init lookup table */
 	for (i = 0; i < UCHAR_MAX + 1; i++)
-	    	for (j = 0; j < UCHAR_MAX + 1; j++) 
+		for (j = 0; j < UCHAR_MAX + 1; j++)
 			big[i][j] = -1;
 
 	for (cp = bigrams, i = 0; *cp != '\0'; i += 2, cp += 2)
-	        big[(u_char)*cp][(u_char)*(cp + 1)] = i;
+		big[(u_char)*cp][(u_char) * (cp + 1)] = i;
 
 	oldpath = buf1;
 	path = buf2;
@@ -167,9 +169,8 @@ main(int argc, char *argv[])
 			if (putchar(SWITCH) == EOF ||
 			    putw(diffcount, stdout) == EOF)
 				err(1, "stdout");
-		} else
-			if (putchar(diffcount) == EOF)
-				err(1, "stdout");
+		} else if (putchar(diffcount) == EOF)
+			err(1, "stdout");
 
 		while (*cp != '\0') {
 			/* print *two* characters */
@@ -177,8 +178,8 @@ main(int argc, char *argv[])
 			if ((code = BGINDEX(cp)) != -1) {
 				/*
 				 * print *one* as bigram
-				 * Found, so mark byte with 
-				 *  parity bit. 
+				 * Found, so mark byte with
+				 *  parity bit.
 				 */
 				if (putchar((code / 2) | PARITY) == EOF)
 					err(1, "stdout");
@@ -191,24 +192,23 @@ main(int argc, char *argv[])
 						break;
 
 					/* print umlauts in file names */
-					if (*cp < ASCII_MIN || 
+					if (*cp < ASCII_MIN ||
 					    *cp > ASCII_MAX) {
 						if (putchar(UMLAUT) == EOF ||
 						    putchar(*cp++) == EOF)
 							err(1, "stdout");
-					} 
+					}
 
 					else {
 						/* normal character */
-						if(putchar(*cp++) == EOF)
+						if (putchar(*cp++) == EOF)
 							err(1, "stdout");
 					}
 				}
-
 			}
 		}
 
-		if (path == buf1) {		/* swap pointers */
+		if (path == buf1) { /* swap pointers */
 			path = buf2;
 			oldpath = buf1;
 		} else {

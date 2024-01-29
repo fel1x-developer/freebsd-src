@@ -61,63 +61,52 @@
  */
 
 #include <dev/isci/scil/sci_types.h>
-#include <dev/isci/scil/scif_user_callback.h>
 #include <dev/isci/scil/scic_user_callback.h>
-
 #include <dev/isci/scil/scif_sas_controller.h>
+#include <dev/isci/scil/scif_user_callback.h>
 
-void * scic_cb_timer_create(
-   SCI_CONTROLLER_HANDLE_T   controller,
-   SCI_TIMER_CALLBACK_T      timer_callback,
-   void                    * cookie
-)
+void *
+scic_cb_timer_create(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_TIMER_CALLBACK_T timer_callback, void *cookie)
 {
-   SCIF_SAS_CONTROLLER_T * fw_controller = (SCIF_SAS_CONTROLLER_T *)
-                                         sci_object_get_association(controller);
+	SCIF_SAS_CONTROLLER_T *fw_controller = (SCIF_SAS_CONTROLLER_T *)
+	    sci_object_get_association(controller);
 
-   return scif_cb_timer_create(fw_controller, timer_callback, cookie);
+	return scif_cb_timer_create(fw_controller, timer_callback, cookie);
 }
 
 // -----------------------------------------------------------------------------
 
-void scic_cb_timer_destroy(
-   SCI_CONTROLLER_HANDLE_T   controller,
-   void                    * timer
-)
+void
+scic_cb_timer_destroy(SCI_CONTROLLER_HANDLE_T controller, void *timer)
 {
-   SCIF_SAS_CONTROLLER_T * fw_controller = (SCIF_SAS_CONTROLLER_T *)
-                                         sci_object_get_association(controller);
-   if (timer != NULL)
-   {
-      scif_cb_timer_destroy(fw_controller, timer);
-      timer = NULL;
-   }
+	SCIF_SAS_CONTROLLER_T *fw_controller = (SCIF_SAS_CONTROLLER_T *)
+	    sci_object_get_association(controller);
+	if (timer != NULL) {
+		scif_cb_timer_destroy(fw_controller, timer);
+		timer = NULL;
+	}
 }
 
 // -----------------------------------------------------------------------------
 
-void scic_cb_timer_start(
-   SCI_CONTROLLER_HANDLE_T   controller,
-   void                    * timer,
-   U32                       milliseconds
-)
+void
+scic_cb_timer_start(SCI_CONTROLLER_HANDLE_T controller, void *timer,
+    U32 milliseconds)
 {
-   SCIF_SAS_CONTROLLER_T * fw_controller = (SCIF_SAS_CONTROLLER_T *)
-                                         sci_object_get_association(controller);
+	SCIF_SAS_CONTROLLER_T *fw_controller = (SCIF_SAS_CONTROLLER_T *)
+	    sci_object_get_association(controller);
 
-   scif_cb_timer_start(fw_controller, timer, milliseconds);
+	scif_cb_timer_start(fw_controller, timer, milliseconds);
 }
 
 // -----------------------------------------------------------------------------
 
-void scic_cb_timer_stop(
-   SCI_CONTROLLER_HANDLE_T   controller,
-   void                    * timer
-)
+void
+scic_cb_timer_stop(SCI_CONTROLLER_HANDLE_T controller, void *timer)
 {
-   SCIF_SAS_CONTROLLER_T * fw_controller = (SCIF_SAS_CONTROLLER_T *)
-                                         sci_object_get_association(controller);
+	SCIF_SAS_CONTROLLER_T *fw_controller = (SCIF_SAS_CONTROLLER_T *)
+	    sci_object_get_association(controller);
 
-   scif_cb_timer_stop(fw_controller, timer);
+	scif_cb_timer_stop(fw_controller, timer);
 }
-

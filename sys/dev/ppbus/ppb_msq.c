@@ -29,28 +29,28 @@
  */
 
 #include <sys/cdefs.h>
-#include <machine/stdarg.h>
-
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/lock.h>
+#include <sys/mutex.h>
 
-#include <dev/ppbus/ppbconf.h>
+#include <machine/stdarg.h>
+
 #include <dev/ppbus/ppb_msq.h>
+#include <dev/ppbus/ppbconf.h>
 
 #include "ppbus_if.h"
 
 /* msq index (see PPB_MAX_XFER)
  * These are device modes
  */
-#define COMPAT_MSQ	0x0
-#define NIBBLE_MSQ	0x1
-#define PS2_MSQ		0x2
-#define EPP17_MSQ	0x3
-#define EPP19_MSQ	0x4
-#define ECP_MSQ		0x5
+#define COMPAT_MSQ 0x0
+#define NIBBLE_MSQ 0x1
+#define PS2_MSQ 0x2
+#define EPP17_MSQ 0x3
+#define EPP19_MSQ 0x4
+#define ECP_MSQ 0x5
 
 /*
  * Device mode to submsq conversion
@@ -96,7 +96,7 @@ mode2xfer(device_t bus, struct ppb_device *ppbdev, int opcode)
 			break;
 		default:
 			panic("%s: unknown EPP protocol (0x%x)!", __func__,
-				epp);
+			    epp);
 		}
 		break;
 	case PPB_ECP:
@@ -135,12 +135,12 @@ ppb_MS_init(device_t bus, device_t dev, struct ppb_microseq *loop, int opcode)
  */
 int
 ppb_MS_exec(device_t bus, device_t dev, int opcode, union ppb_insarg param1,
-		union ppb_insarg param2, union ppb_insarg param3, int *ret)
+    union ppb_insarg param2, union ppb_insarg param3, int *ret)
 {
-	struct ppb_microseq msq[] = {
-		  { MS_UNKNOWN, { { MS_UNKNOWN }, { MS_UNKNOWN }, { MS_UNKNOWN } } },
-		  MS_RET(0)
-	};
+	struct ppb_microseq msq[] = { { MS_UNKNOWN,
+					  { { MS_UNKNOWN }, { MS_UNKNOWN },
+					      { MS_UNKNOWN } } },
+		MS_RET(0) };
 
 	/* initialize the corresponding microseq */
 	msq[0].opcode = opcode;
@@ -160,20 +160,17 @@ ppb_MS_exec(device_t bus, device_t dev, int opcode, union ppb_insarg param1,
  */
 int
 ppb_MS_loop(device_t bus, device_t dev, struct ppb_microseq *prolog,
-		struct ppb_microseq *body, struct ppb_microseq *epilog,
-		int iter, int *ret)
+    struct ppb_microseq *body, struct ppb_microseq *epilog, int iter, int *ret)
 {
-	struct ppb_microseq loop_microseq[] = {
-		  MS_CALL(0),			/* execute prolog */
+	struct ppb_microseq loop_microseq[] = { MS_CALL(0), /* execute prolog */
 
-		  MS_SET(MS_UNKNOWN),		/* set size of transfer */
-	/* loop: */
-		  MS_CALL(0),			/* execute body */
-		  MS_DBRA(-1 /* loop: */),
+		MS_SET(MS_UNKNOWN), /* set size of transfer */
+				    /* loop: */
+		MS_CALL(0),	    /* execute body */
+		MS_DBRA(-1 /* loop: */),
 
-		  MS_CALL(0),			/* execute epilog */
-		  MS_RET(0)
-	};
+		MS_CALL(0), /* execute epilog */
+		MS_RET(0) };
 
 	/* initialize the structure */
 	loop_microseq[0].arg[0].p = (void *)prolog;
@@ -200,18 +197,18 @@ ppb_MS_init_msq(struct ppb_microseq *msq, int nbparam, ...)
 
 	va_start(p_list, nbparam);
 
-	for (i=0; i<nbparam; i++) {
+	for (i = 0; i < nbparam; i++) {
 		/* retrieve the parameter descriptor */
 		param = va_arg(p_list, int);
 
-		ins  = MS_INS(param);
-		arg  = MS_ARG(param);
+		ins = MS_INS(param);
+		arg = MS_ARG(param);
 		type = MS_TYP(param);
 
 		/* check the instruction position */
 		if (arg >= PPB_MS_MAXARGS)
-			panic("%s: parameter out of range (0x%x)!",
-				__func__, param);
+			panic("%s: parameter out of range (0x%x)!", __func__,
+			    param);
 
 #if 0
 		printf("%s: param = %d, ins = %d, arg = %d, type = %d\n",
@@ -237,8 +234,7 @@ ppb_MS_init_msq(struct ppb_microseq *msq, int nbparam, ...)
 			break;
 
 		default:
-			panic("%s: unknown parameter (0x%x)!", __func__,
-				param);
+			panic("%s: unknown parameter (0x%x)!", __func__, param);
 		}
 	}
 
@@ -258,15 +254,15 @@ ppb_MS_microseq(device_t bus, device_t dev, struct ppb_microseq *msq, int *ret)
 	struct ppb_data *ppb = (struct ppb_data *)device_get_softc(bus);
 	struct ppb_device *ppbdev = (struct ppb_device *)device_get_ivars(dev);
 
-	struct ppb_microseq *mi;		/* current microinstruction */
+	struct ppb_microseq *mi; /* current microinstruction */
 	int error;
 
 	struct ppb_xfer *xfer;
 
 	/* microsequence executed to initialize the transfer */
 	struct ppb_microseq initxfer[] = {
-		MS_PTR(MS_UNKNOWN), 	/* set ptr to buffer */
-		MS_SET(MS_UNKNOWN),	/* set transfer size */
+		MS_PTR(MS_UNKNOWN), /* set ptr to buffer */
+		MS_SET(MS_UNKNOWN), /* set transfer size */
 		MS_RET(0)
 	};
 
@@ -274,7 +270,7 @@ ppb_MS_microseq(device_t bus, device_t dev, struct ppb_microseq *msq, int *ret)
 	if (ppb->ppb_owner != dev)
 		return (EACCES);
 
-#define INCR_PC (mi ++)
+#define INCR_PC (mi++)
 
 	mi = msq;
 	for (;;) {
@@ -289,15 +285,16 @@ ppb_MS_microseq(device_t bus, device_t dev, struct ppb_microseq *msq, int *ret)
 			if (!xfer->loop) {
 				if (mi->opcode == MS_OP_PUT) {
 					if ((error = PPBUS_WRITE(
-						device_get_parent(bus),
-						(char *)mi->arg[0].p,
-						mi->arg[1].i, 0)))
-							goto error;
+						 device_get_parent(bus),
+						 (char *)mi->arg[0].p,
+						 mi->arg[1].i, 0)))
+						goto error;
 
 					INCR_PC;
 					goto next;
 				} else
-					panic("%s: IEEE1284 read not supported", __func__);
+					panic("%s: IEEE1284 read not supported",
+					    __func__);
 			}
 
 			/* XXX should use ppb_MS_init_msq() */
@@ -323,7 +320,7 @@ ppb_MS_microseq(device_t bus, device_t dev, struct ppb_microseq *msq, int *ret)
 
 		case MS_OP_RET:
 			if (ret)
-				*ret = mi->arg[0].i;	/* return code */
+				*ret = mi->arg[0].i; /* return code */
 			return (0);
 
 		default:
@@ -331,8 +328,8 @@ ppb_MS_microseq(device_t bus, device_t dev, struct ppb_microseq *msq, int *ret)
 			 * faster. This is the default if the microinstr
 			 * is unknown here
 			 */
-			if ((error = PPBUS_EXEC_MICROSEQ(
-						device_get_parent(bus), &mi)))
+			if ((error = PPBUS_EXEC_MICROSEQ(device_get_parent(bus),
+				 &mi)))
 				goto error;
 			break;
 		}

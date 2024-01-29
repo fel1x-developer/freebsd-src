@@ -42,15 +42,15 @@
  *
  */
 
-#include "namespace.h"
 #include <sys/types.h>
 
 #include <netinet/in.h>
 
-#include <string.h>
-
 #include <rpc/types.h>
 #include <rpc/xdr.h>
+#include <string.h>
+
+#include "namespace.h"
 #include "un-namespace.h"
 
 static void xdrmem_destroy(XDR *);
@@ -66,27 +66,13 @@ static bool_t xdrmem_setpos(XDR *, u_int);
 static int32_t *xdrmem_inline_aligned(XDR *, u_int);
 static int32_t *xdrmem_inline_unaligned(XDR *, u_int);
 
-static const struct	xdr_ops xdrmem_ops_aligned = {
-	xdrmem_getlong_aligned,
-	xdrmem_putlong_aligned,
-	xdrmem_getbytes,
-	xdrmem_putbytes,
-	xdrmem_getpos,
-	xdrmem_setpos,
-	xdrmem_inline_aligned,
-	xdrmem_destroy
-};
+static const struct xdr_ops xdrmem_ops_aligned = { xdrmem_getlong_aligned,
+	xdrmem_putlong_aligned, xdrmem_getbytes, xdrmem_putbytes, xdrmem_getpos,
+	xdrmem_setpos, xdrmem_inline_aligned, xdrmem_destroy };
 
-static const struct	xdr_ops xdrmem_ops_unaligned = {
-	xdrmem_getlong_unaligned,
-	xdrmem_putlong_unaligned,
-	xdrmem_getbytes,
-	xdrmem_putbytes,
-	xdrmem_getpos,
-	xdrmem_setpos,
-	xdrmem_inline_unaligned,
-	xdrmem_destroy
-};
+static const struct xdr_ops xdrmem_ops_unaligned = { xdrmem_getlong_unaligned,
+	xdrmem_putlong_unaligned, xdrmem_getbytes, xdrmem_putbytes,
+	xdrmem_getpos, xdrmem_setpos, xdrmem_inline_unaligned, xdrmem_destroy };
 
 /*
  * The procedure xdrmem_create initializes a stream descriptor for a
@@ -97,8 +83,9 @@ xdrmem_create(XDR *xdrs, char *addr, u_int size, enum xdr_op op)
 {
 
 	xdrs->x_op = op;
-	xdrs->x_ops = ((unsigned long)addr & (sizeof(int32_t) - 1))
-	    ? &xdrmem_ops_unaligned : &xdrmem_ops_aligned;
+	xdrs->x_ops = ((unsigned long)addr & (sizeof(int32_t) - 1)) ?
+	    &xdrmem_ops_unaligned :
+	    &xdrmem_ops_aligned;
 	xdrs->x_private = xdrs->x_base = addr;
 	xdrs->x_handy = size;
 }
@@ -107,7 +94,6 @@ xdrmem_create(XDR *xdrs, char *addr, u_int size, enum xdr_op op)
 static void
 xdrmem_destroy(XDR *xdrs)
 {
-
 }
 
 static bool_t
@@ -203,7 +189,8 @@ xdrmem_setpos(XDR *xdrs, u_int pos)
 	if (newaddr > lastaddr)
 		return (FALSE);
 	xdrs->x_private = newaddr;
-	xdrs->x_handy = (u_int)(lastaddr - newaddr); /* XXX sizeof(u_int) <? sizeof(ptrdiff_t) */
+	xdrs->x_handy = (u_int)(lastaddr -
+	    newaddr); /* XXX sizeof(u_int) <? sizeof(ptrdiff_t) */
 	return (TRUE);
 }
 

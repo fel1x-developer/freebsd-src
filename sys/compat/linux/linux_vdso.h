@@ -26,39 +26,37 @@
  */
 
 #ifndef _LINUX_VDSO_H_
-#define	_LINUX_VDSO_H_
+#define _LINUX_VDSO_H_
 
 struct linux_vdso_sym {
 	SLIST_ENTRY(linux_vdso_sym) sym;
-	uint32_t	size;
-	uintptr_t *	ptr;
-	char		symname[];
+	uint32_t size;
+	uintptr_t *ptr;
+	char symname[];
 };
 
 vm_object_t __elfN(linux_shared_page_init)(char **, vm_size_t);
-void	__elfN(linux_shared_page_fini)(vm_object_t, void *, vm_size_t);
-void	__elfN(linux_vdso_fixup)(char *, vm_offset_t);
-void	__elfN(linux_vdso_sym_init)(struct linux_vdso_sym *);
+void __elfN(linux_shared_page_fini)(vm_object_t, void *, vm_size_t);
+void __elfN(linux_vdso_fixup)(char *, vm_offset_t);
+void __elfN(linux_vdso_sym_init)(struct linux_vdso_sym *);
 
-int	linux_map_vdso(struct proc *, vm_object_t, vm_offset_t,
-	    vm_offset_t, struct image_params *);
+int linux_map_vdso(struct proc *, vm_object_t, vm_offset_t, vm_offset_t,
+    struct image_params *);
 
-#define	LINUX_VDSO_SYM_INTPTR(name)				\
-uintptr_t name;							\
-LINUX_VDSO_SYM_DEFINE(name)
+#define LINUX_VDSO_SYM_INTPTR(name) \
+	uintptr_t name;             \
+	LINUX_VDSO_SYM_DEFINE(name)
 
-#define	LINUX_VDSO_SYM_CHAR(name)				\
-const char * name;						\
-LINUX_VDSO_SYM_DEFINE(name)
+#define LINUX_VDSO_SYM_CHAR(name) \
+	const char *name;         \
+	LINUX_VDSO_SYM_DEFINE(name)
 
-#define	LINUX_VDSO_SYM_DEFINE(name)				\
-static struct linux_vdso_sym name ## sym = {			\
-	.symname	= #name,				\
-	.size		= sizeof(#name),			\
-	.ptr		= (uintptr_t *)&name			\
-};								\
-SYSINIT(__elfN(name ## _sym_init), SI_SUB_EXEC,			\
-    SI_ORDER_FIRST, __elfN(linux_vdso_sym_init), &name ## sym);	\
-struct __hack
+#define LINUX_VDSO_SYM_DEFINE(name)                                   \
+	static struct linux_vdso_sym name##sym = { .symname = #name,  \
+		.size = sizeof(#name),                                \
+		.ptr = (uintptr_t *)&name };                          \
+	SYSINIT(__elfN(name##_sym_init), SI_SUB_EXEC, SI_ORDER_FIRST, \
+	    __elfN(linux_vdso_sym_init), &name##sym);                 \
+	struct __hack
 
-#endif	/* _LINUX_VDSO_H_ */
+#endif /* _LINUX_VDSO_H_ */

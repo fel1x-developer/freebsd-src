@@ -23,18 +23,16 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <sys/cdefs.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-
-#include <sys/cdefs.h>
 extern char **environ;
 const char *envName = "FOOBAR";
 const char *envValSmall = "Hi";
 const char *envValLarge = "Hi, again";
 const char *envValAny = "Any value";
-
 
 int
 main(int argc, char **argv)
@@ -93,8 +91,8 @@ main(int argc, char **argv)
 	    envValAny);
 
 	/*
-	 * Verify FreeBSD-ism about allowing a program to keep old pointers without
-	 * risk of segfaulting.
+	 * Verify FreeBSD-ism about allowing a program to keep old pointers
+	 * without risk of segfaulting.
 	 */
 	if ((strcmp(env1, envValSmall) != 0) ||
 	    (strcmp(env3, envValSmall) != 0) ||

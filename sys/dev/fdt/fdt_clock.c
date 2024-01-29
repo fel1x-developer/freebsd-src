@@ -25,17 +25,17 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
 #include <sys/queue.h>
-#include <sys/systm.h>
 
+#include <dev/fdt/fdt_clock.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
 #include "fdt_clock_if.h"
-#include <dev/fdt/fdt_clock.h>
 
 /*
  * Loop through all the tuples in the clocks= property for a device, enabling or
@@ -58,7 +58,8 @@ enable_disable_all(device_t consumer, boolean_t enable)
 	ncells = OF_getencprop_alloc_multi(cnode, "clocks", sizeof(*clks),
 	    (void **)&clks);
 	if (enable && ncells < 2) {
-		device_printf(consumer, "Warning: No clocks specified in fdt "
+		device_printf(consumer,
+		    "Warning: No clocks specified in fdt "
 		    "data; device may not function.");
 		return (ENXIO);
 	}
@@ -68,9 +69,11 @@ enable_disable_all(device_t consumer, boolean_t enable)
 		clocknum = clks[i + 1];
 		if (clockdev == NULL) {
 			if (enable)
-				device_printf(consumer, "Warning: can not find "
+				device_printf(consumer,
+				    "Warning: can not find "
 				    "driver for clock number %u; device may not "
-				    "function\n", clocknum);
+				    "function\n",
+				    clocknum);
 			anyerrors = true;
 			continue;
 		}
@@ -80,9 +83,11 @@ enable_disable_all(device_t consumer, boolean_t enable)
 			err = FDT_CLOCK_DISABLE(clockdev, clocknum);
 		if (err != 0) {
 			if (enable)
-				device_printf(consumer, "Warning: failed to "
+				device_printf(consumer,
+				    "Warning: failed to "
 				    "enable clock number %u; device may not "
-				    "function\n", clocknum);
+				    "function\n",
+				    clocknum);
 			anyerrors = true;
 		}
 	}
@@ -110,7 +115,7 @@ fdt_clock_get_info(device_t consumer, int n, struct fdt_clock_info *info)
 		clockdev = OF_device_from_xref(clks[n]);
 		if (clockdev == NULL)
 			err = ENXIO;
-		else  {
+		else {
 			/*
 			 * Make struct contents minimally valid, then call
 			 * provider to fill in what it knows (provider can
@@ -146,8 +151,8 @@ void
 fdt_clock_register_provider(device_t provider)
 {
 
-	OF_device_register_xref(
-	    OF_xref_from_node(ofw_bus_get_node(provider)), provider);
+	OF_device_register_xref(OF_xref_from_node(ofw_bus_get_node(provider)),
+	    provider);
 }
 
 void
@@ -156,4 +161,3 @@ fdt_clock_unregister_provider(device_t provider)
 
 	OF_device_register_xref(OF_xref_from_device(provider), NULL);
 }
-

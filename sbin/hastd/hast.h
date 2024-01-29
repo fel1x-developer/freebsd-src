@@ -30,22 +30,20 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_HAST_H_
-#define	_HAST_H_
+#ifndef _HAST_H_
+#define _HAST_H_
 
 #include <sys/queue.h>
 #include <sys/socket.h>
 
-#include <arpa/inet.h>
-
 #include <netinet/in.h>
 
+#include <activemap.h>
+#include <arpa/inet.h>
 #include <limits.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
-
-#include <activemap.h>
 
 #include "proto.h"
 
@@ -55,56 +53,56 @@
  * 1 - HIO_KEEPALIVE added
  * 2 - "memsync" and "received" attributes added for memsync mode
  */
-#define	HAST_PROTO_VERSION	2
+#define HAST_PROTO_VERSION 2
 
-#define	EHAST_OK		0
-#define	EHAST_NOENTRY		1
-#define	EHAST_INVALID		2
-#define	EHAST_NOMEMORY		3
-#define	EHAST_UNIMPLEMENTED	4
+#define EHAST_OK 0
+#define EHAST_NOENTRY 1
+#define EHAST_INVALID 2
+#define EHAST_NOMEMORY 3
+#define EHAST_UNIMPLEMENTED 4
 
-#define	HASTCTL_CMD_UNKNOWN	0
-#define	HASTCTL_CMD_SETROLE	1
-#define	HASTCTL_CMD_STATUS	2
+#define HASTCTL_CMD_UNKNOWN 0
+#define HASTCTL_CMD_SETROLE 1
+#define HASTCTL_CMD_STATUS 2
 
-#define	HAST_ROLE_UNDEF		0
-#define	HAST_ROLE_INIT		1
-#define	HAST_ROLE_PRIMARY	2
-#define	HAST_ROLE_SECONDARY	3
+#define HAST_ROLE_UNDEF 0
+#define HAST_ROLE_INIT 1
+#define HAST_ROLE_PRIMARY 2
+#define HAST_ROLE_SECONDARY 3
 
-#define	HAST_SYNCSRC_UNDEF	0
-#define	HAST_SYNCSRC_PRIMARY	1
-#define	HAST_SYNCSRC_SECONDARY	2
+#define HAST_SYNCSRC_UNDEF 0
+#define HAST_SYNCSRC_PRIMARY 1
+#define HAST_SYNCSRC_SECONDARY 2
 
-#define	HIO_UNDEF		0
-#define	HIO_READ		1
-#define	HIO_WRITE		2
-#define	HIO_DELETE		3
-#define	HIO_FLUSH		4
-#define	HIO_KEEPALIVE		5
+#define HIO_UNDEF 0
+#define HIO_READ 1
+#define HIO_WRITE 2
+#define HIO_DELETE 3
+#define HIO_FLUSH 4
+#define HIO_KEEPALIVE 5
 
-#define	HAST_USER		"hast"
-#define	HAST_TIMEOUT		20
-#define	HAST_CONFIG		"/etc/hast.conf"
-#define	HAST_CONTROL		"/var/run/hastctl"
-#define	HASTD_LISTEN_TCP4	"tcp4://0.0.0.0:8457"
-#define	HASTD_LISTEN_TCP6	"tcp6://[::]:8457"
-#define	HASTD_PIDFILE		"/var/run/hastd.pid"
+#define HAST_USER "hast"
+#define HAST_TIMEOUT 20
+#define HAST_CONFIG "/etc/hast.conf"
+#define HAST_CONTROL "/var/run/hastctl"
+#define HASTD_LISTEN_TCP4 "tcp4://0.0.0.0:8457"
+#define HASTD_LISTEN_TCP6 "tcp6://[::]:8457"
+#define HASTD_PIDFILE "/var/run/hastd.pid"
 
 /* Default extent size. */
-#define	HAST_EXTENTSIZE	2097152
+#define HAST_EXTENTSIZE 2097152
 /* Default maximum number of extents that are kept dirty. */
-#define	HAST_KEEPDIRTY	64
+#define HAST_KEEPDIRTY 64
 
-#define	HAST_ADDRSIZE	1024
-#define	HAST_TOKEN_SIZE	16
+#define HAST_ADDRSIZE 1024
+#define HAST_TOKEN_SIZE 16
 
 /* Number of seconds to sleep between reconnect retries or keepalive packets. */
-#define	HAST_KEEPALIVE	10
+#define HAST_KEEPALIVE 10
 
 struct hastd_listen {
 	/* Address to listen on. */
-	char	 hl_addr[HAST_ADDRSIZE];
+	char hl_addr[HAST_ADDRSIZE];
 	/* Protocol-specific data. */
 	struct proto_conn *hl_conn;
 	TAILQ_ENTRY(hastd_listen) hl_next;
@@ -112,30 +110,30 @@ struct hastd_listen {
 
 struct hastd_config {
 	/* Address to communicate with hastctl(8). */
-	char	hc_controladdr[HAST_ADDRSIZE];
+	char hc_controladdr[HAST_ADDRSIZE];
 	/* Protocol-specific data. */
 	struct proto_conn *hc_controlconn;
 	/* Incoming control connection. */
 	struct proto_conn *hc_controlin;
 	/* PID file path. */
-	char	hc_pidfile[PATH_MAX];
+	char hc_pidfile[PATH_MAX];
 	/* List of addresses to listen on. */
 	TAILQ_HEAD(, hastd_listen) hc_listen;
 	/* List of resources. */
 	TAILQ_HEAD(, hast_resource) hc_resources;
 };
 
-#define	HAST_REPLICATION_FULLSYNC	0
-#define	HAST_REPLICATION_MEMSYNC	1
-#define	HAST_REPLICATION_ASYNC		2
+#define HAST_REPLICATION_FULLSYNC 0
+#define HAST_REPLICATION_MEMSYNC 1
+#define HAST_REPLICATION_ASYNC 2
 
-#define	HAST_COMPRESSION_NONE	0
-#define	HAST_COMPRESSION_HOLE	1
-#define	HAST_COMPRESSION_LZF	2
+#define HAST_COMPRESSION_NONE 0
+#define HAST_COMPRESSION_HOLE 1
+#define HAST_COMPRESSION_LZF 2
 
-#define	HAST_CHECKSUM_NONE	0
-#define	HAST_CHECKSUM_CRC32	1
-#define	HAST_CHECKSUM_SHA256	2
+#define HAST_CHECKSUM_NONE 0
+#define HAST_CHECKSUM_CRC32 1
+#define HAST_CHECKSUM_SHA256 2
 
 struct nv;
 
@@ -144,52 +142,52 @@ struct nv;
  */
 struct hast_resource {
 	/* Resource name. */
-	char	hr_name[NAME_MAX];
+	char hr_name[NAME_MAX];
 	/* Negotiated replication mode (HAST_REPLICATION_*). */
-	int	hr_replication;
+	int hr_replication;
 	/* Configured replication mode (HAST_REPLICATION_*). */
-	int	hr_original_replication;
+	int hr_original_replication;
 	/* Provider name that will appear in /dev/hast/. */
-	char	hr_provname[NAME_MAX];
+	char hr_provname[NAME_MAX];
 	/* Synchronization extent size. */
-	int	hr_extentsize;
+	int hr_extentsize;
 	/* Maximum number of extents that are kept dirty. */
-	int	hr_keepdirty;
+	int hr_keepdirty;
 	/* Path to a program to execute on various events. */
-	char	hr_exec[PATH_MAX];
+	char hr_exec[PATH_MAX];
 	/* Compression algorithm. */
-	int	hr_compression;
+	int hr_compression;
 	/* Checksum algorithm. */
-	int	hr_checksum;
+	int hr_checksum;
 	/* Protocol version. */
-	int	hr_version;
+	int hr_version;
 
 	/* Path to local component. */
-	char	hr_localpath[PATH_MAX];
+	char hr_localpath[PATH_MAX];
 	/* Descriptor to access local component. */
-	int	hr_localfd;
+	int hr_localfd;
 	/* Offset into local component. */
-	off_t	hr_localoff;
+	off_t hr_localoff;
 	/* Size of usable space. */
-	off_t	hr_datasize;
+	off_t hr_datasize;
 	/* Size of entire local provider. */
-	off_t	hr_local_mediasize;
+	off_t hr_local_mediasize;
 	/* Sector size of local provider. */
 	unsigned int hr_local_sectorsize;
 	/* Is flushing write cache supported by the local provider? */
-	bool	hr_localflush;
+	bool hr_localflush;
 	/* Flush write cache on metadata updates? */
-	int	hr_metaflush;
+	int hr_metaflush;
 
 	/* Descriptor for /dev/ggctl communication. */
-	int	hr_ggatefd;
+	int hr_ggatefd;
 	/* Unit number for ggate communication. */
-	int	hr_ggateunit;
+	int hr_ggateunit;
 
 	/* Address of the remote component. */
-	char	hr_remoteaddr[HAST_ADDRSIZE];
+	char hr_remoteaddr[HAST_ADDRSIZE];
 	/* Local address to bind to for outgoing connections. */
-	char	hr_sourceaddr[HAST_ADDRSIZE];
+	char hr_sourceaddr[HAST_ADDRSIZE];
 	/* Connection for incoming data. */
 	struct proto_conn *hr_remotein;
 	/* Connection for outgoing data. */
@@ -198,7 +196,7 @@ struct hast_resource {
 	   the same node (not necessarily from the same address). */
 	unsigned char hr_token[HAST_TOKEN_SIZE];
 	/* Connection timeout. */
-	int	hr_timeout;
+	int hr_timeout;
 
 	/* Resource unique identifier. */
 	uint64_t hr_resuid;
@@ -214,11 +212,11 @@ struct hast_resource {
 	uint8_t hr_syncsrc;
 
 	/* Resource role: HAST_ROLE_{INIT,PRIMARY,SECONDARY}. */
-	int	hr_role;
+	int hr_role;
 	/* Previous resource role: HAST_ROLE_{INIT,PRIMARY,SECONDARY}. */
-	int	hr_previous_role;
+	int hr_previous_role;
 	/* PID of child worker process. 0 - no child. */
-	pid_t	hr_workerpid;
+	pid_t hr_workerpid;
 	/* Control commands from parent to child. */
 	struct proto_conn *hr_ctrl;
 	/* Events from child to parent. */
@@ -234,30 +232,30 @@ struct hast_resource {
 	pthread_mutex_t hr_amp_diskmap_lock;
 
 	/* Number of BIO_READ requests. */
-	uint64_t	hr_stat_read;
+	uint64_t hr_stat_read;
 	/* Number of BIO_WRITE requests. */
-	uint64_t	hr_stat_write;
+	uint64_t hr_stat_write;
 	/* Number of BIO_DELETE requests. */
-	uint64_t	hr_stat_delete;
+	uint64_t hr_stat_delete;
 	/* Number of BIO_FLUSH requests. */
-	uint64_t	hr_stat_flush;
+	uint64_t hr_stat_flush;
 	/* Number of activemap updates. */
-	uint64_t	hr_stat_activemap_update;
+	uint64_t hr_stat_activemap_update;
 	/* Number of local read errors. */
-	uint64_t	hr_stat_read_error;
+	uint64_t hr_stat_read_error;
 	/* Number of local write errors. */
-	uint64_t	hr_stat_write_error;
+	uint64_t hr_stat_write_error;
 	/* Number of local delete errors. */
-	uint64_t	hr_stat_delete_error;
+	uint64_t hr_stat_delete_error;
 	/* Number of flush errors. */
-	uint64_t	hr_stat_flush_error;
+	uint64_t hr_stat_flush_error;
 	/* Number of activemap write errors. */
-	uint64_t	hr_stat_activemap_write_error;
+	uint64_t hr_stat_activemap_write_error;
 	/* Number of activemap flush errors. */
-	uint64_t	hr_stat_activemap_flush_error;
+	uint64_t hr_stat_activemap_flush_error;
 
 	/* Function to output worker specific info on control status request. */
-	void	(*output_status_aux)(struct nv *);
+	void (*output_status_aux)(struct nv *);
 
 	/* Next resource. */
 	TAILQ_ENTRY(hast_resource) hr_next;
@@ -266,4 +264,4 @@ struct hast_resource {
 struct hastd_config *yy_config_parse(const char *config, bool exitonerror);
 void yy_config_free(struct hastd_config *config);
 
-#endif	/* !_HAST_H_ */
+#endif /* !_HAST_H_ */

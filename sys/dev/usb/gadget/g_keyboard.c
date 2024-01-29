@@ -30,38 +30,37 @@
  */
 
 #include <sys/param.h>
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/queue.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/linker_set.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/linker_set.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
 #include <dev/usb/usbhid.h>
+
 #include "usb_if.h"
 
-#define	USB_DEBUG_VAR g_keyboard_debug
+#define USB_DEBUG_VAR g_keyboard_debug
+#include <dev/usb/gadget/g_keyboard.h>
 #include <dev/usb/usb_debug.h>
 
-#include <dev/usb/gadget/g_keyboard.h>
-
-static SYSCTL_NODE(_hw_usb, OID_AUTO, g_keyboard,
-    CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
-    "USB keyboard gadget");
+static SYSCTL_NODE(_hw_usb, OID_AUTO, g_keyboard, CTLFLAG_RW | CTLFLAG_MPSAFE,
+    0, "USB keyboard gadget");
 
 #ifdef USB_DEBUG
 static int g_keyboard_debug = 0;
@@ -72,8 +71,8 @@ SYSCTL_INT(_hw_usb_g_keyboard, OID_AUTO, debug, CTLFLAG_RWTUN,
 
 static int g_keyboard_mode = 0;
 
-SYSCTL_INT(_hw_usb_g_keyboard, OID_AUTO, mode, CTLFLAG_RWTUN,
-    &g_keyboard_mode, 0, "Mode selection");
+SYSCTL_INT(_hw_usb_g_keyboard, OID_AUTO, mode, CTLFLAG_RWTUN, &g_keyboard_mode,
+    0, "Mode selection");
 
 static int g_keyboard_key_press_interval = 1000;
 
@@ -86,23 +85,23 @@ SYSCTL_STRING(_hw_usb_g_keyboard, OID_AUTO, key_press_pattern, CTLFLAG_RW,
     g_keyboard_key_press_pattern, sizeof(g_keyboard_key_press_pattern),
     "Key Press Patterns");
 
-#define	UPROTO_BOOT_KEYBOARD 1
+#define UPROTO_BOOT_KEYBOARD 1
 
-#define	G_KEYBOARD_NMOD                     8	/* units */
-#define	G_KEYBOARD_NKEYCODE                 6	/* units */
+#define G_KEYBOARD_NMOD 8     /* units */
+#define G_KEYBOARD_NKEYCODE 6 /* units */
 
 struct g_keyboard_data {
-	uint8_t	modifiers;
-#define	MOD_CONTROL_L	0x01
-#define	MOD_CONTROL_R	0x10
-#define	MOD_SHIFT_L	0x02
-#define	MOD_SHIFT_R	0x20
-#define	MOD_ALT_L	0x04
-#define	MOD_ALT_R	0x40
-#define	MOD_WIN_L	0x08
-#define	MOD_WIN_R	0x80
-	uint8_t	reserved;
-	uint8_t	keycode[G_KEYBOARD_NKEYCODE];
+	uint8_t modifiers;
+#define MOD_CONTROL_L 0x01
+#define MOD_CONTROL_R 0x10
+#define MOD_SHIFT_L 0x02
+#define MOD_SHIFT_R 0x20
+#define MOD_ALT_L 0x04
+#define MOD_ALT_R 0x40
+#define MOD_WIN_L 0x08
+#define MOD_WIN_R 0x80
+	uint8_t reserved;
+	uint8_t keycode[G_KEYBOARD_NKEYCODE];
 };
 
 enum {
@@ -116,13 +115,13 @@ struct g_keyboard_softc {
 	struct g_keyboard_data sc_data[2];
 	struct usb_xfer *sc_xfer[G_KEYBOARD_N_TRANSFER];
 
-	int	sc_mode;
-	int	sc_state;
-	int	sc_pattern_len;
+	int sc_mode;
+	int sc_state;
+	int sc_pattern_len;
 
-	char	sc_pattern[G_KEYBOARD_MAX_STRLEN];
+	char sc_pattern[G_KEYBOARD_MAX_STRLEN];
 
-	uint8_t	sc_led_state[4];
+	uint8_t sc_led_state[4];
 };
 
 static device_probe_t g_keyboard_probe;
@@ -189,7 +188,8 @@ g_keyboard_timeout(void *arg)
 
 	sc->sc_mode = g_keyboard_mode;
 
-	memcpy(sc->sc_pattern, g_keyboard_key_press_pattern, sizeof(sc->sc_pattern));
+	memcpy(sc->sc_pattern, g_keyboard_key_press_pattern,
+	    sizeof(sc->sc_pattern));
 
 	sc->sc_pattern[G_KEYBOARD_MAX_STRLEN - 1] = 0;
 
@@ -237,9 +237,9 @@ g_keyboard_attach(device_t dev)
 
 	sc->sc_mode = G_KEYBOARD_MODE_SILENT;
 
-	error = usbd_transfer_setup(uaa->device,
-	    &uaa->info.bIfaceIndex, sc->sc_xfer, g_keyboard_config,
-	    G_KEYBOARD_N_TRANSFER, sc, &sc->sc_mtx);
+	error = usbd_transfer_setup(uaa->device, &uaa->info.bIfaceIndex,
+	    sc->sc_xfer, g_keyboard_config, G_KEYBOARD_N_TRANSFER, sc,
+	    &sc->sc_mtx);
 
 	if (error) {
 		DPRINTF("error=%s\n", usbd_errstr(error));
@@ -249,12 +249,12 @@ g_keyboard_attach(device_t dev)
 	g_keyboard_timeout_reset(sc);
 	mtx_unlock(&sc->sc_mtx);
 
-	return (0);			/* success */
+	return (0); /* success */
 
 detach:
 	g_keyboard_detach(dev);
 
-	return (ENXIO);			/* error */
+	return (ENXIO); /* error */
 }
 
 static int
@@ -308,59 +308,70 @@ g_keyboard_intr_callback(struct usb_xfer *xfer, usb_error_t error)
 
 	usbd_xfer_status(xfer, &actlen, NULL, &aframes, NULL);
 
-	DPRINTF("st=%d aframes=%d actlen=%d bytes\n",
-	    USB_GET_STATE(xfer), aframes, actlen);
+	DPRINTF("st=%d aframes=%d actlen=%d bytes\n", USB_GET_STATE(xfer),
+	    aframes, actlen);
 
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_TRANSFERRED:
 		break;
 
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		if (sc->sc_mode == G_KEYBOARD_MODE_SILENT) {
 			memset(&sc->sc_data, 0, sizeof(sc->sc_data));
-			usbd_xfer_set_frame_data(xfer, 0, &sc->sc_data[0], sizeof(sc->sc_data[0]));
-			usbd_xfer_set_frame_data(xfer, 1, &sc->sc_data[1], sizeof(sc->sc_data[1]));
+			usbd_xfer_set_frame_data(xfer, 0, &sc->sc_data[0],
+			    sizeof(sc->sc_data[0]));
+			usbd_xfer_set_frame_data(xfer, 1, &sc->sc_data[1],
+			    sizeof(sc->sc_data[1]));
 			usbd_xfer_set_frames(xfer, 2);
 			usbd_transfer_submit(xfer);
 
 		} else if (sc->sc_mode == G_KEYBOARD_MODE_PATTERN) {
 			memset(&sc->sc_data, 0, sizeof(sc->sc_data));
 
-			if ((sc->sc_state < 0) || (sc->sc_state >= G_KEYBOARD_MAX_STRLEN))
+			if ((sc->sc_state < 0) ||
+			    (sc->sc_state >= G_KEYBOARD_MAX_STRLEN))
 				sc->sc_state = 0;
 
 			switch (sc->sc_state % 6) {
 			case 0:
 				sc->sc_data[0].keycode[0] =
-				    g_keyboard_get_keycode(sc, sc->sc_state + 0);
+				    g_keyboard_get_keycode(sc,
+					sc->sc_state + 0);
 			case 1:
 				sc->sc_data[0].keycode[1] =
-				    g_keyboard_get_keycode(sc, sc->sc_state + 1);
+				    g_keyboard_get_keycode(sc,
+					sc->sc_state + 1);
 			case 2:
 				sc->sc_data[0].keycode[2] =
-				    g_keyboard_get_keycode(sc, sc->sc_state + 2);
+				    g_keyboard_get_keycode(sc,
+					sc->sc_state + 2);
 			case 3:
 				sc->sc_data[0].keycode[3] =
-				    g_keyboard_get_keycode(sc, sc->sc_state + 3);
+				    g_keyboard_get_keycode(sc,
+					sc->sc_state + 3);
 			case 4:
 				sc->sc_data[0].keycode[4] =
-				    g_keyboard_get_keycode(sc, sc->sc_state + 4);
+				    g_keyboard_get_keycode(sc,
+					sc->sc_state + 4);
 			default:
 				sc->sc_data[0].keycode[5] =
-				    g_keyboard_get_keycode(sc, sc->sc_state + 5);
+				    g_keyboard_get_keycode(sc,
+					sc->sc_state + 5);
 			}
 
 			sc->sc_state++;
 
-			usbd_xfer_set_frame_data(xfer, 0, &sc->sc_data[0], sizeof(sc->sc_data[0]));
-			usbd_xfer_set_frame_data(xfer, 1, &sc->sc_data[1], sizeof(sc->sc_data[1]));
+			usbd_xfer_set_frame_data(xfer, 0, &sc->sc_data[0],
+			    sizeof(sc->sc_data[0]));
+			usbd_xfer_set_frame_data(xfer, 1, &sc->sc_data[1],
+			    sizeof(sc->sc_data[1]));
 			usbd_xfer_set_frames(xfer, 2);
 			usbd_transfer_submit(xfer);
 		}
 		break;
 
-	default:			/* Error */
+	default: /* Error */
 		DPRINTF("error=%s\n", usbd_errstr(error));
 
 		if (error != USB_ERR_CANCELLED) {
@@ -373,9 +384,8 @@ tr_setup:
 }
 
 static int
-g_keyboard_handle_request(device_t dev,
-    const void *preq, void **pptr, uint16_t *plen,
-    uint16_t offset, uint8_t *pstate)
+g_keyboard_handle_request(device_t dev, const void *preq, void **pptr,
+    uint16_t *plen, uint16_t offset, uint8_t *pstate)
 {
 	struct g_keyboard_softc *sc = device_get_softc(dev);
 	const struct usb_device_request *req = preq;
@@ -384,8 +394,7 @@ g_keyboard_handle_request(device_t dev,
 	if (!is_complete) {
 		if ((req->bmRequestType == UT_WRITE_CLASS_INTERFACE) &&
 		    (req->bRequest == UR_SET_REPORT) &&
-		    (req->wValue[0] == 0x00) &&
-		    (req->wValue[1] == 0x02)) {
+		    (req->wValue[0] == 0x00) && (req->wValue[1] == 0x02)) {
 			if (offset == 0) {
 				*plen = sizeof(sc->sc_led_state);
 				*pptr = &sc->sc_led_state;
@@ -394,9 +403,8 @@ g_keyboard_handle_request(device_t dev,
 			}
 			return (0);
 		} else if ((req->bmRequestType == UT_WRITE_CLASS_INTERFACE) &&
-			    (req->bRequest == UR_SET_PROTOCOL) &&
-			    (req->wValue[0] == 0x00) &&
-		    (req->wValue[1] == 0x00)) {
+		    (req->bRequest == UR_SET_PROTOCOL) &&
+		    (req->wValue[0] == 0x00) && (req->wValue[1] == 0x00)) {
 			*plen = 0;
 			return (0);
 		} else if ((req->bmRequestType == UT_WRITE_CLASS_INTERFACE) &&
@@ -405,5 +413,5 @@ g_keyboard_handle_request(device_t dev,
 			return (0);
 		}
 	}
-	return (ENXIO);			/* use builtin handler */
+	return (ENXIO); /* use builtin handler */
 }

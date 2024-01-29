@@ -31,8 +31,9 @@
 
 #include <sys/types.h>
 #include <sys/queue.h>
-#include <fcntl.h>
+
 #include <errno.h>
+#include <fcntl.h>
 #include <paths.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -69,8 +70,7 @@ gctl_dump(struct gctl_req *req, FILE *f)
 	for (i = 0; i < req->narg; i++) {
 		ap = &req->arg[i];
 		fprintf(f, "  param:\t\"%s\" (%d)", ap->name, ap->nlen);
-		fprintf(f, " [%s%s",
-		    ap->flag & GCTL_PARAM_RD ? "R" : "",
+		fprintf(f, " [%s%s", ap->flag & GCTL_PARAM_RD ? "R" : "",
 		    ap->flag & GCTL_PARAM_WR ? "W" : "");
 		fflush(f);
 		if (ap->flag & GCTL_PARAM_ASCII)
@@ -176,7 +176,8 @@ gctl_add_param(struct gctl_req *req, const char *name, int len, void *value,
 }
 
 void
-gctl_ro_param(struct gctl_req *req, const char *name, int len, const void* value)
+gctl_ro_param(struct gctl_req *req, const char *name, int len,
+    const void *value)
 {
 
 	gctl_add_param(req, name, len, __DECONST(void *, value), GCTL_PARAM_RD);
@@ -200,7 +201,7 @@ gctl_issue(struct gctl_req *req)
 		return (req->error);
 
 	req->version = GCTL_VERSION;
-	req->lerror = BUFSIZ;		/* XXX: arbitrary number */
+	req->lerror = BUFSIZ; /* XXX: arbitrary number */
 	req->error = calloc(1, req->lerror);
 	if (req->error == NULL) {
 		gctl_check_alloc(req, req->error);
@@ -209,13 +210,13 @@ gctl_issue(struct gctl_req *req)
 	req->lerror--;
 	fd = open(_PATH_DEV PATH_GEOM_CTL, O_RDONLY);
 	if (fd < 0)
-		return(strerror(errno));
+		return (strerror(errno));
 	req->nerror = ioctl(fd, GEOM_CTL, req);
 	close(fd);
 	if (req->error[0] != '\0')
 		return (req->error);
 	if (req->nerror == -1)
-		return(strerror(errno));
+		return (strerror(errno));
 	return (NULL);
 }
 

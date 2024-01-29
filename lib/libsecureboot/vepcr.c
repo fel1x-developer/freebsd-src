@@ -24,6 +24,7 @@
  */
 #include <sys/cdefs.h>
 #include <sys/queue.h>
+
 #include "libsecureboot-priv.h"
 
 /*
@@ -51,7 +52,6 @@ struct hashed_info {
 };
 
 static STAILQ_HEAD(, hashed_info) hi_list;
-
 
 /**
  * @brief initialize pcr context
@@ -96,15 +96,15 @@ void
 ve_pcr_update(const char *path, unsigned char *data, size_t dlen)
 {
 	struct hashed_info *hip;
-	
+
 	if (pcr_updating > 0 && pcr_md != NULL) {
 		pcr_md->update(&pcr_ctx.vtable, data, dlen);
 		/* if mallocs fail, measured boot will likely fail too */
 		if ((hip = malloc(sizeof(struct hashed_info)))) {
 			hip->hi_path = strdup(path);
 			if (!hip->hi_path) {
-			    free(hip);
-			    return;
+				free(hip);
+				return;
 			}
 			hip->hi_basename = strrchr(hip->hi_path, '/');
 			if (hip->hi_basename) {
@@ -147,19 +147,19 @@ ve_pcr_hashed_get(int flags)
 	n = 0;
 	nbytes = x = 0;
 	hinfo = NULL;
-	STAILQ_FOREACH(hip, &hi_list, entries) {
+	STAILQ_FOREACH (hip, &hi_list, entries) {
 		nbytes += 1 + strlen(flags ? hip->hi_basename : hip->hi_path);
 	}
 	if (nbytes > 1) {
 		hinfo = malloc(nbytes + 2);
 		if (hinfo) {
-			STAILQ_FOREACH(hip, &hi_list, entries) {
+			STAILQ_FOREACH (hip, &hi_list, entries) {
 				cp = flags ? hip->hi_basename : hip->hi_path;
 				n = snprintf(&hinfo[x], nbytes - x, "%s,", cp);
 				x += n;
 			}
 			if (x > 0) {
-				hinfo[x-1] = '\0';
+				hinfo[x - 1] = '\0';
 			}
 		}
 	}

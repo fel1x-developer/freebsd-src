@@ -3,7 +3,7 @@
  *
  * Copyright (c) 1996-1999 Whistle Communications, Inc.
  * All rights reserved.
- * 
+ *
  * Subject to the following obligations and disclaimer of warranty, use and
  * redistribution of this software, in source or object code forms, with or
  * without modifications are expressly permitted by Whistle Communications;
@@ -14,7 +14,7 @@
  *    Communications, Inc. trademarks, including the mark "WHISTLE
  *    COMMUNICATIONS" on advertising, endorsements, or otherwise except as
  *    such appears in the above copyright notice or in the software.
- * 
+ *
  * THIS SOFTWARE IS BEING PROVIDED BY WHISTLE COMMUNICATIONS "AS IS", AND
  * TO THE MAXIMUM EXTENT PERMITTED BY LAW, WHISTLE COMMUNICATIONS MAKES NO
  * REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED, REGARDING THIS SOFTWARE,
@@ -37,30 +37,29 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/types.h>
+#include <sys/select.h>
+#include <sys/socket.h>
+
+#include <ctype.h>
+#include <err.h>
+#include <errno.h>
+#include <netgraph.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
-#include <unistd.h>
-#include <sysexits.h>
-#include <errno.h>
-#include <err.h>
 #include <stringlist.h>
+#include <sysexits.h>
+#include <unistd.h>
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/select.h>
+#define DEFAULT_HOOKNAME "debug"
+#define NG_SOCK_HOOK_NAME "hook"
 
-#include <netgraph.h>
+#define BUF_SIZE (64 * 1024)
 
-#define DEFAULT_HOOKNAME	"debug"
-#define NG_SOCK_HOOK_NAME	"hook"
-
-#define BUF_SIZE		(64 * 1024)
-
-static void	WriteAscii(u_char * buf, int len);
-static void	Usage(void);
-static void	send_msgs(int, const char *);
+static void WriteAscii(u_char *buf, int len);
+static void Usage(void);
+static void send_msgs(int, const char *);
 
 static int outfd = STDOUT_FILENO;
 static int infd = STDIN_FILENO;
@@ -76,12 +75,12 @@ main(int ac, char *av[])
 	struct ngm_connect ngc;
 	const char *path = NULL;
 	const char *hook = DEFAULT_HOOKNAME;
-	int     csock, dsock;
-	int     asciiFlag = 0;
-	int     loopFlag = 0;
-	int	noInput = 0;
-	int	execFlag = 0;
-	int	ch;
+	int csock, dsock;
+	int asciiFlag = 0;
+	int loopFlag = 0;
+	int noInput = 0;
+	int execFlag = 0;
+	int ch;
 
 	if ((msgs = sl_init()) == NULL)
 		err(EX_OSERR, NULL);
@@ -156,8 +155,8 @@ main(int ac, char *av[])
 	snprintf(ngc.ourhook, sizeof(ngc.ourhook), NG_SOCK_HOOK_NAME);
 	snprintf(ngc.peerhook, sizeof(ngc.peerhook), "%s", hook);
 
-	if (NgSendMsg(csock, ".",
-	    NGM_GENERIC_COOKIE, NGM_CONNECT, &ngc, sizeof(ngc)) < 0)
+	if (NgSendMsg(csock, ".", NGM_GENERIC_COOKIE, NGM_CONNECT, &ngc,
+		sizeof(ngc)) < 0)
 		errx(EX_OSERR, "can't connect to node");
 
 	if (execFlag) {
@@ -183,7 +182,7 @@ main(int ac, char *av[])
 
 	/* Relay data */
 	while (1) {
-		fd_set  rfds;
+		fd_set rfds;
 
 		/* Setup bits */
 		FD_ZERO(&rfds);
@@ -197,39 +196,40 @@ main(int ac, char *av[])
 
 		/* Check data from socket */
 		if (FD_ISSET(dsock, &rfds)) {
-			char    buf[BUF_SIZE];
-			int     rl, wl;
+			char buf[BUF_SIZE];
+			int rl, wl;
 
 			/* Read packet from socket */
-			if ((rl = NgRecvData(dsock,
-			    buf, sizeof(buf), NULL)) < 0)
+			if ((rl = NgRecvData(dsock, buf, sizeof(buf), NULL)) <
+			    0)
 				err(EX_OSERR, "read(hook)");
 			if (rl == 0)
 				errx(EX_OSERR, "read EOF from hook?!");
 
 			/* Write packet to stdout */
 			if (asciiFlag)
-				WriteAscii((u_char *) buf, rl);
+				WriteAscii((u_char *)buf, rl);
 			else if ((wl = write(outfd, buf, rl)) != rl) {
 				if (wl < 0) {
 					err(EX_OSERR, "write(stdout)");
 				} else {
 					errx(EX_OSERR,
-					    "stdout: read %d, wrote %d",
-					    rl, wl);
+					    "stdout: read %d, wrote %d", rl,
+					    wl);
 				}
 			}
 			/* Loopback */
 			if (loopFlag) {
-				if (NgSendData(dsock, NG_SOCK_HOOK_NAME, buf, rl) < 0)
+				if (NgSendData(dsock, NG_SOCK_HOOK_NAME, buf,
+					rl) < 0)
 					err(EX_OSERR, "write(hook)");
 			}
 		}
 
 		/* Check data from stdin */
 		if (FD_ISSET(infd, &rfds)) {
-			char    buf[BUF_SIZE];
-			int     rl;
+			char buf[BUF_SIZE];
+			int rl;
 
 			/* Read packet from stdin */
 			if ((rl = read(infd, buf, sizeof(buf))) < 0)
@@ -250,32 +250,32 @@ main(int ac, char *av[])
 static void
 WriteAscii(u_char *buf, int len)
 {
-	char    ch, sbuf[100];
-	int     k, count;
+	char ch, sbuf[100];
+	int k, count;
 
 	for (count = 0; count < len; count += 16) {
 		snprintf(sbuf, sizeof(sbuf), "%04x:  ", count);
 		for (k = 0; k < 16; k++)
 			if (count + k < len)
 				snprintf(sbuf + strlen(sbuf),
-				    sizeof(sbuf) - strlen(sbuf),
-				    "%02x ", buf[count + k]);
+				    sizeof(sbuf) - strlen(sbuf), "%02x ",
+				    buf[count + k]);
 			else
 				snprintf(sbuf + strlen(sbuf),
 				    sizeof(sbuf) - strlen(sbuf), "   ");
 		snprintf(sbuf + strlen(sbuf), sizeof(sbuf) - strlen(sbuf), " ");
 		for (k = 0; k < 16; k++)
 			if (count + k < len) {
-				ch = isprint(buf[count + k]) ?
-				    buf[count + k] : '.';
+				ch = isprint(buf[count + k]) ? buf[count + k] :
+							       '.';
 				snprintf(sbuf + strlen(sbuf),
 				    sizeof(sbuf) - strlen(sbuf), "%c", ch);
 			} else
 				snprintf(sbuf + strlen(sbuf),
 				    sizeof(sbuf) - strlen(sbuf), " ");
-		snprintf(sbuf + strlen(sbuf),
-		    sizeof(sbuf) - strlen(sbuf), "\n");
-		(void) write(outfd, sbuf, strlen(sbuf));
+		snprintf(sbuf + strlen(sbuf), sizeof(sbuf) - strlen(sbuf),
+		    "\n");
+		(void)write(outfd, sbuf, strlen(sbuf));
 	}
 	ch = '\n';
 	write(outfd, &ch, 1);
@@ -288,7 +288,8 @@ static void
 Usage(void)
 {
 	fprintf(stderr, "usage: nghook [-adlnsS] path [hookname]\n");
-	fprintf(stderr, "   or: nghook -e [-n] [-m msg]* path hookname prog "
+	fprintf(stderr,
+	    "   or: nghook -e [-n] [-m msg]* path hookname prog "
 	    "[args...]\n");
 	exit(EX_USAGE);
 }
@@ -299,7 +300,7 @@ Usage(void)
 static void
 send_msgs(int cs, const char *path)
 {
-	u_int	i;
+	u_int i;
 
 	for (i = 0; i < msgs->sl_cur; i++)
 		if (NgSendAsciiMsg(cs, path, "%s", msgs->sl_str[i]) == -1)

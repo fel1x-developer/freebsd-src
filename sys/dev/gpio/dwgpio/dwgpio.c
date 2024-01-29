@@ -38,57 +38,57 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/gpio.h>
 #include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/reboot.h>
 #include <sys/rman.h>
 #include <sys/timeet.h>
 #include <sys/timetc.h>
 #include <sys/watchdog.h>
-#include <sys/mutex.h>
-#include <sys/gpio.h>
-#include <sys/reboot.h>
-
-#include <dev/gpio/gpiobusvar.h>
-#include <dev/ofw/openfirm.h>
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
 
 #include <machine/bus.h>
 #include <machine/cpu.h>
 #include <machine/intr.h>
 
-#include "gpio_if.h"
+#include <dev/gpio/gpiobusvar.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
+
 #include "dwgpio_if.h"
+#include "gpio_if.h"
 
-#define READ4(_sc, _reg)	DWGPIO_READ((_sc)->parent, _reg)
-#define WRITE4(_sc, _reg, _val)	DWGPIO_WRITE((_sc)->parent, _reg, _val)
+#define READ4(_sc, _reg) DWGPIO_READ((_sc)->parent, _reg)
+#define WRITE4(_sc, _reg, _val) DWGPIO_WRITE((_sc)->parent, _reg, _val)
 
-#define	GPIO_SWPORT_DR(n)	(0x00 + 0xc * (n)) /* Port n Data Register */
-#define	GPIO_SWPORT_DDR(n)	(0x04 + 0xc * (n)) /* Port n Data Direction */
-#define	GPIO_INTEN		0x30	/* Interrupt Enable Register */
-#define	GPIO_INTMASK		0x34	/* Interrupt Mask Register */
-#define	GPIO_INTTYPE_LEVEL	0x38	/* Interrupt Level Register */
-#define	GPIO_INT_POLARITY	0x3C	/* Interrupt Polarity Register */
-#define	GPIO_INTSTATUS		0x40	/* Interrupt Status Register */
-#define	GPIO_RAW_INTSTATUS	0x44	/* Raw Interrupt Status Register */
-#define	GPIO_DEBOUNCE		0x48	/* Debounce Enable Register */
-#define	GPIO_PORTA_EOI		0x4C	/* Clear Interrupt Register */
-#define	GPIO_EXT_PORT(n)	(0x50 + 0x4 * (n)) /* External Port n */
-#define	GPIO_LS_SYNC		0x60	/* Synchronization Level Register */
-#define	GPIO_ID_CODE		0x64	/* ID Code Register */
-#define	GPIO_VER_ID_CODE	0x6C	/* GPIO Version Register */
-#define	GPIO_CONFIG_REG2	0x70	/* Configuration Register 2 */
-#define	 ENCODED_ID_PWIDTH_M	0x1f	/* Width of GPIO Port N Mask */
-#define	 ENCODED_ID_PWIDTH_S(n)	(5 * n)	/* Width of GPIO Port N Shift */
-#define	GPIO_CONFIG_REG1	0x74	/* Configuration Register 1 */
+#define GPIO_SWPORT_DR(n) (0x00 + 0xc * (n))  /* Port n Data Register */
+#define GPIO_SWPORT_DDR(n) (0x04 + 0xc * (n)) /* Port n Data Direction */
+#define GPIO_INTEN 0x30			      /* Interrupt Enable Register */
+#define GPIO_INTMASK 0x34		      /* Interrupt Mask Register */
+#define GPIO_INTTYPE_LEVEL 0x38		      /* Interrupt Level Register */
+#define GPIO_INT_POLARITY 0x3C		      /* Interrupt Polarity Register */
+#define GPIO_INTSTATUS 0x40		      /* Interrupt Status Register */
+#define GPIO_RAW_INTSTATUS 0x44		    /* Raw Interrupt Status Register */
+#define GPIO_DEBOUNCE 0x48		    /* Debounce Enable Register */
+#define GPIO_PORTA_EOI 0x4C		    /* Clear Interrupt Register */
+#define GPIO_EXT_PORT(n) (0x50 + 0x4 * (n)) /* External Port n */
+#define GPIO_LS_SYNC 0x60		    /* Synchronization Level Register */
+#define GPIO_ID_CODE 0x64		    /* ID Code Register */
+#define GPIO_VER_ID_CODE 0x6C		    /* GPIO Version Register */
+#define GPIO_CONFIG_REG2 0x70		    /* Configuration Register 2 */
+#define ENCODED_ID_PWIDTH_M 0x1f	    /* Width of GPIO Port N Mask */
+#define ENCODED_ID_PWIDTH_S(n) (5 * n)	    /* Width of GPIO Port N Shift */
+#define GPIO_CONFIG_REG1 0x74		    /* Configuration Register 1 */
 
-#define	NR_GPIO_MAX	32	/* Maximum pins per port */
+#define NR_GPIO_MAX 32 /* Maximum pins per port */
 
-#define	GPIO_LOCK(_sc)		mtx_lock(&(_sc)->sc_mtx)
-#define	GPIO_UNLOCK(_sc)	mtx_unlock(&(_sc)->sc_mtx)
+#define GPIO_LOCK(_sc) mtx_lock(&(_sc)->sc_mtx)
+#define GPIO_UNLOCK(_sc) mtx_unlock(&(_sc)->sc_mtx)
 
-#define	DEFAULT_CAPS	(GPIO_PIN_INPUT | GPIO_PIN_OUTPUT)
+#define DEFAULT_CAPS (GPIO_PIN_INPUT | GPIO_PIN_OUTPUT)
 
 /*
  * GPIO interface
@@ -104,14 +104,14 @@ static int dwgpio_pin_get(device_t, uint32_t, unsigned int *);
 static int dwgpio_pin_toggle(device_t, uint32_t pin);
 
 struct dwgpio_softc {
-	device_t		dev;
-	device_t		busdev;
-	device_t		parent;
-	struct mtx		sc_mtx;
-	int			gpio_npins;
-	struct gpio_pin		gpio_pins[NR_GPIO_MAX];
-	phandle_t		node;
-	int			port;
+	device_t dev;
+	device_t busdev;
+	device_t parent;
+	struct mtx sc_mtx;
+	int gpio_npins;
+	struct gpio_pin gpio_pins[NR_GPIO_MAX];
+	phandle_t node;
+	int port;
 };
 
 static int
@@ -148,14 +148,13 @@ dwgpio_attach(device_t dev)
 
 	printf("port %d\n", sc->port);
 
-	version =  READ4(sc, GPIO_VER_ID_CODE);
+	version = READ4(sc, GPIO_VER_ID_CODE);
 	if (boothowto & RB_VERBOSE)
 		device_printf(sc->dev, "Version = 0x%08x\n", version);
 
 	/* Grab number of pins from hardware. */
 	cfg2 = READ4(sc, GPIO_CONFIG_REG2);
-	nr_pins = (cfg2 >> ENCODED_ID_PWIDTH_S(sc->port)) & \
-			ENCODED_ID_PWIDTH_M;
+	nr_pins = (cfg2 >> ENCODED_ID_PWIDTH_S(sc->port)) & ENCODED_ID_PWIDTH_M;
 	sc->gpio_npins = nr_pins + 1;
 
 	for (i = 0; i < sc->gpio_npins; i++) {
@@ -163,9 +162,10 @@ dwgpio_attach(device_t dev)
 		sc->gpio_pins[i].gp_caps = DEFAULT_CAPS;
 		sc->gpio_pins[i].gp_flags =
 		    (READ4(sc, GPIO_SWPORT_DDR(sc->port)) & (1 << i)) ?
-		    GPIO_PIN_OUTPUT: GPIO_PIN_INPUT;
-		snprintf(sc->gpio_pins[i].gp_name, GPIOMAXNAME,
-		    "dwgpio%d.%d", device_get_unit(dev), i);
+		    GPIO_PIN_OUTPUT :
+		    GPIO_PIN_INPUT;
+		snprintf(sc->gpio_pins[i].gp_name, GPIOMAXNAME, "dwgpio%d.%d",
+		    device_get_unit(dev), i);
 	}
 	sc->busdev = gpiobus_attach_bus(dev);
 	if (sc->busdev == NULL) {
@@ -314,10 +314,9 @@ dwgpio_pin_toggle(device_t dev, uint32_t pin)
 	return (0);
 }
 
-
 static void
-dwgpio_pin_configure(struct dwgpio_softc *sc,
-    struct gpio_pin *pin, unsigned int flags)
+dwgpio_pin_configure(struct dwgpio_softc *sc, struct gpio_pin *pin,
+    unsigned int flags)
 {
 	int reg;
 
@@ -328,8 +327,8 @@ dwgpio_pin_configure(struct dwgpio_softc *sc,
 	 */
 
 	reg = READ4(sc, GPIO_SWPORT_DDR(sc->port));
-	if (flags & (GPIO_PIN_INPUT|GPIO_PIN_OUTPUT)) {
-		pin->gp_flags &= ~(GPIO_PIN_INPUT|GPIO_PIN_OUTPUT);
+	if (flags & (GPIO_PIN_INPUT | GPIO_PIN_OUTPUT)) {
+		pin->gp_flags &= ~(GPIO_PIN_INPUT | GPIO_PIN_OUTPUT);
 		if (flags & GPIO_PIN_OUTPUT) {
 			pin->gp_flags |= GPIO_PIN_OUTPUT;
 			reg |= (1 << pin->gp_pin);
@@ -342,7 +341,6 @@ dwgpio_pin_configure(struct dwgpio_softc *sc,
 	WRITE4(sc, GPIO_SWPORT_DDR(sc->port), reg);
 	GPIO_UNLOCK(sc);
 }
-
 
 static int
 dwgpio_pin_setflags(device_t dev, uint32_t pin, uint32_t flags)
@@ -393,22 +391,20 @@ dwgpio_pin_set(device_t dev, uint32_t pin, unsigned int value)
 	return (0);
 }
 
-static device_method_t dwgpio_methods[] = {
-	DEVMETHOD(device_probe,		dwgpio_probe),
-	DEVMETHOD(device_attach,	dwgpio_attach),
+static device_method_t dwgpio_methods[] = { DEVMETHOD(device_probe,
+						dwgpio_probe),
+	DEVMETHOD(device_attach, dwgpio_attach),
 
 	/* GPIO protocol */
-	DEVMETHOD(gpio_get_bus,		dwgpio_get_bus),
-	DEVMETHOD(gpio_pin_max,		dwgpio_pin_max),
-	DEVMETHOD(gpio_pin_getname,	dwgpio_pin_getname),
-	DEVMETHOD(gpio_pin_getcaps,	dwgpio_pin_getcaps),
-	DEVMETHOD(gpio_pin_getflags,	dwgpio_pin_getflags),
-	DEVMETHOD(gpio_pin_get,		dwgpio_pin_get),
-	DEVMETHOD(gpio_pin_toggle,	dwgpio_pin_toggle),
-	DEVMETHOD(gpio_pin_setflags,	dwgpio_pin_setflags),
-	DEVMETHOD(gpio_pin_set,		dwgpio_pin_set),
-	{ 0, 0 }
-};
+	DEVMETHOD(gpio_get_bus, dwgpio_get_bus),
+	DEVMETHOD(gpio_pin_max, dwgpio_pin_max),
+	DEVMETHOD(gpio_pin_getname, dwgpio_pin_getname),
+	DEVMETHOD(gpio_pin_getcaps, dwgpio_pin_getcaps),
+	DEVMETHOD(gpio_pin_getflags, dwgpio_pin_getflags),
+	DEVMETHOD(gpio_pin_get, dwgpio_pin_get),
+	DEVMETHOD(gpio_pin_toggle, dwgpio_pin_toggle),
+	DEVMETHOD(gpio_pin_setflags, dwgpio_pin_setflags),
+	DEVMETHOD(gpio_pin_set, dwgpio_pin_set), { 0, 0 } };
 
 static driver_t dwgpio_driver = {
 	"gpio",

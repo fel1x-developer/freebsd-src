@@ -41,16 +41,19 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
 #include <arpa/nameser.h>
 #include <errno.h>
 #include <netdb.h>
+#include <nsswitch.h>
 #include <resolv.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdarg.h>
-#include <nsswitch.h>
+
 #include "netdb_private.h"
 
 void
@@ -177,7 +180,7 @@ getnetent(void)
 	if ((nd = __netdata_init()) == NULL)
 		return (NULL);
 	if (getnetent_r(&nd->net, nd->data, sizeof(nd->data), &rval,
-	    &ret_h_errno) != 0)
+		&ret_h_errno) != 0)
 		return (NULL);
 	return (rval);
 }

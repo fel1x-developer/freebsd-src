@@ -30,48 +30,49 @@
  */
 
 #include "opt_acpi.h"
+
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
-
 #include <dev/acpica/acpivar.h>
+
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
 #include <isa/isavar.h>
 
 /* Hooks for the ACPI CA debugging infrastructure. */
-#define _COMPONENT	ACPI_BUS
+#define _COMPONENT ACPI_BUS
 ACPI_MODULE_NAME("ISA_ACPI")
 
 struct acpi_isab_softc {
-	device_t	ap_dev;
-	ACPI_HANDLE	ap_handle;
+	device_t ap_dev;
+	ACPI_HANDLE ap_handle;
 };
 
-static int	acpi_isab_probe(device_t bus);
-static int	acpi_isab_attach(device_t bus);
-static int	acpi_isab_read_ivar(device_t dev, device_t child, int which,
-		    uintptr_t *result);
+static int acpi_isab_probe(device_t bus);
+static int acpi_isab_attach(device_t bus);
+static int acpi_isab_read_ivar(device_t dev, device_t child, int which,
+    uintptr_t *result);
 
 static device_method_t acpi_isab_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		acpi_isab_probe),
-	DEVMETHOD(device_attach,	acpi_isab_attach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	bus_generic_resume),
+	DEVMETHOD(device_probe, acpi_isab_probe),
+	DEVMETHOD(device_attach, acpi_isab_attach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
 
 	/* Bus interface */
-	DEVMETHOD(bus_read_ivar,	acpi_isab_read_ivar),
-	DEVMETHOD(bus_alloc_resource,	bus_generic_alloc_resource),
-	DEVMETHOD(bus_release_resource,	bus_generic_release_resource),
+	DEVMETHOD(bus_read_ivar, acpi_isab_read_ivar),
+	DEVMETHOD(bus_alloc_resource, bus_generic_alloc_resource),
+	DEVMETHOD(bus_release_resource, bus_generic_release_resource),
 	DEVMETHOD(bus_activate_resource, bus_generic_activate_resource),
 	DEVMETHOD(bus_deactivate_resource, bus_generic_deactivate_resource),
-	DEVMETHOD(bus_setup_intr,	bus_generic_setup_intr),
-	DEVMETHOD(bus_teardown_intr,	bus_generic_teardown_intr),
+	DEVMETHOD(bus_setup_intr, bus_generic_setup_intr),
+	DEVMETHOD(bus_teardown_intr, bus_generic_teardown_intr),
 
 	DEVMETHOD_END
 };
@@ -104,7 +105,7 @@ acpi_isab_attach(device_t dev)
 {
 	struct acpi_isab_softc *sc;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	sc = device_get_softc(dev);
 	sc->ap_dev = dev;

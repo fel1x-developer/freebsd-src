@@ -37,50 +37,48 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/malloc.h>
-#include <sys/module.h>
+#include <sys/bus.h>
 #include <sys/endian.h>
 #include <sys/errno.h>
 #include <sys/firmware.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
-#include <machine/bus.h>
-#include <machine/resource.h>
-#include <sys/bus.h>
 #include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 
+#include <machine/bus.h>
+#include <machine/resource.h>
+
+#include <dev/bwn/if_bwn_debug.h>
+#include <dev/bwn/if_bwn_misc.h>
+#include <dev/bwn/if_bwn_phy_n.h>
+#include <dev/bwn/if_bwnreg.h>
+#include <dev/bwn/if_bwnvar.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
 #include <net/ethernet.h>
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_arp.h>
 #include <net/if_dl.h>
 #include <net/if_llc.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
-
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-#include <net80211/ieee80211_regdomain.h>
+#include <net/if_var.h>
 #include <net80211/ieee80211_phy.h>
+#include <net80211/ieee80211_radiotap.h>
 #include <net80211/ieee80211_ratectl.h>
+#include <net80211/ieee80211_regdomain.h>
+#include <net80211/ieee80211_var.h>
 
-#include <dev/bwn/if_bwnreg.h>
-#include <dev/bwn/if_bwnvar.h>
-
-#include <dev/bwn/if_bwn_debug.h>
-#include <dev/bwn/if_bwn_misc.h>
-#include <dev/bwn/if_bwn_phy_n.h>
-
-#ifdef	BWN_GPL_PHY
-#include <gnu/dev/bwn/phy_n/if_bwn_phy_n_tables.h>
-#include <gnu/dev/bwn/phy_n/if_bwn_phy_n_ppr.h>
+#ifdef BWN_GPL_PHY
 #include <gnu/dev/bwn/phy_n/if_bwn_phy_n_core.h>
+#include <gnu/dev/bwn/phy_n/if_bwn_phy_n_ppr.h>
+#include <gnu/dev/bwn/phy_n/if_bwn_phy_n_tables.h>
 #endif
 
 /*
@@ -93,12 +91,13 @@ int
 bwn_phy_n_attach(struct bwn_mac *mac)
 {
 
-#ifdef	BWN_GPL_PHY
+#ifdef BWN_GPL_PHY
 	return bwn_nphy_op_allocate(mac);
 #else
 	device_printf(mac->mac_sc->sc_dev,
 	    "%s: BWN_GPL_PHY not in kernel config; "
-	    "no PHY-N support\n", __func__);
+	    "no PHY-N support\n",
+	    __func__);
 	return (ENXIO);
 #endif
 }
@@ -107,7 +106,7 @@ void
 bwn_phy_n_detach(struct bwn_mac *mac)
 {
 
-#ifdef	BWN_GPL_PHY
+#ifdef BWN_GPL_PHY
 	return bwn_nphy_op_free(mac);
 #endif
 }
@@ -116,7 +115,7 @@ int
 bwn_phy_n_prepare_hw(struct bwn_mac *mac)
 {
 
-#ifdef	BWN_GPL_PHY
+#ifdef BWN_GPL_PHY
 	return (bwn_nphy_op_prepare_structs(mac));
 #else
 	return (ENXIO);
@@ -133,7 +132,7 @@ bwn_phy_n_init_pre(struct bwn_mac *mac)
 int
 bwn_phy_n_init(struct bwn_mac *mac)
 {
-#ifdef	BWN_GPL_PHY
+#ifdef BWN_GPL_PHY
 	return bwn_nphy_op_init(mac);
 #else
 	return (ENXIO);
@@ -173,7 +172,7 @@ bwn_phy_n_rf_read(struct bwn_mac *mac, uint16_t reg)
 	}
 
 	if (mac->mac_phy.rev >= 7)
-		reg |= 0x200;	 /* radio 0x2057 */
+		reg |= 0x200; /* radio 0x2057 */
 	else
 		reg |= 0x100;
 
@@ -204,7 +203,7 @@ bwn_phy_n_hwpctl(struct bwn_mac *mac)
 void
 bwn_phy_n_rf_onoff(struct bwn_mac *mac, int on)
 {
-#ifdef	BWN_GPL_PHY
+#ifdef BWN_GPL_PHY
 	bwn_nphy_op_software_rfkill(mac, on);
 #endif
 }
@@ -212,7 +211,7 @@ bwn_phy_n_rf_onoff(struct bwn_mac *mac, int on)
 void
 bwn_phy_n_switch_analog(struct bwn_mac *mac, int on)
 {
-#ifdef	BWN_GPL_PHY
+#ifdef BWN_GPL_PHY
 	bwn_nphy_op_switch_analog(mac, on);
 #endif
 }
@@ -220,7 +219,7 @@ bwn_phy_n_switch_analog(struct bwn_mac *mac, int on)
 int
 bwn_phy_n_switch_channel(struct bwn_mac *mac, uint32_t newchan)
 {
-#ifdef	BWN_GPL_PHY
+#ifdef BWN_GPL_PHY
 	return bwn_nphy_op_switch_channel(mac, newchan);
 #else
 	return (ENXIO);
@@ -252,7 +251,7 @@ bwn_phy_n_im(struct bwn_mac *mac, int mode)
 bwn_txpwr_result_t
 bwn_phy_n_recalc_txpwr(struct bwn_mac *mac, int ignore_tssi)
 {
-#ifdef	BWN_GPL_PHY
+#ifdef BWN_GPL_PHY
 	return bwn_nphy_op_recalc_txpower(mac, ignore_tssi);
 #else
 	return (BWN_TXPWR_RES_DONE);
@@ -262,17 +261,14 @@ bwn_phy_n_recalc_txpwr(struct bwn_mac *mac, int ignore_tssi)
 void
 bwn_phy_n_set_txpwr(struct bwn_mac *mac)
 {
-
 }
 
 void
 bwn_phy_n_task_15s(struct bwn_mac *mac)
 {
-
 }
 
 void
 bwn_phy_n_task_60s(struct bwn_mac *mac)
 {
-
 }

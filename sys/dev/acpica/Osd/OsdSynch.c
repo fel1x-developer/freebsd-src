@@ -31,16 +31,16 @@
  */
 
 #include <sys/cdefs.h>
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
-
 #include <sys/condvar.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
 
-#define	_COMPONENT	ACPI_OS_SERVICES
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
+
+#define _COMPONENT ACPI_OS_SERVICES
 ACPI_MODULE_NAME("SYNCH")
 
 static MALLOC_DEFINE(M_ACPISEM, "acpisem", "ACPI semaphore");
@@ -51,7 +51,7 @@ static MALLOC_DEFINE(M_ACPISEM, "acpisem", "ACPI semaphore");
 static int
 timeout2hz(UINT16 Timeout)
 {
-	struct timeval		tv;
+	struct timeval tv;
 
 	tv.tv_sec = (time_t)(Timeout / 1000);
 	tv.tv_usec = (suseconds_t)(Timeout % 1000) * 1000;
@@ -63,28 +63,28 @@ timeout2hz(UINT16 Timeout)
  * ACPI_SEMAPHORE
  */
 struct acpi_sema {
-	struct mtx	as_lock;
-	char		as_name[32];
-	struct cv	as_cv;
-	UINT32		as_maxunits;
-	UINT32		as_units;
-	int		as_waiters;
-	int		as_reset;
+	struct mtx as_lock;
+	char as_name[32];
+	struct cv as_cv;
+	UINT32 as_maxunits;
+	UINT32 as_units;
+	int as_waiters;
+	int as_reset;
 };
 
 ACPI_STATUS
 AcpiOsCreateSemaphore(UINT32 MaxUnits, UINT32 InitialUnits,
     ACPI_SEMAPHORE *OutHandle)
 {
-	struct acpi_sema	*as;
+	struct acpi_sema *as;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	if (OutHandle == NULL || MaxUnits == 0 || InitialUnits > MaxUnits)
-		return_ACPI_STATUS (AE_BAD_PARAMETER);
+		return_ACPI_STATUS(AE_BAD_PARAMETER);
 
 	if ((as = malloc(sizeof(*as), M_ACPISEM, M_NOWAIT | M_ZERO)) == NULL)
-		return_ACPI_STATUS (AE_NO_MEMORY);
+		return_ACPI_STATUS(AE_NO_MEMORY);
 
 	snprintf(as->as_name, sizeof(as->as_name), "ACPI sema (%p)", as);
 	mtx_init(&as->as_lock, as->as_name, NULL, MTX_DEF);
@@ -97,41 +97,41 @@ AcpiOsCreateSemaphore(UINT32 MaxUnits, UINT32 InitialUnits,
 	ACPI_DEBUG_PRINT((ACPI_DB_MUTEX, "created %s, max %u, initial %u\n",
 	    as->as_name, MaxUnits, InitialUnits));
 
-	return_ACPI_STATUS (AE_OK);
+	return_ACPI_STATUS(AE_OK);
 }
 
 ACPI_STATUS
 AcpiOsDeleteSemaphore(ACPI_SEMAPHORE Handle)
 {
-	struct acpi_sema	*as = (struct acpi_sema *)Handle;
+	struct acpi_sema *as = (struct acpi_sema *)Handle;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	if (as == NULL)
-		return_ACPI_STATUS (AE_BAD_PARAMETER);
+		return_ACPI_STATUS(AE_BAD_PARAMETER);
 
 	mtx_lock(&as->as_lock);
 
 	ACPI_DEBUG_PRINT((ACPI_DB_MUTEX, "delete %s\n", as->as_name));
 
 	if (as->as_waiters > 0) {
-		ACPI_DEBUG_PRINT((ACPI_DB_MUTEX,
-		    "reset %s, units %u, waiters %d\n",
-		    as->as_name, as->as_units, as->as_waiters));
+		ACPI_DEBUG_PRINT(
+		    (ACPI_DB_MUTEX, "reset %s, units %u, waiters %d\n",
+			as->as_name, as->as_units, as->as_waiters));
 		as->as_reset = 1;
 		cv_broadcast(&as->as_cv);
 		while (as->as_waiters > 0) {
-			if (mtx_sleep(&as->as_reset, &as->as_lock,
-			    PCATCH, "acsrst", hz) == EINTR) {
+			if (mtx_sleep(&as->as_reset, &as->as_lock, PCATCH,
+				"acsrst", hz) == EINTR) {
 				ACPI_DEBUG_PRINT((ACPI_DB_MUTEX,
 				    "failed to reset %s, waiters %d\n",
 				    as->as_name, as->as_waiters));
 				mtx_unlock(&as->as_lock);
-				return_ACPI_STATUS (AE_ERROR);
+				return_ACPI_STATUS(AE_ERROR);
 			}
-			ACPI_DEBUG_PRINT((ACPI_DB_MUTEX,
-			    "wait %s, units %u, waiters %d\n",
-			    as->as_name, as->as_units, as->as_waiters));
+			ACPI_DEBUG_PRINT(
+			    (ACPI_DB_MUTEX, "wait %s, units %u, waiters %d\n",
+				as->as_name, as->as_units, as->as_waiters));
 		}
 	}
 
@@ -141,32 +141,32 @@ AcpiOsDeleteSemaphore(ACPI_SEMAPHORE Handle)
 	cv_destroy(&as->as_cv);
 	free(as, M_ACPISEM);
 
-	return_ACPI_STATUS (AE_OK);
+	return_ACPI_STATUS(AE_OK);
 }
 
-#define	ACPISEM_AVAIL(s, u)	((s)->as_units >= (u))
+#define ACPISEM_AVAIL(s, u) ((s)->as_units >= (u))
 
 ACPI_STATUS
 AcpiOsWaitSemaphore(ACPI_SEMAPHORE Handle, UINT32 Units, UINT16 Timeout)
 {
-	struct acpi_sema	*as = (struct acpi_sema *)Handle;
-	int			error, prevtick, slptick, tmo;
-	ACPI_STATUS		status = AE_OK;
+	struct acpi_sema *as = (struct acpi_sema *)Handle;
+	int error, prevtick, slptick, tmo;
+	ACPI_STATUS status = AE_OK;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	if (as == NULL || Units == 0)
-		return_ACPI_STATUS (AE_BAD_PARAMETER);
+		return_ACPI_STATUS(AE_BAD_PARAMETER);
 
 	mtx_lock(&as->as_lock);
 
 	ACPI_DEBUG_PRINT((ACPI_DB_MUTEX,
-	    "get %u unit(s) from %s, units %u, waiters %d, timeout %u\n",
-	    Units, as->as_name, as->as_units, as->as_waiters, Timeout));
+	    "get %u unit(s) from %s, units %u, waiters %d, timeout %u\n", Units,
+	    as->as_name, as->as_units, as->as_waiters, Timeout));
 
 	if (as->as_maxunits != ACPI_NO_UNIT_LIMIT && as->as_maxunits < Units) {
 		mtx_unlock(&as->as_lock);
-		return_ACPI_STATUS (AE_LIMIT);
+		return_ACPI_STATUS(AE_LIMIT);
 	}
 
 	switch (Timeout) {
@@ -228,33 +228,33 @@ AcpiOsWaitSemaphore(ACPI_SEMAPHORE Handle, UINT32 Units, UINT16 Timeout)
 
 	mtx_unlock(&as->as_lock);
 
-	return_ACPI_STATUS (status);
+	return_ACPI_STATUS(status);
 }
 
 ACPI_STATUS
 AcpiOsSignalSemaphore(ACPI_SEMAPHORE Handle, UINT32 Units)
 {
-	struct acpi_sema	*as = (struct acpi_sema *)Handle;
-	UINT32			i;
+	struct acpi_sema *as = (struct acpi_sema *)Handle;
+	UINT32 i;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	if (as == NULL || Units == 0)
-		return_ACPI_STATUS (AE_BAD_PARAMETER);
+		return_ACPI_STATUS(AE_BAD_PARAMETER);
 
 	mtx_lock(&as->as_lock);
 
-	ACPI_DEBUG_PRINT((ACPI_DB_MUTEX,
-	    "return %u units to %s, units %u, waiters %d\n",
-	    Units, as->as_name, as->as_units, as->as_waiters));
+	ACPI_DEBUG_PRINT(
+	    (ACPI_DB_MUTEX, "return %u units to %s, units %u, waiters %d\n",
+		Units, as->as_name, as->as_units, as->as_waiters));
 
 	if (as->as_maxunits != ACPI_NO_UNIT_LIMIT &&
 	    (as->as_maxunits < Units ||
-	    as->as_maxunits - Units < as->as_units)) {
-		ACPI_DEBUG_PRINT((ACPI_DB_MUTEX,
-		    "exceeded max units %u\n", as->as_maxunits));
+		as->as_maxunits - Units < as->as_units)) {
+		ACPI_DEBUG_PRINT((ACPI_DB_MUTEX, "exceeded max units %u\n",
+		    as->as_maxunits));
 		mtx_unlock(&as->as_lock);
-		return_ACPI_STATUS (AE_LIMIT);
+		return_ACPI_STATUS(AE_LIMIT);
 	}
 
 	as->as_units += Units;
@@ -264,7 +264,7 @@ AcpiOsSignalSemaphore(ACPI_SEMAPHORE Handle, UINT32 Units)
 
 	mtx_unlock(&as->as_lock);
 
-	return_ACPI_STATUS (AE_OK);
+	return_ACPI_STATUS(AE_OK);
 }
 
 #undef ACPISEM_AVAIL
@@ -273,26 +273,26 @@ AcpiOsSignalSemaphore(ACPI_SEMAPHORE Handle, UINT32 Units)
  * ACPI_MUTEX
  */
 struct acpi_mutex {
-	struct mtx	am_lock;
-	char		am_name[32];
-	struct thread	*am_owner;
-	int		am_nested;
-	int		am_waiters;
-	int		am_reset;
+	struct mtx am_lock;
+	char am_name[32];
+	struct thread *am_owner;
+	int am_nested;
+	int am_waiters;
+	int am_reset;
 };
 
 ACPI_STATUS
 AcpiOsCreateMutex(ACPI_MUTEX *OutHandle)
 {
-	struct acpi_mutex	*am;
+	struct acpi_mutex *am;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	if (OutHandle == NULL)
-		return_ACPI_STATUS (AE_BAD_PARAMETER);
+		return_ACPI_STATUS(AE_BAD_PARAMETER);
 
 	if ((am = malloc(sizeof(*am), M_ACPISEM, M_NOWAIT | M_ZERO)) == NULL)
-		return_ACPI_STATUS (AE_NO_MEMORY);
+		return_ACPI_STATUS(AE_NO_MEMORY);
 
 	snprintf(am->am_name, sizeof(am->am_name), "ACPI mutex (%p)", am);
 	mtx_init(&am->am_lock, am->am_name, NULL, MTX_DEF);
@@ -301,18 +301,18 @@ AcpiOsCreateMutex(ACPI_MUTEX *OutHandle)
 
 	*OutHandle = (ACPI_MUTEX)am;
 
-	return_ACPI_STATUS (AE_OK);
+	return_ACPI_STATUS(AE_OK);
 }
 
-#define	ACPIMTX_AVAIL(m)	((m)->am_owner == NULL)
-#define	ACPIMTX_OWNED(m)	((m)->am_owner == curthread)
+#define ACPIMTX_AVAIL(m) ((m)->am_owner == NULL)
+#define ACPIMTX_OWNED(m) ((m)->am_owner == curthread)
 
 void
 AcpiOsDeleteMutex(ACPI_MUTEX Handle)
 {
-	struct acpi_mutex	*am = (struct acpi_mutex *)Handle;
+	struct acpi_mutex *am = (struct acpi_mutex *)Handle;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	if (am == NULL) {
 		ACPI_DEBUG_PRINT((ACPI_DB_MUTEX, "cannot delete null mutex\n"));
@@ -324,13 +324,13 @@ AcpiOsDeleteMutex(ACPI_MUTEX Handle)
 	ACPI_DEBUG_PRINT((ACPI_DB_MUTEX, "delete %s\n", am->am_name));
 
 	if (am->am_waiters > 0) {
-		ACPI_DEBUG_PRINT((ACPI_DB_MUTEX,
-		    "reset %s, owner %p\n", am->am_name, am->am_owner));
+		ACPI_DEBUG_PRINT((ACPI_DB_MUTEX, "reset %s, owner %p\n",
+		    am->am_name, am->am_owner));
 		am->am_reset = 1;
 		wakeup(am);
 		while (am->am_waiters > 0) {
-			if (mtx_sleep(&am->am_reset, &am->am_lock,
-			    PCATCH, "acmrst", hz) == EINTR) {
+			if (mtx_sleep(&am->am_reset, &am->am_lock, PCATCH,
+				"acmrst", hz) == EINTR) {
 				ACPI_DEBUG_PRINT((ACPI_DB_MUTEX,
 				    "failed to reset %s, waiters %d\n",
 				    am->am_name, am->am_waiters));
@@ -338,9 +338,9 @@ AcpiOsDeleteMutex(ACPI_MUTEX Handle)
 				return_VOID;
 			}
 			if (ACPIMTX_AVAIL(am))
-				ACPI_DEBUG_PRINT((ACPI_DB_MUTEX,
-				    "wait %s, waiters %d\n",
-				    am->am_name, am->am_waiters));
+				ACPI_DEBUG_PRINT(
+				    (ACPI_DB_MUTEX, "wait %s, waiters %d\n",
+					am->am_name, am->am_waiters));
 			else
 				ACPI_DEBUG_PRINT((ACPI_DB_MUTEX,
 				    "wait %s, owner %p, waiters %d\n",
@@ -357,14 +357,14 @@ AcpiOsDeleteMutex(ACPI_MUTEX Handle)
 ACPI_STATUS
 AcpiOsAcquireMutex(ACPI_MUTEX Handle, UINT16 Timeout)
 {
-	struct acpi_mutex	*am = (struct acpi_mutex *)Handle;
-	int			error, prevtick, slptick, tmo;
-	ACPI_STATUS		status = AE_OK;
+	struct acpi_mutex *am = (struct acpi_mutex *)Handle;
+	int error, prevtick, slptick, tmo;
+	ACPI_STATUS status = AE_OK;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	if (am == NULL)
-		return_ACPI_STATUS (AE_BAD_PARAMETER);
+		return_ACPI_STATUS(AE_BAD_PARAMETER);
 
 	mtx_lock(&am->am_lock);
 
@@ -372,11 +372,11 @@ AcpiOsAcquireMutex(ACPI_MUTEX Handle, UINT16 Timeout)
 
 	if (ACPIMTX_OWNED(am)) {
 		am->am_nested++;
-		ACPI_DEBUG_PRINT((ACPI_DB_MUTEX,
-		    "acquire nested %s, depth %d\n",
-		    am->am_name, am->am_nested));
+		ACPI_DEBUG_PRINT(
+		    (ACPI_DB_MUTEX, "acquire nested %s, depth %d\n",
+			am->am_name, am->am_nested));
 		mtx_unlock(&am->am_lock);
-		return_ACPI_STATUS (AE_OK);
+		return_ACPI_STATUS(AE_OK);
 	}
 
 	switch (Timeout) {
@@ -417,8 +417,8 @@ AcpiOsAcquireMutex(ACPI_MUTEX Handle, UINT16 Timeout)
 		while (!ACPIMTX_AVAIL(am)) {
 			prevtick = ticks;
 			am->am_waiters++;
-			error = mtx_sleep(am, &am->am_lock, PCATCH,
-			    "acmtx", tmo);
+			error = mtx_sleep(am, &am->am_lock, PCATCH, "acmtx",
+			    tmo);
 			am->am_waiters--;
 			if (error == EINTR || am->am_reset) {
 				status = AE_ERROR;
@@ -439,19 +439,19 @@ AcpiOsAcquireMutex(ACPI_MUTEX Handle, UINT16 Timeout)
 
 	mtx_unlock(&am->am_lock);
 
-	return_ACPI_STATUS (status);
+	return_ACPI_STATUS(status);
 }
 
 void
 AcpiOsReleaseMutex(ACPI_MUTEX Handle)
 {
-	struct acpi_mutex	*am = (struct acpi_mutex *)Handle;
+	struct acpi_mutex *am = (struct acpi_mutex *)Handle;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	if (am == NULL) {
-		ACPI_DEBUG_PRINT((ACPI_DB_MUTEX,
-		    "cannot release null mutex\n"));
+		ACPI_DEBUG_PRINT(
+		    (ACPI_DB_MUTEX, "cannot release null mutex\n"));
 		return_VOID;
 	}
 
@@ -461,9 +461,9 @@ AcpiOsReleaseMutex(ACPI_MUTEX Handle)
 
 	if (ACPIMTX_OWNED(am)) {
 		if (am->am_nested > 0) {
-			ACPI_DEBUG_PRINT((ACPI_DB_MUTEX,
-			    "release nested %s, depth %d\n",
-			    am->am_name, am->am_nested));
+			ACPI_DEBUG_PRINT(
+			    (ACPI_DB_MUTEX, "release nested %s, depth %d\n",
+				am->am_name, am->am_nested));
 			am->am_nested--;
 		} else
 			am->am_owner = NULL;
@@ -489,23 +489,23 @@ AcpiOsReleaseMutex(ACPI_MUTEX Handle)
  * ACPI_SPINLOCK
  */
 struct acpi_spinlock {
-	struct mtx	al_lock;
-	char		al_name[32];
-	int		al_nested;
+	struct mtx al_lock;
+	char al_name[32];
+	int al_nested;
 };
 
 ACPI_STATUS
 AcpiOsCreateLock(ACPI_SPINLOCK *OutHandle)
 {
-	struct acpi_spinlock	*al;
+	struct acpi_spinlock *al;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	if (OutHandle == NULL)
-		return_ACPI_STATUS (AE_BAD_PARAMETER);
+		return_ACPI_STATUS(AE_BAD_PARAMETER);
 
 	if ((al = malloc(sizeof(*al), M_ACPISEM, M_NOWAIT | M_ZERO)) == NULL)
-		return_ACPI_STATUS (AE_NO_MEMORY);
+		return_ACPI_STATUS(AE_NO_MEMORY);
 
 #ifdef ACPI_DEBUG
 	if (OutHandle == &AcpiGbl_GpeLock)
@@ -514,26 +514,27 @@ AcpiOsCreateLock(ACPI_SPINLOCK *OutHandle)
 		snprintf(al->al_name, sizeof(al->al_name), "ACPI lock (HW)");
 	else
 #endif
-	snprintf(al->al_name, sizeof(al->al_name), "ACPI lock (%p)", al);
+		snprintf(al->al_name, sizeof(al->al_name), "ACPI lock (%p)",
+		    al);
 	mtx_init(&al->al_lock, al->al_name, NULL, MTX_SPIN);
 
 	ACPI_DEBUG_PRINT((ACPI_DB_MUTEX, "created %s\n", al->al_name));
 
 	*OutHandle = (ACPI_SPINLOCK)al;
 
-	return_ACPI_STATUS (AE_OK);
+	return_ACPI_STATUS(AE_OK);
 }
 
 void
 AcpiOsDeleteLock(ACPI_SPINLOCK Handle)
 {
-	struct acpi_spinlock	*al = (struct acpi_spinlock *)Handle;
+	struct acpi_spinlock *al = (struct acpi_spinlock *)Handle;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	if (al == NULL) {
-		ACPI_DEBUG_PRINT((ACPI_DB_MUTEX,
-		    "cannot delete null spinlock\n"));
+		ACPI_DEBUG_PRINT(
+		    (ACPI_DB_MUTEX, "cannot delete null spinlock\n"));
 		return_VOID;
 	}
 
@@ -546,13 +547,13 @@ AcpiOsDeleteLock(ACPI_SPINLOCK Handle)
 ACPI_CPU_FLAGS
 AcpiOsAcquireLock(ACPI_SPINLOCK Handle)
 {
-	struct acpi_spinlock	*al = (struct acpi_spinlock *)Handle;
+	struct acpi_spinlock *al = (struct acpi_spinlock *)Handle;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	if (al == NULL) {
-		ACPI_DEBUG_PRINT((ACPI_DB_MUTEX,
-		    "cannot acquire null spinlock\n"));
+		ACPI_DEBUG_PRINT(
+		    (ACPI_DB_MUTEX, "cannot acquire null spinlock\n"));
 		return (0);
 	}
 
@@ -560,9 +561,9 @@ AcpiOsAcquireLock(ACPI_SPINLOCK Handle)
 
 	if (mtx_owned(&al->al_lock)) {
 		al->al_nested++;
-		ACPI_DEBUG_PRINT((ACPI_DB_MUTEX,
-		    "acquire nested %s, depth %d\n",
-		    al->al_name, al->al_nested));
+		ACPI_DEBUG_PRINT(
+		    (ACPI_DB_MUTEX, "acquire nested %s, depth %d\n",
+			al->al_name, al->al_nested));
 	} else
 		mtx_lock_spin(&al->al_lock);
 
@@ -572,13 +573,13 @@ AcpiOsAcquireLock(ACPI_SPINLOCK Handle)
 void
 AcpiOsReleaseLock(ACPI_SPINLOCK Handle, ACPI_CPU_FLAGS Flags)
 {
-	struct acpi_spinlock	*al = (struct acpi_spinlock *)Handle;
+	struct acpi_spinlock *al = (struct acpi_spinlock *)Handle;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	if (al == NULL) {
-		ACPI_DEBUG_PRINT((ACPI_DB_MUTEX,
-		    "cannot release null spinlock\n"));
+		ACPI_DEBUG_PRINT(
+		    (ACPI_DB_MUTEX, "cannot release null spinlock\n"));
 		return_VOID;
 	}
 
@@ -586,15 +587,15 @@ AcpiOsReleaseLock(ACPI_SPINLOCK Handle, ACPI_CPU_FLAGS Flags)
 
 	if (mtx_owned(&al->al_lock)) {
 		if (al->al_nested > 0) {
-			ACPI_DEBUG_PRINT((ACPI_DB_MUTEX,
-			    "release nested %s, depth %d\n",
-			    al->al_name, al->al_nested));
+			ACPI_DEBUG_PRINT(
+			    (ACPI_DB_MUTEX, "release nested %s, depth %d\n",
+				al->al_name, al->al_nested));
 			al->al_nested--;
 		} else
 			mtx_unlock_spin(&al->al_lock);
 	} else
-		ACPI_DEBUG_PRINT((ACPI_DB_MUTEX,
-		    "cannot release unowned %s\n", al->al_name));
+		ACPI_DEBUG_PRINT((ACPI_DB_MUTEX, "cannot release unowned %s\n",
+		    al->al_name));
 }
 
 /* Section 5.2.10.1: global lock acquire/release functions */
@@ -607,7 +608,7 @@ AcpiOsReleaseLock(ACPI_SPINLOCK Handle, ACPI_CPU_FLAGS Flags)
 int
 acpi_acquire_global_lock(volatile uint32_t *lock)
 {
-	uint32_t	new, old;
+	uint32_t new, old;
 
 	do {
 		old = *lock;
@@ -616,7 +617,7 @@ acpi_acquire_global_lock(volatile uint32_t *lock)
 			new |= ACPI_GLOCK_PENDING;
 	} while (atomic_cmpset_32(lock, old, new) == 0);
 
-	return ((new & ACPI_GLOCK_PENDING) == 0);
+	return ((new &ACPI_GLOCK_PENDING) == 0);
 }
 
 /*
@@ -627,7 +628,7 @@ acpi_acquire_global_lock(volatile uint32_t *lock)
 int
 acpi_release_global_lock(volatile uint32_t *lock)
 {
-	uint32_t	new, old;
+	uint32_t new, old;
 
 	do {
 		old = *lock;

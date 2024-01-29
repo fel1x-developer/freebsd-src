@@ -27,11 +27,12 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+
 #include <stdarg.h>
 #include <stdbool.h>
 
-#include "uc_common.h"
 #include "t_generic.h"
+#include "uc_common.h"
 
 int
 t_generic(int (*client_func)(int), int (*server_func)(int))

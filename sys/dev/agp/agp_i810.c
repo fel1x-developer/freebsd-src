@@ -41,43 +41,43 @@
 
 #include <sys/cdefs.h>
 #if 0
-#define	KTR_AGP_I810	KTR_DEV
+#define KTR_AGP_I810 KTR_DEV
 #else
-#define	KTR_AGP_I810	0
+#define KTR_AGP_I810 0
 #endif
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/ktr.h>
-#include <sys/module.h>
-#include <sys/bus.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
+#include <sys/rman.h>
 #include <sys/rwlock.h>
 
-#include <dev/agp/agppriv.h>
-#include <dev/agp/agpreg.h>
-#include <dev/agp/agp_i810.h>
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pci_private.h>
-
 #include <vm/vm.h>
+#include <vm/pmap.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_kern.h>
-#include <vm/vm_param.h>
 #include <vm/vm_object.h>
 #include <vm/vm_page.h>
 #include <vm/vm_pageout.h>
-#include <vm/pmap.h>
+#include <vm/vm_param.h>
 
 #include <machine/bus.h>
-#include <machine/resource.h>
 #include <machine/md_var.h>
-#include <sys/rman.h>
+#include <machine/resource.h>
+
+#include <dev/agp/agp_i810.h>
+#include <dev/agp/agppriv.h>
+#include <dev/agp/agpreg.h>
+#include <dev/pci/pci_private.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 MALLOC_DECLARE(M_AGP);
 
@@ -158,14 +158,14 @@ static void agp_i830_chipset_flush(device_t dev);
 static void agp_i915_chipset_flush(device_t dev);
 
 enum {
-	CHIP_I810,	/* i810/i815 */
-	CHIP_I830,	/* 830M/845G */
-	CHIP_I855,	/* 852GM/855GM/865G */
-	CHIP_I915,	/* 915G/915GM */
-	CHIP_I965,	/* G965 */
-	CHIP_G33,	/* G33/Q33/Q35 */
-	CHIP_IGD,	/* Pineview */
-	CHIP_G4X,	/* G45/Q45 */
+	CHIP_I810, /* i810/i815 */
+	CHIP_I830, /* 830M/845G */
+	CHIP_I855, /* 852GM/855GM/865G */
+	CHIP_I915, /* 915G/915GM */
+	CHIP_I965, /* G965 */
+	CHIP_G33,  /* G33/Q33/Q35 */
+	CHIP_IGD,  /* Pineview */
+	CHIP_G4X,  /* G45/Q45 */
 };
 
 /* The i810 through i855 have the registers at BAR 1, and the GATT gets
@@ -175,34 +175,31 @@ enum {
  * is registers, second 512KB is GATT.
  */
 static struct resource_spec agp_i810_res_spec[] = {
-	{ SYS_RES_MEMORY, AGP_I810_MMADR, RF_ACTIVE | RF_SHAREABLE },
-	{ -1, 0 }
+	{ SYS_RES_MEMORY, AGP_I810_MMADR, RF_ACTIVE | RF_SHAREABLE }, { -1, 0 }
 };
 
 static struct resource_spec agp_i915_res_spec[] = {
 	{ SYS_RES_MEMORY, AGP_I915_MMADR, RF_ACTIVE | RF_SHAREABLE },
-	{ SYS_RES_MEMORY, AGP_I915_GTTADR, RF_ACTIVE | RF_SHAREABLE },
-	{ -1, 0 }
+	{ SYS_RES_MEMORY, AGP_I915_GTTADR, RF_ACTIVE | RF_SHAREABLE }, { -1, 0 }
 };
 
 static struct resource_spec agp_i965_res_spec[] = {
 	{ SYS_RES_MEMORY, AGP_I965_GTTMMADR, RF_ACTIVE | RF_SHAREABLE },
-	{ SYS_RES_MEMORY, AGP_I965_APBASE, RF_ACTIVE | RF_SHAREABLE },
-	{ -1, 0 }
+	{ SYS_RES_MEMORY, AGP_I965_APBASE, RF_ACTIVE | RF_SHAREABLE }, { -1, 0 }
 };
 
 struct agp_i810_softc {
 	struct agp_softc agp;
-	u_int32_t initial_aperture;	/* aperture size at startup */
+	u_int32_t initial_aperture; /* aperture size at startup */
 	struct agp_gatt *gatt;
-	u_int32_t dcache_size;		/* i810 only */
-	u_int32_t stolen;		/* number of i830/845 gtt
-					   entries for stolen memory */
-	u_int stolen_size;		/* BIOS-reserved graphics memory */
-	u_int gtt_total_entries;	/* Total number of gtt ptes */
-	u_int gtt_mappable_entries;	/* Number of gtt ptes mappable by CPU */
-	device_t bdev;			/* bridge device */
-	void *argb_cursor;		/* contigmalloc area for ARGB cursor */
+	u_int32_t dcache_size;	    /* i810 only */
+	u_int32_t stolen;	    /* number of i830/845 gtt
+				       entries for stolen memory */
+	u_int stolen_size;	    /* BIOS-reserved graphics memory */
+	u_int gtt_total_entries;    /* Total number of gtt ptes */
+	u_int gtt_mappable_entries; /* Number of gtt ptes mappable by CPU */
+	device_t bdev;		    /* bridge device */
+	void *argb_cursor;	    /* contigmalloc area for ARGB cursor */
 	struct resource *sc_res[2];
 	const struct agp_i810_match *match;
 	int sc_flush_page_rid;
@@ -229,7 +226,7 @@ struct agp_i810_driver {
 	void (*write_gtt)(device_t, u_int, uint32_t);
 	void (*install_gtt_pte)(device_t, u_int, vm_offset_t, int);
 	u_int32_t (*read_gtt_pte)(device_t, u_int);
-	vm_paddr_t (*read_gtt_pte_paddr)(device_t , u_int);
+	vm_paddr_t (*read_gtt_pte_paddr)(device_t, u_int);
 	int (*set_aperture)(device_t, u_int32_t);
 	int (*chipset_flush_setup)(device_t);
 	void (*chipset_flush_teardown)(device_t);
@@ -479,180 +476,114 @@ static const struct agp_i810_match {
 	int devid;
 	char *name;
 	const struct agp_i810_driver *driver;
-} agp_i810_matches[] = {
+} agp_i810_matches[] = { { .devid = 0x71218086,
+			     .name = "Intel 82810 (i810 GMCH) SVGA controller",
+			     .driver = &agp_i810_i810_driver },
+	{ .devid = 0x71238086,
+	    .name = "Intel 82810-DC100 (i810-DC100 GMCH) SVGA controller",
+	    .driver = &agp_i810_i810_driver },
+	{ .devid = 0x71258086,
+	    .name = "Intel 82810E (i810E GMCH) SVGA controller",
+	    .driver = &agp_i810_i810_driver },
+	{ .devid = 0x11328086,
+	    .name = "Intel 82815 (i815 GMCH) SVGA controller",
+	    .driver = &agp_i810_i815_driver },
+	{ .devid = 0x35778086,
+	    .name = "Intel 82830M (830M GMCH) SVGA controller",
+	    .driver = &agp_i810_i830_driver },
+	{ .devid = 0x25628086,
+	    .name = "Intel 82845M (845M GMCH) SVGA controller",
+	    .driver = &agp_i810_i830_driver },
+	{ .devid = 0x35828086,
+	    .name = "Intel 82852/855GM SVGA controller",
+	    .driver = &agp_i810_i855_driver },
+	{ .devid = 0x25728086,
+	    .name = "Intel 82865G (865G GMCH) SVGA controller",
+	    .driver = &agp_i810_i865_driver },
+	{ .devid = 0x25828086,
+	    .name = "Intel 82915G (915G GMCH) SVGA controller",
+	    .driver = &agp_i810_i915_driver },
+	{ .devid = 0x258A8086,
+	    .name = "Intel E7221 SVGA controller",
+	    .driver = &agp_i810_i915_driver },
+	{ .devid = 0x25928086,
+	    .name = "Intel 82915GM (915GM GMCH) SVGA controller",
+	    .driver = &agp_i810_i915_driver },
+	{ .devid = 0x27728086,
+	    .name = "Intel 82945G (945G GMCH) SVGA controller",
+	    .driver = &agp_i810_i915_driver },
+	{ .devid = 0x27A28086,
+	    .name = "Intel 82945GM (945GM GMCH) SVGA controller",
+	    .driver = &agp_i810_i915_driver },
+	{ .devid = 0x27AE8086,
+	    .name = "Intel 945GME SVGA controller",
+	    .driver = &agp_i810_i915_driver },
+	{ .devid = 0x29728086,
+	    .name = "Intel 946GZ SVGA controller",
+	    .driver = &agp_i810_g965_driver },
+	{ .devid = 0x29828086,
+	    .name = "Intel G965 SVGA controller",
+	    .driver = &agp_i810_g965_driver },
+	{ .devid = 0x29928086,
+	    .name = "Intel Q965 SVGA controller",
+	    .driver = &agp_i810_g965_driver },
+	{ .devid = 0x29A28086,
+	    .name = "Intel G965 SVGA controller",
+	    .driver = &agp_i810_g965_driver },
+	{ .devid = 0x29B28086,
+	    .name = "Intel Q35 SVGA controller",
+	    .driver = &agp_i810_g33_driver },
+	{ .devid = 0x29C28086,
+	    .name = "Intel G33 SVGA controller",
+	    .driver = &agp_i810_g33_driver },
+	{ .devid = 0x29D28086,
+	    .name = "Intel Q33 SVGA controller",
+	    .driver = &agp_i810_g33_driver },
+	{ .devid = 0xA0018086,
+	    .name = "Intel Pineview SVGA controller",
+	    .driver = &agp_i810_igd_driver },
+	{ .devid = 0xA0118086,
+	    .name = "Intel Pineview (M) SVGA controller",
+	    .driver = &agp_i810_igd_driver },
+	{ .devid = 0x2A028086,
+	    .name = "Intel GM965 SVGA controller",
+	    .driver = &agp_i810_g965_driver },
+	{ .devid = 0x2A128086,
+	    .name = "Intel GME965 SVGA controller",
+	    .driver = &agp_i810_g965_driver },
+	{ .devid = 0x2A428086,
+	    .name = "Intel GM45 SVGA controller",
+	    .driver = &agp_i810_g4x_driver },
+	{ .devid = 0x2E028086,
+	    .name = "Intel Eaglelake SVGA controller",
+	    .driver = &agp_i810_g4x_driver },
+	{ .devid = 0x2E128086,
+	    .name = "Intel Q45 SVGA controller",
+	    .driver = &agp_i810_g4x_driver },
+	{ .devid = 0x2E228086,
+	    .name = "Intel G45 SVGA controller",
+	    .driver = &agp_i810_g4x_driver },
+	{ .devid = 0x2E328086,
+	    .name = "Intel G41 SVGA controller",
+	    .driver = &agp_i810_g4x_driver },
+	{ .devid = 0x00428086,
+	    .name = "Intel Ironlake (D) SVGA controller",
+	    .driver = &agp_i810_g4x_driver },
+	{ .devid = 0x00468086,
+	    .name = "Intel Ironlake (M) SVGA controller",
+	    .driver = &agp_i810_g4x_driver },
 	{
-		.devid = 0x71218086,
-		.name = "Intel 82810 (i810 GMCH) SVGA controller",
-		.driver = &agp_i810_i810_driver
-	},
-	{
-		.devid = 0x71238086,
-		.name = "Intel 82810-DC100 (i810-DC100 GMCH) SVGA controller",
-		.driver = &agp_i810_i810_driver
-	},
-	{
-		.devid = 0x71258086,
-		.name = "Intel 82810E (i810E GMCH) SVGA controller",
-		.driver = &agp_i810_i810_driver
-	},
-	{
-		.devid = 0x11328086,
-		.name = "Intel 82815 (i815 GMCH) SVGA controller",
-		.driver = &agp_i810_i815_driver
-	},
-	{
-		.devid = 0x35778086,
-		.name = "Intel 82830M (830M GMCH) SVGA controller",
-		.driver = &agp_i810_i830_driver
-	},
-	{
-		.devid = 0x25628086,
-		.name = "Intel 82845M (845M GMCH) SVGA controller",
-		.driver = &agp_i810_i830_driver
-	},
-	{
-		.devid = 0x35828086,
-		.name = "Intel 82852/855GM SVGA controller",
-		.driver = &agp_i810_i855_driver
-	},
-	{
-		.devid = 0x25728086,
-		.name = "Intel 82865G (865G GMCH) SVGA controller",
-		.driver = &agp_i810_i865_driver
-	},
-	{
-		.devid = 0x25828086,
-		.name = "Intel 82915G (915G GMCH) SVGA controller",
-		.driver = &agp_i810_i915_driver
-	},
-	{
-		.devid = 0x258A8086,
-		.name = "Intel E7221 SVGA controller",
-		.driver = &agp_i810_i915_driver
-	},
-	{
-		.devid = 0x25928086,
-		.name = "Intel 82915GM (915GM GMCH) SVGA controller",
-		.driver = &agp_i810_i915_driver
-	},
-	{
-		.devid = 0x27728086,
-		.name = "Intel 82945G (945G GMCH) SVGA controller",
-		.driver = &agp_i810_i915_driver
-	},
-	{
-		.devid = 0x27A28086,
-		.name = "Intel 82945GM (945GM GMCH) SVGA controller",
-		.driver = &agp_i810_i915_driver
-	},
-	{
-		.devid = 0x27AE8086,
-		.name = "Intel 945GME SVGA controller",
-		.driver = &agp_i810_i915_driver
-	},
-	{
-		.devid = 0x29728086,
-		.name = "Intel 946GZ SVGA controller",
-		.driver = &agp_i810_g965_driver
-	},
-	{
-		.devid = 0x29828086,
-		.name = "Intel G965 SVGA controller",
-		.driver = &agp_i810_g965_driver
-	},
-	{
-		.devid = 0x29928086,
-		.name = "Intel Q965 SVGA controller",
-		.driver = &agp_i810_g965_driver
-	},
-	{
-		.devid = 0x29A28086,
-		.name = "Intel G965 SVGA controller",
-		.driver = &agp_i810_g965_driver
-	},
-	{
-		.devid = 0x29B28086,
-		.name = "Intel Q35 SVGA controller",
-		.driver = &agp_i810_g33_driver
-	},
-	{
-		.devid = 0x29C28086,
-		.name = "Intel G33 SVGA controller",
-		.driver = &agp_i810_g33_driver
-	},
-	{
-		.devid = 0x29D28086,
-		.name = "Intel Q33 SVGA controller",
-		.driver = &agp_i810_g33_driver
-	},
-	{
-		.devid = 0xA0018086,
-		.name = "Intel Pineview SVGA controller",
-		.driver = &agp_i810_igd_driver
-	},
-	{
-		.devid = 0xA0118086,
-		.name = "Intel Pineview (M) SVGA controller",
-		.driver = &agp_i810_igd_driver
-	},
-	{
-		.devid = 0x2A028086,
-		.name = "Intel GM965 SVGA controller",
-		.driver = &agp_i810_g965_driver
-	},
-	{
-		.devid = 0x2A128086,
-		.name = "Intel GME965 SVGA controller",
-		.driver = &agp_i810_g965_driver
-	},
-	{
-		.devid = 0x2A428086,
-		.name = "Intel GM45 SVGA controller",
-		.driver = &agp_i810_g4x_driver
-	},
-	{
-		.devid = 0x2E028086,
-		.name = "Intel Eaglelake SVGA controller",
-		.driver = &agp_i810_g4x_driver
-	},
-	{
-		.devid = 0x2E128086,
-		.name = "Intel Q45 SVGA controller",
-		.driver = &agp_i810_g4x_driver
-	},
-	{
-		.devid = 0x2E228086,
-		.name = "Intel G45 SVGA controller",
-		.driver = &agp_i810_g4x_driver
-	},
-	{
-		.devid = 0x2E328086,
-		.name = "Intel G41 SVGA controller",
-		.driver = &agp_i810_g4x_driver
-	},
-	{
-		.devid = 0x00428086,
-		.name = "Intel Ironlake (D) SVGA controller",
-		.driver = &agp_i810_g4x_driver
-	},
-	{
-		.devid = 0x00468086,
-		.name = "Intel Ironlake (M) SVGA controller",
-		.driver = &agp_i810_g4x_driver
-	},
-	{
-		.devid = 0,
-	}
-};
+	    .devid = 0,
+	} };
 
-static const struct agp_i810_match*
+static const struct agp_i810_match *
 agp_i810_match(device_t dev)
 {
 	int i, devid;
 
-	if (pci_get_class(dev) != PCIC_DISPLAY
-	    || (pci_get_subclass(dev) != PCIS_DISPLAY_VGA &&
-	    pci_get_subclass(dev) != PCIS_DISPLAY_OTHER))
+	if (pci_get_class(dev) != PCIC_DISPLAY ||
+	    (pci_get_subclass(dev) != PCIS_DISPLAY_VGA &&
+		pci_get_subclass(dev) != PCIS_DISPLAY_OTHER))
 		return (NULL);
 
 	devid = pci_get_devid(dev);
@@ -911,7 +842,7 @@ agp_i915_get_stolen_size(device_t dev)
 		break;
 	case CHIP_I965:
 		switch (bus_read_4(sc->sc_res[0], AGP_I810_PGTBL_CTL) &
-			AGP_I810_PGTBL_SIZE_MASK) {
+		    AGP_I810_PGTBL_SIZE_MASK) {
 		case AGP_I810_PGTBL_SIZE_128KB:
 			gtt_size = 128;
 			break;
@@ -1180,15 +1111,15 @@ agp_i810_install_gatt(device_t dev)
 	sc = device_get_softc(dev);
 
 	/* Some i810s have on-chip memory called dcache. */
-	if ((bus_read_1(sc->sc_res[0], AGP_I810_DRT) & AGP_I810_DRT_POPULATED)
-	    != 0)
+	if ((bus_read_1(sc->sc_res[0], AGP_I810_DRT) &
+		AGP_I810_DRT_POPULATED) != 0)
 		sc->dcache_size = 4 * 1024 * 1024;
 	else
 		sc->dcache_size = 0;
 
 	/* According to the specs the gatt on the i810 must be 64k. */
-	sc->gatt->ag_virtual = kmem_alloc_contig(64 * 1024, M_NOWAIT |
-	    M_ZERO, 0, ~0, PAGE_SIZE, 0, VM_MEMATTR_WRITE_COMBINING);
+	sc->gatt->ag_virtual = kmem_alloc_contig(64 * 1024, M_NOWAIT | M_ZERO,
+	    0, ~0, PAGE_SIZE, 0, VM_MEMATTR_WRITE_COMBINING);
 	if (sc->gatt->ag_virtual == NULL) {
 		if (bootverbose)
 			device_printf(dev, "contiguous allocation failed\n");
@@ -1235,7 +1166,8 @@ agp_gen4_install_gatt(device_t dev, const vm_size_t gtt_offset)
 
 	sc = device_get_softc(dev);
 	pmap_change_attr((vm_offset_t)rman_get_virtual(sc->sc_res[0]) +
-	    gtt_offset, rman_get_size(sc->sc_res[0]) - gtt_offset,
+		gtt_offset,
+	    rman_get_size(sc->sc_res[0]) - gtt_offset,
 	    VM_MEMATTR_WRITE_COMBINING);
 	agp_i830_install_gatt_init(sc);
 	return (0);
@@ -1268,17 +1200,20 @@ agp_i810_attach(device_t dev)
 
 	sc->match = agp_i810_match(dev);
 
-	agp_set_aperture_resource(dev, sc->match->driver->gen <= 2 ?
-	    AGP_APBASE : AGP_I915_GMADR);
+	agp_set_aperture_resource(dev,
+	    sc->match->driver->gen <= 2 ? AGP_APBASE : AGP_I915_GMADR);
 	error = agp_generic_attach(dev);
 	if (error)
 		return (error);
 
 	if (ptoa((vm_paddr_t)Maxmem) >
 	    (1ULL << sc->match->driver->busdma_addr_mask_sz) - 1) {
-		device_printf(dev, "agp_i810 does not support physical "
-		    "memory above %ju.\n", (uintmax_t)(1ULL <<
-		    sc->match->driver->busdma_addr_mask_sz) - 1);
+		device_printf(dev,
+		    "agp_i810 does not support physical "
+		    "memory above %ju.\n",
+		    (uintmax_t)(1ULL
+			<< sc->match->driver->busdma_addr_mask_sz) -
+			1);
 		return (ENOENT);
 	}
 
@@ -1375,7 +1310,7 @@ agp_i810_resume(device_t dev)
 
 	/* Install the GATT. */
 	bus_write_4(sc->sc_res[0], AGP_I810_PGTBL_CTL,
-	sc->gatt->ag_physical | 1);
+	    sc->gatt->ag_physical | 1);
 
 	return (bus_generic_resume(dev));
 }
@@ -1423,8 +1358,7 @@ agp_i830_set_aperture(device_t dev, u_int32_t aperture)
 
 	sc = device_get_softc(dev);
 
-	if (aperture != 64 * 1024 * 1024 &&
-	    aperture != 128 * 1024 * 1024) {
+	if (aperture != 64 * 1024 * 1024 && aperture != 128 * 1024 * 1024) {
 		device_printf(dev, "bad aperture size %d\n", aperture);
 		return (EINVAL);
 	}
@@ -1579,9 +1513,10 @@ agp_i810_bind_page(device_t dev, vm_offset_t offset, vm_offset_t physical)
 	u_int index;
 
 	if (offset >= (sc->gatt->ag_entries << AGP_PAGE_SHIFT)) {
-		device_printf(dev, "failed: offset is 0x%08jx, "
-		    "shift is %d, entries is %d\n", (intmax_t)offset,
-		    AGP_PAGE_SHIFT, sc->gatt->ag_entries);
+		device_printf(dev,
+		    "failed: offset is 0x%08jx, "
+		    "shift is %d, entries is %d\n",
+		    (intmax_t)offset, AGP_PAGE_SHIFT, sc->gatt->ag_entries);
 		return (EINVAL);
 	}
 	index = offset >> AGP_PAGE_SHIFT;
@@ -1730,8 +1665,8 @@ agp_i810_alloc_memory(device_t dev, int type, vm_size_t size)
 				return (0);
 
 			/* Allocate memory for ARGB cursor, if we can. */
-			sc->argb_cursor = contigmalloc(size, M_AGP,
-			   0, 0, ~0, PAGE_SIZE, 0);
+			sc->argb_cursor = contigmalloc(size, M_AGP, 0, 0, ~0,
+			    PAGE_SIZE, 0);
 			if (sc->argb_cursor == NULL)
 				return (0);
 		}
@@ -1754,8 +1689,8 @@ agp_i810_alloc_memory(device_t dev, int type, vm_size_t size)
 			 * get its physical address.
 			 */
 			VM_OBJECT_WLOCK(mem->am_obj);
-			m = vm_page_grab(mem->am_obj, 0, VM_ALLOC_NOBUSY |
-			    VM_ALLOC_WIRED | VM_ALLOC_ZERO);
+			m = vm_page_grab(mem->am_obj, 0,
+			    VM_ALLOC_NOBUSY | VM_ALLOC_WIRED | VM_ALLOC_ZERO);
 			VM_OBJECT_WUNLOCK(mem->am_obj);
 			mem->am_physical = VM_PAGE_TO_PHYS(m);
 		} else {
@@ -1832,8 +1767,9 @@ agp_i810_bind_memory(device_t dev, struct agp_memory *mem, vm_offset_t offset)
 		}
 		/* The memory's already wired down, just stick it in the GTT. */
 		for (i = 0; i < mem->am_size; i += AGP_PAGE_SIZE) {
-			sc->match->driver->install_gtt_pte(dev, (offset + i) >>
-			    AGP_PAGE_SHIFT, mem->am_physical + i, 0);
+			sc->match->driver->install_gtt_pte(dev,
+			    (offset + i) >> AGP_PAGE_SHIFT,
+			    mem->am_physical + i, 0);
 		}
 		mem->am_offset = offset;
 		mem->am_is_bound = 1;
@@ -1886,34 +1822,33 @@ agp_i810_unbind_memory(device_t dev, struct agp_memory *mem)
 	if (sc->match->driver->chiptype != CHIP_I810)
 		return (EINVAL);
 	for (i = 0; i < mem->am_size; i += AGP_PAGE_SIZE) {
-		sc->match->driver->install_gtt_pte(dev, i >> AGP_PAGE_SHIFT,
-		    0, 0);
+		sc->match->driver->install_gtt_pte(dev, i >> AGP_PAGE_SHIFT, 0,
+		    0);
 	}
 	return (0);
 }
 
 static device_method_t agp_i810_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,	agp_i810_identify),
-	DEVMETHOD(device_probe,		agp_i810_probe),
-	DEVMETHOD(device_attach,	agp_i810_attach),
-	DEVMETHOD(device_detach,	agp_i810_detach),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	agp_i810_resume),
+	DEVMETHOD(device_identify, agp_i810_identify),
+	DEVMETHOD(device_probe, agp_i810_probe),
+	DEVMETHOD(device_attach, agp_i810_attach),
+	DEVMETHOD(device_detach, agp_i810_detach),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, agp_i810_resume),
 
 	/* AGP interface */
-	DEVMETHOD(agp_get_aperture,	agp_generic_get_aperture),
-	DEVMETHOD(agp_set_aperture,	agp_i810_method_set_aperture),
-	DEVMETHOD(agp_bind_page,	agp_i810_bind_page),
-	DEVMETHOD(agp_unbind_page,	agp_i810_unbind_page),
-	DEVMETHOD(agp_flush_tlb,	agp_i810_flush_tlb),
-	DEVMETHOD(agp_enable,		agp_i810_enable),
-	DEVMETHOD(agp_alloc_memory,	agp_i810_alloc_memory),
-	DEVMETHOD(agp_free_memory,	agp_i810_free_memory),
-	DEVMETHOD(agp_bind_memory,	agp_i810_bind_memory),
-	DEVMETHOD(agp_unbind_memory,	agp_i810_unbind_memory),
-	DEVMETHOD(agp_chipset_flush,	agp_intel_gtt_chipset_flush),
-	{ 0, 0 }
+	DEVMETHOD(agp_get_aperture, agp_generic_get_aperture),
+	DEVMETHOD(agp_set_aperture, agp_i810_method_set_aperture),
+	DEVMETHOD(agp_bind_page, agp_i810_bind_page),
+	DEVMETHOD(agp_unbind_page, agp_i810_unbind_page),
+	DEVMETHOD(agp_flush_tlb, agp_i810_flush_tlb),
+	DEVMETHOD(agp_enable, agp_i810_enable),
+	DEVMETHOD(agp_alloc_memory, agp_i810_alloc_memory),
+	DEVMETHOD(agp_free_memory, agp_i810_free_memory),
+	DEVMETHOD(agp_bind_memory, agp_i810_bind_memory),
+	DEVMETHOD(agp_unbind_memory, agp_i810_unbind_memory),
+	DEVMETHOD(agp_chipset_flush, agp_intel_gtt_chipset_flush), { 0, 0 }
 };
 
 static driver_t agp_i810_driver = {
@@ -2106,7 +2041,7 @@ agp_i915_chipset_flush_teardown(device_t dev)
 		temp = pci_read_config(sc->bdev, AGP_I915_IFPADDR, 4);
 		temp &= ~1;
 		pci_write_config(sc->bdev, AGP_I915_IFPADDR, temp, 4);
-	}		
+	}
 	agp_i915_chipset_flush_free_page(dev);
 }
 
@@ -2285,8 +2220,8 @@ intel_gtt_insert_pages(u_int first_entry, u_int num_entries, vm_page_t *pages,
     u_int flags)
 {
 
-	agp_intel_gtt_insert_pages(intel_agp, first_entry, num_entries,
-	    pages, flags);
+	agp_intel_gtt_insert_pages(intel_agp, first_entry, num_entries, pages,
+	    flags);
 }
 
 struct intel_gtt *
@@ -2316,8 +2251,8 @@ intel_gtt_map_memory(vm_page_t *pages, u_int num_entries,
     struct sglist **sg_list)
 {
 
-	return (agp_intel_gtt_map_memory(intel_agp, pages, num_entries,
-	    sg_list));
+	return (
+	    agp_intel_gtt_map_memory(intel_agp, pages, num_entries, sg_list));
 }
 
 void

@@ -39,17 +39,16 @@
  * for each compat symbol, but the bfd linker in base rejects that.
  * This should be revisited once we're using only modern linkers.
  */
-#define __compat_nosys(symbol, version)				\
-int __compat_enosys ## symbol(void);				\
-int								\
-__compat_enosys ## symbol(void)					\
-{								\
-								\
-	return (ENOSYS);					\
-}								\
-__sym_compat(symbol, __compat_enosys ## symbol, version)
+#define __compat_nosys(symbol, version)    \
+	int __compat_enosys##symbol(void); \
+	int __compat_enosys##symbol(void)  \
+	{                                  \
+                                           \
+		return (ENOSYS);           \
+	}                                  \
+	__sym_compat(symbol, __compat_enosys##symbol, version)
 
-__compat_nosys(netbsd_lchown, FBSD_1.0);
-__compat_nosys(netbsd_msync, FBSD_1.0);
-__compat_nosys(numa_getaffinity, FBSD_1.4);
-__compat_nosys(numa_setaffinity, FBSD_1.4);
+__compat_nosys(netbsd_lchown, FBSD_1 .0);
+__compat_nosys(netbsd_msync, FBSD_1 .0);
+__compat_nosys(numa_getaffinity, FBSD_1 .4);
+__compat_nosys(numa_setaffinity, FBSD_1 .4);

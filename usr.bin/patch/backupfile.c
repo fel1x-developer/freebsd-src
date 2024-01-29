@@ -1,9 +1,9 @@
 /*-
  * Copyright (C) 1990 Free Software Foundation, Inc.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify it
  * without restriction.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE.
@@ -24,8 +24,7 @@
 
 #include "backupfile.h"
 
-
-#define ISDIGIT(c) (isascii ((unsigned char)c) && isdigit ((unsigned char)c))
+#define ISDIGIT(c) (isascii((unsigned char)c) && isdigit((unsigned char)c))
 
 /* Which type of backup file names are generated. */
 enum backup_type backup_type = none;
@@ -34,14 +33,14 @@ enum backup_type backup_type = none;
  * The extension added to file names to produce a simple (as opposed to
  * numbered) backup file name.
  */
-const char	*simple_backup_suffix = "~";
+const char *simple_backup_suffix = "~";
 
-static char	*concat(const char *, const char *);
-static char	*make_version_name(const char *, int);
-static int	max_backup_version(const char *, const char *);
-static int	version_number(const char *, const char *, size_t);
-static int	argmatch(const char *, const char **);
-static void	invalid_arg(const char *, const char *, int);
+static char *concat(const char *, const char *);
+static char *make_version_name(const char *, int);
+static int max_backup_version(const char *, const char *);
+static int version_number(const char *, const char *, size_t);
+static int argmatch(const char *, const char **);
+static void invalid_arg(const char *, const char *, int);
 
 /*
  * Return the name of the new backup file for file FILE, allocated with
@@ -51,8 +50,8 @@ static void	invalid_arg(const char *, const char *, int);
 char *
 find_backup_file_name(const char *file)
 {
-	char	*dir, *base_versions, *tmp_file;
-	int	highest_backup;
+	char *dir, *base_versions, *tmp_file;
+	int highest_backup;
 
 	if (backup_type == simple)
 		return concat(file, simple_backup_suffix);
@@ -91,10 +90,10 @@ find_backup_file_name(const char *file)
 static int
 max_backup_version(const char *file, const char *dir)
 {
-	DIR	*dirp;
-	struct dirent	*dp;
-	int	highest_version, this_version;
-	size_t	file_name_length;
+	DIR *dirp;
+	struct dirent *dp;
+	int highest_version, this_version;
+	size_t file_name_length;
 
 	dirp = opendir(dir);
 	if (dirp == NULL)
@@ -107,7 +106,8 @@ max_backup_version(const char *file, const char *dir)
 		if (dp->d_namlen <= file_name_length)
 			continue;
 
-		this_version = version_number(file, dp->d_name, file_name_length);
+		this_version = version_number(file, dp->d_name,
+		    file_name_length);
 		if (this_version > highest_version)
 			highest_version = this_version;
 	}
@@ -122,7 +122,7 @@ max_backup_version(const char *file, const char *dir)
 static char *
 make_version_name(const char *file, int version)
 {
-	char	*backup_name;
+	char *backup_name;
 
 	if (asprintf(&backup_name, "%s.~%d~", file, version) == -1)
 		return NULL;
@@ -137,11 +137,12 @@ make_version_name(const char *file, int version)
 static int
 version_number(const char *base, const char *backup, size_t base_length)
 {
-	int		version;
-	const char	*p;
+	int version;
+	const char *p;
 
 	version = 0;
-	if (!strncmp(base, backup, base_length) && ISDIGIT(backup[base_length])) {
+	if (!strncmp(base, backup, base_length) &&
+	    ISDIGIT(backup[base_length])) {
 		for (p = &backup[base_length]; ISDIGIT(*p); ++p)
 			version = version * 10 + *p - '0';
 		if (p[0] != '~' || p[1])
@@ -154,10 +155,10 @@ version_number(const char *base, const char *backup, size_t base_length)
  * Return the newly-allocated concatenation of STR1 and STR2. If out of
  * memory, return 0.
  */
-static char  *
+static char *
 concat(const char *str1, const char *str2)
 {
-	char	*newstr;
+	char *newstr;
 
 	if (asprintf(&newstr, "%s%s", str1, str2) == -1)
 		return NULL;
@@ -173,10 +174,10 @@ concat(const char *str1, const char *str2)
 static int
 argmatch(const char *arg, const char **optlist)
 {
-	int	i;	/* Temporary index in OPTLIST. */
-	size_t	arglen;	/* Length of ARG. */
-	int	matchind = -1;	/* Index of first nonexact match. */
-	int	ambiguous = 0;	/* If nonzero, multiple nonexact match(es). */
+	int i;		   /* Temporary index in OPTLIST. */
+	size_t arglen;	   /* Length of ARG. */
+	int matchind = -1; /* Index of first nonexact match. */
+	int ambiguous = 0; /* If nonzero, multiple nonexact match(es). */
 
 	arglen = strlen(arg);
 
@@ -211,19 +212,16 @@ invalid_arg(const char *kind, const char *value, int problem)
 	fprintf(stderr, "patch: ");
 	if (problem == -1)
 		fprintf(stderr, "invalid");
-	else			/* Assume -2. */
+	else /* Assume -2. */
 		fprintf(stderr, "ambiguous");
 	fprintf(stderr, " %s `%s'\n", kind, value);
 }
 
-static const char *backup_args[] = {
-	"none", "never", "simple", "nil", "existing", "t", "numbered", 0
-};
+static const char *backup_args[] = { "none", "never", "simple", "nil",
+	"existing", "t", "numbered", 0 };
 
-static enum backup_type backup_types[] = {
-	none, simple, simple, numbered_existing,
-	numbered_existing, numbered, numbered
-};
+static enum backup_type backup_types[] = { none, simple, simple,
+	numbered_existing, numbered_existing, numbered, numbered };
 
 /*
  * Return the type of backup indicated by VERSION. Unique abbreviations are
@@ -232,7 +230,7 @@ static enum backup_type backup_types[] = {
 enum backup_type
 get_version(const char *version)
 {
-	int	i;
+	int i;
 
 	if (version == NULL || *version == '\0')
 		return numbered_existing;

@@ -29,7 +29,7 @@
 #include <dev/mlx5/driver.h>
 
 enum {
-	MLX5_SRQ_FLAG_ERR    = (1 << 0),
+	MLX5_SRQ_FLAG_ERR = (1 << 0),
 	MLX5_SRQ_FLAG_WQ_SIG = (1 << 1),
 };
 

@@ -23,16 +23,16 @@
 *******************************************************************************
 */
 #include "icp_accel_devices.h"
-#include "icp_adf_init.h"
 #include "icp_adf_debug.h"
+#include "icp_adf_init.h"
 #include "icp_adf_transport.h"
-#include "lac_sym_queue.h"
-#include "lac_sym_qat.h"
+#include "icp_qat_fw_la.h"
+#include "lac_log.h"
+#include "lac_sal_types_crypto.h"
 #include "lac_session.h"
 #include "lac_sym.h"
-#include "lac_log.h"
-#include "icp_qat_fw_la.h"
-#include "lac_sal_types_crypto.h"
+#include "lac_sym_qat.h"
+#include "lac_sym_queue.h"
 
 #define GetSingleBitFromByte(byte, bit) ((byte) & (1 << (bit)))
 
@@ -44,8 +44,7 @@
 
 CpaStatus
 LacSymQueue_RequestSend(const CpaInstanceHandle instanceHandle,
-			lac_sym_bulk_cookie_t *pRequest,
-			lac_session_desc_t *pSessionDesc)
+    lac_sym_bulk_cookie_t *pRequest, lac_session_desc_t *pSessionDesc)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 	CpaBoolean enqueued = CPA_FALSE;
@@ -129,19 +128,18 @@ LacSymQueue_RequestSend(const CpaInstanceHandle instanceHandle,
 		if (CPA_TRUE == pRequest->updateSessionIvOnSend) {
 			if (LAC_CIPHER_IS_ARC4(pSessionDesc->cipherAlgorithm)) {
 				memcpy(pSessionDesc->cipherPartialOpState,
-				       pSessionDesc->cipherARC4InitialState,
-				       LAC_CIPHER_ARC4_STATE_LEN_BYTES);
+				    pSessionDesc->cipherARC4InitialState,
+				    LAC_CIPHER_ARC4_STATE_LEN_BYTES);
 			} else {
 				memcpy(pSessionDesc->cipherPartialOpState,
-				       pRequest->pOpData->pIv,
-				       pRequest->pOpData->ivLenInBytes);
+				    pRequest->pOpData->pIv,
+				    pRequest->pOpData->ivLenInBytes);
 			}
 		}
 
 		/* Send to QAT */
 		status = icp_adf_transPutMsg(pService->trans_handle_sym_tx,
-					     (void *)&(pRequest->qatMsg),
-					     LAC_QAT_SYM_REQ_SZ_LW);
+		    (void *)&(pRequest->qatMsg), LAC_QAT_SYM_REQ_SZ_LW);
 
 		/* if fail to send request, we need to change
 		 * nonBlockingOpsInProgress
@@ -149,7 +147,7 @@ LacSymQueue_RequestSend(const CpaInstanceHandle instanceHandle,
 		 */
 		if ((CPA_STATUS_SUCCESS != status) &&
 		    (CPA_CY_SYM_PACKET_TYPE_FULL !=
-		     pRequest->pOpData->packetType)) {
+			pRequest->pOpData->packetType)) {
 			pSessionDesc->nonBlockingOpsInProgress = CPA_TRUE;
 		}
 	}

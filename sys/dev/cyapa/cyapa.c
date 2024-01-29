@@ -100,6 +100,7 @@
 #include "opt_evdev.h"
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/event.h>
@@ -116,44 +117,41 @@
 #include <sys/poll.h>
 #include <sys/selinfo.h>
 #include <sys/sysctl.h>
-#include <sys/sysctl.h>
-#include <sys/systm.h>
-#include <sys/systm.h>
 #include <sys/uio.h>
 #include <sys/vnode.h>
 
-#include <dev/iicbus/iiconf.h>
-#include <dev/iicbus/iicbus.h>
 #include <dev/cyapa/cyapa.h>
+#include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
 
 #ifdef EVDEV_SUPPORT
-#include <dev/evdev/input.h>
 #include <dev/evdev/evdev.h>
+#include <dev/evdev/input.h>
 #endif
 
-#include "iicbus_if.h"
 #include "bus_if.h"
 #include "device_if.h"
+#include "iicbus_if.h"
 
-#define CYAPA_BUFSIZE	128			/* power of 2 */
-#define CYAPA_BUFMASK	(CYAPA_BUFSIZE - 1)
+#define CYAPA_BUFSIZE 128 /* power of 2 */
+#define CYAPA_BUFMASK (CYAPA_BUFSIZE - 1)
 
-#define ZSCALE		15
+#define ZSCALE 15
 
-#define TIME_TO_IDLE	(hz * 10)
-#define TIME_TO_RESET	(hz * 3)
+#define TIME_TO_IDLE (hz * 10)
+#define TIME_TO_RESET (hz * 3)
 
 static MALLOC_DEFINE(M_CYAPA, "cyapa", "CYAPA device data");
 
 struct cyapa_fifo {
-	int	rindex;
-	int	windex;
-	char	buf[CYAPA_BUFSIZE];
+	int rindex;
+	int windex;
+	char buf[CYAPA_BUFSIZE];
 };
 
 struct cyapa_softc {
 	device_t dev;
-	int	count;			/* >0 if device opened */
+	int count; /* >0 if device opened */
 	struct cdev *devnode;
 	struct selinfo selinfo;
 	struct mtx mutex;
@@ -162,59 +160,59 @@ struct cyapa_softc {
 	struct evdev_dev *evdev;
 #endif
 
-	int	cap_resx;
-	int	cap_resy;
-	int	cap_phyx;
-	int	cap_phyy;
-	uint8_t	cap_buttons;
+	int cap_resx;
+	int cap_resy;
+	int cap_phyx;
+	int cap_phyy;
+	uint8_t cap_buttons;
 
-	int	detaching;		/* driver is detaching */
-	int	poll_thread_running;	/* poll thread is running */
+	int detaching;		 /* driver is detaching */
+	int poll_thread_running; /* poll thread is running */
 
 	/* PS/2 mouse emulation */
-	int	track_x;		/* current tracking */
-	int	track_y;
-	int	track_z;
-	int	track_z_ticks;
+	int track_x; /* current tracking */
+	int track_y;
+	int track_z;
+	int track_z_ticks;
 	uint16_t track_but;
-	char	track_id;		/* first finger id */
-	int	track_nfingers;
-	int	delta_x;		/* accumulation -> report */
-	int	delta_y;
-	int	delta_z;
-	int	fuzz_x;
-	int	fuzz_y;
-	int	fuzz_z;
-	int	touch_x;		/* touch down coordinates */
-	int	touch_y;
-	int	touch_z;
-	int	finger1_ticks;
-	int	finger2_ticks;
-	int	finger3_ticks;
+	char track_id; /* first finger id */
+	int track_nfingers;
+	int delta_x; /* accumulation -> report */
+	int delta_y;
+	int delta_z;
+	int fuzz_x;
+	int fuzz_y;
+	int fuzz_z;
+	int touch_x; /* touch down coordinates */
+	int touch_y;
+	int touch_z;
+	int finger1_ticks;
+	int finger2_ticks;
+	int finger3_ticks;
 	uint16_t reported_but;
 
-	struct cyapa_fifo rfifo;	/* device->host */
-	struct cyapa_fifo wfifo;	/* host->device */
-	uint8_t	ps2_cmd;		/* active p2_cmd waiting for data */
+	struct cyapa_fifo rfifo; /* device->host */
+	struct cyapa_fifo wfifo; /* host->device */
+	uint8_t ps2_cmd;	 /* active p2_cmd waiting for data */
 	uint8_t ps2_acked;
-	int	active_tick;
-	int	data_signal;
-	int	blocked;
-	int	isselect;
-	int	reporting_mode;		/* 0=disabled 1=enabled */
-	int	scaling_mode;		/* 0=1:1 1=2:1 */
-	int	remote_mode;		/* 0 for streaming mode */
-	int	zenabled;		/* z-axis enabled (mode 1 or 2) */
-	mousehw_t hw;			/* hardware information */
-	mousemode_t mode;		/* mode */
-	int	poll_ticks;
+	int active_tick;
+	int data_signal;
+	int blocked;
+	int isselect;
+	int reporting_mode; /* 0=disabled 1=enabled */
+	int scaling_mode;   /* 0=1:1 1=2:1 */
+	int remote_mode;    /* 0 for streaming mode */
+	int zenabled;	    /* z-axis enabled (mode 1 or 2) */
+	mousehw_t hw;	    /* hardware information */
+	mousemode_t mode;   /* mode */
+	int poll_ticks;
 };
 
 struct cyapa_cdevpriv {
 	struct cyapa_softc *sc;
 };
 
-#define CYPOLL_SHUTDOWN	0x0001
+#define CYPOLL_SHUTDOWN 0x0001
 
 static void cyapa_poll_thread(void *arg);
 static int cyapa_raw_input(struct cyapa_softc *sc, struct cyapa_regs *regs,
@@ -227,8 +225,7 @@ static char *fifo_read(struct cyapa_softc *sc, struct cyapa_fifo *fifo,
     size_t n);
 static char *fifo_write(struct cyapa_softc *sc, struct cyapa_fifo *fifo,
     size_t n);
-static uint8_t fifo_read_char(struct cyapa_softc *sc,
-    struct cyapa_fifo *fifo);
+static uint8_t fifo_read_char(struct cyapa_softc *sc, struct cyapa_fifo *fifo);
 static void fifo_write_char(struct cyapa_softc *sc, struct cyapa_fifo *fifo,
     uint8_t c);
 static size_t fifo_space(struct cyapa_softc *sc, struct cyapa_fifo *fifo);
@@ -237,57 +234,55 @@ static void fifo_reset(struct cyapa_softc *sc, struct cyapa_fifo *fifo);
 static int cyapa_fuzz(int delta, int *fuzz);
 
 static int cyapa_idle_freq = 1;
-SYSCTL_INT(_debug, OID_AUTO, cyapa_idle_freq, CTLFLAG_RW,
-	    &cyapa_idle_freq, 0, "Scan frequency in idle mode");
+SYSCTL_INT(_debug, OID_AUTO, cyapa_idle_freq, CTLFLAG_RW, &cyapa_idle_freq, 0,
+    "Scan frequency in idle mode");
 static int cyapa_slow_freq = 20;
-SYSCTL_INT(_debug, OID_AUTO, cyapa_slow_freq, CTLFLAG_RW,
-	    &cyapa_slow_freq, 0, "Scan frequency in slow mode ");
+SYSCTL_INT(_debug, OID_AUTO, cyapa_slow_freq, CTLFLAG_RW, &cyapa_slow_freq, 0,
+    "Scan frequency in slow mode ");
 static int cyapa_norm_freq = 100;
-SYSCTL_INT(_debug, OID_AUTO, cyapa_norm_freq, CTLFLAG_RW,
-	    &cyapa_norm_freq, 0, "Normal scan frequency");
+SYSCTL_INT(_debug, OID_AUTO, cyapa_norm_freq, CTLFLAG_RW, &cyapa_norm_freq, 0,
+    "Normal scan frequency");
 static int cyapa_minpressure = 12;
-SYSCTL_INT(_debug, OID_AUTO, cyapa_minpressure, CTLFLAG_RW,
-	    &cyapa_minpressure, 0, "Minimum pressure to detect finger");
+SYSCTL_INT(_debug, OID_AUTO, cyapa_minpressure, CTLFLAG_RW, &cyapa_minpressure,
+    0, "Minimum pressure to detect finger");
 static int cyapa_enable_tapclick = 0;
 SYSCTL_INT(_debug, OID_AUTO, cyapa_enable_tapclick, CTLFLAG_RW,
-	    &cyapa_enable_tapclick, 0, "Enable tap to click");
+    &cyapa_enable_tapclick, 0, "Enable tap to click");
 static int cyapa_tapclick_min_ticks = 1;
 SYSCTL_INT(_debug, OID_AUTO, cyapa_tapclick_min_ticks, CTLFLAG_RW,
-	    &cyapa_tapclick_min_ticks, 0, "Minimum tap duration for click");
+    &cyapa_tapclick_min_ticks, 0, "Minimum tap duration for click");
 static int cyapa_tapclick_max_ticks = 8;
 SYSCTL_INT(_debug, OID_AUTO, cyapa_tapclick_max_ticks, CTLFLAG_RW,
-	    &cyapa_tapclick_max_ticks, 0, "Maximum tap duration for click");
+    &cyapa_tapclick_max_ticks, 0, "Maximum tap duration for click");
 static int cyapa_move_min_ticks = 4;
 SYSCTL_INT(_debug, OID_AUTO, cyapa_move_min_ticks, CTLFLAG_RW,
-	    &cyapa_move_min_ticks, 0,
-	    "Minimum ticks before cursor position is changed");
+    &cyapa_move_min_ticks, 0,
+    "Minimum ticks before cursor position is changed");
 static int cyapa_scroll_wait_ticks = 0;
 SYSCTL_INT(_debug, OID_AUTO, cyapa_scroll_wait_ticks, CTLFLAG_RW,
-	    &cyapa_scroll_wait_ticks, 0,
-	    "Wait N ticks before starting to scroll");
+    &cyapa_scroll_wait_ticks, 0, "Wait N ticks before starting to scroll");
 static int cyapa_scroll_stick_ticks = 15;
 SYSCTL_INT(_debug, OID_AUTO, cyapa_scroll_stick_ticks, CTLFLAG_RW,
-	    &cyapa_scroll_stick_ticks, 0,
-	    "Prevent cursor move on single finger for N ticks after scroll");
+    &cyapa_scroll_stick_ticks, 0,
+    "Prevent cursor move on single finger for N ticks after scroll");
 static int cyapa_thumbarea_percent = 15;
 SYSCTL_INT(_debug, OID_AUTO, cyapa_thumbarea_percent, CTLFLAG_RW,
-	    &cyapa_thumbarea_percent, 0,
-	    "Size of bottom thumb area in percent");
+    &cyapa_thumbarea_percent, 0, "Size of bottom thumb area in percent");
 
 static int cyapa_debug = 0;
-SYSCTL_INT(_debug, OID_AUTO, cyapa_debug, CTLFLAG_RW,
-	    &cyapa_debug, 0, "Enable debugging");
+SYSCTL_INT(_debug, OID_AUTO, cyapa_debug, CTLFLAG_RW, &cyapa_debug, 0,
+    "Enable debugging");
 static int cyapa_reset = 0;
-SYSCTL_INT(_debug, OID_AUTO, cyapa_reset, CTLFLAG_RW,
-	    &cyapa_reset, 0, "Reset track pad");
+SYSCTL_INT(_debug, OID_AUTO, cyapa_reset, CTLFLAG_RW, &cyapa_reset, 0,
+    "Reset track pad");
 
 static int
 cyapa_read_bytes(device_t dev, uint8_t reg, uint8_t *val, int cnt)
 {
 	uint16_t addr = iicbus_get_addr(dev);
 	struct iic_msg msgs[] = {
-	     { addr, IIC_M_WR | IIC_M_NOSTOP, 1, &reg },
-	     { addr, IIC_M_RD, cnt, val },
+		{ addr, IIC_M_WR | IIC_M_NOSTOP, 1, &reg },
+		{ addr, IIC_M_RD, cnt, val },
 	};
 
 	return (iicbus_transfer(dev, msgs, nitems(msgs)));
@@ -298,8 +293,9 @@ cyapa_write_bytes(device_t dev, uint8_t reg, const uint8_t *val, int cnt)
 {
 	uint16_t addr = iicbus_get_addr(dev);
 	struct iic_msg msgs[] = {
-	     { addr, IIC_M_WR | IIC_M_NOSTOP, 1, &reg },
-	     { addr, IIC_M_WR | IIC_M_NOSTART, cnt, __DECONST(uint8_t *, val) },
+		{ addr, IIC_M_WR | IIC_M_NOSTOP, 1, &reg },
+		{ addr, IIC_M_WR | IIC_M_NOSTART, cnt,
+		    __DECONST(uint8_t *, val) },
 	};
 
 	return (iicbus_transfer(dev, msgs, nitems(msgs)));
@@ -319,7 +315,7 @@ cyapa_unlock(struct cyapa_softc *sc)
 	mtx_unlock(&sc->mutex);
 }
 
-#define	CYAPA_LOCK_ASSERT(sc)	mtx_assert(&(sc)->mutex, MA_OWNED);
+#define CYAPA_LOCK_ASSERT(sc) mtx_assert(&(sc)->mutex, MA_OWNED);
 
 /*
  * Notify if possible receive data ready.  Must be called
@@ -335,12 +331,12 @@ cyapa_notify(struct cyapa_softc *sc)
 		KNOTE_LOCKED(&sc->selinfo.si_note, 0);
 		if (sc->blocked || sc->isselect) {
 			if (sc->blocked) {
-			    sc->blocked = 0;
-			    wakeup(&sc->blocked);
+				sc->blocked = 0;
+				wakeup(&sc->blocked);
 			}
 			if (sc->isselect) {
-			    sc->isselect = 0;
-			    selwakeup(&sc->selinfo);
+				sc->isselect = 0;
+				selwakeup(&sc->selinfo);
 			}
 		}
 	}
@@ -352,19 +348,17 @@ cyapa_notify(struct cyapa_softc *sc)
 static int
 init_device(device_t dev, struct cyapa_cap *cap, int probe)
 {
-	static char bl_exit[] = {
-		0x00, 0xff, 0xa5, 0x00, 0x01,
-		0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
-	static char bl_deactivate[] = {
-		0x00, 0xff, 0x3b, 0x00, 0x01,
-		0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
+	static char bl_exit[] = { 0x00, 0xff, 0xa5, 0x00, 0x01, 0x02, 0x03,
+		0x04, 0x05, 0x06, 0x07 };
+	static char bl_deactivate[] = { 0x00, 0xff, 0x3b, 0x00, 0x01, 0x02,
+		0x03, 0x04, 0x05, 0x06, 0x07 };
 	struct cyapa_boot_regs boot;
 	int error;
 	int retries;
 
 	/* Get status */
-	error = cyapa_read_bytes(dev, CMD_BOOT_STATUS,
-	    (void *)&boot, sizeof(boot));
+	error = cyapa_read_bytes(dev, CMD_BOOT_STATUS, (void *)&boot,
+	    sizeof(boot));
 	if (error)
 		goto done;
 
@@ -384,15 +378,15 @@ init_device(device_t dev, struct cyapa_cap *cap, int probe)
 				goto done;
 		} else {
 			/* Magic */
-			error = cyapa_write_bytes(dev, CMD_BOOT_STATUS,
-			    bl_exit, sizeof(bl_exit));
+			error = cyapa_write_bytes(dev, CMD_BOOT_STATUS, bl_exit,
+			    sizeof(bl_exit));
 			if (error)
 				goto done;
 		}
 		pause("cyapab1", (hz * 2) / 10);
 		--retries;
-		error = cyapa_read_bytes(dev, CMD_BOOT_STATUS,
-		    (void *)&boot, sizeof(boot));
+		error = cyapa_read_bytes(dev, CMD_BOOT_STATUS, (void *)&boot,
+		    sizeof(boot));
 		if (error)
 			goto done;
 	}
@@ -414,10 +408,10 @@ init_device(device_t dev, struct cyapa_cap *cap, int probe)
 			error = ENXIO;
 		}
 	}
-	error = cyapa_read_bytes(dev, CMD_BOOT_STATUS,
-	    (void *)&boot, sizeof(boot));
+	error = cyapa_read_bytes(dev, CMD_BOOT_STATUS, (void *)&boot,
+	    sizeof(boot));
 
-	if (probe == 0)		/* official init */
+	if (probe == 0) /* official init */
 		device_printf(dev, "cyapa init status %02x\n", boot.stat);
 	else if (probe == 2)
 		device_printf(dev, "cyapa reset status %02x\n", boot.stat);
@@ -445,20 +439,19 @@ cyapa_start(void *xdev)
 	cyapa_set_power_mode(sc, CMD_POWER_MODE_IDLE);
 
 	/* Start the polling thread */
-	kthread_add(cyapa_poll_thread, sc, NULL, NULL,
-	    0, 0, "cyapa-poll");
+	kthread_add(cyapa_poll_thread, sc, NULL, NULL, 0, 0, "cyapa-poll");
 }
 
 static int cyapa_probe(device_t);
 static int cyapa_attach(device_t);
 static int cyapa_detach(device_t);
-static void cyapa_cdevpriv_dtor(void*);
+static void cyapa_cdevpriv_dtor(void *);
 
 static device_method_t cyapa_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		cyapa_probe),
-	DEVMETHOD(device_attach,	cyapa_attach),
-	DEVMETHOD(device_detach,	cyapa_detach),
+	DEVMETHOD(device_probe, cyapa_probe),
+	DEVMETHOD(device_attach, cyapa_attach),
+	DEVMETHOD(device_detach, cyapa_detach),
 
 	DEVMETHOD_END
 };
@@ -469,21 +462,21 @@ static driver_t cyapa_driver = {
 	sizeof(struct cyapa_softc),
 };
 
-static	d_open_t	cyapaopen;
-static	d_ioctl_t	cyapaioctl;
-static	d_read_t	cyaparead;
-static	d_write_t	cyapawrite;
-static	d_kqfilter_t	cyapakqfilter;
-static	d_poll_t	cyapapoll;
+static d_open_t cyapaopen;
+static d_ioctl_t cyapaioctl;
+static d_read_t cyaparead;
+static d_write_t cyapawrite;
+static d_kqfilter_t cyapakqfilter;
+static d_poll_t cyapapoll;
 
 static struct cdevsw cyapa_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_open =	cyapaopen,
-	.d_ioctl =	cyapaioctl,
-	.d_read =	cyaparead,
-	.d_write =	cyapawrite,
-	.d_kqfilter =	cyapakqfilter,
-	.d_poll =	cyapapoll,
+	.d_version = D_VERSION,
+	.d_open = cyapaopen,
+	.d_ioctl = cyapaioctl,
+	.d_read = cyaparead,
+	.d_write = cyapawrite,
+	.d_kqfilter = cyapakqfilter,
+	.d_poll = cyapapoll,
 };
 
 static int
@@ -549,8 +542,8 @@ cyapa_attach(device_t dev)
 	    cap.prod_ida, cap.prod_idb, cap.prod_idc,
 	    ((sc->cap_buttons & CYAPA_FNGR_LEFT) ? 'L' : '-'),
 	    ((sc->cap_buttons & CYAPA_FNGR_MIDDLE) ? 'M' : '-'),
-	    ((sc->cap_buttons & CYAPA_FNGR_RIGHT) ? 'R' : '-'),
-	    sc->cap_resx, sc->cap_resy);
+	    ((sc->cap_buttons & CYAPA_FNGR_RIGHT) ? 'R' : '-'), sc->cap_resx,
+	    sc->cap_resy);
 
 	sc->hw.buttons = 5;
 	sc->hw.iftype = MOUSE_IF_PS2;
@@ -589,8 +582,7 @@ cyapa_attach(device_t dev)
 	if (sc->cap_buttons == CYAPA_FNGR_LEFT)
 		evdev_support_prop(sc->evdev, INPUT_PROP_BUTTONPAD);
 
-	evdev_support_abs(sc->evdev, ABS_MT_SLOT,
-	    0, CYAPA_MAX_MT - 1, 0, 0, 0);
+	evdev_support_abs(sc->evdev, ABS_MT_SLOT, 0, CYAPA_MAX_MT - 1, 0, 0, 0);
 	evdev_support_abs(sc->evdev, ABS_MT_TRACKING_ID, -1, 15, 0, 0, 0);
 	evdev_support_abs(sc->evdev, ABS_MT_POSITION_X, 0, sc->cap_resx, 0, 0,
 	    sc->cap_phyx != 0 ? sc->cap_resx / sc->cap_phyx : 0);
@@ -613,8 +605,8 @@ cyapa_attach(device_t dev)
 		return (ENOMEM);
 	}
 
-	sc->devnode = make_dev(&cyapa_cdevsw, unit,
-	    UID_ROOT, GID_WHEEL, 0600, "cyapa%d", unit);
+	sc->devnode = make_dev(&cyapa_cdevsw, unit, UID_ROOT, GID_WHEEL, 0600,
+	    "cyapa%d", unit);
 
 	sc->devnode->si_drv1 = sc;
 
@@ -667,8 +659,7 @@ cyapaopen(struct cdev *dev, int oflags, int devtype, struct thread *td)
 		cyapa_lock(priv->sc);
 		priv->sc->count++;
 		cyapa_unlock(priv->sc);
-	}
-	else
+	} else
 		free(priv, M_CYAPA);
 
 	return (error);
@@ -696,7 +687,7 @@ cyaparead(struct cdev *dev, struct uio *uio, int ioflag)
 	int error;
 	int didread;
 	size_t n;
-	char* ptr;
+	char *ptr;
 
 	sc = dev->si_drv1;
 	/* If buffer is empty, load a new event if it is ready */
@@ -704,7 +695,7 @@ cyaparead(struct cdev *dev, struct uio *uio, int ioflag)
 again:
 	if (fifo_empty(sc, &sc->rfifo) &&
 	    (sc->data_signal || sc->delta_x || sc->delta_y ||
-	     sc->track_but != sc->reported_but)) {
+		sc->track_but != sc->reported_but)) {
 		uint8_t c0;
 		uint16_t but;
 		int delta_x;
@@ -777,7 +768,7 @@ again:
 		fifo_write_char(sc, &sc->rfifo, c0);
 		fifo_write_char(sc, &sc->rfifo, (uint8_t)delta_x);
 		fifo_write_char(sc, &sc->rfifo, (uint8_t)delta_y);
-		switch(sc->zenabled) {
+		switch (sc->zenabled) {
 		case 1:
 			/* Z axis all 8 bits */
 			fifo_write_char(sc, &sc->rfifo, (uint8_t)delta_z);
@@ -809,7 +800,8 @@ again:
 		if (sc->data_signal)
 			goto again;
 		sc->blocked = 1;
-		error = mtx_sleep(&sc->blocked, &sc->mutex, PCATCH, "cyablk", 0);
+		error = mtx_sleep(&sc->blocked, &sc->mutex, PCATCH, "cyablk",
+		    0);
 		if (error)
 			break;
 	}
@@ -844,7 +836,7 @@ cyapawrite(struct cdev *dev, struct uio *uio, int ioflag)
 	int cmd_completed;
 	size_t n;
 	uint8_t c0;
-	char* ptr;
+	char *ptr;
 
 	sc = dev->si_drv1;
 again:
@@ -870,7 +862,7 @@ again:
 	while (fifo_ready(sc, &sc->wfifo) && cmd_completed && error == 0) {
 		if (sc->ps2_cmd == 0)
 			sc->ps2_cmd = fifo_read_char(sc, &sc->wfifo);
-		switch(sc->ps2_cmd) {
+		switch (sc->ps2_cmd) {
 		case 0xE6:
 			/* SET SCALING 1:1 */
 			sc->scaling_mode = 0;
@@ -975,7 +967,7 @@ again:
 			 * 4th and 5th mouse buttons.
 			 */
 			fifo_write_char(sc, &sc->rfifo, 0xFA);
-			switch(sc->zenabled) {
+			switch (sc->zenabled) {
 			case 1:
 				fifo_write_char(sc, &sc->rfifo, 0x03);
 				break;
@@ -1021,9 +1013,9 @@ again:
 			else if (sc->zenabled == -1 && sc->mode.rate == 200)
 				sc->zenabled = -3;
 			else if (sc->zenabled == -2 && sc->mode.rate == 80)
-				sc->zenabled = 1;	/* z-axis mode */
+				sc->zenabled = 1; /* z-axis mode */
 			else if (sc->zenabled == -3 && sc->mode.rate == 80)
-				sc->zenabled = 2;	/* z-axis+but4/5 */
+				sc->zenabled = 2; /* z-axis+but4/5 */
 			if (sc->mode.level)
 				sc->zenabled = 1;
 			break;
@@ -1072,8 +1064,8 @@ again:
 			/*
 			 * RESET
 			 */
-			fifo_reset(sc, &sc->rfifo);	/* should we do this? */
-			fifo_reset(sc, &sc->wfifo);	/* should we do this? */
+			fifo_reset(sc, &sc->rfifo); /* should we do this? */
+			fifo_reset(sc, &sc->wfifo); /* should we do this? */
 			fifo_write_char(sc, &sc->rfifo, 0xFA);
 			sc->delta_x = 0;
 			sc->delta_y = 0;
@@ -1100,11 +1092,9 @@ again:
 static void cyapafiltdetach(struct knote *);
 static int cyapafilt(struct knote *, long);
 
-static struct filterops cyapa_filtops = {
-	    .f_isfd = 1,
-	    .f_detach = cyapafiltdetach,
-	    .f_event = cyapafilt
-};
+static struct filterops cyapa_filtops = { .f_isfd = 1,
+	.f_detach = cyapafiltdetach,
+	.f_event = cyapafilt };
 
 static int
 cyapakqfilter(struct cdev *dev, struct knote *kn)
@@ -1114,7 +1104,7 @@ cyapakqfilter(struct cdev *dev, struct knote *kn)
 
 	sc = dev->si_drv1;
 
-	switch(kn->kn_filter) {
+	switch (kn->kn_filter) {
 	case EVFILT_READ:
 		kn->kn_fop = &cyapa_filtops;
 		kn->kn_hook = (void *)sc;
@@ -1179,7 +1169,8 @@ cyapafilt(struct knote *kn, long hint)
 }
 
 static int
-cyapaioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag, struct thread *td)
+cyapaioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
+    struct thread *td)
 {
 	struct cyapa_softc *sc;
 	int error;
@@ -1197,8 +1188,8 @@ cyapaioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag, struct thread 
 
 	case MOUSE_GETMODE:
 		*(mousemode_t *)data = sc->mode;
-		((mousemode_t *)data)->resolution =
-		    MOUSE_RES_LOW - sc->mode.resolution;
+		((mousemode_t *)data)->resolution = MOUSE_RES_LOW -
+		    sc->mode.resolution;
 		switch (sc->mode.level) {
 		case 0:
 			((mousemode_t *)data)->protocol = MOUSE_PROTO_PS2;
@@ -1218,8 +1209,7 @@ cyapaioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag, struct thread 
 		break;
 
 	case MOUSE_SETLEVEL:
-		if ((*(int *)data < 0) &&
-		    (*(int *)data > 2)) {
+		if ((*(int *)data < 0) && (*(int *)data > 2)) {
 			error = EINVAL;
 			break;
 		}
@@ -1244,7 +1234,7 @@ cyapa_poll_thread(void *arg)
 {
 	struct cyapa_softc *sc;
 	struct cyapa_regs regs;
-	device_t bus;		/* iicbus */
+	device_t bus; /* iicbus */
 	int error;
 	int freq;
 	int isidle;
@@ -1280,7 +1270,8 @@ cyapa_poll_thread(void *arg)
 			 */
 			if (cyapa_reset ||
 			    ((regs.stat & CYAPA_STAT_RUNNING) == 0 &&
-			     (unsigned)(ticks - last_reset) > TIME_TO_RESET)) {
+				(unsigned)(ticks - last_reset) >
+				    TIME_TO_RESET)) {
 				cyapa_reset = 0;
 				last_reset = ticks;
 				init_device(sc->dev, NULL, 2);
@@ -1304,7 +1295,7 @@ cyapa_poll_thread(void *arg)
 			pstate = npstate;
 			cyapa_set_power_mode(sc, pstate);
 			if (cyapa_debug) {
-				switch(pstate) {
+				switch (pstate) {
 				case CMD_POWER_MODE_OFF:
 					printf("cyapa: power off\n");
 					break;
@@ -1329,7 +1320,7 @@ static int
 cyapa_raw_input(struct cyapa_softc *sc, struct cyapa_regs *regs, int freq)
 {
 	int nfingers;
-	int afingers;	/* actual fingers after culling */
+	int afingers; /* actual fingers after culling */
 	int i;
 	int j;
 	int isidle;
@@ -1342,10 +1333,10 @@ cyapa_raw_input(struct cyapa_softc *sc, struct cyapa_regs *regs, int freq)
 	int lessfingers;
 	int click_x;
 	int click_y;
-	uint16_t but;	/* high bits used for simulated but4/but5 */
+	uint16_t but; /* high bits used for simulated but4/but5 */
 
 	thumbarea_begin = sc->cap_resy -
-	    ((sc->cap_resy *  cyapa_thumbarea_percent) / 100);
+	    ((sc->cap_resy * cyapa_thumbarea_percent) / 100);
 	click_x = click_y = 0;
 
 	/*
@@ -1361,19 +1352,17 @@ cyapa_raw_input(struct cyapa_softc *sc, struct cyapa_regs *regs, int freq)
 	afingers = nfingers;
 
 	if (cyapa_debug) {
-		printf("stat %02x buttons %c%c%c nfngrs=%d ",
-		    regs->stat,
+		printf("stat %02x buttons %c%c%c nfngrs=%d ", regs->stat,
 		    ((regs->fngr & CYAPA_FNGR_LEFT) ? 'L' : '-'),
 		    ((regs->fngr & CYAPA_FNGR_MIDDLE) ? 'M' : '-'),
-		    ((regs->fngr & CYAPA_FNGR_RIGHT) ? 'R' : '-'),
-		    nfingers);
+		    ((regs->fngr & CYAPA_FNGR_RIGHT) ? 'R' : '-'), nfingers);
 	}
 
 #ifdef EVDEV_SUPPORT
 	if (evdev_rcpt_mask & EVDEV_RCPT_HW_MOUSE) {
 		for (i = 0; i < nfingers; ++i) {
-			int slot = evdev_mt_id_to_slot(
-			    sc->evdev, regs->touch[i].id);
+			int slot = evdev_mt_id_to_slot(sc->evdev,
+			    regs->touch[i].id);
 			if (slot == -1) {
 				if (cyapa_debug)
 					printf("Slot overflow for i=%d\n",
@@ -1404,24 +1393,22 @@ cyapa_raw_input(struct cyapa_softc *sc, struct cyapa_regs *regs, int freq)
 #endif
 
 	seen_thumb = 0;
-	for (i = 0; i < afingers; ) {
+	for (i = 0; i < afingers;) {
 		if (cyapa_debug) {
 			printf(" [x=%04d y=%04d p=%d i=%d]",
-			    CYAPA_TOUCH_X(regs, i),
-			    CYAPA_TOUCH_Y(regs, i),
-			    CYAPA_TOUCH_P(regs, i),
-			    regs->touch[i].id);
+			    CYAPA_TOUCH_X(regs, i), CYAPA_TOUCH_Y(regs, i),
+			    CYAPA_TOUCH_P(regs, i), regs->touch[i].id);
 		}
 		if ((CYAPA_TOUCH_Y(regs, i) > thumbarea_begin && seen_thumb) ||
-		     CYAPA_TOUCH_P(regs, i) < cyapa_minpressure) {
+		    CYAPA_TOUCH_P(regs, i) < cyapa_minpressure) {
 			--afingers;
 			if (i < afingers) {
-			    regs->touch[i] = regs->touch[i+1];
-			    continue;
+				regs->touch[i] = regs->touch[i + 1];
+				continue;
 			}
 		} else {
 			if (CYAPA_TOUCH_Y(regs, i) > thumbarea_begin)
-			    seen_thumb = 1;
+				seen_thumb = 1;
 		}
 		++i;
 	}
@@ -1434,7 +1421,7 @@ cyapa_raw_input(struct cyapa_softc *sc, struct cyapa_regs *regs, int freq)
 	 * Track timing for finger-downs.  Used to detect false-3-finger
 	 * button-down.
 	 */
-	switch(afingers) {
+	switch (afingers) {
 	case 0:
 		break;
 	case 1:
@@ -1500,22 +1487,22 @@ cyapa_raw_input(struct cyapa_softc *sc, struct cyapa_regs *regs, int freq)
 			sc->track_y = -1;
 			sc->track_z = -1;
 			while (CYAPA_TOUCH_Y(regs, i) >= thumbarea_begin &&
-			    i < nfingers) ++i;
+			    i < nfingers)
+				++i;
 			if (i == nfingers) {
 				i = 0;
 			}
 			sc->track_id = regs->touch[i].id;
-		}
-		else if ((sc->track_but ||
-		     CYAPA_TOUCH_Y(regs, i) >= thumbarea_begin) &&
+		} else if ((sc->track_but ||
+			       CYAPA_TOUCH_Y(regs, i) >= thumbarea_begin) &&
 		    newfinger && afingers == 2) {
 			j = regs->touch[0].id == sc->track_id ? 1 : 0;
 			if (CYAPA_TOUCH_Y(regs, j) < thumbarea_begin) {
-			    i = j;
-			    sc->track_x = -1;
-			    sc->track_y = -1;
-			    sc->track_z = -1;
-			    sc->track_id = regs->touch[i].id;
+				i = j;
+				sc->track_x = -1;
+				sc->track_y = -1;
+				sc->track_z = -1;
+				sc->track_id = regs->touch[i].id;
 			}
 		}
 	}
@@ -1530,18 +1517,19 @@ cyapa_raw_input(struct cyapa_softc *sc, struct cyapa_regs *regs, int freq)
 	/* Initiate two finger scrolling */
 	if (!(regs->fngr & CYAPA_FNGR_LEFT) &&
 	    ((afingers && sc->track_z != -1) ||
-	     (afingers == 2 && CYAPA_TOUCH_Y(regs, 0) < thumbarea_begin &&
-	     CYAPA_TOUCH_Y(regs, 1) < thumbarea_begin))) {
-		if (afingers == 2 && (sc->poll_ticks - sc->finger2_ticks)
-		    > cyapa_scroll_wait_ticks) {
-			z = (CYAPA_TOUCH_Y(regs, 0) +
-			    CYAPA_TOUCH_Y(regs, 1)) >> 1;
+		(afingers == 2 && CYAPA_TOUCH_Y(regs, 0) < thumbarea_begin &&
+		    CYAPA_TOUCH_Y(regs, 1) < thumbarea_begin))) {
+		if (afingers == 2 &&
+		    (sc->poll_ticks - sc->finger2_ticks) >
+			cyapa_scroll_wait_ticks) {
+			z = (CYAPA_TOUCH_Y(regs, 0) + CYAPA_TOUCH_Y(regs, 1)) >>
+			    1;
 			sc->delta_z += z / ZSCALE - sc->track_z;
 			if (sc->track_z == -1) {
-			    sc->delta_z = 0;
+				sc->delta_z = 0;
 			}
 			if (sc->touch_z == -1)
-			    sc->touch_z = z;	/* not used atm */
+				sc->touch_z = z; /* not used atm */
 			sc->track_z = z / ZSCALE;
 			sc->track_z_ticks = sc->poll_ticks;
 		}
@@ -1552,8 +1540,10 @@ cyapa_raw_input(struct cyapa_softc *sc, struct cyapa_regs *regs, int freq)
 		click_x = x;
 		click_y = y;
 		if (sc->track_x != -1 && sc->track_y < thumbarea_begin &&
-		    (afingers > 1 || (sc->poll_ticks - sc->finger1_ticks)
-		    >= cyapa_move_min_ticks || freq < cyapa_norm_freq)) {
+		    (afingers > 1 ||
+			(sc->poll_ticks - sc->finger1_ticks) >=
+			    cyapa_move_min_ticks ||
+			freq < cyapa_norm_freq)) {
 			sc->delta_x += x - sc->track_x;
 			sc->delta_y -= y - sc->track_y;
 			if (sc->delta_x > sc->cap_resx)
@@ -1570,7 +1560,7 @@ cyapa_raw_input(struct cyapa_softc *sc, struct cyapa_regs *regs, int freq)
 				if (cyapa_debug)
 					printf("Detected jump by %i %i\n",
 					    sc->delta_x, sc->delta_y);
-			    sc->delta_x = sc->delta_y = 0;
+				sc->delta_x = sc->delta_y = 0;
 			}
 		}
 		if (sc->touch_x == -1) {
@@ -1583,8 +1573,8 @@ cyapa_raw_input(struct cyapa_softc *sc, struct cyapa_regs *regs, int freq)
 
 	/* Select finger (L = 2/3x, M = 1/3u, R = 1/3d) */
 	int is_tapclick = (cyapa_enable_tapclick && lessfingers &&
-	    afingers == 0 && sc->poll_ticks - sc->finger1_ticks
-	    >= cyapa_tapclick_min_ticks &&
+	    afingers == 0 &&
+	    sc->poll_ticks - sc->finger1_ticks >= cyapa_tapclick_min_ticks &&
 	    sc->poll_ticks - sc->finger1_ticks < cyapa_tapclick_max_ticks);
 
 	if (regs->fngr & CYAPA_FNGR_LEFT || is_tapclick) {
@@ -1648,8 +1638,7 @@ cyapa_set_power_mode(struct cyapa_softc *sc, int mode)
 	bus = device_get_parent(sc->dev);
 	error = iicbus_request_bus(bus, sc->dev, IIC_WAIT);
 	if (error == 0) {
-		error = cyapa_read_bytes(sc->dev, CMD_POWER_MODE,
-		    &data, 1);
+		error = cyapa_read_bytes(sc->dev, CMD_POWER_MODE, &data, 1);
 		data = (data & ~0xFC) | mode;
 		if (error == 0) {
 			error = cyapa_write_bytes(sc->dev, CMD_POWER_MODE,
@@ -1731,7 +1720,6 @@ fifo_read_char(struct cyapa_softc *sc, struct cyapa_fifo *fifo)
 	}
 	return (c);
 }
-
 
 /*
  * Write a character to the FIFO.  The character will be discarded

@@ -39,18 +39,18 @@
 #include <sys/cdefs.h>
 #define _BSD_SOURCE
 
-#include <unistd.h>
 #include <syslog.h>
+#include <unistd.h>
 
 #define PAM_SM_AUTH
 
 #include <security/pam_appl.h>
-#include <security/pam_modules.h>
 #include <security/pam_mod_misc.h>
+#include <security/pam_modules.h>
 
 PAM_EXTERN int
-pam_sm_authenticate(pam_handle_t *pamh, int flags __unused,
-    int argc __unused, const char *argv[] __unused)
+pam_sm_authenticate(pam_handle_t *pamh, int flags __unused, int argc __unused,
+    const char *argv[] __unused)
 {
 
 	if (getuid() == 0)

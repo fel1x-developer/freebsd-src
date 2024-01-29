@@ -41,13 +41,12 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_cpu.h"
 #include "opt_ddb.h"
 #include "opt_kstack_pages.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/proc.h>
 #include <sys/systm.h>
 #include <sys/exec.h>
 #include <sys/imgact.h>
@@ -59,6 +58,7 @@
 #include <sys/malloc.h>
 #include <sys/mutex.h>
 #include <sys/pcpu.h>
+#include <sys/proc.h>
 #include <sys/ptrace.h>
 #include <sys/reg.h>
 #include <sys/rwlock.h>
@@ -71,19 +71,19 @@
 #include <sys/vmmeter.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_kern.h>
-#include <vm/vm_page.h>
 #include <vm/vm_map.h>
 #include <vm/vm_object.h>
+#include <vm/vm_page.h>
+#include <vm/vm_param.h>
 
 #ifdef DDB
 #ifndef KDB
 #error KDB must be enabled in order for DDB to work!
 #endif
-#include <ddb/ddb.h>
 #include <ddb/db_sym.h>
+#include <ddb/ddb.h>
 #endif
 
 #include <machine/cpu.h>
@@ -98,10 +98,10 @@
 #include <machine/trap.h>
 
 static void fpstate_drop(struct thread *td);
-static void get_fpcontext(struct thread *td, mcontext_t *mcp,
-    char *xfpusave, size_t xfpusave_len);
-static int  set_fpcontext(struct thread *td, mcontext_t *mcp,
-    char *xfpustate, size_t xfpustate_len);
+static void get_fpcontext(struct thread *td, mcontext_t *mcp, char *xfpusave,
+    size_t xfpusave_len);
+static int set_fpcontext(struct thread *td, mcontext_t *mcp, char *xfpustate,
+    size_t xfpustate_len);
 #ifdef COMPAT_43
 static void osendsig(sig_t catcher, ksiginfo_t *, sigset_t *mask);
 #endif
@@ -216,8 +216,8 @@ osendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 		sf.sf_siginfo.si_sc.sc_ds = tf->tf_vm86_ds;
 
 		if (vm86->vm86_has_vme == 0)
-			sf.sf_siginfo.si_sc.sc_ps =
-			    (tf->tf_eflags & ~(PSL_VIF | PSL_VIP)) |
+			sf.sf_siginfo.si_sc.sc_ps = (tf->tf_eflags &
+							~(PSL_VIF | PSL_VIP)) |
 			    (vm86->vm86_eflags & (PSL_VIF | PSL_VIP));
 
 		/* See sendsig() for comments. */
@@ -234,8 +234,7 @@ osendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 
 	regs->tf_esp = (int)fp;
 	if (PROC_HAS_SHP(p)) {
-		regs->tf_eip = PROC_SIGCODE(p) + szsigcode -
-		    szosigcode;
+		regs->tf_eip = PROC_SIGCODE(p) + szsigcode - szosigcode;
 	} else {
 		/* a.out sysentvec does not use shared page */
 		regs->tf_eip = PROC_PS_STRINGS(p) - szosigcode;
@@ -277,8 +276,9 @@ freebsd4_sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 	bzero(&sf, sizeof(sf));
 	sf.sf_uc.uc_sigmask = *mask;
 	sf.sf_uc.uc_stack = td->td_sigstk;
-	sf.sf_uc.uc_stack.ss_flags = (td->td_pflags & TDP_ALTSTACK)
-	    ? ((oonstack) ? SS_ONSTACK : 0) : SS_DISABLE;
+	sf.sf_uc.uc_stack.ss_flags = (td->td_pflags & TDP_ALTSTACK) ?
+	    ((oonstack) ? SS_ONSTACK : 0) :
+	    SS_DISABLE;
 	sf.sf_uc.uc_mcontext.mc_onstack = (oonstack) ? 1 : 0;
 	sf.sf_uc.uc_mcontext.mc_gs = rgs();
 	bcopy(regs, &sf.sf_uc.uc_mcontext.mc_fs, sizeof(*regs));
@@ -291,7 +291,8 @@ freebsd4_sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 	/* Allocate space for the signal handler context. */
 	if ((td->td_pflags & TDP_ALTSTACK) != 0 && !oonstack &&
 	    SIGISMEMBER(psp->ps_sigonstack, sig)) {
-		sfp = (struct freebsd4_sigframe *)((uintptr_t)td->td_sigstk.ss_sp +
+		sfp = (struct freebsd4_sigframe *)((uintptr_t)
+						       td->td_sigstk.ss_sp +
 		    td->td_sigstk.ss_size - sizeof(struct freebsd4_sigframe));
 #if defined(COMPAT_43)
 		td->td_sigstk.ss_flags |= SS_ONSTACK;
@@ -359,8 +360,7 @@ freebsd4_sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 	}
 
 	regs->tf_esp = (int)sfp;
-	regs->tf_eip = PROC_SIGCODE(p) + szsigcode -
-	    szfreebsd4_sigcode;
+	regs->tf_eip = PROC_SIGCODE(p) + szsigcode - szfreebsd4_sigcode;
 	regs->tf_eflags &= ~(PSL_T | PSL_D);
 	regs->tf_cs = _ucodesel;
 	regs->tf_ds = _udatasel;
@@ -370,7 +370,7 @@ freebsd4_sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 	PROC_LOCK(p);
 	mtx_lock(&psp->ps_mtx);
 }
-#endif	/* COMPAT_FREEBSD4 */
+#endif /* COMPAT_FREEBSD4 */
 
 void
 sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
@@ -420,8 +420,9 @@ sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 	bzero(&sf, sizeof(sf));
 	sf.sf_uc.uc_sigmask = *mask;
 	sf.sf_uc.uc_stack = td->td_sigstk;
-	sf.sf_uc.uc_stack.ss_flags = (td->td_pflags & TDP_ALTSTACK)
-	    ? ((oonstack) ? SS_ONSTACK : 0) : SS_DISABLE;
+	sf.sf_uc.uc_stack.ss_flags = (td->td_pflags & TDP_ALTSTACK) ?
+	    ((oonstack) ? SS_ONSTACK : 0) :
+	    SS_DISABLE;
 	sf.sf_uc.uc_mcontext.mc_onstack = (oonstack) ? 1 : 0;
 	sf.sf_uc.uc_mcontext.mc_gs = rgs();
 	bcopy(regs, &sf.sf_uc.uc_mcontext.mc_fs, sizeof(*regs));
@@ -432,11 +433,9 @@ sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 	 * Unconditionally fill the fsbase and gsbase into the mcontext.
 	 */
 	sdp = &td->td_pcb->pcb_fsd;
-	sf.sf_uc.uc_mcontext.mc_fsbase = sdp->sd_hibase << 24 |
-	    sdp->sd_lobase;
+	sf.sf_uc.uc_mcontext.mc_fsbase = sdp->sd_hibase << 24 | sdp->sd_lobase;
 	sdp = &td->td_pcb->pcb_gsd;
-	sf.sf_uc.uc_mcontext.mc_gsbase = sdp->sd_hibase << 24 |
-	    sdp->sd_lobase;
+	sf.sf_uc.uc_mcontext.mc_gsbase = sdp->sd_hibase << 24 | sdp->sd_lobase;
 	bzero(sf.sf_uc.uc_mcontext.mc_spare2,
 	    sizeof(sf.sf_uc.uc_mcontext.mc_spare2));
 
@@ -513,9 +512,9 @@ sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 	 * Copy the sigframe out to the user's stack.
 	 */
 	if (copyout(&sf, sfp, sizeof(*sfp)) != 0 ||
-	    (xfpusave != NULL && copyout(xfpusave,
-	    (void *)sf.sf_uc.uc_mcontext.mc_xfpustate, xfpusave_len)
-	    != 0)) {
+	    (xfpusave != NULL &&
+		copyout(xfpusave, (void *)sf.sf_uc.uc_mcontext.mc_xfpustate,
+		    xfpusave_len) != 0)) {
 		PROC_LOCK(p);
 		sigexit(td, SIGILL);
 	}
@@ -584,7 +583,7 @@ osigreturn(struct thread *td, struct osigreturn_args *uap)
 			eflags = (tf->tf_eflags & ~VME_USERCHANGE) |
 			    (eflags & VME_USERCHANGE) | PSL_VM;
 		} else {
-			vm86->vm86_eflags = eflags;	/* save VIF, VIP */
+			vm86->vm86_eflags = eflags; /* save VIF, VIP */
 			eflags = (tf->tf_eflags & ~VM_USERCHANGE) |
 			    (eflags & VM_USERCHANGE) | PSL_VM;
 		}
@@ -692,7 +691,7 @@ freebsd4_sigreturn(struct thread *td, struct freebsd4_sigreturn_args *uap)
 			eflags = (tf->tf_eflags & ~VME_USERCHANGE) |
 			    (eflags & VME_USERCHANGE) | PSL_VM;
 		} else {
-			vm86->vm86_eflags = eflags;	/* save VIF, VIP */
+			vm86->vm86_eflags = eflags; /* save VIF, VIP */
 			eflags = (tf->tf_eflags & ~VM_USERCHANGE) |
 			    (eflags & VM_USERCHANGE) | PSL_VM;
 		}
@@ -747,7 +746,7 @@ freebsd4_sigreturn(struct thread *td, struct freebsd4_sigreturn_args *uap)
 	kern_sigprocmask(td, SIG_SETMASK, &ucp->uc_sigmask, NULL, 0);
 	return (EJUSTRETURN);
 }
-#endif	/* COMPAT_FREEBSD4 */
+#endif /* COMPAT_FREEBSD4 */
 
 int
 sys_sigreturn(struct thread *td, struct sigreturn_args *uap)
@@ -801,7 +800,7 @@ sys_sigreturn(struct thread *td, struct sigreturn_args *uap)
 			eflags = (tf->tf_eflags & ~VME_USERCHANGE) |
 			    (eflags & VME_USERCHANGE) | PSL_VM;
 		} else {
-			vm86->vm86_eflags = eflags;	/* save VIF, VIP */
+			vm86->vm86_eflags = eflags; /* save VIF, VIP */
 			eflags = (tf->tf_eflags & ~VM_USERCHANGE) |
 			    (eflags & VM_USERCHANGE) | PSL_VM;
 		}
@@ -844,20 +843,20 @@ sys_sigreturn(struct thread *td, struct sigreturn_args *uap)
 
 		if ((uc.uc_mcontext.mc_flags & _MC_HASFPXSTATE) != 0) {
 			xfpustate_len = uc.uc_mcontext.mc_xfpustate_len;
-			if (xfpustate_len > cpu_max_ext_state_size -
-			    sizeof(union savefpu)) {
+			if (xfpustate_len >
+			    cpu_max_ext_state_size - sizeof(union savefpu)) {
 				uprintf(
-			    "pid %d (%s): sigreturn xfpusave_len = 0x%zx\n",
+				    "pid %d (%s): sigreturn xfpusave_len = 0x%zx\n",
 				    p->p_pid, td->td_name, xfpustate_len);
 				return (EINVAL);
 			}
 			xfpustate = __builtin_alloca(xfpustate_len);
-			error = copyin(
-			    (const void *)uc.uc_mcontext.mc_xfpustate,
-			    xfpustate, xfpustate_len);
+			error =
+			    copyin((const void *)uc.uc_mcontext.mc_xfpustate,
+				xfpustate, xfpustate_len);
 			if (error != 0) {
 				uprintf(
-	"pid %d (%s): sigreturn copying xfpustate failed\n",
+				    "pid %d (%s): sigreturn copying xfpustate failed\n",
 				    p->p_pid, td->td_name);
 				return (error);
 			}
@@ -1073,7 +1072,7 @@ fill_fpregs(struct thread *td, struct fpreg *fpregs)
 {
 
 	KASSERT(td == curthread || TD_IS_SUSPENDED(td) ||
-	    P_SHOULDSTOP(td->td_proc),
+		P_SHOULDSTOP(td->td_proc),
 	    ("not suspended thread %p", td));
 	npxgetregs(td);
 	if (cpu_fxsr)
@@ -1171,8 +1170,8 @@ set_mcontext(struct thread *td, mcontext_t *mcp)
 	eflags = (mcp->mc_eflags & PSL_USERCHANGE) |
 	    (tp->tf_eflags & ~PSL_USERCHANGE);
 	if (mcp->mc_flags & _MC_HASFPXSTATE) {
-		if (mcp->mc_xfpustate_len > cpu_max_ext_state_size -
-		    sizeof(union savefpu))
+		if (mcp->mc_xfpustate_len >
+		    cpu_max_ext_state_size - sizeof(union savefpu))
 			return (EINVAL);
 		xfpustate = __builtin_alloca(mcp->mc_xfpustate_len);
 		ret = copyin((void *)mcp->mc_xfpustate, xfpustate,
@@ -1267,8 +1266,8 @@ fpstate_drop(struct thread *td)
 	 * sendsig() is the only caller of npxgetregs()... perhaps we just
 	 * have too many layers.
 	 */
-	curthread->td_pcb->pcb_flags &= ~(PCB_NPXINITDONE |
-	    PCB_NPXUSERINITDONE);
+	curthread->td_pcb->pcb_flags &= ~(
+	    PCB_NPXINITDONE | PCB_NPXUSERINITDONE);
 	critical_exit();
 }
 
@@ -1386,9 +1385,9 @@ int
 user_dbreg_trap(register_t dr6)
 {
 	u_int32_t dr7;
-	u_int32_t bp;       /* breakpoint bits extracted from dr6 */
-	int nbp;            /* number of breakpoints that triggered */
-	caddr_t addr[4];    /* breakpoint addresses */
+	u_int32_t bp;	 /* breakpoint bits extracted from dr6 */
+	int nbp;	 /* number of breakpoints that triggered */
+	caddr_t addr[4]; /* breakpoint addresses */
 	int i;
 
 	bp = dr6 & DBREG_DR6_BMASK;

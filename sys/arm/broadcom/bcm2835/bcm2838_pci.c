@@ -27,64 +27,63 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/intr.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/bus.h>
+#include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/rman.h>
-#include <sys/intr.h>
-#include <sys/mutex.h>
-
-#include <dev/ofw/openfirm.h>
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/pci/pci_host_generic.h>
-#include <dev/pci/pci_host_generic_fdt.h>
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcib_private.h>
 
 #include <machine/bus.h>
 #include <machine/intr.h>
 
-#include "pcib_if.h"
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
+#include <dev/pci/pci_host_generic.h>
+#include <dev/pci/pci_host_generic_fdt.h>
+#include <dev/pci/pcib_private.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
 #include "msi_if.h"
+#include "pcib_if.h"
 
-#define PCI_ID_VAL3		0x43c
-#define CLASS_SHIFT		0x10
-#define SUBCLASS_SHIFT		0x8
+#define PCI_ID_VAL3 0x43c
+#define CLASS_SHIFT 0x10
+#define SUBCLASS_SHIFT 0x8
 
-#define REG_CONTROLLER_HW_REV			0x406c
-#define REG_BRIDGE_CTRL				0x9210
-#define BRIDGE_DISABLE_FLAG	0x1
-#define BRIDGE_RESET_FLAG	0x2
-#define REG_BRIDGE_SERDES_MODE			0x4204
-#define REG_DMA_CONFIG				0x4008
-#define REG_DMA_WINDOW_LOW			0x4034
-#define REG_DMA_WINDOW_HIGH			0x4038
-#define REG_DMA_WINDOW_1			0x403c
-#define REG_BRIDGE_GISB_WINDOW			0x402c
-#define REG_BRIDGE_STATE			0x4068
-#define REG_BRIDGE_LINK_STATE			0x00bc
-#define REG_BUS_WINDOW_LOW			0x400c
-#define REG_BUS_WINDOW_HIGH			0x4010
-#define REG_CPU_WINDOW_LOW			0x4070
-#define REG_CPU_WINDOW_START_HIGH		0x4080
-#define REG_CPU_WINDOW_END_HIGH			0x4084
+#define REG_CONTROLLER_HW_REV 0x406c
+#define REG_BRIDGE_CTRL 0x9210
+#define BRIDGE_DISABLE_FLAG 0x1
+#define BRIDGE_RESET_FLAG 0x2
+#define REG_BRIDGE_SERDES_MODE 0x4204
+#define REG_DMA_CONFIG 0x4008
+#define REG_DMA_WINDOW_LOW 0x4034
+#define REG_DMA_WINDOW_HIGH 0x4038
+#define REG_DMA_WINDOW_1 0x403c
+#define REG_BRIDGE_GISB_WINDOW 0x402c
+#define REG_BRIDGE_STATE 0x4068
+#define REG_BRIDGE_LINK_STATE 0x00bc
+#define REG_BUS_WINDOW_LOW 0x400c
+#define REG_BUS_WINDOW_HIGH 0x4010
+#define REG_CPU_WINDOW_LOW 0x4070
+#define REG_CPU_WINDOW_START_HIGH 0x4080
+#define REG_CPU_WINDOW_END_HIGH 0x4084
 
-#define REG_MSI_ADDR_LOW			0x4044
-#define REG_MSI_ADDR_HIGH			0x4048
-#define REG_MSI_CONFIG				0x404c
-#define REG_MSI_CLR				0x4508
-#define REG_MSI_MASK_CLR			0x4514
-#define REG_MSI_RAISED				0x4500
-#define REG_MSI_EOI				0x4060
-#define NUM_MSI			32
+#define REG_MSI_ADDR_LOW 0x4044
+#define REG_MSI_ADDR_HIGH 0x4048
+#define REG_MSI_CONFIG 0x404c
+#define REG_MSI_CLR 0x4508
+#define REG_MSI_MASK_CLR 0x4514
+#define REG_MSI_RAISED 0x4500
+#define REG_MSI_EOI 0x4060
+#define NUM_MSI 32
 
-#define REG_EP_CONFIG_CHOICE			0x9000
-#define REG_EP_CONFIG_DATA			0x8000
+#define REG_EP_CONFIG_CHOICE 0x9000
+#define REG_EP_CONFIG_DATA 0x8000
 
 /*
  * The system memory controller can address up to 16 GiB of physical memory
@@ -100,40 +99,36 @@
  *
  * Whatever the true maximum address, 960 MiB works.
  */
-#define DMA_HIGH_LIMIT			0x3c000000
-#define MAX_MEMORY_LOG2			0x21
-#define REG_VALUE_DMA_WINDOW_LOW	(MAX_MEMORY_LOG2 - 0xf)
-#define REG_VALUE_DMA_WINDOW_HIGH	0x0
-#define DMA_WINDOW_ENABLE		0x3000
-#define REG_VALUE_DMA_WINDOW_CONFIG	\
-    (((MAX_MEMORY_LOG2 - 0xf) << 0x1b) | DMA_WINDOW_ENABLE)
+#define DMA_HIGH_LIMIT 0x3c000000
+#define MAX_MEMORY_LOG2 0x21
+#define REG_VALUE_DMA_WINDOW_LOW (MAX_MEMORY_LOG2 - 0xf)
+#define REG_VALUE_DMA_WINDOW_HIGH 0x0
+#define DMA_WINDOW_ENABLE 0x3000
+#define REG_VALUE_DMA_WINDOW_CONFIG \
+	(((MAX_MEMORY_LOG2 - 0xf) << 0x1b) | DMA_WINDOW_ENABLE)
 
-#define REG_VALUE_MSI_CONFIG	0xffe06540
+#define REG_VALUE_MSI_CONFIG 0xffe06540
 
 struct bcm_pcib_irqsrc {
-	struct intr_irqsrc	isrc;
-	u_int			irq;
-	bool			allocated;
+	struct intr_irqsrc isrc;
+	u_int irq;
+	bool allocated;
 };
 
 struct bcm_pcib_softc {
-	struct generic_pcie_fdt_softc	base;
-	device_t			dev;
-	bus_dma_tag_t			dmat;
-	struct mtx			config_mtx;
-	struct mtx			msi_mtx;
-	struct resource 		*msi_irq_res;
-	void				*msi_intr_cookie;
-	struct bcm_pcib_irqsrc		*msi_isrcs;
-	pci_addr_t			msi_addr;
+	struct generic_pcie_fdt_softc base;
+	device_t dev;
+	bus_dma_tag_t dmat;
+	struct mtx config_mtx;
+	struct mtx msi_mtx;
+	struct resource *msi_irq_res;
+	void *msi_intr_cookie;
+	struct bcm_pcib_irqsrc *msi_isrcs;
+	pci_addr_t msi_addr;
 };
 
-static struct ofw_compat_data compat_data[] = {
-	{"brcm,bcm2711-pcie",			1},
-	{"brcm,bcm7211-pcie",			1},
-	{"brcm,bcm7445-pcie",			1},
-	{NULL,					0}
-};
+static struct ofw_compat_data compat_data[] = { { "brcm,bcm2711-pcie", 1 },
+	{ "brcm,bcm7211-pcie", 1 }, { "brcm,bcm7445-pcie", 1 }, { NULL, 0 } };
 
 static int
 bcm_pcib_probe(device_t dev)
@@ -145,8 +140,7 @@ bcm_pcib_probe(device_t dev)
 	if (!ofw_bus_search_compatible(dev, compat_data)->ocd_data)
 		return (ENXIO);
 
-	device_set_desc(dev,
-	    "BCM2838-compatible PCI-express controller");
+	device_set_desc(dev, "BCM2838-compatible PCI-express controller");
 	return (BUS_PROBE_DEFAULT);
 }
 
@@ -219,7 +213,8 @@ bcm_pcib_check_ranges(device_t dev)
 
 	/* The first range needs to be non-zero. */
 	if (ranges[0].size == 0) {
-		device_printf(dev, "error: first outbound memory range "
+		device_printf(dev,
+		    "error: first outbound memory range "
 		    "(pci addr: 0x%jx, cpu addr: 0x%jx) has zero size.\n",
 		    ranges[0].pci_base, ranges[0].phys_base);
 		error = ENXIO;
@@ -245,7 +240,7 @@ static const char *
 bcm_pcib_link_state_string(uint32_t mode)
 {
 
-	switch(mode & PCIEM_LINK_STA_SPEED) {
+	switch (mode & PCIEM_LINK_STA_SPEED) {
 	case 0:
 		return ("not up");
 	case 1:
@@ -341,8 +336,8 @@ bcm_pcib_read_config(device_t dev, u_int bus, u_int slot, u_int func, u_int reg,
 }
 
 static void
-bcm_pcib_write_config(device_t dev, u_int bus, u_int slot,
-    u_int func, u_int reg, uint32_t val, int bytes)
+bcm_pcib_write_config(device_t dev, u_int bus, u_int slot, u_int func,
+    u_int reg, uint32_t val, int bytes)
 {
 	struct bcm_pcib_softc *sc;
 	uint32_t offset;
@@ -406,7 +401,7 @@ bcm_pcib_msi_intr(void *arg)
 	struct trapframe *tf;
 	uint32_t interrupt_bitmap;
 
-	sc = (struct bcm_pcib_softc *) arg;
+	sc = (struct bcm_pcib_softc *)arg;
 	tf = curthread->td_intr_frame;
 
 	while ((interrupt_bitmap = bcm_pcib_read_reg(sc, REG_MSI_RAISED)))
@@ -426,13 +421,13 @@ bcm_pcib_alloc_msi(device_t dev, device_t child, int count, int maxcount,
 	mtx_lock(&sc->msi_mtx);
 
 	/* Find a continguous region of free message-signalled interrupts. */
-	for (first_int = 0; first_int + count < NUM_MSI; ) {
+	for (first_int = 0; first_int + count < NUM_MSI;) {
 		for (i = first_int; i < first_int + count; ++i) {
 			if (sc->msi_isrcs[i].allocated)
 				goto next;
 		}
 		goto found;
-next:
+	next:
 		first_int = i + 1;
 	}
 
@@ -463,7 +458,7 @@ bcm_pcib_map_msi(device_t dev, device_t child, struct intr_irqsrc *isrc,
 	struct bcm_pcib_irqsrc *msi_msg;
 
 	sc = device_get_softc(dev);
-	msi_msg = (struct bcm_pcib_irqsrc *) isrc;
+	msi_msg = (struct bcm_pcib_irqsrc *)isrc;
 
 	*addr = sc->msi_addr;
 	*data = (REG_VALUE_MSI_CONFIG & 0xffff) | msi_msg->irq;
@@ -482,7 +477,7 @@ bcm_pcib_release_msi(device_t dev, device_t child, int count,
 	mtx_lock(&sc->msi_mtx);
 
 	for (i = 0; i < count; i++) {
-		msi_isrc = (struct bcm_pcib_irqsrc *) isrc[i];
+		msi_isrc = (struct bcm_pcib_irqsrc *)isrc[i];
 		msi_isrc->allocated = false;
 	}
 
@@ -515,8 +510,9 @@ bcm_pcib_msi_attach(device_t dev)
 	sc->msi_isrcs = malloc(sizeof(*sc->msi_isrcs) * NUM_MSI, M_DEVBUF,
 	    M_WAITOK | M_ZERO);
 
-	error = bus_setup_intr(dev, sc->msi_irq_res, INTR_TYPE_BIO |
-	    INTR_MPSAFE, bcm_pcib_msi_intr, NULL, sc, &sc->msi_intr_cookie);
+	error = bus_setup_intr(dev, sc->msi_irq_res,
+	    INTR_TYPE_BIO | INTR_MPSAFE, bcm_pcib_msi_intr, NULL, sc,
+	    &sc->msi_intr_cookie);
 	if (error != 0) {
 		device_printf(dev, "error: failed to setup MSI handler.\n");
 		return (error);
@@ -577,11 +573,11 @@ bcm_pcib_relocate_bridge_window(device_t dev)
 	size = PCI_PPBMEMLIMIT(0, val) - base;
 
 	new_base = sc->base.base.ranges[0].pci_base;
-	val = (uint16_t) (new_base >> 16);
+	val = (uint16_t)(new_base >> 16);
 	bcm_pcib_write_config(dev, 0, 0, 0, PCIR_MEMBASE_1, val, 2);
 
 	new_limit = new_base + size;
-	val = (uint16_t) (new_limit >> 16);
+	val = (uint16_t)(new_limit >> 16);
 	bcm_pcib_write_config(dev, 0, 0, 0, PCIR_MEMLIMIT_1, val, 2);
 }
 
@@ -624,15 +620,15 @@ bcm_pcib_attach(device_t dev)
 	 * pci_host_generic.c.
 	 */
 	error = bus_dma_tag_create(bus_get_dma_tag(dev), /* parent */
-	    1, 0,				/* alignment, bounds */
-	    DMA_HIGH_LIMIT,			/* lowaddr */
-	    BUS_SPACE_MAXADDR,			/* highaddr */
-	    NULL, NULL,				/* filter, filterarg */
-	    DMA_HIGH_LIMIT,			/* maxsize */
-	    BUS_SPACE_UNRESTRICTED,		/* nsegments */
-	    DMA_HIGH_LIMIT,			/* maxsegsize */
-	    0, 					/* flags */
-	    NULL, NULL,				/* lockfunc, lockarg */
+	    1, 0,					 /* alignment, bounds */
+	    DMA_HIGH_LIMIT,				 /* lowaddr */
+	    BUS_SPACE_MAXADDR,				 /* highaddr */
+	    NULL, NULL,					 /* filter, filterarg */
+	    DMA_HIGH_LIMIT,				 /* maxsize */
+	    BUS_SPACE_UNRESTRICTED,			 /* nsegments */
+	    DMA_HIGH_LIMIT,				 /* maxsegsize */
+	    0,						 /* flags */
+	    NULL, NULL,					 /* lockfunc, lockarg */
 	    &sc->dmat);
 	if (error != 0)
 		return (error);
@@ -667,7 +663,7 @@ bcm_pcib_attach(device_t dev)
 	bcm_pcib_enable_controller(sc);
 
 	/* Wait for controller to start. */
-	for(tries = 0; ; ++tries) {
+	for (tries = 0;; ++tries) {
 		bridge_state = bcm_pcib_read_reg(sc, REG_BRIDGE_STATE);
 
 		if ((bridge_state & 0x30) == 0x30)
@@ -685,7 +681,8 @@ bcm_pcib_attach(device_t dev)
 
 	link_state = bcm_pcib_read_reg(sc, REG_BRIDGE_LINK_STATE) >> 0x10;
 	if (!link_state) {
-		device_printf(dev, "error: controller started but link is not "
+		device_printf(dev,
+		    "error: controller started but link is not "
 		    "up.\n");
 		return (ENXIO);
 	}
@@ -698,9 +695,9 @@ bcm_pcib_attach(device_t dev)
 	 * Addresses seen by the CPU need to be adjusted to make sense to the
 	 * controller as they pass through the window.
 	 */
-	pci_base  = sc->base.base.ranges[0].pci_base;
+	pci_base = sc->base.base.ranges[0].pci_base;
 	phys_base = sc->base.base.ranges[0].phys_base;
-	size      = sc->base.base.ranges[0].size;
+	size = sc->base.base.ranges[0].size;
 
 	bcm_pcib_set_reg(sc, REG_BUS_WINDOW_LOW, pci_base & 0xffffffff);
 	bcm_pcib_set_reg(sc, REG_BUS_WINDOW_HIGH, pci_base >> 32);
@@ -739,20 +736,20 @@ bcm_pcib_attach(device_t dev)
  */
 static device_method_t bcm_pcib_methods[] = {
 	/* Bus interface. */
-	DEVMETHOD(bus_get_dma_tag,		bcm_pcib_get_dma_tag),
+	DEVMETHOD(bus_get_dma_tag, bcm_pcib_get_dma_tag),
 
 	/* Device interface. */
-	DEVMETHOD(device_probe,			bcm_pcib_probe),
-	DEVMETHOD(device_attach,		bcm_pcib_attach),
+	DEVMETHOD(device_probe, bcm_pcib_probe),
+	DEVMETHOD(device_attach, bcm_pcib_attach),
 
 	/* PCIB interface. */
-	DEVMETHOD(pcib_read_config,		bcm_pcib_read_config),
-	DEVMETHOD(pcib_write_config,		bcm_pcib_write_config),
+	DEVMETHOD(pcib_read_config, bcm_pcib_read_config),
+	DEVMETHOD(pcib_write_config, bcm_pcib_write_config),
 
 	/* MSI interface. */
-	DEVMETHOD(msi_alloc_msi,		bcm_pcib_alloc_msi),
-	DEVMETHOD(msi_release_msi,		bcm_pcib_release_msi),
-	DEVMETHOD(msi_map_msi,			bcm_pcib_map_msi),
+	DEVMETHOD(msi_alloc_msi, bcm_pcib_alloc_msi),
+	DEVMETHOD(msi_release_msi, bcm_pcib_release_msi),
+	DEVMETHOD(msi_map_msi, bcm_pcib_map_msi),
 
 	DEVMETHOD_END
 };
@@ -761,4 +758,3 @@ DEFINE_CLASS_1(pcib, bcm_pcib_driver, bcm_pcib_methods,
     sizeof(struct bcm_pcib_softc), generic_pcie_fdt_driver);
 
 DRIVER_MODULE(bcm_pcib, simplebus, bcm_pcib_driver, 0, 0);
-

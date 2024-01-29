@@ -48,20 +48,20 @@
 #include <time.h>
 #include <unistd.h>
 
-int	main (int, char *[]);
-void	print_semid_ds (struct semid_ds *, mode_t);
-void	sigsys_handler (int);
-void	sigchld_handler(int);
-void	cleanup (void);
-void	waiter (void);
-void	usage (void);
+int main(int, char *[]);
+void print_semid_ds(struct semid_ds *, mode_t);
+void sigsys_handler(int);
+void sigchld_handler(int);
+void cleanup(void);
+void waiter(void);
+void usage(void);
 
-int	sender_semid = -1;
-pid_t	child_pid;
-int	child_count;
-int	signal_was_sigchld;
+int sender_semid = -1;
+pid_t child_pid;
+int child_count;
+int signal_was_sigchld;
 
-key_t	semkey;
+key_t semkey;
 
 /*
  * This is the original semun union used by the sysvsem utility.
@@ -127,7 +127,6 @@ main(int argc, char *argv[])
 	if ((sender_semid = semget(semkey, 1, IPC_CREAT | 0640)) == -1)
 		err(1, "semget");
 
-	
 	sun.buf = &s_ds;
 	if (semctl(sender_semid, 0, IPC_STAT, sun) == -1)
 		err(1, "semctl IPC_STAT");
@@ -200,7 +199,7 @@ main(int argc, char *argv[])
 	 */
 	sigemptyset(&sigmask);
 	for (;;) {
-		(void) sigsuspend(&sigmask);
+		(void)sigsuspend(&sigmask);
 		if (signal_was_sigchld)
 			signal_was_sigchld = 0;
 		else
@@ -238,8 +237,7 @@ sigchld_handler(int signo)
 		errx(1, "receiver exited abnormally");
 
 	if (WEXITSTATUS(cstatus) != 0)
-		errx(1, "receiver exited with status %d",
-		    WEXITSTATUS(cstatus));
+		errx(1, "receiver exited with status %d", WEXITSTATUS(cstatus));
 
 	/*
 	 * If we get here, the child has exited normally, and we should
@@ -281,9 +279,8 @@ print_semid_ds(struct semid_ds *sp, mode_t mode)
 	gid_t gid = getegid();
 
 	printf("PERM: uid %d, gid %d, cuid %d, cgid %d, mode 0%o\n",
-	    sp->sem_perm.uid, sp->sem_perm.gid,
-	    sp->sem_perm.cuid, sp->sem_perm.cgid,
-	    sp->sem_perm.mode & 0777);
+	    sp->sem_perm.uid, sp->sem_perm.gid, sp->sem_perm.cuid,
+	    sp->sem_perm.cgid, sp->sem_perm.mode & 0777);
 
 	printf("nsems %u\n", sp->sem_nsems);
 
@@ -301,8 +298,8 @@ print_semid_ds(struct semid_ds *sp, mode_t mode)
 		errx(1, "gid mismatch");
 
 	if ((sp->sem_perm.mode & 0777) != mode)
-		errx(1, "mode mismatch %o != %o",
-		    (sp->sem_perm.mode & 0777), mode);
+		errx(1, "mode mismatch %o != %o", (sp->sem_perm.mode & 0777),
+		    mode);
 }
 
 void

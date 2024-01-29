@@ -48,12 +48,13 @@
  */
 
 #include <sys/types.h>
+
 #include <opencrypto/rmd160.h>
 #include <opencrypto/xform_auth.h>
 
-static	void RMD160Init_int(void *);
-static	int RMD160Update_int(void *, const void *, u_int);
-static	void RMD160Final_int(uint8_t *, void *);
+static void RMD160Init_int(void *);
+static int RMD160Update_int(void *, const void *, u_int);
+static void RMD160Final_int(uint8_t *, void *);
 
 /* Plain hash */
 const struct auth_hash auth_hash_ripemd_160 = {

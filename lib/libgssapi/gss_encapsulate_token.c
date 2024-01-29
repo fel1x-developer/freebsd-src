@@ -86,7 +86,7 @@ gss_encapsulate_token(const gss_buffer_t input_token, gss_OID oid,
 			if (p)
 				*p++ = b | 0x80;
 			len++;
-			a = inside_len << 8*(4 - b);
+			a = inside_len << 8 * (4 - b);
 			while (b) {
 				if (p)
 					*p++ = (a >> 24);

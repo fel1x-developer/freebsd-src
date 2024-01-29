@@ -30,18 +30,17 @@
 #include <sys/disk.h>
 #include <sys/stat.h>
 
-#include <stdio.h>
-#include <fcntl.h>
 #include <errno.h>
-#include <stdint.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
-#include <paths.h>
-
+#include <fcntl.h>
 #include <libgeom.h>
+#include <paths.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
-static char	*g_device_path_open(const char *, int *, int);
+static char *g_device_path_open(const char *, int *, int);
 
 /*
  * Open the given provider and at least check if this is a block device.
@@ -230,14 +229,14 @@ g_open_by_ident(const char *ident, int dowrite, char *name, size_t size)
 	error = ENOENT;
 	fd = -1;
 
-	LIST_FOREACH(mp, &mesh.lg_class, lg_class) {
-		LIST_FOREACH(gp, &mp->lg_geom, lg_geom) {
-			LIST_FOREACH(pp, &gp->lg_provider, lg_provider) {
+	LIST_FOREACH (mp, &mesh.lg_class, lg_class) {
+		LIST_FOREACH (gp, &mp->lg_geom, lg_geom) {
+			LIST_FOREACH (pp, &gp->lg_provider, lg_provider) {
 				fd = g_open(pp->lg_name, dowrite);
 				if (fd == -1)
 					continue;
-				if (g_get_ident(fd, lident,
-				    sizeof(lident)) == -1) {
+				if (g_get_ident(fd, lident, sizeof(lident)) ==
+				    -1) {
 					g_close(fd);
 					continue;
 				}
@@ -246,8 +245,8 @@ g_open_by_ident(const char *ident, int dowrite, char *name, size_t size)
 					continue;
 				}
 				error = 0;
-				if (name != NULL && strlcpy(name, pp->lg_name,
-				    size) >= size) {
+				if (name != NULL &&
+				    strlcpy(name, pp->lg_name, size) >= size) {
 					error = ENAMETOOLONG;
 					g_close(fd);
 				}

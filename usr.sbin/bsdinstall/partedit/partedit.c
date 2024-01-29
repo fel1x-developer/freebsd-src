@@ -102,7 +102,7 @@ main(int argc, const char **argv)
 
 	if (strcmp(progname, "autopart") == 0) { /* Guided */
 		prompt = "Please review the disk setup. When complete, press "
-		    "the Finish button.";
+			 "the Finish button.";
 		/* Experimental ZFS autopartition support */
 		if (argc > 1 && strcmp(argv[1], "zfs") == 0) {
 			part_wizard("zfs");
@@ -118,7 +118,7 @@ main(int argc, const char **argv)
 		}
 	} else {
 		prompt = "Create partitions for " OSNAME ", F1 for help.\n"
-		    "No changes will be made until you select Finish.";
+			 "No changes will be made until you select Finish.";
 	}
 
 	/* Show the part editor either immediately, or to confirm wizard */
@@ -132,12 +132,14 @@ main(int argc, const char **argv)
 			items = read_geom_mesh(&mesh, &nitems);
 		if (error || items == NULL) {
 			conf.title = "Error";
-			bsddialog_msgbox(&conf, "No disks found. If you need "
+			bsddialog_msgbox(&conf,
+			    "No disks found. If you need "
 			    "to install a kernel driver, choose Shell at the "
-			    "installation menu.", 0, 0);
+			    "installation menu.",
+			    0, 0);
 			break;
 		}
-			
+
 		get_mount_points(items, nitems);
 
 		if (i >= nitems)
@@ -188,10 +190,12 @@ main(int argc, const char **argv)
 			conf.button.extra_label = "Revert & Exit";
 			conf.button.cancel_label = "Back";
 			conf.title = "Confirmation";
-			op = bsddialog_yesno(&conf, "Your changes will now be "
+			op = bsddialog_yesno(&conf,
+			    "Your changes will now be "
 			    "written to disk. If you have chosen to overwrite "
 			    "existing data, it will be PERMANENTLY ERASED. Are "
-			    "you sure you want to commit your changes?", 0, 0);
+			    "you sure you want to commit your changes?",
+			    0, 0);
 			conf.button.ok_label = NULL;
 			conf.button.with_extra = false;
 			conf.button.extra_label = NULL;
@@ -204,7 +208,7 @@ main(int argc, const char **argv)
 				break;
 			} else if (op == BSDDIALOG_EXTRA) { /* Quit */
 				gpart_revert_all(&mesh);
-				error =	-1;
+				error = -1;
 				break;
 			}
 		}
@@ -212,7 +216,7 @@ main(int argc, const char **argv)
 		geom_deletetree(&mesh);
 		free(items);
 	}
-	
+
 	if (prompt == NULL) {
 		error = geom_gettree(&mesh);
 		if (error == 0) {
@@ -236,7 +240,7 @@ get_part_metadata(const char *name, int create)
 {
 	struct partition_metadata *md;
 
-	TAILQ_FOREACH(md, &part_metadata, metadata) 
+	TAILQ_FOREACH (md, &part_metadata, metadata)
 		if (md->name != NULL && strcmp(md->name, name) == 0)
 			break;
 
@@ -248,13 +252,13 @@ get_part_metadata(const char *name, int create)
 
 	return (md);
 }
-	
+
 void
 delete_part_metadata(const char *name)
 {
 	struct partition_metadata *md;
 
-	TAILQ_FOREACH(md, &part_metadata, metadata) {
+	TAILQ_FOREACH (md, &part_metadata, metadata) {
 		if (md->name != NULL && strcmp(md->name, name) == 0) {
 			if (md->fstab != NULL) {
 				free(md->fstab->fs_spec);
@@ -282,7 +286,7 @@ validate_setup(void)
 	int button;
 	struct bsddialog_conf conf;
 
-	TAILQ_FOREACH(md, &part_metadata, metadata) {
+	TAILQ_FOREACH (md, &part_metadata, metadata) {
 		if (md->fstab != NULL && strcmp(md->fstab->fs_file, "/") == 0)
 			root = md;
 
@@ -293,22 +297,25 @@ validate_setup(void)
 
 	if (root == NULL) {
 		conf.title = "Error";
-		bsddialog_msgbox(&conf, "No root partition was found. "
+		bsddialog_msgbox(&conf,
+		    "No root partition was found. "
 		    "The root " OSNAME " partition must have a mountpoint "
-		    "of '/'.", 0, 0);
+		    "of '/'.",
+		    0, 0);
 		return (false);
 	}
 
 	/*
-	 * Check for root partitions that we aren't formatting, which is 
+	 * Check for root partitions that we aren't formatting, which is
 	 * usually a mistake
 	 */
 	if (root->newfs == NULL && !sade_mode) {
 		conf.button.default_cancel = true;
 		conf.title = "Warning";
-		button = bsddialog_yesno(&conf, "The chosen root partition "
-		    "has a preexisting filesystem. If it contains an existing "
-		    OSNAME " system, please update it with freebsd-update "
+		button = bsddialog_yesno(&conf,
+		    "The chosen root partition "
+		    "has a preexisting filesystem. If it contains an existing " OSNAME
+		    " system, please update it with freebsd-update "
 		    "instead of installing a new system on it. The partition "
 		    "can also be erased by pressing \"No\" and then deleting "
 		    "and recreating it. Are you sure you want to proceed?",
@@ -349,22 +356,22 @@ apply_changes(struct gmesh *mesh)
 	struct bsddialog_conf conf;
 
 	nitems = 1; /* Partition table changes */
-	TAILQ_FOREACH(md, &part_metadata, metadata) {
+	TAILQ_FOREACH (md, &part_metadata, metadata) {
 		if (md->newfs != NULL)
 			nitems++;
 	}
 	minilabel = calloc(nitems, sizeof(const char *));
-	miniperc  = calloc(nitems, sizeof(int));
+	miniperc = calloc(nitems, sizeof(int));
 	minilabel[0] = "Writing partition tables";
-	miniperc[0]  = BSDDIALOG_MG_INPROGRESS;
+	miniperc[0] = BSDDIALOG_MG_INPROGRESS;
 	i = 1;
-	TAILQ_FOREACH(md, &part_metadata, metadata) {
+	TAILQ_FOREACH (md, &part_metadata, metadata) {
 		if (md->newfs != NULL) {
 			char *item;
 
 			asprintf(&item, "Initializing %s", md->name);
 			minilabel[i] = item;
-			miniperc[i]  = BSDDIALOG_MG_PENDING;
+			miniperc[i] = BSDDIALOG_MG_PENDING;
 			i++;
 		}
 	}
@@ -372,17 +379,16 @@ apply_changes(struct gmesh *mesh)
 	i = 0;
 	bsddialog_initconf(&conf);
 	conf.title = "Initializing";
-	bsddialog_mixedgauge(&conf,
-	    "Initializing file systems. Please wait.", 0, 0, i * 100 / nitems,
-	    nitems, minilabel, miniperc);
+	bsddialog_mixedgauge(&conf, "Initializing file systems. Please wait.",
+	    0, 0, i * 100 / nitems, nitems, minilabel, miniperc);
 	gpart_commit(mesh);
 	miniperc[i] = BSDDIALOG_MG_COMPLETED;
 	i++;
 
-	if (getenv("BSDINSTALL_LOG") == NULL) 
+	if (getenv("BSDINSTALL_LOG") == NULL)
 		setenv("BSDINSTALL_LOG", "/dev/null", 1);
 
-	TAILQ_FOREACH(md, &part_metadata, metadata) {
+	TAILQ_FOREACH (md, &part_metadata, metadata) {
 		if (md->newfs != NULL) {
 			miniperc[i] = BSDDIALOG_MG_INPROGRESS;
 			bsddialog_mixedgauge(&conf,
@@ -393,8 +399,8 @@ apply_changes(struct gmesh *mesh)
 			    getenv("BSDINSTALL_LOG"));
 			error = system(command);
 			free(command);
-			miniperc[i] = (error == 0) ?
-			    BSDDIALOG_MG_COMPLETED : BSDDIALOG_MG_FAILED;
+			miniperc[i] = (error == 0) ? BSDDIALOG_MG_COMPLETED :
+						     BSDDIALOG_MG_FAILED;
 			i++;
 		}
 	}
@@ -412,11 +418,12 @@ apply_changes(struct gmesh *mesh)
 		struct partition_metadata **tobesorted;
 		struct partition_metadata *tmp;
 		int nparts = 0;
-		TAILQ_FOREACH(md, &part_metadata, metadata)
+		TAILQ_FOREACH (md, &part_metadata, metadata)
 			nparts++;
-		tobesorted = malloc(sizeof(struct partition_metadata *)*nparts);
+		tobesorted = malloc(
+		    sizeof(struct partition_metadata *) * nparts);
 		nparts = 0;
-		TAILQ_FOREACH_SAFE(md, &part_metadata, metadata, tmp) {
+		TAILQ_FOREACH_SAFE (md, &part_metadata, metadata, tmp) {
 			tobesorted[nparts++] = md;
 			TAILQ_REMOVE(&part_metadata, md, metadata);
 		}
@@ -425,8 +432,8 @@ apply_changes(struct gmesh *mesh)
 
 		/* Now re-add everything */
 		while (nparts-- > 0)
-			TAILQ_INSERT_HEAD(&part_metadata,
-			    tobesorted[nparts], metadata);
+			TAILQ_INSERT_HEAD(&part_metadata, tobesorted[nparts],
+			    metadata);
 		free(tobesorted);
 	}
 
@@ -444,7 +451,7 @@ apply_changes(struct gmesh *mesh)
 		return (-1);
 	}
 	fprintf(fstab, "# Device\tMountpoint\tFStype\tOptions\tDump\tPass#\n");
-	TAILQ_FOREACH(md, &part_metadata, metadata) {
+	TAILQ_FOREACH (md, &part_metadata, metadata) {
 		if (md->fstab != NULL)
 			fprintf(fstab, "%s\t%s\t\t%s\t%s\t%d\t%d\n",
 			    md->fstab->fs_spec, md->fstab->fs_file,
@@ -465,7 +472,7 @@ apply_workaround(struct gmesh *mesh)
 	const char *scheme = NULL, *modified = NULL;
 	struct bsddialog_conf conf;
 
-	LIST_FOREACH(classp, &mesh->lg_class, lg_class) {
+	LIST_FOREACH (classp, &mesh->lg_class, lg_class) {
 		if (strcmp(classp->lg_name, "PART") == 0)
 			break;
 	}
@@ -477,8 +484,8 @@ apply_workaround(struct gmesh *mesh)
 		return;
 	}
 
-	LIST_FOREACH(gp, &classp->lg_geom, lg_geom) {
-		LIST_FOREACH(gc, &gp->lg_config, lg_config) {
+	LIST_FOREACH (gp, &classp->lg_geom, lg_geom) {
+		LIST_FOREACH (gc, &gp->lg_config, lg_config) {
 			if (strcmp(gc->lg_name, "scheme") == 0) {
 				scheme = gc->lg_val;
 			} else if (strcmp(gc->lg_name, "modified") == 0) {
@@ -486,8 +493,8 @@ apply_workaround(struct gmesh *mesh)
 			}
 		}
 
-		if (scheme && strcmp(scheme, "GPT") == 0 &&
-		    modified && strcmp(modified, "true") == 0) {
+		if (scheme && strcmp(scheme, "GPT") == 0 && modified &&
+		    strcmp(modified, "true") == 0) {
 			if (getenv("WORKAROUND_LENOVO"))
 				gpart_set_root(gp->lg_name, "lenovofix");
 			if (getenv("WORKAROUND_GPTACTIVE"))
@@ -509,14 +516,14 @@ read_geom_mesh(struct gmesh *mesh, int *nitems)
 	/*
 	 * Build the device table. First add all disks (and CDs).
 	 */
-	
-	LIST_FOREACH(classp, &mesh->lg_class, lg_class) {
+
+	LIST_FOREACH (classp, &mesh->lg_class, lg_class) {
 		if (strcmp(classp->lg_name, "DISK") != 0 &&
 		    strcmp(classp->lg_name, "MD") != 0)
 			continue;
 
 		/* Now recurse into all children */
-		LIST_FOREACH(gp, &classp->lg_geom, lg_geom) 
+		LIST_FOREACH (gp, &classp->lg_geom, lg_geom)
 			add_geom_children(gp, 0, &items, nitems);
 	}
 
@@ -533,16 +540,16 @@ add_geom_children(struct ggeom *gp, int recurse, struct partedit_item **items,
 
 	if (strcmp(gp->lg_class->lg_name, "PART") == 0 &&
 	    !LIST_EMPTY(&gp->lg_config)) {
-		LIST_FOREACH(gc, &gp->lg_config, lg_config) {
+		LIST_FOREACH (gc, &gp->lg_config, lg_config) {
 			if (strcmp(gc->lg_name, "scheme") == 0)
-				(*items)[*nitems-1].type = gc->lg_val;
+				(*items)[*nitems - 1].type = gc->lg_val;
 		}
 	}
 
-	if (LIST_EMPTY(&gp->lg_provider)) 
+	if (LIST_EMPTY(&gp->lg_provider))
 		return;
 
-	LIST_FOREACH(pp, &gp->lg_provider, lg_provider) {
+	LIST_FOREACH (pp, &gp->lg_provider, lg_provider) {
 		if (strcmp(gp->lg_class->lg_name, "LABEL") == 0)
 			continue;
 
@@ -551,7 +558,7 @@ add_geom_children(struct ggeom *gp, int recurse, struct partedit_item **items,
 			continue;
 
 		*items = realloc(*items,
-		    (*nitems+1)*sizeof(struct partedit_item));
+		    (*nitems + 1) * sizeof(struct partedit_item));
 		(*items)[*nitems].indentation = recurse;
 		(*items)[*nitems].name = pp->lg_name;
 		(*items)[*nitems].size = pp->lg_mediasize;
@@ -559,7 +566,7 @@ add_geom_children(struct ggeom *gp, int recurse, struct partedit_item **items,
 		(*items)[*nitems].type = "";
 		(*items)[*nitems].cookie = pp;
 
-		LIST_FOREACH(gc, &pp->lg_config, lg_config) {
+		LIST_FOREACH (gc, &pp->lg_config, lg_config) {
 			if (strcmp(gc->lg_name, "type") == 0)
 				(*items)[*nitems].type = gc->lg_val;
 		}
@@ -571,8 +578,8 @@ add_geom_children(struct ggeom *gp, int recurse, struct partedit_item **items,
 
 		(*nitems)++;
 
-		LIST_FOREACH(cp, &pp->lg_consumers, lg_consumers)
-			add_geom_children(cp->lg_geom, recurse+1, items,
+		LIST_FOREACH (cp, &pp->lg_consumers, lg_consumers)
+			add_geom_children(cp->lg_geom, recurse + 1, items,
 			    nitems);
 
 		/* Only use first provider for acd */
@@ -605,7 +612,7 @@ init_fstab_metadata(void)
 		md->fstab->fs_passno = fstab->fs_passno;
 
 		md->newfs = NULL;
-		
+
 		TAILQ_INSERT_TAIL(&part_metadata, md, metadata);
 	}
 }
@@ -615,9 +622,9 @@ get_mount_points(struct partedit_item *items, int nitems)
 {
 	struct partition_metadata *md;
 	int i;
-	
+
 	for (i = 0; i < nitems; i++) {
-		TAILQ_FOREACH(md, &part_metadata, metadata) {
+		TAILQ_FOREACH (md, &part_metadata, metadata) {
 			if (md->name != NULL && md->fstab != NULL &&
 			    strcmp(md->name, items[i].name) == 0) {
 				items[i].mountpoint = md->fstab->fs_file;

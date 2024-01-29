@@ -50,7 +50,7 @@
 /*
  * internals of regex_t
  */
-#define	MAGIC1	((('r'^0200)<<8) | 'e')
+#define MAGIC1 ((('r' ^ 0200) << 8) | 'e')
 
 /*
  * The internal representation is a *strip*, a sequence of
@@ -71,58 +71,58 @@
  * In state representations, an operator's bit is on to signify a state
  * immediately *preceding* "execution" of that operator.
  */
-typedef unsigned long sop;	/* strip operator */
+typedef unsigned long sop; /* strip operator */
 typedef unsigned long sopno;
-#define	OPRMASK	0xf8000000L
-#define	OPDMASK	0x07ffffffL
-#define	OPSHIFT	((unsigned)27)
-#define	OP(n)	((n)&OPRMASK)
-#define	OPND(n)	((n)&OPDMASK)
-#define	SOP(op, opnd)	((op)|(opnd))
+#define OPRMASK 0xf8000000L
+#define OPDMASK 0x07ffffffL
+#define OPSHIFT ((unsigned)27)
+#define OP(n) ((n) & OPRMASK)
+#define OPND(n) ((n) & OPDMASK)
+#define SOP(op, opnd) ((op) | (opnd))
 /* operators			   meaning	operand			*/
 /*						(back, fwd are offsets)	*/
-#define	OEND	(1L<<OPSHIFT)	/* endmarker	-			*/
-#define	OCHAR	(2L<<OPSHIFT)	/* character	wide character		*/
-#define	OBOL	(3L<<OPSHIFT)	/* left anchor	-			*/
-#define	OEOL	(4L<<OPSHIFT)	/* right anchor	-			*/
-#define	OANY	(5L<<OPSHIFT)	/* .		-			*/
-#define	OANYOF	(6L<<OPSHIFT)	/* [...]	set number		*/
-#define	OBACK_	(7L<<OPSHIFT)	/* begin \d	paren number		*/
-#define	O_BACK	(8L<<OPSHIFT)	/* end \d	paren number		*/
-#define	OPLUS_	(9L<<OPSHIFT)	/* + prefix	fwd to suffix		*/
-#define	O_PLUS	(10L<<OPSHIFT)	/* + suffix	back to prefix		*/
-#define	OQUEST_	(11L<<OPSHIFT)	/* ? prefix	fwd to suffix		*/
-#define	O_QUEST	(12L<<OPSHIFT)	/* ? suffix	back to prefix		*/
-#define	OLPAREN	(13L<<OPSHIFT)	/* (		fwd to )		*/
-#define	ORPAREN	(14L<<OPSHIFT)	/* )		back to (		*/
-#define	OCH_	(15L<<OPSHIFT)	/* begin choice	fwd to OOR2		*/
-#define	OOR1	(16L<<OPSHIFT)	/* | pt. 1	back to OOR1 or OCH_	*/
-#define	OOR2	(17L<<OPSHIFT)	/* | pt. 2	fwd to OOR2 or O_CH	*/
-#define	O_CH	(18L<<OPSHIFT)	/* end choice	back to OOR1		*/
-#define	OBOW	(19L<<OPSHIFT)	/* begin word	-			*/
-#define	OEOW	(20L<<OPSHIFT)	/* end word	-			*/
-#define	OBOS	(21L<<OPSHIFT)	/* begin subj.  -			*/
-#define	OEOS	(22L<<OPSHIFT)	/* end subj.	-			*/
-#define	OWBND	(23L<<OPSHIFT)	/* word bound	-			*/
-#define	ONWBND	(24L<<OPSHIFT)	/* not bound	-			*/
+#define OEND (1L << OPSHIFT)	 /* endmarker	-			*/
+#define OCHAR (2L << OPSHIFT)	 /* character	wide character		*/
+#define OBOL (3L << OPSHIFT)	 /* left anchor	-			*/
+#define OEOL (4L << OPSHIFT)	 /* right anchor	-			*/
+#define OANY (5L << OPSHIFT)	 /* .		-			*/
+#define OANYOF (6L << OPSHIFT)	 /* [...]	set number		*/
+#define OBACK_ (7L << OPSHIFT)	 /* begin \d	paren number		*/
+#define O_BACK (8L << OPSHIFT)	 /* end \d	paren number		*/
+#define OPLUS_ (9L << OPSHIFT)	 /* + prefix	fwd to suffix		*/
+#define O_PLUS (10L << OPSHIFT)	 /* + suffix	back to prefix		*/
+#define OQUEST_ (11L << OPSHIFT) /* ? prefix	fwd to suffix		*/
+#define O_QUEST (12L << OPSHIFT) /* ? suffix	back to prefix		*/
+#define OLPAREN (13L << OPSHIFT) /* (		fwd to )		*/
+#define ORPAREN (14L << OPSHIFT) /* )		back to (		*/
+#define OCH_ (15L << OPSHIFT)	 /* begin choice	fwd to OOR2		*/
+#define OOR1 (16L << OPSHIFT)	 /* | pt. 1	back to OOR1 or OCH_	*/
+#define OOR2 (17L << OPSHIFT)	 /* | pt. 2	fwd to OOR2 or O_CH	*/
+#define O_CH (18L << OPSHIFT)	 /* end choice	back to OOR1		*/
+#define OBOW (19L << OPSHIFT)	 /* begin word	-			*/
+#define OEOW (20L << OPSHIFT)	 /* end word	-			*/
+#define OBOS (21L << OPSHIFT)	 /* begin subj.  -			*/
+#define OEOS (22L << OPSHIFT)	 /* end subj.	-			*/
+#define OWBND (23L << OPSHIFT)	 /* word bound	-			*/
+#define ONWBND (24L << OPSHIFT)	 /* not bound	-			*/
 
 /*
  * Structures for [] character-set representation.
  */
 typedef struct {
-	wint_t		min;
-	wint_t		max;
+	wint_t min;
+	wint_t max;
 } crange;
 typedef struct {
-	unsigned char	bmp[NC_MAX / 8];
-	wctype_t	*types;
-	unsigned int	ntypes;
-	wint_t		*wides;
-	unsigned int	nwides;
-	crange		*ranges;
-	unsigned int	nranges;
-	int		invert;
-	int		icase;
+	unsigned char bmp[NC_MAX / 8];
+	wctype_t *types;
+	unsigned int ntypes;
+	wint_t *wides;
+	unsigned int nwides;
+	crange *ranges;
+	unsigned int nranges;
+	int invert;
+	int icase;
 } cset;
 
 static int
@@ -132,8 +132,8 @@ CHIN1(cset *cs, wint_t ch)
 
 	assert(ch >= 0);
 	if (ch < NC)
-		return (((cs->bmp[ch >> 3] & (1 << (ch & 7))) != 0) ^
-		    cs->invert);
+		return (
+		    ((cs->bmp[ch >> 3] & (1 << (ch & 7))) != 0) ^ cs->invert);
 	for (i = 0; i < cs->nwides; i++) {
 		if (cs->icase) {
 			if (ch == towlower(cs->wides[i]) ||
@@ -157,8 +157,8 @@ CHIN(cset *cs, wint_t ch)
 
 	assert(ch >= 0);
 	if (ch < NC)
-		return (((cs->bmp[ch >> 3] & (1 << (ch & 7))) != 0) ^
-		    cs->invert);
+		return (
+		    ((cs->bmp[ch >> 3] & (1 << (ch & 7))) != 0) ^ cs->invert);
 	else if (cs->icase)
 		return (CHIN1(cs, ch) || CHIN1(cs, towlower(ch)) ||
 		    CHIN1(cs, towupper(ch)));
@@ -171,31 +171,31 @@ CHIN(cset *cs, wint_t ch)
  */
 struct re_guts {
 	int magic;
-#		define	MAGIC2	((('R'^0200)<<8)|'E')
-	sop *strip;		/* malloced area for strip */
-	unsigned int ncsets;	/* number of csets in use */
-	cset *sets;		/* -> cset [ncsets] */
-	int cflags;		/* copy of regcomp() cflags argument */
-	sopno nstates;		/* = number of sops */
-	sopno firststate;	/* the initial OEND (normally 0) */
-	sopno laststate;	/* the final OEND */
-	int iflags;		/* internal flags */
-#		define	USEBOL	01	/* used ^ */
-#		define	USEEOL	02	/* used $ */
-#		define	BAD	04	/* something wrong */
-	int nbol;		/* number of ^ used */
-	int neol;		/* number of $ used */
-	char *must;		/* match must contain this string */
-	int moffset;		/* latest point at which must may be located */
-	int *charjump;		/* Boyer-Moore char jump table */
-	int *matchjump;		/* Boyer-Moore match jump table */
-	int mlen;		/* length of must */
-	size_t nsub;		/* copy of re_nsub */
-	int backrefs;		/* does it use back references? */
-	sopno nplus;		/* how deep does it nest +s? */
+#define MAGIC2 ((('R' ^ 0200) << 8) | 'E')
+	sop *strip;	     /* malloced area for strip */
+	unsigned int ncsets; /* number of csets in use */
+	cset *sets;	     /* -> cset [ncsets] */
+	int cflags;	     /* copy of regcomp() cflags argument */
+	sopno nstates;	     /* = number of sops */
+	sopno firststate;    /* the initial OEND (normally 0) */
+	sopno laststate;     /* the final OEND */
+	int iflags;	     /* internal flags */
+#define USEBOL 01	     /* used ^ */
+#define USEEOL 02	     /* used $ */
+#define BAD 04		     /* something wrong */
+	int nbol;	     /* number of ^ used */
+	int neol;	     /* number of $ used */
+	char *must;	     /* match must contain this string */
+	int moffset;	     /* latest point at which must may be located */
+	int *charjump;	     /* Boyer-Moore char jump table */
+	int *matchjump;	     /* Boyer-Moore match jump table */
+	int mlen;	     /* length of must */
+	size_t nsub;	     /* copy of re_nsub */
+	int backrefs;	     /* does it use back references? */
+	sopno nplus;	     /* how deep does it nest +s? */
 };
 
 /* misc utilities */
-#define	OUT	(CHAR_MIN - 1)	/* a non-character value */
-#define	IGN	(CHAR_MIN - 2)
-#define ISWORD(c)       (iswalnum((uch)(c)) || (c) == '_')
+#define OUT (CHAR_MIN - 1) /* a non-character value */
+#define IGN (CHAR_MIN - 2)
+#define ISWORD(c) (iswalnum((uch)(c)) || (c) == '_')

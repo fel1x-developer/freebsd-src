@@ -68,13 +68,13 @@ extern "C" {
 #include <dev/isci/scil/scif_logger.h>
 #include <dev/isci/scil/scif_user_callback.h>
 
-#if defined (SCI_LOGGING)
+#if defined(SCI_LOGGING)
 
-#define SCIF_LOG_ERROR(x)    scif_cb_logger_log_error x
-#define SCIF_LOG_WARNING(x)  scif_cb_logger_log_warning x
-#define SCIF_LOG_INFO(x)     scif_cb_logger_log_info x
-#define SCIF_LOG_TRACE(x)    scif_cb_logger_log_trace x
-#define SCIF_LOG_STATES(x)   scif_cb_logger_log_states x
+#define SCIF_LOG_ERROR(x) scif_cb_logger_log_error x
+#define SCIF_LOG_WARNING(x) scif_cb_logger_log_warning x
+#define SCIF_LOG_INFO(x) scif_cb_logger_log_info x
+#define SCIF_LOG_TRACE(x) scif_cb_logger_log_trace x
+#define SCIF_LOG_STATES(x) scif_cb_logger_log_states x
 
 #else // defined (SCI_LOGGING)
 
@@ -91,4 +91,3 @@ extern "C" {
 #endif // __cplusplus
 
 #endif // _SCIF_SAS_LOGGER_H_
-

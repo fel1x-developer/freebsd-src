@@ -36,9 +36,10 @@
  * ~ escapes.
  */
 
-#include "rcv.h"
 #include <fcntl.h>
+
 #include "extern.h"
+#include "rcv.h"
 
 /*
  * Read a message from standard input and return a read file to it
@@ -51,17 +52,17 @@
  * away on dead.letter.
  */
 
-static	sig_t	saveint;		/* Previous SIGINT value */
-static	sig_t	savehup;		/* Previous SIGHUP value */
-static	sig_t	savetstp;		/* Previous SIGTSTP value */
-static	sig_t	savettou;		/* Previous SIGTTOU value */
-static	sig_t	savettin;		/* Previous SIGTTIN value */
-static	FILE	*collf;			/* File for saving away */
-static	int	hadintr;		/* Have seen one SIGINT so far */
+static sig_t saveint;  /* Previous SIGINT value */
+static sig_t savehup;  /* Previous SIGHUP value */
+static sig_t savetstp; /* Previous SIGTSTP value */
+static sig_t savettou; /* Previous SIGTTOU value */
+static sig_t savettin; /* Previous SIGTTIN value */
+static FILE *collf;    /* File for saving away */
+static int hadintr;    /* Have seen one SIGINT so far */
 
-static	jmp_buf	colljmp;		/* To get back to work */
-static	int	colljmp_p;		/* whether to long jump */
-static	jmp_buf	collabort;		/* To end collection with error */
+static jmp_buf colljmp;	  /* To get back to work */
+static int colljmp_p;	  /* whether to long jump */
+static jmp_buf collabort; /* To end collection with error */
 
 FILE *
 collect(struct header *hp, int printheaders)
@@ -70,8 +71,8 @@ collect(struct header *hp, int printheaders)
 	int lc, cc, escape, eofcount, fd, c, t;
 	char linebuf[LINESIZE], tempname[PATHSIZE], *cp, getsub;
 	sigset_t nset;
-	int longline, lastlong, rc;	/* So we don't make 2 or more lines
-					   out of a long input line. */
+	int longline, lastlong, rc; /* So we don't make 2 or more lines
+				       out of a long input line. */
 
 	collf = NULL;
 	/*
@@ -96,8 +97,8 @@ collect(struct header *hp, int printheaders)
 	(void)sigprocmask(SIG_UNBLOCK, &nset, NULL);
 
 	noreset++;
-	(void)snprintf(tempname, sizeof(tempname),
-	    "%s/mail.RsXXXXXXXXXX", tmpdir);
+	(void)snprintf(tempname, sizeof(tempname), "%s/mail.RsXXXXXXXXXX",
+	    tmpdir);
 	if ((fd = mkstemp(tempname)) == -1 ||
 	    (collf = Fdopen(fd, "w+")) == NULL) {
 		warn("%s", tempname);
@@ -110,7 +111,7 @@ collect(struct header *hp, int printheaders)
 	 * refrain from printing a newline after
 	 * the headers (since some people mind).
 	 */
-	t = GTO|GSUBJECT|GCC|GNL;
+	t = GTO | GSUBJECT | GCC | GNL;
 	getsub = 0;
 	if (hp->h_subject == NULL && value("interactive") != NULL &&
 	    (value("ask") != NULL || value("asksub") != NULL))
@@ -136,11 +137,11 @@ collect(struct header *hp, int printheaders)
 		 * Duplicate messages won't be printed because
 		 * the write is aborted if we get a SIGTTOU.
 		 */
-cont:
+	cont:
 		if (hadintr) {
 			(void)fflush(stdout);
 			fprintf(stderr,
-			"\n(Interrupt -- one more to kill letter)\n");
+			    "\n(Interrupt -- one more to kill letter)\n");
 		} else {
 			printf("(continue)\n");
 			(void)fflush(stdout);
@@ -229,7 +230,7 @@ cont:
 			/*
 			 * Grab a bunch of headers.
 			 */
-			grabh(hp, GTO|GSUBJECT|GCC|GBCC);
+			grabh(hp, GTO | GSUBJECT | GCC | GBCC);
 			goto cont;
 		case 't':
 			/*
@@ -273,25 +274,25 @@ cont:
 			/*
 			 * Insert named variable in message.
 			 */
-			switch(c) {
-				case 'i':
-					cp = &linebuf[2];
-					while(isspace((unsigned char)*cp))
-						cp++;
-					break;
-				case 'a':
-					cp = "sign";
-					break;
-				case 'A':
-					cp = "Sign";
-					break;
-				default:
-					goto err;
+			switch (c) {
+			case 'i':
+				cp = &linebuf[2];
+				while (isspace((unsigned char)*cp))
+					cp++;
+				break;
+			case 'a':
+				cp = "sign";
+				break;
+			case 'A':
+				cp = "Sign";
+				break;
+			default:
+				goto err;
 			}
 
-			if(*cp != '\0' && (cp = value(cp)) != NULL) {
+			if (*cp != '\0' && (cp = value(cp)) != NULL) {
 				printf("%s\n", cp);
-				if(putline(collf, cp, 1) < 0)
+				if (putline(collf, cp, 1) < 0)
 					goto err;
 			}
 
@@ -301,8 +302,7 @@ cont:
 			 * Read in the dead letter file.
 			 */
 			if (strlcpy(linebuf + 2, getdeadletter(),
-				sizeof(linebuf) - 2)
-			    >= sizeof(linebuf) - 2) {
+				sizeof(linebuf) - 2) >= sizeof(linebuf) - 2) {
 				printf("Line buffer overflow\n");
 				break;
 			}
@@ -332,8 +332,8 @@ cont:
 				int nullfd, tempfd, rc;
 				char tempname2[PATHSIZE];
 
-				if ((nullfd = open(_PATH_DEVNULL, O_RDONLY, 0))
-				    == -1) {
+				if ((nullfd = open(_PATH_DEVNULL, O_RDONLY,
+					 0)) == -1) {
 					warn(_PATH_DEVNULL);
 					break;
 				}
@@ -351,7 +351,7 @@ cont:
 					sh = _PATH_CSHELL;
 
 				rc = run_command(sh, 0, nullfd, fileno(fbuf),
-				    "-c", cp+1, NULL);
+				    "-c", cp + 1, NULL);
 
 				close(nullfd);
 
@@ -363,7 +363,7 @@ cont:
 				if (fsize(fbuf) == 0) {
 					fprintf(stderr,
 					    "No bytes from command \"%s\"\n",
-					    cp+1);
+					    cp + 1);
 					(void)Fclose(fbuf);
 					break;
 				}
@@ -438,7 +438,7 @@ cont:
 			 */
 			rewind(collf);
 			printf("-------\nMessage contains:\n");
-			puthead(hp, stdout, GTO|GSUBJECT|GCC|GBCC|GNL);
+			puthead(hp, stdout, GTO | GSUBJECT | GCC | GBCC | GNL);
 			while ((t = getc(collf)) != EOF)
 				(void)putchar(t);
 			goto cont;
@@ -558,10 +558,9 @@ mespipe(FILE *fp, char cmd[])
 	sig_t sigint = signal(SIGINT, SIG_IGN);
 	char *sh, tempname[PATHSIZE];
 
-	(void)snprintf(tempname, sizeof(tempname),
-	    "%s/mail.ReXXXXXXXXXX", tmpdir);
-	if ((fd = mkstemp(tempname)) == -1 ||
-	    (nf = Fdopen(fd, "w+")) == NULL) {
+	(void)snprintf(tempname, sizeof(tempname), "%s/mail.ReXXXXXXXXXX",
+	    tmpdir);
+	if ((fd = mkstemp(tempname)) == -1 || (nf = Fdopen(fd, "w+")) == NULL) {
 		warn("%s", tempname);
 		goto out;
 	}
@@ -572,8 +571,7 @@ mespipe(FILE *fp, char cmd[])
 	 */
 	if ((sh = value("SHELL")) == NULL)
 		sh = _PATH_CSHELL;
-	if (run_command(sh,
-	    0, fileno(fp), fileno(nf), "-c", cmd, NULL) < 0) {
+	if (run_command(sh, 0, fileno(fp), fileno(nf), "-c", cmd, NULL) < 0) {
 		(void)Fclose(nf);
 		goto out;
 	}
@@ -607,7 +605,7 @@ forward(char ms[], FILE *fp, char *fn, int f)
 	struct ignoretab *ig;
 	char *tabst;
 
-	msgvec = (int *)salloc((msgCount+1) * sizeof(*msgvec));
+	msgvec = (int *)salloc((msgCount + 1) * sizeof(*msgvec));
 	if (msgvec == NULL)
 		return (0);
 	if (getmsglist(ms, msgvec, 0) < 0)

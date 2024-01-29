@@ -85,4 +85,3 @@ in the previous diagram:
 */
 
 #endif // _SCIC_OVERVIEW_H_
-

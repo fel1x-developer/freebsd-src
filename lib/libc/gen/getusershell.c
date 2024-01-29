@@ -32,7 +32,6 @@
 #include <sys/cdefs.h>
 __RCSID("$NetBSD: getusershell.c,v 1.17 1999/01/25 01:09:34 lukem Exp $");
 
-#include "namespace.h"
 #include <sys/param.h>
 #include <sys/file.h>
 
@@ -46,18 +45,20 @@ __RCSID("$NetBSD: getusershell.c,v 1.17 1999/01/25 01:09:34 lukem Exp $");
 #include <stringlist.h>
 #include <unistd.h>
 
+#include "namespace.h"
+
 #ifdef HESIOD
 #include <hesiod.h>
 #endif
 #ifdef YP
 #include <rpc/rpc.h>
-#include <rpcsvc/ypclnt.h>
 #include <rpcsvc/yp_prot.h>
+#include <rpcsvc/ypclnt.h>
 #endif
 #include "un-namespace.h"
 
 static const char *const *curshell;
-static StringList	 *sl;
+static StringList *sl;
 
 static const char *const *initshells(void);
 
@@ -95,16 +96,15 @@ setusershell(void)
 	curshell = initshells();
 }
 
-
-static int	_local_initshells(void *, void *, va_list);
+static int _local_initshells(void *, void *, va_list);
 
 /*ARGSUSED*/
 static int
-_local_initshells(void	*rv, void *cb_data, va_list ap)
+_local_initshells(void *rv, void *cb_data, va_list ap)
 {
-	char	*sp, *cp;
-	FILE	*fp;
-	char	 line[MAXPATHLEN + 2];
+	char *sp, *cp;
+	FILE *fp;
+	char line[MAXPATHLEN + 2];
 
 	if (sl)
 		sl_free(sl, 1);
@@ -130,16 +130,16 @@ _local_initshells(void	*rv, void *cb_data, va_list ap)
 }
 
 #ifdef HESIOD
-static int	_dns_initshells(void *, void *, va_list);
+static int _dns_initshells(void *, void *, va_list);
 
 /*ARGSUSED*/
 static int
 _dns_initshells(void *rv, void *cb_data, va_list ap)
 {
-	char	  shellname[] = "shells-XXXXX";
-	int	  hsindex, hpi, r;
-	char	**hp;
-	void	 *context;
+	char shellname[] = "shells-XXXXX";
+	int hsindex, hpi, r;
+	char **hp;
+	void *context;
 
 	if (sl)
 		sl_free(sl, 1);
@@ -148,8 +148,9 @@ _dns_initshells(void *rv, void *cb_data, va_list ap)
 	if (hesiod_init(&context) == -1)
 		return (r);
 
-	for (hsindex = 0; ; hsindex++) {
-		snprintf(shellname, sizeof(shellname)-1, "shells-%d", hsindex);
+	for (hsindex = 0;; hsindex++) {
+		snprintf(shellname, sizeof(shellname) - 1, "shells-%d",
+		    hsindex);
 		hp = hesiod_resolve(context, shellname, "shells");
 		if (hp == NULL) {
 			if (errno == ENOENT) {
@@ -171,17 +172,17 @@ _dns_initshells(void *rv, void *cb_data, va_list ap)
 #endif /* HESIOD */
 
 #ifdef YP
-static int	_nis_initshells(void *, void *, va_list);
+static int _nis_initshells(void *, void *, va_list);
 
 /*ARGSUSED*/
 static int
 _nis_initshells(void *rv, void *cb_data, va_list ap)
 {
 	static char *ypdomain;
-	char	*key, *data;
-	char	*lastkey;
-	int	 keylen, datalen;
-	int	 r;
+	char *key, *data;
+	char *lastkey;
+	int keylen, datalen;
+	int r;
 
 	if (sl)
 		sl_free(sl, 1);
@@ -207,15 +208,15 @@ _nis_initshells(void *rv, void *cb_data, va_list ap)
 	if (yp_first(ypdomain, "shells", &key, &keylen, &data, &datalen))
 		return NS_UNAVAIL;
 	do {
-		data[datalen] = '\0';		/* clear trailing \n */
+		data[datalen] = '\0'; /* clear trailing \n */
 		sl_add(sl, data);
 
 		lastkey = key;
-		r = yp_next(ypdomain, "shells", lastkey, keylen,
-		    &key, &keylen, &data, &datalen);
+		r = yp_next(ypdomain, "shells", lastkey, keylen, &key, &keylen,
+		    &data, &datalen);
 		free(lastkey);
 	} while (r == 0);
-	
+
 	if (r == YPERR_NOMORE) {
 		/*
 		 * `data' and `key' ought to be NULL - do not try to free them.
@@ -230,18 +231,15 @@ _nis_initshells(void *rv, void *cb_data, va_list ap)
 static const char *const *
 initshells(void)
 {
-	static const ns_dtab dtab[] = {
-		NS_FILES_CB(_local_initshells, NULL)
-		NS_DNS_CB(_dns_initshells, NULL)
-		NS_NIS_CB(_nis_initshells, NULL)
-		{ 0 }
-	};
+	static const ns_dtab dtab[] = { NS_FILES_CB(_local_initshells, NULL)
+		    NS_DNS_CB(_dns_initshells, NULL)
+			NS_NIS_CB(_nis_initshells, NULL) { 0 } };
 	if (sl)
 		sl_free(sl, 1);
 	sl = sl_init();
 
-	if (_nsdispatch(NULL, dtab, NSDB_SHELLS, "initshells", __nsdefaultsrc)
-	    != NS_SUCCESS) {
+	if (_nsdispatch(NULL, dtab, NSDB_SHELLS, "initshells",
+		__nsdefaultsrc) != NS_SUCCESS) {
 		if (sl)
 			sl_free(sl, 1);
 		sl = sl_init();

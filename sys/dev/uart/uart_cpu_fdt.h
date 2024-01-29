@@ -36,17 +36,16 @@
  * for device instantiation, then use UART_FDT_CLASS_AND_DEVICE for its
  * declaration
  */
-SET_DECLARE(uart_fdt_class_and_device_set, struct ofw_compat_data );
-#define UART_FDT_CLASS_AND_DEVICE(data)				\
+SET_DECLARE(uart_fdt_class_and_device_set, struct ofw_compat_data);
+#define UART_FDT_CLASS_AND_DEVICE(data) \
 	DATA_SET(uart_fdt_class_and_device_set, data)
 
 /*
  * If your UART driver implements uart_class and custom device layer,
  * then use UART_FDT_CLASS for its declaration
  */
-SET_DECLARE(uart_fdt_class_set, struct ofw_compat_data );
-#define UART_FDT_CLASS(data)				\
-	DATA_SET(uart_fdt_class_set, data)
+SET_DECLARE(uart_fdt_class_set, struct ofw_compat_data);
+#define UART_FDT_CLASS(data) DATA_SET(uart_fdt_class_set, data)
 
 int uart_cpu_fdt_probe(struct uart_class **, bus_space_tag_t *,
     bus_space_handle_t *, int *, u_int *, u_int *, u_int *, const int);

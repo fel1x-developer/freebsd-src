@@ -1,34 +1,38 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
-#include "qat_freebsd.h"
-#include "adf_cfg.h"
 #include <adf_accel_devices.h>
-#include <adf_pfvf_msg.h>
 #include <adf_common_drv.h>
 #include <adf_dev_err.h>
 #include <adf_gen2_hw_data.h>
 #include <adf_gen2_pfvf.h>
+#include <adf_pfvf_msg.h>
+
+#include "adf_cfg.h"
 #include "adf_dh895xcc_hw_data.h"
-#include "icp_qat_hw.h"
 #include "adf_heartbeat.h"
+#include "icp_qat_hw.h"
+#include "qat_freebsd.h"
 
 /* Worker thread to service arbiter mappings based on dev SKUs */
-static const u32 thrd_to_arb_map_sku4[] =
-    { 0x12222AAA, 0x11666666, 0x12222AAA, 0x11666666, 0x12222AAA, 0x11222222,
-      0x12222AAA, 0x11222222, 0x00000000, 0x00000000, 0x00000000, 0x00000000 };
+static const u32 thrd_to_arb_map_sku4[] = { 0x12222AAA, 0x11666666, 0x12222AAA,
+	0x11666666, 0x12222AAA, 0x11222222, 0x12222AAA, 0x11222222, 0x00000000,
+	0x00000000, 0x00000000, 0x00000000 };
 
-static const u32 thrd_to_arb_map_sku6[] =
-    { 0x12222AAA, 0x11666666, 0x12222AAA, 0x11666666, 0x12222AAA, 0x11222222,
-      0x12222AAA, 0x11222222, 0x12222AAA, 0x11222222, 0x12222AAA, 0x11222222 };
+static const u32 thrd_to_arb_map_sku6[] = { 0x12222AAA, 0x11666666, 0x12222AAA,
+	0x11666666, 0x12222AAA, 0x11222222, 0x12222AAA, 0x11222222, 0x12222AAA,
+	0x11222222, 0x12222AAA, 0x11222222 };
 
-static const u32 thrd_to_arb_map_sku3[] =
-    { 0x00000888, 0x00000000, 0x00000888, 0x00000000, 0x00000888, 0x00000000,
-      0x00000888, 0x00000000, 0x00000888, 0x00000000, 0x00000888, 0x00000000 };
+static const u32 thrd_to_arb_map_sku3[] = { 0x00000888, 0x00000000, 0x00000888,
+	0x00000000, 0x00000888, 0x00000000, 0x00000888, 0x00000000, 0x00000888,
+	0x00000000, 0x00000888, 0x00000000 };
 
 static u32 thrd_to_arb_map_gen[ADF_DH895XCC_MAX_ACCELENGINES] = { 0 };
 
-static struct adf_hw_device_class dh895xcc_class =
-    {.name = ADF_DH895XCC_DEVICE_NAME, .type = DEV_DH895XCC, .instances = 0 };
+static struct adf_hw_device_class dh895xcc_class = {
+	.name = ADF_DH895XCC_DEVICE_NAME,
+	.type = DEV_DH895XCC,
+	.instances = 0
+};
 
 static u32
 get_accel_mask(struct adf_accel_dev *accel_dev)
@@ -124,37 +128,31 @@ get_sku(struct adf_hw_device_data *self)
 
 static void
 adf_get_arbiter_mapping(struct adf_accel_dev *accel_dev,
-			u32 const **arb_map_config)
+    u32 const **arb_map_config)
 {
 	switch (accel_dev->accel_pci_dev.sku) {
 	case DEV_SKU_1:
-		adf_cfg_gen_dispatch_arbiter(accel_dev,
-					     thrd_to_arb_map_sku4,
-					     thrd_to_arb_map_gen,
-					     ADF_DH895XCC_MAX_ACCELENGINES);
+		adf_cfg_gen_dispatch_arbiter(accel_dev, thrd_to_arb_map_sku4,
+		    thrd_to_arb_map_gen, ADF_DH895XCC_MAX_ACCELENGINES);
 		*arb_map_config = thrd_to_arb_map_gen;
 		break;
 
 	case DEV_SKU_2:
 	case DEV_SKU_4:
-		adf_cfg_gen_dispatch_arbiter(accel_dev,
-					     thrd_to_arb_map_sku6,
-					     thrd_to_arb_map_gen,
-					     ADF_DH895XCC_MAX_ACCELENGINES);
+		adf_cfg_gen_dispatch_arbiter(accel_dev, thrd_to_arb_map_sku6,
+		    thrd_to_arb_map_gen, ADF_DH895XCC_MAX_ACCELENGINES);
 		*arb_map_config = thrd_to_arb_map_gen;
 		break;
 
 	case DEV_SKU_3:
-		adf_cfg_gen_dispatch_arbiter(accel_dev,
-					     thrd_to_arb_map_sku3,
-					     thrd_to_arb_map_gen,
-					     ADF_DH895XCC_MAX_ACCELENGINES);
+		adf_cfg_gen_dispatch_arbiter(accel_dev, thrd_to_arb_map_sku3,
+		    thrd_to_arb_map_gen, ADF_DH895XCC_MAX_ACCELENGINES);
 		*arb_map_config = thrd_to_arb_map_gen;
 		break;
 
 	default:
 		device_printf(GET_DEV(accel_dev),
-			      "The configuration doesn't match any SKU");
+		    "The configuration doesn't match any SKU");
 		*arb_map_config = NULL;
 	}
 }
@@ -234,14 +232,11 @@ adf_enable_ints(struct adf_accel_dev *accel_dev)
 	addr = (&GET_BARS(accel_dev)[ADF_DH895XCC_PMISC_BAR])->virt_addr;
 
 	/* Enable bundle and misc interrupts */
-	ADF_CSR_WR(addr,
-		   ADF_DH895XCC_SMIAPF0_MASK_OFFSET,
-		   accel_dev->u1.pf.vf_info ?
-		       0 :
-		       (1ULL << GET_MAX_BANKS(accel_dev)) - 1);
-	ADF_CSR_WR(addr,
-		   ADF_DH895XCC_SMIAPF1_MASK_OFFSET,
-		   ADF_DH895XCC_SMIA1_MASK);
+	ADF_CSR_WR(addr, ADF_DH895XCC_SMIAPF0_MASK_OFFSET,
+	    accel_dev->u1.pf.vf_info ? 0 :
+				       (1ULL << GET_MAX_BANKS(accel_dev)) - 1);
+	ADF_CSR_WR(addr, ADF_DH895XCC_SMIAPF1_MASK_OFFSET,
+	    ADF_DH895XCC_SMIA1_MASK);
 }
 
 static u32
@@ -286,14 +281,14 @@ dh895xcc_get_hw_cap(struct adf_accel_dev *accel_dev)
 
 	if (legfuses & ICP_ACCEL_MASK_CIPHER_SLICE)
 		capabilities &= ~(ICP_ACCEL_CAPABILITIES_CRYPTO_SYMMETRIC |
-				  ICP_ACCEL_CAPABILITIES_CIPHER |
-				  ICP_ACCEL_CAPABILITIES_HKDF |
-				  ICP_ACCEL_CAPABILITIES_EXT_ALGCHAIN);
+		    ICP_ACCEL_CAPABILITIES_CIPHER |
+		    ICP_ACCEL_CAPABILITIES_HKDF |
+		    ICP_ACCEL_CAPABILITIES_EXT_ALGCHAIN);
 	if (legfuses & ICP_ACCEL_MASK_AUTH_SLICE)
 		capabilities &= ~ICP_ACCEL_CAPABILITIES_AUTHENTICATION;
 	if (legfuses & ICP_ACCEL_MASK_PKE_SLICE)
 		capabilities &= ~(ICP_ACCEL_CAPABILITIES_CRYPTO_ASYMMETRIC |
-				  ICP_ACCEL_CAPABILITIES_ECEDMONT);
+		    ICP_ACCEL_CAPABILITIES_ECEDMONT);
 	if (legfuses & ICP_ACCEL_MASK_COMPRESS_SLICE)
 		capabilities &= ~ICP_ACCEL_CAPABILITIES_COMPRESSION;
 
@@ -302,7 +297,7 @@ dh895xcc_get_hw_cap(struct adf_accel_dev *accel_dev)
 
 static const char *
 get_obj_name(struct adf_accel_dev *accel_dev,
-	     enum adf_accel_unit_services service)
+    enum adf_accel_unit_services service)
 {
 	return ADF_DH895XCC_AE_FW_NAME_CUSTOM1;
 }
@@ -315,7 +310,7 @@ get_objs_num(struct adf_accel_dev *accel_dev)
 
 static u32
 get_obj_cfg_ae_mask(struct adf_accel_dev *accel_dev,
-		    enum adf_accel_unit_services services)
+    enum adf_accel_unit_services services)
 {
 	return accel_dev->hw_device->ae_mask;
 }

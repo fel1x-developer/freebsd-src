@@ -61,27 +61,23 @@
 #define _SATI_LOG_SENSE_H_
 
 #include <dev/isci/scil/intel_scsi.h>
-#include <dev/isci/scil/sati_types.h>
 #include <dev/isci/scil/sati_translator_sequence.h>
+#include <dev/isci/scil/sati_types.h>
 
-#define SATI_LOG_SENSE_GET_PC_FIELD(cdb) \
-   (( sati_get_cdb_byte((cdb), 2) & SCSI_LOG_SENSE_PC_FIELD_MASK ) \
-   >> SCSI_LOG_SENSE_PC_FIELD_SHIFT )
+#define SATI_LOG_SENSE_GET_PC_FIELD(cdb)                                 \
+	((sati_get_cdb_byte((cdb), 2) & SCSI_LOG_SENSE_PC_FIELD_MASK) >> \
+	    SCSI_LOG_SENSE_PC_FIELD_SHIFT)
 
-#define SATI_LOG_SENSE_GET_PAGE_CODE(cdb) \
-   (( sati_get_cdb_byte((cdb), 2) & SCSI_LOG_SENSE_PAGE_CODE_FIELD_MASK ) \
-   >> SCSI_LOG_SENSE_PAGE_CODE_FIELD_SHIFT )
+#define SATI_LOG_SENSE_GET_PAGE_CODE(cdb)            \
+	((sati_get_cdb_byte((cdb), 2) &              \
+	     SCSI_LOG_SENSE_PAGE_CODE_FIELD_MASK) >> \
+	    SCSI_LOG_SENSE_PAGE_CODE_FIELD_SHIFT)
 
-SATI_STATUS sati_log_sense_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+SATI_STATUS
+sati_log_sense_translate_command(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io);
 
-SATI_STATUS sati_log_sense_translate_response(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+SATI_STATUS
+sati_log_sense_translate_response(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io);
 #endif // _SATI_LOG_SENSE_H_
-

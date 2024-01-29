@@ -25,9 +25,10 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <errno.h>
 #include <sys/acl.h>
+
+#include <errno.h>
+#include <stdio.h>
 
 #include "acl_support.h"
 

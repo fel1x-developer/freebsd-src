@@ -11,45 +11,39 @@
  *  This file contains various handy utilities used by top.
  */
 
-#include "top.h"
-#include "utils.h"
-
 #include <sys/param.h>
 #include <sys/sysctl.h>
 #include <sys/user.h>
 
-#include <libutil.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include <fcntl.h>
-#include <paths.h>
 #include <kvm.h>
+#include <libutil.h>
+#include <paths.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "top.h"
+#include "utils.h"
 
 int
 atoiwi(const char *str)
 {
-    size_t len;
+	size_t len;
 
-    len = strlen(str);
-    if (len != 0)
-    {
-	if (strncmp(str, "infinity", len) == 0 ||
-	    strncmp(str, "all",      len) == 0 ||
-	    strncmp(str, "maximum",  len) == 0)
-	{
-	    return(Infinity);
+	len = strlen(str);
+	if (len != 0) {
+		if (strncmp(str, "infinity", len) == 0 ||
+		    strncmp(str, "all", len) == 0 ||
+		    strncmp(str, "maximum", len) == 0) {
+			return (Infinity);
+		} else if (str[0] == '-') {
+			return (Invalid);
+		} else {
+			return ((int)strtol(str, NULL, 10));
+		}
 	}
-	else if (str[0] == '-')
-	{
-	    return(Invalid);
-	}
-	else
-	{
-		return((int)strtol(str, NULL, 10));
-	}
-    }
-    return(0);
+	return (0);
 }
 
 /*
@@ -58,24 +52,24 @@ atoiwi(const char *str)
  *	   don't use them).
  */
 
-				/*
-				 * How do we know that 16 will suffice?
-				 * Because the biggest number that we will
-				 * ever convert will be 2^32-1, which is 10
-				 * digits.
-				 */
+/*
+ * How do we know that 16 will suffice?
+ * Because the biggest number that we will
+ * ever convert will be 2^32-1, which is 10
+ * digits.
+ */
 _Static_assert(sizeof(int) <= 4, "buffer too small for this sized int");
 
 char *
 itoa(unsigned int val)
 {
-    static char buffer[16];	/* result is built here */
-    				/* 16 is sufficient since the largest number
+	static char buffer[16]; /* result is built here */
+				/* 16 is sufficient since the largest number
 				   we will ever convert will be 2^32-1,
 				   which is 10 digits. */
 
 	sprintf(buffer, "%u", val);
-    return (buffer);
+	return (buffer);
 }
 
 /*
@@ -87,13 +81,13 @@ itoa(unsigned int val)
 char *
 itoa7(int val)
 {
-    static char buffer[16];	/* result is built here */
-    				/* 16 is sufficient since the largest number
+	static char buffer[16]; /* result is built here */
+				/* 16 is sufficient since the largest number
 				   we will ever convert will be 2^32-1,
 				   which is 10 digits. */
 
 	sprintf(buffer, "%6u", val);
-    return (buffer);
+	return (buffer);
 }
 
 /*
@@ -104,16 +98,16 @@ itoa7(int val)
 int __pure2
 digits(int val)
 {
-    int cnt = 0;
+	int cnt = 0;
 	if (val == 0) {
 		return 1;
 	}
 
-    while (val > 0) {
+	while (val > 0) {
 		cnt++;
 		val /= 10;
-    }
-    return(cnt);
+	}
+	return (cnt);
 }
 
 /*
@@ -121,20 +115,18 @@ digits(int val)
  */
 
 int
-string_index(const char *string, const char * const *array)
+string_index(const char *string, const char *const *array)
 {
-    size_t i = 0;
+	size_t i = 0;
 
-    while (*array != NULL)
-    {
-	if (strcmp(string, *array) == 0)
-	{
-	    return(i);
+	while (*array != NULL) {
+		if (strcmp(string, *array) == 0) {
+			return (i);
+		}
+		array++;
+		i++;
 	}
-	array++;
-	i++;
-    }
-    return(-1);
+	return (-1);
 }
 
 /*
@@ -147,21 +139,21 @@ string_index(const char *string, const char * const *array)
 const char **
 argparse(char *line, int *cntp)
 {
-    const char **ap;
-    static const char *argv[1024] = {0};
+	const char **ap;
+	static const char *argv[1024] = { 0 };
 
-    *cntp = 1;
-    ap = &argv[1];
-    while ((*ap = strsep(&line, " ")) != NULL) {
-        if (**ap != '\0') {
-            (*cntp)++;
-            if (*cntp >= (int)nitems(argv)) {
-                break;
-            }
-	    ap++;
-        }
-    }
-    return (argv);
+	*cntp = 1;
+	ap = &argv[1];
+	while ((*ap = strsep(&line, " ")) != NULL) {
+		if (**ap != '\0') {
+			(*cntp)++;
+			if (*cntp >= (int)nitems(argv)) {
+				break;
+			}
+			ap++;
+		}
+	}
+	return (argv);
 }
 
 /*
@@ -176,45 +168,41 @@ argparse(char *line, int *cntp)
 long
 percentages(int cnt, int *out, long *new, long *old, long *diffs)
 {
-    int i;
-    long change;
-    long total_change;
-    long *dp;
-    long half_total;
+	int i;
+	long change;
+	long total_change;
+	long *dp;
+	long half_total;
 
-    /* initialization */
-    total_change = 0;
-    dp = diffs;
+	/* initialization */
+	total_change = 0;
+	dp = diffs;
 
-    /* calculate changes for each state and the overall change */
-    for (i = 0; i < cnt; i++)
-    {
-	if ((change = *new - *old) < 0)
-	{
-	    /* this only happens when the counter wraps */
-	    change = (int)
-		((unsigned long)*new-(unsigned long)*old);
+	/* calculate changes for each state and the overall change */
+	for (i = 0; i < cnt; i++) {
+		if ((change = *new - *old) < 0) {
+			/* this only happens when the counter wraps */
+			change = (int)((unsigned long)*new -
+			    (unsigned long)*old);
+		}
+		total_change += (*dp++ = change);
+		*old++ = *new ++;
 	}
-	total_change += (*dp++ = change);
-	*old++ = *new++;
-    }
 
-    /* avoid divide by zero potential */
-    if (total_change == 0)
-    {
-	total_change = 1;
-    }
+	/* avoid divide by zero potential */
+	if (total_change == 0) {
+		total_change = 1;
+	}
 
-    /* calculate percentages based on overall change, rounding up */
-    half_total = total_change / 2l;
+	/* calculate percentages based on overall change, rounding up */
+	half_total = total_change / 2l;
 
-	for (i = 0; i < cnt; i++)
-	{
+	for (i = 0; i < cnt; i++) {
 		*out++ = (int)((*diffs++ * 1000 + half_total) / total_change);
 	}
 
-    /* return the total in case the caller wants to use it */
-    return(total_change);
+	/* return the total in case the caller wants to use it */
+	return (total_change);
 }
 
 /* format_time(seconds) - format number of seconds into a suitable
@@ -239,28 +227,23 @@ format_time(long seconds)
 	static char result[10];
 
 	/* sanity protection */
-	if (seconds < 0 || seconds > (99999l * 360l))
-	{
+	if (seconds < 0 || seconds > (99999l * 360l)) {
 		strcpy(result, "   ???");
-	}
-	else if (seconds >= (1000l * 60l))
-	{
+	} else if (seconds >= (1000l * 60l)) {
 		/* alternate (slow) method displaying hours and tenths */
-		sprintf(result, "%5.1fH", (double)seconds / (double)(60l * 60l));
+		sprintf(result, "%5.1fH",
+		    (double)seconds / (double)(60l * 60l));
 
 		/* It is possible that the sprintf took more than 6 characters.
 		   If so, then the "H" appears as result[6].  If not, then there
 		   is a \0 in result[6].  Either way, it is safe to step on.
 		   */
 		result[6] = '\0';
-	}
-	else
-	{
+	} else {
 		/* standard method produces MMM:SS */
-		sprintf(result, "%3ld:%02ld",
-				seconds / 60l, seconds % 60l);
+		sprintf(result, "%3ld:%02ld", seconds / 60l, seconds % 60l);
 	}
-	return(result);
+	return (result);
 }
 
 /*
@@ -295,8 +278,8 @@ format_k(int64_t amt)
 
 	ret = retarray[index_];
 	index_ = (index_ + 1) % NUM_STRINGS;
-	humanize_number(ret, 6, amt * 1024, "", HN_AUTOSCALE, HN_NOSPACE |
-	    HN_B);
+	humanize_number(ret, 6, amt * 1024, "", HN_AUTOSCALE,
+	    HN_NOSPACE | HN_B);
 	return (ret);
 }
 

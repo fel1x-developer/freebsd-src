@@ -1,8 +1,10 @@
 /*
  * dir_proc.c: remote readdir implementation
  */
-#include <rpc/rpc.h>
 #include <sys/dir.h>
+
+#include <rpc/rpc.h>
+
 #include "dir.h"
 
 extern int errno;
@@ -11,7 +13,7 @@ extern char *strcpy();
 
 readdir_res *
 readdir_1(dirname)
-	nametype *dirname;
+nametype *dirname;
 {
 	DIR *dirp;
 	struct direct *d;
@@ -38,8 +40,8 @@ readdir_1(dirname)
 	 */
 	nlp = &res.readdir_res_u.list;
 	while (d = readdir(dirp)) {
-		nl = *nlp = (namenode *) malloc(sizeof(namenode));
-		nl->name = malloc(strlen(d->d_name)+1);
+		nl = *nlp = (namenode *)malloc(sizeof(namenode));
+		nl->name = malloc(strlen(d->d_name) + 1);
 		strcpy(nl->name, d->d_name);
 		nlp = &nl->next;
 	}

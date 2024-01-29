@@ -34,6 +34,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <dev/drm2/drmP.h>
 
 static struct mtx drm_magic_lock;
@@ -45,10 +46,11 @@ static struct mtx drm_magic_lock;
  * \param magic magic number.
  *
  * Searches in drm_device::magiclist within all files with the same hash key
- * the one with matching magic number, while holding the drm_device::struct_mutex
- * lock.
+ * the one with matching magic number, while holding the
+ * drm_device::struct_mutex lock.
  */
-static struct drm_file *drm_find_file(struct drm_master *master, drm_magic_t magic)
+static struct drm_file *
+drm_find_file(struct drm_master *master, drm_magic_t magic)
 {
 	struct drm_file *retval = NULL;
 	struct drm_magic_entry *pt;
@@ -56,7 +58,8 @@ static struct drm_file *drm_find_file(struct drm_master *master, drm_magic_t mag
 	struct drm_device *dev = master->minor->dev;
 
 	DRM_LOCK(dev);
-	if (!drm_ht_find_item(&master->magiclist, (unsigned long)magic, &hash)) {
+	if (!drm_ht_find_item(&master->magiclist, (unsigned long)magic,
+		&hash)) {
 		pt = drm_hash_entry(hash, struct drm_magic_entry, hash_item);
 		retval = pt->priv;
 	}
@@ -75,8 +78,9 @@ static struct drm_file *drm_find_file(struct drm_master *master, drm_magic_t mag
  * associated the magic number hash key in drm_device::magiclist, while holding
  * the drm_device::struct_mutex lock.
  */
-static int drm_add_magic(struct drm_master *master, struct drm_file *priv,
-			 drm_magic_t magic)
+static int
+drm_add_magic(struct drm_master *master, struct drm_file *priv,
+    drm_magic_t magic)
 {
 	struct drm_magic_entry *entry;
 	struct drm_device *dev = master->minor->dev;
@@ -104,7 +108,8 @@ static int drm_add_magic(struct drm_master *master, struct drm_file *priv,
  * Searches and unlinks the entry in drm_device::magiclist with the magic
  * number hash key, while holding the drm_device::struct_mutex lock.
  */
-int drm_remove_magic(struct drm_master *master, drm_magic_t magic)
+int
+drm_remove_magic(struct drm_master *master, drm_magic_t magic)
 {
 	struct drm_magic_entry *pt;
 	struct drm_hash_item *hash;
@@ -142,7 +147,8 @@ int drm_remove_magic(struct drm_master *master, drm_magic_t magic)
  * This ioctl needs protection by the drm_global_mutex, which protects
  * struct drm_file::magic and struct drm_magic_entry::priv.
  */
-int drm_getmagic(struct drm_device *dev, void *data, struct drm_file *file_priv)
+int
+drm_getmagic(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
 	static drm_magic_t sequence = 0;
 	struct drm_auth *auth = data;
@@ -154,7 +160,7 @@ int drm_getmagic(struct drm_device *dev, void *data, struct drm_file *file_priv)
 		do {
 			mtx_lock(&drm_magic_lock);
 			if (!sequence)
-				++sequence;	/* reserve 0 */
+				++sequence; /* reserve 0 */
 			auth->magic = sequence++;
 			mtx_unlock(&drm_magic_lock);
 		} while (drm_find_file(file_priv->master, auth->magic));
@@ -180,8 +186,8 @@ int drm_getmagic(struct drm_device *dev, void *data, struct drm_file *file_priv)
  * This ioctl needs protection by the drm_global_mutex, which protects
  * struct drm_file::magic and struct drm_magic_entry::priv.
  */
-int drm_authmagic(struct drm_device *dev, void *data,
-		  struct drm_file *file_priv)
+int
+drm_authmagic(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
 	struct drm_auth *auth = data;
 	struct drm_file *file;

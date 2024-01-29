@@ -18,46 +18,47 @@
 // #include <config.h>
 
 #include <sys/types.h>
-#include <unistd.h>
+
 #include <stdio.h>
+#include <unistd.h>
 #ifdef STDC_HEADERS
-# include <stdlib.h>
-# include <stddef.h>
+#include <stddef.h>
+#include <stdlib.h>
 #else
-# ifdef HAVE_STDLIB_H
-#  include <stdlib.h>
-# endif
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h>
+#endif
 #endif /* STDC_HEADERS */
 #include <fcntl.h>
 #include <limits.h>
 #ifdef HAVE_PSTAT_GETPROC
-# include <sys/param.h>
-# include <sys/pstat.h>
+#include <sys/param.h>
+#include <sys/pstat.h>
 #else
-# ifdef HAVE_DIRENT_H
-#  include <dirent.h>
-#  define NAMLEN(dirent) strlen((dirent)->d_name)
-# else
-#  define dirent direct
-#  define NAMLEN(dirent) (dirent)->d_namlen
-#  ifdef HAVE_SYS_NDIR_H
-#   include <sys/ndir.h>
-#  endif
-#  ifdef HAVE_SYS_DIR_H
-#   include <sys/dir.h>
-#  endif
-#  ifdef HAVE_NDIR_H
-#   include <ndir.h>
-#  endif
-# endif
+#ifdef HAVE_DIRENT_H
+#include <dirent.h>
+#define NAMLEN(dirent) strlen((dirent)->d_name)
+#else
+#define dirent direct
+#define NAMLEN(dirent) (dirent)->d_namlen
+#ifdef HAVE_SYS_NDIR_H
+#include <sys/ndir.h>
+#endif
+#ifdef HAVE_SYS_DIR_H
+#include <sys/dir.h>
+#endif
+#ifdef HAVE_NDIR_H
+#include <ndir.h>
+#endif
+#endif
 #endif
 
 #ifndef OPEN_MAX
-# define OPEN_MAX 256
+#define OPEN_MAX 256
 #endif
 
 #if defined(HAVE_FCNTL_CLOSEM) && !defined(HAVE_DIRFD)
-# define closefrom	closefrom_fallback
+#define closefrom closefrom_fallback
 #endif
 
 static inline void
@@ -136,11 +137,11 @@ closefrom_procfs(int lowfd)
 	int i;
 
 	/* Use /proc/self/fd (or /dev/fd on FreeBSD) if it exists. */
-# if defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__APPLE__)
+#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__APPLE__)
 	path = "/dev/fd";
-# else
+#else
 	path = "/proc/self/fd";
-# endif
+#endif
 	dirp = opendir(path);
 	if (dirp == NULL)
 		return -1;
@@ -161,7 +162,8 @@ closefrom_procfs(int lowfd)
 			else
 				fd_array_size = 32;
 
-			ptr = reallocarray(fd_array, fd_array_size, sizeof(int));
+			ptr = reallocarray(fd_array, fd_array_size,
+			    sizeof(int));
 			if (ptr == NULL) {
 				ret = -1;
 				break;

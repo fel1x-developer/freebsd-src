@@ -47,7 +47,8 @@ nvmem_get_cell_node(phandle_t node, int idx, phandle_t *cell)
 	    !OF_hasprop(node, "nvmem-cell-names"))
 		return (ENOENT);
 
-	ncell = OF_getencprop_alloc_multi(node, "nvmem-cells", sizeof(*p_cell), (void **)&p_cell);
+	ncell = OF_getencprop_alloc_multi(node, "nvmem-cells", sizeof(*p_cell),
+	    (void **)&p_cell);
 	if (ncell <= 0)
 		return (ENOENT);
 
@@ -83,7 +84,8 @@ nvmem_get_cell_len(phandle_t node, const char *name)
 
 	if (OF_getencprop(cell_node, "reg", reg, sizeof(reg)) != sizeof(reg)) {
 		if (bootverbose)
-			printf("nvmem_get_cell_len: Cannot parse reg property of cell %s\n",
+			printf(
+			    "nvmem_get_cell_len: Cannot parse reg property of cell %s\n",
 			    name);
 		return (ENOENT);
 	}
@@ -106,7 +108,8 @@ nvmem_read_cell_by_idx(phandle_t node, int idx, void *cell, size_t buflen)
 	/* Validate the reg property */
 	if (OF_getencprop(cell_node, "reg", reg, sizeof(reg)) != sizeof(reg)) {
 		if (bootverbose)
-			printf("nvmem_get_cell_by_name: Cannot parse reg property of cell %d\n",
+			printf(
+			    "nvmem_get_cell_by_name: Cannot parse reg property of cell %d\n",
 			    idx);
 		return (ENOENT);
 	}
@@ -117,7 +120,8 @@ nvmem_read_cell_by_idx(phandle_t node, int idx, void *cell, size_t buflen)
 	provider = OF_device_from_xref(OF_xref_from_node(OF_parent(cell_node)));
 	if (provider == NULL) {
 		if (bootverbose)
-			printf("nvmem_get_cell_by_idx: Cannot find the nvmem device\n");
+			printf(
+			    "nvmem_get_cell_by_idx: Cannot find the nvmem device\n");
 		return (ENXIO);
 	}
 
@@ -130,7 +134,8 @@ nvmem_read_cell_by_idx(phandle_t node, int idx, void *cell, size_t buflen)
 }
 
 int
-nvmem_read_cell_by_name(phandle_t node, const char *name, void *cell, size_t buflen)
+nvmem_read_cell_by_name(phandle_t node, const char *name, void *cell,
+    size_t buflen)
 {
 	int rv, idx;
 
@@ -160,7 +165,8 @@ nvmem_write_cell_by_idx(phandle_t node, int idx, void *cell, size_t buflen)
 	/* Validate the reg property */
 	if (OF_getencprop(cell_node, "reg", reg, sizeof(reg)) != sizeof(reg)) {
 		if (bootverbose)
-			printf("nvmem_get_cell_by_idx: Cannot parse reg property of cell %d\n",
+			printf(
+			    "nvmem_get_cell_by_idx: Cannot parse reg property of cell %d\n",
 			    idx);
 		return (ENXIO);
 	}
@@ -171,7 +177,8 @@ nvmem_write_cell_by_idx(phandle_t node, int idx, void *cell, size_t buflen)
 	provider = OF_device_from_xref(OF_xref_from_node(prov_node));
 	if (provider == NULL) {
 		if (bootverbose)
-			printf("nvmem_get_cell_by_idx: Cannot find the nvmem device\n");
+			printf(
+			    "nvmem_get_cell_by_idx: Cannot find the nvmem device\n");
 		return (ENXIO);
 	}
 
@@ -184,7 +191,8 @@ nvmem_write_cell_by_idx(phandle_t node, int idx, void *cell, size_t buflen)
 }
 
 int
-nvmem_write_cell_by_name(phandle_t node, const char *name, void *cell, size_t buflen)
+nvmem_write_cell_by_name(phandle_t node, const char *name, void *cell,
+    size_t buflen)
 {
 	int rv, idx;
 

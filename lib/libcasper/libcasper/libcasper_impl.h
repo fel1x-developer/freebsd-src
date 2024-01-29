@@ -30,8 +30,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_LIBCASPER_IMPL_H_
-#define	_LIBCASPER_IMPL_H_
+#ifndef _LIBCASPER_IMPL_H_
+#define _LIBCASPER_IMPL_H_
 
 #include <stdbool.h>
 
@@ -45,40 +45,33 @@ bool fd_is_valid(int fd);
 void fd_fix_environment(int *fdp);
 
 /* Private service functions. */
-struct service	*service_alloc(const char *name,
-		    service_limit_func_t *limitfunc,
-		    service_command_func_t *commandfunc, uint64_t flags);
-void		 service_free(struct service *service);
-void		 service_message(struct service *service,
-		    struct service_connection *sconn);
-void		 service_start(struct service *service, int sock, int procfd);
-const char	*service_name(struct service *service);
-int		 service_get_channel_flags(struct service *service);
+struct service *service_alloc(const char *name, service_limit_func_t *limitfunc,
+    service_command_func_t *commandfunc, uint64_t flags);
+void service_free(struct service *service);
+void service_message(struct service *service, struct service_connection *sconn);
+void service_start(struct service *service, int sock, int procfd);
+const char *service_name(struct service *service);
+int service_get_channel_flags(struct service *service);
 
 /* Private service connection functions. */
-struct service_connection	*service_connection_add(struct service *service,
-				    int sock, const nvlist_t *limits);
-void				 service_connection_remove(
-				    struct service *service,
-				    struct service_connection *sconn);
-int				 service_connection_clone(
-				    struct service *service,
-				    struct service_connection *sconn);
-struct service_connection	*service_connection_first(
-				    struct service *service);
-struct service_connection	*service_connection_next(
-				    struct service_connection *sconn);
-cap_channel_t			*service_connection_get_chan(
-				    const struct service_connection *sconn);
-int				 service_connection_get_sock(
-				    const struct service_connection *sconn);
-const nvlist_t			*service_connection_get_limits(
-				    const struct service_connection *sconn);
-void				 service_connection_set_limits(
-				    struct service_connection *sconn,
-				    nvlist_t *limits);
+struct service_connection *service_connection_add(struct service *service,
+    int sock, const nvlist_t *limits);
+void service_connection_remove(struct service *service,
+    struct service_connection *sconn);
+int service_connection_clone(struct service *service,
+    struct service_connection *sconn);
+struct service_connection *service_connection_first(struct service *service);
+struct service_connection *service_connection_next(
+    struct service_connection *sconn);
+cap_channel_t *service_connection_get_chan(
+    const struct service_connection *sconn);
+int service_connection_get_sock(const struct service_connection *sconn);
+const nvlist_t *service_connection_get_limits(
+    const struct service_connection *sconn);
+void service_connection_set_limits(struct service_connection *sconn,
+    nvlist_t *limits);
 
 /* Private libcasper functions. */
-void	casper_main_loop(int fd);
+void casper_main_loop(int fd);
 
-#endif	/* !_LIBCASPER_IMPL_H_ */
+#endif /* !_LIBCASPER_IMPL_H_ */

@@ -41,8 +41,8 @@
 #include <string.h>
 #include <syslog.h>
 
-#include "hostres_snmp.h"
 #include "hostres_oid.h"
+#include "hostres_snmp.h"
 #include "hostres_tree.h"
 
 /*
@@ -52,23 +52,23 @@
  * by the hrDeviceTable code..
  */
 struct processor_entry {
-	int32_t		index;
+	int32_t index;
 	const struct asn_oid *frwId;
-	int32_t		load;		/* average cpu usage */
-	int32_t		sample_cnt;	/* number of usage samples */
-	int32_t		cur_sample_idx;	/* current valid sample */
+	int32_t load;		/* average cpu usage */
+	int32_t sample_cnt;	/* number of usage samples */
+	int32_t cur_sample_idx; /* current valid sample */
 	TAILQ_ENTRY(processor_entry) link;
-	u_char		cpu_no;		/* which cpu, counted from 0 */
+	u_char cpu_no; /* which cpu, counted from 0 */
 
 	/* the samples from the last minute, as required by MIB */
-	double		samples[MAX_CPU_SAMPLES];
-	long		states[MAX_CPU_SAMPLES][CPUSTATES];
+	double samples[MAX_CPU_SAMPLES];
+	long states[MAX_CPU_SAMPLES][CPUSTATES];
 };
 TAILQ_HEAD(processor_tbl, processor_entry);
 
 /* the head of the list with hrDeviceTable's entries */
-static struct processor_tbl processor_tbl =
-    TAILQ_HEAD_INITIALIZER(processor_tbl);
+static struct processor_tbl processor_tbl = TAILQ_HEAD_INITIALIZER(
+    processor_tbl);
 
 /* number of processors in dev tbl */
 static int32_t detected_processor_count;
@@ -118,11 +118,12 @@ get_avg_load(struct processor_entry *e)
 
 	/* Take idle time from the last element and convert to
 	 * percent usage by contrasting with total ticks delta. */
-	usage = (double)(e->states[e->cur_sample_idx][CPUSTATES-1] -
-	    e->states[oldest][CPUSTATES-1]) / delta;
+	usage = (double)(e->states[e->cur_sample_idx][CPUSTATES - 1] -
+		    e->states[oldest][CPUSTATES - 1]) /
+	    delta;
 	usage = 100 - (usage * 100);
-	HRDBG("CPU no. %d, delta ticks %ld, pct usage %.2f", e->cpu_no,
-	    delta, usage);
+	HRDBG("CPU no. %d, delta ticks %ld, pct usage %.2f", e->cpu_no, delta,
+	    usage);
 
 	return ((int)(usage));
 }
@@ -145,9 +146,9 @@ save_sample(struct processor_entry *e, long *cp_times)
 	if (e->sample_cnt > MAX_CPU_SAMPLES)
 		e->sample_cnt = MAX_CPU_SAMPLES;
 
-	HRDBG("sample count for CPU no. %d went to %d", e->cpu_no, e->sample_cnt);
+	HRDBG("sample count for CPU no. %d went to %d", e->cpu_no,
+	    e->sample_cnt);
 	e->load = get_avg_load(e);
-
 }
 
 /**
@@ -169,7 +170,7 @@ proc_create_entry(u_int cpu_no, struct device_map_entry *map)
 		if ((dev = device_entry_create(name, "", "")) == NULL)
 			return (NULL);
 		dev->flags |= HR_DEVICE_IMMUTABLE;
-		STAILQ_FOREACH(map, &device_map, link)
+		STAILQ_FOREACH (map, &device_map, link)
 			if (strcmp(map->name_key, name) == 0)
 				break;
 		if (map == NULL)
@@ -177,8 +178,10 @@ proc_create_entry(u_int cpu_no, struct device_map_entry *map)
 	}
 
 	if ((entry = malloc(sizeof(*entry))) == NULL) {
-		syslog(LOG_ERR, "hrProcessorTable: %s malloc "
-		    "failed: %m", __func__);
+		syslog(LOG_ERR,
+		    "hrProcessorTable: %s malloc "
+		    "failed: %m",
+		    __func__);
 		return (NULL);
 	}
 	memset(entry, 0, sizeof(*entry));
@@ -192,8 +195,7 @@ proc_create_entry(u_int cpu_no, struct device_map_entry *map)
 
 	INSERT_OBJECT_INT(entry, &processor_tbl);
 
-	HRDBG("CPU %d added with SNMP index=%d",
-	    entry->cpu_no, entry->index);
+	HRDBG("CPU %d added with SNMP index=%d", entry->cpu_no, entry->index);
 
 	return (entry);
 }
@@ -223,11 +225,12 @@ create_proc_table(void)
 	 * For non-ACPI system the processors are not in the device table,
 	 * therefore insert them after checking hw.ncpu.
 	 */
-	STAILQ_FOREACH(map, &device_map, link)
+	STAILQ_FOREACH (map, &device_map, link)
 		if (strncmp(map->name_key, "cpu", strlen("cpu")) == 0 &&
 		    strstr(map->location_key, ".CPU") != NULL) {
-			if (sscanf(map->name_key,"cpu%d", &cpu_no) != 1) {
-				syslog(LOG_ERR, "hrProcessorTable: Failed to "
+			if (sscanf(map->name_key, "cpu%d", &cpu_no) != 1) {
+				syslog(LOG_ERR,
+				    "hrProcessorTable: Failed to "
 				    "get cpu no. from device named '%s'",
 				    map->name_key);
 				continue;
@@ -255,18 +258,19 @@ create_proc_table(void)
 
 	len = 2;
 	if (sysctlnametomib("kern.cp_times", cpmib, &len)) {
-		syslog(LOG_ERR, "hrProcessorTable: sysctlnametomib(kern.cp_times) failed");
+		syslog(LOG_ERR,
+		    "hrProcessorTable: sysctlnametomib(kern.cp_times) failed");
 		cpmib[0] = 0;
 		cpmib[1] = 0;
 		cplen = 0;
 	} else if (sysctl(cpmib, 2, NULL, &len, NULL, 0)) {
-		syslog(LOG_ERR, "hrProcessorTable: sysctl(kern.cp_times) length query failed");
+		syslog(LOG_ERR,
+		    "hrProcessorTable: sysctl(kern.cp_times) length query failed");
 		cplen = 0;
 	} else {
 		cplen = len / sizeof(long);
 	}
 	HRDBG("%zu entries for kern.cp_times", cplen);
-
 }
 
 /**
@@ -303,15 +307,15 @@ refresh_processor_tbl(void)
 	size = cplen * sizeof(long);
 	if (sysctl(cpmib, 2, pcpu_cp_times, &size, NULL, 0) == -1 &&
 	    !(errno == ENOMEM && size >= cplen * sizeof(long))) {
-		syslog(LOG_ERR, "hrProcessorTable: sysctl(kern.cp_times) failed");
+		syslog(LOG_ERR,
+		    "hrProcessorTable: sysctl(kern.cp_times) failed");
 		return;
 	}
 
-	TAILQ_FOREACH(entry, &processor_tbl, link) {
+	TAILQ_FOREACH (entry, &processor_tbl, link) {
 		assert(hr_kd != NULL);
 		save_sample(entry, &pcpu_cp_times[entry->cpu_no * CPUSTATES]);
 	}
-
 }
 
 /**
@@ -379,31 +383,30 @@ fini_processor_tbl(void)
  * Access routine for the processor table.
  */
 int
-op_hrProcessorTable(struct snmp_context *ctx __unused,
-    struct snmp_value *value, u_int sub, u_int iidx __unused,
-    enum snmp_op curr_op)
+op_hrProcessorTable(struct snmp_context *ctx __unused, struct snmp_value *value,
+    u_int sub, u_int iidx __unused, enum snmp_op curr_op)
 {
 	struct processor_entry *entry;
 
 	switch (curr_op) {
 
 	case SNMP_OP_GETNEXT:
-		if ((entry = NEXT_OBJECT_INT(&processor_tbl,
-		    &value->var, sub)) == NULL)
+		if ((entry = NEXT_OBJECT_INT(&processor_tbl, &value->var,
+			 sub)) == NULL)
 			return (SNMP_ERR_NOSUCHNAME);
 		value->var.len = sub + 1;
 		value->var.subs[sub] = entry->index;
 		goto get;
 
 	case SNMP_OP_GET:
-		if ((entry = FIND_OBJECT_INT(&processor_tbl,
-		    &value->var, sub)) == NULL)
+		if ((entry = FIND_OBJECT_INT(&processor_tbl, &value->var,
+			 sub)) == NULL)
 			return (SNMP_ERR_NOSUCHNAME);
 		goto get;
 
 	case SNMP_OP_SET:
-		if ((entry = FIND_OBJECT_INT(&processor_tbl,
-		    &value->var, sub)) == NULL)
+		if ((entry = FIND_OBJECT_INT(&processor_tbl, &value->var,
+			 sub)) == NULL)
 			return (SNMP_ERR_NO_CREATION);
 		return (SNMP_ERR_NOT_WRITEABLE);
 
@@ -413,7 +416,7 @@ op_hrProcessorTable(struct snmp_context *ctx __unused,
 	}
 	abort();
 
-  get:
+get:
 	switch (value->var.subs[sub - 1]) {
 
 	case LEAF_hrProcessorFrwID:

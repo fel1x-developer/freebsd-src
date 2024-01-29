@@ -17,43 +17,36 @@
  */
 
 #include <sys/cdefs.h>
-#include <openssl/ssl.h>
+
 #include <ctype.h>
 #include <err.h>
+#include <openssl/ssl.h>
 #include <string.h>
 
 #include "extern.h"
 
 #define MAX_CHARS_PER_LINE 68
 
-static int	 lastchar;
-static int	 charcount;
+static int lastchar;
+static int charcount;
 
-static int	 src_getcharstream(struct source *);
-static void	 src_ungetcharstream(struct source *);
-static char	*src_getlinestream(struct source *);
-static int	 src_getcharstring(struct source *);
-static void	 src_ungetcharstring(struct source *);
-static char	*src_getlinestring(struct source *);
-static void	 src_freestring(struct source *);
-static void	 flushwrap(FILE *);
-static void	 putcharwrap(FILE *, int);
-static void	 printwrap(FILE *, const char *);
-static char	*get_digit(u_long, int, u_int);
+static int src_getcharstream(struct source *);
+static void src_ungetcharstream(struct source *);
+static char *src_getlinestream(struct source *);
+static int src_getcharstring(struct source *);
+static void src_ungetcharstring(struct source *);
+static char *src_getlinestring(struct source *);
+static void src_freestring(struct source *);
+static void flushwrap(FILE *);
+static void putcharwrap(FILE *, int);
+static void printwrap(FILE *, const char *);
+static char *get_digit(u_long, int, u_int);
 
-static struct vtable stream_vtable = {
-	src_getcharstream,
-	src_ungetcharstream,
-	src_getlinestream,
-	NULL
-};
+static struct vtable stream_vtable = { src_getcharstream, src_ungetcharstream,
+	src_getlinestream, NULL };
 
-static struct vtable string_vtable = {
-	src_getcharstring,
-	src_ungetcharstring,
-	src_getlinestring,
-	src_freestring
-};
+static struct vtable string_vtable = { src_getcharstring, src_ungetcharstring,
+	src_getlinestring, src_freestring };
 
 void
 src_setstream(struct source *src, FILE *stream)
@@ -126,7 +119,7 @@ src_getlinestring(struct source *src)
 	int i, ch;
 
 	i = 0;
-	while (i < BUFSIZ-1) {
+	while (i < BUFSIZ - 1) {
 		ch = src_getcharstring(src);
 		if (ch == EOF)
 			break;
@@ -219,7 +212,8 @@ readnumber(struct source *src, u_int base, u_int bscale)
 	if (base == 10) {
 		n->scale = iscale;
 	} else {
-		/* At this point, the desired result is n->number / base^iscale*/
+		/* At this point, the desired result is n->number /
+		 * base^iscale*/
 		struct number *quotient, *divisor, *_n;
 		BIGNUM *base_n, *exponent;
 		BN_CTX *ctx;
@@ -239,12 +233,11 @@ readnumber(struct source *src, u_int base, u_int bscale)
 		_n = n;
 		n = quotient;
 
-		/* 
+		/*
 		 * Trim off trailing zeros to yield the smallest scale without
 		 * loss of accuracy
 		 */
-		while ( n->scale > 0 &&
-			BN_mod_word(n->number, 10) == 0) {
+		while (n->scale > 0 && BN_mod_word(n->number, 10) == 0) {
 			normalize(n, n->scale - 1);
 		}
 
@@ -336,7 +329,7 @@ printnumber(FILE *f, const struct number *b, u_int base)
 	if (base <= 16)
 		digits = 1;
 	else {
-		digits = snprintf(buf, sizeof(buf), "%u", base-1);
+		digits = snprintf(buf, sizeof(buf), "%u", base - 1);
 	}
 	split_number(b, int_part->number, fract_part->number);
 
@@ -438,7 +431,7 @@ print_ascii(FILE *f, const struct number *n)
 	while (numbits > 0) {
 		ch = 0;
 		for (i = 0; i < 8; i++)
-			ch |= BN_is_bit_set(v, numbits-i-1) << (7 - i);
+			ch |= BN_is_bit_set(v, numbits - i - 1) << (7 - i);
 		putc(ch, f);
 		numbits -= 8;
 	}

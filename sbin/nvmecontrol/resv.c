@@ -50,8 +50,14 @@ static cmd_fn_t resvreport;
 
 #define NONE 0xffffffffu
 #define NONE64 0xffffffffffffffffull
-#define OPT(l, s, t, opt, addr, desc) { l, s, t, &opt.addr, desc }
-#define OPT_END	{ NULL, 0, arg_none, NULL, NULL }
+#define OPT(l, s, t, opt, addr, desc)    \
+	{                                \
+		l, s, t, &opt.addr, desc \
+	}
+#define OPT_END                               \
+	{                                     \
+		NULL, 0, arg_none, NULL, NULL \
+	}
 
 static struct cmd resv_cmd = {
 	.name = "resv",
@@ -65,11 +71,11 @@ static struct cmd resv_cmd = {
 CMD_COMMAND(resv_cmd);
 
 static struct acquire_options {
-	uint64_t	crkey;
-	uint64_t	prkey;
-	uint8_t		rtype;
-	uint8_t		racqa;
-	const char	*dev;
+	uint64_t crkey;
+	uint64_t prkey;
+	uint8_t rtype;
+	uint8_t racqa;
+	const char *dev;
 } acquire_opt = {
 	.crkey = 0,
 	.prkey = 0,
@@ -78,17 +84,15 @@ static struct acquire_options {
 	.dev = NULL,
 };
 
-static const struct opts acquire_opts[] = {
-	OPT("crkey", 'c', arg_uint64, acquire_opt, crkey,
-	    "Current Reservation Key"),
+static const struct opts acquire_opts[] = { OPT("crkey", 'c', arg_uint64,
+						acquire_opt, crkey,
+						"Current Reservation Key"),
 	OPT("prkey", 'p', arg_uint64, acquire_opt, prkey,
 	    "Preempt Reservation Key"),
-	OPT("rtype", 't', arg_uint8, acquire_opt, rtype,
-	    "Reservation Type"),
+	OPT("rtype", 't', arg_uint8, acquire_opt, rtype, "Reservation Type"),
 	OPT("racqa", 'a', arg_uint8, acquire_opt, racqa,
 	    "Acquire Action (0=acq, 1=pre, 2=pre+ab)"),
-	{ NULL, 0, arg_none, NULL, NULL }
-};
+	{ NULL, 0, arg_none, NULL, NULL } };
 
 static const struct args acquire_args[] = {
 	{ arg_string, &acquire_opt.dev, "namespace-id" },
@@ -107,12 +111,12 @@ static struct cmd acquire_cmd = {
 CMD_SUBCOMMAND(resv_cmd, acquire_cmd);
 
 static struct register_options {
-	uint64_t	crkey;
-	uint64_t	nrkey;
-	uint8_t		rrega;
-	bool		iekey;
-	uint8_t		cptpl;
-	const char	*dev;
+	uint64_t crkey;
+	uint64_t nrkey;
+	uint8_t rrega;
+	bool iekey;
+	uint8_t cptpl;
+	const char *dev;
 } register_opt = {
 	.crkey = 0,
 	.nrkey = 0,
@@ -122,19 +126,17 @@ static struct register_options {
 	.dev = NULL,
 };
 
-static const struct opts register_opts[] = {
-	OPT("crkey", 'c', arg_uint64, register_opt, crkey,
-	    "Current Reservation Key"),
+static const struct opts register_opts[] = { OPT("crkey", 'c', arg_uint64,
+						 register_opt, crkey,
+						 "Current Reservation Key"),
 	OPT("nrkey", 'k', arg_uint64, register_opt, nrkey,
 	    "New Reservation Key"),
 	OPT("rrega", 'r', arg_uint8, register_opt, rrega,
 	    "Register Action (0=reg, 1=unreg, 2=replace)"),
-	OPT("iekey", 'i', arg_none, register_opt, iekey,
-	    "Ignore Existing Key"),
+	OPT("iekey", 'i', arg_none, register_opt, iekey, "Ignore Existing Key"),
 	OPT("cptpl", 'p', arg_uint8, register_opt, cptpl,
 	    "Change Persist Through Power Loss State"),
-	{ NULL, 0, arg_none, NULL, NULL }
-};
+	{ NULL, 0, arg_none, NULL, NULL } };
 
 static const struct args register_args[] = {
 	{ arg_string, &register_opt.dev, "namespace-id" },
@@ -153,10 +155,10 @@ static struct cmd register_cmd = {
 CMD_SUBCOMMAND(resv_cmd, register_cmd);
 
 static struct release_options {
-	uint64_t	crkey;
-	uint8_t		rtype;
-	uint8_t		rrela;
-	const char	*dev;
+	uint64_t crkey;
+	uint8_t rtype;
+	uint8_t rrela;
+	const char *dev;
 } release_opt = {
 	.crkey = 0,
 	.rtype = 0,
@@ -164,15 +166,13 @@ static struct release_options {
 	.dev = NULL,
 };
 
-static const struct opts release_opts[] = {
-	OPT("crkey", 'c', arg_uint64, release_opt, crkey,
-	    "Current Reservation Key"),
-	OPT("rtype", 't', arg_uint8, release_opt, rtype,
-	    "Reservation Type"),
+static const struct opts release_opts[] = { OPT("crkey", 'c', arg_uint64,
+						release_opt, crkey,
+						"Current Reservation Key"),
+	OPT("rtype", 't', arg_uint8, release_opt, rtype, "Reservation Type"),
 	OPT("rrela", 'a', arg_uint8, release_opt, rrela,
 	    "Release Action (0=release, 1=clear)"),
-	{ NULL, 0, arg_none, NULL, NULL }
-};
+	{ NULL, 0, arg_none, NULL, NULL } };
 
 static const struct args release_args[] = {
 	{ arg_string, &release_opt.dev, "namespace-id" },
@@ -191,10 +191,10 @@ static struct cmd release_cmd = {
 CMD_SUBCOMMAND(resv_cmd, release_cmd);
 
 static struct report_options {
-	bool		hex;
-	bool		verbose;
-	bool		eds;
-	const char	*dev;
+	bool hex;
+	bool verbose;
+	bool eds;
+	const char *dev;
 } report_opt = {
 	.hex = false,
 	.verbose = false,
@@ -205,10 +205,8 @@ static struct report_options {
 static const struct opts report_opts[] = {
 	OPT("hex", 'x', arg_none, report_opt, hex,
 	    "Print reservation status in hex"),
-	OPT("verbose", 'v', arg_none, report_opt, verbose,
-	    "More verbosity"),
-	OPT("eds", 'e', arg_none, report_opt, eds,
-	    "Extended Data Structure"),
+	OPT("verbose", 'v', arg_none, report_opt, verbose, "More verbosity"),
+	OPT("eds", 'e', arg_none, report_opt, eds, "Extended Data Structure"),
 	{ NULL, 0, arg_none, NULL, NULL }
 };
 
@@ -233,10 +231,10 @@ CMD_SUBCOMMAND(resv_cmd, report_cmd);
 static void
 resvacquire(const struct cmd *f, int argc, char *argv[])
 {
-	struct nvme_pt_command	pt;
-	uint64_t	data[2];
-	int		fd;
-	uint32_t	nsid;
+	struct nvme_pt_command pt;
+	uint64_t data[2];
+	int fd;
+	uint32_t nsid;
 
 	if (arg_parse(argc, argv, f))
 		return;
@@ -253,8 +251,8 @@ resvacquire(const struct cmd *f, int argc, char *argv[])
 	memset(&pt, 0, sizeof(pt));
 	pt.cmd.opc = NVME_OPC_RESERVATION_ACQUIRE;
 	pt.cmd.nsid = htole32(nsid);
-	pt.cmd.cdw10 = htole32((acquire_opt.racqa & 7) |
-	    (acquire_opt.rtype << 8));
+	pt.cmd.cdw10 = htole32(
+	    (acquire_opt.racqa & 7) | (acquire_opt.rtype << 8));
 	pt.buf = &data;
 	pt.len = sizeof(data);
 	pt.is_read = 0;
@@ -272,10 +270,10 @@ resvacquire(const struct cmd *f, int argc, char *argv[])
 static void
 resvregister(const struct cmd *f, int argc, char *argv[])
 {
-	struct nvme_pt_command	pt;
-	uint64_t	data[2];
-	int		fd;
-	uint32_t	nsid;
+	struct nvme_pt_command pt;
+	uint64_t data[2];
+	int fd;
+	uint32_t nsid;
 
 	if (arg_parse(argc, argv, f))
 		return;
@@ -311,10 +309,10 @@ resvregister(const struct cmd *f, int argc, char *argv[])
 static void
 resvrelease(const struct cmd *f, int argc, char *argv[])
 {
-	struct nvme_pt_command	pt;
-	uint64_t	data[1];
-	int		fd;
-	uint32_t	nsid;
+	struct nvme_pt_command pt;
+	uint64_t data[1];
+	int fd;
+	uint32_t nsid;
 
 	if (arg_parse(argc, argv, f))
 		return;
@@ -330,8 +328,8 @@ resvrelease(const struct cmd *f, int argc, char *argv[])
 	memset(&pt, 0, sizeof(pt));
 	pt.cmd.opc = NVME_OPC_RESERVATION_RELEASE;
 	pt.cmd.nsid = htole32(nsid);
-	pt.cmd.cdw10 = htole32((release_opt.rrela & 7) |
-	    (release_opt.rtype << 8));
+	pt.cmd.cdw10 = htole32(
+	    (release_opt.rrela & 7) | (release_opt.rtype << 8));
 	pt.buf = &data;
 	pt.len = sizeof(data);
 	pt.is_read = 0;
@@ -349,13 +347,13 @@ resvrelease(const struct cmd *f, int argc, char *argv[])
 static void
 resvreport(const struct cmd *f, int argc, char *argv[])
 {
-	struct nvme_pt_command	pt;
-	struct nvme_resv_status	*s;
+	struct nvme_pt_command pt;
+	struct nvme_resv_status *s;
 	struct nvme_resv_status_ext *e;
-	uint8_t		data[4096] __aligned(4);
-	int		fd;
-	u_int		i, n;
-	uint32_t	nsid;
+	uint8_t data[4096] __aligned(4);
+	int fd;
+	u_int i, n;
+	uint32_t nsid;
 
 	if (arg_parse(argc, argv, f))
 		return;
@@ -371,7 +369,7 @@ resvreport(const struct cmd *f, int argc, char *argv[])
 	pt.cmd.opc = NVME_OPC_RESERVATION_REPORT;
 	pt.cmd.nsid = htole32(nsid);
 	pt.cmd.cdw10 = htole32(sizeof(data) / 4 - 1);
-	pt.cmd.cdw11 = htole32(report_opt.eds);	/* EDS */
+	pt.cmd.cdw11 = htole32(report_opt.eds); /* EDS */
 	pt.buf = &data;
 	pt.len = sizeof(data);
 	pt.is_read = 1;
@@ -417,7 +415,8 @@ resvreport(const struct cmd *f, int argc, char *argv[])
 			    e->ctrlr[i].rcsts);
 			printf("  Reservation Key:                0x%08jx\n",
 			    e->ctrlr[i].rkey);
-			printf("  Host Identifier:                0x%08jx%08jx\n",
+			printf(
+			    "  Host Identifier:                0x%08jx%08jx\n",
 			    e->ctrlr[i].hostid[0], e->ctrlr[i].hostid[1]);
 		}
 	} else {

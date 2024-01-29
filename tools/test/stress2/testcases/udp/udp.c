@@ -27,7 +27,9 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
 #include <err.h>
 #include <errno.h>
@@ -92,7 +94,7 @@ test(void)
 		err(1, "connect");
 
 	if ((buf = calloc(1, bufsize)) == NULL)
-			err(1, "malloc(%d), %s:%d", bufsize, __FILE__, __LINE__);
+		err(1, "malloc(%d), %s:%d", bufsize, __FILE__, __LINE__);
 
 	if (op->verbose > 1)
 		printf("udp %s:9 with %d bytes\n", hostname, bufsize);
@@ -104,7 +106,8 @@ test(void)
 			break;
 		if (n == -1)
 			err(1, "write(%d) #%d", bufsize, i);
-		if (n == 0) break;
+		if (n == 0)
+			break;
 	}
 	free(buf);
 	close(f);

@@ -38,9 +38,8 @@
  * Costa Mesa, CA 92626
  */
 
-
-#include "opt_inet6.h"
 #include "opt_inet.h"
+#include "opt_inet6.h"
 
 #include "oce_if.h"
 #include "oce_user.h"
@@ -48,169 +47,109 @@
 #define is_tso_pkt(m) (m->m_pkthdr.csum_flags & CSUM_TSO)
 
 /* UE Status Low CSR */
-static char *ue_status_low_desc[] = {
-        "CEV",
-        "CTX",
-        "DBUF",
-        "ERX",
-        "Host",
-        "MPU",
-        "NDMA",
-        "PTC ",
-        "RDMA ",
-        "RXF ",
-        "RXIPS ",
-        "RXULP0 ",
-        "RXULP1 ",
-        "RXULP2 ",
-        "TIM ",
-        "TPOST ",
-        "TPRE ",
-        "TXIPS ",
-        "TXULP0 ",
-        "TXULP1 ",
-        "UC ",
-        "WDMA ",
-        "TXULP2 ",
-        "HOST1 ",
-        "P0_OB_LINK ",
-        "P1_OB_LINK ",
-        "HOST_GPIO ",
-        "MBOX ",
-        "AXGMAC0",
-        "AXGMAC1",
-        "JTAG",
-        "MPU_INTPEND"
-};
+static char *ue_status_low_desc[] = { "CEV", "CTX", "DBUF", "ERX", "Host",
+	"MPU", "NDMA", "PTC ", "RDMA ", "RXF ", "RXIPS ", "RXULP0 ", "RXULP1 ",
+	"RXULP2 ", "TIM ", "TPOST ", "TPRE ", "TXIPS ", "TXULP0 ", "TXULP1 ",
+	"UC ", "WDMA ", "TXULP2 ", "HOST1 ", "P0_OB_LINK ", "P1_OB_LINK ",
+	"HOST_GPIO ", "MBOX ", "AXGMAC0", "AXGMAC1", "JTAG", "MPU_INTPEND" };
 
 /* UE Status High CSR */
-static char *ue_status_hi_desc[] = {
-        "LPCMEMHOST",
-        "MGMT_MAC",
-        "PCS0ONLINE",
-        "MPU_IRAM",
-        "PCS1ONLINE",
-        "PCTL0",
-        "PCTL1",
-        "PMEM",
-        "RR",
-        "TXPB",
-        "RXPP",
-        "XAUI",
-        "TXP",
-        "ARM",
-        "IPC",
-        "HOST2",
-        "HOST3",
-        "HOST4",
-        "HOST5",
-        "HOST6",
-        "HOST7",
-        "HOST8",
-        "HOST9",
-        "NETC",
-        "Unknown",
-        "Unknown",
-        "Unknown",
-        "Unknown",
-        "Unknown",
-        "Unknown",
-        "Unknown",
-        "Unknown"
-};
+static char *ue_status_hi_desc[] = { "LPCMEMHOST", "MGMT_MAC", "PCS0ONLINE",
+	"MPU_IRAM", "PCS1ONLINE", "PCTL0", "PCTL1", "PMEM", "RR", "TXPB",
+	"RXPP", "XAUI", "TXP", "ARM", "IPC", "HOST2", "HOST3", "HOST4", "HOST5",
+	"HOST6", "HOST7", "HOST8", "HOST9", "NETC", "Unknown", "Unknown",
+	"Unknown", "Unknown", "Unknown", "Unknown", "Unknown", "Unknown" };
 
-struct oce_common_cqe_info{
-        uint8_t vtp:1;
-        uint8_t l4_cksum_pass:1;
-        uint8_t ip_cksum_pass:1;
-        uint8_t ipv6_frame:1;
-        uint8_t qnq:1;
-        uint8_t rsvd:3;
-        uint8_t num_frags;
-        uint16_t pkt_size;
-        uint16_t vtag;
+struct oce_common_cqe_info {
+	uint8_t vtp : 1;
+	uint8_t l4_cksum_pass : 1;
+	uint8_t ip_cksum_pass : 1;
+	uint8_t ipv6_frame : 1;
+	uint8_t qnq : 1;
+	uint8_t rsvd : 3;
+	uint8_t num_frags;
+	uint16_t pkt_size;
+	uint16_t vtag;
 };
 
 /* Driver entry points prototypes */
-static int  oce_probe(device_t dev);
-static int  oce_attach(device_t dev);
-static int  oce_detach(device_t dev);
-static int  oce_shutdown(device_t dev);
-static int  oce_ioctl(if_t ifp, u_long command, caddr_t data);
+static int oce_probe(device_t dev);
+static int oce_attach(device_t dev);
+static int oce_detach(device_t dev);
+static int oce_shutdown(device_t dev);
+static int oce_ioctl(if_t ifp, u_long command, caddr_t data);
 static void oce_init(void *xsc);
-static int  oce_multiq_start(if_t ifp, struct mbuf *m);
+static int oce_multiq_start(if_t ifp, struct mbuf *m);
 static void oce_multiq_flush(if_t ifp);
 
 /* Driver interrupt routines protypes */
 static void oce_intr(void *arg, int pending);
-static int  oce_setup_intr(POCE_SOFTC sc);
-static int  oce_fast_isr(void *arg);
-static int  oce_alloc_intr(POCE_SOFTC sc, int vector,
-			  void (*isr) (void *arg, int pending));
+static int oce_setup_intr(POCE_SOFTC sc);
+static int oce_fast_isr(void *arg);
+static int oce_alloc_intr(POCE_SOFTC sc, int vector,
+    void (*isr)(void *arg, int pending));
 
 /* Media callbacks prototypes */
 static void oce_media_status(if_t ifp, struct ifmediareq *req);
-static int  oce_media_change(if_t ifp);
+static int oce_media_change(if_t ifp);
 
 /* Transmit routines prototypes */
-static int  oce_tx(POCE_SOFTC sc, struct mbuf **mpp, int wq_index);
+static int oce_tx(POCE_SOFTC sc, struct mbuf **mpp, int wq_index);
 static void oce_tx_restart(POCE_SOFTC sc, struct oce_wq *wq);
 static void oce_process_tx_completion(struct oce_wq *wq);
-static int  oce_multiq_transmit(if_t ifp, struct mbuf *m,
-				 struct oce_wq *wq);
+static int oce_multiq_transmit(if_t ifp, struct mbuf *m, struct oce_wq *wq);
 
 /* Receive routines prototypes */
-static int  oce_cqe_vtp_valid(POCE_SOFTC sc, struct oce_nic_rx_cqe *cqe);
-static int  oce_cqe_portid_valid(POCE_SOFTC sc, struct oce_nic_rx_cqe *cqe);
+static int oce_cqe_vtp_valid(POCE_SOFTC sc, struct oce_nic_rx_cqe *cqe);
+static int oce_cqe_portid_valid(POCE_SOFTC sc, struct oce_nic_rx_cqe *cqe);
 static void oce_rx(struct oce_rq *rq, struct oce_nic_rx_cqe *cqe);
-static void oce_check_rx_bufs(POCE_SOFTC sc, uint32_t num_cqes, struct oce_rq *rq);
+static void oce_check_rx_bufs(POCE_SOFTC sc, uint32_t num_cqes,
+    struct oce_rq *rq);
 static uint16_t oce_rq_handler_lro(void *arg);
-static void oce_correct_header(struct mbuf *m, struct nic_hwlro_cqe_part1 *cqe1, struct nic_hwlro_cqe_part2 *cqe2);
-static void oce_rx_lro(struct oce_rq *rq, struct nic_hwlro_singleton_cqe *cqe, struct nic_hwlro_cqe_part2 *cqe2);
-static void oce_rx_mbuf_chain(struct oce_rq *rq, struct oce_common_cqe_info *cqe_info, struct mbuf **m);
+static void oce_correct_header(struct mbuf *m, struct nic_hwlro_cqe_part1 *cqe1,
+    struct nic_hwlro_cqe_part2 *cqe2);
+static void oce_rx_lro(struct oce_rq *rq, struct nic_hwlro_singleton_cqe *cqe,
+    struct nic_hwlro_cqe_part2 *cqe2);
+static void oce_rx_mbuf_chain(struct oce_rq *rq,
+    struct oce_common_cqe_info *cqe_info, struct mbuf **m);
 
 /* Helper function prototypes in this file */
-static int  oce_attach_ifp(POCE_SOFTC sc);
+static int oce_attach_ifp(POCE_SOFTC sc);
 static void oce_add_vlan(void *arg, if_t ifp, uint16_t vtag);
 static void oce_del_vlan(void *arg, if_t ifp, uint16_t vtag);
-static int  oce_vid_config(POCE_SOFTC sc);
+static int oce_vid_config(POCE_SOFTC sc);
 static void oce_mac_addr_set(POCE_SOFTC sc);
-static int  oce_handle_passthrough(if_t ifp, caddr_t data);
+static int oce_handle_passthrough(if_t ifp, caddr_t data);
 static void oce_local_timer(void *arg);
 static void oce_if_deactivate(POCE_SOFTC sc);
 static void oce_if_activate(POCE_SOFTC sc);
 static void setup_max_queues_want(POCE_SOFTC sc);
 static void update_queues_got(POCE_SOFTC sc);
 static void process_link_state(POCE_SOFTC sc,
-		 struct oce_async_cqe_link_state *acqe);
+    struct oce_async_cqe_link_state *acqe);
 static int oce_tx_asic_stall_verify(POCE_SOFTC sc, struct mbuf *m);
 static void oce_get_config(POCE_SOFTC sc);
-static struct mbuf *oce_insert_vlan_tag(POCE_SOFTC sc, struct mbuf *m, boolean_t *complete);
+static struct mbuf *oce_insert_vlan_tag(POCE_SOFTC sc, struct mbuf *m,
+    boolean_t *complete);
 static void oce_read_env_variables(POCE_SOFTC sc);
 
 /* IP specific */
 #if defined(INET6) || defined(INET)
-static int  oce_init_lro(POCE_SOFTC sc);
-static struct mbuf * oce_tso_setup(POCE_SOFTC sc, struct mbuf **mpp);
+static int oce_init_lro(POCE_SOFTC sc);
+static struct mbuf *oce_tso_setup(POCE_SOFTC sc, struct mbuf **mpp);
 #endif
 
-static device_method_t oce_dispatch[] = {
-	DEVMETHOD(device_probe, oce_probe),
+static device_method_t oce_dispatch[] = { DEVMETHOD(device_probe, oce_probe),
 	DEVMETHOD(device_attach, oce_attach),
 	DEVMETHOD(device_detach, oce_detach),
 	DEVMETHOD(device_shutdown, oce_shutdown),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
-static driver_t oce_driver = {
-	"oce",
-	oce_dispatch,
-	sizeof(OCE_SOFTC)
-};
+static driver_t oce_driver = { "oce", oce_dispatch, sizeof(OCE_SOFTC) };
 
 /* global vars */
-const char component_revision[32] = {"///" COMPONENT_REVISION "///"};
+const char component_revision[32] = { "///" COMPONENT_REVISION "///" };
 
 /* Module capabilites and parameters */
 uint32_t oce_max_rsp_handled = OCE_MAX_RSP_HANDLED;
@@ -221,14 +160,13 @@ TUNABLE_INT("hw.oce.max_rsp_handled", &oce_max_rsp_handled);
 TUNABLE_INT("hw.oce.enable_rss", &oce_enable_rss);
 
 /* Supported devices table */
-static uint32_t supportedDevices[] =  {
-	(PCI_VENDOR_SERVERENGINES << 16) | PCI_PRODUCT_BE2,
+static uint32_t supportedDevices[] = { (PCI_VENDOR_SERVERENGINES << 16) |
+	    PCI_PRODUCT_BE2,
 	(PCI_VENDOR_SERVERENGINES << 16) | PCI_PRODUCT_BE3,
 	(PCI_VENDOR_EMULEX << 16) | PCI_PRODUCT_BE3,
 	(PCI_VENDOR_EMULEX << 16) | PCI_PRODUCT_XE201,
 	(PCI_VENDOR_EMULEX << 16) | PCI_PRODUCT_XE201_VF,
-	(PCI_VENDOR_EMULEX << 16) | PCI_PRODUCT_SH
-};
+	(PCI_VENDOR_EMULEX << 16) | PCI_PRODUCT_SH };
 
 DRIVER_MODULE(oce, pci, oce_driver, 0, 0);
 MODULE_PNP_INFO("W32:vendor/device", pci, oce, supportedDevices,
@@ -252,7 +190,7 @@ oce_probe(device_t dev)
 	uint16_t vendor = 0;
 	uint16_t device = 0;
 	int i = 0;
-	char str[256] = {0};
+	char str[256] = { 0 };
 	POCE_SOFTC sc;
 
 	sc = device_get_softc(dev);
@@ -266,7 +204,7 @@ oce_probe(device_t dev)
 		if (vendor == ((supportedDevices[i] >> 16) & 0xffff)) {
 			if (device == (supportedDevices[i] & 0xffff)) {
 				sprintf(str, "%s:%s", "Emulex CNA NIC function",
-					component_revision);
+				    component_revision);
 				device_set_desc_copy(dev, str);
 
 				switch (device) {
@@ -311,10 +249,10 @@ oce_attach(device_t dev)
 	/* receive fragment size should be multiple of 2K */
 	sc->rq_frag_size = ((oce_rq_buf_size / 2048) * 2048);
 	sc->flow_control = OCE_DEFAULT_FLOW_CONTROL;
-	sc->promisc	 = OCE_DEFAULT_PROMISCUOUS;
+	sc->promisc = OCE_DEFAULT_PROMISCUOUS;
 
 	LOCK_CREATE(&sc->bmbx_lock, "Mailbox_lock");
-	LOCK_CREATE(&sc->dev_lock,  "Device_lock");
+	LOCK_CREATE(&sc->dev_lock, "Device_lock");
 
 	/* initialise the hardware */
 	rc = oce_hw_init(sc);
@@ -325,7 +263,7 @@ oce_attach(device_t dev)
 
 	oce_get_config(sc);
 
-	setup_max_queues_want(sc);	
+	setup_max_queues_want(sc);
 
 	rc = oce_setup_intr(sc);
 	if (rc)
@@ -349,10 +287,10 @@ oce_attach(device_t dev)
 	if (rc)
 		goto lro_free;
 
-	sc->vlan_attach = EVENTHANDLER_REGISTER(vlan_config,
-				oce_add_vlan, sc, EVENTHANDLER_PRI_FIRST);
-	sc->vlan_detach = EVENTHANDLER_REGISTER(vlan_unconfig,
-				oce_del_vlan, sc, EVENTHANDLER_PRI_FIRST);
+	sc->vlan_attach = EVENTHANDLER_REGISTER(vlan_config, oce_add_vlan, sc,
+	    EVENTHANDLER_PRI_FIRST);
+	sc->vlan_detach = EVENTHANDLER_REGISTER(vlan_unconfig, oce_del_vlan, sc,
+	    EVENTHANDLER_PRI_FIRST);
 
 	rc = oce_stats_init(sc);
 	if (rc)
@@ -365,11 +303,11 @@ oce_attach(device_t dev)
 	if (rc)
 		goto stats_free;
 
-	sc->next =NULL;
+	sc->next = NULL;
 	if (softc_tail != NULL) {
-	  softc_tail->next = sc;
+		softc_tail->next = sc;
 	} else {
-	  softc_head = sc;
+		softc_head = sc;
 	}
 	softc_tail = sc;
 
@@ -404,7 +342,6 @@ pci_res_free:
 	LOCK_DESTROY(&sc->dev_lock);
 	LOCK_DESTROY(&sc->bmbx_lock);
 	return rc;
-
 }
 
 static int
@@ -413,20 +350,20 @@ oce_detach(device_t dev)
 	POCE_SOFTC sc = device_get_softc(dev);
 	POCE_SOFTC poce_sc_tmp, *ppoce_sc_tmp1, poce_sc_tmp2 = NULL;
 
-        poce_sc_tmp = softc_head;
-        ppoce_sc_tmp1 = &softc_head;
-        while (poce_sc_tmp != NULL) {
-          if (poce_sc_tmp == sc) {
-            *ppoce_sc_tmp1 = sc->next;
-            if (sc->next == NULL) {
-              softc_tail = poce_sc_tmp2;
-            }
-            break;
-          }
-          poce_sc_tmp2 = poce_sc_tmp;
-          ppoce_sc_tmp1 = &poce_sc_tmp->next;
-          poce_sc_tmp = poce_sc_tmp->next;
-        }
+	poce_sc_tmp = softc_head;
+	ppoce_sc_tmp1 = &softc_head;
+	while (poce_sc_tmp != NULL) {
+		if (poce_sc_tmp == sc) {
+			*ppoce_sc_tmp1 = sc->next;
+			if (sc->next == NULL) {
+				softc_tail = poce_sc_tmp2;
+			}
+			break;
+		}
+		poce_sc_tmp2 = poce_sc_tmp;
+		ppoce_sc_tmp1 = &poce_sc_tmp->next;
+		poce_sc_tmp = poce_sc_tmp->next;
+	}
 
 	LOCK(&sc->dev_lock);
 	oce_if_deactivate(sc);
@@ -457,7 +394,7 @@ oce_shutdown(device_t dev)
 
 	rc = oce_detach(dev);
 
-	return rc;	
+	return rc;
 }
 
 static int
@@ -466,7 +403,7 @@ oce_ioctl(if_t ifp, u_long command, caddr_t data)
 	struct ifreq *ifr = (struct ifreq *)data;
 	POCE_SOFTC sc = if_getsoftc(ifp);
 	struct ifi2creq i2c;
-	uint8_t	offset = 0;
+	uint8_t offset = 0;
 	int rc = 0;
 	uint32_t u;
 
@@ -488,11 +425,11 @@ oce_ioctl(if_t ifp, u_long command, caddr_t data)
 				if_setdrvflagbits(ifp, IFF_DRV_RUNNING, 0);
 				oce_init(sc);
 			}
-			device_printf(sc->dev, "Interface Up\n");	
+			device_printf(sc->dev, "Interface Up\n");
 		} else {
 			LOCK(&sc->dev_lock);
 
-			if_setdrvflagbits(sc->ifp, 0, 
+			if_setdrvflagbits(sc->ifp, 0,
 			    IFF_DRV_RUNNING | IFF_DRV_OACTIVE);
 			oce_if_deactivate(sc);
 
@@ -516,7 +453,7 @@ oce_ioctl(if_t ifp, u_long command, caddr_t data)
 		rc = oce_hw_update_multicast(sc);
 		if (rc)
 			device_printf(sc->dev,
-				"Update multicast address failed\n");
+			    "Update multicast address failed\n");
 		break;
 
 	case SIOCSIFCAP:
@@ -525,14 +462,14 @@ oce_ioctl(if_t ifp, u_long command, caddr_t data)
 		if (u & IFCAP_TXCSUM) {
 			if_togglecapenable(ifp, IFCAP_TXCSUM);
 			if_togglehwassist(ifp, (CSUM_TCP | CSUM_UDP | CSUM_IP));
-			
+
 			if (IFCAP_TSO & if_getcapenable(ifp) &&
 			    !(IFCAP_TXCSUM & if_getcapenable(ifp))) {
 				u &= ~IFCAP_TSO;
 				if_setcapenablebit(ifp, 0, IFCAP_TSO);
 				if_sethwassistbits(ifp, 0, CSUM_TSO);
 				if_printf(ifp,
-					 "TSO disabled due to -txcsum.\n");
+				    "TSO disabled due to -txcsum.\n");
 			}
 		}
 
@@ -566,11 +503,13 @@ oce_ioctl(if_t ifp, u_long command, caddr_t data)
 #if defined(INET6) || defined(INET)
 		if (u & IFCAP_LRO) {
 			if_togglecapenable(ifp, IFCAP_LRO);
-			if(sc->enable_hwlro) {
-				if(if_getcapenable(ifp) & IFCAP_LRO) {
-					rc = oce_mbox_nic_set_iface_lro_config(sc, 1);
-				}else {
-					rc = oce_mbox_nic_set_iface_lro_config(sc, 0);
+			if (sc->enable_hwlro) {
+				if (if_getcapenable(ifp) & IFCAP_LRO) {
+					rc = oce_mbox_nic_set_iface_lro_config(
+					    sc, 1);
+				} else {
+					rc = oce_mbox_nic_set_iface_lro_config(
+					    sc, 0);
 				}
 			}
 		}
@@ -636,7 +575,6 @@ oce_init(void *arg)
 	}
 
 	UNLOCK(&sc->dev_lock);
-
 }
 
 static int
@@ -660,14 +598,13 @@ oce_multiq_start(if_t ifp, struct mbuf *m)
 	UNLOCK(&wq->tx_lock);
 
 	return status;
-
 }
 
 static void
 oce_multiq_flush(if_t ifp)
 {
 	POCE_SOFTC sc = if_getsoftc(ifp);
-	struct mbuf     *m;
+	struct mbuf *m;
 	int i = 0;
 
 	for (i = 0; i < sc->nwqs; i++) {
@@ -685,7 +622,7 @@ static void
 oce_intr(void *arg, int pending)
 {
 
-	POCE_INTR_INFO ii = (POCE_INTR_INFO) arg;
+	POCE_INTR_INFO ii = (POCE_INTR_INFO)arg;
 	POCE_SOFTC sc = ii->sc;
 	struct oce_eq *eq = ii->eq;
 	struct oce_eqe *eqe;
@@ -693,14 +630,14 @@ oce_intr(void *arg, int pending)
 	int i, num_eqes = 0;
 
 	bus_dmamap_sync(eq->ring->dma.tag, eq->ring->dma.map,
-				 BUS_DMASYNC_POSTWRITE);
+	    BUS_DMASYNC_POSTWRITE);
 	do {
 		eqe = RING_GET_CONSUMER_ITEM_VA(eq->ring, struct oce_eqe);
 		if (eqe->evnt == 0)
 			break;
 		eqe->evnt = 0;
 		bus_dmamap_sync(eq->ring->dma.tag, eq->ring->dma.map,
-					BUS_DMASYNC_POSTWRITE);
+		    BUS_DMASYNC_POSTWRITE);
 		RING_GET(eq->ring, 1);
 		num_eqes++;
 
@@ -709,7 +646,7 @@ oce_intr(void *arg, int pending)
 	if (!num_eqes)
 		goto eq_arm; /* Spurious */
 
- 	/* Clear EQ entries, but dont arm */
+	/* Clear EQ entries, but dont arm */
 	oce_arm_eq(sc, eq->eq_id, num_eqes, FALSE, FALSE);
 
 	/* Process TX, RX and MCC. But dont arm CQ*/
@@ -744,31 +681,34 @@ oce_setup_intr(POCE_SOFTC sc)
 
 	tot_req_vectors = req_vectors;
 	if (sc->rdma_flags & OCE_RDMA_FLAG_SUPPORTED) {
-	  if (req_vectors > 1) {
-	    tot_req_vectors += OCE_RDMA_VECTORS;
-	    sc->roce_intr_count = OCE_RDMA_VECTORS;
-	  }
+		if (req_vectors > 1) {
+			tot_req_vectors += OCE_RDMA_VECTORS;
+			sc->roce_intr_count = OCE_RDMA_VECTORS;
+		}
 	}
 
-        if (sc->flags & OCE_FLAGS_MSIX_CAPABLE) {
+	if (sc->flags & OCE_FLAGS_MSIX_CAPABLE) {
 		sc->intr_count = req_vectors;
-                tot_vectors = tot_req_vectors;
+		tot_vectors = tot_req_vectors;
 		rc = pci_alloc_msix(sc->dev, &tot_vectors);
 		if (rc != 0) {
 			use_intx = 1;
 			pci_release_msi(sc->dev);
 		} else {
-		  if (sc->rdma_flags & OCE_RDMA_FLAG_SUPPORTED) {
-		    if (tot_vectors < tot_req_vectors) {
-		      if (sc->intr_count < (2 * OCE_RDMA_VECTORS)) {
-			sc->roce_intr_count = (tot_vectors / 2);
-		      }
-		      sc->intr_count = tot_vectors - sc->roce_intr_count;
-		    }
-		  } else {
-		    sc->intr_count = tot_vectors;
-		  }
-    		  sc->flags |= OCE_FLAGS_USING_MSIX;
+			if (sc->rdma_flags & OCE_RDMA_FLAG_SUPPORTED) {
+				if (tot_vectors < tot_req_vectors) {
+					if (sc->intr_count <
+					    (2 * OCE_RDMA_VECTORS)) {
+						sc->roce_intr_count =
+						    (tot_vectors / 2);
+					}
+					sc->intr_count = tot_vectors -
+					    sc->roce_intr_count;
+				}
+			} else {
+				sc->intr_count = tot_vectors;
+			}
+			sc->flags |= OCE_FLAGS_USING_MSIX;
 		}
 	} else
 		use_intx = 1;
@@ -783,7 +723,7 @@ oce_setup_intr(POCE_SOFTC sc)
 		device_printf(sc->dev, "Using legacy interrupt\n");
 		rc = oce_alloc_intr(sc, vector, oce_intr);
 		if (rc)
-			goto error;		
+			goto error;
 	} else {
 		for (; vector < sc->intr_count; vector++) {
 			rc = oce_alloc_intr(sc, vector, oce_intr);
@@ -801,7 +741,7 @@ error:
 static int
 oce_fast_isr(void *arg)
 {
-	POCE_INTR_INFO ii = (POCE_INTR_INFO) arg;
+	POCE_INTR_INFO ii = (POCE_INTR_INFO)arg;
 	POCE_SOFTC sc = ii->sc;
 
 	if (ii->eq == NULL)
@@ -811,13 +751,13 @@ oce_fast_isr(void *arg)
 
 	taskqueue_enqueue(ii->tq, &ii->task);
 
- 	ii->eq->intr++;	
+	ii->eq->intr++;
 
 	return FILTER_HANDLED;
 }
 
 static int
-oce_alloc_intr(POCE_SOFTC sc, int vector, void (*isr) (void *arg, int pending))
+oce_alloc_intr(POCE_SOFTC sc, int vector, void (*isr)(void *arg, int pending))
 {
 	POCE_INTR_INFO ii;
 	int rc = 0, rr;
@@ -835,13 +775,11 @@ oce_alloc_intr(POCE_SOFTC sc, int vector, void (*isr) (void *arg, int pending))
 		rr = vector + 1;
 	else
 		rr = 0;
-	ii->intr_res = bus_alloc_resource_any(sc->dev,
-					      SYS_RES_IRQ,
-					      &rr, RF_ACTIVE|RF_SHAREABLE);
+	ii->intr_res = bus_alloc_resource_any(sc->dev, SYS_RES_IRQ, &rr,
+	    RF_ACTIVE | RF_SHAREABLE);
 	ii->irq_rr = rr;
 	if (ii->intr_res == NULL) {
-		device_printf(sc->dev,
-			  "Could not allocate interrupt\n");
+		device_printf(sc->dev, "Could not allocate interrupt\n");
 		rc = ENXIO;
 		return rc;
 	}
@@ -849,20 +787,15 @@ oce_alloc_intr(POCE_SOFTC sc, int vector, void (*isr) (void *arg, int pending))
 	TASK_INIT(&ii->task, 0, isr, ii);
 	ii->vector = vector;
 	sprintf(ii->task_name, "oce_task[%d]", ii->vector);
-	ii->tq = taskqueue_create_fast(ii->task_name,
-			M_NOWAIT,
-			taskqueue_thread_enqueue,
-			&ii->tq);
+	ii->tq = taskqueue_create_fast(ii->task_name, M_NOWAIT,
+	    taskqueue_thread_enqueue, &ii->tq);
 	taskqueue_start_threads(&ii->tq, 1, PI_NET, "%s taskq",
-			device_get_nameunit(sc->dev));
+	    device_get_nameunit(sc->dev));
 
 	ii->sc = sc;
-	rc = bus_setup_intr(sc->dev,
-			ii->intr_res,
-			INTR_TYPE_NET,
-			oce_fast_isr, NULL, ii, &ii->tag);
+	rc = bus_setup_intr(sc->dev, ii->intr_res, INTR_TYPE_NET, oce_fast_isr,
+	    NULL, ii, &ii->tag);
 	return rc;
-
 }
 
 void
@@ -871,41 +804,39 @@ oce_intr_free(POCE_SOFTC sc)
 	int i = 0;
 
 	for (i = 0; i < sc->intr_count; i++) {
-		
+
 		if (sc->intrs[i].tag != NULL)
 			bus_teardown_intr(sc->dev, sc->intrs[i].intr_res,
-						sc->intrs[i].tag);
+			    sc->intrs[i].tag);
 		if (sc->intrs[i].tq != NULL)
 			taskqueue_free(sc->intrs[i].tq);
-		
+
 		if (sc->intrs[i].intr_res != NULL)
 			bus_release_resource(sc->dev, SYS_RES_IRQ,
-						sc->intrs[i].irq_rr,
-						sc->intrs[i].intr_res);
+			    sc->intrs[i].irq_rr, sc->intrs[i].intr_res);
 		sc->intrs[i].tag = NULL;
 		sc->intrs[i].intr_res = NULL;
 	}
 
 	if (sc->flags & OCE_FLAGS_USING_MSIX)
 		pci_release_msi(sc->dev);
-
 }
 
 /******************************************************************************
-*			  Media callbacks functions 			      *
-******************************************************************************/
+ *			  Media callbacks functions 			      *
+ ******************************************************************************/
 
 static void
 oce_media_status(if_t ifp, struct ifmediareq *req)
 {
-	POCE_SOFTC sc = (POCE_SOFTC) if_getsoftc(ifp);
+	POCE_SOFTC sc = (POCE_SOFTC)if_getsoftc(ifp);
 
 	req->ifm_status = IFM_AVALID;
 	req->ifm_active = IFM_ETHER;
 
 	if (sc->link_status == 1)
 		req->ifm_status |= IFM_ACTIVE;
-	else 
+	else
 		return;
 
 	switch (sc->link_speed) {
@@ -951,9 +882,9 @@ oce_media_change(if_t ifp)
 	return 0;
 }
 
-static void oce_is_pkt_dest_bmc(POCE_SOFTC sc,
-				struct mbuf *m, boolean_t *os2bmc,
-				struct mbuf **m_new)
+static void
+oce_is_pkt_dest_bmc(POCE_SOFTC sc, struct mbuf *m, boolean_t *os2bmc,
+    struct mbuf **m_new)
 {
 	struct ether_header *eh = NULL;
 
@@ -966,8 +897,7 @@ static void oce_is_pkt_dest_bmc(POCE_SOFTC sc,
 	if (!ETHER_IS_MULTICAST(eh->ether_dhost))
 		goto done;
 
-	if (is_mc_allowed_on_bmc(sc, eh) ||
-	    is_bc_allowed_on_bmc(sc, eh) ||
+	if (is_mc_allowed_on_bmc(sc, eh) || is_bc_allowed_on_bmc(sc, eh) ||
 	    is_arp_allowed_on_bmc(sc, ntohs(eh->ether_type))) {
 		*os2bmc = TRUE;
 		goto done;
@@ -1056,13 +986,14 @@ oce_tx(POCE_SOFTC sc, struct mbuf **mpp, int wq_index)
 	/* Don't allow non-TSO packets longer than MTU */
 	if (!is_tso_pkt(m)) {
 		eh = mtod(m, struct ether_header *);
-		if(m->m_pkthdr.len > ETHER_MAX_FRAME(sc->ifp, eh->ether_type, FALSE))
-			 goto free_ret;
+		if (m->m_pkthdr.len >
+		    ETHER_MAX_FRAME(sc->ifp, eh->ether_type, FALSE))
+			goto free_ret;
 	}
 
-	if(oce_tx_asic_stall_verify(sc, m)) {
+	if (oce_tx_asic_stall_verify(sc, m)) {
 		m = oce_insert_vlan_tag(sc, m, &complete);
-		if(!m) {
+		if (!m) {
 			device_printf(sc->dev, "Insertion unsuccessful\n");
 			return 0;
 		}
@@ -1071,9 +1002,9 @@ oce_tx(POCE_SOFTC sc, struct mbuf **mpp, int wq_index)
 	/* Lancer, SH ASIC has a bug wherein Packets that are 32 bytes or less
 	 * may cause a transmit stall on that port. So the work-around is to
 	 * pad short packets (<= 32 bytes) to a 36-byte length.
-	*/
-	if(IS_SH(sc) || IS_XE201(sc) ) {
-		if(m->m_pkthdr.len <= 32) {
+	 */
+	if (IS_SH(sc) || IS_XE201(sc)) {
+		if (m->m_pkthdr.len <= 32) {
 			char buf[36];
 			bzero((void *)buf, 36);
 			m_append(m, (36 - m->m_pkthdr.len), buf);
@@ -1097,9 +1028,8 @@ tx_start:
 	pd = &wq->pckts[wq->pkt_desc_head];
 
 retry:
-	rc = bus_dmamap_load_mbuf_sg(wq->tag,
-				     pd->map,
-				     m, segs, &pd->nsegs, BUS_DMA_NOWAIT);
+	rc = bus_dmamap_load_mbuf_sg(wq->tag, pd->map, m, segs, &pd->nsegs,
+	    BUS_DMA_NOWAIT);
 	if (rc == 0) {
 		num_wqes = pd->nsegs + 1;
 		if (IS_BE(sc) || IS_SH(sc)) {
@@ -1112,13 +1042,12 @@ retry:
 			return EBUSY;
 		}
 		atomic_store_rel_int(&wq->pkt_desc_head,
-				     (wq->pkt_desc_head + 1) % \
-				      OCE_WQ_PACKET_ARRAY_SIZE);
+		    (wq->pkt_desc_head + 1) % OCE_WQ_PACKET_ARRAY_SIZE);
 		bus_dmamap_sync(wq->tag, pd->map, BUS_DMASYNC_PREWRITE);
 		pd->mbuf = m;
 
-		nichdr =
-		    RING_GET_PRODUCER_ITEM_VA(wq->ring, struct oce_nic_hdr_wqe);
+		nichdr = RING_GET_PRODUCER_ITEM_VA(wq->ring,
+		    struct oce_nic_hdr_wqe);
 		nichdr->u0.dw[0] = 0;
 		nichdr->u0.dw[1] = 0;
 		nichdr->u0.dw[2] = 0;
@@ -1130,10 +1059,10 @@ retry:
 		nichdr->u0.s.crc = 1;
 		nichdr->u0.s.forward = 0;
 		nichdr->u0.s.ipcs = (m->m_pkthdr.csum_flags & CSUM_IP) ? 1 : 0;
-		nichdr->u0.s.udpcs =
-			(m->m_pkthdr.csum_flags & CSUM_UDP) ? 1 : 0;
-		nichdr->u0.s.tcpcs =
-			(m->m_pkthdr.csum_flags & CSUM_TCP) ? 1 : 0;
+		nichdr->u0.s.udpcs = (m->m_pkthdr.csum_flags & CSUM_UDP) ? 1 :
+									   0;
+		nichdr->u0.s.tcpcs = (m->m_pkthdr.csum_flags & CSUM_TCP) ? 1 :
+									   0;
 		nichdr->u0.s.num_wqe = num_wqes;
 		nichdr->u0.s.total_length = m->m_pkthdr.len;
 
@@ -1145,7 +1074,7 @@ retry:
 		if (m->m_pkthdr.csum_flags & CSUM_TSO) {
 			if (m->m_pkthdr.tso_segsz) {
 				nichdr->u0.s.lso = 1;
-				nichdr->u0.s.lso_mss  = m->m_pkthdr.tso_segsz;
+				nichdr->u0.s.lso_mss = m->m_pkthdr.tso_segsz;
 			}
 			if (!IS_BE(sc) || !IS_SH(sc))
 				nichdr->u0.s.ipcs = 1;
@@ -1155,9 +1084,8 @@ retry:
 		atomic_add_int(&wq->ring->num_used, 1);
 
 		for (i = 0; i < pd->nsegs; i++) {
-			nicfrag =
-			    RING_GET_PRODUCER_ITEM_VA(wq->ring,
-						      struct oce_nic_frag_wqe);
+			nicfrag = RING_GET_PRODUCER_ITEM_VA(wq->ring,
+			    struct oce_nic_frag_wqe);
 			nicfrag->u0.s.rsvd0 = 0;
 			nicfrag->u0.s.frag_pa_hi = ADDR_HI(segs[i].ds_addr);
 			nicfrag->u0.s.frag_pa_lo = ADDR_LO(segs[i].ds_addr);
@@ -1167,9 +1095,8 @@ retry:
 			atomic_add_int(&wq->ring->num_used, 1);
 		}
 		if (num_wqes > (pd->nsegs + 1)) {
-			nicfrag =
-			    RING_GET_PRODUCER_ITEM_VA(wq->ring,
-						      struct oce_nic_frag_wqe);
+			nicfrag = RING_GET_PRODUCER_ITEM_VA(wq->ring,
+			    struct oce_nic_frag_wqe);
 			nicfrag->u0.dw[0] = 0;
 			nicfrag->u0.dw[1] = 0;
 			nicfrag->u0.dw[2] = 0;
@@ -1187,7 +1114,7 @@ retry:
 		wq->tx_stats.tx_pkts++;
 
 		bus_dmamap_sync(wq->ring->dma.tag, wq->ring->dma.map,
-				BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
+		    BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
 		reg_value = (num_wqes << 16) | wq->wq_id;
 
 		/* if os2bmc is not enabled or if the pkt is already tagged as
@@ -1202,7 +1129,7 @@ retry:
 
 		OCE_WRITE_REG32(sc, db, wq->db_offset, reg_value);
 
-	} else if (rc == EFBIG)	{
+	} else if (rc == EFBIG) {
 		if (retry_cnt == 0) {
 			m_temp = m_defrag(m, M_NOWAIT);
 			if (m_temp == NULL)
@@ -1235,12 +1162,12 @@ static void
 oce_process_tx_completion(struct oce_wq *wq)
 {
 	struct oce_packet_desc *pd;
-	POCE_SOFTC sc = (POCE_SOFTC) wq->parent;
+	POCE_SOFTC sc = (POCE_SOFTC)wq->parent;
 	struct mbuf *m;
 
 	pd = &wq->pckts[wq->pkt_desc_tail];
 	atomic_store_rel_int(&wq->pkt_desc_tail,
-			     (wq->pkt_desc_tail + 1) % OCE_WQ_PACKET_ARRAY_SIZE); 
+	    (wq->pkt_desc_tail + 1) % OCE_WQ_PACKET_ARRAY_SIZE);
 	atomic_subtract_int(&wq->ring->num_used, pd->nsegs + 1);
 	bus_dmamap_sync(wq->tag, pd->map, BUS_DMASYNC_POSTWRITE);
 	bus_dmamap_unload(wq->tag, pd->map);
@@ -1252,7 +1179,7 @@ oce_process_tx_completion(struct oce_wq *wq)
 	if (if_getdrvflags(sc->ifp) & IFF_DRV_OACTIVE) {
 		if (wq->ring->num_used < (wq->ring->num_items / 2)) {
 			if_setdrvflagbits(sc->ifp, 0, (IFF_DRV_OACTIVE));
-			oce_tx_restart(sc, wq);	
+			oce_tx_restart(sc, wq);
 		}
 	}
 }
@@ -1266,7 +1193,6 @@ oce_tx_restart(POCE_SOFTC sc, struct oce_wq *wq)
 
 	if (!drbr_empty(sc->ifp, wq->br))
 		taskqueue_enqueue(taskqueue_swi, &wq->txtask);
-
 }
 
 #if defined(INET6) || defined(INET)
@@ -1322,7 +1248,8 @@ oce_tso_setup(POCE_SOFTC sc, struct mbuf **mpp)
 			return NULL;
 		th = (struct tcphdr *)((caddr_t)ip6 + sizeof(struct ip6_hdr));
 
-		total_len = ehdrlen + sizeof(struct ip6_hdr) + (th->th_off << 2);
+		total_len = ehdrlen + sizeof(struct ip6_hdr) +
+		    (th->th_off << 2);
 		break;
 #endif
 	default:
@@ -1346,8 +1273,8 @@ oce_tx_task(void *arg, int npending)
 	LOCK(&wq->tx_lock);
 	rc = oce_multiq_transmit(ifp, NULL, wq);
 	if (rc) {
-		device_printf(sc->dev,
-				"TX[%d] restart failed\n", wq->queue_index);
+		device_printf(sc->dev, "TX[%d] restart failed\n",
+		    wq->queue_index);
 	}
 	UNLOCK(&wq->tx_lock);
 }
@@ -1361,7 +1288,7 @@ oce_start(if_t ifp)
 	int def_q = 0; /* Defualt tx queue is 0*/
 
 	if ((if_getdrvflags(ifp) & (IFF_DRV_RUNNING | IFF_DRV_OACTIVE)) !=
-			IFF_DRV_RUNNING)
+	    IFF_DRV_RUNNING)
 		return;
 
 	if (!sc->link_status)
@@ -1377,7 +1304,7 @@ oce_start(if_t ifp)
 		UNLOCK(&sc->wq[def_q]->tx_lock);
 		if (rc) {
 			if (m != NULL) {
-				sc->wq[def_q]->tx_stats.tx_stops ++;
+				sc->wq[def_q]->tx_stats.tx_stops++;
 				if_setdrvflagbits(ifp, IFF_DRV_OACTIVE, 0);
 				if_sendq_prepend(ifp, m);
 				m = NULL;
@@ -1398,11 +1325,11 @@ oce_wq_handler(void *arg)
 	int num_cqes = 0;
 
 	LOCK(&wq->tx_compl_lock);
-	bus_dmamap_sync(cq->ring->dma.tag,
-			cq->ring->dma.map, BUS_DMASYNC_POSTWRITE);
+	bus_dmamap_sync(cq->ring->dma.tag, cq->ring->dma.map,
+	    BUS_DMASYNC_POSTWRITE);
 	cqe = RING_GET_CONSUMER_ITEM_VA(cq->ring, struct oce_nic_tx_cqe);
 	while (cqe->u0.dw[3]) {
-		DW_SWAP((uint32_t *) cqe, sizeof(oce_wq_cqe));
+		DW_SWAP((uint32_t *)cqe, sizeof(oce_wq_cqe));
 
 		wq->ring->cidx = cqe->u0.s.wqe_index + 1;
 		if (wq->ring->cidx >= wq->ring->num_items)
@@ -1412,10 +1339,10 @@ oce_wq_handler(void *arg)
 		wq->tx_stats.tx_compl++;
 		cqe->u0.dw[3] = 0;
 		RING_GET(cq->ring, 1);
-		bus_dmamap_sync(cq->ring->dma.tag,
-				cq->ring->dma.map, BUS_DMASYNC_POSTWRITE);
-		cqe =
-		    RING_GET_CONSUMER_ITEM_VA(cq->ring, struct oce_nic_tx_cqe);
+		bus_dmamap_sync(cq->ring->dma.tag, cq->ring->dma.map,
+		    BUS_DMASYNC_POSTWRITE);
+		cqe = RING_GET_CONSUMER_ITEM_VA(cq->ring,
+		    struct oce_nic_tx_cqe);
 		num_cqes++;
 	}
 
@@ -1426,7 +1353,7 @@ oce_wq_handler(void *arg)
 	return num_cqes;
 }
 
-static int 
+static int
 oce_multiq_transmit(if_t ifp, struct mbuf *m, struct oce_wq *wq)
 {
 	POCE_SOFTC sc = if_getsoftc(ifp);
@@ -1434,11 +1361,11 @@ oce_multiq_transmit(if_t ifp, struct mbuf *m, struct oce_wq *wq)
 	struct mbuf *next = NULL;
 	struct buf_ring *br = NULL;
 
-	br  = wq->br;
+	br = wq->br;
 	queue_index = wq->queue_index;
 
 	if ((if_getdrvflags(ifp) & (IFF_DRV_RUNNING | IFF_DRV_OACTIVE)) !=
-		IFF_DRV_RUNNING) {
+	    IFF_DRV_RUNNING) {
 		if (m != NULL)
 			status = drbr_enqueue(ifp, br, m);
 		return status;
@@ -1447,16 +1374,16 @@ oce_multiq_transmit(if_t ifp, struct mbuf *m, struct oce_wq *wq)
 	if (m != NULL) {
 		if ((status = drbr_enqueue(ifp, br, m)) != 0)
 			return status;
-	} 
+	}
 	while ((next = drbr_peek(ifp, br)) != NULL) {
 		if (oce_tx(sc, &next, queue_index)) {
 			if (next == NULL) {
 				drbr_advance(ifp, br);
 			} else {
 				drbr_putback(ifp, br, next);
-				wq->tx_stats.tx_stops ++;
+				wq->tx_stats.tx_stops++;
 				if_setdrvflagbits(ifp, IFF_DRV_OACTIVE, 0);
-			}  
+			}
 			break;
 		}
 		drbr_advance(ifp, br);
@@ -1470,153 +1397,164 @@ oce_multiq_transmit(if_t ifp, struct mbuf *m, struct oce_wq *wq)
  *****************************************************************************/
 
 static void
-oce_correct_header(struct mbuf *m, struct nic_hwlro_cqe_part1 *cqe1, struct nic_hwlro_cqe_part2 *cqe2)
+oce_correct_header(struct mbuf *m, struct nic_hwlro_cqe_part1 *cqe1,
+    struct nic_hwlro_cqe_part2 *cqe2)
 {
 	uint32_t *p;
-        struct ether_header *eh = NULL;
-        struct tcphdr *tcp_hdr = NULL;
-        struct ip *ip4_hdr = NULL;
-        struct ip6_hdr *ip6 = NULL;
-        uint32_t payload_len = 0;
+	struct ether_header *eh = NULL;
+	struct tcphdr *tcp_hdr = NULL;
+	struct ip *ip4_hdr = NULL;
+	struct ip6_hdr *ip6 = NULL;
+	uint32_t payload_len = 0;
 
-        eh = mtod(m, struct ether_header *);
-        /* correct IP header */
-        if(!cqe2->ipv6_frame) {
-		ip4_hdr = (struct ip *)((char*)eh + sizeof(struct ether_header));
-                ip4_hdr->ip_ttl = cqe2->frame_lifespan;
-                ip4_hdr->ip_len = htons(cqe2->coalesced_size - sizeof(struct ether_header));
-                tcp_hdr = (struct tcphdr *)((char*)ip4_hdr + sizeof(struct ip));
-        }else {
-        	ip6 = (struct ip6_hdr *)((char*)eh + sizeof(struct ether_header));
-                ip6->ip6_ctlun.ip6_un1.ip6_un1_hlim = cqe2->frame_lifespan;
-                payload_len = cqe2->coalesced_size - sizeof(struct ether_header)
-                                                - sizeof(struct ip6_hdr);
-                ip6->ip6_ctlun.ip6_un1.ip6_un1_plen = htons(payload_len);
-                tcp_hdr = (struct tcphdr *)((char*)ip6 + sizeof(struct ip6_hdr));
-        }
+	eh = mtod(m, struct ether_header *);
+	/* correct IP header */
+	if (!cqe2->ipv6_frame) {
+		ip4_hdr = (struct ip *)((char *)eh +
+		    sizeof(struct ether_header));
+		ip4_hdr->ip_ttl = cqe2->frame_lifespan;
+		ip4_hdr->ip_len = htons(
+		    cqe2->coalesced_size - sizeof(struct ether_header));
+		tcp_hdr = (struct tcphdr *)((char *)ip4_hdr +
+		    sizeof(struct ip));
+	} else {
+		ip6 = (struct ip6_hdr *)((char *)eh +
+		    sizeof(struct ether_header));
+		ip6->ip6_ctlun.ip6_un1.ip6_un1_hlim = cqe2->frame_lifespan;
+		payload_len = cqe2->coalesced_size -
+		    sizeof(struct ether_header) - sizeof(struct ip6_hdr);
+		ip6->ip6_ctlun.ip6_un1.ip6_un1_plen = htons(payload_len);
+		tcp_hdr = (struct tcphdr *)((char *)ip6 +
+		    sizeof(struct ip6_hdr));
+	}
 
-        /* correct tcp header */
-        tcp_hdr->th_ack = htonl(cqe2->tcp_ack_num);
-        if(cqe2->push) {
-        	tcp_hdr->th_flags |= TH_PUSH;
-        }
-        tcp_hdr->th_win = htons(cqe2->tcp_window);
-        tcp_hdr->th_sum = 0xffff;
-        if(cqe2->ts_opt) {
-                p = (uint32_t *)((char*)tcp_hdr + sizeof(struct tcphdr) + 2);
-                *p = cqe1->tcp_timestamp_val;
-                *(p+1) = cqe1->tcp_timestamp_ecr;
-        }
+	/* correct tcp header */
+	tcp_hdr->th_ack = htonl(cqe2->tcp_ack_num);
+	if (cqe2->push) {
+		tcp_hdr->th_flags |= TH_PUSH;
+	}
+	tcp_hdr->th_win = htons(cqe2->tcp_window);
+	tcp_hdr->th_sum = 0xffff;
+	if (cqe2->ts_opt) {
+		p = (uint32_t *)((char *)tcp_hdr + sizeof(struct tcphdr) + 2);
+		*p = cqe1->tcp_timestamp_val;
+		*(p + 1) = cqe1->tcp_timestamp_ecr;
+	}
 
 	return;
 }
 
 static void
-oce_rx_mbuf_chain(struct oce_rq *rq, struct oce_common_cqe_info *cqe_info, struct mbuf **m)
+oce_rx_mbuf_chain(struct oce_rq *rq, struct oce_common_cqe_info *cqe_info,
+    struct mbuf **m)
 {
-	POCE_SOFTC sc = (POCE_SOFTC) rq->parent;
-        uint32_t i = 0, frag_len = 0;
+	POCE_SOFTC sc = (POCE_SOFTC)rq->parent;
+	uint32_t i = 0, frag_len = 0;
 	uint32_t len = cqe_info->pkt_size;
-        struct oce_packet_desc *pd;
-        struct mbuf *tail = NULL;
+	struct oce_packet_desc *pd;
+	struct mbuf *tail = NULL;
 
-        for (i = 0; i < cqe_info->num_frags; i++) {
-                if (rq->ring->cidx == rq->ring->pidx) {
-                        device_printf(sc->dev,
-                                  "oce_rx_mbuf_chain: Invalid RX completion - Queue is empty\n");
-                        return;
-                }
-                pd = &rq->pckts[rq->ring->cidx];
+	for (i = 0; i < cqe_info->num_frags; i++) {
+		if (rq->ring->cidx == rq->ring->pidx) {
+			device_printf(sc->dev,
+			    "oce_rx_mbuf_chain: Invalid RX completion - Queue is empty\n");
+			return;
+		}
+		pd = &rq->pckts[rq->ring->cidx];
 
-                bus_dmamap_sync(rq->tag, pd->map, BUS_DMASYNC_POSTWRITE);
-                bus_dmamap_unload(rq->tag, pd->map);
+		bus_dmamap_sync(rq->tag, pd->map, BUS_DMASYNC_POSTWRITE);
+		bus_dmamap_unload(rq->tag, pd->map);
 		RING_GET(rq->ring, 1);
-                rq->pending--;
+		rq->pending--;
 
-                frag_len = (len > rq->cfg.frag_size) ? rq->cfg.frag_size : len;
-                pd->mbuf->m_len = frag_len;
+		frag_len = (len > rq->cfg.frag_size) ? rq->cfg.frag_size : len;
+		pd->mbuf->m_len = frag_len;
 
-                if (tail != NULL) {
-                        /* additional fragments */
-                        pd->mbuf->m_flags &= ~M_PKTHDR;
-                        tail->m_next = pd->mbuf;
-			if(rq->islro)
-                        	tail->m_nextpkt = NULL;
-                        tail = pd->mbuf;
-                } else {
-                        /* first fragment, fill out much of the packet header */
-                        pd->mbuf->m_pkthdr.len = len;
-			if(rq->islro)
-                        	pd->mbuf->m_nextpkt = NULL;
-                        pd->mbuf->m_pkthdr.csum_flags = 0;
-                        if (IF_CSUM_ENABLED(sc)) {
-                                if (cqe_info->l4_cksum_pass) {
-                                        if(!cqe_info->ipv6_frame) { /* IPV4 */
-                                                pd->mbuf->m_pkthdr.csum_flags |=
-                                                        (CSUM_DATA_VALID | CSUM_PSEUDO_HDR);
-                                        }else { /* IPV6 frame */
-						if(rq->islro) {
-                                                	pd->mbuf->m_pkthdr.csum_flags |=
-                                                        (CSUM_DATA_VALID | CSUM_PSEUDO_HDR);
+		if (tail != NULL) {
+			/* additional fragments */
+			pd->mbuf->m_flags &= ~M_PKTHDR;
+			tail->m_next = pd->mbuf;
+			if (rq->islro)
+				tail->m_nextpkt = NULL;
+			tail = pd->mbuf;
+		} else {
+			/* first fragment, fill out much of the packet header */
+			pd->mbuf->m_pkthdr.len = len;
+			if (rq->islro)
+				pd->mbuf->m_nextpkt = NULL;
+			pd->mbuf->m_pkthdr.csum_flags = 0;
+			if (IF_CSUM_ENABLED(sc)) {
+				if (cqe_info->l4_cksum_pass) {
+					if (!cqe_info->ipv6_frame) { /* IPV4 */
+						pd->mbuf->m_pkthdr.csum_flags |=
+						    (CSUM_DATA_VALID |
+							CSUM_PSEUDO_HDR);
+					} else { /* IPV6 frame */
+						if (rq->islro) {
+							pd->mbuf->m_pkthdr
+							    .csum_flags |=
+							    (CSUM_DATA_VALID |
+								CSUM_PSEUDO_HDR);
 						}
-                                        }
-                                        pd->mbuf->m_pkthdr.csum_data = 0xffff;
-                                }
-                                if (cqe_info->ip_cksum_pass) {
-                                        pd->mbuf->m_pkthdr.csum_flags |=
-                                               (CSUM_IP_CHECKED|CSUM_IP_VALID);
-                                }
-                        }
-                        *m = tail = pd->mbuf;
-               }
-                pd->mbuf = NULL;
-                len -= frag_len;
-        }
+					}
+					pd->mbuf->m_pkthdr.csum_data = 0xffff;
+				}
+				if (cqe_info->ip_cksum_pass) {
+					pd->mbuf->m_pkthdr.csum_flags |=
+					    (CSUM_IP_CHECKED | CSUM_IP_VALID);
+				}
+			}
+			*m = tail = pd->mbuf;
+		}
+		pd->mbuf = NULL;
+		len -= frag_len;
+	}
 
-        return;
+	return;
 }
 
 static void
-oce_rx_lro(struct oce_rq *rq, struct nic_hwlro_singleton_cqe *cqe, struct nic_hwlro_cqe_part2 *cqe2)
+oce_rx_lro(struct oce_rq *rq, struct nic_hwlro_singleton_cqe *cqe,
+    struct nic_hwlro_cqe_part2 *cqe2)
 {
-        POCE_SOFTC sc = (POCE_SOFTC) rq->parent;
-        struct nic_hwlro_cqe_part1 *cqe1 = NULL;
-        struct mbuf *m = NULL;
+	POCE_SOFTC sc = (POCE_SOFTC)rq->parent;
+	struct nic_hwlro_cqe_part1 *cqe1 = NULL;
+	struct mbuf *m = NULL;
 	struct oce_common_cqe_info cq_info;
 
 	/* parse cqe */
-        if(cqe2 == NULL) {
-                cq_info.pkt_size =  cqe->pkt_size;
-                cq_info.vtag = cqe->vlan_tag;
-                cq_info.l4_cksum_pass = cqe->l4_cksum_pass;
-                cq_info.ip_cksum_pass = cqe->ip_cksum_pass;
-                cq_info.ipv6_frame = cqe->ipv6_frame;
-                cq_info.vtp = cqe->vtp;
-                cq_info.qnq = cqe->qnq;
-        }else {
-                cqe1 = (struct nic_hwlro_cqe_part1 *)cqe;
-                cq_info.pkt_size =  cqe2->coalesced_size;
-                cq_info.vtag = cqe2->vlan_tag;
-                cq_info.l4_cksum_pass = cqe2->l4_cksum_pass;
-                cq_info.ip_cksum_pass = cqe2->ip_cksum_pass;
-                cq_info.ipv6_frame = cqe2->ipv6_frame;
-                cq_info.vtp = cqe2->vtp;
-                cq_info.qnq = cqe1->qnq;
-        }
-        
+	if (cqe2 == NULL) {
+		cq_info.pkt_size = cqe->pkt_size;
+		cq_info.vtag = cqe->vlan_tag;
+		cq_info.l4_cksum_pass = cqe->l4_cksum_pass;
+		cq_info.ip_cksum_pass = cqe->ip_cksum_pass;
+		cq_info.ipv6_frame = cqe->ipv6_frame;
+		cq_info.vtp = cqe->vtp;
+		cq_info.qnq = cqe->qnq;
+	} else {
+		cqe1 = (struct nic_hwlro_cqe_part1 *)cqe;
+		cq_info.pkt_size = cqe2->coalesced_size;
+		cq_info.vtag = cqe2->vlan_tag;
+		cq_info.l4_cksum_pass = cqe2->l4_cksum_pass;
+		cq_info.ip_cksum_pass = cqe2->ip_cksum_pass;
+		cq_info.ipv6_frame = cqe2->ipv6_frame;
+		cq_info.vtp = cqe2->vtp;
+		cq_info.qnq = cqe1->qnq;
+	}
+
 	cq_info.vtag = BSWAP_16(cq_info.vtag);
 
-        cq_info.num_frags = cq_info.pkt_size / rq->cfg.frag_size;
-        if(cq_info.pkt_size % rq->cfg.frag_size)
-                cq_info.num_frags++;
+	cq_info.num_frags = cq_info.pkt_size / rq->cfg.frag_size;
+	if (cq_info.pkt_size % rq->cfg.frag_size)
+		cq_info.num_frags++;
 
 	oce_rx_mbuf_chain(rq, &cq_info, &m);
 
 	if (m) {
-		if(cqe2) {
-			//assert(cqe2->valid != 0);
-			
-			//assert(cqe2->cqe_type != 2);
+		if (cqe2) {
+			// assert(cqe2->valid != 0);
+
+			// assert(cqe2->cqe_type != 2);
 			oce_correct_header(m, cqe1, cqe2);
 		}
 
@@ -1635,7 +1573,7 @@ oce_rx_lro(struct oce_rq *rq, struct nic_hwlro_singleton_cqe *cqe, struct nic_hw
 					m->m_pkthdr.ether_vtag = cq_info.vtag;
 					m->m_flags |= M_VLANTAG;
 				}
-			} else if (sc->pvid != (cq_info.vtag & VLAN_VID_MASK))  {
+			} else if (sc->pvid != (cq_info.vtag & VLAN_VID_MASK)) {
 				/* In UMC mode generally pvid will be striped by
 				   hw. But in some cases we have seen it comes
 				   with pvid. So if pvid == vlan, neglect vlan.
@@ -1645,7 +1583,7 @@ oce_rx_lro(struct oce_rq *rq, struct nic_hwlro_singleton_cqe *cqe, struct nic_hw
 			}
 		}
 		if_inc_counter(sc->ifp, IFCOUNTER_IPACKETS, 1);
-		
+
 		if_input(sc->ifp, m);
 
 		/* Update rx stats per queue */
@@ -1654,20 +1592,20 @@ oce_rx_lro(struct oce_rq *rq, struct nic_hwlro_singleton_cqe *cqe, struct nic_hw
 		rq->rx_stats.rx_frags += cq_info.num_frags;
 		rq->rx_stats.rx_ucast_pkts++;
 	}
-        return;
+	return;
 }
 
 static void
 oce_rx(struct oce_rq *rq, struct oce_nic_rx_cqe *cqe)
 {
-	POCE_SOFTC sc = (POCE_SOFTC) rq->parent;
+	POCE_SOFTC sc = (POCE_SOFTC)rq->parent;
 	int len;
 	struct mbuf *m = NULL;
 	struct oce_common_cqe_info cq_info;
 	uint16_t vtag = 0;
 
 	/* Is it a flush compl that has no data */
-	if(!cqe->u0.s.num_fragments)
+	if (!cqe->u0.s.num_fragments)
 		goto exit;
 
 	len = cqe->u0.s.pkt_size;
@@ -1682,8 +1620,8 @@ oce_rx(struct oce_rq *rq, struct oce_nic_rx_cqe *cqe)
 		goto exit;
 	}
 
-	 /* Get vlan_tag value */
-	if(IS_BE(sc) || IS_SH(sc))
+	/* Get vlan_tag value */
+	if (IS_BE(sc) || IS_SH(sc))
 		vtag = BSWAP_16(cqe->u0.s.vlan_tag);
 	else
 		vtag = cqe->u0.s.vlan_tag;
@@ -1705,14 +1643,14 @@ oce_rx(struct oce_rq *rq, struct oce_nic_rx_cqe *cqe)
 		M_HASHTYPE_SET(m, M_HASHTYPE_OPAQUE);
 
 		/* This deternies if vlan tag is Valid */
-		if (oce_cqe_vtp_valid(sc, cqe)) { 
+		if (oce_cqe_vtp_valid(sc, cqe)) {
 			if (sc->function_mode & FNM_FLEX10_MODE) {
 				/* FLEX10. If QnQ is not set, neglect VLAN */
 				if (cqe->u0.s.qnq) {
 					m->m_pkthdr.ether_vtag = vtag;
 					m->m_flags |= M_VLANTAG;
 				}
-			} else if (sc->pvid != (vtag & VLAN_VID_MASK))  {
+			} else if (sc->pvid != (vtag & VLAN_VID_MASK)) {
 				/* In UMC mode generally pvid will be striped by
 				   hw. But in some cases we have seen it comes
 				   with pvid. So if pvid == vlan, neglect vlan.
@@ -1725,13 +1663,11 @@ oce_rx(struct oce_rq *rq, struct oce_nic_rx_cqe *cqe)
 		if_inc_counter(sc->ifp, IFCOUNTER_IPACKETS, 1);
 #if defined(INET6) || defined(INET)
 		/* Try to queue to LRO */
-		if (IF_LRO_ENABLED(sc) &&
-		    (cqe->u0.s.ip_cksum_pass) &&
-		    (cqe->u0.s.l4_cksum_pass) &&
-		    (!cqe->u0.s.ip_ver)       &&
+		if (IF_LRO_ENABLED(sc) && (cqe->u0.s.ip_cksum_pass) &&
+		    (cqe->u0.s.l4_cksum_pass) && (!cqe->u0.s.ip_ver) &&
 		    (rq->lro.lro_cnt != 0)) {
 			if (tcp_lro_rx(&rq->lro, m, 0) == 0) {
-				rq->lro_pkts_queued ++;		
+				rq->lro_pkts_queued++;
 				goto post_done;
 			}
 			/* If LRO posting fails then try to post to STACK */
@@ -1740,7 +1676,7 @@ oce_rx(struct oce_rq *rq, struct oce_nic_rx_cqe *cqe)
 
 		if_input(sc->ifp, m);
 #if defined(INET6) || defined(INET)
-post_done:
+	post_done:
 #endif
 		/* Update rx stats per queue */
 		rq->rx_stats.rx_pkts++;
@@ -1760,24 +1696,24 @@ oce_discard_rx_comp(struct oce_rq *rq, int num_frags)
 {
 	uint32_t i = 0;
 	struct oce_packet_desc *pd;
-	POCE_SOFTC sc = (POCE_SOFTC) rq->parent;
+	POCE_SOFTC sc = (POCE_SOFTC)rq->parent;
 
 	for (i = 0; i < num_frags; i++) {
-                if (rq->ring->cidx == rq->ring->pidx) {
-                        device_printf(sc->dev,
-                                "oce_discard_rx_comp: Invalid RX completion - Queue is empty\n");
-                        return;
-                }
-                pd = &rq->pckts[rq->ring->cidx];
-                bus_dmamap_sync(rq->tag, pd->map, BUS_DMASYNC_POSTWRITE);
-                bus_dmamap_unload(rq->tag, pd->map);
-                if (pd->mbuf != NULL) {
-                        m_freem(pd->mbuf);
-                        pd->mbuf = NULL;
-                }
+		if (rq->ring->cidx == rq->ring->pidx) {
+			device_printf(sc->dev,
+			    "oce_discard_rx_comp: Invalid RX completion - Queue is empty\n");
+			return;
+		}
+		pd = &rq->pckts[rq->ring->cidx];
+		bus_dmamap_sync(rq->tag, pd->map, BUS_DMASYNC_POSTWRITE);
+		bus_dmamap_unload(rq->tag, pd->map);
+		if (pd->mbuf != NULL) {
+			m_freem(pd->mbuf);
+			pd->mbuf = NULL;
+		}
 
 		RING_GET(rq->ring, 1);
-                rq->pending--;
+		rq->pending--;
 	}
 }
 
@@ -1789,12 +1725,11 @@ oce_cqe_vtp_valid(POCE_SOFTC sc, struct oce_nic_rx_cqe *cqe)
 
 	if (sc->be3_native) {
 		cqe_v1 = (struct oce_nic_rx_cqe_v1 *)cqe;
-		vtp =  cqe_v1->u0.s.vlan_tag_present; 
+		vtp = cqe_v1->u0.s.vlan_tag_present;
 	} else
 		vtp = cqe->u0.s.vlan_tag_present;
 
 	return vtp;
-
 }
 
 static int
@@ -1805,22 +1740,21 @@ oce_cqe_portid_valid(POCE_SOFTC sc, struct oce_nic_rx_cqe *cqe)
 
 	if (sc->be3_native && (IS_BE(sc) || IS_SH(sc))) {
 		cqe_v1 = (struct oce_nic_rx_cqe_v1 *)cqe;
-		port_id =  cqe_v1->u0.s.port;
+		port_id = cqe_v1->u0.s.port;
 		if (sc->port_id != port_id)
 			return 0;
 	} else
-		;/* For BE3 legacy and Lancer this is dummy */
+		; /* For BE3 legacy and Lancer this is dummy */
 
 	return 1;
-
 }
 
 #if defined(INET6) || defined(INET)
 void
 oce_rx_flush_lro(struct oce_rq *rq)
 {
-	struct lro_ctrl	*lro = &rq->lro;
-	POCE_SOFTC sc = (POCE_SOFTC) rq->parent;
+	struct lro_ctrl *lro = &rq->lro;
+	POCE_SOFTC sc = (POCE_SOFTC)rq->parent;
 
 	if (!IF_LRO_ENABLED(sc))
 		return;
@@ -1837,17 +1771,17 @@ oce_init_lro(POCE_SOFTC sc)
 	struct lro_ctrl *lro = NULL;
 	int i = 0, rc = 0;
 
-	for (i = 0; i < sc->nrqs; i++) { 
+	for (i = 0; i < sc->nrqs; i++) {
 		lro = &sc->rq[i]->lro;
 		rc = tcp_lro_init(lro);
 		if (rc != 0) {
 			device_printf(sc->dev, "LRO init failed\n");
-			return rc;		
+			return rc;
 		}
 		lro->ifp = sc->ifp;
 	}
 
-	return rc;		
+	return rc;
 }
 
 void
@@ -1867,7 +1801,7 @@ oce_free_lro(POCE_SOFTC sc)
 int
 oce_alloc_rx_bufs(struct oce_rq *rq, int count)
 {
-	POCE_SOFTC sc = (POCE_SOFTC) rq->parent;
+	POCE_SOFTC sc = (POCE_SOFTC)rq->parent;
 	int i, rc;
 	struct oce_packet_desc *pd;
 	bus_dma_segment_t segs[6];
@@ -1880,22 +1814,24 @@ oce_alloc_rx_bufs(struct oce_rq *rq, int count)
 	bzero(&rxdb_reg, sizeof(pd_rxulp_db_t));
 	for (i = 0; i < count; i++) {
 		pd = &rq->pckts[rq->ring->pidx];
-		pd->mbuf = m_getjcl(M_NOWAIT, MT_DATA, M_PKTHDR, oce_rq_buf_size);
+		pd->mbuf = m_getjcl(M_NOWAIT, MT_DATA, M_PKTHDR,
+		    oce_rq_buf_size);
 		if (pd->mbuf == NULL) {
-			device_printf(sc->dev, "mbuf allocation failed, size = %d\n",oce_rq_buf_size);
+			device_printf(sc->dev,
+			    "mbuf allocation failed, size = %d\n",
+			    oce_rq_buf_size);
 			break;
 		}
 		pd->mbuf->m_nextpkt = NULL;
 
 		pd->mbuf->m_len = pd->mbuf->m_pkthdr.len = rq->cfg.frag_size;
 
-		rc = bus_dmamap_load_mbuf_sg(rq->tag,
-					     pd->map,
-					     pd->mbuf,
-					     segs, &nsegs, BUS_DMA_NOWAIT);
+		rc = bus_dmamap_load_mbuf_sg(rq->tag, pd->map, pd->mbuf, segs,
+		    &nsegs, BUS_DMA_NOWAIT);
 		if (rc) {
 			m_free(pd->mbuf);
-			device_printf(sc->dev, "bus_dmamap_load_mbuf_sg failed rc = %d\n", rc);
+			device_printf(sc->dev,
+			    "bus_dmamap_load_mbuf_sg failed rc = %d\n", rc);
 			break;
 		}
 
@@ -1914,119 +1850,136 @@ oce_alloc_rx_bufs(struct oce_rq *rq, int count)
 		added++;
 		rq->pending++;
 	}
-	oce_max_rq_posts = sc->enable_hwlro ? OCE_HWLRO_MAX_RQ_POSTS : OCE_MAX_RQ_POSTS;
+	oce_max_rq_posts = sc->enable_hwlro ? OCE_HWLRO_MAX_RQ_POSTS :
+					      OCE_MAX_RQ_POSTS;
 	if (added != 0) {
 		for (i = added / oce_max_rq_posts; i > 0; i--) {
 			rxdb_reg.bits.num_posted = oce_max_rq_posts;
 			rxdb_reg.bits.qid = rq->rq_id;
-			if(rq->islro) {
-                                val |= rq->rq_id & DB_LRO_RQ_ID_MASK;
-                                val |= oce_max_rq_posts << 16;
-                                OCE_WRITE_REG32(sc, db, DB_OFFSET, val);
-			}else {
-				OCE_WRITE_REG32(sc, db, PD_RXULP_DB, rxdb_reg.dw0);
+			if (rq->islro) {
+				val |= rq->rq_id & DB_LRO_RQ_ID_MASK;
+				val |= oce_max_rq_posts << 16;
+				OCE_WRITE_REG32(sc, db, DB_OFFSET, val);
+			} else {
+				OCE_WRITE_REG32(sc, db, PD_RXULP_DB,
+				    rxdb_reg.dw0);
 			}
 			added -= oce_max_rq_posts;
 		}
 		if (added > 0) {
 			rxdb_reg.bits.qid = rq->rq_id;
 			rxdb_reg.bits.num_posted = added;
-			if(rq->islro) {
-                                val |= rq->rq_id & DB_LRO_RQ_ID_MASK;
-                                val |= added << 16;
-                                OCE_WRITE_REG32(sc, db, DB_OFFSET, val);
-			}else {
-				OCE_WRITE_REG32(sc, db, PD_RXULP_DB, rxdb_reg.dw0);
+			if (rq->islro) {
+				val |= rq->rq_id & DB_LRO_RQ_ID_MASK;
+				val |= added << 16;
+				OCE_WRITE_REG32(sc, db, DB_OFFSET, val);
+			} else {
+				OCE_WRITE_REG32(sc, db, PD_RXULP_DB,
+				    rxdb_reg.dw0);
 			}
 		}
 	}
 
-	return 0;	
+	return 0;
 }
 
 static void
 oce_check_rx_bufs(POCE_SOFTC sc, uint32_t num_cqes, struct oce_rq *rq)
 {
-        if (num_cqes) {
-                oce_arm_cq(sc, rq->cq->cq_id, num_cqes, FALSE);
-		if(!sc->enable_hwlro) {
-			if((OCE_RQ_PACKET_ARRAY_SIZE - rq->pending) > 1)
-				oce_alloc_rx_bufs(rq, ((OCE_RQ_PACKET_ARRAY_SIZE - rq->pending) - 1));
-		}else {
-                	if ((OCE_RQ_PACKET_ARRAY_SIZE -1 - rq->pending) > 64)
-                        	oce_alloc_rx_bufs(rq, 64);
-        	}
+	if (num_cqes) {
+		oce_arm_cq(sc, rq->cq->cq_id, num_cqes, FALSE);
+		if (!sc->enable_hwlro) {
+			if ((OCE_RQ_PACKET_ARRAY_SIZE - rq->pending) > 1)
+				oce_alloc_rx_bufs(rq,
+				    ((OCE_RQ_PACKET_ARRAY_SIZE - rq->pending) -
+					1));
+		} else {
+			if ((OCE_RQ_PACKET_ARRAY_SIZE - 1 - rq->pending) > 64)
+				oce_alloc_rx_bufs(rq, 64);
+		}
 	}
 
-        return;
+	return;
 }
 
 uint16_t
 oce_rq_handler_lro(void *arg)
 {
-        struct oce_rq *rq = (struct oce_rq *)arg;
-        struct oce_cq *cq = rq->cq;
-        POCE_SOFTC sc = rq->parent;
-        struct nic_hwlro_singleton_cqe *cqe;
-        struct nic_hwlro_cqe_part2 *cqe2;
-        int num_cqes = 0;
+	struct oce_rq *rq = (struct oce_rq *)arg;
+	struct oce_cq *cq = rq->cq;
+	POCE_SOFTC sc = rq->parent;
+	struct nic_hwlro_singleton_cqe *cqe;
+	struct nic_hwlro_cqe_part2 *cqe2;
+	int num_cqes = 0;
 
 	LOCK(&rq->rx_lock);
-        bus_dmamap_sync(cq->ring->dma.tag,cq->ring->dma.map, BUS_DMASYNC_POSTWRITE);
-        cqe = RING_GET_CONSUMER_ITEM_VA(cq->ring, struct nic_hwlro_singleton_cqe);
-        while (cqe->valid) {
-                if(cqe->cqe_type == 0) { /* singleton cqe */
-			/* we should not get singleton cqe after cqe1 on same rq */
-			if(rq->cqe_firstpart != NULL) {
-				device_printf(sc->dev, "Got singleton cqe after cqe1 \n");
+	bus_dmamap_sync(cq->ring->dma.tag, cq->ring->dma.map,
+	    BUS_DMASYNC_POSTWRITE);
+	cqe = RING_GET_CONSUMER_ITEM_VA(cq->ring,
+	    struct nic_hwlro_singleton_cqe);
+	while (cqe->valid) {
+		if (cqe->cqe_type == 0) { /* singleton cqe */
+			/* we should not get singleton cqe after cqe1 on same rq
+			 */
+			if (rq->cqe_firstpart != NULL) {
+				device_printf(sc->dev,
+				    "Got singleton cqe after cqe1 \n");
 				goto exit_rq_handler_lro;
-			}							
-                        if(cqe->error != 0) {
-                                rq->rx_stats.rxcp_err++;
+			}
+			if (cqe->error != 0) {
+				rq->rx_stats.rxcp_err++;
 				if_inc_counter(sc->ifp, IFCOUNTER_IERRORS, 1);
-                        }
-                        oce_rx_lro(rq, cqe, NULL);
-                        rq->rx_stats.rx_compl++;
-                        cqe->valid = 0;
-                        RING_GET(cq->ring, 1);
-                        num_cqes++;
-                        if (num_cqes >= (IS_XE201(sc) ? 8 : oce_max_rsp_handled))
-                                break;
-                }else if(cqe->cqe_type == 0x1) { /* first part */
+			}
+			oce_rx_lro(rq, cqe, NULL);
+			rq->rx_stats.rx_compl++;
+			cqe->valid = 0;
+			RING_GET(cq->ring, 1);
+			num_cqes++;
+			if (num_cqes >=
+			    (IS_XE201(sc) ? 8 : oce_max_rsp_handled))
+				break;
+		} else if (cqe->cqe_type == 0x1) { /* first part */
 			/* we should not get cqe1 after cqe1 on same rq */
-			if(rq->cqe_firstpart != NULL) {
-				device_printf(sc->dev, "Got cqe1 after cqe1 \n");
+			if (rq->cqe_firstpart != NULL) {
+				device_printf(sc->dev,
+				    "Got cqe1 after cqe1 \n");
 				goto exit_rq_handler_lro;
 			}
 			rq->cqe_firstpart = (struct nic_hwlro_cqe_part1 *)cqe;
-                        RING_GET(cq->ring, 1);
-                }else if(cqe->cqe_type == 0x2) { /* second part */
+			RING_GET(cq->ring, 1);
+		} else if (cqe->cqe_type == 0x2) { /* second part */
 			cqe2 = (struct nic_hwlro_cqe_part2 *)cqe;
-                        if(cqe2->error != 0) {
-                                rq->rx_stats.rxcp_err++;
+			if (cqe2->error != 0) {
+				rq->rx_stats.rxcp_err++;
 				if_inc_counter(sc->ifp, IFCOUNTER_IERRORS, 1);
-                        }
+			}
 			/* We should not get cqe2 without cqe1 */
-			if(rq->cqe_firstpart == NULL) {
-				device_printf(sc->dev, "Got cqe2 without cqe1 \n");
+			if (rq->cqe_firstpart == NULL) {
+				device_printf(sc->dev,
+				    "Got cqe2 without cqe1 \n");
 				goto exit_rq_handler_lro;
 			}
-                        oce_rx_lro(rq, (struct nic_hwlro_singleton_cqe *)rq->cqe_firstpart, cqe2);
+			oce_rx_lro(rq,
+			    (struct nic_hwlro_singleton_cqe *)rq->cqe_firstpart,
+			    cqe2);
 
-                        rq->rx_stats.rx_compl++;
-                        rq->cqe_firstpart->valid = 0;
-                        cqe2->valid = 0;
+			rq->rx_stats.rx_compl++;
+			rq->cqe_firstpart->valid = 0;
+			cqe2->valid = 0;
 			rq->cqe_firstpart = NULL;
 
-                        RING_GET(cq->ring, 1);
-                        num_cqes += 2;
-                        if (num_cqes >= (IS_XE201(sc) ? 8 : oce_max_rsp_handled))
-                                break;
+			RING_GET(cq->ring, 1);
+			num_cqes += 2;
+			if (num_cqes >=
+			    (IS_XE201(sc) ? 8 : oce_max_rsp_handled))
+				break;
 		}
 
-                bus_dmamap_sync(cq->ring->dma.tag,cq->ring->dma.map, BUS_DMASYNC_POSTWRITE);
-                cqe = RING_GET_CONSUMER_ITEM_VA(cq->ring, struct nic_hwlro_singleton_cqe);
-        }
+		bus_dmamap_sync(cq->ring->dma.tag, cq->ring->dma.map,
+		    BUS_DMASYNC_POSTWRITE);
+		cqe = RING_GET_CONSUMER_ITEM_VA(cq->ring,
+		    struct nic_hwlro_singleton_cqe);
+	}
 	oce_check_rx_bufs(sc, num_cqes, rq);
 exit_rq_handler_lro:
 	UNLOCK(&rq->rx_lock);
@@ -2045,17 +1998,17 @@ oce_rq_handler(void *arg)
 	int num_cqes = 0;
 
 	NET_EPOCH_ENTER(et);
-	if(rq->islro) {
+	if (rq->islro) {
 		oce_rq_handler_lro(arg);
 		NET_EPOCH_EXIT(et);
 		return 0;
 	}
 	LOCK(&rq->rx_lock);
-	bus_dmamap_sync(cq->ring->dma.tag,
-			cq->ring->dma.map, BUS_DMASYNC_POSTWRITE);
+	bus_dmamap_sync(cq->ring->dma.tag, cq->ring->dma.map,
+	    BUS_DMASYNC_POSTWRITE);
 	cqe = RING_GET_CONSUMER_ITEM_VA(cq->ring, struct oce_nic_rx_cqe);
 	while (cqe->u0.dw[2]) {
-		DW_SWAP((uint32_t *) cqe, sizeof(oce_rq_cqe));
+		DW_SWAP((uint32_t *)cqe, sizeof(oce_rq_cqe));
 
 		if (cqe->u0.s.error == 0) {
 			oce_rx(rq, cqe);
@@ -2075,32 +2028,31 @@ oce_rq_handler(void *arg)
 #endif
 
 		RING_GET(cq->ring, 1);
-		bus_dmamap_sync(cq->ring->dma.tag,
-				cq->ring->dma.map, BUS_DMASYNC_POSTWRITE);
-		cqe =
-		    RING_GET_CONSUMER_ITEM_VA(cq->ring, struct oce_nic_rx_cqe);
+		bus_dmamap_sync(cq->ring->dma.tag, cq->ring->dma.map,
+		    BUS_DMASYNC_POSTWRITE);
+		cqe = RING_GET_CONSUMER_ITEM_VA(cq->ring,
+		    struct oce_nic_rx_cqe);
 		num_cqes++;
 		if (num_cqes >= (IS_XE201(sc) ? 8 : oce_max_rsp_handled))
 			break;
 	}
 
 #if defined(INET6) || defined(INET)
-        if (IF_LRO_ENABLED(sc))
-                oce_rx_flush_lro(rq);
+	if (IF_LRO_ENABLED(sc))
+		oce_rx_flush_lro(rq);
 #endif
 
 	oce_check_rx_bufs(sc, num_cqes, rq);
 	UNLOCK(&rq->rx_lock);
 	NET_EPOCH_EXIT(et);
 	return 0;
-
 }
 
 /*****************************************************************************
  *		   Helper function prototypes in this file 		     *
  *****************************************************************************/
 
-static int 
+static int
 oce_attach_ifp(POCE_SOFTC sc)
 {
 
@@ -2121,8 +2073,8 @@ oce_attach_ifp(POCE_SOFTC sc)
 	if_settransmitfn(sc->ifp, oce_multiq_start);
 	if_setqflushfn(sc->ifp, oce_multiq_flush);
 
-	if_initname(sc->ifp,
-		    device_get_name(sc->dev), device_get_unit(sc->dev));
+	if_initname(sc->ifp, device_get_name(sc->dev),
+	    device_get_unit(sc->dev));
 
 	if_setsendqlen(sc->ifp, OCE_MAX_TX_DESC - 1);
 	if_setsendqready(sc->ifp);
@@ -2158,7 +2110,7 @@ oce_add_vlan(void *arg, if_t ifp, uint16_t vtag)
 {
 	POCE_SOFTC sc = if_getsoftc(ifp);
 
-	if (if_getsoftc(ifp) !=  arg)
+	if (if_getsoftc(ifp) != arg)
 		return;
 	if ((vtag == 0) || (vtag > 4095))
 		return;
@@ -2174,7 +2126,7 @@ oce_del_vlan(void *arg, if_t ifp, uint16_t vtag)
 {
 	POCE_SOFTC sc = if_getsoftc(ifp);
 
-	if (if_getsoftc(ifp) !=  arg)
+	if (if_getsoftc(ifp) != arg)
 		return;
 	if ((vtag == 0) || (vtag > 4095))
 		return;
@@ -2195,8 +2147,8 @@ oce_vid_config(POCE_SOFTC sc)
 	uint16_t ntags = 0, i;
 	int status = 0;
 
-	if ((sc->vlans_added <= MAX_VLANFILTER_SIZE) && 
-			(if_getcapenable(sc->ifp) & IFCAP_VLAN_HWFILTER)) {
+	if ((sc->vlans_added <= MAX_VLANFILTER_SIZE) &&
+	    (if_getcapenable(sc->ifp) & IFCAP_VLAN_HWFILTER)) {
 		for (i = 0; i < MAX_VLANS; i++) {
 			if (sc->vlan_tag[i]) {
 				vtags[ntags].vtag = i;
@@ -2204,11 +2156,10 @@ oce_vid_config(POCE_SOFTC sc)
 			}
 		}
 		if (ntags)
-			status = oce_config_vlan(sc, (uint8_t) sc->if_id,
-						vtags, ntags, 1, 0); 
-	} else 
-		status = oce_config_vlan(sc, (uint8_t) sc->if_id,
-					 	NULL, 0, 1, 1);
+			status = oce_config_vlan(sc, (uint8_t)sc->if_id, vtags,
+			    ntags, 1, 0);
+	} else
+		status = oce_config_vlan(sc, (uint8_t)sc->if_id, NULL, 0, 1, 1);
 	return status;
 }
 
@@ -2219,20 +2170,19 @@ oce_mac_addr_set(POCE_SOFTC sc)
 	int status = 0;
 
 	status = bcmp((if_getlladdr(sc->ifp)), sc->macaddr.mac_addr,
-			 sc->macaddr.size_of_struct);
+	    sc->macaddr.size_of_struct);
 	if (!status)
 		return;
 
 	status = oce_mbox_macaddr_add(sc, (uint8_t *)(if_getlladdr(sc->ifp)),
-					sc->if_id, &sc->pmac_id);
+	    sc->if_id, &sc->pmac_id);
 	if (!status) {
 		status = oce_mbox_macaddr_del(sc, sc->if_id, old_pmac_id);
 		bcopy((if_getlladdr(sc->ifp)), sc->macaddr.mac_addr,
-				 sc->macaddr.size_of_struct); 
+		    sc->macaddr.size_of_struct);
 	}
 	if (status)
 		device_printf(sc->dev, "Failed update macaddress\n");
-
 }
 
 static int
@@ -2241,7 +2191,7 @@ oce_handle_passthrough(if_t ifp, caddr_t data)
 	POCE_SOFTC sc = if_getsoftc(ifp);
 	struct ifreq *ifr = (struct ifreq *)data;
 	int rc = ENXIO;
-	char cookie[32] = {0};
+	char cookie[32] = { 0 };
 	void *priv_data = ifr_data_get_ptr(ifr);
 	void *ioctl_ptr;
 	uint32_t req_size;
@@ -2267,7 +2217,7 @@ oce_handle_passthrough(if_t ifp, caddr_t data)
 	if (rc)
 		return ENOMEM;
 
-	if (copyin(ioctl_ptr, OCE_DMAPTR(&dma_mem,char), req_size)) {
+	if (copyin(ioctl_ptr, OCE_DMAPTR(&dma_mem, char), req_size)) {
 		rc = EFAULT;
 		goto dma_free;
 	}
@@ -2278,21 +2228,22 @@ oce_handle_passthrough(if_t ifp, caddr_t data)
 		goto dma_free;
 	}
 
-	if (copyout(OCE_DMAPTR(&dma_mem,char), ioctl_ptr, req_size)) {
-		rc =  EFAULT;
+	if (copyout(OCE_DMAPTR(&dma_mem, char), ioctl_ptr, req_size)) {
+		rc = EFAULT;
 		goto dma_free;
 	}
 
-	/* 
+	/*
 	   firmware is filling all the attributes for this ioctl except
-	   the driver version..so fill it 
+	   the driver version..so fill it
 	 */
-	if(req.u0.rsp.opcode == OPCODE_COMMON_GET_CNTL_ATTRIBUTES) {
+	if (req.u0.rsp.opcode == OPCODE_COMMON_GET_CNTL_ATTRIBUTES) {
 		struct mbx_common_get_cntl_attr *fw_cmd =
 		    (struct mbx_common_get_cntl_attr *)ioctl_ptr;
 		_Static_assert(sizeof(COMPONENT_REVISION) <=
-		     sizeof(fw_cmd->params.rsp.cntl_attr_info.hba_attr.drv_ver_str),
-		     "driver version string too long");
+			sizeof(fw_cmd->params.rsp.cntl_attr_info.hba_attr
+				   .drv_ver_str),
+		    "driver version string too long");
 
 		rc = copyout(COMPONENT_REVISION,
 		    fw_cmd->params.rsp.cntl_attr_info.hba_attr.drv_ver_str,
@@ -2302,7 +2253,6 @@ oce_handle_passthrough(if_t ifp, caddr_t data)
 dma_free:
 	oce_dma_free(sc, &dma_mem);
 	return rc;
-
 }
 
 static void
@@ -2317,9 +2267,9 @@ oce_eqd_set_periodic(POCE_SOFTC sc)
 	struct oce_wq *wq;
 	struct oce_rq *rq;
 
-	#define ticks_to_msecs(t)       (1000 * (t) / hz)
+#define ticks_to_msecs(t) (1000 * (t) / hz)
 
-	for (i = 0 ; i < sc->neqs; i++) {
+	for (i = 0; i < sc->neqs; i++) {
 		eqo = sc->eq[i];
 		aic = &sc->aic_obj[i];
 		/* When setting the static eq delay from the user space */
@@ -2357,7 +2307,7 @@ oce_eqd_set_periodic(POCE_SOFTC sc)
 		delta = ticks_to_msecs(now - aic->ticks);
 
 		pps = (((uint32_t)(rxpkts - aic->prev_rxpkts) * 1000) / delta) +
-		      (((uint32_t)(tx_reqs - aic->prev_txreqs) * 1000) / delta);
+		    (((uint32_t)(tx_reqs - aic->prev_txreqs) * 1000) / delta);
 		eqd = (pps / 15000) << 2;
 		if (eqd < 8)
 			eqd = 0;
@@ -2370,9 +2320,9 @@ oce_eqd_set_periodic(POCE_SOFTC sc)
 		aic->prev_txreqs = tx_reqs;
 		aic->ticks = now;
 
-modify_eqd:
+	modify_eqd:
 		if (eqd != aic->cur_eqd) {
-			set_eqd[num].delay_multiplier = (eqd * 65)/100;
+			set_eqd[num].delay_multiplier = (eqd * 65) / 100;
 			set_eqd[num].eq_id = eqo->eq_id;
 			aic->cur_eqd = eqd;
 			num++;
@@ -2380,16 +2330,17 @@ modify_eqd:
 	}
 
 	/* Is there atleast one eq that needs to be modified? */
-        for(i = 0; i < num; i += 8) {
-                if((num - i) >=8 )
-                        oce_mbox_eqd_modify_periodic(sc, &set_eqd[i], 8);
-                else
-                        oce_mbox_eqd_modify_periodic(sc, &set_eqd[i], (num - i));
-        }
-
+	for (i = 0; i < num; i += 8) {
+		if ((num - i) >= 8)
+			oce_mbox_eqd_modify_periodic(sc, &set_eqd[i], 8);
+		else
+			oce_mbox_eqd_modify_periodic(sc, &set_eqd[i],
+			    (num - i));
+	}
 }
 
-static void oce_detect_hw_error(POCE_SOFTC sc)
+static void
+oce_detect_hw_error(POCE_SOFTC sc)
 {
 
 	uint32_t ue_low = 0, ue_high = 0, ue_low_mask = 0, ue_high_mask = 0;
@@ -2402,14 +2353,18 @@ static void oce_detect_hw_error(POCE_SOFTC sc)
 	if (IS_XE201(sc)) {
 		sliport_status = OCE_READ_REG32(sc, db, SLIPORT_STATUS_OFFSET);
 		if (sliport_status & SLIPORT_STATUS_ERR_MASK) {
-			sliport_err1 = OCE_READ_REG32(sc, db, SLIPORT_ERROR1_OFFSET);
-			sliport_err2 = OCE_READ_REG32(sc, db, SLIPORT_ERROR2_OFFSET);
+			sliport_err1 = OCE_READ_REG32(sc, db,
+			    SLIPORT_ERROR1_OFFSET);
+			sliport_err2 = OCE_READ_REG32(sc, db,
+			    SLIPORT_ERROR2_OFFSET);
 		}
 	} else {
 		ue_low = OCE_READ_REG32(sc, devcfg, PCICFG_UE_STATUS_LOW);
 		ue_high = OCE_READ_REG32(sc, devcfg, PCICFG_UE_STATUS_HIGH);
-		ue_low_mask = OCE_READ_REG32(sc, devcfg, PCICFG_UE_STATUS_LOW_MASK);
-		ue_high_mask = OCE_READ_REG32(sc, devcfg, PCICFG_UE_STATUS_HI_MASK);
+		ue_low_mask = OCE_READ_REG32(sc, devcfg,
+		    PCICFG_UE_STATUS_LOW_MASK);
+		ue_high_mask = OCE_READ_REG32(sc, devcfg,
+		    PCICFG_UE_STATUS_HI_MASK);
 
 		ue_low = (ue_low & ~ue_low_mask);
 		ue_high = (ue_high & ~ue_high_mask);
@@ -2425,19 +2380,19 @@ static void oce_detect_hw_error(POCE_SOFTC sc)
 	}
 
 	if (sliport_status & SLIPORT_STATUS_ERR_MASK) {
-		device_printf(sc->dev,
-				"ERR: sliport status 0x%x\n", sliport_status);
-		device_printf(sc->dev,
-				"ERR: sliport error1 0x%x\n", sliport_err1);
-		device_printf(sc->dev,
-				"ERR: sliport error2 0x%x\n", sliport_err2);
+		device_printf(sc->dev, "ERR: sliport status 0x%x\n",
+		    sliport_status);
+		device_printf(sc->dev, "ERR: sliport error1 0x%x\n",
+		    sliport_err1);
+		device_printf(sc->dev, "ERR: sliport error2 0x%x\n",
+		    sliport_err2);
 	}
 
 	if (ue_low) {
 		for (i = 0; ue_low; ue_low >>= 1, i++) {
 			if (ue_low & 1)
 				device_printf(sc->dev, "UE: %s bit set\n",
-							ue_status_low_desc[i]);
+				    ue_status_low_desc[i]);
 		}
 	}
 
@@ -2445,10 +2400,9 @@ static void oce_detect_hw_error(POCE_SOFTC sc)
 		for (i = 0; ue_high; ue_high >>= 1, i++) {
 			if (ue_high & 1)
 				device_printf(sc->dev, "UE: %s bit set\n",
-							ue_status_hi_desc[i]);
+				    ue_status_hi_desc[i]);
 		}
 	}
-
 }
 
 static void
@@ -2473,26 +2427,27 @@ oce_local_timer(void *arg)
 	callout_reset(&sc->timer, hz, oce_local_timer, sc);
 }
 
-static void 
-oce_tx_compl_clean(POCE_SOFTC sc) 
+static void
+oce_tx_compl_clean(POCE_SOFTC sc)
 {
 	struct oce_wq *wq;
 	int i = 0, timeo = 0, num_wqes = 0;
 	int pending_txqs = sc->nwqs;
 
-	/* Stop polling for compls when HW has been silent for 10ms or 
+	/* Stop polling for compls when HW has been silent for 10ms or
 	 * hw_error or no outstanding completions expected
 	 */
 	do {
 		pending_txqs = sc->nwqs;
-		
-		for_all_wq_queues(sc, wq, i) {
+
+		for_all_wq_queues(sc, wq, i)
+		{
 			num_wqes = oce_wq_handler(wq);
-			
-			if(num_wqes)
+
+			if (num_wqes)
 				timeo = 0;
 
-			if(!wq->ring->num_used)
+			if (!wq->ring->num_used)
 				pending_txqs--;
 		}
 
@@ -2502,14 +2457,14 @@ oce_tx_compl_clean(POCE_SOFTC sc)
 		DELAY(1000);
 	} while (TRUE);
 
-	for_all_wq_queues(sc, wq, i) {
-		while(wq->ring->num_used) {
+	for_all_wq_queues(sc, wq, i)
+	{
+		while (wq->ring->num_used) {
 			LOCK(&wq->tx_compl_lock);
 			oce_process_tx_completion(wq);
 			UNLOCK(&wq->tx_compl_lock);
 		}
-	}	
-		
+	}
 }
 
 /* NOTE : This should only be called holding
@@ -2545,13 +2500,10 @@ oce_if_deactivate(POCE_SOFTC sc)
 	/* Delete RX queue in card with flush param */
 	oce_stop_rx(sc);
 
-	/* Invalidate any pending cq and eq entries*/	
-	for_all_evnt_queues(sc, eq, i)	
-		oce_drain_eq(eq);
-	for_all_rq_queues(sc, rq, i)
-		oce_drain_rq_cq(rq);
-	for_all_wq_queues(sc, wq, i)
-		oce_drain_wq_cq(wq);
+	/* Invalidate any pending cq and eq entries*/
+	for_all_evnt_queues(sc, eq, i) oce_drain_eq(eq);
+	for_all_rq_queues(sc, rq, i) oce_drain_rq_cq(rq);
+	for_all_wq_queues(sc, wq, i) oce_drain_wq_cq(wq);
 
 	/* But still we need to get MCC aync events.
 	   So enable intrs and also arm first EQ
@@ -2570,29 +2522,30 @@ oce_if_activate(POCE_SOFTC sc)
 	struct oce_wq *wq;
 	int i, rc = 0;
 
-	if_setdrvflagbits(sc->ifp, IFF_DRV_RUNNING , 0);
+	if_setdrvflagbits(sc->ifp, IFF_DRV_RUNNING, 0);
 
 	oce_hw_intr_disable(sc);
 
 	oce_start_rx(sc);
 
-	for_all_rq_queues(sc, rq, i) {
+	for_all_rq_queues(sc, rq, i)
+	{
 		rc = oce_start_rq(rq);
 		if (rc)
 			device_printf(sc->dev, "Unable to start RX\n");
 	}
 
-	for_all_wq_queues(sc, wq, i) {
+	for_all_wq_queues(sc, wq, i)
+	{
 		rc = oce_start_wq(wq);
 		if (rc)
 			device_printf(sc->dev, "Unable to start TX\n");
 	}
 
 	for_all_evnt_queues(sc, eq, i)
-		oce_arm_eq(sc, eq->eq_id, 0, TRUE, FALSE);
+	    oce_arm_eq(sc, eq->eq_id, 0, TRUE, FALSE);
 
 	oce_hw_intr_enable(sc);
-
 }
 
 static void
@@ -2600,7 +2553,7 @@ process_link_state(POCE_SOFTC sc, struct oce_async_cqe_link_state *acqe)
 {
 	/* Update Link status */
 	if ((acqe->u0.s.link_status & ~ASYNC_EVENT_LOGICAL) ==
-	     ASYNC_EVENT_LINK_UP) {
+	    ASYNC_EVENT_LINK_UP) {
 		sc->link_status = ASYNC_EVENT_LINK_UP;
 		if_link_state_change(sc->ifp, LINK_STATE_UP);
 	} else {
@@ -2609,8 +2562,9 @@ process_link_state(POCE_SOFTC sc, struct oce_async_cqe_link_state *acqe)
 	}
 }
 
-static void oce_async_grp5_osbmc_process(POCE_SOFTC sc,
-					 struct oce_async_evt_grp5_os2bmc *evt)
+static void
+oce_async_grp5_osbmc_process(POCE_SOFTC sc,
+    struct oce_async_evt_grp5_os2bmc *evt)
 {
 	DW_SWAP(evt, sizeof(struct oce_async_evt_grp5_os2bmc));
 	if (evt->u.s.mgmt_enable)
@@ -2629,7 +2583,8 @@ static void oce_async_grp5_osbmc_process(POCE_SOFTC sc,
 	sc->bmc_filt_mask |= (evt->u.s.mcast_filt << 8);
 }
 
-static void oce_process_grp5_events(POCE_SOFTC sc, struct oce_mq_cqe *cqe)
+static void
+oce_process_grp5_events(POCE_SOFTC sc, struct oce_mq_cqe *cqe)
 {
 	struct oce_async_event_grp5_pvid_state *gcqe;
 	struct oce_async_evt_grp5_os2bmc *bmccqe;
@@ -2664,33 +2619,33 @@ oce_mq_handler(void *arg)
 	struct oce_async_cqe_link_state *acqe;
 	struct oce_async_event_qnq *dbgcqe;
 
-	bus_dmamap_sync(cq->ring->dma.tag,
-			cq->ring->dma.map, BUS_DMASYNC_POSTWRITE);
+	bus_dmamap_sync(cq->ring->dma.tag, cq->ring->dma.map,
+	    BUS_DMASYNC_POSTWRITE);
 	cqe = RING_GET_CONSUMER_ITEM_VA(cq->ring, struct oce_mq_cqe);
 
 	while (cqe->u0.dw[3]) {
-		DW_SWAP((uint32_t *) cqe, sizeof(oce_mq_cqe));
+		DW_SWAP((uint32_t *)cqe, sizeof(oce_mq_cqe));
 		if (cqe->u0.s.async_event) {
 			evt_type = cqe->u0.s.event_type;
 			optype = cqe->u0.s.async_type;
-			if (evt_type  == ASYNC_EVENT_CODE_LINK_STATE) {
+			if (evt_type == ASYNC_EVENT_CODE_LINK_STATE) {
 				/* Link status evt */
 				acqe = (struct oce_async_cqe_link_state *)cqe;
 				process_link_state(sc, acqe);
 			} else if (evt_type == ASYNC_EVENT_GRP5) {
 				oce_process_grp5_events(sc, cqe);
 			} else if (evt_type == ASYNC_EVENT_CODE_DEBUG &&
-					optype == ASYNC_EVENT_DEBUG_QNQ) {
-				dbgcqe =  (struct oce_async_event_qnq *)cqe;
-				if(dbgcqe->valid)
+			    optype == ASYNC_EVENT_DEBUG_QNQ) {
+				dbgcqe = (struct oce_async_event_qnq *)cqe;
+				if (dbgcqe->valid)
 					sc->qnqid = dbgcqe->vlan_tag;
 				sc->qnq_debug_event = TRUE;
 			}
 		}
 		cqe->u0.dw[3] = 0;
 		RING_GET(cq->ring, 1);
-		bus_dmamap_sync(cq->ring->dma.tag,
-				cq->ring->dma.map, BUS_DMASYNC_POSTWRITE);
+		bus_dmamap_sync(cq->ring->dma.tag, cq->ring->dma.map,
+		    BUS_DMASYNC_POSTWRITE);
 		cqe = RING_GET_CONSUMER_ITEM_VA(cq->ring, struct oce_mq_cqe);
 		num_cqes++;
 	}
@@ -2704,11 +2659,10 @@ oce_mq_handler(void *arg)
 static void
 setup_max_queues_want(POCE_SOFTC sc)
 {
-	/* Check if it is FLEX machine. Is so dont use RSS */	
+	/* Check if it is FLEX machine. Is so dont use RSS */
 	if ((sc->function_mode & FNM_FLEX10_MODE) ||
-	    (sc->function_mode & FNM_UMC_MODE)    ||
-	    (sc->function_mode & FNM_VNIC_MODE)	  ||
-	    (!is_rss_enabled(sc))		  ||
+	    (sc->function_mode & FNM_UMC_MODE) ||
+	    (sc->function_mode & FNM_VNIC_MODE) || (!is_rss_enabled(sc)) ||
 	    IS_BE2(sc)) {
 		sc->nrqs = 1;
 		sc->nwqs = 1;
@@ -2736,7 +2690,7 @@ update_queues_got(POCE_SOFTC sc)
 		sc->nwqs = 1;
 }
 
-static int 
+static int
 oce_check_ipv6_ext_hdr(struct mbuf *m)
 {
 	struct ether_header *eh = mtod(m, struct ether_header *);
@@ -2746,26 +2700,26 @@ oce_check_ipv6_ext_hdr(struct mbuf *m)
 		m->m_data += sizeof(struct ether_header);
 		struct ip6_hdr *ip6 = mtod(m, struct ip6_hdr *);
 
-		if((ip6->ip6_nxt != IPPROTO_TCP) && \
-				(ip6->ip6_nxt != IPPROTO_UDP)){
+		if ((ip6->ip6_nxt != IPPROTO_TCP) &&
+		    (ip6->ip6_nxt != IPPROTO_UDP)) {
 			struct ip6_ext *ip6e = NULL;
 			m->m_data += sizeof(struct ip6_hdr);
 
-			ip6e = (struct ip6_ext *) mtod(m, struct ip6_ext *);
-			if(ip6e->ip6e_len == 0xff) {
+			ip6e = (struct ip6_ext *)mtod(m, struct ip6_ext *);
+			if (ip6e->ip6e_len == 0xff) {
 				m->m_data = m_datatemp;
 				return TRUE;
 			}
-		} 
+		}
 		m->m_data = m_datatemp;
 	}
 	return FALSE;
 }
 
-static int 
+static int
 is_be3_a1(POCE_SOFTC sc)
 {
-	if((sc->flags & OCE_FLAGS_BE3)  && ((sc->asic_revision & 0xFF) < 2)) {
+	if ((sc->flags & OCE_FLAGS_BE3) && ((sc->asic_revision & 0xFF) < 2)) {
 		return TRUE;
 	}
 	return FALSE;
@@ -2776,28 +2730,28 @@ oce_insert_vlan_tag(POCE_SOFTC sc, struct mbuf *m, boolean_t *complete)
 {
 	uint16_t vlan_tag = 0;
 
-	if(!M_WRITABLE(m))
+	if (!M_WRITABLE(m))
 		return NULL;
 
 	/* Embed vlan tag in the packet if it is not part of it */
-	if(m->m_flags & M_VLANTAG) {
+	if (m->m_flags & M_VLANTAG) {
 		vlan_tag = EVL_VLANOFTAG(m->m_pkthdr.ether_vtag);
 		m->m_flags &= ~M_VLANTAG;
 	}
 
 	/* if UMC, ignore vlan tag insertion and instead insert pvid */
-	if(sc->pvid) {
-		if(!vlan_tag)
+	if (sc->pvid) {
+		if (!vlan_tag)
 			vlan_tag = sc->pvid;
 		if (complete)
 			*complete = FALSE;
 	}
 
-	if(vlan_tag) {
+	if (vlan_tag) {
 		m = ether_vlanencap(m, vlan_tag);
 	}
 
-	if(sc->qnqid) {
+	if (sc->qnqid) {
 		m = ether_vlanencap(m, sc->qnqid);
 
 		if (complete)
@@ -2806,11 +2760,10 @@ oce_insert_vlan_tag(POCE_SOFTC sc, struct mbuf *m, boolean_t *complete)
 	return m;
 }
 
-static int 
+static int
 oce_tx_asic_stall_verify(POCE_SOFTC sc, struct mbuf *m)
 {
-	if(is_be3_a1(sc) && IS_QNQ_OR_UMC(sc) && \
-			oce_check_ipv6_ext_hdr(m)) {
+	if (is_be3_a1(sc) && IS_QNQ_OR_UMC(sc) && oce_check_ipv6_ext_hdr(m)) {
 		return TRUE;
 	}
 	return FALSE;
@@ -2834,137 +2787,144 @@ oce_get_config(POCE_SOFTC sc)
 			sc->nrssqs = max_rss;
 			sc->nrqs = sc->nrssqs + 1;
 		}
-	}
-	else { /* For BE3 don't rely on fw for determining the resources */
+	} else { /* For BE3 don't rely on fw for determining the resources */
 		sc->nrssqs = max_rss;
 		sc->nrqs = sc->nrssqs + 1;
 		sc->nwqs = OCE_MAX_WQ;
-		sc->max_vlans = MAX_VLANFILTER_SIZE; 
+		sc->max_vlans = MAX_VLANFILTER_SIZE;
 	}
 }
 
 static void
 oce_rdma_close(void)
 {
-  if (oce_rdma_if != NULL) {
-    oce_rdma_if = NULL;
-  }
+	if (oce_rdma_if != NULL) {
+		oce_rdma_if = NULL;
+	}
 }
 
 static void
 oce_get_mac_addr(POCE_SOFTC sc, uint8_t *macaddr)
 {
-  memcpy(macaddr, sc->macaddr.mac_addr, 6);
+	memcpy(macaddr, sc->macaddr.mac_addr, 6);
 }
 
 int
 oce_register_rdma(POCE_RDMA_INFO rdma_info, POCE_RDMA_IF rdma_if)
 {
-  POCE_SOFTC sc;
-  struct oce_dev_info di;
-  int i;
+	POCE_SOFTC sc;
+	struct oce_dev_info di;
+	int i;
 
-  if ((rdma_info == NULL) || (rdma_if == NULL)) {
-    return -EINVAL;
-  }
+	if ((rdma_info == NULL) || (rdma_if == NULL)) {
+		return -EINVAL;
+	}
 
-  if ((rdma_info->size != OCE_RDMA_INFO_SIZE) ||
-      (rdma_if->size != OCE_RDMA_IF_SIZE)) {
-    return -ENXIO;
-  }
+	if ((rdma_info->size != OCE_RDMA_INFO_SIZE) ||
+	    (rdma_if->size != OCE_RDMA_IF_SIZE)) {
+		return -ENXIO;
+	}
 
-  rdma_info->close = oce_rdma_close;
-  rdma_info->mbox_post = oce_mbox_post;
-  rdma_info->common_req_hdr_init = mbx_common_req_hdr_init;
-  rdma_info->get_mac_addr = oce_get_mac_addr;
+	rdma_info->close = oce_rdma_close;
+	rdma_info->mbox_post = oce_mbox_post;
+	rdma_info->common_req_hdr_init = mbx_common_req_hdr_init;
+	rdma_info->get_mac_addr = oce_get_mac_addr;
 
-  oce_rdma_if = rdma_if;
+	oce_rdma_if = rdma_if;
 
-  sc = softc_head;
-  while (sc != NULL) {
-    if (oce_rdma_if->announce != NULL) {
-      memset(&di, 0, sizeof(di));
-      di.dev = sc->dev;
-      di.softc = sc;
-      di.ifp = sc->ifp;
-      di.db_bhandle = sc->db_bhandle;
-      di.db_btag = sc->db_btag;
-      di.db_page_size = 4096;
-      if (sc->flags & OCE_FLAGS_USING_MSIX) {
-        di.intr_mode = OCE_INTERRUPT_MODE_MSIX;
-      } else if (sc->flags & OCE_FLAGS_USING_MSI) {
-        di.intr_mode = OCE_INTERRUPT_MODE_MSI;
-      } else {
-        di.intr_mode = OCE_INTERRUPT_MODE_INTX;
-      }
-      di.dev_family = OCE_GEN2_FAMILY; // fixme: must detect skyhawk
-      if (di.intr_mode != OCE_INTERRUPT_MODE_INTX) {
-        di.msix.num_vectors = sc->intr_count + sc->roce_intr_count;
-        di.msix.start_vector = sc->intr_count;
-        for (i=0; i<di.msix.num_vectors; i++) {
-          di.msix.vector_list[i] = sc->intrs[i].vector;
-        }
-      } else {
-      }
-      memcpy(di.mac_addr, sc->macaddr.mac_addr, 6);
-      di.vendor_id = pci_get_vendor(sc->dev);
-      di.dev_id = pci_get_device(sc->dev);
+	sc = softc_head;
+	while (sc != NULL) {
+		if (oce_rdma_if->announce != NULL) {
+			memset(&di, 0, sizeof(di));
+			di.dev = sc->dev;
+			di.softc = sc;
+			di.ifp = sc->ifp;
+			di.db_bhandle = sc->db_bhandle;
+			di.db_btag = sc->db_btag;
+			di.db_page_size = 4096;
+			if (sc->flags & OCE_FLAGS_USING_MSIX) {
+				di.intr_mode = OCE_INTERRUPT_MODE_MSIX;
+			} else if (sc->flags & OCE_FLAGS_USING_MSI) {
+				di.intr_mode = OCE_INTERRUPT_MODE_MSI;
+			} else {
+				di.intr_mode = OCE_INTERRUPT_MODE_INTX;
+			}
+			di.dev_family =
+			    OCE_GEN2_FAMILY; // fixme: must detect skyhawk
+			if (di.intr_mode != OCE_INTERRUPT_MODE_INTX) {
+				di.msix.num_vectors = sc->intr_count +
+				    sc->roce_intr_count;
+				di.msix.start_vector = sc->intr_count;
+				for (i = 0; i < di.msix.num_vectors; i++) {
+					di.msix.vector_list[i] =
+					    sc->intrs[i].vector;
+				}
+			} else {
+			}
+			memcpy(di.mac_addr, sc->macaddr.mac_addr, 6);
+			di.vendor_id = pci_get_vendor(sc->dev);
+			di.dev_id = pci_get_device(sc->dev);
 
-      if (sc->rdma_flags & OCE_RDMA_FLAG_SUPPORTED) {
-          di.flags  |= OCE_RDMA_INFO_RDMA_SUPPORTED;
-      }
+			if (sc->rdma_flags & OCE_RDMA_FLAG_SUPPORTED) {
+				di.flags |= OCE_RDMA_INFO_RDMA_SUPPORTED;
+			}
 
-      rdma_if->announce(&di);
-      sc = sc->next;
-    }
-  }
+			rdma_if->announce(&di);
+			sc = sc->next;
+		}
+	}
 
-  return 0;
+	return 0;
 }
 
 static void
-oce_read_env_variables( POCE_SOFTC sc )
+oce_read_env_variables(POCE_SOFTC sc)
 {
 	char *value = NULL;
 	int rc = 0;
 
-        /* read if user wants to enable hwlro or swlro */
-        //value = getenv("oce_enable_hwlro");
-        if(value && IS_SH(sc)) {
-                sc->enable_hwlro = strtol(value, NULL, 10);
-                if(sc->enable_hwlro) {
-                        rc = oce_mbox_nic_query_lro_capabilities(sc, NULL, NULL);
-                        if(rc) {
-                                device_printf(sc->dev, "no hardware lro support\n");
-                		device_printf(sc->dev, "software lro enabled\n");
-                                sc->enable_hwlro = 0;
-                        }else {
-                                device_printf(sc->dev, "hardware lro enabled\n");
+	/* read if user wants to enable hwlro or swlro */
+	// value = getenv("oce_enable_hwlro");
+	if (value && IS_SH(sc)) {
+		sc->enable_hwlro = strtol(value, NULL, 10);
+		if (sc->enable_hwlro) {
+			rc = oce_mbox_nic_query_lro_capabilities(sc, NULL,
+			    NULL);
+			if (rc) {
+				device_printf(sc->dev,
+				    "no hardware lro support\n");
+				device_printf(sc->dev,
+				    "software lro enabled\n");
+				sc->enable_hwlro = 0;
+			} else {
+				device_printf(sc->dev,
+				    "hardware lro enabled\n");
 				oce_max_rsp_handled = 32;
-                        }
-                }else {
-                        device_printf(sc->dev, "software lro enabled\n");
-                }
-        }else {
-                sc->enable_hwlro = 0;
-        }
+			}
+		} else {
+			device_printf(sc->dev, "software lro enabled\n");
+		}
+	} else {
+		sc->enable_hwlro = 0;
+	}
 
-        /* read mbuf size */
-        //value = getenv("oce_rq_buf_size");
-        if(value && IS_SH(sc)) {
-                oce_rq_buf_size = strtol(value, NULL, 10);
-                switch(oce_rq_buf_size) {
-                case 2048:
-                case 4096:
-                case 9216:
-                case 16384:
-                        break;
+	/* read mbuf size */
+	// value = getenv("oce_rq_buf_size");
+	if (value && IS_SH(sc)) {
+		oce_rq_buf_size = strtol(value, NULL, 10);
+		switch (oce_rq_buf_size) {
+		case 2048:
+		case 4096:
+		case 9216:
+		case 16384:
+			break;
 
-                default:
-                        device_printf(sc->dev, " Supported oce_rq_buf_size values are 2K, 4K, 9K, 16K \n");
-                        oce_rq_buf_size = 2048;
-                }
-        }
+		default:
+			device_printf(sc->dev,
+			    " Supported oce_rq_buf_size values are 2K, 4K, 9K, 16K \n");
+			oce_rq_buf_size = 2048;
+		}
+	}
 
 	return;
 }

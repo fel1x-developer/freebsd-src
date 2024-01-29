@@ -32,9 +32,10 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
+#include <sys/rman.h>
+
 #include <machine/bus.h>
 
 #include <dev/ofw/ofw_bus.h>
@@ -45,11 +46,10 @@
 
 #include "coresight_if.h"
 
-static struct ofw_compat_data compat_data[] = {
-	{ "arm,coresight-funnel",		HWTYPE_FUNNEL },
-	{ "arm,coresight-static-funnel",	HWTYPE_STATIC_FUNNEL },
-	{ NULL,					HWTYPE_NONE }
-};
+static struct ofw_compat_data compat_data[] = { { "arm,coresight-funnel",
+						    HWTYPE_FUNNEL },
+	{ "arm,coresight-static-funnel", HWTYPE_STATIC_FUNNEL },
+	{ NULL, HWTYPE_NONE } };
 
 static int
 funnel_fdt_probe(device_t dev)
@@ -89,9 +89,8 @@ funnel_fdt_attach(device_t dev)
 
 static device_method_t funnel_fdt_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		funnel_fdt_probe),
-	DEVMETHOD(device_attach,	funnel_fdt_attach),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, funnel_fdt_probe),
+	DEVMETHOD(device_attach, funnel_fdt_attach), DEVMETHOD_END
 };
 
 DEFINE_CLASS_1(funnel, funnel_fdt_driver, funnel_fdt_methods,

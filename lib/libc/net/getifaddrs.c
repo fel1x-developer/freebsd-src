@@ -31,44 +31,49 @@
  * try-and-error for region size.
  */
 
-#include "namespace.h"
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+
 #include <net/if.h>
-#ifdef	NET_RT_IFLIST
+
+#include "namespace.h"
+#ifdef NET_RT_IFLIST
 #include <sys/param.h>
-#include <net/route.h>
 #include <sys/sysctl.h>
+
 #include <net/if_dl.h>
+#include <net/route.h>
 #endif
 
 #include <errno.h>
 #include <ifaddrs.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "un-namespace.h"
 
 #if !defined(AF_LINK)
-#define	SA_LEN(sa)	sizeof(struct sockaddr)
+#define SA_LEN(sa) sizeof(struct sockaddr)
 #endif
 
 #if !defined(SA_LEN)
-#define	SA_LEN(sa)	(sa)->sa_len
+#define SA_LEN(sa) (sa)->sa_len
 #endif
 
-#define	SALIGN	(sizeof(long) - 1)
-#define	SA_RLEN(sa)	((sa)->sa_len ? (((sa)->sa_len + SALIGN) & ~SALIGN) : (SALIGN + 1))
+#define SALIGN (sizeof(long) - 1)
+#define SA_RLEN(sa) \
+	((sa)->sa_len ? (((sa)->sa_len + SALIGN) & ~SALIGN) : (SALIGN + 1))
 
-#ifndef	ALIGNBYTES
+#ifndef ALIGNBYTES
 /*
  * On systems with a routing socket, ALIGNBYTES should match the value
  * that the kernel uses when building the messages.
  */
-#define	ALIGNBYTES	XXX
+#define ALIGNBYTES XXX
 #endif
-#ifndef	ALIGN
-#define	ALIGN(p)	(((u_long)(p) + ALIGNBYTES) &~ ALIGNBYTES)
+#ifndef ALIGN
+#define ALIGN(p) (((u_long)(p) + ALIGNBYTES) & ~ALIGNBYTES)
 #endif
 
 #define MAX_SYSCTL_TRY 5
@@ -101,10 +106,11 @@ getifaddrs(struct ifaddrs **pif)
 
 	mib[0] = CTL_NET;
 	mib[1] = PF_ROUTE;
-	mib[2] = 0;             /* protocol */
-	mib[3] = 0;             /* wildcard address family */
-	mib[4] = NET_RT_IFLISTL;/* extra fields for extensible msghdr structs */
-	mib[5] = 0;             /* no flags */
+	mib[2] = 0; /* protocol */
+	mib[3] = 0; /* wildcard address family */
+	mib[4] =
+	    NET_RT_IFLISTL; /* extra fields for extensible msghdr structs */
+	mib[5] = 0;	    /* no flags */
 	do {
 		/*
 		 * We'll try to get addresses several times in case that
@@ -128,7 +134,7 @@ getifaddrs(struct ifaddrs **pif)
 			}
 			free(buf);
 			buf = NULL;
-		} 
+		}
 	} while (buf == NULL);
 
 	for (next = buf; next < buf + needed; next += rtm->rtm_msglen) {
@@ -144,7 +150,7 @@ getifaddrs(struct ifaddrs **pif)
 				if_data = IF_MSGHDRL_IFM_DATA(ifm);
 				dcnt += if_data->ifi_datalen;
 				dl = (struct sockaddr_dl *)IF_MSGHDRL_RTA(ifm);
-				dcnt += SA_RLEN((struct sockaddr *)(void*)dl) +
+				dcnt += SA_RLEN((struct sockaddr *)(void *)dl) +
 				    ALIGNBYTES;
 				ncnt += dl->sdl_nlen + 1;
 			} else
@@ -154,9 +160,9 @@ getifaddrs(struct ifaddrs **pif)
 		case RTM_NEWADDR:
 			ifam = (struct ifa_msghdrl *)(void *)rtm;
 			if (idx && ifam->ifam_index != idx)
-				abort();	/* this cannot happen */
+				abort(); /* this cannot happen */
 
-#define	RTA_MASKS	(RTA_NETMASK | RTA_IFA | RTA_BRD)
+#define RTA_MASKS (RTA_NETMASK | RTA_IFA | RTA_BRD)
 			if (idx == 0 || (ifam->ifam_addrs & RTA_MASKS) == 0)
 				break;
 			p = (char *)IFA_MSGHDRL_RTA(ifam);
@@ -167,8 +173,8 @@ getifaddrs(struct ifaddrs **pif)
 			/* Scan to look for length of address */
 			alen = 0;
 			for (p0 = p, i = 0; i < RTAX_MAX; i++) {
-				if ((RTA_MASKS & ifam->ifam_addrs & (1 << i))
-				    == 0)
+				if ((RTA_MASKS & ifam->ifam_addrs & (1 << i)) ==
+				    0)
 					continue;
 				sa = (struct sockaddr *)(void *)p;
 				len = SA_RLEN(sa);
@@ -179,8 +185,8 @@ getifaddrs(struct ifaddrs **pif)
 				p += len;
 			}
 			for (p = p0, i = 0; i < RTAX_MAX; i++) {
-				if ((RTA_MASKS & ifam->ifam_addrs & (1 << i))
-				    == 0)
+				if ((RTA_MASKS & ifam->ifam_addrs & (1 << i)) ==
+				    0)
 					continue;
 				sa = (struct sockaddr *)(void *)p;
 				len = SA_RLEN(sa);
@@ -202,7 +208,7 @@ getifaddrs(struct ifaddrs **pif)
 	data = malloc(sizeof(struct ifaddrs) * icnt + dcnt + ncnt);
 	if (data == NULL) {
 		free(buf);
-		return(-1);
+		return (-1);
 	}
 
 	ifa = (struct ifaddrs *)(void *)data;
@@ -237,8 +243,8 @@ getifaddrs(struct ifaddrs **pif)
 			names += dl->sdl_nlen + 1;
 
 			ift->ifa_addr = (struct sockaddr *)(void *)data;
-			memcpy(data, dl, (size_t)SA_LEN((struct sockaddr *)
-			    (void *)dl));
+			memcpy(data, dl,
+			    (size_t)SA_LEN((struct sockaddr *)(void *)dl));
 			data += SA_RLEN((struct sockaddr *)(void *)dl);
 
 			if_data = IF_MSGHDRL_IFM_DATA(ifm);
@@ -253,7 +259,7 @@ getifaddrs(struct ifaddrs **pif)
 		case RTM_NEWADDR:
 			ifam = (struct ifa_msghdrl *)(void *)rtm;
 			if (idx && ifam->ifam_index != idx)
-				abort();	/* this cannot happen */
+				abort(); /* this cannot happen */
 
 			if (idx == 0 || (ifam->ifam_addrs & RTA_MASKS) == 0)
 				break;
@@ -265,8 +271,8 @@ getifaddrs(struct ifaddrs **pif)
 			/* Scan to look for length of address */
 			alen = 0;
 			for (p0 = p, i = 0; i < RTAX_MAX; i++) {
-				if ((RTA_MASKS & ifam->ifam_addrs & (1 << i))
-				    == 0)
+				if ((RTA_MASKS & ifam->ifam_addrs & (1 << i)) ==
+				    0)
 					continue;
 				sa = (struct sockaddr *)(void *)p;
 				len = SA_RLEN(sa);
@@ -277,8 +283,8 @@ getifaddrs(struct ifaddrs **pif)
 				p += len;
 			}
 			for (p = p0, i = 0; i < RTAX_MAX; i++) {
-				if ((RTA_MASKS & ifam->ifam_addrs & (1 << i))
-				    == 0)
+				if ((RTA_MASKS & ifam->ifam_addrs & (1 << i)) ==
+				    0)
 					continue;
 				sa = (struct sockaddr *)(void *)p;
 				len = SA_RLEN(sa);

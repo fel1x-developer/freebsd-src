@@ -29,13 +29,15 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/param.h>
+
 #include <errno.h>
 #include <signal.h>
 #include <string.h>
-#include "un-namespace.h"
+
 #include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 int
 sigvec(int signo, struct sigvec *sv, struct sigvec *osv)
@@ -144,8 +146,7 @@ sigrelse(int sig)
 	return (__libc_sigprocmask(SIG_UNBLOCK, &set, NULL));
 }
 
-void
-(*sigset(int sig, void (*disp)(int)))(int)
+void (*sigset(int sig, void (*disp)(int)))(int)
 {
 	sigset_t set, pset;
 	struct sigaction sa, psa;

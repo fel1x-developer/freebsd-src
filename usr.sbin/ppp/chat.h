@@ -27,54 +27,54 @@
  */
 
 #define CHAT_EXPECT 0
-#define CHAT_SEND   1
-#define CHAT_DONE   2
+#define CHAT_SEND 1
+#define CHAT_DONE 2
 #define CHAT_FAILED 3
 
-#define MAXABORTS   50
+#define MAXABORTS 50
 
 struct physical;
 
 struct chat {
-  struct fdescriptor desc;
-  struct physical *physical;
+	struct fdescriptor desc;
+	struct physical *physical;
 
-  int state;				/* Our CHAT_* status */
+	int state; /* Our CHAT_* status */
 
-  char script[LINE_LEN];		/* Our arg buffer */
-  char *argv[MAXARGS];			/* Our arguments (pointing to script) */
-  int argc;				/* Number of argv's */
+	char script[LINE_LEN]; /* Our arg buffer */
+	char *argv[MAXARGS];   /* Our arguments (pointing to script) */
+	int argc;	       /* Number of argv's */
 
-  int arg;				/* Our current arg number */
-  char exp[LINE_LEN];			/* Our translated current argument */
-  char *argptr;				/* Our current arg pointer */
-  int arglen;				/* The length of argptr */
-  char *nargptr;			/* Our next for expect-send-expect */
+	int arg;	    /* Our current arg number */
+	char exp[LINE_LEN]; /* Our translated current argument */
+	char *argptr;	    /* Our current arg pointer */
+	int arglen;	    /* The length of argptr */
+	char *nargptr;	    /* Our next for expect-send-expect */
 
-  char buf[LINE_LEN*2];			/* Our input */
-  char *bufstart;			/* start of relevant data */
-  char *bufend;				/* end of relevant data */
+	char buf[LINE_LEN * 2]; /* Our input */
+	char *bufstart;		/* start of relevant data */
+	char *bufend;		/* end of relevant data */
 
-  int TimeoutSec;			/* Expect timeout value */
-  int TimedOut;				/* We timed out */
+	int TimeoutSec; /* Expect timeout value */
+	int TimedOut;	/* We timed out */
 
-  const char *phone;			/* Our phone number */
+	const char *phone; /* Our phone number */
 
-  struct {
-    struct {
-      char *data;			/* Abort the dial if we get one */
-      int len;
-    } string[MAXABORTS];
-    int num;				/* How many AbortStrings */
-  } abort;
+	struct {
+		struct {
+			char *data; /* Abort the dial if we get one */
+			int len;
+		} string[MAXABORTS];
+		int num; /* How many AbortStrings */
+	} abort;
 
-  struct pppTimer pause;		/* Inactivity timer */
-  struct pppTimer timeout;		/* TimeoutSec timer */
+	struct pppTimer pause;	 /* Inactivity timer */
+	struct pppTimer timeout; /* TimeoutSec timer */
 };
 
 #define descriptor2chat(d) \
-  ((d)->type == CHAT_DESCRIPTOR ? (struct chat *)(d) : NULL)
-#define	VECSIZE(v)	(sizeof(v) / sizeof(v[0]))
+	((d)->type == CHAT_DESCRIPTOR ? (struct chat *)(d) : NULL)
+#define VECSIZE(v) (sizeof(v) / sizeof(v[0]))
 
 extern void chat_Init(struct chat *, struct physical *);
 extern int chat_Setup(struct chat *, const char *, const char *);

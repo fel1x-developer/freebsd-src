@@ -23,14 +23,13 @@
  * SUCH DAMAGE.
  */
 
-#include "opt_rss.h"
 #include "opt_ratelimit.h"
+#include "opt_rss.h"
 
 #include <dev/mlx5/mlx5_en/en.h>
 
 void
-mlx5e_dim_build_cq_param(struct mlx5e_priv *priv,
-    struct mlx5e_cq_param *param)
+mlx5e_dim_build_cq_param(struct mlx5e_priv *priv, struct mlx5e_cq_param *param)
 {
 	struct net_dim_cq_moder prof;
 	void *cqc = param->cqc;
@@ -41,14 +40,14 @@ mlx5e_dim_build_cq_param(struct mlx5e_priv *priv,
 	switch (MLX5_GET(cqc, cqc, cq_period_mode)) {
 	case MLX5_CQ_PERIOD_MODE_START_FROM_CQE:
 		prof = net_dim_profile[NET_DIM_CQ_PERIOD_MODE_START_FROM_CQE]
-		    [NET_DIM_DEF_PROFILE_CQE];
+				      [NET_DIM_DEF_PROFILE_CQE];
 		MLX5_SET(cqc, cqc, cq_period, prof.usec);
 		MLX5_SET(cqc, cqc, cq_max_count, prof.pkts);
 		break;
 
 	case MLX5_CQ_PERIOD_MODE_START_FROM_EQE:
 		prof = net_dim_profile[NET_DIM_CQ_PERIOD_MODE_START_FROM_EQE]
-		    [NET_DIM_DEF_PROFILE_EQE];
+				      [NET_DIM_DEF_PROFILE_EQE];
 		MLX5_SET(cqc, cqc, cq_period, prof.usec);
 		MLX5_SET(cqc, cqc, cq_max_count, prof.pkts);
 		break;

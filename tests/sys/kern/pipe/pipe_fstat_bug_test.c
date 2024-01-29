@@ -1,6 +1,6 @@
 /*
 Copyright (C) 2004 Michael J. Silbersack. All rights reserved.
- 
+
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
 are met:
@@ -24,9 +24,10 @@ SUCH DAMAGE.
 */
 
 #include <sys/types.h>
+#include <sys/event.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
-#include <sys/event.h>
+
 #include <assert.h>
 #include <err.h>
 #include <errno.h>
@@ -69,27 +70,32 @@ main(void)
 
 	close(new_pid == 0 ? desc[0] : desc[1]);
 
-#define	SYNC_R(i, _buf) do {	\
-	int _error = errno; \
-	warnx("%d: waiting for synchronization", __LINE__); \
-	if (read(ipc_coord[i], &_buf, sizeof(_buf)) != sizeof(_buf)) \
-		err(1, "failed to synchronize (%s)", (i == 0 ? "parent" : "child")); \
-	errno = _error; \
-	} while(0)
+#define SYNC_R(i, _buf)                                                      \
+	do {                                                                 \
+		int _error = errno;                                          \
+		warnx("%d: waiting for synchronization", __LINE__);          \
+		if (read(ipc_coord[i], &_buf, sizeof(_buf)) != sizeof(_buf)) \
+			err(1, "failed to synchronize (%s)",                 \
+			    (i == 0 ? "parent" : "child"));                  \
+		errno = _error;                                              \
+	} while (0)
 
-#define	SYNC_W(i, _buf) do {	\
-	int _error = errno; \
-	warnx("%d: sending synchronization", __LINE__); \
-	if (write(ipc_coord[i], &_buf, sizeof(_buf)) != sizeof(_buf)) \
-		err(1, "failed to synchronize (%s)", (i == 0 ? "child" : "parent")); \
-	errno = _error; \
-	} while(0)
+#define SYNC_W(i, _buf)                                                       \
+	do {                                                                  \
+		int _error = errno;                                           \
+		warnx("%d: sending synchronization", __LINE__);               \
+		if (write(ipc_coord[i], &_buf, sizeof(_buf)) != sizeof(_buf)) \
+			err(1, "failed to synchronize (%s)",                  \
+			    (i == 0 ? "child" : "parent"));                   \
+		errno = _error;                                               \
+	} while (0)
 
-#define	WRITE(s) do { 							\
-	ssize_t _size; 							\
-	if ((_size = write(desc[1], &buffer, s)) != s)			\
-		warn("short write; wrote %zd, expected %d", _size, s);	\
-	} while(0)
+#define WRITE(s)                                                               \
+	do {                                                                   \
+		ssize_t _size;                                                 \
+		if ((_size = write(desc[1], &buffer, s)) != s)                 \
+			warn("short write; wrote %zd, expected %d", _size, s); \
+	} while (0)
 
 	if (new_pid == 0) {
 

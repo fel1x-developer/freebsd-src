@@ -26,13 +26,13 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/param.h>
 
 #include <dirent.h>
-#include "un-namespace.h"
 
 #include "gen-private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 int
 dirfd(DIR *dirp)

@@ -48,7 +48,7 @@
 static char fpath[1024];
 static int fpath_initialized;
 
-#define	MAX_TRIES	100
+#define MAX_TRIES 100
 
 int
 priv_vfs_generation_setup(int asroot, int injail, struct test *test)
@@ -63,8 +63,8 @@ priv_vfs_generation_setup(int asroot, int injail, struct test *test)
 	 * number.  We try up to MAX_TRIES times and otherwise fail.
 	 */
 	for (i = 0; i < MAX_TRIES; i++) {
-		setup_file("priv_vfs_generation_setup: fpath", fpath,
-		    UID_ROOT, GID_WHEEL, 0644);
+		setup_file("priv_vfs_generation_setup: fpath", fpath, UID_ROOT,
+		    GID_WHEEL, 0644);
 		if (stat(fpath, &sb) < 0) {
 			warn("priv_vfs_generation_setup: fstat(%s)", fpath);
 			(void)unlink(fpath);
@@ -95,8 +95,7 @@ priv_vfs_generation(int asroot, int injail, struct test *test)
 	} else
 		error = 0;
 	if (asroot && injail)
-		expect("priv_vfs_generation(asroot, injail)", error, -1,
-		    EPERM);
+		expect("priv_vfs_generation(asroot, injail)", error, -1, EPERM);
 	if (asroot && !injail)
 		expect("priv_vfs_generation(asroot, !injail)", error, 0, 0);
 	if (!asroot && injail)

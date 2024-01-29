@@ -26,15 +26,15 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef	_LINUXKPI_LINUX_FILE_H_
-#define	_LINUXKPI_LINUX_FILE_H_
+#ifndef _LINUXKPI_LINUX_FILE_H_
+#define _LINUXKPI_LINUX_FILE_H_
 
 #include <sys/param.h>
+#include <sys/capsicum.h>
 #include <sys/file.h>
 #include <sys/filedesc.h>
-#include <sys/refcount.h>
-#include <sys/capsicum.h>
 #include <sys/proc.h>
+#include <sys/refcount.h>
 
 #include <linux/fs.h>
 #include <linux/slab.h>
@@ -55,8 +55,7 @@ linux_fget(unsigned int fd)
 		return (NULL);
 
 	/* check if file handle really belongs to us */
-	if (file->f_data == NULL ||
-	    file->f_ops != &linuxfileops) {
+	if (file->f_data == NULL || file->f_ops != &linuxfileops) {
 		fdrop(file, curthread);
 		return (NULL);
 	}
@@ -68,8 +67,8 @@ extern void linux_file_free(struct linux_file *filp);
 static inline void
 fput(struct linux_file *filp)
 {
-	if (refcount_release(filp->_file == NULL ?
-	    &filp->f_count : &filp->_file->f_count)) {
+	if (refcount_release(
+		filp->_file == NULL ? &filp->f_count : &filp->_file->f_count)) {
 		linux_file_free(filp);
 	}
 }
@@ -77,8 +76,7 @@ fput(struct linux_file *filp)
 static inline unsigned int
 file_count(struct linux_file *filp)
 {
-	return (filp->_file == NULL ?
-	    filp->f_count : filp->_file->f_count);
+	return (filp->_file == NULL ? filp->f_count : filp->_file->f_count);
 }
 
 static inline void
@@ -168,18 +166,20 @@ struct fd {
 	struct linux_file *linux_file;
 };
 
-static inline void fdput(struct fd fd)
+static inline void
+fdput(struct fd fd)
 {
 	fput(fd.linux_file);
 }
 
-static inline struct fd fdget(unsigned int fd)
+static inline struct fd
+fdget(unsigned int fd)
 {
 	struct linux_file *f = linux_fget(fd);
-	return (struct fd){f};
+	return (struct fd) { f };
 }
 
-#define	file		linux_file
-#define	fget(...)	linux_fget(__VA_ARGS__)
+#define file linux_file
+#define fget(...) linux_fget(__VA_ARGS__)
 
-#endif	/* _LINUXKPI_LINUX_FILE_H_ */
+#endif /* _LINUXKPI_LINUX_FILE_H_ */

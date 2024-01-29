@@ -39,9 +39,9 @@
 #include <sys/proc.h>
 #include <sys/stack.h>
 
-#include <machine/vmparam.h>
 #include <machine/pcb.h>
 #include <machine/stack.h>
+#include <machine/vmparam.h>
 
 static void
 stack_capture(struct thread *td, struct stack *st, struct unwind_state *frame)
@@ -85,7 +85,7 @@ stack_save(struct stack *st)
 	struct unwind_state frame;
 	uintptr_t sp;
 
-	__asm __volatile("mv %0, sp" : "=&r" (sp));
+	__asm __volatile("mv %0, sp" : "=&r"(sp));
 
 	frame.sp = sp;
 	frame.fp = (uintptr_t)__builtin_frame_address(0);

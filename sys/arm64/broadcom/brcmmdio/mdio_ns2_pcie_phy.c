@@ -26,25 +26,25 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/rman.h>
-#include <sys/systm.h>
-
-#include <dev/fdt/simplebus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-#include <dev/ofw/ofw_bus.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
 
+#include <dev/fdt/simplebus.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+
 #include "mdio_if.h"
 
-#define	BLK_ADDR_REG_OFFSET	0x1f
-#define	PLL_AFE1_100MHZ_BLK	0x2100
-#define	PLL_CLK_AMP_OFFSET	0x03
-#define	PLL_CLK_AMP_2P05V	0x2b18
+#define BLK_ADDR_REG_OFFSET 0x1f
+#define PLL_AFE1_100MHZ_BLK 0x2100
+#define PLL_CLK_AMP_OFFSET 0x03
+#define PLL_CLK_AMP_2P05V 0x2b18
 
 struct ns2_pcie_phy_softc {
 	uint32_t phy_id;
@@ -57,8 +57,8 @@ static int ns2_pci_phy_init(device_t dev);
 
 static device_method_t ns2_pcie_phy_fdt_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		ns2_pcie_phy_fdt_probe),
-	DEVMETHOD(device_attach,	ns2_pcie_phy_fdt_attach),
+	DEVMETHOD(device_probe, ns2_pcie_phy_fdt_probe),
+	DEVMETHOD(device_attach, ns2_pcie_phy_fdt_attach),
 
 	DEVMETHOD_END
 };
@@ -66,14 +66,11 @@ static device_method_t ns2_pcie_phy_fdt_methods[] = {
 DEFINE_CLASS_0(ns2_pcie_phy, ns2_pcie_phy_fdt_driver, ns2_pcie_phy_fdt_methods,
     sizeof(struct ns2_pcie_phy_softc));
 
-static driver_t ns2_pcie_phy_driver = {
-        "ns2_pcie_phy",
-	ns2_pcie_phy_fdt_methods,
-        sizeof(struct ns2_pcie_phy_softc)
-};
+static driver_t ns2_pcie_phy_driver = { "ns2_pcie_phy",
+	ns2_pcie_phy_fdt_methods, sizeof(struct ns2_pcie_phy_softc) };
 
-EARLY_DRIVER_MODULE(ns2_pcie_phy, brcm_mdionexus, ns2_pcie_phy_driver,
-    NULL, NULL, BUS_PASS_BUS + BUS_PASS_ORDER_MIDDLE);
+EARLY_DRIVER_MODULE(ns2_pcie_phy, brcm_mdionexus, ns2_pcie_phy_driver, NULL,
+    NULL, BUS_PASS_BUS + BUS_PASS_ORDER_MIDDLE);
 
 static int
 ns2_pci_phy_init(device_t dev)
@@ -85,13 +82,13 @@ ns2_pci_phy_init(device_t dev)
 
 	/* select the AFE 100MHz block page */
 	err = MDIO_WRITEREG(device_get_parent(dev), sc->phy_id,
-			    BLK_ADDR_REG_OFFSET, PLL_AFE1_100MHZ_BLK);
+	    BLK_ADDR_REG_OFFSET, PLL_AFE1_100MHZ_BLK);
 	if (err)
 		goto err;
 
 	/* set the 100 MHz reference clock amplitude to 2.05 v */
 	err = MDIO_WRITEREG(device_get_parent(dev), sc->phy_id,
-			    PLL_CLK_AMP_OFFSET, PLL_CLK_AMP_2P05V);
+	    PLL_CLK_AMP_OFFSET, PLL_CLK_AMP_2P05V);
 	if (err)
 		goto err;
 

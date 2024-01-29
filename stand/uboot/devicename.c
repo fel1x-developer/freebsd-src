@@ -25,6 +25,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stand.h>
 #include <string.h>
 
@@ -53,10 +54,11 @@ uboot_getdev(void **vdev, const char *devspec, const char **path)
 	if ((devspec == NULL) || (devspec[0] == '/') ||
 	    (strchr(devspec, ':') == NULL)) {
 
-		if (((rv = uboot_parsedev(dev, getenv("currdev"), NULL)) == 0)
-		    && (path != NULL))
-		*path = devspec;
-		return(rv);
+		if (((rv = uboot_parsedev(dev, getenv("currdev"), NULL)) ==
+			0) &&
+		    (path != NULL))
+			*path = devspec;
+		return (rv);
 	}
 
 	/*
@@ -91,23 +93,23 @@ uboot_parsedev(struct uboot_devdesc **dev, const char *devspec,
 
 	/* minimum length check */
 	if (strlen(devspec) < 2)
-		return(EINVAL);
+		return (EINVAL);
 
 	/* look for a device that matches */
 	for (i = 0, dv = NULL; devsw[i] != NULL; i++) {
 		if (!strncmp(devspec, devsw[i]->dv_name,
-		    strlen(devsw[i]->dv_name))) {
+			strlen(devsw[i]->dv_name))) {
 			dv = devsw[i];
 			break;
 		}
 	}
 	if (dv == NULL)
-		return(ENOENT);
+		return (ENOENT);
 	idev = malloc(sizeof(struct uboot_devdesc));
 	err = 0;
 	np = (devspec + strlen(dv->dv_name));
 
-	switch(dv->dv_type) {
+	switch (dv->dv_type) {
 	case DEVT_NONE:
 		break;
 
@@ -147,8 +149,9 @@ uboot_parsedev(struct uboot_devdesc **dev, const char *devspec,
 	}
 	idev->dd.d_dev = dv;
 	/*
-	 * dev can be NULL, since uboot_getdev calls us directly, rather than via
-	 * dv_parsedev in devparse() which otherwise ensures that it can't be NULL.
+	 * dev can be NULL, since uboot_getdev calls us directly, rather than
+	 * via dv_parsedev in devparse() which otherwise ensures that it can't
+	 * be NULL.
 	 */
 	if (dev == NULL) {
 		free(idev);
@@ -161,7 +164,6 @@ fail:
 	free(idev);
 	return (err);
 }
-
 
 /*
  * Set currdev to suit the value being supplied in (value).

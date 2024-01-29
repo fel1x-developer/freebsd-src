@@ -38,13 +38,10 @@
  * Costa Mesa, CA 92626
  */
 
-
 #include "oce_if.h"
 
-static void oce_dma_map_ring(void *arg,
-			     bus_dma_segment_t *segs,
-			     int nseg,
-			     int error);
+static void oce_dma_map_ring(void *arg, bus_dma_segment_t *segs, int nseg,
+    int error);
 
 /**
  * @brief		Allocate DMA memory
@@ -61,29 +58,20 @@ oce_dma_alloc(POCE_SOFTC sc, bus_size_t size, POCE_DMA_MEM dma, int flags)
 
 	memset(dma, 0, sizeof(OCE_DMA_MEM));
 
-	rc = bus_dma_tag_create(bus_get_dma_tag(sc->dev),
-				8, 0,
-				BUS_SPACE_MAXADDR,
-				BUS_SPACE_MAXADDR,
-				NULL, NULL,
-				size, 1, size, 0, NULL, NULL, &dma->tag);
+	rc = bus_dma_tag_create(bus_get_dma_tag(sc->dev), 8, 0,
+	    BUS_SPACE_MAXADDR, BUS_SPACE_MAXADDR, NULL, NULL, size, 1, size, 0,
+	    NULL, NULL, &dma->tag);
 
 	if (rc == 0) {
-		rc = bus_dmamem_alloc(dma->tag,
-				      &dma->ptr,
-				      BUS_DMA_NOWAIT | BUS_DMA_COHERENT |
-					BUS_DMA_ZERO,
-				      &dma->map);
+		rc = bus_dmamem_alloc(dma->tag, &dma->ptr,
+		    BUS_DMA_NOWAIT | BUS_DMA_COHERENT | BUS_DMA_ZERO,
+		    &dma->map);
 	}
 
 	dma->paddr = 0;
 	if (rc == 0) {
-		rc = bus_dmamap_load(dma->tag,
-				     dma->map,
-				     dma->ptr,
-				     size,
-				     oce_dma_map_addr,
-				     &dma->paddr, flags | BUS_DMA_NOWAIT);
+		rc = bus_dmamap_load(dma->tag, dma->map, dma->ptr, size,
+		    oce_dma_map_addr, &dma->paddr, flags | BUS_DMA_NOWAIT);
 		if (dma->paddr == 0)
 			rc = ENXIO;
 	}
@@ -107,7 +95,7 @@ oce_dma_free(POCE_SOFTC sc, POCE_DMA_MEM dma)
 
 	if (dma->paddr != 0) {
 		bus_dmamap_sync(dma->tag, dma->map,
-				BUS_DMASYNC_POSTREAD | BUS_DMASYNC_POSTWRITE);
+		    BUS_DMASYNC_POSTREAD | BUS_DMASYNC_POSTWRITE);
 		bus_dmamap_unload(dma->tag, dma->map);
 		dma->paddr = 0;
 	}
@@ -131,7 +119,7 @@ oce_dma_free(POCE_SOFTC sc, POCE_DMA_MEM dma)
  * @param error		if error, zeroes the physical address
  */
 void
-oce_dma_map_addr(void *arg, bus_dma_segment_t * segs, int nseg, int error)
+oce_dma_map_addr(void *arg, bus_dma_segment_t *segs, int nseg, int error)
 {
 	bus_addr_t *paddr = arg;
 
@@ -155,39 +143,33 @@ oce_destroy_ring_buffer(POCE_SOFTC sc, oce_ring_buffer_t *ring)
 }
 
 oce_ring_buffer_t *
-oce_create_ring_buffer(POCE_SOFTC sc,
-		uint32_t q_len, uint32_t item_size)
+oce_create_ring_buffer(POCE_SOFTC sc, uint32_t q_len, uint32_t item_size)
 {
 	uint32_t size = q_len * item_size;
 	int rc;
 	oce_ring_buffer_t *ring;
 
 	ring = malloc(sizeof(oce_ring_buffer_t), M_DEVBUF, M_NOWAIT | M_ZERO);
-	if (ring == NULL) 
+	if (ring == NULL)
 		return NULL;
 
 	ring->item_size = item_size;
 	ring->num_items = q_len;
 
-	rc = bus_dma_tag_create(bus_get_dma_tag(sc->dev),
-				4096, 0,
-				BUS_SPACE_MAXADDR,
-				BUS_SPACE_MAXADDR,
-				NULL, NULL,
-				size, 8, 4096, 0, NULL, NULL, &ring->dma.tag);
+	rc = bus_dma_tag_create(bus_get_dma_tag(sc->dev), 4096, 0,
+	    BUS_SPACE_MAXADDR, BUS_SPACE_MAXADDR, NULL, NULL, size, 8, 4096, 0,
+	    NULL, NULL, &ring->dma.tag);
 	if (rc)
 		goto fail;
 
-	rc = bus_dmamem_alloc(ring->dma.tag,
-				&ring->dma.ptr,
-				BUS_DMA_NOWAIT | BUS_DMA_COHERENT,
-				&ring->dma.map);
+	rc = bus_dmamem_alloc(ring->dma.tag, &ring->dma.ptr,
+	    BUS_DMA_NOWAIT | BUS_DMA_COHERENT, &ring->dma.map);
 	if (rc)
 		goto fail;
 
 	bzero(ring->dma.ptr, size);
 	bus_dmamap_sync(ring->dma.tag, ring->dma.map,
-			BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
+	    BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
 	ring->dma.paddr = 0;
 
 	return ring;
@@ -213,11 +195,11 @@ struct _oce_dmamap_paddr_table {
  * @param error		maps only if error is 0
  */
 static void
-oce_dma_map_ring(void *arg, bus_dma_segment_t * segs, int nseg, int error)
+oce_dma_map_ring(void *arg, bus_dma_segment_t *segs, int nseg, int error)
 {
 	int i;
-	struct _oce_dmamap_paddr_table *dpt =
-	    (struct _oce_dmamap_paddr_table *)arg;
+	struct _oce_dmamap_paddr_table *dpt = (struct _oce_dmamap_paddr_table *)
+	    arg;
 
 	if (error == 0) {
 		if (nseg <= dpt->max_entries) {
@@ -245,11 +227,9 @@ oce_page_list(oce_ring_buffer_t *ring, struct phys_addr *pa_list)
 	dpt.num_entries = 0;
 	dpt.paddrs = pa_list;
 
-	bus_dmamap_load(ring->dma.tag,
-			ring->dma.map,
-			ring->dma.ptr,
-			ring->item_size * ring->num_items,
-			oce_dma_map_ring, &dpt, BUS_DMA_NOWAIT);
+	bus_dmamap_load(ring->dma.tag, ring->dma.map, ring->dma.ptr,
+	    ring->item_size * ring->num_items, oce_dma_map_ring, &dpt,
+	    BUS_DMA_NOWAIT);
 
 	return dpt.num_entries;
 }

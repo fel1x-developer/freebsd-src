@@ -42,29 +42,25 @@
 
 #include "procstat.h"
 
-enum {
-	PS_CMP_NORMAL = 0x00,
-	PS_CMP_PLURAL = 0x01, 
-	PS_CMP_SUBSTR = 0x02
-};
+enum { PS_CMP_NORMAL = 0x00, PS_CMP_PLURAL = 0x01, PS_CMP_SUBSTR = 0x02 };
 
 struct procstat_cmd {
 	const char *command;
 	const char *xocontainer;
 	const char *usage;
 	void (*cmd)(struct procstat *, struct kinfo_proc *);
-	void (*opt)(int, char * const *);
+	void (*opt)(int, char *const *);
 	int cmp;
 };
 
 int procstat_opts = 0;
 
-static void cmdopt_none(int argc, char * const argv[]);
-static void cmdopt_verbose(int argc, char * const argv[]);
-static void cmdopt_signals(int argc, char * const argv[]);
-static void cmdopt_rusage(int argc, char * const argv[]);
-static void cmdopt_files(int argc, char * const argv[]);
-static void cmdopt_cpuset(int argc, char * const argv[]);
+static void cmdopt_none(int argc, char *const argv[]);
+static void cmdopt_verbose(int argc, char *const argv[]);
+static void cmdopt_signals(int argc, char *const argv[]);
+static void cmdopt_rusage(int argc, char *const argv[]);
+static void cmdopt_files(int argc, char *const argv[]);
+static void cmdopt_cpuset(int argc, char *const argv[]);
 
 static const char *progname;
 
@@ -105,14 +101,11 @@ static const struct procstat_cmd cmd_table[] = {
 	    PS_CMP_PLURAL },
 	{ "kstack", "kstack", "[-v]", &procstat_kstack, &cmdopt_verbose,
 	    PS_CMP_NORMAL },
-	{ "pargs", "args", NULL, &procstat_pargs, &cmdopt_none,
-	    PS_CMP_NORMAL },
-	{ "penv", "env", NULL, &procstat_penv, &cmdopt_none,
-	    PS_CMP_NORMAL },
+	{ "pargs", "args", NULL, &procstat_pargs, &cmdopt_none, PS_CMP_NORMAL },
+	{ "penv", "env", NULL, &procstat_penv, &cmdopt_none, PS_CMP_NORMAL },
 	{ "ptlwpinfo", "ptlwpinfo", NULL, &procstat_ptlwpinfo, &cmdopt_none,
 	    PS_CMP_NORMAL },
-	{ "pwdx", "pwd", NULL, &procstat_pwdx, &cmdopt_none,
-	    PS_CMP_NORMAL },
+	{ "pwdx", "pwd", NULL, &procstat_pwdx, &cmdopt_none, PS_CMP_NORMAL },
 	{ "rlimit", "rlimit", NULL, &procstat_rlimit, &cmdopt_none,
 	    PS_CMP_NORMAL },
 	{ "rusage", "rusage", "[-Ht]", &procstat_rusage, &cmdopt_rusage,
@@ -135,7 +128,8 @@ usage(const struct procstat_cmd *cmd)
 	int multi;
 
 	if (cmd == NULL || (cmd->cmp & PS_MODE_COMPAT) == 0) {
-		xo_error("usage: procstat [--libxo] [-h] [-M core] [-N system]"
+		xo_error(
+		    "usage: procstat [--libxo] [-h] [-M core] [-N system]"
 		    " [-w interval] command\n"
 		    "                [pid ... | core ...]\n"
 		    "       procstat [--libxo] -a [-h] [-M core] [-N system] "
@@ -154,16 +148,17 @@ usage(const struct procstat_cmd *cmd)
 		    "       procstat [--libxo] -L [-h] [-M core] [-N system] core ...\n"
 		    "Available commands:\n");
 		for (i = 0, l = nitems(cmd_table); i < l; i++) {
-			multi = i + 1 < l && cmd_table[i].cmd ==
-			    cmd_table[i + 1].cmd;
+			multi = i + 1 < l &&
+			    cmd_table[i].cmd == cmd_table[i + 1].cmd;
 			xo_error("       %s%s%s", multi ? "[" : "",
-			    cmd_table[i].command, (cmd_table[i].cmp &
-			    PS_CMP_PLURAL) ? "(s)" : "");
-			for (; i + 1 < l && cmd_table[i].cmd ==
-			    cmd_table[i + 1].cmd; i++)
+			    cmd_table[i].command,
+			    (cmd_table[i].cmp & PS_CMP_PLURAL) ? "(s)" : "");
+			for (; i + 1 < l &&
+			     cmd_table[i].cmd == cmd_table[i + 1].cmd;
+			     i++)
 				xo_error(" | %s%s", cmd_table[i + 1].command,
-				    (cmd_table[i].cmp & PS_CMP_PLURAL) ?
-				    "(s)" : "");
+				    (cmd_table[i].cmp & PS_CMP_PLURAL) ? "(s)" :
+									 "");
 			if (multi)
 				xo_error("]");
 			if (cmd_table[i].usage != NULL)
@@ -219,7 +214,7 @@ kinfo_proc_sort(struct kinfo_proc *kipp, int count)
 const char *
 kinfo_proc_thread_name(const struct kinfo_proc *kipp)
 {
-	static char name[MAXCOMLEN+1];
+	static char name[MAXCOMLEN + 1];
 
 	strlcpy(name, kipp->ki_tdname, sizeof(name));
 	strlcat(name, kipp->ki_moretdname, sizeof(name));
@@ -268,8 +263,10 @@ getcmd(const char *str)
 		 * allowing subsequent full matches to take precedence.
 		 */
 		if (cmd == NULL && (cmd_table[i].cmp & PS_CMP_SUBSTR))
-			cmp = strncasecmp(str, cmd_table[i].command, l -
-			    ((cmd_table[i].cmp & PS_CMP_PLURAL) && s ? 1 : 0));
+			cmp = strncasecmp(str, cmd_table[i].command,
+			    l -
+				((cmd_table[i].cmp & PS_CMP_PLURAL) && s ? 1 :
+									   0));
 		else if ((cmd_table[i].cmp & PS_CMP_PLURAL) && s &&
 		    l == strlen(cmd_table[i].command) + 1)
 			cmp = strncasecmp(str, cmd_table[i].command, l - 1);
@@ -418,7 +415,6 @@ main(int argc, char *argv[])
 		default:
 			usage(cmd);
 		}
-
 	}
 	argc -= optind;
 	argv += optind;
@@ -460,7 +456,7 @@ main(int argc, char *argv[])
 		xo_errx(1, "procstat_open()");
 	do {
 		xocontainer = cmd->xocontainer != NULL ? cmd->xocontainer :
-		    cmd->command;
+							 cmd->command;
 		xo_set_version(PROCSTAT_XO_VERSION);
 		xo_open_container(progname);
 		xo_open_container(xocontainer);
@@ -525,7 +521,7 @@ main(int argc, char *argv[])
 			}
 		}
 
-iter:
+	iter:
 		xo_close_container(xocontainer);
 		xo_close_container(progname);
 		xo_finish();
@@ -539,7 +535,7 @@ iter:
 }
 
 void
-cmdopt_none(int argc, char * const argv[])
+cmdopt_none(int argc, char *const argv[])
 {
 	int ch;
 
@@ -553,7 +549,7 @@ cmdopt_none(int argc, char * const argv[])
 }
 
 void
-cmdopt_verbose(int argc, char * const argv[])
+cmdopt_verbose(int argc, char *const argv[])
 {
 	int ch;
 
@@ -570,7 +566,7 @@ cmdopt_verbose(int argc, char * const argv[])
 }
 
 void
-cmdopt_signals(int argc, char * const argv[])
+cmdopt_signals(int argc, char *const argv[])
 {
 	int ch;
 
@@ -587,7 +583,7 @@ cmdopt_signals(int argc, char * const argv[])
 }
 
 void
-cmdopt_rusage(int argc, char * const argv[])
+cmdopt_rusage(int argc, char *const argv[])
 {
 	int ch;
 
@@ -606,7 +602,7 @@ cmdopt_rusage(int argc, char * const argv[])
 }
 
 void
-cmdopt_files(int argc, char * const argv[])
+cmdopt_files(int argc, char *const argv[])
 {
 	int ch;
 
@@ -623,7 +619,7 @@ cmdopt_files(int argc, char * const argv[])
 }
 
 void
-cmdopt_cpuset(int argc, char * const argv[])
+cmdopt_cpuset(int argc, char *const argv[])
 {
 
 	procstat_opts |= PS_OPT_PERTHREAD;

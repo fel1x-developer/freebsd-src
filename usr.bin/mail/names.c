@@ -35,9 +35,10 @@
  * Handle name lists.
  */
 
-#include "rcv.h"
 #include <fcntl.h>
+
 #include "extern.h"
+#include "rcv.h"
 
 /*
  * Allocate a single element of a name list,
@@ -180,12 +181,12 @@ yankword(char *ap, char *wbuf)
 		else
 			break;
 	}
-	if (*cp ==  '<')
+	if (*cp == '<')
 		for (cp2 = wbuf; *cp && (*cp2++ = *cp++) != '>';)
 			;
 	else
 		for (cp2 = wbuf; *cp != '\0' && strchr(" \t,(", *cp) == NULL;
-		    *cp2++ = *cp++)
+		     *cp2++ = *cp++)
 			;
 	*cp2 = '\0';
 	return (cp);
@@ -240,22 +241,22 @@ yanklogin(char *ap, char *wbuf)
 	 * Note that we look ahead in a cycle. This is safe, since
 	 * non-end of string is checked first.
 	 */
-	while(*cp != '\0' && strchr("@%!", *(cp + 1)) == NULL)
+	while (*cp != '\0' && strchr("@%!", *(cp + 1)) == NULL)
 		cp++;
 
 	/*
 	 * Now, start stepping back to the first non-word character,
 	 * while counting the number of symbols in a word.
 	 */
-	while(cp != cp_temp && strchr(" \t,<>", *(cp - 1)) == NULL) {
+	while (cp != cp_temp && strchr(" \t,<>", *(cp - 1)) == NULL) {
 		n++;
 		cp--;
 	}
 
 	/* Finally, grab the word forward. */
 	cp2 = wbuf;
-	while(n >= 0) {
-		*cp2++=*cp++;
+	while (n >= 0) {
+		*cp2++ = *cp++;
 		n--;
 	}
 
@@ -291,7 +292,7 @@ outof(struct name *names, FILE *fo, struct header *hp)
 		}
 		ispipe = np->n_name[0] == '|';
 		if (ispipe)
-			fname = np->n_name+1;
+			fname = np->n_name + 1;
 		else
 			fname = expand(np->n_name);
 
@@ -323,7 +324,7 @@ outof(struct name *names, FILE *fo, struct header *hp)
 			(void)fcntl(image, F_SETFD, 1);
 			fprintf(fout, "From %s %s", myname, date);
 			puthead(hp, fout,
-			    GTO|GSUBJECT|GCC|GREPLYTO|GINREPLYTO|GNL);
+			    GTO | GSUBJECT | GCC | GREPLYTO | GINREPLYTO | GNL);
 			while ((c = getc(fo)) != EOF)
 				(void)putc(c, fout);
 			rewind(fo);
@@ -400,7 +401,7 @@ outof(struct name *names, FILE *fo, struct header *hp)
 			(void)Fclose(fout);
 			(void)Fclose(fin);
 		}
-cant:
+	cant:
 		/*
 		 * In days of old we removed the entry from the
 		 * the list; now for sake of header expansion
@@ -502,7 +503,7 @@ gexpand(struct name *nlist, struct grouphead *gh, int metoo, int ntype)
 			nlist = gexpand(nlist, ngh, metoo, ntype);
 			continue;
 		}
-quote:
+	quote:
 		np = nalloc(cp, ntype);
 		/*
 		 * At this point should allow to expand
@@ -512,7 +513,7 @@ quote:
 			goto skip;
 		if (!metoo && strcmp(cp, myname) == 0)
 			np->n_type |= GDEL;
-skip:
+	skip:
 		nlist = put(nlist, np);
 	}
 	depth--;

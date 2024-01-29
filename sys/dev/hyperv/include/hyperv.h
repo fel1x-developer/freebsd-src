@@ -36,36 +36,37 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 
-#define MSR_HV_TIME_REF_COUNT		0x40000020
+#define MSR_HV_TIME_REF_COUNT 0x40000020
 
-#define CPUID_HV_MSR_TIME_REFCNT	0x0002	/* MSR_HV_TIME_REF_COUNT */
-#define CPUID_HV_MSR_SYNIC		0x0004	/* MSRs for SynIC */
-#define CPUID_HV_MSR_SYNTIMER		0x0008	/* MSRs for SynTimer */
-#define CPUID_HV_MSR_APIC		0x0010	/* MSR_HV_{EOI,ICR,TPR} */
-#define CPUID_HV_MSR_HYPERCALL		0x0020	/* MSR_HV_GUEST_OS_ID
-						 * MSR_HV_HYPERCALL */
-#define CPUID_HV_MSR_VP_INDEX		0x0040	/* MSR_HV_VP_INDEX */
-#define CPUID_HV_MSR_REFERENCE_TSC	0x0200	/* MSR_HV_REFERENCE_TSC */
-#define CPUID_HV_MSR_GUEST_IDLE		0x0400	/* MSR_HV_GUEST_IDLE */
+#define CPUID_HV_MSR_TIME_REFCNT 0x0002 /* MSR_HV_TIME_REF_COUNT */
+#define CPUID_HV_MSR_SYNIC 0x0004	/* MSRs for SynIC */
+#define CPUID_HV_MSR_SYNTIMER 0x0008	/* MSRs for SynTimer */
+#define CPUID_HV_MSR_APIC 0x0010	/* MSR_HV_{EOI,ICR,TPR} */
+#define CPUID_HV_MSR_HYPERCALL                                  \
+	0x0020				  /* MSR_HV_GUEST_OS_ID \
+					   * MSR_HV_HYPERCALL */
+#define CPUID_HV_MSR_VP_INDEX 0x0040	  /* MSR_HV_VP_INDEX */
+#define CPUID_HV_MSR_REFERENCE_TSC 0x0200 /* MSR_HV_REFERENCE_TSC */
+#define CPUID_HV_MSR_GUEST_IDLE 0x0400	  /* MSR_HV_GUEST_IDLE */
 
 #ifndef NANOSEC
-#define NANOSEC				1000000000ULL
+#define NANOSEC 1000000000ULL
 #endif
-#define HYPERV_TIMER_NS_FACTOR		100ULL
-#define HYPERV_TIMER_FREQ		(NANOSEC / HYPERV_TIMER_NS_FACTOR)
+#define HYPERV_TIMER_NS_FACTOR 100ULL
+#define HYPERV_TIMER_FREQ (NANOSEC / HYPERV_TIMER_NS_FACTOR)
 
-#endif	/* _KERNEL */
+#endif /* _KERNEL */
 
-#define HYPERV_REFTSC_DEVNAME		"hv_tsc"
+#define HYPERV_REFTSC_DEVNAME "hv_tsc"
 
 /*
  * Hyper-V Reference TSC
  */
 struct hyperv_reftsc {
-	volatile uint32_t		tsc_seq;
-	volatile uint32_t		tsc_rsvd1;
-	volatile uint64_t		tsc_scale;
-	volatile int64_t		tsc_ofs;
+	volatile uint32_t tsc_seq;
+	volatile uint32_t tsc_rsvd1;
+	volatile uint64_t tsc_scale;
+	volatile int64_t tsc_ofs;
 } __packed __aligned(PAGE_SIZE);
 #ifdef CTASSERT
 CTASSERT(sizeof(struct hyperv_reftsc) == PAGE_SIZE);
@@ -74,34 +75,33 @@ CTASSERT(sizeof(struct hyperv_reftsc) == PAGE_SIZE);
 #ifdef _KERNEL
 
 struct hyperv_guid {
-	uint8_t				hv_guid[16];
+	uint8_t hv_guid[16];
 } __packed;
 
-#define HYPERV_GUID_STRLEN		40
+#define HYPERV_GUID_STRLEN 40
 
-typedef uint64_t			(*hyperv_tc64_t)(void);
+typedef uint64_t (*hyperv_tc64_t)(void);
 
-int			hyperv_guid2str(const struct hyperv_guid *, char *,
-			    size_t);
+int hyperv_guid2str(const struct hyperv_guid *, char *, size_t);
 
-void	hyperv_init_tc(void);
-int		hypercall_page_setup(vm_paddr_t);
-void	hypercall_disable(void);
-bool	hyperv_identify_features(void);
+void hyperv_init_tc(void);
+int hypercall_page_setup(vm_paddr_t);
+void hypercall_disable(void);
+bool hyperv_identify_features(void);
 
 /*
  * hyperv_tc64 could be NULL, if there were no suitable Hyper-V
  * specific timecounter.
  */
-extern hyperv_tc64_t	hyperv_tc64;
-extern u_int		hyperv_features;	/* CPUID_HV_MSR_ */
-extern u_int		hyperv_ver_major;
+extern hyperv_tc64_t hyperv_tc64;
+extern u_int hyperv_features; /* CPUID_HV_MSR_ */
+extern u_int hyperv_ver_major;
 
 /*
  * Vmbus version after negotiation with host.
  */
-extern uint32_t		vmbus_current_version;
+extern uint32_t vmbus_current_version;
 
-#endif	/* _KERNEL */
+#endif /* _KERNEL */
 
-#endif  /* _HYPERV_H_ */
+#endif /* _HYPERV_H_ */

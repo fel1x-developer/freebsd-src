@@ -26,10 +26,10 @@
  * SUCH DAMAGE.
  */
 
-#include <gssapi/gssapi.h>
 #include <ctype.h>
 #include <dlfcn.h>
 #include <errno.h>
+#include <gssapi/gssapi.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -38,11 +38,10 @@
 #include "utils.h"
 
 #ifndef _PATH_GSS_MECH
-#define _PATH_GSS_MECH	"/etc/gss/mech"
+#define _PATH_GSS_MECH "/etc/gss/mech"
 #endif
 
-struct _gss_mech_switch_list _gss_mechs =
-	SLIST_HEAD_INITIALIZER(_gss_mechs);
+struct _gss_mech_switch_list _gss_mechs = SLIST_HEAD_INITIALIZER(_gss_mechs);
 gss_OID_set _gss_mech_oids;
 
 /*
@@ -50,12 +49,12 @@ gss_OID_set _gss_mech_oids;
  * (e.g. 1.2.840.113554.1.2.2) to a gss_OID.
  */
 static int
-_gss_string_to_oid(const char* s, gss_OID oid)
+_gss_string_to_oid(const char *s, gss_OID oid)
 {
-	int			number_count, i, j;
-	int			byte_count;
-	const char		*p, *q;
-	char			*res;
+	int number_count, i, j;
+	int byte_count;
+	const char *p, *q;
+	char *res;
 
 	oid->length = 0;
 	oid->elements = NULL;
@@ -67,7 +66,8 @@ _gss_string_to_oid(const char* s, gss_OID oid)
 	number_count = 0;
 	for (p = s; p; p = q) {
 		q = strchr(p, '.');
-		if (q) q = q + 1;
+		if (q)
+			q = q + 1;
 		number_count++;
 	}
 
@@ -93,7 +93,8 @@ _gss_string_to_oid(const char* s, gss_OID oid)
 			 * Find the end of this number.
 			 */
 			q = strchr(p, '.');
-			if (q) q = q + 1;
+			if (q)
+				q = q + 1;
 
 			/*
 			 * Read the number of of the string. Don't
@@ -130,10 +131,11 @@ _gss_string_to_oid(const char* s, gss_OID oid)
 				bytes = 0;
 				for (t = number; t; t >>= 7)
 					bytes++;
-				if (bytes == 0) bytes = 1;
+				if (bytes == 0)
+					bytes = 1;
 				while (bytes) {
 					if (res) {
-						int bit = 7*(bytes-1);
+						int bit = 7 * (bytes - 1);
 
 						*res = (number >> bit) & 0x7f;
 						if (bytes != 1)
@@ -157,24 +159,21 @@ _gss_string_to_oid(const char* s, gss_OID oid)
 	return (0);
 }
 
+#define SYM(name)                                                              \
+	do {                                                                   \
+		snprintf(buf, sizeof(buf), "%s_%s", m->gm_name_prefix, #name); \
+		m->gm_##name = dlsym(so, buf);                                 \
+		if (!m->gm_##name) {                                           \
+			fprintf(stderr, "can't find symbol %s\n", buf);        \
+			goto bad;                                              \
+		}                                                              \
+	} while (0)
 
-#define SYM(name)						\
-do {								\
-	snprintf(buf, sizeof(buf), "%s_%s",			\
-	    m->gm_name_prefix, #name);				\
-	m->gm_ ## name = dlsym(so, buf);			\
-	if (!m->gm_ ## name) {					\
-		fprintf(stderr, "can't find symbol %s\n", buf);	\
-		goto bad;					\
-	}							\
-} while (0)
-
-#define OPTSYM(name)				\
-do {						\
-	snprintf(buf, sizeof(buf), "%s_%s",	\
-	    m->gm_name_prefix, #name);		\
-	m->gm_ ## name = dlsym(so, buf);	\
-} while (0)
+#define OPTSYM(name)                                                           \
+	do {                                                                   \
+		snprintf(buf, sizeof(buf), "%s_%s", m->gm_name_prefix, #name); \
+		m->gm_##name = dlsym(so, buf);                                 \
+	} while (0)
 
 /*
  * Load the mechanisms file (/etc/gss/mech).
@@ -182,20 +181,19 @@ do {						\
 void
 _gss_load_mech(void)
 {
-	OM_uint32	major_status, minor_status;
-	FILE		*fp;
-	char		buf[256];
-	char		*p;
-	char		*name, *oid, *lib, *kobj;
+	OM_uint32 major_status, minor_status;
+	FILE *fp;
+	char buf[256];
+	char *p;
+	char *name, *oid, *lib, *kobj;
 	struct _gss_mech_switch *m;
-	void		*so;
-	const char	*(*prefix_fn)(void);
+	void *so;
+	const char *(*prefix_fn)(void);
 
 	if (SLIST_FIRST(&_gss_mechs))
 		return;
 
-	major_status = gss_create_empty_oid_set(&minor_status,
-	    &_gss_mech_oids);
+	major_status = gss_create_empty_oid_set(&minor_status, &_gss_mech_oids);
 	if (major_status)
 		return;
 
@@ -210,11 +208,17 @@ _gss_load_mech(void)
 			continue;
 		p = buf;
 		name = strsep(&p, "\t\n ");
-		if (p) while (isspace(*p)) p++;
+		if (p)
+			while (isspace(*p))
+				p++;
 		oid = strsep(&p, "\t\n ");
-		if (p) while (isspace(*p)) p++;
+		if (p)
+			while (isspace(*p))
+				p++;
 		lib = strsep(&p, "\t\n ");
-		if (p) while (isspace(*p)) p++;
+		if (p)
+			while (isspace(*p))
+				p++;
 		kobj = strsep(&p, "\t\n ");
 		if (!name || !oid || !lib || !kobj)
 			continue;
@@ -234,8 +238,8 @@ _gss_load_mech(void)
 			continue;
 		}
 
-		prefix_fn = (const char *(*)(void))
-			dlsym(so, "_gss_name_prefix");
+		prefix_fn = (const char *(*)(void))dlsym(so,
+		    "_gss_name_prefix");
 		if (prefix_fn)
 			m->gm_name_prefix = prefix_fn();
 		else
@@ -303,7 +307,7 @@ _gss_find_mech_switch(gss_OID mech)
 	struct _gss_mech_switch *m;
 
 	_gss_load_mech();
-	SLIST_FOREACH(m, &_gss_mechs, gm_link) {
+	SLIST_FOREACH (m, &_gss_mechs, gm_link) {
 		if (gss_oid_equal(&m->gm_mech_oid, mech))
 			return m;
 	}

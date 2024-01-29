@@ -26,13 +26,13 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef	_LINUXKPI_LINUX_IOCTL_H_
-#define	_LINUXKPI_LINUX_IOCTL_H_
+#ifndef _LINUXKPI_LINUX_IOCTL_H_
+#define _LINUXKPI_LINUX_IOCTL_H_
 
 #include <sys/ioccom.h>
 
-#define	_IOC_SIZE(cmd)	IOCPARM_LEN(cmd)
-#define	_IOC_TYPE(cmd)	IOCGROUP(cmd)
-#define	_IOC_NR(cmd)	((cmd) & 0xff)
+#define _IOC_SIZE(cmd) IOCPARM_LEN(cmd)
+#define _IOC_TYPE(cmd) IOCGROUP(cmd)
+#define _IOC_NR(cmd) ((cmd) & 0xff)
 
-#endif	/* _LINUXKPI_LINUX_IOCTL_H_ */
+#endif /* _LINUXKPI_LINUX_IOCTL_H_ */

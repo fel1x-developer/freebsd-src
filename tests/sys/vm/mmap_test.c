@@ -37,21 +37,21 @@
 #include <stdlib.h>
 
 static const struct {
-	void	*addr;
-	int	ok[2];	/* Depending on security.bsd.map_at_zero {0, !=0}. */
+	void *addr;
+	int ok[2]; /* Depending on security.bsd.map_at_zero {0, !=0}. */
 } map_at_zero_tests[] = {
-	{ (void *)0,			{ 0, 1 } }, /* Test sysctl. */
-	{ (void *)1,			{ 0, 0 } },
-	{ (void *)(PAGE_SIZE - 1),	{ 0, 0 } },
-	{ (void *)PAGE_SIZE,		{ 1, 1 } },
-	{ (void *)-1,			{ 0, 0 } },
-	{ (void *)(-PAGE_SIZE),		{ 0, 0 } },
-	{ (void *)(-1 - PAGE_SIZE),	{ 0, 0 } },
-	{ (void *)(-1 - PAGE_SIZE - 1),	{ 0, 0 } },
-	{ (void *)(0x1000 * PAGE_SIZE),	{ 1, 1 } },
+	{ (void *)0, { 0, 1 } }, /* Test sysctl. */
+	{ (void *)1, { 0, 0 } },
+	{ (void *)(PAGE_SIZE - 1), { 0, 0 } },
+	{ (void *)PAGE_SIZE, { 1, 1 } },
+	{ (void *)-1, { 0, 0 } },
+	{ (void *)(-PAGE_SIZE), { 0, 0 } },
+	{ (void *)(-1 - PAGE_SIZE), { 0, 0 } },
+	{ (void *)(-1 - PAGE_SIZE - 1), { 0, 0 } },
+	{ (void *)(0x1000 * PAGE_SIZE), { 1, 1 } },
 };
 
-#define	MAP_AT_ZERO	"security.bsd.map_at_zero"
+#define MAP_AT_ZERO "security.bsd.map_at_zero"
 
 #ifdef __LP64__
 #define ALLOW_WX "kern.elf64.allow_wx"
@@ -118,8 +118,7 @@ checked_mmap(int prot, int flags, int fd, int error, const char *msg)
 	p = mmap(NULL, pagesize, prot, flags, fd, 0);
 	if (p == MAP_FAILED) {
 		if (error == 0)
-			ATF_CHECK_MSG(0, "%s failed with errno %d", msg,
-			    errno);
+			ATF_CHECK_MSG(0, "%s failed with errno %d", msg, errno);
 		else
 			ATF_CHECK_EQ_MSG(error, errno,
 			    "%s failed with wrong errno %d (expected %d)", msg,
@@ -166,8 +165,9 @@ ATF_TC_BODY(mmap__bad_arguments, tc)
 	    EINVAL, "Undefined flag");
 
 	/* Both MAP_SHARED and MAP_PRIVATE */
-	checked_mmap(PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE |
-	    MAP_SHARED, -1, EINVAL, "MAP_ANON with both SHARED and PRIVATE");
+	checked_mmap(PROT_READ | PROT_WRITE,
+	    MAP_ANON | MAP_PRIVATE | MAP_SHARED, -1, EINVAL,
+	    "MAP_ANON with both SHARED and PRIVATE");
 	checked_mmap(PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_SHARED, shmfd,
 	    EINVAL, "shm fd with both SHARED and PRIVATE");
 
@@ -268,8 +268,7 @@ ATF_TC_BODY(mmap__dev_zero_shared, tc)
 
 	ATF_REQUIRE(p1[0] == 1);
 
-	p3 = mmap(NULL, pagesize, PROT_READ | PROT_WRITE, MAP_SHARED, fd,
-	    0);
+	p3 = mmap(NULL, pagesize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	ATF_REQUIRE(p3 != MAP_FAILED);
 
 	ATF_REQUIRE(p3[0] == 0);

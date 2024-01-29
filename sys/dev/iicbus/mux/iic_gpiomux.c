@@ -32,18 +32,17 @@
  * hinted attachment, but there is currently no support for hinted attachment.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/gpio.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/systm.h>
 
 #include <dev/gpio/gpiobusvar.h>
-
 #include <dev/iicbus/iicbus.h>
 #include <dev/iicbus/mux/iicmux.h>
 
@@ -52,26 +51,25 @@
 #include <dev/ofw/ofw_bus_subr.h>
 #include <dev/ofw/openfirm.h>
 
-static struct ofw_compat_data compat_data[] = {
-	{"i2c-mux-gpio",  true},
-	{NULL,            false}
-};
+static struct ofw_compat_data compat_data[] = { { "i2c-mux-gpio", true },
+	{ NULL, false } };
 OFWBUS_PNP_INFO(compat_data);
 SIMPLEBUS_PNP_INFO(compat_data);
 #endif /* FDT */
 
 #include <dev/iicbus/iiconf.h>
+
 #include "iicmux.h"
 #include "iicmux_if.h"
 
 struct gpiomux_softc {
 	struct iicmux_softc mux;
-	int	idleidx;
-	int	numpins;
+	int idleidx;
+	int numpins;
 	gpio_pin_t pins[IICMUX_MAX_BUSES];
 };
 
-#define IDLE_NOOP	(-1) /* When asked to idle the bus, do nothing. */
+#define IDLE_NOOP (-1) /* When asked to idle the bus, do nothing. */
 
 static int
 gpiomux_bus_select(device_t dev, int busidx, struct iic_reqbus_data *rd)
@@ -142,7 +140,7 @@ gpiomux_attach(device_t dev)
 	 * Locate the gpio pin(s) that control the mux hardware.  There can be
 	 * multiple pins, but there must be at least one.
 	 */
-	for (i = 0; ; ++i) {
+	for (i = 0;; ++i) {
 		err = gpio_pin_get_by_ofw_propidx(dev, node, "mux-gpios", i,
 		    &sc->pins[i]);
 		if (err != 0) {
@@ -238,12 +236,12 @@ gpiomux_detach(device_t dev)
 
 static device_method_t gpiomux_methods[] = {
 	/* device methods */
-	DEVMETHOD(device_probe,			gpiomux_probe),
-	DEVMETHOD(device_attach,		gpiomux_attach),
-	DEVMETHOD(device_detach,		gpiomux_detach),
+	DEVMETHOD(device_probe, gpiomux_probe),
+	DEVMETHOD(device_attach, gpiomux_attach),
+	DEVMETHOD(device_detach, gpiomux_detach),
 
 	/* iicmux methods */
-	DEVMETHOD(iicmux_bus_select,		gpiomux_bus_select),
+	DEVMETHOD(iicmux_bus_select, gpiomux_bus_select),
 
 	DEVMETHOD_END
 };

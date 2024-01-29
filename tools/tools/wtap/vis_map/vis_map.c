@@ -26,10 +26,11 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
+#include <sys/ioctl.h>
+
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
 
 /*
  * From the driver itself
@@ -57,12 +58,11 @@ link_op(struct link *l)
 static void
 usage(const char *argv[])
 {
-	printf("usage: %s [o | c | [ [a|d]  wtap_id1  wtap_id2]]\n",
-	    argv[0]);
+	printf("usage: %s [o | c | [ [a|d]  wtap_id1  wtap_id2]]\n", argv[0]);
 }
 
 int
-main(int argc, const char* argv[])
+main(int argc, const char *argv[])
 {
 	struct link l;
 	char cmd;
@@ -73,9 +73,9 @@ main(int argc, const char* argv[])
 	}
 
 	dev = open("/dev/visctl", O_RDONLY);
-		if (dev < 0) {
-			printf("error opening visctl cdev\n");
-			exit(1);
+	if (dev < 0) {
+		printf("error opening visctl cdev\n");
+		exit(1);
 	}
 
 	cmd = (char)*argv[1];

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002-2003
  * 	Hidetoshi Shimokawa. All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -20,7 +20,7 @@
  * 4. Neither the name of the author nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -41,8 +41,8 @@
 #include <sys/param.h>
 
 #ifdef _BOOT
-#include <stand.h>
 #include <bootstrap.h>
+#include <stand.h>
 #else
 #if defined(_KERNEL) || defined(TEST)
 #include <sys/queue.h>
@@ -52,9 +52,10 @@
 #include <sys/kernel.h>
 #else
 #include <netinet/in.h>
+
+#include <err.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include <err.h>
 #include <stdlib.h>
 #include <string.h>
 #endif
@@ -115,7 +116,7 @@ crom_next(struct crom_context *cc)
 		cc->depth++;
 
 		ptr = &cc->stack[cc->depth];
-		ptr->dir = (struct csrdirectory *) (reg + reg->val);
+		ptr->dir = (struct csrdirectory *)(reg + reg->val);
 		ptr->index = 0;
 		goto check;
 	}
@@ -137,7 +138,6 @@ check:
 	/* no more data */
 	cc->depth = -1;
 }
-
 
 struct csrreg *
 crom_search_key(struct crom_context *cc, uint8_t key)
@@ -210,7 +210,7 @@ crom_parse_text(struct crom_context *cc, char *buf, int len)
 	bp = (uint32_t *)&buf[0];
 	qlen = textleaf->crc_len - 2;
 	if (len < qlen * 4)
-		qlen = len/4;
+		qlen = len / 4;
 	for (i = 0; i < qlen; i++)
 		*bp++ = ntohl(textleaf->text[i]);
 	/* make sure to terminate the string */
@@ -234,7 +234,7 @@ crom_crc(uint32_t *ptr, int len)
 		}
 		crc &= 0xffff;
 	}
-	return ((uint16_t) crc);
+	return ((uint16_t)crc);
 }
 
 #if !defined(_KERNEL) && !defined(_BOOT)
@@ -310,8 +310,8 @@ crom_desc(struct crom_context *cc, char *buf, int len)
 #endif
 		break;
 	case CSRTYPE_C:
-		len -= snprintf(buf, len, "offset=0x%04x(%d)",
-		    reg->val, reg->val);
+		len -= snprintf(buf, len, "offset=0x%04x(%d)", reg->val,
+		    reg->val);
 		buf += strlen(buf);
 		break;
 	case CSRTYPE_L:
@@ -320,8 +320,7 @@ crom_desc(struct crom_context *cc, char *buf, int len)
 		dir = (struct csrdirectory *)(reg + reg->val);
 		crc = crom_crc((uint32_t *)&dir->entry[0], dir->crc_len);
 		len -= snprintf(buf, len, "len=%d crc=0x%04x(%s) ",
-		    dir->crc_len, dir->crc,
-		    (crc == dir->crc) ? "OK" : "NG");
+		    dir->crc_len, dir->crc, (crc == dir->crc) ? "OK" : "NG");
 		buf += strlen(buf);
 	}
 	switch (reg->key) {
@@ -405,8 +404,7 @@ crom_add_quad(struct crom_chunk *chunk, uint32_t entry)
 int
 crom_add_entry(struct crom_chunk *chunk, int key, int val)
 {
-	union
-	{
+	union {
 		struct csrreg reg;
 		uint32_t i;
 	} foo;
@@ -453,7 +451,7 @@ crom_add_simple_text(struct crom_src *src, struct crom_chunk *parent,
 		len = MAX_TEXT;
 	}
 
-	tl = (struct csrtext *) &chunk->data;
+	tl = (struct csrtext *)&chunk->data;
 	tl->crc_len = howmany(sizeof(struct csrtext) + len, sizeof(uint32_t));
 	tl->spec_id = 0;
 	tl->spec_type = 0;
@@ -492,14 +490,14 @@ crom_load(struct crom_src *src, uint32_t *buf, int maxlen)
 
 	offset = 0;
 	/* Determine offset */
-	STAILQ_FOREACH(chunk, &src->chunk_list, link) {
+	STAILQ_FOREACH (chunk, &src->chunk_list, link) {
 		chunk->offset = offset;
 		/* Assume the offset of the parent is already known */
 		parent = chunk->ref_chunk;
 		if (parent != NULL) {
 			struct csrreg *reg;
-			reg = (struct csrreg *)
-			    &parent->data.buf[chunk->ref_index];
+			reg = (struct csrreg *)&parent->data
+				  .buf[chunk->ref_index];
 			reg->val = offset -
 			    (parent->offset + 1 + chunk->ref_index);
 		}
@@ -511,13 +509,13 @@ crom_load(struct crom_src *src, uint32_t *buf, int maxlen)
 	count = 0;
 	if (crom_copy((uint32_t *)&src->hdr, buf, &count, len, maxlen) < 0)
 		return (-1);
-	STAILQ_FOREACH(chunk, &src->chunk_list, link) {
-		chunk->data.crc =
-		    crom_crc(&chunk->data.buf[0], chunk->data.crc_len);
+	STAILQ_FOREACH (chunk, &src->chunk_list, link) {
+		chunk->data.crc = crom_crc(&chunk->data.buf[0],
+		    chunk->data.crc_len);
 
 		len = 1 + chunk->data.crc_len;
-		if (crom_copy((uint32_t *)&chunk->data, buf,
-		    &count, len, maxlen) < 0)
+		if (crom_copy((uint32_t *)&chunk->data, buf, &count, len,
+			maxlen) < 0)
 			return (-1);
 	}
 	hdr = (struct csrhdr *)buf;
@@ -542,8 +540,8 @@ int
 main()
 {
 	struct crom_src src;
-	struct crom_chunk root,unit1,unit2,unit3;
-	struct crom_chunk text1,text2,text3,text4,text5,text6,text7;
+	struct crom_chunk root, unit1, unit2, unit3;
+	struct crom_chunk text1, text2, text3, text4, text5, text6, text7;
 	uint32_t buf[256], *p;
 	int i;
 
@@ -596,7 +594,7 @@ main()
 	crom_add_entry(&unit1, CSRKEY_COM_SET, CSRVAL_SCSI);
 	/* management_agent */
 	crom_add_entry(&unit1, CROM_MGM, 0x1000);
-	crom_add_entry(&unit1, CSRKEY_UNIT_CH, (10<<8) | 8);
+	crom_add_entry(&unit1, CSRKEY_UNIT_CH, (10 << 8) | 8);
 	/* Device type and LUN */
 	crom_add_entry(&unit1, CROM_LUN, 0);
 	crom_add_entry(&unit1, CSRKEY_MODEL, 1);
@@ -618,10 +616,10 @@ main()
 
 	crom_load(&src, buf, 256);
 	p = buf;
-#define DUMP_FORMAT     "%08x %08x %08x %08x %08x %08x %08x %08x\n"
-	for (i = 0; i < 256/8; i++) {
-		printf(DUMP_FORMAT,
-			p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
+#define DUMP_FORMAT "%08x %08x %08x %08x %08x %08x %08x %08x\n"
+	for (i = 0; i < 256 / 8; i++) {
+		printf(DUMP_FORMAT, p[0], p[1], p[2], p[3], p[4], p[5], p[6],
+		    p[7]);
 		p += 8;
 	}
 	return (0);

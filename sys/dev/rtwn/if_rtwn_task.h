@@ -17,9 +17,9 @@
 #ifndef IF_RTWN_TASK_H
 #define IF_RTWN_TASK_H
 
-void	rtwn_cmdq_init(struct rtwn_softc *);
-void	rtwn_cmdq_destroy(struct rtwn_softc *);
-int	rtwn_cmd_sleepable(struct rtwn_softc *, const void *, size_t,
-	    CMD_FUNC_PROTO);
+void rtwn_cmdq_init(struct rtwn_softc *);
+void rtwn_cmdq_destroy(struct rtwn_softc *);
+int rtwn_cmd_sleepable(struct rtwn_softc *, const void *, size_t,
+    CMD_FUNC_PROTO);
 
-#endif	/* IF_RTWN_TASK_H */
+#endif /* IF_RTWN_TASK_H */

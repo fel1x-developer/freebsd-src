@@ -32,6 +32,9 @@
 
 #include <sys/param.h>
 #include <sys/errno.h>
+
+#include <cam/scsi/scsi_all.h>
+#include <camlib.h>
 #include <ctype.h>
 #include <err.h>
 #include <libutil.h>
@@ -41,9 +44,6 @@
 #include <string.h>
 #include <strings.h>
 #include <unistd.h>
-
-#include <camlib.h>
-#include <cam/scsi/scsi_all.h>
 
 #include "mptutil.h"
 
@@ -55,7 +55,7 @@ mpt_pdstate(CONFIG_PAGE_RAID_PHYS_DISK_0 *info)
 	switch (info->PhysDiskStatus.State) {
 	case MPI_PHYSDISK0_STATUS_ONLINE:
 		if ((info->PhysDiskStatus.Flags &
-		    MPI_PHYSDISK0_STATUS_FLAG_OUT_OF_SYNC) &&
+			MPI_PHYSDISK0_STATUS_FLAG_OUT_OF_SYNC) &&
 		    info->PhysDiskSettings.HotSparePool == 0)
 			return ("REBUILD");
 		else
@@ -84,7 +84,7 @@ mpt_pdstate(CONFIG_PAGE_RAID_PHYS_DISK_0 *info)
  * There are several ways to enumerate physical disks.  Unfortunately,
  * none of them are truly complete, so we have to build a union of all of
  * them.  Specifically:
- * 
+ *
  * - IOC2 : This gives us a list of volumes, and by walking the volumes we
  *          can enumerate all of the drives attached to volumes including
  *          online drives and failed drives.
@@ -388,8 +388,8 @@ fail_drive(int ac, char **av)
 {
 
 	if (ac != 2) {
-		warnx("fail: %s", ac > 2 ? "extra arguments" :
-		    "drive required");
+		warnx("fail: %s",
+		    ac > 2 ? "extra arguments" : "drive required");
 		return (EINVAL);
 	}
 
@@ -403,8 +403,8 @@ online_drive(int ac, char **av)
 {
 
 	if (ac != 2) {
-		warnx("online: %s", ac > 2 ? "extra arguments" :
-		    "drive required");
+		warnx("online: %s",
+		    ac > 2 ? "extra arguments" : "drive required");
 		return (EINVAL);
 	}
 
@@ -418,8 +418,8 @@ offline_drive(int ac, char **av)
 {
 
 	if (ac != 2) {
-		warnx("offline: %s", ac > 2 ? "extra arguments" :
-		    "drive required");
+		warnx("offline: %s",
+		    ac > 2 ? "extra arguments" : "drive required");
 		return (EINVAL);
 	}
 

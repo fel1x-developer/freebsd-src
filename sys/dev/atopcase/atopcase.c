@@ -36,42 +36,40 @@
 #include <sys/kdb.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
-#include <sys/mutex.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/rman.h>
-#include <sys/sysctl.h>
 #include <sys/sx.h>
+#include <sys/sysctl.h>
 #include <sys/taskqueue.h>
 
 #include <dev/backlight/backlight.h>
-
 #include <dev/evdev/input.h>
 
-#define	HID_DEBUG_VAR atopcase_debug
+#define HID_DEBUG_VAR atopcase_debug
 #include <dev/hid/hid.h>
 #include <dev/hid/hidquirk.h>
-
 #include <dev/spibus/spi.h>
 #include <dev/spibus/spibusvar.h>
 
-#include "spibus_if.h"
-
 #include "atopcase_reg.h"
 #include "atopcase_var.h"
+#include "spibus_if.h"
 
-#define	ATOPCASE_IN_KDB()	(SCHEDULER_STOPPED() || kdb_active)
-#define	ATOPCASE_IN_POLLING_MODE(sc)					\
-	(((sc)->sc_gpe_bit == 0 && ((sc)->sc_irq_ih == NULL)) || cold ||\
-	ATOPCASE_IN_KDB())
-#define	ATOPCASE_WAKEUP(sc, chan) do {					\
-	if (!ATOPCASE_IN_POLLING_MODE(sc)) {				\
-		DPRINTFN(ATOPCASE_LLEVEL_DEBUG, "wakeup: %p\n", chan);	\
-		wakeup(chan);						\
-	}								\
-} while (0)
-#define	ATOPCASE_SPI_PAUSE()	DELAY(100)
-#define	ATOPCASE_SPI_NO_SLEEP_FLAG(sc)					\
+#define ATOPCASE_IN_KDB() (SCHEDULER_STOPPED() || kdb_active)
+#define ATOPCASE_IN_POLLING_MODE(sc)                                     \
+	(((sc)->sc_gpe_bit == 0 && ((sc)->sc_irq_ih == NULL)) || cold || \
+	    ATOPCASE_IN_KDB())
+#define ATOPCASE_WAKEUP(sc, chan)                                              \
+	do {                                                                   \
+		if (!ATOPCASE_IN_POLLING_MODE(sc)) {                           \
+			DPRINTFN(ATOPCASE_LLEVEL_DEBUG, "wakeup: %p\n", chan); \
+			wakeup(chan);                                          \
+		}                                                              \
+	} while (0)
+#define ATOPCASE_SPI_PAUSE() DELAY(100)
+#define ATOPCASE_SPI_NO_SLEEP_FLAG(sc) \
 	((sc)->sc_irq_ih != NULL ? SPI_FLAG_NO_SLEEP : 0)
 
 /* Tunables */
@@ -81,8 +79,8 @@ static SYSCTL_NODE(_hw_hid, OID_AUTO, atopcase, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
 #ifdef HID_DEBUG
 enum atopcase_log_level atopcase_debug = ATOPCASE_LLEVEL_DISABLED;
 
-SYSCTL_INT(_hw_hid_atopcase, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &atopcase_debug, ATOPCASE_LLEVEL_DISABLED, "atopcase log level");
+SYSCTL_INT(_hw_hid_atopcase, OID_AUTO, debug, CTLFLAG_RWTUN, &atopcase_debug,
+    ATOPCASE_LLEVEL_DISABLED, "atopcase log level");
 #endif /* !HID_DEBUG */
 
 static const uint8_t booted[] = { 0xa0, 0x80, 0x00, 0x00 };
@@ -160,34 +158,37 @@ atopcase_process_message(struct atopcase_softc *sc, uint8_t device, void *msg,
 		return (EIO);
 	}
 
-#define CPOFF(dst, len, off)	do {					\
-	unsigned _len = le16toh(len);					\
-	unsigned _off = le16toh(off);					\
-	if (pl_len >= _len + _off) {					\
-		memcpy(dst, (uint8_t*)payload + _off, MIN(_len, sizeof(dst)));\
-		(dst)[MIN(_len, sizeof(dst) - 1)] = '\0';		\
-	}} while (0);
+#define CPOFF(dst, len, off)                                      \
+	do {                                                      \
+		unsigned _len = le16toh(len);                     \
+		unsigned _off = le16toh(off);                     \
+		if (pl_len >= _len + _off) {                      \
+			memcpy(dst, (uint8_t *)payload + _off,    \
+			    MIN(_len, sizeof(dst)));              \
+			(dst)[MIN(_len, sizeof(dst) - 1)] = '\0'; \
+		}                                                 \
+	} while (0);
 
-	if ((ac = atopcase_get_child_by_device(sc, device)) != NULL
-	    && hdr->type == ATOPCASE_MSG_TYPE_REPORT(device)) {
+	if ((ac = atopcase_get_child_by_device(sc, device)) != NULL &&
+	    hdr->type == ATOPCASE_MSG_TYPE_REPORT(device)) {
 		if (ac->open)
 			ac->intr_handler(ac->intr_ctx, payload, pl_len);
-	} else if (device == ATOPCASE_DEV_INFO
-	    && hdr->type == ATOPCASE_MSG_TYPE_INFO(ATOPCASE_INFO_IFACE)
-	    && (ac = atopcase_get_child_by_device(sc, hdr->type_arg)) != NULL) {
+	} else if (device == ATOPCASE_DEV_INFO &&
+	    hdr->type == ATOPCASE_MSG_TYPE_INFO(ATOPCASE_INFO_IFACE) &&
+	    (ac = atopcase_get_child_by_device(sc, hdr->type_arg)) != NULL) {
 		struct atopcase_iface_info_payload *iface = payload;
 		CPOFF(ac->name, iface->name_len, iface->name_off);
 		DPRINTF("Interface #%d name: %s\n", ac->device, ac->name);
-	} else if (device == ATOPCASE_DEV_INFO
-	    && hdr->type == ATOPCASE_MSG_TYPE_INFO(ATOPCASE_INFO_DESCRIPTOR)
-	    && (ac = atopcase_get_child_by_device(sc, hdr->type_arg)) != NULL) {
+	} else if (device == ATOPCASE_DEV_INFO &&
+	    hdr->type == ATOPCASE_MSG_TYPE_INFO(ATOPCASE_INFO_DESCRIPTOR) &&
+	    (ac = atopcase_get_child_by_device(sc, hdr->type_arg)) != NULL) {
 		memcpy(ac->rdesc, payload, pl_len);
 		ac->rdesc_len = ac->hw.rdescsize = pl_len;
 		DPRINTF("%s HID report descriptor: %*D\n", ac->name,
-		    (int) ac->hw.rdescsize, ac->rdesc, " ");
-	} else if (device == ATOPCASE_DEV_INFO
-	    && hdr->type == ATOPCASE_MSG_TYPE_INFO(ATOPCASE_INFO_DEVICE)
-	    && hdr->type_arg == ATOPCASE_INFO_DEVICE) {
+		    (int)ac->hw.rdescsize, ac->rdesc, " ");
+	} else if (device == ATOPCASE_DEV_INFO &&
+	    hdr->type == ATOPCASE_MSG_TYPE_INFO(ATOPCASE_INFO_DEVICE) &&
+	    hdr->type_arg == ATOPCASE_INFO_DEVICE) {
 		struct atopcase_device_info_payload *dev = payload;
 		sc->sc_vid = le16toh(dev->vid);
 		sc->sc_pid = le16toh(dev->pid);
@@ -231,7 +232,8 @@ atopcase_receive_packet(struct atopcase_softc *sc)
 	DPRINTFN(ATOPCASE_LLEVEL_TRACE, "Response: %*D\n", 256, &pkt, " ");
 
 	if (le16toh(pkt.checksum) != crc16(0, &pkt, sizeof(pkt) - 2)) {
-		DPRINTFN(ATOPCASE_LLEVEL_DEBUG, "packet with failed checksum\n");
+		DPRINTFN(ATOPCASE_LLEVEL_DEBUG,
+		    "packet with failed checksum\n");
 		return (EIO);
 	}
 
@@ -248,7 +250,7 @@ atopcase_receive_packet(struct atopcase_softc *sc)
 	if (pkt.direction != ATOPCASE_DIR_READ &&
 	    pkt.direction != ATOPCASE_DIR_WRITE) {
 		DPRINTFN(ATOPCASE_LLEVEL_DEBUG,
-		         "unknown message direction 0x%x\n", pkt.direction);
+		    "unknown message direction 0x%x\n", pkt.direction);
 		return (EIO);
 	}
 
@@ -263,8 +265,7 @@ atopcase_receive_packet(struct atopcase_softc *sc)
 	}
 
 	if (pkt.direction == ATOPCASE_DIR_READ &&
-	    pkt.device == ATOPCASE_DEV_INFO &&
-	    length == sizeof(booted) &&
+	    pkt.device == ATOPCASE_DEV_INFO && length == sizeof(booted) &&
 	    memcmp(pkt.data, booted, length) == 0) {
 		DPRINTFN(ATOPCASE_LLEVEL_DEBUG, "GPE boot packet\n");
 		sc->sc_booted = true;
@@ -276,8 +277,8 @@ atopcase_receive_packet(struct atopcase_softc *sc)
 	if (remaining != 0 || offset != 0) {
 		if (offset != sc->sc_msg_len) {
 			DPRINTFN(ATOPCASE_LLEVEL_DEBUG,
-			    "Unexpected offset (got %u, expected %u)\n",
-			    offset, sc->sc_msg_len);
+			    "Unexpected offset (got %u, expected %u)\n", offset,
+			    sc->sc_msg_len);
 			sc->sc_msg_len = 0;
 			return (EIO);
 		}
@@ -406,7 +407,7 @@ atopcase_create_message(struct atopcase_packet *pkt, uint8_t device,
 	memcpy(pkt->data + sizeof(*hdr), payload, len);
 	msg_checksum = htole16(crc16(0, pkt->data, pkt->length - 2));
 	memcpy(pkt->data + sizeof(*hdr) + len, &msg_checksum, 2);
-	pkt->checksum = htole16(crc16(0, (uint8_t*)pkt, sizeof(*pkt) - 2));
+	pkt->checksum = htole16(crc16(0, (uint8_t *)pkt, sizeof(*pkt) - 2));
 
 	return;
 }
@@ -414,8 +415,8 @@ atopcase_create_message(struct atopcase_packet *pkt, uint8_t device,
 static int
 atopcase_request_desc(struct atopcase_softc *sc, uint16_t type, uint8_t device)
 {
-	atopcase_create_message(
-	   &sc->sc_buf, ATOPCASE_DEV_INFO, type, device, NULL, 0, 0x200);
+	atopcase_create_message(&sc->sc_buf, ATOPCASE_DEV_INFO, type, device,
+	    NULL, 0, 0x200);
 	return (atopcase_send(sc, &sc->sc_buf));
 }
 
@@ -495,7 +496,7 @@ atopcase_init(struct atopcase_softc *sc)
 	int err;
 
 	/* Wait until we know we're getting reasonable responses */
-	if(!sc->sc_booted && tsleep(sc, 0, "atcboot", hz / 20) != 0) {
+	if (!sc->sc_booted && tsleep(sc, 0, "atcboot", hz / 20) != 0) {
 		device_printf(sc->sc_dev, "can't establish communication\n");
 		err = EIO;
 		goto err;
@@ -509,8 +510,7 @@ atopcase_init(struct atopcase_softc *sc)
 
 	DPRINTF("Get the device descriptor\n");
 	err = atopcase_request_desc(sc,
-	    ATOPCASE_MSG_TYPE_INFO(ATOPCASE_INFO_DEVICE),
-	    ATOPCASE_INFO_DEVICE);
+	    ATOPCASE_MSG_TYPE_INFO(ATOPCASE_INFO_DEVICE), ATOPCASE_INFO_DEVICE);
 	if (err) {
 		device_printf(sc->sc_dev, "can't receive device descriptor\n");
 		goto err;
@@ -667,8 +667,8 @@ atopcase_set_report(device_t dev, device_t child, const void *buf,
 	if (len >= ATOPCASE_DATA_SIZE - sizeof(struct atopcase_header) - 2)
 		return (EINVAL);
 
-	DPRINTF("%s HID command SET_REPORT %d (len %d): %*D\n",
-	    ac->name, id, len, len, buf, " ");
+	DPRINTF("%s HID command SET_REPORT %d (len %d): %*D\n", ac->name, id,
+	    len, len, buf, " ");
 
 	if (!ATOPCASE_IN_KDB())
 		sx_xlock(&sc->sc_write_sx);
@@ -693,8 +693,9 @@ atopcase_backlight_update_status(device_t dev, struct backlight_props *props)
 	 * Hardware range is 32-255 for visible backlight,
 	 * convert from percentages
 	 */
-	payload.level = (props->brightness == 0) ? 0 :
-		(32 + (223 * props->brightness / 100));
+	payload.level = (props->brightness == 0) ?
+	    0 :
+	    (32 + (223 * props->brightness / 100));
 	payload.status = (payload.level > 0) ? 0x01F4 : 0x1;
 
 	return (atopcase_set_report(dev, sc->sc_kb.hidbus, &payload,

@@ -29,50 +29,48 @@
 #include "opt_inet6.h"
 
 #include <sys/param.h>
-#include <sys/module.h>
+#include <sys/conf.h> /* DEV_MODULE_ORDERED */
+#include <sys/endian.h>
 #include <sys/errno.h>
 #include <sys/eventhandler.h>
 #include <sys/jail.h>
-#include <sys/poll.h>  /* POLLIN, POLLOUT */
-#include <sys/kernel.h> /* types used in module initialization */
-#include <sys/conf.h>	/* DEV_MODULE_ORDERED */
-#include <sys/endian.h>
-#include <sys/syscallsubr.h> /* kern_ioctl() */
-
+#include <sys/kernel.h>	 /* types used in module initialization */
+#include <sys/kthread.h> /* kthread_add() */
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/poll.h> /* POLLIN, POLLOUT */
+#include <sys/proc.h> /* PROC_LOCK() */
 #include <sys/rwlock.h>
+#include <sys/sched.h> /* sched_bind() */
+#include <sys/selinfo.h>
+#include <sys/smp.h>	     /* mp_maxid */
+#include <sys/socket.h>	     /* sockaddrs */
+#include <sys/syscallsubr.h> /* kern_ioctl() */
+#include <sys/taskqueue.h>   /* taskqueue_enqueue(), taskqueue_create(), ... */
+#include <sys/unistd.h>	     /* RFNOWAIT */
 
-#include <vm/vm.h>      /* vtophys */
-#include <vm/pmap.h>    /* vtophys */
-#include <vm/vm_param.h>
+#include <vm/vm.h>   /* vtophys */
+#include <vm/pmap.h> /* vtophys */
+#include <vm/uma.h>
 #include <vm/vm_object.h>
 #include <vm/vm_page.h>
 #include <vm/vm_pager.h>
-#include <vm/uma.h>
+#include <vm/vm_param.h>
 
+#include <machine/bus.h>      /* bus_dmamap_* */
+#include <machine/in_cksum.h> /* in_pseudo(), in_cksum_hdr() */
 
-#include <sys/malloc.h>
-#include <sys/socket.h> /* sockaddrs */
-#include <sys/selinfo.h>
-#include <sys/kthread.h> /* kthread_add() */
-#include <sys/proc.h> /* PROC_LOCK() */
-#include <sys/unistd.h> /* RFNOWAIT */
-#include <sys/sched.h> /* sched_bind() */
-#include <sys/smp.h> /* mp_maxid */
-#include <sys/taskqueue.h> /* taskqueue_enqueue(), taskqueue_create(), ... */
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_types.h> /* IFT_ETHER */
-#include <net/ethernet.h> /* ether_ifdetach */
-#include <net/if_dl.h> /* LLADDR */
-#include <machine/bus.h>        /* bus_dmamap_* */
-#include <netinet/in.h>		/* in6_cksum_pseudo() */
-#include <machine/in_cksum.h>  /* in_pseudo(), in_cksum_hdr() */
-
-#include <net/netmap.h>
 #include <dev/netmap/netmap_kern.h>
-#include <net/netmap_virt.h>
 #include <dev/netmap/netmap_mem2.h>
 
+#include <net/ethernet.h> /* ether_ifdetach */
+#include <net/if.h>
+#include <net/if_dl.h>	  /* LLADDR */
+#include <net/if_types.h> /* IFT_ETHER */
+#include <net/if_var.h>
+#include <net/netmap.h>
+#include <net/netmap_virt.h>
+#include <netinet/in.h> /* in6_cksum_pseudo() */
 
 /* ======================== FREEBSD-SPECIFIC ROUTINES ================== */
 
@@ -87,12 +85,14 @@ nm_kqueue_notify(void *opaque, int pending)
 	KNOTE_UNLOCKED(&si->si.si_note, /*hint=*/0x100);
 }
 
-int nm_os_selinfo_init(NM_SELINFO_T *si, const char *name) {
+int
+nm_os_selinfo_init(NM_SELINFO_T *si, const char *name)
+{
 	int err;
 
 	TASK_INIT(&si->ntfytask, 0, nm_kqueue_notify, si);
-	si->ntfytq = taskqueue_create(name, M_NOWAIT,
-	    taskqueue_thread_enqueue, &si->ntfytq);
+	si->ntfytq = taskqueue_create(name, M_NOWAIT, taskqueue_thread_enqueue,
+	    &si->ntfytq);
 	if (si->ntfytq == NULL)
 		return -ENOMEM;
 	err = taskqueue_start_threads(&si->ntfytq, 1, PI_NET, "tq %s", name);
@@ -114,7 +114,7 @@ void
 nm_os_selinfo_uninit(NM_SELINFO_T *si)
 {
 	if (si->ntfytq == NULL) {
-		return;	/* si was not initialized */
+		return; /* si was not initialized */
 	}
 	taskqueue_drain(si->ntfytq, &si->ntfytask);
 	taskqueue_free(si->ntfytq);
@@ -187,24 +187,18 @@ static eventhandler_tag nm_ifnet_dh_tag;
 int
 nm_os_ifnet_init(void)
 {
-	nm_ifnet_ah_tag =
-		EVENTHANDLER_REGISTER(ifnet_arrival_event,
-				netmap_ifnet_arrival_handler,
-				NULL, EVENTHANDLER_PRI_ANY);
-	nm_ifnet_dh_tag =
-		EVENTHANDLER_REGISTER(ifnet_departure_event,
-				netmap_ifnet_departure_handler,
-				NULL, EVENTHANDLER_PRI_ANY);
+	nm_ifnet_ah_tag = EVENTHANDLER_REGISTER(ifnet_arrival_event,
+	    netmap_ifnet_arrival_handler, NULL, EVENTHANDLER_PRI_ANY);
+	nm_ifnet_dh_tag = EVENTHANDLER_REGISTER(ifnet_departure_event,
+	    netmap_ifnet_departure_handler, NULL, EVENTHANDLER_PRI_ANY);
 	return 0;
 }
 
 void
 nm_os_ifnet_fini(void)
 {
-	EVENTHANDLER_DEREGISTER(ifnet_arrival_event,
-			nm_ifnet_ah_tag);
-	EVENTHANDLER_DEREGISTER(ifnet_departure_event,
-			nm_ifnet_dh_tag);
+	EVENTHANDLER_DEREGISTER(ifnet_arrival_event, nm_ifnet_ah_tag);
+	EVENTHANDLER_DEREGISTER(ifnet_departure_event, nm_ifnet_dh_tag);
 }
 
 unsigned
@@ -225,7 +219,7 @@ nm_os_csum_raw(uint8_t *data, size_t len, rawsum_t cur_sum)
 		cur_sum += be16toh(words[i]);
 
 	if (len & 1)
-		cur_sum += (data[len-1] << 8);
+		cur_sum += (data[len - 1] << 8);
 
 	return cur_sum;
 }
@@ -243,25 +237,26 @@ nm_os_csum_fold(rawsum_t cur_sum)
 	return htobe16((~cur_sum) & 0xFFFF);
 }
 
-uint16_t nm_os_csum_ipv4(struct nm_iphdr *iph)
+uint16_t
+nm_os_csum_ipv4(struct nm_iphdr *iph)
 {
 #if 0
 	return in_cksum_hdr((void *)iph);
 #else
-	return nm_os_csum_fold(nm_os_csum_raw((uint8_t*)iph, sizeof(struct nm_iphdr), 0));
+	return nm_os_csum_fold(
+	    nm_os_csum_raw((uint8_t *)iph, sizeof(struct nm_iphdr), 0));
 #endif
 }
 
 void
-nm_os_csum_tcpudp_ipv4(struct nm_iphdr *iph, void *data,
-					size_t datalen, uint16_t *check)
+nm_os_csum_tcpudp_ipv4(struct nm_iphdr *iph, void *data, size_t datalen,
+    uint16_t *check)
 {
 #ifdef INET
 	uint16_t pseudolen = datalen + iph->protocol;
 
 	/* Compute and insert the pseudo-header checksum. */
-	*check = in_pseudo(iph->saddr, iph->daddr,
-				 htobe16(pseudolen));
+	*check = in_pseudo(iph->saddr, iph->daddr, htobe16(pseudolen));
 	/* Compute the checksum on TCP/UDP header + payload
 	 * (includes the pseudo-header).
 	 */
@@ -276,11 +271,11 @@ nm_os_csum_tcpudp_ipv4(struct nm_iphdr *iph, void *data,
 }
 
 void
-nm_os_csum_tcpudp_ipv6(struct nm_ipv6hdr *ip6h, void *data,
-					size_t datalen, uint16_t *check)
+nm_os_csum_tcpudp_ipv6(struct nm_ipv6hdr *ip6h, void *data, size_t datalen,
+    uint16_t *check)
 {
 #ifdef INET6
-	*check = in6_cksum_pseudo((void*)ip6h, datalen, ip6h->nexthdr, 0);
+	*check = in6_cksum_pseudo((void *)ip6h, datalen, ip6h->nexthdr, 0);
 	*check = nm_os_csum_fold(nm_os_csum_raw(data, datalen, 0));
 #else
 	static int notsupported = 0;
@@ -302,9 +297,9 @@ nm_os_send_up(if_t ifp, struct mbuf *m, struct mbuf *prev)
 int
 nm_os_mbuf_has_csum_offld(struct mbuf *m)
 {
-	return m->m_pkthdr.csum_flags & (CSUM_TCP | CSUM_UDP | CSUM_SCTP |
-					 CSUM_TCP_IPV6 | CSUM_UDP_IPV6 |
-					 CSUM_SCTP_IPV6);
+	return m->m_pkthdr.csum_flags &
+	    (CSUM_TCP | CSUM_UDP | CSUM_SCTP | CSUM_TCP_IPV6 | CSUM_UDP_IPV6 |
+		CSUM_SCTP_IPV6);
 }
 
 int
@@ -319,8 +314,9 @@ freebsd_generic_rx_handler(if_t ifp, struct mbuf *m)
 	int stolen;
 
 	if (unlikely(!NM_NA_VALID(ifp))) {
-		nm_prlim(1, "Warning: RX packet intercepted, but no"
-				" emulated adapter");
+		nm_prlim(1,
+		    "Warning: RX packet intercepted, but no"
+		    " emulated adapter");
 		return;
 	}
 
@@ -361,7 +357,6 @@ nm_os_catch_rx(struct netmap_generic_adapter *gna, int intercept)
 	return ret;
 }
 
-
 /*
  * Intercept the packet steering routine in the tx path,
  * so that we can decide which queue is used for an mbuf.
@@ -385,7 +380,6 @@ nm_os_catch_tx(struct netmap_generic_adapter *gna, int intercept)
 
 	return 0;
 }
-
 
 /*
  * Transmit routine used by generic_netmap_txsync(). Returns 0 on success
@@ -457,7 +451,6 @@ nm_os_generic_find_num_desc(if_t ifp, unsigned int *tx, unsigned int *rx)
 	return 0;
 }
 
-
 void
 nm_os_generic_find_num_queues(if_t ifp, u_int *txq, u_int *rxq)
 {
@@ -471,30 +464,28 @@ void
 nm_os_generic_set_features(struct netmap_generic_adapter *gna)
 {
 
-	gna->rxsg = 1; /* Supported through m_copydata. */
+	gna->rxsg = 1;	  /* Supported through m_copydata. */
 	gna->txqdisc = 0; /* Not supported. */
 }
 
 void
-nm_os_mitigation_init(struct nm_generic_mit *mit, int idx, struct netmap_adapter *na)
+nm_os_mitigation_init(struct nm_generic_mit *mit, int idx,
+    struct netmap_adapter *na)
 {
 	mit->mit_pending = 0;
 	mit->mit_ring_idx = idx;
 	mit->mit_na = na;
 }
 
-
 void
 nm_os_mitigation_start(struct nm_generic_mit *mit)
 {
 }
 
-
 void
 nm_os_mitigation_restart(struct nm_generic_mit *mit)
 {
 }
-
 
 int
 nm_os_mitigation_active(struct nm_generic_mit *mit)
@@ -502,7 +493,6 @@ nm_os_mitigation_active(struct nm_generic_mit *mit)
 
 	return 0;
 }
-
 
 void
 nm_os_mitigation_cleanup(struct nm_generic_mit *mit)
@@ -527,7 +517,7 @@ nm_vi_start(if_t ifp)
  * It is used to decide the lowest byte of the MAC address.
  * We use the same algorithm with management of bridge port index.
  */
-#define NM_VI_MAX	255
+#define NM_VI_MAX 255
 static struct {
 	uint8_t index[NM_VI_MAX]; /* XXX just for a reasonable number */
 	uint8_t active;
@@ -551,8 +541,9 @@ nm_vi_get_index(void)
 	int ret;
 
 	mtx_lock(&nm_vi_indices.lock);
-	ret = nm_vi_indices.active == NM_VI_MAX ? -1 :
-		nm_vi_indices.index[nm_vi_indices.active++];
+	ret = nm_vi_indices.active == NM_VI_MAX ?
+	    -1 :
+	    nm_vi_indices.index[nm_vi_indices.active++];
 	mtx_unlock(&nm_vi_indices.lock);
 	return ret;
 }
@@ -567,8 +558,8 @@ nm_vi_free_index(uint8_t val)
 	for (i = 0; i < lim; i++) {
 		if (nm_vi_indices.index[i] == val) {
 			/* swap index[lim-1] and j */
-			int tmp = nm_vi_indices.index[lim-1];
-			nm_vi_indices.index[lim-1] = val;
+			int tmp = nm_vi_indices.index[lim - 1];
+			nm_vi_indices.index[lim - 1] = val;
 			nm_vi_indices.index[i] = tmp;
 			nm_vi_indices.active--;
 			break;
@@ -606,7 +597,7 @@ nm_os_vi_persist(const char *name, if_t *ret)
 	 * except for the highest octet is 00:be instead of 00:bd
 	 */
 	macaddr_hi = htons(0x00be); /* XXX tap + 1 */
-	macaddr_mid = (uint32_t) ticks;
+	macaddr_mid = (uint32_t)ticks;
 	bcopy(&macaddr_hi, eaddr, sizeof(short));
 	bcopy(&macaddr_mid, &eaddr[2], sizeof(uint32_t));
 	eaddr[5] = (uint8_t)unit;
@@ -641,9 +632,9 @@ nm_os_vi_detach(if_t ifp)
 }
 
 #ifdef WITH_EXTMEM
-#include <vm/vm_map.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_kern.h>
+#include <vm/vm_map.h>
 struct nm_os_extmem {
 	vm_object_t obj;
 	vm_offset_t kva;
@@ -701,8 +692,8 @@ nm_os_extmem_create(unsigned long p, struct nmreq_pools_info *pi, int *perror)
 	}
 
 	map = &curthread->td_proc->p_vmspace->vm_map;
-	rv = vm_map_lookup(&map, p, VM_PROT_RW, &entry,
-			&obj, &index, &prot, &wired);
+	rv = vm_map_lookup(&map, p, VM_PROT_RW, &entry, &obj, &index, &prot,
+	    &wired);
 	if (rv != KERN_SUCCESS) {
 		nm_prerr("address %lx not found", p);
 		error = vm_mmap_to_errno(rv);
@@ -721,15 +712,15 @@ nm_os_extmem_create(unsigned long p, struct nmreq_pools_info *pi, int *perror)
 	e->kva = vm_map_min(kernel_map);
 	e->size = obj->size << PAGE_SHIFT;
 	rv = vm_map_find(kernel_map, obj, 0, &e->kva, e->size, 0,
-			VMFS_OPTIMAL_SPACE, VM_PROT_READ | VM_PROT_WRITE,
-			VM_PROT_READ | VM_PROT_WRITE, 0);
+	    VMFS_OPTIMAL_SPACE, VM_PROT_READ | VM_PROT_WRITE,
+	    VM_PROT_READ | VM_PROT_WRITE, 0);
 	if (rv != KERN_SUCCESS) {
 		nm_prerr("vm_map_find(%zx) failed", (size_t)e->size);
 		error = vm_mmap_to_errno(rv);
 		goto out_rel;
 	}
 	rv = vm_map_wire(kernel_map, e->kva, e->kva + e->size,
-			VM_MAP_WIRE_SYSTEM | VM_MAP_WIRE_NOHOLES);
+	    VM_MAP_WIRE_SYSTEM | VM_MAP_WIRE_NOHOLES);
 	if (rv != KERN_SUCCESS) {
 		nm_prerr("vm_map_wire failed");
 		error = vm_mmap_to_errno(rv);
@@ -759,10 +750,12 @@ out:
 #ifdef WITH_PTNETMAP
 #include <sys/bus.h>
 #include <sys/rman.h>
-#include <machine/bus.h>        /* bus_dmamap_* */
+
+#include <machine/bus.h> /* bus_dmamap_* */
 #include <machine/resource.h>
-#include <dev/pci/pcivar.h>
+
 #include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 /*
  * ptnetmap memory device (memdev) for freebsd guest,
  * ssed to expose host netmap memory to the guest through a PCI BAR.
@@ -778,18 +771,16 @@ struct ptnetmap_memdev {
 	struct netmap_mem_d *nm_mem;
 };
 
-static int	ptn_memdev_probe(device_t);
-static int	ptn_memdev_attach(device_t);
-static int	ptn_memdev_detach(device_t);
-static int	ptn_memdev_shutdown(device_t);
+static int ptn_memdev_probe(device_t);
+static int ptn_memdev_attach(device_t);
+static int ptn_memdev_detach(device_t);
+static int ptn_memdev_shutdown(device_t);
 
-static device_method_t ptn_memdev_methods[] = {
-	DEVMETHOD(device_probe, ptn_memdev_probe),
+static device_method_t ptn_memdev_methods[] = { DEVMETHOD(device_probe,
+						    ptn_memdev_probe),
 	DEVMETHOD(device_attach, ptn_memdev_attach),
 	DEVMETHOD(device_detach, ptn_memdev_detach),
-	DEVMETHOD(device_shutdown, ptn_memdev_shutdown),
-	DEVMETHOD_END
-};
+	DEVMETHOD(device_shutdown, ptn_memdev_shutdown), DEVMETHOD_END };
 
 static driver_t ptn_memdev_driver = {
 	PTNETMAP_MEMDEV_NAME,
@@ -800,7 +791,7 @@ static driver_t ptn_memdev_driver = {
 /* We use (SI_ORDER_MIDDLE+1) here, see DEV_MODULE_ORDERED() invocation
  * below. */
 DRIVER_MODULE_ORDERED(ptn_memdev, pci, ptn_memdev_driver, NULL, NULL,
-		      SI_ORDER_MIDDLE + 1);
+    SI_ORDER_MIDDLE + 1);
 
 /*
  * Map host netmap memory through PCI-BAR in the guest OS,
@@ -809,7 +800,7 @@ DRIVER_MODULE_ORDERED(ptn_memdev, pci, ptn_memdev_driver, NULL, NULL,
  */
 int
 nm_os_pt_memdev_iomap(struct ptnetmap_memdev *ptn_dev, vm_paddr_t *nm_paddr,
-		      void **nm_addr, uint64_t *mem_size)
+    void **nm_addr, uint64_t *mem_size)
 {
 	int rid;
 
@@ -818,11 +809,11 @@ nm_os_pt_memdev_iomap(struct ptnetmap_memdev *ptn_dev, vm_paddr_t *nm_paddr,
 	rid = PCIR_BAR(PTNETMAP_MEM_PCI_BAR);
 	*mem_size = bus_read_4(ptn_dev->pci_io, PTNET_MDEV_IO_MEMSIZE_HI);
 	*mem_size = bus_read_4(ptn_dev->pci_io, PTNET_MDEV_IO_MEMSIZE_LO) |
-			(*mem_size << 32);
+	    (*mem_size << 32);
 
 	/* map memory allocator */
 	ptn_dev->pci_mem = bus_alloc_resource(ptn_dev->dev, SYS_RES_MEMORY,
-			&rid, 0, ~0, *mem_size, RF_ACTIVE);
+	    &rid, 0, ~0, *mem_size, RF_ACTIVE);
 	if (ptn_dev->pci_mem == NULL) {
 		*nm_paddr = 0;
 		*nm_addr = NULL;
@@ -833,10 +824,9 @@ nm_os_pt_memdev_iomap(struct ptnetmap_memdev *ptn_dev, vm_paddr_t *nm_paddr,
 	*nm_addr = rman_get_virtual(ptn_dev->pci_mem);
 
 	nm_prinf("=== BAR %d start %lx len %lx mem_size %lx ===",
-			PTNETMAP_MEM_PCI_BAR,
-			(unsigned long)(*nm_paddr),
-			(unsigned long)rman_get_size(ptn_dev->pci_mem),
-			(unsigned long)*mem_size);
+	    PTNETMAP_MEM_PCI_BAR, (unsigned long)(*nm_paddr),
+	    (unsigned long)rman_get_size(ptn_dev->pci_mem),
+	    (unsigned long)*mem_size);
 	return (0);
 }
 
@@ -854,7 +844,7 @@ nm_os_pt_memdev_iounmap(struct ptnetmap_memdev *ptn_dev)
 
 	if (ptn_dev->pci_mem) {
 		bus_release_resource(ptn_dev->dev, SYS_RES_MEMORY,
-			PCIR_BAR(PTNETMAP_MEM_PCI_BAR), ptn_dev->pci_mem);
+		    PCIR_BAR(PTNETMAP_MEM_PCI_BAR), ptn_dev->pci_mem);
 		ptn_dev->pci_mem = NULL;
 	}
 }
@@ -871,8 +861,7 @@ ptn_memdev_probe(device_t dev)
 	if (pci_get_device(dev) != PTNETMAP_PCI_DEVICE_ID)
 		return (ENXIO);
 
-	snprintf(desc, sizeof(desc), "%s PCI adapter",
-			PTNETMAP_MEMDEV_NAME);
+	snprintf(desc, sizeof(desc), "%s PCI adapter", PTNETMAP_MEMDEV_NAME);
 	device_set_desc_copy(dev, desc);
 
 	return (BUS_PROBE_DEFAULT);
@@ -893,10 +882,10 @@ ptn_memdev_attach(device_t dev)
 
 	rid = PCIR_BAR(PTNETMAP_IO_PCI_BAR);
 	ptn_dev->pci_io = bus_alloc_resource_any(dev, SYS_RES_IOPORT, &rid,
-						 RF_ACTIVE);
+	    RF_ACTIVE);
 	if (ptn_dev->pci_io == NULL) {
-	        device_printf(dev, "cannot map I/O space\n");
-	        return (ENXIO);
+		device_printf(dev, "cannot map I/O space\n");
+		return (ENXIO);
 	}
 
 	mem_id = bus_read_4(ptn_dev->pci_io, PTNET_MDEV_IO_MEMID);
@@ -905,7 +894,7 @@ ptn_memdev_attach(device_t dev)
 	ptn_dev->nm_mem = netmap_mem_pt_guest_attach(ptn_dev, mem_id);
 	if (ptn_dev->nm_mem == NULL) {
 		ptn_memdev_detach(dev);
-	        return (ENOMEM);
+		return (ENOMEM);
 	}
 	netmap_mem_get(ptn_dev->nm_mem);
 
@@ -924,18 +913,18 @@ ptn_memdev_detach(device_t dev)
 
 	if (ptn_dev->nm_mem) {
 		nm_prinf("ptnetmap memdev detached, host memid %u",
-			netmap_mem_get_id(ptn_dev->nm_mem));
+		    netmap_mem_get_id(ptn_dev->nm_mem));
 		netmap_mem_put(ptn_dev->nm_mem);
 		ptn_dev->nm_mem = NULL;
 	}
 	if (ptn_dev->pci_mem) {
 		bus_release_resource(dev, SYS_RES_MEMORY,
-			PCIR_BAR(PTNETMAP_MEM_PCI_BAR), ptn_dev->pci_mem);
+		    PCIR_BAR(PTNETMAP_MEM_PCI_BAR), ptn_dev->pci_mem);
 		ptn_dev->pci_mem = NULL;
 	}
 	if (ptn_dev->pci_io) {
 		bus_release_resource(dev, SYS_RES_IOPORT,
-			PCIR_BAR(PTNETMAP_IO_PCI_BAR), ptn_dev->pci_io);
+		    PCIR_BAR(PTNETMAP_IO_PCI_BAR), ptn_dev->pci_io);
 		ptn_dev->pci_io = NULL;
 	}
 
@@ -957,26 +946,24 @@ ptn_memdev_shutdown(device_t dev)
  */
 
 struct netmap_vm_handle_t {
-	struct cdev 		*dev;
-	struct netmap_priv_d	*priv;
+	struct cdev *dev;
+	struct netmap_priv_d *priv;
 };
-
 
 static int
 netmap_dev_pager_ctor(void *handle, vm_ooffset_t size, vm_prot_t prot,
-		vm_ooffset_t foff, struct ucred *cred, u_short *color)
+    vm_ooffset_t foff, struct ucred *cred, u_short *color)
 {
 	struct netmap_vm_handle_t *vmh = handle;
 
 	if (netmap_verbose)
-		nm_prinf("handle %p size %jd prot %d foff %jd",
-			handle, (intmax_t)size, prot, (intmax_t)foff);
+		nm_prinf("handle %p size %jd prot %d foff %jd", handle,
+		    (intmax_t)size, prot, (intmax_t)foff);
 	if (color)
 		*color = 0;
 	dev_ref(vmh->dev);
 	return 0;
 }
-
 
 static void
 netmap_dev_pager_dtor(void *handle)
@@ -992,10 +979,9 @@ netmap_dev_pager_dtor(void *handle)
 	dev_rel(dev);
 }
 
-
 static int
-netmap_dev_pager_fault(vm_object_t object, vm_ooffset_t offset,
-	int prot, vm_page_t *mres)
+netmap_dev_pager_fault(vm_object_t object, vm_ooffset_t offset, int prot,
+    vm_page_t *mres)
 {
 	struct netmap_vm_handle_t *vmh = object->handle;
 	struct netmap_priv_d *priv = vmh->priv;
@@ -1004,8 +990,8 @@ netmap_dev_pager_fault(vm_object_t object, vm_ooffset_t offset,
 	vm_page_t page;
 	vm_memattr_t memattr;
 
-	nm_prdis("object %p offset %jd prot %d mres %p",
-			object, (intmax_t)offset, prot, mres);
+	nm_prdis("object %p offset %jd prot %d mres %p", object,
+	    (intmax_t)offset, prot, mres);
 	memattr = object->memattr;
 	paddr = netmap_mem_ofstophys(na->nm_mem, offset);
 	if (paddr == 0)
@@ -1033,17 +1019,15 @@ netmap_dev_pager_fault(vm_object_t object, vm_ooffset_t offset,
 	return (VM_PAGER_OK);
 }
 
-
 static struct cdev_pager_ops netmap_cdev_pager_ops = {
 	.cdev_pg_ctor = netmap_dev_pager_ctor,
 	.cdev_pg_dtor = netmap_dev_pager_dtor,
 	.cdev_pg_fault = netmap_dev_pager_fault,
 };
 
-
 static int
-netmap_mmap_single(struct cdev *cdev, vm_ooffset_t *foff,
-	vm_size_t objsize,  vm_object_t *objp, int prot)
+netmap_mmap_single(struct cdev *cdev, vm_ooffset_t *foff, vm_size_t objsize,
+    vm_object_t *objp, int prot)
 {
 	int error;
 	struct netmap_vm_handle_t *vmh;
@@ -1052,16 +1036,16 @@ netmap_mmap_single(struct cdev *cdev, vm_ooffset_t *foff,
 
 	if (netmap_verbose)
 		nm_prinf("cdev %p foff %jd size %jd objp %p prot %d", cdev,
-		    (intmax_t )*foff, (intmax_t )objsize, objp, prot);
+		    (intmax_t)*foff, (intmax_t)objsize, objp, prot);
 
 	vmh = malloc(sizeof(struct netmap_vm_handle_t), M_DEVBUF,
-			      M_NOWAIT | M_ZERO);
+	    M_NOWAIT | M_ZERO);
 	if (vmh == NULL)
 		return ENOMEM;
 	vmh->dev = cdev;
 
 	NMG_LOCK();
-	error = devfs_get_cdevpriv((void**)&priv);
+	error = devfs_get_cdevpriv((void **)&priv);
 	if (error)
 		goto err_unlock;
 	if (priv->np_nifp == NULL) {
@@ -1072,9 +1056,8 @@ netmap_mmap_single(struct cdev *cdev, vm_ooffset_t *foff,
 	priv->np_refs++;
 	NMG_UNLOCK();
 
-	obj = cdev_pager_allocate(vmh, OBJT_DEVICE,
-		&netmap_cdev_pager_ops, objsize, prot,
-		*foff, NULL);
+	obj = cdev_pager_allocate(vmh, OBJT_DEVICE, &netmap_cdev_pager_ops,
+	    objsize, prot, *foff, NULL);
 	if (obj == NULL) {
 		nm_prerr("cdev_pager_allocate failed");
 		error = EINVAL;
@@ -1089,7 +1072,7 @@ err_deref:
 	priv->np_refs--;
 err_unlock:
 	NMG_UNLOCK();
-// err:
+	// err:
 	free(vmh, M_DEVBUF);
 	return error;
 }
@@ -1110,11 +1093,10 @@ static int
 netmap_close(struct cdev *dev, int fflag, int devtype, struct thread *td)
 {
 	if (netmap_verbose)
-		nm_prinf("dev %p fflag 0x%x devtype %d td %p",
-			dev, fflag, devtype, td);
+		nm_prinf("dev %p fflag 0x%x devtype %d td %p", dev, fflag,
+		    devtype, td);
 	return 0;
 }
-
 
 static int
 netmap_open(struct cdev *dev, int oflags, int devtype, struct thread *td)
@@ -1160,7 +1142,8 @@ struct nm_kctx_ctx {
 
 	struct nm_kctx *nmk;
 
-	/* integer to manage multiple worker contexts (e.g., RX or TX on ptnetmap) */
+	/* integer to manage multiple worker contexts (e.g., RX or TX on
+	 * ptnetmap) */
 	long type;
 };
 
@@ -1168,8 +1151,8 @@ struct nm_kctx {
 	struct thread *worker;
 	struct mtx worker_lock;
 	struct nm_kctx_ctx worker_ctx;
-	int run;			/* used to stop kthread */
-	int attach_user;		/* kthread attached to user_process */
+	int run;	 /* used to stop kthread */
+	int attach_user; /* kthread attached to user_process */
 	int affinity;
 };
 
@@ -1216,7 +1199,7 @@ nm_os_kctx_create(struct nm_kctx_cfg *cfg, void *opaque)
 {
 	struct nm_kctx *nmk = NULL;
 
-	nmk = malloc(sizeof(*nmk),  M_DEVBUF, M_NOWAIT | M_ZERO);
+	nmk = malloc(sizeof(*nmk), M_DEVBUF, M_NOWAIT | M_ZERO);
 	if (!nmk)
 		return NULL;
 
@@ -1255,9 +1238,9 @@ nm_os_kctx_worker_start(struct nm_kctx *nmk)
 	/* enable kthread main loop */
 	nmk->run = 1;
 	/* create kthread */
-	if((error = kthread_add(nm_kctx_worker, nmk, p,
-			&nmk->worker, RFNOWAIT /* to be checked */, 0, "nm-kthread-%ld",
-			nmk->worker_ctx.type))) {
+	if ((error = kthread_add(nm_kctx_worker, nmk, p, &nmk->worker,
+		 RFNOWAIT /* to be checked */, 0, "nm-kthread-%ld",
+		 nmk->worker_ctx.type))) {
 		goto err;
 	}
 
@@ -1322,7 +1305,6 @@ nm_os_kctx_destroy(struct nm_kctx *nmk)
  * (if necessary), and skips the nm_os_selrecord() calls.
  */
 
-
 void
 nm_os_selwakeup(struct nm_selinfo *si)
 {
@@ -1346,8 +1328,8 @@ netmap_knrdetach(struct knote *kn)
 
 	knlist_remove(&si->si.si_note, kn, /*islocked=*/0);
 	NMG_LOCK();
-	KASSERT(si->kqueue_users > 0, ("kqueue_user underflow on %s",
-	    si->mtxname));
+	KASSERT(si->kqueue_users > 0,
+	    ("kqueue_user underflow on %s", si->mtxname));
 	si->kqueue_users--;
 	nm_prinf("kqueue users for %s: %d", si->mtxname, si->kqueue_users);
 	NMG_UNLOCK();
@@ -1417,7 +1399,6 @@ static struct filterops netmap_wfiltops = {
 	.f_event = netmap_knwrite,
 };
 
-
 /*
  * This is called when a thread invokes kevent() to record
  * a change in the configuration of the kqueue().
@@ -1436,7 +1417,7 @@ netmap_kqfilter(struct cdev *dev, struct knote *kn)
 		nm_prerr("bad filter request %d", ev);
 		return 1;
 	}
-	error = devfs_get_cdevpriv((void**)&priv);
+	error = devfs_get_cdevpriv((void **)&priv);
 	if (error) {
 		nm_prerr("device not yet setup");
 		return 1;
@@ -1448,8 +1429,7 @@ netmap_kqfilter(struct cdev *dev, struct knote *kn)
 	}
 	/* the si is indicated in the priv */
 	si = priv->np_si[(ev == EVFILT_WRITE) ? NR_TX : NR_RX];
-	kn->kn_fop = (ev == EVFILT_WRITE) ?
-		&netmap_wfiltops : &netmap_rfiltops;
+	kn->kn_fop = (ev == EVFILT_WRITE) ? &netmap_wfiltops : &netmap_rfiltops;
 	kn->kn_hook = priv;
 	NMG_LOCK();
 	si->kqueue_users++;
@@ -1472,7 +1452,7 @@ freebsd_netmap_poll(struct cdev *cdevi __unused, int events, struct thread *td)
 
 static int
 freebsd_netmap_ioctl(struct cdev *dev __unused, u_long cmd, caddr_t data,
-		int ffla __unused, struct thread *td)
+    int ffla __unused, struct thread *td)
 {
 	int error;
 	struct netmap_priv_d *priv;
@@ -1518,7 +1498,8 @@ nm_os_onexit(if_t ifp)
 	if_setcapenablebit(ifp, 0, IFCAP_NETMAP);
 }
 
-extern struct cdevsw netmap_cdevsw; /* XXX used in netmap.c, should go elsewhere */
+extern struct cdevsw
+    netmap_cdevsw; /* XXX used in netmap.c, should go elsewhere */
 struct cdevsw netmap_cdevsw = {
 	.d_version = D_VERSION,
 	.d_name = "netmap",
@@ -1554,8 +1535,9 @@ netmap_loader(__unused struct module *module, int event, __unused void *arg)
 		 * then the module can not be unloaded.
 		 */
 		if (netmap_use_count) {
-			nm_prerr("netmap module can not be unloaded - netmap_use_count: %d",
-					netmap_use_count);
+			nm_prerr(
+			    "netmap module can not be unloaded - netmap_use_count: %d",
+			    netmap_use_count);
 			error = EBUSY;
 			break;
 		}
@@ -1583,7 +1565,7 @@ netmap_loader(__unused struct module *module, int event, __unused void *arg)
  * macros for (ii) and (iii).
  */
 DEV_MODULE_ORDERED(netmap, netmap_loader, NULL, SI_ORDER_MIDDLE);
-#else /* !DEV_MODULE_ORDERED */
+#else  /* !DEV_MODULE_ORDERED */
 DEV_MODULE(netmap, netmap_loader, NULL);
 #endif /* DEV_MODULE_ORDERED  */
 MODULE_DEPEND(netmap, pci, 1, 1, 1);

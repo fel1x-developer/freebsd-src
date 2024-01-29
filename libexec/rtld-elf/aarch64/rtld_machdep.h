@@ -29,33 +29,33 @@
  */
 
 #ifndef RTLD_MACHDEP_H
-#define	RTLD_MACHDEP_H	1
+#define RTLD_MACHDEP_H 1
 
 #include <sys/types.h>
+
 #include <machine/atomic.h>
 #include <machine/tls.h>
 
 struct Struct_Obj_Entry;
 
 /* Return the address of the .dynamic section in the dynamic linker. */
-#define	rtld_dynamic(obj)						\
-({									\
-	Elf_Addr _dynamic_addr;						\
-	asm volatile("adr	%0, _DYNAMIC" : "=&r"(_dynamic_addr));	\
-	(const Elf_Dyn *)_dynamic_addr;					\
-})
+#define rtld_dynamic(obj)                                                      \
+	({                                                                     \
+		Elf_Addr _dynamic_addr;                                        \
+		asm volatile("adr	%0, _DYNAMIC" : "=&r"(_dynamic_addr)); \
+		(const Elf_Dyn *)_dynamic_addr;                                \
+	})
 
 Elf_Addr reloc_jmpslot(Elf_Addr *where, Elf_Addr target,
     const struct Struct_Obj_Entry *defobj, const struct Struct_Obj_Entry *obj,
     const Elf_Rel *rel);
 
-#define	make_function_pointer(def, defobj) \
+#define make_function_pointer(def, defobj) \
 	((defobj)->relocbase + (def)->st_value)
 
-#define	call_initfini_pointer(obj, target) \
-	(((InitFunc)(target))())
+#define call_initfini_pointer(obj, target) (((InitFunc)(target))())
 
-#define	call_init_pointer(obj, target) \
+#define call_init_pointer(obj, target) \
 	(((InitArrFunc)(target))(main_argc, main_argv, environ))
 
 /*
@@ -65,22 +65,19 @@ Elf_Addr reloc_jmpslot(Elf_Addr *where, Elf_Addr target,
  * no arguments are passed in, and if this changes later will be able to
  * compare the argument with 0 to see if it is set.
  */
-#define	call_ifunc_resolver(ptr) \
-	(((Elf_Addr (*)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, \
+#define call_ifunc_resolver(ptr)                                         \
+	(((Elf_Addr(*)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, \
 	    uint64_t, uint64_t, uint64_t))ptr)(0, 0, 0, 0, 0, 0, 0, 0))
 
-#define	round(size, align)				\
-	(((size) + (align) - 1) & ~((align) - 1))
-#define	calculate_first_tls_offset(size, align, offset)	\
-	round(16, align)
-#define	calculate_tls_offset(prev_offset, prev_size, size, align, offset) \
+#define round(size, align) (((size) + (align)-1) & ~((align)-1))
+#define calculate_first_tls_offset(size, align, offset) round(16, align)
+#define calculate_tls_offset(prev_offset, prev_size, size, align, offset) \
 	round(prev_offset + prev_size, align)
-#define calculate_tls_post_size(align) \
-	round(TLS_TCB_SIZE, align) - TLS_TCB_SIZE
+#define calculate_tls_post_size(align) round(TLS_TCB_SIZE, align) - TLS_TCB_SIZE
 
 typedef struct {
-    unsigned long ti_module;
-    unsigned long ti_offset;
+	unsigned long ti_module;
+	unsigned long ti_offset;
 } tls_index;
 
 extern void *__tls_get_addr(tls_index *ti);

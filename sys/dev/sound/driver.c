@@ -47,11 +47,7 @@ snd_modevent(module_t mod, int type, void *data)
 	return 0;
 }
 
-static moduledata_t snd_mod = {
-	"snd_driver",
-	snd_modevent,
-	NULL
-};
+static moduledata_t snd_mod = { "snd_driver", snd_modevent, NULL };
 DECLARE_MODULE(snd_driver, snd_mod, SI_SUB_DRIVERS, SI_ORDER_MIDDLE);
 MODULE_VERSION(snd_driver, 1);
 

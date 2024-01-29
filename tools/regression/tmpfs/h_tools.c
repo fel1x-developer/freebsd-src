@@ -36,13 +36,13 @@
  * given directory.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/event.h>
 #include <sys/mount.h>
+#include <sys/socket.h>
 #include <sys/statvfs.h>
 #include <sys/stdint.h>
-#include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/un.h>
 
@@ -75,8 +75,8 @@ getfh_main(int argc, char **argv)
 		return EXIT_FAILURE;
 
 	error = getfh(argv[1], &fh);
-	if (error == 0) 
-		err(EXIT_FAILURE, "can not getfh");	
+	if (error == 0)
+		err(EXIT_FAILURE, "can not getfh");
 
 	error = write(STDOUT_FILENO, &fh, sizeof(fh));
 	if (error == -1) {
@@ -117,7 +117,7 @@ kqueue_main(int argc, char **argv)
 		EV_SET(&changes[i], fd, EVFILT_VNODE,
 		    EV_ADD | EV_ENABLE | EV_ONESHOT,
 		    NOTE_ATTRIB | NOTE_DELETE | NOTE_EXTEND | NOTE_LINK |
-		    NOTE_RENAME | NOTE_REVOKE | NOTE_WRITE,
+			NOTE_RENAME | NOTE_REVOKE | NOTE_WRITE,
 		    0, 0);
 	}
 

@@ -4,7 +4,7 @@
 
 void
 crypto_instance_init(struct adf_cfg_instance *instance,
-		     struct adf_cfg_bundle *bundle)
+    struct adf_cfg_bundle *bundle)
 {
 	int i = 0;
 
@@ -60,7 +60,7 @@ crypto_instance_init(struct adf_cfg_instance *instance,
 
 void
 dc_instance_init(struct adf_cfg_instance *instance,
-		 struct adf_cfg_bundle *bundle)
+    struct adf_cfg_bundle *bundle)
 {
 	int i = 0;
 
@@ -92,7 +92,7 @@ dc_instance_init(struct adf_cfg_instance *instance,
 
 void
 asym_instance_init(struct adf_cfg_instance *instance,
-		   struct adf_cfg_bundle *bundle)
+    struct adf_cfg_bundle *bundle)
 {
 	int i = 0;
 
@@ -124,7 +124,7 @@ asym_instance_init(struct adf_cfg_instance *instance,
 
 void
 sym_instance_init(struct adf_cfg_instance *instance,
-		  struct adf_cfg_bundle *bundle)
+    struct adf_cfg_bundle *bundle)
 {
 	int i = 0;
 

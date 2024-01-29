@@ -27,7 +27,7 @@
  */
 
 #ifndef _LINUXKPI_LINUX_IRQ_WORK_H_
-#define	_LINUXKPI_LINUX_IRQ_WORK_H_
+#define _LINUXKPI_LINUX_IRQ_WORK_H_
 
 #include <sys/param.h>
 #include <sys/taskqueue.h>
@@ -35,13 +35,13 @@
 #include <linux/llist.h>
 #include <linux/workqueue.h>
 
-#define	LKPI_IRQ_WORK_STD_TQ	system_wq->taskqueue
-#define	LKPI_IRQ_WORK_FAST_TQ	linux_irq_work_tq
+#define LKPI_IRQ_WORK_STD_TQ system_wq->taskqueue
+#define LKPI_IRQ_WORK_FAST_TQ linux_irq_work_tq
 
 #ifdef LKPI_IRQ_WORK_USE_FAST_TQ
-#define	LKPI_IRQ_WORK_TQ	LKPI_IRQ_WORK_FAST_TQ
+#define LKPI_IRQ_WORK_TQ LKPI_IRQ_WORK_FAST_TQ
 #else
-#define	LKPI_IRQ_WORK_TQ	LKPI_IRQ_WORK_STD_TQ
+#define LKPI_IRQ_WORK_TQ LKPI_IRQ_WORK_STD_TQ
 #endif
 
 struct irq_work;
@@ -60,12 +60,13 @@ struct irq_work {
 
 extern struct taskqueue *linux_irq_work_tq;
 
-#define	DEFINE_IRQ_WORK(name, _func)	struct irq_work name = {	\
-	.irq_task = TASK_INITIALIZER(0, linux_irq_work_fn, &(name)),	\
-	.func  = (_func),						\
-}
+#define DEFINE_IRQ_WORK(name, _func)                                         \
+	struct irq_work name = {                                             \
+		.irq_task = TASK_INITIALIZER(0, linux_irq_work_fn, &(name)), \
+		.func = (_func),                                             \
+	}
 
-void	linux_irq_work_fn(void *, int);
+void linux_irq_work_fn(void *, int);
 
 static inline void
 init_irq_work(struct irq_work *irqw, irq_work_func_t func)
@@ -78,7 +79,7 @@ static inline bool
 irq_work_queue(struct irq_work *irqw)
 {
 	return (taskqueue_enqueue_flags(LKPI_IRQ_WORK_TQ, &irqw->irq_task,
-	    TASKQUEUE_FAIL_IF_PENDING) == 0);
+		    TASKQUEUE_FAIL_IF_PENDING) == 0);
 }
 
 static inline void

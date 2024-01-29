@@ -18,41 +18,38 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/rman.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
 
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/if_rtwn_debug.h>
-
+#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/pci/rtwn_pci_var.h>
-
 #include <dev/rtwn/rtl8192c/pci/r92ce.h>
 #include <dev/rtwn/rtl8192c/pci/r92ce_reg.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 int
 r92ce_get_intr_status(struct rtwn_pci_softc *pc, int *rings)
@@ -104,10 +101,10 @@ r92ce_get_intr_status(struct rtwn_pci_softc *pc, int *rings)
 	return (ret);
 }
 
-#define R92C_INT_ENABLE (R92C_IMR_ROK | R92C_IMR_VODOK | R92C_IMR_VIDOK | \
-			R92C_IMR_BEDOK | R92C_IMR_BKDOK | R92C_IMR_MGNTDOK | \
-			R92C_IMR_HIGHDOK | R92C_IMR_BDOK | R92C_IMR_RDU | \
-			R92C_IMR_RXFOVW)
+#define R92C_INT_ENABLE                                                    \
+	(R92C_IMR_ROK | R92C_IMR_VODOK | R92C_IMR_VIDOK | R92C_IMR_BEDOK | \
+	    R92C_IMR_BKDOK | R92C_IMR_MGNTDOK | R92C_IMR_HIGHDOK |         \
+	    R92C_IMR_BDOK | R92C_IMR_RDU | R92C_IMR_RXFOVW)
 void
 r92ce_enable_intr(struct rtwn_pci_softc *pc)
 {

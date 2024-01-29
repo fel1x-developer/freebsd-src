@@ -18,18 +18,20 @@
  */
 
 #include <sys/cdefs.h>
-#include <machine/_inttypes.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
-#include <sys/sysctl.h>
+#include <sys/module.h>
 #include <sys/stdint.h>
+#include <sys/sysctl.h>
+
+#include <machine/_inttypes.h>
+
+#include <dev/acpica/acpivar.h>
 
 #include <contrib/dev/acpica/include/acpi.h>
-#include <dev/acpica/acpivar.h>
 
 /*
  * ASUSTeK AI Booster (ACPI ASOC ATK0110).
@@ -43,46 +45,46 @@
  *				  -- Constantine A. Murenin <http://cnst.su/>
  */
 
-#define _COMPONENT	ACPI_OEM
+#define _COMPONENT ACPI_OEM
 ACPI_MODULE_NAME("aibs");
 ACPI_SERIAL_DECL(aibs, "aibs");
 
 #define AIBS_MORE_SENSORS
 #define AIBS_VERBOSE
 
-#define	AIBS_GROUP_SENSORS	0x06
+#define AIBS_GROUP_SENSORS 0x06
 
-#define AIBS_SENS_TYPE(x)	(((x) >> 16) & 0xff)
-#define AIBS_SENS_TYPE_VOLT	2
-#define AIBS_SENS_TYPE_TEMP	3
-#define AIBS_SENS_TYPE_FAN	4
+#define AIBS_SENS_TYPE(x) (((x) >> 16) & 0xff)
+#define AIBS_SENS_TYPE_VOLT 2
+#define AIBS_SENS_TYPE_TEMP 3
+#define AIBS_SENS_TYPE_FAN 4
 
-#define	AIBS_SENS_TYPE_VOLT_NAME		"volt"
-#define	AIBS_SENS_TYPE_VOLT_TEMP		"temp"
-#define	AIBS_SENS_TYPE_VOLT_FAN		"fan"
+#define AIBS_SENS_TYPE_VOLT_NAME "volt"
+#define AIBS_SENS_TYPE_VOLT_TEMP "temp"
+#define AIBS_SENS_TYPE_VOLT_FAN "fan"
 
 struct aibs_sensor {
-	ACPI_INTEGER	v;
-	ACPI_INTEGER	i;
-	ACPI_INTEGER	l;
-	ACPI_INTEGER	h;
-	int		t;
+	ACPI_INTEGER v;
+	ACPI_INTEGER i;
+	ACPI_INTEGER l;
+	ACPI_INTEGER h;
+	int t;
 };
 
 struct aibs_softc {
-	device_t		sc_dev;
-	ACPI_HANDLE		sc_ah;
+	device_t sc_dev;
+	ACPI_HANDLE sc_ah;
 
-	struct aibs_sensor	*sc_asens_volt;
-	struct aibs_sensor	*sc_asens_temp;
-	struct aibs_sensor	*sc_asens_fan;
-	struct aibs_sensor	*sc_asens_all;
+	struct aibs_sensor *sc_asens_volt;
+	struct aibs_sensor *sc_asens_temp;
+	struct aibs_sensor *sc_asens_fan;
+	struct aibs_sensor *sc_asens_all;
 
-	struct sysctl_oid	*sc_volt_sysctl;
-	struct sysctl_oid	*sc_temp_sysctl;
-	struct sysctl_oid	*sc_fan_sysctl;
+	struct sysctl_oid *sc_volt_sysctl;
+	struct sysctl_oid *sc_temp_sysctl;
+	struct sysctl_oid *sc_fan_sysctl;
 
-	bool			sc_ggrp_method;
+	bool sc_ggrp_method;
 };
 
 static int aibs_probe(device_t);
@@ -94,26 +96,17 @@ static int aibs_sysctl_ggrp(SYSCTL_HANDLER_ARGS);
 static int aibs_attach_ggrp(struct aibs_softc *);
 static int aibs_attach_sif(struct aibs_softc *, int);
 
-static device_method_t aibs_methods[] = {
-	DEVMETHOD(device_probe,		aibs_probe),
-	DEVMETHOD(device_attach,	aibs_attach),
-	DEVMETHOD(device_detach,	aibs_detach),
-	{ NULL, NULL }
-};
+static device_method_t aibs_methods[] = { DEVMETHOD(device_probe, aibs_probe),
+	DEVMETHOD(device_attach, aibs_attach),
+	DEVMETHOD(device_detach, aibs_detach), { NULL, NULL } };
 
-static driver_t aibs_driver = {
-	"aibs",
-	aibs_methods,
-	sizeof(struct aibs_softc)
-};
+static driver_t aibs_driver = { "aibs", aibs_methods,
+	sizeof(struct aibs_softc) };
 
 DRIVER_MODULE(aibs, acpi, aibs_driver, NULL, NULL);
 MODULE_DEPEND(aibs, acpi, 1, 1, 1);
 
-static char* aibs_hids[] = {
-	"ATK0110",
-	NULL
-};
+static char *aibs_hids[] = { "ATK0110", NULL };
 
 static int
 aibs_probe(device_t dev)
@@ -123,7 +116,7 @@ aibs_probe(device_t dev)
 	if (acpi_disabled("aibs"))
 		return (ENXIO);
 	rv = ACPI_ID_PROBE(device_get_parent(dev), dev, aibs_hids, NULL);
-	if (rv <= 0 )
+	if (rv <= 0)
 		device_set_desc(dev, "ASUSTeK AI Booster (ACPI ASOC ATK0110)");
 	return (rv);
 }
@@ -163,9 +156,9 @@ aibs_attach(device_t dev)
 
 static int
 aibs_add_sensor(struct aibs_softc *sc, ACPI_OBJECT *o,
-    struct aibs_sensor* sensor, const char ** descr)
+    struct aibs_sensor *sensor, const char **descr)
 {
-	int		off;
+	int off;
 
 	/*
 	 * Packages for the old and new methods are quite
@@ -179,8 +172,7 @@ aibs_add_sensor(struct aibs_softc *sc, ACPI_OBJECT *o,
 
 	if (o->Type != ACPI_TYPE_PACKAGE) {
 		device_printf(sc->sc_dev,
-		    "sensor object is not a package: %i type\n",
-		     o->Type);
+		    "sensor object is not a package: %i type\n", o->Type);
 		return (ENXIO);
 	}
 	if (o[0].Package.Count != (off + 3) ||
@@ -219,18 +211,17 @@ aibs_sensor_added(struct aibs_softc *sc, struct sysctl_oid *so,
     const char *type_name, int idx, struct aibs_sensor *sensor,
     const char *descr)
 {
-	char	sysctl_name[8];
+	char sysctl_name[8];
 
 	snprintf(sysctl_name, sizeof(sysctl_name), "%i", idx);
 #ifdef AIBS_VERBOSE
 	device_printf(sc->sc_dev, "%c%i: 0x%08jx %20s %5jd / %5jd\n",
-	    type_name[0], idx,
-	    (uintmax_t)sensor->i, descr, (intmax_t)sensor->l,
+	    type_name[0], idx, (uintmax_t)sensor->i, descr, (intmax_t)sensor->l,
 	    (intmax_t)sensor->h);
 #endif
-	SYSCTL_ADD_PROC(device_get_sysctl_ctx(sc->sc_dev),
-	    SYSCTL_CHILDREN(so), idx, sysctl_name,
-	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, sc, (uintptr_t)sensor,
+	SYSCTL_ADD_PROC(device_get_sysctl_ctx(sc->sc_dev), SYSCTL_CHILDREN(so),
+	    idx, sysctl_name, CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, sc,
+	    (uintptr_t)sensor,
 	    sc->sc_ggrp_method ? aibs_sysctl_ggrp : aibs_sysctl,
 	    sensor->t == AIBS_SENS_TYPE_TEMP ? "IK" : "I", descr);
 }
@@ -238,20 +229,20 @@ aibs_sensor_added(struct aibs_softc *sc, struct sysctl_oid *so,
 static int
 aibs_attach_ggrp(struct aibs_softc *sc)
 {
-	ACPI_STATUS		s;
-	ACPI_BUFFER		buf;
-	ACPI_HANDLE		h;
-	ACPI_OBJECT		id;
-	ACPI_OBJECT		*bp;
-	ACPI_OBJECT_LIST	arg;
-	int			i;
-	int			t, v, f;
-	int			err;
-	int			*s_idx;
-	const char		*name;
-	const char		*descr;
-	struct aibs_sensor	*sensor;
-	struct sysctl_oid	**so;
+	ACPI_STATUS s;
+	ACPI_BUFFER buf;
+	ACPI_HANDLE h;
+	ACPI_OBJECT id;
+	ACPI_OBJECT *bp;
+	ACPI_OBJECT_LIST arg;
+	int i;
+	int t, v, f;
+	int err;
+	int *s_idx;
+	const char *name;
+	const char *descr;
+	struct aibs_sensor *sensor;
+	struct sysctl_oid **so;
 
 	/* First see if GITM is available. */
 	s = AcpiGetHandle(sc->sc_ah, "GITM", &h);
@@ -315,8 +306,8 @@ aibs_attach_ggrp(struct aibs_softc *sc)
 			/* sysctl subtree for sensors of this type */
 			*so = SYSCTL_ADD_NODE(device_get_sysctl_ctx(sc->sc_dev),
 			    SYSCTL_CHILDREN(device_get_sysctl_tree(sc->sc_dev)),
-			    sensor->t, name, CTLFLAG_RD | CTLFLAG_MPSAFE,
-			    NULL, NULL);
+			    sensor->t, name, CTLFLAG_RD | CTLFLAG_MPSAFE, NULL,
+			    NULL);
 		}
 		aibs_sensor_added(sc, *so, name, *s_idx, sensor, descr);
 		*s_idx += 1;
@@ -329,14 +320,14 @@ aibs_attach_ggrp(struct aibs_softc *sc)
 static int
 aibs_attach_sif(struct aibs_softc *sc, int st)
 {
-	char			name[] = "?SIF";
-	ACPI_STATUS		s;
-	ACPI_BUFFER		b;
-	ACPI_OBJECT		*bp, *o;
-	const char		*node;
-	struct aibs_sensor	*as;
-	struct sysctl_oid	**so;
-	int			i, n;
+	char name[] = "?SIF";
+	ACPI_STATUS s;
+	ACPI_BUFFER b;
+	ACPI_OBJECT *bp, *o;
+	const char *node;
+	struct aibs_sensor *as;
+	struct sysctl_oid **so;
+	int i, n;
 	int err;
 
 	switch (st) {
@@ -386,8 +377,10 @@ aibs_attach_sif(struct aibs_softc *sc, int st)
 #ifdef AIBS_MORE_SENSORS
 		n = bp->Package.Count - 1;
 #endif
-		device_printf(sc->sc_dev, "%s: malformed package: %i/%i"
-		    ", assume %i\n", name, on, bp->Package.Count - 1, n);
+		device_printf(sc->sc_dev,
+		    "%s: malformed package: %i/%i"
+		    ", assume %i\n",
+		    name, on, bp->Package.Count - 1, n);
 	}
 	if (n < 1) {
 		device_printf(sc->sc_dev, "%s: no members in the package\n",
@@ -411,11 +404,11 @@ aibs_attach_sif(struct aibs_softc *sc, int st)
 
 	/* sysctl subtree for sensors of this type */
 	*so = SYSCTL_ADD_NODE(device_get_sysctl_ctx(sc->sc_dev),
-	    SYSCTL_CHILDREN(device_get_sysctl_tree(sc->sc_dev)), st,
-	    node, CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, NULL);
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(sc->sc_dev)), st, node,
+	    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, NULL);
 
 	for (i = 0, o++; i < n; i++, o++) {
-		const char	*descr;
+		const char *descr;
 
 		err = aibs_add_sensor(sc, o, &as[i], &descr);
 		if (err == 0)
@@ -429,7 +422,7 @@ aibs_attach_sif(struct aibs_softc *sc, int st)
 static int
 aibs_detach(device_t dev)
 {
-	struct aibs_softc	*sc = device_get_softc(dev);
+	struct aibs_softc *sc = device_get_softc(dev);
 
 	if (sc->sc_asens_volt != NULL)
 		free(sc->sc_asens_volt, M_DEVBUF);
@@ -451,16 +444,16 @@ aibs_detach(device_t dev)
 static int
 aibs_sysctl(SYSCTL_HANDLER_ARGS)
 {
-	struct aibs_softc	*sc = arg1;
-	struct aibs_sensor	*sensor = (void *)(intptr_t)arg2;
-	int			i = oidp->oid_number;
-	ACPI_STATUS		rs;
-	ACPI_OBJECT		p, *bp;
-	ACPI_OBJECT_LIST	mp;
-	ACPI_BUFFER		b;
-	char			*name;
-	ACPI_INTEGER		v, l, h;
-	int			so[3];
+	struct aibs_softc *sc = arg1;
+	struct aibs_sensor *sensor = (void *)(intptr_t)arg2;
+	int i = oidp->oid_number;
+	ACPI_STATUS rs;
+	ACPI_OBJECT p, *bp;
+	ACPI_OBJECT_LIST mp;
+	ACPI_BUFFER b;
+	char *name;
+	ACPI_INTEGER v, l, h;
+	int so[3];
 
 	switch (sensor->t) {
 	case AIBS_SENS_TYPE_VOLT:
@@ -486,9 +479,8 @@ aibs_sysctl(SYSCTL_HANDLER_ARGS)
 	rs = AcpiEvaluateObjectTyped(sc->sc_ah, name, &mp, &b,
 	    ACPI_TYPE_INTEGER);
 	if (ACPI_FAILURE(rs)) {
-		ddevice_printf(sc->sc_dev,
-		    "%s: %i: evaluation failed\n",
-		    name, i);
+		ddevice_printf(sc->sc_dev, "%s: %i: evaluation failed\n", name,
+		    i);
 		ACPI_SERIAL_END(aibs);
 		return (EIO);
 	}
@@ -517,16 +509,16 @@ aibs_sysctl(SYSCTL_HANDLER_ARGS)
 static int
 aibs_sysctl_ggrp(SYSCTL_HANDLER_ARGS)
 {
-	struct aibs_softc	*sc = arg1;
-	struct aibs_sensor	*sensor = (void *)(intptr_t)arg2;
-	ACPI_STATUS		rs;
-	ACPI_OBJECT		p, *bp;
-	ACPI_OBJECT_LIST	arg;
-	ACPI_BUFFER		buf;
-	ACPI_INTEGER		v, l, h;
-	int			so[3];
-	uint32_t		*ret;
-	uint32_t		cmd[3];
+	struct aibs_softc *sc = arg1;
+	struct aibs_sensor *sensor = (void *)(intptr_t)arg2;
+	ACPI_STATUS rs;
+	ACPI_OBJECT p, *bp;
+	ACPI_OBJECT_LIST arg;
+	ACPI_BUFFER buf;
+	ACPI_INTEGER v, l, h;
+	int so[3];
+	uint32_t *ret;
+	uint32_t cmd[3];
 
 	cmd[0] = sensor->i;
 	cmd[1] = 0;

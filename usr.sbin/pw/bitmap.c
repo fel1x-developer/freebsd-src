@@ -34,8 +34,8 @@
 struct bitmap
 bm_alloc(int size)
 {
-	struct bitmap   bm;
-	int             szmap = (size / 8) + !!(size % 8);
+	struct bitmap bm;
+	int szmap = (size / 8) + !!(size % 8);
 
 	bm.size = size;
 	bm.map = malloc(szmap);
@@ -45,7 +45,7 @@ bm_alloc(int size)
 }
 
 void
-bm_dealloc(struct bitmap * bm)
+bm_dealloc(struct bitmap *bm)
 {
 	free(bm->map);
 }
@@ -53,47 +53,47 @@ bm_dealloc(struct bitmap * bm)
 static void
 bm_getmask(int *pos, unsigned char *bmask)
 {
-	*bmask = (unsigned char) (1 << (*pos % 8));
+	*bmask = (unsigned char)(1 << (*pos % 8));
 	*pos /= 8;
 }
 
 void
-bm_setbit(struct bitmap * bm, int pos)
+bm_setbit(struct bitmap *bm, int pos)
 {
-	unsigned char   bmask;
+	unsigned char bmask;
 
 	bm_getmask(&pos, &bmask);
 	bm->map[pos] |= bmask;
 }
 
 void
-bm_clrbit(struct bitmap * bm, int pos)
+bm_clrbit(struct bitmap *bm, int pos)
 {
-	unsigned char   bmask;
+	unsigned char bmask;
 
 	bm_getmask(&pos, &bmask);
 	bm->map[pos] &= ~bmask;
 }
 
 int
-bm_isset(struct bitmap * bm, int pos)
+bm_isset(struct bitmap *bm, int pos)
 {
-	unsigned char   bmask;
+	unsigned char bmask;
 
 	bm_getmask(&pos, &bmask);
 	return !!(bm->map[pos] & bmask);
 }
 
 int
-bm_firstunset(struct bitmap * bm)
+bm_firstunset(struct bitmap *bm)
 {
-	int             szmap = (bm->size / 8) + !!(bm->size % 8);
-	int             at = 0;
-	int             pos = 0;
+	int szmap = (bm->size / 8) + !!(bm->size % 8);
+	int at = 0;
+	int pos = 0;
 
 	while (pos < szmap) {
-		unsigned char   bmv = bm->map[pos++];
-		unsigned char   bmask = 1;
+		unsigned char bmv = bm->map[pos++];
+		unsigned char bmask = 1;
 
 		while (bmask & 0xff) {
 			if ((bmv & bmask) == 0)
@@ -106,16 +106,16 @@ bm_firstunset(struct bitmap * bm)
 }
 
 int
-bm_lastset(struct bitmap * bm)
+bm_lastset(struct bitmap *bm)
 {
-	int             szmap = (bm->size / 8) + !!(bm->size % 8);
-	int             at = 0;
-	int             pos = 0;
-	int             ofs = 0;
+	int szmap = (bm->size / 8) + !!(bm->size % 8);
+	int at = 0;
+	int pos = 0;
+	int ofs = 0;
 
 	while (pos < szmap) {
-		unsigned char   bmv = bm->map[pos++];
-		unsigned char   bmask = 1;
+		unsigned char bmv = bm->map[pos++];
+		unsigned char bmask = 1;
 
 		while (bmask & 0xff) {
 			if ((bmv & bmask) != 0)

@@ -27,18 +27,19 @@
  */
 
 #include <sys/param.h>
+
+#include <assert.h>
 #include <errno.h>
+#include <geom/multipath/g_multipath.h>
+#include <libgeom.h>
 #include <paths.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
 #include <strings.h>
-#include <assert.h>
-#include <libgeom.h>
 #include <unistd.h>
 #include <uuid.h>
-#include <geom/multipath/g_multipath.h>
 
 #include "core/geom.h"
 #include "misc/subr.h"
@@ -52,73 +53,29 @@ static void mp_clear(struct gctl_req *);
 static void mp_prefer(struct gctl_req *);
 
 struct g_command class_commands[] = {
-	{
-		"create", G_FLAG_VERBOSE | G_FLAG_LOADKLD, NULL,
-		{
-			{ 'A', "active_active", NULL, G_TYPE_BOOL },
-			{ 'R', "active_read", NULL, G_TYPE_BOOL },
-			G_OPT_SENTINEL
-		},
-		"[-vAR] name prov ..."
-	},
-	{
-		"label", G_FLAG_VERBOSE | G_FLAG_LOADKLD, mp_main,
-		{
-			{ 'A', "active_active", NULL, G_TYPE_BOOL },
-			{ 'R', "active_read", NULL, G_TYPE_BOOL },
-			G_OPT_SENTINEL
-		},
-		"[-vAR] name prov ..."
-	},
+	{ "create", G_FLAG_VERBOSE | G_FLAG_LOADKLD, NULL,
+	    { { 'A', "active_active", NULL, G_TYPE_BOOL },
+		{ 'R', "active_read", NULL, G_TYPE_BOOL }, G_OPT_SENTINEL },
+	    "[-vAR] name prov ..." },
+	{ "label", G_FLAG_VERBOSE | G_FLAG_LOADKLD, mp_main,
+	    { { 'A', "active_active", NULL, G_TYPE_BOOL },
+		{ 'R', "active_read", NULL, G_TYPE_BOOL }, G_OPT_SENTINEL },
+	    "[-vAR] name prov ..." },
 	{ "configure", G_FLAG_VERBOSE, NULL,
-		{
-			{ 'A', "active_active", NULL, G_TYPE_BOOL },
-			{ 'P', "active_passive", NULL, G_TYPE_BOOL },
-			{ 'R', "active_read", NULL, G_TYPE_BOOL },
-			G_OPT_SENTINEL
-		},
-		"[-vAPR] name"
-	},
-	{
-		"add", G_FLAG_VERBOSE, NULL, G_NULL_OPTS,
-		"[-v] name prov"
-	},
-	{
-		"remove", G_FLAG_VERBOSE, NULL, G_NULL_OPTS,
-		"[-v] name prov"
-	},
-	{
-		"prefer", G_FLAG_VERBOSE, mp_main, G_NULL_OPTS,
-		"[-v] prov ..."
-	},
-	{
-		"fail", G_FLAG_VERBOSE, NULL, G_NULL_OPTS,
-		"[-v] name prov"
-	},
-	{
-		"restore", G_FLAG_VERBOSE, NULL, G_NULL_OPTS,
-		"[-v] name prov"
-	},
-	{
-		"rotate", G_FLAG_VERBOSE, NULL, G_NULL_OPTS,
-		"[-v] name"
-	},
-	{
-		"getactive", G_FLAG_VERBOSE, NULL, G_NULL_OPTS,
-		"[-v] name"
-	},
-	{
-		"destroy", G_FLAG_VERBOSE, NULL, G_NULL_OPTS,
-		"[-v] name"
-	},
-	{
-		"stop", G_FLAG_VERBOSE, NULL, G_NULL_OPTS,
-		"[-v] name"
-	},
-	{
-		"clear", G_FLAG_VERBOSE, mp_main, G_NULL_OPTS,
-		"[-v] prov ..."
-	},
+	    { { 'A', "active_active", NULL, G_TYPE_BOOL },
+		{ 'P', "active_passive", NULL, G_TYPE_BOOL },
+		{ 'R', "active_read", NULL, G_TYPE_BOOL }, G_OPT_SENTINEL },
+	    "[-vAPR] name" },
+	{ "add", G_FLAG_VERBOSE, NULL, G_NULL_OPTS, "[-v] name prov" },
+	{ "remove", G_FLAG_VERBOSE, NULL, G_NULL_OPTS, "[-v] name prov" },
+	{ "prefer", G_FLAG_VERBOSE, mp_main, G_NULL_OPTS, "[-v] prov ..." },
+	{ "fail", G_FLAG_VERBOSE, NULL, G_NULL_OPTS, "[-v] name prov" },
+	{ "restore", G_FLAG_VERBOSE, NULL, G_NULL_OPTS, "[-v] name prov" },
+	{ "rotate", G_FLAG_VERBOSE, NULL, G_NULL_OPTS, "[-v] name" },
+	{ "getactive", G_FLAG_VERBOSE, NULL, G_NULL_OPTS, "[-v] name" },
+	{ "destroy", G_FLAG_VERBOSE, NULL, G_NULL_OPTS, "[-v] name" },
+	{ "stop", G_FLAG_VERBOSE, NULL, G_NULL_OPTS, "[-v] name" },
+	{ "clear", G_FLAG_VERBOSE, mp_main, G_NULL_OPTS, "[-v] prov ..." },
 	G_CMD_SENTINEL
 };
 
@@ -190,7 +147,6 @@ mp_label(struct gctl_req *req)
 				return;
 			}
 		}
-		
 	}
 
 	/*
@@ -212,7 +168,7 @@ mp_label(struct gctl_req *req)
 		gctl_error(req, "cannot stringify a UUID.");
 		return;
 	}
-	strlcpy(md.md_uuid, ptr, sizeof (md.md_uuid));
+	strlcpy(md.md_uuid, ptr, sizeof(md.md_uuid));
 	md.md_active_active = gctl_get_int(req, "active_active");
 	if (gctl_get_int(req, "active_read"))
 		md.md_active_active = 2;
@@ -243,7 +199,8 @@ mp_label(struct gctl_req *req)
 	name = gctl_get_ascii(req, "arg1");
 	error = g_metadata_store(name, sector, secsize);
 	if (error != 0) {
-		gctl_error(req, "cannot store metadata on %s: %s.", name, strerror(error));
+		gctl_error(req, "cannot store metadata on %s: %s.", name,
+		    strerror(error));
 		goto done;
 	}
 
@@ -254,20 +211,22 @@ mp_label(struct gctl_req *req)
 		name2 = gctl_get_ascii(req, "arg%d", i);
 		fd = g_open(name2, 1);
 		if (fd < 0) {
-			fprintf(stderr, "Unable to open %s: %s.\n",
-			    name2, strerror(errno));
+			fprintf(stderr, "Unable to open %s: %s.\n", name2,
+			    strerror(errno));
 			continue;
 		}
 		if (pread(fd, rsector, secsize, disksize - secsize) !=
 		    (ssize_t)secsize) {
-			fprintf(stderr, "Unable to read metadata from %s: %s.\n",
-			    name2, strerror(errno));
+			fprintf(stderr,
+			    "Unable to read metadata from %s: %s.\n", name2,
+			    strerror(errno));
 			g_close(fd);
 			continue;
 		}
 		g_close(fd);
 		if (memcmp(sector, rsector, secsize)) {
-			fprintf(stderr, "No metadata found on %s."
+			fprintf(stderr,
+			    "No metadata found on %s."
 			    " It is not a path of %s.\n",
 			    name2, name);
 		}
@@ -276,7 +235,6 @@ done:
 	free(rsector);
 	free(sector);
 }
-
 
 static void
 mp_clear(struct gctl_req *req)
@@ -315,7 +273,7 @@ mp_prefer(struct gctl_req *req)
 	}
 	name = gctl_get_ascii(req, "arg0");
 	comp = gctl_get_ascii(req, "arg1");
-	errstr = gctl_issue (req);
+	errstr = gctl_issue(req);
 	if (errstr != NULL) {
 		fprintf(stderr, "Can't set %s preferred provider to %s: %s.\n",
 		    name, comp, errstr);

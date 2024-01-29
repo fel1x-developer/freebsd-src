@@ -34,32 +34,32 @@
  * after being processed by asprintf(3), as an input to ASN1_generate_nconf(3).
  */
 static const char *magic_fmt =
-"asn1 = SEQUENCE:SpcIndirectDataContent\n"
-"\n"
-"[SpcIndirectDataContent]\n"
-"a = SEQUENCE:SpcAttributeTypeAndOptionalValue\n"
-"b = SEQUENCE:DigestInfo\n"
-"\n"
-"[SpcAttributeTypeAndOptionalValue]\n"
-"# SPC_PE_IMAGE_DATAOBJ\n"
-"a = OID:1.3.6.1.4.1.311.2.1.15\n"
-"b = SEQUENCE:SpcPeImageData\n"
-"\n"
-"[SpcPeImageData]\n"
-"a = FORMAT:HEX,BITSTRING:00\n"
-/*
- * Well, there should be some other struct here, "SPCLink", but it doesn't
- * appear to be necessary for UEFI, and I have no idea how to synthesize it,
- * as it uses the CHOICE type.
- */
-"\n"
-"[DigestInfo]\n"
-"a = SEQUENCE:AlgorithmIdentifier\n"
-/*
- * Here goes the digest computed from PE headers and sections.
- */
-"b = FORMAT:HEX,OCTETSTRING:%s\n"
-"\n"
-"[AlgorithmIdentifier]\n"
-"a = OBJECT:sha256\n"
-"b = NULL\n";
+    "asn1 = SEQUENCE:SpcIndirectDataContent\n"
+    "\n"
+    "[SpcIndirectDataContent]\n"
+    "a = SEQUENCE:SpcAttributeTypeAndOptionalValue\n"
+    "b = SEQUENCE:DigestInfo\n"
+    "\n"
+    "[SpcAttributeTypeAndOptionalValue]\n"
+    "# SPC_PE_IMAGE_DATAOBJ\n"
+    "a = OID:1.3.6.1.4.1.311.2.1.15\n"
+    "b = SEQUENCE:SpcPeImageData\n"
+    "\n"
+    "[SpcPeImageData]\n"
+    "a = FORMAT:HEX,BITSTRING:00\n"
+    /*
+     * Well, there should be some other struct here, "SPCLink", but it doesn't
+     * appear to be necessary for UEFI, and I have no idea how to synthesize it,
+     * as it uses the CHOICE type.
+     */
+    "\n"
+    "[DigestInfo]\n"
+    "a = SEQUENCE:AlgorithmIdentifier\n"
+    /*
+     * Here goes the digest computed from PE headers and sections.
+     */
+    "b = FORMAT:HEX,OCTETSTRING:%s\n"
+    "\n"
+    "[AlgorithmIdentifier]\n"
+    "a = OBJECT:sha256\n"
+    "b = NULL\n";

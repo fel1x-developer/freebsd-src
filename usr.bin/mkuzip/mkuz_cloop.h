@@ -35,16 +35,16 @@
 #define CLOOP_OFS_COMPR 0x0b
 #define CLOOP_OFS_VERSN (CLOOP_OFS_COMPR + 1)
 
-#define CLOOP_MAJVER_2	'2'
-#define CLOOP_MAJVER_3	'3'
-#define CLOOP_MAJVER_4	'4'
+#define CLOOP_MAJVER_2 '2'
+#define CLOOP_MAJVER_3 '3'
+#define CLOOP_MAJVER_4 '4'
 
-#define CLOOP_COMP_LIBZ	'V'
-#define	CLOOP_COMP_LZMA	'L'
-#define	CLOOP_COMP_ZSTD	'Z'
+#define CLOOP_COMP_LIBZ 'V'
+#define CLOOP_COMP_LZMA 'L'
+#define CLOOP_COMP_ZSTD 'Z'
 
 struct cloop_header {
-        char magic[CLOOP_MAGIC_LEN];    /* cloop magic */
-        uint32_t blksz;                 /* block size */
-        uint32_t nblocks;               /* number of blocks */
+	char magic[CLOOP_MAGIC_LEN]; /* cloop magic */
+	uint32_t blksz;		     /* block size */
+	uint32_t nblocks;	     /* number of blocks */
 };

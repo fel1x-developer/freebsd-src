@@ -27,6 +27,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "calendar.h"
 
 #ifndef NULL
@@ -41,23 +42,23 @@
  * deleted in October. This is month1s for the switch from Julian to
  * Gregorian calendar.
  */
-static int const month1[] =
-    {0, 31, 61, 92, 122, 153, 184, 214, 245, 275, 306, 337}; 
-   /*  M   A   M   J    J    A    S    O    N    D    J */
-static int const month1s[]=
-    {0, 31, 61, 92, 122, 153, 184, 214, 235, 265, 296, 327}; 
+static int const month1[] = { 0, 31, 61, 92, 122, 153, 184, 214, 245, 275, 306,
+	337 };
+/*  M   A   M   J    J    A    S    O    N    D    J */
+static int const month1s[] = { 0, 31, 61, 92, 122, 153, 184, 214, 235, 265, 296,
+	327 };
 
 typedef struct date date;
 
 /* The last day of Julian calendar, in internal and ndays representation */
-static int nswitch;	/* The last day of Julian calendar */
-static date jiswitch = {1582, 7, 3};
+static int nswitch; /* The last day of Julian calendar */
+static date jiswitch = { 1582, 7, 3 };
 
-static date	*date2idt(date *idt, date *dt);
-static date	*idt2date(date *dt, date *idt);
-static int	 ndaysji(date *idt);
-static int	 ndaysgi(date *idt);
-static int	 firstweek(int year);
+static date *date2idt(date *idt, date *dt);
+static date *idt2date(date *dt, date *idt);
+static int ndaysji(date *idt);
+static int ndaysgi(date *idt);
+static int firstweek(int year);
 
 /*
  * Compute the Julian date from the number of days elapsed since
@@ -66,8 +67,8 @@ static int	 firstweek(int year);
 date *
 jdate(int ndays, date *dt)
 {
-	date    idt;		/* Internal date representation */
-	int     r;		/* hold the rest of days */
+	date idt; /* Internal date representation */
+	int r;	  /* hold the rest of days */
 
 	/*
 	 * Compute the year by starting with an approximation not smaller
@@ -79,7 +80,7 @@ jdate(int ndays, date *dt)
 	idt.d = 0;
 	while ((r = ndaysji(&idt)) > ndays)
 		idt.y--;
-	
+
 	/*
 	 * Set r to the days left in the year and compute the month by
 	 * linear search as the largest month that does not begin after r
@@ -103,7 +104,7 @@ jdate(int ndays, date *dt)
 int
 ndaysj(date *dt)
 {
-	date    idt;		/* Internal date representation */
+	date idt; /* Internal date representation */
 
 	if (date2idt(&idt, dt) == NULL)
 		return (-1);
@@ -116,7 +117,7 @@ ndaysj(date *dt)
  * This formula shows the beauty of this notation.
  */
 static int
-ndaysji(date * idt)
+ndaysji(date *idt)
 {
 
 	return (idt->d + month1[idt->m] + idt->y * 365 + idt->y / 4);
@@ -127,12 +128,12 @@ ndaysji(date * idt)
  * days since March 1st, year zero. The date computed will be Julian if it
  * is older than 1582-10-05. This is the reverse of the function ndaysg().
  */
-date   *
+date *
 gdate(int ndays, date *dt)
 {
-	int const *montht;	/* month-table */
-	date    idt;		/* for internal date representation */
-	int     r;		/* holds the rest of days */
+	int const *montht; /* month-table */
+	date idt;	   /* for internal date representation */
+	int r;		   /* holds the rest of days */
 
 	/*
 	 * Compute the year by starting with an approximation not smaller
@@ -182,7 +183,7 @@ gdate(int ndays, date *dt)
 int
 ndaysg(date *dt)
 {
-	date    idt;		/* Internal date representation */
+	date idt; /* Internal date representation */
 
 	if (date2idt(&idt, dt) == NULL)
 		return (-1);
@@ -196,7 +197,7 @@ ndaysg(date *dt)
 static int
 ndaysgi(date *idt)
 {
-	int     nd;		/* Number of days--return value */
+	int nd; /* Number of days--return value */
 
 	/* Cache nswitch if not already done */
 	if (nswitch == 0)
@@ -235,15 +236,15 @@ ndaysgi(date *idt)
 int
 week(int nd, int *y)
 {
-	date    dt;
-	int     fw;		/* 1st day of week 1 of previous, this and
-				 * next year */
+	date dt;
+	int fw; /* 1st day of week 1 of previous, this and
+		 * next year */
 	gdate(nd, &dt);
 	for (*y = dt.y + 1; nd < (fw = firstweek(*y)); (*y)--)
 		;
 	return ((nd - fw) / 7 + 1);
 }
-		
+
 /* return the first day of week 1 of year y */
 static int
 firstweek(int y)
@@ -251,7 +252,7 @@ firstweek(int y)
 	date idt;
 	int nd, wd;
 
-	idt.y = y - 1;   /* internal representation of y-1-1 */
+	idt.y = y - 1; /* internal representation of y-1-1 */
 	idt.m = 10;
 	idt.d = 0;
 
@@ -272,8 +273,8 @@ firstweek(int y)
 int
 weekday(int nd)
 {
-	date dmondaygi = {1997, 8, 16}; /* Internal repr. of 1997-11-17 */
-	static int nmonday;             /* ... which is a monday        */ 
+	date dmondaygi = { 1997, 8, 16 }; /* Internal repr. of 1997-11-17 */
+	static int nmonday;		  /* ... which is a monday        */
 
 	/* Cache the daynumber of one monday */
 	if (nmonday == 0)

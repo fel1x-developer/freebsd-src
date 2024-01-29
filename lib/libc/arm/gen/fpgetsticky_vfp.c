@@ -26,16 +26,16 @@
  */
 
 #include <sys/types.h>
+
 #include <ieeefp.h>
 
 #ifdef __weak_alias
-__weak_alias(fpgetsticky,_fpgetsticky)
+__weak_alias(fpgetsticky, _fpgetsticky)
 #endif
 
-#define FP_X_MASK	(FP_X_INV | FP_X_DZ | FP_X_OFL | FP_X_UFL | FP_X_IMP)
+#define FP_X_MASK (FP_X_INV | FP_X_DZ | FP_X_OFL | FP_X_UFL | FP_X_IMP)
 
-fp_except
-fpgetsticky(void)
+    fp_except fpgetsticky(void)
 {
 	fp_except old;
 
@@ -43,4 +43,3 @@ fpgetsticky(void)
 
 	return (old & FP_X_MASK);
 }
-

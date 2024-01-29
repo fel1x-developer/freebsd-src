@@ -34,98 +34,99 @@
 #include <sys/socket.h>
 #include <sys/uio.h>
 #include <sys/un.h>
+
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <signal.h>
 #include <string.h>
 #include <unistd.h>
 
 static char uds_name1[] = "reconnect.XXXXXXXX";
 static char uds_name2[] = "reconnect.XXXXXXXX";
 
-#define	sstosa(ss)	((struct sockaddr *)(ss))
+#define sstosa(ss) ((struct sockaddr *)(ss))
 
 static void
 prepare_ifsun(struct sockaddr_un *ifsun, const char *path)
 {
 
-    memset(ifsun, '\0', sizeof(*ifsun));
+	memset(ifsun, '\0', sizeof(*ifsun));
 #if !defined(__linux__) && !defined(__solaris__)
-    ifsun->sun_len = strlen(path);
+	ifsun->sun_len = strlen(path);
 #endif
-    ifsun->sun_family = AF_LOCAL;
-    strcpy(ifsun->sun_path, path);
+	ifsun->sun_family = AF_LOCAL;
+	strcpy(ifsun->sun_path, path);
 }
 
 static int
 create_uds_server(const char *path)
 {
-    struct sockaddr_un ifsun;
-    int sock;
+	struct sockaddr_un ifsun;
+	int sock;
 
-    prepare_ifsun(&ifsun, path);
+	prepare_ifsun(&ifsun, path);
 
-    unlink(ifsun.sun_path);
+	unlink(ifsun.sun_path);
 
-    sock = socket(PF_LOCAL, SOCK_DGRAM, 0);
-    if (sock == -1)
-        err(1, "can't create socket");
-    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &sock, sizeof(sock));
-    if (bind(sock, sstosa(&ifsun), sizeof(ifsun)) < 0)
-        err(1, "can't bind to a socket");
+	sock = socket(PF_LOCAL, SOCK_DGRAM, 0);
+	if (sock == -1)
+		err(1, "can't create socket");
+	setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &sock, sizeof(sock));
+	if (bind(sock, sstosa(&ifsun), sizeof(ifsun)) < 0)
+		err(1, "can't bind to a socket");
 
-    return sock;
+	return sock;
 }
 
 static void
 connect_uds_server(int sock, const char *path)
 {
-    struct sockaddr_un ifsun;
-    int e;
+	struct sockaddr_un ifsun;
+	int e;
 
-    prepare_ifsun(&ifsun, path);
+	prepare_ifsun(&ifsun, path);
 
-    e = connect(sock, sstosa(&ifsun), sizeof(ifsun));
-    if (e < 0)
-        err(1, "can't connect to a socket");
+	e = connect(sock, sstosa(&ifsun), sizeof(ifsun));
+	if (e < 0)
+		err(1, "can't connect to a socket");
 }
 
 static void
 cleanup(void)
 {
 
-    unlink(uds_name1);
-    unlink(uds_name2);
+	unlink(uds_name1);
+	unlink(uds_name2);
 }
 
 int
 main(void)
 {
-    int s_sock1, s_sock2, c_sock;
+	int s_sock1, s_sock2, c_sock;
 
-    atexit(cleanup);
+	atexit(cleanup);
 
-    if (mkstemp(uds_name1) == -1)
-	err(1, "mkstemp");
-    unlink(uds_name1);
-    s_sock1 = create_uds_server(uds_name1);
+	if (mkstemp(uds_name1) == -1)
+		err(1, "mkstemp");
+	unlink(uds_name1);
+	s_sock1 = create_uds_server(uds_name1);
 
-    if (mkstemp(uds_name2) == -1)
-        err(1, "mkstemp");
-    unlink(uds_name2);
-    s_sock2 = create_uds_server(uds_name2);
+	if (mkstemp(uds_name2) == -1)
+		err(1, "mkstemp");
+	unlink(uds_name2);
+	s_sock2 = create_uds_server(uds_name2);
 
-    c_sock = socket(PF_LOCAL, SOCK_DGRAM, 0);
-    if (c_sock < 0)
-        err(1, "can't create socket");
+	c_sock = socket(PF_LOCAL, SOCK_DGRAM, 0);
+	if (c_sock < 0)
+		err(1, "can't create socket");
 
-    connect_uds_server(c_sock, uds_name1);
-    close(s_sock1);
-    connect_uds_server(c_sock, uds_name2);
-    close(s_sock2);
+	connect_uds_server(c_sock, uds_name1);
+	close(s_sock1);
+	connect_uds_server(c_sock, uds_name2);
+	close(s_sock2);
 
-    exit (0);
+	exit(0);
 }

@@ -34,54 +34,54 @@
 
 #include "psdate.h"
 
-
 int
-numerics(char const * str)
+numerics(char const *str)
 {
 
 	return (str[strspn(str, "0123456789x")] == '\0');
 }
 
 static int
-aindex(char const * arr[], char const ** str, int len)
+aindex(char const *arr[], char const **str, int len)
 {
-	int             l, i;
-	char            mystr[32];
+	int l, i;
+	char mystr[32];
 
 	mystr[len] = '\0';
 	l = strlen(strncpy(mystr, *str, len));
 	for (i = 0; i < l; i++)
-		mystr[i] = (char) tolower((unsigned char)mystr[i]);
-	for (i = 0; arr[i] && strcmp(mystr, arr[i]) != 0; i++);
+		mystr[i] = (char)tolower((unsigned char)mystr[i]);
+	for (i = 0; arr[i] && strcmp(mystr, arr[i]) != 0; i++)
+		;
 	if (arr[i] == NULL)
 		i = -1;
-	else {			/* Skip past it */
+	else { /* Skip past it */
 		while (**str && isalpha((unsigned char)**str))
 			++(*str);
 		/* And any following whitespace */
 		while (**str && (**str == ',' || isspace((unsigned char)**str)))
 			++(*str);
-	}			/* Return index */
+	} /* Return index */
 	return i;
 }
 
 static int
-weekday(char const ** str)
+weekday(char const **str)
 {
-	static char const *days[] =
-	{"sun", "mon", "tue", "wed", "thu", "fri", "sat", NULL};
+	static char const *days[] = { "sun", "mon", "tue", "wed", "thu", "fri",
+		"sat", NULL };
 
 	return aindex(days, str, 3);
 }
 
 static void
-parse_datesub(char const * str, struct tm *t)
+parse_datesub(char const *str, struct tm *t)
 {
-	struct tm	 tm;
-	locale_t	 l;
-	int		 i;
-	char		*ret;
-	const char	*valid_formats[] = {
+	struct tm tm;
+	locale_t l;
+	int i;
+	char *ret;
+	const char *valid_formats[] = {
 		"%d-%b-%y",
 		"%d-%b-%Y",
 		"%d-%m-%y",
@@ -123,7 +123,7 @@ parse_datesub(char const * str, struct tm *t)
 
 	l = newlocale(LC_ALL_MASK, "C", NULL);
 
-	for (i=0; valid_formats[i] != NULL; i++) {
+	for (i = 0; valid_formats[i] != NULL; i++) {
 		memset(&tm, 0, sizeof(tm));
 		ret = strptime_l(str, valid_formats[i], &tm, l);
 		if (ret && *ret == '\0') {
@@ -143,26 +143,24 @@ parse_datesub(char const * str, struct tm *t)
 	errx(EXIT_FAILURE, "Invalid date");
 }
 
-
 /*-
  * Parse time must be flexible, it handles the following formats:
  * nnnnnnnnnnn		UNIX timestamp (all numeric), 0 = now
  * 0xnnnnnnnn		UNIX timestamp in hexadecimal
  * 0nnnnnnnnn		UNIX timestamp in octal
  * 0			Given time
- * +nnnn[smhdwoy]	Given time + nnnn hours, mins, days, weeks, months or years
- * -nnnn[smhdwoy]	Given time - nnnn hours, mins, days, weeks, months or years
- * dd[ ./-]mmm[ ./-]yy	Date }
- * hh:mm:ss		Time } May be combined
+ * +nnnn[smhdwoy]	Given time + nnnn hours, mins, days, weeks, months or
+ * years -nnnn[smhdwoy]	Given time - nnnn hours, mins, days, weeks, months or
+ * years dd[ ./-]mmm[ ./-]yy	Date } hh:mm:ss		Time } May be combined
  */
 
 time_t
-parse_date(time_t dt, char const * str)
+parse_date(time_t dt, char const *str)
 {
-	char           *p;
-	int             i;
-	long            val;
-	struct tm      *T;
+	char *p;
+	int i;
+	long val;
+	struct tm *T;
 
 	if (dt == 0)
 		dt = time(NULL);
@@ -176,50 +174,50 @@ parse_date(time_t dt, char const * str)
 		val = strtol(str, &p, 0);
 		switch (*p) {
 		case 'h':
-		case 'H':	/* hours */
+		case 'H': /* hours */
 			dt += (val * 3600L);
 			break;
 		case '\0':
 		case 'm':
-		case 'M':	/* minutes */
+		case 'M': /* minutes */
 			dt += (val * 60L);
 			break;
 		case 's':
-		case 'S':	/* seconds */
+		case 'S': /* seconds */
 			dt += val;
 			break;
 		case 'd':
-		case 'D':	/* days */
+		case 'D': /* days */
 			dt += (val * 86400L);
 			break;
 		case 'w':
-		case 'W':	/* weeks */
+		case 'W': /* weeks */
 			dt += (val * 604800L);
 			break;
 		case 'o':
-		case 'O':	/* months */
+		case 'O': /* months */
 			T = localtime(&dt);
-			T->tm_mon += (int) val;
+			T->tm_mon += (int)val;
 			i = T->tm_mday;
 			goto fixday;
 		case 'y':
-		case 'Y':	/* years */
+		case 'Y': /* years */
 			T = localtime(&dt);
-			T->tm_year += (int) val;
+			T->tm_year += (int)val;
 			i = T->tm_mday;
-	fixday:
+		fixday:
 			dt = mktime(T);
 			T = localtime(&dt);
 			if (T->tm_mday != i) {
 				T->tm_mday = 1;
 				dt = mktime(T);
-				dt -= (time_t) 86400L;
+				dt -= (time_t)86400L;
 			}
-		default:	/* unknown */
-			break;	/* leave untouched */
+		default:       /* unknown */
+			break; /* leave untouched */
 		}
 	} else {
-		char           *q, tmp[64];
+		char *q, tmp[64];
 
 		/*
 		 * Skip past any weekday prefix
@@ -236,7 +234,7 @@ parse_date(time_t dt, char const * str)
 			if (strchr("(+-", q[1]) != NULL)
 				*q = '\0';
 			else {
-				int             j = 1;
+				int j = 1;
 
 				while (q[j] && isupper((unsigned char)q[j]))
 					++j;

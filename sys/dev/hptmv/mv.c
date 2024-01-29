@@ -27,13 +27,12 @@
  */
 #include <sys/param.h>
 #include <sys/systm.h>
-
-#include <sys/time.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <machine/resource.h>
+#include <sys/kernel.h>
+#include <sys/time.h>
 
 #include <machine/pci_cfgreg.h>
+#include <machine/resource.h>
 
 #ifndef __KERNEL__
 #define __KERNEL__
@@ -44,17 +43,16 @@
 #include <dev/hptmv/mvOs.h>
 #include <dev/hptmv/osbsd.h>
 
-
 void HPTLIBAPI
 MV_REG_WRITE_BYTE(MV_BUS_ADDR_T base, MV_U32 offset, MV_U8 val)
-{ 
-	writeb((void *)((ULONG_PTR)base + offset), val); 
+{
+	writeb((void *)((ULONG_PTR)base + offset), val);
 }
 
 void HPTLIBAPI
 MV_REG_WRITE_WORD(MV_BUS_ADDR_T base, MV_U32 offset, MV_U16 val)
-{ 
-	writew((void *)((ULONG_PTR)base + offset), val); 
+{
+	writew((void *)((ULONG_PTR)base + offset), val);
 }
 
 void HPTLIBAPI
@@ -63,7 +61,7 @@ MV_REG_WRITE_DWORD(MV_BUS_ADDR_T base, MV_U32 offset, MV_U32 val)
 	writel((void *)((ULONG_PTR)base + offset), val);
 }
 
-MV_U8  HPTLIBAPI
+MV_U8 HPTLIBAPI
 MV_REG_READ_BYTE(MV_BUS_ADDR_T base, MV_U32 offset)
 {
 	return readb((void *)((ULONG_PTR)base + offset));

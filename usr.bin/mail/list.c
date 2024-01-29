@@ -29,9 +29,10 @@
  * SUCH DAMAGE.
  */
 
-#include "rcv.h"
 #include <ctype.h>
+
 #include "extern.h"
+#include "rcv.h"
 
 /*
  * Mail -- a mail program
@@ -75,11 +76,11 @@ getmsglist(char *buf, int *vector, int flags)
  * Bit values for colon modifiers.
  */
 
-#define	CMNEW		01		/* New messages */
-#define	CMOLD		02		/* Old messages */
-#define	CMUNREAD	04		/* Unread messages */
-#define	CMDELETED	010		/* Deleted messages */
-#define	CMREAD		020		/* Read messages */
+#define CMNEW 01      /* New messages */
+#define CMOLD 02      /* Old messages */
+#define CMUNREAD 04   /* Unread messages */
+#define CMDELETED 010 /* Deleted messages */
+#define CMREAD 020    /* Read messages */
 
 /*
  * The following table describes the letters which can follow
@@ -87,20 +88,15 @@ getmsglist(char *buf, int *vector, int flags)
  */
 
 static struct coltab {
-	char	co_char;		/* What to find past : */
-	int	co_bit;			/* Associated modifier bit */
-	int	co_mask;		/* m_status bits to mask */
-	int	co_equal;		/* ... must equal this */
-} coltab[] = {
-	{ 'n',		CMNEW,		MNEW,		MNEW	},
-	{ 'o',		CMOLD,		MNEW,		0	},
-	{ 'u',		CMUNREAD,	MREAD,		0	},
-	{ 'd',		CMDELETED,	MDELETED,	MDELETED},
-	{ 'r',		CMREAD,		MREAD,		MREAD	},
-	{ 0,		0,		0,		0	}
-};
+	char co_char; /* What to find past : */
+	int co_bit;   /* Associated modifier bit */
+	int co_mask;  /* m_status bits to mask */
+	int co_equal; /* ... must equal this */
+} coltab[] = { { 'n', CMNEW, MNEW, MNEW }, { 'o', CMOLD, MNEW, 0 },
+	{ 'u', CMUNREAD, MREAD, 0 }, { 'd', CMDELETED, MDELETED, MDELETED },
+	{ 'r', CMREAD, MREAD, MREAD }, { 0, 0, 0, 0 } };
 
-static	int	lastcolmod;
+static int lastcolmod;
 
 int
 markall(char buf[], int f)
@@ -126,7 +122,7 @@ markall(char buf[], int f)
 	while (tok != TEOL) {
 		switch (tok) {
 		case TNUMBER:
-number:
+		number:
 			if (star) {
 				printf("No numbers mixed with *\n");
 				return (-1);
@@ -137,7 +133,9 @@ number:
 				if (check(lexnumber, f))
 					return (-1);
 				for (i = beg; i <= lexnumber; i++)
-					if (f == MDELETED || (message[i - 1].m_flag & MDELETED) == 0)
+					if (f == MDELETED ||
+					    (message[i - 1].m_flag &
+						MDELETED) == 0)
 						mark(i);
 				beg = 0;
 				break;
@@ -175,10 +173,12 @@ number:
 				do {
 					i--;
 					if (i <= 0) {
-						printf("Referencing before 1\n");
+						printf(
+						    "Referencing before 1\n");
 						return (-1);
 					}
-				} while ((message[i - 1].m_flag & MDELETED) != f);
+				} while (
+				    (message[i - 1].m_flag & MDELETED) != f);
 				mark(i);
 			}
 			break;
@@ -192,13 +192,13 @@ number:
 			if (lexstring[0] == ':') {
 				colresult = evalcol(lexstring[1]);
 				if (colresult == 0) {
-					printf("Unknown colon modifier \"%s\"\n",
+					printf(
+					    "Unknown colon modifier \"%s\"\n",
 					    lexstring);
 					return (-1);
 				}
 				colmod |= colresult;
-			}
-			else
+			} else
 				*np++ = savestr(lexstring);
 			break;
 
@@ -229,7 +229,7 @@ number:
 	if (star) {
 		for (i = 0; i < msgCount; i++)
 			if ((message[i].m_flag & MDELETED) == f) {
-				mark(i+1);
+				mark(i + 1);
 				mc++;
 			}
 		if (mc == 0) {
@@ -247,7 +247,7 @@ number:
 
 	if ((np > namelist || colmod != 0) && mc == 0)
 		for (i = 1; i <= msgCount; i++)
-			if ((message[i-1].m_flag & MDELETED) == f)
+			if ((message[i - 1].m_flag & MDELETED) == f)
 				mark(i);
 
 	/*
@@ -263,8 +263,7 @@ number:
 						mc++;
 						break;
 					}
-				}
-				else {
+				} else {
 					if (matchsender(*np, i)) {
 						mc++;
 						break;
@@ -280,13 +279,12 @@ number:
 
 		mc = 0;
 		for (i = 1; i <= msgCount; i++)
-			if (message[i-1].m_flag & MMARK) {
+			if (message[i - 1].m_flag & MMARK) {
 				mc++;
 				break;
 			}
 		if (mc == 0) {
-			printf("No applicable messages from {%s",
-				namelist[0]);
+			printf("No applicable messages from {%s", namelist[0]);
 			for (np = &namelist[1]; *np != NULL; np++)
 				printf(", %s", *np);
 			printf("}\n");
@@ -306,10 +304,9 @@ number:
 			mp = &message[i - 1];
 			for (colp = &coltab[0]; colp->co_char != '\0'; colp++)
 				if (colp->co_bit & colmod)
-					if ((mp->m_flag & colp->co_mask)
-					    != colp->co_equal)
+					if ((mp->m_flag & colp->co_mask) !=
+					    colp->co_equal)
 						unmark(i);
-
 		}
 		for (mp = &message[0]; mp < &message[msgCount]; mp++)
 			if (mp->m_flag & MMARK)
@@ -359,7 +356,7 @@ check(int mesg, int f)
 		printf("%d: Invalid message number\n", mesg);
 		return (-1);
 	}
-	mp = &message[mesg-1];
+	mp = &message[mesg - 1];
 	if (f != MDELETED && (mp->m_flag & MDELETED) != 0) {
 		printf("%d: Inappropriate message\n", mesg);
 		return (-1);
@@ -391,7 +388,7 @@ getrawlist(char line[], char **argv, int argc)
 			break;
 		if (argn >= argc - 1) {
 			printf(
-			"Too many elements in the list; excess discarded.\n");
+			    "Too many elements in the list; excess discarded.\n");
 			break;
 		}
 		cp2 = linebuf;
@@ -400,7 +397,8 @@ getrawlist(char line[], char **argv, int argc)
 			/* Allocate more space if necessary */
 			if (cp2 - linebuf == linebufsize - 1) {
 				linebufsize += BUFSIZ;
-				if ((linebuf = realloc(linebuf, linebufsize)) == NULL)
+				if ((linebuf = realloc(linebuf, linebufsize)) ==
+				    NULL)
 					err(1, "Out of memory");
 				cp2 = linebuf + linebufsize - BUFSIZ - 1;
 			}
@@ -414,8 +412,14 @@ getrawlist(char line[], char **argv, int argc)
 						*cp2++ = '\\';
 						cp--;
 						break;
-					case '0': case '1': case '2': case '3':
-					case '4': case '5': case '6': case '7':
+					case '0':
+					case '1':
+					case '2':
+					case '3':
+					case '4':
+					case '5':
+					case '6':
+					case '7':
 						c -= '0';
 						if (*cp >= '0' && *cp <= '7')
 							c = c * 8 + *cp++ - '0';
@@ -481,19 +485,11 @@ getrawlist(char line[], char **argv, int argc)
  */
 
 static struct lex {
-	char	l_char;
-	char	l_token;
-} singles[] = {
-	{ '$',	TDOLLAR	},
-	{ '.',	TDOT	},
-	{ '^',	TUP 	},
-	{ '*',	TSTAR 	},
-	{ '-',	TDASH 	},
-	{ '+',	TPLUS 	},
-	{ '(',	TOPEN 	},
-	{ ')',	TCLOSE 	},
-	{ 0,	0 	}
-};
+	char l_char;
+	char l_token;
+} singles[] = { { '$', TDOLLAR }, { '.', TDOT }, { '^', TUP }, { '*', TSTAR },
+	{ '-', TDASH }, { '+', TPLUS }, { '(', TOPEN }, { ')', TCLOSE },
+	{ 0, 0 } };
 
 int
 scan(char **sp)
@@ -538,7 +534,7 @@ scan(char **sp)
 	if (isdigit((unsigned char)c)) {
 		lexnumber = 0;
 		while (isdigit((unsigned char)c)) {
-			lexnumber = lexnumber*10 + c - '0';
+			lexnumber = lexnumber * 10 + c - '0';
 			*cp2++ = c;
 			c = *cp++;
 		}
@@ -580,7 +576,7 @@ scan(char **sp)
 		}
 		if (quotec == 0 && (c == ' ' || c == '\t'))
 			break;
-		if (cp2 - lexstring < STRINGLEN-1)
+		if (cp2 - lexstring < STRINGLEN - 1)
 			*cp2++ = c;
 		c = *cp++;
 	}
@@ -602,7 +598,7 @@ regret(int token)
 	if (++regretp >= REGDEP)
 		errx(1, "Too many regrets");
 	regretstack[regretp] = token;
-	lexstring[STRINGLEN-1] = '\0';
+	lexstring[STRINGLEN - 1] = '\0';
 	string_stack[regretp] = savestr(lexstring);
 	numberstack[regretp] = lexnumber;
 }
@@ -632,7 +628,7 @@ first(int f, int m)
 	for (mp = dot; mp < &message[msgCount]; mp++)
 		if ((mp->m_flag & m) == f)
 			return (mp - message + 1);
-	for (mp = dot-1; mp >= &message[0]; mp--)
+	for (mp = dot - 1; mp >= &message[0]; mp--)
 		if ((mp->m_flag & m) == f)
 			return (mp - message + 1);
 	return (0);
@@ -709,7 +705,7 @@ matchfield(char *str, int mesg)
 		str = lastscan;
 	else
 		strlcpy(lastscan, str, sizeof(lastscan));
-	mp = &message[mesg-1];
+	mp = &message[mesg - 1];
 
 	/*
 	 * Now look, ignoring case, for the word in the string.
@@ -744,7 +740,7 @@ mark(int mesg)
 	i = mesg;
 	if (i < 1 || i > msgCount)
 		errx(1, "Bad message number to mark");
-	message[i-1].m_flag |= MMARK;
+	message[i - 1].m_flag |= MMARK;
 }
 
 /*
@@ -758,7 +754,7 @@ unmark(int mesg)
 	i = mesg;
 	if (i < 1 || i > msgCount)
 		errx(1, "Bad message number to unmark");
-	message[i-1].m_flag &= ~MMARK;
+	message[i - 1].m_flag &= ~MMARK;
 }
 
 /*
@@ -786,7 +782,7 @@ metamess(int meta, int f)
 		/*
 		 * Last 'good message left.
 		 */
-		for (mp = &message[msgCount-1]; mp >= &message[0]; mp--)
+		for (mp = &message[msgCount - 1]; mp >= &message[0]; mp--)
 			if ((mp->m_flag & MDELETED) == f)
 				return (mp - &message[0] + 1);
 		printf("No applicable messages\n");

@@ -31,17 +31,18 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
-#include <sys/types.h>
 #include <sys/cdefs.h>
-#include <string.h>
+#include <sys/types.h>
+#include <sys/param.h>
 
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 
-#include "stand.h"
+#include <string.h>
+
 #include "net.h"
 #include "netif.h"
+#include "stand.h"
 
 typedef TAILQ_HEAD(socket_list, iodesc) socket_list_t;
 
@@ -153,14 +154,14 @@ netif_select(void *machdep_hint)
 	if (best_if.nif_driver == NULL)
 		return NULL;
 
-	best_if.nif_driver->
-	    netif_ifs[best_if.nif_unit].dif_used |= (1 << best_if.nif_sel);
+	best_if.nif_driver->netif_ifs[best_if.nif_unit].dif_used |= (1
+	    << best_if.nif_sel);
 
 #ifdef NETIF_DEBUG
 	if (netif_debug)
 		printf("netif_select: %s%d(%d) wins\n",
-			best_if.nif_driver->netif_bname,
-			best_if.nif_unit, best_if.nif_sel);
+		    best_if.nif_driver->netif_bname, best_if.nif_unit,
+		    best_if.nif_sel);
 #endif
 	return &best_if;
 }
@@ -279,7 +280,7 @@ socktodesc_impl(int socket)
 {
 	struct iodesc *s;
 
-	TAILQ_FOREACH(s, &sockets, io_link) {
+	TAILQ_FOREACH (s, &sockets, io_link) {
 		/* search by socket id */
 		if (socket >= 0) {
 			if (s->io_id == socket)
@@ -320,7 +321,7 @@ netif_open(void *machdep_hint)
 	if (s == NULL) {
 		struct iodesc *last;
 
-		s = calloc(1, sizeof (*s));
+		s = calloc(1, sizeof(*s));
 		if (s == NULL)
 			return (-1);
 
@@ -358,16 +359,16 @@ netif_close(int sock)
 		return (-1);
 	}
 	netif_detach(s->io_netif);
-	bzero(&s->destip, sizeof (s->destip));
-	bzero(&s->myip, sizeof (s->myip));
+	bzero(&s->destip, sizeof(s->destip));
+	bzero(&s->myip, sizeof(s->myip));
 	s->destport = 0;
 	s->myport = 0;
 	s->xid = 0;
-	bzero(s->myea, sizeof (s->myea));
+	bzero(s->myea, sizeof(s->myea));
 	s->io_netif = NULL;
 
 	/* free unused entries from tail. */
-	TAILQ_FOREACH_REVERSE_SAFE(last, &sockets, socket_list, io_link, s) {
+	TAILQ_FOREACH_REVERSE_SAFE (last, &sockets, socket_list, io_link, s) {
 		if (last->io_netif != NULL)
 			break;
 		TAILQ_REMOVE(&sockets, last, io_link);

@@ -3,9 +3,10 @@
  */
 
 #include <sys/param.h>
-#include <dev/zlib/zcalloc.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
+
+#include <dev/zlib/zcalloc.h>
 
 MALLOC_DEFINE(M_ZLIB, "zlib", "ZLIB Compressor");
 
@@ -34,5 +35,5 @@ void
 zcfree(void *nil, void *ptr)
 {
 
-        free(ptr, M_ZLIB);
+	free(ptr, M_ZLIB);
 }

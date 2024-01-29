@@ -47,26 +47,28 @@
 
 #include "core.h"
 
-#define PROCSTAT_CORE_MAGIC	0x012DADB8
-struct procstat_core
-{
-	int		pc_magic;
-	int		pc_fd;
-	Elf		*pc_elf;
-	GElf_Ehdr	pc_ehdr;
-	GElf_Phdr	pc_phdr;
+#define PROCSTAT_CORE_MAGIC 0x012DADB8
+struct procstat_core {
+	int pc_magic;
+	int pc_fd;
+	Elf *pc_elf;
+	GElf_Ehdr pc_ehdr;
+	GElf_Phdr pc_phdr;
 };
 
 static struct psc_type_info {
-	unsigned int	n_type;
-	int		structsize;
+	unsigned int n_type;
+	int structsize;
 } psc_type_info[PSC_TYPE_MAX] = {
-	{ .n_type  = NT_PROCSTAT_PROC, .structsize = sizeof(struct kinfo_proc) },
-	{ .n_type = NT_PROCSTAT_FILES, .structsize = sizeof(struct kinfo_file) },
-	{ .n_type = NT_PROCSTAT_VMMAP, .structsize = sizeof(struct kinfo_vmentry) },
+	{ .n_type = NT_PROCSTAT_PROC, .structsize = sizeof(struct kinfo_proc) },
+	{ .n_type = NT_PROCSTAT_FILES,
+	    .structsize = sizeof(struct kinfo_file) },
+	{ .n_type = NT_PROCSTAT_VMMAP,
+	    .structsize = sizeof(struct kinfo_vmentry) },
 	{ .n_type = NT_PROCSTAT_GROUPS, .structsize = sizeof(gid_t) },
 	{ .n_type = NT_PROCSTAT_UMASK, .structsize = sizeof(u_short) },
-	{ .n_type = NT_PROCSTAT_RLIMIT, .structsize = sizeof(struct rlimit) * RLIM_NLIMITS },
+	{ .n_type = NT_PROCSTAT_RLIMIT,
+	    .structsize = sizeof(struct rlimit) * RLIM_NLIMITS },
 	{ .n_type = NT_PROCSTAT_OSREL, .structsize = sizeof(int) },
 	{ .n_type = NT_PROCSTAT_PSSTRINGS, .structsize = sizeof(vm_offset_t) },
 	{ .n_type = NT_PROCSTAT_PSSTRINGS, .structsize = sizeof(vm_offset_t) },
@@ -75,11 +77,11 @@ static struct psc_type_info {
 	{ .n_type = NT_PTLWPINFO, .structsize = sizeof(struct ptrace_lwpinfo) },
 };
 
-static bool	core_offset(struct procstat_core *core, off_t offset);
-static bool	core_read(struct procstat_core *core, void *buf, size_t len);
-static ssize_t	core_read_mem(struct procstat_core *core, void *buf,
-    size_t len, vm_offset_t addr, bool readall);
-static void	*get_args(struct procstat_core *core, vm_offset_t psstrings,
+static bool core_offset(struct procstat_core *core, off_t offset);
+static bool core_read(struct procstat_core *core, void *buf, size_t len);
+static ssize_t core_read_mem(struct procstat_core *core, void *buf, size_t len,
+    vm_offset_t addr, bool readall);
+static void *get_args(struct procstat_core *core, vm_offset_t psstrings,
     enum psc_type type, void *buf, size_t *lenp);
 
 struct procstat_core *
@@ -254,7 +256,7 @@ procstat_core_get(struct procstat_core *core, enum psc_type type, void *buf,
 		}
 		*lenp = len;
 		return (buf);
-        }
+	}
 
 	if (curlen != 0) {
 		*lenp = curlen;
@@ -319,7 +321,7 @@ core_read_mem(struct procstat_core *core, void *buf, size_t len,
 		if ((phdr.p_vaddr + phdr.p_memsz) - addr < len) {
 			if (readall) {
 				warnx("format error: "
-				    "attempt to read out of segment");
+				      "attempt to read out of segment");
 				return (-1);
 			}
 			len = (phdr.p_vaddr + phdr.p_memsz) - addr;
@@ -334,11 +336,11 @@ core_read_mem(struct procstat_core *core, void *buf, size_t len,
 	return (-1);
 }
 
-#define ARGS_CHUNK_SZ	256	/* Chunk size (bytes) for get_args operations. */
+#define ARGS_CHUNK_SZ 256 /* Chunk size (bytes) for get_args operations. */
 
 static void *
 get_args(struct procstat_core *core, vm_offset_t psstrings, enum psc_type type,
-     void *args, size_t *lenp)
+    void *args, size_t *lenp)
 {
 	struct ps_strings pss;
 	void *freeargs;
@@ -386,7 +388,7 @@ get_args(struct procstat_core *core, vm_offset_t psstrings, enum psc_type type,
 		}
 	}
 	p = args;
-	for (i = 0; ; i++) {
+	for (i = 0;; i++) {
 		if (i == nstr)
 			goto done;
 		/*
@@ -396,7 +398,7 @@ get_args(struct procstat_core *core, vm_offset_t psstrings, enum psc_type type,
 		 */
 		if (argv[i] == NULL)
 			goto done;
-		for (addr = (vm_offset_t)argv[i]; ; addr += chunksz) {
+		for (addr = (vm_offset_t)argv[i];; addr += chunksz) {
 			chunksz = MIN(ARGS_CHUNK_SZ, nchr - 1 - done);
 			if (chunksz <= 0)
 				goto done;

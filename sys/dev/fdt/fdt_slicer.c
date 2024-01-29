@@ -37,8 +37,11 @@
 #include <dev/ofw/openfirm.h>
 
 #ifdef DEBUG
-#define debugf(fmt, args...) do { printf("%s(): ", __func__);	\
-    printf(fmt,##args); } while (0)
+#define debugf(fmt, args...)                \
+	do {                                \
+		printf("%s(): ", __func__); \
+		printf(fmt, ##args);        \
+	} while (0)
 #else
 #define debugf(fmt, args...)
 #endif
@@ -85,7 +88,8 @@ fill_slices_from_node(phandle_t node, struct flash_slice *slices, int *count)
 		nmlen = OF_getprop_alloc(child, "label", (void **)&label);
 		if (nmlen <= 0) {
 			/* Use node name if no label defined */
-			nmlen = OF_getprop_alloc(child, "name", (void **)&label);
+			nmlen = OF_getprop_alloc(child, "name",
+			    (void **)&label);
 			if (nmlen <= 0) {
 				debugf("slice i=%d with no name\n", i);
 				label = NULL;
@@ -174,9 +178,7 @@ mod_handler(module_t mod, int type, void *data)
 	return (0);
 }
 
-static moduledata_t fdt_slicer_mod = {
-	"fdt_slicer", mod_handler, NULL
-};
+static moduledata_t fdt_slicer_mod = { "fdt_slicer", mod_handler, NULL };
 
 DECLARE_MODULE(fdt_slicer, fdt_slicer_mod, SI_SUB_DRIVERS, SI_ORDER_THIRD);
 MODULE_DEPEND(fdt_slicer, g_flashmap, 0, 0, 0);

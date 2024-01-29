@@ -48,7 +48,7 @@ extern void get_prefix(struct rainfo *);
  * it is highly unlikely to have 100 prefix information options,
  * so it should be okay to limit it
  */
-#define MAXPREFIX	100
-#define MAXROUTE	100
-#define MAXRDNSSENT	100
-#define MAXDNSSLENT	100
+#define MAXPREFIX 100
+#define MAXROUTE 100
+#define MAXRDNSSENT 100
+#define MAXDNSSLENT 100

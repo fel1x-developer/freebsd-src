@@ -31,9 +31,10 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
-#include "libc_private.h"
 
 #include <stddef.h>
+
+#include "libc_private.h"
 
 ssize_t
 recv(int s, void *buf, size_t len, int flags)
@@ -42,8 +43,7 @@ recv(int s, void *buf, size_t len, int flags)
 	 * POSIX says recv() shall be a cancellation point, so call the
 	 * cancellation-enabled recvfrom() and not _recvfrom().
 	 */
-	return (((ssize_t (*)(int, void *, size_t, int,
-	    struct sockaddr *, socklen_t *))
-	    __libc_interposing[INTERPOS_recvfrom])(s, buf, len, flags,
-	   NULL, NULL));
+	return (((ssize_t(*)(int, void *, size_t, int, struct sockaddr *,
+	    socklen_t *))__libc_interposing[INTERPOS_recvfrom])(s, buf, len,
+	    flags, NULL, NULL));
 }

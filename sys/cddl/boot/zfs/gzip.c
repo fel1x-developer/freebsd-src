@@ -56,7 +56,7 @@ z_uncompress(void *dst, size_t *dstlen, const void *src, size_t srclen)
 	z_stream zs;
 	int err;
 
-	bzero(&zs, sizeof (zs));
+	bzero(&zs, sizeof(zs));
 	zs.next_in = (unsigned char *)src;
 	zs.avail_in = srclen;
 	zs.next_out = dst;
@@ -73,7 +73,7 @@ z_uncompress(void *dst, size_t *dstlen, const void *src, size_t srclen)
 		return (err);
 
 	if ((err = inflate(&zs, Z_FINISH)) != Z_STREAM_END) {
-		(void) inflateEnd(&zs);
+		(void)inflateEnd(&zs);
 		return (err == Z_OK ? Z_BUF_ERROR : err);
 	}
 

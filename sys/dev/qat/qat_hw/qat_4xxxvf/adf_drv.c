@@ -1,32 +1,37 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
-#include "qat_freebsd.h"
-#include <adf_accel_devices.h>
-#include <adf_common_drv.h>
-#include <adf_cfg.h>
-#include "adf_4xxxvf_hw_data.h"
-#include "adf_gen4_hw_data.h"
-#include "adf_fw_counters.h"
-#include "adf_cfg_device.h"
 #include <sys/types.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
+
 #include <machine/bus_dma.h>
+
 #include <dev/pci/pcireg.h>
+
+#include <adf_accel_devices.h>
+#include <adf_cfg.h>
+#include <adf_common_drv.h>
+
+#include "adf_4xxxvf_hw_data.h"
+#include "adf_cfg_device.h"
+#include "adf_fw_counters.h"
+#include "adf_gen4_hw_data.h"
+#include "qat_freebsd.h"
 
 static MALLOC_DEFINE(M_QAT_4XXXVF, "qat_4xxxvf", "qat_4xxxvf");
 
-#define ADF_SYSTEM_DEVICE(device_id)                                           \
-	{                                                                      \
-		PCI_VENDOR_ID_INTEL, device_id                                 \
+#define ADF_SYSTEM_DEVICE(device_id)           \
+	{                                      \
+		PCI_VENDOR_ID_INTEL, device_id \
 	}
 
-static const struct pci_device_id adf_pci_tbl[] =
-    { ADF_SYSTEM_DEVICE(ADF_4XXXIOV_PCI_DEVICE_ID),
-      ADF_SYSTEM_DEVICE(ADF_401XXIOV_PCI_DEVICE_ID),
-      {
-	  0,
-      } };
+static const struct pci_device_id adf_pci_tbl[] = {
+	ADF_SYSTEM_DEVICE(ADF_4XXXIOV_PCI_DEVICE_ID),
+	ADF_SYSTEM_DEVICE(ADF_401XXIOV_PCI_DEVICE_ID),
+	{
+	    0,
+	}
+};
 
 static int
 adf_probe(device_t dev)
@@ -37,8 +42,7 @@ adf_probe(device_t dev)
 		if (pci_get_vendor(dev) == id->vendor &&
 		    pci_get_device(dev) == id->device) {
 			device_set_desc(dev,
-					"Intel " ADF_4XXXVF_DEVICE_NAME
-					" QuickAssist");
+			    "Intel " ADF_4XXXVF_DEVICE_NAME " QuickAssist");
 			return BUS_PROBE_GENERIC;
 		}
 	}
@@ -60,8 +64,7 @@ adf_cleanup_accel(struct adf_accel_dev *accel_dev)
 
 		if (bar->virt_addr)
 			bus_free_resource(accel_pci_dev->pci_dev,
-					  SYS_RES_MEMORY,
-					  bar->virt_addr);
+			    SYS_RES_MEMORY, bar->virt_addr);
 	}
 
 	/*
@@ -112,7 +115,7 @@ adf_attach(device_t dev)
 	/* Add accel device to accel table */
 	if (adf_devmgr_add_dev(accel_dev, pf)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Failed to add new accelerator device.\n");
+		    "Failed to add new accelerator device.\n");
 		return -EFAULT;
 	}
 	/* Allocate and configure device configuration structure */
@@ -141,20 +144,10 @@ adf_attach(device_t dev)
 
 	pci_set_max_read_req(dev, 1024);
 
-	ret = bus_dma_tag_create(bus_get_dma_tag(dev),
-				 1,
-				 0,
-				 BUS_SPACE_MAXADDR,
-				 BUS_SPACE_MAXADDR,
-				 NULL,
-				 NULL,
-				 BUS_SPACE_MAXSIZE,
-				 /* BUS_SPACE_UNRESTRICTED */ 1,
-				 BUS_SPACE_MAXSIZE,
-				 0,
-				 NULL,
-				 NULL,
-				 &accel_dev->dma_tag);
+	ret = bus_dma_tag_create(bus_get_dma_tag(dev), 1, 0, BUS_SPACE_MAXADDR,
+	    BUS_SPACE_MAXADDR, NULL, NULL, BUS_SPACE_MAXSIZE,
+	    /* BUS_SPACE_UNRESTRICTED */ 1, BUS_SPACE_MAXSIZE, 0, NULL, NULL,
+	    &accel_dev->dma_tag);
 
 	hw_data->accel_capabilities_mask = adf_4xxxvf_get_hw_cap(accel_dev);
 
@@ -171,10 +164,8 @@ adf_attach(device_t dev)
 
 		rid = PCIR_BAR(bar_nr);
 		bar = &accel_pci_dev->pci_bars[bar_nr / 2];
-		bar->virt_addr = bus_alloc_resource_any(dev,
-							SYS_RES_MEMORY,
-							&rid,
-							RF_ACTIVE);
+		bar->virt_addr = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
+		    &rid, RF_ACTIVE);
 		if (!bar->virt_addr) {
 			device_printf(dev, "Failed to map BAR %d\n", bar_nr);
 			ret = ENXIO;
@@ -198,8 +189,7 @@ adf_attach(device_t dev)
 		ret = adf_dev_start(accel_dev);
 
 	if (ret) {
-		device_printf(
-		    GET_DEV(accel_dev),
+		device_printf(GET_DEV(accel_dev),
 		    "Failed to start - make sure PF enabled services match VF configuration.\n");
 		adf_dev_stop(accel_dev);
 		adf_dev_shutdown(accel_dev);
@@ -250,21 +240,16 @@ adf_modevent(module_t mod, int type, void *data)
 }
 
 static device_method_t adf_methods[] = { DEVMETHOD(device_probe, adf_probe),
-					 DEVMETHOD(device_attach, adf_attach),
-					 DEVMETHOD(device_detach, adf_detach),
+	DEVMETHOD(device_attach, adf_attach),
+	DEVMETHOD(device_detach, adf_detach),
 
-					 DEVMETHOD_END };
+	DEVMETHOD_END };
 
-static driver_t adf_driver = { "qat",
-			       adf_methods,
-			       sizeof(struct adf_accel_dev) };
+static driver_t adf_driver = { "qat", adf_methods,
+	sizeof(struct adf_accel_dev) };
 
-DRIVER_MODULE_ORDERED(qat_4xxxvf,
-		      pci,
-		      adf_driver,
-		      adf_modevent,
-		      NULL,
-		      SI_ORDER_THIRD);
+DRIVER_MODULE_ORDERED(qat_4xxxvf, pci, adf_driver, adf_modevent, NULL,
+    SI_ORDER_THIRD);
 MODULE_VERSION(qat_4xxxvf, 1);
 MODULE_DEPEND(qat_4xxxvf, qat_common, 1, 1, 1);
 MODULE_DEPEND(qat_4xxxvf, qat_api, 1, 1, 1);

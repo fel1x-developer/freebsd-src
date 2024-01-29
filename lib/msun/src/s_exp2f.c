@@ -31,19 +31,14 @@
 #include "math.h"
 #include "math_private.h"
 
-#define	TBLBITS	4
-#define	TBLSIZE	(1 << TBLBITS)
+#define TBLBITS 4
+#define TBLSIZE (1 << TBLBITS)
 
-static const float
-    redux   = 0x1.8p23f / TBLSIZE,
-    P1	    = 0x1.62e430p-1f,
-    P2	    = 0x1.ebfbe0p-3f,
-    P3	    = 0x1.c6b348p-5f,
-    P4	    = 0x1.3b2c9cp-7f;
+static const float redux = 0x1.8p23f / TBLSIZE, P1 = 0x1.62e430p-1f,
+		   P2 = 0x1.ebfbe0p-3f, P3 = 0x1.c6b348p-5f,
+		   P4 = 0x1.3b2c9cp-7f;
 
-static volatile float
-    huge    = 0x1p100f,
-    twom100 = 0x1p-100f;
+static volatile float huge = 0x1p100f, twom100 = 0x1p-100f;
 
 static const double exp2ft[TBLSIZE] = {
 	0x1.6a09e667f3bcdp-1,
@@ -63,7 +58,7 @@ static const double exp2ft[TBLSIZE] = {
 	0x1.4bfdad5362a27p+0,
 	0x1.5ab07dd485429p+0,
 };
-	
+
 /*
  * exp2f(x): compute the base 2 exponential of x
  *
@@ -100,19 +95,19 @@ exp2f(float x)
 
 	/* Filter out exceptional cases. */
 	GET_FLOAT_WORD(hx, x);
-	ix = hx & 0x7fffffff;		/* high word of |x| */
-	if(ix >= 0x43000000) {			/* |x| >= 128 */
-		if(ix >= 0x7f800000) {
+	ix = hx & 0x7fffffff;	/* high word of |x| */
+	if (ix >= 0x43000000) { /* |x| >= 128 */
+		if (ix >= 0x7f800000) {
 			if ((ix & 0x7fffff) != 0 || (hx & 0x80000000) == 0)
-				return (x + x);	/* x is NaN or +Inf */
-			else 
-				return (0.0);	/* x is -Inf */
+				return (x + x); /* x is NaN or +Inf */
+			else
+				return (0.0); /* x is -Inf */
 		}
-		if(x >= 0x1.0p7f)
-			return (huge * huge);	/* overflow */
-		if(x <= -0x1.2cp7f)
+		if (x >= 0x1.0p7f)
+			return (huge * huge); /* overflow */
+		if (x <= -0x1.2cp7f)
 			return (twom100 * twom100); /* underflow */
-	} else if (ix <= 0x33000000) {		/* |x| <= 0x1p-25 */
+	} else if (ix <= 0x33000000) {		    /* |x| <= 0x1p-25 */
 		return (1.0f + x);
 	}
 

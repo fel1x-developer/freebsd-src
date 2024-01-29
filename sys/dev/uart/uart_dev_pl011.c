@@ -31,8 +31,8 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 
 #include <machine/bus.h>
 #include <machine/machdep.h>
@@ -40,91 +40,93 @@
 #include <dev/uart/uart.h>
 #include <dev/uart/uart_cpu.h>
 #ifdef FDT
-#include <dev/uart/uart_cpu_fdt.h>
 #include <dev/ofw/ofw_bus.h>
+#include <dev/uart/uart_cpu_fdt.h>
 #endif
 #include <dev/uart/uart_bus.h>
+
 #include "uart_if.h"
 
 #ifdef DEV_ACPI
 #include <dev/uart/uart_cpu_acpi.h>
-#include <contrib/dev/acpica/include/acpi.h>
+
 #include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
 #include <contrib/dev/acpica/include/actables.h>
 #endif
 
 #include <sys/kdb.h>
 
 #ifdef __aarch64__
-#define	IS_FDT	(arm64_bus_method == ARM64_BUS_FDT)
+#define IS_FDT (arm64_bus_method == ARM64_BUS_FDT)
 #elif defined(FDT)
-#define	IS_FDT	1
+#define IS_FDT 1
 #else
 #error Unsupported configuration
 #endif
 
 /* PL011 UART registers and masks*/
-#define	UART_DR		0x00		/* Data register */
-#define	DR_FE		(1 << 8)	/* Framing error */
-#define	DR_PE		(1 << 9)	/* Parity error */
-#define	DR_BE		(1 << 10)	/* Break error */
-#define	DR_OE		(1 << 11)	/* Overrun error */
+#define UART_DR 0x00	/* Data register */
+#define DR_FE (1 << 8)	/* Framing error */
+#define DR_PE (1 << 9)	/* Parity error */
+#define DR_BE (1 << 10) /* Break error */
+#define DR_OE (1 << 11) /* Overrun error */
 
-#define	UART_FR		0x06		/* Flag register */
-#define	FR_RXFE		(1 << 4)	/* Receive FIFO/reg empty */
-#define	FR_TXFF		(1 << 5)	/* Transmit FIFO/reg full */
-#define	FR_RXFF		(1 << 6)	/* Receive FIFO/reg full */
-#define	FR_TXFE		(1 << 7)	/* Transmit FIFO/reg empty */
+#define UART_FR 0x06	 /* Flag register */
+#define FR_RXFE (1 << 4) /* Receive FIFO/reg empty */
+#define FR_TXFF (1 << 5) /* Transmit FIFO/reg full */
+#define FR_RXFF (1 << 6) /* Receive FIFO/reg full */
+#define FR_TXFE (1 << 7) /* Transmit FIFO/reg empty */
 
-#define	UART_IBRD	0x09		/* Integer baud rate register */
-#define	IBRD_BDIVINT	0xffff	/* Significant part of int. divisor value */
+#define UART_IBRD 0x09	    /* Integer baud rate register */
+#define IBRD_BDIVINT 0xffff /* Significant part of int. divisor value */
 
-#define	UART_FBRD	0x0a		/* Fractional baud rate register */
-#define	FBRD_BDIVFRAC	0x3f	/* Significant part of frac. divisor value */
+#define UART_FBRD 0x0a	   /* Fractional baud rate register */
+#define FBRD_BDIVFRAC 0x3f /* Significant part of frac. divisor value */
 
-#define	UART_LCR_H	0x0b		/* Line control register */
-#define	LCR_H_WLEN8	(0x3 << 5)
-#define	LCR_H_WLEN7	(0x2 << 5)
-#define	LCR_H_WLEN6	(0x1 << 5)
-#define	LCR_H_FEN	(1 << 4)	/* FIFO mode enable */
-#define	LCR_H_STP2	(1 << 3)	/* 2 stop frames at the end */
-#define	LCR_H_EPS	(1 << 2)	/* Even parity select */
-#define	LCR_H_PEN	(1 << 1)	/* Parity enable */
+#define UART_LCR_H 0x0b /* Line control register */
+#define LCR_H_WLEN8 (0x3 << 5)
+#define LCR_H_WLEN7 (0x2 << 5)
+#define LCR_H_WLEN6 (0x1 << 5)
+#define LCR_H_FEN (1 << 4)  /* FIFO mode enable */
+#define LCR_H_STP2 (1 << 3) /* 2 stop frames at the end */
+#define LCR_H_EPS (1 << 2)  /* Even parity select */
+#define LCR_H_PEN (1 << 1)  /* Parity enable */
 
-#define	UART_CR		0x0c		/* Control register */
-#define	CR_RXE		(1 << 9)	/* Receive enable */
-#define	CR_TXE		(1 << 8)	/* Transmit enable */
-#define	CR_UARTEN	(1 << 0)	/* UART enable */
+#define UART_CR 0x0c	   /* Control register */
+#define CR_RXE (1 << 9)	   /* Receive enable */
+#define CR_TXE (1 << 8)	   /* Transmit enable */
+#define CR_UARTEN (1 << 0) /* UART enable */
 
-#define	UART_IFLS	0x0d		/* FIFO level select register */
-#define	IFLS_RX_SHIFT	3		/* RX level in bits [5:3] */
-#define	IFLS_TX_SHIFT	0		/* TX level in bits [2:0] */
-#define	IFLS_MASK	0x07		/* RX/TX level is 3 bits */
-#define	IFLS_LVL_1_8th	0		/* Interrupt at 1/8 full */
-#define	IFLS_LVL_2_8th	1		/* Interrupt at 1/4 full */
-#define	IFLS_LVL_4_8th	2		/* Interrupt at 1/2 full */
-#define	IFLS_LVL_6_8th	3		/* Interrupt at 3/4 full */
-#define	IFLS_LVL_7_8th	4		/* Interrupt at 7/8 full */
+#define UART_IFLS 0x0d	 /* FIFO level select register */
+#define IFLS_RX_SHIFT 3	 /* RX level in bits [5:3] */
+#define IFLS_TX_SHIFT 0	 /* TX level in bits [2:0] */
+#define IFLS_MASK 0x07	 /* RX/TX level is 3 bits */
+#define IFLS_LVL_1_8th 0 /* Interrupt at 1/8 full */
+#define IFLS_LVL_2_8th 1 /* Interrupt at 1/4 full */
+#define IFLS_LVL_4_8th 2 /* Interrupt at 1/2 full */
+#define IFLS_LVL_6_8th 3 /* Interrupt at 3/4 full */
+#define IFLS_LVL_7_8th 4 /* Interrupt at 7/8 full */
 
-#define	UART_IMSC	0x0e		/* Interrupt mask set/clear register */
-#define	IMSC_MASK_ALL	0x7ff		/* Mask all interrupts */
+#define UART_IMSC 0x0e	    /* Interrupt mask set/clear register */
+#define IMSC_MASK_ALL 0x7ff /* Mask all interrupts */
 
-#define	UART_RIS	0x0f		/* Raw interrupt status register */
-#define	UART_RXREADY	(1 << 4)	/* RX buffer full */
-#define	UART_TXEMPTY	(1 << 5)	/* TX buffer empty */
-#define	RIS_RTIM	(1 << 6)	/* Receive timeout */
-#define	RIS_FE		(1 << 7)	/* Framing error interrupt status */
-#define	RIS_PE		(1 << 8)	/* Parity error interrupt status */
-#define	RIS_BE		(1 << 9)	/* Break error interrupt status */
-#define	RIS_OE		(1 << 10)	/* Overrun interrupt status */
+#define UART_RIS 0x0f	      /* Raw interrupt status register */
+#define UART_RXREADY (1 << 4) /* RX buffer full */
+#define UART_TXEMPTY (1 << 5) /* TX buffer empty */
+#define RIS_RTIM (1 << 6)     /* Receive timeout */
+#define RIS_FE (1 << 7)	      /* Framing error interrupt status */
+#define RIS_PE (1 << 8)	      /* Parity error interrupt status */
+#define RIS_BE (1 << 9)	      /* Break error interrupt status */
+#define RIS_OE (1 << 10)      /* Overrun interrupt status */
 
-#define	UART_MIS	0x10		/* Masked interrupt status register */
-#define	UART_ICR	0x11		/* Interrupt clear register */
+#define UART_MIS 0x10 /* Masked interrupt status register */
+#define UART_ICR 0x11 /* Interrupt clear register */
 
-#define	UART_PIDREG_0	0x3f8		/* Peripheral ID register 0 */
-#define	UART_PIDREG_1	0x3f9		/* Peripheral ID register 1 */
-#define	UART_PIDREG_2	0x3fa		/* Peripheral ID register 2 */
-#define	UART_PIDREG_3	0x3fb		/* Peripheral ID register 3 */
+#define UART_PIDREG_0 0x3f8 /* Peripheral ID register 0 */
+#define UART_PIDREG_1 0x3f9 /* Peripheral ID register 1 */
+#define UART_PIDREG_2 0x3fa /* Peripheral ID register 2 */
+#define UART_PIDREG_3 0x3fb /* Peripheral ID register 3 */
 
 /*
  * The hardware FIFOs are 16 bytes each on rev 2 and earlier hardware, 32 bytes
@@ -135,18 +137,18 @@
  * when the interrupt occurs; uart_core will feed exactly that many bytes to
  * uart_pl011_bus_transmit() which must consume them all.
  */
-#define	FIFO_RX_SIZE_R2	16
-#define	FIFO_TX_SIZE_R2	12
-#define	FIFO_RX_SIZE_R3	32
-#define	FIFO_TX_SIZE_R3	24
-#define	FIFO_IFLS_BITS	((IFLS_LVL_6_8th << IFLS_RX_SHIFT) | (IFLS_LVL_2_8th))
+#define FIFO_RX_SIZE_R2 16
+#define FIFO_TX_SIZE_R2 12
+#define FIFO_RX_SIZE_R3 32
+#define FIFO_TX_SIZE_R3 24
+#define FIFO_IFLS_BITS ((IFLS_LVL_6_8th << IFLS_RX_SHIFT) | (IFLS_LVL_2_8th))
 
 /*
  * FIXME: actual register size is SoC-dependent, we need to handle it
  */
-#define	__uart_getreg(bas, reg)		\
+#define __uart_getreg(bas, reg) \
 	bus_space_read_4((bas)->bst, (bas)->bsh, uart_regofs(bas, reg))
-#define	__uart_setreg(bas, reg, value)	\
+#define __uart_setreg(bas, reg, value) \
 	bus_space_write_4((bas)->bst, (bas)->bsh, uart_regofs(bas, reg), value)
 
 /*
@@ -219,13 +221,15 @@ uart_pl011_param(struct uart_bas *bas, int baudrate, int databits, int stopbits,
 
 	if (bas->rclk != 0 && baudrate != 0) {
 		baud = bas->rclk * 4 / baudrate;
-		__uart_setreg(bas, UART_IBRD, ((uint32_t)(baud >> 6)) & IBRD_BDIVINT);
-		__uart_setreg(bas, UART_FBRD, (uint32_t)(baud & 0x3F) & FBRD_BDIVFRAC);
+		__uart_setreg(bas, UART_IBRD,
+		    ((uint32_t)(baud >> 6)) & IBRD_BDIVINT);
+		__uart_setreg(bas, UART_FBRD,
+		    (uint32_t)(baud & 0x3F) & FBRD_BDIVFRAC);
 	}
 
 	/* Add config. to line before reenabling UART */
-	__uart_setreg(bas, UART_LCR_H, (__uart_getreg(bas, UART_LCR_H) &
-	    ~0xff) | line);
+	__uart_setreg(bas, UART_LCR_H,
+	    (__uart_getreg(bas, UART_LCR_H) & ~0xff) | line);
 
 	/* Set rx and tx fifo levels. */
 	__uart_setreg(bas, UART_IFLS, FIFO_IFLS_BITS);
@@ -238,8 +242,8 @@ uart_pl011_init(struct uart_bas *bas, int baudrate, int databits, int stopbits,
     int parity)
 {
 	/* Mask all interrupts */
-	__uart_setreg(bas, UART_IMSC, __uart_getreg(bas, UART_IMSC) &
-	    ~IMSC_MASK_ALL);
+	__uart_setreg(bas, UART_IMSC,
+	    __uart_getreg(bas, UART_IMSC) & ~IMSC_MASK_ALL);
 
 	uart_pl011_param(bas, baudrate, databits, stopbits, parity);
 }
@@ -282,8 +286,8 @@ uart_pl011_getc(struct uart_bas *bas, struct mtx *hwmtx)
  * High-level UART interface.
  */
 struct uart_pl011_softc {
-	struct uart_softc	base;
-	uint16_t		imsc; /* Interrupt mask */
+	struct uart_softc base;
+	uint16_t imsc; /* Interrupt mask */
 };
 
 static int uart_pl011_bus_attach(struct uart_softc *);
@@ -300,47 +304,42 @@ static int uart_pl011_bus_transmit(struct uart_softc *);
 static void uart_pl011_bus_grab(struct uart_softc *);
 static void uart_pl011_bus_ungrab(struct uart_softc *);
 
-static kobj_method_t uart_pl011_methods[] = {
-	KOBJMETHOD(uart_attach,		uart_pl011_bus_attach),
-	KOBJMETHOD(uart_detach,		uart_pl011_bus_detach),
-	KOBJMETHOD(uart_flush,		uart_pl011_bus_flush),
-	KOBJMETHOD(uart_getsig,		uart_pl011_bus_getsig),
-	KOBJMETHOD(uart_ioctl,		uart_pl011_bus_ioctl),
-	KOBJMETHOD(uart_ipend,		uart_pl011_bus_ipend),
-	KOBJMETHOD(uart_param,		uart_pl011_bus_param),
-	KOBJMETHOD(uart_probe,		uart_pl011_bus_probe),
-	KOBJMETHOD(uart_receive,	uart_pl011_bus_receive),
-	KOBJMETHOD(uart_setsig,		uart_pl011_bus_setsig),
-	KOBJMETHOD(uart_transmit,	uart_pl011_bus_transmit),
-	KOBJMETHOD(uart_grab,		uart_pl011_bus_grab),
-	KOBJMETHOD(uart_ungrab,		uart_pl011_bus_ungrab),
-	{ 0, 0 }
-};
+static kobj_method_t uart_pl011_methods[] = { KOBJMETHOD(uart_attach,
+						  uart_pl011_bus_attach),
+	KOBJMETHOD(uart_detach, uart_pl011_bus_detach),
+	KOBJMETHOD(uart_flush, uart_pl011_bus_flush),
+	KOBJMETHOD(uart_getsig, uart_pl011_bus_getsig),
+	KOBJMETHOD(uart_ioctl, uart_pl011_bus_ioctl),
+	KOBJMETHOD(uart_ipend, uart_pl011_bus_ipend),
+	KOBJMETHOD(uart_param, uart_pl011_bus_param),
+	KOBJMETHOD(uart_probe, uart_pl011_bus_probe),
+	KOBJMETHOD(uart_receive, uart_pl011_bus_receive),
+	KOBJMETHOD(uart_setsig, uart_pl011_bus_setsig),
+	KOBJMETHOD(uart_transmit, uart_pl011_bus_transmit),
+	KOBJMETHOD(uart_grab, uart_pl011_bus_grab),
+	KOBJMETHOD(uart_ungrab, uart_pl011_bus_ungrab), { 0, 0 } };
 
-static struct uart_class uart_pl011_class = {
-	"uart_pl011",
-	uart_pl011_methods,
-	sizeof(struct uart_pl011_softc),
-	.uc_ops = &uart_pl011_ops,
-	.uc_range = 0x48,
-	.uc_rclk = 0,
-	.uc_rshift = 2
-};
+static struct uart_class uart_pl011_class = { "uart_pl011", uart_pl011_methods,
+	sizeof(struct uart_pl011_softc), .uc_ops = &uart_pl011_ops,
+	.uc_range = 0x48, .uc_rclk = 0, .uc_rshift = 2 };
 
 #ifdef FDT
 static struct ofw_compat_data fdt_compat_data[] = {
-	{"arm,pl011",		(uintptr_t)&uart_pl011_class},
-	{NULL,			(uintptr_t)NULL},
+	{ "arm,pl011", (uintptr_t)&uart_pl011_class },
+	{ NULL, (uintptr_t)NULL },
 };
 UART_FDT_CLASS_AND_DEVICE(fdt_compat_data);
 #endif
 
 #ifdef DEV_ACPI
 static struct acpi_uart_compat_data acpi_compat_data[] = {
-	{"ARMH0011", &uart_pl011_class, ACPI_DBG2_ARM_PL011, 2, 0, 0, UART_F_IGNORE_SPCR_REGSHFT, "uart pl011"},
-	{"ARMHB000", &uart_pl011_class, ACPI_DBG2_ARM_SBSA_GENERIC, 2, 0, 0, UART_F_IGNORE_SPCR_REGSHFT, "uart pl011"},
-	{"ARMHB000", &uart_pl011_class, ACPI_DBG2_ARM_SBSA_32BIT, 2, 0, 0, UART_F_IGNORE_SPCR_REGSHFT, "uart pl011"},
-	{NULL, NULL, 0, 0, 0, 0, 0, NULL},
+	{ "ARMH0011", &uart_pl011_class, ACPI_DBG2_ARM_PL011, 2, 0, 0,
+	    UART_F_IGNORE_SPCR_REGSHFT, "uart pl011" },
+	{ "ARMHB000", &uart_pl011_class, ACPI_DBG2_ARM_SBSA_GENERIC, 2, 0, 0,
+	    UART_F_IGNORE_SPCR_REGSHFT, "uart pl011" },
+	{ "ARMHB000", &uart_pl011_class, ACPI_DBG2_ARM_SBSA_32BIT, 2, 0, 0,
+	    UART_F_IGNORE_SPCR_REGSHFT, "uart pl011" },
+	{ NULL, NULL, 0, 0, 0, 0, 0, NULL },
 };
 UART_ACPI_CLASS_AND_DEVICE(acpi_compat_data);
 #endif
@@ -396,7 +395,7 @@ uart_pl011_bus_ioctl(struct uart_softc *sc, int request, intptr_t data)
 	case UART_IOCTL_BREAK:
 		break;
 	case UART_IOCTL_BAUD:
-		*(int*)data = 115200;
+		*(int *)data = 115200;
 		break;
 	default:
 		error = EINVAL;
@@ -476,7 +475,7 @@ uart_pl011_bus_hwrev_fdt(struct uart_softc *sc)
 	} else {
 		node = ofw_bus_get_node(sc->sc_dev);
 		if (OF_getencprop(node, "arm,primecell-periphid", &periphid,
-		    sizeof(periphid)) > 0) {
+			sizeof(periphid)) > 0) {
 			return ((periphid >> 20) & 0x0f);
 		}
 	}

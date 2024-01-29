@@ -40,23 +40,23 @@
 #include <machine/bus.h>
 #include <machine/resource.h>
 
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
 
 #include "clock_if.h"
 
-#define	RTCDR	0x00
-#define	RTCMR	0x04
-#define	RTCLR	0x08
-#define	RTCCR	0x0c
-#define	RTCIMSR	0x10
-#define	RTCRIS	0x14
-#define	RTCMIS	0x18
-#define	RTCICR	0x1c
+#define RTCDR 0x00
+#define RTCMR 0x04
+#define RTCLR 0x08
+#define RTCCR 0x0c
+#define RTCIMSR 0x10
+#define RTCRIS 0x14
+#define RTCMIS 0x18
+#define RTCICR 0x1c
 
 struct pl031_softc {
-	struct resource	*reg;
+	struct resource *reg;
 	int reg_rid;
 };
 
@@ -135,19 +135,18 @@ pl031_settime(device_t dev, struct timespec *ts)
 
 static device_method_t pl031_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		pl031_probe),
-	DEVMETHOD(device_attach,	pl031_attach),
-	DEVMETHOD(device_detach,	pl031_detach),
+	DEVMETHOD(device_probe, pl031_probe),
+	DEVMETHOD(device_attach, pl031_attach),
+	DEVMETHOD(device_detach, pl031_detach),
 
 	/* Clock interface */
-	DEVMETHOD(clock_gettime,	pl031_gettime),
-	DEVMETHOD(clock_settime,	pl031_settime),
+	DEVMETHOD(clock_gettime, pl031_gettime),
+	DEVMETHOD(clock_settime, pl031_settime),
 
 	/* End */
 	DEVMETHOD_END
 };
 
-DEFINE_CLASS_0(pl031, pl031_driver, pl031_methods,
-    sizeof(struct pl031_softc));
+DEFINE_CLASS_0(pl031, pl031_driver, pl031_methods, sizeof(struct pl031_softc));
 
 DRIVER_MODULE(pl031, simplebus, pl031_driver, 0, 0);

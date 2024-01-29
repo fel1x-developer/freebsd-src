@@ -56,8 +56,7 @@ static void iavf_handle_link_event(struct iavf_sc *sc,
  * @returns zero on success, or an error code on failure.
  */
 int
-iavf_send_pf_msg(struct iavf_sc *sc,
-	enum virtchnl_ops op, u8 *msg, u16 len)
+iavf_send_pf_msg(struct iavf_sc *sc, enum virtchnl_ops op, u8 *msg, u16 len)
 {
 	struct iavf_hw *hw = &sc->hw;
 	device_t dev = sc->dev;
@@ -67,27 +66,30 @@ iavf_send_pf_msg(struct iavf_sc *sc,
 	/* Validating message before sending it to the PF */
 	val_err = virtchnl_vc_validate_vf_msg(&sc->version, op, msg, len);
 	if (val_err)
-		device_printf(dev, "Error validating msg to PF for op %d,"
-		    " msglen %d: error %d\n", op, len, val_err);
+		device_printf(dev,
+		    "Error validating msg to PF for op %d,"
+		    " msglen %d: error %d\n",
+		    op, len, val_err);
 
 	if (!iavf_check_asq_alive(hw)) {
 		if (op != VIRTCHNL_OP_GET_STATS)
-			device_printf(dev, "Unable to send opcode %s to PF, "
-			    "ASQ is not alive\n", iavf_vc_opcode_str(op));
+			device_printf(dev,
+			    "Unable to send opcode %s to PF, "
+			    "ASQ is not alive\n",
+			    iavf_vc_opcode_str(op));
 		return (0);
 	}
 
 	if (op != VIRTCHNL_OP_GET_STATS)
-		iavf_dbg_vc(sc,
-		    "Sending msg (op=%s[%d]) to PF\n",
+		iavf_dbg_vc(sc, "Sending msg (op=%s[%d]) to PF\n",
 		    iavf_vc_opcode_str(op), op);
 
 	status = iavf_aq_send_msg_to_pf(hw, op, IAVF_SUCCESS, msg, len, NULL);
 	if (status && op != VIRTCHNL_OP_GET_STATS)
-		device_printf(dev, "Unable to send opcode %s to PF, "
+		device_printf(dev,
+		    "Unable to send opcode %s to PF, "
 		    "status %s, aq error %s\n",
-		    iavf_vc_opcode_str(op),
-		    iavf_stat_str(hw, status),
+		    iavf_vc_opcode_str(op), iavf_stat_str(hw, status),
 		    iavf_aq_str(hw, hw->aq.asq_last_status));
 
 	return (status);
@@ -111,8 +113,8 @@ iavf_send_api_ver(struct iavf_sc *sc)
 	vvi.major = VIRTCHNL_VERSION_MAJOR;
 	vvi.minor = VIRTCHNL_VERSION_MINOR;
 
-	return iavf_send_pf_msg(sc, VIRTCHNL_OP_VERSION,
-	    (u8 *)&vvi, sizeof(vvi));
+	return iavf_send_pf_msg(sc, VIRTCHNL_OP_VERSION, (u8 *)&vvi,
+	    sizeof(vvi));
 }
 
 /**
@@ -155,7 +157,8 @@ iavf_verify_api_ver(struct iavf_sc *sc)
 
 		if ((enum virtchnl_ops)le32toh(event.desc.cookie_high) !=
 		    VIRTCHNL_OP_VERSION) {
-			iavf_dbg_vc(sc, "%s: Received unexpected op response: %d\n",
+			iavf_dbg_vc(sc,
+			    "%s: Received unexpected op response: %d\n",
 			    __func__, le32toh(event.desc.cookie_high));
 			/* Don't stop looking for expected response */
 			continue;
@@ -172,7 +175,7 @@ iavf_verify_api_ver(struct iavf_sc *sc)
 	pf_vvi = (struct virtchnl_version_info *)event.msg_buf;
 	if ((pf_vvi->major > VIRTCHNL_VERSION_MAJOR) ||
 	    ((pf_vvi->major == VIRTCHNL_VERSION_MAJOR) &&
-	    (pf_vvi->minor > VIRTCHNL_VERSION_MINOR))) {
+		(pf_vvi->minor > VIRTCHNL_VERSION_MINOR))) {
 		device_printf(dev, "Critical PF/VF API version mismatch!\n");
 		error = EIO;
 	} else {
@@ -181,9 +184,8 @@ iavf_verify_api_ver(struct iavf_sc *sc)
 	}
 
 	/* Log PF/VF api versions */
-	device_printf(dev, "PF API %d.%d / VF API %d.%d\n",
-	    pf_vvi->major, pf_vvi->minor,
-	    VIRTCHNL_VERSION_MAJOR, VIRTCHNL_VERSION_MINOR);
+	device_printf(dev, "PF API %d.%d / VF API %d.%d\n", pf_vvi->major,
+	    pf_vvi->minor, VIRTCHNL_VERSION_MAJOR, VIRTCHNL_VERSION_MINOR);
 
 out_alloc:
 	free(event.msg_buf, M_IAVF);
@@ -208,18 +210,17 @@ iavf_send_vf_config_msg(struct iavf_sc *sc)
 	/* Support the base mode functionality, as well as advanced
 	 * speed reporting capability.
 	 */
-	caps = VF_BASE_MODE_OFFLOADS |
-	    VIRTCHNL_VF_CAP_ADV_LINK_SPEED;
+	caps = VF_BASE_MODE_OFFLOADS | VIRTCHNL_VF_CAP_ADV_LINK_SPEED;
 
-	iavf_dbg_info(sc, "Sending offload flags: 0x%b\n",
-	    caps, IAVF_PRINTF_VF_OFFLOAD_FLAGS);
+	iavf_dbg_info(sc, "Sending offload flags: 0x%b\n", caps,
+	    IAVF_PRINTF_VF_OFFLOAD_FLAGS);
 
 	if (sc->version.minor == VIRTCHNL_VERSION_MINOR_NO_VF_CAPS)
-		return iavf_send_pf_msg(sc, VIRTCHNL_OP_GET_VF_RESOURCES,
-				  NULL, 0);
+		return iavf_send_pf_msg(sc, VIRTCHNL_OP_GET_VF_RESOURCES, NULL,
+		    0);
 	else
 		return iavf_send_pf_msg(sc, VIRTCHNL_OP_GET_VF_RESOURCES,
-				  (u8 *)&caps, sizeof(caps));
+		    (u8 *)&caps, sizeof(caps));
 }
 
 /**
@@ -236,8 +237,8 @@ iavf_send_vf_config_msg(struct iavf_sc *sc)
 int
 iavf_get_vf_config(struct iavf_sc *sc)
 {
-	struct iavf_hw	*hw = &sc->hw;
-	device_t	dev = sc->dev;
+	struct iavf_hw *hw = &sc->hw;
+	device_t dev = sc->dev;
 	enum iavf_status status = IAVF_SUCCESS;
 	struct iavf_arq_event_info event;
 	u16 len;
@@ -257,19 +258,21 @@ iavf_get_vf_config(struct iavf_sc *sc)
 				iavf_msec_pause(10);
 		} else if ((enum virtchnl_ops)le32toh(event.desc.cookie_high) !=
 		    VIRTCHNL_OP_GET_VF_RESOURCES) {
-			iavf_dbg_vc(sc, "%s: Received a response from PF,"
+			iavf_dbg_vc(sc,
+			    "%s: Received a response from PF,"
 			    " opcode %d, error %d",
-			    __func__,
-			    le32toh(event.desc.cookie_high),
+			    __func__, le32toh(event.desc.cookie_high),
 			    le32toh(event.desc.cookie_low));
 			retries++;
 			continue;
 		} else {
-			status = (enum iavf_status)le32toh(event.desc.cookie_low);
+			status = (enum iavf_status)le32toh(
+			    event.desc.cookie_low);
 			if (status) {
-				device_printf(dev, "%s: Error returned from PF,"
-				    " opcode %d, error %d\n", __func__,
-				    le32toh(event.desc.cookie_high),
+				device_printf(dev,
+				    "%s: Error returned from PF,"
+				    " opcode %d, error %d\n",
+				    __func__, le32toh(event.desc.cookie_high),
 				    le32toh(event.desc.cookie_low));
 				error = EIO;
 				goto out_alloc;
@@ -314,8 +317,8 @@ iavf_enable_queues(struct iavf_sc *sc)
 	vqs.vsi_id = sc->vsi_res->vsi_id;
 	vqs.tx_queues = (1 << IAVF_NTXQS(vsi)) - 1;
 	vqs.rx_queues = vqs.tx_queues;
-	iavf_send_pf_msg(sc, VIRTCHNL_OP_ENABLE_QUEUES,
-			   (u8 *)&vqs, sizeof(vqs));
+	iavf_send_pf_msg(sc, VIRTCHNL_OP_ENABLE_QUEUES, (u8 *)&vqs,
+	    sizeof(vqs));
 	return (0);
 }
 
@@ -338,8 +341,8 @@ iavf_disable_queues(struct iavf_sc *sc)
 	vqs.vsi_id = sc->vsi_res->vsi_id;
 	vqs.tx_queues = (1 << IAVF_NTXQS(vsi)) - 1;
 	vqs.rx_queues = vqs.tx_queues;
-	iavf_send_pf_msg(sc, VIRTCHNL_OP_DISABLE_QUEUES,
-			   (u8 *)&vqs, sizeof(vqs));
+	iavf_send_pf_msg(sc, VIRTCHNL_OP_DISABLE_QUEUES, (u8 *)&vqs,
+	    sizeof(vqs));
 	return (0);
 }
 
@@ -363,7 +366,7 @@ iavf_add_vlans(struct iavf_sc *sc)
 	u32 len;
 
 	/* Get count of VLAN filters to add */
-	SLIST_FOREACH(f, sc->vlan_filters, next) {
+	SLIST_FOREACH (f, sc->vlan_filters, next) {
 		if (f->flags & IAVF_FILTER_ADD)
 			cnt++;
 	}
@@ -371,19 +374,17 @@ iavf_add_vlans(struct iavf_sc *sc)
 	if (!cnt) /* no work... */
 		return (ENOENT);
 
-	len = sizeof(struct virtchnl_vlan_filter_list) +
-	      (cnt * sizeof(u16));
+	len = sizeof(struct virtchnl_vlan_filter_list) + (cnt * sizeof(u16));
 
 	if (len > IAVF_AQ_BUF_SZ) {
-		device_printf(dev, "%s: Exceeded Max AQ Buf size\n",
-			__func__);
+		device_printf(dev, "%s: Exceeded Max AQ Buf size\n", __func__);
 		return (EFBIG);
 	}
 
-	v = (struct virtchnl_vlan_filter_list *)malloc(len, M_IAVF, M_NOWAIT | M_ZERO);
+	v = (struct virtchnl_vlan_filter_list *)malloc(len, M_IAVF,
+	    M_NOWAIT | M_ZERO);
 	if (!v) {
-		device_printf(dev, "%s: unable to allocate memory\n",
-			__func__);
+		device_printf(dev, "%s: unable to allocate memory\n", __func__);
 		return (ENOMEM);
 	}
 
@@ -391,14 +392,14 @@ iavf_add_vlans(struct iavf_sc *sc)
 	v->num_elements = cnt;
 
 	/* Scan the filter array */
-	SLIST_FOREACH_SAFE(f, sc->vlan_filters, next, ftmp) {
-                if (f->flags & IAVF_FILTER_ADD) {
-                        bcopy(&f->vlan, &v->vlan_id[i], sizeof(u16));
+	SLIST_FOREACH_SAFE (f, sc->vlan_filters, next, ftmp) {
+		if (f->flags & IAVF_FILTER_ADD) {
+			bcopy(&f->vlan, &v->vlan_id[i], sizeof(u16));
 			f->flags = IAVF_FILTER_USED;
-                        i++;
-                }
-                if (i == cnt)
-                        break;
+			i++;
+		}
+		if (i == cnt)
+			break;
 	}
 
 	iavf_send_pf_msg(sc, VIRTCHNL_OP_ADD_VLAN, (u8 *)v, len);
@@ -427,7 +428,7 @@ iavf_del_vlans(struct iavf_sc *sc)
 	u32 len;
 
 	/* Get count of VLAN filters to delete */
-	SLIST_FOREACH(f, sc->vlan_filters, next) {
+	SLIST_FOREACH (f, sc->vlan_filters, next) {
 		if (f->flags & IAVF_FILTER_DEL)
 			cnt++;
 	}
@@ -435,20 +436,17 @@ iavf_del_vlans(struct iavf_sc *sc)
 	if (!cnt) /* no work... */
 		return (ENOENT);
 
-	len = sizeof(struct virtchnl_vlan_filter_list) +
-	      (cnt * sizeof(u16));
+	len = sizeof(struct virtchnl_vlan_filter_list) + (cnt * sizeof(u16));
 
 	if (len > IAVF_AQ_BUF_SZ) {
-		device_printf(dev, "%s: Exceeded Max AQ Buf size\n",
-			__func__);
+		device_printf(dev, "%s: Exceeded Max AQ Buf size\n", __func__);
 		return (EFBIG);
 	}
 
-	v = (struct virtchnl_vlan_filter_list *)
-	    malloc(len, M_IAVF, M_NOWAIT | M_ZERO);
+	v = (struct virtchnl_vlan_filter_list *)malloc(len, M_IAVF,
+	    M_NOWAIT | M_ZERO);
 	if (!v) {
-		device_printf(dev, "%s: unable to allocate memory\n",
-			__func__);
+		device_printf(dev, "%s: unable to allocate memory\n", __func__);
 		return (ENOMEM);
 	}
 
@@ -456,15 +454,16 @@ iavf_del_vlans(struct iavf_sc *sc)
 	v->num_elements = cnt;
 
 	/* Scan the filter array */
-	SLIST_FOREACH_SAFE(f, sc->vlan_filters, next, ftmp) {
-                if (f->flags & IAVF_FILTER_DEL) {
-                        bcopy(&f->vlan, &v->vlan_id[i], sizeof(u16));
-                        i++;
-                        SLIST_REMOVE(sc->vlan_filters, f, iavf_vlan_filter, next);
-                        free(f, M_IAVF);
-                }
-                if (i == cnt)
-                        break;
+	SLIST_FOREACH_SAFE (f, sc->vlan_filters, next, ftmp) {
+		if (f->flags & IAVF_FILTER_DEL) {
+			bcopy(&f->vlan, &v->vlan_id[i], sizeof(u16));
+			i++;
+			SLIST_REMOVE(sc->vlan_filters, f, iavf_vlan_filter,
+			    next);
+			free(f, M_IAVF);
+		}
+		if (i == cnt)
+			break;
 	}
 
 	iavf_send_pf_msg(sc, VIRTCHNL_OP_DEL_VLAN, (u8 *)v, len);
@@ -493,7 +492,7 @@ iavf_add_ether_filters(struct iavf_sc *sc)
 	int error;
 
 	/* Get count of MAC addresses to add */
-	SLIST_FOREACH(f, sc->mac_filters, next) {
+	SLIST_FOREACH (f, sc->mac_filters, next) {
 		if (f->flags & IAVF_FILTER_ADD)
 			cnt++;
 	}
@@ -505,34 +504,34 @@ iavf_add_ether_filters(struct iavf_sc *sc)
 	len = sizeof(struct virtchnl_ether_addr_list) +
 	    (cnt * sizeof(struct virtchnl_ether_addr));
 
-	a = (struct virtchnl_ether_addr_list *)
-	    malloc(len, M_IAVF, M_NOWAIT | M_ZERO);
+	a = (struct virtchnl_ether_addr_list *)malloc(len, M_IAVF,
+	    M_NOWAIT | M_ZERO);
 	if (a == NULL) {
-		device_printf(dev, "%s: Failed to get memory for "
-		    "virtchnl_ether_addr_list\n", __func__);
+		device_printf(dev,
+		    "%s: Failed to get memory for "
+		    "virtchnl_ether_addr_list\n",
+		    __func__);
 		return (ENOMEM);
 	}
 	a->vsi_id = sc->vsi.id;
 	a->num_elements = cnt;
 
 	/* Scan the filter array */
-	SLIST_FOREACH(f, sc->mac_filters, next) {
+	SLIST_FOREACH (f, sc->mac_filters, next) {
 		if (f->flags & IAVF_FILTER_ADD) {
 			bcopy(f->macaddr, a->list[j].addr, ETHER_ADDR_LEN);
 			f->flags &= ~IAVF_FILTER_ADD;
 			j++;
 
-			iavf_dbg_vc(sc, "%s: ADD: " MAC_FORMAT "\n",
-			    __func__, MAC_FORMAT_ARGS(f->macaddr));
+			iavf_dbg_vc(sc, "%s: ADD: " MAC_FORMAT "\n", __func__,
+			    MAC_FORMAT_ARGS(f->macaddr));
 		}
 		if (j == cnt)
 			break;
 	}
-	iavf_dbg_vc(sc, "%s: len %d, j %d, cnt %d\n", __func__,
-	    len, j, cnt);
+	iavf_dbg_vc(sc, "%s: len %d, j %d, cnt %d\n", __func__, len, j, cnt);
 
-	error = iavf_send_pf_msg(sc,
-	    VIRTCHNL_OP_ADD_ETH_ADDR, (u8 *)a, len);
+	error = iavf_send_pf_msg(sc, VIRTCHNL_OP_ADD_ETH_ADDR, (u8 *)a, len);
 	/* add stats? */
 	free(a, M_IAVF);
 	return (error);
@@ -547,7 +546,7 @@ iavf_add_ether_filters(struct iavf_sc *sc)
  * to delete those filters in the hardware.
  *
  * @returns zero on success, or an error code on failure.
-*/
+ */
 int
 iavf_del_ether_filters(struct iavf_sc *sc)
 {
@@ -557,7 +556,7 @@ iavf_del_ether_filters(struct iavf_sc *sc)
 	int len, j = 0, cnt = 0;
 
 	/* Get count of MAC addresses to delete */
-	SLIST_FOREACH(f, sc->mac_filters, next) {
+	SLIST_FOREACH (f, sc->mac_filters, next) {
 		if (f->flags & IAVF_FILTER_DEL)
 			cnt++;
 	}
@@ -569,18 +568,20 @@ iavf_del_ether_filters(struct iavf_sc *sc)
 	len = sizeof(struct virtchnl_ether_addr_list) +
 	    (cnt * sizeof(struct virtchnl_ether_addr));
 
-	d = (struct virtchnl_ether_addr_list *)
-	    malloc(len, M_IAVF, M_NOWAIT | M_ZERO);
+	d = (struct virtchnl_ether_addr_list *)malloc(len, M_IAVF,
+	    M_NOWAIT | M_ZERO);
 	if (d == NULL) {
-		device_printf(dev, "%s: Failed to get memory for "
-		    "virtchnl_ether_addr_list\n", __func__);
+		device_printf(dev,
+		    "%s: Failed to get memory for "
+		    "virtchnl_ether_addr_list\n",
+		    __func__);
 		return (ENOMEM);
 	}
 	d->vsi_id = sc->vsi.id;
 	d->num_elements = cnt;
 
 	/* Scan the filter array */
-	SLIST_FOREACH_SAFE(f, sc->mac_filters, next, f_temp) {
+	SLIST_FOREACH_SAFE (f, sc->mac_filters, next, f_temp) {
 		if (f->flags & IAVF_FILTER_DEL) {
 			bcopy(f->macaddr, d->list[j].addr, ETHER_ADDR_LEN);
 			iavf_dbg_vc(sc, "DEL: " MAC_FORMAT "\n",
@@ -592,8 +593,7 @@ iavf_del_ether_filters(struct iavf_sc *sc)
 		if (j == cnt)
 			break;
 	}
-	iavf_send_pf_msg(sc,
-	    VIRTCHNL_OP_DEL_ETH_ADDR, (u8 *)d, len);
+	iavf_send_pf_msg(sc, VIRTCHNL_OP_DEL_ETH_ADDR, (u8 *)d, len);
 	/* add stats? */
 	free(d, M_IAVF);
 	return (0);
@@ -639,10 +639,11 @@ iavf_request_stats(struct iavf_sc *sc)
 
 	vqs.vsi_id = sc->vsi_res->vsi_id;
 	/* Low priority, we don't need to error check */
-	error = iavf_send_pf_msg(sc, VIRTCHNL_OP_GET_STATS,
-	    (u8 *)&vqs, sizeof(vqs));
+	error = iavf_send_pf_msg(sc, VIRTCHNL_OP_GET_STATS, (u8 *)&vqs,
+	    sizeof(vqs));
 	if (error)
-		device_printf(sc->dev, "Error sending stats request to PF: %d\n", error);
+		device_printf(sc->dev,
+		    "Error sending stats request to PF: %d\n", error);
 
 	return (0);
 }
@@ -691,22 +692,24 @@ iavf_config_rss_key(struct iavf_sc *sc)
 {
 	struct virtchnl_rss_key *rss_key_msg;
 	int msg_len, key_length;
-	u8		rss_seed[IAVF_RSS_KEY_SIZE];
+	u8 rss_seed[IAVF_RSS_KEY_SIZE];
 
 #ifdef RSS
 	/* Fetch the configured RSS key */
-	rss_getkey((uint8_t *) &rss_seed);
+	rss_getkey((uint8_t *)&rss_seed);
 #else
 	iavf_get_default_rss_key((u32 *)rss_seed);
 #endif
 
 	/* Send the fetched key */
 	key_length = IAVF_RSS_KEY_SIZE;
-	msg_len = sizeof(struct virtchnl_rss_key) + (sizeof(u8) * key_length) - 1;
-	rss_key_msg = (struct virtchnl_rss_key *)
-	    malloc(msg_len, M_IAVF, M_NOWAIT | M_ZERO);
+	msg_len = sizeof(struct virtchnl_rss_key) + (sizeof(u8) * key_length) -
+	    1;
+	rss_key_msg = (struct virtchnl_rss_key *)malloc(msg_len, M_IAVF,
+	    M_NOWAIT | M_ZERO);
 	if (rss_key_msg == NULL) {
-		device_printf(sc->dev, "Unable to allocate msg memory for RSS key msg.\n");
+		device_printf(sc->dev,
+		    "Unable to allocate msg memory for RSS key msg.\n");
 		return (ENOMEM);
 	}
 
@@ -717,8 +720,8 @@ iavf_config_rss_key(struct iavf_sc *sc)
 	iavf_dbg_vc(sc, "%s: vsi_id %d, key_len %d\n", __func__,
 	    rss_key_msg->vsi_id, rss_key_msg->key_len);
 
-	iavf_send_pf_msg(sc, VIRTCHNL_OP_CONFIG_RSS_KEY,
-			  (u8 *)rss_key_msg, msg_len);
+	iavf_send_pf_msg(sc, VIRTCHNL_OP_CONFIG_RSS_KEY, (u8 *)rss_key_msg,
+	    msg_len);
 
 	free(rss_key_msg, M_IAVF);
 	return (0);
@@ -747,8 +750,8 @@ iavf_set_rss_hena(struct iavf_sc *sc)
 	else
 		hena.hena = IAVF_DEFAULT_RSS_HENA_BASE;
 
-	iavf_send_pf_msg(sc, VIRTCHNL_OP_SET_RSS_HENA,
-	    (u8 *)&hena, sizeof(hena));
+	iavf_send_pf_msg(sc, VIRTCHNL_OP_SET_RSS_HENA, (u8 *)&hena,
+	    sizeof(hena));
 	return (0);
 }
 
@@ -772,11 +775,13 @@ iavf_config_rss_lut(struct iavf_sc *sc)
 	int i, que_id;
 
 	lut_length = IAVF_RSS_VSI_LUT_SIZE;
-	msg_len = sizeof(struct virtchnl_rss_lut) + (lut_length * sizeof(u8)) - 1;
-	rss_lut_msg = (struct virtchnl_rss_lut *)
-	    malloc(msg_len, M_IAVF, M_NOWAIT | M_ZERO);
+	msg_len = sizeof(struct virtchnl_rss_lut) + (lut_length * sizeof(u8)) -
+	    1;
+	rss_lut_msg = (struct virtchnl_rss_lut *)malloc(msg_len, M_IAVF,
+	    M_NOWAIT | M_ZERO);
 	if (rss_lut_msg == NULL) {
-		device_printf(sc->dev, "Unable to allocate msg memory for RSS lut msg.\n");
+		device_printf(sc->dev,
+		    "Unable to allocate msg memory for RSS lut msg.\n");
 		return (ENOMEM);
 	}
 
@@ -801,8 +806,8 @@ iavf_config_rss_lut(struct iavf_sc *sc)
 		rss_lut_msg->lut[i] = lut;
 	}
 
-	iavf_send_pf_msg(sc, VIRTCHNL_OP_CONFIG_RSS_LUT,
-			  (u8 *)rss_lut_msg, msg_len);
+	iavf_send_pf_msg(sc, VIRTCHNL_OP_CONFIG_RSS_LUT, (u8 *)rss_lut_msg,
+	    msg_len);
 
 	free(rss_lut_msg, M_IAVF);
 	return (0);
@@ -827,8 +832,8 @@ iavf_config_promisc_mode(struct iavf_sc *sc)
 	pinfo.vsi_id = sc->vsi_res->vsi_id;
 	pinfo.flags = sc->promisc_flags;
 
-	iavf_send_pf_msg(sc, VIRTCHNL_OP_CONFIG_PROMISCUOUS_MODE,
-	    (u8 *)&pinfo, sizeof(pinfo));
+	iavf_send_pf_msg(sc, VIRTCHNL_OP_CONFIG_PROMISCUOUS_MODE, (u8 *)&pinfo,
+	    sizeof(pinfo));
 	return (0);
 }
 
@@ -1173,19 +1178,17 @@ iavf_vc_opcode_str(uint16_t op)
  * This function handles the reply messages.
  */
 void
-iavf_vc_completion(struct iavf_sc *sc,
-    enum virtchnl_ops v_opcode,
+iavf_vc_completion(struct iavf_sc *sc, enum virtchnl_ops v_opcode,
     enum virtchnl_status_code v_retval, u8 *msg, u16 msglen __unused)
 {
-	device_t	dev = sc->dev;
+	device_t dev = sc->dev;
 
 	if (v_opcode != VIRTCHNL_OP_GET_STATS)
 		iavf_dbg_vc(sc, "%s: opcode %s\n", __func__,
 		    iavf_vc_opcode_str(v_opcode));
 
 	if (v_opcode == VIRTCHNL_OP_EVENT) {
-		struct virtchnl_pf_event *vpe =
-			(struct virtchnl_pf_event *)msg;
+		struct virtchnl_pf_event *vpe = (struct virtchnl_pf_event *)msg;
 
 		switch (vpe->event) {
 		case VIRTCHNL_EVENT_LINK_CHANGE:
@@ -1197,7 +1200,7 @@ iavf_vc_completion(struct iavf_sc *sc,
 			break;
 		default:
 			iavf_dbg_vc(sc, "Unknown event %d from AQ\n",
-				vpe->event);
+			    vpe->event);
 			break;
 		}
 
@@ -1210,8 +1213,10 @@ iavf_vc_completion(struct iavf_sc *sc,
 
 		switch (v_opcode) {
 		case VIRTCHNL_OP_ADD_ETH_ADDR:
-			device_printf(dev, "WARNING: Error adding VF mac filter!\n");
-			device_printf(dev, "WARNING: Device may not receive traffic!\n");
+			device_printf(dev,
+			    "WARNING: Error adding VF mac filter!\n");
+			device_printf(dev,
+			    "WARNING: Device may not receive traffic!\n");
 			break;
 		case VIRTCHNL_OP_ENABLE_QUEUES:
 			sc->enable_queues_chan = 1;
@@ -1273,8 +1278,7 @@ iavf_vc_completion(struct iavf_sc *sc,
 	case VIRTCHNL_OP_CONFIG_RSS_LUT:
 		break;
 	default:
-		iavf_dbg_vc(sc,
-		    "Received unexpected message %s from PF.\n",
+		iavf_dbg_vc(sc, "Received unexpected message %s from PF.\n",
 		    iavf_vc_opcode_str(v_opcode));
 		break;
 	}
@@ -1293,24 +1297,19 @@ iavf_handle_link_event(struct iavf_sc *sc, struct virtchnl_pf_event *vpe)
 {
 	MPASS(vpe->event == VIRTCHNL_EVENT_LINK_CHANGE);
 
-	if (sc->vf_res->vf_cap_flags & VIRTCHNL_VF_CAP_ADV_LINK_SPEED)
-	{
+	if (sc->vf_res->vf_cap_flags & VIRTCHNL_VF_CAP_ADV_LINK_SPEED) {
 		iavf_dbg_vc(sc, "Link change (adv): status %d, speed %u\n",
 		    vpe->event_data.link_event_adv.link_status,
 		    vpe->event_data.link_event_adv.link_speed);
-		sc->link_up =
-			vpe->event_data.link_event_adv.link_status;
-		sc->link_speed_adv =
-			vpe->event_data.link_event_adv.link_speed;
+		sc->link_up = vpe->event_data.link_event_adv.link_status;
+		sc->link_speed_adv = vpe->event_data.link_event_adv.link_speed;
 
 	} else {
 		iavf_dbg_vc(sc, "Link change: status %d, speed %x\n",
 		    vpe->event_data.link_event.link_status,
 		    vpe->event_data.link_event.link_speed);
-		sc->link_up =
-			vpe->event_data.link_event.link_status;
-		sc->link_speed =
-			vpe->event_data.link_event.link_speed;
+		sc->link_up = vpe->event_data.link_event.link_status;
+		sc->link_speed = vpe->event_data.link_event.link_speed;
 	}
 
 	iavf_update_link_status(sc);

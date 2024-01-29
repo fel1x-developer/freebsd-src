@@ -23,72 +23,75 @@
  * SUCH DAMAGE.
  */
 
-#include "opt_rss.h"
 #include "opt_ratelimit.h"
+#include "opt_rss.h"
+
+#include <dev/mlx5/mlx5_core/eswitch.h>
+#include <dev/mlx5/mlx5_core/mlx5_core.h>
+#include <dev/mlx5/mlx5_fpga/core.h>
+#include <dev/mlx5/mlx5_ifc.h>
+#include <dev/mlx5/port.h>
 
 #include <linux/interrupt.h>
 #include <linux/module.h>
-#include <dev/mlx5/port.h>
-#include <dev/mlx5/mlx5_ifc.h>
-#include <dev/mlx5/mlx5_fpga/core.h>
-#include <dev/mlx5/mlx5_core/mlx5_core.h>
-#include <dev/mlx5/mlx5_core/eswitch.h>
 
-#ifdef  RSS
+#ifdef RSS
 #include <net/rss_config.h>
 #include <netinet/in_rss.h>
 #endif
 
 enum {
-	MLX5_EQE_SIZE		= sizeof(struct mlx5_eqe),
-	MLX5_EQE_OWNER_INIT_VAL	= 0x1,
+	MLX5_EQE_SIZE = sizeof(struct mlx5_eqe),
+	MLX5_EQE_OWNER_INIT_VAL = 0x1,
 };
 
 enum {
-	MLX5_NUM_SPARE_EQE	= 0x80,
-	MLX5_NUM_ASYNC_EQE	= 0x100,
-	MLX5_NUM_CMD_EQE	= 32,
+	MLX5_NUM_SPARE_EQE = 0x80,
+	MLX5_NUM_ASYNC_EQE = 0x100,
+	MLX5_NUM_CMD_EQE = 32,
 };
 
 enum {
-	MLX5_EQ_DOORBEL_OFFSET	= 0x40,
+	MLX5_EQ_DOORBEL_OFFSET = 0x40,
 };
 
-#define MLX5_ASYNC_EVENT_MASK ((1ull << MLX5_EVENT_TYPE_PATH_MIG)	    | \
-			       (1ull << MLX5_EVENT_TYPE_COMM_EST)	    | \
-			       (1ull << MLX5_EVENT_TYPE_SQ_DRAINED)	    | \
-			       (1ull << MLX5_EVENT_TYPE_CQ_ERROR)	    | \
-			       (1ull << MLX5_EVENT_TYPE_WQ_CATAS_ERROR)	    | \
-			       (1ull << MLX5_EVENT_TYPE_PATH_MIG_FAILED)    | \
-			       (1ull << MLX5_EVENT_TYPE_WQ_INVAL_REQ_ERROR) | \
-			       (1ull << MLX5_EVENT_TYPE_WQ_ACCESS_ERROR)    | \
-			       (1ull << MLX5_EVENT_TYPE_PORT_CHANGE)	    | \
-			       (1ull << MLX5_EVENT_TYPE_SRQ_CATAS_ERROR)    | \
-			       (1ull << MLX5_EVENT_TYPE_SRQ_LAST_WQE)	    | \
-			       (1ull << MLX5_EVENT_TYPE_SRQ_RQ_LIMIT)	    | \
-			       (1ull << MLX5_EVENT_TYPE_NIC_VPORT_CHANGE))
+#define MLX5_ASYNC_EVENT_MASK                              \
+	((1ull << MLX5_EVENT_TYPE_PATH_MIG) |              \
+	    (1ull << MLX5_EVENT_TYPE_COMM_EST) |           \
+	    (1ull << MLX5_EVENT_TYPE_SQ_DRAINED) |         \
+	    (1ull << MLX5_EVENT_TYPE_CQ_ERROR) |           \
+	    (1ull << MLX5_EVENT_TYPE_WQ_CATAS_ERROR) |     \
+	    (1ull << MLX5_EVENT_TYPE_PATH_MIG_FAILED) |    \
+	    (1ull << MLX5_EVENT_TYPE_WQ_INVAL_REQ_ERROR) | \
+	    (1ull << MLX5_EVENT_TYPE_WQ_ACCESS_ERROR) |    \
+	    (1ull << MLX5_EVENT_TYPE_PORT_CHANGE) |        \
+	    (1ull << MLX5_EVENT_TYPE_SRQ_CATAS_ERROR) |    \
+	    (1ull << MLX5_EVENT_TYPE_SRQ_LAST_WQE) |       \
+	    (1ull << MLX5_EVENT_TYPE_SRQ_RQ_LIMIT) |       \
+	    (1ull << MLX5_EVENT_TYPE_NIC_VPORT_CHANGE))
 
 struct map_eq_in {
-	u64	mask;
-	u32	reserved;
-	u32	unmap_eqn;
+	u64 mask;
+	u32 reserved;
+	u32 unmap_eqn;
 };
 
 struct cre_des_eq {
-	u8	reserved[15];
-	u8	eqn;
+	u8 reserved[15];
+	u8 eqn;
 };
 
 /*Function prototype*/
 static void mlx5_port_module_event(struct mlx5_core_dev *dev,
-				   struct mlx5_eqe *eqe);
+    struct mlx5_eqe *eqe);
 static void mlx5_port_general_notification_event(struct mlx5_core_dev *dev,
-						 struct mlx5_eqe *eqe);
+    struct mlx5_eqe *eqe);
 
-static int mlx5_cmd_destroy_eq(struct mlx5_core_dev *dev, u8 eqn)
+static int
+mlx5_cmd_destroy_eq(struct mlx5_core_dev *dev, u8 eqn)
 {
-	u32 in[MLX5_ST_SZ_DW(destroy_eq_in)] = {0};
-	u32 out[MLX5_ST_SZ_DW(destroy_eq_out)] = {0};
+	u32 in[MLX5_ST_SZ_DW(destroy_eq_in)] = { 0 };
+	u32 out[MLX5_ST_SZ_DW(destroy_eq_out)] = { 0 };
 
 	MLX5_SET(destroy_eq_in, in, opcode, MLX5_CMD_OP_DESTROY_EQ);
 	MLX5_SET(destroy_eq_in, in, eq_number, eqn);
@@ -96,19 +99,22 @@ static int mlx5_cmd_destroy_eq(struct mlx5_core_dev *dev, u8 eqn)
 	return mlx5_cmd_exec(dev, in, sizeof(in), out, sizeof(out));
 }
 
-static struct mlx5_eqe *get_eqe(struct mlx5_eq *eq, u32 entry)
+static struct mlx5_eqe *
+get_eqe(struct mlx5_eq *eq, u32 entry)
 {
 	return mlx5_buf_offset(&eq->buf, entry * MLX5_EQE_SIZE);
 }
 
-static struct mlx5_eqe *next_eqe_sw(struct mlx5_eq *eq)
+static struct mlx5_eqe *
+next_eqe_sw(struct mlx5_eq *eq)
 {
 	struct mlx5_eqe *eqe = get_eqe(eq, eq->cons_index & (eq->nent - 1));
 
 	return ((eqe->owner & 1) ^ !!(eq->cons_index & eq->nent)) ? NULL : eqe;
 }
 
-static const char *eqe_type_str(u8 type)
+static const char *
+eqe_type_str(u8 type)
 {
 	switch (type) {
 	case MLX5_EVENT_TYPE_COMP:
@@ -170,7 +176,8 @@ static const char *eqe_type_str(u8 type)
 	}
 }
 
-static enum mlx5_dev_event port_subtype_event(u8 subtype)
+static enum mlx5_dev_event
+port_subtype_event(u8 subtype)
 {
 	switch (subtype) {
 	case MLX5_PORT_CHANGE_SUBTYPE_DOWN:
@@ -191,7 +198,8 @@ static enum mlx5_dev_event port_subtype_event(u8 subtype)
 	return -1;
 }
 
-static enum mlx5_dev_event dcbx_subevent(u8 subtype)
+static enum mlx5_dev_event
+dcbx_subevent(u8 subtype)
 {
 	switch (subtype) {
 	case MLX5_DCBX_EVENT_SUBTYPE_ERROR_STATE_DCBX:
@@ -206,11 +214,12 @@ static enum mlx5_dev_event dcbx_subevent(u8 subtype)
 	return -1;
 }
 
-static void eq_update_ci(struct mlx5_eq *eq, int arm)
+static void
+eq_update_ci(struct mlx5_eq *eq, int arm)
 {
 	__be32 __iomem *addr = eq->doorbell + (arm ? 0 : 2);
 	u32 val = (eq->cons_index & 0xffffff) | (eq->eqn << 24);
-	__raw_writel((__force u32) cpu_to_be32(val), addr);
+	__raw_writel((__force u32)cpu_to_be32(val), addr);
 	/* We still want ordering, just not swabbing, so add a barrier */
 	mb();
 }
@@ -225,7 +234,8 @@ mlx5_temp_warning_event(struct mlx5_core_dev *dev, struct mlx5_eqe *eqe)
 	    (uintmax_t)be64_to_cpu(eqe->data.temp_warning.sensor_warning_lsb));
 }
 
-static int mlx5_eq_int(struct mlx5_core_dev *dev, struct mlx5_eq *eq)
+static int
+mlx5_eq_int(struct mlx5_core_dev *dev, struct mlx5_eq *eq)
 {
 	struct mlx5_eqe *eqe;
 	int eqes_found = 0;
@@ -241,140 +251,155 @@ static int mlx5_eq_int(struct mlx5_core_dev *dev, struct mlx5_eq *eq)
 		 */
 		atomic_thread_fence_acq();
 
-		mlx5_core_dbg(eq->dev, "eqn %d, eqe type %s\n",
-			      eq->eqn, eqe_type_str(eqe->type));
+		mlx5_core_dbg(eq->dev, "eqn %d, eqe type %s\n", eq->eqn,
+		    eqe_type_str(eqe->type));
 
 		if (dev->priv.eq_table.cb != NULL &&
 		    dev->priv.eq_table.cb(dev, eqe->type, &eqe->data)) {
 			/* FALLTHROUGH */
-		} else switch (eqe->type) {
-		case MLX5_EVENT_TYPE_COMP:
-			mlx5_cq_completion(dev, eqe);
-			break;
-
-		case MLX5_EVENT_TYPE_PATH_MIG:
-		case MLX5_EVENT_TYPE_COMM_EST:
-		case MLX5_EVENT_TYPE_SQ_DRAINED:
-		case MLX5_EVENT_TYPE_SRQ_LAST_WQE:
-		case MLX5_EVENT_TYPE_WQ_CATAS_ERROR:
-		case MLX5_EVENT_TYPE_PATH_MIG_FAILED:
-		case MLX5_EVENT_TYPE_WQ_INVAL_REQ_ERROR:
-		case MLX5_EVENT_TYPE_WQ_ACCESS_ERROR:
-			rsn = be32_to_cpu(eqe->data.qp_srq.qp_srq_n) & 0xffffff;
-			mlx5_core_dbg(dev, "event %s(%d) arrived on resource 0x%x\n",
-				      eqe_type_str(eqe->type), eqe->type, rsn);
-			mlx5_rsc_event(dev, rsn, eqe->type);
-			break;
-
-		case MLX5_EVENT_TYPE_SRQ_RQ_LIMIT:
-		case MLX5_EVENT_TYPE_SRQ_CATAS_ERROR:
-			rsn = be32_to_cpu(eqe->data.qp_srq.qp_srq_n) & 0xffffff;
-			mlx5_core_dbg(dev, "SRQ event %s(%d): srqn 0x%x\n",
-				      eqe_type_str(eqe->type), eqe->type, rsn);
-			mlx5_srq_event(dev, rsn, eqe->type);
-			break;
-
-		case MLX5_EVENT_TYPE_CMD:
-			if (dev->state != MLX5_DEVICE_STATE_INTERNAL_ERROR) {
-				mlx5_cmd_comp_handler(dev, be32_to_cpu(eqe->data.cmd.vector),
-				    MLX5_CMD_MODE_EVENTS);
-			}
-			break;
-
-		case MLX5_EVENT_TYPE_PORT_CHANGE:
-			port = (eqe->data.port.port >> 4) & 0xf;
-			switch (eqe->sub_type) {
-			case MLX5_PORT_CHANGE_SUBTYPE_DOWN:
-			case MLX5_PORT_CHANGE_SUBTYPE_ACTIVE:
-			case MLX5_PORT_CHANGE_SUBTYPE_LID:
-			case MLX5_PORT_CHANGE_SUBTYPE_PKEY:
-			case MLX5_PORT_CHANGE_SUBTYPE_GUID:
-			case MLX5_PORT_CHANGE_SUBTYPE_CLIENT_REREG:
-			case MLX5_PORT_CHANGE_SUBTYPE_INITIALIZED:
-				if (dev->event)
-					dev->event(dev, port_subtype_event(eqe->sub_type),
-						   (unsigned long)port);
+		} else
+			switch (eqe->type) {
+			case MLX5_EVENT_TYPE_COMP:
+				mlx5_cq_completion(dev, eqe);
 				break;
-			default:
-				mlx5_core_warn(dev, "Port event with unrecognized subtype: port %d, sub_type %d\n",
-					       port, eqe->sub_type);
-			}
-			break;
 
-		case MLX5_EVENT_TYPE_CODING_DCBX_CHANGE_EVENT:
-			port = (eqe->data.port.port >> 4) & 0xf;
-			switch (eqe->sub_type) {
-			case MLX5_DCBX_EVENT_SUBTYPE_ERROR_STATE_DCBX:
-			case MLX5_DCBX_EVENT_SUBTYPE_REMOTE_CONFIG_CHANGE:
-			case MLX5_DCBX_EVENT_SUBTYPE_LOCAL_OPER_CHANGE:
-			case MLX5_DCBX_EVENT_SUBTYPE_REMOTE_CONFIG_APP_PRIORITY_CHANGE:
-				if (dev->event)
-					dev->event(dev,
-						   dcbx_subevent(eqe->sub_type),
-						   0);
+			case MLX5_EVENT_TYPE_PATH_MIG:
+			case MLX5_EVENT_TYPE_COMM_EST:
+			case MLX5_EVENT_TYPE_SQ_DRAINED:
+			case MLX5_EVENT_TYPE_SRQ_LAST_WQE:
+			case MLX5_EVENT_TYPE_WQ_CATAS_ERROR:
+			case MLX5_EVENT_TYPE_PATH_MIG_FAILED:
+			case MLX5_EVENT_TYPE_WQ_INVAL_REQ_ERROR:
+			case MLX5_EVENT_TYPE_WQ_ACCESS_ERROR:
+				rsn = be32_to_cpu(eqe->data.qp_srq.qp_srq_n) &
+				    0xffffff;
+				mlx5_core_dbg(dev,
+				    "event %s(%d) arrived on resource 0x%x\n",
+				    eqe_type_str(eqe->type), eqe->type, rsn);
+				mlx5_rsc_event(dev, rsn, eqe->type);
 				break;
-			default:
+
+			case MLX5_EVENT_TYPE_SRQ_RQ_LIMIT:
+			case MLX5_EVENT_TYPE_SRQ_CATAS_ERROR:
+				rsn = be32_to_cpu(eqe->data.qp_srq.qp_srq_n) &
+				    0xffffff;
+				mlx5_core_dbg(dev,
+				    "SRQ event %s(%d): srqn 0x%x\n",
+				    eqe_type_str(eqe->type), eqe->type, rsn);
+				mlx5_srq_event(dev, rsn, eqe->type);
+				break;
+
+			case MLX5_EVENT_TYPE_CMD:
+				if (dev->state !=
+				    MLX5_DEVICE_STATE_INTERNAL_ERROR) {
+					mlx5_cmd_comp_handler(dev,
+					    be32_to_cpu(eqe->data.cmd.vector),
+					    MLX5_CMD_MODE_EVENTS);
+				}
+				break;
+
+			case MLX5_EVENT_TYPE_PORT_CHANGE:
+				port = (eqe->data.port.port >> 4) & 0xf;
+				switch (eqe->sub_type) {
+				case MLX5_PORT_CHANGE_SUBTYPE_DOWN:
+				case MLX5_PORT_CHANGE_SUBTYPE_ACTIVE:
+				case MLX5_PORT_CHANGE_SUBTYPE_LID:
+				case MLX5_PORT_CHANGE_SUBTYPE_PKEY:
+				case MLX5_PORT_CHANGE_SUBTYPE_GUID:
+				case MLX5_PORT_CHANGE_SUBTYPE_CLIENT_REREG:
+				case MLX5_PORT_CHANGE_SUBTYPE_INITIALIZED:
+					if (dev->event)
+						dev->event(dev,
+						    port_subtype_event(
+							eqe->sub_type),
+						    (unsigned long)port);
+					break;
+				default:
+					mlx5_core_warn(dev,
+					    "Port event with unrecognized subtype: port %d, sub_type %d\n",
+					    port, eqe->sub_type);
+				}
+				break;
+
+			case MLX5_EVENT_TYPE_CODING_DCBX_CHANGE_EVENT:
+				port = (eqe->data.port.port >> 4) & 0xf;
+				switch (eqe->sub_type) {
+				case MLX5_DCBX_EVENT_SUBTYPE_ERROR_STATE_DCBX:
+				case MLX5_DCBX_EVENT_SUBTYPE_REMOTE_CONFIG_CHANGE:
+				case MLX5_DCBX_EVENT_SUBTYPE_LOCAL_OPER_CHANGE:
+				case MLX5_DCBX_EVENT_SUBTYPE_REMOTE_CONFIG_APP_PRIORITY_CHANGE:
+					if (dev->event)
+						dev->event(dev,
+						    dcbx_subevent(
+							eqe->sub_type),
+						    0);
+					break;
+				default:
+					mlx5_core_warn(dev,
+					    "dcbx event with unrecognized subtype: port %d, sub_type %d\n",
+					    port, eqe->sub_type);
+				}
+				break;
+
+			case MLX5_EVENT_TYPE_CODING_GENERAL_NOTIFICATION_EVENT:
+				mlx5_port_general_notification_event(dev, eqe);
+				break;
+
+			case MLX5_EVENT_TYPE_CQ_ERROR:
+				cqn = be32_to_cpu(eqe->data.cq_err.cqn) &
+				    0xffffff;
 				mlx5_core_warn(dev,
-					       "dcbx event with unrecognized subtype: port %d, sub_type %d\n",
-					       port, eqe->sub_type);
-			}
-			break;
+				    "CQ error on CQN 0x%x, syndrom 0x%x\n", cqn,
+				    eqe->data.cq_err.syndrome);
+				mlx5_cq_event(dev, cqn, eqe->type);
+				break;
 
-		case MLX5_EVENT_TYPE_CODING_GENERAL_NOTIFICATION_EVENT:
-			mlx5_port_general_notification_event(dev, eqe);
-			break;
+			case MLX5_EVENT_TYPE_PAGE_REQUEST: {
+				u16 func_id = be16_to_cpu(
+				    eqe->data.req_pages.func_id);
+				s32 npages = be32_to_cpu(
+				    eqe->data.req_pages.num_pages);
 
-		case MLX5_EVENT_TYPE_CQ_ERROR:
-			cqn = be32_to_cpu(eqe->data.cq_err.cqn) & 0xffffff;
-			mlx5_core_warn(dev, "CQ error on CQN 0x%x, syndrom 0x%x\n",
-				       cqn, eqe->data.cq_err.syndrome);
-			mlx5_cq_event(dev, cqn, eqe->type);
-			break;
+				mlx5_core_dbg(dev,
+				    "page request for func 0x%x, npages %d\n",
+				    func_id, npages);
+				mlx5_core_req_pages_handler(dev, func_id,
+				    npages);
+			} break;
 
-		case MLX5_EVENT_TYPE_PAGE_REQUEST:
-			{
-				u16 func_id = be16_to_cpu(eqe->data.req_pages.func_id);
-				s32 npages = be32_to_cpu(eqe->data.req_pages.num_pages);
+			case MLX5_EVENT_TYPE_CODING_PORT_MODULE_EVENT:
+				mlx5_port_module_event(dev, eqe);
+				break;
 
-				mlx5_core_dbg(dev, "page request for func 0x%x, npages %d\n",
-					      func_id, npages);
-				mlx5_core_req_pages_handler(dev, func_id, npages);
-			}
-			break;
-
-		case MLX5_EVENT_TYPE_CODING_PORT_MODULE_EVENT:
-			mlx5_port_module_event(dev, eqe);
-			break;
-
-		case MLX5_EVENT_TYPE_NIC_VPORT_CHANGE:
-			{
+			case MLX5_EVENT_TYPE_NIC_VPORT_CHANGE: {
 				struct mlx5_eqe_vport_change *vc_eqe =
-						&eqe->data.vport_change;
+				    &eqe->data.vport_change;
 				u16 vport_num = be16_to_cpu(vc_eqe->vport_num);
 
 				if (dev->event)
 					dev->event(dev,
-					     MLX5_DEV_EVENT_VPORT_CHANGE,
-					     (unsigned long)vport_num);
+					    MLX5_DEV_EVENT_VPORT_CHANGE,
+					    (unsigned long)vport_num);
 			}
-			if (dev->priv.eswitch != NULL)
-				mlx5_eswitch_vport_event(dev->priv.eswitch,
-				    eqe);
-			break;
+				if (dev->priv.eswitch != NULL)
+					mlx5_eswitch_vport_event(
+					    dev->priv.eswitch, eqe);
+				break;
 
-		case MLX5_EVENT_TYPE_FPGA_ERROR:
-		case MLX5_EVENT_TYPE_FPGA_QP_ERROR:
-			mlx5_fpga_event(dev, eqe->type, &eqe->data.raw);
-			break;
-		case MLX5_EVENT_TYPE_TEMP_WARN_EVENT:
-			mlx5_temp_warning_event(dev, eqe);
-			break;
+			case MLX5_EVENT_TYPE_FPGA_ERROR:
+			case MLX5_EVENT_TYPE_FPGA_QP_ERROR:
+				mlx5_fpga_event(dev, eqe->type, &eqe->data.raw);
+				break;
+			case MLX5_EVENT_TYPE_TEMP_WARN_EVENT:
+				mlx5_temp_warning_event(dev, eqe);
+				break;
 
-		default:
-			mlx5_core_warn(dev, "Unhandled event 0x%x on EQ 0x%x\n",
-				       eqe->type, eq->eqn);
-			break;
-		}
+			default:
+				mlx5_core_warn(dev,
+				    "Unhandled event 0x%x on EQ 0x%x\n",
+				    eqe->type, eq->eqn);
+				break;
+			}
 
 		++eq->cons_index;
 		eqes_found = 1;
@@ -397,7 +422,8 @@ static int mlx5_eq_int(struct mlx5_core_dev *dev, struct mlx5_eq *eq)
 	return eqes_found;
 }
 
-static irqreturn_t mlx5_msix_handler(int irq, void *eq_ptr)
+static irqreturn_t
+mlx5_msix_handler(int irq, void *eq_ptr)
 {
 	struct mlx5_eq *eq = eq_ptr;
 	struct mlx5_core_dev *dev = eq->dev;
@@ -410,7 +436,8 @@ static irqreturn_t mlx5_msix_handler(int irq, void *eq_ptr)
 	return IRQ_HANDLED;
 }
 
-static void init_eq_buf(struct mlx5_eq *eq)
+static void
+init_eq_buf(struct mlx5_eq *eq)
 {
 	struct mlx5_eqe *eqe;
 	int i;
@@ -421,10 +448,11 @@ static void init_eq_buf(struct mlx5_eq *eq)
 	}
 }
 
-int mlx5_create_map_eq(struct mlx5_core_dev *dev, struct mlx5_eq *eq, u8 vecidx,
-		       int nent, u64 mask)
+int
+mlx5_create_map_eq(struct mlx5_core_dev *dev, struct mlx5_eq *eq, u8 vecidx,
+    int nent, u64 mask)
 {
-	u32 out[MLX5_ST_SZ_DW(create_eq_out)] = {0};
+	u32 out[MLX5_ST_SZ_DW(create_eq_out)] = { 0 };
 	struct mlx5_priv *priv = &dev->priv;
 	__be64 *pas;
 	void *eqc;
@@ -435,14 +463,14 @@ int mlx5_create_map_eq(struct mlx5_core_dev *dev, struct mlx5_eq *eq, u8 vecidx,
 	eq->nent = roundup_pow_of_two(nent + MLX5_NUM_SPARE_EQE);
 	eq->cons_index = 0;
 	err = mlx5_buf_alloc(dev, eq->nent * MLX5_EQE_SIZE, 2 * PAGE_SIZE,
-			     &eq->buf);
+	    &eq->buf);
 	if (err)
 		return err;
 
 	init_eq_buf(eq);
 
 	inlen = MLX5_ST_SZ_BYTES(create_eq_in) +
-		MLX5_FLD_SZ_BYTES(create_eq_in, pas[0]) * eq->buf.npages;
+	    MLX5_FLD_SZ_BYTES(create_eq_in, pas[0]) * eq->buf.npages;
 	in = mlx5_vzalloc(inlen);
 	if (!in) {
 		err = -ENOMEM;
@@ -460,7 +488,7 @@ int mlx5_create_map_eq(struct mlx5_core_dev *dev, struct mlx5_eq *eq, u8 vecidx,
 	MLX5_SET(eqc, eqc, uar_page, priv->uar->index);
 	MLX5_SET(eqc, eqc, intr, vecidx);
 	MLX5_SET(eqc, eqc, log_page_size,
-		 eq->buf.page_shift - MLX5_ADAPTER_PAGE_SHIFT);
+	    eq->buf.page_shift - MLX5_ADAPTER_PAGE_SHIFT);
 
 	err = mlx5_cmd_exec(dev, in, inlen, out, sizeof(out));
 	if (err)
@@ -471,14 +499,14 @@ int mlx5_create_map_eq(struct mlx5_core_dev *dev, struct mlx5_eq *eq, u8 vecidx,
 	eq->dev = dev;
 	eq->doorbell = priv->uar->map + MLX5_EQ_DOORBEL_OFFSET;
 	err = request_irq(priv->msix_arr[vecidx].vector, mlx5_msix_handler, 0,
-			  "mlx5_core", eq);
+	    "mlx5_core", eq);
 	if (err)
 		goto err_eq;
 #ifdef RSS
 	if (vecidx >= MLX5_EQ_VEC_COMP_BASE) {
 		u8 bucket = vecidx - MLX5_EQ_VEC_COMP_BASE;
 		err = bind_irq_to_cpu(priv->msix_arr[vecidx].vector,
-				      rss_getcpu(bucket % rss_getnumbuckets()));
+		    rss_getcpu(bucket % rss_getnumbuckets()));
 		if (err)
 			goto err_irq;
 	}
@@ -486,7 +514,6 @@ int mlx5_create_map_eq(struct mlx5_core_dev *dev, struct mlx5_eq *eq, u8 vecidx,
 	if (0)
 		goto err_irq;
 #endif
-
 
 	/* EQs are created in ARMED state
 	 */
@@ -510,22 +537,25 @@ err_buf:
 }
 EXPORT_SYMBOL_GPL(mlx5_create_map_eq);
 
-int mlx5_destroy_unmap_eq(struct mlx5_core_dev *dev, struct mlx5_eq *eq)
+int
+mlx5_destroy_unmap_eq(struct mlx5_core_dev *dev, struct mlx5_eq *eq)
 {
 	int err;
 
 	free_irq(dev->priv.msix_arr[eq->irqn].vector, eq);
 	err = mlx5_cmd_destroy_eq(dev, eq->eqn);
 	if (err)
-		mlx5_core_warn(dev, "failed to destroy a previously created eq: eqn %d\n",
-			       eq->eqn);
+		mlx5_core_warn(dev,
+		    "failed to destroy a previously created eq: eqn %d\n",
+		    eq->eqn);
 	mlx5_buf_free(dev, &eq->buf);
 
 	return err;
 }
 EXPORT_SYMBOL_GPL(mlx5_destroy_unmap_eq);
 
-int mlx5_eq_init(struct mlx5_core_dev *dev)
+int
+mlx5_eq_init(struct mlx5_core_dev *dev)
 {
 	int err;
 
@@ -536,43 +566,43 @@ int mlx5_eq_init(struct mlx5_core_dev *dev)
 	return err;
 }
 
-
-void mlx5_eq_cleanup(struct mlx5_core_dev *dev)
+void
+mlx5_eq_cleanup(struct mlx5_core_dev *dev)
 {
 }
 
-int mlx5_start_eqs(struct mlx5_core_dev *dev)
+int
+mlx5_start_eqs(struct mlx5_core_dev *dev)
 {
 	struct mlx5_eq_table *table = &dev->priv.eq_table;
 	u64 async_event_mask = MLX5_ASYNC_EVENT_MASK;
 	int err;
 
 	if (MLX5_CAP_GEN(dev, port_module_event))
-		async_event_mask |= (1ull <<
-				     MLX5_EVENT_TYPE_CODING_PORT_MODULE_EVENT);
+		async_event_mask |= (1ull
+		    << MLX5_EVENT_TYPE_CODING_PORT_MODULE_EVENT);
 
 	if (MLX5_CAP_GEN(dev, nic_vport_change_event))
-		async_event_mask |= (1ull <<
-				     MLX5_EVENT_TYPE_NIC_VPORT_CHANGE);
+		async_event_mask |= (1ull << MLX5_EVENT_TYPE_NIC_VPORT_CHANGE);
 
 	if (MLX5_CAP_GEN(dev, dcbx))
-		async_event_mask |= (1ull <<
-				     MLX5_EVENT_TYPE_CODING_DCBX_CHANGE_EVENT);
+		async_event_mask |= (1ull
+		    << MLX5_EVENT_TYPE_CODING_DCBX_CHANGE_EVENT);
 
 	if (MLX5_CAP_GEN(dev, fpga))
 		async_event_mask |= (1ull << MLX5_EVENT_TYPE_FPGA_ERROR) |
-				    (1ull << MLX5_EVENT_TYPE_FPGA_QP_ERROR);
+		    (1ull << MLX5_EVENT_TYPE_FPGA_QP_ERROR);
 
 	if (MLX5_CAP_GEN(dev, temp_warn_event))
 		async_event_mask |= (1ull << MLX5_EVENT_TYPE_TEMP_WARN_EVENT);
 
 	if (MLX5_CAP_GEN(dev, general_notification_event)) {
-		async_event_mask |= (1ull <<
-		    MLX5_EVENT_TYPE_CODING_GENERAL_NOTIFICATION_EVENT);
+		async_event_mask |= (1ull
+		    << MLX5_EVENT_TYPE_CODING_GENERAL_NOTIFICATION_EVENT);
 	}
 
 	err = mlx5_create_map_eq(dev, &table->cmd_eq, MLX5_EQ_VEC_CMD,
-				 MLX5_NUM_CMD_EQE, 1ull << MLX5_EVENT_TYPE_CMD);
+	    MLX5_NUM_CMD_EQE, 1ull << MLX5_EVENT_TYPE_CMD);
 	if (err) {
 		mlx5_core_warn(dev, "failed to create cmd EQ %d\n", err);
 		return err;
@@ -581,16 +611,14 @@ int mlx5_start_eqs(struct mlx5_core_dev *dev)
 	mlx5_cmd_use_events(dev);
 
 	err = mlx5_create_map_eq(dev, &table->async_eq, MLX5_EQ_VEC_ASYNC,
-				 MLX5_NUM_ASYNC_EQE, async_event_mask);
+	    MLX5_NUM_ASYNC_EQE, async_event_mask);
 	if (err) {
 		mlx5_core_warn(dev, "failed to create async EQ %d\n", err);
 		goto err1;
 	}
 
-	err = mlx5_create_map_eq(dev, &table->pages_eq,
-				 MLX5_EQ_VEC_PAGES,
-				 /* TODO: sriov max_vf + */ 1,
-				 1 << MLX5_EVENT_TYPE_PAGE_REQUEST);
+	err = mlx5_create_map_eq(dev, &table->pages_eq, MLX5_EQ_VEC_PAGES,
+	    /* TODO: sriov max_vf + */ 1, 1 << MLX5_EVENT_TYPE_PAGE_REQUEST);
 	if (err) {
 		mlx5_core_warn(dev, "failed to create pages EQ %d\n", err);
 		goto err2;
@@ -607,7 +635,8 @@ err1:
 	return err;
 }
 
-int mlx5_stop_eqs(struct mlx5_core_dev *dev)
+int
+mlx5_stop_eqs(struct mlx5_core_dev *dev)
 {
 	struct mlx5_eq_table *table = &dev->priv.eq_table;
 	int err;
@@ -626,10 +655,11 @@ int mlx5_stop_eqs(struct mlx5_core_dev *dev)
 	return err;
 }
 
-int mlx5_core_eq_query(struct mlx5_core_dev *dev, struct mlx5_eq *eq,
-		       u32 *out, int outlen)
+int
+mlx5_core_eq_query(struct mlx5_core_dev *dev, struct mlx5_eq *eq, u32 *out,
+    int outlen)
 {
-	u32 in[MLX5_ST_SZ_DW(query_eq_in)] = {0};
+	u32 in[MLX5_ST_SZ_DW(query_eq_in)] = { 0 };
 
 	memset(out, 0, outlen);
 	MLX5_SET(query_eq_in, in, opcode, MLX5_CMD_OP_QUERY_EQ);
@@ -639,7 +669,8 @@ int mlx5_core_eq_query(struct mlx5_core_dev *dev, struct mlx5_eq *eq,
 }
 EXPORT_SYMBOL_GPL(mlx5_core_eq_query);
 
-static const char *mlx5_port_module_event_error_type_to_string(u8 error_type)
+static const char *
+mlx5_port_module_event_error_type_to_string(u8 error_type)
 {
 	switch (error_type) {
 	case MLX5_MODULE_EVENT_ERROR_POWER_BUDGET_EXCEEDED:
@@ -677,15 +708,16 @@ static const char *mlx5_port_module_event_error_type_to_string(u8 error_type)
 	}
 }
 
-unsigned int mlx5_query_module_status(struct mlx5_core_dev *dev, int module_num)
+unsigned int
+mlx5_query_module_status(struct mlx5_core_dev *dev, int module_num)
 {
 	if (module_num < 0 || module_num >= MLX5_MAX_PORTS)
-		return 0;		/* undefined */
+		return 0; /* undefined */
 	return dev->module_status[module_num];
 }
 
-static void mlx5_port_module_event(struct mlx5_core_dev *dev,
-				   struct mlx5_eqe *eqe)
+static void
+mlx5_port_module_event(struct mlx5_core_dev *dev, struct mlx5_eqe *eqe)
 {
 	unsigned int module_num;
 	unsigned int module_status;
@@ -704,19 +736,17 @@ static void mlx5_port_module_event(struct mlx5_core_dev *dev,
 		dev->priv.pme_stats.status_counters[module_status]++;
 	switch (module_status) {
 	case MLX5_MODULE_STATUS_PLUGGED_ENABLED:
-		mlx5_core_info(dev,
-		    "Module %u, status: plugged and enabled\n",
+		mlx5_core_info(dev, "Module %u, status: plugged and enabled\n",
 		    module_num);
 		break;
 
 	case MLX5_MODULE_STATUS_UNPLUGGED:
-		mlx5_core_info(dev,
-		    "Module %u, status: unplugged\n", module_num);
+		mlx5_core_info(dev, "Module %u, status: unplugged\n",
+		    module_num);
 		break;
 
 	case MLX5_MODULE_STATUS_ERROR:
-		mlx5_core_err(dev,
-		    "Module %u, status: error, %s (%d)\n",
+		mlx5_core_err(dev, "Module %u, status: error, %s (%d)\n",
 		    module_num,
 		    mlx5_port_module_event_error_type_to_string(error_type),
 		    error_type);
@@ -725,16 +755,17 @@ static void mlx5_port_module_event(struct mlx5_core_dev *dev,
 		break;
 
 	default:
-		mlx5_core_info(dev,
-		    "Module %u, unknown status %d\n", module_num, module_status);
+		mlx5_core_info(dev, "Module %u, unknown status %d\n",
+		    module_num, module_status);
 	}
 	/* store module status */
 	if (module_num < MLX5_MAX_PORTS)
 		dev->module_status[module_num] = module_status;
 }
 
-static void mlx5_port_general_notification_event(struct mlx5_core_dev *dev,
-						 struct mlx5_eqe *eqe)
+static void
+mlx5_port_general_notification_event(struct mlx5_core_dev *dev,
+    struct mlx5_eqe *eqe)
 {
 	u8 port = (eqe->data.port.port >> 4) & 0xf;
 
@@ -746,8 +777,8 @@ static void mlx5_port_general_notification_event(struct mlx5_core_dev *dev,
 		break;
 	default:
 		mlx5_core_warn(dev,
-			       "general event with unrecognized subtype: port %d, sub_type %d\n",
-			       port, eqe->sub_type);
+		    "general event with unrecognized subtype: port %d, sub_type %d\n",
+		    port, eqe->sub_type);
 		break;
 	}
 }
@@ -775,5 +806,5 @@ mlx5_poll_interrupts(struct mlx5_core_dev *dev)
 	mlx5_eq_int(dev, &dev->priv.eq_table.pages_eq);
 
 	list_for_each_entry(eq, &dev->priv.eq_table.comp_eqs_list, list)
-		mlx5_eq_int(dev, eq);
+	    mlx5_eq_int(dev, eq);
 }

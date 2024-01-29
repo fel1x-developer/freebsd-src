@@ -28,6 +28,7 @@
  */
 
 #include <sys/types.h>
+
 #include <machine/vmm.h>
 #include <machine/vmm_snapshot.h>
 
@@ -35,13 +36,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include <vmmapi.h>
 
 #include "acpi.h"
-#include "debug.h"
 #include "bootrom.h"
 #include "config.h"
+#include "debug.h"
 #include "inout.h"
 #include "pci_emul.h"
 #include "pci_irq.h"
@@ -51,37 +51,35 @@
 #include "tpm_device.h"
 #include "uart_emul.h"
 
-#define	IO_ICU1		0x20
-#define	IO_ICU2		0xA0
+#define IO_ICU1 0x20
+#define IO_ICU2 0xA0
 
 SET_DECLARE(lpc_dsdt_set, struct lpc_dsdt);
 SET_DECLARE(lpc_sysres_set, struct lpc_sysres);
 
-#define	ELCR_PORT	0x4d0
+#define ELCR_PORT 0x4d0
 SYSRES_IO(ELCR_PORT, 2);
 
-#define	IO_TIMER1_PORT	0x40
+#define IO_TIMER1_PORT 0x40
 
-#define	NMISC_PORT	0x61
+#define NMISC_PORT 0x61
 SYSRES_IO(NMISC_PORT, 1);
 
 static struct pci_devinst *lpc_bridge;
 
-#define	LPC_UART_NUM	4
+#define LPC_UART_NUM 4
 static struct lpc_uart_softc {
 	struct uart_softc *uart_softc;
-	int	iobase;
-	int	irq;
-	int	enabled;
+	int iobase;
+	int irq;
+	int enabled;
 } lpc_uart_softc[LPC_UART_NUM];
 
-static const char *lpc_uart_names[LPC_UART_NUM] = {
-	"com1", "com2", "com3", "com4"
-};
+static const char *lpc_uart_names[LPC_UART_NUM] = { "com1", "com2", "com3",
+	"com4" };
 
-static const char *lpc_uart_acpi_names[LPC_UART_NUM] = {
-	"COM1", "COM2", "COM3", "COM4"
-};
+static const char *lpc_uart_acpi_names[LPC_UART_NUM] = { "COM1", "COM2", "COM3",
+	"COM4" };
 
 /*
  * LPC device configuration is in the following form:
@@ -215,8 +213,8 @@ lpc_uart_intr_deassert(void *arg __unused)
 }
 
 static int
-lpc_uart_io_handler(struct vmctx *ctx __unused, int in,
-    int port, int bytes, uint32_t *eax, void *arg)
+lpc_uart_io_handler(struct vmctx *ctx __unused, int in, int port, int bytes,
+    uint32_t *eax, void *arg)
 {
 	int offset;
 	struct lpc_uart_softc *sc = arg;
@@ -270,20 +268,22 @@ lpc_init(struct vmctx *ctx)
 
 		if (uart_legacy_alloc(unit, &sc->iobase, &sc->irq) != 0) {
 			EPRINTLN("Unable to allocate resources for "
-			    "LPC device %s", name);
+				 "LPC device %s",
+			    name);
 			return (-1);
 		}
 		pci_irq_reserve(sc->irq);
 
 		sc->uart_softc = uart_init(lpc_uart_intr_assert,
-				    lpc_uart_intr_deassert, sc);
+		    lpc_uart_intr_deassert, sc);
 
 		asprintf(&node_name, "lpc.%s.path", name);
 		backend = get_config_value(node_name);
 		free(node_name);
 		if (uart_set_backend(sc->uart_softc, backend) != 0) {
 			EPRINTLN("Unable to initialize backend '%s' "
-			    "for LPC device %s", backend, name);
+				 "for LPC device %s",
+			    backend, name);
 			return (-1);
 		}
 
@@ -338,7 +338,8 @@ pci_lpc_write_dsdt(struct pci_devinst *pi)
 	dsdt_line("");
 
 	dsdt_indent(1);
-	SET_FOREACH(ldpp, lpc_dsdt_set) {
+	SET_FOREACH(ldpp, lpc_dsdt_set)
+	{
 		ldp = *ldpp;
 		ldp->handler();
 	}
@@ -387,7 +388,8 @@ pci_lpc_sysres_dsdt(void)
 	dsdt_line("  {");
 
 	dsdt_indent(2);
-	SET_FOREACH(lspp, lpc_sysres_set) {
+	SET_FOREACH(lspp, lpc_sysres_set)
+	{
 		lsp = *lspp;
 		switch (lsp->type) {
 		case LPC_SYSRES_IO:
@@ -465,11 +467,11 @@ pci_lpc_read(struct pci_devinst *pi __unused, int baridx __unused,
 	return (0);
 }
 
-#define	LPC_DEV		0x7000
-#define	LPC_VENDOR	0x8086
-#define LPC_REVID	0x00
-#define LPC_SUBVEND_0	0x0000
-#define LPC_SUBDEV_0	0x0000
+#define LPC_DEV 0x7000
+#define LPC_VENDOR 0x8086
+#define LPC_REVID 0x00
+#define LPC_SUBVEND_0 0x0000
+#define LPC_SUBDEV_0 0x0000
 
 static int
 pci_lpc_get_sel(struct pcisel *const sel)
@@ -491,9 +493,9 @@ pci_lpc_get_sel(struct pcisel *const sel)
 			sel->pc_func = func;
 
 			if (pci_host_read_config(sel, PCIR_CLASS, 1) ==
-			    PCIC_BRIDGE &&
+				PCIC_BRIDGE &&
 			    pci_host_read_config(sel, PCIR_SUBCLASS, 1) ==
-			    PCIS_BRIDGE_ISA) {
+				PCIS_BRIDGE_ISA) {
 				return (0);
 			}
 		}
@@ -577,7 +579,7 @@ lpc_pirq_routed(void)
 	if (lpc_bridge == NULL)
 		return;
 
- 	for (pin = 0; pin < 4; pin++)
+	for (pin = 0; pin < 4; pin++)
 		pci_set_cfgdata8(lpc_bridge, 0x60 + pin, pirq_read(pin + 1));
 	for (pin = 0; pin < 4; pin++)
 		pci_set_cfgdata8(lpc_bridge, 0x68 + pin, pirq_read(pin + 5));
@@ -604,14 +606,14 @@ done:
 #endif
 
 static const struct pci_devemu pci_de_lpc = {
-	.pe_emu =	"lpc",
-	.pe_init =	pci_lpc_init,
+	.pe_emu = "lpc",
+	.pe_init = pci_lpc_init,
 	.pe_write_dsdt = pci_lpc_write_dsdt,
-	.pe_cfgwrite =	pci_lpc_cfgwrite,
-	.pe_barwrite =	pci_lpc_write,
-	.pe_barread =	pci_lpc_read,
+	.pe_cfgwrite = pci_lpc_cfgwrite,
+	.pe_barwrite = pci_lpc_write,
+	.pe_barread = pci_lpc_read,
 #ifdef BHYVE_SNAPSHOT
-	.pe_snapshot =	pci_lpc_snapshot,
+	.pe_snapshot = pci_lpc_snapshot,
 #endif
 };
 PCI_EMUL_SET(pci_de_lpc);

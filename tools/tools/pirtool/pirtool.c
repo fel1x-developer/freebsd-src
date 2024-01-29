@@ -32,22 +32,23 @@
 
 #include <sys/types.h>
 #include <sys/ioctl.h>
-#include <sys/mman.h>
 #include <sys/memrange.h>
+#include <sys/mman.h>
 #include <sys/stat.h>
+
 #include <machine/endian.h>
 
+#include <fcntl.h>
+#include <libgen.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <libgen.h>
-#include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "pirtable.h"
 
-#define _PATH_DEVMEM	"/dev/mem"
+#define _PATH_DEVMEM "/dev/mem"
 
 void usage(void);
 void banner(void);
@@ -76,7 +77,7 @@ main(int argc, char *argv[])
 		case 'h':
 		default:
 			usage();
-	}
+		}
 	argc -= optind;
 	argv += optind;
 
@@ -113,7 +114,7 @@ cleanup:
 	if (mem_fd != -1)
 		close(mem_fd);
 
-	exit ((err == 0) ? EXIT_SUCCESS : EXIT_FAILURE);
+	exit((err == 0) ? EXIT_SUCCESS : EXIT_FAILURE);
 }
 
 void
@@ -162,8 +163,8 @@ find_pir_table(unsigned char *base)
 	 * Table size: Must be larger than 32 and must be a multiple of 16.
 	 * Checksum: The entire structure's checksum must be 0.
 	 */
-	if (pir && (pir->major == 1) && (pir->minor == 0) &&
-	    (pir->size > 32) && ((pir->size % 16) == 0)) {
+	if (pir && (pir->major == 1) && (pir->minor == 0) && (pir->size > 32) &&
+	    ((pir->size % 16) == 0)) {
 		p = (unsigned char *)pir;
 		pend = p + pir->size;
 
@@ -206,43 +207,31 @@ dump_pir_table(pir_table_t *pir, char *map_addr)
 
 	num_slots = (pir->size - offsetof(pir_table_t, entry[0])) / 16;
 
-	printf( "PCI Interrupt Routing Table at 0x%08lX\r\n"
-	    "-----------------------------------------\r\n"
-	    "0x%02x: Signature:          %c%c%c%c\r\n"
-	    "0x%02x: Version:            %u.%u\r\n"
-	    "0x%02x: Size:               %u bytes (%u entries)\r\n"
-	    "0x%02x: Device:             %u:%u:%u\r\n",
+	printf("PCI Interrupt Routing Table at 0x%08lX\r\n"
+	       "-----------------------------------------\r\n"
+	       "0x%02x: Signature:          %c%c%c%c\r\n"
+	       "0x%02x: Version:            %u.%u\r\n"
+	       "0x%02x: Size:               %u bytes (%u entries)\r\n"
+	       "0x%02x: Device:             %u:%u:%u\r\n",
 	    (uint32_t)(((char *)pir - map_addr) + PIR_BASE),
-	    offsetof(pir_table_t, signature),
-	    ((char *)&pir->signature)[0],
-	    ((char *)&pir->signature)[1],
-	    ((char *)&pir->signature)[2],
-	    ((char *)&pir->signature)[3],
-	    offsetof(pir_table_t, minor),
-	    pir->major, pir->minor,
-	    offsetof(pir_table_t, size),
-	    pir->size,
-	    num_slots,
-	    offsetof(pir_table_t, bus),
-	    pir->bus,
-	    PIR_DEV(pir->devfunc),
-	    PIR_FUNC(pir->devfunc));
-	printf(
-	    "0x%02x: PCI Exclusive IRQs: ",
-	     offsetof(pir_table_t, excl_irqs));
+	    offsetof(pir_table_t, signature), ((char *)&pir->signature)[0],
+	    ((char *)&pir->signature)[1], ((char *)&pir->signature)[2],
+	    ((char *)&pir->signature)[3], offsetof(pir_table_t, minor),
+	    pir->major, pir->minor, offsetof(pir_table_t, size), pir->size,
+	    num_slots, offsetof(pir_table_t, bus), pir->bus,
+	    PIR_DEV(pir->devfunc), PIR_FUNC(pir->devfunc));
+	printf("0x%02x: PCI Exclusive IRQs: ",
+	    offsetof(pir_table_t, excl_irqs));
 	pci_print_irqmask(pir->excl_irqs);
 	printf("\r\n"
-	    "0x%02x: Compatible with:    0x%08X %s\r\n"
-	    "0x%02x: Miniport Data:      0x%08X\r\n"
-	    "0x%02x: Checksum:           0x%02X\r\n"
-	    "\r\n",
-	    offsetof(pir_table_t, compatible),
-	    pir->compatible,
+	       "0x%02x: Compatible with:    0x%08X %s\r\n"
+	       "0x%02x: Miniport Data:      0x%08X\r\n"
+	       "0x%02x: Checksum:           0x%02X\r\n"
+	       "\r\n",
+	    offsetof(pir_table_t, compatible), pir->compatible,
 	    lookup_southbridge(pir->compatible),
-	    offsetof(pir_table_t, miniport_data),
-	    pir->miniport_data,
-	    offsetof(pir_table_t, checksum),
-	    pir->checksum);
+	    offsetof(pir_table_t, miniport_data), pir->miniport_data,
+	    offsetof(pir_table_t, checksum), pir->checksum);
 
 	p = pend = &pir->entry[0];
 	pend += num_slots;
@@ -272,8 +261,8 @@ print_irq_line(int entry, pir_entry_t *p, char line, uint8_t link,
 	else
 		printf("slot %-3d ", p->slot);
 
-	printf(" %3d  %3d    %c   0x%02x  ", p->bus, PIR_DEV(p->devfunc),
-	    line, link);
+	printf(" %3d  %3d    %c   0x%02x  ", p->bus, PIR_DEV(p->devfunc), line,
+	    link);
 	pci_print_irqmask(irqs);
 	printf("\n");
 }

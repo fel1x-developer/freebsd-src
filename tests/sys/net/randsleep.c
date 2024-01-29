@@ -35,9 +35,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define RANDOM_MAX ((1U<<31) - 1)
+#define RANDOM_MAX ((1U << 31) - 1)
 
-int main(int argc, char** argv){
+int
+main(int argc, char **argv)
+{
 	useconds_t max_usecs, usecs;
 	double frac;
 

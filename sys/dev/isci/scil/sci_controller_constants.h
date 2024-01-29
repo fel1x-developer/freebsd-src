@@ -77,7 +77,7 @@ extern "C" {
  * supported for the SCU Driver Standard (SDS) library.  This is tied
  * directly to silicon capabilities.
  */
-#define SCI_MAX_PHYS  (4)
+#define SCI_MAX_PHYS (4)
 #endif
 
 #ifndef SCI_MAX_PORTS
@@ -96,7 +96,7 @@ extern "C" {
  * This was determined by using 36 physical phys and room for 2 virtual
  * phys.
  */
-#define SCI_MIN_SMP_PHYS  (38)
+#define SCI_MIN_SMP_PHYS (38)
 #endif
 
 #ifndef SCI_MAX_SMP_PHYS
@@ -105,7 +105,7 @@ extern "C" {
  * can be supported for the SCU Driver Standard (SDS) library.
  * This number can be increased if required.
  */
-#define SCI_MAX_SMP_PHYS  (384)
+#define SCI_MAX_SMP_PHYS (384)
 #endif
 
 #ifndef SCI_MAX_REMOTE_DEVICES
@@ -156,7 +156,7 @@ extern "C" {
  * element set to zeroes if not needed).
  */
 #define __MAXPHYS_ELEMENTS ((maxphys / PAGE_SIZE) + 1)
-#define SCI_MAX_SCATTER_GATHER_ELEMENTS  ((__MAXPHYS_ELEMENTS + 1) & ~0x1)
+#define SCI_MAX_SCATTER_GATHER_ELEMENTS ((__MAXPHYS_ELEMENTS + 1) & ~0x1)
 #endif
 
 #ifndef SCI_MIN_SCATTER_GATHER_ELEMENTS
@@ -183,7 +183,7 @@ extern "C" {
  * This constant defines the maximum number of controllers that can
  * occur in a single silicon package.
  */
-#define SCI_MAX_CONTROLLERS_PER_PCI_DEVICE  (2)
+#define SCI_MAX_CONTROLLERS_PER_PCI_DEVICE (2)
 
 /**
  * This constant defines the maximum number of controllers that can
@@ -192,7 +192,7 @@ extern "C" {
  * specific constant that is not tied to silicon capabilities.
  */
 #if !defined(SCI_MAX_CONTROLLERS)
-#define SCI_MAX_CONTROLLERS  (2)
+#define SCI_MAX_CONTROLLERS (2)
 #endif
 
 #ifndef SCI_MAX_MSIX_MESSAGES_PER_CONTROLLER
@@ -200,7 +200,7 @@ extern "C" {
  * This constant defines the maximum number of MSI-X interrupt vectors/messages
  * supported for an SCU hardware controller instance.
  */
-#define SCI_MAX_MSIX_MESSAGES_PER_CONTROLLER  (2)
+#define SCI_MAX_MSIX_MESSAGES_PER_CONTROLLER (2)
 #endif
 
 /**
@@ -208,17 +208,16 @@ extern "C" {
  * supported for an SCU device.
  */
 #define SCI_MAX_MSIX_MESSAGES \
-    (SCI_MAX_MSIX_MESSAGES_PER_CONTROLLER * SCI_MAX_CONTROLLERS)
+	(SCI_MAX_MSIX_MESSAGES_PER_CONTROLLER * SCI_MAX_CONTROLLERS)
 
 /**
  * The maximum number of supported domain objects is currently tied to the
  * maximum number of support port objects.
  */
-#define SCI_MAX_DOMAINS  SCI_MAX_PORTS
+#define SCI_MAX_DOMAINS SCI_MAX_PORTS
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
 #endif // _SCI_CONTROLLER_CONSTANTS_H_
-

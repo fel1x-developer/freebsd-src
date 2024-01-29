@@ -31,66 +31,65 @@
 
 /* Generic ECAM PCIe driver */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/kernel.h>
-#include <sys/rman.h>
-#include <sys/module.h>
 #include <sys/bus.h>
-#include <sys/endian.h>
 #include <sys/cpuset.h>
+#include <sys/endian.h>
+#include <sys/kernel.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/rman.h>
 #include <sys/rwlock.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
-
-#include <dev/acpica/acpivar.h>
-#include <dev/acpica/acpi_pcibvar.h>
-
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcib_private.h>
-#include <dev/pci/pci_host_generic.h>
-#include <dev/pci/pci_host_generic_acpi.h>
-
-#include <machine/cpu.h>
 #include <machine/bus.h>
+#include <machine/cpu.h>
 #include <machine/intr.h>
 
-#include "pcib_if.h"
+#include <dev/acpica/acpi_pcibvar.h>
+#include <dev/acpica/acpivar.h>
+#include <dev/pci/pci_host_generic.h>
+#include <dev/pci/pci_host_generic_acpi.h>
+#include <dev/pci/pcib_private.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
+
 #include "acpi_bus_if.h"
+#include "pcib_if.h"
 
 /* Assembling ECAM Configuration Address */
-#define	PCIE_BUS_SHIFT		20
-#define	PCIE_SLOT_SHIFT		15
-#define	PCIE_FUNC_SHIFT		12
-#define	PCIE_BUS_MASK		0xFF
-#define	PCIE_SLOT_MASK		0x1F
-#define	PCIE_FUNC_MASK		0x07
-#define	PCIE_REG_MASK		0xFFF
+#define PCIE_BUS_SHIFT 20
+#define PCIE_SLOT_SHIFT 15
+#define PCIE_FUNC_SHIFT 12
+#define PCIE_BUS_MASK 0xFF
+#define PCIE_SLOT_MASK 0x1F
+#define PCIE_FUNC_MASK 0x07
+#define PCIE_REG_MASK 0xFFF
 
-#define	PCIE_ADDR_OFFSET(bus, slot, func, reg)			\
-	((((bus) & PCIE_BUS_MASK) << PCIE_BUS_SHIFT)	|	\
-	(((slot) & PCIE_SLOT_MASK) << PCIE_SLOT_SHIFT)	|	\
-	(((func) & PCIE_FUNC_MASK) << PCIE_FUNC_SHIFT)	|	\
-	((reg) & PCIE_REG_MASK))
+#define PCIE_ADDR_OFFSET(bus, slot, func, reg)               \
+	((((bus) & PCIE_BUS_MASK) << PCIE_BUS_SHIFT) |       \
+	    (((slot) & PCIE_SLOT_MASK) << PCIE_SLOT_SHIFT) | \
+	    (((func) & PCIE_FUNC_MASK) << PCIE_FUNC_SHIFT) | \
+	    ((reg) & PCIE_REG_MASK))
 
-#define	PCI_IO_WINDOW_OFFSET	0x1000
+#define PCI_IO_WINDOW_OFFSET 0x1000
 
-#define	SPACE_CODE_SHIFT	24
-#define	SPACE_CODE_MASK		0x3
-#define	SPACE_CODE_IO_SPACE	0x1
-#define	PROPS_CELL_SIZE		1
-#define	PCI_ADDR_CELL_SIZE	2
+#define SPACE_CODE_SHIFT 24
+#define SPACE_CODE_MASK 0x3
+#define SPACE_CODE_IO_SPACE 0x1
+#define PROPS_CELL_SIZE 1
+#define PCI_ADDR_CELL_SIZE 2
 
 static struct {
-	char		oem_id[ACPI_OEM_ID_SIZE + 1];
-	char		oem_table_id[ACPI_OEM_TABLE_ID_SIZE + 1];
-	uint32_t	quirks;
+	char oem_id[ACPI_OEM_ID_SIZE + 1];
+	char oem_table_id[ACPI_OEM_TABLE_ID_SIZE + 1];
+	uint32_t quirks;
 } pci_acpi_quirks[] = {
 	{ "MRVL  ", "CN9130  ", PCIE_ECAM_DESIGNWARE_QUIRK },
 	{ "MRVL  ", "CN913X  ", PCIE_ECAM_DESIGNWARE_QUIRK },
@@ -105,7 +104,8 @@ static struct {
 /* Forward prototypes */
 
 static int generic_pcie_acpi_probe(device_t dev);
-static ACPI_STATUS pci_host_generic_acpi_parse_resource(ACPI_RESOURCE *, void *);
+static ACPI_STATUS pci_host_generic_acpi_parse_resource(ACPI_RESOURCE *,
+    void *);
 static int generic_pcie_acpi_read_ivar(device_t, device_t, int, uintptr_t *);
 
 /*
@@ -206,10 +206,10 @@ pci_host_acpi_get_oem_quirks(struct generic_pcie_acpi_softc *sc,
 
 	for (i = 0; pci_acpi_quirks[i].quirks; i++) {
 		if (memcmp(hdr->OemId, pci_acpi_quirks[i].oem_id,
-		    ACPI_OEM_ID_SIZE) != 0)
+			ACPI_OEM_ID_SIZE) != 0)
 			continue;
 		if (memcmp(hdr->OemTableId, pci_acpi_quirks[i].oem_table_id,
-		    ACPI_OEM_TABLE_ID_SIZE) != 0)
+			ACPI_OEM_TABLE_ID_SIZE) != 0)
 			continue;
 		sc->base.quirks |= pci_acpi_quirks[i].quirks;
 	}
@@ -236,7 +236,8 @@ pci_host_acpi_get_ecam_resource(device_t dev)
 	if (ACPI_SUCCESS(status)) {
 		found = FALSE;
 		mcfg_end = (ACPI_MCFG_ALLOCATION *)((char *)hdr + hdr->Length);
-		mcfg_entry = (ACPI_MCFG_ALLOCATION *)((ACPI_TABLE_MCFG *)hdr + 1);
+		mcfg_entry = (ACPI_MCFG_ALLOCATION *)((ACPI_TABLE_MCFG *)hdr +
+		    1);
 		while (mcfg_entry < mcfg_end && !found) {
 			if (mcfg_entry->PciSegment == sc->base.ecam &&
 			    mcfg_entry->StartBusNumber <= sc->base.bus_start &&
@@ -250,13 +251,15 @@ pci_host_acpi_get_ecam_resource(device_t dev)
 				sc->base.bus_end = mcfg_entry->EndBusNumber;
 			base = mcfg_entry->Address;
 		} else {
-			device_printf(dev, "MCFG exists, but does not have bus %d-%d\n",
+			device_printf(dev,
+			    "MCFG exists, but does not have bus %d-%d\n",
 			    sc->base.bus_start, sc->base.bus_end);
 			return (ENXIO);
 		}
 		pci_host_acpi_get_oem_quirks(sc, hdr);
 		if (sc->base.quirks & PCIE_ECAM_DESIGNWARE_QUIRK)
-			device_set_desc(dev, "Synopsys DesignWare PCIe Controller");
+			device_set_desc(dev,
+			    "Synopsys DesignWare PCIe Controller");
 	} else {
 		status = acpi_GetInteger(handle, "_CBA", &val);
 		if (ACPI_SUCCESS(status))
@@ -402,11 +405,11 @@ generic_pcie_map_id(device_t pci, device_t child, uintptr_t *id)
 	err = pcib_get_id(pci, child, PCI_ID_RID, &rid);
 	if (err != 0)
 		return (err);
-        err = acpi_iort_map_pci_msi(sc->base.ecam, rid, &xref, &devid);
+	err = acpi_iort_map_pci_msi(sc->base.ecam, rid, &xref, &devid);
 	if (err == 0)
 		*id = devid;
 	else
-		*id = rid;	/* RID not in IORT, likely FW bug, ignore */
+		*id = rid; /* RID not in IORT, likely FW bug, ignore */
 	return (0);
 }
 
@@ -512,18 +515,18 @@ generic_pcie_acpi_get_id(device_t pci, device_t child, enum pci_id_type type,
 }
 
 static device_method_t generic_pcie_acpi_methods[] = {
-	DEVMETHOD(device_probe,		generic_pcie_acpi_probe),
-	DEVMETHOD(device_attach,	pci_host_generic_acpi_attach),
-	DEVMETHOD(bus_read_ivar,	generic_pcie_acpi_read_ivar),
+	DEVMETHOD(device_probe, generic_pcie_acpi_probe),
+	DEVMETHOD(device_attach, pci_host_generic_acpi_attach),
+	DEVMETHOD(bus_read_ivar, generic_pcie_acpi_read_ivar),
 
 	/* pcib interface */
-	DEVMETHOD(pcib_route_interrupt,	generic_pcie_acpi_route_interrupt),
-	DEVMETHOD(pcib_alloc_msi,	generic_pcie_acpi_alloc_msi),
-	DEVMETHOD(pcib_release_msi,	generic_pcie_acpi_release_msi),
-	DEVMETHOD(pcib_alloc_msix,	generic_pcie_acpi_alloc_msix),
-	DEVMETHOD(pcib_release_msix,	generic_pcie_acpi_release_msix),
-	DEVMETHOD(pcib_map_msi,		generic_pcie_acpi_map_msi),
-	DEVMETHOD(pcib_get_id,		generic_pcie_acpi_get_id),
+	DEVMETHOD(pcib_route_interrupt, generic_pcie_acpi_route_interrupt),
+	DEVMETHOD(pcib_alloc_msi, generic_pcie_acpi_alloc_msi),
+	DEVMETHOD(pcib_release_msi, generic_pcie_acpi_release_msi),
+	DEVMETHOD(pcib_alloc_msix, generic_pcie_acpi_alloc_msix),
+	DEVMETHOD(pcib_release_msix, generic_pcie_acpi_release_msix),
+	DEVMETHOD(pcib_map_msi, generic_pcie_acpi_map_msi),
+	DEVMETHOD(pcib_get_id, generic_pcie_acpi_get_id),
 
 	DEVMETHOD_END
 };

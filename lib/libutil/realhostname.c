@@ -29,19 +29,19 @@
 #include <sys/param.h>
 #include <sys/socket.h>
 
-#include <netdb.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
 
+#include <arpa/inet.h>
+#include <netdb.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "libutil.h"
 
 struct sockinet {
-	u_char	si_len;
-	u_char	si_family;
-	u_short	si_port;
+	u_char si_len;
+	u_char si_family;
+	u_short si_port;
 };
 
 int
@@ -64,16 +64,18 @@ realhostname(char *host, size_t hsize, const struct in_addr *ip)
 			hp = gethostbyname(lookup);
 			if (hp == NULL)
 				result = HOSTNAME_INVALIDNAME;
-			else for (; ; hp->h_addr_list++) {
-				if (*hp->h_addr_list == NULL) {
-					result = HOSTNAME_INCORRECTNAME;
-					break;
+			else
+				for (;; hp->h_addr_list++) {
+					if (*hp->h_addr_list == NULL) {
+						result = HOSTNAME_INCORRECTNAME;
+						break;
+					}
+					if (!memcmp(*hp->h_addr_list, ip,
+						sizeof(*ip))) {
+						strncpy(host, trimmed, hsize);
+						return HOSTNAME_FOUND;
+					}
 				}
-				if (!memcmp(*hp->h_addr_list, ip, sizeof(*ip))) {
-					strncpy(host, trimmed, hsize);
-					return HOSTNAME_FOUND;
-				}
-			}
 		}
 	}
 
@@ -119,14 +121,14 @@ realhostname_sa(char *host, size_t hsize, struct sockaddr *addr, int addrlen)
 		lsin.sin_family = AF_INET;
 		lsin.sin_port = sin6->sin6_port;
 		memcpy(&lsin.sin_addr, &sin6->sin6_addr.s6_addr[12],
-		       sizeof(struct in_addr));
+		    sizeof(struct in_addr));
 		addr = (struct sockaddr *)&lsin;
 		addrlen = lsin.sin_len;
 	}
 #endif
 
 	error = getnameinfo(addr, addrlen, buf, sizeof(buf), NULL, 0,
-			    NI_NAMEREQD);
+	    NI_NAMEREQD);
 	if (error == 0) {
 		struct addrinfo hints, *res, *ores;
 		struct sockaddr *sa;
@@ -141,7 +143,7 @@ realhostname_sa(char *host, size_t hsize, struct sockaddr *addr, int addrlen)
 			result = HOSTNAME_INVALIDNAME;
 			goto numeric;
 		}
-		for (ores = res; ; res = res->ai_next) {
+		for (ores = res;; res = res->ai_next) {
 			if (res == NULL) {
 				freeaddrinfo(ores);
 				result = HOSTNAME_INCORRECTNAME;
@@ -173,7 +175,7 @@ realhostname_sa(char *host, size_t hsize, struct sockaddr *addr, int addrlen)
 						goto numeric;
 					}
 					strlcpy(buf, ores->ai_canonname,
-						sizeof(buf));
+					    sizeof(buf));
 					trimdomain(buf, hsize);
 					if (strlen(buf) > hsize &&
 					    addr->sa_family == AF_INET) {
@@ -187,13 +189,11 @@ realhostname_sa(char *host, size_t hsize, struct sockaddr *addr, int addrlen)
 		}
 		freeaddrinfo(ores);
 	} else {
-    numeric:
+	numeric:
 		if (getnameinfo(addr, addrlen, buf, sizeof(buf), NULL, 0,
-				NI_NUMERICHOST) == 0)
+			NI_NUMERICHOST) == 0)
 			strncpy(host, buf, hsize);
 	}
 
 	return result;
 }
-
-

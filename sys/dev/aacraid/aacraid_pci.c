@@ -39,71 +39,59 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-
+#include <sys/aac_ioctl.h>
 #include <sys/bio.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/disk.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
 
+#include <dev/aacraid/aacraid_debug.h>
+#include <dev/aacraid/aacraid_reg.h>
+#include <dev/aacraid/aacraid_var.h>
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
 
-#include <dev/aacraid/aacraid_reg.h>
-#include <sys/aac_ioctl.h>
-#include <dev/aacraid/aacraid_debug.h>
-#include <dev/aacraid/aacraid_var.h>
-
-static int	aacraid_pci_probe(device_t dev);
-static int	aacraid_pci_attach(device_t dev);
+static int aacraid_pci_probe(device_t dev);
+static int aacraid_pci_attach(device_t dev);
 
 static device_method_t aacraid_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		aacraid_pci_probe),
-	DEVMETHOD(device_attach,	aacraid_pci_attach),
-	DEVMETHOD(device_detach,	aacraid_detach),
-	DEVMETHOD(device_suspend,	aacraid_suspend),
-	DEVMETHOD(device_resume,	aacraid_resume),
+	DEVMETHOD(device_probe, aacraid_pci_probe),
+	DEVMETHOD(device_attach, aacraid_pci_attach),
+	DEVMETHOD(device_detach, aacraid_detach),
+	DEVMETHOD(device_suspend, aacraid_suspend),
+	DEVMETHOD(device_resume, aacraid_resume),
 
-	DEVMETHOD(bus_print_child,	bus_generic_print_child),
-	DEVMETHOD(bus_driver_added,	bus_generic_driver_added),
-	{ 0, 0 }
+	DEVMETHOD(bus_print_child, bus_generic_print_child),
+	DEVMETHOD(bus_driver_added, bus_generic_driver_added), { 0, 0 }
 };
 
-static driver_t aacraid_pci_driver = {
-	"aacraid",
-	aacraid_methods,
-	sizeof(struct aac_softc)
-};
+static driver_t aacraid_pci_driver = { "aacraid", aacraid_methods,
+	sizeof(struct aac_softc) };
 
-struct aac_ident
-{
-	u_int16_t		vendor;
-	u_int16_t		device;
-	u_int16_t		subvendor;
-	u_int16_t		subdevice;
-	int			hwif;
-	int			quirks;
-	char			*desc;
-} aacraid_family_identifiers[] = {
-	{0x9005, 0x028b, 0, 0, AAC_HWIF_SRC, 0,
-	 "Adaptec RAID Controller"},
-	{0x9005, 0x028c, 0, 0, AAC_HWIF_SRCV, 0,
-	 "Adaptec RAID Controller"},
-	{0x9005, 0x028d, 0, 0, AAC_HWIF_SRCV, 0,
-	 "Adaptec RAID Controller"},
-	{0, 0, 0, 0, 0, 0, 0}
-};
+struct aac_ident {
+	u_int16_t vendor;
+	u_int16_t device;
+	u_int16_t subvendor;
+	u_int16_t subdevice;
+	int hwif;
+	int quirks;
+	char *desc;
+} aacraid_family_identifiers[] = { { 0x9005, 0x028b, 0, 0, AAC_HWIF_SRC, 0,
+				       "Adaptec RAID Controller" },
+	{ 0x9005, 0x028c, 0, 0, AAC_HWIF_SRCV, 0, "Adaptec RAID Controller" },
+	{ 0x9005, 0x028d, 0, 0, AAC_HWIF_SRCV, 0, "Adaptec RAID Controller" },
+	{ 0, 0, 0, 0, 0, 0, 0 } };
 
 DRIVER_MODULE(aacraid, pci, aacraid_pci_driver, 0, 0);
 MODULE_PNP_INFO("U16:vendor;U16:device", pci, aacraid,
-    aacraid_family_identifiers,
-    nitems(aacraid_family_identifiers) - 1);
+    aacraid_family_identifiers, nitems(aacraid_family_identifiers) - 1);
 MODULE_DEPEND(aacraid, pci, 1, 1, 1);
 
 static struct aac_ident *
@@ -135,9 +123,9 @@ aacraid_pci_probe(device_t dev)
 
 	if ((id = aac_find_ident(dev)) != NULL) {
 		device_set_desc(dev, id->desc);
-		return(BUS_PROBE_DEFAULT);
+		return (BUS_PROBE_DEFAULT);
 	}
-	return(ENXIO);
+	return (ENXIO);
 }
 
 /*
@@ -163,7 +151,7 @@ aacraid_pci_attach(device_t dev)
 	/* assume failure is 'not configured' */
 	error = ENXIO;
 
-	/* 
+	/*
 	 * Verify that the adapter is correctly set up in PCI space.
 	 */
 	pci_enable_busmaster(dev);
@@ -173,19 +161,21 @@ aacraid_pci_attach(device_t dev)
 		goto out;
 	}
 
-	/* 
+	/*
 	 * Detect the hardware interface version, set up the bus interface
 	 * indirection.
 	 */
 	id = aac_find_ident(dev);
 	sc->aac_hwif = id->hwif;
-	switch(sc->aac_hwif) {
+	switch (sc->aac_hwif) {
 	case AAC_HWIF_SRC:
-		fwprintf(sc, HBA_FLAGS_DBG_INIT_B, "set hardware up for PMC SRC");
+		fwprintf(sc, HBA_FLAGS_DBG_INIT_B,
+		    "set hardware up for PMC SRC");
 		sc->aac_if = aacraid_src_interface;
 		break;
 	case AAC_HWIF_SRCV:
-		fwprintf(sc, HBA_FLAGS_DBG_INIT_B, "set hardware up for PMC SRCv");
+		fwprintf(sc, HBA_FLAGS_DBG_INIT_B,
+		    "set hardware up for PMC SRCv");
 		sc->aac_if = aacraid_srcv_interface;
 		break;
 	default:
@@ -203,7 +193,7 @@ aacraid_pci_attach(device_t dev)
 	 */
 	sc->aac_regs_rid0 = PCIR_BAR(0);
 	if ((sc->aac_regs_res0 = bus_alloc_resource_any(sc->aac_dev,
-	    SYS_RES_MEMORY, &sc->aac_regs_rid0, RF_ACTIVE)) == NULL) {
+		 SYS_RES_MEMORY, &sc->aac_regs_rid0, RF_ACTIVE)) == NULL) {
 		device_printf(sc->aac_dev,
 		    "couldn't allocate register window 0\n");
 		goto out;
@@ -213,7 +203,7 @@ aacraid_pci_attach(device_t dev)
 
 	sc->aac_regs_rid1 = PCIR_BAR(2);
 	if ((sc->aac_regs_res1 = bus_alloc_resource_any(sc->aac_dev,
-	    SYS_RES_MEMORY, &sc->aac_regs_rid1, RF_ACTIVE)) == NULL) {
+		 SYS_RES_MEMORY, &sc->aac_regs_rid1, RF_ACTIVE)) == NULL) {
 		device_printf(sc->aac_dev,
 		    "couldn't allocate register window 1\n");
 		goto out;
@@ -223,20 +213,20 @@ aacraid_pci_attach(device_t dev)
 
 	/*
 	 * Allocate the parent bus DMA tag appropriate for our PCI interface.
-	 * 
+	 *
 	 * Note that some of these controllers are 64-bit capable.
 	 */
-	if (bus_dma_tag_create(bus_get_dma_tag(dev), 	/* parent */
-			       PAGE_SIZE, 0,		/* algnmnt, boundary */
-			       BUS_SPACE_MAXADDR,	/* lowaddr */
-			       BUS_SPACE_MAXADDR, 	/* highaddr */
-			       NULL, NULL, 		/* filter, filterarg */
-			       BUS_SPACE_MAXSIZE_32BIT,	/* maxsize */
-			       BUS_SPACE_UNRESTRICTED,	/* nsegments */
-			       BUS_SPACE_MAXSIZE_32BIT,	/* maxsegsize */
-			       0,			/* flags */
-			       NULL, NULL,		/* No locking needed */
-			       &sc->aac_parent_dmat)) {
+	if (bus_dma_tag_create(bus_get_dma_tag(dev), /* parent */
+		PAGE_SIZE, 0,			     /* algnmnt, boundary */
+		BUS_SPACE_MAXADDR,		     /* lowaddr */
+		BUS_SPACE_MAXADDR,		     /* highaddr */
+		NULL, NULL,			     /* filter, filterarg */
+		BUS_SPACE_MAXSIZE_32BIT,	     /* maxsize */
+		BUS_SPACE_UNRESTRICTED,		     /* nsegments */
+		BUS_SPACE_MAXSIZE_32BIT,	     /* maxsegsize */
+		0,				     /* flags */
+		NULL, NULL,			     /* No locking needed */
+		&sc->aac_parent_dmat)) {
 		device_printf(sc->aac_dev, "can't allocate parent DMA tag\n");
 		goto out;
 	}
@@ -252,5 +242,5 @@ aacraid_pci_attach(device_t dev)
 out:
 	if (error)
 		aacraid_free(sc);
-	return(error);
+	return (error);
 }

@@ -24,38 +24,37 @@
  */
 
 #include <sys/types.h>
-#include <sys/errno.h>
 #include <sys/param.h>
+#include <sys/errno.h>
 #include <sys/mman.h>
 #include <sys/sbuf.h>
 #include <sys/stat.h>
 
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <fcntl.h>
-#include <err.h>
-#include <unistd.h>
+#include <net80211/_ieee80211.h>
 
 #include <bsdxml.h>
+#include <ctype.h>
+#include <err.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "lib80211_regdomain.h"
 
-#include <net80211/_ieee80211.h>
-
-#define	MAXLEVEL	20
+#define MAXLEVEL 20
 
 struct mystate {
-	XML_Parser		parser;
-	struct regdata		*rdp;
-	struct regdomain	*rd;		/* current domain */
-	struct netband		*netband;	/* current netband */
-	struct freqband		*freqband;	/* current freqband */
-	struct country		*country;	/* current country */
-	netband_head		*curband;	/* current netband list */
-	int			level;
-	struct sbuf		*sbuf[MAXLEVEL];
-	int			nident;
+	XML_Parser parser;
+	struct regdata *rdp;
+	struct regdomain *rd;	   /* current domain */
+	struct netband *netband;   /* current netband */
+	struct freqband *freqband; /* current freqband */
+	struct country *country;   /* current country */
+	netband_head *curband;	   /* current netband list */
+	int level;
+	struct sbuf *sbuf[MAXLEVEL];
+	int nident;
 };
 
 struct ident {
@@ -67,7 +66,7 @@ struct ident {
 static void
 start_element(void *data, const char *name, const char **attr)
 {
-#define	iseq(a,b)	(strcasecmp(a,b) == 0)
+#define iseq(a, b) (strcasecmp(a, b) == 0)
 	struct mystate *mt;
 	const void *id, *ref, *mode;
 	int i;
@@ -81,14 +80,14 @@ start_element(void *data, const char *name, const char **attr)
 	id = ref = mode = NULL;
 	for (i = 0; attr[i] != NULL; i += 2) {
 		if (iseq(attr[i], "id")) {
-			id = attr[i+1];
+			id = attr[i + 1];
 		} else if (iseq(attr[i], "ref")) {
-			ref = attr[i+1];
+			ref = attr[i + 1];
 		} else if (iseq(attr[i], "mode")) {
-			mode = attr[i+1];
+			mode = attr[i + 1];
 		} else
-			printf("%*.*s[%s = %s]\n", mt->level + 1,
-			    mt->level + 1, "", attr[i], attr[i+1]);
+			printf("%*.*s[%s = %s]\n", mt->level + 1, mt->level + 1,
+			    "", attr[i], attr[i + 1]);
 	}
 	if (iseq(name, "rd") && mt->rd == NULL) {
 		if (mt->country == NULL) {
@@ -140,7 +139,8 @@ start_element(void *data, const char *name, const char **attr)
 		LIST_INSERT_HEAD(mt->curband, mt->netband, next);
 		return;
 	}
-	if (iseq(name, "freqband") && mt->freqband == NULL && mt->netband != NULL) {
+	if (iseq(name, "freqband") && mt->freqband == NULL &&
+	    mt->netband != NULL) {
 		/* XXX handle inlines and merge into table? */
 		if (mt->netband->band != NULL) {
 			warnx("duplicate freqband at line %ld ignored",
@@ -173,13 +173,13 @@ start_element(void *data, const char *name, const char **attr)
 static int
 decode_flag(struct mystate *mt, const char *p, int len)
 {
-#define	iseq(a,b)	(strcasecmp(a,b) == 0)
+#define iseq(a, b) (strcasecmp(a, b) == 0)
 	static const struct {
 		const char *name;
 		int len;
 		uint32_t value;
 	} flags[] = {
-#define	FLAG(x)	{ #x, sizeof(#x)-1, x }
+#define FLAG(x) { #x, sizeof(#x) - 1, x }
 		FLAG(IEEE80211_CHAN_A),
 		FLAG(IEEE80211_CHAN_B),
 		FLAG(IEEE80211_CHAN_G),
@@ -218,17 +218,17 @@ decode_flag(struct mystate *mt, const char *p, int len)
 		FLAG(IEEE80211_CHAN_108A),
 		FLAG(IEEE80211_CHAN_108G),
 #undef FLAG
-		{ "ECM",	3,	REQ_ECM },
-		{ "INDOOR",	6,	REQ_INDOOR },
-		{ "OUTDOOR",	7,	REQ_OUTDOOR },
+		{ "ECM", 3, REQ_ECM },
+		{ "INDOOR", 6, REQ_INDOOR },
+		{ "OUTDOOR", 7, REQ_OUTDOOR },
 	};
 	unsigned int i;
 
 	for (i = 0; i < nitems(flags); i++)
 		if (len == flags[i].len && iseq(p, flags[i].name))
 			return flags[i].value;
-	warnx("unknown flag \"%.*s\" at line %ld ignored",
-	    len, p, XML_GetCurrentLineNumber(mt->parser));
+	warnx("unknown flag \"%.*s\" at line %ld ignored", len, p,
+	    XML_GetCurrentLineNumber(mt->parser));
 	return 0;
 #undef iseq
 }
@@ -236,7 +236,7 @@ decode_flag(struct mystate *mt, const char *p, int len)
 static void
 end_element(void *data, const char *name)
 {
-#define	iseq(a,b)	(strcasecmp(a,b) == 0)
+#define iseq(a, b) (strcasecmp(a, b) == 0)
 	struct mystate *mt;
 	int len;
 	char *p;
@@ -269,7 +269,8 @@ end_element(void *data, const char *name)
 		else if (mt->netband != NULL)
 			mt->netband->flags |= decode_flag(mt, p, len);
 		else {
-			warnx("flags without freqband or netband at line %ld ignored",
+			warnx(
+			    "flags without freqband or netband at line %ld ignored",
 			    XML_GetCurrentLineNumber(mt->parser));
 		}
 		goto done;
@@ -338,11 +339,11 @@ end_element(void *data, const char *name)
 	if (iseq(name, "band") && mt->netband != NULL) {
 		if (mt->netband->band == NULL) {
 			warnx("no freqbands for band at line %ld",
-			   XML_GetCurrentLineNumber(mt->parser));
+			    XML_GetCurrentLineNumber(mt->parser));
 		}
 		if (mt->netband->maxPower == 0) {
 			warnx("no maxpower for band at line %ld",
-			   XML_GetCurrentLineNumber(mt->parser));
+			    XML_GetCurrentLineNumber(mt->parser));
 		}
 		/* default max power w/ DFS to max power */
 		if (mt->netband->maxPowerDFS == 0)
@@ -358,17 +359,17 @@ end_element(void *data, const char *name)
 	/* </country> */
 	if (iseq(name, "country") && mt->country != NULL) {
 		/* XXX NO_COUNTRY should be in the net80211 country enum */
-		if ((int) mt->country->code == NO_COUNTRY) {
+		if ((int)mt->country->code == NO_COUNTRY) {
 			warnx("no ISO cc for country at line %ld",
-			   XML_GetCurrentLineNumber(mt->parser));
+			    XML_GetCurrentLineNumber(mt->parser));
 		}
 		if (mt->country->name == NULL) {
 			warnx("no name for country at line %ld",
-			   XML_GetCurrentLineNumber(mt->parser));
+			    XML_GetCurrentLineNumber(mt->parser));
 		}
 		if (mt->country->rd == NULL) {
 			warnx("no regdomain reference for country at line %ld",
-			   XML_GetCurrentLineNumber(mt->parser));
+			    XML_GetCurrentLineNumber(mt->parser));
 		}
 		mt->country = NULL;
 		goto done;
@@ -388,13 +389,13 @@ char_data(void *data, const XML_Char *s, int len)
 	mt = data;
 
 	b = s;
-	e = s + len-1;
+	e = s + len - 1;
 	for (; isspace(*b) && b < e; b++)
 		;
 	for (; isspace(*e) && e > b; e++)
 		;
 	if (e != b || (*b != '\0' && !isspace(*b)))
-		sbuf_bcat(mt->sbuf[mt->level], b, e-b+1);
+		sbuf_bcat(mt->sbuf[mt->level], b, e - b + 1);
 }
 
 static void *
@@ -403,7 +404,7 @@ findid(struct regdata *rdp, const void *id, int type)
 	struct ident *ip;
 
 	for (ip = rdp->ident; ip->id != NULL; ip++)
-		if ((int) ip->type == type && strcasecmp(ip->id, id) == 0)
+		if ((int)ip->type == type && strcasecmp(ip->id, id) == 0)
 			return ip->p;
 	return NULL;
 }
@@ -434,8 +435,8 @@ lib80211_regdomain_readconfig(struct regdata *rdp, const void *p, size_t len)
 	XML_SetCharacterDataHandler(mt->parser, char_data);
 	if (XML_Parse(mt->parser, p, len, 1) != XML_STATUS_OK) {
 		warnx("%s: %s at line %ld", __func__,
-		   XML_ErrorString(XML_GetErrorCode(mt->parser)),
-		   XML_GetCurrentLineNumber(mt->parser));
+		    XML_ErrorString(XML_GetErrorCode(mt->parser)),
+		    XML_GetCurrentLineNumber(mt->parser));
 		return -1;
 	}
 	XML_ParserFree(mt->parser);
@@ -448,19 +449,19 @@ lib80211_regdomain_readconfig(struct regdata *rdp, const void *p, size_t len)
 
 	errors = 0;
 	i = 0;
-	LIST_FOREACH(dp, &rdp->domains, next) {
+	LIST_FOREACH (dp, &rdp->domains, next) {
 		rdp->ident[i].id = dp->name;
 		rdp->ident[i].p = dp;
 		rdp->ident[i].type = DOMAIN;
 		i++;
 	}
-	LIST_FOREACH(fp, &rdp->freqbands, next) {
+	LIST_FOREACH (fp, &rdp->freqbands, next) {
 		rdp->ident[i].id = fp->id;
 		rdp->ident[i].p = fp;
 		rdp->ident[i].type = FREQBAND;
 		i++;
 	}
-	LIST_FOREACH(cp, &rdp->countries, next) {
+	LIST_FOREACH (cp, &rdp->countries, next) {
 		rdp->ident[i].id = cp->isoname;
 		rdp->ident[i].p = cp;
 		rdp->ident[i].type = COUNTRY;
@@ -468,7 +469,7 @@ lib80211_regdomain_readconfig(struct regdata *rdp, const void *p, size_t len)
 	}
 
 	/* patch references */
-	LIST_FOREACH(dp, &rdp->domains, next) {
+	LIST_FOREACH (dp, &rdp->domains, next) {
 		if (dp->cc != NULL) {
 			id = dp->cc;
 			dp->cc = findid(rdp, id, COUNTRY);
@@ -479,7 +480,7 @@ lib80211_regdomain_readconfig(struct regdata *rdp, const void *p, size_t len)
 			}
 			free(__DECONST(char *, id));
 		}
-		LIST_FOREACH(nb, &dp->bands_11b, next) {
+		LIST_FOREACH (nb, &dp->bands_11b, next) {
 			id = findid(rdp, nb->band, FREQBAND);
 			if (id == NULL) {
 				warnx("undefined 11b band \"%s\"",
@@ -488,7 +489,7 @@ lib80211_regdomain_readconfig(struct regdata *rdp, const void *p, size_t len)
 			}
 			nb->band = id;
 		}
-		LIST_FOREACH(nb, &dp->bands_11g, next) {
+		LIST_FOREACH (nb, &dp->bands_11g, next) {
 			id = findid(rdp, nb->band, FREQBAND);
 			if (id == NULL) {
 				warnx("undefined 11g band \"%s\"",
@@ -497,7 +498,7 @@ lib80211_regdomain_readconfig(struct regdata *rdp, const void *p, size_t len)
 			}
 			nb->band = id;
 		}
-		LIST_FOREACH(nb, &dp->bands_11a, next) {
+		LIST_FOREACH (nb, &dp->bands_11a, next) {
 			id = findid(rdp, nb->band, FREQBAND);
 			if (id == NULL) {
 				warnx("undefined 11a band \"%s\"",
@@ -506,7 +507,7 @@ lib80211_regdomain_readconfig(struct regdata *rdp, const void *p, size_t len)
 			}
 			nb->band = id;
 		}
-		LIST_FOREACH(nb, &dp->bands_11ng, next) {
+		LIST_FOREACH (nb, &dp->bands_11ng, next) {
 			id = findid(rdp, nb->band, FREQBAND);
 			if (id == NULL) {
 				warnx("undefined 11ng band \"%s\"",
@@ -515,7 +516,7 @@ lib80211_regdomain_readconfig(struct regdata *rdp, const void *p, size_t len)
 			}
 			nb->band = id;
 		}
-		LIST_FOREACH(nb, &dp->bands_11na, next) {
+		LIST_FOREACH (nb, &dp->bands_11na, next) {
 			id = findid(rdp, nb->band, FREQBAND);
 			if (id == NULL) {
 				warnx("undefined 11na band \"%s\"",
@@ -524,7 +525,7 @@ lib80211_regdomain_readconfig(struct regdata *rdp, const void *p, size_t len)
 			}
 			nb->band = id;
 		}
-		LIST_FOREACH(nb, &dp->bands_11ac, next) {
+		LIST_FOREACH (nb, &dp->bands_11ac, next) {
 			id = findid(rdp, nb->band, FREQBAND);
 			if (id == NULL) {
 				warnx("undefined 11ac band \"%s\"",
@@ -533,7 +534,7 @@ lib80211_regdomain_readconfig(struct regdata *rdp, const void *p, size_t len)
 			}
 			nb->band = id;
 		}
-		LIST_FOREACH(nb, &dp->bands_11acg, next) {
+		LIST_FOREACH (nb, &dp->bands_11acg, next) {
 			id = findid(rdp, nb->band, FREQBAND);
 			if (id == NULL) {
 				warnx("undefined 11acg band \"%s\"",
@@ -543,7 +544,7 @@ lib80211_regdomain_readconfig(struct regdata *rdp, const void *p, size_t len)
 			nb->band = id;
 		}
 	}
-	LIST_FOREACH(cp, &rdp->countries, next) {
+	LIST_FOREACH (cp, &rdp->countries, next) {
 		id = cp->rd;
 		cp->rd = findid(rdp, id, DOMAIN);
 		if (cp->rd == NULL) {
@@ -678,7 +679,7 @@ lib80211_regdomain_findbysku(const struct regdata *rdp, enum RegdomainCode sku)
 {
 	const struct regdomain *dp;
 
-	LIST_FOREACH(dp, &rdp->domains, next) {
+	LIST_FOREACH (dp, &rdp->domains, next) {
 		if (dp->sku == sku)
 			return dp;
 	}
@@ -693,7 +694,7 @@ lib80211_regdomain_findbyname(const struct regdata *rdp, const char *name)
 {
 	const struct regdomain *dp;
 
-	LIST_FOREACH(dp, &rdp->domains, next) {
+	LIST_FOREACH (dp, &rdp->domains, next) {
 		if (strcasecmp(dp->name, name) == 0)
 			return dp;
 	}
@@ -708,7 +709,7 @@ lib80211_country_findbycc(const struct regdata *rdp, enum ISOCountryCode cc)
 {
 	const struct country *cp;
 
-	LIST_FOREACH(cp, &rdp->countries, next) {
+	LIST_FOREACH (cp, &rdp->countries, next) {
 		if (cp->code == cc)
 			return cp;
 	}
@@ -725,11 +726,11 @@ lib80211_country_findbyname(const struct regdata *rdp, const char *name)
 	int len;
 
 	len = strlen(name);
-	LIST_FOREACH(cp, &rdp->countries, next) {
+	LIST_FOREACH (cp, &rdp->countries, next) {
 		if (strcasecmp(cp->isoname, name) == 0)
 			return cp;
 	}
-	LIST_FOREACH(cp, &rdp->countries, next) {
+	LIST_FOREACH (cp, &rdp->countries, next) {
 		if (strncasecmp(cp->name, name, len) == 0)
 			return cp;
 	}

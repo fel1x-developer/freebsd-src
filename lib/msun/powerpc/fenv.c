@@ -26,10 +26,11 @@
  * SUCH DAMAGE.
  */
 
-#define	__fenv_static
+#define __fenv_static
 #include "fenv.h"
 #ifdef __SPE__
 #include <sys/types.h>
+
 #include <machine/spr.h>
 #endif
 
@@ -60,9 +61,10 @@ extern inline int feenableexcept(int __mask);
 extern inline int fedisableexcept(int __mask);
 
 #ifdef __SPE__
-#define	PMAX	0x7f7fffff
-#define	PMIN	0x00800000
-int	feraiseexcept(int __excepts)
+#define PMAX 0x7f7fffff
+#define PMIN 0x00800000
+int
+feraiseexcept(int __excepts)
 {
 	uint32_t spefscr;
 
@@ -70,15 +72,15 @@ int	feraiseexcept(int __excepts)
 	mtspr(SPR_SPEFSCR, spefscr | (__excepts & FE_ALL_EXCEPT));
 
 	if (__excepts & FE_INVALID)
-		__asm __volatile ("efsdiv %0, %0, %1" :: "r"(0), "r"(0));
+		__asm __volatile("efsdiv %0, %0, %1" ::"r"(0), "r"(0));
 	if (__excepts & FE_DIVBYZERO)
-		__asm __volatile ("efsdiv %0, %0, %1" :: "r"(1.0f), "r"(0));
+		__asm __volatile("efsdiv %0, %0, %1" ::"r"(1.0f), "r"(0));
 	if (__excepts & FE_UNDERFLOW)
-		__asm __volatile ("efsmul %0, %0, %0" :: "r"(PMIN));
+		__asm __volatile("efsmul %0, %0, %0" ::"r"(PMIN));
 	if (__excepts & FE_OVERFLOW)
-		__asm __volatile ("efsadd %0, %0, %0" :: "r"(PMAX));
+		__asm __volatile("efsadd %0, %0, %0" ::"r"(PMAX));
 	if (__excepts & FE_INEXACT)
-		__asm __volatile ("efssub %0, %0, %1" :: "r"(PMIN), "r"(1.0f));
+		__asm __volatile("efssub %0, %0, %1" ::"r"(PMIN), "r"(1.0f));
 	return (0);
 }
 #endif

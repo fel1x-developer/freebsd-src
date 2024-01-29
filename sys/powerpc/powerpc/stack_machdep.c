@@ -27,11 +27,11 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/stack.h>
-#include <sys/systm.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
@@ -62,11 +62,11 @@ stack_capture(struct stack *st, vm_offset_t frame)
 		if (frame < PAGE_SIZE)
 			break;
 
-	    #ifdef __powerpc64__
+#ifdef __powerpc64__
 		callpc = *(vm_offset_t *)(frame + 16) - 4;
-	    #else
+#else
 		callpc = *(vm_offset_t *)(frame + 4) - 4;
-	    #endif
+#endif
 		if ((callpc & 3) || (callpc < 0x100))
 			break;
 
@@ -76,8 +76,8 @@ stack_capture(struct stack *st, vm_offset_t frame)
 		 * things are going wrong. Plus, prevents this shortened
 		 * version of code from accessing user-space frames
 		 */
-		if (callpc + CALLOFFSET == (vm_offset_t) &trapexit ||
-		    callpc + CALLOFFSET == (vm_offset_t) &asttrapexit)
+		if (callpc + CALLOFFSET == (vm_offset_t)&trapexit ||
+		    callpc + CALLOFFSET == (vm_offset_t)&asttrapexit)
 			break;
 
 		if (stack_put(st, callpc) == -1)

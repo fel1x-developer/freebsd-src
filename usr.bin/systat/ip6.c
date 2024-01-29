@@ -29,15 +29,13 @@
  * SUCH DAMAGE.
  */
 
-
-
 /* From:
 	"Id: mbufs.c,v 1.5 1997/02/24 20:59:03 wollman Exp"
 */
 
 #ifdef INET6
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
 
@@ -47,13 +45,13 @@
 #include <netinet6/ip6_var.h>
 
 #include <inttypes.h>
+#include <paths.h>
 #include <stdlib.h>
 #include <string.h>
-#include <paths.h>
 
-#include "systat.h"
 #include "extern.h"
 #include "mode.h"
+#include "systat.h"
 
 static struct ip6stat curstat, initstat, oldstat;
 
@@ -87,7 +85,7 @@ static struct ip6stat curstat, initstat, oldstat;
 WINDOW *
 openip6(void)
 {
-	return (subwin(stdscr, LINES-3-1, 0, MAINWIN_ROW, 0));
+	return (subwin(stdscr, LINES - 3 - 1, 0, MAINWIN_ROW, 0));
 }
 
 void
@@ -103,29 +101,48 @@ closeip6(WINDOW *w)
 void
 labelip6(void)
 {
-	wmove(wnd, 0, 0); wclrtoeol(wnd);
+	wmove(wnd, 0, 0);
+	wclrtoeol(wnd);
 #define L(row, str) mvwprintw(wnd, row, 10, str)
 #define R(row, str) mvwprintw(wnd, row, 45, str);
-	L(0, "IPv6 Input");		R(0, "IPv6 Output");
-	L(1, "total packets received");	R(1, "total packets sent");
-	L(2, "- too short for header");	R(2, "- generated locally");
-	L(3, "- too short for data");	R(3, "- output drops");
-	L(4, "- with invalid version");	R(4, "output fragments generated");
-	L(5, "total fragments received"); R(5, "- fragmentation failed");
-	L(6, "- fragments dropped");	R(6, "destinations unreachable");
-	L(7, "- fragments timed out");	R(7, "packets output via raw IP");
+	L(0, "IPv6 Input");
+	R(0, "IPv6 Output");
+	L(1, "total packets received");
+	R(1, "total packets sent");
+	L(2, "- too short for header");
+	R(2, "- generated locally");
+	L(3, "- too short for data");
+	R(3, "- output drops");
+	L(4, "- with invalid version");
+	R(4, "output fragments generated");
+	L(5, "total fragments received");
+	R(5, "- fragmentation failed");
+	L(6, "- fragments dropped");
+	R(6, "destinations unreachable");
+	L(7, "- fragments timed out");
+	R(7, "packets output via raw IP");
 	L(8, "- fragments overflown");
-	L(9, "- atomic fragments"); 	R(9, "Input next-header histogram");
-	L(10, "- packets reassembled ok"); R(10, " - destination options");
-	L(11, "packets forwarded");	R(11, " - hop-by-hop options");
-	L(12, "- unreachable dests");	R(12, " - IPv4");
-	L(13, "- redirects generated");	R(13, " - TCP");
-	L(14, "option errors");		R(14, " - UDP");
-	L(15, "unwanted multicasts");	R(15, " - IPv6");
-	L(16, "delivered to upper layer"); R(16, " - routing header");
-	L(17, "bad scope packets");	R(17, " - fragmentation header");
-	L(18, "address selection failed");R(18, " - ICMP6");
-					R(19, " - none");
+	L(9, "- atomic fragments");
+	R(9, "Input next-header histogram");
+	L(10, "- packets reassembled ok");
+	R(10, " - destination options");
+	L(11, "packets forwarded");
+	R(11, " - hop-by-hop options");
+	L(12, "- unreachable dests");
+	R(12, " - IPv4");
+	L(13, "- redirects generated");
+	R(13, " - TCP");
+	L(14, "option errors");
+	R(14, " - UDP");
+	L(15, "unwanted multicasts");
+	R(15, " - IPv6");
+	L(16, "delivered to upper layer");
+	R(16, " - routing header");
+	L(17, "bad scope packets");
+	R(17, " - fragmentation header");
+	L(18, "address selection failed");
+	R(18, " - ICMP6");
+	R(19, " - none");
 #undef L
 #undef R
 }
@@ -136,7 +153,7 @@ domode(struct ip6stat *ret)
 	const struct ip6stat *sub;
 	int divisor = 1, i;
 
-	switch(currentmode) {
+	switch (currentmode) {
 	case display_RATE:
 		sub = &oldstat;
 		divisor = (delay > 1000000) ? delay / 1000000 : 1;
@@ -191,11 +208,10 @@ showip6(void)
 	domode(&stats);
 	totalout = stats.ip6s_forward + stats.ip6s_localout;
 
-#define DO(stat, row, col) \
-	mvwprintw(wnd, row, col, "%9"PRIu64, stats.stat)
+#define DO(stat, row, col) mvwprintw(wnd, row, col, "%9" PRIu64, stats.stat)
 
 	DO(ip6s_total, 1, 0);
-	mvwprintw(wnd, 1, 35, "%9"PRIu64, totalout);
+	mvwprintw(wnd, 1, 35, "%9" PRIu64, totalout);
 	DO(ip6s_tooshort, 2, 0);
 	DO(ip6s_localout, 2, 35);
 	DO(ip6s_toosmall, 3, 0);

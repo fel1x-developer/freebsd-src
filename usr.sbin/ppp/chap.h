@@ -31,43 +31,46 @@
 struct mbuf;
 struct physical;
 
-#define	CHAP_CHALLENGE	1
-#define	CHAP_RESPONSE	2
-#define	CHAP_SUCCESS	3
-#define	CHAP_FAILURE	4
+#define CHAP_CHALLENGE 1
+#define CHAP_RESPONSE 2
+#define CHAP_SUCCESS 3
+#define CHAP_FAILURE 4
 
 struct chap {
-  struct fdescriptor desc;
-  struct {
-    pid_t pid;
-    int fd;
-    struct {
-      char ptr[AUTHLEN * 2 + 3];	/* Allow for \r\n at the end (- NUL) */
-      int len;
-    } buf;
-  } child;
-  struct authinfo auth;
-  struct {
-    u_char local[CHAPCHALLENGELEN + AUTHLEN];	/* I invented this one */
-    u_char peer[CHAPCHALLENGELEN + AUTHLEN];	/* Peer gave us this one */
-  } challenge;
+	struct fdescriptor desc;
+	struct {
+		pid_t pid;
+		int fd;
+		struct {
+			char ptr[AUTHLEN * 2 +
+			    3]; /* Allow for \r\n at the end (- NUL) */
+			int len;
+		} buf;
+	} child;
+	struct authinfo auth;
+	struct {
+		u_char
+		    local[CHAPCHALLENGELEN + AUTHLEN]; /* I invented this one */
+		u_char peer[CHAPCHALLENGELEN +
+		    AUTHLEN]; /* Peer gave us this one */
+	} challenge;
 #ifndef NODES
-  unsigned NTRespSent : 1;		/* Our last response */
-  int peertries;
-  u_char authresponse[CHAPAUTHRESPONSELEN];	/* CHAP 81 response */
+	unsigned NTRespSent : 1; /* Our last response */
+	int peertries;
+	u_char authresponse[CHAPAUTHRESPONSELEN]; /* CHAP 81 response */
 #endif
 };
 
 #define descriptor2chap(d) \
-  ((d)->type == CHAP_DESCRIPTOR ? (struct chap *)(d) : NULL)
+	((d)->type == CHAP_DESCRIPTOR ? (struct chap *)(d) : NULL)
 #define auth2chap(a) \
-  ((struct chap *)((char *)a - (uintptr_t)&((struct chap *)0)->auth))
+	((struct chap *)((char *)a - (uintptr_t) & ((struct chap *)0)->auth))
 
-struct MSCHAPv2_resp {		/* rfc2759 */
-  char PeerChallenge[16];
-  char Reserved[8];
-  char NTResponse[24];
-  char Flags;
+struct MSCHAPv2_resp { /* rfc2759 */
+	char PeerChallenge[16];
+	char Reserved[8];
+	char NTResponse[24];
+	char Flags;
 };
 
 extern void chap_Init(struct chap *, struct physical *);

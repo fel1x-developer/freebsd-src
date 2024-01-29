@@ -64,7 +64,7 @@ filemon_output(struct filemon *filemon, char *msg, size_t len)
 	auio.uio_segflg = UIO_SYSSPACE;
 	auio.uio_rw = UIO_WRITE;
 	auio.uio_td = curthread;
-	auio.uio_offset = (off_t) -1;
+	auio.uio_offset = (off_t)-1;
 
 	if (filemon->fp->f_type == DTYPE_VNODE)
 		bwillwrite();
@@ -98,14 +98,14 @@ filemon_wrapper_chdir(struct thread *td, struct chdir_args *uap)
 	if ((ret = sys_chdir(td, uap)) == 0) {
 		if ((filemon = filemon_proc_get(curproc)) != NULL) {
 			if ((error = copyinstr(uap->path, filemon->fname1,
-			    sizeof(filemon->fname1), NULL)) != 0) {
+				 sizeof(filemon->fname1), NULL)) != 0) {
 				filemon->error = error;
 				goto copyfail;
 			}
 
 			filemon_output_event(filemon, "C %d %s\n",
 			    curproc->p_pid, filemon->fname1);
-copyfail:
+		copyfail:
 			filemon_drop(filemon);
 		}
 	}
@@ -120,13 +120,11 @@ filemon_event_process_exec(void *arg __unused, struct proc *p,
 	struct filemon *filemon;
 
 	if ((filemon = filemon_proc_get(p)) != NULL) {
-		filemon_output_event(filemon, "E %d %s\n",
-		    p->p_pid,
+		filemon_output_event(filemon, "E %d %s\n", p->p_pid,
 		    imgp->execpath != NULL ? imgp->execpath : "<unknown>");
 
 		/* If the credentials changed then cease tracing. */
-		if (imgp->newcred != NULL &&
-		    imgp->credential_setid &&
+		if (imgp->newcred != NULL && imgp->credential_setid &&
 		    priv_check_cred(filemon->cred, PRIV_DEBUG_DIFFCRED) != 0) {
 			/*
 			 * It may have changed to NULL already, but
@@ -135,19 +133,18 @@ filemon_event_process_exec(void *arg __unused, struct proc *p,
 			if (p->p_filemon != NULL) {
 				KASSERT(p->p_filemon == filemon,
 				    ("%s: proc %p didn't have expected"
-				    " filemon %p", __func__, p, filemon));
+				     " filemon %p",
+					__func__, p, filemon));
 				filemon_proc_drop(p);
 			}
 		}
-
 
 		filemon_drop(filemon);
 	}
 }
 
 static void
-_filemon_wrapper_openat(struct thread *td, const char *upath, int flags,
-    int fd)
+_filemon_wrapper_openat(struct thread *td, const char *upath, int flags, int fd)
 {
 	int error;
 	struct file *fp;
@@ -161,7 +158,7 @@ _filemon_wrapper_openat(struct thread *td, const char *upath, int flags,
 		fp = NULL;
 
 		if ((error = copyinstr(upath, filemon->fname1,
-		    sizeof(filemon->fname1), NULL)) != 0) {
+			 sizeof(filemon->fname1), NULL)) != 0) {
 			filemon->error = error;
 			goto copyfail;
 		}
@@ -183,7 +180,8 @@ _filemon_wrapper_openat(struct thread *td, const char *upath, int flags,
 			 * than nothing.
 			 */
 			if (getvnode(td, fd,
-			    cap_rights_init_one(&rights, CAP_LOOKUP), &fp) == 0) {
+				cap_rights_init_one(&rights, CAP_LOOKUP),
+				&fp) == 0) {
 				vn_fullpath(fp->f_vnode, &atpath, &freepath);
 			}
 		}
@@ -199,10 +197,9 @@ _filemon_wrapper_openat(struct thread *td, const char *upath, int flags,
 		}
 
 		filemon_output_event(filemon, "%c %d %s%s%s\n",
-		    (flags & O_ACCMODE) ? 'W':'R',
-		    curproc->p_pid, atpath,
+		    (flags & O_ACCMODE) ? 'W' : 'R', curproc->p_pid, atpath,
 		    atpath[0] != '\0' ? "/" : "", filemon->fname1);
-copyfail:
+	copyfail:
 		filemon_drop(filemon);
 		if (fp != NULL)
 			fdrop(fp, td);
@@ -241,16 +238,16 @@ filemon_wrapper_rename(struct thread *td, struct rename_args *uap)
 	if ((ret = sys_rename(td, uap)) == 0) {
 		if ((filemon = filemon_proc_get(curproc)) != NULL) {
 			if (((error = copyinstr(uap->from, filemon->fname1,
-			     sizeof(filemon->fname1), NULL)) != 0) ||
+				  sizeof(filemon->fname1), NULL)) != 0) ||
 			    ((error = copyinstr(uap->to, filemon->fname2,
-			     sizeof(filemon->fname2), NULL)) != 0)) {
+				  sizeof(filemon->fname2), NULL)) != 0)) {
 				filemon->error = error;
 				goto copyfail;
 			}
 
 			filemon_output_event(filemon, "M %d '%s' '%s'\n",
 			    curproc->p_pid, filemon->fname1, filemon->fname2);
-copyfail:
+		copyfail:
 			filemon_drop(filemon);
 		}
 	}
@@ -259,24 +256,23 @@ copyfail:
 }
 
 static void
-_filemon_wrapper_link(struct thread *td, const char *upath1,
-    const char *upath2)
+_filemon_wrapper_link(struct thread *td, const char *upath1, const char *upath2)
 {
 	struct filemon *filemon;
 	int error;
 
 	if ((filemon = filemon_proc_get(curproc)) != NULL) {
 		if (((error = copyinstr(upath1, filemon->fname1,
-		     sizeof(filemon->fname1), NULL)) != 0) ||
+			  sizeof(filemon->fname1), NULL)) != 0) ||
 		    ((error = copyinstr(upath2, filemon->fname2,
-		     sizeof(filemon->fname2), NULL)) != 0)) {
+			  sizeof(filemon->fname2), NULL)) != 0)) {
 			filemon->error = error;
 			goto copyfail;
 		}
 
 		filemon_output_event(filemon, "L %d '%s' '%s'\n",
 		    curproc->p_pid, filemon->fname1, filemon->fname2);
-copyfail:
+	copyfail:
 		filemon_drop(filemon);
 	}
 }
@@ -320,8 +316,8 @@ filemon_event_process_exit(void *arg __unused, struct proc *p)
 	struct filemon *filemon;
 
 	if ((filemon = filemon_proc_get(p)) != NULL) {
-		filemon_output_event(filemon, "X %d %d %d\n",
-		    p->p_pid, p->p_xexit, p->p_xsig);
+		filemon_output_event(filemon, "X %d %d %d\n", p->p_pid,
+		    p->p_xexit, p->p_xsig);
 
 		/*
 		 * filemon_untrack_processes() may have dropped this p_filemon
@@ -330,7 +326,8 @@ filemon_event_process_exit(void *arg __unused, struct proc *p)
 		 */
 		KASSERT(p->p_filemon == NULL || p->p_filemon == filemon,
 		    ("%s: p %p was attached while exiting, expected "
-		    "filemon %p or NULL", __func__, p, filemon));
+		     "filemon %p or NULL",
+			__func__, p, filemon));
 		if (p->p_filemon == filemon)
 			filemon_proc_drop(p);
 
@@ -347,14 +344,14 @@ filemon_wrapper_unlink(struct thread *td, struct unlink_args *uap)
 	if ((ret = sys_unlink(td, uap)) == 0) {
 		if ((filemon = filemon_proc_get(curproc)) != NULL) {
 			if ((error = copyinstr(uap->path, filemon->fname1,
-			    sizeof(filemon->fname1), NULL)) != 0) {
+				 sizeof(filemon->fname1), NULL)) != 0) {
 				filemon->error = error;
 				goto copyfail;
 			}
 
 			filemon_output_event(filemon, "D %d %s\n",
 			    curproc->p_pid, filemon->fname1);
-copyfail:
+		copyfail:
 			filemon_drop(filemon);
 		}
 	}
@@ -363,14 +360,14 @@ copyfail:
 }
 
 static void
-filemon_event_process_fork(void *arg __unused, struct proc *p1,
-    struct proc *p2, int flags __unused)
+filemon_event_process_fork(void *arg __unused, struct proc *p1, struct proc *p2,
+    int flags __unused)
 {
 	struct filemon *filemon;
 
 	if ((filemon = filemon_proc_get(p1)) != NULL) {
-		filemon_output_event(filemon, "F %d %d\n",
-		    p1->p_pid, p2->p_pid);
+		filemon_output_event(filemon, "F %d %d\n", p1->p_pid,
+		    p2->p_pid);
 
 		/*
 		 * filemon_untrack_processes() or
@@ -400,25 +397,33 @@ static void
 filemon_wrapper_install(void)
 {
 
-	sysent[SYS_chdir].sy_call = (sy_call_t *) filemon_wrapper_chdir;
-	sysent[SYS_open].sy_call = (sy_call_t *) filemon_wrapper_open;
-	sysent[SYS_openat].sy_call = (sy_call_t *) filemon_wrapper_openat;
-	sysent[SYS_rename].sy_call = (sy_call_t *) filemon_wrapper_rename;
-	sysent[SYS_unlink].sy_call = (sy_call_t *) filemon_wrapper_unlink;
-	sysent[SYS_link].sy_call = (sy_call_t *) filemon_wrapper_link;
-	sysent[SYS_symlink].sy_call = (sy_call_t *) filemon_wrapper_symlink;
-	sysent[SYS_linkat].sy_call = (sy_call_t *) filemon_wrapper_linkat;
+	sysent[SYS_chdir].sy_call = (sy_call_t *)filemon_wrapper_chdir;
+	sysent[SYS_open].sy_call = (sy_call_t *)filemon_wrapper_open;
+	sysent[SYS_openat].sy_call = (sy_call_t *)filemon_wrapper_openat;
+	sysent[SYS_rename].sy_call = (sy_call_t *)filemon_wrapper_rename;
+	sysent[SYS_unlink].sy_call = (sy_call_t *)filemon_wrapper_unlink;
+	sysent[SYS_link].sy_call = (sy_call_t *)filemon_wrapper_link;
+	sysent[SYS_symlink].sy_call = (sy_call_t *)filemon_wrapper_symlink;
+	sysent[SYS_linkat].sy_call = (sy_call_t *)filemon_wrapper_linkat;
 
 #if defined(COMPAT_FREEBSD32)
-	freebsd32_sysent[FREEBSD32_SYS_chdir].sy_call = (sy_call_t *) filemon_wrapper_chdir;
-	freebsd32_sysent[FREEBSD32_SYS_open].sy_call = (sy_call_t *) filemon_wrapper_open;
-	freebsd32_sysent[FREEBSD32_SYS_openat].sy_call = (sy_call_t *) filemon_wrapper_openat;
-	freebsd32_sysent[FREEBSD32_SYS_rename].sy_call = (sy_call_t *) filemon_wrapper_rename;
-	freebsd32_sysent[FREEBSD32_SYS_unlink].sy_call = (sy_call_t *) filemon_wrapper_unlink;
-	freebsd32_sysent[FREEBSD32_SYS_link].sy_call = (sy_call_t *) filemon_wrapper_link;
-	freebsd32_sysent[FREEBSD32_SYS_symlink].sy_call = (sy_call_t *) filemon_wrapper_symlink;
-	freebsd32_sysent[FREEBSD32_SYS_linkat].sy_call = (sy_call_t *) filemon_wrapper_linkat;
-#endif	/* COMPAT_FREEBSD32 */
+	freebsd32_sysent[FREEBSD32_SYS_chdir].sy_call = (sy_call_t *)
+	    filemon_wrapper_chdir;
+	freebsd32_sysent[FREEBSD32_SYS_open].sy_call = (sy_call_t *)
+	    filemon_wrapper_open;
+	freebsd32_sysent[FREEBSD32_SYS_openat].sy_call = (sy_call_t *)
+	    filemon_wrapper_openat;
+	freebsd32_sysent[FREEBSD32_SYS_rename].sy_call = (sy_call_t *)
+	    filemon_wrapper_rename;
+	freebsd32_sysent[FREEBSD32_SYS_unlink].sy_call = (sy_call_t *)
+	    filemon_wrapper_unlink;
+	freebsd32_sysent[FREEBSD32_SYS_link].sy_call = (sy_call_t *)
+	    filemon_wrapper_link;
+	freebsd32_sysent[FREEBSD32_SYS_symlink].sy_call = (sy_call_t *)
+	    filemon_wrapper_symlink;
+	freebsd32_sysent[FREEBSD32_SYS_linkat].sy_call = (sy_call_t *)
+	    filemon_wrapper_linkat;
+#endif /* COMPAT_FREEBSD32 */
 
 	filemon_exec_tag = EVENTHANDLER_REGISTER(process_exec,
 	    filemon_event_process_exec, NULL, EVENTHANDLER_PRI_LAST);
@@ -444,13 +449,18 @@ filemon_wrapper_deinstall(void)
 #if defined(COMPAT_FREEBSD32)
 	freebsd32_sysent[FREEBSD32_SYS_chdir].sy_call = (sy_call_t *)sys_chdir;
 	freebsd32_sysent[FREEBSD32_SYS_open].sy_call = (sy_call_t *)sys_open;
-	freebsd32_sysent[FREEBSD32_SYS_openat].sy_call = (sy_call_t *)sys_openat;
-	freebsd32_sysent[FREEBSD32_SYS_rename].sy_call = (sy_call_t *)sys_rename;
-	freebsd32_sysent[FREEBSD32_SYS_unlink].sy_call = (sy_call_t *)sys_unlink;
+	freebsd32_sysent[FREEBSD32_SYS_openat].sy_call = (sy_call_t *)
+	    sys_openat;
+	freebsd32_sysent[FREEBSD32_SYS_rename].sy_call = (sy_call_t *)
+	    sys_rename;
+	freebsd32_sysent[FREEBSD32_SYS_unlink].sy_call = (sy_call_t *)
+	    sys_unlink;
 	freebsd32_sysent[FREEBSD32_SYS_link].sy_call = (sy_call_t *)sys_link;
-	freebsd32_sysent[FREEBSD32_SYS_symlink].sy_call = (sy_call_t *)sys_symlink;
-	freebsd32_sysent[FREEBSD32_SYS_linkat].sy_call = (sy_call_t *)sys_linkat;
-#endif	/* COMPAT_FREEBSD32 */
+	freebsd32_sysent[FREEBSD32_SYS_symlink].sy_call = (sy_call_t *)
+	    sys_symlink;
+	freebsd32_sysent[FREEBSD32_SYS_linkat].sy_call = (sy_call_t *)
+	    sys_linkat;
+#endif /* COMPAT_FREEBSD32 */
 
 	EVENTHANDLER_DEREGISTER(process_exec, filemon_exec_tag);
 	EVENTHANDLER_DEREGISTER(process_exit, filemon_exit_tag);

@@ -43,78 +43,56 @@
  *
  */
 
+#define CHVGPIO_INTERRUPT_STATUS 0x0300
+#define CHVGPIO_INTERRUPT_MASK 0x0380
+#define CHVGPIO_PAD_CFG0 0x4400
+#define CHVGPIO_PAD_CFG1 0x4404
 
-#define CHVGPIO_INTERRUPT_STATUS		0x0300
-#define CHVGPIO_INTERRUPT_MASK			0x0380
-#define CHVGPIO_PAD_CFG0			0x4400
-#define CHVGPIO_PAD_CFG1			0x4404
+#define CHVGPIO_PAD_CFG0_GPIORXSTATE 0x00000001
+#define CHVGPIO_PAD_CFG0_GPIOTXSTATE 0x00000002
+#define CHVGPIO_PAD_CFG0_INTSEL_MASK 0xf0000000
+#define CHVGPIO_PAD_CFG0_INTSEL_SHIFT 28
 
-#define CHVGPIO_PAD_CFG0_GPIORXSTATE		0x00000001
-#define CHVGPIO_PAD_CFG0_GPIOTXSTATE		0x00000002
-#define CHVGPIO_PAD_CFG0_INTSEL_MASK		0xf0000000
-#define CHVGPIO_PAD_CFG0_INTSEL_SHIFT		28
+#define CHVGPIO_PAD_CFG0_GPIOCFG_SHIFT 8
+#define CHVGPIO_PAD_CFG0_GPIOCFG_MASK (7 << CHVGPIO_PAD_CFG0_GPIOCFG_SHIFT)
+#define CHVGPIO_PAD_CFG0_GPIOCFG_GPIO 0
+#define CHVGPIO_PAD_CFG0_GPIOCFG_GPO 1
+#define CHVGPIO_PAD_CFG0_GPIOCFG_GPI 2
+#define CHVGPIO_PAD_CFG0_GPIOCFG_HIZ 3
 
-#define CHVGPIO_PAD_CFG0_GPIOCFG_SHIFT		8
-#define CHVGPIO_PAD_CFG0_GPIOCFG_MASK		(7 << CHVGPIO_PAD_CFG0_GPIOCFG_SHIFT)
-#define CHVGPIO_PAD_CFG0_GPIOCFG_GPIO		0
-#define CHVGPIO_PAD_CFG0_GPIOCFG_GPO		1
-#define CHVGPIO_PAD_CFG0_GPIOCFG_GPI		2
-#define CHVGPIO_PAD_CFG0_GPIOCFG_HIZ		3
-
-#define CHVGPIO_PAD_CFG1_INTWAKECFG_MASK	0x00000007
-#define CHVGPIO_PAD_CFG1_INTWAKECFG_FALLING	0x00000001
-#define CHVGPIO_PAD_CFG1_INTWAKECFG_RISING	0x00000002
-#define CHVGPIO_PAD_CFG1_INTWAKECFG_BOTH	0x00000003
-#define CHVGPIO_PAD_CFG1_INTWAKECFG_LEVEL	0x00000004
-#define CHVGPIO_PAD_CFG1_INVRXTX_MASK		0x000000f0
-#define CHVGPIO_PAD_CFG1_INVRXTX_RXDATA		0x00000040
+#define CHVGPIO_PAD_CFG1_INTWAKECFG_MASK 0x00000007
+#define CHVGPIO_PAD_CFG1_INTWAKECFG_FALLING 0x00000001
+#define CHVGPIO_PAD_CFG1_INTWAKECFG_RISING 0x00000002
+#define CHVGPIO_PAD_CFG1_INTWAKECFG_BOTH 0x00000003
+#define CHVGPIO_PAD_CFG1_INTWAKECFG_LEVEL 0x00000004
+#define CHVGPIO_PAD_CFG1_INVRXTX_MASK 0x000000f0
+#define CHVGPIO_PAD_CFG1_INVRXTX_RXDATA 0x00000040
 
 /*
  * The pads for the pins are arranged in groups of maximal 15 pins.
  * The arrays below give the number of pins per group, such that we
  * can validate the (untrusted) pin numbers from ACPI.
  */
-#define	E_UID		3
-#define	E_BANK_PREFIX	"eastbank"
+#define E_UID 3
+#define E_BANK_PREFIX "eastbank"
 
-const int chv_east_pins[] = {
-	12, 12, -1
-};
+const int chv_east_pins[] = { 12, 12, -1 };
 
-const char *chv_east_pin_names[] = {
-		"PMU_SLP_S3_B",
-		"PMU_BATLOW_B",
-		"SUS_STAT_B",
-		"PMU_SLP_S0IX_B",
-		"PMU_AC_PRESENT",
-		"PMU_PLTRST_B",
-		"PMU_SUSCLK",
-		"PMU_SLP_LAN_B",
-		"PMU_PWRBTN_B",
-		"PMU_SLP_S4_B",
-		"PMU_WAKE_B",
-		"PMU_WAKE_LAN_B"
+const char *chv_east_pin_names[] = { "PMU_SLP_S3_B", "PMU_BATLOW_B",
+	"SUS_STAT_B", "PMU_SLP_S0IX_B", "PMU_AC_PRESENT", "PMU_PLTRST_B",
+	"PMU_SUSCLK", "PMU_SLP_LAN_B", "PMU_PWRBTN_B", "PMU_SLP_S4_B",
+	"PMU_WAKE_B",
+	"PMU_WAKE_LAN_B"
 
-		"MF_ISH_GPIO_3",
-		"MF_ISH_GPIO_7",
-		"MF_ISH_I2C1_SCL",
-		"MF_ISH_GPIO_1",
-		"MF_ISH_GPIO_5",
-		"MF_ISH_GPIO_9",
-		"MF_ISH_GPIO_0",
-		"MF_ISH_GPIO_4",
-		"MF_ISH_GPIO_8",
-		"MF_ISH_GPIO_2",
-		"MF_ISH_GPIO_6",
-		"MF_ISH_I2C1_SDA"
-};
+	"MF_ISH_GPIO_3",
+	"MF_ISH_GPIO_7", "MF_ISH_I2C1_SCL", "MF_ISH_GPIO_1", "MF_ISH_GPIO_5",
+	"MF_ISH_GPIO_9", "MF_ISH_GPIO_0", "MF_ISH_GPIO_4", "MF_ISH_GPIO_8",
+	"MF_ISH_GPIO_2", "MF_ISH_GPIO_6", "MF_ISH_I2C1_SDA" };
 
-#define	N_UID		2
-#define	N_BANK_PREFIX	"northbank"
+#define N_UID 2
+#define N_BANK_PREFIX "northbank"
 
-const int chv_north_pins[] = {
-	9, 13, 12, 12, 13, -1
-};
+const int chv_north_pins[] = { 9, 13, 12, 12, 13, -1 };
 
 const char *chv_north_pin_names[] = {
 	"GPIO_DFX0_PAD",
@@ -182,13 +160,10 @@ const char *chv_north_pin_names[] = {
 	"PANEL0_VDDEN_PAD",
 };
 
+#define SE_UID 4
+#define SE_BANK_PREFIX "southeastbank"
 
-#define	SE_UID		4
-#define	SE_BANK_PREFIX	"southeastbank"
-
-const int chv_southeast_pins[] = {
-	8, 12, 6, 8, 10, 11, -1
-};
+const int chv_southeast_pins[] = { 8, 12, 6, 8, 10, 11, -1 };
 
 const char *chv_southeast_pin_names[] = {
 	"MF_PLT_CLK0_PAD",
@@ -253,12 +228,10 @@ const char *chv_southeast_pin_names[] = {
 	"SDMMC3_1P8_EN_PAD",
 };
 
-#define	SW_UID		1
-#define	SW_BANK_PREFIX	"southwestbank"
+#define SW_UID 1
+#define SW_BANK_PREFIX "southwestbank"
 
-const int chv_southwest_pins[] = {
-	8, 8, 8, 8, 8, 8, 8, -1
-};
+const int chv_southwest_pins[] = { 8, 8, 8, 8, 8, 8, 8, -1 };
 
 const char *chv_southwest_pin_names[] = {
 	"FST_SPI_D2_PAD",

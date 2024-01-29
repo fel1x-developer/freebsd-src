@@ -28,24 +28,25 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
-#include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/fbio.h>
-
 #include "opt_platform.h"
 
-#ifdef	FDT
+#include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/fbio.h>
+#include <sys/kernel.h>
+
+#ifdef FDT
+#include <machine/fdt.h>
+
 #include <dev/fdt/fdt_common.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 #include <dev/ofw/ofw_pci.h>
-#include <machine/fdt.h>
 #endif
 
-#include <dev/vt/vt.h>
-#include <dev/vt/hw/fb/vt_fb.h>
 #include <dev/vt/colors/vt_termcolors.h>
+#include <dev/vt/hw/fb/vt_fb.h>
+#include <dev/vt/vt.h>
 
 static vd_init_t vt_efb_init;
 static vd_probe_t vt_efb_probe;
@@ -67,13 +68,13 @@ static struct fb_info local_info;
 VT_DRIVER_DECLARE(vt_efb, vt_fb_early_driver);
 
 static void
-#ifdef	FDT
+#ifdef FDT
 vt_efb_initialize(struct fb_info *info, phandle_t node)
 #else
 vt_efb_initialize(struct fb_info *info)
 #endif
 {
-#ifdef	FDT
+#ifdef FDT
 	char name[64];
 	cell_t retval;
 	ihandle_t ih;
@@ -90,33 +91,33 @@ vt_efb_initialize(struct fb_info *info)
 	 */
 	switch (info->fb_depth) {
 	case 8:
-		vt_config_cons_colors(info, COLOR_FORMAT_RGB,
-		    0x7, 5, 0x7, 2, 0x3, 0);
+		vt_config_cons_colors(info, COLOR_FORMAT_RGB, 0x7, 5, 0x7, 2,
+		    0x3, 0);
 		break;
 	case 15:
-		vt_config_cons_colors(info, COLOR_FORMAT_RGB,
-		    0x1f, 10, 0x1f, 5, 0x1f, 0);
+		vt_config_cons_colors(info, COLOR_FORMAT_RGB, 0x1f, 10, 0x1f, 5,
+		    0x1f, 0);
 		break;
 	case 16:
-		vt_config_cons_colors(info, COLOR_FORMAT_RGB,
-		    0x1f, 11, 0x3f, 5, 0x1f, 0);
+		vt_config_cons_colors(info, COLOR_FORMAT_RGB, 0x1f, 11, 0x3f, 5,
+		    0x1f, 0);
 		break;
 	case 24:
 	case 32:
 #if BYTE_ORDER == BIG_ENDIAN
-		vt_config_cons_colors(info,
-		    COLOR_FORMAT_RGB, 255, 0, 255, 8, 255, 16);
+		vt_config_cons_colors(info, COLOR_FORMAT_RGB, 255, 0, 255, 8,
+		    255, 16);
 #else
-		vt_config_cons_colors(info,
-		    COLOR_FORMAT_RGB, 255, 16, 255, 8, 255, 0);
+		vt_config_cons_colors(info, COLOR_FORMAT_RGB, 255, 16, 255, 8,
+		    255, 0);
 #endif
-#ifdef	FDT
+#ifdef FDT
 		for (i = 0; i < 16; i++) {
 			OF_call_method("color!", ih, 4, 1,
 			    (cell_t)((info->fb_cmap[i] >> 16) & 0xff),
 			    (cell_t)((info->fb_cmap[i] >> 8) & 0xff),
-			    (cell_t)((info->fb_cmap[i] >> 0) & 0xff),
-			    (cell_t)i, &retval);
+			    (cell_t)((info->fb_cmap[i] >> 0) & 0xff), (cell_t)i,
+			    &retval);
 		}
 #endif
 		break;
@@ -185,11 +186,11 @@ vt_efb_init(struct vt_device *vd)
 	if (node == -1)
 		return (CN_DEAD);
 
-#define	GET(name, var)							\
-	if (OF_getproplen(node, (name)) != sizeof(info->fb_##var))	\
-		return (CN_DEAD);					\
+#define GET(name, var)                                                        \
+	if (OF_getproplen(node, (name)) != sizeof(info->fb_##var))            \
+		return (CN_DEAD);                                             \
 	OF_getencprop(node, (name), &info->fb_##var, sizeof(info->fb_##var)); \
-	if (info->fb_##var == 0)					\
+	if (info->fb_##var == 0)                                              \
 		return (CN_DEAD);
 
 	GET("height", height)
@@ -225,15 +226,15 @@ vt_efb_init(struct vt_device *vd)
 		OF_getencprop(node, "address", &info->fb_pbase,
 		    sizeof(info->fb_pbase));
 
-	#if defined(__powerpc__)
+#if defined(__powerpc__)
 		sc->sc_memt = &bs_be_tag;
 		bus_space_map(sc->sc_memt, info->fb_pbase, info->fb_size,
 		    BUS_SPACE_MAP_PREFETCHABLE, &info->fb_vbase);
-	#else
+#else
 		bus_space_map(fdtbus_bs_tag, info->fb_pbase, info->fb_size,
 		    BUS_SPACE_MAP_PREFETCHABLE,
 		    (bus_space_handle_t *)&info->fb_vbase);
-	#endif
+#endif
 	} else {
 		/*
 		 * Some IBM systems don't have an address property. Try to
@@ -249,7 +250,7 @@ vt_efb_init(struct vt_device *vd)
 				continue;
 			/* If it is not memory, it isn't either */
 			if (!(pciaddrs[i].phys_hi &
-			    OFW_PCI_PHYS_HI_SPACE_MEM32))
+				OFW_PCI_PHYS_HI_SPACE_MEM32))
 				continue;
 
 			/* This could be the framebuffer */
@@ -263,14 +264,14 @@ vt_efb_init(struct vt_device *vd)
 		if (info->fb_pbase == n_pciaddrs) /* No candidates found */
 			return (CN_DEAD);
 
-	#if defined(__powerpc__)
+#if defined(__powerpc__)
 		OF_decode_addr(node, info->fb_pbase, &sc->sc_memt,
 		    &info->fb_vbase);
-	#else
+#else
 		bus_space_map(fdtbus_bs_tag, info->fb_pbase, info->fb_size,
 		    BUS_SPACE_MAP_PREFETCHABLE,
 		    (bus_space_handle_t *)&info->fb_vbase);
-	#endif
+#endif
 	}
 
 	/* blank full size */
@@ -282,7 +283,7 @@ vt_efb_init(struct vt_device *vd)
 	/* Get pixel storage size. */
 	info->fb_bpp = info->fb_stride / info->fb_width * 8;
 
-#ifdef	FDT
+#ifdef FDT
 	vt_efb_initialize(info, node);
 #else
 	vt_efb_initialize(info);

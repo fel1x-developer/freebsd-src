@@ -29,6 +29,8 @@
 #include <sys/jail.h>
 #include <sys/mount.h>
 #include <sys/wait.h>
+
+#include <be.h>
 #include <err.h>
 #include <jail.h>
 #include <stdbool.h>
@@ -36,10 +38,9 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <be.h>
 #include "bectl.h"
 
-#define MNTTYPE_ZFS	222
+#define MNTTYPE_ZFS 222
 
 static void jailparam_add(const char *name, const char *val);
 static int jailparam_del(const char *name);
@@ -53,10 +54,8 @@ static int bectl_jail_cleanup(char *mountpoint, int jid);
 static char mnt_loc[BE_MAXPATHLEN];
 static nvlist_t *jailparams;
 
-static const char *disabled_params[] = {
-    "command", "exec.start", "nopersist", "persist", NULL
-};
-
+static const char *disabled_params[] = { "command", "exec.start", "nopersist",
+	"persist", NULL };
 
 static void
 jailparam_add(const char *name, const char *val)
@@ -218,11 +217,13 @@ bectl_jail_cleanup(char *mountpoint, int jid)
 	searchlen = strnlen(mountpoint, MAXPATHLEN);
 	mntsize = getmntinfo(&mntbuf, MNT_NOWAIT);
 	for (i = 0; i < mntsize; i++) {
-		if (strncmp(mountpoint, mntbuf[i].f_mntonname, searchlen) == 0 &&
+		if (strncmp(mountpoint, mntbuf[i].f_mntonname, searchlen) ==
+			0 &&
 		    mntbuf[i].f_type != MNTTYPE_ZFS) {
 
 			if (unmount(mntbuf[i].f_mntonname, 0) != 0) {
-				fprintf(stderr, "bectl jail: unable to unmount filesystem %s",
+				fprintf(stderr,
+				    "bectl jail: unable to unmount filesystem %s",
 				    mntbuf[i].f_mntonname);
 				return (1);
 			}
@@ -239,7 +240,6 @@ bectl_cmd_jail(int argc, char *argv[])
 	int i, jid, mntflags, opt, ret;
 	bool default_hostname, interactive, unjail;
 	pid_t pid;
-
 
 	/* XXX TODO: Allow shallow */
 	mntflags = BE_MNT_DEEP;
@@ -313,7 +313,8 @@ bectl_cmd_jail(int argc, char *argv[])
 		mountpoint = NULL;
 	else
 		mountpoint = mnt_loc;
-	if (be_mount(be, bootenv, mountpoint, mntflags, mnt_loc) != BE_ERR_SUCCESS) {
+	if (be_mount(be, bootenv, mountpoint, mntflags, mnt_loc) !=
+	    BE_ERR_SUCCESS) {
 		fprintf(stderr, "could not mount bootenv\n");
 		return (1);
 	}
@@ -331,7 +332,8 @@ bectl_cmd_jail(int argc, char *argv[])
 	}
 
 	if ((build_jailcmd(&jargv, interactive, argc, argv)) != 0) {
-		fprintf(stderr, "unable to build argument list for jail command\n");
+		fprintf(stderr,
+		    "unable to build argument list for jail command\n");
 		return (1);
 	}
 
@@ -381,7 +383,7 @@ bectl_search_jail_paths(const char *mnt)
 	snprintf(lastjid, sizeof(lastjid), "%d", 0);
 
 	while ((jid = jail_getv(0, "lastjid", lastjid, "path", &jailpath,
-	    NULL)) != -1) {
+		    NULL)) != -1) {
 
 		/* the jail we've been looking for */
 		if (strcmp(jailpath, mnt) == 0)

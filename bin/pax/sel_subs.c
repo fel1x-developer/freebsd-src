@@ -34,8 +34,8 @@
  */
 
 #include <sys/types.h>
-#include <sys/time.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 
 #include <ctype.h>
 #include <grp.h>
@@ -45,19 +45,19 @@
 #include <string.h>
 #include <strings.h>
 
+#include "extern.h"
 #include "pax.h"
 #include "sel_subs.h"
-#include "extern.h"
 
 static int str_sec(const char *, time_t *);
 static int usr_match(ARCHD *);
 static int grp_match(ARCHD *);
 static int trng_match(ARCHD *);
 
-static TIME_RNG *trhead = NULL;		/* time range list head */
-static TIME_RNG *trtail = NULL;		/* time range list tail */
-static USRT **usrtb = NULL;		/* user selection table */
-static GRPT **grptb = NULL;		/* group selection table */
+static TIME_RNG *trhead = NULL; /* time range list head */
+static TIME_RNG *trtail = NULL; /* time range list tail */
+static USRT **usrtb = NULL;	/* user selection table */
+static GRPT **grptb = NULL;	/* group selection table */
 
 /*
  * Routines for selection of archive members
@@ -76,8 +76,8 @@ sel_chk(ARCHD *arcn)
 	if (((usrtb != NULL) && usr_match(arcn)) ||
 	    ((grptb != NULL) && grp_match(arcn)) ||
 	    ((trhead != NULL) && trng_match(arcn)))
-		return(1);
-	return(0);
+		return (1);
+	return (0);
 }
 
 /*
@@ -107,11 +107,12 @@ usr_add(char *str)
 	 * create the table if it doesn't exist
 	 */
 	if ((str == NULL) || (*str == '\0'))
-		return(-1);
+		return (-1);
 	if ((usrtb == NULL) &&
- 	    ((usrtb = (USRT **)calloc(USR_TB_SZ, sizeof(USRT *))) == NULL)) {
-		paxwarn(1, "Unable to allocate memory for user selection table");
-		return(-1);
+	    ((usrtb = (USRT **)calloc(USR_TB_SZ, sizeof(USRT *))) == NULL)) {
+		paxwarn(1,
+		    "Unable to allocate memory for user selection table");
+		return (-1);
 	}
 
 	/*
@@ -125,11 +126,11 @@ usr_add(char *str)
 			++str;
 		if ((pw = getpwnam(str)) == NULL) {
 			paxwarn(1, "Unable to find uid for user: %s", str);
-			return(-1);
+			return (-1);
 		}
 		uid = (uid_t)pw->pw_uid;
 	} else
-		uid = (uid_t)strtoul(str+1, NULL, 10);
+		uid = (uid_t)strtoul(str + 1, NULL, 10);
 	endpwent();
 
 	/*
@@ -139,7 +140,7 @@ usr_add(char *str)
 	if ((pt = usrtb[indx]) != NULL) {
 		while (pt != NULL) {
 			if (pt->uid == uid)
-				return(0);
+				return (0);
 			pt = pt->fow;
 		}
 	}
@@ -151,10 +152,10 @@ usr_add(char *str)
 		pt->uid = uid;
 		pt->fow = usrtb[indx];
 		usrtb[indx] = pt;
-		return(0);
+		return (0);
 	}
 	paxwarn(1, "User selection table out of memory");
-	return(-1);
+	return (-1);
 }
 
 /*
@@ -175,14 +176,14 @@ usr_match(ARCHD *arcn)
 	pt = usrtb[((unsigned)arcn->sb.st_uid) % USR_TB_SZ];
 	while (pt != NULL) {
 		if (pt->uid == arcn->sb.st_uid)
-			return(0);
+			return (0);
 		pt = pt->fow;
 	}
 
 	/*
 	 * not found
 	 */
-	return(1);
+	return (1);
 }
 
 /*
@@ -204,11 +205,12 @@ grp_add(char *str)
 	 * create the table if it doesn't exist
 	 */
 	if ((str == NULL) || (*str == '\0'))
-		return(-1);
+		return (-1);
 	if ((grptb == NULL) &&
- 	    ((grptb = (GRPT **)calloc(GRP_TB_SZ, sizeof(GRPT *))) == NULL)) {
-		paxwarn(1, "Unable to allocate memory fo group selection table");
-		return(-1);
+	    ((grptb = (GRPT **)calloc(GRP_TB_SZ, sizeof(GRPT *))) == NULL)) {
+		paxwarn(1,
+		    "Unable to allocate memory fo group selection table");
+		return (-1);
 	}
 
 	/*
@@ -221,12 +223,13 @@ grp_add(char *str)
 		if ((str[0] == '\\') && (str[1] == '#'))
 			++str;
 		if ((gr = getgrnam(str)) == NULL) {
-			paxwarn(1,"Cannot determine gid for group name: %s", str);
-			return(-1);
+			paxwarn(1, "Cannot determine gid for group name: %s",
+			    str);
+			return (-1);
 		}
 		gid = gr->gr_gid;
 	} else
-		gid = (gid_t)strtoul(str+1, NULL, 10);
+		gid = (gid_t)strtoul(str + 1, NULL, 10);
 	endgrent();
 
 	/*
@@ -236,7 +239,7 @@ grp_add(char *str)
 	if ((pt = grptb[indx]) != NULL) {
 		while (pt != NULL) {
 			if (pt->gid == gid)
-				return(0);
+				return (0);
 			pt = pt->fow;
 		}
 	}
@@ -248,10 +251,10 @@ grp_add(char *str)
 		pt->gid = gid;
 		pt->fow = grptb[indx];
 		grptb[indx] = pt;
-		return(0);
+		return (0);
 	}
 	paxwarn(1, "Group selection table out of memory");
-	return(-1);
+	return (-1);
 }
 
 /*
@@ -272,14 +275,14 @@ grp_match(ARCHD *arcn)
 	pt = grptb[((unsigned)arcn->sb.st_gid) % GRP_TB_SZ];
 	while (pt != NULL) {
 		if (pt->gid == arcn->sb.st_gid)
-			return(0);
+			return (0);
 		pt = pt->fow;
 	}
 
 	/*
 	 * not found
 	 */
-	return(1);
+	return (1);
 }
 
 /*
@@ -325,7 +328,7 @@ trng_add(char *str)
 	 */
 	if ((str == NULL) || (*str == '\0')) {
 		paxwarn(1, "Empty time range string");
-		return(-1);
+		return (-1);
 	}
 
 	/*
@@ -360,7 +363,7 @@ trng_add(char *str)
 	 */
 	if ((pt = (TIME_RNG *)malloc(sizeof(TIME_RNG))) == NULL) {
 		paxwarn(1, "Unable to allocate memory for time range");
-		return(-1);
+		return (-1);
 	}
 
 	/*
@@ -372,7 +375,7 @@ trng_add(char *str)
 	else {
 		pt->flgs = 0;
 		while (*flgpt != '\0') {
-			switch(*flgpt) {
+			switch (*flgpt) {
 			case 'M':
 			case 'm':
 				pt->flgs |= CMPMTME;
@@ -424,9 +427,9 @@ trng_add(char *str)
 		if (pt->flgs & HASLOW) {
 			if (pt->low_time > pt->high_time) {
 				paxwarn(1, "Upper %s and lower %s time overlap",
-					up_pt, str);
+				    up_pt, str);
 				free(pt);
-				return(-1);
+				return (-1);
 			}
 		}
 	}
@@ -434,15 +437,16 @@ trng_add(char *str)
 	pt->fow = NULL;
 	if (trhead == NULL) {
 		trtail = trhead = pt;
-		return(0);
+		return (0);
 	}
 	trtail->fow = pt;
 	trtail = pt;
-	return(0);
+	return (0);
 
-    out:
-	paxwarn(1, "Time range format is: [[[[[cc]yy]mm]dd]HH]MM[.SS][/[c][m]]");
-	return(-1);
+out:
+	paxwarn(1,
+	    "Time range format is: [[[[[cc]yy]mm]dd]HH]MM[.SS][/[c][m]]");
+	return (-1);
 }
 
 /*
@@ -463,18 +467,18 @@ trng_match(ARCHD *arcn)
 	 */
 	pt = trhead;
 	while (pt != NULL) {
-		switch(pt->flgs & CMPBOTH) {
+		switch (pt->flgs & CMPBOTH) {
 		case CMPBOTH:
 			/*
 			 * user wants both mtime and ctime checked for this
 			 * time range
 			 */
 			if (((pt->flgs & HASLOW) &&
-			    (arcn->sb.st_mtime < pt->low_time) &&
-			    (arcn->sb.st_ctime < pt->low_time)) ||
+				(arcn->sb.st_mtime < pt->low_time) &&
+				(arcn->sb.st_ctime < pt->low_time)) ||
 			    ((pt->flgs & HASHIGH) &&
-			    (arcn->sb.st_mtime > pt->high_time) &&
-			    (arcn->sb.st_ctime > pt->high_time))) {
+				(arcn->sb.st_mtime > pt->high_time) &&
+				(arcn->sb.st_ctime > pt->high_time))) {
 				pt = pt->fow;
 				continue;
 			}
@@ -484,9 +488,9 @@ trng_match(ARCHD *arcn)
 			 * user wants only ctime checked for this time range
 			 */
 			if (((pt->flgs & HASLOW) &&
-			    (arcn->sb.st_ctime < pt->low_time)) ||
+				(arcn->sb.st_ctime < pt->low_time)) ||
 			    ((pt->flgs & HASHIGH) &&
-			    (arcn->sb.st_ctime > pt->high_time))) {
+				(arcn->sb.st_ctime > pt->high_time))) {
 				pt = pt->fow;
 				continue;
 			}
@@ -497,9 +501,9 @@ trng_match(ARCHD *arcn)
 			 * user wants only mtime checked for this time range
 			 */
 			if (((pt->flgs & HASLOW) &&
-			    (arcn->sb.st_mtime < pt->low_time)) ||
+				(arcn->sb.st_mtime < pt->low_time)) ||
 			    ((pt->flgs & HASHIGH) &&
-			    (arcn->sb.st_mtime > pt->high_time))) {
+				(arcn->sb.st_mtime > pt->high_time))) {
 				pt = pt->fow;
 				continue;
 			}
@@ -509,8 +513,8 @@ trng_match(ARCHD *arcn)
 	}
 
 	if (pt == NULL)
-		return(1);
-	return(0);
+		return (1);
+	return (0);
 }
 
 /*
@@ -540,63 +544,63 @@ str_sec(const char *p, time_t *tval)
 			dot = t;
 			continue;
 		}
-		return(-1);
+		return (-1);
 	}
 
 	lt = localtime(tval);
 
-	if (dot != NULL) {			/* .SS */
+	if (dot != NULL) { /* .SS */
 		if (strlen(++dot) != 2)
-			return(-1);
+			return (-1);
 		lt->tm_sec = ATOI2(dot);
 		if (lt->tm_sec > 61)
-			return(-1);
+			return (-1);
 		len -= 3;
 	} else
 		lt->tm_sec = 0;
 
 	switch (len) {
-	case 12:				/* cc */
+	case 12: /* cc */
 		bigyear = ATOI2(p);
 		lt->tm_year = (bigyear * 100) - 1900;
 		yearset = 1;
 		/* FALLTHROUGH */
-	case 10:				/* yy */
+	case 10: /* yy */
 		if (yearset) {
 			lt->tm_year += ATOI2(p);
 		} else {
 			lt->tm_year = ATOI2(p);
-			if (lt->tm_year < 69)		/* hack for 2000 ;-} */
+			if (lt->tm_year < 69) /* hack for 2000 ;-} */
 				lt->tm_year += (2000 - 1900);
 		}
 		/* FALLTHROUGH */
-	case 8:					/* mm */
+	case 8: /* mm */
 		lt->tm_mon = ATOI2(p);
 		if ((lt->tm_mon > 12) || !lt->tm_mon)
-			return(-1);
-		--lt->tm_mon;			/* time struct is 0 - 11 */
-		/* FALLTHROUGH */
-	case 6:					/* dd */
+			return (-1);
+		--lt->tm_mon; /* time struct is 0 - 11 */
+			      /* FALLTHROUGH */
+	case 6:		      /* dd */
 		lt->tm_mday = ATOI2(p);
 		if ((lt->tm_mday > 31) || !lt->tm_mday)
-			return(-1);
+			return (-1);
 		/* FALLTHROUGH */
-	case 4:					/* HH */
+	case 4: /* HH */
 		lt->tm_hour = ATOI2(p);
 		if (lt->tm_hour > 23)
-			return(-1);
+			return (-1);
 		/* FALLTHROUGH */
-	case 2:					/* MM */
+	case 2: /* MM */
 		lt->tm_min = ATOI2(p);
 		if (lt->tm_min > 59)
-			return(-1);
+			return (-1);
 		break;
 	default:
-		return(-1);
+		return (-1);
 	}
 
 	/* convert broken-down time to UTC clock time seconds */
 	if ((*tval = mktime(lt)) == -1)
-		return(-1);
-	return(0);
+		return (-1);
+	return (0);
 }

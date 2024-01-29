@@ -28,18 +28,18 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/pmc.h>
 #include <sys/pmckern.h>
-#include <sys/systm.h>
 
+#include <machine/cpu.h>
 #include <machine/pmc_mdep.h>
 #include <machine/spr.h>
-#include <machine/cpu.h>
 
 #include "hwpmc_powerpc.h"
 
-#define PPC970_MAX_PMCS		8
-#define PMC_PPC970_FLAG_PMCS	0x000000ff
+#define PPC970_MAX_PMCS 8
+#define PMC_PPC970_FLAG_PMCS 0x000000ff
 
 /* MMCR0, PMC1 is 8 bytes in, PMC2 is 1 byte in. */
 #define PPC970_SET_MMCR0_PMCSEL(r, x, i) \
@@ -87,154 +87,77 @@
  */
 
 static struct pmc_ppc_event ppc970_event_codes[] = {
-	{PMC_EV_PPC970_INSTR_COMPLETED,
-	    .pe_flags = PMC_PPC970_FLAG_PMCS,
-	    .pe_code = 0x09
-	},
-	{PMC_EV_PPC970_MARKED_GROUP_DISPATCH,
-		.pe_flags = PMC_FLAG_PMC1,
-		.pe_code = 0x2
-	},
-	{PMC_EV_PPC970_MARKED_STORE_COMPLETED,
-		.pe_flags = PMC_FLAG_PMC1,
-		.pe_code = 0x03
-	},
-	{PMC_EV_PPC970_GCT_EMPTY,
-		.pe_flags = PMC_FLAG_PMC1,
-		.pe_code = 0x04
-	},
-	{PMC_EV_PPC970_RUN_CYCLES,
-		.pe_flags = PMC_FLAG_PMC1,
-		.pe_code = 0x05
-	},
-	{PMC_EV_PPC970_OVERFLOW,
-		.pe_flags = PMC_PPC970_FLAG_PMCS,
-		.pe_code = 0x0a
-	},
-	{PMC_EV_PPC970_CYCLES,
-		.pe_flags = PMC_PPC970_FLAG_PMCS,
-		.pe_code = 0x0f
-	},
-	{PMC_EV_PPC970_THRESHOLD_TIMEOUT,
-		.pe_flags = PMC_FLAG_PMC2,
-		.pe_code = 0x3
-	},
-	{PMC_EV_PPC970_GROUP_DISPATCH,
-		.pe_flags = PMC_FLAG_PMC2,
-		.pe_code = 0x4
-	},
-	{PMC_EV_PPC970_BR_MARKED_INSTR_FINISH,
-		.pe_flags = PMC_FLAG_PMC2,
-		.pe_code = 0x5
-	},
-	{PMC_EV_PPC970_GCT_EMPTY_BY_SRQ_FULL,
-		.pe_flags = PMC_FLAG_PMC2,
-		.pe_code = 0xb
-	},
-	{PMC_EV_PPC970_STOP_COMPLETION,
-		.pe_flags = PMC_FLAG_PMC3,
-		.pe_code = 0x1
-	},
-	{PMC_EV_PPC970_LSU_EMPTY,
-		.pe_flags = PMC_FLAG_PMC3,
-		.pe_code = 0x2
-	},
-	{PMC_EV_PPC970_MARKED_STORE_WITH_INTR,
-		.pe_flags = PMC_FLAG_PMC3,
-		.pe_code = 0x3
-	},
-	{PMC_EV_PPC970_CYCLES_IN_SUPER,
-		.pe_flags = PMC_FLAG_PMC3,
-		.pe_code = 0x4
-	},
-	{PMC_EV_PPC970_VPU_MARKED_INSTR_COMPLETED,
-		.pe_flags = PMC_FLAG_PMC3,
-		.pe_code = 0x5
-	},
-	{PMC_EV_PPC970_FXU0_IDLE_FXU1_BUSY,
-		.pe_flags = PMC_FLAG_PMC4,
-		.pe_code = 0x2
-	},
-	{PMC_EV_PPC970_SRQ_EMPTY,
-		.pe_flags = PMC_FLAG_PMC4,
-		.pe_code = 0x3
-	},
-	{PMC_EV_PPC970_MARKED_GROUP_COMPLETED,
-		.pe_flags = PMC_FLAG_PMC4,
-		.pe_code = 0x4
-	},
-	{PMC_EV_PPC970_CR_MARKED_INSTR_FINISH,
-		.pe_flags = PMC_FLAG_PMC4,
-		.pe_code = 0x5
-	},
-	{PMC_EV_PPC970_DISPATCH_SUCCESS,
-		.pe_flags = PMC_FLAG_PMC5,
-		.pe_code = 0x1
-	},
-	{PMC_EV_PPC970_FXU0_IDLE_FXU1_IDLE,
-		.pe_flags = PMC_FLAG_PMC5,
-		.pe_code = 0x2
-	},
-	{PMC_EV_PPC970_ONE_PLUS_INSTR_COMPLETED,
-		.pe_flags = PMC_FLAG_PMC5,
-		.pe_code = 0x3
-	},
-	{PMC_EV_PPC970_GROUP_MARKED_IDU,
-		.pe_flags = PMC_FLAG_PMC5,
-		.pe_code = 0x4
-	},
-	{PMC_EV_PPC970_MARKED_GROUP_COMPLETE_TIMEOUT,
-		.pe_flags = PMC_FLAG_PMC5,
-		.pe_code = 0x5
-	},
-	{PMC_EV_PPC970_FXU0_BUSY_FXU1_BUSY,
-		.pe_flags = PMC_FLAG_PMC6,
-		.pe_code = 0x2
-	},
-	{PMC_EV_PPC970_MARKED_STORE_SENT_TO_STS,
-		.pe_flags = PMC_FLAG_PMC6,
-		.pe_code = 0x3
-	},
-	{PMC_EV_PPC970_FXU_MARKED_INSTR_FINISHED,
-		.pe_flags = PMC_FLAG_PMC6,
-		.pe_code = 0x4
-	},
-	{PMC_EV_PPC970_MARKED_GROUP_ISSUED,
-		.pe_flags = PMC_FLAG_PMC6,
-		.pe_code = 0x5
-	},
-	{PMC_EV_PPC970_FXU0_BUSY_FXU1_IDLE,
-		.pe_flags = PMC_FLAG_PMC7,
-		.pe_code = 0x2
-	},
-	{PMC_EV_PPC970_GROUP_COMPLETED,
-		.pe_flags = PMC_FLAG_PMC7,
-		.pe_code = 0x3
-	},
-	{PMC_EV_PPC970_FPU_MARKED_INSTR_COMPLETED,
-		.pe_flags = PMC_FLAG_PMC7,
-		.pe_code = 0x4
-	},
-	{PMC_EV_PPC970_MARKED_INSTR_FINISH_ANY_UNIT,
-		.pe_flags = PMC_FLAG_PMC7,
-		.pe_code = 0x5
-	},
-	{PMC_EV_PPC970_EXTERNAL_INTERRUPT,
-		.pe_flags = PMC_FLAG_PMC8,
-		.pe_code = 0x2
-	},
-	{PMC_EV_PPC970_GROUP_DISPATCH_REJECT,
-		.pe_flags = PMC_FLAG_PMC8,
-		.pe_code = 0x3
-	},
-	{PMC_EV_PPC970_LSU_MARKED_INSTR_FINISH,
-		.pe_flags = PMC_FLAG_PMC8,
-		.pe_code = 0x4
-	},
-	{PMC_EV_PPC970_TIMEBASE_EVENT,
-		.pe_flags = PMC_FLAG_PMC8,
-		.pe_code = 0x5
-	},
+	{ PMC_EV_PPC970_INSTR_COMPLETED, .pe_flags = PMC_PPC970_FLAG_PMCS,
+	    .pe_code = 0x09 },
+	{ PMC_EV_PPC970_MARKED_GROUP_DISPATCH, .pe_flags = PMC_FLAG_PMC1,
+	    .pe_code = 0x2 },
+	{ PMC_EV_PPC970_MARKED_STORE_COMPLETED, .pe_flags = PMC_FLAG_PMC1,
+	    .pe_code = 0x03 },
+	{ PMC_EV_PPC970_GCT_EMPTY, .pe_flags = PMC_FLAG_PMC1, .pe_code = 0x04 },
+	{ PMC_EV_PPC970_RUN_CYCLES, .pe_flags = PMC_FLAG_PMC1,
+	    .pe_code = 0x05 },
+	{ PMC_EV_PPC970_OVERFLOW, .pe_flags = PMC_PPC970_FLAG_PMCS,
+	    .pe_code = 0x0a },
+	{ PMC_EV_PPC970_CYCLES, .pe_flags = PMC_PPC970_FLAG_PMCS,
+	    .pe_code = 0x0f },
+	{ PMC_EV_PPC970_THRESHOLD_TIMEOUT, .pe_flags = PMC_FLAG_PMC2,
+	    .pe_code = 0x3 },
+	{ PMC_EV_PPC970_GROUP_DISPATCH, .pe_flags = PMC_FLAG_PMC2,
+	    .pe_code = 0x4 },
+	{ PMC_EV_PPC970_BR_MARKED_INSTR_FINISH, .pe_flags = PMC_FLAG_PMC2,
+	    .pe_code = 0x5 },
+	{ PMC_EV_PPC970_GCT_EMPTY_BY_SRQ_FULL, .pe_flags = PMC_FLAG_PMC2,
+	    .pe_code = 0xb },
+	{ PMC_EV_PPC970_STOP_COMPLETION, .pe_flags = PMC_FLAG_PMC3,
+	    .pe_code = 0x1 },
+	{ PMC_EV_PPC970_LSU_EMPTY, .pe_flags = PMC_FLAG_PMC3, .pe_code = 0x2 },
+	{ PMC_EV_PPC970_MARKED_STORE_WITH_INTR, .pe_flags = PMC_FLAG_PMC3,
+	    .pe_code = 0x3 },
+	{ PMC_EV_PPC970_CYCLES_IN_SUPER, .pe_flags = PMC_FLAG_PMC3,
+	    .pe_code = 0x4 },
+	{ PMC_EV_PPC970_VPU_MARKED_INSTR_COMPLETED, .pe_flags = PMC_FLAG_PMC3,
+	    .pe_code = 0x5 },
+	{ PMC_EV_PPC970_FXU0_IDLE_FXU1_BUSY, .pe_flags = PMC_FLAG_PMC4,
+	    .pe_code = 0x2 },
+	{ PMC_EV_PPC970_SRQ_EMPTY, .pe_flags = PMC_FLAG_PMC4, .pe_code = 0x3 },
+	{ PMC_EV_PPC970_MARKED_GROUP_COMPLETED, .pe_flags = PMC_FLAG_PMC4,
+	    .pe_code = 0x4 },
+	{ PMC_EV_PPC970_CR_MARKED_INSTR_FINISH, .pe_flags = PMC_FLAG_PMC4,
+	    .pe_code = 0x5 },
+	{ PMC_EV_PPC970_DISPATCH_SUCCESS, .pe_flags = PMC_FLAG_PMC5,
+	    .pe_code = 0x1 },
+	{ PMC_EV_PPC970_FXU0_IDLE_FXU1_IDLE, .pe_flags = PMC_FLAG_PMC5,
+	    .pe_code = 0x2 },
+	{ PMC_EV_PPC970_ONE_PLUS_INSTR_COMPLETED, .pe_flags = PMC_FLAG_PMC5,
+	    .pe_code = 0x3 },
+	{ PMC_EV_PPC970_GROUP_MARKED_IDU, .pe_flags = PMC_FLAG_PMC5,
+	    .pe_code = 0x4 },
+	{ PMC_EV_PPC970_MARKED_GROUP_COMPLETE_TIMEOUT,
+	    .pe_flags = PMC_FLAG_PMC5, .pe_code = 0x5 },
+	{ PMC_EV_PPC970_FXU0_BUSY_FXU1_BUSY, .pe_flags = PMC_FLAG_PMC6,
+	    .pe_code = 0x2 },
+	{ PMC_EV_PPC970_MARKED_STORE_SENT_TO_STS, .pe_flags = PMC_FLAG_PMC6,
+	    .pe_code = 0x3 },
+	{ PMC_EV_PPC970_FXU_MARKED_INSTR_FINISHED, .pe_flags = PMC_FLAG_PMC6,
+	    .pe_code = 0x4 },
+	{ PMC_EV_PPC970_MARKED_GROUP_ISSUED, .pe_flags = PMC_FLAG_PMC6,
+	    .pe_code = 0x5 },
+	{ PMC_EV_PPC970_FXU0_BUSY_FXU1_IDLE, .pe_flags = PMC_FLAG_PMC7,
+	    .pe_code = 0x2 },
+	{ PMC_EV_PPC970_GROUP_COMPLETED, .pe_flags = PMC_FLAG_PMC7,
+	    .pe_code = 0x3 },
+	{ PMC_EV_PPC970_FPU_MARKED_INSTR_COMPLETED, .pe_flags = PMC_FLAG_PMC7,
+	    .pe_code = 0x4 },
+	{ PMC_EV_PPC970_MARKED_INSTR_FINISH_ANY_UNIT, .pe_flags = PMC_FLAG_PMC7,
+	    .pe_code = 0x5 },
+	{ PMC_EV_PPC970_EXTERNAL_INTERRUPT, .pe_flags = PMC_FLAG_PMC8,
+	    .pe_code = 0x2 },
+	{ PMC_EV_PPC970_GROUP_DISPATCH_REJECT, .pe_flags = PMC_FLAG_PMC8,
+	    .pe_code = 0x3 },
+	{ PMC_EV_PPC970_LSU_MARKED_INSTR_FINISH, .pe_flags = PMC_FLAG_PMC8,
+	    .pe_code = 0x4 },
+	{ PMC_EV_PPC970_TIMEBASE_EVENT, .pe_flags = PMC_FLAG_PMC8,
+	    .pe_code = 0x5 },
 #if 0
 	{PMC_EV_PPC970_LSU_COMPLETION_STALL, },
 	{PMC_EV_PPC970_FXU_COMPLETION_STALL, },
@@ -303,9 +226,10 @@ ppc970_pcpu_init(struct pmc_mdep *md, int cpu)
 
 	/* Clear the MMCRs, and set FC, to disable all PMCs. */
 	/* 970 PMC is not counted when set to 0x08 */
-	mtspr(SPR_MMCR0, SPR_MMCR0_FC | SPR_MMCR0_PMXE |
-	    SPR_MMCR0_FCECE | SPR_MMCR0_PMC1CE | SPR_MMCR0_PMCNCE |
-	    SPR_MMCR0_PMC1SEL(0x8) | SPR_MMCR0_PMC2SEL(0x8));
+	mtspr(SPR_MMCR0,
+	    SPR_MMCR0_FC | SPR_MMCR0_PMXE | SPR_MMCR0_FCECE | SPR_MMCR0_PMC1CE |
+		SPR_MMCR0_PMCNCE | SPR_MMCR0_PMC1SEL(0x8) |
+		SPR_MMCR0_PMC2SEL(0x8));
 	mtspr(SPR_MMCR1, 0x4218420);
 
 	return (0);
@@ -342,30 +266,30 @@ int
 pmc_ppc970_initialize(struct pmc_mdep *pmc_mdep)
 {
 	struct pmc_classdep *pcd;
-	
+
 	pmc_mdep->pmd_cputype = PMC_CPU_PPC_970;
 
 	pcd = &pmc_mdep->pmd_classdep[PMC_MDEP_CLASS_INDEX_POWERPC];
-	pcd->pcd_caps  = POWERPC_PMC_CAPS;
+	pcd->pcd_caps = POWERPC_PMC_CAPS;
 	pcd->pcd_class = PMC_CLASS_PPC970;
-	pcd->pcd_num   = PPC970_MAX_PMCS;
-	pcd->pcd_ri    = pmc_mdep->pmd_npmc;
+	pcd->pcd_num = PPC970_MAX_PMCS;
+	pcd->pcd_ri = pmc_mdep->pmd_npmc;
 	pcd->pcd_width = 32;
 
-	pcd->pcd_allocate_pmc   = powerpc_allocate_pmc;
-	pcd->pcd_config_pmc     = powerpc_config_pmc;
-	pcd->pcd_pcpu_fini      = ppc970_pcpu_fini;
-	pcd->pcd_pcpu_init      = ppc970_pcpu_init;
-	pcd->pcd_describe       = powerpc_describe;
-	pcd->pcd_get_config     = powerpc_get_config;
-	pcd->pcd_read_pmc       = powerpc_read_pmc;
-	pcd->pcd_release_pmc    = powerpc_release_pmc;
-	pcd->pcd_start_pmc      = powerpc_start_pmc;
-	pcd->pcd_stop_pmc       = powerpc_stop_pmc;
-	pcd->pcd_write_pmc      = powerpc_write_pmc;
+	pcd->pcd_allocate_pmc = powerpc_allocate_pmc;
+	pcd->pcd_config_pmc = powerpc_config_pmc;
+	pcd->pcd_pcpu_fini = ppc970_pcpu_fini;
+	pcd->pcd_pcpu_init = ppc970_pcpu_init;
+	pcd->pcd_describe = powerpc_describe;
+	pcd->pcd_get_config = powerpc_get_config;
+	pcd->pcd_read_pmc = powerpc_read_pmc;
+	pcd->pcd_release_pmc = powerpc_release_pmc;
+	pcd->pcd_start_pmc = powerpc_start_pmc;
+	pcd->pcd_stop_pmc = powerpc_stop_pmc;
+	pcd->pcd_write_pmc = powerpc_write_pmc;
 
-	pmc_mdep->pmd_npmc     += PPC970_MAX_PMCS;
-	pmc_mdep->pmd_intr      = powerpc_pmc_intr;
+	pmc_mdep->pmd_npmc += PPC970_MAX_PMCS;
+	pmc_mdep->pmd_intr = powerpc_pmc_intr;
 
 	ppc_event_codes = ppc970_event_codes;
 	ppc_event_codes_size = ppc970_event_codes_size;

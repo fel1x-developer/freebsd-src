@@ -27,7 +27,7 @@
  */
 
 #ifndef _VRTC_H_
-#define	_VRTC_H_
+#define _VRTC_H_
 
 #include <isa/isareg.h>
 

@@ -46,46 +46,46 @@
  */
 
 #include <sys/param.h>
-#include <sys/proc.h>
+#include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/ktr.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
-#include <sys/systm.h>
+#include <sys/proc.h>
 
 static MALLOC_DEFINE(M_MTXPOOL, "mtx_pool", "mutex pool");
 
 /* Pool sizes must be a power of two */
 #ifndef MTX_POOL_SLEEP_SIZE
-#define MTX_POOL_SLEEP_SIZE		1024
+#define MTX_POOL_SLEEP_SIZE 1024
 #endif
 
 struct mtxpool_header {
-	int		mtxpool_size;
-	int		mtxpool_mask;
-	int		mtxpool_shift;
-	int		mtxpool_next __aligned(CACHE_LINE_SIZE);
+	int mtxpool_size;
+	int mtxpool_mask;
+	int mtxpool_shift;
+	int mtxpool_next __aligned(CACHE_LINE_SIZE);
 };
 
 struct mtx_pool {
 	struct mtxpool_header mtx_pool_header;
-	struct mtx	mtx_pool_ary[1];
+	struct mtx mtx_pool_ary[1];
 };
 
-#define mtx_pool_size	mtx_pool_header.mtxpool_size
-#define mtx_pool_mask	mtx_pool_header.mtxpool_mask
-#define mtx_pool_shift	mtx_pool_header.mtxpool_shift
-#define mtx_pool_next	mtx_pool_header.mtxpool_next
+#define mtx_pool_size mtx_pool_header.mtxpool_size
+#define mtx_pool_mask mtx_pool_header.mtxpool_mask
+#define mtx_pool_shift mtx_pool_header.mtxpool_shift
+#define mtx_pool_next mtx_pool_header.mtxpool_next
 
 struct mtx_pool __read_mostly *mtxpool_sleep;
 
-#if UINTPTR_MAX == UINT64_MAX	/* 64 bits */
-# define POINTER_BITS		64
-# define HASH_MULTIPLIER	11400714819323198485u /* (2^64)*(sqrt(5)-1)/2 */
-#else				/* assume 32 bits */
-# define POINTER_BITS		32
-# define HASH_MULTIPLIER	2654435769u	      /* (2^32)*(sqrt(5)-1)/2 */
+#if UINTPTR_MAX == UINT64_MAX /* 64 bits */
+#define POINTER_BITS 64
+#define HASH_MULTIPLIER 11400714819323198485u /* (2^64)*(sqrt(5)-1)/2 */
+#else					      /* assume 32 bits */
+#define POINTER_BITS 32
+#define HASH_MULTIPLIER 2654435769u /* (2^32)*(sqrt(5)-1)/2 */
 #endif
 
 /*
@@ -135,8 +135,8 @@ mtx_pool_create(const char *mtx_name, int pool_size, int opts)
 		    mtx_name);
 		pool_size = 128;
 	}
-	pool = malloc(sizeof (struct mtx_pool) +
-	    ((pool_size - 1) * sizeof (struct mtx)),
+	pool = malloc(sizeof(struct mtx_pool) +
+		((pool_size - 1) * sizeof(struct mtx)),
 	    M_MTXPOOL, M_WAITOK | M_ZERO);
 	mtx_pool_initialize(pool, mtx_name, pool_size, opts);
 	return pool;
@@ -157,8 +157,8 @@ mtx_pool_destroy(struct mtx_pool **poolp)
 static void
 mtx_pool_setup_dynamic(void *dummy __unused)
 {
-	mtxpool_sleep = mtx_pool_create("sleep mtxpool",
-	    MTX_POOL_SLEEP_SIZE, MTX_DEF);
+	mtxpool_sleep = mtx_pool_create("sleep mtxpool", MTX_POOL_SLEEP_SIZE,
+	    MTX_DEF);
 }
 
 /*

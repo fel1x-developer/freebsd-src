@@ -46,17 +46,16 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/systm.h>
 #include <sys/uio.h>
 
-#include <dev/iicbus/iiconf.h>
 #include <dev/iicbus/iicbus.h>
-
+#include <dev/iicbus/iiconf.h>
 #include <dev/smbus/smb.h>
 #include <dev/smbus/smbconf.h>
 
@@ -65,16 +64,16 @@
 
 struct iicsmb_softc {
 
-#define SMB_WAITING_ADDR	0x0
-#define SMB_WAITING_LOW		0x1
-#define SMB_WAITING_HIGH	0x2
-#define SMB_DONE		0x3
+#define SMB_WAITING_ADDR 0x0
+#define SMB_WAITING_LOW 0x1
+#define SMB_WAITING_HIGH 0x2
+#define SMB_DONE 0x3
 	int state;
 
-	u_char devaddr;			/* slave device address */
+	u_char devaddr; /* slave device address */
 
-	char low;			/* low byte received first */
-	char high;			/* high byte */
+	char low;  /* low byte received first */
+	char high; /* high byte */
 
 	struct mtx lock;
 	device_t smbus;
@@ -94,32 +93,35 @@ static int iicsmb_writeb(device_t dev, u_char slave, char cmd, char byte);
 static int iicsmb_writew(device_t dev, u_char slave, char cmd, short word);
 static int iicsmb_readb(device_t dev, u_char slave, char cmd, char *byte);
 static int iicsmb_readw(device_t dev, u_char slave, char cmd, short *word);
-static int iicsmb_pcall(device_t dev, u_char slave, char cmd, short sdata, short *rdata);
-static int iicsmb_bwrite(device_t dev, u_char slave, char cmd, u_char count, char *buf);
-static int iicsmb_bread(device_t dev, u_char slave, char cmd, u_char *count, char *buf);
+static int iicsmb_pcall(device_t dev, u_char slave, char cmd, short sdata,
+    short *rdata);
+static int iicsmb_bwrite(device_t dev, u_char slave, char cmd, u_char count,
+    char *buf);
+static int iicsmb_bread(device_t dev, u_char slave, char cmd, u_char *count,
+    char *buf);
 
 static device_method_t iicsmb_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_identify,	iicsmb_identify),
-	DEVMETHOD(device_probe,		iicsmb_probe),
-	DEVMETHOD(device_attach,	iicsmb_attach),
-	DEVMETHOD(device_detach,	iicsmb_detach),
+	DEVMETHOD(device_identify, iicsmb_identify),
+	DEVMETHOD(device_probe, iicsmb_probe),
+	DEVMETHOD(device_attach, iicsmb_attach),
+	DEVMETHOD(device_detach, iicsmb_detach),
 
 	/* iicbus interface */
-	DEVMETHOD(iicbus_intr,		iicsmb_intr),
+	DEVMETHOD(iicbus_intr, iicsmb_intr),
 
 	/* smbus interface */
-	DEVMETHOD(smbus_callback,	iicsmb_callback),
-	DEVMETHOD(smbus_quick,		iicsmb_quick),
-	DEVMETHOD(smbus_sendb,		iicsmb_sendb),
-	DEVMETHOD(smbus_recvb,		iicsmb_recvb),
-	DEVMETHOD(smbus_writeb,		iicsmb_writeb),
-	DEVMETHOD(smbus_writew,		iicsmb_writew),
-	DEVMETHOD(smbus_readb,		iicsmb_readb),
-	DEVMETHOD(smbus_readw,		iicsmb_readw),
-	DEVMETHOD(smbus_pcall,		iicsmb_pcall),
-	DEVMETHOD(smbus_bwrite,		iicsmb_bwrite),
-	DEVMETHOD(smbus_bread,		iicsmb_bread),
+	DEVMETHOD(smbus_callback, iicsmb_callback),
+	DEVMETHOD(smbus_quick, iicsmb_quick),
+	DEVMETHOD(smbus_sendb, iicsmb_sendb),
+	DEVMETHOD(smbus_recvb, iicsmb_recvb),
+	DEVMETHOD(smbus_writeb, iicsmb_writeb),
+	DEVMETHOD(smbus_writew, iicsmb_writew),
+	DEVMETHOD(smbus_readb, iicsmb_readb),
+	DEVMETHOD(smbus_readw, iicsmb_readw),
+	DEVMETHOD(smbus_pcall, iicsmb_pcall),
+	DEVMETHOD(smbus_bwrite, iicsmb_bwrite),
+	DEVMETHOD(smbus_bread, iicsmb_bread),
 
 	DEVMETHOD_END
 };
@@ -191,8 +193,8 @@ iicsmb_intr(device_t dev, int event, char *buf)
 
 	case INTR_STOP:
 		/* call smbus intr handler */
-		smbus_intr(sc->smbus, sc->devaddr,
-				sc->low, sc->high, SMB_ENOERR);
+		smbus_intr(sc->smbus, sc->devaddr, sc->low, sc->high,
+		    SMB_ENOERR);
 		break;
 
 	case INTR_RECEIVE:
@@ -200,7 +202,7 @@ iicsmb_intr(device_t dev, int event, char *buf)
 		case SMB_DONE:
 			/* XXX too much data, discard */
 			printf("%s: too much data from 0x%x\n", __func__,
-				sc->devaddr & 0xff);
+			    sc->devaddr & 0xff);
 			goto end;
 
 		case SMB_WAITING_ADDR:
@@ -218,7 +220,7 @@ iicsmb_intr(device_t dev, int event, char *buf)
 			sc->state = SMB_DONE;
 			break;
 		}
-end:
+	end:
 		break;
 
 	case INTR_TRANSMIT:
@@ -232,8 +234,7 @@ end:
 			break;
 
 		default:
-			printf("%s unknown error 0x%x!\n", __func__,
-								(int)*buf);
+			printf("%s unknown error 0x%x!\n", __func__, (int)*buf);
 			break;
 		}
 		break;
@@ -303,13 +304,13 @@ iic2smb_error(int error)
 	}
 }
 
-#define	TRANSFER_MSGS(dev, msgs)	iicbus_transfer(dev, msgs, nitems(msgs))
+#define TRANSFER_MSGS(dev, msgs) iicbus_transfer(dev, msgs, nitems(msgs))
 
 static int
 iicsmb_quick(device_t dev, u_char slave, int how)
 {
 	struct iic_msg msgs[] = {
-	     { slave, how == SMB_QWRITE ? IIC_M_WR : IIC_M_RD, 0, NULL },
+		{ slave, how == SMB_QWRITE ? IIC_M_WR : IIC_M_RD, 0, NULL },
 	};
 	int error;
 
@@ -329,7 +330,7 @@ static int
 iicsmb_sendb(device_t dev, u_char slave, char byte)
 {
 	struct iic_msg msgs[] = {
-	     { slave, IIC_M_WR, 1, &byte },
+		{ slave, IIC_M_WR, 1, &byte },
 	};
 	int error;
 
@@ -341,7 +342,7 @@ static int
 iicsmb_recvb(device_t dev, u_char slave, char *byte)
 {
 	struct iic_msg msgs[] = {
-	     { slave, IIC_M_RD, 1, byte },
+		{ slave, IIC_M_RD, 1, byte },
 	};
 	int error;
 
@@ -354,7 +355,7 @@ iicsmb_writeb(device_t dev, u_char slave, char cmd, char byte)
 {
 	uint8_t bytes[] = { cmd, byte };
 	struct iic_msg msgs[] = {
-	     { slave, IIC_M_WR, nitems(bytes), bytes },
+		{ slave, IIC_M_WR, nitems(bytes), bytes },
 	};
 	int error;
 
@@ -367,7 +368,7 @@ iicsmb_writew(device_t dev, u_char slave, char cmd, short word)
 {
 	uint8_t bytes[] = { cmd, word & 0xff, word >> 8 };
 	struct iic_msg msgs[] = {
-	     { slave, IIC_M_WR, nitems(bytes), bytes },
+		{ slave, IIC_M_WR, nitems(bytes), bytes },
 	};
 	int error;
 
@@ -379,8 +380,8 @@ static int
 iicsmb_readb(device_t dev, u_char slave, char cmd, char *byte)
 {
 	struct iic_msg msgs[] = {
-	     { slave, IIC_M_WR | IIC_M_NOSTOP, 1, &cmd },
-	     { slave, IIC_M_RD, 1, byte },
+		{ slave, IIC_M_WR | IIC_M_NOSTOP, 1, &cmd },
+		{ slave, IIC_M_RD, 1, byte },
 	};
 	int error;
 
@@ -393,8 +394,8 @@ iicsmb_readw(device_t dev, u_char slave, char cmd, short *word)
 {
 	uint8_t buf[2];
 	struct iic_msg msgs[] = {
-	     { slave, IIC_M_WR | IIC_M_NOSTOP, 1, &cmd },
-	     { slave, IIC_M_RD, nitems(buf), buf },
+		{ slave, IIC_M_WR | IIC_M_NOSTOP, 1, &cmd },
+		{ slave, IIC_M_RD, nitems(buf), buf },
 	};
 	int error;
 
@@ -410,8 +411,8 @@ iicsmb_pcall(device_t dev, u_char slave, char cmd, short sdata, short *rdata)
 	uint8_t in[3] = { cmd, sdata & 0xff, sdata >> 8 };
 	uint8_t out[2];
 	struct iic_msg msgs[] = {
-	     { slave, IIC_M_WR | IIC_M_NOSTOP, nitems(in), in },
-	     { slave, IIC_M_RD, nitems(out), out },
+		{ slave, IIC_M_WR | IIC_M_NOSTOP, nitems(in), in },
+		{ slave, IIC_M_RD, nitems(out), out },
 	};
 	int error;
 
@@ -426,8 +427,8 @@ iicsmb_bwrite(device_t dev, u_char slave, char cmd, u_char count, char *buf)
 {
 	uint8_t bytes[2] = { cmd, count };
 	struct iic_msg msgs[] = {
-	     { slave, IIC_M_WR | IIC_M_NOSTOP, nitems(bytes), bytes },
-	     { slave, IIC_M_WR | IIC_M_NOSTART, count, buf },
+		{ slave, IIC_M_WR | IIC_M_NOSTOP, nitems(bytes), bytes },
+		{ slave, IIC_M_WR | IIC_M_NOSTART, count, buf },
 	};
 	int error;
 
@@ -441,11 +442,11 @@ static int
 iicsmb_bread(device_t dev, u_char slave, char cmd, u_char *count, char *buf)
 {
 	struct iic_msg msgs[] = {
-	     { slave, IIC_M_WR | IIC_M_NOSTOP, 1, &cmd },
-	     { slave, IIC_M_RD | IIC_M_NOSTOP, 1, count },
+		{ slave, IIC_M_WR | IIC_M_NOSTOP, 1, &cmd },
+		{ slave, IIC_M_RD | IIC_M_NOSTOP, 1, count },
 	};
 	struct iic_msg block_msg[] = {
-	     { slave, IIC_M_RD | IIC_M_NOSTART, 0, buf },
+		{ slave, IIC_M_RD | IIC_M_NOSTART, 0, buf },
 	};
 	device_t parent = device_get_parent(dev);
 	int error;

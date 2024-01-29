@@ -66,10 +66,10 @@
 extern "C" {
 #endif // __cplusplus
 
-#include <dev/isci/scil/sci_types.h>
 #include <dev/isci/scil/sci_base_object.h>
 #include <dev/isci/scil/sci_base_state_machine.h>
 #include <dev/isci/scil/sci_base_state_machine_observer.h>
+#include <dev/isci/scil/sci_types.h>
 
 /**
  * This type is defined so we can pass either a core or framework logging
@@ -77,56 +77,50 @@ extern "C" {
  * and this base state machine logger does not actually know which component
  * will be doing the logging.
  */
-typedef void (*SCI_BASE_STATE_MACHINE_LOGGER_LOG_HANDLER_T)(
-   SCI_LOGGER_HANDLE_T, U32, char *, ...
-);
+typedef void (*SCI_BASE_STATE_MACHINE_LOGGER_LOG_HANDLER_T)(SCI_LOGGER_HANDLE_T,
+    U32, char *, ...);
 
 #if defined(SCI_LOGGING)
 
-typedef struct SCI_BASE_STATE_MACHINE_LOGGER
-{
-   SCI_BASE_STATE_MACHINE_OBSERVER_T parent;
+typedef struct SCI_BASE_STATE_MACHINE_LOGGER {
+	SCI_BASE_STATE_MACHINE_OBSERVER_T parent;
 
-   SCI_BASE_OBJECT_T                           * log_object;
-   SCI_BASE_STATE_MACHINE_LOGGER_LOG_HANDLER_T   log_function;
-   char                                        * log_object_name;
-   char                                        * log_state_machine_name;
-   U32                                           log_mask;
+	SCI_BASE_OBJECT_T *log_object;
+	SCI_BASE_STATE_MACHINE_LOGGER_LOG_HANDLER_T log_function;
+	char *log_object_name;
+	char *log_state_machine_name;
+	U32 log_mask;
 
 } SCI_BASE_STATE_MACHINE_LOGGER_T;
 
-
 void sci_base_state_machine_logger_construct(
-   SCI_BASE_STATE_MACHINE_LOGGER_T             * this_observer,
-   SCI_BASE_OBJECT_T                           * the_object,
-   SCI_BASE_STATE_MACHINE_LOGGER_LOG_HANDLER_T   the_log_function,
-   char                                        * log_object_name,
-   char                                        * log_state_machine_name,
-   U32                                           log_object_mask
-);
+    SCI_BASE_STATE_MACHINE_LOGGER_T *this_observer,
+    SCI_BASE_OBJECT_T *the_object,
+    SCI_BASE_STATE_MACHINE_LOGGER_LOG_HANDLER_T the_log_function,
+    char *log_object_name, char *log_state_machine_name, U32 log_object_mask);
 
 void sci_base_state_machine_logger_initialize(
-   SCI_BASE_STATE_MACHINE_LOGGER_T             * this_observer,
-   SCI_BASE_STATE_MACHINE_T                    * the_state_machine,
-   SCI_BASE_OBJECT_T                           * the_object,
-   SCI_BASE_STATE_MACHINE_LOGGER_LOG_HANDLER_T   the_log_function,
-   char                                        * log_object_name,
-   char                                        * log_state_machine_name,
-   U32                                           log_object_mask
-);
+    SCI_BASE_STATE_MACHINE_LOGGER_T *this_observer,
+    SCI_BASE_STATE_MACHINE_T *the_state_machine, SCI_BASE_OBJECT_T *the_object,
+    SCI_BASE_STATE_MACHINE_LOGGER_LOG_HANDLER_T the_log_function,
+    char *log_object_name, char *log_state_machine_name, U32 log_object_mask);
 
 void sci_base_state_machine_logger_deinitialize(
-   SCI_BASE_STATE_MACHINE_LOGGER_T * this_observer,
-   SCI_BASE_STATE_MACHINE_T        * the_state_machine
-);
+    SCI_BASE_STATE_MACHINE_LOGGER_T *this_observer,
+    SCI_BASE_STATE_MACHINE_T *the_state_machine);
 
 #else // SCI_LOGGING
 
 typedef U8 SCI_BASE_STATE_MACHINE_LOGGER_T;
 
-#define sci_base_state_machine_logger_construct(this_observer,the_object,the_log_function,log_object_name,log_state_machine_name,log_object_mask)
-#define sci_base_state_machine_logger_initialize(this_observer,the_state_machine,the_object,the_log_function,log_object_name,log_state_machine_name,log_object_mask)
-#define sci_base_state_machine_logger_deinitialize(this_observer, the_state_machine)
+#define sci_base_state_machine_logger_construct(this_observer, the_object, \
+    the_log_function, log_object_name, log_state_machine_name,             \
+    log_object_mask)
+#define sci_base_state_machine_logger_initialize(this_observer,       \
+    the_state_machine, the_object, the_log_function, log_object_name, \
+    log_state_machine_name, log_object_mask)
+#define sci_base_state_machine_logger_deinitialize(this_observer, \
+    the_state_machine)
 
 #endif // SCI_LOGGING
 

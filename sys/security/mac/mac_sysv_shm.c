@@ -37,23 +37,23 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_mac.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/file.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
-#include <sys/mutex.h>
-#include <sys/sbuf.h>
-#include <sys/systm.h>
-#include <sys/vnode.h>
 #include <sys/mount.h>
-#include <sys/file.h>
+#include <sys/mutex.h>
 #include <sys/namei.h>
+#include <sys/sbuf.h>
 #include <sys/sdt.h>
-#include <sys/sysctl.h>
 #include <sys/shm.h>
+#include <sys/sysctl.h>
+#include <sys/vnode.h>
 
 #include <security/mac/mac_framework.h>
 #include <security/mac/mac_internal.h>
@@ -123,8 +123,7 @@ mac_sysvshm_check_shmat(struct ucred *cred, struct shmid_kernel *shmsegptr,
 
 	MAC_POLICY_CHECK_NOSLEEP(sysvshm_check_shmat, cred, shmsegptr,
 	    shmsegptr->label, shmflg);
-	MAC_CHECK_PROBE3(sysvshm_check_shmat, error, cred, shmsegptr,
-	    shmflg);
+	MAC_CHECK_PROBE3(sysvshm_check_shmat, error, cred, shmsegptr, shmflg);
 
 	return (error);
 }
@@ -171,8 +170,7 @@ mac_sysvshm_check_shmget(struct ucred *cred, struct shmid_kernel *shmsegptr,
 
 	MAC_POLICY_CHECK_NOSLEEP(sysvshm_check_shmget, cred, shmsegptr,
 	    shmsegptr->label, shmflg);
-	MAC_CHECK_PROBE3(sysvshm_check_shmget, error, cred, shmsegptr,
-	    shmflg);
+	MAC_CHECK_PROBE3(sysvshm_check_shmget, error, cred, shmsegptr, shmflg);
 
 	return (error);
 }

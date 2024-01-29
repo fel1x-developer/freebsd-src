@@ -18,45 +18,42 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/rman.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
 
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-
-#include <dev/rtwn/if_rtwnreg.h>
-#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/if_rtwn_debug.h>
 #include <dev/rtwn/if_rtwn_rx.h>
 #include <dev/rtwn/if_rtwn_task.h>
 #include <dev/rtwn/if_rtwn_tx.h>
-
-#include <dev/rtwn/pci/rtwn_pci_var.h>
+#include <dev/rtwn/if_rtwnreg.h>
+#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/pci/rtwn_pci_rx.h>
+#include <dev/rtwn/pci/rtwn_pci_var.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_var.h>
 
 void
-rtwn_pci_dma_map_addr(void *arg, bus_dma_segment_t *segs, int nsegs,
-    int error)
+rtwn_pci_dma_map_addr(void *arg, bus_dma_segment_t *segs, int nsegs, int error)
 {
 
 	if (error != 0)
@@ -66,13 +63,13 @@ rtwn_pci_dma_map_addr(void *arg, bus_dma_segment_t *segs, int nsegs,
 }
 
 void
-rtwn_pci_setup_rx_desc(struct rtwn_pci_softc *pc,
-    struct rtwn_rx_stat_pci *desc, bus_addr_t addr, size_t len, int idx)
+rtwn_pci_setup_rx_desc(struct rtwn_pci_softc *pc, struct rtwn_rx_stat_pci *desc,
+    bus_addr_t addr, size_t len, int idx)
 {
 
 	memset(desc, 0, sizeof(*desc));
 	desc->rxdw0 = htole32(SM(RTWN_RXDW0_PKTLEN, len) |
-		((idx == RTWN_PCI_RX_LIST_COUNT - 1) ? RTWN_RXDW0_EOR : 0));
+	    ((idx == RTWN_PCI_RX_LIST_COUNT - 1) ? RTWN_RXDW0_EOR : 0));
 	desc->rxbufaddr = htole32(addr);
 	bus_space_barrier(pc->pc_st, pc->pc_sh, 0, pc->pc_mapsize,
 	    BUS_SPACE_BARRIER_WRITE);
@@ -107,15 +104,14 @@ rtwn_pci_rx_frame(struct rtwn_pci_softc *pc)
 		 * This should not happen since we setup our Rx filter
 		 * to not receive these frames.
 		 */
-		RTWN_DPRINTF(sc, RTWN_DEBUG_RECV,
-		    "%s: RX flags error (%s)\n", __func__,
-		    rxdw0 & RTWN_RXDW0_CRCERR ? "CRC" : "ICV");
+		RTWN_DPRINTF(sc, RTWN_DEBUG_RECV, "%s: RX flags error (%s)\n",
+		    __func__, rxdw0 & RTWN_RXDW0_CRCERR ? "CRC" : "ICV");
 		goto fail;
 	}
 
 	pktlen = MS(rxdw0, RTWN_RXDW0_PKTLEN);
 	if (__predict_false(pktlen < sizeof(struct ieee80211_frame_ack) ||
-	    pktlen > MJUMPAGESIZE)) {
+		pktlen > MJUMPAGESIZE)) {
 		RTWN_DPRINTF(sc, RTWN_DEBUG_RECV,
 		    "%s: frame is too short/long: %d\n", __func__, pktlen);
 		goto fail;
@@ -156,8 +152,8 @@ rtwn_pci_rx_frame(struct rtwn_pci_softc *pc)
 	ni = rtwn_rx_common(sc, m, rx_desc);
 
 	RTWN_DPRINTF(sc, RTWN_DEBUG_RECV,
-	    "%s: Rx frame len %d, infosz %d, shift %d\n",
-	    __func__, pktlen, infosz, shift);
+	    "%s: Rx frame len %d, infosz %d, shift %d\n", __func__, pktlen,
+	    infosz, shift);
 
 	/* Send the frame to the 802.11 layer. */
 	RTWN_UNLOCK(sc);
@@ -198,8 +194,7 @@ rtwn_pci_rx_buf_copy(struct rtwn_pci_softc *pc)
 	rxdw0 = le32toh(rx_desc->rxdw0);
 	pktlen = MS(rxdw0, RTWN_RXDW0_PKTLEN);
 
-	if (pktlen > sizeof(pc->pc_rx_buf) - desc_size)
-	{
+	if (pktlen > sizeof(pc->pc_rx_buf) - desc_size) {
 		/* Looks like an ordinary Rx frame. */
 		return (desc_size);
 	}
@@ -217,9 +212,8 @@ rtwn_pci_tx_report(struct rtwn_pci_softc *pc, int len)
 
 	if (sc->sc_ratectl != RTWN_RATECTL_NET80211) {
 		/* shouldn't happen */
-		device_printf(sc->sc_dev,
-		    "%s called while ratectl = %d!\n",
-		     __func__, sc->sc_ratectl);
+		device_printf(sc->sc_dev, "%s called while ratectl = %d!\n",
+		    __func__, sc->sc_ratectl);
 		return;
 	}
 
@@ -256,10 +250,10 @@ rtwn_pci_tx_done(struct rtwn_softc *sc, int qid)
 	bus_dmamap_sync(ring->desc_dmat, ring->desc_map,
 	    BUS_DMASYNC_POSTREAD | BUS_DMASYNC_POSTWRITE);
 
-	while(ring->last != ring->cur) {
+	while (ring->last != ring->cur) {
 		data = &ring->tx_data[ring->last];
-		desc = (struct rtwn_tx_desc_common *)
-		    ((uint8_t *)ring->desc + sc->txdesc_len * ring->last);
+		desc = (struct rtwn_tx_desc_common *)((uint8_t *)ring->desc +
+		    sc->txdesc_len * ring->last);
 
 		KASSERT(data->m != NULL, ("no mbuf"));
 
@@ -271,7 +265,7 @@ rtwn_pci_tx_done(struct rtwn_softc *sc, int qid)
 		    BUS_DMASYNC_POSTWRITE);
 		bus_dmamap_unload(ring->data_dmat, data->map);
 
-		if (data->ni != NULL) {	/* not a beacon frame */
+		if (data->ni != NULL) { /* not a beacon frame */
 			ieee80211_tx_complete(data->ni, data->m, 0);
 
 			data->ni = NULL;
@@ -297,7 +291,7 @@ rtwn_pci_tx_done(struct rtwn_softc *sc, int qid)
 		rtwn_start(sc);
 	}
 
-#ifdef  IEEE80211_SUPPORT_SUPERG
+#ifdef IEEE80211_SUPPORT_SUPERG
 	/*
 	 * If the TX active queue drops below a certain
 	 * threshold, ensure we age fast-frames out so they're

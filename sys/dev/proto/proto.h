@@ -27,33 +27,33 @@
 #ifndef _DEV_PROTO_H_
 #define _DEV_PROTO_H_
 
-#define	PROTO_RES_MAX	16
+#define PROTO_RES_MAX 16
 
-#define	PROTO_RES_UNUSED	0
-#define	PROTO_RES_PCICFG	10
-#define	PROTO_RES_BUSDMA	11
+#define PROTO_RES_UNUSED 0
+#define PROTO_RES_PCICFG 10
+#define PROTO_RES_BUSDMA 11
 
 struct proto_res {
-	u_int		r_type:8;
-	u_int		r_opened:1;
-	int		r_rid;
+	u_int r_type : 8;
+	u_int r_opened : 1;
+	int r_rid;
 	union {
 		struct resource *res;
 		void *busdma;
 	} r_d;
-	u_long		r_size;
+	u_long r_size;
 	union {
-		void		*cookie;
-		struct cdev	*cdev;
+		void *cookie;
+		struct cdev *cdev;
 	} r_u;
 };
 
 struct proto_softc {
-	device_t	sc_dev;
+	device_t sc_dev;
 	struct proto_res sc_res[PROTO_RES_MAX];
-	int		sc_rescnt;
-	int		sc_opencnt;
-	struct mtx	sc_mtx;
+	int sc_rescnt;
+	int sc_opencnt;
+	struct mtx sc_mtx;
 };
 
 extern char proto_driver_name[];

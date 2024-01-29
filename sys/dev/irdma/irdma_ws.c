@@ -32,13 +32,12 @@
  * SOFTWARE.
  */
 
-#include "osdep.h"
-#include "irdma_hmc.h"
 #include "irdma_defs.h"
-#include "irdma_type.h"
+#include "irdma_hmc.h"
 #include "irdma_protos.h"
-
+#include "irdma_type.h"
 #include "irdma_ws.h"
+#include "osdep.h"
 
 /**
  * irdma_alloc_node - Allocate a WS node and init
@@ -48,10 +47,8 @@
  * @parent: parent node pointer
  */
 static struct irdma_ws_node *
-irdma_alloc_node(struct irdma_sc_vsi *vsi,
-		 u8 user_pri,
-		 enum irdma_ws_node_type node_type,
-		 struct irdma_ws_node *parent)
+irdma_alloc_node(struct irdma_sc_vsi *vsi, u8 user_pri,
+    enum irdma_ws_node_type node_type, struct irdma_ws_node *parent)
 {
 	struct irdma_virt_mem ws_mem;
 	struct irdma_ws_node *node;
@@ -100,8 +97,7 @@ irdma_alloc_node(struct irdma_sc_vsi *vsi,
  * @node: Pointer to node to free
  */
 static void
-irdma_free_node(struct irdma_sc_vsi *vsi,
-		struct irdma_ws_node *node)
+irdma_free_node(struct irdma_sc_vsi *vsi, struct irdma_ws_node *node)
 {
 	struct irdma_virt_mem ws_mem;
 
@@ -120,10 +116,9 @@ irdma_free_node(struct irdma_sc_vsi *vsi,
  * @cmd: add, remove or modify
  */
 static int
-irdma_ws_cqp_cmd(struct irdma_sc_vsi *vsi,
-		 struct irdma_ws_node *node, u8 cmd)
+irdma_ws_cqp_cmd(struct irdma_sc_vsi *vsi, struct irdma_ws_node *node, u8 cmd)
 {
-	struct irdma_ws_node_info node_info = {0};
+	struct irdma_ws_node_info node_info = { 0 };
 
 	node_info.id = node->index;
 	node_info.vsi = node->vsi_index;
@@ -157,21 +152,22 @@ irdma_ws_cqp_cmd(struct irdma_sc_vsi *vsi,
  * @type: match type VSI/TC
  */
 static struct irdma_ws_node *
-ws_find_node(struct irdma_ws_node *parent,
-	     u16 match_val,
-	     enum irdma_ws_match_type type)
+ws_find_node(struct irdma_ws_node *parent, u16 match_val,
+    enum irdma_ws_match_type type)
 {
 	struct irdma_ws_node *node;
 
 	switch (type) {
 	case WS_MATCH_TYPE_VSI:
-		list_for_each_entry(node, &parent->child_list_head, siblings) {
+		list_for_each_entry(node, &parent->child_list_head, siblings)
+		{
 			if (node->vsi_index == match_val)
 				return node;
 		}
 		break;
 	case WS_MATCH_TYPE_TC:
-		list_for_each_entry(node, &parent->child_list_head, siblings) {
+		list_for_each_entry(node, &parent->child_list_head, siblings)
+		{
 			if (node->traffic_class == match_val)
 				return node;
 		}
@@ -200,8 +196,8 @@ irdma_ws_in_use(struct irdma_sc_vsi *vsi, u8 user_pri)
 	}
 
 	/*
-	 * Check if the qs handle associated with the given user priority is in use by any other user priority. If so,
-	 * nothing left to do
+	 * Check if the qs handle associated with the given user priority is in
+	 * use by any other user priority. If so, nothing left to do
 	 */
 	for (i = 0; i < IRDMA_MAX_USER_PRIORITY; i++) {
 		if (vsi->qos[i].qs_handle == vsi->qos[user_pri].qs_handle &&
@@ -236,14 +232,12 @@ irdma_remove_leaf(struct irdma_sc_vsi *vsi, u8 user_pri)
 	if (!ws_tree_root)
 		return;
 
-	vsi_node = ws_find_node(ws_tree_root, vsi->vsi_idx,
-				WS_MATCH_TYPE_VSI);
+	vsi_node = ws_find_node(ws_tree_root, vsi->vsi_idx, WS_MATCH_TYPE_VSI);
 	if (!vsi_node)
 		return;
 
-	tc_node = ws_find_node(vsi_node,
-			       vsi->qos[user_pri].traffic_class,
-			       WS_MATCH_TYPE_TC);
+	tc_node = ws_find_node(vsi_node, vsi->qos[user_pri].traffic_class,
+	    WS_MATCH_TYPE_TC);
 	if (!tc_node)
 		return;
 
@@ -259,7 +253,7 @@ irdma_remove_leaf(struct irdma_sc_vsi *vsi, u8 user_pri)
 		/* Free head node there are no remaining VSI nodes */
 		if (list_empty(&ws_tree_root->child_list_head)) {
 			irdma_ws_cqp_cmd(vsi, ws_tree_root,
-					 IRDMA_OP_WS_DELETE_NODE);
+			    IRDMA_OP_WS_DELETE_NODE);
 			irdma_free_node(vsi, ws_tree_root);
 			vsi->dev->ws_tree_root = NULL;
 		}
@@ -293,12 +287,13 @@ irdma_ws_add(struct irdma_sc_vsi *vsi, u8 user_pri)
 	ws_tree_root = vsi->dev->ws_tree_root;
 	if (!ws_tree_root) {
 		ws_tree_root = irdma_alloc_node(vsi, user_pri,
-						WS_NODE_TYPE_PARENT, NULL);
+		    WS_NODE_TYPE_PARENT, NULL);
 		if (!ws_tree_root) {
 			ret = -ENOMEM;
 			goto exit;
 		}
-		irdma_debug(vsi->dev, IRDMA_DEBUG_WS, "Creating root node = %d\n", ws_tree_root->index);
+		irdma_debug(vsi->dev, IRDMA_DEBUG_WS,
+		    "Creating root node = %d\n", ws_tree_root->index);
 
 		ret = irdma_ws_cqp_cmd(vsi, ws_tree_root, IRDMA_OP_WS_ADD_NODE);
 		if (ret) {
@@ -310,15 +305,14 @@ irdma_ws_add(struct irdma_sc_vsi *vsi, u8 user_pri)
 	}
 
 	/* Find a second tier node that matches the VSI */
-	vsi_node = ws_find_node(ws_tree_root, vsi->vsi_idx,
-				WS_MATCH_TYPE_VSI);
+	vsi_node = ws_find_node(ws_tree_root, vsi->vsi_idx, WS_MATCH_TYPE_VSI);
 
 	/* If VSI node doesn't exist, add one */
 	if (!vsi_node) {
 		irdma_debug(vsi->dev, IRDMA_DEBUG_WS,
-			    "Node not found matching VSI %d\n", vsi->vsi_idx);
+		    "Node not found matching VSI %d\n", vsi->vsi_idx);
 		vsi_node = irdma_alloc_node(vsi, user_pri, WS_NODE_TYPE_PARENT,
-					    ws_tree_root);
+		    ws_tree_root);
 		if (!vsi_node) {
 			ret = -ENOMEM;
 			goto vsi_add_err;
@@ -334,18 +328,17 @@ irdma_ws_add(struct irdma_sc_vsi *vsi, u8 user_pri)
 	}
 
 	irdma_debug(vsi->dev, IRDMA_DEBUG_WS,
-		    "Using node %d which represents VSI %d\n", vsi_node->index,
-		    vsi->vsi_idx);
+	    "Using node %d which represents VSI %d\n", vsi_node->index,
+	    vsi->vsi_idx);
 	traffic_class = vsi->qos[user_pri].traffic_class;
-	tc_node = ws_find_node(vsi_node, traffic_class,
-			       WS_MATCH_TYPE_TC);
+	tc_node = ws_find_node(vsi_node, traffic_class, WS_MATCH_TYPE_TC);
 	if (!tc_node) {
 		/* Add leaf node */
 		irdma_debug(vsi->dev, IRDMA_DEBUG_WS,
-			    "Node not found matching VSI %d and TC %d\n",
-			    vsi->vsi_idx, traffic_class);
+		    "Node not found matching VSI %d and TC %d\n", vsi->vsi_idx,
+		    traffic_class);
 		tc_node = irdma_alloc_node(vsi, user_pri, WS_NODE_TYPE_LEAF,
-					   vsi_node);
+		    vsi_node);
 		if (!tc_node) {
 			ret = -ENOMEM;
 			goto leaf_add_err;
@@ -373,15 +366,17 @@ irdma_ws_add(struct irdma_sc_vsi *vsi, u8 user_pri)
 		}
 	}
 	irdma_debug(vsi->dev, IRDMA_DEBUG_WS,
-		    "Using node %d which represents VSI %d TC %d\n",
-		    tc_node->index, vsi->vsi_idx, traffic_class);
+	    "Using node %d which represents VSI %d TC %d\n", tc_node->index,
+	    vsi->vsi_idx, traffic_class);
 	/*
-	 * Iterate through other UPs and update the QS handle if they have a matching traffic class.
+	 * Iterate through other UPs and update the QS handle if they have a
+	 * matching traffic class.
 	 */
 	for (i = 0; i < IRDMA_MAX_USER_PRIORITY; i++) {
 		if (vsi->qos[i].traffic_class == traffic_class) {
 			vsi->qos[i].qs_handle = tc_node->qs_handle;
-			vsi->qos[i].l2_sched_node_id = tc_node->l2_sched_node_id;
+			vsi->qos[i].l2_sched_node_id =
+			    tc_node->l2_sched_node_id;
 			vsi->qos[i].valid = true;
 		}
 	}

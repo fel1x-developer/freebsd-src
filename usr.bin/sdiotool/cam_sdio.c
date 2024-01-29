@@ -25,15 +25,14 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "cam_sdio.h"
 
 /* Use CMD52 to read or write a single byte */
 int
-sdio_rw_direct(struct cam_device *dev,
-	       uint8_t func_number,
-	       uint32_t addr,
-	       uint8_t is_write,
-	       uint8_t *data, uint8_t *resp) {
+sdio_rw_direct(struct cam_device *dev, uint8_t func_number, uint32_t addr,
+    uint8_t is_write, uint8_t *data, uint8_t *resp)
+{
 	union ccb *ccb;
 	uint32_t flags;
 	uint32_t arg;
@@ -44,8 +43,7 @@ sdio_rw_direct(struct cam_device *dev,
 		warnx("%s: error allocating CCB", __func__);
 		return (-1);
 	}
-	bzero(&(&ccb->ccb_h)[1],
-	      sizeof(union ccb) - sizeof(struct ccb_hdr));
+	bzero(&(&ccb->ccb_h)[1], sizeof(union ccb) - sizeof(struct ccb_hdr));
 
 	flags = MMC_RSP_R5 | MMC_CMD_AC;
 	arg = SD_IO_RW_FUNC(func_number) | SD_IO_RW_ADR(addr);
@@ -53,17 +51,17 @@ sdio_rw_direct(struct cam_device *dev,
 		arg |= SD_IO_RW_WR | SD_IO_RW_RAW | SD_IO_RW_DAT(*data);
 
 	cam_fill_mmcio(&ccb->mmcio,
-		       /*retries*/ 0,
-		       /*cbfcnp*/ NULL,
-		       /*flags*/ CAM_DIR_NONE,
-		       /*mmc_opcode*/ SD_IO_RW_DIRECT,
-		       /*mmc_arg*/ arg,
-		       /*mmc_flags*/ flags,
-		       /*mmc_data*/ 0,
-		       /*timeout*/ 5000);
+	    /*retries*/ 0,
+	    /*cbfcnp*/ NULL,
+	    /*flags*/ CAM_DIR_NONE,
+	    /*mmc_opcode*/ SD_IO_RW_DIRECT,
+	    /*mmc_arg*/ arg,
+	    /*mmc_flags*/ flags,
+	    /*mmc_data*/ 0,
+	    /*timeout*/ 5000);
 
-	if (((retval = cam_send_ccb(dev, ccb)) < 0)
-	    || ((ccb->ccb_h.status & CAM_STATUS_MASK) != CAM_REQ_CMP)) {
+	if (((retval = cam_send_ccb(dev, ccb)) < 0) ||
+	    ((ccb->ccb_h.status & CAM_STATUS_MASK) != CAM_REQ_CMP)) {
 		const char warnstr[] = "error sending command";
 
 		if (retval < 0)
@@ -86,13 +84,10 @@ sdio_rw_direct(struct cam_device *dev,
  * blk_count > 0: block mode
  */
 int
-sdio_rw_extended(struct cam_device *dev,
-		 uint8_t func_number,
-		 uint32_t addr,
-		 uint8_t is_write,
-		 caddr_t data, size_t datalen,
-		 uint8_t is_increment,
-		 uint16_t blk_count) {
+sdio_rw_extended(struct cam_device *dev, uint8_t func_number, uint32_t addr,
+    uint8_t is_write, caddr_t data, size_t datalen, uint8_t is_increment,
+    uint16_t blk_count)
+{
 	union ccb *ccb;
 	uint32_t flags;
 	uint32_t arg;
@@ -111,12 +106,11 @@ sdio_rw_extended(struct cam_device *dev,
 		warnx("%s: error allocating CCB", __func__);
 		return (-1);
 	}
-	bzero(&(&ccb->ccb_h)[1],
-	      sizeof(union ccb) - sizeof(struct ccb_hdr));
+	bzero(&(&ccb->ccb_h)[1], sizeof(union ccb) - sizeof(struct ccb_hdr));
 
 	flags = MMC_RSP_R5 | MMC_CMD_ADTC;
 	arg = SD_IO_RW_FUNC(func_number) | SD_IO_RW_ADR(addr) |
-		SD_IOE_RW_LEN(datalen);
+	    SD_IOE_RW_LEN(datalen);
 
 	if (is_increment)
 		arg |= SD_IO_RW_INCR;
@@ -124,7 +118,7 @@ sdio_rw_extended(struct cam_device *dev,
 	mmcd.data = data;
 	mmcd.len = datalen;
 	mmcd.xfer_len = 0; /* not used by MMCCAM */
-	mmcd.mrq = NULL; /* not used by MMCCAM */
+	mmcd.mrq = NULL;   /* not used by MMCCAM */
 
 	if (is_write) {
 		arg |= SD_IO_RW_WR;
@@ -135,17 +129,17 @@ sdio_rw_extended(struct cam_device *dev,
 		mmcd.flags = MMC_DATA_READ;
 	}
 	cam_fill_mmcio(&ccb->mmcio,
-		       /*retries*/ 0,
-		       /*cbfcnp*/ NULL,
-		       /*flags*/ cam_flags,
-		       /*mmc_opcode*/ SD_IO_RW_EXTENDED,
-		       /*mmc_arg*/ arg,
-		       /*mmc_flags*/ flags,
-		       /*mmc_data*/ &mmcd,
-		       /*timeout*/ 5000);
+	    /*retries*/ 0,
+	    /*cbfcnp*/ NULL,
+	    /*flags*/ cam_flags,
+	    /*mmc_opcode*/ SD_IO_RW_EXTENDED,
+	    /*mmc_arg*/ arg,
+	    /*mmc_flags*/ flags,
+	    /*mmc_data*/ &mmcd,
+	    /*timeout*/ 5000);
 
-	if (((retval = cam_send_ccb(dev, ccb)) < 0)
-	    || ((ccb->ccb_h.status & CAM_STATUS_MASK) != CAM_REQ_CMP)) {
+	if (((retval = cam_send_ccb(dev, ccb)) < 0) ||
+	    ((ccb->ccb_h.status & CAM_STATUS_MASK) != CAM_REQ_CMP)) {
 		const char warnstr[] = "error sending command";
 
 		if (retval < 0)
@@ -162,9 +156,10 @@ sdio_rw_extended(struct cam_device *dev,
 	return (retval);
 }
 
-
 int
-sdio_read_bool_for_func(struct cam_device *dev, uint32_t addr, uint8_t func_number, uint8_t *is_enab) {
+sdio_read_bool_for_func(struct cam_device *dev, uint32_t addr,
+    uint8_t func_number, uint8_t *is_enab)
+{
 	uint8_t resp;
 	int ret;
 
@@ -178,7 +173,9 @@ sdio_read_bool_for_func(struct cam_device *dev, uint32_t addr, uint8_t func_numb
 }
 
 int
-sdio_set_bool_for_func(struct cam_device *dev, uint32_t addr, uint8_t func_number, int enable) {
+sdio_set_bool_for_func(struct cam_device *dev, uint32_t addr,
+    uint8_t func_number, int enable)
+{
 	uint8_t resp;
 	int ret;
 	uint8_t is_enabled;
@@ -188,13 +185,14 @@ sdio_set_bool_for_func(struct cam_device *dev, uint32_t addr, uint8_t func_numbe
 		return ret;
 
 	is_enabled = resp & (1 << func_number);
-	if ((is_enabled !=0 && enable == 1) || (is_enabled == 0 && enable == 0))
+	if ((is_enabled != 0 && enable == 1) ||
+	    (is_enabled == 0 && enable == 0))
 		return 0;
 
 	if (enable)
 		resp |= 1 << func_number;
 	else
-		resp &= ~ (1 << func_number);
+		resp &= ~(1 << func_number);
 
 	ret = sdio_rw_direct(dev, 0, addr, 1, &resp, &resp);
 
@@ -203,96 +201,116 @@ sdio_set_bool_for_func(struct cam_device *dev, uint32_t addr, uint8_t func_numbe
 
 /* Conventional I/O functions */
 uint8_t
-sdio_read_1(struct cam_device *dev, uint8_t func_number, uint32_t addr, int *ret) {
+sdio_read_1(struct cam_device *dev, uint8_t func_number, uint32_t addr,
+    int *ret)
+{
 	uint8_t val;
 	*ret = sdio_rw_direct(dev, func_number, addr, 0, NULL, &val);
 	return val;
 }
 
 int
-sdio_write_1(struct cam_device *dev, uint8_t func_number, uint32_t addr, uint8_t val) {
+sdio_write_1(struct cam_device *dev, uint8_t func_number, uint32_t addr,
+    uint8_t val)
+{
 	uint8_t _val;
 	return sdio_rw_direct(dev, func_number, addr, 0, &val, &_val);
 }
 
 uint16_t
-sdio_read_2(struct cam_device *dev, uint8_t func_number, uint32_t addr, int *ret) {
+sdio_read_2(struct cam_device *dev, uint8_t func_number, uint32_t addr,
+    int *ret)
+{
 	uint16_t val;
 	*ret = sdio_rw_extended(dev, func_number, addr,
-				/* is_write */ 0,
-				/* data */ (caddr_t) &val,
-				/* datalen */ sizeof(val),
-				/* is_increment */ 1,
-				/* blk_count */ 0
-		);
+	    /* is_write */ 0,
+	    /* data */ (caddr_t)&val,
+	    /* datalen */ sizeof(val),
+	    /* is_increment */ 1,
+	    /* blk_count */ 0);
 	return val;
 }
 
-
 int
-sdio_write_2(struct cam_device *dev, uint8_t func_number, uint32_t addr, uint16_t val) {
+sdio_write_2(struct cam_device *dev, uint8_t func_number, uint32_t addr,
+    uint16_t val)
+{
 	return sdio_rw_extended(dev, func_number, addr,
-				/* is_write */ 1,
-				/* data */ (caddr_t) &val,
-				/* datalen */ sizeof(val),
-				/* is_increment */ 1,
-				/* blk_count */ 0
-		);
+	    /* is_write */ 1,
+	    /* data */ (caddr_t)&val,
+	    /* datalen */ sizeof(val),
+	    /* is_increment */ 1,
+	    /* blk_count */ 0);
 }
 
 uint32_t
-sdio_read_4(struct cam_device *dev, uint8_t func_number, uint32_t addr, int *ret) {
+sdio_read_4(struct cam_device *dev, uint8_t func_number, uint32_t addr,
+    int *ret)
+{
 	uint32_t val;
 	*ret = sdio_rw_extended(dev, func_number, addr,
-				/* is_write */ 0,
-				/* data */ (caddr_t) &val,
-				/* datalen */ sizeof(val),
-				/* is_increment */ 1,
-				/* blk_count */ 0
-		);
+	    /* is_write */ 0,
+	    /* data */ (caddr_t)&val,
+	    /* datalen */ sizeof(val),
+	    /* is_increment */ 1,
+	    /* blk_count */ 0);
 	return val;
 }
 
-
 int
-sdio_write_4(struct cam_device *dev, uint8_t func_number, uint32_t addr, uint32_t val) {
+sdio_write_4(struct cam_device *dev, uint8_t func_number, uint32_t addr,
+    uint32_t val)
+{
 	return sdio_rw_extended(dev, func_number, addr,
-				/* is_write */ 1,
-				/* data */ (caddr_t) &val,
-				/* datalen */ sizeof(val),
-				/* is_increment */ 1,
-				/* blk_count */ 0
-		);
+	    /* is_write */ 1,
+	    /* data */ (caddr_t)&val,
+	    /* datalen */ sizeof(val),
+	    /* is_increment */ 1,
+	    /* blk_count */ 0);
 }
 
 /* Higher-level wrappers for certain management operations */
 int
-sdio_is_func_ready(struct cam_device *dev, uint8_t func_number, uint8_t *is_enab) {
-	return sdio_read_bool_for_func(dev, SD_IO_CCCR_FN_READY, func_number, is_enab);
+sdio_is_func_ready(struct cam_device *dev, uint8_t func_number,
+    uint8_t *is_enab)
+{
+	return sdio_read_bool_for_func(dev, SD_IO_CCCR_FN_READY, func_number,
+	    is_enab);
 }
 
 int
-sdio_is_func_enabled(struct cam_device *dev, uint8_t func_number, uint8_t *is_enab) {
-	return sdio_read_bool_for_func(dev, SD_IO_CCCR_FN_ENABLE, func_number, is_enab);
+sdio_is_func_enabled(struct cam_device *dev, uint8_t func_number,
+    uint8_t *is_enab)
+{
+	return sdio_read_bool_for_func(dev, SD_IO_CCCR_FN_ENABLE, func_number,
+	    is_enab);
 }
 
 int
-sdio_func_enable(struct cam_device *dev, uint8_t func_number, int enable) {
-	return sdio_set_bool_for_func(dev, SD_IO_CCCR_FN_ENABLE, func_number, enable);
+sdio_func_enable(struct cam_device *dev, uint8_t func_number, int enable)
+{
+	return sdio_set_bool_for_func(dev, SD_IO_CCCR_FN_ENABLE, func_number,
+	    enable);
 }
 
 int
-sdio_is_func_intr_enabled(struct cam_device *dev, uint8_t func_number, uint8_t *is_enab) {
-	return sdio_read_bool_for_func(dev, SD_IO_CCCR_INT_ENABLE, func_number, is_enab);
+sdio_is_func_intr_enabled(struct cam_device *dev, uint8_t func_number,
+    uint8_t *is_enab)
+{
+	return sdio_read_bool_for_func(dev, SD_IO_CCCR_INT_ENABLE, func_number,
+	    is_enab);
 }
 
 int
-sdio_func_intr_enable(struct cam_device *dev, uint8_t func_number, int enable) {
-	return sdio_set_bool_for_func(dev, SD_IO_CCCR_INT_ENABLE, func_number, enable);
+sdio_func_intr_enable(struct cam_device *dev, uint8_t func_number, int enable)
+{
+	return sdio_set_bool_for_func(dev, SD_IO_CCCR_INT_ENABLE, func_number,
+	    enable);
 }
 
 int
-sdio_card_set_bus_width(struct cam_device *dev, enum mmc_bus_width bw) {
+sdio_card_set_bus_width(struct cam_device *dev, enum mmc_bus_width bw)
+{
 	int ret;
 	uint8_t ctl_val;
 	ret = sdio_rw_direct(dev, 0, SD_IO_CCCR_BUS_WIDTH, 0, NULL, &ctl_val);
@@ -313,7 +331,8 @@ sdio_card_set_bus_width(struct cam_device *dev, enum mmc_bus_width bw) {
 		return -1;
 		break;
 	}
-	ret = sdio_rw_direct(dev, 0, SD_IO_CCCR_BUS_WIDTH, 1, &ctl_val, &ctl_val);
+	ret = sdio_rw_direct(dev, 0, SD_IO_CCCR_BUS_WIDTH, 1, &ctl_val,
+	    &ctl_val);
 	if (ret < 0) {
 		warn("Error setting CCCR_BUS_WIDTH value");
 		return ret;
@@ -323,7 +342,8 @@ sdio_card_set_bus_width(struct cam_device *dev, enum mmc_bus_width bw) {
 
 int
 sdio_func_read_cis(struct cam_device *dev, uint8_t func_number,
-		   uint32_t cis_addr, struct cis_info *info) {
+    uint32_t cis_addr, struct cis_info *info)
+{
 	uint8_t tuple_id, tuple_len, tuple_count;
 	uint32_t addr;
 
@@ -331,7 +351,8 @@ sdio_func_read_cis(struct cam_device *dev, uint8_t func_number,
 	int start, i, ch, count, ret;
 	char cis1_info_buf[256];
 
-	tuple_count = 0; /* Use to prevent infinite loop in case of parse errors */
+	tuple_count =
+	    0; /* Use to prevent infinite loop in case of parse errors */
 	memset(cis1_info_buf, 0, 256);
 	do {
 		addr = cis_addr;
@@ -354,28 +375,30 @@ sdio_func_read_cis(struct cam_device *dev, uint8_t func_number,
 			for (count = 0, start = 0, i = 0;
 			     (count < 4) && ((i + 4) < 256); i++) {
 				ch = sdio_read_1(dev, 0, addr + i, &ret);
-				printf("count=%d, start=%d, i=%d, Got %c (0x%02x)\n", count, start, i, ch, ch);
+				printf(
+				    "count=%d, start=%d, i=%d, Got %c (0x%02x)\n",
+				    count, start, i, ch, ch);
 				if (ch == 0xff)
 					break;
 				cis1_info_buf[i] = ch;
 				if (ch == 0) {
-					cis1_info[count] =
-						cis1_info_buf + start;
+					cis1_info[count] = cis1_info_buf +
+					    start;
 					start = i + 1;
 					count++;
 				}
 			}
 			printf("Card info:");
-			for (i=0; i<4; i++)
+			for (i = 0; i < 4; i++)
 				if (cis1_info[i])
 					printf(" %s", cis1_info[i]);
 			printf("\n");
 			break;
 		case SD_IO_CISTPL_MANFID:
-			info->man_id =  sdio_read_1(dev, 0, addr++, &ret);
+			info->man_id = sdio_read_1(dev, 0, addr++, &ret);
 			info->man_id |= sdio_read_1(dev, 0, addr++, &ret) << 8;
 
-			info->prod_id =  sdio_read_1(dev, 0, addr++, &ret);
+			info->prod_id = sdio_read_1(dev, 0, addr++, &ret);
 			info->prod_id |= sdio_read_1(dev, 0, addr++, &ret) << 8;
 			break;
 		case SD_IO_CISTPL_FUNCID:
@@ -389,15 +412,20 @@ sdio_func_read_cis(struct cam_device *dev, uint8_t func_number,
 			if (func_number == 0) {
 				/* skip extended_data */
 				addr++;
-				info->max_block_size  = sdio_read_1(dev, 0, addr++, &ret);
-				info->max_block_size |= sdio_read_1(dev, 0, addr++, &ret) << 8;
+				info->max_block_size = sdio_read_1(dev, 0,
+				    addr++, &ret);
+				info->max_block_size |=
+				    sdio_read_1(dev, 0, addr++, &ret) << 8;
 			} else {
-				info->max_block_size  = sdio_read_1(dev, 0, addr + 0xC, &ret);
-				info->max_block_size |= sdio_read_1(dev, 0, addr + 0xD, &ret) << 8;
+				info->max_block_size = sdio_read_1(dev, 0,
+				    addr + 0xC, &ret);
+				info->max_block_size |=
+				    sdio_read_1(dev, 0, addr + 0xD, &ret) << 8;
 			}
 			break;
 		default:
-			warnx("Skipping tuple ID %02X len %02X\n", tuple_id, tuple_len);
+			warnx("Skipping tuple ID %02X len %02X\n", tuple_id,
+			    tuple_len);
 		}
 		cis_addr += tuple_len + 2;
 		tuple_count++;
@@ -407,11 +435,12 @@ sdio_func_read_cis(struct cam_device *dev, uint8_t func_number,
 }
 
 uint32_t
-sdio_get_common_cis_addr(struct cam_device *dev) {
+sdio_get_common_cis_addr(struct cam_device *dev)
+{
 	uint32_t addr;
 	int ret;
 
-	addr =  sdio_read_1(dev, 0, SD_IO_CCCR_CISPTR, &ret);
+	addr = sdio_read_1(dev, 0, SD_IO_CCCR_CISPTR, &ret);
 	addr |= sdio_read_1(dev, 0, SD_IO_CCCR_CISPTR + 1, &ret) << 8;
 	addr |= sdio_read_1(dev, 0, SD_IO_CCCR_CISPTR + 2, &ret) << 16;
 
@@ -423,7 +452,9 @@ sdio_get_common_cis_addr(struct cam_device *dev) {
 	return addr;
 }
 
-void sdio_card_reset(struct cam_device *dev) {
+void
+sdio_card_reset(struct cam_device *dev)
+{
 	int ret;
 	uint8_t ctl_val;
 	ret = sdio_rw_direct(dev, 0, SD_IO_CCCR_CTL, 0, NULL, &ctl_val);

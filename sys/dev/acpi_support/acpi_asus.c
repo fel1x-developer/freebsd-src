@@ -39,70 +39,71 @@
  */
 
 #include "opt_acpi.h"
+
 #include <sys/param.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/bus.h>
 #include <sys/sbuf.h>
-
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
 
 #include <dev/acpica/acpivar.h>
 #include <dev/led/led.h>
 
-/* Methods */
-#define ACPI_ASUS_METHOD_BRN	1
-#define ACPI_ASUS_METHOD_DISP	2
-#define ACPI_ASUS_METHOD_LCD	3
-#define ACPI_ASUS_METHOD_CAMERA	4
-#define ACPI_ASUS_METHOD_CARDRD	5
-#define ACPI_ASUS_METHOD_WLAN	6
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
 
-#define _COMPONENT	ACPI_OEM
+/* Methods */
+#define ACPI_ASUS_METHOD_BRN 1
+#define ACPI_ASUS_METHOD_DISP 2
+#define ACPI_ASUS_METHOD_LCD 3
+#define ACPI_ASUS_METHOD_CAMERA 4
+#define ACPI_ASUS_METHOD_CARDRD 5
+#define ACPI_ASUS_METHOD_WLAN 6
+
+#define _COMPONENT ACPI_OEM
 ACPI_MODULE_NAME("ASUS")
 
 struct acpi_asus_model {
-	char	*name;
+	char *name;
 
-	char	*bled_set;
-	char	*dled_set;
-	char	*gled_set;
-	char	*mled_set;
-	char	*tled_set;
-	char	*wled_set;
+	char *bled_set;
+	char *dled_set;
+	char *gled_set;
+	char *mled_set;
+	char *tled_set;
+	char *wled_set;
 
-	char	*brn_get;
-	char	*brn_set;
-	char	*brn_up;
-	char	*brn_dn;
+	char *brn_get;
+	char *brn_set;
+	char *brn_up;
+	char *brn_dn;
 
-	char	*lcd_get;
-	char	*lcd_set;
+	char *lcd_get;
+	char *lcd_set;
 
-	char	*disp_get;
-	char	*disp_set;
+	char *disp_get;
+	char *disp_set;
 
-	char	*cam_get;
-	char	*cam_set;
+	char *cam_get;
+	char *cam_set;
 
-	char	*crd_get;
-	char	*crd_set;
+	char *crd_get;
+	char *crd_set;
 
-	char	*wlan_get;
-	char	*wlan_set;
+	char *wlan_get;
+	char *wlan_set;
 
-	void	(*n_func)(ACPI_HANDLE, UINT32, void *);
+	void (*n_func)(ACPI_HANDLE, UINT32, void *);
 
-	char	*lcdd;
-	void	(*lcdd_n_func)(ACPI_HANDLE, UINT32, void *);
+	char *lcdd;
+	void (*lcdd_n_func)(ACPI_HANDLE, UINT32, void *);
 };
 
 struct acpi_asus_led {
 	struct acpi_asus_softc *sc;
-	struct cdev	*cdev;
-	int		busy;
-	int		state;
+	struct cdev *cdev;
+	int busy;
+	int state;
 	enum {
 		ACPI_ASUS_LED_BLED,
 		ACPI_ASUS_LED_DLED,
@@ -114,307 +115,259 @@ struct acpi_asus_led {
 };
 
 struct acpi_asus_softc {
-	device_t		dev;
-	ACPI_HANDLE		handle;
-	ACPI_HANDLE		lcdd_handle;
+	device_t dev;
+	ACPI_HANDLE handle;
+	ACPI_HANDLE lcdd_handle;
 
-	struct acpi_asus_model	*model;
-	struct sysctl_ctx_list	sysctl_ctx;
-	struct sysctl_oid	*sysctl_tree;
+	struct acpi_asus_model *model;
+	struct sysctl_ctx_list sysctl_ctx;
+	struct sysctl_oid *sysctl_tree;
 
-	struct acpi_asus_led	s_bled;
-	struct acpi_asus_led	s_dled;
-	struct acpi_asus_led	s_gled;
-	struct acpi_asus_led	s_mled;
-	struct acpi_asus_led	s_tled;
-	struct acpi_asus_led	s_wled;
+	struct acpi_asus_led s_bled;
+	struct acpi_asus_led s_dled;
+	struct acpi_asus_led s_gled;
+	struct acpi_asus_led s_mled;
+	struct acpi_asus_led s_tled;
+	struct acpi_asus_led s_wled;
 
-	int			s_brn;
-	int			s_disp;
-	int			s_lcd;
-	int			s_cam;
-	int			s_crd;
-	int			s_wlan;
+	int s_brn;
+	int s_disp;
+	int s_lcd;
+	int s_cam;
+	int s_crd;
+	int s_wlan;
 };
 
-static void	acpi_asus_lcdd_notify(ACPI_HANDLE h, UINT32 notify,
-    void *context);
+static void acpi_asus_lcdd_notify(ACPI_HANDLE h, UINT32 notify, void *context);
 
 /*
  * We can identify Asus laptops from the string they return
  * as a result of calling the ATK0100 'INIT' method.
  */
 static struct acpi_asus_model acpi_asus_models[] = {
-	{
-		.name		= "xxN",
-		.mled_set	= "MLED",
-		.wled_set	= "WLED",
-		.lcd_get	= "\\BKLT",
-		.lcd_set	= "\\_SB.PCI0.SBRG.EC0._Q10",
-		.brn_get	= "GPLV",
-		.brn_set	= "SPLV",
-		.disp_get	= "\\ADVG",
-		.disp_set	= "SDSP"
-	},
-	{
-		.name		= "A1x",
-		.mled_set	= "MLED",
-		.lcd_get	= "\\BKLI",
-		.lcd_set	= "\\_SB.PCI0.ISA.EC0._Q10",
-		.brn_up		= "\\_SB.PCI0.ISA.EC0._Q0E",
-		.brn_dn		= "\\_SB.PCI0.ISA.EC0._Q0F"
-	},
-	{
-		.name		= "A2x",
-		.mled_set	= "MLED",
-		.wled_set	= "WLED",
-		.lcd_get	= "\\BAOF",
-		.lcd_set	= "\\Q10",
-		.brn_get	= "GPLV",
-		.brn_set	= "SPLV",
-		.disp_get	= "\\INFB",
-		.disp_set	= "SDSP"
-	},
-	{
-		.name           = "A3E",
-		.mled_set       = "MLED",
-		.wled_set       = "WLED",
-		.lcd_get        = "\\_SB.PCI0.SBRG.EC0.RPIN(0x67)",
-		.lcd_set        = "\\_SB.PCI0.SBRG.EC0._Q10",
-		.brn_get        = "GPLV",
-		.brn_set        = "SPLV",
-		.disp_get       = "\\_SB.PCI0.P0P2.VGA.GETD",
-		.disp_set       = "SDSP"
-	},
-	{
-		.name           = "A3F",
-		.mled_set       = "MLED",
-		.wled_set       = "WLED",
-		.bled_set       = "BLED",
-		.lcd_get        = "\\_SB.PCI0.SBRG.EC0.RPIN(0x11)",
-		.lcd_set        = "\\_SB.PCI0.SBRG.EC0._Q10",
-		.brn_get        = "GPLV",
-		.brn_set        = "SPLV",
-		.disp_get       = "\\SSTE",
-		.disp_set       = "SDSP"
-	},
-	{
-		.name           = "A3N",
-		.mled_set       = "MLED",
-		.bled_set       = "BLED",
-		.wled_set       = "WLED",
-		.lcd_get        = "\\BKLT",
-		.lcd_set        = "\\_SB.PCI0.SBRG.EC0._Q10",
-		.brn_get        = "GPLV",
-		.brn_set        = "SPLV",
-		.disp_get       = "\\_SB.PCI0.P0P3.VGA.GETD",
-		.disp_set       = "SDSP"
-	},
-	{
-		.name		= "A4D",
-		.mled_set	= "MLED",
-		.brn_up		= "\\_SB_.PCI0.SBRG.EC0._Q0E",
-		.brn_dn		= "\\_SB_.PCI0.SBRG.EC0._Q0F",
-		.brn_get	= "GPLV",
-		.brn_set	= "SPLV",
+	{ .name = "xxN",
+	    .mled_set = "MLED",
+	    .wled_set = "WLED",
+	    .lcd_get = "\\BKLT",
+	    .lcd_set = "\\_SB.PCI0.SBRG.EC0._Q10",
+	    .brn_get = "GPLV",
+	    .brn_set = "SPLV",
+	    .disp_get = "\\ADVG",
+	    .disp_set = "SDSP" },
+	{ .name = "A1x",
+	    .mled_set = "MLED",
+	    .lcd_get = "\\BKLI",
+	    .lcd_set = "\\_SB.PCI0.ISA.EC0._Q10",
+	    .brn_up = "\\_SB.PCI0.ISA.EC0._Q0E",
+	    .brn_dn = "\\_SB.PCI0.ISA.EC0._Q0F" },
+	{ .name = "A2x",
+	    .mled_set = "MLED",
+	    .wled_set = "WLED",
+	    .lcd_get = "\\BAOF",
+	    .lcd_set = "\\Q10",
+	    .brn_get = "GPLV",
+	    .brn_set = "SPLV",
+	    .disp_get = "\\INFB",
+	    .disp_set = "SDSP" },
+	{ .name = "A3E",
+	    .mled_set = "MLED",
+	    .wled_set = "WLED",
+	    .lcd_get = "\\_SB.PCI0.SBRG.EC0.RPIN(0x67)",
+	    .lcd_set = "\\_SB.PCI0.SBRG.EC0._Q10",
+	    .brn_get = "GPLV",
+	    .brn_set = "SPLV",
+	    .disp_get = "\\_SB.PCI0.P0P2.VGA.GETD",
+	    .disp_set = "SDSP" },
+	{ .name = "A3F",
+	    .mled_set = "MLED",
+	    .wled_set = "WLED",
+	    .bled_set = "BLED",
+	    .lcd_get = "\\_SB.PCI0.SBRG.EC0.RPIN(0x11)",
+	    .lcd_set = "\\_SB.PCI0.SBRG.EC0._Q10",
+	    .brn_get = "GPLV",
+	    .brn_set = "SPLV",
+	    .disp_get = "\\SSTE",
+	    .disp_set = "SDSP" },
+	{ .name = "A3N",
+	    .mled_set = "MLED",
+	    .bled_set = "BLED",
+	    .wled_set = "WLED",
+	    .lcd_get = "\\BKLT",
+	    .lcd_set = "\\_SB.PCI0.SBRG.EC0._Q10",
+	    .brn_get = "GPLV",
+	    .brn_set = "SPLV",
+	    .disp_get = "\\_SB.PCI0.P0P3.VGA.GETD",
+	    .disp_set = "SDSP" },
+	{ .name = "A4D",
+	    .mled_set = "MLED",
+	    .brn_up = "\\_SB_.PCI0.SBRG.EC0._Q0E",
+	    .brn_dn = "\\_SB_.PCI0.SBRG.EC0._Q0F",
+	    .brn_get = "GPLV",
+	    .brn_set = "SPLV",
 #ifdef notyet
-		.disp_get	= "\\_SB_.PCI0.SBRG.EC0._Q10",
-		.disp_set	= "\\_SB_.PCI0.SBRG.EC0._Q11"
+	    .disp_get = "\\_SB_.PCI0.SBRG.EC0._Q10",
+	    .disp_set = "\\_SB_.PCI0.SBRG.EC0._Q11"
 #endif
 	},
+	{ .name = "A6V",
+	    .bled_set = "BLED",
+	    .mled_set = "MLED",
+	    .wled_set = "WLED",
+	    .lcd_get = NULL,
+	    .lcd_set = "\\_SB.PCI0.SBRG.EC0._Q10",
+	    .brn_get = "GPLV",
+	    .brn_set = "SPLV",
+	    .disp_get = "\\_SB.PCI0.P0P3.VGA.GETD",
+	    .disp_set = "SDSP" },
+	{ .name = "A8SR",
+	    .bled_set = "BLED",
+	    .mled_set = "MLED",
+	    .wled_set = "WLED",
+	    .lcd_get = NULL,
+	    .lcd_set = "\\_SB.PCI0.SBRG.EC0._Q10",
+	    .brn_get = "GPLV",
+	    .brn_set = "SPLV",
+	    .disp_get = "\\_SB.PCI0.P0P1.VGA.GETD",
+	    .disp_set = "SDSP",
+	    .lcdd = "\\_SB.PCI0.P0P1.VGA.LCDD",
+	    .lcdd_n_func = acpi_asus_lcdd_notify },
+	{ .name = "D1x",
+	    .mled_set = "MLED",
+	    .lcd_get = "\\GP11",
+	    .lcd_set = "\\Q0D",
+	    .brn_up = "\\Q0C",
+	    .brn_dn = "\\Q0B",
+	    .disp_get = "\\INFB",
+	    .disp_set = "SDSP" },
 	{
-		.name		= "A6V",
-		.bled_set	= "BLED",
-		.mled_set	= "MLED",
-		.wled_set	= "WLED",
-		.lcd_get	= NULL,
-		.lcd_set	= "\\_SB.PCI0.SBRG.EC0._Q10",
-		.brn_get	= "GPLV",
-		.brn_set	= "SPLV",
-		.disp_get	= "\\_SB.PCI0.P0P3.VGA.GETD",
-		.disp_set	= "SDSP"
+	    .name = "G2K",
+	    .bled_set = "BLED",
+	    .dled_set = "DLED",
+	    .gled_set = "GLED",
+	    .mled_set = "MLED",
+	    .tled_set = "TLED",
+	    .wled_set = "WLED",
+	    .brn_get = "GPLV",
+	    .brn_set = "SPLV",
+	    .lcd_get = "GBTL",
+	    .lcd_set = "SBTL",
+	    .disp_get = "\\_SB.PCI0.PCE2.VGA.GETD",
+	    .disp_set = "SDSP",
 	},
+	{ .name = "L2D",
+	    .mled_set = "MLED",
+	    .wled_set = "WLED",
+	    .brn_up = "\\Q0E",
+	    .brn_dn = "\\Q0F",
+	    .lcd_get = "\\SGP0",
+	    .lcd_set = "\\Q10" },
+	{ .name = "L3C",
+	    .mled_set = "MLED",
+	    .wled_set = "WLED",
+	    .brn_get = "GPLV",
+	    .brn_set = "SPLV",
+	    .lcd_get = "\\GL32",
+	    .lcd_set = "\\_SB.PCI0.PX40.ECD0._Q10" },
+	{ .name = "L3D",
+	    .mled_set = "MLED",
+	    .wled_set = "WLED",
+	    .brn_get = "GPLV",
+	    .brn_set = "SPLV",
+	    .lcd_get = "\\BKLG",
+	    .lcd_set = "\\Q10" },
+	{ .name = "L3H",
+	    .mled_set = "MLED",
+	    .wled_set = "WLED",
+	    .brn_get = "GPLV",
+	    .brn_set = "SPLV",
+	    .lcd_get = "\\_SB.PCI0.PM.PBC",
+	    .lcd_set = "EHK",
+	    .disp_get = "\\_SB.INFB",
+	    .disp_set = "SDSP" },
+	{ .name = "L4R",
+	    .mled_set = "MLED",
+	    .wled_set = "WLED",
+	    .brn_get = "GPLV",
+	    .brn_set = "SPLV",
+	    .lcd_get = "\\_SB.PCI0.SBSM.SEO4",
+	    .lcd_set = "\\_SB.PCI0.SBRG.EC0._Q10",
+	    .disp_get = "\\_SB.PCI0.P0P1.VGA.GETD",
+	    .disp_set = "SDSP" },
+	{ .name = "L5x",
+	    .mled_set = "MLED",
+	    .tled_set = "TLED",
+	    .lcd_get = "\\BAOF",
+	    .lcd_set = "\\Q0D",
+	    .brn_get = "GPLV",
+	    .brn_set = "SPLV",
+	    .disp_get = "\\INFB",
+	    .disp_set = "SDSP" },
 	{
-		.name		= "A8SR",
-		.bled_set	= "BLED",
-		.mled_set	= "MLED",
-		.wled_set	= "WLED",
-		.lcd_get	= NULL,
-		.lcd_set	= "\\_SB.PCI0.SBRG.EC0._Q10",
-		.brn_get	= "GPLV",
-		.brn_set	= "SPLV",
-		.disp_get	= "\\_SB.PCI0.P0P1.VGA.GETD",
-		.disp_set	= "SDSP",
-		.lcdd		= "\\_SB.PCI0.P0P1.VGA.LCDD",
-		.lcdd_n_func	= acpi_asus_lcdd_notify
+	    .name = "L8L"
+	    /* Only has hotkeys, apparently */
 	},
-	{
-		.name		= "D1x",
-		.mled_set	= "MLED",
-		.lcd_get	= "\\GP11",
-		.lcd_set	= "\\Q0D",
-		.brn_up		= "\\Q0C",
-		.brn_dn		= "\\Q0B",
-		.disp_get	= "\\INFB",
-		.disp_set	= "SDSP"
-	},
-	{
-		.name		= "G2K",
-		.bled_set	= "BLED",
-		.dled_set	= "DLED",
-		.gled_set	= "GLED",
-		.mled_set	= "MLED",
-		.tled_set	= "TLED",
-		.wled_set	= "WLED",
-		.brn_get	= "GPLV",
-		.brn_set	= "SPLV",
-		.lcd_get	= "GBTL",
-		.lcd_set	= "SBTL",
-		.disp_get	= "\\_SB.PCI0.PCE2.VGA.GETD",
-		.disp_set	= "SDSP",
-	},
-	{
-		.name		= "L2D",
-		.mled_set	= "MLED",
-		.wled_set	= "WLED",
-		.brn_up		= "\\Q0E",
-		.brn_dn		= "\\Q0F",
-		.lcd_get	= "\\SGP0",
-		.lcd_set	= "\\Q10"
-	},
-	{
-		.name		= "L3C",
-		.mled_set	= "MLED",
-		.wled_set	= "WLED",
-		.brn_get	= "GPLV",
-		.brn_set	= "SPLV",
-		.lcd_get	= "\\GL32",
-		.lcd_set	= "\\_SB.PCI0.PX40.ECD0._Q10"
-	},
-	{
-		.name		= "L3D",
-		.mled_set	= "MLED",
-		.wled_set	= "WLED",
-		.brn_get	= "GPLV",
-		.brn_set	= "SPLV",
-		.lcd_get	= "\\BKLG",
-		.lcd_set	= "\\Q10"
-	},
-	{
-		.name		= "L3H",
-		.mled_set	= "MLED",
-		.wled_set	= "WLED",
-		.brn_get	= "GPLV",
-		.brn_set	= "SPLV",
-		.lcd_get	= "\\_SB.PCI0.PM.PBC",
-		.lcd_set	= "EHK",
-		.disp_get	= "\\_SB.INFB",
-		.disp_set	= "SDSP"
-	},
-	{
-		.name		= "L4R",
-		.mled_set	= "MLED",
-		.wled_set	= "WLED",
-		.brn_get	= "GPLV",
-		.brn_set	= "SPLV",
-		.lcd_get	= "\\_SB.PCI0.SBSM.SEO4",
-		.lcd_set	= "\\_SB.PCI0.SBRG.EC0._Q10",
-		.disp_get	= "\\_SB.PCI0.P0P1.VGA.GETD",
-		.disp_set	= "SDSP"
-	},
-	{
-		.name		= "L5x",
-		.mled_set	= "MLED",
-		.tled_set	= "TLED",
-		.lcd_get	= "\\BAOF",
-		.lcd_set	= "\\Q0D",
-		.brn_get	= "GPLV",
-		.brn_set	= "SPLV",
-		.disp_get	= "\\INFB",
-		.disp_set	= "SDSP"
-	},
-	{
-		.name		= "L8L"
-		/* Only has hotkeys, apparently */
-	},
-	{
-		.name		= "M1A",
-		.mled_set	= "MLED",
-		.brn_up		= "\\_SB.PCI0.PX40.EC0.Q0E",
-		.brn_dn		= "\\_SB.PCI0.PX40.EC0.Q0F",
-		.lcd_get	= "\\PNOF",
-		.lcd_set	= "\\_SB.PCI0.PX40.EC0.Q10"
-	},
-	{
-		.name		= "M2E",
-		.mled_set	= "MLED",
-		.wled_set	= "WLED",
-		.brn_get	= "GPLV",
-		.brn_set	= "SPLV",
-		.lcd_get	= "\\GP06",
-		.lcd_set	= "\\Q10"
-	},
-	{
-		.name		= "M6N",
-		.mled_set	= "MLED",
-		.wled_set	= "WLED",
-		.lcd_set	= "\\_SB.PCI0.SBRG.EC0._Q10",
-		.lcd_get	= "\\_SB.BKLT",
-		.brn_set	= "SPLV",
-		.brn_get	= "GPLV",
-		.disp_set	= "SDSP",
-		.disp_get	= "\\SSTE"
-	},
-	{
-		.name		= "M6R",
-		.mled_set	= "MLED",
-		.wled_set	= "WLED",
-		.brn_get	= "GPLV",
-		.brn_set	= "SPLV",
-		.lcd_get	= "\\_SB.PCI0.SBSM.SEO4",
-		.lcd_set	= "\\_SB.PCI0.SBRG.EC0._Q10",
-		.disp_get	= "\\SSTE",
-		.disp_set	= "SDSP"
-	},
-	{
-		.name		= "S1x",
-		.mled_set	= "MLED",
-		.wled_set	= "WLED",
-		.lcd_get	= "\\PNOF",
-		.lcd_set	= "\\_SB.PCI0.PX40.Q10",
-		.brn_get	= "GPLV",
-		.brn_set	= "SPLV"
-	},
-	{
-		.name		= "S2x",
-		.mled_set	= "MLED",
-		.lcd_get	= "\\BKLI",
-		.lcd_set	= "\\_SB.PCI0.ISA.EC0._Q10",
-		.brn_up		= "\\_SB.PCI0.ISA.EC0._Q0B",
-		.brn_dn		= "\\_SB.PCI0.ISA.EC0._Q0A"
-	},
-	{
-		.name		= "V6V",
-		.bled_set	= "BLED",
-		.tled_set	= "TLED",
-		.wled_set	= "WLED",
-		.lcd_get	= "\\BKLT",
-		.lcd_set	= "\\_SB.PCI0.SBRG.EC0._Q10",
-		.brn_get	= "GPLV",
-		.brn_set	= "SPLV",
-		.disp_get	= "\\_SB.PCI0.P0P1.VGA.GETD",
-		.disp_set	= "SDSP"
-	},
-	{
-		.name		= "W5A",
-		.bled_set	= "BLED",
-		.lcd_get	= "\\BKLT",
-		.lcd_set	= "\\_SB.PCI0.SBRG.EC0._Q10",
-		.brn_get	= "GPLV",
-		.brn_set	= "SPLV",
-		.disp_get	= "\\_SB.PCI0.P0P2.VGA.GETD",
-		.disp_set	= "SDSP"
-	},
+	{ .name = "M1A",
+	    .mled_set = "MLED",
+	    .brn_up = "\\_SB.PCI0.PX40.EC0.Q0E",
+	    .brn_dn = "\\_SB.PCI0.PX40.EC0.Q0F",
+	    .lcd_get = "\\PNOF",
+	    .lcd_set = "\\_SB.PCI0.PX40.EC0.Q10" },
+	{ .name = "M2E",
+	    .mled_set = "MLED",
+	    .wled_set = "WLED",
+	    .brn_get = "GPLV",
+	    .brn_set = "SPLV",
+	    .lcd_get = "\\GP06",
+	    .lcd_set = "\\Q10" },
+	{ .name = "M6N",
+	    .mled_set = "MLED",
+	    .wled_set = "WLED",
+	    .lcd_set = "\\_SB.PCI0.SBRG.EC0._Q10",
+	    .lcd_get = "\\_SB.BKLT",
+	    .brn_set = "SPLV",
+	    .brn_get = "GPLV",
+	    .disp_set = "SDSP",
+	    .disp_get = "\\SSTE" },
+	{ .name = "M6R",
+	    .mled_set = "MLED",
+	    .wled_set = "WLED",
+	    .brn_get = "GPLV",
+	    .brn_set = "SPLV",
+	    .lcd_get = "\\_SB.PCI0.SBSM.SEO4",
+	    .lcd_set = "\\_SB.PCI0.SBRG.EC0._Q10",
+	    .disp_get = "\\SSTE",
+	    .disp_set = "SDSP" },
+	{ .name = "S1x",
+	    .mled_set = "MLED",
+	    .wled_set = "WLED",
+	    .lcd_get = "\\PNOF",
+	    .lcd_set = "\\_SB.PCI0.PX40.Q10",
+	    .brn_get = "GPLV",
+	    .brn_set = "SPLV" },
+	{ .name = "S2x",
+	    .mled_set = "MLED",
+	    .lcd_get = "\\BKLI",
+	    .lcd_set = "\\_SB.PCI0.ISA.EC0._Q10",
+	    .brn_up = "\\_SB.PCI0.ISA.EC0._Q0B",
+	    .brn_dn = "\\_SB.PCI0.ISA.EC0._Q0A" },
+	{ .name = "V6V",
+	    .bled_set = "BLED",
+	    .tled_set = "TLED",
+	    .wled_set = "WLED",
+	    .lcd_get = "\\BKLT",
+	    .lcd_set = "\\_SB.PCI0.SBRG.EC0._Q10",
+	    .brn_get = "GPLV",
+	    .brn_set = "SPLV",
+	    .disp_get = "\\_SB.PCI0.P0P1.VGA.GETD",
+	    .disp_set = "SDSP" },
+	{ .name = "W5A",
+	    .bled_set = "BLED",
+	    .lcd_get = "\\BKLT",
+	    .lcd_set = "\\_SB.PCI0.SBRG.EC0._Q10",
+	    .brn_get = "GPLV",
+	    .brn_set = "SPLV",
+	    .disp_get = "\\_SB.PCI0.P0P2.VGA.GETD",
+	    .disp_set = "SDSP" },
 	{ .name = NULL }
 };
 
@@ -423,109 +376,95 @@ static struct acpi_asus_model acpi_asus_models[] = {
  * but they can't be probed quite the same way as Asus laptops.
  */
 static struct acpi_asus_model acpi_samsung_models[] = {
-	{
-		.name		= "P30",
-		.wled_set	= "WLED",
-		.brn_up		= "\\_SB.PCI0.LPCB.EC0._Q68",
-		.brn_dn		= "\\_SB.PCI0.LPCB.EC0._Q69",
-		.lcd_get	= "\\BKLT",
-		.lcd_set	= "\\_SB.PCI0.LPCB.EC0._Q0E"
-	},
+	{ .name = "P30",
+	    .wled_set = "WLED",
+	    .brn_up = "\\_SB.PCI0.LPCB.EC0._Q68",
+	    .brn_dn = "\\_SB.PCI0.LPCB.EC0._Q69",
+	    .lcd_get = "\\BKLT",
+	    .lcd_set = "\\_SB.PCI0.LPCB.EC0._Q0E" },
 	{ .name = NULL }
 };
 
-static void	acpi_asus_eeepc_notify(ACPI_HANDLE h, UINT32 notify, void *context);
+static void acpi_asus_eeepc_notify(ACPI_HANDLE h, UINT32 notify, void *context);
 
 /*
  * EeePC have an Asus ASUS010 gadget interface,
  * but they can't be probed quite the same way as Asus laptops.
  */
 static struct acpi_asus_model acpi_eeepc_models[] = {
-	{
-		.name		= "EEE",
-		.brn_get	= "\\_SB.ATKD.PBLG",
-		.brn_set	= "\\_SB.ATKD.PBLS",
-		.cam_get	= "\\_SB.ATKD.CAMG",
-		.cam_set	= "\\_SB.ATKD.CAMS",
-		.crd_set	= "\\_SB.ATKD.CRDS",
-		.crd_get	= "\\_SB.ATKD.CRDG",
-		.wlan_get	= "\\_SB.ATKD.WLDG",
-		.wlan_set	= "\\_SB.ATKD.WLDS",
-		.n_func		= acpi_asus_eeepc_notify
-	},
+	{ .name = "EEE",
+	    .brn_get = "\\_SB.ATKD.PBLG",
+	    .brn_set = "\\_SB.ATKD.PBLS",
+	    .cam_get = "\\_SB.ATKD.CAMG",
+	    .cam_set = "\\_SB.ATKD.CAMS",
+	    .crd_set = "\\_SB.ATKD.CRDS",
+	    .crd_get = "\\_SB.ATKD.CRDG",
+	    .wlan_get = "\\_SB.ATKD.WLDG",
+	    .wlan_set = "\\_SB.ATKD.WLDS",
+	    .n_func = acpi_asus_eeepc_notify },
 	{ .name = NULL }
 };
 
 static struct {
-	char	*name;
-	char	*description;
-	int	method;
-	int	flag_anybody;
-} acpi_asus_sysctls[] = {
+	char *name;
+	char *description;
+	int method;
+	int flag_anybody;
+} acpi_asus_sysctls[] = { { .name = "lcd_backlight",
+			      .method = ACPI_ASUS_METHOD_LCD,
+			      .description = "state of the lcd backlight",
+			      .flag_anybody = 1 },
+	{ .name = "lcd_brightness",
+	    .method = ACPI_ASUS_METHOD_BRN,
+	    .description = "brightness of the lcd panel",
+	    .flag_anybody = 1 },
 	{
-		.name		= "lcd_backlight",
-		.method		= ACPI_ASUS_METHOD_LCD,
-		.description	= "state of the lcd backlight",
-		.flag_anybody	= 1
+	    .name = "video_output",
+	    .method = ACPI_ASUS_METHOD_DISP,
+	    .description = "display output state",
 	},
 	{
-		.name		= "lcd_brightness",
-		.method		= ACPI_ASUS_METHOD_BRN,
-		.description	= "brightness of the lcd panel",
-		.flag_anybody	= 1
+	    .name = "camera",
+	    .method = ACPI_ASUS_METHOD_CAMERA,
+	    .description = "internal camera state",
 	},
 	{
-		.name		= "video_output",
-		.method		= ACPI_ASUS_METHOD_DISP,
-		.description	= "display output state",
+	    .name = "cardreader",
+	    .method = ACPI_ASUS_METHOD_CARDRD,
+	    .description = "internal card reader state",
 	},
 	{
-		.name		= "camera",
-		.method		= ACPI_ASUS_METHOD_CAMERA,
-		.description	= "internal camera state",  
+	    .name = "wlan",
+	    .method = ACPI_ASUS_METHOD_WLAN,
+	    .description = "wireless lan state",
 	},
-	{
-		.name		= "cardreader",
-		.method		= ACPI_ASUS_METHOD_CARDRD,
-		.description	= "internal card reader state",
-	},
-	{
-		.name		= "wlan",
-		.method		= ACPI_ASUS_METHOD_WLAN,
-		.description	= "wireless lan state",
-	},
-	{ .name = NULL }
-};
+	{ .name = NULL } };
 
 ACPI_SERIAL_DECL(asus, "ACPI ASUS extras");
 
 /* Function prototypes */
-static int	acpi_asus_probe(device_t dev);
-static int	acpi_asus_attach(device_t dev);
-static int	acpi_asus_detach(device_t dev);
+static int acpi_asus_probe(device_t dev);
+static int acpi_asus_attach(device_t dev);
+static int acpi_asus_detach(device_t dev);
 
-static void	acpi_asus_led(struct acpi_asus_led *led, int state);
-static void	acpi_asus_led_task(struct acpi_asus_led *led, int pending __unused);
+static void acpi_asus_led(struct acpi_asus_led *led, int state);
+static void acpi_asus_led_task(struct acpi_asus_led *led, int pending __unused);
 
-static int	acpi_asus_sysctl(SYSCTL_HANDLER_ARGS);
-static int	acpi_asus_sysctl_init(struct acpi_asus_softc *sc, int method);
-static int	acpi_asus_sysctl_get(struct acpi_asus_softc *sc, int method);
-static int	acpi_asus_sysctl_set(struct acpi_asus_softc *sc, int method, int val);
+static int acpi_asus_sysctl(SYSCTL_HANDLER_ARGS);
+static int acpi_asus_sysctl_init(struct acpi_asus_softc *sc, int method);
+static int acpi_asus_sysctl_get(struct acpi_asus_softc *sc, int method);
+static int acpi_asus_sysctl_set(struct acpi_asus_softc *sc, int method,
+    int val);
 
-static void	acpi_asus_notify(ACPI_HANDLE h, UINT32 notify, void *context);
+static void acpi_asus_notify(ACPI_HANDLE h, UINT32 notify, void *context);
 
-static device_method_t acpi_asus_methods[] = {
-	DEVMETHOD(device_probe,  acpi_asus_probe),
+static device_method_t acpi_asus_methods[] = { DEVMETHOD(device_probe,
+						   acpi_asus_probe),
 	DEVMETHOD(device_attach, acpi_asus_attach),
-	DEVMETHOD(device_detach, acpi_asus_detach),
-	{ 0, 0 }
-};
+	DEVMETHOD(device_detach, acpi_asus_detach), { 0, 0 } };
 
-static driver_t acpi_asus_driver = {
-	"acpi_asus",
-	acpi_asus_methods,
-	sizeof(struct acpi_asus_softc)
-};
+static driver_t acpi_asus_driver = { "acpi_asus", acpi_asus_methods,
+	sizeof(struct acpi_asus_softc) };
 
 DRIVER_MODULE(acpi_asus, acpi, acpi_asus_driver, 0, 0);
 MODULE_DEPEND(acpi_asus, acpi, 1, 1, 1);
@@ -533,17 +472,17 @@ MODULE_DEPEND(acpi_asus, acpi, 1, 1, 1);
 static int
 acpi_asus_probe(device_t dev)
 {
-	struct acpi_asus_model	*model;
-	struct acpi_asus_softc	*sc;
-	struct sbuf		*sb;
-	ACPI_BUFFER		Buf;
-	ACPI_OBJECT		Arg, *Obj;
-	ACPI_OBJECT_LIST	Args;
-	static char		*asus_ids[] = { "ATK0100", "ASUS010", NULL };
+	struct acpi_asus_model *model;
+	struct acpi_asus_softc *sc;
+	struct sbuf *sb;
+	ACPI_BUFFER Buf;
+	ACPI_OBJECT Arg, *Obj;
+	ACPI_OBJECT_LIST Args;
+	static char *asus_ids[] = { "ATK0100", "ASUS010", NULL };
 	int rv;
 	char *rstr;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	if (acpi_disabled("asus"))
 		return (ENXIO);
@@ -573,8 +512,8 @@ acpi_asus_probe(device_t dev)
 	 * can identify it from the 'ODEM' string in the DSDT.
 	 */
 	if (Obj->String.Pointer == NULL) {
-		ACPI_STATUS		status;
-		ACPI_TABLE_HEADER	th;
+		ACPI_STATUS status;
+		ACPI_TABLE_HEADER th;
 
 		status = AcpiGetTableHeader(ACPI_SIG_DSDT, 0, &th);
 		if (ACPI_FAILURE(status)) {
@@ -608,7 +547,7 @@ acpi_asus_probe(device_t dev)
 	 */
 	for (model = acpi_asus_models; model->name != NULL; model++) {
 		if (strncmp(Obj->String.Pointer, model->name, 3) == 0) {
-good:
+		good:
 			sbuf_printf(sb, "Asus %s Laptop Extras",
 			    Obj->String.Pointer);
 			sbuf_finish(sb);
@@ -620,7 +559,7 @@ good:
 			AcpiOsFree(Buf.Pointer);
 			return (rv);
 		}
-		
+
 		/*
 		 * Some models look exactly the same as other models, but have
 		 * their own ids.  If we spot these, set them up with the same
@@ -631,7 +570,7 @@ good:
 		 */
 		else if (strncmp(model->name, "xxN", 3) == 0 &&
 		    (strncmp(Obj->String.Pointer, "M3N", 3) == 0 ||
-		     strncmp(Obj->String.Pointer, "S1N", 3) == 0))
+			strncmp(Obj->String.Pointer, "S1N", 3) == 0))
 			goto good;
 		else if (strncmp(model->name, "A1x", 3) == 0 &&
 		    strncmp(Obj->String.Pointer, "A1", 2) == 0)
@@ -653,15 +592,15 @@ good:
 			goto good;
 		else if (strncmp(model->name, "M2E", 3) == 0 &&
 		    (strncmp(Obj->String.Pointer, "M2", 2) == 0 ||
-		     strncmp(Obj->String.Pointer, "L4E", 3) == 0))
+			strncmp(Obj->String.Pointer, "L4E", 3) == 0))
 			goto good;
 		else if (strncmp(model->name, "S1x", 3) == 0 &&
 		    (strncmp(Obj->String.Pointer, "L8", 2) == 0 ||
-		     strncmp(Obj->String.Pointer, "S1", 2) == 0))
+			strncmp(Obj->String.Pointer, "S1", 2) == 0))
 			goto good;
 		else if (strncmp(model->name, "S2x", 3) == 0 &&
 		    (strncmp(Obj->String.Pointer, "J1", 2) == 0 ||
-		     strncmp(Obj->String.Pointer, "S2", 2) == 0))
+			strncmp(Obj->String.Pointer, "S2", 2) == 0))
 			goto good;
 
 		/* L2B is like L3C but has no lcd_get method */
@@ -681,7 +620,7 @@ good:
 		/* M2N and W1N are like xxN with added WLED */
 		else if (strncmp(model->name, "xxN", 3) == 0 &&
 		    (strncmp(Obj->String.Pointer, "M2N", 3) == 0 ||
-		     strncmp(Obj->String.Pointer, "W1N", 3) == 0)) {
+			strncmp(Obj->String.Pointer, "W1N", 3) == 0)) {
 			model->wled_set = "WLED";
 			goto good;
 		}
@@ -689,7 +628,7 @@ good:
 		/* M5N and S5N are like xxN without MLED */
 		else if (strncmp(model->name, "xxN", 3) == 0 &&
 		    (strncmp(Obj->String.Pointer, "M5N", 3) == 0 ||
-		     strncmp(Obj->String.Pointer, "S5N", 3) == 0)) {
+			strncmp(Obj->String.Pointer, "S5N", 3) == 0)) {
 			model->mled_set = NULL;
 			goto good;
 		}
@@ -709,10 +648,10 @@ good:
 static int
 acpi_asus_attach(device_t dev)
 {
-	struct acpi_asus_softc	*sc;
-	struct acpi_softc	*acpi_sc;
+	struct acpi_asus_softc *sc;
+	struct acpi_softc *acpi_sc;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	sc = device_get_softc(dev);
 	acpi_sc = acpi_device_get_parent_softc(dev);
@@ -720,8 +659,8 @@ acpi_asus_attach(device_t dev)
 	/* Build sysctl tree */
 	sysctl_ctx_init(&sc->sysctl_ctx);
 	sc->sysctl_tree = SYSCTL_ADD_NODE(&sc->sysctl_ctx,
-	    SYSCTL_CHILDREN(acpi_sc->acpi_sysctl_tree),
-	    OID_AUTO, "asus", CTLFLAG_RD | CTLFLAG_MPSAFE, 0, "");
+	    SYSCTL_CHILDREN(acpi_sc->acpi_sysctl_tree), OID_AUTO, "asus",
+	    CTLFLAG_RD | CTLFLAG_MPSAFE, 0, "");
 
 	/* Hook up nodes */
 	for (int i = 0; acpi_asus_sysctls[i].name != NULL; i++) {
@@ -733,14 +672,15 @@ acpi_asus_attach(device_t dev)
 			    SYSCTL_CHILDREN(sc->sysctl_tree), OID_AUTO,
 			    acpi_asus_sysctls[i].name,
 			    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_ANYBODY |
-			    CTLFLAG_MPSAFE, sc, i, acpi_asus_sysctl, "I",
+				CTLFLAG_MPSAFE,
+			    sc, i, acpi_asus_sysctl, "I",
 			    acpi_asus_sysctls[i].description);
 		} else {
 			SYSCTL_ADD_PROC(&sc->sysctl_ctx,
 			    SYSCTL_CHILDREN(sc->sysctl_tree), OID_AUTO,
 			    acpi_asus_sysctls[i].name,
-			    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE,
-			    sc, i, acpi_asus_sysctl, "I",
+			    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, sc, i,
+			    acpi_asus_sysctl, "I",
 			    acpi_asus_sysctls[i].description);
 		}
 	}
@@ -750,51 +690,48 @@ acpi_asus_attach(device_t dev)
 		sc->s_bled.busy = 0;
 		sc->s_bled.sc = sc;
 		sc->s_bled.type = ACPI_ASUS_LED_BLED;
-		sc->s_bled.cdev =
-		    led_create_state((led_t *)acpi_asus_led, &sc->s_bled,
-			"bled", 1);
+		sc->s_bled.cdev = led_create_state((led_t *)acpi_asus_led,
+		    &sc->s_bled, "bled", 1);
 	}
 
 	if (sc->model->dled_set) {
 		sc->s_dled.busy = 0;
 		sc->s_dled.sc = sc;
 		sc->s_dled.type = ACPI_ASUS_LED_DLED;
-		sc->s_dled.cdev =
-		    led_create((led_t *)acpi_asus_led, &sc->s_dled, "dled");
+		sc->s_dled.cdev = led_create((led_t *)acpi_asus_led,
+		    &sc->s_dled, "dled");
 	}
 
 	if (sc->model->gled_set) {
 		sc->s_gled.busy = 0;
 		sc->s_gled.sc = sc;
 		sc->s_gled.type = ACPI_ASUS_LED_GLED;
-		sc->s_gled.cdev =
-		    led_create((led_t *)acpi_asus_led, &sc->s_gled, "gled");
+		sc->s_gled.cdev = led_create((led_t *)acpi_asus_led,
+		    &sc->s_gled, "gled");
 	}
 
 	if (sc->model->mled_set) {
 		sc->s_mled.busy = 0;
 		sc->s_mled.sc = sc;
 		sc->s_mled.type = ACPI_ASUS_LED_MLED;
-		sc->s_mled.cdev =
-		    led_create((led_t *)acpi_asus_led, &sc->s_mled, "mled");
+		sc->s_mled.cdev = led_create((led_t *)acpi_asus_led,
+		    &sc->s_mled, "mled");
 	}
 
 	if (sc->model->tled_set) {
 		sc->s_tled.busy = 0;
 		sc->s_tled.sc = sc;
 		sc->s_tled.type = ACPI_ASUS_LED_TLED;
-		sc->s_tled.cdev =
-		    led_create_state((led_t *)acpi_asus_led, &sc->s_tled,
-			"tled", 1);
+		sc->s_tled.cdev = led_create_state((led_t *)acpi_asus_led,
+		    &sc->s_tled, "tled", 1);
 	}
 
 	if (sc->model->wled_set) {
 		sc->s_wled.busy = 0;
 		sc->s_wled.sc = sc;
 		sc->s_wled.type = ACPI_ASUS_LED_WLED;
-		sc->s_wled.cdev =
-		    led_create_state((led_t *)acpi_asus_led, &sc->s_wled,
-			"wled", 1);
+		sc->s_wled.cdev = led_create_state((led_t *)acpi_asus_led,
+		    &sc->s_wled, "wled", 1);
 	}
 
 	/* Activate hotkeys */
@@ -812,15 +749,16 @@ acpi_asus_attach(device_t dev)
 		ACPI_STATUS res;
 
 		sc->lcdd_handle = NULL;
-		res = AcpiGetHandle((sc->model->lcdd[0] == '\\' ?
-		    NULL : sc->handle), sc->model->lcdd, &(sc->lcdd_handle));
+		res = AcpiGetHandle((sc->model->lcdd[0] == '\\' ? NULL :
+								  sc->handle),
+		    sc->model->lcdd, &(sc->lcdd_handle));
 		if (ACPI_SUCCESS(res)) {
 			AcpiInstallNotifyHandler((sc->lcdd_handle),
 			    ACPI_DEVICE_NOTIFY, sc->model->lcdd_n_func, dev);
-	    	} else {
-	    		printf("%s: unable to find LCD device '%s'\n",
-	    		    __func__, sc->model->lcdd);
-	    	}
+		} else {
+			printf("%s: unable to find LCD device '%s'\n", __func__,
+			    sc->model->lcdd);
+		}
 	}
 
 	return (0);
@@ -829,9 +767,9 @@ acpi_asus_attach(device_t dev)
 static int
 acpi_asus_detach(device_t dev)
 {
-	struct acpi_asus_softc	*sc;
+	struct acpi_asus_softc *sc;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	sc = device_get_softc(dev);
 
@@ -861,8 +799,8 @@ acpi_asus_detach(device_t dev)
 	if (sc->lcdd_handle) {
 		KASSERT(sc->model->lcdd_n_func != NULL,
 		    ("model->lcdd_n_func is NULL, but lcdd_handle is non-zero"));
-		AcpiRemoveNotifyHandler((sc->lcdd_handle),
-		    ACPI_DEVICE_NOTIFY, sc->model->lcdd_n_func);
+		AcpiRemoveNotifyHandler((sc->lcdd_handle), ACPI_DEVICE_NOTIFY,
+		    sc->model->lcdd_n_func);
 	}
 
 	/* Free sysctl tree */
@@ -874,11 +812,11 @@ acpi_asus_detach(device_t dev)
 static void
 acpi_asus_led_task(struct acpi_asus_led *led, int pending __unused)
 {
-	struct acpi_asus_softc	*sc;
-	char			*method;
-	int			state;
+	struct acpi_asus_softc *sc;
+	char *method;
+	int state;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	sc = led->sc;
 
@@ -893,11 +831,11 @@ acpi_asus_led_task(struct acpi_asus_led *led, int pending __unused)
 		break;
 	case ACPI_ASUS_LED_GLED:
 		method = sc->model->gled_set;
-		state = led->state + 1;	/* 1: off, 2: on */
+		state = led->state + 1; /* 1: off, 2: on */
 		break;
 	case ACPI_ASUS_LED_MLED:
 		method = sc->model->mled_set;
-		state = !led->state;	/* inverted */
+		state = !led->state; /* inverted */
 		break;
 	case ACPI_ASUS_LED_TLED:
 		method = sc->model->tled_set;
@@ -908,8 +846,7 @@ acpi_asus_led_task(struct acpi_asus_led *led, int pending __unused)
 		state = led->state;
 		break;
 	default:
-		printf("acpi_asus_led: invalid LED type %d\n",
-		    (int)led->type);
+		printf("acpi_asus_led: invalid LED type %d\n", (int)led->type);
 		return;
 	}
 
@@ -921,7 +858,7 @@ static void
 acpi_asus_led(struct acpi_asus_led *led, int state)
 {
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	if (led->busy)
 		return;
@@ -935,13 +872,13 @@ acpi_asus_led(struct acpi_asus_led *led, int state)
 static int
 acpi_asus_sysctl(SYSCTL_HANDLER_ARGS)
 {
-	struct acpi_asus_softc	*sc;
-	int			arg;
-	int			error = 0;
-	int			function;
-	int			method;
+	struct acpi_asus_softc *sc;
+	int arg;
+	int error = 0;
+	int function;
+	int method;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	sc = (struct acpi_asus_softc *)oidp->oid_arg1;
 	function = oidp->oid_arg2;
@@ -968,7 +905,7 @@ acpi_asus_sysctl_get(struct acpi_asus_softc *sc, int method)
 {
 	int val = 0;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 	ACPI_SERIAL_ASSERT(asus);
 
 	switch (method) {
@@ -998,11 +935,11 @@ acpi_asus_sysctl_get(struct acpi_asus_softc *sc, int method)
 static int
 acpi_asus_sysctl_set(struct acpi_asus_softc *sc, int method, int arg)
 {
-	ACPI_STATUS		status = AE_OK;
-	ACPI_OBJECT_LIST 	acpiargs;
-	ACPI_OBJECT		acpiarg[1];
+	ACPI_STATUS status = AE_OK;
+	ACPI_OBJECT_LIST acpiargs;
+	ACPI_OBJECT acpiarg[1];
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 	ACPI_SERIAL_ASSERT(asus);
 
 	acpiargs.Count = 1;
@@ -1016,13 +953,14 @@ acpi_asus_sysctl_set(struct acpi_asus_softc *sc, int method, int arg)
 			return (EINVAL);
 
 		if (sc->model->brn_set)
-			status = acpi_SetInteger(sc->handle,
-			    sc->model->brn_set, arg);
+			status = acpi_SetInteger(sc->handle, sc->model->brn_set,
+			    arg);
 		else {
 			while (arg != 0) {
 				status = AcpiEvaluateObject(sc->handle,
-				    (arg > 0) ?  sc->model->brn_up :
-				    sc->model->brn_dn, NULL, NULL);
+				    (arg > 0) ? sc->model->brn_up :
+						sc->model->brn_dn,
+				    NULL, NULL);
 				(arg > 0) ? arg-- : arg++;
 			}
 		}
@@ -1035,8 +973,7 @@ acpi_asus_sysctl_set(struct acpi_asus_softc *sc, int method, int arg)
 		if (arg < 0 || arg > 7)
 			return (EINVAL);
 
-		status = acpi_SetInteger(sc->handle,
-		    sc->model->disp_set, arg);
+		status = acpi_SetInteger(sc->handle, sc->model->disp_set, arg);
 
 		if (ACPI_SUCCESS(status))
 			sc->s_disp = arg;
@@ -1050,8 +987,8 @@ acpi_asus_sysctl_set(struct acpi_asus_softc *sc, int method, int arg)
 			status = AcpiEvaluateObject(sc->handle,
 			    sc->model->lcd_set, NULL, NULL);
 		else
-			status = acpi_SetInteger(sc->handle,
-			    sc->model->lcd_set, 0x7);
+			status = acpi_SetInteger(sc->handle, sc->model->lcd_set,
+			    0x7);
 
 		if (ACPI_SUCCESS(status))
 			sc->s_lcd = arg;
@@ -1061,8 +998,8 @@ acpi_asus_sysctl_set(struct acpi_asus_softc *sc, int method, int arg)
 		if (arg < 0 || arg > 1)
 			return (EINVAL);
 
-		status = AcpiEvaluateObject(sc->handle,
-		    sc->model->cam_set, &acpiargs, NULL);
+		status = AcpiEvaluateObject(sc->handle, sc->model->cam_set,
+		    &acpiargs, NULL);
 
 		if (ACPI_SUCCESS(status))
 			sc->s_cam = arg;
@@ -1071,8 +1008,8 @@ acpi_asus_sysctl_set(struct acpi_asus_softc *sc, int method, int arg)
 		if (arg < 0 || arg > 1)
 			return (EINVAL);
 
-		status = AcpiEvaluateObject(sc->handle,
-		    sc->model->crd_set, &acpiargs, NULL);
+		status = AcpiEvaluateObject(sc->handle, sc->model->crd_set,
+		    &acpiargs, NULL);
 
 		if (ACPI_SUCCESS(status))
 			sc->s_crd = arg;
@@ -1081,8 +1018,8 @@ acpi_asus_sysctl_set(struct acpi_asus_softc *sc, int method, int arg)
 		if (arg < 0 || arg > 1)
 			return (EINVAL);
 
-		status = AcpiEvaluateObject(sc->handle,
-		    sc->model->wlan_set, &acpiargs, NULL);
+		status = AcpiEvaluateObject(sc->handle, sc->model->wlan_set,
+		    &acpiargs, NULL);
 
 		if (ACPI_SUCCESS(status))
 			sc->s_wlan = arg;
@@ -1095,14 +1032,14 @@ acpi_asus_sysctl_set(struct acpi_asus_softc *sc, int method, int arg)
 static int
 acpi_asus_sysctl_init(struct acpi_asus_softc *sc, int method)
 {
-	ACPI_STATUS	status;
+	ACPI_STATUS status;
 
 	switch (method) {
 	case ACPI_ASUS_METHOD_BRN:
 		if (sc->model->brn_get) {
 			/* GPLV/SPLV models */
-			status = acpi_GetInteger(sc->handle,
-			    sc->model->brn_get, &sc->s_brn);
+			status = acpi_GetInteger(sc->handle, sc->model->brn_get,
+			    &sc->s_brn);
 			if (ACPI_SUCCESS(status))
 				return (TRUE);
 		} else if (sc->model->brn_up) {
@@ -1131,9 +1068,9 @@ acpi_asus_sysctl_init(struct acpi_asus_softc *sc, int method)
 	case ACPI_ASUS_METHOD_LCD:
 		if (sc->model->lcd_get) {
 			if (strncmp(sc->model->name, "L3H", 3) == 0) {
-				ACPI_BUFFER		Buf;
-				ACPI_OBJECT		Arg[2], Obj;
-				ACPI_OBJECT_LIST	Args;
+				ACPI_BUFFER Buf;
+				ACPI_OBJECT Arg[2], Obj;
+				ACPI_OBJECT_LIST Args;
 
 				/* L3H is a bit special */
 				Arg[0].Type = ACPI_TYPE_INTEGER;
@@ -1164,16 +1101,16 @@ acpi_asus_sysctl_init(struct acpi_asus_softc *sc, int method)
 		return (FALSE);
 	case ACPI_ASUS_METHOD_CAMERA:
 		if (sc->model->cam_get) {
-			status = acpi_GetInteger(sc->handle,
-			    sc->model->cam_get, &sc->s_cam);
+			status = acpi_GetInteger(sc->handle, sc->model->cam_get,
+			    &sc->s_cam);
 			if (ACPI_SUCCESS(status))
 				return (TRUE);
 		}
 		return (FALSE);
 	case ACPI_ASUS_METHOD_CARDRD:
 		if (sc->model->crd_get) {
-			status = acpi_GetInteger(sc->handle,
-			    sc->model->crd_get, &sc->s_crd);
+			status = acpi_GetInteger(sc->handle, sc->model->crd_get,
+			    &sc->s_crd);
 			if (ACPI_SUCCESS(status))
 				return (TRUE);
 		}
@@ -1193,10 +1130,10 @@ acpi_asus_sysctl_init(struct acpi_asus_softc *sc, int method)
 static void
 acpi_asus_notify(ACPI_HANDLE h, UINT32 notify, void *context)
 {
-	struct acpi_asus_softc	*sc;
-	struct acpi_softc	*acpi_sc;
+	struct acpi_asus_softc *sc;
+	struct acpi_softc *acpi_sc;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	sc = device_get_softc((device_t)context);
 	acpi_sc = acpi_device_get_parent_softc(sc->dev);
@@ -1215,10 +1152,10 @@ acpi_asus_notify(ACPI_HANDLE h, UINT32 notify, void *context)
 		sc->s_lcd = 0;
 		ACPI_VPRINT(sc->dev, acpi_sc, "LCD turned off\n");
 	} else if (notify == 0x86) {
-		acpi_asus_sysctl_set(sc, ACPI_ASUS_METHOD_BRN, sc->s_brn-1);
+		acpi_asus_sysctl_set(sc, ACPI_ASUS_METHOD_BRN, sc->s_brn - 1);
 		ACPI_VPRINT(sc->dev, acpi_sc, "Brightness decreased\n");
 	} else if (notify == 0x87) {
-		acpi_asus_sysctl_set(sc, ACPI_ASUS_METHOD_BRN, sc->s_brn+1);
+		acpi_asus_sysctl_set(sc, ACPI_ASUS_METHOD_BRN, sc->s_brn + 1);
 		ACPI_VPRINT(sc->dev, acpi_sc, "Brightness increased\n");
 	} else {
 		/* Notify devd(8) */
@@ -1230,10 +1167,10 @@ acpi_asus_notify(ACPI_HANDLE h, UINT32 notify, void *context)
 static void
 acpi_asus_lcdd_notify(ACPI_HANDLE h, UINT32 notify, void *context)
 {
-	struct acpi_asus_softc	*sc;
-	struct acpi_softc	*acpi_sc;
+	struct acpi_asus_softc *sc;
+	struct acpi_softc *acpi_sc;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	sc = device_get_softc((device_t)context);
 	acpi_sc = acpi_device_get_parent_softc(sc->dev);
@@ -1241,11 +1178,11 @@ acpi_asus_lcdd_notify(ACPI_HANDLE h, UINT32 notify, void *context)
 	ACPI_SERIAL_BEGIN(asus);
 	switch (notify) {
 	case 0x87:
-		acpi_asus_sysctl_set(sc, ACPI_ASUS_METHOD_BRN, sc->s_brn-1);
+		acpi_asus_sysctl_set(sc, ACPI_ASUS_METHOD_BRN, sc->s_brn - 1);
 		ACPI_VPRINT(sc->dev, acpi_sc, "Brightness decreased\n");
 		break;
 	case 0x86:
-		acpi_asus_sysctl_set(sc, ACPI_ASUS_METHOD_BRN, sc->s_brn+1);
+		acpi_asus_sysctl_set(sc, ACPI_ASUS_METHOD_BRN, sc->s_brn + 1);
 		ACPI_VPRINT(sc->dev, acpi_sc, "Brightness increased\n");
 		break;
 	}
@@ -1255,10 +1192,10 @@ acpi_asus_lcdd_notify(ACPI_HANDLE h, UINT32 notify, void *context)
 static void
 acpi_asus_eeepc_notify(ACPI_HANDLE h, UINT32 notify, void *context)
 {
-	struct acpi_asus_softc	*sc;
-	struct acpi_softc	*acpi_sc;
+	struct acpi_asus_softc *sc;
+	struct acpi_softc *acpi_sc;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	sc = device_get_softc((device_t)context);
 	acpi_sc = acpi_device_get_parent_softc(sc->dev);

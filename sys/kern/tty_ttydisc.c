@@ -30,12 +30,12 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/fcntl.h>
 #include <sys/filio.h>
 #include <sys/kernel.h>
 #include <sys/signal.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 #include <sys/tty.h>
 #include <sys/ttycom.h>
 #include <sys/ttydefaults.h>
@@ -51,41 +51,45 @@
 
 /* Statistics. */
 static unsigned long tty_nin = 0;
-SYSCTL_ULONG(_kern, OID_AUTO, tty_nin, CTLFLAG_RD,
-	&tty_nin, 0, "Total amount of bytes received");
+SYSCTL_ULONG(_kern, OID_AUTO, tty_nin, CTLFLAG_RD, &tty_nin, 0,
+    "Total amount of bytes received");
 static unsigned long tty_nout = 0;
-SYSCTL_ULONG(_kern, OID_AUTO, tty_nout, CTLFLAG_RD,
-	&tty_nout, 0, "Total amount of bytes transmitted");
+SYSCTL_ULONG(_kern, OID_AUTO, tty_nout, CTLFLAG_RD, &tty_nout, 0,
+    "Total amount of bytes transmitted");
 
 /* termios comparison macro's. */
-#define	CMP_CC(v,c) (tp->t_termios.c_cc[v] != _POSIX_VDISABLE && \
-			tp->t_termios.c_cc[v] == (c))
-#define	CMP_FLAG(field,opt) (tp->t_termios.c_ ## field ## flag & (opt))
+#define CMP_CC(v, c)                                 \
+	(tp->t_termios.c_cc[v] != _POSIX_VDISABLE && \
+	    tp->t_termios.c_cc[v] == (c))
+#define CMP_FLAG(field, opt) (tp->t_termios.c_##field##flag & (opt))
 
 /* Characters that cannot be modified through c_cc. */
-#define CTAB	'\t'
-#define CNL	'\n'
-#define CCR	'\r'
+#define CTAB '\t'
+#define CNL '\n'
+#define CCR '\r'
 
 /* Character is a control character. */
-#define CTL_VALID(c)	((c) == 0x7f || (unsigned char)(c) < 0x20)
+#define CTL_VALID(c) ((c) == 0x7f || (unsigned char)(c) < 0x20)
 /* Control character should be processed on echo. */
-#define CTL_ECHO(c,q)	(!(q) && ((c) == CERASE2 || (c) == CTAB || \
-    (c) == CNL || (c) == CCR))
+#define CTL_ECHO(c, q) \
+	(!(q) && ((c) == CERASE2 || (c) == CTAB || (c) == CNL || (c) == CCR))
 /* Control character should be printed using ^X notation. */
-#define CTL_PRINT(c,q)	((c) == 0x7f || ((unsigned char)(c) < 0x20 && \
-    ((q) || ((c) != CTAB && (c) != CNL))))
+#define CTL_PRINT(c, q)                   \
+	((c) == 0x7f ||                   \
+	    ((unsigned char)(c) < 0x20 && \
+		((q) || ((c) != CTAB && (c) != CNL))))
 /* Character is whitespace. */
-#define CTL_WHITE(c)	((c) == ' ' || (c) == CTAB)
+#define CTL_WHITE(c) ((c) == ' ' || (c) == CTAB)
 /* Character is alphanumeric. */
-#define CTL_ALNUM(c)	(((c) >= '0' && (c) <= '9') || \
-    ((c) >= 'a' && (c) <= 'z') || ((c) >= 'A' && (c) <= 'Z'))
+#define CTL_ALNUM(c)                                                 \
+	(((c) >= '0' && (c) <= '9') || ((c) >= 'a' && (c) <= 'z') || \
+	    ((c) >= 'A' && (c) <= 'Z'))
 /* Character is UTF8-encoded. */
 #define CTL_UTF8(c) (!!((c) & 0x80))
 /* Character is a UTF8 continuation byte. */
 #define CTL_UTF8_CONT(c) (((c) & 0xc0) == 0x80)
 
-#define	TTY_STACKBUF	256
+#define TTY_STACKBUF 256
 #define UTF8_STACKBUF 4
 
 void
@@ -99,7 +103,7 @@ ttydisc_close(struct tty *tp)
 {
 
 	/* Clean up our flags when leaving the discipline. */
-	tp->t_flags &= ~(TF_STOPPED|TF_HIWAT|TF_ZOMBIE);
+	tp->t_flags &= ~(TF_STOPPED | TF_HIWAT | TF_ZOMBIE);
 	tp->t_termios.c_lflag &= ~FLUSHO;
 
 	/*
@@ -124,11 +128,12 @@ ttydisc_read_break(struct tty *tp, char *breakc, size_t breaksz)
 	MPASS(breaksz != 0);
 
 	breakc[n++] = CNL;
-#define BREAK_ADD(c) do { \
-	MPASS(n < breaksz - 1);	/* NUL terminated */	\
-	if (tp->t_termios.c_cc[c] != _POSIX_VDISABLE)	\
-		breakc[n++] = tp->t_termios.c_cc[c];	\
-} while (0)
+#define BREAK_ADD(c)                                          \
+	do {                                                  \
+		MPASS(n < breaksz - 1); /* NUL terminated */  \
+		if (tp->t_termios.c_cc[c] != _POSIX_VDISABLE) \
+			breakc[n++] = tp->t_termios.c_cc[c];  \
+	} while (0)
 	/* Determine which characters we should trigger on. */
 	BREAK_ADD(VEOF);
 	BREAK_ADD(VEOL);
@@ -283,8 +288,7 @@ ttydisc_read_raw_no_timer(struct tty *tp, struct uio *uio, int ioflag)
 		if (error)
 			return (error);
 
-		error = ttyinq_read_uio(&tp->t_inq, tp, uio,
-		    uio->uio_resid, 0);
+		error = ttyinq_read_uio(&tp->t_inq, tp, uio, uio->uio_resid, 0);
 		if (error)
 			return (error);
 		if (uio->uio_resid == 0 || (oresid - uio->uio_resid) >= vmin)
@@ -324,8 +328,7 @@ ttydisc_read_raw_read_timer(struct tty *tp, struct uio *uio, int ioflag,
 		if (error)
 			return (error);
 
-		error = ttyinq_read_uio(&tp->t_inq, tp, uio,
-		    uio->uio_resid, 0);
+		error = ttyinq_read_uio(&tp->t_inq, tp, uio, uio->uio_resid, 0);
 		if (error)
 			return (error);
 		if (uio->uio_resid == 0 || (oresid - uio->uio_resid) >= vmin)
@@ -377,8 +380,7 @@ ttydisc_read_raw_interbyte_timer(struct tty *tp, struct uio *uio, int ioflag)
 		if (error)
 			return (error);
 
-		error = ttyinq_read_uio(&tp->t_inq, tp, uio,
-		    uio->uio_resid, 0);
+		error = ttyinq_read_uio(&tp->t_inq, tp, uio, uio->uio_resid, 0);
 		if (error)
 			return (error);
 		if (uio->uio_resid == 0 || (oresid - uio->uio_resid) >= vmin)
@@ -476,8 +478,8 @@ ttydisc_write_oproc(struct tty *tp, char c)
 		/* Tab expansion. */
 		scnt = 8 - (tp->t_column & 7);
 		if (CMP_FLAG(o, TAB3)) {
-			error = ttyoutq_write_nofrag(&tp->t_outq,
-			    "        ", scnt);
+			error = ttyoutq_write_nofrag(&tp->t_outq, "        ",
+			    scnt);
 		} else {
 			error = PRINT_NORMAL();
 		}
@@ -499,7 +501,7 @@ ttydisc_write_oproc(struct tty *tp, char c)
 		if (error)
 			return (-1);
 
-		if (CMP_FLAG(o, ONLCR|ONLRET)) {
+		if (CMP_FLAG(o, ONLCR | ONLRET)) {
 			tp->t_column = tp->t_writepos = 0;
 			ttyinq_reprintpos_set(&tp->t_inq);
 		}
@@ -613,7 +615,8 @@ ttydisc_write(struct tty *tp, struct uio *uio, int ioflag)
 				}
 			} else {
 				/* We're going to write regular data. */
-				wlen = ttyoutq_write(&tp->t_outq, obstart, plen);
+				wlen = ttyoutq_write(&tp->t_outq, obstart,
+				    plen);
 				obstart += wlen;
 				oblen -= wlen;
 				tp->t_column += wlen;
@@ -675,11 +678,12 @@ ttydisc_optimize(struct tty *tp)
 		tp->t_flags |= TF_BYPASS;
 	} else if (ttyhook_hashook(tp, rint)) {
 		tp->t_flags &= ~TF_BYPASS;
-	} else if (!CMP_FLAG(i, ICRNL|IGNCR|IMAXBEL|INLCR|ISTRIP|IXON) &&
+	} else if (!CMP_FLAG(i,
+		       ICRNL | IGNCR | IMAXBEL | INLCR | ISTRIP | IXON) &&
 	    (!CMP_FLAG(i, BRKINT) || CMP_FLAG(i, IGNBRK)) &&
 	    (!CMP_FLAG(i, PARMRK) ||
-		CMP_FLAG(i, IGNPAR|IGNBRK) == (IGNPAR|IGNBRK)) &&
-	    !CMP_FLAG(l, ECHO|ICANON|IEXTEN|ISIG|PENDIN)) {
+		CMP_FLAG(i, IGNPAR | IGNBRK) == (IGNPAR | IGNBRK)) &&
+	    !CMP_FLAG(l, ECHO | ICANON | IEXTEN | ISIG | PENDIN)) {
 		tp->t_flags |= TF_BYPASS;
 	} else {
 		tp->t_flags &= ~TF_BYPASS;
@@ -711,7 +715,7 @@ ttydisc_modem(struct tty *tp, int open)
 		tp->t_flags |= TF_ZOMBIE;
 
 		tty_signal_sessleader(tp, SIGHUP);
-		tty_flush(tp, FREAD|FWRITE);
+		tty_flush(tp, FREAD | FWRITE);
 	} else {
 		/*
 		 * Carrier is back again.
@@ -768,8 +772,7 @@ ttydisc_echo(struct tty *tp, char c, int quote)
 	 * Only echo characters when ECHO is turned on, or ECHONL when
 	 * the character is an unquoted newline.
 	 */
-	if (!CMP_FLAG(l, ECHO) &&
-	    (!CMP_FLAG(l, ECHONL) || c != CNL || quote))
+	if (!CMP_FLAG(l, ECHO) && (!CMP_FLAG(l, ECHONL) || c != CNL || quote))
 		return (0);
 
 	return ttydisc_echo_force(tp, c, quote);
@@ -795,7 +798,8 @@ ttydisc_reprint(struct tty *tp)
 	ttydisc_echo(tp, CNL, 0);
 	ttyinq_reprintpos_reset(&tp->t_inq);
 
-	ttyinq_line_iterate_from_linestart(&tp->t_inq, ttydisc_reprint_char, tp);
+	ttyinq_line_iterate_from_linestart(&tp->t_inq, ttydisc_reprint_char,
+	    tp);
 }
 
 struct ttydisc_recalc_length {
@@ -904,7 +908,7 @@ ttydisc_rubchar(struct tty *tp)
 					 * of the line.
 					 */
 					if (ttyinq_peekchar(&tp->t_inq, &c,
-					    &quote) != 0)
+						&quote) != 0)
 						break;
 					ttyinq_unputchar(&tp->t_inq);
 					bytes[curidx] = c;
@@ -1032,7 +1036,7 @@ ttydisc_rint(struct tty *tp, char c, int flags)
 				return (0);
 			} else if (CMP_FLAG(i, BRKINT)) {
 				/* Generate SIGINT on break. */
-				tty_flush(tp, FREAD|FWRITE);
+				tty_flush(tp, FREAD | FWRITE);
 				tty_signal_pgrp(tp, SIGINT);
 				return (0);
 			} else {
@@ -1074,7 +1078,8 @@ ttydisc_rint(struct tty *tp, char c, int flags)
 		if (CMP_CC(VLNEXT, c)) {
 			if (CMP_FLAG(l, ECHO)) {
 				if (CMP_FLAG(l, ECHOE))
-					ttyoutq_write_nofrag(&tp->t_outq, "^\b", 2);
+					ttyoutq_write_nofrag(&tp->t_outq, "^\b",
+					    2);
 				else
 					ttydisc_echo(tp, c, 0);
 			}
@@ -1099,7 +1104,7 @@ ttydisc_rint(struct tty *tp, char c, int flags)
 	 * Handle signal processing.
 	 */
 	if (CMP_FLAG(l, ISIG)) {
-		if (CMP_FLAG(l, ICANON|IEXTEN) == (ICANON|IEXTEN)) {
+		if (CMP_FLAG(l, ICANON | IEXTEN) == (ICANON | IEXTEN)) {
 			if (CMP_CC(VSTATUS, c)) {
 				tty_signal_pgrp(tp, SIGINFO);
 				return (0);
@@ -1127,7 +1132,7 @@ ttydisc_rint(struct tty *tp, char c, int flags)
 			 * processes.
 			 */
 			if (!CMP_FLAG(l, NOFLSH))
-				tty_flush(tp, FREAD|FWRITE);
+				tty_flush(tp, FREAD | FWRITE);
 			ttydisc_echo(tp, c, 0);
 			tty_signal_pgrp(tp, signal);
 			return (0);
@@ -1178,7 +1183,8 @@ ttydisc_rint(struct tty *tp, char c, int flags)
 			ttydisc_rubchar(tp);
 			return (0);
 		} else if (CMP_CC(VKILL, c)) {
-			while (ttydisc_rubchar(tp) == 0);
+			while (ttydisc_rubchar(tp) == 0)
+				;
 			return (0);
 		} else if (CMP_FLAG(l, IEXTEN)) {
 			if (CMP_CC(VWERASE, c)) {

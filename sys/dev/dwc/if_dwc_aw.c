@@ -28,27 +28,24 @@
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/module.h>
+#include <sys/socket.h>
+
+#include <machine/bus.h>
+
+#include <dev/clk/clk.h>
+#include <dev/dwc/dwc1000_reg.h>
+#include <dev/dwc/if_dwcvar.h>
+#include <dev/hwreset/hwreset.h>
+#include <dev/mii/miivar.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+#include <dev/regulator/regulator.h>
 
 #include <net/if.h>
 #include <net/if_media.h>
 
-#include <machine/bus.h>
-
-#include <dev/mii/miivar.h>
-
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/clk/clk.h>
-#include <dev/hwreset/hwreset.h>
-#include <dev/regulator/regulator.h>
-
 #include <arm/allwinner/aw_machdep.h>
-
-#include <dev/dwc/if_dwcvar.h>
-#include <dev/dwc/dwc1000_reg.h>
 
 #include "if_dwc_if.h"
 
@@ -77,7 +74,7 @@ a20_if_dwc_init(device_t dev)
 	sc = device_get_softc(dev);
 
 	/* Configure PHY for MII or RGMII mode */
-	switch(sc->phy_mode) {
+	switch (sc->phy_mode) {
 	case MII_CONTYPE_RGMII:
 	case MII_CONTYPE_RGMII_ID:
 	case MII_CONTYPE_RGMII_RXID:
@@ -129,14 +126,13 @@ a20_if_dwc_mii_clk(device_t dev)
 	return (GMAC_MII_CLK_150_250M_DIV102);
 }
 
-static device_method_t a20_dwc_methods[] = {
-	DEVMETHOD(device_probe,		a20_if_dwc_probe),
+static device_method_t a20_dwc_methods[] = { DEVMETHOD(device_probe,
+						 a20_if_dwc_probe),
 
-	DEVMETHOD(if_dwc_init,		a20_if_dwc_init),
-	DEVMETHOD(if_dwc_mii_clk,	a20_if_dwc_mii_clk),
+	DEVMETHOD(if_dwc_init, a20_if_dwc_init),
+	DEVMETHOD(if_dwc_mii_clk, a20_if_dwc_mii_clk),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 extern driver_t dwc_driver;
 

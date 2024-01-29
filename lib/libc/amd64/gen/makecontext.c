@@ -28,11 +28,12 @@
 
 #include <sys/types.h>
 #include <sys/ucontext.h>
+
 #include <stdarg.h>
 #include <stdlib.h>
 
-typedef void (*func_t)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t,
-    uint64_t);
+typedef void (
+    *func_t)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
 
 /* Prototypes */
 static void makectx_wrapper(ucontext_t *ucp, func_t func, uint64_t *args);

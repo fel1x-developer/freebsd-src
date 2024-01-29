@@ -35,54 +35,55 @@
  *		BEWARE: lots of unfinished edges
  */
 
-#include <err.h>
 #include <ctype.h>
+#include <err.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include <vector>
 
-static long	flags;
-#define	TRANSPOSE	000001
-#define	MTRANSPOSE	000002
-#define	ONEPERLINE	000004
-#define	ONEISEPONLY	000010
-#define	ONEOSEPONLY	000020
-#define	NOTRIMENDCOL	000040
-#define	SQUEEZE		000100
-#define	SHAPEONLY	000200
-#define	DETAILSHAPE	000400
-#define	RIGHTADJUST	001000
-#define	NULLPAD		002000
-#define	RECYCLE		004000
-#define	SKIPPRINT	010000
-#define	ICOLBOUNDS	020000
-#define	OCOLBOUNDS	040000
-#define ONEPERCHAR	0100000
-#define NOARGS		0200000
+static long flags;
+#define TRANSPOSE 000001
+#define MTRANSPOSE 000002
+#define ONEPERLINE 000004
+#define ONEISEPONLY 000010
+#define ONEOSEPONLY 000020
+#define NOTRIMENDCOL 000040
+#define SQUEEZE 000100
+#define SHAPEONLY 000200
+#define DETAILSHAPE 000400
+#define RIGHTADJUST 001000
+#define NULLPAD 002000
+#define RECYCLE 004000
+#define SKIPPRINT 010000
+#define ICOLBOUNDS 020000
+#define OCOLBOUNDS 040000
+#define ONEPERCHAR 0100000
+#define NOARGS 0200000
 
-static short	*colwidths;
+static short *colwidths;
 static std::vector<char *> elem;
-static char	*curline;
-static size_t	curlen;
-static size_t	irows, icols;
-static size_t	orows = 0, ocols = 0;
-static size_t	maxlen;
-static int	skip;
-static int	propgutter;
-static char	isep = ' ', osep = ' ';
-static char	blank[] = "";
-static size_t	owidth = 80, gutter = 2;
+static char *curline;
+static size_t curlen;
+static size_t irows, icols;
+static size_t orows = 0, ocols = 0;
+static size_t maxlen;
+static int skip;
+static int propgutter;
+static char isep = ' ', osep = ' ';
+static char blank[] = "";
+static size_t owidth = 80, gutter = 2;
 
-static void	  getargs(int, char *[]);
-static void	  getfile(void);
-static int	  get_line(void);
-static long	  getnum(const char *);
-static void	  prepfile(void);
-static void	  prints(char *, int);
-static void	  putfile(void);
+static void getargs(int, char *[]);
+static void getfile(void);
+static int get_line(void);
+static long getnum(const char *);
+static void prepfile(void);
+static void prints(char *, int);
+static void putfile(void);
 static void usage(void);
 
 int
@@ -121,7 +122,7 @@ getfile(void)
 		flags |= ONEPERLINE;
 	if (flags & ONEPERLINE)
 		icols = 1;
-	else				/* count cols on first line */
+	else /* count cols on first line */
 		for (p = curline, endp = curline + curlen; p < endp; p++) {
 			if (*p == isep && multisep)
 				continue;
@@ -139,21 +140,21 @@ getfile(void)
 		}
 		for (p = curline, endp = curline + curlen; p < endp; p++) {
 			if (*p == isep && multisep)
-				continue;	/* eat up column separators */
-			if (*p == isep)		/* must be an empty column */
+				continue; /* eat up column separators */
+			if (*p == isep)	  /* must be an empty column */
 				elem.push_back(blank);
-			else			/* store column entry */
+			else /* store column entry */
 				elem.push_back(p);
 			sp = p;
 			while (p < endp && *p != isep)
-				p++;		/* find end of entry */
-			*p = '\0';		/* mark end of entry */
+				p++; /* find end of entry */
+			*p = '\0';   /* mark end of entry */
 			len = p - sp;
-			if (maxlen < len)	/* update maxlen */
+			if (maxlen < len) /* update maxlen */
 				maxlen = len;
 		}
-		irows++;			/* update row count */
-		if (nullpad) {			/* pad missing entries */
+		irows++;       /* update row count */
+		if (nullpad) { /* pad missing entries */
 			padto = irows * icols;
 			elem.resize(padto, blank);
 		}
@@ -202,7 +203,7 @@ static void
 usage(void)
 {
 	fprintf(stderr,
-		"usage: rs [-[csCS][x][kKgGw][N]tTeEnyjhHmz] [rows [cols]]\n");
+	    "usage: rs [-[csCS][x][kKgGw][N]tTeEnyjhHmz] [rows [cols]]\n");
 	exit(1);
 }
 
@@ -219,21 +220,19 @@ prepfile(void)
 	if (flags & MTRANSPOSE) {
 		orows = icols;
 		ocols = irows;
-	}
-	else if (orows == 0 && ocols == 0) {	/* decide rows and cols */
+	} else if (orows == 0 && ocols == 0) { /* decide rows and cols */
 		ocols = owidth / colw;
 		if (ocols == 0) {
 			warnx("display width %zu is less than column width %zu",
-					owidth, colw);
+			    owidth, colw);
 			ocols = 1;
 		}
 		if (ocols > elem.size())
 			ocols = elem.size();
 		orows = elem.size() / ocols + (elem.size() % ocols ? 1 : 0);
-	}
-	else if (orows == 0)			/* decide on rows */
+	} else if (orows == 0) /* decide on rows */
 		orows = elem.size() / ocols + (elem.size() % ocols ? 1 : 0);
-	else if (ocols == 0)			/* decide on cols */
+	else if (ocols == 0) /* decide on cols */
 		ocols = elem.size() / orows + (elem.size() % orows ? 1 : 0);
 	padto = orows * ocols;
 	orig_size = elem.size();
@@ -241,7 +240,7 @@ prepfile(void)
 		for (i = 0; elem.size() < padto; i++)
 			elem.push_back(elem[i % orig_size]);
 	}
-	if (!(colwidths = (short *) malloc(ocols * sizeof(short))))
+	if (!(colwidths = (short *)malloc(ocols * sizeof(short))))
 		errx(1, "malloc");
 	if (flags & SQUEEZE) {
 		if (flags & TRANSPOSE) {
@@ -285,35 +284,36 @@ prepfile(void)
 			colwidths[ocols - 1] = 0;
 	}
 	/*for (i = 0; i < ocols; i++)
-		warnx("%d is colwidths, nelem %zu", colwidths[i], elem.size());*/
+		warnx("%d is colwidths, nelem %zu", colwidths[i],
+	   elem.size());*/
 }
 
-#define	BSIZE	(LINE_MAX * 2)
-static char	ibuf[BSIZE];
+#define BSIZE (LINE_MAX * 2)
+static char ibuf[BSIZE];
 
 static int
-get_line(void)	/* get line; maintain curline, curlen; manage storage */
+get_line(void) /* get line; maintain curline, curlen; manage storage */
 {
-	static	int putlength;
-	static	char *endblock = ibuf + BSIZE;
+	static int putlength;
+	static char *endblock = ibuf + BSIZE;
 	char *p;
 	int c, i;
 
 	if (irows == 0) {
 		curline = ibuf;
 		putlength = flags & DETAILSHAPE;
-	}
-	else if (skip <= 0) {			/* don't waste storage */
+	} else if (skip <= 0) { /* don't waste storage */
 		curline += curlen + 1;
-		if (putlength) {	/* print length, recycle storage */
+		if (putlength) { /* print length, recycle storage */
 			printf(" %zu line %zu\n", curlen, irows);
 			curline = ibuf;
 		}
 	}
-	if (!putlength && endblock - curline < LINE_MAX + 1) { /* need storage */
+	if (!putlength &&
+	    endblock - curline < LINE_MAX + 1) { /* need storage */
 		/*ww = endblock-curline; tt += ww;*/
 		/*printf("#wasted %d total %d\n",ww,tt);*/
-		if (!(curline = (char *) malloc(BSIZE)))
+		if (!(curline = (char *)malloc(BSIZE)))
 			errx(1, "file too large");
 		endblock = curline + BSIZE;
 		/*printf("#endb %d curline %d\n",endblock,curline);*/
@@ -328,7 +328,7 @@ get_line(void)	/* get line; maintain curline, curlen; manage storage */
 	}
 	*p = '\0';
 	curlen = i;
-	return(c);
+	return (c);
 }
 
 static void
@@ -349,14 +349,14 @@ getargs(int ac, char *av[])
 		case 't':
 			flags |= TRANSPOSE;
 			break;
-		case 'c':		/* input col. separator */
+		case 'c': /* input col. separator */
 			flags |= ONEISEPONLY;
 			/* FALLTHROUGH */
-		case 's':		/* one or more allowed */
+		case 's': /* one or more allowed */
 			if (optarg != NULL)
 				isep = *optarg;
 			else
-				isep = '\t';	/* default is ^I */
+				isep = '\t'; /* default is ^I */
 			break;
 		case 'C':
 			flags |= ONEOSEPONLY;
@@ -365,18 +365,18 @@ getargs(int ac, char *av[])
 			if (optarg != NULL)
 				osep = *optarg;
 			else
-				osep = '\t';	/* default is ^I */
+				osep = '\t'; /* default is ^I */
 			break;
-		case 'w':		/* window width, default 80 */
+		case 'w': /* window width, default 80 */
 			val = getnum(optarg);
 			if (val <= 0)
 				errx(1, "width must be a positive integer");
 			owidth = val;
 			break;
-		case 'K':			/* skip N lines */
+		case 'K': /* skip N lines */
 			flags |= SKIPPRINT;
 			/* FALLTHROUGH */
-		case 'k':			/* skip, do not print */
+		case 'k': /* skip, do not print */
 			skip = getnum(optarg);
 			if (skip < 1)
 				skip = 1;
@@ -384,34 +384,34 @@ getargs(int ac, char *av[])
 		case 'm':
 			flags |= NOTRIMENDCOL;
 			break;
-		case 'g':		/* gutter space */
+		case 'g': /* gutter space */
 			gutter = getnum(optarg);
 			break;
 		case 'G':
 			propgutter = getnum(optarg);
 			break;
-		case 'e':		/* each line is an entry */
+		case 'e': /* each line is an entry */
 			flags |= ONEPERLINE;
 			break;
 		case 'E':
 			flags |= ONEPERCHAR;
 			break;
-		case 'j':			/* right adjust */
+		case 'j': /* right adjust */
 			flags |= RIGHTADJUST;
 			break;
-		case 'n':	/* null padding for missing values */
+		case 'n': /* null padding for missing values */
 			flags |= NULLPAD;
 			break;
 		case 'y':
 			flags |= RECYCLE;
 			break;
-		case 'H':			/* print shape only */
+		case 'H': /* print shape only */
 			flags |= DETAILSHAPE;
 			/* FALLTHROUGH */
 		case 'h':
 			flags |= SHAPEONLY;
 			break;
-		case 'z':			/* squeeze col width */
+		case 'z': /* squeeze col width */
 			flags |= SQUEEZE;
 			break;
 		/*case 'p':

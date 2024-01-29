@@ -29,7 +29,6 @@
 #ifndef __ERRLST_H__
 #define __ERRLST_H__
 
-
 #ifdef PIC
 /* If the main executable imports these, do not use its copy from libc.so. */
 extern const char *const __hidden_sys_errlist[] __hidden;

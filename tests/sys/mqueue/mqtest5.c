@@ -3,6 +3,7 @@
 #include <sys/event.h>
 #include <sys/select.h>
 #include <sys/wait.h>
+
 #include <err.h>
 #include <fcntl.h>
 #include <mqueue.h>
@@ -13,9 +14,9 @@
 
 #include "freebsd_test_suite/macros.h"
 
-#define MQNAME	"/mytstqueue5"
-#define LOOPS	1000
-#define PRIO	10
+#define MQNAME "/mytstqueue5"
+#define LOOPS 1000
+#define PRIO 10
 
 static void
 sighandler(int sig __unused)
@@ -44,10 +45,10 @@ main(void)
 	sigprocmask(SIG_BLOCK, &set, NULL);
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = SA_SIGINFO;
-	sa.sa_sigaction = (void *) SIG_DFL;
+	sa.sa_sigaction = (void *)SIG_DFL;
 	sigaction(SIGRTMIN, &sa, NULL);
 
-	attr.mq_maxmsg  = 5;
+	attr.mq_maxmsg = 5;
 	attr.mq_msgsize = 128;
 	mq = mq_open(MQNAME, O_CREAT | O_RDWR | O_EXCL, 0666, &attr);
 	if (mq == (mqd_t)-1)
@@ -90,7 +91,7 @@ main(void)
 					err(3, "child: message data corrupted");
 			if (prio != PRIO)
 				err(4, "child: priority is incorrect: %d",
-					 prio);
+				    prio);
 		}
 		alarm(0);
 		free(buf);

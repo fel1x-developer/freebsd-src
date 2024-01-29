@@ -859,7 +859,8 @@ _ice_mdd_tx_tclan_str(u8 event)
 	if (str)
 		snprintf(buf.str, ICE_STR_BUF_LEN, "%s", str);
 	else
-		snprintf(buf.str, ICE_STR_BUF_LEN, "Unknown Tx TCLAN event %u", event);
+		snprintf(buf.str, ICE_STR_BUF_LEN, "Unknown Tx TCLAN event %u",
+		    event);
 
 	return buf;
 }
@@ -961,7 +962,8 @@ _ice_mdd_tx_pqm_str(u8 event)
 	if (str)
 		snprintf(buf.str, ICE_STR_BUF_LEN, "%s", str);
 	else
-		snprintf(buf.str, ICE_STR_BUF_LEN, "Unknown Tx PQM event %u", event);
+		snprintf(buf.str, ICE_STR_BUF_LEN, "Unknown Tx PQM event %u",
+		    event);
 
 	return buf;
 }
@@ -990,7 +992,8 @@ _ice_mdd_rx_str(u8 event)
 	if (str)
 		snprintf(buf.str, ICE_STR_BUF_LEN, "%s", str);
 	else
-		snprintf(buf.str, ICE_STR_BUF_LEN, "Unknown Rx event %u", event);
+		snprintf(buf.str, ICE_STR_BUF_LEN, "Unknown Rx event %u",
+		    event);
 
 	return buf;
 }
@@ -1150,8 +1153,7 @@ _ice_fw_lldp_status(u32 lldp_status)
 	struct ice_str_buf buf = { .str = "" };
 	const char *str = NULL;
 
-	switch (lldp_status)
-	{
+	switch (lldp_status) {
 	case ICE_LLDP_ADMINSTATUS_DIS:
 		str = "DISABLED";
 		break;
@@ -1172,7 +1174,8 @@ _ice_fw_lldp_status(u32 lldp_status)
 	if (str)
 		snprintf(buf.str, ICE_STR_BUF_LEN, "%s", str);
 	else
-		snprintf(buf.str, ICE_STR_BUF_LEN, "Unknown LLDP status %u", lldp_status);
+		snprintf(buf.str, ICE_STR_BUF_LEN, "Unknown LLDP status %u",
+		    lldp_status);
 
 	return buf;
 }

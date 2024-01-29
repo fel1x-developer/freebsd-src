@@ -33,18 +33,19 @@
 #include <sys/queue.h>
 #include <sys/resource.h>
 #include <sys/sysctl.h>
-#include <stdlib.h>
-#include <pthread.h>
+
 #include <link.h>
+#include <pthread.h>
+#include <stdlib.h>
 
 #include "thr_private.h"
 
 /* Spare thread stack. */
 struct stack {
-	LIST_ENTRY(stack)	qe;		/* Stack queue linkage. */
-	size_t			stacksize;	/* Stack size (rounded up). */
-	size_t			guardsize;	/* Guard size. */
-	void			*stackaddr;	/* Stack address. */
+	LIST_ENTRY(stack) qe; /* Stack queue linkage. */
+	size_t stacksize;     /* Stack size (rounded up). */
+	size_t guardsize;     /* Guard size. */
+	void *stackaddr;      /* Stack address. */
 };
 
 /*
@@ -52,7 +53,7 @@ struct stack {
  * to avoid additional complexity managing mmap()ed stack regions.  Spare
  * stacks are used in LIFO order to increase cache locality.
  */
-static LIST_HEAD(, stack)	dstackq = LIST_HEAD_INITIALIZER(dstackq);
+static LIST_HEAD(, stack) dstackq = LIST_HEAD_INITIALIZER(dstackq);
 
 /*
  * Miscellaneous sized (non-default stack and/or guard) spare stack queue.
@@ -61,7 +62,7 @@ static LIST_HEAD(, stack)	dstackq = LIST_HEAD_INITIALIZER(dstackq);
  * size and guard size would be more trouble than it's worth.  Stacks are
  * allocated from this cache on a first size match basis.
  */
-static LIST_HEAD(, stack)	mstackq = LIST_HEAD_INITIALIZER(mstackq);
+static LIST_HEAD(, stack) mstackq = LIST_HEAD_INITIALIZER(mstackq);
 
 /**
  * Base address of the last stack allocated (including its red zone, if
@@ -76,7 +77,7 @@ static LIST_HEAD(, stack)	mstackq = LIST_HEAD_INITIALIZER(mstackq);
  * the next.
  *
  * low memory
- *     . . . . . . . . . . . . . . . . . . 
+ *     . . . . . . . . . . . . . . . . . .
  *    |                                   |
  *    |             stack 3               | start of 3rd thread stack
  *    +-----------------------------------+
@@ -127,8 +128,7 @@ static inline size_t
 round_up(size_t size)
 {
 	if (size % _thr_page_size != 0)
-		size = ((size / _thr_page_size) + 1) *
-		    _thr_page_size;
+		size = ((size / _thr_page_size) + 1) * _thr_page_size;
 	return size;
 }
 
@@ -137,9 +137,8 @@ _thr_stack_fix_protection(struct pthread *thrd)
 {
 
 	mprotect((char *)thrd->attr.stackaddr_attr +
-	    round_up(thrd->attr.guardsize_attr),
-	    round_up(thrd->attr.stacksize_attr),
-	    _rtld_get_stack_prot());
+		round_up(thrd->attr.guardsize_attr),
+	    round_up(thrd->attr.stacksize_attr), _rtld_get_stack_prot());
 }
 
 static void
@@ -166,15 +165,15 @@ __thr_map_stacks_exec(void)
 	}
 	curthread = _get_curthread();
 	THREAD_LIST_RDLOCK(curthread);
-	LIST_FOREACH(st, &mstackq, qe)
+	LIST_FOREACH (st, &mstackq, qe)
 		mprotect((char *)st->stackaddr + st->guardsize, st->stacksize,
 		    _rtld_get_stack_prot());
-	LIST_FOREACH(st, &dstackq, qe)
+	LIST_FOREACH (st, &dstackq, qe)
 		mprotect((char *)st->stackaddr + st->guardsize, st->stacksize,
 		    _rtld_get_stack_prot());
-	TAILQ_FOREACH(thrd, &_thread_gc_list, gcle)
+	TAILQ_FOREACH (thrd, &_thread_gc_list, gcle)
 		_thr_stack_fix_protection(thrd);
-	TAILQ_FOREACH(thrd, &_thread_list, tle)
+	TAILQ_FOREACH (thrd, &_thread_list, tle)
 		_thr_stack_fix_protection(thrd);
 	THREAD_LIST_UNLOCK(curthread);
 }
@@ -224,7 +223,7 @@ _thr_stack_alloc(struct pthread_attr *attr)
 	 * rounded up stack size (stack_size) in the search:
 	 */
 	else {
-		LIST_FOREACH(spare_stack, &mstackq, qe) {
+		LIST_FOREACH (spare_stack, &mstackq, qe) {
 			if (spare_stack->stacksize == stacksize &&
 			    spare_stack->guardsize == guardsize) {
 				LIST_REMOVE(spare_stack, qe);
@@ -236,8 +235,7 @@ _thr_stack_alloc(struct pthread_attr *attr)
 	if (attr->stackaddr_attr != NULL) {
 		/* A cached stack was found.  Release the lock. */
 		THREAD_LIST_UNLOCK(curthread);
-	}
-	else {
+	} else {
 		/*
 		 * Allocate a stack from or below usrstack, depending
 		 * on the LIBPTHREAD_BIGSTACK_MAIN env variable.
@@ -264,10 +262,10 @@ _thr_stack_alloc(struct pthread_attr *attr)
 		/* Map the stack and guard page together, and split guard
 		   page from allocated space: */
 		if ((stackaddr = mmap(stackaddr, stacksize + guardsize,
-		     _rtld_get_stack_prot(), MAP_STACK,
-		     -1, 0)) != MAP_FAILED &&
+			 _rtld_get_stack_prot(), MAP_STACK, -1, 0)) !=
+			MAP_FAILED &&
 		    (guardsize == 0 ||
-		     mprotect(stackaddr, guardsize, PROT_NONE) == 0)) {
+			mprotect(stackaddr, guardsize, PROT_NONE) == 0)) {
 			stackaddr += guardsize;
 		} else {
 			if (stackaddr != MAP_FAILED)
@@ -288,11 +286,10 @@ _thr_stack_free(struct pthread_attr *attr)
 {
 	struct stack *spare_stack;
 
-	if ((attr != NULL) && ((attr->flags & THR_STACK_USER) == 0)
-	    && (attr->stackaddr_attr != NULL)) {
-		spare_stack = (struct stack *)
-			((char *)attr->stackaddr_attr +
-			attr->stacksize_attr - sizeof(struct stack));
+	if ((attr != NULL) && ((attr->flags & THR_STACK_USER) == 0) &&
+	    (attr->stackaddr_attr != NULL)) {
+		spare_stack = (struct stack *)((char *)attr->stackaddr_attr +
+		    attr->stacksize_attr - sizeof(struct stack));
 		spare_stack->stacksize = round_up(attr->stacksize_attr);
 		spare_stack->guardsize = round_up(attr->guardsize_attr);
 		spare_stack->stackaddr = attr->stackaddr_attr;

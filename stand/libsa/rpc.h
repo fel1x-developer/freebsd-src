@@ -34,24 +34,24 @@
  */
 
 /* XXX defines we can't easily get from system includes */
-#define	PMAPPORT		111
-#define	PMAPPROG		100000
-#define	PMAPVERS		2
-#define	PMAPPROC_NULL		0
-#define	PMAPPROC_SET		1
-#define	PMAPPROC_UNSET		2
-#define	PMAPPROC_GETPORT	3
-#define	PMAPPROC_DUMP		4
-#define	PMAPPROC_CALLIT		5
+#define PMAPPORT 111
+#define PMAPPROG 100000
+#define PMAPVERS 2
+#define PMAPPROC_NULL 0
+#define PMAPPROC_SET 1
+#define PMAPPROC_UNSET 2
+#define PMAPPROC_GETPORT 3
+#define PMAPPROC_DUMP 4
+#define PMAPPROC_CALLIT 5
 
 /* RPC functions: */
-ssize_t	rpc_call(struct iodesc *, n_long, n_long, n_long,
-		     void *, size_t, void **, void **);
-void	rpc_fromaddr(void *, struct in_addr *, u_short *);
-int	rpc_pmap_getcache(struct in_addr, u_int, u_int);
-void	rpc_pmap_putcache(struct in_addr, u_int, u_int, int);
+ssize_t rpc_call(struct iodesc *, n_long, n_long, n_long, void *, size_t,
+    void **, void **);
+void rpc_fromaddr(void *, struct in_addr *, u_short *);
+int rpc_pmap_getcache(struct in_addr, u_int, u_int);
+void rpc_pmap_putcache(struct in_addr, u_int, u_int, int);
 
-extern int rpc_port;	/* decrement before bind */
+extern int rpc_port; /* decrement before bind */
 
 /*
  * How much space to leave in front of RPC requests.
@@ -61,4 +61,4 @@ extern int rpc_port;	/* decrement before bind */
  *  7: Auth UNIX
  *  2: Auth NULL
  */
-#define	RPC_HEADER_WORDS 28
+#define RPC_HEADER_WORDS 28

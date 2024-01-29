@@ -25,9 +25,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
@@ -41,9 +41,10 @@
 #endif
 
 #include <dev/iicbus/iiconf.h>
+
 #include "iicbus_if.h"
-#include "iicmux_if.h"
 #include "iicmux.h"
+#include "iicmux_if.h"
 
 /*------------------------------------------------------------------------------
  * iicbus methods, called by the iicbus functions in iiconf.c.
@@ -195,7 +196,7 @@ iicmux_stop(device_t dev)
 }
 
 static int
-iicmux_transfer( device_t dev, struct iic_msg *msgs, uint32_t nmsgs)
+iicmux_transfer(device_t dev, struct iic_msg *msgs, uint32_t nmsgs)
 {
 	struct iicmux_softc *sc = device_get_softc(dev);
 
@@ -221,8 +222,8 @@ iicmux_add_child(device_t dev, device_t child, int busidx)
 	struct iicmux_softc *sc = device_get_softc(dev);
 
 	if (busidx >= sc->numbuses) {
-		device_printf(dev,
-		    "iicmux_add_child: bus idx %d too big", busidx);
+		device_printf(dev, "iicmux_add_child: bus idx %d too big",
+		    busidx);
 		return (EINVAL);
 	}
 	if (sc->childdevs[busidx] != NULL) {
@@ -250,7 +251,7 @@ iicmux_attach_children(struct iicmux_softc *sc)
 	 * Find our FDT node.  Child nodes within our node will become our
 	 * iicbus children.
 	 */
-	if((node = ofw_bus_get_node(sc->dev)) == 0) {
+	if ((node = ofw_bus_get_node(sc->dev)) == 0) {
 		device_printf(sc->dev, "cannot find FDT node\n");
 		return (ENOENT);
 	}
@@ -324,7 +325,8 @@ iicmux_attach(device_t dev, device_t busdev, int numbuses)
 
 	SYSCTL_ADD_UINT(device_get_sysctl_ctx(sc->dev),
 	    SYSCTL_CHILDREN(device_get_sysctl_tree(sc->dev)), OID_AUTO,
-	    "debugmux", CTLFLAG_RWTUN, &sc->debugmux, 0, "debug mux operations");
+	    "debugmux", CTLFLAG_RWTUN, &sc->debugmux, 0,
+	    "debug mux operations");
 
 	return (0);
 }
@@ -347,22 +349,22 @@ iicmux_detach(device_t dev)
 	return (0);
 }
 
-static device_method_t iicmux_methods [] = {
+static device_method_t iicmux_methods[] = {
 	/* iicbus_if methods */
-	DEVMETHOD(iicbus_intr,			iicmux_intr),
-	DEVMETHOD(iicbus_callback,		iicmux_callback),
-	DEVMETHOD(iicbus_repeated_start,	iicmux_repeated_start),
-	DEVMETHOD(iicbus_start,			iicmux_start),
-	DEVMETHOD(iicbus_stop,			iicmux_stop),
-	DEVMETHOD(iicbus_read,			iicmux_read),
-	DEVMETHOD(iicbus_write,			iicmux_write),
-	DEVMETHOD(iicbus_reset,			iicmux_reset),
-	DEVMETHOD(iicbus_transfer,		iicmux_transfer),
-	DEVMETHOD(iicbus_get_frequency,		iicmux_get_frequency),
+	DEVMETHOD(iicbus_intr, iicmux_intr),
+	DEVMETHOD(iicbus_callback, iicmux_callback),
+	DEVMETHOD(iicbus_repeated_start, iicmux_repeated_start),
+	DEVMETHOD(iicbus_start, iicmux_start),
+	DEVMETHOD(iicbus_stop, iicmux_stop),
+	DEVMETHOD(iicbus_read, iicmux_read),
+	DEVMETHOD(iicbus_write, iicmux_write),
+	DEVMETHOD(iicbus_reset, iicmux_reset),
+	DEVMETHOD(iicbus_transfer, iicmux_transfer),
+	DEVMETHOD(iicbus_get_frequency, iicmux_get_frequency),
 
 #ifdef FDT
 	/* ofwbus_if methods */
-	DEVMETHOD(ofw_bus_get_node,		iicmux_get_node),
+	DEVMETHOD(ofw_bus_get_node, iicmux_get_node),
 #endif
 
 	DEVMETHOD_END
@@ -380,11 +382,7 @@ iicmux_modevent(module_t mod, int type, void *unused)
 	return EINVAL;
 }
 
-static moduledata_t iicmux_mod = {
-	"iicmux",
-	iicmux_modevent,
-	0
-};
+static moduledata_t iicmux_mod = { "iicmux", iicmux_modevent, 0 };
 
 DEFINE_CLASS_0(iicmux, iicmux_driver, iicmux_methods,
     sizeof(struct iicmux_softc));

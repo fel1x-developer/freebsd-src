@@ -25,10 +25,10 @@
  */
 
 #ifndef _MKIMG_SCHEME_H_
-#define	_MKIMG_SCHEME_H_
+#define _MKIMG_SCHEME_H_
 
 enum alias {
-	ALIAS_NONE,		/* Keep first! */
+	ALIAS_NONE, /* Keep first! */
 	/* start */
 	ALIAS_EBR,
 	ALIAS_EFI,
@@ -46,43 +46,46 @@ enum alias {
 	ALIAS_NTFS,
 	ALIAS_PPCBOOT,
 	/* end */
-	ALIAS_COUNT		/* Keep last! */
+	ALIAS_COUNT /* Keep last! */
 };
 
 struct mkimg_alias {
-	u_int		alias;
-	uintptr_t	type;
-#define	ALIAS_PTR2TYPE(p)	(uintptr_t)(p)
-#define	ALIAS_INT2TYPE(i)	(i)
-#define	ALIAS_TYPE2PTR(p)	(void *)(p)
-#define	ALIAS_TYPE2INT(i)	(i)
+	u_int alias;
+	uintptr_t type;
+#define ALIAS_PTR2TYPE(p) (uintptr_t)(p)
+#define ALIAS_INT2TYPE(i) (i)
+#define ALIAS_TYPE2PTR(p) (void *)(p)
+#define ALIAS_TYPE2INT(i) (i)
 };
 
 struct mkimg_scheme {
 	struct mkimg_scheme *next;
-	const char	*name;
-	const char	*description;
+	const char *name;
+	const char *description;
 	struct mkimg_alias *aliases;
-	lba_t		(*metadata)(u_int, lba_t);
-#define	SCHEME_META_IMG_START		1
-#define	SCHEME_META_IMG_END		2
-#define	SCHEME_META_PART_BEFORE		3
-#define	SCHEME_META_PART_AFTER		4
-#define	SCHEME_META_PART_ABSOLUTE	5
-	int		(*write)(lba_t, void *);
-	u_int		nparts;
-	u_int		labellen;
-	u_int		bootcode;
-	u_int		maxsecsz;
+	lba_t (*metadata)(u_int, lba_t);
+#define SCHEME_META_IMG_START 1
+#define SCHEME_META_IMG_END 2
+#define SCHEME_META_PART_BEFORE 3
+#define SCHEME_META_PART_AFTER 4
+#define SCHEME_META_PART_ABSOLUTE 5
+	int (*write)(lba_t, void *);
+	u_int nparts;
+	u_int labellen;
+	u_int bootcode;
+	u_int maxsecsz;
 };
 
-#define	SCHEME_DEFINE(nm)						\
-static void scheme_register_##nm(void) __attribute__((constructor));	\
-static void scheme_register_##nm(void) { scheme_register(&nm); }
+#define SCHEME_DEFINE(nm)                                                    \
+	static void scheme_register_##nm(void) __attribute__((constructor)); \
+	static void scheme_register_##nm(void)                               \
+	{                                                                    \
+		scheme_register(&nm);                                        \
+	}
 
 struct mkimg_scheme *scheme_iterate(struct mkimg_scheme *);
-void	scheme_register(struct mkimg_scheme *);
-int	scheme_select(const char *);
+void scheme_register(struct mkimg_scheme *);
+int scheme_select(const char *);
 struct mkimg_scheme *scheme_selected(void);
 
 int scheme_bootcode(int fd);

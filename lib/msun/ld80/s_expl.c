@@ -45,26 +45,23 @@
 #endif
 
 #include "fpmath.h"
+#include "k_expl.h"
 #include "math.h"
 #include "math_private.h"
-#include "k_expl.h"
 
 /* XXX Prevent compilers from erroneously constant folding these: */
-static const volatile long double
-huge = 0x1p10000L,
-tiny = 0x1p-10000L;
+static const volatile long double huge = 0x1p10000L, tiny = 0x1p-10000L;
 
-static const long double
-twom10000 = 0x1p-10000L;
+static const long double twom10000 = 0x1p-10000L;
 
 static const union IEEEl2bits
-/* log(2**16384 - 0.5) rounded towards zero: */
-/* log(2**16384 - 0.5 + 1) rounded towards zero for expm1l() is the same: */
-o_thresholdu = LD80C(0xb17217f7d1cf79ab, 13,  11356.5234062941439488L),
-#define o_threshold	 (o_thresholdu.e)
-/* log(2**(-16381-64-1)) rounded towards zero: */
-u_thresholdu = LD80C(0xb21dfe7f09e2baa9, 13, -11399.4985314888605581L);
-#define u_threshold	 (u_thresholdu.e)
+    /* log(2**16384 - 0.5) rounded towards zero: */
+    /* log(2**16384 - 0.5 + 1) rounded towards zero for expm1l() is the same: */
+    o_thresholdu = LD80C(0xb17217f7d1cf79ab, 13, 11356.5234062941439488L),
+#define o_threshold (o_thresholdu.e)
+    /* log(2**(-16381-64-1)) rounded towards zero: */
+    u_thresholdu = LD80C(0xb21dfe7f09e2baa9, 13, -11399.4985314888605581L);
+#define u_threshold (u_thresholdu.e)
 
 long double
 expl(long double x)
@@ -78,18 +75,18 @@ expl(long double x)
 	u.e = x;
 	hx = u.xbits.expsign;
 	ix = hx & 0x7fff;
-	if (ix >= BIAS + 13) {		/* |x| >= 8192 or x is NaN */
+	if (ix >= BIAS + 13) { /* |x| >= 8192 or x is NaN */
 		if (ix == BIAS + LDBL_MAX_EXP) {
-			if (hx & 0x8000)  /* x is -Inf, -NaN or unsupported */
+			if (hx & 0x8000) /* x is -Inf, -NaN or unsupported */
 				RETURNF(-1 / x);
-			RETURNF(x + x);	/* x is +Inf, +NaN or unsupported */
+			RETURNF(x + x); /* x is +Inf, +NaN or unsupported */
 		}
 		if (x > o_threshold)
 			RETURNF(huge * huge);
 		if (x < u_threshold)
 			RETURNF(tiny * tiny);
-	} else if (ix < BIAS - 75) {	/* |x| < 0x1p-75 (includes pseudos) */
-		RETURNF(1 + x);		/* 1 with inexact iff x != 0 */
+	} else if (ix < BIAS - 75) { /* |x| < 0x1p-75 (includes pseudos) */
+		RETURNF(1 + x);	     /* 1 with inexact iff x != 0 */
 	}
 
 	ENTERI();
@@ -128,9 +125,8 @@ expl(long double x)
  * closer to the origin despite losing the full bit in our extended
  * range for it.
  */
-static const double
-T1 = -0.1659,				/* ~-30.625/128 * log(2) */
-T2 =  0.1659;				/* ~30.625/128 * log(2) */
+static const double T1 = -0.1659, /* ~-30.625/128 * log(2) */
+    T2 = 0.1659;		  /* ~30.625/128 * log(2) */
 
 /*
  * Domain [-0.1659, 0.1659], range ~[-2.6155e-22, 2.5507e-23]:
@@ -139,19 +135,19 @@ T2 =  0.1659;				/* ~30.625/128 * log(2) */
  * XXX the coeffs aren't very carefully rounded, and I get 2.8 more bits,
  * but unlike for ld128 we can't drop any terms.
  */
-static const union IEEEl2bits
-B3 = LD80C(0xaaaaaaaaaaaaaaab, -3,  1.66666666666666666671e-1L),
-B4 = LD80C(0xaaaaaaaaaaaaaaac, -5,  4.16666666666666666712e-2L);
+static const union IEEEl2bits B3 = LD80C(0xaaaaaaaaaaaaaaab, -3,
+				  1.66666666666666666671e-1L),
+			      B4 = LD80C(0xaaaaaaaaaaaaaaac, -5,
+				  4.16666666666666666712e-2L);
 
-static const double
-B5  =  8.3333333333333245e-3,		/*  0x1.111111111110cp-7 */
-B6  =  1.3888888888888861e-3,		/*  0x1.6c16c16c16c0ap-10 */
-B7  =  1.9841269841532042e-4,		/*  0x1.a01a01a0319f9p-13 */
-B8  =  2.4801587302069236e-5,		/*  0x1.a01a01a03cbbcp-16 */
-B9  =  2.7557316558468562e-6,		/*  0x1.71de37fd33d67p-19 */
-B10 =  2.7557315829785151e-7,		/*  0x1.27e4f91418144p-22 */
-B11 =  2.5063168199779829e-8,		/*  0x1.ae94fabdc6b27p-26 */
-B12 =  2.0887164654459567e-9;		/*  0x1.1f122d6413fe1p-29 */
+static const double B5 = 8.3333333333333245e-3, /*  0x1.111111111110cp-7 */
+    B6 = 1.3888888888888861e-3,			/*  0x1.6c16c16c16c0ap-10 */
+    B7 = 1.9841269841532042e-4,			/*  0x1.a01a01a0319f9p-13 */
+    B8 = 2.4801587302069236e-5,			/*  0x1.a01a01a03cbbcp-16 */
+    B9 = 2.7557316558468562e-6,			/*  0x1.71de37fd33d67p-19 */
+    B10 = 2.7557315829785151e-7,		/*  0x1.27e4f91418144p-22 */
+    B11 = 2.5063168199779829e-8,		/*  0x1.ae94fabdc6b27p-26 */
+    B12 = 2.0887164654459567e-9;		/*  0x1.1f122d6413fe1p-29 */
 
 long double
 expm1l(long double x)
@@ -167,11 +163,11 @@ expm1l(long double x)
 	u.e = x;
 	hx = u.xbits.expsign;
 	ix = hx & 0x7fff;
-	if (ix >= BIAS + 6) {		/* |x| >= 64 or x is NaN */
+	if (ix >= BIAS + 6) { /* |x| >= 64 or x is NaN */
 		if (ix == BIAS + LDBL_MAX_EXP) {
-			if (hx & 0x8000)  /* x is -Inf, -NaN or unsupported */
+			if (hx & 0x8000) /* x is -Inf, -NaN or unsupported */
 				RETURNF(-1 / x - 1);
-			RETURNF(x + x);	/* x is +Inf, +NaN or unsupported */
+			RETURNF(x + x); /* x is +Inf, +NaN or unsupported */
 		}
 		if (x > o_threshold)
 			RETURNF(huge * huge);
@@ -182,30 +178,34 @@ expm1l(long double x)
 		 * expl() so as to handle not so large negative exponents
 		 * in the same way as large ones here.
 		 */
-		if (hx & 0x8000)	/* x <= -64 */
-			RETURNF(tiny - 1);	/* good for x < -65ln2 - eps */
+		if (hx & 0x8000)	   /* x <= -64 */
+			RETURNF(tiny - 1); /* good for x < -65ln2 - eps */
 	}
 
 	ENTERI();
 
 	if (T1 < x && x < T2) {
-		if (ix < BIAS - 74) {	/* |x| < 0x1p-74 (includes pseudos) */
+		if (ix < BIAS - 74) { /* |x| < 0x1p-74 (includes pseudos) */
 			/* x (rounded) with inexact if x != 0: */
-			RETURNI(x == 0 ? x :
-			    (0x1p100 * x + fabsl(x)) * 0x1p-100);
+			RETURNI(
+			    x == 0 ? x : (0x1p100 * x + fabsl(x)) * 0x1p-100);
 		}
 
 		x2 = x * x;
 		x4 = x2 * x2;
-		q = x4 * (x2 * (x4 *
-		    /*
-		     * XXX the number of terms is no longer good for
-		     * pairwise grouping of all except B3, and the
-		     * grouping is no longer from highest down.
-		     */
-		    (x2 *            B12  + (x * B11 + B10)) +
-		    (x2 * (x * B9 +  B8) +  (x * B7 +  B6))) +
-			  (x * B5 +  B4.e)) + x2 * x * B3.e;
+		q = x4 *
+			(x2 *
+				(x4 *
+					/*
+					 * XXX the number of terms is no longer
+					 * good for pairwise grouping of all
+					 * except B3, and the grouping is no
+					 * longer from highest down.
+					 */
+					(x2 * B12 + (x * B11 + B10)) +
+				    (x2 * (x * B9 + B8) + (x * B7 + B6))) +
+			    (x * B5 + B4.e)) +
+		    x2 * x * B3.e;
 
 		x_hi = (float)x;
 		x_lo = x - x_hi;
@@ -241,13 +241,13 @@ expm1l(long double x)
 	t = (long double)tbl[n2].lo + tbl[n2].hi;
 
 	if (k == 0) {
-		t = SUM2P(tbl[n2].hi - 1, tbl[n2].lo * (r1 + 1) + t * q +
-		    tbl[n2].hi * r1);
+		t = SUM2P(tbl[n2].hi - 1,
+		    tbl[n2].lo * (r1 + 1) + t * q + tbl[n2].hi * r1);
 		RETURNI(t);
 	}
 	if (k == -1) {
-		t = SUM2P(tbl[n2].hi - 2, tbl[n2].lo * (r1 + 1) + t * q +
-		    tbl[n2].hi * r1);
+		t = SUM2P(tbl[n2].hi - 2,
+		    tbl[n2].lo * (r1 + 1) + t * q + tbl[n2].hi * r1);
 		RETURNI(t / 2);
 	}
 	if (k < -7) {

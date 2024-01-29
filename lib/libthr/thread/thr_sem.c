@@ -4,7 +4,7 @@
  * Copyright (C) 2005 David Xu <davidxu@freebsd.org>.
  * Copyright (C) 2000 Jason Evans <jasone@freebsd.org>.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -16,7 +16,7 @@
  *    notice(s), this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER(S) ``AS IS'' AND ANY
  * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
@@ -31,18 +31,19 @@
  */
 
 #include <sys/cdefs.h>
-#include "namespace.h"
 #include <sys/types.h>
 #include <sys/queue.h>
+
+#include <_semaphore.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <time.h>
-#include <_semaphore.h>
-#include "un-namespace.h"
 
+#include "namespace.h"
 #include "thr_private.h"
+#include "un-namespace.h"
 
 FB10_COMPAT(_sem_init_compat, sem_init);
 FB10_COMPAT(_sem_destroy_compat, sem_destroy);
@@ -56,20 +57,21 @@ typedef struct sem *sem_t;
 
 extern int _libc_sem_init_compat(sem_t *sem, int pshared, unsigned int value);
 extern int _libc_sem_destroy_compat(sem_t *sem);
-extern int _libc_sem_getvalue_compat(sem_t * __restrict sem, int * __restrict sval);
+extern int _libc_sem_getvalue_compat(sem_t *__restrict sem,
+    int *__restrict sval);
 extern int _libc_sem_trywait_compat(sem_t *sem);
 extern int _libc_sem_wait_compat(sem_t *sem);
-extern int _libc_sem_timedwait_compat(sem_t * __restrict sem,
-    const struct timespec * __restrict abstime);
+extern int _libc_sem_timedwait_compat(sem_t *__restrict sem,
+    const struct timespec *__restrict abstime);
 extern int _libc_sem_post_compat(sem_t *sem);
 
 int _sem_init_compat(sem_t *sem, int pshared, unsigned int value);
 int _sem_destroy_compat(sem_t *sem);
-int _sem_getvalue_compat(sem_t * __restrict sem, int * __restrict sval);
+int _sem_getvalue_compat(sem_t *__restrict sem, int *__restrict sval);
 int _sem_trywait_compat(sem_t *sem);
 int _sem_wait_compat(sem_t *sem);
-int _sem_timedwait_compat(sem_t * __restrict sem,
-    const struct timespec * __restrict abstime);
+int _sem_timedwait_compat(sem_t *__restrict sem,
+    const struct timespec *__restrict abstime);
 int _sem_post_compat(sem_t *sem);
 
 int
@@ -85,7 +87,7 @@ _sem_destroy_compat(sem_t *sem)
 }
 
 int
-_sem_getvalue_compat(sem_t * __restrict sem, int * __restrict sval)
+_sem_getvalue_compat(sem_t *__restrict sem, int *__restrict sval)
 {
 	return _libc_sem_getvalue_compat(sem, sval);
 }
@@ -103,8 +105,8 @@ _sem_wait_compat(sem_t *sem)
 }
 
 int
-_sem_timedwait_compat(sem_t * __restrict sem,
-    const struct timespec * __restrict abstime)
+_sem_timedwait_compat(sem_t *__restrict sem,
+    const struct timespec *__restrict abstime)
 {
 	return _libc_sem_timedwait_compat(sem, abstime);
 }

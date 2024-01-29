@@ -44,14 +44,14 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-#define	MAXELEMENTS	32
+#define MAXELEMENTS 32
 
 static void
 usage(void)
 {
 
 	fprintf(stderr, "getpmac [-l list,of,labels] [-p pid]\n");
-	exit (EX_USAGE);
+	exit(EX_USAGE);
 }
 
 int
@@ -81,7 +81,6 @@ main(int argc, char *argv[])
 		default:
 			usage();
 		}
-
 	}
 
 	argc -= optind;
@@ -110,7 +109,7 @@ main(int argc, char *argv[])
 	}
 	if (error) {
 		mac_free(label);
-		exit (-1);
+		exit(-1);
 	}
 	error = mac_to_text(label, &string);
 	if (error != 0) {
@@ -120,7 +119,7 @@ main(int argc, char *argv[])
 
 	if (strlen(string) > 0)
 		printf("%s\n", string);
-		
+
 	mac_free(label);
 	free(string);
 	exit(EX_OK);

@@ -30,30 +30,29 @@
  * SUCH DAMAGE.
  */
 
-extern bool     _escaped;             /* if last character was an escape */
-extern char    *s_start;               /* start of the current string */
-extern char    *l_acmbeg;              /* string introducing a comment */
-extern char    *l_acmend;              /* string ending a comment */
-extern char    *l_blkbeg;              /* string beginning of a block */
-extern char    *l_blkend;              /* string ending a block */
-extern char    *l_chrbeg;              /* delimiter for character constant */
-extern char    *l_chrend;              /* delimiter for character constant */
-extern char    *l_combeg;              /* string introducing a comment */
-extern char    *l_comend;              /* string ending a comment */
-extern char     l_escape;              /* character used to escape characters */
-extern char    *l_keywds[];    	       /* keyword table address */
-extern bool     l_onecase;             /* upper and lower case are equivalent */
-extern char    *l_prcbeg;              /* regular expr for procedure begin */
-extern char    *l_strbeg;              /* delimiter for string constant */
-extern char    *l_strend;              /* delimiter for string constant */
-extern bool     l_toplex;              /* procedures only defined at top lex level */
-extern const char *language;           /* the language indicator */
+extern bool _escaped;	     /* if last character was an escape */
+extern char *s_start;	     /* start of the current string */
+extern char *l_acmbeg;	     /* string introducing a comment */
+extern char *l_acmend;	     /* string ending a comment */
+extern char *l_blkbeg;	     /* string beginning of a block */
+extern char *l_blkend;	     /* string ending a block */
+extern char *l_chrbeg;	     /* delimiter for character constant */
+extern char *l_chrend;	     /* delimiter for character constant */
+extern char *l_combeg;	     /* string introducing a comment */
+extern char *l_comend;	     /* string ending a comment */
+extern char l_escape;	     /* character used to escape characters */
+extern char *l_keywds[];     /* keyword table address */
+extern bool l_onecase;	     /* upper and lower case are equivalent */
+extern char *l_prcbeg;	     /* regular expr for procedure begin */
+extern char *l_strbeg;	     /* delimiter for string constant */
+extern char *l_strend;	     /* delimiter for string constant */
+extern bool l_toplex;	     /* procedures only defined at top lex level */
+extern const char *language; /* the language indicator */
 
 #include <sys/cdefs.h>
 
 __BEGIN_DECLS
-extern int      STRNCMP(char *, char *, int);
-extern char    *convexp(char *);
-extern char    *expmatch(char *, char *, char *);
+extern int STRNCMP(char *, char *, int);
+extern char *convexp(char *);
+extern char *expmatch(char *, char *, char *);
 __END_DECLS
-

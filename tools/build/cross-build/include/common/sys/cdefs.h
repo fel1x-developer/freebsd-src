@@ -123,7 +123,7 @@
 
 #ifndef __WEAK
 #ifdef __ELF__
-#define	__WEAK(sym)	__asm__(".weak " __XSTRING(sym))
+#define __WEAK(sym) __asm__(".weak " __XSTRING(sym))
 #endif
 #endif
 
@@ -217,11 +217,11 @@
 	(__offsetof(type, end) - __offsetof(type, start))
 
 #ifndef __containerof
-#define __containerof(x, s, m)                                           \
-	({                                                               \
-		const volatile __typeof(((s *)0)->m) *__x = (x);         \
-		__DEQUALIFY(                                             \
-		    s *, (const volatile char *)__x - __offsetof(s, m)); \
+#define __containerof(x, s, m)                                      \
+	({                                                          \
+		const volatile __typeof(((s *)0)->m) *__x = (x);    \
+		__DEQUALIFY(s *,                                    \
+		    (const volatile char *)__x - __offsetof(s, m)); \
 	})
 #endif
 
@@ -257,32 +257,30 @@
 
 #ifndef __nosanitizeaddress
 #if __has_attribute(no_sanitize) && defined(__clang__)
-#define __nosanitizeaddress	__attribute__((no_sanitize("address")))
+#define __nosanitizeaddress __attribute__((no_sanitize("address")))
 #else
 #define __nosanitizeaddress
 #endif
 #endif
 
 /* Expose all declarations when using FreeBSD headers */
-#define	__POSIX_VISIBLE		200809
-#define	__XSI_VISIBLE		700
-#define	__BSD_VISIBLE		1
-#define	__ISO_C_VISIBLE		2011
-#define	__EXT1_VISIBLE		1
+#define __POSIX_VISIBLE 200809
+#define __XSI_VISIBLE 700
+#define __BSD_VISIBLE 1
+#define __ISO_C_VISIBLE 2011
+#define __EXT1_VISIBLE 1
 
 /* Alignment builtins for better type checking and improved code generation. */
 /* Provide fallback versions for other compilers (GCC/Clang < 10): */
 #if !__has_builtin(__builtin_is_aligned)
-#define __builtin_is_aligned(x, align)	\
-	(((__uintptr_t)x & ((align) - 1)) == 0)
+#define __builtin_is_aligned(x, align) (((__uintptr_t)x & ((align)-1)) == 0)
 #endif
 #if !__has_builtin(__builtin_align_up)
-#define __builtin_align_up(x, align)	\
-	((__typeof__(x))(((__uintptr_t)(x)+((align)-1))&(~((align)-1))))
+#define __builtin_align_up(x, align) \
+	((__typeof__(x))(((__uintptr_t)(x) + ((align)-1)) & (~((align)-1))))
 #endif
 #if !__has_builtin(__builtin_align_down)
-#define __builtin_align_down(x, align)	\
-	((__typeof__(x))((x)&(~((align)-1))))
+#define __builtin_align_down(x, align) ((__typeof__(x))((x) & (~((align)-1))))
 #endif
 
 #define __align_up(x, y) __builtin_align_up(x, y)

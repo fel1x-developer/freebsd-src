@@ -28,39 +28,37 @@
 #ifdef USB_GLOBAL_INCLUDE_FILE
 #include USB_GLOBAL_INCLUDE_FILE
 #else
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
+#include <dev/usb/usb_bus.h>
+#include <dev/usb/usb_busdma.h>
+#include <dev/usb/usb_controller.h>
+#include <dev/usb/usb_core.h>
+#include <dev/usb/usb_device.h>
+#include <dev/usb/usb_process.h>
+#include <dev/usb/usb_request.h>
+#include <dev/usb/usb_util.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
-
-#include <dev/usb/usb_core.h>
-#include <dev/usb/usb_util.h>
-#include <dev/usb/usb_process.h>
-#include <dev/usb/usb_device.h>
-#include <dev/usb/usb_request.h>
-#include <dev/usb/usb_busdma.h>
-
-#include <dev/usb/usb_controller.h>
-#include <dev/usb/usb_bus.h>
-#endif			/* USB_GLOBAL_INCLUDE_FILE */
+#endif /* USB_GLOBAL_INCLUDE_FILE */
 
 /*------------------------------------------------------------------------*
  *	device_set_usb_desc
@@ -153,12 +151,12 @@ usb_trim_spaces(char *p)
 	if (p == NULL)
 		return;
 	q = e = p;
-	while (*q == ' ')		/* skip leading spaces */
+	while (*q == ' ') /* skip leading spaces */
 		q++;
-	while ((*p = *q++))		/* copy string */
-		if (*p++ != ' ')	/* remember last non-space */
+	while ((*p = *q++))	 /* copy string */
+		if (*p++ != ' ') /* remember last non-space */
 			e = p;
-	*e = 0;				/* kill trailing spaces */
+	*e = 0; /* kill trailing spaces */
 }
 
 /*------------------------------------------------------------------------*
@@ -217,11 +215,11 @@ usb_check_request(struct usb_device *udev, struct usb_device_request *req)
 	 * Avoid requests that would damage the bus integrity:
 	 */
 	if (((req->bmRequestType == UT_WRITE_DEVICE) &&
-	    (req->bRequest == UR_SET_ADDRESS)) ||
+		(req->bRequest == UR_SET_ADDRESS)) ||
 	    ((req->bmRequestType == UT_WRITE_DEVICE) &&
-	    (req->bRequest == UR_SET_CONFIG)) ||
+		(req->bRequest == UR_SET_CONFIG)) ||
 	    ((req->bmRequestType == UT_WRITE_INTERFACE) &&
-	    (req->bRequest == UR_SET_INTERFACE))) {
+		(req->bRequest == UR_SET_INTERFACE))) {
 		/*
 		 * These requests can be useful for testing USB drivers.
 		 */

@@ -29,11 +29,11 @@
  */
 
 #ifndef _MACHINE__PMAP_H_
-#define	_MACHINE__PMAP_H_
+#define _MACHINE__PMAP_H_
 
 struct pmap_pcid {
-	uint32_t	pm_pcid;
-	uint32_t	pm_gen;
+	uint32_t pm_pcid;
+	uint32_t pm_gen;
 };
 
 #endif

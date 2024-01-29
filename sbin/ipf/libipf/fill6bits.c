@@ -9,7 +9,6 @@
 
 #include "ipf.h"
 
-
 void
 fill6bits(int bits, u_int *msk)
 {

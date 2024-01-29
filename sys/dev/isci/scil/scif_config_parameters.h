@@ -65,10 +65,9 @@
 extern "C" {
 #endif // __cplusplus
 
-#include <dev/isci/scil/sci_types.h>
-#include <dev/isci/scil/sci_status.h>
 #include <dev/isci/scil/intel_sas.h>
-
+#include <dev/isci/scil/sci_status.h>
+#include <dev/isci/scil/sci_types.h>
 
 /**
  * @struct SCIF_SAS_USER_PARAMETERS
@@ -76,49 +75,48 @@ extern "C" {
  * @brief This structure delineates the various user parameters that can be
  *        changed by the framework user.
  */
-typedef struct SCIF_SAS_USER_PARAMETERS
-{
-   /**
-    * This field indicates if the user would like to have the SATA NCQ
-    * feature enabled for all remote devices.
-    */
-   BOOL  is_sata_ncq_enabled;
+typedef struct SCIF_SAS_USER_PARAMETERS {
+	/**
+	 * This field indicates if the user would like to have the SATA NCQ
+	 * feature enabled for all remote devices.
+	 */
+	BOOL is_sata_ncq_enabled;
 
-   /**
-    * This field indicates if the user would like to have the SATA Automatic
-    * Standby Timer feature enabled for all remote devices.
-    */
-   BOOL  is_sata_standby_timer_enabled;
+	/**
+	 * This field indicates if the user would like to have the SATA
+	 * Automatic Standby Timer feature enabled for all remote devices.
+	 */
+	BOOL is_sata_standby_timer_enabled;
 
-   /**
-    * This field indicates if the user would like to have the SATA Non-zero
-    * Buffer Offset feature enabled for all remote devices.
-    */
-   BOOL  is_non_zero_buffer_offsets_enabled;
+	/**
+	 * This field indicates if the user would like to have the SATA Non-zero
+	 * Buffer Offset feature enabled for all remote devices.
+	 */
+	BOOL is_non_zero_buffer_offsets_enabled;
 
-   /**
-    * This field indicates if the user would like to clear affiliation for EA
-    * SATA devices during the controller stop process.
-    */
-   BOOL  clear_affiliation_during_controller_stop;
+	/**
+	 * This field indicates if the user would like to clear affiliation for
+	 * EA SATA devices during the controller stop process.
+	 */
+	BOOL clear_affiliation_during_controller_stop;
 
-   /**
-    * This field indicates the user's desired NCQ depth for all remote
-    * devices.  The maximum legal value for this field is 32.
-    */
-   U16  max_ncq_depth;
+	/**
+	 * This field indicates the user's desired NCQ depth for all remote
+	 * devices.  The maximum legal value for this field is 32.
+	 */
+	U16 max_ncq_depth;
 
-   /**
-    * This field indicates the type of reset to be applied to all remote
-    * devices the first time they are discovered.
-    */
-   SCI_SAS_TASK_MGMT_FUNCTION_T  reset_type;
+	/**
+	 * This field indicates the type of reset to be applied to all remote
+	 * devices the first time they are discovered.
+	 */
+	SCI_SAS_TASK_MGMT_FUNCTION_T reset_type;
 
-   /**
-    * This field indicates the os/user recommends ignoring fua in translation
-    * for performance reasons.
-    */
-   BOOL  ignore_fua;
+	/**
+	 * This field indicates the os/user recommends ignoring fua in
+	 * translation for performance reasons.
+	 */
+	BOOL ignore_fua;
 
 } SCIF_SAS_USER_PARAMETERS_T;
 
@@ -129,9 +127,8 @@ typedef struct SCIF_SAS_USER_PARAMETERS
  *        Serial Attached SCSI implementation of the framework.
  *
  */
-typedef union SCIF_USER_PARAMETERS
-{
-   SCIF_SAS_USER_PARAMETERS_T sas;
+typedef union SCIF_USER_PARAMETERS {
+	SCIF_SAS_USER_PARAMETERS_T sas;
 
 } SCIF_USER_PARAMETERS_T;
 
@@ -152,10 +149,8 @@ typedef union SCIF_USER_PARAMETERS
  * @retval SCI_FAILURE_INVALID_PARAMETER_VALUE This value is returned if the
  *         user supplied an invalid reset_type, ncq depth, etc.
  */
-SCI_STATUS scif_user_parameters_set(
-   SCI_CONTROLLER_HANDLE_T  controller,
-   SCIF_USER_PARAMETERS_T * user_parameters
-);
+SCI_STATUS scif_user_parameters_set(SCI_CONTROLLER_HANDLE_T controller,
+    SCIF_USER_PARAMETERS_T *user_parameters);
 
 /**
  * @brief This method allows the user to retrieve the user parameters
@@ -168,14 +163,11 @@ SCI_STATUS scif_user_parameters_set(
  *
  * @return none
  */
-void scif_user_parameters_get(
-   SCI_CONTROLLER_HANDLE_T  controller,
-   SCIF_USER_PARAMETERS_T * user_parameters
-);
+void scif_user_parameters_get(SCI_CONTROLLER_HANDLE_T controller,
+    SCIF_USER_PARAMETERS_T *user_parameters);
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
 #endif // _SCIF_SAS_USER_PARAMETERS_H_
-

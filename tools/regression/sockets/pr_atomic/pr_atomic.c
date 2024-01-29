@@ -32,19 +32,20 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-#include <stdlib.h>
-#include <signal.h>
-#include <setjmp.h>
-#include <string.h>
 #include <err.h>
 #include <errno.h>
+#include <setjmp.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 static char socket_path[] = "tmp.XXXXXX";
 
 static jmp_buf myjmpbuf;
 
-static void handle_sigalrm(int signo __unused)
+static void
+handle_sigalrm(int signo __unused)
 {
 	longjmp(myjmpbuf, 1);
 }
@@ -77,10 +78,10 @@ main(void)
 		close(s);
 		conn = socket(AF_LOCAL, SOCK_DGRAM, 0);
 		if (conn == -1)
-			errx(-1,"socket");
+			errx(-1, "socket");
 		if (sendto(conn, buf, sizeof(buf), 0, (struct sockaddr *)&un,
-		    sizeof(un)) != sizeof(buf))
-			errx(-1,"sendto");
+			sizeof(un)) != sizeof(buf))
+			errx(-1, "sendto");
 		close(conn);
 		_exit(0);
 	}
@@ -89,12 +90,12 @@ main(void)
 
 	/* Make sure the data is there when we try to receive it. */
 	if (recvfrom(s, (void *)-1, 1, 0, NULL, NULL) != -1)
-		errx(-1,"recvfrom succeeded when failure expected");
+		errx(-1, "recvfrom succeeded when failure expected");
 
 	(void)signal(SIGALRM, handle_sigalrm);
 	if (setjmp(myjmpbuf) == 0) {
 		/*
-	 	 * This recvfrom will panic an unpatched system, and block
+		 * This recvfrom will panic an unpatched system, and block
 		 * a patched one.
 		 */
 		alarm(5);

@@ -26,8 +26,11 @@
  * SUCH DAMAGE.
  */
 
-#define _gss_buffer_zero(buffer) \
-	do { (buffer)->value = NULL; (buffer)->length = 0; } while(0)
+#define _gss_buffer_zero(buffer)        \
+	do {                            \
+		(buffer)->value = NULL; \
+		(buffer)->length = 0;   \
+	} while (0)
 extern int _gss_oid_equal(const gss_OID, const gss_OID);
 extern OM_uint32 _gss_copy_oid(OM_uint32 *, const gss_OID, gss_OID);
 extern OM_uint32 _gss_free_oid(OM_uint32 *, gss_OID);

@@ -32,8 +32,8 @@
  */
 
 #ifndef USB_HUB_PRIVATE_H_
-#define    USB_HUB_PRIVATE_H_
-#define	UHUB_INTR_INTERVAL 250		/* ms */
+#define USB_HUB_PRIVATE_H_
+#define UHUB_INTR_INTERVAL 250 /* ms */
 
 enum {
 	UHUB_INTR_TRANSFER,
@@ -49,31 +49,30 @@ struct uhub_current_state {
 };
 
 struct uhub_softc {
-	struct uhub_current_state sc_st;	/* current state */
+	struct uhub_current_state sc_st; /* current state */
 #if (USB_HAVE_FIXED_PORT != 0)
 	struct usb_hub sc_hub;
 #endif
-	device_t sc_dev;		/* base device */
-	struct mtx sc_mtx;		/* our mutex */
-	struct usb_device *sc_udev;	/* USB device */
-	struct usb_xfer *sc_xfer[UHUB_N_TRANSFER];	/* interrupt xfer */
+	device_t sc_dev;			   /* base device */
+	struct mtx sc_mtx;			   /* our mutex */
+	struct usb_device *sc_udev;		   /* USB device */
+	struct usb_xfer *sc_xfer[UHUB_N_TRANSFER]; /* interrupt xfer */
 #if USB_HAVE_DISABLE_ENUM
-	int	sc_disable_enumeration;
-	int	sc_disable_port_power;
+	int sc_disable_enumeration;
+	int sc_disable_port_power;
 #endif
-	uint8_t	sc_usb_port_errors;	/* error counter */
-#define	UHUB_USB_PORT_ERRORS_MAX 4
-	uint8_t	sc_flags;
-#define	UHUB_FLAG_DID_EXPLORE 0x01
+	uint8_t sc_usb_port_errors; /* error counter */
+#define UHUB_USB_PORT_ERRORS_MAX 4
+	uint8_t sc_flags;
+#define UHUB_FLAG_DID_EXPLORE 0x01
 };
 struct hub_result {
 	struct usb_device *udev;
-	uint8_t	portno;
-	uint8_t	iface_index;
+	uint8_t portno;
+	uint8_t iface_index;
 };
 
-void
-uhub_find_iface_index(struct usb_hub *hub, device_t child,
+void uhub_find_iface_index(struct usb_hub *hub, device_t child,
     struct hub_result *res);
 
 device_probe_t uhub_probe;

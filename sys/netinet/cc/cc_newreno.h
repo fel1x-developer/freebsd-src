@@ -45,15 +45,17 @@ struct newreno {
 };
 
 struct cc_newreno_opts {
-	int		name;
-	uint32_t	val;
+	int name;
+	uint32_t val;
 };
 
-#define CC_NEWRENO_BETA			1	/* Beta for normal DUP-ACK/Sack recovery */
-#define CC_NEWRENO_BETA_ECN		2	/* ECN Beta for Abe */
+#define CC_NEWRENO_BETA 1     /* Beta for normal DUP-ACK/Sack recovery */
+#define CC_NEWRENO_BETA_ECN 2 /* ECN Beta for Abe */
 
 /* Flags values */
-#define CC_NEWRENO_HYSTART_ENABLED	0x0002	/* We can do hystart, a loss removes this flag */
-#define CC_NEWRENO_HYSTART_IN_CSS	0x0004	/* If we enter hystart CSS this flag is set */
-#define CC_NEWRENO_BETA_ECN_ENABLED	0x0020
+#define CC_NEWRENO_HYSTART_ENABLED \
+	0x0002 /* We can do hystart, a loss removes this flag */
+#define CC_NEWRENO_HYSTART_IN_CSS \
+	0x0004 /* If we enter hystart CSS this flag is set */
+#define CC_NEWRENO_BETA_ECN_ENABLED 0x0020
 #endif /* _CC_NEWRENO_H */

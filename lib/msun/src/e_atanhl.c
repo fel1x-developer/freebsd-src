@@ -6,7 +6,7 @@
  *
  * Developed at SunSoft, a Sun Microsystems, Inc. business.
  * Permission to use, copy, modify, and distribute this
- * software is freely granted, provided that this notice 
+ * software is freely granted, provided that this notice
  * is preserved.
  * ====================================================
  *
@@ -30,9 +30,9 @@
 
 /* EXP_TINY is the threshold below which we use atanh(x) ~= x. */
 #if LDBL_MANT_DIG == 64
-#define	EXP_TINY	-34
+#define EXP_TINY -34
 #elif LDBL_MANT_DIG == 113
-#define	EXP_TINY	-58
+#define EXP_TINY -58
 #else
 #error "Unsupported long double format"
 #endif
@@ -42,7 +42,7 @@
 #error "Unsupported long double format"
 #endif
 
-#define	BIAS	(LDBL_MAX_EXP - 1)
+#define BIAS (LDBL_MAX_EXP - 1)
 
 static const double one = 1.0, huge = 1e300;
 static const double zero = 0.0;
@@ -56,15 +56,15 @@ atanhl(long double x)
 	ENTERI();
 	GET_LDBL_EXPSIGN(hx, x);
 	ix = hx & 0x7fff;
-	if (ix >= 0x3fff)		/* |x| >= 1, or NaN or misnormal */
-	    RETURNI(fabsl(x) == 1 ? x / zero : (x - x) / (x - x));
+	if (ix >= 0x3fff) /* |x| >= 1, or NaN or misnormal */
+		RETURNI(fabsl(x) == 1 ? x / zero : (x - x) / (x - x));
 	if (ix < BIAS + EXP_TINY && (huge + x) > zero)
-	    RETURNI(x);			/* x is tiny */
+		RETURNI(x); /* x is tiny */
 	SET_LDBL_EXPSIGN(x, ix);
-	if (ix < 0x3ffe) {		/* |x| < 0.5, or misnormal */
-	    t = x+x;
-	    t = 0.5*log1pl(t+t*x/(one-x));
-	} else 
-	    t = 0.5*log1pl((x+x)/(one-x));
+	if (ix < 0x3ffe) { /* |x| < 0.5, or misnormal */
+		t = x + x;
+		t = 0.5 * log1pl(t + t * x / (one - x));
+	} else
+		t = 0.5 * log1pl((x + x) / (one - x));
 	RETURNI((hx & 0x8000) == 0 ? t : -t);
 }

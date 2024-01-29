@@ -34,25 +34,22 @@
 
 #include "tip.h"
 
-esctable_t etable[] = {
-	{ '!',	NORM,	"shell",			 shell },
-	{ '<',	NORM,	"receive file from remote host", getfl },
-	{ '>',	NORM,	"send file to remote host",	 sendfile },
-	{ 't',	NORM,	"take file from remote UNIX",	 cu_take },
-	{ 'p',	NORM,	"put file to remote UNIX",	 cu_put },
-	{ '|',	NORM,	"pipe remote file",		 pipefile },
-	{ '$',	NORM,	"pipe local command to remote host", pipeout },
+esctable_t etable[] = { { '!', NORM, "shell", shell },
+	{ '<', NORM, "receive file from remote host", getfl },
+	{ '>', NORM, "send file to remote host", sendfile },
+	{ 't', NORM, "take file from remote UNIX", cu_take },
+	{ 'p', NORM, "put file to remote UNIX", cu_put },
+	{ '|', NORM, "pipe remote file", pipefile },
+	{ '$', NORM, "pipe local command to remote host", pipeout },
 #ifdef CONNECT
-	{ 'C',  NORM,	"connect program to remote host",consh },
+	{ 'C', NORM, "connect program to remote host", consh },
 #endif
-	{ 'c',	NORM,	"change directory",		 chdirectory },
-	{ '.',	NORM,	"exit from tip",		 finish },
-	{CTRL('d'),NORM,"exit from tip",		 finish },
-	{CTRL('y'),NORM,"suspend tip (local+remote)",	 suspend },
-	{CTRL('z'),NORM,"suspend tip (local only)",	 suspend },
-	{ 's',	NORM,	"set variable",			 variable },
-	{ 'v',	NORM,	"list variables",		 listvariables },
-	{ '?',	NORM,	"get this summary",		 help },
-	{ '#',	NORM,	"send break",			 genbrk },
-	{ '\0',	0,	NULL,				 NULL }
-};
+	{ 'c', NORM, "change directory", chdirectory },
+	{ '.', NORM, "exit from tip", finish },
+	{ CTRL('d'), NORM, "exit from tip", finish },
+	{ CTRL('y'), NORM, "suspend tip (local+remote)", suspend },
+	{ CTRL('z'), NORM, "suspend tip (local only)", suspend },
+	{ 's', NORM, "set variable", variable },
+	{ 'v', NORM, "list variables", listvariables },
+	{ '?', NORM, "get this summary", help },
+	{ '#', NORM, "send break", genbrk }, { '\0', 0, NULL, NULL } };

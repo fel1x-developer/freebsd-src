@@ -31,8 +31,8 @@
 
 #include <stdio.h>
 
-#include "spinlock.h"
 #include "libc_private.h"
+#include "spinlock.h"
 
 long _atomic_lock_stub(volatile long *);
 void _spinlock_stub(spinlock_t *);
@@ -51,9 +51,7 @@ void
 _spinlock(spinlock_t *lck)
 {
 
-	((void (*)(spinlock_t *lck))__libc_interposing[INTERPOS_spinlock])
-	    (lck);
-
+	((void (*)(spinlock_t *lck))__libc_interposing[INTERPOS_spinlock])(lck);
 }
 
 #pragma weak _spinunlock
@@ -61,9 +59,8 @@ void
 _spinunlock(spinlock_t *lck)
 {
 
-	((void (*)(spinlock_t *lck))__libc_interposing[INTERPOS_spinunlock])
-	    (lck);
-
+	((void (*)(spinlock_t *lck))__libc_interposing[INTERPOS_spinunlock])(
+	    lck);
 }
 
 void

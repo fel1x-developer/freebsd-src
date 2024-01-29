@@ -33,14 +33,14 @@
 
 #include <capsicum_helpers.h>
 #include <err.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "extern.h"
 
 void
-c_special(int fd1, const char *file1, off_t skip1,
-    int fd2, const char *file2, off_t skip2, off_t limit)
+c_special(int fd1, const char *file1, off_t skip1, int fd2, const char *file2,
+    off_t skip2, off_t limit)
 {
 	int ch1, ch2;
 	off_t byte, line;
@@ -104,16 +104,16 @@ c_special(int fd1, const char *file1, off_t skip1,
 			++line;
 	}
 
-eof:	if (ferror(fp1))
+eof:
+	if (ferror(fp1))
 		err(ERR_EXIT, "%s", file1);
 	if (ferror(fp2))
 		err(ERR_EXIT, "%s", file2);
 	if (feof(fp1)) {
 		if (!feof(fp2))
 			eofmsg(file1);
-	} else
-		if (feof(fp2))
-			eofmsg(file2);
+	} else if (feof(fp2))
+		eofmsg(file2);
 	fclose(fp2);
 	fclose(fp1);
 	if (dfound)

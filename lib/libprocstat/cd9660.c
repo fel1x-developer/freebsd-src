@@ -1,4 +1,4 @@
-/* 
+/*
  * SPDX-License-Identifier: BSD-4-Clause
  *
  * Copyright (c) 2000 Peter Edwards
@@ -43,10 +43,10 @@
  */
 
 #include <sys/param.h>
+#include <sys/mount.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/vnode.h>
-#include <sys/mount.h>
 
 #include <netinet/in.h>
 
@@ -56,12 +56,11 @@
 #include <isofs/cd9660/iso.h>
 #undef _KERNEL
 #include <isofs/cd9660/cd9660_node.h>
-
 #include <kvm.h>
 #include <stdio.h>
 
-#include "libprocstat.h"
 #include "common_kvm.h"
+#include "libprocstat.h"
 
 int
 isofs_filestat(kvm_t *kd, struct vnode *vp, struct vnstat *vn)
@@ -70,15 +69,13 @@ isofs_filestat(kvm_t *kd, struct vnode *vp, struct vnstat *vn)
 	struct iso_mnt mnt;
 
 	if (!kvm_read_all(kd, (unsigned long)VTOI(vp), &isonode,
-	    sizeof(isonode))) {
-		warnx("can't read iso_node at %p",
-		    (void *)VTOI(vp));
+		sizeof(isonode))) {
+		warnx("can't read iso_node at %p", (void *)VTOI(vp));
 		return (1);
 	}
 	if (!kvm_read_all(kd, (unsigned long)isonode.i_mnt, &mnt,
-	    sizeof(mnt))) {
-		warnx("can't read iso_mnt at %p",
-		    (void *)VTOI(vp));
+		sizeof(mnt))) {
+		warnx("can't read iso_mnt at %p", (void *)VTOI(vp));
 		return (1);
 	}
 	vn->vn_fsid = dev2udev(kd, mnt.im_dev);

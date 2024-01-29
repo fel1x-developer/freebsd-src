@@ -28,44 +28,44 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
 
+#include <vm/vm.h>
+#include <vm/pmap.h>
+#include <vm/vm_object.h>
+
 #include <dev/agp/agppriv.h>
 #include <dev/agp/agpreg.h>
-#include <dev/pci/pcivar.h>
 #include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
-#include <vm/vm.h>
-#include <vm/vm_object.h>
-#include <vm/pmap.h>
-
-#define	REG_GARTCTRL	0
-#define	REG_APSIZE	1
-#define	REG_ATTBASE	2
+#define REG_GARTCTRL 0
+#define REG_APSIZE 1
+#define REG_ATTBASE 2
 
 struct agp_via_softc {
 	struct agp_softc agp;
-	u_int32_t	initial_aperture; /* aperture size at startup */
+	u_int32_t initial_aperture; /* aperture size at startup */
 	struct agp_gatt *gatt;
-	int		*regs;
+	int *regs;
 };
 
 static int via_v2_regs[] = { AGP_VIA_GARTCTRL, AGP_VIA_APSIZE,
-    AGP_VIA_ATTBASE };
+	AGP_VIA_ATTBASE };
 static int via_v3_regs[] = { AGP3_VIA_GARTCTRL, AGP3_VIA_APSIZE,
-    AGP3_VIA_ATTBASE };
+	AGP3_VIA_ATTBASE };
 
-static const char*
+static const char *
 agp_via_match(device_t dev)
 {
-	if (pci_get_class(dev) != PCIC_BRIDGE
-	    || pci_get_subclass(dev) != PCIS_BRIDGE_HOST)
+	if (pci_get_class(dev) != PCIC_BRIDGE ||
+	    pci_get_subclass(dev) != PCIS_BRIDGE_HOST)
 		return NULL;
 
 	if (agp_find_caps(dev) == 0)
@@ -99,7 +99,8 @@ agp_via_match(device_t dev)
 	case 0x05981106:
 		return ("VIA 82C598 (Apollo MVP3) host to PCI bridge");
 	case 0x06011106:
-		return ("VIA 8601 (Apollo ProMedia/PLE133Ta) host to PCI bridge");
+		return (
+		    "VIA 8601 (Apollo ProMedia/PLE133Ta) host to PCI bridge");
 	case 0x06051106:
 		return ("VIA 82C694X (Apollo Pro 133A) host to PCI bridge");
 	case 0x06911106:
@@ -125,9 +126,11 @@ agp_via_match(device_t dev)
 	case 0x31681106:
 		return ("VIA 8754 (PT800) host to PCI bridge");
 	case 0x31891106:
-		return ("VIA 8377 (Apollo KT400/KT400A/KT600) host to PCI bridge");
+		return (
+		    "VIA 8377 (Apollo KT400/KT400A/KT600) host to PCI bridge");
 	case 0x32051106:
-		return ("VIA 8235/8237 (Apollo KM400/KM400A) host to PCI bridge");
+		return (
+		    "VIA 8235/8237 (Apollo KM400/KM400A) host to PCI bridge");
 	case 0x32081106:
 		return ("VIA 8783 (PT890) host to PCI bridge");
 	case 0x32581106:
@@ -168,7 +171,7 @@ agp_via_attach(device_t dev)
 
 	/* Look at the capability register to see if we handle AGP3 */
 	capid = pci_read_config(dev, agp_find_caps(dev) + AGP_CAPID, 4);
-	if (((capid >> 20) & 0x0f) >= 3) { 
+	if (((capid >> 20) & 0x0f) >= 3) {
 		agpsel = pci_read_config(dev, AGP_VIA_AGPSEL, 1);
 		if ((agpsel & (1 << 1)) == 0)
 			sc->regs = via_v3_regs;
@@ -198,23 +201,26 @@ agp_via_attach(device_t dev)
 
 	if (sc->regs == via_v2_regs) {
 		/* Install the gatt. */
-		pci_write_config(dev, sc->regs[REG_ATTBASE], gatt->ag_physical | 3, 4);
-		
+		pci_write_config(dev, sc->regs[REG_ATTBASE],
+		    gatt->ag_physical | 3, 4);
+
 		/* Enable the aperture. */
 		pci_write_config(dev, sc->regs[REG_GARTCTRL], 0x0f, 4);
 	} else {
 		u_int32_t gartctrl;
 
 		/* Install the gatt. */
-		pci_write_config(dev, sc->regs[REG_ATTBASE], gatt->ag_physical, 4);
-		
+		pci_write_config(dev, sc->regs[REG_ATTBASE], gatt->ag_physical,
+		    4);
+
 		/* Enable the aperture. */
 		gartctrl = pci_read_config(dev, sc->regs[REG_GARTCTRL], 4);
-		pci_write_config(dev, sc->regs[REG_GARTCTRL], gartctrl | (3 << 7), 4);
+		pci_write_config(dev, sc->regs[REG_GARTCTRL],
+		    gartctrl | (3 << 7), 4);
 	}
 
 	device_printf(dev, "aperture size is %dM\n",
-		sc->initial_aperture / 1024 / 1024);
+	    sc->initial_aperture / 1024 / 1024);
 
 	return 0;
 }
@@ -296,8 +302,8 @@ agp_via_set_aperture(device_t dev, u_int32_t aperture)
 		apsize = ((aperture - 1) >> 20) ^ 0xff;
 
 		/*
-	 	 * Double check for sanity.
-	 	 */
+		 * Double check for sanity.
+		 */
 		if ((((apsize ^ 0xff) << 20) | ((1 << 20) - 1)) + 1 != aperture)
 			return EINVAL;
 
@@ -340,7 +346,7 @@ agp_via_set_aperture(device_t dev, u_int32_t aperture)
 			return EINVAL;
 		}
 		val = pci_read_config(dev, sc->regs[REG_APSIZE], 2);
-		pci_write_config(dev, sc->regs[REG_APSIZE], 
+		pci_write_config(dev, sc->regs[REG_APSIZE],
 		    ((val & ~0xfff) | key), 2);
 	}
 	return 0;
@@ -381,34 +387,32 @@ agp_via_flush_tlb(device_t dev)
 		pci_write_config(dev, sc->regs[REG_GARTCTRL], 0x0f, 4);
 	} else {
 		gartctrl = pci_read_config(dev, sc->regs[REG_GARTCTRL], 4);
-		pci_write_config(dev, sc->regs[REG_GARTCTRL], gartctrl &
-		    ~(1 << 7), 4);
+		pci_write_config(dev, sc->regs[REG_GARTCTRL],
+		    gartctrl & ~(1 << 7), 4);
 		pci_write_config(dev, sc->regs[REG_GARTCTRL], gartctrl, 4);
 	}
-
 }
 
 static device_method_t agp_via_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		agp_via_probe),
-	DEVMETHOD(device_attach,	agp_via_attach),
-	DEVMETHOD(device_detach,	agp_via_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	bus_generic_resume),
+	DEVMETHOD(device_probe, agp_via_probe),
+	DEVMETHOD(device_attach, agp_via_attach),
+	DEVMETHOD(device_detach, agp_via_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
 
 	/* AGP interface */
-	DEVMETHOD(agp_get_aperture,	agp_via_get_aperture),
-	DEVMETHOD(agp_set_aperture,	agp_via_set_aperture),
-	DEVMETHOD(agp_bind_page,	agp_via_bind_page),
-	DEVMETHOD(agp_unbind_page,	agp_via_unbind_page),
-	DEVMETHOD(agp_flush_tlb,	agp_via_flush_tlb),
-	DEVMETHOD(agp_enable,		agp_generic_enable),
-	DEVMETHOD(agp_alloc_memory,	agp_generic_alloc_memory),
-	DEVMETHOD(agp_free_memory,	agp_generic_free_memory),
-	DEVMETHOD(agp_bind_memory,	agp_generic_bind_memory),
-	DEVMETHOD(agp_unbind_memory,	agp_generic_unbind_memory),
-	{ 0, 0 }
+	DEVMETHOD(agp_get_aperture, agp_via_get_aperture),
+	DEVMETHOD(agp_set_aperture, agp_via_set_aperture),
+	DEVMETHOD(agp_bind_page, agp_via_bind_page),
+	DEVMETHOD(agp_unbind_page, agp_via_unbind_page),
+	DEVMETHOD(agp_flush_tlb, agp_via_flush_tlb),
+	DEVMETHOD(agp_enable, agp_generic_enable),
+	DEVMETHOD(agp_alloc_memory, agp_generic_alloc_memory),
+	DEVMETHOD(agp_free_memory, agp_generic_free_memory),
+	DEVMETHOD(agp_bind_memory, agp_generic_bind_memory),
+	DEVMETHOD(agp_unbind_memory, agp_generic_unbind_memory), { 0, 0 }
 };
 
 static driver_t agp_via_driver = {

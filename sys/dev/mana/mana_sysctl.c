@@ -28,6 +28,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <sys/cdefs.h>
+
 #include "mana_sysctl.h"
 
 static int mana_sysctl_cleanup_thread_cpu(SYSCTL_HANDLER_ARGS);
@@ -40,8 +41,8 @@ SYSCTL_NODE(_hw, OID_AUTO, mana, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
 /*
  * Logging level for changing verbosity of the output
  */
-SYSCTL_INT(_hw_mana, OID_AUTO, log_level, CTLFLAG_RWTUN,
-    &mana_log_level, 0, "Logging level indicating verbosity of the logs");
+SYSCTL_INT(_hw_mana, OID_AUTO, log_level, CTLFLAG_RWTUN, &mana_log_level, 0,
+    "Logging level indicating verbosity of the logs");
 
 SYSCTL_CONST_STRING(_hw_mana, OID_AUTO, driver_version, CTLFLAG_RD,
     DRV_MODULE_VERSION, "MANA driver version");
@@ -158,17 +159,16 @@ mana_sysctl_add_port(struct mana_port_context *apc)
 
 	snprintf(node_name, 32, "port%d", apc->port_idx);
 
-	port_node = SYSCTL_ADD_NODE(ctx, child, OID_AUTO,
-	    node_name, CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "Port Name");
+	port_node = SYSCTL_ADD_NODE(ctx, child, OID_AUTO, node_name,
+	    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "Port Name");
 	apc->port_list = SYSCTL_CHILDREN(port_node);
 
-	SYSCTL_ADD_BOOL(ctx, apc->port_list, OID_AUTO,
-	    "enable_altq", CTLFLAG_RW, &apc->enable_tx_altq, 0,
+	SYSCTL_ADD_BOOL(ctx, apc->port_list, OID_AUTO, "enable_altq",
+	    CTLFLAG_RW, &apc->enable_tx_altq, 0,
 	    "Choose alternative txq under heavy load");
 
 	SYSCTL_ADD_PROC(ctx, apc->port_list, OID_AUTO,
-	    "bind_cleanup_thread_cpu",
-	    CTLTYPE_U8 | CTLFLAG_RW | CTLFLAG_MPSAFE,
+	    "bind_cleanup_thread_cpu", CTLTYPE_U8 | CTLFLAG_RW | CTLFLAG_MPSAFE,
 	    apc, 0, mana_sysctl_cleanup_thread_cpu, "I",
 	    "Bind cleanup thread to a cpu. 0 disables it.");
 
@@ -204,8 +204,8 @@ mana_sysctl_add_port(struct mana_port_context *apc)
 	    mana_sysctl_rx_stat_agg_u64, "LU", "LRO bad checksum");
 	SYSCTL_ADD_PROC(ctx, stats_list, OID_AUTO, "rx_lro_tried",
 	    CTLTYPE_U64 | CTLFLAG_RD | CTLFLAG_STATS, apc,
-	    __offsetof(struct mana_rxq, lro_tried),
-	    mana_sysctl_rx_stat_agg_u64, "LU", "LRO tried");
+	    __offsetof(struct mana_rxq, lro_tried), mana_sysctl_rx_stat_agg_u64,
+	    "LU", "LRO tried");
 	SYSCTL_ADD_PROC(ctx, stats_list, OID_AUTO, "rx_lro_failed",
 	    CTLTYPE_U64 | CTLFLAG_RD | CTLFLAG_STATS, apc,
 	    __offsetof(struct mana_rxq, lro_failed),
@@ -214,27 +214,26 @@ mana_sysctl_add_port(struct mana_port_context *apc)
 	SYSCTL_ADD_PROC(ctx, stats_list, OID_AUTO, "lro_ackcnt_lim",
 	    CTLTYPE_U64 | CTLFLAG_RD | CTLFLAG_STATS, apc,
 	    __offsetof(struct mana_rxq, lro.lro_ackcnt_lim),
-	    mana_sysctl_rx_stat_u16,
-	    "LU", "Max # of ACKs to be aggregated by LRO");
+	    mana_sysctl_rx_stat_u16, "LU",
+	    "Max # of ACKs to be aggregated by LRO");
 	SYSCTL_ADD_PROC(ctx, stats_list, OID_AUTO, "lro_length_lim",
 	    CTLTYPE_U64 | CTLFLAG_RD | CTLFLAG_STATS, apc,
 	    __offsetof(struct mana_rxq, lro.lro_length_lim),
-	    mana_sysctl_rx_stat_u32,
-	    "LU", "Max len of aggregated data in byte by LRO");
+	    mana_sysctl_rx_stat_u32, "LU",
+	    "Max len of aggregated data in byte by LRO");
 	SYSCTL_ADD_PROC(ctx, stats_list, OID_AUTO, "lro_cnt",
 	    CTLTYPE_U64 | CTLFLAG_RD | CTLFLAG_STATS, apc,
-	    __offsetof(struct mana_rxq, lro.lro_cnt),
-	    mana_sysctl_rx_stat_u32,
+	    __offsetof(struct mana_rxq, lro.lro_cnt), mana_sysctl_rx_stat_u32,
 	    "LU", "Max # or LRO packet count");
 
 	SYSCTL_ADD_PROC(ctx, stats_list, OID_AUTO, "tx_tso_packets",
 	    CTLTYPE_U64 | CTLFLAG_RD | CTLFLAG_STATS, apc,
-	    __offsetof(struct mana_txq, tso_pkts),
-	    mana_sysctl_tx_stat_agg_u64, "LU", "TSO packets");
+	    __offsetof(struct mana_txq, tso_pkts), mana_sysctl_tx_stat_agg_u64,
+	    "LU", "TSO packets");
 	SYSCTL_ADD_PROC(ctx, stats_list, OID_AUTO, "tx_tso_bytes",
 	    CTLTYPE_U64 | CTLFLAG_RD | CTLFLAG_STATS, apc,
-	    __offsetof(struct mana_txq, tso_bytes),
-	    mana_sysctl_tx_stat_agg_u64, "LU", "TSO bytes");
+	    __offsetof(struct mana_txq, tso_bytes), mana_sysctl_tx_stat_agg_u64,
+	    "LU", "TSO bytes");
 }
 
 void
@@ -259,13 +258,13 @@ mana_sysctl_add_queues(struct mana_port_context *apc)
 
 		snprintf(que_name, 32, "queue%d", i);
 
-		queue_node = SYSCTL_ADD_NODE(ctx, child, OID_AUTO,
-		    que_name, CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "Queue Name");
+		queue_node = SYSCTL_ADD_NODE(ctx, child, OID_AUTO, que_name,
+		    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "Queue Name");
 		queue_list = SYSCTL_CHILDREN(queue_node);
 
 		/* TX stats */
-		tx_node = SYSCTL_ADD_NODE(ctx, queue_list, OID_AUTO,
-		    "txq", CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "TX queue");
+		tx_node = SYSCTL_ADD_NODE(ctx, queue_list, OID_AUTO, "txq",
+		    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "TX queue");
 		tx_list = SYSCTL_CHILDREN(tx_node);
 
 		tx_stats = &txq->stats;
@@ -281,27 +280,25 @@ mana_sysctl_add_queues(struct mana_port_context *apc)
 		SYSCTL_ADD_COUNTER_U64(ctx, tx_list, OID_AUTO, "mbuf_collapse",
 		    CTLFLAG_RD, &tx_stats->collapse, "Mbuf collapse count");
 		SYSCTL_ADD_COUNTER_U64(ctx, tx_list, OID_AUTO,
-		    "mbuf_collapse_err", CTLFLAG_RD,
-		    &tx_stats->collapse_err, "Mbuf collapse failures");
+		    "mbuf_collapse_err", CTLFLAG_RD, &tx_stats->collapse_err,
+		    "Mbuf collapse failures");
 		SYSCTL_ADD_COUNTER_U64(ctx, tx_list, OID_AUTO,
-		    "dma_mapping_err", CTLFLAG_RD,
-		    &tx_stats->dma_mapping_err, "DMA mapping failures");
+		    "dma_mapping_err", CTLFLAG_RD, &tx_stats->dma_mapping_err,
+		    "DMA mapping failures");
+		SYSCTL_ADD_COUNTER_U64(ctx, tx_list, OID_AUTO, "alt_chg",
+		    CTLFLAG_RD, &tx_stats->alt_chg,
+		    "Switch to alternative txq");
+		SYSCTL_ADD_COUNTER_U64(ctx, tx_list, OID_AUTO, "alt_reset",
+		    CTLFLAG_RD, &tx_stats->alt_reset, "Reset to self txq");
+		SYSCTL_ADD_COUNTER_U64(ctx, tx_list, OID_AUTO, "cqe_err",
+		    CTLFLAG_RD, &tx_stats->cqe_err, "Error CQE count");
 		SYSCTL_ADD_COUNTER_U64(ctx, tx_list, OID_AUTO,
-		    "alt_chg", CTLFLAG_RD,
-		    &tx_stats->alt_chg, "Switch to alternative txq");
-		SYSCTL_ADD_COUNTER_U64(ctx, tx_list, OID_AUTO,
-		    "alt_reset", CTLFLAG_RD,
-		    &tx_stats->alt_reset, "Reset to self txq");
-		SYSCTL_ADD_COUNTER_U64(ctx, tx_list, OID_AUTO,
-		    "cqe_err", CTLFLAG_RD,
-		    &tx_stats->cqe_err, "Error CQE count");
-		SYSCTL_ADD_COUNTER_U64(ctx, tx_list, OID_AUTO,
-		    "cqe_unknown_type", CTLFLAG_RD,
-		    &tx_stats->cqe_unknown_type, "Unknown CQE count");
+		    "cqe_unknown_type", CTLFLAG_RD, &tx_stats->cqe_unknown_type,
+		    "Unknown CQE count");
 
 		/* RX stats */
-		rx_node = SYSCTL_ADD_NODE(ctx, queue_list, OID_AUTO,
-		    "rxq", CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "RX queue");
+		rx_node = SYSCTL_ADD_NODE(ctx, queue_list, OID_AUTO, "rxq",
+		    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "RX queue");
 		rx_list = SYSCTL_CHILDREN(rx_node);
 
 		rx_stats = &rxq->stats;
@@ -311,11 +308,11 @@ mana_sysctl_add_queues(struct mana_port_context *apc)
 		SYSCTL_ADD_COUNTER_U64(ctx, rx_list, OID_AUTO, "bytes",
 		    CTLFLAG_RD, &rx_stats->bytes, "Bytes received");
 		SYSCTL_ADD_COUNTER_U64(ctx, rx_list, OID_AUTO,
-		    "mbuf_alloc_fail", CTLFLAG_RD,
-		    &rx_stats->mbuf_alloc_fail, "Failed mbuf allocs");
+		    "mbuf_alloc_fail", CTLFLAG_RD, &rx_stats->mbuf_alloc_fail,
+		    "Failed mbuf allocs");
 		SYSCTL_ADD_COUNTER_U64(ctx, rx_list, OID_AUTO,
-		    "dma_mapping_err", CTLFLAG_RD,
-		    &rx_stats->dma_mapping_err, "DMA mapping errors");
+		    "dma_mapping_err", CTLFLAG_RD, &rx_stats->dma_mapping_err,
+		    "DMA mapping errors");
 	}
 }
 

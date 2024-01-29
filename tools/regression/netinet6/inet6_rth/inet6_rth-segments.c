@@ -47,7 +47,7 @@ static void test_rth_add();
 static void test_rth_init();
 
 int
-main(int argc, char* argv[])
+main(int argc, char *argv[])
 {
 	/*
 	 * Initialize global variables.
@@ -62,12 +62,12 @@ main(int argc, char* argv[])
 	 */
 	printf("Starting inet6_rth_* and cmsg macro regression tests...\n");
 
-	test_cmsg_firsthdr();			/* CMSG_FIRSTHDR    */
-	test_cmsg_nexthdr();			/* CMSG_NEXTHDR	    */
-	test_rth_space();			/* inet6_rth_space  */
-	test_rth_segments();			/* inet6_rth_segments */
-	test_rth_add();				/* inet6_rth_add    */
-	test_rth_init();			/* inet6_rth_space  */
+	test_cmsg_firsthdr(); /* CMSG_FIRSTHDR    */
+	test_cmsg_nexthdr();  /* CMSG_NEXTHDR	    */
+	test_rth_space();     /* inet6_rth_space  */
+	test_rth_segments();  /* inet6_rth_segments */
+	test_rth_add();	      /* inet6_rth_add    */
+	test_rth_init();      /* inet6_rth_space  */
 
 	if (g_fail == 0)
 		printf("OK. ");
@@ -105,8 +105,8 @@ test_rth_init()
 void
 test_rth_add()
 {
-	int	i, ret;
-	char	buf[10240];
+	int i, ret;
+	char buf[10240];
 	struct addrinfo *res;
 	struct addrinfo hints;
 
@@ -117,7 +117,8 @@ test_rth_add()
 	memset((void *)&hints, 0, sizeof(struct addrinfo));
 	hints.ai_family = AF_INET6;
 	hints.ai_flags = AI_NUMERICHOST;
-	if (0 != getaddrinfo("::1", NULL, (const struct addrinfo *)&hints, &res))
+	if (0 !=
+	    getaddrinfo("::1", NULL, (const struct addrinfo *)&hints, &res))
 		abort();
 	for (i = 0; i < 127; i++)
 		inet6_rth_add((void *)buf,
@@ -135,8 +136,8 @@ test_rth_add()
 void
 test_rth_segments()
 {
-	int	seg;
-	char	buf[10240];
+	int seg;
+	char buf[10240];
 
 	set_funcname("test_rth_segments", sizeof("test_rth_segments\0"));
 
@@ -168,23 +169,23 @@ test_rth_segments()
 	/*
 	 * Test: -1 segments.
 	 */
-/*
-	if (NULL == inet6_rth_init((void *)buf, 10240, IPV6_RTHDR_TYPE_0, 0))
-		abort();
-	((struct ip6_rthdr0 *)buf)->ip6r0_len = -1 * 2;
-	seg = inet6_rth_segments((const void *)buf);
-	checknum(-1, seg, 0, "-1 segments\0");
-*/
+	/*
+		if (NULL == inet6_rth_init((void *)buf, 10240,
+	   IPV6_RTHDR_TYPE_0, 0)) abort();
+		((struct ip6_rthdr0 *)buf)->ip6r0_len = -1 * 2;
+		seg = inet6_rth_segments((const void *)buf);
+		checknum(-1, seg, 0, "-1 segments\0");
+	*/
 	/*
 	 * Test: 128 segments.
 	 */
-/*
-	if (NULL == inet6_rth_init((void *)buf, 10240, IPV6_RTHDR_TYPE_0, 127))
-		abort();
-	((struct ip6_rthdr0 *)buf)->ip6r0_len = 128 * 2;
-	seg = inet6_rth_segments((const void *)buf);
-	checknum(-1, seg, 0, "128 segments\0");
-*/
+	/*
+		if (NULL == inet6_rth_init((void *)buf, 10240,
+	   IPV6_RTHDR_TYPE_0, 127)) abort();
+		((struct ip6_rthdr0 *)buf)->ip6r0_len = 128 * 2;
+		seg = inet6_rth_segments((const void *)buf);
+		checknum(-1, seg, 0, "128 segments\0");
+	*/
 }
 
 void
@@ -220,7 +221,7 @@ test_rth_space()
 void
 test_cmsg_nexthdr()
 {
-	struct msghdr  mh;
+	struct msghdr mh;
 	struct cmsghdr cmh;
 	struct cmsghdr *cmhp, *cmhnextp;
 	char ancbuf[10240];
@@ -233,17 +234,16 @@ test_cmsg_nexthdr()
 	 */
 	init_hdrs(&mh, &cmh, ancbuf, sizeof(ancbuf));
 	mh.msg_control = (caddr_t)ancbuf;
-	mh.msg_controllen  = CMSG_SPACE(0) * 2;	/* 2 cmsghdr with no data */
+	mh.msg_controllen = CMSG_SPACE(0) * 2; /* 2 cmsghdr with no data */
 	cmh.cmsg_len = CMSG_LEN(0);
 
-	/* 
+	/*
 	 * Copy the same instance of cmsghdr twice. Use a magic value
 	 * to id the second copy.
 	 */
 	bcopy((void *)&cmh, (void *)ancbuf, sizeof(cmh));
 	strlcpy((char *)&cmh, (const char *)&magic, sizeof(magic));
-	bcopy((void *)&cmh,
-	    (void *)((caddr_t)ancbuf + CMSG_SPACE(0)),
+	bcopy((void *)&cmh, (void *)((caddr_t)ancbuf + CMSG_SPACE(0)),
 	    sizeof(cmh));
 	cmhp = CMSG_FIRSTHDR(&mh);
 	cmhnextp = CMSG_NXTHDR(&mh, cmhp);
@@ -255,7 +255,7 @@ test_cmsg_nexthdr()
 	 */
 	init_hdrs(&mh, &cmh, ancbuf, sizeof(ancbuf));
 	mh.msg_control = (caddr_t)ancbuf;
-	mh.msg_controllen  = CMSG_SPACE(0);
+	mh.msg_controllen = CMSG_SPACE(0);
 	cmh.cmsg_len = CMSG_LEN(0);
 	bcopy((void *)&cmh, (void *)ancbuf, sizeof(cmh));
 	cmhp = CMSG_FIRSTHDR(&mh);
@@ -267,7 +267,7 @@ test_cmsg_nexthdr()
 	 */
 	init_hdrs(&mh, &cmh, ancbuf, sizeof(ancbuf));
 	mh.msg_control = (caddr_t)ancbuf;
-	mh.msg_controllen  = sizeof(ancbuf);
+	mh.msg_controllen = sizeof(ancbuf);
 	cmh.cmsg_len = sizeof(ancbuf);
 	bcopy((void *)&cmh, (void *)ancbuf, sizeof(cmh));
 	cmhp = CMSG_FIRSTHDR(&mh);
@@ -278,7 +278,7 @@ test_cmsg_nexthdr()
 void
 test_cmsg_firsthdr()
 {
-	struct msghdr  mh;
+	struct msghdr mh;
 	struct cmsghdr cmh;
 	struct cmsghdr *cmhp;
 	char ancbuf[1024];
@@ -290,30 +290,27 @@ test_cmsg_firsthdr()
 	init_hdrs(&mh, NULL, NULL, 0);
 	mh.msg_control = NULL;
 	cmhp = CMSG_FIRSTHDR(&mh);
-	checkptr(NULL, (caddr_t)cmhp,
-	    "msg_control is NULL\0");
+	checkptr(NULL, (caddr_t)cmhp, "msg_control is NULL\0");
 
 	/* - where msg_controllen < sizeof cmsghdr */
 	init_hdrs(&mh, NULL, NULL, 0);
 	mh.msg_control = (caddr_t)&cmh;
 	mh.msg_controllen = sizeof(cmh) - 1;
 	cmhp = CMSG_FIRSTHDR(&mh);
-	checkptr(NULL, (caddr_t)cmhp,
-	    "msg_controllen < sizeof cmsghdr\0");
+	checkptr(NULL, (caddr_t)cmhp, "msg_controllen < sizeof cmsghdr\0");
 
 	/* - where msg_controllen == 0 */
 	init_hdrs(&mh, NULL, NULL, 0);
 	mh.msg_control = (caddr_t)&cmh;
 	mh.msg_controllen = 0;
 	cmhp = CMSG_FIRSTHDR(&mh);
-	checkptr(NULL, (caddr_t)cmhp,
-	    "msg_controllen == 0\0");
+	checkptr(NULL, (caddr_t)cmhp, "msg_controllen == 0\0");
 
 	/* no errors */
 	init_hdrs(&mh, &cmh, ancbuf, sizeof(ancbuf));
 	memset((void *)ancbuf, 0, sizeof(ancbuf));
 	mh.msg_control = (caddr_t)ancbuf;
-	mh.msg_controllen  = sizeof(ancbuf);
+	mh.msg_controllen = sizeof(ancbuf);
 	strlcpy((char *)&cmh, (const char *)&magic, sizeof(magic));
 	bcopy((void *)&cmh, (void *)ancbuf, sizeof(cmh));
 	cmhp = CMSG_FIRSTHDR(&mh);

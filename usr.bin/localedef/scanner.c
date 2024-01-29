@@ -33,30 +33,32 @@
  * for localedef for processing by the higher level grammar processor.
  */
 #include <sys/cdefs.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <sys/types.h>
+
+#include <assert.h>
 #include <ctype.h>
 #include <limits.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include <sys/types.h>
-#include <assert.h>
+
 #include "localedef.h"
 #include "parser.h"
 
-int			com_char = '#';
-int			esc_char = '\\';
-int			mb_cur_min = 1;
-int			mb_cur_max = 1;
-int			lineno = 1;
-int			warnings = 0;
-int			is_stdin = 1;
-FILE			*input;
-static int		nextline;
-//static FILE		*input = stdin;
-static const char	*filename = "<stdin>";
-static int		instring = 0;
-static int		escaped = 0;
+int com_char = '#';
+int esc_char = '\\';
+int mb_cur_min = 1;
+int mb_cur_max = 1;
+int lineno = 1;
+int warnings = 0;
+int is_stdin = 1;
+FILE *input;
+static int nextline;
+// static FILE		*input = stdin;
+static const char *filename = "<stdin>";
+static int instring = 0;
+static int escaped = 0;
 
 /*
  * Token space ... grows on demand.
@@ -77,105 +79,105 @@ static int widesz = 0;
  * The last keyword seen.  This is useful to trigger the special lexer rules
  * for "copy" and also collating symbols and elements.
  */
-int	last_kw = 0;
-static int	category = T_END;
+int last_kw = 0;
+static int category = T_END;
 
 static struct token {
 	int id;
 	const char *name;
 } keywords[] = {
-	{ T_COM_CHAR,		"comment_char" },
-	{ T_ESC_CHAR,		"escape_char" },
-	{ T_END,		"END" },
-	{ T_COPY,		"copy" },
-	{ T_MESSAGES,		"LC_MESSAGES" },
-	{ T_YESSTR,		"yesstr" },
-	{ T_YESEXPR,		"yesexpr" },
-	{ T_NOSTR,		"nostr" },
-	{ T_NOEXPR,		"noexpr" },
-	{ T_MONETARY,		"LC_MONETARY" },
-	{ T_INT_CURR_SYMBOL,	"int_curr_symbol" },
-	{ T_CURRENCY_SYMBOL,	"currency_symbol" },
-	{ T_MON_DECIMAL_POINT,	"mon_decimal_point" },
-	{ T_MON_THOUSANDS_SEP,	"mon_thousands_sep" },
-	{ T_POSITIVE_SIGN,	"positive_sign" },
-	{ T_NEGATIVE_SIGN,	"negative_sign" },
-	{ T_MON_GROUPING,	"mon_grouping" },
-	{ T_INT_FRAC_DIGITS,	"int_frac_digits" },
-	{ T_FRAC_DIGITS,	"frac_digits" },
-	{ T_P_CS_PRECEDES,	"p_cs_precedes" },
-	{ T_P_SEP_BY_SPACE,	"p_sep_by_space" },
-	{ T_N_CS_PRECEDES,	"n_cs_precedes" },
-	{ T_N_SEP_BY_SPACE,	"n_sep_by_space" },
-	{ T_P_SIGN_POSN,	"p_sign_posn" },
-	{ T_N_SIGN_POSN,	"n_sign_posn" },
-	{ T_INT_P_CS_PRECEDES,	"int_p_cs_precedes" },
-	{ T_INT_N_CS_PRECEDES,	"int_n_cs_precedes" },
-	{ T_INT_P_SEP_BY_SPACE,	"int_p_sep_by_space" },
-	{ T_INT_N_SEP_BY_SPACE,	"int_n_sep_by_space" },
-	{ T_INT_P_SIGN_POSN,	"int_p_sign_posn" },
-	{ T_INT_N_SIGN_POSN,	"int_n_sign_posn" },
-	{ T_COLLATE,		"LC_COLLATE" },
-	{ T_COLLATING_SYMBOL,	"collating-symbol" },
-	{ T_COLLATING_ELEMENT,	"collating-element" },
-	{ T_FROM,		"from" },
-	{ T_ORDER_START,	"order_start" },
-	{ T_ORDER_END,		"order_end" },
-	{ T_FORWARD,		"forward" },
-	{ T_BACKWARD,		"backward" },
-	{ T_POSITION,		"position" },
-	{ T_IGNORE,		"IGNORE" },
-	{ T_UNDEFINED,		"UNDEFINED" },
-	{ T_NUMERIC,		"LC_NUMERIC" },
-	{ T_DECIMAL_POINT,	"decimal_point" },
-	{ T_THOUSANDS_SEP,	"thousands_sep" },
-	{ T_GROUPING,		"grouping" },
-	{ T_TIME,		"LC_TIME" },
-	{ T_ABDAY,		"abday" },
-	{ T_DAY,		"day" },
-	{ T_ABMON,		"abmon" },
-	{ T_MON,		"mon" },
-	{ T_D_T_FMT,		"d_t_fmt" },
-	{ T_D_FMT,		"d_fmt" },
-	{ T_T_FMT,		"t_fmt" },
-	{ T_AM_PM,		"am_pm" },
-	{ T_T_FMT_AMPM,		"t_fmt_ampm" },
-	{ T_ERA,		"era" },
-	{ T_ERA_D_FMT,		"era_d_fmt" },
-	{ T_ERA_T_FMT,		"era_t_fmt" },
-	{ T_ERA_D_T_FMT,	"era_d_t_fmt" },
-	{ T_ALT_DIGITS,		"alt_digits" },
-	{ T_CTYPE,		"LC_CTYPE" },
-	{ T_ISUPPER,		"upper" },
-	{ T_ISLOWER,		"lower" },
-	{ T_ISALPHA,		"alpha" },
-	{ T_ISDIGIT,		"digit" },
-	{ T_ISPUNCT,		"punct" },
-	{ T_ISXDIGIT,		"xdigit" },
-	{ T_ISSPACE,		"space" },
-	{ T_ISPRINT,		"print" },
-	{ T_ISGRAPH,		"graph" },
-	{ T_ISBLANK,		"blank" },
-	{ T_ISCNTRL,		"cntrl" },
+	{ T_COM_CHAR, "comment_char" },
+	{ T_ESC_CHAR, "escape_char" },
+	{ T_END, "END" },
+	{ T_COPY, "copy" },
+	{ T_MESSAGES, "LC_MESSAGES" },
+	{ T_YESSTR, "yesstr" },
+	{ T_YESEXPR, "yesexpr" },
+	{ T_NOSTR, "nostr" },
+	{ T_NOEXPR, "noexpr" },
+	{ T_MONETARY, "LC_MONETARY" },
+	{ T_INT_CURR_SYMBOL, "int_curr_symbol" },
+	{ T_CURRENCY_SYMBOL, "currency_symbol" },
+	{ T_MON_DECIMAL_POINT, "mon_decimal_point" },
+	{ T_MON_THOUSANDS_SEP, "mon_thousands_sep" },
+	{ T_POSITIVE_SIGN, "positive_sign" },
+	{ T_NEGATIVE_SIGN, "negative_sign" },
+	{ T_MON_GROUPING, "mon_grouping" },
+	{ T_INT_FRAC_DIGITS, "int_frac_digits" },
+	{ T_FRAC_DIGITS, "frac_digits" },
+	{ T_P_CS_PRECEDES, "p_cs_precedes" },
+	{ T_P_SEP_BY_SPACE, "p_sep_by_space" },
+	{ T_N_CS_PRECEDES, "n_cs_precedes" },
+	{ T_N_SEP_BY_SPACE, "n_sep_by_space" },
+	{ T_P_SIGN_POSN, "p_sign_posn" },
+	{ T_N_SIGN_POSN, "n_sign_posn" },
+	{ T_INT_P_CS_PRECEDES, "int_p_cs_precedes" },
+	{ T_INT_N_CS_PRECEDES, "int_n_cs_precedes" },
+	{ T_INT_P_SEP_BY_SPACE, "int_p_sep_by_space" },
+	{ T_INT_N_SEP_BY_SPACE, "int_n_sep_by_space" },
+	{ T_INT_P_SIGN_POSN, "int_p_sign_posn" },
+	{ T_INT_N_SIGN_POSN, "int_n_sign_posn" },
+	{ T_COLLATE, "LC_COLLATE" },
+	{ T_COLLATING_SYMBOL, "collating-symbol" },
+	{ T_COLLATING_ELEMENT, "collating-element" },
+	{ T_FROM, "from" },
+	{ T_ORDER_START, "order_start" },
+	{ T_ORDER_END, "order_end" },
+	{ T_FORWARD, "forward" },
+	{ T_BACKWARD, "backward" },
+	{ T_POSITION, "position" },
+	{ T_IGNORE, "IGNORE" },
+	{ T_UNDEFINED, "UNDEFINED" },
+	{ T_NUMERIC, "LC_NUMERIC" },
+	{ T_DECIMAL_POINT, "decimal_point" },
+	{ T_THOUSANDS_SEP, "thousands_sep" },
+	{ T_GROUPING, "grouping" },
+	{ T_TIME, "LC_TIME" },
+	{ T_ABDAY, "abday" },
+	{ T_DAY, "day" },
+	{ T_ABMON, "abmon" },
+	{ T_MON, "mon" },
+	{ T_D_T_FMT, "d_t_fmt" },
+	{ T_D_FMT, "d_fmt" },
+	{ T_T_FMT, "t_fmt" },
+	{ T_AM_PM, "am_pm" },
+	{ T_T_FMT_AMPM, "t_fmt_ampm" },
+	{ T_ERA, "era" },
+	{ T_ERA_D_FMT, "era_d_fmt" },
+	{ T_ERA_T_FMT, "era_t_fmt" },
+	{ T_ERA_D_T_FMT, "era_d_t_fmt" },
+	{ T_ALT_DIGITS, "alt_digits" },
+	{ T_CTYPE, "LC_CTYPE" },
+	{ T_ISUPPER, "upper" },
+	{ T_ISLOWER, "lower" },
+	{ T_ISALPHA, "alpha" },
+	{ T_ISDIGIT, "digit" },
+	{ T_ISPUNCT, "punct" },
+	{ T_ISXDIGIT, "xdigit" },
+	{ T_ISSPACE, "space" },
+	{ T_ISPRINT, "print" },
+	{ T_ISGRAPH, "graph" },
+	{ T_ISBLANK, "blank" },
+	{ T_ISCNTRL, "cntrl" },
 	/*
 	 * These entries are local additions, and not specified by
 	 * TOG.  Note that they are not guaranteed to be accurate for
 	 * all locales, and so applications should not depend on them.
 	 */
-	{ T_ISSPECIAL,		"special" },
-	{ T_ISENGLISH,		"english" },
-	{ T_ISPHONOGRAM,	"phonogram" },
-	{ T_ISIDEOGRAM,		"ideogram" },
-	{ T_ISNUMBER,		"number" },
+	{ T_ISSPECIAL, "special" },
+	{ T_ISENGLISH, "english" },
+	{ T_ISPHONOGRAM, "phonogram" },
+	{ T_ISIDEOGRAM, "ideogram" },
+	{ T_ISNUMBER, "number" },
 	/*
 	 * We have to support this in the grammar, but it would be a
 	 * syntax error to define a character as one of these without
 	 * also defining it as an alpha or digit.  We ignore it in our
 	 * parsing.
 	 */
-	{ T_ISALNUM,		"alnum" },
-	{ T_TOUPPER,		"toupper" },
-	{ T_TOLOWER,		"tolower" },
+	{ T_ISALNUM, "alnum" },
+	{ T_TOUPPER, "toupper" },
+	{ T_TOLOWER, "tolower" },
 
 	/*
 	 * These are keywords used in the charmap file.  Note that
@@ -183,8 +185,8 @@ static struct token {
 	 * but we removed that to simplify our parser.  The first of these
 	 * items are "global items."
 	 */
-	{ T_CHARMAP,		"CHARMAP" },
-	{ T_WIDTH,		"WIDTH" },
+	{ T_CHARMAP, "CHARMAP" },
+	{ T_WIDTH, "WIDTH" },
 
 	{ -1, NULL },
 };
@@ -193,25 +195,16 @@ static struct token {
  * These special words are only used in a charmap file, enclosed in <>.
  */
 static struct token symwords[] = {
-	{ T_COM_CHAR,		"comment_char" },
-	{ T_ESC_CHAR,		"escape_char" },
-	{ T_CODE_SET,		"code_set_name" },
-	{ T_MB_CUR_MAX,		"mb_cur_max" },
-	{ T_MB_CUR_MIN,		"mb_cur_min" },
+	{ T_COM_CHAR, "comment_char" },
+	{ T_ESC_CHAR, "escape_char" },
+	{ T_CODE_SET, "code_set_name" },
+	{ T_MB_CUR_MAX, "mb_cur_max" },
+	{ T_MB_CUR_MIN, "mb_cur_min" },
 	{ -1, NULL },
 };
 
-static int categories[] = {
-	T_CHARMAP,
-	T_CTYPE,
-	T_COLLATE,
-	T_MESSAGES,
-	T_MONETARY,
-	T_NUMERIC,
-	T_TIME,
-	T_WIDTH,
-	0
-};
+static int categories[] = { T_CHARMAP, T_CTYPE, T_COLLATE, T_MESSAGES,
+	T_MONETARY, T_NUMERIC, T_TIME, T_WIDTH, 0 };
 
 void
 reset_scanner(const char *fname)
@@ -221,7 +214,7 @@ reset_scanner(const char *fname)
 		is_stdin = 1;
 	} else {
 		if (!is_stdin)
-			(void) fclose(input);
+			(void)fclose(input);
 		if ((input = fopen(fname, "r")) == NULL) {
 			perror("fopen");
 			exit(4);
@@ -240,14 +233,14 @@ reset_scanner(const char *fname)
 	wideidx = 0;
 }
 
-#define	hex(x)	\
+#define hex(x) \
 	(isdigit(x) ? (x - '0') : ((islower(x) ? (x - 'a') : (x - 'A')) + 10))
-#define	isodigit(x)	((x >= '0') && (x <= '7'))
+#define isodigit(x) ((x >= '0') && (x <= '7'))
 
 static int
 scanc(void)
 {
-	int	c;
+	int c;
 
 	if (is_stdin)
 		c = getc(stdin);
@@ -274,8 +267,8 @@ unscanc(int c)
 static int
 scan_hex_byte(void)
 {
-	int	c1, c2;
-	int	v;
+	int c1, c2;
+	int v;
 
 	c1 = scanc();
 	if (!isxdigit(c1)) {
@@ -294,8 +287,8 @@ scan_hex_byte(void)
 static int
 scan_dec_byte(void)
 {
-	int	c1, c2, c3;
-	int	b;
+	int c1, c2, c3;
+	int b;
 
 	c1 = scanc();
 	if (!isdigit(c1)) {
@@ -324,7 +317,7 @@ static int
 scan_oct_byte(void)
 {
 	int c1, c2, c3;
-	int	b;
+	int b;
 
 	b = 0;
 
@@ -372,7 +365,7 @@ add_wcs(wchar_t c)
 {
 	if ((wideidx + 1) >= widesz) {
 		widesz += 64;
-		widestr = realloc(widestr, (widesz * sizeof (wchar_t)));
+		widestr = realloc(widestr, (widesz * sizeof(wchar_t)));
 		if (widestr == NULL) {
 			yyerror("out of memory");
 			wideidx = 0;
@@ -403,7 +396,7 @@ get_wcs(void)
 static int
 get_byte(void)
 {
-	int	c;
+	int c;
 
 	if ((c = scanc()) != esc_char) {
 		unscanc(c);
@@ -465,9 +458,9 @@ get_wide(void)
 	static char mbs[MB_LEN_MAX + 1] = "";
 	static int mbi = 0;
 	int c;
-	wchar_t	wc;
+	wchar_t wc;
 
-	if (mb_cur_max >= (int)sizeof (mbs)) {
+	if (mb_cur_max >= (int)sizeof(mbs)) {
 		yyerror("max multibyte character size too big");
 		mbi = 0;
 		return (T_NULL);
@@ -506,7 +499,7 @@ get_wide(void)
 int
 get_symbol(void)
 {
-	int	c;
+	int c;
 
 	while ((c = scanc()) != EOF) {
 		if (escaped) {
@@ -520,11 +513,11 @@ get_symbol(void)
 			escaped = 1;
 			continue;
 		}
-		if (c == '\n') {	/* well that's strange! */
+		if (c == '\n') { /* well that's strange! */
 			yyerror("unterminated symbolic name");
 			continue;
 		}
-		if (c == '>') {		/* end of symbol */
+		if (c == '>') { /* end of symbol */
 
 			/*
 			 * This restarts the token from the beginning
@@ -591,8 +584,8 @@ get_category(void)
 static int
 consume_token(void)
 {
-	int	len = tokidx;
-	int	i;
+	int len = tokidx;
+	int i;
 
 	tokidx = 0;
 	if (token == NULL)
@@ -659,7 +652,7 @@ consume_token(void)
 void
 scan_to_eol(void)
 {
-	int	c;
+	int c;
 	while ((c = scanc()) != '\n') {
 		if (c == EOF) {
 			/* end of file without newline! */
@@ -673,7 +666,7 @@ scan_to_eol(void)
 int
 yylex(void)
 {
-	int		c;
+	int c;
 
 	while ((c = scanc()) != EOF) {
 
@@ -824,23 +817,21 @@ yylex(void)
 void
 yyerror(const char *msg)
 {
-	(void) fprintf(stderr, "%s: %d: error: %s\n",
-	    filename, lineno, msg);
+	(void)fprintf(stderr, "%s: %d: error: %s\n", filename, lineno, msg);
 	exit(4);
 }
 
 void
 errf(const char *fmt, ...)
 {
-	char	*msg;
+	char *msg;
 
-	va_list	va;
+	va_list va;
 	va_start(va, fmt);
-	(void) vasprintf(&msg, fmt, va);
+	(void)vasprintf(&msg, fmt, va);
 	va_end(va);
 
-	(void) fprintf(stderr, "%s: %d: error: %s\n",
-	    filename, lineno, msg);
+	(void)fprintf(stderr, "%s: %d: error: %s\n", filename, lineno, msg);
 	free(msg);
 	exit(4);
 }
@@ -848,15 +839,14 @@ errf(const char *fmt, ...)
 void
 warn(const char *fmt, ...)
 {
-	char	*msg;
+	char *msg;
 
-	va_list	va;
+	va_list va;
 	va_start(va, fmt);
-	(void) vasprintf(&msg, fmt, va);
+	(void)vasprintf(&msg, fmt, va);
 	va_end(va);
 
-	(void) fprintf(stderr, "%s: %d: warning: %s\n",
-	    filename, lineno, msg);
+	(void)fprintf(stderr, "%s: %d: warning: %s\n", filename, lineno, msg);
 	free(msg);
 	warnings++;
 	if (!warnok)

@@ -29,16 +29,16 @@
  */
 
 #include <sys/param.h>
+
+#include <atf-c.h>
 #include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <atf-c.h>
-
 struct test_fmt {
-	char	*fmt1;
-	char	*fmt2;
-	int	correct;
+	char *fmt1;
+	char *fmt2;
+	int correct;
 } test_fmts[] = {
 	{ "%d", "%d", 1 },
 	{ "%2d", "%2.2d", 1 },
@@ -69,7 +69,9 @@ struct test_fmt {
 	{ "%#o %u %#-d", "%x %#x %X", 1 },
 	{ "%qd", "%llx", 1 },
 	{ "%%", "%llx", 1 },
-	{ "%p %30s %#llx %-10.*e", "This number %lu%% and string %s has %qd numbers and %.*g floats", 1 },
+	{ "%p %30s %#llx %-10.*e",
+	    "This number %lu%% and string %s has %qd numbers and %.*g floats",
+	    1 },
 };
 
 ATF_TC_WITHOUT_HEAD(fmtcheck_test);
@@ -88,8 +90,8 @@ ATF_TC_BODY(fmtcheck_test, tc)
 			cf = f2;
 		ATF_CHECK_MSG(f == cf,
 		    "Test %d: (%s) vs. (%s) failed "
-		    "(should have returned %s)", i + 1, f1, f2,
-		    (test_fmts[i].correct == 1) ? "1st" : "2nd");
+		    "(should have returned %s)",
+		    i + 1, f1, f2, (test_fmts[i].correct == 1) ? "1st" : "2nd");
 	}
 }
 

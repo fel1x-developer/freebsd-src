@@ -28,10 +28,10 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/kernel.h>
@@ -43,10 +43,9 @@
 #include <netinet/ip.h>
 #include <netinet/ip_var.h>
 #include <netinet/sctp.h>
+#include <netinet/sctp_os_bsd.h>
 #include <netinet/sctp_pcb.h>
 #include <netinet/sctp_var.h>
-#include <netinet/sctp_os_bsd.h>
-
 #include <netinet6/ip6_var.h>
 #include <netinet6/sctp6_var.h>
 

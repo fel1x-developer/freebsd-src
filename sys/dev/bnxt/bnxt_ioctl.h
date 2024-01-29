@@ -48,142 +48,142 @@ enum bnxt_ioctl_type {
 
 struct bnxt_ioctl_header {
 	enum bnxt_ioctl_type type;
-	int		rc;
+	int rc;
 };
 
 struct bnxt_ioctl_hwrm_nvm_find_dir_entry {
 	struct bnxt_ioctl_header hdr;
-	uint32_t	data_length;
-	uint32_t	fw_ver;
-	uint32_t	item_length;
-	uint16_t	ext;
-	uint16_t	index;
-	uint16_t	ordinal;
-	uint16_t	type;
-	uint8_t		search_opt;
-	bool		use_index;
+	uint32_t data_length;
+	uint32_t fw_ver;
+	uint32_t item_length;
+	uint16_t ext;
+	uint16_t index;
+	uint16_t ordinal;
+	uint16_t type;
+	uint8_t search_opt;
+	bool use_index;
 };
 
 struct bnxt_ioctl_hwrm_nvm_read {
 	struct bnxt_ioctl_header hdr;
-	uint8_t		*data;
-	uint32_t	length;
-	uint32_t	offset;
-	uint16_t	index;
+	uint8_t *data;
+	uint32_t length;
+	uint32_t offset;
+	uint16_t index;
 };
 
 struct bnxt_ioctl_hwrm_fw_reset {
 	struct bnxt_ioctl_header hdr;
-	uint8_t		processor;
-	uint8_t		selfreset;
+	uint8_t processor;
+	uint8_t selfreset;
 };
 
 struct bnxt_ioctl_hwrm_fw_qstatus {
 	struct bnxt_ioctl_header hdr;
-	uint8_t		processor;
-	uint8_t		selfreset;
+	uint8_t processor;
+	uint8_t selfreset;
 };
 
 struct bnxt_ioctl_hwrm_nvm_write {
 	struct bnxt_ioctl_header hdr;
-	uint8_t		*data;
-	uint32_t	data_length;
-	uint32_t	item_length;
-	uint16_t	attr;
-	uint16_t	ext;
-	uint16_t	index;
-	uint16_t	option;
-	uint16_t	ordinal;
-	uint16_t	type;
-	bool		keep;
+	uint8_t *data;
+	uint32_t data_length;
+	uint32_t item_length;
+	uint16_t attr;
+	uint16_t ext;
+	uint16_t index;
+	uint16_t option;
+	uint16_t ordinal;
+	uint16_t type;
+	bool keep;
 };
 
 struct bnxt_ioctl_hwrm_nvm_erase_dir_entry {
 	struct bnxt_ioctl_header hdr;
 	enum bnxt_ioctl_type type;
-	int		rc;
-	uint16_t	index;
+	int rc;
+	uint16_t index;
 };
 
 struct bnxt_ioctl_hwrm_nvm_get_dir_info {
 	struct bnxt_ioctl_header hdr;
-	uint32_t	entries;
-	uint32_t	entry_length;
+	uint32_t entries;
+	uint32_t entry_length;
 };
 
 struct bnxt_ioctl_hwrm_nvm_get_dir_entries {
 	struct bnxt_ioctl_header hdr;
-	uint8_t		*data;
-	size_t		max_size;
-	uint32_t	entries;
-	uint32_t	entry_length;
+	uint8_t *data;
+	size_t max_size;
+	uint32_t entries;
+	uint32_t entry_length;
 };
 
 struct bnxt_ioctl_hwrm_nvm_install_update {
 	struct bnxt_ioctl_header hdr;
-	uint64_t	installed_items;
-	uint32_t	install_type;
-	uint8_t		problem_item;
-	uint8_t		reset_required;
-	uint8_t		result;
+	uint64_t installed_items;
+	uint32_t install_type;
+	uint8_t problem_item;
+	uint8_t reset_required;
+	uint8_t result;
 };
 
 struct bnxt_ioctl_hwrm_nvm_verify_update {
 	struct bnxt_ioctl_header hdr;
-	uint16_t	ext;
-	uint16_t	ordinal;
-	uint16_t	type;
+	uint16_t ext;
+	uint16_t ordinal;
+	uint16_t type;
 };
 
 struct bnxt_ioctl_hwrm_nvm_modify {
 	struct bnxt_ioctl_header hdr;
-	uint8_t		*data;
-	uint32_t	length;
-	uint32_t	offset;
-	uint16_t	index;
+	uint8_t *data;
+	uint32_t length;
+	uint32_t offset;
+	uint16_t index;
 };
 
 struct bnxt_ioctl_hwrm_fw_get_time {
 	struct bnxt_ioctl_header hdr;
-	uint16_t	millisecond;
-	uint16_t	year;
-	uint16_t	zone;
-	uint8_t		day;
-	uint8_t		hour;
-	uint8_t		minute;
-	uint8_t		month;
-	uint8_t		second;
+	uint16_t millisecond;
+	uint16_t year;
+	uint16_t zone;
+	uint8_t day;
+	uint8_t hour;
+	uint8_t minute;
+	uint8_t month;
+	uint8_t second;
 };
 
 struct bnxt_ioctl_hwrm_fw_set_time {
 	struct bnxt_ioctl_header hdr;
-	uint16_t	millisecond;
-	uint16_t	year;
-	uint16_t	zone;
-	uint8_t		day;
-	uint8_t		hour;
-	uint8_t		minute;
-	uint8_t		month;
-	uint8_t		second;
+	uint16_t millisecond;
+	uint16_t year;
+	uint16_t zone;
+	uint8_t day;
+	uint8_t hour;
+	uint8_t minute;
+	uint8_t month;
+	uint8_t second;
 };
 
 /* IOCTL interface */
 struct bnxt_ioctl_data {
 	union {
-		struct bnxt_ioctl_header			hdr;
-		struct bnxt_ioctl_hwrm_nvm_find_dir_entry	find;
-		struct bnxt_ioctl_hwrm_nvm_read			read;
-		struct bnxt_ioctl_hwrm_fw_reset			reset;
-		struct bnxt_ioctl_hwrm_fw_qstatus		status;
-		struct bnxt_ioctl_hwrm_nvm_write		write;
-		struct bnxt_ioctl_hwrm_nvm_erase_dir_entry	erase;
-		struct bnxt_ioctl_hwrm_nvm_get_dir_info		dir_info;
-		struct bnxt_ioctl_hwrm_nvm_get_dir_entries	dir_entries;
-		struct bnxt_ioctl_hwrm_nvm_install_update	install;
-		struct bnxt_ioctl_hwrm_nvm_verify_update	verify;
-		struct bnxt_ioctl_hwrm_nvm_modify		modify;
-		struct bnxt_ioctl_hwrm_fw_get_time		get_time;
-		struct bnxt_ioctl_hwrm_fw_set_time		set_time;
+		struct bnxt_ioctl_header hdr;
+		struct bnxt_ioctl_hwrm_nvm_find_dir_entry find;
+		struct bnxt_ioctl_hwrm_nvm_read read;
+		struct bnxt_ioctl_hwrm_fw_reset reset;
+		struct bnxt_ioctl_hwrm_fw_qstatus status;
+		struct bnxt_ioctl_hwrm_nvm_write write;
+		struct bnxt_ioctl_hwrm_nvm_erase_dir_entry erase;
+		struct bnxt_ioctl_hwrm_nvm_get_dir_info dir_info;
+		struct bnxt_ioctl_hwrm_nvm_get_dir_entries dir_entries;
+		struct bnxt_ioctl_hwrm_nvm_install_update install;
+		struct bnxt_ioctl_hwrm_nvm_verify_update verify;
+		struct bnxt_ioctl_hwrm_nvm_modify modify;
+		struct bnxt_ioctl_hwrm_fw_get_time get_time;
+		struct bnxt_ioctl_hwrm_fw_set_time set_time;
 	};
 };
 

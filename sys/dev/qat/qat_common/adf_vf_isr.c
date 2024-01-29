@@ -1,22 +1,24 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
-#include "qat_freebsd.h"
-#include <sys/kernel.h>
-#include <sys/systm.h>
-
 #include <sys/types.h>
-#include <sys/interrupt.h>
-#include <dev/pci/pcivar.h>
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/interrupt.h>
+#include <sys/kernel.h>
+
+#include <dev/pci/pcivar.h>
+
 #include <linux/workqueue.h>
+
 #include "adf_accel_devices.h"
-#include "adf_common_drv.h"
 #include "adf_cfg.h"
-#include "adf_cfg_strings.h"
 #include "adf_cfg_common.h"
+#include "adf_cfg_strings.h"
+#include "adf_common_drv.h"
+#include "adf_pfvf_utils.h"
 #include "adf_transport_access_macros.h"
 #include "adf_transport_internal.h"
-#include "adf_pfvf_utils.h"
+#include "qat_freebsd.h"
 
 static TASKQUEUE_DEFINE_THREAD(qat_vf);
 static TASKQUEUE_DEFINE_THREAD(qat_bank_handler);
@@ -37,7 +39,7 @@ adf_enable_msi(struct adf_accel_dev *accel_dev)
 	stat = pci_alloc_msi(accel_to_pci_dev(accel_dev), &count);
 	if (stat) {
 		device_printf(GET_DEV(accel_dev),
-			      "Failed to enable MSI interrupts\n");
+		    "Failed to enable MSI interrupts\n");
 		return stat;
 	}
 
@@ -54,8 +56,8 @@ adf_disable_msi(struct adf_accel_dev *accel_dev)
 static void
 adf_dev_stop_async(struct work_struct *work)
 {
-	struct adf_vf_stop_data *stop_data =
-	    container_of(work, struct adf_vf_stop_data, work);
+	struct adf_vf_stop_data *stop_data = container_of(work,
+	    struct adf_vf_stop_data, work);
 	struct adf_accel_dev *accel_dev = stop_data->accel_dev;
 	struct adf_hw_device_data *hw_data = accel_dev->hw_device;
 
@@ -77,8 +79,7 @@ adf_pf2vf_handle_pf_restarting(struct adf_accel_dev *accel_dev)
 	stop_data = kzalloc(sizeof(*stop_data), GFP_ATOMIC);
 	if (!stop_data) {
 		device_printf(GET_DEV(accel_dev),
-			      "Couldn't schedule stop for vf_%d\n",
-			      accel_dev->accel_id);
+		    "Couldn't schedule stop for vf_%d\n", accel_dev->accel_id);
 		return -ENOMEM;
 	}
 	stop_data->accel_dev = accel_dev;
@@ -90,33 +91,25 @@ adf_pf2vf_handle_pf_restarting(struct adf_accel_dev *accel_dev)
 
 int
 adf_pf2vf_handle_pf_rp_reset(struct adf_accel_dev *accel_dev,
-			     struct pfvf_message msg)
+    struct pfvf_message msg)
 {
 	accel_dev->u1.vf.rpreset_sts = msg.data;
 	if (accel_dev->u1.vf.rpreset_sts == RPRESET_SUCCESS)
-		device_printf(
-		    GET_DEV(accel_dev),
+		device_printf(GET_DEV(accel_dev),
 		    "rpreset resp(success) from PF type:0x%x data:0x%x\n",
-		    msg.type,
-		    msg.data);
+		    msg.type, msg.data);
 	else if (accel_dev->u1.vf.rpreset_sts == RPRESET_NOT_SUPPORTED)
-		device_printf(
-		    GET_DEV(accel_dev),
+		device_printf(GET_DEV(accel_dev),
 		    "rpreset resp(not supported) from PF type:0x%x data:0x%x\n",
-		    msg.type,
-		    msg.data);
+		    msg.type, msg.data);
 	else if (accel_dev->u1.vf.rpreset_sts == RPRESET_INVAL_BANK)
-		device_printf(
-		    GET_DEV(accel_dev),
+		device_printf(GET_DEV(accel_dev),
 		    "rpreset resp(invalid bank) from PF type:0x%x data:0x%x\n",
-		    msg.type,
-		    msg.data);
+		    msg.type, msg.data);
 	else
-		device_printf(
-		    GET_DEV(accel_dev),
+		device_printf(GET_DEV(accel_dev),
 		    "rpreset resp(timeout) from PF type:0x%x data:0x%x\nn",
-		    msg.type,
-		    msg.data);
+		    msg.type, msg.data);
 
 	complete(&accel_dev->u1.vf.msg_received);
 
@@ -139,10 +132,8 @@ adf_pf2vf_bh_handler(void *data, int pending)
 static int
 adf_setup_pf2vf_bh(struct adf_accel_dev *accel_dev)
 {
-	TASK_INIT(&accel_dev->u1.vf.pf2vf_bh_tasklet,
-		  0,
-		  adf_pf2vf_bh_handler,
-		  accel_dev);
+	TASK_INIT(&accel_dev->u1.vf.pf2vf_bh_tasklet, 0, adf_pf2vf_bh_handler,
+	    accel_dev);
 	mutex_init(&accel_dev->u1.vf.vf2pf_lock);
 
 	return 0;
@@ -151,9 +142,8 @@ adf_setup_pf2vf_bh(struct adf_accel_dev *accel_dev)
 static void
 adf_cleanup_pf2vf_bh(struct adf_accel_dev *accel_dev)
 {
-	taskqueue_cancel(taskqueue_qat_vf,
-			 &accel_dev->u1.vf.pf2vf_bh_tasklet,
-			 NULL);
+	taskqueue_cancel(taskqueue_qat_vf, &accel_dev->u1.vf.pf2vf_bh_tasklet,
+	    NULL);
 	taskqueue_drain(taskqueue_qat_vf, &accel_dev->u1.vf.pf2vf_bh_tasklet);
 	mutex_destroy(&accel_dev->u1.vf.vf2pf_lock);
 }
@@ -175,10 +165,8 @@ adf_setup_bh(struct adf_accel_dev *accel_dev)
 	struct adf_etr_data *priv_data = accel_dev->transport;
 
 	for (i = 0; i < GET_MAX_BANKS(accel_dev); i++) {
-		TASK_INIT(&priv_data->banks[i].resp_handler,
-			  0,
-			  adf_bh_handler,
-			  &priv_data->banks[i]);
+		TASK_INIT(&priv_data->banks[i].resp_handler, 0, adf_bh_handler,
+		    &priv_data->banks[i]);
 	}
 
 	return 0;
@@ -196,10 +184,9 @@ adf_cleanup_bh(struct adf_accel_dev *accel_dev)
 	transport = accel_dev->transport;
 	for (i = 0; i < GET_MAX_BANKS(accel_dev); i++) {
 		taskqueue_cancel(taskqueue_qat_bank_handler,
-				 &transport->banks[i].resp_handler,
-				 NULL);
+		    &transport->banks[i].resp_handler, NULL);
 		taskqueue_drain(taskqueue_qat_bank_handler,
-				&transport->banks[i].resp_handler);
+		    &transport->banks[i].resp_handler);
 	}
 }
 
@@ -218,7 +205,7 @@ adf_isr(void *privdata)
 		hw_data->disable_pf2vf_interrupt(accel_dev);
 		/* Schedule tasklet to handle interrupt BH */
 		taskqueue_enqueue(taskqueue_qat_vf,
-				  &accel_dev->u1.vf.pf2vf_bh_tasklet);
+		    &accel_dev->u1.vf.pf2vf_bh_tasklet);
 	}
 
 	if (hw_data->get_int_active_bundles)
@@ -231,11 +218,10 @@ adf_isr(void *privdata)
 
 			/* Disable Flag and Coalesce Ring Interrupts */
 			csr_ops->write_csr_int_flag_and_col(bank->csr_addr,
-							    bank->bank_number,
-							    0);
+			    bank->bank_number, 0);
 			/* Schedule tasklet to handle interrupt BH */
 			taskqueue_enqueue(taskqueue_qat_bank_handler,
-					  &bank->resp_handler);
+			    &bank->resp_handler);
 		}
 	}
 }
@@ -248,19 +234,15 @@ adf_request_msi_irq(struct adf_accel_dev *accel_dev)
 	int rid = 1;
 	int cpu;
 
-	accel_dev->u1.vf.irq =
-	    bus_alloc_resource_any(pdev, SYS_RES_IRQ, &rid, RF_ACTIVE);
+	accel_dev->u1.vf.irq = bus_alloc_resource_any(pdev, SYS_RES_IRQ, &rid,
+	    RF_ACTIVE);
 	if (accel_dev->u1.vf.irq == NULL) {
 		device_printf(GET_DEV(accel_dev), "failed to allocate IRQ\n");
 		return ENXIO;
 	}
-	ret = bus_setup_intr(pdev,
-			     accel_dev->u1.vf.irq,
-			     INTR_TYPE_MISC | INTR_MPSAFE,
-			     NULL,
-			     adf_isr,
-			     accel_dev,
-			     &accel_dev->u1.vf.cookie);
+	ret = bus_setup_intr(pdev, accel_dev->u1.vf.irq,
+	    INTR_TYPE_MISC | INTR_MPSAFE, NULL, adf_isr, accel_dev,
+	    &accel_dev->u1.vf.cookie);
 	if (ret) {
 		device_printf(GET_DEV(accel_dev), "failed to enable irq\n");
 		goto errout;
@@ -270,7 +252,7 @@ adf_request_msi_irq(struct adf_accel_dev *accel_dev)
 	ret = bus_bind_intr(pdev, accel_dev->u1.vf.irq, cpu);
 	if (ret) {
 		device_printf(GET_DEV(accel_dev),
-			      "failed to bind IRQ handler to cpu core\n");
+		    "failed to bind IRQ handler to cpu core\n");
 		goto errout;
 	}
 	accel_dev->u1.vf.irq_enabled = true;
@@ -294,9 +276,8 @@ adf_vf_isr_resource_free(struct adf_accel_dev *accel_dev)
 	device_t pdev = accel_to_pci_dev(accel_dev);
 
 	if (accel_dev->u1.vf.irq_enabled) {
-		bus_teardown_intr(pdev,
-				  accel_dev->u1.vf.irq,
-				  accel_dev->u1.vf.cookie);
+		bus_teardown_intr(pdev, accel_dev->u1.vf.irq,
+		    accel_dev->u1.vf.cookie);
 		bus_free_resource(pdev, SYS_RES_IRQ, accel_dev->u1.vf.irq);
 	}
 	adf_cleanup_bh(accel_dev);
@@ -370,8 +351,8 @@ adf_init_vf_wq(void)
 
 	mutex_lock(&vf_stop_wq_lock);
 	if (!adf_vf_stop_wq)
-		adf_vf_stop_wq =
-		    alloc_workqueue("adf_vf_stop_wq", WQ_MEM_RECLAIM, 0);
+		adf_vf_stop_wq = alloc_workqueue("adf_vf_stop_wq",
+		    WQ_MEM_RECLAIM, 0);
 
 	if (!adf_vf_stop_wq)
 		ret = ENOMEM;

@@ -1,12 +1,11 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
 #include "adf_accel_devices.h"
-#include "adf_heartbeat.h"
 #include "adf_common_drv.h"
-#include "icp_qat_fw_init_admin.h"
-#include "adf_gen4_timer.h"
-
 #include "adf_dev_err.h"
+#include "adf_gen4_timer.h"
+#include "adf_heartbeat.h"
+#include "icp_qat_fw_init_admin.h"
 
 #define ADF_GEN4_INT_TIMER_VALUE_IN_MS 200
 /* Interval within timer interrupt. Value in miliseconds. */
@@ -27,8 +26,8 @@ adf_hb_irq_bh_handler(struct work_struct *work)
 {
 	struct icp_qat_fw_init_admin_req req = { 0 };
 	struct icp_qat_fw_init_admin_resp resp = { 0 };
-	struct adf_hb_timer_data *hb_timer_data =
-	    container_of(work, struct adf_hb_timer_data, hb_int_timer_work);
+	struct adf_hb_timer_data *hb_timer_data = container_of(work,
+	    struct adf_hb_timer_data, hb_int_timer_work);
 	struct adf_accel_dev *accel_dev = hb_timer_data->accel_dev;
 	struct adf_hw_device_data *hw_data = accel_dev->hw_device;
 	u32 ae_mask = hw_data->ae_mask;
@@ -39,7 +38,7 @@ adf_hb_irq_bh_handler(struct work_struct *work)
 	/* Update heartbeat count via init/admin cmd */
 	if (!accel_dev->admin) {
 		device_printf(GET_DEV(accel_dev),
-			      "adf_admin is not available\n");
+		    "adf_admin is not available\n");
 		goto end;
 	}
 
@@ -48,7 +47,7 @@ adf_hb_irq_bh_handler(struct work_struct *work)
 
 	if (adf_send_admin(accel_dev, &req, &resp, ae_mask))
 		device_printf(GET_DEV(accel_dev),
-			      "Failed to update qat's HB count\n");
+		    "Failed to update qat's HB count\n");
 
 end:
 	kfree(hb_timer_data);
@@ -69,12 +68,12 @@ timer_handler(struct timer_list *tl)
 		hb_timer_data->accel_dev = accel_dev;
 
 		INIT_WORK(&hb_timer_data->hb_int_timer_work,
-			  adf_hb_irq_bh_handler);
+		    adf_hb_irq_bh_handler);
 		queue_work(int_timer->timer_irq_wq,
-			   &hb_timer_data->hb_int_timer_work);
+		    &hb_timer_data->hb_int_timer_work);
 	} else {
 		device_printf(GET_DEV(accel_dev),
-			      "Failed to alloc heartbeat timer data\n");
+		    "Failed to alloc heartbeat timer data\n");
 	}
 	int_timer->int_cnt++;
 	mod_timer(tl, timeout_val);

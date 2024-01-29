@@ -34,22 +34,25 @@
  */
 
 #include <sys/cdefs.h>
-#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/param.h>
+#include <sys/fcntl.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+
+#include <netinet/in.h>
+
+#include <arpa/inet.h>
+#include <db.h>
+#include <errno.h>
+#include <limits.h>
+#include <paths.h>
 #include <rpc/rpc.h>
 #include <rpcsvc/yp.h>
 #include <rpcsvc/yppasswd.h>
 #include <rpcsvc/ypxfrd.h>
-#include <sys/types.h>
-#include <limits.h>
-#include <db.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <sys/stat.h>
-#include <sys/fcntl.h>
-#include <paths.h>
-#include <errno.h>
-#include <sys/param.h>
+#include <stdlib.h>
+
 #include "yp_extern.h"
 #ifdef TCP_WRAPPER
 #include "tcpd.h"
@@ -57,32 +60,17 @@
 
 static const char *yp_procs[] = {
 	/* NIS v1 */
-	"ypoldproc_null",
-	"ypoldproc_domain",
-	"ypoldproc_domain_nonack",
-	"ypoldproc_match",
-	"ypoldproc_first",
-	"ypoldproc_next",
-	"ypoldproc_poll",
-	"ypoldproc_push",
-	"ypoldproc_get",
+	"ypoldproc_null", "ypoldproc_domain", "ypoldproc_domain_nonack",
+	"ypoldproc_match", "ypoldproc_first", "ypoldproc_next",
+	"ypoldproc_poll", "ypoldproc_push", "ypoldproc_get",
 	"badproc1", /* placeholder */
 	"badproc2", /* placeholder */
 	"badproc3", /* placeholder */
 
 	/* NIS v2 */
-	"ypproc_null",
-	"ypproc_domain",
-	"ypproc_domain_nonack",
-	"ypproc_match",
-	"ypproc_first",
-	"ypproc_next",
-	"ypproc_xfr",
-	"ypproc_clear",
-	"ypproc_all",
-	"ypproc_master",
-	"ypproc_order",
-	"ypproc_maplist"
+	"ypproc_null", "ypproc_domain", "ypproc_domain_nonack", "ypproc_match",
+	"ypproc_first", "ypproc_next", "ypproc_xfr", "ypproc_clear",
+	"ypproc_all", "ypproc_master", "ypproc_order", "ypproc_maplist"
 };
 
 struct securenet {
@@ -143,12 +131,12 @@ load_securenets(void)
 	while (fgets(linebuf, LINEBUFSZ, fp)) {
 		char addr1[20], addr2[20];
 
-		if ((linebuf[0] == '#')
-		    || (strspn(linebuf, " \t\r\n") == strlen(linebuf)))
+		if ((linebuf[0] == '#') ||
+		    (strspn(linebuf, " \t\r\n") == strlen(linebuf)))
 			continue;
 		if (sscanf(linebuf, "%s %s", addr1, addr2) < 2) {
 			yp_error("badly formatted securenets entry: %s",
-							linebuf);
+			    linebuf);
 			continue;
 		}
 
@@ -171,7 +159,6 @@ load_securenets(void)
 	}
 
 	fclose(fp);
-
 }
 
 /*
@@ -230,16 +217,15 @@ yp_access(const char *map, const struct svc_req *rqstp)
 		yp_procedure = (char *)&procbuf;
 	} else {
 		yp_procedure = rqstp->rq_prog == YPPASSWDPROG ?
-		"yppasswdprog_update" :
-		yp_procs[rqstp->rq_proc + (12 * (rqstp->rq_vers - 1))];
+		    "yppasswdprog_update" :
+		    yp_procs[rqstp->rq_proc + (12 * (rqstp->rq_vers - 1))];
 	}
 
 	rqhost = svc_getcaller(rqstp->rq_xprt);
 
 	if (debug) {
 		yp_error("procedure %s called from %s:%d", yp_procedure,
-			inet_ntoa(rqhost->sin_addr),
-			ntohs(rqhost->sin_port));
+		    inet_ntoa(rqhost->sin_addr), ntohs(rqhost->sin_port));
 		if (map != NULL)
 			yp_error("client is referencing map \"%s\".", map);
 	}
@@ -249,34 +235,36 @@ yp_access(const char *map, const struct svc_req *rqstp)
 		if (strchr(map, '/')) {
 			yp_error("embedded slash in map name \"%s\" -- \
 possible spoof attempt from %s:%d",
-				map, inet_ntoa(rqhost->sin_addr),
-				ntohs(rqhost->sin_port));
-			return(1);
+			    map, inet_ntoa(rqhost->sin_addr),
+			    ntohs(rqhost->sin_port));
+			return (1);
 		}
 #ifdef DB_CACHE
 		if ((yp_testflag((char *)map, (char *)domain, YP_SECURE) ||
 #else
 		if ((strstr(map, "master.passwd.") || strstr(map, "shadow.") ||
 #endif
-		    (rqstp->rq_prog == YPPROG &&
-		     rqstp->rq_proc == YPPROC_XFR) ||
-		    (rqstp->rq_prog == YPXFRD_FREEBSD_PROG &&
-		     rqstp->rq_proc == YPXFRD_GETMAP)) &&
-		     ntohs(rqhost->sin_port) >= IPPORT_RESERVED) {
+			(rqstp->rq_prog == YPPROG &&
+			    rqstp->rq_proc == YPPROC_XFR) ||
+			(rqstp->rq_prog == YPXFRD_FREEBSD_PROG &&
+			    rqstp->rq_proc == YPXFRD_GETMAP)) &&
+		    ntohs(rqhost->sin_port) >= IPPORT_RESERVED) {
 			yp_error("access to %s denied -- client %s:%d \
-not privileged", map, inet_ntoa(rqhost->sin_addr), ntohs(rqhost->sin_port));
-			return(1);
+not privileged",
+			    map, inet_ntoa(rqhost->sin_addr),
+			    ntohs(rqhost->sin_port));
+			return (1);
 		}
 	}
 
 #ifdef TCP_WRAPPER
 	status_tcpwrap = hosts_ctl("ypserv", STRING_UNKNOWN,
-			   inet_ntoa(rqhost->sin_addr), "");
+	    inet_ntoa(rqhost->sin_addr), "");
 #endif
 	tmp = securenets;
 	while (tmp) {
-		if (((rqhost->sin_addr.s_addr & ~tmp->mask.s_addr)
-		    | tmp->net.s_addr) == rqhost->sin_addr.s_addr) {
+		if (((rqhost->sin_addr.s_addr & ~tmp->mask.s_addr) |
+			tmp->net.s_addr) == rqhost->sin_addr.s_addr) {
 			status_securenets = 1;
 			break;
 		}
@@ -288,27 +276,25 @@ not privileged", map, inet_ntoa(rqhost->sin_addr), ntohs(rqhost->sin_port));
 #else
 	if (status_securenets == 0) {
 #endif
-	/*
-	 * One of the following two events occurred:
-	 *
-	 * (1) The /var/yp/securenets exists and the remote host does not
-	 *     match any of the networks specified in it.
-	 * (2) The hosts.allow file has denied access and TCP_WRAPPER is
-	 *     defined.
-	 *
-	 * In either case deny access.
-	 */
+		/*
+		 * One of the following two events occurred:
+		 *
+		 * (1) The /var/yp/securenets exists and the remote host does
+		 * not match any of the networks specified in it. (2) The
+		 * hosts.allow file has denied access and TCP_WRAPPER is
+		 *     defined.
+		 *
+		 * In either case deny access.
+		 */
 		if (rqhost->sin_addr.s_addr != oldaddr) {
 			yp_error("connect from %s:%d to procedure %s refused",
-					inet_ntoa(rqhost->sin_addr),
-					ntohs(rqhost->sin_port),
-					yp_procedure);
+			    inet_ntoa(rqhost->sin_addr),
+			    ntohs(rqhost->sin_port), yp_procedure);
 			oldaddr = rqhost->sin_addr.s_addr;
 		}
-		return(1);
+		return (1);
 	}
-	return(0);
-
+	return (0);
 }
 
 int
@@ -320,13 +306,12 @@ yp_validdomain(const char *domain)
 	if (domain == NULL || strstr(domain, "binding") ||
 	    !strcmp(domain, ".") || !strcmp(domain, "..") ||
 	    strchr(domain, '/') || strlen(domain) > YPMAXDOMAIN)
-		return(1);
+		return (1);
 
 	snprintf(dompath, sizeof(dompath), "%s/%s", yp_dir, domain);
 
 	if (stat(dompath, &statbuf) < 0 || !S_ISDIR(statbuf.st_mode))
-		return(1);
+		return (1);
 
-
-	return(0);
+	return (0);
 }

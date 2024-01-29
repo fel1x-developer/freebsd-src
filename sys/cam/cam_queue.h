@@ -36,6 +36,7 @@
 #include <sys/lock.h>
 #include <sys/mutex.h>
 #include <sys/queue.h>
+
 #include <cam/cam.h>
 
 /*
@@ -47,10 +48,10 @@
  */
 struct camq {
 	cam_pinfo **queue_array;
-	int	   array_size;
-	int	   entries;
-	uint32_t  generation;
-	uint32_t  qfrozen_cnt;
+	int array_size;
+	int entries;
+	uint32_t generation;
+	uint32_t qfrozen_cnt;
 };
 
 TAILQ_HEAD(ccb_hdr_tailq, ccb_hdr);
@@ -58,87 +59,85 @@ LIST_HEAD(ccb_hdr_list, ccb_hdr);
 SLIST_HEAD(ccb_hdr_slist, ccb_hdr);
 
 struct cam_ccbq {
-	struct	camq queue;
-	struct ccb_hdr_tailq	queue_extra_head;
-	int	queue_extra_entries;
-	int	total_openings;
-	int	allocated;
-	int	dev_openings;
-	int	dev_active;
+	struct camq queue;
+	struct ccb_hdr_tailq queue_extra_head;
+	int queue_extra_entries;
+	int total_openings;
+	int allocated;
+	int dev_openings;
+	int dev_active;
 };
 
 struct cam_ed;
 
 struct cam_devq {
-	struct mtx	 send_mtx;
-	struct camq	 send_queue;
-	int		 send_openings;
-	int		 send_active;
+	struct mtx send_mtx;
+	struct camq send_queue;
+	int send_openings;
+	int send_active;
 };
 
 struct cam_devq *cam_devq_alloc(int devices, int openings);
 
-int		 cam_devq_init(struct cam_devq *devq, int devices,
-			       int openings);
+int cam_devq_init(struct cam_devq *devq, int devices, int openings);
 
-void		 cam_devq_free(struct cam_devq *devq);
+void cam_devq_free(struct cam_devq *devq);
 
-uint32_t	 cam_devq_resize(struct cam_devq *camq, int openings);
+uint32_t cam_devq_resize(struct cam_devq *camq, int openings);
 
 /*
  * Allocate a cam_ccb_queue structure and initialize it.
  */
-struct cam_ccbq	*cam_ccbq_alloc(int openings);
+struct cam_ccbq *cam_ccbq_alloc(int openings);
 
-uint32_t	cam_ccbq_resize(struct cam_ccbq *ccbq, int devices);
+uint32_t cam_ccbq_resize(struct cam_ccbq *ccbq, int devices);
 
-int		cam_ccbq_init(struct cam_ccbq *ccbq, int openings);
+int cam_ccbq_init(struct cam_ccbq *ccbq, int openings);
 
-void		cam_ccbq_free(struct cam_ccbq *ccbq);
+void cam_ccbq_free(struct cam_ccbq *ccbq);
 
-void		cam_ccbq_fini(struct cam_ccbq *ccbq);
+void cam_ccbq_fini(struct cam_ccbq *ccbq);
 
 /*
  * Resize a cam queue
  */
-uint32_t	camq_resize(struct camq *queue, int new_size);
+uint32_t camq_resize(struct camq *queue, int new_size);
 
-/* 
+/*
  * Initialize a camq structure.  Return 0 on success, 1 on failure.
  */
-int		camq_init(struct camq *camq, int size);
+int camq_init(struct camq *camq, int size);
 
 /*
  * Finialize any internal storage or state of a cam_queue.
  */
-void		camq_fini(struct camq *queue);
+void camq_fini(struct camq *queue);
 
 /*
  * cam_queue_insert: Given a CAM queue with at least one open spot,
  * insert the new entry maintaining order.
  */
-void		camq_insert(struct camq *queue, cam_pinfo *new_entry);
+void camq_insert(struct camq *queue, cam_pinfo *new_entry);
 
 /*
  * camq_remove: Remove and arbitrary entry from the queue maintaining
  * queue order.
  */
-cam_pinfo	*camq_remove(struct camq *queue, int index);
-#define CAMQ_HEAD 1	/* Head of queue index */
+cam_pinfo *camq_remove(struct camq *queue, int index);
+#define CAMQ_HEAD 1 /* Head of queue index */
 
 /* Index the first element in the heap */
 #define CAMQ_GET_HEAD(camq) ((camq)->queue_array[CAMQ_HEAD])
 
 /* Get the first element priority. */
-#define CAMQ_GET_PRIO(camq) (((camq)->entries > 0) ?			\
-			    ((camq)->queue_array[CAMQ_HEAD]->priority) : 0)
+#define CAMQ_GET_PRIO(camq) \
+	(((camq)->entries > 0) ? ((camq)->queue_array[CAMQ_HEAD]->priority) : 0)
 
 /*
  * camq_change_priority: Raise or lower the priority of an entry
  * maintaining queue order.
  */
-void		camq_change_priority(struct camq *queue, int index,
-				     uint32_t new_priority);
+void camq_change_priority(struct camq *queue, int index, uint32_t new_priority);
 
 static __inline int
 cam_ccbq_pending_ccb_count(struct cam_ccbq *ccbq)
@@ -160,9 +159,9 @@ cam_ccbq_insert_ccb(struct cam_ccbq *ccbq, union ccb *new_ccb)
 	struct camq *queue = &ccbq->queue;
 
 	KASSERT((new_ccb->ccb_h.func_code & XPT_FC_QUEUED) != 0 &&
-	    (new_ccb->ccb_h.func_code & XPT_FC_USER_CCB) == 0,
+		(new_ccb->ccb_h.func_code & XPT_FC_USER_CCB) == 0,
 	    ("%s: Cannot queue ccb %p func_code %#x", __func__, new_ccb,
-	     new_ccb->ccb_h.func_code));
+		new_ccb->ccb_h.func_code));
 
 	/*
 	 * If queue is already full, try to resize.
@@ -199,7 +198,7 @@ cam_ccbq_remove_ccb(struct cam_ccbq *ccbq, union ccb *ccb)
 	removed_entry = camq_remove(queue, ccb->ccb_h.pinfo.index);
 	KASSERT(removed_entry == &ccb->ccb_h.pinfo,
 	    ("%s: Removed wrong entry from queue (%p != %p)", __func__,
-	     removed_entry, &ccb->ccb_h.pinfo));
+		removed_entry, &ccb->ccb_h.pinfo));
 
 	/*
 	 * If there are some CCBs on TAILQ, find the best one and move it
@@ -208,12 +207,12 @@ cam_ccbq_remove_ccb(struct cam_ccbq *ccbq, union ccb *ccb)
 	bccb = TAILQ_FIRST(&ccbq->queue_extra_head);
 	if (bccb == NULL)
 		return;
-	TAILQ_FOREACH(cccb, &ccbq->queue_extra_head, xpt_links.tqe) {
+	TAILQ_FOREACH (cccb, &ccbq->queue_extra_head, xpt_links.tqe) {
 		if (bccb->pinfo.priority > cccb->pinfo.priority ||
 		    (bccb->pinfo.priority == cccb->pinfo.priority &&
-		     GENERATIONCMP(bccb->pinfo.generation, >,
-		      cccb->pinfo.generation)))
-		        bccb = cccb;
+			GENERATIONCMP(bccb->pinfo.generation, >,
+			    cccb->pinfo.generation)))
+			bccb = cccb;
 	}
 	TAILQ_REMOVE(&ccbq->queue_extra_head, bccb, xpt_links.tqe);
 	ccbq->queue_extra_entries--;
@@ -223,7 +222,7 @@ cam_ccbq_remove_ccb(struct cam_ccbq *ccbq, union ccb *ccb)
 static __inline union ccb *
 cam_ccbq_peek_ccb(struct cam_ccbq *ccbq, int index)
 {
-	return((union ccb *)ccbq->queue.queue_array[index]);
+	return ((union ccb *)ccbq->queue.queue_array[index]);
 }
 
 static __inline void
@@ -251,4 +250,4 @@ cam_ccbq_release_opening(struct cam_ccbq *ccbq)
 }
 
 #endif /* _KERNEL */
-#endif  /* _CAM_CAM_QUEUE_H */
+#endif /* _CAM_CAM_QUEUE_H */

@@ -23,15 +23,15 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	__LIBSBUF_TEST_COMMON_H__
-#define	__LIBSBUF_TEST_COMMON_H__
+#ifndef __LIBSBUF_TEST_COMMON_H__
+#define __LIBSBUF_TEST_COMMON_H__
 
 #include <sys/param.h>
 
 #if __FreeBSD_version > 1100064
-#define	HAVE_SBUF_GET_FLAGS
-#define	HAVE_SBUF_CLEAR_FLAGS
-#define	HAVE_SBUF_SET_FLAGS
+#define HAVE_SBUF_GET_FLAGS
+#define HAVE_SBUF_CLEAR_FLAGS
+#define HAVE_SBUF_SET_FLAGS
 #endif
 
 #endif

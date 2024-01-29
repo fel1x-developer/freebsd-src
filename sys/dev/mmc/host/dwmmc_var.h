@@ -31,11 +31,11 @@
 #ifndef DEV_MMC_HOST_DWMMC_VAR_H
 #define DEV_MMC_HOST_DWMMC_VAR_H
 
+#include "opt_mmccam.h"
+
 #include <dev/clk/clk.h>
 #include <dev/hwreset/hwreset.h>
 #include <dev/regulator/regulator.h>
-
-#include "opt_mmccam.h"
 
 #include <cam/mmc/mmc_sim.h>
 
@@ -48,51 +48,51 @@ enum {
 };
 
 struct dwmmc_softc {
-	struct resource		*res[2];
-	device_t		dev;
-	void			*intr_cookie;
-	struct mmc_host		host;
-	struct mmc_helper	mmc_helper;
-	struct mtx		sc_mtx;
+	struct resource *res[2];
+	device_t dev;
+	void *intr_cookie;
+	struct mmc_host host;
+	struct mmc_helper mmc_helper;
+	struct mtx sc_mtx;
 #ifdef MMCCAM
-	union ccb *		ccb;
-	struct mmc_sim		mmc_sim;
+	union ccb *ccb;
+	struct mmc_sim mmc_sim;
 #else
-	struct mmc_request	*req;
+	struct mmc_request *req;
 #endif
-	struct mmc_command	*curcmd;
-	uint32_t		flags;
-	uint32_t		hwtype;
-	uint32_t		use_auto_stop;
-	uint32_t		use_pio;
-	device_t		child;
-	struct task		card_task;	/* Card presence check task */
-	struct timeout_task	card_delayed_task;/* Card insert delayed task */
+	struct mmc_command *curcmd;
+	uint32_t flags;
+	uint32_t hwtype;
+	uint32_t use_auto_stop;
+	uint32_t use_pio;
+	device_t child;
+	struct task card_task;		       /* Card presence check task */
+	struct timeout_task card_delayed_task; /* Card insert delayed task */
 
-	int			(*update_ios)(struct dwmmc_softc *sc, struct mmc_ios *ios);
+	int (*update_ios)(struct dwmmc_softc *sc, struct mmc_ios *ios);
 
-	bus_dma_tag_t		desc_tag;
-	bus_dmamap_t		desc_map;
-	struct idmac_desc	*desc_ring;
-	bus_addr_t		desc_ring_paddr;
-	bus_dma_tag_t		buf_tag;
-	bus_dmamap_t		buf_map;
+	bus_dma_tag_t desc_tag;
+	bus_dmamap_t desc_map;
+	struct idmac_desc *desc_ring;
+	bus_addr_t desc_ring_paddr;
+	bus_dma_tag_t buf_tag;
+	bus_dmamap_t buf_map;
 
-	uint32_t		bus_busy;
-	uint32_t		dto_rcvd;
-	uint32_t		acd_rcvd;
-	uint32_t		cmd_done;
-	uint64_t		bus_hz;
-	uint32_t		fifo_depth;
-	uint32_t		num_slots;
-	uint32_t		sdr_timing;
-	uint32_t		ddr_timing;
+	uint32_t bus_busy;
+	uint32_t dto_rcvd;
+	uint32_t acd_rcvd;
+	uint32_t cmd_done;
+	uint64_t bus_hz;
+	uint32_t fifo_depth;
+	uint32_t num_slots;
+	uint32_t sdr_timing;
+	uint32_t ddr_timing;
 
-	clk_t			biu;
-	clk_t			ciu;
-	hwreset_t		hwreset;
-	regulator_t		vmmc;
-	regulator_t		vqmmc;
+	clk_t biu;
+	clk_t ciu;
+	hwreset_t hwreset;
+	regulator_t vmmc;
+	regulator_t vqmmc;
 };
 
 DECLARE_CLASS(dwmmc_driver);

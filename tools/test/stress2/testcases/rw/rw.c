@@ -29,6 +29,7 @@
 
 #include <sys/param.h>
 #include <sys/stat.h>
+
 #include <err.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -62,14 +63,14 @@ setup(int nb)
 		size = size / 100 * pct + 1;
 
 		if (size > MAXSIZE)
-			size = MAXSIZE;	/* arbitrary limit size pr. incarnation */
+			size =
+			    MAXSIZE; /* arbitrary limit size pr. incarnation */
 
 		/* Resource requirements: */
 		while (size > 0) {
-			reserve_in =  2 * op->incarnations + 1;
+			reserve_in = 2 * op->incarnations + 1;
 			reserve_bl = size * 1024 * op->incarnations +
-				(512 * 1024 * op->incarnations) +
-				  64 * 1024;
+			    (512 * 1024 * op->incarnations) + 64 * 1024;
 			if (reserve_bl <= bl && reserve_in <= in)
 				break;
 			size = size / 10 * 8;
@@ -78,8 +79,10 @@ setup(int nb)
 			reserve_bl = reserve_in = 0;
 
 		if (op->verbose > 1)
-			printf("rw(size=%lu, incarnations=%d). Free(%jdk, %jd), reserve(%jdk, %jd)\n",
-				size, op->incarnations, bl/1024, in, reserve_bl/1024, reserve_in);
+			printf(
+			    "rw(size=%lu, incarnations=%d). Free(%jdk, %jd), reserve(%jdk, %jd)\n",
+			    size, op->incarnations, bl / 1024, in,
+			    reserve_bl / 1024, reserve_in);
 		reservedf(reserve_bl, reserve_in);
 		putval(size);
 		size = size * 1024;
@@ -91,7 +94,7 @@ setup(int nb)
 		exit(0);
 
 	umask(0);
-	sprintf(path,"%s.%05d", getprogname(), getpid());
+	sprintf(path, "%s.%05d", getprogname(), getpid());
 	(void)mkdir(path, 0770);
 	if (chdir(path) == -1)
 		err(1, "chdir(%s), %s:%d", path, __FILE__, __LINE__);
@@ -130,7 +133,7 @@ test(void)
 	int fd;
 	char file[128];
 
-	sprintf(file,"p%05d", getpid());
+	sprintf(file, "p%05d", getpid());
 	if ((fd = creat(file, 0660)) == -1)
 		err(1, "creat(%s)", file);
 
@@ -163,9 +166,9 @@ test(void)
 		for (i = 0; i < to; i++) {
 			if (buf[i] != index + i) {
 				fprintf(stderr,
-					"%s, pid %d: expected %d @ %d, got %d\n",
-					getprogname(), getpid(), index+i, index+i,
-					buf[i]);
+				    "%s, pid %d: expected %d @ %d, got %d\n",
+				    getprogname(), getpid(), index + i,
+				    index + i, buf[i]);
 				exit(EXIT_FAILURE);
 			}
 		}

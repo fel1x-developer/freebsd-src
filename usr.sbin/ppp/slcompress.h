@@ -36,7 +36,7 @@
 
 #define MIN_VJ_STATES 3
 #define MAX_VJ_STATES 255
-#define DEF_VJ_STATES 16		/* must be > 2 and < 256 */
+#define DEF_VJ_STATES 16 /* must be > 2 and < 256 */
 #define MAX_HDR 128
 
 /*
@@ -89,17 +89,17 @@
 #define TYPE_ERROR 0x00
 
 /* Bits in first octet of compressed packet */
-#define NEW_C	0x40		/* flag bits for what changed in a packet */
-#define NEW_I	0x20
-#define NEW_S	0x08
-#define NEW_A	0x04
-#define NEW_W	0x02
-#define NEW_U	0x01
+#define NEW_C 0x40 /* flag bits for what changed in a packet */
+#define NEW_I 0x20
+#define NEW_S 0x08
+#define NEW_A 0x04
+#define NEW_W 0x02
+#define NEW_U 0x01
 
 /* reserved, special-case values of above */
-#define SPECIAL_I (NEW_S|NEW_W|NEW_U)	/* echoed interactive traffic */
-#define SPECIAL_D (NEW_S|NEW_A|NEW_W|NEW_U)	/* unidirectional data */
-#define SPECIALS_MASK (NEW_S|NEW_A|NEW_W|NEW_U)
+#define SPECIAL_I (NEW_S | NEW_W | NEW_U) /* echoed interactive traffic */
+#define SPECIAL_D (NEW_S | NEW_A | NEW_W | NEW_U) /* unidirectional data */
+#define SPECIALS_MASK (NEW_S | NEW_A | NEW_W | NEW_U)
 
 #define TCP_PUSH_BIT 0x10
 
@@ -110,14 +110,14 @@
  * the transmit & receive ends of the line use to locate saved header.
  */
 struct cstate {
-  struct cstate *cs_next;	/* next most recently used cstate (xmit only) */
-  u_short cs_hlen;		/* size of hdr (receive only) */
-  u_char cs_id;			/* connection # associated with this state */
-  u_char cs_filler;
-  union {
-    char csu_hdr[MAX_HDR];
-    struct ip csu_ip;		/* ip/tcp hdr from most recent packet */
-  } slcs_u;
+	struct cstate *cs_next; /* next most recently used cstate (xmit only) */
+	u_short cs_hlen;	/* size of hdr (receive only) */
+	u_char cs_id;		/* connection # associated with this state */
+	u_char cs_filler;
+	union {
+		char csu_hdr[MAX_HDR];
+		struct ip csu_ip; /* ip/tcp hdr from most recent packet */
+	} slcs_u;
 };
 
 #define cs_ip slcs_u.csu_ip
@@ -128,34 +128,34 @@ struct cstate {
  * per line).
  */
 struct slcompress {
-  struct cstate *last_cs;	/* most recently used tstate */
-  u_char last_recv;		/* last rcvd conn. id */
-  u_char last_xmit;		/* last sent conn. id */
-  u_short flags;
-  struct cstate tstate[MAX_VJ_STATES];	/* xmit connection states */
-  struct cstate rstate[MAX_VJ_STATES];	/* receive connection states */
+	struct cstate *last_cs; /* most recently used tstate */
+	u_char last_recv;	/* last rcvd conn. id */
+	u_char last_xmit;	/* last sent conn. id */
+	u_short flags;
+	struct cstate tstate[MAX_VJ_STATES]; /* xmit connection states */
+	struct cstate rstate[MAX_VJ_STATES]; /* receive connection states */
 };
 
 struct slstat {
-  int sls_packets;		/* outbound packets */
-  int sls_compressed;		/* outbound compressed packets */
-  int sls_searches;		/* searches for connection state */
-  int sls_misses;		/* times couldn't find conn. state */
-  int sls_uncompressedin;	/* inbound uncompressed packets */
-  int sls_compressedin;		/* inbound compressed packets */
-  int sls_errorin;		/* inbound unknown type packets */
-  int sls_tossed;		/* inbound packets tossed because of error */
+	int sls_packets;	/* outbound packets */
+	int sls_compressed;	/* outbound compressed packets */
+	int sls_searches;	/* searches for connection state */
+	int sls_misses;		/* times couldn't find conn. state */
+	int sls_uncompressedin; /* inbound uncompressed packets */
+	int sls_compressedin;	/* inbound compressed packets */
+	int sls_errorin;	/* inbound unknown type packets */
+	int sls_tossed;		/* inbound packets tossed because of error */
 };
 
 /* flag values */
-#define SLF_TOSS 1		/* tossing rcvd frames because of input err */
+#define SLF_TOSS 1 /* tossing rcvd frames because of input err */
 
 struct mbuf;
 struct cmdargs;
 
 extern void sl_compress_init(struct slcompress *, int);
 extern u_char sl_compress_tcp(struct mbuf *, struct ip *, struct slcompress *,
-                              struct slstat *, int);
+    struct slstat *, int);
 extern int sl_uncompress_tcp(u_char **, int, u_int, struct slcompress *,
-                             struct slstat *, int);
+    struct slstat *, int);
 extern int sl_Show(struct cmdargs const *);

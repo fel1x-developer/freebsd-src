@@ -26,14 +26,12 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
-
 #include <sys/param.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 
-#include <net/if_dl.h>
 #include <net/if.h>
+#include <net/if_dl.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
@@ -45,6 +43,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "namespace.h"
 #include "un-namespace.h"
 
 /*
@@ -56,20 +55,20 @@
 #endif
 
 union sockunion {
-	struct sockaddr_storage	ss;
-	struct sockaddr		sa;
-	struct sockaddr_dl	sdl;
+	struct sockaddr_storage ss;
+	struct sockaddr sa;
+	struct sockaddr_dl sdl;
 #ifdef INET
-	struct sockaddr_in	sin;
+	struct sockaddr_in sin;
 #endif
 #ifdef INET6
-	struct sockaddr_in6	sin6;
+	struct sockaddr_in6 sin6;
 #endif
 };
 typedef union sockunion sockunion_t;
 
 #ifndef MIN
-#define	MIN(a, b)	((a) < (b) ? (a) : (b))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
 #endif
 
 /*
@@ -80,11 +79,11 @@ typedef union sockunion sockunion_t;
 static uint32_t
 __inaddr_to_index(in_addr_t ifaddr)
 {
-	struct ifaddrs	*ifa;
-	struct ifaddrs	*ifaddrs;
-	char		*ifname;
-	int		 ifindex;
-	sockunion_t	*psu;
+	struct ifaddrs *ifa;
+	struct ifaddrs *ifaddrs;
+	char *ifname;
+	int ifindex;
+	sockunion_t *psu;
 
 	if (getifaddrs(&ifaddrs) < 0)
 		return (0);
@@ -141,12 +140,12 @@ setipv4sourcefilter(int s, struct in_addr interface, struct in_addr group,
     uint32_t fmode, uint32_t numsrc, struct in_addr *slist)
 {
 #ifdef INET
-	sockunion_t	 tmpgroup;
-	struct in_addr	*pina;
-	sockunion_t	*psu, *tmpslist;
-	int		 err;
-	size_t		 i;
-	uint32_t	 ifindex;
+	sockunion_t tmpgroup;
+	struct in_addr *pina;
+	sockunion_t *psu, *tmpslist;
+	int err;
+	size_t i;
+	uint32_t ifindex;
 
 	assert(s != -1);
 
@@ -193,7 +192,7 @@ setipv4sourcefilter(int s, struct in_addr interface, struct in_addr group,
 		free(tmpslist);
 
 	return (err);
-#else /* !INET */
+#else  /* !INET */
 	return (EAFNOSUPPORT);
 #endif /* INET */
 }
@@ -210,12 +209,12 @@ int
 getipv4sourcefilter(int s, struct in_addr interface, struct in_addr group,
     uint32_t *fmode, uint32_t *numsrc, struct in_addr *slist)
 {
-	sockunion_t	*psu, *tmpslist;
-	sockunion_t	 tmpgroup;
-	struct in_addr	*pina;
-	int		 err;
-	size_t		 i;
-	uint32_t	 ifindex, onumsrc;
+	sockunion_t *psu, *tmpslist;
+	sockunion_t tmpgroup;
+	struct in_addr *pina;
+	int err;
+	size_t i;
+	uint32_t ifindex, onumsrc;
 
 	assert(s != -1);
 	assert(fmode != NULL);
@@ -276,9 +275,9 @@ setsourcefilter(int s, uint32_t interface, struct sockaddr *group,
     socklen_t grouplen, uint32_t fmode, uint32_t numsrc,
     struct sockaddr_storage *slist)
 {
-	struct __msfilterreq	 msfr;
-	sockunion_t		*psu;
-	int			 level, optname;
+	struct __msfilterreq msfr;
+	sockunion_t *psu;
+	int level, optname;
 
 	if (fmode != MCAST_INCLUDE && fmode != MCAST_EXCLUDE) {
 		errno = EINVAL;
@@ -290,7 +289,7 @@ setsourcefilter(int s, uint32_t interface, struct sockaddr *group,
 #ifdef INET
 	case AF_INET:
 		if ((grouplen != sizeof(struct sockaddr_in) ||
-		    !IN_MULTICAST(ntohl(psu->sin.sin_addr.s_addr)))) {
+			!IN_MULTICAST(ntohl(psu->sin.sin_addr.s_addr)))) {
 			errno = EINVAL;
 			return (-1);
 		}
@@ -319,7 +318,7 @@ setsourcefilter(int s, uint32_t interface, struct sockaddr *group,
 	msfr.msfr_fmode = fmode;
 	msfr.msfr_nsrcs = numsrc;
 	memcpy(&msfr.msfr_group, &psu->ss, psu->ss.ss_len);
-	msfr.msfr_srcs = slist;		/* pointer */
+	msfr.msfr_srcs = slist; /* pointer */
 
 	return (_setsockopt(s, level, optname, &msfr, sizeof(msfr)));
 }
@@ -333,10 +332,10 @@ getsourcefilter(int s, uint32_t interface, struct sockaddr *group,
     socklen_t grouplen, uint32_t *fmode, uint32_t *numsrc,
     struct sockaddr_storage *slist)
 {
-	struct __msfilterreq	 msfr;
-	sockunion_t		*psu;
-	socklen_t		 optlen;
-	int			 err, level, nsrcs, optname;
+	struct __msfilterreq msfr;
+	sockunion_t *psu;
+	socklen_t optlen;
+	int err, level, nsrcs, optname;
 
 	if (interface == 0 || group == NULL || numsrc == NULL ||
 	    fmode == NULL) {
@@ -353,7 +352,7 @@ getsourcefilter(int s, uint32_t interface, struct sockaddr *group,
 #ifdef INET
 	case AF_INET:
 		if ((grouplen != sizeof(struct sockaddr_in) ||
-		    !IN_MULTICAST(ntohl(psu->sin.sin_addr.s_addr)))) {
+			!IN_MULTICAST(ntohl(psu->sin.sin_addr.s_addr)))) {
 			errno = EINVAL;
 			return (-1);
 		}

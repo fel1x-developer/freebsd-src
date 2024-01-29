@@ -68,8 +68,7 @@ uuid_from_string(const char *s, uuid_t *u, uint32_t *status)
 	if (s[8] != '-')
 		return;
 
-	n = sscanf(s,
-	    "%8x-%4hx-%4hx-%2hhx%2hhx-%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx",
+	n = sscanf(s, "%8x-%4hx-%4hx-%2hhx%2hhx-%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx",
 	    &u->time_low, &u->time_mid, &u->time_hi_and_version,
 	    &u->clock_seq_hi_and_reserved, &u->clock_seq_low, &u->node[0],
 	    &u->node[1], &u->node[2], &u->node[3], &u->node[4], &u->node[5]);
@@ -80,9 +79,9 @@ uuid_from_string(const char *s, uuid_t *u, uint32_t *status)
 
 	/* We have a successful scan. Check semantics... */
 	n = u->clock_seq_hi_and_reserved;
-	if ((n & 0x80) != 0x00 &&			/* variant 0? */
-	    (n & 0xc0) != 0x80 &&			/* variant 1? */
-	    (n & 0xe0) != 0xc0) {			/* variant 2? */
+	if ((n & 0x80) != 0x00 && /* variant 0? */
+	    (n & 0xc0) != 0x80 && /* variant 1? */
+	    (n & 0xe0) != 0xc0) { /* variant 2? */
 		if (status != NULL)
 			*status = uuid_s_bad_version;
 	} else {

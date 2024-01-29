@@ -39,41 +39,40 @@
 #include <wchar.h>
 #include <wctype.h>
 
-#define	IESC	'\033'
-#define	SO	'\016'
-#define	SI	'\017'
-#define	HFWD	'9'
-#define	HREV	'8'
-#define	FREV	'7'
-#define	MAXBUF	512
+#define IESC '\033'
+#define SO '\016'
+#define SI '\017'
+#define HFWD '9'
+#define HREV '8'
+#define FREV '7'
+#define MAXBUF 512
 
-#define	NORMAL	000
-#define	ALTSET	001	/* Reverse */
-#define	SUPERSC	002	/* Dim */
-#define	SUBSC	004	/* Dim | Ul */
-#define	UNDERL	010	/* Ul */
-#define	BOLD	020	/* Bold */
+#define NORMAL 000
+#define ALTSET 001  /* Reverse */
+#define SUPERSC 002 /* Dim */
+#define SUBSC 004   /* Dim | Ul */
+#define UNDERL 010  /* Ul */
+#define BOLD 020    /* Bold */
 
-static int	must_use_uc, must_overstrike;
-static const char
-	*CURS_UP, *CURS_RIGHT, *CURS_LEFT,
-	*ENTER_STANDOUT, *EXIT_STANDOUT, *ENTER_UNDERLINE, *EXIT_UNDERLINE,
-	*ENTER_DIM, *ENTER_BOLD, *ENTER_REVERSE, *UNDER_CHAR, *EXIT_ATTRIBUTES;
+static int must_use_uc, must_overstrike;
+static const char *CURS_UP, *CURS_RIGHT, *CURS_LEFT, *ENTER_STANDOUT,
+    *EXIT_STANDOUT, *ENTER_UNDERLINE, *EXIT_UNDERLINE, *ENTER_DIM, *ENTER_BOLD,
+    *ENTER_REVERSE, *UNDER_CHAR, *EXIT_ATTRIBUTES;
 
-struct	CHAR	{
-	char	c_mode;
-	wchar_t	c_char;
-	int	c_width;	/* width or -1 if multi-column char. filler */
-} ;
+struct CHAR {
+	char c_mode;
+	wchar_t c_char;
+	int c_width; /* width or -1 if multi-column char. filler */
+};
 
-static struct	CHAR	sobuf[MAXBUF]; /* static output buffer */
-static struct	CHAR	*obuf = sobuf;
-static int	buflen = MAXBUF;
-static int	col, maxcol;
-static int	mode;
-static int	halfpos;
-static int	upln;
-static int	iflag;
+static struct CHAR sobuf[MAXBUF]; /* static output buffer */
+static struct CHAR *obuf = sobuf;
+static int buflen = MAXBUF;
+static int col, maxcol;
+static int mode;
+static int halfpos;
+static int upln;
+static int iflag;
 
 static void usage(void) __dead2;
 static void setnewmode(int);
@@ -88,7 +87,11 @@ static void flushln(void);
 static void filter(FILE *);
 static void outc(wint_t, int);
 
-#define	PRINT(s)	if (s == NULL) /* void */; else tputs(s, 1, outchar)
+#define PRINT(s)                  \
+	if (s == NULL) /* void */ \
+		;                 \
+	else                      \
+		tputs(s, 1, outchar)
 
 int
 main(int argc, char **argv)
@@ -128,19 +131,20 @@ main(int argc, char **argv)
 		break;
 	}
 	initcap();
-	if ((tgetflag("os") && ENTER_BOLD == NULL ) ||
+	if ((tgetflag("os") && ENTER_BOLD == NULL) ||
 	    (tgetflag("ul") && ENTER_UNDERLINE == NULL && UNDER_CHAR == NULL))
 		must_overstrike = 1;
 	initbuf();
 	if (optind == argc)
 		filter(stdin);
-	else for (; optind<argc; optind++) {
-		f = fopen(argv[optind],"r");
-		if (f == NULL)
-			err(1, "%s", argv[optind]);
-		else
-			filter(f);
-	}
+	else
+		for (; optind < argc; optind++) {
+			f = fopen(argv[optind], "r");
+			if (f == NULL)
+				err(1, "%s", argv[optind]);
+			else
+				filter(f);
+		}
 	if (obuf != sobuf) {
 		free(obuf);
 	}
@@ -160,7 +164,7 @@ filter(FILE *f)
 	wint_t c;
 	int i, w;
 	int copy;
-	
+
 	copy = 0;
 
 	while ((c = getwc(f)) != WEOF) {
@@ -180,14 +184,14 @@ filter(FILE *f)
 			bzero((char *)(obuf + buflen), sizeof(*obuf) * buflen);
 			buflen *= 2;
 		}
-		switch(c) {
+		switch (c) {
 		case '\b':
 			if (col > 0)
 				col--;
 			continue;
 
 		case '\t':
-			col = (col+8) & ~07;
+			col = (col + 8) & ~07;
 			if (col > maxcol)
 				maxcol = col;
 			continue;
@@ -238,7 +242,9 @@ filter(FILE *f)
 				continue;
 
 			default:
-				errx(1, "unknown escape sequence in input: %o, %o", IESC, c);
+				errx(1,
+				    "unknown escape sequence in input: %o, %o",
+				    IESC, c);
 			}
 			continue;
 
@@ -272,7 +278,7 @@ filter(FILE *f)
 			continue;
 
 		default:
-			if ((w = wcwidth(c)) <= 0)	/* non printing */
+			if ((w = wcwidth(c)) <= 0) /* non printing */
 				continue;
 			if (obuf[col].c_char == '\0') {
 				obuf[col].c_char = c;
@@ -284,13 +290,13 @@ filter(FILE *f)
 			} else if (obuf[col].c_char == '_') {
 				obuf[col].c_char = c;
 				for (i = 0; i < w; i++)
-					obuf[col + i].c_mode |= UNDERL|mode;
+					obuf[col + i].c_mode |= UNDERL | mode;
 				obuf[col].c_width = w;
 				for (i = 1; i < w; i++)
 					obuf[col + i].c_width = -1;
 			} else if ((wint_t)obuf[col].c_char == c) {
 				for (i = 0; i < w; i++)
-					obuf[col + i].c_mode |= BOLD|mode;
+					obuf[col + i].c_mode |= BOLD | mode;
 			} else {
 				w = obuf[col].c_width;
 				for (i = 0; i < w; i++)
@@ -356,10 +362,10 @@ overstrike(void)
 	int i;
 	wchar_t lbuf[256];
 	wchar_t *cp = lbuf;
-	int hadbold=0;
+	int hadbold = 0;
 
 	/* Set up overstrike buffer */
-	for (i=0; i<maxcol; i++)
+	for (i = 0; i < maxcol; i++)
 		switch (obuf[i].c_mode) {
 		case NORMAL:
 		default:
@@ -372,21 +378,21 @@ overstrike(void)
 			*cp++ = obuf[i].c_char;
 			if (obuf[i].c_width > 1)
 				i += obuf[i].c_width - 1;
-			hadbold=1;
+			hadbold = 1;
 			break;
 		}
 	putwchar('\r');
-	for (*cp=' '; *cp==' '; cp--)
+	for (*cp = ' '; *cp == ' '; cp--)
 		*cp = 0;
-	for (cp=lbuf; *cp; cp++)
+	for (cp = lbuf; *cp; cp++)
 		putwchar(*cp);
 	if (hadbold) {
 		putwchar('\r');
-		for (cp=lbuf; *cp; cp++)
-			putwchar(*cp=='_' ? ' ' : *cp);
+		for (cp = lbuf; *cp; cp++)
+			putwchar(*cp == '_' ? ' ' : *cp);
 		putwchar('\r');
-		for (cp=lbuf; *cp; cp++)
-			putwchar(*cp=='_' ? ' ' : *cp);
+		for (cp = lbuf; *cp; cp++)
+			putwchar(*cp == '_' ? ' ' : *cp);
 	}
 }
 
@@ -397,19 +403,33 @@ iattr(void)
 	wchar_t lbuf[256];
 	wchar_t *cp = lbuf;
 
-	for (i=0; i<maxcol; i++)
+	for (i = 0; i < maxcol; i++)
 		switch (obuf[i].c_mode) {
-		case NORMAL:	*cp++ = ' '; break;
-		case ALTSET:	*cp++ = 'g'; break;
-		case SUPERSC:	*cp++ = '^'; break;
-		case SUBSC:	*cp++ = 'v'; break;
-		case UNDERL:	*cp++ = '_'; break;
-		case BOLD:	*cp++ = '!'; break;
-		default:	*cp++ = 'X'; break;
+		case NORMAL:
+			*cp++ = ' ';
+			break;
+		case ALTSET:
+			*cp++ = 'g';
+			break;
+		case SUPERSC:
+			*cp++ = '^';
+			break;
+		case SUBSC:
+			*cp++ = 'v';
+			break;
+		case UNDERL:
+			*cp++ = '_';
+			break;
+		case BOLD:
+			*cp++ = '!';
+			break;
+		default:
+			*cp++ = 'X';
+			break;
 		}
-	for (*cp=' '; *cp==' '; cp--)
+	for (*cp = ' '; *cp == ' '; cp--)
 		*cp = 0;
-	for (cp=lbuf; *cp; cp++)
+	for (cp = lbuf; *cp; cp++)
 		putwchar(*cp);
 	putwchar('\n');
 }
@@ -418,7 +438,8 @@ static void
 initbuf(void)
 {
 
-	bzero((char *)obuf, buflen * sizeof(*obuf)); /* depends on NORMAL == 0 */
+	bzero((char *)obuf,
+	    buflen * sizeof(*obuf)); /* depends on NORMAL == 0 */
 	col = 0;
 	maxcol = 0;
 	mode &= ALTSET;
@@ -453,24 +474,24 @@ initcap(void)
 	char *bp = tcapbuf;
 
 	/* This nonsense attempts to work with both old and new termcap */
-	CURS_UP =		tgetstr("up", &bp);
-	CURS_RIGHT =		tgetstr("ri", &bp);
+	CURS_UP = tgetstr("up", &bp);
+	CURS_RIGHT = tgetstr("ri", &bp);
 	if (CURS_RIGHT == NULL)
-		CURS_RIGHT =	tgetstr("nd", &bp);
-	CURS_LEFT =		tgetstr("le", &bp);
+		CURS_RIGHT = tgetstr("nd", &bp);
+	CURS_LEFT = tgetstr("le", &bp);
 	if (CURS_LEFT == NULL)
-		CURS_LEFT =	tgetstr("bc", &bp);
+		CURS_LEFT = tgetstr("bc", &bp);
 	if (CURS_LEFT == NULL && tgetflag("bs"))
-		CURS_LEFT =	"\b";
+		CURS_LEFT = "\b";
 
-	ENTER_STANDOUT =	tgetstr("so", &bp);
-	EXIT_STANDOUT =		tgetstr("se", &bp);
-	ENTER_UNDERLINE =	tgetstr("us", &bp);
-	EXIT_UNDERLINE =	tgetstr("ue", &bp);
-	ENTER_DIM =		tgetstr("mh", &bp);
-	ENTER_BOLD =		tgetstr("md", &bp);
-	ENTER_REVERSE =		tgetstr("mr", &bp);
-	EXIT_ATTRIBUTES =	tgetstr("me", &bp);
+	ENTER_STANDOUT = tgetstr("so", &bp);
+	EXIT_STANDOUT = tgetstr("se", &bp);
+	ENTER_UNDERLINE = tgetstr("us", &bp);
+	EXIT_UNDERLINE = tgetstr("ue", &bp);
+	ENTER_DIM = tgetstr("mh", &bp);
+	ENTER_BOLD = tgetstr("md", &bp);
+	ENTER_REVERSE = tgetstr("mr", &bp);
+	EXIT_ATTRIBUTES = tgetstr("me", &bp);
 
 	if (!ENTER_BOLD && ENTER_REVERSE)
 		ENTER_BOLD = ENTER_REVERSE;
@@ -495,7 +516,7 @@ initcap(void)
 	 * letters the 37 has.
 	 */
 
-	UNDER_CHAR =		tgetstr("uc", &bp);
+	UNDER_CHAR = tgetstr("uc", &bp);
 	must_use_uc = (UNDER_CHAR && !ENTER_UNDERLINE);
 }
 
@@ -513,7 +534,7 @@ outc(wint_t c, int width)
 	int i;
 
 	putwchar(c);
-	if (must_use_uc && (curmode&UNDERL)) {
+	if (must_use_uc && (curmode & UNDERL)) {
 		for (i = 0; i < width; i++)
 			PRINT(CURS_LEFT);
 		for (i = 0; i < width; i++)
@@ -529,7 +550,7 @@ setnewmode(int newmode)
 			setnewmode(NORMAL);
 		switch (newmode) {
 		case NORMAL:
-			switch(curmode) {
+			switch (curmode) {
 			case NORMAL:
 				break;
 			case UNDERL:

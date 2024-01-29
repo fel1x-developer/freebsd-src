@@ -24,7 +24,7 @@
  */
 
 #ifndef _LINUXKPI_LINUX_MMU_CONTEXT_H_
-#define	_LINUXKPI_LINUX_MMU_CONTEXT_H_
+#define _LINUXKPI_LINUX_MMU_CONTEXT_H_
 
 struct mm_struct;
 
@@ -40,4 +40,4 @@ unuse_mm(struct mm_struct *mm)
 	/* NOP is deliberate */
 }
 
-#endif	/* _LINUXKPI_LINUX_MMU_CONTEXT_H_ */
+#endif /* _LINUXKPI_LINUX_MMU_CONTEXT_H_ */

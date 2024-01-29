@@ -233,7 +233,8 @@ When the user chooses not to create an association, the user is responsible for
 being able to determine their data structures based on the SCI object handles.
 Additionally, the user may be forced to invoke additional functionality in
 situations where the SCI Framework is employed.  If the user does not
-establish proper associations between objects (i.e. SCIC Library to SCIF Library), then the framework is unable to automate interactions.  Users should
+establish proper associations between objects (i.e. SCIC Library to SCIF
+Library), then the framework is unable to automate interactions.  Users should
 strongly consider establishing associations between SCI Framework objects and
 OS Driver related structures.
 
@@ -248,4 +249,3 @@ in the framework objects, unless otherwise directed.
 */
 
 #endif // _SCI_OVERVIEW_H_
-

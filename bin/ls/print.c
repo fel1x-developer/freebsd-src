@@ -33,8 +33,8 @@
  */
 
 #include <sys/param.h>
-#include <sys/stat.h>
 #include <sys/acl.h>
+#include <sys/stat.h>
 
 #include <err.h>
 #include <errno.h>
@@ -42,8 +42,8 @@
 #include <langinfo.h>
 #include <libutil.h>
 #include <limits.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -51,55 +51,55 @@
 #include <wchar.h>
 #ifdef COLORLS
 #include <ctype.h>
-#include <termcap.h>
 #include <signal.h>
+#include <termcap.h>
 #endif
 
-#include "ls.h"
 #include "extern.h"
+#include "ls.h"
 
-static int	printaname(const FTSENT *, u_long, u_long);
-static void	printdev(size_t, dev_t);
-static void	printlink(const FTSENT *);
-static void	printtime(time_t);
-static int	printtype(u_int);
-static void	printsize(size_t, off_t);
+static int printaname(const FTSENT *, u_long, u_long);
+static void printdev(size_t, dev_t);
+static void printlink(const FTSENT *);
+static void printtime(time_t);
+static int printtype(u_int);
+static void printsize(size_t, off_t);
 #ifdef COLORLS
-static void	endcolor_termcap(int);
-static void	endcolor_ansi(void);
-static void	endcolor(int);
-static int	colortype(mode_t);
+static void endcolor_termcap(int);
+static void endcolor_ansi(void);
+static void endcolor(int);
+static int colortype(mode_t);
 #endif
-static void	aclmode(char *, const FTSENT *);
+static void aclmode(char *, const FTSENT *);
 
-#define	IS_NOPRINT(p)	((p)->fts_number == NO_PRINT)
+#define IS_NOPRINT(p) ((p)->fts_number == NO_PRINT)
 
 #ifdef COLORLS
 /* Most of these are taken from <sys/stat.h> */
 typedef enum Colors {
-	C_DIR,			/* directory */
-	C_LNK,			/* symbolic link */
-	C_SOCK,			/* socket */
-	C_FIFO,			/* pipe */
-	C_EXEC,			/* executable */
-	C_BLK,			/* block special */
-	C_CHR,			/* character special */
-	C_SUID,			/* setuid executable */
-	C_SGID,			/* setgid executable */
-	C_WSDIR,		/* directory writeble to others, with sticky
-				 * bit */
-	C_WDIR,			/* directory writeble to others, without
-				 * sticky bit */
-	C_NUMCOLORS		/* just a place-holder */
+	C_DIR,	    /* directory */
+	C_LNK,	    /* symbolic link */
+	C_SOCK,	    /* socket */
+	C_FIFO,	    /* pipe */
+	C_EXEC,	    /* executable */
+	C_BLK,	    /* block special */
+	C_CHR,	    /* character special */
+	C_SUID,	    /* setuid executable */
+	C_SGID,	    /* setgid executable */
+	C_WSDIR,    /* directory writeble to others, with sticky
+		     * bit */
+	C_WDIR,	    /* directory writeble to others, without
+		     * sticky bit */
+	C_NUMCOLORS /* just a place-holder */
 } Colors;
 
 static const char *defcolors = "exfxcxdxbxegedabagacad";
 
 /* colors for file types */
 static struct {
-	int	num[2];
-	bool	bold;
-	bool	underline;
+	int num[2];
+	bool bold;
+	bool underline;
 } colors[C_NUMCOLORS];
 #endif
 
@@ -138,18 +138,30 @@ get_abmon(int mon)
 {
 
 	switch (mon) {
-	case 0: return (nl_langinfo(ABMON_1));
-	case 1: return (nl_langinfo(ABMON_2));
-	case 2: return (nl_langinfo(ABMON_3));
-	case 3: return (nl_langinfo(ABMON_4));
-	case 4: return (nl_langinfo(ABMON_5));
-	case 5: return (nl_langinfo(ABMON_6));
-	case 6: return (nl_langinfo(ABMON_7));
-	case 7: return (nl_langinfo(ABMON_8));
-	case 8: return (nl_langinfo(ABMON_9));
-	case 9: return (nl_langinfo(ABMON_10));
-	case 10: return (nl_langinfo(ABMON_11));
-	case 11: return (nl_langinfo(ABMON_12));
+	case 0:
+		return (nl_langinfo(ABMON_1));
+	case 1:
+		return (nl_langinfo(ABMON_2));
+	case 2:
+		return (nl_langinfo(ABMON_3));
+	case 3:
+		return (nl_langinfo(ABMON_4));
+	case 4:
+		return (nl_langinfo(ABMON_5));
+	case 5:
+		return (nl_langinfo(ABMON_6));
+	case 6:
+		return (nl_langinfo(ABMON_7));
+	case 7:
+		return (nl_langinfo(ABMON_8));
+	case 8:
+		return (nl_langinfo(ABMON_9));
+	case 9:
+		return (nl_langinfo(ABMON_10));
+	case 10:
+		return (nl_langinfo(ABMON_11));
+	case 11:
+		return (nl_langinfo(ABMON_12));
 	}
 
 	/* should never happen */
@@ -218,11 +230,11 @@ printlong(const DISPLAY *dp)
 			continue;
 		sp = p->fts_statp;
 		if (f_inode)
-			(void)printf("%*ju ",
-			    dp->s_inode, (uintmax_t)sp->st_ino);
+			(void)printf("%*ju ", dp->s_inode,
+			    (uintmax_t)sp->st_ino);
 		if (f_size)
-			(void)printf("%*jd ",
-			    dp->s_block, howmany(sp->st_blocks, blocksize));
+			(void)printf("%*jd ", dp->s_block,
+			    howmany(sp->st_blocks, blocksize));
 		strmode(sp->st_mode, buf);
 		aclmode(buf, p);
 		np = p->fts_pointer;
@@ -274,8 +286,8 @@ printstream(const DISPLAY *dp)
 		if (p->fts_number == NO_PRINT)
 			continue;
 		/* XXX strlen does not take octal escapes into account. */
-		if (strlen(p->fts_name) + chcnt +
-		    (p->fts_link ? 2 : 0) >= (unsigned)termwidth) {
+		if (strlen(p->fts_name) + chcnt + (p->fts_link ? 2 : 0) >=
+		    (unsigned)termwidth) {
 			putchar('\n');
 			chcnt = 0;
 		}
@@ -318,8 +330,8 @@ printcol(const DISPLAY *dp)
 	 * of pointers.
 	 */
 	if (dp->entries > lastentries) {
-		if ((narray =
-		    realloc(array, dp->entries * sizeof(FTSENT *))) == NULL) {
+		if ((narray = realloc(array, dp->entries * sizeof(FTSENT *))) ==
+		    NULL) {
 			warn(NULL);
 			printscol(dp);
 			return;
@@ -368,8 +380,8 @@ printcol(const DISPLAY *dp)
 				base += numrows;
 			if (base >= num)
 				break;
-			while ((cnt = ((chcnt + tabwidth) & ~(tabwidth - 1)))
-			    <= endcol) {
+			while ((cnt = ((chcnt + tabwidth) & ~(tabwidth - 1))) <=
+			    endcol) {
 				if (f_sortacross && col + 1 >= numcols)
 					break;
 				(void)putchar(f_notabs ? ' ' : '\t');
@@ -397,11 +409,11 @@ printaname(const FTSENT *p, u_long inodefield, u_long sizefield)
 	sp = p->fts_statp;
 	chcnt = 0;
 	if (f_inode)
-		chcnt += printf("%*ju ",
-		    (int)inodefield, (uintmax_t)sp->st_ino);
+		chcnt += printf("%*ju ", (int)inodefield,
+		    (uintmax_t)sp->st_ino);
 	if (f_size)
-		chcnt += printf("%*jd ",
-		    (int)sizefield, howmany(sp->st_blocks, blocksize));
+		chcnt += printf("%*jd ", (int)sizefield,
+		    howmany(sp->st_blocks, blocksize));
 #ifdef COLORLS
 	if (f_color)
 		color_printed = colortype(sp->st_mode);
@@ -437,12 +449,9 @@ ls_strftime(char *str, size_t len, const char *fmt, const struct tm *tm)
 			compute_abbreviated_month_size();
 		}
 		if (month_max_size > 0 && tm != NULL) {
-			snprintf(nfmt, sizeof(nfmt),  "%.*s%s%*s%s",
-			    (int)(posb - fmt), fmt,
-			    get_abmon(tm->tm_mon),
-			    (int)padding_for_month[tm->tm_mon],
-			    "",
-			    posb + 2);
+			snprintf(nfmt, sizeof(nfmt), "%.*s%s%*s%s",
+			    (int)(posb - fmt), fmt, get_abmon(tm->tm_mon),
+			    (int)padding_for_month[tm->tm_mon], "", posb + 2);
 			format = nfmt;
 		}
 	}
@@ -465,8 +474,8 @@ printtime(time_t ftime)
 	if (now == 0)
 		now = time(NULL);
 
-#define	SIXMONTHS	((365 / 2) * 86400)
-	if (f_timeformat)  /* user specified format */
+#define SIXMONTHS ((365 / 2) * 86400)
+	if (f_timeformat) /* user specified format */
 		format = f_timeformat;
 	else if (f_sectime)
 		/* mmm dd hh:mm:ss yyyy || dd mmm hh:mm:ss yyyy */
@@ -663,7 +672,7 @@ parsecolors(const char *cs)
 	short legacy_warn = 0;
 
 	if (cs == NULL)
-		cs = "";	/* LSCOLORS not set */
+		cs = ""; /* LSCOLORS not set */
 	len = strlen(cs);
 	for (i = 0; i < (int)C_NUMCOLORS; i++) {
 		colors[i].bold = false;
@@ -682,8 +691,8 @@ parsecolors(const char *cs)
 				colors[i].num[j] = c[j] - '0';
 				if (!legacy_warn) {
 					warnx("LSCOLORS should use "
-					    "characters a-h instead of 0-9 ("
-					    "see the manual page)");
+					      "characters a-h instead of 0-9 ("
+					      "see the manual page)");
 				}
 				legacy_warn = 1;
 			} else if (c[j] >= 'a' && c[j] <= 'h')
@@ -700,7 +709,8 @@ parsecolors(const char *cs)
 				colors[i].num[j] = -1;
 			} else {
 				warnx("invalid character '%c' in LSCOLORS"
-				    " env var", c[j]);
+				      " env var",
+				    c[j]);
 				colors[i].num[j] = -1;
 			}
 		}
@@ -728,8 +738,8 @@ printlink(const FTSENT *p)
 	if (p->fts_level == FTS_ROOTLEVEL)
 		(void)snprintf(name, sizeof(name), "%s", p->fts_name);
 	else
-		(void)snprintf(name, sizeof(name),
-		    "%s/%s", p->fts_parent->fts_accpath, p->fts_name);
+		(void)snprintf(name, sizeof(name), "%s/%s",
+		    p->fts_parent->fts_accpath, p->fts_name);
 	if ((lnklen = readlink(name, path, sizeof(path) - 1)) == -1) {
 		(void)fprintf(stderr, "\nls: %s: %s\n", name, strerror(errno));
 		return;
@@ -753,7 +763,7 @@ printsize(size_t width, off_t bytes)
 		humanize_number(buf, sizeof(buf), (int64_t)bytes, "",
 		    HN_AUTOSCALE, HN_B | HN_NOSPACE | HN_DECIMAL);
 		(void)printf("%*s ", (u_int)width, buf);
-	} else if (f_thousands) {		/* with commas */
+	} else if (f_thousands) { /* with commas */
 		/* This format assignment needed to work round gcc bug. */
 		const char *format = "%*j'd ";
 		(void)printf(format, (u_int)width, bytes);

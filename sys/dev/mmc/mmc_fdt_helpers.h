@@ -26,24 +26,25 @@
  */
 
 #ifndef _MMC_FDT_HELPERS_H_
-#define	_MMC_FDT_HELPERS_H_
+#define _MMC_FDT_HELPERS_H_
 
 #include <dev/gpio/gpiobusvar.h>
-#include <dev/ofw/ofw_bus.h>
-
-#include <dev/regulator/regulator.h>
-
 #include <dev/mmc/mmc_helpers.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/regulator/regulator.h>
 
 #define mmc_fdt_helper mmc_helper /* For backwards compatibility */
 
 typedef void (*mmc_fdt_cd_handler)(device_t dev, bool present);
 
-int mmc_fdt_parse(device_t dev, phandle_t node, struct mmc_helper *helper, struct mmc_host *host);
-int mmc_fdt_gpio_setup(device_t dev, phandle_t node, struct mmc_helper *helper, mmc_fdt_cd_handler handler);
+int mmc_fdt_parse(device_t dev, phandle_t node, struct mmc_helper *helper,
+    struct mmc_host *host);
+int mmc_fdt_gpio_setup(device_t dev, phandle_t node, struct mmc_helper *helper,
+    mmc_fdt_cd_handler handler);
 void mmc_fdt_gpio_teardown(struct mmc_helper *helper);
 bool mmc_fdt_gpio_get_present(struct mmc_helper *helper);
 bool mmc_fdt_gpio_get_readonly(struct mmc_helper *helper);
-void mmc_fdt_set_power(struct mmc_helper *helper, enum mmc_power_mode power_mode);
+void mmc_fdt_set_power(struct mmc_helper *helper,
+    enum mmc_power_mode power_mode);
 
 #endif

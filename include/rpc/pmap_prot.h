@@ -57,10 +57,10 @@
  *
  * PMAPPROC_CALLIT(unsigned, unsigned, unsigned, string<>)
  * 	RETURNS (port, string<>);
- * usage: encapsulatedresults = PMAPPROC_CALLIT(prog, vers, proc, encapsulatedargs);
- * 	Calls the procedure on the local machine.  If it is not registered,
- *	this procedure is quite; ie it does not return error information!!!
- *	This procedure only is supported on rpc/udp and calls via
+ * usage: encapsulatedresults = PMAPPROC_CALLIT(prog, vers, proc,
+ *encapsulatedargs); Calls the procedure on the local machine.  If it is not
+ *registered, this procedure is quite; ie it does not return error
+ *information!!! This procedure only is supported on rpc/udp and calls via
  *	rpc/udp.  This routine only passes null authentication parameters.
  *	This file has no interface to xdr routines for PMAPPROC_CALLIT.
  *
@@ -71,17 +71,17 @@
 #define _RPC_PMAP_PROT_H
 #include <sys/cdefs.h>
 
-#define PMAPPORT		((u_short)111)
-#define PMAPPROG		((u_long)100000)
-#define PMAPVERS		((u_long)2)
-#define PMAPVERS_PROTO		((u_long)2)
-#define PMAPVERS_ORIG		((u_long)1)
-#define PMAPPROC_NULL		((u_long)0)
-#define PMAPPROC_SET		((u_long)1)
-#define PMAPPROC_UNSET		((u_long)2)
-#define PMAPPROC_GETPORT	((u_long)3)
-#define PMAPPROC_DUMP		((u_long)4)
-#define PMAPPROC_CALLIT		((u_long)5)
+#define PMAPPORT ((u_short)111)
+#define PMAPPROG ((u_long)100000)
+#define PMAPVERS ((u_long)2)
+#define PMAPVERS_PROTO ((u_long)2)
+#define PMAPVERS_ORIG ((u_long)1)
+#define PMAPPROC_NULL ((u_long)0)
+#define PMAPPROC_SET ((u_long)1)
+#define PMAPPROC_UNSET ((u_long)2)
+#define PMAPPROC_GETPORT ((u_long)3)
+#define PMAPPROC_DUMP ((u_long)4)
+#define PMAPPROC_CALLIT ((u_long)5)
 
 struct pmap {
 	long unsigned pm_prog;
@@ -91,7 +91,7 @@ struct pmap {
 };
 
 struct pmaplist {
-	struct pmap	pml_map;
+	struct pmap pml_map;
 	struct pmaplist *pml_next;
 };
 

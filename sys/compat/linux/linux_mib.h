@@ -33,27 +33,28 @@
 SYSCTL_DECL(_compat_linux);
 #endif
 
-void	linux_osd_jail_register(void);
-void	linux_osd_jail_deregister(void);
+void linux_osd_jail_register(void);
+void linux_osd_jail_deregister(void);
 
-void	linux_get_osname(struct thread *td, char *dst);
+void linux_get_osname(struct thread *td, char *dst);
 
-void	linux_get_osrelease(struct thread *td, char *dst);
+void linux_get_osrelease(struct thread *td, char *dst);
 
-int	linux_get_oss_version(struct thread *td);
+int linux_get_oss_version(struct thread *td);
 
-int	linux_kernver(struct thread *td);
+int linux_kernver(struct thread *td);
 
-#define	LINUX_KVERSION		5
-#define	LINUX_KPATCHLEVEL	15
-#define	LINUX_KSUBLEVEL		0
+#define LINUX_KVERSION 5
+#define LINUX_KPATCHLEVEL 15
+#define LINUX_KSUBLEVEL 0
 
-#define	LINUX_KERNVER(a,b,c)	(((a) << 16) + ((b) << 8) + (c))
-#define	LINUX_VERSION_CODE	LINUX_KERNVER(LINUX_KVERSION,		\
-				    LINUX_KPATCHLEVEL, LINUX_KSUBLEVEL)
-#define	LINUX_KERNVERSTR(x)	#x
-#define	LINUX_XKERNVERSTR(x)	LINUX_KERNVERSTR(x)
-#define	LINUX_VERSION_STR	LINUX_XKERNVERSTR(LINUX_KVERSION.LINUX_KPATCHLEVEL.LINUX_KSUBLEVEL)
+#define LINUX_KERNVER(a, b, c) (((a) << 16) + ((b) << 8) + (c))
+#define LINUX_VERSION_CODE \
+	LINUX_KERNVER(LINUX_KVERSION, LINUX_KPATCHLEVEL, LINUX_KSUBLEVEL)
+#define LINUX_KERNVERSTR(x) #x
+#define LINUX_XKERNVERSTR(x) LINUX_KERNVERSTR(x)
+#define LINUX_VERSION_STR \
+	LINUX_XKERNVERSTR(LINUX_KVERSION.LINUX_KPATCHLEVEL.LINUX_KSUBLEVEL)
 
 extern int linux_default_openfiles;
 extern int linux_default_stacksize;

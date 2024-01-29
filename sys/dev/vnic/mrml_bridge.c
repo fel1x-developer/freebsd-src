@@ -32,45 +32,45 @@
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
+#include <sys/queue.h>
 #include <sys/resource.h>
 #include <sys/rman.h>
 #include <sys/socket.h>
-#include <sys/queue.h>
-
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-#include <dev/fdt/simplebus.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
+
+#include <dev/fdt/simplebus.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
 
 static MALLOC_DEFINE(M_MRMLB, "MRML bridge", "Cavium MRML bridge");
 
 static device_probe_t mrmlb_fdt_probe;
 static device_attach_t mrmlb_fdt_attach;
 
-static struct resource * mrmlb_ofw_bus_alloc_res(device_t, device_t, int, int *,
+static struct resource *mrmlb_ofw_bus_alloc_res(device_t, device_t, int, int *,
     rman_res_t, rman_res_t, rman_res_t, u_int);
 
-static const struct ofw_bus_devinfo * mrmlb_ofw_get_devinfo(device_t, device_t);
+static const struct ofw_bus_devinfo *mrmlb_ofw_get_devinfo(device_t, device_t);
 
 static device_method_t mrmlbus_fdt_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		mrmlb_fdt_probe),
-	DEVMETHOD(device_attach,	mrmlb_fdt_attach),
+	DEVMETHOD(device_probe, mrmlb_fdt_probe),
+	DEVMETHOD(device_attach, mrmlb_fdt_attach),
 
 	/* Bus interface */
-	DEVMETHOD(bus_alloc_resource,		mrmlb_ofw_bus_alloc_res),
-	DEVMETHOD(bus_release_resource,		bus_generic_release_resource),
-	DEVMETHOD(bus_activate_resource,	bus_generic_activate_resource),
+	DEVMETHOD(bus_alloc_resource, mrmlb_ofw_bus_alloc_res),
+	DEVMETHOD(bus_release_resource, bus_generic_release_resource),
+	DEVMETHOD(bus_activate_resource, bus_generic_activate_resource),
 
 	/* ofw_bus interface */
-	DEVMETHOD(ofw_bus_get_devinfo,	mrmlb_ofw_get_devinfo),
-	DEVMETHOD(ofw_bus_get_compat,	ofw_bus_gen_get_compat),
-	DEVMETHOD(ofw_bus_get_model,	ofw_bus_gen_get_model),
-	DEVMETHOD(ofw_bus_get_name,	ofw_bus_gen_get_name),
-	DEVMETHOD(ofw_bus_get_node,	ofw_bus_gen_get_node),
-	DEVMETHOD(ofw_bus_get_type,	ofw_bus_gen_get_type),
+	DEVMETHOD(ofw_bus_get_devinfo, mrmlb_ofw_get_devinfo),
+	DEVMETHOD(ofw_bus_get_compat, ofw_bus_gen_get_compat),
+	DEVMETHOD(ofw_bus_get_model, ofw_bus_gen_get_model),
+	DEVMETHOD(ofw_bus_get_name, ofw_bus_gen_get_name),
+	DEVMETHOD(ofw_bus_get_node, ofw_bus_gen_get_node),
+	DEVMETHOD(ofw_bus_get_type, ofw_bus_gen_get_type),
 
 	DEVMETHOD_END
 };
@@ -113,8 +113,8 @@ mrmlb_fdt_attach(device_t dev)
 
 /* OFW bus interface */
 struct mrmlb_ofw_devinfo {
-	struct ofw_bus_devinfo	di_dinfo;
-	struct resource_list	di_rl;
+	struct ofw_bus_devinfo di_dinfo;
+	struct resource_list di_rl;
 };
 
 static const struct ofw_bus_devinfo *
@@ -139,7 +139,7 @@ mrmlb_ofw_bus_alloc_res(device_t bus, device_t child, int type, int *rid,
 		if ((di = device_get_ivars(child)) == NULL)
 			return (NULL);
 		if (type == SYS_RES_IOPORT)
-		    type = SYS_RES_MEMORY;
+			type = SYS_RES_MEMORY;
 
 		/* Find defaults for this rid */
 		rle = resource_list_find(&di->di_rl, type, *rid);
@@ -156,8 +156,8 @@ mrmlb_ofw_bus_alloc_res(device_t bus, device_t child, int type, int *rid,
 	if (type == SYS_RES_MEMORY) {
 		/* Remap through ranges property */
 		for (i = 0; i < sc->nranges; i++) {
-			if (start >= sc->ranges[i].bus && end <
-			    sc->ranges[i].bus + sc->ranges[i].size) {
+			if (start >= sc->ranges[i].bus &&
+			    end < sc->ranges[i].bus + sc->ranges[i].size) {
 				start -= sc->ranges[i].bus;
 				start += sc->ranges[i].host;
 				end -= sc->ranges[i].bus;
@@ -167,8 +167,10 @@ mrmlb_ofw_bus_alloc_res(device_t bus, device_t child, int type, int *rid,
 		}
 
 		if (i == sc->nranges && sc->nranges != 0) {
-			device_printf(bus, "Could not map resource "
-			    "%#lx-%#lx\n", start, end);
+			device_printf(bus,
+			    "Could not map resource "
+			    "%#lx-%#lx\n",
+			    start, end);
 			return (NULL);
 		}
 	}
@@ -201,8 +203,8 @@ mrmlb_ofw_fill_ranges(phandle_t node, struct simplebus_softc *sc)
 	if (sc->nranges == 0)
 		return (0);
 
-	sc->ranges = malloc(sc->nranges * sizeof(sc->ranges[0]),
-	    M_MRMLB, M_WAITOK);
+	sc->ranges = malloc(sc->nranges * sizeof(sc->ranges[0]), M_MRMLB,
+	    M_WAITOK);
 	base_ranges = malloc(nbase_ranges, M_MRMLB, M_WAITOK);
 	OF_getencprop(node, "ranges", base_ranges, nbase_ranges);
 

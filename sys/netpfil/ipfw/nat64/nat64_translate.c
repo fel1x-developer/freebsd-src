@@ -26,9 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_ipstealth.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/counter.h>
@@ -37,47 +37,46 @@
 #include <sys/lock.h>
 #include <sys/mbuf.h>
 #include <sys/module.h>
+#include <sys/queue.h>
 #include <sys/rmlock.h>
 #include <sys/rwlock.h>
 #include <sys/socket.h>
-#include <sys/queue.h>
+
+#include <machine/in_cksum.h>
 
 #include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_private.h>
 #include <net/if_pflog.h>
-#include <net/pfil.h>
+#include <net/if_private.h>
+#include <net/if_var.h>
 #include <net/netisr.h>
+#include <net/pfil.h>
 #include <net/route.h>
 #include <net/route/nhop.h>
-
+#include <netinet/icmp6.h>
 #include <netinet/in.h>
 #include <netinet/in_fib.h>
 #include <netinet/in_var.h>
 #include <netinet/ip.h>
-#include <netinet/ip_var.h>
-#include <netinet/ip_fw.h>
 #include <netinet/ip6.h>
-#include <netinet/icmp6.h>
+#include <netinet/ip_fw.h>
 #include <netinet/ip_icmp.h>
+#include <netinet/ip_var.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
-#include <netinet6/in6_var.h>
 #include <netinet6/in6_fib.h>
+#include <netinet6/in6_var.h>
 #include <netinet6/ip6_var.h>
 #include <netinet6/ip_fw_nat64.h>
-
-#include <netpfil/pf/pf.h>
 #include <netpfil/ipfw/ip_fw_private.h>
-#include <machine/in_cksum.h>
+#include <netpfil/pf/pf.h>
 
 #include "ip_fw_nat64.h"
 #include "nat64_translate.h"
 
-typedef int (*nat64_output_t)(struct ifnet *, struct mbuf *,
-    struct sockaddr *, struct nat64_counters *, void *);
-typedef int (*nat64_output_one_t)(struct mbuf *, struct nat64_counters *,
-    void *);
+typedef int (*nat64_output_t)(struct ifnet *, struct mbuf *, struct sockaddr *,
+    struct nat64_counters *, void *);
+typedef int (
+    *nat64_output_one_t)(struct mbuf *, struct nat64_counters *, void *);
 
 static struct nhop_object *nat64_find_route4(struct sockaddr_in *,
     struct mbuf *);
@@ -88,17 +87,15 @@ static int nat64_output(struct ifnet *, struct mbuf *, struct sockaddr *,
     struct nat64_counters *, void *);
 static int nat64_direct_output_one(struct mbuf *, struct nat64_counters *,
     void *);
-static int nat64_direct_output(struct ifnet *, struct mbuf *,
-    struct sockaddr *, struct nat64_counters *, void *);
+static int nat64_direct_output(struct ifnet *, struct mbuf *, struct sockaddr *,
+    struct nat64_counters *, void *);
 
 struct nat64_methods {
-	nat64_output_t		output;
-	nat64_output_one_t	output_one;
+	nat64_output_t output;
+	nat64_output_one_t output_one;
 };
-static const struct nat64_methods nat64_netisr = {
-	.output = nat64_output,
-	.output_one = nat64_output_one
-};
+static const struct nat64_methods nat64_netisr = { .output = nat64_output,
+	.output_one = nat64_output_one };
 static const struct nat64_methods nat64_direct = {
 	.output = nat64_direct_output,
 	.output_one = nat64_direct_output_one
@@ -108,9 +105,9 @@ static const struct nat64_methods nat64_direct = {
 VNET_DEFINE_STATIC(const struct nat64_methods *, nat64out);
 VNET_DEFINE_STATIC(const int *, nat64ipstealth);
 VNET_DEFINE_STATIC(const int *, nat64ip6stealth);
-#define	V_nat64out		VNET(nat64out)
-#define	V_nat64ipstealth	VNET(nat64ipstealth)
-#define	V_nat64ip6stealth	VNET(nat64ip6stealth)
+#define V_nat64out VNET(nat64out)
+#define V_nat64ipstealth VNET(nat64ipstealth)
+#define V_nat64ip6stealth VNET(nat64ip6stealth)
 
 static const int stealth_on = 1;
 #ifndef IPSTEALTH
@@ -142,7 +139,7 @@ int
 nat64_get_output_method(void)
 {
 
-	return (V_nat64out == &nat64_direct ? 1: 0);
+	return (V_nat64out == &nat64_direct ? 1 : 0);
 }
 
 static void
@@ -304,8 +301,7 @@ nat64_check_prefix6(const struct in6_addr *prefix, int length)
 		return (EINVAL);
 
 	/* Some extra checks */
-	if (IN6_IS_ADDR_MULTICAST(prefix) ||
-	    IN6_IS_ADDR_UNSPECIFIED(prefix) ||
+	if (IN6_IS_ADDR_MULTICAST(prefix) || IN6_IS_ADDR_UNSPECIFIED(prefix) ||
 	    IN6_IS_ADDR_LOOPBACK(prefix))
 		return (EINVAL);
 	return (0);
@@ -459,8 +455,7 @@ nat64_extract_ip4(const struct in6_addr *ip6, int plen)
 	if (nat64_check_ip4(ia) == 0)
 		return (ia);
 
-	DPRINTF(DP_GENERIC | DP_DROPS,
-	    "invalid destination address: %08x", ia);
+	DPRINTF(DP_GENERIC | DP_DROPS, "invalid destination address: %08x", ia);
 	return (0);
 badip6:
 	DPRINTF(DP_GENERIC | DP_DROPS, "invalid IPv4-embedded IPv6 address");
@@ -496,8 +491,8 @@ nat64_cksum_convert(struct ip6_hdr *ip6, struct ip *ip)
 	sum += ~ip->ip_dst.s_addr >> 16;
 	sum += ~ip->ip_dst.s_addr & 0xffff;
 
-	for (p = (uint16_t *)&ip6->ip6_src;
-	    p < (uint16_t *)(&ip6->ip6_src + 2); p++)
+	for (p = (uint16_t *)&ip6->ip6_src; p < (uint16_t *)(&ip6->ip6_src + 2);
+	     p++)
 		sum += *p;
 
 	while (sum >> 16)
@@ -519,7 +514,7 @@ nat64_init_ip4hdr(const struct ip6_hdr *ip6, const struct ip6_frag *frag,
 	if (*V_nat64ip6stealth == 0)
 		ip->ip_ttl -= IPV6_HLIMDEC;
 	ip->ip_sum = 0;
-	ip->ip_p = (proto == IPPROTO_ICMPV6) ? IPPROTO_ICMP: proto;
+	ip->ip_p = (proto == IPPROTO_ICMPV6) ? IPPROTO_ICMP : proto;
 	ip_fillid(ip);
 	if (frag != NULL) {
 		ip->ip_off = htons(ntohs(frag->ip6f_offlg) >> 3);
@@ -531,7 +526,7 @@ nat64_init_ip4hdr(const struct ip6_hdr *ip6, const struct ip6_frag *frag,
 	ip->ip_sum = in_cksum_hdr(ip);
 }
 
-#define	FRAGSZ(mtu) ((mtu) - sizeof(struct ip6_hdr) - sizeof(struct ip6_frag))
+#define FRAGSZ(mtu) ((mtu) - sizeof(struct ip6_hdr) - sizeof(struct ip6_frag))
 static NAT64NOINLINE int
 nat64_fragment6(struct nat64_counters *stats, struct ip6_hdr *ip6,
     struct mbufq *mq, struct mbuf *m, uint32_t mtu, uint16_t ip_id,
@@ -639,7 +634,7 @@ nat64_find_route6(struct sockaddr_in6 *dst, struct mbuf *m)
 	return (nh);
 }
 
-#define	NAT64_ICMP6_PLEN	64
+#define NAT64_ICMP6_PLEN 64
 static NAT64NOINLINE void
 nat64_icmp6_reflect(struct mbuf *m, uint8_t type, uint8_t code, uint32_t mtu,
     struct nat64_counters *stats, void *logdata)
@@ -666,7 +661,8 @@ nat64_icmp6_reflect(struct mbuf *m, uint8_t type, uint8_t code, uint32_t mtu,
 		icmp6 = mtodo(m, len);
 		if (icmp6->icmp6_type < ICMP6_ECHO_REQUEST ||
 		    icmp6->icmp6_type == ND_REDIRECT) {
-			DPRINTF(DP_DROPS, "do not send ICMPv6 in reply to "
+			DPRINTF(DP_DROPS,
+			    "do not send ICMPv6 in reply to "
 			    "ICMPv6 errors");
 			goto freeit;
 		}
@@ -701,13 +697,13 @@ nat64_icmp6_reflect(struct mbuf *m, uint8_t type, uint8_t code, uint32_t mtu,
 		goto freeit;
 	}
 	/* Calculate length of ICMPv6 payload */
-	len = (m->m_pkthdr.len > NAT64_ICMP6_PLEN) ? NAT64_ICMP6_PLEN:
-	    m->m_pkthdr.len;
+	len = (m->m_pkthdr.len > NAT64_ICMP6_PLEN) ? NAT64_ICMP6_PLEN :
+						     m->m_pkthdr.len;
 
 	/* Create new ICMPv6 datagram */
 	plen = len + sizeof(struct icmp6_hdr);
-	n = m_get2(sizeof(struct ip6_hdr) + plen + max_hdr, M_NOWAIT,
-	    MT_HEADER, M_PKTHDR);
+	n = m_get2(sizeof(struct ip6_hdr) + plen + max_hdr, M_NOWAIT, MT_HEADER,
+	    M_PKTHDR);
 	if (n == NULL) {
 		NAT64STAT_INC(stats, nomem);
 		m_freem(m);
@@ -731,8 +727,8 @@ nat64_icmp6_reflect(struct mbuf *m, uint8_t type, uint8_t code, uint32_t mtu,
 	 * nat64_check_ip6() doesn't allow scoped addresses, therefore
 	 * we use zero scopeid.
 	 */
-	if (in6_selectsrc_addr(M_GETFIB(n), &ip6->ip6_src, 0,
-	    n->m_pkthdr.rcvif, &oip6->ip6_src, NULL) != 0) {
+	if (in6_selectsrc_addr(M_GETFIB(n), &ip6->ip6_src, 0, n->m_pkthdr.rcvif,
+		&oip6->ip6_src, NULL) != 0) {
 		/*
 		 * Failed to find proper source address, drop the packet.
 		 */
@@ -752,8 +748,8 @@ nat64_icmp6_reflect(struct mbuf *m, uint8_t type, uint8_t code, uint32_t mtu,
 	icmp6->icmp6_code = code;
 	icmp6->icmp6_mtu = htonl(mtu);
 
-	m_copydata(m, 0, len, mtodo(n, sizeof(struct ip6_hdr) +
-	    sizeof(struct icmp6_hdr)));
+	m_copydata(m, 0, len,
+	    mtodo(n, sizeof(struct ip6_hdr) + sizeof(struct icmp6_hdr)));
 	icmp6->icmp6_cksum = in6_cksum(n, IPPROTO_ICMPV6,
 	    sizeof(struct ip6_hdr), plen);
 	m_freem(m);
@@ -784,10 +780,10 @@ nat64_find_route4(struct sockaddr_in *dst, struct mbuf *m)
 	return (nh);
 }
 
-#define	NAT64_ICMP_PLEN	64
+#define NAT64_ICMP_PLEN 64
 static NAT64NOINLINE void
-nat64_icmp_reflect(struct mbuf *m, uint8_t type,
-    uint8_t code, uint16_t mtu, struct nat64_counters *stats, void *logdata)
+nat64_icmp_reflect(struct mbuf *m, uint8_t type, uint8_t code, uint16_t mtu,
+    struct nat64_counters *stats, void *logdata)
 {
 	struct icmp *icmp;
 	struct ip *ip, *oip;
@@ -796,7 +792,7 @@ nat64_icmp_reflect(struct mbuf *m, uint8_t type,
 
 	ip = mtod(m, struct ip *);
 	/* Do not send ICMP error if packet is not the first fragment */
-	if (ip->ip_off & ~ntohs(IP_MF|IP_DF)) {
+	if (ip->ip_off & ~ntohs(IP_MF | IP_DF)) {
 		DPRINTF(DP_DROPS, "not first fragment");
 		goto freeit;
 	}
@@ -808,7 +804,8 @@ nat64_icmp_reflect(struct mbuf *m, uint8_t type,
 		}
 		icmp = mtodo(m, ip->ip_hl << 2);
 		if (!ICMP_INFOTYPE(icmp->icmp_type)) {
-			DPRINTF(DP_DROPS, "do not send ICMP in reply to "
+			DPRINTF(DP_DROPS,
+			    "do not send ICMP in reply to "
 			    "ICMP errors");
 			goto freeit;
 		}
@@ -822,13 +819,13 @@ nat64_icmp_reflect(struct mbuf *m, uint8_t type,
 		goto freeit;
 	}
 	/* Calculate length of ICMP payload */
-	len = (m->m_pkthdr.len > NAT64_ICMP_PLEN) ? (ip->ip_hl << 2) + 8:
-	    m->m_pkthdr.len;
+	len = (m->m_pkthdr.len > NAT64_ICMP_PLEN) ? (ip->ip_hl << 2) + 8 :
+						    m->m_pkthdr.len;
 
 	/* Create new ICMPv4 datagram */
 	plen = len + sizeof(struct icmphdr) + sizeof(uint32_t);
-	n = m_get2(sizeof(struct ip) + plen + max_hdr, M_NOWAIT,
-	    MT_HEADER, M_PKTHDR);
+	n = m_get2(sizeof(struct ip) + plen + max_hdr, M_NOWAIT, MT_HEADER,
+	    M_PKTHDR);
 	if (n == NULL) {
 		NAT64STAT_INC(stats, nomem);
 		m_freem(m);
@@ -858,8 +855,9 @@ nat64_icmp_reflect(struct mbuf *m, uint8_t type,
 	icmp->icmp_cksum = 0;
 	icmp->icmp_pmvoid = 0;
 	icmp->icmp_nextmtu = htons(mtu);
-	m_copydata(m, 0, len, mtodo(n, sizeof(struct ip) +
-	    sizeof(struct icmphdr) + sizeof(uint32_t)));
+	m_copydata(m, 0, len,
+	    mtodo(n,
+		sizeof(struct ip) + sizeof(struct icmphdr) + sizeof(uint32_t)));
 	icmp->icmp_cksum = in_cksum_skip(n, sizeof(struct ip) + plen,
 	    sizeof(struct ip));
 	m_freem(m);
@@ -877,17 +875,16 @@ nat64_icmp_handle_echo(struct ip6_hdr *ip6, struct icmp6_hdr *icmp6,
 {
 	uint16_t old;
 
-	old = *(uint16_t *)icmp6;	/* save type+code in one word */
+	old = *(uint16_t *)icmp6; /* save type+code in one word */
 	icmp6->icmp6_type = type;
 	/* Reflect ICMPv6 -> ICMPv4 type translation in the cksum */
-	icmp6->icmp6_cksum = cksum_adjust(icmp6->icmp6_cksum,
-	    old, *(uint16_t *)icmp6);
+	icmp6->icmp6_cksum = cksum_adjust(icmp6->icmp6_cksum, old,
+	    *(uint16_t *)icmp6);
 	if (id != 0) {
 		old = icmp6->icmp6_id;
 		icmp6->icmp6_id = id;
 		/* Reflect ICMP id translation in the cksum */
-		icmp6->icmp6_cksum = cksum_adjust(icmp6->icmp6_cksum,
-		    old, id);
+		icmp6->icmp6_cksum = cksum_adjust(icmp6->icmp6_cksum, old, id);
 	}
 	/* Reflect IPv6 pseudo header in the cksum */
 	icmp6->icmp6_cksum = ~in6_cksum_pseudo(ip6, ntohs(ip6->ip6_plen),
@@ -979,12 +976,13 @@ nat64_icmp_translate(struct mbuf *m, struct ip6_hdr *ip6, uint16_t icmpid,
 				mtu = icmp->icmp_pptr;
 				break;
 			case 2: /* Total Length */
-			case 3: mtu = 4; /* Payload Length */
+			case 3:
+				mtu = 4; /* Payload Length */
 				break;
-			case 8: /* Time to Live */
+			case 8:		 /* Time to Live */
 				mtu = 7; /* Hop Limit */
 				break;
-			case 9: /* Protocol */
+			case 9:		 /* Protocol */
 				mtu = 6; /* Next Header */
 				break;
 			case 12: /* Source address */
@@ -1000,16 +998,19 @@ nat64_icmp_translate(struct mbuf *m, struct ip6_hdr *ip6, uint16_t icmpid,
 				mtu = 24;
 				break;
 			default: /* Silently drop */
-				DPRINTF(DP_DROPS, "Unsupported ICMP type %d,"
-				    " code %d, pptr %d", icmp->icmp_type,
-				    icmp->icmp_code, icmp->icmp_pptr);
+				DPRINTF(DP_DROPS,
+				    "Unsupported ICMP type %d,"
+				    " code %d, pptr %d",
+				    icmp->icmp_type, icmp->icmp_code,
+				    icmp->icmp_pptr);
 				goto freeit;
 			}
 			break;
 		default:
-			DPRINTF(DP_DROPS, "Unsupported ICMP type %d,"
-			    " code %d, pptr %d", icmp->icmp_type,
-			    icmp->icmp_code, icmp->icmp_pptr);
+			DPRINTF(DP_DROPS,
+			    "Unsupported ICMP type %d,"
+			    " code %d, pptr %d",
+			    icmp->icmp_type, icmp->icmp_code, icmp->icmp_pptr);
 			goto freeit;
 		}
 		break;
@@ -1039,8 +1040,7 @@ nat64_icmp_translate(struct mbuf *m, struct ip6_hdr *ip6, uint16_t icmpid,
 	 */
 	hlen = offset + ICMP_MINLEN;
 	if (m->m_pkthdr.len < hlen + sizeof(struct ip) + ICMP_MINLEN) {
-		DPRINTF(DP_DROPS, "Message is too short %d",
-		    m->m_pkthdr.len);
+		DPRINTF(DP_DROPS, "Message is too short %d", m->m_pkthdr.len);
 		goto freeit;
 	}
 	m_copydata(m, hlen, sizeof(struct ip), (char *)&ip);
@@ -1058,8 +1058,7 @@ nat64_icmp_translate(struct mbuf *m, struct ip6_hdr *ip6, uint16_t icmpid,
 		goto freeit;
 	}
 	if (m->m_pkthdr.len < hlen + ICMP_MINLEN) {
-		DPRINTF(DP_DROPS, "Message is too short %d",
-		    m->m_pkthdr.len);
+		DPRINTF(DP_DROPS, "Message is too short %d", m->m_pkthdr.len);
 		goto freeit;
 	}
 #if 0
@@ -1080,8 +1079,8 @@ nat64_icmp_translate(struct mbuf *m, struct ip6_hdr *ip6, uint16_t icmpid,
 	 * NOTE: len is data length just after inner IP header.
 	 */
 	len = m->m_pkthdr.len - hlen;
-	if (sizeof(struct ip6_hdr) +
-	    sizeof(struct icmp6_hdr) + len > NAT64_ICMP6_PLEN)
+	if (sizeof(struct ip6_hdr) + sizeof(struct icmp6_hdr) + len >
+	    NAT64_ICMP6_PLEN)
 		len = NAT64_ICMP6_PLEN - sizeof(struct icmp6_hdr) -
 		    sizeof(struct ip6_hdr);
 	plen = sizeof(struct icmp6_hdr) + sizeof(struct ip6_hdr) + len;
@@ -1109,7 +1108,7 @@ nat64_icmp_translate(struct mbuf *m, struct ip6_hdr *ip6, uint16_t icmpid,
 	eip6->ip6_vfc |= IPV6_VERSION;
 	eip6->ip6_hlim = ip.ip_ttl;
 	eip6->ip6_plen = htons(ntohs(ip.ip_len) - (ip.ip_hl << 2));
-	eip6->ip6_nxt = (ip.ip_p == IPPROTO_ICMP) ? IPPROTO_ICMPV6: ip.ip_p;
+	eip6->ip6_nxt = (ip.ip_p == IPPROTO_ICMP) ? IPPROTO_ICMPV6 : ip.ip_p;
 	m_copydata(m, hlen, len, (char *)(eip6 + 1));
 	/*
 	 * We need to translate source port in the inner ULP header,
@@ -1121,8 +1120,8 @@ nat64_icmp_translate(struct mbuf *m, struct ip6_hdr *ip6, uint16_t icmpid,
 			break;
 		tcp = TCP(eip6 + 1);
 		if (icmpid != 0) {
-			tcp->th_sum = cksum_adjust(tcp->th_sum,
-			    tcp->th_sport, icmpid);
+			tcp->th_sum = cksum_adjust(tcp->th_sum, tcp->th_sport,
+			    icmpid);
 			tcp->th_sport = icmpid;
 		}
 		tcp->th_sum = cksum_add(tcp->th_sum,
@@ -1133,8 +1132,8 @@ nat64_icmp_translate(struct mbuf *m, struct ip6_hdr *ip6, uint16_t icmpid,
 			break;
 		udp = UDP(eip6 + 1);
 		if (icmpid != 0) {
-			udp->uh_sum = cksum_adjust(udp->uh_sum,
-			    udp->uh_sport, icmpid);
+			udp->uh_sum = cksum_adjust(udp->uh_sum, udp->uh_sport,
+			    icmpid);
 			udp->uh_sport = icmpid;
 		}
 		udp->uh_sum = cksum_add(udp->uh_sum,
@@ -1167,8 +1166,8 @@ nat64_icmp_translate(struct mbuf *m, struct ip6_hdr *ip6, uint16_t icmpid,
 	ICMP6(icmp)->icmp6_code = code;
 	ICMP6(icmp)->icmp6_mtu = htonl(mtu);
 	ICMP6(icmp)->icmp6_cksum = 0;
-	ICMP6(icmp)->icmp6_cksum = cksum_add(
-	    ~in6_cksum_pseudo(ip6, plen, IPPROTO_ICMPV6, 0),
+	ICMP6(icmp)->icmp6_cksum = cksum_add(~in6_cksum_pseudo(ip6, plen,
+						 IPPROTO_ICMPV6, 0),
 	    in_cksum_skip(n, n->m_pkthdr.len, offset));
 	return (n);
 freeit:
@@ -1234,11 +1233,11 @@ nat64_do_handle_ip4(struct mbuf *m, struct in6_addr *saddr,
 	int plen, hlen;
 	uint8_t proto;
 
-	ip = mtod(m, struct ip*);
+	ip = mtod(m, struct ip *);
 
 	if (*V_nat64ipstealth == 0 && ip->ip_ttl <= IPTTLDEC) {
-		nat64_icmp_reflect(m, ICMP_TIMXCEED,
-		    ICMP_TIMXCEED_INTRANS, 0, &cfg->stats, logdata);
+		nat64_icmp_reflect(m, ICMP_TIMXCEED, ICMP_TIMXCEED_INTRANS, 0,
+		    &cfg->stats, logdata);
 		return (NAT64RETURN);
 	}
 
@@ -1255,8 +1254,8 @@ nat64_do_handle_ip4(struct mbuf *m, struct in6_addr *saddr,
 
 	/* Fragment length must be multiple of 8 octets */
 	if ((ip->ip_off & htons(IP_MF)) != 0 && (plen & 0x7) != 0) {
-		nat64_icmp_reflect(m, ICMP_PARAMPROB,
-		    ICMP_PARAMPROB_LENGTH, 0, &cfg->stats, logdata);
+		nat64_icmp_reflect(m, ICMP_PARAMPROB, ICMP_PARAMPROB_LENGTH, 0,
+		    &cfg->stats, logdata);
 		return (NAT64RETURN);
 	}
 	/* Fragmented ICMP is unsupported */
@@ -1277,7 +1276,8 @@ nat64_do_handle_ip4(struct mbuf *m, struct in6_addr *saddr,
 	if (nh->nh_mtu < plen + sizeof(ip6) &&
 	    (ip->ip_off & htons(IP_DF)) != 0) {
 		nat64_icmp_reflect(m, ICMP_UNREACH, ICMP_UNREACH_NEEDFRAG,
-		    FRAGSZ(nh->nh_mtu) + sizeof(struct ip), &cfg->stats, logdata);
+		    FRAGSZ(nh->nh_mtu) + sizeof(struct ip), &cfg->stats,
+		    logdata);
 		return (NAT64RETURN);
 	}
 
@@ -1287,7 +1287,7 @@ nat64_do_handle_ip4(struct mbuf *m, struct in6_addr *saddr,
 	if (*V_nat64ipstealth == 0)
 		ip6.ip6_hlim -= IPTTLDEC;
 	ip6.ip6_plen = htons(plen);
-	ip6.ip6_nxt = (proto == IPPROTO_ICMP) ? IPPROTO_ICMPV6: proto;
+	ip6.ip6_nxt = (proto == IPPROTO_ICMP) ? IPPROTO_ICMPV6 : proto;
 
 	/* Handle delayed checksums if needed. */
 	if (m->m_pkthdr.csum_flags & CSUM_DELAY_DATA) {
@@ -1316,7 +1316,7 @@ nat64_do_handle_ip4(struct mbuf *m, struct in6_addr *saddr,
 		break;
 	case IPPROTO_ICMP:
 		m = nat64_icmp_translate(m, &ip6, lport, hlen, cfg);
-		if (m == NULL)	/* stats already accounted */
+		if (m == NULL) /* stats already accounted */
 			return (NAT64RETURN);
 	}
 
@@ -1325,7 +1325,7 @@ nat64_do_handle_ip4(struct mbuf *m, struct in6_addr *saddr,
 	nat64_fragment6(&cfg->stats, &ip6, &mq, m, nh->nh_mtu, ip_id, ip_off);
 	while ((m = mbufq_dequeue(&mq)) != NULL) {
 		if (V_nat64out->output(nh->nh_ifp, m, (struct sockaddr *)&dst,
-		    &cfg->stats, logdata) != 0)
+			&cfg->stats, logdata) != 0)
 			break;
 		NAT64STAT_INC(&cfg->stats, opcnt46);
 	}
@@ -1382,9 +1382,10 @@ nat64_handle_icmp6(struct mbuf *m, int hlen, uint32_t aaddr, uint16_t aport,
 			code = ICMP_UNREACH_PORT;
 			break;
 		default:
-			DPRINTF(DP_DROPS, "Unsupported ICMPv6 type %d,"
-			    " code %d", icmp6->icmp6_type,
-			    icmp6->icmp6_code);
+			DPRINTF(DP_DROPS,
+			    "Unsupported ICMPv6 type %d,"
+			    " code %d",
+			    icmp6->icmp6_type, icmp6->icmp6_code);
 			NAT64STAT_INC(&cfg->stats, dropped);
 			return (NAT64MFREE);
 		}
@@ -1394,9 +1395,10 @@ nat64_handle_icmp6(struct mbuf *m, int hlen, uint32_t aaddr, uint16_t aport,
 		code = ICMP_UNREACH_NEEDFRAG;
 		mtu = ntohl(icmp6->icmp6_mtu);
 		if (mtu < IPV6_MMTU) {
-			DPRINTF(DP_DROPS, "Wrong MTU %d in ICMPv6 type %d,"
-			    " code %d", mtu, icmp6->icmp6_type,
-			    icmp6->icmp6_code);
+			DPRINTF(DP_DROPS,
+			    "Wrong MTU %d in ICMPv6 type %d,"
+			    " code %d",
+			    mtu, icmp6->icmp6_type, icmp6->icmp6_code);
 			NAT64STAT_INC(&cfg->stats, dropped);
 			return (NAT64MFREE);
 		}
@@ -1439,9 +1441,10 @@ nat64_handle_icmp6(struct mbuf *m, int hlen, uint32_t aaddr, uint16_t aport,
 					mtu = 16; /* Destination address */
 					break;
 				}
-				DPRINTF(DP_DROPS, "Unsupported ICMPv6 type %d,"
-				    " code %d, pptr %d", icmp6->icmp6_type,
-				    icmp6->icmp6_code, mtu);
+				DPRINTF(DP_DROPS,
+				    "Unsupported ICMPv6 type %d,"
+				    " code %d, pptr %d",
+				    icmp6->icmp6_type, icmp6->icmp6_code, mtu);
 				NAT64STAT_INC(&cfg->stats, dropped);
 				return (NAT64MFREE);
 			}
@@ -1450,9 +1453,11 @@ nat64_handle_icmp6(struct mbuf *m, int hlen, uint32_t aaddr, uint16_t aport,
 			code = ICMP_UNREACH_PROTOCOL;
 			break;
 		default:
-			DPRINTF(DP_DROPS, "Unsupported ICMPv6 type %d,"
-			    " code %d, pptr %d", icmp6->icmp6_type,
-			    icmp6->icmp6_code, ntohl(icmp6->icmp6_pptr));
+			DPRINTF(DP_DROPS,
+			    "Unsupported ICMPv6 type %d,"
+			    " code %d, pptr %d",
+			    icmp6->icmp6_type, icmp6->icmp6_code,
+			    ntohl(icmp6->icmp6_pptr));
 			NAT64STAT_INC(&cfg->stats, dropped);
 			return (NAT64MFREE);
 		}
@@ -1467,8 +1472,7 @@ nat64_handle_icmp6(struct mbuf *m, int hlen, uint32_t aaddr, uint16_t aport,
 	hlen += sizeof(struct icmp6_hdr);
 	if (m->m_pkthdr.len < hlen + sizeof(struct ip6_hdr) + ICMP_MINLEN) {
 		NAT64STAT_INC(&cfg->stats, dropped);
-		DPRINTF(DP_DROPS, "Message is too short %d",
-		    m->m_pkthdr.len);
+		DPRINTF(DP_DROPS, "Message is too short %d", m->m_pkthdr.len);
 		return (NAT64MFREE);
 	}
 	/*
@@ -1503,8 +1507,8 @@ nat64_handle_icmp6(struct mbuf *m, int hlen, uint32_t aaddr, uint16_t aport,
 	plen = ntohs(ip6i->ip6_plen);
 	hlen += sizeof(struct ip6_hdr);
 	if (proto == IPPROTO_FRAGMENT) {
-		if (m->m_pkthdr.len < hlen + sizeof(struct ip6_frag) +
-		    ICMP_MINLEN)
+		if (m->m_pkthdr.len <
+		    hlen + sizeof(struct ip6_frag) + ICMP_MINLEN)
 			goto fail;
 		ip6f = mtodo(m, hlen);
 		proto = ip6f->ip6f_nxt;
@@ -1541,8 +1545,7 @@ nat64_handle_icmp6(struct mbuf *m, int hlen, uint32_t aaddr, uint16_t aport,
 	nat64_init_ip4hdr(ip6i, ip6f, plen, proto, &ip);
 	m_adj(m, hlen - sizeof(struct ip));
 	bcopy(&ip, mtod(m, void *), sizeof(ip));
-	nat64_icmp_reflect(m, type, code, (uint16_t)mtu, &cfg->stats,
-	    logdata);
+	nat64_icmp_reflect(m, type, code, (uint16_t)mtu, &cfg->stats, logdata);
 	return (NAT64RETURN);
 fail:
 	/*
@@ -1637,19 +1640,19 @@ nat64_do_handle_ip6(struct mbuf *m, uint32_t aaddr, uint16_t aport,
 	}
 	plen -= hlen - sizeof(struct ip6_hdr);
 	if (plen < 0 || m->m_pkthdr.len < plen + hlen) {
-		DPRINTF(DP_DROPS, "plen %d, pkthdr.len %d, hlen %d",
-		    plen, m->m_pkthdr.len, hlen);
+		DPRINTF(DP_DROPS, "plen %d, pkthdr.len %d, hlen %d", plen,
+		    m->m_pkthdr.len, hlen);
 		NAT64STAT_INC(&cfg->stats, dropped);
 		return (NAT64MFREE);
 	}
 
-	icmp6 = NULL;	/* Make gcc happy */
+	icmp6 = NULL; /* Make gcc happy */
 	if (proto == IPPROTO_ICMPV6) {
 		icmp6 = mtodo(m, hlen);
 		if (icmp6->icmp6_type != ICMP6_ECHO_REQUEST &&
 		    icmp6->icmp6_type != ICMP6_ECHO_REPLY)
-			return (nat64_handle_icmp6(m, hlen, aaddr, aport,
-			    cfg, logdata));
+			return (nat64_handle_icmp6(m, hlen, aaddr, aport, cfg,
+			    logdata));
 	}
 	dst.sin_addr.s_addr = ip.ip_dst.s_addr;
 	nh = nat64_find_route4(&dst, m);
@@ -1694,8 +1697,8 @@ nat64_do_handle_ip6(struct mbuf *m, uint32_t aaddr, uint16_t aport,
 	case IPPROTO_ICMPV6:
 		/* Checksum in ICMPv6 covers pseudo header */
 		csum = &icmp6->icmp6_cksum;
-		*csum = cksum_add(*csum, in6_cksum_pseudo(ip6, plen,
-		    IPPROTO_ICMPV6, 0));
+		*csum = cksum_add(*csum,
+		    in6_cksum_pseudo(ip6, plen, IPPROTO_ICMPV6, 0));
 		/* Convert ICMPv6 types to ICMP */
 		proto = *(uint16_t *)icmp6; /* save old word for cksum_adjust */
 		if (icmp6->icmp6_type == ICMP6_ECHO_REQUEST)
@@ -1715,7 +1718,7 @@ nat64_do_handle_ip6(struct mbuf *m, uint32_t aaddr, uint16_t aport,
 	m_adj(m, hlen - sizeof(ip));
 	bcopy(&ip, mtod(m, void *), sizeof(ip));
 	if (V_nat64out->output(nh->nh_ifp, m, (struct sockaddr *)&dst,
-	    &cfg->stats, logdata) == 0)
+		&cfg->stats, logdata) == 0)
 		NAT64STAT_INC(&cfg->stats, opcnt64);
 	return (NAT64RETURN);
 }

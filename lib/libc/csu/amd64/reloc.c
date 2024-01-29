@@ -23,8 +23,8 @@
  * SUCH DAMAGE.
  */
 
-#include <machine/specialreg.h>
 #include <machine/cpufunc.h>
+#include <machine/specialreg.h>
 
 static uint32_t cpu_feature, cpu_feature2;
 static uint32_t cpu_stdext_feature, cpu_stdext_feature2;
@@ -57,7 +57,7 @@ crt1_handle_rela(const Elf_Rela *r)
 	case R_X86_64_IRELATIVE:
 		ptr = (Elf_Addr *)r->r_addend;
 		where = (Elf_Addr *)r->r_offset;
-		target = ((Elf_Addr (*)(uint32_t, uint32_t, uint32_t,
+		target = ((Elf_Addr(*)(uint32_t, uint32_t, uint32_t,
 		    uint32_t))ptr)(cpu_feature, cpu_feature2,
 		    cpu_stdext_feature, cpu_stdext_feature2);
 		*where = target;

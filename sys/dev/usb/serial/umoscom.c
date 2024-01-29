@@ -16,154 +16,154 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
+
 #include "usbdevs.h"
 
-#define	USB_DEBUG_VAR umoscom_debug
+#define USB_DEBUG_VAR umoscom_debug
+#include <dev/usb/serial/usb_serial.h>
 #include <dev/usb/usb_debug.h>
 #include <dev/usb/usb_process.h>
-
-#include <dev/usb/serial/usb_serial.h>
 
 #ifdef USB_DEBUG
 static int umoscom_debug = 0;
 
 static SYSCTL_NODE(_hw_usb, OID_AUTO, umoscom, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "USB umoscom");
-SYSCTL_INT(_hw_usb_umoscom, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &umoscom_debug, 0, "Debug level");
+SYSCTL_INT(_hw_usb_umoscom, OID_AUTO, debug, CTLFLAG_RWTUN, &umoscom_debug, 0,
+    "Debug level");
 #endif
 
-#define	UMOSCOM_BUFSIZE	       1024	/* bytes */
+#define UMOSCOM_BUFSIZE 1024 /* bytes */
 
-#define	UMOSCOM_CONFIG_INDEX	0
-#define	UMOSCOM_IFACE_INDEX	0
+#define UMOSCOM_CONFIG_INDEX 0
+#define UMOSCOM_IFACE_INDEX 0
 
 /* interrupt packet */
-#define	UMOSCOM_IIR_RLS		0x06
-#define	UMOSCOM_IIR_RDA		0x04
-#define	UMOSCOM_IIR_CTI		0x0c
-#define	UMOSCOM_IIR_THR		0x02
-#define	UMOSCOM_IIR_MS		0x00
+#define UMOSCOM_IIR_RLS 0x06
+#define UMOSCOM_IIR_RDA 0x04
+#define UMOSCOM_IIR_CTI 0x0c
+#define UMOSCOM_IIR_THR 0x02
+#define UMOSCOM_IIR_MS 0x00
 
 /* registers */
-#define	UMOSCOM_READ		0x0d
-#define	UMOSCOM_WRITE		0x0e
-#define	UMOSCOM_UART_REG	0x0300
-#define	UMOSCOM_VEND_REG	0x0000
+#define UMOSCOM_READ 0x0d
+#define UMOSCOM_WRITE 0x0e
+#define UMOSCOM_UART_REG 0x0300
+#define UMOSCOM_VEND_REG 0x0000
 
-#define	UMOSCOM_TXBUF		0x00	/* Write */
-#define	UMOSCOM_RXBUF		0x00	/* Read */
-#define	UMOSCOM_INT		0x01
-#define	UMOSCOM_FIFO		0x02	/* Write */
-#define	UMOSCOM_ISR		0x02	/* Read */
-#define	UMOSCOM_LCR		0x03
-#define	UMOSCOM_MCR		0x04
-#define	UMOSCOM_LSR		0x05
-#define	UMOSCOM_MSR		0x06
-#define	UMOSCOM_SCRATCH		0x07
-#define	UMOSCOM_DIV_LO		0x08
-#define	UMOSCOM_DIV_HI		0x09
-#define	UMOSCOM_EFR		0x0a
-#define	UMOSCOM_XON1		0x0b
-#define	UMOSCOM_XON2		0x0c
-#define	UMOSCOM_XOFF1		0x0d
-#define	UMOSCOM_XOFF2		0x0e
+#define UMOSCOM_TXBUF 0x00 /* Write */
+#define UMOSCOM_RXBUF 0x00 /* Read */
+#define UMOSCOM_INT 0x01
+#define UMOSCOM_FIFO 0x02 /* Write */
+#define UMOSCOM_ISR 0x02  /* Read */
+#define UMOSCOM_LCR 0x03
+#define UMOSCOM_MCR 0x04
+#define UMOSCOM_LSR 0x05
+#define UMOSCOM_MSR 0x06
+#define UMOSCOM_SCRATCH 0x07
+#define UMOSCOM_DIV_LO 0x08
+#define UMOSCOM_DIV_HI 0x09
+#define UMOSCOM_EFR 0x0a
+#define UMOSCOM_XON1 0x0b
+#define UMOSCOM_XON2 0x0c
+#define UMOSCOM_XOFF1 0x0d
+#define UMOSCOM_XOFF2 0x0e
 
-#define	UMOSCOM_BAUDLO		0x00
-#define	UMOSCOM_BAUDHI		0x01
+#define UMOSCOM_BAUDLO 0x00
+#define UMOSCOM_BAUDHI 0x01
 
-#define	UMOSCOM_INT_RXEN	0x01
-#define	UMOSCOM_INT_TXEN	0x02
-#define	UMOSCOM_INT_RSEN	0x04
-#define	UMOSCOM_INT_MDMEM	0x08
-#define	UMOSCOM_INT_SLEEP	0x10
-#define	UMOSCOM_INT_XOFF	0x20
-#define	UMOSCOM_INT_RTS		0x40
+#define UMOSCOM_INT_RXEN 0x01
+#define UMOSCOM_INT_TXEN 0x02
+#define UMOSCOM_INT_RSEN 0x04
+#define UMOSCOM_INT_MDMEM 0x08
+#define UMOSCOM_INT_SLEEP 0x10
+#define UMOSCOM_INT_XOFF 0x20
+#define UMOSCOM_INT_RTS 0x40
 
-#define	UMOSCOM_FIFO_EN		0x01
-#define	UMOSCOM_FIFO_RXCLR	0x02
-#define	UMOSCOM_FIFO_TXCLR	0x04
-#define	UMOSCOM_FIFO_DMA_BLK	0x08
-#define	UMOSCOM_FIFO_TXLVL_MASK	0x30
-#define	UMOSCOM_FIFO_TXLVL_8	0x00
-#define	UMOSCOM_FIFO_TXLVL_16	0x10
-#define	UMOSCOM_FIFO_TXLVL_32	0x20
-#define	UMOSCOM_FIFO_TXLVL_56	0x30
-#define	UMOSCOM_FIFO_RXLVL_MASK	0xc0
-#define	UMOSCOM_FIFO_RXLVL_8	0x00
-#define	UMOSCOM_FIFO_RXLVL_16	0x40
-#define	UMOSCOM_FIFO_RXLVL_56	0x80
-#define	UMOSCOM_FIFO_RXLVL_80	0xc0
+#define UMOSCOM_FIFO_EN 0x01
+#define UMOSCOM_FIFO_RXCLR 0x02
+#define UMOSCOM_FIFO_TXCLR 0x04
+#define UMOSCOM_FIFO_DMA_BLK 0x08
+#define UMOSCOM_FIFO_TXLVL_MASK 0x30
+#define UMOSCOM_FIFO_TXLVL_8 0x00
+#define UMOSCOM_FIFO_TXLVL_16 0x10
+#define UMOSCOM_FIFO_TXLVL_32 0x20
+#define UMOSCOM_FIFO_TXLVL_56 0x30
+#define UMOSCOM_FIFO_RXLVL_MASK 0xc0
+#define UMOSCOM_FIFO_RXLVL_8 0x00
+#define UMOSCOM_FIFO_RXLVL_16 0x40
+#define UMOSCOM_FIFO_RXLVL_56 0x80
+#define UMOSCOM_FIFO_RXLVL_80 0xc0
 
-#define	UMOSCOM_ISR_MDM		0x00
-#define	UMOSCOM_ISR_NONE	0x01
-#define	UMOSCOM_ISR_TX		0x02
-#define	UMOSCOM_ISR_RX		0x04
-#define	UMOSCOM_ISR_LINE	0x06
-#define	UMOSCOM_ISR_RXTIMEOUT	0x0c
-#define	UMOSCOM_ISR_RX_XOFF	0x10
-#define	UMOSCOM_ISR_RTSCTS	0x20
-#define	UMOSCOM_ISR_FIFOEN	0xc0
+#define UMOSCOM_ISR_MDM 0x00
+#define UMOSCOM_ISR_NONE 0x01
+#define UMOSCOM_ISR_TX 0x02
+#define UMOSCOM_ISR_RX 0x04
+#define UMOSCOM_ISR_LINE 0x06
+#define UMOSCOM_ISR_RXTIMEOUT 0x0c
+#define UMOSCOM_ISR_RX_XOFF 0x10
+#define UMOSCOM_ISR_RTSCTS 0x20
+#define UMOSCOM_ISR_FIFOEN 0xc0
 
-#define	UMOSCOM_LCR_DBITS(x)	((x) - 5)
-#define	UMOSCOM_LCR_STOP_BITS_1	0x00
-#define	UMOSCOM_LCR_STOP_BITS_2	0x04	/* 2 if 6-8 bits/char or 1.5 if 5 */
-#define	UMOSCOM_LCR_PARITY_NONE	0x00
-#define	UMOSCOM_LCR_PARITY_ODD	0x08
-#define	UMOSCOM_LCR_PARITY_EVEN	0x18
-#define	UMOSCOM_LCR_BREAK	0x40
-#define	UMOSCOM_LCR_DIVLATCH_EN	0x80
+#define UMOSCOM_LCR_DBITS(x) ((x)-5)
+#define UMOSCOM_LCR_STOP_BITS_1 0x00
+#define UMOSCOM_LCR_STOP_BITS_2 0x04 /* 2 if 6-8 bits/char or 1.5 if 5 */
+#define UMOSCOM_LCR_PARITY_NONE 0x00
+#define UMOSCOM_LCR_PARITY_ODD 0x08
+#define UMOSCOM_LCR_PARITY_EVEN 0x18
+#define UMOSCOM_LCR_BREAK 0x40
+#define UMOSCOM_LCR_DIVLATCH_EN 0x80
 
-#define	UMOSCOM_MCR_DTR		0x01
-#define	UMOSCOM_MCR_RTS		0x02
-#define	UMOSCOM_MCR_LOOP	0x04
-#define	UMOSCOM_MCR_INTEN	0x08
-#define	UMOSCOM_MCR_LOOPBACK	0x10
-#define	UMOSCOM_MCR_XONANY	0x20
-#define	UMOSCOM_MCR_IRDA_EN	0x40
-#define	UMOSCOM_MCR_BAUD_DIV4	0x80
+#define UMOSCOM_MCR_DTR 0x01
+#define UMOSCOM_MCR_RTS 0x02
+#define UMOSCOM_MCR_LOOP 0x04
+#define UMOSCOM_MCR_INTEN 0x08
+#define UMOSCOM_MCR_LOOPBACK 0x10
+#define UMOSCOM_MCR_XONANY 0x20
+#define UMOSCOM_MCR_IRDA_EN 0x40
+#define UMOSCOM_MCR_BAUD_DIV4 0x80
 
-#define	UMOSCOM_LSR_RXDATA	0x01
-#define	UMOSCOM_LSR_RXOVER	0x02
-#define	UMOSCOM_LSR_RXPAR_ERR	0x04
-#define	UMOSCOM_LSR_RXFRM_ERR	0x08
-#define	UMOSCOM_LSR_RXBREAK	0x10
-#define	UMOSCOM_LSR_TXEMPTY	0x20
-#define	UMOSCOM_LSR_TXALLEMPTY	0x40
-#define	UMOSCOM_LSR_TXFIFO_ERR	0x80
+#define UMOSCOM_LSR_RXDATA 0x01
+#define UMOSCOM_LSR_RXOVER 0x02
+#define UMOSCOM_LSR_RXPAR_ERR 0x04
+#define UMOSCOM_LSR_RXFRM_ERR 0x08
+#define UMOSCOM_LSR_RXBREAK 0x10
+#define UMOSCOM_LSR_TXEMPTY 0x20
+#define UMOSCOM_LSR_TXALLEMPTY 0x40
+#define UMOSCOM_LSR_TXFIFO_ERR 0x80
 
-#define	UMOSCOM_MSR_CTS_CHG	0x01
-#define	UMOSCOM_MSR_DSR_CHG	0x02
-#define	UMOSCOM_MSR_RI_CHG	0x04
-#define	UMOSCOM_MSR_CD_CHG	0x08
-#define	UMOSCOM_MSR_CTS		0x10
-#define	UMOSCOM_MSR_RTS		0x20
-#define	UMOSCOM_MSR_RI		0x40
-#define	UMOSCOM_MSR_CD		0x80
+#define UMOSCOM_MSR_CTS_CHG 0x01
+#define UMOSCOM_MSR_DSR_CHG 0x02
+#define UMOSCOM_MSR_RI_CHG 0x04
+#define UMOSCOM_MSR_CD_CHG 0x08
+#define UMOSCOM_MSR_CTS 0x10
+#define UMOSCOM_MSR_RTS 0x20
+#define UMOSCOM_MSR_RI 0x40
+#define UMOSCOM_MSR_CD 0x80
 
-#define	UMOSCOM_BAUD_REF	115200
+#define UMOSCOM_BAUD_REF 115200
 
 enum {
 	UMOSCOM_BULK_DT_WR,
@@ -180,8 +180,8 @@ struct umoscom_softc {
 	struct usb_device *sc_udev;
 	struct mtx sc_mtx;
 
-	uint8_t	sc_mcr;
-	uint8_t	sc_lcr;
+	uint8_t sc_mcr;
+	uint8_t sc_lcr;
 };
 
 /* prototypes */
@@ -195,23 +195,22 @@ static usb_callback_t umoscom_write_callback;
 static usb_callback_t umoscom_read_callback;
 static usb_callback_t umoscom_intr_callback;
 
-static void	umoscom_free(struct ucom_softc *);
-static void	umoscom_cfg_open(struct ucom_softc *);
-static void	umoscom_cfg_close(struct ucom_softc *);
-static void	umoscom_cfg_set_break(struct ucom_softc *, uint8_t);
-static void	umoscom_cfg_set_dtr(struct ucom_softc *, uint8_t);
-static void	umoscom_cfg_set_rts(struct ucom_softc *, uint8_t);
-static int	umoscom_pre_param(struct ucom_softc *, struct termios *);
-static void	umoscom_cfg_param(struct ucom_softc *, struct termios *);
-static void	umoscom_cfg_get_status(struct ucom_softc *, uint8_t *,
-		    uint8_t *);
-static void	umoscom_cfg_write(struct umoscom_softc *, uint16_t, uint16_t);
-static uint8_t	umoscom_cfg_read(struct umoscom_softc *, uint16_t);
-static void	umoscom_start_read(struct ucom_softc *);
-static void	umoscom_stop_read(struct ucom_softc *);
-static void	umoscom_start_write(struct ucom_softc *);
-static void	umoscom_stop_write(struct ucom_softc *);
-static void	umoscom_poll(struct ucom_softc *ucom);
+static void umoscom_free(struct ucom_softc *);
+static void umoscom_cfg_open(struct ucom_softc *);
+static void umoscom_cfg_close(struct ucom_softc *);
+static void umoscom_cfg_set_break(struct ucom_softc *, uint8_t);
+static void umoscom_cfg_set_dtr(struct ucom_softc *, uint8_t);
+static void umoscom_cfg_set_rts(struct ucom_softc *, uint8_t);
+static int umoscom_pre_param(struct ucom_softc *, struct termios *);
+static void umoscom_cfg_param(struct ucom_softc *, struct termios *);
+static void umoscom_cfg_get_status(struct ucom_softc *, uint8_t *, uint8_t *);
+static void umoscom_cfg_write(struct umoscom_softc *, uint16_t, uint16_t);
+static uint8_t umoscom_cfg_read(struct umoscom_softc *, uint16_t);
+static void umoscom_start_read(struct ucom_softc *);
+static void umoscom_stop_read(struct ucom_softc *);
+static void umoscom_start_write(struct ucom_softc *);
+static void umoscom_stop_write(struct ucom_softc *);
+static void umoscom_poll(struct ucom_softc *ucom);
 
 static const struct usb_config umoscom_config_data[UMOSCOM_N_TRANSFER] = {
 	[UMOSCOM_BULK_DT_WR] = {
@@ -262,12 +261,10 @@ static const struct ucom_callback umoscom_callback = {
 	.ucom_free = &umoscom_free,
 };
 
-static device_method_t umoscom_methods[] = {
-	DEVMETHOD(device_probe, umoscom_probe),
+static device_method_t umoscom_methods[] = { DEVMETHOD(device_probe,
+						 umoscom_probe),
 	DEVMETHOD(device_attach, umoscom_attach),
-	DEVMETHOD(device_detach, umoscom_detach),
-	DEVMETHOD_END
-};
+	DEVMETHOD(device_detach, umoscom_detach), DEVMETHOD_END };
 
 static driver_t umoscom_driver = {
 	.name = "umoscom",
@@ -276,7 +273,7 @@ static driver_t umoscom_driver = {
 };
 
 static const STRUCT_USB_HOST_ID umoscom_devs[] = {
-	{USB_VPI(USB_VENDOR_MOSCHIP, USB_PRODUCT_MOSCHIP_MCS7703, 0)}
+	{ USB_VPI(USB_VENDOR_MOSCHIP, USB_PRODUCT_MOSCHIP_MCS7703, 0) }
 };
 
 DRIVER_MODULE(umoscom, uhub, umoscom_driver, NULL, NULL);
@@ -311,7 +308,7 @@ umoscom_attach(device_t dev)
 	uint8_t iface_index;
 
 	sc->sc_udev = uaa->device;
-	sc->sc_mcr = 0x08;		/* enable interrupts */
+	sc->sc_mcr = 0x08; /* enable interrupts */
 
 	/* XXX the device doesn't provide any ID string, so set a static one */
 	device_set_desc(dev, "MOSCHIP USB Serial Port Adapter");
@@ -321,9 +318,8 @@ umoscom_attach(device_t dev)
 	ucom_ref(&sc->sc_super_ucom);
 
 	iface_index = UMOSCOM_IFACE_INDEX;
-	error = usbd_transfer_setup(uaa->device, &iface_index,
-	    sc->sc_xfer, umoscom_config_data,
-	    UMOSCOM_N_TRANSFER, sc, &sc->sc_mtx);
+	error = usbd_transfer_setup(uaa->device, &iface_index, sc->sc_xfer,
+	    umoscom_config_data, UMOSCOM_N_TRANSFER, sc, &sc->sc_mtx);
 
 	if (error) {
 		goto detach;
@@ -392,10 +388,10 @@ umoscom_cfg_open(struct ucom_softc *ucom)
 	umoscom_cfg_write(sc, UMOSCOM_FIFO, 0x00 | UMOSCOM_UART_REG);
 
 	/* Enable FIFO */
-	umoscom_cfg_write(sc, UMOSCOM_FIFO, UMOSCOM_FIFO_EN |
-	    UMOSCOM_FIFO_RXCLR | UMOSCOM_FIFO_TXCLR |
-	    UMOSCOM_FIFO_DMA_BLK | UMOSCOM_FIFO_RXLVL_MASK |
-	    UMOSCOM_UART_REG);
+	umoscom_cfg_write(sc, UMOSCOM_FIFO,
+	    UMOSCOM_FIFO_EN | UMOSCOM_FIFO_RXCLR | UMOSCOM_FIFO_TXCLR |
+		UMOSCOM_FIFO_DMA_BLK | UMOSCOM_FIFO_RXLVL_MASK |
+		UMOSCOM_UART_REG);
 
 	/* Enable Interrupt Registers */
 	umoscom_cfg_write(sc, UMOSCOM_INT, 0x0C | UMOSCOM_UART_REG);
@@ -478,8 +474,7 @@ umoscom_cfg_param(struct ucom_softc *ucom, struct termios *t)
 	umoscom_cfg_write(sc, UMOSCOM_LCR,
 	    UMOSCOM_LCR_DIVLATCH_EN | UMOSCOM_UART_REG);
 
-	umoscom_cfg_write(sc, UMOSCOM_BAUDLO,
-	    (data & 0xFF) | UMOSCOM_UART_REG);
+	umoscom_cfg_write(sc, UMOSCOM_BAUDLO, (data & 0xFF) | UMOSCOM_UART_REG);
 
 	umoscom_cfg_write(sc, UMOSCOM_BAUDHI,
 	    ((data >> 8) & 0xFF) | UMOSCOM_UART_REG);
@@ -558,8 +553,7 @@ umoscom_cfg_write(struct umoscom_softc *sc, uint16_t reg, uint16_t val)
 	USETW(req.wIndex, reg);
 	USETW(req.wLength, 0);
 
-	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom,
-	    &req, NULL, 0, 1000);
+	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, NULL, 0, 1000);
 }
 
 static uint8_t
@@ -574,8 +568,7 @@ umoscom_cfg_read(struct umoscom_softc *sc, uint16_t reg)
 	USETW(req.wIndex, reg);
 	USETW(req.wLength, 1);
 
-	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, 
-	    &req, &val, 0, 1000);
+	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, &val, 0, 1000);
 
 	DPRINTF("reg=0x%04x, val=0x%02x\n", reg, val);
 
@@ -633,18 +626,18 @@ umoscom_write_callback(struct usb_xfer *xfer, usb_error_t error)
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_SETUP:
 	case USB_ST_TRANSFERRED:
-tr_setup:
+	tr_setup:
 		DPRINTF("\n");
 
 		pc = usbd_xfer_get_frame(xfer, 0);
-		if (ucom_get_data(&sc->sc_ucom, pc, 0,
-		    UMOSCOM_BUFSIZE, &actlen)) {
+		if (ucom_get_data(&sc->sc_ucom, pc, 0, UMOSCOM_BUFSIZE,
+			&actlen)) {
 			usbd_xfer_set_frame_len(xfer, 0, actlen);
 			usbd_transfer_submit(xfer);
 		}
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			DPRINTFN(0, "transfer failed\n");
 			/* try to clear stall first */
@@ -671,14 +664,14 @@ umoscom_read_callback(struct usb_xfer *xfer, usb_error_t error)
 		ucom_put_data(&sc->sc_ucom, pc, 0, actlen);
 
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		DPRINTF("\n");
 
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			DPRINTFN(0, "transfer failed\n");
 			/* try to clear stall first */
@@ -706,12 +699,12 @@ umoscom_intr_callback(struct usb_xfer *xfer, usb_error_t error)
 		ucom_status_change(&sc->sc_ucom);
 
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			DPRINTFN(0, "transfer failed\n");
 			/* try to clear stall first */

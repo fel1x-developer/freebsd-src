@@ -33,16 +33,16 @@
 #ifdef HID_COMPAT7
 
 #include <sys/types.h>
+#include <sys/ioctl.h>
+#include <sys/time.h>
+
+#include <dev/usb/usb.h>
 
 #include <assert.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/time.h>
-#include <sys/ioctl.h>
-
-#include <dev/usb/usb.h>
 
 #include "usbhid.h"
 #include "usbvar.h"
@@ -73,6 +73,7 @@ hid_get_report_desc_compat7(int fd)
 	if (ioctl(fd, USB_GET_REPORT_DESC, &rep) < 0)
 		return (NULL);
 
-	return (hid_use_report_desc(rep.ucrd_data, (unsigned int)rep.ucrd_size));
+	return (
+	    hid_use_report_desc(rep.ucrd_data, (unsigned int)rep.ucrd_size));
 }
-#endif	/* HID_COMPAT7 */
+#endif /* HID_COMPAT7 */

@@ -40,15 +40,15 @@
  * "pointers".  See xdr.h for more info on the interface to xdr.
  */
 
-#include "namespace.h"
 #include <err.h>
+#include <rpc/types.h>
+#include <rpc/xdr.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <rpc/types.h>
-#include <rpc/xdr.h>
 #include "libc_private.h"
+#include "namespace.h"
 
 /*
  * XDR an indirect pointer
@@ -77,7 +77,7 @@ xdr_reference(XDR *xdrs, caddr_t *pp, u_int size, xdrproc_t proc)
 			return (TRUE);
 
 		case XDR_DECODE:
-			*pp = loc = (caddr_t) mem_alloc(size);
+			*pp = loc = (caddr_t)mem_alloc(size);
 			if (loc == NULL) {
 				warnx("xdr_reference: out of memory");
 				return (FALSE);
@@ -97,7 +97,6 @@ xdr_reference(XDR *xdrs, caddr_t *pp, u_int size, xdrproc_t proc)
 	}
 	return (stat);
 }
-
 
 /*
  * xdr_pointer():
@@ -125,12 +124,12 @@ xdr_pointer(XDR *xdrs, char **objpp, u_int obj_size, xdrproc_t xdr_obj)
 	bool_t more_data;
 
 	more_data = (*objpp != NULL);
-	if (! xdr_bool(xdrs,&more_data)) {
+	if (!xdr_bool(xdrs, &more_data)) {
 		return (FALSE);
 	}
-	if (! more_data) {
+	if (!more_data) {
 		*objpp = NULL;
 		return (TRUE);
 	}
-	return (xdr_reference(xdrs,objpp,obj_size,xdr_obj));
+	return (xdr_reference(xdrs, objpp, obj_size, xdr_obj));
 }

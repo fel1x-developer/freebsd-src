@@ -24,14 +24,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_syscons.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/consio.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/consio.h>
 
 #if defined(__arm__) || defined(__powerpc__)
 #include <machine/sc_machdep.h>
@@ -39,27 +39,27 @@
 #include <machine/pc/display.h>
 #endif
 
-#include <dev/syscons/syscons.h>
 #include <dev/syscons/sctermvar.h>
+#include <dev/syscons/syscons.h>
 
 /* dumb terminal emulator */
 
-static sc_term_init_t	dumb_init;
-static sc_term_term_t	dumb_term;
-static sc_term_puts_t	dumb_puts;
-static sc_term_ioctl_t	dumb_ioctl;
-static sc_term_clear_t	dumb_clear;
-static sc_term_input_t	dumb_input;
-static void		dumb_nop(void);
-static sc_term_fkeystr_t	dumb_fkeystr;
-static sc_term_sync_t	dumb_sync;
+static sc_term_init_t dumb_init;
+static sc_term_term_t dumb_term;
+static sc_term_puts_t dumb_puts;
+static sc_term_ioctl_t dumb_ioctl;
+static sc_term_clear_t dumb_clear;
+static sc_term_input_t dumb_input;
+static void dumb_nop(void);
+static sc_term_fkeystr_t dumb_fkeystr;
+static sc_term_sync_t dumb_sync;
 
 static sc_term_sw_t sc_term_dumb = {
 	{ NULL, NULL },
-	"dumb",				/* emulator name */
-	"dumb terminal",		/* description */
-	"*",				/* matching renderer */
-	0,				/* softc size */
+	"dumb",		 /* emulator name */
+	"dumb terminal", /* description */
+	"*",		 /* matching renderer */
+	0,		 /* softc size */
 	0,
 	dumb_init,
 	dumb_term,
@@ -102,23 +102,23 @@ dumb_puts(scr_stat *scp, u_char *buf, int len)
 	while (len > 0) {
 		++scp->sc->write_in_progress;
 		sc_term_gen_print(scp, &buf, &len, SC_NORM_ATTR << 8);
-    		sc_term_gen_scroll(scp, scp->sc->scr_map[0x20],
-				   SC_NORM_ATTR << 8);
+		sc_term_gen_scroll(scp, scp->sc->scr_map[0x20],
+		    SC_NORM_ATTR << 8);
 		--scp->sc->write_in_progress;
 	}
 }
 
 static int
 dumb_ioctl(scr_stat *scp, struct tty *tp, u_long cmd, caddr_t data,
-	   struct thread *td)
+    struct thread *td)
 {
 	vid_info_t *vi;
 
 	switch (cmd) {
-	case GIO_ATTR:      	/* get current attributes */
-		*(int*)data = SC_NORM_ATTR;
+	case GIO_ATTR: /* get current attributes */
+		*(int *)data = SC_NORM_ATTR;
 		return 0;
-	case CONS_GETINFO:  	/* get current (virtual) console info */
+	case CONS_GETINFO: /* get current (virtual) console info */
 		vi = (vid_info_t *)data;
 		if (vi->size != sizeof(struct vid_info))
 			return EINVAL;

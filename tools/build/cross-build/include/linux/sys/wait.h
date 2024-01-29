@@ -43,5 +43,6 @@
  * include stdlib.h first whenever sys/wait.h is as a workaround, since that
  * way round still works.
  */
-#include <stdlib.h>
 #include_next <sys/wait.h>
+
+#include <stdlib.h>

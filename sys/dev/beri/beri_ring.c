@@ -35,41 +35,38 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/malloc.h>
-#include <sys/rman.h>
-#include <sys/timeet.h>
-#include <sys/timetc.h>
 #include <sys/conf.h>
-#include <sys/uio.h>
+#include <sys/event.h>
+#include <sys/kernel.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/rman.h>
+#include <sys/selinfo.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <sys/event.h>
-#include <sys/selinfo.h>
-
-#include <dev/fdt/fdt_common.h>
-#include <dev/ofw/openfirm.h>
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
+#include <sys/timeet.h>
+#include <sys/timetc.h>
+#include <sys/uio.h>
 
 #include <machine/bus.h>
-#include <machine/fdt.h>
 #include <machine/cpu.h>
+#include <machine/fdt.h>
 #include <machine/intr.h>
 
-#define READ4(_sc, _reg) \
-	bus_read_4((_sc)->res[0], _reg)
-#define WRITE4(_sc, _reg, _val) \
-	bus_write_4((_sc)->res[0], _reg, _val)
+#include <dev/fdt/fdt_common.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
 
-#define CDES_INT_EN		(1 << 15)
-#define CDES_CAUSE_MASK		0x3
-#define CDES_CAUSE_SHIFT	13
-#define DEVNAME_MAXLEN		256
+#define READ4(_sc, _reg) bus_read_4((_sc)->res[0], _reg)
+#define WRITE4(_sc, _reg, _val) bus_write_4((_sc)->res[0], _reg, _val)
 
-typedef struct
-{
+#define CDES_INT_EN (1 << 15)
+#define CDES_CAUSE_MASK 0x3
+#define CDES_CAUSE_SHIFT 13
+#define DEVNAME_MAXLEN 256
+
+typedef struct {
 	uint16_t cdes;
 	uint16_t interrupt_level;
 	uint16_t in;
@@ -77,31 +74,28 @@ typedef struct
 } control_reg_t;
 
 struct beri_softc {
-	struct resource		*res[3];
-	bus_space_tag_t		bst;
-	bus_space_handle_t	bsh;
-	struct cdev		*cdev;
-	device_t		dev;
-	void			*read_ih;
-	void			*write_ih;
-	struct selinfo		beri_rsel;
-	struct mtx		beri_mtx;
-	int			opened;
+	struct resource *res[3];
+	bus_space_tag_t bst;
+	bus_space_handle_t bsh;
+	struct cdev *cdev;
+	device_t dev;
+	void *read_ih;
+	void *write_ih;
+	struct selinfo beri_rsel;
+	struct mtx beri_mtx;
+	int opened;
 
-	char			devname[DEVNAME_MAXLEN];
-	int			control_read;
-	int			control_write;
-	int			data_read;
-	int			data_write;
-	int			data_size;
+	char devname[DEVNAME_MAXLEN];
+	int control_read;
+	int control_write;
+	int data_read;
+	int data_write;
+	int data_size;
 };
 
-static struct resource_spec beri_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ SYS_RES_IRQ,		0,	RF_ACTIVE },
-	{ SYS_RES_IRQ,		1,	RF_ACTIVE },
-	{ -1, 0 }
-};
+static struct resource_spec beri_spec[] = { { SYS_RES_MEMORY, 0, RF_ACTIVE },
+	{ SYS_RES_IRQ, 0, RF_ACTIVE }, { SYS_RES_IRQ, 1, RF_ACTIVE },
+	{ -1, 0 } };
 
 static control_reg_t
 get_control_reg(struct beri_softc *sc, int dir)
@@ -196,8 +190,8 @@ beri_intr_read(void *arg)
 }
 
 static int
-beri_open(struct cdev *dev, int flags __unused,
-    int fmt __unused, struct thread *td __unused)
+beri_open(struct cdev *dev, int flags __unused, int fmt __unused,
+    struct thread *td __unused)
 {
 	struct beri_softc *sc;
 	control_reg_t c;
@@ -237,8 +231,8 @@ beri_open(struct cdev *dev, int flags __unused,
 }
 
 static int
-beri_close(struct cdev *dev, int flags __unused,
-    int fmt __unused, struct thread *td __unused)
+beri_close(struct cdev *dev, int flags __unused, int fmt __unused,
+    struct thread *td __unused)
 {
 	struct beri_softc *sc;
 
@@ -366,17 +360,17 @@ beri_kqdetach(struct knote *kn)
 }
 
 static struct filterops beri_read_filterops = {
-	.f_isfd =       1,
-	.f_attach =     NULL,
-	.f_detach =     beri_kqdetach,
-	.f_event =      beri_kqread,
+	.f_isfd = 1,
+	.f_attach = NULL,
+	.f_detach = beri_kqdetach,
+	.f_event = beri_kqread,
 };
 
 static struct filterops beri_write_filterops = {
-	.f_isfd =       1,
-	.f_attach =     NULL,
-	.f_detach =     beri_kqdetach,
-	.f_event =      beri_kqwrite,
+	.f_isfd = 1,
+	.f_attach = NULL,
+	.f_detach = beri_kqdetach,
+	.f_event = beri_kqwrite,
 };
 
 static int
@@ -386,7 +380,7 @@ beri_kqfilter(struct cdev *dev, struct knote *kn)
 
 	sc = dev->si_drv1;
 
-	switch(kn->kn_filter) {
+	switch (kn->kn_filter) {
 	case EVFILT_READ:
 		kn->kn_fop = &beri_read_filterops;
 		break;
@@ -394,7 +388,7 @@ beri_kqfilter(struct cdev *dev, struct knote *kn)
 		kn->kn_fop = &beri_write_filterops;
 		break;
 	default:
-		return(EINVAL);
+		return (EINVAL);
 	}
 
 	kn->kn_hook = sc;
@@ -404,13 +398,13 @@ beri_kqfilter(struct cdev *dev, struct knote *kn)
 }
 
 static struct cdevsw beri_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_open =	beri_open,
-	.d_close =	beri_close,
-	.d_write =	beri_rdwr,
-	.d_read =	beri_rdwr,
-	.d_kqfilter =	beri_kqfilter,
-	.d_name =	"beri ring buffer",
+	.d_version = D_VERSION,
+	.d_open = beri_open,
+	.d_close = beri_close,
+	.d_write = beri_rdwr,
+	.d_read = beri_rdwr,
+	.d_kqfilter = beri_kqfilter,
+	.d_name = "beri ring buffer",
 };
 
 static int
@@ -424,8 +418,8 @@ parse_fdt(struct beri_softc *sc)
 		return (ENXIO);
 
 	/* get device name */
-	if (OF_getprop(ofw_bus_get_node(sc->dev), "device_name",
-		&sc->devname, sizeof(sc->devname)) <= 0) {
+	if (OF_getprop(ofw_bus_get_node(sc->dev), "device_name", &sc->devname,
+		sizeof(sc->devname)) <= 0) {
 		device_printf(sc->dev, "Can't get device_name\n");
 		return (ENXIO);
 	}
@@ -494,8 +488,8 @@ beri_attach(device_t dev)
 		return (ENXIO);
 	}
 
-	sc->cdev = make_dev(&beri_cdevsw, 0, UID_ROOT, GID_WHEEL,
-	    S_IRWXU, "%s", sc->devname);
+	sc->cdev = make_dev(&beri_cdevsw, 0, UID_ROOT, GID_WHEEL, S_IRWXU, "%s",
+	    sc->devname);
 	if (sc->cdev == NULL) {
 		device_printf(dev, "Failed to create character device.\n");
 		return (ENXIO);
@@ -509,11 +503,8 @@ beri_attach(device_t dev)
 	return (0);
 }
 
-static device_method_t beri_methods[] = {
-	DEVMETHOD(device_probe,		beri_probe),
-	DEVMETHOD(device_attach,	beri_attach),
-	{ 0, 0 }
-};
+static device_method_t beri_methods[] = { DEVMETHOD(device_probe, beri_probe),
+	DEVMETHOD(device_attach, beri_attach), { 0, 0 } };
 
 static driver_t beri_driver = {
 	"beri_ring",

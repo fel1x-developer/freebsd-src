@@ -27,23 +27,25 @@
 #ifndef _BOOT_MODULE_H_
 #define _BOOT_MODULE_H_
 
-#include <stdbool.h>
-
 #include <efi.h>
-#include <efilib.h>
 #include <eficonsctl.h>
+#include <efilib.h>
+#include <stdbool.h>
 
 #ifdef EFI_DEBUG
 #define DPRINTF(fmt, args...) printf(fmt, ##args)
 #define DSTALL(d) BS->Stall(d)
 #else
-#define DPRINTF(fmt, ...) {}
-#define DSTALL(d) {}
+#define DPRINTF(fmt, ...) \
+	{                 \
+	}
+#define DSTALL(d) \
+	{         \
+	}
 #endif
 
 /* EFI device info */
-typedef struct dev_info
-{
+typedef struct dev_info {
 	EFI_BLOCK_IO *dev;
 	EFI_DEVICE_PATH *devpath;
 	EFI_HANDLE devhandle;
@@ -58,8 +60,7 @@ typedef struct dev_info
  *
  * This is a standard interface for filesystem modules in the EFI system.
  */
-typedef struct boot_module_t
-{
+typedef struct boot_module_t {
 	const char *name;
 
 	/* init is the optional initialiser for the module. */
@@ -73,7 +74,7 @@ typedef struct boot_module_t
 	 * EFI_NOT_FOUND = The module can not handle the device.
 	 * Other = The module encountered an error.
 	 */
-	EFI_STATUS (*probe)(dev_info_t* dev);
+	EFI_STATUS (*probe)(dev_info_t *dev);
 
 	/*
 	 * load should select the best out of a set of devices that probe
@@ -84,8 +85,9 @@ typedef struct boot_module_t
 	 * EFI_NOT_FOUND = The module can not handle the device.
 	 * Other = The module encountered an error.
 	 */
-	EFI_STATUS (*load)(const char *filepath, dev_info_t *devinfo,
-	    void **buf, size_t *bufsize);
+	EFI_STATUS (*load)
+	(const char *filepath, dev_info_t *devinfo, void **buf,
+	    size_t *bufsize);
 
 	/* status outputs information about the probed devices. */
 	void (*status)(void);

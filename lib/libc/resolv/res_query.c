@@ -1,8 +1,8 @@
 /*-
  * SPDX-License-Identifier: (ISC AND BSD-3-Clause)
  *
- * Portions Copyright (C) 2004, 2005, 2008  Internet Systems Consortium, Inc. ("ISC")
- * Portions Copyright (C) 1996-2001, 2003  Internet Software Consortium.
+ * Portions Copyright (C) 2004, 2005, 2008  Internet Systems Consortium, Inc.
+ * ("ISC") Portions Copyright (C) 1996-2001, 2003  Internet Software Consortium.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -66,9 +66,10 @@
  * SOFTWARE.
  */
 
-#include "port_before.h"
 #include <sys/param.h>
+
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
 #include <arpa/nameser.h>
 #include <ctype.h>
@@ -79,17 +80,19 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "port_after.h"
+#include "port_before.h"
 
 /* Options.  Leave them on. */
-#ifndef	DEBUG
-#define	DEBUG
+#ifndef DEBUG
+#define DEBUG
 #endif
 
 #if PACKETSZ > 1024
-#define MAXPACKET	PACKETSZ
+#define MAXPACKET PACKETSZ
 #else
-#define MAXPACKET	1024
+#define MAXPACKET 1024
 #endif
 
 /*%
@@ -103,14 +106,13 @@
  * Caller must parse answer and determine whether it answers the question.
  */
 int
-res_nquery(res_state statp,
-	   const char *name,	/*%< domain name */
-	   int class, int type,	/*%< class and type of query */
-	   u_char *answer,	/*%< buffer to put answer */
-	   int anslen)		/*%< size of answer buffer */
+res_nquery(res_state statp, const char *name, /*%< domain name */
+    int class, int type,		      /*%< class and type of query */
+    u_char *answer,			      /*%< buffer to put answer */
+    int anslen)				      /*%< size of answer buffer */
 {
 	u_char buf[MAXPACKET];
-	HEADER *hp = (HEADER *) answer;
+	HEADER *hp = (HEADER *)answer;
 	u_int oflags;
 	u_char *rdata;
 	int n;
@@ -118,22 +120,22 @@ res_nquery(res_state statp,
 	oflags = statp->_flags;
 
 again:
-	hp->rcode = NOERROR;	/*%< default */
+	hp->rcode = NOERROR; /*%< default */
 #ifdef DEBUG
 	if (statp->options & RES_DEBUG)
 		printf(";; res_query(%s, %d, %d)\n", name, class, type);
 #endif
 
-	n = res_nmkquery(statp, QUERY, name, class, type, NULL, 0, NULL,
-			 buf, sizeof(buf));
+	n = res_nmkquery(statp, QUERY, name, class, type, NULL, 0, NULL, buf,
+	    sizeof(buf));
 #ifdef RES_USE_EDNS0
 	if (n > 0 && (statp->_flags & RES_F_EDNS0ERR) == 0 &&
-	    (statp->options & (RES_USE_EDNS0|RES_USE_DNSSEC|RES_NSID))) {
+	    (statp->options & (RES_USE_EDNS0 | RES_USE_DNSSEC | RES_NSID))) {
 		n = res_nopt(statp, n, buf, sizeof(buf), anslen);
 		if (n > 0 && (statp->options & RES_NSID) != 0U) {
 			rdata = &buf[n];
 			n = res_nopt_rdata(statp, n, buf, sizeof(buf), rdata,
-					   NS_OPT_NSID, 0, NULL);
+			    NS_OPT_NSID, 0, NULL);
 		}
 	}
 #endif
@@ -150,7 +152,7 @@ again:
 	if (n < 0) {
 #ifdef RES_USE_EDNS0
 		/* if the query choked with EDNS0, retry without EDNS0 */
-		if ((statp->options & (RES_USE_EDNS0|RES_USE_DNSSEC)) != 0U &&
+		if ((statp->options & (RES_USE_EDNS0 | RES_USE_DNSSEC)) != 0U &&
 		    ((oflags ^ statp->_flags) & RES_F_EDNS0ERR) != 0) {
 			statp->_flags |= RES_F_EDNS0ERR;
 			if (statp->options & RES_DEBUG)
@@ -170,10 +172,8 @@ again:
 #ifdef DEBUG
 		if (statp->options & RES_DEBUG)
 			printf(";; rcode = (%s), counts = an:%d ns:%d ar:%d\n",
-			       p_rcode(hp->rcode),
-			       ntohs(hp->ancount),
-			       ntohs(hp->nscount),
-			       ntohs(hp->arcount));
+			    p_rcode(hp->rcode), ntohs(hp->ancount),
+			    ntohs(hp->nscount), ntohs(hp->arcount));
 #endif
 		switch (hp->rcode) {
 		case NXDOMAIN:
@@ -204,14 +204,13 @@ again:
  * is detected.  Error code, if any, is left in H_ERRNO.
  */
 int
-res_nsearch(res_state statp,
-	    const char *name,	/*%< domain name */
-	    int class, int type,	/*%< class and type of query */
-	    u_char *answer,	/*%< buffer to put answer */
-	    int anslen)		/*%< size of answer */
+res_nsearch(res_state statp, const char *name, /*%< domain name */
+    int class, int type,		       /*%< class and type of query */
+    u_char *answer,			       /*%< buffer to put answer */
+    int anslen)				       /*%< size of answer */
 {
-	const char *cp, * const *domain;
-	HEADER *hp = (HEADER *) answer;
+	const char *cp, *const *domain;
+	HEADER *hp = (HEADER *)answer;
 	char tmp[NS_MAXDNAME];
 	u_int dots;
 	int trailing_dot, ret, saved_herrno;
@@ -220,7 +219,7 @@ res_nsearch(res_state statp,
 	int searched = 0;
 
 	errno = 0;
-	RES_SET_H_ERRNO(statp, HOST_NOT_FOUND);  /*%< True if we never query. */
+	RES_SET_H_ERRNO(statp, HOST_NOT_FOUND); /*%< True if we never query. */
 	dots = 0;
 	for (cp = name; *cp != '\0'; cp++)
 		dots += (*cp == '.');
@@ -229,7 +228,7 @@ res_nsearch(res_state statp,
 		trailing_dot++;
 
 	/* If there aren't any dots, it could be a user-level alias. */
-	if (!dots && (cp = res_hostalias(statp, name, tmp, sizeof tmp))!= NULL)
+	if (!dots && (cp = res_hostalias(statp, name, tmp, sizeof tmp)) != NULL)
 		return (res_nquery(statp, cp, class, type, answer, anslen));
 
 	/*
@@ -239,8 +238,8 @@ res_nsearch(res_state statp,
 	 */
 	saved_herrno = -1;
 	if (dots >= statp->ndots || trailing_dot) {
-		ret = res_nquerydomain(statp, name, NULL, class, type,
-					 answer, anslen);
+		ret = res_nquerydomain(statp, name, NULL, class, type, answer,
+		    anslen);
 		if (ret > 0 || trailing_dot)
 			return (ret);
 		if (errno == ECONNREFUSED) {
@@ -272,9 +271,8 @@ res_nsearch(res_state statp,
 	    (dots && !trailing_dot && (statp->options & RES_DNSRCH) != 0U)) {
 		int done = 0;
 
-		for (domain = (const char * const *)statp->dnsrch;
-		     *domain && !done;
-		     domain++) {
+		for (domain = (const char *const *)statp->dnsrch;
+		     *domain && !done; domain++) {
 			searched = 1;
 
 			if (domain[0][0] == '\0' ||
@@ -284,9 +282,8 @@ res_nsearch(res_state statp,
 			if (root_on_list && tried_as_is)
 				continue;
 
-			ret = res_nquerydomain(statp, name, *domain,
-					       class, type,
-					       answer, anslen);
+			ret = res_nquerydomain(statp, name, *domain, class,
+			    type, answer, anslen);
 			if (ret > 0)
 				return (ret);
 
@@ -370,8 +367,8 @@ res_nsearch(res_state statp,
 	 */
 	if ((dots || !searched || (statp->options & RES_NOTLDQUERY) == 0U) &&
 	    !(tried_as_is || root_on_list)) {
-		ret = res_nquerydomain(statp, name, NULL, class, type,
-				       answer, anslen);
+		ret = res_nquerydomain(statp, name, NULL, class, type, answer,
+		    anslen);
 		if (ret > 0)
 			return (ret);
 	}
@@ -398,12 +395,10 @@ giveup:
  * removing a trailing dot from name if domain is NULL.
  */
 int
-res_nquerydomain(res_state statp,
-	    const char *name,
-	    const char *domain,
-	    int class, int type,	/*%< class and type of query */
-	    u_char *answer,		/*%< buffer to put answer */
-	    int anslen)		/*%< size of answer */
+res_nquerydomain(res_state statp, const char *name, const char *domain,
+    int class, int type, /*%< class and type of query */
+    u_char *answer,	 /*%< buffer to put answer */
+    int anslen)		 /*%< size of answer */
 {
 	char nbuf[MAXDNAME];
 	const char *longname = nbuf;
@@ -411,8 +406,8 @@ res_nquerydomain(res_state statp,
 
 #ifdef DEBUG
 	if (statp->options & RES_DEBUG)
-		printf(";; res_nquerydomain(%s, %s, %d, %d)\n",
-		       name, domain?domain:"<Nil>", class, type);
+		printf(";; res_nquerydomain(%s, %s, %d, %d)\n", name,
+		    domain ? domain : "<Nil>", class, type);
 #endif
 	if (domain == NULL) {
 		/*
@@ -443,7 +438,8 @@ res_nquerydomain(res_state statp,
 }
 
 const char *
-res_hostalias(const res_state statp, const char *name, char *dst, size_t siz) {
+res_hostalias(const res_state statp, const char *name, char *dst, size_t siz)
+{
 	char *file, *cp1, *cp2;
 	char buf[BUFSIZ];
 	FILE *fp;
@@ -466,8 +462,8 @@ res_hostalias(const res_state statp, const char *name, char *dst, size_t siz) {
 				;
 			if (!*cp1)
 				break;
-			for (cp2 = cp1 + 1; *cp2 &&
-			     !isspace((unsigned char)*cp2); ++cp2)
+			for (cp2 = cp1 + 1;
+			     *cp2 && !isspace((unsigned char)*cp2); ++cp2)
 				;
 			*cp2 = '\0';
 			strncpy(dst, cp1, siz - 1);

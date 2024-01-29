@@ -53,7 +53,7 @@ stack_save(struct stack *st)
 	uint32_t sp;
 
 	/* Read the stack pointer */
-	__asm __volatile("mov %0, sp" : "=&r" (sp));
+	__asm __volatile("mov %0, sp" : "=&r"(sp));
 
 	state.registers[FP] = (uint32_t)__builtin_frame_address(0);
 	state.registers[SP] = sp;

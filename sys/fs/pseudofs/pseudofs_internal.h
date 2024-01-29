@@ -40,28 +40,28 @@ SYSCTL_DECL(_vfs_pfs);
  * Vnode data
  */
 struct pfs_vdata {
-	struct pfs_node	*pvd_pn;
-	pid_t		 pvd_pid;
-	struct vnode	*pvd_vnode;
+	struct pfs_node *pvd_pn;
+	pid_t pvd_pid;
+	struct vnode *pvd_vnode;
 	SLIST_ENTRY(pfs_vdata) pvd_hash;
 };
 
 /*
  * Vnode cache
  */
-void	 pfs_vncache_load	(void);
-void	 pfs_vncache_unload	(void);
-int	 pfs_vncache_alloc	(struct mount *, struct vnode **,
-				 struct pfs_node *, pid_t pid);
-int	 pfs_vncache_free	(struct vnode *);
+void pfs_vncache_load(void);
+void pfs_vncache_unload(void);
+int pfs_vncache_alloc(struct mount *, struct vnode **, struct pfs_node *,
+    pid_t pid);
+int pfs_vncache_free(struct vnode *);
 
 /*
  * File number bitmap
  */
-void	 pfs_fileno_init	(struct pfs_info *);
-void	 pfs_fileno_uninit	(struct pfs_info *);
-void	 pfs_fileno_alloc	(struct pfs_node *);
-void	 pfs_fileno_free	(struct pfs_node *);
+void pfs_fileno_init(struct pfs_info *);
+void pfs_fileno_uninit(struct pfs_info *);
+void pfs_fileno_alloc(struct pfs_node *);
+void pfs_fileno_free(struct pfs_node *);
 
 /*
  * Debugging
@@ -69,27 +69,27 @@ void	 pfs_fileno_free	(struct pfs_node *);
 #ifdef PSEUDOFS_TRACE
 extern int pfs_trace;
 
-#define PFS_TRACE(foo) \
-	do { \
-		if (pfs_trace) { \
+#define PFS_TRACE(foo)                                                 \
+	do {                                                           \
+		if (pfs_trace) {                                       \
 			printf("%s(): line %d: ", __func__, __LINE__); \
-			printf foo ; \
-			printf("\n"); \
-		} \
+			printf foo;                                    \
+			printf("\n");                                  \
+		}                                                      \
 	} while (0)
-#define PFS_RETURN(err) \
-	do { \
-		if (pfs_trace) { \
-			printf("%s(): line %d: returning %d\n", \
-			    __func__, __LINE__, err); \
-		} \
-		return (err); \
+#define PFS_RETURN(err)                                                   \
+	do {                                                              \
+		if (pfs_trace) {                                          \
+			printf("%s(): line %d: returning %d\n", __func__, \
+			    __LINE__, err);                               \
+		}                                                         \
+		return (err);                                             \
 	} while (0)
 #else
-#define PFS_TRACE(foo) \
-	do { /* nothing */ } while (0)
-#define PFS_RETURN(err) \
-	return (err)
+#define PFS_TRACE(foo)     \
+	do { /* nothing */ \
+	} while (0)
+#define PFS_RETURN(err) return (err)
 #endif
 
 /*

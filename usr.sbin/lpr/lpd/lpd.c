@@ -30,7 +30,7 @@
  * SUCH DAMAGE.
  */
 
-#include "lp.cdefs.h"		/* A cross-platform version of <sys/cdefs.h> */
+#include "lp.cdefs.h" /* A cross-platform version of <sys/cdefs.h> */
 /*
  * lpd -- line printer daemon.
  *
@@ -60,59 +60,61 @@
  *	   w/o help of lpq and lprm programs.
  */
 
-#include <sys/param.h>
-#include <sys/wait.h>
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <sys/stat.h>
+#include <sys/param.h>
 #include <sys/file.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/un.h>
+#include <sys/wait.h>
 
-#include <netdb.h>
-#include <unistd.h>
-#include <syslog.h>
-#include <signal.h>
+#include <netinet/in.h>
+
+#include <arpa/inet.h>
+#include <ctype.h>
+#include <dirent.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <dirent.h>
+#include <netdb.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
-#include <ctype.h>
+#include <syslog.h>
+#include <unistd.h>
+
+#include "extern.h"
 #include "lp.h"
 #include "lp.local.h"
 #include "pathnames.h"
-#include "extern.h"
 
-int	lflag;				/* log requests flag */
-int	sflag;				/* no incoming port flag */
-int	Fflag;				/* run in foreground flag */
-int	from_remote;			/* from remote socket */
+int lflag;	 /* log requests flag */
+int sflag;	 /* no incoming port flag */
+int Fflag;	 /* run in foreground flag */
+int from_remote; /* from remote socket */
 
-int		 main(int argc, char **_argv);
-static void	 reapchild(int _signo);
-static void	 mcleanup(int _signo);
-static void	 doit(void);
-static void	 startup(void);
-static void	 chkhost(struct sockaddr *_f, int _ch_opts);
-static int	 ckqueue(struct printer *_pp);
-static void	 fhosterr(int _ch_opts, char *_sysmsg, char *_usermsg);
-static int	*socksetup(int _af, int _debuglvl);
-static void	 usage(void);
+int main(int argc, char **_argv);
+static void reapchild(int _signo);
+static void mcleanup(int _signo);
+static void doit(void);
+static void startup(void);
+static void chkhost(struct sockaddr *_f, int _ch_opts);
+static int ckqueue(struct printer *_pp);
+static void fhosterr(int _ch_opts, char *_sysmsg, char *_usermsg);
+static int *socksetup(int _af, int _debuglvl);
+static void usage(void);
 
 /* XXX from libc/net/rcmd.c */
-extern int __ivaliduser_sa(FILE *, struct sockaddr *, socklen_t,
-				const char *, const char *);
+extern int __ivaliduser_sa(FILE *, struct sockaddr *, socklen_t, const char *,
+    const char *);
 
-uid_t	uid, euid;
+uid_t uid, euid;
 
-#define LPD_NOPORTCHK	0001		/* skip reserved-port check */
-#define LPD_LOGCONNERR	0002		/* (sys)log connection errors */
-#define LPD_ADDFROMLINE	0004		/* just used for fhosterr() */
+#define LPD_NOPORTCHK 0001   /* skip reserved-port check */
+#define LPD_LOGCONNERR 0002  /* (sys)log connection errors */
+#define LPD_ADDFROMLINE 0004 /* just used for fhosterr() */
 
 int
 main(int argc, char **argv)
@@ -126,7 +128,7 @@ main(int argc, char **argv)
 	struct servent *sp, serv;
 	int inet_flag = 0, inet6_flag = 0;
 
-	euid = geteuid();	/* these shouldn't be different */
+	euid = geteuid(); /* these shouldn't be different */
 	uid = getuid();
 
 	ch_options = 0;
@@ -136,7 +138,7 @@ main(int argc, char **argv)
 	progname = "lpd";
 
 	if (euid != 0)
-		errx(EX_NOPERM,"must run as root");
+		errx(EX_NOPERM, "must run as root");
 
 	errs = 0;
 	while ((i = getopt(argc, argv, "cdlpswFW46")) != -1)
@@ -151,15 +153,15 @@ main(int argc, char **argv)
 		case 'l':
 			lflag++;
 			break;
-		case 'p':		/* letter initially used for -s */
-			/*
-			 * This will probably be removed with 5.0-release.
-			 */
-			/* FALLTHROUGH */
-		case 's':		/* secure (no inet) */
+		case 'p': /* letter initially used for -s */
+			  /*
+			   * This will probably be removed with 5.0-release.
+			   */
+			  /* FALLTHROUGH */
+		case 's': /* secure (no inet) */
 			sflag++;
 			break;
-		case 'w':		/* netbsd uses -w for maxwait */
+		case 'w': /* netbsd uses -w for maxwait */
 			/*
 			 * This will be removed after the release of 4.4, as
 			 * it conflicts with -w in netbsd's lpd.  For now it
@@ -176,7 +178,7 @@ main(int argc, char **argv)
 			break;
 		case 'W':
 			/* allow connections coming from a non-reserved port */
-			/* (done by some lpr-implementations for MS-Windows) */ 
+			/* (done by some lpr-implementations for MS-Windows) */
 			ch_options |= LPD_NOPORTCHK;
 			break;
 		case '4':
@@ -188,19 +190,20 @@ main(int argc, char **argv)
 			family = PF_INET6;
 			inet6_flag++;
 #else
-			errx(EX_USAGE, "lpd compiled sans INET6 (IPv6 support)");
+			errx(EX_USAGE,
+			    "lpd compiled sans INET6 (IPv6 support)");
 #endif
 			break;
 		/*
 		 * The following options are not in FreeBSD (yet?), but are
 		 * listed here to "reserve" them, because the option-letters
 		 * are used by either NetBSD or OpenBSD (as of July 2001).
-		 */ 
-		case 'b':		/* set bind-addr */
-		case 'n':		/* set max num of children */
-		case 'r':		/* allow 'of' for remote ptrs */
-					/* ...[not needed in freebsd] */
-			/* FALLTHROUGH */
+		 */
+		case 'b': /* set bind-addr */
+		case 'n': /* set max num of children */
+		case 'r': /* allow 'of' for remote ptrs */
+			  /* ...[not needed in freebsd] */
+			  /* FALLTHROUGH */
 		default:
 			errs++;
 		}
@@ -242,7 +245,7 @@ main(int argc, char **argv)
 		pid = fork();
 		if (pid < 0) {
 			err(EX_OSERR, "cannot fork");
-		} else if (pid == 0) {	/* child */
+		} else if (pid == 0) { /* child */
 			execl(_PATH_CHKPRINTCAP, _PATH_CHKPRINTCAP, (char *)0);
 			err(EX_OSERR, "cannot execute %s", _PATH_CHKPRINTCAP);
 		}
@@ -251,7 +254,7 @@ main(int argc, char **argv)
 		}
 		if (WIFEXITED(status) && WEXITSTATUS(status) != 0)
 			errx(EX_OSFILE, "%d errors in printcap file, exiting",
-			     WEXITSTATUS(status));
+			    WEXITSTATUS(status));
 	}
 
 #ifdef DEBUG
@@ -268,7 +271,7 @@ main(int argc, char **argv)
 	openlog("lpd", LOG_PID, LOG_LPR);
 	syslog(LOG_INFO, "lpd startup: logging=%d%s%s", lflag,
 	    socket_debug ? " dbg" : "", sflag ? " net-secure" : "");
-	(void) umask(0);
+	(void)umask(0);
 	/*
 	 * NB: This depends on O_NONBLOCK semantics doing the right thing;
 	 * i.e., applying only to the O_EXLOCK and not to the rest of the
@@ -276,15 +279,15 @@ main(int argc, char **argv)
 	 * used filesystems.  There are other places in this code which
 	 * make the same assumption.
 	 */
-	lfd = open(_PATH_MASTERLOCK, O_WRONLY|O_CREAT|O_EXLOCK|O_NONBLOCK,
-		   LOCK_FILE_MODE);
+	lfd = open(_PATH_MASTERLOCK, O_WRONLY | O_CREAT | O_EXLOCK | O_NONBLOCK,
+	    LOCK_FILE_MODE);
 	if (lfd < 0) {
-		if (errno == EWOULDBLOCK)	/* active daemon present */
+		if (errno == EWOULDBLOCK) /* active daemon present */
 			exit(0);
 		syslog(LOG_ERR, "%s: %m", _PATH_MASTERLOCK);
 		exit(1);
 	}
-	fcntl(lfd, F_SETFL, 0);	/* turn off non-blocking mode */
+	fcntl(lfd, F_SETFL, 0); /* turn off non-blocking mode */
 	ftruncate(lfd, 0);
 	/*
 	 * write process id for others to know
@@ -300,7 +303,7 @@ main(int argc, char **argv)
 	 * Restart all the printers.
 	 */
 	startup();
-	(void) unlink(_PATH_SOCKETNAME);
+	(void)unlink(_PATH_SOCKETNAME);
 	funix = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (funix < 0) {
 		syslog(LOG_ERR, "socket: %m");
@@ -314,7 +317,7 @@ main(int argc, char **argv)
 	sigaddset(&nmask, SIGTERM);
 	sigprocmask(SIG_BLOCK, &nmask, &omask);
 
-	(void) umask(07);
+	(void)umask(07);
 	signal(SIGHUP, mcleanup);
 	signal(SIGINT, mcleanup);
 	signal(SIGQUIT, mcleanup);
@@ -329,7 +332,7 @@ main(int argc, char **argv)
 		syslog(LOG_ERR, "ubind: %m");
 		exit(1);
 	}
-	(void) umask(0);
+	(void)umask(0);
 	sigprocmask(SIG_SETMASK, &omask, (sigset_t *)0);
 	FD_ZERO(&defreadfds);
 	FD_SET(funix, &defreadfds);
@@ -337,7 +340,7 @@ main(int argc, char **argv)
 	if (sflag == 0) {
 		finet = socksetup(family, socket_debug);
 	} else
-		finet = NULL;	/* pretend we couldn't open TCP socket. */
+		finet = NULL; /* pretend we couldn't open TCP socket. */
 	if (finet) {
 		for (i = 1; i <= *finet; i++) {
 			FD_SET(finet[i], &defreadfds);
@@ -365,14 +368,14 @@ main(int argc, char **argv)
 				syslog(LOG_WARNING, "select: %m");
 			continue;
 		}
-		domain = -1;		    /* avoid compile-time warning */
-		s = -1;			    /* avoid compile-time warning */
+		domain = -1; /* avoid compile-time warning */
+		s = -1;	     /* avoid compile-time warning */
 		if (FD_ISSET(funix, &readfds)) {
 			domain = AF_UNIX, fromlen = sizeof(fromunix);
-			s = accept(funix,
-			    (struct sockaddr *)&fromunix, &fromlen);
- 		} else {
-                        for (i = 1; i <= *finet; i++) 
+			s = accept(funix, (struct sockaddr *)&fromunix,
+			    &fromlen);
+		} else {
+			for (i = 1; i <= *finet; i++)
 				if (FD_ISSET(finet[i], &readfds)) {
 					domain = AF_INET;
 					fromlen = sizeof(frominet);
@@ -397,24 +400,24 @@ main(int argc, char **argv)
 			signal(SIGINT, SIG_IGN);
 			signal(SIGQUIT, SIG_IGN);
 			signal(SIGTERM, SIG_IGN);
-			(void) close(funix);
+			(void)close(funix);
 			if (sflag == 0 && finet) {
-                        	for (i = 1; i <= *finet; i++) 
+				for (i = 1; i <= *finet; i++)
 					(void)close(finet[i]);
 			}
 			dup2(s, STDOUT_FILENO);
-			(void) close(s);
+			(void)close(s);
 			if (domain == AF_INET) {
 				/* for both AF_INET and AF_INET6 */
 				from_remote = 1;
- 				chkhost((struct sockaddr *)&frominet,
+				chkhost((struct sockaddr *)&frominet,
 				    ch_options);
 			} else
 				from_remote = 0;
 			doit();
 			exit(0);
 		}
-		(void) close(s);
+		(void)close(s);
 	}
 }
 
@@ -446,23 +449,17 @@ mcleanup(int signo)
 /*
  * Stuff for handling job specifications
  */
-char	*user[MAXUSERS];	/* users to process */
-int	users;			/* # of users in user array */
-int	requ[MAXREQUESTS];	/* job number of spool entries */
-int	requests;		/* # of spool requests */
-char	*person;		/* name of person doing lprm */
+char *user[MAXUSERS];  /* users to process */
+int users;	       /* # of users in user array */
+int requ[MAXREQUESTS]; /* job number of spool entries */
+int requests;	       /* # of spool requests */
+char *person;	       /* name of person doing lprm */
 
-		 /* buffer to hold the client's machine-name */
-static char	 frombuf[MAXHOSTNAMELEN];
-char	cbuf[BUFSIZ];		/* command line buffer */
-const char	*cmdnames[] = {
-	"null",
-	"printjob",
-	"recvjob",
-	"displayq short",
-	"displayq long",
-	"rmjob"
-};
+/* buffer to hold the client's machine-name */
+static char frombuf[MAXHOSTNAMELEN];
+char cbuf[BUFSIZ]; /* command line buffer */
+const char *cmdnames[] = { "null", "printjob", "recvjob", "displayq short",
+	"displayq long", "rmjob" };
 
 static void
 doit(void)
@@ -489,11 +486,11 @@ doit(void)
 		cp = cbuf;
 		if (lflag) {
 			if (*cp >= '\1' && *cp <= '\5')
-				syslog(LOG_INFO, "%s requests %s %s",
-					from_host, cmdnames[(u_char)*cp], cp+1);
+				syslog(LOG_INFO, "%s requests %s %s", from_host,
+				    cmdnames[(u_char)*cp], cp + 1);
 			else
 				syslog(LOG_INFO, "bad request (%d) from %s",
-					*cp, from_host);
+				    *cp, from_host);
 		}
 		switch (*cp++) {
 		case CMD_CHECK_QUE: /* check the queue, print any jobs there */
@@ -507,7 +504,7 @@ doit(void)
 			recvjob(cp);
 			break;
 		case CMD_SHOWQ_SHORT: /* display the queue (short form) */
-		case CMD_SHOWQ_LONG: /* display the queue (long form) */
+		case CMD_SHOWQ_LONG:  /* display the queue (long form) */
 			/* XXX - this all needs to be redone. */
 			printer = cp;
 			while (*cp) {
@@ -535,7 +532,7 @@ doit(void)
 				fatal(pp, "%s", pcaperr(status));
 			displayq(pp, cbuf[0] == CMD_SHOWQ_LONG);
 			exit(0);
-		case CMD_RMJOB:	/* remove a job from the queue */
+		case CMD_RMJOB: /* remove a job from the queue */
 			if (!from_remote) {
 				syslog(LOG_INFO, "illegal request (%d)", *cp);
 				exit(1);
@@ -605,11 +602,11 @@ startup(void)
 			/* NOTREACHED */
 		}
 		do {
-next:
+		next:
 			more = nextprinter(pp, &status);
-errloop:
+		errloop:
 			if (status)
-				syslog(LOG_WARNING, 
+				syslog(LOG_WARNING,
 				    "lpd startup: printcap entry for %s has errors, skipping",
 				    pp->printer ? pp->printer : "<noname?>");
 		} while (more && status);
@@ -631,9 +628,9 @@ ckqueue(struct printer *pp)
 		return (-1);
 	while ((d = readdir(dirp)) != NULL) {
 		if (d->d_name[0] != 'c' || d->d_name[1] != 'f')
-			continue;	/* daemon control files only */
+			continue; /* daemon control files only */
 		closedir(dirp);
-		return (1);		/* found something */
+		return (1); /* found something */
 	}
 	closedir(dirp);
 	return (0);
@@ -674,11 +671,10 @@ chkhost(struct sockaddr *f, int ch_opts)
 			/* NOTREACHED */
 		}
 		asprintf(&syserr,
-		    "Host name for remote host (%s) not known (%d)",
-		    hostbuf, errsav);
+		    "Host name for remote host (%s) not known (%d)", hostbuf,
+		    errsav);
 		asprintf(&usererr,
-		    "Host name for your address (%s) is not known",
-		    hostbuf);
+		    "Host name for your address (%s) is not known", hostbuf);
 		fhosterr(ch_opts, syserr, usererr);
 		/* NOTREACHED */
 	}
@@ -691,8 +687,7 @@ chkhost(struct sockaddr *f, int ch_opts)
 	error = getnameinfo(f, f->sa_len, hostbuf, sizeof(hostbuf), NULL, 0,
 	    NI_NUMERICHOST);
 	if (error) {
-		asprintf(&syserr, "Cannot print IP address (error %d)",
-		    error);
+		asprintf(&syserr, "Cannot print IP address (error %d)", error);
 		asprintf(&usererr, "Cannot print IP address for your host");
 		fhosterr(ch_opts, syserr, usererr);
 		/* NOTREACHED */
@@ -702,7 +697,7 @@ chkhost(struct sockaddr *f, int ch_opts)
 	/* Reject numeric addresses */
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = family;
-	hints.ai_socktype = SOCK_DGRAM;	/*dummy*/
+	hints.ai_socktype = SOCK_DGRAM; /*dummy*/
 	hints.ai_flags = AI_PASSIVE | AI_NUMERICHOST;
 	if (getaddrinfo(from_host, NULL, &hints, &res) == 0) {
 		freeaddrinfo(res);
@@ -718,7 +713,7 @@ chkhost(struct sockaddr *f, int ch_opts)
 	/* Check for spoof, ala rlogind */
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = family;
-	hints.ai_socktype = SOCK_DGRAM;	/*dummy*/
+	hints.ai_socktype = SOCK_DGRAM; /*dummy*/
 	error = getaddrinfo(from_host, NULL, &hints, &res);
 	if (error) {
 		asprintf(&syserr, "dns lookup for address %s failed: %s",
@@ -740,8 +735,8 @@ chkhost(struct sockaddr *f, int ch_opts)
 	if (good == 0) {
 		asprintf(&syserr, "address for remote host (%s) not matched",
 		    from_ip);
-		asprintf(&usererr,
-		    "address for your hostname (%s) not matched", from_ip);
+		asprintf(&usererr, "address for your hostname (%s) not matched",
+		    from_ip);
 		fhosterr(ch_opts, syserr, usererr);
 		/* NOTREACHED */
 	}
@@ -751,10 +746,10 @@ chkhost(struct sockaddr *f, int ch_opts)
 again:
 	if (hostf) {
 		if (__ivaliduser_sa(hostf, f, f->sa_len, DUMMY, DUMMY) == 0) {
-			(void) fclose(hostf);
+			(void)fclose(hostf);
 			goto foundhost;
 		}
-		(void) fclose(hostf);
+		(void)fclose(hostf);
 	}
 	if (fpass == 1) {
 		fpass = 2;
@@ -772,7 +767,7 @@ again:
 
 foundhost:
 	if (ch_opts & LPD_NOPORTCHK)
-		return;			/* skip the reserved-port check */
+		return; /* skip the reserved-port check */
 
 	error = getnameinfo(f, f->sa_len, NULL, 0, serv, sizeof(serv),
 	    NI_NUMERICSERV);
@@ -821,7 +816,8 @@ fhosterr(int ch_opts, char *sysmsg, char *usermsg)
 	 */
 	if (ch_opts & LPD_LOGCONNERR) {
 		if (ch_opts & LPD_ADDFROMLINE) {
-		    syslog(LOG_WARNING, "for connection from %s:", from_host);
+			syslog(LOG_WARNING,
+			    "for connection from %s:", from_host);
 		}
 		syslog(LOG_WARNING, "%s", sysmsg);
 	}
@@ -833,13 +829,13 @@ fhosterr(int ch_opts, char *sysmsg, char *usermsg)
 	printf("%s [@%s]: %s\n", progname, local_host, usermsg);
 	fflush(stdout);
 
-	/* 
+	/*
 	 * Add a minimal delay before exiting (and disconnecting from the
 	 * sending-host).  This is just in case that machine responds by
 	 * INSTANTLY retrying (and instantly re-failing...).  This may also
 	 * give the other side more time to read the error message.
 	 */
-	sleep(2);			/* a paranoid throttling measure */
+	sleep(2); /* a paranoid throttling measure */
 	exit(1);
 }
 
@@ -872,7 +868,7 @@ socksetup(int af, int debuglvl)
 		mcleanup(0);
 	}
 
-	*socks = 0;   /* num of sockets counter at start of array */
+	*socks = 0; /* num of sockets counter at start of array */
 	s = socks + 1;
 	for (r = res; r; r = r->ai_next) {
 		*s = socket(r->ai_family, r->ai_socktype, r->ai_protocol);
@@ -880,24 +876,23 @@ socksetup(int af, int debuglvl)
 			syslog(LOG_DEBUG, "socket(): %m");
 			continue;
 		}
-		if (setsockopt(*s, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on))
-		    < 0) {
+		if (setsockopt(*s, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) <
+		    0) {
 			syslog(LOG_ERR, "setsockopt(SO_REUSEADDR): %m");
 			close(*s);
 			continue;
 		}
 		if (debuglvl)
 			if (setsockopt(*s, SOL_SOCKET, SO_DEBUG, &debuglvl,
-			    sizeof(debuglvl)) < 0) {
+				sizeof(debuglvl)) < 0) {
 				syslog(LOG_ERR, "setsockopt (SO_DEBUG): %m");
 				close(*s);
 				continue;
 			}
 		if (r->ai_family == AF_INET6) {
-			if (setsockopt(*s, IPPROTO_IPV6, IPV6_V6ONLY,
-				       &on, sizeof(on)) < 0) {
-				syslog(LOG_ERR,
-				       "setsockopt (IPV6_V6ONLY): %m");
+			if (setsockopt(*s, IPPROTO_IPV6, IPV6_V6ONLY, &on,
+				sizeof(on)) < 0) {
+				syslog(LOG_ERR, "setsockopt (IPV6_V6ONLY): %m");
 				close(*s);
 				continue;
 			}
@@ -919,7 +914,7 @@ socksetup(int af, int debuglvl)
 		free(socks);
 		mcleanup(0);
 	}
-	return(socks);
+	return (socks);
 }
 
 static void

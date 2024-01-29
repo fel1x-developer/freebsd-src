@@ -27,15 +27,16 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <errno.h>
 #include <limits.h>
+#include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "namespace.h"
-#include <pthread.h>
-#include "un-namespace.h"
 #include "thr_private.h"
+#include "un-namespace.h"
 
 _Static_assert(sizeof(struct pthread_rwlock) <= THR_PAGE_SIZE_MIN,
     "pthread_rwlock is too large for off-page");
@@ -63,8 +64,8 @@ static int init_rwlock(pthread_rwlock_t *rwlock, pthread_rwlock_t *rwlock_out);
 static int __always_inline
 check_and_init_rwlock(pthread_rwlock_t *rwlock, pthread_rwlock_t *rwlock_out)
 {
-	if (__predict_false(*rwlock == THR_PSHARED_PTR ||
-	    *rwlock <= THR_RWLOCK_DESTROYED))
+	if (__predict_false(
+		*rwlock == THR_PSHARED_PTR || *rwlock <= THR_RWLOCK_DESTROYED))
 		return (init_rwlock(rwlock, rwlock_out));
 	*rwlock_out = *rwlock;
 	return (0);
@@ -206,7 +207,7 @@ rwlock_rdlock_common(pthread_rwlock_t *rwlock, const struct timespec *abstime)
 		return (ret);
 	}
 
-	if (__predict_false(abstime && 
+	if (__predict_false(abstime &&
 		(abstime->tv_nsec >= 1000000000 || abstime->tv_nsec < 0)))
 		return (EINVAL);
 
@@ -235,8 +236,8 @@ _Tthr_rwlock_rdlock(pthread_rwlock_t *rwlock)
 }
 
 int
-_pthread_rwlock_timedrdlock(pthread_rwlock_t * __restrict rwlock,
-    const struct timespec * __restrict abstime)
+_pthread_rwlock_timedrdlock(pthread_rwlock_t *__restrict rwlock,
+    const struct timespec *__restrict abstime)
 {
 	_thr_check_init();
 	return (rwlock_rdlock_common(rwlock, abstime));
@@ -320,8 +321,8 @@ rwlock_wrlock_common(pthread_rwlock_t *rwlock, const struct timespec *abstime)
 		return (ret);
 	}
 
-	if (__predict_false(abstime && 
-	    (abstime->tv_nsec >= 1000000000 || abstime->tv_nsec < 0)))
+	if (__predict_false(abstime &&
+		(abstime->tv_nsec >= 1000000000 || abstime->tv_nsec < 0)))
 		return (EINVAL);
 
 	for (;;) {
@@ -353,8 +354,8 @@ _Tthr_rwlock_wrlock(pthread_rwlock_t *rwlock)
 }
 
 int
-_pthread_rwlock_timedwrlock(pthread_rwlock_t * __restrict rwlock,
-    const struct timespec * __restrict abstime)
+_pthread_rwlock_timedwrlock(pthread_rwlock_t *__restrict rwlock,
+    const struct timespec *__restrict abstime)
 {
 	_thr_check_init();
 	return (rwlock_wrlock_common(rwlock, abstime));

@@ -5,21 +5,20 @@
  * See the IPFILTER.LICENCE file for details on licencing.
  */
 #include <sys/types.h>
-#include <sys/time.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 
-#include <netinet/in.h>
 #include <net/if.h>
+#include <netinet/in.h>
 
 #include <arpa/inet.h>
-
+#include <fcntl.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <string.h>
 #include <syslog.h>
-#include <signal.h>
+#include <unistd.h>
 
 #include "netinet/ip_compat.h"
 #include "netinet/ip_fil.h"
@@ -27,14 +26,16 @@
 #include "netinet/ip_state.h"
 #include "netinet/ip_sync.h"
 
+int main(int, char *[]);
+void usage(const char *);
 
-int	main(int, char *[]);
-void	usage(const char *);
+int terminate = 0;
 
-int	terminate = 0;
-
-void usage(const char *progname) {
-	fprintf(stderr, "Usage: %s <destination IP> <destination port>\n", progname);
+void
+usage(const char *progname)
+{
+	fprintf(stderr, "Usage: %s <destination IP> <destination port>\n",
+	    progname);
 }
 
 #if 0
@@ -44,13 +45,13 @@ static void handleterm(int sig)
 }
 #endif
 
-
 /* should be large enough to hold header + any datatype */
 #define BUFFERLEN 1400
 
-int main(argc, argv)
-	int argc;
-	char *argv[];
+int
+main(argc, argv)
+int argc;
+char *argv[];
 {
 	struct sockaddr_in sin;
 	char buff[BUFFERLEN];
@@ -68,7 +69,6 @@ int main(argc, argv)
 	} else {
 		progname = argv[0];
 	}
-
 
 	if (argc < 2) {
 		usage(progname);
@@ -115,16 +115,15 @@ int main(argc, argv)
 			goto tryagain;
 		}
 
-		syslog(LOG_INFO, "Sending data to %s",
-		       inet_ntoa(sin.sin_addr));
+		syslog(LOG_INFO, "Sending data to %s", inet_ntoa(sin.sin_addr));
 
 		inbuf = 0;
 		while (1) {
 
-			n1 = read(lfd, buff+inbuf, BUFFERLEN-inbuf);
+			n1 = read(lfd, buff + inbuf, BUFFERLEN - inbuf);
 
 			printf("header : %d bytes read (header = %d bytes)\n",
-			       n1, (int) sizeof(*sh));
+			    n1, (int)sizeof(*sh));
 
 			if (n1 < 0) {
 				syslog(LOG_ERR, "Read error (header): %m");
@@ -134,14 +133,14 @@ int main(argc, argv)
 			if (n1 == 0) {
 				/* XXX can this happen??? */
 				syslog(LOG_ERR,
-				       "Read error (header) : No data");
+				    "Read error (header) : No data");
 				sleep(1);
 				continue;
 			}
 
 			inbuf += n1;
 
-moreinbuf:
+		moreinbuf:
 			if (inbuf < sizeof(*sh)) {
 				continue; /* need more data */
 			}
@@ -151,15 +150,15 @@ moreinbuf:
 			magic = ntohl(sh->sm_magic);
 
 			if (magic != SYNHDRMAGIC) {
-				syslog(LOG_ERR,
-				       "Invalid header magic %x", magic);
+				syslog(LOG_ERR, "Invalid header magic %x",
+				    magic);
 				goto tryagain;
 			}
 
 #define IPSYNC_DEBUG
 #ifdef IPSYNC_DEBUG
-			printf("v:%d p:%d len:%d magic:%x", sh->sm_v,
-			       sh->sm_p, len, magic);
+			printf("v:%d p:%d len:%d magic:%x", sh->sm_v, sh->sm_p,
+			    len, magic);
 
 			if (sh->sm_cmd == SMC_CREATE)
 				printf(" cmd:CREATE");
@@ -190,10 +189,11 @@ moreinbuf:
 			} else if (sh->sm_cmd == SMC_UPDATE) {
 				su = (syncupdent_t *)buff;
 				if (sh->sm_p == IPPROTO_TCP) {
-					printf(" TCP Update: age %lu state %d/%d\n",
-						su->sup_tcp.stu_age,
-						su->sup_tcp.stu_state[0],
-						su->sup_tcp.stu_state[1]);
+					printf(
+					    " TCP Update: age %lu state %d/%d\n",
+					    su->sup_tcp.stu_age,
+					    su->sup_tcp.stu_state[0],
+					    su->sup_tcp.stu_state[1]);
 				}
 			} else {
 				printf("Unknown command\n");
@@ -207,10 +207,9 @@ moreinbuf:
 				goto tryagain;
 			}
 
-
 			if (n3 != n2) {
-				syslog(LOG_ERR, "Incomplete write (%d/%d)",
-				       n3, n2);
+				syslog(LOG_ERR, "Incomplete write (%d/%d)", n3,
+				    n2);
 				goto tryagain;
 			}
 
@@ -225,7 +224,7 @@ moreinbuf:
 			 */
 			inbuf -= n2;
 			if (inbuf) {
-				bcopy(buff+n2, buff, inbuf);
+				bcopy(buff + n2, buff, inbuf);
 				printf("More data in buffer\n");
 				goto moreinbuf;
 			}
@@ -233,10 +232,9 @@ moreinbuf:
 
 		if (terminate)
 			break;
-tryagain:
+	tryagain:
 		sleep(1);
 	}
-
 
 	/* terminate */
 	if (lfd != -1)
@@ -248,4 +246,3 @@ tryagain:
 
 	exit(1);
 }
-

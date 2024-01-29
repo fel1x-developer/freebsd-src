@@ -24,14 +24,14 @@
  */
 
 #include <sys/param.h>
-#include <sys/string.h>
 #include <sys/kmem.h>
+#include <sys/string.h>
+
 #include <machine/stdarg.h>
 
-#define	IS_DIGIT(c)	((c) >= '0' && (c) <= '9')
+#define IS_DIGIT(c) ((c) >= '0' && (c) <= '9')
 
-#define	IS_ALPHA(c)	\
-	(((c) >= 'a' && (c) <= 'z') || ((c) >= 'A' && (c) <= 'Z'))
+#define IS_ALPHA(c) (((c) >= 'a' && (c) <= 'z') || ((c) >= 'A' && (c) <= 'Z'))
 
 char *
 strpbrk(const char *s, const char *b)
@@ -90,7 +90,7 @@ kmem_asprintf(const char *fmt, ...)
 	buf = kmem_alloc(size, KM_SLEEP);
 
 	va_start(adx, fmt);
-	(void) vsnprintf(buf, size, fmt, adx);
+	(void)vsnprintf(buf, size, fmt, adx);
 	va_end(adx);
 
 	return (buf);

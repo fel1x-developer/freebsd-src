@@ -32,12 +32,14 @@
  * LC_TIME database generation routines for localedef.
  */
 #include <sys/cdefs.h>
+#include <sys/types.h>
+
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
-#include <sys/types.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "localedef.h"
 #include "parser.h"
 #include "timelocal.h"
@@ -47,13 +49,13 @@ struct lc_time_T tm;
 void
 init_time(void)
 {
-	(void) memset(&tm, 0, sizeof (tm));
+	(void)memset(&tm, 0, sizeof(tm));
 }
 
 void
 add_time_str(wchar_t *wcs)
 {
-	char	*str;
+	char *str;
 
 	if ((str = to_mb_string(wcs)) == NULL) {
 		INTERR;
@@ -97,14 +99,14 @@ add_time_str(wchar_t *wcs)
 static void
 add_list(const char *ptr[], char *str, int limit)
 {
-	int	i;
+	int i;
 	for (i = 0; i < limit; i++) {
 		if (ptr[i] == NULL) {
 			ptr[i] = str;
 			return;
 		}
 	}
-	fprintf(stderr,"too many list elements\n");
+	fprintf(stderr, "too many list elements\n");
 }
 
 void
@@ -137,7 +139,7 @@ add_time_list(wchar_t *wcs)
 		} else if (tm.pm == NULL) {
 			tm.pm = str;
 		} else {
-			fprintf(stderr,"too many list elements\n");
+			fprintf(stderr, "too many list elements\n");
 			free(str);
 		}
 		break;
@@ -180,11 +182,11 @@ check_time_list(void)
 	case T_ALT_DIGITS:
 		return;
 	default:
-		fprintf(stderr,"unknown list\n");
+		fprintf(stderr, "unknown list\n");
 		break;
 	}
 
-	fprintf(stderr,"too few items in list (%d)\n", last_kw);
+	fprintf(stderr, "too few items in list (%d)\n", last_kw);
 }
 
 void

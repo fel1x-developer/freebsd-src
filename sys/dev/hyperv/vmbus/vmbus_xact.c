@@ -25,58 +25,54 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
-#include <sys/systm.h>
 
 #include <vm/vm.h>
-#include <vm/vm_extern.h>
 #include <vm/pmap.h>
+#include <vm/vm_extern.h>
 
 #include <dev/hyperv/include/vmbus_xact.h>
 
 struct vmbus_xact {
-	struct vmbus_xact_ctx		*x_ctx;
-	void				*x_priv;
+	struct vmbus_xact_ctx *x_ctx;
+	void *x_priv;
 
-	void				*x_req;
+	void *x_req;
 
-	const void			*x_resp;
-	size_t				x_resp_len;
-	void				*x_resp0;
+	const void *x_resp;
+	size_t x_resp_len;
+	void *x_resp0;
 };
 
 struct vmbus_xact_ctx {
-	size_t				xc_req_size;
-	size_t				xc_resp_size;
-	size_t				xc_priv_size;
+	size_t xc_req_size;
+	size_t xc_resp_size;
+	size_t xc_priv_size;
 
-	struct mtx			xc_lock;
+	struct mtx xc_lock;
 	/*
 	 * Protected by xc_lock.
 	 */
-	uint32_t			xc_flags;	/* VMBUS_XACT_CTXF_ */
-	struct vmbus_xact		*xc_free;
-	struct vmbus_xact		*xc_active;
-	struct vmbus_xact		*xc_orphan;
+	uint32_t xc_flags; /* VMBUS_XACT_CTXF_ */
+	struct vmbus_xact *xc_free;
+	struct vmbus_xact *xc_active;
+	struct vmbus_xact *xc_orphan;
 };
 
-#define VMBUS_XACT_CTXF_DESTROY		0x0001
+#define VMBUS_XACT_CTXF_DESTROY 0x0001
 
-static struct vmbus_xact	*vmbus_xact_alloc(struct vmbus_xact_ctx *,
-				    bus_dma_tag_t);
-static void			vmbus_xact_free(struct vmbus_xact *);
-static struct vmbus_xact	*vmbus_xact_get1(struct vmbus_xact_ctx *,
-				    uint32_t);
-static const void		*vmbus_xact_wait1(struct vmbus_xact *, size_t *,
-				    bool);
-static const void		*vmbus_xact_return(struct vmbus_xact *,
-				    size_t *);
-static void			vmbus_xact_save_resp(struct vmbus_xact *,
-				    const void *, size_t);
-static void			vmbus_xact_ctx_free(struct vmbus_xact_ctx *);
+static struct vmbus_xact *vmbus_xact_alloc(struct vmbus_xact_ctx *,
+    bus_dma_tag_t);
+static void vmbus_xact_free(struct vmbus_xact *);
+static struct vmbus_xact *vmbus_xact_get1(struct vmbus_xact_ctx *, uint32_t);
+static const void *vmbus_xact_wait1(struct vmbus_xact *, size_t *, bool);
+static const void *vmbus_xact_return(struct vmbus_xact *, size_t *);
+static void vmbus_xact_save_resp(struct vmbus_xact *, const void *, size_t);
+static void vmbus_xact_ctx_free(struct vmbus_xact_ctx *);
 
 static struct vmbus_xact *
 vmbus_xact_alloc(struct vmbus_xact_ctx *ctx, bus_dma_tag_t parent_dtag)
@@ -308,8 +304,7 @@ vmbus_xact_return(struct vmbus_xact *xact, size_t *resp_len)
 }
 
 static const void *
-vmbus_xact_wait1(struct vmbus_xact *xact, size_t *resp_len,
-    bool can_sleep)
+vmbus_xact_wait1(struct vmbus_xact *xact, size_t *resp_len, bool can_sleep)
 {
 	struct vmbus_xact_ctx *ctx = xact->x_ctx;
 	const void *resp;
@@ -320,8 +315,8 @@ vmbus_xact_wait1(struct vmbus_xact *xact, size_t *resp_len,
 	while (xact->x_resp == NULL &&
 	    (ctx->xc_flags & VMBUS_XACT_CTXF_DESTROY) == 0) {
 		if (can_sleep) {
-			mtx_sleep(&ctx->xc_active, &ctx->xc_lock, 0,
-			    "wxact", 0);
+			mtx_sleep(&ctx->xc_active, &ctx->xc_lock, 0, "wxact",
+			    0);
 		} else {
 			mtx_unlock(&ctx->xc_lock);
 			DELAY(1000);
@@ -380,8 +375,8 @@ vmbus_xact_save_resp(struct vmbus_xact *xact, const void *data, size_t dlen)
 	mtx_assert(&ctx->xc_lock, MA_OWNED);
 
 	if (cplen > ctx->xc_resp_size) {
-		printf("vmbus: xact response truncated %zu -> %zu\n",
-		    cplen, ctx->xc_resp_size);
+		printf("vmbus: xact response truncated %zu -> %zu\n", cplen,
+		    ctx->xc_resp_size);
 		cplen = ctx->xc_resp_size;
 	}
 

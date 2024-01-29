@@ -33,22 +33,23 @@
  * SUCH DAMAGE.
  */
 
+#include <assert.h>
+#include <limits.h>
+#include <locale.h>
 #include <namespace.h>
 #include <stdio.h>
 #include <wchar.h>
-#include <assert.h>
-#include <locale.h>
-#include <limits.h>
 
-#define	dtoa		__dtoa
-#define	freedtoa	__freedtoa
+#define dtoa __dtoa
+#define freedtoa __freedtoa
 
 #include <float.h>
 #include <math.h>
-#include "gdtoa.h"
-#include "floatio.h"
-#include "printf.h"
 #include <un-namespace.h>
+
+#include "floatio.h"
+#include "gdtoa.h"
+#include "printf.h"
 
 /*
  * The size of the buffer we use as scratch space for integer
@@ -57,28 +58,27 @@
  * characters between each pair of digits.  100 bytes is a
  * conservative overestimate even for a 128-bit uintmax_t.
  */
-#define	BUF	100
+#define BUF 100
 
-#define	DEFPREC		6	/* Default FP precision */
-
+#define DEFPREC 6 /* Default FP precision */
 
 /* various globals ---------------------------------------------------*/
 
-
 /* padding function---------------------------------------------------*/
 
-#define	PRINTANDPAD(p, ep, len, with) do {		\
-	n2 = (ep) - (p);       				\
-	if (n2 > (len))					\
-		n2 = (len);				\
-	if (n2 > 0)					\
-		ret += __printf_puts(io, (p), n2);		\
-	ret += __printf_pad(io, (len) - (n2 > 0 ? n2 : 0), (with));	\
-} while(0)
+#define PRINTANDPAD(p, ep, len, with)                                       \
+	do {                                                                \
+		n2 = (ep) - (p);                                            \
+		if (n2 > (len))                                             \
+			n2 = (len);                                         \
+		if (n2 > 0)                                                 \
+			ret += __printf_puts(io, (p), n2);                  \
+		ret += __printf_pad(io, (len) - (n2 > 0 ? n2 : 0), (with)); \
+	} while (0)
 
 /* misc --------------------------------------------------------------*/
 
-#define	to_char(n)	((n) + '0')
+#define to_char(n) ((n) + '0')
 
 static int
 exponent(char *p0, int expo, int fmtch)
@@ -91,8 +91,7 @@ exponent(char *p0, int expo, int fmtch)
 	if (expo < 0) {
 		expo = -expo;
 		*p++ = '-';
-	}
-	else
+	} else
 		*p++ = '+';
 	t = expbuf + MAXEXPDIG;
 	if (expo > 9) {
@@ -102,8 +101,7 @@ exponent(char *p0, int expo, int fmtch)
 		*--t = to_char(expo);
 		for (; t < expbuf + MAXEXPDIG; *p++ = *t++)
 			;
-	}
-	else {
+	} else {
 		/*
 		 * Exponents for decimal floating point conversions
 		 * (%[eEgG]) must be at least two characters long,
@@ -122,7 +120,7 @@ exponent(char *p0, int expo, int fmtch)
 int
 __printf_arginfo_float(const struct printf_info *pi, size_t n, int *argt)
 {
-	assert (n > 0);
+	assert(n > 0);
 	argt[0] = PA_DOUBLE;
 	if (pi->is_long_double)
 		argt[0] |= PA_FLAG_LONG_DOUBLE;
@@ -145,34 +143,35 @@ __printf_arginfo_float(const struct printf_info *pi, size_t n, int *argt)
  */
 
 int
-__printf_render_float(struct __printf_io *io, const struct printf_info *pi, const void *const *arg)
+__printf_render_float(struct __printf_io *io, const struct printf_info *pi,
+    const void *const *arg)
 {
-	int prec;		/* precision from format; <0 for N/A */
-	char *dtoaresult;	/* buffer allocated by dtoa */
-	char expchar;		/* exponent character: [eEpP\0] */
+	int prec;	  /* precision from format; <0 for N/A */
+	char *dtoaresult; /* buffer allocated by dtoa */
+	char expchar;	  /* exponent character: [eEpP\0] */
 	char *cp;
-	int expt;		/* integer value of exponent */
-	int signflag;		/* true if float is negative */
-	char *dtoaend;		/* pointer to end of converted digits */
-	char sign;		/* sign prefix (' ', '+', '-', or \0) */
-	int size;		/* size of converted field or string */
-	int ndig;		/* actual number of digits returned by dtoa */
-	int expsize;		/* character count for expstr */
-	char expstr[MAXEXPDIG+2];	/* buffer for exponent string: e+ZZZ */
-	int nseps;		/* number of group separators with ' */
-	int nrepeats;		/* number of repeats of the last group */
-	const char *grouping;	/* locale specific numeric grouping rules */
-	int lead;		/* sig figs before decimal or group sep */
+	int expt;      /* integer value of exponent */
+	int signflag;  /* true if float is negative */
+	char *dtoaend; /* pointer to end of converted digits */
+	char sign;     /* sign prefix (' ', '+', '-', or \0) */
+	int size;      /* size of converted field or string */
+	int ndig;      /* actual number of digits returned by dtoa */
+	int expsize;   /* character count for expstr */
+	char expstr[MAXEXPDIG + 2]; /* buffer for exponent string: e+ZZZ */
+	int nseps;		    /* number of group separators with ' */
+	int nrepeats;		    /* number of repeats of the last group */
+	const char *grouping;	    /* locale specific numeric grouping rules */
+	int lead;		    /* sig figs before decimal or group sep */
 	long double ld;
 	double d;
-	int realsz;		/* field size expanded by dprec, sign, etc */
-	int dprec;		/* a copy of prec if [diouxX], 0 otherwise */
-	char ox[2];		/* space for 0x; ox[1] is either x, X, or \0 */
-	int ret;		/* return value accumulator */
-	char *decimal_point;	/* locale specific decimal point */
-	int n2;			/* XXX: for PRINTANDPAD */
-	char thousands_sep;	/* locale specific thousands separator */
-	char buf[BUF];		/* buffer with space for digits of uintmax_t */
+	int realsz;	     /* field size expanded by dprec, sign, etc */
+	int dprec;	     /* a copy of prec if [diouxX], 0 otherwise */
+	char ox[2];	     /* space for 0x; ox[1] is either x, X, or \0 */
+	int ret;	     /* return value accumulator */
+	char *decimal_point; /* locale specific decimal point */
+	int n2;		     /* XXX: for PRINTANDPAD */
+	char thousands_sep;  /* locale specific thousands separator */
+	char buf[BUF];	     /* buffer with space for digits of uintmax_t */
 	const char *xdigs;
 	int flag;
 
@@ -189,7 +188,7 @@ __printf_render_float(struct __printf_io *io, const struct printf_info *pi, cons
 	decimal_point = localeconv()->decimal_point;
 	dprec = -1;
 
-	switch(pi->spec) {
+	switch (pi->spec) {
 	case 'a':
 	case 'A':
 		if (pi->spec == 'a') {
@@ -205,14 +204,12 @@ __printf_render_float(struct __printf_io *io, const struct printf_info *pi, cons
 			prec++;
 		if (pi->is_long_double) {
 			ld = *((long double *)arg[0]);
-			dtoaresult = cp =
-			    __hldtoa(ld, xdigs, prec,
-			    &expt, &signflag, &dtoaend);
+			dtoaresult = cp = __hldtoa(ld, xdigs, prec, &expt,
+			    &signflag, &dtoaend);
 		} else {
 			d = *((double *)arg[0]);
-			dtoaresult = cp =
-			    __hdtoa(d, xdigs, prec,
-			    &expt, &signflag, &dtoaend);
+			dtoaresult = cp = __hdtoa(d, xdigs, prec, &expt,
+			    &signflag, &dtoaend);
 		}
 		if (prec < 0)
 			prec = dtoaend - cp;
@@ -222,7 +219,7 @@ __printf_render_float(struct __printf_io *io, const struct printf_info *pi, cons
 	case 'e':
 	case 'E':
 		expchar = pi->spec;
-		if (prec < 0)	/* account for digit before decpt */
+		if (prec < 0) /* account for digit before decpt */
 			prec = DEFPREC + 1;
 		else
 			prec++;
@@ -245,21 +242,19 @@ __printf_render_float(struct __printf_io *io, const struct printf_info *pi, cons
 		prec = DEFPREC;
 	if (pi->is_long_double) {
 		ld = *((long double *)arg[0]);
-		dtoaresult = cp =
-		    __ldtoa(&ld, expchar ? 2 : 3, prec,
-		    &expt, &signflag, &dtoaend);
+		dtoaresult = cp = __ldtoa(&ld, expchar ? 2 : 3, prec, &expt,
+		    &signflag, &dtoaend);
 	} else {
 		d = *((double *)arg[0]);
-		dtoaresult = cp =
-		    dtoa(d, expchar ? 2 : 3, prec,
-		    &expt, &signflag, &dtoaend);
+		dtoaresult = cp = dtoa(d, expchar ? 2 : 3, prec, &expt,
+		    &signflag, &dtoaend);
 		if (expt == 9999)
 			expt = INT_MAX;
 	}
 fp_common:
 	if (signflag)
 		sign = '-';
-	if (expt == INT_MAX) {	/* inf or nan */
+	if (expt == INT_MAX) { /* inf or nan */
 		if (*cp == 'N') {
 			cp = (pi->spec >= 'a') ? "nan" : "NAN";
 			sign = '\0';
@@ -298,7 +293,7 @@ fp_common:
 		/* space for digits before decimal point */
 		if (expt > 0)
 			size = expt;
-		else	/* "0" */
+		else /* "0" */
 			size = 1;
 		/* space for decimal pt and following digits */
 		if (prec || pi->alt)
@@ -311,7 +306,7 @@ fp_common:
 				if (lead <= *grouping)
 					break;
 				lead -= *grouping;
-				if (*(grouping+1)) {
+				if (*(grouping + 1)) {
 					nseps++;
 					grouping++;
 				} else
@@ -351,7 +346,7 @@ here:
 	if (sign)
 		ret += __printf_puts(io, &sign, 1);
 
-	if (ox[1]) {	/* ox[1] is either x, X, or \0 */
+	if (ox[1]) { /* ox[1] is either x, X, or \0 */
 		ox[0] = '0';
 		ret += __printf_puts(io, ox, 2);
 	}
@@ -367,11 +362,12 @@ here:
 		ret += __printf_puts(io, cp, size);
 	else {
 		/* glue together f_p fragments */
-		if (!expchar) {	/* %[fF] or sufficiently short %[gG] */
+		if (!expchar) { /* %[fF] or sufficiently short %[gG] */
 			if (expt <= 0) {
 				ret += __printf_puts(io, "0", 1);
 				if (prec || pi->alt)
-					ret += __printf_puts(io, decimal_point, 1);
+					ret += __printf_puts(io, decimal_point,
+					    1);
 				ret += __printf_pad(io, -expt, 1);
 				/* already handled initial 0's */
 				prec += expt;
@@ -379,15 +375,16 @@ here:
 				PRINTANDPAD(cp, dtoaend, lead, 1);
 				cp += lead;
 				if (grouping) {
-					while (nseps>0 || nrepeats>0) {
+					while (nseps > 0 || nrepeats > 0) {
 						if (nrepeats > 0)
 							nrepeats--;
 						else {
 							grouping--;
 							nseps--;
 						}
-						ret += __printf_puts(io, &thousands_sep, 1);
-						PRINTANDPAD(cp,dtoaend,
+						ret += __printf_puts(io,
+						    &thousands_sep, 1);
+						PRINTANDPAD(cp, dtoaend,
 						    *grouping, 1);
 						cp += *grouping;
 					}
@@ -395,17 +392,18 @@ here:
 						cp = dtoaend;
 				}
 				if (prec || pi->alt)
-					ret += __printf_puts(io, decimal_point,1);
+					ret += __printf_puts(io, decimal_point,
+					    1);
 			}
 			PRINTANDPAD(cp, dtoaend, prec, 1);
-		} else {	/* %[eE] or sufficiently long %[gG] */
+		} else { /* %[eE] or sufficiently long %[gG] */
 			if (prec > 1 || pi->alt) {
 				buf[0] = *cp++;
 				buf[1] = *decimal_point;
 				ret += __printf_puts(io, buf, 2);
-				ret += __printf_puts(io, cp, ndig-1);
+				ret += __printf_puts(io, cp, ndig - 1);
 				ret += __printf_pad(io, prec - ndig, 1);
-			} else	/* XeYYY */
+			} else /* XeYYY */
 				ret += __printf_puts(io, cp, 1);
 			ret += __printf_puts(io, expstr, expsize);
 		}

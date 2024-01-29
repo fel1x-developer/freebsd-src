@@ -3,9 +3,9 @@
 Copyright (c) 2004 - 2012, Intel Corporation. All rights reserved.
 
 This program and the accompanying materials
-are licensed and made available under the terms and conditions of the BSD License
-which accompanies this distribution.  The full text of the license may be found at
-http://opensource.org/licenses/bsd-license.php
+are licensed and made available under the terms and conditions of the BSD
+License which accompanies this distribution.  The full text of the license may
+be found at http://opensource.org/licenses/bsd-license.php
 
 THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
 WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
@@ -27,10 +27,8 @@ Abstract:
 #ifndef _EFI_BIND_H_
 #define _EFI_BIND_H_
 
-
 #define EFI_DRIVER_ENTRY_POINT(InitFunction)
 #define EFI_APPLICATION_ENTRY_POINT EFI_DRIVER_ENTRY_POINT
-
 
 //
 // Make sure we are using the correct packing rules per EFI specification
@@ -39,39 +37,43 @@ Abstract:
 #pragma pack()
 #endif
 
-
-#define EFIERR(a)           (0x80000000 | a)
-#define EFI_ERROR_MASK      0x80000000
-#define EFIERR_OEM(a)       (0xc0000000 | a)
+#define EFIERR(a) (0x80000000 | a)
+#define EFI_ERROR_MASK 0x80000000
+#define EFIERR_OEM(a) (0xc0000000 | a)
 
 //
 // Processor specific defines
 //
-#define EFI_MAX_BIT       0x80000000
-#define MAX_2_BITS        0xC0000000
+#define EFI_MAX_BIT 0x80000000
+#define MAX_2_BITS 0xC0000000
 
 //
 // Maximum legal IA-32 address
 //
-#define EFI_MAX_ADDRESS   0xFFFFFFFF
+#define EFI_MAX_ADDRESS 0xFFFFFFFF
 
 //
 //  Bad pointer value to use in check builds.
 //  if you see this value you are using uninitialized or free'ed data
 //
-#define EFI_BAD_POINTER          0xAFAFAFAF
-#define EFI_BAD_POINTER_AS_BYTE  0xAF
+#define EFI_BAD_POINTER 0xAFAFAFAF
+#define EFI_BAD_POINTER_AS_BYTE 0xAF
 
-#define EFI_DEADLOOP()    { volatile UINTN __iii; __iii = 1; while (__iii); }
+#define EFI_DEADLOOP()                \
+	{                             \
+		volatile UINTN __iii; \
+		__iii = 1;            \
+		while (__iii)         \
+			;             \
+	}
 
 //
-// Inject a break point in the code to assist debugging for NT Emulation Environment
-// For real hardware, just put in a halt loop. Don't do a while(1) because the
-// compiler will optimize away the rest of the function following, so that you run out in
-// the weeds if you skip over it with a debugger.
+// Inject a break point in the code to assist debugging for NT Emulation
+// Environment For real hardware, just put in a halt loop. Don't do a while(1)
+// because the compiler will optimize away the rest of the function following,
+// so that you run out in the weeds if you skip over it with a debugger.
 //
 #define EFI_BREAKPOINT EFI_DEADLOOP()
-
 
 //
 // Memory Fence forces serialization, and is needed to support out of order
@@ -89,13 +91,11 @@ Abstract:
 // The following macro provide a workaround for such cases.
 //
 
-
 #ifdef EFI_NO_INTERFACE_DECL
-  #define EFI_FORWARD_DECLARATION(x)
+#define EFI_FORWARD_DECLARATION(x)
 #else
-  #define EFI_FORWARD_DECLARATION(x) typedef struct _##x x
+#define EFI_FORWARD_DECLARATION(x) typedef struct _##x x
 #endif
-
 
 //
 // Some C compilers optimize the calling conventions to increase performance.
@@ -104,23 +104,21 @@ Abstract:
 //
 #define EFIAPI
 
-
-
 //
 // For symbol name in GNU assembly code, an extra "_" is necessary
 //
 #if defined(__GNUC__)
-  ///
-  /// Private worker functions for ASM_PFX()
-  ///
-  #define _CONCATENATE(a, b)  __CONCATENATE(a, b)
-  #define __CONCATENATE(a, b) a ## b
+///
+/// Private worker functions for ASM_PFX()
+///
+#define _CONCATENATE(a, b) __CONCATENATE(a, b)
+#define __CONCATENATE(a, b) a##b
 
-  ///
-  /// The __USER_LABEL_PREFIX__ macro predefined by GNUC represents the prefix
-  /// on symbols in assembly language.
-  ///
-  #define ASM_PFX(name) _CONCATENATE (__USER_LABEL_PREFIX__, name)
+///
+/// The __USER_LABEL_PREFIX__ macro predefined by GNUC represents the prefix
+/// on symbols in assembly language.
+///
+#define ASM_PFX(name) _CONCATENATE(__USER_LABEL_PREFIX__, name)
 
 #endif
 

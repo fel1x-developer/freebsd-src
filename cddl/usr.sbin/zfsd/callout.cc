@@ -40,32 +40,31 @@
 #include <sys/byteorder.h>
 #include <sys/time.h>
 
-#include <signal.h>
-#include <syslog.h>
-
-#include <climits>
-#include <list>
-#include <map>
-#include <string>
-
-#include <devdctl/guid.h>
+#include <devdctl/consumer.h>
 #include <devdctl/event.h>
 #include <devdctl/event_factory.h>
-#include <devdctl/consumer.h>
 #include <devdctl/exception.h>
+#include <devdctl/guid.h>
+#include <signal.h>
+#include <syslog.h>
 
 #include "callout.h"
 #include "vdev_iterator.h"
 #include "zfsd.h"
 #include "zfsd_exception.h"
 
+#include <climits>
+#include <list>
+#include <map>
+#include <string>
+
 std::list<Callout *> Callout::s_activeCallouts;
-bool		     Callout::s_alarmFired(false);
+bool Callout::s_alarmFired(false);
 
 void
 Callout::Init()
 {
-	signal(SIGALRM,  Callout::AlarmSignalHandler);
+	signal(SIGALRM, Callout::AlarmSignalHandler);
 }
 
 bool
@@ -88,7 +87,7 @@ Callout::Stop()
 			 * entry.
 			 */
 			timeradd(&(*it)->m_interval, &m_interval,
-				 &(*it)->m_interval);
+			    &(*it)->m_interval);
 		}
 		break;
 	}
@@ -107,9 +106,9 @@ Callout::Reset(const timeval &interval, CalloutFunc_t *func, void *arg)
 	cancelled = Stop();
 
 	m_interval = interval;
-	m_func     = func;
-	m_arg      = arg;
-	m_pending  = true;
+	m_func = func;
+	m_arg = arg;
+	m_pending = true;
 
 	std::list<Callout *>::iterator it(s_activeCallouts.begin());
 	for (; it != s_activeCallouts.end(); it++) {
@@ -126,15 +125,14 @@ Callout::Reset(const timeval &interval, CalloutFunc_t *func, void *arg)
 			 * inserted event and those that follow.
 			 */
 			timersub(&(*it)->m_interval, &m_interval,
-				 &(*it)->m_interval);
+			    &(*it)->m_interval);
 			break;
 		}
 	}
 	s_activeCallouts.insert(it, this);
 
-
 	if (s_activeCallouts.front() == this) {
-		itimerval timerval = { {0, 0}, m_interval };
+		itimerval timerval = { { 0, 0 }, m_interval };
 
 		setitimer(ITIMER_REAL, &timerval, NULL);
 	}
@@ -172,8 +170,8 @@ Callout::ExpireCallouts()
 		s_activeCallouts.pop_front();
 		cur->m_pending = false;
 		cur->m_func(cur->m_arg);
-	} while (!s_activeCallouts.empty()
-	      && timerisset(&s_activeCallouts.front()->m_interval) == 0);
+	} while (!s_activeCallouts.empty() &&
+	    timerisset(&s_activeCallouts.front()->m_interval) == 0);
 
 	if (!s_activeCallouts.empty()) {
 		Callout *next(s_activeCallouts.front());
@@ -198,17 +196,17 @@ Callout::TimeRemaining() const
 
 	if (!IsPending()) {
 		timeToExpiry.tv_sec = INT_MAX;
-		timeToExpiry.tv_usec = 999999;	/*maximum normalized value*/
+		timeToExpiry.tv_usec = 999999; /*maximum normalized value*/
 		return (timeToExpiry);
 	}
 
 	timerclear(&timeToExpiry);
 	getitimer(ITIMER_REAL, &timervalToAlarm);
-	timeval& timeToAlarm = timervalToAlarm.it_value;
+	timeval &timeToAlarm = timervalToAlarm.it_value;
 	timeradd(&timeToExpiry, &timeToAlarm, &timeToExpiry);
 
-	it =s_activeCallouts.begin();
-	it++;	/*skip the first callout in the list*/
+	it = s_activeCallouts.begin();
+	it++; /*skip the first callout in the list*/
 	for (; it != s_activeCallouts.end(); it++) {
 		timeradd(&timeToExpiry, &(*it)->m_interval, &timeToExpiry);
 		if ((*it) == this)

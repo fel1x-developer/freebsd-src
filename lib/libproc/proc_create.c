@@ -34,20 +34,19 @@
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <libelf.h>
+#include <libprocstat.h>
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <libelf.h>
-#include <libprocstat.h>
-
 #include "_libproc.h"
 
-extern char * const *environ;
+extern char *const *environ;
 
-static int	getelfclass(int);
-static int	proc_init(pid_t, int, int, struct proc_handle **);
+static int getelfclass(int);
+static int proc_init(pid_t, int, int, struct proc_handle **);
 
 static int
 getelfclass(int fd)
@@ -89,7 +88,7 @@ proc_init(pid_t pid, int flags, int status, struct proc_handle **pphdl)
 
 	/* Obtain a path to the executable. */
 	if ((kp = procstat_getprocs(phdl->procstat, KERN_PROC_PID, pid,
-	    &count)) == NULL)
+		 &count)) == NULL)
 		goto out;
 	error = procstat_getpathname(phdl->procstat, kp, phdl->execpath,
 	    sizeof(phdl->execpath));
@@ -151,13 +150,16 @@ proc_attach(pid_t pid, int flags, struct proc_handle **pphdl)
 		/* Wait for the child process to stop. */
 		if (waitpid(pid, &status, WUNTRACED) == -1) {
 			error = errno;
-			DPRINTF("ERROR: child process %d didn't stop as expected", pid);
+			DPRINTF(
+			    "ERROR: child process %d didn't stop as expected",
+			    pid);
 			goto out;
 		}
 
 		/* Check for an unexpected status. */
 		if (!WIFSTOPPED(status))
-			DPRINTFX("ERROR: child process %d status 0x%x", pid, status);
+			DPRINTFX("ERROR: child process %d status 0x%x", pid,
+			    status);
 		else
 			phdl->status = PS_STOP;
 
@@ -175,7 +177,7 @@ out:
 }
 
 int
-proc_create(const char *file, char * const *argv, char * const *envp,
+proc_create(const char *file, char *const *argv, char *const *envp,
     proc_child_func *pcf, void *child_arg, struct proc_handle **pphdl)
 {
 	struct proc_handle *phdl;
@@ -209,14 +211,17 @@ proc_create(const char *file, char * const *argv, char * const *envp,
 		/* Wait for the child process to stop. */
 		if (waitpid(pid, &status, WUNTRACED) == -1) {
 			error = errno;
-			DPRINTF("ERROR: child process %d didn't stop as expected", pid);
+			DPRINTF(
+			    "ERROR: child process %d didn't stop as expected",
+			    pid);
 			goto bad;
 		}
 
 		/* Check for an unexpected status. */
 		if (!WIFSTOPPED(status)) {
 			error = ENOENT;
-			DPRINTFX("ERROR: child process %d status 0x%x", pid, status);
+			DPRINTFX("ERROR: child process %d status 0x%x", pid,
+			    status);
 			goto bad;
 		}
 
@@ -225,7 +230,7 @@ proc_create(const char *file, char * const *argv, char * const *envp,
 		if (error == 0)
 			phdl->status = PS_STOP;
 
-bad:
+	bad:
 		if (error != 0 && phdl != NULL) {
 			proc_free(phdl);
 			phdl = NULL;

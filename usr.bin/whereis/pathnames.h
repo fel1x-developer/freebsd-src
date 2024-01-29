@@ -29,16 +29,16 @@
 #define PATH_LIBEXEC "/usr/libexec"
 
 /* Where to look for sources. */
-#define PATH_SOURCES					\
-"/usr/src/bin:/usr/src/usr.bin:/usr/src/sbin:"		\
-"/usr/src/usr.sbin:/usr/src/libexec:"			\
-"/usr/src/gnu/bin:/usr/src/gnu/usr.bin:"		\
-"/usr/src/gnu/sbin:/usr/src/gnu/usr.sbin:"		\
-"/usr/src/contrib:"					\
-"/usr/src/secure/bin:/usr/src/secure/usr.bin:"		\
-"/usr/src/secure/sbin:/usr/src/secure/usr.sbin:"	\
-"/usr/src/secure/libexec:/usr/src/crypto:"		\
-"/usr/src/games"
+#define PATH_SOURCES                                     \
+	"/usr/src/bin:/usr/src/usr.bin:/usr/src/sbin:"   \
+	"/usr/src/usr.sbin:/usr/src/libexec:"            \
+	"/usr/src/gnu/bin:/usr/src/gnu/usr.bin:"         \
+	"/usr/src/gnu/sbin:/usr/src/gnu/usr.sbin:"       \
+	"/usr/src/contrib:"                              \
+	"/usr/src/secure/bin:/usr/src/secure/usr.bin:"   \
+	"/usr/src/secure/sbin:/usr/src/secure/usr.sbin:" \
+	"/usr/src/secure/libexec:/usr/src/crypto:"       \
+	"/usr/src/games"
 
 /* Each subdirectory of PATH_PORTS will be appended to PATH_SOURCES. */
 #define PATH_PORTS "/usr/ports"

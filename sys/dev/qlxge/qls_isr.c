@@ -32,13 +32,14 @@
  * Author : David C Somayajulu, Qlogic Corporation, Aliso Viejo, CA 92656.
  */
 #include <sys/cdefs.h>
-#include "qls_os.h"
-#include "qls_hw.h"
-#include "qls_def.h"
-#include "qls_inline.h"
-#include "qls_ver.h"
-#include "qls_glbl.h"
+
 #include "qls_dbg.h"
+#include "qls_def.h"
+#include "qls_glbl.h"
+#include "qls_hw.h"
+#include "qls_inline.h"
+#include "qls_os.h"
+#include "qls_ver.h"
 
 static void
 qls_tx_comp(qla_host_t *ha, uint32_t txr_idx, q81_tx_mac_comp_t *tx_comp)
@@ -55,15 +56,14 @@ qls_tx_comp(qla_host_t *ha, uint32_t txr_idx, q81_tx_mac_comp_t *tx_comp)
 
 	if (txb->m_head) {
 		if_inc_counter(ha->ifp, IFCOUNTER_OPACKETS, 1);
-		bus_dmamap_sync(ha->tx_tag, txb->map,
-		        BUS_DMASYNC_POSTWRITE);
+		bus_dmamap_sync(ha->tx_tag, txb->map, BUS_DMASYNC_POSTWRITE);
 		bus_dmamap_unload(ha->tx_tag, txb->map);
 		m_freem(txb->m_head);
 
 		txb->m_head = NULL;
 	}
 
-        ha->tx_ring[txr_idx].txr_done++;
+	ha->tx_ring[txr_idx].txr_done++;
 
 	if (ha->tx_ring[txr_idx].txr_done == NUM_TX_DESCRIPTORS)
 		ha->tx_ring[txr_idx].txr_done = 0;
@@ -72,24 +72,24 @@ qls_tx_comp(qla_host_t *ha, uint32_t txr_idx, q81_tx_mac_comp_t *tx_comp)
 static void
 qls_replenish_rx(qla_host_t *ha, uint32_t r_idx)
 {
-        qla_rx_buf_t			*rxb;
-	qla_rx_ring_t			*rxr;
-        int				count;
-	volatile q81_bq_addr_e_t	*sbq_e;
+	qla_rx_buf_t *rxb;
+	qla_rx_ring_t *rxr;
+	int count;
+	volatile q81_bq_addr_e_t *sbq_e;
 
 	rxr = &ha->rx_ring[r_idx];
 
 	count = rxr->rx_free;
 	sbq_e = rxr->sbq_vaddr;
 
-        while (count--) {
+	while (count--) {
 		rxb = &rxr->rx_buf[rxr->sbq_next];
 
 		if (rxb->m_head == NULL) {
-                	if (qls_get_mbuf(ha, rxb, NULL) != 0) {
-                        	device_printf(ha->pci_dev,
-					"%s: qls_get_mbuf [0,%d,%d] failed\n",
-					__func__, rxr->sbq_next, r_idx);
+			if (qls_get_mbuf(ha, rxb, NULL) != 0) {
+				device_printf(ha->pci_dev,
+				    "%s: qls_get_mbuf [0,%d,%d] failed\n",
+				    __func__, rxr->sbq_next, r_idx);
 				rxb->m_head = NULL;
 				break;
 			}
@@ -97,37 +97,37 @@ qls_replenish_rx(qla_host_t *ha, uint32_t r_idx)
 
 		if (rxb->m_head != NULL) {
 			sbq_e[rxr->sbq_next].addr_lo = (uint32_t)rxb->paddr;
-			sbq_e[rxr->sbq_next].addr_hi =
-				(uint32_t)(rxb->paddr >> 32);
+			sbq_e[rxr->sbq_next].addr_hi = (uint32_t)(rxb->paddr >>
+			    32);
 
-                        rxr->sbq_next++;
-                        if (rxr->sbq_next == NUM_RX_DESCRIPTORS)
-                                rxr->sbq_next = 0;
+			rxr->sbq_next++;
+			if (rxr->sbq_next == NUM_RX_DESCRIPTORS)
+				rxr->sbq_next = 0;
 
 			rxr->sbq_free++;
-                	rxr->rx_free--;
+			rxr->rx_free--;
 		}
 
-                if (rxr->sbq_free == 16) {
+		if (rxr->sbq_free == 16) {
 			rxr->sbq_in += 16;
 			rxr->sbq_in = rxr->sbq_in & (NUM_RX_DESCRIPTORS - 1);
 			rxr->sbq_free = 0;
 
 			Q81_WR_SBQ_PROD_IDX(r_idx, (rxr->sbq_in));
-                }
-        }
+		}
+	}
 }
 
 static int
 qls_rx_comp(qla_host_t *ha, uint32_t rxr_idx, uint32_t cq_idx, q81_rx_t *cq_e)
 {
-	qla_rx_buf_t	*rxb;
-	qla_rx_ring_t	*rxr;
-	device_t	dev = ha->pci_dev;
-	struct mbuf     *mp = NULL;
+	qla_rx_buf_t *rxb;
+	qla_rx_ring_t *rxr;
+	device_t dev = ha->pci_dev;
+	struct mbuf *mp = NULL;
 	if_t ifp = ha->ifp;
 #if defined(INET) || defined(INET6)
-	struct lro_ctrl	*lro;
+	struct lro_ctrl *lro;
 #endif
 	struct ether_vlan_header *eh;
 
@@ -145,14 +145,14 @@ qls_rx_comp(qla_host_t *ha, uint32_t rxr_idx, uint32_t cq_idx, q81_rx_t *cq_e)
 	}
 	if (rxb->paddr != cq_e->b_paddr) {
 		device_printf(dev,
-			"%s: (rxb->paddr != cq_e->b_paddr)[%p, %p] \n",
-			__func__, (void *)rxb->paddr, (void *)cq_e->b_paddr);
+		    "%s: (rxb->paddr != cq_e->b_paddr)[%p, %p] \n", __func__,
+		    (void *)rxb->paddr, (void *)cq_e->b_paddr);
 
 		Q81_SET_CQ_INVALID(cq_idx);
 
 		ha->qla_initiate_recovery = 1;
 
-		return(-1);
+		return (-1);
 	}
 
 	rxr->rx_int++;
@@ -189,13 +189,14 @@ qls_rx_comp(qla_host_t *ha, uint32_t rxr_idx, uint32_t cq_idx, q81_rx_t *cq_e)
 				mp->m_pkthdr.flowid = cq_e->rss;
 				M_HASHTYPE_SET(mp, M_HASHTYPE_OPAQUE_HASH);
 			}
-			if (cq_e->flags0 & (Q81_RX_FLAGS0_TE |
-				Q81_RX_FLAGS0_NU | Q81_RX_FLAGS0_IE)) {
+			if (cq_e->flags0 &
+			    (Q81_RX_FLAGS0_TE | Q81_RX_FLAGS0_NU |
+				Q81_RX_FLAGS0_IE)) {
 				mp->m_pkthdr.csum_flags = 0;
 			} else {
 				mp->m_pkthdr.csum_flags = CSUM_IP_CHECKED |
-					CSUM_IP_VALID | CSUM_DATA_VALID |
-					CSUM_PSEUDO_HDR;
+				    CSUM_IP_VALID | CSUM_DATA_VALID |
+				    CSUM_PSEUDO_HDR;
 				mp->m_pkthdr.csum_data = 0xFFFF;
 			}
 			if_inc_counter(ifp, IFCOUNTER_IPACKETS, 1);
@@ -220,7 +221,7 @@ qls_rx_comp(qla_host_t *ha, uint32_t rxr_idx, uint32_t cq_idx, q81_rx_t *cq_e)
 		rxr->rx_next = 0;
 
 	if ((rxr->rx_free + rxr->sbq_free) >= 16)
-                qls_replenish_rx(ha, rxr_idx);
+		qls_replenish_rx(ha, rxr_idx);
 
 	return 0;
 }
@@ -232,7 +233,7 @@ qls_cq_isr(qla_host_t *ha, uint32_t cq_idx)
 	uint32_t i, cq_comp_idx;
 	int ret = 0, tx_comp_done = 0;
 #if defined(INET) || defined(INET6)
-	struct lro_ctrl	*lro = &ha->rx_ring[cq_idx].lro;
+	struct lro_ctrl *lro = &ha->rx_ring[cq_idx].lro;
 #endif
 
 	cq_b = ha->rx_ring[cq_idx].cq_base_vaddr;
@@ -245,11 +246,11 @@ qls_cq_isr(qla_host_t *ha, uint32_t cq_idx)
 		cq_e = &cq_b[i];
 
 		switch (cq_e->opcode) {
-                case Q81_IOCB_TX_MAC:
-                case Q81_IOCB_TX_TSO:
-                        qls_tx_comp(ha, cq_idx, (q81_tx_mac_comp_t *)cq_e);
-                        tx_comp_done++;
-                        break;
+		case Q81_IOCB_TX_MAC:
+		case Q81_IOCB_TX_TSO:
+			qls_tx_comp(ha, cq_idx, (q81_tx_mac_comp_t *)cq_e);
+			tx_comp_done++;
+			break;
 
 		case Q81_IOCB_RX:
 			ret = qls_rx_comp(ha, cq_idx, i, (q81_rx_t *)cq_e);
@@ -260,10 +261,10 @@ qls_cq_isr(qla_host_t *ha, uint32_t cq_idx)
 		case Q81_IOCB_SYS:
 		default:
 			device_printf(ha->pci_dev, "%s[%d %d 0x%x]: illegal \n",
-				__func__, i, (*(ha->rx_ring[cq_idx].cqi_vaddr)),
-				cq_e->opcode);
+			    __func__, i, (*(ha->rx_ring[cq_idx].cqi_vaddr)),
+			    cq_e->opcode);
 			qls_dump_buf32(ha, __func__, cq_e,
-				(sizeof (q81_cq_e_t) >> 2));
+			    (sizeof(q81_cq_e_t) >> 2));
 			break;
 		}
 
@@ -279,10 +280,10 @@ qls_cq_isr(qla_host_t *ha, uint32_t cq_idx)
 			cq_comp_idx = *(ha->rx_ring[cq_idx].cqi_vaddr);
 		}
 
-                if (tx_comp_done) {
-                        taskqueue_enqueue(ha->tx_tq, &ha->tx_task);
-                        tx_comp_done = 0;
-                }
+		if (tx_comp_done) {
+			taskqueue_enqueue(ha->tx_tq, &ha->tx_task);
+			tx_comp_done = 0;
+		}
 	}
 
 #if defined(INET) || defined(INET6)
@@ -294,8 +295,8 @@ qls_cq_isr(qla_host_t *ha, uint32_t cq_idx)
 	if (!ret) {
 		Q81_WR_CQ_CONS_IDX(cq_idx, (ha->rx_ring[cq_idx].cq_next));
 	}
-        if (tx_comp_done)
-                taskqueue_enqueue(ha->tx_tq, &ha->tx_task);
+	if (tx_comp_done)
+		taskqueue_enqueue(ha->tx_tq, &ha->tx_task);
 
 	return;
 }
@@ -312,7 +313,7 @@ qls_mbx_isr(qla_host_t *ha)
 			ha->mbox[0] = data;
 			for (i = 1; i < Q81_NUM_MBX_REGISTERS; i++) {
 				if (qls_mbx_rd_reg(ha, i, &data))
-					break; 
+					break;
 				ha->mbox[i] = data;
 			}
 			ha->mbx_done = 1;
@@ -322,16 +323,16 @@ qls_mbx_isr(qla_host_t *ha)
 			ha->aen[0] = data;
 			for (i = 1; i < Q81_NUM_AEN_REGISTERS; i++) {
 				if (qls_mbx_rd_reg(ha, i, &data))
-					break; 
+					break;
 				ha->aen[i] = data;
 			}
-			device_printf(dev,"%s: AEN "
-				"[0x%08x 0x%08x 0x%08x 0x%08x 0x%08x"
-				" 0x%08x 0x%08x 0x%08x 0x%08x]\n",
-				__func__,
-				ha->aen[0], ha->aen[1], ha->aen[2],
-				ha->aen[3], ha->aen[4], ha->aen[5],
-				ha->aen[6], ha->aen[7], ha->aen[8]);
+			device_printf(dev,
+			    "%s: AEN "
+			    "[0x%08x 0x%08x 0x%08x 0x%08x 0x%08x"
+			    " 0x%08x 0x%08x 0x%08x 0x%08x]\n",
+			    __func__, ha->aen[0], ha->aen[1], ha->aen[2],
+			    ha->aen[3], ha->aen[4], ha->aen[5], ha->aen[6],
+			    ha->aen[7], ha->aen[8]);
 
 			switch ((ha->aen[0] & 0xFFFF)) {
 			case 0x8011:
@@ -350,7 +351,7 @@ qls_mbx_isr(qla_host_t *ha)
 				ha->link_hw_info = 0;
 				break;
 			}
-		} 
+		}
 	}
 	WRITE_REG32(ha, Q81_CTL_HOST_CMD_STATUS, Q81_CTL_HCS_CMD_CLR_RTH_INTR);
 
@@ -383,7 +384,7 @@ qls_isr(void *arg)
 
 	status = READ_REG32(ha, Q81_CTL_INTR_STATUS1);
 
-	if (status & ( 0x1 << cq_idx))
+	if (status & (0x1 << cq_idx))
 		qls_cq_isr(ha, cq_idx);
 
 	Q81_ENABLE_INTR(ha, cq_idx);

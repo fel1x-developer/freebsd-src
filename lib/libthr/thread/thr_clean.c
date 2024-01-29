@@ -31,14 +31,15 @@
  */
 
 #include <sys/cdefs.h>
-#include "namespace.h"
-#include <signal.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <pthread.h>
-#include "un-namespace.h"
 
+#include <errno.h>
+#include <pthread.h>
+#include <signal.h>
+#include <stdlib.h>
+
+#include "namespace.h"
 #include "thr_private.h"
+#include "un-namespace.h"
 
 #undef pthread_cleanup_push
 #undef pthread_cleanup_pop
@@ -57,7 +58,7 @@ void
 __thr_cleanup_push_imp(void (*routine)(void *), void *arg,
     struct _pthread_cleanup_info *info)
 {
-	struct pthread	*curthread = _get_curthread();
+	struct pthread *curthread = _get_curthread();
 	struct pthread_cleanup *newbuf;
 
 	newbuf = (void *)info;
@@ -71,7 +72,7 @@ __thr_cleanup_push_imp(void (*routine)(void *), void *arg,
 void
 __thr_cleanup_pop_imp(int execute)
 {
-	struct pthread	*curthread = _get_curthread();
+	struct pthread *curthread = _get_curthread();
 	struct pthread_cleanup *old;
 
 	if ((old = curthread->cleanup) != NULL) {
@@ -86,13 +87,13 @@ __thr_cleanup_pop_imp(int execute)
 void
 _thr_cleanup_push(void (*routine)(void *), void *arg)
 {
-	struct pthread	*curthread = _get_curthread();
+	struct pthread *curthread = _get_curthread();
 	struct pthread_cleanup *newbuf;
 #ifdef _PTHREAD_FORCED_UNWIND
 	curthread->unwind_disabled = 1;
 #endif
-	if ((newbuf = (struct pthread_cleanup *)
-	    malloc(sizeof(struct pthread_cleanup))) != NULL) {
+	if ((newbuf = (struct pthread_cleanup *)malloc(
+		 sizeof(struct pthread_cleanup))) != NULL) {
 		newbuf->routine = routine;
 		newbuf->routine_arg = arg;
 		newbuf->onheap = 1;

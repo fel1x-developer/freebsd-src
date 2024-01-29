@@ -31,7 +31,9 @@
 
 #include <sys/types.h>
 #include <sys/ptrace.h>
+
 #include <errno.h>
+
 #include "libc_private.h"
 
 __weak_reference(_ptrace, ptrace);

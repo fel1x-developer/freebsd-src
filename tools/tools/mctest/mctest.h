@@ -1,4 +1,4 @@
-// 
+//
 // Copyright (c) 2008, George V. Neville-Neil
 // All rights reserved.
 //
@@ -26,7 +26,7 @@
 //
 //
 
-const char* DEFAULT_GROUP = "239.255.255.1";
+const char *DEFAULT_GROUP = "239.255.255.1";
 const int SERVER_PORT = 9999;
 const int DEFAULT_PORT = 6666;
 const int TIMEOUT = 10;

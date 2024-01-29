@@ -29,9 +29,10 @@
  */
 
 #include <pthread.h>
+#include <runetype.h>
 #include <stdio.h>
 #include <string.h>
-#include <runetype.h>
+
 #include "libc_private.h"
 #include "xlocale_private.h"
 
@@ -68,44 +69,18 @@ int __has_thread_locale;
 const char *__get_locale_env(int category);
 int __detect_path_locale(void);
 
-struct _xlocale __xlocale_global_locale = {
-	{0},
-	{
-		&__xlocale_global_collate,
-		&__xlocale_global_ctype,
-		&__xlocale_global_monetary,
-		&__xlocale_global_numeric,
-		&__xlocale_global_time,
-		&__xlocale_global_messages
-	},
-	1,
-	0,
-	1,
-	0
-};
+struct _xlocale __xlocale_global_locale = { { 0 },
+	{ &__xlocale_global_collate, &__xlocale_global_ctype,
+	    &__xlocale_global_monetary, &__xlocale_global_numeric,
+	    &__xlocale_global_time, &__xlocale_global_messages },
+	1, 0, 1, 0 };
 
-struct _xlocale __xlocale_C_locale = {
-	{0},
-	{
-		&__xlocale_C_collate,
-		&__xlocale_C_ctype,
-		0, 0, 0, 0
-	},
-	1,
-	0,
-	1,
-	0
-};
+struct _xlocale __xlocale_C_locale = { { 0 },
+	{ &__xlocale_C_collate, &__xlocale_C_ctype, 0, 0, 0, 0 }, 1, 0, 1, 0 };
 
-static void *(*constructors[])(const char *, locale_t) =
-{
-	__collate_load,
-	__ctype_load,
-	__monetary_load,
-	__numeric_load,
-	__time_load,
-	__messages_load
-};
+static void *(*constructors[])(const char *, locale_t) = { __collate_load,
+	__ctype_load, __monetary_load, __numeric_load, __time_load,
+	__messages_load };
 
 static pthread_key_t locale_info_key;
 static int fake_tls;
@@ -118,8 +93,8 @@ init_key(void)
 
 	error = pthread_key_create(&locale_info_key, xlocale_release);
 	if (error == 0) {
-		pthread_setspecific(locale_info_key, (void*)42);
-		if (pthread_getspecific(locale_info_key) == (void*)42) {
+		pthread_setspecific(locale_info_key, (void *)42);
+		if (pthread_getspecific(locale_info_key) == (void *)42) {
 			pthread_setspecific(locale_info_key, 0);
 		} else {
 			fake_tls = 1;
@@ -139,9 +114,9 @@ get_thread_locale(void)
 {
 
 	_once(&once_control, init_key);
-	
+
 	return (fake_tls ? thread_local_locale :
-	    pthread_getspecific(locale_info_key));
+			   pthread_getspecific(locale_info_key));
 }
 
 static void
@@ -150,13 +125,13 @@ set_thread_locale(locale_t loc)
 	locale_t l = (loc == LC_GLOBAL_LOCALE) ? 0 : loc;
 
 	_once(&once_control, init_key);
-	
+
 	if (NULL != l) {
-		xlocale_retain((struct xlocale_refcounted*)l);
+		xlocale_retain((struct xlocale_refcounted *)l);
 	}
 	locale_t old = get_thread_locale();
 	if ((NULL != old) && (l != old)) {
-		xlocale_release((struct xlocale_refcounted*)old);
+		xlocale_release((struct xlocale_refcounted *)old);
 	}
 	if (fake_tls) {
 		thread_local_locale = l;
@@ -176,7 +151,7 @@ destruct_locale(void *l)
 {
 	locale_t loc = l;
 
-	for (int type=0 ; type<XLC_LAST ; type++) {
+	for (int type = 0; type < XLC_LAST; type++) {
 		if (loc->components[type]) {
 			xlocale_release(loc->components[type]);
 		}
@@ -242,7 +217,7 @@ dupcomponent(int type, locale_t base, locale_t new)
 
 /*
  * Public interfaces.  These are the five public functions described by the
- * xlocale interface.  
+ * xlocale interface.
  */
 
 locale_t
@@ -271,16 +246,16 @@ newlocale(int mask, const char *locale, locale_t base)
 		useenv = 1;
 	}
 
-	for (type=0 ; type<XLC_LAST ; type++) {
+	for (type = 0; type < XLC_LAST; type++) {
 		if (mask & 1) {
 			if (useenv) {
 				realLocale = __get_locale_env(type + 1);
 			}
-			new->components[type] =
-			     constructors[type](realLocale, new);
+			new->components[type] = constructors[type](realLocale,
+			    new);
 			if (new->components[type]) {
 				strncpy(new->components[type]->locale,
-				     realLocale, ENCODING_LEN);
+				    realLocale, ENCODING_LEN);
 			} else {
 				success = 0;
 				break;
@@ -312,13 +287,13 @@ duplocale(locale_t base)
 	if (NULL == new) {
 		return (NULL);
 	}
-	
+
 	_once(&once_control, init_key);
 
 	FIX_LOCALE(base);
 	copyflags(new, base);
 
-	for (type=0 ; type<XLC_LAST ; type++) {
+	for (type = 0; type < XLC_LAST; type++) {
 		dupcomponent(type, base, new);
 	}
 
@@ -327,7 +302,7 @@ duplocale(locale_t base)
 
 /*
  * Free a locale_t.  This is quite a poorly named function.  It actually
- * disclaims a reference to a locale_t, rather than freeing it.  
+ * disclaims a reference to a locale_t, rather than freeing it.
  */
 void
 freelocale(locale_t loc)
@@ -377,4 +352,3 @@ uselocale(locale_t loc)
 	}
 	return (old ? old : LC_GLOBAL_LOCALE);
 }
-

@@ -49,9 +49,8 @@
 
 #include "ice_iflib.h"
 #include "ice_rdma_internal.h"
-
-#include "irdma_if.h"
 #include "irdma_di_if.h"
+#include "irdma_if.h"
 
 /**
  * @var ice_rdma
@@ -69,22 +68,20 @@ static int ice_rdma_pf_attach_locked(struct ice_softc *sc);
 static void ice_rdma_pf_detach_locked(struct ice_softc *sc);
 static int ice_rdma_check_version(struct ice_rdma_info *info);
 static void ice_rdma_cp_qos_info(struct ice_hw *hw,
-				 struct ice_dcbx_cfg *dcbx_cfg,
-				 struct ice_qos_params *qos_info);
+    struct ice_dcbx_cfg *dcbx_cfg, struct ice_qos_params *qos_info);
 
 /*
  * RDMA Device Interface prototypes
  */
 static int ice_rdma_pf_reset(struct ice_rdma_peer *peer);
 static int ice_rdma_pf_msix_init(struct ice_rdma_peer *peer,
-				 struct ice_rdma_msix_mapping *msix_info);
+    struct ice_rdma_msix_mapping *msix_info);
 static int ice_rdma_qset_register_request(struct ice_rdma_peer *peer,
-			     struct ice_rdma_qset_update *res);
+    struct ice_rdma_qset_update *res);
 static int ice_rdma_update_vsi_filter(struct ice_rdma_peer *peer_dev,
-				      bool enable);
+    bool enable);
 static void ice_rdma_request_handler(struct ice_rdma_peer *peer,
-				     struct ice_rdma_request *req);
-
+    struct ice_rdma_request *req);
 
 /**
  * @var ice_rdma_di_methods
@@ -97,17 +94,18 @@ static void ice_rdma_request_handler(struct ice_rdma_peer *peer,
  * The client driver will then extend this kobject class with methods that the
  * driver can request from the client.
  */
-static kobj_method_t ice_rdma_di_methods[] = {
-	KOBJMETHOD(irdma_di_reset, ice_rdma_pf_reset),
+static kobj_method_t ice_rdma_di_methods[] = { KOBJMETHOD(irdma_di_reset,
+						   ice_rdma_pf_reset),
 	KOBJMETHOD(irdma_di_msix_init, ice_rdma_pf_msix_init),
-	KOBJMETHOD(irdma_di_qset_register_request, ice_rdma_qset_register_request),
+	KOBJMETHOD(irdma_di_qset_register_request,
+	    ice_rdma_qset_register_request),
 	KOBJMETHOD(irdma_di_vsi_filter_update, ice_rdma_update_vsi_filter),
 	KOBJMETHOD(irdma_di_req_handler, ice_rdma_request_handler),
-	KOBJMETHOD_END
-};
+	KOBJMETHOD_END };
 
 /* Define ice_rdma_di class which will be extended by the iRDMA driver */
-DEFINE_CLASS_0(ice_rdma_di, ice_rdma_di_class, ice_rdma_di_methods, sizeof(struct ice_rdma_peer));
+DEFINE_CLASS_0(ice_rdma_di, ice_rdma_di_class, ice_rdma_di_methods,
+    sizeof(struct ice_rdma_peer));
 
 /**
  * ice_rdma_pf_reset - RDMA client interface requested a reset
@@ -141,13 +139,15 @@ ice_rdma_pf_reset(struct ice_rdma_peer *peer)
  */
 static int
 ice_rdma_pf_msix_init(struct ice_rdma_peer *peer,
-		      struct ice_rdma_msix_mapping __unused *msix_info)
+    struct ice_rdma_msix_mapping __unused *msix_info)
 {
 	struct ice_softc *sc = ice_rdma_peer_to_sc(peer);
 
 	MPASS(msix_info != NULL);
 
-	device_printf(sc->dev, "%s: iRDMA MSI-X initialization request is not yet implemented\n", __func__);
+	device_printf(sc->dev,
+	    "%s: iRDMA MSI-X initialization request is not yet implemented\n",
+	    __func__);
 
 	/* TODO: implement MSI-X initialization for RDMA */
 	return (ENOSYS);
@@ -162,7 +162,8 @@ ice_rdma_pf_msix_init(struct ice_rdma_peer *peer,
  * allocation failure, EXDEV on vsi device mismatch
  */
 static int
-ice_rdma_qset_register_request(struct ice_rdma_peer *peer, struct ice_rdma_qset_update *res)
+ice_rdma_qset_register_request(struct ice_rdma_peer *peer,
+    struct ice_rdma_qset_update *res)
 {
 	struct ice_softc *sc = ice_rdma_peer_to_sc(peer);
 	struct ice_vsi *vsi = NULL;
@@ -182,7 +183,7 @@ ice_rdma_qset_register_request(struct ice_rdma_peer *peer, struct ice_rdma_qset_
 	if (res->cnt_req > ICE_MAX_TXQ_PER_TXQG)
 		return -EINVAL;
 
-	switch(res->res_type) {
+	switch (res->res_type) {
 	case ICE_RDMA_QSET_ALLOC:
 		count = res->cnt_req;
 		vsi_id = peer->pf_vsi_num;
@@ -204,8 +205,7 @@ ice_rdma_qset_register_request(struct ice_rdma_peer *peer, struct ice_rdma_qset_
 		return -ENOMEM;
 	}
 
-	ice_for_each_traffic_class(i)
-		max_rdmaqs[i] = 0;
+	ice_for_each_traffic_class(i) max_rdmaqs[i] = 0;
 	for (i = 0; i < sc->num_available_vsi; i++) {
 		if (sc->all_vsi[i] &&
 		    ice_get_hw_vsi_num(hw, sc->all_vsi[i]->idx) == vsi_id) {
@@ -220,7 +220,8 @@ ice_rdma_qset_register_request(struct ice_rdma_peer *peer, struct ice_rdma_qset_
 		goto out;
 	}
 	if (sc != vsi->sc) {
-		ice_debug(hw, ICE_DBG_RDMA, "VSI is tied to unexpected device\n");
+		ice_debug(hw, ICE_DBG_RDMA,
+		    "VSI is tied to unexpected device\n");
 		ret = -EXDEV;
 		goto out;
 	}
@@ -230,8 +231,9 @@ ice_rdma_qset_register_request(struct ice_rdma_peer *peer, struct ice_rdma_qset_
 
 		qset = &res->qsets;
 		if (qset->vsi_id != peer->pf_vsi_num) {
-			ice_debug(hw, ICE_DBG_RDMA, "RDMA QSet invalid VSI requested %d %d\n",
-				  qset->vsi_id, peer->pf_vsi_num);
+			ice_debug(hw, ICE_DBG_RDMA,
+			    "RDMA QSet invalid VSI requested %d %d\n",
+			    qset->vsi_id, peer->pf_vsi_num);
 			ret = -EINVAL;
 			goto out;
 		}
@@ -240,16 +242,18 @@ ice_rdma_qset_register_request(struct ice_rdma_peer *peer, struct ice_rdma_qset_
 		qset_teid[i] = qset->teid;
 	}
 
-	switch(res->res_type) {
+	switch (res->res_type) {
 	case ICE_RDMA_QSET_ALLOC:
 		dcbx_cfg = &hw->port_info->qos_cfg.local_dcbx_cfg;
 		ena_tc = ice_dcb_get_tc_map(dcbx_cfg);
 
-		ice_debug(hw, ICE_DBG_RDMA, "%s:%d ena_tc=%x\n", __func__, __LINE__, ena_tc);
+		ice_debug(hw, ICE_DBG_RDMA, "%s:%d ena_tc=%x\n", __func__,
+		    __LINE__, ena_tc);
 		status = ice_cfg_vsi_rdma(hw->port_info, vsi->idx, ena_tc,
-					  max_rdmaqs);
+		    max_rdmaqs);
 		if (status) {
-			ice_debug(hw, ICE_DBG_RDMA, "Failed VSI RDMA qset config\n");
+			ice_debug(hw, ICE_DBG_RDMA,
+			    "Failed VSI RDMA qset config\n");
 			ret = -EINVAL;
 			goto out;
 		}
@@ -259,10 +263,10 @@ ice_rdma_qset_register_request(struct ice_rdma_peer *peer, struct ice_rdma_qset_
 
 			qset = &res->qsets;
 			status = ice_ena_vsi_rdma_qset(hw->port_info, vsi->idx,
-						       qset->tc, &qs_handle[i], 1,
-						       &qset_teid[i]);
+			    qset->tc, &qs_handle[i], 1, &qset_teid[i]);
 			if (status) {
-				ice_debug(hw, ICE_DBG_RDMA, "Failed VSI RDMA qset enable\n");
+				ice_debug(hw, ICE_DBG_RDMA,
+				    "Failed VSI RDMA qset enable\n");
 				ret = -EINVAL;
 				goto out;
 			}
@@ -270,7 +274,8 @@ ice_rdma_qset_register_request(struct ice_rdma_peer *peer, struct ice_rdma_qset_
 		}
 		break;
 	case ICE_RDMA_QSET_FREE:
-		status = ice_dis_vsi_rdma_qset(hw->port_info, count, qset_teid, qs_handle);
+		status = ice_dis_vsi_rdma_qset(hw->port_info, count, qset_teid,
+		    qs_handle);
 		if (status)
 			ret = -EINVAL;
 		break;
@@ -294,8 +299,7 @@ out:
  *  @return 0 on success, EINVAL on wrong vsi
  */
 static int
-ice_rdma_update_vsi_filter(struct ice_rdma_peer *peer,
-			   bool enable)
+ice_rdma_update_vsi_filter(struct ice_rdma_peer *peer, bool enable)
 {
 	struct ice_softc *sc = ice_rdma_peer_to_sc(peer);
 	struct ice_vsi *vsi;
@@ -308,7 +312,7 @@ ice_rdma_update_vsi_filter(struct ice_rdma_peer *peer,
 	ret = ice_cfg_iwarp_fltr(&sc->hw, vsi->idx, enable);
 	if (ret) {
 		device_printf(sc->dev, "Failed to  %sable iWARP filtering\n",
-				enable ? "en" : "dis");
+		    enable ? "en" : "dis");
 	} else {
 		if (enable)
 			vsi->info.q_opt_flags |= ICE_AQ_VSI_Q_OPT_PE_FLTR_EN;
@@ -326,14 +330,14 @@ ice_rdma_update_vsi_filter(struct ice_rdma_peer *peer,
  */
 static void
 ice_rdma_request_handler(struct ice_rdma_peer *peer,
-			 struct ice_rdma_request *req)
+    struct ice_rdma_request *req)
 {
 	if (!req || !peer) {
 		log(LOG_WARNING, "%s: peer or req are not valid\n", __func__);
 		return;
 	}
 
-	switch(req->type) {
+	switch (req->type) {
 	case ICE_RDMA_EVENT_RESET:
 		ice_rdma_pf_reset(peer);
 		break;
@@ -344,7 +348,8 @@ ice_rdma_request_handler(struct ice_rdma_peer *peer,
 		ice_rdma_update_vsi_filter(peer, req->enable_filter);
 		break;
 	default:
-		log(LOG_WARNING, "%s: Event %d not supported\n", __func__, req->type);
+		log(LOG_WARNING, "%s: Event %d not supported\n", __func__,
+		    req->type);
 		break;
 	}
 }
@@ -358,12 +363,12 @@ ice_rdma_request_handler(struct ice_rdma_peer *peer,
  */
 static void
 ice_rdma_cp_qos_info(struct ice_hw *hw, struct ice_dcbx_cfg *dcbx_cfg,
-		     struct ice_qos_params *qos_info)
+    struct ice_qos_params *qos_info)
 {
 	u32 up2tc;
 	u8 j;
 	u8 num_tc = 0;
-	u8 val_tc = 0;  /* number of TC for validation */
+	u8 val_tc = 0; /* number of TC for validation */
 	u8 cnt_tc = 0;
 
 	/* setup qos_info fields with defaults */
@@ -405,7 +410,8 @@ ice_rdma_cp_qos_info(struct ice_hw *hw, struct ice_dcbx_cfg *dcbx_cfg,
 	}
 
 	/* Gather DSCP-to-TC mapping and QoS/PFC mode */
-	memcpy(qos_info->dscp_map, dcbx_cfg->dscp_map, sizeof(qos_info->dscp_map));
+	memcpy(qos_info->dscp_map, dcbx_cfg->dscp_map,
+	    sizeof(qos_info->dscp_map));
 	qos_info->pfc_mode = dcbx_cfg->pfc_mode;
 }
 
@@ -423,10 +429,10 @@ ice_rdma_check_version(struct ice_rdma_info *info)
 {
 	/* Make sure the MAJOR version matches */
 	if (info->major_version != ICE_RDMA_MAJOR_VERSION) {
-		log(LOG_WARNING, "%s: the iRDMA driver requested version %d.%d.%d, but this driver only supports major version %d.x.x\n",
-		    __func__,
-		    info->major_version, info->minor_version, info->patch_version,
-		    ICE_RDMA_MAJOR_VERSION);
+		log(LOG_WARNING,
+		    "%s: the iRDMA driver requested version %d.%d.%d, but this driver only supports major version %d.x.x\n",
+		    __func__, info->major_version, info->minor_version,
+		    info->patch_version, ICE_RDMA_MAJOR_VERSION);
 		return (ENOTSUP);
 	}
 
@@ -439,10 +445,11 @@ ice_rdma_check_version(struct ice_rdma_info *info)
 	 * main driver.
 	 */
 	if (info->minor_version > ICE_RDMA_MINOR_VERSION) {
-		log(LOG_WARNING, "%s: the iRDMA driver requested version %d.%d.%d, but this driver only supports up to minor version %d.%d.x\n",
-		__func__,
-		info->major_version, info->minor_version, info->patch_version,
-		ICE_RDMA_MAJOR_VERSION, ICE_RDMA_MINOR_VERSION);
+		log(LOG_WARNING,
+		    "%s: the iRDMA driver requested version %d.%d.%d, but this driver only supports up to minor version %d.%d.x\n",
+		    __func__, info->major_version, info->minor_version,
+		    info->patch_version, ICE_RDMA_MAJOR_VERSION,
+		    ICE_RDMA_MINOR_VERSION);
 		return (ENOTSUP);
 	}
 
@@ -456,16 +463,18 @@ ice_rdma_check_version(struct ice_rdma_info *info)
 	 */
 	if ((info->minor_version == ICE_RDMA_MINOR_VERSION) &&
 	    (info->patch_version > ICE_RDMA_PATCH_VERSION)) {
-		log(LOG_WARNING, "%s: the iRDMA driver requested version %d.%d.%d, but this driver only supports up to patch version %d.%d.%d\n",
-		__func__,
-		info->major_version, info->minor_version, info->patch_version,
-		ICE_RDMA_MAJOR_VERSION, ICE_RDMA_MINOR_VERSION, ICE_RDMA_PATCH_VERSION);
+		log(LOG_WARNING,
+		    "%s: the iRDMA driver requested version %d.%d.%d, but this driver only supports up to patch version %d.%d.%d\n",
+		    __func__, info->major_version, info->minor_version,
+		    info->patch_version, ICE_RDMA_MAJOR_VERSION,
+		    ICE_RDMA_MINOR_VERSION, ICE_RDMA_PATCH_VERSION);
 		return (ENOTSUP);
 	}
 
 	/* Make sure that the kobject class is initialized */
 	if (info->rdma_class == NULL) {
-		log(LOG_WARNING, "%s: the iRDMA driver did not specify a kobject interface\n",
+		log(LOG_WARNING,
+		    "%s: the iRDMA driver did not specify a kobject interface\n",
 		    __func__);
 		return (EINVAL);
 	}
@@ -498,13 +507,16 @@ ice_rdma_register(struct ice_rdma_info *info)
 	sx_xlock(&ice_rdma.mtx);
 
 	if (!ice_enable_irdma) {
-		log(LOG_INFO, "%s: The iRDMA driver interface has been disabled\n", __func__);
+		log(LOG_INFO,
+		    "%s: The iRDMA driver interface has been disabled\n",
+		    __func__);
 		err = (ECONNREFUSED);
 		goto return_unlock;
 	}
 
 	if (ice_rdma.registered) {
-		log(LOG_WARNING, "%s: iRDMA driver already registered\n", __func__);
+		log(LOG_WARNING, "%s: iRDMA driver already registered\n",
+		    __func__);
 		err = (EBUSY);
 		goto return_unlock;
 	}
@@ -515,7 +527,8 @@ ice_rdma_register(struct ice_rdma_info *info)
 		goto return_unlock;
 
 	log(LOG_INFO, "%s: iRDMA driver registered using version %d.%d.%d\n",
-	    __func__, info->major_version, info->minor_version, info->patch_version);
+	    __func__, info->major_version, info->minor_version,
+	    info->patch_version);
 
 	ice_rdma.peer_class = info->rdma_class;
 
@@ -523,13 +536,15 @@ ice_rdma_register(struct ice_rdma_info *info)
 	 * Initialize the kobject interface and notify the RDMA client of each
 	 * existing PF interface.
 	 */
-	LIST_FOREACH(entry, &ice_rdma.peers, node) {
+	LIST_FOREACH (entry, &ice_rdma.peers, node) {
 		kobj_init((kobj_t)&entry->peer, ice_rdma.peer_class);
 		/* Gather DCB/QOS info into peer */
 		sc = __containerof(entry, struct ice_softc, rdma_entry);
-		memset(&entry->peer.initial_qos_info, 0, sizeof(entry->peer.initial_qos_info));
-		ice_rdma_cp_qos_info(&sc->hw, &sc->hw.port_info->qos_cfg.local_dcbx_cfg,
-				     &entry->peer.initial_qos_info);
+		memset(&entry->peer.initial_qos_info, 0,
+		    sizeof(entry->peer.initial_qos_info));
+		ice_rdma_cp_qos_info(&sc->hw,
+		    &sc->hw.port_info->qos_cfg.local_dcbx_cfg,
+		    &entry->peer.initial_qos_info);
 
 		IRDMA_PROBE(&entry->peer);
 		if (entry->initiated)
@@ -559,8 +574,9 @@ ice_rdma_unregister(void)
 	sx_xlock(&ice_rdma.mtx);
 
 	if (!ice_rdma.registered) {
-		log(LOG_WARNING, "%s: iRDMA driver was not previously registered\n",
-		       __func__);
+		log(LOG_WARNING,
+		    "%s: iRDMA driver was not previously registered\n",
+		    __func__);
 		sx_xunlock(&ice_rdma.mtx);
 		return (ENOENT);
 	}
@@ -575,7 +591,7 @@ ice_rdma_unregister(void)
 	 * each PF, as it is assumed that the client will have already cleaned
 	 * up any associated resources when it is unregistered.
 	 */
-	LIST_FOREACH(entry, &ice_rdma.peers, node)
+	LIST_FOREACH (entry, &ice_rdma.peers, node)
 		kobj_delete((kobj_t)&entry->peer, NULL);
 
 	sx_xunlock(&ice_rdma.mtx);
@@ -651,9 +667,10 @@ ice_rdma_pf_attach_locked(struct ice_softc *sc)
 	}
 
 	/* Gather DCB/QOS info into peer */
-	memset(&entry->peer.initial_qos_info, 0, sizeof(entry->peer.initial_qos_info));
+	memset(&entry->peer.initial_qos_info, 0,
+	    sizeof(entry->peer.initial_qos_info));
 	ice_rdma_cp_qos_info(&sc->hw, &sc->hw.port_info->qos_cfg.local_dcbx_cfg,
-			     &entry->peer.initial_qos_info);
+	    &entry->peer.initial_qos_info);
 
 	/*
 	 * If the RDMA client driver has already registered, initialize the
@@ -875,7 +892,8 @@ ice_rdma_dcb_qos_update(struct ice_softc *sc, struct ice_port_info *pi)
 	event.prep = false;
 
 	/* gather current configuration */
-	ice_rdma_cp_qos_info(&sc->hw, &pi->qos_cfg.local_dcbx_cfg, &event.port_qos);
+	ice_rdma_cp_qos_info(&sc->hw, &pi->qos_cfg.local_dcbx_cfg,
+	    &event.port_qos);
 	sx_xlock(&ice_rdma.mtx);
 	if (sc->rdma_entry.attached && ice_rdma.registered)
 		IRDMA_EVENT_HANDLER(peer, &event);
@@ -927,6 +945,6 @@ ice_rdma_notify_reset(struct ice_softc *sc)
 
 	sx_xlock(&ice_rdma.mtx);
 	if (sc->rdma_entry.attached && ice_rdma.registered)
-	        IRDMA_EVENT_HANDLER(peer, &event);
+		IRDMA_EVENT_HANDLER(peer, &event);
 	sx_xunlock(&ice_rdma.mtx);
 }

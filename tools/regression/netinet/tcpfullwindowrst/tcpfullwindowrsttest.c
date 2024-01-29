@@ -28,14 +28,16 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sys/types.h>
 #include <sys/socket.h>
+
 #include <netinet/in.h>
+
 #include <fcntl.h>
 #include <poll.h>
-#include <unistd.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 /*
  * The following code sets up two connected TCP sockets that send data to each
@@ -79,14 +81,14 @@ main(void)
 	sa.sin_family = AF_INET;
 	sa.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 	sa.sin_port = htons(3737);
-	if (bind(s, (struct sockaddr *) &sa, sizeof sa) == -1)
+	if (bind(s, (struct sockaddr *)&sa, sizeof sa) == -1)
 		return 1;
 	if (listen(s, 1) == -1)
 		return 1;
 	t = socket(AF_INET, SOCK_STREAM, 0);
 	if (t == -1)
 		return 1;
-	if (connect(t, (struct sockaddr *) &sa, sizeof sa) == -1)
+	if (connect(t, (struct sockaddr *)&sa, sizeof sa) == -1)
 		return 1;
 	u = accept(s, 0, 0);
 	if (u == -1)

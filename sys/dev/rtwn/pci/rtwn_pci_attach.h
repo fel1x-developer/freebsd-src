@@ -12,23 +12,19 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- * 
+ *
  */
 
-void	r92ce_attach(struct rtwn_pci_softc *);
-void	r88ee_attach(struct rtwn_pci_softc *);
+void r92ce_attach(struct rtwn_pci_softc *);
+void r88ee_attach(struct rtwn_pci_softc *);
 
-enum {
-	RTWN_CHIP_RTL8192CE,
-	RTWN_CHIP_RTL8188EE,
-	RTWN_CHIP_MAX_PCI
-};
+enum { RTWN_CHIP_RTL8192CE, RTWN_CHIP_RTL8188EE, RTWN_CHIP_MAX_PCI };
 
 struct rtwn_pci_ident {
-	uint16_t	vendor;
-	uint16_t	device;
-	const char	*name;
-	int		chip;
+	uint16_t vendor;
+	uint16_t device;
+	const char *name;
+	int chip;
 };
 
 static const struct rtwn_pci_ident rtwn_pci_ident_table[] = {
@@ -37,7 +33,7 @@ static const struct rtwn_pci_ident rtwn_pci_ident_table[] = {
 	{ 0x10ec, 0x8178, "Realtek RTL8192CE", RTWN_CHIP_RTL8192CE },
 };
 
-typedef void	(*chip_pci_attach)(struct rtwn_pci_softc *);
+typedef void (*chip_pci_attach)(struct rtwn_pci_softc *);
 
 static const chip_pci_attach rtwn_chip_pci_attach[RTWN_CHIP_MAX_PCI] = {
 	[RTWN_CHIP_RTL8192CE] = r92ce_attach,

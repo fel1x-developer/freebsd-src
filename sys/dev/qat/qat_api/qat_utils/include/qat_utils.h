@@ -3,38 +3,37 @@
 #ifndef QAT_UTILS_H
 #define QAT_UTILS_H
 
-
+#include <sys/types.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/ctype.h>
 #include <sys/endian.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/systm.h>
-#include <sys/types.h>
-#include <sys/sema.h>
-#include <sys/time.h>
-#include <sys/malloc.h>
 #include <sys/kernel.h>
-#include <sys/sysctl.h>
-#include <sys/limits.h>
-#include <sys/unistd.h>
 #include <sys/libkern.h>
+#include <sys/limits.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mutex.h>
+#include <sys/sema.h>
+#include <sys/sysctl.h>
+#include <sys/time.h>
+#include <sys/unistd.h>
 #ifdef __x86_64__
 #include <asm/atomic64.h>
 #else
 #include <asm/atomic.h>
 #endif
+#include <sys/md5.h>
+
 #include <vm/vm.h>
 #include <vm/pmap.h>
 
-#include <sys/md5.h>
+#include <crypto/rijndael/rijndael-api-fst.h>
 #include <crypto/sha1.h>
-#include <crypto/sha2/sha256.h>
 #include <crypto/sha2/sha224.h>
+#include <crypto/sha2/sha256.h>
 #include <crypto/sha2/sha384.h>
 #include <crypto/sha2/sha512.h>
-#include <crypto/rijndael/rijndael-api-fst.h>
-
 #include <opencrypto/cryptodev.h>
 
 #include "cpa.h"
@@ -52,87 +51,85 @@
 #define QAT_UTILS_NW_TO_HOST_32(uData) QAT_UTILS_OS_NW_TO_HOST_32(uData)
 #define QAT_UTILS_NW_TO_HOST_64(uData) QAT_UTILS_OS_NW_TO_HOST_64(uData)
 
-#define QAT_UTILS_UDIV64_32(dividend, divisor)                                 \
+#define QAT_UTILS_UDIV64_32(dividend, divisor) \
 	QAT_UTILS_OS_UDIV64_32(dividend, divisor)
 
-#define QAT_UTILS_UMOD64_32(dividend, divisor)                                 \
+#define QAT_UTILS_UMOD64_32(dividend, divisor) \
 	QAT_UTILS_OS_UMOD64_32(dividend, divisor)
 
-#define ICP_CHECK_FOR_NULL_PARAM(param)                                        \
-	do {                                                                   \
-		if (NULL == param) {                                           \
-			QAT_UTILS_LOG("%s(): invalid param: %s\n",             \
-				      __FUNCTION__,                            \
-				      #param);                                 \
-			return CPA_STATUS_INVALID_PARAM;                       \
-		}                                                              \
+#define ICP_CHECK_FOR_NULL_PARAM(param)                            \
+	do {                                                       \
+		if (NULL == param) {                               \
+			QAT_UTILS_LOG("%s(): invalid param: %s\n", \
+			    __FUNCTION__, #param);                 \
+			return CPA_STATUS_INVALID_PARAM;           \
+		}                                                  \
 	} while (0)
 
-#define ICP_CHECK_FOR_NULL_PARAM_VOID(param)                                   \
-	do {                                                                   \
-		if (NULL == param) {                                           \
-			QAT_UTILS_LOG("%s(): invalid param: %s\n",             \
-				      __FUNCTION__,                            \
-				      #param);                                 \
-			return;                                                \
-		}                                                              \
+#define ICP_CHECK_FOR_NULL_PARAM_VOID(param)                       \
+	do {                                                       \
+		if (NULL == param) {                               \
+			QAT_UTILS_LOG("%s(): invalid param: %s\n", \
+			    __FUNCTION__, #param);                 \
+			return;                                    \
+		}                                                  \
 	} while (0)
 
 /*Macro for adding an element to the tail of a doubly linked list*/
 /*The currentptr tracks the tail, and the headptr tracks the head.*/
-#define ICP_ADD_ELEMENT_TO_END_OF_LIST(elementtoadd, currentptr, headptr)      \
-	do {                                                                   \
-		if (NULL == currentptr) {                                      \
-			currentptr = elementtoadd;                             \
-			elementtoadd->pNext = NULL;                            \
-			elementtoadd->pPrev = NULL;                            \
-			headptr = currentptr;                                  \
-		} else {                                                       \
-			elementtoadd->pPrev = currentptr;                      \
-			currentptr->pNext = elementtoadd;                      \
-			elementtoadd->pNext = NULL;                            \
-			currentptr = elementtoadd;                             \
-		}                                                              \
+#define ICP_ADD_ELEMENT_TO_END_OF_LIST(elementtoadd, currentptr, headptr) \
+	do {                                                              \
+		if (NULL == currentptr) {                                 \
+			currentptr = elementtoadd;                        \
+			elementtoadd->pNext = NULL;                       \
+			elementtoadd->pPrev = NULL;                       \
+			headptr = currentptr;                             \
+		} else {                                                  \
+			elementtoadd->pPrev = currentptr;                 \
+			currentptr->pNext = elementtoadd;                 \
+			elementtoadd->pNext = NULL;                       \
+			currentptr = elementtoadd;                        \
+		}                                                         \
 	} while (0)
 
 /*currentptr is not used in this case since we don't track the tail. */
-#define ICP_ADD_ELEMENT_TO_HEAD_OF_LIST(elementtoadd, currentptr, headptr)     \
-	do {                                                                   \
-		if (NULL == headptr) {                                         \
-			elementtoadd->pNext = NULL;                            \
-			elementtoadd->pPrev = NULL;                            \
-			headptr = elementtoadd;                                \
-		} else {                                                       \
-			elementtoadd->pPrev = NULL;                            \
-			elementtoadd->pNext = headptr;                         \
-			headptr->pPrev = elementtoadd;                         \
-			headptr = elementtoadd;                                \
-		}                                                              \
+#define ICP_ADD_ELEMENT_TO_HEAD_OF_LIST(elementtoadd, currentptr, headptr) \
+	do {                                                               \
+		if (NULL == headptr) {                                     \
+			elementtoadd->pNext = NULL;                        \
+			elementtoadd->pPrev = NULL;                        \
+			headptr = elementtoadd;                            \
+		} else {                                                   \
+			elementtoadd->pPrev = NULL;                        \
+			elementtoadd->pNext = headptr;                     \
+			headptr->pPrev = elementtoadd;                     \
+			headptr = elementtoadd;                            \
+		}                                                          \
 	} while (0)
 
-#define ICP_REMOVE_ELEMENT_FROM_LIST(elementtoremove, currentptr, headptr)     \
-	do {                                                                   \
-		/*If the previous pointer is not NULL*/                        \
-		if (NULL != elementtoremove->pPrev) {                          \
-			elementtoremove->pPrev->pNext =                        \
-			    elementtoremove->pNext;                            \
-			if (elementtoremove->pNext) {                          \
-				elementtoremove->pNext->pPrev =                \
-				    elementtoremove->pPrev;                    \
-			} else {                                               \
-				/* Move the tail pointer backwards */          \
-				currentptr = elementtoremove->pPrev;           \
-			}                                                      \
-		} else if (NULL != elementtoremove->pNext) {                   \
-			/*Remove the head pointer.*/                           \
-			elementtoremove->pNext->pPrev = NULL;                  \
-			/*Hence move the head forward.*/                       \
-			headptr = elementtoremove->pNext;                      \
-		} else {                                                       \
-			/*Remove the final entry in the list. */               \
-			currentptr = NULL;                                     \
-			headptr = NULL;                                        \
-		}                                                              \
+#define ICP_REMOVE_ELEMENT_FROM_LIST(elementtoremove, currentptr, headptr) \
+	do {                                                               \
+		/*If the previous pointer is not NULL*/                    \
+		if (NULL != elementtoremove->pPrev) {                      \
+			elementtoremove->pPrev->pNext =                    \
+			    elementtoremove->pNext;                        \
+			if (elementtoremove->pNext) {                      \
+				elementtoremove->pNext->pPrev =            \
+				    elementtoremove->pPrev;                \
+			} else {                                           \
+				/* Move the tail pointer backwards */      \
+				currentptr = elementtoremove->pPrev;       \
+			}                                                  \
+		} else if (NULL != elementtoremove->pNext) {               \
+			/*Remove the head pointer.*/                       \
+			elementtoremove->pNext->pPrev = NULL;              \
+			/*Hence move the head forward.*/                   \
+			headptr = elementtoremove->pNext;                  \
+		} else {                                                   \
+			/*Remove the final entry in the list. */           \
+			currentptr = NULL;                                 \
+			headptr = NULL;                                    \
+		}                                                          \
 	} while (0)
 
 MALLOC_DECLARE(M_QAT);
@@ -271,9 +268,8 @@ int64_t qatUtilsAtomicDec(QatUtilsAtomic *pAtomicVar);
  *
  * @return Pointer to the allocated zone or NULL if the allocation failed
  */
-void *qatUtilsMemAllocContiguousNUMA(uint32_t size,
-				     uint32_t node,
-				     uint32_t alignment);
+void *qatUtilsMemAllocContiguousNUMA(uint32_t size, uint32_t node,
+    uint32_t alignment);
 
 /**
  * @ingroup QatUtils
@@ -306,7 +302,7 @@ void qatUtilsMemFreeNUMA(void *ptr);
  *
  * @return Corresponding physical address
  */
-#define QAT_UTILS_MMU_VIRT_TO_PHYS(virtAddr)                                   \
+#define QAT_UTILS_MMU_VIRT_TO_PHYS(virtAddr) \
 	((uint64_t)((virtAddr) ? vtophys(virtAddr) : 0))
 
 /**
@@ -843,10 +839,8 @@ CpaStatus qatUtilsHashSHA512Full(uint8_t *in, uint8_t *out, uint32_t len);
  * @return - CPA_STATUS_SUCCESS/CPA_STATUS_FAIL
  *
  */
-CpaStatus qatUtilsAESEncrypt(uint8_t *key,
-			     uint32_t keyLenInBytes,
-			     uint8_t *in,
-			     uint8_t *out);
+CpaStatus qatUtilsAESEncrypt(uint8_t *key, uint32_t keyLenInBytes, uint8_t *in,
+    uint8_t *out);
 
 /**
  * @ingroup QatUtils
@@ -865,7 +859,6 @@ CpaStatus qatUtilsAESEncrypt(uint8_t *key,
  * @return - CPA_STATUS_SUCCESS/CPA_STATUS_FAIL
  *
  */
-CpaStatus qatUtilsAESKeyExpansionForward(uint8_t *key,
-					 uint32_t keyLenInBytes,
-					 uint32_t *out);
+CpaStatus qatUtilsAESKeyExpansionForward(uint8_t *key, uint32_t keyLenInBytes,
+    uint32_t *out);
 #endif

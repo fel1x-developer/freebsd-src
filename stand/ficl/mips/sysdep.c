@@ -3,10 +3,9 @@
 ** Forth Inspired Command Language
 ** Author: John Sadler (john_sadler@alum.mit.edu)
 ** Created: 16 Oct 1997
-** Implementations of FICL external interface functions... 
+** Implementations of FICL external interface functions...
 **
 *******************************************************************/
-
 
 #ifdef TESTMAIN
 #include <stdio.h>
@@ -17,65 +16,71 @@
 #include "ficl.h"
 
 /*
-*******************  FreeBSD  P O R T   B E G I N S   H E R E ******************** Michael Smith
+*******************  FreeBSD  P O R T   B E G I N S   H E R E
+********************* Michael Smith
 */
 
 #if PORTABLE_LONGMULDIV == 0
-DPUNS ficlLongMul(FICL_UNS x, FICL_UNS y)
+DPUNS
+ficlLongMul(FICL_UNS x, FICL_UNS y)
 {
-    DPUNS q;
-    uint64_t qx;
+	DPUNS q;
+	uint64_t qx;
 
-    qx = (uint64_t)x * (uint64_t) y;
+	qx = (uint64_t)x * (uint64_t)y;
 
-    q.hi = (uint32_t)( qx >> 32 );
-    q.lo = (uint32_t)( qx & 0xFFFFFFFFL);
+	q.hi = (uint32_t)(qx >> 32);
+	q.lo = (uint32_t)(qx & 0xFFFFFFFFL);
 
-    return q;
+	return q;
 }
 
-UNSQR ficlLongDiv(DPUNS q, FICL_UNS y)
+UNSQR
+ficlLongDiv(DPUNS q, FICL_UNS y)
 {
-    UNSQR result;
-    uint64_t qx, qh;
+	UNSQR result;
+	uint64_t qx, qh;
 
-    qh = q.hi;
-    qx = (qh << 32) | q.lo;
+	qh = q.hi;
+	qx = (qh << 32) | q.lo;
 
-    result.quot = qx / y;
-    result.rem  = qx % y;
+	result.quot = qx / y;
+	result.rem = qx % y;
 
-    return result;
+	return result;
 }
 #endif
 
-void  ficlTextOut(FICL_VM *pVM, char *msg, int fNewline)
+void
+ficlTextOut(FICL_VM *pVM, char *msg, int fNewline)
 {
-    IGNORE(pVM);
+	IGNORE(pVM);
 
-    while(*msg != 0)
-	putchar(*(msg++));
-    if (fNewline)
-	putchar('\n');
+	while (*msg != 0)
+		putchar(*(msg++));
+	if (fNewline)
+		putchar('\n');
 
-   return;
+	return;
 }
 
-void *ficlMalloc (size_t size)
+void *
+ficlMalloc(size_t size)
 {
-    return malloc(size);
+	return malloc(size);
 }
 
-void *ficlRealloc (void *p, size_t size)
+void *
+ficlRealloc(void *p, size_t size)
 {
-    return realloc(p, size);
+	return realloc(p, size);
 }
 
-void  ficlFree   (void *p)
+void
+ficlFree(void *p)
 {
-    free(p);
+	free(p);
 }
-
 
 /*
 ** Stub function for dictionary access control - does nothing
@@ -90,7 +95,8 @@ void  ficlFree   (void *p)
 ** befor timeout (optional - could also block forever)
 */
 #if FICL_MULTITHREAD
-int ficlLockDictionary(short fLock)
+int
+ficlLockDictionary(short fLock)
 {
 	IGNORE(fLock);
 	return 0;

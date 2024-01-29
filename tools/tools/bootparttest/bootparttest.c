@@ -27,41 +27,38 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include <disk.h>
 #include <err.h>
 #include <fcntl.h>
 #include <libgeom.h>
-#include <disk.h>
 #include <part.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
-static int disk_strategy(void *devdata, int rw, daddr_t blk,
-    size_t size, char *buf, size_t *rsize);
+static int disk_strategy(void *devdata, int rw, daddr_t blk, size_t size,
+    char *buf, size_t *rsize);
 
 /* stub struct devsw */
 struct devsw {
-	const char	dv_name[8];
-	int		dv_type;
-	void		*dv_init;
-	int		(*dv_strategy)(void *devdata, int rw, daddr_t blk,
-			    size_t size, char *buf, size_t *rsize);
-	void		*dv_open;
-	void		*dv_close;
-	void		*dv_ioctl;
-	void		*dv_print;
-	void		*dv_cleanup;
-} udisk = {
-	.dv_name = "disk",
-	.dv_strategy = disk_strategy
-};
+	const char dv_name[8];
+	int dv_type;
+	void *dv_init;
+	int (*dv_strategy)(void *devdata, int rw, daddr_t blk, size_t size,
+	    char *buf, size_t *rsize);
+	void *dv_open;
+	void *dv_close;
+	void *dv_ioctl;
+	void *dv_print;
+	void *dv_cleanup;
+} udisk = { .dv_name = "disk", .dv_strategy = disk_strategy };
 
 struct disk {
-	uint64_t	mediasize;
-	uint16_t	sectorsize;
+	uint64_t mediasize;
+	uint16_t sectorsize;
 
-	int		fd;
-	int		file;
+	int fd;
+	int file;
 } disk;
 
 static int
@@ -92,8 +89,10 @@ main(int argc, char **argv)
 	const char *p;
 
 	if (argc < 2)
-		errx(1, "Usage: %s <GEOM provider name> | "
-		    "<disk image file name>", argv[0]);
+		errx(1,
+		    "Usage: %s <GEOM provider name> | "
+		    "<disk image file name>",
+		    argv[0]);
 	memset(&disk, 0, sizeof(disk));
 	memset(&dev, 0, sizeof(dev));
 	dev.d_dev = &udisk;
@@ -116,7 +115,7 @@ main(int argc, char **argv)
 		if (p != NULL)
 			disk_parsedev(&dev, p, NULL);
 	}
-	printf("%s \"%s\" opened\n", disk.file ? "Disk image": "GEOM provider",
+	printf("%s \"%s\" opened\n", disk.file ? "Disk image" : "GEOM provider",
 	    argv[1]);
 	printf("Mediasize: %ju Bytes (%ju sectors)\nSectorsize: %u Bytes\n",
 	    disk.mediasize, disk.mediasize / disk.sectorsize, disk.sectorsize);

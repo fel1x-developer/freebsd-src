@@ -41,71 +41,61 @@
  */
 
 #include <sys/param.h>
+
 #include <errno.h>
 #include <limits.h>
 #include <runetype.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+
 #include "mblocal.h"
 
 extern int __mb_sb_limit;
 
-static size_t	_EUC_mbrtowc_impl(wchar_t * __restrict, const char * __restrict,
-    size_t, mbstate_t * __restrict, uint8_t, uint8_t, uint8_t, uint8_t);
-static size_t	_EUC_wcrtomb_impl(char * __restrict, wchar_t,
-    mbstate_t * __restrict, uint8_t, uint8_t, uint8_t, uint8_t);
+static size_t _EUC_mbrtowc_impl(wchar_t *__restrict, const char *__restrict,
+    size_t, mbstate_t *__restrict, uint8_t, uint8_t, uint8_t, uint8_t);
+static size_t _EUC_wcrtomb_impl(char *__restrict, wchar_t,
+    mbstate_t *__restrict, uint8_t, uint8_t, uint8_t, uint8_t);
 
-static size_t	_EUC_CN_mbrtowc(wchar_t * __restrict, const char * __restrict,
-		    size_t, mbstate_t * __restrict);
-static size_t	_EUC_JP_mbrtowc(wchar_t * __restrict, const char * __restrict,
-		    size_t, mbstate_t * __restrict);
-static size_t	_EUC_KR_mbrtowc(wchar_t * __restrict, const char * __restrict,
-		    size_t, mbstate_t * __restrict);
-static size_t	_EUC_TW_mbrtowc(wchar_t * __restrict, const char * __restrict,
-		    size_t, mbstate_t * __restrict);
+static size_t _EUC_CN_mbrtowc(wchar_t *__restrict, const char *__restrict,
+    size_t, mbstate_t *__restrict);
+static size_t _EUC_JP_mbrtowc(wchar_t *__restrict, const char *__restrict,
+    size_t, mbstate_t *__restrict);
+static size_t _EUC_KR_mbrtowc(wchar_t *__restrict, const char *__restrict,
+    size_t, mbstate_t *__restrict);
+static size_t _EUC_TW_mbrtowc(wchar_t *__restrict, const char *__restrict,
+    size_t, mbstate_t *__restrict);
 
-static size_t	_EUC_CN_wcrtomb(char * __restrict, wchar_t,
-		    mbstate_t * __restrict);
-static size_t	_EUC_JP_wcrtomb(char * __restrict, wchar_t,
-		    mbstate_t * __restrict);
-static size_t	_EUC_KR_wcrtomb(char * __restrict, wchar_t,
-		    mbstate_t * __restrict);
-static size_t	_EUC_TW_wcrtomb(char * __restrict, wchar_t,
-		    mbstate_t * __restrict);
+static size_t _EUC_CN_wcrtomb(char *__restrict, wchar_t, mbstate_t *__restrict);
+static size_t _EUC_JP_wcrtomb(char *__restrict, wchar_t, mbstate_t *__restrict);
+static size_t _EUC_KR_wcrtomb(char *__restrict, wchar_t, mbstate_t *__restrict);
+static size_t _EUC_TW_wcrtomb(char *__restrict, wchar_t, mbstate_t *__restrict);
 
-static size_t	_EUC_CN_mbsnrtowcs(wchar_t * __restrict,
-		    const char ** __restrict, size_t, size_t,
-		    mbstate_t * __restrict);
-static size_t	_EUC_JP_mbsnrtowcs(wchar_t * __restrict,
-		    const char ** __restrict, size_t, size_t,
-		    mbstate_t * __restrict);
-static size_t	_EUC_KR_mbsnrtowcs(wchar_t * __restrict,
-		    const char ** __restrict, size_t, size_t,
-		    mbstate_t * __restrict);
-static size_t	_EUC_TW_mbsnrtowcs(wchar_t * __restrict,
-		    const char ** __restrict, size_t, size_t,
-		    mbstate_t * __restrict);
+static size_t _EUC_CN_mbsnrtowcs(wchar_t *__restrict, const char **__restrict,
+    size_t, size_t, mbstate_t *__restrict);
+static size_t _EUC_JP_mbsnrtowcs(wchar_t *__restrict, const char **__restrict,
+    size_t, size_t, mbstate_t *__restrict);
+static size_t _EUC_KR_mbsnrtowcs(wchar_t *__restrict, const char **__restrict,
+    size_t, size_t, mbstate_t *__restrict);
+static size_t _EUC_TW_mbsnrtowcs(wchar_t *__restrict, const char **__restrict,
+    size_t, size_t, mbstate_t *__restrict);
 
-static size_t	_EUC_CN_wcsnrtombs(char * __restrict,
-		    const wchar_t ** __restrict, size_t, size_t,
-		    mbstate_t * __restrict);
-static size_t	_EUC_JP_wcsnrtombs(char * __restrict,
-		    const wchar_t ** __restrict, size_t, size_t,
-		    mbstate_t * __restrict);
-static size_t	_EUC_KR_wcsnrtombs(char * __restrict,
-		    const wchar_t ** __restrict, size_t, size_t,
-		    mbstate_t * __restrict);
-static size_t	_EUC_TW_wcsnrtombs(char * __restrict,
-		    const wchar_t ** __restrict, size_t, size_t,
-		    mbstate_t * __restrict);
+static size_t _EUC_CN_wcsnrtombs(char *__restrict, const wchar_t **__restrict,
+    size_t, size_t, mbstate_t *__restrict);
+static size_t _EUC_JP_wcsnrtombs(char *__restrict, const wchar_t **__restrict,
+    size_t, size_t, mbstate_t *__restrict);
+static size_t _EUC_KR_wcsnrtombs(char *__restrict, const wchar_t **__restrict,
+    size_t, size_t, mbstate_t *__restrict);
+static size_t _EUC_TW_wcsnrtombs(char *__restrict, const wchar_t **__restrict,
+    size_t, size_t, mbstate_t *__restrict);
 
-static int	_EUC_mbsinit(const mbstate_t *);
+static int _EUC_mbsinit(const mbstate_t *);
 
 typedef struct {
-	wchar_t	ch;
-	int	set;
-	int	want;
+	wchar_t ch;
+	int set;
+	int want;
 } _EucState;
 
 static int
@@ -134,30 +124,28 @@ _EUC_CN_init(struct xlocale_ctype *l, _RuneLocale *rl)
 }
 
 static size_t
-_EUC_CN_mbrtowc(wchar_t * __restrict pwc, const char * __restrict s,
-    size_t n, mbstate_t * __restrict ps)
+_EUC_CN_mbrtowc(wchar_t *__restrict pwc, const char *__restrict s, size_t n,
+    mbstate_t *__restrict ps)
 {
 	return (_EUC_mbrtowc_impl(pwc, s, n, ps, SS2, 4, 0, 0));
 }
 
 static size_t
-_EUC_CN_mbsnrtowcs(wchar_t * __restrict dst,
-    const char ** __restrict src,
-    size_t nms, size_t len, mbstate_t * __restrict ps)
+_EUC_CN_mbsnrtowcs(wchar_t *__restrict dst, const char **__restrict src,
+    size_t nms, size_t len, mbstate_t *__restrict ps)
 {
 	return (__mbsnrtowcs_std(dst, src, nms, len, ps, _EUC_CN_mbrtowc));
 }
 
 static size_t
-_EUC_CN_wcrtomb(char * __restrict s, wchar_t wc,
-    mbstate_t * __restrict ps)
+_EUC_CN_wcrtomb(char *__restrict s, wchar_t wc, mbstate_t *__restrict ps)
 {
 	return (_EUC_wcrtomb_impl(s, wc, ps, SS2, 4, 0, 0));
 }
 
 static size_t
-_EUC_CN_wcsnrtombs(char * __restrict dst, const wchar_t ** __restrict src,
-	size_t nwc, size_t len, mbstate_t * __restrict ps)
+_EUC_CN_wcsnrtombs(char *__restrict dst, const wchar_t **__restrict src,
+    size_t nwc, size_t len, mbstate_t *__restrict ps)
 {
 	return (__wcsnrtombs_std(dst, src, nwc, len, ps, _EUC_CN_wcrtomb));
 }
@@ -181,30 +169,28 @@ _EUC_KR_init(struct xlocale_ctype *l, _RuneLocale *rl)
 }
 
 static size_t
-_EUC_KR_mbrtowc(wchar_t * __restrict pwc, const char * __restrict s,
-    size_t n, mbstate_t * __restrict ps)
+_EUC_KR_mbrtowc(wchar_t *__restrict pwc, const char *__restrict s, size_t n,
+    mbstate_t *__restrict ps)
 {
 	return (_EUC_mbrtowc_impl(pwc, s, n, ps, 0, 0, 0, 0));
 }
 
 static size_t
-_EUC_KR_mbsnrtowcs(wchar_t * __restrict dst,
-    const char ** __restrict src,
-    size_t nms, size_t len, mbstate_t * __restrict ps)
+_EUC_KR_mbsnrtowcs(wchar_t *__restrict dst, const char **__restrict src,
+    size_t nms, size_t len, mbstate_t *__restrict ps)
 {
 	return (__mbsnrtowcs_std(dst, src, nms, len, ps, _EUC_KR_mbrtowc));
 }
 
 static size_t
-_EUC_KR_wcrtomb(char * __restrict s, wchar_t wc,
-	mbstate_t * __restrict ps)
+_EUC_KR_wcrtomb(char *__restrict s, wchar_t wc, mbstate_t *__restrict ps)
 {
 	return (_EUC_wcrtomb_impl(s, wc, ps, 0, 0, 0, 0));
 }
 
 static size_t
-_EUC_KR_wcsnrtombs(char * __restrict dst, const wchar_t ** __restrict src,
-	size_t nwc, size_t len, mbstate_t * __restrict ps)
+_EUC_KR_wcsnrtombs(char *__restrict dst, const wchar_t **__restrict src,
+    size_t nwc, size_t len, mbstate_t *__restrict ps)
 {
 	return (__wcsnrtombs_std(dst, src, nwc, len, ps, _EUC_KR_wcrtomb));
 }
@@ -228,30 +214,28 @@ _EUC_JP_init(struct xlocale_ctype *l, _RuneLocale *rl)
 }
 
 static size_t
-_EUC_JP_mbrtowc(wchar_t * __restrict pwc, const char * __restrict s,
-    size_t n, mbstate_t * __restrict ps)
+_EUC_JP_mbrtowc(wchar_t *__restrict pwc, const char *__restrict s, size_t n,
+    mbstate_t *__restrict ps)
 {
 	return (_EUC_mbrtowc_impl(pwc, s, n, ps, SS2, 2, SS3, 3));
 }
 
 static size_t
-_EUC_JP_mbsnrtowcs(wchar_t * __restrict dst,
-    const char ** __restrict src,
-    size_t nms, size_t len, mbstate_t * __restrict ps)
+_EUC_JP_mbsnrtowcs(wchar_t *__restrict dst, const char **__restrict src,
+    size_t nms, size_t len, mbstate_t *__restrict ps)
 {
 	return (__mbsnrtowcs_std(dst, src, nms, len, ps, _EUC_JP_mbrtowc));
 }
 
 static size_t
-_EUC_JP_wcrtomb(char * __restrict s, wchar_t wc,
-    mbstate_t * __restrict ps)
+_EUC_JP_wcrtomb(char *__restrict s, wchar_t wc, mbstate_t *__restrict ps)
 {
 	return (_EUC_wcrtomb_impl(s, wc, ps, SS2, 2, SS3, 3));
 }
 
 static size_t
-_EUC_JP_wcsnrtombs(char * __restrict dst, const wchar_t ** __restrict src,
-	size_t nwc, size_t len, mbstate_t * __restrict ps)
+_EUC_JP_wcsnrtombs(char *__restrict dst, const wchar_t **__restrict src,
+    size_t nwc, size_t len, mbstate_t *__restrict ps)
 {
 	return (__wcsnrtombs_std(dst, src, nwc, len, ps, _EUC_JP_wcrtomb));
 }
@@ -275,30 +259,28 @@ _EUC_TW_init(struct xlocale_ctype *l, _RuneLocale *rl)
 }
 
 static size_t
-_EUC_TW_mbrtowc(wchar_t * __restrict pwc, const char * __restrict s,
-	size_t n, mbstate_t * __restrict ps)
+_EUC_TW_mbrtowc(wchar_t *__restrict pwc, const char *__restrict s, size_t n,
+    mbstate_t *__restrict ps)
 {
 	return (_EUC_mbrtowc_impl(pwc, s, n, ps, SS2, 4, 0, 0));
 }
 
 static size_t
-_EUC_TW_mbsnrtowcs(wchar_t * __restrict dst,
-	const char ** __restrict src,
-	size_t nms, size_t len, mbstate_t * __restrict ps)
+_EUC_TW_mbsnrtowcs(wchar_t *__restrict dst, const char **__restrict src,
+    size_t nms, size_t len, mbstate_t *__restrict ps)
 {
 	return (__mbsnrtowcs_std(dst, src, nms, len, ps, _EUC_TW_mbrtowc));
 }
 
 static size_t
-_EUC_TW_wcrtomb(char * __restrict s, wchar_t wc,
-	mbstate_t * __restrict ps)
+_EUC_TW_wcrtomb(char *__restrict s, wchar_t wc, mbstate_t *__restrict ps)
 {
 	return (_EUC_wcrtomb_impl(s, wc, ps, SS2, 4, 0, 0));
 }
 
 static size_t
-_EUC_TW_wcsnrtombs(char * __restrict dst, const wchar_t ** __restrict src,
-	size_t nwc, size_t len, mbstate_t * __restrict ps)
+_EUC_TW_wcsnrtombs(char *__restrict dst, const wchar_t **__restrict src,
+    size_t nwc, size_t len, mbstate_t *__restrict ps)
 {
 	return (__wcsnrtombs_std(dst, src, nwc, len, ps, _EUC_TW_wcrtomb));
 }
@@ -308,9 +290,9 @@ _EUC_TW_wcsnrtombs(char * __restrict dst, const wchar_t ** __restrict src,
  */
 
 static size_t
-_EUC_mbrtowc_impl(wchar_t * __restrict pwc, const char * __restrict s,
-	size_t n, mbstate_t * __restrict ps,
-	uint8_t cs2, uint8_t cs2width, uint8_t cs3, uint8_t cs3width)
+_EUC_mbrtowc_impl(wchar_t *__restrict pwc, const char *__restrict s, size_t n,
+    mbstate_t *__restrict ps, uint8_t cs2, uint8_t cs2width, uint8_t cs3,
+    uint8_t cs3width)
 {
 	_EucState *es;
 	int i, want;
@@ -354,7 +336,6 @@ _EUC_mbrtowc_impl(wchar_t * __restrict pwc, const char * __restrict s,
 			return ((size_t)-1);
 		}
 
-
 		es->want = want;
 		es->ch = 0;
 	} else {
@@ -382,8 +363,7 @@ _EUC_mbrtowc_impl(wchar_t * __restrict pwc, const char * __restrict s,
 }
 
 static size_t
-_EUC_wcrtomb_impl(char * __restrict s, wchar_t wc,
-    mbstate_t * __restrict ps,
+_EUC_wcrtomb_impl(char *__restrict s, wchar_t wc, mbstate_t *__restrict ps,
     uint8_t cs2, uint8_t cs2width, uint8_t cs3, uint8_t cs3width)
 {
 	_EucState *es;

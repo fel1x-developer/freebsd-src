@@ -48,12 +48,13 @@
  */
 
 #include <sys/types.h>
+
 #include <crypto/sha1.h>
 #include <opencrypto/xform_auth.h>
 
-static	void SHA1Init_int(void *);
-static	int SHA1Update_int(void *, const void *, u_int);
-static	void SHA1Final_int(uint8_t *, void *);
+static void SHA1Init_int(void *);
+static int SHA1Update_int(void *, const void *, u_int);
+static void SHA1Final_int(uint8_t *, void *);
 
 /* Plain hash */
 const struct auth_hash auth_hash_sha1 = {

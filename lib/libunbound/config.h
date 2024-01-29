@@ -17,13 +17,14 @@
 /* #undef COMPAT_SHA512 */
 
 /* Command line arguments used with configure */
-#define CONFCMDLINE "--with-ssl=/usr --with-libexpat=/usr --disable-dnscrypt --disable-dnstap --enable-ecdsa --disable-event-api --enable-gost --with-libevent --disable-subnet --disable-tfo-client --disable-tfo-server --with-pthreads--prefix=/usr --localstatedir=/var/unbound --mandir=/usr/share/man --build=freebsd"
+#define CONFCMDLINE \
+	"--with-ssl=/usr --with-libexpat=/usr --disable-dnscrypt --disable-dnstap --enable-ecdsa --disable-event-api --enable-gost --with-libevent --disable-subnet --disable-tfo-client --disable-tfo-server --with-pthreads--prefix=/usr --localstatedir=/var/unbound --mandir=/usr/share/man --build=freebsd"
 
 /* Pathname to the Unbound configuration file */
 #define CONFIGFILE "/var/unbound/unbound.conf"
 
 /* Define this if on macOSX10.4-darwin8 and setreuid and setregid do not work
-   */
+ */
 /* #undef DARWIN_BROKEN_SETREUID */
 
 /* Whether daemon is deprecated */
@@ -232,7 +233,6 @@
 /* Define to 1 if you have the `EVP_default_properties_is_fips_enabled'
    function. */
 /* #undef HAVE_EVP_DEFAULT_PROPERTIES_IS_FIPS_ENABLED */
-
 
 /* Define to 1 if you have the `EVP_default_properties_is_fips_enabled'
    function. */
@@ -787,7 +787,8 @@
 /* #undef OMITTED__D__EXTENSIONS__ */
 
 /* Define to the address where bug reports for this package should be sent. */
-#define PACKAGE_BUGREPORT "unbound-bugs@nlnetlabs.nl or https://github.com/NLnetLabs/unbound/issues"
+#define PACKAGE_BUGREPORT \
+	"unbound-bugs@nlnetlabs.nl or https://github.com/NLnetLabs/unbound/issues"
 
 /* Define to the full name of this package. */
 #define PACKAGE_NAME "unbound"
@@ -825,7 +826,7 @@
 #define ROOT_CERT_FILE "/var/unbound/icannbundle.pem"
 
 /* version number for resource files */
-#define RSRC_PACKAGE_VERSION 1,19,0,0
+#define RSRC_PACKAGE_VERSION 1, 19, 0, 0
 
 /* Directory to chdir to */
 #define RUN_DIR "/var/unbound"
@@ -833,7 +834,7 @@
 /* Shared data */
 #define SHARE_DIR "/var/unbound"
 
-#ifdef  __LP64__
+#ifdef __LP64__
 /* The size of `size_t', as computed by sizeof. */
 #define SIZEOF_SIZE_T 8
 /* The size of `size_t'. */
@@ -847,14 +848,14 @@
 #endif
 
 /* The size of `time_t', as computed by sizeof. */
-#ifdef  __i386__
+#ifdef __i386__
 #define SIZEOF_TIME_T 4
 #else
 #define SIZEOF_TIME_T 8
 #endif
 
 /* The size of `unsigned long', as computed by sizeof. */
-#ifdef  __LP64__
+#ifdef __LP64__
 #define SIZEOF_UNSIGNED_LONG 8
 #else
 #define SIZEOF_UNSIGNED_LONG 4
@@ -962,24 +963,24 @@
 
 /* Enable extensions on AIX 3, Interix.  */
 #ifndef _ALL_SOURCE
-# define _ALL_SOURCE 1
+#define _ALL_SOURCE 1
 #endif
 /* Enable general extensions on macOS.  */
 #ifndef _DARWIN_C_SOURCE
-# define _DARWIN_C_SOURCE 1
+#define _DARWIN_C_SOURCE 1
 #endif
 /* Enable general extensions on Solaris.  */
 #ifndef __EXTENSIONS__
-# define __EXTENSIONS__ 1
+#define __EXTENSIONS__ 1
 #endif
 /* Enable GNU extensions on systems that have them.  */
 #ifndef _GNU_SOURCE
-# define _GNU_SOURCE 1
+#define _GNU_SOURCE 1
 #endif
 /* Enable X/Open compliant socket functions that do not require linking
    with -lxnet on HP-UX 11.11.  */
 #ifndef _HPUX_ALT_XOPEN_SOCKET_API
-# define _HPUX_ALT_XOPEN_SOCKET_API 1
+#define _HPUX_ALT_XOPEN_SOCKET_API 1
 #endif
 /* Identify the host operating system as Minix.
    This macro does not affect the system headers' behavior.
@@ -990,12 +991,12 @@
 /* Enable general extensions on NetBSD.
    Enable NetBSD compatibility extensions on Minix.  */
 #ifndef _NETBSD_SOURCE
-# define _NETBSD_SOURCE 1
+#define _NETBSD_SOURCE 1
 #endif
 /* Enable OpenBSD compatibility extensions on NetBSD.
    Oddly enough, this does nothing on OpenBSD.  */
 #ifndef _OPENBSD_SOURCE
-# define _OPENBSD_SOURCE 1
+#define _OPENBSD_SOURCE 1
 #endif
 /* Define to 1 if needed for POSIX-compatible behavior.  */
 #ifndef _POSIX_SOURCE
@@ -1007,46 +1008,45 @@
 #endif
 /* Enable POSIX-compatible threading on Solaris.  */
 #ifndef _POSIX_PTHREAD_SEMANTICS
-# define _POSIX_PTHREAD_SEMANTICS 1
+#define _POSIX_PTHREAD_SEMANTICS 1
 #endif
 /* Enable extensions specified by ISO/IEC TS 18661-5:2014.  */
 #ifndef __STDC_WANT_IEC_60559_ATTRIBS_EXT__
-# define __STDC_WANT_IEC_60559_ATTRIBS_EXT__ 1
+#define __STDC_WANT_IEC_60559_ATTRIBS_EXT__ 1
 #endif
 /* Enable extensions specified by ISO/IEC TS 18661-1:2014.  */
 #ifndef __STDC_WANT_IEC_60559_BFP_EXT__
-# define __STDC_WANT_IEC_60559_BFP_EXT__ 1
+#define __STDC_WANT_IEC_60559_BFP_EXT__ 1
 #endif
 /* Enable extensions specified by ISO/IEC TS 18661-2:2015.  */
 #ifndef __STDC_WANT_IEC_60559_DFP_EXT__
-# define __STDC_WANT_IEC_60559_DFP_EXT__ 1
+#define __STDC_WANT_IEC_60559_DFP_EXT__ 1
 #endif
 /* Enable extensions specified by ISO/IEC TS 18661-4:2015.  */
 #ifndef __STDC_WANT_IEC_60559_FUNCS_EXT__
-# define __STDC_WANT_IEC_60559_FUNCS_EXT__ 1
+#define __STDC_WANT_IEC_60559_FUNCS_EXT__ 1
 #endif
 /* Enable extensions specified by ISO/IEC TS 18661-3:2015.  */
 #ifndef __STDC_WANT_IEC_60559_TYPES_EXT__
-# define __STDC_WANT_IEC_60559_TYPES_EXT__ 1
+#define __STDC_WANT_IEC_60559_TYPES_EXT__ 1
 #endif
 /* Enable extensions specified by ISO/IEC TR 24731-2:2010.  */
 #ifndef __STDC_WANT_LIB_EXT2__
-# define __STDC_WANT_LIB_EXT2__ 1
+#define __STDC_WANT_LIB_EXT2__ 1
 #endif
 /* Enable extensions specified by ISO/IEC 24747:2009.  */
 #ifndef __STDC_WANT_MATH_SPEC_FUNCS__
-# define __STDC_WANT_MATH_SPEC_FUNCS__ 1
+#define __STDC_WANT_MATH_SPEC_FUNCS__ 1
 #endif
 /* Enable extensions on HP NonStop.  */
 #ifndef _TANDEM_SOURCE
-# define _TANDEM_SOURCE 1
+#define _TANDEM_SOURCE 1
 #endif
 /* Enable X/Open extensions.  Define to 500 only if necessary
    to make mbstate_t available.  */
 #ifndef _XOPEN_SOURCE
 /* # undef _XOPEN_SOURCE */
 #endif
-
 
 /* Define this to enable server TCP Fast Open. */
 /* #undef USE_TCP_FASTOPEN */
@@ -1160,67 +1160,65 @@
 
 #if defined(OMITTED__D_GNU_SOURCE) && !defined(_GNU_SOURCE)
 #define _GNU_SOURCE 1
-#endif 
+#endif
 
 #if defined(OMITTED__D_BSD_SOURCE) && !defined(_BSD_SOURCE)
 #define _BSD_SOURCE 1
-#endif 
+#endif
 
 #if defined(OMITTED__D_DEFAULT_SOURCE) && !defined(_DEFAULT_SOURCE)
 #define _DEFAULT_SOURCE 1
-#endif 
+#endif
 
 #if defined(OMITTED__D__EXTENSIONS__) && !defined(__EXTENSIONS__)
 #define __EXTENSIONS__ 1
-#endif 
+#endif
 
 #if defined(OMITTED__D_POSIX_C_SOURCE_200112) && !defined(_POSIX_C_SOURCE)
 #define _POSIX_C_SOURCE 200112
-#endif 
+#endif
 
 #if defined(OMITTED__D_XOPEN_SOURCE_600) && !defined(_XOPEN_SOURCE)
 #define _XOPEN_SOURCE 600
-#endif 
+#endif
 
-#if defined(OMITTED__D_XOPEN_SOURCE_EXTENDED_1) && !defined(_XOPEN_SOURCE_EXTENDED)
+#if defined(OMITTED__D_XOPEN_SOURCE_EXTENDED_1) && \
+    !defined(_XOPEN_SOURCE_EXTENDED)
 #define _XOPEN_SOURCE_EXTENDED 1
-#endif 
+#endif
 
 #if defined(OMITTED__D_ALL_SOURCE) && !defined(_ALL_SOURCE)
 #define _ALL_SOURCE 1
-#endif 
+#endif
 
 #if defined(OMITTED__D_LARGEFILE_SOURCE_1) && !defined(_LARGEFILE_SOURCE)
 #define _LARGEFILE_SOURCE 1
-#endif 
-
-
-
+#endif
 
 #ifndef _OPENBSD_SOURCE
 #define _OPENBSD_SOURCE 1
 #endif
 
 #ifndef UNBOUND_DEBUG
-# ifndef NDEBUG
-#  define NDEBUG
-# endif
+#ifndef NDEBUG
+#define NDEBUG
+#endif
 #endif
 
 /** Use small-ldns codebase */
 #define USE_SLDNS 1
 #ifdef HAVE_SSL
-#  define LDNS_BUILD_CONFIG_HAVE_SSL 1
+#define LDNS_BUILD_CONFIG_HAVE_SSL 1
 #endif
 
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include <assert.h>
 
 #if STDC_HEADERS
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #endif
 
 #ifdef HAVE_STDARG_H
@@ -1265,7 +1263,8 @@
 #include <ws2tcpip.h>
 #endif
 
-#if !defined(USE_WINSOCK) || !defined(HAVE_SNPRINTF) || defined(SNPRINTF_RET_BROKEN) || defined(__USE_MINGW_ANSI_STDIO)
+#if !defined(USE_WINSOCK) || !defined(HAVE_SNPRINTF) || \
+    defined(SNPRINTF_RET_BROKEN) || defined(__USE_MINGW_ANSI_STDIO)
 #define ARG_LL "%ll"
 #else
 #define ARG_LL "%I64"
@@ -1275,32 +1274,27 @@
 #define AF_LOCAL AF_UNIX
 #endif
 
-
- 
 #ifdef HAVE_ATTR_FORMAT
-#  define ATTR_FORMAT(archetype, string_index, first_to_check) \
-    __attribute__ ((format (archetype, string_index, first_to_check)))
+#define ATTR_FORMAT(archetype, string_index, first_to_check) \
+	__attribute__((format(archetype, string_index, first_to_check)))
 #else /* !HAVE_ATTR_FORMAT */
-#  define ATTR_FORMAT(archetype, string_index, first_to_check) /* empty */
+#define ATTR_FORMAT(archetype, string_index, first_to_check) /* empty */
 #endif /* !HAVE_ATTR_FORMAT */
 
-
 #if defined(DOXYGEN)
-#  define ATTR_UNUSED(x)  x
+#define ATTR_UNUSED(x) x
 #elif defined(__cplusplus)
-#  define ATTR_UNUSED(x)
+#define ATTR_UNUSED(x)
 #elif defined(HAVE_ATTR_UNUSED)
-#  define ATTR_UNUSED(x)  x __attribute__((unused))
+#define ATTR_UNUSED(x) x __attribute__((unused))
 #else /* !HAVE_ATTR_UNUSED */
-#  define ATTR_UNUSED(x)  x
+#define ATTR_UNUSED(x) x
 #endif /* !HAVE_ATTR_UNUSED */
-
 
 #ifndef HAVE_FSEEKO
 #define fseeko fseek
 #define ftello ftell
 #endif /* HAVE_FSEEKO */
-
 
 #ifndef MAXHOSTNAMELEN
 #define MAXHOSTNAMELEN 256
@@ -1310,98 +1304,82 @@
 #define snprintf snprintf_unbound
 #define vsnprintf vsnprintf_unbound
 #include <stdarg.h>
-int snprintf (char *str, size_t count, const char *fmt, ...);
-int vsnprintf (char *str, size_t count, const char *fmt, va_list arg);
+int snprintf(char *str, size_t count, const char *fmt, ...);
+int vsnprintf(char *str, size_t count, const char *fmt, va_list arg);
 #endif /* HAVE_SNPRINTF or SNPRINTF_RET_BROKEN */
 
 #ifndef HAVE_INET_PTON
 #define inet_pton inet_pton_unbound
-int inet_pton(int af, const char* src, void* dst);
+int inet_pton(int af, const char *src, void *dst);
 #endif /* HAVE_INET_PTON */
-
 
 #ifndef HAVE_INET_NTOP
 #define inet_ntop inet_ntop_unbound
 const char *inet_ntop(int af, const void *src, char *dst, size_t size);
 #endif
 
-
 #ifndef HAVE_INET_ATON
 #define inet_aton inet_aton_unbound
 int inet_aton(const char *cp, struct in_addr *addr);
 #endif
-
 
 #ifndef HAVE_MEMMOVE
 #define memmove memmove_unbound
 void *memmove(void *dest, const void *src, size_t n);
 #endif
 
-
 #ifndef HAVE_STRLCAT
 #define strlcat strlcat_unbound
 size_t strlcat(char *dst, const char *src, size_t siz);
 #endif
-
 
 #ifndef HAVE_STRLCPY
 #define strlcpy strlcpy_unbound
 size_t strlcpy(char *dst, const char *src, size_t siz);
 #endif
 
-
 #ifndef HAVE_GMTIME_R
 #define gmtime_r gmtime_r_unbound
 struct tm *gmtime_r(const time_t *timep, struct tm *result);
 #endif
 
-
 #ifndef HAVE_REALLOCARRAY
 #define reallocarray reallocarrayunbound
-void* reallocarray(void *ptr, size_t nmemb, size_t size);
+void *reallocarray(void *ptr, size_t nmemb, size_t size);
 #endif
 
-
 #if !defined(HAVE_SLEEP) || defined(HAVE_WINDOWS_H)
-#define sleep(x) Sleep((x)*1000) /* on win32 */
-#endif /* HAVE_SLEEP */
-
+#define sleep(x) Sleep((x) * 1000) /* on win32 */
+#endif				   /* HAVE_SLEEP */
 
 #ifndef HAVE_USLEEP
-#define usleep(x) Sleep((x)/1000 + 1) /* on win32 */
-#endif /* HAVE_USLEEP */
-
+#define usleep(x) Sleep((x) / 1000 + 1) /* on win32 */
+#endif					/* HAVE_USLEEP */
 
 #ifndef HAVE_RANDOM
 #define random rand /* on win32, for tests only (bad random) */
-#endif /* HAVE_RANDOM */
-
+#endif		    /* HAVE_RANDOM */
 
 #ifndef HAVE_SRANDOM
 #define srandom(x) srand(x) /* on win32, for tests only (bad random) */
-#endif /* HAVE_SRANDOM */
-
+#endif			    /* HAVE_SRANDOM */
 
 /* detect if we need to cast to unsigned int for FD_SET to avoid warnings */
 #ifdef HAVE_WINSOCK2_H
 #define FD_SET_T (u_int)
 #else
-#define FD_SET_T 
+#define FD_SET_T
 #endif
-
 
 #ifndef IPV6_MIN_MTU
 #define IPV6_MIN_MTU 1280
 #endif /* IPV6_MIN_MTU */
-
 
 #ifdef MEMCMP_IS_BROKEN
 #include "compat/memcmp.h"
 #define memcmp memcmp_unbound
 int memcmp(const void *x, const void *y, size_t n);
 #endif
-
-
 
 #ifndef HAVE_CTIME_R
 #define ctime_r unbound_ctime_r
@@ -1420,7 +1398,7 @@ int isblank(int c);
 
 #ifndef HAVE_EXPLICIT_BZERO
 #define explicit_bzero unbound_explicit_bzero
-void explicit_bzero(void* buf, size_t len);
+void explicit_bzero(void *buf, size_t len);
 #endif
 
 #if defined(HAVE_INET_NTOP) && !HAVE_DECL_INET_NTOP
@@ -1428,7 +1406,7 @@ const char *inet_ntop(int af, const void *src, char *dst, size_t size);
 #endif
 
 #if defined(HAVE_INET_PTON) && !HAVE_DECL_INET_PTON
-int inet_pton(int af, const char* src, void* dst);
+int inet_pton(int af, const char *src, void *dst);
 #endif
 
 #if !defined(HAVE_STRPTIME) || !defined(STRPTIME_WORKS)
@@ -1442,28 +1420,28 @@ void *reallocarray(void *ptr, size_t nmemb, size_t size);
 #endif
 
 #ifdef HAVE_LIBBSD
-#include <bsd/string.h>
 #include <bsd/stdlib.h>
+#include <bsd/string.h>
 #endif
 
 #ifdef HAVE_LIBRESSL
-#  if !HAVE_DECL_STRLCPY
+#if !HAVE_DECL_STRLCPY
 size_t strlcpy(char *dst, const char *src, size_t siz);
-#  endif
-#  if !HAVE_DECL_STRLCAT
+#endif
+#if !HAVE_DECL_STRLCAT
 size_t strlcat(char *dst, const char *src, size_t siz);
-#  endif
-#  if !HAVE_DECL_ARC4RANDOM && defined(HAVE_ARC4RANDOM)
+#endif
+#if !HAVE_DECL_ARC4RANDOM && defined(HAVE_ARC4RANDOM)
 uint32_t arc4random(void);
-#  endif
-#  if !HAVE_DECL_ARC4RANDOM_UNIFORM && defined(HAVE_ARC4RANDOM_UNIFORM)
+#endif
+#if !HAVE_DECL_ARC4RANDOM_UNIFORM && defined(HAVE_ARC4RANDOM_UNIFORM)
 uint32_t arc4random_uniform(uint32_t upper_bound);
-#  endif
+#endif
 #endif /* HAVE_LIBRESSL */
 #ifndef HAVE_ARC4RANDOM
-int getentropy(void* buf, size_t len);
+int getentropy(void *buf, size_t len);
 uint32_t arc4random(void);
-void arc4random_buf(void* buf, size_t n);
+void arc4random_buf(void *buf, size_t n);
 void _ARC4_LOCK(void);
 void _ARC4_UNLOCK(void);
 void _ARC4_LOCK_DESTROY(void);
@@ -1473,35 +1451,35 @@ uint32_t arc4random_uniform(uint32_t upper_bound);
 #endif
 #ifdef COMPAT_SHA512
 #ifndef SHA512_DIGEST_LENGTH
-#define SHA512_BLOCK_LENGTH		128
-#define SHA512_DIGEST_LENGTH		64
-#define SHA512_DIGEST_STRING_LENGTH	(SHA512_DIGEST_LENGTH * 2 + 1)
+#define SHA512_BLOCK_LENGTH 128
+#define SHA512_DIGEST_LENGTH 64
+#define SHA512_DIGEST_STRING_LENGTH (SHA512_DIGEST_LENGTH * 2 + 1)
 typedef struct _SHA512_CTX {
-	uint64_t	state[8];
-	uint64_t	bitcount[2];
-	uint8_t	buffer[SHA512_BLOCK_LENGTH];
+	uint64_t state[8];
+	uint64_t bitcount[2];
+	uint8_t buffer[SHA512_BLOCK_LENGTH];
 } SHA512_CTX;
 #endif /* SHA512_DIGEST_LENGTH */
-void SHA512_Init(SHA512_CTX*);
-void SHA512_Update(SHA512_CTX*, void*, size_t);
-void SHA512_Final(uint8_t[SHA512_DIGEST_LENGTH], SHA512_CTX*);
-unsigned char *SHA512(void* data, unsigned int data_len, unsigned char *digest);
+void SHA512_Init(SHA512_CTX *);
+void SHA512_Update(SHA512_CTX *, void *, size_t);
+void SHA512_Final(uint8_t[SHA512_DIGEST_LENGTH], SHA512_CTX *);
+unsigned char *SHA512(void *data, unsigned int data_len, unsigned char *digest);
 #endif /* COMPAT_SHA512 */
 
-
-
-#if defined(HAVE_EVENT_H) && !defined(HAVE_EVENT_BASE_ONCE) && !(defined(HAVE_EV_LOOP) || defined(HAVE_EV_DEFAULT_LOOP)) && (defined(HAVE_PTHREAD) || defined(HAVE_SOLARIS_THREADS))
-   /* using version of libevent that is not threadsafe. */
-#  define LIBEVENT_SIGNAL_PROBLEM 1
+#if defined(HAVE_EVENT_H) && !defined(HAVE_EVENT_BASE_ONCE) &&   \
+    !(defined(HAVE_EV_LOOP) || defined(HAVE_EV_DEFAULT_LOOP)) && \
+    (defined(HAVE_PTHREAD) || defined(HAVE_SOLARIS_THREADS))
+/* using version of libevent that is not threadsafe. */
+#define LIBEVENT_SIGNAL_PROBLEM 1
 #endif
 
 #ifndef CHECKED_INET6
-#  define CHECKED_INET6
-#  ifdef AF_INET6
-#    define INET6
-#  else
-#    define AF_INET6        28
-#  endif
+#define CHECKED_INET6
+#ifdef AF_INET6
+#define INET6
+#else
+#define AF_INET6 28
+#endif
 #endif /* CHECKED_INET6 */
 
 #ifndef HAVE_GETADDRINFO
@@ -1510,24 +1488,25 @@ struct sockaddr_storage;
 #endif
 
 #ifdef UNBOUND_ALLOC_STATS
-#  define malloc(s) unbound_stat_malloc_log(s, __FILE__, __LINE__, __func__)
-#  define calloc(n,s) unbound_stat_calloc_log(n, s, __FILE__, __LINE__, __func__)
-#  define free(p) unbound_stat_free_log(p, __FILE__, __LINE__, __func__)
-#  define realloc(p,s) unbound_stat_realloc_log(p, s, __FILE__, __LINE__, __func__)
+#define malloc(s) unbound_stat_malloc_log(s, __FILE__, __LINE__, __func__)
+#define calloc(n, s) unbound_stat_calloc_log(n, s, __FILE__, __LINE__, __func__)
+#define free(p) unbound_stat_free_log(p, __FILE__, __LINE__, __func__)
+#define realloc(p, s) \
+	unbound_stat_realloc_log(p, s, __FILE__, __LINE__, __func__)
 void *unbound_stat_malloc(size_t size);
 void *unbound_stat_calloc(size_t nmemb, size_t size);
 void unbound_stat_free(void *ptr);
 void *unbound_stat_realloc(void *ptr, size_t size);
-void *unbound_stat_malloc_log(size_t size, const char* file, int line,
-	const char* func);
-void *unbound_stat_calloc_log(size_t nmemb, size_t size, const char* file,
-	int line, const char* func);
-void unbound_stat_free_log(void *ptr, const char* file, int line,
-	const char* func);
-void *unbound_stat_realloc_log(void *ptr, size_t size, const char* file,
-	int line, const char* func);
+void *unbound_stat_malloc_log(size_t size, const char *file, int line,
+    const char *func);
+void *unbound_stat_calloc_log(size_t nmemb, size_t size, const char *file,
+    int line, const char *func);
+void unbound_stat_free_log(void *ptr, const char *file, int line,
+    const char *func);
+void *unbound_stat_realloc_log(void *ptr, size_t size, const char *file,
+    int line, const char *func);
 #elif defined(UNBOUND_ALLOC_LITE)
-#  include "util/alloc.h"
+#include "util/alloc.h"
 #endif /* UNBOUND_ALLOC_LITE and UNBOUND_ALLOC_STATS */
 
 /** default port for DNS traffic. */
@@ -1541,5 +1520,3 @@ void *unbound_stat_realloc_log(void *ptr, size_t size, const char* file,
 #define UNBOUND_CONTROL_PORT 8953
 /** the version of unbound-control that this software implements */
 #define UNBOUND_CONTROL_VERSION 1
-
-

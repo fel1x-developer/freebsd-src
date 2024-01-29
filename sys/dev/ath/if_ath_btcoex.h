@@ -28,17 +28,17 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
-#ifndef	__IF_ATH_BTCOEX_H__
-#define	__IF_ATH_BTCOEX_H__
+#ifndef __IF_ATH_BTCOEX_H__
+#define __IF_ATH_BTCOEX_H__
 
 typedef enum {
 	ATH_COEX_EVENT_BT_NOOP,
 } ATH_BT_COEX_EVENT;
 
-extern	int ath_btcoex_attach(struct ath_softc *sc);
-extern	int ath_btcoex_detach(struct ath_softc *sc);
-extern	int ath_btcoex_ioctl(struct ath_softc *sc, struct ath_diag *ad);
-extern	int ath_btcoex_enable(struct ath_softc *sc,
-	    const struct ieee80211_channel *ch);
+extern int ath_btcoex_attach(struct ath_softc *sc);
+extern int ath_btcoex_detach(struct ath_softc *sc);
+extern int ath_btcoex_ioctl(struct ath_softc *sc, struct ath_diag *ad);
+extern int ath_btcoex_enable(struct ath_softc *sc,
+    const struct ieee80211_channel *ch);
 
-#endif	/* __IF_ATH_BTCOEX_H__ */
+#endif /* __IF_ATH_BTCOEX_H__ */

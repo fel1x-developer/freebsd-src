@@ -26,6 +26,7 @@
  */
 
 #include <sys/param.h>
+
 #include <stand.h>
 
 #ifdef EFI_ZFS_BOOT
@@ -53,7 +54,7 @@ efizfs_get_handle_by_guid(uint64_t guid)
 {
 	zfsinfo_t *zi;
 
-	STAILQ_FOREACH(zi, &zfsinfo, zi_link) {
+	STAILQ_FOREACH (zi, &zfsinfo, zi_link) {
 		if (zi->zi_pool_guid == guid) {
 			return (zi->zi_handle);
 		}
@@ -68,7 +69,7 @@ efizfs_get_guid_by_handle(EFI_HANDLE handle, uint64_t *guid)
 
 	if (guid == NULL)
 		return (false);
-	STAILQ_FOREACH(zi, &zfsinfo, zi_link) {
+	STAILQ_FOREACH (zi, &zfsinfo, zi_link) {
 		if (zi->zi_handle == handle) {
 			*guid = zi->zi_pool_guid;
 			return (true);
@@ -80,13 +81,13 @@ efizfs_get_guid_by_handle(EFI_HANDLE handle, uint64_t *guid)
 static void
 insert_zfs(EFI_HANDLE handle, uint64_t guid)
 {
-        zfsinfo_t *zi;
+	zfsinfo_t *zi;
 
-        zi = malloc(sizeof(zfsinfo_t));
+	zi = malloc(sizeof(zfsinfo_t));
 	if (zi != NULL) {
-        	zi->zi_handle = handle;
-        	zi->zi_pool_guid = guid;
-        	STAILQ_INSERT_TAIL(&zfsinfo, zi, zi_link);
+		zi->zi_handle = handle;
+		zi->zi_pool_guid = guid;
+		STAILQ_INSERT_TAIL(&zfsinfo, zi, zi_link);
 	}
 }
 
@@ -107,17 +108,17 @@ efi_zfs_probe(void)
 	 * same device and if it is part of the zfs pool, we record the
 	 * pool GUID for currdev setup.
 	 */
-	STAILQ_FOREACH(hd, hdi, pd_link) {
-		STAILQ_FOREACH(pd, &hd->pd_part, pd_link) {
-			snprintf(devname, sizeof(devname), "%s%dp%d:",
-			    efipart_hddev.dv_name, hd->pd_unit, pd->pd_unit);
+	STAILQ_FOREACH (hd, hdi, pd_link) {
+		STAILQ_FOREACH (pd, &hd->pd_part, pd_link) {
+			snprintf(devname, sizeof(devname),
+			    "%s%dp%d:", efipart_hddev.dv_name, hd->pd_unit,
+			    pd->pd_unit);
 			guid = 0;
 			if (zfs_probe_dev(devname, &guid, false) == 0) {
 				insert_zfs(pd->pd_handle, guid);
 				if (pd->pd_handle == boot_img->DeviceHandle)
 					pool_guid = guid;
 			}
-
 		}
 	}
 }

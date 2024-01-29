@@ -25,7 +25,7 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- * 
+ *
  * Matthew Jacob
  * Feral Software
  * mjacob@feral.com
@@ -33,12 +33,12 @@
 
 #include <sys/types.h>
 
-#include <err.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <cam/scsi/scsi_enc.h>
+#include <err.h>
 #include <libxo/xo.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "eltsub.h"
 

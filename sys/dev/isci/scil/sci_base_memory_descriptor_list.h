@@ -66,9 +66,8 @@
 extern "C" {
 #endif // __cplusplus
 
-#include <dev/isci/scil/sci_types.h>
 #include <dev/isci/scil/sci_memory_descriptor_list.h>
-
+#include <dev/isci/scil/sci_types.h>
 
 /**
  * @struct SCI_BASE_MEMORY_DESCRIPTOR_LIST
@@ -76,30 +75,30 @@ extern "C" {
  * @brief This structure contains all of the fields necessary to implement
  *        a simple stack for managing the list of available controller indices.
  */
-typedef struct SCI_BASE_MEMORY_DESCRIPTOR_LIST
-{
-   /**
-    * This field indicates the length of the memory descriptor entry array.
-    */
-   U32  length;
+typedef struct SCI_BASE_MEMORY_DESCRIPTOR_LIST {
+	/**
+	 * This field indicates the length of the memory descriptor entry array.
+	 */
+	U32 length;
 
-   /**
-    * This field is utilized to provide iterator pattern functionality.
-    * It indicates the index of the next memory descriptor in the iteration.
-    */
-   U32  next_index;
+	/**
+	 * This field is utilized to provide iterator pattern functionality.
+	 * It indicates the index of the next memory descriptor in the
+	 * iteration.
+	 */
+	U32 next_index;
 
-   /**
-    * This field will point to the list of memory descriptors.
-    */
-   SCI_PHYSICAL_MEMORY_DESCRIPTOR_T * mde_array;
+	/**
+	 * This field will point to the list of memory descriptors.
+	 */
+	SCI_PHYSICAL_MEMORY_DESCRIPTOR_T *mde_array;
 
-   /**
-    * This field simply allows a user to chain memory descriptor lists
-    * together if desired.  This field will be initialized to
-    * SCI_INVALID_HANDLE.
-    */
-   SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T  next_mdl;
+	/**
+	 * This field simply allows a user to chain memory descriptor lists
+	 * together if desired.  This field will be initialized to
+	 * SCI_INVALID_HANDLE.
+	 */
+	SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T next_mdl;
 
 } SCI_BASE_MEMORY_DESCRIPTOR_LIST_T;
 
@@ -118,23 +117,20 @@ typedef struct SCI_BASE_MEMORY_DESCRIPTOR_LIST
  *
  * @return none.
  */
-void sci_base_mdl_construct(
-   SCI_BASE_MEMORY_DESCRIPTOR_LIST_T * mdl,
-   SCI_PHYSICAL_MEMORY_DESCRIPTOR_T  * mde_array,
-   U32                                 mde_array_length,
-   SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T next_mdl
-);
+void sci_base_mdl_construct(SCI_BASE_MEMORY_DESCRIPTOR_LIST_T *mdl,
+    SCI_PHYSICAL_MEMORY_DESCRIPTOR_T *mde_array, U32 mde_array_length,
+    SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T next_mdl);
 
 /**
  * This macro constructs an memory descriptor entry with the given
  * alignment and size
  */
-#define sci_base_mde_construct(mde, alignment, size, attributes) \
-{ \
-   (mde)->constant_memory_alignment  = (alignment); \
-   (mde)->constant_memory_size       = (size); \
-   (mde)->constant_memory_attributes = (attributes); \
-}
+#define sci_base_mde_construct(mde, alignment, size, attributes)  \
+	{                                                         \
+		(mde)->constant_memory_alignment = (alignment);   \
+		(mde)->constant_memory_size = (size);             \
+		(mde)->constant_memory_attributes = (attributes); \
+	}
 
 /**
  * @brief This method validates that the memory descriptor is correctly
@@ -154,12 +150,8 @@ void sci_base_mdl_construct(
  * @retval TRUE The MDE is valid.
  * @retval FALSE The MDE is not valid.
  */
-BOOL sci_base_mde_is_valid(
-   SCI_PHYSICAL_MEMORY_DESCRIPTOR_T *mde,
-   U32                               alignment,
-   U32                               size,
-   U16                               attributes
-);
+BOOL sci_base_mde_is_valid(SCI_PHYSICAL_MEMORY_DESCRIPTOR_T *mde, U32 alignment,
+    U32 size, U16 attributes);
 
 #ifdef __cplusplus
 }

@@ -29,7 +29,6 @@
  * Copyright (c) 2002 Hiten Mahesh Pandya
  */
 
-
 #include <stand.h>
 #include <uuid.h>
 
@@ -100,26 +99,26 @@ uuid_from_string(const char *s, uuid_t *u, uint32_t *status)
 	if (s[8] != '-' || s[13] != '-' || s[18] != '-' || s[23] != '-')
 		return;
 	/* native byte order */
-	u->time_low                  = fromhex(s     , 8, &ok);
-	u->time_mid                  = fromhex(s +  9, 4, &ok);
-	u->time_hi_and_version       = fromhex(s + 14, 4, &ok);
+	u->time_low = fromhex(s, 8, &ok);
+	u->time_mid = fromhex(s + 9, 4, &ok);
+	u->time_hi_and_version = fromhex(s + 14, 4, &ok);
 	/* Big endian, but presented as a whole number so decode as such */
 	u->clock_seq_hi_and_reserved = fromhex(s + 19, 2, &ok);
-	u->clock_seq_low             = fromhex(s + 21, 2, &ok);
-	u->node[0]                   = fromhex(s + 24, 2, &ok);
-	u->node[1]                   = fromhex(s + 26, 2, &ok);
-	u->node[2]                   = fromhex(s + 28, 2, &ok);
-	u->node[3]                   = fromhex(s + 30, 2, &ok);
-	u->node[4]                   = fromhex(s + 32, 2, &ok);
-	u->node[5]                   = fromhex(s + 34, 2, &ok);
+	u->clock_seq_low = fromhex(s + 21, 2, &ok);
+	u->node[0] = fromhex(s + 24, 2, &ok);
+	u->node[1] = fromhex(s + 26, 2, &ok);
+	u->node[2] = fromhex(s + 28, 2, &ok);
+	u->node[3] = fromhex(s + 30, 2, &ok);
+	u->node[4] = fromhex(s + 32, 2, &ok);
+	u->node[5] = fromhex(s + 34, 2, &ok);
 	if (!ok)
 		return;
 
 	/* We have a successful scan. Check semantics... */
 	n = u->clock_seq_hi_and_reserved;
-	if ((n & 0x80) != 0x00 &&			/* variant 0? */
-	    (n & 0xc0) != 0x80 &&			/* variant 1? */
-	    (n & 0xe0) != 0xc0) {			/* variant 2? */
+	if ((n & 0x80) != 0x00 && /* variant 0? */
+	    (n & 0xc0) != 0x80 && /* variant 1? */
+	    (n & 0xe0) != 0xc0) { /* variant 2? */
 		if (status != NULL)
 			*status = uuid_s_bad_version;
 	} else {

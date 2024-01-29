@@ -73,63 +73,64 @@
  *	COMP_PARAM1	0x00FFFF6E
  */
 
-#define IG4_REG_CTL		0x0000	/* RW	Control Register */
-#define IG4_REG_TAR_ADD		0x0004	/* RW	Target Address */
-#define IG4_REG_HS_MADDR	0x000C	/* RW	High Speed Master Mode Code Address*/
-#define IG4_REG_DATA_CMD	0x0010	/* RW	Data Buffer and Command */
-#define IG4_REG_SS_SCL_HCNT	0x0014	/* RW	Std Speed clock High Count */
-#define IG4_REG_SS_SCL_LCNT	0x0018	/* RW	Std Speed clock Low Count */
-#define IG4_REG_FS_SCL_HCNT	0x001C	/* RW	Fast Speed clock High Count */
-#define IG4_REG_FS_SCL_LCNT	0x0020	/* RW	Fast Speed clock Low Count */
-#define IG4_REG_INTR_STAT	0x002C	/* RO	Interrupt Status */
-#define IG4_REG_INTR_MASK	0x0030	/* RW	Interrupt Mask */
-#define IG4_REG_RAW_INTR_STAT	0x0034	/* RO	Raw Interrupt Status */
-#define IG4_REG_RX_TL		0x0038	/* RW	Receive FIFO Threshold */
-#define IG4_REG_TX_TL		0x003C	/* RW	Transmit FIFO Threshold */
-#define IG4_REG_CLR_INTR	0x0040	/* RO	Clear Interrupt */
-#define IG4_REG_CLR_RX_UNDER	0x0044	/* RO	Clear RX_Under Interrupt */
-#define IG4_REG_CLR_RX_OVER	0x0048	/* RO	Clear RX_Over Interrupt */
-#define IG4_REG_CLR_TX_OVER	0x004C	/* RO	Clear TX_Over Interrupt */
-#define IG4_REG_CLR_RD_REQ	0x0050	/* RO	Clear RD_Req Interrupt */
-#define IG4_REG_CLR_TX_ABORT	0x0054	/* RO	Clear TX_Abort Interrupt */
-#define IG4_REG_CLR_RX_DONE	0x0058	/* RO	Clear RX_Done Interrupt */
-#define IG4_REG_CLR_ACTIVITY	0x005C	/* RO	Clear Activity Interrupt */
-#define IG4_REG_CLR_STOP_DET	0x0060	/* RO	Clear STOP Detection Int */
-#define IG4_REG_CLR_START_DET	0x0064	/* RO	Clear START Detection Int */
-#define IG4_REG_CLR_GEN_CALL	0x0068	/* RO	Clear General Call Interrupt */
-#define IG4_REG_I2C_EN		0x006C	/* RW	I2C Enable */
-#define IG4_REG_I2C_STA		0x0070	/* RO	I2C Status */
-#define IG4_REG_TXFLR		0x0074	/* RO	Transmit FIFO Level */
-#define IG4_REG_RXFLR		0x0078	/* RO	Receive FIFO Level */
-#define IG4_REG_SDA_HOLD	0x007C	/* RW	SDA Hold Time Length */
-#define IG4_REG_TX_ABRT_SOURCE	0x0080	/* RO	Transmit Abort Source */
-#define IG4_REG_SLV_DATA_NACK	0x0084	/* RW	General Slave Data NACK */
-#define IG4_REG_DMA_CTRL	0x0088	/* RW	DMA Control */
-#define IG4_REG_DMA_TDLR	0x008C	/* RW	DMA Transmit Data Level */
-#define IG4_REG_DMA_RDLR	0x0090	/* RW	DMA Receive Data Level */
-#define IG4_REG_SDA_SETUP	0x0094	/* RW	SDA Setup */
-#define IG4_REG_ACK_GENERAL_CALL 0x0098	/* RW	I2C ACK General Call */
-#define IG4_REG_ENABLE_STATUS	0x009C	/* RO	Enable Status */
+#define IG4_REG_CTL 0x0000	     /* RW	Control Register */
+#define IG4_REG_TAR_ADD 0x0004	     /* RW	Target Address */
+#define IG4_REG_HS_MADDR 0x000C	     /* RW	High Speed Master Mode Code Address*/
+#define IG4_REG_DATA_CMD 0x0010	     /* RW	Data Buffer and Command */
+#define IG4_REG_SS_SCL_HCNT 0x0014   /* RW	Std Speed clock High Count */
+#define IG4_REG_SS_SCL_LCNT 0x0018   /* RW	Std Speed clock Low Count */
+#define IG4_REG_FS_SCL_HCNT 0x001C   /* RW	Fast Speed clock High Count */
+#define IG4_REG_FS_SCL_LCNT 0x0020   /* RW	Fast Speed clock Low Count */
+#define IG4_REG_INTR_STAT 0x002C     /* RO	Interrupt Status */
+#define IG4_REG_INTR_MASK 0x0030     /* RW	Interrupt Mask */
+#define IG4_REG_RAW_INTR_STAT 0x0034 /* RO	Raw Interrupt Status */
+#define IG4_REG_RX_TL 0x0038	     /* RW	Receive FIFO Threshold */
+#define IG4_REG_TX_TL 0x003C	     /* RW	Transmit FIFO Threshold */
+#define IG4_REG_CLR_INTR 0x0040	     /* RO	Clear Interrupt */
+#define IG4_REG_CLR_RX_UNDER 0x0044  /* RO	Clear RX_Under Interrupt */
+#define IG4_REG_CLR_RX_OVER 0x0048   /* RO	Clear RX_Over Interrupt */
+#define IG4_REG_CLR_TX_OVER 0x004C   /* RO	Clear TX_Over Interrupt */
+#define IG4_REG_CLR_RD_REQ 0x0050    /* RO	Clear RD_Req Interrupt */
+#define IG4_REG_CLR_TX_ABORT 0x0054  /* RO	Clear TX_Abort Interrupt */
+#define IG4_REG_CLR_RX_DONE 0x0058   /* RO	Clear RX_Done Interrupt */
+#define IG4_REG_CLR_ACTIVITY 0x005C  /* RO	Clear Activity Interrupt */
+#define IG4_REG_CLR_STOP_DET 0x0060  /* RO	Clear STOP Detection Int */
+#define IG4_REG_CLR_START_DET 0x0064 /* RO	Clear START Detection Int */
+#define IG4_REG_CLR_GEN_CALL 0x0068  /* RO	Clear General Call Interrupt \
+				      */
+#define IG4_REG_I2C_EN 0x006C	     /* RW	I2C Enable */
+#define IG4_REG_I2C_STA 0x0070	     /* RO	I2C Status */
+#define IG4_REG_TXFLR 0x0074	     /* RO	Transmit FIFO Level */
+#define IG4_REG_RXFLR 0x0078	     /* RO	Receive FIFO Level */
+#define IG4_REG_SDA_HOLD 0x007C	     /* RW	SDA Hold Time Length */
+#define IG4_REG_TX_ABRT_SOURCE 0x0080	/* RO	Transmit Abort Source */
+#define IG4_REG_SLV_DATA_NACK 0x0084	/* RW	General Slave Data NACK */
+#define IG4_REG_DMA_CTRL 0x0088		/* RW	DMA Control */
+#define IG4_REG_DMA_TDLR 0x008C		/* RW	DMA Transmit Data Level */
+#define IG4_REG_DMA_RDLR 0x0090		/* RW	DMA Receive Data Level */
+#define IG4_REG_SDA_SETUP 0x0094	/* RW	SDA Setup */
+#define IG4_REG_ACK_GENERAL_CALL 0x0098 /* RW	I2C ACK General Call */
+#define IG4_REG_ENABLE_STATUS 0x009C	/* RO	Enable Status */
 /* Available at least on Atom SoCs, Haswell mobile and some Skylakes. */
-#define IG4_REG_COMP_PARAM1	0x00F4	/* RO	Component Parameter */
-#define IG4_REG_COMP_VER	0x00F8	/* RO	Component Version */
+#define IG4_REG_COMP_PARAM1 0x00F4 /* RO	Component Parameter */
+#define IG4_REG_COMP_VER 0x00F8	   /* RO	Component Version */
 /* Available at least on Atom SoCs */
-#define IG4_REG_COMP_TYPE	0x00FC	/* RO	Probe width/endian? (linux) */
+#define IG4_REG_COMP_TYPE 0x00FC /* RO	Probe width/endian? (linux) */
 /* 0x200-0x2FF - Additional registers available on Skylake-U/Y and others */
-#define IG4_REG_RESETS_SKL	0x0204	/* RW	Reset Register */
-#define IG4_REG_ACTIVE_LTR_VALUE 0x0210	/* RW	Active LTR Value */
-#define IG4_REG_IDLE_LTR_VALUE	0x0214	/* RW	Idle LTR Value */
-#define IG4_REG_TX_ACK_COUNT	0x0218	/* RO	TX ACK Count */
-#define IG4_REG_RX_BYTE_COUNT	0x021C	/* RO	RX ACK Count */
-#define IG4_REG_DEVIDLE_CTRL	0x024C	/* RW	Device Control */
+#define IG4_REG_RESETS_SKL 0x0204	/* RW	Reset Register */
+#define IG4_REG_ACTIVE_LTR_VALUE 0x0210 /* RW	Active LTR Value */
+#define IG4_REG_IDLE_LTR_VALUE 0x0214	/* RW	Idle LTR Value */
+#define IG4_REG_TX_ACK_COUNT 0x0218	/* RO	TX ACK Count */
+#define IG4_REG_RX_BYTE_COUNT 0x021C	/* RO	RX ACK Count */
+#define IG4_REG_DEVIDLE_CTRL 0x024C	/* RW	Device Control */
 /* Available at least on Atom SoCs */
-#define IG4_REG_CLK_PARMS	0x0800	/* RW	Clock Parameters */
+#define IG4_REG_CLK_PARMS 0x0800 /* RW	Clock Parameters */
 /* Available at least on Atom SoCs and Haswell mobile */
-#define IG4_REG_RESETS_HSW	0x0804	/* RW	Reset Register */
-#define IG4_REG_GENERAL		0x0808	/* RW	General Register */
+#define IG4_REG_RESETS_HSW 0x0804 /* RW	Reset Register */
+#define IG4_REG_GENERAL 0x0808	  /* RW	General Register */
 /* These LTR config registers are at least available on Haswell mobile. */
-#define IG4_REG_SW_LTR_VALUE	0x0810	/* RW	SW LTR Value */
-#define IG4_REG_AUTO_LTR_VALUE	0x0814	/* RW	Auto LTR Value */
+#define IG4_REG_SW_LTR_VALUE 0x0810   /* RW	SW LTR Value */
+#define IG4_REG_AUTO_LTR_VALUE 0x0814 /* RW	Auto LTR Value */
 
 /*
  * CTL - Control Register 		22.2.1
@@ -149,15 +150,15 @@
  *	 Attempting to perform the above operations will result in the
  *	 TX_ABORT bit being set in RAW_INTR_STAT.
  */
-#define IG4_CTL_SLAVE_DISABLE	0x0040	/* snarfed from linux */
-#define IG4_CTL_RESTARTEN	0x0020	/* Allow Restart when master */
-#define IG4_CTL_10BIT		0x0010	/* ctlr accepts 10-bit addresses */
-#define IG4_CTL_SPEED_MASK	0x0006	/* speed at which the I2C operates */
-#define IG4_CTL_MASTER		0x0001	/* snarfed from linux */
+#define IG4_CTL_SLAVE_DISABLE 0x0040 /* snarfed from linux */
+#define IG4_CTL_RESTARTEN 0x0020     /* Allow Restart when master */
+#define IG4_CTL_10BIT 0x0010	     /* ctlr accepts 10-bit addresses */
+#define IG4_CTL_SPEED_MASK 0x0006    /* speed at which the I2C operates */
+#define IG4_CTL_MASTER 0x0001	     /* snarfed from linux */
 
-#define IG4_CTL_SPEED_HIGH	0x0006	/* snarfed from linux */
-#define IG4_CTL_SPEED_FAST	0x0004	/* snarfed from linux */
-#define IG4_CTL_SPEED_STD	0x0002	/* snarfed from linux */
+#define IG4_CTL_SPEED_HIGH 0x0006 /* snarfed from linux */
+#define IG4_CTL_SPEED_FAST 0x0004 /* snarfed from linux */
+#define IG4_CTL_SPEED_STD 0x0002  /* snarfed from linux */
 
 /*
  * TAR_ADD - Target Address Register	22.2.2
@@ -190,10 +191,10 @@
  *
  * This register should only be updated when the IIC is disabled (I2C_ENABLE=0)
  */
-#define IG4_TAR_10BIT		0x1000	/* start xfer in 10-bit mode */
-#define IG4_TAR_SPECIAL		0x0800	/* Perform special command */
-#define IG4_TAR_GC_OR_START	0x0400	/* General Call or Start */
-#define IG4_TAR_ADDR_MASK	0x03FF	/* Target address */
+#define IG4_TAR_10BIT 0x1000	   /* start xfer in 10-bit mode */
+#define IG4_TAR_SPECIAL 0x0800	   /* Perform special command */
+#define IG4_TAR_GC_OR_START 0x0400 /* General Call or Start */
+#define IG4_TAR_ADDR_MASK 0x03FF   /* Target address */
 
 /*
  * TAR_DATA_CMD - Data Buffer and Command Register	22.2.3
@@ -241,10 +242,10 @@
  *	      receive FIFO.
  */
 
-#define IG4_DATA_RESTART	0x0400	/* Force RESTART */
-#define IG4_DATA_STOP		0x0200	/* Force STOP[+START] */
-#define IG4_DATA_COMMAND_RD	0x0100	/* bus direction 0=write 1=read */
-#define IG4_DATA_MASK		0x00FF
+#define IG4_DATA_RESTART 0x0400	   /* Force RESTART */
+#define IG4_DATA_STOP 0x0200	   /* Force STOP[+START] */
+#define IG4_DATA_COMMAND_RD 0x0100 /* bus direction 0=write 1=read */
+#define IG4_DATA_MASK 0x00FF
 
 /*
  * SS_SCL_HCNT - Standard Speed Clock High Count Register	22.2.4
@@ -255,7 +256,7 @@
  *	COUNT (15:0)	- Set the period count to a value between 6 and
  *			  65525.
  */
-#define IG4_SCL_CLOCK_MASK	0xFFFFU	/* count bits in register */
+#define IG4_SCL_CLOCK_MASK 0xFFFFU /* count bits in register */
 
 /*
  * INTR_STAT	- (RO) Interrupt Status Register		22.2.8
@@ -315,19 +316,20 @@
  *	not the interrupt status registers.
  */
 
-#define IG4_INTR_GEN_CALL	0x0800
-#define IG4_INTR_START_DET	0x0400
-#define IG4_INTR_STOP_DET	0x0200
-#define IG4_INTR_ACTIVITY	0x0100
-#define IG4_INTR_TX_ABRT	0x0040
-#define IG4_INTR_TX_EMPTY	0x0010
-#define IG4_INTR_TX_OVER	0x0008
-#define IG4_INTR_RX_FULL	0x0004
-#define IG4_INTR_RX_OVER	0x0002
-#define IG4_INTR_RX_UNDER	0x0001
+#define IG4_INTR_GEN_CALL 0x0800
+#define IG4_INTR_START_DET 0x0400
+#define IG4_INTR_STOP_DET 0x0200
+#define IG4_INTR_ACTIVITY 0x0100
+#define IG4_INTR_TX_ABRT 0x0040
+#define IG4_INTR_TX_EMPTY 0x0010
+#define IG4_INTR_TX_OVER 0x0008
+#define IG4_INTR_RX_FULL 0x0004
+#define IG4_INTR_RX_OVER 0x0002
+#define IG4_INTR_RX_UNDER 0x0001
 
-#define IG4_INTR_ERR_MASK	(IG4_INTR_TX_ABRT | IG4_INTR_TX_OVER | \
-				 IG4_INTR_RX_OVER | IG4_INTR_RX_UNDER)
+#define IG4_INTR_ERR_MASK                                         \
+	(IG4_INTR_TX_ABRT | IG4_INTR_TX_OVER | IG4_INTR_RX_OVER | \
+	    IG4_INTR_RX_UNDER)
 
 /*
  * RX_TL	- (RW) Receive FIFO Threshold Register		22.2.11
@@ -342,8 +344,8 @@
  *	mid-level setting for both parameters and (e.g.) fully drain the
  *	receive FIFO on the STOP_DET condition to handle loose ends.
  */
-#define IG4_FIFO_MASK		0x00FF
-#define IG4_FIFO_LIMIT		16
+#define IG4_FIFO_MASK 0x00FF
+#define IG4_FIFO_LIMIT 16
 
 /*
  * CLR_INTR	- (RO) Clear Interrupt Register			22.2.13
@@ -375,7 +377,7 @@
  *	 Intel documents that the bit is automatically cleared when
  *	 there is no further activity on the bus.
  */
-#define IG4_CLR_BIT		0x0001		/* Reflects source */
+#define IG4_CLR_BIT 0x0001 /* Reflects source */
 
 /*
  * I2C_EN	- (RW) I2C Enable Register			22.2.22
@@ -391,18 +393,18 @@
  *			(Use I2C_ENABLE_STATUS to poll enable status
  *			& wait for changes)
  */
-#define IG4_I2C_ABORT		0x0002
-#define IG4_I2C_ENABLE		0x0001
+#define IG4_I2C_ABORT 0x0002
+#define IG4_I2C_ENABLE 0x0001
 
 /*
  * I2C_STA	- (RO) I2C Status Register			22.2.23
  */
-#define IG4_STATUS_ACTIVITY	0x0020	/* Controller is active */
-#define IG4_STATUS_RX_FULL	0x0010	/* RX FIFO completely full */
-#define IG4_STATUS_RX_NOTEMPTY	0x0008	/* RX FIFO not empty */
-#define IG4_STATUS_TX_EMPTY	0x0004	/* TX FIFO completely empty */
-#define IG4_STATUS_TX_NOTFULL	0x0002	/* TX FIFO not full */
-#define IG4_STATUS_I2C_ACTIVE	0x0001	/* I2C bus is active */
+#define IG4_STATUS_ACTIVITY 0x0020    /* Controller is active */
+#define IG4_STATUS_RX_FULL 0x0010     /* RX FIFO completely full */
+#define IG4_STATUS_RX_NOTEMPTY 0x0008 /* RX FIFO not empty */
+#define IG4_STATUS_TX_EMPTY 0x0004    /* TX FIFO completely empty */
+#define IG4_STATUS_TX_NOTFULL 0x0002  /* TX FIFO not full */
+#define IG4_STATUS_I2C_ACTIVE 0x0001  /* I2C bus is active */
 
 /*
  * TXFLR	- (RO) Transmit FIFO Level Register		22.2.24
@@ -412,14 +414,14 @@
  *	FIFOs.  Note that for some reason the mask is 9 bits instead of
  *	the 8 bits the fill level controls.
  */
-#define IG4_FIFOLVL_MASK	0x01FF
+#define IG4_FIFOLVL_MASK 0x01FF
 
 /*
  * SDA_HOLD	- (RW) SDA Hold Time Length Register		22.2.26
  *
  *	Set the SDA hold time length register in I2C clocks.
  */
-#define IG4_SDA_TX_HOLD_MASK	0x0000FFFF
+#define IG4_SDA_TX_HOLD_MASK 0x0000FFFF
 
 /*
  * TX_ABRT_SOURCE- (RO) Transmit Abort Source Register		22.2.27
@@ -433,17 +435,17 @@
  *	are on the bus by observing the GENCALL_READ status, and it might
  *	be possible to detect ADDR7 vs ADDR10 mismatches.
  */
-#define IG4_ABRTSRC_TRANSFER		0x00010000 /* Abort initiated by user */
-#define IG4_ABRTSRC_ARBLOST		0x00001000 /* Arbitration lost */
-#define IG4_ABRTSRC_NORESTART_10	0x00000400 /* RESTART disabled */
-#define IG4_ABRTSRC_NORESTART_START	0x00000200 /* RESTART disabled */
-#define IG4_ABRTSRC_ACKED_START		0x00000080 /* Improper acked START */
-#define IG4_ABRTSRC_GENCALL_READ	0x00000020 /* Improper GENCALL */
-#define IG4_ABRTSRC_GENCALL_NOACK	0x00000010 /* Nobody acked GENCALL */
-#define IG4_ABRTSRC_TXNOACK_DATA	0x00000008 /* data phase no ACK */
-#define IG4_ABRTSRC_TXNOACK_ADDR10_2	0x00000004 /* addr10/1 phase no ACK */
-#define IG4_ABRTSRC_TXNOACK_ADDR10_1	0x00000002 /* addr10/2 phase no ACK */
-#define IG4_ABRTSRC_TXNOACK_ADDR7	0x00000001 /* addr7 phase no ACK */
+#define IG4_ABRTSRC_TRANSFER 0x00010000		/* Abort initiated by user */
+#define IG4_ABRTSRC_ARBLOST 0x00001000		/* Arbitration lost */
+#define IG4_ABRTSRC_NORESTART_10 0x00000400	/* RESTART disabled */
+#define IG4_ABRTSRC_NORESTART_START 0x00000200	/* RESTART disabled */
+#define IG4_ABRTSRC_ACKED_START 0x00000080	/* Improper acked START */
+#define IG4_ABRTSRC_GENCALL_READ 0x00000020	/* Improper GENCALL */
+#define IG4_ABRTSRC_GENCALL_NOACK 0x00000010	/* Nobody acked GENCALL */
+#define IG4_ABRTSRC_TXNOACK_DATA 0x00000008	/* data phase no ACK */
+#define IG4_ABRTSRC_TXNOACK_ADDR10_2 0x00000004 /* addr10/1 phase no ACK */
+#define IG4_ABRTSRC_TXNOACK_ADDR10_1 0x00000002 /* addr10/2 phase no ACK */
+#define IG4_ABRTSRC_TXNOACK_ADDR7 0x00000001	/* addr7 phase no ACK */
 
 /*
  * SLV_DATA_NACK - (RW) Generate Slave DATA NACK Register	22.2.28
@@ -456,15 +458,15 @@
  *				byte received.
  *
  */
-#define IG4_NACK_GENERATE	0x0001
+#define IG4_NACK_GENERATE 0x0001
 
 /*
  * DMA_CTRL	- (RW) DMA Control Register			22.2.29
  *
  *	Enables DMA on the transmit and/or receive DMA channel.
  */
-#define IG4_TX_DMA_ENABLE	0x0002
-#define IG4_RX_DMA_ENABLE	0x0001
+#define IG4_TX_DMA_ENABLE 0x0002
+#define IG4_RX_DMA_ENABLE 0x0001
 
 /*
  * DMA_TDLR	- (RW) DMA Transmit Data Level Register		22.2.30
@@ -483,7 +485,7 @@
  *	The register must be programmed with a value >=2.
  *	(Defaults to 0x64).
  */
-#define IG4_SDA_SETUP_MASK	0x00FF
+#define IG4_SDA_SETUP_MASK 0x00FF
 
 /*
  * ACK_GEN_CALL	- (RW) ACK General Call Register		22.2.33
@@ -494,7 +496,7 @@
  *	If set to 0 a NACK is generated and a General Call interrupt is
  *	NOT generated.  Otherwise an ACK + interrupt is generated.
  */
-#define IG4_ACKGC_ACK		0x0001
+#define IG4_ACKGC_ACK 0x0001
 
 /*
  * ENABLE_STATUS - (RO) Enable Status Registger			22.2.34
@@ -509,8 +511,8 @@
  *			  I2C_EN register.
  *
  */
-#define IG4_ENASTAT_DATA_LOST	0x0004
-#define IG4_ENASTAT_ENABLED	0x0001
+#define IG4_ENASTAT_DATA_LOST 0x0004
+#define IG4_ENASTAT_ENABLED 0x0001
 
 /*
  * COMP_PARAM1 - (RO) Component Parameter Register		22.2.35
@@ -536,31 +538,31 @@
  *
  *	DATAW		- Indicates the internal bus width in bits.
  */
-#define IG4_PARAM1_TXFIFO_DEPTH(v)	((((v) >> 16) & 0xFF) + 1)
-#define IG4_PARAM1_RXFIFO_DEPTH(v)	((((v) >> 8) & 0xFF) + 1)
-#define IG4_PARAM1_CONFIG_VALID		0x00000080
-#define IG4_PARAM1_CONFIG_HASDMA	0x00000040
-#define IG4_PARAM1_CONFIG_INTR_IO	0x00000020
-#define IG4_PARAM1_CONFIG_HCCNT_RO	0x00000010
-#define IG4_PARAM1_CONFIG_MAXSPEED_MASK	0x0000000C
-#define IG4_PARAM1_CONFIG_DATAW_MASK	0x00000003
+#define IG4_PARAM1_TXFIFO_DEPTH(v) ((((v) >> 16) & 0xFF) + 1)
+#define IG4_PARAM1_RXFIFO_DEPTH(v) ((((v) >> 8) & 0xFF) + 1)
+#define IG4_PARAM1_CONFIG_VALID 0x00000080
+#define IG4_PARAM1_CONFIG_HASDMA 0x00000040
+#define IG4_PARAM1_CONFIG_INTR_IO 0x00000020
+#define IG4_PARAM1_CONFIG_HCCNT_RO 0x00000010
+#define IG4_PARAM1_CONFIG_MAXSPEED_MASK 0x0000000C
+#define IG4_PARAM1_CONFIG_DATAW_MASK 0x00000003
 
-#define IG4_CONFIG_MAXSPEED_RESERVED00	0x00000000
-#define IG4_CONFIG_MAXSPEED_STANDARD	0x00000004
-#define IG4_CONFIG_MAXSPEED_FAST	0x00000008
-#define IG4_CONFIG_MAXSPEED_HIGH	0x0000000C
+#define IG4_CONFIG_MAXSPEED_RESERVED00 0x00000000
+#define IG4_CONFIG_MAXSPEED_STANDARD 0x00000004
+#define IG4_CONFIG_MAXSPEED_FAST 0x00000008
+#define IG4_CONFIG_MAXSPEED_HIGH 0x0000000C
 
-#define IG4_CONFIG_DATAW_8		0x00000000
-#define IG4_CONFIG_DATAW_16		0x00000001
-#define IG4_CONFIG_DATAW_32		0x00000002
-#define IG4_CONFIG_DATAW_RESERVED11	0x00000003
+#define IG4_CONFIG_DATAW_8 0x00000000
+#define IG4_CONFIG_DATAW_16 0x00000001
+#define IG4_CONFIG_DATAW_32 0x00000002
+#define IG4_CONFIG_DATAW_RESERVED11 0x00000003
 
 /*
  * COMP_VER - (RO) Component Version Register			22.2.36
  *
  *	Contains the chip version number.  All 32 bits.
  */
-#define IG4_COMP_MIN_VER		0x3131352A
+#define IG4_COMP_MIN_VER 0x3131352A
 
 /*
  * COMP_TYPE - (RO) (linux) Endian and bus width probe
@@ -572,7 +574,7 @@
  *	This register is not in the intel documentation, I pulled it
  *	from the linux driver i2c-designware-core.c.
  */
-#define IG4_COMP_TYPE		0x44570140
+#define IG4_COMP_TYPE 0x44570140
 
 /*
  * RESETS - (RW) Resets Register				22.2.37
@@ -586,23 +588,23 @@
  *	10	(reserved)
  *	11	I2C host controller is in reset.
  */
-#define IG4_RESETS_ASSERT_HSW	0x0003
-#define IG4_RESETS_DEASSERT_HSW	0x0000
+#define IG4_RESETS_ASSERT_HSW 0x0003
+#define IG4_RESETS_DEASSERT_HSW 0x0000
 
 /* Skylake-U/Y and Kaby Lake-U/Y have the reset bits inverted */
-#define IG4_RESETS_DEASSERT_SKL	0x0003
-#define IG4_RESETS_ASSERT_SKL	0x0000
+#define IG4_RESETS_DEASSERT_SKL 0x0003
+#define IG4_RESETS_ASSERT_SKL 0x0000
 
 /* Newer versions of the I2C controller allow to check whether
  * the above ASSERT/DEASSERT is necessary by querying the DEVIDLE_CONTROL
  * register.
- * 
+ *
  * the RESTORE_REQUIRED bit can be cleared by writing 1
  * the DEVICE_IDLE status can be set to put the controller in an idle state
  *
  */
-#define IG4_RESTORE_REQUIRED	0x0008
-#define IG4_DEVICE_IDLE		0x0004
+#define IG4_RESTORE_REQUIRED 0x0008
+#define IG4_DEVICE_IDLE 0x0004
 
 /*
  * GENERAL - (RW) General Reigster				22.2.38
@@ -620,8 +622,8 @@
  *	    value (offset 0x0810).  It is the SW responsibility to update
  *	    the LTR with the appropriate value.
  */
-#define IG4_GENERAL_IOVOLT3_3	0x0008
-#define IG4_GENERAL_SWMODE	0x0004
+#define IG4_GENERAL_IOVOLT3_3 0x0008
+#define IG4_GENERAL_SWMODE 0x0004
 
 /*
  * SW_LTR_VALUE - (RW) SW LTR Value Register			22.2.39
@@ -640,18 +642,18 @@
  *	delay (0) probably runs the controller polling at a high, power hungry
  *	rate.  But I dunno.
  */
-#define IG4_SWLTR_NSNOOP_REQ		0x80000000	/* (ro) */
-#define IG4_SWLTR_NSNOOP_SCALE_MASK	0x1C000000	/* (ro) */
-#define IG4_SWLTR_NSNOOP_SCALE_1US	0x08000000	/* (ro) */
-#define IG4_SWLTR_NSNOOP_SCALE_32US	0x0C000000	/* (ro) */
+#define IG4_SWLTR_NSNOOP_REQ 0x80000000	       /* (ro) */
+#define IG4_SWLTR_NSNOOP_SCALE_MASK 0x1C000000 /* (ro) */
+#define IG4_SWLTR_NSNOOP_SCALE_1US 0x08000000  /* (ro) */
+#define IG4_SWLTR_NSNOOP_SCALE_32US 0x0C000000 /* (ro) */
 #define IG4_SWLTR_NSNOOP_VALUE_DECODE(v) (((v) >> 16) & 0x3F)
 #define IG4_SWLTR_NSNOOP_VALUE_ENCODE(v) (((v) & 0x3F) << 16)
 
-#define IG4_SWLTR_SNOOP_REQ		0x00008000	/* (rw) */
-#define IG4_SWLTR_SNOOP_SCALE_MASK	0x00001C00	/* (rw) */
-#define IG4_SWLTR_SNOOP_SCALE_1US	0x00000800	/* (rw) */
-#define IG4_SWLTR_SNOOP_SCALE_32US	0x00000C00	/* (rw) */
-#define IG4_SWLTR_SNOOP_VALUE_DECODE(v)	 ((v) & 0x3F)
-#define IG4_SWLTR_SNOOP_VALUE_ENCODE(v)	 ((v) & 0x3F)
+#define IG4_SWLTR_SNOOP_REQ 0x00008000	      /* (rw) */
+#define IG4_SWLTR_SNOOP_SCALE_MASK 0x00001C00 /* (rw) */
+#define IG4_SWLTR_SNOOP_SCALE_1US 0x00000800  /* (rw) */
+#define IG4_SWLTR_SNOOP_SCALE_32US 0x00000C00 /* (rw) */
+#define IG4_SWLTR_SNOOP_VALUE_DECODE(v) ((v) & 0x3F)
+#define IG4_SWLTR_SNOOP_VALUE_ENCODE(v) ((v) & 0x3F)
 
 #endif /* _ICHIIC_IG4_REG_H_ */

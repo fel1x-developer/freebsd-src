@@ -37,55 +37,65 @@
 #include <sys/module.h>
 #include <sys/sysctl.h>
 
-#include <dev/evdev/input.h>
 #include <dev/evdev/evdev.h>
-
+#include <dev/evdev/input.h>
 #include <dev/hid/hgame.h>
 #include <dev/hid/hid.h>
 #include <dev/hid/hidbus.h>
-#include <dev/hid/hidquirk.h>
 #include <dev/hid/hidmap.h>
+#include <dev/hid/hidquirk.h>
 
-#define HGAME_MAP_BRG(number_from, number_to, code)	\
-	{ HIDMAP_KEY_RANGE(HUP_BUTTON, number_from, number_to, code) }
-#define HGAME_MAP_ABS(usage, code)	\
-	{ HIDMAP_ABS(HUP_GENERIC_DESKTOP, HUG_##usage, code) }
-#define HGAME_MAP_GCB(usage, callback)	\
-	{ HIDMAP_ANY_CB(HUP_GENERIC_DESKTOP, HUG_##usage, callback) }
-#define HGAME_MAP_CRG(usage_from, usage_to, callback)	\
-	{ HIDMAP_ANY_CB_RANGE(HUP_GENERIC_DESKTOP,	\
-	    HUG_##usage_from, HUG_##usage_to, callback) }
-#define HGAME_FINALCB(cb)	\
-	{ HIDMAP_FINAL_CB(&cb) }
+#define HGAME_MAP_BRG(number_from, number_to, code)                        \
+	{                                                                  \
+		HIDMAP_KEY_RANGE(HUP_BUTTON, number_from, number_to, code) \
+	}
+#define HGAME_MAP_ABS(usage, code)                                 \
+	{                                                          \
+		HIDMAP_ABS(HUP_GENERIC_DESKTOP, HUG_##usage, code) \
+	}
+#define HGAME_MAP_GCB(usage, callback)                                    \
+	{                                                                 \
+		HIDMAP_ANY_CB(HUP_GENERIC_DESKTOP, HUG_##usage, callback) \
+	}
+#define HGAME_MAP_CRG(usage_from, usage_to, callback)                      \
+	{                                                                  \
+		HIDMAP_ANY_CB_RANGE(HUP_GENERIC_DESKTOP, HUG_##usage_from, \
+		    HUG_##usage_to, callback)                              \
+	}
+#define HGAME_FINALCB(cb)            \
+	{                            \
+		HIDMAP_FINAL_CB(&cb) \
+	}
 
 static const struct hidmap_item hgame_map[] = {
-	HGAME_MAP_BRG(1, 16,		BTN_TRIGGER),
-	HGAME_MAP_ABS(X,		ABS_X),
-	HGAME_MAP_ABS(Y,		ABS_Y),
-	HGAME_MAP_ABS(Z,		ABS_Z),
-	HGAME_MAP_ABS(RX,		ABS_RX),
-	HGAME_MAP_ABS(RY,		ABS_RY),
-	HGAME_MAP_ABS(RZ,		ABS_RZ),
-	HGAME_MAP_GCB(HAT_SWITCH,	hgame_hat_switch_cb),
+	HGAME_MAP_BRG(1, 16, BTN_TRIGGER),
+	HGAME_MAP_ABS(X, ABS_X),
+	HGAME_MAP_ABS(Y, ABS_Y),
+	HGAME_MAP_ABS(Z, ABS_Z),
+	HGAME_MAP_ABS(RX, ABS_RX),
+	HGAME_MAP_ABS(RY, ABS_RY),
+	HGAME_MAP_ABS(RZ, ABS_RZ),
+	HGAME_MAP_GCB(HAT_SWITCH, hgame_hat_switch_cb),
 	HGAME_MAP_CRG(D_PAD_UP, D_PAD_LEFT, hgame_dpad_cb),
-	HGAME_MAP_BRG(17, 57,		BTN_TRIGGER_HAPPY),
-	HGAME_FINALCB(			hgame_final_cb),
+	HGAME_MAP_BRG(17, 57, BTN_TRIGGER_HAPPY),
+	HGAME_FINALCB(hgame_final_cb),
 };
 
 static const struct hid_device_id hgame_devs[] = {
 	{ HID_TLC(HUP_GENERIC_DESKTOP, HUG_JOYSTICK),
-	  HID_DRIVER_INFO(HUG_JOYSTICK) },
+	    HID_DRIVER_INFO(HUG_JOYSTICK) },
 	{ HID_TLC(HUP_GENERIC_DESKTOP, HUG_GAME_PAD),
-	  HID_DRIVER_INFO(HUG_GAME_PAD) },
+	    HID_DRIVER_INFO(HUG_GAME_PAD) },
 };
 
 int
 hgame_hat_switch_cb(HIDMAP_CB_ARGS)
 {
-	static const struct { int32_t x; int32_t y; } hat_switch_map[] = {
-	    {0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0},
-	    {-1, -1},{0, 0}
-	};
+	static const struct {
+		int32_t x;
+		int32_t y;
+	} hat_switch_map[] = { { 0, -1 }, { 1, -1 }, { 1, 0 }, { 1, 1 },
+		{ 0, 1 }, { -1, 1 }, { -1, 0 }, { -1, -1 }, { 0, 0 } };
 	struct evdev_dev *evdev = HIDMAP_CB_GET_EVDEV();
 	u_int idx;
 
@@ -185,19 +195,18 @@ hgame_probe(device_t dev)
 	int error;
 
 	if (hid_test_quirk(hw, HQ_IS_XBOX360GP))
-		return(ENXIO);
+		return (ENXIO);
 
 	error = HIDMAP_PROBE(&sc->hm, dev, hgame_devs, hgame_map, NULL);
 	if (error > 0)
 		return (error);
 
-	hidbus_set_desc(dev, hidbus_get_driver_info(dev) == HUG_GAME_PAD ?
-	    "Gamepad" : "Joystick");
+	hidbus_set_desc(dev,
+	    hidbus_get_driver_info(dev) == HUG_GAME_PAD ? "Gamepad" :
+							  "Joystick");
 
 	return (BUS_PROBE_GENERIC);
 }
-
-
 
 static int
 hgame_attach(device_t dev)
@@ -215,13 +224,11 @@ hgame_detach(device_t dev)
 	return (hidmap_detach(&sc->hm));
 }
 
-static device_method_t hgame_methods[] = {
-	DEVMETHOD(device_probe,		hgame_probe),
-	DEVMETHOD(device_attach,	hgame_attach),
-	DEVMETHOD(device_detach,	hgame_detach),
+static device_method_t hgame_methods[] = { DEVMETHOD(device_probe, hgame_probe),
+	DEVMETHOD(device_attach, hgame_attach),
+	DEVMETHOD(device_detach, hgame_detach),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 DEFINE_CLASS_0(hgame, hgame_driver, hgame_methods, sizeof(struct hgame_softc));
 DRIVER_MODULE(hgame, hidbus, hgame_driver, NULL, NULL);

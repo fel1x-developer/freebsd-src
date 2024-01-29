@@ -32,21 +32,20 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
+#include <sys/bus.h>
 #include <sys/endian.h>
 #include <sys/errno.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/syslog.h>
-#include <sys/bus.h>
 
-#include <machine/bus.h>
 #include <machine/atomic.h>
+#include <machine/bus.h>
 
-#include <dev/pci/pcivar.h>
 #include <dev/pci/pcireg.h>
-
+#include <dev/pci/pcivar.h>
 #include <dev/smbus/smbconf.h>
 
 /* Intel (Sandy,Ivy)bridge and (Has,Broad)well CPUs have integrated memory
@@ -58,25 +57,25 @@
  * datasheets for the CPUs. Refer to the links in imcsmb_pci.c
  */
 
-#define	IMCSMB_REG_STATUS0			0x0180
-#define	IMCSMB_REG_STATUS1			0x0190
-#define		IMCSMB_STATUS_BUSY_BIT		0x10000000
-#define		IMCSMB_STATUS_BUS_ERROR_BIT	0x20000000
-#define		IMCSMB_STATUS_WRITE_DATA_DONE	0x40000000
-#define		IMCSMB_STATUS_READ_DATA_VALID	0x80000000
+#define IMCSMB_REG_STATUS0 0x0180
+#define IMCSMB_REG_STATUS1 0x0190
+#define IMCSMB_STATUS_BUSY_BIT 0x10000000
+#define IMCSMB_STATUS_BUS_ERROR_BIT 0x20000000
+#define IMCSMB_STATUS_WRITE_DATA_DONE 0x40000000
+#define IMCSMB_STATUS_READ_DATA_VALID 0x80000000
 
-#define	IMCSMB_REG_COMMAND0			0x0184
-#define	IMCSMB_REG_COMMAND1			0x0194
-#define		IMCSMB_CMD_WORD_ACCESS		0x20000000
-#define		IMCSMB_CMD_WRITE_BIT		0x08000000
-#define		IMCSMB_CMD_TRIGGER_BIT		0x80000000
+#define IMCSMB_REG_COMMAND0 0x0184
+#define IMCSMB_REG_COMMAND1 0x0194
+#define IMCSMB_CMD_WORD_ACCESS 0x20000000
+#define IMCSMB_CMD_WRITE_BIT 0x08000000
+#define IMCSMB_CMD_TRIGGER_BIT 0x80000000
 
-#define	IMCSMB_REG_CONTROL0			0x0188
-#define	IMCSMB_REG_CONTROL1			0x0198
-#define		IMCSMB_CNTL_POLL_EN		0x00000100
-#define		IMCSMB_CNTL_CLK_OVERRIDE	0x08000000
-#define		IMCSMB_CNTL_DTI_MASK		0xf0000000
-#define		IMCSMB_CNTL_WRITE_DISABLE_BIT	0x04000000
+#define IMCSMB_REG_CONTROL0 0x0188
+#define IMCSMB_REG_CONTROL1 0x0198
+#define IMCSMB_CNTL_POLL_EN 0x00000100
+#define IMCSMB_CNTL_CLK_OVERRIDE 0x08000000
+#define IMCSMB_CNTL_DTI_MASK 0xf0000000
+#define IMCSMB_CNTL_WRITE_DISABLE_BIT 0x04000000
 
 #endif /* _DEV__IMCSMB__IMCSMB_REG_H_ */
 

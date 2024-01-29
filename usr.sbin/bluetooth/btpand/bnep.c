@@ -27,7 +27,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #include <sys/cdefs.h>
 __RCSID("$NetBSD: bnep.c,v 1.1 2008/08/17 13:20:57 plunky Exp $");
 
@@ -39,12 +38,13 @@ __RCSID("$NetBSD: bnep.c,v 1.1 2008/08/17 13:20:57 plunky Exp $");
 #include <string.h>
 #include <unistd.h>
 
-#include "btpand.h"
 #include "bnep.h"
+#include "btpand.h"
 
 static bool bnep_recv_extension(packet_t *);
 static size_t bnep_recv_control(channel_t *, uint8_t *, size_t, bool);
-static size_t bnep_recv_control_command_not_understood(channel_t *, uint8_t *, size_t);
+static size_t bnep_recv_control_command_not_understood(channel_t *, uint8_t *,
+    size_t);
 static size_t bnep_recv_setup_connection_req(channel_t *, uint8_t *, size_t);
 static size_t bnep_recv_setup_connection_rsp(channel_t *, uint8_t *, size_t);
 static size_t bnep_recv_filter_net_type_set(channel_t *, uint8_t *, size_t);
@@ -55,29 +55,30 @@ static size_t bnep_recv_filter_multi_addr_rsp(channel_t *, uint8_t *, size_t);
 static bool bnep_pfilter(channel_t *, packet_t *);
 static bool bnep_mfilter(channel_t *, packet_t *);
 
-static uint8_t NAP_UUID[] = {
-	0x00, 0x00, 0x11, 0x16,
-	0x00, 0x00,
-	0x10, 0x00,
-	0x80, 0x00,
-	0x00, 0x80, 0x5f, 0x9b, 0x34, 0xfb
-};
+static uint8_t NAP_UUID[] = { 0x00, 0x00, 0x11, 0x16, 0x00, 0x00, 0x10, 0x00,
+	0x80, 0x00, 0x00, 0x80, 0x5f, 0x9b, 0x34, 0xfb };
 
 static uint8_t GN_UUID[] = {
-	0x00, 0x00, 0x11, 0x17,
-	0x00, 0x00,
-	0x10, 0x00,
-	0x80, 0x00,
-	0x00, 0x80, 0x5f, 0x9b, 0x34, 0xfb,
+	0x00,
+	0x00,
+	0x11,
+	0x17,
+	0x00,
+	0x00,
+	0x10,
+	0x00,
+	0x80,
+	0x00,
+	0x00,
+	0x80,
+	0x5f,
+	0x9b,
+	0x34,
+	0xfb,
 };
 
-static uint8_t PANU_UUID[] = {
-	0x00, 0x00, 0x11, 0x15,
-	0x00, 0x00,
-	0x10, 0x00,
-	0x80, 0x00,
-	0x00, 0x80, 0x5f, 0x9b, 0x34, 0xfb
-};
+static uint8_t PANU_UUID[] = { 0x00, 0x00, 0x11, 0x15, 0x00, 0x00, 0x10, 0x00,
+	0x80, 0x00, 0x00, 0x80, 0x5f, 0x9b, 0x34, 0xfb };
 
 /*
  * receive BNEP packet
@@ -166,13 +167,11 @@ bnep_recv(packet_t *pkt)
 		return false;
 	}
 
-	if (BNEP_TYPE_EXT(type)
-	    && !bnep_recv_extension(pkt))
-		return false;	/* invalid extensions */
+	if (BNEP_TYPE_EXT(type) && !bnep_recv_extension(pkt))
+		return false; /* invalid extensions */
 
-	if (BNEP_TYPE(type) == BNEP_CONTROL
-	    || pkt->chan->state != CHANNEL_OPEN)
-		return false;	/* no forwarding */
+	if (BNEP_TYPE(type) == BNEP_CONTROL || pkt->chan->state != CHANNEL_OPEN)
+		return false; /* no forwarding */
 
 	return true;
 }
@@ -196,7 +195,8 @@ bnep_recv_extension(packet_t *pkt)
 
 		switch (type) {
 		case BNEP_EXTENSION_CONTROL:
-			len = bnep_recv_control(pkt->chan, pkt->ptr + 2, size, true);
+			len = bnep_recv_control(pkt->chan, pkt->ptr + 2, size,
+			    true);
 			if (len != size)
 				log_err("ignored spurious data in exthdr");
 
@@ -244,14 +244,14 @@ bnep_recv_control(channel_t *chan, uint8_t *ptr, size_t size, bool isext)
 
 	case BNEP_SETUP_CONNECTION_REQUEST:
 		if (isext)
-			return 0;	/* not allowed in extension headers */
+			return 0; /* not allowed in extension headers */
 
 		len = bnep_recv_setup_connection_req(chan, ptr, size);
 		break;
 
 	case BNEP_SETUP_CONNECTION_RESPONSE:
 		if (isext)
-			return 0;	/* not allowed in extension headers */
+			return 0; /* not allowed in extension headers */
 
 		len = bnep_recv_setup_connection_rsp(chan, ptr, size);
 		break;
@@ -278,13 +278,15 @@ bnep_recv_control(channel_t *chan, uint8_t *ptr, size_t size, bool isext)
 	}
 
 	if (len == 0)
-		bnep_send_control(chan, BNEP_CONTROL_COMMAND_NOT_UNDERSTOOD, type);
+		bnep_send_control(chan, BNEP_CONTROL_COMMAND_NOT_UNDERSTOOD,
+		    type);
 
 	return len;
 }
 
 static size_t
-bnep_recv_control_command_not_understood(channel_t *chan, uint8_t *ptr, size_t size)
+bnep_recv_control_command_not_understood(channel_t *chan, uint8_t *ptr,
+    size_t size)
 {
 	uint8_t type;
 
@@ -314,8 +316,8 @@ bnep_recv_setup_connection_req(channel_t *chan, uint8_t *ptr, size_t size)
 	if (size < (len * 2 + 1))
 		return 0;
 
-	if (chan->state != CHANNEL_WAIT_CONNECT_REQ
-	    && chan->state != CHANNEL_OPEN) {
+	if (chan->state != CHANNEL_WAIT_CONNECT_REQ &&
+	    chan->state != CHANNEL_OPEN) {
 		log_debug("ignored");
 		return (len * 2 + 1);
 	}
@@ -356,8 +358,8 @@ bnep_recv_setup_connection_req(channel_t *chan, uint8_t *ptr, size_t size)
 	else
 		src = 0;
 
-	if ((dst != SDP_SERVICE_CLASS_PANU && src != SDP_SERVICE_CLASS_PANU)
-	    || src == 0) {
+	if ((dst != SDP_SERVICE_CLASS_PANU && src != SDP_SERVICE_CLASS_PANU) ||
+	    src == 0) {
 		rsp = BNEP_SETUP_INVALID_SRC_UUID;
 		goto done;
 	}
@@ -529,12 +531,12 @@ bnep_recv_filter_multi_addr_set(channel_t *chan, uint8_t *ptr, size_t size)
 		}
 
 		log_debug("pf[%d] = "
-		    "%2.2x:%2.2x:%2.2x:%2.2x:%2.2x:%2.2x, "
-		    "%2.2x:%2.2x:%2.2x:%2.2x:%2.2x:%2.2x", i,
-		    mf[i].start[0], mf[i].start[1], mf[i].start[2],
+			  "%2.2x:%2.2x:%2.2x:%2.2x:%2.2x:%2.2x, "
+			  "%2.2x:%2.2x:%2.2x:%2.2x:%2.2x:%2.2x",
+		    i, mf[i].start[0], mf[i].start[1], mf[i].start[2],
 		    mf[i].start[3], mf[i].start[4], mf[i].start[5],
-		    mf[i].end[0], mf[i].end[1], mf[i].end[2],
-		    mf[i].end[3], mf[i].end[4], mf[i].end[5]);
+		    mf[i].end[0], mf[i].end[1], mf[i].end[2], mf[i].end[3],
+		    mf[i].end[4], mf[i].end[5]);
 	}
 
 	if (chan->mfilter)
@@ -593,7 +595,7 @@ bnep_send_control(channel_t *chan, unsigned type, ...)
 	*p++ = BNEP_CONTROL;
 	*p++ = (uint8_t)type;
 
-	switch(type) {
+	switch (type) {
 	case BNEP_CONTROL_COMMAND_NOT_UNDERSTOOD:
 		*p++ = va_arg(ap, int);
 		break;
@@ -613,8 +615,8 @@ bnep_send_control(channel_t *chan, unsigned type, ...)
 		p += 2;
 		break;
 
-	case BNEP_FILTER_NET_TYPE_SET:		/* TODO */
-	case BNEP_FILTER_MULTI_ADDR_SET:	/* TODO */
+	case BNEP_FILTER_NET_TYPE_SET:	 /* TODO */
+	case BNEP_FILTER_MULTI_ADDR_SET: /* TODO */
 	default:
 		log_err("Can't send control type 0x%2.2x", type);
 		break;
@@ -677,7 +679,7 @@ bnep_send(channel_t *chan, packet_t *pkt)
 		memcpy(p, pkt->type, ETHER_TYPE_LEN);
 		p += ETHER_TYPE_LEN;
 
-		STAILQ_FOREACH(eh, &pkt->extlist, next) {
+		STAILQ_FOREACH (eh, &pkt->extlist, next) {
 			if (p + eh->len > chan->sendbuf + chan->mtu)
 				break;
 
@@ -693,12 +695,12 @@ bnep_send(channel_t *chan, packet_t *pkt)
 		iov[0].iov_base = chan->sendbuf;
 		iov[0].iov_len = (p - chan->sendbuf);
 
-		if ((chan->npfilter == 0 || bnep_pfilter(chan, pkt))
-		    && (chan->nmfilter == 0 || bnep_mfilter(chan, pkt))) {
+		if ((chan->npfilter == 0 || bnep_pfilter(chan, pkt)) &&
+		    (chan->nmfilter == 0 || bnep_mfilter(chan, pkt))) {
 			iov[1].iov_base = pkt->ptr;
 			iov[1].iov_len = pkt->len;
-		} else if (be16dec(proto) == ETHERTYPE_VLAN
-		    && pkt->len >= ETHER_VLAN_ENCAP_LEN) {
+		} else if (be16dec(proto) == ETHERTYPE_VLAN &&
+		    pkt->len >= ETHER_VLAN_ENCAP_LEN) {
 			iov[1].iov_base = pkt->ptr;
 			iov[1].iov_len = ETHER_VLAN_ENCAP_LEN;
 		} else {
@@ -723,7 +725,7 @@ bnep_pfilter(channel_t *chan, packet_t *pkt)
 	int proto, i;
 
 	proto = be16dec(pkt->type);
-	if (proto == ETHERTYPE_VLAN) {	/* IEEE 802.1Q tag header */
+	if (proto == ETHERTYPE_VLAN) { /* IEEE 802.1Q tag header */
 		if (pkt->len < 4)
 			return false;
 
@@ -731,8 +733,8 @@ bnep_pfilter(channel_t *chan, packet_t *pkt)
 	}
 
 	for (i = 0; i < chan->npfilter; i++) {
-		if (chan->pfilter[i].start <= proto
-		    && chan->pfilter[i].end >=proto)
+		if (chan->pfilter[i].start <= proto &&
+		    chan->pfilter[i].end >= proto)
 			return true;
 	}
 
@@ -748,8 +750,9 @@ bnep_mfilter(channel_t *chan, packet_t *pkt)
 		return true;
 
 	for (i = 0; i < chan->nmfilter; i++) {
-		if (memcmp(pkt->dst, chan->mfilter[i].start, ETHER_ADDR_LEN) >= 0
-		    && memcmp(pkt->dst, chan->mfilter[i].end, ETHER_ADDR_LEN) <= 0)
+		if (memcmp(pkt->dst, chan->mfilter[i].start, ETHER_ADDR_LEN) >=
+			0 &&
+		    memcmp(pkt->dst, chan->mfilter[i].end, ETHER_ADDR_LEN) <= 0)
 			return true;
 	}
 

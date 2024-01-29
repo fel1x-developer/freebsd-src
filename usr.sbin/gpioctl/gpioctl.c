@@ -30,19 +30,19 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <fcntl.h>
 #include <getopt.h>
+#include <libgpio.h>
 #include <paths.h>
-#include <stdio.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <libgpio.h>
-
-#define PIN_TYPE_NUMBER		1
-#define PIN_TYPE_NAME		2
+#define PIN_TYPE_NUMBER 1
+#define PIN_TYPE_NAME 2
 
 struct flag_desc {
 	const char *name;
@@ -60,11 +60,11 @@ static struct flag_desc gpio_flags[] = {
 	{ "II", GPIO_PIN_INVIN },
 	{ "IO", GPIO_PIN_INVOUT },
 	{ "PULSE", GPIO_PIN_PULSATE },
-	{ "INTRLL", GPIO_INTR_LEVEL_LOW},
-	{ "INTRLH", GPIO_INTR_LEVEL_HIGH},
-	{ "INTRER", GPIO_INTR_EDGE_RISING},
-	{ "INTREF", GPIO_INTR_EDGE_FALLING},
-	{ "INTREB", GPIO_INTR_EDGE_BOTH},
+	{ "INTRLL", GPIO_INTR_LEVEL_LOW },
+	{ "INTRLH", GPIO_INTR_LEVEL_HIGH },
+	{ "INTRER", GPIO_INTR_EDGE_RISING },
+	{ "INTREF", GPIO_INTR_EDGE_FALLING },
+	{ "INTREB", GPIO_INTR_EDGE_BOTH },
 	{ NULL, 0 },
 };
 
@@ -85,7 +85,7 @@ usage(void)
 static const char *
 cap2str(uint32_t cap)
 {
-	struct flag_desc * pdesc = gpio_flags;
+	struct flag_desc *pdesc = gpio_flags;
 	while (pdesc->name) {
 		if (pdesc->flag == cap)
 			return pdesc->name;
@@ -98,7 +98,7 @@ cap2str(uint32_t cap)
 int
 str2cap(const char *str)
 {
-	struct flag_desc * pdesc = gpio_flags;
+	struct flag_desc *pdesc = gpio_flags;
 	while (pdesc->name) {
 		if (strcasecmp(str, pdesc->name) == 0)
 			return pdesc->flag;
@@ -116,7 +116,7 @@ str2int(const char *s, int *ok)
 {
 	char *endptr;
 	int res = strtod(s, &endptr);
-	if (endptr != s + strlen(s) )
+	if (endptr != s + strlen(s))
 		*ok = 0;
 	else
 		*ok = 1;
@@ -158,8 +158,7 @@ dump_pins(gpio_handle_t handle, int verbose)
 	for (i = 0; i <= maxpin; i++) {
 		pin = cfgs + i;
 		pinv = gpio_pin_get(handle, pin->g_pin);
-		printf("pin %02d:\t%d\t%s", pin->g_pin, pinv,
-		    pin->g_name);
+		printf("pin %02d:\t%d\t%s", pin->g_pin, pinv, pin->g_name);
 
 		print_caps(pin->g_flags);
 
@@ -173,7 +172,8 @@ dump_pins(gpio_handle_t handle, int verbose)
 }
 
 static int
-get_pinnum_by_name(gpio_handle_t handle, const char *name) {
+get_pinnum_by_name(gpio_handle_t handle, const char *name)
+{
 	int i, maxpin, pinn;
 	gpio_config_t *cfgs;
 	gpio_config_t *pin;
@@ -239,7 +239,7 @@ main(int argc, char **argv)
 		case 'N':
 			pin_type = PIN_TYPE_NAME;
 			break;
-		case'p':
+		case 'p':
 			pin_type = PIN_TYPE_NUMBER;
 			break;
 		case 't':
@@ -279,9 +279,11 @@ main(int argc, char **argv)
 		/* First test if it is a pin number */
 		pinn = str2int(argv[0], &ok);
 		if (ok) {
-			/* Test if we have any pin named by this number and tell the user */
+			/* Test if we have any pin named by this number and tell
+			 * the user */
 			if (get_pinnum_by_name(handle, argv[0]) != -1)
-				fail("%s is also a pin name, use -p or -N\n", argv[0]);
+				fail("%s is also a pin name, use -p or -N\n",
+				    argv[0]);
 		} else {
 			/* Test if it is a name */
 			if ((pinn = get_pinnum_by_name(handle, argv[0])) == -1)
@@ -312,8 +314,8 @@ main(int argc, char **argv)
 
 	if (toggle) {
 		/*
-                * -t pin assumes no additional arguments
-                */
+		 * -t pin assumes no additional arguments
+		 */
 		if (argc > 1)
 			usage();
 		if (gpio_pin_toggle(handle, pinn) < 0) {
@@ -327,11 +329,13 @@ main(int argc, char **argv)
 	if (config) {
 		flags = 0;
 		for (i = 1; i < argc; i++) {
-			flag = 	str2cap(argv[i]);
+			flag = str2cap(argv[i]);
 			if (flag < 0)
 				fail("Invalid flag: %s\n", argv[i]);
 			else if ((flag & GPIO_INTR_MASK) != 0)
-				fail("Interrupt capability %s cannot be set as configuration flag\n", argv[i]);
+				fail(
+				    "Interrupt capability %s cannot be set as configuration flag\n",
+				    argv[i]);
 			flags |= flag;
 		}
 		pin.g_pin = pinn;

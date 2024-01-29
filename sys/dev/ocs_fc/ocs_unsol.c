@@ -39,30 +39,38 @@
  */
 
 #include "ocs.h"
+#include "ocs_device.h"
 #include "ocs_els.h"
 #include "ocs_fabric.h"
-#include "ocs_device.h"
 
-#define frame_printf(ocs, hdr, fmt, ...) \
-	do { \
-		char s_id_text[16]; \
-		ocs_node_fcid_display(fc_be24toh((hdr)->s_id), s_id_text, sizeof(s_id_text)); \
-		ocs_log_debug(ocs, "[%06x.%s] %02x/%04x/%04x: " fmt, fc_be24toh((hdr)->d_id), s_id_text, \
-			(hdr)->r_ctl, ocs_be16toh((hdr)->ox_id), ocs_be16toh((hdr)->rx_id), ##__VA_ARGS__); \
-	} while(0)
+#define frame_printf(ocs, hdr, fmt, ...)                                  \
+	do {                                                              \
+		char s_id_text[16];                                       \
+		ocs_node_fcid_display(fc_be24toh((hdr)->s_id), s_id_text, \
+		    sizeof(s_id_text));                                   \
+		ocs_log_debug(ocs, "[%06x.%s] %02x/%04x/%04x: " fmt,      \
+		    fc_be24toh((hdr)->d_id), s_id_text, (hdr)->r_ctl,     \
+		    ocs_be16toh((hdr)->ox_id), ocs_be16toh((hdr)->rx_id), \
+		    ##__VA_ARGS__);                                       \
+	} while (0)
 
 static int32_t ocs_unsol_process(ocs_t *ocs, ocs_hw_sequence_t *seq);
 static int32_t ocs_dispatch_fcp_cmd(ocs_node_t *node, ocs_hw_sequence_t *seq);
-static int32_t ocs_dispatch_fcp_cmd_auto_xfer_rdy(ocs_node_t *node, ocs_hw_sequence_t *seq);
+static int32_t ocs_dispatch_fcp_cmd_auto_xfer_rdy(ocs_node_t *node,
+    ocs_hw_sequence_t *seq);
 static int32_t ocs_dispatch_fcp_data(ocs_node_t *node, ocs_hw_sequence_t *seq);
 static int32_t ocs_domain_dispatch_frame(void *arg, ocs_hw_sequence_t *seq);
 static int32_t ocs_node_dispatch_frame(void *arg, ocs_hw_sequence_t *seq);
-static int32_t ocs_fc_tmf_rejected_cb(ocs_io_t *io, ocs_scsi_io_status_e scsi_status, uint32_t flags, void *arg);
-static ocs_hw_sequence_t *ocs_frame_next(ocs_list_t *pend_list, ocs_lock_t *list_lock);
+static int32_t ocs_fc_tmf_rejected_cb(ocs_io_t *io,
+    ocs_scsi_io_status_e scsi_status, uint32_t flags, void *arg);
+static ocs_hw_sequence_t *ocs_frame_next(ocs_list_t *pend_list,
+    ocs_lock_t *list_lock);
 static uint8_t ocs_node_frames_held(void *arg);
 static uint8_t ocs_domain_frames_held(void *arg);
-static int32_t ocs_purge_pending(ocs_t *ocs, ocs_list_t *pend_list, ocs_lock_t *list_lock);
-static int32_t ocs_sframe_send_task_set_full_or_busy(ocs_node_t *node, ocs_hw_sequence_t *seq);
+static int32_t ocs_purge_pending(ocs_t *ocs, ocs_list_t *pend_list,
+    ocs_lock_t *list_lock);
+static int32_t ocs_sframe_send_task_set_full_or_busy(ocs_node_t *node,
+    ocs_hw_sequence_t *seq);
 
 #define OCS_MAX_FRAMES_BEFORE_YEILDING 10000
 
@@ -91,9 +99,10 @@ ocs_unsol_rq_thread(ocs_thread_t *mythread)
 			continue;
 		}
 		/* Note: Always returns 0 */
-		ocs_unsol_process((ocs_t*)seq->hw->os, seq);
+		ocs_unsol_process((ocs_t *)seq->hw->os, seq);
 
-		/* We have to prevent CPU soft lockups, so just yield the CPU after x frames. */
+		/* We have to prevent CPU soft lockups, so just yield the CPU
+		 * after x frames. */
 		if (--yield_count == 0) {
 			ocs_thread_yield(&thread_data->thread);
 			yield_count = OCS_MAX_FRAMES_BEFORE_YEILDING;
@@ -112,7 +121,8 @@ ocs_unsol_rq_thread(ocs_thread_t *mythread)
  * @return Returns 0.
  */
 static int32_t
-ocs_unsol_abort_cb (ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t len, int32_t status, uint32_t ext, void *arg)
+ocs_unsol_abort_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t len,
+    int32_t status, uint32_t ext, void *arg)
 {
 	ocs_t *ocs = arg;
 	ocs_assert(hio, -1);
@@ -131,14 +141,14 @@ static void
 ocs_port_owned_abort(ocs_t *ocs, ocs_hw_io_t *hio)
 {
 	ocs_hw_rtn_e hw_rc;
-	hw_rc = ocs_hw_io_abort(&ocs->hw, hio, FALSE,
-				  ocs_unsol_abort_cb, ocs);
-	if((hw_rc == OCS_HW_RTN_IO_ABORT_IN_PROGRESS) ||
-	   (hw_rc == OCS_HW_RTN_IO_PORT_OWNED_ALREADY_ABORTED)) {
-		ocs_log_debug(ocs, "already aborted XRI 0x%x\n", hio->indicator);
-	} else if(hw_rc != OCS_HW_RTN_SUCCESS) {
+	hw_rc = ocs_hw_io_abort(&ocs->hw, hio, FALSE, ocs_unsol_abort_cb, ocs);
+	if ((hw_rc == OCS_HW_RTN_IO_ABORT_IN_PROGRESS) ||
+	    (hw_rc == OCS_HW_RTN_IO_PORT_OWNED_ALREADY_ABORTED)) {
+		ocs_log_debug(ocs, "already aborted XRI 0x%x\n",
+		    hio->indicator);
+	} else if (hw_rc != OCS_HW_RTN_SUCCESS) {
 		ocs_log_debug(ocs, "Error aborting XRI 0x%x status %d\n",
-			      hio->indicator, hw_rc);
+		    hio->indicator, hw_rc);
 	}
 }
 
@@ -147,7 +157,8 @@ ocs_port_owned_abort(ocs_t *ocs, ocs_hw_io_t *hio)
  * @brief Handle unsolicited FC frames.
  *
  * <h3 class="desc">Description</h3>
- * This function is called from the HW with unsolicited FC frames (FCP, ELS, BLS, etc.).
+ * This function is called from the HW with unsolicited FC frames (FCP, ELS,
+ * BLS, etc.).
  *
  * @param arg Application-specified callback data.
  * @param seq Header/payload sequence buffers.
@@ -169,10 +180,11 @@ ocs_unsolicited_cb(void *arg, ocs_hw_sequence_t *seq)
 	} else {
 		/* use the ox_id to dispatch this IO to a thread */
 		fc_header_t *hdr = seq->header->dma.virt;
-		uint32_t ox_id =  ocs_be16toh(hdr->ox_id);
+		uint32_t ox_id = ocs_be16toh(hdr->ox_id);
 		uint32_t thr_index = ox_id % ocs->rq_threads;
 
-		rc = ocs_cbuf_put(xport->rq_thread_info[thr_index].seq_cbuf, seq);
+		rc = ocs_cbuf_put(xport->rq_thread_info[thr_index].seq_cbuf,
+		    seq);
 	}
 
 	if (rc) {
@@ -187,7 +199,8 @@ ocs_unsolicited_cb(void *arg, ocs_hw_sequence_t *seq)
  * @brief Handle unsolicited FC frames.
  *
  * <h3 class="desc">Description</h3>
- * This function is called either from ocs_unsolicited_cb() or ocs_unsol_rq_thread().
+ * This function is called either from ocs_unsolicited_cb() or
+ * ocs_unsol_rq_thread().
  *
  * @param ocs Pointer to the ocs structure.
  * @param seq Header/payload sequence buffers.
@@ -215,7 +228,8 @@ ocs_unsol_process(ocs_t *ocs, ocs_hw_sequence_t *seq)
 
 	/* If the transport FCFI entry is NULL, then drop the frame */
 	if (xport_fcfi == NULL) {
-		ocs_log_test(ocs, "FCFI %d is not valid, dropping frame\n", seq->fcfi);
+		ocs_log_test(ocs, "FCFI %d is not valid, dropping frame\n",
+		    seq->fcfi);
 		if (seq->hio != NULL) {
 			ocs_port_owned_abort(ocs, seq->hio);
 		}
@@ -230,11 +244,10 @@ ocs_unsol_process(ocs_t *ocs, ocs_hw_sequence_t *seq)
 	 * there's already frames on the pending list,
 	 * then add the new frame to pending list
 	 */
-	if (domain == NULL ||
-	    xport_fcfi->hold_frames ||
+	if (domain == NULL || xport_fcfi->hold_frames ||
 	    !ocs_list_empty(&xport_fcfi->pend_frames)) {
 		ocs_lock(&xport_fcfi->pend_frames_lock);
-			ocs_list_add_tail(&xport_fcfi->pend_frames, seq);
+		ocs_list_add_tail(&xport_fcfi->pend_frames, seq);
 		ocs_unlock(&xport_fcfi->pend_frames_lock);
 
 		if (domain != NULL) {
@@ -243,8 +256,9 @@ ocs_unsol_process(ocs_t *ocs, ocs_hw_sequence_t *seq)
 		}
 	} else {
 		/*
-		 * We are not holding frames and pending list is empty, just process frame.
-		 * A non-zero return means the frame was not handled - so cleanup
+		 * We are not holding frames and pending list is empty, just
+		 * process frame. A non-zero return means the frame was not
+		 * handled - so cleanup
 		 */
 		if (ocs_domain_dispatch_frame(domain, seq)) {
 			if (seq->hio != NULL) {
@@ -277,9 +291,9 @@ ocs_process_node_pending(ocs_node_t *node)
 	uint32_t pend_frames_processed = 0;
 
 	for (;;) {
-		/* need to check for hold frames condition after each frame processed
-		 * because any given frame could cause a transition to a state that
-		 * holds frames
+		/* need to check for hold frames condition after each frame
+		 * processed because any given frame could cause a transition to
+		 * a state that holds frames
 		 */
 		if (ocs_node_frames_held(node)) {
 			break;
@@ -287,14 +301,14 @@ ocs_process_node_pending(ocs_node_t *node)
 
 		/* Get next frame/sequence */
 		ocs_lock(&node->pend_frames_lock);
-			seq = ocs_list_remove_head(&node->pend_frames);
-			if (seq == NULL) {
-				pend_frames_processed = node->pend_frames_processed;
-				node->pend_frames_processed = 0;
-				ocs_unlock(&node->pend_frames_lock);
-				break;
-			}
-			node->pend_frames_processed++;
+		seq = ocs_list_remove_head(&node->pend_frames);
+		if (seq == NULL) {
+			pend_frames_processed = node->pend_frames_processed;
+			node->pend_frames_processed = 0;
+			ocs_unlock(&node->pend_frames_lock);
+			break;
+		}
+		node->pend_frames_processed++;
 		ocs_unlock(&node->pend_frames_lock);
 
 		/* now dispatch frame(s) to dispatch function */
@@ -307,7 +321,8 @@ ocs_process_node_pending(ocs_node_t *node)
 	}
 
 	if (pend_frames_processed != 0) {
-		ocs_log_debug(ocs, "%u node frames held and processed\n", pend_frames_processed);
+		ocs_log_debug(ocs, "%u node frames held and processed\n",
+		    pend_frames_processed);
 	}
 
 	return 0;
@@ -339,9 +354,9 @@ ocs_domain_process_pending(ocs_domain_t *domain)
 	xport_fcfi = &ocs->xport->fcfi[domain->fcf_indicator];
 
 	for (;;) {
-		/* need to check for hold frames condition after each frame processed
-		 * because any given frame could cause a transition to a state that
-		 * holds frames
+		/* need to check for hold frames condition after each frame
+		 * processed because any given frame could cause a transition to
+		 * a state that holds frames
 		 */
 		if (ocs_domain_frames_held(domain)) {
 			break;
@@ -349,14 +364,15 @@ ocs_domain_process_pending(ocs_domain_t *domain)
 
 		/* Get next frame/sequence */
 		ocs_lock(&xport_fcfi->pend_frames_lock);
-			seq = ocs_list_remove_head(&xport_fcfi->pend_frames);
-			if (seq == NULL) {
-				pend_frames_processed = xport_fcfi->pend_frames_processed;
-				xport_fcfi->pend_frames_processed = 0;
-				ocs_unlock(&xport_fcfi->pend_frames_lock);
-				break;
-			}
-			xport_fcfi->pend_frames_processed++;
+		seq = ocs_list_remove_head(&xport_fcfi->pend_frames);
+		if (seq == NULL) {
+			pend_frames_processed =
+			    xport_fcfi->pend_frames_processed;
+			xport_fcfi->pend_frames_processed = 0;
+			ocs_unlock(&xport_fcfi->pend_frames_lock);
+			break;
+		}
+		xport_fcfi->pend_frames_processed++;
 		ocs_unlock(&xport_fcfi->pend_frames_lock);
 
 		/* now dispatch frame(s) to dispatch function */
@@ -368,7 +384,8 @@ ocs_domain_process_pending(ocs_domain_t *domain)
 		}
 	}
 	if (pend_frames_processed != 0) {
-		ocs_log_debug(ocs, "%u domain frames held and processed\n", pend_frames_processed);
+		ocs_log_debug(ocs, "%u domain frames held and processed\n",
+		    pend_frames_processed);
 	}
 	return 0;
 }
@@ -399,7 +416,8 @@ ocs_purge_pending(ocs_t *ocs, ocs_list_t *pend_list, ocs_lock_t *list_lock)
 			break;
 		}
 
-		frame_printf(ocs, (fc_header_t*) frame->header->dma.virt, "Discarding held frame\n");
+		frame_printf(ocs, (fc_header_t *)frame->header->dma.virt,
+		    "Discarding held frame\n");
 		if (frame->hio != NULL) {
 			ocs_port_owned_abort(ocs, frame->hio);
 		}
@@ -425,7 +443,8 @@ ocs_purge_pending(ocs_t *ocs, ocs_list_t *pend_list, ocs_lock_t *list_lock)
 int32_t
 ocs_node_purge_pending(ocs_node_t *node)
 {
-	return ocs_purge_pending(node->ocs, &node->pend_frames, &node->pend_frames_lock);
+	return ocs_purge_pending(node->ocs, &node->pend_frames,
+	    &node->pend_frames_lock);
 }
 
 /**
@@ -449,9 +468,8 @@ ocs_domain_purge_pending(ocs_domain_t *domain)
 
 	ocs_assert(domain->fcf_indicator < SLI4_MAX_FCFI, -1);
 	xport_fcfi = &ocs->xport->fcfi[domain->fcf_indicator];
-	return ocs_purge_pending(domain->ocs,
-				 &xport_fcfi->pend_frames,
-				 &xport_fcfi->pend_frames_lock);
+	return ocs_purge_pending(domain->ocs, &xport_fcfi->pend_frames,
+	    &xport_fcfi->pend_frames_lock);
 }
 
 /**
@@ -519,7 +537,7 @@ ocs_domain_hold_frames(ocs_domain_t *domain)
 	xport_fcfi = &ocs->xport->fcfi[domain->fcf_indicator];
 	if (!xport_fcfi->hold_frames) {
 		ocs_log_debug(domain->ocs, "hold frames set for FCFI %d\n",
-			      domain->fcf_indicator);
+		    domain->fcf_indicator);
 		xport_fcfi->hold_frames = 1;
 	}
 }
@@ -547,7 +565,7 @@ ocs_domain_accept_frames(ocs_domain_t *domain)
 	xport_fcfi = &ocs->xport->fcfi[domain->fcf_indicator];
 	if (xport_fcfi->hold_frames == 1) {
 		ocs_log_debug(domain->ocs, "hold frames cleared for FCFI %d\n",
-			      domain->fcf_indicator);
+		    domain->fcf_indicator);
 	}
 	xport_fcfi->hold_frames = 0;
 	ocs_domain_process_pending(domain);
@@ -591,18 +609,22 @@ ocs_domain_dispatch_frame(void *arg, ocs_hw_sequence_t *seq)
 
 	sport = domain->sport;
 	if (sport == NULL) {
-		frame_printf(ocs, hdr, "phy sport for FC ID 0x%06x is NULL, dropping frame\n", d_id);
+		frame_printf(ocs, hdr,
+		    "phy sport for FC ID 0x%06x is NULL, dropping frame\n",
+		    d_id);
 		return -1;
 	}
 
 	if (sport->fc_id != d_id) {
-		/* Not a physical port IO lookup sport associated with the npiv port */
+		/* Not a physical port IO lookup sport associated with the npiv
+		 * port */
 		sport = ocs_sport_find(domain, d_id); /* Look up without lock */
 		if (sport == NULL) {
 			if (hdr->type == FC_TYPE_FCP) {
 				/* Drop frame */
-				ocs_log_warn(ocs, "unsolicited FCP frame with invalid d_id x%x, dropping\n",
-					     d_id);
+				ocs_log_warn(ocs,
+				    "unsolicited FCP frame with invalid d_id x%x, dropping\n",
+				    d_id);
 				return -1;
 			} else {
 				/* p2p will use this case */
@@ -616,12 +638,14 @@ ocs_domain_dispatch_frame(void *arg, ocs_hw_sequence_t *seq)
 
 	/* If not found, then create a new node */
 	if (node == NULL) {
-		/* If this is solicited data or control based on R_CTL and there is no node context,
-		 * then we can drop the frame
+		/* If this is solicited data or control based on R_CTL and there
+		 * is no node context, then we can drop the frame
 		 */
-		if ((hdr->r_ctl == FC_RCTL_FC4_DATA) && (
-		    (hdr->info == FC_RCTL_INFO_SOL_DATA) || (hdr->info == FC_RCTL_INFO_SOL_CTRL))) {
-			ocs_log_debug(ocs, "solicited data/ctrl frame without node, dropping\n");
+		if ((hdr->r_ctl == FC_RCTL_FC4_DATA) &&
+		    ((hdr->info == FC_RCTL_INFO_SOL_DATA) ||
+			(hdr->info == FC_RCTL_INFO_SOL_CTRL))) {
+			ocs_log_debug(ocs,
+			    "solicited data/ctrl frame without node, dropping\n");
 			return -1;
 		}
 		node = ocs_node_alloc(sport, s_id, FALSE, FALSE);
@@ -639,7 +663,7 @@ ocs_domain_dispatch_frame(void *arg, ocs_hw_sequence_t *seq)
 		*/
 		/* add frame to node's pending list */
 		ocs_lock(&node->pend_frames_lock);
-			ocs_list_add_tail(&node->pend_frames, seq);
+		ocs_list_add_tail(&node->pend_frames, seq);
 		ocs_unlock(&node->pend_frames_lock);
 
 		return 0;
@@ -690,28 +714,35 @@ ocs_node_dispatch_frame(void *arg, ocs_hw_sequence_t *seq)
 		case FC_RCTL_BLS:
 			if ((sit_set) && (hdr->info == FC_INFO_ABTS)) {
 				rc = ocs_node_recv_abts_frame(node, seq);
-			}else {
+			} else {
 				rc = ocs_node_recv_bls_no_sit(node, seq);
 			}
 			break;
 
 		case FC_RCTL_FC4_DATA:
-			switch(hdr->type) {
+			switch (hdr->type) {
 			case FC_TYPE_FCP:
 				if (hdr->info == FC_RCTL_INFO_UNSOL_CMD) {
 					if (node->fcp_enabled) {
 						if (sit_set) {
-							rc = ocs_dispatch_fcp_cmd(node, seq);
-						}else {
-							/* send the auto xfer ready command */
-							rc = ocs_dispatch_fcp_cmd_auto_xfer_rdy(node, seq);
+							rc =
+							    ocs_dispatch_fcp_cmd(
+								node, seq);
+						} else {
+							/* send the auto xfer
+							 * ready command */
+							rc =
+							    ocs_dispatch_fcp_cmd_auto_xfer_rdy(
+								node, seq);
 						}
 					} else {
-						rc = ocs_node_recv_fcp_cmd(node, seq);
+						rc = ocs_node_recv_fcp_cmd(node,
+						    seq);
 					}
 				} else if (hdr->info == FC_RCTL_INFO_SOL_DATA) {
 					if (sit_set) {
-						rc = ocs_dispatch_fcp_data(node, seq);
+						rc = ocs_dispatch_fcp_data(node,
+						    seq);
 					}
 				}
 				break;
@@ -726,13 +757,14 @@ ocs_node_dispatch_frame(void *arg, ocs_hw_sequence_t *seq)
 			break;
 		}
 	} else {
-		node_printf(node, "Dropping frame hdr = %08x %08x %08x %08x %08x %08x\n",
-			    ocs_htobe32(((uint32_t *)hdr)[0]),
-			    ocs_htobe32(((uint32_t *)hdr)[1]),
-			    ocs_htobe32(((uint32_t *)hdr)[2]),
-			    ocs_htobe32(((uint32_t *)hdr)[3]),
-			    ocs_htobe32(((uint32_t *)hdr)[4]),
-			    ocs_htobe32(((uint32_t *)hdr)[5]));
+		node_printf(node,
+		    "Dropping frame hdr = %08x %08x %08x %08x %08x %08x\n",
+		    ocs_htobe32(((uint32_t *)hdr)[0]),
+		    ocs_htobe32(((uint32_t *)hdr)[1]),
+		    ocs_htobe32(((uint32_t *)hdr)[2]),
+		    ocs_htobe32(((uint32_t *)hdr)[3]),
+		    ocs_htobe32(((uint32_t *)hdr)[4]),
+		    ocs_htobe32(((uint32_t *)hdr)[5]));
 	}
 	return rc;
 }
@@ -753,24 +785,25 @@ ocs_node_dispatch_frame(void *arg, ocs_hw_sequence_t *seq)
  */
 
 static void
-ocs_dispatch_unsolicited_tmf(ocs_io_t *io, uint8_t task_management_flags, ocs_node_t *node, uint64_t lun)
+ocs_dispatch_unsolicited_tmf(ocs_io_t *io, uint8_t task_management_flags,
+    ocs_node_t *node, uint64_t lun)
 {
 	uint32_t i;
 	struct {
 		uint32_t mask;
 		ocs_scsi_tmf_cmd_e cmd;
-	} tmflist[] = {
-		{FCP_QUERY_TASK_SET,		OCS_SCSI_TMF_QUERY_TASK_SET},
-		{FCP_ABORT_TASK_SET,		OCS_SCSI_TMF_ABORT_TASK_SET},
-		{FCP_CLEAR_TASK_SET,		OCS_SCSI_TMF_CLEAR_TASK_SET},
-		{FCP_QUERY_ASYNCHRONOUS_EVENT,	OCS_SCSI_TMF_QUERY_ASYNCHRONOUS_EVENT},
-		{FCP_LOGICAL_UNIT_RESET,	OCS_SCSI_TMF_LOGICAL_UNIT_RESET},
-		{FCP_TARGET_RESET,		OCS_SCSI_TMF_TARGET_RESET},
-		{FCP_CLEAR_ACA,			OCS_SCSI_TMF_CLEAR_ACA}};
+	} tmflist[] = { { FCP_QUERY_TASK_SET, OCS_SCSI_TMF_QUERY_TASK_SET },
+		{ FCP_ABORT_TASK_SET, OCS_SCSI_TMF_ABORT_TASK_SET },
+		{ FCP_CLEAR_TASK_SET, OCS_SCSI_TMF_CLEAR_TASK_SET },
+		{ FCP_QUERY_ASYNCHRONOUS_EVENT,
+		    OCS_SCSI_TMF_QUERY_ASYNCHRONOUS_EVENT },
+		{ FCP_LOGICAL_UNIT_RESET, OCS_SCSI_TMF_LOGICAL_UNIT_RESET },
+		{ FCP_TARGET_RESET, OCS_SCSI_TMF_TARGET_RESET },
+		{ FCP_CLEAR_ACA, OCS_SCSI_TMF_CLEAR_ACA } };
 
 	io->exp_xfer_len = 0; /* BUG 32235 */
 
-	for (i = 0; i < ARRAY_SIZE(tmflist); i ++) {
+	for (i = 0; i < ARRAY_SIZE(tmflist); i++) {
 		if (tmflist[i].mask & task_management_flags) {
 			io->tmf_cmd = tmflist[i].cmd;
 			ocs_scsi_recv_tmf(io, lun, tmflist[i].cmd, NULL, 0);
@@ -780,40 +813,43 @@ ocs_dispatch_unsolicited_tmf(ocs_io_t *io, uint8_t task_management_flags, ocs_no
 	if (i == ARRAY_SIZE(tmflist)) {
 		/* Not handled */
 		node_printf(node, "TMF x%x rejected\n", task_management_flags);
-		ocs_scsi_send_tmf_resp(io, OCS_SCSI_TMF_FUNCTION_REJECTED, NULL, ocs_fc_tmf_rejected_cb, NULL);
+		ocs_scsi_send_tmf_resp(io, OCS_SCSI_TMF_FUNCTION_REJECTED, NULL,
+		    ocs_fc_tmf_rejected_cb, NULL);
 	}
 }
 
 static int32_t
 ocs_validate_fcp_cmd(ocs_t *ocs, ocs_hw_sequence_t *seq)
 {
-	size_t		exp_payload_len = 0;
+	size_t exp_payload_len = 0;
 	fcp_cmnd_iu_t *cmnd = seq->payload->dma.virt;
-	exp_payload_len = sizeof(fcp_cmnd_iu_t) - 16 + cmnd->additional_fcp_cdb_length;
+	exp_payload_len = sizeof(fcp_cmnd_iu_t) - 16 +
+	    cmnd->additional_fcp_cdb_length;
 
 	/*
 	 * If we received less than FCP_CMND_IU bytes, assume that the frame is
-	 * corrupted in some way and drop it. This was seen when jamming the FCTL
-	 * fill bytes field.
+	 * corrupted in some way and drop it. This was seen when jamming the
+	 * FCTL fill bytes field.
 	 */
 	if (seq->payload->dma.len < exp_payload_len) {
-		fc_header_t	*fchdr = seq->header->dma.virt;
-		ocs_log_debug(ocs, "dropping ox_id %04x with payload length (%zd) less than expected (%zd)\n",
-			      ocs_be16toh(fchdr->ox_id), seq->payload->dma.len,
-			      exp_payload_len);
+		fc_header_t *fchdr = seq->header->dma.virt;
+		ocs_log_debug(ocs,
+		    "dropping ox_id %04x with payload length (%zd) less than expected (%zd)\n",
+		    ocs_be16toh(fchdr->ox_id), seq->payload->dma.len,
+		    exp_payload_len);
 		return -1;
 	}
 	return 0;
-
 }
 
 static void
-ocs_populate_io_fcp_cmd(ocs_io_t *io, fcp_cmnd_iu_t *cmnd, fc_header_t *fchdr, uint8_t sit)
+ocs_populate_io_fcp_cmd(ocs_io_t *io, fcp_cmnd_iu_t *cmnd, fc_header_t *fchdr,
+    uint8_t sit)
 {
-	uint32_t	*fcp_dl;
+	uint32_t *fcp_dl;
 	io->init_task_tag = ocs_be16toh(fchdr->ox_id);
 	/* note, tgt_task_tag, hw_tag  set when HW io is allocated */
-	fcp_dl = (uint32_t*)(&(cmnd->fcp_cdb_and_dl));
+	fcp_dl = (uint32_t *)(&(cmnd->fcp_cdb_and_dl));
 	fcp_dl += cmnd->additional_fcp_cdb_length;
 	io->exp_xfer_len = ocs_be32toh(*fcp_dl);
 	io->transferred = 0;
@@ -880,13 +916,13 @@ static int32_t
 ocs_dispatch_fcp_cmd(ocs_node_t *node, ocs_hw_sequence_t *seq)
 {
 	ocs_t *ocs = node->ocs;
-	fc_header_t	*fchdr = seq->header->dma.virt;
-	fcp_cmnd_iu_t	*cmnd = NULL;
-	ocs_io_t	*io = NULL;
-	fc_vm_header_t 	*vhdr;
-	uint8_t 	df_ctl;
-	uint64_t	lun = UINT64_MAX;
-	int32_t		rc = 0;
+	fc_header_t *fchdr = seq->header->dma.virt;
+	fcp_cmnd_iu_t *cmnd = NULL;
+	ocs_io_t *io = NULL;
+	fc_vm_header_t *vhdr;
+	uint8_t df_ctl;
+	uint64_t lun = UINT64_MAX;
+	int32_t rc = 0;
 
 	ocs_assert(seq->payload, -1);
 	cmnd = seq->payload->dma.virt;
@@ -905,17 +941,22 @@ ocs_dispatch_fcp_cmd(ocs_node_t *node, ocs_hw_sequence_t *seq)
 	if (io == NULL) {
 		uint32_t send_frame_capable;
 
-		/* If we have SEND_FRAME capability, then use it to send task set full or busy */
-		rc = ocs_hw_get(&ocs->hw, OCS_HW_SEND_FRAME_CAPABLE, &send_frame_capable);
+		/* If we have SEND_FRAME capability, then use it to send task
+		 * set full or busy */
+		rc = ocs_hw_get(&ocs->hw, OCS_HW_SEND_FRAME_CAPABLE,
+		    &send_frame_capable);
 		if ((rc == 0) && send_frame_capable) {
 			rc = ocs_sframe_send_task_set_full_or_busy(node, seq);
 			if (rc) {
-				ocs_log_test(ocs, "ocs_sframe_send_task_set_full_or_busy failed: %d\n", rc);
+				ocs_log_test(ocs,
+				    "ocs_sframe_send_task_set_full_or_busy failed: %d\n",
+				    rc);
 			}
 			return rc;
 		}
 
-		ocs_log_err(ocs, "IO allocation failed ox_id %04x\n", ocs_be16toh(fchdr->ox_id));
+		ocs_log_err(ocs, "IO allocation failed ox_id %04x\n",
+		    ocs_be16toh(fchdr->ox_id));
 		return -1;
 	}
 	io->hw_priv = seq->hw_priv;
@@ -934,7 +975,8 @@ ocs_dispatch_fcp_cmd(ocs_node_t *node, ocs_hw_sequence_t *seq)
 		if (df_ctl & FC_DFCTL_NETWORK_HDR_MASK) {
 			vmhdr_offset += FC_DFCTL_NETWORK_HDR_SIZE;
 		}
-		vhdr = (fc_vm_header_t *) ((char *)fchdr + sizeof(fc_header_t) + vmhdr_offset);
+		vhdr = (fc_vm_header_t *)((char *)fchdr + sizeof(fc_header_t) +
+		    vmhdr_offset);
 		io->app_id = ocs_be32toh(vhdr->src_vmid);
 	}
 
@@ -942,7 +984,8 @@ ocs_dispatch_fcp_cmd(ocs_node_t *node, ocs_hw_sequence_t *seq)
 	ocs_populate_io_fcp_cmd(io, cmnd, fchdr, TRUE);
 
 	if (cmnd->task_management_flags) {
-		ocs_dispatch_unsolicited_tmf(io, cmnd->task_management_flags, node, lun);
+		ocs_dispatch_unsolicited_tmf(io, cmnd->task_management_flags,
+		    node, lun);
 	} else {
 		uint32_t flags = ocs_get_flags_fcp_cmd(cmnd);
 
@@ -950,9 +993,9 @@ ocs_dispatch_fcp_cmd(ocs_node_t *node, ocs_hw_sequence_t *seq)
 		 * no need to treat as a dropped frame if rc != 0
 		 */
 		ocs_scsi_recv_cmd(io, lun, cmnd->fcp_cdb,
-				  sizeof(cmnd->fcp_cdb) +
-				  (cmnd->additional_fcp_cdb_length * sizeof(uint32_t)),
-				  flags);
+		    sizeof(cmnd->fcp_cdb) +
+			(cmnd->additional_fcp_cdb_length * sizeof(uint32_t)),
+		    flags);
 	}
 
 	/* successfully processed, now return RX buffer to the chip */
@@ -978,11 +1021,11 @@ static int32_t
 ocs_dispatch_fcp_cmd_auto_xfer_rdy(ocs_node_t *node, ocs_hw_sequence_t *seq)
 {
 	ocs_t *ocs = node->ocs;
-	fc_header_t	*fchdr = seq->header->dma.virt;
-	fcp_cmnd_iu_t	*cmnd = NULL;
-	ocs_io_t	*io = NULL;
-	uint64_t	lun = UINT64_MAX;
-	int32_t		rc = 0;
+	fc_header_t *fchdr = seq->header->dma.virt;
+	fcp_cmnd_iu_t *cmnd = NULL;
+	ocs_io_t *io = NULL;
+	uint64_t lun = UINT64_MAX;
+	int32_t rc = 0;
 
 	ocs_assert(seq->payload, -1);
 	cmnd = seq->payload->dma.virt;
@@ -994,7 +1037,8 @@ ocs_dispatch_fcp_cmd_auto_xfer_rdy(ocs_node_t *node, ocs_hw_sequence_t *seq)
 
 	/* make sure first burst or auto xfer_rdy is enabled */
 	if (!seq->auto_xrdy) {
-		node_printf(node, "IO is not Auto Xfr Rdy assisted, dropping FCP_CMND\n");
+		node_printf(node,
+		    "IO is not Auto Xfr Rdy assisted, dropping FCP_CMND\n");
 		return -1;
 	}
 
@@ -1006,17 +1050,22 @@ ocs_dispatch_fcp_cmd_auto_xfer_rdy(ocs_node_t *node, ocs_hw_sequence_t *seq)
 	if (io == NULL) {
 		uint32_t send_frame_capable;
 
-		/* If we have SEND_FRAME capability, then use it to send task set full or busy */
-		rc = ocs_hw_get(&ocs->hw, OCS_HW_SEND_FRAME_CAPABLE, &send_frame_capable);
+		/* If we have SEND_FRAME capability, then use it to send task
+		 * set full or busy */
+		rc = ocs_hw_get(&ocs->hw, OCS_HW_SEND_FRAME_CAPABLE,
+		    &send_frame_capable);
 		if ((rc == 0) && send_frame_capable) {
 			rc = ocs_sframe_send_task_set_full_or_busy(node, seq);
 			if (rc) {
-				ocs_log_test(ocs, "ocs_sframe_send_task_set_full_or_busy failed: %d\n", rc);
+				ocs_log_test(ocs,
+				    "ocs_sframe_send_task_set_full_or_busy failed: %d\n",
+				    rc);
 			}
 			return rc;
 		}
 
-		ocs_log_err(ocs, "IO allocation failed ox_id %04x\n", ocs_be16toh(fchdr->ox_id));
+		ocs_log_err(ocs, "IO allocation failed ox_id %04x\n",
+		    ocs_be16toh(fchdr->ox_id));
 		return -1;
 	}
 	io->hw_priv = seq->hw_priv;
@@ -1026,7 +1075,8 @@ ocs_dispatch_fcp_cmd_auto_xfer_rdy(ocs_node_t *node, ocs_hw_sequence_t *seq)
 
 	if (cmnd->task_management_flags) {
 		/* first burst command better not be a TMF */
-		ocs_log_err(ocs, "TMF flags set 0x%x\n", cmnd->task_management_flags);
+		ocs_log_err(ocs, "TMF flags set 0x%x\n",
+		    cmnd->task_management_flags);
 		ocs_scsi_io_free(io);
 		return -1;
 	} else {
@@ -1040,9 +1090,9 @@ ocs_dispatch_fcp_cmd_auto_xfer_rdy(ocs_node_t *node, ocs_hw_sequence_t *seq)
 
 		/* Note: Data buffers are received in another call */
 		ocs_scsi_recv_cmd_first_burst(io, lun, cmnd->fcp_cdb,
-					      sizeof(cmnd->fcp_cdb) +
-					      (cmnd->additional_fcp_cdb_length * sizeof(uint32_t)),
-					      flags, NULL, 0);
+		    sizeof(cmnd->fcp_cdb) +
+			(cmnd->additional_fcp_cdb_length * sizeof(uint32_t)),
+		    flags, NULL, 0);
 	}
 
 	/* FCP_CMND processed, return RX buffer to the chip */
@@ -1071,7 +1121,7 @@ ocs_dispatch_fcp_data(ocs_node_t *node, ocs_hw_sequence_t *seq)
 	ocs_t *ocs = node->ocs;
 	ocs_hw_t *hw = &ocs->hw;
 	ocs_hw_io_t *hio = seq->hio;
-	ocs_io_t	*io;
+	ocs_io_t *io;
 	ocs_dma_t fburst[1];
 
 	ocs_assert(seq->payload, -1);
@@ -1080,7 +1130,7 @@ ocs_dispatch_fcp_data(ocs_node_t *node, ocs_hw_sequence_t *seq)
 	io = hio->ul_io;
 	if (io == NULL) {
 		ocs_log_err(ocs, "data received for NULL io, xri=0x%x\n",
-			    hio->indicator);
+		    hio->indicator);
 		return -1;
 	}
 
@@ -1090,14 +1140,14 @@ ocs_dispatch_fcp_data(ocs_node_t *node, ocs_hw_sequence_t *seq)
 	 */
 	if (!ocs_hw_is_io_port_owned(hw, seq->hio)) {
 		ocs_log_err(ocs, "data received for host owned XRI, xri=0x%x\n",
-			    hio->indicator);
+		    hio->indicator);
 		return -1;
 	}
 
 	/* For error statuses, pass the error to the target back end */
 	if (seq->status != OCS_HW_UNSOL_SUCCESS) {
 		ocs_log_err(ocs, "data with status 0x%x received, xri=0x%x\n",
-			    seq->status, hio->indicator);
+		    seq->status, hio->indicator);
 
 		/*
 		 * In this case, there is an existing, in-use HW IO that
@@ -1110,23 +1160,27 @@ ocs_dispatch_fcp_data(ocs_node_t *node, ocs_hw_sequence_t *seq)
 		 * HW IO has already been allocated and is waiting for data.
 		 * Need to tell backend that an error has occurred.
 		 */
-		ocs_scsi_recv_cmd_first_burst(io, 0, NULL, 0, OCS_SCSI_FIRST_BURST_ERR, NULL, 0);
+		ocs_scsi_recv_cmd_first_burst(io, 0, NULL, 0,
+		    OCS_SCSI_FIRST_BURST_ERR, NULL, 0);
 		return -1;
 	}
 
 	/* sequence initiative has been transferred */
 	io->seq_init = 1;
 
-	/* convert the array of pointers to the correct type, to send to backend */
+	/* convert the array of pointers to the correct type, to send to backend
+	 */
 	fburst[0] = seq->payload->dma;
 
-	/* the amount of first burst data was saved as "acculated sequence length" */
+	/* the amount of first burst data was saved as "acculated sequence
+	 * length" */
 	io->transferred = seq->payload->dma.len;
 
-	if (ocs_scsi_recv_cmd_first_burst(io, 0, NULL, 0, 0,
-					  fburst, io->transferred)) {
-		ocs_log_err(ocs, "error passing first burst, xri=0x%x, oxid=0x%x\n",
-			    hio->indicator, io->init_task_tag);
+	if (ocs_scsi_recv_cmd_first_burst(io, 0, NULL, 0, 0, fburst,
+		io->transferred)) {
+		ocs_log_err(ocs,
+		    "error passing first burst, xri=0x%x, oxid=0x%x\n",
+		    hio->indicator, io->init_task_tag);
 	}
 
 	/* Free the header and all the accumulated payload buffers */
@@ -1150,7 +1204,8 @@ ocs_dispatch_fcp_data(ocs_node_t *node, ocs_hw_sequence_t *seq)
  */
 
 static int32_t
-ocs_fc_tmf_rejected_cb(ocs_io_t *io, ocs_scsi_io_status_e scsi_status, uint32_t flags, void *arg)
+ocs_fc_tmf_rejected_cb(ocs_io_t *io, ocs_scsi_io_status_e scsi_status,
+    uint32_t flags, void *arg)
 {
 	ocs_scsi_io_free(io);
 	return 0;
@@ -1165,8 +1220,8 @@ ocs_fc_tmf_rejected_cb(ocs_io_t *io, ocs_scsi_io_status_e scsi_status, uint32_t 
  * @param pend_list Pending list to be purged.
  * @param list_lock Lock that protects pending list.
  *
- * @return Returns pointer to the next FC frame, or NULL if the pending frame list
- * is empty.
+ * @return Returns pointer to the next FC frame, or NULL if the pending frame
+ * list is empty.
  */
 static ocs_hw_sequence_t *
 ocs_frame_next(ocs_list_t *pend_list, ocs_lock_t *list_lock)
@@ -1174,7 +1229,7 @@ ocs_frame_next(ocs_list_t *pend_list, ocs_lock_t *list_lock)
 	ocs_hw_sequence_t *frame = NULL;
 
 	ocs_lock(list_lock);
-		frame = ocs_list_remove_head(pend_list);
+	frame = ocs_list_remove_head(pend_list);
 	ocs_unlock(list_lock);
 	return frame;
 }
@@ -1182,8 +1237,8 @@ ocs_frame_next(ocs_list_t *pend_list, ocs_lock_t *list_lock)
 /**
  * @brief Process send fcp response frame callback
  *
- * The function is called when the send FCP response posting has completed. Regardless
- * of the outcome, the sequence is freed.
+ * The function is called when the send FCP response posting has completed.
+ * Regardless of the outcome, the sequence is freed.
  *
  * @param arg Pointer to originator frame sequence.
  * @param cqe Pointer to completion queue entry.
@@ -1207,10 +1262,11 @@ ocs_sframe_common_send_cb(void *arg, uint8_t *cqe, int32_t status)
 /**
  * @brief Send a frame, common code
  *
- * A frame is sent using SEND_FRAME, the R_CTL/F_CTL/TYPE may be specified, the payload is
- * sent as a single frame.
+ * A frame is sent using SEND_FRAME, the R_CTL/F_CTL/TYPE may be specified, the
+ * payload is sent as a single frame.
  *
- * Memory resources are allocated from RQ buffers contained in the passed in sequence data.
+ * Memory resources are allocated from RQ buffers contained in the passed in
+ * sequence data.
  *
  * @param node Pointer to node object.
  * @param seq Pointer to sequence object.
@@ -1224,8 +1280,9 @@ ocs_sframe_common_send_cb(void *arg, uint8_t *cqe, int32_t status)
  * @return Returns 0 on success, or a negative error code value on failure.
  */
 static int32_t
-ocs_sframe_common_send(ocs_node_t *node, ocs_hw_sequence_t *seq, uint8_t r_ctl, uint8_t info, uint32_t f_ctl,
-		       uint8_t type, void *payload, uint32_t payload_len)
+ocs_sframe_common_send(ocs_node_t *node, ocs_hw_sequence_t *seq, uint8_t r_ctl,
+    uint8_t info, uint32_t f_ctl, uint8_t type, void *payload,
+    uint32_t payload_len)
 {
 	ocs_t *ocs = node->ocs;
 	ocs_hw_t *hw = &ocs->hw;
@@ -1245,7 +1302,7 @@ ocs_sframe_common_send(ocs_node_t *node, ocs_hw_sequence_t *seq, uint8_t r_ctl, 
 
 	/* Build the FC header reusing the RQ header DMA buffer */
 	ocs_memset(&hdr, 0, sizeof(hdr));
-	hdr.d_id = s_id;			/* send it back to whomever sent it to us */
+	hdr.d_id = s_id; /* send it back to whomever sent it to us */
 	hdr.r_ctl = r_ctl;
 	hdr.info = info;
 	hdr.s_id = d_id;
@@ -1256,17 +1313,17 @@ ocs_sframe_common_send(ocs_node_t *node, ocs_hw_sequence_t *seq, uint8_t r_ctl, 
 	hdr.df_ctl = 0;
 
 	/*
-	 * send_frame_seq_id is an atomic, we just let it increment, while storing only
-	 * the low 8 bits to hdr->seq_id
+	 * send_frame_seq_id is an atomic, we just let it increment, while
+	 * storing only the low 8 bits to hdr->seq_id
 	 */
-	hdr.seq_id = (uint8_t) ocs_atomic_add_return(&hw->send_frame_seq_id, 1);
+	hdr.seq_id = (uint8_t)ocs_atomic_add_return(&hw->send_frame_seq_id, 1);
 
 	hdr.rx_id = rx_id;
 	hdr.ox_id = ox_id;
 	hdr.parameter = 0;
 
 	/* Allocate and fill in the send frame request context */
-	ctx = (void*)(heap_virt_base + heap_offset);
+	ctx = (void *)(heap_virt_base + heap_offset);
 	heap_offset += sizeof(*ctx);
 	ocs_assert(heap_offset < heap_size, -1);
 	ocs_memset(ctx, 0, sizeof(*ctx));
@@ -1286,8 +1343,8 @@ ocs_sframe_common_send(ocs_node_t *node, ocs_hw_sequence_t *seq, uint8_t r_ctl, 
 	ocs_memcpy(ctx->payload.virt, payload, payload_len);
 
 	/* Send */
-	rc = ocs_hw_send_frame(&ocs->hw, (void*)&hdr, FC_SOFI3, FC_EOFT, &ctx->payload, ctx,
-				ocs_sframe_common_send_cb, ctx);
+	rc = ocs_hw_send_frame(&ocs->hw, (void *)&hdr, FC_SOFI3, FC_EOFT,
+	    &ctx->payload, ctx, ocs_sframe_common_send_cb, ctx);
 	if (rc) {
 		ocs_log_test(ocs, "ocs_hw_send_frame failed: %d\n", rc);
 	}
@@ -1308,17 +1365,14 @@ ocs_sframe_common_send(ocs_node_t *node, ocs_hw_sequence_t *seq, uint8_t r_ctl, 
  * @return Returns 0 on success, or a negative error code value on failure.
  */
 static int32_t
-ocs_sframe_send_fcp_rsp(ocs_node_t *node, ocs_hw_sequence_t *seq, void *rsp, uint32_t rsp_len)
+ocs_sframe_send_fcp_rsp(ocs_node_t *node, ocs_hw_sequence_t *seq, void *rsp,
+    uint32_t rsp_len)
 {
-	return ocs_sframe_common_send(node, seq,
-				      FC_RCTL_FC4_DATA,
-				      FC_RCTL_INFO_CMD_STATUS,
-				      FC_FCTL_EXCHANGE_RESPONDER |
-					      FC_FCTL_LAST_SEQUENCE |
-					      FC_FCTL_END_SEQUENCE |
-					      FC_FCTL_SEQUENCE_INITIATIVE,
-				      FC_TYPE_FCP,
-				      rsp, rsp_len);
+	return ocs_sframe_common_send(node, seq, FC_RCTL_FC4_DATA,
+	    FC_RCTL_INFO_CMD_STATUS,
+	    FC_FCTL_EXCHANGE_RESPONDER | FC_FCTL_LAST_SEQUENCE |
+		FC_FCTL_END_SEQUENCE | FC_FCTL_SEQUENCE_INITIATIVE,
+	    FC_TYPE_FCP, rsp, rsp_len);
 }
 
 /**
@@ -1341,21 +1395,25 @@ ocs_sframe_send_task_set_full_or_busy(ocs_node_t *node, ocs_hw_sequence_t *seq)
 	int32_t rc = 0;
 
 	/* extract FCP_DL from FCP command*/
-	fcp_dl_ptr = (uint32_t*)(&(fcpcmd->fcp_cdb_and_dl));
+	fcp_dl_ptr = (uint32_t *)(&(fcpcmd->fcp_cdb_and_dl));
 	fcp_dl_ptr += fcpcmd->additional_fcp_cdb_length;
 	fcp_dl = ocs_be32toh(*fcp_dl_ptr);
 
 	/* construct task set full or busy response */
 	ocs_memset(&fcprsp, 0, sizeof(fcprsp));
 	ocs_lock(&node->active_ios_lock);
-		fcprsp.scsi_status = ocs_list_empty(&node->active_ios) ? SCSI_STATUS_BUSY : SCSI_STATUS_TASK_SET_FULL;
+	fcprsp.scsi_status = ocs_list_empty(&node->active_ios) ?
+	    SCSI_STATUS_BUSY :
+	    SCSI_STATUS_TASK_SET_FULL;
 	ocs_unlock(&node->active_ios_lock);
-	*((uint32_t*)&fcprsp.fcp_resid) = fcp_dl;
+	*((uint32_t *)&fcprsp.fcp_resid) = fcp_dl;
 
 	/* send it using send_frame */
-	rc = ocs_sframe_send_fcp_rsp(node, seq, &fcprsp, sizeof(fcprsp) - sizeof(fcprsp.data));
+	rc = ocs_sframe_send_fcp_rsp(node, seq, &fcprsp,
+	    sizeof(fcprsp) - sizeof(fcprsp.data));
 	if (rc) {
-		ocs_log_test(node->ocs, "ocs_sframe_send_fcp_rsp failed: %d\n", rc);
+		ocs_log_test(node->ocs, "ocs_sframe_send_fcp_rsp failed: %d\n",
+		    rc);
 	}
 	return rc;
 }
@@ -1371,24 +1429,21 @@ ocs_sframe_send_task_set_full_or_busy(ocs_node_t *node, ocs_hw_sequence_t *seq)
  * @return Returns 0 on success, or a negative error code value on failure.
  */
 int32_t
-ocs_sframe_send_bls_acc(ocs_node_t *node,  ocs_hw_sequence_t *seq)
+ocs_sframe_send_bls_acc(ocs_node_t *node, ocs_hw_sequence_t *seq)
 {
 	fc_header_t *behdr = seq->header->dma.virt;
 	uint16_t ox_id = ocs_be16toh(behdr->ox_id);
 	uint16_t rx_id = ocs_be16toh(behdr->rx_id);
-	fc_ba_acc_payload_t acc = {0};
+	fc_ba_acc_payload_t acc = { 0 };
 
 	acc.ox_id = ocs_htobe16(ox_id);
 	acc.rx_id = ocs_htobe16(rx_id);
 	acc.low_seq_cnt = UINT16_MAX;
 	acc.high_seq_cnt = UINT16_MAX;
 
-	return ocs_sframe_common_send(node, seq,
-				      FC_RCTL_BLS,
-				      FC_RCTL_INFO_UNSOL_DATA,
-				      FC_FCTL_EXCHANGE_RESPONDER |
-					      FC_FCTL_LAST_SEQUENCE |
-					      FC_FCTL_END_SEQUENCE,
-				      FC_TYPE_BASIC_LINK,
-				      &acc, sizeof(acc));
+	return ocs_sframe_common_send(node, seq, FC_RCTL_BLS,
+	    FC_RCTL_INFO_UNSOL_DATA,
+	    FC_FCTL_EXCHANGE_RESPONDER | FC_FCTL_LAST_SEQUENCE |
+		FC_FCTL_END_SEQUENCE,
+	    FC_TYPE_BASIC_LINK, &acc, sizeof(acc));
 }

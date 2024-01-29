@@ -24,14 +24,14 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_LINUXKPI_LINUX_SWAP_H_
-#define	_LINUXKPI_LINUX_SWAP_H_
+#ifndef _LINUXKPI_LINUX_SWAP_H_
+#define _LINUXKPI_LINUX_SWAP_H_
 
 #include <sys/param.h>
 #include <sys/domainset.h>
-#include <sys/queue.h>
-#include <sys/proc.h>
 #include <sys/pcpu.h>
+#include <sys/proc.h>
+#include <sys/queue.h>
 
 #include <vm/vm.h>
 #include <vm/swap_pager.h>

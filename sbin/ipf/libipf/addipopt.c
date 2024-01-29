@@ -9,7 +9,6 @@
 
 #include "ipf.h"
 
-
 int
 addipopt(char *op, struct ipopt_names *io, int len, char *class)
 {
@@ -31,23 +30,22 @@ addipopt(char *op, struct ipopt_names *io, int len, char *class)
 		*op++ = IPOPT_MINOFF;
 
 		if (class) {
-			switch (io->on_value)
-			{
-			case IPOPT_SECURITY :
+			switch (io->on_value) {
+			case IPOPT_SECURITY:
 				lvl = seclevel(class);
 				*(op - 1) = lvl;
 				break;
-			case IPOPT_RR :
-			case IPOPT_TS :
+			case IPOPT_RR:
+			case IPOPT_TS:
 				s[IPOPT_OLEN] = IPOPT_MINOFF - 1 + 4;
 				break;
-			case IPOPT_LSRR :
-			case IPOPT_SSRR :
+			case IPOPT_LSRR:
+			case IPOPT_SSRR:
 				ipadr.s_addr = inet_addr(class);
 				s[IPOPT_OLEN] = IPOPT_MINOFF - 1 + 4;
 				bcopy((char *)&ipadr, op, sizeof(ipadr));
 				break;
-			case IPOPT_SATID :
+			case IPOPT_SATID:
 				val = atoi(class);
 				bcopy((char *)&val, op, 2);
 				break;
@@ -55,7 +53,7 @@ addipopt(char *op, struct ipopt_names *io, int len, char *class)
 		}
 	}
 	if (opts & OPT_DEBUG)
-		fprintf(stderr, "bo: %s %d %#x: %d\n",
-			io->on_name, io->on_value, io->on_bit, len);
+		fprintf(stderr, "bo: %s %d %#x: %d\n", io->on_name,
+		    io->on_value, io->on_bit, len);
 	return (len - olen);
 }

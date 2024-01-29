@@ -4,7 +4,7 @@
  * Author: Maksym Sobolyev <sobomax@sippysoft.com>
  * Copyright (c) 2009 Sippy Software, Inc.
  * All rights reserved.
- * 
+ *
  * Subject to the following obligations and disclaimer of warranty, use and
  * redistribution of this software, in source or object code forms, with or
  * without modifications are expressly permitted by Whistle Communications;
@@ -15,7 +15,7 @@
  *    Communications, Inc. trademarks, including the mark "WHISTLE
  *    COMMUNICATIONS" on advertising, endorsements, or otherwise except as
  *    such appears in the above copyright notice or in the software.
- * 
+ *
  * THIS SOFTWARE IS BEING PROVIDED BY WHISTLE COMMUNICATIONS "AS IS", AND
  * TO THE MAXIMUM EXTENT PERMITTED BY LAW, WHISTLE COMMUNICATIONS MAKES NO
  * REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED, REGARDING THIS SOFTWARE,
@@ -36,27 +36,20 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
-#include <bootstrap.h>
 
-static void	spinc_probe(struct console *cp);
-static int	spinc_init(int arg);
-static void	spinc_putchar(int c);
-static int	spinc_getchar(void);
-static int	spinc_ischar(void);
+#include <bootstrap.h>
+#include <stand.h>
+
+static void spinc_probe(struct console *cp);
+static int spinc_init(int arg);
+static void spinc_putchar(int c);
+static int spinc_getchar(void);
+static int spinc_ischar(void);
 
 extern struct console *consoles[];
 
-struct console spinconsole = {
-	"spinconsole",
-	"spin port",
-	0,
-	spinc_probe,
-	spinc_init,
-	spinc_putchar,
-	spinc_getchar,
-	spinc_ischar
-};
+struct console spinconsole = { "spinconsole", "spin port", 0, spinc_probe,
+	spinc_init, spinc_putchar, spinc_getchar, spinc_ischar };
 
 static struct console *parent = NULL;
 
@@ -73,13 +66,13 @@ static int
 spinc_init(int arg)
 {
 
-	return(parent->c_init(arg));
+	return (parent->c_init(arg));
 }
 
 static void
 spinc_putchar(int c)
 {
-	static unsigned tw_chars = 0x5C2D2F7C;    /* "\-/|" */
+	static unsigned tw_chars = 0x5C2D2F7C; /* "\-/|" */
 	static time_t lasttime = 0;
 	time_t now;
 
@@ -99,12 +92,12 @@ static int
 spinc_getchar(void)
 {
 
-	return(-1);
+	return (-1);
 }
 
 static int
 spinc_ischar(void)
 {
 
-	return(0);
+	return (0);
 }

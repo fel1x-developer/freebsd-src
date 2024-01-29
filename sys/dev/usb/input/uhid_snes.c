@@ -28,57 +28,54 @@
  */
 
 #include <sys/param.h>
-#include <sys/module.h>
-#include <sys/kernel.h>
 #include <sys/systm.h>
-
-#include <sys/conf.h>
 #include <sys/bus.h>
+#include <sys/conf.h>
+#include <sys/fcntl.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/syslog.h>
-#include <sys/fcntl.h>
 
 #include <dev/usb/usb.h>
+#include <dev/usb/usb_ioctl.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
-
 #include <dev/usb/usbhid.h>
-#include <dev/usb/usb_ioctl.h>
 
 #include "usb_rdesc.h"
 
-#define	UHID_SNES_IFQ_MAX_LEN 8
+#define UHID_SNES_IFQ_MAX_LEN 8
 
-#define	UREQ_GET_PORT_STATUS 0x01
-#define	UREQ_SOFT_RESET      0x02
+#define UREQ_GET_PORT_STATUS 0x01
+#define UREQ_SOFT_RESET 0x02
 
-#define	UP      0x7f00
-#define	DOWN    0x7fff
-#define	LEFT    0x00ff
-#define	RIGHT   0xff7f
-#define	X       0x1f
-#define	Y       0x8f
-#define	A       0x2f
-#define	B       0x4f
-#define	SELECT  0x10
-#define	START   0x20
-#define	LEFT_T  0x01
-#define	RIGHT_T 0x02
+#define UP 0x7f00
+#define DOWN 0x7fff
+#define LEFT 0x00ff
+#define RIGHT 0xff7f
+#define X 0x1f
+#define Y 0x8f
+#define A 0x2f
+#define B 0x4f
+#define SELECT 0x10
+#define START 0x20
+#define LEFT_T 0x01
+#define RIGHT_T 0x02
 
 static const uint8_t uhid_snes_report_descr[] = { UHID_SNES_REPORT_DESCR() };
-#define	SNES_DEV(v,p,i) { USB_VPI(v,p,i) }
+#define SNES_DEV(v, p, i)        \
+	{                        \
+		USB_VPI(v, p, i) \
+	}
 
 static const STRUCT_USB_HOST_ID snes_devs[] = {
 	SNES_DEV(0x0810, 0xe501, 0), /* GeeekPi K-0161 */
 	SNES_DEV(0x0079, 0x0011, 0)  /* Dragonrise */
 };
 
-enum {
-	UHID_SNES_INTR_DT_RD,
-	UHID_SNES_STATUS_DT_RD,
-	UHID_SNES_N_TRANSFER
-};
+enum { UHID_SNES_INTR_DT_RD, UHID_SNES_STATUS_DT_RD, UHID_SNES_N_TRANSFER };
 
 struct uhid_snes_softc {
 	device_t sc_dev;
@@ -106,8 +103,7 @@ struct uhid_snes_softc {
 	uint16_t sc_repdesc_size;
 
 	struct usb_device *sc_udev;
-#define	UHID_FLAG_IMMED        0x01	/* set if read should be immediate */
-
+#define UHID_FLAG_IMMED 0x01 /* set if read should be immediate */
 };
 
 static device_probe_t uhid_snes_probe;
@@ -136,28 +132,26 @@ static struct usb_fifo_methods uhid_snes_fifo_methods = {
 };
 
 static const struct usb_config uhid_snes_config[UHID_SNES_N_TRANSFER] = {
-	[UHID_SNES_INTR_DT_RD] = {
-		.callback = &uhid_snes_read_callback,
-		.bufsize = sizeof(struct usb_device_request) +1,
-		.flags = {.short_xfer_ok = 1, .short_frames_ok = 1,
-			  .pipe_bof =1, .proxy_buffer =1},
-		.type = UE_INTERRUPT,
-		.endpoint = 0x81,
-		.direction = UE_DIR_IN
-	},
-	[UHID_SNES_STATUS_DT_RD] = {
-		.callback = &uhid_snes_status_callback,
-		.bufsize = sizeof(struct usb_device_request) + 1,
-		.timeout = 1000,
-		.type = UE_CONTROL,
-		.endpoint = 0x00,
-		.direction = UE_DIR_ANY
-	}
+	[UHID_SNES_INTR_DT_RD] = { .callback = &uhid_snes_read_callback,
+	    .bufsize = sizeof(struct usb_device_request) + 1,
+	    .flags = { .short_xfer_ok = 1,
+		.short_frames_ok = 1,
+		.pipe_bof = 1,
+		.proxy_buffer = 1 },
+	    .type = UE_INTERRUPT,
+	    .endpoint = 0x81,
+	    .direction = UE_DIR_IN },
+	[UHID_SNES_STATUS_DT_RD] = { .callback = &uhid_snes_status_callback,
+	    .bufsize = sizeof(struct usb_device_request) + 1,
+	    .timeout = 1000,
+	    .type = UE_CONTROL,
+	    .endpoint = 0x00,
+	    .direction = UE_DIR_ANY }
 };
 
 static int
-uhid_get_report(struct uhid_snes_softc *sc, uint8_t type,
-    uint8_t id, void *kern_data, void *user_data, uint16_t len)
+uhid_get_report(struct uhid_snes_softc *sc, uint8_t type, uint8_t id,
+    void *kern_data, void *user_data, uint16_t len)
 {
 	int err;
 	uint8_t free_data = 0;
@@ -166,8 +160,8 @@ uhid_get_report(struct uhid_snes_softc *sc, uint8_t type,
 		kern_data = malloc(len, M_USBDEV, M_WAITOK);
 		free_data = 1;
 	}
-	err = usbd_req_get_report(sc->sc_udev, NULL, kern_data,
-	    len, sc->sc_iface_index, type, id);
+	err = usbd_req_get_report(sc->sc_udev, NULL, kern_data, len,
+	    sc->sc_iface_index, type, id);
 	if (err) {
 		err = ENXIO;
 		goto done;
@@ -187,8 +181,8 @@ done:
 }
 
 static int
-uhid_set_report(struct uhid_snes_softc *sc, uint8_t type,
-    uint8_t id, void *kern_data, void *user_data, uint16_t len)
+uhid_set_report(struct uhid_snes_softc *sc, uint8_t type, uint8_t id,
+    void *kern_data, void *user_data, uint16_t len)
 {
 	int err;
 	uint8_t free_data = 0;
@@ -201,8 +195,8 @@ uhid_set_report(struct uhid_snes_softc *sc, uint8_t type,
 			goto done;
 		}
 	}
-	err = usbd_req_set_report(sc->sc_udev, NULL, kern_data,
-	    len, sc->sc_iface_index, type, id);
+	err = usbd_req_set_report(sc->sc_udev, NULL, kern_data, len,
+	    sc->sc_iface_index, type, id);
 	if (err) {
 		err = ENXIO;
 		goto done;
@@ -253,12 +247,12 @@ uhid_snes_reset(struct uhid_snes_softc *sc)
 
 	mtx_lock(&sc->sc_mutex);
 
-	error = usbd_do_request_flags(sc->sc_usb_device, &sc->sc_mutex,
-	    &req, NULL, 0, NULL, 2 * USB_MS_HZ);
+	error = usbd_do_request_flags(sc->sc_usb_device, &sc->sc_mutex, &req,
+	    NULL, 0, NULL, 2 * USB_MS_HZ);
 
 	if (error) {
-		usbd_do_request_flags(sc->sc_usb_device, &sc->sc_mutex,
-		    &req, NULL, 0, NULL, 2 * USB_MS_HZ);
+		usbd_do_request_flags(sc->sc_usb_device, &sc->sc_mutex, &req,
+		    NULL, 0, NULL, 2 * USB_MS_HZ);
 	}
 
 	mtx_unlock(&sc->sc_mutex);
@@ -518,7 +512,6 @@ uhid_snes_status_callback(struct usb_xfer *transfer, usb_error_t error)
 	default:
 		break;
 	}
-
 }
 
 static int
@@ -540,7 +533,7 @@ uhid_snes_attach(device_t dev)
 	struct usb_interface_descriptor *idesc;
 	struct usb_config_descriptor *cdesc;
 	uint8_t alt_index, iface_index = uaa->info.bIfaceIndex;
-	int error,unit = device_get_unit(dev);
+	int error, unit = device_get_unit(dev);
 
 	sc->sc_dev = dev;
 	sc->sc_usb_device = uaa->device;
@@ -550,12 +543,12 @@ uhid_snes_attach(device_t dev)
 
 	idesc = usbd_get_interface_descriptor(uaa->iface);
 	alt_index = -1;
-	for(;;) {
+	for (;;) {
 		if (idesc == NULL)
 			break;
 
 		if ((idesc->bDescriptorType == UDESC_INTERFACE) &&
-		     (idesc->bLength >= sizeof(*idesc))) {
+		    (idesc->bLength >= sizeof(*idesc))) {
 			if (idesc->bInterfaceNumber != uaa->info.bIfaceNum) {
 				break;
 			} else {
@@ -573,25 +566,25 @@ uhid_snes_attach(device_t dev)
 
 found:
 	if (alt_index) {
-		error = usbd_set_alt_interface_index(uaa->device, iface_index, alt_index);
+		error = usbd_set_alt_interface_index(uaa->device, iface_index,
+		    alt_index);
 		if (error)
 			goto detach;
 	}
 
 	sc->sc_iface_num = idesc->bInterfaceNumber;
 
-	error = usbd_transfer_setup(uaa->device, &iface_index,
-	    sc->sc_transfer, uhid_snes_config, UHID_SNES_N_TRANSFER, sc,
-	    &sc->sc_mutex);
+	error = usbd_transfer_setup(uaa->device, &iface_index, sc->sc_transfer,
+	    uhid_snes_config, UHID_SNES_N_TRANSFER, sc, &sc->sc_mutex);
 
 	if (error)
 		goto detach;
 
 	error = usb_fifo_attach(uaa->device, sc, &sc->sc_mutex,
-	    &uhid_snes_fifo_methods, &sc->sc_fifo, unit, -1,
-	    iface_index, UID_ROOT, GID_OPERATOR, 0644);
+	    &uhid_snes_fifo_methods, &sc->sc_fifo, unit, -1, iface_index,
+	    UID_ROOT, GID_OPERATOR, 0644);
 	sc->sc_repdesc_size = sizeof(uhid_snes_report_descr);
-	sc->sc_repdesc_ptr = __DECONST(void*, &uhid_snes_report_descr);
+	sc->sc_repdesc_ptr = __DECONST(void *, &uhid_snes_report_descr);
 
 	if (error)
 		goto detach;
@@ -625,18 +618,13 @@ uhid_snes_detach(device_t dev)
 	return (0);
 }
 
-static device_method_t uhid_snes_methods[] = {
-	DEVMETHOD(device_probe, uhid_snes_probe),
+static device_method_t uhid_snes_methods[] = { DEVMETHOD(device_probe,
+						   uhid_snes_probe),
 	DEVMETHOD(device_attach, uhid_snes_attach),
-	DEVMETHOD(device_detach, uhid_snes_detach),
-	DEVMETHOD_END
-};
+	DEVMETHOD(device_detach, uhid_snes_detach), DEVMETHOD_END };
 
-static driver_t uhid_snes_driver = {
-	"uhid_snes",
-	uhid_snes_methods,
-	sizeof(struct uhid_snes_softc)
-};
+static driver_t uhid_snes_driver = { "uhid_snes", uhid_snes_methods,
+	sizeof(struct uhid_snes_softc) };
 
 DRIVER_MODULE(uhid_snes, uhub, uhid_snes_driver, NULL, NULL);
 MODULE_DEPEND(uhid_snes, usb, 1, 1, 1);

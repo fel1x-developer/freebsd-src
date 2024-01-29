@@ -32,8 +32,8 @@ printnatside(char *side, nat_stat_side_t *ns)
 	PRINTF("%lu\ticmp rebuild failures %s\n", ns->ns_icmp_rebuild, side);
 	PRINTF("%lu\ticmp short %s\n", ns->ns_icmp_short, side);
 	PRINTF("%lu\ticmp packet size wrong %s\n", ns->ns_icmp_size, side);
-	PRINTF("%lu\tIFP address fetch failures %s\n",
-		ns->ns_ifpaddrfail, side);
+	PRINTF("%lu\tIFP address fetch failures %s\n", ns->ns_ifpaddrfail,
+	    side);
 	PRINTF("%lu\tpackets untranslated %s\n", ns->ns_ignored, side);
 	PRINTF("%lu\tNAT insert failures %s\n", ns->ns_insert_fail, side);
 	PRINTF("%lu\tNAT lookup misses %s\n", ns->ns_lookup_miss, side);

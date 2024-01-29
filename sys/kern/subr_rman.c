@@ -59,15 +59,16 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h> /* XXX debugging */
 #include <sys/kernel.h>
 #include <sys/limits.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
-#include <sys/bus.h>		/* XXX debugging */
-#include <machine/bus.h>
 #include <sys/rman.h>
 #include <sys/sysctl.h>
+
+#include <machine/bus.h>
 
 #ifdef DDB
 #include <ddb/ddb.h>
@@ -79,25 +80,27 @@
  * address space).
  */
 struct resource_i {
-	struct resource		r_r;
-	TAILQ_ENTRY(resource_i)	r_link;
-	LIST_ENTRY(resource_i)	r_sharelink;
-	LIST_HEAD(, resource_i)	*r_sharehead;
-	rman_res_t	r_start;	/* index of the first entry in this resource */
-	rman_res_t	r_end;		/* index of the last entry (inclusive) */
-	u_int	r_flags;
-	void	*r_virtual;	/* virtual address of this resource */
-	void	*r_irq_cookie;	/* interrupt cookie for this (interrupt) resource */
-	device_t r_dev;	/* device which has allocated this resource */
-	struct rman *r_rm;	/* resource manager from whence this came */
-	int	r_rid;		/* optional rid for this resource. */
+	struct resource r_r;
+	TAILQ_ENTRY(resource_i) r_link;
+	LIST_ENTRY(resource_i) r_sharelink;
+	LIST_HEAD(, resource_i) *r_sharehead;
+	rman_res_t r_start; /* index of the first entry in this resource */
+	rman_res_t r_end;   /* index of the last entry (inclusive) */
+	u_int r_flags;
+	void *r_virtual;    /* virtual address of this resource */
+	void *r_irq_cookie; /* interrupt cookie for this (interrupt) resource */
+	device_t r_dev;	    /* device which has allocated this resource */
+	struct rman *r_rm;  /* resource manager from whence this came */
+	int r_rid;	    /* optional rid for this resource. */
 };
 
 static int rman_debug = 0;
-SYSCTL_INT(_debug, OID_AUTO, rman_debug, CTLFLAG_RWTUN,
-    &rman_debug, 0, "rman debug");
+SYSCTL_INT(_debug, OID_AUTO, rman_debug, CTLFLAG_RWTUN, &rman_debug, 0,
+    "rman debug");
 
-#define DPRINTF(params) if (rman_debug) printf params
+#define DPRINTF(params) \
+	if (rman_debug) \
+	printf params
 
 static MALLOC_DEFINE(M_RMAN, "rman", "Resource manager");
 
@@ -167,7 +170,7 @@ rman_manage_region(struct rman *rm, rman_res_t start, rman_res_t end)
 	mtx_lock(rm->rm_mtx);
 
 	/* Skip entries before us. */
-	TAILQ_FOREACH(s, &rm->rm_list, r_link) {
+	TAILQ_FOREACH (s, &rm->rm_list, r_link) {
 		if (s->r_end == ~0)
 			break;
 		if (s->r_end + 1 >= r->r_start)
@@ -241,7 +244,7 @@ rman_fini(struct rman *rm)
 	struct resource_i *r;
 
 	mtx_lock(rm->rm_mtx);
-	TAILQ_FOREACH(r, &rm->rm_list, r_link) {
+	TAILQ_FOREACH (r, &rm->rm_list, r_link) {
 		if (r->r_flags & RF_ALLOCATED) {
 			mtx_unlock(rm->rm_mtx);
 			return EBUSY;
@@ -273,7 +276,7 @@ rman_first_free_region(struct rman *rm, rman_res_t *start, rman_res_t *end)
 	struct resource_i *r;
 
 	mtx_lock(rm->rm_mtx);
-	TAILQ_FOREACH(r, &rm->rm_list, r_link) {
+	TAILQ_FOREACH (r, &rm->rm_list, r_link) {
 		if (!(r->r_flags & RF_ALLOCATED)) {
 			*start = r->r_start;
 			*end = r->r_end;
@@ -291,7 +294,7 @@ rman_last_free_region(struct rman *rm, rman_res_t *start, rman_res_t *end)
 	struct resource_i *r;
 
 	mtx_lock(rm->rm_mtx);
-	TAILQ_FOREACH_REVERSE(r, &rm->rm_list, resource_head, r_link) {
+	TAILQ_FOREACH_REVERSE (r, &rm->rm_list, resource_head, r_link) {
 		if (!(r->r_flags & RF_ALLOCATED)) {
 			*start = r->r_start;
 			*end = r->r_end;
@@ -330,7 +333,7 @@ rman_adjust_resource(struct resource *rr, rman_res_t start, rman_res_t end)
 	rm = r->r_rm;
 	mtx_lock(rm->rm_mtx);
 #ifdef INVARIANTS
-	TAILQ_FOREACH(s, &rm->rm_list, r_link) {
+	TAILQ_FOREACH (s, &rm->rm_list, r_link) {
 		if (s == r)
 			break;
 	}
@@ -348,13 +351,13 @@ rman_adjust_resource(struct resource *rr, rman_res_t start, rman_res_t end)
 	 * See if the changes are permitted.  Shrinking is always allowed,
 	 * but growing requires sufficient room in the adjacent region.
 	 */
-	if (start < r->r_start && (s == NULL || (s->r_flags & RF_ALLOCATED) ||
-	    s->r_start > start)) {
+	if (start < r->r_start &&
+	    (s == NULL || (s->r_flags & RF_ALLOCATED) || s->r_start > start)) {
 		mtx_unlock(rm->rm_mtx);
 		return (EBUSY);
 	}
-	if (end > r->r_end && (t == NULL || (t->r_flags & RF_ALLOCATED) ||
-	    t->r_end < end)) {
+	if (end > r->r_end &&
+	    (t == NULL || (t->r_flags & RF_ALLOCATED) || t->r_end < end)) {
 		mtx_unlock(rm->rm_mtx);
 		return (EBUSY);
 	}
@@ -425,12 +428,11 @@ rman_adjust_resource(struct resource *rr, rman_res_t start, rman_res_t end)
 	return (0);
 }
 
-#define	SHARE_TYPE(f)	(f & (RF_SHAREABLE | RF_PREFETCHABLE))
+#define SHARE_TYPE(f) (f & (RF_SHAREABLE | RF_PREFETCHABLE))
 
 struct resource *
 rman_reserve_resource_bound(struct rman *rm, rman_res_t start, rman_res_t end,
-			    rman_res_t count, rman_res_t bound, u_int flags,
-			    device_t dev)
+    rman_res_t count, rman_res_t bound, u_int flags, device_t dev)
 {
 	u_int new_rflags;
 	struct resource_i *r, *s, *rv;
@@ -439,30 +441,30 @@ rman_reserve_resource_bound(struct rman *rm, rman_res_t start, rman_res_t end,
 	rv = NULL;
 
 	DPRINTF(("rman_reserve_resource_bound: <%s> request: [%#jx, %#jx], "
-	       "length %#jx, flags %x, device %s\n", rm->rm_descr, start, end,
-	       count, flags,
-	       dev == NULL ? "<null>" : device_get_nameunit(dev)));
-	KASSERT(count != 0, ("%s: attempted to allocate an empty range",
-	    __func__));
-	KASSERT((flags & RF_FIRSTSHARE) == 0,
-	    ("invalid flags %#x", flags));
+		 "length %#jx, flags %x, device %s\n",
+	    rm->rm_descr, start, end, count, flags,
+	    dev == NULL ? "<null>" : device_get_nameunit(dev)));
+	KASSERT(count != 0,
+	    ("%s: attempted to allocate an empty range", __func__));
+	KASSERT((flags & RF_FIRSTSHARE) == 0, ("invalid flags %#x", flags));
 	new_rflags = (flags & ~RF_FIRSTSHARE) | RF_ALLOCATED;
 
 	mtx_lock(rm->rm_mtx);
 
 	r = TAILQ_FIRST(&rm->rm_list);
 	if (r == NULL) {
-	    DPRINTF(("NULL list head\n"));
+		DPRINTF(("NULL list head\n"));
 	} else {
-	    DPRINTF(("rman_reserve_resource_bound: trying %#jx <%#jx,%#jx>\n",
-		    r->r_end, start, count-1));
+		DPRINTF(
+		    ("rman_reserve_resource_bound: trying %#jx <%#jx,%#jx>\n",
+			r->r_end, start, count - 1));
 	}
-	for (r = TAILQ_FIRST(&rm->rm_list);
-	     r && r->r_end < start + count - 1;
+	for (r = TAILQ_FIRST(&rm->rm_list); r && r->r_end < start + count - 1;
 	     r = TAILQ_NEXT(r, r_link)) {
 		;
-		DPRINTF(("rman_reserve_resource_bound: tried %#jx <%#jx,%#jx>\n",
-			r->r_end, start, count-1));
+		DPRINTF(
+		    ("rman_reserve_resource_bound: tried %#jx <%#jx,%#jx>\n",
+			r->r_end, start, count - 1));
 	}
 
 	if (r == NULL) {
@@ -509,19 +511,20 @@ rman_reserve_resource_bound(struct rman *rm, rman_res_t start, rman_res_t end,
 			rstart = (rstart + amask) & ~amask;
 			if (((rstart ^ (rstart + count - 1)) & bmask) != 0)
 				rstart += bound - (rstart & ~bmask);
-		} while ((rstart & amask) != 0 && rstart < end &&
-		    rstart < s->r_end);
+		} while (
+		    (rstart & amask) != 0 && rstart < end && rstart < s->r_end);
 		rend = ummin(s->r_end, ummax(rstart + count - 1, end));
 		if (rstart > rend) {
 			DPRINTF(("adjusted start exceeds end\n"));
 			continue;
 		}
-		DPRINTF(("truncated region: [%#jx, %#jx]; size %#jx (requested %#jx)\n",
-		       rstart, rend, (rend - rstart + 1), count));
+		DPRINTF((
+		    "truncated region: [%#jx, %#jx]; size %#jx (requested %#jx)\n",
+		    rstart, rend, (rend - rstart + 1), count));
 
 		if ((rend - rstart) >= (count - 1)) {
 			DPRINTF(("candidate region: [%#jx, %#jx], size %#jx\n",
-			       rstart, rend, (rend - rstart + 1)));
+			    rstart, rend, (rend - rstart + 1)));
 			if ((s->r_end - s->r_start + 1) == count) {
 				DPRINTF(("candidate region is entire chunk\n"));
 				rv = s;
@@ -550,11 +553,11 @@ rman_reserve_resource_bound(struct rman *rm, rman_res_t start, rman_res_t end,
 			rv->r_rm = rm;
 
 			if (s->r_start < rv->r_start && s->r_end > rv->r_end) {
-				DPRINTF(("splitting region in three parts: "
-				       "[%#jx, %#jx]; [%#jx, %#jx]; [%#jx, %#jx]\n",
-				       s->r_start, rv->r_start - 1,
-				       rv->r_start, rv->r_end,
-				       rv->r_end + 1, s->r_end));
+				DPRINTF((
+				    "splitting region in three parts: "
+				    "[%#jx, %#jx]; [%#jx, %#jx]; [%#jx, %#jx]\n",
+				    s->r_start, rv->r_start - 1, rv->r_start,
+				    rv->r_end, rv->r_end + 1, s->r_end));
 				/*
 				 * We are allocating in the middle.
 				 */
@@ -569,10 +572,8 @@ rman_reserve_resource_bound(struct rman *rm, rman_res_t start, rman_res_t end,
 				r->r_flags = s->r_flags;
 				r->r_rm = rm;
 				s->r_end = rv->r_start - 1;
-				TAILQ_INSERT_AFTER(&rm->rm_list, s, rv,
-						     r_link);
-				TAILQ_INSERT_AFTER(&rm->rm_list, rv, r,
-						     r_link);
+				TAILQ_INSERT_AFTER(&rm->rm_list, s, rv, r_link);
+				TAILQ_INSERT_AFTER(&rm->rm_list, rv, r, r_link);
 			} else if (s->r_start == rv->r_start) {
 				DPRINTF(("allocating from the beginning\n"));
 				/*
@@ -586,8 +587,7 @@ rman_reserve_resource_bound(struct rman *rm, rman_res_t start, rman_res_t end,
 				 * We are allocating at the end.
 				 */
 				s->r_end = rv->r_start - 1;
-				TAILQ_INSERT_AFTER(&rm->rm_list, s, rv,
-						     r_link);
+				TAILQ_INSERT_AFTER(&rm->rm_list, s, rv, r_link);
 			}
 			goto out;
 		}
@@ -621,7 +621,7 @@ rman_reserve_resource_bound(struct rman *rm, rman_res_t start, rman_res_t end,
 			rv->r_rm = rm;
 			if (s->r_sharehead == NULL) {
 				s->r_sharehead = malloc(sizeof *s->r_sharehead,
-						M_RMAN, M_NOWAIT | M_ZERO);
+				    M_RMAN, M_NOWAIT | M_ZERO);
 				if (s->r_sharehead == NULL) {
 					free(rv, M_RMAN);
 					rv = NULL;
@@ -629,7 +629,7 @@ rman_reserve_resource_bound(struct rman *rm, rman_res_t start, rman_res_t end,
 				}
 				LIST_INIT(s->r_sharehead);
 				LIST_INSERT_HEAD(s->r_sharehead, s,
-						 r_sharelink);
+				    r_sharelink);
 				s->r_flags |= RF_FIRSTSHARE;
 			}
 			rv->r_sharehead = s->r_sharehead;
@@ -648,11 +648,11 @@ out:
 
 struct resource *
 rman_reserve_resource(struct rman *rm, rman_res_t start, rman_res_t end,
-		      rman_res_t count, u_int flags, device_t dev)
+    rman_res_t count, u_int flags, device_t dev)
 {
 
-	return (rman_reserve_resource_bound(rm, start, end, count, 0, flags,
-	    dev));
+	return (
+	    rman_reserve_resource_bound(rm, start, end, count, 0, flags, dev));
 }
 
 int
@@ -727,12 +727,12 @@ int_rman_release_resource(struct rman *rm, struct resource_i *r)
 	 * cannot be merged with our segment.
 	 */
 	s = TAILQ_PREV(r, resource_head, r_link);
-	if (s != NULL && ((s->r_flags & RF_ALLOCATED) != 0 ||
-	    s->r_end + 1 != r->r_start))
+	if (s != NULL &&
+	    ((s->r_flags & RF_ALLOCATED) != 0 || s->r_end + 1 != r->r_start))
 		s = NULL;
 	t = TAILQ_NEXT(r, r_link);
-	if (t != NULL && ((t->r_flags & RF_ALLOCATED) != 0 ||
-	    r->r_end + 1 != t->r_start))
+	if (t != NULL &&
+	    ((t->r_flags & RF_ALLOCATED) != 0 || r->r_end + 1 != t->r_start))
 		t = NULL;
 
 	if (s != NULL && t != NULL) {
@@ -805,7 +805,7 @@ rman_make_alignment_flags(uint32_t size)
 	if (~(1 << i) & size)
 		i++;
 
-	return(RF_ALIGNMENT_LOG2(i));
+	return (RF_ALIGNMENT_LOG2(i));
 }
 
 void
@@ -971,15 +971,15 @@ rman_is_region_manager(struct resource *r, struct rman *rm)
 static int
 sysctl_rman(SYSCTL_HANDLER_ARGS)
 {
-	int			*name = (int *)arg1;
-	u_int			namelen = arg2;
-	int			rman_idx, res_idx;
-	struct rman		*rm;
-	struct resource_i	*res;
-	struct resource_i	*sres;
-	struct u_rman		urm;
-	struct u_resource	ures;
-	int			error;
+	int *name = (int *)arg1;
+	u_int namelen = arg2;
+	int rman_idx, res_idx;
+	struct rman *rm;
+	struct resource_i *res;
+	struct resource_i *sres;
+	struct u_rman urm;
+	struct u_resource ures;
+	int error;
 
 	if (namelen != 3)
 		return (EINVAL);
@@ -993,7 +993,7 @@ sysctl_rman(SYSCTL_HANDLER_ARGS)
 	 * Find the indexed resource manager
 	 */
 	mtx_lock(&rman_mtx);
-	TAILQ_FOREACH(rm, &rman_head, rm_link) {
+	TAILQ_FOREACH (rm, &rman_head, rm_link) {
 		if (rman_idx-- == 0)
 			break;
 	}
@@ -1022,16 +1022,15 @@ sysctl_rman(SYSCTL_HANDLER_ARGS)
 	 * Find the indexed resource and return it.
 	 */
 	mtx_lock(rm->rm_mtx);
-	TAILQ_FOREACH(res, &rm->rm_list, r_link) {
+	TAILQ_FOREACH (res, &rm->rm_list, r_link) {
 		if (res->r_sharehead != NULL) {
-			LIST_FOREACH(sres, res->r_sharehead, r_sharelink)
+			LIST_FOREACH (sres, res->r_sharehead, r_sharelink)
 				if (res_idx-- == 0) {
 					res = sres;
 					goto found;
 				}
-		}
-		else if (res_idx-- == 0)
-				goto found;
+		} else if (res_idx-- == 0)
+			goto found;
 	}
 	mtx_unlock(rm->rm_mtx);
 	return (ENOENT);
@@ -1043,13 +1042,11 @@ found:
 	ures.r_device = (uintptr_t)res->r_dev;
 	if (res->r_dev != NULL) {
 		if (device_get_name(res->r_dev) != NULL) {
-			snprintf(ures.r_devname, RM_TEXTLEN,
-			    "%s%d",
+			snprintf(ures.r_devname, RM_TEXTLEN, "%s%d",
 			    device_get_name(res->r_dev),
 			    device_get_unit(res->r_dev));
 		} else {
-			strlcpy(ures.r_devname, "nomatch",
-			    RM_TEXTLEN);
+			strlcpy(ures.r_devname, "nomatch", RM_TEXTLEN);
 		}
 	} else {
 		ures.r_devname[0] = '\0';
@@ -1064,8 +1061,7 @@ found:
 }
 
 static SYSCTL_NODE(_hw_bus, OID_AUTO, rman, CTLFLAG_RD | CTLFLAG_MPSAFE,
-    sysctl_rman,
-    "kernel resource manager");
+    sysctl_rman, "kernel resource manager");
 
 #ifdef DDB
 static void
@@ -1074,8 +1070,8 @@ dump_rman_header(struct rman *rm)
 
 	if (db_pager_quit)
 		return;
-	db_printf("rman %p: %s (0x%jx-0x%jx full range)\n",
-	    rm, rm->rm_descr, (rman_res_t)rm->rm_start, (rman_res_t)rm->rm_end);
+	db_printf("rman %p: %s (0x%jx-0x%jx full range)\n", rm, rm->rm_descr,
+	    (rman_res_t)rm->rm_start, (rman_res_t)rm->rm_end);
 }
 
 static void
@@ -1086,15 +1082,15 @@ dump_rman(struct rman *rm)
 
 	if (db_pager_quit)
 		return;
-	TAILQ_FOREACH(r, &rm->rm_list, r_link) {
+	TAILQ_FOREACH (r, &rm->rm_list, r_link) {
 		if (r->r_dev != NULL) {
 			devname = device_get_nameunit(r->r_dev);
 			if (devname == NULL)
 				devname = "nomatch";
 		} else
 			devname = NULL;
-		db_printf("    0x%jx-0x%jx (RID=%d) ",
-		    r->r_start, r->r_end, r->r_rid);
+		db_printf("    0x%jx-0x%jx (RID=%d) ", r->r_start, r->r_end,
+		    r->r_rid);
 		if (devname != NULL)
 			db_printf("(%s)\n", devname);
 		else
@@ -1117,7 +1113,7 @@ DB_SHOW_COMMAND_FLAGS(rmans, db_show_rmans, DB_CMD_MEMSAFE)
 {
 	struct rman *rm;
 
-	TAILQ_FOREACH(rm, &rman_head, rm_link) {
+	TAILQ_FOREACH (rm, &rman_head, rm_link) {
 		dump_rman_header(rm);
 	}
 }
@@ -1126,7 +1122,7 @@ DB_SHOW_ALL_COMMAND(rman, db_show_all_rman)
 {
 	struct rman *rm;
 
-	TAILQ_FOREACH(rm, &rman_head, rm_link) {
+	TAILQ_FOREACH (rm, &rman_head, rm_link) {
 		dump_rman_header(rm);
 		dump_rman(rm);
 	}

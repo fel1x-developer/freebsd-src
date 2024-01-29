@@ -38,10 +38,12 @@
  * of OS compatibility which don't make sense as macros or inline functions.
  */
 
+#include <sys/time.h>
+
+#include <machine/stdarg.h>
+
 #include "ice_common.h"
 #include "ice_iflib.h"
-#include <machine/stdarg.h>
-#include <sys/time.h>
 
 /**
  * @var M_ICE_OSDEP
@@ -51,7 +53,8 @@
  * distinguishing allocations by this layer from those of the rest of the
  * driver.
  */
-MALLOC_DEFINE(M_ICE_OSDEP, "ice-osdep", "Intel(R) 100Gb Network Driver osdep allocations");
+MALLOC_DEFINE(M_ICE_OSDEP, "ice-osdep",
+    "Intel(R) 100Gb Network Driver osdep allocations");
 
 /**
  * @var ice_lock_count
@@ -63,7 +66,8 @@ MALLOC_DEFINE(M_ICE_OSDEP, "ice-osdep", "Intel(R) 100Gb Network Driver osdep all
  */
 u16 ice_lock_count = 0;
 
-static void ice_dmamap_cb(void *arg, bus_dma_segment_t * segs, int __unused nseg, int error);
+static void ice_dmamap_cb(void *arg, bus_dma_segment_t *segs, int __unused nseg,
+    int error);
 
 /**
  * ice_hw_to_dev - Given a hw private struct, find the associated device_t
@@ -78,7 +82,8 @@ static void ice_dmamap_cb(void *arg, bus_dma_segment_t * segs, int __unused nseg
  * ice_osdep.h without creating circular header dependencies.
  */
 device_t
-ice_hw_to_dev(struct ice_hw *hw) {
+ice_hw_to_dev(struct ice_hw *hw)
+{
 	struct ice_softc *sc = __containerof(hw, struct ice_softc, hw);
 
 	return sc->dev;
@@ -126,7 +131,7 @@ ice_debug(struct ice_hw *hw, uint64_t mask, char *fmt, ...)
  */
 void
 ice_debug_array(struct ice_hw *hw, uint64_t mask, uint32_t rowsize,
-		uint32_t __unused groupsize, uint8_t *buf, size_t len)
+    uint32_t __unused groupsize, uint8_t *buf, size_t len)
 {
 	device_t dev = ice_hw_to_dev(hw);
 	char prettyname[20];
@@ -135,7 +140,8 @@ ice_debug_array(struct ice_hw *hw, uint64_t mask, uint32_t rowsize,
 		return;
 
 	/* Format the device header to a string */
-	snprintf(prettyname, sizeof(prettyname), "%s: ", device_get_nameunit(dev));
+	snprintf(prettyname, sizeof(prettyname),
+	    "%s: ", device_get_nameunit(dev));
 
 	/* Make sure the row-size isn't too large */
 	if (rowsize > 0xFF)
@@ -161,7 +167,7 @@ ice_debug_array(struct ice_hw *hw, uint64_t mask, uint32_t rowsize,
  */
 void
 ice_info_fwlog(struct ice_hw *hw, uint32_t rowsize, uint32_t __unused groupsize,
-	       uint8_t *buf, size_t len)
+    uint8_t *buf, size_t len)
 {
 	device_t dev = ice_hw_to_dev(hw);
 	char prettyname[20];
@@ -170,8 +176,8 @@ ice_info_fwlog(struct ice_hw *hw, uint32_t rowsize, uint32_t __unused groupsize,
 		return;
 
 	/* Format the device header to a string */
-	snprintf(prettyname, sizeof(prettyname), "%s: FWLOG: ",
-	    device_get_nameunit(dev));
+	snprintf(prettyname, sizeof(prettyname),
+	    "%s: FWLOG: ", device_get_nameunit(dev));
 
 	/* Make sure the row-size isn't too large */
 	if (rowsize > 0xFF)
@@ -219,7 +225,9 @@ rd64(struct ice_hw *hw, uint32_t reg)
 	 * back to using two bus_space_read_4 calls.
 	 */
 	data = bus_space_read_4(sc->bar0.tag, sc->bar0.handle, reg);
-	data |= ((uint64_t)bus_space_read_4(sc->bar0.tag, sc->bar0.handle, reg + 4)) << 32;
+	data |=
+	    ((uint64_t)bus_space_read_4(sc->bar0.tag, sc->bar0.handle, reg + 4))
+	    << 32;
 #endif
 
 	return data;
@@ -347,11 +355,11 @@ ice_msec_spin(uint32_t time)
  * Callback used by the bus DMA code to obtain the segment address.
  */
 static void
-ice_dmamap_cb(void *arg, bus_dma_segment_t * segs, int __unused nseg, int error)
+ice_dmamap_cb(void *arg, bus_dma_segment_t *segs, int __unused nseg, int error)
 {
 	if (error)
 		return;
-	*(bus_addr_t *) arg = segs->ds_addr;
+	*(bus_addr_t *)arg = segs->ds_addr;
 	return;
 }
 
@@ -372,46 +380,46 @@ ice_alloc_dma_mem(struct ice_hw *hw, struct ice_dma_mem *mem, u64 size)
 	device_t dev = ice_hw_to_dev(hw);
 	int err;
 
-	err = bus_dma_tag_create(bus_get_dma_tag(dev),	/* parent */
-				 1, 0,			/* alignment, boundary */
-				 BUS_SPACE_MAXADDR,	/* lowaddr */
-				 BUS_SPACE_MAXADDR,	/* highaddr */
-				 NULL, NULL,		/* filtfunc, filtfuncarg */
-				 size,			/* maxsize */
-				 1,			/* nsegments */
-				 size,			/* maxsegsz */
-				 BUS_DMA_ALLOCNOW,	/* flags */
-				 NULL,			/* lockfunc */
-				 NULL,			/* lockfuncarg */
-				 &mem->tag);
+	err = bus_dma_tag_create(bus_get_dma_tag(dev), /* parent */
+	    1, 0,				       /* alignment, boundary */
+	    BUS_SPACE_MAXADDR,			       /* lowaddr */
+	    BUS_SPACE_MAXADDR,			       /* highaddr */
+	    NULL, NULL,	      /* filtfunc, filtfuncarg */
+	    size,	      /* maxsize */
+	    1,		      /* nsegments */
+	    size,	      /* maxsegsz */
+	    BUS_DMA_ALLOCNOW, /* flags */
+	    NULL,	      /* lockfunc */
+	    NULL,	      /* lockfuncarg */
+	    &mem->tag);
 	if (err != 0) {
 		device_printf(dev,
 		    "ice_alloc_dma: bus_dma_tag_create failed, "
-		    "error %s\n", ice_err_str(err));
+		    "error %s\n",
+		    ice_err_str(err));
 		goto fail_0;
 	}
 	err = bus_dmamem_alloc(mem->tag, (void **)&mem->va,
-			     BUS_DMA_NOWAIT | BUS_DMA_ZERO, &mem->map);
+	    BUS_DMA_NOWAIT | BUS_DMA_ZERO, &mem->map);
 	if (err != 0) {
 		device_printf(dev,
 		    "ice_alloc_dma: bus_dmamem_alloc failed, "
-		    "error %s\n", ice_err_str(err));
+		    "error %s\n",
+		    ice_err_str(err));
 		goto fail_1;
 	}
-	err = bus_dmamap_load(mem->tag, mem->map, mem->va,
-			    size,
-			    ice_dmamap_cb,
-			    &mem->pa,
-			    BUS_DMA_NOWAIT);
+	err = bus_dmamap_load(mem->tag, mem->map, mem->va, size, ice_dmamap_cb,
+	    &mem->pa, BUS_DMA_NOWAIT);
 	if (err != 0) {
 		device_printf(dev,
 		    "ice_alloc_dma: bus_dmamap_load failed, "
-		    "error %s\n", ice_err_str(err));
+		    "error %s\n",
+		    ice_err_str(err));
 		goto fail_2;
 	}
 	mem->size = size;
 	bus_dmamap_sync(mem->tag, mem->map,
-	    BUS_DMASYNC_PREREAD|BUS_DMASYNC_PREWRITE);
+	    BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
 	return (mem->va);
 fail_2:
 	bus_dmamem_free(mem->tag, mem->va, mem->map);

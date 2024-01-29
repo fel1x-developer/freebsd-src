@@ -102,16 +102,16 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-#ifndef	__IF_IWN_SCAN_H__
-#define	__IF_IWN_SCAN_H__
+#ifndef __IF_IWN_SCAN_H__
+#define __IF_IWN_SCAN_H__
 
-extern	int iwm_lmac_scan(struct iwm_softc *);
-extern	int iwm_config_umac_scan(struct iwm_softc *);
-extern	int iwm_umac_scan(struct iwm_softc *);
-extern	int iwm_scan_stop_wait(struct iwm_softc *);
-extern	void iwm_rx_lmac_scan_complete_notif(struct iwm_softc *,
-						 struct iwm_rx_packet *);
-extern	void iwm_rx_umac_scan_complete_notif(struct iwm_softc *,
-						 struct iwm_rx_packet *);
+extern int iwm_lmac_scan(struct iwm_softc *);
+extern int iwm_config_umac_scan(struct iwm_softc *);
+extern int iwm_umac_scan(struct iwm_softc *);
+extern int iwm_scan_stop_wait(struct iwm_softc *);
+extern void iwm_rx_lmac_scan_complete_notif(struct iwm_softc *,
+    struct iwm_rx_packet *);
+extern void iwm_rx_umac_scan_complete_notif(struct iwm_softc *,
+    struct iwm_rx_packet *);
 
-#endif	/* __IF_IWN_SCAN_H__ */
+#endif /* __IF_IWN_SCAN_H__ */

@@ -26,21 +26,21 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/eventhandler.h>
+#include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/rman.h>
-#include <sys/systm.h>
 #include <sys/watchdog.h>
-
-#include <dev/superio/superio.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
 
+#include <dev/superio/superio.h>
+
 struct ftwd_softc {
-	eventhandler_tag	wd_ev;
+	eventhandler_tag wd_ev;
 };
 
 static void
@@ -70,31 +70,29 @@ ftwd_func(void *priv, u_int cmd, int *error)
 		}
 	}
 	if (bootverbose) {
-                if (val == 0) {
+		if (val == 0) {
 			device_printf(dev, "disabling watchdog\n");
 		} else {
 			device_printf(dev,
-			    "arm watchdog to %d %s%s (Was: 0x%02x)\n",
-			    val, minutes ? "minute" : "second",
-                            val == 1 ? "" : "s",
-			    superio_read(dev, 0xf6)
-			);
+			    "arm watchdog to %d %s%s (Was: 0x%02x)\n", val,
+			    minutes ? "minute" : "second", val == 1 ? "" : "s",
+			    superio_read(dev, 0xf6));
 		}
 	}
-	superio_write(dev, 0xf0, 0x00);		// Disable WDTRST#
-	superio_write(dev, 0xf6, val);		// Set Counter
+	superio_write(dev, 0xf0, 0x00); // Disable WDTRST#
+	superio_write(dev, 0xf6, val);	// Set Counter
 
 	if (minutes)
-		superio_write(dev, 0xf5, 0x7d);	// minutes, act high, 125ms
+		superio_write(dev, 0xf5, 0x7d); // minutes, act high, 125ms
 	else
-		superio_write(dev, 0xf5, 0x75);	// seconds, act high, 125ms
+		superio_write(dev, 0xf5, 0x75); // seconds, act high, 125ms
 
 	if (val)
-		superio_write(dev, 0xf7, 0x01);	// Disable PME
+		superio_write(dev, 0xf7, 0x01); // Disable PME
 	if (val)
-		superio_write(dev, 0xf0, 0x81);	// Enable WDTRST#
+		superio_write(dev, 0xf0, 0x81); // Enable WDTRST#
 	else
-		superio_write(dev, 0xf0, 0x00);	// Disable WDTRST
+		superio_write(dev, 0xf0, 0x00); // Disable WDTRST
 }
 
 static int
@@ -134,18 +132,12 @@ ftwd_detach(device_t dev)
 	return (0);
 }
 
-static device_method_t ftwd_methods[] = {
-	DEVMETHOD(device_probe,		ftwd_probe),
-	DEVMETHOD(device_attach,	ftwd_attach),
-	DEVMETHOD(device_detach,	ftwd_detach),
-	{ 0, 0 }
-};
+static device_method_t ftwd_methods[] = { DEVMETHOD(device_probe, ftwd_probe),
+	DEVMETHOD(device_attach, ftwd_attach),
+	DEVMETHOD(device_detach, ftwd_detach), { 0, 0 } };
 
-static driver_t ftwd_driver = {
-	"ftwd",
-	ftwd_methods,
-	sizeof (struct ftwd_softc)
-};
+static driver_t ftwd_driver = { "ftwd", ftwd_methods,
+	sizeof(struct ftwd_softc) };
 
 DRIVER_MODULE(ftwd, superio, ftwd_driver, NULL, NULL);
 MODULE_DEPEND(ftwd, superio, 1, 1, 1);

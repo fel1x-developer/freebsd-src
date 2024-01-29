@@ -27,4 +27,4 @@
  *
  */
 
-int	cm_handler_client(int, int, char *);
+int cm_handler_client(int, int, char *);

@@ -28,6 +28,7 @@
  */
 
 #include <sys/types.h>
+
 #include <ieeefp.h>
 
 /**
@@ -37,7 +38,7 @@
  * floating-point exceptions in the base ISA, but instead require explicit
  * checks of the flags in software. We considered adding branches controlled
  * directly by the contents of the floating-point accrued exception flags, but
- * ultimately chose to omit these instructions to keep the ISA simple." 
+ * ultimately chose to omit these instructions to keep the ISA simple."
  *
  * We still need this function, because some applications (notably Perl) call
  * it, but we cannot provide a meaningful implementation.

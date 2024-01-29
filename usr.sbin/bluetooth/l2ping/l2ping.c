@@ -32,8 +32,10 @@
 
 #include <sys/ioctl.h>
 #include <sys/time.h>
-#include <arpa/inet.h>
+
 #include <netinet/in.h>
+
+#include <arpa/inet.h>
 #include <assert.h>
 #define L2CAP_SOCKET_CHECKED
 #include <bluetooth.h>
@@ -45,35 +47,35 @@
 #include <string.h>
 #include <unistd.h>
 
-static void	usage	(void);
-static void	tv_sub	(struct timeval *, struct timeval const *);
-static double	tv2msec	(struct timeval const *);
+static void usage(void);
+static void tv_sub(struct timeval *, struct timeval const *);
+static double tv2msec(struct timeval const *);
 
-#undef	min
-#define	min(x, y)	(((x) > (y))? (y) : (x))
+#undef min
+#define min(x, y) (((x) > (y)) ? (y) : (x))
 
-static char const		pattern[] = "1234567890-";
-#define PATTERN_SIZE		(sizeof(pattern) - 1)
+static char const pattern[] = "1234567890-";
+#define PATTERN_SIZE (sizeof(pattern) - 1)
 
-/* 
- * Main 
+/*
+ * Main
  */
 
 int
 main(int argc, char *argv[])
 {
-	bdaddr_t		 src, dst;
-	struct hostent		*he;
-	uint8_t			*echo_data;
-	struct sockaddr_l2cap	 sa;
-	int32_t			 n, s, count, wait, flood, echo_size, numeric;
-	char			*endp, *rname;
+	bdaddr_t src, dst;
+	struct hostent *he;
+	uint8_t *echo_data;
+	struct sockaddr_l2cap sa;
+	int32_t n, s, count, wait, flood, echo_size, numeric;
+	char *endp, *rname;
 
 	/* Set defaults */
 	memcpy(&src, NG_HCI_BDADDR_ANY, sizeof(src));
 	memcpy(&dst, NG_HCI_BDADDR_ANY, sizeof(dst));
 
-	echo_data = (uint8_t *) calloc(NG_L2CAP_MAX_ECHO_SIZE, sizeof(uint8_t));
+	echo_data = (uint8_t *)calloc(NG_L2CAP_MAX_ECHO_SIZE, sizeof(uint8_t));
 	if (echo_data == NULL) {
 		fprintf(stderr, "Failed to allocate echo data buffer");
 		exit(1);
@@ -96,7 +98,8 @@ main(int argc, char *argv[])
 		case 'a':
 			if (!bt_aton(optarg, &dst)) {
 				if ((he = bt_gethostbyname(optarg)) == NULL)
-					errx(1, "%s: %s", optarg, hstrerror(h_errno));
+					errx(1, "%s: %s", optarg,
+					    hstrerror(h_errno));
 
 				memcpy(&dst, he->h_addr, sizeof(dst));
 			}
@@ -125,17 +128,17 @@ main(int argc, char *argv[])
 		case 'S':
 			if (!bt_aton(optarg, &src)) {
 				if ((he = bt_gethostbyname(optarg)) == NULL)
-					errx(1, "%s: %s", optarg, hstrerror(h_errno));
+					errx(1, "%s: %s", optarg,
+					    hstrerror(h_errno));
 
 				memcpy(&src, he->h_addr, sizeof(src));
 			}
 			break;
 
 		case 's':
-                        echo_size = strtol(optarg, &endp, 10);
-                        if (echo_size < sizeof(int32_t) ||
-			    echo_size > NG_L2CAP_MAX_ECHO_SIZE ||
-			    *endp != '\0')
+			echo_size = strtol(optarg, &endp, 10);
+			if (echo_size < sizeof(int32_t) ||
+			    echo_size > NG_L2CAP_MAX_ECHO_SIZE || *endp != '\0')
 				usage();
 			break;
 
@@ -150,7 +153,8 @@ main(int argc, char *argv[])
 		usage();
 
 	he = bt_gethostbyaddr((const char *)&dst, sizeof(dst), AF_BLUETOOTH);
-	if (he == NULL || he->h_name == NULL || he->h_name[0] == '\0' || numeric)
+	if (he == NULL || he->h_name == NULL || he->h_name[0] == '\0' ||
+	    numeric)
 		asprintf(&rname, "%s", bt_ntoa(&dst, NULL));
 	else
 		rname = strdup(he->h_name);
@@ -167,38 +171,38 @@ main(int argc, char *argv[])
 	sa.l2cap_family = AF_BLUETOOTH;
 	memcpy(&sa.l2cap_bdaddr, &src, sizeof(sa.l2cap_bdaddr));
 
-	if (bind(s, (struct sockaddr *) &sa, sizeof(sa)) < 0)
-		err(3,
-"Could not bind socket, src bdaddr=%s", bt_ntoa(&sa.l2cap_bdaddr, NULL));
+	if (bind(s, (struct sockaddr *)&sa, sizeof(sa)) < 0)
+		err(3, "Could not bind socket, src bdaddr=%s",
+		    bt_ntoa(&sa.l2cap_bdaddr, NULL));
 
 	memset(&sa, 0, sizeof(sa));
 	sa.l2cap_len = sizeof(sa);
 	sa.l2cap_family = AF_BLUETOOTH;
 	memcpy(&sa.l2cap_bdaddr, &dst, sizeof(sa.l2cap_bdaddr));
 
-	if (connect(s, (struct sockaddr *) &sa, sizeof(sa)) < 0)
-		err(4,
-"Could not connect socket, dst bdaddr=%s", bt_ntoa(&sa.l2cap_bdaddr, NULL));
+	if (connect(s, (struct sockaddr *)&sa, sizeof(sa)) < 0)
+		err(4, "Could not connect socket, dst bdaddr=%s",
+		    bt_ntoa(&sa.l2cap_bdaddr, NULL));
 
 	/* Fill pattern */
-	for (n = 0; n < echo_size; ) {
-		int32_t	avail = min(echo_size - n, PATTERN_SIZE);
+	for (n = 0; n < echo_size;) {
+		int32_t avail = min(echo_size - n, PATTERN_SIZE);
 
 		memcpy(echo_data + n, pattern, avail);
 		n += avail;
 	}
 
 	/* Start ping'ing */
-	for (n = 0; count == -1 || count > 0; n ++) {
-		struct ng_btsocket_l2cap_raw_ping	r;
-		struct timeval				a, b;
-		int32_t					fail;
+	for (n = 0; count == -1 || count > 0; n++) {
+		struct ng_btsocket_l2cap_raw_ping r;
+		struct timeval a, b;
+		int32_t fail;
 
 		if (gettimeofday(&a, NULL) < 0)
 			err(5, "Could not gettimeofday(a)");
 
 		fail = 0;
-		*((int32_t *) echo_data) = htonl(n);
+		*((int32_t *)echo_data) = htonl(n);
 
 		r.result = 0;
 		r.echo_size = echo_size;
@@ -206,10 +210,10 @@ main(int argc, char *argv[])
 		if (ioctl(s, SIOC_L2CAP_L2CA_PING, &r, sizeof(r)) < 0) {
 			r.result = errno;
 			fail = 1;
-/*
-			warn("Could not ping, dst bdaddr=%s",
-				bt_ntoa(&r.echo_dst, NULL));
-*/
+			/*
+						warn("Could not ping, dst
+			   bdaddr=%s", bt_ntoa(&r.echo_dst, NULL));
+			*/
 		}
 
 		if (gettimeofday(&b, NULL) < 0)
@@ -218,12 +222,10 @@ main(int argc, char *argv[])
 		tv_sub(&b, &a);
 
 		fprintf(stdout,
-"%d bytes from %s seq_no=%d time=%.3f ms result=%#x %s\n",
-			r.echo_size,
-			rname,
-			ntohl(*((int32_t *)(r.echo_data))),
-			tv2msec(&b), r.result,
-			((fail == 0)? "" : strerror(errno)));
+		    "%d bytes from %s seq_no=%d time=%.3f ms result=%#x %s\n",
+		    r.echo_size, rname, ntohl(*((int32_t *)(r.echo_data))),
+		    tv2msec(&b), r.result,
+		    ((fail == 0) ? "" : strerror(errno)));
 
 		if (!flood) {
 			/* Wait */
@@ -233,7 +235,7 @@ main(int argc, char *argv[])
 		}
 
 		if (count != -1)
-			count --;
+			count--;
 	}
 
 	free(rname);
@@ -243,8 +245,8 @@ main(int argc, char *argv[])
 	return (0);
 } /* main */
 
-/* 
- * a -= b, for timevals 
+/*
+ * a -= b, for timevals
  */
 
 static void
@@ -259,25 +261,27 @@ tv_sub(struct timeval *a, struct timeval const *b)
 	a->tv_sec -= b->tv_sec;
 } /* tv_sub */
 
-/* 
- * convert tv to msec 
+/*
+ * convert tv to msec
  */
 
 static double
 tv2msec(struct timeval const *tvp)
 {
-	return(((double)tvp->tv_usec)/1000.0 + ((double)tvp->tv_sec)*1000.0);
+	return (
+	    ((double)tvp->tv_usec) / 1000.0 + ((double)tvp->tv_sec) * 1000.0);
 } /* tv2msec */
 
-/* 
- * Usage 
+/*
+ * Usage
  */
 
 static void
 usage(void)
 {
-	fprintf(stderr, "Usage: l2ping [-fhn] -a remote " \
-		"[-c count] [-i wait] [-S source] [-s size]\n");
+	fprintf(stderr,
+	    "Usage: l2ping [-fhn] -a remote "
+	    "[-c count] [-i wait] [-S source] [-s size]\n");
 	fprintf(stderr, "Where:\n");
 	fprintf(stderr, "  -a remote  Specify remote device to ping\n");
 	fprintf(stderr, "  -c count   Number of packets to send\n");
@@ -286,9 +290,10 @@ usage(void)
 	fprintf(stderr, "  -i wait    Delay between packets (sec)\n");
 	fprintf(stderr, "  -n         Numeric output only\n");
 	fprintf(stderr, "  -S source  Specify source device\n");
-	fprintf(stderr, "  -s size    Packet size (bytes), " \
-		"between %zd and %zd\n", sizeof(int32_t), NG_L2CAP_MAX_ECHO_SIZE);
-	
+	fprintf(stderr,
+	    "  -s size    Packet size (bytes), "
+	    "between %zd and %zd\n",
+	    sizeof(int32_t), NG_L2CAP_MAX_ECHO_SIZE);
+
 	exit(255);
 } /* usage */
-

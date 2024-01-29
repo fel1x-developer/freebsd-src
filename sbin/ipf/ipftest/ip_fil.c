@@ -8,22 +8,22 @@
  */
 
 #include "ipf.h"
-#include "md5.h"
 #include "ipt.h"
+#include "md5.h"
 
-ipf_main_softc_t	ipfmain;
+ipf_main_softc_t ipfmain;
 
-static	struct	ifnet **ifneta = NULL;
-static	int	nifs = 0;
+static struct ifnet **ifneta = NULL;
+static int nifs = 0;
 
-struct	rtentry;
+struct rtentry;
 
-static	void	ipf_setifpaddr(struct ifnet *, char *);
-void	init_ifp(void);
-static int 	no_output(struct ifnet *, struct mbuf *,
-			       struct sockaddr *, struct rtentry *);
-static int	write_output(struct ifnet *, struct mbuf *,
-				  struct sockaddr *, struct rtentry *);
+static void ipf_setifpaddr(struct ifnet *, char *);
+void init_ifp(void);
+static int no_output(struct ifnet *, struct mbuf *, struct sockaddr *,
+    struct rtentry *);
+static int write_output(struct ifnet *, struct mbuf *, struct sockaddr *,
+    struct rtentry *);
 
 struct ifaddr {
 	struct sockaddr_storage ifa_addr;
@@ -31,30 +31,28 @@ struct ifaddr {
 
 int
 ipfattach(softc)
-	ipf_main_softc_t *softc;
+ipf_main_softc_t *softc;
 {
 	return (0);
 }
-
 
 int
 ipfdetach(softc)
-	ipf_main_softc_t *softc;
+ipf_main_softc_t *softc;
 {
 	return (0);
 }
-
 
 /*
  * Filter ioctl interface.
  */
 int
 ipfioctl(softc, dev, cmd, data, mode)
-	ipf_main_softc_t *softc;
-	int dev;
-	ioctlcmd_t cmd;
-	caddr_t data;
-	int mode;
+ipf_main_softc_t *softc;
+int dev;
+ioctlcmd_t cmd;
+caddr_t data;
+int mode;
 {
 	int error = 0, unit = 0, uid;
 
@@ -72,11 +70,8 @@ ipfioctl(softc, dev, cmd, data, mode)
 	return (error);
 }
 
-
-void
-ipf_forgetifp(softc, ifp)
-	ipf_main_softc_t *softc;
-	void *ifp;
+void ipf_forgetifp(softc, ifp) ipf_main_softc_t *softc;
+void *ifp;
 {
 	register frentry_t *f;
 
@@ -102,24 +97,22 @@ ipf_forgetifp(softc, ifp)
 	ipf_lookup_sync(softc, ifp);
 }
 
-
 static int
 no_output(ifp, m, s, rt)
-	struct rtentry *rt;
-	struct ifnet *ifp;
-	struct mbuf *m;
-	struct sockaddr *s;
+struct rtentry *rt;
+struct ifnet *ifp;
+struct mbuf *m;
+struct sockaddr *s;
 {
 	return (0);
 }
 
-
 static int
 write_output(ifp, m, s, rt)
-	struct rtentry *rt;
-	struct ifnet *ifp;
-	struct mbuf *m;
-	struct sockaddr *s;
+struct rtentry *rt;
+struct ifnet *ifp;
+struct mbuf *m;
+struct sockaddr *s;
 {
 	char fname[32];
 	mb_t *mb;
@@ -135,7 +128,7 @@ write_output(ifp, m, s, rt)
 #else
 	sprintf(fname, "/tmp/%s%d", ifp->if_name, ifp->if_unit);
 #endif
-	fd = open(fname, O_WRONLY|O_APPEND);
+	fd = open(fname, O_WRONLY | O_APPEND);
 	if (fd == -1) {
 		perror("open");
 		return (-1);
@@ -145,11 +138,8 @@ write_output(ifp, m, s, rt)
 	return (0);
 }
 
-
-static void
-ipf_setifpaddr(ifp, addr)
-	struct ifnet *ifp;
-	char *addr;
+static void ipf_setifpaddr(ifp, addr) struct ifnet *ifp;
+char *addr;
 {
 	struct ifaddr *ifa;
 
@@ -178,8 +168,7 @@ ipf_setifpaddr(ifp, addr)
 			sin6 = (struct sockaddr_in6 *)&ifa->ifa_addr;
 			sin6->sin6_family = AF_INET6;
 			/* Abort if bad address. */
-			switch (inet_pton(AF_INET6, addr, &sin6->sin6_addr))
-			{
+			switch (inet_pton(AF_INET6, addr, &sin6->sin6_addr)) {
 			case 1:
 				break;
 			case -1:
@@ -203,8 +192,8 @@ ipf_setifpaddr(ifp, addr)
 
 struct ifnet *
 get_unit(name, family)
-	char *name;
-	int family;
+char *name;
+int family;
 {
 	struct ifnet *ifp, **ifpp, **old_ifneta;
 	char *addr;
@@ -229,7 +218,7 @@ get_unit(name, family)
 		}
 	}
 #else
-	char *s, ifname[LIFNAMSIZ+1];
+	char *s, ifname[LIFNAMSIZ + 1];
 
 	if (name == NULL)
 		name = "anon0";
@@ -263,7 +252,7 @@ get_unit(name, family)
 		old_ifneta = ifneta;
 		nifs++;
 		ifneta = (struct ifnet **)reallocarray(ifneta, nifs + 1,
-						  sizeof(ifp));
+		    sizeof(ifp));
 		if (!ifneta) {
 			free(old_ifneta);
 			nifs = 0;
@@ -283,7 +272,7 @@ get_unit(name, family)
 #endif
 #if (defined(NetBSD) && (NetBSD <= 1991011) && (NetBSD >= 199606)) || \
     defined(__FreeBSD__)
-	(void) strncpy(ifp->if_xname, name, sizeof(ifp->if_xname));
+	(void)strncpy(ifp->if_xname, name, sizeof(ifp->if_xname));
 #else
 	s = name + strlen(name) - 1;
 	for (; s > name; s--) {
@@ -292,11 +281,11 @@ get_unit(name, family)
 			break;
 		}
 	}
-		
+
 	if ((s > name) && (*s != 0) && ISDIGIT(*s)) {
 		ifp->if_unit = atoi(s);
 		ifp->if_name = (char *)malloc(s - name + 1);
-		(void) strncpy(ifp->if_name, name, s - name);
+		(void)strncpy(ifp->if_name, name, s - name);
 		ifp->if_name[s - name] = '\0';
 	} else {
 		ifp->if_name = strdup(name);
@@ -312,10 +301,9 @@ get_unit(name, family)
 	return (ifp);
 }
 
-
 char *
 get_ifname(ifp)
-	struct ifnet *ifp;
+struct ifnet *ifp;
 {
 	static char ifname[LIFNAMSIZ];
 
@@ -330,8 +318,6 @@ get_ifname(ifp)
 	return (ifname);
 }
 
-
-
 void
 init_ifp()
 {
@@ -344,7 +330,7 @@ init_ifp()
 	for (ifpp = ifneta; ifpp && (ifp = *ifpp); ifpp++) {
 		ifp->if_output = (void *)write_output;
 		sprintf(fname, "/tmp/%s", ifp->if_xname);
-		fd = open(fname, O_WRONLY|O_CREAT|O_EXCL|O_TRUNC, 0600);
+		fd = open(fname, O_WRONLY | O_CREAT | O_EXCL | O_TRUNC, 0600);
 		if (fd == -1)
 			perror("open");
 		else
@@ -355,7 +341,7 @@ init_ifp()
 	for (ifpp = ifneta; ifpp && (ifp = *ifpp); ifpp++) {
 		ifp->if_output = (void *)write_output;
 		sprintf(fname, "/tmp/%s%d", ifp->if_name, ifp->if_unit);
-		fd = open(fname, O_WRONLY|O_CREAT|O_EXCL|O_TRUNC, 0600);
+		fd = open(fname, O_WRONLY | O_CREAT | O_EXCL | O_TRUNC, 0600);
 		if (fd == -1)
 			perror("open");
 		else
@@ -364,12 +350,11 @@ init_ifp()
 #endif
 }
 
-
 int
 ipf_fastroute(m, mpp, fin, fdp)
-	mb_t *m, **mpp;
-	fr_info_t *fin;
-	frdest_t *fdp;
+mb_t *m, **mpp;
+fr_info_t *fin;
+frdest_t *fdp;
 {
 	struct ifnet *ifp;
 	ip_t *ip = fin->fin_ip;
@@ -393,32 +378,30 @@ ipf_fastroute(m, mpp, fin, fdp)
 	ifp = fdp->fd_ptr;
 
 	if (ifp == NULL)
-		return (0;	/* no routing table out here */);
+		return (0; /* no routing table out here */);
 
 	if (fin->fin_out == 0) {
 		fin->fin_ifp = ifp;
 		fin->fin_out = 1;
-		(void) ipf_acctpkt(fin, NULL);
+		(void)ipf_acctpkt(fin, NULL);
 		fin->fin_fr = NULL;
 		if (!fr || !(fr->fr_flags & FR_RETMASK)) {
 			u_32_t pass;
 
-			(void) ipf_state_check(fin, &pass);
+			(void)ipf_state_check(fin, &pass);
 		}
 
-		switch (ipf_nat_checkout(fin, NULL))
-		{
-		case 0 :
+		switch (ipf_nat_checkout(fin, NULL)) {
+		case 0:
 			break;
-		case 1 :
+		case 1:
 			ip->ip_sum = 0;
 			break;
-		case -1 :
+		case -1:
 			error = -1;
 			goto done;
 			break;
 		}
-
 	}
 
 	m->mb_ifp = ifp;
@@ -431,50 +414,41 @@ done:
 	return (error);
 }
 
-
 int
 ipf_send_reset(fin)
-	fr_info_t *fin;
+fr_info_t *fin;
 {
 	ipfkverbose("- TCP RST sent\n");
 	return (0);
 }
 
-
 int
 ipf_send_icmp_err(type, fin, dst)
-	int type;
-	fr_info_t *fin;
-	int dst;
+int type;
+fr_info_t *fin;
+int dst;
 {
 	ipfkverbose("- ICMP unreachable sent\n");
 	return (0);
 }
 
-
-void
-m_freem(m)
-	mb_t *m;
+void m_freem(m) mb_t *m;
 {
 	return;
 }
 
-
-void
-m_copydata(m, off, len, cp)
-	mb_t *m;
-	int off, len;
-	caddr_t cp;
+void m_copydata(m, off, len, cp) mb_t *m;
+int off, len;
+caddr_t cp;
 {
 	bcopy((char *)m + off, cp, len);
 }
 
-
 int
 ipfuiomove(buf, len, rwflag, uio)
-	caddr_t buf;
-	int len, rwflag;
-	struct uio *uio;
+caddr_t buf;
+int len, rwflag;
+struct uio *uio;
 {
 	int left, ioc, num, offset;
 	struct iovec *io;
@@ -510,10 +484,9 @@ ipfuiomove(buf, len, rwflag, uio)
 	return (0);
 }
 
-
 u_32_t
 ipf_newisn(fin)
-	fr_info_t *fin;
+fr_info_t *fin;
 {
 	static int iss_seq_off = 0;
 	u_char hash[16];
@@ -526,11 +499,11 @@ ipf_newisn(fin)
 	 */
 	MD5Init(&ctx);
 
-	MD5Update(&ctx, (u_char *) &fin->fin_fi.fi_src,
-		  sizeof(fin->fin_fi.fi_src));
-	MD5Update(&ctx, (u_char *) &fin->fin_fi.fi_dst,
-		  sizeof(fin->fin_fi.fi_dst));
-	MD5Update(&ctx, (u_char *) &fin->fin_dat, sizeof(fin->fin_dat));
+	MD5Update(&ctx, (u_char *)&fin->fin_fi.fi_src,
+	    sizeof(fin->fin_fi.fi_src));
+	MD5Update(&ctx, (u_char *)&fin->fin_fi.fi_dst,
+	    sizeof(fin->fin_fi.fi_dst));
+	MD5Update(&ctx, (u_char *)&fin->fin_dat, sizeof(fin->fin_dat));
 
 	/* MD5Update(&ctx, ipf_iss_secret, sizeof(ipf_iss_secret)); */
 
@@ -550,7 +523,6 @@ ipf_newisn(fin)
 	return (newiss);
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_nextipid                                                */
 /* Returns:     int - 0 == success, -1 == error (packet should be dropped)  */
@@ -560,7 +532,7 @@ ipf_newisn(fin)
 /* ------------------------------------------------------------------------ */
 inline u_short
 ipf_nextipid(fin)
-	fr_info_t *fin;
+fr_info_t *fin;
 {
 	static u_short ipid = 0;
 	ipf_main_softc_t *softc = fin->fin_main_soft;
@@ -574,16 +546,15 @@ ipf_nextipid(fin)
 		id = (fin->fin_pktnum - 1) & 0xffff;
 	} else {
 	}
-		id = ipid++;
+	id = ipid++;
 	MUTEX_EXIT(&softc->ipf_rw);
 
 	return (id);
 }
 
-
 inline int
 ipf_checkv4sum(fin)
-	fr_info_t *fin;
+fr_info_t *fin;
 {
 
 	if (fin->fin_flx & FI_SHORT)
@@ -596,11 +567,10 @@ ipf_checkv4sum(fin)
 	return (0);
 }
 
-
-#ifdef	USE_INET6
+#ifdef USE_INET6
 inline int
 ipf_checkv6sum(fin)
-	fr_info_t *fin;
+fr_info_t *fin;
 {
 	if (fin->fin_flx & FI_SHORT)
 		return (1);
@@ -612,7 +582,6 @@ ipf_checkv6sum(fin)
 	return (0);
 }
 #endif
-
 
 #if 0
 /*
@@ -647,16 +616,15 @@ copyinptr(src, dst, size)
 }
 #endif
 
-
 /*
-* return the first IP Address associated with an interface
+ * return the first IP Address associated with an interface
  */
 int
 ipf_ifpaddr(softc, v, atype, ifptr, inp, inpmask)
-	ipf_main_softc_t *softc;
-	int v, atype;
-	void *ifptr;
-	i6addr_t *inp, *inpmask;
+ipf_main_softc_t *softc;
+int v, atype;
+void *ifptr;
+i6addr_t *inp, *inpmask;
 {
 	struct ifnet *ifp = ifptr;
 	struct ifaddr *ifa;
@@ -674,8 +642,8 @@ ipf_ifpaddr(softc, v, atype, ifptr, inp, inpmask)
 
 			sin = (struct sockaddr_in *)&ifa->ifa_addr;
 
-			return (ipf_ifpfillv4addr(atype, sin, &mask,
-						 &inp->in4, &inpmask->in4));
+			return (ipf_ifpfillv4addr(atype, sin, &mask, &inp->in4,
+			    &inpmask->in4));
 		}
 #ifdef USE_INET6
 		if (v == 6) {
@@ -686,14 +654,13 @@ ipf_ifpaddr(softc, v, atype, ifptr, inp, inpmask)
 			((i6addr_t *)&mask.sin6_addr)->i6[1] = 0xffffffff;
 			((i6addr_t *)&mask.sin6_addr)->i6[2] = 0xffffffff;
 			((i6addr_t *)&mask.sin6_addr)->i6[3] = 0xffffffff;
-			return (ipf_ifpfillv6addr(atype, sin6, &mask,
-						 inp, inpmask));
+			return (ipf_ifpfillv6addr(atype, sin6, &mask, inp,
+			    inpmask));
 		}
 #endif
 	}
 	return (0);
 }
-
 
 /*
  * This function is not meant to be random, rather just produce a
@@ -712,27 +679,26 @@ ipf_random()
 	 * These are deliberately chosen to ensure that there is some
 	 * attempt to test whether the output covers the range in test n18.
 	 */
-	switch (calls)
-	{
-	case 1 :
+	switch (calls) {
+	case 1:
 		number = 0;
 		break;
-	case 2 :
+	case 2:
 		number = 4;
 		break;
-	case 3 :
+	case 3:
 		number = 3999;
 		break;
-	case 4 :
+	case 4:
 		number = 4000;
 		break;
-	case 5 :
+	case 5:
 		number = 48999;
 		break;
-	case 6 :
+	case 6:
 		number = 49000;
 		break;
-	default :
+	default:
 		number = last;
 		last *= calls;
 		last++;
@@ -742,31 +708,28 @@ ipf_random()
 	return (number);
 }
 
-
 int
 ipf_verifysrc(fin)
-	fr_info_t *fin;
+fr_info_t *fin;
 {
 	return (1);
 }
 
-
 int
 ipf_inject(fin, m)
-	fr_info_t *fin;
-	mb_t *m;
+fr_info_t *fin;
+mb_t *m;
 {
 	FREE_MB_T(m);
 
 	return (0);
 }
 
-
 u_int
 ipf_pcksum(fin, hlen, sum)
-	fr_info_t *fin;
-	int hlen;
-	u_int sum;
+fr_info_t *fin;
+int hlen;
+u_int sum;
 {
 	u_short *sp;
 	u_int sum2;
@@ -786,12 +749,11 @@ ipf_pcksum(fin, hlen, sum)
 	return (sum2);
 }
 
-
 void *
 ipf_pullup(m, fin, plen)
-	mb_t *m;
-	fr_info_t *fin;
-	int plen;
+mb_t *m;
+fr_info_t *fin;
+int plen;
 {
 	if (M_LEN(m) >= plen)
 		return (fin->fin_ip);

@@ -28,20 +28,20 @@
  */
 
 #include <sys/param.h>
+#include <sys/kobj.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
-#include <sys/mutex.h>
-#include <sys/kobj.h>
 #include <sys/mbuf.h>
-#include <opencrypto/cryptodev.h>
+#include <sys/mutex.h>
 
 #include <kgssapi/gssapi.h>
 #include <kgssapi/gssapi_impl.h>
+#include <opencrypto/cryptodev.h>
 
 #include "kcrypto.h"
 
 struct aes_state {
-	struct mtx	as_lock;
+	struct mtx as_lock;
 	crypto_session_t as_session_aes;
 	crypto_session_t as_session_sha1;
 };
@@ -51,7 +51,7 @@ aes_init(struct krb5_key_state *ks)
 {
 	struct aes_state *as;
 
-	as = malloc(sizeof(struct aes_state), M_GSSAPI, M_WAITOK|M_ZERO);
+	as = malloc(sizeof(struct aes_state), M_GSSAPI, M_WAITOK | M_ZERO);
 	mtx_init(&as->as_lock, "gss aes lock", NULL, MTX_DEF);
 	ks->ks_priv = as;
 }
@@ -117,7 +117,7 @@ static int
 aes_crypto_cb(struct cryptop *crp)
 {
 	int error;
-	struct aes_state *as = (struct aes_state *) crp->crp_opaque;
+	struct aes_state *as = (struct aes_state *)crp->crp_opaque;
 
 	if (CRYPTO_SESS_SYNC(crp->crp_session))
 		return (0);
@@ -173,8 +173,8 @@ aes_encrypt_1(const struct krb5_key_state *ks, int buftype, void *buf,
 }
 
 static void
-aes_encrypt(const struct krb5_key_state *ks, struct mbuf *inout,
-    size_t skip, size_t len, void *ivec, size_t ivlen)
+aes_encrypt(const struct krb5_key_state *ks, struct mbuf *inout, size_t skip,
+    size_t len, void *ivec, size_t ivlen)
 {
 	size_t blocklen = 16, plen;
 	struct {
@@ -210,7 +210,7 @@ aes_encrypt(const struct krb5_key_state *ks, struct mbuf *inout,
 		aes_encrypt_1(ks, CRYPTO_BUF_MBUF, inout, skip, len, ivec,
 		    true);
 		off = skip + len - 2 * blocklen;
-		m_copydata(inout, off, 2 * blocklen, (void*) &last2);
+		m_copydata(inout, off, 2 * blocklen, (void *)&last2);
 		m_copyback(inout, off, blocklen, last2.cn);
 		m_copyback(inout, off + blocklen, blocklen, last2.cn_1);
 	} else {
@@ -233,7 +233,7 @@ aes_encrypt(const struct krb5_key_state *ks, struct mbuf *inout,
 		 * is in cn_1 now.
 		 */
 		off = skip + len - blocklen - plen;
-		m_copydata(inout, off, blocklen + plen, (void*) &last2);
+		m_copydata(inout, off, blocklen + plen, (void *)&last2);
 		for (i = plen; i < blocklen; i++)
 			last2.cn[i] = 0;
 		aes_encrypt_1(ks, CRYPTO_BUF_CONTIG, last2.cn, 0, blocklen,
@@ -244,8 +244,8 @@ aes_encrypt(const struct krb5_key_state *ks, struct mbuf *inout,
 }
 
 static void
-aes_decrypt(const struct krb5_key_state *ks, struct mbuf *inout,
-    size_t skip, size_t len, void *ivec, size_t ivlen)
+aes_decrypt(const struct krb5_key_state *ks, struct mbuf *inout, size_t skip,
+    size_t len, void *ivec, size_t ivlen)
 {
 	size_t blocklen = 16, plen;
 	struct {
@@ -277,7 +277,7 @@ aes_decrypt(const struct krb5_key_state *ks, struct mbuf *inout,
 		 * the last two blocks.
 		 */
 		off = skip + len - 2 * blocklen;
-		m_copydata(inout, off, 2 * blocklen, (void*) &last2);
+		m_copydata(inout, off, 2 * blocklen, (void *)&last2);
 		m_copyback(inout, off, blocklen, last2.cn);
 		m_copyback(inout, off + blocklen, blocklen, last2.cn_1);
 		aes_encrypt_1(ks, CRYPTO_BUF_MBUF, inout, skip, len, ivec,
@@ -295,9 +295,9 @@ aes_decrypt(const struct krb5_key_state *ks, struct mbuf *inout,
 		 * decrypted with the rest in CBC mode.
 		 */
 		off = skip + len - plen - blocklen;
-		aes_encrypt_1(ks, CRYPTO_BUF_MBUF, inout, off, blocklen,
-		    NULL, false);
-		m_copydata(inout, off, blocklen + plen, (void*) &last2);
+		aes_encrypt_1(ks, CRYPTO_BUF_MBUF, inout, off, blocklen, NULL,
+		    false);
+		m_copydata(inout, off, blocklen + plen, (void *)&last2);
 
 		for (i = 0; i < plen; i++) {
 			t = last2.cn[i];
@@ -305,16 +305,15 @@ aes_decrypt(const struct krb5_key_state *ks, struct mbuf *inout,
 			last2.cn_1[i] = t;
 		}
 
-		m_copyback(inout, off, blocklen + plen, (void*) &last2);
+		m_copyback(inout, off, blocklen + plen, (void *)&last2);
 		aes_encrypt_1(ks, CRYPTO_BUF_MBUF, inout, skip, len - plen,
 		    ivec, false);
 	}
-
 }
 
 static void
-aes_checksum(const struct krb5_key_state *ks, int usage,
-    struct mbuf *inout, size_t skip, size_t inlen, size_t outlen)
+aes_checksum(const struct krb5_key_state *ks, int usage, struct mbuf *inout,
+    size_t skip, size_t inlen, size_t outlen)
 {
 	struct aes_state *as = ks->ks_priv;
 	struct cryptop *crp;
@@ -343,37 +342,27 @@ aes_checksum(const struct krb5_key_state *ks, int usage,
 }
 
 struct krb5_encryption_class krb5_aes128_encryption_class = {
-	"aes128-cts-hmac-sha1-96", /* name */
+	"aes128-cts-hmac-sha1-96",     /* name */
 	ETYPE_AES128_CTS_HMAC_SHA1_96, /* etype */
-	EC_DERIVED_KEYS,	/* flags */
-	16,			/* blocklen */
-	1,			/* msgblocklen */
-	12,			/* checksumlen */
-	128,			/* keybits */
-	16,			/* keylen */
-	aes_init,
-	aes_destroy,
-	aes_set_key,
-	aes_random_to_key,
-	aes_encrypt,
-	aes_decrypt,
-	aes_checksum
+	EC_DERIVED_KEYS,	       /* flags */
+	16,			       /* blocklen */
+	1,			       /* msgblocklen */
+	12,			       /* checksumlen */
+	128,			       /* keybits */
+	16,			       /* keylen */
+	aes_init, aes_destroy, aes_set_key, aes_random_to_key, aes_encrypt,
+	aes_decrypt, aes_checksum
 };
 
 struct krb5_encryption_class krb5_aes256_encryption_class = {
-	"aes256-cts-hmac-sha1-96", /* name */
+	"aes256-cts-hmac-sha1-96",     /* name */
 	ETYPE_AES256_CTS_HMAC_SHA1_96, /* etype */
-	EC_DERIVED_KEYS,	/* flags */
-	16,			/* blocklen */
-	1,			/* msgblocklen */
-	12,			/* checksumlen */
-	256,			/* keybits */
-	32,			/* keylen */
-	aes_init,
-	aes_destroy,
-	aes_set_key,
-	aes_random_to_key,
-	aes_encrypt,
-	aes_decrypt,
-	aes_checksum
+	EC_DERIVED_KEYS,	       /* flags */
+	16,			       /* blocklen */
+	1,			       /* msgblocklen */
+	12,			       /* checksumlen */
+	256,			       /* keybits */
+	32,			       /* keylen */
+	aes_init, aes_destroy, aes_set_key, aes_random_to_key, aes_encrypt,
+	aes_decrypt, aes_checksum
 };

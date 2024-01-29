@@ -31,17 +31,19 @@
 #include <sys/param.h>
 #include <sys/proc.h>
 #ifdef illumos
-#include <sys/cmn_err.h>
 #include <sys/archsystm.h>
+#include <sys/cmn_err.h>
 #include <sys/copyops.h>
-#include <vm/seg_enum.h>
 #include <sys/privregs.h>
+
+#include <vm/seg_enum.h>
 #else
 #include <sys/cred.h>
+
 #include <cddl/dev/dtrace/dtrace_cddl.h>
 
-typedef	u_int			model_t;
-#define	DATAMODEL_NATIVE	0
+typedef u_int model_t;
+#define DATAMODEL_NATIVE 0
 int dtrace_dis_get_byte(void *);
 int dtrace_instr_size(uint8_t *);
 int dtrace_instr_size_isa(uint8_t *, model_t, int *);
@@ -64,11 +66,7 @@ int dtrace_instr_size_isa(uint8_t *, model_t, int *);
  *    have names that begin with "dtrace_".
  */
 
-typedef enum dis_isize {
-	DIS_ISIZE_INSTR,
-	DIS_ISIZE_OPERAND
-} dis_isize_t;
-
+typedef enum dis_isize { DIS_ISIZE_INSTR, DIS_ISIZE_OPERAND } dis_isize_t;
 
 /*
  * get a byte from instruction stream
@@ -98,7 +96,7 @@ static int
 dtrace_dis_isize(uint8_t *instr, dis_isize_t which, model_t model, int *rmindex)
 {
 	int sz;
-	dis86_t	x;
+	dis86_t x;
 	uint_t mode = SIZE32;
 
 	mode = (model == DATAMODEL_LP64) ? SIZE64 : SIZE32;
@@ -111,9 +109,9 @@ dtrace_dis_isize(uint8_t *instr, dis_isize_t which, model_t model, int *rmindex)
 		return (-1);
 
 	if (which == DIS_ISIZE_INSTR)
-		sz = x.d86_len;		/* length of the instruction */
+		sz = x.d86_len; /* length of the instruction */
 	else
-		sz = x.d86_memsize;	/* length of memory operand */
+		sz = x.d86_memsize; /* length of memory operand */
 
 	if (rmindex != NULL)
 		*rmindex = x.d86_rmindex;
@@ -129,6 +127,6 @@ dtrace_instr_size_isa(uint8_t *instr, model_t model, int *rmindex)
 int
 dtrace_instr_size(uint8_t *instr)
 {
-	return (dtrace_dis_isize(instr, DIS_ISIZE_INSTR, DATAMODEL_NATIVE,
-	    NULL));
+	return (
+	    dtrace_dis_isize(instr, DIS_ISIZE_INSTR, DATAMODEL_NATIVE, NULL));
 }

@@ -37,28 +37,24 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
+#include <libutil.h>
 #include <nl_types.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <libutil.h>
-
 #include "extern.h"
 
-bool	bflag, lflag, sflag, xflag, zflag;
+bool bflag, lflag, sflag, xflag, zflag;
 
-static const struct option long_opts[] =
-{
-	{"print-bytes",	no_argument,		NULL, 'b'},
-	{"ignore-initial", required_argument,	NULL, 'i'},
-	{"verbose",	no_argument,		NULL, 'l'},
-	{"bytes",	required_argument,	NULL, 'n'},
-	{"silent",	no_argument,		NULL, 's'},
-	{"quiet",	no_argument,		NULL, 's'},
-	{NULL,		no_argument,		NULL, 0}
-};
+static const struct option long_opts[] = { { "print-bytes", no_argument, NULL,
+					       'b' },
+	{ "ignore-initial", required_argument, NULL, 'i' },
+	{ "verbose", no_argument, NULL, 'l' },
+	{ "bytes", required_argument, NULL, 'n' },
+	{ "silent", no_argument, NULL, 's' },
+	{ "quiet", no_argument, NULL, 's' }, { NULL, no_argument, NULL, 0 } };
 
 #ifdef SIGINFO
 volatile sig_atomic_t info;
@@ -103,40 +99,40 @@ main(int argc, char *argv[])
 
 	limit = skip1 = skip2 = 0;
 	oflag = O_RDONLY;
-	while ((ch = getopt_long(argc, argv, "+bhi:ln:sxz", long_opts, NULL)) != -1)
+	while ((ch = getopt_long(argc, argv, "+bhi:ln:sxz", long_opts, NULL)) !=
+	    -1)
 		switch (ch) {
-		case 'b':		/* Print bytes */
+		case 'b': /* Print bytes */
 			bflag = true;
 			break;
-		case 'h':		/* Don't follow symlinks */
+		case 'h': /* Don't follow symlinks */
 			oflag |= O_NOFOLLOW;
 			break;
 		case 'i':
 			if (!parse_iskipspec(optarg, &skip1, &skip2)) {
 				fprintf(stderr,
-				    "Invalid --ignore-initial: %s\n",
-				    optarg);
+				    "Invalid --ignore-initial: %s\n", optarg);
 				usage();
 			}
 			break;
-		case 'l':		/* print all differences */
+		case 'l': /* print all differences */
 			lflag = true;
 			break;
-		case 'n':		/* Limit */
+		case 'n': /* Limit */
 			if (expand_number(optarg, &limit) < 0 || limit < 0) {
 				fprintf(stderr, "Invalid --bytes: %s\n",
 				    optarg);
 				usage();
 			}
 			break;
-		case 's':		/* silent run */
+		case 's': /* silent run */
 			sflag = true;
 			break;
-		case 'x':		/* hex output */
+		case 'x': /* hex output */
 			lflag = true;
 			xflag = true;
 			break;
-		case 'z':		/* compare size first */
+		case 'z': /* compare size first */
 			zflag = true;
 			break;
 		case '?':
@@ -173,7 +169,7 @@ main(int argc, char *argv[])
 	if (strcmp(file2 = argv[1], "-") == 0) {
 		if (special)
 			errx(ERR_EXIT,
-				"standard input may only be specified once");
+			    "standard input may only be specified once");
 		special = true;
 		fd2 = STDIN_FILENO;
 		file2 = "stdin";
@@ -244,12 +240,12 @@ main(int argc, char *argv[])
 	else {
 		if (zflag && sb1.st_size != sb2.st_size) {
 			if (!sflag)
-				(void) printf("%s %s differ: size\n",
-				    file1, file2);
+				(void)printf("%s %s differ: size\n", file1,
+				    file2);
 			exit(DIFF_EXIT);
 		}
-		c_regular(fd1, file1, skip1, sb1.st_size,
-		    fd2, file2, skip2, sb2.st_size, limit);
+		c_regular(fd1, file1, skip1, sb1.st_size, fd2, file2, skip2,
+		    sb2.st_size, limit);
 	}
 	exit(0);
 }

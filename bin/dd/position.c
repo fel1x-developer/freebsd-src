@@ -71,7 +71,7 @@ seek_offset(IO *io)
 		errx(1, "seek offsets cannot be larger than %ju",
 		    (uintmax_t)UINT64_MAX);
 
-	return ((off_t)( (uint64_t)n * sz ));
+	return ((off_t)((uint64_t)n * sz));
 }
 
 /*

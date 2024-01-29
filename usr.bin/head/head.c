@@ -29,24 +29,22 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/capsicum.h>
 #include <sys/types.h>
+#include <sys/capsicum.h>
 
 #include <capsicum_helpers.h>
+#include <casper/cap_fileargs.h>
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <getopt.h>
 #include <inttypes.h>
+#include <libcasper.h>
+#include <libutil.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <libutil.h>
-
-#include <libcasper.h>
-#include <casper/cap_fileargs.h>
 
 /*
  * head - give the first few lines of a stream or of each of a set of files
@@ -59,15 +57,12 @@ static void head_bytes(FILE *, off_t);
 static void obsolete(char *[]);
 static void usage(void) __dead2;
 
-static const struct option long_opts[] =
-{
-	{"bytes",	required_argument,	NULL, 'c'},
-	{"lines",	required_argument,	NULL, 'n'},
-	{"quiet",	no_argument,		NULL, 'q'},
-	{"silent",	no_argument,		NULL, 'q'},
-	{"verbose",	no_argument,		NULL, 'v'},
-	{NULL,		no_argument,		NULL, 0}
-};
+static const struct option long_opts[] = { { "bytes", required_argument, NULL,
+					       'c' },
+	{ "lines", required_argument, NULL, 'n' },
+	{ "quiet", no_argument, NULL, 'q' },
+	{ "silent", no_argument, NULL, 'q' },
+	{ "verbose", no_argument, NULL, 'v' }, { NULL, no_argument, NULL, 0 } };
 
 int
 main(int argc, char *argv[])
@@ -86,8 +81,9 @@ main(int argc, char *argv[])
 	bytecnt = -1;
 
 	obsolete(argv);
-	while ((ch = getopt_long(argc, argv, "+n:c:qv", long_opts, NULL)) != -1) {
-		switch(ch) {
+	while (
+	    (ch = getopt_long(argc, argv, "+n:c:qv", long_opts, NULL)) != -1) {
+		switch (ch) {
 		case 'c':
 			if (expand_number(optarg, &bytecnt) || bytecnt <= 0)
 				errx(1, "illegal byte count -- %s", optarg);

@@ -27,6 +27,7 @@
  */
 
 #include <sys/param.h>
+
 #include <assert.h>
 #include <err.h>
 #include <stdio.h>
@@ -36,16 +37,18 @@
 
 #include "acpidump.h"
 
-int	dflag;	/* Disassemble AML using iasl(8) */
-int	tflag;	/* Dump contents of SDT tables */
-int	vflag;	/* Use verbose messages */
+int dflag; /* Disassemble AML using iasl(8) */
+int tflag; /* Dump contents of SDT tables */
+int vflag; /* Use verbose messages */
 
 static void
 usage(const char *progname)
 {
 
-	fprintf(stderr, "usage: %s [-d] [-t] [-h] [-v] [-f dsdt_input] "
-			"[-o dsdt_output]\n", progname);
+	fprintf(stderr,
+	    "usage: %s [-d] [-t] [-h] [-v] [-f dsdt_input] "
+	    "[-o dsdt_output]\n",
+	    progname);
 	fprintf(stderr, "To send ASL:\n\t%s -dt | gzip -c9 > foo.asl.gz\n",
 	    progname);
 	exit(1);
@@ -55,9 +58,9 @@ int
 main(int argc, char *argv[])
 {
 	ACPI_TABLE_HEADER *rsdt, *sdt;
-	int	c;
-	char	*progname;
-	char	*dsdt_input_file, *dsdt_output_file;
+	int c;
+	char *progname;
+	char *dsdt_input_file, *dsdt_output_file;
 
 	dsdt_input_file = dsdt_output_file = NULL;
 	progname = argv[0];

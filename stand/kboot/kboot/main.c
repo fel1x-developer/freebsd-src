@@ -24,19 +24,21 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
 #include <sys/param.h>
 #include <sys/boot.h>
-#include <fdt_platform.h>
 
 #include <machine/cpufunc.h>
+
 #include <bootstrap.h>
+#include <fdt_platform.h>
+#include <smbios.h>
+#include <stand.h>
+
 #include "host_syscall.h"
 #include "kboot.h"
 #include "stand.h"
-#include <smbios.h>
 
-struct arch_switch	archsw;
+struct arch_switch archsw;
 extern void *_end;
 
 int kboot_getdev(void **vdev, const char *devspec, const char **path);
@@ -48,7 +50,7 @@ static void kboot_zfs_probe(void);
 
 extern int command_fdt_internal(int argc, char *argv[]);
 
-#define PA_INVAL (vm_offset_t)-1
+#define PA_INVAL (vm_offset_t) - 1
 static vm_offset_t pa_start = PA_INVAL;
 static vm_offset_t padding;
 static vm_offset_t offset;
@@ -87,9 +89,9 @@ memory_limits(void)
 		}
 	} else {
 		/* Otherwise, on FreeBSD host, for testing 32GB host: */
-		mem_avail = 31ul << 30;			/* 31GB free */
-		commit_limit = mem_avail * 9 / 10;	/* 90% comittable */
-		committed_as = 20ul << 20;		/* 20MB used */
+		mem_avail = 31ul << 30;		   /* 31GB free */
+		commit_limit = mem_avail * 9 / 10; /* 90% comittable */
+		committed_as = 20ul << 20;	   /* 20MB used */
 	}
 	printf("Commit limit: %lld Committed bytes %lld Available %lld\n",
 	    (long long)commit_limit, (long long)committed_as,
@@ -105,7 +107,7 @@ int
 kboot_getdev(void **vdev, const char *devspec, const char **path)
 {
 	struct devdesc **dev = (struct devdesc **)vdev;
-	int				rv;
+	int rv;
 
 	/*
 	 * If it looks like this is just a path and no device, go with the
@@ -159,14 +161,14 @@ kboot_rsdp_from_efi(void)
 	char *walker, *ep;
 
 	if (!file2str("/sys/firmware/efi/systab", buffer, sizeof(buffer)))
-		return (0);	/* Not an EFI system */
+		return (0); /* Not an EFI system */
 	ep = buffer + strlen(buffer);
 	walker = buffer;
 	while (walker < ep) {
 		if (strncmp("ACPI20=", walker, 7) == 0)
-			return((vm_offset_t)strtoull(walker + 7, NULL, 0));
+			return ((vm_offset_t)strtoull(walker + 7, NULL, 0));
 		if (strncmp("ACPI=", walker, 5) == 0)
-			return((vm_offset_t)strtoull(walker + 5, NULL, 0));
+			return ((vm_offset_t)strtoull(walker + 5, NULL, 0));
 		walker += strcspn(walker, "\n") + 1;
 	}
 	return (0);
@@ -176,7 +178,7 @@ static void
 find_acpi(void)
 {
 	rsdp = kboot_rsdp_from_efi();
-#if 0	/* maybe for amd64 */
+#if 0 /* maybe for amd64 */
 	if (rsdp == 0)
 		rsdp = find_rsdp_arch();
 #endif
@@ -200,18 +202,18 @@ has_acpi(void)
  * mappings we made.
  */
 
-#define MAX_MAP	10
-#define PAGE	(64<<10)
+#define MAX_MAP 10
+#define PAGE (64 << 10)
 
-static struct mapping
-{
+static struct mapping {
 	uintptr_t pa;
 	caddr_t va;
 } map[MAX_MAP];
 static int smbios_fd;
 static int nmap;
 
-caddr_t ptov(uintptr_t pa)
+caddr_t
+ptov(uintptr_t pa)
 {
 	caddr_t va;
 	uintptr_t pa2;
@@ -232,7 +234,8 @@ caddr_t ptov(uintptr_t pa)
 	 * based on this and then return HOST_MAP_FAILED. Since we're calling
 	 * the raw system call we have to do that ourselves.
 	 */
-	va = host_mmap(0, PAGE, HOST_PROT_READ, HOST_MAP_SHARED, smbios_fd, pa2);
+	va = host_mmap(0, PAGE, HOST_PROT_READ, HOST_MAP_SHARED, smbios_fd,
+	    pa2);
 	if ((intptr_t)va < 0 && (intptr_t)va >= -511)
 		panic("smbios mmap offset %#jx failed", (uintmax_t)pa2);
 	m = &map[nmap++];
@@ -256,14 +259,14 @@ kboot_find_smbios(void)
 	char *walker, *ep;
 
 	if (!file2str("/sys/firmware/efi/systab", buffer, sizeof(buffer)))
-		return (0);	/* Not an EFI system */
+		return (0); /* Not an EFI system */
 	ep = buffer + strlen(buffer);
 	walker = buffer;
 	while (walker <= ep) {
 		if (strncmp("SMBIOS3=", walker, 8) == 0)
-			return((vm_offset_t)strtoull(walker + 8, NULL, 0));
+			return ((vm_offset_t)strtoull(walker + 8, NULL, 0));
 		if (strncmp("SMBIOS=", walker, 7) == 0)
-			return((vm_offset_t)strtoull(walker + 7, NULL, 0));
+			return ((vm_offset_t)strtoull(walker + 7, NULL, 0));
 		walker += strcspn(walker, "\n") + 1;
 	}
 	return (0);
@@ -319,12 +322,11 @@ out:
 	close(fd);
 }
 
-
 int
 main(int argc, const char **argv)
 {
 	void *heapbase;
-	const size_t heapsize = 64*1024*1024;
+	const size_t heapsize = 64 * 1024 * 1024;
 	const char *bootdev;
 
 	archsw.arch_getdev = kboot_getdev;
@@ -343,7 +345,8 @@ main(int argc, const char **argv)
 	heapbase = host_getmem(heapsize);
 	setheap(heapbase, heapbase + heapsize);
 
-	/* Parse the command line args -- ignoring for now the console selection */
+	/* Parse the command line args -- ignoring for now the console selection
+	 */
 	parse_args(argc, argv);
 
 	parse_file("host:/kboot.conf");
@@ -365,10 +368,10 @@ main(int argc, const char **argv)
 #if defined(LOADER_ZFS_SUPPORT)
 	if (bootdev == NULL || strcmp(bootdev, "zfs:") == 0) {
 		/*
-		 * Pseudo device that says go find the right ZFS pool. This will be
-		 * the first pool that we find that passes the sanity checks (eg looks
-		 * like it might be vbootable) and sets currdev to the right thing based
-		 * on active BEs, etc
+		 * Pseudo device that says go find the right ZFS pool. This will
+		 * be the first pool that we find that passes the sanity checks
+		 * (eg looks like it might be vbootable) and sets currdev to the
+		 * right thing based on active BEs, etc
 		 */
 		if (hostdisk_zfs_find_default())
 			bootdev = getenv("currdev");
@@ -402,7 +405,7 @@ main(int argc, const char **argv)
 
 	find_smbios();
 
-	interact();			/* doesn't return */
+	interact(); /* doesn't return */
 
 	return (0);
 }
@@ -420,10 +423,10 @@ delay(int usecs)
 	struct host_timeval tvi, tv;
 	uint64_t ti, t;
 	host_gettimeofday(&tvi, NULL);
-	ti = tvi.tv_sec*1000000 + tvi.tv_usec;
+	ti = tvi.tv_sec * 1000000 + tvi.tv_usec;
 	do {
 		host_gettimeofday(&tv, NULL);
-		t = tv.tv_sec*1000000 + tv.tv_usec;
+		t = tv.tv_sec * 1000000 + tv.tv_usec;
 	} while (t < ti + usecs);
 }
 
@@ -439,7 +442,7 @@ time_t
 time(time_t *tloc)
 {
 	time_t rv;
-	
+
 	rv = getsecs();
 	if (tloc != NULL)
 		*tloc = rv;
@@ -450,13 +453,13 @@ time(time_t *tloc)
 struct host_kexec_segment loaded_segments[HOST_KEXEC_SEGMENT_MAX];
 int nkexec_segments = 0;
 
-#define SEGALIGN (1ul<<20)
+#define SEGALIGN (1ul << 20)
 
 static ssize_t
 get_phys_buffer(vm_offset_t dest, const size_t len, void **buf)
 {
 	int i = 0;
-	const size_t segsize = 64*1024*1024;
+	const size_t segsize = 64 * 1024 * 1024;
 	size_t sz, amt, l;
 
 	if (nkexec_segments == HOST_KEXEC_SEGMENT_MAX)
@@ -464,7 +467,8 @@ get_phys_buffer(vm_offset_t dest, const size_t len, void **buf)
 	for (i = 0; i < nkexec_segments; i++) {
 		if (dest >= (vm_offset_t)loaded_segments[i].mem &&
 		    dest < (vm_offset_t)loaded_segments[i].mem +
-		    loaded_segments[i].bufsz) /* Need to use bufsz since memsz is in use size */
+			    loaded_segments[i].bufsz) /* Need to use bufsz since
+							 memsz is in use size */
 			goto out;
 	}
 
@@ -477,13 +481,15 @@ get_phys_buffer(vm_offset_t dest, const size_t len, void **buf)
 		printf("limit to 45%% of mem_avail %zd\n", sz);
 		/* And only use 95% of what we can allocate */
 		sz = MIN(sz,
-		    rounddown2((commit_limit - committed_as) * 95 / 100, SEGALIGN));
+		    rounddown2((commit_limit - committed_as) * 95 / 100,
+			SEGALIGN));
 		printf("Allocating %zd MB for first segment\n", sz >> 20);
 	}
 
 	loaded_segments[nkexec_segments].buf = host_getmem(sz);
 	loaded_segments[nkexec_segments].bufsz = sz;
-	loaded_segments[nkexec_segments].mem = (void *)rounddown2(dest,SEGALIGN);
+	loaded_segments[nkexec_segments].mem = (void *)rounddown2(dest,
+	    SEGALIGN);
 	loaded_segments[nkexec_segments].memsz = 0;
 
 	i = nkexec_segments;
@@ -494,7 +500,7 @@ out:
 	 * Keep track of the highest amount used in a segment
 	 */
 	amt = dest - (vm_offset_t)loaded_segments[i].mem;
-	l = min(len,loaded_segments[i].bufsz - amt);
+	l = min(len, loaded_segments[i].bufsz - amt);
 	*buf = loaded_segments[i].buf + amt;
 	if (amt + l > loaded_segments[i].memsz)
 		loaded_segments[i].memsz = amt + l;
@@ -509,7 +515,8 @@ kboot_copyin(const void *src, vm_offset_t dest, const size_t len)
 
 	if (pa_start == PA_INVAL) {
 		pa_start = kboot_get_phys_load_segment();
-//		padding = 2 << 20; /* XXX amd64: revisit this when we make it work */
+		//		padding = 2 << 20; /* XXX amd64: revisit this
+		//when we make it work */
 		padding = 0;
 		offset = dest;
 		get_phys_buffer(pa_start, len, &destbuf);
@@ -517,7 +524,8 @@ kboot_copyin(const void *src, vm_offset_t dest, const size_t len)
 
 	remainder = len;
 	do {
-		segsize = get_phys_buffer(dest + pa_start + padding - offset, remainder, &destbuf);
+		segsize = get_phys_buffer(dest + pa_start + padding - offset,
+		    remainder, &destbuf);
 		bcopy(src, destbuf, segsize);
 		remainder -= segsize;
 		src += segsize;
@@ -535,7 +543,8 @@ kboot_copyout(vm_offset_t src, void *dest, const size_t len)
 
 	remainder = len;
 	do {
-		segsize = get_phys_buffer(src + pa_start + padding - offset, remainder, &srcbuf);
+		segsize = get_phys_buffer(src + pa_start + padding - offset,
+		    remainder, &srcbuf);
 		bcopy(srcbuf, dest, segsize);
 		remainder -= segsize;
 		src += segsize;
@@ -548,10 +557,10 @@ kboot_copyout(vm_offset_t src, void *dest, const size_t len)
 ssize_t
 kboot_readin(readin_handle_t fd, vm_offset_t dest, const size_t len)
 {
-	void            *buf;
-	size_t          resid, chunk, get;
-	ssize_t         got;
-	vm_offset_t     p;
+	void *buf;
+	size_t resid, chunk, get;
+	ssize_t got;
+	vm_offset_t p;
 
 	p = dest;
 
@@ -574,7 +583,7 @@ kboot_readin(readin_handle_t fd, vm_offset_t dest, const size_t len)
 		kboot_copyin(buf, p, got);
 	}
 
-	free (buf);
+	free(buf);
 	return (len - resid);
 }
 
@@ -596,13 +605,14 @@ kboot_kseg_get(int *nseg, void **ptr)
 		 * Truncate each segment to just what we've used in the segment,
 		 * rounded up to the next page.
 		 */
-		loaded_segments[a].memsz = roundup2(loaded_segments[a].memsz,PAGE_SIZE);
+		loaded_segments[a].memsz = roundup2(loaded_segments[a].memsz,
+		    PAGE_SIZE);
 		loaded_segments[a].bufsz = loaded_segments[a].memsz;
 		printf("%016jx %08jx %016jx %08jx\n",
-			(uintmax_t)loaded_segments[a].buf,
-			(uintmax_t)loaded_segments[a].bufsz,
-			(uintmax_t)loaded_segments[a].mem,
-			(uintmax_t)loaded_segments[a].memsz);
+		    (uintmax_t)loaded_segments[a].buf,
+		    (uintmax_t)loaded_segments[a].bufsz,
+		    (uintmax_t)loaded_segments[a].mem,
+		    (uintmax_t)loaded_segments[a].memsz);
 	}
 
 	*nseg = nkexec_segments;
@@ -635,4 +645,3 @@ command_fdt(int argc, char *argv[])
 }
 
 COMMAND_SET(fdt, "fdt", "flattened device tree handling", command_fdt);
-

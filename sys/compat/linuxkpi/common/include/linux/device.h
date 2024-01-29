@@ -30,40 +30,40 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef	_LINUXKPI_LINUX_DEVICE_H_
-#define	_LINUXKPI_LINUX_DEVICE_H_
+#ifndef _LINUXKPI_LINUX_DEVICE_H_
+#define _LINUXKPI_LINUX_DEVICE_H_
 
-#include <linux/err.h>
-#include <linux/types.h>
-#include <linux/kobject.h>
-#include <linux/sysfs.h>
-#include <linux/list.h>
-#include <linux/compiler.h>
-#include <linux/module.h>
-#include <linux/workqueue.h>
-#include <linux/kdev_t.h>
-#include <linux/backlight.h>
-#include <linux/pm.h>
-#include <linux/idr.h>
-#include <linux/ratelimit.h>	/* via linux/dev_printk.h */
-#include <linux/fwnode.h>
-#include <asm/atomic.h>
-
-#include <sys/bus.h>
 #include <sys/backlight.h>
+#include <sys/bus.h>
+
+#include <asm/atomic.h>
+#include <linux/backlight.h>
+#include <linux/compiler.h>
+#include <linux/err.h>
+#include <linux/fwnode.h>
+#include <linux/idr.h>
+#include <linux/kdev_t.h>
+#include <linux/kobject.h>
+#include <linux/list.h>
+#include <linux/module.h>
+#include <linux/pm.h>
+#include <linux/ratelimit.h> /* via linux/dev_printk.h */
+#include <linux/sysfs.h>
+#include <linux/types.h>
+#include <linux/workqueue.h>
 
 struct device;
 
 struct class {
-	const char	*name;
-	struct module	*owner;
-	struct kobject	kobj;
-	devclass_t	bsdclass;
+	const char *name;
+	struct module *owner;
+	struct kobject kobj;
+	devclass_t bsdclass;
 	const struct dev_pm_ops *pm;
 	const struct attribute_group **dev_groups;
-	void		(*class_release)(struct class *class);
-	void		(*dev_release)(struct device *dev);
-	char *		(*devnode)(struct device *dev, umode_t *mode);
+	void (*class_release)(struct class *class);
+	void (*dev_release)(struct device *dev);
+	char *(*devnode)(struct device *dev, umode_t *mode);
 };
 
 struct dev_pm_ops {
@@ -88,18 +88,18 @@ struct dev_pm_ops {
 };
 
 struct device_driver {
-	const char	*name;
+	const char *name;
 	const struct dev_pm_ops *pm;
 };
 
 struct device_type {
-	const char	*name;
+	const char *name;
 };
 
 struct device {
-	struct device	*parent;
+	struct device *parent;
 	struct list_head irqents;
-	device_t	bsddev;
+	device_t bsddev;
 	/*
 	 * The following flag is used to determine if the LinuxKPI is
 	 * responsible for detaching the BSD device or not. If the
@@ -107,28 +107,28 @@ struct device {
 	 * must not try to detach or delete it, because it's already
 	 * done somewhere else.
 	 */
-	bool		bsddev_attached_here;
+	bool bsddev_attached_here;
 	struct device_driver *driver;
 	struct device_type *type;
-	dev_t		devt;
-	struct class	*class;
-	void		(*release)(struct device *dev);
-	struct kobject	kobj;
-	void		*dma_priv;
-	void		*driver_data;
-	unsigned int	irq;
-#define	LINUX_IRQ_INVALID	65535
-	unsigned int	irq_start;
-	unsigned int	irq_end;
+	dev_t devt;
+	struct class *class;
+	void (*release)(struct device *dev);
+	struct kobject kobj;
+	void *dma_priv;
+	void *driver_data;
+	unsigned int irq;
+#define LINUX_IRQ_INVALID 65535
+	unsigned int irq_start;
+	unsigned int irq_end;
 	const struct attribute_group **groups;
 	struct fwnode_handle *fwnode;
-	struct cdev	*backlight_dev;
-	struct backlight_device	*bd;
+	struct cdev *backlight_dev;
+	struct backlight_device *bd;
 
-	spinlock_t	devres_lock;
+	spinlock_t devres_lock;
 	struct list_head devres_head;
 
-	struct dev_pm_info	power;
+	struct dev_pm_info power;
 };
 
 extern struct device linux_root_device;
@@ -139,31 +139,31 @@ extern const struct kobj_type linux_class_ktype;
 struct class_attribute {
 	struct attribute attr;
 	ssize_t (*show)(struct class *, struct class_attribute *, char *);
-	ssize_t (*store)(struct class *, struct class_attribute *, const char *, size_t);
-	const void *(*namespace)(struct class *, const struct class_attribute *);
+	ssize_t (*store)(struct class *, struct class_attribute *, const char *,
+	    size_t);
+	const void *(
+	    *namespace)(struct class *, const struct class_attribute *);
 };
 
-#define	CLASS_ATTR(_name, _mode, _show, _store)				\
-	struct class_attribute class_attr_##_name =			\
-	    { { #_name, NULL, _mode }, _show, _store }
+#define CLASS_ATTR(_name, _mode, _show, _store)                                \
+	struct class_attribute class_attr_##_name = { { #_name, NULL, _mode }, \
+		_show, _store }
 
 struct device_attribute {
-	struct attribute	attr;
-	ssize_t			(*show)(struct device *,
-					struct device_attribute *, char *);
-	ssize_t			(*store)(struct device *,
-					struct device_attribute *, const char *,
-					size_t);
+	struct attribute attr;
+	ssize_t (*show)(struct device *, struct device_attribute *, char *);
+	ssize_t (*store)(struct device *, struct device_attribute *,
+	    const char *, size_t);
 };
 
-#define	DEVICE_ATTR(_name, _mode, _show, _store)			\
-	struct device_attribute dev_attr_##_name =			\
-	    __ATTR(_name, _mode, _show, _store)
-#define	DEVICE_ATTR_RO(_name)						\
+#define DEVICE_ATTR(_name, _mode, _show, _store)                               \
+	struct device_attribute dev_attr_##_name = __ATTR(_name, _mode, _show, \
+	    _store)
+#define DEVICE_ATTR_RO(_name) \
 	struct device_attribute dev_attr_##_name = __ATTR_RO(_name)
-#define	DEVICE_ATTR_WO(_name)						\
+#define DEVICE_ATTR_WO(_name) \
 	struct device_attribute dev_attr_##_name = __ATTR_WO(_name)
-#define	DEVICE_ATTR_RW(_name)						\
+#define DEVICE_ATTR_RW(_name) \
 	struct device_attribute dev_attr_##_name = __ATTR_RW(_name)
 
 /* Simple class attribute that is just a static string */
@@ -173,8 +173,8 @@ struct class_attribute_string {
 };
 
 static inline ssize_t
-show_class_attr_string(struct class *class,
-				struct class_attribute *attr, char *buf)
+show_class_attr_string(struct class *class, struct class_attribute *attr,
+    char *buf)
 {
 	struct class_attribute_string *cs;
 	cs = container_of(attr, struct class_attribute_string, attr);
@@ -182,101 +182,119 @@ show_class_attr_string(struct class *class,
 }
 
 /* Currently read-only only */
-#define _CLASS_ATTR_STRING(_name, _mode, _str) \
-	{ __ATTR(_name, _mode, show_class_attr_string, NULL), _str }
-#define CLASS_ATTR_STRING(_name, _mode, _str) \
+#define _CLASS_ATTR_STRING(_name, _mode, _str)                           \
+	{                                                                \
+		__ATTR(_name, _mode, show_class_attr_string, NULL), _str \
+	}
+#define CLASS_ATTR_STRING(_name, _mode, _str)              \
 	struct class_attribute_string class_attr_##_name = \
-		_CLASS_ATTR_STRING(_name, _mode, _str)
+	    _CLASS_ATTR_STRING(_name, _mode, _str)
 
-#define	dev_err(dev, fmt, ...)	device_printf((dev)->bsddev, fmt, ##__VA_ARGS__)
-#define	dev_crit(dev, fmt, ...)	device_printf((dev)->bsddev, fmt, ##__VA_ARGS__)
-#define	dev_warn(dev, fmt, ...)	device_printf((dev)->bsddev, fmt, ##__VA_ARGS__)
-#define	dev_info(dev, fmt, ...)	device_printf((dev)->bsddev, fmt, ##__VA_ARGS__)
-#define	dev_notice(dev, fmt, ...)	device_printf((dev)->bsddev, fmt, ##__VA_ARGS__)
-#define	dev_emerg(dev, fmt, ...)	device_printf((dev)->bsddev, fmt, ##__VA_ARGS__)
-#define	dev_dbg(dev, fmt, ...)	do { } while (0)
-#define	dev_printk(lvl, dev, fmt, ...)					\
-	    device_printf((dev)->bsddev, fmt, ##__VA_ARGS__)
+#define dev_err(dev, fmt, ...) device_printf((dev)->bsddev, fmt, ##__VA_ARGS__)
+#define dev_crit(dev, fmt, ...) device_printf((dev)->bsddev, fmt, ##__VA_ARGS__)
+#define dev_warn(dev, fmt, ...) device_printf((dev)->bsddev, fmt, ##__VA_ARGS__)
+#define dev_info(dev, fmt, ...) device_printf((dev)->bsddev, fmt, ##__VA_ARGS__)
+#define dev_notice(dev, fmt, ...) \
+	device_printf((dev)->bsddev, fmt, ##__VA_ARGS__)
+#define dev_emerg(dev, fmt, ...) \
+	device_printf((dev)->bsddev, fmt, ##__VA_ARGS__)
+#define dev_dbg(dev, fmt, ...) \
+	do {                   \
+	} while (0)
+#define dev_printk(lvl, dev, fmt, ...) \
+	device_printf((dev)->bsddev, fmt, ##__VA_ARGS__)
 
-#define	dev_WARN(dev, fmt, ...)	\
-    device_printf((dev)->bsddev, "%s:%d: " fmt, __func__, __LINE__, ##__VA_ARGS__)
+#define dev_WARN(dev, fmt, ...)                                         \
+	device_printf((dev)->bsddev, "%s:%d: " fmt, __func__, __LINE__, \
+	    ##__VA_ARGS__)
 
-#define	dev_WARN_ONCE(dev, condition, fmt, ...) do {		\
-	static bool __dev_WARN_ONCE;				\
-	bool __ret_warn_on = (condition);			\
-	if (unlikely(__ret_warn_on)) {				\
-		if (!__dev_WARN_ONCE) {				\
-			__dev_WARN_ONCE = true;			\
-			device_printf((dev)->bsddev, "%s:%d: " fmt, __func__, __LINE__, ##__VA_ARGS__); \
-		}						\
-	}							\
-} while (0)
+#define dev_WARN_ONCE(dev, condition, fmt, ...)                             \
+	do {                                                                \
+		static bool __dev_WARN_ONCE;                                \
+		bool __ret_warn_on = (condition);                           \
+		if (unlikely(__ret_warn_on)) {                              \
+			if (!__dev_WARN_ONCE) {                             \
+				__dev_WARN_ONCE = true;                     \
+				device_printf((dev)->bsddev, "%s:%d: " fmt, \
+				    __func__, __LINE__, ##__VA_ARGS__);     \
+			}                                                   \
+		}                                                           \
+	} while (0)
 
-#define dev_info_once(dev, ...) do {		\
-	static bool __dev_info_once;		\
-	if (!__dev_info_once) {			\
-	__dev_info_once = true;			\
-	dev_info(dev, __VA_ARGS__);		\
-	}					\
-} while (0)
+#define dev_info_once(dev, ...)                     \
+	do {                                        \
+		static bool __dev_info_once;        \
+		if (!__dev_info_once) {             \
+			__dev_info_once = true;     \
+			dev_info(dev, __VA_ARGS__); \
+		}                                   \
+	} while (0)
 
-#define	dev_warn_once(dev, ...) do {		\
-	static bool __dev_warn_once;		\
-	if (!__dev_warn_once) {			\
-		__dev_warn_once = 1;		\
-		dev_warn(dev, __VA_ARGS__);	\
-	}					\
-} while (0)
+#define dev_warn_once(dev, ...)                     \
+	do {                                        \
+		static bool __dev_warn_once;        \
+		if (!__dev_warn_once) {             \
+			__dev_warn_once = 1;        \
+			dev_warn(dev, __VA_ARGS__); \
+		}                                   \
+	} while (0)
 
-#define	dev_err_once(dev, ...) do {		\
-	static bool __dev_err_once;		\
-	if (!__dev_err_once) {			\
-		__dev_err_once = 1;		\
-		dev_err(dev, __VA_ARGS__);	\
-	}					\
-} while (0)
+#define dev_err_once(dev, ...)                     \
+	do {                                       \
+		static bool __dev_err_once;        \
+		if (!__dev_err_once) {             \
+			__dev_err_once = 1;        \
+			dev_err(dev, __VA_ARGS__); \
+		}                                  \
+	} while (0)
 
-#define	dev_dbg_once(dev, ...) do {		\
-	static bool __dev_dbg_once;		\
-	if (!__dev_dbg_once) {			\
-		__dev_dbg_once = 1;		\
-		dev_dbg(dev, __VA_ARGS__);	\
-	}					\
-} while (0)
+#define dev_dbg_once(dev, ...)                     \
+	do {                                       \
+		static bool __dev_dbg_once;        \
+		if (!__dev_dbg_once) {             \
+			__dev_dbg_once = 1;        \
+			dev_dbg(dev, __VA_ARGS__); \
+		}                                  \
+	} while (0)
 
-#define	dev_err_ratelimited(dev, ...) do {	\
-	static linux_ratelimit_t __ratelimited;	\
-	if (linux_ratelimited(&__ratelimited))	\
-		dev_err(dev, __VA_ARGS__);	\
-} while (0)
+#define dev_err_ratelimited(dev, ...)                   \
+	do {                                            \
+		static linux_ratelimit_t __ratelimited; \
+		if (linux_ratelimited(&__ratelimited))  \
+			dev_err(dev, __VA_ARGS__);      \
+	} while (0)
 
-#define	dev_warn_ratelimited(dev, ...) do {	\
-	static linux_ratelimit_t __ratelimited;	\
-	if (linux_ratelimited(&__ratelimited))	\
-		dev_warn(dev, __VA_ARGS__);	\
-} while (0)
+#define dev_warn_ratelimited(dev, ...)                  \
+	do {                                            \
+		static linux_ratelimit_t __ratelimited; \
+		if (linux_ratelimited(&__ratelimited))  \
+			dev_warn(dev, __VA_ARGS__);     \
+	} while (0)
 
-#define	dev_dbg_ratelimited(dev, ...) do {	\
-	static linux_ratelimit_t __ratelimited;	\
-	if (linux_ratelimited(&__ratelimited))	\
-		dev_dbg(dev, __VA_ARGS__);	\
-} while (0)
+#define dev_dbg_ratelimited(dev, ...)                   \
+	do {                                            \
+		static linux_ratelimit_t __ratelimited; \
+		if (linux_ratelimited(&__ratelimited))  \
+			dev_dbg(dev, __VA_ARGS__);      \
+	} while (0)
 
 /* Public and LinuxKPI internal devres functions. */
-void *lkpi_devres_alloc(void(*release)(struct device *, void *), size_t, gfp_t);
+void *lkpi_devres_alloc(void (*release)(struct device *, void *), size_t,
+    gfp_t);
 void lkpi_devres_add(struct device *, void *);
 void lkpi_devres_free(void *);
-void *lkpi_devres_find(struct device *, void(*release)(struct device *, void *),
+void *lkpi_devres_find(struct device *,
+    void (*release)(struct device *, void *),
     int (*match)(struct device *, void *, void *), void *);
-int lkpi_devres_destroy(struct device *, void(*release)(struct device *, void *),
+int lkpi_devres_destroy(struct device *,
+    void (*release)(struct device *, void *),
     int (*match)(struct device *, void *, void *), void *);
-#define	devres_alloc(_r, _s, _g)	lkpi_devres_alloc(_r, _s, _g)
-#define	devres_add(_d, _p)		lkpi_devres_add(_d, _p)
-#define	devres_free(_p)			lkpi_devres_free(_p)
-#define	devres_find(_d, _rfn, _mfn, _mp) \
-					lkpi_devres_find(_d, _rfn, _mfn, _mp)
-#define	devres_destroy(_d, _rfn, _mfn, _mp) \
-					lkpi_devres_destroy(_d, _rfn, _mfn, _mp)
+#define devres_alloc(_r, _s, _g) lkpi_devres_alloc(_r, _s, _g)
+#define devres_add(_d, _p) lkpi_devres_add(_d, _p)
+#define devres_free(_p) lkpi_devres_free(_p)
+#define devres_find(_d, _rfn, _mfn, _mp) lkpi_devres_find(_d, _rfn, _mfn, _mp)
+#define devres_destroy(_d, _rfn, _mfn, _mp) \
+	lkpi_devres_destroy(_d, _rfn, _mfn, _mp)
 void lkpi_devres_release_free_list(struct device *);
 void lkpi_devres_unlink(struct device *, void *);
 void lkpi_devm_kmalloc_release(struct device *, void *);
@@ -327,7 +345,7 @@ dev_name(const struct device *dev)
 	return kobject_name(&dev->kobj);
 }
 
-#define	dev_set_name(_dev, _fmt, ...)					\
+#define dev_set_name(_dev, _fmt, ...) \
 	kobject_set_name(&(_dev)->kobj, (_fmt), ##__VA_ARGS__)
 
 static inline void
@@ -359,16 +377,17 @@ class_unregister(struct class *class)
 	kobject_put(&class->kobj);
 }
 
-static inline struct device *kobj_to_dev(struct kobject *kobj)
+static inline struct device *
+kobj_to_dev(struct kobject *kobj)
 {
 	return container_of(kobj, struct device, kobj);
 }
 
 struct device *device_create(struct class *class, struct device *parent,
-	    dev_t devt, void *drvdata, const char *fmt, ...);
-struct device *device_create_groups_vargs(struct class *class, struct device *parent,
-    dev_t devt, void *drvdata, const struct attribute_group **groups,
-    const char *fmt, va_list args);
+    dev_t devt, void *drvdata, const char *fmt, ...);
+struct device *device_create_groups_vargs(struct class *class,
+    struct device *parent, dev_t devt, void *drvdata,
+    const struct attribute_group **groups, const char *fmt, va_list args);
 
 /*
  * Devices are registered and created for exporting to sysfs. Create
@@ -430,16 +449,16 @@ device_create_release(struct device *dev)
 }
 
 static inline struct device *
-device_create_with_groups(struct class *class,
-    struct device *parent, dev_t devt, void *drvdata,
-    const struct attribute_group **groups, const char *fmt, ...)
+device_create_with_groups(struct class *class, struct device *parent,
+    dev_t devt, void *drvdata, const struct attribute_group **groups,
+    const char *fmt, ...)
 {
 	va_list vargs;
 	struct device *dev;
 
 	va_start(vargs, fmt);
-	dev = device_create_groups_vargs(class, parent, devt, drvdata,
-	    groups, fmt, vargs);
+	dev = device_create_groups_vargs(class, parent, devt, drvdata, groups,
+	    fmt, vargs);
 	va_end(vargs);
 	return dev;
 }
@@ -590,8 +609,9 @@ device_iommu_mapped(struct device *dev __unused)
 	return (false);
 }
 
-#define	dev_pm_set_driver_flags(dev, flags) do { \
-} while (0)
+#define dev_pm_set_driver_flags(dev, flags) \
+	do {                                \
+	} while (0)
 
 static inline void
 linux_class_kfree(struct class *class)
@@ -643,16 +663,16 @@ class_remove_file(struct class *class, const struct class_attribute *attr)
 		sysfs_remove_file(&class->kobj, &attr->attr);
 }
 
-#define	dev_to_node(dev) linux_dev_to_node(dev)
-#define	of_node_to_nid(node) -1
+#define dev_to_node(dev) linux_dev_to_node(dev)
+#define of_node_to_nid(node) -1
 int linux_dev_to_node(struct device *);
 
 char *kvasprintf(gfp_t, const char *, va_list);
 char *kasprintf(gfp_t, const char *, ...);
 char *lkpi_devm_kasprintf(struct device *, gfp_t, const char *, ...);
 
-#define	devm_kasprintf(_dev, _gfp, _fmt, ...)			\
-    lkpi_devm_kasprintf(_dev, _gfp, _fmt, ##__VA_ARGS__)
+#define devm_kasprintf(_dev, _gfp, _fmt, ...) \
+	lkpi_devm_kasprintf(_dev, _gfp, _fmt, ##__VA_ARGS__)
 
 static __inline void *
 devm_kmalloc(struct device *dev, size_t size, gfp_t gfp)
@@ -681,17 +701,19 @@ devm_kmemdup(struct device *dev, const void *src, size_t len, gfp_t gfp)
 	return (dst);
 }
 
-#define	devm_kzalloc(_dev, _size, _gfp)				\
-    devm_kmalloc((_dev), (_size), (_gfp) | __GFP_ZERO)
+#define devm_kzalloc(_dev, _size, _gfp) \
+	devm_kmalloc((_dev), (_size), (_gfp) | __GFP_ZERO)
 
-#define	devm_kcalloc(_dev, _sizen, _size, _gfp)			\
-    devm_kmalloc((_dev), ((_sizen) * (_size)), (_gfp) | __GFP_ZERO)
+#define devm_kcalloc(_dev, _sizen, _size, _gfp) \
+	devm_kmalloc((_dev), ((_sizen) * (_size)), (_gfp) | __GFP_ZERO)
 
-int lkpi_devm_add_action(struct device *dev, void (*action)(void *), void *data);
-#define	devm_add_action(dev, action, data)	\
+int lkpi_devm_add_action(struct device *dev, void (*action)(void *),
+    void *data);
+#define devm_add_action(dev, action, data) \
 	lkpi_devm_add_action(dev, action, data);
-int lkpi_devm_add_action_or_reset(struct device *dev, void (*action)(void *), void *data);
-#define	devm_add_action_or_reset(dev, action, data)	\
+int lkpi_devm_add_action_or_reset(struct device *dev, void (*action)(void *),
+    void *data);
+#define devm_add_action_or_reset(dev, action, data) \
 	lkpi_devm_add_action_or_reset(dev, action, data)
 
-#endif	/* _LINUXKPI_LINUX_DEVICE_H_ */
+#endif /* _LINUXKPI_LINUX_DEVICE_H_ */

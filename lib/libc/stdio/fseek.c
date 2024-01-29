@@ -32,19 +32,21 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/types.h>
 #include <sys/stat.h>
+
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "un-namespace.h"
-#include "local.h"
-#include "libc_private.h"
 
-#define	POS_ERR	(-(fpos_t)1)
+#include "libc_private.h"
+#include "local.h"
+#include "namespace.h"
+#include "un-namespace.h"
+
+#define POS_ERR (-(fpos_t)1)
 
 int
 fseek(FILE *fp, long offset, int whence)
@@ -99,7 +101,7 @@ _fseeko(FILE *fp, off_t offset, int whence, int ltest)
 	 * Have to be able to seek.
 	 */
 	if ((seekfn = fp->_seek) == NULL) {
-		errno = ESPIPE;		/* historic practice */
+		errno = ESPIPE; /* historic practice */
 		return (-1);
 	}
 
@@ -145,7 +147,7 @@ _fseeko(FILE *fp, off_t offset, int whence, int ltest)
 			return (-1);
 		}
 	case SEEK_END:
-		curoff = 0;		/* XXX just to keep gcc quiet */
+		curoff = 0; /* XXX just to keep gcc quiet */
 		havepos = 0;
 		break;
 
@@ -167,8 +169,8 @@ _fseeko(FILE *fp, off_t offset, int whence, int ltest)
 	if (fp->_flags & (__SWR | __SRW | __SNBF | __SNPT))
 		goto dumb;
 	if ((fp->_flags & __SOPT) == 0) {
-		if (seekfn != __sseek ||
-		    fp->_file < 0 || _fstat(fp->_file, &st) ||
+		if (seekfn != __sseek || fp->_file < 0 ||
+		    _fstat(fp->_file, &st) ||
 		    (st.st_mode & S_IFMT) != S_IFREG) {
 			fp->_flags |= __SNPT;
 			goto dumb;
@@ -218,7 +220,7 @@ _fseeko(FILE *fp, off_t offset, int whence, int ltest)
 	 * file offset for the first byte in the current input buffer.
 	 */
 	if (HASUB(fp)) {
-		curoff += fp->_r;	/* kill off ungetc */
+		curoff += fp->_r; /* kill off ungetc */
 		n = fp->_up - fp->_bf._base;
 		curoff -= n;
 		n += fp->_ur;
@@ -290,7 +292,7 @@ dumb:
 		FREEUB(fp);
 	fp->_p = fp->_bf._base;
 	fp->_r = 0;
-	/* fp->_w = 0; */	/* unnecessary (I think...) */
+	/* fp->_w = 0; */ /* unnecessary (I think...) */
 	fp->_flags &= ~__SEOF;
 	memset(&fp->_mbstate, 0, sizeof(mbstate_t));
 	return (0);

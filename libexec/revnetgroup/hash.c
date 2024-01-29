@@ -32,10 +32,12 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/types.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
+
 #include "hash.h"
 
 /*
@@ -54,7 +56,7 @@ hash(const void *keyarg, size_t len)
 	size_t loop;
 	u_int32_t h;
 
-#define HASHC   h = *key++ + 65599 * h
+#define HASHC h = *key++ + 65599 * h
 
 	h = 0;
 	key = keyarg;
@@ -66,25 +68,25 @@ hash(const void *keyarg, size_t len)
 			do {
 				HASHC;
 				/* FALLTHROUGH */
-		case 7:
+			case 7:
 				HASHC;
 				/* FALLTHROUGH */
-		case 6:
+			case 6:
 				HASHC;
 				/* FALLTHROUGH */
-		case 5:
+			case 5:
 				HASHC;
 				/* FALLTHROUGH */
-		case 4:
+			case 4:
 				HASHC;
 				/* FALLTHROUGH */
-		case 3:
+			case 3:
 				HASHC;
 				/* FALLTHROUGH */
-		case 2:
+			case 2:
 				HASHC;
 				/* FALLTHROUGH */
-		case 1:
+			case 1:
 				HASHC;
 			} while (--loop);
 		}
@@ -103,7 +105,7 @@ hashkey(char *key)
 
 	if (key == NULL)
 		return (-1);
-	return(hash((void *)key, strlen(key)) & HASH_MASK);
+	return (hash((void *)key, strlen(key)) & HASH_MASK);
 }
 
 /* Find an entry in the hash table (may be hanging off a linked list). */
@@ -116,11 +118,11 @@ lookup(struct group_entry *table[], char *key)
 
 	while (cur) {
 		if (!strcmp(cur->key, key))
-			return(cur->data);
+			return (cur->data);
 		cur = cur->next;
 	}
 
-	return(NULL);
+	return (NULL);
 }
 
 /*

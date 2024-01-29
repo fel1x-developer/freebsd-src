@@ -2,14 +2,14 @@
 /* Copyright(c) 2007-2022 Intel Corporation */
 #include "adf_accel_devices.h"
 #include "adf_cfg.h"
-#include "adf_common_drv.h"
 #include "adf_cfg_dev_dbg.h"
 #include "adf_cfg_device.h"
 #include "adf_cfg_sysctl.h"
+#include "adf_cnvnr_freq_counters.h"
+#include "adf_common_drv.h"
+#include "adf_fw_counters.h"
 #include "adf_heartbeat_dbg.h"
 #include "adf_ver_dbg.h"
-#include "adf_fw_counters.h"
-#include "adf_cnvnr_freq_counters.h"
 
 /**
  * adf_cfg_dev_add() - Create an acceleration device configuration table.
@@ -38,39 +38,32 @@ adf_cfg_dev_add(struct adf_accel_dev *accel_dev)
 			dev_cfg_data->num_user_processes =
 			    ADF_CFG_STATIC_CONF_USER_PROCESSES_NUM;
 
-			strncpy(dev_cfg_data->cfg_mode,
-				ADF_CFG_KERNEL_USER,
-				ADF_CFG_MAX_VAL);
+			strncpy(dev_cfg_data->cfg_mode, ADF_CFG_KERNEL_USER,
+			    ADF_CFG_MAX_VAL);
 
 			if (accel_dev->accel_id % 2 == 0) {
 				strncpy(dev_cfg_data->cfg_services,
-					ADF_CFG_SYM_ASYM,
-					ADF_CFG_MAX_VAL);
+				    ADF_CFG_SYM_ASYM, ADF_CFG_MAX_VAL);
 			} else {
-				strncpy(dev_cfg_data->cfg_services,
-					ADF_CFG_DC,
-					ADF_CFG_MAX_VAL);
+				strncpy(dev_cfg_data->cfg_services, ADF_CFG_DC,
+				    ADF_CFG_MAX_VAL);
 			}
 		} else {
-			strncpy(dev_cfg_data->cfg_mode,
-				ADF_CFG_KERNEL,
-				ADF_CFG_MAX_VAL);
+			strncpy(dev_cfg_data->cfg_mode, ADF_CFG_KERNEL,
+			    ADF_CFG_MAX_VAL);
 			dev_cfg_data->num_user_processes = 0;
-			strncpy(dev_cfg_data->cfg_services,
-				ADF_CFG_SYM_DC,
-				ADF_CFG_MAX_VAL);
+			strncpy(dev_cfg_data->cfg_services, ADF_CFG_SYM_DC,
+			    ADF_CFG_MAX_VAL);
 		}
 	} else {
 		dev_cfg_data->num_user_processes =
 		    ADF_CFG_STATIC_CONF_USER_PROCESSES_NUM;
 
-		strncpy(dev_cfg_data->cfg_mode,
-			ADF_CFG_KERNEL,
-			ADF_CFG_MAX_VAL);
+		strncpy(dev_cfg_data->cfg_mode, ADF_CFG_KERNEL,
+		    ADF_CFG_MAX_VAL);
 
-		strncpy(dev_cfg_data->cfg_services,
-			"sym;asym",
-			ADF_CFG_MAX_VAL);
+		strncpy(dev_cfg_data->cfg_services, "sym;asym",
+		    ADF_CFG_MAX_VAL);
 	}
 
 	if (adf_cfg_sysctl_add(accel_dev))
@@ -168,8 +161,8 @@ adf_cfg_keyval_remove(const char *key, struct adf_cfg_section *sec)
 
 	list_for_each_prev_safe(list_ptr, tmp, head)
 	{
-		struct adf_cfg_key_val *ptr =
-		    list_entry(list_ptr, struct adf_cfg_key_val, list);
+		struct adf_cfg_key_val *ptr = list_entry(list_ptr,
+		    struct adf_cfg_key_val, list);
 
 		if (strncmp(ptr->key, key, sizeof(ptr->key)) != 0)
 			continue;
@@ -182,7 +175,7 @@ adf_cfg_keyval_remove(const char *key, struct adf_cfg_section *sec)
 
 static int
 adf_cfg_section_restore_all(struct adf_accel_dev *accel_dev,
-			    struct adf_cfg_depot_list *cfg_depot_list)
+    struct adf_cfg_depot_list *cfg_depot_list)
 {
 	struct adf_cfg_section *ptr_sec, *iter_sec;
 	struct adf_cfg_key_val *ptr_key;
@@ -206,8 +199,8 @@ adf_cfg_section_restore_all(struct adf_accel_dev *accel_dev,
 		{
 			struct adf_cfg_key_val *key_val;
 
-			key_val =
-			    malloc(sizeof(*key_val), M_QAT, M_WAITOK | M_ZERO);
+			key_val = malloc(sizeof(*key_val), M_QAT,
+			    M_WAITOK | M_ZERO);
 
 			memcpy(key_val, ptr_key, sizeof(*key_val));
 			list_add_tail(&key_val->list, &iter_sec->param_head);
@@ -220,7 +213,7 @@ adf_cfg_section_restore_all(struct adf_accel_dev *accel_dev,
 
 int
 adf_cfg_depot_restore_all(struct adf_accel_dev *accel_dev,
-			  struct adf_cfg_depot_list *cfg_depot_list)
+    struct adf_cfg_depot_list *cfg_depot_list)
 {
 	struct adf_cfg_device_data *dev_cfg_data = accel_dev->cfg;
 	int ret = 0;
@@ -260,8 +253,8 @@ adf_cfg_keyval_del_all(struct list_head *head)
 
 	list_for_each_prev_safe(list_ptr, tmp, head)
 	{
-		struct adf_cfg_key_val *ptr =
-		    list_entry(list_ptr, struct adf_cfg_key_val, list);
+		struct adf_cfg_key_val *ptr = list_entry(list_ptr,
+		    struct adf_cfg_key_val, list);
 		list_del(list_ptr);
 		free(ptr, M_QAT);
 	}
@@ -289,8 +282,8 @@ adf_cfg_key_value_find(struct adf_cfg_section *s, const char *key)
 
 	list_for_each(list, &s->param_head)
 	{
-		struct adf_cfg_key_val *ptr =
-		    list_entry(list, struct adf_cfg_key_val, list);
+		struct adf_cfg_key_val *ptr = list_entry(list,
+		    struct adf_cfg_key_val, list);
 		if (!strncmp(ptr->key, key, sizeof(ptr->key)))
 			return ptr;
 	}
@@ -305,8 +298,8 @@ adf_cfg_sec_find(struct adf_accel_dev *accel_dev, const char *sec_name)
 
 	list_for_each(list, &cfg->sec_list)
 	{
-		struct adf_cfg_section *ptr =
-		    list_entry(list, struct adf_cfg_section, list);
+		struct adf_cfg_section *ptr = list_entry(list,
+		    struct adf_cfg_section, list);
 		if (!strncmp(ptr->name, sec_name, sizeof(ptr->name)))
 			return ptr;
 	}
@@ -314,10 +307,8 @@ adf_cfg_sec_find(struct adf_accel_dev *accel_dev, const char *sec_name)
 }
 
 static int
-adf_cfg_key_val_get(struct adf_accel_dev *accel_dev,
-		    const char *sec_name,
-		    const char *key_name,
-		    char *val)
+adf_cfg_key_val_get(struct adf_accel_dev *accel_dev, const char *sec_name,
+    const char *key_name, char *val)
 {
 	struct adf_cfg_section *sec = adf_cfg_sec_find(accel_dev, sec_name);
 	struct adf_cfg_key_val *keyval = NULL;
@@ -347,16 +338,14 @@ adf_cfg_key_val_get(struct adf_accel_dev *accel_dev,
  */
 int
 adf_cfg_add_key_value_param(struct adf_accel_dev *accel_dev,
-			    const char *section_name,
-			    const char *key,
-			    const void *val,
-			    enum adf_cfg_val_type type)
+    const char *section_name, const char *key, const void *val,
+    enum adf_cfg_val_type type)
 {
 	char temp_val[ADF_CFG_MAX_VAL_LEN_IN_BYTES];
 	struct adf_cfg_device_data *cfg = accel_dev->cfg;
 	struct adf_cfg_key_val *key_val;
-	struct adf_cfg_section *section =
-	    adf_cfg_sec_find(accel_dev, section_name);
+	struct adf_cfg_section *section = adf_cfg_sec_find(accel_dev,
+	    section_name);
 	if (!section)
 		return EFAULT;
 
@@ -366,17 +355,13 @@ adf_cfg_add_key_value_param(struct adf_accel_dev *accel_dev,
 	strlcpy(key_val->key, key, sizeof(key_val->key));
 
 	if (type == ADF_DEC) {
-		snprintf(key_val->val,
-			 ADF_CFG_MAX_VAL_LEN_IN_BYTES,
-			 "%ld",
-			 (*((const long *)val)));
+		snprintf(key_val->val, ADF_CFG_MAX_VAL_LEN_IN_BYTES, "%ld",
+		    (*((const long *)val)));
 	} else if (type == ADF_STR) {
 		strlcpy(key_val->val, (const char *)val, sizeof(key_val->val));
 	} else if (type == ADF_HEX) {
-		snprintf(key_val->val,
-			 ADF_CFG_MAX_VAL_LEN_IN_BYTES,
-			 "0x%lx",
-			 (unsigned long)val);
+		snprintf(key_val->val, ADF_CFG_MAX_VAL_LEN_IN_BYTES, "0x%lx",
+		    (unsigned long)val);
 	} else {
 		device_printf(GET_DEV(accel_dev), "Unknown type given.\n");
 		free(key_val, M_QAT);
@@ -407,17 +392,15 @@ adf_cfg_add_key_value_param(struct adf_accel_dev *accel_dev,
 }
 
 int
-adf_cfg_save_section(struct adf_accel_dev *accel_dev,
-		     const char *name,
-		     struct adf_cfg_section *section)
+adf_cfg_save_section(struct adf_accel_dev *accel_dev, const char *name,
+    struct adf_cfg_section *section)
 {
 	struct adf_cfg_key_val *ptr;
 	struct adf_cfg_section *sec = adf_cfg_sec_find(accel_dev, name);
 
 	if (!sec) {
-		device_printf(GET_DEV(accel_dev),
-			      "Couldn't find section %s\n",
-			      name);
+		device_printf(GET_DEV(accel_dev), "Couldn't find section %s\n",
+		    name);
 		return EFAULT;
 	}
 
@@ -439,7 +422,7 @@ adf_cfg_save_section(struct adf_accel_dev *accel_dev,
 
 static int
 adf_cfg_section_save_all(struct adf_accel_dev *accel_dev,
-			 struct adf_cfg_depot_list *cfg_depot_list)
+    struct adf_cfg_depot_list *cfg_depot_list)
 {
 	struct adf_cfg_section *ptr_sec, *iter_sec;
 	struct list_head *list, *tmp, *save_list;
@@ -460,7 +443,7 @@ adf_cfg_section_save_all(struct adf_accel_dev *accel_dev,
 
 int
 adf_cfg_depot_save_all(struct adf_accel_dev *accel_dev,
-		       struct adf_cfg_depot_list *cfg_depot_list)
+    struct adf_cfg_depot_list *cfg_depot_list)
 {
 	struct adf_cfg_device_data *dev_cfg_data = accel_dev->cfg;
 	int ret = 0;
@@ -485,12 +468,11 @@ adf_cfg_depot_save_all(struct adf_accel_dev *accel_dev,
  */
 int
 adf_cfg_remove_key_param(struct adf_accel_dev *accel_dev,
-			 const char *section_name,
-			 const char *key)
+    const char *section_name, const char *key)
 {
 	struct adf_cfg_device_data *cfg = accel_dev->cfg;
-	struct adf_cfg_section *section =
-	    adf_cfg_sec_find(accel_dev, section_name);
+	struct adf_cfg_section *section = adf_cfg_sec_find(accel_dev,
+	    section_name);
 	if (!section)
 		return EFAULT;
 
@@ -552,15 +534,13 @@ adf_cfg_derived_section_add(struct adf_accel_dev *accel_dev, const char *name)
 
 static int
 adf_cfg_restore_key_value_param(struct adf_accel_dev *accel_dev,
-				const char *section_name,
-				const char *key,
-				const char *val,
-				enum adf_cfg_val_type type)
+    const char *section_name, const char *key, const char *val,
+    enum adf_cfg_val_type type)
 {
 	struct adf_cfg_device_data *cfg = accel_dev->cfg;
 	struct adf_cfg_key_val *key_val;
-	struct adf_cfg_section *section =
-	    adf_cfg_sec_find(accel_dev, section_name);
+	struct adf_cfg_section *section = adf_cfg_sec_find(accel_dev,
+	    section_name);
 	if (!section)
 		return EFAULT;
 
@@ -579,7 +559,7 @@ adf_cfg_restore_key_value_param(struct adf_accel_dev *accel_dev,
 
 int
 adf_cfg_restore_section(struct adf_accel_dev *accel_dev,
-			struct adf_cfg_section *section)
+    struct adf_cfg_section *section)
 {
 	struct adf_cfg_key_val *ptr;
 	int ret = 0;
@@ -590,8 +570,8 @@ adf_cfg_restore_section(struct adf_accel_dev *accel_dev,
 
 	list_for_each_entry(ptr, &section->param_head, list)
 	{
-		ret = adf_cfg_restore_key_value_param(
-		    accel_dev, section->name, ptr->key, ptr->val, ptr->type);
+		ret = adf_cfg_restore_key_value_param(accel_dev, section->name,
+		    ptr->key, ptr->val, ptr->type);
 		if (ret)
 			goto err_remove_sec;
 	}
@@ -600,17 +580,14 @@ adf_cfg_restore_section(struct adf_accel_dev *accel_dev,
 err_remove_sec:
 	adf_cfg_section_del(accel_dev, section->name);
 err:
-	device_printf(GET_DEV(accel_dev),
-		      "Failed to restore section %s\n",
-		      section->name);
+	device_printf(GET_DEV(accel_dev), "Failed to restore section %s\n",
+	    section->name);
 	return ret;
 }
 
 int
-adf_cfg_get_param_value(struct adf_accel_dev *accel_dev,
-			const char *section,
-			const char *name,
-			char *value)
+adf_cfg_get_param_value(struct adf_accel_dev *accel_dev, const char *section,
+    const char *name, char *value)
 {
 	struct adf_cfg_device_data *cfg = accel_dev->cfg;
 	int ret;

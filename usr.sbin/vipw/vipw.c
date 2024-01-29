@@ -40,15 +40,14 @@
 #include <sys/stat.h>
 
 #include <err.h>
+#include <libutil.h> /* must be after pwd.h */
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <libutil.h>		/* must be after pwd.h */
-
-static void	usage(void);
+static void usage(void);
 
 int
 main(int argc, char *argv[])

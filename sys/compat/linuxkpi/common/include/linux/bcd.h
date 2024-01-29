@@ -25,19 +25,20 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_LINUXKPI_LINUX_BCD_H
-#define	_LINUXKPI_LINUX_BCD_H
+#ifndef _LINUXKPI_LINUX_BCD_H
+#define _LINUXKPI_LINUX_BCD_H
 
 #include <sys/types.h>
 #include <sys/libkern.h>
 
 /* Compared to the libkern version this one truncates the argument. */
-static inline uint8_t linuxkpi_bcd2bin(uint8_t x)
+static inline uint8_t
+linuxkpi_bcd2bin(uint8_t x)
 {
 
 	return (bcd2bin(x));
 }
 
-#define	bcd2bin(_x)	linuxkpi_bcd2bin(_x)
+#define bcd2bin(_x) linuxkpi_bcd2bin(_x)
 
-#endif	/* _LINUXKPI_LINUX_BCD_H */
+#endif /* _LINUXKPI_LINUX_BCD_H */

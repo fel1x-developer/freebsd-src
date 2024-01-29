@@ -32,8 +32,8 @@
 #ifndef _GENERIC_XHCI_H_
 #define _GENERIC_XHCI_H_
 
-#define	XHCI_HC_DEVSTR	"Generic USB 3.0 controller"
-#define	XHCI_HC_VENDOR	"Generic"
+#define XHCI_HC_DEVSTR "Generic USB 3.0 controller"
+#define XHCI_HC_VENDOR "Generic"
 
 extern driver_t generic_xhci_driver;
 

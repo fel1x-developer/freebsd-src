@@ -55,8 +55,8 @@ procstat_pargs(struct procstat *procstat, struct kinfo_proc *kipp)
 		xo_emit("{d:args/-}\n");
 	} else {
 		for (i = 0; args[i] != NULL; i++) {
-			xo_emit("{Ld:argv[}{Ld:/%d}{Ldwc:]}{l:argv/%s}\n",
-			    i, args[i]);
+			xo_emit("{Ld:argv[}{Ld:/%d}{Ldwc:]}{l:argv/%s}\n", i,
+			    args[i]);
 		}
 	}
 }
@@ -76,8 +76,8 @@ procstat_penv(struct procstat *procstat, struct kinfo_proc *kipp)
 		xo_emit("{d:env/-}\n");
 	} else {
 		for (i = 0; envs[i] != NULL; i++) {
-			xo_emit("{Ld:envp[}{Ld:/%d}{Ldwc:]}{l:envp/%s}\n",
-			    i, envs[i]);
+			xo_emit("{Ld:envp[}{Ld:/%d}{Ldwc:]}{l:envp/%s}\n", i,
+			    envs[i]);
 		}
 	}
 }

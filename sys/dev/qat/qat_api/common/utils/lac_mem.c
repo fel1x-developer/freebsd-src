@@ -13,21 +13,19 @@
 * Include header files
 *******************************************************************************
 */
-#include "qat_utils.h"
 #include "cpa.h"
-
 #include "icp_accel_devices.h"
+#include "icp_adf_debug.h"
 #include "icp_adf_init.h"
 #include "icp_adf_transport.h"
-#include "icp_adf_debug.h"
+#include "icp_qat_fw_la.h"
 #include "icp_sal_iommu.h"
-
-#include "lac_mem.h"
-#include "lac_mem_pools.h"
 #include "lac_common.h"
 #include "lac_list.h"
-#include "icp_qat_fw_la.h"
+#include "lac_mem.h"
+#include "lac_mem_pools.h"
 #include "lac_sal_types.h"
+#include "qat_utils.h"
 
 /*
 ********************************************************************************
@@ -48,11 +46,8 @@
  * @ingroup LacMem
  */
 CpaStatus
-icp_LacBufferRestore(Cpa8U *pUserBuffer,
-		     Cpa32U userLen,
-		     Cpa8U *pWorkingBuffer,
-		     Cpa32U workingLen,
-		     CpaBoolean copyBuf)
+icp_LacBufferRestore(Cpa8U *pUserBuffer, Cpa32U userLen, Cpa8U *pWorkingBuffer,
+    Cpa32U workingLen, CpaBoolean copyBuf)
 {
 	Cpa32U padSize = 0;
 

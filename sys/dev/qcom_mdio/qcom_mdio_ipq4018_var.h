@@ -26,43 +26,46 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	__QCOM_MDIO_IPQ4018_VAR_H__
-#define	__QCOM_MDIO_IPQ4018_VAR_H__
+#ifndef __QCOM_MDIO_IPQ4018_VAR_H__
+#define __QCOM_MDIO_IPQ4018_VAR_H__
 
-#define	MDIO_LOCK(_sc)		mtx_lock(&(_sc)->sc_mtx)
-#define	MDIO_UNLOCK(_sc)	mtx_unlock(&(_sc)->sc_mtx)
-#define	MDIO_LOCK_ASSERT(_sc)	mtx_assert(&(_sc)->sc_mtx, MA_OWNED)
+#define MDIO_LOCK(_sc) mtx_lock(&(_sc)->sc_mtx)
+#define MDIO_UNLOCK(_sc) mtx_unlock(&(_sc)->sc_mtx)
+#define MDIO_LOCK_ASSERT(_sc) mtx_assert(&(_sc)->sc_mtx, MA_OWNED)
 
 /*
  * register space access macros
  */
-#define	MDIO_WRITE(sc, reg, val)	do {	\
+#define MDIO_WRITE(sc, reg, val)                           \
+	do {                                               \
 		bus_write_4(sc->sc_mem_res, (reg), (val)); \
 	} while (0)
 
-#define	MDIO_READ(sc, reg)	 bus_read_4(sc->sc_mem_res, (reg))
+#define MDIO_READ(sc, reg) bus_read_4(sc->sc_mem_res, (reg))
 
-#define	MDIO_BARRIER_WRITE(sc)		bus_barrier((sc)->sc_mem_res,	\
-	    0, (sc)->sc_mem_res_size, BUS_SPACE_BARRIER_WRITE)
-#define	MDIO_BARRIER_READ(sc)		bus_barrier((sc)->sc_mem_res,	\
-	    0, (sc)->sc_mem_res_size, BUS_SPACE_BARRIER_READ)
-#define	MDIO_BARRIER_RW(sc)		bus_barrier((sc)->sc_mem_res,	\
-	    0, (sc)->sc_mem_res_size,					\
+#define MDIO_BARRIER_WRITE(sc)                                  \
+	bus_barrier((sc)->sc_mem_res, 0, (sc)->sc_mem_res_size, \
+	    BUS_SPACE_BARRIER_WRITE)
+#define MDIO_BARRIER_READ(sc)                                   \
+	bus_barrier((sc)->sc_mem_res, 0, (sc)->sc_mem_res_size, \
+	    BUS_SPACE_BARRIER_READ)
+#define MDIO_BARRIER_RW(sc)                                     \
+	bus_barrier((sc)->sc_mem_res, 0, (sc)->sc_mem_res_size, \
 	    BUS_SPACE_BARRIER_READ | BUS_SPACE_BARRIER_WRITE)
 
-#define	MDIO_SET_BITS(sc, reg, bits)	\
-	GPIO_WRITE(sc, reg,	MDIO_READ(sc, (reg)) | (bits))
+#define MDIO_SET_BITS(sc, reg, bits) \
+	GPIO_WRITE(sc, reg, MDIO_READ(sc, (reg)) | (bits))
 
-#define	MDIO_CLEAR_BITS(sc, reg, bits)	\
-	GPIO_WRITE(sc, reg,	MDIO_READ(sc, (reg)) & ~(bits))
+#define MDIO_CLEAR_BITS(sc, reg, bits) \
+	GPIO_WRITE(sc, reg, MDIO_READ(sc, (reg)) & ~(bits))
 
 struct qcom_mdio_ipq4018_softc {
-	device_t		sc_dev;
-	struct mtx		sc_mtx;
-	struct resource		*sc_mem_res;
-	size_t			sc_mem_res_size;
-	int			sc_mem_rid;
-	uint32_t		sc_debug;
+	device_t sc_dev;
+	struct mtx sc_mtx;
+	struct resource *sc_mem_res;
+	size_t sc_mem_res_size;
+	int sc_mem_rid;
+	uint32_t sc_debug;
 };
 
-#endif	/* __QCOM_MDIO_IPQ4018_VAR_H__ */
+#endif /* __QCOM_MDIO_IPQ4018_VAR_H__ */

@@ -32,15 +32,10 @@
 
 #ifndef _CHECKING_HH_
 #define _CHECKING_HH_
-#include <string>
 #include "fdt.hh"
+#include <string>
 
-namespace dtc
-{
-namespace fdt
-{
-namespace checking
-{
+namespace dtc { namespace fdt { namespace checking {
 /**
  * Base class for all checkers.  This will visit the entire tree and perform
  * semantic checks defined in subclasses.  Note that device trees are generally
@@ -48,8 +43,7 @@ namespace checking
  * extensibility here, not for performance.  Each checker will visit the entire
  * tree.
  */
-class checker
-{
+class checker {
 	/**
 	 * The path to the current node being checked.  This is used for
 	 * printing error messages.
@@ -66,22 +60,27 @@ class checker
 	 * nodes.
 	 */
 	bool visit_node(device_tree *tree, const node_ptr &n);
-	protected:
+
+    protected:
 	/**
 	 * Prints the error message, along with the path to the node that
 	 * caused the error and the name of the checker.
 	 */
 	void report_error(const char *errmsg);
-	public:
+
+    public:
 	/**
 	 * Constructor.  Takes the name of this checker, which is which is used
 	 * when reporting errors.
 	 */
-	checker(const char *name) : checker_name(name) {}
+	checker(const char *name)
+	    : checker_name(name)
+	{
+	}
 	/**
 	 * Virtual destructor in case any subclasses need to do cleanup.
 	 */
-	virtual ~checker() {}
+	virtual ~checker() { }
 	/**
 	 * Method for checking that a node is valid.  The root class version
 	 * does nothing, subclasses should override this.
@@ -94,7 +93,8 @@ class checker
 	 * Method for checking that a property is valid.  The root class
 	 * version does nothing, subclasses should override this.
 	 */
-	virtual bool check_property(device_tree *, const node_ptr &, property_ptr )
+	virtual bool check_property(device_tree *, const node_ptr &,
+	    property_ptr)
 	{
 		return true;
 	}
@@ -113,53 +113,63 @@ class checker
  * the matching name.  To define simple property checkers, just subclass this
  * and override the check() method.
  */
-class property_checker : public checker
-{
+class property_checker : public checker {
 	/**
 	 * The name of the property that this checker is looking for.
 	 */
 	std::string key;
-	public:
+
+    public:
 	/**
 	 * Implementation of the generic property-checking method that checks
 	 * for a property with the name specified in the constructor.
 	 */
-	virtual bool check_property(device_tree *tree, const node_ptr &n, property_ptr p);
+	virtual bool check_property(device_tree *tree, const node_ptr &n,
+	    property_ptr p);
 	/**
 	 * Constructor.  Takes the name of the checker and the name of the
 	 * property to check.
 	 */
-	property_checker(const char* name, const std::string &property_name)
-		: checker(name), key(property_name) {}
+	property_checker(const char *name, const std::string &property_name)
+	    : checker(name)
+	    , key(property_name)
+	{
+	}
 	/**
 	 * The check method, which subclasses should implement.
 	 */
-	virtual bool check(device_tree *tree, const node_ptr &n, property_ptr p) = 0;
+	virtual bool check(device_tree *tree, const node_ptr &n,
+	    property_ptr p) = 0;
 };
 
 /**
  * Property type checker.
  */
-template<property_value::value_type T>
-struct property_type_checker : public property_checker
-{
+template <property_value::value_type T>
+struct property_type_checker : public property_checker {
 	/**
 	 * Constructor, takes the name of the checker and the name of the
 	 * property to check as arguments.
 	 */
-	property_type_checker(const char* name, const std::string &property_name) :
-		property_checker(name, property_name) {}
-	virtual bool check(device_tree *tree, const node_ptr &n, property_ptr p) = 0;
+	property_type_checker(const char *name,
+	    const std::string &property_name)
+	    : property_checker(name, property_name)
+	{
+	}
+	virtual bool check(device_tree *tree, const node_ptr &n,
+	    property_ptr p) = 0;
 };
 
 /**
  * Empty property checker.  This checks that the property has no value.
  */
-template<>
-struct property_type_checker <property_value::EMPTY> : public property_checker
-{
-	property_type_checker(const char* name, const std::string &property_name) :
-		property_checker(name, property_name) {}
+template <>
+struct property_type_checker<property_value::EMPTY> : public property_checker {
+	property_type_checker(const char *name,
+	    const std::string &property_name)
+	    : property_checker(name, property_name)
+	{
+	}
 	virtual bool check(device_tree *, const node_ptr &, property_ptr p)
 	{
 		return p->begin() == p->end();
@@ -170,11 +180,13 @@ struct property_type_checker <property_value::EMPTY> : public property_checker
  * String property checker.  This checks that the property has exactly one
  * value, which is a string.
  */
-template<>
-struct property_type_checker <property_value::STRING> : public property_checker
-{
-	property_type_checker(const char* name, const std::string &property_name) :
-		property_checker(name, property_name) {}
+template <>
+struct property_type_checker<property_value::STRING> : public property_checker {
+	property_type_checker(const char *name,
+	    const std::string &property_name)
+	    : property_checker(name, property_name)
+	{
+	}
 	virtual bool check(device_tree *, const node_ptr &, property_ptr p)
 	{
 		return (p->begin() + 1 == p->end()) && p->begin()->is_string();
@@ -184,19 +196,19 @@ struct property_type_checker <property_value::STRING> : public property_checker
  * String list property checker.  This checks that the property has at least
  * one value, all of which are strings.
  */
-template<>
-struct property_type_checker <property_value::STRING_LIST> :
-	public property_checker
-{
-	property_type_checker(const char* name, const std::string &property_name) :
-		property_checker(name, property_name) {}
+template <>
+struct property_type_checker<property_value::STRING_LIST>
+    : public property_checker {
+	property_type_checker(const char *name,
+	    const std::string &property_name)
+	    : property_checker(name, property_name)
+	{
+	}
 	virtual bool check(device_tree *, const node_ptr &, property_ptr p)
 	{
-		for (property::value_iterator i=p->begin(),e=p->end() ; i!=e ;
-		     ++i)
-		{
-			if (!(i->is_string() || i->is_string_list()))
-			{
+		for (property::value_iterator i = p->begin(), e = p->end();
+		     i != e; ++i) {
+			if (!(i->is_string() || i->is_string_list())) {
 				return false;
 			}
 		}
@@ -208,76 +220,82 @@ struct property_type_checker <property_value::STRING_LIST> :
  * Phandle property checker.  This checks that the property has exactly one
  * value, which is a valid phandle.
  */
-template<>
-struct property_type_checker <property_value::PHANDLE> : public property_checker
-{
-	property_type_checker(const char* name, const std::string &property_name) :
-		property_checker(name, property_name) {}
+template <>
+struct property_type_checker<property_value::PHANDLE>
+    : public property_checker {
+	property_type_checker(const char *name,
+	    const std::string &property_name)
+	    : property_checker(name, property_name)
+	{
+	}
 	virtual bool check(device_tree *tree, const node_ptr &, property_ptr p)
 	{
 		return (p->begin() + 1 == p->end()) &&
-			(tree->referenced_node(*p->begin()) != 0);
+		    (tree->referenced_node(*p->begin()) != 0);
 	}
 };
 
 /**
  * Check that a property has the correct size.
  */
-struct property_size_checker : public property_checker
-{
+struct property_size_checker : public property_checker {
 	/**
 	 * The expected size of the property.
 	 */
 	uint32_t size;
-	public:
+
+    public:
 	/**
 	 * Constructor, takes the name of the checker, the name of the property
 	 * to check, and its expected size as arguments.
 	 */
-	property_size_checker(const char* name,
-	                      const std::string &property_name,
-	                      uint32_t bytes)
-		: property_checker(name, property_name), size(bytes) {}
+	property_size_checker(const char *name,
+	    const std::string &property_name, uint32_t bytes)
+	    : property_checker(name, property_name)
+	    , size(bytes)
+	{
+	}
 	/**
 	 * Check, validates that the property has the correct size.
 	 */
-	virtual bool check(device_tree *tree, const node_ptr &n, property_ptr p);
+	virtual bool check(device_tree *tree, const node_ptr &n,
+	    property_ptr p);
 };
-
 
 /**
  * The check manager is the interface to running the checks.  This allows
  * default checks to be enabled, non-default checks to be enabled, and so on.
  */
-class check_manager
-{
+class check_manager {
 	/**
 	 * The enabled checkers, indexed by their names.  The name is used when
 	 * disabling checkers from the command line.  When this manager runs,
 	 * it will only run the checkers from this map.
 	 */
-	std::unordered_map<std::string, checker*> checkers;
+	std::unordered_map<std::string, checker *> checkers;
 	/**
 	 * The disabled checkers.  Moving checkers to this list disables them,
 	 * but allows them to be easily moved back.
 	 */
-	std::unordered_map<std::string, checker*> disabled_checkers;
+	std::unordered_map<std::string, checker *> disabled_checkers;
 	/**
 	 * Helper function for adding a property value checker.
 	 */
-	template<property_value::value_type T>
-	void add_property_type_checker(const char *name, const std::string &prop);
+	template <property_value::value_type T>
+	void add_property_type_checker(const char *name,
+	    const std::string &prop);
 	/**
 	 * Helper function for adding a simple type checker.
 	 */
-	void add_property_type_checker(const char *name, const std::string &prop);
+	void add_property_type_checker(const char *name,
+	    const std::string &prop);
 	/**
 	 * Helper function for adding a property value checker.
 	 */
 	void add_property_size_checker(const char *name,
-	                               const std::string &prop,
-	                               uint32_t size);
-	public:
+	    const std::string &prop, uint32_t size);
+
+    public:
 	/**
 	 * Delete all of the checkers that are part of this checker manager.
 	 */

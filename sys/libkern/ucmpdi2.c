@@ -34,6 +34,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <libkern/quad.h>
 
 /*
@@ -47,8 +48,11 @@ __ucmpdi2(u_quad_t a, u_quad_t b)
 
 	aa.uq = a;
 	bb.uq = b;
-	return (aa.ul[H] < bb.ul[H] ? 0 : aa.ul[H] > bb.ul[H] ? 2 :
-	    aa.ul[L] < bb.ul[L] ? 0 : aa.ul[L] > bb.ul[L] ? 2 : 1);
+	return (aa.ul[H] < bb.ul[H] ? 0 :
+		aa.ul[H] > bb.ul[H] ? 2 :
+		aa.ul[L] < bb.ul[L] ? 0 :
+		aa.ul[L] > bb.ul[L] ? 2 :
+				      1);
 }
 
 #ifdef __ARM_EABI__

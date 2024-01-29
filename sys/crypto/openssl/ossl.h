@@ -27,20 +27,20 @@
  */
 
 #ifndef __OSSL_H__
-#define	__OSSL_H__
+#define __OSSL_H__
 
 /* Compatibility shims. */
-#define	OPENSSL_cleanse		explicit_bzero
+#define OPENSSL_cleanse explicit_bzero
 
 struct cryptop;
 struct crypto_session_params;
 struct ossl_softc;
 struct ossl_session;
 
-int	ossl_chacha20_poly1305_decrypt(struct cryptop *crp,
-	    const struct crypto_session_params *csp);
-int	ossl_chacha20_poly1305_encrypt(struct cryptop *crp,
-	    const struct crypto_session_params *csp);
+int ossl_chacha20_poly1305_decrypt(struct cryptop *crp,
+    const struct crypto_session_params *csp);
+int ossl_chacha20_poly1305_encrypt(struct cryptop *crp,
+    const struct crypto_session_params *csp);
 void ossl_cpuid(struct ossl_softc *sc);
 
 struct ossl_softc {
@@ -51,11 +51,11 @@ struct ossl_softc {
 
 /* Needs to be big enough to hold any hash context. */
 struct ossl_hash_context {
-	uint32_t	dummy[196];
+	uint32_t dummy[196];
 } __aligned(32);
 
 struct ossl_cipher_context {
-	uint32_t	dummy[196];
+	uint32_t dummy[196];
 } __aligned(32);
 
 struct ossl_session_hash {

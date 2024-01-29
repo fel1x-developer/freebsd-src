@@ -27,7 +27,7 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
- * 
+ *
  */
 
 #ifndef _BHND_CORES_PCIE2_BHND_PCIE2BVAR_H_
@@ -37,7 +37,7 @@
 
 /* PCIe-G2 bridge driver-specific state */
 struct bhnd_pcie2b_softc {
-	struct bhnd_pcie2_softc	sc_common;
+	struct bhnd_pcie2_softc sc_common;
 };
 
 #endif /* _BHND_CORES_PCIE2_BHND_PCIE2BVAR_H_ */

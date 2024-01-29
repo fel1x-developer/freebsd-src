@@ -23,13 +23,12 @@
  * SUCH DAMAGE.
  */
 
-
 #ifndef _PQI_HELPER_H
 #define _PQI_HELPER_H
 
-
 static inline uint64_t
-pqisrc_increment_device_active_io(pqisrc_softstate_t *softs, pqi_scsi_dev_t *device)
+pqisrc_increment_device_active_io(pqisrc_softstate_t *softs,
+    pqi_scsi_dev_t *device)
 {
 #if PQISRC_DEVICE_IO_COUNTER
 	/*Increment device active io count by one*/
@@ -38,7 +37,8 @@ pqisrc_increment_device_active_io(pqisrc_softstate_t *softs, pqi_scsi_dev_t *dev
 }
 
 static inline uint64_t
-pqisrc_decrement_device_active_io(pqisrc_softstate_t *softs,  pqi_scsi_dev_t *device)
+pqisrc_decrement_device_active_io(pqisrc_softstate_t *softs,
+    pqi_scsi_dev_t *device)
 {
 #if PQISRC_DEVICE_IO_COUNTER
 	/*Decrement device active io count by one*/
@@ -63,4 +63,4 @@ pqisrc_read_device_active_io(pqisrc_softstate_t *softs, pqi_scsi_dev_t *device)
 	return OS_ATOMIC64_READ(&device->active_requests);
 #endif
 }
-#endif  /* _PQI_HELPER_H */
+#endif /* _PQI_HELPER_H */

@@ -33,42 +33,40 @@
  */
 #ifndef HQ
 #ifndef _HID_QUIRK_H_
-#define	_HID_QUIRK_H_
+#define _HID_QUIRK_H_
 #endif
 
 /*
  * Keep in sync with share/man/man4/hidquirk.4
  */
-#define	HID_QUIRK_LIST(...)						\
-	HQ(NONE),		/* not a valid quirk */			\
-									\
-	HQ(MATCH_VENDOR_ONLY),	/* match quirk on vendor only */	\
-									\
-	/* Autoquirks */						\
-	HQ(HAS_KBD_BOOTPROTO),	/* device supports keyboard boot protocol */ \
-	HQ(HAS_MS_BOOTPROTO),	/* device supports mouse boot protocol */ \
-	HQ(IS_XBOX360GP), 	/* device is XBox 360 GamePad */	\
-	HQ(NOWRITE),		/* device does not support writes */	\
-	HQ(IICHID_SAMPLING),	/* IIC backend runs in sampling mode */	\
-									\
-	/* Various quirks */						\
-	HQ(HID_IGNORE),		/* device should be ignored by hid class */ \
-	HQ(KBD_BOOTPROTO),	/* device should set the boot protocol */ \
-	HQ(MS_BOOTPROTO),	/* device should set the boot protocol */ \
-	HQ(MS_BAD_CLASS),	/* doesn't identify properly */		\
-	HQ(MS_LEADING_BYTE),	/* mouse sends an unknown leading byte */ \
-	HQ(MS_REVZ),		/* mouse has Z-axis reversed */		\
-	HQ(MS_VENDOR_BTN),	/* mouse has buttons in vendor usage page */ \
-	HQ(SPUR_BUT_UP),	/* spurious mouse button up events */	\
-	HQ(MT_TIMESTAMP)	/* Multitouch device exports HW timestamps */
+#define HID_QUIRK_LIST(...)                                                   \
+	HQ(NONE), /* not a valid quirk */                                     \
+                                                                              \
+	    HQ(MATCH_VENDOR_ONLY), /* match quirk on vendor only */           \
+                                                                              \
+	    /* Autoquirks */                                                  \
+	    HQ(HAS_KBD_BOOTPROTO), /* device supports keyboard boot protocol  \
+				    */                                        \
+	    HQ(HAS_MS_BOOTPROTO),  /* device supports mouse boot protocol */  \
+	    HQ(IS_XBOX360GP),	   /* device is XBox 360 GamePad */           \
+	    HQ(NOWRITE),	   /* device does not support writes */       \
+	    HQ(IICHID_SAMPLING),   /* IIC backend runs in sampling mode */    \
+                                                                              \
+	    /* Various quirks */                                              \
+	    HQ(HID_IGNORE),	 /* device should be ignored by hid class */  \
+	    HQ(KBD_BOOTPROTO),	 /* device should set the boot protocol */    \
+	    HQ(MS_BOOTPROTO),	 /* device should set the boot protocol */    \
+	    HQ(MS_BAD_CLASS),	 /* doesn't identify properly */              \
+	    HQ(MS_LEADING_BYTE), /* mouse sends an unknown leading byte */    \
+	    HQ(MS_REVZ),	 /* mouse has Z-axis reversed */              \
+	    HQ(MS_VENDOR_BTN),	 /* mouse has buttons in vendor usage page */ \
+	    HQ(SPUR_BUT_UP),	 /* spurious mouse button up events */        \
+	    HQ(MT_TIMESTAMP)	 /* Multitouch device exports HW timestamps */
 
-#ifndef	HQ
-#define	HQ(x)	HQ_##x
-enum {
-	HID_QUIRK_LIST(),
-	HID_QUIRK_MAX
-};
+#ifndef HQ
+#define HQ(x) HQ_##x
+enum { HID_QUIRK_LIST(), HID_QUIRK_MAX };
 #undef HQ
 
-#endif					/* _HID_QUIRK_H_ */
-#endif					/* HQ */
+#endif /* _HID_QUIRK_H_ */
+#endif /* HQ */

@@ -34,7 +34,7 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */ 
+ */
 
 const struct edid_vendor edid_vendors[] = {
 	{ "AAC", EDID_VENDOR_AAC },
@@ -86,19 +86,23 @@ const int edid_nvendors = 44;
 
 const struct edid_product edid_products[] = {
 	{
-	    "DEL", EDID_PRODUCT_DEL_ULTRASCAN14XE_REVA,
+	    "DEL",
+	    EDID_PRODUCT_DEL_ULTRASCAN14XE_REVA,
 	    "Ultrascan 14XE",
 	},
 	{
-	    "DEL", EDID_PRODUCT_DEL_ULTRASCAN14XE_REVB,
+	    "DEL",
+	    EDID_PRODUCT_DEL_ULTRASCAN14XE_REVB,
 	    "Ultrascan 14XE",
 	},
 	{
-	    "VSC", EDID_PRODUCT_VSC_17GS,
+	    "VSC",
+	    EDID_PRODUCT_VSC_17GS,
 	    "17GS",
 	},
 	{
-	    "VSC", EDID_PRODUCT_VSC_17PS,
+	    "VSC",
+	    EDID_PRODUCT_VSC_17PS,
 	    "17PS",
 	},
 };

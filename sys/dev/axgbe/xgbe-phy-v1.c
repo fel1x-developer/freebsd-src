@@ -112,8 +112,9 @@
  */
 
 #include <sys/cdefs.h>
-#include "xgbe.h"
+
 #include "xgbe-common.h"
+#include "xgbe.h"
 
 struct xgbe_phy_data {
 	/* 1000/10000 vs 2500/10000 indicator */
@@ -321,17 +322,17 @@ xgbe_phy_kr_mode(struct xgbe_prv_data *pdata)
 	XSIR1_IOWRITE_BITS(pdata, SIR1_SPEED, PLLSEL, XGBE_SPEED_10000_PLL);
 
 	XSIR1_IOWRITE_BITS(pdata, SIR1_SPEED, CDR_RATE,
-			   phy_data->cdr_rate[XGBE_SPEED_10000]);
+	    phy_data->cdr_rate[XGBE_SPEED_10000]);
 	XSIR1_IOWRITE_BITS(pdata, SIR1_SPEED, TXAMP,
-			   phy_data->tx_amp[XGBE_SPEED_10000]);
+	    phy_data->tx_amp[XGBE_SPEED_10000]);
 	XRXTX_IOWRITE_BITS(pdata, RXTX_REG20, BLWC_ENA,
-			   phy_data->blwc[XGBE_SPEED_10000]);
+	    phy_data->blwc[XGBE_SPEED_10000]);
 	XRXTX_IOWRITE_BITS(pdata, RXTX_REG114, PQ_REG,
-			   phy_data->pq_skew[XGBE_SPEED_10000]);
+	    phy_data->pq_skew[XGBE_SPEED_10000]);
 	XRXTX_IOWRITE_BITS(pdata, RXTX_REG129, RXDFE_CONFIG,
-			   phy_data->dfe_tap_cfg[XGBE_SPEED_10000]);
+	    phy_data->dfe_tap_cfg[XGBE_SPEED_10000]);
 	XRXTX_IOWRITE(pdata, RXTX_REG22,
-		      phy_data->dfe_tap_ena[XGBE_SPEED_10000]);
+	    phy_data->dfe_tap_ena[XGBE_SPEED_10000]);
 
 	xgbe_phy_complete_ratechange(pdata);
 
@@ -365,17 +366,17 @@ xgbe_phy_kx_2500_mode(struct xgbe_prv_data *pdata)
 	XSIR1_IOWRITE_BITS(pdata, SIR1_SPEED, PLLSEL, XGBE_SPEED_2500_PLL);
 
 	XSIR1_IOWRITE_BITS(pdata, SIR1_SPEED, CDR_RATE,
-			   phy_data->cdr_rate[XGBE_SPEED_2500]);
+	    phy_data->cdr_rate[XGBE_SPEED_2500]);
 	XSIR1_IOWRITE_BITS(pdata, SIR1_SPEED, TXAMP,
-			   phy_data->tx_amp[XGBE_SPEED_2500]);
+	    phy_data->tx_amp[XGBE_SPEED_2500]);
 	XRXTX_IOWRITE_BITS(pdata, RXTX_REG20, BLWC_ENA,
-			   phy_data->blwc[XGBE_SPEED_2500]);
+	    phy_data->blwc[XGBE_SPEED_2500]);
 	XRXTX_IOWRITE_BITS(pdata, RXTX_REG114, PQ_REG,
-			   phy_data->pq_skew[XGBE_SPEED_2500]);
+	    phy_data->pq_skew[XGBE_SPEED_2500]);
 	XRXTX_IOWRITE_BITS(pdata, RXTX_REG129, RXDFE_CONFIG,
-			   phy_data->dfe_tap_cfg[XGBE_SPEED_2500]);
+	    phy_data->dfe_tap_cfg[XGBE_SPEED_2500]);
 	XRXTX_IOWRITE(pdata, RXTX_REG22,
-		      phy_data->dfe_tap_ena[XGBE_SPEED_2500]);
+	    phy_data->dfe_tap_ena[XGBE_SPEED_2500]);
 
 	xgbe_phy_complete_ratechange(pdata);
 
@@ -409,17 +410,17 @@ xgbe_phy_kx_1000_mode(struct xgbe_prv_data *pdata)
 	XSIR1_IOWRITE_BITS(pdata, SIR1_SPEED, PLLSEL, XGBE_SPEED_1000_PLL);
 
 	XSIR1_IOWRITE_BITS(pdata, SIR1_SPEED, CDR_RATE,
-			   phy_data->cdr_rate[XGBE_SPEED_1000]);
+	    phy_data->cdr_rate[XGBE_SPEED_1000]);
 	XSIR1_IOWRITE_BITS(pdata, SIR1_SPEED, TXAMP,
-			   phy_data->tx_amp[XGBE_SPEED_1000]);
+	    phy_data->tx_amp[XGBE_SPEED_1000]);
 	XRXTX_IOWRITE_BITS(pdata, RXTX_REG20, BLWC_ENA,
-			   phy_data->blwc[XGBE_SPEED_1000]);
+	    phy_data->blwc[XGBE_SPEED_1000]);
 	XRXTX_IOWRITE_BITS(pdata, RXTX_REG114, PQ_REG,
-			   phy_data->pq_skew[XGBE_SPEED_1000]);
+	    phy_data->pq_skew[XGBE_SPEED_1000]);
 	XRXTX_IOWRITE_BITS(pdata, RXTX_REG129, RXDFE_CONFIG,
-			   phy_data->dfe_tap_cfg[XGBE_SPEED_1000]);
+	    phy_data->dfe_tap_cfg[XGBE_SPEED_1000]);
 	XRXTX_IOWRITE(pdata, RXTX_REG22,
-		      phy_data->dfe_tap_ena[XGBE_SPEED_1000]);
+	    phy_data->dfe_tap_ena[XGBE_SPEED_1000]);
 
 	xgbe_phy_complete_ratechange(pdata);
 
@@ -474,11 +475,13 @@ xgbe_phy_get_mode(struct xgbe_prv_data *pdata, int speed)
 
 	switch (speed) {
 	case SPEED_1000:
-		return ((phy_data->speed_set == XGBE_SPEEDSET_1000_10000)
-			? XGBE_MODE_KX_1000 : XGBE_MODE_UNKNOWN);
+		return ((phy_data->speed_set == XGBE_SPEEDSET_1000_10000) ?
+			XGBE_MODE_KX_1000 :
+			XGBE_MODE_UNKNOWN);
 	case SPEED_2500:
-		return ((phy_data->speed_set == XGBE_SPEEDSET_2500_10000)
-			? XGBE_MODE_KX_2500 : XGBE_MODE_UNKNOWN);
+		return ((phy_data->speed_set == XGBE_SPEEDSET_2500_10000) ?
+			XGBE_MODE_KX_2500 :
+			XGBE_MODE_UNKNOWN);
 	case SPEED_10000:
 		return (XGBE_MODE_KR);
 	default:
@@ -505,7 +508,7 @@ xgbe_phy_set_mode(struct xgbe_prv_data *pdata, enum xgbe_mode mode)
 }
 
 static void
-xgbe_phy_get_type(struct xgbe_prv_data *pdata, struct ifmediareq * ifmr)
+xgbe_phy_get_type(struct xgbe_prv_data *pdata, struct ifmediareq *ifmr)
 {
 
 	switch (pdata->phy.speed) {
@@ -525,7 +528,8 @@ xgbe_phy_get_type(struct xgbe_prv_data *pdata, struct ifmediareq * ifmr)
 }
 
 static bool
-xgbe_phy_check_mode(struct xgbe_prv_data *pdata, enum xgbe_mode mode, bool advert)
+xgbe_phy_check_mode(struct xgbe_prv_data *pdata, enum xgbe_mode mode,
+    bool advert)
 {
 
 	if (pdata->phy.autoneg == AUTONEG_ENABLE)
@@ -674,32 +678,32 @@ xgbe_init_function_ptrs_phy_v1(struct xgbe_phy_if *phy_if)
 {
 	struct xgbe_phy_impl_if *phy_impl = &phy_if->phy_impl;
 
-	phy_impl->init			= xgbe_phy_init;
-	phy_impl->exit			= xgbe_phy_exit;
+	phy_impl->init = xgbe_phy_init;
+	phy_impl->exit = xgbe_phy_exit;
 
-	phy_impl->reset			= xgbe_phy_reset;
-	phy_impl->start			= xgbe_phy_start;
-	phy_impl->stop			= xgbe_phy_stop;
+	phy_impl->reset = xgbe_phy_reset;
+	phy_impl->start = xgbe_phy_start;
+	phy_impl->stop = xgbe_phy_stop;
 
-	phy_impl->link_status		= xgbe_phy_link_status;
+	phy_impl->link_status = xgbe_phy_link_status;
 
-	phy_impl->valid_speed		= xgbe_phy_valid_speed;
+	phy_impl->valid_speed = xgbe_phy_valid_speed;
 
-	phy_impl->use_mode		= xgbe_phy_use_mode;
-	phy_impl->set_mode		= xgbe_phy_set_mode;
-	phy_impl->get_mode		= xgbe_phy_get_mode;
-	phy_impl->switch_mode		= xgbe_phy_switch_mode;
-	phy_impl->cur_mode		= xgbe_phy_cur_mode;
-	phy_impl->get_type		= xgbe_phy_get_type;
+	phy_impl->use_mode = xgbe_phy_use_mode;
+	phy_impl->set_mode = xgbe_phy_set_mode;
+	phy_impl->get_mode = xgbe_phy_get_mode;
+	phy_impl->switch_mode = xgbe_phy_switch_mode;
+	phy_impl->cur_mode = xgbe_phy_cur_mode;
+	phy_impl->get_type = xgbe_phy_get_type;
 
-	phy_impl->an_mode		= xgbe_phy_an_mode;
+	phy_impl->an_mode = xgbe_phy_an_mode;
 
-	phy_impl->an_config		= xgbe_phy_an_config;
+	phy_impl->an_config = xgbe_phy_an_config;
 
-	phy_impl->an_advertising	= xgbe_phy_an_advertising;
+	phy_impl->an_advertising = xgbe_phy_an_advertising;
 
-	phy_impl->an_outcome		= xgbe_phy_an_outcome;
+	phy_impl->an_outcome = xgbe_phy_an_outcome;
 
-	phy_impl->kr_training_pre	= xgbe_phy_kr_training_pre;
-	phy_impl->kr_training_post	= xgbe_phy_kr_training_post;
+	phy_impl->kr_training_pre = xgbe_phy_kr_training_pre;
+	phy_impl->kr_training_post = xgbe_phy_kr_training_post;
 }

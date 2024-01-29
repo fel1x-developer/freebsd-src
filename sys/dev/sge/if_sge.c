@@ -63,31 +63,28 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 
-#include <net/bpf.h>
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
-#include <net/if_vlan_var.h>
-
-#include <netinet/in.h>
-#include <netinet/in_systm.h>
-#include <netinet/ip.h>
-#include <netinet/tcp.h>
-
 #include <machine/bus.h>
 #include <machine/in_cksum.h>
 
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
-
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
-
 #include <dev/sge/if_sgereg.h>
+
+#include <net/bpf.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+#include <net/if_vlan_var.h>
+#include <netinet/in.h>
+#include <netinet/in_systm.h>
+#include <netinet/ip.h>
+#include <netinet/tcp.h>
 
 MODULE_DEPEND(sge, pci, 1, 1, 1);
 MODULE_DEPEND(sge, ether, 1, 1, 1);
@@ -99,77 +96,73 @@ MODULE_DEPEND(sge, miibus, 1, 1, 1);
 /*
  * Various supported device vendors/types and their names.
  */
-static struct sge_type sge_devs[] = {
-	{ SIS_VENDORID, SIS_DEVICEID_190, "SiS190 Fast Ethernet" },
+static struct sge_type sge_devs[] = { { SIS_VENDORID, SIS_DEVICEID_190,
+					  "SiS190 Fast Ethernet" },
 	{ SIS_VENDORID, SIS_DEVICEID_191, "SiS191 Fast/Gigabit Ethernet" },
-	{ 0, 0, NULL }
-};
+	{ 0, 0, NULL } };
 
-static int	sge_probe(device_t);
-static int	sge_attach(device_t);
-static int	sge_detach(device_t);
-static int	sge_shutdown(device_t);
-static int	sge_suspend(device_t);
-static int	sge_resume(device_t);
+static int sge_probe(device_t);
+static int sge_attach(device_t);
+static int sge_detach(device_t);
+static int sge_shutdown(device_t);
+static int sge_suspend(device_t);
+static int sge_resume(device_t);
 
-static int	sge_miibus_readreg(device_t, int, int);
-static int	sge_miibus_writereg(device_t, int, int, int);
-static void	sge_miibus_statchg(device_t);
+static int sge_miibus_readreg(device_t, int, int);
+static int sge_miibus_writereg(device_t, int, int, int);
+static void sge_miibus_statchg(device_t);
 
-static int	sge_newbuf(struct sge_softc *, int);
-static int	sge_encap(struct sge_softc *, struct mbuf **);
-static __inline void
-		sge_discard_rxbuf(struct sge_softc *, int);
-static void	sge_rxeof(struct sge_softc *);
-static void	sge_txeof(struct sge_softc *);
-static void	sge_intr(void *);
-static void	sge_tick(void *);
-static void	sge_start(if_t);
-static void	sge_start_locked(if_t);
-static int	sge_ioctl(if_t, u_long, caddr_t);
-static void	sge_init(void *);
-static void	sge_init_locked(struct sge_softc *);
-static void	sge_stop(struct sge_softc *);
-static void	sge_watchdog(struct sge_softc *);
-static int	sge_ifmedia_upd(if_t);
-static void	sge_ifmedia_sts(if_t, struct ifmediareq *);
+static int sge_newbuf(struct sge_softc *, int);
+static int sge_encap(struct sge_softc *, struct mbuf **);
+static __inline void sge_discard_rxbuf(struct sge_softc *, int);
+static void sge_rxeof(struct sge_softc *);
+static void sge_txeof(struct sge_softc *);
+static void sge_intr(void *);
+static void sge_tick(void *);
+static void sge_start(if_t);
+static void sge_start_locked(if_t);
+static int sge_ioctl(if_t, u_long, caddr_t);
+static void sge_init(void *);
+static void sge_init_locked(struct sge_softc *);
+static void sge_stop(struct sge_softc *);
+static void sge_watchdog(struct sge_softc *);
+static int sge_ifmedia_upd(if_t);
+static void sge_ifmedia_sts(if_t, struct ifmediareq *);
 
-static int	sge_get_mac_addr_apc(struct sge_softc *, uint8_t *);
-static int	sge_get_mac_addr_eeprom(struct sge_softc *, uint8_t *);
-static uint16_t	sge_read_eeprom(struct sge_softc *, int);
+static int sge_get_mac_addr_apc(struct sge_softc *, uint8_t *);
+static int sge_get_mac_addr_eeprom(struct sge_softc *, uint8_t *);
+static uint16_t sge_read_eeprom(struct sge_softc *, int);
 
-static void	sge_rxfilter(struct sge_softc *);
-static void	sge_setvlan(struct sge_softc *);
-static void	sge_reset(struct sge_softc *);
-static int	sge_list_rx_init(struct sge_softc *);
-static int	sge_list_rx_free(struct sge_softc *);
-static int	sge_list_tx_init(struct sge_softc *);
-static int	sge_list_tx_free(struct sge_softc *);
+static void sge_rxfilter(struct sge_softc *);
+static void sge_setvlan(struct sge_softc *);
+static void sge_reset(struct sge_softc *);
+static int sge_list_rx_init(struct sge_softc *);
+static int sge_list_rx_free(struct sge_softc *);
+static int sge_list_tx_init(struct sge_softc *);
+static int sge_list_tx_free(struct sge_softc *);
 
-static int	sge_dma_alloc(struct sge_softc *);
-static void	sge_dma_free(struct sge_softc *);
-static void	sge_dma_map_addr(void *, bus_dma_segment_t *, int, int);
+static int sge_dma_alloc(struct sge_softc *);
+static void sge_dma_free(struct sge_softc *);
+static void sge_dma_map_addr(void *, bus_dma_segment_t *, int, int);
 
 static device_method_t sge_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		sge_probe),
-	DEVMETHOD(device_attach,	sge_attach),
-	DEVMETHOD(device_detach,	sge_detach),
-	DEVMETHOD(device_suspend,	sge_suspend),
-	DEVMETHOD(device_resume,	sge_resume),
-	DEVMETHOD(device_shutdown,	sge_shutdown),
+	DEVMETHOD(device_probe, sge_probe),
+	DEVMETHOD(device_attach, sge_attach),
+	DEVMETHOD(device_detach, sge_detach),
+	DEVMETHOD(device_suspend, sge_suspend),
+	DEVMETHOD(device_resume, sge_resume),
+	DEVMETHOD(device_shutdown, sge_shutdown),
 
 	/* MII interface */
-	DEVMETHOD(miibus_readreg,	sge_miibus_readreg),
-	DEVMETHOD(miibus_writereg,	sge_miibus_writereg),
-	DEVMETHOD(miibus_statchg,	sge_miibus_statchg),
+	DEVMETHOD(miibus_readreg, sge_miibus_readreg),
+	DEVMETHOD(miibus_writereg, sge_miibus_writereg),
+	DEVMETHOD(miibus_statchg, sge_miibus_statchg),
 
 	DEVMETHOD_END
 };
 
-static driver_t sge_driver = {
-	"sge", sge_methods, sizeof(struct sge_softc)
-};
+static driver_t sge_driver = { "sge", sge_methods, sizeof(struct sge_softc) };
 
 DRIVER_MODULE(sge, pci, sge_driver, 0, 0);
 DRIVER_MODULE(miibus, sge, miibus_driver, 0, 0);
@@ -177,18 +170,18 @@ DRIVER_MODULE(miibus, sge, miibus_driver, 0, 0);
 /*
  * Register space access macros.
  */
-#define	CSR_WRITE_4(sc, reg, val)	bus_write_4(sc->sge_res, reg, val)
-#define	CSR_WRITE_2(sc, reg, val)	bus_write_2(sc->sge_res, reg, val)
-#define	CSR_WRITE_1(cs, reg, val)	bus_write_1(sc->sge_res, reg, val)
+#define CSR_WRITE_4(sc, reg, val) bus_write_4(sc->sge_res, reg, val)
+#define CSR_WRITE_2(sc, reg, val) bus_write_2(sc->sge_res, reg, val)
+#define CSR_WRITE_1(cs, reg, val) bus_write_1(sc->sge_res, reg, val)
 
-#define	CSR_READ_4(sc, reg)		bus_read_4(sc->sge_res, reg)
-#define	CSR_READ_2(sc, reg)		bus_read_2(sc->sge_res, reg)
-#define	CSR_READ_1(sc, reg)		bus_read_1(sc->sge_res, reg)
+#define CSR_READ_4(sc, reg) bus_read_4(sc->sge_res, reg)
+#define CSR_READ_2(sc, reg) bus_read_2(sc->sge_res, reg)
+#define CSR_READ_1(sc, reg) bus_read_1(sc->sge_res, reg)
 
 /* Define to show Tx/Rx error status. */
 #undef SGE_SHOW_ERRORS
 
-#define	SGE_CSUM_FEATURES	(CSUM_IP | CSUM_TCP | CSUM_UDP)
+#define SGE_CSUM_FEATURES (CSUM_IP | CSUM_TCP | CSUM_UDP)
 
 static void
 sge_dma_map_addr(void *arg, bus_dma_segment_t *segs, int nseg, int error)
@@ -198,7 +191,7 @@ sge_dma_map_addr(void *arg, bus_dma_segment_t *segs, int nseg, int error)
 	if (error != 0)
 		return;
 	KASSERT(nseg == 1, ("too many DMA segments, %d should be 1", nseg));
-	p  = arg;
+	p = arg;
 	*p = segs->ds_addr;
 }
 
@@ -222,8 +215,8 @@ sge_read_eeprom(struct sge_softc *sc, int offset)
 		DELAY(100);
 	}
 	if (i == SGE_TIMEOUT) {
-		device_printf(sc->sge_dev,
-		    "EEPROM read timeout : 0x%08x\n", val);
+		device_printf(sc->sge_dev, "EEPROM read timeout : 0x%08x\n",
+		    val);
 		return (0xffff);
 	}
 
@@ -268,11 +261,9 @@ sge_get_mac_addr_apc(struct sge_softc *sc, uint8_t *dest)
 	struct apc_tbl {
 		uint16_t vid;
 		uint16_t did;
-	} *tp, apc_tbls[] = {
-		{ SIS_VENDORID, 0x0965 },
-		{ SIS_VENDORID, 0x0966 },
-		{ SIS_VENDORID, 0x0968 }
-	};
+	} *tp,
+	    apc_tbls[] = { { SIS_VENDORID, 0x0965 }, { SIS_VENDORID, 0x0966 },
+		    { SIS_VENDORID, 0x0968 } };
 	uint8_t reg;
 	int busnum, i, j, numkids;
 
@@ -297,7 +288,7 @@ sge_get_mac_addr_apc(struct sge_softc *sc, uint8_t *dest)
 					tp++;
 				}
 			}
-                }
+		}
 		free(kids, M_TEMP);
 	}
 	device_printf(sc->sge_dev, "couldn't find PCI-ISA bridge\n");
@@ -333,8 +324,9 @@ sge_miibus_readreg(device_t dev, int phy, int reg)
 	int i;
 
 	sc = device_get_softc(dev);
-	CSR_WRITE_4(sc, GMIIControl, (phy << GMI_PHY_SHIFT) |
-	    (reg << GMI_REG_SHIFT) | GMI_OP_RD | GMI_REQ);
+	CSR_WRITE_4(sc, GMIIControl,
+	    (phy << GMI_PHY_SHIFT) | (reg << GMI_REG_SHIFT) | GMI_OP_RD |
+		GMI_REQ);
 	DELAY(10);
 	for (i = 0; i < SGE_TIMEOUT; i++) {
 		val = CSR_READ_4(sc, GMIIControl);
@@ -357,9 +349,9 @@ sge_miibus_writereg(device_t dev, int phy, int reg, int data)
 	int i;
 
 	sc = device_get_softc(dev);
-	CSR_WRITE_4(sc, GMIIControl, (phy << GMI_PHY_SHIFT) |
-	    (reg << GMI_REG_SHIFT) | (data << GMI_DATA_SHIFT) |
-	    GMI_OP_WR | GMI_REQ);
+	CSR_WRITE_4(sc, GMIIControl,
+	    (phy << GMI_PHY_SHIFT) | (reg << GMI_REG_SHIFT) |
+		(data << GMI_DATA_SHIFT) | GMI_OP_WR | GMI_REQ);
 	DELAY(10);
 	for (i = 0; i < SGE_TIMEOUT; i++) {
 		val = CSR_READ_4(sc, GMIIControl);
@@ -407,8 +399,8 @@ sge_miibus_statchg(device_t dev)
 			break;
 		default:
 			break;
-                }
-        }
+		}
+	}
 	if ((sc->sge_flags & SGE_FLAG_LINK) == 0)
 		return;
 	/* Reprogram MAC to resolved speed/duplex/flow-control parameters. */
@@ -561,7 +553,7 @@ sge_attach(device_t dev)
 
 	mtx_init(&sc->sge_mtx, device_get_nameunit(dev), MTX_NETWORK_LOCK,
 	    MTX_DEF);
-        callout_init_mtx(&sc->sge_stat_ch, &sc->sge_mtx, 0);
+	callout_init_mtx(&sc->sge_stat_ch, &sc->sge_mtx, 0);
 
 	/*
 	 * Map control/status registers.
@@ -635,8 +627,9 @@ sge_attach(device_t dev)
 	ether_ifattach(ifp, eaddr);
 
 	/* VLAN setup. */
-	if_setcapabilities(ifp, IFCAP_VLAN_HWTAGGING | IFCAP_VLAN_HWCSUM |
-	    IFCAP_VLAN_HWTSO | IFCAP_VLAN_MTU);
+	if_setcapabilities(ifp,
+	    IFCAP_VLAN_HWTAGGING | IFCAP_VLAN_HWCSUM | IFCAP_VLAN_HWTSO |
+		IFCAP_VLAN_MTU);
 	if_setcapenable(ifp, if_getcapabilities(ifp));
 	/* Tell the upper layer(s) we support long frames. */
 	if_setifheaderlen(ifp, sizeof(struct ether_vlan_header));
@@ -756,17 +749,17 @@ sge_dma_alloc(struct sge_softc *sc)
 
 	cd = &sc->sge_cdata;
 	ld = &sc->sge_ldata;
-	error = bus_dma_tag_create(bus_get_dma_tag(sc->sge_dev),
-	    1, 0,			/* alignment, boundary */
-	    BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    BUS_SPACE_MAXSIZE_32BIT,	/* maxsize */
-	    1,				/* nsegments */
-	    BUS_SPACE_MAXSIZE_32BIT,	/* maxsegsize */
-	    0,				/* flags */
-	    NULL,			/* lockfunc */
-	    NULL,			/* lockarg */
+	error = bus_dma_tag_create(bus_get_dma_tag(sc->sge_dev), 1,
+	    0,			     /* alignment, boundary */
+	    BUS_SPACE_MAXADDR_32BIT, /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filter, filterarg */
+	    BUS_SPACE_MAXSIZE_32BIT, /* maxsize */
+	    1,			     /* nsegments */
+	    BUS_SPACE_MAXSIZE_32BIT, /* maxsegsize */
+	    0,			     /* flags */
+	    NULL,		     /* lockfunc */
+	    NULL,		     /* lockarg */
 	    &cd->sge_tag);
 	if (error != 0) {
 		device_printf(sc->sge_dev,
@@ -775,16 +768,16 @@ sge_dma_alloc(struct sge_softc *sc)
 	}
 
 	/* RX descriptor ring */
-	error = bus_dma_tag_create(cd->sge_tag,
-	    SGE_DESC_ALIGN, 0,		/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    SGE_RX_RING_SZ, 1,		/* maxsize,nsegments */
-	    SGE_RX_RING_SZ,		/* maxsegsize */
-	    0,				/* flags */
-	    NULL,			/* lockfunc */
-	    NULL,			/* lockarg */
+	error = bus_dma_tag_create(cd->sge_tag, SGE_DESC_ALIGN,
+	    0,		       /* alignment, boundary */
+	    BUS_SPACE_MAXADDR, /* lowaddr */
+	    BUS_SPACE_MAXADDR, /* highaddr */
+	    NULL, NULL,	       /* filter, filterarg */
+	    SGE_RX_RING_SZ, 1, /* maxsize,nsegments */
+	    SGE_RX_RING_SZ,    /* maxsegsize */
+	    0,		       /* flags */
+	    NULL,	       /* lockfunc */
+	    NULL,	       /* lockarg */
 	    &cd->sge_rx_tag);
 	if (error != 0) {
 		device_printf(sc->sge_dev,
@@ -809,16 +802,16 @@ sge_dma_alloc(struct sge_softc *sc)
 	}
 
 	/* TX descriptor ring */
-	error = bus_dma_tag_create(cd->sge_tag,
-	    SGE_DESC_ALIGN, 0,		/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    SGE_TX_RING_SZ, 1,		/* maxsize,nsegments */
-	    SGE_TX_RING_SZ,		/* maxsegsize */
-	    0,				/* flags */
-	    NULL,			/* lockfunc */
-	    NULL,			/* lockarg */
+	error = bus_dma_tag_create(cd->sge_tag, SGE_DESC_ALIGN,
+	    0,		       /* alignment, boundary */
+	    BUS_SPACE_MAXADDR, /* lowaddr */
+	    BUS_SPACE_MAXADDR, /* highaddr */
+	    NULL, NULL,	       /* filter, filterarg */
+	    SGE_TX_RING_SZ, 1, /* maxsize,nsegments */
+	    SGE_TX_RING_SZ,    /* maxsegsize */
+	    0,		       /* flags */
+	    NULL,	       /* lockfunc */
+	    NULL,	       /* lockarg */
 	    &cd->sge_tx_tag);
 	if (error != 0) {
 		device_printf(sc->sge_dev,
@@ -1056,8 +1049,7 @@ sge_list_rx_free(struct sge_softc *sc)
 		if (rxd->rx_m != NULL) {
 			bus_dmamap_sync(cd->sge_rxmbuf_tag, rxd->rx_dmamap,
 			    BUS_DMASYNC_POSTREAD);
-			bus_dmamap_unload(cd->sge_rxmbuf_tag,
-			    rxd->rx_dmamap);
+			bus_dmamap_unload(cd->sge_rxmbuf_tag, rxd->rx_dmamap);
 			m_freem(rxd->rx_m);
 			rxd->rx_m = NULL;
 		}
@@ -1137,10 +1129,10 @@ sge_discard_rxbuf(struct sge_softc *sc, int index)
 static void
 sge_rxeof(struct sge_softc *sc)
 {
-        if_t ifp;
-        struct mbuf *m;
+	if_t ifp;
+	struct mbuf *m;
 	struct sge_chain_data *cd;
-	struct sge_desc	*cur_rx;
+	struct sge_desc *cur_rx;
 	uint32_t rxinfo, rxstat;
 	int cons, prog;
 
@@ -1152,8 +1144,8 @@ sge_rxeof(struct sge_softc *sc)
 	bus_dmamap_sync(cd->sge_rx_tag, cd->sge_rx_dmamap,
 	    BUS_DMASYNC_POSTREAD | BUS_DMASYNC_POSTWRITE);
 	cons = cd->sge_rx_cons;
-	for (prog = 0; prog < SGE_RX_RING_CNT; prog++,
-	    SGE_INC(cons, SGE_RX_RING_CNT)) {
+	for (prog = 0; prog < SGE_RX_RING_CNT;
+	     prog++, SGE_INC(cons, SGE_RX_RING_CNT)) {
 		if ((if_getdrvflags(ifp) & IFF_DRV_RUNNING) == 0)
 			break;
 		cur_rx = &sc->sge_ldata.sge_rx_ring[cons];
@@ -1181,14 +1173,14 @@ sge_rxeof(struct sge_softc *sc)
 		if ((if_getcapenable(ifp) & IFCAP_RXCSUM) != 0) {
 			if ((rxinfo & RDC_IP_CSUM) != 0 &&
 			    (rxinfo & RDC_IP_CSUM_OK) != 0)
-				m->m_pkthdr.csum_flags |=
-				    CSUM_IP_CHECKED | CSUM_IP_VALID;
+				m->m_pkthdr.csum_flags |= CSUM_IP_CHECKED |
+				    CSUM_IP_VALID;
 			if (((rxinfo & RDC_TCP_CSUM) != 0 &&
-			    (rxinfo & RDC_TCP_CSUM_OK) != 0) ||
+				(rxinfo & RDC_TCP_CSUM_OK) != 0) ||
 			    ((rxinfo & RDC_UDP_CSUM) != 0 &&
-			    (rxinfo & RDC_UDP_CSUM_OK) != 0)) {
-				m->m_pkthdr.csum_flags |=
-				    CSUM_DATA_VALID | CSUM_PSEUDO_HDR;
+				(rxinfo & RDC_UDP_CSUM_OK) != 0)) {
+				m->m_pkthdr.csum_flags |= CSUM_DATA_VALID |
+				    CSUM_PSEUDO_HDR;
 				m->m_pkthdr.csum_data = 0xffff;
 			}
 		}
@@ -1260,13 +1252,14 @@ sge_txeof(struct sge_softc *sc)
 		 */
 		if (SGE_TX_ERROR(txstat) != 0) {
 #ifdef SGE_SHOW_ERRORS
-			device_printf(sc->sge_dev, "Tx error : 0x%b\n",
-			    txstat, TX_ERR_BITS);
+			device_printf(sc->sge_dev, "Tx error : 0x%b\n", txstat,
+			    TX_ERR_BITS);
 #endif
 			if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
 		} else {
 #ifdef notyet
-			if_inc_counter(ifp, IFCOUNTER_COLLISIONS, (txstat & 0xFFFF) - 1);
+			if_inc_counter(ifp, IFCOUNTER_COLLISIONS,
+			    (txstat & 0xFFFF) - 1);
 #endif
 			if_inc_counter(ifp, IFCOUNTER_OPACKETS, 1);
 		}
@@ -1525,7 +1518,7 @@ sge_encap(struct sge_softc *sc, struct mbuf **m_head)
 
 	desc = &sc->sge_ldata.sge_tx_ring[si];
 	/* Configure VLAN. */
-	if((m->m_flags & M_VLANTAG) != 0) {
+	if ((m->m_flags & M_VLANTAG) != 0) {
 		cflags |= m->m_pkthdr.ether_vtag;
 		desc->sge_sts_size |= htole32(TDS_INS_VLAN);
 	}
@@ -1570,12 +1563,12 @@ sge_start_locked(if_t ifp)
 
 	if ((sc->sge_flags & SGE_FLAG_LINK) == 0 ||
 	    (if_getdrvflags(ifp) & (IFF_DRV_RUNNING | IFF_DRV_OACTIVE)) !=
-	    IFF_DRV_RUNNING)
+		IFF_DRV_RUNNING)
 		return;
 
-	for (queued = 0; !if_sendq_empty(ifp); ) {
-		if (sc->sge_cdata.sge_tx_cnt > (SGE_TX_RING_CNT -
-		    SGE_MAXTXSEGS)) {
+	for (queued = 0; !if_sendq_empty(ifp);) {
+		if (sc->sge_cdata.sge_tx_cnt >
+		    (SGE_TX_RING_CNT - SGE_MAXTXSEGS)) {
 			if_setdrvflagbits(ifp, IFF_DRV_OACTIVE, 0);
 			break;
 		}
@@ -1654,8 +1647,8 @@ sge_init_locked(struct sge_softc *sc)
 	CSR_WRITE_4(sc, RxWakeOnLan, 0);
 	CSR_WRITE_4(sc, RxWakeOnLanData, 0);
 	/* Allow receiving VLAN frames. */
-	CSR_WRITE_2(sc, RxMPSControl, ETHER_MAX_LEN + ETHER_VLAN_ENCAP_LEN +
-	    SGE_RX_PAD_BYTES);
+	CSR_WRITE_2(sc, RxMPSControl,
+	    ETHER_MAX_LEN + ETHER_VLAN_ENCAP_LEN + SGE_RX_PAD_BYTES);
 
 	for (i = 0; i < ETHER_ADDR_LEN; i++)
 		CSR_WRITE_1(sc, RxMacAddr + i, if_getlladdr(ifp)[i]);
@@ -1710,13 +1703,13 @@ sge_ifmedia_upd(if_t ifp)
 {
 	struct sge_softc *sc;
 	struct mii_data *mii;
-		struct mii_softc *miisc;
+	struct mii_softc *miisc;
 	int error;
 
 	sc = if_getsoftc(ifp);
 	SGE_LOCK(sc);
 	mii = device_get_softc(sc->sge_miibus);
-	LIST_FOREACH(miisc, &mii->mii_phys, mii_list)
+	LIST_FOREACH (miisc, &mii->mii_phys, mii_list)
 		PHY_RESET(miisc);
 	error = mii_mediachg(mii);
 	SGE_UNLOCK(sc);
@@ -1757,13 +1750,13 @@ sge_ioctl(if_t ifp, u_long command, caddr_t data)
 	sc = if_getsoftc(ifp);
 	ifr = (struct ifreq *)data;
 
-	switch(command) {
+	switch (command) {
 	case SIOCSIFFLAGS:
 		SGE_LOCK(sc);
 		if ((if_getflags(ifp) & IFF_UP) != 0) {
 			if ((if_getdrvflags(ifp) & IFF_DRV_RUNNING) != 0 &&
 			    ((if_getflags(ifp) ^ sc->sge_if_flags) &
-			    (IFF_PROMISC | IFF_ALLMULTI)) != 0)
+				(IFF_PROMISC | IFF_ALLMULTI)) != 0)
 				sge_rxfilter(sc);
 			else
 				sge_init_locked(sc);
@@ -1813,7 +1806,8 @@ sge_ioctl(if_t ifp, u_long command, caddr_t data)
 				    IFCAP_VLAN_HWTSO | IFCAP_VLAN_HWCSUM);
 			reinit = 1;
 		}
-		if (reinit > 0 && (if_getdrvflags(ifp) & IFF_DRV_RUNNING) != 0) {
+		if (reinit > 0 &&
+		    (if_getdrvflags(ifp) & IFF_DRV_RUNNING) != 0) {
 			if_setdrvflagbits(ifp, 0, IFF_DRV_RUNNING);
 			sge_init_locked(sc);
 		}

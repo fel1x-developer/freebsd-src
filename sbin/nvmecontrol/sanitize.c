@@ -46,14 +46,14 @@
 static cmd_fn_t sanitize;
 
 static struct options {
-	bool		ause;
-	bool		ndas;
-	bool		oipbp;
-	bool		reportonly;
-	uint8_t		owpass;
-	uint32_t	ovrpat;
-	const char	*sanact;
-	const char	*dev;
+	bool ause;
+	bool ndas;
+	bool oipbp;
+	bool reportonly;
+	uint8_t owpass;
+	uint32_t ovrpat;
+	const char *sanact;
+	const char *dev;
 } opt = {
 	.ause = false,
 	.ndas = false,
@@ -66,19 +66,19 @@ static struct options {
 };
 
 static const struct opts sanitize_opts[] = {
-#define OPT(l, s, t, opt, addr, desc) { l, s, t, &opt.addr, desc }
+#define OPT(l, s, t, opt, addr, desc)    \
+	{                                \
+		l, s, t, &opt.addr, desc \
+	}
 	OPT("ause", 'U', arg_none, opt, ause,
 	    "Allow Unrestricted Sanitize Exit"),
-	OPT("ndas", 'd', arg_none, opt, ndas,
-	    "No Deallocate After Sanitize"),
+	OPT("ndas", 'd', arg_none, opt, ndas, "No Deallocate After Sanitize"),
 	OPT("oipbp", 'I', arg_none, opt, oipbp,
 	    "Overwrite Invert Pattern Between Passes"),
 	OPT("reportonly", 'r', arg_none, opt, reportonly,
 	    "Report previous sanitize status"),
-	OPT("owpass", 'c', arg_uint8, opt, owpass,
-	    "Overwrite Pass Count"),
-	OPT("ovrpat", 'p', arg_uint32, opt, ovrpat,
-	    "Overwrite Pattern"),
+	OPT("owpass", 'c', arg_uint8, opt, owpass, "Overwrite Pass Count"),
+	OPT("ovrpat", 'p', arg_uint32, opt, ovrpat, "Overwrite Pattern"),
 	OPT("sanact", 'a', arg_string, opt, sanact,
 	    "Sanitize Action (block, overwrite, crypto)"),
 	{ NULL, 0, arg_none, NULL, NULL }
@@ -106,12 +106,12 @@ CMD_COMMAND(sanitize_cmd);
 static void
 sanitize(const struct cmd *f, int argc, char *argv[])
 {
-	struct nvme_controller_data	cd;
-	struct nvme_pt_command		pt;
+	struct nvme_controller_data cd;
+	struct nvme_pt_command pt;
 	struct nvme_sanitize_status_page ss;
-	char				*path;
-	uint32_t			nsid;
-	int				sanact = 0, fd, delay = 1;
+	char *path;
+	uint32_t nsid;
+	int sanact = 0, fd, delay = 1;
 
 	if (arg_parse(argc, argv, f))
 		return;
@@ -155,21 +155,26 @@ sanitize(const struct cmd *f, int argc, char *argv[])
 	if (read_controller_data(fd, &cd))
 		errx(EX_IOERR, "Identify request failed");
 	if (((cd.sanicap >> NVME_CTRLR_DATA_SANICAP_BES_SHIFT) &
-	     NVME_CTRLR_DATA_SANICAP_BES_MASK) == 0 && sanact == 2)
+		NVME_CTRLR_DATA_SANICAP_BES_MASK) == 0 &&
+	    sanact == 2)
 		errx(EX_UNAVAILABLE, "controller does not support Block Erase");
 	if (((cd.sanicap >> NVME_CTRLR_DATA_SANICAP_OWS_SHIFT) &
-	     NVME_CTRLR_DATA_SANICAP_OWS_MASK) == 0 && sanact == 3)
+		NVME_CTRLR_DATA_SANICAP_OWS_MASK) == 0 &&
+	    sanact == 3)
 		errx(EX_UNAVAILABLE, "controller does not support Overwrite");
 	if (((cd.sanicap >> NVME_CTRLR_DATA_SANICAP_CES_SHIFT) &
-	     NVME_CTRLR_DATA_SANICAP_CES_MASK) == 0 && sanact == 4)
-		errx(EX_UNAVAILABLE, "controller does not support Crypto Erase");
+		NVME_CTRLR_DATA_SANICAP_CES_MASK) == 0 &&
+	    sanact == 4)
+		errx(EX_UNAVAILABLE,
+		    "controller does not support Crypto Erase");
 
 	/*
 	 * If controller supports only one namespace, we may sanitize it.
 	 * If there can be more, make user explicit in his commands.
 	 */
 	if (nsid != 0 && cd.nn > 1)
-		errx(EX_UNAVAILABLE, "can't sanitize one of namespaces, specify controller");
+		errx(EX_UNAVAILABLE,
+		    "can't sanitize one of namespaces, specify controller");
 
 	memset(&pt, 0, sizeof(pt));
 	pt.cmd.opc = NVME_OPC_SANITIZE;
@@ -184,8 +189,8 @@ sanitize(const struct cmd *f, int argc, char *argv[])
 		errx(EX_IOERR, "sanitize request returned error");
 
 wait:
-	read_logpage(fd, NVME_LOG_SANITIZE_STATUS,
-	    NVME_GLOBAL_NAMESPACE_TAG, 0, 0, 0, &ss, sizeof(ss));
+	read_logpage(fd, NVME_LOG_SANITIZE_STATUS, NVME_GLOBAL_NAMESPACE_TAG, 0,
+	    0, 0, &ss, sizeof(ss));
 	switch ((ss.sstat >> NVME_SS_PAGE_SSTAT_STATUS_SHIFT) &
 	    NVME_SS_PAGE_SSTAT_STATUS_MASK) {
 	case NVME_SS_PAGE_SSTAT_STATUS_NEVER:

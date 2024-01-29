@@ -153,17 +153,12 @@ adf_print_flush(struct adf_accel_dev *accel_dev)
 }
 
 static void
-adf_print_reg(struct adf_accel_dev *accel_dev,
-	      const char *name,
-	      size_t idx,
-	      u32 val)
+adf_print_reg(struct adf_accel_dev *accel_dev, const char *name, size_t idx,
+    u32 val)
 {
 	adf_printf_len += snprintf(&adf_printf_buf[adf_printf_len],
-				   sizeof(adf_printf_buf) - adf_printf_len,
-				   "%s[%zu],%.8x,",
-				   name,
-				   idx,
-				   val);
+	    sizeof(adf_printf_buf) - adf_printf_len, "%s[%zu],%.8x,", name, idx,
+	    val);
 
 	if (adf_printf_len >= 80)
 		adf_print_flush(accel_dev);
@@ -173,8 +168,8 @@ void
 adf_print_err_registers(struct adf_accel_dev *accel_dev)
 {
 	struct adf_hw_device_data *hw_data = accel_dev->hw_device;
-	struct adf_bar *misc_bar =
-	    &GET_BARS(accel_dev)[hw_data->get_misc_bar_id(hw_data)];
+	struct adf_bar *misc_bar = &GET_BARS(
+	    accel_dev)[hw_data->get_misc_bar_id(hw_data)];
 	struct resource *csr = misc_bar->virt_addr;
 	size_t i;
 	unsigned int mask;
@@ -195,10 +190,8 @@ adf_print_err_registers(struct adf_accel_dev *accel_dev)
 				continue;
 			val = adf_accel_err_regs[i].read(csr, accel);
 
-			adf_print_reg(accel_dev,
-				      adf_accel_err_regs[i].name,
-				      accel,
-				      val);
+			adf_print_reg(accel_dev, adf_accel_err_regs[i].name,
+			    accel, val);
 		}
 	}
 
@@ -206,23 +199,17 @@ adf_print_err_registers(struct adf_accel_dev *accel_dev)
 }
 
 static void
-adf_log_slice_hang(struct adf_accel_dev *accel_dev,
-		   u8 accel_num,
-		   char *unit_name,
-		   u8 unit_number)
+adf_log_slice_hang(struct adf_accel_dev *accel_dev, u8 accel_num,
+    char *unit_name, u8 unit_number)
 {
 	device_printf(GET_DEV(accel_dev),
-		      "CPM #%x Slice Hang Detected unit: %s%d.\n",
-		      accel_num,
-		      unit_name,
-		      unit_number);
+	    "CPM #%x Slice Hang Detected unit: %s%d.\n", accel_num, unit_name,
+	    unit_number);
 }
 
 bool
-adf_handle_slice_hang(struct adf_accel_dev *accel_dev,
-		      u8 accel_num,
-		      struct resource *csr,
-		      u32 slice_hang_offset)
+adf_handle_slice_hang(struct adf_accel_dev *accel_dev, u8 accel_num,
+    struct resource *csr, u32 slice_hang_offset)
 {
 	u32 slice_hang = ADF_CSR_RD(csr, slice_hang_offset);
 
@@ -275,8 +262,8 @@ bool
 adf_check_slice_hang(struct adf_accel_dev *accel_dev)
 {
 	struct adf_hw_device_data *hw_data = accel_dev->hw_device;
-	struct adf_bar *misc_bar =
-	    &GET_BARS(accel_dev)[hw_data->get_misc_bar_id(hw_data)];
+	struct adf_bar *misc_bar = &GET_BARS(
+	    accel_dev)[hw_data->get_misc_bar_id(hw_data)];
 	struct resource *csr = misc_bar->virt_addr;
 	u32 errsou3 = ADF_CSR_RD(csr, ADF_ERRSOU3);
 	u32 errsou5 = ADF_CSR_RD(csr, ADF_ERRSOU5);
@@ -284,11 +271,8 @@ adf_check_slice_hang(struct adf_accel_dev *accel_dev)
 	u32 accel_num;
 	bool handled = false;
 	u32 errsou[] = { errsou3, errsou3, errsou5, errsou5, errsou5 };
-	u32 mask[] = { ADF_EMSK3_CPM0_MASK,
-		       ADF_EMSK3_CPM1_MASK,
-		       ADF_EMSK5_CPM2_MASK,
-		       ADF_EMSK5_CPM3_MASK,
-		       ADF_EMSK5_CPM4_MASK };
+	u32 mask[] = { ADF_EMSK3_CPM0_MASK, ADF_EMSK3_CPM1_MASK,
+		ADF_EMSK5_CPM2_MASK, ADF_EMSK5_CPM3_MASK, ADF_EMSK5_CPM4_MASK };
 	unsigned int accel_mask;
 
 	for (accel_num = 0, accel_mask = hw_data->accel_mask; accel_mask;
@@ -297,8 +281,7 @@ adf_check_slice_hang(struct adf_accel_dev *accel_dev)
 			continue;
 		if (accel_num >= ARRAY_SIZE(errsou)) {
 			device_printf(GET_DEV(accel_dev),
-				      "Invalid accel_num %d.\n",
-				      accel_num);
+			    "Invalid accel_num %d.\n", accel_num);
 			break;
 		}
 
@@ -307,9 +290,7 @@ adf_check_slice_hang(struct adf_accel_dev *accel_dev)
 			    ADF_INTSTATSSM_SHANGERR) {
 				offset = ADF_SLICEHANGSTATUS(accel_num);
 				handled |= adf_handle_slice_hang(accel_dev,
-								 accel_num,
-								 csr,
-								 offset);
+				    accel_num, csr, offset);
 			}
 		}
 	}

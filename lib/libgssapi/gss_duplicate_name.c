@@ -26,21 +26,21 @@
  * SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <gssapi/gssapi.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 
 #include "mech_switch.h"
 #include "name.h"
 
-OM_uint32 gss_duplicate_name(OM_uint32 *minor_status,
-    const gss_name_t src_name,
+OM_uint32
+gss_duplicate_name(OM_uint32 *minor_status, const gss_name_t src_name,
     gss_name_t *dest_name)
 {
-	OM_uint32		major_status;
-	struct _gss_name	*name = (struct _gss_name *) src_name;
-	struct _gss_name	*new_name;
+	OM_uint32 major_status;
+	struct _gss_name *name = (struct _gss_name *)src_name;
+	struct _gss_name *new_name;
 	struct _gss_mechanism_name *mn;
 
 	*minor_status = 0;
@@ -52,16 +52,16 @@ OM_uint32 gss_duplicate_name(OM_uint32 *minor_status,
 	 * we make a copy of the mechanism names.
 	 */
 	if (name->gn_value.value) {
-		major_status = gss_import_name(minor_status,
-		    &name->gn_value, &name->gn_type, dest_name);
+		major_status = gss_import_name(minor_status, &name->gn_value,
+		    &name->gn_type, dest_name);
 		if (major_status != GSS_S_COMPLETE)
 			return (major_status);
-		new_name = (struct _gss_name *) *dest_name;
+		new_name = (struct _gss_name *)*dest_name;
 
-		SLIST_FOREACH(mn, &name->gn_mn, gmn_link) {
+		SLIST_FOREACH (mn, &name->gn_mn, gmn_link) {
 			struct _gss_mechanism_name *mn2;
-			_gss_find_mn(minor_status, new_name,
-			    mn->gmn_mech_oid, &mn2);
+			_gss_find_mn(minor_status, new_name, mn->gmn_mech_oid,
+			    &mn2);
 		}
 	} else {
 		new_name = malloc(sizeof(struct _gss_name));
@@ -71,9 +71,9 @@ OM_uint32 gss_duplicate_name(OM_uint32 *minor_status,
 		}
 		memset(new_name, 0, sizeof(struct _gss_name));
 		SLIST_INIT(&new_name->gn_mn);
-		*dest_name = (gss_name_t) new_name;
+		*dest_name = (gss_name_t)new_name;
 
-		SLIST_FOREACH(mn, &name->gn_mn, gmn_link) {
+		SLIST_FOREACH (mn, &name->gn_mn, gmn_link) {
 			struct _gss_mechanism_name *new_mn;
 
 			new_mn = malloc(sizeof(*new_mn));
@@ -84,16 +84,14 @@ OM_uint32 gss_duplicate_name(OM_uint32 *minor_status,
 			new_mn->gmn_mech = mn->gmn_mech;
 			new_mn->gmn_mech_oid = mn->gmn_mech_oid;
 
-			major_status =
-			    mn->gmn_mech->gm_duplicate_name(minor_status,
-				mn->gmn_name, &new_mn->gmn_name);
+			major_status = mn->gmn_mech->gm_duplicate_name(
+			    minor_status, mn->gmn_name, &new_mn->gmn_name);
 			if (major_status != GSS_S_COMPLETE) {
 				free(new_mn);
 				continue;
 			}
 			SLIST_INSERT_HEAD(&new_name->gn_mn, new_mn, gmn_link);
 		}
-
 	}
 
 	return (GSS_S_COMPLETE);

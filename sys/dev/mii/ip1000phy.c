@@ -35,63 +35,53 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/socket.h>
 #include <sys/taskqueue.h>
-#include <sys/bus.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_media.h>
-
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include "miidevs.h"
-
-#include <dev/mii/ip1000phyreg.h>
-
-#include "miibus_if.h"
 
 #include <machine/bus.h>
+
+#include <dev/mii/ip1000phyreg.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
 #include <dev/stge/if_stgereg.h>
+
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_var.h>
+
+#include "miibus_if.h"
+#include "miidevs.h"
 
 static int ip1000phy_probe(device_t);
 static int ip1000phy_attach(device_t);
 
 static device_method_t ip1000phy_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		ip1000phy_probe),
-	DEVMETHOD(device_attach,	ip1000phy_attach),
-	DEVMETHOD(device_detach,	mii_phy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, ip1000phy_probe),
+	DEVMETHOD(device_attach, ip1000phy_attach),
+	DEVMETHOD(device_detach, mii_phy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), DEVMETHOD_END
 };
 
-static driver_t ip1000phy_driver = {
-	"ip1000phy",
-	ip1000phy_methods,
-	sizeof(struct mii_softc)
-};
+static driver_t ip1000phy_driver = { "ip1000phy", ip1000phy_methods,
+	sizeof(struct mii_softc) };
 
 DRIVER_MODULE(ip1000phy, miibus, ip1000phy_driver, 0, 0);
 
-static int	ip1000phy_service(struct mii_softc *, struct mii_data *, int);
-static void	ip1000phy_status(struct mii_softc *);
-static void	ip1000phy_reset(struct mii_softc *);
-static int	ip1000phy_mii_phy_auto(struct mii_softc *, int);
+static int ip1000phy_service(struct mii_softc *, struct mii_data *, int);
+static void ip1000phy_status(struct mii_softc *);
+static void ip1000phy_reset(struct mii_softc *);
+static int ip1000phy_mii_phy_auto(struct mii_softc *, int);
 
-static const struct mii_phydesc ip1000phys[] = {
-	MII_PHY_DESC(xxICPLUS, IP1000A),
-	MII_PHY_DESC(xxICPLUS, IP1001),
-	MII_PHY_END
-};
+static const struct mii_phydesc ip1000phys[] = { MII_PHY_DESC(xxICPLUS,
+						     IP1000A),
+	MII_PHY_DESC(xxICPLUS, IP1001), MII_PHY_END };
 
-static const struct mii_phy_funcs ip1000phy_funcs = {
-	ip1000phy_service,
-	ip1000phy_status,
-	ip1000phy_reset
-};
+static const struct mii_phy_funcs ip1000phy_funcs = { ip1000phy_service,
+	ip1000phy_status, ip1000phy_reset };
 
 static int
 ip1000phy_probe(device_t dev)
@@ -109,8 +99,8 @@ ip1000phy_attach(device_t dev)
 	ma = device_get_ivars(dev);
 	flags = MIIF_NOISOLATE | MIIF_NOMANPAUSE;
 	if (MII_MODEL(ma->mii_id2) == MII_MODEL_xxICPLUS_IP1000A &&
-	     mii_dev_mac_match(dev, "stge") &&
-	     (miibus_get_flags(dev) & MIIF_MACPRIV0) != 0)
+	    mii_dev_mac_match(dev, "stge") &&
+	    (miibus_get_flags(dev) & MIIF_MACPRIV0) != 0)
 		flags |= MIIF_PHYPRIV0;
 	mii_phy_dev_attach(dev, flags, &ip1000phy_funcs, 1);
 	return (0);
@@ -160,8 +150,8 @@ ip1000phy_service(struct mii_softc *sc, struct mii_data *mii, int cmd)
 			gig = IP1000PHY_1000CR_1000T;
 
 		if (IFM_SUBTYPE(ife->ifm_media) == IFM_1000_T) {
-			gig |=
-			    IP1000PHY_1000CR_MASTER | IP1000PHY_1000CR_MANUAL;
+			gig |= IP1000PHY_1000CR_MASTER |
+			    IP1000PHY_1000CR_MANUAL;
 			if ((ife->ifm_media & IFM_ETH_MASTER) != 0)
 				gig |= IP1000PHY_1000CR_MMASTER;
 		} else
@@ -169,7 +159,7 @@ ip1000phy_service(struct mii_softc *sc, struct mii_data *mii, int cmd)
 		PHY_WRITE(sc, IP1000PHY_MII_1000CR, gig);
 		PHY_WRITE(sc, IP1000PHY_MII_BMCR, speed);
 
-done:
+	done:
 		break;
 
 	case MII_TICK:
@@ -236,8 +226,8 @@ ip1000phy_status(struct mii_softc *sc)
 			/* Erg, still trying, I guess... */
 			mii->mii_media_active |= IFM_NONE;
 			return;
-                }
-        }
+		}
+	}
 
 	if (sc->mii_mpd_model == MII_MODEL_xxICPLUS_IP1001) {
 		stat = PHY_READ(sc, IP1000PHY_LSR);
@@ -315,8 +305,9 @@ ip1000phy_mii_phy_auto(struct mii_softc *sc, int media)
 	if (sc->mii_mpd_model != MII_MODEL_xxICPLUS_IP1001)
 		reg |= IP1000PHY_1000CR_MASTER;
 	PHY_WRITE(sc, IP1000PHY_MII_1000CR, reg);
-	PHY_WRITE(sc, IP1000PHY_MII_BMCR, (IP1000PHY_BMCR_FDX |
-	    IP1000PHY_BMCR_AUTOEN | IP1000PHY_BMCR_STARTNEG));
+	PHY_WRITE(sc, IP1000PHY_MII_BMCR,
+	    (IP1000PHY_BMCR_FDX | IP1000PHY_BMCR_AUTOEN |
+		IP1000PHY_BMCR_STARTNEG));
 
 	return (EJUSTRETURN);
 }

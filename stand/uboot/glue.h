@@ -36,13 +36,13 @@
 /*
  * Mask used to align the start address for API signature search to 1MiB
  */
-#define	API_SIG_SEARCH_MASK	~0x000fffff
+#define API_SIG_SEARCH_MASK ~0x000fffff
 
 /*
  * Search for the API signature within 3MiB of the 1MiB-aligned address that
  * U-Boot has hinted us.
  */
-#define	API_SIG_SEARCH_LEN	0x00300000
+#define API_SIG_SEARCH_LEN 0x00300000
 
 int syscall(int, int *, ...);
 extern void *syscall_ptr;
@@ -50,8 +50,8 @@ extern void *syscall_ptr;
 int api_parse_cmdline_sig(int argc, char **argv, struct api_signature **sig);
 int api_search_sig(struct api_signature **sig);
 
-#define	UB_MAX_MR	16		/* max mem regions number */
-#define	UB_MAX_DEV	6		/* max devices number */
+#define UB_MAX_MR 16 /* max mem regions number */
+#define UB_MAX_DEV 6 /* max devices number */
 
 /*
  * The ub_ library calls are part of the application, not U-Boot code!  They

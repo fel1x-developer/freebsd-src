@@ -30,13 +30,13 @@
 
 #include <sys/param.h>
 #include <sys/mman.h>
+
 #include <assert.h>
+#include <atf-c.h>
 #include <dlfcn.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <atf-c.h>
 
 static char *(*stpncpy_fn)(char *restrict, const char *restrict, size_t);
 
@@ -76,7 +76,8 @@ test_stpncpy(const char *s)
 				dst = makebuf(bufsize, j);
 				memset(dst, 'X', bufsize);
 				len = (bufsize < size) ? bufsize : size - 1;
-				assert(stpncpy_fn(dst, src, bufsize) == dst+len);
+				assert(
+				    stpncpy_fn(dst, src, bufsize) == dst + len);
 				assert(memcmp(src, dst, len) == 0);
 				for (x = len; x < bufsize; x++)
 					assert(dst[x] == '\0');
@@ -99,7 +100,7 @@ test_sentinel(char *dest, char *src, size_t destlen, size_t srclen)
 
 	/* source sentinels: not to be copied */
 	src[-1] = '(';
-	src[srclen+1] = ')';
+	src[srclen + 1] = ')';
 
 	memset(dest, 0xee, destlen);
 
@@ -118,14 +119,16 @@ test_sentinel(char *dest, char *src, size_t destlen, size_t srclen)
 		fail = "string not copied correctly";
 	else if (res != wantres)
 		fail = "incorrect return value";
-	else for (i = srclen; i < destlen; i++)
-		if (dest[i] != '\0') {
-			fail = "incomplete NUL padding";
-			break;
-		}
+	else
+		for (i = srclen; i < destlen; i++)
+			if (dest[i] != '\0') {
+				fail = "incomplete NUL padding";
+				break;
+			}
 
 	if (fail)
-		atf_tc_fail_nonfatal("%s\n"
+		atf_tc_fail_nonfatal(
+		    "%s\n"
 		    "stpncpy(%p \"%s\", %p \"%s\", %zu) = %p (want %p)\n",
 		    fail, dest, dest, src, src, destlen, res, wantres);
 }
@@ -140,11 +143,11 @@ ATF_TC_WITHOUT_HEAD(bounds);
 ATF_TC_BODY(bounds, tc)
 {
 	size_t i;
-	char buf[64+1];
+	char buf[64 + 1];
 
 	for (i = 0; i < sizeof(buf) - 1; i++) {
 		buf[i] = ' ' + i;
-		buf[i+1] = '\0';
+		buf[i + 1] = '\0';
 		test_stpncpy(buf);
 	}
 }
@@ -153,15 +156,17 @@ ATF_TC_WITHOUT_HEAD(alignments);
 ATF_TC_BODY(alignments, tc)
 {
 	size_t srcalign, destalign, srclen, destlen;
-	char src[15+3+64]; /* 15 offsets + 64 max length + NUL + sentinels */
-	char dest[15+2+64]; /* 15 offsets + 64 max length + sentinels */
+	char
+	    src[15 + 3 + 64]; /* 15 offsets + 64 max length + NUL + sentinels */
+	char dest[15 + 2 + 64]; /* 15 offsets + 64 max length + sentinels */
 
 	for (srcalign = 0; srcalign < 16; srcalign++)
 		for (destalign = 0; destalign < 16; destalign++)
 			for (srclen = 0; srclen < 64; srclen++)
 				for (destlen = 0; destlen < 64; destlen++)
-					test_sentinel(dest+destalign+1,
-					    src+srcalign+1, destlen, srclen);
+					test_sentinel(dest + destalign + 1,
+					    src + srcalign + 1, destlen,
+					    srclen);
 }
 
 ATF_TP_ADD_TCS(tp)

@@ -46,8 +46,8 @@ linux_add_to_sleepqueue(void *wchan, struct task_struct *task,
 
 	MPASS((state & ~(TASK_PARKED | TASK_NORMAL)) == 0);
 
-	flags = SLEEPQ_SLEEP | ((state & TASK_INTERRUPTIBLE) != 0 ?
-	    SLEEPQ_INTERRUPTIBLE : 0);
+	flags = SLEEPQ_SLEEP |
+	    ((state & TASK_INTERRUPTIBLE) != 0 ? SLEEPQ_INTERRUPTIBLE : 0);
 
 	sleepq_add(wchan, NULL, wmesg, flags, 0);
 	if (timeout != 0)
@@ -202,7 +202,8 @@ linux_wake_up(wait_queue_head_t *wqh, unsigned int state, int nr, bool locked)
 
 	if (!locked)
 		spin_lock(&wqh->lock);
-	list_for_each_entry_safe(pos, next, &wqh->task_list, task_list) {
+	list_for_each_entry_safe(pos, next, &wqh->task_list, task_list)
+	{
 		if (pos->func == NULL) {
 			if (wake_up_task(pos->private, state) != 0 && --nr == 0)
 				break;
@@ -345,7 +346,7 @@ wake_up_sleepers(void *wchan)
 		kick_proc0();
 }
 
-#define	bit_to_wchan(word, bit)	((void *)(((uintptr_t)(word) << 6) | (bit)))
+#define bit_to_wchan(word, bit) ((void *)(((uintptr_t)(word) << 6) | (bit)))
 
 void
 linux_wake_up_bit(void *word, int bit)

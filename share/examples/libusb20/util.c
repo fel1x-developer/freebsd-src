@@ -10,12 +10,11 @@
  * Helper functions common to all examples
  */
 
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-
 #include <libusb20.h>
 #include <libusb20_desc.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "util.h"
 
@@ -26,23 +25,21 @@
 void
 print_formatted(uint8_t *buf, uint32_t len)
 {
-  int i, j;
+	int i, j;
 
-  for (j = 0; j < len; j += 16)
-    {
-      printf("%02x: ", j);
+	for (j = 0; j < len; j += 16) {
+		printf("%02x: ", j);
 
-      for (i = 0; i < 16 && i + j < len; i++)
-	printf("%02x ", buf[i + j]);
-      printf("  ");
-      for (i = 0; i < 16 && i + j < len; i++)
-	{
-	  uint8_t c = buf[i + j];
-	  if(c >= ' ' && c <= '~')
-	    printf("%c", (char)c);
-	  else
-	    putchar('.');
+		for (i = 0; i < 16 && i + j < len; i++)
+			printf("%02x ", buf[i + j]);
+		printf("  ");
+		for (i = 0; i < 16 && i + j < len; i++) {
+			uint8_t c = buf[i + j];
+			if (c >= ' ' && c <= '~')
+				printf("%c", (char)c);
+			else
+				putchar('.');
+		}
+		putchar('\n');
 	}
-      putchar('\n');
-    }
 }

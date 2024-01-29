@@ -75,7 +75,7 @@ main(int argc, char **argv)
 
 	Cflag = cflag = dflag = sflag = 0;
 	while ((ch = getopt(argc, argv, "Ccdsu")) != -1)
-		switch((char)ch) {
+		switch ((char)ch) {
 		case 'C':
 			Cflag = 1;
 			cflag = 0;
@@ -100,7 +100,7 @@ main(int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 
-	switch(argc) {
+	switch (argc) {
 	case 0:
 	default:
 		usage();
@@ -208,8 +208,7 @@ main(int argc, char **argv)
 	/* If string2 runs out of characters, use the last one specified. */
 	while (next(&s1)) {
 	again:
-		if (s1.state == CCLASS_LOWER &&
-		    s2.state == CCLASS_UPPER &&
+		if (s1.state == CCLASS_LOWER && s2.state == CCLASS_UPPER &&
 		    s1.cnt == 1 && s2.cnt == 1) {
 			do {
 				ch = towupper(s1.lastch);
@@ -226,8 +225,7 @@ main(int argc, char **argv)
 			} while (s2.state == CCLASS_UPPER && s2.cnt > 1);
 			goto again;
 		} else if (s1.state == CCLASS_UPPER &&
-			   s2.state == CCLASS_LOWER &&
-			   s1.cnt == 1 && s2.cnt == 1) {
+		    s2.state == CCLASS_LOWER && s1.cnt == 1 && s2.cnt == 1) {
 			do {
 				ch = towlower(s1.lastch);
 				cmap_add(map, s1.lastch, ch);
@@ -326,7 +324,7 @@ endloop:
 		}
 	if (ferror(stdin))
 		err(1, NULL);
-	exit (0);
+	exit(0);
 }
 
 static struct cset *
@@ -362,9 +360,8 @@ static void
 usage(void)
 {
 	(void)fprintf(stderr, "%s\n%s\n%s\n%s\n",
-		"usage: tr [-Ccsu] string1 string2",
-		"       tr [-Ccu] -d string1",
-		"       tr [-Ccu] -s string1",
-		"       tr [-Ccu] -ds string1 string2");
+	    "usage: tr [-Ccsu] string1 string2", "       tr [-Ccu] -d string1",
+	    "       tr [-Ccu] -s string1",
+	    "       tr [-Ccu] -ds string1 string2");
 	exit(1);
 }

@@ -32,7 +32,6 @@
 #include <sys/param.h>
 #include <sys/stat.h>
 
-#include <ufs/ufs/dinode.h>
 #include <protocols/dumprestore.h>
 
 #include <err.h>
@@ -42,25 +41,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ufs/ufs/dinode.h>
 #include <unistd.h>
 
-#include "restore.h"
 #include "extern.h"
+#include "restore.h"
 
-int	bflag = 0, cvtflag = 0, dflag = 0, Dflag = 0, vflag = 0, yflag = 0;
-int	hflag = 1, mflag = 1, Nflag = 0;
-int	uflag = 0;
-int	pipecmd = 0;
-char	command = '\0';
-long	dumpnum = 1;
-long	volno = 0;
-long	ntrec;
-char	*dumpmap;
-char	*usedinomap;
-ino_t	maxino;
-time_t	dumptime;
-time_t	dumpdate;
-FILE 	*terminal;
+int bflag = 0, cvtflag = 0, dflag = 0, Dflag = 0, vflag = 0, yflag = 0;
+int hflag = 1, mflag = 1, Nflag = 0;
+int uflag = 0;
+int pipecmd = 0;
+char command = '\0';
+long dumpnum = 1;
+long volno = 0;
+long ntrec;
+char *dumpmap;
+char *usedinomap;
+ino_t maxino;
+time_t dumptime;
+time_t dumpdate;
+FILE *terminal;
 
 static void obsolete(int *, char **[]);
 static void usage(void) __dead2;
@@ -75,7 +75,7 @@ main(int argc, char *argv[])
 	char *p, name[MAXPATHLEN];
 
 	/* Temp files should *not* be readable.  We set permissions later. */
-	(void) umask(077);
+	(void)umask(077);
 
 	if (argc < 2)
 		usage();
@@ -85,7 +85,7 @@ main(int argc, char *argv[])
 	inputdev = NULL;
 	obsolete(&argc, &argv);
 	while ((ch = getopt(argc, argv, "b:dDf:himNP:Rrs:tuvxy")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case 'b':
 			/* Change default tape blocksize. */
 			bflag = 1;
@@ -161,9 +161,9 @@ main(int argc, char *argv[])
 		errx(1, "none of i, R, r, t or x options specified");
 
 	if (signal(SIGINT, onintr) == SIG_IGN)
-		(void) signal(SIGINT, SIG_IGN);
+		(void)signal(SIGINT, SIG_IGN);
 	if (signal(SIGTERM, onintr) == SIG_IGN)
-		(void) signal(SIGTERM, SIG_IGN);
+		(void)signal(SIGTERM, SIG_IGN);
 	setlinebuf(stderr);
 
 	if (inputdev == NULL && (inputdev = getenv("TAPE")) == NULL)
@@ -284,13 +284,12 @@ usage()
 	    "[-b blocksize] [-f file | -P pipecommand] [-s fileno]";
 	const char *const fileell = "[file ...]";
 
-	(void)fprintf(stderr, "usage:\t%s %s\n\t%s %s\n\t%s %s\n"
+	(void)fprintf(stderr,
+	    "usage:\t%s %s\n\t%s %s\n\t%s %s\n"
 	    "\t%s %s %s\n\t%s %s %s\n",
-	    "restore -i [-dhmNuvy]", common,
-	    "restore -R [-dNuvy]", common,
-	    "restore -r [-dNuvy]", common,
-	    "restore -t [-dhNuvy]", common, fileell,
-	    "restore -x [-dhmNuvy]", common, fileell);
+	    "restore -i [-dhmNuvy]", common, "restore -R [-dNuvy]", common,
+	    "restore -r [-dNuvy]", common, "restore -t [-dhNuvy]", common,
+	    fileell, "restore -x [-dhmNuvy]", common, fileell);
 	done(1);
 }
 
@@ -357,7 +356,8 @@ obsolete(int *argcp, char **argvp[])
 		free(flagsp);
 
 	/* Copy remaining arguments. */
-	while ((*nargv++ = *argv++));
+	while ((*nargv++ = *argv++))
+		;
 
 	/* Update argument count. */
 	*argcp = nargv - *argvp - 1;

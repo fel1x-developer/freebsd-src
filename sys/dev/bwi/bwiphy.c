@@ -2,14 +2,14 @@
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * Copyright (c) 2007 The DragonFly Project.  All rights reserved.
- * 
+ *
  * This code is derived from software contributed to The DragonFly Project
  * by Sepherosa Ziehau <sepherosa@gmail.com>
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
@@ -19,7 +19,7 @@
  * 3. Neither the name of The DragonFly Project nor the names of its
  *    contributors may be used to endorse or promote products derived
  *    from this software without specific, prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
@@ -32,104 +32,100 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- * 
- * $DragonFly: src/sys/dev/netif/bwi/bwiphy.c,v 1.5 2008/01/15 09:01:13 sephe Exp $
+ *
+ * $DragonFly: src/sys/dev/netif/bwi/bwiphy.c,v 1.5 2008/01/15 09:01:13 sephe
+ * Exp $
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/endian.h>
 #include <sys/kernel.h>
-#include <sys/bus.h>
 #include <sys/malloc.h>
 #include <sys/proc.h>
 #include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_llc.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-#include <net80211/ieee80211_amrr.h>
 
 #include <machine/bus.h>
 
 #include <dev/bwi/bitops.h>
+#include <dev/bwi/bwimac.h>
+#include <dev/bwi/bwiphy.h>
+#include <dev/bwi/bwirf.h>
 #include <dev/bwi/if_bwireg.h>
 #include <dev/bwi/if_bwivar.h>
-#include <dev/bwi/bwimac.h>
-#include <dev/bwi/bwirf.h>
-#include <dev/bwi/bwiphy.h>
 
-static void	bwi_phy_init_11a(struct bwi_mac *);
-static void	bwi_phy_init_11g(struct bwi_mac *);
-static void	bwi_phy_init_11b_rev2(struct bwi_mac *);
-static void	bwi_phy_init_11b_rev4(struct bwi_mac *);
-static void	bwi_phy_init_11b_rev5(struct bwi_mac *);
-static void	bwi_phy_init_11b_rev6(struct bwi_mac *);
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_dl.h>
+#include <net/if_llc.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+#include <net80211/ieee80211_amrr.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
-static void	bwi_phy_config_11g(struct bwi_mac *);
-static void	bwi_phy_config_agc(struct bwi_mac *);
+static void bwi_phy_init_11a(struct bwi_mac *);
+static void bwi_phy_init_11g(struct bwi_mac *);
+static void bwi_phy_init_11b_rev2(struct bwi_mac *);
+static void bwi_phy_init_11b_rev4(struct bwi_mac *);
+static void bwi_phy_init_11b_rev5(struct bwi_mac *);
+static void bwi_phy_init_11b_rev6(struct bwi_mac *);
 
-static void	bwi_tbl_write_2(struct bwi_mac *mac, uint16_t, uint16_t);
-static void	bwi_tbl_write_4(struct bwi_mac *mac, uint16_t, uint32_t);
-#define SUP_BPHY(num)	{ .rev = num, .init = bwi_phy_init_11b_rev##num }
+static void bwi_phy_config_11g(struct bwi_mac *);
+static void bwi_phy_config_agc(struct bwi_mac *);
+
+static void bwi_tbl_write_2(struct bwi_mac *mac, uint16_t, uint16_t);
+static void bwi_tbl_write_4(struct bwi_mac *mac, uint16_t, uint32_t);
+#define SUP_BPHY(num)                                         \
+	{                                                     \
+		.rev = num, .init = bwi_phy_init_11b_rev##num \
+	}
 
 static const struct {
-	uint8_t	rev;
-	void	(*init)(struct bwi_mac *);
-} bwi_sup_bphy[] = {
-	SUP_BPHY(2),
-	SUP_BPHY(4),
-	SUP_BPHY(5),
-	SUP_BPHY(6)
-};
+	uint8_t rev;
+	void (*init)(struct bwi_mac *);
+} bwi_sup_bphy[] = { SUP_BPHY(2), SUP_BPHY(4), SUP_BPHY(5), SUP_BPHY(6) };
 
 #undef SUP_BPHY
 
-#define BWI_PHYTBL_WRSSI	0x1000
-#define BWI_PHYTBL_NOISE_SCALE	0x1400
-#define BWI_PHYTBL_NOISE	0x1800
-#define BWI_PHYTBL_ROTOR	0x2000
-#define BWI_PHYTBL_DELAY	0x2400
-#define BWI_PHYTBL_RSSI		0x4000
-#define BWI_PHYTBL_SIGMA_SQ	0x5000
-#define BWI_PHYTBL_WRSSI_REV1	0x5400
-#define BWI_PHYTBL_FREQ		0x5800
+#define BWI_PHYTBL_WRSSI 0x1000
+#define BWI_PHYTBL_NOISE_SCALE 0x1400
+#define BWI_PHYTBL_NOISE 0x1800
+#define BWI_PHYTBL_ROTOR 0x2000
+#define BWI_PHYTBL_DELAY 0x2400
+#define BWI_PHYTBL_RSSI 0x4000
+#define BWI_PHYTBL_SIGMA_SQ 0x5000
+#define BWI_PHYTBL_WRSSI_REV1 0x5400
+#define BWI_PHYTBL_FREQ 0x5800
 
-static const uint16_t	bwi_phy_freq_11g_rev1[] =
-	{ BWI_PHY_FREQ_11G_REV1 };
-static const uint16_t	bwi_phy_noise_11g_rev1[] =
-	{ BWI_PHY_NOISE_11G_REV1 };
-static const uint16_t	bwi_phy_noise_11g[] =
-	{ BWI_PHY_NOISE_11G };
-static const uint32_t	bwi_phy_rotor_11g_rev1[] =
-	{ BWI_PHY_ROTOR_11G_REV1 };
-static const uint16_t	bwi_phy_noise_scale_11g_rev2[] =
-	{ BWI_PHY_NOISE_SCALE_11G_REV2 };
-static const uint16_t	bwi_phy_noise_scale_11g_rev7[] =
-	{ BWI_PHY_NOISE_SCALE_11G_REV7 };
-static const uint16_t	bwi_phy_noise_scale_11g[] =
-	{ BWI_PHY_NOISE_SCALE_11G };
-static const uint16_t	bwi_phy_sigma_sq_11g_rev2[] =
-	{ BWI_PHY_SIGMA_SQ_11G_REV2 };
-static const uint16_t	bwi_phy_sigma_sq_11g_rev7[] =
-	{ BWI_PHY_SIGMA_SQ_11G_REV7 };
-static const uint32_t	bwi_phy_delay_11g_rev1[] =
-	{ BWI_PHY_DELAY_11G_REV1 };
+static const uint16_t bwi_phy_freq_11g_rev1[] = { BWI_PHY_FREQ_11G_REV1 };
+static const uint16_t bwi_phy_noise_11g_rev1[] = { BWI_PHY_NOISE_11G_REV1 };
+static const uint16_t bwi_phy_noise_11g[] = { BWI_PHY_NOISE_11G };
+static const uint32_t bwi_phy_rotor_11g_rev1[] = { BWI_PHY_ROTOR_11G_REV1 };
+static const uint16_t bwi_phy_noise_scale_11g_rev2[] = {
+	BWI_PHY_NOISE_SCALE_11G_REV2
+};
+static const uint16_t bwi_phy_noise_scale_11g_rev7[] = {
+	BWI_PHY_NOISE_SCALE_11G_REV7
+};
+static const uint16_t bwi_phy_noise_scale_11g[] = { BWI_PHY_NOISE_SCALE_11G };
+static const uint16_t bwi_phy_sigma_sq_11g_rev2[] = {
+	BWI_PHY_SIGMA_SQ_11G_REV2
+};
+static const uint16_t bwi_phy_sigma_sq_11g_rev7[] = {
+	BWI_PHY_SIGMA_SQ_11G_REV7
+};
+static const uint32_t bwi_phy_delay_11g_rev1[] = { BWI_PHY_DELAY_11G_REV1 };
 
 void
 bwi_phy_write(struct bwi_mac *mac, uint16_t ctrl, uint16_t data)
@@ -163,8 +159,8 @@ bwi_phy_attach(struct bwi_mac *mac)
 	phyrev = __SHIFTOUT(val, BWI_PHYINFO_REV_MASK);
 	phytype = __SHIFTOUT(val, BWI_PHYINFO_TYPE_MASK);
 	phyver = __SHIFTOUT(val, BWI_PHYINFO_VER_MASK);
-	device_printf(sc->sc_dev, "PHY: type %d, rev %d, ver %d\n",
-		      phytype, phyrev, phyver);
+	device_printf(sc->sc_dev, "PHY: type %d, rev %d, ver %d\n", phytype,
+	    phyrev, phyver);
 
 	/*
 	 * Verify whether the revision of the PHY type is supported
@@ -173,8 +169,10 @@ bwi_phy_attach(struct bwi_mac *mac)
 	switch (phytype) {
 	case BWI_PHYINFO_TYPE_11A:
 		if (phyrev >= 4) {
-			device_printf(sc->sc_dev, "unsupported 11A PHY, "
-				      "rev %u\n", phyrev);
+			device_printf(sc->sc_dev,
+			    "unsupported 11A PHY, "
+			    "rev %u\n",
+			    phyrev);
 			return ENXIO;
 		}
 		phy->phy_init = bwi_phy_init_11a;
@@ -191,16 +189,20 @@ bwi_phy_attach(struct bwi_mac *mac)
 			}
 		}
 		if (i == nitems(bwi_sup_bphy)) {
-			device_printf(sc->sc_dev, "unsupported 11B PHY, "
-				      "rev %u\n", phyrev);
+			device_printf(sc->sc_dev,
+			    "unsupported 11B PHY, "
+			    "rev %u\n",
+			    phyrev);
 			return ENXIO;
 		}
 		phy->phy_mode = IEEE80211_MODE_11B;
 		break;
 	case BWI_PHYINFO_TYPE_11G:
 		if (phyrev > 8) {
-			device_printf(sc->sc_dev, "unsupported 11G PHY, "
-				      "rev %u\n", phyrev);
+			device_printf(sc->sc_dev,
+			    "unsupported 11G PHY, "
+			    "rev %u\n",
+			    phyrev);
 			return ENXIO;
 		}
 		phy->phy_init = bwi_phy_init_11g;
@@ -210,8 +212,7 @@ bwi_phy_attach(struct bwi_mac *mac)
 		phy->phy_tbl_data_hi = BWI_PHYR_TBL_DATA_HI_11G;
 		break;
 	default:
-		device_printf(sc->sc_dev, "unsupported PHY type %d\n",
-			      phytype);
+		device_printf(sc->sc_dev, "unsupported PHY type %d\n", phytype);
 		return ENXIO;
 	}
 	phy->phy_rev = phyrev;
@@ -227,14 +228,14 @@ bwi_phy_set_bbp_atten(struct bwi_mac *mac, uint16_t bbp_atten)
 
 	if (phy->phy_version == 0) {
 		CSR_FILT_SETBITS_2(mac->mac_sc, BWI_BBP_ATTEN, ~mask,
-				   __SHIFTIN(bbp_atten, mask));
+		    __SHIFTIN(bbp_atten, mask));
 	} else {
 		if (phy->phy_version > 1)
 			mask <<= 2;
 		else
 			mask <<= 3;
 		PHY_FILT_SETBITS(mac, BWI_PHYR_BBP_ATTEN, ~mask,
-				 __SHIFTIN(bbp_atten, mask));
+		    __SHIFTIN(bbp_atten, mask));
 	}
 }
 
@@ -266,8 +267,8 @@ bwi_tbl_write_2(struct bwi_mac *mac, uint16_t ofs, uint16_t data)
 	struct bwi_phy *phy = &mac->mac_phy;
 
 	KASSERT(phy->phy_tbl_ctrl != 0 && phy->phy_tbl_data_lo != 0,
-	   ("phy_tbl_ctrl %d phy_tbl_data_lo %d",
-	     phy->phy_tbl_ctrl, phy->phy_tbl_data_lo));
+	    ("phy_tbl_ctrl %d phy_tbl_data_lo %d", phy->phy_tbl_ctrl,
+		phy->phy_tbl_data_lo));
 	PHY_WRITE(mac, phy->phy_tbl_ctrl, ofs);
 	PHY_WRITE(mac, phy->phy_tbl_data_lo, data);
 }
@@ -278,9 +279,9 @@ bwi_tbl_write_4(struct bwi_mac *mac, uint16_t ofs, uint32_t data)
 	struct bwi_phy *phy = &mac->mac_phy;
 
 	KASSERT(phy->phy_tbl_data_lo != 0 && phy->phy_tbl_data_hi != 0 &&
-		 phy->phy_tbl_ctrl != 0,
+		phy->phy_tbl_ctrl != 0,
 	    ("phy_tbl_data_lo %d phy_tbl_data_hi %d phy_tbl_ctrl %d",
-	      phy->phy_tbl_data_lo, phy->phy_tbl_data_hi, phy->phy_tbl_ctrl));
+		phy->phy_tbl_data_lo, phy->phy_tbl_data_hi, phy->phy_tbl_ctrl));
 
 	PHY_WRITE(mac, phy->phy_tbl_ctrl, ofs);
 	PHY_WRITE(mac, phy->phy_tbl_data_hi, data >> 16);
@@ -344,8 +345,7 @@ bwi_phy_init_11g(struct bwi_mac *mac)
 			PHY_WRITE(mac, 0x4c2, 0x1816);
 			PHY_WRITE(mac, 0x4c3, 0x8006);
 			if (val == 5) {
-				PHY_FILT_SETBITS(mac, 0x4cc,
-						 0xff, 0x1f00);
+				PHY_FILT_SETBITS(mac, 0x4cc, 0xff, 0x1f00);
 			}
 		}
 	}
@@ -370,14 +370,14 @@ bwi_phy_init_11g(struct bwi_mac *mac)
 	} else {
 		if (rf->rf_type == BWI_RF_T_BCM2050 && rf->rf_rev == 8) {
 			RF_WRITE(mac, 0x52,
-				 (tpctl->tp_ctrl1 << 4) | tpctl->tp_ctrl2);
+			    (tpctl->tp_ctrl1 << 4) | tpctl->tp_ctrl2);
 		} else {
 			RF_FILT_SETBITS(mac, 0x52, 0xfff0, tpctl->tp_ctrl2);
 		}
 
 		if (phy->phy_rev >= 6) {
 			PHY_FILT_SETBITS(mac, 0x36, 0xfff,
-					 tpctl->tp_ctrl2 << 12);
+			    tpctl->tp_ctrl2 << 12);
 		}
 
 		if (sc->sc_card_flags & BWI_CARD_F_PA_GPIO9)
@@ -424,10 +424,10 @@ bwi_phy_init_11g(struct bwi_mac *mac)
 
 static void
 bwi_phy_init_11b_rev2(struct bwi_mac *mac)
-{ 
+{
 	/* TODO:11B */
-	device_printf(mac->mac_sc->sc_dev,
-		  "%s is not implemented yet\n", __func__);
+	device_printf(mac->mac_sc->sc_dev, "%s is not implemented yet\n",
+	    __func__);
 }
 
 static void
@@ -452,7 +452,7 @@ bwi_phy_init_11b_rev4(struct bwi_mac *mac)
 
 	chan = rf->rf_curchan;
 	if (chan == IEEE80211_CHAN_ANY)
-		chan = 6;	/* Force to channel 6 */
+		chan = 6; /* Force to channel 6 */
 	bwi_rf_set_chan(mac, chan, 0);
 
 	if (rf->rf_type != BWI_RF_T_BCM2050) {
@@ -546,7 +546,7 @@ bwi_phy_init_11b_rev5(struct bwi_mac *mac)
 	/* TODO: bad_frame_preempt? */
 
 	if (phy->phy_version == 1) {
-	    	PHY_WRITE(mac, 0x26, 0xce00);
+		PHY_WRITE(mac, 0x26, 0xce00);
 		PHY_WRITE(mac, 0x21, 0x3763);
 		PHY_WRITE(mac, 0x22, 0x1bc3);
 		PHY_WRITE(mac, 0x23, 0x6f9);
@@ -760,20 +760,20 @@ bwi_phy_config_11g(struct bwi_mac *mac)
 		/* Fill frequency table */
 		for (i = 0; i < nitems(bwi_phy_freq_11g_rev1); ++i) {
 			bwi_tbl_write_2(mac, BWI_PHYTBL_FREQ + i,
-					bwi_phy_freq_11g_rev1[i]);
+			    bwi_phy_freq_11g_rev1[i]);
 		}
 
 		/* Fill noise table */
 		for (i = 0; i < nitems(bwi_phy_noise_11g_rev1); ++i) {
 			bwi_tbl_write_2(mac, BWI_PHYTBL_NOISE + i,
-					bwi_phy_noise_11g_rev1[i]);
+			    bwi_phy_noise_11g_rev1[i]);
 		}
 
 		/* Fill rotor table */
 		for (i = 0; i < nitems(bwi_phy_rotor_11g_rev1); ++i) {
 			/* NB: data length is 4 bytes */
 			bwi_tbl_write_4(mac, BWI_PHYTBL_ROTOR + i,
-					bwi_phy_rotor_11g_rev1[i]);
+			    bwi_phy_rotor_11g_rev1[i]);
 		}
 	} else {
 		bwi_nrssi_write(mac, 0xba98, (int16_t)0x7654); /* XXX */
@@ -795,7 +795,7 @@ bwi_phy_config_11g(struct bwi_mac *mac)
 		/* Fill noise table */
 		for (i = 0; i < nitems(bwi_phy_noise_11g); ++i) {
 			bwi_tbl_write_2(mac, BWI_PHYTBL_NOISE + i,
-					bwi_phy_noise_11g[i]);
+			    bwi_phy_noise_11g[i]);
 		}
 	}
 
@@ -835,7 +835,7 @@ bwi_phy_config_11g(struct bwi_mac *mac)
 		/* Fill delay table */
 		for (i = 0; i < nitems(bwi_phy_delay_11g_rev1); ++i) {
 			bwi_tbl_write_4(mac, BWI_PHYTBL_DELAY + i,
-					bwi_phy_delay_11g_rev1[i]);
+			    bwi_phy_delay_11g_rev1[i]);
 		}
 
 		/* Fill WRSSI (Wide-Band RSSI) table */
@@ -853,7 +853,7 @@ bwi_phy_config_11g(struct bwi_mac *mac)
 
 		bwi_phy_config_agc(mac);
 
-		PHY_READ(mac, 0x400);	/* Dummy read */
+		PHY_READ(mac, 0x400); /* Dummy read */
 		PHY_WRITE(mac, 0x403, 0x1000);
 		bwi_tbl_write_2(mac, 0x3c02, 0xf);
 		bwi_tbl_write_2(mac, 0x3c03, 0x14);
@@ -994,9 +994,8 @@ bwi_set_gains(struct bwi_mac *mac, const struct bwi_gains *gains)
 		uint16_t phy_gain1, phy_gain2;
 
 		if (gains != NULL) {
-			phy_gain1 =
-			((uint16_t)gains->phy_gain << 14) |
-			((uint16_t)gains->phy_gain << 6);
+			phy_gain1 = ((uint16_t)gains->phy_gain << 14) |
+			    ((uint16_t)gains->phy_gain << 6);
 			phy_gain2 = phy_gain1;
 		} else {
 			phy_gain1 = 0x4040;

@@ -28,6 +28,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,13 +36,13 @@
 
 #include "fstyp.h"
 
-#define B_OS_NAME_LENGTH	32
-#define BEFS_BLOCK_OFFSET	512
-#define BEFS_SUPER_BLOCK_MAGIC1	0x42465331
+#define B_OS_NAME_LENGTH 32
+#define BEFS_BLOCK_OFFSET 512
+#define BEFS_SUPER_BLOCK_MAGIC1 0x42465331
 
 struct disk_super_block {
-    char	name[B_OS_NAME_LENGTH];
-    int32_t	magic1;
+	char name[B_OS_NAME_LENGTH];
+	int32_t magic1;
 };
 
 int

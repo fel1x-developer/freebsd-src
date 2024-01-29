@@ -27,31 +27,32 @@
  *
  */
 
-#include <sys/cdefs.h>
 #include "opt_acpi.h"
+
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/sysctl.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
-
 #include <dev/acpica/acpivar.h>
 
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
+
 /* Hooks for the ACPI CA debugging infrastructure */
-#define _COMPONENT	ACPI_OEM
+#define _COMPONENT ACPI_OEM
 ACPI_MODULE_NAME("Fujitsu")
 
 /* Change and update bits for the hotkeys */
-#define VOLUME_MUTE_BIT		0x40000000
+#define VOLUME_MUTE_BIT 0x40000000
 
 /* Values of settings */
-#define GENERAL_SETTING_BITS	0x0fffffff
-#define MOUSE_SETTING_BITS	GENERAL_SETTING_BITS
-#define VOLUME_SETTING_BITS	GENERAL_SETTING_BITS
-#define BRIGHTNESS_SETTING_BITS	GENERAL_SETTING_BITS
+#define GENERAL_SETTING_BITS 0x0fffffff
+#define MOUSE_SETTING_BITS GENERAL_SETTING_BITS
+#define VOLUME_SETTING_BITS GENERAL_SETTING_BITS
+#define BRIGHTNESS_SETTING_BITS GENERAL_SETTING_BITS
 
 /* Possible state changes */
 /*
@@ -60,84 +61,85 @@ ACPI_MODULE_NAME("Fujitsu")
  * hotkey is active.  They should match up with a bit
  * from the GSIF bitmask.
  */
-#define BRIGHT_CHANGED	0x01
-#define VOLUME_CHANGED	0x04
-#define MOUSE_CHANGED	0x08
+#define BRIGHT_CHANGED 0x01
+#define VOLUME_CHANGED 0x04
+#define MOUSE_CHANGED 0x08
 /*
  * It is unknown which hotkey this bit is supposed to indicate, but
  * according to values from GSIF this is a valid flag.
  */
-#define UNKNOWN_CHANGED	0x10
+#define UNKNOWN_CHANGED 0x10
 
 /* sysctl values */
-#define FN_MUTE			0
-#define FN_POINTER_ENABLE	1
-#define FN_LCD_BRIGHTNESS	2
-#define FN_VOLUME		3
+#define FN_MUTE 0
+#define FN_POINTER_ENABLE 1
+#define FN_LCD_BRIGHTNESS 2
+#define FN_VOLUME 3
 
 /* Methods */
-#define METHOD_GBLL	1
-#define METHOD_GMOU	2
-#define METHOD_GVOL	3
-#define METHOD_MUTE	4
-#define METHOD_RBLL	5
-#define METHOD_RVOL	6
-#define METHOD_GSIF	7
-#define METHOD_GHKS	8
-#define METHOD_GBLS	9
+#define METHOD_GBLL 1
+#define METHOD_GMOU 2
+#define METHOD_GVOL 3
+#define METHOD_MUTE 4
+#define METHOD_RBLL 5
+#define METHOD_RVOL 6
+#define METHOD_GSIF 7
+#define METHOD_GHKS 8
+#define METHOD_GBLS 9
 
 /* Notify event */
-#define	ACPI_NOTIFY_STATUS_CHANGED	0x80
+#define ACPI_NOTIFY_STATUS_CHANGED 0x80
 
 /*
  * Holds a control method name and its associated integer value.
  * Only used for no-argument control methods which return a value.
  */
 struct int_nameval {
-	char	*name;
-	int	value;
-	int	exists;
+	char *name;
+	int value;
+	int exists;
 };
 
 /*
  * Driver extension for the FUJITSU ACPI driver.
  */
 struct acpi_fujitsu_softc {
-	device_t	dev;
-	ACPI_HANDLE	handle;
+	device_t dev;
+	ACPI_HANDLE handle;
 
 	/* Control methods */
-	struct int_nameval	_sta,	/* unused */
-				gbll,	/* brightness */
-				gbls,	/* get brightness state */
-				ghks,	/* hotkey selector */
-				gbuf,	/* unused (buffer?) */
-				gmou,	/* mouse */
-				gsif,	/* function key bitmask */
-				gvol,	/* volume */
-				rbll,	/* number of brightness levels (radix) */
-				rvol;	/* number of volume levels (radix) */
+	struct int_nameval _sta, /* unused */
+	    gbll,		 /* brightness */
+	    gbls,		 /* get brightness state */
+	    ghks,		 /* hotkey selector */
+	    gbuf,		 /* unused (buffer?) */
+	    gmou,		 /* mouse */
+	    gsif,		 /* function key bitmask */
+	    gvol,		 /* volume */
+	    rbll,		 /* number of brightness levels (radix) */
+	    rvol;		 /* number of volume levels (radix) */
 
 	/* State variables */
-	uint8_t		bIsMuted;	/* Is volume muted */
-	uint8_t		bIntPtrEnabled;	/* Is internal ptr enabled */
-	uint32_t	lastValChanged;	/* The last value updated */
+	uint8_t bIsMuted;	 /* Is volume muted */
+	uint8_t bIntPtrEnabled;	 /* Is internal ptr enabled */
+	uint32_t lastValChanged; /* The last value updated */
 
 	/* sysctl tree */
-	struct sysctl_ctx_list	sysctl_ctx;
-	struct sysctl_oid	*sysctl_tree;
+	struct sysctl_ctx_list sysctl_ctx;
+	struct sysctl_oid *sysctl_tree;
 };
 
 /* Driver entry point forward declarations. */
-static int	acpi_fujitsu_probe(device_t dev);
-static int	acpi_fujitsu_attach(device_t dev);
-static int	acpi_fujitsu_detach(device_t dev);
-static int	acpi_fujitsu_suspend(device_t dev);
-static int	acpi_fujitsu_resume(device_t dev);
+static int acpi_fujitsu_probe(device_t dev);
+static int acpi_fujitsu_attach(device_t dev);
+static int acpi_fujitsu_detach(device_t dev);
+static int acpi_fujitsu_suspend(device_t dev);
+static int acpi_fujitsu_resume(device_t dev);
 
-static void	acpi_fujitsu_notify_status_changed(void *arg);
-static void	acpi_fujitsu_notify_handler(ACPI_HANDLE h, uint32_t notify, void *context);
-static int	acpi_fujitsu_sysctl(SYSCTL_HANDLER_ARGS);
+static void acpi_fujitsu_notify_status_changed(void *arg);
+static void acpi_fujitsu_notify_handler(ACPI_HANDLE h, uint32_t notify,
+    void *context);
+static int acpi_fujitsu_sysctl(SYSCTL_HANDLER_ARGS);
 
 /* Utility function declarations */
 static uint8_t acpi_fujitsu_update(struct acpi_fujitsu_softc *sc);
@@ -147,11 +149,11 @@ static uint8_t acpi_fujitsu_check_hardware(struct acpi_fujitsu_softc *sc);
 /* Driver/Module specific structure definitions. */
 static device_method_t acpi_fujitsu_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		acpi_fujitsu_probe),
-	DEVMETHOD(device_attach,	acpi_fujitsu_attach),
-	DEVMETHOD(device_detach,	acpi_fujitsu_detach),
-	DEVMETHOD(device_suspend,	acpi_fujitsu_suspend),
-	DEVMETHOD(device_resume,	acpi_fujitsu_resume),
+	DEVMETHOD(device_probe, acpi_fujitsu_probe),
+	DEVMETHOD(device_attach, acpi_fujitsu_attach),
+	DEVMETHOD(device_detach, acpi_fujitsu_detach),
+	DEVMETHOD(device_suspend, acpi_fujitsu_suspend),
+	DEVMETHOD(device_resume, acpi_fujitsu_resume),
 
 	DEVMETHOD_END
 };
@@ -164,7 +166,8 @@ static driver_t acpi_fujitsu_driver = {
 
 /* Prototype for function hotkeys for getting/setting a value. */
 static int acpi_fujitsu_method_get(struct acpi_fujitsu_softc *sc, int method);
-static int acpi_fujitsu_method_set(struct acpi_fujitsu_softc *sc, int method, int value);
+static int acpi_fujitsu_method_set(struct acpi_fujitsu_softc *sc, int method,
+    int value);
 
 static char *fujitsu_ids[] = { "FUJ02B1", NULL };
 
@@ -172,47 +175,31 @@ ACPI_SERIAL_DECL(fujitsu, "Fujitsu Function Hotkeys");
 
 /* sysctl names and function calls */
 static struct {
-	char		*name;
-	int		method;
-	char		*description;
-} sysctl_table[] = {
-	{
-		.name		= "mute",
-		.method		= METHOD_MUTE,
-		.description	= "Speakers/headphones mute status"
-	},
-	{
-		.name		= "pointer_enable",
-		.method		= METHOD_GMOU,
-		.description	= "Enable and disable the internal pointer"
-	},
-	{
-		.name		= "lcd_brightness",
-		.method		= METHOD_GBLL,
-		.description	= "Brightness level of the LCD panel"
-	},
-	{
-		.name		= "lcd_brightness",
-		.method		= METHOD_GBLS,
-		.description	= "Brightness level of the LCD panel"
-	},
-	{
-		.name		= "volume",
-		.method		= METHOD_GVOL,
-		.description	= "Speakers/headphones volume level"
-	},
-	{
-		.name		= "volume_radix",
-		.method		= METHOD_RVOL,
-		.description	= "Number of volume level steps"
-	},
-	{
-		.name		= "lcd_brightness_radix",
-		.method		= METHOD_RBLL,
-		.description	= "Number of brightness level steps"
-	},
-	{ NULL, 0, NULL }
-};
+	char *name;
+	int method;
+	char *description;
+} sysctl_table[] = { { .name = "mute",
+			 .method = METHOD_MUTE,
+			 .description = "Speakers/headphones mute status" },
+	{ .name = "pointer_enable",
+	    .method = METHOD_GMOU,
+	    .description = "Enable and disable the internal pointer" },
+	{ .name = "lcd_brightness",
+	    .method = METHOD_GBLL,
+	    .description = "Brightness level of the LCD panel" },
+	{ .name = "lcd_brightness",
+	    .method = METHOD_GBLS,
+	    .description = "Brightness level of the LCD panel" },
+	{ .name = "volume",
+	    .method = METHOD_GVOL,
+	    .description = "Speakers/headphones volume level" },
+	{ .name = "volume_radix",
+	    .method = METHOD_RVOL,
+	    .description = "Number of volume level steps" },
+	{ .name = "lcd_brightness_radix",
+	    .method = METHOD_RBLL,
+	    .description = "Number of brightness level steps" },
+	{ NULL, 0, NULL } };
 
 DRIVER_MODULE(acpi_fujitsu, acpi, acpi_fujitsu_driver, 0, 0);
 MODULE_DEPEND(acpi_fujitsu, acpi, 1, 1, 1);
@@ -225,7 +212,7 @@ acpi_fujitsu_probe(device_t dev)
 	char buffer[64];
 	int rv;
 
-	rv =  ACPI_ID_PROBE(device_get_parent(dev), dev, fujitsu_ids, &name);
+	rv = ACPI_ID_PROBE(device_get_parent(dev), dev, fujitsu_ids, &name);
 	if (acpi_disabled("fujitsu") || rv > 0 || device_get_unit(dev) > 1)
 		return (ENXIO);
 	sprintf(buffer, "Fujitsu Function Hotkeys %s", name);
@@ -239,7 +226,7 @@ acpi_fujitsu_attach(device_t dev)
 {
 	struct acpi_fujitsu_softc *sc;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	sc = device_get_softc(dev);
 	sc->dev = dev;
@@ -272,8 +259,8 @@ acpi_fujitsu_suspend(device_t dev)
 static int
 acpi_fujitsu_resume(device_t dev)
 {
-	struct acpi_fujitsu_softc   *sc;
-	ACPI_STATUS		    status;
+	struct acpi_fujitsu_softc *sc;
+	ACPI_STATUS status;
 
 	sc = device_get_softc(dev);
 
@@ -283,7 +270,7 @@ acpi_fujitsu_resume(device_t dev)
 	 */
 	ACPI_SERIAL_BEGIN(fujitsu);
 
-	if(sc->gmou.exists) {
+	if (sc->gmou.exists) {
 		status = acpi_SetInteger(sc->handle, "SMOU", 1);
 		if (ACPI_FAILURE(status))
 			device_printf(sc->dev, "Couldn't enable pointer\n");
@@ -298,7 +285,7 @@ acpi_fujitsu_notify_status_changed(void *arg)
 {
 	struct acpi_fujitsu_softc *sc;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	sc = (struct acpi_fujitsu_softc *)arg;
 
@@ -317,7 +304,7 @@ acpi_fujitsu_notify_handler(ACPI_HANDLE h, uint32_t notify, void *context)
 {
 	struct acpi_fujitsu_softc *sc;
 
-	ACPI_FUNCTION_TRACE_U32((char *)(uintptr_t)__func__, notify);
+	ACPI_FUNCTION_TRACE_U32((char *)(uintptr_t) __func__, notify);
 
 	sc = (struct acpi_fujitsu_softc *)context;
 
@@ -339,7 +326,7 @@ acpi_fujitsu_detach(device_t dev)
 
 	sc = device_get_softc(dev);
 	AcpiRemoveNotifyHandler(sc->handle, ACPI_DEVICE_NOTIFY,
-	   acpi_fujitsu_notify_handler);
+	    acpi_fujitsu_notify_handler);
 
 	sysctl_ctx_free(&sc->sysctl_ctx);
 
@@ -378,42 +365,42 @@ acpi_fujitsu_init(struct acpi_fujitsu_softc *sc)
 	acpi_sc = acpi_device_get_parent_softc(sc->dev);
 	sysctl_ctx_init(&sc->sysctl_ctx);
 	sc->sysctl_tree = SYSCTL_ADD_NODE(&sc->sysctl_ctx,
-	    SYSCTL_CHILDREN(acpi_sc->acpi_sysctl_tree),
-	    OID_AUTO, "fujitsu", CTLFLAG_RD | CTLFLAG_MPSAFE, 0, "");
+	    SYSCTL_CHILDREN(acpi_sc->acpi_sysctl_tree), OID_AUTO, "fujitsu",
+	    CTLFLAG_RD | CTLFLAG_MPSAFE, 0, "");
 
 	for (i = 0; sysctl_table[i].name != NULL; i++) {
-		switch(sysctl_table[i].method) {
-			case METHOD_GMOU:
-				exists = sc->gmou.exists;
-				break;
-			case METHOD_GBLL:
-				exists = sc->gbll.exists;
-				break;
-			case METHOD_GBLS:
-				exists = sc->gbls.exists;
-				break;
-			case METHOD_GVOL:
-			case METHOD_MUTE:
-				exists = sc->gvol.exists;
-				break;
-			case METHOD_RVOL:
-				exists = sc->rvol.exists;
-				break;
-			case METHOD_RBLL:
-				exists = sc->rbll.exists;
-				break;
-			default:
-				/* Allow by default */
-				exists = 1;
-				break;
+		switch (sysctl_table[i].method) {
+		case METHOD_GMOU:
+			exists = sc->gmou.exists;
+			break;
+		case METHOD_GBLL:
+			exists = sc->gbll.exists;
+			break;
+		case METHOD_GBLS:
+			exists = sc->gbls.exists;
+			break;
+		case METHOD_GVOL:
+		case METHOD_MUTE:
+			exists = sc->gvol.exists;
+			break;
+		case METHOD_RVOL:
+			exists = sc->rvol.exists;
+			break;
+		case METHOD_RBLL:
+			exists = sc->rbll.exists;
+			break;
+		default:
+			/* Allow by default */
+			exists = 1;
+			break;
 		}
-		if(!exists)
+		if (!exists)
 			continue;
 		SYSCTL_ADD_PROC(&sc->sysctl_ctx,
 		    SYSCTL_CHILDREN(sc->sysctl_tree), OID_AUTO,
 		    sysctl_table[i].name,
-		    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_ANYBODY |
-		    CTLFLAG_MPSAFE, sc, i, acpi_fujitsu_sysctl, "I",
+		    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_ANYBODY | CTLFLAG_MPSAFE,
+		    sc, i, acpi_fujitsu_sysctl, "I",
 		    sysctl_table[i].description);
 	}
 
@@ -429,10 +416,10 @@ acpi_fujitsu_init(struct acpi_fujitsu_softc *sc)
 static int
 acpi_fujitsu_sysctl(SYSCTL_HANDLER_ARGS)
 {
-	struct acpi_fujitsu_softc	*sc;
-	int				method;
-	int				arg;
-	int				function_num, error = 0;
+	struct acpi_fujitsu_softc *sc;
+	int method;
+	int arg;
+	int function_num, error = 0;
 
 	sc = (struct acpi_fujitsu_softc *)oidp->oid_arg1;
 	function_num = oidp->oid_arg2;
@@ -458,42 +445,42 @@ out:
 static int
 acpi_fujitsu_method_get(struct acpi_fujitsu_softc *sc, int method)
 {
-	struct int_nameval	nv;
-	ACPI_STATUS		status;
+	struct int_nameval nv;
+	ACPI_STATUS status;
 
 	ACPI_SERIAL_ASSERT(fujitsu);
 
 	switch (method) {
-		case METHOD_GBLL:
-			nv = sc->gbll;
-			break;
-		case METHOD_GBLS:
-			nv = sc->gbls;
-			break;
-		case METHOD_GMOU:
-			nv = sc->gmou;
-			break;
-		case METHOD_GVOL:
-		case METHOD_MUTE:
-			nv = sc->gvol;
-			break;
-		case METHOD_GHKS:
-			nv = sc->ghks;
-			break;
-		case METHOD_GSIF:
-			nv = sc->gsif;
-			break;
-		case METHOD_RBLL:
-			nv = sc->rbll;
-			break;
-		case METHOD_RVOL:
-			nv = sc->rvol;
-			break;
-		default:
-			return (FALSE);
+	case METHOD_GBLL:
+		nv = sc->gbll;
+		break;
+	case METHOD_GBLS:
+		nv = sc->gbls;
+		break;
+	case METHOD_GMOU:
+		nv = sc->gmou;
+		break;
+	case METHOD_GVOL:
+	case METHOD_MUTE:
+		nv = sc->gvol;
+		break;
+	case METHOD_GHKS:
+		nv = sc->ghks;
+		break;
+	case METHOD_GSIF:
+		nv = sc->gsif;
+		break;
+	case METHOD_RBLL:
+		nv = sc->rbll;
+		break;
+	case METHOD_RVOL:
+		nv = sc->rvol;
+		break;
+	default:
+		return (FALSE);
 	}
 
-	if(!nv.exists)
+	if (!nv.exists)
 		return (EINVAL);
 
 	status = acpi_GetInteger(sc->handle, nv.name, &nv.value);
@@ -514,40 +501,40 @@ acpi_fujitsu_method_get(struct acpi_fujitsu_softc *sc, int method)
 static int
 acpi_fujitsu_method_set(struct acpi_fujitsu_softc *sc, int method, int value)
 {
-	struct int_nameval	nv;
-	ACPI_STATUS		status;
-	char			*control;
-	int			changed;
+	struct int_nameval nv;
+	ACPI_STATUS status;
+	char *control;
+	int changed;
 
 	ACPI_SERIAL_ASSERT(fujitsu);
 
 	switch (method) {
-		case METHOD_GBLL:
-			changed = BRIGHT_CHANGED;
-			control = "SBLL";
-			nv = sc->gbll;
-			break;
-		case METHOD_GBLS:
-			changed = BRIGHT_CHANGED;
-			control = "SBL2";
-			nv = sc->gbls;
-			break;
-		case METHOD_GMOU:
-			changed = MOUSE_CHANGED;
-			control = "SMOU";
-			nv = sc->gmou;
-			break;
-		case METHOD_GVOL:
-		case METHOD_MUTE:
-			changed = VOLUME_CHANGED;
-			control = "SVOL";
-			nv = sc->gvol;
-			break;
-		default:
-			return (EINVAL);
+	case METHOD_GBLL:
+		changed = BRIGHT_CHANGED;
+		control = "SBLL";
+		nv = sc->gbll;
+		break;
+	case METHOD_GBLS:
+		changed = BRIGHT_CHANGED;
+		control = "SBL2";
+		nv = sc->gbls;
+		break;
+	case METHOD_GMOU:
+		changed = MOUSE_CHANGED;
+		control = "SMOU";
+		nv = sc->gmou;
+		break;
+	case METHOD_GVOL:
+	case METHOD_MUTE:
+		changed = VOLUME_CHANGED;
+		control = "SVOL";
+		nv = sc->gvol;
+		break;
+	default:
+		return (EINVAL);
 	}
 
-	if(!nv.exists)
+	if (!nv.exists)
 		return (EINVAL);
 
 	if (method == METHOD_MUTE) {
@@ -580,8 +567,8 @@ acpi_fujitsu_check_hardware(struct acpi_fujitsu_softc *sc)
 
 	ACPI_SERIAL_ASSERT(fujitsu);
 	/* save the hotkey bitmask */
-	if (ACPI_FAILURE(acpi_GetInteger(sc->handle,
-	sc->gsif.name, &(sc->gsif.value)))) {
+	if (ACPI_FAILURE(acpi_GetInteger(sc->handle, sc->gsif.name,
+		&(sc->gsif.value)))) {
 		sc->gsif.exists = 0;
 		device_printf(sc->dev, "Couldn't query bitmask value\n");
 	} else {
@@ -589,51 +576,45 @@ acpi_fujitsu_check_hardware(struct acpi_fujitsu_softc *sc)
 	}
 
 	/* System Volume Level */
-	if (ACPI_FAILURE(acpi_GetInteger(sc->handle,
-	    sc->gvol.name, &val))) {
+	if (ACPI_FAILURE(acpi_GetInteger(sc->handle, sc->gvol.name, &val))) {
 		sc->gvol.exists = 0;
 	} else {
 		sc->gvol.exists = 1;
 	}
 
-	if (ACPI_FAILURE(acpi_GetInteger(sc->handle,
-		sc->gbls.name, &val))) {
+	if (ACPI_FAILURE(acpi_GetInteger(sc->handle, sc->gbls.name, &val))) {
 		sc->gbls.exists = 0;
 	} else {
 		sc->gbls.exists = 1;
 	}
 
 	// don't add if we can use the new method
-	if (sc->gbls.exists || ACPI_FAILURE(acpi_GetInteger(sc->handle,
-	    sc->gbll.name, &val))) {
+	if (sc->gbls.exists ||
+	    ACPI_FAILURE(acpi_GetInteger(sc->handle, sc->gbll.name, &val))) {
 		sc->gbll.exists = 0;
 	} else {
 		sc->gbll.exists = 1;
 	}
 
-	if (ACPI_FAILURE(acpi_GetInteger(sc->handle,
-	    sc->ghks.name, &val))) {
+	if (ACPI_FAILURE(acpi_GetInteger(sc->handle, sc->ghks.name, &val))) {
 		sc->ghks.exists = 0;
 	} else {
 		sc->ghks.exists = 1;
 	}
 
-	if (ACPI_FAILURE(acpi_GetInteger(sc->handle,
-	    sc->gmou.name, &val))) {
+	if (ACPI_FAILURE(acpi_GetInteger(sc->handle, sc->gmou.name, &val))) {
 		sc->gmou.exists = 0;
 	} else {
 		sc->gmou.exists = 1;
 	}
 
-	if (ACPI_FAILURE(acpi_GetInteger(sc->handle,
-	    sc->rbll.name, &val))) {
+	if (ACPI_FAILURE(acpi_GetInteger(sc->handle, sc->rbll.name, &val))) {
 		sc->rbll.exists = 0;
 	} else {
 		sc->rbll.exists = 1;
 	}
 
-	if (ACPI_FAILURE(acpi_GetInteger(sc->handle,
-	    sc->rvol.name, &val))) {
+	if (ACPI_FAILURE(acpi_GetInteger(sc->handle, sc->rvol.name, &val))) {
 		sc->rvol.exists = 0;
 	} else {
 		sc->rvol.exists = 1;
@@ -656,42 +637,45 @@ acpi_fujitsu_update(struct acpi_fujitsu_softc *sc)
 	acpi_sc = acpi_device_get_parent_softc(sc->dev);
 
 	ACPI_SERIAL_ASSERT(fujitsu);
-	if(sc->gsif.exists)
-		changed = sc->gsif.value & acpi_fujitsu_method_get(sc,METHOD_GHKS);
+	if (sc->gsif.exists)
+		changed = sc->gsif.value &
+		    acpi_fujitsu_method_get(sc, METHOD_GHKS);
 	else
 		changed = 0;
 
 	/* System Volume Level */
-	if(sc->gvol.exists) {
-		if (ACPI_FAILURE(acpi_GetInteger(sc->handle,
-		sc->gvol.name, &(sc->gvol.value)))) {
+	if (sc->gvol.exists) {
+		if (ACPI_FAILURE(acpi_GetInteger(sc->handle, sc->gvol.name,
+			&(sc->gvol.value)))) {
 			device_printf(sc->dev, "Couldn't query volume level\n");
 			return (FALSE);
 		}
 
 		if (changed & VOLUME_CHANGED) {
-			sc->bIsMuted =
-			(uint8_t)((sc->gvol.value & VOLUME_MUTE_BIT) != 0);
+			sc->bIsMuted = (uint8_t)((sc->gvol.value &
+						     VOLUME_MUTE_BIT) != 0);
 
 			/* Clear the modification bit */
 			sc->gvol.value &= VOLUME_SETTING_BITS;
 
 			if (sc->bIsMuted) {
 				acpi_UserNotify("FUJITSU", sc->handle, FN_MUTE);
-				ACPI_VPRINT(sc->dev, acpi_sc, "Volume is now mute\n");
+				ACPI_VPRINT(sc->dev, acpi_sc,
+				    "Volume is now mute\n");
 			} else
-				ACPI_VPRINT(sc->dev, acpi_sc, "Volume is now %d\n",
-				sc->gvol.value);
+				ACPI_VPRINT(sc->dev, acpi_sc,
+				    "Volume is now %d\n", sc->gvol.value);
 
 			acpi_UserNotify("FUJITSU", sc->handle, FN_VOLUME);
 		}
 	}
 
 	/* Internal mouse pointer (eraserhead) */
-	if(sc->gmou.exists) {
-		if (ACPI_FAILURE(acpi_GetInteger(sc->handle,
-		sc->gmou.name, &(sc->gmou.value)))) {
-			device_printf(sc->dev, "Couldn't query pointer state\n");
+	if (sc->gmou.exists) {
+		if (ACPI_FAILURE(acpi_GetInteger(sc->handle, sc->gmou.name,
+			&(sc->gmou.value)))) {
+			device_printf(sc->dev,
+			    "Couldn't query pointer state\n");
 			return (FALSE);
 		}
 
@@ -700,45 +684,55 @@ acpi_fujitsu_update(struct acpi_fujitsu_softc *sc)
 
 			/* Clear the modification bit */
 			sc->gmou.value &= MOUSE_SETTING_BITS;
-			
-			/* Set the value in case it is not hardware controlled */
-                        acpi_fujitsu_method_set(sc, METHOD_GMOU, sc->gmou.value);
 
-			acpi_UserNotify("FUJITSU", sc->handle, FN_POINTER_ENABLE);
+			/* Set the value in case it is not hardware controlled
+			 */
+			acpi_fujitsu_method_set(sc, METHOD_GMOU,
+			    sc->gmou.value);
 
-			ACPI_VPRINT(sc->dev, acpi_sc, "Internal pointer is now %s\n",
-			(sc->bIntPtrEnabled) ? "enabled" : "disabled");
+			acpi_UserNotify("FUJITSU", sc->handle,
+			    FN_POINTER_ENABLE);
+
+			ACPI_VPRINT(sc->dev, acpi_sc,
+			    "Internal pointer is now %s\n",
+			    (sc->bIntPtrEnabled) ? "enabled" : "disabled");
 		}
 	}
 
 	/* Screen Brightness Level P8XXX */
-	if(sc->gbls.exists) {
-		if (ACPI_FAILURE(acpi_GetInteger(sc->handle,
-                sc->gbls.name, &(sc->gbls.value)))) {
-                        device_printf(sc->dev, "Couldn't query P8XXX brightness level\n");
-                        return (FALSE);
-                }
+	if (sc->gbls.exists) {
+		if (ACPI_FAILURE(acpi_GetInteger(sc->handle, sc->gbls.name,
+			&(sc->gbls.value)))) {
+			device_printf(sc->dev,
+			    "Couldn't query P8XXX brightness level\n");
+			return (FALSE);
+		}
 		if (changed & BRIGHT_CHANGED) {
 			/* No state to record here. */
 
 			/* Clear the modification bit */
 			sc->gbls.value &= BRIGHTNESS_SETTING_BITS;
 
-			/* Set the value in case it is not hardware controlled */
-			acpi_fujitsu_method_set(sc, METHOD_GBLS, sc->gbls.value);
+			/* Set the value in case it is not hardware controlled
+			 */
+			acpi_fujitsu_method_set(sc, METHOD_GBLS,
+			    sc->gbls.value);
 
-			acpi_UserNotify("FUJITSU", sc->handle, FN_LCD_BRIGHTNESS);
+			acpi_UserNotify("FUJITSU", sc->handle,
+			    FN_LCD_BRIGHTNESS);
 
-			ACPI_VPRINT(sc->dev, acpi_sc, "P8XXX Brightness level is now %d\n",
-			sc->gbls.value);
-                }
+			ACPI_VPRINT(sc->dev, acpi_sc,
+			    "P8XXX Brightness level is now %d\n",
+			    sc->gbls.value);
+		}
 	}
 
 	/* Screen Brightness Level */
-	if(sc->gbll.exists) {
-		if (ACPI_FAILURE(acpi_GetInteger(sc->handle,
-		sc->gbll.name, &(sc->gbll.value)))) {
-			device_printf(sc->dev, "Couldn't query brightness level\n");
+	if (sc->gbll.exists) {
+		if (ACPI_FAILURE(acpi_GetInteger(sc->handle, sc->gbll.name,
+			&(sc->gbll.value)))) {
+			device_printf(sc->dev,
+			    "Couldn't query brightness level\n");
 			return (FALSE);
 		}
 
@@ -748,10 +742,11 @@ acpi_fujitsu_update(struct acpi_fujitsu_softc *sc)
 			/* Clear the modification bit */
 			sc->gbll.value &= BRIGHTNESS_SETTING_BITS;
 
-			acpi_UserNotify("FUJITSU", sc->handle, FN_LCD_BRIGHTNESS);
+			acpi_UserNotify("FUJITSU", sc->handle,
+			    FN_LCD_BRIGHTNESS);
 
-			ACPI_VPRINT(sc->dev, acpi_sc, "Brightness level is now %d\n",
-			sc->gbll.value);
+			ACPI_VPRINT(sc->dev, acpi_sc,
+			    "Brightness level is now %d\n", sc->gbll.value);
 		}
 	}
 

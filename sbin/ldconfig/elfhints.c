@@ -43,23 +43,23 @@
 
 #include "ldconfig.h"
 
-#define MAXDIRS		1024		/* Maximum directories in path */
-#define MAXFILESIZE	(16*1024)	/* Maximum hints file size */
+#define MAXDIRS 1024		/* Maximum directories in path */
+#define MAXFILESIZE (16 * 1024) /* Maximum hints file size */
 
-static void	add_dir(const char *, const char *, bool);
-static void	read_dirs_from_file(const char *, const char *);
-static void	read_elf_hints(const char *, bool);
-static void	write_elf_hints(const char *);
+static void add_dir(const char *, const char *, bool);
+static void read_dirs_from_file(const char *, const char *);
+static void read_elf_hints(const char *, bool);
+static void write_elf_hints(const char *);
 
-static const char	*dirs[MAXDIRS];
-static int		 ndirs;
-bool			 insecure;
+static const char *dirs[MAXDIRS];
+static int ndirs;
+bool insecure;
 
 static void
 add_dir(const char *hintsfile, const char *name, bool trusted)
 {
-	struct stat 	stbuf;
-	int		i;
+	struct stat stbuf;
+	int i;
 
 	/* Do some security checks */
 	if (!trusted && !insecure) {
@@ -81,7 +81,7 @@ add_dir(const char *hintsfile, const char *name, bool trusted)
 		}
 	}
 
-	for (i = 0;  i < ndirs;  i++)
+	for (i = 0; i < ndirs; i++)
 		if (strcmp(dirs[i], name) == 0)
 			return;
 	if (ndirs >= MAXDIRS)
@@ -92,28 +92,28 @@ add_dir(const char *hintsfile, const char *name, bool trusted)
 void
 list_elf_hints(const char *hintsfile)
 {
-	int	i;
-	int	nlibs;
+	int i;
+	int nlibs;
 
 	read_elf_hints(hintsfile, 1);
 	printf("%s:\n", hintsfile);
 	printf("\tsearch directories:");
-	for (i = 0;  i < ndirs;  i++)
+	for (i = 0; i < ndirs; i++)
 		printf("%c%s", i == 0 ? ' ' : ':', dirs[i]);
 	printf("\n");
 
 	nlibs = 0;
-	for (i = 0;  i < ndirs;  i++) {
-		DIR		*dirp;
-		struct dirent	*dp;
+	for (i = 0; i < ndirs; i++) {
+		DIR *dirp;
+		struct dirent *dp;
 
 		if ((dirp = opendir(dirs[i])) == NULL)
 			continue;
 		while ((dp = readdir(dirp)) != NULL) {
-			int		 len;
-			int		 namelen;
-			const char	*name;
-			const char	*vers;
+			int len;
+			int namelen;
+			const char *name;
+			const char *vers;
 
 			/* Name can't be shorter than "libx.so.0" */
 			if ((len = strlen(dp->d_name)) < 9 ||
@@ -121,7 +121,7 @@ list_elf_hints(const char *hintsfile)
 				continue;
 			name = dp->d_name + 3;
 			vers = dp->d_name + len;
-			while (vers > dp->d_name && isdigit(*(vers-1)))
+			while (vers > dp->d_name && isdigit(*(vers - 1)))
 				vers--;
 			if (vers == dp->d_name + len)
 				continue;
@@ -131,8 +131,8 @@ list_elf_hints(const char *hintsfile)
 
 			/* We have a valid shared library name. */
 			namelen = (vers - 4) - name;
-			printf("\t%d:-l%.*s.%s => %s/%s\n", nlibs,
-			    namelen, name, vers, dirs[i], dp->d_name);
+			printf("\t%d:-l%.*s.%s => %s/%s\n", nlibs, namelen,
+			    name, vers, dirs[i], dp->d_name);
 			nlibs++;
 		}
 		closedir(dirp);
@@ -142,16 +142,16 @@ list_elf_hints(const char *hintsfile)
 static void
 read_dirs_from_file(const char *hintsfile, const char *listfile)
 {
-	FILE	*fp;
-	char	 buf[MAXPATHLEN];
-	int	 linenum;
+	FILE *fp;
+	char buf[MAXPATHLEN];
+	int linenum;
 
 	if ((fp = fopen(listfile, "r")) == NULL)
 		err(1, "%s", listfile);
 
 	linenum = 0;
 	while (fgets(buf, sizeof buf, fp) != NULL) {
-		char	*cp, *sp;
+		char *cp, *sp;
 
 		linenum++;
 		cp = buf;
@@ -172,8 +172,8 @@ read_dirs_from_file(const char *hintsfile, const char *listfile)
 		}
 		/* Now we had better be at the end of the line. */
 		if (*cp != '\0')
-			warnx("%s:%d: trailing characters ignored",
-			    listfile, linenum);
+			warnx("%s:%d: trailing characters ignored", listfile,
+			    linenum);
 
 		if ((sp = strdup(sp)) == NULL)
 			errx(1, "Out of memory");
@@ -186,13 +186,13 @@ read_dirs_from_file(const char *hintsfile, const char *listfile)
 static void
 read_elf_hints(const char *hintsfile, bool must_exist)
 {
-	int	 		 fd;
-	struct stat		 s;
-	void			*mapbase;
-	struct elfhints_hdr	*hdr;
-	char			*strtab;
-	char			*dirlist;
-	char			*p;
+	int fd;
+	struct stat s;
+	void *mapbase;
+	struct elfhints_hdr *hdr;
+	char *strtab;
+	char *dirlist;
+	char *p;
 
 	if ((fd = open(hintsfile, O_RDONLY)) == -1) {
 		if (errno == ENOENT && !must_exist)
@@ -207,8 +207,8 @@ read_elf_hints(const char *hintsfile, bool must_exist)
 	 * We use a read-write, private mapping so that we can null-terminate
 	 * some strings in it without affecting the underlying file.
 	 */
-	mapbase = mmap(NULL, s.st_size, PROT_READ|PROT_WRITE,
-	    MAP_PRIVATE, fd, 0);
+	mapbase = mmap(NULL, s.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd,
+	    0);
 	if (mapbase == MAP_FAILED)
 		err(1, "Cannot mmap \"%s\"", hintsfile);
 	close(fd);
@@ -236,7 +236,7 @@ update_elf_hints(const char *hintsfile, int argc, char **argv, bool merge)
 
 	if (merge)
 		read_elf_hints(hintsfile, false);
-	for (i = 0;  i < argc;  i++) {
+	for (i = 0; i < argc; i++) {
 		if (stat(argv[i], &s) == -1)
 			warn("warning: %s", argv[i]);
 		else if (S_ISREG(s.st_mode))
@@ -250,15 +250,15 @@ update_elf_hints(const char *hintsfile, int argc, char **argv, bool merge)
 static void
 write_elf_hints(const char *hintsfile)
 {
-	struct elfhints_hdr	 hdr;
-	char			*tempname;
-	int			 fd;
-	FILE			*fp;
-	int			 i;
+	struct elfhints_hdr hdr;
+	char *tempname;
+	int fd;
+	FILE *fp;
+	int i;
 
 	if (asprintf(&tempname, "%s.XXXXXX", hintsfile) == -1)
 		errx(1, "Out of memory");
-	if ((fd = mkstemp(tempname)) ==  -1)
+	if ((fd = mkstemp(tempname)) == -1)
 		err(1, "mkstemp(%s)", tempname);
 	if (fchmod(fd, 0444) == -1)
 		err(1, "fchmod(%s)", tempname);
@@ -275,11 +275,11 @@ write_elf_hints(const char *hintsfile)
 	/* Count up the size of the string table. */
 	if (ndirs > 0) {
 		hdr.strsize += strlen(dirs[0]);
-		for (i = 1;  i < ndirs;  i++)
+		for (i = 1; i < ndirs; i++)
 			hdr.strsize += 1 + strlen(dirs[i]);
 	}
 	hdr.dirlistlen = hdr.strsize;
-	hdr.strsize++;	/* For the null terminator */
+	hdr.strsize++; /* For the null terminator */
 
 	/* Write the header. */
 	if (fwrite(&hdr, 1, sizeof hdr, fp) != sizeof hdr)
@@ -288,7 +288,7 @@ write_elf_hints(const char *hintsfile)
 	if (ndirs > 0) {
 		if (fputs(dirs[0], fp) == EOF)
 			err(1, "%s: write error", tempname);
-		for (i = 1;  i < ndirs;  i++)
+		for (i = 1; i < ndirs; i++)
 			if (fprintf(fp, ":%s", dirs[i]) < 0)
 				err(1, "%s: write error", tempname);
 	}

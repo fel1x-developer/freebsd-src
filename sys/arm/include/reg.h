@@ -13,12 +13,12 @@ struct reg {
 };
 
 struct fpreg {
-	__uint64_t	fpr_r[32];
-	__uint32_t	fpr_fpscr;
+	__uint64_t fpr_r[32];
+	__uint32_t fpr_fpscr;
 };
 
 struct dbreg {
-#define	ARM_WR_MAX	16 /* Maximum number of watchpoint registers */
+#define ARM_WR_MAX 16 /* Maximum number of watchpoint registers */
 	unsigned int dbg_wcr[ARM_WR_MAX]; /* Watchpoint Control Registers */
 	unsigned int dbg_wvr[ARM_WR_MAX]; /* Watchpoint Value Registers */
 };

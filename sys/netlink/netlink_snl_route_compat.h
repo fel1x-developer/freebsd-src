@@ -24,30 +24,30 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#ifndef	_NETLINK_NETLINK_SNL_ROUTE_COMPAT_H_
-#define	_NETLINK_NETLINK_SNL_ROUTE_COMPAT_H_
+#ifndef _NETLINK_NETLINK_SNL_ROUTE_COMPAT_H_
+#define _NETLINK_NETLINK_SNL_ROUTE_COMPAT_H_
 
-#include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/socket.h>
 
 /*
  * This file contains netlink-compatible definitions from the
  * net/route.h header.
  */
-#define	NETLINK_COMPAT
+#define NETLINK_COMPAT
 
 #include <net/route.h>
 
-#define	RTSOCK_RTM_ADD		0x1
-#define	RTSOCK_RTM_DELETE	0x2
-#define	RTSOCK_RTM_CHANGE	0x3
-#define	RTSOCK_RTM_GET		0x4
-#define	RTSOCK_RTM_NEWADDR	0xc
-#define	RTSOCK_RTM_DELADDR	0xd
-#define	RTSOCK_RTM_IFINFO	0xe
-#define	RTSOCK_RTM_NEWMADDR	0xf
-#define	RTSOCK_RTM_DELMADDR	0x10
-#define	RTSOCK_RTM_IFANNOUNCE	0x11
-#define	RTSOCK_RTM_IEEE80211	0x12
+#define RTSOCK_RTM_ADD 0x1
+#define RTSOCK_RTM_DELETE 0x2
+#define RTSOCK_RTM_CHANGE 0x3
+#define RTSOCK_RTM_GET 0x4
+#define RTSOCK_RTM_NEWADDR 0xc
+#define RTSOCK_RTM_DELADDR 0xd
+#define RTSOCK_RTM_IFINFO 0xe
+#define RTSOCK_RTM_NEWMADDR 0xf
+#define RTSOCK_RTM_DELMADDR 0x10
+#define RTSOCK_RTM_IFANNOUNCE 0x11
+#define RTSOCK_RTM_IEEE80211 0x12
 
 #endif

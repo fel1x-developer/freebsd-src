@@ -30,25 +30,24 @@
 #include <sys/uio.h>
 
 #include <errno.h>
-
 #include <isc/eventlib.h>
 #ifndef _LIBC
 #include <isc/assertions.h>
 #endif
 #include "eventlib_p.h"
-
 #include "port_after.h"
 
 #ifndef _LIBC
-static int	copyvec(evStream *str, const struct iovec *iov, int iocnt);
-static void	consume(evStream *str, size_t bytes);
-static void	done(evContext opaqueCtx, evStream *str);
-static void	writable(evContext opaqueCtx, void *uap, int fd, int evmask);
-static void	readable(evContext opaqueCtx, void *uap, int fd, int evmask);
+static int copyvec(evStream *str, const struct iovec *iov, int iocnt);
+static void consume(evStream *str, size_t bytes);
+static void done(evContext opaqueCtx, evStream *str);
+static void writable(evContext opaqueCtx, void *uap, int fd, int evmask);
+static void readable(evContext opaqueCtx, void *uap, int fd, int evmask);
 #endif
 
 struct iovec
-evConsIovec(void *buf, size_t cnt) {
+evConsIovec(void *buf, size_t cnt)
+{
 	struct iovec ret;
 
 	memset(&ret, 0xf5, sizeof ret);
@@ -60,7 +59,7 @@ evConsIovec(void *buf, size_t cnt) {
 #ifndef _LIBC
 int
 evWrite(evContext opaqueCtx, int fd, const struct iovec *iov, int iocnt,
-	evStreamFunc func, void *uap, evStreamID *id)
+    evStreamFunc func, void *uap, evStreamID *id)
 {
 	evContext_p *ctx = opaqueCtx.opaque;
 	evStream *new;
@@ -85,7 +84,7 @@ evWrite(evContext opaqueCtx, int fd, const struct iovec *iov, int iocnt,
 	if (id != NULL)
 		id->opaque = new;
 	return (0);
- free:
+free:
 	save = errno;
 	FREE(new);
 	errno = save;
@@ -94,7 +93,7 @@ evWrite(evContext opaqueCtx, int fd, const struct iovec *iov, int iocnt,
 
 int
 evRead(evContext opaqueCtx, int fd, const struct iovec *iov, int iocnt,
-       evStreamFunc func, void *uap, evStreamID *id)
+    evStreamFunc func, void *uap, evStreamID *id)
 {
 	evContext_p *ctx = opaqueCtx.opaque;
 	evStream *new;
@@ -119,7 +118,7 @@ evRead(evContext opaqueCtx, int fd, const struct iovec *iov, int iocnt,
 	if (id)
 		id->opaque = new;
 	return (0);
- free:
+free:
 	save = errno;
 	FREE(new);
 	errno = save;
@@ -127,7 +126,8 @@ evRead(evContext opaqueCtx, int fd, const struct iovec *iov, int iocnt,
 }
 
 int
-evTimeRW(evContext opaqueCtx, evStreamID id, evTimerID timer) /*ARGSUSED*/ {
+evTimeRW(evContext opaqueCtx, evStreamID id, evTimerID timer) /*ARGSUSED*/
+{
 	evStream *str = id.opaque;
 
 	UNUSED(opaqueCtx);
@@ -138,7 +138,8 @@ evTimeRW(evContext opaqueCtx, evStreamID id, evTimerID timer) /*ARGSUSED*/ {
 }
 
 int
-evUntimeRW(evContext opaqueCtx, evStreamID id) /*ARGSUSED*/ {
+evUntimeRW(evContext opaqueCtx, evStreamID id) /*ARGSUSED*/
+{
 	evStream *str = id.opaque;
 
 	UNUSED(opaqueCtx);
@@ -148,7 +149,8 @@ evUntimeRW(evContext opaqueCtx, evStreamID id) /*ARGSUSED*/ {
 }
 
 int
-evCancelRW(evContext opaqueCtx, evStreamID id) {
+evCancelRW(evContext opaqueCtx, evStreamID id)
+{
 	evContext_p *ctx = opaqueCtx.opaque;
 	evStream *old = id.opaque;
 
@@ -196,14 +198,15 @@ evCancelRW(evContext opaqueCtx, evStreamID id) {
 	/* Deallocate the stream. */
 	if (old->file.opaque)
 		evDeselectFD(opaqueCtx, old->file);
-	memput(old->iovOrig, sizeof (struct iovec) * old->iovOrigCount);
+	memput(old->iovOrig, sizeof(struct iovec) * old->iovOrigCount);
 	FREE(old);
 	return (0);
 }
 
 /* Copy a scatter/gather vector and initialize a stream handler's IO. */
 static int
-copyvec(evStream *str, const struct iovec *iov, int iocnt) {
+copyvec(evStream *str, const struct iovec *iov, int iocnt)
+{
 	int i;
 
 	str->iovOrig = (struct iovec *)memget(sizeof(struct iovec) * iocnt);
@@ -225,12 +228,13 @@ copyvec(evStream *str, const struct iovec *iov, int iocnt) {
 
 /* Pull off or truncate lead iovec(s). */
 static void
-consume(evStream *str, size_t bytes) {
+consume(evStream *str, size_t bytes)
+{
 	while (bytes > 0U) {
 		if (bytes < (size_t)str->iovCur->iov_len) {
 			str->iovCur->iov_len -= bytes;
-			str->iovCur->iov_base = (void *)
-				((u_char *)str->iovCur->iov_base + bytes);
+			str->iovCur->iov_base =
+			    (void *)((u_char *)str->iovCur->iov_base + bytes);
 			str->ioDone += bytes;
 			bytes = 0;
 		} else {
@@ -244,7 +248,8 @@ consume(evStream *str, size_t bytes) {
 
 /* Add a stream to Done list and deselect the FD. */
 static void
-done(evContext opaqueCtx, evStream *str) {
+done(evContext opaqueCtx, evStream *str)
+{
 	evContext_p *ctx = opaqueCtx.opaque;
 
 	if (ctx->strLast != NULL) {
@@ -262,7 +267,8 @@ done(evContext opaqueCtx, evStream *str) {
 
 /* Dribble out some bytes on the stream.  (Called by evDispatch().) */
 static void
-writable(evContext opaqueCtx, void *uap, int fd, int evmask) {
+writable(evContext opaqueCtx, void *uap, int fd, int evmask)
+{
 	evStream *str = uap;
 	int bytes;
 
@@ -285,7 +291,8 @@ writable(evContext opaqueCtx, void *uap, int fd, int evmask) {
 
 /* Scoop up some bytes from the stream.  (Called by evDispatch().) */
 static void
-readable(evContext opaqueCtx, void *uap, int fd, int evmask) {
+readable(evContext opaqueCtx, void *uap, int fd, int evmask)
+{
 	evStream *str = uap;
 	int bytes;
 

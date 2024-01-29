@@ -29,26 +29,31 @@
  */
 
 #include <sys/param.h>
-#include "namespace.h"
 #include <sys/capsicum.h>
 #include <sys/elf.h>
 #include <sys/fcntl.h>
 #include <sys/mman.h>
 #include <sys/time.h>
 #include <sys/vdso.h>
-#include <errno.h>
-#include <string.h>
-#include <unistd.h>
-#include "un-namespace.h"
+
 #include <machine/atomic.h>
 #include <machine/cpufunc.h>
 #include <machine/pvclock.h>
 #include <machine/specialreg.h>
+
 #include <dev/acpica/acpi_hpet.h>
+
+#include <errno.h>
+#include <string.h>
+#include <unistd.h>
+
+#include "namespace.h"
+#include "un-namespace.h"
 #ifdef WANT_HYPERV
 #include <dev/hyperv/hyperv.h>
 #endif
 #include <x86/ifunc.h>
+
 #include "libc_private.h"
 
 static inline u_int
@@ -57,7 +62,9 @@ rdtsc_low(const struct vdso_timehands *th)
 	u_int rv;
 
 	__asm __volatile("rdtsc; shrd %%cl, %%edx, %0"
-	    : "=a" (rv) : "c" (th->th_x86_shift) : "edx");
+			 : "=a"(rv)
+			 : "c"(th->th_x86_shift)
+			 : "edx");
 	return (rv);
 }
 
@@ -67,7 +74,9 @@ rdtscp_low(const struct vdso_timehands *th)
 	u_int rv;
 
 	__asm __volatile("rdtscp; movl %%edi,%%ecx; shrd %%cl, %%edx, %0"
-	    : "=a" (rv) : "D" (th->th_x86_shift) : "ecx", "edx");
+			 : "=a"(rv)
+			 : "D"(th->th_x86_shift)
+			 : "ecx", "edx");
 	return (rv);
 }
 
@@ -181,7 +190,7 @@ tsc_selector_idx(u_int cpu_feature)
 	bool amd_cpu;
 
 	if (cpu_feature == 0)
-		return (2);	/* should not happen due to RDTSC */
+		return (2); /* should not happen due to RDTSC */
 
 	do_cpuid(0, p);
 	v[0] = p[1];
@@ -226,7 +235,7 @@ DEFINE_UIFUNC(static, uint64_t, __vdso_gettc_rdtsc, (void))
 	return (tsc_selector[tsc_selector_idx(cpu_feature)].ts_rdtsc);
 }
 
-#define	HPET_DEV_MAP_MAX	10
+#define HPET_DEV_MAP_MAX 10
 static volatile char *hpet_dev_map[HPET_DEV_MAP_MAX];
 
 static void
@@ -271,14 +280,14 @@ __vdso_init_hpet(uint32_t u)
 	new_map = mmap(NULL, PAGE_SIZE, PROT_READ, MAP_SHARED, fd, 0);
 	_close(fd);
 	if (atomic_cmpset_rel_ptr((volatile uintptr_t *)&hpet_dev_map[u],
-	    (uintptr_t)old_map, (uintptr_t)new_map) == 0 &&
+		(uintptr_t)old_map, (uintptr_t)new_map) == 0 &&
 	    new_map != MAP_FAILED)
 		munmap((void *)new_map, PAGE_SIZE);
 }
 
 #ifdef WANT_HYPERV
 
-#define HYPERV_REFTSC_DEVPATH	"/dev/" HYPERV_REFTSC_DEVNAME
+#define HYPERV_REFTSC_DEVPATH "/dev/" HYPERV_REFTSC_DEVNAME
 
 /*
  * NOTE:
@@ -321,13 +330,13 @@ __vdso_hyperv_tsc(struct hyperv_reftsc *tsc_ref, u_int *tc)
 		scale = tsc_ref->tsc_scale;
 		ofs = tsc_ref->tsc_ofs;
 
-		mfence();	/* XXXKIB */
+		mfence(); /* XXXKIB */
 		tsc = rdtsc();
 
 		/* ret = ((tsc * scale) >> 64) + ofs */
-		__asm__ __volatile__ ("mulq %3" :
-		    "=d" (ret), "=a" (disc) :
-		    "a" (tsc), "r" (scale));
+		__asm__ __volatile__("mulq %3"
+				     : "=d"(ret), "=a"(disc)
+				     : "a"(tsc), "r"(scale));
 		ret += ofs;
 
 		atomic_thread_fence_acq();
@@ -341,7 +350,7 @@ __vdso_hyperv_tsc(struct hyperv_reftsc *tsc_ref, u_int *tc)
 	return (ENOSYS);
 }
 
-#endif	/* WANT_HYPERV */
+#endif /* WANT_HYPERV */
 
 static struct pvclock_vcpu_time_info *pvclock_timeinfos;
 
@@ -366,8 +375,9 @@ __vdso_pvclock_gettc(const struct vdso_timehands *th, u_int *tc)
 			tsc = rdtscp_aux(&cpuid_tsc);
 		}
 		delta = tsc - ti->tsc_timestamp;
-		ns = ti->system_time + pvclock_scale_delta(delta,
-		    ti->tsc_to_system_mul, ti->tsc_shift);
+		ns = ti->system_time +
+		    pvclock_scale_delta(delta, ti->tsc_to_system_mul,
+			ti->tsc_shift);
 		atomic_thread_fence_acq();
 	} while ((ti->version & 1) != 0 || ti->version != version ||
 	    (!stable && cpuid_ti != cpuid_tsc));
@@ -392,9 +402,9 @@ __vdso_init_pvclock_timeinfos(void)
 	timeinfos = mmap(NULL, len, PROT_READ, MAP_SHARED, fd, 0);
 	_close(fd);
 leave:
-	if (atomic_cmpset_rel_ptr(
-	    (volatile uintptr_t *)&pvclock_timeinfos, (uintptr_t)NULL,
-	    (uintptr_t)timeinfos) == 0 && timeinfos != MAP_FAILED)
+	if (atomic_cmpset_rel_ptr((volatile uintptr_t *)&pvclock_timeinfos,
+		(uintptr_t)NULL, (uintptr_t)timeinfos) == 0 &&
+	    timeinfos != MAP_FAILED)
 		(void)munmap((void *)timeinfos, len);
 }
 
@@ -408,7 +418,7 @@ __vdso_gettc(const struct vdso_timehands *th, u_int *tc)
 	switch (th->th_algo) {
 	case VDSO_TH_ALGO_X86_TSC:
 		*tc = th->th_x86_shift > 0 ? __vdso_gettc_rdtsc_low(th) :
-		    __vdso_gettc_rdtsc32();
+					     __vdso_gettc_rdtsc32();
 		return (0);
 	case VDSO_TH_ALGO_X86_HPET:
 		idx = th->th_x86_hpet_idx;

@@ -37,17 +37,16 @@
 
 SYSCTL_DECL(_security_mac);
 
-static SYSCTL_NODE(_security_mac, OID_AUTO, pimd,
-    CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
-    "mac_pimd policy controls");
+static SYSCTL_NODE(_security_mac, OID_AUTO, pimd, CTLFLAG_RW | CTLFLAG_MPSAFE,
+    0, "mac_pimd policy controls");
 
 static int pimd_enabled = 0;
-SYSCTL_INT(_security_mac_pimd, OID_AUTO, enabled, CTLFLAG_RWTUN,
-    &pimd_enabled, 0, "Enable mac_pimd policy");
+SYSCTL_INT(_security_mac_pimd, OID_AUTO, enabled, CTLFLAG_RWTUN, &pimd_enabled,
+    0, "Enable mac_pimd policy");
 
 static int pimd_uid = 0;
-SYSCTL_INT(_security_mac_pimd, OID_AUTO, uid, CTLFLAG_RWTUN,
-    &pimd_uid, 0, "User id for pimd user");
+SYSCTL_INT(_security_mac_pimd, OID_AUTO, uid, CTLFLAG_RWTUN, &pimd_uid, 0,
+    "User id for pimd user");
 
 static int
 pimd_priv_grant(struct ucred *cred, int priv)
@@ -64,10 +63,9 @@ pimd_priv_grant(struct ucred *cred, int priv)
 	return (EPERM);
 }
 
-static struct mac_policy_ops pimd_ops =
-{
+static struct mac_policy_ops pimd_ops = {
 	.mpo_priv_grant = pimd_priv_grant,
 };
 
-MAC_POLICY_SET(&pimd_ops, mac_pimd, "MAC/pimd",
-    MPC_LOADTIME_FLAG_UNLOADOK, NULL);
+MAC_POLICY_SET(&pimd_ops, mac_pimd, "MAC/pimd", MPC_LOADTIME_FLAG_UNLOADOK,
+    NULL);

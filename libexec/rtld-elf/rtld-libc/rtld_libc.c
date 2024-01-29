@@ -30,19 +30,20 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/sysctl.h>
+
 #include <assert.h>
 #include <signal.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 
 #include "rtld.h"
-#include "rtld_printf.h"
 #include "rtld_libc.h"
+#include "rtld_printf.h"
 
 /*
  * Avoid dependencies from various libc calls on abort(). Since this is only

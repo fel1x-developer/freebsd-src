@@ -28,23 +28,17 @@
 
 #include <gssapi/gssapi.h>
 
-#include "mech_switch.h"
 #include "context.h"
+#include "mech_switch.h"
 #include "name.h"
 
 OM_uint32
-gss_inquire_context(OM_uint32 *minor_status,
-    const gss_ctx_id_t context_handle,
-    gss_name_t *src_name,
-    gss_name_t *targ_name,
-    OM_uint32 *lifetime_rec,
-    gss_OID *mech_type,
-    OM_uint32 *ctx_flags,
-    int *locally_initiated,
-    int *open)
+gss_inquire_context(OM_uint32 *minor_status, const gss_ctx_id_t context_handle,
+    gss_name_t *src_name, gss_name_t *targ_name, OM_uint32 *lifetime_rec,
+    gss_OID *mech_type, OM_uint32 *ctx_flags, int *locally_initiated, int *open)
 {
 	OM_uint32 major_status;
-	struct _gss_context *ctx = (struct _gss_context *) context_handle;
+	struct _gss_context *ctx = (struct _gss_context *)context_handle;
 	struct _gss_mech_switch *m = ctx->gc_mech;
 	struct _gss_name *name;
 	gss_name_t src_mn, targ_mn;
@@ -64,15 +58,9 @@ gss_inquire_context(OM_uint32 *minor_status,
 		*mech_type = GSS_C_NO_OID;
 	src_mn = targ_mn = GSS_C_NO_NAME;
 
-	major_status = m->gm_inquire_context(minor_status,
-	    ctx->gc_ctx,
-	    src_name ? &src_mn : NULL,
-	    targ_name ? &targ_mn : NULL,
-	    lifetime_rec,
-	    mech_type,
-	    ctx_flags,
-	    locally_initiated,
-	    open);
+	major_status = m->gm_inquire_context(minor_status, ctx->gc_ctx,
+	    src_name ? &src_mn : NULL, targ_name ? &targ_mn : NULL,
+	    lifetime_rec, mech_type, ctx_flags, locally_initiated, open);
 
 	if (major_status != GSS_S_COMPLETE) {
 		_gss_mg_error(m, major_status, *minor_status);
@@ -88,7 +76,7 @@ gss_inquire_context(OM_uint32 *minor_status,
 			*minor_status = 0;
 			return (GSS_S_FAILURE);
 		}
-		*src_name = (gss_name_t) name;
+		*src_name = (gss_name_t)name;
 	}
 
 	if (targ_name) {
@@ -102,7 +90,7 @@ gss_inquire_context(OM_uint32 *minor_status,
 			minor_status = NULL;
 			return (GSS_S_FAILURE);
 		}
-		*targ_name = (gss_name_t) name;
+		*targ_name = (gss_name_t)name;
 	}
 
 	return (GSS_S_COMPLETE);

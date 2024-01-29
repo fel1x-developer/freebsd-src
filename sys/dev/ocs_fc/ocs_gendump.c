@@ -57,7 +57,8 @@ ocs_gen_dump_reset(uint8_t bus, uint8_t dev)
 		}
 
 		ocs_log_debug(ocs, "successfully reset port\n");
-		while ((domain = ocs_list_get_head(&ocs->domain_list)) != NULL) {
+		while (
+		    (domain = ocs_list_get_head(&ocs->domain_list)) != NULL) {
 			ocs_log_debug(ocs, "free domain %p\n", domain);
 			ocs_domain_force_free(domain);
 		}
@@ -83,7 +84,9 @@ ocs_gen_dump(ocs_t *ocs)
 	int index = 0, port_index = 0;
 	ocs_t *nxt_ocs;
 	uint8_t nxt_bus, nxt_dev, nxt_func;
-	uint8_t prev_port_state[OCS_MAX_HBA_PORTS] = {0,};
+	uint8_t prev_port_state[OCS_MAX_HBA_PORTS] = {
+		0,
+	};
 	ocs_xport_stats_t link_status;
 
 	ocs_get_bus_dev_func(ocs, &bus, &dev, &func);
@@ -100,11 +103,11 @@ ocs_gen_dump(ocs_t *ocs)
 
 		/* Check current link status and save for future use */
 		if (ocs_xport_status(nxt_ocs->xport, OCS_XPORT_PORT_STATUS,
-		   &link_status) == 0) {
+			&link_status) == 0) {
 			if (link_status.value == OCS_XPORT_PORT_ONLINE) {
 				prev_port_state[port_index] = 1;
 				ocs_xport_control(nxt_ocs->xport,
-						  OCS_XPORT_PORT_OFFLINE);
+				    OCS_XPORT_PORT_OFFLINE);
 			} else {
 				prev_port_state[port_index] = 0;
 			}
@@ -113,13 +116,13 @@ ocs_gen_dump(ocs_t *ocs)
 	}
 
 	/* Wait until all ports have quiesced */
-	for (index = 0; (nxt_ocs = ocs_get_instance(index++)) != NULL; ) {
+	for (index = 0; (nxt_ocs = ocs_get_instance(index++)) != NULL;) {
 		ms_waited = 0;
 		for (;;) {
 			ocs_xport_stats_t status;
 
 			ocs_xport_status(nxt_ocs->xport, OCS_XPORT_IS_QUIESCED,
-					 &status);
+			    &status);
 			if (status.value) {
 				ocs_log_debug(nxt_ocs, "port quiesced\n");
 				break;
@@ -178,13 +181,14 @@ ocs_gen_dump(ocs_t *ocs)
 		ocs_get_bus_dev_func(nxt_ocs, &nxt_bus, &nxt_dev, &nxt_func);
 		if (port_index > OCS_MAX_HBA_PORTS) {
 			ocs_log_err(NULL, "port index(%d) out of boundary\n",
-				    port_index);
+			    port_index);
 			rc = -1;
 			break;
 		}
 		if ((bus == nxt_bus) && (dev == nxt_dev) &&
 		    prev_port_state[port_index++]) {
-			ocs_xport_control(nxt_ocs->xport, OCS_XPORT_PORT_ONLINE);
+			ocs_xport_control(nxt_ocs->xport,
+			    OCS_XPORT_PORT_ONLINE);
 		}
 	}
 
@@ -260,7 +264,7 @@ ocs_dump_to_host(ocs_t *ocs, void *buf, uint32_t buflen)
 	num_buffers = ((buflen + OCS_MAX_DMA_ALLOC - 1) / OCS_MAX_DMA_ALLOC);
 
 	dump_buffers = ocs_malloc(ocs, sizeof(ocs_dma_t) * num_buffers,
-				  OCS_M_ZERO | OCS_M_NOWAIT);
+	    OCS_M_ZERO | OCS_M_NOWAIT);
 	if (dump_buffers == NULL) {
 		ocs_log_err(ocs, "Failed to dump buffers\n");
 		return -1;
@@ -272,7 +276,7 @@ ocs_dump_to_host(ocs_t *ocs, void *buf, uint32_t buflen)
 		uint32_t num_bytes = MIN(rem_bytes, OCS_MAX_DMA_ALLOC);
 
 		rc = ocs_dma_alloc(ocs, &dump_buffers[i], num_bytes,
-				   OCS_MIN_DMA_ALIGNMENT);
+		    OCS_MIN_DMA_ALIGNMENT);
 		if (rc) {
 			ocs_log_err(ocs, "Failed to allocate dump buffer\n");
 
@@ -298,8 +302,8 @@ ocs_dump_to_host(ocs_t *ocs, void *buf, uint32_t buflen)
 	/* Copy the dump from the DMA buffer into the user buffer */
 	offset = 0;
 	for (i = 0; i < num_buffers; i++) {
-		if (ocs_copy_to_user((uint8_t*)buf + offset,
-		    dump_buffers[i].virt, dump_buffers[i].size)) {
+		if (ocs_copy_to_user((uint8_t *)buf + offset,
+			dump_buffers[i].virt, dump_buffers[i].size)) {
 			ocs_log_test(ocs, "ocs_copy_to_user failed\n");
 			rc = -1;
 		}
@@ -331,7 +335,7 @@ ocs_function_speciic_dump(ocs_t *ocs, void *buf, uint32_t buflen)
 	num_buffers = ((buflen + OCS_MAX_DMA_ALLOC - 1) / OCS_MAX_DMA_ALLOC);
 
 	dump_buffers = ocs_malloc(ocs, sizeof(ocs_dma_t) * num_buffers,
-				  OCS_M_ZERO | OCS_M_NOWAIT);
+	    OCS_M_ZERO | OCS_M_NOWAIT);
 	if (dump_buffers == NULL) {
 		ocs_log_err(ocs, "Failed to allocate dump buffers\n");
 		return -1;
@@ -342,7 +346,7 @@ ocs_function_speciic_dump(ocs_t *ocs, void *buf, uint32_t buflen)
 	for (i = 0; i < num_buffers; i++) {
 		uint32_t num_bytes = MIN(rem_bytes, OCS_MAX_DMA_ALLOC);
 		rc = ocs_dma_alloc(ocs, &dump_buffers[i], num_bytes,
-				   OCS_MIN_DMA_ALIGNMENT);
+		    OCS_MIN_DMA_ALIGNMENT);
 		if (rc) {
 			ocs_log_err(ocs, "Failed to allocate dma buffer\n");
 
@@ -369,8 +373,8 @@ ocs_function_speciic_dump(ocs_t *ocs, void *buf, uint32_t buflen)
 	/* Copy the dump from the DMA buffer into the user buffer */
 	offset = 0;
 	for (i = 0; i < num_buffers; i++) {
-		if (ocs_copy_to_user((uint8_t*)buf + offset,
-		    dump_buffers[i].virt, dump_buffers[i].size)) {
+		if (ocs_copy_to_user((uint8_t *)buf + offset,
+			dump_buffers[i].virt, dump_buffers[i].size)) {
 			ocs_log_err(ocs, "ocs_copy_to_user failed\n");
 			rc = -1;
 		}
@@ -384,5 +388,4 @@ free_and_return:
 	}
 	ocs_free(ocs, dump_buffers, sizeof(ocs_dma_t) * num_buffers);
 	return rc;
-
 }

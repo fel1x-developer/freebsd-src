@@ -6,24 +6,20 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 
-#include <stdlib.h>
-#include <unistd.h>
-
 #include <net/ethernet.h>
+#include <net/ieee8023ad_lacp.h>
 #include <net/if.h>
 #include <net/if_lagg.h>
-#include <net/ieee8023ad_lacp.h>
 #include <net/route.h>
 
 #include <ctype.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <err.h>
 #include <errno.h>
-
 #include <libifconfig.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "ifconfig.h"
 
@@ -31,7 +27,7 @@ static struct iflaggparam params = {
 	.lagg_type = LAGG_TYPE_DEFAULT,
 };
 
-static char lacpbuf[120];	/* LACP peer '[(a,a,a),(p,p,p)]' */
+static char lacpbuf[120]; /* LACP peer '[(a,a,a),(p,p,p)]' */
 
 static void
 setlaggport(if_ctx *ctx, const char *val, int dummy __unused)
@@ -48,8 +44,8 @@ setlaggport(if_ctx *ctx, const char *val, int dummy __unused)
 	 * Don't error at all if the port is already in the lagg.
 	 */
 	if (ioctl_ctx(ctx, SIOCSLAGGPORT, &rp) && errno != EEXIST) {
-		warnx("%s %s: SIOCSLAGGPORT: %s",
-		    ctx->ifname, val, strerror(errno));
+		warnx("%s %s: SIOCSLAGGPORT: %s", ctx->ifname, val,
+		    strerror(errno));
 		exit_code = 1;
 	}
 }
@@ -99,7 +95,7 @@ setlaggflowidshift(if_ctx *ctx, const char *val, int dummy __unused)
 	ro.ro_flowid_shift = (int)strtol(val, NULL, 10);
 	if (ro.ro_flowid_shift & ~LAGG_OPT_FLOWIDSHIFT_MASK)
 		errx(1, "Invalid flowid_shift option: %s", val);
-	
+
 	if (ioctl_ctx(ctx, SIOCSLAGGOPTS, &ro) != 0)
 		err(1, "SIOCSLAGGOPTS");
 }
@@ -108,7 +104,7 @@ static void
 setlaggrr_limit(if_ctx *ctx, const char *val, int dummy __unused)
 {
 	struct lagg_reqopts ro = {};
-	
+
 	strlcpy(ro.ro_ifname, ctx->ifname, sizeof(ro.ro_ifname));
 	ro.ro_opts = LAGG_OPT_RR_LIMIT;
 	ro.ro_bkt = (uint32_t)strtoul(val, NULL, 10);
@@ -143,7 +139,7 @@ setlaggsetopt(if_ctx *ctx, const char *val __unused, int d)
 		err(1, "Invalid lagg option");
 	}
 	strlcpy(ro.ro_ifname, ctx->ifname, sizeof(ro.ro_ifname));
-	
+
 	if (ioctl_ctx(ctx, SIOCSLAGGOPTS, &ro) != 0)
 		err(1, "SIOCSLAGGOPTS");
 }
@@ -153,7 +149,6 @@ setlagghash(if_ctx *ctx, const char *val, int dummy __unused)
 {
 	struct lagg_reqflags rf;
 	char *str, *tmp, *tok;
-
 
 	rf.rf_flags = 0;
 	str = tmp = strdup(val);
@@ -179,9 +174,8 @@ setlagghash(if_ctx *ctx, const char *val, int dummy __unused)
 static char *
 lacp_format_mac(const uint8_t *mac, char *buf, size_t buflen)
 {
-	snprintf(buf, buflen, "%02X-%02X-%02X-%02X-%02X-%02X",
-	    (int)mac[0], (int)mac[1], (int)mac[2], (int)mac[3],
-	    (int)mac[4], (int)mac[5]);
+	snprintf(buf, buflen, "%02X-%02X-%02X-%02X-%02X-%02X", (int)mac[0],
+	    (int)mac[1], (int)mac[2], (int)mac[3], (int)mac[4], (int)mac[5]);
 
 	return (buf);
 }
@@ -201,7 +195,7 @@ lacp_format_peer(struct lacp_opreq *req, const char *sep)
 	    lacp_format_mac(req->partner_mac, macbuf2, sizeof(macbuf2)),
 	    req->partner_key, req->partner_portprio, req->partner_portno);
 
-	return(lacpbuf);
+	return (lacpbuf);
 }
 
 static void
@@ -277,8 +271,7 @@ lagg_status(if_ctx *ctx)
 			printb(" state", lp->actor_state, LACP_STATE_BITS);
 		putchar('\n');
 		if (verbose && ra->ra_proto == LAGG_PROTO_LACP)
-			printf("\t\t%s\n",
-			    lacp_format_peer(lp, "\n\t\t "));
+			printf("\t\t%s\n", lacp_format_peer(lp, "\n\t\t "));
 	}
 
 	ifconfig_lagg_free_lagg_status(lagg);
@@ -301,41 +294,41 @@ setlaggtype(if_ctx *ctx __unused, const char *arg, int dummy __unused)
 static void
 lagg_create(if_ctx *ctx, struct ifreq *ifr)
 {
-	ifr->ifr_data = (caddr_t) &params;
+	ifr->ifr_data = (caddr_t)&params;
 	ifcreate_ioctl(ctx, ifr);
 }
 
 static struct cmd lagg_cmds[] = {
-	DEF_CLONE_CMD_ARG("laggtype",   setlaggtype),
-	DEF_CMD_ARG("laggport",		setlaggport),
-	DEF_CMD_ARG("-laggport",	unsetlaggport),
-	DEF_CMD_ARG("laggproto",	setlaggproto),
-	DEF_CMD_ARG("lagghash",		setlagghash),
-	DEF_CMD("use_flowid",	LAGG_OPT_USE_FLOWID,	setlaggsetopt),
-	DEF_CMD("-use_flowid",	-LAGG_OPT_USE_FLOWID,	setlaggsetopt),
-	DEF_CMD("use_numa",	LAGG_OPT_USE_NUMA,	setlaggsetopt),
-	DEF_CMD("-use_numa",	-LAGG_OPT_USE_NUMA,	setlaggsetopt),
-	DEF_CMD("lacp_strict",	LAGG_OPT_LACP_STRICT,	setlaggsetopt),
-	DEF_CMD("-lacp_strict",	-LAGG_OPT_LACP_STRICT,	setlaggsetopt),
-	DEF_CMD("lacp_txtest",	LAGG_OPT_LACP_TXTEST,	setlaggsetopt),
-	DEF_CMD("-lacp_txtest",	-LAGG_OPT_LACP_TXTEST,	setlaggsetopt),
-	DEF_CMD("lacp_rxtest",	LAGG_OPT_LACP_RXTEST,	setlaggsetopt),
-	DEF_CMD("-lacp_rxtest",	-LAGG_OPT_LACP_RXTEST,	setlaggsetopt),
-	DEF_CMD("lacp_fast_timeout",	LAGG_OPT_LACP_FAST_TIMO,	setlaggsetopt),
-	DEF_CMD("-lacp_fast_timeout",	-LAGG_OPT_LACP_FAST_TIMO,	setlaggsetopt),
-	DEF_CMD_ARG("flowid_shift",	setlaggflowidshift),
-	DEF_CMD_ARG("rr_limit",		setlaggrr_limit),
+	DEF_CLONE_CMD_ARG("laggtype", setlaggtype),
+	DEF_CMD_ARG("laggport", setlaggport),
+	DEF_CMD_ARG("-laggport", unsetlaggport),
+	DEF_CMD_ARG("laggproto", setlaggproto),
+	DEF_CMD_ARG("lagghash", setlagghash),
+	DEF_CMD("use_flowid", LAGG_OPT_USE_FLOWID, setlaggsetopt),
+	DEF_CMD("-use_flowid", -LAGG_OPT_USE_FLOWID, setlaggsetopt),
+	DEF_CMD("use_numa", LAGG_OPT_USE_NUMA, setlaggsetopt),
+	DEF_CMD("-use_numa", -LAGG_OPT_USE_NUMA, setlaggsetopt),
+	DEF_CMD("lacp_strict", LAGG_OPT_LACP_STRICT, setlaggsetopt),
+	DEF_CMD("-lacp_strict", -LAGG_OPT_LACP_STRICT, setlaggsetopt),
+	DEF_CMD("lacp_txtest", LAGG_OPT_LACP_TXTEST, setlaggsetopt),
+	DEF_CMD("-lacp_txtest", -LAGG_OPT_LACP_TXTEST, setlaggsetopt),
+	DEF_CMD("lacp_rxtest", LAGG_OPT_LACP_RXTEST, setlaggsetopt),
+	DEF_CMD("-lacp_rxtest", -LAGG_OPT_LACP_RXTEST, setlaggsetopt),
+	DEF_CMD("lacp_fast_timeout", LAGG_OPT_LACP_FAST_TIMO, setlaggsetopt),
+	DEF_CMD("-lacp_fast_timeout", -LAGG_OPT_LACP_FAST_TIMO, setlaggsetopt),
+	DEF_CMD_ARG("flowid_shift", setlaggflowidshift),
+	DEF_CMD_ARG("rr_limit", setlaggrr_limit),
 };
 static struct afswtch af_lagg = {
-	.af_name	= "af_lagg",
-	.af_af		= AF_UNSPEC,
+	.af_name = "af_lagg",
+	.af_af = AF_UNSPEC,
 	.af_other_status = lagg_status,
 };
 
 static __constructor void
 lagg_ctor(void)
 {
-	for (size_t i = 0; i < nitems(lagg_cmds);  i++)
+	for (size_t i = 0; i < nitems(lagg_cmds); i++)
 		cmd_register(&lagg_cmds[i]);
 	af_register(&af_lagg);
 	clone_setdefcallback_prefix("lagg", lagg_create);

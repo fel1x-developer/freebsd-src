@@ -25,28 +25,29 @@
  */
 
 #ifndef _OPENSOLARIS_SYS_CMN_ERR_H_
-#define	_OPENSOLARIS_SYS_CMN_ERR_H_
+#define _OPENSOLARIS_SYS_CMN_ERR_H_
 
 #include <sys/systm.h>
+
 #include <machine/stdarg.h>
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
 /* Common error handling severity levels */
 
-#define	CE_CONT		0	/* continuation		*/
-#define	CE_NOTE		1	/* notice		*/
-#define	CE_WARN		2	/* warning		*/
-#define	CE_PANIC	3	/* panic		*/
-#define	CE_IGNORE	4	/* print nothing	*/
+#define CE_CONT 0   /* continuation		*/
+#define CE_NOTE 1   /* notice		*/
+#define CE_WARN 2   /* warning		*/
+#define CE_PANIC 3  /* panic		*/
+#define CE_IGNORE 4 /* print nothing	*/
 
 void cmn_err(int, const char *, ...);
 void vcmn_err(int, const char *, va_list);
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* _OPENSOLARIS_SYS_CMN_ERR_H_ */
+#endif /* _OPENSOLARIS_SYS_CMN_ERR_H_ */

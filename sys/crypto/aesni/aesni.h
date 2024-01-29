@@ -36,16 +36,16 @@
 #if defined(__amd64__) || defined(__i386__)
 #include <machine/cpufunc.h>
 #include <machine/cputypes.h>
+#include <machine/fpu.h>
 #include <machine/md_var.h>
 #include <machine/specialreg.h>
-#include <machine/fpu.h>
 #endif
 
-#define	AES128_ROUNDS	10
-#define	AES192_ROUNDS	12
-#define	AES256_ROUNDS	14
-#define	AES_SCHED_LEN	((AES256_ROUNDS + 1) * AES_BLOCK_LEN)
-#define	AES_SCHED_ALIGN	16
+#define AES128_ROUNDS 10
+#define AES192_ROUNDS 12
+#define AES256_ROUNDS 14
+#define AES_SCHED_LEN ((AES256_ROUNDS + 1) * AES_BLOCK_LEN)
+#define AES_SCHED_ALIGN 16
 
 struct aesni_session {
 	uint8_t schedules[3 * AES_SCHED_LEN + AES_SCHED_ALIGN];
@@ -99,9 +99,9 @@ void aesni_decrypt_xts(int rounds, const void *data_schedule /*__aligned(16)*/,
 
 /* GCM & GHASH functions */
 void AES_GCM_encrypt(const unsigned char *in, unsigned char *out,
-    const unsigned char *addt, const unsigned char *ivec,
-    unsigned char *tag, uint32_t nbytes, uint32_t abytes, int ibytes,
-    const unsigned char *key, int nr);
+    const unsigned char *addt, const unsigned char *ivec, unsigned char *tag,
+    uint32_t nbytes, uint32_t abytes, int ibytes, const unsigned char *key,
+    int nr);
 int AES_GCM_decrypt(const unsigned char *in, unsigned char *out,
     const unsigned char *addt, const unsigned char *ivec,
     const unsigned char *tag, uint32_t nbytes, uint32_t abytes, int ibytes,
@@ -109,9 +109,9 @@ int AES_GCM_decrypt(const unsigned char *in, unsigned char *out,
 
 /* CCM + CBC-MAC functions */
 void AES_CCM_encrypt(const unsigned char *in, unsigned char *out,
-    const unsigned char *addt, const unsigned char *ivec,
-    unsigned char *tag, uint32_t nbytes, uint32_t abytes, int nlen,
-    int tag_length, const unsigned char *key, int nr);
+    const unsigned char *addt, const unsigned char *ivec, unsigned char *tag,
+    uint32_t nbytes, uint32_t abytes, int nlen, int tag_length,
+    const unsigned char *key, int nr);
 int AES_CCM_decrypt(const unsigned char *in, unsigned char *out,
     const unsigned char *addt, const unsigned char *ivec,
     const unsigned char *tag, uint32_t nbytes, uint32_t abytes, int nlen,

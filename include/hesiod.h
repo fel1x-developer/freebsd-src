@@ -1,6 +1,5 @@
 /*	$NetBSD: hesiod.h,v 1.3 1999/01/24 23:53:18 lukem Exp $	*/
 
-
 /*-
  * SPDX-License-Identifier: (BSD-2-Clause AND ISC)
  *
@@ -49,44 +48,44 @@
 #ifndef _HESIOD_H_
 #define _HESIOD_H_
 
-	/* Application-visible indication that we have the new interfaces */
+/* Application-visible indication that we have the new interfaces */
 
 #define HESIOD_INTERFACES
 
-	/* Configuration information. */
+/* Configuration information. */
 
-#ifndef _PATH_HESIOD_CONF			/* Configuration file. */
-#define _PATH_HESIOD_CONF	"/etc/hesiod.conf"
+#ifndef _PATH_HESIOD_CONF /* Configuration file. */
+#define _PATH_HESIOD_CONF "/etc/hesiod.conf"
 #endif
 
-#define DEF_RHS		""			/* Defaults if HESIOD_CONF */
-#define DEF_LHS		""			/*    file is not present. */
+#define DEF_RHS "" /* Defaults if HESIOD_CONF */
+#define DEF_LHS "" /*    file is not present. */
 
-	/* Error codes (for backwards compatibility) */
+/* Error codes (for backwards compatibility) */
 
-#define	HES_ER_UNINIT	-1	/* uninitialized */
-#define	HES_ER_OK	0	/* no error */
-#define	HES_ER_NOTFOUND	1	/* Hesiod name not found by server */
-#define HES_ER_CONFIG	2	/* local problem (no config file?) */
-#define HES_ER_NET	3	/* network problem */
+#define HES_ER_UNINIT -1  /* uninitialized */
+#define HES_ER_OK 0	  /* no error */
+#define HES_ER_NOTFOUND 1 /* Hesiod name not found by server */
+#define HES_ER_CONFIG 2	  /* local problem (no config file?) */
+#define HES_ER_NET 3	  /* network problem */
 
-	/* Declaration of routines */
+/* Declaration of routines */
 
 #include <sys/cdefs.h>
 
 __BEGIN_DECLS
-int	hesiod_init(void **);
-char  **hesiod_resolve(void *, const char *, const char *);
-void	hesiod_free_list(void *, char **);
-char   *hesiod_to_bind(void *, const char *, const char *);
-void	hesiod_end(void *);
+int hesiod_init(void **);
+char **hesiod_resolve(void *, const char *, const char *);
+void hesiod_free_list(void *, char **);
+char *hesiod_to_bind(void *, const char *, const char *);
+void hesiod_end(void *);
 
-				/* backwards compatibility */
-int	hes_init(void);
-char   *hes_to_bind(const char *, const char *);
-char  **hes_resolve(const char *, const char *);
-int	hes_error(void);
-void	hes_free(char **);
+/* backwards compatibility */
+int hes_init(void);
+char *hes_to_bind(const char *, const char *);
+char **hes_resolve(const char *, const char *);
+int hes_error(void);
+void hes_free(char **);
 __END_DECLS
 
 #endif /* ! _HESIOD_H_ */

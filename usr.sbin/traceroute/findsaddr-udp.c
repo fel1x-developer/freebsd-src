@@ -26,13 +26,13 @@
  * SUCH DAMAGE.
  */
 
-#include <string.h>
-#include <unistd.h>
-
 #include <sys/types.h>
 #include <sys/socket.h>
 
 #include <netinet/in.h>
+
+#include <string.h>
+#include <unistd.h>
 
 #include "findsaddr.h"
 #include "traceroute.h"
@@ -65,7 +65,7 @@ findsaddr(register const struct sockaddr_in *to,
 	errstr = NULL;
 	len = sizeof(struct sockaddr_in);
 	memcpy(&cto, to, len);
-	cto.sin_port = htons(65535);	/* Dummy port for connect(2). */
+	cto.sin_port = htons(65535); /* Dummy port for connect(2). */
 	if (connect(s, (struct sockaddr *)&cto, len) == -1) {
 		errstr = "failed to connect to peer for src addr selection.";
 		goto err;
@@ -85,7 +85,7 @@ findsaddr(register const struct sockaddr_in *to,
 	setsin(from, cfrom.sin_addr.s_addr);
 
 err:
-	(void) close(s);
+	(void)close(s);
 
 	/* No error (string) to return. */
 	return (errstr);

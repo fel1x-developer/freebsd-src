@@ -40,24 +40,24 @@
  * is essential to allow cross-building from Linux/macOS hosts since the
  * structure is not compatible there.
  */
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 /*
  * Note: pwd_mkdb always stores uint32_t for all integer fields (including
  * time_t!) so these definitions do not need to match sys/sys/_types.h
  */
-typedef	uint32_t	_bootstrap_gid_t;
-typedef	uint32_t	_bootstrap_uid_t;
-typedef	uint64_t	_bootstrap_time_t;
-#define	_GID_T_DECLARED
-#define	_TIME_T_DECLARED
-#define	_UID_T_DECLARED
-#define	_SIZE_T_DECLARED
+typedef uint32_t _bootstrap_gid_t;
+typedef uint32_t _bootstrap_uid_t;
+typedef uint64_t _bootstrap_time_t;
+#define _GID_T_DECLARED
+#define _TIME_T_DECLARED
+#define _UID_T_DECLARED
+#define _SIZE_T_DECLARED
 
-#define	gid_t	_bootstrap_gid_t
-#define	uid_t	_bootstrap_uid_t
-#define	time_t	_bootstrap_time_t
-#define	passwd	_bootstrap_passwd
+#define gid_t _bootstrap_gid_t
+#define uid_t _bootstrap_uid_t
+#define time_t _bootstrap_time_t
+#define passwd _bootstrap_passwd
 #include "../../../include/pwd.h"
 #undef gid_t
 #undef uid_t

@@ -30,6 +30,8 @@
 #include <sys/stat.h>
 #include <sys/sysctl.h>
 #include <sys/uio.h>
+
+#include <atf-c.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -40,16 +42,14 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <atf-c.h>
-
 const char DETERMINISTIC_PATTERN[] =
     "The past is already gone, the future is not yet here. There's only one moment for you to live.\n";
 
-#define	SOURCE_FILE		"source"
-#define	DESTINATION_FILE	"dest"
+#define SOURCE_FILE "source"
+#define DESTINATION_FILE "dest"
 
-#define	PORTRANGE_FIRST	"net.inet.ip.portrange.first"
-#define	PORTRANGE_LAST	"net.inet.ip.portrange.last"
+#define PORTRANGE_FIRST "net.inet.ip.portrange.first"
+#define PORTRANGE_LAST "net.inet.ip.portrange.last"
 
 static int portrange_first, portrange_last;
 
@@ -112,17 +112,17 @@ resolve_localhost(struct addrinfo **res, int domain, int type, int port)
 		atf_tc_fail("unhandled domain: %d", domain);
 	}
 
-	ATF_REQUIRE_MSG(asprintf(&serv, "%d", port) >= 0,
-	    "asprintf failed: %s", strerror(errno));
+	ATF_REQUIRE_MSG(asprintf(&serv, "%d", port) >= 0, "asprintf failed: %s",
+	    strerror(errno));
 
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = domain;
-	hints.ai_flags = AI_ADDRCONFIG|AI_NUMERICSERV|AI_NUMERICHOST;
+	hints.ai_flags = AI_ADDRCONFIG | AI_NUMERICSERV | AI_NUMERICHOST;
 	hints.ai_socktype = type;
 
 	error = getaddrinfo(host, serv, &hints, res);
-	ATF_REQUIRE_EQ_MSG(error, 0,
-	    "getaddrinfo failed: %s", gai_strerror(error));
+	ATF_REQUIRE_EQ_MSG(error, 0, "getaddrinfo failed: %s",
+	    gai_strerror(error));
 	free(serv);
 }
 
@@ -132,8 +132,8 @@ make_socket(int domain, int type, int protocol)
 	int sock;
 
 	sock = socket(domain, type, protocol);
-	ATF_REQUIRE_MSG(sock != -1, "socket(%d, %d, 0) failed: %s",
-	    domain, type, strerror(errno));
+	ATF_REQUIRE_MSG(sock != -1, "socket(%d, %d, 0) failed: %s", domain,
+	    type, strerror(errno));
 
 	return (sock);
 }
@@ -142,23 +142,21 @@ static int
 setup_client(int domain, int type, int port)
 {
 	struct addrinfo *res;
-	char host[NI_MAXHOST+1];
+	char host[NI_MAXHOST + 1];
 	int error, sock;
 
 	resolve_localhost(&res, domain, type, port);
-	error = getnameinfo(
-	    (const struct sockaddr*)res->ai_addr, res->ai_addrlen,
-	    host, nitems(host) - 1, NULL, 0, NI_NUMERICHOST);
-	ATF_REQUIRE_EQ_MSG(error, 0,
-	    "getnameinfo failed: %s", gai_strerror(error));
-	printf(
-	    "Will try to connect to host='%s', address_family=%d, "
-	    "socket_type=%d\n",
+	error = getnameinfo((const struct sockaddr *)res->ai_addr,
+	    res->ai_addrlen, host, nitems(host) - 1, NULL, 0, NI_NUMERICHOST);
+	ATF_REQUIRE_EQ_MSG(error, 0, "getnameinfo failed: %s",
+	    gai_strerror(error));
+	printf("Will try to connect to host='%s', address_family=%d, "
+	       "socket_type=%d\n",
 	    host, res->ai_family, res->ai_socktype);
 	/* Avoid a double print when forked by flushing. */
 	fflush(stdout);
 	sock = make_socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-	error = connect(sock, (struct sockaddr*)res->ai_addr, res->ai_addrlen);
+	error = connect(sock, (struct sockaddr *)res->ai_addr, res->ai_addrlen);
 	freeaddrinfo(res);
 	ATF_REQUIRE_EQ_MSG(error, 0, "connect failed: %s", strerror(errno));
 	return (sock);
@@ -173,20 +171,18 @@ static int
 setup_server(int domain, int type, int port)
 {
 	struct addrinfo *res;
-	char host[NI_MAXHOST+1];
+	char host[NI_MAXHOST + 1];
 	int error, sock;
 
 	resolve_localhost(&res, domain, type, port);
 	sock = make_socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 
-	error = getnameinfo(
-	    (const struct sockaddr*)res->ai_addr, res->ai_addrlen,
-	    host, nitems(host) - 1, NULL, 0, NI_NUMERICHOST);
-	ATF_REQUIRE_EQ_MSG(error, 0,
-	    "getnameinfo failed: %s", gai_strerror(error));
-	printf(
-	    "Will try to bind socket to host='%s', address_family=%d, "
-	    "socket_type=%d\n",
+	error = getnameinfo((const struct sockaddr *)res->ai_addr,
+	    res->ai_addrlen, host, nitems(host) - 1, NULL, 0, NI_NUMERICHOST);
+	ATF_REQUIRE_EQ_MSG(error, 0, "getnameinfo failed: %s",
+	    gai_strerror(error));
+	printf("Will try to bind socket to host='%s', address_family=%d, "
+	       "socket_type=%d\n",
 	    host, res->ai_family, res->ai_socktype);
 	/* Avoid a double print when forked by flushing. */
 	fflush(stdout);
@@ -200,8 +196,8 @@ setup_server(int domain, int type, int port)
 }
 
 /*
- * This function is a helper routine for taking data being sent by `sendfile` via
- * `server_sock`, and pushing the received stream out to a file, denoted by
+ * This function is a helper routine for taking data being sent by `sendfile`
+ * via `server_sock`, and pushing the received stream out to a file, denoted by
  * `dest_filename`.
  */
 static void
@@ -266,8 +262,8 @@ file_size_from_fd(int fd)
 {
 	struct stat st;
 
-	ATF_REQUIRE_EQ_MSG(0, fstat(fd, &st),
-	    "fstat failed: %s", strerror(errno));
+	ATF_REQUIRE_EQ_MSG(0, fstat(fd, &st), "fstat failed: %s",
+	    strerror(errno));
 
 	return (st.st_size);
 }
@@ -277,7 +273,7 @@ file_size_from_fd(int fd)
  * contract. In short, "send the whole file" (paraphrased).
  */
 static void
-verify_source_and_dest(const char* dest_filename, int src_fd, off_t offset,
+verify_source_and_dest(const char *dest_filename, int src_fd, off_t offset,
     size_t nbytes)
 {
 	char *dest_pointer, *src_pointer;
@@ -302,8 +298,8 @@ verify_source_and_dest(const char* dest_filename, int src_fd, off_t offset,
 
 	ATF_REQUIRE_EQ_MSG(dest_file_size, length,
 	    "number of bytes written out to %s (%ju) doesn't match the "
-	    "expected number of bytes (%zu)", dest_filename, dest_file_size,
-	    length);
+	    "expected number of bytes (%zu)",
+	    dest_filename, dest_file_size, length);
 
 	ATF_REQUIRE_EQ_MSG(0, lseek(src_fd, offset, SEEK_SET),
 	    "lseek failed: %s", strerror(errno));
@@ -315,7 +311,8 @@ verify_source_and_dest(const char* dest_filename, int src_fd, off_t offset,
 	printf("Will mmap in the source file from offset=%jd to length=%zu\n",
 	    offset, length);
 
-	src_pointer = mmap(NULL, length, PROT_READ, MAP_PRIVATE, src_fd, offset);
+	src_pointer = mmap(NULL, length, PROT_READ, MAP_PRIVATE, src_fd,
+	    offset);
 	ATF_REQUIRE_MSG(src_pointer != MAP_FAILED, "mmap failed: %s",
 	    strerror(errno));
 
@@ -378,7 +375,8 @@ ATF_TC_BODY(fd_positive_file_v4, tc)
 {
 
 	if (atf_tc_get_config_var_as_bool_wd(tc, "qemu", false))
-		atf_tc_skip("Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
+		atf_tc_skip(
+		    "Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
 
 	fd_positive_file_test(AF_INET);
 }
@@ -394,7 +392,8 @@ ATF_TC_BODY(fd_positive_file_v6, tc)
 {
 
 	if (atf_tc_get_config_var_as_bool_wd(tc, "qemu", false))
-		atf_tc_skip("Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
+		atf_tc_skip(
+		    "Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
 
 	fd_positive_file_test(AF_INET6);
 }
@@ -412,19 +411,19 @@ fd_positive_shm_test(int domain)
 
 	printf("pattern size: %zu\n", pattern_size);
 
-	fd = shm_open(SHM_ANON, O_RDWR|O_CREAT, 0600);
+	fd = shm_open(SHM_ANON, O_RDWR | O_CREAT, 0600);
 	ATF_REQUIRE_MSG(fd != -1, "shm_open failed: %s", strerror(errno));
 	ATF_REQUIRE_EQ_MSG(0, ftruncate(fd, pattern_size),
 	    "ftruncate failed: %s", strerror(errno));
-	shm_pointer = mmap(NULL, pattern_size, PROT_READ|PROT_WRITE,
+	shm_pointer = mmap(NULL, pattern_size, PROT_READ | PROT_WRITE,
 	    MAP_SHARED, fd, 0);
-	ATF_REQUIRE_MSG(shm_pointer != MAP_FAILED,
-	    "mmap failed: %s", strerror(errno));
+	ATF_REQUIRE_MSG(shm_pointer != MAP_FAILED, "mmap failed: %s",
+	    strerror(errno));
 	memcpy(shm_pointer, DETERMINISTIC_PATTERN, pattern_size);
 	ATF_REQUIRE_EQ_MSG(0,
 	    memcmp(shm_pointer, DETERMINISTIC_PATTERN, pattern_size),
-	    "memcmp showed data mismatch: '%s' != '%s'",
-	    DETERMINISTIC_PATTERN, shm_pointer);
+	    "memcmp showed data mismatch: '%s' != '%s'", DETERMINISTIC_PATTERN,
+	    shm_pointer);
 
 	port = generate_random_port(__LINE__ + domain);
 	server_sock = setup_tcp_server(domain, port);
@@ -462,7 +461,8 @@ ATF_TC_HEAD(fd_positive_shm_v4, tc)
 ATF_TC_BODY(fd_positive_shm_v4, tc)
 {
 	if (atf_tc_get_config_var_as_bool_wd(tc, "qemu", false))
-		atf_tc_skip("Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
+		atf_tc_skip(
+		    "Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
 
 	fd_positive_shm_test(AF_INET);
 }
@@ -477,7 +477,8 @@ ATF_TC_HEAD(fd_positive_shm_v6, tc)
 ATF_TC_BODY(fd_positive_shm_v6, tc)
 {
 	if (atf_tc_get_config_var_as_bool_wd(tc, "qemu", false))
-		atf_tc_skip("Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
+		atf_tc_skip(
+		    "Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
 
 	fd_positive_shm_test(AF_INET6);
 }
@@ -510,7 +511,8 @@ ATF_TC_HEAD(fd_negative_bad_fd_v4, tc)
 ATF_TC_BODY(fd_negative_bad_fd_v4, tc)
 {
 	if (atf_tc_get_config_var_as_bool_wd(tc, "qemu", false))
-		atf_tc_skip("Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
+		atf_tc_skip(
+		    "Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
 
 	fd_negative_bad_fd_test(AF_INET);
 }
@@ -525,7 +527,8 @@ ATF_TC_HEAD(fd_negative_bad_fd_v6, tc)
 ATF_TC_BODY(fd_negative_bad_fd_v6, tc)
 {
 	if (atf_tc_get_config_var_as_bool_wd(tc, "qemu", false))
-		atf_tc_skip("Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
+		atf_tc_skip(
+		    "Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
 
 	fd_negative_bad_fd_test(AF_INET6);
 }
@@ -544,49 +547,27 @@ flags_test(int domain)
 	struct testcase {
 		int16_t readahead_pages, flags;
 	} testcases[] = {
-		/* This is covered in `:fd_positive_file` */
+	/* This is covered in `:fd_positive_file` */
 #if 0
 		{
 			.readahead_pages = 0,
 			.flags = 0
 		},
 #endif
-		{
-			.readahead_pages = 0,
-			.flags = SF_NOCACHE
-		},
+		{ .readahead_pages = 0, .flags = SF_NOCACHE },
 #ifdef SF_USER_READAHEAD
-		{
-			.readahead_pages = 0,
-			.flags = SF_NOCACHE|SF_USER_READAHEAD
-		},
-		{
-			.readahead_pages = 0,
-			.flags = SF_USER_READAHEAD
-		},
+		{ .readahead_pages = 0,
+		    .flags = SF_NOCACHE | SF_USER_READAHEAD },
+		{ .readahead_pages = 0, .flags = SF_USER_READAHEAD },
 #endif
-		{
-			.readahead_pages = number_pages,
-			.flags = 0
-		},
-		{
-			.readahead_pages = number_pages,
-			.flags = SF_NOCACHE
-		},
+		{ .readahead_pages = number_pages, .flags = 0 },
+		{ .readahead_pages = number_pages, .flags = SF_NOCACHE },
 #ifdef SF_USER_READAHEAD
-		{
-			.readahead_pages = number_pages,
-			.flags = SF_NOCACHE|SF_USER_READAHEAD
-		},
+		{ .readahead_pages = number_pages,
+		    .flags = SF_NOCACHE | SF_USER_READAHEAD },
 #endif
-		{
-			.readahead_pages = number_pages,
-			.flags = SF_NOCACHE
-		},
-		{
-			.readahead_pages = number_pages,
-			.flags = SF_NODISKIO
-		}
+		{ .readahead_pages = number_pages, .flags = SF_NOCACHE },
+		{ .readahead_pages = number_pages, .flags = SF_NODISKIO }
 	};
 
 	atf_utils_create_file(SOURCE_FILE, "%s", DETERMINISTIC_PATTERN);
@@ -630,7 +611,8 @@ ATF_TC_HEAD(flags_v4, tc)
 ATF_TC_BODY(flags_v4, tc)
 {
 	if (atf_tc_get_config_var_as_bool_wd(tc, "qemu", false))
-		atf_tc_skip("Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
+		atf_tc_skip(
+		    "Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
 
 	flags_test(AF_INET);
 }
@@ -644,7 +626,8 @@ ATF_TC_HEAD(flags_v6, tc)
 ATF_TC_BODY(flags_v6, tc)
 {
 	if (atf_tc_get_config_var_as_bool_wd(tc, "qemu", false))
-		atf_tc_skip("Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
+		atf_tc_skip(
+		    "Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
 
 	flags_test(AF_INET6);
 }
@@ -656,25 +639,16 @@ hdtr_positive_test(int domain)
 	struct testcase {
 		bool include_headers, include_trailers;
 	} testcases[] = {
-		/* This is covered in `:fd_positive_file` */
+	/* This is covered in `:fd_positive_file` */
 #if 0
 		{
 			.include_headers = false,
 			.include_trailers = false
 		},
 #endif
-		{
-			.include_headers = true,
-			.include_trailers = false
-		},
-		{
-			.include_headers = false,
-			.include_trailers = true
-		},
-		{
-			.include_headers = true,
-			.include_trailers = true
-		}
+		{ .include_headers = true, .include_trailers = false },
+		{ .include_headers = false, .include_trailers = true },
+		{ .include_headers = true, .include_trailers = true }
 	};
 	off_t offset;
 	size_t nbytes;
@@ -713,10 +687,14 @@ hdtr_positive_test(int domain)
 		client_sock = setup_tcp_client(domain, port);
 
 		rc = asprintf(&pattern, "%s%s%s",
-		    testcases[i].include_headers ? (char *)headers[0].iov_base : "",
+		    testcases[i].include_headers ? (char *)headers[0].iov_base :
+						   "",
 		    DETERMINISTIC_PATTERN,
-		    testcases[i].include_trailers ? (char *)trailers[0].iov_base : "");
-		ATF_REQUIRE_MSG(rc != -1, "asprintf failed: %s", strerror(errno));
+		    testcases[i].include_trailers ?
+			(char *)trailers[0].iov_base :
+			"");
+		ATF_REQUIRE_MSG(rc != -1, "asprintf failed: %s",
+		    strerror(errno));
 
 		atf_utils_create_file(SOURCE_FILE ".full", "%s", pattern);
 		atf_utils_create_file(SOURCE_FILE, "%s", DETERMINISTIC_PATTERN);
@@ -736,8 +714,8 @@ hdtr_positive_test(int domain)
 		} else
 			(void)close(server_sock);
 
-		error = sendfile(fd, client_sock, offset, nbytes, &hdtr,
-		    NULL, SF_FLAGS(0, 0));
+		error = sendfile(fd, client_sock, offset, nbytes, &hdtr, NULL,
+		    SF_FLAGS(0, 0));
 		ATF_CHECK_EQ_MSG(error, 0, "sendfile testcase #%d failed: %s",
 		    i, strerror(errno));
 		(void)close(client_sock);
@@ -762,7 +740,8 @@ ATF_TC_HEAD(hdtr_positive_v4, tc)
 ATF_TC_BODY(hdtr_positive_v4, tc)
 {
 	if (atf_tc_get_config_var_as_bool_wd(tc, "qemu", false))
-		atf_tc_skip("Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
+		atf_tc_skip(
+		    "Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
 
 	hdtr_positive_test(AF_INET);
 }
@@ -777,7 +756,8 @@ ATF_TC_HEAD(hdtr_positive_v6, tc)
 ATF_TC_BODY(hdtr_positive_v6, tc)
 {
 	if (atf_tc_get_config_var_as_bool_wd(tc, "qemu", false))
-		atf_tc_skip("Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
+		atf_tc_skip(
+		    "Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
 
 	hdtr_positive_test(AF_INET);
 }
@@ -790,17 +770,17 @@ hdtr_negative_bad_pointers_test(int domain)
 
 	port = generate_random_port(__LINE__ + domain);
 
-	hdtr1 = (struct sf_hdtr*)-1;
+	hdtr1 = (struct sf_hdtr *)-1;
 
 	memset(&hdtr2, 0, sizeof(hdtr2));
 	hdtr2.hdr_cnt = 1;
-	hdtr2.headers = (struct iovec*)-1;
+	hdtr2.headers = (struct iovec *)-1;
 
 	memset(&hdtr3, 0, sizeof(hdtr3));
 	hdtr3.trl_cnt = 1;
-	hdtr3.trailers = (struct iovec*)-1;
+	hdtr3.trailers = (struct iovec *)-1;
 
-	fd = open(SOURCE_FILE, O_CREAT|O_RDWR, 0600);
+	fd = open(SOURCE_FILE, O_CREAT | O_RDWR, 0600);
 	ATF_REQUIRE_MSG(fd != -1, "open failed: %s", strerror(errno));
 
 	server_sock = setup_tcp_server(domain, port);
@@ -830,7 +810,8 @@ ATF_TC_HEAD(hdtr_negative_bad_pointers_v4, tc)
 ATF_TC_BODY(hdtr_negative_bad_pointers_v4, tc)
 {
 	if (atf_tc_get_config_var_as_bool_wd(tc, "qemu", false))
-		atf_tc_skip("Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
+		atf_tc_skip(
+		    "Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
 
 	hdtr_negative_bad_pointers_test(AF_INET);
 }
@@ -845,7 +826,8 @@ ATF_TC_HEAD(hdtr_negative_bad_pointers_v6, tc)
 ATF_TC_BODY(hdtr_negative_bad_pointers_v6, tc)
 {
 	if (atf_tc_get_config_var_as_bool_wd(tc, "qemu", false))
-		atf_tc_skip("Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
+		atf_tc_skip(
+		    "Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
 
 	hdtr_negative_bad_pointers_test(AF_INET6);
 }
@@ -859,7 +841,7 @@ offset_negative_value_less_than_zero_test(int domain)
 	server_sock = setup_tcp_server(domain, port);
 	client_sock = setup_tcp_client(domain, port);
 
-	fd = open(SOURCE_FILE, O_CREAT|O_RDWR, 0600);
+	fd = open(SOURCE_FILE, O_CREAT | O_RDWR, 0600);
 	ATF_REQUIRE_MSG(fd != -1, "open failed: %s", strerror(errno));
 
 	error = sendfile(fd, client_sock, -1, 0, NULL, NULL, SF_FLAGS(0, 0));
@@ -880,7 +862,8 @@ ATF_TC_HEAD(offset_negative_value_less_than_zero_v4, tc)
 ATF_TC_BODY(offset_negative_value_less_than_zero_v4, tc)
 {
 	if (atf_tc_get_config_var_as_bool_wd(tc, "qemu", false))
-		atf_tc_skip("Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
+		atf_tc_skip(
+		    "Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
 
 	offset_negative_value_less_than_zero_test(AF_INET);
 }
@@ -895,7 +878,8 @@ ATF_TC_HEAD(offset_negative_value_less_than_zero_v6, tc)
 ATF_TC_BODY(offset_negative_value_less_than_zero_v6, tc)
 {
 	if (atf_tc_get_config_var_as_bool_wd(tc, "qemu", false))
-		atf_tc_skip("Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
+		atf_tc_skip(
+		    "Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
 
 	offset_negative_value_less_than_zero_test(AF_INET6);
 }
@@ -937,7 +921,8 @@ ATF_TC_HEAD(sbytes_positive_v4, tc)
 ATF_TC_BODY(sbytes_positive_v4, tc)
 {
 	if (atf_tc_get_config_var_as_bool_wd(tc, "qemu", false))
-		atf_tc_skip("Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
+		atf_tc_skip(
+		    "Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
 
 	sbytes_positive_test(AF_INET);
 }
@@ -952,7 +937,8 @@ ATF_TC_HEAD(sbytes_positive_v6, tc)
 ATF_TC_BODY(sbytes_positive_v6, tc)
 {
 	if (atf_tc_get_config_var_as_bool_wd(tc, "qemu", false))
-		atf_tc_skip("Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
+		atf_tc_skip(
+		    "Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
 
 	sbytes_positive_test(AF_INET6);
 }
@@ -960,7 +946,7 @@ ATF_TC_BODY(sbytes_positive_v6, tc)
 static void
 sbytes_negative_test(int domain)
 {
-	off_t *sbytes_p = (off_t*)-1;
+	off_t *sbytes_p = (off_t *)-1;
 	int client_sock, error, fd, port, server_sock;
 
 	port = generate_random_port(__LINE__ + domain);
@@ -992,7 +978,8 @@ ATF_TC_HEAD(sbytes_negative_v4, tc)
 ATF_TC_BODY(sbytes_negative_v4, tc)
 {
 	if (atf_tc_get_config_var_as_bool_wd(tc, "qemu", false))
-		atf_tc_skip("Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
+		atf_tc_skip(
+		    "Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
 
 	sbytes_negative_test(AF_INET);
 }
@@ -1007,7 +994,8 @@ ATF_TC_HEAD(sbytes_negative_v6, tc)
 ATF_TC_BODY(sbytes_negative_v6, tc)
 {
 	if (atf_tc_get_config_var_as_bool_wd(tc, "qemu", false))
-		atf_tc_skip("Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
+		atf_tc_skip(
+		    "Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
 
 	sbytes_negative_test(AF_INET6);
 }
@@ -1020,7 +1008,7 @@ s_negative_not_connected_socket_test(int domain)
 	port = generate_random_port(__LINE__ + domain);
 	client_sock = setup_tcp_server(domain, port);
 
-	fd = open(SOURCE_FILE, O_CREAT|O_RDWR, 0600);
+	fd = open(SOURCE_FILE, O_CREAT | O_RDWR, 0600);
 	ATF_REQUIRE_MSG(fd != -1, "open failed: %s", strerror(errno));
 
 	error = sendfile(fd, client_sock, 0, 0, NULL, NULL, SF_FLAGS(0, 0));
@@ -1041,7 +1029,8 @@ ATF_TC_HEAD(s_negative_not_connected_socket_v4, tc)
 ATF_TC_BODY(s_negative_not_connected_socket_v4, tc)
 {
 	if (atf_tc_get_config_var_as_bool_wd(tc, "qemu", false))
-		atf_tc_skip("Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
+		atf_tc_skip(
+		    "Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
 
 	s_negative_not_connected_socket_test(AF_INET);
 }
@@ -1057,7 +1046,8 @@ ATF_TC_HEAD(s_negative_not_connected_socket_v6, tc)
 ATF_TC_BODY(s_negative_not_connected_socket_v6, tc)
 {
 	if (atf_tc_get_config_var_as_bool_wd(tc, "qemu", false))
-		atf_tc_skip("Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
+		atf_tc_skip(
+		    "Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
 
 	s_negative_not_connected_socket_test(AF_INET6);
 }
@@ -1075,11 +1065,12 @@ ATF_TC_BODY(s_negative_not_descriptor, tc)
 	int client_sock, error, fd;
 
 	if (atf_tc_get_config_var_as_bool_wd(tc, "qemu", false))
-		atf_tc_skip("Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
+		atf_tc_skip(
+		    "Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
 
 	client_sock = -1;
 
-	fd = open(SOURCE_FILE, O_CREAT|O_RDWR, 0600);
+	fd = open(SOURCE_FILE, O_CREAT | O_RDWR, 0600);
 	ATF_REQUIRE_MSG(fd != -1, "open failed: %s", strerror(errno));
 
 	error = sendfile(fd, client_sock, 0, 0, NULL, NULL, SF_FLAGS(0, 0));
@@ -1101,9 +1092,10 @@ ATF_TC_BODY(s_negative_not_socket_file_descriptor, tc)
 	int client_sock, error, fd;
 
 	if (atf_tc_get_config_var_as_bool_wd(tc, "qemu", false))
-		atf_tc_skip("Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
+		atf_tc_skip(
+		    "Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
 
-	fd = open(SOURCE_FILE, O_CREAT|O_RDWR, 0600);
+	fd = open(SOURCE_FILE, O_CREAT | O_RDWR, 0600);
 	ATF_REQUIRE_MSG(fd != -1, "open failed: %s", strerror(errno));
 
 	client_sock = open(_PATH_DEVNULL, O_WRONLY);
@@ -1124,7 +1116,7 @@ s_negative_udp_socket_test(int domain)
 	port = generate_random_port(__LINE__ + domain);
 	client_sock = setup_client(domain, SOCK_DGRAM, port);
 
-	fd = open(SOURCE_FILE, O_CREAT|O_RDWR, 0600);
+	fd = open(SOURCE_FILE, O_CREAT | O_RDWR, 0600);
 	ATF_REQUIRE_MSG(fd != -1, "open failed: %s", strerror(errno));
 
 	error = sendfile(fd, client_sock, 0, 0, NULL, NULL, SF_FLAGS(0, 0));
@@ -1145,7 +1137,8 @@ ATF_TC_BODY(s_negative_udp_socket_v4, tc)
 {
 
 	if (atf_tc_get_config_var_as_bool_wd(tc, "qemu", false))
-		atf_tc_skip("Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
+		atf_tc_skip(
+		    "Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
 
 	s_negative_udp_socket_test(AF_INET);
 }
@@ -1161,7 +1154,8 @@ ATF_TC_BODY(s_negative_udp_socket_v6, tc)
 {
 
 	if (atf_tc_get_config_var_as_bool_wd(tc, "qemu", false))
-		atf_tc_skip("Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
+		atf_tc_skip(
+		    "Sendfile(4) unimplemented. https://github.com/qemu-bsd-user/qemu-bsd-user/issues/25");
 
 	s_negative_udp_socket_test(AF_INET6);
 }

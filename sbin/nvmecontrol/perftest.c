@@ -49,14 +49,14 @@ static cmd_fn_t perftest;
 
 #define NONE 0xffffffffu
 static struct options {
-	bool		perthread;
-	uint32_t	threads;
-	uint32_t	size;
-	uint32_t	time;
-	const char	*op;
-	const char	*intr;
-	const char	*flags;
-	const char	*dev;
+	bool perthread;
+	uint32_t threads;
+	uint32_t size;
+	uint32_t time;
+	const char *op;
+	const char *intr;
+	const char *flags;
+	const char *dev;
 } opt = {
 	.perthread = false,
 	.threads = 0,
@@ -68,15 +68,16 @@ static struct options {
 	.dev = NULL,
 };
 
-
 static const struct opts perftest_opts[] = {
-#define OPT(l, s, t, opt, addr, desc) { l, s, t, &opt.addr, desc }
+#define OPT(l, s, t, opt, addr, desc)    \
+	{                                \
+		l, s, t, &opt.addr, desc \
+	}
 	OPT("perthread", 'p', arg_none, opt, perthread,
 	    "Report per-thread results"),
 	OPT("threads", 'n', arg_uint32, opt, threads,
 	    "Number of threads to run"),
-	OPT("size", 's', arg_uint32, opt, size,
-	    "Size of the test"),
+	OPT("size", 's', arg_uint32, opt, size, "Size of the test"),
 	OPT("time", 't', arg_uint32, opt, time,
 	    "How long to run the test in seconds"),
 	OPT("operation", 'o', arg_string, opt, op,
@@ -110,37 +111,38 @@ CMD_COMMAND(perftest_cmd);
 static void
 print_perftest(struct nvme_io_test *io_test, bool perthread)
 {
-	uint64_t	io_completed = 0, iops, mbps;
-	uint32_t	i;
+	uint64_t io_completed = 0, iops, mbps;
+	uint32_t i;
 
 	for (i = 0; i < io_test->num_threads; i++)
 		io_completed += io_test->io_completed[i];
 
-	iops = io_completed/io_test->time;
-	mbps = iops * io_test->size / (1024*1024);
+	iops = io_completed / io_test->time;
+	mbps = iops * io_test->size / (1024 * 1024);
 
 	printf("Threads: %2d Size: %6d %5s Time: %3d IO/s: %7ju MB/s: %4ju\n",
 	    io_test->num_threads, io_test->size,
-	    io_test->opc == NVME_OPC_READ ? "READ" : "WRITE",
-	    io_test->time, (uintmax_t)iops, (uintmax_t)mbps);
+	    io_test->opc == NVME_OPC_READ ? "READ" : "WRITE", io_test->time,
+	    (uintmax_t)iops, (uintmax_t)mbps);
 
 	if (perthread)
 		for (i = 0; i < io_test->num_threads; i++)
 			printf("\t%3d: %8ju IO/s\n", i,
-			    (uintmax_t)io_test->io_completed[i]/io_test->time);
+			    (uintmax_t)io_test->io_completed[i] /
+				io_test->time);
 }
 
 static void
 perftest(const struct cmd *f, int argc, char *argv[])
 {
-	struct nvme_io_test		io_test;
-	int				fd;
-	u_long				ioctl_cmd = NVME_IO_TEST;
+	struct nvme_io_test io_test;
+	int fd;
+	u_long ioctl_cmd = NVME_IO_TEST;
 
 	memset(&io_test, 0, sizeof(io_test));
 	if (arg_parse(argc, argv, f))
 		return;
-	
+
 	if (opt.op == NULL)
 		arg_help(argc, argv, f);
 	if (opt.flags != NULL && strcmp(opt.flags, "refthread") == 0)
@@ -153,7 +155,8 @@ perftest(const struct cmd *f, int argc, char *argv[])
 		    strcmp(opt.intr, "intr") == 0)
 			ioctl_cmd = NVME_IO_TEST;
 		else {
-			fprintf(stderr, "Unknown interrupt test type %s\n", opt.intr);
+			fprintf(stderr, "Unknown interrupt test type %s\n",
+			    opt.intr);
 			arg_help(argc, argv, f);
 		}
 	}

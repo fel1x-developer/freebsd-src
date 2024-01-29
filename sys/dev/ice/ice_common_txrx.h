@@ -43,8 +43,8 @@
 #ifndef _ICE_COMMON_TXRX_H_
 #define _ICE_COMMON_TXRX_H_
 
-#include <netinet/udp.h>
 #include <netinet/sctp.h>
+#include <netinet/udp.h>
 
 /**
  * ice_tso_detect_sparse - detect TSO packets with too many segments
@@ -144,14 +144,15 @@ ice_tso_detect_sparse(if_pkt_info_t pi)
 static inline int
 ice_tso_setup(struct ice_tx_queue *txq, if_pkt_info_t pi)
 {
-	struct ice_tx_ctx_desc		*txd;
-	u32				cmd, mss, type, tsolen;
-	int				idx;
-	u64				type_cmd_tso_mss;
+	struct ice_tx_ctx_desc *txd;
+	u32 cmd, mss, type, tsolen;
+	int idx;
+	u64 type_cmd_tso_mss;
 
 	idx = pi->ipi_pidx;
 	txd = (struct ice_tx_ctx_desc *)&txq->tx_base[idx];
-	tsolen = pi->ipi_len - (pi->ipi_ehdrlen + pi->ipi_ip_hlen + pi->ipi_tcp_hlen);
+	tsolen = pi->ipi_len -
+	    (pi->ipi_ehdrlen + pi->ipi_ip_hlen + pi->ipi_tcp_hlen);
 
 	type = ICE_TX_DESC_DTYPE_CTX;
 	cmd = ICE_TX_CTX_DESC_TSO;
@@ -171,7 +172,7 @@ ice_tso_setup(struct ice_tx_queue *txq, if_pkt_info_t pi)
 	txd->tunneling_params = htole32(0);
 	txq->tso++;
 
-	return ((idx + 1) & (txq->desc_count-1));
+	return ((idx + 1) & (txq->desc_count - 1));
 }
 
 /**
@@ -189,34 +190,35 @@ ice_tso_setup(struct ice_tx_queue *txq, if_pkt_info_t pi)
  * offload a particular type of checksum for debugging purposes.
  */
 static inline void
-ice_tx_setup_offload(struct ice_tx_queue *txq, if_pkt_info_t pi, u32 *cmd, u32 *off)
+ice_tx_setup_offload(struct ice_tx_queue *txq, if_pkt_info_t pi, u32 *cmd,
+    u32 *off)
 {
 	u32 remaining_csum_flags = pi->ipi_csum_flags;
 
 	switch (pi->ipi_etype) {
 #ifdef INET
-		case ETHERTYPE_IP:
-			if (pi->ipi_csum_flags & ICE_CSUM_IP) {
-				*cmd |= ICE_TX_DESC_CMD_IIPT_IPV4_CSUM;
-				txq->stats.cso[ICE_CSO_STAT_TX_IP4]++;
-				remaining_csum_flags &= ~CSUM_IP;
-			} else
-				*cmd |= ICE_TX_DESC_CMD_IIPT_IPV4;
-			break;
+	case ETHERTYPE_IP:
+		if (pi->ipi_csum_flags & ICE_CSUM_IP) {
+			*cmd |= ICE_TX_DESC_CMD_IIPT_IPV4_CSUM;
+			txq->stats.cso[ICE_CSO_STAT_TX_IP4]++;
+			remaining_csum_flags &= ~CSUM_IP;
+		} else
+			*cmd |= ICE_TX_DESC_CMD_IIPT_IPV4;
+		break;
 #endif
 #ifdef INET6
-		case ETHERTYPE_IPV6:
-			*cmd |= ICE_TX_DESC_CMD_IIPT_IPV6;
-			/*
-			 * This indicates that the IIPT flag was set to the IPV6 value;
-			 * there's no checksum for IPv6 packets.
-			 */
-			txq->stats.cso[ICE_CSO_STAT_TX_IP6]++;
-			break;
+	case ETHERTYPE_IPV6:
+		*cmd |= ICE_TX_DESC_CMD_IIPT_IPV6;
+		/*
+		 * This indicates that the IIPT flag was set to the IPV6 value;
+		 * there's no checksum for IPv6 packets.
+		 */
+		txq->stats.cso[ICE_CSO_STAT_TX_IP6]++;
+		break;
 #endif
-		default:
-			txq->stats.cso[ICE_CSO_STAT_TX_L3_ERR]++;
-			break;
+	default:
+		txq->stats.cso[ICE_CSO_STAT_TX_L3_ERR]++;
+		break;
 	}
 
 	*off |= (pi->ipi_ehdrlen >> 1) << ICE_TX_DESC_LEN_MACLEN_S;
@@ -226,33 +228,33 @@ ice_tx_setup_offload(struct ice_tx_queue *txq, if_pkt_info_t pi, u32 *cmd, u32 *
 		return;
 
 	switch (pi->ipi_ipproto) {
-		case IPPROTO_TCP:
-			if (pi->ipi_csum_flags & ICE_CSUM_TCP) {
-				*cmd |= ICE_TX_DESC_CMD_L4T_EOFT_TCP;
-				*off |= (pi->ipi_tcp_hlen >> 2) <<
-				    ICE_TX_DESC_LEN_L4_LEN_S;
-				txq->stats.cso[ICE_CSO_STAT_TX_TCP]++;
-			}
-			break;
-		case IPPROTO_UDP:
-			if (pi->ipi_csum_flags & ICE_CSUM_UDP) {
-				*cmd |= ICE_TX_DESC_CMD_L4T_EOFT_UDP;
-				*off |= (sizeof(struct udphdr) >> 2) <<
-				    ICE_TX_DESC_LEN_L4_LEN_S;
-				txq->stats.cso[ICE_CSO_STAT_TX_UDP]++;
-			}
-			break;
-		case IPPROTO_SCTP:
-			if (pi->ipi_csum_flags & ICE_CSUM_SCTP) {
-				*cmd |= ICE_TX_DESC_CMD_L4T_EOFT_SCTP;
-				*off |= (sizeof(struct sctphdr) >> 2) <<
-				    ICE_TX_DESC_LEN_L4_LEN_S;
-				txq->stats.cso[ICE_CSO_STAT_TX_SCTP]++;
-			}
-			break;
-		default:
-			txq->stats.cso[ICE_CSO_STAT_TX_L4_ERR]++;
-			break;
+	case IPPROTO_TCP:
+		if (pi->ipi_csum_flags & ICE_CSUM_TCP) {
+			*cmd |= ICE_TX_DESC_CMD_L4T_EOFT_TCP;
+			*off |= (pi->ipi_tcp_hlen >> 2)
+			    << ICE_TX_DESC_LEN_L4_LEN_S;
+			txq->stats.cso[ICE_CSO_STAT_TX_TCP]++;
+		}
+		break;
+	case IPPROTO_UDP:
+		if (pi->ipi_csum_flags & ICE_CSUM_UDP) {
+			*cmd |= ICE_TX_DESC_CMD_L4T_EOFT_UDP;
+			*off |= (sizeof(struct udphdr) >> 2)
+			    << ICE_TX_DESC_LEN_L4_LEN_S;
+			txq->stats.cso[ICE_CSO_STAT_TX_UDP]++;
+		}
+		break;
+	case IPPROTO_SCTP:
+		if (pi->ipi_csum_flags & ICE_CSUM_SCTP) {
+			*cmd |= ICE_TX_DESC_CMD_L4T_EOFT_SCTP;
+			*off |= (sizeof(struct sctphdr) >> 2)
+			    << ICE_TX_DESC_LEN_L4_LEN_S;
+			txq->stats.cso[ICE_CSO_STAT_TX_SCTP]++;
+		}
+		break;
+	default:
+		txq->stats.cso[ICE_CSO_STAT_TX_L4_ERR]++;
+		break;
 	}
 }
 
@@ -270,14 +272,14 @@ ice_tx_setup_offload(struct ice_tx_queue *txq, if_pkt_info_t pi, u32 *cmd, u32 *
  */
 static void
 ice_rx_checksum(struct ice_rx_queue *rxq, uint32_t *flags, uint32_t *data,
-		u16 status0, u16 ptype)
+    u16 status0, u16 ptype)
 {
 	const u16 l3_error = (BIT(ICE_RX_FLEX_DESC_STATUS0_XSUM_IPE_S) |
-			      BIT(ICE_RX_FLEX_DESC_STATUS0_XSUM_EIPE_S));
+	    BIT(ICE_RX_FLEX_DESC_STATUS0_XSUM_EIPE_S));
 	const u16 l4_error = (BIT(ICE_RX_FLEX_DESC_STATUS0_XSUM_L4E_S) |
-			      BIT(ICE_RX_FLEX_DESC_STATUS0_XSUM_EUDPE_S));
+	    BIT(ICE_RX_FLEX_DESC_STATUS0_XSUM_EUDPE_S));
 	const u16 xsum_errors = (l3_error | l4_error |
-				 BIT(ICE_RX_FLEX_DESC_STATUS0_IPV6EXADD_S));
+	    BIT(ICE_RX_FLEX_DESC_STATUS0_IPV6EXADD_S));
 	struct ice_rx_ptype_decoded decoded;
 	bool is_ipv4, is_ipv6;
 

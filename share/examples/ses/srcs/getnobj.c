@@ -25,22 +25,22 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- * 
+ *
  * Matthew Jacob
  * Feral Software
  * mjacob@feral.com
  */
 
-#include <unistd.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
 #include <sys/ioctl.h>
+
 #include <cam/scsi/scsi_all.h>
 #include <cam/scsi/scsi_ses.h>
+#include <fcntl.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 int
 main(int argc, char **argv)
@@ -55,12 +55,12 @@ main(int argc, char **argv)
 			perror(name);
 			continue;
 		}
-		if (ioctl(fd, SESIOC_GETNOBJ, (caddr_t) &nobj) < 0) {
+		if (ioctl(fd, SESIOC_GETNOBJ, (caddr_t)&nobj) < 0) {
 			perror("SESIOC_GETNOBJ");
 		} else {
 			fprintf(stdout, "%s: %d objects\n", name, nobj);
 		}
-		close (fd);
+		close(fd);
 	}
 	return (0);
 }

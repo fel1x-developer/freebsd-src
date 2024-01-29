@@ -26,6 +26,7 @@
  */
 
 #include <arpa/inet.h>
+#include <atf-c.h>
 #include <errno.h>
 #include <netdb.h>
 #include <stdio.h>
@@ -33,8 +34,6 @@
 #include <string.h>
 #include <stringlist.h>
 #include <unistd.h>
-
-#include <atf-c.h>
 
 #include "testutil.h"
 
@@ -60,7 +59,7 @@ static void sdump_servent(struct servent *, char *, size_t);
 static int servent_read_snapshot_func(struct servent *, char *);
 
 static int servent_check_ambiguity(struct servent_test_data *,
-	struct servent *);
+    struct servent *);
 static int servent_fill_test_data(struct servent_test_data *);
 static int servent_test_correctness(struct servent *, void *);
 static int servent_test_getservbyname(struct servent *, void *);
@@ -104,7 +103,8 @@ clone_servent(struct servent *dest, struct servent const *src)
 
 		for (cp = src->s_aliases; *cp; ++cp) {
 			dest->s_aliases[cp - src->s_aliases] = strdup(*cp);
-			ATF_REQUIRE(dest->s_aliases[cp - src->s_aliases] != NULL);
+			ATF_REQUIRE(
+			    dest->s_aliases[cp - src->s_aliases] != NULL);
 		}
 	}
 }
@@ -124,7 +124,7 @@ free_servent(struct servent *serv)
 	free(serv->s_aliases);
 }
 
-static  int
+static int
 compare_servent(struct servent *serv1, struct servent *serv2, void *mdata)
 {
 	char **c1, **c2;
@@ -136,9 +136,9 @@ compare_servent(struct servent *serv1, struct servent *serv2, void *mdata)
 		goto errfin;
 
 	if ((strcmp(serv1->s_name, serv2->s_name) != 0) ||
-		(strcmp(serv1->s_proto, serv2->s_proto) != 0) ||
-		(serv1->s_port != serv2->s_port))
-			goto errfin;
+	    (strcmp(serv1->s_proto, serv2->s_proto) != 0) ||
+	    (serv1->s_port != serv2->s_port))
+		goto errfin;
 
 	c1 = serv1->s_aliases;
 	c2 = serv2->s_aliases;
@@ -146,7 +146,7 @@ compare_servent(struct servent *serv1, struct servent *serv2, void *mdata)
 	if ((serv1->s_aliases == NULL) || (serv2->s_aliases == NULL))
 		goto errfin;
 
-	for (;*c1 && *c2; ++c1, ++c2)
+	for (; *c1 && *c2; ++c1, ++c2)
 		if (strcmp(*c1, *c2) != 0)
 			goto errfin;
 
@@ -171,8 +171,8 @@ sdump_servent(struct servent *serv, char *buffer, size_t buflen)
 	char **cp;
 	int written;
 
-	written = snprintf(buffer, buflen, "%s %d %s",
-		serv->s_name, ntohs(serv->s_port), serv->s_proto);
+	written = snprintf(buffer, buflen, "%s %d %s", serv->s_name,
+	    ntohs(serv->s_port), serv->s_proto);
 	buffer += written;
 	if (written > (int)buflen)
 		return;
@@ -209,45 +209,44 @@ servent_read_snapshot_func(struct servent *serv, char *line)
 	sl = NULL;
 	ps = line;
 	memset(serv, 0, sizeof(struct servent));
-	while ( (s = strsep(&ps, " ")) != NULL) {
+	while ((s = strsep(&ps, " ")) != NULL) {
 		switch (i) {
-			case 0:
-				serv->s_name = strdup(s);
-				ATF_REQUIRE(serv->s_name != NULL);
+		case 0:
+			serv->s_name = strdup(s);
+			ATF_REQUIRE(serv->s_name != NULL);
 			break;
 
-			case 1:
-				serv->s_port = htons(
-					(int)strtol(s, &ts, 10));
-				if (*ts != '\0') {
-					free(serv->s_name);
-					return (-1);
-				}
+		case 1:
+			serv->s_port = htons((int)strtol(s, &ts, 10));
+			if (*ts != '\0') {
+				free(serv->s_name);
+				return (-1);
+			}
 			break;
 
-			case 2:
-				serv->s_proto = strdup(s);
-				ATF_REQUIRE(serv->s_proto != NULL);
+		case 2:
+			serv->s_proto = strdup(s);
+			ATF_REQUIRE(serv->s_proto != NULL);
 			break;
 
-			default:
-				if (sl == NULL) {
-					if (strcmp(s, "(null)") == 0)
-						return (0);
+		default:
+			if (sl == NULL) {
+				if (strcmp(s, "(null)") == 0)
+					return (0);
 
-					sl = sl_init();
-					ATF_REQUIRE(sl != NULL);
+				sl = sl_init();
+				ATF_REQUIRE(sl != NULL);
 
-					if (strcmp(s, "noaliases") != 0) {
-						ts = strdup(s);
-						ATF_REQUIRE(ts != NULL);
-						sl_add(sl, ts);
-					}
-				} else {
+				if (strcmp(s, "noaliases") != 0) {
 					ts = strdup(s);
 					ATF_REQUIRE(ts != NULL);
 					sl_add(sl, ts);
 				}
+			} else {
+				ts = strdup(s);
+				ATF_REQUIRE(ts != NULL);
+				sl_add(sl, ts);
+			}
 			break;
 		}
 		++i;
@@ -335,8 +334,10 @@ static int
 servent_check_ambiguity(struct servent_test_data *td, struct servent *serv)
 {
 
-	return (TEST_DATA_FIND(servent, td, serv, compare_servent,
-		NULL) != NULL ? 0 : -1);
+	return (
+	    TEST_DATA_FIND(servent, td, serv, compare_servent, NULL) != NULL ?
+		0 :
+		-1);
 }
 
 static int
@@ -353,8 +354,8 @@ servent_test_getservbyname(struct servent *serv_model, void *mdata)
 		goto errfin;
 
 	if ((compare_servent(serv, serv_model, NULL) != 0) &&
-	    (servent_check_ambiguity((struct servent_test_data *)mdata, serv)
-	    !=0))
+	    (servent_check_ambiguity((struct servent_test_data *)mdata, serv) !=
+		0))
 		goto errfin;
 
 	for (alias = serv_model->s_aliases; *alias; ++alias) {
@@ -364,9 +365,9 @@ servent_test_getservbyname(struct servent *serv_model, void *mdata)
 			goto errfin;
 
 		if ((compare_servent(serv, serv_model, NULL) != 0) &&
-		    (servent_check_ambiguity(
-		    (struct servent_test_data *)mdata, serv) != 0))
-		    goto errfin;
+		    (servent_check_ambiguity((struct servent_test_data *)mdata,
+			 serv) != 0))
+			goto errfin;
 	}
 
 	printf("ok\n");
@@ -389,8 +390,8 @@ servent_test_getservbyport(struct servent *serv_model, void *mdata)
 	serv = getservbyport(serv_model->s_port, serv_model->s_proto);
 	if ((servent_test_correctness(serv, NULL) != 0) ||
 	    ((compare_servent(serv, serv_model, NULL) != 0) &&
-	    (servent_check_ambiguity((struct servent_test_data *)mdata, serv)
-	    != 0))) {
+		(servent_check_ambiguity((struct servent_test_data *)mdata,
+		     serv) != 0))) {
 		printf("not ok\n");
 		return (-1);
 	} else {
@@ -433,7 +434,7 @@ run_tests(const char *snapshot_file, enum test_methods method)
 			}
 
 			TEST_SNAPSHOT_FILE_READ(servent, snapshot_file,
-				&td_snap, servent_read_snapshot_func);
+			    &td_snap, servent_read_snapshot_func);
 		}
 	}
 
@@ -444,39 +445,39 @@ run_tests(const char *snapshot_file, enum test_methods method)
 	case TEST_GETSERVBYNAME:
 		if (snapshot_file == NULL)
 			rv = DO_1PASS_TEST(servent, &td,
-				servent_test_getservbyname, (void *)&td);
+			    servent_test_getservbyname, (void *)&td);
 		else
 			rv = DO_1PASS_TEST(servent, &td_snap,
-				servent_test_getservbyname, (void *)&td_snap);
+			    servent_test_getservbyname, (void *)&td_snap);
 		break;
 	case TEST_GETSERVBYPORT:
 		if (snapshot_file == NULL)
 			rv = DO_1PASS_TEST(servent, &td,
-				servent_test_getservbyport, (void *)&td);
+			    servent_test_getservbyport, (void *)&td);
 		else
 			rv = DO_1PASS_TEST(servent, &td_snap,
-				servent_test_getservbyport, (void *)&td_snap);
+			    servent_test_getservbyport, (void *)&td_snap);
 		break;
 	case TEST_GETSERVENT:
 		if (snapshot_file == NULL)
-			rv = DO_1PASS_TEST(servent, &td, servent_test_getservent,
-				(void *)&td);
+			rv = DO_1PASS_TEST(servent, &td,
+			    servent_test_getservent, (void *)&td);
 		else
 			rv = DO_2PASS_TEST(servent, &td, &td_snap,
-				compare_servent, NULL);
+			    compare_servent, NULL);
 		break;
 	case TEST_GETSERVENT_2PASS:
-			TEST_DATA_INIT(servent, &td_2pass, clone_servent, free_servent);
-			rv = servent_fill_test_data(&td_2pass);
-			if (rv != -1)
-				rv = DO_2PASS_TEST(servent, &td, &td_2pass,
-					compare_servent, NULL);
-			TEST_DATA_DESTROY(servent, &td_2pass);
+		TEST_DATA_INIT(servent, &td_2pass, clone_servent, free_servent);
+		rv = servent_fill_test_data(&td_2pass);
+		if (rv != -1)
+			rv = DO_2PASS_TEST(servent, &td, &td_2pass,
+			    compare_servent, NULL);
+		TEST_DATA_DESTROY(servent, &td_2pass);
 		break;
 	case TEST_BUILD_SNAPSHOT:
 		if (snapshot_file != NULL)
-		    rv = TEST_SNAPSHOT_FILE_WRITE(servent, snapshot_file, &td,
-			sdump_servent);
+			rv = TEST_SNAPSHOT_FILE_WRITE(servent, snapshot_file,
+			    &td, sdump_servent);
 		break;
 	default:
 		rv = 0;
@@ -490,7 +491,7 @@ fin:
 	return (rv);
 }
 
-#define	SNAPSHOT_FILE	"snapshot_serv"
+#define SNAPSHOT_FILE "snapshot_serv"
 
 ATF_TC_WITHOUT_HEAD(build_snapshot);
 ATF_TC_BODY(build_snapshot, tc)

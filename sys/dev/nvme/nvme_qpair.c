@@ -36,16 +36,20 @@
 
 #include "nvme_private.h"
 
-typedef enum error_print { ERROR_PRINT_NONE, ERROR_PRINT_NO_RETRY, ERROR_PRINT_ALL } error_print_t;
-#define DO_NOT_RETRY	1
+typedef enum error_print {
+	ERROR_PRINT_NONE,
+	ERROR_PRINT_NO_RETRY,
+	ERROR_PRINT_ALL
+} error_print_t;
+#define DO_NOT_RETRY 1
 
-static void	_nvme_qpair_submit_request(struct nvme_qpair *qpair,
-					   struct nvme_request *req);
-static void	nvme_qpair_destroy(struct nvme_qpair *qpair);
+static void _nvme_qpair_submit_request(struct nvme_qpair *qpair,
+    struct nvme_request *req);
+static void nvme_qpair_destroy(struct nvme_qpair *qpair);
 
-#define DEFAULT_INDEX	256
-#define DEFAULT_ENTRY(x)	[DEFAULT_INDEX] = x
-#define OPC_ENTRY(x)		[NVME_OPC_ ## x] = #x
+#define DEFAULT_INDEX 256
+#define DEFAULT_ENTRY(x) [DEFAULT_INDEX] = x
+#define OPC_ENTRY(x) [NVME_OPC_##x] = #x
 
 static const char *admin_opcode[DEFAULT_INDEX + 1] = {
 	OPC_ENTRY(DELETE_IO_SQ),
@@ -123,15 +127,15 @@ nvme_admin_qpair_print_command(struct nvme_qpair *qpair,
     struct nvme_command *cmd)
 {
 
-	nvme_printf(qpair->ctrlr, "%s (%02x) sqid:%d cid:%d nsid:%x "
+	nvme_printf(qpair->ctrlr,
+	    "%s (%02x) sqid:%d cid:%d nsid:%x "
 	    "cdw10:%08x cdw11:%08x\n",
 	    get_admin_opcode_string(cmd->opc), cmd->opc, qpair->id, cmd->cid,
 	    le32toh(cmd->nsid), le32toh(cmd->cdw10), le32toh(cmd->cdw11));
 }
 
 static void
-nvme_io_qpair_print_command(struct nvme_qpair *qpair,
-    struct nvme_command *cmd)
+nvme_io_qpair_print_command(struct nvme_qpair *qpair, struct nvme_command *cmd)
 {
 
 	switch (cmd->opc) {
@@ -141,10 +145,13 @@ nvme_io_qpair_print_command(struct nvme_qpair *qpair,
 	case NVME_OPC_COMPARE:
 	case NVME_OPC_WRITE_ZEROES:
 	case NVME_OPC_VERIFY:
-		nvme_printf(qpair->ctrlr, "%s sqid:%d cid:%d nsid:%d "
+		nvme_printf(qpair->ctrlr,
+		    "%s sqid:%d cid:%d nsid:%d "
 		    "lba:%llu len:%d\n",
-		    get_io_opcode_string(cmd->opc), qpair->id, cmd->cid, le32toh(cmd->nsid),
-		    ((unsigned long long)le32toh(cmd->cdw11) << 32) + le32toh(cmd->cdw10),
+		    get_io_opcode_string(cmd->opc), qpair->id, cmd->cid,
+		    le32toh(cmd->nsid),
+		    ((unsigned long long)le32toh(cmd->cdw11) << 32) +
+			le32toh(cmd->cdw10),
 		    (le32toh(cmd->cdw12) & 0xFFFF) + 1);
 		break;
 	case NVME_OPC_FLUSH:
@@ -154,7 +161,8 @@ nvme_io_qpair_print_command(struct nvme_qpair *qpair,
 	case NVME_OPC_RESERVATION_ACQUIRE:
 	case NVME_OPC_RESERVATION_RELEASE:
 		nvme_printf(qpair->ctrlr, "%s sqid:%d cid:%d nsid:%d\n",
-		    get_io_opcode_string(cmd->opc), qpair->id, cmd->cid, le32toh(cmd->nsid));
+		    get_io_opcode_string(cmd->opc), qpair->id, cmd->cid,
+		    le32toh(cmd->nsid));
 		break;
 	default:
 		nvme_printf(qpair->ctrlr, "%s (%02x) sqid:%d cid:%d nsid:%d\n",
@@ -184,12 +192,12 @@ nvme_qpair_print_command(struct nvme_qpair *qpair, struct nvme_command *cmd)
 }
 
 struct nvme_status_string {
-	uint16_t	sc;
-	const char *	str;
+	uint16_t sc;
+	const char *str;
 };
 
-static struct nvme_status_string generic_status[] = {
-	{ NVME_SC_SUCCESS, "SUCCESS" },
+static struct nvme_status_string generic_status[] = { { NVME_SC_SUCCESS,
+							  "SUCCESS" },
 	{ NVME_SC_INVALID_OPCODE, "INVALID OPCODE" },
 	{ NVME_SC_INVALID_FIELD, "INVALID_FIELD" },
 	{ NVME_SC_COMMAND_ID_CONFLICT, "COMMAND ID CONFLICT" },
@@ -203,24 +211,31 @@ static struct nvme_status_string generic_status[] = {
 	{ NVME_SC_INVALID_NAMESPACE_OR_FORMAT, "INVALID NAMESPACE OR FORMAT" },
 	{ NVME_SC_COMMAND_SEQUENCE_ERROR, "COMMAND SEQUENCE ERROR" },
 	{ NVME_SC_INVALID_SGL_SEGMENT_DESCR, "INVALID SGL SEGMENT DESCRIPTOR" },
-	{ NVME_SC_INVALID_NUMBER_OF_SGL_DESCR, "INVALID NUMBER OF SGL DESCRIPTORS" },
+	{ NVME_SC_INVALID_NUMBER_OF_SGL_DESCR,
+	    "INVALID NUMBER OF SGL DESCRIPTORS" },
 	{ NVME_SC_DATA_SGL_LENGTH_INVALID, "DATA SGL LENGTH INVALID" },
 	{ NVME_SC_METADATA_SGL_LENGTH_INVALID, "METADATA SGL LENGTH INVALID" },
 	{ NVME_SC_SGL_DESCRIPTOR_TYPE_INVALID, "SGL DESCRIPTOR TYPE INVALID" },
-	{ NVME_SC_INVALID_USE_OF_CMB, "INVALID USE OF CONTROLLER MEMORY BUFFER" },
+	{ NVME_SC_INVALID_USE_OF_CMB,
+	    "INVALID USE OF CONTROLLER MEMORY BUFFER" },
 	{ NVME_SC_PRP_OFFET_INVALID, "PRP OFFET INVALID" },
 	{ NVME_SC_ATOMIC_WRITE_UNIT_EXCEEDED, "ATOMIC WRITE UNIT EXCEEDED" },
 	{ NVME_SC_OPERATION_DENIED, "OPERATION DENIED" },
 	{ NVME_SC_SGL_OFFSET_INVALID, "SGL OFFSET INVALID" },
-	{ NVME_SC_HOST_ID_INCONSISTENT_FORMAT, "HOST IDENTIFIER INCONSISTENT FORMAT" },
+	{ NVME_SC_HOST_ID_INCONSISTENT_FORMAT,
+	    "HOST IDENTIFIER INCONSISTENT FORMAT" },
 	{ NVME_SC_KEEP_ALIVE_TIMEOUT_EXPIRED, "KEEP ALIVE TIMEOUT EXPIRED" },
 	{ NVME_SC_KEEP_ALIVE_TIMEOUT_INVALID, "KEEP ALIVE TIMEOUT INVALID" },
-	{ NVME_SC_ABORTED_DUE_TO_PREEMPT, "COMMAND ABORTED DUE TO PREEMPT AND ABORT" },
+	{ NVME_SC_ABORTED_DUE_TO_PREEMPT,
+	    "COMMAND ABORTED DUE TO PREEMPT AND ABORT" },
 	{ NVME_SC_SANITIZE_FAILED, "SANITIZE FAILED" },
 	{ NVME_SC_SANITIZE_IN_PROGRESS, "SANITIZE IN PROGRESS" },
-	{ NVME_SC_SGL_DATA_BLOCK_GRAN_INVALID, "SGL_DATA_BLOCK_GRANULARITY_INVALID" },
-	{ NVME_SC_NOT_SUPPORTED_IN_CMB, "COMMAND NOT SUPPORTED FOR QUEUE IN CMB" },
-	{ NVME_SC_NAMESPACE_IS_WRITE_PROTECTED, "NAMESPACE IS WRITE PROTECTED" },
+	{ NVME_SC_SGL_DATA_BLOCK_GRAN_INVALID,
+	    "SGL_DATA_BLOCK_GRANULARITY_INVALID" },
+	{ NVME_SC_NOT_SUPPORTED_IN_CMB,
+	    "COMMAND NOT SUPPORTED FOR QUEUE IN CMB" },
+	{ NVME_SC_NAMESPACE_IS_WRITE_PROTECTED,
+	    "NAMESPACE IS WRITE PROTECTED" },
 	{ NVME_SC_COMMAND_INTERRUPTED, "COMMAND INTERRUPTED" },
 	{ NVME_SC_TRANSIENT_TRANSPORT_ERROR, "TRANSIENT TRANSPORT ERROR" },
 
@@ -229,8 +244,7 @@ static struct nvme_status_string generic_status[] = {
 	{ NVME_SC_NAMESPACE_NOT_READY, "NAMESPACE NOT READY" },
 	{ NVME_SC_RESERVATION_CONFLICT, "RESERVATION CONFLICT" },
 	{ NVME_SC_FORMAT_IN_PROGRESS, "FORMAT IN PROGRESS" },
-	{ 0xFFFF, "GENERIC" }
-};
+	{ 0xFFFF, "GENERIC" } };
 
 static struct nvme_status_string command_specific_status[] = {
 	{ NVME_SC_COMPLETION_QUEUE_INVALID, "INVALID COMPLETION QUEUE" },
@@ -248,9 +262,11 @@ static struct nvme_status_string command_specific_status[] = {
 	{ NVME_SC_FEATURE_NOT_SAVEABLE, "FEATURE IDENTIFIER NOT SAVEABLE" },
 	{ NVME_SC_FEATURE_NOT_CHANGEABLE, "FEATURE NOT CHANGEABLE" },
 	{ NVME_SC_FEATURE_NOT_NS_SPECIFIC, "FEATURE NOT NAMESPACE SPECIFIC" },
-	{ NVME_SC_FW_ACT_REQUIRES_NVMS_RESET, "FIRMWARE ACTIVATION REQUIRES NVM SUBSYSTEM RESET" },
+	{ NVME_SC_FW_ACT_REQUIRES_NVMS_RESET,
+	    "FIRMWARE ACTIVATION REQUIRES NVM SUBSYSTEM RESET" },
 	{ NVME_SC_FW_ACT_REQUIRES_RESET, "FIRMWARE ACTIVATION REQUIRES RESET" },
-	{ NVME_SC_FW_ACT_REQUIRES_TIME, "FIRMWARE ACTIVATION REQUIRES MAXIMUM TIME VIOLATION" },
+	{ NVME_SC_FW_ACT_REQUIRES_TIME,
+	    "FIRMWARE ACTIVATION REQUIRES MAXIMUM TIME VIOLATION" },
 	{ NVME_SC_FW_ACT_PROHIBITED, "FIRMWARE ACTIVATION PROHIBITED" },
 	{ NVME_SC_OVERLAPPING_RANGE, "OVERLAPPING RANGE" },
 	{ NVME_SC_NS_INSUFFICIENT_CAPACITY, "NAMESPACE INSUFFICIENT CAPACITY" },
@@ -263,10 +279,13 @@ static struct nvme_status_string command_specific_status[] = {
 	{ NVME_SC_SELF_TEST_IN_PROGRESS, "DEVICE SELF-TEST IN PROGRESS" },
 	{ NVME_SC_BOOT_PART_WRITE_PROHIB, "BOOT PARTITION WRITE PROHIBITED" },
 	{ NVME_SC_INVALID_CTRLR_ID, "INVALID CONTROLLER IDENTIFIER" },
-	{ NVME_SC_INVALID_SEC_CTRLR_STATE, "INVALID SECONDARY CONTROLLER STATE" },
-	{ NVME_SC_INVALID_NUM_OF_CTRLR_RESRC, "INVALID NUMBER OF CONTROLLER RESOURCES" },
+	{ NVME_SC_INVALID_SEC_CTRLR_STATE,
+	    "INVALID SECONDARY CONTROLLER STATE" },
+	{ NVME_SC_INVALID_NUM_OF_CTRLR_RESRC,
+	    "INVALID NUMBER OF CONTROLLER RESOURCES" },
 	{ NVME_SC_INVALID_RESOURCE_ID, "INVALID RESOURCE IDENTIFIER" },
-	{ NVME_SC_SANITIZE_PROHIBITED_WPMRE, "SANITIZE PROHIBITED WRITE PERSISTENT MEMORY REGION ENABLED" },
+	{ NVME_SC_SANITIZE_PROHIBITED_WPMRE,
+	    "SANITIZE PROHIBITED WRITE PERSISTENT MEMORY REGION ENABLED" },
 	{ NVME_SC_ANA_GROUP_ID_INVALID, "ANA GROUP IDENTIFIED INVALID" },
 	{ NVME_SC_ANA_ATTACH_FAILED, "ANA ATTACH FAILED" },
 
@@ -284,15 +303,19 @@ static struct nvme_status_string media_error_status[] = {
 	{ NVME_SC_REFERENCE_TAG_CHECK_ERROR, "REFERENCE TAG CHECK ERROR" },
 	{ NVME_SC_COMPARE_FAILURE, "COMPARE FAILURE" },
 	{ NVME_SC_ACCESS_DENIED, "ACCESS DENIED" },
-	{ NVME_SC_DEALLOCATED_OR_UNWRITTEN, "DEALLOCATED OR UNWRITTEN LOGICAL BLOCK" },
+	{ NVME_SC_DEALLOCATED_OR_UNWRITTEN,
+	    "DEALLOCATED OR UNWRITTEN LOGICAL BLOCK" },
 	{ 0xFFFF, "MEDIA ERROR" }
 };
 
 static struct nvme_status_string path_related_status[] = {
 	{ NVME_SC_INTERNAL_PATH_ERROR, "INTERNAL PATH ERROR" },
-	{ NVME_SC_ASYMMETRIC_ACCESS_PERSISTENT_LOSS, "ASYMMETRIC ACCESS PERSISTENT LOSS" },
-	{ NVME_SC_ASYMMETRIC_ACCESS_INACCESSIBLE, "ASYMMETRIC ACCESS INACCESSIBLE" },
-	{ NVME_SC_ASYMMETRIC_ACCESS_TRANSITION, "ASYMMETRIC ACCESS TRANSITION" },
+	{ NVME_SC_ASYMMETRIC_ACCESS_PERSISTENT_LOSS,
+	    "ASYMMETRIC ACCESS PERSISTENT LOSS" },
+	{ NVME_SC_ASYMMETRIC_ACCESS_INACCESSIBLE,
+	    "ASYMMETRIC ACCESS INACCESSIBLE" },
+	{ NVME_SC_ASYMMETRIC_ACCESS_TRANSITION,
+	    "ASYMMETRIC ACCESS TRANSITION" },
 	{ NVME_SC_CONTROLLER_PATHING_ERROR, "CONTROLLER PATHING ERROR" },
 	{ NVME_SC_HOST_PATHING_ERROR, "HOST PATHING ERROR" },
 	{ NVME_SC_COMMAND_ABORTED_BY_HOST, "COMMAND ABORTED BY HOST" },
@@ -344,10 +367,11 @@ nvme_qpair_print_completion(struct nvme_qpair *qpair,
 	dnr = NVME_STATUS_GET_DNR(cpl->status);
 	p = NVME_STATUS_GET_P(cpl->status);
 
-	nvme_printf(qpair->ctrlr, "%s (%02x/%02x) crd:%x m:%x dnr:%x p:%d "
+	nvme_printf(qpair->ctrlr,
+	    "%s (%02x/%02x) crd:%x m:%x dnr:%x p:%d "
 	    "sqid:%d cid:%d cdw0:%x\n",
-	    get_status_string(sct, sc), sct, sc, crd, m, dnr, p,
-	    cpl->sqid, cpl->cid, cpl->cdw0);
+	    get_status_string(sct, sc), sct, sc, crd, m, dnr, p, cpl->sqid,
+	    cpl->cid, cpl->cdw0);
 }
 
 static bool
@@ -357,7 +381,7 @@ nvme_completion_is_retry(const struct nvme_completion *cpl)
 
 	sct = NVME_STATUS_GET_SCT(cpl->status);
 	sc = NVME_STATUS_GET_SC(cpl->status);
-	dnr = NVME_STATUS_GET_DNR(cpl->status);	/* Do Not Retry Bit */
+	dnr = NVME_STATUS_GET_DNR(cpl->status); /* Do Not Retry Bit */
 
 	/*
 	 * TODO: spec is not clear how commands that are aborted due
@@ -414,9 +438,9 @@ static void
 nvme_qpair_complete_tracker(struct nvme_tracker *tr,
     struct nvme_completion *cpl, error_print_t print_on_error)
 {
-	struct nvme_qpair * qpair = tr->qpair;
-	struct nvme_request	*req;
-	bool			retry, error, retriable;
+	struct nvme_qpair *qpair = tr->qpair;
+	struct nvme_request *req;
+	bool retry, error, retriable;
 
 	req = tr->req;
 	error = nvme_completion_is_error(cpl);
@@ -427,7 +451,8 @@ nvme_qpair_complete_tracker(struct nvme_tracker *tr,
 	if (error && req->retries >= nvme_retry_count && retriable)
 		qpair->num_failures++;
 
-	if (error && (print_on_error == ERROR_PRINT_ALL ||
+	if (error &&
+	    (print_on_error == ERROR_PRINT_ALL ||
 		(!retry && print_on_error == ERROR_PRINT_NO_RETRY))) {
 		nvme_qpair_print_command(qpair, &req->cmd);
 		nvme_qpair_print_completion(qpair, cpl);
@@ -481,15 +506,14 @@ nvme_qpair_complete_tracker(struct nvme_tracker *tr,
 }
 
 static void
-nvme_qpair_manual_complete_tracker(
-    struct nvme_tracker *tr, uint32_t sct, uint32_t sc, uint32_t dnr,
-    error_print_t print_on_error)
+nvme_qpair_manual_complete_tracker(struct nvme_tracker *tr, uint32_t sct,
+    uint32_t sc, uint32_t dnr, error_print_t print_on_error)
 {
-	struct nvme_completion	cpl;
+	struct nvme_completion cpl;
 
 	memset(&cpl, 0, sizeof(cpl));
 
-	struct nvme_qpair * qpair = tr->qpair;
+	struct nvme_qpair *qpair = tr->qpair;
 
 	cpl.sqid = qpair->id;
 	cpl.cid = tr->cid;
@@ -506,8 +530,8 @@ void
 nvme_qpair_manual_complete_request(struct nvme_qpair *qpair,
     struct nvme_request *req, uint32_t sct, uint32_t sc)
 {
-	struct nvme_completion	cpl;
-	bool			error;
+	struct nvme_completion cpl;
+	bool error;
 
 	memset(&cpl, 0, sizeof(cpl));
 	cpl.sqid = qpair->id;
@@ -531,8 +555,8 @@ nvme_qpair_manual_complete_request(struct nvme_qpair *qpair,
 static bool
 _nvme_qpair_process_completions(struct nvme_qpair *qpair)
 {
-	struct nvme_tracker	*tr;
-	struct nvme_completion	cpl;
+	struct nvme_tracker *tr;
+	struct nvme_completion cpl;
 	bool done = false;
 	bool in_panic = dumping || SCHEDULER_STOPPED();
 
@@ -580,9 +604,9 @@ _nvme_qpair_process_completions(struct nvme_qpair *qpair)
 	if (__predict_false(in_panic)) {
 		if (qpair->cq_head == qpair->num_entries) {
 			/*
-			 * Here we know that we need to zero cq_head and then negate
-			 * the phase, which hasn't been assigned if cq_head isn't
-			 * zero due to the atomic_store_rel.
+			 * Here we know that we need to zero cq_head and then
+			 * negate the phase, which hasn't been assigned if
+			 * cq_head isn't zero due to the atomic_store_rel.
 			 */
 			qpair->cq_head = 0;
 			qpair->phase = !qpair->phase;
@@ -622,8 +646,8 @@ _nvme_qpair_process_completions(struct nvme_qpair *qpair)
 		cpl = qpair->cpl[qpair->cq_head];
 		nvme_completion_swapbytes(&cpl);
 
-		KASSERT(
-		    NVME_STATUS_GET_P(status) == NVME_STATUS_GET_P(cpl.status),
+		KASSERT(NVME_STATUS_GET_P(status) ==
+			NVME_STATUS_GET_P(cpl.status),
 		    ("Phase unexpectedly inconsistent"));
 
 		if (cpl.cid < qpair->num_trackers)
@@ -650,7 +674,7 @@ _nvme_qpair_process_completions(struct nvme_qpair *qpair)
 			 */
 			nvme_printf(qpair->ctrlr,
 			    "cpl (cid = %u) does not map to outstanding cmd\n",
-				cpl.cid);
+			    cpl.cid);
 			nvme_qpair_print_completion(qpair,
 			    &qpair->cpl[qpair->cq_head]);
 			KASSERT(0, ("received completion for unknown cmd"));
@@ -659,18 +683,19 @@ _nvme_qpair_process_completions(struct nvme_qpair *qpair)
 		/*
 		 * There's a number of races with the following (see above) when
 		 * the system panics. We compensate for each one of them by
-		 * using the atomic store to force strong ordering (at least when
-		 * viewed in the aftermath of a panic).
+		 * using the atomic store to force strong ordering (at least
+		 * when viewed in the aftermath of a panic).
 		 */
-		if (++qpair->cq_head == qpair->num_entries) {		/* 1 */
-			atomic_store_rel_int(&qpair->cq_head, 0);	/* 2 */
-			qpair->phase = !qpair->phase;			/* 3 */
+		if (++qpair->cq_head == qpair->num_entries) {	  /* 1 */
+			atomic_store_rel_int(&qpair->cq_head, 0); /* 2 */
+			qpair->phase = !qpair->phase;		  /* 3 */
 		}
 	}
 
 	if (done) {
-		bus_space_write_4(qpair->ctrlr->bus_tag, qpair->ctrlr->bus_handle,
-		    qpair->cq_hdbl_off, qpair->cq_head);
+		bus_space_write_4(qpair->ctrlr->bus_tag,
+		    qpair->ctrlr->bus_handle, qpair->cq_hdbl_off,
+		    qpair->cq_head);
 	}
 
 	return (done);
@@ -708,15 +733,14 @@ nvme_qpair_msi_handler(void *arg)
 }
 
 int
-nvme_qpair_construct(struct nvme_qpair *qpair,
-    uint32_t num_entries, uint32_t num_trackers,
-    struct nvme_controller *ctrlr)
+nvme_qpair_construct(struct nvme_qpair *qpair, uint32_t num_entries,
+    uint32_t num_trackers, struct nvme_controller *ctrlr)
 {
-	struct nvme_tracker	*tr;
-	size_t			cmdsz, cplsz, prpsz, allocsz, prpmemsz;
-	uint64_t		queuemem_phys, prpmem_phys, list_phys;
-	uint8_t			*queuemem, *prpmem, *prp_list;
-	int			i, err;
+	struct nvme_tracker *tr;
+	size_t cmdsz, cplsz, prpsz, allocsz, prpmemsz;
+	uint64_t queuemem_phys, prpmem_phys, list_phys;
+	uint8_t *queuemem, *prpmem, *prp_list;
+	int i, err;
 
 	qpair->vector = ctrlr->msi_count > 1 ? qpair->id : 0;
 	qpair->num_entries = num_entries;
@@ -731,12 +755,11 @@ nvme_qpair_construct(struct nvme_qpair *qpair,
 	qpair->recovery_state = RECOVERY_WAITING;
 
 	/* Note: NVMe PRP format is restricted to 4-byte alignment. */
-	err = bus_dma_tag_create(bus_get_dma_tag(ctrlr->dev),
-	    4, ctrlr->page_size, BUS_SPACE_MAXADDR,
-	    BUS_SPACE_MAXADDR, NULL, NULL, ctrlr->max_xfer_size,
+	err = bus_dma_tag_create(bus_get_dma_tag(ctrlr->dev), 4,
+	    ctrlr->page_size, BUS_SPACE_MAXADDR, BUS_SPACE_MAXADDR, NULL, NULL,
+	    ctrlr->max_xfer_size,
 	    howmany(ctrlr->max_xfer_size, ctrlr->page_size) + 1,
-	    ctrlr->page_size, 0,
-	    NULL, NULL, &qpair->dma_tag_payload);
+	    ctrlr->page_size, 0, NULL, NULL, &qpair->dma_tag_payload);
 	if (err != 0) {
 		nvme_printf(ctrlr, "payload tag create failed %d\n", err);
 		goto out;
@@ -760,9 +783,9 @@ nvme_qpair_construct(struct nvme_qpair *qpair,
 	prpmemsz = qpair->num_trackers * prpsz;
 	allocsz = cmdsz + cplsz + prpmemsz;
 
-	err = bus_dma_tag_create(bus_get_dma_tag(ctrlr->dev),
-	    ctrlr->page_size, 0, BUS_SPACE_MAXADDR, BUS_SPACE_MAXADDR, NULL, NULL,
-	    allocsz, 1, allocsz, 0, NULL, NULL, &qpair->dma_tag);
+	err = bus_dma_tag_create(bus_get_dma_tag(ctrlr->dev), ctrlr->page_size,
+	    0, BUS_SPACE_MAXADDR, BUS_SPACE_MAXADDR, NULL, NULL, allocsz, 1,
+	    allocsz, 0, NULL, NULL, &qpair->dma_tag);
 	if (err != 0) {
 		nvme_printf(ctrlr, "tag create failed %d\n", err);
 		goto out;
@@ -770,13 +793,13 @@ nvme_qpair_construct(struct nvme_qpair *qpair,
 	bus_dma_tag_set_domain(qpair->dma_tag, qpair->domain);
 
 	if (bus_dmamem_alloc(qpair->dma_tag, (void **)&queuemem,
-	     BUS_DMA_COHERENT | BUS_DMA_NOWAIT, &qpair->queuemem_map)) {
+		BUS_DMA_COHERENT | BUS_DMA_NOWAIT, &qpair->queuemem_map)) {
 		nvme_printf(ctrlr, "failed to alloc qpair memory\n");
 		goto out;
 	}
 
-	if (bus_dmamap_load(qpair->dma_tag, qpair->queuemem_map,
-	    queuemem, allocsz, nvme_single_map, &queuemem_phys, 0) != 0) {
+	if (bus_dmamap_load(qpair->dma_tag, qpair->queuemem_map, queuemem,
+		allocsz, nvme_single_map, &queuemem_phys, 0) != 0) {
 		nvme_printf(ctrlr, "failed to load qpair memory\n");
 		bus_dmamem_free(qpair->dma_tag, qpair->cmd,
 		    qpair->queuemem_map);
@@ -824,8 +847,8 @@ nvme_qpair_construct(struct nvme_qpair *qpair,
 		if (trunc_page(list_phys) !=
 		    trunc_page(list_phys + prpsz - 1)) {
 			list_phys = roundup2(list_phys, ctrlr->page_size);
-			prp_list =
-			    (uint8_t *)roundup2((uintptr_t)prp_list, ctrlr->page_size);
+			prp_list = (uint8_t *)roundup2((uintptr_t)prp_list,
+			    ctrlr->page_size);
 		}
 
 		tr = malloc_domainset(sizeof(*tr), M_NVME,
@@ -847,8 +870,8 @@ nvme_qpair_construct(struct nvme_qpair *qpair,
 	}
 
 	qpair->act_tr = malloc_domainset(sizeof(struct nvme_tracker *) *
-	    qpair->num_entries, M_NVME, DOMAINSET_PREF(qpair->domain),
-	    M_ZERO | M_WAITOK);
+		qpair->num_entries,
+	    M_NVME, DOMAINSET_PREF(qpair->domain), M_ZERO | M_WAITOK);
 
 	if (ctrlr->msi_count > 1) {
 		/*
@@ -864,8 +887,8 @@ nvme_qpair_construct(struct nvme_qpair *qpair,
 			goto out;
 		}
 		if (bus_setup_intr(ctrlr->dev, qpair->res,
-		    INTR_TYPE_MISC | INTR_MPSAFE, NULL,
-		    nvme_qpair_msi_handler, qpair, &qpair->tag) != 0) {
+			INTR_TYPE_MISC | INTR_MPSAFE, NULL,
+			nvme_qpair_msi_handler, qpair, &qpair->tag) != 0) {
 			nvme_printf(ctrlr, "unable to setup MSI\n");
 			goto out;
 		}
@@ -888,7 +911,7 @@ out:
 static void
 nvme_qpair_destroy(struct nvme_qpair *qpair)
 {
-	struct nvme_tracker	*tr;
+	struct nvme_tracker *tr;
 
 	mtx_lock(&qpair->recovery);
 	qpair->timer_armed = false;
@@ -908,8 +931,7 @@ nvme_qpair_destroy(struct nvme_qpair *qpair)
 	while (!TAILQ_EMPTY(&qpair->free_tr)) {
 		tr = TAILQ_FIRST(&qpair->free_tr);
 		TAILQ_REMOVE(&qpair->free_tr, tr, tailq);
-		bus_dmamap_destroy(qpair->dma_tag_payload,
-		    tr->payload_dma_map);
+		bus_dmamap_destroy(qpair->dma_tag_payload, tr->payload_dma_map);
 		free(tr, M_NVME);
 	}
 
@@ -945,7 +967,7 @@ nvme_qpair_destroy(struct nvme_qpair *qpair)
 static void
 nvme_admin_qpair_abort_aers(struct nvme_qpair *qpair)
 {
-	struct nvme_tracker	*tr;
+	struct nvme_tracker *tr;
 
 	/*
 	 * nvme_complete_tracker must be called without the qpair lock held. It
@@ -963,9 +985,8 @@ nvme_admin_qpair_abort_aers(struct nvme_qpair *qpair)
 	while (tr != NULL) {
 		if (tr->req->cmd.opc == NVME_OPC_ASYNC_EVENT_REQUEST) {
 			mtx_unlock(&qpair->lock);
-			nvme_qpair_manual_complete_tracker(tr,
-			    NVME_SCT_GENERIC, NVME_SC_ABORTED_SQ_DELETION, 0,
-			    ERROR_PRINT_NONE);
+			nvme_qpair_manual_complete_tracker(tr, NVME_SCT_GENERIC,
+			    NVME_SC_ABORTED_SQ_DELETION, 0, ERROR_PRINT_NONE);
 			mtx_lock(&qpair->lock);
 			tr = TAILQ_FIRST(&qpair->outstanding_tr);
 		} else {
@@ -994,7 +1015,7 @@ nvme_io_qpair_destroy(struct nvme_qpair *qpair)
 static void
 nvme_abort_complete(void *arg, const struct nvme_completion *status)
 {
-	struct nvme_tracker     *tr = arg;
+	struct nvme_tracker *tr = arg;
 
 	/*
 	 * If cdw0 == 1, the controller was not able to abort the command
@@ -1010,22 +1031,22 @@ nvme_abort_complete(void *arg, const struct nvme_completion *status)
 		 */
 		nvme_printf(tr->qpair->ctrlr,
 		    "abort command failed, aborting command manually\n");
-		nvme_qpair_manual_complete_tracker(tr,
-		    NVME_SCT_GENERIC, NVME_SC_ABORTED_BY_REQUEST, 0, ERROR_PRINT_ALL);
+		nvme_qpair_manual_complete_tracker(tr, NVME_SCT_GENERIC,
+		    NVME_SC_ABORTED_BY_REQUEST, 0, ERROR_PRINT_ALL);
 	}
 }
 
 static void
 nvme_qpair_timeout(void *arg)
 {
-	struct nvme_qpair	*qpair = arg;
-	struct nvme_controller	*ctrlr = qpair->ctrlr;
-	struct nvme_tracker	*tr;
-	sbintime_t		now;
-	bool			idle = false;
-	bool			needs_reset;
-	uint32_t		csts;
-	uint8_t			cfs;
+	struct nvme_qpair *qpair = arg;
+	struct nvme_controller *ctrlr = qpair->ctrlr;
+	struct nvme_tracker *tr;
+	sbintime_t now;
+	bool idle = false;
+	bool needs_reset;
+	uint32_t csts;
+	uint8_t cfs;
 
 	mtx_assert(&qpair->recovery, MA_OWNED);
 
@@ -1068,7 +1089,8 @@ nvme_qpair_timeout(void *arg)
 		 * usually doesn't).
 		 */
 		csts = nvme_mmio_read_4(ctrlr, csts);
-		cfs = (csts >> NVME_CSTS_REG_CFS_SHIFT) & NVME_CSTS_REG_CFS_MASK;
+		cfs = (csts >> NVME_CSTS_REG_CFS_SHIFT) &
+		    NVME_CSTS_REG_CFS_MASK;
 		if (csts == NVME_GONE || cfs == 1)
 			goto do_reset;
 
@@ -1079,14 +1101,14 @@ nvme_qpair_timeout(void *arg)
 		_nvme_qpair_process_completions(qpair);
 
 		/*
-		 * Check to see if we need to timeout any commands. If we do, then
-		 * we also enter a recovery phase.
+		 * Check to see if we need to timeout any commands. If we do,
+		 * then we also enter a recovery phase.
 		 */
 		now = getsbinuptime();
 		needs_reset = false;
 		idle = true;
 		mtx_lock(&qpair->lock);
-		TAILQ_FOREACH(tr, &qpair->outstanding_tr, tailq) {
+		TAILQ_FOREACH (tr, &qpair->outstanding_tr, tailq) {
 			/*
 			 * Skip async commands, they are posted to the card for
 			 * an indefinite amount of time and have no deadline.
@@ -1129,11 +1151,12 @@ nvme_qpair_timeout(void *arg)
 		 */
 	do_reset:
 		nvme_printf(ctrlr, "Resetting controller due to a timeout%s.\n",
-		    (csts == 0xffffffff) ? " and possible hot unplug" :
-		    (cfs ? " and fatal error status" : ""));
+		    (csts == 0xffffffff) ?
+			" and possible hot unplug" :
+			(cfs ? " and fatal error status" : ""));
 		qpair->recovery_state = RECOVERY_WAITING;
 		nvme_ctrlr_reset(ctrlr);
-		idle = false;			/* We want to keep polling */
+		idle = false; /* We want to keep polling */
 		break;
 	case RECOVERY_WAITING:
 		/*
@@ -1145,7 +1168,7 @@ nvme_qpair_timeout(void *arg)
 		 */
 		if (!device_is_suspended(ctrlr->dev))
 			nvme_printf(ctrlr, "Waiting for reset to complete\n");
-		idle = false;		/* We want to keep polling */
+		idle = false; /* We want to keep polling */
 		break;
 	}
 
@@ -1166,8 +1189,8 @@ nvme_qpair_timeout(void *arg)
 void
 nvme_qpair_submit_tracker(struct nvme_qpair *qpair, struct nvme_tracker *tr)
 {
-	struct nvme_request	*req;
-	struct nvme_controller	*ctrlr;
+	struct nvme_request *req;
+	struct nvme_controller *ctrlr;
 	int timeout;
 
 	mtx_assert(&qpair->lock, MA_OWNED);
@@ -1187,8 +1210,9 @@ nvme_qpair_submit_tracker(struct nvme_qpair *qpair, struct nvme_tracker *tr)
 		tr->deadline = getsbinuptime() + timeout * SBT_1S;
 		if (!qpair->timer_armed) {
 			qpair->timer_armed = true;
-			callout_reset_sbt_on(&qpair->timer, SBT_1S / 2, SBT_1S / 2,
-			    nvme_qpair_timeout, qpair, qpair->cpu, 0);
+			callout_reset_sbt_on(&qpair->timer, SBT_1S / 2,
+			    SBT_1S / 2, nvme_qpair_timeout, qpair, qpair->cpu,
+			    0);
 		}
 	} else
 		tr->deadline = SBT_MAX;
@@ -1209,8 +1233,8 @@ nvme_qpair_submit_tracker(struct nvme_qpair *qpair, struct nvme_tracker *tr)
 static void
 nvme_payload_map(void *arg, bus_dma_segment_t *seg, int nseg, int error)
 {
-	struct nvme_tracker 	*tr = arg;
-	uint32_t		cur_nseg;
+	struct nvme_tracker *tr = arg;
+	uint32_t cur_nseg;
 
 	/*
 	 * If the mapping operation failed, return immediately.  The caller
@@ -1218,8 +1242,8 @@ nvme_payload_map(void *arg, bus_dma_segment_t *seg, int nseg, int error)
 	 *  tracker manually.
 	 */
 	if (error != 0) {
-		nvme_printf(tr->qpair->ctrlr,
-		    "nvme_payload_map err %d\n", error);
+		nvme_printf(tr->qpair->ctrlr, "nvme_payload_map err %d\n",
+		    error);
 		return;
 	}
 
@@ -1236,8 +1260,8 @@ nvme_payload_map(void *arg, bus_dma_segment_t *seg, int nseg, int error)
 		cur_nseg = 1;
 		tr->req->cmd.prp2 = htole64((uint64_t)tr->prp_bus_addr);
 		while (cur_nseg < nseg) {
-			tr->prp[cur_nseg-1] =
-			    htole64((uint64_t)seg[cur_nseg].ds_addr);
+			tr->prp[cur_nseg - 1] = htole64(
+			    (uint64_t)seg[cur_nseg].ds_addr);
 			cur_nseg++;
 		}
 	} else {
@@ -1257,8 +1281,8 @@ nvme_payload_map(void *arg, bus_dma_segment_t *seg, int nseg, int error)
 static void
 _nvme_qpair_submit_request(struct nvme_qpair *qpair, struct nvme_request *req)
 {
-	struct nvme_tracker	*tr;
-	int			err = 0;
+	struct nvme_tracker *tr;
+	int err = 0;
 
 	mtx_assert(&qpair->lock, MA_OWNED);
 
@@ -1348,8 +1372,7 @@ nvme_qpair_enable(struct nvme_qpair *qpair)
 		mtx_assert(&qpair->recovery, MA_OWNED);
 	if (mtx_initialized(&qpair->lock))
 		mtx_assert(&qpair->lock, MA_OWNED);
-	KASSERT(!qpair->ctrlr->is_failed,
-	    ("Enabling a failed qpair\n"));
+	KASSERT(!qpair->ctrlr->is_failed, ("Enabling a failed qpair\n"));
 
 	qpair->recovery_state = RECOVERY_NONE;
 }
@@ -1369,8 +1392,7 @@ nvme_qpair_reset(struct nvme_qpair *qpair)
 	 */
 	qpair->phase = 1;
 
-	memset(qpair->cmd, 0,
-	    qpair->num_entries * sizeof(struct nvme_command));
+	memset(qpair->cmd, 0, qpair->num_entries * sizeof(struct nvme_command));
 	memset(qpair->cpl, 0,
 	    qpair->num_entries * sizeof(struct nvme_completion));
 }
@@ -1378,9 +1400,9 @@ nvme_qpair_reset(struct nvme_qpair *qpair)
 void
 nvme_admin_qpair_enable(struct nvme_qpair *qpair)
 {
-	struct nvme_tracker		*tr;
-	struct nvme_tracker		*tr_temp;
-	bool				rpt;
+	struct nvme_tracker *tr;
+	struct nvme_tracker *tr_temp;
+	bool rpt;
 
 	/*
 	 * Manually abort each outstanding admin command.  Do not retry
@@ -1392,13 +1414,12 @@ nvme_admin_qpair_enable(struct nvme_qpair *qpair)
 	if (rpt)
 		nvme_printf(qpair->ctrlr,
 		    "aborting outstanding admin command\n");
-	TAILQ_FOREACH_SAFE(tr, &qpair->outstanding_tr, tailq, tr_temp) {
+	TAILQ_FOREACH_SAFE (tr, &qpair->outstanding_tr, tailq, tr_temp) {
 		nvme_qpair_manual_complete_tracker(tr, NVME_SCT_GENERIC,
 		    NVME_SC_ABORTED_BY_REQUEST, DO_NOT_RETRY, ERROR_PRINT_ALL);
 	}
 	if (rpt)
-		nvme_printf(qpair->ctrlr,
-		    "done aborting outstanding admin\n");
+		nvme_printf(qpair->ctrlr, "done aborting outstanding admin\n");
 
 	mtx_lock(&qpair->recovery);
 	mtx_lock(&qpair->lock);
@@ -1410,11 +1431,11 @@ nvme_admin_qpair_enable(struct nvme_qpair *qpair)
 void
 nvme_io_qpair_enable(struct nvme_qpair *qpair)
 {
-	STAILQ_HEAD(, nvme_request)	temp;
-	struct nvme_tracker		*tr;
-	struct nvme_tracker		*tr_temp;
-	struct nvme_request		*req;
-	bool				report;
+	STAILQ_HEAD(, nvme_request) temp;
+	struct nvme_tracker *tr;
+	struct nvme_tracker *tr_temp;
+	struct nvme_request *req;
+	bool report;
 
 	/*
 	 * Manually abort each outstanding I/O.  This normally results in a
@@ -1424,7 +1445,7 @@ nvme_io_qpair_enable(struct nvme_qpair *qpair)
 	report = !TAILQ_EMPTY(&qpair->outstanding_tr);
 	if (report)
 		nvme_printf(qpair->ctrlr, "aborting outstanding i/o\n");
-	TAILQ_FOREACH_SAFE(tr, &qpair->outstanding_tr, tailq, tr_temp) {
+	TAILQ_FOREACH_SAFE (tr, &qpair->outstanding_tr, tailq, tr_temp) {
 		nvme_qpair_manual_complete_tracker(tr, NVME_SCT_GENERIC,
 		    NVME_SC_ABORTED_BY_REQUEST, 0, ERROR_PRINT_NO_RETRY);
 	}
@@ -1457,7 +1478,7 @@ nvme_io_qpair_enable(struct nvme_qpair *qpair)
 static void
 nvme_qpair_disable(struct nvme_qpair *qpair)
 {
-	struct nvme_tracker	*tr, *tr_temp;
+	struct nvme_tracker *tr, *tr_temp;
 
 	if (mtx_initialized(&qpair->recovery))
 		mtx_assert(&qpair->recovery, MA_OWNED);
@@ -1465,7 +1486,7 @@ nvme_qpair_disable(struct nvme_qpair *qpair)
 		mtx_assert(&qpair->lock, MA_OWNED);
 
 	qpair->recovery_state = RECOVERY_WAITING;
-	TAILQ_FOREACH_SAFE(tr, &qpair->outstanding_tr, tailq, tr_temp) {
+	TAILQ_FOREACH_SAFE (tr, &qpair->outstanding_tr, tailq, tr_temp) {
 		tr->deadline = SBT_MAX;
 	}
 }
@@ -1499,8 +1520,8 @@ nvme_io_qpair_disable(struct nvme_qpair *qpair)
 void
 nvme_qpair_fail(struct nvme_qpair *qpair)
 {
-	struct nvme_tracker		*tr;
-	struct nvme_request		*req;
+	struct nvme_tracker *tr;
+	struct nvme_request *req;
 
 	if (!mtx_initialized(&qpair->lock))
 		return;

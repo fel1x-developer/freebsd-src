@@ -30,7 +30,7 @@ static const char rcsid[] =
 
 #include "cron.h"
 #if defined(LOGIN_CAP)
-# include <login_cap.h>
+#include <login_cap.h>
 #endif
 
 #define MAX_ARGS 100
@@ -53,10 +53,10 @@ cron_popen(char *program, char *type, entry *e, PID_T *pidptr)
 	PID_T pid;
 	char *usernm;
 	char *argv[MAX_ARGS + 1];
-# if defined(LOGIN_CAP)
-	struct passwd	*pwd;
+#if defined(LOGIN_CAP)
+	struct passwd *pwd;
 	login_cap_t *lc;
-# endif
+#endif
 #if WANT_GLOBBING
 	char **pop, *vv[2];
 	int gargc;
@@ -86,12 +86,12 @@ cron_popen(char *program, char *type, entry *e, PID_T *pidptr)
 	/* glob each piece */
 	gargv[0] = argv[0];
 	for (gargc = argc = 1; argv[argc]; argc++) {
-		if (!(pop = glob(argv[argc]))) {	/* globbing failed */
+		if (!(pop = glob(argv[argc]))) { /* globbing failed */
 			vv[0] = argv[argc];
 			vv[1] = NULL;
 			pop = copyblk(vv);
 		}
-		argv[argc] = (char *)pop;		/* save to free later */
+		argv[argc] = (char *)pop; /* save to free later */
 		while (*pop && gargc < 1000)
 			gargv[gargc++] = *pop++;
 	}
@@ -99,13 +99,13 @@ cron_popen(char *program, char *type, entry *e, PID_T *pidptr)
 #endif
 
 	iop = NULL;
-	switch(pid = fork()) {
-	case -1:			/* error */
+	switch (pid = fork()) {
+	case -1: /* error */
 		(void)close(pdes[0]);
 		(void)close(pdes[1]);
 		goto pfree;
 		/* NOTREACHED */
-	case 0:				/* child */
+	case 0: /* child */
 		if (e != NULL) {
 #ifdef SYSLOG
 			closelog();
@@ -113,7 +113,7 @@ cron_popen(char *program, char *type, entry *e, PID_T *pidptr)
 
 			/* get new pgrp, void tty, etc.
 			 */
-			(void) setsid();
+			(void)setsid();
 		}
 		if (*type == 'r') {
 			/* Do not share our parent's stdin */
@@ -121,7 +121,7 @@ cron_popen(char *program, char *type, entry *e, PID_T *pidptr)
 			(void)open(_PATH_DEVNULL, O_RDWR);
 			if (pdes[1] != 1) {
 				dup2(pdes[1], 1);
-				dup2(pdes[1], 2);	/* stderr, too! */
+				dup2(pdes[1], 2); /* stderr, too! */
 				(void)close(pdes[1]);
 			}
 			(void)close(pdes[0]);
@@ -142,7 +142,7 @@ cron_popen(char *program, char *type, entry *e, PID_T *pidptr)
 			 * as cron provides a separate interface for this
 			 */
 			usernm = env_get("LOGNAME", e->envp);
-# if defined(LOGIN_CAP)
+#if defined(LOGIN_CAP)
 			if ((pwd = getpwnam(usernm)) == NULL)
 				pwd = getpwuid(e->uid);
 			lc = NULL;
@@ -153,12 +153,13 @@ cron_popen(char *program, char *type, entry *e, PID_T *pidptr)
 			}
 			if (pwd &&
 			    setusercontext(lc, pwd, e->uid,
-				    LOGIN_SETALL & ~(LOGIN_SETPATH|LOGIN_SETENV)) == 0)
-				(void) endpwent();
+				LOGIN_SETALL &
+				    ~(LOGIN_SETPATH | LOGIN_SETENV)) == 0)
+				(void)endpwent();
 			else {
 				/* fall back to the old method */
-				(void) endpwent();
-# endif
+				(void)endpwent();
+#endif
 				/*
 				 * Set our directory, uid and gid.  Set gid
 				 * first since once we set uid, we've lost
@@ -166,15 +167,15 @@ cron_popen(char *program, char *type, entry *e, PID_T *pidptr)
 				 */
 				if (setgid(e->gid) != 0)
 					_exit(ERROR_EXIT);
-# if defined(BSD)
+#if defined(BSD)
 				if (initgroups(usernm, e->gid) != 0)
 					_exit(ERROR_EXIT);
-# endif
+#endif
 				if (setlogin(usernm) != 0)
 					_exit(ERROR_EXIT);
 				if (setuid(e->uid) != 0)
 					_exit(ERROR_EXIT);
-				/* we aren't root after this..*/
+					/* we aren't root after this..*/
 #if defined(LOGIN_CAP)
 			}
 			if (lc != NULL)
@@ -202,7 +203,7 @@ cron_popen(char *program, char *type, entry *e, PID_T *pidptr)
 pfree:
 #if WANT_GLOBBING
 	for (argc = 1; argv[argc] != NULL; argc++) {
-/*		blkfree((char **)argv[argc]);	*/
+		/*		blkfree((char **)argv[argc]);	*/
 		free((char *)argv[argc]);
 	}
 #endif
@@ -227,7 +228,7 @@ cron_pclose(FILE *iop)
 	if (pids == 0 || pids[fdes = fileno(iop)] == 0)
 		return (-1);
 	(void)fclose(iop);
-	omask = sigblock(sigmask(SIGINT)|sigmask(SIGQUIT)|sigmask(SIGHUP));
+	omask = sigblock(sigmask(SIGINT) | sigmask(SIGQUIT) | sigmask(SIGHUP));
 	while ((pid = wait(&stat_loc)) != pids[fdes] && pid != -1)
 		;
 	(void)sigsetmask(omask);

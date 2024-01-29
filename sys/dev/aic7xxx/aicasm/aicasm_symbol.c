@@ -58,8 +58,8 @@
 #include <string.h>
 #include <sysexits.h>
 
-#include "aicasm_symbol.h"
 #include "aicasm.h"
+#include "aicasm_symbol.h"
 
 static DB *symtable;
 
@@ -76,7 +76,7 @@ symbol_create(const char *name)
 	memset(new_symbol, 0, sizeof(*new_symbol));
 	new_symbol->name = strdup(name);
 	if (new_symbol->name == NULL)
-		 stop("Unable to strdup symbol name", EX_SOFTWARE);
+		stop("Unable to strdup symbol name", EX_SOFTWARE);
 	new_symbol->type = UNINITIALIZED;
 	return (new_symbol);
 }
@@ -85,13 +85,13 @@ void
 symbol_delete(symbol_t *symbol)
 {
 	if (symtable != NULL) {
-		DBT	 key;
+		DBT key;
 
 		key.data = symbol->name;
 		key.size = strlen(symbol->name);
-		symtable->del(symtable, &key, /*flags*/0);
+		symtable->del(symtable, &key, /*flags*/ 0);
 	}
-	switch(symbol->type) {
+	switch (symbol->type) {
 	case SCBLOC:
 	case SRAMLOC:
 	case REGISTER:
@@ -131,9 +131,9 @@ symbol_delete(symbol_t *symbol)
 void
 symtable_open(void)
 {
-	symtable = dbopen(/*filename*/NULL,
-			  O_CREAT | O_NONBLOCK | O_RDWR, /*mode*/0, DB_HASH,
-			  /*openinfo*/NULL);
+	symtable = dbopen(/*filename*/ NULL, O_CREAT | O_NONBLOCK | O_RDWR,
+	    /*mode*/ 0, DB_HASH,
+	    /*openinfo*/ NULL);
 
 	if (symtable == NULL) {
 		perror("Symbol table creation failed");
@@ -146,8 +146,8 @@ void
 symtable_close(void)
 {
 	if (symtable != NULL) {
-		DBT	 key;
-		DBT	 data;
+		DBT key;
+		DBT data;
 
 		while (symtable->seq(symtable, &key, &data, R_FIRST) == 0) {
 			symbol_t *stored_ptr;
@@ -167,14 +167,14 @@ symbol_t *
 symtable_get(const char *name)
 {
 	symbol_t *stored_ptr;
-	DBT	  key;
-	DBT	  data;
-	int	  retval;
+	DBT key;
+	DBT data;
+	int retval;
 
 	key.data = strdup(name);
 	key.size = strlen(name);
 
-	if ((retval = symtable->get(symtable, &key, &data, /*flags*/0)) != 0) {
+	if ((retval = symtable->get(symtable, &key, &data, /*flags*/ 0)) != 0) {
 		if (retval == -1) {
 			perror("Symbol table get operation failed");
 			exit(EX_SOFTWARE);
@@ -187,7 +187,7 @@ symtable_get(const char *name)
 			data.data = &new_symbol;
 			data.size = sizeof(new_symbol);
 			if (symtable->put(symtable, &key, &data,
-					  /*flags*/0) !=0) {
+				/*flags*/ 0) != 0) {
 				perror("Symtable put failed");
 				exit(EX_SOFTWARE);
 			}
@@ -210,7 +210,7 @@ symlist_search(symlist_t *symlist, char *symname)
 	symbol_node_t *curnode;
 
 	curnode = SLIST_FIRST(symlist);
-	while(curnode != NULL) {
+	while (curnode != NULL) {
 		if (strcmp(symname, curnode->symbol->name) == 0)
 			break;
 		curnode = SLIST_NEXT(curnode, links);
@@ -234,7 +234,7 @@ symlist_add(symlist_t *symlist, symbol_t *symbol, int how)
 		int field;
 
 		field = FALSE;
-		switch(symbol->type) {
+		switch (symbol->type) {
 		case REGISTER:
 		case SCBLOC:
 		case SRAMLOC:
@@ -247,42 +247,43 @@ symlist_add(symlist_t *symlist, symbol_t *symbol, int how)
 			break;
 		default:
 			stop("symlist_add: Invalid symbol type for sorting",
-			     EX_SOFTWARE);
+			    EX_SOFTWARE);
 			/* NOTREACHED */
 		}
 
 		curnode = SLIST_FIRST(symlist);
-		if (curnode == NULL
-		 || (field
-		  && (curnode->symbol->type > newnode->symbol->type
-		   || (curnode->symbol->type == newnode->symbol->type
-		    && (curnode->symbol->info.finfo->value >
-			newnode->symbol->info.finfo->value))))
-		 || (!field && (curnode->symbol->info.rinfo->address >
-		               newnode->symbol->info.rinfo->address))) {
+		if (curnode == NULL ||
+		    (field &&
+			(curnode->symbol->type > newnode->symbol->type ||
+			    (curnode->symbol->type == newnode->symbol->type &&
+				(curnode->symbol->info.finfo->value >
+				    newnode->symbol->info.finfo->value)))) ||
+		    (!field &&
+			(curnode->symbol->info.rinfo->address >
+			    newnode->symbol->info.rinfo->address))) {
 			SLIST_INSERT_HEAD(symlist, newnode, links);
 			return;
 		}
 
 		while (1) {
 			if (SLIST_NEXT(curnode, links) == NULL) {
-				SLIST_INSERT_AFTER(curnode, newnode,
-						   links);
+				SLIST_INSERT_AFTER(curnode, newnode, links);
 				break;
 			} else {
 				symbol_t *cursymbol;
 
 				cursymbol = SLIST_NEXT(curnode, links)->symbol;
-				if ((field
-		  		  && (cursymbol->type > symbol->type
-				   || (cursymbol->type == symbol->type
-				    && (cursymbol->info.finfo->value >
-					symbol->info.finfo->value))))
-				 || (!field
-				   && (cursymbol->info.rinfo->address >
-				       symbol->info.rinfo->address))) {
+				if ((field &&
+					(cursymbol->type > symbol->type ||
+					    (cursymbol->type == symbol->type &&
+						(cursymbol->info.finfo->value >
+						    symbol->info.finfo
+							->value)))) ||
+				    (!field &&
+					(cursymbol->info.rinfo->address >
+					    symbol->info.rinfo->address))) {
 					SLIST_INSERT_AFTER(curnode, newnode,
-							   links);
+					    links);
 					break;
 				}
 			}
@@ -309,12 +310,12 @@ symlist_free(symlist_t *symlist)
 
 void
 symlist_merge(symlist_t *symlist_dest, symlist_t *symlist_src1,
-	      symlist_t *symlist_src2)
+    symlist_t *symlist_src2)
 {
 	symbol_node_t *node;
 
 	*symlist_dest = *symlist_src1;
-	while((node = SLIST_FIRST(symlist_src2)) != NULL) {
+	while ((node = SLIST_FIRST(symlist_src2)) != NULL) {
 		SLIST_REMOVE_HEAD(symlist_src2, links);
 		SLIST_INSERT_HEAD(symlist_dest, node, links);
 	}
@@ -332,12 +333,12 @@ aic_print_file_prologue(FILE *ofile)
 		return;
 
 	fprintf(ofile,
-"/*\n"
-" * DO NOT EDIT - This file is automatically generated\n"
-" *		 from the following source files:\n"
-" *\n"
-"%s */\n",
-		versions);
+	    "/*\n"
+	    " * DO NOT EDIT - This file is automatically generated\n"
+	    " *		 from the following source files:\n"
+	    " *\n"
+	    "%s */\n",
+	    versions);
 }
 
 static void
@@ -354,16 +355,16 @@ aic_print_reg_dump_types(FILE *ofile)
 {
 	if (ofile == NULL)
 		return;
-		
+
 	fprintf(ofile,
-"typedef int (%sreg_print_t)(u_int, u_int *, u_int);\n"
-"typedef struct %sreg_parse_entry {\n"
-"	char	*name;\n"
-"	uint8_t	 value;\n"
-"	uint8_t	 mask;\n"
-"} %sreg_parse_entry_t;\n"
-"\n",
-		prefix, prefix, prefix);
+	    "typedef int (%sreg_print_t)(u_int, u_int *, u_int);\n"
+	    "typedef struct %sreg_parse_entry {\n"
+	    "	char	*name;\n"
+	    "	uint8_t	 value;\n"
+	    "	uint8_t	 mask;\n"
+	    "} %sreg_parse_entry_t;\n"
+	    "\n",
+	    prefix, prefix, prefix);
 }
 
 static void
@@ -372,22 +373,20 @@ aic_print_reg_dump_start(FILE *dfile, symbol_node_t *regnode)
 	if (dfile == NULL)
 		return;
 
-	fprintf(dfile,
-"static %sreg_parse_entry_t %s_parse_table[] = {\n",
-		prefix,
-		regnode->symbol->name);
+	fprintf(dfile, "static %sreg_parse_entry_t %s_parse_table[] = {\n",
+	    prefix, regnode->symbol->name);
 }
 
 static void
-aic_print_reg_dump_end(FILE *ofile, FILE *dfile,
-		       symbol_node_t *regnode, u_int num_entries)
+aic_print_reg_dump_end(FILE *ofile, FILE *dfile, symbol_node_t *regnode,
+    u_int num_entries)
 {
 	char *lower_name;
 	char *letter;
 
 	lower_name = strdup(regnode->symbol->name);
 	if (lower_name == NULL)
-		 stop("Unable to strdup symbol name", EX_SOFTWARE);
+		stop("Unable to strdup symbol name", EX_SOFTWARE);
 
 	for (letter = lower_name; *letter != '\0'; letter++)
 		*letter = tolower(*letter);
@@ -395,44 +394,35 @@ aic_print_reg_dump_end(FILE *ofile, FILE *dfile,
 	if (dfile != NULL) {
 		if (num_entries != 0)
 			fprintf(dfile,
-"\n"
-"};\n"
-"\n");
+			    "\n"
+			    "};\n"
+			    "\n");
 
 		fprintf(dfile,
-"int\n"
-"%s%s_print(u_int regvalue, u_int *cur_col, u_int wrap)\n"
-"{\n"
-"	return (%sprint_register(%s%s, %d, \"%s\",\n"
-"	    0x%02x, regvalue, cur_col, wrap));\n"
-"}\n"
-"\n",
-			prefix,
-			lower_name,
-			prefix,
-			num_entries != 0 ? regnode->symbol->name : "NULL",
-			num_entries != 0 ? "_parse_table" : "",
-			num_entries,
-			regnode->symbol->name,
-			regnode->symbol->info.rinfo->address);
+		    "int\n"
+		    "%s%s_print(u_int regvalue, u_int *cur_col, u_int wrap)\n"
+		    "{\n"
+		    "	return (%sprint_register(%s%s, %d, \"%s\",\n"
+		    "	    0x%02x, regvalue, cur_col, wrap));\n"
+		    "}\n"
+		    "\n",
+		    prefix, lower_name, prefix,
+		    num_entries != 0 ? regnode->symbol->name : "NULL",
+		    num_entries != 0 ? "_parse_table" : "", num_entries,
+		    regnode->symbol->name,
+		    regnode->symbol->info.rinfo->address);
 	}
 
 	fprintf(ofile,
-"#if AIC_DEBUG_REGISTERS\n"
-"%sreg_print_t %s%s_print;\n"
-"#else\n"
-"#define %s%s_print(regvalue, cur_col, wrap) \\\n"
-"    %sprint_register(NULL, 0, \"%s\", 0x%02x, regvalue, cur_col, wrap)\n"
-"#endif\n"
-"\n",
-		prefix,
-		prefix,
-		lower_name,
-		prefix,
-		lower_name,
-		prefix,
-		regnode->symbol->name,
-		regnode->symbol->info.rinfo->address);
+	    "#if AIC_DEBUG_REGISTERS\n"
+	    "%sreg_print_t %s%s_print;\n"
+	    "#else\n"
+	    "#define %s%s_print(regvalue, cur_col, wrap) \\\n"
+	    "    %sprint_register(NULL, 0, \"%s\", 0x%02x, regvalue, cur_col, wrap)\n"
+	    "#endif\n"
+	    "\n",
+	    prefix, prefix, lower_name, prefix, lower_name, prefix,
+	    regnode->symbol->name, regnode->symbol->info.rinfo->address);
 }
 
 static void
@@ -443,17 +433,14 @@ aic_print_reg_dump_entry(FILE *dfile, symbol_node_t *curnode)
 	if (dfile == NULL)
 		return;
 
-	fprintf(dfile,
-"	{ \"%s\",",
-		curnode->symbol->name);
+	fprintf(dfile, "	{ \"%s\",", curnode->symbol->name);
 
 	num_tabs = 3 - (strlen(curnode->symbol->name) + 5) / 8;
 
 	while (num_tabs-- > 0)
 		fputc('\t', dfile);
-	fprintf(dfile, "0x%02x, 0x%02x }",
-		curnode->symbol->info.finfo->value,
-		curnode->symbol->info.finfo->mask);
+	fprintf(dfile, "0x%02x, 0x%02x }", curnode->symbol->info.finfo->value,
+	    curnode->symbol->info.finfo->mask);
 }
 
 void
@@ -464,18 +451,18 @@ symtable_dump(FILE *ofile, FILE *dfile)
 	 * Put bitmasks next to the first register that defines them.
 	 * Put constants at the end.
 	 */
-	symlist_t	 registers;
-	symlist_t	 masks;
-	symlist_t	 constants;
-	symlist_t	 download_constants;
-	symlist_t	 aliases;
-	symlist_t	 exported_labels;
-	symbol_node_t	*curnode;
-	symbol_node_t	*regnode;
-	DBT		 key;
-	DBT		 data;
-	int		 flag;
-	u_int		 i;
+	symlist_t registers;
+	symlist_t masks;
+	symlist_t constants;
+	symlist_t download_constants;
+	symlist_t aliases;
+	symlist_t exported_labels;
+	symbol_node_t *curnode;
+	symbol_node_t *regnode;
+	DBT key;
+	DBT data;
+	int flag;
+	u_int i;
 
 	if (symtable == NULL)
 		return;
@@ -491,7 +478,7 @@ symtable_dump(FILE *ofile, FILE *dfile)
 		symbol_t *cursym;
 
 		memcpy(&cursym, data.data, sizeof(cursym));
-		switch(cursym->type) {
+		switch (cursym->type) {
 		case REGISTER:
 		case SCBLOC:
 		case SRAMLOC:
@@ -504,22 +491,20 @@ symtable_dump(FILE *ofile, FILE *dfile)
 			symlist_add(&masks, cursym, SYMLIST_SORT);
 			break;
 		case CONST:
-			symlist_add(&constants, cursym,
-				    SYMLIST_INSERT_HEAD);
+			symlist_add(&constants, cursym, SYMLIST_INSERT_HEAD);
 			break;
 		case DOWNLOAD_CONST:
 			symlist_add(&download_constants, cursym,
-				    SYMLIST_INSERT_HEAD);
+			    SYMLIST_INSERT_HEAD);
 			break;
 		case ALIAS:
-			symlist_add(&aliases, cursym,
-				    SYMLIST_INSERT_HEAD);
+			symlist_add(&aliases, cursym, SYMLIST_INSERT_HEAD);
 			break;
 		case LABEL:
 			if (cursym->info.linfo->exported == 0)
 				break;
 			symlist_add(&exported_labels, cursym,
-				    SYMLIST_INSERT_HEAD);
+			    SYMLIST_INSERT_HEAD);
 			break;
 		default:
 			break;
@@ -532,29 +517,28 @@ symtable_dump(FILE *ofile, FILE *dfile)
 	aic_print_reg_dump_types(ofile);
 	aic_print_file_prologue(dfile);
 	aic_print_include(dfile, stock_include_file);
-	SLIST_FOREACH(curnode, &registers, links) {
-		switch(curnode->symbol->type) {
+	SLIST_FOREACH (curnode, &registers, links) {
+		switch (curnode->symbol->type) {
 		case REGISTER:
 		case SCBLOC:
-		case SRAMLOC:
-		{
-			symlist_t	*fields;
-			symbol_node_t	*fieldnode;
-			int		 num_entries;
+		case SRAMLOC: {
+			symlist_t *fields;
+			symbol_node_t *fieldnode;
+			int num_entries;
 
 			num_entries = 0;
 			fields = &curnode->symbol->info.rinfo->fields;
-			SLIST_FOREACH(fieldnode, fields, links) {
+			SLIST_FOREACH (fieldnode, fields, links) {
 				if (num_entries == 0)
 					aic_print_reg_dump_start(dfile,
-								 curnode);
+					    curnode);
 				else if (dfile != NULL)
 					fputs(",\n", dfile);
 				num_entries++;
 				aic_print_reg_dump_entry(dfile, fieldnode);
 			}
-			aic_print_reg_dump_end(ofile, dfile,
-					       curnode, num_entries);
+			aic_print_reg_dump_end(ofile, dfile, curnode,
+			    num_entries);
 		}
 		default:
 			break;
@@ -594,7 +578,7 @@ symtable_dump(FILE *ofile, FILE *dfile)
 
 		curnode = SLIST_FIRST(&registers);
 		SLIST_REMOVE_HEAD(&registers, links);
-		switch(curnode->symbol->type) {
+		switch (curnode->symbol->type) {
 		case REGISTER:
 		case SCBLOC:
 		case SRAMLOC:
@@ -603,8 +587,7 @@ symtable_dump(FILE *ofile, FILE *dfile)
 			tab_str = "\t";
 			tab_str2 = "\t\t";
 			break;
-		case ALIAS:
-		{
+		case ALIAS: {
 			symbol_t *parent;
 
 			parent = curnode->symbol->info.ainfo->parent;
@@ -626,12 +609,12 @@ symtable_dump(FILE *ofile, FILE *dfile)
 			tab_str = NULL;
 			tab_str2 = NULL;
 			stop("symtable_dump: Invalid symbol type "
-			     "encountered", EX_SOFTWARE);
+			     "encountered",
+			    EX_SOFTWARE);
 			break;
 		}
-		fprintf(ofile, "#define%s%-16s%s0x%02x\n",
-			tab_str, curnode->symbol->name, tab_str2,
-			value);
+		fprintf(ofile, "#define%s%-16s%s0x%02x\n", tab_str,
+		    curnode->symbol->name, tab_str2, value);
 		free(curnode);
 	}
 	fprintf(ofile, "\n\n");
@@ -639,9 +622,8 @@ symtable_dump(FILE *ofile, FILE *dfile)
 	while (SLIST_FIRST(&constants) != NULL) {
 		curnode = SLIST_FIRST(&constants);
 		SLIST_REMOVE_HEAD(&constants, links);
-		fprintf(ofile, "#define\t%-8s\t0x%02x\n",
-			curnode->symbol->name,
-			curnode->symbol->info.cinfo->value);
+		fprintf(ofile, "#define\t%-8s\t0x%02x\n", curnode->symbol->name,
+		    curnode->symbol->info.cinfo->value);
 		free(curnode);
 	}
 
@@ -650,9 +632,8 @@ symtable_dump(FILE *ofile, FILE *dfile)
 	for (i = 0; SLIST_FIRST(&download_constants) != NULL; i++) {
 		curnode = SLIST_FIRST(&download_constants);
 		SLIST_REMOVE_HEAD(&download_constants, links);
-		fprintf(ofile, "#define\t%-8s\t0x%02x\n",
-			curnode->symbol->name,
-			curnode->symbol->info.cinfo->value);
+		fprintf(ofile, "#define\t%-8s\t0x%02x\n", curnode->symbol->name,
+		    curnode->symbol->info.cinfo->value);
 		free(curnode);
 	}
 	fprintf(ofile, "#define\tDOWNLOAD_CONST_COUNT\t0x%02x\n", i);
@@ -663,8 +644,8 @@ symtable_dump(FILE *ofile, FILE *dfile)
 		curnode = SLIST_FIRST(&exported_labels);
 		SLIST_REMOVE_HEAD(&exported_labels, links);
 		fprintf(ofile, "#define\tLABEL_%-8s\t0x%02x\n",
-			curnode->symbol->name,
-			curnode->symbol->info.linfo->address);
+		    curnode->symbol->name,
+		    curnode->symbol->info.linfo->address);
 		free(curnode);
 	}
 }

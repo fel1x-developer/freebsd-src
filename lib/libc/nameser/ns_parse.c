@@ -19,63 +19,74 @@
 
 /* Import. */
 
-#include "port_before.h"
-
 #include <sys/types.h>
 
 #include <netinet/in.h>
-#include <arpa/nameser.h>
 
+#include <arpa/nameser.h>
 #include <errno.h>
 #include <resolv.h>
 #include <string.h>
 
 #include "port_after.h"
+#include "port_before.h"
 
 /* Forward. */
 
-static void	setsection(ns_msg *msg, ns_sect sect);
+static void setsection(ns_msg *msg, ns_sect sect);
 
 /* Macros. */
 
 #if !defined(SOLARIS2) || defined(__COVERITY__)
-#define RETERR(err) do { errno = (err); return (-1); } while (0)
+#define RETERR(err)            \
+	do {                   \
+		errno = (err); \
+		return (-1);   \
+	} while (0)
 #else
-#define RETERR(err) \
-	do { errno = (err); if (errno == errno) return (-1); } while (0)
+#define RETERR(err)                  \
+	do {                         \
+		errno = (err);       \
+		if (errno == errno)  \
+			return (-1); \
+	} while (0)
 #endif
 
-#define PARSE_FMT_PRESO 0	/* Parse using presentation-format names */
-#define PARSE_FMT_WIRE 1	/* Parse using network-format names */
+#define PARSE_FMT_PRESO 0 /* Parse using presentation-format names */
+#define PARSE_FMT_WIRE 1  /* Parse using network-format names */
 
 /* Public. */
 
 /* These need to be in the same order as the nres.h:ns_flag enum. */
 struct _ns_flagdata _ns_flagdata[16] = {
-	{ 0x8000, 15 },		/*%< qr. */
-	{ 0x7800, 11 },		/*%< opcode. */
-	{ 0x0400, 10 },		/*%< aa. */
-	{ 0x0200, 9 },		/*%< tc. */
-	{ 0x0100, 8 },		/*%< rd. */
-	{ 0x0080, 7 },		/*%< ra. */
-	{ 0x0040, 6 },		/*%< z. */
-	{ 0x0020, 5 },		/*%< ad. */
-	{ 0x0010, 4 },		/*%< cd. */
-	{ 0x000f, 0 },		/*%< rcode. */
-	{ 0x0000, 0 },		/*%< expansion (1/6). */
-	{ 0x0000, 0 },		/*%< expansion (2/6). */
-	{ 0x0000, 0 },		/*%< expansion (3/6). */
-	{ 0x0000, 0 },		/*%< expansion (4/6). */
-	{ 0x0000, 0 },		/*%< expansion (5/6). */
-	{ 0x0000, 0 },		/*%< expansion (6/6). */
+	{ 0x8000, 15 }, /*%< qr. */
+	{ 0x7800, 11 }, /*%< opcode. */
+	{ 0x0400, 10 }, /*%< aa. */
+	{ 0x0200, 9 },	/*%< tc. */
+	{ 0x0100, 8 },	/*%< rd. */
+	{ 0x0080, 7 },	/*%< ra. */
+	{ 0x0040, 6 },	/*%< z. */
+	{ 0x0020, 5 },	/*%< ad. */
+	{ 0x0010, 4 },	/*%< cd. */
+	{ 0x000f, 0 },	/*%< rcode. */
+	{ 0x0000, 0 },	/*%< expansion (1/6). */
+	{ 0x0000, 0 },	/*%< expansion (2/6). */
+	{ 0x0000, 0 },	/*%< expansion (3/6). */
+	{ 0x0000, 0 },	/*%< expansion (4/6). */
+	{ 0x0000, 0 },	/*%< expansion (5/6). */
+	{ 0x0000, 0 },	/*%< expansion (6/6). */
 };
 
-int ns_msg_getflag(ns_msg handle, int flag) {
-	return(((handle)._flags & _ns_flagdata[flag].mask) >> _ns_flagdata[flag].shift);
+int
+ns_msg_getflag(ns_msg handle, int flag)
+{
+	return (((handle)._flags & _ns_flagdata[flag].mask) >>
+	    _ns_flagdata[flag].shift);
 }
 
 int
-ns_skiprr(const u_char *ptr, const u_char *eom, ns_sect section, int count) {
+ns_skiprr(const u_char *ptr, const u_char *eom, ns_sect section, int count)
+{
 	const u_char *optr = ptr;
 
 	for ((void)NULL; count > 0; count--) {
@@ -84,13 +95,13 @@ ns_skiprr(const u_char *ptr, const u_char *eom, ns_sect section, int count) {
 		b = dn_skipname(ptr, eom);
 		if (b < 0)
 			RETERR(EMSGSIZE);
-		ptr += b/*Name*/ + NS_INT16SZ/*Type*/ + NS_INT16SZ/*Class*/;
+		ptr += b /*Name*/ + NS_INT16SZ /*Type*/ + NS_INT16SZ /*Class*/;
 		if (section != ns_s_qd) {
 			if (ptr + NS_INT32SZ + NS_INT16SZ > eom)
 				RETERR(EMSGSIZE);
-			ptr += NS_INT32SZ/*TTL*/;
+			ptr += NS_INT32SZ /*TTL*/;
 			NS_GET16(rdlength, ptr);
-			ptr += rdlength/*RData*/;
+			ptr += rdlength /*RData*/;
 		}
 	}
 	if (ptr > eom)
@@ -99,7 +110,8 @@ ns_skiprr(const u_char *ptr, const u_char *eom, ns_sect section, int count) {
 }
 
 int
-ns_initparse(const u_char *msg, int msglen, ns_msg *handle) {
+ns_initparse(const u_char *msg, int msglen, ns_msg *handle)
+{
 	const u_char *eom = msg + msglen;
 	int i;
 
@@ -121,7 +133,7 @@ ns_initparse(const u_char *msg, int msglen, ns_msg *handle) {
 			handle->_sections[i] = NULL;
 		else {
 			int b = ns_skiprr(msg, eom, (ns_sect)i,
-					  handle->_counts[i]);
+			    handle->_counts[i]);
 
 			if (b < 0)
 				return (-1);
@@ -135,7 +147,8 @@ ns_initparse(const u_char *msg, int msglen, ns_msg *handle) {
 }
 
 int
-ns_parserr(ns_msg *handle, ns_sect section, int rrnum, ns_rr *rr) {
+ns_parserr(ns_msg *handle, ns_sect section, int rrnum, ns_rr *rr)
+{
 	int b;
 	int tmp;
 
@@ -155,7 +168,7 @@ ns_parserr(ns_msg *handle, ns_sect section, int rrnum, ns_rr *rr) {
 		setsection(handle, section);
 	if (rrnum > handle->_rrnum) {
 		b = ns_skiprr(handle->_msg_ptr, handle->_eom, section,
-			      rrnum - handle->_rrnum);
+		    rrnum - handle->_rrnum);
 
 		if (b < 0)
 			return (-1);
@@ -164,8 +177,8 @@ ns_parserr(ns_msg *handle, ns_sect section, int rrnum, ns_rr *rr) {
 	}
 
 	/* Do the parse. */
-	b = dn_expand(handle->_msg, handle->_eom,
-		      handle->_msg_ptr, rr->name, NS_MAXDNAME);
+	b = dn_expand(handle->_msg, handle->_eom, handle->_msg_ptr, rr->name,
+	    NS_MAXDNAME);
 	if (b < 0)
 		return (-1);
 	handle->_msg_ptr += b;
@@ -198,7 +211,8 @@ ns_parserr(ns_msg *handle, ns_sect section, int rrnum, ns_rr *rr) {
  * This is identical to the above but uses network-format (uncompressed) names.
  */
 int
-ns_parserr2(ns_msg *handle, ns_sect section, int rrnum, ns_rr2 *rr) {
+ns_parserr2(ns_msg *handle, ns_sect section, int rrnum, ns_rr2 *rr)
+{
 	int b;
 	int tmp;
 
@@ -217,7 +231,7 @@ ns_parserr2(ns_msg *handle, ns_sect section, int rrnum, ns_rr2 *rr) {
 		setsection(handle, section);
 	if (rrnum > handle->_rrnum) {
 		b = ns_skiprr(handle->_msg_ptr, handle->_eom, section,
-			      rrnum - handle->_rrnum);
+		    rrnum - handle->_rrnum);
 
 		if (b < 0)
 			return (-1);
@@ -227,7 +241,7 @@ ns_parserr2(ns_msg *handle, ns_sect section, int rrnum, ns_rr2 *rr) {
 
 	/* Do the parse. */
 	b = ns_name_unpack2(handle->_msg, handle->_eom, handle->_msg_ptr,
-			    rr->nname, NS_MAXNNAME, &rr->nnamel);
+	    rr->nname, NS_MAXNNAME, &rr->nnamel);
 	if (b < 0)
 		return (-1);
 	handle->_msg_ptr += b;
@@ -259,7 +273,8 @@ ns_parserr2(ns_msg *handle, ns_sect section, int rrnum, ns_rr2 *rr) {
 /* Private. */
 
 static void
-setsection(ns_msg *msg, ns_sect sect) {
+setsection(ns_msg *msg, ns_sect sect)
+{
 	msg->_sect = sect;
 	if (sect == ns_s_max) {
 		msg->_rrnum = -1;

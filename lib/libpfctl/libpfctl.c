@@ -30,22 +30,20 @@
  */
 
 #include <sys/cdefs.h>
-
+#include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/nv.h>
 #include <sys/queue.h>
-#include <sys/types.h>
 
 #include <net/if.h>
 #include <net/pfvar.h>
 #include <netinet/in.h>
-
-#include <netpfil/pf/pf_nl.h>
 #include <netlink/netlink.h>
 #include <netlink/netlink_generic.h>
 #include <netlink/netlink_snl.h>
 #include <netlink/netlink_snl_generic.h>
 #include <netlink/netlink_snl_route.h>
+#include <netpfil/pf/pf_nl.h>
 
 #include <assert.h>
 #include <err.h>
@@ -61,14 +59,10 @@ struct pfctl_handle {
 	struct snl_state ss;
 };
 
-const char* PFCTL_SYNCOOKIES_MODE_NAMES[] = {
-	"never",
-	"always",
-	"adaptive"
-};
+const char *PFCTL_SYNCOOKIES_MODE_NAMES[] = { "never", "always", "adaptive" };
 
-static int	_pfctl_clear_states(int , const struct pfctl_kill *,
-		    unsigned int *, uint64_t);
+static int _pfctl_clear_states(int, const struct pfctl_kill *, unsigned int *,
+    uint64_t);
 
 struct pfctl_handle *
 pfctl_open(const char *pf_device)
@@ -254,8 +248,8 @@ static void
 _pfctl_get_status_counters(const nvlist_t *nvl,
     struct pfctl_status_counters *counters)
 {
-	const uint64_t		*ids, *counts;
-	const char *const	*names;
+	const uint64_t *ids, *counts;
+	const char *const *names;
 	size_t id_len, counter_len, names_len;
 
 	ids = nvlist_get_number_array(nvl, "ids", &id_len);
@@ -284,10 +278,10 @@ _pfctl_get_status_counters(const nvlist_t *nvl,
 struct pfctl_status *
 pfctl_get_status(int dev)
 {
-	struct pfctl_status	*status;
-	nvlist_t	*nvl;
-	size_t		 len;
-	const void	*chksum;
+	struct pfctl_status *status;
+	nvlist_t *nvl;
+	size_t len;
+	const void *chksum;
 
 	status = calloc(1, sizeof(*status));
 	if (status == NULL)
@@ -310,8 +304,7 @@ pfctl_get_status(int dev)
 	status->syncookies_active = nvlist_get_bool(nvl, "syncookies_active");
 	status->reass = nvlist_get_number(nvl, "reass");
 
-	strlcpy(status->ifname, nvlist_get_string(nvl, "ifname"),
-	    IFNAMSIZ);
+	strlcpy(status->ifname, nvlist_get_string(nvl, "ifname"), IFNAMSIZ);
 	chksum = nvlist_get_binary(nvl, "chksum", &len);
 	assert(len == PF_MD5_DIGEST_LENGTH);
 	memcpy(status->pf_chksum, chksum, len);
@@ -340,7 +333,7 @@ _pfctl_status_counter(struct pfctl_status_counters *counters, uint64_t id)
 {
 	struct pfctl_status_counter *c;
 
-	TAILQ_FOREACH(c, counters, entry) {
+	TAILQ_FOREACH (c, counters, entry) {
 		if (c->id == id)
 			return (c->counter);
 	}
@@ -380,19 +373,19 @@ pfctl_free_status(struct pfctl_status *status)
 	if (status == NULL)
 		return;
 
-	TAILQ_FOREACH_SAFE(c, &status->counters, entry, tmp) {
+	TAILQ_FOREACH_SAFE (c, &status->counters, entry, tmp) {
 		free(c->name);
 		free(c);
 	}
-	TAILQ_FOREACH_SAFE(c, &status->lcounters, entry, tmp) {
+	TAILQ_FOREACH_SAFE (c, &status->lcounters, entry, tmp) {
 		free(c->name);
 		free(c);
 	}
-	TAILQ_FOREACH_SAFE(c, &status->fcounters, entry, tmp) {
+	TAILQ_FOREACH_SAFE (c, &status->fcounters, entry, tmp) {
 		free(c->name);
 		free(c);
 	}
-	TAILQ_FOREACH_SAFE(c, &status->scounters, entry, tmp) {
+	TAILQ_FOREACH_SAFE (c, &status->scounters, entry, tmp) {
 		free(c->name);
 		free(c);
 	}
@@ -485,7 +478,8 @@ pfctl_nv_add_rule_addr(nvlist_t *nvparent, const char *name,
 static void
 pf_nvrule_addr_to_rule_addr(const nvlist_t *nvl, struct pf_rule_addr *addr)
 {
-	pf_nvaddr_wrap_to_addr_wrap(nvlist_get_nvlist(nvl, "addr"), &addr->addr);
+	pf_nvaddr_wrap_to_addr_wrap(nvlist_get_nvlist(nvl, "addr"),
+	    &addr->addr);
 
 	pf_nvuint_16_array(nvl, "port", 2, addr->port, NULL);
 	addr->neg = nvlist_get_number(nvl, "neg");
@@ -565,8 +559,8 @@ pf_nvrule_to_rule(const nvlist_t *nvl, struct pfctl_rule *rule)
 	strlcpy(rule->match_tagname, nvlist_get_string(nvl, "match_tagname"),
 	    PF_TAG_NAME_SIZE);
 
-	strlcpy(rule->overload_tblname, nvlist_get_string(nvl, "overload_tblname"),
-	    PF_TABLE_NAME_SIZE);
+	strlcpy(rule->overload_tblname,
+	    nvlist_get_string(nvl, "overload_tblname"), PF_TABLE_NAME_SIZE);
 
 	pf_nvpool_to_pool(nvlist_get_nvlist(nvl, "rpool"), &rule->rpool);
 
@@ -575,7 +569,8 @@ pf_nvrule_to_rule(const nvlist_t *nvl, struct pfctl_rule *rule)
 	pf_nvuint_64_array(nvl, "bytes", 2, rule->bytes, NULL);
 
 	if (nvlist_exists_number(nvl, "timestamp")) {
-		rule->last_active_timestamp = nvlist_get_number(nvl, "timestamp");
+		rule->last_active_timestamp = nvlist_get_number(nvl,
+		    "timestamp");
 	}
 
 	rule->os_fingerprint = nvlist_get_number(nvl, "os_fingerprint");
@@ -586,10 +581,10 @@ pf_nvrule_to_rule(const nvlist_t *nvl, struct pfctl_rule *rule)
 	rule->max_src_nodes = nvlist_get_number(nvl, "max_src_nodes");
 	rule->max_src_states = nvlist_get_number(nvl, "max_src_states");
 	rule->max_src_conn = nvlist_get_number(nvl, "max_src_conn");
-	rule->max_src_conn_rate.limit =
-	    nvlist_get_number(nvl, "max_src_conn_rate.limit");
-	rule->max_src_conn_rate.seconds =
-	    nvlist_get_number(nvl, "max_src_conn_rate.seconds");
+	rule->max_src_conn_rate.limit = nvlist_get_number(nvl,
+	    "max_src_conn_rate.limit");
+	rule->max_src_conn_rate.seconds = nvlist_get_number(nvl,
+	    "max_src_conn_rate.seconds");
 	rule->qid = nvlist_get_number(nvl, "qid");
 	rule->pqid = nvlist_get_number(nvl, "pqid");
 	rule->dnpipe = nvlist_get_number(nvl, "dnpipe");
@@ -628,7 +623,7 @@ pf_nvrule_to_rule(const nvlist_t *nvl, struct pfctl_rule *rule)
 	rule->min_ttl = nvlist_get_number(nvl, "min_ttl");
 	rule->allow_opts = nvlist_get_number(nvl, "allow_opts");
 	rule->rt = nvlist_get_number(nvl, "rt");
-	rule->return_ttl  = nvlist_get_number(nvl, "return_ttl");
+	rule->return_ttl = nvlist_get_number(nvl, "return_ttl");
 	rule->tos = nvlist_get_number(nvl, "tos");
 	rule->set_tos = nvlist_get_number(nvl, "set_tos");
 	rule->anchor_relative = nvlist_get_number(nvl, "anchor_relative");
@@ -705,10 +700,8 @@ pfctl_nveth_rule_to_eth_rule(const nvlist_t *nvl, struct pfctl_eth_rule *rule)
 		strlcpy(rule->label[i], labels[i], PF_RULE_LABEL_SIZE);
 	rule->ridentifier = nvlist_get_number(nvl, "ridentifier");
 
-	pfctl_nveth_addr_to_eth_addr(nvlist_get_nvlist(nvl, "src"),
-	    &rule->src);
-	pfctl_nveth_addr_to_eth_addr(nvlist_get_nvlist(nvl, "dst"),
-	    &rule->dst);
+	pfctl_nveth_addr_to_eth_addr(nvlist_get_nvlist(nvl, "src"), &rule->src);
+	pfctl_nveth_addr_to_eth_addr(nvlist_get_nvlist(nvl, "dst"), &rule->dst);
 
 	pf_nvrule_addr_to_rule_addr(nvlist_get_nvlist(nvl, "ipsrc"),
 	    &rule->ipsrc);
@@ -722,7 +715,8 @@ pfctl_nveth_rule_to_eth_rule(const nvlist_t *nvl, struct pfctl_eth_rule *rule)
 	rule->bytes[1] = nvlist_get_number(nvl, "bytes-out");
 
 	if (nvlist_exists_number(nvl, "timestamp")) {
-		rule->last_active_timestamp = nvlist_get_number(nvl, "timestamp");
+		rule->last_active_timestamp = nvlist_get_number(nvl,
+		    "timestamp");
 	}
 
 	strlcpy(rule->qname, nvlist_get_string(nvl, "qname"), PF_QNAME_SIZE);
@@ -735,8 +729,7 @@ pfctl_nveth_rule_to_eth_rule(const nvlist_t *nvl, struct pfctl_eth_rule *rule)
 	rule->anchor_relative = nvlist_get_number(nvl, "anchor_relative");
 	rule->anchor_wildcard = nvlist_get_number(nvl, "anchor_wildcard");
 
-	strlcpy(rule->bridge_to, nvlist_get_string(nvl, "bridge_to"),
-	    IFNAMSIZ);
+	strlcpy(rule->bridge_to, nvlist_get_string(nvl, "bridge_to"), IFNAMSIZ);
 
 	rule->action = nvlist_get_number(nvl, "action");
 }
@@ -781,8 +774,7 @@ pfctl_get_eth_ruleset(int dev, const char *path, int nr,
 
 	ri->nr = nvlist_get_number(nvl, "nr");
 	strlcpy(ri->path, nvlist_get_string(nvl, "path"), MAXPATHLEN);
-	strlcpy(ri->name, nvlist_get_string(nvl, "name"),
-	    PF_ANCHOR_NAME_SIZE);
+	strlcpy(ri->name, nvlist_get_string(nvl, "name"), PF_ANCHOR_NAME_SIZE);
 
 out:
 	nvlist_destroy(nvl);
@@ -813,9 +805,8 @@ out:
 }
 
 int
-pfctl_get_eth_rule(int dev, uint32_t nr, uint32_t ticket,
-    const char *path, struct pfctl_eth_rule *rule, bool clear,
-    char *anchor_call)
+pfctl_get_eth_rule(int dev, uint32_t nr, uint32_t ticket, const char *path,
+    struct pfctl_eth_rule *rule, bool clear, char *anchor_call)
 {
 	nvlist_t *nvl;
 	int ret;
@@ -888,8 +879,7 @@ pfctl_add_eth_rule(int dev, const struct pfctl_eth_rule *r, const char *anchor,
 	labelcount = 0;
 	while (labelcount < PF_RULE_MAX_LABEL_COUNT &&
 	    r->label[labelcount][0] != 0) {
-		nvlist_append_string_array(nvl, "labels",
-		    r->label[labelcount]);
+		nvlist_append_string_array(nvl, "labels", r->label[labelcount]);
 		labelcount++;
 	}
 	nvlist_add_number(nvl, "ridentifier", r->ridentifier);
@@ -923,7 +913,8 @@ pfctl_add_eth_rule(int dev, const struct pfctl_eth_rule *r, const char *anchor,
 }
 
 static void
-snl_add_msg_attr_addr_wrap(struct snl_writer *nw, uint32_t type, const struct pf_addr_wrap *addr)
+snl_add_msg_attr_addr_wrap(struct snl_writer *nw, uint32_t type,
+    const struct pf_addr_wrap *addr)
 {
 	int off;
 
@@ -943,7 +934,8 @@ snl_add_msg_attr_addr_wrap(struct snl_writer *nw, uint32_t type, const struct pf
 }
 
 static void
-snl_add_msg_attr_rule_addr(struct snl_writer *nw, uint32_t type, const struct pf_rule_addr *addr)
+snl_add_msg_attr_rule_addr(struct snl_writer *nw, uint32_t type,
+    const struct pf_rule_addr *addr)
 {
 	int off;
 
@@ -959,14 +951,14 @@ snl_add_msg_attr_rule_addr(struct snl_writer *nw, uint32_t type, const struct pf
 }
 
 static void
-snl_add_msg_attr_rule_labels(struct snl_writer *nw, uint32_t type, const char labels[PF_RULE_MAX_LABEL_COUNT][PF_RULE_LABEL_SIZE])
+snl_add_msg_attr_rule_labels(struct snl_writer *nw, uint32_t type,
+    const char labels[PF_RULE_MAX_LABEL_COUNT][PF_RULE_LABEL_SIZE])
 {
 	int off, i = 0;
 
 	off = snl_add_msg_attr_nested(nw, type);
 
-	while (labels[i][0] != 0 &&
-	    i < PF_RULE_MAX_LABEL_COUNT) {
+	while (labels[i][0] != 0 && i < PF_RULE_MAX_LABEL_COUNT) {
 		snl_add_msg_attr_string(nw, PF_LT_LABEL, labels[i]);
 		i++;
 	}
@@ -975,7 +967,8 @@ snl_add_msg_attr_rule_labels(struct snl_writer *nw, uint32_t type, const char la
 }
 
 static void
-snl_add_msg_attr_mape(struct snl_writer *nw, uint32_t type, const struct pf_mape_portset *me)
+snl_add_msg_attr_mape(struct snl_writer *nw, uint32_t type,
+    const struct pf_mape_portset *me)
 {
 	int off;
 
@@ -989,7 +982,8 @@ snl_add_msg_attr_mape(struct snl_writer *nw, uint32_t type, const struct pf_mape
 }
 
 static void
-snl_add_msg_attr_rpool(struct snl_writer *nw, uint32_t type, const struct pfctl_pool *pool)
+snl_add_msg_attr_rpool(struct snl_writer *nw, uint32_t type,
+    const struct pfctl_pool *pool)
 {
 	int off;
 
@@ -1007,7 +1001,8 @@ snl_add_msg_attr_rpool(struct snl_writer *nw, uint32_t type, const struct pfctl_
 }
 
 static void
-snl_add_msg_attr_timeouts(struct snl_writer *nw, uint32_t type, const uint32_t *timeouts)
+snl_add_msg_attr_timeouts(struct snl_writer *nw, uint32_t type,
+    const uint32_t *timeouts)
 {
 	int off;
 
@@ -1020,7 +1015,8 @@ snl_add_msg_attr_timeouts(struct snl_writer *nw, uint32_t type, const uint32_t *
 }
 
 static void
-snl_add_msg_attr_uid(struct snl_writer *nw, uint32_t type, const struct pf_rule_uid *uid)
+snl_add_msg_attr_uid(struct snl_writer *nw, uint32_t type,
+    const struct pf_rule_uid *uid)
 {
 	int off;
 
@@ -1034,7 +1030,8 @@ snl_add_msg_attr_uid(struct snl_writer *nw, uint32_t type, const struct pf_rule_
 }
 
 static void
-snl_add_msg_attr_pf_rule(struct snl_writer *nw, uint32_t type, const struct pfctl_rule *r)
+snl_add_msg_attr_pf_rule(struct snl_writer *nw, uint32_t type,
+    const struct pfctl_rule *r)
 {
 	int off;
 
@@ -1049,7 +1046,8 @@ snl_add_msg_attr_pf_rule(struct snl_writer *nw, uint32_t type, const struct pfct
 	snl_add_msg_attr_string(nw, PF_RT_PQNAME, r->pqname);
 	snl_add_msg_attr_string(nw, PF_RT_TAGNAME, r->tagname);
 	snl_add_msg_attr_string(nw, PF_RT_MATCH_TAGNAME, r->match_tagname);
-	snl_add_msg_attr_string(nw, PF_RT_OVERLOAD_TBLNAME, r->overload_tblname);
+	snl_add_msg_attr_string(nw, PF_RT_OVERLOAD_TBLNAME,
+	    r->overload_tblname);
 	snl_add_msg_attr_rpool(nw, PF_RT_RPOOL, &r->rpool);
 	snl_add_msg_attr_u32(nw, PF_RT_OS_FINGERPRINT, r->os_fingerprint);
 	snl_add_msg_attr_u32(nw, PF_RT_RTABLEID, r->rtableid);
@@ -1057,8 +1055,10 @@ snl_add_msg_attr_pf_rule(struct snl_writer *nw, uint32_t type, const struct pfct
 	snl_add_msg_attr_u32(nw, PF_RT_MAX_STATES, r->max_states);
 	snl_add_msg_attr_u32(nw, PF_RT_MAX_SRC_NODES, r->max_src_nodes);
 	snl_add_msg_attr_u32(nw, PF_RT_MAX_SRC_STATES, r->max_src_states);
-	snl_add_msg_attr_u32(nw, PF_RT_MAX_SRC_CONN_RATE_LIMIT, r->max_src_conn_rate.limit);
-	snl_add_msg_attr_u32(nw, PF_RT_MAX_SRC_CONN_RATE_SECS, r->max_src_conn_rate.seconds);
+	snl_add_msg_attr_u32(nw, PF_RT_MAX_SRC_CONN_RATE_LIMIT,
+	    r->max_src_conn_rate.limit);
+	snl_add_msg_attr_u32(nw, PF_RT_MAX_SRC_CONN_RATE_SECS,
+	    r->max_src_conn_rate.seconds);
 
 	snl_add_msg_attr_u16(nw, PF_RT_DNPIPE, r->dnpipe);
 	snl_add_msg_attr_u16(nw, PF_RT_DNRPIPE, r->dnrpipe);
@@ -1075,7 +1075,8 @@ snl_add_msg_attr_pf_rule(struct snl_writer *nw, uint32_t type, const struct pfct
 	snl_add_msg_attr_u16(nw, PF_RT_SCRUB_FLAGS, r->scrub_flags);
 
 	snl_add_msg_attr_uid(nw, PF_RT_UID, &r->uid);
-	snl_add_msg_attr_uid(nw, PF_RT_GID, (const struct pf_rule_uid *)&r->gid);
+	snl_add_msg_attr_uid(nw, PF_RT_GID,
+	    (const struct pf_rule_uid *)&r->gid);
 
 	snl_add_msg_attr_u32(nw, PF_RT_RULE_FLAG, r->rule_flag);
 	snl_add_msg_attr_u8(nw, PF_RT_ACTION, r->action);
@@ -1133,8 +1134,8 @@ pfctl_add_rule(int dev __unused, const struct pfctl_rule *r, const char *anchor,
 
 int
 pfctl_add_rule_h(struct pfctl_handle *h, const struct pfctl_rule *r,
-	    const char *anchor, const char *anchor_call, uint32_t ticket,
-	    uint32_t pool_ticket)
+    const char *anchor, const char *anchor_call, uint32_t ticket,
+    uint32_t pool_ticket)
 {
 	struct snl_writer nw;
 	struct snl_errmsg_data e = {};
@@ -1161,7 +1162,7 @@ pfctl_add_rule_h(struct pfctl_handle *h, const struct pfctl_rule *r,
 
 	seq_id = hdr->nlmsg_seq;
 
-	if (! snl_send_message(&h->ss, hdr))
+	if (!snl_send_message(&h->ss, hdr))
 		return (ENXIO);
 
 	while ((hdr = snl_read_reply_multi(&h->ss, seq_id, &e)) != NULL) {
@@ -1170,21 +1171,23 @@ pfctl_add_rule_h(struct pfctl_handle *h, const struct pfctl_rule *r,
 	return (e.error);
 }
 
-#define	_IN(_field)	offsetof(struct genlmsghdr, _field)
-#define	_OUT(_field)	offsetof(struct pfctl_rules_info, _field)
+#define _IN(_field) offsetof(struct genlmsghdr, _field)
+#define _OUT(_field) offsetof(struct pfctl_rules_info, _field)
 static struct snl_attr_parser ap_getrules[] = {
 	{ .type = PF_GR_NR, .off = _OUT(nr), .cb = snl_attr_get_uint32 },
-	{ .type = PF_GR_TICKET, .off = _OUT(ticket), .cb = snl_attr_get_uint32 },
+	{ .type = PF_GR_TICKET,
+	    .off = _OUT(ticket),
+	    .cb = snl_attr_get_uint32 },
 };
-static struct snl_field_parser fp_getrules[] = {
-};
+static struct snl_field_parser fp_getrules[] = {};
 #undef _IN
 #undef _OUT
-SNL_DECLARE_PARSER(getrules_parser, struct genlmsghdr, fp_getrules, ap_getrules);
+SNL_DECLARE_PARSER(getrules_parser, struct genlmsghdr, fp_getrules,
+    ap_getrules);
 
 int
-pfctl_get_rules_info(int dev __unused, struct pfctl_rules_info *rules, uint32_t ruleset,
-    const char *path)
+pfctl_get_rules_info(int dev __unused, struct pfctl_rules_info *rules,
+    uint32_t ruleset, const char *path)
 {
 	struct snl_state ss = {};
 	struct snl_errmsg_data e = {};
@@ -1210,11 +1213,11 @@ pfctl_get_rules_info(int dev __unused, struct pfctl_rules_info *rules, uint32_t 
 		return (ENOMEM);
 
 	seq_id = hdr->nlmsg_seq;
-	if (! snl_send_message(&ss, hdr))
+	if (!snl_send_message(&ss, hdr))
 		return (ENXIO);
 
 	while ((hdr = snl_read_reply_multi(&ss, seq_id, &e)) != NULL) {
-		if (! snl_parse_nlmsg(&ss, hdr, &getrules_parser, rules))
+		if (!snl_parse_nlmsg(&ss, hdr, &getrules_parser, rules))
 			continue;
 	}
 
@@ -1229,9 +1232,9 @@ pfctl_get_rule(int dev, uint32_t nr, uint32_t ticket, const char *anchor,
 	    anchor_call, false));
 }
 
-int	pfctl_get_clear_rule(int dev, uint32_t nr, uint32_t ticket,
-	    const char *anchor, uint32_t ruleset, struct pfctl_rule *rule,
-	    char *anchor_call, bool clear)
+int
+pfctl_get_clear_rule(int dev, uint32_t nr, uint32_t ticket, const char *anchor,
+    uint32_t ruleset, struct pfctl_rule *rule, char *anchor_call, bool clear)
 {
 	nvlist_t *nvl;
 	int ret;
@@ -1265,9 +1268,9 @@ out:
 int
 pfctl_set_keepcounters(int dev, bool keep)
 {
-	struct pfioc_nv	 nv;
-	nvlist_t	*nvl;
-	int		 ret;
+	struct pfioc_nv nv;
+	nvlist_t *nvl;
+	int ret;
 
 	nvl = nvlist_create(0);
 
@@ -1287,13 +1290,12 @@ pfctl_set_keepcounters(int dev, bool keep)
 struct pfctl_creator {
 	uint32_t id;
 };
-#define	_IN(_field)	offsetof(struct genlmsghdr, _field)
-#define	_OUT(_field)	offsetof(struct pfctl_creator, _field)
+#define _IN(_field) offsetof(struct genlmsghdr, _field)
+#define _OUT(_field) offsetof(struct pfctl_creator, _field)
 static struct snl_attr_parser ap_creators[] = {
 	{ .type = PF_ST_CREATORID, .off = _OUT(id), .cb = snl_attr_get_uint32 },
 };
-static struct snl_field_parser fp_creators[] = {
-};
+static struct snl_field_parser fp_creators[] = {};
 #undef _IN
 #undef _OUT
 SNL_DECLARE_PARSER(creator_parser, struct genlmsghdr, fp_creators, ap_creators);
@@ -1354,7 +1356,7 @@ static void
 pfctl_nv_add_state_cmp(nvlist_t *nvl, const char *name,
     const struct pfctl_state_cmp *cmp)
 {
-	nvlist_t	*nv;
+	nvlist_t *nv;
 
 	nv = nvlist_create(0);
 
@@ -1387,75 +1389,141 @@ snl_attr_store_ifname(struct snl_state *ss __unused, struct nlattr *nla,
 	return (false);
 }
 
-#define	_OUT(_field)	offsetof(struct pfctl_state_peer, _field)
+#define _OUT(_field) offsetof(struct pfctl_state_peer, _field)
 static const struct snl_attr_parser nla_p_speer[] = {
 	{ .type = PF_STP_SEQLO, .off = _OUT(seqlo), .cb = snl_attr_get_uint32 },
 	{ .type = PF_STP_SEQHI, .off = _OUT(seqhi), .cb = snl_attr_get_uint32 },
-	{ .type = PF_STP_SEQDIFF, .off = _OUT(seqdiff), .cb = snl_attr_get_uint32 },
+	{ .type = PF_STP_SEQDIFF,
+	    .off = _OUT(seqdiff),
+	    .cb = snl_attr_get_uint32 },
 	{ .type = PF_STP_STATE, .off = _OUT(state), .cb = snl_attr_get_uint8 },
-	{ .type = PF_STP_WSCALE, .off = _OUT(wscale), .cb = snl_attr_get_uint8 },
+	{ .type = PF_STP_WSCALE,
+	    .off = _OUT(wscale),
+	    .cb = snl_attr_get_uint8 },
 };
 SNL_DECLARE_ATTR_PARSER(speer_parser, nla_p_speer);
 #undef _OUT
 
-#define	_OUT(_field)	offsetof(struct pf_state_key_export, _field)
+#define _OUT(_field) offsetof(struct pf_state_key_export, _field)
 static const struct snl_attr_parser nla_p_skey[] = {
-	{ .type = PF_STK_ADDR0, .off = _OUT(addr[0]), .cb = snl_attr_get_pfaddr },
-	{ .type = PF_STK_ADDR1, .off = _OUT(addr[1]), .cb = snl_attr_get_pfaddr },
-	{ .type = PF_STK_PORT0, .off = _OUT(port[0]), .cb = snl_attr_get_uint16 },
-	{ .type = PF_STK_PORT1, .off = _OUT(port[1]), .cb = snl_attr_get_uint16 },
+	{ .type = PF_STK_ADDR0,
+	    .off = _OUT(addr[0]),
+	    .cb = snl_attr_get_pfaddr },
+	{ .type = PF_STK_ADDR1,
+	    .off = _OUT(addr[1]),
+	    .cb = snl_attr_get_pfaddr },
+	{ .type = PF_STK_PORT0,
+	    .off = _OUT(port[0]),
+	    .cb = snl_attr_get_uint16 },
+	{ .type = PF_STK_PORT1,
+	    .off = _OUT(port[1]),
+	    .cb = snl_attr_get_uint16 },
 };
 SNL_DECLARE_ATTR_PARSER(skey_parser, nla_p_skey);
 #undef _OUT
 
-#define	_IN(_field)	offsetof(struct genlmsghdr, _field)
-#define	_OUT(_field)	offsetof(struct pfctl_state, _field)
+#define _IN(_field) offsetof(struct genlmsghdr, _field)
+#define _OUT(_field) offsetof(struct pfctl_state, _field)
 static struct snl_attr_parser ap_state[] = {
 	{ .type = PF_ST_ID, .off = _OUT(id), .cb = snl_attr_get_uint64 },
-	{ .type = PF_ST_CREATORID, .off = _OUT(creatorid), .cb = snl_attr_get_uint32 },
-	{ .type = PF_ST_IFNAME, .off = _OUT(ifname), .cb = snl_attr_store_ifname },
-	{ .type = PF_ST_ORIG_IFNAME, .off = _OUT(orig_ifname), .cb = snl_attr_store_ifname },
-	{ .type = PF_ST_KEY_WIRE, .off = _OUT(key[0]), .arg = &skey_parser, .cb = snl_attr_get_nested },
-	{ .type = PF_ST_KEY_STACK, .off = _OUT(key[1]), .arg = &skey_parser, .cb = snl_attr_get_nested },
-	{ .type = PF_ST_PEER_SRC, .off = _OUT(src), .arg = &speer_parser, .cb = snl_attr_get_nested },
-	{ .type = PF_ST_PEER_DST, .off = _OUT(dst), .arg = &speer_parser, .cb = snl_attr_get_nested },
-	{ .type = PF_ST_RT_ADDR, .off = _OUT(rt_addr), .cb = snl_attr_get_pfaddr },
+	{ .type = PF_ST_CREATORID,
+	    .off = _OUT(creatorid),
+	    .cb = snl_attr_get_uint32 },
+	{ .type = PF_ST_IFNAME,
+	    .off = _OUT(ifname),
+	    .cb = snl_attr_store_ifname },
+	{ .type = PF_ST_ORIG_IFNAME,
+	    .off = _OUT(orig_ifname),
+	    .cb = snl_attr_store_ifname },
+	{ .type = PF_ST_KEY_WIRE,
+	    .off = _OUT(key[0]),
+	    .arg = &skey_parser,
+	    .cb = snl_attr_get_nested },
+	{ .type = PF_ST_KEY_STACK,
+	    .off = _OUT(key[1]),
+	    .arg = &skey_parser,
+	    .cb = snl_attr_get_nested },
+	{ .type = PF_ST_PEER_SRC,
+	    .off = _OUT(src),
+	    .arg = &speer_parser,
+	    .cb = snl_attr_get_nested },
+	{ .type = PF_ST_PEER_DST,
+	    .off = _OUT(dst),
+	    .arg = &speer_parser,
+	    .cb = snl_attr_get_nested },
+	{ .type = PF_ST_RT_ADDR,
+	    .off = _OUT(rt_addr),
+	    .cb = snl_attr_get_pfaddr },
 	{ .type = PF_ST_RULE, .off = _OUT(rule), .cb = snl_attr_get_uint32 },
-	{ .type = PF_ST_ANCHOR, .off = _OUT(anchor), .cb = snl_attr_get_uint32 },
-	{ .type = PF_ST_NAT_RULE, .off = _OUT(nat_rule), .cb = snl_attr_get_uint32 },
-	{ .type = PF_ST_CREATION, .off = _OUT(creation), .cb = snl_attr_get_uint32 },
-	{ .type = PF_ST_EXPIRE, .off = _OUT(expire), .cb = snl_attr_get_uint32 },
-	{ .type = PF_ST_PACKETS0, .off = _OUT(packets[0]), .cb = snl_attr_get_uint64 },
-	{ .type = PF_ST_PACKETS1, .off = _OUT(packets[1]), .cb = snl_attr_get_uint64 },
-	{ .type = PF_ST_BYTES0, .off = _OUT(bytes[0]), .cb = snl_attr_get_uint64 },
-	{ .type = PF_ST_BYTES1, .off = _OUT(bytes[1]), .cb = snl_attr_get_uint64 },
+	{ .type = PF_ST_ANCHOR,
+	    .off = _OUT(anchor),
+	    .cb = snl_attr_get_uint32 },
+	{ .type = PF_ST_NAT_RULE,
+	    .off = _OUT(nat_rule),
+	    .cb = snl_attr_get_uint32 },
+	{ .type = PF_ST_CREATION,
+	    .off = _OUT(creation),
+	    .cb = snl_attr_get_uint32 },
+	{ .type = PF_ST_EXPIRE,
+	    .off = _OUT(expire),
+	    .cb = snl_attr_get_uint32 },
+	{ .type = PF_ST_PACKETS0,
+	    .off = _OUT(packets[0]),
+	    .cb = snl_attr_get_uint64 },
+	{ .type = PF_ST_PACKETS1,
+	    .off = _OUT(packets[1]),
+	    .cb = snl_attr_get_uint64 },
+	{ .type = PF_ST_BYTES0,
+	    .off = _OUT(bytes[0]),
+	    .cb = snl_attr_get_uint64 },
+	{ .type = PF_ST_BYTES1,
+	    .off = _OUT(bytes[1]),
+	    .cb = snl_attr_get_uint64 },
 	{ .type = PF_ST_AF, .off = _OUT(key[0].af), .cb = snl_attr_get_uint8 },
-	{ .type = PF_ST_PROTO, .off = _OUT(key[0].proto), .cb = snl_attr_get_uint8 },
-	{ .type = PF_ST_DIRECTION, .off = _OUT(direction), .cb = snl_attr_get_uint8 },
+	{ .type = PF_ST_PROTO,
+	    .off = _OUT(key[0].proto),
+	    .cb = snl_attr_get_uint8 },
+	{ .type = PF_ST_DIRECTION,
+	    .off = _OUT(direction),
+	    .cb = snl_attr_get_uint8 },
 	{ .type = PF_ST_LOG, .off = _OUT(log), .cb = snl_attr_get_uint8 },
-	{ .type = PF_ST_STATE_FLAGS, .off = _OUT(state_flags), .cb = snl_attr_get_uint16 },
-	{ .type = PF_ST_SYNC_FLAGS, .off = _OUT(sync_flags), .cb = snl_attr_get_uint8 },
-	{ .type = PF_ST_RTABLEID, .off = _OUT(rtableid), .cb = snl_attr_get_int32 },
-	{ .type = PF_ST_MIN_TTL, .off = _OUT(min_ttl), .cb = snl_attr_get_uint8 },
-	{ .type = PF_ST_MAX_MSS, .off = _OUT(max_mss), .cb = snl_attr_get_uint16 },
-	{ .type = PF_ST_DNPIPE, .off = _OUT(dnpipe), .cb = snl_attr_get_uint16 },
-	{ .type = PF_ST_DNRPIPE, .off = _OUT(dnrpipe), .cb = snl_attr_get_uint16 },
+	{ .type = PF_ST_STATE_FLAGS,
+	    .off = _OUT(state_flags),
+	    .cb = snl_attr_get_uint16 },
+	{ .type = PF_ST_SYNC_FLAGS,
+	    .off = _OUT(sync_flags),
+	    .cb = snl_attr_get_uint8 },
+	{ .type = PF_ST_RTABLEID,
+	    .off = _OUT(rtableid),
+	    .cb = snl_attr_get_int32 },
+	{ .type = PF_ST_MIN_TTL,
+	    .off = _OUT(min_ttl),
+	    .cb = snl_attr_get_uint8 },
+	{ .type = PF_ST_MAX_MSS,
+	    .off = _OUT(max_mss),
+	    .cb = snl_attr_get_uint16 },
+	{ .type = PF_ST_DNPIPE,
+	    .off = _OUT(dnpipe),
+	    .cb = snl_attr_get_uint16 },
+	{ .type = PF_ST_DNRPIPE,
+	    .off = _OUT(dnrpipe),
+	    .cb = snl_attr_get_uint16 },
 	{ .type = PF_ST_RT, .off = _OUT(rt), .cb = snl_attr_get_uint8 },
-	{ .type = PF_ST_RT_IFNAME, .off = _OUT(rt_ifname), .cb = snl_attr_store_ifname },
+	{ .type = PF_ST_RT_IFNAME,
+	    .off = _OUT(rt_ifname),
+	    .cb = snl_attr_store_ifname },
 };
-static struct snl_field_parser fp_state[] = {
-};
+static struct snl_field_parser fp_state[] = {};
 #undef _IN
 #undef _OUT
 SNL_DECLARE_PARSER(state_parser, struct genlmsghdr, fp_state, ap_state);
 
-static const struct snl_hdr_parser *all_parsers[] = {
-	&state_parser, &skey_parser, &speer_parser,
-	&creator_parser, &getrules_parser
-};
+static const struct snl_hdr_parser *all_parsers[] = { &state_parser,
+	&skey_parser, &speer_parser, &creator_parser, &getrules_parser };
 
 static int
-pfctl_get_states_nl(struct pfctl_state_filter *filter, struct snl_state *ss, pfctl_get_state_fn f, void *arg)
+pfctl_get_states_nl(struct pfctl_state_filter *filter, struct snl_state *ss,
+    pfctl_get_state_fn f, void *arg)
 {
 	SNL_VERIFY_PARSERS(all_parsers);
 	int family_id = snl_get_genl_family(ss, PFNL_FAMILY_NAME);
@@ -1510,7 +1578,8 @@ pfctl_get_states_iter(pfctl_get_state_fn f, void *arg)
 }
 
 int
-pfctl_get_filtered_states_iter(struct pfctl_state_filter *filter, pfctl_get_state_fn f, void *arg)
+pfctl_get_filtered_states_iter(struct pfctl_state_filter *filter,
+    pfctl_get_state_fn f, void *arg)
 {
 	struct snl_state ss = {};
 	int error;
@@ -1561,7 +1630,7 @@ pfctl_free_states(struct pfctl_states *states)
 {
 	struct pfctl_state *s, *tmp;
 
-	TAILQ_FOREACH_SAFE(s, &states->states, entry, tmp) {
+	TAILQ_FOREACH_SAFE (s, &states->states, entry, tmp) {
 		free(s);
 	}
 
@@ -1572,8 +1641,8 @@ static int
 _pfctl_clear_states(int dev, const struct pfctl_kill *kill,
     unsigned int *killed, uint64_t ioctlval)
 {
-	nvlist_t	*nvl;
-	int		 ret;
+	nvlist_t *nvl;
+	int ret;
 
 	nvl = nvlist_create(0);
 
@@ -1600,8 +1669,7 @@ out:
 }
 
 int
-pfctl_clear_states(int dev, const struct pfctl_kill *kill,
-    unsigned int *killed)
+pfctl_clear_states(int dev, const struct pfctl_kill *kill, unsigned int *killed)
 {
 	return (_pfctl_clear_states(dev, kill, killed, DIOCCLRSTATESNV));
 }
@@ -1623,13 +1691,13 @@ pfctl_clear_rules(int dev, const char *anchorname)
 	bzero(&transe, sizeof(transe));
 
 	transe[0].rs_num = PF_RULESET_SCRUB;
-	if (strlcpy(transe[0].anchor, anchorname, sizeof(transe[0].anchor))
-	    >= sizeof(transe[0].anchor))
+	if (strlcpy(transe[0].anchor, anchorname, sizeof(transe[0].anchor)) >=
+	    sizeof(transe[0].anchor))
 		return (E2BIG);
 
 	transe[1].rs_num = PF_RULESET_FILTER;
-	if (strlcpy(transe[1].anchor, anchorname, sizeof(transe[1].anchor))
-	    >= sizeof(transe[1].anchor))
+	if (strlcpy(transe[1].anchor, anchorname, sizeof(transe[1].anchor)) >=
+	    sizeof(transe[1].anchor))
 		return (E2BIG);
 
 	trans.size = 2;
@@ -1653,18 +1721,18 @@ pfctl_clear_nat(int dev, const char *anchorname)
 	bzero(&transe, sizeof(transe));
 
 	transe[0].rs_num = PF_RULESET_NAT;
-	if (strlcpy(transe[0].anchor, anchorname, sizeof(transe[0].anchor))
-	    >= sizeof(transe[0].anchor))
+	if (strlcpy(transe[0].anchor, anchorname, sizeof(transe[0].anchor)) >=
+	    sizeof(transe[0].anchor))
 		return (E2BIG);
 
 	transe[1].rs_num = PF_RULESET_BINAT;
-	if (strlcpy(transe[1].anchor, anchorname, sizeof(transe[1].anchor))
-	    >= sizeof(transe[0].anchor))
+	if (strlcpy(transe[1].anchor, anchorname, sizeof(transe[1].anchor)) >=
+	    sizeof(transe[0].anchor))
 		return (E2BIG);
 
 	transe[2].rs_num = PF_RULESET_RDR;
-	if (strlcpy(transe[2].anchor, anchorname, sizeof(transe[2].anchor))
-	    >= sizeof(transe[2].anchor))
+	if (strlcpy(transe[2].anchor, anchorname, sizeof(transe[2].anchor)) >=
+	    sizeof(transe[2].anchor))
 		return (E2BIG);
 
 	trans.size = 3;
@@ -1687,8 +1755,8 @@ pfctl_clear_eth_rules(int dev, const char *anchorname)
 	bzero(&transe, sizeof(transe));
 
 	transe.rs_num = PF_RULESET_ETH;
-	if (strlcpy(transe.anchor, anchorname, sizeof(transe.anchor))
-	    >= sizeof(transe.anchor))
+	if (strlcpy(transe.anchor, anchorname, sizeof(transe.anchor)) >=
+	    sizeof(transe.anchor))
 		return (E2BIG);
 
 	trans.size = 1;
@@ -1720,11 +1788,11 @@ pfctl_get_limit(int dev, const int index, uint *limit)
 int
 pfctl_set_syncookies(int dev, const struct pfctl_syncookies *s)
 {
-	struct pfioc_nv	 nv;
-	nvlist_t	*nvl;
-	int		 ret;
-	uint		 state_limit;
-	uint64_t	 lim, hi, lo;
+	struct pfioc_nv nv;
+	nvlist_t *nvl;
+	int ret;
+	uint state_limit;
+	uint64_t lim, hi, lo;
 
 	ret = pfctl_get_limit(dev, PF_LIMIT_STATES, &state_limit);
 	if (ret != 0)
@@ -1758,10 +1826,10 @@ pfctl_set_syncookies(int dev, const struct pfctl_syncookies *s)
 int
 pfctl_get_syncookies(int dev, struct pfctl_syncookies *s)
 {
-	nvlist_t	*nvl;
-	int		 ret;
-	uint		 state_limit;
-	bool		 enabled, adaptive;
+	nvlist_t *nvl;
+	int ret;
+	uint state_limit;
+	bool enabled, adaptive;
 
 	ret = pfctl_get_limit(dev, PF_LIMIT_STATES, &state_limit);
 	if (ret != 0)
@@ -1798,8 +1866,8 @@ out:
 }
 
 int
-pfctl_table_add_addrs(int dev, struct pfr_table *tbl, struct pfr_addr
-    *addr, int size, int *nadd, int flags)
+pfctl_table_add_addrs(int dev, struct pfr_table *tbl, struct pfr_addr *addr,
+    int size, int *nadd, int flags)
 {
 	struct pfioc_table io;
 
@@ -1821,8 +1889,8 @@ pfctl_table_add_addrs(int dev, struct pfr_table *tbl, struct pfr_addr
 }
 
 int
-pfctl_table_del_addrs(int dev, struct pfr_table *tbl, struct pfr_addr
-    *addr, int size, int *ndel, int flags)
+pfctl_table_del_addrs(int dev, struct pfr_table *tbl, struct pfr_addr *addr,
+    int size, int *ndel, int flags)
 {
 	struct pfioc_table io;
 
@@ -1844,8 +1912,8 @@ pfctl_table_del_addrs(int dev, struct pfr_table *tbl, struct pfr_addr
 }
 
 int
-pfctl_table_set_addrs(int dev, struct pfr_table *tbl, struct pfr_addr
-    *addr, int size, int *size2, int *nadd, int *ndel, int *nchange, int flags)
+pfctl_table_set_addrs(int dev, struct pfr_table *tbl, struct pfr_addr *addr,
+    int size, int *size2, int *nadd, int *ndel, int *nchange, int flags)
 {
 	struct pfioc_table io;
 
@@ -1872,7 +1940,8 @@ pfctl_table_set_addrs(int dev, struct pfr_table *tbl, struct pfr_addr
 	return (0);
 }
 
-int pfctl_table_get_addrs(int dev, struct pfr_table *tbl, struct pfr_addr *addr,
+int
+pfctl_table_get_addrs(int dev, struct pfr_table *tbl, struct pfr_addr *addr,
     int *size, int flags)
 {
 	struct pfioc_table io;

@@ -24,8 +24,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_ARM_ARM_NEXUSVAR_H_
-#define	_ARM_ARM_NEXUSVAR_H_
+#ifndef _ARM_ARM_NEXUSVAR_H_
+#define _ARM_ARM_NEXUSVAR_H_
 
 /* Set a platform busdma tag to be inherited by all busses and devices. */
 void nexus_set_dma_tag(bus_dma_tag_t _tag);

@@ -24,15 +24,15 @@
 #include "icp_accel_devices.h"
 #include "icp_adf_cfg.h"
 #include "lac_log.h"
-#include "lac_sym.h"
-#include "lac_sym_qat.h"
 #include "lac_sal_types_crypto.h"
-#include "sal_string_parse.h"
+#include "lac_sym.h"
 #include "lac_sym_key.h"
-#include "lac_sym_qat_hash_defs_lookup.h"
-#include "lac_sym_qat_constants_table.h"
+#include "lac_sym_qat.h"
 #include "lac_sym_qat_cipher.h"
+#include "lac_sym_qat_constants_table.h"
 #include "lac_sym_qat_hash.h"
+#include "lac_sym_qat_hash_defs_lookup.h"
+#include "sal_string_parse.h"
 
 #define EMBEDDED_CIPHER_KEY_MAX_SIZE 16
 static void
@@ -95,8 +95,7 @@ LacSymQat_SymRespHandler(void *pRespMsg)
 
 	/* call the response message handler registered for the command ID */
 	respHandlerSymTbl[lacCmdId]((icp_qat_fw_la_cmd_id_t)lacCmdId,
-				    pOpaqueData,
-				    (icp_qat_fw_comn_flags)opStatus);
+	    pOpaqueData, (icp_qat_fw_comn_flags)opStatus);
 }
 
 CpaStatus
@@ -115,7 +114,7 @@ LacSymQat_Init(CpaInstanceHandle instanceHandle)
 
 void
 LacSymQat_RespHandlerRegister(icp_qat_fw_la_cmd_id_t lacCmdId,
-			      sal_qat_resp_handler_func_t pCbHandler)
+    sal_qat_resp_handler_func_t pCbHandler)
 {
 	if (lacCmdId >= ICP_QAT_FW_LA_CMD_DELIMITER) {
 		QAT_UTILS_LOG("Invalid Command ID\n");
@@ -128,17 +127,15 @@ LacSymQat_RespHandlerRegister(icp_qat_fw_la_cmd_id_t lacCmdId,
 
 void
 LacSymQat_LaPacketCommandFlagSet(Cpa32U qatPacketType,
-				 icp_qat_fw_la_cmd_id_t laCmdId,
-				 CpaCySymCipherAlgorithm cipherAlgorithm,
-				 Cpa16U *pLaCommandFlags,
-				 Cpa32U ivLenInBytes)
+    icp_qat_fw_la_cmd_id_t laCmdId, CpaCySymCipherAlgorithm cipherAlgorithm,
+    Cpa16U *pLaCommandFlags, Cpa32U ivLenInBytes)
 {
 	/* For SM4/Chacha ciphers set command flag as partial none to proceed
 	 * with stateless processing */
 	if (LAC_CIPHER_IS_SM4(cipherAlgorithm) ||
 	    LAC_CIPHER_IS_CHACHA(cipherAlgorithm)) {
 		ICP_QAT_FW_LA_PARTIAL_SET(*pLaCommandFlags,
-					  ICP_QAT_FW_LA_PARTIAL_NONE);
+		    ICP_QAT_FW_LA_PARTIAL_NONE);
 		return;
 	}
 	ICP_QAT_FW_LA_PARTIAL_SET(*pLaCommandFlags, qatPacketType);
@@ -150,24 +147,24 @@ LacSymQat_LaPacketCommandFlagSet(Cpa32U qatPacketType,
 	if ((ICP_QAT_FW_LA_PARTIAL_NONE == qatPacketType) ||
 	    (ICP_QAT_FW_LA_PARTIAL_END == qatPacketType) ||
 	    ((laCmdId != ICP_QAT_FW_LA_CMD_AUTH) &&
-	     LAC_CIPHER_IS_ECB_MODE(cipherAlgorithm))) {
+		LAC_CIPHER_IS_ECB_MODE(cipherAlgorithm))) {
 		ICP_QAT_FW_LA_UPDATE_STATE_SET(*pLaCommandFlags,
-					       ICP_QAT_FW_LA_NO_UPDATE_STATE);
+		    ICP_QAT_FW_LA_NO_UPDATE_STATE);
 	}
 	/* For first or middle partials set the update state command flag */
 	else {
 		ICP_QAT_FW_LA_UPDATE_STATE_SET(*pLaCommandFlags,
-					       ICP_QAT_FW_LA_UPDATE_STATE);
+		    ICP_QAT_FW_LA_UPDATE_STATE);
 
 		if (laCmdId == ICP_QAT_FW_LA_CMD_AUTH) {
 			/* For hash only partial - verify and return auth result
 			 * are
 			 * disabled */
-			ICP_QAT_FW_LA_RET_AUTH_SET(
-			    *pLaCommandFlags, ICP_QAT_FW_LA_NO_RET_AUTH_RES);
+			ICP_QAT_FW_LA_RET_AUTH_SET(*pLaCommandFlags,
+			    ICP_QAT_FW_LA_NO_RET_AUTH_RES);
 
-			ICP_QAT_FW_LA_CMP_AUTH_SET(
-			    *pLaCommandFlags, ICP_QAT_FW_LA_NO_CMP_AUTH_RES);
+			ICP_QAT_FW_LA_CMP_AUTH_SET(*pLaCommandFlags,
+			    ICP_QAT_FW_LA_NO_CMP_AUTH_RES);
 		}
 	}
 
@@ -175,15 +172,14 @@ LacSymQat_LaPacketCommandFlagSet(Cpa32U qatPacketType,
 	    (LAC_CIPHER_IV_SIZE_GCM_12 == ivLenInBytes))
 
 	{
-		ICP_QAT_FW_LA_GCM_IV_LEN_FLAG_SET(
-		    *pLaCommandFlags, ICP_QAT_FW_LA_GCM_IV_LEN_12_OCTETS);
+		ICP_QAT_FW_LA_GCM_IV_LEN_FLAG_SET(*pLaCommandFlags,
+		    ICP_QAT_FW_LA_GCM_IV_LEN_12_OCTETS);
 	}
 }
 
 void
 LacSymQat_packetTypeGet(CpaCySymPacketType packetType,
-			CpaCySymPacketType packetState,
-			Cpa32U *pQatPacketType)
+    CpaCySymPacketType packetState, Cpa32U *pQatPacketType)
 {
 	switch (packetType) {
 	/* partial */
@@ -210,32 +206,31 @@ LacSymQat_packetTypeGet(CpaCySymPacketType packetType,
 
 void
 LacSymQat_LaSetDefaultFlags(icp_qat_fw_serv_specif_flags *laCmdFlags,
-			    CpaCySymOp symOp)
+    CpaCySymOp symOp)
 {
 
 	ICP_QAT_FW_LA_PARTIAL_SET(*laCmdFlags, ICP_QAT_FW_LA_PARTIAL_NONE);
 
 	ICP_QAT_FW_LA_UPDATE_STATE_SET(*laCmdFlags,
-				       ICP_QAT_FW_LA_NO_UPDATE_STATE);
+	    ICP_QAT_FW_LA_NO_UPDATE_STATE);
 
 	if (symOp != CPA_CY_SYM_OP_CIPHER) {
 		ICP_QAT_FW_LA_RET_AUTH_SET(*laCmdFlags,
-					   ICP_QAT_FW_LA_RET_AUTH_RES);
+		    ICP_QAT_FW_LA_RET_AUTH_RES);
 	} else {
 		ICP_QAT_FW_LA_RET_AUTH_SET(*laCmdFlags,
-					   ICP_QAT_FW_LA_NO_RET_AUTH_RES);
+		    ICP_QAT_FW_LA_NO_RET_AUTH_RES);
 	}
 
 	ICP_QAT_FW_LA_CMP_AUTH_SET(*laCmdFlags, ICP_QAT_FW_LA_NO_CMP_AUTH_RES);
 
-	ICP_QAT_FW_LA_GCM_IV_LEN_FLAG_SET(
-	    *laCmdFlags, ICP_QAT_FW_LA_GCM_IV_LEN_NOT_12_OCTETS);
+	ICP_QAT_FW_LA_GCM_IV_LEN_FLAG_SET(*laCmdFlags,
+	    ICP_QAT_FW_LA_GCM_IV_LEN_NOT_12_OCTETS);
 }
 
 CpaBoolean
 LacSymQat_UseSymConstantsTable(lac_session_desc_t *pSession,
-			       Cpa8U *pCipherOffset,
-			       Cpa8U *pHashOffset)
+    Cpa8U *pCipherOffset, Cpa8U *pHashOffset)
 {
 
 	CpaBoolean useOptimisedContentDesc = CPA_FALSE;
@@ -247,8 +242,8 @@ LacSymQat_UseSymConstantsTable(lac_session_desc_t *pSession,
 	/* for chaining can we use the optimised content descritor */
 	if (pSession->laCmdId == ICP_QAT_FW_LA_CMD_CIPHER_HASH ||
 	    pSession->laCmdId == ICP_QAT_FW_LA_CMD_HASH_CIPHER) {
-		useOptimisedContentDesc =
-		    LacSymQat_UseOptimisedContentDesc(pSession);
+		useOptimisedContentDesc = LacSymQat_UseOptimisedContentDesc(
+		    pSession);
 	}
 
 	/* Cipher-only case or chaining */
@@ -264,16 +259,12 @@ LacSymQat_UseSymConstantsTable(lac_session_desc_t *pSession,
 			return CPA_FALSE;
 		}
 
-		LacSymQat_CipherGetCfgData(
-		    pSession, &algorithm, &mode, &dir, &key_convert);
+		LacSymQat_CipherGetCfgData(pSession, &algorithm, &mode, &dir,
+		    &key_convert);
 
 		/* Check if cipher config is available in table. */
 		LacSymQat_ConstantsGetCipherOffset(pSession->pInstance,
-						   algorithm,
-						   mode,
-						   dir,
-						   key_convert,
-						   pCipherOffset);
+		    algorithm, mode, dir, key_convert, pCipherOffset);
 		if (*pCipherOffset > 0) {
 			useSHRAMConstants = CPA_TRUE;
 		} else {
@@ -302,18 +293,12 @@ LacSymQat_UseSymConstantsTable(lac_session_desc_t *pSession,
 		}
 
 		LacSymQat_HashGetCfgData(pSession->pInstance,
-					 pSession->qatHashMode,
-					 pSession->hashMode,
-					 pSession->hashAlgorithm,
-					 &algorithm,
-					 &nested);
+		    pSession->qatHashMode, pSession->hashMode,
+		    pSession->hashAlgorithm, &algorithm, &nested);
 
 		/* Check if config data is available in table. */
-		LacSymQat_ConstantsGetAuthOffset(pSession->pInstance,
-						 algorithm,
-						 pSession->qatHashMode,
-						 nested,
-						 pHashOffset);
+		LacSymQat_ConstantsGetAuthOffset(pSession->pInstance, algorithm,
+		    pSession->qatHashMode, nested, pHashOffset);
 		if (*pHashOffset > 0) {
 			useSHRAMConstants = CPA_TRUE;
 		} else {

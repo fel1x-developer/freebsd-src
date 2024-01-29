@@ -28,13 +28,14 @@
 #include <sys/cdefs.h>
 #ifdef _KERNEL
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/malloc.h>
 #include <sys/random.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 #else /* !_KERNEL */
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
+
 #include <assert.h>
 #include <inttypes.h>
 #include <signal.h>
@@ -43,24 +44,26 @@
 #include <stdlib.h>
 #include <string.h>
 #include <threads.h>
-#define KASSERT(x, y)	assert(x)
-#define CTASSERT(x)	_Static_assert(x, "CTASSERT " #x)
+#define KASSERT(x, y) assert(x)
+#define CTASSERT(x) _Static_assert(x, "CTASSERT " #x)
 #endif /* _KERNEL */
 
 #define CHACHA_EMBED
 #define KEYSTREAM_ONLY
 #define CHACHA_NONCE0_CTR128
-#include <crypto/chacha20/chacha.c>
+#include <dev/random/hash.h>
+
 #include <crypto/rijndael/rijndael-api-fst.h>
 #include <crypto/sha2/sha256.h>
 
-#include <dev/random/hash.h>
+#include <crypto/chacha20/chacha.c>
 #ifdef _KERNEL
 #include <dev/random/randomdev.h>
 #endif
 
-/* This code presumes that RANDOM_KEYSIZE is twice as large as RANDOM_BLOCKSIZE */
-CTASSERT(RANDOM_KEYSIZE == 2*RANDOM_BLOCKSIZE);
+/* This code presumes that RANDOM_KEYSIZE is twice as large as RANDOM_BLOCKSIZE
+ */
+CTASSERT(RANDOM_KEYSIZE == 2 * RANDOM_BLOCKSIZE);
 
 /* Validate that full Chacha IV is as large as the 128-bit counter */
 _Static_assert(CHACHA_STATELEN == RANDOM_BLOCKSIZE, "");
@@ -90,7 +93,8 @@ randomdev_hash_init(struct randomdev_hash *context)
 
 /* Iterate the hash */
 void
-randomdev_hash_iterate(struct randomdev_hash *context, const void *data, size_t size)
+randomdev_hash_iterate(struct randomdev_hash *context, const void *data,
+    size_t size)
 {
 
 	SHA256_Update(&context->sha, data, size);
@@ -118,7 +122,8 @@ randomdev_encrypt_init(union randomdev_key *context, const void *data)
 		chacha_keysetup(&context->chacha, data, RANDOM_KEYSIZE * 8);
 	} else {
 		rijndael_cipherInit(&context->cipher, MODE_ECB, NULL);
-		rijndael_makeKey(&context->key, DIR_ENCRYPT, RANDOM_KEYSIZE*8, data);
+		rijndael_makeKey(&context->key, DIR_ENCRYPT, RANDOM_KEYSIZE * 8,
+		    data);
 	}
 }
 
@@ -131,8 +136,8 @@ randomdev_encrypt_init(union randomdev_key *context, const void *data)
  * RANDOM_BLOCKSIZE.
  */
 void
-randomdev_keystream(union randomdev_key *context, uint128_t *ctr,
-    void *d_out, size_t bytecount)
+randomdev_keystream(union randomdev_key *context, uint128_t *ctr, void *d_out,
+    size_t bytecount)
 {
 	size_t i, blockcount, read_chunk;
 
@@ -173,7 +178,8 @@ randomdev_keystream(union randomdev_key *context, uint128_t *ctr,
 	} else {
 		KASSERT(bytecount % RANDOM_BLOCKSIZE == 0,
 		    ("%s: AES mode invalid bytecount, not a multiple of native "
-		     "block size", __func__));
+		     "block size",
+			__func__));
 
 		blockcount = bytecount / RANDOM_BLOCKSIZE;
 		for (i = 0; i < blockcount; i++) {

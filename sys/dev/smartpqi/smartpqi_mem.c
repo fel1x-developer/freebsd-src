@@ -23,7 +23,6 @@
  * SUCH DAMAGE.
  */
 
-
 #include "smartpqi_includes.h"
 
 MALLOC_DEFINE(M_SMARTPQI, "smartpqi", "Buffers for the smartpqi driver");
@@ -76,39 +75,42 @@ os_dma_mem_alloc(pqisrc_softstate_t *softs, struct dma_mem *dma_mem)
 
 	/* DMA memory needed - allocate it */
 	if ((ret = bus_dma_tag_create(
-		softs->os_specific.pqi_parent_dmat, /* parent */
-		dma_mem->align, 0,	/* algnmnt, boundary */
-		BUS_SPACE_MAXADDR,      /* lowaddr */
-		BUS_SPACE_MAXADDR, 	/* highaddr */
-		NULL, NULL, 		/* filter, filterarg */
-		dma_mem->size, 		/* maxsize */
-		1,			/* nsegments */
-		dma_mem->size,		/* maxsegsize */
-		0,			/* flags */
-		NULL, NULL,		/* No locking needed */
-		&dma_mem->dma_tag)) != 0 ) {
-	        DBG_ERR("can't allocate DMA tag with error = 0x%x\n", ret);
+		 softs->os_specific.pqi_parent_dmat, /* parent */
+		 dma_mem->align, 0,		     /* algnmnt, boundary */
+		 BUS_SPACE_MAXADDR,		     /* lowaddr */
+		 BUS_SPACE_MAXADDR,		     /* highaddr */
+		 NULL, NULL,			     /* filter, filterarg */
+		 dma_mem->size,			     /* maxsize */
+		 1,				     /* nsegments */
+		 dma_mem->size,			     /* maxsegsize */
+		 0,				     /* flags */
+		 NULL, NULL,			     /* No locking needed */
+		 &dma_mem->dma_tag)) != 0) {
+		DBG_ERR("can't allocate DMA tag with error = 0x%x\n", ret);
 		goto err_out;
 	}
 
 	if (!dma_mem->dma_tag) {
-	        DBG_ERR("dma tag is NULL\n");
+		DBG_ERR("dma tag is NULL\n");
 		ret = ENOMEM;
 		goto err_out;
 	}
 
-	if ((ret = bus_dmamem_alloc(dma_mem->dma_tag, (void **)&dma_mem->virt_addr,
-		BUS_DMA_NOWAIT, &dma_mem->dma_map)) != 0) {
+	if ((ret = bus_dmamem_alloc(dma_mem->dma_tag,
+		 (void **)&dma_mem->virt_addr, BUS_DMA_NOWAIT,
+		 &dma_mem->dma_map)) != 0) {
 		DBG_ERR("can't allocate DMA memory for required object \
-				with error = 0x%x\n", ret);
+				with error = 0x%x\n",
+		    ret);
 		goto err_mem;
 	}
 
-	if((ret = bus_dmamap_load(dma_mem->dma_tag, dma_mem->dma_map,
-		dma_mem->virt_addr, dma_mem->size,
-		os_dma_map, &dma_mem->dma_addr, 0)) != 0) {
+	if ((ret = bus_dmamap_load(dma_mem->dma_tag, dma_mem->dma_map,
+		 dma_mem->virt_addr, dma_mem->size, os_dma_map,
+		 &dma_mem->dma_addr, 0)) != 0) {
 		DBG_ERR("can't load DMA memory for required \
-			object with error = 0x%x\n", ret);
+			object with error = 0x%x\n",
+		    ret);
 		goto err_load;
 	}
 
@@ -120,11 +122,11 @@ os_dma_mem_alloc(pqisrc_softstate_t *softs, struct dma_mem *dma_mem)
 	return ret;
 
 err_load:
-	if(dma_mem->virt_addr)
+	if (dma_mem->virt_addr)
 		bus_dmamem_free(dma_mem->dma_tag, dma_mem->virt_addr,
-				dma_mem->dma_map);
+		    dma_mem->dma_map);
 err_mem:
-	if(dma_mem->dma_tag)
+	if (dma_mem->dma_tag)
 		bus_dma_tag_destroy(dma_mem->dma_tag);
 err_out:
 	DBG_FUNC("failed OUT\n");
@@ -142,18 +144,18 @@ os_dma_mem_free(pqisrc_softstate_t *softs, struct dma_mem *dma_mem)
 {
 	/* DBG_FUNC("IN\n"); */
 
-	if(dma_mem->dma_addr) {
+	if (dma_mem->dma_addr) {
 		bus_dmamap_unload(dma_mem->dma_tag, dma_mem->dma_map);
 		dma_mem->dma_addr = 0;
 	}
 
-	if(dma_mem->virt_addr) {
+	if (dma_mem->virt_addr) {
 		bus_dmamem_free(dma_mem->dma_tag, dma_mem->virt_addr,
-					dma_mem->dma_map);
+		    dma_mem->dma_map);
 		dma_mem->virt_addr = NULL;
 	}
 
-	if(dma_mem->dma_tag) {
+	if (dma_mem->dma_tag) {
 		bus_dma_tag_destroy(dma_mem->dma_tag);
 		dma_mem->dma_tag = NULL;
 	}
@@ -161,19 +163,17 @@ os_dma_mem_free(pqisrc_softstate_t *softs, struct dma_mem *dma_mem)
 	/* DBG_FUNC("OUT\n");  */
 }
 
-
 /*
  * Mem resource allocation wrapper function
  */
-void
-*os_mem_alloc(pqisrc_softstate_t *softs, size_t size)
+void *
+os_mem_alloc(pqisrc_softstate_t *softs, size_t size)
 {
 	void *addr;
 
 	/* DBG_FUNC("IN\n");  */
 
-	addr = malloc((unsigned long)size, M_SMARTPQI,
-			M_NOWAIT | M_ZERO);
+	addr = malloc((unsigned long)size, M_SMARTPQI, M_NOWAIT | M_ZERO);
 
 	/* DBG_FUNC("OUT\n"); */
 
@@ -188,7 +188,7 @@ os_mem_free(pqisrc_softstate_t *softs, void *addr, size_t size)
 {
 	/* DBG_FUNC("IN\n"); */
 
-	free((void*)addr, M_SMARTPQI);
+	free((void *)addr, M_SMARTPQI);
 
 	/* DBG_FUNC("OUT\n"); */
 }
@@ -199,12 +199,11 @@ os_mem_free(pqisrc_softstate_t *softs, void *addr, size_t size)
 void
 os_resource_free(pqisrc_softstate_t *softs)
 {
-	if(softs->os_specific.pqi_parent_dmat)
+	if (softs->os_specific.pqi_parent_dmat)
 		bus_dma_tag_destroy(softs->os_specific.pqi_parent_dmat);
 
 	if (softs->os_specific.pqi_regs_res0 != NULL)
-                bus_release_resource(softs->os_specific.pqi_dev,
-				SYS_RES_MEMORY,
-				softs->os_specific.pqi_regs_rid0,
-				softs->os_specific.pqi_regs_res0);
+		bus_release_resource(softs->os_specific.pqi_dev, SYS_RES_MEMORY,
+		    softs->os_specific.pqi_regs_rid0,
+		    softs->os_specific.pqi_regs_res0);
 }

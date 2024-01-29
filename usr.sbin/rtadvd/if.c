@@ -33,54 +33,55 @@
  */
 
 #include <sys/param.h>
+#include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
-#include <sys/ioctl.h>
+
+#include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_dl.h>
 #include <net/if_types.h>
-#include <net/ethernet.h>
 #include <net/route.h>
+#include <netinet/icmp6.h>
 #include <netinet/in.h>
 #include <netinet/in_var.h>
 #include <netinet/ip6.h>
-#include <netinet/icmp6.h>
 #include <netinet6/nd6.h>
-#include <unistd.h>
+
 #include <errno.h>
 #include <netdb.h>
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
+#include <unistd.h>
 
+#include "if.h"
 #include "pathnames.h"
 #include "rtadvd.h"
-#include "if.h"
 
-#define ROUNDUP(a, size)					\
-	(((a) & ((size)-1)) ? (1 + ((a) | ((size)-1))) : (a))
+#define ROUNDUP(a, size) (((a) & ((size)-1)) ? (1 + ((a) | ((size)-1))) : (a))
 
-#define	NEXT_SA(ap)							\
-	(ap) = (struct sockaddr *)((caddr_t)(ap) +			\
-	    ((ap)->sa_len ? ROUNDUP((ap)->sa_len, sizeof(u_long)) :	\
-	    sizeof(u_long)))
+#define NEXT_SA(ap)                                                 \
+	(ap) = (struct sockaddr *)((caddr_t)(ap) +                  \
+	    ((ap)->sa_len ? ROUNDUP((ap)->sa_len, sizeof(u_long)) : \
+			    sizeof(u_long)))
 
 struct sockaddr_in6 sin6_linklocal_allnodes = {
-        .sin6_len =     sizeof(sin6_linklocal_allnodes),
-        .sin6_family =  AF_INET6,
-        .sin6_addr =    IN6ADDR_LINKLOCAL_ALLNODES_INIT,
+	.sin6_len = sizeof(sin6_linklocal_allnodes),
+	.sin6_family = AF_INET6,
+	.sin6_addr = IN6ADDR_LINKLOCAL_ALLNODES_INIT,
 };
 
 struct sockaddr_in6 sin6_linklocal_allrouters = {
-        .sin6_len =     sizeof(sin6_linklocal_allrouters),
-        .sin6_family =  AF_INET6,
-        .sin6_addr =    IN6ADDR_LINKLOCAL_ALLROUTERS_INIT,
+	.sin6_len = sizeof(sin6_linklocal_allrouters),
+	.sin6_family = AF_INET6,
+	.sin6_addr = IN6ADDR_LINKLOCAL_ALLROUTERS_INIT,
 };
 
 struct sockaddr_in6 sin6_sitelocal_allrouters = {
-        .sin6_len =     sizeof(sin6_sitelocal_allrouters),
-        .sin6_family =  AF_INET6,
-        .sin6_addr =    IN6ADDR_SITELOCAL_ALLROUTERS_INIT,
+	.sin6_len = sizeof(sin6_sitelocal_allrouters),
+	.sin6_family = AF_INET6,
+	.sin6_addr = IN6ADDR_SITELOCAL_ALLROUTERS_INIT,
 };
 
 struct sockinfo sock = { .si_fd = -1, .si_name = NULL };
@@ -89,10 +90,9 @@ struct sockinfo ctrlsock = { .si_fd = -1, .si_name = _PATH_CTRL_SOCK };
 
 char *mcastif;
 
-static void		get_rtaddrs(int, struct sockaddr *,
-			    struct sockaddr **);
-static struct if_msghdr	*get_next_msghdr(struct if_msghdr *,
-			    struct if_msghdr *);
+static void get_rtaddrs(int, struct sockaddr *, struct sockaddr **);
+static struct if_msghdr *get_next_msghdr(struct if_msghdr *,
+    struct if_msghdr *);
 
 static void
 get_rtaddrs(int addrs, struct sockaddr *sa, struct sockaddr **rti_info)
@@ -103,13 +103,12 @@ get_rtaddrs(int addrs, struct sockaddr *sa, struct sockaddr **rti_info)
 		if (addrs & (1 << i)) {
 			rti_info[i] = sa;
 			NEXT_SA(sa);
-		}
-		else
+		} else
 			rti_info[i] = NULL;
 	}
 }
 
-#define ROUNDUP8(a) (1 + (((a) - 1) | 7))
+#define ROUNDUP8(a) (1 + (((a)-1) | 7))
 int
 lladdropt_length(struct sockaddr_dl *sdl)
 {
@@ -139,8 +138,8 @@ lladdropt_fill(struct sockaddr_dl *sdl, struct nd_opt_hdr *ndopt)
 		memcpy(addr, LLADDR(sdl), ETHER_ADDR_LEN);
 		break;
 	default:
-		syslog(LOG_ERR, "<%s> unsupported link type(%d)",
-		    __func__, sdl->sdl_type);
+		syslog(LOG_ERR, "<%s> unsupported link type(%d)", __func__,
+		    sdl->sdl_type);
 		exit(1);
 	}
 }
@@ -149,7 +148,7 @@ int
 rtbuf_len(void)
 {
 	size_t len;
-	int mib[6] = {CTL_NET, AF_ROUTE, 0, AF_INET6, NET_RT_DUMP, 0};
+	int mib[6] = { CTL_NET, AF_ROUTE, 0, AF_INET6, NET_RT_DUMP, 0 };
 
 	if (sysctl(mib, 6, NULL, &len, NULL, 0) < 0)
 		return (-1);
@@ -168,21 +167,21 @@ get_next_msg(char *buf, char *lim, int ifindex, size_t *lenp, int filter)
 	struct sockaddr *sa, *dst, *gw, *ifa, *rti_info[RTAX_MAX];
 
 	*lenp = 0;
-	for (rtm = (struct rt_msghdr *)buf;
-	     rtm < (struct rt_msghdr *)lim;
+	for (rtm = (struct rt_msghdr *)buf; rtm < (struct rt_msghdr *)lim;
 	     rtm = (struct rt_msghdr *)(((char *)rtm) + rtm->rtm_msglen)) {
 		/* just for safety */
 		if (!rtm->rtm_msglen) {
-			syslog(LOG_WARNING, "<%s> rtm_msglen is 0 "
-			    "(buf=%p lim=%p rtm=%p)", __func__,
-			    buf, lim, rtm);
+			syslog(LOG_WARNING,
+			    "<%s> rtm_msglen is 0 "
+			    "(buf=%p lim=%p rtm=%p)",
+			    __func__, buf, lim, rtm);
 			break;
 		}
 		if (((struct rt_msghdr *)buf)->rtm_version != RTM_VERSION) {
 			syslog(LOG_WARNING,
 			    "<%s> routing message version mismatch "
-			    "(buf=%p lim=%p rtm=%p)", __func__,
-			    buf, lim, rtm);
+			    "(buf=%p lim=%p rtm=%p)",
+			    __func__, buf, lim, rtm);
 			continue;
 		}
 
@@ -226,12 +225,12 @@ get_next_msg(char *buf, char *lim, int ifindex, size_t *lenp, int filter)
 			get_rtaddrs(ifam->ifam_addrs, sa, rti_info);
 			if ((ifa = rti_info[RTAX_IFA]) == NULL ||
 			    (ifa->sa_family != AF_INET &&
-			     ifa->sa_family != AF_INET6))
+				ifa->sa_family != AF_INET6))
 				continue;
 
 			if (ifa->sa_family == AF_INET6 &&
 			    (IN6_IS_ADDR_LINKLOCAL(&SIN6(ifa)->sin6_addr) ||
-			     IN6_IS_ADDR_MULTICAST(&SIN6(ifa)->sin6_addr)))
+				IN6_IS_ADDR_MULTICAST(&SIN6(ifa)->sin6_addr)))
 				continue;
 
 			if (ifindex && ifam->ifam_index != ifindex)
@@ -343,7 +342,7 @@ update_persist_ifinfo(struct ifilist_head_t *ifi_head, const char *ifname)
 
 	ifi = NULL;
 	ifindex = if_nametoindex(ifname);
-	TAILQ_FOREACH(ifi, ifi_head, ifi_next) {
+	TAILQ_FOREACH (ifi, ifi_head, ifi_next) {
 		if (ifindex != 0) {
 			if (ifindex == ifi->ifi_ifindex)
 				break;
@@ -356,8 +355,7 @@ update_persist_ifinfo(struct ifilist_head_t *ifi_head, const char *ifname)
 
 	if (ifi == NULL) {
 		/* A new ifinfo element is needed. */
-		syslog(LOG_DEBUG, "<%s> new entry: %s", __func__,
-		    ifname);
+		syslog(LOG_DEBUG, "<%s> new entry: %s", __func__, ifname);
 
 		ELM_MALLOC(ifi, exit(1));
 		ifi->ifi_ifindex = 0;
@@ -371,8 +369,8 @@ update_persist_ifinfo(struct ifilist_head_t *ifi_head, const char *ifname)
 
 	syslog(LOG_DEBUG, "<%s> %s is marked PERSIST", __func__,
 	    ifi->ifi_ifname);
-	syslog(LOG_DEBUG, "<%s> %s is state = %d", __func__,
-	    ifi->ifi_ifname, ifi->ifi_state);
+	syslog(LOG_DEBUG, "<%s> %s is state = %d", __func__, ifi->ifi_ifname,
+	    ifi->ifi_state);
 	return (ifi);
 }
 
@@ -384,14 +382,12 @@ update_ifinfo_nd_flags(struct ifinfo *ifi)
 	int error;
 
 	if ((s = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
-		syslog(LOG_ERR,
-		    "<%s> socket() failed.", __func__);
+		syslog(LOG_ERR, "<%s> socket() failed.", __func__);
 		return (1);
 	}
 	/* ND flags */
 	memset(&nd, 0, sizeof(nd));
-	strlcpy(nd.ifname, ifi->ifi_ifname,
-	    sizeof(nd.ifname));
+	strlcpy(nd.ifname, ifi->ifi_ifname, sizeof(nd.ifname));
 	error = ioctl(s, SIOCGIFINFO_IN6, (caddr_t)&nd);
 	if (error) {
 		close(s);
@@ -459,20 +455,18 @@ update_ifinfo(struct ifilist_head_t *ifi_head, int ifindex)
 	lim = msg + len;
 	for (ifm = (struct if_msghdr *)msg;
 	     ifm != NULL && ifm < (struct if_msghdr *)lim;
-	     ifm = get_next_msghdr(ifm,(struct if_msghdr *)lim)) {
+	     ifm = get_next_msghdr(ifm, (struct if_msghdr *)lim)) {
 		int ifi_new;
 
 		syslog(LOG_DEBUG, "<%s> ifm = %p, lim = %p, diff = %zu",
 		    __func__, ifm, lim, (char *)lim - (char *)ifm);
 
 		if (ifm->ifm_version != RTM_VERSION) {
-			syslog(LOG_ERR,
-			    "<%s> ifm_vesrion mismatch", __func__);
+			syslog(LOG_ERR, "<%s> ifm_vesrion mismatch", __func__);
 			exit(1);
 		}
 		if (ifm->ifm_msglen == 0) {
-			syslog(LOG_WARNING,
-			    "<%s> ifm_msglen is 0", __func__);
+			syslog(LOG_WARNING, "<%s> ifm_msglen is 0", __func__);
 			free(msg);
 			return (NULL);
 		}
@@ -483,7 +477,8 @@ update_ifinfo(struct ifilist_head_t *ifi_head, int ifindex)
 			int s;
 			char ifname[IFNAMSIZ];
 
-			syslog(LOG_DEBUG, "<%s> RTM_IFINFO found. "
+			syslog(LOG_DEBUG,
+			    "<%s> RTM_IFINFO found. "
 			    "ifm_index = %d, ifindex = %d",
 			    __func__, ifm->ifm_index, ifindex);
 
@@ -495,13 +490,13 @@ update_ifinfo(struct ifilist_head_t *ifi_head, int ifindex)
 			/* ifname */
 			if (if_indextoname(ifm->ifm_index, ifname) == NULL) {
 				syslog(LOG_WARNING,
-				    "<%s> ifname not found (idx=%d)",
-				    __func__, ifm->ifm_index);
+				    "<%s> ifname not found (idx=%d)", __func__,
+				    ifm->ifm_index);
 				continue;
 			}
 
 			/* lookup an entry with the same ifindex */
-			TAILQ_FOREACH(ifi, ifi_head, ifi_next) {
+			TAILQ_FOREACH (ifi, ifi_head, ifi_next) {
 				if (ifm->ifm_index == ifi->ifi_ifindex)
 					break;
 				if (strncmp(ifname, ifi->ifi_ifname,
@@ -509,8 +504,7 @@ update_ifinfo(struct ifilist_head_t *ifi_head, int ifindex)
 					break;
 			}
 			if (ifi == NULL) {
-				syslog(LOG_DEBUG,
-				    "<%s> new entry for idx=%d",
+				syslog(LOG_DEBUG, "<%s> new entry for idx=%d",
 				    __func__, ifm->ifm_index);
 				ELM_MALLOC(ifi, exit(1));
 				ifi->ifi_rainfo = NULL;
@@ -525,8 +519,8 @@ update_ifinfo(struct ifilist_head_t *ifi_head, int ifindex)
 			strlcpy(ifi->ifi_ifname, ifname, IFNAMSIZ);
 
 			if ((s = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
-				syslog(LOG_ERR,
-				    "<%s> socket() failed.", __func__);
+				syslog(LOG_ERR, "<%s> socket() failed.",
+				    __func__);
 				if (ifi_new)
 					free(ifi);
 				continue;
@@ -542,8 +536,7 @@ update_ifinfo(struct ifilist_head_t *ifi_head, int ifindex)
 				error = ioctl(s, SIOCGIFMTU, (caddr_t)&ifr);
 				if (error) {
 					close(s);
-					syslog(LOG_ERR,
-					    "<%s> ioctl() failed.",
+					syslog(LOG_ERR, "<%s> ioctl() failed.",
 					    __func__);
 					if (ifi_new)
 						free(ifi);
@@ -579,8 +572,7 @@ update_ifinfo(struct ifilist_head_t *ifi_head, int ifindex)
 					    sizeof(ifi->ifi_sdl));
 				}
 			} else
-				memset(&ifi->ifi_sdl, 0,
-				    sizeof(ifi->ifi_sdl));
+				memset(&ifi->ifi_sdl, 0, sizeof(ifi->ifi_sdl));
 
 			/* flags */
 			ifi->ifi_flags = ifm->ifm_flags;
@@ -596,8 +588,7 @@ update_ifinfo(struct ifilist_head_t *ifi_head, int ifindex)
 		}
 
 		if (ifi_new) {
-			syslog(LOG_DEBUG,
-			    "<%s> adding %s(idx=%d) to ifilist",
+			syslog(LOG_DEBUG, "<%s> adding %s(idx=%d) to ifilist",
 			    __func__, ifi->ifi_ifname, ifi->ifi_ifindex);
 			TAILQ_INSERT_TAIL(ifi_head, ifi, ifi_next);
 		}
@@ -622,8 +613,7 @@ get_next_msghdr(struct if_msghdr *ifm, struct if_msghdr *lim)
 	     ifam < (struct ifa_msghdr *)lim;
 	     ifam = (struct ifa_msghdr *)((char *)ifam + ifam->ifam_msglen)) {
 		if (!ifam->ifam_msglen) {
-			syslog(LOG_WARNING,
-			    "<%s> ifa_msglen is 0", __func__);
+			syslog(LOG_WARNING, "<%s> ifa_msglen is 0", __func__);
 			return (NULL);
 		}
 		if (ifam->ifam_type != RTM_NEWADDR)
@@ -642,17 +632,14 @@ getinet6sysctl(int code)
 
 	mib[3] = code;
 	size = sizeof(value);
-	if (sysctl(mib, sizeof(mib)/sizeof(mib[0]), &value, &size, NULL, 0)
-	    < 0) {
+	if (sysctl(mib, sizeof(mib) / sizeof(mib[0]), &value, &size, NULL, 0) <
+	    0) {
 		syslog(LOG_ERR, "<%s>: failed to get ip6 sysctl(%d): %s",
-		    __func__, code,
-		    strerror(errno));
+		    __func__, code, strerror(errno));
 		return (-1);
-	}
-	else
+	} else
 		return (value);
 }
-
 
 int
 sock_mc_join(struct sockinfo *s, int ifindex)
@@ -678,14 +665,11 @@ sock_mc_join(struct sockinfo *s, int ifindex)
 	mreq.ipv6mr_interface = ifindex;
 	if (setsockopt(s->si_fd, IPPROTO_IPV6, IPV6_JOIN_GROUP, &mreq,
 		sizeof(mreq)) < 0) {
-		syslog(LOG_ERR,
-		    "<%s> IPV6_JOIN_GROUP(link) on %s: %s",
-		    __func__, if_indextoname(ifindex, ifname),
-		    strerror(errno));
+		syslog(LOG_ERR, "<%s> IPV6_JOIN_GROUP(link) on %s: %s",
+		    __func__, if_indextoname(ifindex, ifname), strerror(errno));
 		return (1);
 	}
-	syslog(LOG_DEBUG,
-	    "<%s> %s: join link-local all-routers MC group",
+	syslog(LOG_DEBUG, "<%s> %s: join link-local all-routers MC group",
 	    __func__, if_indextoname(ifindex, ifname));
 
 	return (0);
@@ -716,14 +700,11 @@ sock_mc_leave(struct sockinfo *s, int ifindex)
 	mreq.ipv6mr_interface = ifindex;
 	if (setsockopt(s->si_fd, IPPROTO_IPV6, IPV6_LEAVE_GROUP, &mreq,
 		sizeof(mreq)) < 0) {
-		syslog(LOG_ERR,
-		    "<%s> IPV6_JOIN_LEAVE(link) on %s: %s",
-		    __func__, if_indextoname(ifindex, ifname),
-		    strerror(errno));
+		syslog(LOG_ERR, "<%s> IPV6_JOIN_LEAVE(link) on %s: %s",
+		    __func__, if_indextoname(ifindex, ifname), strerror(errno));
 		return (1);
 	}
-	syslog(LOG_DEBUG,
-	    "<%s> %s: leave link-local all-routers MC group",
+	syslog(LOG_DEBUG, "<%s> %s: leave link-local all-routers MC group",
 	    __func__, if_indextoname(ifindex, ifname));
 
 	return (0);
@@ -747,22 +728,18 @@ sock_mc_rr_update(struct sockinfo *s, char *mif)
 	    &sin6_sitelocal_allrouters.sin6_addr,
 	    sizeof(mreq.ipv6mr_multiaddr.s6_addr));
 	if ((mreq.ipv6mr_interface = if_nametoindex(mif)) == 0) {
-		syslog(LOG_ERR,
-		    "<%s> invalid interface: %s",
-		    __func__, mif);
+		syslog(LOG_ERR, "<%s> invalid interface: %s", __func__, mif);
 		return (1);
 	}
 
-	if (setsockopt(s->si_fd, IPPROTO_IPV6, IPV6_JOIN_GROUP,
-		&mreq, sizeof(mreq)) < 0) {
-		syslog(LOG_ERR,
-		    "<%s> IPV6_JOIN_GROUP(site) on %s: %s",
+	if (setsockopt(s->si_fd, IPPROTO_IPV6, IPV6_JOIN_GROUP, &mreq,
+		sizeof(mreq)) < 0) {
+		syslog(LOG_ERR, "<%s> IPV6_JOIN_GROUP(site) on %s: %s",
 		    __func__, mif, strerror(errno));
 		return (1);
 	}
 
-	syslog(LOG_DEBUG,
-	    "<%s> %s: join site-local all-routers MC group",
+	syslog(LOG_DEBUG, "<%s> %s: join site-local all-routers MC group",
 	    __func__, mif);
 
 	return (0);

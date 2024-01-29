@@ -37,13 +37,13 @@
  */
 #include "tip.h"
 
-static	jmp_buf Sjbuf;
+static jmp_buf Sjbuf;
 
-static void	vawrite(char *, int);
-static int	expect(char *);
-static void	alarmtr(int);
-static int	notin(char *, char *);
-static int	prefix(char *, char *);
+static void vawrite(char *, int);
+static int expect(char *);
+static void alarmtr(int);
+static int notin(char *, char *);
+static int prefix(char *, char *);
 
 int
 v3451_dialer(char *num, char *acu)
@@ -89,7 +89,7 @@ v3451_dialer(char *num, char *acu)
 #endif
 		return (0);
 	}
-	func = signal(SIGINT,SIG_IGN);
+	func = signal(SIGINT, SIG_IGN);
 	/*
 	 * You cannot interrupt the Vadic when its dialing;
 	 * even dropping DTR does not work (definitely a
@@ -161,7 +161,7 @@ expect(char *cp)
 	if (setjmp(Sjbuf))
 		return (0);
 	alarm(timeout);
-	while (notin(cp, buf) && rp < buf + sizeof (buf) - 1) {
+	while (notin(cp, buf) && rp < buf + sizeof(buf) - 1) {
 		if (online && notin("FAILED CALL", buf) == 0)
 			return (0);
 		if (read(FD, rp, 1) < 0) {

@@ -34,61 +34,49 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/socket.h>
-#include <sys/bus.h>
+
+#include <dev/mii/atphyreg.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
 
 #include <net/if.h>
 #include <net/if_media.h>
 
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include "miidevs.h"
-
-#include <dev/mii/atphyreg.h>
-
 #include "miibus_if.h"
+#include "miidevs.h"
 
 static int atphy_probe(device_t);
 static int atphy_attach(device_t);
 
 static device_method_t atphy_methods[] = {
 	/* Device interface. */
-	DEVMETHOD(device_probe,		atphy_probe),
-	DEVMETHOD(device_attach,	atphy_attach),
-	DEVMETHOD(device_detach,	mii_phy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, atphy_probe),
+	DEVMETHOD(device_attach, atphy_attach),
+	DEVMETHOD(device_detach, mii_phy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), DEVMETHOD_END
 };
 
-static driver_t atphy_driver = {
-	"atphy",
-	atphy_methods,
-	sizeof(struct mii_softc)
-};
+static driver_t atphy_driver = { "atphy", atphy_methods,
+	sizeof(struct mii_softc) };
 
 DRIVER_MODULE(atphy, miibus, atphy_driver, 0, 0);
 
-static int	atphy_service(struct mii_softc *, struct mii_data *, int);
-static void	atphy_status(struct mii_softc *);
-static void	atphy_reset(struct mii_softc *);
-static uint16_t	atphy_anar(struct ifmedia_entry *);
-static int	atphy_setmedia(struct mii_softc *, int);
+static int atphy_service(struct mii_softc *, struct mii_data *, int);
+static void atphy_status(struct mii_softc *);
+static void atphy_reset(struct mii_softc *);
+static uint16_t atphy_anar(struct ifmedia_entry *);
+static int atphy_setmedia(struct mii_softc *, int);
 
-static const struct mii_phydesc atphys[] = {
-	MII_PHY_DESC(xxATHEROS, F1),
-	MII_PHY_DESC(xxATHEROS, F1_7),
-	MII_PHY_DESC(xxATHEROS, AR8021),
-	MII_PHY_DESC(xxATHEROS, F2),
-	MII_PHY_END
-};
+static const struct mii_phydesc atphys[] = { MII_PHY_DESC(xxATHEROS, F1),
+	MII_PHY_DESC(xxATHEROS, F1_7), MII_PHY_DESC(xxATHEROS, AR8021),
+	MII_PHY_DESC(xxATHEROS, F2), MII_PHY_END };
 
-static const struct mii_phy_funcs atphy_funcs = {
-	atphy_service,
-	atphy_status,
-	atphy_reset
-};
+static const struct mii_phy_funcs atphy_funcs = { atphy_service, atphy_status,
+	atphy_reset };
 
 static int
 atphy_probe(device_t dev)
@@ -154,17 +142,17 @@ atphy_service(struct mii_softc *sc, struct mii_data *mii, int cmd)
 				anar |= ANAR_PAUSE_TOWARDS;
 		}
 
-		if ((sc->mii_extcapabilities & (EXTSR_1000TFDX |
-		    EXTSR_1000THDX)) != 0)
+		if ((sc->mii_extcapabilities &
+			(EXTSR_1000TFDX | EXTSR_1000THDX)) != 0)
 			PHY_WRITE(sc, MII_100T2CR, 0);
 		PHY_WRITE(sc, MII_ANAR, anar | ANAR_CSMA);
 
 		/*
 		 * Reset the PHY so all changes take effect.
 		 */
-		PHY_WRITE(sc, MII_BMCR, bmcr | BMCR_RESET | BMCR_AUTOEN |
-		    BMCR_STARTNEG);
-done:
+		PHY_WRITE(sc, MII_BMCR,
+		    bmcr | BMCR_RESET | BMCR_AUTOEN | BMCR_STARTNEG);
+	done:
 		break;
 
 	case MII_TICK:
@@ -262,7 +250,7 @@ atphy_status(struct mii_softc *sc)
 		mii->mii_media_active |= IFM_FDX | mii_phy_flowstatus(sc);
 	else
 		mii->mii_media_active |= IFM_HDX;
-		
+
 	if ((IFM_SUBTYPE(mii->mii_media_active) == IFM_1000_T) &&
 	    (PHY_READ(sc, MII_100T2SR) & GTSR_MS_RES) != 0)
 		mii->mii_media_active |= IFM_ETH_MASTER;
@@ -339,14 +327,12 @@ atphy_setmedia(struct mii_softc *sc, int media)
 
 	anar = BMSR_MEDIA_TO_ANAR(sc->mii_capabilities) | ANAR_CSMA;
 	if ((IFM_SUBTYPE(media) == IFM_AUTO || (media & IFM_FDX) != 0) &&
-	    ((media & IFM_FLOW) != 0 ||
-	    (sc->mii_flags & MIIF_FORCEPAUSE) != 0))
+	    ((media & IFM_FLOW) != 0 || (sc->mii_flags & MIIF_FORCEPAUSE) != 0))
 		anar |= ANAR_PAUSE_TOWARDS;
 	PHY_WRITE(sc, MII_ANAR, anar);
-	if ((sc->mii_extcapabilities &
-	     (EXTSR_1000TFDX | EXTSR_1000THDX)) != 0)
-		PHY_WRITE(sc, MII_100T2CR, GTCR_ADV_1000TFDX |
-		    GTCR_ADV_1000THDX);
+	if ((sc->mii_extcapabilities & (EXTSR_1000TFDX | EXTSR_1000THDX)) != 0)
+		PHY_WRITE(sc, MII_100T2CR,
+		    GTCR_ADV_1000TFDX | GTCR_ADV_1000THDX);
 	else if (sc->mii_mpd_model == MII_MODEL_xxATHEROS_F1) {
 		/*
 		 * AR8132 has 10/100 PHY and the PHY uses the same

@@ -49,7 +49,8 @@
  *
  * malloc(9) allocation type used by the resource manager code.
  */
-MALLOC_DEFINE(M_ICE_RESMGR, "ice-resmgr", "Intel(R) 100Gb Network Driver resmgr allocations");
+MALLOC_DEFINE(M_ICE_RESMGR, "ice-resmgr",
+    "Intel(R) 100Gb Network Driver resmgr allocations");
 
 /*
  * Public resource manager allocation functions
@@ -210,9 +211,9 @@ err_no_space:
  * @idx: previously assigned resource mapping
  * @num_res: number of resources in the mapping
  *
- * Clears the assignment of each resource in the provided resource index. Updates
- * the idx to indicate that each of the virtual indexes have invalid resource
- * mappings by assigning them to ICE_INVALID_RES_IDX.
+ * Clears the assignment of each resource in the provided resource index.
+ * Updates the idx to indicate that each of the virtual indexes have invalid
+ * resource mappings by assigning them to ICE_INVALID_RES_IDX.
  */
 void
 ice_resmgr_release_map(struct ice_resmgr *resmgr, u16 *idx, u16 num_res)

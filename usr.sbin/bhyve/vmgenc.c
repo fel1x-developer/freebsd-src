@@ -29,26 +29,26 @@
 #include <sys/mman.h>
 #include <sys/uuid.h>
 
+#include <machine/vmm.h>
+
 #include <assert.h>
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <pthread.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <stdbool.h>
 #include <unistd.h>
-
-#include <machine/vmm.h>
 #include <vmmapi.h>
 
 #include "acpi.h"
 #include "bootrom.h"
 #include "vmgenc.h"
 
-static uint64_t	vmgen_gpa;
+static uint64_t vmgen_gpa;
 
 void
 vmgenc_init(struct vmctx *ctx)
@@ -69,7 +69,7 @@ vmgenc_init(struct vmctx *ctx)
 	if (error == -1)
 		err(4, "%s: getentropy", __func__);
 
-	/* XXX When we have suspend/resume/rollback. */
+		/* XXX When we have suspend/resume/rollback. */
 #if 0
 	acpi_raise_gpe(ctx, GPE_VMGENC);
 #endif
@@ -101,9 +101,9 @@ vmgenc_write_dsdt(void)
 	dsdt_line("})");
 
 	dsdt_unindent(2);
-	dsdt_line("  }");	/* Device (GENC) */
+	dsdt_line("  }"); /* Device (GENC) */
 
-	dsdt_line("}");		/* Scope (_SB) */
+	dsdt_line("}"); /* Scope (_SB) */
 	dsdt_line("");
 
 	dsdt_line("Scope (_GPE)");

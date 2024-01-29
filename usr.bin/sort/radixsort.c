@@ -28,8 +28,9 @@
  */
 
 #include <sys/cdefs.h>
-#include <errno.h>
+
 #include <err.h>
+#include <errno.h>
 #include <langinfo.h>
 #include <math.h>
 #if defined(SORT_THREADS)
@@ -38,9 +39,9 @@
 #endif
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <wchar.h>
 #include <wctype.h>
-#include <unistd.h>
 
 #include "coll.h"
 #include "radixsort.h"
@@ -54,29 +55,28 @@
 static bool reverse_sort;
 
 /* sort sub-levels array size */
-static const size_t slsz = 256 * sizeof(struct sort_level*);
+static const size_t slsz = 256 * sizeof(struct sort_level *);
 
 /* one sort level structure */
-struct sort_level
-{
-	struct sort_level	**sublevels;
-	struct sort_list_item	**leaves;
-	struct sort_list_item	**sorted;
-	struct sort_list_item	**tosort;
-	size_t			  leaves_num;
-	size_t			  leaves_sz;
-	size_t			  level;
-	size_t			  real_sln;
-	size_t			  start_position;
-	size_t			  sln;
-	size_t			  tosort_num;
-	size_t			  tosort_sz;
+struct sort_level {
+	struct sort_level **sublevels;
+	struct sort_list_item **leaves;
+	struct sort_list_item **sorted;
+	struct sort_list_item **tosort;
+	size_t leaves_num;
+	size_t leaves_sz;
+	size_t level;
+	size_t real_sln;
+	size_t start_position;
+	size_t sln;
+	size_t tosort_num;
+	size_t tosort_sz;
 };
 
 /* stack of sort levels ready to be sorted */
 struct level_stack {
-	struct level_stack	 *next;
-	struct sort_level	 *sl;
+	struct level_stack *next;
+	struct sort_level *sl;
 };
 
 static struct level_stack *g_ls;
@@ -160,7 +160,7 @@ push_ls(struct sort_level *sl)
 /*
  * Pop sort level from the stack (single-threaded style)
  */
-static inline struct sort_level*
+static inline struct sort_level *
 pop_ls_st(void)
 {
 	struct sort_level *sl;
@@ -183,7 +183,7 @@ pop_ls_st(void)
 /*
  * Pop sort level from the stack (multi-threaded style)
  */
-static inline struct sort_level*
+static inline struct sort_level *
 pop_ls_mt(void)
 {
 	struct level_stack *saved_ls;
@@ -234,7 +234,7 @@ add_to_sublevel(struct sort_level *sl, struct sort_list_item *item, size_t indx)
 	if (++(ssl->tosort_num) > ssl->tosort_sz) {
 		ssl->tosort_sz = ssl->tosort_num + 128;
 		ssl->tosort = sort_realloc(ssl->tosort,
-		    sizeof(struct sort_list_item*) * (ssl->tosort_sz));
+		    sizeof(struct sort_list_item *) * (ssl->tosort_sz));
 	}
 
 	ssl->tosort[ssl->tosort_num - 1] = item;
@@ -247,7 +247,7 @@ add_leaf(struct sort_level *sl, struct sort_list_item *item)
 	if (++(sl->leaves_num) > sl->leaves_sz) {
 		sl->leaves_sz = sl->leaves_num + 128;
 		sl->leaves = sort_realloc(sl->leaves,
-		    (sizeof(struct sort_list_item*) * (sl->leaves_sz)));
+		    (sizeof(struct sort_list_item *) * (sl->leaves_sz)));
 	}
 	sl->leaves[sl->leaves_num - 1] = item;
 }
@@ -354,7 +354,7 @@ run_sort_level_next(struct sort_level *sl)
 		 * character this level references.
 		 */
 		if (list_coll_offset(&(sl->tosort[0]), &(sl->tosort[1]),
-		    sl->level / wcfact) > 0) {
+			sl->level / wcfact) > 0) {
 			sl->sorted[sl->start_position++] = sl->tosort[1];
 			sl->sorted[sl->start_position] = sl->tosort[0];
 		} else {
@@ -381,7 +381,7 @@ run_sort_level_next(struct sort_level *sl)
 			sl->leaves_sz = sl->leaves_num;
 			sl->leaves = sort_realloc(sl->leaves,
 			    (sizeof(struct sort_list_item *) *
-			    (sl->leaves_sz)));
+				(sl->leaves_sz)));
 			sl->tosort = NULL;
 			sl->tosort_num = 0;
 			sl->tosort_sz = 0;
@@ -389,18 +389,19 @@ run_sort_level_next(struct sort_level *sl)
 			sl->real_sln = 0;
 			if (sort_opts_vals.sflag) {
 				if (mergesort(sl->leaves, sl->leaves_num,
-				    sizeof(struct sort_list_item *),
-				    (int(*)(const void *, const void *)) func) == -1)
+					sizeof(struct sort_list_item *),
+					(int (*)(const void *,
+					    const void *))func) == -1)
 					/* NOTREACHED */
 					err(2, "Radix sort error 3");
 			} else
-				DEFAULT_SORT_FUNC_RADIXSORT(sl->leaves, sl->leaves_num,
+				DEFAULT_SORT_FUNC_RADIXSORT(sl->leaves,
+				    sl->leaves_num,
 				    sizeof(struct sort_list_item *),
-				    (int(*)(const void *, const void *)) func);
+				    (int (*)(const void *, const void *))func);
 
-			memcpy(sl->sorted + sl->start_position,
-			    sl->leaves, sl->leaves_num *
-			    sizeof(struct sort_list_item*));
+			memcpy(sl->sorted + sl->start_position, sl->leaves,
+			    sl->leaves_num * sizeof(struct sort_list_item *));
 
 			sort_left_dec(sl->leaves_num);
 
@@ -408,7 +409,7 @@ run_sort_level_next(struct sort_level *sl)
 		} else {
 			sl->tosort_sz = sl->tosort_num;
 			sl->tosort = sort_realloc(sl->tosort,
-			    sizeof(struct sort_list_item*) * (sl->tosort_sz));
+			    sizeof(struct sort_list_item *) * (sl->tosort_sz));
 		}
 	}
 
@@ -431,26 +432,31 @@ run_sort_level_next(struct sort_level *sl)
 			if (sort_opts_vals.sflag) {
 				mergesort(sl->leaves, sl->leaves_num,
 				    sizeof(struct sort_list_item *),
-				    (int(*)(const void *, const void *)) list_coll);
+				    (int (*)(const void *,
+					const void *))list_coll);
 			} else {
-				DEFAULT_SORT_FUNC_RADIXSORT(sl->leaves, sl->leaves_num,
+				DEFAULT_SORT_FUNC_RADIXSORT(sl->leaves,
+				    sl->leaves_num,
 				    sizeof(struct sort_list_item *),
-				    (int(*)(const void *, const void *)) list_coll);
+				    (int (*)(const void *,
+					const void *))list_coll);
 			}
-		} else if (!sort_opts_vals.sflag && sort_opts_vals.complex_sort) {
+		} else if (!sort_opts_vals.sflag &&
+		    sort_opts_vals.complex_sort) {
 			DEFAULT_SORT_FUNC_RADIXSORT(sl->leaves, sl->leaves_num,
 			    sizeof(struct sort_list_item *),
-			    (int(*)(const void *, const void *)) list_coll_by_str_only);
+			    (int (*)(const void *,
+				const void *))list_coll_by_str_only);
 		}
 	}
 
 	sl->leaves_sz = sl->leaves_num;
-	sl->leaves = sort_realloc(sl->leaves, (sizeof(struct sort_list_item *) *
-	    (sl->leaves_sz)));
+	sl->leaves = sort_realloc(sl->leaves,
+	    (sizeof(struct sort_list_item *) * (sl->leaves_sz)));
 
 	if (!reverse_sort) {
 		memcpy(sl->sorted + sl->start_position, sl->leaves,
-		    sl->leaves_num * sizeof(struct sort_list_item*));
+		    sl->leaves_num * sizeof(struct sort_list_item *));
 		sl->start_position += sl->leaves_num;
 		sort_left_dec(sl->leaves_num);
 
@@ -498,7 +504,7 @@ run_sort_level_next(struct sort_level *sl)
 		}
 
 		memcpy(sl->sorted + sl->start_position, sl->leaves,
-		    sl->leaves_num * sizeof(struct sort_list_item*));
+		    sl->leaves_num * sizeof(struct sort_list_item *));
 		sort_left_dec(sl->leaves_num);
 	}
 
@@ -544,8 +550,8 @@ run_sort_cycle_mt(void)
 /*
  * Sort cycle thread (in multi-threaded mode)
  */
-static void*
-sort_thread(void* arg)
+static void *
+sort_thread(void *arg)
 {
 	run_sort_cycle_mt();
 	sem_post(&mtsem);
@@ -561,7 +567,7 @@ run_top_sort_level(struct sort_level *sl)
 	struct sort_level *slc;
 
 	reverse_sort = sort_opts_vals.kflag ? keys[0].sm.rflag :
-	    default_sort_mods->rflag;
+					      default_sort_mods->rflag;
 
 	sl->start_position = 0;
 	sl->sln = 256;
@@ -575,22 +581,27 @@ run_top_sort_level(struct sort_level *sl)
 			if (sort_opts_vals.sflag) {
 				mergesort(sl->leaves, sl->leaves_num,
 				    sizeof(struct sort_list_item *),
-				    (int(*)(const void *, const void *)) list_coll);
+				    (int (*)(const void *,
+					const void *))list_coll);
 			} else {
-				DEFAULT_SORT_FUNC_RADIXSORT(sl->leaves, sl->leaves_num,
+				DEFAULT_SORT_FUNC_RADIXSORT(sl->leaves,
+				    sl->leaves_num,
 				    sizeof(struct sort_list_item *),
-				    (int(*)(const void *, const void *)) list_coll);
+				    (int (*)(const void *,
+					const void *))list_coll);
 			}
-		} else if (!sort_opts_vals.sflag && sort_opts_vals.complex_sort) {
+		} else if (!sort_opts_vals.sflag &&
+		    sort_opts_vals.complex_sort) {
 			DEFAULT_SORT_FUNC_RADIXSORT(sl->leaves, sl->leaves_num,
 			    sizeof(struct sort_list_item *),
-			    (int(*)(const void *, const void *)) list_coll_by_str_only);
+			    (int (*)(const void *,
+				const void *))list_coll_by_str_only);
 		}
 	}
 
 	if (!reverse_sort) {
 		memcpy(sl->tosort + sl->start_position, sl->leaves,
-		    sl->leaves_num * sizeof(struct sort_list_item*));
+		    sl->leaves_num * sizeof(struct sort_list_item *));
 		sl->start_position += sl->leaves_num;
 		sort_left_dec(sl->leaves_num);
 
@@ -624,7 +635,7 @@ run_top_sort_level(struct sort_level *sl)
 		}
 
 		memcpy(sl->tosort + sl->start_position, sl->leaves,
-		    sl->leaves_num * sizeof(struct sort_list_item*));
+		    sl->leaves_num * sizeof(struct sort_list_item *));
 
 		sort_left_dec(sl->leaves_num);
 	}
@@ -637,7 +648,7 @@ run_top_sort_level(struct sort_level *sl)
 	} else {
 		size_t i;
 
-		for(i = 0; i < nthreads; ++i) {
+		for (i = 0; i < nthreads; ++i) {
 			pthread_attr_t attr;
 			pthread_t pth;
 
@@ -687,7 +698,6 @@ run_sort(struct sort_list_item **base, size_t nmemb)
 		pthread_mutexattr_destroy(&mattr);
 
 		sem_init(&mtsem, 0, 0);
-
 	}
 #endif
 

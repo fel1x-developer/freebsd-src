@@ -14,11 +14,11 @@
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation and/or other
- *    materials provided with the distribution.
+ *    this list of conditions and the following disclaimer in the documentation
+ *and/or other materials provided with the distribution.
  * 3. Neither the name of the Broadcom Inc. nor the names of its contributors
- *    may be used to endorse or promote products derived from this software without
- *    specific prior written permission.
+ *    may be used to endorse or promote products derived from this software
+ *without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -87,64 +87,64 @@ struct mpi3mr_target {
 	uint16_t slot;
 	uint16_t per_id;
 	uint8_t dev_type;
-	volatile uint8_t	is_hidden;
-	volatile uint8_t	dev_removed;
+	volatile uint8_t is_hidden;
+	volatile uint8_t dev_removed;
 	U8 dev_removedelay;
 	mpi3mr_atomic_t block_io;
 	uint8_t exposed_to_os;
 	uint16_t qdepth;
 	uint64_t wwid;
 	mpi3mr_form_spec_inf dev_spec;
-	uint16_t	tid;
-	uint16_t        exp_dev_handle;
-	uint16_t        phy_num;
-	uint64_t	sasaddr;
-	uint16_t	parent_handle;
-	uint64_t	parent_sasaddr;
-	uint32_t	parent_devinfo;
+	uint16_t tid;
+	uint16_t exp_dev_handle;
+	uint16_t phy_num;
+	uint64_t sasaddr;
+	uint16_t parent_handle;
+	uint64_t parent_sasaddr;
+	uint32_t parent_devinfo;
 	mpi3mr_atomic_t outstanding;
-	uint8_t		scsi_req_desc_type;
-	TAILQ_ENTRY(mpi3mr_target)	tgt_next;
-	uint16_t	handle;
-	uint8_t		link_rate;
-	uint8_t		encl_level_valid;
-	uint8_t		encl_level;
-	char		connector_name[4];
-	uint64_t	devname;
-	uint32_t	devinfo;
-	uint16_t	encl_handle;
-	uint16_t	encl_slot;
-	uint8_t		flags;
-#define MPI3MRSAS_TARGET_INREMOVAL	(1 << 3)
-	uint8_t		io_throttle_enabled;
-	uint8_t		io_divert;
+	uint8_t scsi_req_desc_type;
+	TAILQ_ENTRY(mpi3mr_target) tgt_next;
+	uint16_t handle;
+	uint8_t link_rate;
+	uint8_t encl_level_valid;
+	uint8_t encl_level;
+	char connector_name[4];
+	uint64_t devname;
+	uint32_t devinfo;
+	uint16_t encl_handle;
+	uint16_t encl_slot;
+	uint8_t flags;
+#define MPI3MRSAS_TARGET_INREMOVAL (1 << 3)
+	uint8_t io_throttle_enabled;
+	uint8_t io_divert;
 	struct mpi3mr_throttle_group_info *throttle_group;
-	uint64_t	q_depth;
+	uint64_t q_depth;
 	enum mpi3mr_target_state state;
 };
 
 struct mpi3mr_cam_softc {
-	struct mpi3mr_softc	*sc;
-	u_int			flags;
-#define MPI3MRSAS_IN_DISCOVERY	(1 << 0)
-#define MPI3MRSAS_IN_STARTUP	(1 << 1)
-#define MPI3MRSAS_DISCOVERY_TIMEOUT_PENDING	(1 << 2)
-#define MPI3MRSAS_QUEUE_FROZEN	(1 << 3)
-#define	MPI3MRSAS_SHUTDOWN		(1 << 4)
-	u_int			maxtargets;
-	struct cam_devq		*devq;
-	struct cam_sim		*sim;
-	struct cam_path		*path;
-	struct intr_config_hook	sas_ich;
-	struct callout		discovery_callout;
-	struct mpi3mr_event_handle	*mpi3mr_eh;
+	struct mpi3mr_softc *sc;
+	u_int flags;
+#define MPI3MRSAS_IN_DISCOVERY (1 << 0)
+#define MPI3MRSAS_IN_STARTUP (1 << 1)
+#define MPI3MRSAS_DISCOVERY_TIMEOUT_PENDING (1 << 2)
+#define MPI3MRSAS_QUEUE_FROZEN (1 << 3)
+#define MPI3MRSAS_SHUTDOWN (1 << 4)
+	u_int maxtargets;
+	struct cam_devq *devq;
+	struct cam_sim *sim;
+	struct cam_path *path;
+	struct intr_config_hook sas_ich;
+	struct callout discovery_callout;
+	struct mpi3mr_event_handle *mpi3mr_eh;
 
-	u_int                   startup_refcount;
-	struct proc             *sysctl_proc;
-	struct taskqueue	*ev_tq;
-	struct task		ev_task;
-	TAILQ_HEAD(, mpi3mr_fw_event_work)	ev_queue;
-	TAILQ_HEAD(, mpi3mr_target)		tgt_list;
+	u_int startup_refcount;
+	struct proc *sysctl_proc;
+	struct taskqueue *ev_tq;
+	struct task ev_task;
+	TAILQ_HEAD(, mpi3mr_fw_event_work) ev_queue;
+	TAILQ_HEAD(, mpi3mr_target) tgt_list;
 };
 
 MALLOC_DECLARE(M_MPI3MRSAS);
@@ -162,22 +162,24 @@ mpi3mr_get_ccbstatus(union ccb *ccb)
 	return (ccb->ccb_h.status & CAM_STATUS_MASK);
 }
 
-static __inline void mpi3mr_print_cdb(union ccb *ccb)
+static __inline void
+mpi3mr_print_cdb(union ccb *ccb)
 {
 	struct ccb_scsiio *csio;
 	struct mpi3mr_cam_softc *cam_sc;
 	struct cam_sim *sim;
 	int i;
-	
+
 	sim = xpt_path_sim(ccb->ccb_h.path);
 	cam_sc = cam_sim_softc(sim);
 
 	csio = &ccb->csio;
 
-	mpi3mr_dprint(cam_sc->sc, MPI3MR_INFO, "tgtID: %d  CDB: ", csio->ccb_h.target_id);
+	mpi3mr_dprint(cam_sc->sc, MPI3MR_INFO,
+	    "tgtID: %d  CDB: ", csio->ccb_h.target_id);
 	for (i = 0; i < csio->cdb_len; i++)
 		printf("%x ", csio->cdb_io.cdb_bytes[i]);
-	
+
 	printf("\n");
 }
 
@@ -190,10 +192,7 @@ void mpi3mr_startup_decrement(struct mpi3mr_cam_softc *sassc);
 
 void mpi3mr_firmware_event_work(void *arg, int pending);
 int mpi3mr_check_id(struct mpi3mr_cam_softc *sassc, int id);
-int
-mpi3mr_cam_attach(struct mpi3mr_softc *sc);
-int
-mpi3mr_cam_detach(struct mpi3mr_softc *sc);
-void
-mpi3mr_evt_handler(struct mpi3mr_softc *sc, uintptr_t data,
+int mpi3mr_cam_attach(struct mpi3mr_softc *sc);
+int mpi3mr_cam_detach(struct mpi3mr_softc *sc);
+void mpi3mr_evt_handler(struct mpi3mr_softc *sc, uintptr_t data,
     MPI3_EVENT_NOTIFICATION_REPLY *event);

@@ -27,13 +27,13 @@
  */
 
 #ifndef _UTXDB_H_
-#define	_UTXDB_H_
+#define _UTXDB_H_
 
 #include <stdint.h>
 
-#define	_PATH_UTX_ACTIVE	"/var/run/utx.active"
-#define	_PATH_UTX_LASTLOGIN	"/var/log/utx.lastlogin"
-#define	_PATH_UTX_LOG		"/var/log/utx.log"
+#define _PATH_UTX_ACTIVE "/var/run/utx.active"
+#define _PATH_UTX_LASTLOGIN "/var/log/utx.lastlogin"
+#define _PATH_UTX_LOG "/var/log/utx.log"
 
 /*
  * Entries in struct futx are ordered by how often they are used.  In
@@ -46,16 +46,16 @@
 struct utmpx;
 
 struct futx {
-	uint8_t		fu_type;
-	uint64_t	fu_tv;
-	char		fu_id[8];
-	uint32_t	fu_pid;
-	char		fu_user[32];
-	char		fu_line[16];
-	char		fu_host[128];
+	uint8_t fu_type;
+	uint64_t fu_tv;
+	char fu_id[8];
+	uint32_t fu_pid;
+	char fu_user[32];
+	char fu_line[16];
+	char fu_host[128];
 } __packed;
 
-void	utx_to_futx(const struct utmpx *, struct futx *);
+void utx_to_futx(const struct utmpx *, struct futx *);
 struct utmpx *futx_to_utx(const struct futx *);
 
 #endif /* !_UTXDB_H_ */

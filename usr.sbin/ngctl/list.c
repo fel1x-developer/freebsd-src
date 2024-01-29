@@ -4,7 +4,7 @@
  *
  * Copyright (c) 1996-1999 Whistle Communications, Inc.
  * All rights reserved.
- * 
+ *
  * Subject to the following obligations and disclaimer of warranty, use and
  * redistribution of this software, in source or object code forms, with or
  * without modifications are expressly permitted by Whistle Communications;
@@ -15,7 +15,7 @@
  *    Communications, Inc. trademarks, including the mark "WHISTLE
  *    COMMUNICATIONS" on advertising, endorsements, or otherwise except as
  *    such appears in the above copyright notice or in the software.
- * 
+ *
  * THIS SOFTWARE IS BEING PROVIDED BY WHISTLE COMMUNICATIONS "AS IS", AND
  * TO THE MAXIMUM EXTENT PERMITTED BY LAW, WHISTLE COMMUNICATIONS MAKES NO
  * REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED, REGARDING THIS SOFTWARE,
@@ -43,21 +43,18 @@
 
 #include "ngctl.h"
 
-#define UNNAMED		"<unnamed>"
+#define UNNAMED "<unnamed>"
 
 static int ListCmd(int ac, char **av);
 
-const struct ngcmd list_cmd = {
-	ListCmd,
-	"list [-ln]",
+const struct ngcmd list_cmd = { ListCmd, "list [-ln]",
 	"Show information about all nodes",
 	"The list command shows information about every node that currently"
 	" exists in the netgraph system. The optional -n argument limits"
 	" this list to only those nodes with a global name assignment."
 	" The optional -l argument provides verbose output that includes"
 	" hook information as well.",
-	{ "ls" }
-};
+	{ "ls" } };
 
 static int
 ListCmd(int ac, char **av)
@@ -98,7 +95,7 @@ ListCmd(int ac, char **av)
 
 	/* Get list of nodes */
 	if (NgSendMsg(csock, ".", NGM_GENERIC_COOKIE,
-	    named_only ? NGM_LISTNAMES : NGM_LISTNODES, NULL, 0) < 0) {
+		named_only ? NGM_LISTNAMES : NGM_LISTNODES, NULL, 0) < 0) {
 		warn("send msg");
 		return (CMDRTN_ERROR);
 	}
@@ -108,13 +105,13 @@ ListCmd(int ac, char **av)
 	}
 
 	/* Show each node */
-	nlist = (struct namelist *) resp->data;
-	printf("There are %d total %snodes:\n",
-	    nlist->numnames, named_only ? "named " : "");
+	nlist = (struct namelist *)resp->data;
+	printf("There are %d total %snodes:\n", nlist->numnames,
+	    named_only ? "named " : "");
 	ninfo = nlist->nodeinfo;
 	if (list_hooks) {
-		char	path[NG_PATHSIZ];
-		char	*argv[2] = { "show", path };
+		char path[NG_PATHSIZ];
+		char *argv[2] = { "show", path };
 
 		while (nlist->numnames > 0) {
 			snprintf(path, sizeof(path),
@@ -129,10 +126,10 @@ ListCmd(int ac, char **av)
 	} else {
 		while (nlist->numnames > 0) {
 			if (!*ninfo->name)
-				snprintf(ninfo->name, sizeof(ninfo->name),
-				    "%s", UNNAMED);
+				snprintf(ninfo->name, sizeof(ninfo->name), "%s",
+				    UNNAMED);
 			printf("  Name: %-15s Type: %-15s ID: %08x   "
-			    "Num hooks: %d\n",
+			       "Num hooks: %d\n",
 			    ninfo->name, ninfo->type, ninfo->id, ninfo->hooks);
 			ninfo++;
 			nlist->numnames--;
@@ -143,4 +140,3 @@ ListCmd(int ac, char **av)
 	free(resp);
 	return (rtn);
 }
-

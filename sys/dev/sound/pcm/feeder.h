@@ -41,13 +41,12 @@ struct feeder_class {
 };
 
 struct pcm_feeder {
-    	KOBJ_FIELDS;
+	KOBJ_FIELDS;
 	int align;
 	struct pcm_feederdesc *desc, desc_static;
 	void *data;
 	struct feeder_class *class;
 	struct pcm_feeder *source, *parent;
-
 };
 
 void feeder_register(void *p);
@@ -65,16 +64,16 @@ struct pcm_feeder *chn_findfeeder(struct pcm_channel *c, u_int32_t type);
 void feeder_printchain(struct pcm_feeder *head);
 int feeder_chain(struct pcm_channel *);
 
-#define FEEDER_DECLARE(feeder, pdata)					\
-static struct feeder_class feeder ## _class = {				\
-	.name =		#feeder,					\
-	.methods =	feeder ## _methods,				\
-	.size =		sizeof(struct pcm_feeder),			\
-	.desc =		feeder ## _desc,				\
-	.data =		pdata,						\
-};									\
-SYSINIT(feeder, SI_SUB_DRIVERS, SI_ORDER_ANY, feeder_register,		\
-    &feeder ## _class)
+#define FEEDER_DECLARE(feeder, pdata)                                  \
+	static struct feeder_class feeder##_class = {                  \
+		.name = #feeder,                                       \
+		.methods = feeder##_methods,                           \
+		.size = sizeof(struct pcm_feeder),                     \
+		.desc = feeder##_desc,                                 \
+		.data = pdata,                                         \
+	};                                                             \
+	SYSINIT(feeder, SI_SUB_DRIVERS, SI_ORDER_ANY, feeder_register, \
+	    &feeder##_class)
 
 enum {
 	FEEDER_ROOT,
@@ -88,30 +87,21 @@ enum {
 };
 
 /* feeder_format */
-enum {
-	FEEDFORMAT_CHANNELS
-};
+enum { FEEDFORMAT_CHANNELS };
 
 /* feeder_mixer */
-enum {
-	FEEDMIXER_CHANNELS
-};
+enum { FEEDMIXER_CHANNELS };
 
 /* feeder_rate */
-enum {
-	FEEDRATE_SRC,
-	FEEDRATE_DST,
-	FEEDRATE_QUALITY,
-	FEEDRATE_CHANNELS
-};
+enum { FEEDRATE_SRC, FEEDRATE_DST, FEEDRATE_QUALITY, FEEDRATE_CHANNELS };
 
-#define FEEDRATE_RATEMIN	1
-#define FEEDRATE_RATEMAX	2016000		/* 48000 * 42 */
-#define FEEDRATE_MIN		1
-#define FEEDRATE_MAX		0x7fffff	/* sign 24bit ~ 8ghz ! */
-#define FEEDRATE_ROUNDHZ	25
-#define FEEDRATE_ROUNDHZ_MIN	0
-#define FEEDRATE_ROUNDHZ_MAX	500
+#define FEEDRATE_RATEMIN 1
+#define FEEDRATE_RATEMAX 2016000 /* 48000 * 42 */
+#define FEEDRATE_MIN 1
+#define FEEDRATE_MAX 0x7fffff /* sign 24bit ~ 8ghz ! */
+#define FEEDRATE_ROUNDHZ 25
+#define FEEDRATE_ROUNDHZ_MIN 0
+#define FEEDRATE_ROUNDHZ_MAX 500
 
 extern int feeder_rate_min;
 extern int feeder_rate_max;
@@ -185,12 +175,12 @@ enum {
 	FEEDMATRIX_TYPE_2X2
 };
 
-#define FEEDMATRIX_TYPE_STEREO_TO_MONO	FEEDMATRIX_TYPE_2X1
-#define FEEDMATRIX_TYPE_MONO_TO_STEREO	FEEDMATRIX_TYPE_1X2
-#define FEEDMATRIX_TYPE_SWAP_STEREO	FEEDMATRIX_TYPE_2X2
-#define FEEDMATRIX_MAP(x, y)		((((x) & 0x3f) << 6) | ((y) & 0x3f))
-#define FEEDMATRIX_MAP_SRC(x)		((x) & 0x3f)
-#define FEEDMATRIX_MAP_DST(x)		(((x) >> 6) & 0x3f)
+#define FEEDMATRIX_TYPE_STEREO_TO_MONO FEEDMATRIX_TYPE_2X1
+#define FEEDMATRIX_TYPE_MONO_TO_STEREO FEEDMATRIX_TYPE_1X2
+#define FEEDMATRIX_TYPE_SWAP_STEREO FEEDMATRIX_TYPE_2X2
+#define FEEDMATRIX_MAP(x, y) ((((x) & 0x3f) << 6) | ((y) & 0x3f))
+#define FEEDMATRIX_MAP_SRC(x) ((x) & 0x3f)
+#define FEEDMATRIX_MAP_DST(x) (((x) >> 6) & 0x3f)
 #endif
 
 /*
@@ -208,5 +198,5 @@ enum {
  */
 #ifdef SND_FEEDER_FULL_MULTIFORMAT
 #undef SND_FEEDER_MULTIFORMAT
-#define SND_FEEDER_MULTIFORMAT	1
+#define SND_FEEDER_MULTIFORMAT 1
 #endif

@@ -33,23 +33,23 @@
  *
  */
 #include <sys/types.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <errno.h>
-#include <err.h>
-#include <fcntl.h>
-#include <sys/types.h>
 #include <sys/mman.h>
-#include <sched.h>
-#include <stdlib.h>
 #include <sys/wait.h>
+
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <sched.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include "prutil.h"
 
 /* buzz: busy wait a random amount of time.
  */
-static void buzz(int n)
+static void
+buzz(int n)
 {
 	volatile int i;
 	int m = random() & 0x0ffff;
@@ -61,13 +61,14 @@ static void buzz(int n)
  * This runs several processes and verifies that the yield seems
  * to permit the next one on the ready queue to run.
  */
-int yield(int argc, char *argv[])
+int
+yield(int argc, char *argv[])
 {
 	volatile int *p;
 	int i;
 	int nslaves, n;
 	int master, slave;
-	pid_t youngest = !0;	/* Our youngest child */
+	pid_t youngest = !0; /* Our youngest child */
 	struct sched_param set, got;
 	int nloops = 1000;
 
@@ -85,12 +86,11 @@ int yield(int argc, char *argv[])
 	else if (argc != 2) {
 		fprintf(stderr, "usage: prog [n_instances]\n");
 		exit(-1);
-	}
-	else
+	} else
 		n = nslaves = atoi(argv[1]);
 
-	p = (int *)mmap(0, sizeof(int),
-	PROT_READ|PROT_WRITE, MAP_ANON|MAP_SHARED, -1, 0);
+	p = (int *)mmap(0, sizeof(int), PROT_READ | PROT_WRITE,
+	    MAP_ANON | MAP_SHARED, -1, 0);
 
 	if (p == (int *)-1)
 		err(errno, "mmap");
@@ -104,8 +104,7 @@ int yield(int argc, char *argv[])
 	 */
 	(void)sched_is(__LINE__, &got, SCHED_FIFO);
 	if (got.sched_priority != set.sched_priority) {
-		fprintf(stderr, "line %d: scheduler screwup\n",
-		__LINE__);
+		fprintf(stderr, "line %d: scheduler screwup\n", __LINE__);
 		exit(-1);
 	}
 
@@ -122,13 +121,13 @@ int yield(int argc, char *argv[])
 
 			if (got.sched_priority != set.sched_priority) {
 				fprintf(stderr, "line %d: scheduler screwup\n",
-				__LINE__);
+				    __LINE__);
 				exit(-1);
 			}
 
-			master = 0;	/* I'm a slave */
-			slave = i + 1;	/* With this flag */
-			*p = slave;	/* And I live */
+			master = 0;    /* I'm a slave */
+			slave = i + 1; /* With this flag */
+			*p = slave;    /* And I live */
 			break;
 		}
 	}
@@ -138,8 +137,8 @@ int yield(int argc, char *argv[])
 		 * The master must yield to let the first slave run.
 		 */
 		if (*p != 0) {
-			fprintf(stderr,
-			"Error at line %d: Writer %d has run\n", __LINE__, *p);
+			fprintf(stderr, "Error at line %d: Writer %d has run\n",
+			    __LINE__, *p);
 			exit(-1);
 		}
 	}
@@ -160,8 +159,8 @@ int yield(int argc, char *argv[])
 		 */
 		if (*p != nslaves) {
 			fprintf(stderr,
-			"Error at line %d: Final slave is %d not %d.\n",
-			__LINE__, *p, nslaves);
+			    "Error at line %d: Final slave is %d not %d.\n",
+			    __LINE__, *p, nslaves);
 			exit(-1);
 		}
 
@@ -169,16 +168,15 @@ int yield(int argc, char *argv[])
 		 */
 		waitpid(youngest, &status, 0);
 
-		exit(WEXITSTATUS(status));	/* Let the slaves continue */
+		exit(WEXITSTATUS(status)); /* Let the slaves continue */
 	}
 
 	/* Now the first one has started up.
 	 */
 	for (i = 0; i < nloops; i++) {
-		if (((*p) % nslaves) !=
-		((slave + nslaves - 1) % nslaves)) {
+		if (((*p) % nslaves) != ((slave + nslaves - 1) % nslaves)) {
 			fprintf(stderr, "%d ran before %d on iteration %d.\n",
-			*p, slave, i);
+			    *p, slave, i);
 			exit(-1);
 		}
 		*p = slave;
@@ -194,5 +192,9 @@ int yield(int argc, char *argv[])
 	exit(0);
 }
 #ifdef STANDALONE_TESTS
-int main(int argc, char *argv[]) { return yield(argc, argv); }
+int
+main(int argc, char *argv[])
+{
+	return yield(argc, argv);
+}
 #endif

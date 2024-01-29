@@ -57,16 +57,15 @@
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #ifndef _DEV_PCI_QAT_AEVAR_H_
 #define _DEV_PCI_QAT_AEVAR_H_
 
-int		qat_ae_init(struct qat_softc *);
-int		qat_ae_start(struct qat_softc *);
-void		qat_ae_cluster_intr(void *);
+int qat_ae_init(struct qat_softc *);
+int qat_ae_start(struct qat_softc *);
+void qat_ae_cluster_intr(void *);
 
-int		qat_aefw_load(struct qat_softc *);
-void		qat_aefw_unload(struct qat_softc *);
-int		qat_aefw_start(struct qat_softc *, u_char, u_int);
+int qat_aefw_load(struct qat_softc *);
+void qat_aefw_unload(struct qat_softc *);
+int qat_aefw_start(struct qat_softc *, u_char, u_int);
 
 #endif

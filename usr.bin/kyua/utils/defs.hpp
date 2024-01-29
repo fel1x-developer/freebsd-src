@@ -34,25 +34,20 @@
 #if !defined(UTILS_DEFS_HPP)
 #define UTILS_DEFS_HPP
 
-
 /// Attribute to mark a function as non-returning.
 #define UTILS_NORETURN __attribute__((noreturn))
-
 
 /// Attribute to mark a function as pure.
 #define UTILS_PURE __attribute__((__pure__))
 
-
 /// Attribute to mark an entity as unused.
 #define UTILS_UNUSED __attribute__((__unused__))
-
 
 /// Unconstifies a pointer.
 ///
 /// \param type The target type of the conversion.
 /// \param ptr The pointer to be unconstified.
-#define UTILS_UNCONST(type, ptr) ((type*)(unsigned long)(const void*)(ptr))
-
+#define UTILS_UNCONST(type, ptr) ((type *)(unsigned long)(const void *)(ptr))
 
 /// Macro to mark a parameter as unused.
 ///
@@ -64,7 +59,6 @@
 /// when he actually starts using it.
 ///
 /// \param name The name of the function parameter to mark as unused.
-#define UTILS_UNUSED_PARAM(name) unused_ ## name UTILS_UNUSED
+#define UTILS_UNUSED_PARAM(name) unused_##name UTILS_UNUSED
 
-
-#endif  // !defined(UTILS_DEFS_HPP)
+#endif // !defined(UTILS_DEFS_HPP)

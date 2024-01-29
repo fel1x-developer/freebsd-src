@@ -42,21 +42,26 @@ struct name_table {
  * simply handles the necessary "if" statement used in many lines
  * of this file.
  */
-#define print_or(fp,str,orflag) do {                     \
-	if (orflag) fputc(fp, '|'); else orflag = true;  \
-	fprintf(fp, str); }                              \
-	while (0)
-#define if_print_or(fp,i,flag,orflag) do {         \
-	if ((i & flag) == flag)                    \
-	print_or(fp,#flag,orflag); }               \
-	while (0)
+#define print_or(fp, str, orflag)       \
+	do {                            \
+		if (orflag)             \
+			fputc(fp, '|'); \
+		else                    \
+			orflag = true;  \
+		fprintf(fp, str);       \
+	} while (0)
+#define if_print_or(fp, i, flag, orflag)             \
+	do {                                         \
+		if ((i & flag) == flag)              \
+			print_or(fp, #flag, orflag); \
+	} while (0)
 
 const char *lookup_value(struct name_table *, uintmax_t);
-void	print_integer(FILE *, int, int);
-bool	print_mask_0(FILE *, struct name_table *, int, int *);
-bool	print_mask_0ul(FILE *, struct name_table *, u_long, u_long *);
-bool	print_mask_int(FILE *, struct name_table *, int, int *);
-void	print_mask_part(FILE *, struct name_table *, uintmax_t *, bool *);
-bool	print_value(FILE *, struct name_table *, uintmax_t);
+void print_integer(FILE *, int, int);
+bool print_mask_0(FILE *, struct name_table *, int, int *);
+bool print_mask_0ul(FILE *, struct name_table *, u_long, u_long *);
+bool print_mask_int(FILE *, struct name_table *, int, int *);
+void print_mask_part(FILE *, struct name_table *, uintmax_t *, bool *);
+bool print_value(FILE *, struct name_table *, uintmax_t);
 
 #endif /* !__SYSDECODE_SUPPORT_H__ */

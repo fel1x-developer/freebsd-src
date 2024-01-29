@@ -33,52 +33,47 @@
  */
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/errno.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
+#include <sys/errno.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
 
 #include <dev/bhnd/bhnd.h>
-
 #include <dev/bhnd/cores/pmu/bhnd_pmureg.h>
 
 #include "bhnd_usbvar.h"
 
 /****************************** Variables ************************************/
 static const struct bhnd_device bhnd_usb_devs[] = {
-	BHND_DEVICE(BCM,	USB20H,	"USB2.0 Host core",		NULL),
-	BHND_DEVICE_END
+	BHND_DEVICE(BCM, USB20H, "USB2.0 Host core", NULL), BHND_DEVICE_END
 };
 
 /****************************** Prototypes ***********************************/
 
-static int	bhnd_usb_attach(device_t);
-static int	bhnd_usb_probe(device_t);
-static device_t	bhnd_usb_add_child(device_t dev, u_int order, const char *name, 
-		    int unit);
-static int	bhnd_usb_print_all_resources(device_t dev);
-static int	bhnd_usb_print_child(device_t bus, device_t child);
+static int bhnd_usb_attach(device_t);
+static int bhnd_usb_probe(device_t);
+static device_t bhnd_usb_add_child(device_t dev, u_int order, const char *name,
+    int unit);
+static int bhnd_usb_print_all_resources(device_t dev);
+static int bhnd_usb_print_child(device_t bus, device_t child);
 
-static struct resource *	bhnd_usb_alloc_resource(device_t bus,
-				    device_t child, int type, int *rid,
-				    rman_res_t start, rman_res_t end,
-				    rman_res_t count, u_int flags);
-static int			bhnd_usb_release_resource(device_t dev,
-				    device_t child, int type, int rid,
-				    struct resource *r);
+static struct resource *bhnd_usb_alloc_resource(device_t bus, device_t child,
+    int type, int *rid, rman_res_t start, rman_res_t end, rman_res_t count,
+    u_int flags);
+static int bhnd_usb_release_resource(device_t dev, device_t child, int type,
+    int rid, struct resource *r);
 
-static struct resource_list *	bhnd_usb_get_reslist(device_t dev,
-				    device_t child);
+static struct resource_list *bhnd_usb_get_reslist(device_t dev, device_t child);
 
 static int
 bhnd_usb_probe(device_t dev)
 {
-	const struct bhnd_device	*id;
+	const struct bhnd_device *id;
 
 	id = bhnd_device_lookup(dev, bhnd_usb_devs, sizeof(bhnd_usb_devs[0]));
 	if (id == NULL)
@@ -91,10 +86,10 @@ bhnd_usb_probe(device_t dev)
 static int
 bhnd_usb_attach(device_t dev)
 {
-	struct bhnd_usb_softc	*sc;
-	int			 rid;
-	uint32_t		 tmp;
-	int			 tries, err;
+	struct bhnd_usb_softc *sc;
+	int rid;
+	uint32_t tmp;
+	int tries, err;
 
 	sc = device_get_softc(dev);
 
@@ -106,7 +101,8 @@ bhnd_usb_attach(device_t dev)
 	 * XXX: There are few windows (usually 2), RID should be chip-specific
 	 */
 	rid = 0;
-	sc->sc_mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid, RF_ACTIVE);
+	sc->sc_mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
+	    RF_ACTIVE);
 	if (sc->sc_mem == NULL) {
 		BHND_ERROR_DEV(dev, "unable to allocate memory");
 		return (ENXIO);
@@ -118,8 +114,8 @@ bhnd_usb_attach(device_t dev)
 	sc->sc_msize = rman_get_size(sc->sc_mem);
 
 	rid = 0;
-	sc->sc_irq = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid, 
-		RF_SHAREABLE | RF_ACTIVE);
+	sc->sc_irq = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid,
+	    RF_SHAREABLE | RF_ACTIVE);
 	if (sc->sc_irq == NULL) {
 		BHND_ERROR_DEV(dev, "unable to allocate IRQ");
 		return (ENXIO);
@@ -133,21 +129,21 @@ bhnd_usb_attach(device_t dev)
 	sc->mem_rman.rm_descr = "BHND USB core I/O memory addresses";
 	if (rman_init(&sc->mem_rman) != 0 ||
 	    rman_manage_region(&sc->mem_rman, sc->mem_rman.rm_start,
-	    sc->mem_rman.rm_end) != 0) {
+		sc->mem_rman.rm_end) != 0) {
 		panic("%s: sc->mem_rman", __func__);
 	}
 
 	/* TODO: macros for registers */
-	bus_write_4(sc->sc_mem, 0x200, 0x7ff); 
-	DELAY(100); 
+	bus_write_4(sc->sc_mem, 0x200, 0x7ff);
+	DELAY(100);
 
-#define	OHCI_CONTROL		0x04
+#define OHCI_CONTROL 0x04
 	bus_write_4(sc->sc_mem, OHCI_CONTROL, 0);
 
-	if ( bhnd_get_device(dev) == BHND_COREID_USB20H) {
+	if (bhnd_get_device(dev) == BHND_COREID_USB20H) {
 		uint32_t rev = bhnd_get_hwrev(dev);
 		BHND_INFO_DEV(dev, "USB HOST 2.0 setup for rev %d", rev);
-		if (rev == 1/* ? == 2 */) {
+		if (rev == 1 /* ? == 2 */) {
 			/* SiBa code */
 
 			/* Change Flush control reg */
@@ -164,13 +160,13 @@ bhnd_usb_attach(device_t dev)
 		} else if (rev >= 5) {
 			/* BCMA code */
 			err = bhnd_alloc_pmu(dev);
-			if(err) {
+			if (err) {
 				BHND_ERROR_DEV(dev, "can't alloc pmu: %d", err);
 				return (err);
 			}
 
 			err = bhnd_request_ext_rsrc(dev, 1);
-			if(err) {
+			if (err) {
 				BHND_ERROR_DEV(dev, "can't req ext: %d", err);
 				return (err);
 			}
@@ -207,7 +203,8 @@ bhnd_usb_attach(device_t dev)
 					continue;
 
 				tmp = bus_read_4(sc->sc_mem, 0x528);
-				BHND_ERROR_DEV(dev, "USB20H mdio_rddata 0x%08x", tmp);
+				BHND_ERROR_DEV(dev, "USB20H mdio_rddata 0x%08x",
+				    tmp);
 			}
 
 			/* XXX: Puzzle code */
@@ -225,7 +222,7 @@ bhnd_usb_attach(device_t dev)
 	bus_generic_probe(dev);
 
 	if (bhnd_get_device(dev) == BHND_COREID_USB20H &&
-	    ( bhnd_get_hwrev(dev) > 0))
+	    (bhnd_get_hwrev(dev) > 0))
 		bhnd_usb_add_child(dev, 0, "ehci", -1);
 	bhnd_usb_add_child(dev, 1, "ohci", -1);
 
@@ -238,20 +235,20 @@ static struct resource *
 bhnd_usb_alloc_resource(device_t bus, device_t child, int type, int *rid,
     rman_res_t start, rman_res_t end, rman_res_t count, u_int flags)
 {
-	struct resource			*rv;
-	struct resource_list		*rl;
-	struct resource_list_entry	*rle;
-	int				 passthrough, isdefault, needactivate;
-	struct bhnd_usb_softc		*sc = device_get_softc(bus);
+	struct resource *rv;
+	struct resource_list *rl;
+	struct resource_list_entry *rle;
+	int passthrough, isdefault, needactivate;
+	struct bhnd_usb_softc *sc = device_get_softc(bus);
 
-	isdefault = RMAN_IS_DEFAULT_RANGE(start,end);
+	isdefault = RMAN_IS_DEFAULT_RANGE(start, end);
 	passthrough = (device_get_parent(child) != bus);
 	needactivate = flags & RF_ACTIVE;
 	rle = NULL;
 
 	if (!passthrough && isdefault) {
 		BHND_INFO_DEV(bus, "trying allocate def %d - %d for %s", type,
-		    *rid, device_get_nameunit(child) );
+		    *rid, device_get_nameunit(child));
 
 		rl = BUS_GET_RESOURCE_LIST(bus, child);
 		rle = resource_list_find(rl, type, *rid);
@@ -263,8 +260,8 @@ bhnd_usb_alloc_resource(device_t bus, device_t child, int type, int *rid,
 		end = rle->end;
 		count = rle->count;
 	} else {
-		BHND_INFO_DEV(bus, "trying allocate %d - %d (%jx-%jx) for %s", type,
-		   *rid, start, end, device_get_nameunit(child) );
+		BHND_INFO_DEV(bus, "trying allocate %d - %d (%jx-%jx) for %s",
+		    type, *rid, start, end, device_get_nameunit(child));
 	}
 
 	/*
@@ -301,7 +298,7 @@ bhnd_usb_alloc_resource(device_t bus, device_t child, int type, int *rid,
 static struct resource_list *
 bhnd_usb_get_reslist(device_t dev, device_t child)
 {
-	struct bhnd_usb_devinfo	*sdi;
+	struct bhnd_usb_devinfo *sdi;
 
 	sdi = device_get_ivars(child);
 
@@ -309,13 +306,13 @@ bhnd_usb_get_reslist(device_t dev, device_t child)
 }
 
 static int
-bhnd_usb_release_resource(device_t dev, device_t child, int type,
-    int rid, struct resource *r)
+bhnd_usb_release_resource(device_t dev, device_t child, int type, int rid,
+    struct resource *r)
 {
-	struct bhnd_usb_softc		*sc;
-	struct resource_list_entry	*rle;
-	bool				 passthrough;
-	int				 error;
+	struct bhnd_usb_softc *sc;
+	struct resource_list_entry *rle;
+	bool passthrough;
+	int error;
 
 	sc = device_get_softc(dev);
 	passthrough = (device_get_parent(child) != dev);
@@ -323,8 +320,8 @@ bhnd_usb_release_resource(device_t dev, device_t child, int type,
 	/* Delegate to our parent device's bus if the requested resource type
 	 * isn't handled locally. */
 	if (type != SYS_RES_MEMORY) {
-		return (bus_generic_rl_release_resource(dev, child, type, rid,
-		    r));
+		return (
+		    bus_generic_rl_release_resource(dev, child, type, rid, r));
 	}
 
 	/* Deactivate resources */
@@ -351,9 +348,9 @@ bhnd_usb_release_resource(device_t dev, device_t child, int type,
 static int
 bhnd_usb_print_all_resources(device_t dev)
 {
-	struct bhnd_usb_devinfo	*sdi;
-	struct resource_list	*rl;
-	int			 retval;
+	struct bhnd_usb_devinfo *sdi;
+	struct resource_list *rl;
+	int retval;
 
 	retval = 0;
 	sdi = device_get_ivars(dev);
@@ -385,32 +382,28 @@ bhnd_usb_print_child(device_t bus, device_t child)
 static device_t
 bhnd_usb_add_child(device_t dev, u_int order, const char *name, int unit)
 {
-	struct bhnd_usb_softc		*sc;
-	struct bhnd_usb_devinfo 	*sdi;
-	device_t 			 child;
-	int				 error;
+	struct bhnd_usb_softc *sc;
+	struct bhnd_usb_devinfo *sdi;
+	device_t child;
+	int error;
 
 	sc = device_get_softc(dev);
 
-	sdi = malloc(sizeof(struct bhnd_usb_devinfo), M_DEVBUF, M_NOWAIT|M_ZERO);
+	sdi = malloc(sizeof(struct bhnd_usb_devinfo), M_DEVBUF,
+	    M_NOWAIT | M_ZERO);
 	if (sdi == NULL)
 		return (NULL);
 
 	resource_list_init(&sdi->sdi_rl);
 	sdi->sdi_irq_mapped = false;
 
-	if (strncmp(name, "ohci", 4) == 0) 
-	{
+	if (strncmp(name, "ohci", 4) == 0) {
 		sdi->sdi_maddr = sc->sc_maddr + 0x000;
 		sdi->sdi_msize = 0x200;
-	}
-	else if (strncmp(name, "ehci", 4) == 0) 
-	{
+	} else if (strncmp(name, "ehci", 4) == 0) {
 		sdi->sdi_maddr = sc->sc_maddr + 0x000;
 		sdi->sdi_msize = 0x1000;
-	}
-	else
-	{
+	} else {
 		panic("Unknown subdevice");
 	}
 
@@ -456,7 +449,7 @@ failed:
 static void
 bhnd_usb_child_deleted(device_t dev, device_t child)
 {
-	struct bhnd_usb_devinfo	*dinfo;
+	struct bhnd_usb_devinfo *dinfo;
 
 	if ((dinfo = device_get_ivars(child)) == NULL)
 		return;
@@ -470,21 +463,21 @@ bhnd_usb_child_deleted(device_t dev, device_t child)
 
 static device_method_t bhnd_usb_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_attach,		bhnd_usb_attach),
-	DEVMETHOD(device_probe,			bhnd_usb_probe),
+	DEVMETHOD(device_attach, bhnd_usb_attach),
+	DEVMETHOD(device_probe, bhnd_usb_probe),
 
 	/* Bus interface */
-	DEVMETHOD(bus_add_child,		bhnd_usb_add_child),
-	DEVMETHOD(bus_child_deleted,		bhnd_usb_child_deleted),
-	DEVMETHOD(bus_alloc_resource,		bhnd_usb_alloc_resource),
-	DEVMETHOD(bus_get_resource_list,	bhnd_usb_get_reslist),
-	DEVMETHOD(bus_print_child,		bhnd_usb_print_child),
-	DEVMETHOD(bus_release_resource,		bhnd_usb_release_resource),
+	DEVMETHOD(bus_add_child, bhnd_usb_add_child),
+	DEVMETHOD(bus_child_deleted, bhnd_usb_child_deleted),
+	DEVMETHOD(bus_alloc_resource, bhnd_usb_alloc_resource),
+	DEVMETHOD(bus_get_resource_list, bhnd_usb_get_reslist),
+	DEVMETHOD(bus_print_child, bhnd_usb_print_child),
+	DEVMETHOD(bus_release_resource, bhnd_usb_release_resource),
 	/* Bus interface: generic part */
-	DEVMETHOD(bus_activate_resource,	bus_generic_activate_resource),
-	DEVMETHOD(bus_deactivate_resource,	bus_generic_deactivate_resource),
-	DEVMETHOD(bus_setup_intr,		bus_generic_setup_intr),
-	DEVMETHOD(bus_teardown_intr,		bus_generic_teardown_intr),
+	DEVMETHOD(bus_activate_resource, bus_generic_activate_resource),
+	DEVMETHOD(bus_deactivate_resource, bus_generic_deactivate_resource),
+	DEVMETHOD(bus_setup_intr, bus_generic_setup_intr),
+	DEVMETHOD(bus_teardown_intr, bus_generic_teardown_intr),
 
 	DEVMETHOD_END
 };

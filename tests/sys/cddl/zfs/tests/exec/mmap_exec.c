@@ -24,13 +24,13 @@
  * Use is subject to license terms.
  */
 
-
-#include <stdio.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
+
 #include <errno.h>
+#include <fcntl.h>
+#include <stdio.h>
 
 extern int errno;
 
@@ -41,9 +41,8 @@ main(int argc, char *argv[])
 	struct stat statbuf;
 
 	if (argc != 2) {
-		(void) printf("Error: missing binary name.\n");
-		(void) printf("Usage:\n\t%s <binary name>\n",
-		    argv[0]);
+		(void)printf("Error: missing binary name.\n");
+		(void)printf("Usage:\n\t%s <binary name>\n", argv[0]);
 		return (1);
 	}
 
@@ -58,8 +57,8 @@ main(int argc, char *argv[])
 		return (errno);
 	}
 
-	if (mmap(0, statbuf.st_size,
-	    PROT_EXEC, MAP_SHARED, fd, 0) == MAP_FAILED) {
+	if (mmap(0, statbuf.st_size, PROT_EXEC, MAP_SHARED, fd, 0) ==
+	    MAP_FAILED) {
 		perror("mmap");
 		return (errno);
 	}

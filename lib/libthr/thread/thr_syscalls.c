@@ -4,7 +4,7 @@
  * Copyright (c) 2003 Daniel Eischen <deischen@freebsd.org>.
  * Copyright (C) 2000 Jason Evans <jasone@freebsd.org>.
  * All rights reserved.
- * 
+ *
  * Portions of this software were developed by Konstantin Belousov
  * under sponsorship from the FreeBSD Foundation.
  *
@@ -19,7 +19,7 @@
  *    notice(s), this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER(S) ``AS IS'' AND ANY
  * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
@@ -66,10 +66,9 @@
  */
 
 #include <sys/cdefs.h>
-#include "namespace.h"
 #include <sys/types.h>
-#include <sys/mman.h>
 #include <sys/param.h>
+#include <sys/mman.h>
 #include <sys/select.h>
 #include <sys/signalvar.h>
 #include <sys/socket.h>
@@ -77,11 +76,13 @@
 #include <sys/time.h>
 #include <sys/uio.h>
 #include <sys/wait.h>
+
 #include <aio.h>
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <poll.h>
+#include <pthread.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -89,11 +90,11 @@
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
-#include <pthread.h>
-#include "un-namespace.h"
 
 #include "libc_private.h"
+#include "namespace.h"
 #include "thr_private.h"
+#include "un-namespace.h"
 
 static int
 __thr_accept(int s, struct sockaddr *addr, socklen_t *addrlen)
@@ -106,7 +107,7 @@ __thr_accept(int s, struct sockaddr *addr, socklen_t *addrlen)
 	ret = __sys_accept(s, addr, addrlen);
 	_thr_cancel_leave(curthread, ret == -1);
 
- 	return (ret);
+	return (ret);
 }
 
 /*
@@ -124,12 +125,12 @@ __thr_accept4(int s, struct sockaddr *addr, socklen_t *addrlen, int flags)
 	ret = __sys_accept4(s, addr, addrlen, flags);
 	_thr_cancel_leave(curthread, ret == -1);
 
- 	return (ret);
+	return (ret);
 }
 
 static int
-__thr_aio_suspend(const struct aiocb * const iocbs[], int niocb, const struct
-    timespec *timeout)
+__thr_aio_suspend(const struct aiocb *const iocbs[], int niocb,
+    const struct timespec *timeout)
 {
 	struct pthread *curthread;
 	int ret;
@@ -159,7 +160,7 @@ __thr_close(int fd)
 	_thr_cancel_enter2(curthread, 0);
 	ret = __sys_close(fd);
 	_thr_cancel_leave(curthread, 1);
-	
+
 	return (ret);
 }
 
@@ -178,7 +179,7 @@ __thr_connect(int fd, const struct sockaddr *name, socklen_t namelen)
 	ret = __sys_connect(fd, name, namelen);
 	_thr_cancel_leave(curthread, ret == -1);
 
- 	return (ret);
+	return (ret);
 }
 
 /*
@@ -193,7 +194,7 @@ __thr_fcntl(int fd, int cmd, ...)
 {
 	struct pthread *curthread;
 	int ret;
-	va_list	ap;
+	va_list ap;
 
 	curthread = _get_curthread();
 	va_start(ap, cmd);
@@ -299,9 +300,8 @@ __thr_openat(int fd, const char *path, int flags, ...)
 {
 	struct pthread *curthread;
 	int mode, ret;
-	va_list	ap;
+	va_list ap;
 
-	
 	/* Check if the file is being created: */
 	if ((flags & O_CREAT) != 0) {
 		/* Get the creation mode: */
@@ -311,7 +311,7 @@ __thr_openat(int fd, const char *path, int flags, ...)
 	} else {
 		mode = 0;
 	}
-	
+
 	curthread = _get_curthread();
 	_thr_cancel_enter(curthread);
 	ret = __sys_openat(fd, path, flags, mode);
@@ -345,8 +345,8 @@ __thr_poll(struct pollfd *fds, unsigned int nfds, int timeout)
  *   the thread is not canceled.
  */
 static int
-__thr_ppoll(struct pollfd pfd[], nfds_t nfds, const struct timespec *
-    timeout, const sigset_t *newsigmask)
+__thr_ppoll(struct pollfd pfd[], nfds_t nfds, const struct timespec *timeout,
+    const sigset_t *newsigmask)
 {
 	struct pthread *curthread;
 	int ret;
@@ -365,8 +365,8 @@ __thr_ppoll(struct pollfd pfd[], nfds_t nfds, const struct timespec *
  *   the thread is not canceled.
  */
 static int
-__thr_pselect(int count, fd_set *rfds, fd_set *wfds, fd_set *efds, 
-	const struct timespec *timo, const sigset_t *mask)
+__thr_pselect(int count, fd_set *rfds, fd_set *wfds, fd_set *efds,
+    const struct timespec *timo, const sigset_t *mask)
 {
 	struct pthread *curthread;
 	int ret;
@@ -404,14 +404,14 @@ __thr_kevent(int kq, const struct kevent *changelist, int nchanges,
 
 /*
  * Cancellation behavior:
- *   Thread may be canceled at start, but if the system call got some data, 
+ *   Thread may be canceled at start, but if the system call got some data,
  *   the thread is not canceled.
  */
 static ssize_t
 __thr_read(int fd, void *buf, size_t nbytes)
 {
 	struct pthread *curthread;
-	ssize_t	ret;
+	ssize_t ret;
 
 	curthread = _get_curthread();
 	_thr_cancel_enter(curthread);
@@ -423,7 +423,7 @@ __thr_read(int fd, void *buf, size_t nbytes)
 
 /*
  * Cancellation behavior:
- *   Thread may be canceled at start, but if the system call got some data, 
+ *   Thread may be canceled at start, but if the system call got some data,
  *   the thread is not canceled.
  */
 static ssize_t
@@ -441,7 +441,7 @@ __thr_readv(int fd, const struct iovec *iov, int iovcnt)
 
 /*
  * Cancellation behavior:
- *   Thread may be canceled at start, but if the system call got some data, 
+ *   Thread may be canceled at start, but if the system call got some data,
  *   the thread is not canceled.
  */
 static ssize_t
@@ -460,7 +460,7 @@ __thr_recvfrom(int s, void *b, size_t l, int f, struct sockaddr *from,
 
 /*
  * Cancellation behavior:
- *   Thread may be canceled at start, but if the system call got some data, 
+ *   Thread may be canceled at start, but if the system call got some data,
  *   the thread is not canceled.
  */
 static ssize_t
@@ -481,9 +481,9 @@ __thr_recvmsg(int s, struct msghdr *m, int f)
  *   Thread may be canceled at start, but if the system call returns something,
  *   the thread is not canceled.
  */
-static int 
+static int
 __thr_select(int numfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
-	struct timeval *timeout)
+    struct timeval *timeout)
 {
 	struct pthread *curthread;
 	int ret;
@@ -555,7 +555,7 @@ __thr_tcdrain(int fd)
 {
 	struct pthread *curthread;
 	int ret;
-	
+
 	curthread = _get_curthread();
 	_thr_cancel_enter(curthread);
 	ret = __libc_tcdrain(fd);
@@ -609,7 +609,7 @@ static ssize_t
 __thr_write(int fd, const void *buf, size_t nbytes)
 {
 	struct pthread *curthread;
-	ssize_t	ret;
+	ssize_t ret;
 
 	curthread = _get_curthread();
 	_thr_cancel_enter(curthread);
@@ -641,9 +641,9 @@ __thr_interpose_libc(void)
 {
 
 	__set_error_selector(__error_threaded);
-#define	SLOT(name)					\
-	*(__libc_interposing_slot(INTERPOS_##name)) =	\
-	    (interpos_func_t)__thr_##name;
+#define SLOT(name)                 \
+	*(__libc_interposing_slot( \
+	    INTERPOS_##name)) = (interpos_func_t)__thr_##name;
 	SLOT(accept);
 	SLOT(accept4);
 	SLOT(aio_suspend);
@@ -687,7 +687,6 @@ __thr_interpose_libc(void)
 	SLOT(clock_nanosleep);
 	SLOT(pdfork);
 #undef SLOT
-	*(__libc_interposing_slot(
-	    INTERPOS__pthread_mutex_init_calloc_cb)) =
+	*(__libc_interposing_slot(INTERPOS__pthread_mutex_init_calloc_cb)) =
 	    (interpos_func_t)_pthread_mutex_init_calloc_cb;
 }

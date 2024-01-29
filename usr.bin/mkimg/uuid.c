@@ -25,6 +25,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stdint.h>
 #include <string.h>
 
@@ -43,7 +44,7 @@ osdep_uuidgen(mkimg_uuid_t *uuid)
 
 	uuid_generate_time((void *)uuid);
 }
-#endif	/* __APPLE__ */
+#endif /* __APPLE__ */
 
 #ifdef __FreeBSD__
 #include <sys/uuid.h>
@@ -54,7 +55,7 @@ osdep_uuidgen(mkimg_uuid_t *uuid)
 
 	uuidgen((void *)uuid, 1);
 }
-#endif	/* __FreeBSD__ */
+#endif /* __FreeBSD__ */
 
 #ifdef __linux__
 #include <stdlib.h>
@@ -88,7 +89,7 @@ osdep_uuidgen(mkimg_uuid_t *uuid)
 		uuid->node[i] = (uint8_t)random();
 	uuid->node[0] |= 0x01;
 }
-#endif	/* __linux__ */
+#endif /* __linux__ */
 
 void
 mkimg_uuid(mkimg_uuid_t *uuid)

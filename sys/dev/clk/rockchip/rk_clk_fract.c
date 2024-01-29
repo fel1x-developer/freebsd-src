@@ -30,23 +30,18 @@
 #include <sys/bus.h>
 
 #include <dev/clk/clk.h>
-
 #include <dev/clk/rockchip/rk_clk_fract.h>
 
 #include "clkdev_if.h"
 
-#define	WR4(_clk, off, val)						\
-	CLKDEV_WRITE_4(clknode_get_device(_clk), off, val)
-#define	RD4(_clk, off, val)						\
-	CLKDEV_READ_4(clknode_get_device(_clk), off, val)
-#define	MD4(_clk, off, clr, set )					\
+#define WR4(_clk, off, val) CLKDEV_WRITE_4(clknode_get_device(_clk), off, val)
+#define RD4(_clk, off, val) CLKDEV_READ_4(clknode_get_device(_clk), off, val)
+#define MD4(_clk, off, clr, set) \
 	CLKDEV_MODIFY_4(clknode_get_device(_clk), off, clr, set)
-#define	DEVICE_LOCK(_clk)						\
-	CLKDEV_DEVICE_LOCK(clknode_get_device(_clk))
-#define	DEVICE_UNLOCK(_clk)						\
-	CLKDEV_DEVICE_UNLOCK(clknode_get_device(_clk))
+#define DEVICE_LOCK(_clk) CLKDEV_DEVICE_LOCK(clknode_get_device(_clk))
+#define DEVICE_UNLOCK(_clk) CLKDEV_DEVICE_UNLOCK(clknode_get_device(_clk))
 
-#define	RK_CLK_FRACT_MASK_SHIFT	16
+#define RK_CLK_FRACT_MASK_SHIFT 16
 
 static int rk_clk_fract_init(struct clknode *clk, device_t dev);
 static int rk_clk_fract_recalc(struct clknode *clk, uint64_t *req);
@@ -55,24 +50,24 @@ static int rk_clk_fract_set_freq(struct clknode *clknode, uint64_t fin,
 static int rk_clk_fract_set_gate(struct clknode *clk, bool enable);
 
 struct rk_clk_fract_sc {
-	uint32_t	flags;
-	uint32_t	offset;
-	uint32_t	numerator;
-	uint32_t	denominator;
-	uint32_t	gate_offset;
-	uint32_t	gate_shift;
+	uint32_t flags;
+	uint32_t offset;
+	uint32_t numerator;
+	uint32_t denominator;
+	uint32_t gate_offset;
+	uint32_t gate_shift;
 };
 
 static clknode_method_t rk_clk_fract_methods[] = {
 	/* Device interface */
-	CLKNODEMETHOD(clknode_init,		rk_clk_fract_init),
-	CLKNODEMETHOD(clknode_set_gate,		rk_clk_fract_set_gate),
-	CLKNODEMETHOD(clknode_recalc_freq,	rk_clk_fract_recalc),
-	CLKNODEMETHOD(clknode_set_freq,		rk_clk_fract_set_freq),
+	CLKNODEMETHOD(clknode_init, rk_clk_fract_init),
+	CLKNODEMETHOD(clknode_set_gate, rk_clk_fract_set_gate),
+	CLKNODEMETHOD(clknode_recalc_freq, rk_clk_fract_recalc),
+	CLKNODEMETHOD(clknode_set_freq, rk_clk_fract_set_freq),
 	CLKNODEMETHOD_END
 };
 DEFINE_CLASS_1(rk_clk_fract, rk_clk_fract_class, rk_clk_fract_methods,
-   sizeof(struct rk_clk_fract_sc), clknode_class);
+    sizeof(struct rk_clk_fract_sc), clknode_class);
 
 /*
  * Compute best rational approximation of input fraction
@@ -85,14 +80,12 @@ DEFINE_CLASS_1(rk_clk_fract, rk_clk_fract_class, rk_clk_fract_methods,
  */
 
 static void
-clk_compute_fract_div(
-	uint64_t n_input, uint64_t d_input,
-	uint64_t n_max, uint64_t d_max,
-	uint64_t *n_out, uint64_t *d_out)
+clk_compute_fract_div(uint64_t n_input, uint64_t d_input, uint64_t n_max,
+    uint64_t d_max, uint64_t *n_out, uint64_t *d_out)
 {
-	uint64_t n_prev, d_prev;	/* previous convergents */
-	uint64_t n_cur, d_cur;		/* current  convergents */
-	uint64_t n_rem, d_rem;		/* fraction remainder */
+	uint64_t n_prev, d_prev; /* previous convergents */
+	uint64_t n_cur, d_cur;	 /* current  convergents */
+	uint64_t n_rem, d_rem;	 /* fraction remainder */
 	uint64_t tmp, fact;
 
 	/* Initialize fraction reminder */
@@ -145,13 +138,13 @@ rk_clk_fract_init(struct clknode *clk, device_t dev)
 	RD4(clk, sc->offset, &reg);
 	DEVICE_UNLOCK(clk);
 
-	sc->numerator  = (reg >> 16) & 0xFFFF;
-	sc->denominator  = reg & 0xFFFF;
+	sc->numerator = (reg >> 16) & 0xFFFF;
+	sc->denominator = reg & 0xFFFF;
 	if (sc->denominator == 0)
 		sc->denominator = 1;
 	clknode_init_parent_idx(clk, 0);
 
-	return(0);
+	return (0);
 }
 
 static int
@@ -186,9 +179,9 @@ rk_clk_fract_recalc(struct clknode *clk, uint64_t *freq)
 	sc = clknode_get_softc(clk);
 	if (sc->denominator == 0) {
 		printf("%s: %s denominator is zero!\n", clknode_get_name(clk),
-		__func__);
+		    __func__);
 		*freq = 0;
-		return(EINVAL);
+		return (EINVAL);
 	}
 
 	*freq *= sc->numerator;
@@ -228,9 +221,9 @@ rk_clk_fract_set_freq(struct clknode *clk, uint64_t fin, uint64_t *fout,
 		return (ERANGE);
 
 	if (div_d == 0) {
-		printf("%s: %s divider is zero!\n",
-		     clknode_get_name(clk), __func__);
-		return(EINVAL);
+		printf("%s: %s divider is zero!\n", clknode_get_name(clk),
+		    __func__);
+		return (EINVAL);
 	}
 	/* Recompute final output frequency */
 	_fout = fin * div_n;
@@ -244,7 +237,7 @@ rk_clk_fract_set_freq(struct clknode *clk, uint64_t fin, uint64_t *fout,
 		    *fout != _fout)
 			return (ERANGE);
 
-		sc->numerator  = (uint32_t)div_n;
+		sc->numerator = (uint32_t)div_n;
 		sc->denominator = (uint32_t)div_d;
 
 		DEVICE_LOCK(clk);

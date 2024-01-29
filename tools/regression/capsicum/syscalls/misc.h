@@ -28,26 +28,29 @@
  */
 
 #ifndef _MISC_H_
-#define	_MISC_H_
+#define _MISC_H_
 
-#define	OK()	do {							\
-	int _serrno = errno;						\
-	printf("ok # line %u\n", __LINE__);				\
-	fflush(stdout);							\
-	errno = _serrno;						\
-} while (0)
-#define	NOK()	do {							\
-	int _serrno = errno;						\
-	printf("not ok # line %u\n", __LINE__);				\
-	fflush(stdout);							\
-	errno = _serrno;						\
-} while (0)
-#define	CHECK(cond)	do {						\
-	if ((cond))							\
-		OK();							\
-	else								\
-		NOK();							\
-} while (0)
+#define OK()                                        \
+	do {                                        \
+		int _serrno = errno;                \
+		printf("ok # line %u\n", __LINE__); \
+		fflush(stdout);                     \
+		errno = _serrno;                    \
+	} while (0)
+#define NOK()                                           \
+	do {                                            \
+		int _serrno = errno;                    \
+		printf("not ok # line %u\n", __LINE__); \
+		fflush(stdout);                         \
+		errno = _serrno;                        \
+	} while (0)
+#define CHECK(cond)            \
+	do {                   \
+		if ((cond))    \
+			OK();  \
+		else           \
+			NOK(); \
+	} while (0)
 
 /*
  * This can be removed once pdwait4(2) is implemented.
@@ -57,4 +60,4 @@ int pdwait(int pfd);
 int descriptor_send(int sock, int fd);
 int descriptor_recv(int sock, int *fdp);
 
-#endif	/* !_MISC_H_ */
+#endif /* !_MISC_H_ */

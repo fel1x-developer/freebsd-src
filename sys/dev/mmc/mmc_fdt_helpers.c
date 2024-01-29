@@ -27,20 +27,17 @@
 
 #include <sys/param.h>
 #include <sys/bus.h>
-#include <sys/kernel.h>
 #include <sys/gpio.h>
+#include <sys/kernel.h>
 #include <sys/taskqueue.h>
 
+#include <dev/gpio/gpiobusvar.h>
 #include <dev/mmc/bridge.h>
 #include <dev/mmc/mmc_fdt_helpers.h>
-
-#include <dev/gpio/gpiobusvar.h>
+#include <dev/mmc/mmc_helpers.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
 #include <dev/regulator/regulator.h>
-
-#include <dev/mmc/mmc_helpers.h>
 
 #include "mmc_pwrseq_if.h"
 
@@ -61,12 +58,12 @@ mmc_fdt_parse(device_t dev, phandle_t node, struct mmc_helper *helper,
 	 * clean the non supported modes based on the available voltages.
 	 */
 	if (regulator_get_by_ofw_property(dev, 0, "vmmc-supply",
-	    &helper->vmmc_supply) == 0) {
+		&helper->vmmc_supply) == 0) {
 		if (bootverbose)
 			device_printf(dev, "vmmc-supply regulator found\n");
 	}
 	if (regulator_get_by_ofw_property(dev, 0, "vqmmc-supply",
-	    &helper->vqmmc_supply) == 0) {
+		&helper->vqmmc_supply) == 0) {
 		if (bootverbose)
 			device_printf(dev, "vqmmc-supply regulator found\n");
 	}
@@ -75,27 +72,25 @@ mmc_fdt_parse(device_t dev, phandle_t node, struct mmc_helper *helper,
 		if (regulator_check_voltage(helper->vqmmc_supply, 1200000) == 0)
 			host->caps |= MMC_CAP_SIGNALING_120;
 		else
-			host->caps &= ~( MMC_CAP_MMC_HS400_120 |
-			    MMC_CAP_MMC_HS200_120 |
-			    MMC_CAP_MMC_DDR52_120);
+			host->caps &= ~(MMC_CAP_MMC_HS400_120 |
+			    MMC_CAP_MMC_HS200_120 | MMC_CAP_MMC_DDR52_120);
 		if (regulator_check_voltage(helper->vqmmc_supply, 1800000) == 0)
 			host->caps |= MMC_CAP_SIGNALING_180;
 		else
 			host->caps &= ~(MMC_CAP_MMC_HS400_180 |
-			    MMC_CAP_MMC_HS200_180 |
-			    MMC_CAP_MMC_DDR52_180 |
-			    MMC_CAP_UHS_DDR50 |
-			    MMC_CAP_UHS_SDR104 |
-			    MMC_CAP_UHS_SDR50 |
-			    MMC_CAP_UHS_SDR25);
+			    MMC_CAP_MMC_HS200_180 | MMC_CAP_MMC_DDR52_180 |
+			    MMC_CAP_UHS_DDR50 | MMC_CAP_UHS_SDR104 |
+			    MMC_CAP_UHS_SDR50 | MMC_CAP_UHS_SDR25);
 		if (regulator_check_voltage(helper->vqmmc_supply, 3300000) == 0)
 			host->caps |= MMC_CAP_SIGNALING_330;
 	} else
 		host->caps |= MMC_CAP_SIGNALING_330;
 
 	if (OF_hasprop(node, "mmc-pwrseq")) {
-		if (OF_getencprop(node, "mmc-pwrseq", &pwrseq_xref, sizeof(pwrseq_xref)) == -1) {
-			device_printf(dev, "Cannot get the pwrseq_xref property\n");
+		if (OF_getencprop(node, "mmc-pwrseq", &pwrseq_xref,
+			sizeof(pwrseq_xref)) == -1) {
+			device_printf(dev,
+			    "Cannot get the pwrseq_xref property\n");
 			return (ENXIO);
 		}
 		helper->mmc_pwrseq = OF_device_from_xref(pwrseq_xref);
@@ -111,8 +106,8 @@ cd_intr(void *arg)
 {
 	struct mmc_helper *helper = arg;
 
-	taskqueue_enqueue_timeout(taskqueue_swi_giant,
-	    &helper->cd_delayed_task, -(hz / 2));
+	taskqueue_enqueue_timeout(taskqueue_swi_giant, &helper->cd_delayed_task,
+	    -(hz / 2));
 }
 
 static void
@@ -122,9 +117,8 @@ cd_card_task(void *arg, int pending __unused)
 	bool cd_present;
 
 	cd_present = mmc_fdt_gpio_get_present(helper);
-	if(helper->cd_handler && cd_present != helper->cd_present)
-		helper->cd_handler(helper->dev,
-		    cd_present);
+	if (helper->cd_handler && cd_present != helper->cd_present)
+		helper->cd_handler(helper->dev, cd_present);
 	helper->cd_present = cd_present;
 
 	/* If we're polling re-schedule the task */
@@ -168,12 +162,13 @@ cd_setup(struct mmc_helper *helper, phandle_t node)
 	 * If there is a property, make sure we can read the pin.
 	 */
 	if (gpio_pin_get_by_ofw_property(dev, node, "cd-gpios",
-	    &helper->cd_pin))
+		&helper->cd_pin))
 		return;
 
 	if (gpio_pin_getcaps(helper->cd_pin, &pincaps) != 0 ||
 	    !(pincaps & GPIO_PIN_INPUT)) {
-		device_printf(dev, "Cannot read card-detect gpio pin; "
+		device_printf(dev,
+		    "Cannot read card-detect gpio pin; "
 		    "setting card-always-present flag.\n");
 		helper->cd_disabled = true;
 		return;
@@ -186,14 +181,16 @@ cd_setup(struct mmc_helper *helper, phandle_t node)
 	 */
 	if (!(pincaps & GPIO_INTR_EDGE_BOTH)) {
 		if (bootverbose)
-			device_printf(dev, "Cannot configure "
+			device_printf(dev,
+			    "Cannot configure "
 			    "GPIO_INTR_EDGE_BOTH for card detect\n");
 		goto without_interrupts;
 	}
 
 	if (helper->cd_handler == NULL) {
 		if (bootverbose)
-			device_printf(dev, "Cannot configure "
+			device_printf(dev,
+			    "Cannot configure "
 			    "interrupts as no cd_handler is set\n");
 		goto without_interrupts;
 	}
@@ -202,15 +199,16 @@ cd_setup(struct mmc_helper *helper, phandle_t node)
 	 * Create an interrupt resource from the pin and set up the interrupt.
 	 */
 	if ((helper->cd_ires = gpio_alloc_intr_resource(dev, &helper->cd_irid,
-	    RF_ACTIVE, helper->cd_pin, GPIO_INTR_EDGE_BOTH)) == NULL) {
+		 RF_ACTIVE, helper->cd_pin, GPIO_INTR_EDGE_BOTH)) == NULL) {
 		if (bootverbose)
-			device_printf(dev, "Cannot allocate an IRQ for card "
+			device_printf(dev,
+			    "Cannot allocate an IRQ for card "
 			    "detect GPIO\n");
 		goto without_interrupts;
 	}
 
 	if (bus_setup_intr(dev, helper->cd_ires, INTR_TYPE_BIO | INTR_MPSAFE,
-	    NULL, cd_intr, helper, &helper->cd_ihandler) != 0) {
+		NULL, cd_intr, helper, &helper->cd_ihandler) != 0) {
 		device_printf(dev, "Unable to setup card-detect irq handler\n");
 		helper->cd_ihandler = NULL;
 		goto without_interrupts;
@@ -228,10 +226,11 @@ without_interrupts:
 	}
 
 	if (bootverbose) {
-		device_printf(dev, "Card presence detect on %s pin %u, "
+		device_printf(dev,
+		    "Card presence detect on %s pin %u, "
 		    "configured for %s.\n",
-		    device_get_nameunit(helper->cd_pin->dev), helper->cd_pin->pin,
-		    cd_mode_str);
+		    device_get_nameunit(helper->cd_pin->dev),
+		    helper->cd_pin->pin, cd_mode_str);
 	}
 }
 
@@ -252,12 +251,14 @@ wp_setup(struct mmc_helper *helper, phandle_t node)
 		return;
 	}
 
-	if (gpio_pin_get_by_ofw_property(dev, node, "wp-gpios", &helper->wp_pin))
+	if (gpio_pin_get_by_ofw_property(dev, node, "wp-gpios",
+		&helper->wp_pin))
 		return;
 
 	if (bootverbose)
 		device_printf(dev, "Write protect switch on %s pin %u\n",
-		    device_get_nameunit(helper->wp_pin->dev), helper->wp_pin->pin);
+		    device_get_nameunit(helper->wp_pin->dev),
+		    helper->wp_pin->pin);
 }
 
 int
@@ -277,7 +278,7 @@ mmc_fdt_gpio_setup(device_t dev, phandle_t node, struct mmc_helper *helper,
 	cd_setup(helper, node);
 	wp_setup(helper, node);
 
-	/* 
+	/*
 	 * Schedule a card detection
 	 */
 	taskqueue_enqueue_timeout_sbt(taskqueue_swi_giant,
@@ -293,13 +294,15 @@ mmc_fdt_gpio_teardown(struct mmc_helper *helper)
 		return;
 
 	if (helper->cd_ihandler != NULL)
-		bus_teardown_intr(helper->dev, helper->cd_ires, helper->cd_ihandler);
+		bus_teardown_intr(helper->dev, helper->cd_ires,
+		    helper->cd_ihandler);
 	if (helper->wp_pin != NULL)
 		gpio_pin_release(helper->wp_pin);
 	if (helper->cd_pin != NULL)
 		gpio_pin_release(helper->cd_pin);
 	if (helper->cd_ires != NULL)
-		bus_release_resource(helper->dev, SYS_RES_IRQ, 0, helper->cd_ires);
+		bus_release_resource(helper->dev, SYS_RES_IRQ, 0,
+		    helper->cd_ires);
 
 	taskqueue_drain_timeout(taskqueue_swi_giant, &helper->cd_delayed_task);
 }
@@ -351,7 +354,8 @@ mmc_fdt_set_power(struct mmc_helper *helper, enum mmc_power_mode power_mode)
 				regulator_disable(helper->vmmc_supply);
 		}
 		if (helper->vqmmc_supply) {
-			rv = regulator_status(helper->vqmmc_supply, &reg_status);
+			rv = regulator_status(helper->vqmmc_supply,
+			    &reg_status);
 			if (rv == 0 && reg_status == REGULATOR_STATUS_ENABLED)
 				regulator_disable(helper->vqmmc_supply);
 		}
@@ -365,7 +369,8 @@ mmc_fdt_set_power(struct mmc_helper *helper, enum mmc_power_mode power_mode)
 				regulator_enable(helper->vmmc_supply);
 		}
 		if (helper->vqmmc_supply) {
-			rv = regulator_status(helper->vqmmc_supply, &reg_status);
+			rv = regulator_status(helper->vqmmc_supply,
+			    &reg_status);
 			if (rv == 0 && reg_status != REGULATOR_STATUS_ENABLED)
 				regulator_enable(helper->vqmmc_supply);
 		}

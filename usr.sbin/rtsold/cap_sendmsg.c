@@ -5,7 +5,7 @@
  *
  * Copyright (C) 1998 WIDE Project.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -17,7 +17,7 @@
  * 3. Neither the name of the project nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE PROJECT AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -40,23 +40,20 @@
 
 #include <net/if.h>
 #include <net/if_dl.h>
-
+#include <netinet/icmp6.h>
 #include <netinet/in.h>
 #include <netinet6/in6_var.h>
-#include <netinet/icmp6.h>
 #include <netinet6/nd6.h>
 
 #include <arpa/inet.h>
-
 #include <capsicum_helpers.h>
 #include <errno.h>
+#include <libcasper.h>
+#include <libcasper_service.h>
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
 #include <unistd.h>
-
-#include <libcasper.h>
-#include <libcasper_service.h>
 
 #include "rtsold.h"
 
@@ -107,7 +104,7 @@ sendpacket(int sock, struct sockaddr_in6 *dst, uint32_t ifindex, int hoplimit,
 	cm->cmsg_type = IPV6_PKTINFO;
 	cm->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
 	pi = (struct in6_pktinfo *)(void *)CMSG_DATA(cm);
-	memset(&pi->ipi6_addr, 0, sizeof(pi->ipi6_addr));	/*XXX*/
+	memset(&pi->ipi6_addr, 0, sizeof(pi->ipi6_addr)); /*XXX*/
 	pi->ipi6_ifindex = ifindex;
 
 	/* Specify the hop limit of the packet for safety. */
@@ -242,8 +239,8 @@ cap_rssend(cap_channel_t *cap, struct ifinfo *ifinfo)
 	ifinfo->probes++;
 	if (error != 0 && (errno != ENETDOWN || dflag > 0)) {
 		error = errno;
-		warnmsg(LOG_ERR, __func__, "sendmsg on %s: %s",
-		    ifinfo->ifname, strerror(errno));
+		warnmsg(LOG_ERR, __func__, "sendmsg on %s: %s", ifinfo->ifname,
+		    strerror(errno));
 		errno = error;
 	}
 	return (error == 0 ? 0 : -1);
@@ -251,16 +248,15 @@ cap_rssend(cap_channel_t *cap, struct ifinfo *ifinfo)
 
 #ifdef WITH_CASPER
 static int
-sendmsg_command(const char *cmd, const nvlist_t *limits __unused, nvlist_t *nvlin,
-    nvlist_t *nvlout __unused)
+sendmsg_command(const char *cmd, const nvlist_t *limits __unused,
+    nvlist_t *nvlin, nvlist_t *nvlout __unused)
 {
 	const void *data;
 	size_t len;
 	uint32_t ifindex, linkid;
 	int error;
 
-	if (strcmp(cmd, "probe_defrouters") != 0 &&
-	    strcmp(cmd, "rssend") != 0)
+	if (strcmp(cmd, "probe_defrouters") != 0 && strcmp(cmd, "rssend") != 0)
 		return (EINVAL);
 
 	ifindex = (uint32_t)nvlist_get_number(nvlin, "ifindex");

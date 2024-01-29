@@ -26,14 +26,16 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/time.h>
+
+#include <assert.h>
 #include <namespace.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
-#include <wchar.h>
+#include <string.h>
 #include <vis.h>
-#include <assert.h>
-#include <sys/time.h>
+#include <wchar.h>
+
 #include "printf.h"
 
 int
@@ -46,7 +48,8 @@ __printf_arginfo_vis(const struct printf_info *pi, size_t n, int *argt)
 }
 
 int
-__printf_render_vis(struct __printf_io *io, const struct printf_info *pi, const void *const *arg)
+__printf_render_vis(struct __printf_io *io, const struct printf_info *pi,
+    const void *const *arg)
 {
 	char *p, *buf;
 	unsigned l;
@@ -74,5 +77,5 @@ __printf_render_vis(struct __printf_io *io, const struct printf_info *pi, const 
 	ret += __printf_out(io, pi, buf, ret);
 	__printf_flush(io);
 	free(buf);
-	return(ret);
+	return (ret);
 }

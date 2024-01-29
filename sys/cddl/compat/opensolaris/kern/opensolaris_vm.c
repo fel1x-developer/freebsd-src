@@ -26,14 +26,14 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/lock.h>
 #include <sys/freebsd_rwlock.h>
+#include <sys/lock.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
 #include <vm/vm_object.h>
 #include <vm/vm_page.h>
 #include <vm/vm_pager.h>
+#include <vm/vm_param.h>
 
 const int zfs_vm_pagerret_bad = VM_PAGER_BAD;
 const int zfs_vm_pagerret_error = VM_PAGER_ERROR;

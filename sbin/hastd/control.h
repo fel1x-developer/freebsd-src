@@ -29,11 +29,11 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_CONTROL_H_
-#define	_CONTROL_H_
+#ifndef _CONTROL_H_
+#define _CONTROL_H_
 
-#define	CONTROL_STATUS		10
-#define	CONTROL_RELOAD		11
+#define CONTROL_STATUS 10
+#define CONTROL_RELOAD 11
 
 struct hastd_config;
 struct hast_resource;
@@ -46,4 +46,4 @@ void control_handle(struct hastd_config *cfg);
 
 void *ctrl_thread(void *arg);
 
-#endif	/* !_CONTROL_H_ */
+#endif /* !_CONTROL_H_ */

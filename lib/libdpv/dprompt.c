@@ -10,7 +10,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -57,9 +57,9 @@ static uint8_t dprompt_free_mask;
 static char *done = NULL;
 static char *fail = NULL;
 static char *pend = NULL;
-int display_limit = DISPLAY_LIMIT_DEFAULT;	/* Max entries to show */
-int label_size    = LABEL_SIZE_DEFAULT;		/* Max width for labels */
-int pbar_size     = PBAR_SIZE_DEFAULT;		/* Mini-progressbar size */
+int display_limit = DISPLAY_LIMIT_DEFAULT; /* Max entries to show */
+int label_size = LABEL_SIZE_DEFAULT;	   /* Max width for labels */
+int pbar_size = PBAR_SIZE_DEFAULT;	   /* Mini-progressbar size */
 static int gauge_percent = 0;
 static int done_size, done_lsize, done_rsize;
 static int fail_size, fail_lsize, fail_rsize;
@@ -73,9 +73,9 @@ static char msg[PROMPT_MAX + 1];
 static char *spin_cp = spin;
 
 /* Function prototypes */
-static char	spin_char(void);
-static int	dprompt_add_files(struct dpv_file_node *file_list,
-		    struct dpv_file_node *curfile, int pct);
+static char spin_char(void);
+static int dprompt_add_files(struct dpv_file_node *file_list,
+    struct dpv_file_node *curfile, int pct);
 
 /*
  * Returns a pointer to the current spin character in the spin string and
@@ -161,9 +161,10 @@ dprompt_init(struct dpv_file_node *file_list)
 	for (; display_limit > 0; display_limit--) {
 		nthfile = numlines = 0;
 		fheight = (int)dpv_nfiles > display_limit ?
-		    (unsigned int)display_limit : dpv_nfiles;
+		    (unsigned int)display_limit :
+		    dpv_nfiles;
 		for (curfile = file_list; curfile != NULL;
-		    curfile = curfile->next) {
+		     curfile = curfile->next) {
 			nthfile++;
 			numlines += dialog_prompt_numlines(curfile->name, nls);
 			if ((nthfile % display_limit) == 0) {
@@ -175,10 +176,10 @@ dprompt_init(struct dpv_file_node *file_list)
 		if (numlines > fheight)
 			fheight = numlines;
 		if ((dheight + fheight +
-		    (int)dialog_prompt_numlines(aprompt, use_dialog) -
-		    (use_dialog ? (int)dialog_prompt_nlstate(aprompt) : 0))
-		    <= max_rows)
-			break;	
+			(int)dialog_prompt_numlines(aprompt, use_dialog) -
+			(use_dialog ? (int)dialog_prompt_nlstate(aprompt) :
+				      0)) <= max_rows)
+			break;
 	}
 	/* don't show any items if we run the risk of hitting a blank set */
 	if ((max_rows - (use_shadow ? 5 : 4)) >= fheight)
@@ -220,10 +221,10 @@ dprompt_init(struct dpv_file_node *file_list)
 	}
 	if (pbar_size < 0)
 		label_size = dwidth - 8;
-		/* -8 = "|  " ... " -  |" */
+	/* -8 = "|  " ... " -  |" */
 	else if (label_size > (dwidth - pbar_size - 9) || wide)
 		label_size = no_labels ? 0 : dwidth - pbar_size - 9;
-		/* -9 = "| " ... " - [" ... "] |" */
+	/* -9 = "| " ... " - [" ... "] |" */
 
 	/* Hide labels if requested */
 	if (no_labels)
@@ -234,8 +235,8 @@ dprompt_init(struct dpv_file_node *file_list)
 	dheight += dialog_prompt_wrappedlines(aprompt, dwidth - 4, 1);
 
 	if (debug)
-		warnx("dheight = %i dwidth = %i fheight = %i",
-		    dheight, dwidth, fheight);
+		warnx("dheight = %i dwidth = %i fheight = %i", dheight, dwidth,
+		    fheight);
 
 	/* Calculate left/right portions of % */
 	pct_lsize = (pbar_size - 4) / 2; /* -4 == printf("%-3s%%", pct) */
@@ -350,8 +351,8 @@ dprompt_add(const char *format, ...)
 		return (0);
 
 	va_start(ap, format);
-	len = vsnprintf(dprompt_pos, (size_t)(PROMPT_MAX -
-	    (dprompt_pos - dprompt)), format, ap);
+	len = vsnprintf(dprompt_pos,
+	    (size_t)(PROMPT_MAX - (dprompt_pos - dprompt)), format, ap);
 	va_end(ap);
 	if (len == -1)
 		errx(EXIT_FAILURE, "%s: Oops, dprompt buffer overflow",
@@ -375,7 +376,7 @@ dprompt_add_files(struct dpv_file_node *file_list,
     struct dpv_file_node *curfile, int pct)
 {
 	char c;
-	char bold_code = 'b'; /* default: enabled */
+	char bold_code = 'b';  /* default: enabled */
 	char color_code = '4'; /* default: blue */
 	uint8_t after_curfile = curfile != NULL ? FALSE : TRUE;
 	uint8_t nls = 0;
@@ -402,7 +403,6 @@ dprompt_add_files(struct dpv_file_node *file_list,
 	char pbar_cap[sizeof(pbar)];
 	char pbar_fill[sizeof(pbar)];
 
-
 	/* Override color defaults with that of main progress bar */
 	if (use_colors || use_shadow) { /* NB: shadow enables color */
 		color_code = gauge_color[0];
@@ -416,8 +416,8 @@ dprompt_add_files(struct dpv_file_node *file_list,
 	*pbar = '\0';
 	if (pbar_size >= 0 && pct >= 0 && curfile != NULL &&
 	    (curfile->length >= 0 || dialog_test)) {
-		snprintf(pbar, pbar_size + 1, "%*s%3u%%%*s", pct_lsize, "",
-		    pct, pct_rsize, "");
+		snprintf(pbar, pbar_size + 1, "%*s%3u%%%*s", pct_lsize, "", pct,
+		    pct_rsize, "");
 		if (use_color) {
 			/* Calculate the fill-width of progressbar */
 			pwidth = pct * pbar_size / 100;
@@ -434,12 +434,12 @@ dprompt_add_files(struct dpv_file_node *file_list,
 			*pbar_cap = '\0';
 			strncat(pbar_fill, (const char *)(pbar), dwidth);
 			*(pbar_fill + pwidth) = '\0';
-			strncat(pbar_cap, (const char *)(pbar+pwidth), dwidth);
+			strncat(pbar_cap, (const char *)(pbar + pwidth),
+			    dwidth);
 
 			/* Finalize the mini [color] progressbar */
-			snprintf(pbar, sizeof(pbar),
-			    "\\Z%c\\Zr\\Z%c%s%s%s\\Zn", bold_code, color_code,
-			    pbar_fill, "\\ZR", pbar_cap);
+			snprintf(pbar, sizeof(pbar), "\\Z%c\\Zr\\Z%c%s%s%s\\Zn",
+			    bold_code, color_code, pbar_fill, "\\ZR", pbar_cap);
 		}
 	}
 
@@ -486,8 +486,8 @@ dprompt_add_files(struct dpv_file_node *file_list,
 			flabel_size += 2;
 
 		/* If name is too long, add an ellipsis */
-		if (snprintf(flabel, flabel_size + 1, "%s", name) >
-		    flabel_size) sprintf(flabel + flabel_size - 3, "...");
+		if (snprintf(flabel, flabel_size + 1, "%s", name) > flabel_size)
+			sprintf(flabel + flabel_size - 3, "...");
 
 		/*
 		 * Append the label (processing the current file differently)
@@ -500,16 +500,16 @@ dprompt_add_files(struct dpv_file_node *file_list,
 			 */
 			cp = flabel + strlen(flabel);
 			if (cp < (flabel + flabel_size))
-				snprintf(cp, flabel_size -
-				    (cp - flabel) + 1, "...");
+				snprintf(cp, flabel_size - (cp - flabel) + 1,
+				    "...");
 
 			/* Append label (with spinner and optional color) */
 			dprompt_add("%s%-*s%s %c", use_color ? "\\Zb" : "",
 			    flabel_size, flabel, use_color ? "\\Zn" : "",
 			    spin_char());
 		} else
-			dprompt_add("%-*s%s %s", flabel_size,
-			    flabel, use_color ? "\\Zn" : "", " ");
+			dprompt_add("%-*s%s %s", flabel_size, flabel,
+			    use_color ? "\\Zn" : "", " ");
 
 		/*
 		 * Append pbar/status (processing the current file differently)
@@ -531,32 +531,30 @@ dprompt_add_files(struct dpv_file_node *file_list,
 					dstate = DPROMPT_DETAILS;
 				else
 					dstate = DPROMPT_END_STATE;
-			}
-			else if (dialog_test) /* status/length ignored */
-				dstate = pct < 100 ?
-				    DPROMPT_PBAR : DPROMPT_END_STATE;
+			} else if (dialog_test) /* status/length ignored */
+				dstate = pct < 100 ? DPROMPT_PBAR :
+						     DPROMPT_END_STATE;
 			else if (fp->status == DPV_STATUS_RUNNING)
-				dstate = fp->length < 0 ?
-				    DPROMPT_DETAILS : DPROMPT_PBAR;
+				dstate = fp->length < 0 ? DPROMPT_DETAILS :
+							  DPROMPT_PBAR;
 			else /* not running */
-				dstate = fp->length < 0 ?
-				    DPROMPT_DETAILS : DPROMPT_END_STATE;
+				dstate = fp->length < 0 ? DPROMPT_DETAILS :
+							  DPROMPT_END_STATE;
 		} else { /* before curfile */
 			if (dialog_test)
 				dstate = DPROMPT_END_STATE;
 			else
-				dstate = fp->length < 0 ?
-				    DPROMPT_DETAILS : DPROMPT_END_STATE;
+				dstate = fp->length < 0 ? DPROMPT_DETAILS :
+							  DPROMPT_END_STATE;
 		}
-		format = use_color ?
-		    " [\\Z%c%s%-*s%s%-*s\\Zn]\\n" :
-		    " [%-*s%s%-*s]\\n";
+		format = use_color ? " [\\Z%c%s%-*s%s%-*s\\Zn]\\n" :
+				     " [%-*s%s%-*s]\\n";
 		if (fp->status == DPV_STATUS_FAILED) {
 			bg_code = "\\Zr\\Z1"; /* Red */
 			estext_lsize = fail_lsize;
 			estext_rsize = fail_rsize;
 			estext = fail;
-		} else { /* e.g., DPV_STATUS_DONE */
+		} else {		      /* e.g., DPV_STATUS_DONE */
 			bg_code = "\\Zr\\Z2"; /* Green */
 			estext_lsize = done_lsize;
 			estext_rsize = done_rsize;
@@ -564,8 +562,8 @@ dprompt_add_files(struct dpv_file_node *file_list,
 		}
 		switch (dstate) {
 		case DPROMPT_PENDING: /* Future file(s) */
-			dprompt_add(" [%-*s%s%-*s]\\n",
-			    pend_lsize, "", pend, pend_rsize, "");
+			dprompt_add(" [%-*s%s%-*s]\\n", pend_lsize, "", pend,
+			    pend_rsize, "");
 			break;
 		case DPROMPT_PBAR: /* Current file */
 			dprompt_add(" [%s]\\n", pbar);
@@ -573,11 +571,9 @@ dprompt_add_files(struct dpv_file_node *file_list,
 		case DPROMPT_END_STATE: /* Past/Current file(s) */
 			if (use_color)
 				dprompt_add(format, bold_code, bg_code,
-				    estext_lsize, "", estext,
-				    estext_rsize, "");
+				    estext_lsize, "", estext, estext_rsize, "");
 			else
-				dprompt_add(format,
-				    estext_lsize, "", estext,
+				dprompt_add(format, estext_lsize, "", estext,
 				    estext_rsize, "");
 			break;
 		case DPROMPT_DETAILS: /* Past/Current file(s) */
@@ -588,15 +584,15 @@ dprompt_add_files(struct dpv_file_node *file_list,
 			hlen = (int)strlen(human);
 			lsize = (pbar_size - hlen) / 2;
 			rsize = lsize;
-			if ((lsize+hlen+rsize) != pbar_size)
+			if ((lsize + hlen + rsize) != pbar_size)
 				rsize++;
 
 			if (use_color)
-				dprompt_add(format, bold_code, bg_code,
-				    lsize, "", human, rsize, "");
+				dprompt_add(format, bold_code, bg_code, lsize,
+				    "", human, rsize, "");
 			else
-				dprompt_add(format,
-				    lsize, "", human, rsize, "");
+				dprompt_add(format, lsize, "", human, rsize,
+				    "");
 			break;
 		case DPROMPT_CUSTOM_MSG: /* File-specific message override */
 			snprintf(msg, PROMPT_MAX + 1, "%s", fp->msg);
@@ -607,8 +603,8 @@ dprompt_add_files(struct dpv_file_node *file_list,
 			} else {
 				mesg_lsize = (pbar_size - mesg_size) / 2;
 				mesg_rsize = mesg_lsize;
-				if ((mesg_rsize + mesg_size + mesg_lsize)
-				    != pbar_size)
+				if ((mesg_rsize + mesg_size + mesg_lsize) !=
+				    pbar_size)
 					mesg_rsize++;
 			}
 			if (use_color)
@@ -626,7 +622,7 @@ dprompt_add_files(struct dpv_file_node *file_list,
 				dprompt_add(format, pbar_size, "", "", 0, "");
 			break;
 		case DPROMPT_NONE: /* pbar_size < 0 */
-			/* FALLTHROUGH */
+				   /* FALLTHROUGH */
 		default:
 			dprompt_add(" \\n");
 			/*
@@ -668,8 +664,8 @@ dprompt_add_files(struct dpv_file_node *file_list,
  * [X]dialog(1) `--gauge' prompt text for the current state of transfers.
  */
 void
-dprompt_recreate(struct dpv_file_node *file_list,
-    struct dpv_file_node *curfile, int pct)
+dprompt_recreate(struct dpv_file_node *file_list, struct dpv_file_node *curfile,
+    int pct)
 {
 	size_t len;
 
@@ -686,12 +682,13 @@ dprompt_recreate(struct dpv_file_node *file_list,
 		len = strlen(dprompt);
 		len += strcount(dprompt, "\\n") * 5; /* +5 chars per count */
 		if (len > PROMPT_MAX)
-			errx(EXIT_FAILURE, "%s: Oops, dprompt buffer overflow "
-			    "(%zu > %i)", __func__, len, PROMPT_MAX);
+			errx(EXIT_FAILURE,
+			    "%s: Oops, dprompt buffer overflow "
+			    "(%zu > %i)",
+			    __func__, len, PROMPT_MAX);
 		if (replaceall(dprompt, "\\n", "\n\\n\n") < 0)
 			err(EXIT_FAILURE, "%s: replaceall()", __func__);
-	}
-	else if (use_libdialog)
+	} else if (use_libdialog)
 		strexpandnl(dprompt);
 }
 
@@ -699,7 +696,7 @@ dprompt_recreate(struct dpv_file_node *file_list,
  * Print the [X]dialog(1) `--gauge' prompt text to a buffer.
  */
 int
-dprompt_sprint(char * restrict str, const char *prefix, const char *append)
+dprompt_sprint(char *restrict str, const char *prefix, const char *append)
 {
 
 	return (snprintf(str, PROMPT_MAX, "%s%s%s%s", use_color ? "\\Zn" : "",
@@ -735,8 +732,8 @@ dprompt_libprint(const char *prefix, const char *append, int overall)
 
 	if (overall >= 0 && overall <= 100)
 		gauge_percent = percent = overall;
-	gauge = dlg_reallocate_gauge(gauge, title == NULL ? "" : title,
-	    buf, dheight, dwidth, percent);
+	gauge = dlg_reallocate_gauge(gauge, title == NULL ? "" : title, buf,
+	    dheight, dwidth, percent);
 	dlg_update_gauge(gauge, percent);
 }
 

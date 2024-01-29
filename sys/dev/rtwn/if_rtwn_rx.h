@@ -17,20 +17,20 @@
 #ifndef IF_RTWN_RX_H
 #define IF_RTWN_RX_H
 
-#define	RTWN_NOISE_FLOOR	-95
+#define RTWN_NOISE_FLOOR -95
 
-void	rtwn_get_rates(struct rtwn_softc *, const struct ieee80211_rateset *,
-	    const struct ieee80211_htrateset *, uint32_t *, int *, int);
-void	rtwn_set_basicrates(struct rtwn_softc *, uint32_t);
-struct ieee80211_node *	rtwn_rx_common(struct rtwn_softc *, struct mbuf *,
-	    void *);
-void	rtwn_adhoc_recv_mgmt(struct ieee80211_node *, struct mbuf *, int,
-	    const struct ieee80211_rx_stats *, int, int);
-void	rtwn_set_multi(struct rtwn_softc *);
-void	rtwn_rxfilter_update(struct rtwn_softc *);
-void	rtwn_rxfilter_init(struct rtwn_softc *);
-void	rtwn_rxfilter_set(struct rtwn_softc *);
-void	rtwn_set_rx_bssid_all(struct rtwn_softc *, int);
-void	rtwn_set_promisc(struct rtwn_softc *);
+void rtwn_get_rates(struct rtwn_softc *, const struct ieee80211_rateset *,
+    const struct ieee80211_htrateset *, uint32_t *, int *, int);
+void rtwn_set_basicrates(struct rtwn_softc *, uint32_t);
+struct ieee80211_node *rtwn_rx_common(struct rtwn_softc *, struct mbuf *,
+    void *);
+void rtwn_adhoc_recv_mgmt(struct ieee80211_node *, struct mbuf *, int,
+    const struct ieee80211_rx_stats *, int, int);
+void rtwn_set_multi(struct rtwn_softc *);
+void rtwn_rxfilter_update(struct rtwn_softc *);
+void rtwn_rxfilter_init(struct rtwn_softc *);
+void rtwn_rxfilter_set(struct rtwn_softc *);
+void rtwn_set_rx_bssid_all(struct rtwn_softc *, int);
+void rtwn_set_promisc(struct rtwn_softc *);
 
-#endif	/* IF_RTWN_RX_H */
+#endif /* IF_RTWN_RX_H */

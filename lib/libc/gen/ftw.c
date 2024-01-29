@@ -22,6 +22,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
 #include <errno.h>
 #include <fts.h>
 #include <ftw.h>
@@ -30,7 +31,7 @@ int
 ftw(const char *path, int (*fn)(const char *, const struct stat *, int),
     int nfds)
 {
-	char * const paths[2] = { (char *)path, NULL };
+	char *const paths[2] = { (char *)path, NULL };
 	FTSENT *cur;
 	FTS *ftsp;
 	int error = 0, fnflag, sverrno;

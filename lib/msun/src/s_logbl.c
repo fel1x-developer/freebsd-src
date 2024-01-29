@@ -24,7 +24,7 @@ logbl(long double x)
 
 	u.e = x;
 	if (u.bits.exp == 0) {
-		if ((u.bits.manl | u.bits.manh) == 0) {	/* x == 0 */
+		if ((u.bits.manl | u.bits.manh) == 0) { /* x == 0 */
 			u.bits.sign = 1;
 			return (1.0L / u.e);
 		}
@@ -43,8 +43,8 @@ logbl(long double x)
 #endif
 		return ((long double)(LDBL_MIN_EXP - b - 1));
 	}
-	if (u.bits.exp < (LDBL_MAX_EXP << 1) - 1)	/* normal */
+	if (u.bits.exp < (LDBL_MAX_EXP << 1) - 1) /* normal */
 		return ((long double)(u.bits.exp - LDBL_MAX_EXP + 1));
-	else						/* +/- inf or nan */
+	else /* +/- inf or nan */
 		return (x * x);
 }

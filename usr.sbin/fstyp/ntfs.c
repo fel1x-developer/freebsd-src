@@ -29,6 +29,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <err.h>
 #ifdef WITH_ICONV
 #include <iconv.h>
@@ -40,58 +41,58 @@
 
 #include "fstyp.h"
 
-#define	NTFS_A_VOLUMENAME	0x60
-#define	NTFS_FILEMAGIC		((uint32_t)(0x454C4946))
-#define	NTFS_VOLUMEINO		3
+#define NTFS_A_VOLUMENAME 0x60
+#define NTFS_FILEMAGIC ((uint32_t)(0x454C4946))
+#define NTFS_VOLUMEINO 3
 
 struct ntfs_attr {
-	uint32_t	a_type;
-	uint32_t	reclen;
-	uint8_t		a_flag;
-	uint8_t		a_namelen;
-	uint8_t		a_nameoff;
-	uint8_t		reserved1;
-	uint8_t		a_compression;
-	uint8_t		reserved2;
-	uint16_t	a_index;
-	uint16_t	a_datalen;
-	uint16_t	reserved3;
-	uint16_t	a_dataoff;
-	uint16_t	a_indexed;
+	uint32_t a_type;
+	uint32_t reclen;
+	uint8_t a_flag;
+	uint8_t a_namelen;
+	uint8_t a_nameoff;
+	uint8_t reserved1;
+	uint8_t a_compression;
+	uint8_t reserved2;
+	uint16_t a_index;
+	uint16_t a_datalen;
+	uint16_t reserved3;
+	uint16_t a_dataoff;
+	uint16_t a_indexed;
 } __packed;
 
 struct ntfs_filerec {
-	uint32_t	fr_hdrmagic;
-	uint16_t	fr_hdrfoff;
-	uint16_t	fr_hdrfnum;
-	uint8_t		reserved[8];
-	uint16_t	fr_seqnum;
-	uint16_t	fr_nlink;
-	uint16_t	fr_attroff;
-	uint16_t	fr_flags;
-	uint32_t	fr_size;
-	uint32_t	fr_allocated;
-	uint64_t	fr_mainrec;
-	uint16_t	fr_attrnum;
+	uint32_t fr_hdrmagic;
+	uint16_t fr_hdrfoff;
+	uint16_t fr_hdrfnum;
+	uint8_t reserved[8];
+	uint16_t fr_seqnum;
+	uint16_t fr_nlink;
+	uint16_t fr_attroff;
+	uint16_t fr_flags;
+	uint32_t fr_size;
+	uint32_t fr_allocated;
+	uint64_t fr_mainrec;
+	uint16_t fr_attrnum;
 } __packed;
 
 struct ntfs_bootfile {
-	uint8_t		reserved1[3];
-	uint8_t		bf_sysid[8];
-	uint16_t	bf_bps;
-	uint8_t		bf_spc;
-	uint8_t		reserved2[7];
-	uint8_t		bf_media;
-	uint8_t		reserved3[2];
-	uint16_t	bf_spt;
-	uint16_t	bf_heads;
-	uint8_t		reserver4[12];
-	uint64_t	bf_spv;
-	uint64_t	bf_mftcn;
-	uint64_t	bf_mftmirrcn;
-	int8_t		bf_mftrecsz;
-	uint32_t	bf_ibsz;
-	uint32_t	bf_volsn;
+	uint8_t reserved1[3];
+	uint8_t bf_sysid[8];
+	uint16_t bf_bps;
+	uint8_t bf_spc;
+	uint8_t reserved2[7];
+	uint8_t bf_media;
+	uint8_t reserved3[2];
+	uint16_t bf_spt;
+	uint16_t bf_heads;
+	uint8_t reserver4[12];
+	uint64_t bf_spv;
+	uint64_t bf_mftcn;
+	uint64_t bf_mftmirrcn;
+	int8_t bf_mftrecsz;
+	uint32_t bf_ibsz;
+	uint32_t bf_volsn;
 } __packed;
 
 #ifdef WITH_ICONV
@@ -152,7 +153,8 @@ fstyp_ntfs(FILE *fp, char *label, size_t size)
 		goto ok;
 
 	mftrecsz = bf->bf_mftrecsz;
-	recsize = (mftrecsz > 0) ? (mftrecsz * bf->bf_bps * bf->bf_spc) : (1 << -mftrecsz);
+	recsize = (mftrecsz > 0) ? (mftrecsz * bf->bf_bps * bf->bf_spc) :
+				   (1 << -mftrecsz);
 
 	voloff = bf->bf_mftcn * bf->bf_spc * bf->bf_bps +
 	    recsize * NTFS_VOLUMEINO;
@@ -166,13 +168,12 @@ fstyp_ntfs(FILE *fp, char *label, size_t size)
 		goto fail;
 
 	for (ap = filerecp + fr->fr_attroff;
-	    atr = (struct ntfs_attr *)ap, (int)atr->a_type != -1;
-	    ap += atr->reclen) {
+	     atr = (struct ntfs_attr *)ap, (int)atr->a_type != -1;
+	     ap += atr->reclen) {
 		if (atr->a_type != NTFS_A_VOLUMENAME)
 			continue;
 
-		convert_label(ap + atr->a_dataoff,
-		    atr->a_datalen, label, size);
+		convert_label(ap + atr->a_dataoff, atr->a_datalen, label, size);
 		break;
 	}
 

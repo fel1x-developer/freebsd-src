@@ -27,10 +27,10 @@
  */
 
 #include <sys/param.h>
+
 #include <vm/vm.h>
 
 #include <kvm.h>
-
 #include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -38,8 +38,8 @@
 #include <unistd.h>
 
 #include "../../sys/powerpc/include/minidump.h"
-#include "kvm_private.h"
 #include "kvm_powerpc64.h"
+#include "kvm_private.h"
 
 /*
  * PowerPC64 HPT machine dependent routines for kvm and minidumps.
@@ -54,54 +54,54 @@
  */
 
 /* Large (huge) page params */
-#define	LP_PAGE_SHIFT		24
-#define	LP_PAGE_SIZE		(1ULL << LP_PAGE_SHIFT)
-#define	LP_PAGE_MASK		0x00ffffffULL
+#define LP_PAGE_SHIFT 24
+#define LP_PAGE_SIZE (1ULL << LP_PAGE_SHIFT)
+#define LP_PAGE_MASK 0x00ffffffULL
 
 /* SLB */
 
-#define	SEGMENT_LENGTH		0x10000000ULL
+#define SEGMENT_LENGTH 0x10000000ULL
 
-#define	round_seg(x)		roundup2((uint64_t)(x), SEGMENT_LENGTH)
+#define round_seg(x) roundup2((uint64_t)(x), SEGMENT_LENGTH)
 
 /* Virtual real-mode VSID in LPARs */
-#define	VSID_VRMA		0x1ffffffULL
+#define VSID_VRMA 0x1ffffffULL
 
-#define	SLBV_L			0x0000000000000100ULL /* Large page selector */
-#define	SLBV_CLASS		0x0000000000000080ULL /* Class selector */
-#define	SLBV_LP_MASK		0x0000000000000030ULL
-#define	SLBV_VSID_MASK		0x3ffffffffffff000ULL /* Virtual SegID mask */
-#define	SLBV_VSID_SHIFT		12
+#define SLBV_L 0x0000000000000100ULL	 /* Large page selector */
+#define SLBV_CLASS 0x0000000000000080ULL /* Class selector */
+#define SLBV_LP_MASK 0x0000000000000030ULL
+#define SLBV_VSID_MASK 0x3ffffffffffff000ULL /* Virtual SegID mask */
+#define SLBV_VSID_SHIFT 12
 
-#define	SLBE_B_MASK		0x0000000006000000ULL
-#define	SLBE_B_256MB		0x0000000000000000ULL
-#define	SLBE_VALID		0x0000000008000000ULL /* SLB entry valid */
-#define	SLBE_INDEX_MASK		0x0000000000000fffULL /* SLB index mask */
-#define	SLBE_ESID_MASK		0xfffffffff0000000ULL /* Effective SegID mask */
-#define	SLBE_ESID_SHIFT		28
+#define SLBE_B_MASK 0x0000000006000000ULL
+#define SLBE_B_256MB 0x0000000000000000ULL
+#define SLBE_VALID 0x0000000008000000ULL      /* SLB entry valid */
+#define SLBE_INDEX_MASK 0x0000000000000fffULL /* SLB index mask */
+#define SLBE_ESID_MASK 0xfffffffff0000000ULL  /* Effective SegID mask */
+#define SLBE_ESID_SHIFT 28
 
 /* PTE */
 
-#define	LPTEH_VSID_SHIFT	12
-#define	LPTEH_AVPN_MASK		0xffffffffffffff80ULL
-#define	LPTEH_B_MASK		0xc000000000000000ULL
-#define	LPTEH_B_256MB		0x0000000000000000ULL
-#define	LPTEH_BIG		0x0000000000000004ULL	/* 4KB/16MB page */
-#define	LPTEH_HID		0x0000000000000002ULL
-#define	LPTEH_VALID		0x0000000000000001ULL
+#define LPTEH_VSID_SHIFT 12
+#define LPTEH_AVPN_MASK 0xffffffffffffff80ULL
+#define LPTEH_B_MASK 0xc000000000000000ULL
+#define LPTEH_B_256MB 0x0000000000000000ULL
+#define LPTEH_BIG 0x0000000000000004ULL /* 4KB/16MB page */
+#define LPTEH_HID 0x0000000000000002ULL
+#define LPTEH_VALID 0x0000000000000001ULL
 
-#define	LPTEL_RPGN		0xfffffffffffff000ULL
-#define	LPTEL_LP_MASK		0x00000000000ff000ULL
-#define	LPTEL_NOEXEC		0x0000000000000004ULL
+#define LPTEL_RPGN 0xfffffffffffff000ULL
+#define LPTEL_LP_MASK 0x00000000000ff000ULL
+#define LPTEL_NOEXEC 0x0000000000000004ULL
 
 /* Supervisor        (U: RW, S: RW) */
-#define	LPTEL_BW		0x0000000000000002ULL
+#define LPTEL_BW 0x0000000000000002ULL
 
 /* Both Read Only    (U: RO, S: RO) */
-#define	LPTEL_BR		0x0000000000000003ULL
+#define LPTEL_BR 0x0000000000000003ULL
 
-#define	LPTEL_RW		LPTEL_BW
-#define	LPTEL_RO		LPTEL_BR
+#define LPTEL_RW LPTEL_BW
+#define LPTEL_RO LPTEL_BR
 
 /*
  * PTE AVA field manipulation macros.
@@ -110,21 +110,19 @@
  * AVA[VSID] = AVA[0:49] = PTEH[2:51]
  * AVA[PAGE] = AVA[50:54] = PTEH[52:56]
  */
-#define	PTEH_AVA_VSID_MASK	0x3ffffffffffff000UL
-#define	PTEH_AVA_VSID_SHIFT	12
-#define	PTEH_AVA_VSID(p) \
-	(((p) & PTEH_AVA_VSID_MASK) >> PTEH_AVA_VSID_SHIFT)
+#define PTEH_AVA_VSID_MASK 0x3ffffffffffff000UL
+#define PTEH_AVA_VSID_SHIFT 12
+#define PTEH_AVA_VSID(p) (((p) & PTEH_AVA_VSID_MASK) >> PTEH_AVA_VSID_SHIFT)
 
-#define	PTEH_AVA_PAGE_MASK	0x0000000000000f80UL
-#define	PTEH_AVA_PAGE_SHIFT	7
-#define	PTEH_AVA_PAGE(p) \
-	(((p) & PTEH_AVA_PAGE_MASK) >> PTEH_AVA_PAGE_SHIFT)
+#define PTEH_AVA_PAGE_MASK 0x0000000000000f80UL
+#define PTEH_AVA_PAGE_SHIFT 7
+#define PTEH_AVA_PAGE(p) (((p) & PTEH_AVA_PAGE_MASK) >> PTEH_AVA_PAGE_SHIFT)
 
 /* Masks to obtain the Physical Address from PTE low 64-bit word. */
-#define	PTEL_PA_MASK		0x0ffffffffffff000UL
-#define	PTEL_LP_PA_MASK		0x0fffffffff000000UL
+#define PTEL_PA_MASK 0x0ffffffffffff000UL
+#define PTEL_LP_PA_MASK 0x0fffffffff000000UL
 
-#define	PTE_HASH_MASK		0x0000007fffffffffUL
+#define PTE_HASH_MASK 0x0000007fffffffffUL
 
 /*
  * Number of AVA/VA page bits to shift right, in order to leave only the
@@ -140,18 +138,19 @@
  * s: shift amount
  * 28 - b: VA page size in bits
  */
-#define	AVA_PAGE_SHIFT(b)	(5 - (MIN(54, 77-(b)) + 1 - 50))
-#define	VA_PAGE_SHIFT(b)	(28 - (b) - (MIN(54, 77-(b)) + 1 - 50))
+#define AVA_PAGE_SHIFT(b) (5 - (MIN(54, 77 - (b)) + 1 - 50))
+#define VA_PAGE_SHIFT(b) (28 - (b) - (MIN(54, 77 - (b)) + 1 - 50))
 
 /* Kernel ESID -> VSID mapping */
-#define	KERNEL_VSID_BIT	0x0000001000000000UL /* Bit set in all kernel VSIDs */
-#define	KERNEL_VSID(esid) ((((((uint64_t)esid << 8) | ((uint64_t)esid >> 28)) \
-				* 0x13bbUL) & (KERNEL_VSID_BIT - 1)) | \
-				KERNEL_VSID_BIT)
+#define KERNEL_VSID_BIT 0x0000001000000000UL /* Bit set in all kernel VSIDs */
+#define KERNEL_VSID(esid)                                                 \
+	((((((uint64_t)esid << 8) | ((uint64_t)esid >> 28)) * 0x13bbUL) & \
+	     (KERNEL_VSID_BIT - 1)) |                                     \
+	    KERNEL_VSID_BIT)
 
 /* Types */
 
-typedef uint64_t	ppc64_physaddr_t;
+typedef uint64_t ppc64_physaddr_t;
 
 typedef struct {
 	uint64_t slbv;
@@ -167,7 +166,6 @@ struct hpt_data {
 	ppc64_slb_entry_t *slbs;
 	uint32_t slbsize;
 };
-
 
 static void
 slb_fill(ppc64_slb_entry_t *slb, uint64_t ea, uint64_t i)
@@ -202,9 +200,9 @@ slb_init(kvm_t *kd)
 	}
 	data->slbsize = slbsize;
 
-	dprintf("%s: maxmem=0x%jx, segs=%jd, slbsize=0x%jx\n",
-	    __func__, (uintmax_t)maxmem,
-	    (uintmax_t)slbsize / sizeof(ppc64_slb_entry_t), (uintmax_t)slbsize);
+	dprintf("%s: maxmem=0x%jx, segs=%jd, slbsize=0x%jx\n", __func__,
+	    (uintmax_t)maxmem, (uintmax_t)slbsize / sizeof(ppc64_slb_entry_t),
+	    (uintmax_t)slbsize);
 
 	/*
 	 * Generate needed SLB entries.
@@ -216,14 +214,13 @@ slb_init(kvm_t *kd)
 	 */
 
 	/* VM area */
-	for (ea = hdr->kernbase, i = 0, slb = data->slbs;
-	    ea < hdr->kernend; ea += SEGMENT_LENGTH, i++, slb++)
+	for (ea = hdr->kernbase, i = 0, slb = data->slbs; ea < hdr->kernend;
+	     ea += SEGMENT_LENGTH, i++, slb++)
 		slb_fill(slb, ea, i);
 
 	/* DMAP area */
-	for (ea = hdr->dmapbase;
-	    ea < MIN(hdr->dmapend, hdr->dmapbase + maxmem);
-	    ea += SEGMENT_LENGTH, i++, slb++) {
+	for (ea = hdr->dmapbase; ea < MIN(hdr->dmapend, hdr->dmapbase + maxmem);
+	     ea += SEGMENT_LENGTH, i++, slb++) {
 		slb_fill(slb, ea, i);
 		if (hdr->hw_direct_map)
 			slb->slbv |= SLBV_L;
@@ -291,8 +288,8 @@ slb_search(kvm_t *kd, kvaddr_t ea)
 			continue;
 
 		/* Match found */
-		dprintf("SEG#%02d: slbv=0x%016jx, slbe=0x%016jx\n",
-		    i, (uintmax_t)slb->slbv, (uintmax_t)slb->slbe);
+		dprintf("SEG#%02d: slbv=0x%016jx, slbe=0x%016jx\n", i,
+		    (uintmax_t)slb->slbv, (uintmax_t)slb->slbe);
 		break;
 	}
 
@@ -335,14 +332,14 @@ pte_search(kvm_t *kd, ppc64_slb_entry_t *slb, uint64_t hid, kvaddr_t ea,
 	 * va_vsid: 50-bit VSID (78-s)
 	 * va_page: (s-b)-bit VA page
 	 */
-	b = slb->slbv & SLBV_L? LP_PAGE_SHIFT : PPC64_PAGE_SHIFT;
+	b = slb->slbv & SLBV_L ? LP_PAGE_SHIFT : PPC64_PAGE_SHIFT;
 	va_vsid = (slb->slbv & SLBV_VSID_MASK) >> SLBV_VSID_SHIFT;
 	va_page = (ea & ~SLBE_ESID_MASK) >> b;
 
 	dprintf("%s: hid=0x%jx, ea=0x%016jx, b=%d, va_vsid=0x%010jx, "
-	    "va_page=0x%04jx\n",
-	    __func__, (uintmax_t)hid, (uintmax_t)ea, b,
-	    (uintmax_t)va_vsid, (uintmax_t)va_page);
+		"va_page=0x%04jx\n",
+	    __func__, (uintmax_t)hid, (uintmax_t)ea, b, (uintmax_t)va_vsid,
+	    (uintmax_t)va_page);
 
 	/*
 	 * Get hash:
@@ -369,10 +366,10 @@ pte_search(kvm_t *kd, ppc64_slb_entry_t *slb, uint64_t hid, kvaddr_t ea,
 	va_pg_shift = VA_PAGE_SHIFT(b);
 
 	dprintf("%s: hash=0x%010jx, hmask=0x%010jx, (hash & hmask)=0x%010jx, "
-	    "pteg=0x%011jx, ava_pg_shift=%d, va_pg_shift=%d\n",
+		"pteg=0x%011jx, ava_pg_shift=%d, va_pg_shift=%d\n",
 	    __func__, (uintmax_t)hash, (uintmax_t)hmask,
-	    (uintmax_t)(hash & hmask), (uintmax_t)pteg,
-	    ava_pg_shift, va_pg_shift);
+	    (uintmax_t)(hash & hmask), (uintmax_t)pteg, ava_pg_shift,
+	    va_pg_shift);
 
 	/* Search PTEG */
 	for (ptex = pteg; ptex < pteg + 8; ptex++) {
@@ -387,7 +384,7 @@ pte_search(kvm_t *kd, ppc64_slb_entry_t *slb, uint64_t hid, kvaddr_t ea,
 		/* Compare AVA with VA */
 		if (PTEH_AVA_VSID(pte.pte_hi) != va_vsid ||
 		    (PTEH_AVA_PAGE(pte.pte_hi) >> ava_pg_shift) !=
-		    (va_page >> va_pg_shift))
+			(va_page >> va_pg_shift))
 			continue;
 
 		/*
@@ -403,7 +400,7 @@ pte_search(kvm_t *kd, ppc64_slb_entry_t *slb, uint64_t hid, kvaddr_t ea,
 
 		/* Match found */
 		dprintf("%s: PTE found: ptex=0x%jx, pteh=0x%016jx, "
-		    "ptel=0x%016jx\n",
+			"ptel=0x%016jx\n",
 		    __func__, (uintmax_t)ptex, (uintmax_t)pte.pte_hi,
 		    (uintmax_t)pte.pte_lo);
 		break;
@@ -415,8 +412,8 @@ pte_search(kvm_t *kd, ppc64_slb_entry_t *slb, uint64_t hid, kvaddr_t ea,
 		if (hid == 0)
 			return (pte_search(kd, slb, LPTEH_HID, ea, p));
 		else {
-			_kvm_err(kd, kd->program,
-			    "%s: pte not found", __func__);
+			_kvm_err(kd, kd->program, "%s: pte not found",
+			    __func__);
 			return (-1);
 		}
 	}
@@ -472,18 +469,19 @@ ppc64mmu_hpt_kvatop(kvm_t *kd, kvaddr_t va, off_t *pa)
 		pgpa = (va & ~hdr->dmapbase) & ~PPC64_PAGE_MASK;
 		ptoff = _kvm_pt_find(kd, pgpa, PPC64_PAGE_SIZE);
 		if (ptoff == -1) {
-			_kvm_err(kd, kd->program, "%s: "
+			_kvm_err(kd, kd->program,
+			    "%s: "
 			    "direct map address 0x%jx not in minidump",
 			    __func__, (uintmax_t)va);
 			goto invalid;
 		}
 		*pa = ptoff + pgoff;
 		return (PPC64_PAGE_SIZE - pgoff);
-	/* Translate VA to PA */
+		/* Translate VA to PA */
 	} else if (va >= hdr->kernbase) {
 		if ((err = pte_lookup(kd, va, &pte)) == -1) {
-			_kvm_err(kd, kd->program,
-			    "%s: pte not valid", __func__);
+			_kvm_err(kd, kd->program, "%s: pte not valid",
+			    __func__);
 			goto invalid;
 		}
 
@@ -496,7 +494,8 @@ ppc64mmu_hpt_kvatop(kvm_t *kd, kvaddr_t va, off_t *pa)
 
 		ptoff = _kvm_pt_find(kd, pgpa, PPC64_PAGE_SIZE);
 		if (ptoff == -1) {
-			_kvm_err(kd, kd->program, "%s: "
+			_kvm_err(kd, kd->program,
+			    "%s: "
 			    "physical address 0x%jx not in minidump",
 			    __func__, (uintmax_t)pgpa);
 			goto invalid;
@@ -505,8 +504,8 @@ ppc64mmu_hpt_kvatop(kvm_t *kd, kvaddr_t va, off_t *pa)
 		return (PPC64_PAGE_SIZE - pgoff);
 	} else {
 		_kvm_err(kd, kd->program,
-		    "%s: virtual address 0x%jx not minidumped",
-		    __func__, (uintmax_t)va);
+		    "%s: virtual address 0x%jx not minidumped", __func__,
+		    (uintmax_t)va);
 		goto invalid;
 	}
 
@@ -550,8 +549,8 @@ slb_vsid_search(kvm_t *kd, uint64_t vsid)
 	/* SLB not found */
 	if (i == n) {
 		_kvm_err(kd, kd->program,
-		    "%s: segment not found for VSID 0x%jx",
-		    __func__, (uintmax_t)vsid >> SLBV_VSID_SHIFT);
+		    "%s: segment not found for VSID 0x%jx", __func__,
+		    (uintmax_t)vsid >> SLBV_VSID_SHIFT);
 		return (NULL);
 	}
 	return (slb);
@@ -572,7 +571,7 @@ get_ea(kvm_t *kd, ppc64_pt_entry_t *pte, u_long ptex)
 	/* Get ESID part of EA */
 	ea = slb->slbe & SLBE_ESID_MASK;
 
-	b = slb->slbv & SLBV_L? LP_PAGE_SHIFT : PPC64_PAGE_SHIFT;
+	b = slb->slbv & SLBV_L ? LP_PAGE_SHIFT : PPC64_PAGE_SHIFT;
 
 	/*
 	 * If there are less than 64K PTEGs (16-bit), the upper bits of
@@ -586,8 +585,8 @@ get_ea(kvm_t *kd, ppc64_pt_entry_t *pte, u_long ptex)
 		 * b == 24: 4 bits
 		 */
 		shift = AVA_PAGE_SHIFT(b);
-		ea |= (PTEH_AVA_PAGE(pte->pte_hi) >> shift) <<
-		    (SLBE_ESID_SHIFT - 5 + shift);
+		ea |= (PTEH_AVA_PAGE(pte->pte_hi) >> shift)
+		    << (SLBE_ESID_SHIFT - 5 + shift);
 	}
 
 	/* Get VA page from hash and add to EA. */
@@ -641,7 +640,7 @@ ppc64mmu_hpt_walk_pages(kvm_t *kd, kvm_walk_pages_cb_t *cb, void *arg)
 		dva = vm->hdr.dmapbase + pa;
 
 		if (!_kvm_visit_cb(kd, cb, arg, pa, va, dva,
-		    entry_to_prot(&pte), pagesz, 0))
+			entry_to_prot(&pte), pagesz, 0))
 			goto out;
 	}
 	ret = 1;
@@ -650,11 +649,10 @@ out:
 	return (ret);
 }
 
-
 static struct ppc64_mmu_ops ops = {
-	.init		= ppc64mmu_hpt_init,
-	.cleanup	= ppc64mmu_hpt_cleanup,
-	.kvatop		= ppc64mmu_hpt_kvatop,
-	.walk_pages	= ppc64mmu_hpt_walk_pages,
+	.init = ppc64mmu_hpt_init,
+	.cleanup = ppc64mmu_hpt_cleanup,
+	.kvatop = ppc64mmu_hpt_kvatop,
+	.walk_pages = ppc64mmu_hpt_walk_pages,
 };
 struct ppc64_mmu_ops *ppc64_mmu_ops_hpt = &ops;

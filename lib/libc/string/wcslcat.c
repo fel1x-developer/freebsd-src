@@ -36,6 +36,7 @@ __RCSID("$NetBSD: wcslcat.c,v 1.1 2000/12/23 23:14:36 itojun Exp $");
 #endif /* LIBC_SCCS and not lint */
 #endif
 #include <sys/types.h>
+
 #include <wchar.h>
 
 /*
@@ -60,7 +61,7 @@ wcslcat(wchar_t *dst, const wchar_t *src, size_t siz)
 	n = siz - dlen;
 
 	if (n == 0)
-		return(dlen + wcslen(s));
+		return (dlen + wcslen(s));
 	while (*s != '\0') {
 		if (n != 1) {
 			*d++ = *s;
@@ -70,5 +71,5 @@ wcslcat(wchar_t *dst, const wchar_t *src, size_t siz)
 	}
 	*d = '\0';
 
-	return(dlen + (s - src));	/* count does not include NUL */
+	return (dlen + (s - src)); /* count does not include NUL */
 }

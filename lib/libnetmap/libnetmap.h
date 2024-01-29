@@ -29,8 +29,8 @@
 
 #ifndef LIBNETMAP_H_
 #define LIBNETMAP_H_
-/* if thread-safety is not needed, define LIBNETMAP_NOTHREADSAFE before including
- * this file.
+/* if thread-safety is not needed, define LIBNETMAP_NOTHREADSAFE before
+ * including this file.
  */
 
 /* NOTE: we include net/netmap_user.h without defining NETMAP_WITH_LIBS, which
@@ -168,7 +168,6 @@ struct nmem_d;
  *			nmport_enable_option() below)
  */
 
-
 /* nmport manipulation */
 
 /* struct nmport_d - describes a netmap port */
@@ -188,19 +187,19 @@ struct nmport_d {
 	/* the nmctx used when this nmport_d was created */
 	struct nmctx *ctx;
 
-	int register_done;	/* nmport_register() has been called */
-	int mmap_done;		/* nmport_mmap() has been called */
+	int register_done; /* nmport_register() has been called */
+	int mmap_done;	   /* nmport_mmap() has been called */
 	/* pointer to the extmem option contained in the hdr options, if any */
 	struct nmreq_opt_extmem *extmem;
 
 	/* the fields below are compatible with nm_open() */
-	int fd;				/* "/dev/netmap", -1 if not open */
-	struct netmap_if *nifp;		/* pointer to the netmap_if */
+	int fd;			/* "/dev/netmap", -1 if not open */
+	struct netmap_if *nifp; /* pointer to the netmap_if */
 	uint16_t first_tx_ring;
 	uint16_t last_tx_ring;
 	uint16_t first_rx_ring;
 	uint16_t last_rx_ring;
-	uint16_t cur_tx_ring;		/* used by nmport_inject */
+	uint16_t cur_tx_ring; /* used by nmport_inject */
 	uint16_t cur_rx_ring;
 
 	/* LIFO list of cleanup functions (used internally) */
@@ -223,7 +222,7 @@ struct nmport_d {
  * In case of error, NULL is returned, errno is set to some error, and an
  * error message is sent through the error() method of the current context.
  */
-struct nmport_d * nmport_open(const char *portspec);
+struct nmport_d *nmport_open(const char *portspec);
 
 /* nport_close - close a netmap port
  * @d		the port we want to close
@@ -410,8 +409,7 @@ int nmport_extmem_from_file(struct nmport_d *d, const char *fname);
  * registering the port, or to read the actual configuration after
  * registration.
  */
-struct nmreq_pools_info* nmport_extmem_getinfo(struct nmport_d *d);
-
+struct nmreq_pools_info *nmport_extmem_getinfo(struct nmport_d *d);
 
 /* nmport_offset - use offsets for this port
  * @initial	the initial offset for all the slots
@@ -452,7 +450,7 @@ struct nmreq_pools_info* nmport_extmem_getinfo(struct nmport_d *d);
  * of the buffer length.
  */
 int nmport_offset(struct nmport_d *d, uint64_t initial, uint64_t maxoff,
-		uint64_t bits, uint64_t mingap);
+    uint64_t bits, uint64_t mingap);
 
 /* enable/disable options
  *
@@ -501,7 +499,7 @@ void nmreq_header_init(struct nmreq_header *hdr, uint16_t reqtype, void *body);
  * is sent through @ctx->error().
  */
 int nmreq_header_decode(const char **ppspec, struct nmreq_header *hdr,
-		struct nmctx *ctx);
+    struct nmctx *ctx);
 
 /* nmreq_regiter_decode - initialize an nmreq_register
  * @pmode:	(in/out) pointer to a pointer to an opening mode
@@ -523,7 +521,7 @@ int nmreq_header_decode(const char **ppspec, struct nmreq_header *hdr,
  * is sent through @ctx->error().
  */
 int nmreq_register_decode(const char **pmode, struct nmreq_register *reg,
-		struct nmctx *ctx);
+    struct nmctx *ctx);
 
 /* nmreq_options_decode - parse the "options" part of the portspec
  * @opt:	pointer to the option list
@@ -543,36 +541,36 @@ int nmreq_register_decode(const char **pmode, struct nmreq_register *reg,
  */
 struct nmreq_opt_parser;
 int nmreq_options_decode(const char *opt, struct nmreq_opt_parser *parsers,
-		void *token, struct nmctx *ctx);
+    void *token, struct nmctx *ctx);
 
 struct nmreq_parse_ctx;
 /* type of the option-parsers callbacks */
 typedef int (*nmreq_opt_parser_cb)(struct nmreq_parse_ctx *);
 
-#define NMREQ_OPT_MAXKEYS 16	/* max nr of recognized keys per option */
+#define NMREQ_OPT_MAXKEYS 16 /* max nr of recognized keys per option */
 
 /* struct nmreq_opt_key - describes an option key */
 struct nmreq_opt_key {
-	const char *key;	/* the key name */
-	int id;			/* its position in the parse context */
+	const char *key; /* the key name */
+	int id;		 /* its position in the parse context */
 	unsigned int flags;
-#define NMREQ_OPTK_ALLOWEMPTY 	(1U << 0) /* =value may be omitted */
-#define NMREQ_OPTK_MUSTSET	(1U << 1) /* the key is mandatory */
-#define NMREQ_OPTK_DEFAULT	(1U << 2) /* this is the default key */
+#define NMREQ_OPTK_ALLOWEMPTY (1U << 0) /* =value may be omitted */
+#define NMREQ_OPTK_MUSTSET (1U << 1)	/* the key is mandatory */
+#define NMREQ_OPTK_DEFAULT (1U << 2)	/* this is the default key */
 };
 
 /* struct nmreq_opt_parser - describes an option parser */
 struct nmreq_opt_parser {
-	const char *prefix;	/* matches one option prefix */
-	nmreq_opt_parser_cb parse;	/* the parse callback */
-	int default_key;	/* which option is the default if the
-				   parser is multi-key (-1 if none) */
+	const char *prefix;	   /* matches one option prefix */
+	nmreq_opt_parser_cb parse; /* the parse callback */
+	int default_key;	   /* which option is the default if the
+				      parser is multi-key (-1 if none) */
 	int nr_keys;
 	unsigned int flags;
-#define NMREQ_OPTF_DISABLED     (1U << 0)
-#define NMREQ_OPTF_ALLOWEMPTY	(1U << 1)	/* =value can be omitted */
+#define NMREQ_OPTF_DISABLED (1U << 0)
+#define NMREQ_OPTF_ALLOWEMPTY (1U << 1) /* =value can be omitted */
 
-	struct nmreq_opt_parser *next;	/* list of options */
+	struct nmreq_opt_parser *next; /* list of options */
 
 	/* recognized keys */
 	struct nmreq_opt_key keys[NMREQ_OPT_MAXKEYS];
@@ -580,8 +578,8 @@ struct nmreq_opt_parser {
 
 /* struct nmreq_parse_ctx - the parse context received by the parse callback */
 struct nmreq_parse_ctx {
-	struct nmctx *ctx;	/* the nmctx for errors and malloc/free */
-	void *token;		/* the token passed to nmreq_options_parse */
+	struct nmctx *ctx; /* the nmctx for errors and malloc/free */
+	void *token;	   /* the token passed to nmreq_options_parse */
 
 	/* the value (i.e., the part after the = sign) of each recognized key
 	 * is assigned to the corresponding entry in this array, based on the
@@ -608,10 +606,10 @@ void nmreq_push_option(struct nmreq_header *, struct nmreq_option *);
 void nmreq_remove_option(struct nmreq_header *, struct nmreq_option *);
 struct nmreq_option *nmreq_find_option(struct nmreq_header *, uint32_t);
 void nmreq_free_options(struct nmreq_header *);
-const char* nmreq_option_name(uint32_t);
-#define nmreq_foreach_option(h_, o_) \
-	for ((o_) = (struct nmreq_option *)((uintptr_t)((h_)->nr_options));\
-	     (o_) != NULL;\
+const char *nmreq_option_name(uint32_t);
+#define nmreq_foreach_option(h_, o_)                                        \
+	for ((o_) = (struct nmreq_option *)((uintptr_t)((h_)->nr_options)); \
+	     (o_) != NULL;                                                  \
 	     (o_) = (struct nmreq_option *)((uintptr_t)((o_)->nro_next)))
 
 /* nmctx manipulation */
@@ -635,19 +633,19 @@ const char* nmreq_option_name(uint32_t);
  *   (malloc() and free() callbacks)
  *
  */
-typedef void  (*nmctx_error_cb)(struct nmctx *, const char *);
-typedef void *(*nmctx_malloc_cb)(struct nmctx *,size_t);
-typedef void  (*nmctx_free_cb)(struct nmctx *,void *);
-typedef void  (*nmctx_lock_cb)(struct nmctx *, int);
+typedef void (*nmctx_error_cb)(struct nmctx *, const char *);
+typedef void *(*nmctx_malloc_cb)(struct nmctx *, size_t);
+typedef void (*nmctx_free_cb)(struct nmctx *, void *);
+typedef void (*nmctx_lock_cb)(struct nmctx *, int);
 
 struct nmctx {
 	int verbose;
-	nmctx_error_cb 	error;
-	nmctx_malloc_cb	malloc;
-	nmctx_free_cb	free;
-	nmctx_lock_cb	lock;
+	nmctx_error_cb error;
+	nmctx_malloc_cb malloc;
+	nmctx_free_cb free;
+	nmctx_lock_cb lock;
 
-	struct nmem_d  *mem_descs;
+	struct nmem_d *mem_descs;
 };
 
 /* nmctx_get - obtain a pointer to the current default context */
@@ -664,11 +662,11 @@ struct nmctx *nmctx_set_default(struct nmctx *ctx);
 
 /* struct nmem_d - describes a memory region currently used */
 struct nmem_d {
-	uint16_t mem_id;	/* the region netmap identifier */
-	int refcount;		/* how many nmport_d's point here */
-	void *mem;		/* memory region base address */
-	size_t size;		/* memory region size */
-	int is_extmem;		/* was it obtained via extmem? */
+	uint16_t mem_id; /* the region netmap identifier */
+	int refcount;	 /* how many nmport_d's point here */
+	void *mem;	 /* memory region base address */
+	size_t size;	 /* memory region size */
+	int is_extmem;	 /* was it obtained via extmem? */
 
 	/* pointers for the circular list implementation.
 	 * The list head is the mem_descs filed in the nmctx
@@ -683,7 +681,8 @@ struct nmem_d {
  * There is no need to actually call this function: the ((used)) attribute is
  * sufficient to include it in the image.
  */
-static  __attribute__((used)) void libnetmap_init(void)
+static __attribute__((used)) void
+libnetmap_init(void)
 {
 #ifndef LIBNETMAP_NOTHREADSAFE
 	extern int nmctx_threadsafe;

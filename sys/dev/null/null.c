@@ -31,14 +31,14 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/conf.h>
-#include <sys/uio.h>
+#include <sys/disk.h>
+#include <sys/filio.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
-#include <sys/disk.h>
-#include <sys/bus.h>
-#include <sys/filio.h>
+#include <sys/uio.h>
 
 #include <machine/bus.h>
 #include <machine/vmparam.h>
@@ -55,33 +55,34 @@ static d_ioctl_t zero_ioctl;
 static d_read_t zero_read;
 
 static struct cdevsw full_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_read =	zero_read,
-	.d_write =	full_write,
-	.d_ioctl =	zero_ioctl,
-	.d_name =	"full",
+	.d_version = D_VERSION,
+	.d_read = zero_read,
+	.d_write = full_write,
+	.d_ioctl = zero_ioctl,
+	.d_name = "full",
 };
 
 static struct cdevsw null_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_read =	(d_read_t *)nullop,
-	.d_write =	null_write,
-	.d_ioctl =	null_ioctl,
-	.d_name =	"null",
+	.d_version = D_VERSION,
+	.d_read = (d_read_t *)nullop,
+	.d_write = null_write,
+	.d_ioctl = null_ioctl,
+	.d_name = "null",
 };
 
 static struct cdevsw zero_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_read =	zero_read,
-	.d_write =	null_write,
-	.d_ioctl =	zero_ioctl,
-	.d_name =	"zero",
-	.d_flags =	D_MMAP_ANON,
+	.d_version = D_VERSION,
+	.d_read = zero_read,
+	.d_write = null_write,
+	.d_ioctl = zero_ioctl,
+	.d_name = "zero",
+	.d_flags = D_MMAP_ANON,
 };
 
 /* ARGSUSED */
 static int
-full_write(struct cdev *dev __unused, struct uio *uio __unused, int flags __unused)
+full_write(struct cdev *dev __unused, struct uio *uio __unused,
+    int flags __unused)
 {
 
 	return (ENOSPC);
@@ -126,7 +127,7 @@ null_ioctl(struct cdev *dev __unused, u_long cmd, caddr_t data __unused,
 /* ARGSUSED */
 static int
 zero_ioctl(struct cdev *dev __unused, u_long cmd, caddr_t data __unused,
-	   int flags __unused, struct thread *td)
+    int flags __unused, struct thread *td)
 {
 	int error;
 	error = 0;
@@ -169,10 +170,11 @@ zero_read(struct cdev *dev __unused, struct uio *uio, int flags __unused)
 static int
 null_modevent(module_t mod __unused, int type, void *data __unused)
 {
-	switch(type) {
+	switch (type) {
 	case MOD_LOAD:
 		if (bootverbose)
-			printf("null: <full device, null device, zero device>\n");
+			printf(
+			    "null: <full device, null device, zero device>\n");
 		full_dev = make_dev_credf(MAKEDEV_ETERNAL_KLD, &full_cdevsw, 0,
 		    NULL, UID_ROOT, GID_WHEEL, 0666, "full");
 		null_dev = make_dev_credf(MAKEDEV_ETERNAL_KLD, &null_cdevsw, 0,

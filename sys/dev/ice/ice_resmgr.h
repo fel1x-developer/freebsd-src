@@ -33,8 +33,8 @@
  * @file ice_resmgr.h
  * @brief Resource manager interface
  *
- * Defines an interface for managing PF hardware queues and interrupts for assigning them to
- * hardware VSIs and VFs.
+ * Defines an interface for managing PF hardware queues and interrupts for
+ * assigning them to hardware VSIs and VFs.
  *
  * For queue management:
  * The total number of available Tx and Rx queues is not equal, so it is
@@ -50,17 +50,17 @@
 #ifndef _ICE_RESMGR_H_
 #define _ICE_RESMGR_H_
 #include <sys/param.h>
-#include "ice_osdep.h"
-
 #include <sys/bitstring.h>
+
+#include "ice_osdep.h"
 
 /*
  * For managing VSI queue allocations
  */
 /* Hardware only supports a limited number of resources in scattered mode */
-#define ICE_MAX_SCATTERED_QUEUES	16
+#define ICE_MAX_SCATTERED_QUEUES 16
 /* Use highest value to indicate invalid resource mapping */
-#define ICE_INVALID_RES_IDX		0xFFFF
+#define ICE_INVALID_RES_IDX 0xFFFF
 
 /*
  * Structures
@@ -75,9 +75,9 @@
  * resource has been allocated and is not free.
  */
 struct ice_resmgr {
-	bitstr_t	*resources;
-	u16		num_res;
-	bool		contig_only;
+	bitstr_t *resources;
+	u16 num_res;
+	bool contig_only;
 };
 
 /**
@@ -95,16 +95,17 @@ enum ice_resmgr_alloc_type {
 };
 
 /* Public resource manager allocation functions */
-int	ice_resmgr_init(struct ice_resmgr *resmgr, u16 num_res);
-int	ice_resmgr_init_contig_only(struct ice_resmgr *resmgr, u16 num_res);
-void	ice_resmgr_destroy(struct ice_resmgr *resmgr);
+int ice_resmgr_init(struct ice_resmgr *resmgr, u16 num_res);
+int ice_resmgr_init_contig_only(struct ice_resmgr *resmgr, u16 num_res);
+void ice_resmgr_destroy(struct ice_resmgr *resmgr);
 
 /* Public resource assignment functions */
-int	ice_resmgr_assign_contiguous(struct ice_resmgr *resmgr, u16 *idx, u16 num_res);
-int	ice_resmgr_assign_scattered(struct ice_resmgr *resmgr, u16 *idx, u16 num_res);
+int ice_resmgr_assign_contiguous(struct ice_resmgr *resmgr, u16 *idx,
+    u16 num_res);
+int ice_resmgr_assign_scattered(struct ice_resmgr *resmgr, u16 *idx,
+    u16 num_res);
 
 /* Release resources */
-void	ice_resmgr_release_map(struct ice_resmgr *resmgr, u16 *idx, u16 num_res);
+void ice_resmgr_release_map(struct ice_resmgr *resmgr, u16 *idx, u16 num_res);
 
 #endif /* _ICE_RESMGR_H_ */
-

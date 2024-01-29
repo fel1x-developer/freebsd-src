@@ -29,160 +29,153 @@
 /* AHCI controller driver for NXP QorIQ Layerscape SoCs. */
 
 #include <sys/cdefs.h>
-#include <sys/stdint.h>
-#include <sys/stddef.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/sysctl.h>
 #include <sys/rman.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sysctl.h>
 #include <sys/unistd.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
 
+#include <dev/ahci/ahci.h>
+#include <dev/clk/clk.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include <dev/ahci/ahci.h>
+#define AHCI_FSL_REG_PHY1 0xa8
+#define AHCI_FSL_REG_PHY2 0xac
+#define AHCI_FSL_REG_PHY3 0xb0
+#define AHCI_FSL_REG_PHY4 0xb4
+#define AHCI_FSL_REG_PHY5 0xb8
+#define AHCI_FSL_REG_AXICC 0xbc
+#define AHCI_FSL_REG_PTC 0xc8
 
-#include <dev/clk/clk.h>
+#define AHCI_FSL_LS1021A_AXICC 0xc0
 
-#define	AHCI_FSL_REG_PHY1	0xa8
-#define	AHCI_FSL_REG_PHY2	0xac
-#define	AHCI_FSL_REG_PHY3	0xb0
-#define	AHCI_FSL_REG_PHY4	0xb4
-#define	AHCI_FSL_REG_PHY5	0xb8
-#define	AHCI_FSL_REG_AXICC	0xbc
-#define	AHCI_FSL_REG_PTC	0xc8
+#define AHCI_FSL_REG_PHY1_TTA_MASK 0x0001ffff
+#define AHCI_FSL_REG_PHY1_SNM (1 << 17)
+#define AHCI_FSL_REG_PHY1_SNR (1 << 18)
+#define AHCI_FSL_REG_PHY1_FPR (1 << 20)
+#define AHCI_FSL_REG_PHY1_PBPS_LBP 0
+#define AHCI_FSL_REG_PHY1_PBPS_LFTP (0x01 << 21)
+#define AHCI_FSL_REG_PHY1_PBPS_MFTP (0x02 << 21)
+#define AHCI_FSL_REG_PHY1_PBPS_HFTP (0x03 << 21)
+#define AHCI_FSL_REG_PHY1_PBPS_PRBS (0x04 << 21)
+#define AHCI_FSL_REG_PHY1_PBPS_BIST (0x05 << 21)
+#define AHCI_FSL_REG_PHY1_PBPE (1 << 24)
+#define AHCI_FSL_REG_PHY1_PBCE (1 << 25)
+#define AHCI_FSL_REG_PHY1_PBPNA (1 << 26)
+#define AHCI_FSL_REG_PHY1_STB (1 << 27)
+#define AHCI_FSL_REG_PHY1_PSSO (1 << 28)
+#define AHCI_FSL_REG_PHY1_PSS (1 << 29)
+#define AHCI_FSL_REG_PHY1_ERSN (1 << 30)
+#define AHCI_FSL_REG_PHY1_ESDF (1 << 31)
 
-#define AHCI_FSL_LS1021A_AXICC	0xc0
+#define AHCI_FSL_REG_PHY_MASK 0xff
 
-#define	AHCI_FSL_REG_PHY1_TTA_MASK	0x0001ffff
-#define	AHCI_FSL_REG_PHY1_SNM		(1 << 17)
-#define	AHCI_FSL_REG_PHY1_SNR		(1 << 18)
-#define	AHCI_FSL_REG_PHY1_FPR		(1 << 20)
-#define	AHCI_FSL_REG_PHY1_PBPS_LBP	0
-#define	AHCI_FSL_REG_PHY1_PBPS_LFTP	(0x01 << 21)
-#define	AHCI_FSL_REG_PHY1_PBPS_MFTP	(0x02 << 21)
-#define	AHCI_FSL_REG_PHY1_PBPS_HFTP	(0x03 << 21)
-#define	AHCI_FSL_REG_PHY1_PBPS_PRBS	(0x04 << 21)
-#define	AHCI_FSL_REG_PHY1_PBPS_BIST	(0x05 << 21)
-#define	AHCI_FSL_REG_PHY1_PBPE		(1 << 24)
-#define	AHCI_FSL_REG_PHY1_PBCE		(1 << 25)
-#define	AHCI_FSL_REG_PHY1_PBPNA		(1 << 26)
-#define	AHCI_FSL_REG_PHY1_STB		(1 << 27)
-#define	AHCI_FSL_REG_PHY1_PSSO		(1 << 28)
-#define	AHCI_FSL_REG_PHY1_PSS		(1 << 29)
-#define	AHCI_FSL_REG_PHY1_ERSN		(1 << 30)
-#define	AHCI_FSL_REG_PHY1_ESDF		(1 << 31)
+#define AHCI_FSL_PHY2_CIBGMN_SHIFT 0
+#define AHCI_FSL_PHY2_CIBGMX_SHIFT 8
+#define AHCI_FSL_PHY2_CIBGN_SHIFT 16
+#define AHCI_FSL_PHY2_CINMP_SHIFT 24
 
-#define	AHCI_FSL_REG_PHY_MASK		0xff
-
-#define	AHCI_FSL_PHY2_CIBGMN_SHIFT	0
-#define	AHCI_FSL_PHY2_CIBGMX_SHIFT	8
-#define	AHCI_FSL_PHY2_CIBGN_SHIFT	16
-#define	AHCI_FSL_PHY2_CINMP_SHIFT	24
-
-
-#define	AHCI_FSL_PHY3_CWBGMN_SHIFT	0
-#define	AHCI_FSL_PHY3_CWBGMX_SHIFT	8
-#define	AHCI_FSL_PHY3_CWBGN_SHIFT	16
-#define	AHCI_FSL_PHY3_CWNMP_SHIFT	24
+#define AHCI_FSL_PHY3_CWBGMN_SHIFT 0
+#define AHCI_FSL_PHY3_CWBGMX_SHIFT 8
+#define AHCI_FSL_PHY3_CWBGN_SHIFT 16
+#define AHCI_FSL_PHY3_CWNMP_SHIFT 24
 
 /* Only in LS1021A */
-#define	AHCI_FSL_PHY4_BMX_SHIFT		0
-#define	AHCI_FSL_PHY4_BNM_SHIFT		8
-#define	AHCI_FSL_PHY4_SFD_SHIFT		16
-#define	AHCI_FSL_PHY4_PTST_SHIFT	24
+#define AHCI_FSL_PHY4_BMX_SHIFT 0
+#define AHCI_FSL_PHY4_BNM_SHIFT 8
+#define AHCI_FSL_PHY4_SFD_SHIFT 16
+#define AHCI_FSL_PHY4_PTST_SHIFT 24
 
 /* Only in LS1021A */
-#define	AHCI_FSL_PHY5_RIT_SHIFT		0
-#define	AHCI_FSL_PHY5_RCT_SHIFT		20
+#define AHCI_FSL_PHY5_RIT_SHIFT 0
+#define AHCI_FSL_PHY5_RCT_SHIFT 20
 
-#define	AHCI_FSL_REG_PTC_RXWM_MASK	0x0000007f
-#define	AHCI_FSL_REG_PTC_ENBD		(1 << 8)
-#define	AHCI_FSL_REG_PTC_ITM		(1 << 9)
+#define AHCI_FSL_REG_PTC_RXWM_MASK 0x0000007f
+#define AHCI_FSL_REG_PTC_ENBD (1 << 8)
+#define AHCI_FSL_REG_PTC_ITM (1 << 9)
 
-#define	AHCI_FSL_REG_PHY1_CFG						\
-    ((0x1fffe & AHCI_FSL_REG_PHY1_TTA_MASK) |				\
-     AHCI_FSL_REG_PHY1_SNM | AHCI_FSL_REG_PHY1_PSS | AHCI_FSL_REG_PHY1_ESDF)
+#define AHCI_FSL_REG_PHY1_CFG                                             \
+	((0x1fffe & AHCI_FSL_REG_PHY1_TTA_MASK) | AHCI_FSL_REG_PHY1_SNM | \
+	    AHCI_FSL_REG_PHY1_PSS | AHCI_FSL_REG_PHY1_ESDF)
 
-#define	AHCI_FSL_REG_PHY2_CFG						\
-    ((0x1f << AHCI_FSL_PHY2_CIBGMN_SHIFT) |				\
-     (0x4d << AHCI_FSL_PHY2_CIBGMX_SHIFT) |				\
-     (0x18 << AHCI_FSL_PHY2_CIBGN_SHIFT) |				\
-     (0x28 << AHCI_FSL_PHY2_CINMP_SHIFT))
+#define AHCI_FSL_REG_PHY2_CFG                      \
+	((0x1f << AHCI_FSL_PHY2_CIBGMN_SHIFT) |    \
+	    (0x4d << AHCI_FSL_PHY2_CIBGMX_SHIFT) | \
+	    (0x18 << AHCI_FSL_PHY2_CIBGN_SHIFT) |  \
+	    (0x28 << AHCI_FSL_PHY2_CINMP_SHIFT))
 
-#define	AHCI_FSL_REG_PHY2_CFG_LS1021A					\
-    ((0x14 << AHCI_FSL_PHY2_CIBGMN_SHIFT) |				\
-     (0x34 << AHCI_FSL_PHY2_CIBGMX_SHIFT) |				\
-     (0x18 << AHCI_FSL_PHY2_CIBGN_SHIFT) |				\
-     (0x28 << AHCI_FSL_PHY2_CINMP_SHIFT))
+#define AHCI_FSL_REG_PHY2_CFG_LS1021A              \
+	((0x14 << AHCI_FSL_PHY2_CIBGMN_SHIFT) |    \
+	    (0x34 << AHCI_FSL_PHY2_CIBGMX_SHIFT) | \
+	    (0x18 << AHCI_FSL_PHY2_CIBGN_SHIFT) |  \
+	    (0x28 << AHCI_FSL_PHY2_CINMP_SHIFT))
 
-#define	AHCI_FSL_REG_PHY3_CFG						\
-    ((0x09 << AHCI_FSL_PHY3_CWBGMN_SHIFT) |				\
-     (0x15 << AHCI_FSL_PHY3_CWBGMX_SHIFT) |				\
-     (0x08 << AHCI_FSL_PHY3_CWBGN_SHIFT) |				\
-     (0x0e << AHCI_FSL_PHY3_CWNMP_SHIFT))
+#define AHCI_FSL_REG_PHY3_CFG                      \
+	((0x09 << AHCI_FSL_PHY3_CWBGMN_SHIFT) |    \
+	    (0x15 << AHCI_FSL_PHY3_CWBGMX_SHIFT) | \
+	    (0x08 << AHCI_FSL_PHY3_CWBGN_SHIFT) |  \
+	    (0x0e << AHCI_FSL_PHY3_CWNMP_SHIFT))
 
-#define	AHCI_FSL_REG_PHY3_CFG_LS1021A					\
-    ((0x06 << AHCI_FSL_PHY3_CWBGMN_SHIFT) |				\
-     (0x0e << AHCI_FSL_PHY3_CWBGMX_SHIFT) |				\
-     (0x08 << AHCI_FSL_PHY3_CWBGN_SHIFT) |				\
-     (0x0e << AHCI_FSL_PHY3_CWNMP_SHIFT))
+#define AHCI_FSL_REG_PHY3_CFG_LS1021A              \
+	((0x06 << AHCI_FSL_PHY3_CWBGMN_SHIFT) |    \
+	    (0x0e << AHCI_FSL_PHY3_CWBGMX_SHIFT) | \
+	    (0x08 << AHCI_FSL_PHY3_CWBGN_SHIFT) |  \
+	    (0x0e << AHCI_FSL_PHY3_CWNMP_SHIFT))
 
-#define	AHCI_FSL_REG_PHY4_CFG_LS1021A					\
-    ((0x0b << AHCI_FSL_PHY4_BMX_SHIFT) |				\
-     (0x08 << AHCI_FSL_PHY4_BNM_SHIFT) |				\
-     (0x4a << AHCI_FSL_PHY4_SFD_SHIFT) |				\
-     (0x06 << AHCI_FSL_PHY4_PTST_SHIFT))
+#define AHCI_FSL_REG_PHY4_CFG_LS1021A           \
+	((0x0b << AHCI_FSL_PHY4_BMX_SHIFT) |    \
+	    (0x08 << AHCI_FSL_PHY4_BNM_SHIFT) | \
+	    (0x4a << AHCI_FSL_PHY4_SFD_SHIFT) | \
+	    (0x06 << AHCI_FSL_PHY4_PTST_SHIFT))
 
-#define	AHCI_FSL_REG_PHY5_CFG_LS1021A					\
-    ((0x86470 << AHCI_FSL_PHY5_RIT_SHIFT) |				\
-     (0x2aa << AHCI_FSL_PHY5_RCT_SHIFT))
+#define AHCI_FSL_REG_PHY5_CFG_LS1021A           \
+	((0x86470 << AHCI_FSL_PHY5_RIT_SHIFT) | \
+	    (0x2aa << AHCI_FSL_PHY5_RCT_SHIFT))
 
 /* Bit 27 enabled so value of reserved bits remains as in documentation. */
-#define	AHCI_FSL_REG_PTC_CFG						\
-    ((0x29 & AHCI_FSL_REG_PTC_RXWM_MASK) | (1 << 27))
+#define AHCI_FSL_REG_PTC_CFG ((0x29 & AHCI_FSL_REG_PTC_RXWM_MASK) | (1 << 27))
 
-#define	AHCI_FSL_REG_AXICC_CFG	0x3fffffff
+#define AHCI_FSL_REG_AXICC_CFG 0x3fffffff
 
+#define AHCI_FSL_REG_ECC 0x0
+#define AHCI_FSL_REG_ECC_LS1021A 0x00020000
+#define AHCI_FSL_REG_ECC_LS1043A 0x80000000
+#define AHCI_FSL_REG_ECC_LS1028A 0x40000000
 
-#define	AHCI_FSL_REG_ECC	0x0
-#define	AHCI_FSL_REG_ECC_LS1021A	0x00020000
-#define	AHCI_FSL_REG_ECC_LS1043A	0x80000000
-#define	AHCI_FSL_REG_ECC_LS1028A	0x40000000
-
-
-#define QORIQ_AHCI_LS1021A	1
-#define QORIQ_AHCI_LS1028A	2
-#define QORIQ_AHCI_LS1043A	3
-#define QORIQ_AHCI_LS2080A	4
-#define QORIQ_AHCI_LS1046A	5
-#define QORIQ_AHCI_LS1088A	6
-#define QORIQ_AHCI_LS2088A	7
-#define QORIQ_AHCI_LX2160A	8
+#define QORIQ_AHCI_LS1021A 1
+#define QORIQ_AHCI_LS1028A 2
+#define QORIQ_AHCI_LS1043A 3
+#define QORIQ_AHCI_LS2080A 4
+#define QORIQ_AHCI_LS1046A 5
+#define QORIQ_AHCI_LS1088A 6
+#define QORIQ_AHCI_LS2088A 7
+#define QORIQ_AHCI_LX2160A 8
 
 struct ahci_fsl_fdt_controller {
-	struct ahci_controller	ctlr;	/* Must be the first field. */
-	int			soc_type;
-	struct resource		*r_ecc;
-	int			r_ecc_rid;
+	struct ahci_controller ctlr; /* Must be the first field. */
+	int soc_type;
+	struct resource *r_ecc;
+	int r_ecc_rid;
 };
 
 static const struct ofw_compat_data ahci_fsl_fdt_compat_data[] = {
-	{"fsl,ls1021a-ahci",	QORIQ_AHCI_LS1021A},
-	{"fsl,ls1028a-ahci",	QORIQ_AHCI_LS1028A},
-	{"fsl,ls1043a-ahci",	QORIQ_AHCI_LS1043A},
-	{"fsl,ls2080a-ahci",	QORIQ_AHCI_LS2080A},
-	{"fsl,ls1046a-ahci",	QORIQ_AHCI_LS1046A},
-	{"fsl,ls1088a-ahci",	QORIQ_AHCI_LS1088A},
-	{"fsl,ls2088a-ahci",	QORIQ_AHCI_LS2088A},
-	{"fsl,lx2160a-ahci",	QORIQ_AHCI_LX2160A},
-	{NULL,			0}
+	{ "fsl,ls1021a-ahci", QORIQ_AHCI_LS1021A },
+	{ "fsl,ls1028a-ahci", QORIQ_AHCI_LS1028A },
+	{ "fsl,ls1043a-ahci", QORIQ_AHCI_LS1043A },
+	{ "fsl,ls2080a-ahci", QORIQ_AHCI_LS2080A },
+	{ "fsl,ls1046a-ahci", QORIQ_AHCI_LS1046A },
+	{ "fsl,ls1088a-ahci", QORIQ_AHCI_LS1088A },
+	{ "fsl,ls2088a-ahci", QORIQ_AHCI_LS2088A },
+	{ "fsl,lx2160a-ahci", QORIQ_AHCI_LX2160A }, { NULL, 0 }
 };
 
 static bool ecc_inited;
@@ -202,7 +195,7 @@ ahci_fsl_fdt_ecc_init(struct ahci_fsl_fdt_controller *ctrl)
 			return (ENXIO);
 		if (!ecc_inited)
 			ATA_OUTL(ctrl->r_ecc, AHCI_FSL_REG_ECC,
-			     AHCI_FSL_REG_ECC_LS1021A);
+			    AHCI_FSL_REG_ECC_LS1021A);
 		break;
 
 	case QORIQ_AHCI_LS1043A:
@@ -244,8 +237,7 @@ ahci_fsl_fdt_phy_init(struct ahci_fsl_fdt_controller *ctrl)
 
 	ahci = &ctrl->ctlr;
 	if (ctrl->soc_type == QORIQ_AHCI_LS1021A) {
-		ATA_OUTL(ahci->r_mem, AHCI_FSL_REG_PHY1,
-		    AHCI_FSL_REG_PHY1_CFG);
+		ATA_OUTL(ahci->r_mem, AHCI_FSL_REG_PHY1, AHCI_FSL_REG_PHY1_CFG);
 		ATA_OUTL(ahci->r_mem, AHCI_FSL_REG_PHY2,
 		    AHCI_FSL_REG_PHY2_CFG_LS1021A);
 		ATA_OUTL(ahci->r_mem, AHCI_FSL_REG_PHY3,
@@ -254,21 +246,16 @@ ahci_fsl_fdt_phy_init(struct ahci_fsl_fdt_controller *ctrl)
 		    AHCI_FSL_REG_PHY4_CFG_LS1021A);
 		ATA_OUTL(ahci->r_mem, AHCI_FSL_REG_PHY5,
 		    AHCI_FSL_REG_PHY5_CFG_LS1021A);
-		ATA_OUTL(ahci->r_mem, AHCI_FSL_REG_PTC,
-		    AHCI_FSL_REG_PTC_CFG);
+		ATA_OUTL(ahci->r_mem, AHCI_FSL_REG_PTC, AHCI_FSL_REG_PTC_CFG);
 
 		if (ctrl->ctlr.dma_coherent)
 			ATA_OUTL(ahci->r_mem, AHCI_FSL_LS1021A_AXICC,
 			    AHCI_FSL_REG_AXICC_CFG);
 	} else {
-		ATA_OUTL(ahci->r_mem, AHCI_FSL_REG_PHY1,
-		    AHCI_FSL_REG_PHY1_CFG);
-		ATA_OUTL(ahci->r_mem, AHCI_FSL_REG_PHY2,
-		    AHCI_FSL_REG_PHY2_CFG);
-		ATA_OUTL(ahci->r_mem, AHCI_FSL_REG_PHY3,
-		    AHCI_FSL_REG_PHY3_CFG);
-		ATA_OUTL(ahci->r_mem, AHCI_FSL_REG_PTC,
-		    AHCI_FSL_REG_PTC_CFG);
+		ATA_OUTL(ahci->r_mem, AHCI_FSL_REG_PHY1, AHCI_FSL_REG_PHY1_CFG);
+		ATA_OUTL(ahci->r_mem, AHCI_FSL_REG_PHY2, AHCI_FSL_REG_PHY2_CFG);
+		ATA_OUTL(ahci->r_mem, AHCI_FSL_REG_PHY3, AHCI_FSL_REG_PHY3_CFG);
+		ATA_OUTL(ahci->r_mem, AHCI_FSL_REG_PTC, AHCI_FSL_REG_PTC_CFG);
 
 		if (ctrl->ctlr.dma_coherent)
 			ATA_OUTL(ahci->r_mem, AHCI_FSL_REG_AXICC,
@@ -316,20 +303,22 @@ ahci_fsl_fdt_attach(device_t dev)
 	}
 
 	ret = clk_enable(clock);
-	if (ret !=0) {
+	if (ret != 0) {
 		device_printf(dev, "Could not enable clock.\n");
 		return (ENXIO);
 	}
 
-	if (OF_hasprop(node, "reg-names") && ofw_bus_find_string_index(node,
-	    "reg-names", "ahci", &ahci->r_rid)) {
-		device_printf(dev, "Could not locate 'ahci' string in the "
+	if (OF_hasprop(node, "reg-names") &&
+	    ofw_bus_find_string_index(node, "reg-names", "ahci",
+		&ahci->r_rid)) {
+		device_printf(dev,
+		    "Could not locate 'ahci' string in the "
 		    "'reg-names' property");
 		return (ENOENT);
 	}
 
-	ahci->r_mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-	    &ahci->r_rid, RF_ACTIVE);
+	ahci->r_mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &ahci->r_rid,
+	    RF_ACTIVE);
 	if (!ahci->r_mem) {
 		device_printf(dev,
 		    "Could not allocate resources for controller\n");
@@ -340,7 +329,7 @@ ahci_fsl_fdt_attach(device_t dev)
 	    &ctlr->r_ecc_rid);
 	if (ret == 0) {
 		ctlr->r_ecc = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-		    &ctlr->r_ecc_rid, RF_ACTIVE| RF_SHAREABLE);
+		    &ctlr->r_ecc_rid, RF_ACTIVE | RF_SHAREABLE);
 		if (!ctlr->r_ecc) {
 			device_printf(dev,
 			    "Could not allocate resources for controller\n");
@@ -348,8 +337,9 @@ ahci_fsl_fdt_attach(device_t dev)
 			goto err_free_mem;
 		}
 	} else if (ret != ENOENT) {
-		device_printf(dev, "Could not locate 'sata-ecc' string in "
-		"the 'reg-names' property");
+		device_printf(dev,
+		    "Could not locate 'sata-ecc' string in "
+		    "the 'reg-names' property");
 		goto err_free_mem;
 	}
 
@@ -395,19 +385,17 @@ ahci_fsl_fdt_detach(device_t dev)
 	return ahci_detach(dev);
 }
 
-static const device_method_t ahci_fsl_fdt_methods[] = {
-	DEVMETHOD(device_probe,			ahci_fsl_fdt_probe),
-	DEVMETHOD(device_attach,		ahci_fsl_fdt_attach),
-	DEVMETHOD(device_detach,		ahci_fsl_fdt_detach),
-	DEVMETHOD(bus_alloc_resource,		ahci_alloc_resource),
-	DEVMETHOD(bus_release_resource,		ahci_release_resource),
-	DEVMETHOD(bus_setup_intr,   		ahci_setup_intr),
-	DEVMETHOD(bus_teardown_intr,		ahci_teardown_intr),
-	DEVMETHOD(bus_print_child,		ahci_print_child),
-	DEVMETHOD(bus_child_location,		ahci_child_location),
-	DEVMETHOD(bus_get_dma_tag,  		ahci_get_dma_tag),
-	DEVMETHOD_END
-};
+static const device_method_t ahci_fsl_fdt_methods[] = { DEVMETHOD(device_probe,
+							    ahci_fsl_fdt_probe),
+	DEVMETHOD(device_attach, ahci_fsl_fdt_attach),
+	DEVMETHOD(device_detach, ahci_fsl_fdt_detach),
+	DEVMETHOD(bus_alloc_resource, ahci_alloc_resource),
+	DEVMETHOD(bus_release_resource, ahci_release_resource),
+	DEVMETHOD(bus_setup_intr, ahci_setup_intr),
+	DEVMETHOD(bus_teardown_intr, ahci_teardown_intr),
+	DEVMETHOD(bus_print_child, ahci_print_child),
+	DEVMETHOD(bus_child_location, ahci_child_location),
+	DEVMETHOD(bus_get_dma_tag, ahci_get_dma_tag), DEVMETHOD_END };
 
 static driver_t ahci_fsl_fdt_driver = {
 	"ahci",

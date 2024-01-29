@@ -31,11 +31,12 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/stat.h>
 #include <sys/param.h>
+#include <sys/stat.h>
+
+#include <ctype.h>
 #include <err.h>
 #include <errno.h>
-#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -43,19 +44,18 @@
 
 #include "envopts.h"
 
-static const char *
-		 expand_vars(int in_thisarg, char **thisarg_p, char **dest_p,
-		     const char **src_p);
-static int	 is_there(char *candidate);
+static const char *expand_vars(int in_thisarg, char **thisarg_p, char **dest_p,
+    const char **src_p);
+static int is_there(char *candidate);
 
 /*
  * The is*() routines take a parameter of 'int', but expect values in the range
  * of unsigned char.  Define some wrappers which take a value of type 'char',
  * whether signed or unsigned, and ensure the value ends up in the right range.
  */
-#define	isalnumch(Anychar) isalnum((u_char)(Anychar))
-#define	isalphach(Anychar) isalpha((u_char)(Anychar))
-#define	isspacech(Anychar) isspace((u_char)(Anychar))
+#define isalnumch(Anychar) isalnum((u_char)(Anychar))
+#define isalphach(Anychar) isalpha((u_char)(Anychar))
+#define isspacech(Anychar) isspace((u_char)(Anychar))
 
 /*
  * Routine to determine if a given fully-qualified filename is executable.
@@ -64,19 +64,18 @@ static int	 is_there(char *candidate);
 static int
 is_there(char *candidate)
 {
-        struct stat fin;
+	struct stat fin;
 
-        /* XXX work around access(2) false positives for superuser */
-        if (access(candidate, X_OK) == 0 &&
-            stat(candidate, &fin) == 0 &&
-            S_ISREG(fin.st_mode) &&
-            (getuid() != 0 ||
-            (fin.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) != 0)) {
-                if (env_verbosity > 1)
+	/* XXX work around access(2) false positives for superuser */
+	if (access(candidate, X_OK) == 0 && stat(candidate, &fin) == 0 &&
+	    S_ISREG(fin.st_mode) &&
+	    (getuid() != 0 ||
+		(fin.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) != 0)) {
+		if (env_verbosity > 1)
 			fprintf(stderr, "#env   matched:\t'%s'\n", candidate);
-                return (1);
-        }
-        return (0);
+		return (1);
+	}
+	return (0);
 }
 
 /**
@@ -96,8 +95,8 @@ is_there(char *candidate)
 void
 search_paths(char *path, char **argv)
 {
-        char candidate[PATH_MAX];
-        const char *d;
+	char candidate[PATH_MAX];
+	const char *d;
 	char *filename, *fqname;
 
 	/* If the file has a `/' in it, then no search is done */
@@ -111,17 +110,17 @@ search_paths(char *path, char **argv)
 	}
 
 	fqname = NULL;
-        while ((d = strsep(&path, ":")) != NULL) {
-                if (*d == '\0')
-                        d = ".";
-                if (snprintf(candidate, sizeof(candidate), "%s/%s", d,
-                    filename) >= (int)sizeof(candidate))
-                        continue;
-                if (is_there(candidate)) {
-                        fqname = candidate;
+	while ((d = strsep(&path, ":")) != NULL) {
+		if (*d == '\0')
+			d = ".";
+		if (snprintf(candidate, sizeof(candidate), "%s/%s", d,
+			filename) >= (int)sizeof(candidate))
+			continue;
+		if (is_there(candidate)) {
+			fqname = candidate;
 			break;
-                }
-        }
+		}
+	}
 
 	if (fqname == NULL) {
 		errno = ENOENT;
@@ -286,8 +285,10 @@ split_spaces(const char *str, int *origind, int *origc, char ***origv)
 				 * middle of a quoted string.
 				 */
 				if (in_dq)
-					errx(1, "Sequence '\\%c' is not allowed"
-					    " in quoted strings", *src);
+					errx(1,
+					    "Sequence '\\%c' is not allowed"
+					    " in quoted strings",
+					    *src);
 				goto str_done;
 			case 'f':
 				copychar = '\f';
@@ -355,8 +356,8 @@ str_done:
 	*dest = '\0';
 	*nextarg = NULL;
 	if (in_dq || in_sq) {
-		errx(1, "No terminating quote for string: %.*s%s",
-		    bq_destlen, *(nextarg - 1), bq_src);
+		errx(1, "No terminating quote for string: %.*s%s", bq_destlen,
+		    *(nextarg - 1), bq_src);
 	}
 	if (env_verbosity > 1) {
 		fprintf(stderr, "#env  split -S:\t'%s'\n", str);
@@ -421,8 +422,7 @@ expand_vars(int in_thisarg, char **thisarg_p, char **dest_p, const char **src_p)
 	if (vvalue == NULL || *vvalue == '\0') {
 		if (env_verbosity > 2)
 			fprintf(stderr,
-			    "#env  replacing ${%s} with null string\n",
-			    vname);
+			    "#env  replacing ${%s} with null string\n", vname);
 		free(vname);
 		return (NULL);
 	}
@@ -453,7 +453,7 @@ expand_vars(int in_thisarg, char **thisarg_p, char **dest_p, const char **src_p)
 	 */
 	newlen = strlen(vvalue) + strlen(*src_p) + 1;
 	if (in_thisarg) {
-		**dest_p = '\0';	/* Provide terminator for 'thisarg' */
+		**dest_p = '\0'; /* Provide terminator for 'thisarg' */
 		newlen += strlen(*thisarg_p);
 		newstr = malloc(newlen);
 		strcpy(newstr, *thisarg_p);

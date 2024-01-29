@@ -60,15 +60,16 @@
  */
 
 #include <sys/cdefs.h>
-#include "namespace.h"
-#include <string.h>
-#include <stdlib.h>
+
 #include <errno.h>
 #include <pthread.h>
 #include <pthread_np.h>
-#include "un-namespace.h"
+#include <stdlib.h>
+#include <string.h>
 
+#include "namespace.h"
 #include "thr_private.h"
+#include "un-namespace.h"
 
 __weak_reference(_thr_mutexattr_init, pthread_mutexattr_init);
 __weak_reference(_thr_mutexattr_init, _pthread_mutexattr_init);
@@ -98,8 +99,8 @@ _thr_mutexattr_init(pthread_mutexattr_t *attr)
 	int ret;
 	pthread_mutexattr_t pattr;
 
-	if ((pattr = (pthread_mutexattr_t)
-	    malloc(sizeof(struct pthread_mutex_attr))) == NULL) {
+	if ((pattr = (pthread_mutexattr_t)malloc(
+		 sizeof(struct pthread_mutex_attr))) == NULL) {
 		ret = ENOMEM;
 	} else {
 		memcpy(pattr, &_pthread_mutexattr_default,
@@ -113,7 +114,7 @@ _thr_mutexattr_init(pthread_mutexattr_t *attr)
 int
 _pthread_mutexattr_setkind_np(pthread_mutexattr_t *attr, int kind)
 {
-	int	ret;
+	int ret;
 	if (attr == NULL || *attr == NULL) {
 		errno = EINVAL;
 		ret = -1;
@@ -121,13 +122,13 @@ _pthread_mutexattr_setkind_np(pthread_mutexattr_t *attr, int kind)
 		(*attr)->m_type = kind;
 		ret = 0;
 	}
-	return(ret);
+	return (ret);
 }
 
 int
 _pthread_mutexattr_getkind_np(pthread_mutexattr_t attr)
 {
-	int	ret;
+	int ret;
 
 	if (attr == NULL) {
 		errno = EINVAL;
@@ -141,7 +142,7 @@ _pthread_mutexattr_getkind_np(pthread_mutexattr_t attr)
 int
 _thr_mutexattr_settype(pthread_mutexattr_t *attr, int type)
 {
-	int	ret;
+	int ret;
 
 	if (attr == NULL || *attr == NULL || type >= PTHREAD_MUTEX_TYPE_MAX) {
 		ret = EINVAL;
@@ -153,13 +154,13 @@ _thr_mutexattr_settype(pthread_mutexattr_t *attr, int type)
 }
 
 int
-_pthread_mutexattr_gettype(const pthread_mutexattr_t * __restrict attr,
-    int * __restrict type)
+_pthread_mutexattr_gettype(const pthread_mutexattr_t *__restrict attr,
+    int *__restrict type)
 {
-	int	ret;
+	int ret;
 
-	if (attr == NULL || *attr == NULL || (*attr)->m_type >=
-	    PTHREAD_MUTEX_TYPE_MAX) {
+	if (attr == NULL || *attr == NULL ||
+	    (*attr)->m_type >= PTHREAD_MUTEX_TYPE_MAX) {
 		ret = EINVAL;
 	} else {
 		*type = (*attr)->m_type;
@@ -171,7 +172,7 @@ _pthread_mutexattr_gettype(const pthread_mutexattr_t * __restrict attr,
 int
 _thr_mutexattr_destroy(pthread_mutexattr_t *attr)
 {
-	int	ret;
+	int ret;
 	if (attr == NULL || *attr == NULL) {
 		ret = EINVAL;
 	} else {
@@ -183,8 +184,7 @@ _thr_mutexattr_destroy(pthread_mutexattr_t *attr)
 }
 
 int
-_pthread_mutexattr_getpshared(const pthread_mutexattr_t *attr,
-	int *pshared)
+_pthread_mutexattr_getpshared(const pthread_mutexattr_t *attr, int *pshared)
 {
 
 	if (attr == NULL || *attr == NULL)
@@ -199,15 +199,15 @@ _pthread_mutexattr_setpshared(pthread_mutexattr_t *attr, int pshared)
 
 	if (attr == NULL || *attr == NULL ||
 	    (pshared != PTHREAD_PROCESS_PRIVATE &&
-	    pshared != PTHREAD_PROCESS_SHARED))
+		pshared != PTHREAD_PROCESS_SHARED))
 		return (EINVAL);
 	(*attr)->m_pshared = pshared;
 	return (0);
 }
 
 int
-_pthread_mutexattr_getprotocol(const pthread_mutexattr_t * __restrict mattr,
-    int * __restrict protocol)
+_pthread_mutexattr_getprotocol(const pthread_mutexattr_t *__restrict mattr,
+    int *__restrict protocol)
 {
 	int ret = 0;
 
@@ -224,8 +224,8 @@ _pthread_mutexattr_setprotocol(pthread_mutexattr_t *mattr, int protocol)
 {
 	int ret = 0;
 
-	if (mattr == NULL || *mattr == NULL ||
-	    protocol < PTHREAD_PRIO_NONE || protocol > PTHREAD_PRIO_PROTECT)
+	if (mattr == NULL || *mattr == NULL || protocol < PTHREAD_PRIO_NONE ||
+	    protocol > PTHREAD_PRIO_PROTECT)
 		ret = EINVAL;
 	else {
 		(*mattr)->m_protocol = protocol;
@@ -235,8 +235,8 @@ _pthread_mutexattr_setprotocol(pthread_mutexattr_t *mattr, int protocol)
 }
 
 int
-_pthread_mutexattr_getprioceiling(const pthread_mutexattr_t * __restrict mattr,
-    int * __restrict prioceiling)
+_pthread_mutexattr_getprioceiling(const pthread_mutexattr_t *__restrict mattr,
+    int *__restrict prioceiling)
 {
 	int ret = 0;
 
@@ -295,4 +295,3 @@ _thr_mutexattr_setrobust(pthread_mutexattr_t *mattr, int robust)
 	}
 	return (ret);
 }
-

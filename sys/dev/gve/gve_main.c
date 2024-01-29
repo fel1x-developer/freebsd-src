@@ -3,30 +3,31 @@
  *
  * Copyright (c) 2023 Google LLC
  *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
- * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer.
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
  *
  * 3. Neither the name of the copyright holder nor the names of its contributors
- *    may be used to endorse or promote products derived from this software without
- *    specific prior written permission.
+ *    may be used to endorse or promote products derived from this software
+ * without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
  */
 #include "gve.h"
 #include "gve_adminq.h"
@@ -40,12 +41,10 @@
 
 /* Devices supported by this driver. */
 static struct gve_dev {
-        uint16_t vendor_id;
-        uint16_t device_id;
-        const char *name;
-} gve_devs[] = {
-	{ PCI_VENDOR_ID_GOOGLE, PCI_DEV_ID_GVNIC, "gVNIC" }
-};
+	uint16_t vendor_id;
+	uint16_t device_id;
+	const char *name;
+} gve_devs[] = { { PCI_VENDOR_ID_GOOGLE, PCI_DEV_ID_GVNIC, "gVNIC" } };
 
 struct sx gve_global_lock;
 
@@ -80,8 +79,9 @@ gve_verify_driver_compatibility(struct gve_priv *priv)
 		},
 	};
 
-	snprintf(driver_info->os_version_str1, sizeof(driver_info->os_version_str1),
-	    "FreeBSD %u", __FreeBSD_version);
+	snprintf(driver_info->os_version_str1,
+	    sizeof(driver_info->os_version_str1), "FreeBSD %u",
+	    __FreeBSD_version);
 
 	bus_dmamap_sync(driver_info_mem.tag, driver_info_mem.map,
 	    BUS_DMASYNC_PREREAD);
@@ -107,7 +107,8 @@ gve_up(struct gve_priv *priv)
 	GVE_IFACE_LOCK_ASSERT(priv->gve_iface_lock);
 
 	if (device_is_attached(priv->dev) == 0) {
-		device_printf(priv->dev, "Cannot bring the iface up when detached\n");
+		device_printf(priv->dev,
+		    "Cannot bring the iface up when detached\n");
 		return (ENXIO);
 	}
 
@@ -193,7 +194,8 @@ gve_set_mtu(if_t ifp, uint32_t new_mtu)
 	int err;
 
 	if ((new_mtu > priv->max_mtu) || (new_mtu < ETHERMIN)) {
-		device_printf(priv->dev, "Invalid new MTU setting. new mtu: %d max mtu: %d min mtu: %d\n",
+		device_printf(priv->dev,
+		    "Invalid new MTU setting. new mtu: %d max mtu: %d min mtu: %d\n",
 		    new_mtu, priv->max_mtu, ETHERMIN);
 		return (EINVAL);
 	}
@@ -375,17 +377,16 @@ gve_setup_ifnet(device_t dev, struct gve_priv *priv)
 #if __FreeBSD_version >= 1400086
 	if_setflags(ifp, IFF_BROADCAST | IFF_SIMPLEX | IFF_MULTICAST);
 #else
-	if_setflags(ifp, IFF_BROADCAST | IFF_SIMPLEX | IFF_MULTICAST | IFF_KNOWSEPOCH);
+	if_setflags(ifp,
+	    IFF_BROADCAST | IFF_SIMPLEX | IFF_MULTICAST | IFF_KNOWSEPOCH);
 #endif
 
-	ifmedia_init(&priv->media, IFM_IMASK, gve_media_change, gve_media_status);
+	ifmedia_init(&priv->media, IFM_IMASK, gve_media_change,
+	    gve_media_status);
 	if_setgetcounterfn(ifp, gve_get_counter);
 
-	caps = IFCAP_RXCSUM |
-	       IFCAP_TXCSUM |
-	       IFCAP_TXCSUM_IPV6 |
-	       IFCAP_TSO |
-	       IFCAP_LRO;
+	caps = IFCAP_RXCSUM | IFCAP_TXCSUM | IFCAP_TXCSUM_IPV6 | IFCAP_TSO |
+	    IFCAP_LRO;
 
 	if ((priv->supported_features & GVE_SUP_JUMBO_FRAMES_MASK) != 0)
 		caps |= IFCAP_JUMBO_MTU;
@@ -394,7 +395,8 @@ gve_setup_ifnet(device_t dev, struct gve_priv *priv)
 	if_setcapenable(ifp, caps);
 
 	if (bootverbose)
-		device_printf(priv->dev, "Setting initial MTU to %d\n", priv->max_mtu);
+		device_printf(priv->dev, "Setting initial MTU to %d\n",
+		    priv->max_mtu);
 	if_setmtu(ifp, priv->max_mtu);
 
 	ether_ifattach(ifp, priv->mac);
@@ -410,8 +412,9 @@ gve_alloc_counter_array(struct gve_priv *priv)
 {
 	int err;
 
-	err = gve_dma_alloc_coherent(priv, sizeof(uint32_t) * priv->num_event_counters,
-	    PAGE_SIZE, &priv->counter_array_mem);
+	err = gve_dma_alloc_coherent(priv,
+	    sizeof(uint32_t) * priv->num_event_counters, PAGE_SIZE,
+	    &priv->counter_array_mem);
 	if (err != 0)
 		return (err);
 
@@ -424,7 +427,7 @@ gve_free_counter_array(struct gve_priv *priv)
 {
 	if (priv->counters != NULL)
 		gve_dma_free_coherent(&priv->counter_array_mem);
-	priv->counter_array_mem = (struct gve_dma_handle){};
+	priv->counter_array_mem = (struct gve_dma_handle) {};
 }
 
 static int
@@ -447,7 +450,7 @@ gve_free_irq_db_array(struct gve_priv *priv)
 {
 	if (priv->irq_db_indices != NULL)
 		gve_dma_free_coherent(&priv->irqs_db_mem);
-	priv->irqs_db_mem = (struct gve_dma_handle){};
+	priv->irqs_db_mem = (struct gve_dma_handle) {};
 }
 
 static void
@@ -495,12 +498,14 @@ gve_deconfigure_resources(struct gve_priv *priv)
 	if (gve_get_state_flag(priv, GVE_STATE_FLAG_RESOURCES_OK)) {
 		err = gve_adminq_deconfigure_device_resources(priv);
 		if (err != 0) {
-			device_printf(priv->dev, "Failed to deconfigure device resources: err=%d\n",
+			device_printf(priv->dev,
+			    "Failed to deconfigure device resources: err=%d\n",
 			    err);
 			return;
 		}
 		if (bootverbose)
-			device_printf(priv->dev, "Deconfigured device resources\n");
+			device_printf(priv->dev,
+			    "Deconfigured device resources\n");
 		gve_clear_state_flag(priv, GVE_STATE_FLAG_RESOURCES_OK);
 	}
 
@@ -526,8 +531,8 @@ gve_configure_resources(struct gve_priv *priv)
 
 	err = gve_adminq_configure_device_resources(priv);
 	if (err != 0) {
-		device_printf(priv->dev, "Failed to configure device resources: err=%d\n",
-			      err);
+		device_printf(priv->dev,
+		    "Failed to configure device resources: err=%d\n", err);
 		err = (ENXIO);
 		goto abort;
 	}
@@ -756,8 +761,8 @@ gve_attach(device_t dev)
 	pci_enable_busmaster(dev);
 
 	rid = PCIR_BAR(GVE_REGISTER_BAR);
-	priv->reg_bar = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-	    &rid, RF_ACTIVE);
+	priv->reg_bar = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
+	    RF_ACTIVE);
 	if (priv->reg_bar == NULL) {
 		device_printf(dev, "Failed to allocate BAR0\n");
 		err = ENXIO;
@@ -765,8 +770,8 @@ gve_attach(device_t dev)
 	}
 
 	rid = PCIR_BAR(GVE_DOORBELL_BAR);
-	priv->db_bar = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-	    &rid, RF_ACTIVE);
+	priv->db_bar = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
+	    RF_ACTIVE);
 	if (priv->db_bar == NULL) {
 		device_printf(dev, "Failed to allocate BAR2\n");
 		err = ENXIO;
@@ -774,8 +779,8 @@ gve_attach(device_t dev)
 	}
 
 	rid = pci_msix_table_bar(priv->dev);
-	priv->msix_table = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-	    &rid, RF_ACTIVE);
+	priv->msix_table = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
+	    RF_ACTIVE);
 	if (priv->msix_table == NULL) {
 		device_printf(dev, "Failed to allocate msix table\n");
 		err = ENXIO;
@@ -809,10 +814,11 @@ gve_attach(device_t dev)
 	taskqueue_start_threads(&priv->service_tq, 1, PI_NET, "%s service tq",
 	    device_get_nameunit(priv->dev));
 
-        gve_setup_sysctl(priv);
+	gve_setup_sysctl(priv);
 
 	if (bootverbose)
-		device_printf(priv->dev, "Successfully attached %s", GVE_DRIVER_VERSION);
+		device_printf(priv->dev, "Successfully attached %s",
+		    GVE_DRIVER_VERSION);
 	return (0);
 
 abort:
@@ -848,18 +854,11 @@ gve_detach(device_t dev)
 	return (bus_generic_detach(dev));
 }
 
-static device_method_t gve_methods[] = {
-	DEVMETHOD(device_probe, gve_probe),
+static device_method_t gve_methods[] = { DEVMETHOD(device_probe, gve_probe),
 	DEVMETHOD(device_attach, gve_attach),
-	DEVMETHOD(device_detach, gve_detach),
-	DEVMETHOD_END
-};
+	DEVMETHOD(device_detach, gve_detach), DEVMETHOD_END };
 
-static driver_t gve_driver = {
-	"gve",
-	gve_methods,
-	sizeof(struct gve_priv)
-};
+static driver_t gve_driver = { "gve", gve_methods, sizeof(struct gve_priv) };
 
 #if __FreeBSD_version < 1301503
 static devclass_t gve_devclass;

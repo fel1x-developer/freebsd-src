@@ -30,16 +30,18 @@
  */
 
 #include <sys/types.h>
-#include <sys/time.h>
-#include <sys/ioctl.h>
 #include <sys/param.h>
+#include <sys/capsicum.h>
+#include <sys/ioctl.h>
 #include <sys/linker.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
-#include <sys/capsicum.h>
+#include <sys/time.h>
 #include <sys/wait.h>
+
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+
 #include <assert.h>
 #include <capsicum_helpers.h>
 #include <errno.h>
@@ -56,10 +58,10 @@
 
 #include "iscsid.h"
 
-static bool	timed_out(void);
+static bool timed_out(void);
 #ifdef ICL_KERNEL_PROXY
-static void	pdu_receive_proxy(struct pdu *pdu);
-static void	pdu_send_proxy(struct pdu *pdu);
+static void pdu_receive_proxy(struct pdu *pdu);
+static void pdu_send_proxy(struct pdu *pdu);
 #endif /* ICL_KERNEL_PROXY */
 
 static volatile bool sigalrm_received = false;
@@ -79,7 +81,8 @@ static void
 usage(void)
 {
 
-	fprintf(stderr, "usage: iscsid [-P pidfile][-d][-m maxproc][-t timeout]\n");
+	fprintf(stderr,
+	    "usage: iscsid [-P pidfile][-d][-m maxproc][-t timeout]\n");
 	exit(1);
 }
 
@@ -211,8 +214,8 @@ resolve_addr(const struct connection *conn, const char *address,
 	error = getaddrinfo(addr, port, &hints, ai);
 	if (error != 0) {
 		fail(conn, gai_strerror(error));
-		log_errx(1, "getaddrinfo for %s failed: %s",
-		    address, gai_strerror(error));
+		log_errx(1, "getaddrinfo for %s failed: %s", address,
+		    gai_strerror(error));
 	}
 
 	free(tofree);
@@ -275,8 +278,10 @@ connection_new(int iscsi_fd, const struct iscsi_daemon_request *request)
 		error = ioctl(iscsi_fd, ISCSIDCONNECT, &idc);
 		if (error != 0) {
 			fail(&conn->conn, strerror(errno));
-			log_err(1, "failed to connect to %s "
-			    "using ICL kernel proxy: ISCSIDCONNECT", to_addr);
+			log_err(1,
+			    "failed to connect to %s "
+			    "using ICL kernel proxy: ISCSIDCONNECT",
+			    to_addr);
 		}
 
 		if (from_ai != NULL)
@@ -289,7 +294,8 @@ connection_new(int iscsi_fd, const struct iscsi_daemon_request *request)
 
 	if (conn->conn_conf.isc_iser) {
 		fail(&conn->conn, "iSER not supported");
-		log_errx(1, "iscsid(8) compiled without ICL_KERNEL_PROXY "
+		log_errx(1,
+		    "iscsid(8) compiled without ICL_KERNEL_PROXY "
 		    "does not support iSER");
 	}
 
@@ -300,52 +306,46 @@ connection_new(int iscsi_fd, const struct iscsi_daemon_request *request)
 		log_err(1, "failed to create socket for %s", from_addr);
 	}
 	optval = SOCKBUF_SIZE;
-	if (setsockopt(conn->conn.conn_socket, SOL_SOCKET, SO_RCVBUF,
-	    &optval, sizeof(optval)) == -1)
+	if (setsockopt(conn->conn.conn_socket, SOL_SOCKET, SO_RCVBUF, &optval,
+		sizeof(optval)) == -1)
 		log_warn("setsockopt(SO_RCVBUF) failed");
 	optval = SOCKBUF_SIZE;
-	if (setsockopt(conn->conn.conn_socket, SOL_SOCKET, SO_SNDBUF,
-	    &optval, sizeof(optval)) == -1)
+	if (setsockopt(conn->conn.conn_socket, SOL_SOCKET, SO_SNDBUF, &optval,
+		sizeof(optval)) == -1)
 		log_warn("setsockopt(SO_SNDBUF) failed");
 	optval = 1;
-	if (setsockopt(conn->conn.conn_socket, SOL_SOCKET, SO_NO_DDP,
-	    &optval, sizeof(optval)) == -1)
+	if (setsockopt(conn->conn.conn_socket, SOL_SOCKET, SO_NO_DDP, &optval,
+		sizeof(optval)) == -1)
 		log_warn("setsockopt(SO_NO_DDP) failed");
 	if (conn->conn_conf.isc_dscp != -1) {
 		int tos = conn->conn_conf.isc_dscp << 2;
 		if (to_ai->ai_family == AF_INET) {
-			if (setsockopt(conn->conn.conn_socket,
-			    IPPROTO_IP, IP_TOS,
-			    &tos, sizeof(tos)) == -1)
+			if (setsockopt(conn->conn.conn_socket, IPPROTO_IP,
+				IP_TOS, &tos, sizeof(tos)) == -1)
 				log_warn("setsockopt(IP_TOS) "
-				    "failed for %s",
+					 "failed for %s",
 				    from_addr);
-		} else
-		if (to_ai->ai_family == AF_INET6) {
-			if (setsockopt(conn->conn.conn_socket,
-			    IPPROTO_IPV6, IPV6_TCLASS,
-			    &tos, sizeof(tos)) == -1)
+		} else if (to_ai->ai_family == AF_INET6) {
+			if (setsockopt(conn->conn.conn_socket, IPPROTO_IPV6,
+				IPV6_TCLASS, &tos, sizeof(tos)) == -1)
 				log_warn("setsockopt(IPV6_TCLASS) "
-				    "failed for %s",
+					 "failed for %s",
 				    from_addr);
 		}
 	}
 	if (conn->conn_conf.isc_pcp != -1) {
 		int pcp = conn->conn_conf.isc_pcp;
 		if (to_ai->ai_family == AF_INET) {
-			if (setsockopt(conn->conn.conn_socket,
-			    IPPROTO_IP, IP_VLAN_PCP,
-			    &pcp, sizeof(pcp)) == -1)
+			if (setsockopt(conn->conn.conn_socket, IPPROTO_IP,
+				IP_VLAN_PCP, &pcp, sizeof(pcp)) == -1)
 				log_warn("setsockopt(IP_VLAN_PCP) "
-				    "failed for %s",
+					 "failed for %s",
 				    from_addr);
-		} else
-		if (to_ai->ai_family == AF_INET6) {
-			if (setsockopt(conn->conn.conn_socket,
-			    IPPROTO_IPV6, IPV6_VLAN_PCP,
-			    &pcp, sizeof(pcp)) == -1)
+		} else if (to_ai->ai_family == AF_INET6) {
+			if (setsockopt(conn->conn.conn_socket, IPPROTO_IPV6,
+				IPV6_VLAN_PCP, &pcp, sizeof(pcp)) == -1)
 				log_warn("setsockopt(IPV6_VLAN_PCP) "
-				    "failed for %s",
+					 "failed for %s",
 				    from_addr);
 		}
 	}
@@ -357,25 +357,23 @@ connection_new(int iscsi_fd, const struct iscsi_daemon_request *request)
 	int keepinit = 0;
 	if (conn->conn_conf.isc_login_timeout > 0) {
 		keepinit = conn->conn_conf.isc_login_timeout;
-		log_debugx("session specific LoginTimeout at %d sec",
-			keepinit);
+		log_debugx("session specific LoginTimeout at %d sec", keepinit);
 	}
 	if (conn->conn_conf.isc_login_timeout == -1) {
 		int value;
 		size_t size = sizeof(value);
-		if (sysctlbyname("kern.iscsi.login_timeout",
-		    &value, &size, NULL, 0) == 0) {
+		if (sysctlbyname("kern.iscsi.login_timeout", &value, &size,
+			NULL, 0) == 0) {
 			keepinit = value;
-			log_debugx("global login_timeout at %d sec",
-				keepinit);
+			log_debugx("global login_timeout at %d sec", keepinit);
 		}
 	}
 	if (keepinit > 0) {
-		if (setsockopt(conn->conn.conn_socket,
-		    IPPROTO_TCP, TCP_KEEPINIT,
-		    &keepinit, sizeof(keepinit)) == -1)
+		if (setsockopt(conn->conn.conn_socket, IPPROTO_TCP,
+			TCP_KEEPINIT, &keepinit, sizeof(keepinit)) == -1)
 			log_warnx("setsockopt(TCP_KEEPINIT) "
-			    "failed for %s", to_addr);
+				  "failed for %s",
+			    to_addr);
 	}
 	if (from_ai != NULL) {
 		error = bind(conn->conn.conn_socket, from_ai->ai_addr,
@@ -416,7 +414,7 @@ limits(struct iscsid_connection *conn)
 	error = ioctl(conn->conn_iscsi_fd, ISCSIDLIMITS, &idl);
 	if (error != 0)
 		log_err(1, "ISCSIDLIMITS");
-	
+
 	/*
 	 * Read the driver limits and provide reasonable defaults for the ones
 	 * the driver doesn't care about.  If a max_snd_dsl is not explicitly
@@ -512,16 +510,10 @@ capsicate(struct iscsid_connection *conn)
 	cap_rights_t rights;
 	const unsigned long cmds[] = {
 #ifdef ICL_KERNEL_PROXY
-		ISCSIDCONNECT,
-		ISCSIDSEND,
-		ISCSIDRECEIVE,
+		ISCSIDCONNECT, ISCSIDSEND, ISCSIDRECEIVE,
 #endif
-		ISCSIDLIMITS,
-		ISCSIDHANDOFF,
-		ISCSIDFAIL,
-		ISCSISADD,
-		ISCSISREMOVE,
-		ISCSISMODIFY
+		ISCSIDLIMITS, ISCSIDHANDOFF, ISCSIDFAIL, ISCSISADD,
+		ISCSISREMOVE, ISCSISMODIFY
 	};
 
 	cap_rights_init(&rights, CAP_IOCTL);
@@ -594,8 +586,7 @@ set_timeout(int timeout)
 	itv.it_interval.tv_sec = 1;
 	itv.it_value.tv_sec = timeout;
 
-	log_debugx("setting session timeout to %d seconds",
-	    timeout);
+	log_debugx("setting session timeout to %d seconds", timeout);
 	error = setitimer(ITIMER_REAL, &itv, NULL);
 	if (error != 0)
 		log_err(1, "setitimer");
@@ -624,18 +615,19 @@ register_sigchld(void)
 	error = sigaction(SIGCHLD, &sa, NULL);
 	if (error != 0)
 		log_err(1, "sigaction");
-
 }
 
 static void
-handle_request(int iscsi_fd, const struct iscsi_daemon_request *request, int timeout)
+handle_request(int iscsi_fd, const struct iscsi_daemon_request *request,
+    int timeout)
 {
 	struct iscsid_connection *conn;
 
 	log_set_peer_addr(request->idr_conf.isc_target_addr);
 	if (request->idr_conf.isc_target[0] != '\0') {
 		log_set_peer_name(request->idr_conf.isc_target);
-		setproctitle("%s (%s)", request->idr_conf.isc_target_addr, request->idr_conf.isc_target);
+		setproctitle("%s (%s)", request->idr_conf.isc_target_addr,
+		    request->idr_conf.isc_target);
 	} else {
 		setproctitle("%s", request->idr_conf.isc_target_addr);
 	}
@@ -651,7 +643,7 @@ handle_request(int iscsi_fd, const struct iscsi_daemon_request *request, int tim
 		handoff(conn);
 
 	log_debugx("nothing more to do; exiting");
-	exit (0);
+	exit(0);
 }
 
 static int
@@ -675,10 +667,12 @@ wait_for_children(bool block)
 			log_warnx("child process %d terminated with signal %d",
 			    pid, WTERMSIG(status));
 		} else if (WEXITSTATUS(status) != 0) {
-			log_warnx("child process %d terminated with exit status %d",
+			log_warnx(
+			    "child process %d terminated with exit status %d",
 			    pid, WEXITSTATUS(status));
 		} else {
-			log_debugx("child process %d terminated gracefully", pid);
+			log_debugx("child process %d terminated gracefully",
+			    pid);
 		}
 		num++;
 	}
@@ -690,7 +684,7 @@ int
 main(int argc, char **argv)
 {
 	int ch, debug = 0, error, iscsi_fd, maxproc = 30, retval, saved_errno,
-	    timeout = 60;
+		timeout = 60;
 	bool dont_daemonize = false;
 	struct pidfh *pidfh;
 	pid_t pid, otherpid;
@@ -775,19 +769,23 @@ main(int argc, char **argv)
 		}
 
 		if (dont_daemonize) {
-			log_debugx("not forking due to -d flag; "
+			log_debugx(
+			    "not forking due to -d flag; "
 			    "will exit after servicing a single request");
 		} else {
 			nchildren -= wait_for_children(false);
 			assert(nchildren >= 0);
 
 			while (maxproc > 0 && nchildren >= maxproc) {
-				log_debugx("maxproc limit of %d child processes hit; "
-				    "waiting for child process to exit", maxproc);
+				log_debugx(
+				    "maxproc limit of %d child processes hit; "
+				    "waiting for child process to exit",
+				    maxproc);
 				nchildren -= wait_for_children(true);
 				assert(nchildren >= 0);
 			}
-			log_debugx("incoming connection; forking child process #%d",
+			log_debugx(
+			    "incoming connection; forking child process #%d",
 			    nchildren);
 			nchildren++;
 

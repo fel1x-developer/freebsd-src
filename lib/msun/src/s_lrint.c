@@ -30,10 +30,10 @@
 #include <math.h>
 
 #ifndef type
-#define type		double
-#define	roundit		rint
-#define dtype		long
-#define	fn		lrint
+#define type double
+#define roundit rint
+#define dtype long
+#define fn lrint
 #endif
 
 /*

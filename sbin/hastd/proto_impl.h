@@ -29,15 +29,15 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_PROTO_IMPL_H_
-#define	_PROTO_IMPL_H_
+#ifndef _PROTO_IMPL_H_
+#define _PROTO_IMPL_H_
 
 #include <sys/queue.h>
 
-#include <stdbool.h>	/* bool */
-#include <stdlib.h>	/* size_t */
+#include <stdbool.h> /* bool */
+#include <stdlib.h>  /* size_t */
 
-#define	__constructor	__attribute__((constructor))
+#define __constructor __attribute__((constructor))
 
 typedef int prt_client_t(const char *, const char *, void **);
 typedef int prt_connect_t(void *, int);
@@ -54,21 +54,21 @@ typedef void prt_remote_address_t(const void *, char *, size_t);
 typedef void prt_close_t(void *);
 
 struct proto {
-	const char		*prt_name;
-	prt_client_t		*prt_client;
-	prt_connect_t		*prt_connect;
-	prt_connect_wait_t	*prt_connect_wait;
-	prt_server_t		*prt_server;
-	prt_accept_t		*prt_accept;
-	prt_wrap_t		*prt_wrap;
-	prt_send_t		*prt_send;
-	prt_recv_t		*prt_recv;
-	prt_descriptor_t	*prt_descriptor;
-	prt_address_match_t	*prt_address_match;
-	prt_local_address_t	*prt_local_address;
-	prt_remote_address_t	*prt_remote_address;
-	prt_close_t		*prt_close;
-	TAILQ_ENTRY(proto)	 prt_next;
+	const char *prt_name;
+	prt_client_t *prt_client;
+	prt_connect_t *prt_connect;
+	prt_connect_wait_t *prt_connect_wait;
+	prt_server_t *prt_server;
+	prt_accept_t *prt_accept;
+	prt_wrap_t *prt_wrap;
+	prt_send_t *prt_send;
+	prt_recv_t *prt_recv;
+	prt_descriptor_t *prt_descriptor;
+	prt_address_match_t *prt_address_match;
+	prt_local_address_t *prt_local_address;
+	prt_remote_address_t *prt_remote_address;
+	prt_close_t *prt_close;
+	TAILQ_ENTRY(proto) prt_next;
 };
 
 void proto_register(struct proto *proto, bool isdefault);
@@ -76,4 +76,4 @@ void proto_register(struct proto *proto, bool isdefault);
 int proto_common_send(int sock, const unsigned char *data, size_t size, int fd);
 int proto_common_recv(int sock, unsigned char *data, size_t size, int *fdp);
 
-#endif	/* !_PROTO_IMPL_H_ */
+#endif /* !_PROTO_IMPL_H_ */

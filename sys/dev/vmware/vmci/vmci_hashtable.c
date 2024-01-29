@@ -7,21 +7,22 @@
 /* Implementation of the VMCI Hashtable. */
 
 #include <sys/cdefs.h>
+
 #include "vmci.h"
 #include "vmci_driver.h"
 #include "vmci_hashtable.h"
 #include "vmci_kernel_defs.h"
 #include "vmci_utils.h"
 
-#define LGPFX	"vmci_hashtable: "
+#define LGPFX "vmci_hashtable: "
 
-#define VMCI_HASHTABLE_HASH(_h, _sz)					\
+#define VMCI_HASHTABLE_HASH(_h, _sz) \
 	vmci_hash_id(VMCI_HANDLE_TO_RESOURCE_ID(_h), (_sz))
 
-static int	hashtable_unlink_entry(struct vmci_hashtable *table,
-		    struct vmci_hash_entry *entry);
-static bool	vmci_hashtable_entry_exists_locked(struct vmci_hashtable *table,
-		    struct vmci_handle handle);
+static int hashtable_unlink_entry(struct vmci_hashtable *table,
+    struct vmci_hash_entry *entry);
+static bool vmci_hashtable_entry_exists_locked(struct vmci_hashtable *table,
+    struct vmci_handle handle);
 
 /*
  *------------------------------------------------------------------------------
@@ -44,8 +45,7 @@ vmci_hashtable_create(int size)
 {
 	struct vmci_hashtable *table;
 
-	table = vmci_alloc_kernel_mem(sizeof(*table),
-	    VMCI_MEMORY_NORMAL);
+	table = vmci_alloc_kernel_mem(sizeof(*table), VMCI_MEMORY_NORMAL);
 	if (table == NULL)
 		return (NULL);
 	memset(table, 0, sizeof(*table));
@@ -60,7 +60,8 @@ vmci_hashtable_create(int size)
 	table->size = size;
 	if (vmci_init_lock(&table->lock, "VMCI Hashtable lock") <
 	    VMCI_SUCCESS) {
-		vmci_free_kernel_mem(table->entries, sizeof(*table->entries) * size);
+		vmci_free_kernel_mem(table->entries,
+		    sizeof(*table->entries) * size);
 		vmci_free_kernel_mem(table, sizeof(*table));
 		return (NULL);
 	}
@@ -94,8 +95,8 @@ vmci_hashtable_destroy(struct vmci_hashtable *table)
 	ASSERT(table);
 
 	vmci_grab_lock_bh(&table->lock);
-	vmci_free_kernel_mem(table->entries, sizeof(*table->entries) *
-	    table->size);
+	vmci_free_kernel_mem(table->entries,
+	    sizeof(*table->entries) * table->size);
 	table->entries = NULL;
 	vmci_release_lock_bh(&table->lock);
 	vmci_cleanup_lock(&table->lock);
@@ -155,9 +156,9 @@ vmci_hashtable_add_entry(struct vmci_hashtable *table,
 	vmci_grab_lock_bh(&table->lock);
 
 	if (vmci_hashtable_entry_exists_locked(table, entry->handle)) {
-		VMCI_LOG_DEBUG(LGPFX"Entry (handle=0x%x:0x%x) already "
-		    "exists.\n", entry->handle.context,
-		    entry->handle.resource);
+		VMCI_LOG_DEBUG(LGPFX "Entry (handle=0x%x:0x%x) already "
+				     "exists.\n",
+		    entry->handle.context, entry->handle.resource);
 		vmci_release_lock_bh(&table->lock);
 		return (VMCI_ERROR_DUPLICATE_ENTRY);
 	}
@@ -258,8 +259,9 @@ vmci_hashtable_get_entry_locked(struct vmci_hashtable *table,
 		if (VMCI_HANDLE_TO_RESOURCE_ID(cur->handle) ==
 		    VMCI_HANDLE_TO_RESOURCE_ID(handle)) {
 			if ((VMCI_HANDLE_TO_CONTEXT_ID(cur->handle) ==
-			    VMCI_HANDLE_TO_CONTEXT_ID(handle)) ||
-			    (VMCI_INVALID_ID == VMCI_HANDLE_TO_CONTEXT_ID(cur->handle))) {
+				VMCI_HANDLE_TO_CONTEXT_ID(handle)) ||
+			    (VMCI_INVALID_ID ==
+				VMCI_HANDLE_TO_CONTEXT_ID(cur->handle))) {
 				cur->ref_count++;
 				break;
 			}
@@ -477,9 +479,11 @@ vmci_hashtable_entry_exists_locked(struct vmci_hashtable *table,
 		if (VMCI_HANDLE_TO_RESOURCE_ID(entry->handle) ==
 		    VMCI_HANDLE_TO_RESOURCE_ID(handle))
 			if ((VMCI_HANDLE_TO_CONTEXT_ID(entry->handle) ==
-			    VMCI_HANDLE_TO_CONTEXT_ID(handle)) ||
-			    (VMCI_INVALID_ID == VMCI_HANDLE_TO_CONTEXT_ID(handle)) ||
-			    (VMCI_INVALID_ID == VMCI_HANDLE_TO_CONTEXT_ID(entry->handle)))
+				VMCI_HANDLE_TO_CONTEXT_ID(handle)) ||
+			    (VMCI_INVALID_ID ==
+				VMCI_HANDLE_TO_CONTEXT_ID(handle)) ||
+			    (VMCI_INVALID_ID ==
+				VMCI_HANDLE_TO_CONTEXT_ID(entry->handle)))
 				return (true);
 		entry = entry->next;
 	}

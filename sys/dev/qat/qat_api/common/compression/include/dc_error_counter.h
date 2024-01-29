@@ -13,8 +13,8 @@
 #ifndef DC_ERROR_COUNTER_H
 #define DC_ERROR_COUNTER_H
 
-#include "cpa_types.h"
 #include "cpa_dc.h"
+#include "cpa_types.h"
 
 #define MAX_DC_ERROR_TYPE 20
 

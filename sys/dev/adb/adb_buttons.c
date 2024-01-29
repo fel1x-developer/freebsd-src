@@ -33,16 +33,15 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/module.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
 
 #include <machine/bus.h>
-
-#include <dev/ofw/openfirm.h>
 #include <machine/ofw_machdep.h>
 
 #include <dev/adb/adb.h>
+#include <dev/ofw/openfirm.h>
 
 #define ABTN_HANDLER_ID 31
 
@@ -54,20 +53,19 @@ struct abtn_softc {
 
 static int abtn_probe(device_t dev);
 static int abtn_attach(device_t dev);
-static u_int abtn_receive_packet(device_t dev, u_char status, 
-    u_char command, u_char reg, int len, u_char *data);
+static u_int abtn_receive_packet(device_t dev, u_char status, u_char command,
+    u_char reg, int len, u_char *data);
 
 static device_method_t abtn_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,         abtn_probe),
-        DEVMETHOD(device_attach,        abtn_attach),
-        DEVMETHOD(device_shutdown,      bus_generic_shutdown),
-        DEVMETHOD(device_suspend,       bus_generic_suspend),
-        DEVMETHOD(device_resume,        bus_generic_resume),
+	DEVMETHOD(device_probe, abtn_probe),
+	DEVMETHOD(device_attach, abtn_attach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
 
 	/* ADB interface */
-	DEVMETHOD(adb_receive_packet,	abtn_receive_packet),
-	{ 0, 0 }
+	DEVMETHOD(adb_receive_packet, abtn_receive_packet), { 0, 0 }
 };
 
 static driver_t abtn_driver = {
@@ -93,7 +91,7 @@ abtn_probe(device_t dev)
 }
 
 static int
-abtn_attach(device_t dev) 
+abtn_attach(device_t dev)
 {
 	struct abtn_softc *sc;
 
@@ -106,42 +104,41 @@ abtn_attach(device_t dev)
 }
 
 static u_int
-abtn_receive_packet(device_t dev, u_char status, 
-    u_char command, u_char reg, int len, u_char *data)
+abtn_receive_packet(device_t dev, u_char status, u_char command, u_char reg,
+    int len, u_char *data)
 {
 	u_int cmd;
 
 	cmd = data[0];
 
 	switch (cmd) {
-	case 0x0a:	/* decrease brightness */
-		devctl_notify("PMU", "keys", "brightness",
-		    "notify=down");
+	case 0x0a: /* decrease brightness */
+		devctl_notify("PMU", "keys", "brightness", "notify=down");
 		break;
 
-	case 0x09:	/* increase brightness */
+	case 0x09: /* increase brightness */
 		devctl_notify("PMU", "keys", "brightness", "notify=up");
 		break;
 
-	case 0x08:	/* mute */
-	case 0x01:	/* mute, AV hardware */
+	case 0x08: /* mute */
+	case 0x01: /* mute, AV hardware */
 		devctl_notify("PMU", "keys", "mute", NULL);
 		break;
-	case 0x07:	/* decrease volume */
-	case 0x02:	/* decrease volume, AV hardware */
+	case 0x07: /* decrease volume */
+	case 0x02: /* decrease volume, AV hardware */
 		devctl_notify("PMU", "keys", "volume", "notify=down");
 		break;
-	case 0x06:	/* increase volume */
-	case 0x03:	/* increase volume, AV hardware */
+	case 0x06: /* increase volume */
+	case 0x03: /* increase volume, AV hardware */
 		devctl_notify("PMU", "keys", "volume", "notify=up");
 		break;
-	case 0x0c:	/* mirror display key */
+	case 0x0c: /* mirror display key */
 		/* Need callback to do something with this */
 		break;
-	case 0x0b:	/* eject tray */
+	case 0x0b: /* eject tray */
 		devctl_notify("PMU", "keys", "eject", NULL);
 		break;
-	case 0x7f:	/* numlock */
+	case 0x7f: /* numlock */
 		/* Need callback to do something with this */
 		break;
 

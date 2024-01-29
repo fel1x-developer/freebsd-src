@@ -22,7 +22,6 @@
 
 #include <net/if.h>
 #include <net/pfvar.h>
-
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
@@ -34,56 +33,52 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pfctl_parser.h"
 #include "pfctl.h"
+#include "pfctl_parser.h"
 
 #ifndef MIN
-# define MIN(a,b)	(((a) < (b)) ? (a) : (b))
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif /* MIN */
 #ifndef MAX
-# define MAX(a,b)	(((a) > (b)) ? (a) : (b))
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
 #endif /* MAX */
 
-
 #if 0
-# define DEBUG(fp, str, v...) \
+#define DEBUG(fp, str, v...)                                           \
 	fprintf(stderr, "%s:%s:%s " str "\n", (fp)->fp_os.fp_class_nm, \
-	    (fp)->fp_os.fp_version_nm, (fp)->fp_os.fp_subtype_nm , ## v);
+	    (fp)->fp_os.fp_version_nm, (fp)->fp_os.fp_subtype_nm, ##v);
 #else
-# define DEBUG(fp, str, v...) ((void)0)
+#define DEBUG(fp, str, v...) ((void)0)
 #endif
-
 
 struct name_entry;
 LIST_HEAD(name_list, name_entry);
 struct name_entry {
-	LIST_ENTRY(name_entry)	nm_entry;
-	int			nm_num;
-	char			nm_name[PF_OSFP_LEN];
+	LIST_ENTRY(name_entry) nm_entry;
+	int nm_num;
+	char nm_name[PF_OSFP_LEN];
 
-	struct name_list	nm_sublist;
-	int			nm_sublist_num;
+	struct name_list nm_sublist;
+	int nm_sublist_num;
 };
 static struct name_list classes = LIST_HEAD_INITIALIZER(&classes);
 static int class_count;
 static int fingerprint_count;
 
-void			 add_fingerprint(int, int, struct pf_osfp_ioctl *);
-struct name_entry	*fingerprint_name_entry(struct name_list *, char *);
-void			 pfctl_flush_my_fingerprints(struct name_list *);
-char			*get_field(char **, size_t *, int *);
-int			 get_int(char **, size_t *, int *, int *, const char *,
-			     int, int, const char *, int);
-int			 get_str(char **, size_t *, char **, const char *, int,
-			     const char *, int);
-int			 get_tcpopts(const char *, int, const char *,
-			    pf_tcpopts_t *, int *, int *, int *, int *, int *,
-			    int *);
-void			 import_fingerprint(struct pf_osfp_ioctl *);
-const char		*print_ioctl(struct pf_osfp_ioctl *);
-void			 print_name_list(int, struct name_list *, const char *);
-void			 sort_name_list(int, struct name_list *);
-struct name_entry	*lookup_name_list(struct name_list *, const char *);
+void add_fingerprint(int, int, struct pf_osfp_ioctl *);
+struct name_entry *fingerprint_name_entry(struct name_list *, char *);
+void pfctl_flush_my_fingerprints(struct name_list *);
+char *get_field(char **, size_t *, int *);
+int get_int(char **, size_t *, int *, int *, const char *, int, int,
+    const char *, int);
+int get_str(char **, size_t *, char **, const char *, int, const char *, int);
+int get_tcpopts(const char *, int, const char *, pf_tcpopts_t *, int *, int *,
+    int *, int *, int *, int *);
+void import_fingerprint(struct pf_osfp_ioctl *);
+const char *print_ioctl(struct pf_osfp_ioctl *);
+void print_name_list(int, struct name_list *, const char *);
+void sort_name_list(int, struct name_list *);
+struct name_entry *lookup_name_list(struct name_list *, const char *);
 
 /* Load fingerprints from a file */
 int
@@ -141,22 +136,21 @@ pfctl_file_fingerprints(int dev, int opts, const char *fp_filename)
 		if (len == 0)
 			continue;
 
-#define T_DC	0x01	/* Allow don't care */
-#define T_MSS	0x02	/* Allow MSS multiple */
-#define T_MTU	0x04	/* Allow MTU multiple */
-#define T_MOD	0x08	/* Allow modulus */
+#define T_DC 0x01  /* Allow don't care */
+#define T_MSS 0x02 /* Allow MSS multiple */
+#define T_MTU 0x04 /* Allow MTU multiple */
+#define T_MOD 0x08 /* Allow modulus */
 
 #define GET_INT(v, mod, n, ty, mx) \
 	get_int(&line, &len, &v, mod, n, ty, mx, fp_filename, lineno)
-#define GET_STR(v, n, mn) \
-	get_str(&line, &len, &v, n, mn, fp_filename, lineno)
+#define GET_STR(v, n, mn) get_str(&line, &len, &v, n, mn, fp_filename, lineno)
 
-		if (GET_INT(window, &w_mod, "window size", T_DC|T_MSS|T_MTU|
-		    T_MOD, 0xffff) ||
+		if (GET_INT(window, &w_mod, "window size",
+			T_DC | T_MSS | T_MTU | T_MOD, 0xffff) ||
 		    GET_INT(ttl, NULL, "ttl", 0, 0xff) ||
 		    GET_INT(df, NULL, "don't fragment frag", 0, 1) ||
-		    GET_INT(psize, &p_mod, "overall packet size", T_MOD|T_DC,
-		    8192) ||
+		    GET_INT(psize, &p_mod, "overall packet size", T_MOD | T_DC,
+			8192) ||
 		    GET_STR(tcpopts, "TCP Options", 1) ||
 		    GET_STR(class, "OS class", 1) ||
 		    GET_STR(version, "OS version", 0) ||
@@ -164,7 +158,7 @@ pfctl_file_fingerprints(int dev, int opts, const char *fp_filename)
 		    GET_STR(desc, "OS description", 2))
 			continue;
 		if (get_tcpopts(fp_filename, lineno, tcpopts, &packed_tcpopts,
-		    &optcnt, &mss, &mss_mod, &wscale, &wscale_mod, &ts0))
+			&optcnt, &mss, &mss_mod, &wscale, &wscale_mod, &ts0))
 			continue;
 		if (len != 0) {
 			fprintf(stderr, "%s:%d excess field\n", fp_filename,
@@ -201,7 +195,6 @@ pfctl_file_fingerprints(int dev, int opts, const char *fp_filename)
 			fp.fp_flags |= PF_OSFP_PSIZE_MOD;
 		}
 		fp.fp_psize = psize;
-
 
 		switch (wscale_mod) {
 		case T_DC:
@@ -372,14 +365,13 @@ pfctl_get_fingerprint(const char *name)
 		class = class_nm->nm_num;
 
 		/* Try no subtype */
-		if ((version_nm = lookup_name_list(&class_nm->nm_sublist, ptr)))
-		{
+		if ((version_nm = lookup_name_list(&class_nm->nm_sublist,
+			 ptr))) {
 			version = version_nm->nm_num;
 			subtype = PF_OSFP_ANY;
 			free(wr_name);
 			goto found;
 		}
-
 
 		/*
 		 * There must be a version and a subtype.
@@ -388,27 +380,26 @@ pfctl_get_fingerprint(const char *name)
 		 *   FreeBSD 4.0-STABLE (version=4.0 subtype=STABLE)
 		 *   Windows 2000 SP2	(version=2000 subtype=SP2)
 		 */
-#define CONNECTOR(x)	((x) == '.' || (x) == ' ' || (x) == '\t' || (x) == '-')
+#define CONNECTOR(x) ((x) == '.' || (x) == ' ' || (x) == '\t' || (x) == '-')
 		wr_len = strlen(ptr);
-		LIST_FOREACH(version_nm, &class_nm->nm_sublist, nm_entry) {
+		LIST_FOREACH (version_nm, &class_nm->nm_sublist, nm_entry) {
 			version_len = strlen(version_nm->nm_name);
 			if (wr_len < version_len + 2 ||
 			    !CONNECTOR(ptr[version_len]))
 				continue;
 			/* first part of the string must be version */
-			if (strncasecmp(ptr, version_nm->nm_name,
-			    version_len))
+			if (strncasecmp(ptr, version_nm->nm_name, version_len))
 				continue;
 
-			LIST_FOREACH(subtype_nm, &version_nm->nm_sublist,
+			LIST_FOREACH (subtype_nm, &version_nm->nm_sublist,
 			    nm_entry) {
 				subtype_len = strlen(subtype_nm->nm_name);
 				if (wr_len != version_len + subtype_len + 1)
 					continue;
 
 				/* last part of the string must be subtype */
-				if (strcasecmp(&ptr[version_len+1],
-				    subtype_nm->nm_name) != 0)
+				if (strcasecmp(&ptr[version_len + 1],
+					subtype_nm->nm_name) != 0)
 					continue;
 
 				/* Found it!! */
@@ -428,17 +419,20 @@ found:
 	if (ret != PF_OSFP_NOMATCH) {
 		PF_OSFP_UNPACK(ret, unp_class, unp_version, unp_subtype);
 		if (class != unp_class) {
-			fprintf(stderr, "warning: fingerprint table overflowed "
+			fprintf(stderr,
+			    "warning: fingerprint table overflowed "
 			    "classes\n");
 			return (PF_OSFP_NOMATCH);
 		}
 		if (version != unp_version) {
-			fprintf(stderr, "warning: fingerprint table overflowed "
+			fprintf(stderr,
+			    "warning: fingerprint table overflowed "
 			    "versions\n");
 			return (PF_OSFP_NOMATCH);
 		}
 		if (subtype != unp_subtype) {
-			fprintf(stderr, "warning: fingerprint table overflowed "
+			fprintf(stderr,
+			    "warning: fingerprint table overflowed "
 			    "subtypes\n");
 			return (PF_OSFP_NOMATCH);
 		}
@@ -481,19 +475,19 @@ pfctl_lookup_fingerprint(pf_osfp_t fp, char *buf, size_t len)
 		return (buf);
 	}
 
-	LIST_FOREACH(nm, &classes, nm_entry) {
+	LIST_FOREACH (nm, &classes, nm_entry) {
 		if (nm->nm_num == class) {
 			class_name = nm->nm_name;
 			if (version == PF_OSFP_ANY)
 				goto found;
 			list = &nm->nm_sublist;
-			LIST_FOREACH(nm, list, nm_entry) {
+			LIST_FOREACH (nm, list, nm_entry) {
 				if (nm->nm_num == version) {
 					version_name = nm->nm_name;
 					if (subtype == PF_OSFP_ANY)
 						goto found;
 					list = &nm->nm_sublist;
-					LIST_FOREACH(nm, list, nm_entry) {
+					LIST_FOREACH (nm, list, nm_entry) {
 						if (nm->nm_num == subtype) {
 							subtype_name =
 							    nm->nm_name;
@@ -536,13 +530,12 @@ struct name_entry *
 lookup_name_list(struct name_list *list, const char *name)
 {
 	struct name_entry *nm;
-	LIST_FOREACH(nm, list, nm_entry)
+	LIST_FOREACH (nm, list, nm_entry)
 		if (strcasecmp(name, nm->nm_name) == 0)
 			return (nm);
 
 	return (NULL);
 }
-
 
 void
 add_fingerprint(int dev, int opts, struct pf_osfp_ioctl *fp)
@@ -552,49 +545,50 @@ add_fingerprint(int dev, int opts, struct pf_osfp_ioctl *fp)
 	int class, version, subtype;
 
 /* We expand #-# or #.#-#.# version/subtypes into multiple fingerprints */
-#define EXPAND(field) do {						\
-	int _dot = -1, _start = -1, _end = -1, _i = 0;			\
-	/* pick major version out of #.# */				\
-	if (isdigit(fp->field[_i]) && fp->field[_i+1] == '.') {		\
-		_dot = fp->field[_i] - '0';				\
-		_i += 2;						\
-	}								\
-	if (isdigit(fp->field[_i]))					\
-		_start = fp->field[_i++] - '0';				\
-	else								\
-		break;							\
-	if (isdigit(fp->field[_i]))					\
-		_start = (_start * 10) + fp->field[_i++] - '0';		\
-	if (fp->field[_i++] != '-')					\
-		break;							\
-	if (isdigit(fp->field[_i]) && fp->field[_i+1] == '.' &&		\
-	    fp->field[_i] - '0' == _dot)				\
-		_i += 2;						\
-	else if (_dot != -1)						\
-		break;							\
-	if (isdigit(fp->field[_i]))					\
-		_end = fp->field[_i++] - '0';				\
-	else								\
-		break;							\
-	if (isdigit(fp->field[_i]))					\
-		_end = (_end * 10) + fp->field[_i++] - '0';		\
-	if (isdigit(fp->field[_i]))					\
-		_end = (_end * 10) + fp->field[_i++] - '0';		\
-	if (fp->field[_i] != '\0')					\
-		break;							\
-	memcpy(&fptmp, fp, sizeof(fptmp));				\
-	for (;_start <= _end; _start++) {				\
-		memset(fptmp.field, 0, sizeof(fptmp.field));		\
-		fptmp.fp_os.fp_enflags |= PF_OSFP_EXPANDED;		\
-		if (_dot == -1)						\
-			snprintf(fptmp.field, sizeof(fptmp.field),	\
-			    "%d", _start);				\
-		    else						\
-			snprintf(fptmp.field, sizeof(fptmp.field),	\
-			    "%d.%d", _dot, _start);			\
-		add_fingerprint(dev, opts, &fptmp);			\
-	}								\
-} while(0)
+#define EXPAND(field)                                                      \
+	do {                                                               \
+		int _dot = -1, _start = -1, _end = -1, _i = 0;             \
+		/* pick major version out of #.# */                        \
+		if (isdigit(fp->field[_i]) && fp->field[_i + 1] == '.') {  \
+			_dot = fp->field[_i] - '0';                        \
+			_i += 2;                                           \
+		}                                                          \
+		if (isdigit(fp->field[_i]))                                \
+			_start = fp->field[_i++] - '0';                    \
+		else                                                       \
+			break;                                             \
+		if (isdigit(fp->field[_i]))                                \
+			_start = (_start * 10) + fp->field[_i++] - '0';    \
+		if (fp->field[_i++] != '-')                                \
+			break;                                             \
+		if (isdigit(fp->field[_i]) && fp->field[_i + 1] == '.' &&  \
+		    fp->field[_i] - '0' == _dot)                           \
+			_i += 2;                                           \
+		else if (_dot != -1)                                       \
+			break;                                             \
+		if (isdigit(fp->field[_i]))                                \
+			_end = fp->field[_i++] - '0';                      \
+		else                                                       \
+			break;                                             \
+		if (isdigit(fp->field[_i]))                                \
+			_end = (_end * 10) + fp->field[_i++] - '0';        \
+		if (isdigit(fp->field[_i]))                                \
+			_end = (_end * 10) + fp->field[_i++] - '0';        \
+		if (fp->field[_i] != '\0')                                 \
+			break;                                             \
+		memcpy(&fptmp, fp, sizeof(fptmp));                         \
+		for (; _start <= _end; _start++) {                         \
+			memset(fptmp.field, 0, sizeof(fptmp.field));       \
+			fptmp.fp_os.fp_enflags |= PF_OSFP_EXPANDED;        \
+			if (_dot == -1)                                    \
+				snprintf(fptmp.field, sizeof(fptmp.field), \
+				    "%d", _start);                         \
+			else                                               \
+				snprintf(fptmp.field, sizeof(fptmp.field), \
+				    "%d.%d", _dot, _start);                \
+			add_fingerprint(dev, opts, &fptmp);                \
+		}                                                          \
+	} while (0)
 
 	/* We allow "#-#" as a version or subtype and we'll expand it */
 	EXPAND(fp_os.fp_version_nm);
@@ -627,7 +621,6 @@ add_fingerprint(int dev, int opts, struct pf_osfp_ioctl *fp)
 		}
 	}
 
-
 	DEBUG(fp, "\tsignature %d:%d:%d %s", class, version, subtype,
 	    print_ioctl(fp));
 
@@ -643,9 +636,8 @@ add_fingerprint(int dev, int opts, struct pf_osfp_ioctl *fp)
 	{
 		if (errno == EEXIST) {
 			warn("Duplicate signature for %s %s %s",
-				fp->fp_os.fp_class_nm,
-				fp->fp_os.fp_version_nm,
-				fp->fp_os.fp_subtype_nm);
+			    fp->fp_os.fp_class_nm, fp->fp_os.fp_version_nm,
+			    fp->fp_os.fp_subtype_nm);
 
 		} else {
 			err(1, "DIOCOSFPADD");
@@ -687,7 +679,6 @@ import_fingerprint(struct pf_osfp_ioctl *fp)
 		}
 	}
 
-
 	fingerprint_count++;
 	DEBUG(fp, "import signature %d:%d:%d", class, version, subtype);
 }
@@ -701,7 +692,7 @@ fingerprint_name_entry(struct name_list *list, char *name)
 	if (name == NULL || strlen(name) == 0)
 		return (NULL);
 
-	LIST_FOREACH(nm_entry, list, nm_entry) {
+	LIST_FOREACH (nm_entry, list, nm_entry) {
 		if (strcasecmp(nm_entry->nm_name, name) == 0) {
 			/* We'll move this to the front of the list later */
 			LIST_REMOVE(nm_entry, nm_entry);
@@ -719,14 +710,13 @@ fingerprint_name_entry(struct name_list *list, char *name)
 	return (nm_entry);
 }
 
-
 void
 print_name_list(int opts, struct name_list *nml, const char *prefix)
 {
 	char newprefix[32];
 	struct name_entry *nm;
 
-	LIST_FOREACH(nm, nml, nm_entry) {
+	LIST_FOREACH (nm, nml, nm_entry) {
 		snprintf(newprefix, sizeof(newprefix), "%s%s\t", prefix,
 		    nm->nm_name);
 		printf("%s\n", newprefix);
@@ -747,7 +737,7 @@ sort_name_list(int opts, struct name_list *nml)
 	while ((nm = LIST_FIRST(nml)) != NULL) {
 		LIST_REMOVE(nm, nm_entry);
 		nmlast = NULL;
-		LIST_FOREACH(nmsearch, &new, nm_entry) {
+		LIST_FOREACH (nmsearch, &new, nm_entry) {
 			if (strcasecmp(nmsearch->nm_name, nm->nm_name) > 0) {
 				LIST_INSERT_BEFORE(nmsearch, nm, nm_entry);
 				break;
@@ -776,8 +766,8 @@ sort_name_list(int opts, struct name_list *nml)
 
 /* parse the next integer in a formatted config file line */
 int
-get_int(char **line, size_t *len, int *var, int *mod,
-    const char *name, int flags, int max, const char *filename, int lineno)
+get_int(char **line, size_t *len, int *var, int *mod, const char *name,
+    int flags, int max, const char *filename, int lineno)
 {
 	int fieldlen, i;
 	char *field;
@@ -796,8 +786,9 @@ get_int(char **line, size_t *len, int *var, int *mod,
 	}
 
 	i = 0;
-	if ((*field == '%' || *field == 'S' || *field == 'T' || *field == '*')
-	    && fieldlen >= 1) {
+	if ((*field == '%' || *field == 'S' || *field == 'T' ||
+		*field == '*') &&
+	    fieldlen >= 1) {
 		switch (*field) {
 		case 'S':
 			if (mod && (flags & T_MSS))
@@ -825,8 +816,10 @@ get_int(char **line, size_t *len, int *var, int *mod,
 			if (mod && (flags & T_MOD))
 				*mod = T_MOD;
 			if (fieldlen == 1) {
-				fprintf(stderr, "%s:%d modulus %s must have a "
-				    "value\n", filename, lineno, name);
+				fprintf(stderr,
+				    "%s:%d modulus %s must have a "
+				    "value\n",
+				    filename, lineno, name);
 				return (1);
 			}
 			break;
@@ -908,13 +901,13 @@ get_tcpopts(const char *filename, int lineno, const char *tcpopts,
 
 	for (i = 0; tcpopts[i] && *optcnt < PF_OSFP_MAX_OPTS;) {
 		switch ((opt = toupper(tcpopts[i++]))) {
-		case 'N':	/* FALLTHROUGH */
+		case 'N': /* FALLTHROUGH */
 		case 'S':
 			*packed = (*packed << PF_OSFP_TCPOPT_BITS) |
 			    (opt == 'N' ? PF_OSFP_TCPOPT_NOP :
-			    PF_OSFP_TCPOPT_SACK);
+					  PF_OSFP_TCPOPT_SACK);
 			break;
-		case 'W':	/* FALLTHROUGH */
+		case 'W': /* FALLTHROUGH */
 		case 'M': {
 			int *this_mod, *this;
 
@@ -930,9 +923,9 @@ get_tcpopts(const char *filename, int lineno, const char *tcpopts,
 
 			*packed = (*packed << PF_OSFP_TCPOPT_BITS) |
 			    (opt == 'W' ? PF_OSFP_TCPOPT_WSCALE :
-			    PF_OSFP_TCPOPT_MSS);
-			if (tcpopts[i] == '*' && (tcpopts[i + 1] == '\0' ||
-			    tcpopts[i + 1] == ',')) {
+					  PF_OSFP_TCPOPT_MSS);
+			if (tcpopts[i] == '*' &&
+			    (tcpopts[i + 1] == '\0' || tcpopts[i + 1] == ',')) {
 				*this_mod = T_DC;
 				i++;
 				break;
@@ -944,13 +937,14 @@ get_tcpopts(const char *filename, int lineno, const char *tcpopts,
 			}
 			do {
 				if (!isdigit(tcpopts[i])) {
-					fprintf(stderr, "%s:%d unknown "
+					fprintf(stderr,
+					    "%s:%d unknown "
 					    "character '%c' in %c TCP opt\n",
 					    filename, lineno, tcpopts[i], opt);
 					return (1);
 				}
 				*this = (*this * 10) + tcpopts[i++] - '0';
-			} while(tcpopts[i] != ',' && tcpopts[i] != '\0');
+			} while (tcpopts[i] != ',' && tcpopts[i] != '\0');
 			break;
 		}
 		case 'T':
@@ -962,7 +956,7 @@ get_tcpopts(const char *filename, int lineno, const char *tcpopts,
 			    PF_OSFP_TCPOPT_TS;
 			break;
 		}
-		(*optcnt) ++;
+		(*optcnt)++;
 		if (tcpopts[i] == '\0')
 			break;
 		if (tcpopts[i] != ',') {
@@ -983,7 +977,6 @@ get_field(char **line, size_t *len, int *fieldlen)
 	char *ret, *ptr = *line;
 	size_t plen = *len;
 
-
 	while (plen && isspace(*ptr)) {
 		plen--;
 		ptr++;
@@ -1003,7 +996,6 @@ get_field(char **line, size_t *len, int *fieldlen)
 		(*fieldlen)--;
 	return (ret);
 }
-
 
 const char *
 print_ioctl(struct pf_osfp_ioctl *fp)

@@ -31,8 +31,8 @@
 #include <sys/time.h>
 
 #include <netinet/in.h>
-#include <arpa/tftp.h>
 
+#include <arpa/tftp.h>
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -40,21 +40,20 @@
 #include <string.h>
 #include <syslog.h>
 
-#include "tftp-utils.h"
 #include "tftp-io.h"
+#include "tftp-utils.h"
 
 /*
  * Default values, can be changed later via the TFTP Options
  */
-int		timeoutpacket = TIMEOUT;
-int		timeoutnetwork = MAX_TIMEOUTS * TIMEOUT;
-int		maxtimeouts = MAX_TIMEOUTS;
-uint16_t	segsize = SEGSIZE;
-uint16_t	pktsize = SEGSIZE + 4;
-uint16_t	windowsize = WINDOWSIZE;
+int timeoutpacket = TIMEOUT;
+int timeoutnetwork = MAX_TIMEOUTS * TIMEOUT;
+int maxtimeouts = MAX_TIMEOUTS;
+uint16_t segsize = SEGSIZE;
+uint16_t pktsize = SEGSIZE + 4;
+uint16_t windowsize = WINDOWSIZE;
 
-int	acting_as_client;
-
+int acting_as_client;
 
 /*
  * Set timeout values for packet reception. The idea is that you
@@ -110,7 +109,8 @@ get_field(int peer, char *buffer, ssize_t size)
 	char *cp = buffer;
 
 	while (cp < buffer + size) {
-		if (*cp == '\0') break;
+		if (*cp == '\0')
+			break;
 		cp++;
 	}
 	if (*cp != '\0') {
@@ -167,13 +167,13 @@ tftp_log(int priority, const char *message, ...)
  * Packet types
  */
 struct packettypes packettypes[] = {
-	{ RRQ,		"RRQ"	},
-	{ WRQ,		"WRQ"	},
-	{ DATA,		"DATA"	},
-	{ ACK,		"ACK"	},
-	{ ERROR,	"ERROR"	},
-	{ OACK,		"OACK"	},
-	{ 0,		NULL	},
+	{ RRQ, "RRQ" },
+	{ WRQ, "WRQ" },
+	{ DATA, "DATA" },
+	{ ACK, "ACK" },
+	{ ERROR, "ERROR" },
+	{ OACK, "OACK" },
+	{ 0, NULL },
 };
 
 const char *
@@ -196,15 +196,15 @@ packettype(int type)
 /*
  * Debugs
  */
-int	debug = DEBUG_NONE;
+int debug = DEBUG_NONE;
 struct debugs debugs[] = {
-	{ DEBUG_PACKETS,	"packet",	"Packet debugging"	},
-	{ DEBUG_SIMPLE,		"simple",	"Simple debugging"	},
-	{ DEBUG_OPTIONS,	"options",	"Options debugging"	},
-	{ DEBUG_ACCESS,		"access",	"TCPd access debugging"	},
-	{ DEBUG_NONE,		NULL,		"No debugging"		},
+	{ DEBUG_PACKETS, "packet", "Packet debugging" },
+	{ DEBUG_SIMPLE, "simple", "Simple debugging" },
+	{ DEBUG_OPTIONS, "options", "Options debugging" },
+	{ DEBUG_ACCESS, "access", "TCPd access debugging" },
+	{ DEBUG_NONE, NULL, "No debugging" },
 };
-int	packetdroppercentage = 0;
+int packetdroppercentage = 0;
 
 int
 debug_find(char *s)
@@ -246,7 +246,7 @@ debug_show(int d)
 
 	s[0] = '\0';
 	while (debugs[i].name != NULL) {
-		if (d&debugs[i].value) {
+		if (d & debugs[i].value) {
 			if (s[0] != '\0')
 				strlcat(s, " ", space);
 			strlcat(s, debugs[i].name, space);
@@ -261,15 +261,11 @@ debug_show(int d)
 /*
  * RP_
  */
-struct rp_errors rp_errors[] = {
-	{ RP_TIMEOUT,		"Network timeout" },
-	{ RP_TOOSMALL,		"Not enough data bytes" },
-	{ RP_WRONGSOURCE,	"Invalid IP address of UDP port" },
-	{ RP_ERROR,		"Error packet" },
-	{ RP_RECVFROM,		"recvfrom() complained" },
-	{ RP_TOOBIG,		"Too many data bytes" },
-	{ RP_NONE,		NULL }
-};
+struct rp_errors rp_errors[] = { { RP_TIMEOUT, "Network timeout" },
+	{ RP_TOOSMALL, "Not enough data bytes" },
+	{ RP_WRONGSOURCE, "Invalid IP address of UDP port" },
+	{ RP_ERROR, "Error packet" }, { RP_RECVFROM, "recvfrom() complained" },
+	{ RP_TOOBIG, "Too many data bytes" }, { RP_NONE, NULL } };
 
 char *
 rp_strerror(int error)
@@ -309,20 +305,20 @@ stats_init(struct tftp_stats *ts)
 void
 printstats(const char *direction, int verbose, struct tftp_stats *ts)
 {
-	double delta;	/* compute delta in 1/10's second units */
+	double delta; /* compute delta in 1/10's second units */
 
-	delta = ((ts->tstop.tv_sec*10.)+(ts->tstop.tv_usec/100000)) -
-		((ts->tstart.tv_sec*10.)+(ts->tstart.tv_usec/100000));
-	delta = delta/10.;      /* back to seconds */
+	delta = ((ts->tstop.tv_sec * 10.) + (ts->tstop.tv_usec / 100000)) -
+	    ((ts->tstart.tv_sec * 10.) + (ts->tstart.tv_usec / 100000));
+	delta = delta / 10.; /* back to seconds */
 
-	printf("%s %zu bytes during %.1f seconds in %u blocks",
-	    direction, ts->amount, delta, ts->blocks);
+	printf("%s %zu bytes during %.1f seconds in %u blocks", direction,
+	    ts->amount, delta, ts->blocks);
 
 	if (ts->rollovers != 0)
-		printf(" with %d rollover%s",
-		    ts->rollovers, ts->rollovers != 1 ? "s" : "");
+		printf(" with %d rollover%s", ts->rollovers,
+		    ts->rollovers != 1 ? "s" : "");
 
 	if (verbose)
-		printf(" [%.0f bits/sec]", (ts->amount*8.)/delta);
+		printf(" [%.0f bits/sec]", (ts->amount * 8.) / delta);
 	putchar('\n');
 }

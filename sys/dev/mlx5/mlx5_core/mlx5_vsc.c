@@ -23,14 +23,15 @@
  * SUCH DAMAGE.
  */
 
-#include "opt_rss.h"
 #include "opt_ratelimit.h"
+#include "opt_rss.h"
 
-#include <dev/mlx5/driver.h>
 #include <dev/mlx5/device.h>
+#include <dev/mlx5/driver.h>
 #include <dev/mlx5/mlx5_core/mlx5_core.h>
 
-int mlx5_vsc_lock(struct mlx5_core_dev *mdev)
+int
+mlx5_vsc_lock(struct mlx5_core_dev *mdev)
 {
 	device_t dev = mdev->pdev->dev.bsddev;
 	int vsc_addr = mdev->vsc_addr;
@@ -39,7 +40,8 @@ int mlx5_vsc_lock(struct mlx5_core_dev *mdev)
 	u32 counter;
 
 	if (!vsc_addr) {
-		mlx5_core_warn(mdev, "Unable to acquire vsc lock, vsc_addr not initialized\n");
+		mlx5_core_warn(mdev,
+		    "Unable to acquire vsc lock, vsc_addr not initialized\n");
 		return EINVAL;
 	}
 
@@ -51,15 +53,19 @@ int mlx5_vsc_lock(struct mlx5_core_dev *mdev)
 			retries++;
 			/*
 			 * The PRM suggests random 0 - 10ms to prevent multiple
-			 * waiters on the same interval in order to avoid starvation
+			 * waiters on the same interval in order to avoid
+			 * starvation
 			 */
 			DELAY((random() % 9000) + 1000);
 			continue;
 		}
 
-		counter = pci_read_config(dev, vsc_addr + MLX5_VSC_COUNTER_OFFSET, 4);
-		pci_write_config(dev, vsc_addr + MLX5_VSC_SEMA_OFFSET, counter, 4);
-		lock_val = pci_read_config(dev, vsc_addr + MLX5_VSC_SEMA_OFFSET, 4);
+		counter = pci_read_config(dev,
+		    vsc_addr + MLX5_VSC_COUNTER_OFFSET, 4);
+		pci_write_config(dev, vsc_addr + MLX5_VSC_SEMA_OFFSET, counter,
+		    4);
+		lock_val = pci_read_config(dev, vsc_addr + MLX5_VSC_SEMA_OFFSET,
+		    4);
 
 		if (lock_val == counter)
 			break;
@@ -70,13 +76,15 @@ int mlx5_vsc_lock(struct mlx5_core_dev *mdev)
 	return 0;
 }
 
-void mlx5_vsc_unlock(struct mlx5_core_dev *mdev)
+void
+mlx5_vsc_unlock(struct mlx5_core_dev *mdev)
 {
 	device_t dev = mdev->pdev->dev.bsddev;
 	int vsc_addr = mdev->vsc_addr;
 
 	if (!vsc_addr) {
-		mlx5_core_warn(mdev, "Unable to release vsc lock, vsc_addr not initialized\n");
+		mlx5_core_warn(mdev,
+		    "Unable to release vsc lock, vsc_addr not initialized\n");
 		return;
 	}
 
@@ -106,14 +114,16 @@ mlx5_vsc_wait_on_flag(struct mlx5_core_dev *mdev, u32 expected)
 	return 0;
 }
 
-int mlx5_vsc_set_space(struct mlx5_core_dev *mdev, u16 space)
+int
+mlx5_vsc_set_space(struct mlx5_core_dev *mdev, u16 space)
 {
 	device_t dev = mdev->pdev->dev.bsddev;
 	int vsc_addr = mdev->vsc_addr;
 	u32 vsc_space = 0;
 
 	if (!vsc_addr) {
-		mlx5_core_warn(mdev, "Unable to set vsc space, vsc_addr not initialized\n");
+		mlx5_core_warn(mdev,
+		    "Unable to set vsc space, vsc_addr not initialized\n");
 		return EINVAL;
 	}
 
@@ -121,7 +131,8 @@ int mlx5_vsc_set_space(struct mlx5_core_dev *mdev, u16 space)
 	pci_write_config(dev, vsc_addr + MLX5_VSC_SPACE_OFFSET, vsc_space, 4);
 	vsc_space = pci_read_config(dev, vsc_addr + MLX5_VSC_SPACE_OFFSET, 4);
 
-	if (MLX5_VSC_GET(vsc_space, &vsc_space, status) != MLX5_VSC_SPACE_SUPPORTED) {
+	if (MLX5_VSC_GET(vsc_space, &vsc_space, status) !=
+	    MLX5_VSC_SPACE_SUPPORTED) {
 		mlx5_core_warn(mdev, "Space 0x%x is not supported.\n", space);
 		return ENOTSUP;
 	}
@@ -129,7 +140,8 @@ int mlx5_vsc_set_space(struct mlx5_core_dev *mdev, u16 space)
 	return 0;
 }
 
-int mlx5_vsc_write(struct mlx5_core_dev *mdev, u32 addr, const u32 *data)
+int
+mlx5_vsc_write(struct mlx5_core_dev *mdev, u32 addr, const u32 *data)
 {
 	device_t dev = mdev->pdev->dev.bsddev;
 	int vsc_addr = mdev->vsc_addr;
@@ -137,7 +149,8 @@ int mlx5_vsc_write(struct mlx5_core_dev *mdev, u32 addr, const u32 *data)
 	int err;
 
 	if (!vsc_addr) {
-		mlx5_core_warn(mdev, "Unable to call vsc write, vsc_addr not initialized\n");
+		mlx5_core_warn(mdev,
+		    "Unable to call vsc write, vsc_addr not initialized\n");
 		return EINVAL;
 	}
 
@@ -153,7 +166,8 @@ int mlx5_vsc_write(struct mlx5_core_dev *mdev, u32 addr, const u32 *data)
 	return err;
 }
 
-int mlx5_vsc_read(struct mlx5_core_dev *mdev, u32 addr, u32 *data)
+int
+mlx5_vsc_read(struct mlx5_core_dev *mdev, u32 addr, u32 *data)
 {
 	device_t dev = mdev->pdev->dev.bsddev;
 	int vsc_addr = mdev->vsc_addr;
@@ -161,7 +175,8 @@ int mlx5_vsc_read(struct mlx5_core_dev *mdev, u32 addr, u32 *data)
 	u32 in;
 
 	if (!vsc_addr) {
-		mlx5_core_warn(mdev, "Unable to call vsc read, vsc_addr not initialized\n");
+		mlx5_core_warn(mdev,
+		    "Unable to call vsc read, vsc_addr not initialized\n");
 		return EINVAL;
 	}
 
@@ -170,7 +185,8 @@ int mlx5_vsc_read(struct mlx5_core_dev *mdev, u32 addr, u32 *data)
 
 	err = mlx5_vsc_wait_on_flag(mdev, 1);
 	if (err) {
-		mlx5_core_warn(mdev, "Failed waiting for read complete flag!\n");
+		mlx5_core_warn(mdev,
+		    "Failed waiting for read complete flag!\n");
 		return err;
 	}
 
@@ -179,7 +195,8 @@ int mlx5_vsc_read(struct mlx5_core_dev *mdev, u32 addr, u32 *data)
 	return 0;
 }
 
-int mlx5_vsc_lock_addr_space(struct mlx5_core_dev *mdev, u32 addr)
+int
+mlx5_vsc_lock_addr_space(struct mlx5_core_dev *mdev, u32 addr)
 {
 	device_t dev = mdev->pdev->dev.bsddev;
 	int vsc_addr = mdev->vsc_addr;
@@ -209,7 +226,8 @@ int mlx5_vsc_lock_addr_space(struct mlx5_core_dev *mdev, u32 addr)
 	return 0;
 }
 
-int mlx5_vsc_unlock_addr_space(struct mlx5_core_dev *mdev, u32 addr)
+int
+mlx5_vsc_unlock_addr_space(struct mlx5_core_dev *mdev, u32 addr)
 {
 	u32 data = 0;
 	int ret;
@@ -233,7 +251,8 @@ int mlx5_vsc_unlock_addr_space(struct mlx5_core_dev *mdev, u32 addr)
 	return 0;
 }
 
-int mlx5_vsc_find_cap(struct mlx5_core_dev *mdev)
+int
+mlx5_vsc_find_cap(struct mlx5_core_dev *mdev)
 {
 	int *capreg = &mdev->vsc_addr;
 	int err;
@@ -245,4 +264,3 @@ int mlx5_vsc_find_cap(struct mlx5_core_dev *mdev)
 
 	return err;
 }
-

@@ -30,8 +30,8 @@
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
-#include <sys/sysctl.h>
 #include <sys/sbuf.h>
+#include <sys/sysctl.h>
 #include <sys/vnode.h>
 
 #ifdef COMPAT_LINUX32
@@ -46,20 +46,20 @@
 #include <compat/linux/linux_misc.h>
 #include <compat/linux/linux_util.h>
 
-#define	LINUX_CTL_KERN		1
-#define	LINUX_CTL_VM		2
-#define	LINUX_CTL_NET		3
-#define	LINUX_CTL_PROC		4
-#define	LINUX_CTL_FS		5
-#define	LINUX_CTL_DEBUG		6
-#define	LINUX_CTL_DEV		7
-#define	LINUX_CTL_BUS		8
+#define LINUX_CTL_KERN 1
+#define LINUX_CTL_VM 2
+#define LINUX_CTL_NET 3
+#define LINUX_CTL_PROC 4
+#define LINUX_CTL_FS 5
+#define LINUX_CTL_DEBUG 6
+#define LINUX_CTL_DEV 7
+#define LINUX_CTL_BUS 8
 
 /* CTL_KERN names */
-#define	LINUX_KERN_OSTYPE	1
-#define	LINUX_KERN_OSRELEASE	2
-#define	LINUX_KERN_OSREV	3
-#define	LINUX_KERN_VERSION	4
+#define LINUX_KERN_OSTYPE 1
+#define LINUX_KERN_OSRELEASE 2
+#define LINUX_KERN_OSREV 3
+#define LINUX_KERN_VERSION 4
 
 /* DTrace init */
 LIN_SDT_PROVIDER_DECLARE(LINUX_DTRACE);

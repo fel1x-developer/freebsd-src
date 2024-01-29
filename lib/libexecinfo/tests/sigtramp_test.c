@@ -7,17 +7,16 @@
 #include <sys/param.h>
 #include <sys/wait.h>
 
+#include <atf-c.h>
 #include <execinfo.h>
 #include <signal.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <atf-c.h>
+#define BT_FUNCTIONS 10
 
-#define	BT_FUNCTIONS		10
-
-void	handler(int);
+void handler(int);
 
 __noinline void
 handler(int signum __unused)
@@ -39,7 +38,6 @@ handler(int signum __unused)
 	}
 	ATF_REQUIRE(match > 0);
 	printf("match at %zu, symbols %zu\n", match, n);
-
 }
 
 ATF_TC_WITHOUT_HEAD(test_backtrace_sigtramp);

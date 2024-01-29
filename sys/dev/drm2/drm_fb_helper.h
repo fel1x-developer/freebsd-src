@@ -47,13 +47,13 @@ struct drm_fb_helper_surface_size {
 };
 
 struct drm_fb_helper_funcs {
-	void (*gamma_set)(struct drm_crtc *crtc, u16 red, u16 green,
-			  u16 blue, int regno);
+	void (*gamma_set)(struct drm_crtc *crtc, u16 red, u16 green, u16 blue,
+	    int regno);
 	void (*gamma_get)(struct drm_crtc *crtc, u16 *red, u16 *green,
-			  u16 *blue, int regno);
+	    u16 *blue, int regno);
 
 	int (*fb_probe)(struct drm_fb_helper *helper,
-			struct drm_fb_helper_surface_size *sizes);
+	    struct drm_fb_helper_surface_size *sizes);
 };
 
 struct drm_fb_helper_connector {
@@ -81,35 +81,30 @@ struct drm_fb_helper {
 };
 
 int drm_fb_helper_single_fb_probe(struct drm_fb_helper *helper,
-				  int preferred_bpp);
+    int preferred_bpp);
 
-int drm_fb_helper_init(struct drm_device *dev,
-		       struct drm_fb_helper *helper, int crtc_count,
-		       int max_conn);
+int drm_fb_helper_init(struct drm_device *dev, struct drm_fb_helper *helper,
+    int crtc_count, int max_conn);
 void drm_fb_helper_fini(struct drm_fb_helper *helper);
 int drm_fb_helper_blank(int blank, struct fb_info *info);
 #ifdef FREEBSD_NOTYET
 int drm_fb_helper_pan_display(struct fb_var_screeninfo *var,
-			      struct fb_info *info);
+    struct fb_info *info);
 #endif /* FREEBSD_NOTYET */
 int drm_fb_helper_set_par(struct fb_info *info);
 #ifdef FREEBSD_NOTYET
 int drm_fb_helper_check_var(struct fb_var_screeninfo *var,
-			    struct fb_info *info);
+    struct fb_info *info);
 #endif /* FREEBSD_NOTYET */
-int drm_fb_helper_setcolreg(unsigned regno,
-			    unsigned red,
-			    unsigned green,
-			    unsigned blue,
-			    unsigned transp,
-			    struct fb_info *info);
+int drm_fb_helper_setcolreg(unsigned regno, unsigned red, unsigned green,
+    unsigned blue, unsigned transp, struct fb_info *info);
 
 bool drm_fb_helper_restore_fbdev_mode(struct drm_fb_helper *fb_helper);
 void drm_fb_helper_restore(void);
-void drm_fb_helper_fill_var(struct fb_info *info, struct drm_fb_helper *fb_helper,
-			    uint32_t fb_width, uint32_t fb_height);
+void drm_fb_helper_fill_var(struct fb_info *info,
+    struct drm_fb_helper *fb_helper, uint32_t fb_width, uint32_t fb_height);
 void drm_fb_helper_fill_fix(struct fb_info *info, uint32_t pitch,
-			    uint32_t depth);
+    uint32_t depth);
 
 #ifdef FREEBSD_NOTYET
 int drm_fb_helper_setcmap(struct fb_cmap *cmap, struct fb_info *info);

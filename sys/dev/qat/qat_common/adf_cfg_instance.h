@@ -4,15 +4,15 @@
 #define ADF_CFG_INSTANCE_H_
 
 #include "adf_accel_devices.h"
-#include "adf_cfg_common.h"
 #include "adf_cfg_bundle.h"
+#include "adf_cfg_common.h"
 
 void crypto_instance_init(struct adf_cfg_instance *instance,
-			  struct adf_cfg_bundle *bundle);
+    struct adf_cfg_bundle *bundle);
 void dc_instance_init(struct adf_cfg_instance *instance,
-		      struct adf_cfg_bundle *bundle);
+    struct adf_cfg_bundle *bundle);
 void asym_instance_init(struct adf_cfg_instance *instance,
-			struct adf_cfg_bundle *bundle);
+    struct adf_cfg_bundle *bundle);
 void sym_instance_init(struct adf_cfg_instance *instance,
-		       struct adf_cfg_bundle *bundle);
+    struct adf_cfg_bundle *bundle);
 #endif

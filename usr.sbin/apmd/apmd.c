@@ -30,6 +30,12 @@
  */
 
 #include <sys/types.h>
+#include <sys/ioctl.h>
+#include <sys/time.h>
+#include <sys/wait.h>
+
+#include <machine/apm_bios.h>
+
 #include <assert.h>
 #include <bitstring.h>
 #include <err.h>
@@ -42,39 +48,33 @@
 #include <string.h>
 #include <syslog.h>
 #include <unistd.h>
-#include <sys/ioctl.h>
-#include <sys/time.h>
-#include <sys/wait.h>
-#include <machine/apm_bios.h>
 
 #include "apmd.h"
 
-int		debug_level = 0;
-int		verbose = 0;
-int		soft_power_state_change = 0;
-const char	*apmd_configfile = APMD_CONFIGFILE;
-const char	*apmd_pidfile = APMD_PIDFILE;
-int             apmctl_fd = -1, apmnorm_fd = -1;
+int debug_level = 0;
+int verbose = 0;
+int soft_power_state_change = 0;
+const char *apmd_configfile = APMD_CONFIGFILE;
+const char *apmd_pidfile = APMD_PIDFILE;
+int apmctl_fd = -1, apmnorm_fd = -1;
 
 /*
  * table of event handlers
  */
-#define EVENT_CONFIG_INITIALIZER(EV,R) { #EV, NULL, R },
-struct event_config events[EVENT_MAX] = {
-	EVENT_CONFIG_INITIALIZER(NOEVENT, 0)
-	EVENT_CONFIG_INITIALIZER(STANDBYREQ, 1)
-	EVENT_CONFIG_INITIALIZER(SUSPENDREQ, 1)
-	EVENT_CONFIG_INITIALIZER(NORMRESUME, 0)
-	EVENT_CONFIG_INITIALIZER(CRITRESUME, 0)
-	EVENT_CONFIG_INITIALIZER(BATTERYLOW, 0)
-	EVENT_CONFIG_INITIALIZER(POWERSTATECHANGE, 0)
-	EVENT_CONFIG_INITIALIZER(UPDATETIME, 0)
-	EVENT_CONFIG_INITIALIZER(CRITSUSPEND, 1)
-	EVENT_CONFIG_INITIALIZER(USERSTANDBYREQ, 1)
-	EVENT_CONFIG_INITIALIZER(USERSUSPENDREQ, 1)
-	EVENT_CONFIG_INITIALIZER(STANDBYRESUME, 0)
-	EVENT_CONFIG_INITIALIZER(CAPABILITIESCHANGE, 0)
-};
+#define EVENT_CONFIG_INITIALIZER(EV, R) { #EV, NULL, R },
+struct event_config events[EVENT_MAX] = { EVENT_CONFIG_INITIALIZER(NOEVENT,
+    0) EVENT_CONFIG_INITIALIZER(STANDBYREQ,
+    1) EVENT_CONFIG_INITIALIZER(SUSPENDREQ,
+    1) EVENT_CONFIG_INITIALIZER(NORMRESUME,
+    0) EVENT_CONFIG_INITIALIZER(CRITRESUME,
+    0) EVENT_CONFIG_INITIALIZER(BATTERYLOW,
+    0) EVENT_CONFIG_INITIALIZER(POWERSTATECHANGE,
+    0) EVENT_CONFIG_INITIALIZER(UPDATETIME, 0)
+	    EVENT_CONFIG_INITIALIZER(CRITSUSPEND, 1)
+		EVENT_CONFIG_INITIALIZER(USERSTANDBYREQ, 1)
+		    EVENT_CONFIG_INITIALIZER(USERSUSPENDREQ, 1)
+			EVENT_CONFIG_INITIALIZER(STANDBYRESUME, 0)
+			    EVENT_CONFIG_INITIALIZER(CAPABILITIESCHANGE, 0) };
 
 /*
  * List of battery events
@@ -89,8 +89,8 @@ struct battery_watch_event *battery_watch_list = NULL;
 struct event_cmd *
 event_cmd_default_clone(void *this)
 {
-	struct event_cmd * oldone = this;
-	struct event_cmd * newone = malloc(oldone->len);
+	struct event_cmd *oldone = this;
+	struct event_cmd *newone = malloc(oldone->len);
 
 	newone->next = NULL;
 	newone->len = oldone->len;
@@ -105,7 +105,7 @@ event_cmd_default_clone(void *this)
 int
 event_cmd_exec_act(void *this)
 {
-	struct event_cmd_exec * p = this;
+	struct event_cmd_exec *p = this;
 	int status = -1;
 	pid_t pid;
 
@@ -137,8 +137,9 @@ event_cmd_exec_dump(void *this, FILE *fp)
 struct event_cmd *
 event_cmd_exec_clone(void *this)
 {
-	struct event_cmd_exec * newone = (struct event_cmd_exec *) event_cmd_default_clone(this);
-	struct event_cmd_exec * oldone = this;
+	struct event_cmd_exec *newone = (struct event_cmd_exec *)
+	    event_cmd_default_clone(this);
+	struct event_cmd_exec *oldone = this;
 
 	newone->evcmd.next = NULL;
 	newone->evcmd.len = oldone->evcmd.len;
@@ -146,19 +147,15 @@ event_cmd_exec_clone(void *this)
 	newone->evcmd.op = oldone->evcmd.op;
 	if ((newone->line = strdup(oldone->line)) == NULL)
 		err(1, "out of memory");
-	return (struct event_cmd *) newone;
+	return (struct event_cmd *)newone;
 }
 void
 event_cmd_exec_free(void *this)
 {
 	free(((struct event_cmd_exec *)this)->line);
 }
-struct event_cmd_op event_cmd_exec_ops = {
-	event_cmd_exec_act,
-	event_cmd_exec_dump,
-	event_cmd_exec_clone,
-	event_cmd_exec_free
-};
+struct event_cmd_op event_cmd_exec_ops = { event_cmd_exec_act,
+	event_cmd_exec_dump, event_cmd_exec_clone, event_cmd_exec_free };
 
 /*
  * reject command
@@ -174,12 +171,8 @@ event_cmd_reject_act(void *this __unused)
 	}
 	return rc;
 }
-struct event_cmd_op event_cmd_reject_ops = {
-	event_cmd_reject_act,
-	NULL,
-	event_cmd_default_clone,
-	NULL
-};
+struct event_cmd_op event_cmd_reject_ops = { event_cmd_reject_act, NULL,
+	event_cmd_default_clone, NULL };
 
 /*
  * manipulate event_config
@@ -189,7 +182,7 @@ clone_event_cmd_list(struct event_cmd *p)
 {
 	struct event_cmd dummy;
 	struct event_cmd *q = &dummy;
-	for ( ;p; p = p->next) {
+	for (; p; p = p->next) {
 		assert(p->op->clone);
 		if ((q->next = p->op->clone(p)) == NULL)
 			err(1, "out of memory");
@@ -201,8 +194,8 @@ clone_event_cmd_list(struct event_cmd *p)
 void
 free_event_cmd_list(struct event_cmd *p)
 {
-	struct event_cmd * q;
-	for ( ; p ; p = q) {
+	struct event_cmd *q;
+	for (; p; p = q) {
 		q = p->next;
 		if (p->op->free)
 			p->op->free(p);
@@ -210,9 +203,7 @@ free_event_cmd_list(struct event_cmd *p)
 	}
 }
 int
-register_battery_handlers(
-	int level, int direction,
-	struct event_cmd *cmdlist)
+register_battery_handlers(int level, int direction, struct event_cmd *cmdlist)
 {
 	/*
 	 * level is negative if it's in "minutes", non-negative if
@@ -221,32 +212,31 @@ register_battery_handlers(
 	 * direction =1 means we care about this level when charging,
 	 * direction =-1 means we care about it when discharging.
 	 */
-	if (level>100) /* percentage > 100 */
+	if (level > 100) /* percentage > 100 */
 		return -1;
 	if (abs(direction) != 1) /* nonsense direction value */
 		return -1;
 
 	if (cmdlist) {
 		struct battery_watch_event *we;
-		
+
 		if ((we = malloc(sizeof(struct battery_watch_event))) == NULL)
 			err(1, "out of memory");
 
 		we->next = battery_watch_list; /* starts at NULL */
 		battery_watch_list = we;
 		we->level = abs(level);
-		we->type = (level<0)?BATTERY_MINUTES:BATTERY_PERCENT;
-		we->direction = (direction<0)?BATTERY_DISCHARGING:
-			BATTERY_CHARGING;
+		we->type = (level < 0) ? BATTERY_MINUTES : BATTERY_PERCENT;
+		we->direction = (direction < 0) ? BATTERY_DISCHARGING :
+						  BATTERY_CHARGING;
 		we->done = 0;
 		we->cmdlist = clone_event_cmd_list(cmdlist);
 	}
 	return 0;
 }
 int
-register_apm_event_handlers(
-	bitstr_t bit_decl(evlist, EVENT_MAX),
-	struct event_cmd *cmdlist)
+register_apm_event_handlers(bitstr_t bit_decl(evlist, EVENT_MAX),
+    struct event_cmd *cmdlist)
 {
 	if (cmdlist) {
 		bitstr_t bit_decl(tmp, EVENT_MAX);
@@ -289,7 +279,8 @@ exec_run_cmd(struct event_cmd *p)
 			syslog(LOG_INFO, "action: %s", p->name);
 		status = p->op->act(p);
 		if (status) {
-			syslog(LOG_NOTICE, "command finished with %d\n", status);
+			syslog(LOG_NOTICE, "command finished with %d\n",
+			    status);
 			break;
 		}
 	}
@@ -315,7 +306,7 @@ exec_event_cmd(struct event_config *ev)
 /*
  * read config file
  */
-extern FILE * yyin;
+extern FILE *yyin;
 extern int yydebug;
 
 void
@@ -340,7 +331,8 @@ read_config(void)
 	for (i = 0; i < EVENT_MAX; i++) {
 		if (events[i].cmdlist) {
 			u_int event_type = i;
-			if (write(apmctl_fd, &event_type, sizeof(u_int)) == -1) {
+			if (write(apmctl_fd, &event_type, sizeof(u_int)) ==
+			    -1) {
 				err(1, "cannot enable event 0x%x", event_type);
 			}
 		}
@@ -354,10 +346,10 @@ dump_config(void)
 	struct battery_watch_event *q;
 
 	for (i = 0; i < EVENT_MAX; i++) {
-		struct event_cmd * p;
+		struct event_cmd *p;
 		if ((p = events[i].cmdlist)) {
 			fprintf(stderr, "apm_event %s {\n", events[i].name);
-			for ( ; p ; p = p->next) {
+			for (; p; p = p->next) {
 				fprintf(stderr, "\t%s", p->name);
 				if (p->op->dump)
 					p->op->dump(p, stderr);
@@ -366,14 +358,13 @@ dump_config(void)
 			fprintf(stderr, "}\n");
 		}
 	}
-	for (q = battery_watch_list ; q != NULL ; q = q -> next) {
-		struct event_cmd * p;
-		fprintf(stderr, "apm_battery %d%s %s {\n",
-			q -> level,
-			(q -> type == BATTERY_PERCENT)?"%":"m",
-			(q -> direction == BATTERY_CHARGING)?"charging":
-				"discharging");
-		for ( p = q -> cmdlist; p ; p = p->next) {
+	for (q = battery_watch_list; q != NULL; q = q->next) {
+		struct event_cmd *p;
+		fprintf(stderr, "apm_battery %d%s %s {\n", q->level,
+		    (q->type == BATTERY_PERCENT) ? "%" : "m",
+		    (q->direction == BATTERY_CHARGING) ? "charging" :
+							 "discharging");
+		for (p = q->cmdlist; p; p = p->next) {
 			fprintf(stderr, "\t%s", p->name);
 			if (p->op->dump)
 				p->op->dump(p, stderr);
@@ -393,20 +384,22 @@ destroy_config(void)
 	for (i = 0; i < EVENT_MAX; i++) {
 		if (events[i].cmdlist) {
 			u_int event_type = i;
-			if (write(apmctl_fd, &event_type, sizeof(u_int)) == -1) {
+			if (write(apmctl_fd, &event_type, sizeof(u_int)) ==
+			    -1) {
 				err(1, "cannot disable event 0x%x", event_type);
 			}
 		}
 	}
 
 	for (i = 0; i < EVENT_MAX; i++) {
-		struct event_cmd * p;
+		struct event_cmd *p;
 		if ((p = events[i].cmdlist))
 			free_event_cmd_list(p);
 		events[i].cmdlist = NULL;
 	}
 
-	for( ; battery_watch_list; battery_watch_list = battery_watch_list -> next) {
+	for (; battery_watch_list;
+	     battery_watch_list = battery_watch_list->next) {
 		free_event_cmd_list(battery_watch_list->cmdlist);
 		q = battery_watch_list->next;
 		free(battery_watch_list);
@@ -491,8 +484,8 @@ proc_apmevent(int fd)
 
 	while (ioctl(fd, APMIO_NEXTEVENT, &apmevent) == 0) {
 		int status;
-		syslog(LOG_NOTICE, "apmevent %04x index %d\n",
-			apmevent.type, apmevent.index);
+		syslog(LOG_NOTICE, "apmevent %04x index %d\n", apmevent.type,
+		    apmevent.index);
 		syslog(LOG_INFO, "apm event: %s", events[apmevent.type].name);
 		if (fork() == 0) {
 			status = exec_event_cmd(&events[apmevent.type]);
@@ -501,14 +494,14 @@ proc_apmevent(int fd)
 	}
 }
 
-#define AC_POWER_STATE ((pw_info.ai_acline == 1) ? BATTERY_CHARGING :\
-	BATTERY_DISCHARGING)
+#define AC_POWER_STATE \
+	((pw_info.ai_acline == 1) ? BATTERY_CHARGING : BATTERY_DISCHARGING)
 
 void
 check_battery(void)
 {
 
-	static int first_time=1, last_state;
+	static int first_time = 1, last_state;
 	int status;
 
 	struct apm_info pw_info;
@@ -519,12 +512,13 @@ check_battery(void)
 		return;
 
 	if (first_time) {
-		if ( ioctl(apmnorm_fd, APMIO_GETINFO, &pw_info) < 0)
+		if (ioctl(apmnorm_fd, APMIO_GETINFO, &pw_info) < 0)
 			err(1, "cannot check battery state.");
-/*
- * This next statement isn't entirely true. The spec does not tie AC
- * line state to battery charging or not, but this is a bit lazier to do.
- */
+		/*
+		 * This next statement isn't entirely true. The spec does not
+		 * tie AC line state to battery charging or not, but this is a
+		 * bit lazier to do.
+		 */
 		last_state = AC_POWER_STATE;
 		first_time = 0;
 		return; /* We can't process events, we have no baseline */
@@ -534,7 +528,7 @@ check_battery(void)
 	 * XXX - should we do this a bunch of times and perform some sort
 	 * of smoothing or correction?
 	 */
-	if ( ioctl(apmnorm_fd, APMIO_GETINFO, &pw_info) < 0)
+	if (ioctl(apmnorm_fd, APMIO_GETINFO, &pw_info) < 0)
 		err(1, "cannot check battery state.");
 
 	/*
@@ -548,24 +542,27 @@ check_battery(void)
 			exit(status);
 		}
 		last_state = AC_POWER_STATE;
-		for (p = battery_watch_list ; p!=NULL ; p = p -> next)
+		for (p = battery_watch_list; p != NULL; p = p->next)
 			p->done = 0;
 	}
-	for (p = battery_watch_list ; p != NULL ; p = p -> next)
-		if (p -> direction == AC_POWER_STATE &&
-			!(p -> done) &&
-			((p -> type == BATTERY_PERCENT && 
-				p -> level == (int)pw_info.ai_batt_life) ||
-			(p -> type == BATTERY_MINUTES &&
-				p -> level == (pw_info.ai_batt_time / 60)))) {
-			p -> done++;
+	for (p = battery_watch_list; p != NULL; p = p->next)
+		if (p->direction == AC_POWER_STATE && !(p->done) &&
+		    ((p->type == BATTERY_PERCENT &&
+			 p->level == (int)pw_info.ai_batt_life) ||
+			(p->type == BATTERY_MINUTES &&
+			    p->level == (pw_info.ai_batt_time / 60)))) {
+			p->done++;
 			if (verbose)
-				syslog(LOG_NOTICE, "Caught battery event: %s, %d%s",
-					(p -> direction == BATTERY_CHARGING)?"charging":"discharging",
-					p -> level,
-					(p -> type == BATTERY_PERCENT)?"%":" minutes");
+				syslog(LOG_NOTICE,
+				    "Caught battery event: %s, %d%s",
+				    (p->direction == BATTERY_CHARGING) ?
+					"charging" :
+					"discharging",
+				    p->level,
+				    (p->type == BATTERY_PERCENT) ? "%" :
+								   " minutes");
 			if (fork() == 0) {
-				status = exec_run_cmd(p -> cmdlist);
+				status = exec_run_cmd(p->cmdlist);
 				exit(status);
 			}
 		}
@@ -573,10 +570,10 @@ check_battery(void)
 void
 event_loop(void)
 {
-	int		fdmax = 0;
+	int fdmax = 0;
 	struct sigaction nsa;
-	fd_set          master_rfds;
-	sigset_t	sigmask, osigmask;
+	fd_set master_rfds;
+	sigset_t sigmask, osigmask;
 
 	FD_ZERO(&master_rfds);
 	FD_SET(apmctl_fd, &master_rfds);
@@ -609,7 +606,7 @@ event_loop(void)
 
 		memcpy(&rfds, &master_rfds, sizeof rfds);
 		sigprocmask(SIG_SETMASK, &osigmask, NULL);
-		if ((res=select(fdmax + 1, &rfds, 0, 0, &to)) < 0) {
+		if ((res = select(fdmax + 1, &rfds, 0, 0, &to)) < 0) {
 			if (errno != EINTR)
 				err(1, "select");
 		}
@@ -631,12 +628,12 @@ event_loop(void)
 }
 
 int
-main(int ac, char* av[])
+main(int ac, char *av[])
 {
-	int	ch;
-	int	daemonize = 1;
-	char	*prog;
-	int	logopt = LOG_NDELAY | LOG_PID;
+	int ch;
+	int daemonize = 1;
+	char *prog;
+	int logopt = LOG_NDELAY | LOG_PID;
 
 	while ((ch = getopt(ac, av, "df:sv")) != -1) {
 		switch (ch) {
@@ -669,7 +666,7 @@ main(int ac, char* av[])
 		logopt |= LOG_PERROR;
 
 	prog = strrchr(av[0], '/');
-	openlog(prog ? prog+1 : av[0], logopt, LOG_DAEMON);
+	openlog(prog ? prog + 1 : av[0], logopt, LOG_DAEMON);
 
 	syslog(LOG_NOTICE, "start");
 
@@ -683,7 +680,8 @@ main(int ac, char* av[])
 	}
 
 	if (fcntl(apmnorm_fd, F_SETFD, 1) == -1) {
-		err(1, "cannot set close-on-exec flag for device file '%s'", APM_NORM_DEVICEFILE);
+		err(1, "cannot set close-on-exec flag for device file '%s'",
+		    APM_NORM_DEVICEFILE);
 	}
 
 	if ((apmctl_fd = open(APM_CTL_DEVICEFILE, O_RDWR)) == -1) {
@@ -691,7 +689,8 @@ main(int ac, char* av[])
 	}
 
 	if (fcntl(apmctl_fd, F_SETFD, 1) == -1) {
-		err(1, "cannot set close-on-exec flag for device file '%s'", APM_CTL_DEVICEFILE);
+		err(1, "cannot set close-on-exec flag for device file '%s'",
+		    APM_CTL_DEVICEFILE);
 	}
 
 	restart();
@@ -699,4 +698,3 @@ main(int ac, char* av[])
 	event_loop();
 	exit(EXIT_SUCCESS);
 }
-

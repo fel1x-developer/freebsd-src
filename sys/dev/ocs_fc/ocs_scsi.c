@@ -39,49 +39,62 @@
  */
 
 #include "ocs.h"
+#include "ocs_device.h"
 #include "ocs_els.h"
 #include "ocs_scsi.h"
-#include "ocs_vpd.h"
 #include "ocs_utils.h"
-#include "ocs_device.h"
+#include "ocs_vpd.h"
 
 #define SCSI_IOFMT "[%04x][i:%0*x t:%0*x h:%04x]"
-#define SCSI_ITT_SIZE(ocs)	((ocs->ocs_xport == OCS_XPORT_FC) ? 4 : 8)
+#define SCSI_ITT_SIZE(ocs) ((ocs->ocs_xport == OCS_XPORT_FC) ? 4 : 8)
 
-#define SCSI_IOFMT_ARGS(io) io->instance_index, SCSI_ITT_SIZE(io->ocs), io->init_task_tag, SCSI_ITT_SIZE(io->ocs), io->tgt_task_tag, io->hw_tag
+#define SCSI_IOFMT_ARGS(io)                                            \
+	io->instance_index, SCSI_ITT_SIZE(io->ocs), io->init_task_tag, \
+	    SCSI_ITT_SIZE(io->ocs), io->tgt_task_tag, io->hw_tag
 
-#define enable_tsend_auto_resp(ocs)		((ocs->ctrlmask & OCS_CTRLMASK_XPORT_DISABLE_AUTORSP_TSEND) == 0)
-#define enable_treceive_auto_resp(ocs)	((ocs->ctrlmask & OCS_CTRLMASK_XPORT_DISABLE_AUTORSP_TRECEIVE) == 0)
+#define enable_tsend_auto_resp(ocs) \
+	((ocs->ctrlmask & OCS_CTRLMASK_XPORT_DISABLE_AUTORSP_TSEND) == 0)
+#define enable_treceive_auto_resp(ocs) \
+	((ocs->ctrlmask & OCS_CTRLMASK_XPORT_DISABLE_AUTORSP_TRECEIVE) == 0)
 
-#define scsi_io_printf(io, fmt, ...) ocs_log_info(io->ocs, "[%s]" SCSI_IOFMT fmt, \
-	io->node->display_name, SCSI_IOFMT_ARGS(io), ##__VA_ARGS__)
+#define scsi_io_printf(io, fmt, ...)                                         \
+	ocs_log_info(io->ocs, "[%s]" SCSI_IOFMT fmt, io->node->display_name, \
+	    SCSI_IOFMT_ARGS(io), ##__VA_ARGS__)
 
-#define scsi_io_trace(io, fmt, ...) \
-	do { \
-		if (OCS_LOG_ENABLE_SCSI_TRACE(io->ocs)) \
+#define scsi_io_trace(io, fmt, ...)                             \
+	do {                                                    \
+		if (OCS_LOG_ENABLE_SCSI_TRACE(io->ocs))         \
 			scsi_io_printf(io, fmt, ##__VA_ARGS__); \
 	} while (0)
 
-#define scsi_log(ocs, fmt, ...) \
-	do { \
-		if (OCS_LOG_ENABLE_SCSI_TRACE(ocs)) \
+#define scsi_log(ocs, fmt, ...)                                \
+	do {                                                   \
+		if (OCS_LOG_ENABLE_SCSI_TRACE(ocs))            \
 			ocs_log_info(ocs, fmt, ##__VA_ARGS__); \
 	} while (0)
 
-static int32_t ocs_target_send_bls_resp(ocs_io_t *io, ocs_scsi_io_cb_t cb, void *arg);
-static int32_t ocs_scsi_abort_io_cb(struct ocs_hw_io_s *hio, ocs_remote_node_t *rnode, uint32_t len, int32_t status,
-	uint32_t ext, void *arg);
+static int32_t ocs_target_send_bls_resp(ocs_io_t *io, ocs_scsi_io_cb_t cb,
+    void *arg);
+static int32_t ocs_scsi_abort_io_cb(struct ocs_hw_io_s *hio,
+    ocs_remote_node_t *rnode, uint32_t len, int32_t status, uint32_t ext,
+    void *arg);
 
 static void ocs_scsi_io_free_ovfl(ocs_io_t *io);
-static uint32_t ocs_scsi_count_sgls(ocs_hw_dif_info_t *hw_dif, ocs_scsi_sgl_t *sgl, uint32_t sgl_count);
-static int ocs_scsi_dif_guard_is_crc(uint8_t direction, ocs_hw_dif_info_t *dif_info);
-static ocs_scsi_io_status_e ocs_scsi_dif_check_unknown(ocs_io_t *io, uint32_t length, uint32_t check_length, int is_crc);
-static uint32_t ocs_scsi_dif_check_guard(ocs_hw_dif_info_t *dif_info, ocs_scsi_vaddr_len_t addrlen[],
-	uint32_t addrlen_count, ocs_dif_t *dif, int is_crc);
-static uint32_t ocs_scsi_dif_check_app_tag(ocs_t *ocs, ocs_hw_dif_info_t *dif_info, uint16_t exp_app_tag, ocs_dif_t *dif);
-static uint32_t ocs_scsi_dif_check_ref_tag(ocs_t *ocs, ocs_hw_dif_info_t *dif_info, uint32_t exp_ref_tag, ocs_dif_t *dif);
-static int32_t ocs_scsi_convert_dif_info(ocs_t *ocs, ocs_scsi_dif_info_t *scsi_dif_info,
-	ocs_hw_dif_info_t *hw_dif_info);
+static uint32_t ocs_scsi_count_sgls(ocs_hw_dif_info_t *hw_dif,
+    ocs_scsi_sgl_t *sgl, uint32_t sgl_count);
+static int ocs_scsi_dif_guard_is_crc(uint8_t direction,
+    ocs_hw_dif_info_t *dif_info);
+static ocs_scsi_io_status_e ocs_scsi_dif_check_unknown(ocs_io_t *io,
+    uint32_t length, uint32_t check_length, int is_crc);
+static uint32_t ocs_scsi_dif_check_guard(ocs_hw_dif_info_t *dif_info,
+    ocs_scsi_vaddr_len_t addrlen[], uint32_t addrlen_count, ocs_dif_t *dif,
+    int is_crc);
+static uint32_t ocs_scsi_dif_check_app_tag(ocs_t *ocs,
+    ocs_hw_dif_info_t *dif_info, uint16_t exp_app_tag, ocs_dif_t *dif);
+static uint32_t ocs_scsi_dif_check_ref_tag(ocs_t *ocs,
+    ocs_hw_dif_info_t *dif_info, uint32_t exp_ref_tag, ocs_dif_t *dif);
+static int32_t ocs_scsi_convert_dif_info(ocs_t *ocs,
+    ocs_scsi_dif_info_t *scsi_dif_info, ocs_hw_dif_info_t *hw_dif_info);
 static int32_t ocs_scsi_io_dispatch_hw_io(ocs_io_t *io, ocs_hw_io_t *hio);
 static int32_t ocs_scsi_io_dispatch_no_hw_io(ocs_io_t *io);
 static void _ocs_scsi_io_free(void *arg);
@@ -98,7 +111,7 @@ static void _ocs_scsi_io_free(void *arg);
 static inline uint32_t
 ocs_fc_getbe32(void *p)
 {
-	return ocs_be32toh(*((uint32_t*)p));
+	return ocs_be32toh(*((uint32_t *)p));
 }
 
 /**
@@ -106,9 +119,9 @@ ocs_fc_getbe32(void *p)
  * @brief Enable IO allocation.
  *
  * @par Description
- * The SCSI and Transport IO allocation functions are enabled. If the allocation functions
- * are not enabled, then calls to ocs_scsi_io_alloc() (and ocs_els_io_alloc() for FC) will
- * fail.
+ * The SCSI and Transport IO allocation functions are enabled. If the allocation
+ * functions are not enabled, then calls to ocs_scsi_io_alloc() (and
+ * ocs_els_io_alloc() for FC) will fail.
  *
  * @param node Pointer to node object.
  *
@@ -119,7 +132,7 @@ ocs_scsi_io_alloc_enable(ocs_node_t *node)
 {
 	ocs_assert(node != NULL);
 	ocs_lock(&node->active_ios_lock);
-		node->io_alloc_enabled = TRUE;
+	node->io_alloc_enabled = TRUE;
 	ocs_unlock(&node->active_ios_lock);
 }
 
@@ -128,9 +141,9 @@ ocs_scsi_io_alloc_enable(ocs_node_t *node)
  * @brief Disable IO allocation
  *
  * @par Description
- * The SCSI and Transport IO allocation functions are disabled. If the allocation functions
- * are not enabled, then calls to ocs_scsi_io_alloc() (and ocs_els_io_alloc() for FC) will
- * fail.
+ * The SCSI and Transport IO allocation functions are disabled. If the
+ * allocation functions are not enabled, then calls to ocs_scsi_io_alloc() (and
+ * ocs_els_io_alloc() for FC) will fail.
  *
  * @param node Pointer to node object
  *
@@ -141,7 +154,7 @@ ocs_scsi_io_alloc_disable(ocs_node_t *node)
 {
 	ocs_assert(node != NULL);
 	ocs_lock(&node->active_ios_lock);
-		node->io_alloc_enabled = FALSE;
+	node->io_alloc_enabled = FALSE;
 	ocs_unlock(&node->active_ios_lock);
 }
 
@@ -154,8 +167,9 @@ ocs_scsi_io_alloc_disable(ocs_node_t *node)
  * is called by an initiator-client when issuing SCSI commands to remote
  * target devices. On completion, ocs_scsi_io_free() is called.
  * @n @n
- * The returned ocs_io_t structure has an element of type ocs_scsi_ini_io_t named
- * &quot;ini_io&quot; that is declared and used by an initiator-client for private information.
+ * The returned ocs_io_t structure has an element of type ocs_scsi_ini_io_t
+ * named &quot;ini_io&quot; that is declared and used by an initiator-client for
+ * private information.
  *
  * @param node Pointer to the associated node structure.
  * @param role Role for IO (originator/responder).
@@ -180,49 +194,50 @@ ocs_scsi_io_alloc(ocs_node_t *node, ocs_scsi_io_role_e role)
 
 	ocs_lock(&node->active_ios_lock);
 
-		if (!node->io_alloc_enabled) {
-			ocs_unlock(&node->active_ios_lock);
-			return NULL;
-		}
+	if (!node->io_alloc_enabled) {
+		ocs_unlock(&node->active_ios_lock);
+		return NULL;
+	}
 
-		io = ocs_io_alloc(ocs);
-		if (io == NULL) {
-			ocs_atomic_add_return(&xport->io_alloc_failed_count, 1);
-			ocs_unlock(&node->active_ios_lock);
-			return NULL;
-		}
+	io = ocs_io_alloc(ocs);
+	if (io == NULL) {
+		ocs_atomic_add_return(&xport->io_alloc_failed_count, 1);
+		ocs_unlock(&node->active_ios_lock);
+		return NULL;
+	}
 
-		/* initialize refcount */
-		ocs_ref_init(&io->ref, _ocs_scsi_io_free, io);
+	/* initialize refcount */
+	ocs_ref_init(&io->ref, _ocs_scsi_io_free, io);
 
-		if (io->hio != NULL) {
-			ocs_log_err(node->ocs, "assertion failed: io->hio is not NULL\n");
-			ocs_io_free(ocs, io);
-			ocs_unlock(&node->active_ios_lock);
-			return NULL;
-		}
+	if (io->hio != NULL) {
+		ocs_log_err(node->ocs,
+		    "assertion failed: io->hio is not NULL\n");
+		ocs_io_free(ocs, io);
+		ocs_unlock(&node->active_ios_lock);
+		return NULL;
+	}
 
-		/* set generic fields */
-		io->ocs = ocs;
-		io->node = node;
+	/* set generic fields */
+	io->ocs = ocs;
+	io->node = node;
 
-		/* set type and name */
-		io->io_type = OCS_IO_TYPE_IO;
-		io->display_name = "scsi_io";
+	/* set type and name */
+	io->io_type = OCS_IO_TYPE_IO;
+	io->display_name = "scsi_io";
 
-		switch (role) {
-		case OCS_SCSI_IO_ROLE_ORIGINATOR:
-			io->cmd_ini = TRUE;
-			io->cmd_tgt = FALSE;
-			break;
-		case OCS_SCSI_IO_ROLE_RESPONDER:
-			io->cmd_ini = FALSE;
-			io->cmd_tgt = TRUE;
-			break;
-		}
+	switch (role) {
+	case OCS_SCSI_IO_ROLE_ORIGINATOR:
+		io->cmd_ini = TRUE;
+		io->cmd_tgt = FALSE;
+		break;
+	case OCS_SCSI_IO_ROLE_RESPONDER:
+		io->cmd_ini = FALSE;
+		io->cmd_tgt = TRUE;
+		break;
+	}
 
-		/* Add to node's active_ios list */
-		ocs_list_add_tail(&node->active_ios, io);
+	/* Add to node's active_ios list */
+	ocs_list_add_tail(&node->active_ios, io);
 
 	ocs_unlock(&node->active_ios_lock);
 
@@ -257,17 +272,18 @@ _ocs_scsi_io_free(void *arg)
 	ocs_assert(ocs_io_busy(io));
 
 	ocs_lock(&node->active_ios_lock);
-		ocs_list_remove(&node->active_ios, io);
-		send_empty_event = (!node->io_alloc_enabled) && ocs_list_empty(&node->active_ios);
+	ocs_list_remove(&node->active_ios, io);
+	send_empty_event = (!node->io_alloc_enabled) &&
+	    ocs_list_empty(&node->active_ios);
 	ocs_unlock(&node->active_ios_lock);
 
 	if (send_empty_event) {
-		ocs_node_post_event(node, OCS_EVT_NODE_ACTIVE_IO_LIST_EMPTY, NULL);
+		ocs_node_post_event(node, OCS_EVT_NODE_ACTIVE_IO_LIST_EMPTY,
+		    NULL);
 	}
 
 	io->node = NULL;
 	ocs_io_free(ocs, io);
-
 }
 
 /**
@@ -289,12 +305,11 @@ ocs_scsi_io_free(ocs_io_t *io)
 	ocs_ref_put(&io->ref); /* ocs_ref_get(): ocs_scsi_io_alloc() */
 }
 
-static int32_t
-ocs_scsi_send_io(ocs_hw_io_type_e type, ocs_node_t *node, ocs_io_t *io, uint64_t lun,
-	ocs_scsi_tmf_cmd_e tmf, uint8_t *cdb, uint32_t cdb_len,
-	ocs_scsi_dif_info_t *dif_info,
-	ocs_scsi_sgl_t *sgl, uint32_t sgl_count, uint32_t wire_len, uint32_t first_burst,
-	ocs_scsi_rsp_io_cb_t cb, void *arg, uint32_t flags);
+static int32_t ocs_scsi_send_io(ocs_hw_io_type_e type, ocs_node_t *node,
+    ocs_io_t *io, uint64_t lun, ocs_scsi_tmf_cmd_e tmf, uint8_t *cdb,
+    uint32_t cdb_len, ocs_scsi_dif_info_t *dif_info, ocs_scsi_sgl_t *sgl,
+    uint32_t sgl_count, uint32_t wire_len, uint32_t first_burst,
+    ocs_scsi_rsp_io_cb_t cb, void *arg, uint32_t flags);
 
 /**
  * @brief Target response completion callback.
@@ -314,7 +329,7 @@ ocs_scsi_send_io(ocs_hw_io_type_e type, ocs_node_t *node, ocs_io_t *io, uint64_t
 
 static void
 ocs_target_io_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length,
-	int32_t status, uint32_t ext_status, void *app)
+    int32_t status, uint32_t ext_status, void *app)
 {
 	ocs_io_t *io = app;
 	ocs_t *ocs;
@@ -344,8 +359,9 @@ ocs_target_io_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length,
 		/* Clear the callback before invoking the callback */
 		io->scsi_tgt_cb = NULL;
 
-		/* if status was good, and auto-good-response was set, then callback
-		 * target-server with IO_CMPL_RSP_SENT, otherwise send IO_CMPL
+		/* if status was good, and auto-good-response was set, then
+		 * callback target-server with IO_CMPL_RSP_SENT, otherwise send
+		 * IO_CMPL
 		 */
 		if ((status == 0) && (io->auto_resp))
 			flags |= OCS_SCSI_IO_CMPL_RSP_SENT;
@@ -364,32 +380,54 @@ ocs_target_io_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length,
 			} else if (ext_status & SLI4_FC_DI_ERROR_RE) {
 				scsi_status = OCS_SCSI_STATUS_DIF_REF_TAG_ERROR;
 			} else {
-				additional_length = ((ext_status >> 16) & 0xFFFF);
+				additional_length = ((ext_status >> 16) &
+				    0xFFFF);
 
-				/* Capture the EDIR and TDPV bits as 0 or 1 for easier printing. */
+				/* Capture the EDIR and TDPV bits as 0 or 1 for
+				 * easier printing. */
 				edir = !!(ext_status & SLI4_FC_DI_ERROR_EDIR);
 				tdpv = !!(ext_status & SLI4_FC_DI_ERROR_TDPV);
 
-				is_crc = ocs_scsi_dif_guard_is_crc(edir, dif_info);
+				is_crc = ocs_scsi_dif_guard_is_crc(edir,
+				    dif_info);
 
 				if (edir == 0) {
-					/* For reads, we have everything in memory.  Start checking from beginning. */
-					scsi_status = ocs_scsi_dif_check_unknown(io, 0, io->wire_len, is_crc);
+					/* For reads, we have everything in
+					 * memory.  Start checking from
+					 * beginning. */
+					scsi_status =
+					    ocs_scsi_dif_check_unknown(io, 0,
+						io->wire_len, is_crc);
 				} else {
-					/* For writes, use the additional length to determine where to look for the error.
-					 * The additional_length field is set to 0 if it is not supported.
-					 * The additional length field is valid if:
+					/* For writes, use the additional length
+					 * to determine where to look for the
+					 * error. The additional_length field is
+					 * set to 0 if it is not supported. The
+					 * additional length field is valid if:
 					 *    . additional_length is not zero
 					 *    . Total Data Placed is valid
 					 *    . Error Direction is RX (1)
-					 *    . Operation is a pass thru (CRC or CKSUM on IN, and CRC or CHKSUM on OUT) (all pass-thru cases except raw)
+					 *    . Operation is a pass thru (CRC or
+					 * CKSUM on IN, and CRC or CHKSUM on
+					 * OUT) (all pass-thru cases except raw)
 					 */
-					if ((additional_length != 0) && (tdpv != 0) &&
-					    (dif_info->dif == SLI4_DIF_PASS_THROUGH) && (dif_info->dif_oper != OCS_HW_SGE_DIF_OP_IN_RAW_OUT_RAW) ) {
-						scsi_status = ocs_scsi_dif_check_unknown(io, length, additional_length, is_crc);
+					if ((additional_length != 0) &&
+					    (tdpv != 0) &&
+					    (dif_info->dif ==
+						SLI4_DIF_PASS_THROUGH) &&
+					    (dif_info->dif_oper !=
+						OCS_HW_SGE_DIF_OP_IN_RAW_OUT_RAW)) {
+						scsi_status =
+						    ocs_scsi_dif_check_unknown(
+							io, length,
+							additional_length,
+							is_crc);
 					} else {
-						/* If we can't do additional checking, then fall-back to guard error */
-						scsi_status = OCS_SCSI_STATUS_DIF_GUARD_ERROR;
+						/* If we can't do additional
+						 * checking, then fall-back to
+						 * guard error */
+						scsi_status =
+						    OCS_SCSI_STATUS_DIF_GUARD_ERROR;
 					}
 				}
 			}
@@ -407,7 +445,8 @@ ocs_target_io_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length,
 				scsi_status = OCS_SCSI_STATUS_NO_IO;
 				break;
 			default:
-				/* TODO: we have seen 0x0d (TX_DMA_FAILED error) */
+				/* TODO: we have seen 0x0d (TX_DMA_FAILED error)
+				 */
 				scsi_status = OCS_SCSI_STATUS_ERROR;
 				break;
 			}
@@ -448,27 +487,27 @@ ocs_scsi_dif_guard_is_crc(uint8_t direction, ocs_hw_dif_info_t *dif_info)
 
 	if (direction) {
 		/* For writes, check if operation is "OUT_CRC" or not */
-		switch(dif_info->dif_oper) {
-			case OCS_HW_SGE_DIF_OP_IN_NODIF_OUT_CRC:
-			case OCS_HW_SGE_DIF_OP_IN_CRC_OUT_CRC:
-			case OCS_HW_SGE_DIF_OP_IN_CHKSUM_OUT_CRC:
-				is_crc = TRUE;
-				break;
-			default:
-				is_crc = FALSE;
-				break;
+		switch (dif_info->dif_oper) {
+		case OCS_HW_SGE_DIF_OP_IN_NODIF_OUT_CRC:
+		case OCS_HW_SGE_DIF_OP_IN_CRC_OUT_CRC:
+		case OCS_HW_SGE_DIF_OP_IN_CHKSUM_OUT_CRC:
+			is_crc = TRUE;
+			break;
+		default:
+			is_crc = FALSE;
+			break;
 		}
 	} else {
 		/* For reads, check if operation is "IN_CRC" or not */
-		switch(dif_info->dif_oper) {
-			case OCS_HW_SGE_DIF_OP_IN_CRC_OUT_NODIF:
-			case OCS_HW_SGE_DIF_OP_IN_CRC_OUT_CRC:
-			case OCS_HW_SGE_DIF_OP_IN_CRC_OUT_CHKSUM:
-				is_crc = TRUE;
-				break;
-			default:
-				is_crc = FALSE;
-				break;
+		switch (dif_info->dif_oper) {
+		case OCS_HW_SGE_DIF_OP_IN_CRC_OUT_NODIF:
+		case OCS_HW_SGE_DIF_OP_IN_CRC_OUT_CRC:
+		case OCS_HW_SGE_DIF_OP_IN_CRC_OUT_CHKSUM:
+			is_crc = TRUE;
+			break;
+		default:
+			is_crc = FALSE;
+			break;
 		}
 	}
 
@@ -484,9 +523,10 @@ ocs_scsi_dif_guard_is_crc(uint8_t direction, ocs_hw_dif_info_t *dif_info)
  *
  * Given the address of the last good block, and a length of bytes that includes
  * the block with the DIF error, find the bad block. If a block is found with an
- * app_tag or ref_tag error, then return the appropriate error. No block is expected
- * to have a block guard error since hardware "fixes" the crc. So if no block in the
- * range of blocks has an error, then it is presumed to be a BLOCK GUARD error.
+ * app_tag or ref_tag error, then return the appropriate error. No block is
+ * expected to have a block guard error since hardware "fixes" the crc. So if no
+ * block in the range of blocks has an error, then it is presumed to be a BLOCK
+ * GUARD error.
  *
  * @param io Pointer to the IO object.
  * @param length Length of bytes covering the good blocks.
@@ -497,19 +537,22 @@ ocs_scsi_dif_guard_is_crc(uint8_t direction, ocs_hw_dif_info_t *dif_info)
  */
 
 static ocs_scsi_io_status_e
-ocs_scsi_dif_check_unknown(ocs_io_t *io, uint32_t length, uint32_t check_length, int is_crc)
+ocs_scsi_dif_check_unknown(ocs_io_t *io, uint32_t length, uint32_t check_length,
+    int is_crc)
 {
 	uint32_t i;
 	ocs_t *ocs = io->ocs;
 	ocs_hw_dif_info_t *dif_info = &io->hw_dif;
 	ocs_scsi_io_status_e scsi_status = OCS_SCSI_STATUS_DIF_GUARD_ERROR;
-	uint32_t blocksize;			/* data block size */
-	uint64_t first_check_block;		/* first block following total data placed */
-	uint64_t last_check_block;		/* last block to check */
-	uint32_t check_count;			/* count of blocks to check */
-	ocs_scsi_vaddr_len_t addrlen[4];	/* address-length pairs returned from target */
-	int32_t addrlen_count;			/* count of address-length pairs */
-	ocs_dif_t *dif;				/* pointer to DIF block returned from target */
+	uint32_t blocksize; /* data block size */
+	uint64_t
+	    first_check_block;	   /* first block following total data placed */
+	uint64_t last_check_block; /* last block to check */
+	uint32_t check_count;	   /* count of blocks to check */
+	ocs_scsi_vaddr_len_t
+	    addrlen[4];	       /* address-length pairs returned from target */
+	int32_t addrlen_count; /* count of address-length pairs */
+	ocs_dif_t *dif;	       /* pointer to DIF block returned from target */
 	ocs_scsi_dif_info_t scsi_dif_info = io->scsi_dif_info;
 
 	blocksize = ocs_hw_dif_mem_blocksize(&io->hw_dif, TRUE);
@@ -517,29 +560,44 @@ ocs_scsi_dif_check_unknown(ocs_io_t *io, uint32_t length, uint32_t check_length,
 	last_check_block = ((length + check_length) / blocksize);
 	check_count = last_check_block - first_check_block;
 
-	ocs_log_debug(ocs, "blocksize %d first check_block %" PRId64 " last_check_block %" PRId64 " check_count %d\n",
-		blocksize, first_check_block, last_check_block, check_count);
+	ocs_log_debug(ocs,
+	    "blocksize %d first check_block %" PRId64
+	    " last_check_block %" PRId64 " check_count %d\n",
+	    blocksize, first_check_block, last_check_block, check_count);
 
 	for (i = first_check_block; i < last_check_block; i++) {
-		addrlen_count = ocs_scsi_get_block_vaddr(io, (scsi_dif_info.lba + i), addrlen, ARRAY_SIZE(addrlen), (void**) &dif);
+		addrlen_count = ocs_scsi_get_block_vaddr(io,
+		    (scsi_dif_info.lba + i), addrlen, ARRAY_SIZE(addrlen),
+		    (void **)&dif);
 		if (addrlen_count < 0) {
-			ocs_log_test(ocs, "ocs_scsi_get_block_vaddr() failed: %d\n", addrlen_count);
+			ocs_log_test(ocs,
+			    "ocs_scsi_get_block_vaddr() failed: %d\n",
+			    addrlen_count);
 			scsi_status = OCS_SCSI_STATUS_DIF_UNKNOWN_ERROR;
 			break;
 		}
 
-		if (! ocs_scsi_dif_check_guard(dif_info, addrlen, addrlen_count, dif, is_crc)) {
-			ocs_log_debug(ocs, "block guard check error, lba %" PRId64 "\n", scsi_dif_info.lba + i);
+		if (!ocs_scsi_dif_check_guard(dif_info, addrlen, addrlen_count,
+			dif, is_crc)) {
+			ocs_log_debug(ocs,
+			    "block guard check error, lba %" PRId64 "\n",
+			    scsi_dif_info.lba + i);
 			scsi_status = OCS_SCSI_STATUS_DIF_GUARD_ERROR;
 			break;
 		}
-		if (! ocs_scsi_dif_check_app_tag(ocs, dif_info, scsi_dif_info.app_tag, dif)) {
-			ocs_log_debug(ocs, "app tag check error, lba %" PRId64 "\n", scsi_dif_info.lba + i);
+		if (!ocs_scsi_dif_check_app_tag(ocs, dif_info,
+			scsi_dif_info.app_tag, dif)) {
+			ocs_log_debug(ocs,
+			    "app tag check error, lba %" PRId64 "\n",
+			    scsi_dif_info.lba + i);
 			scsi_status = OCS_SCSI_STATUS_DIF_APP_TAG_ERROR;
 			break;
 		}
-		if (! ocs_scsi_dif_check_ref_tag(ocs, dif_info, (scsi_dif_info.ref_tag + i), dif)) {
-			ocs_log_debug(ocs, "ref tag check error, lba %" PRId64 "\n", scsi_dif_info.lba + i);
+		if (!ocs_scsi_dif_check_ref_tag(ocs, dif_info,
+			(scsi_dif_info.ref_tag + i), dif)) {
+			ocs_log_debug(ocs,
+			    "ref tag check error, lba %" PRId64 "\n",
+			    scsi_dif_info.lba + i);
 			scsi_status = OCS_SCSI_STATUS_DIF_REF_TAG_ERROR;
 			break;
 		}
@@ -562,20 +620,22 @@ ocs_scsi_dif_check_unknown(ocs_io_t *io, uint32_t length, uint32_t check_length,
  * @return Returns TRUE if block guard check is ok.
  */
 static uint32_t
-ocs_scsi_dif_check_guard(ocs_hw_dif_info_t *dif_info, ocs_scsi_vaddr_len_t addrlen[], uint32_t addrlen_count,
-	ocs_dif_t *dif, int is_crc)
+ocs_scsi_dif_check_guard(ocs_hw_dif_info_t *dif_info,
+    ocs_scsi_vaddr_len_t addrlen[], uint32_t addrlen_count, ocs_dif_t *dif,
+    int is_crc)
 {
 	uint16_t crc = dif_info->dif_seed;
 	uint32_t i;
 	uint16_t checksum;
 
-	if ((dif == NULL)  || !dif_info->check_guard) {
+	if ((dif == NULL) || !dif_info->check_guard) {
 		return TRUE;
 	}
 
 	if (is_crc) {
 		for (i = 0; i < addrlen_count; i++) {
-			crc = ocs_scsi_dif_calc_crc(addrlen[i].vaddr, addrlen[i].length, crc);
+			crc = ocs_scsi_dif_calc_crc(addrlen[i].vaddr,
+			    addrlen[i].length, crc);
 		}
 		return (crc == ocs_be16toh(dif->crc));
 	} else {
@@ -599,14 +659,15 @@ ocs_scsi_dif_check_guard(ocs_hw_dif_info_t *dif_info, ocs_scsi_vaddr_len_t addrl
  * @return Returns TRUE if app tag check is ok.
  */
 static uint32_t
-ocs_scsi_dif_check_app_tag(ocs_t *ocs, ocs_hw_dif_info_t *dif_info, uint16_t exp_app_tag, ocs_dif_t *dif)
+ocs_scsi_dif_check_app_tag(ocs_t *ocs, ocs_hw_dif_info_t *dif_info,
+    uint16_t exp_app_tag, ocs_dif_t *dif)
 {
-	if ((dif == NULL)  || !dif_info->check_app_tag) {
+	if ((dif == NULL) || !dif_info->check_app_tag) {
 		return TRUE;
 	}
 
-	ocs_log_debug(ocs, "expected app tag 0x%x,  actual 0x%x\n",
-		exp_app_tag, ocs_be16toh(dif->app_tag));
+	ocs_log_debug(ocs, "expected app tag 0x%x,  actual 0x%x\n", exp_app_tag,
+	    ocs_be16toh(dif->app_tag));
 
 	return (exp_app_tag == ocs_be16toh(dif->app_tag));
 }
@@ -625,15 +686,16 @@ ocs_scsi_dif_check_app_tag(ocs_t *ocs, ocs_hw_dif_info_t *dif_info, uint16_t exp
  * @return Returns TRUE if ref tag check is ok.
  */
 static uint32_t
-ocs_scsi_dif_check_ref_tag(ocs_t *ocs, ocs_hw_dif_info_t *dif_info, uint32_t exp_ref_tag, ocs_dif_t *dif)
+ocs_scsi_dif_check_ref_tag(ocs_t *ocs, ocs_hw_dif_info_t *dif_info,
+    uint32_t exp_ref_tag, ocs_dif_t *dif)
 {
-	if ((dif == NULL)  || !dif_info->check_ref_tag) {
+	if ((dif == NULL) || !dif_info->check_ref_tag) {
 		return TRUE;
 	}
 
 	if (exp_ref_tag != ocs_be32toh(dif->ref_tag)) {
 		ocs_log_debug(ocs, "expected ref tag 0x%x, actual 0x%x\n",
-			exp_ref_tag, ocs_be32toh(dif->ref_tag));
+		    exp_ref_tag, ocs_be32toh(dif->ref_tag));
 		return FALSE;
 	} else {
 		return TRUE;
@@ -653,7 +715,8 @@ ocs_scsi_dif_check_ref_tag(ocs_t *ocs, ocs_hw_dif_info_t *dif_info, uint32_t exp
  * @return Count of SGEs.
  */
 static uint32_t
-ocs_scsi_count_sgls(ocs_hw_dif_info_t *hw_dif, ocs_scsi_sgl_t *sgl, uint32_t sgl_count)
+ocs_scsi_count_sgls(ocs_hw_dif_info_t *hw_dif, ocs_scsi_sgl_t *sgl,
+    uint32_t sgl_count)
 {
 	uint32_t count = 0;
 	uint32_t i;
@@ -666,7 +729,8 @@ ocs_scsi_count_sgls(ocs_hw_dif_info_t *hw_dif, ocs_scsi_sgl_t *sgl, uint32_t sgl
 		}
 
 		for (i = 0; i < sgl_count; i++) {
-			/* If DIF is enabled, and DIF is separate, then append a SEED then DIF SGE */
+			/* If DIF is enabled, and DIF is separate, then append a
+			 * SEED then DIF SGE */
 			if (hw_dif->dif_separate) {
 				count += 2;
 			}
@@ -680,7 +744,8 @@ ocs_scsi_count_sgls(ocs_hw_dif_info_t *hw_dif, ocs_scsi_sgl_t *sgl, uint32_t sgl
 }
 
 static int32_t
-ocs_scsi_build_sgls(ocs_hw_t *hw, ocs_hw_io_t *hio, ocs_hw_dif_info_t *hw_dif, ocs_scsi_sgl_t *sgl, uint32_t sgl_count, ocs_hw_io_type_e type)
+ocs_scsi_build_sgls(ocs_hw_t *hw, ocs_hw_io_t *hio, ocs_hw_dif_info_t *hw_dif,
+    ocs_scsi_sgl_t *sgl, uint32_t sgl_count, ocs_hw_io_type_e type)
 {
 	int32_t rc;
 	uint32_t i;
@@ -707,26 +772,42 @@ ocs_scsi_build_sgls(ocs_hw_t *hw, ocs_hw_io_t *hio, ocs_hw_dif_info_t *hw_dif, o
 			}
 		}
 
-		/* if we are doing DIF separate, then figure out the block size so that we
-		 * can update the ref tag in the DIF seed SGE.   Also verify that the
-		 * the sgl lengths are all multiples of the blocksize
+		/* if we are doing DIF separate, then figure out the block size
+		 * so that we can update the ref tag in the DIF seed SGE.   Also
+		 * verify that the the sgl lengths are all multiples of the
+		 * blocksize
 		 */
 		if (hw_dif->dif_separate) {
-			switch(hw_dif->blk_size) {
-			case OCS_HW_DIF_BK_SIZE_512:	blocksize = 512; break;
-			case OCS_HW_DIF_BK_SIZE_1024:	blocksize = 1024; break;
-			case OCS_HW_DIF_BK_SIZE_2048:	blocksize = 2048; break;
-			case OCS_HW_DIF_BK_SIZE_4096:	blocksize = 4096; break;
-			case OCS_HW_DIF_BK_SIZE_520:	blocksize = 520; break;
-			case OCS_HW_DIF_BK_SIZE_4104:	blocksize = 4104; break;
+			switch (hw_dif->blk_size) {
+			case OCS_HW_DIF_BK_SIZE_512:
+				blocksize = 512;
+				break;
+			case OCS_HW_DIF_BK_SIZE_1024:
+				blocksize = 1024;
+				break;
+			case OCS_HW_DIF_BK_SIZE_2048:
+				blocksize = 2048;
+				break;
+			case OCS_HW_DIF_BK_SIZE_4096:
+				blocksize = 4096;
+				break;
+			case OCS_HW_DIF_BK_SIZE_520:
+				blocksize = 520;
+				break;
+			case OCS_HW_DIF_BK_SIZE_4104:
+				blocksize = 4104;
+				break;
 			default:
-				ocs_log_test(hw->os, "Inavlid hw_dif blocksize %d\n", hw_dif->blk_size);
+				ocs_log_test(hw->os,
+				    "Inavlid hw_dif blocksize %d\n",
+				    hw_dif->blk_size);
 				return -1;
 			}
 			for (i = 0; i < sgl_count; i++) {
 				if ((sgl[i].len % blocksize) != 0) {
-					ocs_log_test(hw->os, "sgl[%d] len of %ld is not multiple of blocksize\n",
-						     i, sgl[i].len);
+					ocs_log_test(hw->os,
+					    "sgl[%d] len of %ld is not multiple of blocksize\n",
+					    i, sgl[i].len);
 					return -1;
 				}
 			}
@@ -736,19 +817,23 @@ ocs_scsi_build_sgls(ocs_hw_t *hw, ocs_hw_io_t *hio, ocs_hw_dif_info_t *hw_dif, o
 			ocs_assert(sgl[i].addr, -1);
 			ocs_assert(sgl[i].len, -1);
 
-			/* If DIF is enabled, and DIF is separate, then append a SEED then DIF SGE */
+			/* If DIF is enabled, and DIF is separate, then append a
+			 * SEED then DIF SGE */
 			if (hw_dif->dif_separate) {
 				rc = ocs_hw_io_add_seed_sge(hw, hio, hw_dif);
 				if (rc) {
 					return rc;
 				}
-				rc = ocs_hw_io_add_dif_sge(hw, hio, sgl[i].dif_addr);
+				rc = ocs_hw_io_add_dif_sge(hw, hio,
+				    sgl[i].dif_addr);
 				if (rc) {
 					return rc;
 				}
-				/* Update the ref_tag for the next DIF seed SGE */
+				/* Update the ref_tag for the next DIF seed SGE
+				 */
 				blockcount = sgl[i].len / blocksize;
-				if (hw_dif->dif_oper == OCS_HW_DIF_OPER_INSERT) {
+				if (hw_dif->dif_oper ==
+				    OCS_HW_DIF_OPER_INSERT) {
 					hw_dif->ref_tag_repl += blockcount;
 				} else {
 					hw_dif->ref_tag_cmp += blockcount;
@@ -756,10 +841,12 @@ ocs_scsi_build_sgls(ocs_hw_t *hw, ocs_hw_io_t *hio, ocs_hw_dif_info_t *hw_dif, o
 			}
 
 			/* Add data SGE */
-			rc = ocs_hw_io_add_sge(hw, hio, sgl[i].addr, sgl[i].len);
+			rc = ocs_hw_io_add_sge(hw, hio, sgl[i].addr,
+			    sgl[i].len);
 			if (rc) {
-				ocs_log_err(ocs, "ocs_hw_io_add_sge failed: count=%d rc=%d\n",
-						sgl_count, rc);
+				ocs_log_err(ocs,
+				    "ocs_hw_io_add_sge failed: count=%d rc=%d\n",
+				    sgl_count, rc);
 				return rc;
 			}
 		}
@@ -769,10 +856,12 @@ ocs_scsi_build_sgls(ocs_hw_t *hw, ocs_hw_io_t *hio, ocs_hw_dif_info_t *hw_dif, o
 			ocs_assert(sgl[i].len, -1);
 
 			/* Add data SGE */
-			rc = ocs_hw_io_add_sge(hw, hio, sgl[i].addr, sgl[i].len);
+			rc = ocs_hw_io_add_sge(hw, hio, sgl[i].addr,
+			    sgl[i].len);
 			if (rc) {
-				ocs_log_err(ocs, "ocs_hw_io_add_sge failed: count=%d rc=%d\n",
-						sgl_count, rc);
+				ocs_log_err(ocs,
+				    "ocs_hw_io_add_sge failed: count=%d rc=%d\n",
+				    sgl_count, rc);
 				return rc;
 			}
 		}
@@ -792,19 +881,20 @@ ocs_scsi_build_sgls(ocs_hw_t *hw, ocs_hw_io_t *hio, ocs_hw_dif_info_t *hw_dif, o
  */
 
 static int32_t
-ocs_scsi_convert_dif_info(ocs_t *ocs, ocs_scsi_dif_info_t *scsi_dif_info, ocs_hw_dif_info_t *hw_dif_info)
+ocs_scsi_convert_dif_info(ocs_t *ocs, ocs_scsi_dif_info_t *scsi_dif_info,
+    ocs_hw_dif_info_t *hw_dif_info)
 {
 	uint32_t dif_seed;
 	ocs_memset(hw_dif_info, 0, sizeof(ocs_hw_dif_info_t));
 
 	if (scsi_dif_info == NULL) {
 		hw_dif_info->dif_oper = OCS_HW_DIF_OPER_DISABLED;
-		hw_dif_info->blk_size =  OCS_HW_DIF_BK_SIZE_NA;
+		hw_dif_info->blk_size = OCS_HW_DIF_BK_SIZE_NA;
 		return 0;
 	}
 
 	/* Convert the DIF operation */
-	switch(scsi_dif_info->dif_oper) {
+	switch (scsi_dif_info->dif_oper) {
 	case OCS_SCSI_DIF_OPER_IN_NODIF_OUT_CRC:
 		hw_dif_info->dif_oper = OCS_HW_SGE_DIF_OP_IN_NODIF_OUT_CRC;
 		hw_dif_info->dif = SLI4_DIF_INSERT;
@@ -843,11 +933,11 @@ ocs_scsi_convert_dif_info(ocs_t *ocs, ocs_scsi_dif_info_t *scsi_dif_info, ocs_hw
 		break;
 	default:
 		ocs_log_test(ocs, "unhandled SCSI DIF operation %d\n",
-			     scsi_dif_info->dif_oper);
+		    scsi_dif_info->dif_oper);
 		return -1;
 	}
 
-	switch(scsi_dif_info->blk_size) {
+	switch (scsi_dif_info->blk_size) {
 	case OCS_SCSI_DIF_BK_SIZE_512:
 		hw_dif_info->blk_size = OCS_HW_DIF_BK_SIZE_512;
 		break;
@@ -868,13 +958,14 @@ ocs_scsi_convert_dif_info(ocs_t *ocs, ocs_scsi_dif_info_t *scsi_dif_info, ocs_hw
 		break;
 	default:
 		ocs_log_test(ocs, "unhandled SCSI DIF block size %d\n",
-			     scsi_dif_info->blk_size);
+		    scsi_dif_info->blk_size);
 		return -1;
 	}
 
-	/* If the operation is an INSERT the tags provided are the ones that should be
-	 * inserted, otherwise they're the ones to be checked against. */
-	if (hw_dif_info->dif == SLI4_DIF_INSERT ) {
+	/* If the operation is an INSERT the tags provided are the ones that
+	 * should be inserted, otherwise they're the ones to be checked against.
+	 */
+	if (hw_dif_info->dif == SLI4_DIF_INSERT) {
 		hw_dif_info->ref_tag_repl = scsi_dif_info->ref_tag;
 		hw_dif_info->app_tag_repl = scsi_dif_info->app_tag;
 	} else {
@@ -902,7 +993,8 @@ ocs_scsi_convert_dif_info(ocs_t *ocs, ocs_scsi_dif_info_t *scsi_dif_info, ocs_hw
  *
  * @param io Pointer to the IO context.
  */
-static void ocs_log_sgl(ocs_io_t *io)
+static void
+ocs_log_sgl(ocs_io_t *io)
 {
 	ocs_hw_io_t *hio = io->hio;
 	sli4_sge_t *data = NULL;
@@ -911,36 +1003,35 @@ static void ocs_log_sgl(ocs_io_t *io)
 	uint32_t n_sge;
 
 	scsi_io_trace(io, "def_sgl at 0x%x 0x%08x\n",
-		      ocs_addr32_hi(hio->def_sgl.phys),
-		      ocs_addr32_lo(hio->def_sgl.phys));
+	    ocs_addr32_hi(hio->def_sgl.phys), ocs_addr32_lo(hio->def_sgl.phys));
 	n_sge = (hio->sgl == &hio->def_sgl ? hio->n_sge : hio->def_sgl_count);
 	for (i = 0, data = hio->def_sgl.virt; i < n_sge; i++, data++) {
-		dword = (uint32_t*)data;
+		dword = (uint32_t *)data;
 
-		scsi_io_trace(io, "SGL %2d 0x%08x 0x%08x 0x%08x 0x%08x\n",
-			 i, dword[0], dword[1], dword[2], dword[3]);
+		scsi_io_trace(io, "SGL %2d 0x%08x 0x%08x 0x%08x 0x%08x\n", i,
+		    dword[0], dword[1], dword[2], dword[3]);
 
 		if (dword[2] & (1U << 31)) {
 			break;
 		}
 	}
 
-	if (hio->ovfl_sgl != NULL &&
-		hio->sgl == hio->ovfl_sgl) {
+	if (hio->ovfl_sgl != NULL && hio->sgl == hio->ovfl_sgl) {
 		scsi_io_trace(io, "Overflow at 0x%x 0x%08x\n",
-			      ocs_addr32_hi(hio->ovfl_sgl->phys),
-			      ocs_addr32_lo(hio->ovfl_sgl->phys));
-		for (i = 0, data = hio->ovfl_sgl->virt; i < hio->n_sge; i++, data++) {
-			dword = (uint32_t*)data;
+		    ocs_addr32_hi(hio->ovfl_sgl->phys),
+		    ocs_addr32_lo(hio->ovfl_sgl->phys));
+		for (i = 0, data = hio->ovfl_sgl->virt; i < hio->n_sge;
+		     i++, data++) {
+			dword = (uint32_t *)data;
 
-			scsi_io_trace(io, "SGL %2d 0x%08x 0x%08x 0x%08x 0x%08x\n",
-				 i, dword[0], dword[1], dword[2], dword[3]);
+			scsi_io_trace(io,
+			    "SGL %2d 0x%08x 0x%08x 0x%08x 0x%08x\n", i,
+			    dword[0], dword[1], dword[2], dword[3]);
 			if (dword[2] & (1U << 31)) {
 				break;
 			}
 		}
 	}
-
 }
 
 /**
@@ -958,7 +1049,8 @@ static void ocs_log_sgl(ocs_io_t *io)
  * @return Returns 0.
  */
 static int32_t
-ocs_scsi_check_pending_async_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
+ocs_scsi_check_pending_async_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe,
+    void *arg)
 {
 	ocs_io_t *io = arg;
 
@@ -967,7 +1059,8 @@ ocs_scsi_check_pending_async_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void
 			ocs_hw_done_t cb = io->hw_cb;
 
 			io->hw_cb = NULL;
-			cb(io->hio, NULL, 0, SLI4_FC_WCQE_STATUS_DISPATCH_ERROR, 0, io);
+			cb(io->hio, NULL, 0, SLI4_FC_WCQE_STATUS_DISPATCH_ERROR,
+			    0, io);
 		}
 	}
 	return 0;
@@ -1004,26 +1097,28 @@ ocs_scsi_check_pending(ocs_t *ocs)
 
 	do {
 		ocs_lock(&xport->io_pending_lock);
-			status = 0;
-			hio = NULL;
-			io = ocs_list_remove_head(&xport->io_pending_list);
-			if (io != NULL) {
-				if (io->io_type == OCS_IO_TYPE_ABORT) {
-					hio = NULL;
+		status = 0;
+		hio = NULL;
+		io = ocs_list_remove_head(&xport->io_pending_list);
+		if (io != NULL) {
+			if (io->io_type == OCS_IO_TYPE_ABORT) {
+				hio = NULL;
+			} else {
+				hio = ocs_hw_io_alloc(&ocs->hw);
+				if (hio == NULL) {
+					/*
+					 * No HW IO available.
+					 * Put IO back on the front of pending
+					 * list
+					 */
+					ocs_list_add_head(
+					    &xport->io_pending_list, io);
+					io = NULL;
 				} else {
-					hio = ocs_hw_io_alloc(&ocs->hw);
-					if (hio == NULL) {
-						/*
-						 * No HW IO available.
-						 * Put IO back on the front of pending list
-						 */
-						ocs_list_add_head(&xport->io_pending_list, io);
-						io = NULL;
-					} else {
-						hio->eq = io->hw_priv;
-					}
+					hio->eq = io->hw_priv;
 				}
 			}
+		}
 		/* Must drop the lock before dispatching the IO */
 		ocs_unlock(&xport->io_pending_lock);
 
@@ -1042,12 +1137,15 @@ ocs_scsi_check_pending(ocs_t *ocs)
 			}
 			if (status) {
 				/*
-				 * Invoke the HW callback, but do so in the separate execution context,
-				 * provided by the NOP mailbox completion processing context by using
-				 * ocs_hw_async_call()
+				 * Invoke the HW callback, but do so in the
+				 * separate execution context, provided by the
+				 * NOP mailbox completion processing context by
+				 * using ocs_hw_async_call()
 				 */
-				if (ocs_hw_async_call(&ocs->hw, ocs_scsi_check_pending_async_cb, io)) {
-					ocs_log_test(ocs, "call to ocs_hw_async_call() failed\n");
+				if (ocs_hw_async_call(&ocs->hw,
+					ocs_scsi_check_pending_async_cb, io)) {
+					ocs_log_test(ocs,
+					    "call to ocs_hw_async_call() failed\n");
 				}
 			}
 		}
@@ -1059,33 +1157,39 @@ ocs_scsi_check_pending(ocs_t *ocs)
 	 * active IO and the abort is on the pending list.
 	 * Look for an abort we can dispatch.
 	 */
-	if (count == 0 ) {
+	if (count == 0) {
 		dispatch = 0;
 
 		ocs_lock(&xport->io_pending_lock);
-			ocs_list_foreach(&xport->io_pending_list, io) {
-				if (io->io_type == OCS_IO_TYPE_ABORT) {
-					if (io->io_to_abort->hio != NULL) {
-						/* This IO has a HW IO, so it is active.  Dispatch the abort. */
-						dispatch = 1;
-					} else {
-						/* Leave this abort on the pending list and keep looking */
-						dispatch = 0;
-					}
-				}
-				if (dispatch) {
-					ocs_list_remove(&xport->io_pending_list, io);
-					ocs_atomic_sub_return(&xport->io_pending_count, 1);
-					break;
+		ocs_list_foreach(&xport->io_pending_list, io)
+		{
+			if (io->io_type == OCS_IO_TYPE_ABORT) {
+				if (io->io_to_abort->hio != NULL) {
+					/* This IO has a HW IO, so it is active.
+					 * Dispatch the abort. */
+					dispatch = 1;
+				} else {
+					/* Leave this abort on the pending list
+					 * and keep looking */
+					dispatch = 0;
 				}
 			}
+			if (dispatch) {
+				ocs_list_remove(&xport->io_pending_list, io);
+				ocs_atomic_sub_return(&xport->io_pending_count,
+				    1);
+				break;
+			}
+		}
 		ocs_unlock(&xport->io_pending_lock);
 
 		if (dispatch) {
 			status = ocs_scsi_io_dispatch_no_hw_io(io);
 			if (status) {
-				if (ocs_hw_async_call(&ocs->hw, ocs_scsi_check_pending_async_cb, io)) {
-					ocs_log_test(ocs, "call to ocs_hw_async_call() failed\n");
+				if (ocs_hw_async_call(&ocs->hw,
+					ocs_scsi_check_pending_async_cb, io)) {
+					ocs_log_test(ocs,
+					    "call to ocs_hw_async_call() failed\n");
 				}
 			}
 		}
@@ -1126,8 +1230,8 @@ ocs_scsi_io_dispatch(ocs_io_t *io, void *cb)
 	io->hw_cb = cb;
 
 	/*
-	 * if this IO already has a HW IO, then this is either not the first phase of
-	 * the IO. Send it to the HW.
+	 * if this IO already has a HW IO, then this is either not the first
+	 * phase of the IO. Send it to the HW.
 	 */
 	if (io->hio != NULL) {
 		return ocs_scsi_io_dispatch_hw_io(io, io->hio);
@@ -1139,24 +1243,24 @@ ocs_scsi_io_dispatch(ocs_io_t *io, void *cb)
 	 * pending list.
 	 */
 	ocs_lock(&xport->io_pending_lock);
-		if (!ocs_list_empty(&xport->io_pending_list)) {
-			/*
-			 * If this is a low latency request, the put at the front of the IO pending
-			 * queue, otherwise put it at the end of the queue.
-			 */
-			if (io->low_latency) {
-				ocs_list_add_head(&xport->io_pending_list, io);
-			} else {
-				ocs_list_add_tail(&xport->io_pending_list, io);
-			}
-			ocs_unlock(&xport->io_pending_lock);
-			ocs_atomic_add_return(&xport->io_pending_count, 1);
-			ocs_atomic_add_return(&xport->io_total_pending, 1);
-
-			/* process pending list */
-			ocs_scsi_check_pending(ocs);
-			return 0;
+	if (!ocs_list_empty(&xport->io_pending_list)) {
+		/*
+		 * If this is a low latency request, the put at the front of the
+		 * IO pending queue, otherwise put it at the end of the queue.
+		 */
+		if (io->low_latency) {
+			ocs_list_add_head(&xport->io_pending_list, io);
+		} else {
+			ocs_list_add_tail(&xport->io_pending_list, io);
 		}
+		ocs_unlock(&xport->io_pending_lock);
+		ocs_atomic_add_return(&xport->io_pending_count, 1);
+		ocs_atomic_add_return(&xport->io_total_pending, 1);
+
+		/* process pending list */
+		ocs_scsi_check_pending(ocs);
+		return 0;
+	}
 	ocs_unlock(&xport->io_pending_lock);
 
 	/*
@@ -1167,7 +1271,7 @@ ocs_scsi_io_dispatch(ocs_io_t *io, void *cb)
 	if (hio == NULL) {
 		/* Couldn't get a HW IO. Save this IO on the pending list */
 		ocs_lock(&xport->io_pending_lock);
-			ocs_list_add_tail(&xport->io_pending_list, io);
+		ocs_list_add_tail(&xport->io_pending_list, io);
 		ocs_unlock(&xport->io_pending_lock);
 
 		ocs_atomic_add_return(&xport->io_total_pending, 1);
@@ -1206,24 +1310,24 @@ ocs_scsi_io_dispatch_abort(ocs_io_t *io, void *cb)
 	/*
 	 * For aborts, we don't need a HW IO, but we still want to pass through
 	 * the pending list to preserve ordering. Thus, if the pending list is
-	 * not empty, add this abort to the pending list and process the pending list.
+	 * not empty, add this abort to the pending list and process the pending
+	 * list.
 	 */
 	ocs_lock(&xport->io_pending_lock);
-		if (!ocs_list_empty(&xport->io_pending_list)) {
-			ocs_list_add_tail(&xport->io_pending_list, io);
-			ocs_unlock(&xport->io_pending_lock);
-			ocs_atomic_add_return(&xport->io_pending_count, 1);
-			ocs_atomic_add_return(&xport->io_total_pending, 1);
+	if (!ocs_list_empty(&xport->io_pending_list)) {
+		ocs_list_add_tail(&xport->io_pending_list, io);
+		ocs_unlock(&xport->io_pending_lock);
+		ocs_atomic_add_return(&xport->io_pending_count, 1);
+		ocs_atomic_add_return(&xport->io_total_pending, 1);
 
-			/* process pending list */
-			ocs_scsi_check_pending(ocs);
-			return 0;
-		}
+		/* process pending list */
+		ocs_scsi_check_pending(ocs);
+		return 0;
+	}
 	ocs_unlock(&xport->io_pending_lock);
 
 	/* nothing on pending list, dispatch abort */
 	return ocs_scsi_io_dispatch_no_hw_io(io);
-
 }
 
 /**
@@ -1257,7 +1361,7 @@ ocs_scsi_io_dispatch_hw_io(ocs_io_t *io, ocs_hw_io_t *hio)
 	hio->eq = io->hw_priv;
 
 	/* Copy WQ steering */
-	switch(io->wq_steering) {
+	switch (io->wq_steering) {
 	case OCS_SCSI_WQ_STEERING_CLASS >> OCS_SCSI_WQ_STEERING_SHIFT:
 		hio->wq_steering = OCS_HW_WQ_STEERING_CLASS;
 		break;
@@ -1276,37 +1380,45 @@ ocs_scsi_io_dispatch_hw_io(ocs_io_t *io, ocs_hw_io_t *hio)
 		uint32_t host_allocated;
 
 		ocs_hw_get(&ocs->hw, OCS_HW_N_SGL, &max_sgl);
-		ocs_hw_get(&ocs->hw, OCS_HW_SGL_CHAINING_HOST_ALLOCATED, &host_allocated);
+		ocs_hw_get(&ocs->hw, OCS_HW_SGL_CHAINING_HOST_ALLOCATED,
+		    &host_allocated);
 
 		/*
-		 * If the requested SGL is larger than the default size, then we can allocate
-		 * an overflow SGL.
+		 * If the requested SGL is larger than the default size, then we
+		 * can allocate an overflow SGL.
 		 */
-		total_count = ocs_scsi_count_sgls(&io->hw_dif, io->sgl, io->sgl_count);
+		total_count = ocs_scsi_count_sgls(&io->hw_dif, io->sgl,
+		    io->sgl_count);
 
 		/*
 		 * Lancer requires us to allocate the chained memory area, but
 		 * Skyhawk must use the SGL list associated with another XRI.
 		 */
 		if (host_allocated && total_count > max_sgl) {
-			/* Compute count needed, the number extra plus 1 for the link sge */
+			/* Compute count needed, the number extra plus 1 for the
+			 * link sge */
 			uint32_t count = total_count - max_sgl + 1;
-			rc = ocs_dma_alloc(ocs, &io->ovfl_sgl, count*sizeof(sli4_sge_t), 64);
+			rc = ocs_dma_alloc(ocs, &io->ovfl_sgl,
+			    count * sizeof(sli4_sge_t), 64);
 			if (rc) {
-				ocs_log_err(ocs, "ocs_dma_alloc overflow sgl failed\n");
+				ocs_log_err(ocs,
+				    "ocs_dma_alloc overflow sgl failed\n");
 				break;
 			}
-			rc = ocs_hw_io_register_sgl(&ocs->hw, io->hio, &io->ovfl_sgl, count);
+			rc = ocs_hw_io_register_sgl(&ocs->hw, io->hio,
+			    &io->ovfl_sgl, count);
 			if (rc) {
 				ocs_scsi_io_free_ovfl(io);
-				ocs_log_err(ocs, "ocs_hw_io_register_sgl() failed\n");
+				ocs_log_err(ocs,
+				    "ocs_hw_io_register_sgl() failed\n");
 				break;
 			}
 			/* EVT: update chained_io_count */
 			io->node->chained_io_count++;
 		}
 
-		rc = ocs_scsi_build_sgls(&ocs->hw, io->hio, &io->hw_dif, io->sgl, io->sgl_count, io->hio_type);
+		rc = ocs_scsi_build_sgls(&ocs->hw, io->hio, &io->hw_dif,
+		    io->sgl, io->sgl_count, io->hio_type);
 		if (rc) {
 			ocs_scsi_io_free_ovfl(io);
 			break;
@@ -1320,30 +1432,28 @@ ocs_scsi_io_dispatch_hw_io(ocs_io_t *io, ocs_hw_io_t *hio)
 			io->iparam.fcp_tgt.app_id = io->app_id;
 		}
 
-		rc = ocs_hw_io_send(&io->ocs->hw, io->hio_type, io->hio, io->wire_len, &io->iparam, &io->node->rnode,
-			io->hw_cb, io);
+		rc = ocs_hw_io_send(&io->ocs->hw, io->hio_type, io->hio,
+		    io->wire_len, &io->iparam, &io->node->rnode, io->hw_cb, io);
 		break;
 	}
 	case OCS_IO_TYPE_ELS:
 	case OCS_IO_TYPE_CT: {
 		rc = ocs_hw_srrs_send(&ocs->hw, io->hio_type, io->hio,
-			&io->els_req, io->wire_len,
-			&io->els_rsp, &io->node->rnode, &io->iparam,
-			io->hw_cb, io);
+		    &io->els_req, io->wire_len, &io->els_rsp, &io->node->rnode,
+		    &io->iparam, io->hw_cb, io);
 		break;
 	}
 	case OCS_IO_TYPE_CT_RESP: {
 		rc = ocs_hw_srrs_send(&ocs->hw, io->hio_type, io->hio,
-			&io->els_rsp, io->wire_len,
-			NULL, &io->node->rnode, &io->iparam,
-			io->hw_cb, io);
+		    &io->els_rsp, io->wire_len, NULL, &io->node->rnode,
+		    &io->iparam, io->hw_cb, io);
 		break;
 	}
 	case OCS_IO_TYPE_BLS_RESP: {
-		/* no need to update tgt_task_tag for BLS response since the RX_ID
-		 * will be specified by the payload, not the XRI */
-		rc = ocs_hw_srrs_send(&ocs->hw, io->hio_type, io->hio,
-			NULL, 0, NULL, &io->node->rnode, &io->iparam, io->hw_cb, io);
+		/* no need to update tgt_task_tag for BLS response since the
+		 * RX_ID will be specified by the payload, not the XRI */
+		rc = ocs_hw_srrs_send(&ocs->hw, io->hio_type, io->hio, NULL, 0,
+		    NULL, &io->node->rnode, &io->iparam, io->hw_cb, io);
 		break;
 	}
 	default:
@@ -1378,33 +1488,40 @@ ocs_scsi_io_dispatch_no_hw_io(ocs_io_t *io)
 
 		if (hio_to_abort == NULL) {
 			/*
-			 * If "IO to abort" does not have an associated HW IO, immediately
-			 * make callback with success. The command must have been sent to
-			 * the backend, but the data phase has not yet started, so we don't
-			 * have a HW IO.
+			 * If "IO to abort" does not have an associated HW IO,
+			 * immediately make callback with success. The command
+			 * must have been sent to the backend, but the data
+			 * phase has not yet started, so we don't have a HW IO.
 			 *
-			 * Note: since the backend shims should be taking a reference
-			 * on io_to_abort, it should not be possible to have been completed
-			 * and freed by the backend before the abort got here.
+			 * Note: since the backend shims should be taking a
+			 * reference on io_to_abort, it should not be possible
+			 * to have been completed and freed by the backend
+			 * before the abort got here.
 			 */
 			scsi_io_printf(io, "IO: " SCSI_IOFMT " not active\n",
-				       SCSI_IOFMT_ARGS(io->io_to_abort));
-			((ocs_hw_done_t)io->hw_cb)(io->hio, NULL, 0, SLI4_FC_WCQE_STATUS_SUCCESS, 0, io);
+			    SCSI_IOFMT_ARGS(io->io_to_abort));
+			((ocs_hw_done_t)io->hw_cb)(io->hio, NULL, 0,
+			    SLI4_FC_WCQE_STATUS_SUCCESS, 0, io);
 			rc = 0;
 		} else {
 			/* HW IO is valid, abort it */
-			scsi_io_printf(io, "aborting " SCSI_IOFMT "\n", SCSI_IOFMT_ARGS(io->io_to_abort));
-			rc = ocs_hw_io_abort(&io->ocs->hw, hio_to_abort, io->send_abts,
-					      io->hw_cb, io);
+			scsi_io_printf(io, "aborting " SCSI_IOFMT "\n",
+			    SCSI_IOFMT_ARGS(io->io_to_abort));
+			rc = ocs_hw_io_abort(&io->ocs->hw, hio_to_abort,
+			    io->send_abts, io->hw_cb, io);
 			if (rc) {
 				int status = SLI4_FC_WCQE_STATUS_SUCCESS;
 				if ((rc != OCS_HW_RTN_IO_NOT_ACTIVE) &&
 				    (rc != OCS_HW_RTN_IO_ABORT_IN_PROGRESS)) {
 					status = -1;
-					scsi_io_printf(io, "Failed to abort IO: " SCSI_IOFMT " status=%d\n",
-						       SCSI_IOFMT_ARGS(io->io_to_abort), rc);
+					scsi_io_printf(io,
+					    "Failed to abort IO: " SCSI_IOFMT
+					    " status=%d\n",
+					    SCSI_IOFMT_ARGS(io->io_to_abort),
+					    rc);
 				}
-				((ocs_hw_done_t)io->hw_cb)(io->hio, NULL, 0, status, 0, io);
+				((ocs_hw_done_t)io->hw_cb)(io->hio, NULL, 0,
+				    status, 0, io);
 				rc = 0;
 			}
 		}
@@ -1424,18 +1541,21 @@ ocs_scsi_io_dispatch_no_hw_io(ocs_io_t *io)
  * @brief Send read/write data.
  *
  * @par Description
- * This call is made by a target-server to initiate a SCSI read or write data phase, transferring
- * data between the target to the remote initiator. The payload is specified by the
- * scatter-gather list @c sgl of length @c sgl_count. The @c wire_len argument
- * specifies the payload length (independent of the scatter-gather list cumulative length).
+ * This call is made by a target-server to initiate a SCSI read or write data
+ * phase, transferring data between the target to the remote initiator. The
+ * payload is specified by the scatter-gather list @c sgl of length @c
+ * sgl_count. The @c wire_len argument specifies the payload length (independent
+ * of the scatter-gather list cumulative length).
  * @n @n
- * The @c flags argument has one bit, OCS_SCSI_LAST_DATAPHASE, which is a hint to the base
- * driver that it may use auto SCSI response features if the hardware supports it.
+ * The @c flags argument has one bit, OCS_SCSI_LAST_DATAPHASE, which is a hint
+ * to the base driver that it may use auto SCSI response features if the
+ * hardware supports it.
  * @n @n
- * Upon completion, the callback function @b cb is called with flags indicating that the
- * IO has completed (OCS_SCSI_IO_COMPL) and another data phase or response may be sent;
- * that the IO has completed and no response needs to be sent (OCS_SCSI_IO_COMPL_NO_RSP);
- * or that the IO was aborted (OCS_SCSI_IO_ABORTED).
+ * Upon completion, the callback function @b cb is called with flags indicating
+ * that the IO has completed (OCS_SCSI_IO_COMPL) and another data phase or
+ * response may be sent; that the IO has completed and no response needs to be
+ * sent (OCS_SCSI_IO_COMPL_NO_RSP); or that the IO was aborted
+ * (OCS_SCSI_IO_ABORTED).
  *
  * @param io Pointer to the IO context.
  * @param flags Flags controlling the sending of data.
@@ -1452,25 +1572,25 @@ ocs_scsi_io_dispatch_no_hw_io(ocs_io_t *io)
  */
 
 static inline int32_t
-ocs_scsi_xfer_data(ocs_io_t *io, uint32_t flags,
-	ocs_scsi_dif_info_t *dif_info,
-	ocs_scsi_sgl_t *sgl, uint32_t sgl_count, uint32_t xwire_len,
-	ocs_hw_io_type_e type, int enable_ar,
-	ocs_scsi_io_cb_t cb, void *arg)
+ocs_scsi_xfer_data(ocs_io_t *io, uint32_t flags, ocs_scsi_dif_info_t *dif_info,
+    ocs_scsi_sgl_t *sgl, uint32_t sgl_count, uint32_t xwire_len,
+    ocs_hw_io_type_e type, int enable_ar, ocs_scsi_io_cb_t cb, void *arg)
 {
 	int32_t rc;
 	ocs_t *ocs;
 	uint32_t disable_ar_tgt_dif = FALSE;
 	size_t residual = 0;
 
-	if ((dif_info != NULL) && (dif_info->dif_oper == OCS_SCSI_DIF_OPER_DISABLED)) {
+	if ((dif_info != NULL) &&
+	    (dif_info->dif_oper == OCS_SCSI_DIF_OPER_DISABLED)) {
 		dif_info = NULL;
 	}
 
 	ocs_assert(io, -1);
 
 	if (dif_info != NULL) {
-		ocs_hw_get(&io->ocs->hw, OCS_HW_DISABLE_AR_TGT_DIF, &disable_ar_tgt_dif);
+		ocs_hw_get(&io->ocs->hw, OCS_HW_DISABLE_AR_TGT_DIF,
+		    &disable_ar_tgt_dif);
 		if (disable_ar_tgt_dif) {
 			enable_ar = FALSE;
 		}
@@ -1481,14 +1601,15 @@ ocs_scsi_xfer_data(ocs_io_t *io, uint32_t flags,
 	/* If needed, copy SGL */
 	if (sgl && (sgl != io->sgl)) {
 		ocs_assert(sgl_count <= io->sgl_allocated, -1);
-		ocs_memcpy(io->sgl, sgl, sgl_count*sizeof(*io->sgl));
+		ocs_memcpy(io->sgl, sgl, sgl_count * sizeof(*io->sgl));
 	}
 
 	ocs = io->ocs;
 	ocs_assert(ocs, -1);
 	ocs_assert(io->node, -1);
 
-	scsi_io_trace(io, "%s wire_len %d\n", (type == OCS_HW_IO_TARGET_READ) ? "send" : "recv", xwire_len);
+	scsi_io_trace(io, "%s wire_len %d\n",
+	    (type == OCS_HW_IO_TARGET_READ) ? "send" : "recv", xwire_len);
 
 	ocs_assert(sgl, -1);
 	ocs_assert(sgl_count > 0, -1);
@@ -1523,8 +1644,9 @@ ocs_scsi_xfer_data(ocs_io_t *io, uint32_t flags,
 	/* if this is the last data phase and there is no residual, enable
 	 * auto-good-response
 	 */
-	if (enable_ar && (flags & OCS_SCSI_LAST_DATAPHASE) &&
-		(residual == 0) && ((io->transferred + io->wire_len) == io->exp_xfer_len) && (!(flags & OCS_SCSI_NO_AUTO_RESPONSE))) {
+	if (enable_ar && (flags & OCS_SCSI_LAST_DATAPHASE) && (residual == 0) &&
+	    ((io->transferred + io->wire_len) == io->exp_xfer_len) &&
+	    (!(flags & OCS_SCSI_NO_AUTO_RESPONSE))) {
 		io->iparam.fcp_tgt.flags |= SLI4_IO_AUTO_GOOD_RESPONSE;
 		io->auto_resp = TRUE;
 	} else {
@@ -1542,11 +1664,11 @@ ocs_scsi_xfer_data(ocs_io_t *io, uint32_t flags,
 	/* Adjust the SGL size if there is overrun */
 
 	if (residual) {
-		ocs_scsi_sgl_t  *sgl_ptr = &io->sgl[sgl_count-1];
+		ocs_scsi_sgl_t *sgl_ptr = &io->sgl[sgl_count - 1];
 
 		while (residual) {
 			size_t len = sgl_ptr->len;
-			if ( len > residual) {
+			if (len > residual) {
 				sgl_ptr->len = len - residual;
 				residual = 0;
 			} else {
@@ -1560,30 +1682,31 @@ ocs_scsi_xfer_data(ocs_io_t *io, uint32_t flags,
 
 	/* Set latency and WQ steering */
 	io->low_latency = (flags & OCS_SCSI_LOW_LATENCY) != 0;
-	io->wq_steering = (flags & OCS_SCSI_WQ_STEERING_MASK) >> OCS_SCSI_WQ_STEERING_SHIFT;
-	io->wq_class = (flags & OCS_SCSI_WQ_CLASS_MASK) >> OCS_SCSI_WQ_CLASS_SHIFT;
+	io->wq_steering = (flags & OCS_SCSI_WQ_STEERING_MASK) >>
+	    OCS_SCSI_WQ_STEERING_SHIFT;
+	io->wq_class = (flags & OCS_SCSI_WQ_CLASS_MASK) >>
+	    OCS_SCSI_WQ_CLASS_SHIFT;
 
 	return ocs_scsi_io_dispatch(io, ocs_target_io_cb);
 }
 
 int32_t
 ocs_scsi_send_rd_data(ocs_io_t *io, uint32_t flags,
-	ocs_scsi_dif_info_t *dif_info,
-	ocs_scsi_sgl_t *sgl, uint32_t sgl_count, uint32_t len,
-	ocs_scsi_io_cb_t cb, void *arg)
+    ocs_scsi_dif_info_t *dif_info, ocs_scsi_sgl_t *sgl, uint32_t sgl_count,
+    uint32_t len, ocs_scsi_io_cb_t cb, void *arg)
 {
-	return ocs_scsi_xfer_data(io, flags, dif_info, sgl, sgl_count, len, OCS_HW_IO_TARGET_READ,
-				  enable_tsend_auto_resp(io->ocs), cb, arg);
+	return ocs_scsi_xfer_data(io, flags, dif_info, sgl, sgl_count, len,
+	    OCS_HW_IO_TARGET_READ, enable_tsend_auto_resp(io->ocs), cb, arg);
 }
 
 int32_t
 ocs_scsi_recv_wr_data(ocs_io_t *io, uint32_t flags,
-	ocs_scsi_dif_info_t *dif_info,
-	ocs_scsi_sgl_t *sgl, uint32_t sgl_count, uint32_t len,
-	ocs_scsi_io_cb_t cb, void *arg)
+    ocs_scsi_dif_info_t *dif_info, ocs_scsi_sgl_t *sgl, uint32_t sgl_count,
+    uint32_t len, ocs_scsi_io_cb_t cb, void *arg)
 {
-	return ocs_scsi_xfer_data(io, flags, dif_info, sgl, sgl_count, len, OCS_HW_IO_TARGET_WRITE,
-				  enable_treceive_auto_resp(io->ocs), cb, arg);
+	return ocs_scsi_xfer_data(io, flags, dif_info, sgl, sgl_count, len,
+	    OCS_HW_IO_TARGET_WRITE, enable_treceive_auto_resp(io->ocs), cb,
+	    arg);
 }
 
 /**
@@ -1598,7 +1721,8 @@ ocs_scsi_recv_wr_data(ocs_io_t *io, uint32_t flags,
  * @return None.
  */
 static void
-ocs_scsi_io_free_ovfl(ocs_io_t *io) {
+ocs_scsi_io_free_ovfl(ocs_io_t *io)
+{
 	if (io->ovfl_sgl.size) {
 		ocs_dma_free(io->ocs, &io->ovfl_sgl);
 	}
@@ -1609,12 +1733,15 @@ ocs_scsi_io_free_ovfl(ocs_io_t *io) {
  * @brief Send response data.
  *
  * @par Description
- * This function is used by a target-server to send the SCSI response data to a remote
+ * This function is used by a target-server to send the SCSI response data to a
+ remote
  * initiator node. The target-server populates the @c ocs_scsi_cmd_resp_t
- * argument with scsi status, status qualifier, sense data, and response data, as
+ * argument with scsi status, status qualifier, sense data, and response data,
+ as
  * needed.
  * @n @n
- * Upon completion, the callback function @c cb is invoked. The target-server will generally
+ * Upon completion, the callback function @c cb is invoked. The target-server
+ will generally
  * clean up its IO context resources and call ocs_scsi_io_complete().
  *
  * @param io Pointer to the IO context.
@@ -1626,11 +1753,12 @@ ocs_scsi_io_free_ovfl(ocs_io_t *io) {
  * @return Returns 0 on success, or a negative error code value on failure.
  */
 int32_t
-ocs_scsi_send_resp(ocs_io_t *io, uint32_t flags, ocs_scsi_cmd_resp_t *rsp, ocs_scsi_io_cb_t cb, void *arg)
+ocs_scsi_send_resp(ocs_io_t *io, uint32_t flags, ocs_scsi_cmd_resp_t *rsp,
+    ocs_scsi_io_cb_t cb, void *arg)
 {
 	ocs_t *ocs;
 	int32_t residual;
-	int auto_resp = TRUE;		/* Always try auto resp */
+	int auto_resp = TRUE; /* Always try auto resp */
 	uint8_t scsi_status = 0;
 	uint16_t scsi_status_qualifier = 0;
 	uint8_t *sense_data = NULL;
@@ -1669,8 +1797,10 @@ ocs_scsi_send_resp(ocs_io_t *io, uint32_t flags, ocs_scsi_cmd_resp_t *rsp, ocs_s
 
 	/* Set low latency queueing request */
 	io->low_latency = (flags & OCS_SCSI_LOW_LATENCY) != 0;
-	io->wq_steering = (flags & OCS_SCSI_WQ_STEERING_MASK) >> OCS_SCSI_WQ_STEERING_SHIFT;
-	io->wq_class = (flags & OCS_SCSI_WQ_CLASS_MASK) >> OCS_SCSI_WQ_CLASS_SHIFT;
+	io->wq_steering = (flags & OCS_SCSI_WQ_STEERING_MASK) >>
+	    OCS_SCSI_WQ_STEERING_SHIFT;
+	io->wq_class = (flags & OCS_SCSI_WQ_CLASS_MASK) >>
+	    OCS_SCSI_WQ_CLASS_SHIFT;
 
 	if ((scsi_status != 0) || residual || sense_data_length) {
 		fcp_rsp_iu_t *fcprsp = io->rspbuf.virt;
@@ -1687,28 +1817,34 @@ ocs_scsi_send_resp(ocs_io_t *io, uint32_t flags, ocs_scsi_cmd_resp_t *rsp, ocs_s
 		io->wire_len += (sizeof(*fcprsp) - sizeof(fcprsp->data));
 
 		fcprsp->scsi_status = scsi_status;
-		*((uint16_t*)fcprsp->status_qualifier) = ocs_htobe16(scsi_status_qualifier);
+		*((uint16_t *)fcprsp->status_qualifier) = ocs_htobe16(
+		    scsi_status_qualifier);
 
 		/* set residual status if necessary */
 		if (residual != 0) {
-			/* FCP: if data transferred is less than the amount expected, then this is an
-			 * underflow.  If data transferred would have been greater than the amount expected
-			 * then this is an overflow
+			/* FCP: if data transferred is less than the amount
+			 * expected, then this is an underflow.  If data
+			 * transferred would have been greater than the amount
+			 * expected then this is an overflow
 			 */
 			if (residual > 0) {
 				fcprsp->flags |= FCP_RESID_UNDER;
-				*((uint32_t *)fcprsp->fcp_resid) = ocs_htobe32(residual);
+				*((uint32_t *)fcprsp->fcp_resid) = ocs_htobe32(
+				    residual);
 			} else {
 				fcprsp->flags |= FCP_RESID_OVER;
-				*((uint32_t *)fcprsp->fcp_resid) = ocs_htobe32(-residual);
+				*((uint32_t *)fcprsp->fcp_resid) = ocs_htobe32(
+				    -residual);
 			}
 		}
 
 		if (sense_data && sense_data_length) {
-			ocs_assert(sense_data_length <= sizeof(fcprsp->data), -1);
+			ocs_assert(sense_data_length <= sizeof(fcprsp->data),
+			    -1);
 			fcprsp->flags |= FCP_SNS_LEN_VALID;
 			ocs_memcpy(fcprsp->data, sense_data, sense_data_length);
-			*((uint32_t*)fcprsp->fcp_sns_len) = ocs_htobe32(sense_data_length);
+			*((uint32_t *)fcprsp->fcp_sns_len) = ocs_htobe32(
+			    sense_data_length);
 			io->wire_len += sense_data_length;
 		}
 
@@ -1730,22 +1866,23 @@ ocs_scsi_send_resp(ocs_io_t *io, uint32_t flags, ocs_scsi_cmd_resp_t *rsp, ocs_s
  * @brief Send TMF response data.
  *
  * @par Description
- * This function is used by a target-server to send SCSI TMF response data to a remote
- * initiator node.
- * Upon completion, the callback function @c cb is invoked. The target-server will generally
- * clean up its IO context resources and call ocs_scsi_io_complete().
+ * This function is used by a target-server to send SCSI TMF response data to a
+ * remote initiator node. Upon completion, the callback function @c cb is
+ * invoked. The target-server will generally clean up its IO context resources
+ * and call ocs_scsi_io_complete().
  *
  * @param io Pointer to the IO context.
  * @param rspcode TMF response code.
- * @param addl_rsp_info Additional TMF response information (may be NULL for zero data).
+ * @param addl_rsp_info Additional TMF response information (may be NULL for
+ * zero data).
  * @param cb Completion callback.
  * @param arg Application-specified completion callback argument.
  *
  * @return Returns 0 on success, or a negative error code value on failure.
  */
 int32_t
-ocs_scsi_send_tmf_resp(ocs_io_t *io, ocs_scsi_tmf_resp_e rspcode, uint8_t addl_rsp_info[3],
-		ocs_scsi_io_cb_t cb, void *arg)
+ocs_scsi_send_tmf_resp(ocs_io_t *io, ocs_scsi_tmf_resp_e rspcode,
+    uint8_t addl_rsp_info[3], ocs_scsi_io_cb_t cb, void *arg)
 {
 	int32_t rc = -1;
 	ocs_t *ocs = NULL;
@@ -1762,7 +1899,7 @@ ocs_scsi_send_tmf_resp(ocs_io_t *io, ocs_scsi_tmf_resp_e rspcode, uint8_t addl_r
 	io->wire_len = 0;
 	ocs_scsi_convert_dif_info(ocs, NULL, &io->hw_dif);
 
-	switch(rspcode) {
+	switch (rspcode) {
 	case OCS_SCSI_TMF_FUNCTION_COMPLETE:
 		fcp_rspcode = FCP_TMF_COMPLETE;
 		break;
@@ -1800,15 +1937,17 @@ ocs_scsi_send_tmf_resp(ocs_io_t *io, ocs_scsi_tmf_resp_e rspcode, uint8_t addl_r
 
 	fcprsp->flags |= FCP_RSP_LEN_VALID;
 
-	rspinfo = (fcp_rsp_info_t*) fcprsp->data;
+	rspinfo = (fcp_rsp_info_t *)fcprsp->data;
 	if (addl_rsp_info != NULL) {
-		ocs_memcpy(rspinfo->addl_rsp_info, addl_rsp_info, sizeof(rspinfo->addl_rsp_info));
+		ocs_memcpy(rspinfo->addl_rsp_info, addl_rsp_info,
+		    sizeof(rspinfo->addl_rsp_info));
 	}
 	rspinfo->rsp_code = fcp_rspcode;
 
-	io->wire_len = sizeof(*fcprsp) - sizeof(fcprsp->data) + sizeof(*rspinfo);
+	io->wire_len = sizeof(*fcprsp) - sizeof(fcprsp->data) +
+	    sizeof(*rspinfo);
 
-	*((uint32_t*)fcprsp->fcp_rsp_len) = ocs_htobe32(sizeof(*rspinfo));
+	*((uint32_t *)fcprsp->fcp_rsp_len) = ocs_htobe32(sizeof(*rspinfo));
 
 	io->sgl[0].addr = io->rspbuf.phys;
 	io->sgl[0].dif_addr = 0;
@@ -1843,7 +1982,8 @@ ocs_scsi_send_tmf_resp(ocs_io_t *io, ocs_scsi_tmf_resp_e rspcode, uint8_t addl_r
  */
 
 static int32_t
-ocs_target_abort_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length, int32_t status, uint32_t ext_status, void *app)
+ocs_target_abort_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length,
+    int32_t status, uint32_t ext_status, void *app)
 {
 	ocs_io_t *io = app;
 	ocs_t *ocs;
@@ -1874,7 +2014,8 @@ ocs_target_abort_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length,
 				scsi_status = OCS_SCSI_STATUS_ABORT_IN_PROGRESS;
 				break;
 			default:
-				/* TODO: we have seen 0x15 (abort in progress) */
+				/* TODO: we have seen 0x15 (abort in progress)
+				 */
 				scsi_status = OCS_SCSI_STATUS_ERROR;
 				break;
 			}
@@ -1893,7 +2034,8 @@ ocs_target_abort_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length,
 	ocs_assert(io != io->io_to_abort, -1);
 
 	/* done with IO to abort */
-	ocs_ref_put(&io->io_to_abort->ref); /* ocs_ref_get(): ocs_scsi_tgt_abort_io() */
+	ocs_ref_put(
+	    &io->io_to_abort->ref); /* ocs_ref_get(): ocs_scsi_tgt_abort_io() */
 
 	ocs_io_free(ocs, io);
 
@@ -1938,9 +2080,9 @@ ocs_scsi_tgt_abort_io(ocs_io_t *io, ocs_scsi_io_cb_t cb, void *arg)
 	}
 
 	/*
-	 * allocate a new IO to send the abort request. Use ocs_io_alloc() directly, as
-	 * we need an IO object that will not fail allocation due to allocations being
-	 * disabled (in ocs_scsi_io_alloc())
+	 * allocate a new IO to send the abort request. Use ocs_io_alloc()
+	 * directly, as we need an IO object that will not fail allocation due
+	 * to allocations being disabled (in ocs_scsi_io_alloc())
 	 */
 	abort_io = ocs_io_alloc(ocs);
 	if (abort_io == NULL) {
@@ -1989,7 +2131,8 @@ ocs_scsi_tgt_abort_io(ocs_io_t *io, ocs_scsi_io_cb_t cb, void *arg)
  */
 
 static int32_t
-ocs_target_bls_resp_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length, int32_t status, uint32_t ext_status, void *app)
+ocs_target_bls_resp_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode,
+    uint32_t length, int32_t status, uint32_t ext_status, void *app)
 {
 	ocs_io_t *io = app;
 	ocs_t *ocs;
@@ -2027,7 +2170,8 @@ ocs_target_bls_resp_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t leng
  * @brief Complete abort request.
  *
  * @par Description
- * An abort request is completed by posting a BA_ACC for the IO that requested the abort.
+ * An abort request is completed by posting a BA_ACC for the IO that requested
+ * the abort.
  *
  * @param io Pointer to the IO context.
  * @param cb Callback function to invoke upon completion.
@@ -2075,8 +2219,8 @@ ocs_target_send_bls_resp(ocs_io_t *io, ocs_scsi_io_cb_t cb, void *arg)
  * @brief Notify the base driver that the IO is complete.
  *
  * @par Description
- * This function is called by a target-server to notify the base driver that an IO
- * has completed, allowing for the base driver to free resources.
+ * This function is called by a target-server to notify the base driver that an
+ * IO has completed, allowing for the base driver to free resources.
  * @n
  * @n @b Note: This function is not called by initiator-clients.
  *
@@ -2090,7 +2234,8 @@ ocs_scsi_io_complete(ocs_io_t *io)
 	ocs_assert(io);
 
 	if (!ocs_io_busy(io)) {
-		ocs_log_test(io->ocs, "Got completion for non-busy io with tag 0x%x\n", io->tag);
+		ocs_log_test(io->ocs,
+		    "Got completion for non-busy io with tag 0x%x\n", io->tag);
 		return;
 	}
 
@@ -2103,7 +2248,8 @@ ocs_scsi_io_complete(ocs_io_t *io)
  * @brief Handle initiator IO completion.
  *
  * @par Description
- * This callback is made upon completion of an initiator operation (initiator read/write command).
+ * This callback is made upon completion of an initiator operation (initiator
+ * read/write command).
  *
  * @param hio HW IO context.
  * @param rnode Remote node.
@@ -2117,7 +2263,7 @@ ocs_scsi_io_complete(ocs_io_t *io)
 
 static void
 ocs_initiator_io_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length,
-	int32_t status, uint32_t ext_status, void *app)
+    int32_t status, uint32_t ext_status, void *app)
 {
 	ocs_io_t *io = app;
 	ocs_t *ocs;
@@ -2154,33 +2300,40 @@ ocs_initiator_io_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length,
 		case SLI4_FC_WCQE_STATUS_FCP_RSP_FAILURE:
 			scsi_status = OCS_SCSI_STATUS_CHECK_RESPONSE;
 			rsp.scsi_status = fcprsp->scsi_status;
-			rsp.scsi_status_qualifier = ocs_be16toh(*((uint16_t*)fcprsp->status_qualifier));
+			rsp.scsi_status_qualifier = ocs_be16toh(
+			    *((uint16_t *)fcprsp->status_qualifier));
 
 			if (fcprsp->flags & FCP_RSP_LEN_VALID) {
 				rsp.response_data = pd;
-				rsp.response_data_length = ocs_fc_getbe32(fcprsp->fcp_rsp_len);
+				rsp.response_data_length = ocs_fc_getbe32(
+				    fcprsp->fcp_rsp_len);
 				pd += rsp.response_data_length;
 			}
 			if (fcprsp->flags & FCP_SNS_LEN_VALID) {
-				uint32_t sns_len = ocs_fc_getbe32(fcprsp->fcp_sns_len);
+				uint32_t sns_len = ocs_fc_getbe32(
+				    fcprsp->fcp_sns_len);
 				rsp.sense_data = pd;
 				rsp.sense_data_length = sns_len;
 				pd += sns_len;
 			}
 			/* Set residual */
 			if (fcprsp->flags & FCP_RESID_OVER) {
-				rsp.residual = -ocs_fc_getbe32(fcprsp->fcp_resid);
+				rsp.residual = -ocs_fc_getbe32(
+				    fcprsp->fcp_resid);
 				rsp.response_wire_length = length;
-			} else	if (fcprsp->flags & FCP_RESID_UNDER) {
-				rsp.residual = ocs_fc_getbe32(fcprsp->fcp_resid);
+			} else if (fcprsp->flags & FCP_RESID_UNDER) {
+				rsp.residual = ocs_fc_getbe32(
+				    fcprsp->fcp_resid);
 				rsp.response_wire_length = length;
 			}
 
 			/*
-			 * Note: The FCP_RSP_FAILURE can be returned for initiator IOs when the total data
-			 * placed does not match the requested length even if the status is good. If
-			 * the status is all zeroes, then we have to assume that a frame(s) were
-			 * dropped and change the status to LOCAL_REJECT/OUT_OF_ORDER_DATA
+			 * Note: The FCP_RSP_FAILURE can be returned for
+			 * initiator IOs when the total data placed does not
+			 * match the requested length even if the status is
+			 * good. If the status is all zeroes, then we have to
+			 * assume that a frame(s) were dropped and change the
+			 * status to LOCAL_REJECT/OUT_OF_ORDER_DATA
 			 */
 			if (length != io->wire_len) {
 				uint32_t rsp_len = ext_status;
@@ -2196,14 +2349,18 @@ ocs_initiator_io_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length,
 				}
 				if (all_zeroes) {
 					scsi_status = OCS_SCSI_STATUS_ERROR;
-					ocs_log_test(io->ocs, "[%s]" SCSI_IOFMT "local reject=0x%02x\n",
-						     io->node->display_name, SCSI_IOFMT_ARGS(io),
-						     SLI4_FC_LOCAL_REJECT_OUT_OF_ORDER_DATA);
+					ocs_log_test(io->ocs,
+					    "[%s]" SCSI_IOFMT
+					    "local reject=0x%02x\n",
+					    io->node->display_name,
+					    SCSI_IOFMT_ARGS(io),
+					    SLI4_FC_LOCAL_REJECT_OUT_OF_ORDER_DATA);
 				}
 			}
 			break;
 		case SLI4_FC_WCQE_STATUS_LOCAL_REJECT:
-			if (ext_status == SLI4_FC_LOCAL_REJECT_SEQUENCE_TIMEOUT) {
+			if (ext_status ==
+			    SLI4_FC_LOCAL_REJECT_SEQUENCE_TIMEOUT) {
 				scsi_status = OCS_SCSI_STATUS_COMMAND_TIMEOUT;
 			} else {
 				scsi_status = OCS_SCSI_STATUS_ERROR;
@@ -2239,12 +2396,13 @@ ocs_initiator_io_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length,
  * @brief Initiate initiator read IO.
  *
  * @par Description
- * This call is made by an initiator-client to send a SCSI read command. The payload
- * for the command is given by a scatter-gather list @c sgl for @c sgl_count
- * entries.
+ * This call is made by an initiator-client to send a SCSI read command. The
+ * payload for the command is given by a scatter-gather list @c sgl for @c
+ * sgl_count entries.
  * @n @n
  * Upon completion, the callback @b cb is invoked and passed request status.
- * If the command completed successfully, the callback is given SCSI response data.
+ * If the command completed successfully, the callback is given SCSI response
+ * data.
  *
  * @param node Pointer to the node.
  * @param io Pointer to the IO context.
@@ -2261,15 +2419,15 @@ ocs_initiator_io_cb(ocs_hw_io_t *hio, ocs_remote_node_t *rnode, uint32_t length,
  * @return Returns 0 on success, or a negative error code value on failure.
  */
 int32_t
-ocs_scsi_send_rd_io(ocs_node_t *node, ocs_io_t *io, uint64_t lun, void *cdb, uint32_t cdb_len,
-	ocs_scsi_dif_info_t *dif_info,
-	ocs_scsi_sgl_t *sgl, uint32_t sgl_count, uint32_t wire_len,
-	ocs_scsi_rsp_io_cb_t cb, void *arg, uint32_t flags)
+ocs_scsi_send_rd_io(ocs_node_t *node, ocs_io_t *io, uint64_t lun, void *cdb,
+    uint32_t cdb_len, ocs_scsi_dif_info_t *dif_info, ocs_scsi_sgl_t *sgl,
+    uint32_t sgl_count, uint32_t wire_len, ocs_scsi_rsp_io_cb_t cb, void *arg,
+    uint32_t flags)
 {
 	int32_t rc;
 
-	rc = ocs_scsi_send_io(OCS_HW_IO_INITIATOR_READ, node, io, lun, 0, cdb, cdb_len, dif_info, sgl, sgl_count,
-			      wire_len, 0, cb, arg, flags);
+	rc = ocs_scsi_send_io(OCS_HW_IO_INITIATOR_READ, node, io, lun, 0, cdb,
+	    cdb_len, dif_info, sgl, sgl_count, wire_len, 0, cb, arg, flags);
 
 	return rc;
 }
@@ -2279,12 +2437,12 @@ ocs_scsi_send_rd_io(ocs_node_t *node, ocs_io_t *io, uint64_t lun, void *cdb, uin
  * @brief Initiate initiator write IO.
  *
  * @par Description
- * This call is made by an initiator-client to send a SCSI write command. The payload
- * for the command is given by a scatter-gather list @c sgl for @c sgl_count
- * entries.
+ * This call is made by an initiator-client to send a SCSI write command. The
+ * payload for the command is given by a scatter-gather list @c sgl for @c
+ * sgl_count entries.
  * @n @n
- * Upon completion, the callback @c cb is invoked and passed request status. If the command
- * completed successfully, the callback is given SCSI response data.
+ * Upon completion, the callback @c cb is invoked and passed request status. If
+ * the command completed successfully, the callback is given SCSI response data.
  *
  * @param node Pointer to the node.
  * @param io Pointer to IO context.
@@ -2300,15 +2458,16 @@ ocs_scsi_send_rd_io(ocs_node_t *node, ocs_io_t *io, uint64_t lun, void *cdb, uin
  *
  * @return Returns 0 on success, or a negative error code value on failure.
  */
-int32_t ocs_scsi_send_wr_io(ocs_node_t *node, ocs_io_t *io, uint64_t lun, void *cdb, uint32_t cdb_len,
-	ocs_scsi_dif_info_t *dif_info,
-	ocs_scsi_sgl_t *sgl, uint32_t sgl_count, uint32_t wire_len,
-	ocs_scsi_rsp_io_cb_t cb, void *arg, uint32_t flags)
+int32_t
+ocs_scsi_send_wr_io(ocs_node_t *node, ocs_io_t *io, uint64_t lun, void *cdb,
+    uint32_t cdb_len, ocs_scsi_dif_info_t *dif_info, ocs_scsi_sgl_t *sgl,
+    uint32_t sgl_count, uint32_t wire_len, ocs_scsi_rsp_io_cb_t cb, void *arg,
+    uint32_t flags)
 {
 	int32_t rc;
 
-	rc = ocs_scsi_send_io(OCS_HW_IO_INITIATOR_WRITE, node, io, lun, 0, cdb, cdb_len, dif_info, sgl, sgl_count,
-			      wire_len, 0, cb, arg, flags);
+	rc = ocs_scsi_send_io(OCS_HW_IO_INITIATOR_WRITE, node, io, lun, 0, cdb,
+	    cdb_len, dif_info, sgl, sgl_count, wire_len, 0, cb, arg, flags);
 
 	return rc;
 }
@@ -2318,12 +2477,12 @@ int32_t ocs_scsi_send_wr_io(ocs_node_t *node, ocs_io_t *io, uint64_t lun, void *
  * @brief Initiate initiator write IO.
  *
  * @par Description
- * This call is made by an initiator-client to send a SCSI write command. The payload
- * for the command is given by a scatter-gather list @c sgl for @c sgl_count
- * entries.
+ * This call is made by an initiator-client to send a SCSI write command. The
+ * payload for the command is given by a scatter-gather list @c sgl for @c
+ * sgl_count entries.
  * @n @n
- * Upon completion, the callback @c cb is invoked and passed request status. If the command
- * completed successfully, the callback is given SCSI response data.
+ * Upon completion, the callback @c cb is invoked and passed request status. If
+ * the command completed successfully, the callback is given SCSI response data.
  *
  * @param node Pointer to the node.
  * @param io Pointer to IO context.
@@ -2341,15 +2500,15 @@ int32_t ocs_scsi_send_wr_io(ocs_node_t *node, ocs_io_t *io, uint64_t lun, void *
  * @return Returns 0 on success, or a negative error code value on failure.
  */
 int32_t
-ocs_scsi_send_wr_io_first_burst(ocs_node_t *node, ocs_io_t *io, uint64_t lun, void *cdb, uint32_t cdb_len,
-	ocs_scsi_dif_info_t *dif_info,
-	ocs_scsi_sgl_t *sgl, uint32_t sgl_count, uint32_t wire_len, uint32_t first_burst,
-	ocs_scsi_rsp_io_cb_t cb, void *arg, uint32_t flags)
+ocs_scsi_send_wr_io_first_burst(ocs_node_t *node, ocs_io_t *io, uint64_t lun,
+    void *cdb, uint32_t cdb_len, ocs_scsi_dif_info_t *dif_info,
+    ocs_scsi_sgl_t *sgl, uint32_t sgl_count, uint32_t wire_len,
+    uint32_t first_burst, ocs_scsi_rsp_io_cb_t cb, void *arg, uint32_t flags)
 {
 	int32_t rc;
 
-	rc = ocs_scsi_send_io(OCS_HW_IO_INITIATOR_WRITE, node, io, lun, 0, cdb, cdb_len, dif_info, sgl, sgl_count,
-			      wire_len, 0, cb, arg, flags);
+	rc = ocs_scsi_send_io(OCS_HW_IO_INITIATOR_WRITE, node, io, lun, 0, cdb,
+	    cdb_len, dif_info, sgl, sgl_count, wire_len, 0, cb, arg, flags);
 
 	return rc;
 }
@@ -2361,8 +2520,8 @@ ocs_scsi_send_wr_io_first_burst(ocs_node_t *node, ocs_io_t *io, uint64_t lun, vo
  * @par Description
  * This call is made by an initiator-client to send a SCSI command with no data.
  * @n @n
- * Upon completion, the callback @c cb is invoked and passed request status. If the command
- * completed successfully, the callback is given SCSI response data.
+ * Upon completion, the callback @c cb is invoked and passed request status. If
+ * the command completed successfully, the callback is given SCSI response data.
  *
  * @param node Pointer to the node.
  * @param io Pointer to the IO context.
@@ -2374,12 +2533,14 @@ ocs_scsi_send_wr_io_first_burst(ocs_node_t *node, ocs_io_t *io, uint64_t lun, vo
  *
  * @return Returns 0 on success, or a negative error code value on failure.
  */
-int32_t ocs_scsi_send_nodata_io(ocs_node_t *node, ocs_io_t *io, uint64_t lun, void *cdb, uint32_t cdb_len,
-	ocs_scsi_rsp_io_cb_t cb, void *arg, uint32_t flags)
+int32_t
+ocs_scsi_send_nodata_io(ocs_node_t *node, ocs_io_t *io, uint64_t lun, void *cdb,
+    uint32_t cdb_len, ocs_scsi_rsp_io_cb_t cb, void *arg, uint32_t flags)
 {
 	int32_t rc;
 
-	rc = ocs_scsi_send_io(OCS_HW_IO_INITIATOR_NODATA, node, io, lun, 0, cdb, cdb_len, NULL, NULL, 0, 0, 0, cb, arg, flags);
+	rc = ocs_scsi_send_io(OCS_HW_IO_INITIATOR_NODATA, node, io, lun, 0, cdb,
+	    cdb_len, NULL, NULL, 0, 0, 0, cb, arg, flags);
 
 	return rc;
 }
@@ -2388,9 +2549,10 @@ int32_t ocs_scsi_send_nodata_io(ocs_node_t *node, ocs_io_t *io, uint64_t lun, vo
  * @brief Initiate initiator task management operation.
  *
  * @par Description
- * This command is used to send a SCSI task management function command. If the command
- * requires it (QUERY_TASK_SET for example), a payload may be associated with the command.
- * If no payload is required, then @c sgl_count may be zero and @c sgl is ignored.
+ * This command is used to send a SCSI task management function command. If the
+ * command requires it (QUERY_TASK_SET for example), a payload may be associated
+ * with the command. If no payload is required, then @c sgl_count may be zero
+ * and @c sgl is ignored.
  * @n @n
  * Upon completion @c cb is invoked with status and SCSI response data.
  *
@@ -2411,8 +2573,9 @@ int32_t ocs_scsi_send_nodata_io(ocs_node_t *node, ocs_io_t *io, uint64_t lun, vo
  * @return Returns 0 on success, or a negative error code value on failure.
  */
 int32_t
-ocs_scsi_send_tmf(ocs_node_t *node, ocs_io_t *io, ocs_io_t *io_to_abort, uint64_t lun, ocs_scsi_tmf_cmd_e tmf,
-	ocs_scsi_sgl_t *sgl, uint32_t sgl_count, uint32_t len, ocs_scsi_rsp_io_cb_t cb, void *arg)
+ocs_scsi_send_tmf(ocs_node_t *node, ocs_io_t *io, ocs_io_t *io_to_abort,
+    uint64_t lun, ocs_scsi_tmf_cmd_e tmf, ocs_scsi_sgl_t *sgl,
+    uint32_t sgl_count, uint32_t len, ocs_scsi_rsp_io_cb_t cb, void *arg)
 {
 	int32_t rc;
 	ocs_assert(io, -1);
@@ -2440,12 +2603,13 @@ ocs_scsi_send_tmf(ocs_node_t *node, ocs_io_t *io, ocs_io_t *io_to_abort, uint64_
 		rc = ocs_scsi_io_dispatch_abort(io, ocs_scsi_abort_io_cb);
 		if (rc) {
 			scsi_io_printf(io, "Failed to dispatch abort\n");
-			ocs_ref_put(&io->ref); /* ocs_ref_get(): same function */
+			ocs_ref_put(
+			    &io->ref); /* ocs_ref_get(): same function */
 		}
 	} else {
 		io->display_name = "tmf";
-		rc = ocs_scsi_send_io(OCS_HW_IO_INITIATOR_READ, node, io, lun, tmf, NULL, 0, NULL,
-				      sgl, sgl_count, len, 0, cb, arg, 0);
+		rc = ocs_scsi_send_io(OCS_HW_IO_INITIATOR_READ, node, io, lun,
+		    tmf, NULL, 0, NULL, sgl, sgl_count, len, 0, cb, arg, 0);
 	}
 
 	return rc;
@@ -2456,7 +2620,8 @@ ocs_scsi_send_tmf(ocs_node_t *node, ocs_io_t *io, ocs_io_t *io_to_abort, uint64_
  * @brief Send an FCP IO.
  *
  * @par Description
- * An FCP read/write IO command, with optional task management flags, is sent to @c node.
+ * An FCP read/write IO command, with optional task management flags, is sent to
+ * @c node.
  *
  * @param type HW IO type to send.
  * @param node Pointer to the node destination of the IO.
@@ -2478,11 +2643,12 @@ ocs_scsi_send_tmf(ocs_node_t *node, ocs_io_t *io, ocs_io_t *io_to_abort, uint64_
 
 /* tc: could elminiate LUN, as it's part of the IO structure */
 
-static int32_t ocs_scsi_send_io(ocs_hw_io_type_e type, ocs_node_t *node, ocs_io_t *io, uint64_t lun,
-	ocs_scsi_tmf_cmd_e tmf, uint8_t *cdb, uint32_t cdb_len,
-	ocs_scsi_dif_info_t *dif_info,
-	ocs_scsi_sgl_t *sgl, uint32_t sgl_count, uint32_t wire_len, uint32_t first_burst,
-	ocs_scsi_rsp_io_cb_t cb, void *arg, uint32_t flags)
+static int32_t
+ocs_scsi_send_io(ocs_hw_io_type_e type, ocs_node_t *node, ocs_io_t *io,
+    uint64_t lun, ocs_scsi_tmf_cmd_e tmf, uint8_t *cdb, uint32_t cdb_len,
+    ocs_scsi_dif_info_t *dif_info, ocs_scsi_sgl_t *sgl, uint32_t sgl_count,
+    uint32_t wire_len, uint32_t first_burst, ocs_scsi_rsp_io_cb_t cb, void *arg,
+    uint32_t flags)
 {
 	int32_t rc;
 	ocs_t *ocs;
@@ -2519,12 +2685,15 @@ static int32_t ocs_scsi_send_io(ocs_hw_io_type_e type, ocs_node_t *node, ocs_io_
 		ocs_textbuf_init(ocs, &txtbuf, buf, sizeof(buf));
 
 		ocs_textbuf_printf(&txtbuf, "cdb%d: ", cdb_len);
-		for (i = 0; i < cdb_len; i ++) {
-			ocs_textbuf_printf(&txtbuf, "%02X%s", cdb[i], (i == (cdb_len-1)) ? "" : " ");
+		for (i = 0; i < cdb_len; i++) {
+			ocs_textbuf_printf(&txtbuf, "%02X%s", cdb[i],
+			    (i == (cdb_len - 1)) ? "" : " ");
 		}
-		scsi_io_printf(io, "%s len %d, %s\n", (io->hio_type == OCS_HW_IO_INITIATOR_READ) ? "read" :
-			(io->hio_type == OCS_HW_IO_INITIATOR_WRITE) ? "write" : "",  io->wire_len,
-			ocs_textbuf_get_buffer(&txtbuf));
+		scsi_io_printf(io, "%s len %d, %s\n",
+		    (io->hio_type == OCS_HW_IO_INITIATOR_READ)	    ? "read" :
+			(io->hio_type == OCS_HW_IO_INITIATOR_WRITE) ? "write" :
+								      "",
+		    io->wire_len, ocs_textbuf_get_buffer(&txtbuf));
 	}
 
 	ocs_assert(io->cmdbuf.virt, -1);
@@ -2535,10 +2704,12 @@ static int32_t ocs_scsi_send_io(ocs_hw_io_type_e type, ocs_node_t *node, ocs_io_
 
 	ocs_memset(cmnd, 0, sizeof(*cmnd));
 
-	/* Default FCP_CMND IU doesn't include additional CDB bytes but does include FCP_DL */
-	cmnd_bytes = sizeof(fcp_cmnd_iu_t) - sizeof(cmnd->fcp_cdb_and_dl) + sizeof(uint32_t);
+	/* Default FCP_CMND IU doesn't include additional CDB bytes but does
+	 * include FCP_DL */
+	cmnd_bytes = sizeof(fcp_cmnd_iu_t) - sizeof(cmnd->fcp_cdb_and_dl) +
+	    sizeof(uint32_t);
 
-	fcp_dl = (uint32_t*)(&(cmnd->fcp_cdb_and_dl));
+	fcp_dl = (uint32_t *)(&(cmnd->fcp_cdb_and_dl));
 
 	if (cdb) {
 		if (cdb_len <= 16) {
@@ -2548,9 +2719,11 @@ static int32_t ocs_scsi_send_io(ocs_hw_io_type_e type, ocs_node_t *node, ocs_io_
 
 			ocs_memcpy(cmnd->fcp_cdb, cdb, 16);
 			addl_cdb_bytes = cdb_len - 16;
-			ocs_memcpy(cmnd->fcp_cdb_and_dl, &(cdb[16]), addl_cdb_bytes);
+			ocs_memcpy(cmnd->fcp_cdb_and_dl, &(cdb[16]),
+			    addl_cdb_bytes);
 			/* additional_fcp_cdb_length is in words, not bytes */
-			cmnd->additional_fcp_cdb_length = (addl_cdb_bytes + 3) / 4;
+			cmnd->additional_fcp_cdb_length = (addl_cdb_bytes + 3) /
+			    4;
 			fcp_dl += cmnd->additional_fcp_cdb_length;
 
 			/* Round up additional CDB bytes */
@@ -2561,8 +2734,7 @@ static int32_t ocs_scsi_send_io(ocs_hw_io_type_e type, ocs_node_t *node, ocs_io_
 	be64enc(cmnd->fcp_lun, CAM_EXTLUN_BYTE_SWIZZLE(lun));
 
 	if (node->fcp2device) {
-		if(ocs_get_crn(node, &cmnd->command_reference_number,
-					lun)) {
+		if (ocs_get_crn(node, &cmnd->command_reference_number, lun)) {
 			return -1;
 		}
 	}
@@ -2615,7 +2787,7 @@ static int32_t ocs_scsi_send_io(ocs_hw_io_type_e type, ocs_node_t *node, ocs_io_
 	case OCS_HW_IO_INITIATOR_WRITE:
 		cmnd->wrdata = 1;
 		break;
-	case  OCS_HW_IO_INITIATOR_NODATA:
+	case OCS_HW_IO_INITIATOR_NODATA:
 		/* sets neither */
 		break;
 	default:
@@ -2662,8 +2834,8 @@ static int32_t ocs_scsi_send_io(ocs_hw_io_type_e type, ocs_node_t *node, ocs_io_
  */
 
 static int32_t
-ocs_scsi_abort_io_cb(struct ocs_hw_io_s *hio, ocs_remote_node_t *rnode, uint32_t len, int32_t status,
-	uint32_t ext_status, void *arg)
+ocs_scsi_abort_io_cb(struct ocs_hw_io_s *hio, ocs_remote_node_t *rnode,
+    uint32_t len, int32_t status, uint32_t ext_status, void *arg)
 {
 	ocs_io_t *io = arg;
 	ocs_t *ocs;
@@ -2678,7 +2850,8 @@ ocs_scsi_abort_io_cb(struct ocs_hw_io_s *hio, ocs_remote_node_t *rnode, uint32_t
 	ocs_log_debug(ocs, "status %d ext %d\n", status, ext_status);
 
 	/* done with IO to abort */
-	ocs_ref_put(&io->io_to_abort->ref); /* ocs_ref_get(): ocs_scsi_send_tmf() */
+	ocs_ref_put(
+	    &io->io_to_abort->ref); /* ocs_ref_get(): ocs_scsi_send_tmf() */
 
 	ocs_scsi_io_free_ovfl(io);
 
@@ -2691,10 +2864,12 @@ ocs_scsi_abort_io_cb(struct ocs_hw_io_s *hio, ocs_remote_node_t *rnode, uint32_t
 			scsi_status = OCS_SCSI_STATUS_ABORTED;
 		} else if (ext_status == SLI4_FC_LOCAL_REJECT_NO_XRI) {
 			scsi_status = OCS_SCSI_STATUS_NO_IO;
-		} else if (ext_status == SLI4_FC_LOCAL_REJECT_ABORT_IN_PROGRESS) {
+		} else if (ext_status ==
+		    SLI4_FC_LOCAL_REJECT_ABORT_IN_PROGRESS) {
 			scsi_status = OCS_SCSI_STATUS_ABORT_IN_PROGRESS;
 		} else {
-			ocs_log_test(ocs, "Unhandled local reject 0x%x/0x%x\n", status, ext_status);
+			ocs_log_test(ocs, "Unhandled local reject 0x%x/0x%x\n",
+			    status, ext_status);
 			scsi_status = OCS_SCSI_STATUS_ERROR;
 		}
 		break;
@@ -2704,7 +2879,8 @@ ocs_scsi_abort_io_cb(struct ocs_hw_io_s *hio, ocs_remote_node_t *rnode, uint32_t
 	}
 
 	if (io->scsi_ini_cb) {
-		(*io->scsi_ini_cb)(io, scsi_status, NULL, 0, io->scsi_ini_cb_arg);
+		(*io->scsi_ini_cb)(io, scsi_status, NULL, 0,
+		    io->scsi_ini_cb_arg);
 	} else {
 		ocs_scsi_io_free(io);
 	}
@@ -2730,7 +2906,7 @@ uint32_t
 ocs_scsi_get_property(ocs_t *ocs, ocs_scsi_property_e prop)
 {
 	ocs_xport_t *xport = ocs->xport;
-	uint32_t	val;
+	uint32_t val;
 
 	switch (prop) {
 	case OCS_SCSI_MAX_SGE:
@@ -2741,8 +2917,8 @@ ocs_scsi_get_property(ocs_t *ocs, ocs_scsi_property_e prop)
 	case OCS_SCSI_MAX_SGL:
 		if (ocs->ctrlmask & OCS_CTRLMASK_TEST_CHAINED_SGLS) {
 			/*
-			 * If chain SGL test-mode is enabled, the number of HW SGEs
-			 * has been limited; report back original max.
+			 * If chain SGL test-mode is enabled, the number of HW
+			 * SGEs has been limited; report back original max.
 			 */
 			return (OCS_FC_MAX_SGL);
 		}
@@ -2753,21 +2929,23 @@ ocs_scsi_get_property(ocs_t *ocs, ocs_scsi_property_e prop)
 	case OCS_SCSI_MAX_IOS:
 		return ocs_io_pool_allocated(xport->io_pool);
 	case OCS_SCSI_DIF_CAPABLE:
-	        if (0 == ocs_hw_get(&ocs->hw, OCS_HW_DIF_CAPABLE, &val)) {
-	                return val;
-	        }
+		if (0 == ocs_hw_get(&ocs->hw, OCS_HW_DIF_CAPABLE, &val)) {
+			return val;
+		}
 		break;
 	case OCS_SCSI_MAX_FIRST_BURST:
 		return 0;
 	case OCS_SCSI_DIF_MULTI_SEPARATE:
-	        if (ocs_hw_get(&ocs->hw, OCS_HW_DIF_MULTI_SEPARATE, &val) == 0) {
-	                return val;
-	        }
+		if (ocs_hw_get(&ocs->hw, OCS_HW_DIF_MULTI_SEPARATE, &val) ==
+		    0) {
+			return val;
+		}
 		break;
 	case OCS_SCSI_ENABLE_TASK_SET_FULL:
 		/* Return FALSE if we are send frame capable */
-		if (ocs_hw_get(&ocs->hw, OCS_HW_SEND_FRAME_CAPABLE, &val) == 0) {
-			return ! val;
+		if (ocs_hw_get(&ocs->hw, OCS_HW_SEND_FRAME_CAPABLE, &val) ==
+		    0) {
+			return !val;
 		}
 		break;
 	default:
@@ -2791,7 +2969,8 @@ ocs_scsi_get_property(ocs_t *ocs, ocs_scsi_property_e prop)
  *
  * @return Returns pointer to the requested property, or NULL otherwise.
  */
-void *ocs_scsi_get_property_ptr(ocs_t *ocs, ocs_scsi_property_e prop)
+void *
+ocs_scsi_get_property_ptr(ocs_t *ocs, ocs_scsi_property_e prop)
 {
 	void *rc = NULL;
 
@@ -2808,8 +2987,7 @@ void *ocs_scsi_get_property_ptr(ocs_t *ocs, ocs_scsi_property_e prop)
 	case OCS_SCSI_BIOS_VERSION_STRING:
 		rc = ocs_hw_get_ptr(&ocs->hw, OCS_HW_BIOS_VERSION_STRING);
 		break;
-	case OCS_SCSI_SERIALNUMBER:
-	{
+	case OCS_SCSI_SERIALNUMBER: {
 		uint8_t *pvpd;
 		uint32_t vpd_len;
 
@@ -2824,12 +3002,13 @@ void *ocs_scsi_get_property_ptr(ocs_t *ocs, ocs_scsi_property_e prop)
 			rc = ocs_find_vpd(pvpd, vpd_len, "SN");
 		}
 
-		if (rc == NULL ||
-		    ocs_strlen(rc) == 0) {
+		if (rc == NULL || ocs_strlen(rc) == 0) {
 			/* Note: VPD is missing, using wwnn for serial number */
-			scsi_log(ocs, "Note: VPD is missing, using wwnn for serial number\n");
+			scsi_log(ocs,
+			    "Note: VPD is missing, using wwnn for serial number\n");
 			/* Use the last 32 bits of the WWN */
-			if ((ocs == NULL) || (ocs->domain == NULL) || (ocs->domain->sport == NULL)) {
+			if ((ocs == NULL) || (ocs->domain == NULL) ||
+			    (ocs->domain->sport == NULL)) {
 				rc = "\011(Unknown)";
 			} else {
 				rc = &ocs->domain->sport->wwnn_str[8];
@@ -2837,8 +3016,7 @@ void *ocs_scsi_get_property_ptr(ocs_t *ocs, ocs_scsi_property_e prop)
 		}
 		break;
 	}
-	case OCS_SCSI_PARTNUMBER:
-	{
+	case OCS_SCSI_PARTNUMBER: {
 		uint8_t *pvpd;
 		uint32_t vpd_len;
 
@@ -2873,9 +3051,9 @@ void *ocs_scsi_get_property_ptr(ocs_t *ocs, ocs_scsi_property_e prop)
  * @brief Notify that delete initiator is complete.
  *
  * @par Description
- * Sent by the target-server to notify the base driver that the work started from
- * ocs_scsi_del_initiator() is now complete and that it is safe for the node to
- * release the rest of its resources.
+ * Sent by the target-server to notify the base driver that the work started
+ * from ocs_scsi_del_initiator() is now complete and that it is safe for the
+ * node to release the rest of its resources.
  *
  * @param node Pointer to the node.
  *
@@ -2893,9 +3071,9 @@ ocs_scsi_del_initiator_complete(ocs_node_t *node)
  * @brief Notify that delete target is complete.
  *
  * @par Description
- * Sent by the initiator-client to notify the base driver that the work started from
- * ocs_scsi_del_target() is now complete and that it is safe for the node to
- * release the rest of its resources.
+ * Sent by the initiator-client to notify the base driver that the work started
+ * from ocs_scsi_del_target() is now complete and that it is safe for the node
+ * to release the rest of its resources.
  *
  * @param node Pointer to the node.
  *
@@ -2939,13 +3117,15 @@ ocs_scsi_update_first_burst_transferred(ocs_io_t *io, uint32_t transferred)
  * @return None.
  */
 void
-ocs_scsi_register_bounce(ocs_t *ocs, void(*fctn)(void(*fctn)(void *arg), void *arg, uint32_t s_id, uint32_t d_id,
-						 uint32_t ox_id))
+ocs_scsi_register_bounce(ocs_t *ocs,
+    void (*fctn)(void (*fctn)(void *arg), void *arg, uint32_t s_id,
+	uint32_t d_id, uint32_t ox_id))
 {
 	ocs_hw_rtn_e rc;
 
 	rc = ocs_hw_callback(&ocs->hw, OCS_HW_CB_BOUNCE, fctn, NULL);
 	if (rc) {
-		ocs_log_test(ocs, "ocs_hw_callback(OCS_HW_CB_BOUNCE) failed: %d\n", rc);
+		ocs_log_test(ocs,
+		    "ocs_hw_callback(OCS_HW_CB_BOUNCE) failed: %d\n", rc);
 	}
 }

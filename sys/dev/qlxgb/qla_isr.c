@@ -33,14 +33,15 @@
  */
 
 #include <sys/cdefs.h>
+
+#include "qla_dbg.h"
+#include "qla_def.h"
+#include "qla_glbl.h"
+#include "qla_hw.h"
+#include "qla_inline.h"
 #include "qla_os.h"
 #include "qla_reg.h"
-#include "qla_hw.h"
-#include "qla_def.h"
-#include "qla_inline.h"
 #include "qla_ver.h"
-#include "qla_glbl.h"
-#include "qla_dbg.h"
 
 static void qla_replenish_normal_rx(qla_host_t *ha, qla_sds_t *sdsp);
 static void qla_replenish_jumbo_rx(qla_host_t *ha, qla_sds_t *sdsp);
@@ -51,7 +52,7 @@ static void qla_replenish_jumbo_rx(qla_host_t *ha, qla_sds_t *sdsp);
  */
 static void
 qla_rx_intr(qla_host_t *ha, uint64_t data, uint32_t sds_idx,
-	struct lro_ctrl *lro)
+    struct lro_ctrl *lro)
 {
 	uint32_t idx, length, status, ring;
 	qla_rx_buf_t *rxb;
@@ -69,34 +70,37 @@ qla_rx_intr(qla_host_t *ha, uint64_t data, uint32_t sds_idx,
 
 	if (ring == 0) {
 		if ((idx >= NUM_RX_DESCRIPTORS) || (length > MCLBYTES)) {
-			device_printf(ha->pci_dev, "%s: ring[%d] index[0x%08x]"
-				" len[0x%08x] invalid\n",
-				__func__, ring, idx, length);
+			device_printf(ha->pci_dev,
+			    "%s: ring[%d] index[0x%08x]"
+			    " len[0x%08x] invalid\n",
+			    __func__, ring, idx, length);
 			return;
 		}
 	} else {
-		if ((idx >= NUM_RX_JUMBO_DESCRIPTORS)||(length > MJUM9BYTES)) {
-			device_printf(ha->pci_dev, "%s: ring[%d] index[0x%08x]"
-				" len[0x%08x] invalid\n",
-				__func__, ring, idx, length);
+		if ((idx >= NUM_RX_JUMBO_DESCRIPTORS) ||
+		    (length > MJUM9BYTES)) {
+			device_printf(ha->pci_dev,
+			    "%s: ring[%d] index[0x%08x]"
+			    " len[0x%08x] invalid\n",
+			    __func__, ring, idx, length);
 			return;
 		}
 	}
 
 	if (ring == 0)
 		rxb = &ha->rx_buf[idx];
-	else 
+	else
 		rxb = &ha->rx_jbuf[idx];
 
-	QL_ASSERT((rxb != NULL),\
-		("%s: [r, i, sds_idx]=[%d, 0x%x, %d] rxb != NULL\n",\
-		 __func__, ring, idx, sds_idx));
+	QL_ASSERT((rxb != NULL),
+	    ("%s: [r, i, sds_idx]=[%d, 0x%x, %d] rxb != NULL\n", __func__, ring,
+		idx, sds_idx));
 
 	mp = rxb->m_head;
 
-	QL_ASSERT((mp != NULL),\
-		("%s: [r,i,rxb, sds_idx]=[%d, 0x%x, %p, %d] mp != NULL\n",\
-		 __func__, ring, idx, rxb, sds_idx));
+	QL_ASSERT((mp != NULL),
+	    ("%s: [r,i,rxb, sds_idx]=[%d, 0x%x, %p, %d] mp != NULL\n", __func__,
+		ring, idx, rxb, sds_idx));
 
 	bus_dmamap_sync(ha->rx_tag, rxb->map, BUS_DMASYNC_POSTREAD);
 
@@ -178,8 +182,8 @@ qla_replenish_jumbo_rx(qla_host_t *ha, qla_sds_t *sdsp)
 
 		if (qla_get_mbuf(ha, rxb, NULL, RDS_RING_INDEX_JUMBO) == 0) {
 			qla_set_hw_rcv_desc(ha, RDS_RING_INDEX_JUMBO,
-				ha->hw.rxj_in, rxb->handle, rxb->paddr,
-				(rxb->m_head)->m_pkthdr.len);
+			    ha->hw.rxj_in, rxb->handle, rxb->paddr,
+			    (rxb->m_head)->m_pkthdr.len);
 			ha->hw.rxj_in++;
 			if (ha->hw.rxj_in == NUM_RX_JUMBO_DESCRIPTORS)
 				ha->hw.rxj_in = 0;
@@ -188,8 +192,8 @@ qla_replenish_jumbo_rx(qla_host_t *ha, qla_sds_t *sdsp)
 				ha->hw.rxj_next = 0;
 		} else {
 			device_printf(ha->pci_dev,
-				"%s: qla_get_mbuf [1,(%d),(%d)] failed\n",
-				__func__, ha->hw.rxj_in, rxb->handle);
+			    "%s: qla_get_mbuf [1,(%d),(%d)] failed\n", __func__,
+			    ha->hw.rxj_in, rxb->handle);
 
 			rxb->m_head = NULL;
 			rxb->next = sdsp->rxjb_free;
@@ -229,8 +233,8 @@ qla_replenish_normal_rx(qla_host_t *ha, qla_sds_t *sdsp)
 
 		if (qla_get_mbuf(ha, rxb, NULL, RDS_RING_INDEX_NORMAL) == 0) {
 			qla_set_hw_rcv_desc(ha, RDS_RING_INDEX_NORMAL,
-				ha->hw.rx_in, rxb->handle, rxb->paddr,
-				(rxb->m_head)->m_pkthdr.len);
+			    ha->hw.rx_in, rxb->handle, rxb->paddr,
+			    (rxb->m_head)->m_pkthdr.len);
 			ha->hw.rx_in++;
 			if (ha->hw.rx_in == NUM_RX_DESCRIPTORS)
 				ha->hw.rx_in = 0;
@@ -239,8 +243,8 @@ qla_replenish_normal_rx(qla_host_t *ha, qla_sds_t *sdsp)
 				ha->hw.rx_next = 0;
 		} else {
 			device_printf(ha->pci_dev,
-				"%s: qla_get_mbuf [0,(%d),(%d)] failed\n",
-				__func__, ha->hw.rx_in, rxb->handle);
+			    "%s: qla_get_mbuf [0,(%d),(%d)] failed\n", __func__,
+			    ha->hw.rx_in, rxb->handle);
 
 			rxb->m_head = NULL;
 			rxb->next = sdsp->rxb_free;
@@ -289,13 +293,13 @@ qla_rcv_isr(qla_host_t *ha, uint32_t sds_idx, uint32_t count)
 	lro = &hw->sds[sds_idx].lro;
 
 	while (count--) {
-		sdesc = (q80_stat_desc_t *)
-				&hw->sds[sds_idx].sds_ring_base[comp_idx];
+		sdesc = (q80_stat_desc_t *)&hw->sds[sds_idx]
+			    .sds_ring_base[comp_idx];
 
 		if (Q8_STAT_DESC_OWNER((sdesc->data[0])) !=
-			Q8_STAT_DESC_OWNER_HOST) {
+		    Q8_STAT_DESC_OWNER_HOST) {
 			QL_DPRINT2((dev, "%s:  data %p sdsr_next 0x%08x\n",
-				__func__, (void *)sdesc->data[0], comp_idx));
+			    __func__, (void *)sdesc->data[0], comp_idx));
 			break;
 		}
 
@@ -305,21 +309,22 @@ qla_rcv_isr(qla_host_t *ha, uint32_t sds_idx, uint32_t count)
 		case Q8_STAT_DESC_OPCODE_RCV_PKT:
 		case Q8_STAT_DESC_OPCODE_SYN_OFFLOAD:
 			qla_rx_intr(ha, (sdesc->data[0]), sds_idx, lro);
-			
+
 			break;
 
 		default:
 			device_printf(dev, "%s: default 0x%llx!\n", __func__,
-					(long long unsigned int)sdesc->data[0]);
+			    (long long unsigned int)sdesc->data[0]);
 			break;
 		}
 
 		while (desc_count--) {
-			sdesc->data[0] =
-				Q8_STAT_DESC_SET_OWNER(Q8_STAT_DESC_OWNER_FW);
-			comp_idx = (comp_idx + 1) & (NUM_STATUS_DESCRIPTORS-1);
-			sdesc = (q80_stat_desc_t *)
-				&hw->sds[sds_idx].sds_ring_base[comp_idx];
+			sdesc->data[0] = Q8_STAT_DESC_SET_OWNER(
+			    Q8_STAT_DESC_OWNER_FW);
+			comp_idx = (comp_idx + 1) &
+			    (NUM_STATUS_DESCRIPTORS - 1);
+			sdesc = (q80_stat_desc_t *)&hw->sds[sds_idx]
+				    .sds_ring_base[comp_idx];
 		}
 	}
 
@@ -333,8 +338,8 @@ qla_rcv_isr(qla_host_t *ha, uint32_t sds_idx, uint32_t count)
 	hw->sds[sds_idx].sdsr_next = comp_idx;
 
 	sdesc = (q80_stat_desc_t *)&hw->sds[sds_idx].sds_ring_base[comp_idx];
-	if ((sds_idx == 0) && (Q8_STAT_DESC_OWNER((sdesc->data[0])) ==
-					Q8_STAT_DESC_OWNER_HOST)) {
+	if ((sds_idx == 0) &&
+	    (Q8_STAT_DESC_OWNER((sdesc->data[0])) == Q8_STAT_DESC_OWNER_HOST)) {
 		ret = -1;
 	}
 
@@ -355,8 +360,8 @@ qla_isr(void *arg)
 
 	if (sds_idx >= ha->hw.num_sds_rings) {
 		device_printf(ha->pci_dev, "%s: bogus sds_idx 0x%x\n", __func__,
-			sds_idx);
-		
+		    sds_idx);
+
 		return;
 	}
 
@@ -370,7 +375,7 @@ qla_isr(void *arg)
 
 	if (ret) {
 		taskqueue_enqueue(ha->irq_vec[sds_idx].rcv_tq,
-			&ha->irq_vec[sds_idx].rcv_task);
+		    &ha->irq_vec[sds_idx].rcv_task);
 	} else {
 		QL_ENABLE_INTERRUPTS(ha, sds_idx);
 	}
@@ -395,8 +400,7 @@ qla_rcv(void *context, int pending)
 		if (sds_idx == 0) {
 			if (qla_le32_to_host(*(hw->tx_cons)) != hw->txr_comp) {
 				taskqueue_enqueue(ha->tx_tq, &ha->tx_task);
-			} else if (!if_sendq_empty(ifp) &&
-					QL_RUNNING(ifp)) {
+			} else if (!if_sendq_empty(ifp) && QL_RUNNING(ifp)) {
 				taskqueue_enqueue(ha->tx_tq, &ha->tx_task);
 			}
 		}

@@ -26,9 +26,10 @@
  * SUCH DAMAGE.
  */
 
-#define	_WANT_P_OSREL
+#define _WANT_P_OSREL
 #include <sys/param.h>
 #include <sys/sysctl.h>
+
 #include <errno.h>
 #include <sched.h>
 #include <string.h>
@@ -59,19 +60,19 @@ sched_setaffinity(pid_t pid, size_t cpusetsz, const cpuset_t *cpuset)
 	/* Linux ignores high bits */
 	if (mp_maxid == 0) {
 		len = sizeof(mp_maxid);
-		error = sysctlbyname("kern.smp.maxid", &mp_maxid, &len,
-		    NULL, 0);
+		error = sysctlbyname("kern.smp.maxid", &mp_maxid, &len, NULL,
+		    0);
 		if (error == -1)
 			return (error);
 	}
 	lbs = CPU_FLS(&c) - 1;
 	if (lbs > mp_maxid) {
-		CPU_FOREACH_ISSET(cpu, &c)
+		CPU_FOREACH_ISSET (cpu, &c)
 			if (cpu > mp_maxid)
 				CPU_CLR(cpu, &c);
 	}
-	error = cpuset_setaffinity(CPU_LEVEL_WHICH, which,
-	    pid == 0 ? -1 : pid, sizeof(cpuset_t), &c);
+	error = cpuset_setaffinity(CPU_LEVEL_WHICH, which, pid == 0 ? -1 : pid,
+	    sizeof(cpuset_t), &c);
 	if (error == -1 && errno == EDEADLK)
 		errno = EINVAL;
 

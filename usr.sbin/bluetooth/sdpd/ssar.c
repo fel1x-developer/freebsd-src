@@ -35,117 +35,118 @@
 #include <bluetooth.h>
 #include <sdp.h>
 #include <string.h>
+
 #include "profile.h"
 #include "provider.h"
 #include "server.h"
 #include "uuid-private.h"
 
 /* from sar.c */
-int32_t server_prepare_attr_list(provider_p const provider,
-		uint8_t const *req, uint8_t const * const req_end,
-		uint8_t *rsp, uint8_t const * const rsp_end);
+int32_t server_prepare_attr_list(provider_p const provider, uint8_t const *req,
+    uint8_t const *const req_end, uint8_t *rsp, uint8_t const *const rsp_end);
 
 /*
  * Scan an attribute for matching UUID.
  */
 static int
-server_search_uuid_sub(uint8_t *buf, uint8_t const * const eob, const uint128_t *uuid)
+server_search_uuid_sub(uint8_t *buf, uint8_t const *const eob,
+    const uint128_t *uuid)
 {
-        int128_t duuid;
-        uint32_t value;
-        uint8_t type;
+	int128_t duuid;
+	uint32_t value;
+	uint8_t type;
 
-        while (buf < eob) {
+	while (buf < eob) {
 
-                SDP_GET8(type, buf);
+		SDP_GET8(type, buf);
 
-                switch (type) {
-                case SDP_DATA_UUID16:
-                        if (buf + 2 > eob)
-                                continue;
-                        SDP_GET16(value, buf);
+		switch (type) {
+		case SDP_DATA_UUID16:
+			if (buf + 2 > eob)
+				continue;
+			SDP_GET16(value, buf);
 
-                        memcpy(&duuid, &uuid_base, sizeof(duuid));
-                        duuid.b[2] = value >> 8 & 0xff;
-                        duuid.b[3] = value & 0xff;
+			memcpy(&duuid, &uuid_base, sizeof(duuid));
+			duuid.b[2] = value >> 8 & 0xff;
+			duuid.b[3] = value & 0xff;
 
-                        if (memcmp(&duuid, uuid, sizeof(duuid)) == 0)
-                                return (0);
-                        break;
-                case SDP_DATA_UUID32:
-                        if (buf + 4 > eob)
-                                continue;
-                        SDP_GET32(value, buf);
-                        memcpy(&duuid, &uuid_base, sizeof(duuid));
-                        duuid.b[0] = value >> 24 & 0xff;
-                        duuid.b[1] = value >> 16 & 0xff;
-                        duuid.b[2] = value >> 8 & 0xff;
-                        duuid.b[3] = value & 0xff;
+			if (memcmp(&duuid, uuid, sizeof(duuid)) == 0)
+				return (0);
+			break;
+		case SDP_DATA_UUID32:
+			if (buf + 4 > eob)
+				continue;
+			SDP_GET32(value, buf);
+			memcpy(&duuid, &uuid_base, sizeof(duuid));
+			duuid.b[0] = value >> 24 & 0xff;
+			duuid.b[1] = value >> 16 & 0xff;
+			duuid.b[2] = value >> 8 & 0xff;
+			duuid.b[3] = value & 0xff;
 
-                        if (memcmp(&duuid, uuid, sizeof(duuid)) == 0)
-                                return (0);
-                        break;
-                case SDP_DATA_UUID128:
-                        if (buf + 16 > eob)
-                                continue;
-                        SDP_GET_UUID128(&duuid, buf);
+			if (memcmp(&duuid, uuid, sizeof(duuid)) == 0)
+				return (0);
+			break;
+		case SDP_DATA_UUID128:
+			if (buf + 16 > eob)
+				continue;
+			SDP_GET_UUID128(&duuid, buf);
 
-                        if (memcmp(&duuid, uuid, sizeof(duuid)) == 0)
-                                return (0);
-                        break;
-                case SDP_DATA_UINT8:
-                case SDP_DATA_INT8:
-                case SDP_DATA_SEQ8:
-                        buf++;
-                        break;
-                case SDP_DATA_UINT16:
-                case SDP_DATA_INT16:
-                case SDP_DATA_SEQ16:
-                        buf += 2;
-                        break;
-                case SDP_DATA_UINT32:
-                case SDP_DATA_INT32:
-                case SDP_DATA_SEQ32:
-                        buf += 4;
-                        break;
-                case SDP_DATA_UINT64:
-                case SDP_DATA_INT64:
-                        buf += 8;
-                        break;
-                case SDP_DATA_UINT128:
-                case SDP_DATA_INT128:
-                        buf += 16;
-                        break;
-                case SDP_DATA_STR8:
-                        if (buf + 1 > eob)
-                                continue;
-                        SDP_GET8(value, buf);
-                        buf += value;
-                        break;
-                case SDP_DATA_STR16:
-                        if (buf + 2 > eob)
-                                continue;
-                        SDP_GET16(value, buf);
-                        if (value > (eob - buf))
-                                return (1);
-                        buf += value;
-                        break;
-                case SDP_DATA_STR32:
-                        if (buf + 4 > eob)
-                                continue;
-                        SDP_GET32(value, buf);
-                        if (value > (eob - buf))
-                                return (1);
-                        buf += value;
-                        break;
-                case SDP_DATA_BOOL:
-                        buf += 1;
-                        break;
-                default:
-                        return (1);
-                }
-        }
-        return (1);
+			if (memcmp(&duuid, uuid, sizeof(duuid)) == 0)
+				return (0);
+			break;
+		case SDP_DATA_UINT8:
+		case SDP_DATA_INT8:
+		case SDP_DATA_SEQ8:
+			buf++;
+			break;
+		case SDP_DATA_UINT16:
+		case SDP_DATA_INT16:
+		case SDP_DATA_SEQ16:
+			buf += 2;
+			break;
+		case SDP_DATA_UINT32:
+		case SDP_DATA_INT32:
+		case SDP_DATA_SEQ32:
+			buf += 4;
+			break;
+		case SDP_DATA_UINT64:
+		case SDP_DATA_INT64:
+			buf += 8;
+			break;
+		case SDP_DATA_UINT128:
+		case SDP_DATA_INT128:
+			buf += 16;
+			break;
+		case SDP_DATA_STR8:
+			if (buf + 1 > eob)
+				continue;
+			SDP_GET8(value, buf);
+			buf += value;
+			break;
+		case SDP_DATA_STR16:
+			if (buf + 2 > eob)
+				continue;
+			SDP_GET16(value, buf);
+			if (value > (eob - buf))
+				return (1);
+			buf += value;
+			break;
+		case SDP_DATA_STR32:
+			if (buf + 4 > eob)
+				continue;
+			SDP_GET32(value, buf);
+			if (value > (eob - buf))
+				return (1);
+			buf += value;
+			break;
+		case SDP_DATA_BOOL:
+			buf += 1;
+			break;
+		default:
+			return (1);
+		}
+	}
+	return (1);
 }
 
 /*
@@ -154,20 +155,21 @@ server_search_uuid_sub(uint8_t *buf, uint8_t const * const eob, const uint128_t 
 static int
 server_search_uuid(provider_p const provider, const uint128_t *uuid)
 {
-        uint8_t buffer[256];
-        const attr_t *attr;
-        int len;
+	uint8_t buffer[256];
+	const attr_t *attr;
+	int len;
 
-        for (attr = provider->profile->attrs; attr->create != NULL; attr++) {
+	for (attr = provider->profile->attrs; attr->create != NULL; attr++) {
 
-                len = attr->create(buffer, buffer + sizeof(buffer),
-                    (const uint8_t *)provider->profile, sizeof(*provider->profile));
-                if (len < 0)
-                        continue;
-                if (server_search_uuid_sub(buffer, buffer + len, uuid) == 0)
-                        return (0);
-        }
-        return (1);
+		len = attr->create(buffer, buffer + sizeof(buffer),
+		    (const uint8_t *)provider->profile,
+		    sizeof(*provider->profile));
+		if (len < 0)
+			continue;
+		if (server_search_uuid_sub(buffer, buffer + len, uuid) == 0)
+			return (0);
+	}
+	return (1);
 }
 
 /*
@@ -177,17 +179,17 @@ server_search_uuid(provider_p const provider, const uint128_t *uuid)
 int32_t
 server_prepare_service_search_attribute_response(server_p srv, int32_t fd)
 {
-	uint8_t const	*req = srv->req + sizeof(sdp_pdu_t);
-	uint8_t const	*req_end = req + ((sdp_pdu_p)(srv->req))->len;
-	uint8_t		*rsp = srv->fdidx[fd].rsp;
-	uint8_t const	*rsp_end = rsp + NG_L2CAP_MTU_MAXIMUM;
+	uint8_t const *req = srv->req + sizeof(sdp_pdu_t);
+	uint8_t const *req_end = req + ((sdp_pdu_p)(srv->req))->len;
+	uint8_t *rsp = srv->fdidx[fd].rsp;
+	uint8_t const *rsp_end = rsp + NG_L2CAP_MTU_MAXIMUM;
 
-	uint8_t const	*sspptr = NULL, *aidptr = NULL;
-	uint8_t		*ptr = NULL;
+	uint8_t const *sspptr = NULL, *aidptr = NULL;
+	uint8_t *ptr = NULL;
 
-	provider_t	*provider = NULL;
-	int32_t		 type, rsp_limit, ssplen, aidlen, cslen, cs;
-	uint128_t	 uuid, puuid;
+	provider_t *provider = NULL;
+	int32_t type, rsp_limit, ssplen, aidlen, cslen, cs;
+	uint128_t uuid, puuid;
 
 	/*
 	 * Minimal Service Search Attribute Request request
@@ -299,7 +301,7 @@ server_prepare_service_search_attribute_response(server_p srv, int32_t fd)
 
 	while (ssplen > 0) {
 		SDP_GET8(type, sspptr);
-		ssplen --;
+		ssplen--;
 
 		switch (type) {
 		case SDP_DATA_UUID16:
@@ -307,8 +309,8 @@ server_prepare_service_search_attribute_response(server_p srv, int32_t fd)
 				return (SDP_ERROR_CODE_INVALID_REQUEST_SYNTAX);
 
 			memcpy(&uuid, &uuid_base, sizeof(uuid));
-			uuid.b[2] = *sspptr ++;
-			uuid.b[3] = *sspptr ++;
+			uuid.b[2] = *sspptr++;
+			uuid.b[3] = *sspptr++;
 			ssplen -= 2;
 			break;
 
@@ -317,10 +319,10 @@ server_prepare_service_search_attribute_response(server_p srv, int32_t fd)
 				return (SDP_ERROR_CODE_INVALID_REQUEST_SYNTAX);
 
 			memcpy(&uuid, &uuid_base, sizeof(uuid));
-			uuid.b[0] = *sspptr ++;
-			uuid.b[1] = *sspptr ++;
-			uuid.b[2] = *sspptr ++;
-			uuid.b[3] = *sspptr ++;
+			uuid.b[0] = *sspptr++;
+			uuid.b[1] = *sspptr++;
+			uuid.b[2] = *sspptr++;
+			uuid.b[3] = *sspptr++;
 			ssplen -= 4;
 			break;
 
@@ -329,8 +331,8 @@ server_prepare_service_search_attribute_response(server_p srv, int32_t fd)
 				return (SDP_ERROR_CODE_INVALID_REQUEST_SYNTAX);
 
 			memcpy(uuid.b, sspptr, 16);
-			sspptr += 16;	
-			ssplen -= 16; 
+			sspptr += 16;
+			ssplen -= 16;
 			break;
 
 		default:
@@ -338,10 +340,10 @@ server_prepare_service_search_attribute_response(server_p srv, int32_t fd)
 			/* NOT REACHED */
 		}
 
-		for (provider = provider_get_first();
-		     provider != NULL;
+		for (provider = provider_get_first(); provider != NULL;
 		     provider = provider_get_next(provider)) {
-			if (!provider_match_bdaddr(provider, &srv->req_sa.l2cap_bdaddr))
+			if (!provider_match_bdaddr(provider,
+				&srv->req_sa.l2cap_bdaddr))
 				continue;
 
 			memcpy(&puuid, &uuid_base, sizeof(puuid));
@@ -349,12 +351,13 @@ server_prepare_service_search_attribute_response(server_p srv, int32_t fd)
 			puuid.b[3] = provider->profile->uuid;
 
 			if (memcmp(&uuid, &puuid, sizeof(uuid)) != 0 &&
-			    memcmp(&uuid, &uuid_public_browse_group, sizeof(uuid)) != 0 &&
+			    memcmp(&uuid, &uuid_public_browse_group,
+				sizeof(uuid)) != 0 &&
 			    server_search_uuid(provider, &uuid) != 0)
 				continue;
 
-			cs = server_prepare_attr_list(provider,
-				aidptr, aidptr + aidlen, ptr, rsp_end);
+			cs = server_prepare_attr_list(provider, aidptr,
+			    aidptr + aidlen, ptr, rsp_end);
 			if (cs < 0)
 				return (SDP_ERROR_CODE_INSUFFICIENT_RESOURCES);
 
@@ -377,4 +380,3 @@ server_prepare_service_search_attribute_response(server_p srv, int32_t fd)
 
 	return (0);
 }
-

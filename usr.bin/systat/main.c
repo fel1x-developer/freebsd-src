@@ -29,12 +29,10 @@
  * SUCH DAMAGE.
  */
 
-
-
 #include <sys/param.h>
-#include <sys/time.h>
-#include <sys/sysctl.h>
 #include <sys/queue.h>
+#include <sys/sysctl.h>
+#include <sys/time.h>
 
 #include <err.h>
 #include <limits.h>
@@ -47,36 +45,36 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "systat.h"
 #include "extern.h"
+#include "systat.h"
 
-static int     dellave;
+static int dellave;
 
 kvm_t *kd;
 double avenrun[3];
-int     col;
-unsigned int	delay = 5000000;	/* in microseconds */
-int     verbose = 1;                    /* to report kvm read errs */
-static struct	clockinfo clkinfo;
-double	hertz;
-char    c;
-char    *namp;
-char    hostname[MAXHOSTNAMELEN];
-WINDOW  *wnd;
-int     CMDLINE;
-int     use_kvm = 1;
+int col;
+unsigned int delay = 5000000; /* in microseconds */
+int verbose = 1;	      /* to report kvm read errs */
+static struct clockinfo clkinfo;
+double hertz;
+char c;
+char *namp;
+char hostname[MAXHOSTNAMELEN];
+WINDOW *wnd;
+int CMDLINE;
+int use_kvm = 1;
 
-static	WINDOW *wload;			/* one line window for load average */
+static WINDOW *wload; /* one line window for load average */
 
 struct cmdentry {
 	SLIST_ENTRY(cmdentry) link;
-	char		*cmd;		/* Command name	*/
-	char		*argv;		/* Arguments vector for a command */
+	char *cmd;  /* Command name	*/
+	char *argv; /* Arguments vector for a command */
 };
 static SLIST_HEAD(, cmdentry) commands;
 
 static void
-parse_cmd_args (int argc, char **argv)
+parse_cmd_args(int argc, char **argv)
 {
 	int in_command = 0;
 	struct cmdentry *cmd = NULL;
@@ -85,11 +83,11 @@ parse_cmd_args (int argc, char **argv)
 	while (argc) {
 		if (argv[0][0] == '-') {
 			if (in_command)
-					SLIST_INSERT_HEAD(&commands, cmd, link);
+				SLIST_INSERT_HEAD(&commands, cmd, link);
 
 			if (memcmp(argv[0], "--", 3) == 0) {
 				in_command = 0; /*-- ends a command explicitly*/
-				argc --, argv ++;
+				argc--, argv++;
 				continue;
 			}
 			cmd = calloc(1, sizeof(struct cmdentry));
@@ -99,27 +97,23 @@ parse_cmd_args (int argc, char **argv)
 			if (cmd->cmd == NULL)
 				errx(1, "memory allocating failure");
 			in_command = 1;
-		}
-		else if (!in_command) {
+		} else if (!in_command) {
 			t = strtod(argv[0], NULL) * 1000000.0;
 			if (t > 0 && t < (double)UINT_MAX)
 				delay = (unsigned int)t;
-		}
-		else if (cmd != NULL) {
+		} else if (cmd != NULL) {
 			cmd->argv = strdup(argv[0]);
 			if (cmd->argv == NULL)
 				errx(1, "memory allocating failure");
 			in_command = 0;
 			SLIST_INSERT_HEAD(&commands, cmd, link);
-		}
-		else
+		} else
 			errx(1, "invalid arguments list");
 
 		argc--, argv++;
 	}
 	if (in_command && cmd != NULL)
 		SLIST_INSERT_HEAD(&commands, cmd, link);
-
 }
 
 static void
@@ -136,16 +130,15 @@ resize(int signo __unused)
 	status();
 }
 
-
 int
 main(int argc, char **argv)
 {
 	char errbuf[_POSIX2_LINE_MAX], dummy;
-	size_t	size;
+	size_t size;
 	struct cmdentry *cmd = NULL;
 	short cf, cb;
 
-	(void) setlocale(LC_ALL, "");
+	(void)setlocale(LC_ALL, "");
 
 	SLIST_INIT(&commands);
 	argc--, argv++;
@@ -161,8 +154,7 @@ main(int argc, char **argv)
 			curcmd = p;
 			argc--, argv++;
 		}
-		parse_cmd_args (argc, argv);
-		
+		parse_cmd_args(argc, argv);
 	}
 	kd = kvm_openfiles(NULL, NULL, NULL, O_RDONLY, errbuf);
 	if (kd != NULL) {
@@ -172,7 +164,7 @@ main(int argc, char **argv)
 		 */
 		if (kvm_nlist(kd, namelist) != 0 || namelist[0].n_value == 0 ||
 		    kvm_read(kd, namelist[0].n_value, &dummy, sizeof(dummy)) !=
-		    sizeof(dummy)) {
+			sizeof(dummy)) {
 			kvm_close(kd);
 			kd = NULL;
 		}
@@ -221,10 +213,10 @@ main(int argc, char **argv)
 		warnx("couldn't set up load average window");
 		die(0);
 	}
-	gethostname(hostname, sizeof (hostname));
+	gethostname(hostname, sizeof(hostname));
 	size = sizeof(clkinfo);
-	if (sysctlbyname("kern.clockrate", &clkinfo, &size, NULL, 0)
-	    || size != sizeof(clkinfo)) {
+	if (sysctlbyname("kern.clockrate", &clkinfo, &size, NULL, 0) ||
+	    size != sizeof(clkinfo)) {
 		error("kern.clockrate");
 		die(0);
 	}
@@ -276,10 +268,10 @@ display(void)
 	int i, j;
 
 	/* Get the load average over the last minute. */
-	(void) getloadavg(avenrun, nitems(avenrun));
+	(void)getloadavg(avenrun, nitems(avenrun));
 	(*curcmd->c_fetch)();
 	if (curcmd->c_flags & CF_LOADAV) {
-		j = 5.0*avenrun[0] + 0.5;
+		j = 5.0 * avenrun[0] + 0.5;
 		dellave -= avenrun[0];
 		if (dellave >= 0.0)
 			c = '<';
@@ -290,34 +282,40 @@ display(void)
 		if (dellave < 0.1)
 			c = '|';
 		dellave = avenrun[0];
-		wmove(wload, 0, 0); wclrtoeol(wload);
+		wmove(wload, 0, 0);
+		wclrtoeol(wload);
 		for (i = MIN(j, 50); i > 0; i--)
 			waddch(wload, c);
 		if (j > 50)
 			wprintw(wload, " %4.1f", avenrun[0]);
 	}
 	if (curcmd->c_flags & CF_ZFSARC) {
-	    uint64_t arc[7] = {};
-	    size_t size = sizeof(arc[0]);
-	    if (sysctlbyname("kstat.zfs.misc.arcstats.size",
-		&arc[0], &size, NULL, 0) == 0 ) {
-		    GETSYSCTL("vfs.zfs.mfu_size", arc[1]);
-		    GETSYSCTL("vfs.zfs.mru_size", arc[2]);
-		    GETSYSCTL("vfs.zfs.anon_size", arc[3]);
-		    GETSYSCTL("kstat.zfs.misc.arcstats.hdr_size", arc[4]);
-		    GETSYSCTL("kstat.zfs.misc.arcstats.l2_hdr_size", arc[5]);
-		    GETSYSCTL("kstat.zfs.misc.arcstats.bonus_size", arc[6]);
-		    GETSYSCTL("kstat.zfs.misc.arcstats.dnode_size", arc_stat);
-		    arc[6] += arc_stat;
-		    GETSYSCTL("kstat.zfs.misc.arcstats.dbuf_size", arc_stat);
-		    arc[6] += arc_stat;
-		    wmove(wload, 0, 0); wclrtoeol(wload);
-		    for (ui = 0 ; ui < nitems(arc); ui++)
-			sysputuint64(wload, 0, ui*8+2, 6, arc[ui], 0);
-	    }
+		uint64_t arc[7] = {};
+		size_t size = sizeof(arc[0]);
+		if (sysctlbyname("kstat.zfs.misc.arcstats.size", &arc[0], &size,
+			NULL, 0) == 0) {
+			GETSYSCTL("vfs.zfs.mfu_size", arc[1]);
+			GETSYSCTL("vfs.zfs.mru_size", arc[2]);
+			GETSYSCTL("vfs.zfs.anon_size", arc[3]);
+			GETSYSCTL("kstat.zfs.misc.arcstats.hdr_size", arc[4]);
+			GETSYSCTL("kstat.zfs.misc.arcstats.l2_hdr_size",
+			    arc[5]);
+			GETSYSCTL("kstat.zfs.misc.arcstats.bonus_size", arc[6]);
+			GETSYSCTL("kstat.zfs.misc.arcstats.dnode_size",
+			    arc_stat);
+			arc[6] += arc_stat;
+			GETSYSCTL("kstat.zfs.misc.arcstats.dbuf_size",
+			    arc_stat);
+			arc[6] += arc_stat;
+			wmove(wload, 0, 0);
+			wclrtoeol(wload);
+			for (ui = 0; ui < nitems(arc); ui++)
+				sysputuint64(wload, 0, ui * 8 + 2, 6, arc[ui],
+				    0);
+		}
 	}
 	(*curcmd->c_refresh)();
-	if (curcmd->c_flags & (CF_LOADAV |CF_ZFSARC))
+	if (curcmd->c_flags & (CF_LOADAV | CF_ZFSARC))
 		wrefresh(wload);
 	wrefresh(wnd);
 	move(CMDLINE, col);
@@ -328,9 +326,9 @@ void
 load(void)
 {
 
-	(void) getloadavg(avenrun, nitems(avenrun));
-	mvprintw(CMDLINE, 0, "%4.1f %4.1f %4.1f",
-	    avenrun[0], avenrun[1], avenrun[2]);
+	(void)getloadavg(avenrun, nitems(avenrun));
+	mvprintw(CMDLINE, 0, "%4.1f %4.1f %4.1f", avenrun[0], avenrun[1],
+	    avenrun[2]);
 	clrtoeol();
 }
 
@@ -356,7 +354,7 @@ error(const char *fmt, ...)
 	va_start(ap, fmt);
 	if (wnd) {
 		getyx(stdscr, oy, ox);
-		(void) vsnprintf(buf, sizeof(buf), fmt, ap);
+		(void)vsnprintf(buf, sizeof(buf), fmt, ap);
 		clrtoeol();
 		standout();
 		mvaddstr(CMDLINE, 0, buf);
@@ -364,7 +362,7 @@ error(const char *fmt, ...)
 		move(oy, ox);
 		refresh();
 	} else {
-		(void) vfprintf(stderr, fmt, ap);
+		(void)vfprintf(stderr, fmt, ap);
 		fprintf(stderr, "\n");
 	}
 	va_end(ap);
@@ -378,8 +376,7 @@ nlisterr(struct nlist n_list[])
 	n = 0;
 	clear();
 	mvprintw(2, 10, "systat: nlist: can't find following symbols:");
-	for (i = 0;
-	    n_list[i].n_name != NULL && *n_list[i].n_name != '\0'; i++)
+	for (i = 0; n_list[i].n_name != NULL && *n_list[i].n_name != '\0'; i++)
 		if (n_list[i].n_value == 0)
 			mvprintw(2 + ++n, 10, "%s", n_list[i].n_name);
 	move(CMDLINE, 0);

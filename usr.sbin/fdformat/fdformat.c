@@ -45,19 +45,18 @@
 #include "fdutil.h"
 
 static void
-format_track(int fd, int cyl, int secs, int head, int rate,
-	     int gaplen, int secsize, int fill, int interleave,
-	     int offset)
+format_track(int fd, int cyl, int secs, int head, int rate, int gaplen,
+    int secsize, int fill, int interleave, int offset)
 {
 	struct fd_formb f;
 	int i, j, il[FD_MAX_NSEC + 1];
 
 	memset(il, 0, sizeof il);
-	for(j = 0, i = 1 + offset; i <= secs + offset; i++) {
-	    while(il[(j % secs) + 1])
-		    j++;
-	    il[(j % secs) + 1] = i;
-	    j += interleave;
+	for (j = 0, i = 1 + offset; i <= secs + offset; i++) {
+		while (il[(j % secs) + 1])
+			j++;
+		il[(j % secs) + 1] = i;
+		j += interleave;
 	}
 
 	f.format_version = FD_FORMAT_VERSION;
@@ -69,10 +68,10 @@ format_track(int fd, int cyl, int secs, int head, int rate,
 	f.fd_formb_nsecs = secs;
 	f.fd_formb_gaplen = gaplen;
 	f.fd_formb_fillbyte = fill;
-	for(i = 0; i < secs; i++) {
+	for (i = 0; i < secs; i++) {
 		f.fd_formb_cylno(i) = cyl;
 		f.fd_formb_headno(i) = head;
-		f.fd_formb_secno(i) = il[i+1];
+		f.fd_formb_secno(i) = il[i + 1];
 		f.fd_formb_secsize(i) = secsize;
 	}
 	(void)ioctl(fd, FD_FORM, (caddr_t)&f);
@@ -97,11 +96,11 @@ verify_track(int fd, int track, int tracksize)
 		buf = realloc(buf, bufsz = tracksize);
 	if (buf == NULL)
 		errx(EX_UNAVAILABLE, "out of memory");
-	if (lseek (fd, (long) track * tracksize, 0) < 0)
+	if (lseek(fd, (long)track * tracksize, 0) < 0)
 		rv = -1;
 	/* try twice reading it, without using the normal retrier */
-	else if (read (fd, buf, tracksize) != tracksize
-		 && read (fd, buf, tracksize) != tracksize)
+	else if (read(fd, buf, tracksize) != tracksize &&
+	    read(fd, buf, tracksize) != tracksize)
 		rv = -1;
 	if (fdopts != -1)
 		(void)ioctl(fd, FD_SOPTS, &ofdopts);
@@ -109,27 +108,27 @@ verify_track(int fd, int track, int tracksize)
 }
 
 static void
-usage (void)
+usage(void)
 {
 	errx(EX_USAGE,
-	     "usage: fdformat [-F fill] [-f fmt] [-s fmtstr] [-nqvy] device");
+	    "usage: fdformat [-F fill] [-f fmt] [-s fmtstr] [-nqvy] device");
 }
 
 static int
-yes (void)
+yes(void)
 {
 	char reply[256], *p;
 
 	reply[sizeof(reply) - 1] = 0;
 	for (;;) {
 		fflush(stdout);
-		if (!fgets (reply, sizeof(reply) - 1, stdin))
+		if (!fgets(reply, sizeof(reply) - 1, stdin))
 			return (0);
-		for (p=reply; *p==' ' || *p=='\t'; ++p)
+		for (p = reply; *p == ' ' || *p == '\t'; ++p)
 			continue;
-		if (*p=='y' || *p=='Y')
+		if (*p == 'y' || *p == 'Y')
 			return (1);
-		if (*p=='n' || *p=='N' || *p=='\n' || *p=='\r')
+		if (*p == 'n' || *p == 'N' || *p == '\n' || *p == '\r')
 			return (0);
 		printf("Answer `yes' or `no': ");
 	}
@@ -154,44 +153,44 @@ main(int argc, char **argv)
 	fill = 0xf6;
 	fmtstring = 0;
 
-	while((c = getopt(argc, argv, "F:f:nqs:vy")) != -1)
-		switch(c) {
-		case 'F':	/* fill byte */
+	while ((c = getopt(argc, argv, "F:f:nqs:vy")) != -1)
+		switch (c) {
+		case 'F': /* fill byte */
 			if (getnum(optarg, &fill)) {
 				fprintf(stderr,
-			"Bad argument %s to -F option; must be numeric\n",
-					optarg);
+				    "Bad argument %s to -F option; must be numeric\n",
+				    optarg);
 				usage();
 			}
 			break;
 
-		case 'f':	/* format in kilobytes */
+		case 'f': /* format in kilobytes */
 			if (getnum(optarg, &format)) {
 				fprintf(stderr,
-			"Bad argument %s to -f option; must be numeric\n",
-					optarg);
+				    "Bad argument %s to -f option; must be numeric\n",
+				    optarg);
 				usage();
 			}
 			break;
 
-		case 'n':	/* don't verify */
+		case 'n': /* don't verify */
 			verify = 0;
 			break;
 
-		case 'q':	/* quiet */
+		case 'q': /* quiet */
 			quiet = 1;
 			break;
 
-		case 's':	/* format string with detailed options */
+		case 's': /* format string with detailed options */
 			fmtstring = optarg;
 			break;
 
-		case 'v':	/* verify only */
+		case 'v': /* verify only */
 			verify = 1;
 			verify_only = 1;
 			break;
 
-		case 'y':	/* confirm */
+		case 'y': /* confirm */
 			confirm = 1;
 			break;
 
@@ -199,7 +198,7 @@ main(int argc, char **argv)
 			usage();
 		}
 
-	if(optind != argc - 1)
+	if (optind != argc - 1)
 		usage();
 
 	if (stat(argv[optind], &sb) == -1 && errno == ENOENT) {
@@ -245,7 +244,7 @@ main(int argc, char **argv)
 	 * Finally, we are ready to turn off O_NONBLOCK, and start to
 	 * actually format something.
 	 */
-	if(ioctl(fd, FD_GTYPE, &fdt) < 0)
+	if (ioctl(fd, FD_GTYPE, &fdt) < 0)
 		errx(EX_OSERR, "not a floppy disk: %s", device);
 	if (ioctl(fd, FD_GDTYPE, &type) == -1)
 		err(EX_OSERR, "ioctl(FD_GDTYPE)");
@@ -253,9 +252,8 @@ main(int argc, char **argv)
 		getname(type, &name, &descr);
 		fdtp = get_fmt(format, type);
 		if (fdtp == NULL)
-			errx(EX_USAGE,
-			    "unknown format %d KB for drive type %s",
-			     format, name);
+			errx(EX_USAGE, "unknown format %d KB for drive type %s",
+			    format, name);
 		fdt = *fdtp;
 	}
 	if (fmtstring) {
@@ -276,16 +274,14 @@ main(int argc, char **argv)
 	tracks_per_dot = (fdt.tracks * fdt.heads + 20) / 40;
 
 	if (verify_only) {
-		if(!quiet)
+		if (!quiet)
 			printf("Verify %dK floppy `%s'.\n",
-				fdt.tracks * fdt.heads * bytes_per_track / 1024,
-				device);
-	}
-	else if(!quiet && !confirm) {
+			    fdt.tracks * fdt.heads * bytes_per_track / 1024,
+			    device);
+	} else if (!quiet && !confirm) {
 		printf("Format %dK floppy `%s'? (y/n): ",
-			fdt.tracks * fdt.heads * bytes_per_track / 1024,
-			device);
-		if(!yes()) {
+		    fdt.tracks * fdt.heads * bytes_per_track / 1024, device);
+		if (!yes()) {
 			printf("Not confirmed.\n");
 			return (EX_UNAVAILABLE);
 		}
@@ -294,7 +290,7 @@ main(int argc, char **argv)
 	/*
 	 * Formatting.
 	 */
-	if(!quiet) {
+	if (!quiet) {
 		printf("Processing ");
 		for (i = 0; i < (fdt.tracks * fdt.heads) / tracks_per_dot; i++)
 			putchar('-');
@@ -307,10 +303,10 @@ main(int argc, char **argv)
 	for (track = 0; track < fdt.tracks * fdt.heads; track++) {
 		if (!verify_only) {
 			format_track(fd, track / fdt.heads, fdt.sectrac,
-				track % fdt.heads, fdt.trans, fdt.f_gap,
-				fdt.secsize, fill, fdt.f_inter,
-				track % fdt.heads? fdt.offset_side2: 0);
-			if(!quiet && !((track + 1) % tracks_per_dot)) {
+			    track % fdt.heads, fdt.trans, fdt.f_gap,
+			    fdt.secsize, fill, fdt.f_inter,
+			    track % fdt.heads ? fdt.offset_side2 : 0);
+			if (!quiet && !((track + 1) % tracks_per_dot)) {
 				putchar('F');
 				fflush(stdout);
 			}
@@ -322,24 +318,23 @@ main(int argc, char **argv)
 					if (ioctl(fd, FD_GSTAT, fdcs + errs) ==
 					    -1)
 						errx(EX_IOERR,
-					"floppy IO error, but no FDC status");
+						    "floppy IO error, but no FDC status");
 					errs++;
 				}
 			}
-			if(!quiet && !((track + 1) % tracks_per_dot)) {
+			if (!quiet && !((track + 1) % tracks_per_dot)) {
 				if (!verify_only)
 					putchar('\b');
 				if (error) {
 					putchar('E');
 					error = 0;
-				}
-				else
+				} else
 					putchar('V');
 				fflush(stdout);
 			}
 		}
 	}
-	if(!quiet)
+	if (!quiet)
 		printf(" done.\n");
 
 	if (!quiet && errs) {
@@ -347,8 +342,8 @@ main(int argc, char **argv)
 		fprintf(stderr, "Errors encountered:\nCyl Head Sect   Error\n");
 		for (i = 0; i < errs && i < MAXPRINTERRS; i++) {
 			fprintf(stderr, " %2d   %2d   %2d   ",
-				fdcs[i].status[3], fdcs[i].status[4],
-				fdcs[i].status[5]);
+			    fdcs[i].status[3], fdcs[i].status[4],
+			    fdcs[i].status[5]);
 			printstatus(fdcs + i, 1);
 			putc('\n', stderr);
 		}

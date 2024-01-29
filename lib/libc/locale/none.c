@@ -48,18 +48,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+
 #include "mblocal.h"
 
-static size_t	_none_mbrtowc(wchar_t * __restrict, const char * __restrict,
-		    size_t, mbstate_t * __restrict);
-static int	_none_mbsinit(const mbstate_t *);
-static size_t	_none_mbsnrtowcs(wchar_t * __restrict dst,
-		    const char ** __restrict src, size_t nms, size_t len,
-		    mbstate_t * __restrict ps __unused);
-static size_t	_none_wcrtomb(char * __restrict, wchar_t,
-		    mbstate_t * __restrict);
-static size_t	_none_wcsnrtombs(char * __restrict, const wchar_t ** __restrict,
-		    size_t, size_t, mbstate_t * __restrict);
+static size_t _none_mbrtowc(wchar_t *__restrict, const char *__restrict, size_t,
+    mbstate_t *__restrict);
+static int _none_mbsinit(const mbstate_t *);
+static size_t _none_mbsnrtowcs(wchar_t *__restrict dst,
+    const char **__restrict src, size_t nms, size_t len,
+    mbstate_t *__restrict ps __unused);
+static size_t _none_wcrtomb(char *__restrict, wchar_t, mbstate_t *__restrict);
+static size_t _none_wcsnrtombs(char *__restrict, const wchar_t **__restrict,
+    size_t, size_t, mbstate_t *__restrict);
 
 /* setup defaults */
 
@@ -78,7 +78,7 @@ _none_init(struct xlocale_ctype *l, _RuneLocale *rl)
 	l->runes = rl;
 	l->__mb_cur_max = 1;
 	l->__mb_sb_limit = 256;
-	return(0);
+	return (0);
 }
 
 static int
@@ -93,8 +93,8 @@ _none_mbsinit(const mbstate_t *ps __unused)
 }
 
 static size_t
-_none_mbrtowc(wchar_t * __restrict pwc, const char * __restrict s, size_t n,
-    mbstate_t * __restrict ps __unused)
+_none_mbrtowc(wchar_t *__restrict pwc, const char *__restrict s, size_t n,
+    mbstate_t *__restrict ps __unused)
 {
 
 	if (s == NULL)
@@ -109,8 +109,7 @@ _none_mbrtowc(wchar_t * __restrict pwc, const char * __restrict s, size_t n,
 }
 
 static size_t
-_none_wcrtomb(char * __restrict s, wchar_t wc,
-    mbstate_t * __restrict ps __unused)
+_none_wcrtomb(char *__restrict s, wchar_t wc, mbstate_t *__restrict ps __unused)
 {
 
 	if (s == NULL)
@@ -125,8 +124,8 @@ _none_wcrtomb(char * __restrict s, wchar_t wc,
 }
 
 static size_t
-_none_mbsnrtowcs(wchar_t * __restrict dst, const char ** __restrict src,
-    size_t nms, size_t len, mbstate_t * __restrict ps __unused)
+_none_mbsnrtowcs(wchar_t *__restrict dst, const char **__restrict src,
+    size_t nms, size_t len, mbstate_t *__restrict ps __unused)
 {
 	const char *s;
 	size_t nchr;
@@ -150,8 +149,8 @@ _none_mbsnrtowcs(wchar_t * __restrict dst, const char ** __restrict src,
 }
 
 static size_t
-_none_wcsnrtombs(char * __restrict dst, const wchar_t ** __restrict src,
-    size_t nwc, size_t len, mbstate_t * __restrict ps __unused)
+_none_wcsnrtombs(char *__restrict dst, const wchar_t **__restrict src,
+    size_t nwc, size_t len, mbstate_t *__restrict ps __unused)
 {
 	const wchar_t *s;
 	size_t nchr;
@@ -187,25 +186,15 @@ _none_wcsnrtombs(char * __restrict dst, const wchar_t ** __restrict src,
 /* setup defaults */
 
 struct xlocale_ctype __xlocale_global_ctype = {
-	{{0}, "C"},
-	(_RuneLocale*)&_DefaultRuneLocale,
-	_none_mbrtowc,
-	_none_mbsinit,
-	_none_mbsnrtowcs,
-	_none_wcrtomb,
-	_none_wcsnrtombs,
-	1, /* __mb_cur_max, */
+	{ { 0 }, "C" }, (_RuneLocale *)&_DefaultRuneLocale, _none_mbrtowc,
+	_none_mbsinit, _none_mbsnrtowcs, _none_wcrtomb, _none_wcsnrtombs,
+	1,  /* __mb_cur_max, */
 	256 /* __mb_sb_limit */
 };
 
 struct xlocale_ctype __xlocale_C_ctype = {
-	{{0}, "C"},
-	(_RuneLocale*)&_DefaultRuneLocale,
-	_none_mbrtowc,
-	_none_mbsinit,
-	_none_mbsnrtowcs,
-	_none_wcrtomb,
-	_none_wcsnrtombs,
-	1, /* __mb_cur_max, */
+	{ { 0 }, "C" }, (_RuneLocale *)&_DefaultRuneLocale, _none_mbrtowc,
+	_none_mbsinit, _none_mbsnrtowcs, _none_wcrtomb, _none_wcsnrtombs,
+	1,  /* __mb_cur_max, */
 	256 /* __mb_sb_limit */
 };

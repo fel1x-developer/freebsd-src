@@ -43,10 +43,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+
 #include "local.h"
 #include "xlocale_private.h"
 
-static int	eofread(void *, char *, int);
+static int eofread(void *, char *, int);
 
 static int
 eofread(void *cookie, char *buf, int len)
@@ -56,8 +57,8 @@ eofread(void *cookie, char *buf, int len)
 }
 
 int
-vswscanf_l(const wchar_t * __restrict str, locale_t locale,
-		const wchar_t * __restrict fmt, va_list ap)
+vswscanf_l(const wchar_t *__restrict str, locale_t locale,
+    const wchar_t *__restrict fmt, va_list ap)
 {
 	static const mbstate_t initial;
 	mbstate_t mbs;
@@ -76,7 +77,8 @@ vswscanf_l(const wchar_t * __restrict str, locale_t locale,
 		return (EOF);
 	mbs = initial;
 	strp = str;
-	if ((mlen = wcsrtombs_l(mbstr, &strp, SIZE_T_MAX, &mbs, locale)) == (size_t)-1) {
+	if ((mlen = wcsrtombs_l(mbstr, &strp, SIZE_T_MAX, &mbs, locale)) ==
+	    (size_t)-1) {
 		free(mbstr);
 		return (EOF);
 	}
@@ -90,7 +92,7 @@ vswscanf_l(const wchar_t * __restrict str, locale_t locale,
 	return (r);
 }
 int
-vswscanf(const wchar_t * __restrict str, const wchar_t * __restrict fmt,
+vswscanf(const wchar_t *__restrict str, const wchar_t *__restrict fmt,
     va_list ap)
 {
 	return vswscanf_l(str, __get_locale(), fmt, ap);

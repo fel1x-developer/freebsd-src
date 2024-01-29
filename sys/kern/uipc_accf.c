@@ -32,6 +32,7 @@
 #define ACCEPT_FILTER_MOD
 
 #include "opt_param.h"
+
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/domain.h>
@@ -42,19 +43,18 @@
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/protosw.h>
-#include <sys/sysctl.h>
+#include <sys/queue.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
-#include <sys/queue.h>
+#include <sys/sysctl.h>
 
 static struct mtx accept_filter_mtx;
-MTX_SYSINIT(accept_filter, &accept_filter_mtx, "accept_filter_mtx",
-	MTX_DEF);
-#define	ACCEPT_FILTER_LOCK()	mtx_lock(&accept_filter_mtx)
-#define	ACCEPT_FILTER_UNLOCK()	mtx_unlock(&accept_filter_mtx)
+MTX_SYSINIT(accept_filter, &accept_filter_mtx, "accept_filter_mtx", MTX_DEF);
+#define ACCEPT_FILTER_LOCK() mtx_lock(&accept_filter_mtx)
+#define ACCEPT_FILTER_UNLOCK() mtx_unlock(&accept_filter_mtx)
 
-static SLIST_HEAD(, accept_filter) accept_filtlsthd =
-	SLIST_HEAD_INITIALIZER(accept_filtlsthd);
+static SLIST_HEAD(, accept_filter) accept_filtlsthd = SLIST_HEAD_INITIALIZER(
+    accept_filtlsthd);
 
 MALLOC_DEFINE(M_ACCF, "accf", "accept filter data");
 
@@ -63,7 +63,7 @@ static int unloadable = 0;
 SYSCTL_NODE(_net, OID_AUTO, accf, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "Accept filters");
 SYSCTL_INT(_net_accf, OID_AUTO, unloadable, CTLFLAG_RW, &unloadable, 0,
-	"Allow unload of accept filters (not recommended)");
+    "Allow unload of accept filters (not recommended)");
 
 /*
  * Must be passed a malloc'd structure so we don't explode if the kld is
@@ -76,8 +76,8 @@ accept_filt_add(struct accept_filter *filt)
 	struct accept_filter *p;
 
 	ACCEPT_FILTER_LOCK();
-	SLIST_FOREACH(p, &accept_filtlsthd, accf_next)
-		if (strcmp(p->accf_name, filt->accf_name) == 0)  {
+	SLIST_FOREACH (p, &accept_filtlsthd, accf_next)
+		if (strcmp(p->accf_name, filt->accf_name) == 0) {
 			if (p->accf_callback != NULL) {
 				ACCEPT_FILTER_UNLOCK();
 				return (EEXIST);
@@ -88,7 +88,7 @@ accept_filt_add(struct accept_filter *filt)
 				return (0);
 			}
 		}
-				
+
 	if (p == NULL)
 		SLIST_INSERT_HEAD(&accept_filtlsthd, filt, accf_next);
 	ACCEPT_FILTER_UNLOCK();
@@ -114,7 +114,7 @@ accept_filt_get(char *name)
 	struct accept_filter *p;
 
 	ACCEPT_FILTER_LOCK();
-	SLIST_FOREACH(p, &accept_filtlsthd, accf_next)
+	SLIST_FOREACH (p, &accept_filtlsthd, accf_next)
 		if (strcmp(p->accf_name, name) == 0)
 			break;
 	ACCEPT_FILTER_UNLOCK();
@@ -126,7 +126,7 @@ int
 accept_filt_generic_mod_event(module_t mod, int event, void *data)
 {
 	struct accept_filter *p;
-	struct accept_filter *accfp = (struct accept_filter *) data;
+	struct accept_filter *accfp = (struct accept_filter *)data;
 	int error;
 
 	switch (event) {
@@ -228,7 +228,7 @@ accept_filt_setopt(struct socket *so, struct sockopt *sopt)
 		 * connections, that are blocked by us.
 		 */
 		wakeup = 0;
-		TAILQ_FOREACH_SAFE(sp, &so->sol_incomp, so_list, sp1) {
+		TAILQ_FOREACH_SAFE (sp, &so->sol_incomp, so_list, sp1) {
 			SOCK_LOCK(sp);
 			if (sp->so_options & SO_ACCEPTFILTER) {
 				TAILQ_REMOVE(&so->sol_incomp, sp, so_list);
@@ -242,7 +242,7 @@ accept_filt_setopt(struct socket *so, struct sockopt *sopt)
 			SOCK_UNLOCK(sp);
 		}
 		if (wakeup)
-			solisten_wakeup(so);  /* unlocks */
+			solisten_wakeup(so); /* unlocks */
 		else
 			SOLISTEN_UNLOCK(so);
 		return (0);
@@ -254,8 +254,8 @@ accept_filt_setopt(struct socket *so, struct sockopt *sopt)
 	 */
 	afap = malloc(sizeof(*afap), M_TEMP, M_WAITOK);
 	error = sooptcopyin(sopt, afap, sizeof *afap, sizeof *afap);
-	afap->af_name[sizeof(afap->af_name)-1] = '\0';
-	afap->af_arg[sizeof(afap->af_arg)-1] = '\0';
+	afap->af_name[sizeof(afap->af_name) - 1] = '\0';
+	afap->af_arg[sizeof(afap->af_arg) - 1] = '\0';
 	if (error) {
 		free(afap, M_TEMP);
 		return (error);

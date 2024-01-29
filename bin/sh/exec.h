@@ -31,16 +31,16 @@
  */
 
 /* values of cmdtype */
-#define CMDUNKNOWN -1		/* no entry in table for command */
-#define CMDNORMAL 0		/* command is an executable program */
-#define CMDBUILTIN 1		/* command is a shell builtin */
-#define CMDFUNCTION 2		/* command is a shell function */
+#define CMDUNKNOWN -1 /* no entry in table for command */
+#define CMDNORMAL 0   /* command is an executable program */
+#define CMDBUILTIN 1  /* command is a shell builtin */
+#define CMDFUNCTION 2 /* command is a shell function */
 
 /* values for typecmd_impl's third parameter */
 enum {
-	TYPECMD_SMALLV,		/* command -v */
-	TYPECMD_BIGV,		/* command -V */
-	TYPECMD_TYPE		/* type */
+	TYPECMD_SMALLV, /* command -v */
+	TYPECMD_BIGV,	/* command -V */
+	TYPECMD_TYPE	/* type */
 };
 
 union node;
@@ -54,10 +54,9 @@ struct cmdentry {
 	const char *cmdname;
 };
 
-
 /* action to find_command() */
-#define DO_ERR		0x01	/* prints errors */
-#define DO_NOFUNC	0x02	/* don't return shell functions, for command */
+#define DO_ERR 0x01    /* prints errors */
+#define DO_NOFUNC 0x02 /* don't return shell functions, for command */
 
 void shellexec(char **, char **, const char *, int) __dead2;
 char *padvance(const char **, const char **, const char *);

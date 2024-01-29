@@ -30,38 +30,39 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_PMCSTAT_PL_CALLGRAPH_H_
-#define	_PMCSTAT_PL_CALLGRAPH_H_
+#ifndef _PMCSTAT_PL_CALLGRAPH_H_
+#define _PMCSTAT_PL_CALLGRAPH_H_
 
 /*
  * Each call graph node is tracked by a pmcstat_cgnode struct.
  */
 
 struct pmcstat_cgnode {
-	struct pmcstat_image	*pcg_image;
-	uintfptr_t		pcg_func;
-	uint32_t		pcg_count;
-	uint32_t		pcg_nchildren;
+	struct pmcstat_image *pcg_image;
+	uintfptr_t pcg_func;
+	uint32_t pcg_count;
+	uint32_t pcg_nchildren;
 	LIST_ENTRY(pmcstat_cgnode) pcg_sibling;
-	LIST_HEAD(,pmcstat_cgnode) pcg_children;
+	LIST_HEAD(, pmcstat_cgnode) pcg_children;
 };
 
 struct pmcstat_cgnode_hash {
-	struct pmcstat_cgnode  *pch_cgnode;
-	pmc_id_t		pch_pmcid;
+	struct pmcstat_cgnode *pch_cgnode;
+	pmc_id_t pch_pmcid;
 	LIST_ENTRY(pmcstat_cgnode_hash) pch_next;
 };
-extern LIST_HEAD(pmcstat_cgnode_hash_list, pmcstat_cgnode_hash) pmcstat_cgnode_hash[PMCSTAT_NHASH];
+extern LIST_HEAD(pmcstat_cgnode_hash_list,
+    pmcstat_cgnode_hash) pmcstat_cgnode_hash[PMCSTAT_NHASH];
 extern int pmcstat_cgnode_hash_count;
 
 /* Function prototypes */
 int pmcpl_cg_init(void);
 void pmcpl_cg_shutdown(FILE *mf);
-void pmcpl_cg_process(
-    struct pmcstat_process *pp, struct pmcstat_pmcrecord *pmcr,
-    uint32_t nsamples, uintfptr_t *cc, int usermode, uint32_t cpu);
+void pmcpl_cg_process(struct pmcstat_process *pp,
+    struct pmcstat_pmcrecord *pmcr, uint32_t nsamples, uintfptr_t *cc,
+    int usermode, uint32_t cpu);
 int pmcpl_cg_topkeypress(int c, void *w);
 void pmcpl_cg_topdisplay(void);
 void pmcpl_cg_configure(char *opt);
 
-#endif	/* _PMCSTAT_PL_CALLGRAPH_H_ */
+#endif /* _PMCSTAT_PL_CALLGRAPH_H_ */

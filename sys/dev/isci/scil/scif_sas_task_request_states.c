@@ -76,23 +76,19 @@
  *
  * @return none
  */
-static
-void scif_sas_task_request_initial_state_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scif_sas_task_request_initial_state_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_TASK_REQUEST_T * fw_task = (SCIF_SAS_TASK_REQUEST_T *)object;
+	SCIF_SAS_TASK_REQUEST_T *fw_task = (SCIF_SAS_TASK_REQUEST_T *)object;
 
-   SET_STATE_HANDLER(
-      &fw_task->parent,
-      scif_sas_task_request_state_handler_table,
-      SCI_BASE_REQUEST_STATE_INITIAL
-   );
+	SET_STATE_HANDLER(&fw_task->parent,
+	    scif_sas_task_request_state_handler_table,
+	    SCI_BASE_REQUEST_STATE_INITIAL);
 
-   // Initial state is a transitional state to the constructed state
-   sci_base_state_machine_change_state(
-      &fw_task->parent.parent.state_machine, SCI_BASE_REQUEST_STATE_CONSTRUCTED
-   );
+	// Initial state is a transitional state to the constructed state
+	sci_base_state_machine_change_state(
+	    &fw_task->parent.parent.state_machine,
+	    SCI_BASE_REQUEST_STATE_CONSTRUCTED);
 }
 
 /**
@@ -105,18 +101,14 @@ void scif_sas_task_request_initial_state_enter(
  *
  * @return none
  */
-static
-void scif_sas_task_request_constructed_state_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scif_sas_task_request_constructed_state_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_TASK_REQUEST_T * fw_task = (SCIF_SAS_TASK_REQUEST_T *)object;
+	SCIF_SAS_TASK_REQUEST_T *fw_task = (SCIF_SAS_TASK_REQUEST_T *)object;
 
-   SET_STATE_HANDLER(
-      &fw_task->parent,
-      scif_sas_task_request_state_handler_table,
-      SCI_BASE_REQUEST_STATE_CONSTRUCTED
-   );
+	SET_STATE_HANDLER(&fw_task->parent,
+	    scif_sas_task_request_state_handler_table,
+	    SCI_BASE_REQUEST_STATE_CONSTRUCTED);
 }
 
 /**
@@ -129,23 +121,19 @@ void scif_sas_task_request_constructed_state_enter(
  *
  * @return none
  */
-static
-void scif_sas_task_request_started_state_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scif_sas_task_request_started_state_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_TASK_REQUEST_T * fw_task = (SCIF_SAS_TASK_REQUEST_T *)object;
+	SCIF_SAS_TASK_REQUEST_T *fw_task = (SCIF_SAS_TASK_REQUEST_T *)object;
 
-   SET_STATE_HANDLER(
-      &fw_task->parent,
-      scif_sas_task_request_state_handler_table,
-      SCI_BASE_REQUEST_STATE_STARTED
-   );
+	SET_STATE_HANDLER(&fw_task->parent,
+	    scif_sas_task_request_state_handler_table,
+	    SCI_BASE_REQUEST_STATE_STARTED);
 
-   // Increment the affected request count to include the task performing
-   // the task management to ensure we don't complete the task request until
-   // all terminations and the task itself have completed.
-   fw_task->affected_request_count++;
+	// Increment the affected request count to include the task performing
+	// the task management to ensure we don't complete the task request
+	// until all terminations and the task itself have completed.
+	fw_task->affected_request_count++;
 }
 
 /**
@@ -158,23 +146,19 @@ void scif_sas_task_request_started_state_enter(
  *
  * @return none
  */
-static
-void scif_sas_task_request_completed_state_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scif_sas_task_request_completed_state_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_TASK_REQUEST_T * fw_task = (SCIF_SAS_TASK_REQUEST_T *)object;
+	SCIF_SAS_TASK_REQUEST_T *fw_task = (SCIF_SAS_TASK_REQUEST_T *)object;
 
-   SET_STATE_HANDLER(
-      &fw_task->parent,
-      scif_sas_task_request_state_handler_table,
-      SCI_BASE_REQUEST_STATE_COMPLETED
-   );
+	SET_STATE_HANDLER(&fw_task->parent,
+	    scif_sas_task_request_state_handler_table,
+	    SCI_BASE_REQUEST_STATE_COMPLETED);
 
-   // Check to see if the task management operation is now finished (i.e.
-   // all of the task terminations and the task management request are
-   // complete).
-   scif_sas_task_request_operation_complete(fw_task);
+	// Check to see if the task management operation is now finished (i.e.
+	// all of the task terminations and the task management request are
+	// complete).
+	scif_sas_task_request_operation_complete(fw_task);
 }
 
 /**
@@ -187,23 +171,18 @@ void scif_sas_task_request_completed_state_enter(
  *
  * @return none
  */
-static
-void scif_sas_task_request_aborting_state_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scif_sas_task_request_aborting_state_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_TASK_REQUEST_T * fw_task = (SCIF_SAS_TASK_REQUEST_T *)object;
+	SCIF_SAS_TASK_REQUEST_T *fw_task = (SCIF_SAS_TASK_REQUEST_T *)object;
 
-   SET_STATE_HANDLER(
-      &fw_task->parent,
-      scif_sas_task_request_state_handler_table,
-      SCI_BASE_REQUEST_STATE_ABORTING
-   );
+	SET_STATE_HANDLER(&fw_task->parent,
+	    scif_sas_task_request_state_handler_table,
+	    SCI_BASE_REQUEST_STATE_ABORTING);
 
-   /// @todo Is terminating a previously outstanding task request right?
-   fw_task->parent.status = scif_sas_request_terminate_start(
-                               &fw_task->parent, fw_task->parent.core_object
-                            );
+	/// @todo Is terminating a previously outstanding task request right?
+	fw_task->parent.status = scif_sas_request_terminate_start(
+	    &fw_task->parent, fw_task->parent.core_object);
 }
 
 /**
@@ -216,13 +195,11 @@ void scif_sas_task_request_aborting_state_enter(
  *
  * @return none
  */
-static
-void scif_sas_task_request_aborting_state_exit(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scif_sas_task_request_aborting_state_exit(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_REQUEST_T * fw_request = (SCIF_SAS_REQUEST_T *)object;
-   scif_sas_request_terminate_complete(fw_request);
+	SCIF_SAS_REQUEST_T *fw_request = (SCIF_SAS_REQUEST_T *)object;
+	scif_sas_request_terminate_complete(fw_request);
 }
 
 /**
@@ -235,53 +212,29 @@ void scif_sas_task_request_aborting_state_exit(
  *
  * @return none
  */
-static
-void scif_sas_task_request_final_state_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scif_sas_task_request_final_state_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_TASK_REQUEST_T * fw_task = (SCIF_SAS_TASK_REQUEST_T *)object;
+	SCIF_SAS_TASK_REQUEST_T *fw_task = (SCIF_SAS_TASK_REQUEST_T *)object;
 
-   SET_STATE_HANDLER(
-      &fw_task->parent,
-      scif_sas_task_request_state_handler_table,
-      SCI_BASE_REQUEST_STATE_FINAL
-   );
+	SET_STATE_HANDLER(&fw_task->parent,
+	    scif_sas_task_request_state_handler_table,
+	    SCI_BASE_REQUEST_STATE_FINAL);
 }
 
-
 SCI_BASE_STATE_T
-   scif_sas_task_request_state_table[SCI_BASE_REQUEST_MAX_STATES] =
-{
-   {
-      SCI_BASE_REQUEST_STATE_INITIAL,
-      scif_sas_task_request_initial_state_enter,
-      NULL
-   },
-   {
-      SCI_BASE_REQUEST_STATE_CONSTRUCTED,
-      scif_sas_task_request_constructed_state_enter,
-      NULL
-   },
-   {
-      SCI_BASE_REQUEST_STATE_STARTED,
-      scif_sas_task_request_started_state_enter,
-      NULL
-   },
-   {
-      SCI_BASE_REQUEST_STATE_COMPLETED,
-      scif_sas_task_request_completed_state_enter,
-      NULL
-   },
-   {
-      SCI_BASE_REQUEST_STATE_ABORTING,
-      scif_sas_task_request_aborting_state_enter,
-      scif_sas_task_request_aborting_state_exit
-   },
-   {
-      SCI_BASE_REQUEST_STATE_FINAL,
-      scif_sas_task_request_final_state_enter,
-      NULL
-   },
+scif_sas_task_request_state_table[SCI_BASE_REQUEST_MAX_STATES] = {
+	{ SCI_BASE_REQUEST_STATE_INITIAL,
+	    scif_sas_task_request_initial_state_enter, NULL },
+	{ SCI_BASE_REQUEST_STATE_CONSTRUCTED,
+	    scif_sas_task_request_constructed_state_enter, NULL },
+	{ SCI_BASE_REQUEST_STATE_STARTED,
+	    scif_sas_task_request_started_state_enter, NULL },
+	{ SCI_BASE_REQUEST_STATE_COMPLETED,
+	    scif_sas_task_request_completed_state_enter, NULL },
+	{ SCI_BASE_REQUEST_STATE_ABORTING,
+	    scif_sas_task_request_aborting_state_enter,
+	    scif_sas_task_request_aborting_state_exit },
+	{ SCI_BASE_REQUEST_STATE_FINAL, scif_sas_task_request_final_state_enter,
+	    NULL },
 };
-

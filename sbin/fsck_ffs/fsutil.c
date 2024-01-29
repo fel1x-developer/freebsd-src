@@ -29,33 +29,32 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
-#include <sys/time.h>
 #include <sys/types.h>
-#include <sys/sysctl.h>
+#include <sys/param.h>
 #include <sys/disk.h>
 #include <sys/disklabel.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
+#include <sys/sysctl.h>
+#include <sys/time.h>
 
-#include <ufs/ufs/dinode.h>
-#include <ufs/ufs/dir.h>
-#include <ufs/ffs/fs.h>
-
+#include <ctype.h>
 #include <err.h>
 #include <errno.h>
-#include <string.h>
-#include <ctype.h>
 #include <fstab.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
+#include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
+#include <ufs/ufs/dir.h>
 #include <unistd.h>
 
 #include "fsck.h"
 
-int		sujrecovery = 0;
+int sujrecovery = 0;
 
 static struct bufarea *allocbuf(const char *);
 static void cg_write(struct bufarea *);
@@ -66,17 +65,17 @@ static void printIOstats(void);
 static long diskreads, totaldiskreads, totalreads; /* Disk cache statistics */
 static struct timespec startpass, finishpass;
 struct timeval slowio_starttime;
-int slowio_delay_usec = 10000;	/* Initial IO delay for background fsck */
+int slowio_delay_usec = 10000; /* Initial IO delay for background fsck */
 int slowio_pollcnt;
-static struct bufarea cgblk;	/* backup buffer for cylinder group blocks */
+static struct bufarea cgblk;	 /* backup buffer for cylinder group blocks */
 static struct bufarea failedbuf; /* returned by failed getdatablk() */
 static TAILQ_HEAD(bufqueue, bufarea) bufqueuehd; /* head of buffer cache LRU */
 static LIST_HEAD(bufhash, bufarea) bufhashhd[HASHSIZE]; /* buffer hash list */
-static struct bufhash freebufs;	/* unused buffers */
-static int numbufs;		/* size of buffer cache */
-static int cachelookups;	/* number of cache lookups */
-static int cachereads;		/* number of cache reads */
-static int flushtries;		/* number of tries to reclaim memory */
+static struct bufhash freebufs;				/* unused buffers */
+static int numbufs;	 /* size of buffer cache */
+static int cachelookups; /* number of cache lookups */
+static int cachereads;	 /* number of cache reads */
+static int flushtries;	 /* number of tries to reclaim memory */
 
 char *buftype[BT_NUMBUFTYPES] = BT_NAMES;
 
@@ -122,7 +121,7 @@ reply(const char *question)
 	if (preen)
 		pfatal("INTERNAL ERROR: GOT TO reply()");
 	persevere = strcmp(question, "CONTINUE") == 0 ||
-		strcmp(question, "LOOK FOR ALTERNATE SUPERBLOCKS") == 0;
+	    strcmp(question, "LOOK FOR ALTERNATE SUPERBLOCKS") == 0;
 	printf("\n");
 	if (!persevere && (nflag || (fswritefd < 0 && bkgrdflag == 0))) {
 		printf("%s? no\n\n", question);
@@ -133,9 +132,9 @@ reply(const char *question)
 		printf("%s? yes\n\n", question);
 		return (1);
 	}
-	do	{
+	do {
 		printf("%s? [yn] ", question);
-		(void) fflush(stdout);
+		(void)fflush(stdout);
 		c = getc(stdin);
 		while (c != '\n' && getc(stdin) != '\n') {
 			if (feof(stdin)) {
@@ -222,8 +221,8 @@ allocbuf(const char *failreason)
  * Use getblk() here rather than cgget() because the cylinder group
  * may be corrupted but we want it anyway so we can fix it.
  */
-static struct bufarea *cgbufs;	/* header for cylinder group cache */
-static int flushtries;		/* number of tries to reclaim memory */
+static struct bufarea *cgbufs; /* header for cylinder group cache */
+static int flushtries;	       /* number of tries to reclaim memory */
 
 struct bufarea *
 cglookup(int cg)
@@ -231,7 +230,7 @@ cglookup(int cg)
 	struct bufarea *cgbp;
 	struct cg *cgp;
 
-	if ((unsigned) cg >= sblock.fs_ncg)
+	if ((unsigned)cg >= sblock.fs_ncg)
 		errx(EEXIT, "cglookup: out of range cylinder group %d", cg);
 	if (cgbufs == NULL) {
 		cgbufs = Calloc(sblock.fs_ncg, sizeof(struct bufarea));
@@ -246,7 +245,8 @@ cglookup(int cg)
 		cgp = Balloc((unsigned int)sblock.fs_cgsize);
 	if (cgp == NULL) {
 		if (sujrecovery)
-			errx(EEXIT,"Ran out of memory during journal recovery");
+			errx(EEXIT,
+			    "Ran out of memory during journal recovery");
 		flush(fswritefd, &cgblk);
 		getblk(&cgblk, cgtod(&sblock, cg), sblock.fs_cgsize);
 		return (&cgblk);
@@ -269,8 +269,8 @@ cgdirty(struct bufarea *cgbp)
 	cg = cgbp->b_un.b_cg;
 	if ((sblock.fs_metackhash & CK_CYLGRP) != 0) {
 		cg->cg_ckhash = 0;
-		cg->cg_ckhash =
-		    calculate_crc32c(~0L, (void *)cg, sblock.fs_cgsize);
+		cg->cg_ckhash = calculate_crc32c(~0L, (void *)cg,
+		    sblock.fs_cgsize);
 	}
 	dirty(cgbp);
 }
@@ -316,7 +316,7 @@ getdatablk(ufs2_daddr_t blkno, long size, int type)
 		return (&failedbuf);
 	}
 	bhdp = &bufhashhd[HASH(blkno)];
-	LIST_FOREACH(bp, bhdp, b_hash)
+	LIST_FOREACH (bp, bhdp, b_hash)
 		if (bp->b_bno == fsbtodb(&sblock, blkno)) {
 			if (debug && bp->b_size != size) {
 				prtbuf(bp, "getdatablk: size mismatch");
@@ -327,7 +327,7 @@ getdatablk(ufs2_daddr_t blkno, long size, int type)
 			goto foundit;
 		}
 	/*
-	 * Move long-term busy buffer back to the front of the LRU so we 
+	 * Move long-term busy buffer back to the front of the LRU so we
 	 * do not endless inspect them for recycling.
 	 */
 	bp = TAILQ_LAST(&bufqueuehd, bufqueue);
@@ -348,23 +348,23 @@ getdatablk(ufs2_daddr_t blkno, long size, int type)
 		bp = allocbuf("cannot create minimal buffer pool");
 	} else if (sujrecovery) {
 		/*
-		 * SUJ recovery does not want anything written until it 
+		 * SUJ recovery does not want anything written until it
 		 * has successfully completed (so it can fail back to
 		 * full fsck). Thus, we can only recycle clean buffers.
 		 */
-		TAILQ_FOREACH_REVERSE(bp, &bufqueuehd, bufqueue, b_list)
+		TAILQ_FOREACH_REVERSE (bp, &bufqueuehd, bufqueue, b_list)
 			if ((bp->b_flags & B_DIRTY) == 0 && bp->b_refcnt == 0)
 				break;
 		if (bp == NULL)
 			bp = allocbuf("Ran out of memory during "
-			    "journal recovery");
+				      "journal recovery");
 		else
 			LIST_REMOVE(bp, b_hash);
 	} else {
 		/*
 		 * Recycle oldest non-busy buffer.
 		 */
-		TAILQ_FOREACH_REVERSE(bp, &bufqueuehd, bufqueue, b_list)
+		TAILQ_FOREACH_REVERSE (bp, &bufqueuehd, bufqueue, b_list)
 			if (bp->b_refcnt == 0)
 				break;
 		if (bp == NULL)
@@ -458,8 +458,7 @@ flush(int fd, struct bufarea *bp)
 	switch (bp->b_type) {
 	case BT_SUPERBLK:
 		if (bp != &sblk)
-			pfatal("BUFFER %p DOES NOT MATCH SBLK %p\n",
-			    bp, &sblk);
+			pfatal("BUFFER %p DOES NOT MATCH SBLK %p\n", bp, &sblk);
 		/*
 		 * Superblocks are always pre-copied so we do not need
 		 * to check them for copy-on-write.
@@ -523,7 +522,7 @@ snapflush(ufs2_daddr_t (*checkblkavail)(ufs2_daddr_t, long))
 	if (snapcnt > 0) {
 		if (debug)
 			printf("Check for snapshot copies\n");
-		TAILQ_FOREACH_REVERSE(bp, &bufqueuehd, bufqueue, b_list)
+		TAILQ_FOREACH_REVERSE (bp, &bufqueuehd, bufqueue, b_list)
 			if ((bp->b_flags & B_DIRTY) != 0)
 				copyonwrite(&sblock, bp, checkblkavail);
 		for (cnt = 0; cnt < snapcnt; cnt++)
@@ -612,8 +611,8 @@ ckfini(int markclean)
 		if ((!(sblock.fs_flags & FS_UNCLEAN)) != markclean) {
 			cmd.value = FS_UNCLEAN;
 			cmd.size = markclean ? -1 : 1;
-			if (sysctlbyname("vfs.ffs.setflags", 0, 0,
-			    &cmd, sizeof cmd) == -1)
+			if (sysctlbyname("vfs.ffs.setflags", 0, 0, &cmd,
+				sizeof cmd) == -1)
 				pwarn("CANNOT SET FILE SYSTEM DIRTY FLAG\n");
 			if (!preen) {
 				printf("\n***** FILE SYSTEM MARKED %s *****\n",
@@ -666,19 +665,20 @@ ckfini(int markclean)
 	/* Step 2: indirect, directory, external attribute, and data blocks */
 	if (debug)
 		printf("Flush indirect, directory, external attribute, "
-		    "and data blocks\n");
+		       "and data blocks\n");
 	if (pdirbp != NULL) {
 		brelse(pdirbp);
 		pdirbp = NULL;
 	}
-	TAILQ_FOREACH_REVERSE_SAFE(bp, &bufqueuehd, bufqueue, b_list, nbp) {
+	TAILQ_FOREACH_REVERSE_SAFE (bp, &bufqueuehd, bufqueue, b_list, nbp) {
 		switch (bp->b_type) {
 		/* These should not be in the buffer cache list */
 		case BT_UNKNOWN:
 		case BT_SUPERBLK:
 		case BT_CYLGRP:
 		default:
-			prtbuf(bp,"ckfini: improper buffer type on cache list");
+			prtbuf(bp,
+			    "ckfini: improper buffer type on cache list");
 			continue;
 		/* These are the ones to flush in this step */
 		case BT_LEVEL1:
@@ -708,7 +708,7 @@ ckfini(int markclean)
 		brelse(icachebp);
 		icachebp = NULL;
 	}
-	TAILQ_FOREACH_REVERSE_SAFE(bp, &bufqueuehd, bufqueue, b_list, nbp) {
+	TAILQ_FOREACH_REVERSE_SAFE (bp, &bufqueuehd, bufqueue, b_list, nbp) {
 		if (debug && bp->b_refcnt != 0)
 			prtbuf(bp, "ckfini: clearing in-use buffer");
 		TAILQ_REMOVE(&bufqueuehd, bp, b_list);
@@ -828,15 +828,16 @@ finalIOstats(void)
 	printIOstats();
 }
 
-static void printIOstats(void)
+static void
+printIOstats(void)
 {
 	long long msec, totalmsec;
 	int i;
 
 	clock_gettime(CLOCK_REALTIME_PRECISE, &finishpass);
 	timespecsub(&finishpass, &startpass, &finishpass);
-	printf("Running time: %jd.%03ld sec\n",
-		(intmax_t)finishpass.tv_sec, finishpass.tv_nsec / 1000000);
+	printf("Running time: %jd.%03ld sec\n", (intmax_t)finishpass.tv_sec,
+	    finishpass.tv_nsec / 1000000);
 	printf("buffer reads by type:\n");
 	for (totalmsec = 0, i = 0; i < BT_NUMBUFTYPES; i++)
 		totalmsec += readtime[i].tv_sec * 1000 +
@@ -846,8 +847,8 @@ static void printIOstats(void)
 	for (i = 0; i < BT_NUMBUFTYPES; i++) {
 		if (readcnt[i] == 0)
 			continue;
-		msec =
-		    readtime[i].tv_sec * 1000 + readtime[i].tv_nsec / 1000000;
+		msec = readtime[i].tv_sec * 1000 +
+		    readtime[i].tv_nsec / 1000000;
 		printf("%21s:%8ld %2ld.%ld%% %4jd.%03ld sec %2lld.%lld%%\n",
 		    buftype[i], readcnt[i], readcnt[i] * 100 / diskreads,
 		    (readcnt[i] * 1000 / diskreads) % 10,
@@ -982,13 +983,13 @@ blzero(int fd, ufs2_daddr_t blk, long size)
  * Return 1 if the cylinder group is good or return 0 if it is bad.
  */
 #undef CHK
-#define CHK(lhs, op, rhs, fmt)						\
-	if (lhs op rhs) {						\
-		pwarn("UFS%d cylinder group %d failed: "		\
-		    "%s (" #fmt ") %s %s (" #fmt ")\n",			\
-		    sblock.fs_magic == FS_UFS1_MAGIC ? 1 : 2, cg,	\
-		    #lhs, (intmax_t)lhs, #op, #rhs, (intmax_t)rhs);	\
-		error = 1;						\
+#define CHK(lhs, op, rhs, fmt)                                          \
+	if (lhs op rhs) {                                               \
+		pwarn("UFS%d cylinder group %d failed: "                \
+		      "%s (" #fmt ") %s %s (" #fmt ")\n",               \
+		    sblock.fs_magic == FS_UFS1_MAGIC ? 1 : 2, cg, #lhs, \
+		    (intmax_t)lhs, #op, #rhs, (intmax_t)rhs);           \
+		error = 1;                                              \
 	}
 int
 check_cgmagic(int cg, struct bufarea *cgbp)
@@ -1037,10 +1038,12 @@ check_cgmagic(int cg, struct bufarea *cgbp)
 		CHK(cgp->cg_old_ncyl, !=, sblock.fs_old_cpg, "%jd");
 		CHK(cgp->cg_old_niblk, !=, sblock.fs_ipg, "%jd");
 		CHK(cgp->cg_old_btotoff, !=, start, "%jd");
-		CHK(cgp->cg_old_boff, !=, cgp->cg_old_btotoff +
-		    sblock.fs_old_cpg * sizeof(int32_t), "%jd");
-		CHK(cgp->cg_iusedoff, !=, cgp->cg_old_boff +
-		    sblock.fs_old_cpg * sizeof(u_int16_t), "%jd");
+		CHK(cgp->cg_old_boff, !=,
+		    cgp->cg_old_btotoff + sblock.fs_old_cpg * sizeof(int32_t),
+		    "%jd");
+		CHK(cgp->cg_iusedoff, !=,
+		    cgp->cg_old_boff + sblock.fs_old_cpg * sizeof(u_int16_t),
+		    "%jd");
 	}
 	CHK(cgp->cg_freeoff, !=,
 	    cgp->cg_iusedoff + howmany(sblock.fs_ipg, CHAR_BIT), "%jd");
@@ -1052,11 +1055,16 @@ check_cgmagic(int cg, struct bufarea *cgbp)
 		    "%jd");
 		CHK(cgp->cg_clustersumoff, !=,
 		    roundup(cgp->cg_freeoff + howmany(sblock.fs_fpg, CHAR_BIT),
-		    sizeof(u_int32_t)) - sizeof(u_int32_t), "%jd");
-		CHK(cgp->cg_clusteroff, !=, cgp->cg_clustersumoff +
-		    (sblock.fs_contigsumsize + 1) * sizeof(u_int32_t), "%jd");
-		CHK(cgp->cg_nextfreeoff, !=, cgp->cg_clusteroff +
-		    howmany(fragstoblks(&sblock, sblock.fs_fpg), CHAR_BIT),
+			sizeof(u_int32_t)) -
+			sizeof(u_int32_t),
+		    "%jd");
+		CHK(cgp->cg_clusteroff, !=,
+		    cgp->cg_clustersumoff +
+			(sblock.fs_contigsumsize + 1) * sizeof(u_int32_t),
+		    "%jd");
+		CHK(cgp->cg_nextfreeoff, !=,
+		    cgp->cg_clusteroff +
+			howmany(fragstoblks(&sblock, sblock.fs_fpg), CHAR_BIT),
 		    "%jd");
 	}
 	if (error == 0)
@@ -1103,11 +1111,12 @@ rebuild_cg(int cg, struct bufarea *cgbp)
 		    sblock.fs_old_cpg * sizeof(u_int16_t);
 	}
 	cgp->cg_freeoff = cgp->cg_iusedoff + howmany(sblock.fs_ipg, CHAR_BIT);
-	cgp->cg_nextfreeoff = cgp->cg_freeoff + howmany(sblock.fs_fpg,CHAR_BIT);
+	cgp->cg_nextfreeoff = cgp->cg_freeoff +
+	    howmany(sblock.fs_fpg, CHAR_BIT);
 	if (sblock.fs_contigsumsize > 0) {
 		cgp->cg_nclusterblks = cgp->cg_ndblk / sblock.fs_frag;
-		cgp->cg_clustersumoff =
-		    roundup(cgp->cg_nextfreeoff, sizeof(u_int32_t));
+		cgp->cg_clustersumoff = roundup(cgp->cg_nextfreeoff,
+		    sizeof(u_int32_t));
 		cgp->cg_clustersumoff -= sizeof(u_int32_t);
 		cgp->cg_clusteroff = cgp->cg_clustersumoff +
 		    (sblock.fs_contigsumsize + 1) * sizeof(u_int32_t);
@@ -1134,8 +1143,7 @@ allocblk(long startcg, long frags,
 	if (frags <= 0 || frags > sblock.fs_frag)
 		return (0);
 	for (blkno = MAX(cgdata(&sblock, startcg), 0);
-	     blkno < maxfsblock - sblock.fs_frag;
-	     blkno += sblock.fs_frag) {
+	     blkno < maxfsblock - sblock.fs_frag; blkno += sblock.fs_frag) {
 		if ((newblk = (*checkblkavail)(blkno, frags)) == 0)
 			continue;
 		if (newblk > 0)
@@ -1212,8 +1220,7 @@ chkfilesize(mode_t mode, u_int64_t filesize)
 		kernmaxfilesize = (off_t)0x40000000 * sblock.fs_bsize - 1;
 	else
 		kernmaxfilesize = sblock.fs_maxfilesize;
-	if (filesize > kernmaxfilesize ||
-	    filesize > sblock.fs_maxfilesize ||
+	if (filesize > kernmaxfilesize || filesize > sblock.fs_maxfilesize ||
 	    (mode == IFDIR && filesize > MAXDIRSIZE)) {
 		if (debug)
 			printf("bad file size %ju:", (uintmax_t)filesize);
@@ -1326,8 +1333,7 @@ getpathname(char *namebuf, ino_t curdir, ino_t ino)
 	memmove(namebuf, cp, (size_t)(&namebuf[MAXPATHLEN] - cp));
 }
 
-void
-catch(int sig __unused)
+void catch (int sig __unused)
 {
 
 	ckfini(0);
@@ -1402,9 +1408,10 @@ prtbuf(struct bufarea *bp, const char *fmt, ...)
 	(void)vfprintf(stdout, fmt, ap);
 	va_end(ap);
 	printf(": bp %p, type %s, bno %jd, size %d, refcnt %d, flags %s, "
-	    "index %jd\n", bp, BT_BUFTYPE(bp->b_type), (intmax_t) bp->b_bno,
-	    bp->b_size, bp->b_refcnt, bp->b_flags & B_DIRTY ? "dirty" : "clean",
-	    (intmax_t) bp->b_index);
+	       "index %jd\n",
+	    bp, BT_BUFTYPE(bp->b_type), (intmax_t)bp->b_bno, bp->b_size,
+	    bp->b_refcnt, bp->b_flags & B_DIRTY ? "dirty" : "clean",
+	    (intmax_t)bp->b_index);
 }
 
 /*
@@ -1429,8 +1436,8 @@ pfatal(const char *fmt, ...)
 		if (bkgrdflag) {
 			cmd.value = FS_NEEDSFSCK;
 			cmd.size = 1;
-			if (sysctlbyname("vfs.ffs.setflags", 0, 0,
-			    &cmd, sizeof cmd) == -1)
+			if (sysctlbyname("vfs.ffs.setflags", 0, 0, &cmd,
+				sizeof cmd) == -1)
 				pwarn("CANNOT SET FS_NEEDSFSCK FLAG\n");
 			fprintf(stdout, "CANNOT RUN IN BACKGROUND\n");
 			ckfini(0);
@@ -1443,16 +1450,16 @@ pfatal(const char *fmt, ...)
 	(void)fprintf(stdout, "%s: ", cdevname);
 	(void)vfprintf(stdout, fmt, ap);
 	(void)fprintf(stdout,
-	    "\n%s: UNEXPECTED%sINCONSISTENCY; RUN fsck MANUALLY.\n",
-	    cdevname, usedsoftdep ? " SOFT UPDATE " : " ");
+	    "\n%s: UNEXPECTED%sINCONSISTENCY; RUN fsck MANUALLY.\n", cdevname,
+	    usedsoftdep ? " SOFT UPDATE " : " ");
 	/*
 	 * Force foreground fsck to clean up inconsistency.
 	 */
 	if (bkgrdflag) {
 		cmd.value = FS_NEEDSFSCK;
 		cmd.size = 1;
-		if (sysctlbyname("vfs.ffs.setflags", 0, 0,
-		    &cmd, sizeof cmd) == -1)
+		if (sysctlbyname("vfs.ffs.setflags", 0, 0, &cmd, sizeof cmd) ==
+		    -1)
 			pwarn("CANNOT SET FS_NEEDSFSCK FLAG\n");
 	}
 	ckfini(0);

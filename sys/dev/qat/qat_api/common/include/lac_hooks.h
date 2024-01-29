@@ -220,14 +220,14 @@ void LacEc_StatsFree(CpaInstanceHandle instanceHandle);
 
 /**
 *******************************************************************************
- * @ingroup LacSymNrbg
- *      Initialise the NRBG module
- *
- * @description
- *     This function registers NRBG callback handlers.
- *
- *
- *****************************************************************************/
+* @ingroup LacSymNrbg
+*      Initialise the NRBG module
+*
+* @description
+*     This function registers NRBG callback handlers.
+*
+*
+*****************************************************************************/
 void LacSymNrbg_Init(void);
 
 #endif /* LAC_HOOKS_H */

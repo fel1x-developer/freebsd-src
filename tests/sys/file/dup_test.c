@@ -49,8 +49,8 @@
  */
 
 #include <sys/types.h>
-#include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/time.h>
 
 #include <err.h>
 #include <fcntl.h>
@@ -58,7 +58,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-static int	getafile(void);
+static int getafile(void);
 
 static int
 getafile(void)
@@ -171,7 +171,7 @@ main(int __unused argc, char __unused *argv[])
 
 	/* Was close-on-exec cleared? */
 	++test;
-        if (fcntl(fd2, F_GETFD) != 0)
+	if (fcntl(fd2, F_GETFD) != 0)
 		printf(
 		    "not ok %d - fcntl(F_DUPFD) didn't clear close-on-exec\n",
 		    test);
@@ -198,8 +198,7 @@ main(int __unused argc, char __unused *argv[])
 		    "no ok %d - fcntl(F_DUP2FD) didn't give us the right fd\n",
 		    test);
 	else
-		printf("ok %d - fcntl(F_DUP2FD) returned a correct fd\n",
-		    test);
+		printf("ok %d - fcntl(F_DUP2FD) returned a correct fd\n", test);
 
 	/* Was close-on-exec cleared? */
 	++test;
@@ -208,8 +207,7 @@ main(int __unused argc, char __unused *argv[])
 		    "not ok %d - fcntl(F_DUP2FD) didn't clear close-on-exec\n",
 		    test);
 	else
-		printf("ok %d - fcntl(F_DUP2FD) cleared close-on-exec\n",
-		    test);
+		printf("ok %d - fcntl(F_DUP2FD) cleared close-on-exec\n", test);
 
 	/* Dup to itself */
 	if ((fd2 = fcntl(fd1, F_DUP2FD, fd1)) < 0)
@@ -250,14 +248,15 @@ main(int __unused argc, char __unused *argv[])
 	if ((fd2 = fcntl(fd1, F_DUPFD_CLOEXEC, 10)) < 0)
 		err(1, "fcntl(F_DUPFD_CLOEXEC)");
 	if (fd2 < 10)
-		printf("not ok %d - fcntl(F_DUPFD_CLOEXEC) returned wrong fd %d\n",
+		printf(
+		    "not ok %d - fcntl(F_DUPFD_CLOEXEC) returned wrong fd %d\n",
 		    ++test, fd2);
 	else
 		printf("ok %d - fcntl(F_DUPFD_CLOEXEC) works\n", ++test);
 
 	/* Was close-on-exec cleared? */
 	++test;
-        if (fcntl(fd2, F_GETFD) != 1)
+	if (fcntl(fd2, F_GETFD) != 1)
 		printf(
 		    "not ok %d - fcntl(F_DUPFD_CLOEXEC) didn't set close-on-exec\n",
 		    test);
@@ -277,7 +276,8 @@ main(int __unused argc, char __unused *argv[])
 		    "no ok %d - fcntl(F_DUP2FD_CLOEXEC) didn't give us the right fd\n",
 		    test);
 	else
-		printf("ok %d - fcntl(F_DUP2FD_CLOEXEC) returned a correct fd\n",
+		printf(
+		    "ok %d - fcntl(F_DUP2FD_CLOEXEC) returned a correct fd\n",
 		    test);
 
 	/* Was close-on-exec set? */
@@ -299,10 +299,12 @@ main(int __unused argc, char __unused *argv[])
 	if (getrlimit(RLIMIT_NOFILE, &rlp) < 0)
 		err(1, "getrlimit");
 	if ((fd2 = fcntl(fd1, F_DUP2FD_CLOEXEC, rlp.rlim_cur + 1)) >= 0)
-		printf("not ok %d - fcntl(F_DUP2FD_CLOEXEC) bypassed NOFILE limit\n",
+		printf(
+		    "not ok %d - fcntl(F_DUP2FD_CLOEXEC) bypassed NOFILE limit\n",
 		    test);
 	else
-		printf("ok %d - fcntl(F_DUP2FD_CLOEXEC) didn't bypass NOFILE limit\n",
+		printf(
+		    "ok %d - fcntl(F_DUP2FD_CLOEXEC) didn't bypass NOFILE limit\n",
 		    test);
 
 	/* Does dup3(O_CLOEXEC) ever work? */
@@ -317,18 +319,15 @@ main(int __unused argc, char __unused *argv[])
 		    "no ok %d - dup3(O_CLOEXEC) didn't give us the right fd\n",
 		    test);
 	else
-		printf("ok %d - dup3(O_CLOEXEC) returned a correct fd\n",
-		    test);
+		printf("ok %d - dup3(O_CLOEXEC) returned a correct fd\n", test);
 
 	/* Was close-on-exec set? */
 	++test;
 	if (fcntl(fd2, F_GETFD) != FD_CLOEXEC)
-		printf(
-		    "not ok %d - dup3(O_CLOEXEC) didn't set close-on-exec\n",
+		printf("not ok %d - dup3(O_CLOEXEC) didn't set close-on-exec\n",
 		    test);
 	else
-		printf("ok %d - dup3(O_CLOEXEC) set close-on-exec\n",
-		    test);
+		printf("ok %d - dup3(O_CLOEXEC) set close-on-exec\n", test);
 
 	/* Does dup3(0) ever work? */
 	if ((fd2 = dup3(fd1, fd1 + 1, 0)) < 0)
@@ -338,35 +337,30 @@ main(int __unused argc, char __unused *argv[])
 	/* Do we get the right fd? */
 	++test;
 	if (fd2 != fd1 + 1)
-		printf(
-		    "no ok %d - dup3(0) didn't give us the right fd\n",
+		printf("no ok %d - dup3(0) didn't give us the right fd\n",
 		    test);
 	else
-		printf("ok %d - dup3(0) returned a correct fd\n",
-		    test);
+		printf("ok %d - dup3(0) returned a correct fd\n", test);
 
 	/* Was close-on-exec cleared? */
 	++test;
 	if (fcntl(fd2, F_GETFD) != 0)
-		printf(
-		    "not ok %d - dup3(0) didn't clear close-on-exec\n",
+		printf("not ok %d - dup3(0) didn't clear close-on-exec\n",
 		    test);
 	else
-		printf("ok %d - dup3(0) cleared close-on-exec\n",
-		    test);
+		printf("ok %d - dup3(0) cleared close-on-exec\n", test);
 
 	/* dup3() does not allow duplicating to the same fd */
 	++test;
 	if (dup3(fd1, fd1, O_CLOEXEC) != -1)
-		printf(
-		    "not ok %d - dup3(fd1, fd1, O_CLOEXEC) succeeded\n", test);
+		printf("not ok %d - dup3(fd1, fd1, O_CLOEXEC) succeeded\n",
+		    test);
 	else
 		printf("ok %d - dup3(fd1, fd1, O_CLOEXEC) failed\n", test);
 
 	++test;
 	if (dup3(fd1, fd1, 0) != -1)
-		printf(
-		    "not ok %d - dup3(fd1, fd1, 0) succeeded\n", test);
+		printf("not ok %d - dup3(fd1, fd1, 0) succeeded\n", test);
 	else
 		printf("ok %d - dup3(fd1, fd1, 0) failed\n", test);
 

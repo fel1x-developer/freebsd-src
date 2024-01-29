@@ -38,9 +38,10 @@
  */
 
 #include <ctype.h>
-#include <stdio.h>
 #include <runetype.h>
+#include <stdio.h>
 #include <wchar.h>
+
 #include "mblocal.h"
 
 __ct_rune_t
@@ -52,23 +53,21 @@ ___toupper_l(__ct_rune_t c, locale_t l)
 	_RuneEntry *base, *re;
 
 	if (c < 0 || c == EOF)
-		return(c);
+		return (c);
 
 	/* Binary search -- see bsearch.c for explanation. */
 	base = rr->__ranges;
 	for (lim = rr->__nranges; lim != 0; lim >>= 1) {
 		re = base + (lim >> 1);
-		if (re->__min <= c && c <= re->__max)
-		{
+		if (re->__min <= c && c <= re->__max) {
 			return (re->__map + c - re->__min);
-		}
-		else if (c > re->__max) {
+		} else if (c > re->__max) {
 			base = re + 1;
 			lim--;
 		}
 	}
 
-	return(c);
+	return (c);
 }
 __ct_rune_t
 ___toupper(__ct_rune_t c)

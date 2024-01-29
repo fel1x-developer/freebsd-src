@@ -25,31 +25,30 @@
  */
 
 #include <sys/param.h>
-#include <sys/module.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/errno.h>
+#include <sys/gpio.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
-#include <sys/bus.h>
-#include <sys/gpio.h>
+#include <sys/module.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
-#include <sys/rman.h>
 #include <machine/resource.h>
 
 #include "gpio_if.h"
-
 #include "lewisburg_gpiocm.h"
 #include "p2sb.h"
 
-#define PADBAR	0x00c
+#define PADBAR 0x00c
 
-#define PADCFG0_GPIORXDIS	(1<<9)
-#define PADCFG0_GPIOTXDIS	(1<<8)
-#define PADCFG0_GPIORXSTATE	(1<<1)
-#define PADCFG0_GPIOTXSTATE	(1<<0)
+#define PADCFG0_GPIORXDIS (1 << 9)
+#define PADCFG0_GPIOTXDIS (1 << 8)
+#define PADCFG0_GPIORXSTATE (1 << 1)
+#define PADCFG0_GPIOTXSTATE (1 << 0)
 
-#define MAX_PAD_PER_GROUP	24
+#define MAX_PAD_PER_GROUP 24
 
 #define LBGGPIOCM_READ(sc, reg) p2sb_port_read_4(sc->p2sb, sc->port, reg)
 #define LBGGPIOCM_WRITE(sc, reg, val) \
@@ -73,12 +72,10 @@ struct lbgcommunity {
 	int ngroups;
 	const char *grpnames;
 };
-#define LBG_COMMUNITY(n, np, g) \
-{ \
-	.name = n, \
-	.npins = np, \
-	.grpnames = g, \
-}
+#define LBG_COMMUNITY(n, np, g)                        \
+	{                                              \
+		.name = n, .npins = np, .grpnames = g, \
+	}
 
 static struct lbgcommunity lbg_communities[] = {
 	LBG_COMMUNITY("LewisBurg GPIO Community 0", 72, "ABF"),
@@ -89,8 +86,7 @@ static struct lbgcommunity lbg_communities[] = {
 	LBG_COMMUNITY("LewisBurg GPIO Community 5", 66, "GHL"),
 };
 
-struct lbggpiocm_softc
-{
+struct lbggpiocm_softc {
 	int port;
 	device_t p2sb;
 	struct lbgcommunity *community;
@@ -109,7 +105,6 @@ lbggpiocm_get_group(struct lbggpiocm_softc *sc, device_t child)
 			return (&sc->community->groups[i]);
 	return (NULL);
 }
-
 
 static __inline uint32_t
 lbggpiocm_getpad(struct lbggpiocm_softc *sc, uint32_t pin)
@@ -157,7 +152,8 @@ lbggpiocm_pin2cpin(struct lbggpiocm_softc *sc, device_t child, uint32_t pin)
 }
 
 int
-lbggpiocm_pin_setflags(device_t dev, device_t child, uint32_t pin, uint32_t flags)
+lbggpiocm_pin_setflags(device_t dev, device_t child, uint32_t pin,
+    uint32_t flags)
 {
 	struct lbggpiocm_softc *sc = device_get_softc(dev);
 	uint32_t padreg, padval;
@@ -279,7 +275,8 @@ lbggpiocm_probe(device_t dev)
 
 	sc->p2sb = device_get_parent(dev);
 	unit = device_get_unit(dev);
-	KASSERT(unit < nitems(lbg_communities), ("Wrong number of devices or communities"));
+	KASSERT(unit < nitems(lbg_communities),
+	    ("Wrong number of devices or communities"));
 	sc->port = p2sb_get_port(sc->p2sb, unit);
 	sc->community = &lbg_communities[unit];
 	if (sc->port < 0)
@@ -313,7 +310,7 @@ lbggpiocm_attach(device_t dev)
 		group->grpname = sc->community->grpnames[i];
 		group->pins_off = i * MAX_PAD_PER_GROUP;
 		group->npins = npins < MAX_PAD_PER_GROUP ? npins :
-			MAX_PAD_PER_GROUP;
+							   MAX_PAD_PER_GROUP;
 		npins -= group->npins;
 		group->dev = device_add_child(dev, "gpio", -1);
 	}
@@ -335,17 +332,14 @@ lbggpiocm_detach(device_t dev)
 
 static device_method_t lbggpiocm_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		lbggpiocm_probe),
-	DEVMETHOD(device_attach,	lbggpiocm_attach),
-	DEVMETHOD(device_detach,	lbggpiocm_detach),
+	DEVMETHOD(device_probe, lbggpiocm_probe),
+	DEVMETHOD(device_attach, lbggpiocm_attach),
+	DEVMETHOD(device_detach, lbggpiocm_detach),
 
 	DEVMETHOD_END
 };
 
-static driver_t lbggpiocm_driver = {
-	"lbggpiocm",
-	lbggpiocm_methods,
-	sizeof(struct lbggpiocm_softc)
-};
+static driver_t lbggpiocm_driver = { "lbggpiocm", lbggpiocm_methods,
+	sizeof(struct lbggpiocm_softc) };
 
 DRIVER_MODULE(lbggpiocm, p2sb, lbggpiocm_driver, NULL, NULL);

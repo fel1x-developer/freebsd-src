@@ -16,5 +16,5 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#define	_PATH_LIBB	"/usr/share/misc/bc.library"
-#define	_PATH_DC	"/usr/bin/dc"
+#define _PATH_LIBB "/usr/share/misc/bc.library"
+#define _PATH_DC "/usr/bin/dc"

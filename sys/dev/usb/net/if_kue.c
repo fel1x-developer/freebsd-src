@@ -65,47 +65,50 @@
  * the development of this driver.
  */
 
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/socket.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
+
+#include <net/if.h>
+#include <net/if_var.h>
+
 #include "usbdevs.h"
 
-#define	USB_DEBUG_VAR kue_debug
+#define USB_DEBUG_VAR kue_debug
+#include <dev/usb/net/if_kuefw.h>
+#include <dev/usb/net/if_kuereg.h>
+#include <dev/usb/net/usb_ethernet.h>
 #include <dev/usb/usb_debug.h>
 #include <dev/usb/usb_process.h>
-
-#include <dev/usb/net/usb_ethernet.h>
-#include <dev/usb/net/if_kuereg.h>
-#include <dev/usb/net/if_kuefw.h>
 
 /*
  * Various supported device vendors/products.
  */
 static const STRUCT_USB_HOST_ID kue_devs[] = {
-#define	KUE_DEV(v,p) { USB_VP(USB_VENDOR_##v, USB_PRODUCT_##v##_##p) }
+#define KUE_DEV(v, p)                                         \
+	{                                                     \
+		USB_VP(USB_VENDOR_##v, USB_PRODUCT_##v##_##p) \
+	}
 	KUE_DEV(3COM, 3C19250),
 	KUE_DEV(3COM, 3C460),
 	KUE_DEV(ABOCOM, URE450),
@@ -158,13 +161,12 @@ static uether_fn_t kue_start;
 static uether_fn_t kue_setmulti;
 static uether_fn_t kue_setpromisc;
 
-static int	kue_do_request(struct kue_softc *,
-		    struct usb_device_request *, void *);
-static int	kue_setword(struct kue_softc *, uint8_t, uint16_t);
-static int	kue_ctl(struct kue_softc *, uint8_t, uint8_t, uint16_t,
-		    void *, int);
-static int	kue_load_fw(struct kue_softc *);
-static void	kue_reset(struct kue_softc *);
+static int kue_do_request(struct kue_softc *, struct usb_device_request *,
+    void *);
+static int kue_setword(struct kue_softc *, uint8_t, uint16_t);
+static int kue_ctl(struct kue_softc *, uint8_t, uint8_t, uint16_t, void *, int);
+static int kue_load_fw(struct kue_softc *);
+static void kue_reset(struct kue_softc *);
 
 #ifdef USB_DEBUG
 static int kue_debug = 0;
@@ -236,8 +238,7 @@ static const struct usb_ether_methods kue_ue_methods = {
  * than the default timeout.
  */
 static int
-kue_do_request(struct kue_softc *sc, struct usb_device_request *req,
-    void *data)
+kue_do_request(struct kue_softc *sc, struct usb_device_request *req, void *data)
 {
 	usb_error_t err;
 
@@ -261,8 +262,8 @@ kue_setword(struct kue_softc *sc, uint8_t breq, uint16_t word)
 }
 
 static int
-kue_ctl(struct kue_softc *sc, uint8_t rw, uint8_t breq,
-    uint16_t val, void *data, int len)
+kue_ctl(struct kue_softc *sc, uint8_t rw, uint8_t breq, uint16_t val,
+    void *data, int len)
 {
 	struct usb_device_request req;
 
@@ -304,33 +305,33 @@ kue_load_fw(struct kue_softc *sc)
 	 * running.
 	 */
 	if (hwrev == 0x0202)
-		return(0);
+		return (0);
 
 	/* Load code segment */
-	err = kue_ctl(sc, KUE_CTL_WRITE, KUE_CMD_SEND_SCAN,
-	    0, kue_code_seg, sizeof(kue_code_seg));
+	err = kue_ctl(sc, KUE_CTL_WRITE, KUE_CMD_SEND_SCAN, 0, kue_code_seg,
+	    sizeof(kue_code_seg));
 	if (err) {
-		device_printf(sc->sc_ue.ue_dev, "failed to load code segment: %s\n",
-		    usbd_errstr(err));
-		return(ENXIO);
+		device_printf(sc->sc_ue.ue_dev,
+		    "failed to load code segment: %s\n", usbd_errstr(err));
+		return (ENXIO);
 	}
 
 	/* Load fixup segment */
-	err = kue_ctl(sc, KUE_CTL_WRITE, KUE_CMD_SEND_SCAN,
-	    0, kue_fix_seg, sizeof(kue_fix_seg));
+	err = kue_ctl(sc, KUE_CTL_WRITE, KUE_CMD_SEND_SCAN, 0, kue_fix_seg,
+	    sizeof(kue_fix_seg));
 	if (err) {
-		device_printf(sc->sc_ue.ue_dev, "failed to load fixup segment: %s\n",
-		    usbd_errstr(err));
-		return(ENXIO);
+		device_printf(sc->sc_ue.ue_dev,
+		    "failed to load fixup segment: %s\n", usbd_errstr(err));
+		return (ENXIO);
 	}
 
 	/* Send trigger command. */
-	err = kue_ctl(sc, KUE_CTL_WRITE, KUE_CMD_SEND_SCAN,
-	    0, kue_trig_seg, sizeof(kue_trig_seg));
+	err = kue_ctl(sc, KUE_CTL_WRITE, KUE_CMD_SEND_SCAN, 0, kue_trig_seg,
+	    sizeof(kue_trig_seg));
 	if (err) {
-		device_printf(sc->sc_ue.ue_dev, "failed to load trigger segment: %s\n",
-		    usbd_errstr(err));
-		return(ENXIO);
+		device_printf(sc->sc_ue.ue_dev,
+		    "failed to load trigger segment: %s\n", usbd_errstr(err));
+		return (ENXIO);
 	}
 
 	return (0);
@@ -389,8 +390,8 @@ kue_setmulti(struct usb_ether *ue)
 		sc->sc_rxfilt |= KUE_RXFILT_ALLMULTI;
 	else {
 		sc->sc_rxfilt |= KUE_RXFILT_MULTICAST;
-		kue_ctl(sc, KUE_CTL_WRITE, KUE_CMD_SET_MCAST_FILTERS,
-		    i, sc->sc_mcfilters, i * ETHER_ADDR_LEN);
+		kue_ctl(sc, KUE_CTL_WRITE, KUE_CMD_SET_MCAST_FILTERS, i,
+		    sc->sc_mcfilters, i * ETHER_ADDR_LEN);
 	}
 
 	kue_setword(sc, KUE_CMD_SET_PKT_FILTER, sc->sc_rxfilt);
@@ -435,8 +436,8 @@ kue_attach_post(struct usb_ether *ue)
 	kue_reset(sc);
 
 	/* read ethernet descriptor */
-	kue_ctl(sc, KUE_CTL_READ, KUE_CMD_GET_ETHER_DESCRIPTOR,
-	    0, &sc->sc_desc, sizeof(sc->sc_desc));
+	kue_ctl(sc, KUE_CTL_READ, KUE_CMD_GET_ETHER_DESCRIPTOR, 0, &sc->sc_desc,
+	    sizeof(sc->sc_desc));
 
 	/* copy in ethernet address */
 	memcpy(ue->ue_eaddr, sc->sc_desc.kue_macaddr, sizeof(ue->ue_eaddr));
@@ -477,15 +478,15 @@ kue_attach(device_t dev)
 	mtx_init(&sc->sc_mtx, device_get_nameunit(dev), NULL, MTX_DEF);
 
 	iface_index = KUE_IFACE_IDX;
-	error = usbd_transfer_setup(uaa->device, &iface_index,
-	    sc->sc_xfer, kue_config, KUE_N_TRANSFER, sc, &sc->sc_mtx);
+	error = usbd_transfer_setup(uaa->device, &iface_index, sc->sc_xfer,
+	    kue_config, KUE_N_TRANSFER, sc, &sc->sc_mtx);
 	if (error) {
 		device_printf(dev, "allocating USB transfers failed\n");
 		goto detach;
 	}
 
-	sc->sc_mcfilters = malloc(KUE_MCFILTCNT(sc) * ETHER_ADDR_LEN,
-	    M_USBDEV, M_WAITOK);
+	sc->sc_mcfilters = malloc(KUE_MCFILTCNT(sc) * ETHER_ADDR_LEN, M_USBDEV,
+	    M_WAITOK);
 	if (sc->sc_mcfilters == NULL) {
 		device_printf(dev, "failed allocating USB memory\n");
 		goto detach;
@@ -502,11 +503,11 @@ kue_attach(device_t dev)
 		device_printf(dev, "could not attach interface\n");
 		goto detach;
 	}
-	return (0);			/* success */
+	return (0); /* success */
 
 detach:
 	kue_detach(dev);
-	return (ENXIO);			/* failure */
+	return (ENXIO); /* failure */
 }
 
 static int
@@ -556,15 +557,14 @@ kue_bulk_read_callback(struct usb_xfer *xfer, usb_error_t error)
 		uether_rxbuf(ue, pc, 2, len);
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		uether_rxflush(ue);
 		return;
 
-	default:			/* Error */
-		DPRINTF("bulk read error, %s\n",
-		    usbd_errstr(error));
+	default: /* Error */
+		DPRINTF("bulk read error, %s\n", usbd_errstr(error));
 
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
@@ -593,7 +593,7 @@ kue_bulk_write_callback(struct usb_xfer *xfer, usb_error_t error)
 
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		m = if_dequeue(ifp);
 
 		if (m == NULL)
@@ -627,9 +627,8 @@ tr_setup:
 
 		return;
 
-	default:			/* Error */
-		DPRINTFN(11, "transfer error, %s\n",
-		    usbd_errstr(error));
+	default: /* Error */
+		DPRINTFN(11, "transfer error, %s\n", usbd_errstr(error));
 
 		if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
 
@@ -663,8 +662,8 @@ kue_init(struct usb_ether *ue)
 	KUE_LOCK_ASSERT(sc, MA_OWNED);
 
 	/* set MAC address */
-	kue_ctl(sc, KUE_CTL_WRITE, KUE_CMD_SET_MAC,
-	    0, if_getlladdr(ifp), ETHER_ADDR_LEN);
+	kue_ctl(sc, KUE_CTL_WRITE, KUE_CMD_SET_MAC, 0, if_getlladdr(ifp),
+	    ETHER_ADDR_LEN);
 
 	/* I'm not sure how to tune these. */
 #if 0

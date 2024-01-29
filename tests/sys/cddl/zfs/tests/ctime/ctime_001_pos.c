@@ -24,27 +24,27 @@
  * Use is subject to license terms.
  */
 
-
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <utime.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
+
 #include <errno.h>
 #include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <utime.h>
 
-#define	ST_ATIME 0
-#define	ST_CTIME 1
-#define	ST_MTIME 2
+#define ST_ATIME 0
+#define ST_CTIME 1
+#define ST_MTIME 2
 
-#define	ALL_MODE (mode_t)(S_IRWXU|S_IRWXG|S_IRWXO)
+#define ALL_MODE (mode_t)(S_IRWXU | S_IRWXG | S_IRWXO)
 
 typedef struct timetest {
-	int	type;
-	char	*name;
-	int	(*func)(const char *pfile);
+	int type;
+	char *name;
+	int (*func)(const char *pfile);
 } timetest_t;
 
 #ifdef __stc_assertion__
@@ -68,7 +68,7 @@ typedef struct timetest {
  *
  */
 
-#endif	/* __stc_assertion__ */
+#endif /* __stc_assertion__ */
 
 /*
  * Get file specific time information.
@@ -87,40 +87,39 @@ static char tfile[BUFSIZ] = { 0 };
 static char msg[BUFSIZ] = { 0 };
 
 static timetest_t timetest_table[] = {
-	{ ST_ATIME,	"st_atime",	do_read		},
-	{ ST_ATIME,	"st_atime",	do_utime	},
-	{ ST_MTIME,	"st_mtime",	do_creat	},
-	{ ST_MTIME,	"st_mtime",	do_write	},
-	{ ST_MTIME,	"st_mtime",	do_utime	},
-	{ ST_CTIME,	"st_ctime",	do_creat	},
-	{ ST_CTIME,	"st_ctime",	do_write	},
-	{ ST_CTIME,	"st_ctime",	do_chmod	},
-	{ ST_CTIME,	"st_ctime",	do_chown 	},
-	{ ST_CTIME,	"st_ctime",	do_link		},
-	{ ST_CTIME,	"st_ctime",	do_utime	},
+	{ ST_ATIME, "st_atime", do_read },
+	{ ST_ATIME, "st_atime", do_utime },
+	{ ST_MTIME, "st_mtime", do_creat },
+	{ ST_MTIME, "st_mtime", do_write },
+	{ ST_MTIME, "st_mtime", do_utime },
+	{ ST_CTIME, "st_ctime", do_creat },
+	{ ST_CTIME, "st_ctime", do_write },
+	{ ST_CTIME, "st_ctime", do_chmod },
+	{ ST_CTIME, "st_ctime", do_chown },
+	{ ST_CTIME, "st_ctime", do_link },
+	{ ST_CTIME, "st_ctime", do_utime },
 };
 
-#define	NCOMMAND (sizeof (timetest_table) / sizeof (timetest_table[0]))
+#define NCOMMAND (sizeof(timetest_table) / sizeof(timetest_table[0]))
 
 int
 main(int argc, char *argv[])
 {
 	int i, ret, fd;
-	const char *env_names[2] = {"TESTDIR", "TESTFILE"};
+	const char *env_names[2] = { "TESTDIR", "TESTFILE" };
 	char *env_vals[2];
 
 	/*
 	 * Get envirnment variable value
 	 */
-	for (i = 0; i < sizeof (env_names) / sizeof (char *); i++) {
+	for (i = 0; i < sizeof(env_names) / sizeof(char *); i++) {
 		if ((env_vals[i] = getenv(env_names[i])) == NULL) {
 			fprintf(stderr, "getenv(%s) returned NULL\n",
 			    env_names[i]);
 			exit(1);
 		}
 	}
-	(void) snprintf(tfile, sizeof (tfile), "%s/%s", env_vals[0],
-	    env_vals[1]);
+	(void)snprintf(tfile, sizeof(tfile), "%s/%s", env_vals[0], env_vals[1]);
 
 	/*
 	 * If the test file is existing, remove it firstly
@@ -133,7 +132,7 @@ main(int argc, char *argv[])
 		perror("open");
 		exit(1);
 	}
-	(void) close(fd);
+	(void)close(fd);
 
 	for (i = 0; i < NCOMMAND; i++) {
 		time_t t1, t2;
@@ -161,8 +160,8 @@ main(int argc, char *argv[])
 		 */
 		ret = get_file_time(tfile, timetest_table[i].type, &t2);
 		if (ret != 0) {
-			fprintf(stderr, "get_file_time(%s, %d, &t2)\n",
-			    tfile, timetest_table[i].type);
+			fprintf(stderr, "get_file_time(%s, %d, &t2)\n", tfile,
+			    timetest_table[i].type);
 			exit(1);
 		}
 
@@ -173,7 +172,7 @@ main(int argc, char *argv[])
 		}
 	}
 
-	(void) unlink(tfile);
+	(void)unlink(tfile);
 
 	return (0);
 }
@@ -192,17 +191,17 @@ get_file_time(char *pfile, int what, time_t *ptr)
 	}
 
 	switch (what) {
-		case ST_ATIME:
-			*ptr = stat_buf.st_atime;
-			return (0);
-		case ST_CTIME:
-			*ptr = stat_buf.st_ctime;
-			return (0);
-		case ST_MTIME:
-			*ptr = stat_buf.st_mtime;
-			return (0);
-		default:
-			return (-1);
+	case ST_ATIME:
+		*ptr = stat_buf.st_atime;
+		return (0);
+	case ST_CTIME:
+		*ptr = stat_buf.st_ctime;
+		return (0);
+	case ST_MTIME:
+		*ptr = stat_buf.st_mtime;
+		return (0);
+	default:
+		return (-1);
 	}
 }
 
@@ -219,13 +218,13 @@ do_read(const char *pfile)
 	if ((fd = open(pfile, O_RDONLY, ALL_MODE)) == -1) {
 		return (-1);
 	}
-	if (read(fd, buf, sizeof (buf)) == -1) {
+	if (read(fd, buf, sizeof(buf)) == -1) {
 		ret = errno;
 	}
-	(void) close(fd);
+	(void)close(fd);
 
 	if (ret != 0) {
-		fprintf(stderr, "read(%d, buf, %zu)\n", fd, sizeof (buf));
+		fprintf(stderr, "read(%d, buf, %zu)\n", fd, sizeof(buf));
 		exit(1);
 	}
 
@@ -248,7 +247,7 @@ do_write(const char *pfile)
 	if (write(fd, buf, strlen(buf)) == -1) {
 		ret = errno;
 	}
-	(void) close(fd);
+	(void)close(fd);
 
 	if (ret != 0) {
 		fprintf(stderr, "write(%d, buf, %zu)\n", fd, strlen(buf));
@@ -273,10 +272,10 @@ do_link(const char *pfile)
 	 * Figure out source file directory name, and create
 	 * the link file in the same directory.
 	 */
-	snprintf(link_file, sizeof (link_file), "%s", pfile);
+	snprintf(link_file, sizeof(link_file), "%s", pfile);
 	ptr = strrchr(link_file, '/');
-	snprintf(ptr + 1,
-	    sizeof (link_file) - (ptr + 1 - link_file), "link_file");
+	snprintf(ptr + 1, sizeof(link_file) - (ptr + 1 - link_file),
+	    "link_file");
 
 	if (link(pfile, link_file) == -1) {
 		ret = errno;
@@ -303,7 +302,7 @@ do_creat(const char *pfile)
 		ret = errno;
 	}
 	if (fd != -1) {
-		(void) close(fd);
+		(void)close(fd);
 	}
 
 	if (ret != 0) {

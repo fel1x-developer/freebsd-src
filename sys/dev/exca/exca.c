@@ -56,53 +56,39 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/condvar.h>
+#include <sys/conf.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/module.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/conf.h>
-
-#include <sys/bus.h>
-#include <machine/bus.h>
+#include <sys/queue.h>
 #include <sys/rman.h>
-#include <machine/resource.h>
 
-#include <dev/pccard/pccardreg.h>
-#include <dev/pccard/pccardvar.h>
+#include <machine/bus.h>
+#include <machine/resource.h>
 
 #include <dev/exca/excareg.h>
 #include <dev/exca/excavar.h>
+#include <dev/pccard/pccardreg.h>
+#include <dev/pccard/pccardvar.h>
 
 #ifdef EXCA_DEBUG
-#define DEVPRINTF(dev, fmt, args...)	device_printf((dev), (fmt), ## args)
-#define DPRINTF(fmt, args...)		printf(fmt, ## args)
+#define DEVPRINTF(dev, fmt, args...) device_printf((dev), (fmt), ##args)
+#define DPRINTF(fmt, args...) printf(fmt, ##args)
 #else
 #define DEVPRINTF(dev, fmt, args...)
 #define DPRINTF(fmt, args...)
 #endif
 
-static const char *chip_names[] = 
-{
-	"CardBus socket",
-	"Intel i82365SL-A/B or clone",
-	"Intel i82365sl-DF step",
-	"VLSI chip",
-	"Cirrus Logic PD6710",
-	"Cirrus logic PD6722",
-	"Cirrus Logic PD6729",
-	"Vadem 365",
-	"Vadem 465",
-	"Vadem 468",
-	"Vadem 469",
-	"Ricoh RF5C296",
-	"Ricoh RF5C396",
-	"IBM clone",
-	"IBM KING PCMCIA Controller"
-};
+static const char *chip_names[] = { "CardBus socket",
+	"Intel i82365SL-A/B or clone", "Intel i82365sl-DF step", "VLSI chip",
+	"Cirrus Logic PD6710", "Cirrus logic PD6722", "Cirrus Logic PD6729",
+	"Vadem 365", "Vadem 465", "Vadem 468", "Vadem 469", "Ricoh RF5C296",
+	"Ricoh RF5C396", "IBM clone", "IBM KING PCMCIA Controller" };
 
 static exca_getb_fn exca_mem_getb;
 static exca_putb_fn exca_mem_putb;
@@ -111,34 +97,29 @@ static exca_putb_fn exca_io_putb;
 
 /* memory */
 
-#define	EXCA_MEMINFO(NUM) {						\
-	EXCA_SYSMEM_ADDR ## NUM ## _START_LSB,				\
-	EXCA_SYSMEM_ADDR ## NUM ## _START_MSB,				\
-	EXCA_SYSMEM_ADDR ## NUM ## _STOP_LSB,				\
-	EXCA_SYSMEM_ADDR ## NUM ## _STOP_MSB,				\
-	EXCA_SYSMEM_ADDR ## NUM ## _WIN,				\
-	EXCA_CARDMEM_ADDR ## NUM ## _LSB,				\
-	EXCA_CARDMEM_ADDR ## NUM ## _MSB,				\
-	EXCA_ADDRWIN_ENABLE_MEM ## NUM,					\
-}
+#define EXCA_MEMINFO(NUM)                                                      \
+	{                                                                      \
+		EXCA_SYSMEM_ADDR##NUM##_START_LSB,                             \
+		    EXCA_SYSMEM_ADDR##NUM##_START_MSB,                         \
+		    EXCA_SYSMEM_ADDR##NUM##_STOP_LSB,                          \
+		    EXCA_SYSMEM_ADDR##NUM##_STOP_MSB,                          \
+		    EXCA_SYSMEM_ADDR##NUM##_WIN, EXCA_CARDMEM_ADDR##NUM##_LSB, \
+		    EXCA_CARDMEM_ADDR##NUM##_MSB,                              \
+		    EXCA_ADDRWIN_ENABLE_MEM##NUM,                              \
+	}
 
 static struct mem_map_index_st {
-	int	sysmem_start_lsb;
-	int	sysmem_start_msb;
-	int	sysmem_stop_lsb;
-	int	sysmem_stop_msb;
-	int	sysmem_win;
-	int	cardmem_lsb;
-	int	cardmem_msb;
-	int	memenable;
-} mem_map_index[] = {
-	EXCA_MEMINFO(0),
-	EXCA_MEMINFO(1),
-	EXCA_MEMINFO(2),
-	EXCA_MEMINFO(3),
-	EXCA_MEMINFO(4)
-};
-#undef	EXCA_MEMINFO
+	int sysmem_start_lsb;
+	int sysmem_start_msb;
+	int sysmem_stop_lsb;
+	int sysmem_stop_msb;
+	int sysmem_win;
+	int cardmem_lsb;
+	int cardmem_msb;
+	int memenable;
+} mem_map_index[] = { EXCA_MEMINFO(0), EXCA_MEMINFO(1), EXCA_MEMINFO(2),
+	EXCA_MEMINFO(3), EXCA_MEMINFO(4) };
+#undef EXCA_MEMINFO
 
 static uint8_t
 exca_mem_getb(struct exca_softc *sc, int reg)
@@ -180,39 +161,43 @@ exca_do_mem_map(struct exca_softc *sc, int win)
 	uint32_t offset;
 	uint32_t mem16;
 	uint32_t attrmem;
-	
+
 	map = &mem_map_index[win];
 	mem = &sc->mem[win];
-	mem16 = (mem->kind & PCCARD_MEM_16BIT) ? 
-	    EXCA_SYSMEM_ADDRX_START_MSB_DATASIZE_16BIT : 0;
+	mem16 = (mem->kind & PCCARD_MEM_16BIT) ?
+	    EXCA_SYSMEM_ADDRX_START_MSB_DATASIZE_16BIT :
+	    0;
 	attrmem = (mem->kind & PCCARD_MEM_ATTR) ?
-	    EXCA_CARDMEM_ADDRX_MSB_REGACTIVE_ATTR : 0;
+	    EXCA_CARDMEM_ADDRX_MSB_REGACTIVE_ATTR :
+	    0;
 	offset = ((mem->cardaddr >> EXCA_CARDMEM_ADDRX_SHIFT) -
-	  (mem->addr >> EXCA_SYSMEM_ADDRX_SHIFT)) & 0x3fff;
+		     (mem->addr >> EXCA_SYSMEM_ADDRX_SHIFT)) &
+	    0x3fff;
 	exca_putb(sc, map->sysmem_start_lsb,
 	    mem->addr >> EXCA_SYSMEM_ADDRX_SHIFT);
 	exca_putb(sc, map->sysmem_start_msb,
 	    ((mem->addr >> (EXCA_SYSMEM_ADDRX_SHIFT + 8)) &
-	    EXCA_SYSMEM_ADDRX_START_MSB_ADDR_MASK) | mem16);
+		EXCA_SYSMEM_ADDRX_START_MSB_ADDR_MASK) |
+		mem16);
 
 	exca_putb(sc, map->sysmem_stop_lsb,
 	    (mem->addr + mem->realsize - 1) >> EXCA_SYSMEM_ADDRX_SHIFT);
 	exca_putb(sc, map->sysmem_stop_msb,
 	    (((mem->addr + mem->realsize - 1) >>
-	    (EXCA_SYSMEM_ADDRX_SHIFT + 8)) &
-	    EXCA_SYSMEM_ADDRX_STOP_MSB_ADDR_MASK) |
-	    EXCA_SYSMEM_ADDRX_STOP_MSB_WAIT2);
+		 (EXCA_SYSMEM_ADDRX_SHIFT + 8)) &
+		EXCA_SYSMEM_ADDRX_STOP_MSB_ADDR_MASK) |
+		EXCA_SYSMEM_ADDRX_STOP_MSB_WAIT2);
 	exca_putb(sc, map->sysmem_win, mem->addr >> EXCA_MEMREG_WIN_SHIFT);
 
 	exca_putb(sc, map->cardmem_lsb, offset & 0xff);
-	exca_putb(sc, map->cardmem_msb, ((offset >> 8) &
-	    EXCA_CARDMEM_ADDRX_MSB_ADDR_MASK) | attrmem);
+	exca_putb(sc, map->cardmem_msb,
+	    ((offset >> 8) & EXCA_CARDMEM_ADDRX_MSB_ADDR_MASK) | attrmem);
 
 	DPRINTF("%s %d-bit memory",
 	    mem->kind & PCCARD_MEM_ATTR ? "attribute" : "common",
 	    mem->kind & PCCARD_MEM_16BIT ? 16 : 8);
-	exca_setb(sc, EXCA_ADDRWIN_ENABLE, map->memenable |
-	    EXCA_ADDRWIN_ENABLE_MEMCS16);
+	exca_setb(sc, EXCA_ADDRWIN_ENABLE,
+	    map->memenable | EXCA_ADDRWIN_ENABLE_MEMCS16);
 
 	DELAY(100);
 #ifdef EXCA_DEBUG
@@ -226,10 +211,9 @@ exca_do_mem_map(struct exca_softc *sc, int win)
 		r6 = exca_getb(sc, map->cardmem_lsb);
 		r7 = exca_getb(sc, map->sysmem_win);
 		printf("exca_do_mem_map win %d: %#02x%#02x %#02x%#02x "
-		    "%#02x%#02x %#02x (%#08x+%#06x.%#06x*%#06x) flags %#x\n",
-		    win, r1, r2, r3, r4, r5, r6, r7,
-		    mem->addr, mem->size, mem->realsize,
-		    mem->cardaddr, mem->kind);
+		       "%#02x%#02x %#02x (%#08x+%#06x.%#06x*%#06x) flags %#x\n",
+		    win, r1, r2, r3, r4, r5, r6, r7, mem->addr, mem->size,
+		    mem->realsize, mem->cardaddr, mem->kind);
 	}
 #endif
 }
@@ -280,8 +264,8 @@ exca_mem_map(struct exca_softc *sc, int kind, struct resource *res)
 	sc->mem[win].realsize = sc->mem[win].realsize -
 	    (sc->mem[win].realsize % EXCA_MEM_PAGESIZE);
 	sc->mem[win].kind = kind;
-	DPRINTF("exca_mem_map window %d bus %x+%x card addr %x\n",
-	    win, sc->mem[win].addr, sc->mem[win].size, sc->mem[win].cardaddr);
+	DPRINTF("exca_mem_map window %d bus %x+%x card addr %x\n", win,
+	    sc->mem[win].addr, sc->mem[win].size, sc->mem[win].cardaddr);
 	exca_do_mem_map(sc, win);
 
 	return (0);
@@ -347,8 +331,7 @@ exca_mem_set_flags(struct exca_softc *sc, struct resource *res, uint32_t flags)
 		return (ENOENT);
 	}
 
-	switch (flags)
-	{
+	switch (flags) {
 	case PCCARD_A_MEM_ATTR:
 		sc->mem[win].kind |= PCCARD_MEM_ATTR;
 		break;
@@ -381,7 +364,7 @@ exca_mem_unmap_res(struct exca_softc *sc, struct resource *res)
 	exca_mem_unmap(sc, win);
 	return (0);
 }
-	
+
 /*
  * Set the offset of the memory.  We use this for reading the CIS and
  * frobbing the pccard's pccard registers (CCR, etc).  Some drivers
@@ -405,49 +388,47 @@ exca_mem_set_offset(struct exca_softc *sc, struct resource *res,
 	delta = cardaddr % EXCA_MEM_PAGESIZE;
 	if (deltap)
 		*deltap = delta;
-	sc->mem[win].realsize = sc->mem[win].size + delta +
-	    EXCA_MEM_PAGESIZE - 1;
+	sc->mem[win].realsize = sc->mem[win].size + delta + EXCA_MEM_PAGESIZE -
+	    1;
 	sc->mem[win].realsize = sc->mem[win].realsize -
 	    (sc->mem[win].realsize % EXCA_MEM_PAGESIZE);
 	exca_do_mem_map(sc, win);
 	return (0);
 }
-			
-
+
 /* I/O */
 
-#define	EXCA_IOINFO(NUM) {						\
-	EXCA_IOADDR ## NUM ## _START_LSB,				\
-	EXCA_IOADDR ## NUM ## _START_MSB,				\
-	EXCA_IOADDR ## NUM ## _STOP_LSB,				\
-	EXCA_IOADDR ## NUM ## _STOP_MSB,				\
-	EXCA_ADDRWIN_ENABLE_IO ## NUM,					\
-	EXCA_IOCTL_IO ## NUM ## _WAITSTATE				\
-	| EXCA_IOCTL_IO ## NUM ## _ZEROWAIT				\
-	| EXCA_IOCTL_IO ## NUM ## _IOCS16SRC_MASK			\
-	| EXCA_IOCTL_IO ## NUM ## _DATASIZE_MASK,			\
-	{								\
-		EXCA_IOCTL_IO ## NUM ## _IOCS16SRC_CARD,		\
-		EXCA_IOCTL_IO ## NUM ## _IOCS16SRC_DATASIZE		\
-		| EXCA_IOCTL_IO ## NUM ## _DATASIZE_8BIT,		\
-		EXCA_IOCTL_IO ## NUM ## _IOCS16SRC_DATASIZE		\
-		| EXCA_IOCTL_IO ## NUM ## _DATASIZE_16BIT,		\
-	}								\
-}
+#define EXCA_IOINFO(NUM)                                                      \
+	{                                                                     \
+		EXCA_IOADDR##NUM##_START_LSB, EXCA_IOADDR##NUM##_START_MSB,   \
+		    EXCA_IOADDR##NUM##_STOP_LSB, EXCA_IOADDR##NUM##_STOP_MSB, \
+		    EXCA_ADDRWIN_ENABLE_IO##NUM,                              \
+		    EXCA_IOCTL_IO##NUM##_WAITSTATE |                          \
+		    EXCA_IOCTL_IO##NUM##_ZEROWAIT |                           \
+		    EXCA_IOCTL_IO##NUM##_IOCS16SRC_MASK |                     \
+		    EXCA_IOCTL_IO##NUM##_DATASIZE_MASK,                       \
+		{                                                             \
+			EXCA_IOCTL_IO##NUM##_IOCS16SRC_CARD,                  \
+			    EXCA_IOCTL_IO##NUM##_IOCS16SRC_DATASIZE |         \
+			    EXCA_IOCTL_IO##NUM##_DATASIZE_8BIT,               \
+			    EXCA_IOCTL_IO##NUM##_IOCS16SRC_DATASIZE |         \
+			    EXCA_IOCTL_IO##NUM##_DATASIZE_16BIT,              \
+		}                                                             \
+	}
 
 static struct io_map_index_st {
-	int	start_lsb;
-	int	start_msb;
-	int	stop_lsb;
-	int	stop_msb;
-	int	ioenable;
-	int	ioctlmask;
-	int	ioctlbits[3]; /* indexed by PCCARD_WIDTH_* */
+	int start_lsb;
+	int start_msb;
+	int stop_lsb;
+	int stop_msb;
+	int ioenable;
+	int ioctlmask;
+	int ioctlbits[3]; /* indexed by PCCARD_WIDTH_* */
 } io_map_index[] = {
 	EXCA_IOINFO(0),
 	EXCA_IOINFO(1),
 };
-#undef	EXCA_IOINFO
+#undef EXCA_IOINFO
 
 static void
 exca_do_io_map(struct exca_softc *sc, int win)
@@ -476,8 +457,8 @@ exca_do_io_map(struct exca_softc *sc, int win)
 		r3 = exca_getb(sc, map->stop_msb);
 		r4 = exca_getb(sc, map->stop_lsb);
 		DPRINTF("exca_do_io_map window %d: %02x%02x %02x%02x "
-		    "(%08x+%08x)\n", win, r1, r2, r3, r4,
-		    io->addr, io->size);
+			"(%08x+%08x)\n",
+		    win, r1, r2, r3, r4, io->addr, io->size);
 	}
 #endif
 }
@@ -487,9 +468,9 @@ exca_io_map(struct exca_softc *sc, int width, struct resource *r)
 {
 	int win;
 #ifdef EXCA_DEBUG
-	static char *width_names[] = { "auto", "io8", "io16"};
+	static char *width_names[] = { "auto", "io8", "io16" };
 #endif
-	for (win=0; win < EXCA_IO_WINS; win++) {
+	for (win = 0; win < EXCA_IO_WINS; win++) {
 		if ((sc->ioalloc & (1 << win)) == 0) {
 			sc->ioalloc |= (1 << win);
 			break;
@@ -504,9 +485,8 @@ exca_io_map(struct exca_softc *sc, int width, struct resource *r)
 	sc->io[win].size = rman_get_end(r) - sc->io[win].addr + 1;
 	sc->io[win].flags = 0;
 	sc->io[win].width = width;
-	DPRINTF("exca_io_map window %d %s port %x+%x\n",
-	    win, width_names[width], sc->io[win].addr,
-	    sc->io[win].size);
+	DPRINTF("exca_io_map window %d %s port %x+%x\n", win,
+	    width_names[width], sc->io[win].addr, sc->io[win].size);
 	exca_do_io_map(sc, win);
 
 	return (0);
@@ -544,7 +524,6 @@ exca_io_findmap(struct exca_softc *sc, struct resource *res)
 	return (-1);
 }
 
-
 int
 exca_io_unmap_res(struct exca_softc *sc, struct resource *res)
 {
@@ -556,14 +535,14 @@ exca_io_unmap_res(struct exca_softc *sc, struct resource *res)
 	exca_io_unmap(sc, win);
 	return (0);
 }
-
+
 /* Misc */
 
 /*
  * If interrupts are enabled, then we should be able to just wait for
  * an interrupt routine to wake us up.  Busy waiting shouldn't be
  * necessary.  Sadly, not all legacy ISA cards support an interrupt
- * for the busy state transitions, at least according to their datasheets, 
+ * for the busy state transitions, at least according to their datasheets,
  * so we busy wait a while here..
  */
 static void
@@ -584,7 +563,7 @@ exca_wait_ready(struct exca_softc *sc)
 /*
  * Reset the card.  Ideally, we'd do a lot of this via interrupts.
  * However, many PC Cards will deassert the ready signal.  This means
- * that they are asserting an interrupt.  This makes it hard to 
+ * that they are asserting an interrupt.  This makes it hard to
  * do anything but a busy wait here.  One could argue that these
  * such cards are broken, or that the bridge that allows this sort
  * of interrupt through isn't quite what you'd want (and may be a standards
@@ -604,11 +583,11 @@ exca_reset(struct exca_softc *sc, device_t child)
 
 	exca_putb(sc, EXCA_INTR, EXCA_INTR_ENABLE);
 	/* hold reset for 30ms */
-	DELAY(30*1000);
+	DELAY(30 * 1000);
 	/* clear the reset flag */
 	exca_setb(sc, EXCA_INTR, EXCA_INTR_RESET);
 	/* wait 20ms as per PC Card standard (r2.01) section 4.3.6 */
-	DELAY(20*1000);
+	DELAY(20 * 1000);
 
 	exca_wait_ready(sc);
 
@@ -631,8 +610,8 @@ exca_reset(struct exca_softc *sc, device_t child)
  * Initialize the exca_softc data structure for the first time.
  */
 void
-exca_init(struct exca_softc *sc, device_t dev, 
-    bus_space_tag_t bst, bus_space_handle_t bsh, uint32_t offset)
+exca_init(struct exca_softc *sc, device_t dev, bus_space_tag_t bst,
+    bus_space_handle_t bsh, uint32_t offset)
 {
 	sc->dev = dev;
 	sc->memalloc = 0;
@@ -777,7 +756,7 @@ exca_probe_slots(device_t dev, struct exca_softc *exca, bus_space_tag_t iot,
 	int i;
 
 	err = ENXIO;
-	for (i = 0; i < EXCA_NSLOTS; i++)  {
+	for (i = 0; i < EXCA_NSLOTS; i++) {
 		exca_init(&exca[i], dev, iot, ioh, i * EXCA_SOCKET_SIZE);
 		exca->getb = exca_io_getb;
 		exca->putb = exca_io_putb;
@@ -801,7 +780,6 @@ exca_insert(struct exca_softc *exca)
 		    "PC Card inserted, but no pccard bus.\n");
 	}
 }
-  
 
 void
 exca_removal(struct exca_softc *exca)
@@ -818,8 +796,8 @@ exca_activate_resource(struct exca_softc *exca, device_t child, int type,
 
 	if (rman_get_flags(res) & RF_ACTIVE)
 		return (0);
-	err = BUS_ACTIVATE_RESOURCE(device_get_parent(exca->dev), child,
-	    type, rid, res);
+	err = BUS_ACTIVATE_RESOURCE(device_get_parent(exca->dev), child, type,
+	    rid, res);
 	if (err)
 		return (err);
 	switch (type) {

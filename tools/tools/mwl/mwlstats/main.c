@@ -39,15 +39,15 @@
  * print a list of all possible statistics for use with the -o option.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <signal.h>
-#include <unistd.h>
 #include <err.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include "mwlstats.h"
 
-#define	S_DEFAULT \
+#define S_DEFAULT \
 	"input,output,txtry,txretry,txmretry,txdoneput,rxfcs,rxcrypt,rxicv,rssi,rate"
 
 static int signalled;
@@ -77,7 +77,9 @@ main(int argc, char *argv[])
 			wf->setfmt(wf, optarg);
 			break;
 		default:
-			errx(-1, "usage: %s [-a] [-i ifname] [-l] [-o fmt] [interval]\n", argv[0]);
+			errx(-1,
+			    "usage: %s [-a] [-i ifname] [-l] [-o fmt] [interval]\n",
+			    argv[0]);
 			/*NOTREACHED*/
 		}
 	}
@@ -113,7 +115,7 @@ main(int argc, char *argv[])
 		signalled = 0;
 		alarm(interval);
 		line++;
-		if (line == 21)		/* XXX tty line count */
+		if (line == 21) /* XXX tty line count */
 			goto banner;
 		else
 			goto loop;

@@ -43,7 +43,6 @@
 
 #include "kbdmap.h"
 
-
 static const char *lang_default = DEFAULT_LANG;
 static const char *font;
 static const char *lang;
@@ -63,15 +62,13 @@ static int show;
 static int verbose;
 static int print;
 
-
 struct keymap {
-	char	*desc;
-	char	*keym;
-	int	mark;
+	char *desc;
+	char *keym;
+	int mark;
 	SLIST_ENTRY(keymap) entries;
 };
 static SLIST_HEAD(slisthead, keymap) head = SLIST_HEAD_INITIALIZER(head);
-
 
 /*
  * Get keymap entry for 'key', or NULL of not found
@@ -81,7 +78,7 @@ get_keymap(const char *key)
 {
 	struct keymap *km;
 
-	SLIST_FOREACH(km, &head, entries)
+	SLIST_FOREACH (km, &head, entries)
 		if (!strcmp(km->keym, key))
 			return km;
 
@@ -97,7 +94,7 @@ get_num_keymaps(void)
 	struct keymap *km;
 	int count = 0;
 
-	SLIST_FOREACH(km, &head, entries)
+	SLIST_FOREACH (km, &head, entries)
 		count++;
 
 	return count;
@@ -111,7 +108,7 @@ remove_keymap(const char *keym)
 {
 	struct keymap *km;
 
-	SLIST_FOREACH(km, &head, entries) {
+	SLIST_FOREACH (km, &head, entries) {
 		if (!strcmp(keym, km->keym)) {
 			SLIST_REMOVE(&head, km, keymap, entries);
 			free(km);
@@ -129,7 +126,7 @@ add_keymap(const char *desc, int mark, const char *keym)
 	struct keymap *km, *km_new;
 
 	/* Is there already an entry with this key? */
-	SLIST_FOREACH(km, &head, entries) {
+	SLIST_FOREACH (km, &head, entries) {
 		if (!strcmp(km->keym, keym)) {
 			/* Reuse this entry */
 			free(km->desc);
@@ -139,7 +136,7 @@ add_keymap(const char *desc, int mark, const char *keym)
 		}
 	}
 
-	km_new = (struct keymap *) malloc (sizeof(struct keymap));
+	km_new = (struct keymap *)malloc(sizeof(struct keymap));
 	km_new->desc = strdup(desc);
 	km_new->keym = strdup(keym);
 	km_new->mark = mark;
@@ -234,9 +231,8 @@ get_font(void)
 				continue;
 
 			matches = sscanf(line,
-			    " font%dx%d = \"%20[-.0-9a-zA-Z_]",
-			    &a, &b, buf);
-			if (matches==3) {
+			    " font%dx%d = \"%20[-.0-9a-zA-Z_]", &a, &b, buf);
+			if (matches == 3) {
 				if (strcmp(buf, "NO")) {
 					if (fnt)
 						free(fnt);
@@ -331,7 +327,7 @@ do_vidfont(struct keymap *km)
 
 	tmp = strdup(km->keym);
 	p = strrchr(tmp, '-');
-	if (p && p[1]!='\0') {
+	if (p && p[1] != '\0') {
 		p++;
 		q = get_extension(p);
 		if (q) {
@@ -367,7 +363,7 @@ show_dialog(struct keymap **km_sorted, int num_keymaps)
 
 	/* start right font, assume that current font is equal
 	 * to default font in /etc/rc.conf
-	 *	
+	 *
 	 * $font is the font which require the language $lang; e.g.
 	 * russian *need* a koi8 font
 	 * $font_current is the current font from /etc/rc.conf
@@ -376,7 +372,7 @@ show_dialog(struct keymap **km_sorted, int num_keymaps)
 		vidcontrol(font);
 
 	/* Build up the menu */
-	for (i=0; i<num_keymaps; i++) {
+	for (i = 0; i < num_keymaps; i++) {
 		listitems[i].prefix = "";
 		listitems[i].depth = 0;
 		listitems[i].bottomdesc = "";
@@ -454,8 +450,8 @@ compare_keymap(const void *a, const void *b)
 {
 
 	/* We've been passed pointers to pointers, so: */
-	const struct keymap *km1 = *((const struct keymap * const *) a);
-	const struct keymap *km2 = *((const struct keymap * const *) b);
+	const struct keymap *km1 = *((const struct keymap *const *)a);
+	const struct keymap *km2 = *((const struct keymap *const *)b);
 
 	return strcmp(km1->desc, km2->desc);
 }
@@ -466,8 +462,8 @@ compare_keymap(const void *a, const void *b)
 static int
 compare_lang(const void *a, const void *b)
 {
-	const char *l1 = *((const char * const *) a);
-	const char *l2 = *((const char * const *) b);
+	const char *l1 = *((const char *const *)a);
+	const char *l2 = *((const char *const *)b);
 
 	return strcmp(l1, l2);
 }
@@ -480,7 +476,7 @@ kludge_desc(struct keymap **km_sorted, int num_keymaps)
 {
 	int i;
 
-	for (i=0; i<num_keymaps; i++) {
+	for (i = 0; i < num_keymaps; i++) {
 		char *p;
 		char *km = km_sorted[i]->desc;
 		if ((p = strstr(km, "8x8")) != NULL) {
@@ -494,10 +490,10 @@ kludge_desc(struct keymap **km_sorted, int num_keymaps)
 			len = strlen(km);
 			km = realloc(km, len + 2);
 
-			for (j=len; j!=offset+1; j--)
+			for (j = len; j != offset + 1; j--)
 				km[j + 1] = km[j];
 
-			km[offset+2] = '0';
+			km[offset + 2] = '0';
 
 			km_sorted[i]->desc = km;
 		}
@@ -512,7 +508,7 @@ unkludge_desc(struct keymap **km_sorted, int num_keymaps)
 {
 	int i;
 
-	for (i=0; i<num_keymaps; i++) {
+	for (i = 0; i < num_keymaps; i++) {
 		char *p;
 		char *km = km_sorted[i]->desc;
 		if ((p = strstr(km, "8x08")) != NULL) {
@@ -583,7 +579,6 @@ menu_read(void)
 		dialect[4] = '.';
 	}
 
-
 	/* en_US.ISO8859-1 -> en */
 	strlcpy(lang_abk, lang, sizeof(lang_abk));
 	if (strlen(lang_abk) >= 3 && lang_abk[2] == '_')
@@ -608,8 +603,8 @@ menu_read(void)
 				continue;
 
 			/* Parse input, removing newline */
-			matches = sscanf(p, "%64[^:]:%64[^:]:%256[^:\n]", 
-			    keym, lng, desc);
+			matches = sscanf(p, "%64[^:]:%64[^:]:%256[^:\n]", keym,
+			    lng, desc);
 			if (matches == 3) {
 				if (strcmp(keym, "FONT") != 0 &&
 				    strcmp(keym, "MENU") != 0 &&
@@ -628,7 +623,7 @@ menu_read(void)
 				char *tmp = strdup(lng);
 				char *delim = tmp;
 
-				for (delim = tmp; ; ) {
+				for (delim = tmp;;) {
 					char ch = *delim++;
 					if (ch == ',' || ch == '\0') {
 						delim[-1] = '\0';
@@ -645,7 +640,6 @@ menu_read(void)
 				lg = lang_default;
 			else
 				lg = lng;
-
 
 			/* 4) Your choice if it exists
 			 * 3) Long match eg. en_GB.ISO8859-1 is equal to
@@ -681,10 +675,10 @@ menu_read(void)
 		fprintf(stderr, "Could not open %s for reading\n", filename);
 
 	if (show) {
-		qsort(lang_list->sl_str, lang_list->sl_cur, sizeof(char*),
+		qsort(lang_list->sl_str, lang_list->sl_cur, sizeof(char *),
 		    compare_lang);
 		printf("Currently supported languages: ");
-		for (i=0; i< (int) lang_list->sl_cur; i++)
+		for (i = 0; i < (int)lang_list->sl_cur; i++)
 			printf("%s ", lang_list->sl_str[i]);
 		puts("");
 		exit(0);
@@ -715,7 +709,7 @@ menu_read(void)
 			const char *ext = get_extension(dp->d_name);
 			if (ext) {
 				if ((!strcmp(ext, ".fnt") ||
-				    !strcmp(ext, ".kbd")) &&
+					!strcmp(ext, ".kbd")) &&
 				    !get_keymap(dp->d_name)) {
 					char *q;
 
@@ -739,12 +733,12 @@ menu_read(void)
 	/* Sort items in keymap */
 	num_keymaps = get_num_keymaps();
 
-	km_sorted = (struct keymap **)
-	    malloc(num_keymaps*sizeof(struct keymap *));
+	km_sorted = (struct keymap **)malloc(
+	    num_keymaps * sizeof(struct keymap *));
 
 	/* Make array of pointers to items in hash */
 	items = 0;
-	SLIST_FOREACH(km, &head, entries)
+	SLIST_FOREACH (km, &head, entries)
 		km_sorted[items++] = km;
 
 	/* Change '8x8' to '8x08' so sort works as we might expect... */
@@ -756,7 +750,7 @@ menu_read(void)
 	unkludge_desc(km_sorted, num_keymaps);
 
 	if (print) {
-		for (i=0; i<num_keymaps; i++)
+		for (i = 0; i < num_keymaps; i++)
 			printf("%s\n", km_sorted[i]->desc);
 		exit(0);
 	}
@@ -773,9 +767,11 @@ static void
 usage(void)
 {
 
-	fprintf(stderr, "usage: %s\t[-K] [-V] [-d|-default] [-h|-help] "
+	fprintf(stderr,
+	    "usage: %s\t[-K] [-V] [-d|-default] [-h|-help] "
 	    "[-l|-lang language]\n\t\t[-p|-print] [-r|-restore] [-s|-show] "
-	    "[-v|-verbose]\n", program);
+	    "[-v|-verbose]\n",
+	    program);
 	exit(1);
 }
 
@@ -784,7 +780,7 @@ parse_args(int argc, char **argv)
 {
 	int i;
 
-	for (i=1; i<argc; i++) {
+	for (i = 1; i < argc; i++) {
 		if (argv[i][0] != '-')
 			usage();
 		else if (!strcmp(argv[i], "-help") || !strcmp(argv[i], "-h"))
@@ -825,8 +821,9 @@ main(int argc, char **argv)
 	x11 = system("kbdcontrol -d >/dev/null");
 
 	if (x11) {
-		fprintf(stderr, "You are not on a virtual console - "
-				"expect certain strange side-effects\n");
+		fprintf(stderr,
+		    "You are not on a virtual console - "
+		    "expect certain strange side-effects\n");
 		sleep(2);
 	}
 

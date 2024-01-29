@@ -29,12 +29,12 @@ init_cpu_features(char **env)
 	const Elf_Auxinfo *aux;
 
 	/* Find the auxiliary vector on the stack. */
-	while (*env++ != 0)	/* Skip over environment, and NULL terminator */
+	while (*env++ != 0) /* Skip over environment, and NULL terminator */
 		;
 	aux = (const Elf_Auxinfo *)env;
 
 	/* Digest the auxiliary vector. */
-	for (;  aux->a_type != AT_NULL; aux++) {
+	for (; aux->a_type != AT_NULL; aux++) {
 		switch (aux->a_type) {
 		case AT_HWCAP:
 			cpu_features = (uint32_t)aux->a_un.a_val;
@@ -49,17 +49,16 @@ init_cpu_features(char **env)
 static void
 crt1_handle_rela(const Elf_Rela *r)
 {
-	typedef Elf_Addr (*ifunc_resolver_t)(
-	    uint32_t, uint32_t, uint64_t, uint64_t,
-	    uint64_t, uint64_t, uint64_t, uint64_t);
+	typedef Elf_Addr (*ifunc_resolver_t)(uint32_t, uint32_t, uint64_t,
+	    uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
 	Elf_Addr *ptr, *where, target;
 
 	switch (ELF_R_TYPE(r->r_info)) {
 	case R_PPC_IRELATIVE:
 		ptr = (Elf_Addr *)r->r_addend;
 		where = (Elf_Addr *)r->r_offset;
-		target = ((ifunc_resolver_t)ptr)(cpu_features, cpu_features2,
-		    0, 0, 0, 0, 0, 0);
+		target = ((ifunc_resolver_t)ptr)(cpu_features, cpu_features2, 0,
+		    0, 0, 0, 0, 0);
 		*where = target;
 		break;
 	}

@@ -24,11 +24,12 @@
  * Use is subject to license terms.
  */
 
-#pragma ident	"%Z%%M%	%I%	%E% SMI"
+#pragma ident "%Z%%M%	%I%	%E% SMI"
 
-#include <ctf_impl.h>
 #include <sys/kobj.h>
 #include <sys/kobj_impl.h>
+
+#include <ctf_impl.h>
 
 /*
  * This module is used both during the normal operation of the kernel (i.e.
@@ -40,7 +41,7 @@
 void *
 ctf_data_alloc(size_t size)
 {
-	void *buf = kobj_alloc(size, KM_NOWAIT|KM_SCRATCH);
+	void *buf = kobj_alloc(size, KM_NOWAIT | KM_SCRATCH);
 
 	if (buf == NULL)
 		return (MAP_FAILED);
@@ -64,7 +65,7 @@ ctf_data_protect(void *buf, size_t size)
 void *
 ctf_alloc(size_t size)
 {
-	return (kobj_alloc(size, KM_NOWAIT|KM_TMP));
+	return (kobj_alloc(size, KM_NOWAIT | KM_TMP));
 }
 
 /*ARGSUSED*/
@@ -89,8 +90,8 @@ ctf_dprintf(const char *format, ...)
 		va_list alist;
 
 		va_start(alist, format);
-		(void) printf("ctf DEBUG: ");
-		(void) vprintf(format, alist);
+		(void)printf("ctf DEBUG: ");
+		(void)vprintf(format, alist);
 		va_end(alist);
 	}
 }

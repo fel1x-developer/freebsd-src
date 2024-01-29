@@ -46,8 +46,7 @@ main(void)
 	sock = socket(PF_ROUTE, SOCK_STREAM, 0);
 	if (sock >= 0) {
 		close(sock);
-		errx(-1, "socket(PF_ROUTE, SOCK_STREAM, 0) returned %d",
-		    sock);
+		errx(-1, "socket(PF_ROUTE, SOCK_STREAM, 0) returned %d", sock);
 	}
 
 	if (errno != EPROTOTYPE)
@@ -56,8 +55,7 @@ main(void)
 	sock = socket(PF_ROUTE, SOCK_DGRAM, 0);
 	if (sock >= 0) {
 		close(sock);
-		errx(-1, "socket(PF_ROUTE, SOCK_DGRAM, 0) returned %d",
-		    sock);
+		errx(-1, "socket(PF_ROUTE, SOCK_DGRAM, 0) returned %d", sock);
 	}
 
 	if (errno != EPROTOTYPE)
@@ -71,8 +69,7 @@ main(void)
 	if (socketpair(PF_ROUTE, SOCK_STREAM, 0, socks) == 0) {
 		close(socks[0]);
 		close(socks[1]);
-		errx(-1,
-		    "socketpair(PF_ROUTE, SOCK_STREAM, 0, socks) success");
+		errx(-1, "socketpair(PF_ROUTE, SOCK_STREAM, 0, socks) success");
 	}
 
 	if (errno != EPROTOTYPE)
@@ -81,8 +78,7 @@ main(void)
 	if (socketpair(PF_ROUTE, SOCK_DGRAM, 0, socks) == 0) {
 		close(socks[0]);
 		close(socks[1]);
-		errx(-1,
-		    "socketpair(PF_ROUTE, SOCK_DGRAM, 0, socks) success");
+		errx(-1, "socketpair(PF_ROUTE, SOCK_DGRAM, 0, socks) success");
 	}
 
 	if (errno != EPROTOTYPE)
@@ -91,8 +87,7 @@ main(void)
 	if (socketpair(PF_ROUTE, SOCK_RAW, 0, socks) == 0) {
 		close(socks[0]);
 		close(socks[1]);
-		errx(-1,
-		    "socketpair(PF_ROUTE, SOCK_STREAM, 0, socks) success");
+		errx(-1, "socketpair(PF_ROUTE, SOCK_STREAM, 0, socks) success");
 	}
 
 	return (0);

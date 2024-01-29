@@ -34,54 +34,54 @@
 
 #include <sys/sema.h>
 
-#define DEFAULT_LOG2_THROTTLING_FOR_ERROR_EQ	4
+#define DEFAULT_LOG2_THROTTLING_FOR_ERROR_EQ 4
 
-#define HW_CHANNEL_MAX_REQUEST_SIZE		0x1000
-#define HW_CHANNEL_MAX_RESPONSE_SIZE		0x1000
+#define HW_CHANNEL_MAX_REQUEST_SIZE 0x1000
+#define HW_CHANNEL_MAX_RESPONSE_SIZE 0x1000
 
-#define HW_CHANNEL_VF_BOOTSTRAP_QUEUE_DEPTH	1
+#define HW_CHANNEL_VF_BOOTSTRAP_QUEUE_DEPTH 1
 
-#define HWC_INIT_DATA_CQID		1
-#define HWC_INIT_DATA_RQID		2
-#define HWC_INIT_DATA_SQID		3
-#define HWC_INIT_DATA_QUEUE_DEPTH	4
-#define HWC_INIT_DATA_MAX_REQUEST	5
-#define HWC_INIT_DATA_MAX_RESPONSE	6
-#define HWC_INIT_DATA_MAX_NUM_CQS	7
-#define HWC_INIT_DATA_PDID		8
-#define HWC_INIT_DATA_GPA_MKEY		9
+#define HWC_INIT_DATA_CQID 1
+#define HWC_INIT_DATA_RQID 2
+#define HWC_INIT_DATA_SQID 3
+#define HWC_INIT_DATA_QUEUE_DEPTH 4
+#define HWC_INIT_DATA_MAX_REQUEST 5
+#define HWC_INIT_DATA_MAX_RESPONSE 6
+#define HWC_INIT_DATA_MAX_NUM_CQS 7
+#define HWC_INIT_DATA_PDID 8
+#define HWC_INIT_DATA_GPA_MKEY 9
 
 /* Structures labeled with "HW DATA" are exchanged with the hardware. All of
  * them are naturally aligned and hence don't need __packed.
  */
 
 union hwc_init_eq_id_db {
-	uint32_t			as_uint32;
+	uint32_t as_uint32;
 
 	struct {
-		uint32_t		eq_id	: 16;
-		uint32_t		doorbell: 16;
+		uint32_t eq_id : 16;
+		uint32_t doorbell : 16;
 	};
 }; /* HW DATA */
 
 union hwc_init_type_data {
-	uint32_t			as_uint32;
+	uint32_t as_uint32;
 
 	struct {
-		uint32_t value	: 24;
-		uint32_t type	:  8;
+		uint32_t value : 24;
+		uint32_t type : 8;
 	};
 }; /* HW DATA */
 
 struct hwc_rx_oob {
-	uint32_t type	: 6;
-	uint32_t eom		: 1;
-	uint32_t som		: 1;
-	uint32_t vendor_err	: 8;
-	uint32_t reserved1	: 16;
+	uint32_t type : 6;
+	uint32_t eom : 1;
+	uint32_t som : 1;
+	uint32_t vendor_err : 8;
+	uint32_t reserved1 : 16;
 
-	uint32_t src_virt_wq	: 24;
-	uint32_t src_vfid	: 8;
+	uint32_t src_virt_wq : 24;
+	uint32_t src_vfid : 8;
 
 	uint32_t reserved2;
 
@@ -92,13 +92,13 @@ struct hwc_rx_oob {
 
 	uint32_t wqe_addr_high;
 
-	uint32_t client_data_unit	: 14;
-	uint32_t reserved3		: 18;
+	uint32_t client_data_unit : 14;
+	uint32_t reserved3 : 18;
 
 	uint32_t tx_oob_data_size;
 
-	uint32_t chunk_offset	: 21;
-	uint32_t reserved4		: 11;
+	uint32_t chunk_offset : 21;
+	uint32_t reserved4 : 11;
 }; /* HW DATA */
 
 struct hwc_tx_oob {
@@ -106,20 +106,20 @@ struct hwc_tx_oob {
 
 	uint32_t reserved2;
 
-	uint32_t vrq_id	: 24;
-	uint32_t dest_vfid	: 8;
+	uint32_t vrq_id : 24;
+	uint32_t dest_vfid : 8;
 
-	uint32_t vrcq_id	: 24;
-	uint32_t reserved3	: 8;
+	uint32_t vrcq_id : 24;
+	uint32_t reserved3 : 8;
 
-	uint32_t vscq_id	: 24;
-	uint32_t loopback	: 1;
-	uint32_t lso_override: 1;
-	uint32_t dest_pf	: 1;
-	uint32_t reserved4	: 5;
+	uint32_t vscq_id : 24;
+	uint32_t loopback : 1;
+	uint32_t lso_override : 1;
+	uint32_t dest_pf : 1;
+	uint32_t reserved4 : 5;
 
-	uint32_t vsq_id	: 24;
-	uint32_t reserved5	: 8;
+	uint32_t vsq_id : 24;
+	uint32_t reserved5 : 8;
 }; /* HW DATA */
 
 struct hwc_work_request {
@@ -149,10 +149,10 @@ struct hwc_dma_buf {
 };
 
 typedef void hwc_rx_event_handler_t(void *ctx, uint32_t gdma_rxq_id,
-				    const struct hwc_rx_oob *rx_oob);
+    const struct hwc_rx_oob *rx_oob);
 
 typedef void hwc_tx_event_handler_t(void *ctx, uint32_t gdma_txq_id,
-				    const struct hwc_rx_oob *rx_oob);
+    const struct hwc_rx_oob *rx_oob);
 
 struct hwc_cq {
 	struct hw_channel_context *hwc;
@@ -215,6 +215,6 @@ int mana_hwc_create_channel(struct gdma_context *gc);
 void mana_hwc_destroy_channel(struct gdma_context *gc);
 
 int mana_hwc_send_request(struct hw_channel_context *hwc, uint32_t req_len,
-			  const void *req, uint32_t resp_len, void *resp);
+    const void *req, uint32_t resp_len, void *resp);
 
 #endif /* _HW_CHANNEL_H */

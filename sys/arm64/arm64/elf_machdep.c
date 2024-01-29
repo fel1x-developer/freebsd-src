@@ -32,17 +32,17 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/systm.h>
 #include <sys/exec.h>
 #include <sys/imgact.h>
+#include <sys/imgact_elf.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
 #include <sys/proc.h>
 #include <sys/reg.h>
-#include <sys/sysent.h>
-#include <sys/imgact_elf.h>
-#include <sys/syscall.h>
 #include <sys/signalvar.h>
+#include <sys/syscall.h>
+#include <sys/sysent.h>
 #include <sys/vnode.h>
 
 #include <vm/vm.h>
@@ -62,58 +62,56 @@ u_long __read_frequently linux_elf_hwcap2;
 struct arm64_addr_mask elf64_addr_mask;
 
 static struct sysentvec elf64_freebsd_sysvec = {
-	.sv_size	= SYS_MAXSYSCALL,
-	.sv_table	= sysent,
-	.sv_fixup	= __elfN(freebsd_fixup),
-	.sv_sendsig	= sendsig,
-	.sv_sigcode	= sigcode,
-	.sv_szsigcode	= &szsigcode,
-	.sv_name	= "FreeBSD ELF64",
-	.sv_coredump	= __elfN(coredump),
+	.sv_size = SYS_MAXSYSCALL,
+	.sv_table = sysent,
+	.sv_fixup = __elfN(freebsd_fixup),
+	.sv_sendsig = sendsig,
+	.sv_sigcode = sigcode,
+	.sv_szsigcode = &szsigcode,
+	.sv_name = "FreeBSD ELF64",
+	.sv_coredump = __elfN(coredump),
 	.sv_elf_core_osabi = ELFOSABI_FREEBSD,
 	.sv_elf_core_abi_vendor = FREEBSD_ABI_VENDOR,
 	.sv_elf_core_prepare_notes = __elfN(prepare_notes),
-	.sv_minsigstksz	= MINSIGSTKSZ,
-	.sv_minuser	= VM_MIN_ADDRESS,
-	.sv_maxuser	= VM_MAXUSER_ADDRESS,
-	.sv_usrstack	= USRSTACK,
-	.sv_psstrings	= PS_STRINGS,
-	.sv_psstringssz	= sizeof(struct ps_strings),
-	.sv_stackprot	= VM_PROT_READ | VM_PROT_WRITE,
+	.sv_minsigstksz = MINSIGSTKSZ,
+	.sv_minuser = VM_MIN_ADDRESS,
+	.sv_maxuser = VM_MAXUSER_ADDRESS,
+	.sv_usrstack = USRSTACK,
+	.sv_psstrings = PS_STRINGS,
+	.sv_psstringssz = sizeof(struct ps_strings),
+	.sv_stackprot = VM_PROT_READ | VM_PROT_WRITE,
 	.sv_copyout_auxargs = __elfN(freebsd_copyout_auxargs),
 	.sv_copyout_strings = exec_copyout_strings,
-	.sv_setregs	= exec_setregs,
-	.sv_fixlimit	= NULL,
-	.sv_maxssiz	= NULL,
-	.sv_flags	= SV_SHP | SV_TIMEKEEP | SV_ABI_FREEBSD | SV_LP64 |
-	    SV_ASLR | SV_RNG_SEED_VER | SV_SIGSYS,
+	.sv_setregs = exec_setregs,
+	.sv_fixlimit = NULL,
+	.sv_maxssiz = NULL,
+	.sv_flags = SV_SHP | SV_TIMEKEEP | SV_ABI_FREEBSD | SV_LP64 | SV_ASLR |
+	    SV_RNG_SEED_VER | SV_SIGSYS,
 	.sv_set_syscall_retval = cpu_set_syscall_retval,
 	.sv_fetch_syscall_args = cpu_fetch_syscall_args,
 	.sv_syscallnames = syscallnames,
 	.sv_shared_page_base = SHAREDPAGE,
 	.sv_shared_page_len = PAGE_SIZE,
-	.sv_schedtail	= NULL,
+	.sv_schedtail = NULL,
 	.sv_thread_detach = NULL,
-	.sv_trap	= NULL,
-	.sv_hwcap	= &elf_hwcap,
-	.sv_hwcap2	= &elf_hwcap2,
-	.sv_onexec_old	= exec_onexec_old,
-	.sv_onexit	= exit_onexit,
+	.sv_trap = NULL,
+	.sv_hwcap = &elf_hwcap,
+	.sv_hwcap2 = &elf_hwcap2,
+	.sv_onexec_old = exec_onexec_old,
+	.sv_onexit = exit_onexit,
 	.sv_regset_begin = SET_BEGIN(__elfN(regset)),
-	.sv_regset_end	= SET_LIMIT(__elfN(regset)),
+	.sv_regset_end = SET_LIMIT(__elfN(regset)),
 };
 INIT_SYSENTVEC(elf64_sysvec, &elf64_freebsd_sysvec);
 
-static Elf64_Brandinfo freebsd_brand_info = {
-	.brand		= ELFOSABI_FREEBSD,
-	.machine	= EM_AARCH64,
-	.compat_3_brand	= "FreeBSD",
-	.interp_path	= "/libexec/ld-elf.so.1",
-	.sysvec		= &elf64_freebsd_sysvec,
-	.interp_newpath	= NULL,
-	.brand_note	= &elf64_freebsd_brandnote,
-	.flags		= BI_CAN_EXEC_DYN | BI_BRAND_NOTE
-};
+static Elf64_Brandinfo freebsd_brand_info = { .brand = ELFOSABI_FREEBSD,
+	.machine = EM_AARCH64,
+	.compat_3_brand = "FreeBSD",
+	.interp_path = "/libexec/ld-elf.so.1",
+	.sysvec = &elf64_freebsd_sysvec,
+	.interp_newpath = NULL,
+	.brand_note = &elf64_freebsd_brandnote,
+	.flags = BI_CAN_EXEC_DYN | BI_BRAND_NOTE };
 
 SYSINIT(elf64, SI_SUB_EXEC, SI_ORDER_FIRST,
     (sysinit_cfunc_t)elf64_insert_brand_entry, &freebsd_brand_info);
@@ -173,8 +171,8 @@ static int
 elf_reloc_internal(linker_file_t lf, Elf_Addr relocbase, const void *data,
     int type, int flags, elf_lookup_fn lookup)
 {
-#define	ARM64_ELF_RELOC_LOCAL		(1 << 0)
-#define	ARM64_ELF_RELOC_LATE_IFUNC	(1 << 1)
+#define ARM64_ELF_RELOC_LOCAL (1 << 0)
+#define ARM64_ELF_RELOC_LATE_IFUNC (1 << 1)
 	Elf_Addr *where, addr, addend, val;
 	Elf_Word rtype, symidx;
 	const Elf_Rel *rel;
@@ -184,14 +182,14 @@ elf_reloc_internal(linker_file_t lf, Elf_Addr relocbase, const void *data,
 	switch (type) {
 	case ELF_RELOC_REL:
 		rel = (const Elf_Rel *)data;
-		where = (Elf_Addr *) (relocbase + rel->r_offset);
+		where = (Elf_Addr *)(relocbase + rel->r_offset);
 		addend = *where;
 		rtype = ELF_R_TYPE(rel->r_info);
 		symidx = ELF_R_SYM(rel->r_info);
 		break;
 	case ELF_RELOC_RELA:
 		rela = (const Elf_Rela *)data;
-		where = (Elf_Addr *) (relocbase + rela->r_offset);
+		where = (Elf_Addr *)(relocbase + rela->r_offset);
 		addend = rela->r_addend;
 		rtype = ELF_R_TYPE(rela->r_info);
 		symidx = ELF_R_SYM(rela->r_info);
@@ -250,13 +248,14 @@ elf_reloc_internal(linker_file_t lf, Elf_Addr relocbase, const void *data,
 		break;
 	case R_AARCH64_IRELATIVE:
 		addr = relocbase + addend;
-		val = ((Elf64_Addr (*)(void))addr)();
+		val = ((Elf64_Addr(*)(void))addr)();
 		if (*where != val)
 			*where = val;
 		break;
 	default:
 		printf("kldload: unexpected relocation type %d, "
-		    "symbol index %d\n", rtype, symidx);
+		       "symbol index %d\n",
+		    rtype, symidx);
 		return (-1);
 	}
 	return (error);
@@ -281,8 +280,8 @@ elf_reloc(linker_file_t lf, Elf_Addr relocbase, const void *data, int type,
 }
 
 int
-elf_reloc_late(linker_file_t lf, Elf_Addr relocbase, const void *data,
-    int type, elf_lookup_fn lookup)
+elf_reloc_late(linker_file_t lf, Elf_Addr relocbase, const void *data, int type,
+    elf_lookup_fn lookup)
 {
 
 	return (elf_reloc_internal(lf, relocbase, data, type,

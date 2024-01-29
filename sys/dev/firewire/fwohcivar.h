@@ -32,7 +32,7 @@
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
- * 
+ *
  *
  */
 
@@ -52,11 +52,11 @@ typedef struct fwohci_softc {
 		struct fwohcidb_tr *top, *bottom, *pdb_tr;
 		struct fw_xferq xferq;
 		int flags;
-#define	FWOHCI_DBCH_INIT	(1<<0)
-#define	FWOHCI_DBCH_FULL	(1<<1)
+#define FWOHCI_DBCH_INIT (1 << 0)
+#define FWOHCI_DBCH_FULL (1 << 1)
 		/* used only in receive context */
-		int buf_offset;	/* signed */
-#define FWOHCI_DBCH_MAX_PAGES	32
+		int buf_offset; /* signed */
+#define FWOHCI_DBCH_MAX_PAGES 32
 		/* Context programs buffer */
 		struct fwdma_alloc_multi *am;
 		bus_dma_tag_t dmat;
@@ -74,10 +74,10 @@ typedef struct fwohci_softc {
 	int cycle_lost;
 } fwohci_softc_t;
 
-void fwohci_intr (void *arg);
-int fwohci_init (struct fwohci_softc *, device_t);
-void fwohci_poll (struct firewire_comm *, int, int);
-void fwohci_reset (struct fwohci_softc *, device_t);
-int fwohci_detach (struct fwohci_softc *, device_t);
-int fwohci_resume (struct fwohci_softc *, device_t);
-int fwohci_stop (struct fwohci_softc *, device_t dev);
+void fwohci_intr(void *arg);
+int fwohci_init(struct fwohci_softc *, device_t);
+void fwohci_poll(struct firewire_comm *, int, int);
+void fwohci_reset(struct fwohci_softc *, device_t);
+int fwohci_detach(struct fwohci_softc *, device_t);
+int fwohci_resume(struct fwohci_softc *, device_t);
+int fwohci_stop(struct fwohci_softc *, device_t dev);

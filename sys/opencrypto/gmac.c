@@ -29,6 +29,7 @@
 
 #include <sys/types.h>
 #include <sys/systm.h>
+
 #include <opencrypto/gfmult.h>
 #include <opencrypto/gmac.h>
 
@@ -89,8 +90,8 @@ AES_GMAC_Update(void *ctx, const void *vdata, u_int len)
 	v = agc->hash;
 
 	while (len > 0) {
-		if (len >= 4*GMAC_BLOCK_LEN) {
-			i = 4*GMAC_BLOCK_LEN;
+		if (len >= 4 * GMAC_BLOCK_LEN) {
+			i = 4 * GMAC_BLOCK_LEN;
 			v = gf128_mul4b(v, data, &agc->ghashtbl);
 		} else if (len >= GMAC_BLOCK_LEN) {
 			i = GMAC_BLOCK_LEN;

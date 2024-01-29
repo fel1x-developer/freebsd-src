@@ -32,35 +32,35 @@
  */
 
 #include <sys/param.h>
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/queue.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/linker_set.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/linker_set.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usb_cdc.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
 #include <dev/usb/usbhid.h>
+
 #include "usb_if.h"
 
-#define	USB_DEBUG_VAR g_modem_debug
-#include <dev/usb/usb_debug.h>
-
+#define USB_DEBUG_VAR g_modem_debug
 #include <dev/usb/gadget/g_modem.h>
+#include <dev/usb/usb_debug.h>
 
 enum {
 	G_MODEM_INTR_DT,
@@ -75,19 +75,19 @@ struct g_modem_softc {
 	struct usb_callout sc_watchdog;
 	struct usb_xfer *sc_xfer[G_MODEM_N_TRANSFER];
 
-	int	sc_mode;
-	int	sc_tx_busy;
-	int	sc_pattern_len;
-	int	sc_throughput;
-	int	sc_tx_interval;
+	int sc_mode;
+	int sc_tx_busy;
+	int sc_pattern_len;
+	int sc_throughput;
+	int sc_tx_interval;
 
-	char	sc_pattern[G_MODEM_MAX_STRLEN];
+	char sc_pattern[G_MODEM_MAX_STRLEN];
 
 	uint16_t sc_data_len;
 
 	uint8_t sc_data_buf[G_MODEM_BUFSIZE];
-	uint8_t	sc_line_coding[32];
-	uint8_t	sc_abstract_state[32];
+	uint8_t sc_line_coding[32];
+	uint8_t sc_abstract_state[32];
 };
 
 static SYSCTL_NODE(_hw_usb, OID_AUTO, g_modem, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
@@ -96,14 +96,14 @@ static SYSCTL_NODE(_hw_usb, OID_AUTO, g_modem, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
 #ifdef USB_DEBUG
 static int g_modem_debug = 0;
 
-SYSCTL_INT(_hw_usb_g_modem, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &g_modem_debug, 0, "Debug level");
+SYSCTL_INT(_hw_usb_g_modem, OID_AUTO, debug, CTLFLAG_RWTUN, &g_modem_debug, 0,
+    "Debug level");
 #endif
 
 static int g_modem_mode = 0;
 
-SYSCTL_INT(_hw_usb_g_modem, OID_AUTO, mode, CTLFLAG_RWTUN,
-    &g_modem_mode, 0, "Mode selection");
+SYSCTL_INT(_hw_usb_g_modem, OID_AUTO, mode, CTLFLAG_RWTUN, &g_modem_mode, 0,
+    "Mode selection");
 
 static int g_modem_pattern_interval = 1000;
 
@@ -118,7 +118,8 @@ SYSCTL_STRING(_hw_usb_g_modem, OID_AUTO, pattern, CTLFLAG_RW,
 static int g_modem_throughput;
 
 SYSCTL_INT(_hw_usb_g_modem, OID_AUTO, throughput, CTLFLAG_RD,
-    &g_modem_throughput, sizeof(g_modem_throughput), "Throughput in bytes per second");
+    &g_modem_throughput, sizeof(g_modem_throughput),
+    "Throughput in bytes per second");
 
 static device_probe_t g_modem_probe;
 static device_attach_t g_modem_attach;
@@ -261,7 +262,8 @@ g_modem_probe(device_t dev)
 		return (ENXIO);
 
 	if ((uaa->info.bInterfaceClass == UICLASS_CDC) &&
-	    (uaa->info.bInterfaceSubClass == UISUBCLASS_ABSTRACT_CONTROL_MODEL) &&
+	    (uaa->info.bInterfaceSubClass ==
+		UISUBCLASS_ABSTRACT_CONTROL_MODEL) &&
 	    (uaa->info.bInterfaceProtocol == UIPROTO_CDC_AT))
 		return (0);
 
@@ -290,9 +292,8 @@ g_modem_attach(device_t dev)
 	iface_index[0] = uaa->info.bIfaceIndex;
 	iface_index[1] = uaa->info.bIfaceIndex + 1;
 
-	error = usbd_transfer_setup(uaa->device,
-	    iface_index, sc->sc_xfer, g_modem_config,
-	    G_MODEM_N_TRANSFER, sc, &sc->sc_mtx);
+	error = usbd_transfer_setup(uaa->device, iface_index, sc->sc_xfer,
+	    g_modem_config, G_MODEM_N_TRANSFER, sc, &sc->sc_mtx);
 
 	if (error) {
 		DPRINTF("error=%s\n", usbd_errstr(error));
@@ -305,12 +306,12 @@ g_modem_attach(device_t dev)
 	g_modem_watchdog_reset(sc);
 	mtx_unlock(&sc->sc_mtx);
 
-	return (0);			/* success */
+	return (0); /* success */
 
 detach:
 	g_modem_detach(dev);
 
-	return (ENXIO);			/* error */
+	return (ENXIO); /* error */
 }
 
 static int
@@ -343,18 +344,18 @@ g_modem_intr_callback(struct usb_xfer *xfer, usb_error_t error)
 
 	usbd_xfer_status(xfer, &actlen, NULL, &aframes, NULL);
 
-	DPRINTF("st=%d aframes=%d actlen=%d bytes\n",
-	    USB_GET_STATE(xfer), aframes, actlen);
+	DPRINTF("st=%d aframes=%d actlen=%d bytes\n", USB_GET_STATE(xfer),
+	    aframes, actlen);
 
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_TRANSFERRED:
 		break;
 
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		break;
 
-	default:			/* Error */
+	default: /* Error */
 		DPRINTF("error=%s\n", usbd_errstr(error));
 
 		if (error != USB_ERR_CANCELLED) {
@@ -378,8 +379,8 @@ g_modem_bulk_write_callback(struct usb_xfer *xfer, usb_error_t error)
 
 	usbd_xfer_status(xfer, &actlen, NULL, &aframes, NULL);
 
-	DPRINTF("st=%d aframes=%d actlen=%d bytes\n",
-	    USB_GET_STATE(xfer), aframes, actlen);
+	DPRINTF("st=%d aframes=%d actlen=%d bytes\n", USB_GET_STATE(xfer),
+	    aframes, actlen);
 
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_TRANSFERRED:
@@ -391,12 +392,13 @@ g_modem_bulk_write_callback(struct usb_xfer *xfer, usb_error_t error)
 			/* start loop */
 			usbd_transfer_start(sc->sc_xfer[G_MODEM_BULK_RD]);
 			break;
-		} else if ((sc->sc_mode == G_MODEM_MODE_PATTERN) && (sc->sc_tx_interval != 0)) {
+		} else if ((sc->sc_mode == G_MODEM_MODE_PATTERN) &&
+		    (sc->sc_tx_interval != 0)) {
 			/* wait for next timeout */
 			break;
 		}
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		if (sc->sc_mode == G_MODEM_MODE_PATTERN) {
 			mod = sc->sc_pattern_len;
 			max = sc->sc_tx_interval ? mod : G_MODEM_BUFSIZE;
@@ -406,7 +408,8 @@ tr_setup:
 					sc->sc_data_buf[x] = x % 255;
 			} else {
 				for (x = 0; x != max; x++)
-					sc->sc_data_buf[x] = sc->sc_pattern[x % mod];
+					sc->sc_data_buf[x] =
+					    sc->sc_pattern[x % mod];
 			}
 
 			usbd_xfer_set_frame_data(xfer, 0, sc->sc_data_buf, max);
@@ -425,7 +428,8 @@ tr_setup:
 			else if (x > 256)
 				x = 256;
 
-			usbd_xfer_set_frame_data(xfer, 0, sc->sc_data_buf, sc->sc_data_len);
+			usbd_xfer_set_frame_data(xfer, 0, sc->sc_data_buf,
+			    sc->sc_data_len);
 			usbd_xfer_set_interval(xfer, x);
 			usbd_xfer_set_frames(xfer, 1);
 			usbd_transfer_submit(xfer);
@@ -434,7 +438,7 @@ tr_setup:
 		}
 		break;
 
-	default:			/* Error */
+	default: /* Error */
 		DPRINTF("error=%s\n", usbd_errstr(error));
 
 		if (error != USB_ERR_CANCELLED) {
@@ -455,8 +459,8 @@ g_modem_bulk_read_callback(struct usb_xfer *xfer, usb_error_t error)
 
 	usbd_xfer_status(xfer, &actlen, NULL, &aframes, NULL);
 
-	DPRINTF("st=%d aframes=%d actlen=%d bytes\n",
-	    USB_GET_STATE(xfer), aframes, actlen);
+	DPRINTF("st=%d aframes=%d actlen=%d bytes\n", USB_GET_STATE(xfer),
+	    aframes, actlen);
 
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_TRANSFERRED:
@@ -471,17 +475,18 @@ g_modem_bulk_read_callback(struct usb_xfer *xfer, usb_error_t error)
 		}
 
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		if ((sc->sc_mode == G_MODEM_MODE_SILENT) ||
 		    (sc->sc_tx_busy != 0))
 			break;
 
-		usbd_xfer_set_frame_data(xfer, 0, sc->sc_data_buf, G_MODEM_BUFSIZE);
+		usbd_xfer_set_frame_data(xfer, 0, sc->sc_data_buf,
+		    G_MODEM_BUFSIZE);
 		usbd_xfer_set_frames(xfer, 1);
 		usbd_transfer_submit(xfer);
 		break;
 
-	default:			/* Error */
+	default: /* Error */
 		DPRINTF("error=%s\n", usbd_errstr(error));
 
 		if (error != USB_ERR_CANCELLED) {
@@ -494,9 +499,8 @@ tr_setup:
 }
 
 static int
-g_modem_handle_request(device_t dev,
-    const void *preq, void **pptr, uint16_t *plen,
-    uint16_t offset, uint8_t *pstate)
+g_modem_handle_request(device_t dev, const void *preq, void **pptr,
+    uint16_t *plen, uint16_t offset, uint8_t *pstate)
 {
 	struct g_modem_softc *sc = device_get_softc(dev);
 	const struct usb_device_request *req = preq;
@@ -505,8 +509,7 @@ g_modem_handle_request(device_t dev,
 	if (!is_complete) {
 		if ((req->bmRequestType == UT_WRITE_CLASS_INTERFACE) &&
 		    (req->bRequest == UCDC_SET_LINE_CODING) &&
-		    (req->wValue[0] == 0x00) &&
-		    (req->wValue[1] == 0x00)) {
+		    (req->wValue[0] == 0x00) && (req->wValue[1] == 0x00)) {
 			if (offset == 0) {
 				*plen = sizeof(sc->sc_line_coding);
 				*pptr = &sc->sc_line_coding;
@@ -533,5 +536,5 @@ g_modem_handle_request(device_t dev,
 			return (0);
 		}
 	}
-	return (ENXIO);			/* use builtin handler */
+	return (ENXIO); /* use builtin handler */
 }

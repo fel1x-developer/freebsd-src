@@ -32,29 +32,29 @@
  * Support for POSIX.1e access control lists: UFS-specific support functions.
  */
 
-#include <sys/cdefs.h>
-#include "opt_ufs.h"
 #include "opt_quota.h"
+#include "opt_ufs.h"
 
+#include <sys/cdefs.h>
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/stat.h>
-#include <sys/mount.h>
-#include <sys/vnode.h>
-#include <sys/types.h>
 #include <sys/acl.h>
 #include <sys/event.h>
 #include <sys/extattr.h>
+#include <sys/mount.h>
 #include <sys/proc.h>
+#include <sys/stat.h>
+#include <sys/vnode.h>
 
-#include <ufs/ufs/quota.h>
-#include <ufs/ufs/inode.h>
-#include <ufs/ufs/acl.h>
-#include <ufs/ufs/extattr.h>
-#include <ufs/ufs/dir.h>
-#include <ufs/ufs/ufsmount.h>
-#include <ufs/ufs/ufs_extern.h>
 #include <ufs/ffs/fs.h>
+#include <ufs/ufs/acl.h>
+#include <ufs/ufs/dir.h>
+#include <ufs/ufs/extattr.h>
+#include <ufs/ufs/inode.h>
+#include <ufs/ufs/quota.h>
+#include <ufs/ufs/ufs_extern.h>
+#include <ufs/ufs/ufsmount.h>
 
 #ifdef UFS_ACL
 
@@ -68,8 +68,8 @@ FEATURE(ufs_acl, "ACL support for UFS");
 void
 ufs_sync_acl_from_inode(struct inode *ip, struct acl *acl)
 {
-	struct acl_entry	*acl_mask, *acl_group_obj;
-	int	i;
+	struct acl_entry *acl_mask, *acl_group_obj;
+	int i;
 
 	/*
 	 * Update ACL_USER_OBJ, ACL_OTHER, but simply identify ACL_MASK
@@ -81,8 +81,8 @@ ufs_sync_acl_from_inode(struct inode *ip, struct acl *acl)
 	for (i = 0; i < acl->acl_cnt; i++) {
 		switch (acl->acl_entry[i].ae_tag) {
 		case ACL_USER_OBJ:
-			acl->acl_entry[i].ae_perm = acl_posix1e_mode_to_perm(
-			    ACL_USER_OBJ, ip->i_mode);
+			acl->acl_entry[i].ae_perm =
+			    acl_posix1e_mode_to_perm(ACL_USER_OBJ, ip->i_mode);
 			acl->acl_entry[i].ae_id = ACL_UNDEFINED_ID;
 			break;
 
@@ -92,8 +92,8 @@ ufs_sync_acl_from_inode(struct inode *ip, struct acl *acl)
 			break;
 
 		case ACL_OTHER:
-			acl->acl_entry[i].ae_perm = acl_posix1e_mode_to_perm(
-			    ACL_OTHER, ip->i_mode);
+			acl->acl_entry[i].ae_perm =
+			    acl_posix1e_mode_to_perm(ACL_OTHER, ip->i_mode);
 			acl->acl_entry[i].ae_id = ACL_UNDEFINED_ID;
 			break;
 
@@ -118,8 +118,8 @@ ufs_sync_acl_from_inode(struct inode *ip, struct acl *acl)
 		/*
 		 * There is no ACL_MASK, so update ACL_GROUP_OBJ.
 		 */
-		acl_group_obj->ae_perm = acl_posix1e_mode_to_perm(
-		    ACL_GROUP_OBJ, ip->i_mode);
+		acl_group_obj->ae_perm = acl_posix1e_mode_to_perm(ACL_GROUP_OBJ,
+		    ip->i_mode);
 	} else {
 		/*
 		 * Update the ACL_MASK entry instead of ACL_GROUP_OBJ.
@@ -160,9 +160,8 @@ ufs_getacl_nfs4_internal(struct vnode *vp, struct acl *aclp, struct thread *td)
 	len = sizeof(*aclp);
 	bzero(aclp, len);
 
-	error = vn_extattr_get(vp, IO_NODELOCKED,
-	    NFS4_ACL_EXTATTR_NAMESPACE, NFS4_ACL_EXTATTR_NAME,
-	    &len, (char *) aclp, td);
+	error = vn_extattr_get(vp, IO_NODELOCKED, NFS4_ACL_EXTATTR_NAMESPACE,
+	    NFS4_ACL_EXTATTR_NAME, &len, (char *)aclp, td);
 	aclp->acl_maxcnt = ACL_MAX_ENTRIES;
 	if (error == ENOATTR) {
 		/*
@@ -185,8 +184,8 @@ ufs_getacl_nfs4_internal(struct vnode *vp, struct acl *aclp, struct thread *td)
 		 * are unsafe.
 		 */
 		printf("ufs_getacl_nfs4(): Loaded invalid ACL ("
-		    "%d bytes), inumber %ju on %s\n", len,
-		    (uintmax_t)ip->i_number, ITOFS(ip)->fs_fsmnt);
+		       "%d bytes), inumber %ju on %s\n",
+		    len, (uintmax_t)ip->i_number, ITOFS(ip)->fs_fsmnt);
 
 		return (EPERM);
 	}
@@ -194,7 +193,7 @@ ufs_getacl_nfs4_internal(struct vnode *vp, struct acl *aclp, struct thread *td)
 	error = acl_nfs4_check(aclp, vp->v_type == VDIR);
 	if (error) {
 		printf("ufs_getacl_nfs4(): Loaded invalid ACL "
-		    "(failed acl_nfs4_check), inumber %ju on %s\n",
+		       "(failed acl_nfs4_check), inumber %ju on %s\n",
 		    (uintmax_t)ip->i_number, ITOFS(ip)->fs_fsmnt);
 
 		return (EPERM);
@@ -237,16 +236,14 @@ ufs_get_oldacl(acl_type_t type, struct oldacl *old, struct vnode *vp,
 	case ACL_TYPE_ACCESS:
 		error = vn_extattr_get(vp, IO_NODELOCKED,
 		    POSIX1E_ACL_ACCESS_EXTATTR_NAMESPACE,
-		    POSIX1E_ACL_ACCESS_EXTATTR_NAME, &len, (char *) old,
-		    td);
+		    POSIX1E_ACL_ACCESS_EXTATTR_NAME, &len, (char *)old, td);
 		break;
 	case ACL_TYPE_DEFAULT:
 		if (vp->v_type != VDIR)
 			return (EINVAL);
 		error = vn_extattr_get(vp, IO_NODELOCKED,
 		    POSIX1E_ACL_DEFAULT_EXTATTR_NAMESPACE,
-		    POSIX1E_ACL_DEFAULT_EXTATTR_NAME, &len, (char *) old,
-		    td);
+		    POSIX1E_ACL_DEFAULT_EXTATTR_NAME, &len, (char *)old, td);
 		break;
 	default:
 		return (EINVAL);
@@ -262,8 +259,8 @@ ufs_get_oldacl(acl_type_t type, struct oldacl *old, struct vnode *vp,
 		 * DAC protections are unsafe.
 		 */
 		printf("ufs_get_oldacl(): Loaded invalid ACL "
-		    "(len = %d), inumber %ju on %s\n", len,
-		    (uintmax_t)ip->i_number, ITOFS(ip)->fs_fsmnt);
+		       "(len = %d), inumber %ju on %s\n",
+		    len, (uintmax_t)ip->i_number, ITOFS(ip)->fs_fsmnt);
 		return (EPERM);
 	}
 
@@ -394,7 +391,7 @@ ufs_setacl_nfs4_internal(struct vnode *vp, struct acl *aclp, struct thread *td)
 	} else {
 		error = vn_extattr_set(vp, IO_NODELOCKED,
 		    NFS4_ACL_EXTATTR_NAMESPACE, NFS4_ACL_EXTATTR_NAME,
-		    sizeof(*aclp), (char *) aclp, td);
+		    sizeof(*aclp), (char *)aclp, td);
 	}
 
 	/*
@@ -527,7 +524,7 @@ ufs_setacl_posix1e(struct vop_setacl_args *ap)
 	if ((error = VOP_ACCESS(ap->a_vp, VADMIN, ap->a_cred, ap->a_td)))
 		return (error);
 
-	switch(ap->a_type) {
+	switch (ap->a_type) {
 	case ACL_TYPE_ACCESS:
 		old = malloc(sizeof(*old), M_ACL, M_WAITOK | M_ZERO);
 		error = acl_copy_acl_into_oldacl(ap->a_aclp, old);
@@ -535,7 +532,7 @@ ufs_setacl_posix1e(struct vop_setacl_args *ap)
 			error = vn_extattr_set(ap->a_vp, IO_NODELOCKED,
 			    POSIX1E_ACL_ACCESS_EXTATTR_NAMESPACE,
 			    POSIX1E_ACL_ACCESS_EXTATTR_NAME, sizeof(*old),
-			    (char *) old, ap->a_td);
+			    (char *)old, ap->a_td);
 		}
 		free(old, M_ACL);
 		break;
@@ -554,7 +551,7 @@ ufs_setacl_posix1e(struct vop_setacl_args *ap)
 			 * "that EA is not supported" from "that EA is not
 			 * defined", the success case here overlaps the
 			 * the ENOATTR->EOPNOTSUPP case below.
-		 	 */
+			 */
 			if (error == ENOATTR)
 				error = 0;
 		} else {
@@ -564,7 +561,7 @@ ufs_setacl_posix1e(struct vop_setacl_args *ap)
 				error = vn_extattr_set(ap->a_vp, IO_NODELOCKED,
 				    POSIX1E_ACL_DEFAULT_EXTATTR_NAMESPACE,
 				    POSIX1E_ACL_DEFAULT_EXTATTR_NAME,
-				    sizeof(*old), (char *) old, ap->a_td);
+				    sizeof(*old), (char *)old, ap->a_td);
 			}
 			free(old, M_ACL);
 		}
@@ -642,7 +639,7 @@ ufs_aclcheck_posix1e(struct vop_aclcheck_args *ap)
 	 * to this kind of object.
 	 * Rely on the acl_posix1e_check() routine to verify the contents.
 	 */
-	switch(ap->a_type) {
+	switch (ap->a_type) {
 	case ACL_TYPE_ACCESS:
 		break;
 

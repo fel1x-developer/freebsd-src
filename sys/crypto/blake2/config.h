@@ -9,9 +9,8 @@
 /* #undef NATIVE_LITTLE_ENDIAN */
 #endif
 
-#if defined(__ARM_FEATURE_UNALIGNED) \
-    || defined(__i386__) || defined(__x86_64__) \
-    || defined(__ARM_ARCH_7__) || defined(__ARM_ARCH_8__) \
+#if defined(__ARM_FEATURE_UNALIGNED) || defined(__i386__) || \
+    defined(__x86_64__) || defined(__ARM_ARCH_7__) || defined(__ARM_ARCH_8__)
 /* #undef HAVE_ALIGNED_ACCESS_REQUIRED */
 #else
 #define HAVE_ALIGNED_ACCESS_REQUIRED 1

@@ -17,6 +17,6 @@
 #ifndef RTWN_USB_RX_H
 #define RTWN_USB_RX_H
 
-void	rtwn_bulk_rx_callback(struct usb_xfer *, usb_error_t);
+void rtwn_bulk_rx_callback(struct usb_xfer *, usb_error_t);
 
-#endif	/* RTWN_USB_RX_H */
+#endif /* RTWN_USB_RX_H */

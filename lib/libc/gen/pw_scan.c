@@ -39,8 +39,8 @@
 #include <err.h>
 #include <errno.h>
 #include <pwd.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "pw_scan.h"
@@ -59,7 +59,7 @@
  * it and/or for the next time the ID sizes get bigger but pieces of the
  * system lag behind.
  */
-static int	pw_big_ids_warning = 0;
+static int pw_big_ids_warning = 0;
 
 void
 __pw_initpwd(struct passwd *pwd)
@@ -67,8 +67,8 @@ __pw_initpwd(struct passwd *pwd)
 	static char nul[] = "";
 
 	memset(pwd, 0, sizeof(*pwd));
-	pwd->pw_uid = (uid_t)-1;  /* Considered least likely to lead to */
-	pwd->pw_gid = (gid_t)-1;  /* a security issue.                  */
+	pwd->pw_uid = (uid_t)-1; /* Considered least likely to lead to */
+	pwd->pw_gid = (gid_t)-1; /* a security issue.                  */
 	pwd->pw_name = nul;
 	pwd->pw_passwd = nul;
 	pwd->pw_class = nul;
@@ -89,18 +89,18 @@ __pw_scan(char *bp, struct passwd *pw, int flags)
 		pw_big_ids_warning = getenv("PW_SCAN_BIG_IDS") == NULL ? 1 : 0;
 
 	pw->pw_fields = 0;
-	if (!(pw->pw_name = strsep(&bp, ":")))		/* login */
+	if (!(pw->pw_name = strsep(&bp, ":"))) /* login */
 		goto fmt;
 	root = !strcmp(pw->pw_name, "root");
 	if (pw->pw_name[0] && (pw->pw_name[0] != '+' || pw->pw_name[1] == '\0'))
 		pw->pw_fields |= _PWF_NAME;
 
-	if (!(pw->pw_passwd = strsep(&bp, ":")))	/* passwd */
+	if (!(pw->pw_passwd = strsep(&bp, ":"))) /* passwd */
 		goto fmt;
 	if (pw->pw_passwd[0])
 		pw->pw_fields |= _PWF_PASSWD;
 
-	if (!(p = strsep(&bp, ":")))			/* uid */
+	if (!(p = strsep(&bp, ":"))) /* uid */
 		goto fmt;
 	if (p[0])
 		pw->pw_fields |= _PWF_UID;
@@ -135,7 +135,7 @@ __pw_scan(char *bp, struct passwd *pw, int flags)
 	}
 	pw->pw_uid = id;
 
-	if (!(p = strsep(&bp, ":")))			/* gid */
+	if (!(p = strsep(&bp, ":"))) /* gid */
 		goto fmt;
 	if (p[0])
 		pw->pw_fields |= _PWF_GID;
@@ -165,39 +165,39 @@ __pw_scan(char *bp, struct passwd *pw, int flags)
 	}
 	pw->pw_gid = id;
 
-	if (flags & _PWSCAN_MASTER ) {
-		if (!(pw->pw_class = strsep(&bp, ":")))	/* class */
+	if (flags & _PWSCAN_MASTER) {
+		if (!(pw->pw_class = strsep(&bp, ":"))) /* class */
 			goto fmt;
 		if (pw->pw_class[0])
 			pw->pw_fields |= _PWF_CLASS;
-		
-		if (!(p = strsep(&bp, ":")))		/* change */
+
+		if (!(p = strsep(&bp, ":"))) /* change */
 			goto fmt;
 		if (p[0])
 			pw->pw_fields |= _PWF_CHANGE;
 		pw->pw_change = atol(p);
-		
-		if (!(p = strsep(&bp, ":")))		/* expire */
+
+		if (!(p = strsep(&bp, ":"))) /* expire */
 			goto fmt;
 		if (p[0])
 			pw->pw_fields |= _PWF_EXPIRE;
 		pw->pw_expire = atol(p);
 	}
-	if (!(pw->pw_gecos = strsep(&bp, ":")))		/* gecos */
+	if (!(pw->pw_gecos = strsep(&bp, ":"))) /* gecos */
 		goto fmt;
 	if (pw->pw_gecos[0])
 		pw->pw_fields |= _PWF_GECOS;
 
-	if (!(pw->pw_dir = strsep(&bp, ":")))		/* directory */
+	if (!(pw->pw_dir = strsep(&bp, ":"))) /* directory */
 		goto fmt;
 	if (pw->pw_dir[0])
 		pw->pw_fields |= _PWF_DIR;
 
-	if (!(pw->pw_shell = strsep(&bp, ":")))		/* shell */
+	if (!(pw->pw_shell = strsep(&bp, ":"))) /* shell */
 		goto fmt;
 
 	p = pw->pw_shell;
-	if (root && *p) {				/* empty == /bin/sh */
+	if (root && *p) { /* empty == /bin/sh */
 		for (setusershell();;) {
 			if (!(sh = getusershell())) {
 				if (flags & _PWSCAN_WARN)
@@ -212,8 +212,8 @@ __pw_scan(char *bp, struct passwd *pw, int flags)
 	if (p[0])
 		pw->pw_fields |= _PWF_SHELL;
 
-	if ((p = strsep(&bp, ":"))) {			/* too many */
-fmt:		
+	if ((p = strsep(&bp, ":"))) { /* too many */
+	fmt:
 		if (flags & _PWSCAN_WARN)
 			warnx("corrupted entry");
 		return (0);

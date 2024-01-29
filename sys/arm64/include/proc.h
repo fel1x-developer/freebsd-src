@@ -32,8 +32,8 @@
 #include <arm/proc.h>
 #else /* !__arm__ */
 
-#ifndef	_MACHINE_PROC_H_
-#define	_MACHINE_PROC_H_
+#ifndef _MACHINE_PROC_H_
+#define _MACHINE_PROC_H_
 
 struct ptrauth_key {
 	uint64_t pa_key_lo;
@@ -41,8 +41,8 @@ struct ptrauth_key {
 };
 
 struct mdthread {
-	int	md_spinlock_count;	/* (k) */
-	register_t md_saved_daif;	/* (k) */
+	int md_spinlock_count;	  /* (k) */
+	register_t md_saved_daif; /* (k) */
 	uintptr_t md_canary;
 
 	/*
@@ -51,7 +51,8 @@ struct mdthread {
 	 * ELF for the Arm 64-bit Architecture [1] is currently (July 2021) at
 	 * an Alpha release quality so may change.
 	 *
-	 * [1] https://github.com/ARM-software/abi-aa/blob/main/pauthabielf64/pauthabielf64.rst
+	 * [1]
+	 * https://github.com/ARM-software/abi-aa/blob/main/pauthabielf64/pauthabielf64.rst
 	 */
 	struct {
 		struct ptrauth_key apia;
@@ -69,11 +70,11 @@ struct mdthread {
 };
 
 struct mdproc {
-	long	md_dummy;
+	long md_dummy;
 };
 
-#define	KINFO_PROC_SIZE	1088
-#define	KINFO_PROC32_SIZE 816
+#define KINFO_PROC_SIZE 1088
+#define KINFO_PROC32_SIZE 816
 
 #endif /* !_MACHINE_PROC_H_ */
 

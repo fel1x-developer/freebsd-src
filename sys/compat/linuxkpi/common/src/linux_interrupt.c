@@ -27,24 +27,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <sys/param.h>
+#include <sys/bus.h>
+#include <sys/interrupt.h>
+#include <sys/rman.h>
+
 #include <linux/device.h>
 #include <linux/interrupt.h>
 #include <linux/pci.h>
 
-#include <sys/param.h>
-#include <sys/bus.h>
-#include <sys/rman.h>
-#include <sys/interrupt.h>
-
 struct irq_ent {
-	struct list_head	links;
-	struct device	*dev;
-	struct resource	*res;
-	void		*arg;
-	irqreturn_t	(*handler)(int, void *);
-	irqreturn_t	(*thread_handler)(int, void *);
-	void		*tag;
-	unsigned int	irq;
+	struct list_head links;
+	struct device *dev;
+	struct resource *res;
+	void *arg;
+	irqreturn_t (*handler)(int, void *);
+	irqreturn_t (*thread_handler)(int, void *);
+	void *tag;
+	unsigned int irq;
 };
 
 static inline int
@@ -62,9 +62,8 @@ lkpi_irq_ent(struct device *dev, unsigned int irq)
 {
 	struct irq_ent *irqe;
 
-	list_for_each_entry(irqe, &dev->irqents, links)
-		if (irqe->irq == irq)
-			return (irqe);
+	list_for_each_entry(irqe, &dev->irqents,
+	    links) if (irqe->irq == irq) return (irqe);
 
 	return (NULL);
 }
@@ -110,9 +109,9 @@ lkpi_devm_irq_release(struct device *dev, void *p)
 }
 
 int
-lkpi_request_irq(struct device *xdev, unsigned int irq,
-    irq_handler_t handler, irq_handler_t thread_handler,
-    unsigned long flags, const char *name, void *arg)
+lkpi_request_irq(struct device *xdev, unsigned int irq, irq_handler_t handler,
+    irq_handler_t thread_handler, unsigned long flags, const char *name,
+    void *arg)
 {
 	struct resource *res;
 	struct irq_ent *irqe;
@@ -176,8 +175,9 @@ lkpi_enable_irq(unsigned int irq)
 	irqe = lkpi_irq_ent(dev, irq);
 	if (irqe == NULL || irqe->tag != NULL)
 		return -EINVAL;
-	return -bus_setup_intr(dev->bsddev, irqe->res, INTR_TYPE_NET | INTR_MPSAFE,
-	    NULL, lkpi_irq_handler, irqe, &irqe->tag);
+	return -bus_setup_intr(dev->bsddev, irqe->res,
+	    INTR_TYPE_NET | INTR_MPSAFE, NULL, lkpi_irq_handler, irqe,
+	    &irqe->tag);
 }
 
 void

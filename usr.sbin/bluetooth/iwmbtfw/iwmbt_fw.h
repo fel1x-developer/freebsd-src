@@ -26,8 +26,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	__IWMBT_FW_H__
-#define	__IWMBT_FW_H__
+#ifndef __IWMBT_FW_H__
+#define __IWMBT_FW_H__
 
 struct iwmbt_version {
 	uint8_t status;
@@ -40,7 +40,7 @@ struct iwmbt_version {
 	uint8_t fw_build_ww;
 	uint8_t fw_build_yy;
 	uint8_t fw_patch_num;
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 struct iwmbt_boot_params {
 	uint8_t status;
@@ -60,7 +60,7 @@ struct iwmbt_boot_params {
 	uint8_t min_fw_build_yy;
 	uint8_t limited_cce;
 	uint8_t unlocked_state;
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 struct iwmbt_firmware {
 	char *fwname;
@@ -68,10 +68,9 @@ struct iwmbt_firmware {
 	unsigned char *buf;
 };
 
-extern	int iwmbt_fw_read(struct iwmbt_firmware *fw, const char *fwname);
-extern	void iwmbt_fw_free(struct iwmbt_firmware *fw);
-extern	char *iwmbt_get_fwname(struct iwmbt_version *ver,
-	struct iwmbt_boot_params *params, const char *prefix,
-	const char *suffix);
+extern int iwmbt_fw_read(struct iwmbt_firmware *fw, const char *fwname);
+extern void iwmbt_fw_free(struct iwmbt_firmware *fw);
+extern char *iwmbt_get_fwname(struct iwmbt_version *ver,
+    struct iwmbt_boot_params *params, const char *prefix, const char *suffix);
 
 #endif

@@ -32,13 +32,13 @@
 #include <machine/vmm_snapshot.h>
 
 #include <assert.h>
+#include <pthread.h>
+#include <pthread_np.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <pthread.h>
-#include <pthread_np.h>
 
 #include "atkbdc.h"
 #include "console.h"
@@ -46,68 +46,68 @@
 #include "ps2mouse.h"
 
 /* mouse device commands */
-#define	PS2MC_RESET_DEV		0xff
-#define	PS2MC_SET_DEFAULTS	0xf6
-#define	PS2MC_DISABLE		0xf5
-#define	PS2MC_ENABLE		0xf4
-#define	PS2MC_SET_SAMPLING_RATE	0xf3
-#define	PS2MC_SEND_DEV_ID	0xf2
-#define	PS2MC_SET_REMOTE_MODE	0xf0
-#define	PS2MC_SEND_DEV_DATA	0xeb
-#define	PS2MC_SET_STREAM_MODE	0xea
-#define	PS2MC_SEND_DEV_STATUS	0xe9
-#define	PS2MC_SET_RESOLUTION	0xe8
-#define	PS2MC_SET_SCALING1	0xe7
-#define	PS2MC_SET_SCALING2	0xe6
+#define PS2MC_RESET_DEV 0xff
+#define PS2MC_SET_DEFAULTS 0xf6
+#define PS2MC_DISABLE 0xf5
+#define PS2MC_ENABLE 0xf4
+#define PS2MC_SET_SAMPLING_RATE 0xf3
+#define PS2MC_SEND_DEV_ID 0xf2
+#define PS2MC_SET_REMOTE_MODE 0xf0
+#define PS2MC_SEND_DEV_DATA 0xeb
+#define PS2MC_SET_STREAM_MODE 0xea
+#define PS2MC_SEND_DEV_STATUS 0xe9
+#define PS2MC_SET_RESOLUTION 0xe8
+#define PS2MC_SET_SCALING1 0xe7
+#define PS2MC_SET_SCALING2 0xe6
 
-#define	PS2MC_BAT_SUCCESS	0xaa
-#define	PS2MC_ACK		0xfa
+#define PS2MC_BAT_SUCCESS 0xaa
+#define PS2MC_ACK 0xfa
 
 /* mouse device id */
-#define	PS2MOUSE_DEV_ID		0x0
+#define PS2MOUSE_DEV_ID 0x0
 
 /* mouse data bits */
-#define	PS2M_DATA_Y_OFLOW	0x80
-#define	PS2M_DATA_X_OFLOW	0x40
-#define	PS2M_DATA_Y_SIGN	0x20
-#define	PS2M_DATA_X_SIGN	0x10
-#define	PS2M_DATA_AONE		0x08
-#define	PS2M_DATA_MID_BUTTON	0x04
-#define	PS2M_DATA_RIGHT_BUTTON	0x02
-#define	PS2M_DATA_LEFT_BUTTON	0x01
+#define PS2M_DATA_Y_OFLOW 0x80
+#define PS2M_DATA_X_OFLOW 0x40
+#define PS2M_DATA_Y_SIGN 0x20
+#define PS2M_DATA_X_SIGN 0x10
+#define PS2M_DATA_AONE 0x08
+#define PS2M_DATA_MID_BUTTON 0x04
+#define PS2M_DATA_RIGHT_BUTTON 0x02
+#define PS2M_DATA_LEFT_BUTTON 0x01
 
 /* mouse status bits */
-#define	PS2M_STS_REMOTE_MODE	0x40
-#define	PS2M_STS_ENABLE_DEV	0x20
-#define	PS2M_STS_SCALING_21	0x10
-#define	PS2M_STS_MID_BUTTON	0x04
-#define	PS2M_STS_RIGHT_BUTTON	0x02
-#define	PS2M_STS_LEFT_BUTTON	0x01
+#define PS2M_STS_REMOTE_MODE 0x40
+#define PS2M_STS_ENABLE_DEV 0x20
+#define PS2M_STS_SCALING_21 0x10
+#define PS2M_STS_MID_BUTTON 0x04
+#define PS2M_STS_RIGHT_BUTTON 0x02
+#define PS2M_STS_LEFT_BUTTON 0x01
 
-#define	PS2MOUSE_FIFOSZ		16
+#define PS2MOUSE_FIFOSZ 16
 
 struct fifo {
-	uint8_t	buf[PS2MOUSE_FIFOSZ];
-	int	rindex;		/* index to read from */
-	int	windex;		/* index to write to */
-	int	num;		/* number of bytes in the fifo */
-	int	size;		/* size of the fifo */
+	uint8_t buf[PS2MOUSE_FIFOSZ];
+	int rindex; /* index to read from */
+	int windex; /* index to write to */
+	int num;    /* number of bytes in the fifo */
+	int size;   /* size of the fifo */
 };
 
 struct ps2mouse_softc {
-	struct atkbdc_softc	*atkbdc_sc;
-	pthread_mutex_t		mtx;
+	struct atkbdc_softc *atkbdc_sc;
+	pthread_mutex_t mtx;
 
-	uint8_t		status;
-	uint8_t		resolution;
-	uint8_t		sampling_rate;
-	int		ctrlenable;
-	struct fifo	fifo;
+	uint8_t status;
+	uint8_t resolution;
+	uint8_t sampling_rate;
+	int ctrlenable;
+	struct fifo fifo;
 
-	uint8_t		curcmd;	/* current command for next byte */
+	uint8_t curcmd; /* current command for next byte */
 
-	int		cur_x, cur_y;
-	int		delta_x, delta_y;
+	int cur_x, cur_y;
+	int delta_x, delta_y;
 };
 
 static void
@@ -184,8 +184,9 @@ movement_get(struct ps2mouse_softc *sc)
 	assert(pthread_mutex_isowned_np(&sc->mtx));
 
 	val0 = PS2M_DATA_AONE;
-	val0 |= sc->status & (PS2M_DATA_LEFT_BUTTON |
-	    PS2M_DATA_RIGHT_BUTTON | PS2M_DATA_MID_BUTTON);
+	val0 |= sc->status &
+	    (PS2M_DATA_LEFT_BUTTON | PS2M_DATA_RIGHT_BUTTON |
+		PS2M_DATA_MID_BUTTON);
 
 	if (sc->delta_x >= 0) {
 		if (sc->delta_x > 255) {
@@ -292,7 +293,8 @@ ps2mouse_write(struct ps2mouse_softc *sc, uint8_t val, int insert)
 			break;
 		default:
 			EPRINTLN("Unhandled ps2 mouse current "
-			    "command byte 0x%02x", val);
+				 "command byte 0x%02x",
+			    val);
 			break;
 		}
 		sc->curcmd = 0;
@@ -361,7 +363,8 @@ ps2mouse_write(struct ps2mouse_softc *sc, uint8_t val, int insert)
 		default:
 			fifo_put(sc, PS2MC_ACK);
 			EPRINTLN("Unhandled ps2 mouse command "
-			    "0x%02x", val);
+				 "0x%02x",
+			    val);
 			break;
 		}
 	}
@@ -376,8 +379,8 @@ ps2mouse_event(uint8_t button, int x, int y, void *arg)
 	pthread_mutex_lock(&sc->mtx);
 	movement_update(sc, x, y);
 
-	sc->status &= ~(PS2M_STS_LEFT_BUTTON |
-	    PS2M_STS_RIGHT_BUTTON | PS2M_STS_MID_BUTTON);
+	sc->status &= ~(
+	    PS2M_STS_LEFT_BUTTON | PS2M_STS_RIGHT_BUTTON | PS2M_STS_MID_BUTTON);
 	if (button & (1 << 0))
 		sc->status |= PS2M_STS_LEFT_BUTTON;
 	if (button & (1 << 1))
@@ -403,7 +406,7 @@ ps2mouse_init(struct atkbdc_softc *atkbdc_sc)
 {
 	struct ps2mouse_softc *sc;
 
-	sc = calloc(1, sizeof (struct ps2mouse_softc));
+	sc = calloc(1, sizeof(struct ps2mouse_softc));
 	pthread_mutex_init(&sc->mtx, NULL);
 	fifo_init(sc);
 	sc->atkbdc_sc = atkbdc_sc;

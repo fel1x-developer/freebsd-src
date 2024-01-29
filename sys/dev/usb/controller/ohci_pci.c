@@ -42,53 +42,52 @@
  * sharing of code between *BSD's
  */
 
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-
-#include <dev/usb/usb_core.h>
-#include <dev/usb/usb_busdma.h>
-#include <dev/usb/usb_process.h>
-#include <dev/usb/usb_util.h>
-
-#include <dev/usb/usb_controller.h>
-#include <dev/usb/usb_bus.h>
-#include <dev/usb/usb_pci.h>
 #include <dev/usb/controller/ohci.h>
 #include <dev/usb/controller/ohcireg.h>
+#include <dev/usb/usb.h>
+#include <dev/usb/usb_bus.h>
+#include <dev/usb/usb_busdma.h>
+#include <dev/usb/usb_controller.h>
+#include <dev/usb/usb_core.h>
+#include <dev/usb/usb_pci.h>
+#include <dev/usb/usb_process.h>
+#include <dev/usb/usb_util.h>
+#include <dev/usb/usbdi.h>
+
 #include "usb_if.h"
 
-#define	PCI_OHCI_VENDORID_ACERLABS	0x10b9
-#define	PCI_OHCI_VENDORID_AMD		0x1022
-#define	PCI_OHCI_VENDORID_APPLE		0x106b
-#define	PCI_OHCI_VENDORID_ATI		0x1002
-#define	PCI_OHCI_VENDORID_CMDTECH	0x1095
-#define	PCI_OHCI_VENDORID_HYGON		0x1d94
-#define	PCI_OHCI_VENDORID_NEC		0x1033
-#define	PCI_OHCI_VENDORID_NVIDIA	0x12D2
-#define	PCI_OHCI_VENDORID_NVIDIA2	0x10DE
-#define	PCI_OHCI_VENDORID_OPTI		0x1045
-#define	PCI_OHCI_VENDORID_SIS		0x1039
+#define PCI_OHCI_VENDORID_ACERLABS 0x10b9
+#define PCI_OHCI_VENDORID_AMD 0x1022
+#define PCI_OHCI_VENDORID_APPLE 0x106b
+#define PCI_OHCI_VENDORID_ATI 0x1002
+#define PCI_OHCI_VENDORID_CMDTECH 0x1095
+#define PCI_OHCI_VENDORID_HYGON 0x1d94
+#define PCI_OHCI_VENDORID_NEC 0x1033
+#define PCI_OHCI_VENDORID_NVIDIA 0x12D2
+#define PCI_OHCI_VENDORID_NVIDIA2 0x10DE
+#define PCI_OHCI_VENDORID_OPTI 0x1045
+#define PCI_OHCI_VENDORID_SIS 0x1039
 
-#define	PCI_OHCI_BASE_REG	0x10
+#define PCI_OHCI_BASE_REG 0x10
 
 static device_probe_t ohci_pci_probe;
 static device_attach_t ohci_pci_attach;
@@ -102,8 +101,10 @@ ohci_pci_take_controller(device_t self)
 	uint32_t int_line;
 
 	if (pci_get_powerstate(self) != PCI_POWERSTATE_D0) {
-		device_printf(self, "chip is in D%d mode "
-		    "-- setting to D0\n", pci_get_powerstate(self));
+		device_printf(self,
+		    "chip is in D%d mode "
+		    "-- setting to D0\n",
+		    pci_get_powerstate(self));
 		reg = pci_read_config(self, PCI_CBMEM, 4);
 		int_line = pci_read_config(self, PCIR_INTLINE, 4);
 		pci_set_powerstate(self, PCI_POWERSTATE_D0);
@@ -215,7 +216,7 @@ ohci_pci_attach(device_t self)
 
 	/* get all DMA memory */
 	if (usb_bus_mem_alloc_all(&sc->sc_bus, USB_GET_DMA_TAG(self),
-	    &ohci_iterate_hw_softc)) {
+		&ohci_iterate_hw_softc)) {
 		return (ENOMEM);
 	}
 	sc->sc_dev = self;
@@ -332,7 +333,8 @@ ohci_pci_detach(device_t self)
 		 */
 		ohci_detach(sc);
 
-		int err = bus_teardown_intr(self, sc->sc_irq_res, sc->sc_intr_hdl);
+		int err = bus_teardown_intr(self, sc->sc_irq_res,
+		    sc->sc_intr_hdl);
 
 		if (err) {
 			/* XXX or should we panic? */

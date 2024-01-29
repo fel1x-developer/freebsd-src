@@ -30,14 +30,13 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>	/* MAXHOSTNAMELEN */
+#include <sys/param.h> /* MAXHOSTNAMELEN */
 #include <sys/socket.h>
-
-#include <arpa/inet.h>
 
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 
+#include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <netdb.h>
@@ -51,15 +50,15 @@
 #include "proto_impl.h"
 #include "subr.h"
 
-#define	TCP_CTX_MAGIC	0x7c41c
+#define TCP_CTX_MAGIC 0x7c41c
 struct tcp_ctx {
-	int			tc_magic;
-	struct sockaddr_storage	tc_sa;
-	int			tc_fd;
-	int			tc_side;
-#define	TCP_SIDE_CLIENT		0
-#define	TCP_SIDE_SERVER_LISTEN	1
-#define	TCP_SIDE_SERVER_WORK	2
+	int tc_magic;
+	struct sockaddr_storage tc_sa;
+	int tc_fd;
+	int tc_side;
+#define TCP_SIDE_CLIENT 0
+#define TCP_SIDE_SERVER_LISTEN 1
+#define TCP_SIDE_SERVER_WORK 2
 };
 
 static int tcp_connect_wait(void *ctx, int timeout);
@@ -74,20 +73,20 @@ numfromstr(const char *str, intmax_t minnum, intmax_t maxnum, intmax_t *nump)
 	intmax_t digit, num;
 
 	if (str[0] == '\0')
-		goto invalid;	/* Empty string. */
+		goto invalid; /* Empty string. */
 	num = 0;
 	for (; *str != '\0'; str++) {
 		if (*str < '0' || *str > '9')
-			goto invalid;	/* Non-digit character. */
+			goto invalid; /* Non-digit character. */
 		digit = *str - '0';
 		if (num > num * 10 + digit)
-			goto invalid;	/* Overflow. */
+			goto invalid; /* Overflow. */
 		num = num * 10 + digit;
 		if (num > maxnum)
-			goto invalid;	/* Too big. */
+			goto invalid; /* Too big. */
 	}
 	if (num < minnum)
-		goto invalid;	/* Too small. */
+		goto invalid; /* Too small. */
 	*nump = num;
 	return (0);
 invalid:
@@ -194,8 +193,8 @@ tcp_setup_new(const char *addr, int side, void **ctxp)
 	int ret, nodelay;
 
 	PJDLOG_ASSERT(addr != NULL);
-	PJDLOG_ASSERT(side == TCP_SIDE_CLIENT ||
-	    side == TCP_SIDE_SERVER_LISTEN);
+	PJDLOG_ASSERT(
+	    side == TCP_SIDE_CLIENT || side == TCP_SIDE_SERVER_LISTEN);
 	PJDLOG_ASSERT(ctxp != NULL);
 
 	tctx = malloc(sizeof(*tctx));
@@ -222,7 +221,7 @@ tcp_setup_new(const char *addr, int side, void **ctxp)
 	/* Socket settings. */
 	nodelay = 1;
 	if (setsockopt(tctx->tc_fd, IPPROTO_TCP, TCP_NODELAY, &nodelay,
-	    sizeof(nodelay)) == -1) {
+		sizeof(nodelay)) == -1) {
 		pjdlog_errno(LOG_WARNING, "Unable to set TCP_NOELAY");
 	}
 
@@ -239,8 +238,7 @@ tcp_setup_wrap(int fd, int side, void **ctxp)
 	struct tcp_ctx *tctx;
 
 	PJDLOG_ASSERT(fd >= 0);
-	PJDLOG_ASSERT(side == TCP_SIDE_CLIENT ||
-	    side == TCP_SIDE_SERVER_WORK);
+	PJDLOG_ASSERT(side == TCP_SIDE_CLIENT || side == TCP_SIDE_SERVER_WORK);
 	PJDLOG_ASSERT(ctxp != NULL);
 
 	tctx = malloc(sizeof(*tctx));
@@ -312,7 +310,7 @@ tcp_connect(void *ctx, int timeout)
 	}
 
 	if (connect(tctx->tc_fd, (struct sockaddr *)&tctx->tc_sa,
-	    tctx->tc_sa.ss_len) == 0) {
+		tctx->tc_sa.ss_len) == 0) {
 		if (timeout == -1)
 			return (0);
 		error = 0;
@@ -371,8 +369,8 @@ again:
 	PJDLOG_ASSERT(ret > 0);
 	PJDLOG_ASSERT(FD_ISSET(tctx->tc_fd, &fdset));
 	esize = sizeof(error);
-	if (getsockopt(tctx->tc_fd, SOL_SOCKET, SO_ERROR, &error,
-	    &esize) == -1) {
+	if (getsockopt(tctx->tc_fd, SOL_SOCKET, SO_ERROR, &error, &esize) ==
+	    -1) {
 		error = errno;
 		pjdlog_common(LOG_DEBUG, 1, errno,
 		    "getsockopt(SO_ERROR) failed");
@@ -417,12 +415,12 @@ tcp_server(const char *addr, void **ctxp)
 	val = 1;
 	/* Ignore failure. */
 	(void)setsockopt(tctx->tc_fd, SOL_SOCKET, SO_REUSEADDR, &val,
-	   sizeof(val));
+	    sizeof(val));
 
 	PJDLOG_ASSERT(tctx->tc_sa.ss_family != AF_UNSPEC);
 
 	if (bind(tctx->tc_fd, (struct sockaddr *)&tctx->tc_sa,
-	    tctx->tc_sa.ss_len) == -1) {
+		tctx->tc_sa.ss_len) == -1) {
 		ret = errno;
 		tcp_close(tctx);
 		return (ret);
@@ -536,26 +534,24 @@ tcp_address_match(const void *ctx, const char *addr)
 		return (false);
 
 	switch (sa1.ss_family) {
-	case AF_INET:
-	    {
+	case AF_INET: {
 		struct sockaddr_in *sin1, *sin2;
 
 		sin1 = (struct sockaddr_in *)&sa1;
 		sin2 = (struct sockaddr_in *)&sa2;
 
 		return (memcmp(&sin1->sin_addr, &sin2->sin_addr,
-		    sizeof(sin1->sin_addr)) == 0);
-	    }
-	case AF_INET6:
-	    {
+			    sizeof(sin1->sin_addr)) == 0);
+	}
+	case AF_INET6: {
 		struct sockaddr_in6 *sin1, *sin2;
 
 		sin1 = (struct sockaddr_in6 *)&sa1;
 		sin2 = (struct sockaddr_in6 *)&sa2;
 
 		return (memcmp(&sin1->sin6_addr, &sin2->sin6_addr,
-		    sizeof(sin1->sin6_addr)) == 0);
-	    }
+			    sizeof(sin1->sin6_addr)) == 0);
+	}
 	default:
 		return (false);
 	}
@@ -611,8 +607,7 @@ tcp_close(void *ctx)
 	free(tctx);
 }
 
-static struct proto tcp_proto = {
-	.prt_name = "tcp",
+static struct proto tcp_proto = { .prt_name = "tcp",
 	.prt_client = tcp_client,
 	.prt_connect = tcp_connect,
 	.prt_connect_wait = tcp_connect_wait,
@@ -625,8 +620,7 @@ static struct proto tcp_proto = {
 	.prt_address_match = tcp_address_match,
 	.prt_local_address = tcp_local_address,
 	.prt_remote_address = tcp_remote_address,
-	.prt_close = tcp_close
-};
+	.prt_close = tcp_close };
 
 static __constructor void
 tcp_ctor(void)

@@ -38,33 +38,33 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-#include "nvmecontrol.h"
 #include "comnd.h"
+#include "nvmecontrol.h"
 
 static struct options {
-	uint8_t		opcode;
-	uint8_t		flags;
-	uint16_t	rsvd;
-	uint32_t	nsid;
-	uint32_t	data_len;
-	uint32_t	metadata_len;
-	uint32_t	timeout;
-	uint32_t	cdw2;
-	uint32_t	cdw3;
-	uint32_t	cdw10;
-	uint32_t	cdw11;
-	uint32_t	cdw12;
-	uint32_t	cdw13;
-	uint32_t	cdw14;
-	uint32_t	cdw15;
-	const char	*ifn;
-	bool		binary;
-	bool		show_command;
-	bool		dry_run;
-	bool		read;
-	bool		write;
-	uint8_t		prefill;
-	const char	*dev;
+	uint8_t opcode;
+	uint8_t flags;
+	uint16_t rsvd;
+	uint32_t nsid;
+	uint32_t data_len;
+	uint32_t metadata_len;
+	uint32_t timeout;
+	uint32_t cdw2;
+	uint32_t cdw3;
+	uint32_t cdw10;
+	uint32_t cdw11;
+	uint32_t cdw12;
+	uint32_t cdw13;
+	uint32_t cdw14;
+	uint32_t cdw15;
+	const char *ifn;
+	bool binary;
+	bool show_command;
+	bool dry_run;
+	bool read;
+	bool write;
+	uint8_t prefill;
+	const char *dev;
 } opt = {
 	.binary = false,
 	.cdw10 = 0,
@@ -96,55 +96,44 @@ static struct options {
  * so vendor-siupplied formulas work out of the box on FreeBSD with a simple
  * s/nvme/nvmecontrol/.
  */
-#define ARG(l, s, t, opt, addr, desc) { l, s, t, &opt.addr, desc }
+#define ARG(l, s, t, opt, addr, desc)    \
+	{                                \
+		l, s, t, &opt.addr, desc \
+	}
 
-static struct opts opts[] = {
-	ARG("opcode",		'o',	arg_uint8,	opt, opcode,
-	    "NVMe command opcode (required)"),
-	ARG("cdw2",		'2',	arg_uint32,	opt, cdw2,
-	    "Command dword 2 value"),
-	ARG("cdw3",		'3',	arg_uint32,	opt, cdw3,
-	    "Command dword 3 value"),
-	ARG("cdw10",		'4',	arg_uint32,	opt, cdw10,
-	    "Command dword 10 value"),
-	ARG("cdw11",		'5',	arg_uint32,	opt, cdw11,
-	    "Command dword 11 value"),
-	ARG("cdw12",		'6',	arg_uint32,	opt, cdw12,
-	    "Command dword 12 value"),
-	ARG("cdw13",		'7',	arg_uint32,	opt, cdw13,
-	    "Command dword 13 value"),
-	ARG("cdw14",		'8',	arg_uint32,	opt, cdw14,
-	    "Command dword 14 value"),
-	ARG("cdw15",		'9',	arg_uint32,	opt, cdw15,
-	    "Command dword 15 value"),
-	ARG("data-len",		'l',	arg_uint32,	opt, data_len,
+static struct opts opts[] = { ARG("opcode", 'o', arg_uint8, opt, opcode,
+				  "NVMe command opcode (required)"),
+	ARG("cdw2", '2', arg_uint32, opt, cdw2, "Command dword 2 value"),
+	ARG("cdw3", '3', arg_uint32, opt, cdw3, "Command dword 3 value"),
+	ARG("cdw10", '4', arg_uint32, opt, cdw10, "Command dword 10 value"),
+	ARG("cdw11", '5', arg_uint32, opt, cdw11, "Command dword 11 value"),
+	ARG("cdw12", '6', arg_uint32, opt, cdw12, "Command dword 12 value"),
+	ARG("cdw13", '7', arg_uint32, opt, cdw13, "Command dword 13 value"),
+	ARG("cdw14", '8', arg_uint32, opt, cdw14, "Command dword 14 value"),
+	ARG("cdw15", '9', arg_uint32, opt, cdw15, "Command dword 15 value"),
+	ARG("data-len", 'l', arg_uint32, opt, data_len,
 	    "Length of data for I/O (bytes)"),
-	ARG("metadata-len",	'm',	arg_uint32,	opt, metadata_len,
+	ARG("metadata-len", 'm', arg_uint32, opt, metadata_len,
 	    "Length of metadata segment (bytes) (ignored)"),
-	ARG("flags",		'f',	arg_uint8,	opt, flags,
-	    "NVMe command flags"),
-	ARG("input-file",	'i',	arg_path,	opt, ifn,
+	ARG("flags", 'f', arg_uint8, opt, flags, "NVMe command flags"),
+	ARG("input-file", 'i', arg_path, opt, ifn,
 	    "Input file to send (default stdin)"),
-	ARG("namespace-id",	'n',	arg_uint32,	opt, nsid,
+	ARG("namespace-id", 'n', arg_uint32, opt, nsid,
 	    "Namespace id (ignored on FreeBSD)"),
-	ARG("prefill",		'p',	arg_uint8,	opt, prefill,
+	ARG("prefill", 'p', arg_uint8, opt, prefill,
 	    "Value to prefill payload with"),
-	ARG("rsvd",		'R',	arg_uint16,	opt, rsvd,
-	    "Reserved field value"),
-	ARG("timeout",		't',	arg_uint32,	opt, timeout,
-	    "Command timeout (ms)"),
-	ARG("raw-binary",	'b',	arg_none,	opt, binary,
+	ARG("rsvd", 'R', arg_uint16, opt, rsvd, "Reserved field value"),
+	ARG("timeout", 't', arg_uint32, opt, timeout, "Command timeout (ms)"),
+	ARG("raw-binary", 'b', arg_none, opt, binary,
 	    "Output in binary format"),
-	ARG("dry-run",		'd',	arg_none,	opt, dry_run,
+	ARG("dry-run", 'd', arg_none, opt, dry_run,
 	    "Don't actually execute the command"),
-	ARG("read",		'r',	arg_none,	opt, read,
-	    "Command reads data from device"),
-	ARG("show-command",	's',	arg_none,	opt, show_command,
+	ARG("read", 'r', arg_none, opt, read, "Command reads data from device"),
+	ARG("show-command", 's', arg_none, opt, show_command,
 	    "Show all the command values on stdout"),
-	ARG("write",		'w',	arg_none,	opt, write,
+	ARG("write", 'w', arg_none, opt, write,
 	    "Command writes data to device"),
-	{ NULL, 0, arg_none, NULL, NULL }
-};
+	{ NULL, 0, arg_none, NULL, NULL } };
 
 static const struct args args[] = {
 	{ arg_string, &opt.dev, "controller-id|namespace-id" },
@@ -154,10 +143,10 @@ static const struct args args[] = {
 static void
 passthru(const struct cmd *f, int argc, char *argv[])
 {
-	int	fd = -1, ifd = -1;
-	size_t	bytes_read;
-	void	*data = NULL, *metadata = NULL;
-	struct nvme_pt_command	pt;
+	int fd = -1, ifd = -1;
+	size_t bytes_read;
+	void *data = NULL, *metadata = NULL;
+	struct nvme_pt_command pt;
 
 	if (arg_parse(argc, argv, f))
 		return;
@@ -171,10 +160,12 @@ passthru(const struct cmd *f, int argc, char *argv[])
 		warn("open %s", opt.ifn);
 		goto cleanup;
 	}
-#if notyet	/* No support in kernel for this */
+#if notyet /* No support in kernel for this */
 	if (opt.metadata_len != 0) {
-		if (posix_memalign(&metadata, getpagesize(), opt.metadata_len)) {
-			warn("can't allocate %d bytes for metadata", metadata_len);
+		if (posix_memalign(&metadata, getpagesize(),
+			opt.metadata_len)) {
+			warn("can't allocate %d bytes for metadata",
+			    metadata_len);
 			goto cleanup;
 		}
 	}
@@ -190,10 +181,10 @@ passthru(const struct cmd *f, int argc, char *argv[])
 		memset(data, opt.prefill, opt.data_len);
 		if (opt.write &&
 		    (bytes_read = read(ifd, data, opt.data_len)) !=
-		    opt.data_len) {
+			opt.data_len) {
 			warn("read %s; expected %u bytes; got %zd",
-			     *opt.ifn ? opt.ifn : "stdin",
-			     opt.data_len, bytes_read);
+			    *opt.ifn ? opt.ifn : "stdin", opt.data_len,
+			    bytes_read);
 			goto cleanup;
 		}
 	}
@@ -226,7 +217,7 @@ passthru(const struct cmd *f, int argc, char *argv[])
 	pt.cmd.opc = opt.opcode;
 	pt.cmd.fuse = opt.flags;
 	pt.cmd.cid = htole16(opt.rsvd);
-	pt.cmd.nsid = opt.nsid;				/* XXX note: kernel overrides this */
+	pt.cmd.nsid = opt.nsid; /* XXX note: kernel overrides this */
 	pt.cmd.rsvd2 = htole32(opt.cdw2);
 	pt.cmd.rsvd3 = htole32(opt.cdw3);
 	pt.cmd.cdw10 = htole32(opt.cdw10);

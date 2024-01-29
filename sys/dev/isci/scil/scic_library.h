@@ -67,33 +67,30 @@
 extern "C" {
 #endif // __cplusplus
 
-#include <dev/isci/scil/sci_types.h>
 #include <dev/isci/scil/sci_status.h>
-
+#include <dev/isci/scil/sci_types.h>
 
 /**
  * @enum  _SCIC_LIBRARY_IO_MODE
  * @brief This enumeration depicts the different IO modes in which the SCI
  *        library and it's controllers can operate.
  */
-typedef enum _SCIC_LIBRARY_IO_MODE
-{
-   /**
-    * In this mode the SCI library will operate in a polling mode for
-    * operations.  In other words, the library will not return from a
-    * send io method until the completion for the IO has been received.
-    */
-   SCIC_IO_MODE_POLLING,
+typedef enum _SCIC_LIBRARY_IO_MODE {
+	/**
+	 * In this mode the SCI library will operate in a polling mode for
+	 * operations.  In other words, the library will not return from a
+	 * send io method until the completion for the IO has been received.
+	 */
+	SCIC_IO_MODE_POLLING,
 
-   /**
-    * In this mode the SCI library returns after committing the IO request
-    * to the controller hardware.  Completion of the request will occur
-    * asynchronously.
-    */
-   SCIC_IO_MODE_ASYNCHRONOUS
+	/**
+	 * In this mode the SCI library returns after committing the IO request
+	 * to the controller hardware.  Completion of the request will occur
+	 * asynchronously.
+	 */
+	SCIC_IO_MODE_ASYNCHRONOUS
 
 } SCIC_LIBRARY_IO_MODE;
-
 
 struct sci_pci_common_header;
 
@@ -110,10 +107,8 @@ struct sci_pci_common_header;
  * @return An opaque library handle to be used by the SCI user for all
  *         subsequent library operations.
  */
-SCI_LIBRARY_HANDLE_T scic_library_construct(
-   void *                         library_memory,
-   U8                             max_controller_count
-);
+SCI_LIBRARY_HANDLE_T scic_library_construct(void *library_memory,
+    U8 max_controller_count);
 
 /**
  * This method sets the PCI header information required for proper
@@ -126,10 +121,8 @@ SCI_LIBRARY_HANDLE_T scic_library_construct(
  *
  * @return none
  */
-void scic_library_set_pci_info(
-   SCI_LIBRARY_HANDLE_T           library,
-   struct sci_pci_common_header * pci_header
-);
+void scic_library_set_pci_info(SCI_LIBRARY_HANDLE_T library,
+    struct sci_pci_common_header *pci_header);
 
 /**
  * @brief This method returns the size of the core library object.
@@ -140,17 +133,13 @@ void scic_library_set_pci_info(
  * @return a positive integer value indicating the size (in bytes) of the
  *         library object.
  */
-U32 scic_library_get_object_size(
-   U8  max_controller_count
-);
+U32 scic_library_get_object_size(U8 max_controller_count);
 
 /**
  *
  *
  */
-U8 scic_library_get_pci_device_controller_count(
-   SCI_LIBRARY_HANDLE_T  library
-);
+U8 scic_library_get_pci_device_controller_count(SCI_LIBRARY_HANDLE_T library);
 
 /**
  * @brief This method will allocate the next available core controller object
@@ -167,10 +156,8 @@ U8 scic_library_get_pci_device_controller_count(
  * @retval SCI_FAILURE_INSUFFICIENT_RESOURCES if the library has no more
  *         available controller objects to allocate.
  */
-SCI_STATUS scic_library_allocate_controller(
-   SCI_LIBRARY_HANDLE_T      library,
-   SCI_CONTROLLER_HANDLE_T * new_controller
-);
+SCI_STATUS scic_library_allocate_controller(SCI_LIBRARY_HANDLE_T library,
+    SCI_CONTROLLER_HANDLE_T *new_controller);
 
 /**
  * @brief This method will attempt to free the supplied controller to the
@@ -187,10 +174,8 @@ SCI_STATUS scic_library_allocate_controller(
  * @retval SCI_FAILURE_CONTROLLER_NOT_FOUND if the supplied controller is
  *         not managed by the supplied library.
  */
-SCI_STATUS scic_library_free_controller(
-   SCI_LIBRARY_HANDLE_T     library,
-   SCI_CONTROLLER_HANDLE_T  controller
-);
+SCI_STATUS scic_library_free_controller(SCI_LIBRARY_HANDLE_T library,
+    SCI_CONTROLLER_HANDLE_T controller);
 
 /**
  * @brief This method returns the maximum size (in bytes) that an individual
@@ -206,9 +191,7 @@ SCI_STATUS scic_library_free_controller(
  * @return Return the maximum size (in bytes) for an SGE for any controller
  *         managed by this library.
  */
-U32 scic_library_get_max_sge_size(
-   SCI_LIBRARY_HANDLE_T  library
-);
+U32 scic_library_get_max_sge_size(SCI_LIBRARY_HANDLE_T library);
 
 /**
  * @brief This method returns the maximum number of SGL elements for a
@@ -223,9 +206,7 @@ U32 scic_library_get_max_sge_size(
  * @return Return the maximum number of SGEs for an IO request for any
  *         controller in this library.
  */
-U32 scic_library_get_max_sge_count(
-   SCI_LIBRARY_HANDLE_T  library
-);
+U32 scic_library_get_max_sge_count(SCI_LIBRARY_HANDLE_T library);
 
 /**
  * @brief This method returns the maximum length for any IO request that
@@ -240,9 +221,7 @@ U32 scic_library_get_max_sge_count(
  * @return Return the maximum length for all IO requests for any
  *         controller in this library.
  */
-U32 scic_library_get_max_io_length(
-   SCI_LIBRARY_HANDLE_T  library
-);
+U32 scic_library_get_max_io_length(SCI_LIBRARY_HANDLE_T library);
 
 /**
  * @brief This method returns the minimum number of timers needed.  If the
@@ -252,9 +231,7 @@ U32 scic_library_get_max_io_length(
  * @return This method returns a value representing the minimum number of
  *         timers required by this framework implementation
  */
-U16 scic_library_get_min_timer_count(
-   void
-);
+U16 scic_library_get_min_timer_count(void);
 
 /**
  * @brief This method returns the maximum number of timers that could
@@ -263,13 +240,10 @@ U16 scic_library_get_min_timer_count(
  * @return This method returns a value representing the minimum number of
  *         timers required by this framework implementation
  */
-U16 scic_library_get_max_timer_count(
-   void
-);
+U16 scic_library_get_max_timer_count(void);
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
 #endif // _SCIC_LIBRARY_H_
-

@@ -62,11 +62,11 @@ MTX_SYSINIT(timerfd, &timerfd_list_lock, "timerfd_list_lock", MTX_DEF);
 
 static struct unrhdr64 tfdino_unr;
 
-#define	TFD_NOJUMP	0	/* Realtime clock has not jumped. */
-#define	TFD_READ	1	/* Jumped, tfd has been read since. */
-#define	TFD_ZREAD	2	/* Jumped backwards, CANCEL_ON_SET=false. */
-#define	TFD_CANCELED	4	/* Jumped, CANCEL_ON_SET=true. */
-#define	TFD_JUMPED	(TFD_ZREAD | TFD_CANCELED)
+#define TFD_NOJUMP 0   /* Realtime clock has not jumped. */
+#define TFD_READ 1     /* Jumped, tfd has been read since. */
+#define TFD_ZREAD 2    /* Jumped backwards, CANCEL_ON_SET=false. */
+#define TFD_CANCELED 4 /* Jumped, CANCEL_ON_SET=true. */
+#define TFD_JUMPED (TFD_ZREAD | TFD_CANCELED)
 
 /*
  * One structure allocated per timerfd descriptor.
@@ -78,26 +78,26 @@ static struct unrhdr64 tfdino_unr;
  */
 struct timerfd {
 	/* User specified. */
-	struct itimerspec tfd_time;	/* (t) tfd timer */
-	clockid_t	tfd_clockid;	/* (c) timing base */
-	int		tfd_flags;	/* (c) creation flags */
-	int		tfd_timflags;	/* (t) timer flags */
+	struct itimerspec tfd_time; /* (t) tfd timer */
+	clockid_t tfd_clockid;	    /* (c) timing base */
+	int tfd_flags;		    /* (c) creation flags */
+	int tfd_timflags;	    /* (t) timer flags */
 
 	/* Used internally. */
-	timerfd_t	tfd_count;	/* (t) expiration count since read */
-	bool		tfd_expired;	/* (t) true upon initial expiration */
-	struct mtx	tfd_lock;	/* tfd mtx lock */
-	struct callout	tfd_callout;	/* (t) expiration notification */
-	struct selinfo	tfd_sel;	/* (t) I/O alerts */
-	struct timespec	tfd_boottim;	/* (t) cached boottime */
-	int		tfd_jumped;	/* (t) timer jump status */
-	LIST_ENTRY(timerfd) entry;	/* (l) entry in list */
+	timerfd_t tfd_count;	     /* (t) expiration count since read */
+	bool tfd_expired;	     /* (t) true upon initial expiration */
+	struct mtx tfd_lock;	     /* tfd mtx lock */
+	struct callout tfd_callout;  /* (t) expiration notification */
+	struct selinfo tfd_sel;	     /* (t) I/O alerts */
+	struct timespec tfd_boottim; /* (t) cached boottime */
+	int tfd_jumped;		     /* (t) timer jump status */
+	LIST_ENTRY(timerfd) entry;   /* (l) entry in list */
 
 	/* For stat(2). */
-	ino_t		tfd_ino;	/* (c) inode number */
-	struct timespec	tfd_atim;	/* (t) time of last read */
-	struct timespec	tfd_mtim;	/* (t) time of last settime */
-	struct timespec tfd_birthtim;	/* (c) creation time */
+	ino_t tfd_ino;		      /* (c) inode number */
+	struct timespec tfd_atim;     /* (t) time of last read */
+	struct timespec tfd_mtim;     /* (t) time of last settime */
+	struct timespec tfd_birthtim; /* (c) creation time */
 };
 
 static void
@@ -138,7 +138,7 @@ timerfd_jumped(void)
 
 	timerfd_getboottime(&boottime);
 	mtx_lock(&timerfd_list_lock);
-	LIST_FOREACH(tfd, &timerfd_list, entry) {
+	LIST_FOREACH (tfd, &timerfd_list, entry) {
 		mtx_lock(&tfd->tfd_lock);
 		if (tfd->tfd_clockid != CLOCK_REALTIME ||
 		    (tfd->tfd_timflags & TFD_TIMER_ABSTIME) == 0 ||
@@ -158,14 +158,14 @@ timerfd_jumped(void)
 			 * inside interval time loop.
 			 */
 			if (!tfd->tfd_expired) {
-				timespecsub(&boottime,
-				    &tfd->tfd_boottim, &diff);
-				timespecsub(&tfd->tfd_time.it_value,
-				    &diff, &tfd->tfd_time.it_value);
+				timespecsub(&boottime, &tfd->tfd_boottim,
+				    &diff);
+				timespecsub(&tfd->tfd_time.it_value, &diff,
+				    &tfd->tfd_time.it_value);
 				if (callout_stop(&tfd->tfd_callout) == 1) {
 					callout_schedule_sbt(&tfd->tfd_callout,
-					    tstosbt(tfd->tfd_time.it_value),
-					    0, C_ABSOLUTE);
+					    tstosbt(tfd->tfd_time.it_value), 0,
+					    C_ABSOLUTE);
 				}
 			}
 		}
@@ -206,8 +206,8 @@ retry:
 			return (EAGAIN);
 		}
 		td->td_rtcgen = atomic_load_acq_int(&rtc_generation);
-		error = mtx_sleep(&tfd->tfd_count, &tfd->tfd_lock,
-		    PCATCH, "tfdrd", 0);
+		error = mtx_sleep(&tfd->tfd_count, &tfd->tfd_lock, PCATCH,
+		    "tfdrd", 0);
 		if (error == 0) {
 			goto retry;
 		} else {
@@ -253,8 +253,8 @@ timerfd_poll(struct file *fp, int events, struct ucred *active_cred,
 	int revents = 0;
 
 	mtx_lock(&tfd->tfd_lock);
-	if ((events & (POLLIN | POLLRDNORM)) != 0 &&
-	    tfd->tfd_count > 0 && tfd->tfd_jumped != TFD_READ)
+	if ((events & (POLLIN | POLLRDNORM)) != 0 && tfd->tfd_count > 0 &&
+	    tfd->tfd_jumped != TFD_READ)
 		revents |= events & (POLLIN | POLLRDNORM);
 	if (revents == 0)
 		selrecord(td, &tfd->tfd_sel);
@@ -405,11 +405,10 @@ timerfd_expire(void *arg)
 			tfd->tfd_count += tstosbt(uptime) /
 			    tstosbt(tfd->tfd_time.it_interval);
 		}
-		timespecadd(&tfd->tfd_time.it_value,
-		    &tfd->tfd_time.it_interval, &tfd->tfd_time.it_value);
+		timespecadd(&tfd->tfd_time.it_value, &tfd->tfd_time.it_interval,
+		    &tfd->tfd_time.it_value);
 		callout_schedule_sbt(&tfd->tfd_callout,
-		    tstosbt(tfd->tfd_time.it_value),
-		    0, C_ABSOLUTE);
+		    tstosbt(tfd->tfd_time.it_value), 0, C_ABSOLUTE);
 	} else {
 		/* Single shot timer. */
 		callout_deactivate(&tfd->tfd_callout);
@@ -539,8 +538,8 @@ kern_timerfd_settime(struct thread *td, int fd, int flags,
 			    &tfd->tfd_time.it_value);
 		}
 		callout_reset_sbt(&tfd->tfd_callout,
-		    tstosbt(tfd->tfd_time.it_value),
-		    0, timerfd_expire, tfd, C_ABSOLUTE);
+		    tstosbt(tfd->tfd_time.it_value), 0, timerfd_expire, tfd,
+		    C_ABSOLUTE);
 	} else {
 		callout_stop(&tfd->tfd_callout);
 	}

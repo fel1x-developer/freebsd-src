@@ -33,31 +33,33 @@
 #include "math_private.h"
 
 #undef isinf
-#define isinf(x)	(fabs(x) == INFINITY)
+#define isinf(x) (fabs(x) == INFINITY)
 #undef isnan
-#define isnan(x)	((x) != (x))
-#define	raise_inexact()	do { volatile float junk __unused = 1 + tiny; } while(0)
+#define isnan(x) ((x) != (x))
+#define raise_inexact()                                  \
+	do {                                             \
+		volatile float junk __unused = 1 + tiny; \
+	} while (0)
 #undef signbit
-#define signbit(x)	(__builtin_signbit(x))
+#define signbit(x) (__builtin_signbit(x))
 
 /* We need that DBL_EPSILON^2/128 is larger than FOUR_SQRT_MIN. */
 static const double
-A_crossover =		10, /* Hull et al suggest 1.5, but 10 works better */
-B_crossover =		0.6417,			/* suggested by Hull et al */
-FOUR_SQRT_MIN =		0x1p-509,		/* >= 4 * sqrt(DBL_MIN) */
-QUARTER_SQRT_MAX =	0x1p509,		/* <= sqrt(DBL_MAX) / 4 */
-m_e =			2.7182818284590452e0,	/*  0x15bf0a8b145769.0p-51 */
-m_ln2 =			6.9314718055994531e-1,	/*  0x162e42fefa39ef.0p-53 */
-pio2_hi =		1.5707963267948966e0,	/*  0x1921fb54442d18.0p-52 */
-RECIP_EPSILON =		1 / DBL_EPSILON,
-SQRT_3_EPSILON =	2.5809568279517849e-8,	/*  0x1bb67ae8584caa.0p-78 */
-SQRT_6_EPSILON =	3.6500241499888571e-8,	/*  0x13988e1409212e.0p-77 */
-SQRT_MIN =		0x1p-511;		/* >= sqrt(DBL_MIN) */
+    A_crossover = 10,	      /* Hull et al suggest 1.5, but 10 works better */
+    B_crossover = 0.6417,     /* suggested by Hull et al */
+    FOUR_SQRT_MIN = 0x1p-509, /* >= 4 * sqrt(DBL_MIN) */
+    QUARTER_SQRT_MAX = 0x1p509,	    /* <= sqrt(DBL_MAX) / 4 */
+    m_e = 2.7182818284590452e0,	    /*  0x15bf0a8b145769.0p-51 */
+    m_ln2 = 6.9314718055994531e-1,  /*  0x162e42fefa39ef.0p-53 */
+    pio2_hi = 1.5707963267948966e0, /*  0x1921fb54442d18.0p-52 */
+    RECIP_EPSILON = 1 / DBL_EPSILON,
+    SQRT_3_EPSILON = 2.5809568279517849e-8, /*  0x1bb67ae8584caa.0p-78 */
+    SQRT_6_EPSILON = 3.6500241499888571e-8, /*  0x13988e1409212e.0p-77 */
+    SQRT_MIN = 0x1p-511;		    /* >= sqrt(DBL_MIN) */
 
-static const volatile double
-pio2_lo =		6.1232339957367659e-17;	/*  0x11a62633145c07.0p-106 */
-static const volatile float
-tiny =			0x1p-100; 
+static const volatile double pio2_lo =
+    6.1232339957367659e-17; /*  0x11a62633145c07.0p-106 */
+static const volatile float tiny = 0x1p-100;
 
 static double complex clog_for_large_values(double complex z);
 
@@ -152,11 +154,11 @@ static inline void
 do_hard_work(double x, double y, double *rx, int *B_is_usable, double *B,
     double *sqrt_A2my2, double *new_y)
 {
-	double R, S, A; /* A, B, R, and S are as in Hull et al. */
+	double R, S, A;	 /* A, B, R, and S are as in Hull et al. */
 	double Am1, Amy; /* A-1, A-y. */
 
-	R = hypot(x, y + 1);		/* |z+I| */
-	S = hypot(x, y - 1);		/* |z-I| */
+	R = hypot(x, y + 1); /* |z+I| */
+	S = hypot(x, y - 1); /* |z-I| */
 
 	/* A = (|z+I| + |z-I|) / 2 */
 	A = (R + S) / 2;
@@ -192,7 +194,7 @@ do_hard_work(double x, double y, double *rx, int *B_is_usable, double *B,
 			 * A = 1 (inexactly).
 			 */
 			*rx = x / sqrt((1 - y) * (1 + y));
-		} else {		/* if (y > 1) */
+		} else { /* if (y > 1) */
 			/*
 			 * A-1 = y-1 (inexactly).
 			 */
@@ -252,7 +254,7 @@ do_hard_work(double x, double y, double *rx, int *B_is_usable, double *B,
 			*sqrt_A2my2 = x * (4 / DBL_EPSILON / DBL_EPSILON) * y /
 			    sqrt((y + 1) * (y - 1));
 			*new_y = y * (4 / DBL_EPSILON / DBL_EPSILON);
-		} else {		/* if (y < 1) */
+		} else { /* if (y < 1) */
 			/*
 			 * fm = 1-y >= DBL_EPSILON, fp is of order x^2, and
 			 * A = 1 (inexactly).
@@ -539,17 +541,17 @@ real_part_reciprocal(double x, double y)
 	ix = hx & 0x7ff00000;
 	GET_HIGH_WORD(hy, y);
 	iy = hy & 0x7ff00000;
-#define	BIAS	(DBL_MAX_EXP - 1)
+#define BIAS (DBL_MAX_EXP - 1)
 /* XXX more guard digits are useful iff there is extra precision. */
-#define	CUTOFF	(DBL_MANT_DIG / 2 + 1)	/* just half or 1 guard digit */
+#define CUTOFF (DBL_MANT_DIG / 2 + 1) /* just half or 1 guard digit */
 	if (ix - iy >= CUTOFF << 20 || isinf(x))
-		return (1 / x);		/* +-Inf -> +-0 is special */
+		return (1 / x); /* +-Inf -> +-0 is special */
 	if (iy - ix >= CUTOFF << 20)
-		return (x / y / y);	/* should avoid double div, but hard */
+		return (x / y / y); /* should avoid double div, but hard */
 	if (ix <= (BIAS + DBL_MAX_EXP / 2 - CUTOFF) << 20)
 		return (x / (x * x + y * y));
 	scale = 1;
-	SET_HIGH_WORD(scale, 0x7ff00000 - ix);	/* 2**(1-ilogb(x)) */
+	SET_HIGH_WORD(scale, 0x7ff00000 - ix); /* 2**(1-ilogb(x)) */
 	x *= scale;
 	y *= scale;
 	return (x / (x * x + y * y) * scale);

@@ -39,18 +39,18 @@
  */
 
 #include <sys/types.h>
-#include <sys/endian.h>
 #include <sys/param.h>
-
 #include <sys/systm.h>
+#include <sys/endian.h>
+
+#include <crypto/aesni/aesencdec.h>
 #include <crypto/aesni/aesni.h>
 #include <crypto/aesni/aesni_os.h>
-#include <crypto/aesni/aesencdec.h>
-#define AESNI_ENC(d, k, nr)	aesni_enc(nr-1, (const __m128i*)k, d)
+#define AESNI_ENC(d, k, nr) aesni_enc(nr - 1, (const __m128i *)k, d)
 
-#include <wmmintrin.h>
 #include <emmintrin.h>
 #include <smmintrin.h>
+#include <wmmintrin.h>
 
 /*
  * Encrypt a single 128-bit block after
@@ -75,7 +75,7 @@ static void
 append_int(size_t value, __m128i *block, size_t offset)
 {
 	int indx = sizeof(*block) - 1;
-	uint8_t *bp = (uint8_t*)block;
+	uint8_t *bp = (uint8_t *)block;
 
 	while (indx > (sizeof(*block) - offset)) {
 		bp[indx] = value & 0xff;
@@ -89,9 +89,8 @@ append_int(size_t value, __m128i *block, size_t offset)
  */
 static __m128i
 cbc_mac_start(const unsigned char *auth_data, size_t auth_len,
-	     const unsigned char *nonce, size_t nonce_len,
-	     const unsigned char *key, int nr,
-	     size_t data_len, size_t tag_len)
+    const unsigned char *nonce, size_t nonce_len, const unsigned char *key,
+    int nr, size_t data_len, size_t tag_len)
 {
 	__m128i cbc_block, staging_block;
 	uint8_t *byte_ptr;
@@ -104,12 +103,11 @@ cbc_mac_start(const unsigned char *auth_data, size_t auth_len,
 	 * length of the message.
 	 */
 	cbc_block = _mm_setzero_si128();
-	byte_ptr = (uint8_t*)&cbc_block;
+	byte_ptr = (uint8_t *)&cbc_block;
 	byte_ptr[0] = ((auth_len > 0) ? 1 : 0) * 64 |
-		(((tag_len - 2) / 2) * 8) |
-		(L - 1);
+	    (((tag_len - 2) / 2) * 8) | (L - 1);
 	bcopy(nonce, byte_ptr + 1, nonce_len);
-	append_int(data_len, &cbc_block, L+1);
+	append_int(data_len, &cbc_block, L + 1);
 	cbc_block = AESNI_ENC(cbc_block, key, nr);
 
 	if (auth_len != 0) {
@@ -128,8 +126,8 @@ cbc_mac_start(const unsigned char *auth_data, size_t auth_len,
 		 * data, so we don't handle the 0xffff case.
 		 */
 		KASSERT(auth_len < (1ULL << 32),
-		    ("%s: auth_len (%zu) larger than 4GB",
-			__FUNCTION__, auth_len));
+		    ("%s: auth_len (%zu) larger than 4GB", __FUNCTION__,
+			auth_len));
 
 		if (auth_len < ((1 << 16) - (1 << 8))) {
 			/*
@@ -147,7 +145,7 @@ cbc_mac_start(const unsigned char *auth_data, size_t auth_len,
 			 * of 6 bytes to describe the auth data length.
 			 */
 			be16enc(&staging_block, 0xfffe);
-			be32enc((char*)&staging_block + 2, auth_len);
+			be32enc((char *)&staging_block + 2, auth_len);
 			auth_amt = 6;
 		} else
 			panic("%s: auth len too large", __FUNCTION__);
@@ -157,14 +155,13 @@ cbc_mac_start(const unsigned char *auth_data, size_t auth_len,
 		 * already partially filled, by auth_amt, so we need
 		 * to handle that.  The last block needs to be zero padded.
 		 */
-		copy_amt = MIN(auth_len,
-		    sizeof(staging_block) - auth_amt);
-		byte_ptr = (uint8_t*)&staging_block;
+		copy_amt = MIN(auth_len, sizeof(staging_block) - auth_amt);
+		byte_ptr = (uint8_t *)&staging_block;
 		bcopy(auth_ptr, &byte_ptr[auth_amt], copy_amt);
 		auth_ptr += copy_amt;
 
 		cbc_block = xor_and_encrypt(cbc_block, staging_block, key, nr);
-		
+
 		while (auth_ptr < auth_data + auth_len) {
 			copy_amt = MIN((auth_data + auth_len) - auth_ptr,
 			    sizeof(staging_block));
@@ -188,12 +185,12 @@ cbc_mac_start(const unsigned char *auth_data, size_t auth_len,
  */
 void
 AES_CCM_encrypt(const unsigned char *in, unsigned char *out,
-		const unsigned char *addt, const unsigned char *nonce,
-		unsigned char *tag, uint32_t nbytes, uint32_t abytes, int nlen,
-		int tag_length, const unsigned char *key, int nr)
+    const unsigned char *addt, const unsigned char *nonce, unsigned char *tag,
+    uint32_t nbytes, uint32_t abytes, int nlen, int tag_length,
+    const unsigned char *key, int nr)
 {
 	int L;
-	int counter = 1;	/* S0 has 0, S1 has 1 */
+	int counter = 1; /* S0 has 0, S1 has 1 */
 	size_t copy_amt, total = 0;
 	uint8_t *byte_ptr;
 	__m128i s0, rolling_mac, s_x, staging_block;
@@ -216,12 +213,12 @@ AES_CCM_encrypt(const unsigned char *in, unsigned char *out,
 	 */
 	s0 = _mm_setzero_si128();
 
-	rolling_mac = cbc_mac_start(addt, abytes, nonce, nlen,
-	    key, nr, nbytes, tag_length);
+	rolling_mac = cbc_mac_start(addt, abytes, nonce, nlen, key, nr, nbytes,
+	    tag_length);
 
 	/* s0 has flags, nonce, and then 0 */
-	byte_ptr = (uint8_t*)&s0;
-	byte_ptr[0] = L - 1;	/* but the flags byte only has L' */
+	byte_ptr = (uint8_t *)&s0;
+	byte_ptr[0] = L - 1; /* but the flags byte only has L' */
 	bcopy(nonce, &byte_ptr[1], nlen);
 
 	/*
@@ -235,22 +232,22 @@ AES_CCM_encrypt(const unsigned char *in, unsigned char *out,
 		 * This may need to be zero-padded.
 		 */
 		copy_amt = MIN(nbytes - total, sizeof(staging_block));
-		bcopy(in+total, &staging_block, copy_amt);
+		bcopy(in + total, &staging_block, copy_amt);
 		if (copy_amt < sizeof(staging_block)) {
-			byte_ptr = (uint8_t*)&staging_block;
+			byte_ptr = (uint8_t *)&staging_block;
 			bzero(&byte_ptr[copy_amt],
 			    sizeof(staging_block) - copy_amt);
 		}
-		rolling_mac = xor_and_encrypt(rolling_mac, staging_block,
-		    key, nr);
+		rolling_mac = xor_and_encrypt(rolling_mac, staging_block, key,
+		    nr);
 		/* Put the counter into the s_x block */
-		append_int(counter++, &s_x, L+1);
+		append_int(counter++, &s_x, L + 1);
 		/* Encrypt that */
 		__m128i X = AESNI_ENC(s_x, key, nr);
 		/* XOR the plain-text with the encrypted counter block */
 		staging_block = _mm_xor_si128(staging_block, X);
 		/* And copy it out */
-		bcopy(&staging_block, out+total, copy_amt);
+		bcopy(&staging_block, out + total, copy_amt);
 		total += copy_amt;
 	}
 	/*
@@ -289,8 +286,8 @@ AES_CCM_encrypt(const unsigned char *in, unsigned char *out,
  */
 static void
 decrypt_loop(const unsigned char *in, unsigned char *out, size_t nbytes,
-    __m128i s0, size_t nonce_length, __m128i *macp,
-    const unsigned char *key, int nr)
+    __m128i s0, size_t nonce_length, __m128i *macp, const unsigned char *key,
+    int nr)
 {
 	size_t total = 0;
 	__m128i s_x = s0, mac_block;
@@ -303,21 +300,21 @@ decrypt_loop(const unsigned char *in, unsigned char *out, size_t nbytes,
 	 */
 	if (macp != NULL)
 		mac_block = *macp;
-	
+
 	while (total < nbytes) {
 		size_t copy_amt = MIN(nbytes - total, sizeof(staging_block));
 
 		if (copy_amt < sizeof(staging_block)) {
 			staging_block = _mm_setzero_si128();
 		}
-		bcopy(in+total, &staging_block, copy_amt);
+		bcopy(in + total, &staging_block, copy_amt);
 
 		/*
 		 * staging_block has the current block of input data,
 		 * zero-padded if necessary.  This is used in computing
 		 * both the decrypted data, and the authentication tag.
 		 */
-		append_int(counter++, &s_x, L+1);
+		append_int(counter++, &s_x, L + 1);
 		/*
 		 * The tag is computed based on the decrypted data.
 		 */
@@ -327,14 +324,14 @@ decrypt_loop(const unsigned char *in, unsigned char *out, size_t nbytes,
 			 * Need to pad out pad_block with 0.
 			 * (staging_block was set to 0's above.)
 			 */
-			uint8_t *end_of_buffer = (uint8_t*)&pad_block;
+			uint8_t *end_of_buffer = (uint8_t *)&pad_block;
 			bzero(end_of_buffer + copy_amt,
 			    sizeof(pad_block) - copy_amt);
 		}
 		staging_block = _mm_xor_si128(staging_block, pad_block);
 
 		if (out)
-			bcopy(&staging_block, out+total, copy_amt);
+			bcopy(&staging_block, out + total, copy_amt);
 
 		if (macp)
 			mac_block = xor_and_encrypt(mac_block, staging_block,
@@ -358,9 +355,9 @@ decrypt_loop(const unsigned char *in, unsigned char *out, size_t nbytes,
  */
 int
 AES_CCM_decrypt(const unsigned char *in, unsigned char *out,
-		const unsigned char *addt, const unsigned char *nonce,
-		const unsigned char *tag, uint32_t nbytes, uint32_t abytes, int nlen,
-		int tag_length, const unsigned char *key, int nr)
+    const unsigned char *addt, const unsigned char *nonce,
+    const unsigned char *tag, uint32_t nbytes, uint32_t abytes, int nlen,
+    int tag_length, const unsigned char *key, int nr)
 {
 	int L;
 	__m128i s0, rolling_mac, staging_block;
@@ -382,11 +379,11 @@ AES_CCM_decrypt(const unsigned char *in, unsigned char *out,
 	 */
 	s0 = _mm_setzero_si128();
 
-	rolling_mac = cbc_mac_start(addt, abytes, nonce, nlen,
-	    key, nr, nbytes, tag_length);
+	rolling_mac = cbc_mac_start(addt, abytes, nonce, nlen, key, nr, nbytes,
+	    tag_length);
 	/* s0 has flags, nonce, and then 0 */
-	byte_ptr = (uint8_t*)&s0;
-	byte_ptr[0] = L-1;	/* but the flags byte only has L' */
+	byte_ptr = (uint8_t *)&s0;
+	byte_ptr[0] = L - 1; /* but the flags byte only has L' */
 	bcopy(nonce, &byte_ptr[1], nlen);
 
 	/*

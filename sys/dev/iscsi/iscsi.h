@@ -29,111 +29,111 @@
  */
 
 #ifndef ISCSI_H
-#define	ISCSI_H
+#define ISCSI_H
 
 struct iscsi_softc;
 struct icl_conn;
 
-#define	ISCSI_NAME_LEN		224	/* 223 bytes, by RFC 3720, + '\0' */
-#define	ISCSI_ADDR_LEN		47	/* INET6_ADDRSTRLEN + '\0' */
-#define	ISCSI_SECRET_LEN	17	/* 16 + '\0' */
+#define ISCSI_NAME_LEN 224  /* 223 bytes, by RFC 3720, + '\0' */
+#define ISCSI_ADDR_LEN 47   /* INET6_ADDRSTRLEN + '\0' */
+#define ISCSI_SECRET_LEN 17 /* 16 + '\0' */
 
 struct iscsi_outstanding {
-	TAILQ_ENTRY(iscsi_outstanding)	io_next;
-	union ccb			*io_ccb;
-	size_t				io_received;
-	uint32_t			io_datasn;
-	uint32_t			io_initiator_task_tag;
-	uint32_t			io_referenced_task_tag;
-	void				*io_icl_prv;
+	TAILQ_ENTRY(iscsi_outstanding) io_next;
+	union ccb *io_ccb;
+	size_t io_received;
+	uint32_t io_datasn;
+	uint32_t io_initiator_task_tag;
+	uint32_t io_referenced_task_tag;
+	void *io_icl_prv;
 };
 
 struct iscsi_session {
-	TAILQ_ENTRY(iscsi_session)	is_next;
+	TAILQ_ENTRY(iscsi_session) is_next;
 
-	struct icl_conn			*is_conn;
-	struct mtx			is_lock;
+	struct icl_conn *is_conn;
+	struct mtx is_lock;
 
-	uint32_t			is_statsn;
-	uint32_t			is_cmdsn;
-	uint32_t			is_expcmdsn;
-	uint32_t			is_maxcmdsn;
-	uint32_t			is_initiator_task_tag;
-	int				is_protocol_level;
-	int				is_initial_r2t;
-	int				is_max_burst_length;
-	int				is_first_burst_length;
-	uint8_t				is_isid[6];
-	uint16_t			is_tsih;
-	bool				is_immediate_data;
-	char				is_target_alias[ISCSI_ALIAS_LEN];
+	uint32_t is_statsn;
+	uint32_t is_cmdsn;
+	uint32_t is_expcmdsn;
+	uint32_t is_maxcmdsn;
+	uint32_t is_initiator_task_tag;
+	int is_protocol_level;
+	int is_initial_r2t;
+	int is_max_burst_length;
+	int is_first_burst_length;
+	uint8_t is_isid[6];
+	uint16_t is_tsih;
+	bool is_immediate_data;
+	char is_target_alias[ISCSI_ALIAS_LEN];
 
-	TAILQ_HEAD(, iscsi_outstanding)	is_outstanding;
-	STAILQ_HEAD(, icl_pdu)		is_postponed;
+	TAILQ_HEAD(, iscsi_outstanding) is_outstanding;
+	STAILQ_HEAD(, icl_pdu) is_postponed;
 
-	struct callout			is_callout;
-	unsigned int			is_timeout;
-	int				is_ping_timeout;
-	int				is_login_timeout;
+	struct callout is_callout;
+	unsigned int is_timeout;
+	int is_ping_timeout;
+	int is_login_timeout;
 
 	/*
 	 * XXX: This could be rewritten using a single variable,
-	 * 	but somehow it results in uglier code. 
+	 * 	but somehow it results in uglier code.
 	 */
 	/*
 	 * We're waiting for iscsid(8); after iscsid_timeout
 	 * expires, kernel will wake up an iscsid(8) to handle
 	 * the session.
 	 */
-	bool				is_waiting_for_iscsid;
+	bool is_waiting_for_iscsid;
 
 	/*
 	 * Some iscsid(8) instance is handling the session;
 	 * after login_timeout expires, kernel will wake up
 	 * another iscsid(8) to handle the session.
 	 */
-	bool				is_login_phase;
+	bool is_login_phase;
 
 	/*
 	 * We're in the process of removing the iSCSI session.
 	 */
-	bool				is_terminating;
+	bool is_terminating;
 
 	/*
 	 * We're waiting for the maintenance thread to do some
 	 * reconnection tasks.
 	 */
-	bool				is_reconnecting;
+	bool is_reconnecting;
 
-	bool				is_connected;
+	bool is_connected;
 
-	struct cam_devq			*is_devq;
-	struct cam_sim			*is_sim;
-	struct cam_path			*is_path;
-	struct cv			is_maintenance_cv;
-	struct iscsi_softc		*is_softc;
-	unsigned int			is_id;
-	struct iscsi_session_conf	is_conf;
-	bool				is_simq_frozen;
+	struct cam_devq *is_devq;
+	struct cam_sim *is_sim;
+	struct cam_path *is_path;
+	struct cv is_maintenance_cv;
+	struct iscsi_softc *is_softc;
+	unsigned int is_id;
+	struct iscsi_session_conf is_conf;
+	bool is_simq_frozen;
 
-	char				is_reason[ISCSI_REASON_LEN];
+	char is_reason[ISCSI_REASON_LEN];
 
 #ifdef ICL_KERNEL_PROXY
-	struct cv			is_login_cv;
-	struct icl_pdu			*is_login_pdu;
+	struct cv is_login_cv;
+	struct icl_pdu *is_login_pdu;
 #endif
 };
 
 struct iscsi_softc {
-	device_t			sc_dev;
-	struct sx			sc_lock;
-	struct cdev			*sc_cdev;
-	TAILQ_HEAD(, iscsi_session)	sc_sessions;
-	struct cv			sc_cv;
-	unsigned int			sc_last_session_id;
-	bool				sc_unloading;
-	eventhandler_tag		sc_shutdown_pre_eh;
-	eventhandler_tag		sc_shutdown_post_eh;
+	device_t sc_dev;
+	struct sx sc_lock;
+	struct cdev *sc_cdev;
+	TAILQ_HEAD(, iscsi_session) sc_sessions;
+	struct cv sc_cv;
+	unsigned int sc_last_session_id;
+	bool sc_unloading;
+	eventhandler_tag sc_shutdown_pre_eh;
+	eventhandler_tag sc_shutdown_post_eh;
 };
 
 #endif /* !ISCSI_H */

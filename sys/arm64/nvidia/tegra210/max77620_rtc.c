@@ -34,61 +34,61 @@
 #include <sys/rman.h>
 #include <sys/sx.h>
 
-#include <dev/iicbus/iiconf.h>
 #include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
 #include "clock_if.h"
-#include "ofw_iicbus_if.h"
 #include "max77620.h"
+#include "ofw_iicbus_if.h"
 
-#define	MAX77620_RTC_INT	0x00
-#define	MAX77620_RTC_INTM	0x01
-#define	MAX77620_RTC_CONTROLM	0x02
-#define	MAX77620_RTC_CONTROL	0x03
-#define  RTC_CONTROL_MODE_24		(1 << 1)
-#define  RTC_CONTROL_BCD_EN		(1 << 0)
+#define MAX77620_RTC_INT 0x00
+#define MAX77620_RTC_INTM 0x01
+#define MAX77620_RTC_CONTROLM 0x02
+#define MAX77620_RTC_CONTROL 0x03
+#define RTC_CONTROL_MODE_24 (1 << 1)
+#define RTC_CONTROL_BCD_EN (1 << 0)
 
-#define	MAX77620_RTC_UPDATE0	0x04
-#define	 RTC_UPDATE0_RTC_RBUDR		(1 << 4)
-#define	 RTC_UPDATE0_RTC_UDR		(1 << 0)
+#define MAX77620_RTC_UPDATE0 0x04
+#define RTC_UPDATE0_RTC_RBUDR (1 << 4)
+#define RTC_UPDATE0_RTC_UDR (1 << 0)
 
-#define	MAX77620_WTSR_SMPL_CNTL	0x06
-#define	MAX77620_RTC_SEC	0x07
-#define	MAX77620_RTC_MIN	0x08
-#define	MAX77620_RTC_HOUR	0x09
-#define	MAX77620_RTC_WEEKDAY	0x0A
-#define	MAX77620_RTC_MONTH	0x0B
-#define	MAX77620_RTC_YEAR	0x0C
-#define	MAX77620_RTC_DATE	0x0D
-#define	MAX77620_ALARM1_SEC	0x0E
-#define	MAX77620_ALARM1_MIN	0x0F
-#define	MAX77620_ALARM1_HOUR	0x10
-#define	MAX77620_ALARM1_WEEKDAY	0x11
-#define	MAX77620_ALARM1_MONTH	0x12
-#define	MAX77620_ALARM1_YEAR	0x13
-#define	MAX77620_ALARM1_DATE	0x14
-#define	MAX77620_ALARM2_SEC	0x15
-#define	MAX77620_ALARM2_MIN	0x16
-#define	MAX77620_ALARM2_HOUR	0x17
-#define	MAX77620_ALARM2_WEEKDAY	0x18
-#define	MAX77620_ALARM2_MONTH	0x19
-#define	MAX77620_ALARM2_YEAR	0x1A
-#define	MAX77620_ALARM2_DATE	0x1B
+#define MAX77620_WTSR_SMPL_CNTL 0x06
+#define MAX77620_RTC_SEC 0x07
+#define MAX77620_RTC_MIN 0x08
+#define MAX77620_RTC_HOUR 0x09
+#define MAX77620_RTC_WEEKDAY 0x0A
+#define MAX77620_RTC_MONTH 0x0B
+#define MAX77620_RTC_YEAR 0x0C
+#define MAX77620_RTC_DATE 0x0D
+#define MAX77620_ALARM1_SEC 0x0E
+#define MAX77620_ALARM1_MIN 0x0F
+#define MAX77620_ALARM1_HOUR 0x10
+#define MAX77620_ALARM1_WEEKDAY 0x11
+#define MAX77620_ALARM1_MONTH 0x12
+#define MAX77620_ALARM1_YEAR 0x13
+#define MAX77620_ALARM1_DATE 0x14
+#define MAX77620_ALARM2_SEC 0x15
+#define MAX77620_ALARM2_MIN 0x16
+#define MAX77620_ALARM2_HOUR 0x17
+#define MAX77620_ALARM2_WEEKDAY 0x18
+#define MAX77620_ALARM2_MONTH 0x19
+#define MAX77620_ALARM2_YEAR 0x1A
+#define MAX77620_ALARM2_DATE 0x1B
 
-#define	MAX77620_RTC_START_YEAR	2000
-#define MAX77620_RTC_I2C_ADDR	0x68
+#define MAX77620_RTC_START_YEAR 2000
+#define MAX77620_RTC_I2C_ADDR 0x68
 
-#define	LOCK(_sc)		sx_xlock(&(_sc)->lock)
-#define	UNLOCK(_sc)		sx_xunlock(&(_sc)->lock)
-#define	LOCK_INIT(_sc)		sx_init(&(_sc)->lock, "max77620_rtc")
-#define	LOCK_DESTROY(_sc)	sx_destroy(&(_sc)->lock);
+#define LOCK(_sc) sx_xlock(&(_sc)->lock)
+#define UNLOCK(_sc) sx_xunlock(&(_sc)->lock)
+#define LOCK_INIT(_sc) sx_init(&(_sc)->lock, "max77620_rtc")
+#define LOCK_DESTROY(_sc) sx_destroy(&(_sc)->lock);
 
 struct max77620_rtc_softc {
-	device_t			dev;
-	struct sx			lock;
-	int				bus_addr;
+	device_t dev;
+	struct sx lock;
+	int bus_addr;
 };
 
 char max77620_rtc_compat[] = "maxim,max77620_rtc";
@@ -102,8 +102,8 @@ max77620_rtc_read(struct max77620_rtc_softc *sc, uint8_t reg, uint8_t *val)
 	uint8_t addr;
 	int rv;
 	struct iic_msg msgs[2] = {
-		{0, IIC_M_WR, 1, &addr},
-		{0, IIC_M_RD, 1, val},
+		{ 0, IIC_M_WR, 1, &addr },
+		{ 0, IIC_M_RD, 1, val },
 	};
 
 	msgs[0].slave = sc->bus_addr;
@@ -113,7 +113,7 @@ max77620_rtc_read(struct max77620_rtc_softc *sc, uint8_t reg, uint8_t *val)
 	rv = iicbus_transfer(sc->dev, msgs, 2);
 	if (rv != 0) {
 		device_printf(sc->dev,
-		    "Error when reading reg 0x%02X, rv: %d\n", reg,  rv);
+		    "Error when reading reg 0x%02X, rv: %d\n", reg, rv);
 		return (EIO);
 	}
 
@@ -121,14 +121,14 @@ max77620_rtc_read(struct max77620_rtc_softc *sc, uint8_t reg, uint8_t *val)
 }
 
 static int
-max77620_rtc_read_buf(struct max77620_rtc_softc *sc, uint8_t reg,
-    uint8_t *buf, size_t size)
+max77620_rtc_read_buf(struct max77620_rtc_softc *sc, uint8_t reg, uint8_t *buf,
+    size_t size)
 {
 	uint8_t addr;
 	int rv;
 	struct iic_msg msgs[2] = {
-		{0, IIC_M_WR, 1, &addr},
-		{0, IIC_M_RD, size, buf},
+		{ 0, IIC_M_WR, 1, &addr },
+		{ 0, IIC_M_RD, size, buf },
 	};
 
 	msgs[0].slave = sc->bus_addr;
@@ -138,7 +138,7 @@ max77620_rtc_read_buf(struct max77620_rtc_softc *sc, uint8_t reg,
 	rv = iicbus_transfer(sc->dev, msgs, 2);
 	if (rv != 0) {
 		device_printf(sc->dev,
-		    "Error when reading reg 0x%02X, rv: %d\n", reg,  rv);
+		    "Error when reading reg 0x%02X, rv: %d\n", reg, rv);
 		return (EIO);
 	}
 
@@ -152,7 +152,7 @@ max77620_rtc_write(struct max77620_rtc_softc *sc, uint8_t reg, uint8_t val)
 	int rv;
 
 	struct iic_msg msgs[1] = {
-		{0, IIC_M_WR, 2, data},
+		{ 0, IIC_M_WR, 2, data },
 	};
 
 	msgs[0].slave = sc->bus_addr;
@@ -175,8 +175,8 @@ max77620_rtc_write_buf(struct max77620_rtc_softc *sc, uint8_t reg, uint8_t *buf,
 	uint8_t data[1];
 	int rv;
 	struct iic_msg msgs[2] = {
-		{0, IIC_M_WR, 1, data},
-		{0, IIC_M_WR | IIC_M_NOSTART, size, buf},
+		{ 0, IIC_M_WR, 1, data },
+		{ 0, IIC_M_WR | IIC_M_NOSTART, size, buf },
 	};
 
 	msgs[0].slave = sc->bus_addr;
@@ -219,7 +219,7 @@ max77620_rtc_update(struct max77620_rtc_softc *sc, bool for_read)
 	uint8_t reg;
 	int rv;
 
-	reg = for_read ? RTC_UPDATE0_RTC_RBUDR: RTC_UPDATE0_RTC_UDR;
+	reg = for_read ? RTC_UPDATE0_RTC_RBUDR : RTC_UPDATE0_RTC_UDR;
 	rv = max77620_rtc_modify(sc, MAX77620_RTC_UPDATE0, reg, reg);
 	if (rv != 0)
 		return (rv);
@@ -253,13 +253,13 @@ max77620_rtc_gettime(device_t dev, struct timespec *ts)
 		return (rv);
 	}
 	ct.nsec = 0;
-	ct.sec  = bcd2bin(buf[0] & 0x7F);
-	ct.min  = bcd2bin(buf[1] & 0x7F);
+	ct.sec = bcd2bin(buf[0] & 0x7F);
+	ct.min = bcd2bin(buf[1] & 0x7F);
 	ct.hour = bcd2bin(buf[2] & 0x3F);
-	ct.dow  = ffs(buf[3] & 07);
-	ct.mon  = bcd2bin(buf[4] & 0x1F);
+	ct.dow = ffs(buf[3] & 07);
+	ct.mon = bcd2bin(buf[4] & 0x1F);
 	ct.year = bcd2bin(buf[5] & 0x7F) + MAX77620_RTC_START_YEAR;
-	ct.day  = bcd2bin(buf[6] & 0x3F);
+	ct.day = bcd2bin(buf[6] & 0x3F);
 
 	return (clock_ct_to_ts(&ct, ts));
 }
@@ -386,14 +386,14 @@ max77620_rtc_create(struct max77620_softc *sc, phandle_t node)
 	parent = device_get_parent(sc->dev);
 
 	child = BUS_ADD_CHILD(parent, 0, NULL, -1);
-	if (child == NULL)	{
+	if (child == NULL) {
 		device_printf(sc->dev, "Cannot create MAX77620 RTC device.\n");
 		return (ENXIO);
 	}
 
 	rv = OFW_IICBUS_SET_DEVINFO(parent, child, -1, "rtc@68",
-	     max77620_rtc_compat, MAX77620_RTC_I2C_ADDR << 1);
-	if (rv != 0)	{
+	    max77620_rtc_compat, MAX77620_RTC_I2C_ADDR << 1);
+	if (rv != 0) {
 		device_printf(sc->dev, "Cannot setup MAX77620 RTC device.\n");
 		return (ENXIO);
 	}
@@ -403,13 +403,13 @@ max77620_rtc_create(struct max77620_softc *sc, phandle_t node)
 
 static device_method_t max77620_rtc_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		max77620_rtc_probe),
-	DEVMETHOD(device_attach,	max77620_rtc_attach),
-	DEVMETHOD(device_detach,	max77620_rtc_detach),
+	DEVMETHOD(device_probe, max77620_rtc_probe),
+	DEVMETHOD(device_attach, max77620_rtc_attach),
+	DEVMETHOD(device_detach, max77620_rtc_detach),
 
 	/* RTC interface */
-	DEVMETHOD(clock_gettime,	max77620_rtc_gettime),
-	DEVMETHOD(clock_settime,	max77620_rtc_settime),
+	DEVMETHOD(clock_gettime, max77620_rtc_gettime),
+	DEVMETHOD(clock_settime, max77620_rtc_settime),
 
 	DEVMETHOD_END
 };

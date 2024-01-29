@@ -35,18 +35,18 @@ struct act8846_reg_sc;
 struct act8846_gpio_pin;
 
 struct act8846_softc {
-	device_t		dev;
-	struct sx		lock;
-	int			bus_addr;
+	device_t dev;
+	struct sx lock;
+	int bus_addr;
 
 	/* Regulators. */
-	struct act8846_reg_sc	**regs;
-	int			nregs;
+	struct act8846_reg_sc **regs;
+	int nregs;
 };
 
-#define	RD1(sc, reg, val)	act8846_read(sc, reg, val)
-#define	WR1(sc, reg, val)	act8846_write(sc, reg, val)
-#define	RM1(sc, reg, clr, set)	act8846_modify(sc, reg, clr, set)
+#define RD1(sc, reg, val) act8846_read(sc, reg, val)
+#define WR1(sc, reg, val) act8846_write(sc, reg, val)
+#define RM1(sc, reg, clr, set) act8846_modify(sc, reg, clr, set)
 
 int act8846_read(struct act8846_softc *sc, uint8_t reg, uint8_t *val);
 int act8846_write(struct act8846_softc *sc, uint8_t reg, uint8_t val);

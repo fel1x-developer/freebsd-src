@@ -87,14 +87,14 @@ static struct test tests[] = {
 	{ "priv_audit_control", priv_audit_control_setup, priv_audit_control,
 	    priv_audit_control_cleanup },
 
-	{ "priv_audit_getaudit", priv_audit_getaudit_setup,
-	    priv_audit_getaudit, priv_audit_getaudit_cleanup },
+	{ "priv_audit_getaudit", priv_audit_getaudit_setup, priv_audit_getaudit,
+	    priv_audit_getaudit_cleanup },
 
 	{ "priv_audit_getaudit_addr", priv_audit_getaudit_setup,
 	    priv_audit_getaudit_addr, priv_audit_getaudit_cleanup },
 
-	{ "priv_audit_setaudit", priv_audit_setaudit_setup,
-	    priv_audit_setaudit, priv_audit_setaudit_cleanup },
+	{ "priv_audit_setaudit", priv_audit_setaudit_setup, priv_audit_setaudit,
+	    priv_audit_setaudit_cleanup },
 
 	{ "priv_audit_setaudit_addr", priv_audit_setaudit_setup,
 	    priv_audit_setaudit_addr, priv_audit_setaudit_cleanup },
@@ -141,7 +141,7 @@ static struct test tests[] = {
 	    priv_msgbuf_privonly, priv_msgbuf_cleanup },
 
 	{ "priv_msgbuf_unprivok", priv_msgbuf_unprivok_setup,
-	   priv_msgbuf_unprivok, priv_msgbuf_cleanup },
+	    priv_msgbuf_unprivok, priv_msgbuf_cleanup },
 
 	{ "priv_netinet_ipsec_pfkey", NULL, priv_netinet_ipsec_pfkey, NULL },
 
@@ -182,8 +182,7 @@ static struct test tests[] = {
 	    priv_proc_setrlimit_raisecur, priv_proc_setrlimit_cleanup },
 
 	{ "priv_proc_setrlimit_raisecur_nopriv", priv_proc_setrlimit_setup,
-	    priv_proc_setrlimit_raisecur_nopriv,
-	    priv_proc_setrlimit_cleanup },
+	    priv_proc_setrlimit_raisecur_nopriv, priv_proc_setrlimit_cleanup },
 
 	{ "priv_sched_rtprio_curproc_normal", priv_sched_rtprio_setup,
 	    priv_sched_rtprio_curproc_normal, priv_sched_rtprio_cleanup },
@@ -249,13 +248,13 @@ static struct test tests[] = {
 	    priv_vfs_chflags_fother_sflags, priv_vfs_chflags_cleanup },
 
 	{ "priv_vfs_chmod_froot", priv_vfs_chmod_froot_setup,
-	     priv_vfs_chmod_froot, priv_vfs_chmod_cleanup },
+	    priv_vfs_chmod_froot, priv_vfs_chmod_cleanup },
 
 	{ "priv_vfs_chmod_fowner", priv_vfs_chmod_fowner_setup,
-	     priv_vfs_chmod_fowner, priv_vfs_chmod_cleanup },
+	    priv_vfs_chmod_fowner, priv_vfs_chmod_cleanup },
 
 	{ "priv_vfs_chmod_fother", priv_vfs_chmod_fother_setup,
-	     priv_vfs_chmod_fother, priv_vfs_chmod_cleanup },
+	    priv_vfs_chmod_fother, priv_vfs_chmod_cleanup },
 
 	{ "priv_vfs_chown_uid", priv_vfs_chown_uid_setup, priv_vfs_chown_uid,
 	    priv_vfs_chown_cleanup },
@@ -290,8 +289,8 @@ static struct test tests[] = {
 	{ "priv_vfs_fhstatfs", priv_vfs_fhstatfs_setup, priv_vfs_fhstatfs,
 	    priv_vfs_fhstatfs_cleanup },
 
-	{ "priv_vfs_generation", priv_vfs_generation_setup,
-	    priv_vfs_generation, priv_vfs_generation_cleanup },
+	{ "priv_vfs_generation", priv_vfs_generation_setup, priv_vfs_generation,
+	    priv_vfs_generation_cleanup },
 
 	{ "priv_vfs_getfh", priv_vfs_getfh_setup, priv_vfs_getfh,
 	    priv_vfs_getfh_cleanup },
@@ -313,23 +312,19 @@ static struct test tests[] = {
 
 	{ "priv_vfs_stickyfile_dir_fowner",
 	    priv_vfs_stickyfile_dir_fowner_setup,
-	    priv_vfs_stickyfile_dir_fowner,
-	    priv_vfs_stickyfile_dir_cleanup },
+	    priv_vfs_stickyfile_dir_fowner, priv_vfs_stickyfile_dir_cleanup },
 
 	{ "priv_vfs_stickyfile_dir_fother",
 	    priv_vfs_stickyfile_dir_fother_setup,
-	    priv_vfs_stickyfile_dir_fother,
-	    priv_vfs_stickyfile_dir_cleanup },
+	    priv_vfs_stickyfile_dir_fother, priv_vfs_stickyfile_dir_cleanup },
 
 	{ "priv_vfs_stickyfile_file_fowner",
 	    priv_vfs_stickyfile_file_fowner_setup,
-	    priv_vfs_stickyfile_file_fowner,
-	    priv_vfs_stickyfile_file_cleanup },
+	    priv_vfs_stickyfile_file_fowner, priv_vfs_stickyfile_file_cleanup },
 
 	{ "priv_vfs_stickyfile_file_fother",
 	    priv_vfs_stickyfile_file_fother_setup,
-	    priv_vfs_stickyfile_file_fother,
-	    priv_vfs_stickyfile_file_cleanup },
+	    priv_vfs_stickyfile_file_fother, priv_vfs_stickyfile_file_cleanup },
 
 	{ "priv_vfs_utimes_froot", priv_vfs_utimes_froot_setup,
 	    priv_vfs_utimes_froot, priv_vfs_utimes_cleanup },
@@ -390,8 +385,7 @@ setup_dir(const char *test, char *dpathp, uid_t uid, gid_t gid, mode_t mode)
 		err(-1, "test %s: mkdtemp", test);
 
 	if (chown(dpathp, uid, gid) < 0)
-		err(-1, "test %s: chown(%s, %d, %d)", test, dpathp, uid,
-		    gid);
+		err(-1, "test %s: chown(%s, %d, %d)", test, dpathp, uid, gid);
 
 	if (chmod(dpathp, mode) < 0)
 		err(-1, "test %s: chmod(%s, 0%o)", test, dpathp, mode);
@@ -408,8 +402,7 @@ setup_file(const char *test, char *fpathp, uid_t uid, gid_t gid, mode_t mode)
 		err(-1, "test %s: mkstemp", test);
 
 	if (fchown(fd, uid, gid) < 0)
-		err(-1, "test %s: fchown(%s, %d, %d)", test, fpathp, uid,
-		    gid);
+		err(-1, "test %s: fchown(%s, %d, %d)", test, fpathp, uid, gid);
 
 	if (fchmod(fd, mode) < 0)
 		err(-1, "test %s: chmod(%s, 0%o)", test, fpathp, mode);
@@ -427,7 +420,7 @@ set_creds(const char *test, uid_t uid, gid_t gid)
 
 	if (setgid(gid) < 0)
 		err(-1, "test %s: setegid(%d)", test, gid);
-	if (setgroups(sizeof(gids)/sizeof(gid_t), gids) < 0)
+	if (setgroups(sizeof(gids) / sizeof(gid_t), gids) < 0)
 		err(-1, "test %s: setgroups(%d)", test, gid);
 	if (setuid(uid) < 0)
 		err(-1, "test %s: seteuid(%d)", test, uid);

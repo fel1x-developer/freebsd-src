@@ -35,8 +35,8 @@
 #include <sys/types.h>
 
 struct _citrus_region {
-	void	*r_head;
-	size_t	 r_size;
+	void *r_head;
+	size_t r_size;
 };
 
 static __inline void

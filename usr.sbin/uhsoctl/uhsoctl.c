@@ -27,81 +27,69 @@
 
 #include <sys/types.h>
 #include <sys/param.h>
+#include <sys/queue.h>
+#include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
-#include <sys/select.h>
 #include <sys/stat.h>
 #include <sys/sysctl.h>
 #include <sys/time.h>
-#include <sys/queue.h>
 
-#include <arpa/inet.h>
 #include <net/if.h>
 #include <net/if_dl.h>
 #include <net/route.h>
 #include <netinet/in.h>
 #include <netinet/in_var.h>
 
+#include <arpa/inet.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <termios.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <string.h>
-#include <signal.h>
-#include <syslog.h>
-#include <unistd.h>
 #include <ifaddrs.h>
 #include <libutil.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <syslog.h>
+#include <termios.h>
 #include <time.h>
+#include <unistd.h>
 
 /*
  * Connection utility to ease connectivity using the raw IP packet interface
  * available on uhso(4) devices.
  */
 
-#define TTY_NAME	"/dev/%s"
-#define SYSCTL_TEST	"dev.uhso.%d.%%driver"
+#define TTY_NAME "/dev/%s"
+#define SYSCTL_TEST "dev.uhso.%d.%%driver"
 #define SYSCTL_LOCATION "dev.uhso.%d.%%location"
-#define SYSCTL_PORTS	"dev.uhso.%d.ports"
-#define SYSCTL_NETIF	"dev.uhso.%d.netif"
-#define SYSCTL_NAME_TTY	"dev.uhso.%d.port.%s.tty"
+#define SYSCTL_PORTS "dev.uhso.%d.ports"
+#define SYSCTL_NETIF "dev.uhso.%d.netif"
+#define SYSCTL_NAME_TTY "dev.uhso.%d.port.%s.tty"
 #define SYSCTL_NAME_DESC "dev.uhso.%d.port.%s.desc"
-#define RESOLV_PATH	"/etc/resolv.conf"
-#define PIDFILE		"/var/run/uhsoctl.%s.pid"
+#define RESOLV_PATH "/etc/resolv.conf"
+#define PIDFILE "/var/run/uhsoctl.%s.pid"
 
-static const char *network_access_type[] = {
-	"GSM",
-	"Compact GSM",
-	"UMTS",
-	"GSM (EGPRS)",
-	"HSDPA",
-	"HSUPA",
-	"HSDPA/HSUPA"
-};
+static const char *network_access_type[] = { "GSM", "Compact GSM", "UMTS",
+	"GSM (EGPRS)", "HSDPA", "HSUPA", "HSDPA/HSUPA" };
 
-static const char *network_reg_status[] = {
-	"Not registered",
-	"Registered",
-	"Searching for network",
-	"Network registration denied",
-	"Unknown",
-	"Registered (roaming)"
-};
+static const char *network_reg_status[] = { "Not registered", "Registered",
+	"Searching for network", "Network registration denied", "Unknown",
+	"Registered (roaming)" };
 
 struct ctx {
 	int fd;
 	int flags;
-#define IPASSIGNED	0x01
-#define FLG_NODAEMON	0x02 /* Don't detach from terminal */
-#define FLG_DAEMON	0x04 /* Running as daemon */
-#define FLG_DELAYED	0x08 /* Fork into background after connect */
-#define FLG_NEWDATA	0x10
-#define FLG_WATCHDOG	0x20 /* Watchdog enabled */
-#define FLG_WDEXP	0x40 /* Watchdog expired */
+#define IPASSIGNED 0x01
+#define FLG_NODAEMON 0x02 /* Don't detach from terminal */
+#define FLG_DAEMON 0x04	  /* Running as daemon */
+#define FLG_DELAYED 0x08  /* Fork into background after connect */
+#define FLG_NEWDATA 0x10
+#define FLG_WATCHDOG 0x20 /* Watchdog enabled */
+#define FLG_WDEXP 0x40	  /* Watchdog expired */
 	const char *ifnam;
 	const char *pin; /* device PIN */
 
@@ -117,11 +105,11 @@ struct ctx {
 	const char *pdp_pwd;
 
 	/* Connection status */
-	int con_status;		/* Connected? */
-	char *con_apn;		/* Connected APN */
-	char *con_oper;		/* Operator name */
-	int con_net_stat;	/* Network connection status */
-	int con_net_type;	/* Network connection type */
+	int con_status;	  /* Connected? */
+	char *con_apn;	  /* Connected APN */
+	char *con_oper;	  /* Operator name */
+	int con_net_stat; /* Network connection status */
+	int con_net_type; /* Network connection type */
 
 	/* Misc. status */
 	int dbm;
@@ -130,7 +118,7 @@ struct ctx {
 	struct in_addr ip;
 	char **ns;
 	const char *resolv_path;
-	char *resolv;		/* Old resolv.conf */
+	char *resolv; /* Old resolv.conf */
 	size_t resolv_sz;
 };
 
@@ -145,7 +133,7 @@ typedef union {
 	uint32_t int32;
 } resp_data;
 typedef struct {
-	resp_data val[2];	
+	resp_data val[2];
 } resp_arg;
 typedef void (*resp_cb)(resp_arg *, const char *, const char *);
 
@@ -162,15 +150,10 @@ static void at_async_owancall(void *, const char *);
 static void at_async_owandata(void *, const char *);
 static void at_async_csq(void *, const char *);
 
-static struct async_handle async_cmd[] = {
-	{ "+CREG", at_async_creg },
-	{ "+CGREG", at_async_cgreg },
-	{ "+COPS", at_async_cops },
-	{ "+CSQ", at_async_csq },
-	{ "_OWANCALL", at_async_owancall },
-	{ "_OWANDATA", at_async_owandata },
-	{ NULL, NULL }
-};
+static struct async_handle async_cmd[] = { { "+CREG", at_async_creg },
+	{ "+CGREG", at_async_cgreg }, { "+COPS", at_async_cops },
+	{ "+CSQ", at_async_csq }, { "_OWANCALL", at_async_owancall },
+	{ "_OWANDATA", at_async_owandata }, { NULL, NULL } };
 
 struct timer_entry;
 struct timers {
@@ -186,7 +169,6 @@ struct timer_entry {
 	tmr_cb func;
 	void *arg;
 };
-
 
 static struct timers timers;
 static volatile int running = 1;
@@ -257,7 +239,7 @@ watchdog_reset(struct ctx *ctx, int timeout)
 	struct timespec tp;
 
 	clock_gettime(CLOCK_MONOTONIC, &tp),
-	ctx->watchdog = tp.tv_sec + timeout;
+	    ctx->watchdog = tp.tv_sec + timeout;
 
 	watchdog_enable(ctx);
 }
@@ -309,7 +291,7 @@ tmr_watchdog(int id, void *arg)
 #endif
 		ctx->flags |= FLG_WDEXP;
 		self = getpid();
-		kill(self, SIGHUP);	
+		kill(self, SIGHUP);
 	}
 }
 
@@ -358,7 +340,8 @@ logger(int pri, const char *fmt, ...)
 
 /* Add/remove IP address from an interface */
 static int
-ifaddr_ad(unsigned long d, const char *ifnam, struct sockaddr *sa, struct sockaddr *mask)
+ifaddr_ad(unsigned long d, const char *ifnam, struct sockaddr *sa,
+    struct sockaddr *mask)
 {
 	struct ifaliasreq req;
 	int fd, error;
@@ -396,7 +379,7 @@ if_setflags(const char *ifnam, int flags)
 
 	error = ioctl(fd, SIOCGIFFLAGS, &ifr);
 	if (error == 0) {
-		oflags = (ifr.ifr_flags & 0xffff)  | (ifr.ifr_flagshigh << 16);
+		oflags = (ifr.ifr_flags & 0xffff) | (ifr.ifr_flagshigh << 16);
 	}
 
 	if (flags < 0)
@@ -446,7 +429,7 @@ set_nameservers(struct ctx *ctx, const char *respath, int ns, ...)
 	va_list ap;
 	struct stat sb;
 	char buf[512];
-	
+
 	if (ctx->ns != NULL) {
 		for (i = 0; ctx->ns[i] != NULL; i++) {
 			free(ctx->ns[i]);
@@ -472,7 +455,6 @@ set_nameservers(struct ctx *ctx, const char *respath, int ns, ...)
 		close(fd);
 		return (0);
 	}
-
 
 	ctx->ns = malloc(sizeof(char *) * (ns + 1));
 	if (ctx->ns == NULL) {
@@ -504,7 +486,6 @@ set_nameservers(struct ctx *ctx, const char *respath, int ns, ...)
 		}
 	}
 
-
 	ftruncate(fd, 0);
 	lseek(fd, 0, SEEK_SET);
 	fp = fdopen(fd, "w");
@@ -516,7 +497,7 @@ set_nameservers(struct ctx *ctx, const char *respath, int ns, ...)
 	if (ctx->resolv != NULL) {
 		p = ctx->resolv;
 		while ((i = readline_buf(p, ctx->resolv + ctx->resolv_sz, buf,
-		    sizeof(buf))) > 0) {
+			    sizeof(buf))) > 0) {
 			p += i;
 			if (strncasecmp(buf, "nameserver", 10) == 0)
 				continue;
@@ -575,7 +556,8 @@ readline(int fd, char *buf, size_t bufsz)
  * Synchronous AT command
  */
 static int
-at_cmd(struct ctx *ctx, const char *resp, resp_cb cb, resp_arg *ra, const char *cf, ...)
+at_cmd(struct ctx *ctx, const char *resp, resp_cb cb, resp_arg *ra,
+    const char *cf, ...)
 {
 	char buf[512];
 	char cmd[64];
@@ -625,12 +607,12 @@ at_cmd(struct ctx *ctx, const char *resp, resp_cb cb, resp_arg *ra, const char *
 			break;
 		}
 
-		n = readline(ctx->fd, buf, sizeof(buf));	
+		n = readline(ctx->fd, buf, sizeof(buf));
 		if (n <= 0) {
 			retval = -2;
 			break;
 		}
-		
+
 		if (strcmp(buf, "\r\n") == 0 || strcmp(buf, "\n") == 0)
 			continue;
 
@@ -731,8 +713,7 @@ at_async_creg(void *arg, const char *resp)
 
 	if (ctx->con_net_stat != 1 && ctx->con_net_stat != 5) {
 		tmr_add(&timers, 1, 1, tmr_creg, ctx);
-	}
-	else {
+	} else {
 		tmr_add(&timers, 1, 30, tmr_creg, ctx);
 	}
 
@@ -758,8 +739,7 @@ at_async_cgreg(void *arg, const char *resp)
 
 	if (ctx->con_net_stat != 1 && ctx->con_net_stat != 5) {
 		tmr_add(&timers, 1, 1, tmr_cgreg, ctx);
-	}
-	else {
+	} else {
 		tmr_add(&timers, 1, 30, tmr_cgreg, ctx);
 	}
 
@@ -770,7 +750,6 @@ at_async_cgreg(void *arg, const char *resp)
 	at_cmd_async(ctx->fd, "AT+COPS?\r\n");
 }
 
-
 static void
 at_async_cops(void *arg, const char *resp)
 {
@@ -778,8 +757,7 @@ at_async_cops(void *arg, const char *resp)
 	int n, at;
 	char opr[64];
 
-	n = sscanf(resp, "+COPS: %*d,%*d,\"%[^\"]\",%d",
-	    opr, &at);
+	n = sscanf(resp, "+COPS: %*d,%*d,\"%[^\"]\",%d", opr, &at);
 	if (n != 2)
 		return;
 
@@ -795,14 +773,13 @@ at_async_cops(void *arg, const char *resp)
 
 	if (ctx->con_net_stat == 1 || ctx->con_net_stat == 5) {
 		logger(LOG_NOTICE, "%s to \"%s\" (%s)",
-		    network_reg_status[ctx->con_net_stat],
-		    ctx->con_oper, network_access_type[ctx->con_net_type]);
+		    network_reg_status[ctx->con_net_stat], ctx->con_oper,
+		    network_access_type[ctx->con_net_type]);
 		if (ctx->con_status != 1) {
 			at_cmd_async(ctx->fd, "AT_OWANCALL=%d,1,1\r\n",
 			    ctx->pdp_ctx);
 		}
-	}
-	else {
+	} else {
 		logger(LOG_NOTICE, "%s (%s)",
 		    network_reg_status[ctx->con_net_stat],
 		    network_access_type[ctx->con_net_type]);
@@ -819,7 +796,7 @@ at_async_cops(void *arg, const char *resp)
  * 31 = -51 dBm or greater
  *
  * So, dbm = (rssi * 2) - 113
-*/
+ */
 static void
 at_async_csq(void *arg, const char *resp)
 {
@@ -859,8 +836,7 @@ at_async_owancall(void *arg, const char *resp)
 		logger(LOG_NOTICE, "Connected to \"%s\" (%s), %s",
 		    ctx->con_oper, ctx->con_apn,
 		    network_access_type[ctx->con_net_type]);
-	}
-	else {
+	} else {
 		logger(LOG_NOTICE, "Disconnected from \"%s\" (%s)",
 		    ctx->con_oper, ctx->con_apn);
 	}
@@ -881,8 +857,8 @@ at_async_owandata(void *arg, const char *resp)
 	} r;
 	char *cp = r.buf;
 
-	n = sscanf(resp, "_OWANDATA: %*d, %[^,], %*[^,], %[^,], %[^,]",
-	    ip, ns1, ns2);
+	n = sscanf(resp, "_OWANDATA: %*d, %[^,], %*[^,], %[^,], %[^,]", ip, ns1,
+	    ns2);
 	if (n != 3)
 		return;
 
@@ -933,7 +909,7 @@ at_async_owandata(void *arg, const char *resp)
 		if (strcmp(ctx->ifnam, ifa->ifa_name) == 0) {
 			memcpy(&sdl, (struct sockaddr_dl *)ifa->ifa_addr,
 			    sizeof(struct sockaddr_dl));
-			break;	
+			break;
 		}
 	}
 	if (ifa == NULL)
@@ -991,8 +967,8 @@ at_async(struct ctx *ctx, void *arg)
 
 	watchdog_reset(ctx, 15);
 
-	bzero(buf, sizeof(buf));	
-	n = readline(ctx->fd, buf, sizeof(buf));	
+	bzero(buf, sizeof(buf));
+	n = readline(ctx->fd, buf, sizeof(buf));
 	if (n <= 0)
 		return (n <= 0 ? -1 : 0);
 
@@ -1008,9 +984,8 @@ at_async(struct ctx *ctx, void *arg)
 	return (0);
 }
 
-static const char *port_type_list[] = {
-	"control", "application", "application2", NULL	
-};
+static const char *port_type_list[] = { "control", "application",
+	"application2", NULL };
 
 /*
  * Attempts to find a list of control tty for the interface
@@ -1025,19 +1000,19 @@ get_tty(struct ctx *ctx)
 	char **list = NULL;
 	size_t len;
 	const char **p, *q;
-	
+
 	/*
 	 * Look for the network interface first
 	 */
-	for (i = 0; ; i++) {
+	for (i = 0;; i++) {
 		/* Check if we still have uhso nodes to check */
 		snprintf(buf, 64, SYSCTL_TEST, i);
 		len = 127;
 		error = sysctlbyname(buf, data, &len, NULL, 0);
 		data[len] = '\0';
 #ifdef DEBUG
-		fprintf(stderr, "sysctl %s returned(%d): %s\n",
-		    buf, error, error == 0 ? data : "FAILED");
+		fprintf(stderr, "sysctl %s returned(%d): %s\n", buf, error,
+		    error == 0 ? data : "FAILED");
 #endif
 		if (error < 0 || strcasecmp(data, "uhso") != 0)
 			return NULL;
@@ -1048,8 +1023,8 @@ get_tty(struct ctx *ctx)
 		error = sysctlbyname(buf, data, &len, NULL, 0);
 		data[len] = '\0';
 #ifdef DEBUG
-		fprintf(stderr, "sysctl %s returned(%d): %s\n",
-		    buf, error, error == 0 ? data : "FAILED");
+		fprintf(stderr, "sysctl %s returned(%d): %s\n", buf, error,
+		    error == 0 ? data : "FAILED");
 #endif
 		if (error == 0 && strcasecmp(data, ctx->ifnam) == 0)
 			break;
@@ -1061,8 +1036,8 @@ get_tty(struct ctx *ctx)
 	error = sysctlbyname(buf, data, &len, NULL, 0);
 	data[len] = '\0';
 #ifdef DEBUG
-	fprintf(stderr, "sysctl %s returned(%d): %s\n",
-	    buf, error, error == 0 ? data : "FAILED");
+	fprintf(stderr, "sysctl %s returned(%d): %s\n", buf, error,
+	    error == 0 ? data : "FAILED");
 #endif
 	if (error != 0)
 		return (NULL);
@@ -1072,15 +1047,17 @@ get_tty(struct ctx *ctx)
 		error = sscanf(q, " port=%d", &usbport);
 		if (error != 1) {
 #ifdef DEBUG
-			fprintf(stderr, "failed to read usb port location from '%s'\n", data);
+			fprintf(stderr,
+			    "failed to read usb port location from '%s'\n",
+			    data);
 #endif
 			return (NULL);
 		}
 	} else {
 #ifdef DEBUG
-			fprintf(stderr, "failed to parse location '%s'\n", data);
+		fprintf(stderr, "failed to parse location '%s'\n", data);
 #endif
-			return (NULL);
+		return (NULL);
 	}
 #ifdef DEBUG
 	fprintf(stderr, "USB port location=%d\n", usbport);
@@ -1090,7 +1067,7 @@ get_tty(struct ctx *ctx)
 	 * Now go through it all again but only look at those matching the
 	 * usb port location we found.
 	 */
-	for (i = 0; ; i++) {
+	for (i = 0;; i++) {
 		snprintf(buf, 64, SYSCTL_LOCATION, i);
 		len = 127;
 		memset(&data, 0, sizeof(data));
@@ -1105,7 +1082,7 @@ get_tty(struct ctx *ctx)
 		if (usbport != usbport0)
 			continue;
 
-		/* Try to add ports */	
+		/* Try to add ports */
 		for (p = port_type_list; *p != NULL; p++) {
 			snprintf(buf, 64, SYSCTL_NAME_TTY, i, *p);
 			len = 127;
@@ -1113,14 +1090,16 @@ get_tty(struct ctx *ctx)
 			error = sysctlbyname(buf, data, &len, NULL, 0);
 			data[len] = '\0';
 #ifdef DEBUG
-			fprintf(stderr, "sysctl %s returned(%d): %s\n",
-			    buf, error, error == 0 ? data : "FAILED");
+			fprintf(stderr, "sysctl %s returned(%d): %s\n", buf,
+			    error, error == 0 ? data : "FAILED");
 #endif
 			if (error == 0) {
-				list = realloc(list, (list_size + 1) * sizeof(char *));
-				list[list_size] = malloc(strlen(data) + strlen(TTY_NAME));
-		    		sprintf(list[list_size], TTY_NAME, data);
-		    		list_size++;
+				list = realloc(list,
+				    (list_size + 1) * sizeof(char *));
+				list[list_size] = malloc(
+				    strlen(data) + strlen(TTY_NAME));
+				sprintf(list[list_size], TTY_NAME, data);
+				list_size++;
 			}
 		}
 	}
@@ -1167,7 +1146,8 @@ do_connect(struct ctx *ctx, const char *tty)
 	if (error != 0) {
 		ra.val[0].ptr = NULL;
 		ra.val[1].int32 = 0;
-		error = at_cmd(ctx, "+CME ERROR", saveresp, &ra, "AT+CPIN?\r\n");
+		error = at_cmd(ctx, "+CME ERROR", saveresp, &ra,
+		    "AT+CPIN?\r\n");
 		if (ra.val[1].int32 > 0) {
 			char *p;
 
@@ -1215,8 +1195,7 @@ do_connect(struct ctx *ctx, const char *tty)
 			if (ctx->pdp_apn != NULL) {
 				if (strcmp(apn, ctx->pdp_apn) == 0)
 					needcfg = 0;
-			}
-			else {
+			} else {
 				needcfg = 0;
 			}
 		}
@@ -1229,7 +1208,7 @@ do_connect(struct ctx *ctx, const char *tty)
 			errx(1, "device is not configured and no APN given");
 
 		error = at_cmd(ctx, NULL, NULL, NULL,
-		   "AT+CGDCONT=%d,,\"%s\"\r\n", ctx->pdp_ctx, ctx->pdp_apn);
+		    "AT+CGDCONT=%d,,\"%s\"\r\n", ctx->pdp_ctx, ctx->pdp_apn);
 		if (error != 0) {
 			errx(1, "failed to configure device");
 		}
@@ -1261,8 +1240,7 @@ do_disconnect(struct ctx *ctx)
 	struct sockaddr_in sin, mask;
 
 	/* Disconnect */
-	at_cmd(ctx, NULL, NULL, NULL, "AT_OWANCALL=%d,0,0\r\n",
-	    ctx->pdp_ctx);
+	at_cmd(ctx, NULL, NULL, NULL, "AT_OWANCALL=%d,0,0\r\n", ctx->pdp_ctx);
 	close(ctx->fd);
 
 	/* Remove ip-address from interface */
@@ -1303,7 +1281,7 @@ daemonize(struct ctx *ctx)
 		pidfile_remove(pfh);
 		return;
 	}
-	
+
 	pidfile_write(pfh);
 	ctx->pfh = pfh;
 	ctx->flags |= FLG_DAEMON;
@@ -1345,14 +1323,12 @@ usage(const char *exec)
 {
 
 	printf("usage %s [-b] [-n] [-a apn] [-c cid] [-p pin] [-u username] "
-	    "[-k password] [-r resolvpath] [-f tty] interface\n", exec);
+	       "[-k password] [-r resolvpath] [-f tty] interface\n",
+	    exec);
 	printf("usage %s -d interface\n", exec);
 }
 
-enum {
-	MODE_CONN,
-	MODE_DISC
-};
+enum { MODE_CONN, MODE_DISC };
 
 int
 main(int argc, char *argv[])
@@ -1464,16 +1440,16 @@ main(int argc, char *argv[])
 
 	tmr_add(&timers, 1, 5, &tmr_watchdog, &ctx);
 	watchdog_reset(&ctx, 15);
-	
+
 	if (tty != NULL) {
 		error = do_connect(&ctx, tty);
 		if (error != 0)
 			errx(1, "Failed to open %s", tty);
-	}
-	else {
+	} else {
 		tty_list = get_tty(&ctx);
 		if (tty_list == NULL)
-			errx(1, "%s does not appear to be a uhso device", ifnam);
+			errx(1, "%s does not appear to be a uhso device",
+			    ifnam);
 #ifdef DEBUG
 		if (tty_list == NULL) {
 			fprintf(stderr, "get_tty returned empty list\n");
@@ -1492,13 +1468,13 @@ main(int argc, char *argv[])
 			}
 		}
 		if (*p == NULL)
-			errx(1, "Failed to obtain a control port, "
+			errx(1,
+			    "Failed to obtain a control port, "
 			    "try specifying one manually");
 	}
 
 	if (!(ctx.flags & FLG_DELAYED) && !(ctx.flags & FLG_NODAEMON))
 		daemonize(&ctx);
-
 
 	FD_ZERO(&set);
 	FD_SET(ctx.fd, &set);

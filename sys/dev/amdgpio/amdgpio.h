@@ -26,90 +26,93 @@
  * SUCH DAMAGE.
  */
 
-#ifdef	DEBUG
-#define	dprintf(fmt, args...) do {	\
-	printf("%s(): ", __func__);	\
-	printf(fmt,##args);		\
-} while (0)
+#ifdef DEBUG
+#define dprintf(fmt, args...)               \
+	do {                                \
+		printf("%s(): ", __func__); \
+		printf(fmt, ##args);        \
+	} while (0)
 #else
-#define	dprintf(fmt, args...)
+#define dprintf(fmt, args...)
 #endif
 
-#define	AMD_GPIO_PREFIX			"AMDGPIO"
+#define AMD_GPIO_PREFIX "AMDGPIO"
 
-#define	AMD_GPIO_NUM_PIN_BANK		4
-#define	AMD_GPIO_PINS_PER_BANK		64
-#define	AMD_GPIO_PINS_MAX		256 /* 4 banks * 64 pins */
+#define AMD_GPIO_NUM_PIN_BANK 4
+#define AMD_GPIO_PINS_PER_BANK 64
+#define AMD_GPIO_PINS_MAX 256 /* 4 banks * 64 pins */
 
 /* Number of pins in each bank */
-#define	AMD_GPIO_PINS_BANK0		63
-#define	AMD_GPIO_PINS_BANK1		64
-#define	AMD_GPIO_PINS_BANK2		56
-#define	AMD_GPIO_PINS_BANK3		32
-#define	AMD_GPIO_PIN_PRESENT		(AMD_GPIO_PINS_BANK0 + \
-					AMD_GPIO_PINS_BANK1 + \
-					AMD_GPIO_PINS_BANK2 + \
-					AMD_GPIO_PINS_BANK3)
-#define	AMDGPIO_DEFAULT_CAPS		(GPIO_PIN_INPUT | GPIO_PIN_OUTPUT)
+#define AMD_GPIO_PINS_BANK0 63
+#define AMD_GPIO_PINS_BANK1 64
+#define AMD_GPIO_PINS_BANK2 56
+#define AMD_GPIO_PINS_BANK3 32
+#define AMD_GPIO_PIN_PRESENT                                               \
+	(AMD_GPIO_PINS_BANK0 + AMD_GPIO_PINS_BANK1 + AMD_GPIO_PINS_BANK2 + \
+	    AMD_GPIO_PINS_BANK3)
+#define AMDGPIO_DEFAULT_CAPS (GPIO_PIN_INPUT | GPIO_PIN_OUTPUT)
 
 /* Register related macros */
-#define	AMDGPIO_PIN_REGISTER(pin)	(pin * 4)
+#define AMDGPIO_PIN_REGISTER(pin) (pin * 4)
 
-#define	WAKE_INT_MASTER_REG		0xfc
-#define	EOI_MASK			(1 << 29)
-#define	WAKE_INT_STATUS_REG0		0x2f8
-#define	WAKE_INT_STATUS_REG1		0x2fc
+#define WAKE_INT_MASTER_REG 0xfc
+#define EOI_MASK (1 << 29)
+#define WAKE_INT_STATUS_REG0 0x2f8
+#define WAKE_INT_STATUS_REG1 0x2fc
 
 /* Bit definition of 32 bits of each pin register */
-#define	DB_TMR_OUT_OFF			0
-#define	DB_TMR_OUT_UNIT_OFF		4
-#define	DB_CNTRL_OFF			5
-#define	DB_TMR_LARGE_OFF		7
-#define	LEVEL_TRIG_OFF			8
-#define	ACTIVE_LEVEL_OFF		9
-#define	INTERRUPT_ENABLE_OFF		11
-#define	INTERRUPT_MASK_OFF		12
-#define	WAKE_CNTRL_OFF_S0I3		13
-#define	WAKE_CNTRL_OFF_S3		14
-#define	WAKE_CNTRL_OFF_S4		15
-#define	PIN_STS_OFF			16
-#define	DRV_STRENGTH_SEL_OFF		17
-#define	PULL_UP_SEL_OFF			19
-#define	PULL_UP_ENABLE_OFF		20
-#define	PULL_DOWN_ENABLE_OFF		21
-#define	OUTPUT_VALUE_OFF		22
-#define	OUTPUT_ENABLE_OFF		23
-#define	SW_CNTRL_IN_OFF			24
-#define	SW_CNTRL_EN_OFF			25
-#define	INTERRUPT_STS_OFF		28
-#define	WAKE_STS_OFF			29
+#define DB_TMR_OUT_OFF 0
+#define DB_TMR_OUT_UNIT_OFF 4
+#define DB_CNTRL_OFF 5
+#define DB_TMR_LARGE_OFF 7
+#define LEVEL_TRIG_OFF 8
+#define ACTIVE_LEVEL_OFF 9
+#define INTERRUPT_ENABLE_OFF 11
+#define INTERRUPT_MASK_OFF 12
+#define WAKE_CNTRL_OFF_S0I3 13
+#define WAKE_CNTRL_OFF_S3 14
+#define WAKE_CNTRL_OFF_S4 15
+#define PIN_STS_OFF 16
+#define DRV_STRENGTH_SEL_OFF 17
+#define PULL_UP_SEL_OFF 19
+#define PULL_UP_ENABLE_OFF 20
+#define PULL_DOWN_ENABLE_OFF 21
+#define OUTPUT_VALUE_OFF 22
+#define OUTPUT_ENABLE_OFF 23
+#define SW_CNTRL_IN_OFF 24
+#define SW_CNTRL_EN_OFF 25
+#define INTERRUPT_STS_OFF 28
+#define WAKE_STS_OFF 29
 
-#define	DB_TMR_OUT_MASK			0xFUL
-#define	DB_CNTRL_MASK			0x3UL
-#define	ACTIVE_LEVEL_MASK		0x3UL
-#define	DRV_STRENGTH_SEL_MASK		0x3UL
+#define DB_TMR_OUT_MASK 0xFUL
+#define DB_CNTRL_MASK 0x3UL
+#define ACTIVE_LEVEL_MASK 0x3UL
+#define DRV_STRENGTH_SEL_MASK 0x3UL
 
-#define	DB_TYPE_NO_DEBOUNCE		0x0UL
-#define	DB_TYPE_PRESERVE_LOW_GLITCH	0x1UL
-#define	DB_TYPE_PRESERVE_HIGH_GLITCH	0x2UL
-#define	DB_TYPE_REMOVE_GLITCH		0x3UL
+#define DB_TYPE_NO_DEBOUNCE 0x0UL
+#define DB_TYPE_PRESERVE_LOW_GLITCH 0x1UL
+#define DB_TYPE_PRESERVE_HIGH_GLITCH 0x2UL
+#define DB_TYPE_REMOVE_GLITCH 0x3UL
 
-#define	EDGE_TRIGGER			0x0UL
-#define	LEVEL_TRIGGER			0x1UL
+#define EDGE_TRIGGER 0x0UL
+#define LEVEL_TRIGGER 0x1UL
 
-#define	ACTIVE_HIGH			0x0UL
-#define	ACTIVE_LOW			0x1UL
-#define	BOTH_EDGE			0x2UL
+#define ACTIVE_HIGH 0x0UL
+#define ACTIVE_LOW 0x1UL
+#define BOTH_EDGE 0x2UL
 
-#define	ENABLE_INTERRUPT		0x1UL
-#define	DISABLE_INTERRUPT		0x0UL
+#define ENABLE_INTERRUPT 0x1UL
+#define DISABLE_INTERRUPT 0x0UL
 
-#define	ENABLE_INTERRUPT_MASK		0x0UL
-#define	DISABLE_INTERRUPT_MASK		0x1UL
-#define	CLR_INTR_STAT			0x1UL
+#define ENABLE_INTERRUPT_MASK 0x0UL
+#define DISABLE_INTERRUPT_MASK 0x1UL
+#define CLR_INTR_STAT 0x1UL
 
-#define	BIT(bit)			(1 << bit)
-#define	GPIO_PIN_INFO(p, n)		{ .pin_num = (p), .pin_name = (n) }
+#define BIT(bit) (1 << bit)
+#define GPIO_PIN_INFO(p, n)                     \
+	{                                       \
+		.pin_num = (p), .pin_name = (n) \
+	}
 
 struct pin_info {
 	int pin_num;
@@ -236,17 +239,17 @@ static const struct pin_info kernzp_pins[] = {
 	GPIO_PIN_INFO(177, "PIN_177"),
 };
 
-#define	AMD_GPIO_PINS_EXPOSED	nitems(kernzp_pins)
+#define AMD_GPIO_PINS_EXPOSED nitems(kernzp_pins)
 
-static const unsigned i2c0_pins[] = {145, 146};
-static const unsigned i2c1_pins[] = {147, 148};
-static const unsigned i2c2_pins[] = {113, 114};
-static const unsigned i2c3_pins[] = {19, 20};
-static const unsigned i2c4_pins[] = {149, 150};
-static const unsigned i2c5_pins[] = {151, 152};
+static const unsigned i2c0_pins[] = { 145, 146 };
+static const unsigned i2c1_pins[] = { 147, 148 };
+static const unsigned i2c2_pins[] = { 113, 114 };
+static const unsigned i2c3_pins[] = { 19, 20 };
+static const unsigned i2c4_pins[] = { 149, 150 };
+static const unsigned i2c5_pins[] = { 151, 152 };
 
-static const unsigned uart0_pins[] = {135, 136, 137, 138, 139};
-static const unsigned uart1_pins[] = {140, 141, 142, 143, 144};
+static const unsigned uart0_pins[] = { 135, 136, 137, 138, 139 };
+static const unsigned uart1_pins[] = { 140, 141, 142, 143, 144 };
 
 struct amd_pingroup {
 	const char *name;
@@ -256,75 +259,75 @@ struct amd_pingroup {
 
 static const struct amd_pingroup kernzp_groups[] = {
 	{
-		.name = "i2c0",
-		.pins = i2c0_pins,
-		.npins = 2,
+	    .name = "i2c0",
+	    .pins = i2c0_pins,
+	    .npins = 2,
 	},
 	{
-		.name = "i2c1",
-		.pins = i2c1_pins,
-		.npins = 2,
+	    .name = "i2c1",
+	    .pins = i2c1_pins,
+	    .npins = 2,
 	},
 	{
-		.name = "i2c2",
-		.pins = i2c2_pins,
-		.npins = 2,
+	    .name = "i2c2",
+	    .pins = i2c2_pins,
+	    .npins = 2,
 	},
 	{
-		.name = "i2c3",
-		.pins = i2c3_pins,
-		.npins = 2,
+	    .name = "i2c3",
+	    .pins = i2c3_pins,
+	    .npins = 2,
 	},
 	{
-		.name = "i2c4",
-		.pins = i2c4_pins,
-		.npins = 2,
+	    .name = "i2c4",
+	    .pins = i2c4_pins,
+	    .npins = 2,
 	},
 	{
-		.name = "i2c5",
-		.pins = i2c5_pins,
-		.npins = 2,
+	    .name = "i2c5",
+	    .pins = i2c5_pins,
+	    .npins = 2,
 	},
 	{
-		.name = "uart0",
-		.pins = uart0_pins,
-		.npins = 5,
+	    .name = "uart0",
+	    .pins = uart0_pins,
+	    .npins = 5,
 	},
 	{
-		.name = "uart1",
-		.pins = uart1_pins,
-		.npins = 5,
+	    .name = "uart1",
+	    .pins = uart1_pins,
+	    .npins = 5,
 	},
 };
 
 /* Macros for driver mutex locking */
-#define	AMDGPIO_LOCK_INIT(_sc)	\
-	mtx_init(&_sc->sc_mtx, device_get_nameunit((_sc)->sc_dev),	\
-		"amdgpio", MTX_SPIN)
-#define	AMDGPIO_LOCK_DESTROY(_sc)	mtx_destroy(&(_sc)->sc_mtx)
-#define	AMDGPIO_LOCK(_sc)		mtx_lock_spin(&(_sc)->sc_mtx)
-#define	AMDGPIO_UNLOCK(_sc)		mtx_unlock_spin(&(_sc)->sc_mtx)
-#define	AMDGPIO_ASSERT_LOCKED(_sc)	mtx_assert(&(_sc)->sc_mtx, MA_OWNED)
-#define	AMDGPIO_ASSERT_UNLOCKED(_sc)	mtx_assert(&(_sc)->sc_mtx, MA_NOTOWNED)
+#define AMDGPIO_LOCK_INIT(_sc)                                                \
+	mtx_init(&_sc->sc_mtx, device_get_nameunit((_sc)->sc_dev), "amdgpio", \
+	    MTX_SPIN)
+#define AMDGPIO_LOCK_DESTROY(_sc) mtx_destroy(&(_sc)->sc_mtx)
+#define AMDGPIO_LOCK(_sc) mtx_lock_spin(&(_sc)->sc_mtx)
+#define AMDGPIO_UNLOCK(_sc) mtx_unlock_spin(&(_sc)->sc_mtx)
+#define AMDGPIO_ASSERT_LOCKED(_sc) mtx_assert(&(_sc)->sc_mtx, MA_OWNED)
+#define AMDGPIO_ASSERT_UNLOCKED(_sc) mtx_assert(&(_sc)->sc_mtx, MA_NOTOWNED)
 
 struct amdgpio_softc {
-	ACPI_HANDLE		sc_handle;
-	device_t		sc_dev;
-	device_t		sc_busdev;
-	const char*		sc_bank_prefix;
-	int			sc_nbanks;
-	int			sc_npins;
-	int			sc_ngroups;
-	struct mtx		sc_mtx;
-	struct resource		*sc_res[AMD_GPIO_NUM_PIN_BANK + 1];
-	bus_space_tag_t		sc_bst;
-	bus_space_handle_t	sc_bsh;
-	struct gpio_pin		sc_gpio_pins[AMD_GPIO_PINS_MAX];
-	const struct pin_info	*sc_pin_info;
+	ACPI_HANDLE sc_handle;
+	device_t sc_dev;
+	device_t sc_busdev;
+	const char *sc_bank_prefix;
+	int sc_nbanks;
+	int sc_npins;
+	int sc_ngroups;
+	struct mtx sc_mtx;
+	struct resource *sc_res[AMD_GPIO_NUM_PIN_BANK + 1];
+	bus_space_tag_t sc_bst;
+	bus_space_handle_t sc_bsh;
+	struct gpio_pin sc_gpio_pins[AMD_GPIO_PINS_MAX];
+	const struct pin_info *sc_pin_info;
 	const struct amd_pingroup *sc_groups;
 };
 
 struct amdgpio_sysctl {
-	struct amdgpio_softc	*sc;
-	uint32_t		pin;
+	struct amdgpio_softc *sc;
+	uint32_t pin;
 };

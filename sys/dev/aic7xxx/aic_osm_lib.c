@@ -33,7 +33,7 @@
  */
 
 #include <sys/cdefs.h>
-static void	aic_recovery_thread(void *arg);
+static void aic_recovery_thread(void *arg);
 
 void
 aic_set_recoveryscb(struct aic_softc *aic, struct scb *scb)
@@ -51,7 +51,7 @@ aic_set_recoveryscb(struct aic_softc *aic, struct scb *scb)
 		 * any scheduled timeouts for them.  We will reschedule
 		 * them after we've successfully fixed this problem.
 		 */
-		LIST_FOREACH(list_scb, &aic->pending_scbs, pending_links) {
+		LIST_FOREACH (list_scb, &aic->pending_scbs, pending_links) {
 			callout_stop(&scb->io_timer);
 		}
 	}
@@ -60,9 +60,9 @@ aic_set_recoveryscb(struct aic_softc *aic, struct scb *scb)
 void
 aic_platform_timeout(void *arg)
 {
-	struct	scb *scb;
+	struct scb *scb;
 
-	scb = (struct scb *)arg; 
+	scb = (struct scb *)arg;
 	aic_lock(scb->aic_softc);
 	aic_timeout(scb);
 	aic_unlock(scb->aic_softc);
@@ -74,9 +74,8 @@ aic_spawn_recovery_thread(struct aic_softc *aic)
 	int error;
 
 	error = aic_kthread_create(aic_recovery_thread, aic,
-			       &aic->platform_data->recovery_thread,
-			       /*flags*/0, /*altstack*/0, "aic_recovery%d",
-			       aic->unit);
+	    &aic->platform_data->recovery_thread,
+	    /*flags*/ 0, /*altstack*/ 0, "aic_recovery%d", aic->unit);
 	return (error);
 }
 
@@ -93,7 +92,7 @@ aic_terminate_recovery_thread(struct aic_softc *aic)
 	aic->flags |= AIC_SHUTDOWN_RECOVERY;
 	wakeup(aic);
 	/*
-	 * Sleep on a slightly different location 
+	 * Sleep on a slightly different location
 	 * for this interlock just for added safety.
 	 */
 	msleep(aic->platform_data, &aic->platform_data->mtx, PUSER, "thtrm", 0);
@@ -107,9 +106,9 @@ aic_recovery_thread(void *arg)
 	aic = (struct aic_softc *)arg;
 	aic_lock(aic);
 	for (;;) {
-		
-		if (LIST_EMPTY(&aic->timedout_scbs) != 0
-		 && (aic->flags & AIC_SHUTDOWN_RECOVERY) == 0)
+
+		if (LIST_EMPTY(&aic->timedout_scbs) != 0 &&
+		    (aic->flags & AIC_SHUTDOWN_RECOVERY) == 0)
 			msleep(aic, &aic->platform_data->mtx, PUSER, "idle", 0);
 
 		if ((aic->flags & AIC_SHUTDOWN_RECOVERY) != 0)

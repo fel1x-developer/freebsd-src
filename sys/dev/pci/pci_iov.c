@@ -24,22 +24,24 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_bus.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/conf.h>
-#include <sys/kernel.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/conf.h>
 #include <sys/fcntl.h>
 #include <sys/ioccom.h>
 #include <sys/iov.h>
+#include <sys/iov_schema.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/nv.h>
 #include <sys/pciio.h>
 #include <sys/queue.h>
 #include <sys/rman.h>
@@ -48,14 +50,11 @@
 #include <machine/bus.h>
 #include <machine/stdarg.h>
 
-#include <sys/nv.h>
-#include <sys/iov_schema.h>
-
+#include <dev/pci/pci_iov.h>
+#include <dev/pci/pci_iov_private.h>
+#include <dev/pci/pci_private.h>
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
-#include <dev/pci/pci_iov.h>
-#include <dev/pci/pci_private.h>
-#include <dev/pci/pci_iov_private.h>
 #include <dev/pci/schema_private.h>
 
 #include "pcib_if.h"
@@ -64,17 +63,15 @@ static MALLOC_DEFINE(M_SRIOV, "sr_iov", "PCI SR-IOV allocations");
 
 static d_ioctl_t pci_iov_ioctl;
 
-static struct cdevsw iov_cdevsw = {
-	.d_version = D_VERSION,
+static struct cdevsw iov_cdevsw = { .d_version = D_VERSION,
 	.d_name = "iov",
-	.d_ioctl = pci_iov_ioctl
-};
+	.d_ioctl = pci_iov_ioctl };
 
 SYSCTL_DECL(_hw_pci);
 
 /*
  * The maximum amount of memory we will allocate for user configuration of an
- * SR-IOV device.  1MB ought to be enough for anyone, but leave this 
+ * SR-IOV device.  1MB ought to be enough for anyone, but leave this
  * configurable just in case.
  */
 static u_long pci_iov_max_config = 1024 * 1024;
@@ -87,15 +84,13 @@ SYSCTL_ULONG(_hw_pci, OID_AUTO, iov_max_config, CTLFLAG_RWTUN,
 #define IOV_WRITE(d, r, v, w) \
 	pci_write_config((d)->cfg.dev, (d)->cfg.iov->iov_pos + r, v, w)
 
-static nvlist_t	*pci_iov_build_schema(nvlist_t **pf_schema,
-		    nvlist_t **vf_schema);
-static void	pci_iov_build_pf_schema(nvlist_t *schema,
-		    nvlist_t **driver_schema);
-static void	pci_iov_build_vf_schema(nvlist_t *schema,
-		    nvlist_t **driver_schema);
-static int	pci_iov_delete_iov_children(struct pci_devinfo *dinfo);
-static nvlist_t	*pci_iov_get_pf_subsystem_schema(void);
-static nvlist_t	*pci_iov_get_vf_subsystem_schema(void);
+static nvlist_t *pci_iov_build_schema(nvlist_t **pf_schema,
+    nvlist_t **vf_schema);
+static void pci_iov_build_pf_schema(nvlist_t *schema, nvlist_t **driver_schema);
+static void pci_iov_build_vf_schema(nvlist_t *schema, nvlist_t **driver_schema);
+static int pci_iov_delete_iov_children(struct pci_devinfo *dinfo);
+static nvlist_t *pci_iov_get_pf_subsystem_schema(void);
+static nvlist_t *pci_iov_get_vf_subsystem_schema(void);
 
 int
 pci_iov_attach_name(device_t dev, struct nvlist *pf_schema,
@@ -130,10 +125,10 @@ pci_iov_attach_method(device_t bus, device_t dev, nvlist_t *pf_schema,
 	if (error != 0)
 		return (error);
 
-	version = pci_read_config(dev, iov_pos, 4); 
+	version = pci_read_config(dev, iov_pos, 4);
 	if (PCI_EXTCAP_VER(version) != 1) {
 		if (bootverbose)
-			device_printf(dev, 
+			device_printf(dev,
 			    "Unsupported version of SR-IOV (%d) detected\n",
 			    PCI_EXTCAP_VER(version));
 
@@ -161,8 +156,8 @@ pci_iov_attach_method(device_t bus, device_t dev, nvlist_t *pf_schema,
 		goto cleanup;
 	iov->iov_schema = schema;
 
-	iov->iov_cdev = make_dev(&iov_cdevsw, device_get_unit(dev),
-	    UID_ROOT, GID_WHEEL, 0600, "iov/%s", name);
+	iov->iov_cdev = make_dev(&iov_cdevsw, device_get_unit(dev), UID_ROOT,
+	    GID_WHEEL, 0600, "iov/%s", name);
 
 	if (iov->iov_cdev == NULL) {
 		error = ENOMEM;
@@ -350,8 +345,8 @@ pci_iov_alloc_bar(struct pci_devinfo *dinfo, int bar, pci_addr_t bar_shift)
 	rid = iov->iov_pos + PCIR_SRIOV_BAR(bar);
 	bar_size = 1 << bar_shift;
 
-	res = pci_alloc_multi_resource(bus, dev, SYS_RES_MEMORY, &rid, 0,
-	    ~0, 1, iov->iov_num_vfs, RF_ACTIVE);
+	res = pci_alloc_multi_resource(bus, dev, SYS_RES_MEMORY, &rid, 0, ~0, 1,
+	    iov->iov_num_vfs, RF_ACTIVE);
 
 	if (res == NULL)
 		return (ENXIO);
@@ -472,13 +467,13 @@ pci_iov_set_ari(device_t bus, bool *ari_enabled)
 	 */
 	KASSERT(lowest != NULL,
 	    ("Could not find child of %s with SR-IOV capability",
-	    device_get_nameunit(bus)));
+		device_get_nameunit(bus)));
 
 	iov_ctl = pci_read_config(lowest, lowest_pos + PCIR_SRIOV_CTL, 2);
 	iov_ctl |= PCIM_SRIOV_ARI_EN;
 	pci_write_config(lowest, lowest_pos + PCIR_SRIOV_CTL, iov_ctl, 2);
 	if ((pci_read_config(lowest, lowest_pos + PCIR_SRIOV_CTL, 2) &
-	    PCIM_SRIOV_ARI_EN) == 0) {
+		PCIM_SRIOV_ARI_EN) == 0) {
 		device_printf(lowest, "failed to enable ARI\n");
 		return (ENXIO);
 	}
@@ -602,13 +597,12 @@ pci_iov_setup_bars(struct pci_devinfo *dinfo)
 		 * register as it's the second half of the last BAR.
 		 */
 		if (!last_64) {
-			pci_read_bar(dev,
-			    iov->iov_pos + PCIR_SRIOV_BAR(i),
+			pci_read_bar(dev, iov->iov_pos + PCIR_SRIOV_BAR(i),
 			    &bar_value, &testval, &last_64);
 
 			if (testval != 0) {
 				error = pci_iov_alloc_bar(dinfo, i,
-				   pci_mapsize(testval));
+				    pci_mapsize(testval));
 				if (error != 0)
 					return (error);
 			}
@@ -639,7 +633,7 @@ pci_iov_enumerate_vfs(struct pci_devinfo *dinfo, const nvlist_t *config,
 	did = IOV_READ(dinfo, PCIR_SRIOV_VF_DID, 2);
 
 	for (i = 0; i < iov->iov_num_vfs; i++, next_rid += rid_stride) {
-		snprintf(device_name, sizeof(device_name), VF_PREFIX"%d", i);
+		snprintf(device_name, sizeof(device_name), VF_PREFIX "%d", i);
 		device = nvlist_get_nvlist(config, device_name);
 		iov_config = nvlist_get_nvlist(device, IOV_CONFIG_NAME);
 		driver_config = nvlist_get_nvlist(device, DRIVER_CONFIG_NAME);
@@ -867,7 +861,7 @@ pci_iov_delete_iov_children(struct pci_devinfo *dinfo)
 		error = device_detach(vf);
 		if (error != 0) {
 			device_printf(dev,
-			   "Could not disable SR-IOV: failed to detach VF %s\n",
+			    "Could not disable SR-IOV: failed to detach VF %s\n",
 			    device_get_nameunit(vf));
 			goto out;
 		}
@@ -1036,8 +1030,8 @@ pci_vf_alloc_mem_resource(device_t dev, device_t child, int *rid,
 		bar_end = end;
 	bar_length = bar_end - bar_start + 1;
 
-	res = rman_reserve_resource(&iov->rman, bar_start, bar_end,
-	    bar_length, flags, child);
+	res = rman_reserve_resource(&iov->rman, bar_start, bar_end, bar_length,
+	    flags, child);
 	if (res == NULL)
 		return (NULL);
 
@@ -1083,8 +1077,7 @@ pci_vf_release_mem_resource(device_t dev, device_t child, int rid,
 	rle = resource_list_find(&dinfo->resources, SYS_RES_MEMORY, rid);
 	if (rle != NULL) {
 		rle->res = NULL;
-		resource_list_delete(&dinfo->resources, SYS_RES_MEMORY,
-		    rid);
+		resource_list_delete(&dinfo->resources, SYS_RES_MEMORY, rid);
 	}
 
 	return (rman_release_resource(r));

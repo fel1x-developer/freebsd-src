@@ -39,86 +39,87 @@
 #include <sys/resource.h>
 #include <sys/rman.h>
 
-#include <dev/ofw/openfirm.h>
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-
 #include <vm/vm.h>
 #include <vm/pmap.h>
+
 #include <machine/bus.h>
+
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
 
 #include "bcm2835_dma.h"
 #include "bcm2835_vcbus.h"
 
-#define	MAX_REG			9
+#define MAX_REG 9
 
 /* private flags */
-#define	BCM_DMA_CH_USED		0x00000001
-#define	BCM_DMA_CH_FREE		0x40000000
-#define	BCM_DMA_CH_UNMAP	0x80000000
+#define BCM_DMA_CH_USED 0x00000001
+#define BCM_DMA_CH_FREE 0x40000000
+#define BCM_DMA_CH_UNMAP 0x80000000
 
 /* Register Map (4.2.1.2) */
-#define	BCM_DMA_CS(n)		(0x100*(n) + 0x00)
-#define		CS_ACTIVE		(1 <<  0)
-#define		CS_END			(1 <<  1)
-#define		CS_INT			(1 <<  2)
-#define		CS_DREQ			(1 <<  3)
-#define		CS_ISPAUSED		(1 <<  4)
-#define		CS_ISHELD		(1 <<  5)
-#define		CS_ISWAIT		(1 <<  6)
-#define		CS_ERR			(1 <<  8)
-#define		CS_WAITWRT		(1 << 28)
-#define		CS_DISDBG		(1 << 29)
-#define		CS_ABORT		(1 << 30)
-#define		CS_RESET		(1U << 31)
-#define	BCM_DMA_CBADDR(n)	(0x100*(n) + 0x04)
-#define	BCM_DMA_INFO(n)		(0x100*(n) + 0x08)
-#define		INFO_INT_EN		(1 << 0)
-#define		INFO_TDMODE		(1 << 1)
-#define		INFO_WAIT_RESP		(1 << 3)
-#define		INFO_D_INC		(1 << 4)
-#define		INFO_D_WIDTH		(1 << 5)
-#define		INFO_D_DREQ		(1 << 6)
-#define		INFO_S_INC		(1 << 8)
-#define		INFO_S_WIDTH		(1 << 9)
-#define		INFO_S_DREQ		(1 << 10)
-#define		INFO_WAITS_SHIFT	(21)
-#define		INFO_PERMAP_SHIFT	(16)
-#define		INFO_PERMAP_MASK	(0x1f << INFO_PERMAP_SHIFT)
+#define BCM_DMA_CS(n) (0x100 * (n) + 0x00)
+#define CS_ACTIVE (1 << 0)
+#define CS_END (1 << 1)
+#define CS_INT (1 << 2)
+#define CS_DREQ (1 << 3)
+#define CS_ISPAUSED (1 << 4)
+#define CS_ISHELD (1 << 5)
+#define CS_ISWAIT (1 << 6)
+#define CS_ERR (1 << 8)
+#define CS_WAITWRT (1 << 28)
+#define CS_DISDBG (1 << 29)
+#define CS_ABORT (1 << 30)
+#define CS_RESET (1U << 31)
+#define BCM_DMA_CBADDR(n) (0x100 * (n) + 0x04)
+#define BCM_DMA_INFO(n) (0x100 * (n) + 0x08)
+#define INFO_INT_EN (1 << 0)
+#define INFO_TDMODE (1 << 1)
+#define INFO_WAIT_RESP (1 << 3)
+#define INFO_D_INC (1 << 4)
+#define INFO_D_WIDTH (1 << 5)
+#define INFO_D_DREQ (1 << 6)
+#define INFO_S_INC (1 << 8)
+#define INFO_S_WIDTH (1 << 9)
+#define INFO_S_DREQ (1 << 10)
+#define INFO_WAITS_SHIFT (21)
+#define INFO_PERMAP_SHIFT (16)
+#define INFO_PERMAP_MASK (0x1f << INFO_PERMAP_SHIFT)
 
-#define	BCM_DMA_SRC(n)		(0x100*(n) + 0x0C)
-#define	BCM_DMA_DST(n)		(0x100*(n) + 0x10)
-#define	BCM_DMA_LEN(n)		(0x100*(n) + 0x14)
-#define	BCM_DMA_STRIDE(n)	(0x100*(n) + 0x18)
-#define	BCM_DMA_CBNEXT(n)	(0x100*(n) + 0x1C)
-#define	BCM_DMA_DEBUG(n)	(0x100*(n) + 0x20)
-#define		DEBUG_ERROR_MASK	(7)
+#define BCM_DMA_SRC(n) (0x100 * (n) + 0x0C)
+#define BCM_DMA_DST(n) (0x100 * (n) + 0x10)
+#define BCM_DMA_LEN(n) (0x100 * (n) + 0x14)
+#define BCM_DMA_STRIDE(n) (0x100 * (n) + 0x18)
+#define BCM_DMA_CBNEXT(n) (0x100 * (n) + 0x1C)
+#define BCM_DMA_DEBUG(n) (0x100 * (n) + 0x20)
+#define DEBUG_ERROR_MASK (7)
 
-#define	BCM_DMA_INT_STATUS	0xfe0
-#define	BCM_DMA_ENABLE		0xff0
+#define BCM_DMA_INT_STATUS 0xfe0
+#define BCM_DMA_ENABLE 0xff0
 
 /* relative offset from BCM_VC_DMA0_BASE (p.39) */
-#define	BCM_DMA_CH(n)		(0x100*(n))
+#define BCM_DMA_CH(n) (0x100 * (n))
 
 /* channels used by GPU */
-#define	BCM_DMA_CH_BULK		0
-#define	BCM_DMA_CH_FAST1	2
-#define	BCM_DMA_CH_FAST2	3
+#define BCM_DMA_CH_BULK 0
+#define BCM_DMA_CH_FAST1 2
+#define BCM_DMA_CH_FAST2 3
 
-#define	BCM_DMA_CH_GPU_MASK	((1 << BCM_DMA_CH_BULK) |	\
-				 (1 << BCM_DMA_CH_FAST1) |	\
-				 (1 << BCM_DMA_CH_FAST2))
+#define BCM_DMA_CH_GPU_MASK                                 \
+	((1 << BCM_DMA_CH_BULK) | (1 << BCM_DMA_CH_FAST1) | \
+	    (1 << BCM_DMA_CH_FAST2))
 
 /* DMA Control Block - 256bit aligned (p.40) */
 struct bcm_dma_cb {
-	uint32_t info;		/* Transfer Information */
-	uint32_t src;		/* Source Address */
-	uint32_t dst;		/* Destination Address */
-	uint32_t len;		/* Transfer Length */
-	uint32_t stride;	/* 2D Mode Stride */
-	uint32_t next;		/* Next Control Block Address */
-	uint32_t rsvd1;		/* Reserved */
-	uint32_t rsvd2;		/* Reserved */
+	uint32_t info;	 /* Transfer Information */
+	uint32_t src;	 /* Source Address */
+	uint32_t dst;	 /* Destination Address */
+	uint32_t len;	 /* Transfer Length */
+	uint32_t stride; /* 2D Mode Stride */
+	uint32_t next;	 /* Next Control Block Address */
+	uint32_t rsvd1;	 /* Reserved */
+	uint32_t rsvd2;	 /* Reserved */
 };
 
 #ifdef DEBUG
@@ -128,45 +129,41 @@ static void bcm_dma_reg_dump(int ch);
 
 /* DMA channel private info */
 struct bcm_dma_ch {
-	int			ch;
-	uint32_t		flags;
-	struct bcm_dma_cb *	cb;
-	uint32_t		vc_cb;
-	bus_dmamap_t		dma_map;
-	void 			(*intr_func)(int, void *);
-	void *			intr_arg;
+	int ch;
+	uint32_t flags;
+	struct bcm_dma_cb *cb;
+	uint32_t vc_cb;
+	bus_dmamap_t dma_map;
+	void (*intr_func)(int, void *);
+	void *intr_arg;
 };
 
 struct bcm_dma_softc {
-	device_t		sc_dev;
-	struct mtx		sc_mtx;
-	struct resource *	sc_mem;
-	struct resource *	sc_irq[BCM_DMA_CH_MAX];
-	void *			sc_intrhand[BCM_DMA_CH_MAX];
-	struct bcm_dma_ch	sc_dma_ch[BCM_DMA_CH_MAX];
-	bus_dma_tag_t		sc_dma_tag;
+	device_t sc_dev;
+	struct mtx sc_mtx;
+	struct resource *sc_mem;
+	struct resource *sc_irq[BCM_DMA_CH_MAX];
+	void *sc_intrhand[BCM_DMA_CH_MAX];
+	struct bcm_dma_ch sc_dma_ch[BCM_DMA_CH_MAX];
+	bus_dma_tag_t sc_dma_tag;
 };
 
 static struct bcm_dma_softc *bcm_dma_sc = NULL;
 static uint32_t bcm_dma_channel_mask;
 
-static struct ofw_compat_data compat_data[] = {
-	{"broadcom,bcm2835-dma",	1},
-	{"brcm,bcm2835-dma",		1},
-	{NULL,				0}
-};
+static struct ofw_compat_data compat_data[] = { { "broadcom,bcm2835-dma", 1 },
+	{ "brcm,bcm2835-dma", 1 }, { NULL, 0 } };
 
 static void
-bcm_dmamap_cb(void *arg, bus_dma_segment_t *segs,
-	int nseg, int err)
+bcm_dmamap_cb(void *arg, bus_dma_segment_t *segs, int nseg, int err)
 {
-        bus_addr_t *addr;
+	bus_addr_t *addr;
 
-        if (err)
-                return;
+	if (err)
+		return;
 
-        addr = (bus_addr_t*)arg;
-        *addr = ARMC_TO_VCBUS(segs[0].ds_addr);
+	addr = (bus_addr_t *)arg;
+	*addr = ARMC_TO_VCBUS(segs[0].ds_addr);
 }
 
 static void
@@ -200,7 +197,7 @@ bcm_dma_reset(device_t dev, int ch)
 
 		/* Complete everything, clear interrupt */
 		bus_write_4(sc->sc_mem, BCM_DMA_CS(ch),
-		    CS_ABORT | CS_INT | CS_END| CS_ACTIVE);
+		    CS_ABORT | CS_INT | CS_END | CS_ACTIVE);
 	}
 
 	/* clear control blocks */
@@ -250,13 +247,10 @@ bcm_dma_init(device_t dev)
 	 * has a full 32-bit register dedicated to this address, so we do not
 	 * need to bother with the per-SoC peripheral restrictions.
 	 */
-	err = bus_dma_tag_create(bus_get_dma_tag(dev),
-	    1, 0, BUS_SPACE_MAXADDR_32BIT,
-	    BUS_SPACE_MAXADDR, NULL, NULL,
-	    sizeof(struct bcm_dma_cb), 1,
-	    sizeof(struct bcm_dma_cb),
-	    BUS_DMA_ALLOCNOW, NULL, NULL,
-	    &sc->sc_dma_tag);
+	err = bus_dma_tag_create(bus_get_dma_tag(dev), 1, 0,
+	    BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR, NULL, NULL,
+	    sizeof(struct bcm_dma_cb), 1, sizeof(struct bcm_dma_cb),
+	    BUS_DMA_ALLOCNOW, NULL, NULL, &sc->sc_dma_tag);
 
 	if (err) {
 		device_printf(dev, "failed allocate DMA tag\n");
@@ -282,15 +276,15 @@ bcm_dma_init(device_t dev)
 			break;
 		}
 
-		/* 
-		 * Least alignment for busdma-allocated stuff is cache 
+		/*
+		 * Least alignment for busdma-allocated stuff is cache
 		 * line size, so just make sure nothing stupid happened
 		 * and we got properly aligned address
 		 */
 		if ((uintptr_t)cb_virt & 0x1f) {
 			device_printf(dev,
 			    "DMA address is not 32-bytes aligned: %p\n",
-			    (void*)cb_virt);
+			    (void *)cb_virt);
 			break;
 		}
 
@@ -415,12 +409,12 @@ bcm_dma_setup_intr(int ch, void (*func)(int, void *), void *arg)
  *     dreq - hardware DREQ # or BCM_DMA_DREQ_NONE if
  *         source is physical memory
  *     inc_addr - BCM_DMA_INC_ADDR if source address
- *         should be increased after each access or 
- *         BCM_DMA_SAME_ADDR if address should remain 
+ *         should be increased after each access or
+ *         BCM_DMA_SAME_ADDR if address should remain
  *         the same
  *     width - size of read operation, BCM_DMA_32BIT
  *         for 32bit bursts, BCM_DMA_128BIT for 128 bits
- *	  
+ *
  * Returns 0 on success, -1 otherwise
  */
 int
@@ -465,12 +459,12 @@ bcm_dma_setup_src(int ch, int dreq, int inc_addr, int width)
  *     dreq - hardware DREQ # or BCM_DMA_DREQ_NONE if
  *         destination is physical memory
  *     inc_addr - BCM_DMA_INC_ADDR if source address
- *         should be increased after each access or 
- *         BCM_DMA_SAME_ADDR if address should remain 
+ *         should be increased after each access or
+ *         BCM_DMA_SAME_ADDR if address should remain
  *         the same
  *     width - size of write operation, BCM_DMA_32BIT
  *         for 32bit bursts, BCM_DMA_128BIT for 128 bits
- *	  
+ *
  * Returns 0 on success, -1 otherwise
  */
 int
@@ -542,7 +536,7 @@ bcm_dma_reg_dump(int ch)
 
 	printf("DMA%d: ", ch);
 	for (i = 0; i < MAX_REG; i++) {
-		reg = bus_read_4(sc->sc_mem, BCM_DMA_CH(ch) + i*4);
+		reg = bus_read_4(sc->sc_mem, BCM_DMA_CH(ch) + i * 4);
 		printf("%8.8x ", reg);
 	}
 	printf("\n");
@@ -553,9 +547,9 @@ bcm_dma_reg_dump(int ch)
  * Start DMA transaction
  *     ch - channel number
  *     src, dst - source and destination address in
- *         ARM physical memory address space. 
+ *         ARM physical memory address space.
  *     len - amount of bytes to be transferred
- *	  
+ *
  * Returns 0 on success, -1 otherwise
  */
 int
@@ -579,11 +573,10 @@ bcm_dma_start(int ch, vm_paddr_t src, vm_paddr_t dst, int len)
 
 	cb->len = len;
 
-	bus_dmamap_sync(sc->sc_dma_tag,
-	    sc->sc_dma_ch[ch].dma_map, BUS_DMASYNC_PREWRITE);
+	bus_dmamap_sync(sc->sc_dma_tag, sc->sc_dma_ch[ch].dma_map,
+	    BUS_DMASYNC_PREWRITE);
 
-	bus_write_4(sc->sc_mem, BCM_DMA_CBADDR(ch),
-	    sc->sc_dma_ch[ch].vc_cb);
+	bus_write_4(sc->sc_mem, BCM_DMA_CBADDR(ch), sc->sc_dma_ch[ch].vc_cb);
 	bus_write_4(sc->sc_mem, BCM_DMA_CS(ch), CS_ACTIVE);
 
 #ifdef DEBUG
@@ -597,7 +590,7 @@ bcm_dma_start(int ch, vm_paddr_t src, vm_paddr_t dst, int len)
 /*
  * Get length requested for DMA transaction
  *     ch - channel number
- *	  
+ *
  * Returns size of transaction, 0 if channel is invalid
  */
 uint32_t
@@ -646,16 +639,15 @@ bcm_dma_intr(void *arg)
 	if (cs & CS_ERR) {
 		debug = bus_read_4(sc->sc_mem, BCM_DMA_DEBUG(ch->ch));
 		device_printf(sc->sc_dev, "DMA error %d on CH%d\n",
-			debug & DEBUG_ERROR_MASK, ch->ch);
-		bus_write_4(sc->sc_mem, BCM_DMA_DEBUG(ch->ch), 
+		    debug & DEBUG_ERROR_MASK, ch->ch);
+		bus_write_4(sc->sc_mem, BCM_DMA_DEBUG(ch->ch),
 		    debug & DEBUG_ERROR_MASK);
 		bcm_dma_reset(sc->sc_dev, ch->ch);
 	}
 
 	if (cs & CS_INT) {
 		/* acknowledge interrupt */
-		bus_write_4(sc->sc_mem, BCM_DMA_CS(ch->ch), 
-		    CS_INT | CS_END);
+		bus_write_4(sc->sc_mem, BCM_DMA_CS(ch->ch), CS_INT | CS_END);
 
 		/* Prepare for possible access to len field */
 		bus_dmamap_sync(sc->sc_dma_tag, ch->dma_map,
@@ -702,9 +694,9 @@ bcm_dma_attach(device_t dev)
 	/* Get DMA channel mask. */
 	node = ofw_bus_get_node(sc->sc_dev);
 	if (OF_getencprop(node, "brcm,dma-channel-mask", &bcm_dma_channel_mask,
-	    sizeof(bcm_dma_channel_mask)) == -1 &&
+		sizeof(bcm_dma_channel_mask)) == -1 &&
 	    OF_getencprop(node, "broadcom,channels", &bcm_dma_channel_mask,
-	    sizeof(bcm_dma_channel_mask)) == -1) {
+		sizeof(bcm_dma_channel_mask)) == -1) {
 		device_printf(dev, "could not get channel mask property\n");
 		return (ENXIO);
 	}
@@ -714,7 +706,8 @@ bcm_dma_attach(device_t dev)
 
 	/* DMA0 - DMA14 */
 	rid = 0;
-	sc->sc_mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid, RF_ACTIVE);
+	sc->sc_mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
+	    RF_ACTIVE);
 	if (sc->sc_mem == NULL) {
 		device_printf(dev, "could not allocate memory resource\n");
 		return (ENXIO);
@@ -732,9 +725,9 @@ bcm_dma_attach(device_t dev)
 			err = ENXIO;
 			goto fail;
 		}
-		if (bus_setup_intr(dev, sc->sc_irq[rid], INTR_TYPE_MISC | INTR_MPSAFE,
-				   NULL, bcm_dma_intr, &sc->sc_dma_ch[rid],
-				   &sc->sc_intrhand[rid])) {
+		if (bus_setup_intr(dev, sc->sc_irq[rid],
+			INTR_TYPE_MISC | INTR_MPSAFE, NULL, bcm_dma_intr,
+			&sc->sc_dma_ch[rid], &sc->sc_intrhand[rid])) {
 			device_printf(dev, "cannot setup interrupt handler\n");
 			err = ENXIO;
 			goto fail;
@@ -756,19 +749,19 @@ fail:
 
 	for (i = 0; i < BCM_DMA_CH_MAX; i++) {
 		if (sc->sc_intrhand[i])
-			bus_teardown_intr(dev, sc->sc_irq[i], sc->sc_intrhand[i]);
+			bus_teardown_intr(dev, sc->sc_irq[i],
+			    sc->sc_intrhand[i]);
 		if (sc->sc_irq[i])
-			bus_release_resource(dev, SYS_RES_IRQ, 0, sc->sc_irq[i]);
+			bus_release_resource(dev, SYS_RES_IRQ, 0,
+			    sc->sc_irq[i]);
 	}
 
 	return (err);
 }
 
-static device_method_t bcm_dma_methods[] = {
-	DEVMETHOD(device_probe,		bcm_dma_probe),
-	DEVMETHOD(device_attach,	bcm_dma_attach),
-	{ 0, 0 }
-};
+static device_method_t bcm_dma_methods[] = { DEVMETHOD(device_probe,
+						 bcm_dma_probe),
+	DEVMETHOD(device_attach, bcm_dma_attach), { 0, 0 } };
 
 static driver_t bcm_dma_driver = {
 	"bcm_dma",

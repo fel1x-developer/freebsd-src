@@ -34,8 +34,8 @@
 
 #include <net/if.h>
 #include <net/if_dl.h>
-#include <net/if_types.h>
 #include <net/if_media.h>
+#include <net/if_types.h>
 #include <net/route.h>
 
 #include <assert.h>
@@ -52,78 +52,66 @@
 #include "libifconfig.h"
 #include "libifconfig_internal.h"
 
-static const struct ifmedia_description *lookup_media_desc(
-    const struct ifmedia_description *, const char *);
+static const struct ifmedia_description *
+lookup_media_desc(const struct ifmedia_description *, const char *);
 static const struct ifmedia_type_to_subtype *get_toptype_ttos(ifmedia_t);
 
-#define IFM_OPMODE(x)							 \
-	((x) & (IFM_IEEE80211_ADHOC | IFM_IEEE80211_HOSTAP |		 \
-	IFM_IEEE80211_IBSS | IFM_IEEE80211_WDS | IFM_IEEE80211_MONITOR | \
-	IFM_IEEE80211_MBSS))
-#define IFM_IEEE80211_STA    0
+#define IFM_OPMODE(x)                                                          \
+	((x) &                                                                 \
+	    (IFM_IEEE80211_ADHOC | IFM_IEEE80211_HOSTAP | IFM_IEEE80211_IBSS | \
+		IFM_IEEE80211_WDS | IFM_IEEE80211_MONITOR |                    \
+		IFM_IEEE80211_MBSS))
+#define IFM_IEEE80211_STA 0
 
-static const struct ifmedia_description
-    ifm_type_descriptions[] =
+static const struct ifmedia_description ifm_type_descriptions[] =
     IFM_TYPE_DESCRIPTIONS;
 
-static const struct ifmedia_description
-    ifm_subtype_ethernet_descriptions[] =
+static const struct ifmedia_description ifm_subtype_ethernet_descriptions[] =
     IFM_SUBTYPE_ETHERNET_DESCRIPTIONS;
 
-static const struct ifmedia_description
-    ifm_subtype_ethernet_aliases[] =
+static const struct ifmedia_description ifm_subtype_ethernet_aliases[] =
     IFM_SUBTYPE_ETHERNET_ALIASES;
 
 static const struct ifmedia_description
     ifm_subtype_ethernet_option_descriptions[] =
-    IFM_SUBTYPE_ETHERNET_OPTION_DESCRIPTIONS;
+	IFM_SUBTYPE_ETHERNET_OPTION_DESCRIPTIONS;
 
-static const struct ifmedia_description
-    ifm_subtype_ieee80211_descriptions[] =
+static const struct ifmedia_description ifm_subtype_ieee80211_descriptions[] =
     IFM_SUBTYPE_IEEE80211_DESCRIPTIONS;
 
-static const struct ifmedia_description
-    ifm_subtype_ieee80211_aliases[] =
+static const struct ifmedia_description ifm_subtype_ieee80211_aliases[] =
     IFM_SUBTYPE_IEEE80211_ALIASES;
 
 static const struct ifmedia_description
     ifm_subtype_ieee80211_option_descriptions[] =
-    IFM_SUBTYPE_IEEE80211_OPTION_DESCRIPTIONS;
+	IFM_SUBTYPE_IEEE80211_OPTION_DESCRIPTIONS;
 
 static const struct ifmedia_description
     ifm_subtype_ieee80211_mode_descriptions[] =
-    IFM_SUBTYPE_IEEE80211_MODE_DESCRIPTIONS;
+	IFM_SUBTYPE_IEEE80211_MODE_DESCRIPTIONS;
 
-static const struct ifmedia_description
-    ifm_subtype_ieee80211_mode_aliases[] =
+static const struct ifmedia_description ifm_subtype_ieee80211_mode_aliases[] =
     IFM_SUBTYPE_IEEE80211_MODE_ALIASES;
 
-static const struct ifmedia_description
-    ifm_subtype_atm_descriptions[] =
+static const struct ifmedia_description ifm_subtype_atm_descriptions[] =
     IFM_SUBTYPE_ATM_DESCRIPTIONS;
 
-static const struct ifmedia_description
-    ifm_subtype_atm_aliases[] =
+static const struct ifmedia_description ifm_subtype_atm_aliases[] =
     IFM_SUBTYPE_ATM_ALIASES;
 
-static const struct ifmedia_description
-    ifm_subtype_atm_option_descriptions[] =
+static const struct ifmedia_description ifm_subtype_atm_option_descriptions[] =
     IFM_SUBTYPE_ATM_OPTION_DESCRIPTIONS;
 
-static const struct ifmedia_description
-    ifm_subtype_shared_descriptions[] =
+static const struct ifmedia_description ifm_subtype_shared_descriptions[] =
     IFM_SUBTYPE_SHARED_DESCRIPTIONS;
 
-static const struct ifmedia_description
-    ifm_subtype_shared_aliases[] =
+static const struct ifmedia_description ifm_subtype_shared_aliases[] =
     IFM_SUBTYPE_SHARED_ALIASES;
 
-static const struct ifmedia_description
-    ifm_shared_option_descriptions[] =
+static const struct ifmedia_description ifm_shared_option_descriptions[] =
     IFM_SHARED_OPTION_DESCRIPTIONS;
 
-static const struct ifmedia_description
-    ifm_shared_option_aliases[] =
+static const struct ifmedia_description ifm_shared_option_aliases[] =
     IFM_SHARED_OPTION_ALIASES;
 
 static const struct ifmedia_description *
@@ -140,78 +128,74 @@ struct ifmedia_type_to_subtype {
 	struct {
 		const struct ifmedia_description *desc;
 		bool alias;
-	}
-	subtypes[5];
+	} subtypes[5];
 	struct {
 		const struct ifmedia_description *desc;
 		bool alias;
-	}
-	options[4];
+	} options[4];
 	struct {
 		const struct ifmedia_description *desc;
 		bool alias;
-	}
-	modes[3];
+	} modes[3];
 };
 
 /* must be in the same order as IFM_TYPE_DESCRIPTIONS */
-static const struct ifmedia_type_to_subtype ifmedia_types_to_subtypes[] =
-{
+static const struct ifmedia_type_to_subtype ifmedia_types_to_subtypes[] = {
 	{
-		{
-			{ &ifm_subtype_shared_descriptions[0],		 0 },
-			{ &ifm_subtype_shared_aliases[0],		 1 },
-			{ &ifm_subtype_ethernet_descriptions[0],	 0 },
-			{ &ifm_subtype_ethernet_aliases[0],		 1 },
-			{ NULL,						 0 },
-		},
-		{
-			{ &ifm_shared_option_descriptions[0],		 0 },
-			{ &ifm_shared_option_aliases[0],		 1 },
-			{ &ifm_subtype_ethernet_option_descriptions[0],	 0 },
-			{ NULL,						 0 },
-		},
-		{
-			{ NULL,						 0 },
-		},
+	    {
+		{ &ifm_subtype_shared_descriptions[0], 0 },
+		{ &ifm_subtype_shared_aliases[0], 1 },
+		{ &ifm_subtype_ethernet_descriptions[0], 0 },
+		{ &ifm_subtype_ethernet_aliases[0], 1 },
+		{ NULL, 0 },
+	    },
+	    {
+		{ &ifm_shared_option_descriptions[0], 0 },
+		{ &ifm_shared_option_aliases[0], 1 },
+		{ &ifm_subtype_ethernet_option_descriptions[0], 0 },
+		{ NULL, 0 },
+	    },
+	    {
+		{ NULL, 0 },
+	    },
 	},
 	{
-		{
-			{ &ifm_subtype_shared_descriptions[0],		 0 },
-			{ &ifm_subtype_shared_aliases[0],		 1 },
-			{ &ifm_subtype_ieee80211_descriptions[0],	 0 },
-			{ &ifm_subtype_ieee80211_aliases[0],		 1 },
-			{ NULL,						 0 },
-		},
-		{
-			{ &ifm_shared_option_descriptions[0],		 0 },
-			{ &ifm_shared_option_aliases[0],		 1 },
-			{ &ifm_subtype_ieee80211_option_descriptions[0], 0 },
-			{ NULL,						 0 },
-		},
-		{
-			{ &ifm_subtype_ieee80211_mode_descriptions[0],	 0 },
-			{ &ifm_subtype_ieee80211_mode_aliases[0],	 0 },
-			{ NULL,						 0 },
-		},
+	    {
+		{ &ifm_subtype_shared_descriptions[0], 0 },
+		{ &ifm_subtype_shared_aliases[0], 1 },
+		{ &ifm_subtype_ieee80211_descriptions[0], 0 },
+		{ &ifm_subtype_ieee80211_aliases[0], 1 },
+		{ NULL, 0 },
+	    },
+	    {
+		{ &ifm_shared_option_descriptions[0], 0 },
+		{ &ifm_shared_option_aliases[0], 1 },
+		{ &ifm_subtype_ieee80211_option_descriptions[0], 0 },
+		{ NULL, 0 },
+	    },
+	    {
+		{ &ifm_subtype_ieee80211_mode_descriptions[0], 0 },
+		{ &ifm_subtype_ieee80211_mode_aliases[0], 0 },
+		{ NULL, 0 },
+	    },
 	},
 	{
-		{
-			{ &ifm_subtype_shared_descriptions[0],		 0 },
-			{ &ifm_subtype_shared_aliases[0],		 1 },
-			{ &ifm_subtype_atm_descriptions[0],		 0 },
-			{ &ifm_subtype_atm_aliases[0],			 1 },
-			{ NULL,						 0 },
-		},
-		{
-			{ &ifm_shared_option_descriptions[0],		 0 },
-			{ &ifm_shared_option_aliases[0],		 1 },
-			{ &ifm_subtype_atm_option_descriptions[0],	 0 },
-			{ NULL,						 0 },
-		},
-		{
-			{ NULL,						 0 },
-		},
+	    {
+		{ &ifm_subtype_shared_descriptions[0], 0 },
+		{ &ifm_subtype_shared_aliases[0], 1 },
+		{ &ifm_subtype_atm_descriptions[0], 0 },
+		{ &ifm_subtype_atm_aliases[0], 1 },
+		{ NULL, 0 },
+	    },
+	    {
+		{ &ifm_shared_option_descriptions[0], 0 },
+		{ &ifm_shared_option_aliases[0], 1 },
+		{ &ifm_subtype_atm_option_descriptions[0], 0 },
+		{ NULL, 0 },
+	    },
+	    {
+		{ NULL, 0 },
+	    },
 	},
 };
 
@@ -222,7 +206,7 @@ get_toptype_ttos(ifmedia_t media)
 	const struct ifmedia_type_to_subtype *ttos;
 
 	for (desc = ifm_type_descriptions, ttos = ifmedia_types_to_subtypes;
-	    desc->ifmt_string != NULL; desc++, ttos++) {
+	     desc->ifmt_string != NULL; desc++, ttos++) {
 		if (IFM_TYPE(media) == desc->ifmt_word)
 			return (ttos);
 	}
@@ -267,8 +251,8 @@ ifconfig_media_get_subtype(ifmedia_t media)
 	for (size_t i = 0; ttos->subtypes[i].desc != NULL; ++i) {
 		if (ttos->subtypes[i].alias)
 			continue;
-		for (desc = ttos->subtypes[i].desc;
-		    desc->ifmt_string != NULL; ++desc) {
+		for (desc = ttos->subtypes[i].desc; desc->ifmt_string != NULL;
+		     ++desc) {
 			if (IFM_SUBTYPE(media) == desc->ifmt_word)
 				return (desc->ifmt_string);
 		}
@@ -313,8 +297,8 @@ ifconfig_media_get_mode(ifmedia_t media)
 	for (size_t i = 0; ttos->modes[i].desc != NULL; ++i) {
 		if (ttos->modes[i].alias)
 			continue;
-		for (desc = ttos->modes[i].desc;
-		    desc->ifmt_string != NULL; ++desc) {
+		for (desc = ttos->modes[i].desc; desc->ifmt_string != NULL;
+		     ++desc) {
 			if (IFM_MODE(media) == desc->ifmt_word)
 				return (desc->ifmt_string);
 		}
@@ -362,8 +346,8 @@ ifconfig_media_get_options(ifmedia_t media)
 	for (size_t i = 0; ttos->options[i].desc != NULL; ++i) {
 		if (ttos->options[i].alias)
 			continue;
-		for (desc = ttos->options[i].desc;
-		    desc->ifmt_string != NULL; ++desc) {
+		for (desc = ttos->options[i].desc; desc->ifmt_string != NULL;
+		     ++desc) {
 			if ((media & desc->ifmt_word) != 0)
 				++n;
 		}
@@ -382,8 +366,8 @@ ifconfig_media_get_options(ifmedia_t media)
 	for (size_t i = 0; ttos->options[i].desc != NULL; ++i) {
 		if (ttos->options[i].alias)
 			continue;
-		for (desc = ttos->options[i].desc;
-		    desc->ifmt_string != NULL; ++desc) {
+		for (desc = ttos->options[i].desc; desc->ifmt_string != NULL;
+		     ++desc) {
 			if ((media & desc->ifmt_word) != 0) {
 				options[n] = desc->ifmt_string;
 				++n;
@@ -426,8 +410,8 @@ ifconfig_media_lookup_options(ifmedia_t media, const char **opts, size_t nopts)
 }
 
 /***************************************************************************
-* Above this point, this file is mostly copied from sbin/ifconfig/ifmedia.c
-***************************************************************************/
+ * Above this point, this file is mostly copied from sbin/ifconfig/ifmedia.c
+ ***************************************************************************/
 
 /* Internal structure used for allocations and frees */
 struct _ifconfig_media_status {
@@ -465,7 +449,7 @@ ifconfig_media_get_mediareq(ifconfig_handle_t *h, const char *name,
 	}
 	if (ms->ifmr.ifm_count == 0) {
 		*ifmr = &ms->ifmr;
-		return (0);     /* Interface has no media types ?*/
+		return (0); /* Interface has no media types ?*/
 	}
 
 	ms2 = realloc(ms, sizeof(*ms) + sizeof(int) * ms->ifmr.ifm_count);

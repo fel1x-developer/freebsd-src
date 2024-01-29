@@ -41,37 +41,36 @@
 #ifdef USB_GLOBAL_INCLUDE_FILE
 #include USB_GLOBAL_INCLUDE_FILE
 #else
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
-
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-#include <dev/usb/usb_core.h>
-#include <dev/usb/usb_cdc.h>
-#include <dev/usb/usb_ioctl.h>
-#include <dev/usb/usb_util.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/template/usb_template.h>
-#endif		/* USB_GLOBAL_INCLUDE_FILE */
+#include <dev/usb/usb.h>
+#include <dev/usb/usb_cdc.h>
+#include <dev/usb/usb_core.h>
+#include <dev/usb/usb_ioctl.h>
+#include <dev/usb/usb_util.h>
+#include <dev/usb/usbdi.h>
+#endif /* USB_GLOBAL_INCLUDE_FILE */
 
-#define	MODEM_IFACE_0 0
-#define	MODEM_IFACE_1 1
+#define MODEM_IFACE_0 0
+#define MODEM_IFACE_1 1
 
 enum {
 	MULTI_LANG_INDEX,
@@ -87,35 +86,35 @@ enum {
 	MULTI_MAX_INDEX,
 };
 
-#define	MULTI_DEFAULT_VENDOR_ID		USB_TEMPLATE_VENDOR
-#define	MULTI_DEFAULT_PRODUCT_ID	0x05dc
-#define	MULTI_DEFAULT_MODEM		"Virtual serial port"
-#define	MULTI_DEFAULT_ETH_MAC		"2A02030405060789AB"
-#define	MULTI_DEFAULT_ETH_CONTROL	"Ethernet Comm Interface"
-#define	MULTI_DEFAULT_ETH_DATA		"Ethernet Data Interface"
-#define	MULTI_DEFAULT_STORAGE		"Mass Storage Interface"
-#define	MULTI_DEFAULT_CONFIGURATION	"Default configuration"
-#define	MULTI_DEFAULT_MANUFACTURER	USB_TEMPLATE_MANUFACTURER
-#define	MULTI_DEFAULT_PRODUCT		"Multifunction Device"
+#define MULTI_DEFAULT_VENDOR_ID USB_TEMPLATE_VENDOR
+#define MULTI_DEFAULT_PRODUCT_ID 0x05dc
+#define MULTI_DEFAULT_MODEM "Virtual serial port"
+#define MULTI_DEFAULT_ETH_MAC "2A02030405060789AB"
+#define MULTI_DEFAULT_ETH_CONTROL "Ethernet Comm Interface"
+#define MULTI_DEFAULT_ETH_DATA "Ethernet Data Interface"
+#define MULTI_DEFAULT_STORAGE "Mass Storage Interface"
+#define MULTI_DEFAULT_CONFIGURATION "Default configuration"
+#define MULTI_DEFAULT_MANUFACTURER USB_TEMPLATE_MANUFACTURER
+#define MULTI_DEFAULT_PRODUCT "Multifunction Device"
 /*
  * The reason for this being called like this is that OSX
  * derives the device node name from it, resulting in a somewhat
  * user-friendly "/dev/cu.usbmodemFreeBSD1".  And yes, the "1"
  * needs to be there, otherwise OSX will mangle it.
  */
-#define MULTI_DEFAULT_SERIAL_NUMBER	"FreeBSD1"
+#define MULTI_DEFAULT_SERIAL_NUMBER "FreeBSD1"
 
-static struct usb_string_descriptor	multi_modem;
-static struct usb_string_descriptor	multi_eth_mac;
-static struct usb_string_descriptor	multi_eth_control;
-static struct usb_string_descriptor	multi_eth_data;
-static struct usb_string_descriptor	multi_storage;
-static struct usb_string_descriptor	multi_configuration;
-static struct usb_string_descriptor	multi_manufacturer;
-static struct usb_string_descriptor	multi_product;
-static struct usb_string_descriptor	multi_serial_number;
+static struct usb_string_descriptor multi_modem;
+static struct usb_string_descriptor multi_eth_mac;
+static struct usb_string_descriptor multi_eth_control;
+static struct usb_string_descriptor multi_eth_data;
+static struct usb_string_descriptor multi_storage;
+static struct usb_string_descriptor multi_configuration;
+static struct usb_string_descriptor multi_manufacturer;
+static struct usb_string_descriptor multi_product;
+static struct usb_string_descriptor multi_serial_number;
 
-static struct sysctl_ctx_list		multi_ctx_list;
+static struct sysctl_ctx_list multi_ctx_list;
 
 /* prototypes */
 
@@ -125,8 +124,8 @@ static const struct usb_cdc_union_descriptor eth_union_desc = {
 	.bLength = sizeof(eth_union_desc),
 	.bDescriptorType = UDESC_CS_INTERFACE,
 	.bDescriptorSubtype = UDESCSUB_CDC_UNION,
-	.bMasterInterface = 0,		/* this is automatically updated */
-	.bSlaveInterface[0] = 1,	/* this is automatically updated */
+	.bMasterInterface = 0,	 /* this is automatically updated */
+	.bSlaveInterface[0] = 1, /* this is automatically updated */
 };
 
 static const struct usb_cdc_header_descriptor eth_header_desc = {
@@ -142,9 +141,9 @@ static const struct usb_cdc_ethernet_descriptor eth_enf_desc = {
 	.bDescriptorType = UDESC_CS_INTERFACE,
 	.bDescriptorSubtype = UDESCSUB_CDC_ENF,
 	.iMacAddress = MULTI_ETH_MAC_INDEX,
-	.bmEthernetStatistics = {0, 0, 0, 0},
-	.wMaxSegmentSize = {0xEA, 0x05},/* 1514 bytes */
-	.wNumberMCFilters = {0, 0},
+	.bmEthernetStatistics = { 0, 0, 0, 0 },
+	.wMaxSegmentSize = { 0xEA, 0x05 }, /* 1514 bytes */
+	.wNumberMCFilters = { 0, 0 },
 	.bNumberPowerFilters = 0,
 };
 
@@ -212,7 +211,7 @@ static const struct usb_temp_endpoint_desc *eth_data_endpoints[] = {
 };
 
 static const struct usb_temp_interface_desc eth_data_null_interface = {
-	.ppEndpoints = NULL,		/* no endpoints */
+	.ppEndpoints = NULL, /* no endpoints */
 	.bInterfaceClass = UICLASS_CDC_DATA,
 	.bInterfaceSubClass = UISUBCLASS_DATA,
 	.bInterfaceProtocol = 0,
@@ -225,7 +224,7 @@ static const struct usb_temp_interface_desc eth_data_interface = {
 	.bInterfaceSubClass = UISUBCLASS_DATA,
 	.bInterfaceProtocol = 0,
 	.iInterface = MULTI_ETH_DATA_INDEX,
-	.isAltInterface = 1,		/* this is an alternate setting */
+	.isAltInterface = 1, /* this is an alternate setting */
 };
 
 static const struct usb_temp_packet_size modem_bulk_mps = {
@@ -242,8 +241,8 @@ static const struct usb_temp_packet_size modem_intr_mps = {
 
 static const struct usb_temp_interval modem_intr_interval = {
 	.bInterval[USB_SPEED_LOW] = 8,	/* 8ms */
-	.bInterval[USB_SPEED_FULL] = 8,	/* 8ms */
-	.bInterval[USB_SPEED_HIGH] = 7,	/* 8ms */
+	.bInterval[USB_SPEED_FULL] = 8, /* 8ms */
+	.bInterval[USB_SPEED_HIGH] = 7, /* 8ms */
 };
 
 static const struct usb_temp_endpoint_desc modem_ep_0 = {
@@ -276,21 +275,15 @@ static const struct usb_temp_endpoint_desc *modem_iface_1_ep[] = {
 	NULL,
 };
 
-static const uint8_t modem_raw_desc_0[] = {
-	0x05, 0x24, 0x00, 0x10, 0x01
-};
+static const uint8_t modem_raw_desc_0[] = { 0x05, 0x24, 0x00, 0x10, 0x01 };
 
-static const uint8_t modem_raw_desc_1[] = {
-	0x05, 0x24, 0x06, MODEM_IFACE_0, MODEM_IFACE_1
-};
+static const uint8_t modem_raw_desc_1[] = { 0x05, 0x24, 0x06, MODEM_IFACE_0,
+	MODEM_IFACE_1 };
 
-static const uint8_t modem_raw_desc_2[] = {
-	0x05, 0x24, 0x01, 0x03, MODEM_IFACE_1
-};
+static const uint8_t modem_raw_desc_2[] = { 0x05, 0x24, 0x01, 0x03,
+	MODEM_IFACE_1 };
 
-static const uint8_t modem_raw_desc_3[] = {
-	0x04, 0x24, 0x02, 0x07
-};
+static const uint8_t modem_raw_desc_3[] = { 0x04, 0x24, 0x02, 0x07 };
 
 static const void *modem_iface_0_desc[] = {
 	&modem_raw_desc_0,
@@ -455,19 +448,19 @@ multi_init(void *arg __unused)
 	sysctl_ctx_init(&multi_ctx_list);
 
 	parent = SYSCTL_ADD_NODE(&multi_ctx_list,
-	    SYSCTL_STATIC_CHILDREN(_hw_usb_templates), OID_AUTO,
-	    parent_name, CTLFLAG_RW | CTLFLAG_MPSAFE,
-	    0, "USB Multifunction device side template");
+	    SYSCTL_STATIC_CHILDREN(_hw_usb_templates), OID_AUTO, parent_name,
+	    CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
+	    "USB Multifunction device side template");
 	SYSCTL_ADD_U16(&multi_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
-	    "vendor_id", CTLFLAG_RWTUN,
-	    &usb_template_multi.idVendor, 1, "Vendor identifier");
+	    "vendor_id", CTLFLAG_RWTUN, &usb_template_multi.idVendor, 1,
+	    "Vendor identifier");
 	SYSCTL_ADD_U16(&multi_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
-	    "product_id", CTLFLAG_RWTUN,
-	    &usb_template_multi.idProduct, 1, "Product identifier");
+	    "product_id", CTLFLAG_RWTUN, &usb_template_multi.idProduct, 1,
+	    "Product identifier");
 	SYSCTL_ADD_PROC(&multi_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
 	    "eth_mac", CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    &multi_eth_mac, sizeof(multi_eth_mac), usb_temp_sysctl,
-	    "A", "Ethernet MAC address string");
+	    &multi_eth_mac, sizeof(multi_eth_mac), usb_temp_sysctl, "A",
+	    "Ethernet MAC address string");
 #if 0
 	SYSCTL_ADD_PROC(&multi_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
 	    "modem", CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
@@ -496,8 +489,8 @@ multi_init(void *arg __unused)
 	    "A", "Manufacturer string");
 	SYSCTL_ADD_PROC(&multi_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
 	    "product", CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    &multi_product, sizeof(multi_product), usb_temp_sysctl,
-	    "A", "Product string");
+	    &multi_product, sizeof(multi_product), usb_temp_sysctl, "A",
+	    "Product string");
 	SYSCTL_ADD_PROC(&multi_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
 	    "serial_number", CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
 	    &multi_serial_number, sizeof(multi_serial_number), usb_temp_sysctl,

@@ -42,41 +42,42 @@ typedef void virtqueue_intr_t(void *);
 typedef enum {
 	VQ_POSTPONE_SHORT,
 	VQ_POSTPONE_LONG,
-	VQ_POSTPONE_EMPTIED	/* Until all available desc are used. */
+	VQ_POSTPONE_EMPTIED /* Until all available desc are used. */
 } vq_postpone_t;
 
-#define VIRTQUEUE_MAX_NAME_SZ	32
+#define VIRTQUEUE_MAX_NAME_SZ 32
 
 /* One for each virtqueue the device wishes to allocate. */
 struct vq_alloc_info {
-	char		   vqai_name[VIRTQUEUE_MAX_NAME_SZ];
-	int		   vqai_maxindirsz;
-	virtqueue_intr_t  *vqai_intr;
-	void		  *vqai_intr_arg;
+	char vqai_name[VIRTQUEUE_MAX_NAME_SZ];
+	int vqai_maxindirsz;
+	virtqueue_intr_t *vqai_intr;
+	void *vqai_intr_arg;
 	struct virtqueue **vqai_vq;
 };
 
-#define VQ_ALLOC_INFO_INIT(_i,_nsegs,_intr,_arg,_vqp,_str,...) do {	\
-	snprintf((_i)->vqai_name, VIRTQUEUE_MAX_NAME_SZ, _str,		\
-	    ##__VA_ARGS__);						\
-	(_i)->vqai_maxindirsz = (_nsegs);				\
-	(_i)->vqai_intr = (_intr);					\
-	(_i)->vqai_intr_arg = (_arg);					\
-	(_i)->vqai_vq = (_vqp);						\
-} while (0)
+#define VQ_ALLOC_INFO_INIT(_i, _nsegs, _intr, _arg, _vqp, _str, ...)   \
+	do {                                                           \
+		snprintf((_i)->vqai_name, VIRTQUEUE_MAX_NAME_SZ, _str, \
+		    ##__VA_ARGS__);                                    \
+		(_i)->vqai_maxindirsz = (_nsegs);                      \
+		(_i)->vqai_intr = (_intr);                             \
+		(_i)->vqai_intr_arg = (_arg);                          \
+		(_i)->vqai_vq = (_vqp);                                \
+	} while (0)
 
-int	 virtqueue_alloc(device_t dev, uint16_t queue, uint16_t size,
-	     bus_size_t notify_offset, int align, vm_paddr_t highaddr,
-	     struct vq_alloc_info *info, struct virtqueue **vqp);
-void	*virtqueue_drain(struct virtqueue *vq, int *last);
-void	 virtqueue_free(struct virtqueue *vq);
-int	 virtqueue_reinit(struct virtqueue *vq, uint16_t size);
+int virtqueue_alloc(device_t dev, uint16_t queue, uint16_t size,
+    bus_size_t notify_offset, int align, vm_paddr_t highaddr,
+    struct vq_alloc_info *info, struct virtqueue **vqp);
+void *virtqueue_drain(struct virtqueue *vq, int *last);
+void virtqueue_free(struct virtqueue *vq);
+int virtqueue_reinit(struct virtqueue *vq, uint16_t size);
 
-int	 virtqueue_intr_filter(struct virtqueue *vq);
-void	 virtqueue_intr(struct virtqueue *vq);
-int	 virtqueue_enable_intr(struct virtqueue *vq);
-int	 virtqueue_postpone_intr(struct virtqueue *vq, vq_postpone_t hint);
-void	 virtqueue_disable_intr(struct virtqueue *vq);
+int virtqueue_intr_filter(struct virtqueue *vq);
+void virtqueue_intr(struct virtqueue *vq);
+int virtqueue_enable_intr(struct virtqueue *vq);
+int virtqueue_postpone_intr(struct virtqueue *vq, vq_postpone_t hint);
+void virtqueue_disable_intr(struct virtqueue *vq);
 
 /* Get physical address of the virtqueue ring. */
 vm_paddr_t virtqueue_paddr(struct virtqueue *vq);
@@ -85,17 +86,17 @@ vm_paddr_t virtqueue_avail_paddr(struct virtqueue *vq);
 vm_paddr_t virtqueue_used_paddr(struct virtqueue *vq);
 
 uint16_t virtqueue_index(struct virtqueue *vq);
-bool	 virtqueue_full(struct virtqueue *vq);
-bool	 virtqueue_empty(struct virtqueue *vq);
-int	 virtqueue_size(struct virtqueue *vq);
-int	 virtqueue_nfree(struct virtqueue *vq);
-int	 virtqueue_nused(struct virtqueue *vq);
-void	 virtqueue_notify(struct virtqueue *vq);
-void	 virtqueue_dump(struct virtqueue *vq);
+bool virtqueue_full(struct virtqueue *vq);
+bool virtqueue_empty(struct virtqueue *vq);
+int virtqueue_size(struct virtqueue *vq);
+int virtqueue_nfree(struct virtqueue *vq);
+int virtqueue_nused(struct virtqueue *vq);
+void virtqueue_notify(struct virtqueue *vq);
+void virtqueue_dump(struct virtqueue *vq);
 
-int	 virtqueue_enqueue(struct virtqueue *vq, void *cookie,
-	     struct sglist *sg, int readable, int writable);
-void	*virtqueue_dequeue(struct virtqueue *vq, uint32_t *len);
-void	*virtqueue_poll(struct virtqueue *vq, uint32_t *len);
+int virtqueue_enqueue(struct virtqueue *vq, void *cookie, struct sglist *sg,
+    int readable, int writable);
+void *virtqueue_dequeue(struct virtqueue *vq, uint32_t *len);
+void *virtqueue_poll(struct virtqueue *vq, uint32_t *len);
 
 #endif /* _VIRTIO_VIRTQUEUE_H */

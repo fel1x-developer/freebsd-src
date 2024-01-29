@@ -32,21 +32,20 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
+#include <sys/bus.h>
 #include <sys/endian.h>
 #include <sys/errno.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/syslog.h>
-#include <sys/bus.h>
 
-#include <machine/bus.h>
 #include <machine/atomic.h>
+#include <machine/bus.h>
 
-#include <dev/pci/pcivar.h>
 #include <dev/pci/pcireg.h>
-
+#include <dev/pci/pcivar.h>
 #include <dev/smbus/smbconf.h>
 
 #include "smbus_if.h"
@@ -94,9 +93,9 @@ struct imcsmb_reg_set {
  */
 struct imcsmb_softc {
 	device_t dev;
-	device_t imcsmb_pci;	/* The SMBus controller's parent iMC */
-	device_t smbus;		/* The child smbusX interface */
-	struct imcsmb_reg_set *regs;	/* The registers this controller uses */
+	device_t imcsmb_pci;	     /* The SMBus controller's parent iMC */
+	device_t smbus;		     /* The child smbusX interface */
+	struct imcsmb_reg_set *regs; /* The registers this controller uses */
 };
 
 #endif /* _DEV__IMCSMB__IMCSMB_VAR_H_ */

@@ -85,6 +85,6 @@ struct ioat_test {
 	volatile bool too_late;
 };
 
-#define	IOAT_DMATEST	_IOWR('i', 0, struct ioat_test)
+#define IOAT_DMATEST _IOWR('i', 0, struct ioat_test)
 
 #endif /* __IOAT_TEST_H__ */

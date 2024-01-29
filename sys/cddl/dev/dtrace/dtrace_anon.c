@@ -65,7 +65,7 @@ dtrace_anon_init(void *dummy)
 		mutex_enter(&dtrace_lock);
 
 		if ((enab = dtrace_anon.dta_enabling) != NULL)
-			(void) dtrace_enabling_match(enab, NULL);
+			(void)dtrace_enabling_match(enab, NULL);
 
 		mutex_exit(&cpu_lock);
 	}
@@ -77,6 +77,6 @@ dtrace_anon_init(void *dummy)
 		/*
 		 * If we created any anonymous state, set it going now.
 		 */
-		(void) dtrace_state_go(state, &dtrace_anon.dta_beganon);
+		(void)dtrace_state_go(state, &dtrace_anon.dta_beganon);
 	}
 }

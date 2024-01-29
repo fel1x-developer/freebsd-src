@@ -42,16 +42,16 @@
 
 #include "grep.h"
 
-typedef struct str		qentry_t;
+typedef struct str qentry_t;
 
-static long long		filled;
-static qentry_t			*qend, *qpool;
+static long long filled;
+static qentry_t *qend, *qpool;
 
 /*
  * qnext is the next entry to populate.  qlist is where the list actually
  * starts, for the purposes of printing.
  */
-static qentry_t		*qlist, *qnext;
+static qentry_t *qlist, *qnext;
 
 void
 initqueue(void)

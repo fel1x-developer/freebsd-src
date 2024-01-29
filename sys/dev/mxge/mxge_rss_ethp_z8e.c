@@ -3,12 +3,13 @@
  */
 
 #include <sys/param.h>
-#include <sys/errno.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/linker.h>
-#include <sys/firmware.h>
 #include <sys/systm.h>
+#include <sys/errno.h>
+#include <sys/firmware.h>
+#include <sys/kernel.h>
+#include <sys/linker.h>
+#include <sys/module.h>
+
 #include <dev/mxge/rss_ethp_z8e.h>
 
 static int
@@ -19,9 +20,9 @@ mxge_rss_ethp_z8e_fw_modevent(module_t mod, int type, void *unused)
 	switch (type) {
 	case MOD_LOAD:
 
-		fp = firmware_register("mxge_rss_ethp_z8e", rss_ethp_z8e, 
-				       (size_t)rss_ethp_z8e_length,
-				       rss_ethp_z8e_uncompressed_length, NULL);
+		fp = firmware_register("mxge_rss_ethp_z8e", rss_ethp_z8e,
+		    (size_t)rss_ethp_z8e_length,
+		    rss_ethp_z8e_uncompressed_length, NULL);
 		if (fp == NULL)
 			goto fail_0;
 		return (0);
@@ -34,11 +35,9 @@ mxge_rss_ethp_z8e_fw_modevent(module_t mod, int type, void *unused)
 	return (EINVAL);
 }
 
-static moduledata_t mxge_rss_ethp_z8e_fw_mod = {
-        "mxge_rss_ethp_z8e_fw",
-        mxge_rss_ethp_z8e_fw_modevent,
-        0
-};
-DECLARE_MODULE(mxge_rss_ethp_z8e_fw, mxge_rss_ethp_z8e_fw_mod, SI_SUB_DRIVERS, SI_ORDER_FIRST);
+static moduledata_t mxge_rss_ethp_z8e_fw_mod = { "mxge_rss_ethp_z8e_fw",
+	mxge_rss_ethp_z8e_fw_modevent, 0 };
+DECLARE_MODULE(mxge_rss_ethp_z8e_fw, mxge_rss_ethp_z8e_fw_mod, SI_SUB_DRIVERS,
+    SI_ORDER_FIRST);
 MODULE_VERSION(mxge_rss_ethp_z8e_fw, 1);
 MODULE_DEPEND(mxge_rss_ethp_z8e_fw, firmware, 1, 1, 1);

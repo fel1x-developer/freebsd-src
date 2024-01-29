@@ -24,15 +24,16 @@ This code is based on crashme.c
 */
 
 #include <sys/types.h>
-#include <sys/mman.h>
 #include <sys/param.h>
+#include <sys/mman.h>
 #include <sys/resource.h>
 #include <sys/time.h>
+#include <sys/wait.h>
+
 #include <err.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/wait.h>
 #include <unistd.h>
 
 #include "stress.h"
@@ -41,7 +42,8 @@ static pid_t pid;
 static int failsafe;
 
 static int
-tobemangled(void) {
+tobemangled(void)
+{
 	volatile int i, j;
 
 	j = 2;
@@ -53,7 +55,8 @@ tobemangled(void) {
 }
 
 static void
-mangle(void) {	/* Change one byte in the code */
+mangle(void)
+{ /* Change one byte in the code */
 	int i;
 	char *p = (void *)tobemangled;
 
@@ -62,12 +65,14 @@ mangle(void) {	/* Change one byte in the code */
 }
 
 static void
-hand(int i __unused) {	/* handler */
+hand(int i __unused)
+{ /* handler */
 	_exit(1);
 }
 
 static void
-ahand(int i __unused) {	/* alarm handler */
+ahand(int i __unused)
+{ /* alarm handler */
 	if (pid != 0) {
 		kill(pid, SIGKILL);
 	}
@@ -102,17 +107,17 @@ test(void)
 			if (setrlimit(RLIMIT_CORE, &rl) == -1)
 				warn("setrlimit");
 			st = (void *)trunc_page((unsigned long)tobemangled);
-			if (mprotect(st, PAGE_SIZE, PROT_WRITE | PROT_READ |
-			    PROT_EXEC) == -1)
+			if (mprotect(st, PAGE_SIZE,
+				PROT_WRITE | PROT_READ | PROT_EXEC) == -1)
 				err(1, "mprotect()");
 
 			signal(SIGALRM, hand);
-			signal(SIGILL,  hand);
-			signal(SIGFPE,  hand);
+			signal(SIGILL, hand);
+			signal(SIGFPE, hand);
 			signal(SIGSEGV, hand);
-			signal(SIGBUS,  hand);
-			signal(SIGURG,  hand);
-			signal(SIGSYS,  hand);
+			signal(SIGBUS, hand);
+			signal(SIGURG, hand);
+			signal(SIGSYS, hand);
 			signal(SIGTRAP, hand);
 
 			mangle();
@@ -126,7 +131,7 @@ test(void)
 				warn("waitpid(%d)", pid);
 			alarm(0);
 		} else
-			err(1, "fork(), %s:%d",  __FILE__, __LINE__);
+			err(1, "fork(), %s:%d", __FILE__, __LINE__);
 	}
 
 	return (0);

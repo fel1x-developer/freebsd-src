@@ -28,16 +28,15 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-
 #include <sys/bus.h>
-#include <sys/interrupt.h>
-#include <sys/malloc.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/rman.h>
 #include <sys/gpio.h>
+#include <sys/interrupt.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/rman.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
@@ -48,13 +47,11 @@
 
 #include <dev/fdt/fdt_common.h>
 #include <dev/fdt/fdt_pinctrl.h>
-
 #include <dev/gpio/gpiobusvar.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/qcom_tcsr/qcom_tcsr_var.h>
 #include <dev/qcom_tcsr/qcom_tcsr_reg.h>
+#include <dev/qcom_tcsr/qcom_tcsr_var.h>
 
 /*
  * The linux-msm branches that support IPQ4018 use "ipq,tcsr".
@@ -66,11 +63,8 @@
  * but with the same driver/naming here.  Let's hope that doesn't
  * happen.
  */
-static struct ofw_compat_data compat_data[] = {
-	{ "qcom,tcsr",			1 },
-	{ "ipq,tcsr",			1 },
-	{ NULL,				0 }
-};
+static struct ofw_compat_data compat_data[] = { { "qcom,tcsr", 1 },
+	{ "ipq,tcsr", 1 }, { NULL, 0 } };
 
 static int
 qcom_tcsr_probe(device_t dev)
@@ -98,8 +92,7 @@ qcom_tcsr_attach(device_t dev)
 	/*
 	 * Hardware version is stored in the ofw_compat_data table.
 	 */
-	sc->hw_version =
-	    ofw_bus_search_compatible(dev, compat_data)->ocd_data;
+	sc->hw_version = ofw_bus_search_compatible(dev, compat_data)->ocd_data;
 
 	mtx_init(&sc->sc_mtx, device_get_nameunit(dev), NULL, MTX_DEF);
 
@@ -124,12 +117,11 @@ qcom_tcsr_attach(device_t dev)
 	 * to make the change.  OpenWRT just does a register write.
 	 * We'll do the register write for now.
 	 */
-	if (OF_getencprop(ofw_bus_get_node(dev), "qcom,usb-ctrl-select",
-	    &val, sizeof(val)) > 0) {
+	if (OF_getencprop(ofw_bus_get_node(dev), "qcom,usb-ctrl-select", &val,
+		sizeof(val)) > 0) {
 		if (bootverbose)
 			device_printf(sc->sc_dev,
-			    "USB control select (val 0x%x)\n",
-			    val);
+			    "USB control select (val 0x%x)\n", val);
 		QCOM_TCSR_WRITE_4(sc, QCOM_TCSR_USB_PORT_SEL, val);
 	}
 
@@ -137,11 +129,10 @@ qcom_tcsr_attach(device_t dev)
 	 * USB high speed phy mode select.
 	 */
 	if (OF_getencprop(ofw_bus_get_node(dev), "qcom,usb-hsphy-mode-select",
-	    &val, sizeof(val)) > 0) {
+		&val, sizeof(val)) > 0) {
 		if (bootverbose)
 			device_printf(sc->sc_dev,
-			    "USB high speed PHY mode select (val 0x%x)\n",
-			    val);
+			    "USB high speed PHY mode select (val 0x%x)\n", val);
 		QCOM_TCSR_WRITE_4(sc, QCOM_TCSR_USB_HSPHY_CONFIG, val);
 	}
 
@@ -149,13 +140,12 @@ qcom_tcsr_attach(device_t dev)
 	 * Ethernet switch subsystem interface type select.
 	 */
 	if (OF_getencprop(ofw_bus_get_node(dev), "qcom,ess-interface-select",
-	    &val, sizeof(val)) > 0) {
+		&val, sizeof(val)) > 0) {
 		uint32_t reg;
 
 		if (bootverbose)
 			device_printf(sc->sc_dev,
-			    "ESS external interface select (val 0x%x)\n",
-			    val);
+			    "ESS external interface select (val 0x%x)\n", val);
 		reg = QCOM_TCSR_READ_4(sc, QCOM_TCSR_ESS_INTERFACE_SEL_OFFSET);
 		reg &= ~QCOM_TCSR_ESS_INTERFACE_SEL_MASK;
 		reg |= (val & QCOM_TCSR_ESS_INTERFACE_SEL_MASK);
@@ -165,12 +155,11 @@ qcom_tcsr_attach(device_t dev)
 	/*
 	 * WiFi GLB select.
 	 */
-	if (OF_getencprop(ofw_bus_get_node(dev), "qcom,wifi_glb_cfg",
-	    &val, sizeof(val)) > 0) {
+	if (OF_getencprop(ofw_bus_get_node(dev), "qcom,wifi_glb_cfg", &val,
+		sizeof(val)) > 0) {
 		if (bootverbose)
 			device_printf(sc->sc_dev,
-			    "WIFI GLB select (val 0x%x)\n",
-			    val);
+			    "WIFI GLB select (val 0x%x)\n", val);
 		QCOM_TCSR_WRITE_4(sc, QCOM_TCSR_WIFI0_GLB_CFG_OFFSET, val);
 		QCOM_TCSR_WRITE_4(sc, QCOM_TCSR_WIFI1_GLB_CFG_OFFSET, val);
 	}
@@ -178,13 +167,11 @@ qcom_tcsr_attach(device_t dev)
 	/*
 	 * WiFi NOC interconnect memory type.
 	 */
-	if (OF_getencprop(ofw_bus_get_node(dev),
-	    "qcom,wifi_noc_memtype_m0_m2",
-	    &val, sizeof(val)) > 0) {
+	if (OF_getencprop(ofw_bus_get_node(dev), "qcom,wifi_noc_memtype_m0_m2",
+		&val, sizeof(val)) > 0) {
 		if (bootverbose)
 			device_printf(sc->sc_dev,
-			    "WiFi NOC memory type (val 0x%x)\n",
-			    val);
+			    "WiFi NOC memory type (val 0x%x)\n", val);
 		QCOM_TCSR_WRITE_4(sc, QCOM_TCSR_PNOC_SNOC_MEMTYPE_M0_M2, val);
 	}
 
@@ -212,9 +199,9 @@ qcom_tcsr_detach(device_t dev)
 
 static device_method_t qcom_tcsr_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		qcom_tcsr_probe),
-	DEVMETHOD(device_attach,	qcom_tcsr_attach),
-	DEVMETHOD(device_detach,	qcom_tcsr_detach),
+	DEVMETHOD(device_probe, qcom_tcsr_probe),
+	DEVMETHOD(device_attach, qcom_tcsr_attach),
+	DEVMETHOD(device_detach, qcom_tcsr_detach),
 
 	DEVMETHOD_END
 };

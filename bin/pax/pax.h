@@ -37,35 +37,35 @@
  * BSD PAX global data structures and constants.
  */
 
-#define	MAXBLK		64512	/* MAX blocksize supported (posix SPEC) */
-				/* WARNING: increasing MAXBLK past 32256 */
-				/* will violate posix spec. */
-#define	MAXBLK_POSIX	32256	/* MAX blocksize supported as per POSIX */
-#define BLKMULT		512	/* blocksize must be even mult of 512 bytes */
-				/* Don't even think of changing this */
-#define DEVBLK		8192	/* default read blksize for devices */
-#define FILEBLK		10240	/* default read blksize for files */
-#define PAXPATHLEN	3072	/* maximum path length for pax. MUST be */
-				/* longer than the system PATH_MAX */
+#define MAXBLK 64512	   /* MAX blocksize supported (posix SPEC) */
+			   /* WARNING: increasing MAXBLK past 32256 */
+			   /* will violate posix spec. */
+#define MAXBLK_POSIX 32256 /* MAX blocksize supported as per POSIX */
+#define BLKMULT 512	   /* blocksize must be even mult of 512 bytes */
+			   /* Don't even think of changing this */
+#define DEVBLK 8192	   /* default read blksize for devices */
+#define FILEBLK 10240	   /* default read blksize for files */
+#define PAXPATHLEN 3072	   /* maximum path length for pax. MUST be */
+			   /* longer than the system PATH_MAX */
 
 /*
  * Pax modes of operation
  */
-#define	LIST		0	/* List the file in an archive */
-#define	EXTRACT		1	/* extract the files in an archive */
-#define ARCHIVE		2	/* write a new archive */
-#define APPND		3	/* append to the end of an archive */
-#define	COPY		4	/* copy files to destination dir */
-#define DEFOP		LIST	/* if no flags default is to LIST */
+#define LIST 0	   /* List the file in an archive */
+#define EXTRACT 1  /* extract the files in an archive */
+#define ARCHIVE 2  /* write a new archive */
+#define APPND 3	   /* append to the end of an archive */
+#define COPY 4	   /* copy files to destination dir */
+#define DEFOP LIST /* if no flags default is to LIST */
 
 /*
  * Device type of the current archive volume
  */
-#define ISREG		0	/* regular file */
-#define ISCHR		1	/* character device */
-#define ISBLK		2	/* block device */
-#define ISTAPE		3	/* tape drive */
-#define ISPIPE		4	/* pipe/socket */
+#define ISREG 0	 /* regular file */
+#define ISCHR 1	 /* character device */
+#define ISBLK 2	 /* block device */
+#define ISTAPE 3 /* tape drive */
+#define ISPIPE 4 /* pipe/socket */
 
 typedef struct archd ARCHD;
 typedef struct fsub FSUB;
@@ -108,55 +108,55 @@ struct fsub {
 	int inhead;		/* is the trailer encoded in a valid header? */
 				/* if not, trailers are assumed to be found */
 				/* in invalid headers (i.e like tar) */
-	int (*id)(char *, int);	/* checks if a buffer is a valid header */
+	int (*id)(char *, int); /* checks if a buffer is a valid header */
 				/* returns 1 if it is, o.w. returns a 0 */
 	int (*st_rd)(void);	/* initialize routine for read. so format */
 				/* can set up tables etc before it starts */
 				/* reading an archive */
 	int (*rd)(ARCHD *, char *);
-				/* read header routine. passed a pointer to */
-				/* ARCHD. It must extract the info from the */
-				/* format and store it in the ARCHD struct. */
-				/* This routine is expected to fill all the */
-				/* fields in the ARCHD (including stat buf) */
-				/* 0 is returned when a valid header is */
-				/* found. -1 when not valid. This routine */
-				/* set the skip and pad fields so the format */
-				/* independent routines know the amount of */
-				/* padding and the number of bytes of data */
-				/* which follow the header. This info is */
-				/* used skip to the next file header */
-	off_t (*end_rd)(void);	/* read cleanup. Allows format to clean up */
-				/* and MUST RETURN THE LENGTH OF THE TRAILER */
-				/* RECORD (so append knows how many bytes */
-				/* to move back to rewrite the trailer) */
-	int (*st_wr)(void);	/* initialize routine for write operations */
-	int (*wr)(ARCHD *);	/* write archive header. Passed an ARCHD */
-				/* filled with the specs on the next file to */
-				/* archived. Returns a 1 if no file data is */
-				/* is to be stored; 0 if file data is to be */
-				/* added. A -1 is returned if a write */
-				/* operation to the archive failed. this */
-				/* function sets the skip and pad fields so */
-				/* the proper padding can be added after */
-				/* file data. This routine must NEVER write */
-				/* a flawed archive header. */
-	int (*end_wr)(void);	/* end write. write the trailer and do any */
-				/* other format specific functions needed */
-				/* at the end of an archive write */
+	/* read header routine. passed a pointer to */
+	/* ARCHD. It must extract the info from the */
+	/* format and store it in the ARCHD struct. */
+	/* This routine is expected to fill all the */
+	/* fields in the ARCHD (including stat buf) */
+	/* 0 is returned when a valid header is */
+	/* found. -1 when not valid. This routine */
+	/* set the skip and pad fields so the format */
+	/* independent routines know the amount of */
+	/* padding and the number of bytes of data */
+	/* which follow the header. This info is */
+	/* used skip to the next file header */
+	off_t (*end_rd)(void); /* read cleanup. Allows format to clean up */
+			       /* and MUST RETURN THE LENGTH OF THE TRAILER */
+			       /* RECORD (so append knows how many bytes */
+			       /* to move back to rewrite the trailer) */
+	int (*st_wr)(void);    /* initialize routine for write operations */
+	int (*wr)(ARCHD *);    /* write archive header. Passed an ARCHD */
+			       /* filled with the specs on the next file to */
+			       /* archived. Returns a 1 if no file data is */
+			       /* is to be stored; 0 if file data is to be */
+			       /* added. A -1 is returned if a write */
+			       /* operation to the archive failed. this */
+			       /* function sets the skip and pad fields so */
+			       /* the proper padding can be added after */
+			       /* file data. This routine must NEVER write */
+			       /* a flawed archive header. */
+	int (*end_wr)(void);   /* end write. write the trailer and do any */
+			       /* other format specific functions needed */
+			       /* at the end of an archive write */
 	int (*trail_cpio)(ARCHD *);
 	int (*trail_tar)(char *, int, int *);
-				/* returns 0 if a valid trailer, -1 if not */
-				/* For formats which encode the trailer */
-				/* outside of a valid header, a return value */
-				/* of 1 indicates that the block passed to */
-				/* it can never contain a valid header (skip */
-				/* this block, no point in looking at it)  */
+	/* returns 0 if a valid trailer, -1 if not */
+	/* For formats which encode the trailer */
+	/* outside of a valid header, a return value */
+	/* of 1 indicates that the block passed to */
+	/* it can never contain a valid header (skip */
+	/* this block, no point in looking at it)  */
 	int (*rd_data)(ARCHD *, int, off_t *);
-				/* read/process file data from the archive */
+	/* read/process file data from the archive */
 	int (*wr_data)(ARCHD *, int, off_t *);
-				/* write/process file data to the archive */
-	int (*options)(void);	/* process format specific options (-o) */
+	/* write/process file data to the archive */
+	int (*options)(void); /* process format specific options (-o) */
 };
 
 /*
@@ -165,14 +165,14 @@ struct fsub {
  * Used to store command line patterns
  */
 struct pattern {
-	char		*pstr;		/* pattern to match, user supplied */
-	char		*pend;		/* end of a prefix match */
-	char		*chdname;	/* the dir to change to if not NULL.  */
-	int		plen;		/* length of pstr */
-	int		flgs;		/* processing/state flags */
-#define MTCH		0x1		/* pattern has been matched */
-#define DIR_MTCH	0x2		/* pattern matched a directory */
-	struct pattern	*fow;		/* next pattern */
+	char *pstr;	     /* pattern to match, user supplied */
+	char *pend;	     /* end of a prefix match */
+	char *chdname;	     /* the dir to change to if not NULL.  */
+	int plen;	     /* length of pstr */
+	int flgs;	     /* processing/state flags */
+#define MTCH 0x1	     /* pattern has been matched */
+#define DIR_MTCH 0x2	     /* pattern matched a directory */
+	struct pattern *fow; /* next pattern */
 };
 
 /*
@@ -188,30 +188,30 @@ struct pattern {
  * restrictions on the length of pathnames it will resolve.
  */
 struct archd {
-	int nlen;			/* file name length */
-	char name[PAXPATHLEN+1];	/* file name */
-	int ln_nlen;			/* link name length */
-	char ln_name[PAXPATHLEN+1];	/* name to link to (if any) */
-	char *org_name;			/* orig name in file system */
-	PATTERN *pat;			/* ptr to pattern match (if any) */
-	struct stat sb;			/* stat buffer see stat(2) */
-	off_t pad;			/* bytes of padding after file xfer */
-	off_t skip;			/* bytes of real data after header */
-					/* IMPORTANT. The st_size field does */
-					/* not always indicate the amount of */
-					/* data following the header. */
-	u_long crc;			/* file crc */
-	int type;			/* type of file node */
-#define PAX_DIR		1		/* directory */
-#define PAX_CHR		2		/* character device */
-#define PAX_BLK		3		/* block device */
-#define PAX_REG		4		/* regular file */
-#define PAX_SLK		5		/* symbolic link */
-#define PAX_SCK		6		/* socket */
-#define PAX_FIF		7		/* fifo */
-#define PAX_HLK		8		/* hard link */
-#define PAX_HRG		9		/* hard link to a regular file */
-#define PAX_CTG		10		/* high performance file */
+	int nlen;		      /* file name length */
+	char name[PAXPATHLEN + 1];    /* file name */
+	int ln_nlen;		      /* link name length */
+	char ln_name[PAXPATHLEN + 1]; /* name to link to (if any) */
+	char *org_name;		      /* orig name in file system */
+	PATTERN *pat;		      /* ptr to pattern match (if any) */
+	struct stat sb;		      /* stat buffer see stat(2) */
+	off_t pad;		      /* bytes of padding after file xfer */
+	off_t skip;		      /* bytes of real data after header */
+				      /* IMPORTANT. The st_size field does */
+				      /* not always indicate the amount of */
+				      /* data following the header. */
+	u_long crc;		      /* file crc */
+	int type;		      /* type of file node */
+#define PAX_DIR 1		      /* directory */
+#define PAX_CHR 2		      /* character device */
+#define PAX_BLK 3		      /* block device */
+#define PAX_REG 4		      /* regular file */
+#define PAX_SLK 5		      /* symbolic link */
+#define PAX_SCK 6		      /* socket */
+#define PAX_FIF 7		      /* fifo */
+#define PAX_HLK 8		      /* hard link */
+#define PAX_HRG 9		      /* hard link to a regular file */
+#define PAX_CTG 10		      /* high performance file */
 };
 
 /*
@@ -220,25 +220,25 @@ struct archd {
  * Used to pass format options to the format options handler
  */
 struct oplist {
-	char		*name;		/* option variable name e.g. name= */
-	char		*value;		/* value for option variable */
-	struct oplist	*fow;		/* next option */
+	char *name;	    /* option variable name e.g. name= */
+	char *value;	    /* value for option variable */
+	struct oplist *fow; /* next option */
 };
 
 /*
  * General Macros
  */
 #ifndef MIN
-#define	       MIN(a,b) (((a)<(b))?(a):(b))
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
-#define MAJOR(x)	major(x)
-#define MINOR(x)	minor(x)
-#define TODEV(x, y)	makedev((x), (y))
+#define MAJOR(x) major(x)
+#define MINOR(x) minor(x)
+#define TODEV(x, y) makedev((x), (y))
 
 /*
  * General Defines
  */
-#define HEX		16
-#define OCT		8
-#define _PAX_		1
-#define _TFILE_BASE	"paxXXXXXXXXXX"
+#define HEX 16
+#define OCT 8
+#define _PAX_ 1
+#define _TFILE_BASE "paxXXXXXXXXXX"

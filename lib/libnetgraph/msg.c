@@ -3,7 +3,7 @@
  *
  * Copyright (c) 1996-1999 Whistle Communications, Inc.
  * All rights reserved.
- * 
+ *
  * Subject to the following obligations and disclaimer of warranty, use and
  * redistribution of this software, in source or object code forms, with or
  * without modifications are expressly permitted by Whistle Communications;
@@ -14,7 +14,7 @@
  *    Communications, Inc. trademarks, including the mark "WHISTLE
  *    COMMUNICATIONS" on advertising, endorsements, or otherwise except as
  *    such appears in the above copyright notice or in the software.
- * 
+ *
  * THIS SOFTWARE IS BEING PROVIDED BY WHISTLE COMMUNICATIONS "AS IS", AND
  * TO THE MAXIMUM EXTENT PERMITTED BY LAW, WHISTLE COMMUNICATIONS MAKES NO
  * REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED, REGARDING THIS SOFTWARE,
@@ -40,20 +40,22 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <stdarg.h>
-#include <stdatomic.h>
+
 #include <netgraph/ng_message.h>
 #include <netgraph/ng_socket.h>
 
-#include "netgraph.h"
+#include <stdarg.h>
+#include <stdatomic.h>
+
 #include "internal.h"
+#include "netgraph.h"
 
 /* Next message token value */
 static _Atomic(unsigned int) gMsgId;
 
 /* For delivering both messages and replies */
-static int	NgDeliverMsg(int cs, const char *path,
-		  const struct ng_mesg *hdr, const void *args, size_t arglen);
+static int NgDeliverMsg(int cs, const char *path, const struct ng_mesg *hdr,
+    const void *args, size_t arglen);
 
 /*
  * Send a message to a node using control socket node "cs".
@@ -61,8 +63,8 @@ static int	NgDeliverMsg(int cs, const char *path,
  * If successful, returns the message ID (token) used.
  */
 int
-NgSendMsg(int cs, const char *path,
-	  int cookie, int cmd, const void *args, size_t arglen)
+NgSendMsg(int cs, const char *path, int cookie, int cmd, const void *args,
+    size_t arglen)
 {
 	struct ng_mesg msg;
 
@@ -111,8 +113,8 @@ NgSendAsciiMsg(int cs, const char *path, const char *fmt, ...)
 	}
 
 	/* Get a bigger buffer to hold inner message header plus arg string */
-	if ((ascii = malloc(sizeof(struct ng_mesg)
-	    + strlen(args) + 1)) == NULL) {
+	if ((ascii = malloc(sizeof(struct ng_mesg) + strlen(args) + 1)) ==
+	    NULL) {
 		free(buf);
 		return (-1);
 	}
@@ -127,7 +129,7 @@ NgSendAsciiMsg(int cs, const char *path, const char *fmt, ...)
 
 	/* Send node a request to convert ASCII to binary */
 	if (NgSendMsg(cs, path, NGM_GENERIC_COOKIE, NGM_ASCII2BINARY,
-	    (u_char *)ascii, sizeof(*ascii) + ascii->header.arglen) < 0) {
+		(u_char *)ascii, sizeof(*ascii) + ascii->header.arglen) < 0) {
 		free(ascii);
 		return (-1);
 	}
@@ -141,8 +143,8 @@ NgSendAsciiMsg(int cs, const char *path, const char *fmt, ...)
 	binary = (struct ng_mesg *)reply->data;
 	binary->header.token = atomic_fetch_add(&gMsgId, 1) & INT_MAX;
 	binary->header.version = NG_VERSION;
-	if (NgDeliverMsg(cs,
-	    path, binary, binary->data, binary->header.arglen) < 0) {
+	if (NgDeliverMsg(cs, path, binary, binary->data,
+		binary->header.arglen) < 0) {
 		free(reply);
 		return (-1);
 	}
@@ -156,8 +158,8 @@ NgSendAsciiMsg(int cs, const char *path, const char *fmt, ...)
  * Returns -1 and sets errno on error, otherwise returns zero.
  */
 int
-NgSendReplyMsg(int cs, const char *path,
-	const struct ng_mesg *msg, const void *args, size_t arglen)
+NgSendReplyMsg(int cs, const char *path, const struct ng_mesg *msg,
+    const void *args, size_t arglen)
 {
 	struct ng_mesg rep;
 
@@ -174,11 +176,11 @@ NgSendReplyMsg(int cs, const char *path,
  * Returns -1 if error and sets errno appropriately, otherwise zero.
  */
 static int
-NgDeliverMsg(int cs, const char *path,
-	const struct ng_mesg *hdr, const void *args, size_t arglen)
+NgDeliverMsg(int cs, const char *path, const struct ng_mesg *hdr,
+    const void *args, size_t arglen)
 {
 	u_char sgbuf[NG_PATHSIZ + NGSA_OVERHEAD];
-	struct sockaddr_ng *const sg = (struct sockaddr_ng *) sgbuf;
+	struct sockaddr_ng *const sg = (struct sockaddr_ng *)sgbuf;
 	u_char *buf = NULL;
 	struct ng_mesg *msg;
 	int errnosv = 0;
@@ -196,7 +198,7 @@ NgDeliverMsg(int cs, const char *path,
 		rtn = -1;
 		goto done;
 	}
-	msg = (struct ng_mesg *) buf;
+	msg = (struct ng_mesg *)buf;
 
 	/* Finalize message */
 	*msg = *hdr;
@@ -218,8 +220,8 @@ NgDeliverMsg(int cs, const char *path,
 	}
 
 	/* Send it */
-	if (sendto(cs, msg, sizeof(*msg) + arglen,
-		   0, (struct sockaddr *) sg, sg->sg_len) < 0) {
+	if (sendto(cs, msg, sizeof(*msg) + arglen, 0, (struct sockaddr *)sg,
+		sg->sg_len) < 0) {
 		errnosv = errno;
 		if (_gNgDebugLevel >= 1)
 			NGLOG("sendto(%s)", sg->sg_data);
@@ -246,7 +248,7 @@ NgDeliverMsg(int cs, const char *path,
 
 done:
 	/* Done */
-	free(buf);		/* OK if buf is NULL */
+	free(buf); /* OK if buf is NULL */
 	errno = errnosv;
 	return (rtn);
 }
@@ -261,12 +263,12 @@ int
 NgRecvMsg(int cs, struct ng_mesg *rep, size_t replen, char *path)
 {
 	u_char sgbuf[NG_PATHSIZ + NGSA_OVERHEAD];
-	struct sockaddr_ng *const sg = (struct sockaddr_ng *) sgbuf;
+	struct sockaddr_ng *const sg = (struct sockaddr_ng *)sgbuf;
 	socklen_t sglen = sizeof(sgbuf);
 	int len, errnosv;
 
 	/* Read reply */
-	len = recvfrom(cs, rep, replen, 0, (struct sockaddr *) sg, &sglen);
+	len = recvfrom(cs, rep, replen, 0, (struct sockaddr *)sg, &sglen);
 	if (len < 0) {
 		errnosv = errno;
 		if (_gNgDebugLevel >= 1)
@@ -333,8 +335,8 @@ NgRecvAsciiMsg(int cs, struct ng_mesg *reply, size_t replen, char *path)
 	memcpy(reply, msg, sizeof(*msg));
 
 	/* Ask originating node to convert the arguments to ASCII */
-	if (NgSendMsg(cs, path, NGM_GENERIC_COOKIE,
-	    NGM_BINARY2ASCII, msg, sizeof(*msg) + msg->header.arglen) < 0)
+	if (NgSendMsg(cs, path, NGM_GENERIC_COOKIE, NGM_BINARY2ASCII, msg,
+		sizeof(*msg) + msg->header.arglen) < 0)
 		goto fail;
 	if (NgRecvMsg(cs, msg, bufSize, NULL) < 0)
 		goto fail;
@@ -342,7 +344,7 @@ NgRecvAsciiMsg(int cs, struct ng_mesg *reply, size_t replen, char *path)
 	/* Copy result to client buffer */
 	if (sizeof(*ascii) + ascii->header.arglen > replen) {
 		errno = ERANGE;
-fail:
+	fail:
 		errnosv = errno;
 		free(buf);
 		errno = errnosv;

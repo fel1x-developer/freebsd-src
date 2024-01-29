@@ -28,107 +28,109 @@
  */
 
 #include <sys/types.h>
+
 #include <dev/ic/ns16550.h>
 #ifndef WITHOUT_CAPSICUM
 #include <sys/capsicum.h>
+
 #include <capsicum_helpers.h>
 #endif
 
 #include <machine/vmm_snapshot.h>
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <assert.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <pthread.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sysexits.h>
 #include <termios.h>
 #include <unistd.h>
-#include <stdbool.h>
-#include <string.h>
-#include <pthread.h>
-#include <sysexits.h>
 
+#include "debug.h"
 #include "mevent.h"
 #include "uart_emul.h"
-#include "debug.h"
 
-#define	COM1_BASE      	0x3F8
-#define	COM1_IRQ	4
-#define	COM2_BASE      	0x2F8
-#define	COM2_IRQ	3
-#define	COM3_BASE	0x3E8
-#define	COM3_IRQ	4
-#define	COM4_BASE	0x2E8
-#define	COM4_IRQ	3
+#define COM1_BASE 0x3F8
+#define COM1_IRQ 4
+#define COM2_BASE 0x2F8
+#define COM2_IRQ 3
+#define COM3_BASE 0x3E8
+#define COM3_IRQ 4
+#define COM4_BASE 0x2E8
+#define COM4_IRQ 3
 
-#define	DEFAULT_RCLK	1843200
-#define	DEFAULT_BAUD	115200
+#define DEFAULT_RCLK 1843200
+#define DEFAULT_BAUD 115200
 
-#define	FCR_RX_MASK	0xC0
+#define FCR_RX_MASK 0xC0
 
-#define	MCR_OUT1	0x04
-#define	MCR_OUT2	0x08
+#define MCR_OUT1 0x04
+#define MCR_OUT2 0x08
 
-#define	MSR_DELTA_MASK	0x0f
+#define MSR_DELTA_MASK 0x0f
 
 #ifndef REG_SCR
-#define	REG_SCR		com_scr
+#define REG_SCR com_scr
 #endif
 
-#define	FIFOSZ	16
+#define FIFOSZ 16
 
-static bool uart_stdio;		/* stdio in use for i/o */
+static bool uart_stdio; /* stdio in use for i/o */
 static struct termios tio_stdio_orig;
 
 static struct {
-	int	baseaddr;
-	int	irq;
-	bool	inuse;
+	int baseaddr;
+	int irq;
+	bool inuse;
 } uart_lres[] = {
-	{ COM1_BASE, COM1_IRQ, false},
-	{ COM2_BASE, COM2_IRQ, false},
-	{ COM3_BASE, COM3_IRQ, false},
-	{ COM4_BASE, COM4_IRQ, false},
+	{ COM1_BASE, COM1_IRQ, false },
+	{ COM2_BASE, COM2_IRQ, false },
+	{ COM3_BASE, COM3_IRQ, false },
+	{ COM4_BASE, COM4_IRQ, false },
 };
 
-#define	UART_NLDEVS	(sizeof(uart_lres) / sizeof(uart_lres[0]))
+#define UART_NLDEVS (sizeof(uart_lres) / sizeof(uart_lres[0]))
 
 struct fifo {
-	uint8_t	buf[FIFOSZ];
-	int	rindex;		/* index to read from */
-	int	windex;		/* index to write to */
-	int	num;		/* number of characters in the fifo */
-	int	size;		/* size of the fifo */
+	uint8_t buf[FIFOSZ];
+	int rindex; /* index to read from */
+	int windex; /* index to write to */
+	int num;    /* number of characters in the fifo */
+	int size;   /* size of the fifo */
 };
 
 struct ttyfd {
-	bool	opened;
-	int	rfd;		/* fd for reading */
-	int	wfd;		/* fd for writing, may be == rfd */
+	bool opened;
+	int rfd; /* fd for reading */
+	int wfd; /* fd for writing, may be == rfd */
 };
 
 struct uart_softc {
-	pthread_mutex_t mtx;	/* protects all softc elements */
-	uint8_t	data;		/* Data register (R/W) */
-	uint8_t ier;		/* Interrupt enable register (R/W) */
-	uint8_t lcr;		/* Line control register (R/W) */
-	uint8_t mcr;		/* Modem control register (R/W) */
-	uint8_t lsr;		/* Line status register (R/W) */
-	uint8_t msr;		/* Modem status register (R/W) */
-	uint8_t fcr;		/* FIFO control register (W) */
-	uint8_t scr;		/* Scratch register (R/W) */
+	pthread_mutex_t mtx; /* protects all softc elements */
+	uint8_t data;	     /* Data register (R/W) */
+	uint8_t ier;	     /* Interrupt enable register (R/W) */
+	uint8_t lcr;	     /* Line control register (R/W) */
+	uint8_t mcr;	     /* Modem control register (R/W) */
+	uint8_t lsr;	     /* Line status register (R/W) */
+	uint8_t msr;	     /* Modem status register (R/W) */
+	uint8_t fcr;	     /* FIFO control register (W) */
+	uint8_t scr;	     /* Scratch register (R/W) */
 
-	uint8_t dll;		/* Baudrate divisor latch LSB */
-	uint8_t dlh;		/* Baudrate divisor latch MSB */
+	uint8_t dll; /* Baudrate divisor latch LSB */
+	uint8_t dlh; /* Baudrate divisor latch MSB */
 
 	struct fifo rxfifo;
 	struct mevent *mev;
 
 	struct ttyfd tty;
-	bool	thre_int_pending;	/* THRE interrupt pending */
+	bool thre_int_pending; /* THRE interrupt pending */
 
-	void	*arg;
+	void *arg;
 	uart_intr_func_t intr_assert;
 	uart_intr_func_t intr_deassert;
 };
@@ -350,7 +352,7 @@ uart_reset(struct uart_softc *sc)
 	sc->dlh = divisor >> 16;
 	sc->msr = modem_status(sc->mcr);
 
-	rxfifo_reset(sc, 1);	/* no fifo until enabled by software */
+	rxfifo_reset(sc, 1); /* no fifo until enabled by software */
 }
 
 /*
@@ -389,10 +391,10 @@ uart_drain(int fd, enum ev_type ev, void *arg)
 	pthread_mutex_lock(&sc->mtx);
 
 	if ((sc->mcr & MCR_LOOPBACK) != 0) {
-		(void) ttyread(&sc->tty);
+		(void)ttyread(&sc->tty);
 	} else {
-		while (rxfifo_available(sc) &&
-		       ((ch = ttyread(&sc->tty)) != -1)) {
+		while (
+		    rxfifo_available(sc) && ((ch = ttyread(&sc->tty)) != -1)) {
 			rxfifo_putchar(sc, ch);
 		}
 		uart_toggle_intr(sc);
@@ -424,7 +426,7 @@ uart_write(struct uart_softc *sc, int offset, uint8_t value)
 		}
 	}
 
-        switch (offset) {
+	switch (offset) {
 	case REG_DATA:
 		if (sc->mcr & MCR_LOOPBACK) {
 			if (rxfifo_putchar(sc, value) != 0)
@@ -464,8 +466,7 @@ uart_write(struct uart_softc *sc, int offset, uint8_t value)
 			if ((value & FCR_RCV_RST) != 0)
 				rxfifo_reset(sc, FIFOSZ);
 
-			sc->fcr = value &
-				 (FCR_ENABLE | FCR_DMA | FCR_RX_MASK);
+			sc->fcr = value & (FCR_ENABLE | FCR_DMA | FCR_RX_MASK);
 		}
 		break;
 	case REG_LCR:
@@ -745,8 +746,8 @@ uart_snapshot(struct uart_softc *sc, struct vm_snapshot_meta *meta)
 	SNAPSHOT_VAR_OR_LEAVE(sc->rxfifo.windex, meta, ret, done);
 	SNAPSHOT_VAR_OR_LEAVE(sc->rxfifo.num, meta, ret, done);
 	SNAPSHOT_VAR_OR_LEAVE(sc->rxfifo.size, meta, ret, done);
-	SNAPSHOT_BUF_OR_LEAVE(sc->rxfifo.buf, sizeof(sc->rxfifo.buf),
-			      meta, ret, done);
+	SNAPSHOT_BUF_OR_LEAVE(sc->rxfifo.buf, sizeof(sc->rxfifo.buf), meta, ret,
+	    done);
 
 	sc->thre_int_pending = 1;
 

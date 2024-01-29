@@ -103,14 +103,14 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef	__IF_IWM_TIME_EVENT_H__
-#define	__IF_IWM_TIME_EVENT_H__
+#ifndef __IF_IWM_TIME_EVENT_H__
+#define __IF_IWM_TIME_EVENT_H__
 
-extern	void iwm_rx_time_event_notif(struct iwm_softc *sc,
-	    struct iwm_rx_packet *pkt);
-extern	void iwm_protect_session(struct iwm_softc *sc, struct iwm_vap *ivp,
-	    uint32_t duration, uint32_t max_delay, boolean_t wait_for_notif);
-extern	void iwm_stop_session_protection(struct iwm_softc *sc,
-	    struct iwm_vap *ivp);
+extern void iwm_rx_time_event_notif(struct iwm_softc *sc,
+    struct iwm_rx_packet *pkt);
+extern void iwm_protect_session(struct iwm_softc *sc, struct iwm_vap *ivp,
+    uint32_t duration, uint32_t max_delay, boolean_t wait_for_notif);
+extern void iwm_stop_session_protection(struct iwm_softc *sc,
+    struct iwm_vap *ivp);
 
-#endif	/* __IF_IWM_TIME_EVENT_H__ */
+#endif /* __IF_IWM_TIME_EVENT_H__ */

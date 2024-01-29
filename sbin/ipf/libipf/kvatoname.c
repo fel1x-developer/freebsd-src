@@ -7,10 +7,11 @@
  * $Id$
  */
 
-#include "ipf.h"
+#include <sys/ioctl.h>
 
 #include <fcntl.h>
-#include <sys/ioctl.h>
+
+#include "ipf.h"
 
 char *
 kvatoname(ipfunc_t func, ioctlfunc_t iocfunc)
@@ -28,7 +29,7 @@ kvatoname(ipfunc_t func, ioctlfunc_t iocfunc)
 		if (fd == -1)
 			return (NULL);
 	}
-	(void) (*iocfunc)(fd, SIOCFUNCL, &res);
+	(void)(*iocfunc)(fd, SIOCFUNCL, &res);
 	if (fd >= 0)
 		close(fd);
 	strncpy(funcname, res.ipfu_name, sizeof(funcname));

@@ -54,33 +54,34 @@
 #include <vm/vm_kern.h>
 #include <vm/vm_map.h>
 
-#include <machine/machdep.h>
 #include <machine/cpu.h>
 #include <machine/debug_monitor.h>
 #include <machine/intr.h>
+#include <machine/machdep.h>
 #include <machine/smp.h>
 #ifdef VFP
 #include <machine/vfp.h>
 #endif
 
 #ifdef DEV_ACPI
-#include <contrib/dev/acpica/include/acpi.h>
 #include <dev/acpica/acpivar.h>
+
+#include <contrib/dev/acpica/include/acpi.h>
 #endif
 
 #ifdef FDT
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 #include <dev/ofw/ofw_cpu.h>
+#include <dev/ofw/openfirm.h>
 #endif
 
 #include <dev/psci/psci.h>
 
-#define	MP_BOOTSTACK_SIZE	(kstack_pages * PAGE_SIZE)
+#define MP_BOOTSTACK_SIZE (kstack_pages * PAGE_SIZE)
 
-#define	MP_QUIRK_CPULIST	0x01	/* The list of cpus may be wrong, */
-					/* don't panic if one fails to start */
+#define MP_QUIRK_CPULIST 0x01 /* The list of cpus may be wrong, */
+			      /* don't panic if one fails to start */
 static uint32_t mp_quirks;
 
 #ifdef FDT
@@ -88,10 +89,10 @@ static struct {
 	const char *compat;
 	uint32_t quirks;
 } fdt_quirks[] = {
-	{ "arm,foundation-aarch64",	MP_QUIRK_CPULIST },
-	{ "arm,fvp-base",		MP_QUIRK_CPULIST },
+	{ "arm,foundation-aarch64", MP_QUIRK_CPULIST },
+	{ "arm,fvp-base", MP_QUIRK_CPULIST },
 	/* This is incorrect in some DTS files */
-	{ "arm,vfp-base",		MP_QUIRK_CPULIST },
+	{ "arm,vfp-base", MP_QUIRK_CPULIST },
 	{ NULL, 0 },
 };
 #endif
@@ -132,7 +133,8 @@ static bool
 is_boot_cpu(uint64_t target_cpu)
 {
 
-	return (PCPU_GET_MPIDR(cpuid_to_pcpu[0]) == (target_cpu & CPU_AFF_MASK));
+	return (
+	    PCPU_GET_MPIDR(cpuid_to_pcpu[0]) == (target_cpu & CPU_AFF_MASK));
 }
 
 static void
@@ -153,10 +155,9 @@ release_aps(void *dummy __unused)
 
 	atomic_store_rel_int(&aps_ready, 1);
 	/* Wake up the other CPUs */
-	__asm __volatile(
-	    "dsb ishst	\n"
-	    "sev	\n"
-	    ::: "memory");
+	__asm __volatile("dsb ishst	\n"
+			 "sev	\n" ::
+			     : "memory");
 
 	printf("Release APs...");
 
@@ -202,7 +203,7 @@ init_secondary(uint64_t cpu)
 			if (cpuid_to_pcpu[cpu] != NULL &&
 			    PCPU_GET_MPIDR(cpuid_to_pcpu[cpu]) == mpidr)
 				break;
-		if ( cpu >= MAXCPU)
+		if (cpu >= MAXCPU)
 			panic("MPIDR for this CPU is not in pcpu table");
 	}
 
@@ -406,9 +407,9 @@ enable_cpu_psci(uint64_t target_cpu, vm_paddr_t entry, u_int cpuid)
 		 * to indicate we are unable to use it to start the given CPU.
 		 */
 		KASSERT(err == PSCI_MISSING ||
-		    (mp_quirks & MP_QUIRK_CPULIST) == MP_QUIRK_CPULIST,
-		    ("Failed to start CPU %u (%lx), error %d\n",
-		    cpuid, target_cpu, err));
+			(mp_quirks & MP_QUIRK_CPULIST) == MP_QUIRK_CPULIST,
+		    ("Failed to start CPU %u (%lx), error %d\n", cpuid,
+			target_cpu, err));
 		return (EINVAL);
 	}
 
@@ -427,10 +428,9 @@ enable_cpu_spin(uint64_t cpu, vm_paddr_t entry, vm_paddr_t release_paddr)
 	*release_addr = entry;
 	pmap_unmapdev(release_addr, sizeof(*release_addr));
 
-	__asm __volatile(
-	    "dsb sy	\n"
-	    "sev	\n"
-	    ::: "memory");
+	__asm __volatile("dsb sy	\n"
+			 "sev	\n" ::
+			     : "memory");
 
 	return (0);
 }
@@ -515,7 +515,7 @@ madt_handler(ACPI_SUBTABLE_HEADER *entry, void *arg)
 	u_int id;
 	int domain;
 
-	switch(entry->Type) {
+	switch (entry->Type) {
 	case ACPI_MADT_TYPE_GENERIC_INTERRUPT:
 		intr = (ACPI_MADT_GENERIC_INTERRUPT *)entry;
 		cpuid = arg;
@@ -620,7 +620,7 @@ start_cpu_fdt(u_int id, phandle_t node, u_int addr_size, pcell_t *reg)
 	release_addr = 0;
 	if (!psci_present && cpuid != 0) {
 		if (OF_getprop_alloc(node, "enable-method",
-		    (void **)&enable_method) <= 0)
+			(void **)&enable_method) <= 0)
 			return (false);
 
 		if (strcmp(enable_method, "spin-table") != 0) {
@@ -663,8 +663,8 @@ cpu_init_fdt(void)
 
 	node = OF_peer(0);
 	for (i = 0; fdt_quirks[i].compat != NULL; i++) {
-		if (ofw_bus_node_is_compatible(node,
-		    fdt_quirks[i].compat) != 0) {
+		if (ofw_bus_node_is_compatible(node, fdt_quirks[i].compat) !=
+		    0) {
 			mp_quirks = fdt_quirks[i].quirks;
 		}
 	}
@@ -688,7 +688,7 @@ cpu_mp_start(void)
 
 	cpu_desc_init();
 
-	switch(arm64_bus_method) {
+	switch (arm64_bus_method) {
 #ifdef DEV_ACPI
 	case ARM64_BUS_ACPI:
 		mp_quirks = MP_QUIRK_CPULIST;
@@ -717,7 +717,7 @@ cpu_count_acpi_handler(ACPI_SUBTABLE_HEADER *entry, void *arg)
 {
 	u_int *cores = arg;
 
-	switch(entry->Type) {
+	switch (entry->Type) {
 	case ACPI_MADT_TYPE_GENERIC_INTERRUPT:
 		(*cores)++;
 		break;
@@ -761,7 +761,7 @@ cpu_mp_setmaxid(void)
 	mp_ncpus = 1;
 	mp_maxid = 0;
 
-	switch(arm64_bus_method) {
+	switch (arm64_bus_method) {
 #ifdef DEV_ACPI
 	case ARM64_BUS_ACPI:
 		cores = cpu_count_acpi();

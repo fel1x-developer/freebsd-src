@@ -31,42 +31,43 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
 #include <string.h>
 
 void
 strmode(mode_t mode, char *p)
 {
-	 /* print type */
+	/* print type */
 	switch (mode & S_IFMT) {
-	case S_IFDIR:			/* directory */
+	case S_IFDIR: /* directory */
 		*p++ = 'd';
 		break;
-	case S_IFCHR:			/* character special */
+	case S_IFCHR: /* character special */
 		*p++ = 'c';
 		break;
-	case S_IFBLK:			/* block special */
+	case S_IFBLK: /* block special */
 		*p++ = 'b';
 		break;
-	case S_IFREG:			/* regular */
+	case S_IFREG: /* regular */
 		*p++ = '-';
 		break;
-	case S_IFLNK:			/* symbolic link */
+	case S_IFLNK: /* symbolic link */
 		*p++ = 'l';
 		break;
-	case S_IFSOCK:			/* socket */
+	case S_IFSOCK: /* socket */
 		*p++ = 's';
 		break;
 #ifdef S_IFIFO
-	case S_IFIFO:			/* fifo */
+	case S_IFIFO: /* fifo */
 		*p++ = 'p';
 		break;
 #endif
 #ifdef S_IFWHT
-	case S_IFWHT:			/* whiteout */
+	case S_IFWHT: /* whiteout */
 		*p++ = 'w';
 		break;
 #endif
-	default:			/* unknown */
+	default: /* unknown */
 		*p++ = '?';
 		break;
 	}

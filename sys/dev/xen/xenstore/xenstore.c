@@ -29,38 +29,37 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
+#include <sys/kthread.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/sx.h>
-#include <sys/syslog.h>
-#include <sys/malloc.h>
-#include <sys/systm.h>
 #include <sys/proc.h>
-#include <sys/kthread.h>
+#include <sys/queue.h>
 #include <sys/sbuf.h>
+#include <sys/sx.h>
 #include <sys/sysctl.h>
+#include <sys/syslog.h>
+#include <sys/taskqueue.h>
 #include <sys/uio.h>
 #include <sys/unistd.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
-
-#include <machine/stdarg.h>
-
-#include <xen/xen-os.h>
-#include <xen/hypervisor.h>
-#include <xen/xen_intr.h>
-
-#include <contrib/xen/hvm/params.h>
-#include <xen/hvm.h>
-
-#include <xen/xenstore/xenstorevar.h>
-#include <xen/xenstore/xenstore_internal.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
+
+#include <machine/stdarg.h>
+
+#include <xen/hvm.h>
+#include <xen/hypervisor.h>
+#include <xen/xen-os.h>
+#include <xen/xen_intr.h>
+#include <xen/xenstore/xenstore_internal.h>
+#include <xen/xenstore/xenstorevar.h>
+
+#include <contrib/xen/hvm/params.h>
 
 /**
  * \file xenstore.c
@@ -184,7 +183,7 @@ struct xs_softc {
 	/**
 	 * List of registered watches.
 	 */
-	struct xs_watch_list  registered_watches;
+	struct xs_watch_list registered_watches;
 
 	/** Lock protecting the registered watches list. */
 	struct mtx registered_watches_lock;
@@ -308,7 +307,7 @@ split(char *strings, u_int len, u_int *num)
 		strings[len - 1] = '\0';
 
 	/* Count the strings. */
-	*num = extract_strings(strings, /*dest*/NULL, len);
+	*num = extract_strings(strings, /*dest*/ NULL, len);
 
 	/* Transfer to one big alloc for easy freeing by the caller. */
 	ret = malloc(*num * sizeof(char *) + len, M_XENSTORE, M_WAITOK);
@@ -317,7 +316,7 @@ split(char *strings, u_int len, u_int *num)
 
 	/* Extract pointers to newly allocated array. */
 	strings = (char *)&ret[*num];
-	(void)extract_strings(strings, /*dest*/ret, len);
+	(void)extract_strings(strings, /*dest*/ ret, len);
 
 	return (ret);
 }
@@ -349,7 +348,7 @@ xs_join(const char *dir, const char *name)
  * service has modified the queues.
  */
 static void
-xs_intr(void * arg __unused /*__attribute__((unused))*/)
+xs_intr(void *arg __unused /*__attribute__((unused))*/)
 {
 
 	/* If xenstore has not been initialized, initialize it now */
@@ -402,8 +401,8 @@ xs_check_indexes(XENSTORE_RING_IDX cons, XENSTORE_RING_IDX prod)
  * \return  A pointer to the start location of the free region.
  */
 static void *
-xs_get_output_chunk(XENSTORE_RING_IDX cons, XENSTORE_RING_IDX prod,
-    char *buf, uint32_t *len)
+xs_get_output_chunk(XENSTORE_RING_IDX cons, XENSTORE_RING_IDX prod, char *buf,
+    uint32_t *len)
 {
 
 	*len = XENSTORE_RING_SIZE - MASK_XENSTORE_IDX(prod);
@@ -477,8 +476,8 @@ xs_write_store(const void *tdata, unsigned len)
 			 * we specify PDROP so our lock is *not* held
 			 * when msleep returns.
 			 */
-			error = msleep(xen_store, &xs.ring_lock, PCATCH|PDROP,
-			     "xbwrite", /*timeout*/0);
+			error = msleep(xen_store, &xs.ring_lock, PCATCH | PDROP,
+			    "xbwrite", /*timeout*/ 0);
 			if (error && error != EWOULDBLOCK)
 				return (error);
 
@@ -565,8 +564,8 @@ xs_read_store(void *tdata, unsigned len)
 			 * we specify PDROP so our lock is *not* held
 			 * when msleep returns.
 			 */
-			error = msleep(xen_store, &xs.ring_lock, PCATCH|PDROP,
-			    "xbread", /*timeout*/0);
+			error = msleep(xen_store, &xs.ring_lock, PCATCH | PDROP,
+			    "xbread", /*timeout*/ 0);
 			if (error && error != EWOULDBLOCK)
 				return (error);
 			continue;
@@ -655,8 +654,8 @@ xs_process_msg(enum xsd_sockmsg_type *type)
 		mtx_lock(&xs.watch_events_lock);
 		if (msg->u.watch.handle != NULL &&
 		    (!msg->u.watch.handle->max_pending ||
-		    msg->u.watch.handle->pending <
-		    msg->u.watch.handle->max_pending)) {
+			msg->u.watch.handle->pending <
+			    msg->u.watch.handle->max_pending)) {
 			msg->u.watch.handle->pending++;
 			TAILQ_INSERT_TAIL(&xs.watch_events, msg, list);
 			wakeup(&xs.watch_events);
@@ -699,7 +698,7 @@ xs_rcv_thread(void *arg __unused)
 }
 
 /*---------------- XenStore Message Request/Reply Processing -----------------*/
-#define xsd_error_count	(sizeof(xsd_errors) / sizeof(xsd_errors[0]))
+#define xsd_error_count (sizeof(xsd_errors) / sizeof(xsd_errors[0]))
 
 /**
  * Convert a XenStore error string into an errno number.
@@ -744,7 +743,7 @@ xs_read_reply(enum xsd_sockmsg_type *type, u_int *len, void **result)
 	mtx_lock(&xs.reply_lock);
 	while (TAILQ_EMPTY(&xs.reply_list)) {
 		error = mtx_sleep(&xs.reply_list, &xs.reply_lock, 0, "xswait",
-		    hz/10);
+		    hz / 10);
 		if (error && error != EWOULDBLOCK) {
 			mtx_unlock(&xs.reply_lock);
 			return (error);
@@ -908,9 +907,9 @@ xs_watch(const char *path, const char *token)
 {
 	struct iovec iov[2];
 
-	iov[0].iov_base = (void *)(uintptr_t) path;
+	iov[0].iov_base = (void *)(uintptr_t)path;
 	iov[0].iov_len = strlen(path) + 1;
-	iov[1].iov_base = (void *)(uintptr_t) token;
+	iov[1].iov_base = (void *)(uintptr_t)token;
 	iov[1].iov_len = strlen(token) + 1;
 
 	return (xs_talkv(XST_NIL, XS_WATCH, iov, 2, NULL, NULL));
@@ -930,9 +929,9 @@ xs_unwatch(const char *path, const char *token)
 {
 	struct iovec iov[2];
 
-	iov[0].iov_base = (void *)(uintptr_t) path;
+	iov[0].iov_base = (void *)(uintptr_t)path;
 	iov[0].iov_len = strlen(path) + 1;
-	iov[1].iov_base = (void *)(uintptr_t) token;
+	iov[1].iov_base = (void *)(uintptr_t)token;
 	iov[1].iov_len = strlen(token) + 1;
 
 	return (xs_talkv(XST_NIL, XS_UNWATCH, iov, 2, NULL, NULL));
@@ -953,7 +952,7 @@ find_watch(const char *token)
 
 	cmp = (void *)strtoul(token, NULL, 16);
 
-	LIST_FOREACH(i, &xs.registered_watches, list)
+	LIST_FOREACH (i, &xs.registered_watches, list)
 		if (i == cmp)
 			return (i);
 
@@ -971,9 +970,8 @@ xenwatch_thread(void *unused)
 	for (;;) {
 		mtx_lock(&xs.watch_events_lock);
 		while (TAILQ_EMPTY(&xs.watch_events))
-			mtx_sleep(&xs.watch_events,
-			    &xs.watch_events_lock,
-			    PWAIT | PCATCH, "waitev", hz/10);
+			mtx_sleep(&xs.watch_events, &xs.watch_events_lock,
+			    PWAIT | PCATCH, "waitev", hz / 10);
 
 		mtx_unlock(&xs.watch_events_lock);
 		sx_xlock(&xs.xenwatch_mutex);
@@ -995,9 +993,9 @@ xenwatch_thread(void *unused)
 			 */
 			if (msg->u.watch.handle->callback != NULL)
 				msg->u.watch.handle->callback(
-					msg->u.watch.handle,
-					(const char **)msg->u.watch.vec,
-					msg->u.watch.vec_size);
+				    msg->u.watch.handle,
+				    (const char **)msg->u.watch.vec,
+				    msg->u.watch.vec_size);
 			free(msg->u.watch.vec, M_XENSTORE);
 			free(msg, M_XENSTORE);
 		}
@@ -1019,7 +1017,8 @@ xs_init_comms(void)
 	int error;
 
 	if (xen_store->rsp_prod != xen_store->rsp_cons) {
-		log(LOG_WARNING, "XENSTORE response ring is not quiescent "
+		log(LOG_WARNING,
+		    "XENSTORE response ring is not quiescent "
 		    "(%08x:%08x): fixing up\n",
 		    xen_store->rsp_cons, xen_store->rsp_prod);
 		xen_store->rsp_cons = xen_store->rsp_prod;
@@ -1028,7 +1027,7 @@ xs_init_comms(void)
 	xen_intr_unbind(&xs.xen_intr_handle);
 
 	error = xen_intr_bind_local_port(xs.xs_dev, xs.evtchn,
-	    /*filter*/NULL, xs_intr, /*arg*/NULL, INTR_TYPE_NET|INTR_MPSAFE,
+	    /*filter*/ NULL, xs_intr, /*arg*/ NULL, INTR_TYPE_NET | INTR_MPSAFE,
 	    &xs.xen_intr_handle);
 	if (error) {
 		log(LOG_WARNING, "XENSTORE request irq failed %i\n", error);
@@ -1051,7 +1050,7 @@ xs_identify(driver_t *driver, device_t parent)
  *
  * \param dev
  */
-static int 
+static int
 xs_probe(device_t dev)
 {
 	/*
@@ -1087,7 +1086,7 @@ xs_attach_late(void *arg, int pending)
  * Attach to the XenStore.
  *
  * This routine also prepares for the probe/attach of drivers that rely
- * on the XenStore.  
+ * on the XenStore.
  */
 static int
 xs_attach(device_t dev)
@@ -1109,11 +1108,10 @@ xs_attach(device_t dev)
 		/* Allocate a local event channel for xenstore */
 		alloc_unbound.dom = DOMID_SELF;
 		alloc_unbound.remote_dom = DOMID_SELF;
-		error = HYPERVISOR_event_channel_op(
-		    EVTCHNOP_alloc_unbound, &alloc_unbound);
+		error = HYPERVISOR_event_channel_op(EVTCHNOP_alloc_unbound,
+		    &alloc_unbound);
 		if (error != 0)
-			panic(
-			   "unable to alloc event channel for Dom0: %d",
+			panic("unable to alloc event channel for Dom0: %d",
 			    error);
 
 		xs.evtchn = alloc_unbound.port;
@@ -1143,14 +1141,14 @@ xs_attach(device_t dev)
 	if (error)
 		return (error);
 
-	error = kproc_create(xenwatch_thread, NULL, &p, RFHIGHPID,
-	    0, "xenwatch");
+	error = kproc_create(xenwatch_thread, NULL, &p, RFHIGHPID, 0,
+	    "xenwatch");
 	if (error)
 		return (error);
 	xs.xenwatch_pid = p->p_pid;
 
-	error = kproc_create(xs_rcv_thread, NULL, NULL,
-	    RFHIGHPID, 0, "xenstore_rcv");
+	error = kproc_create(xs_rcv_thread, NULL, NULL, RFHIGHPID, 0,
+	    "xenstore_rcv");
 
 	xs.xs_attachcb.ich_func = xs_attach_deferred;
 	xs.xs_attachcb.ich_arg = NULL;
@@ -1201,7 +1199,7 @@ xs_resume(device_t dev __unused)
 	 * remove watches at this point (before xenstore is resumed) is
 	 * clearly a violantion of the resume order.
 	 */
-	LIST_FOREACH(watch, &xs.registered_watches, list) {
+	LIST_FOREACH (watch, &xs.registered_watches, list) {
 		sprintf(token, "%lX", (long)watch);
 		xs_watch(watch->node, token);
 	}
@@ -1213,25 +1211,24 @@ xs_resume(device_t dev __unused)
 }
 
 /*-------------------- Private Device Attachment Data  -----------------------*/
-static device_method_t xenstore_methods[] = { 
-	/* Device interface */ 
-	DEVMETHOD(device_identify,	xs_identify),
-	DEVMETHOD(device_probe,         xs_probe), 
-	DEVMETHOD(device_attach,        xs_attach), 
-	DEVMETHOD(device_detach,        bus_generic_detach), 
-	DEVMETHOD(device_shutdown,      bus_generic_shutdown), 
-	DEVMETHOD(device_suspend,       xs_suspend), 
-	DEVMETHOD(device_resume,        xs_resume), 
+static device_method_t xenstore_methods[] = {
+	/* Device interface */
+	DEVMETHOD(device_identify, xs_identify),
+	DEVMETHOD(device_probe, xs_probe), DEVMETHOD(device_attach, xs_attach),
+	DEVMETHOD(device_detach, bus_generic_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
+	DEVMETHOD(device_suspend, xs_suspend),
+	DEVMETHOD(device_resume, xs_resume),
 
-	/* Bus interface */ 
-	DEVMETHOD(bus_add_child,        bus_generic_add_child),
-	DEVMETHOD(bus_alloc_resource,   bus_generic_alloc_resource),
+	/* Bus interface */
+	DEVMETHOD(bus_add_child, bus_generic_add_child),
+	DEVMETHOD(bus_alloc_resource, bus_generic_alloc_resource),
 	DEVMETHOD(bus_release_resource, bus_generic_release_resource),
 	DEVMETHOD(bus_activate_resource, bus_generic_activate_resource),
 	DEVMETHOD(bus_deactivate_resource, bus_generic_deactivate_resource),
 
 	DEVMETHOD_END
-}; 
+};
 
 DEFINE_CLASS_0(xenstore, xenstore_driver, xenstore_methods, 0);
 
@@ -1239,10 +1236,10 @@ DRIVER_MODULE(xenstore, xenpv, xenstore_driver, 0, 0);
 
 /*------------------------------- Sysctl Data --------------------------------*/
 /* XXX Shouldn't the node be somewhere else? */
-SYSCTL_NODE(_dev, OID_AUTO, xen, CTLFLAG_RD | CTLFLAG_MPSAFE, NULL,
-    "Xen");
+SYSCTL_NODE(_dev, OID_AUTO, xen, CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "Xen");
 SYSCTL_INT(_dev_xen, OID_AUTO, xsd_port, CTLFLAG_RD, &xs.evtchn, 0, "");
-SYSCTL_ULONG(_dev_xen, OID_AUTO, xsd_kva, CTLFLAG_RD, (u_long *) &xen_store, 0, "");
+SYSCTL_ULONG(_dev_xen, OID_AUTO, xsd_kva, CTLFLAG_RD, (u_long *)&xen_store, 0,
+    "");
 
 /*-------------------------------- Public API --------------------------------*/
 /*------- API comments for these methods can be found in xenstorevar.h -------*/
@@ -1257,14 +1254,14 @@ evtchn_port_t
 xs_evtchn(void)
 {
 
-    return (xs.evtchn);
+	return (xs.evtchn);
 }
 
 vm_paddr_t
 xs_address(void)
 {
 
-    return (ptoa(xs.gpfn));
+	return (ptoa(xs.gpfn));
 }
 
 int
@@ -1302,8 +1299,8 @@ xs_exists(struct xs_transaction t, const char *dir, const char *node)
 }
 
 int
-xs_read(struct xs_transaction t, const char *dir, const char *node,
-    u_int *len, void **result)
+xs_read(struct xs_transaction t, const char *dir, const char *node, u_int *len,
+    void **result)
 {
 	struct sbuf *path;
 	void *ret;
@@ -1328,9 +1325,9 @@ xs_write(struct xs_transaction t, const char *dir, const char *node,
 
 	path = xs_join(dir, node);
 
-	iovec[0].iov_base = (void *)(uintptr_t) sbuf_data(path);
+	iovec[0].iov_base = (void *)(uintptr_t)sbuf_data(path);
 	iovec[0].iov_len = sbuf_len(path) + 1;
-	iovec[1].iov_base = (void *)(uintptr_t) string;
+	iovec[1].iov_base = (void *)(uintptr_t)string;
 	iovec[1].iov_len = strlen(string);
 
 	error = xs_talkv(t, XS_WRITE, iovec, 2, NULL, NULL);
@@ -1378,11 +1375,11 @@ xs_rm_tree(struct xs_transaction xbt, const char *base, const char *node)
 
 retry:
 	root_path_sbuf = xs_join(base, node);
-	cur_path_sbuf  = xs_join(base, node);
-	root_path      = sbuf_data(root_path_sbuf);
-	cur_path       = sbuf_data(cur_path_sbuf);
-	dir            = NULL;
-	local_xbt.id   = 0;
+	cur_path_sbuf = xs_join(base, node);
+	root_path = sbuf_data(root_path_sbuf);
+	cur_path = sbuf_data(cur_path_sbuf);
+	dir = NULL;
+	local_xbt.id = 0;
 
 	if (xbt.id == 0) {
 		error = xs_transaction_start(&local_xbt);
@@ -1436,7 +1433,7 @@ retry:
 			/* Return to processing the parent directory. */
 			last_slash = strrchr(cur_path, '/');
 			KASSERT(last_slash != NULL,
-				("xs_rm_tree: mangled path %s", cur_path));
+			    ("xs_rm_tree: mangled path %s", cur_path));
 			*last_slash = '\0';
 		}
 	}
@@ -1450,7 +1447,7 @@ out:
 	if (local_xbt.id != 0) {
 		int terror;
 
-		terror = xs_transaction_end(local_xbt, /*abort*/error != 0);
+		terror = xs_transaction_end(local_xbt, /*abort*/ error != 0);
 		xbt.id = 0;
 		if (terror == EAGAIN && error == 0)
 			goto retry;
@@ -1488,13 +1485,13 @@ xs_transaction_end(struct xs_transaction t, int abort)
 
 int
 xs_scanf(struct xs_transaction t, const char *dir, const char *node,
-     int *scancountp, const char *fmt, ...)
+    int *scancountp, const char *fmt, ...)
 {
 	va_list ap;
 	int error, ns;
 	char *val;
 
-	error = xs_read(t, dir, node, NULL, (void **) &val);
+	error = xs_read(t, dir, node, NULL, (void **)&val);
 	if (error)
 		return (error);
 
@@ -1511,8 +1508,8 @@ xs_scanf(struct xs_transaction t, const char *dir, const char *node,
 }
 
 int
-xs_vprintf(struct xs_transaction t,
-    const char *dir, const char *node, const char *fmt, va_list ap)
+xs_vprintf(struct xs_transaction t, const char *dir, const char *node,
+    const char *fmt, va_list ap)
 {
 	struct sbuf *sb;
 	int error;
@@ -1528,7 +1525,7 @@ xs_vprintf(struct xs_transaction t,
 
 int
 xs_printf(struct xs_transaction t, const char *dir, const char *node,
-     const char *fmt, ...)
+    const char *fmt, ...)
 {
 	va_list ap;
 	int error;
@@ -1554,7 +1551,7 @@ xs_gather(struct xs_transaction t, const char *dir, ...)
 		void *result = va_arg(ap, void *);
 		char *p;
 
-		error = xs_read(t, dir, name, NULL, (void **) &p);
+		error = xs_read(t, dir, name, NULL, (void **)&p);
 		if (error)
 			break;
 
@@ -1624,7 +1621,7 @@ xs_unregister_watch(struct xs_watch *watch)
 
 	/* Cancel pending watch events. */
 	mtx_lock(&xs.watch_events_lock);
-	TAILQ_FOREACH_SAFE(msg, &xs.watch_events, list, tmp) {
+	TAILQ_FOREACH_SAFE (msg, &xs.watch_events, list, tmp) {
 		if (msg->u.watch.handle != watch)
 			continue;
 		TAILQ_REMOVE(&xs.watch_events, msg, list);

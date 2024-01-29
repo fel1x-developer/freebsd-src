@@ -27,9 +27,8 @@
 static void
 crt1_handle_rela(const Elf_Rela *r)
 {
-	typedef Elf_Addr (*ifunc_resolver_t)(
-	    uint64_t, uint64_t, uint64_t, uint64_t,
-	    uint64_t, uint64_t, uint64_t, uint64_t);
+	typedef Elf_Addr (*ifunc_resolver_t)(uint64_t, uint64_t, uint64_t,
+	    uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
 	Elf_Addr *ptr, *where, target;
 
 	switch (ELF_R_TYPE(r->r_info)) {

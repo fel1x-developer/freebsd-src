@@ -28,6 +28,7 @@
 
 #include <sys/cdefs.h>
 #include <sys/zfs_context.h>
+
 #include <libzfsbootenv.h>
 
 #include "be.h"
@@ -47,7 +48,6 @@ be_active_name(libbe_handle_t *lbh)
 	else
 		return (lbh->rootfs);
 }
-
 
 /*
  * Returns full path of the active boot environment
@@ -72,7 +72,6 @@ be_nextboot_name(libbe_handle_t *lbh)
 		return (lbh->bootfs);
 }
 
-
 /*
  * Returns full path of the active boot environment
  */
@@ -83,7 +82,6 @@ be_nextboot_path(libbe_handle_t *lbh)
 	return (lbh->bootfs);
 }
 
-
 /*
  * Returns the path of the boot environment root dataset
  */
@@ -93,7 +91,6 @@ be_root_path(libbe_handle_t *lbh)
 
 	return (lbh->root);
 }
-
 
 /*
  * Populates dsnvl with one nvlist per bootenv dataset describing the properties
@@ -123,7 +120,7 @@ be_get_dataset_props(libbe_handle_t *lbh, const char *name, nvlist_t *props)
 	data.single_object = true;
 	data.bootonce = NULL;
 	if ((snap_hdl = zfs_open(lbh->lzh, name,
-	    ZFS_TYPE_FILESYSTEM | ZFS_TYPE_SNAPSHOT)) == NULL)
+		 ZFS_TYPE_FILESYSTEM | ZFS_TYPE_SNAPSHOT)) == NULL)
 		return (BE_ERR_ZFSOPEN);
 
 	ret = prop_list_builder_cb(snap_hdl, &data);
@@ -142,8 +139,7 @@ be_get_dataset_snapshots(libbe_handle_t *lbh, const char *name, nvlist_t *props)
 	data.list = props;
 	data.single_object = false;
 	data.bootonce = NULL;
-	if ((ds_hdl = zfs_open(lbh->lzh, name,
-	    ZFS_TYPE_FILESYSTEM)) == NULL)
+	if ((ds_hdl = zfs_open(lbh->lzh, name, ZFS_TYPE_FILESYSTEM)) == NULL)
 		return (BE_ERR_ZFSOPEN);
 
 	ret = snapshot_proplist_update(ds_hdl, &data);
@@ -181,8 +177,7 @@ prop_list_builder_cb(zfs_handle_t *zfs_hdl, void *data_p)
 	dataset = zfs_get_name(zfs_hdl);
 	nvlist_add_string(props, "dataset", dataset);
 
-	if (data->bootonce != NULL &&
-	    strcmp(dataset, data->bootonce) == 0)
+	if (data->bootonce != NULL && strcmp(dataset, data->bootonce) == 0)
 		nvlist_add_boolean_value(props, "bootonce", true);
 
 	name = strrchr(dataset, '/') + 1;
@@ -193,39 +188,39 @@ prop_list_builder_cb(zfs_handle_t *zfs_hdl, void *data_p)
 	if (mounted)
 		nvlist_add_string(props, "mounted", mountpoint);
 
-	if (zfs_prop_get(zfs_hdl, ZFS_PROP_MOUNTPOINT, buf, 512,
-	    NULL, NULL, 0, 1) == 0)
+	if (zfs_prop_get(zfs_hdl, ZFS_PROP_MOUNTPOINT, buf, 512, NULL, NULL, 0,
+		1) == 0)
 		nvlist_add_string(props, "mountpoint", buf);
 
-	if (zfs_prop_get(zfs_hdl, ZFS_PROP_ORIGIN, buf, 512,
-	    NULL, NULL, 0, 1) == 0)
+	if (zfs_prop_get(zfs_hdl, ZFS_PROP_ORIGIN, buf, 512, NULL, NULL, 0,
+		1) == 0)
 		nvlist_add_string(props, "origin", buf);
 
-	if (zfs_prop_get(zfs_hdl, ZFS_PROP_CREATION, buf, 512,
-	    NULL, NULL, 0, 1) == 0)
+	if (zfs_prop_get(zfs_hdl, ZFS_PROP_CREATION, buf, 512, NULL, NULL, 0,
+		1) == 0)
 		nvlist_add_string(props, "creation", buf);
 
 	nvlist_add_boolean_value(props, "active",
 	    (strcmp(be_active_path(lbh), dataset) == 0));
 
-	if (zfs_prop_get(zfs_hdl, ZFS_PROP_USED, buf, 512,
-	    NULL, NULL, 0, 1) == 0)
+	if (zfs_prop_get(zfs_hdl, ZFS_PROP_USED, buf, 512, NULL, NULL, 0, 1) ==
+	    0)
 		nvlist_add_string(props, "used", buf);
 
-	if (zfs_prop_get(zfs_hdl, ZFS_PROP_USEDDS, buf, 512,
-	    NULL, NULL, 0, 1) == 0)
+	if (zfs_prop_get(zfs_hdl, ZFS_PROP_USEDDS, buf, 512, NULL, NULL, 0,
+		1) == 0)
 		nvlist_add_string(props, "usedds", buf);
 
-	if (zfs_prop_get(zfs_hdl, ZFS_PROP_USEDSNAP, buf, 512,
-	    NULL, NULL, 0, 1) == 0)
+	if (zfs_prop_get(zfs_hdl, ZFS_PROP_USEDSNAP, buf, 512, NULL, NULL, 0,
+		1) == 0)
 		nvlist_add_string(props, "usedsnap", buf);
 
-	if (zfs_prop_get(zfs_hdl, ZFS_PROP_USEDREFRESERV, buf, 512,
-	    NULL, NULL, 0, 1) == 0)
+	if (zfs_prop_get(zfs_hdl, ZFS_PROP_USEDREFRESERV, buf, 512, NULL, NULL,
+		0, 1) == 0)
 		nvlist_add_string(props, "usedrefreserv", buf);
 
-	if (zfs_prop_get(zfs_hdl, ZFS_PROP_REFERENCED, buf, 512,
-	    NULL, NULL, 0, 1) == 0)
+	if (zfs_prop_get(zfs_hdl, ZFS_PROP_REFERENCED, buf, 512, NULL, NULL, 0,
+		1) == 0)
 		nvlist_add_string(props, "referenced", buf);
 
 	nvlist_add_boolean_value(props, "nextboot",
@@ -236,7 +231,6 @@ prop_list_builder_cb(zfs_handle_t *zfs_hdl, void *data_p)
 
 	return (0);
 }
-
 
 /*
  * Updates the properties of each bootenv in the libbe handle
@@ -249,10 +243,10 @@ be_proplist_update(prop_data_t *data)
 	zfs_handle_t *root_hdl;
 
 	if ((root_hdl = zfs_open(data->lbh->lzh, data->lbh->root,
-	    ZFS_TYPE_FILESYSTEM)) == NULL)
+		 ZFS_TYPE_FILESYSTEM)) == NULL)
 		return (BE_ERR_ZFSOPEN);
 
-	(void) lzbe_get_boot_device(zpool_get_name(data->lbh->active_phandle),
+	(void)lzbe_get_boot_device(zpool_get_name(data->lbh->active_phandle),
 	    &data->bootonce);
 
 	/* XXX TODO: some error checking here */
@@ -267,10 +261,9 @@ static int
 snapshot_proplist_update(zfs_handle_t *hdl, prop_data_t *data)
 {
 
-	return (zfs_iter_snapshots_sorted(hdl, prop_list_builder_cb, data,
-	    0, 0));
+	return (
+	    zfs_iter_snapshots_sorted(hdl, prop_list_builder_cb, data, 0, 0));
 }
-
 
 int
 be_prop_list_alloc(nvlist_t **be_list)
@@ -297,7 +290,6 @@ be_prop_list_free(nvlist_t *be_list)
 			nvlist_free(prop_list);
 	}
 }
-
 
 /*
  * Usage

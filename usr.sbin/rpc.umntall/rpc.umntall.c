@@ -28,14 +28,13 @@
  */
 
 #include <sys/param.h>
-#include <sys/ucred.h>
 #include <sys/mount.h>
-
-#include <rpc/rpc.h>
-#include <rpcsvc/mount.h>
+#include <sys/ucred.h>
 
 #include <err.h>
 #include <netdb.h>
+#include <rpc/rpc.h>
+#include <rpcsvc/mount.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -45,14 +44,15 @@
 
 int verbose;
 
-static int do_umount (char *, char *);
-static int do_umntall (char *);
-static int is_mounted (char *, char *);
-static void usage (void);
-int	xdr_dir (XDR *, char *);
+static int do_umount(char *, char *);
+static int do_umntall(char *);
+static int is_mounted(char *, char *);
+static void usage(void);
+int xdr_dir(XDR *, char *);
 
 int
-main(int argc, char **argv) {
+main(int argc, char **argv)
+{
 	int ch, keep, success, pathlen;
 	time_t expire, now;
 	char *host, *path;
@@ -109,12 +109,11 @@ main(int argc, char **argv) {
 				if (verbose)
 					warnx("remove expired entry %s:%s",
 					    mtab->mtab_host, mtab->mtab_dirp);
-				bzero(mtab->mtab_host,
-				    sizeof(mtab->mtab_host));
+				bzero(mtab->mtab_host, sizeof(mtab->mtab_host));
 				continue;
 			}
-			if (keep && is_mounted(mtab->mtab_host,
-			    mtab->mtab_dirp)) {
+			if (keep &&
+			    is_mounted(mtab->mtab_host, mtab->mtab_dirp)) {
 				if (verbose)
 					warnx("skip entry %s:%s",
 					    mtab->mtab_host, mtab->mtab_dirp);
@@ -142,7 +141,7 @@ main(int argc, char **argv) {
 		} else {
 			/* Do a RPC UMNTALL for this specific mount */
 			for (pathlen = strlen(path);
-			    pathlen > 1 && path[pathlen - 1] == '/'; pathlen--)
+			     pathlen > 1 && path[pathlen - 1] == '/'; pathlen--)
 				path[pathlen - 1] = '\0';
 			success = do_umount(host, path);
 			if (verbose && success)
@@ -157,7 +156,7 @@ main(int argc, char **argv) {
 	if (success)
 		success = write_mtab(verbose);
 	free_mtab();
-	exit (success ? 0 : 1);
+	exit(success ? 0 : 1);
 }
 
 /*
@@ -166,25 +165,25 @@ main(int argc, char **argv) {
  * but produces a RPC IOERR on non FreeBSD systems.
  */
 int
-do_umntall(char *hostname) {
+do_umntall(char *hostname)
+{
 	enum clnt_stat clnt_stat;
 	struct timeval try;
 	CLIENT *clp;
 
 	try.tv_sec = 3;
 	try.tv_usec = 0;
-	clp = clnt_create_timed(hostname, MOUNTPROG, MOUNTVERS, "udp",
-	    &try);
+	clp = clnt_create_timed(hostname, MOUNTPROG, MOUNTVERS, "udp", &try);
 	if (clp == NULL) {
 		warnx("%s: %s", hostname, clnt_spcreateerror("MOUNTPROG"));
 		return (0);
 	}
 	clp->cl_auth = authunix_create_default();
-	clnt_stat = clnt_call(clp, MOUNTPROC_UMNTALL,
-	    (xdrproc_t)xdr_void, (caddr_t)0,
-	    (xdrproc_t)xdr_void, (caddr_t)0, try);
+	clnt_stat = clnt_call(clp, MOUNTPROC_UMNTALL, (xdrproc_t)xdr_void,
+	    (caddr_t)0, (xdrproc_t)xdr_void, (caddr_t)0, try);
 	if (clnt_stat != RPC_SUCCESS)
-		warnx("%s: %s", hostname, clnt_sperror(clp, "MOUNTPROC_UMNTALL"));
+		warnx("%s: %s", hostname,
+		    clnt_sperror(clp, "MOUNTPROC_UMNTALL"));
 	auth_destroy(clp->cl_auth);
 	clnt_destroy(clp);
 	return (clnt_stat == RPC_SUCCESS);
@@ -194,16 +193,16 @@ do_umntall(char *hostname) {
  * Send a RPC_MNT UMOUNT request for dirp to hostname.
  */
 int
-do_umount(char *hostname, char *dirp) {
+do_umount(char *hostname, char *dirp)
+{
 	enum clnt_stat clnt_stat;
 	struct timeval try;
 	CLIENT *clp;
 
 	try.tv_sec = 3;
 	try.tv_usec = 0;
-	clp = clnt_create_timed(hostname, MOUNTPROG, MOUNTVERS, "udp",
-	    &try);
-	if (clp  == NULL) {
+	clp = clnt_create_timed(hostname, MOUNTPROG, MOUNTVERS, "udp", &try);
+	if (clp == NULL) {
 		warnx("%s: %s", hostname, clnt_spcreateerror("MOUNTPROG"));
 		return (0);
 	}
@@ -221,7 +220,8 @@ do_umount(char *hostname, char *dirp) {
  * Check if the entry is still/already mounted.
  */
 int
-is_mounted(char *hostname, char *dirp) {
+is_mounted(char *hostname, char *dirp)
+{
 	struct statfs *mntbuf;
 	char name[MNAMELEN + 1];
 	size_t bufsize;
@@ -251,7 +251,8 @@ is_mounted(char *hostname, char *dirp) {
  * xdr routines for mount rpc's
  */
 int
-xdr_dir(XDR *xdrsp, char *dirp) {
+xdr_dir(XDR *xdrsp, char *dirp)
+{
 	return (xdr_string(xdrsp, &dirp, MNTPATHLEN));
 }
 

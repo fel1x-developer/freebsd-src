@@ -15,29 +15,29 @@
 #include "vmci_resource.h"
 #include "vmci_utils.h"
 
-#define LGPFX				"vmci_doorbell: "
+#define LGPFX "vmci_doorbell: "
 
-#define VMCI_DOORBELL_INDEX_TABLE_SIZE	64
-#define VMCI_DOORBELL_HASH(_idx)					\
+#define VMCI_DOORBELL_INDEX_TABLE_SIZE 64
+#define VMCI_DOORBELL_HASH(_idx) \
 	vmci_hash_id((_idx), VMCI_DOORBELL_INDEX_TABLE_SIZE)
 
 /* Describes a doorbell notification handle allocated by the host. */
 struct vmci_doorbell_entry {
-	struct vmci_resource			resource;
-	uint32_t				idx;
-	vmci_list_item(vmci_doorbell_entry)	idx_list_item;
-	vmci_privilege_flags			priv_flags;
-	bool					is_doorbell;
-	bool					run_delayed;
-	vmci_callback				notify_cb;
-	void					*client_data;
-	vmci_event				destroy_event;
-	volatile int				active;
+	struct vmci_resource resource;
+	uint32_t idx;
+	vmci_list_item(vmci_doorbell_entry) idx_list_item;
+	vmci_privilege_flags priv_flags;
+	bool is_doorbell;
+	bool run_delayed;
+	vmci_callback notify_cb;
+	void *client_data;
+	vmci_event destroy_event;
+	volatile int active;
 };
 
 struct vmci_doorbell_index_table {
-	vmci_lock			lock;
-	vmci_list(vmci_doorbell_entry)	entries[VMCI_DOORBELL_INDEX_TABLE_SIZE];
+	vmci_lock lock;
+	vmci_list(vmci_doorbell_entry) entries[VMCI_DOORBELL_INDEX_TABLE_SIZE];
 };
 
 /* The VMCI index table keeps track of currently registered doorbells. */
@@ -47,7 +47,7 @@ static struct vmci_doorbell_index_table vmci_doorbell_it;
  * The max_notify_idx is one larger than the currently known bitmap index in
  * use, and is used to determine how much of the bitmap needs to be scanned.
  */
-static uint32_t	max_notify_idx;
+static uint32_t max_notify_idx;
 
 /*
  * The notify_idx_count is used for determining whether there are free entries
@@ -65,9 +65,9 @@ static uint32_t last_notify_idx_reserved;
 /* This is a one entry cache used to by the index allocation. */
 static uint32_t last_notify_idx_released = PAGE_SIZE;
 
-static void	vmci_doorbell_free_cb(void *client_data);
-static int	vmci_doorbell_release_cb(void *client_data);
-static void	vmci_doorbell_delayed_dispatch_cb(void *data);
+static void vmci_doorbell_free_cb(void *client_data);
+static int vmci_doorbell_release_cb(void *client_data);
+static void vmci_doorbell_delayed_dispatch_cb(void *data);
 
 /*
  *------------------------------------------------------------------------------
@@ -90,8 +90,7 @@ vmci_doorbell_init(void)
 {
 	uint32_t bucket;
 
-	for (bucket = 0; bucket < ARRAYSIZE(vmci_doorbell_it.entries);
-	    ++bucket)
+	for (bucket = 0; bucket < ARRAYSIZE(vmci_doorbell_it.entries); ++bucket)
 		vmci_list_init(&vmci_doorbell_it.entries[bucket]);
 
 	return (vmci_init_lock(&vmci_doorbell_it.lock,
@@ -126,8 +125,8 @@ vmci_doorbell_exit(void)
  *
  * vmci_doorbell_free_cb --
  *
- *     Callback to free doorbell entry structure when resource is no longer used,
- *     i.e. the reference count reached 0.  The entry is freed in
+ *     Callback to free doorbell entry structure when resource is no longer
+ *used, i.e. the reference count reached 0.  The entry is freed in
  *     vmci_doorbell_destroy(), which is waiting on the signal that gets fired
  *     here.
  *
@@ -172,7 +171,7 @@ vmci_doorbell_release_cb(void *client_data)
 {
 	struct vmci_doorbell_entry *entry;
 
-	entry  = (struct vmci_doorbell_entry *)client_data;
+	entry = (struct vmci_doorbell_entry *)client_data;
 	ASSERT(entry);
 	vmci_resource_release(&entry->resource);
 	return (0);
@@ -215,8 +214,8 @@ vmci_doorbell_get_priv_flags(struct vmci_handle handle,
 		    VMCI_RESOURCE_TYPE_DOORBELL);
 		if (resource == NULL)
 			return (VMCI_ERROR_NOT_FOUND);
-		entry = RESOURCE_CONTAINER(
-		    resource, struct vmci_doorbell_entry, resource);
+		entry = RESOURCE_CONTAINER(resource, struct vmci_doorbell_entry,
+		    resource);
 		*priv_flags = entry->priv_flags;
 		vmci_resource_release(resource);
 	} else if (handle.context == VMCI_HYPERVISOR_CONTEXT_ID) {
@@ -252,7 +251,8 @@ vmci_doorbell_index_table_find(uint32_t idx)
 
 	bucket = VMCI_DOORBELL_HASH(idx);
 
-	vmci_list_scan(iter, &vmci_doorbell_it.entries[bucket], idx_list_item) {
+	vmci_list_scan(iter, &vmci_doorbell_it.entries[bucket], idx_list_item)
+	{
 		if (idx == iter->idx)
 			return (iter);
 	}
@@ -309,14 +309,14 @@ vmci_doorbell_index_table_add(struct vmci_doorbell_entry *entry)
 			if (notify_idx_count + 1 < max_notify_idx) {
 				do {
 					if (!vmci_doorbell_index_table_find(
-					    new_notify_idx)) {
+						new_notify_idx)) {
 						reused = true;
 						break;
 					}
 					new_notify_idx = (new_notify_idx + 1) %
 					    max_notify_idx;
-				} while (new_notify_idx !=
-				    last_notify_idx_released);
+				} while (
+				    new_notify_idx != last_notify_idx_released);
 			}
 			if (!reused) {
 				new_notify_idx = max_notify_idx;
@@ -503,8 +503,8 @@ vmci_doorbell_create(struct vmci_handle *handle, uint32_t flags,
 
 	entry = vmci_alloc_kernel_mem(sizeof(*entry), VMCI_MEMORY_NORMAL);
 	if (entry == NULL) {
-		VMCI_LOG_WARNING(LGPFX"Failed allocating memory for datagram "
-		    "entry.\n");
+		VMCI_LOG_WARNING(LGPFX "Failed allocating memory for datagram "
+				       "entry.\n");
 		return (VMCI_ERROR_NO_MEM);
 	}
 
@@ -526,9 +526,9 @@ vmci_doorbell_create(struct vmci_handle *handle, uint32_t flags,
 		new_handle = VMCI_MAKE_HANDLE(context_id, resource_id);
 	} else {
 		if (VMCI_INVALID_ID == handle->resource) {
-			VMCI_LOG_DEBUG(LGPFX"Invalid argument "
-			    "(handle=0x%x:0x%x).\n", handle->context,
-			    handle->resource);
+			VMCI_LOG_DEBUG(LGPFX "Invalid argument "
+					     "(handle=0x%x:0x%x).\n",
+			    handle->context, handle->resource);
 			result = VMCI_ERROR_INVALID_ARGS;
 			goto free_mem;
 		}
@@ -548,9 +548,9 @@ vmci_doorbell_create(struct vmci_handle *handle, uint32_t flags,
 	    VMCI_RESOURCE_TYPE_DOORBELL, new_handle, vmci_doorbell_free_cb,
 	    entry);
 	if (result != VMCI_SUCCESS) {
-		VMCI_LOG_WARNING(LGPFX"Failed to add new resource "
-		    "(handle=0x%x:0x%x).\n", new_handle.context,
-		    new_handle.resource);
+		VMCI_LOG_WARNING(LGPFX "Failed to add new resource "
+				       "(handle=0x%x:0x%x).\n",
+		    new_handle.context, new_handle.resource);
 		if (result == VMCI_ERROR_DUPLICATE_ENTRY)
 			result = VMCI_ERROR_ALREADY_EXISTS;
 
@@ -607,8 +607,9 @@ vmci_doorbell_destroy(struct vmci_handle handle)
 
 	resource = vmci_resource_get(handle, VMCI_RESOURCE_TYPE_DOORBELL);
 	if (resource == NULL) {
-		VMCI_LOG_DEBUG(LGPFX"Failed to destroy doorbell "
-		    "(handle=0x%x:0x%x).\n", handle.context, handle.resource);
+		VMCI_LOG_DEBUG(LGPFX "Failed to destroy doorbell "
+				     "(handle=0x%x:0x%x).\n",
+		    handle.context, handle.resource);
 		return (VMCI_ERROR_NOT_FOUND);
 	}
 	entry = RESOURCE_CONTAINER(resource, struct vmci_doorbell_entry,
@@ -629,8 +630,8 @@ vmci_doorbell_destroy(struct vmci_handle handle)
 		 * we just print a warning and return success.
 		 */
 
-		VMCI_LOG_DEBUG(LGPFX"Unlink of %s (handle=0x%x:0x%x) unknown "
-		    "by hypervisor (error=%d).\n",
+		VMCI_LOG_DEBUG(LGPFX "Unlink of %s (handle=0x%x:0x%x) unknown "
+				     "by hypervisor (error=%d).\n",
 		    entry->is_doorbell ? "doorbell" : "queuepair",
 		    handle.context, handle.resource, result);
 	}
@@ -807,14 +808,14 @@ vmci_register_notification_bitmap(PPN bitmap_ppn)
 	bitmap_set_msg.hdr.dst = VMCI_MAKE_HANDLE(VMCI_HYPERVISOR_CONTEXT_ID,
 	    VMCI_SET_NOTIFY_BITMAP);
 	bitmap_set_msg.hdr.src = VMCI_ANON_SRC_HANDLE;
-	bitmap_set_msg.hdr.payload_size =
-	    sizeof(bitmap_set_msg) - VMCI_DG_HEADERSIZE;
+	bitmap_set_msg.hdr.payload_size = sizeof(bitmap_set_msg) -
+	    VMCI_DG_HEADERSIZE;
 	bitmap_set_msg.bitmap_ppn = bitmap_ppn;
 
 	result = vmci_send_datagram((struct vmci_datagram *)&bitmap_set_msg);
 	if (result != VMCI_SUCCESS) {
-		VMCI_LOG_DEBUG(LGPFX"Failed to register (PPN=%u) as "
-		    "notification bitmap (error=%d).\n",
+		VMCI_LOG_DEBUG(LGPFX "Failed to register (PPN=%u) as "
+				     "notification bitmap (error=%d).\n",
 		    bitmap_ppn, result);
 		return (false);
 	}
@@ -845,7 +846,8 @@ vmci_doorbell_fire_entries(uint32_t notify_idx)
 
 	vmci_grab_lock_bh(&vmci_doorbell_it.lock);
 
-	vmci_list_scan(iter, &vmci_doorbell_it.entries[bucket], idx_list_item) {
+	vmci_list_scan(iter, &vmci_doorbell_it.entries[bucket], idx_list_item)
+	{
 		if (iter->idx == notify_idx &&
 		    atomic_load_int(&iter->active) == 1) {
 			ASSERT(iter->notify_cb);

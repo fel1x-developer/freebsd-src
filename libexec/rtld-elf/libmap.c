@@ -7,28 +7,29 @@
 #include <sys/mman.h>
 #include <sys/queue.h>
 #include <sys/stat.h>
+
 #include <dirent.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "debug.h"
-#include "rtld.h"
 #include "libmap.h"
-#include "rtld_paths.h"
+#include "rtld.h"
 #include "rtld_libc.h"
+#include "rtld_paths.h"
 
 TAILQ_HEAD(lm_list, lm);
 struct lm {
 	char *f;
 	char *t;
-	TAILQ_ENTRY(lm)	lm_link;
+	TAILQ_ENTRY(lm) lm_link;
 };
 
 static TAILQ_HEAD(lmp_list, lmp) lmp_head = TAILQ_HEAD_INITIALIZER(lmp_head);
 struct lmp {
 	char *p;
-	enum { T_EXACT=0, T_BASENAME, T_DIRECTORY } type;
+	enum { T_EXACT = 0, T_BASENAME, T_DIRECTORY } type;
 	struct lm_list lml;
 	TAILQ_ENTRY(lmp) lmp_link;
 };
@@ -53,14 +54,14 @@ static struct lm_list *lmp_find(const char *);
 static struct lm_list *lmp_init(char *);
 static const char *quickbasename(const char *);
 
-#define	iseol(c)	(((c) == '#') || ((c) == '\0') || \
-			 ((c) == '\n') || ((c) == '\r'))
+#define iseol(c) \
+	(((c) == '#') || ((c) == '\0') || ((c) == '\n') || ((c) == '\r'))
 
 /*
  * Do not use ctype.h macros, which rely on working TLS.  Rtld does
  * not support TLS for itself.
  */
-#define	rtld_isspace(c)	((c) == ' ' || (c) == '\t')
+#define rtld_isspace(c) ((c) == ' ' || (c) == '\t')
 
 int
 lm_init(const char *libmap_override)
@@ -104,7 +105,7 @@ lmc_parse_file(const char *path)
 	ssize_t retval;
 	int fd, saved_errno;
 
-	TAILQ_FOREACH(p, &lmc_head, next) {
+	TAILQ_FOREACH (p, &lmc_head, next) {
 		if (strcmp(p->path, path) == 0)
 			return;
 	}
@@ -122,7 +123,7 @@ lmc_parse_file(const char *path)
 		return;
 	}
 
-	TAILQ_FOREACH(p, &lmc_head, next) {
+	TAILQ_FOREACH (p, &lmc_head, next) {
 		if (p->dev == st.st_dev && p->ino == st.st_ino) {
 			close(fd);
 			return;
@@ -162,7 +163,7 @@ lmc_parse_dir(const char *idir)
 	char conffile[MAXPATHLEN];
 	char *ext;
 
-	TAILQ_FOREACH(p, &lmc_head, next) {
+	TAILQ_FOREACH (p, &lmc_head, next) {
 		if (strcmp(p->path, idir) == 0)
 			return;
 	}
@@ -210,8 +211,8 @@ lmc_parse(char *lm_p, size_t lm_len)
 	p = NULL;
 	while (cnt < lm_len) {
 		i = 0;
-		while (cnt < lm_len && lm_p[cnt] != '\n' &&
-		    i < sizeof(line) - 1) {
+		while (
+		    cnt < lm_len && lm_p[cnt] != '\n' && i < sizeof(line) - 1) {
 			line[i] = lm_p[cnt];
 			cnt++;
 			i++;
@@ -242,7 +243,7 @@ lmc_parse(char *lm_p, size_t lm_len)
 				cp++;
 
 			/* Found comment, EOL or end of selector */
-			if  (iseol(*cp) || *cp == ']')
+			if (iseol(*cp) || *cp == ']')
 				continue;
 
 			c = cp++;
@@ -430,7 +431,7 @@ lml_find(struct lm_list *lmh, const char *f)
 
 	dbg("%s(%p, \"%s\")", __func__, lmh, f);
 
-	TAILQ_FOREACH(lm, lmh, lm_link) {
+	TAILQ_FOREACH (lm, lmh, lm_link) {
 		if (strcmp(f, lm->f) == 0)
 			return (lm->t);
 	}
@@ -448,12 +449,12 @@ lmp_find(const char *n)
 
 	dbg("%s(\"%s\")", __func__, n);
 
-	TAILQ_FOREACH(lmp, &lmp_head, lmp_link) {
+	TAILQ_FOREACH (lmp, &lmp_head, lmp_link) {
 		if ((lmp->type == T_EXACT && strcmp(n, lmp->p) == 0) ||
-		    (lmp->type == T_DIRECTORY && strncmp(n, lmp->p,
-		    strlen(lmp->p)) == 0) ||
-		    (lmp->type == T_BASENAME && strcmp(quickbasename(n),
-		    lmp->p) == 0))
+		    (lmp->type == T_DIRECTORY &&
+			strncmp(n, lmp->p, strlen(lmp->p)) == 0) ||
+		    (lmp->type == T_BASENAME &&
+			strcmp(quickbasename(n), lmp->p) == 0))
 			return (&lmp->lml);
 	}
 	return (NULL);
@@ -470,7 +471,7 @@ lmp_init(char *n)
 	lmp->p = n;
 	if (n[strlen(n) - 1] == '/')
 		lmp->type = T_DIRECTORY;
-	else if (strchr(n,'/') == NULL)
+	else if (strchr(n, '/') == NULL)
 		lmp->type = T_BASENAME;
 	else
 		lmp->type = T_EXACT;

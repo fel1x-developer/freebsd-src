@@ -25,28 +25,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #include <sys/cdefs.h>
 #ifndef lint
 __RCSID("$NetBSD: main.c,v 1.10 1997/10/01 02:18:14 enami Exp $");
 #endif /* not lint */
 
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <unistd.h>
 #include <errno.h>
 #include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
-#include "fsutil.h"
 #include "ext.h"
+#include "fsutil.h"
 
-int alwaysno;		/* assume "no" for all questions */
-int alwaysyes;		/* assume "yes" for all questions */
-int preen;		/* set when preening */
-int rdonly;		/* device is opened read only (supersedes above) */
-int skipclean;		/* skip clean file systems if preening */
-int allow_mmap;		/* Allow the use of mmap(), if possible */
+int alwaysno;	/* assume "no" for all questions */
+int alwaysyes;	/* assume "yes" for all questions */
+int preen;	/* set when preening */
+int rdonly;	/* device is opened read only (supersedes above) */
+int skipclean;	/* skip clean file systems if preening */
+int allow_mmap; /* Allow the use of mmap(), if possible */
 
 static void usage(void) __dead2;
 
@@ -122,7 +121,6 @@ main(int argc, char **argv)
 
 	return ret;
 }
-
 
 /*VARARGS*/
 int

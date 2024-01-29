@@ -35,9 +35,9 @@
 
 #define ADF_C4XXX_FUSE_DISABLE_INLINE_INGRESS BIT(12)
 #define ADF_C4XXX_FUSE_DISABLE_INLINE_EGRESS BIT(13)
-#define ADF_C4XXX_FUSE_DISABLE_INLINE_MASK                                     \
-	(ADF_C4XXX_FUSE_DISABLE_INLINE_INGRESS |                               \
-	 ADF_C4XXX_FUSE_DISABLE_INLINE_EGRESS)
+#define ADF_C4XXX_FUSE_DISABLE_INLINE_MASK       \
+	(ADF_C4XXX_FUSE_DISABLE_INLINE_INGRESS | \
+	    ADF_C4XXX_FUSE_DISABLE_INLINE_EGRESS)
 
 #define ADF_C4XXX_ACCELERATORS_MASK (0xFFF)
 #define ADF_C4XXX_ACCELENGINES_MASK (0xFFFFFFFF)
@@ -56,17 +56,17 @@
 /* Bank and ring configuration */
 #define ADF_C4XXX_NUM_RINGS_PER_BANK 8
 /* Error detection and correction */
-#define ADF_C4XXX_AE_CTX_ENABLES(i) (0x40818 + ((i)*0x1000))
-#define ADF_C4XXX_AE_MISC_CONTROL(i) (0x40960 + ((i)*0x1000))
+#define ADF_C4XXX_AE_CTX_ENABLES(i) (0x40818 + ((i) * 0x1000))
+#define ADF_C4XXX_AE_MISC_CONTROL(i) (0x40960 + ((i) * 0x1000))
 #define ADF_C4XXX_ENABLE_AE_ECC_ERR BIT(28)
 #define ADF_C4XXX_ENABLE_AE_ECC_PARITY_CORR (BIT(24) | BIT(12))
-#define ADF_C4XXX_UERRSSMSH(i) (0x18 + ((i)*0x4000))
+#define ADF_C4XXX_UERRSSMSH(i) (0x18 + ((i) * 0x4000))
 #define ADF_C4XXX_UERRSSMSH_INTS_CLEAR_MASK (~BIT(0) ^ BIT(16))
-#define ADF_C4XXX_CERRSSMSH(i) (0x10 + ((i)*0x4000))
+#define ADF_C4XXX_CERRSSMSH(i) (0x10 + ((i) * 0x4000))
 #define ADF_C4XXX_CERRSSMSH_INTS_CLEAR_MASK (~BIT(0))
 #define ADF_C4XXX_ERRSSMSH_EN BIT(3)
-#define ADF_C4XXX_PF2VF_OFFSET(i) (0x62400 + ((i)*0x04))
-#define ADF_C4XXX_VINTMSK_OFFSET(i) (0x62200 + ((i)*0x04))
+#define ADF_C4XXX_PF2VF_OFFSET(i) (0x62400 + ((i) * 0x04))
+#define ADF_C4XXX_VINTMSK_OFFSET(i) (0x62200 + ((i) * 0x04))
 
 /* Doorbell interrupt detection in ERRSOU11 */
 #define ADF_C4XXX_DOORBELL_INT_SRC BIT(10)
@@ -79,7 +79,7 @@
 
 /* Doorbell register definitions */
 #define ADF_C4XXX_NUM_ETH_DOORBELL_REGS (4)
-#define ADF_C4XXX_ETH_DOORBELL(i) (0x61500 + ((i)*0x04))
+#define ADF_C4XXX_ETH_DOORBELL(i) (0x61500 + ((i) * 0x04))
 
 /* Error source registers */
 #define ADF_C4XXX_ERRSOU0 (0x60000 + 0x40)
@@ -128,42 +128,42 @@
 #define ADF_C4XXX_IRQ_SRC_MASK(accel) (1 << (accel))
 
 /* Return address of SHINTMASKSSM register for a given accelerator */
-#define ADF_C4XXX_SHINTMASKSSM_OFFSET(accel)                                   \
-	(ADF_C4XXX_SHINTMASKSSM + ((accel)*0x4000))
+#define ADF_C4XXX_SHINTMASKSSM_OFFSET(accel) \
+	(ADF_C4XXX_SHINTMASKSSM + ((accel) * 0x4000))
 
 /* Return address of SSMWDTL register for a given accelerator */
-#define ADF_C4XXX_SSMWDTL_OFFSET(accel) (ADF_C4XXX_SSMWDTL + ((accel)*0x4000))
+#define ADF_C4XXX_SSMWDTL_OFFSET(accel) (ADF_C4XXX_SSMWDTL + ((accel) * 0x4000))
 
 /* Return address of SSMWDTH register for a given accelerator */
-#define ADF_C4XXX_SSMWDTH_OFFSET(accel) (ADF_C4XXX_SSMWDTH + ((accel)*0x4000))
+#define ADF_C4XXX_SSMWDTH_OFFSET(accel) (ADF_C4XXX_SSMWDTH + ((accel) * 0x4000))
 
 /* Return address of SSMWDTPKEL register for a given accelerator */
-#define ADF_C4XXX_SSMWDTPKEL_OFFSET(accel)                                     \
-	(ADF_C4XXX_SSMWDTPKEL + ((accel)*0x4000))
+#define ADF_C4XXX_SSMWDTPKEL_OFFSET(accel) \
+	(ADF_C4XXX_SSMWDTPKEL + ((accel) * 0x4000))
 
 /* Return address of SSMWDTPKEH register for a given accelerator */
-#define ADF_C4XXX_SSMWDTPKEH_OFFSET(accel)                                     \
-	(ADF_C4XXX_SSMWDTPKEH + ((accel)*0x4000))
+#define ADF_C4XXX_SSMWDTPKEH_OFFSET(accel) \
+	(ADF_C4XXX_SSMWDTPKEH + ((accel) * 0x4000))
 
 /* Return address of SLICEHANGSTATUS register for a given accelerator */
-#define ADF_C4XXX_SLICEHANGSTATUS_OFFSET(accel)                                \
-	(ADF_C4XXX_SLICEHANGSTATUS + ((accel)*0x4000))
+#define ADF_C4XXX_SLICEHANGSTATUS_OFFSET(accel) \
+	(ADF_C4XXX_SLICEHANGSTATUS + ((accel) * 0x4000))
 
 /* Return address of IASLICEHANGSTATUS register for a given accelerator */
-#define ADF_C4XXX_IASLICEHANGSTATUS_OFFSET(accel)                              \
-	(ADF_C4XXX_IASLICEHANGSTATUS + ((accel)*0x4000))
+#define ADF_C4XXX_IASLICEHANGSTATUS_OFFSET(accel) \
+	(ADF_C4XXX_IASLICEHANGSTATUS + ((accel) * 0x4000))
 
 /* RAS enabling related registers */
 #define ADF_C4XXX_SSMFEATREN (0x2010)
 #define ADF_C4XXX_SSMSOFTERRORPARITY_MASK (0x1008)
 
 /* Return address of SSMFEATREN register for given accel */
-#define ADF_C4XXX_GET_SSMFEATREN_OFFSET(accel)                                 \
-	(ADF_C4XXX_SSMFEATREN + ((accel)*0x4000))
+#define ADF_C4XXX_GET_SSMFEATREN_OFFSET(accel) \
+	(ADF_C4XXX_SSMFEATREN + ((accel) * 0x4000))
 
 /* Return address of SSMSOFTERRORPARITY_MASK register for given accel */
-#define ADF_C4XXX_GET_SSMSOFTERRORPARITY_MASK_OFFSET(accel)                    \
-	(ADF_C4XXX_SSMSOFTERRORPARITY_MASK + ((accel)*0x4000))
+#define ADF_C4XXX_GET_SSMSOFTERRORPARITY_MASK_OFFSET(accel) \
+	(ADF_C4XXX_SSMSOFTERRORPARITY_MASK + ((accel) * 0x4000))
 
 /* RAS enabling related registers values to be written */
 #define ADF_C4XXX_SSMFEATREN_VAL (0xFD)
@@ -196,9 +196,9 @@
 #define ADF_C4XXX_RI_MEM_PAR_ERR BIT(2)
 #define ADF_C4XXX_TI_MEM_PAR_ERR BIT(3)
 
-#define ADF_C4XXX_ERRSOU9_ERROR_MASK                                           \
-	(ADF_C4XXX_ME_UNCORR_ERROR | ADF_C4XXX_CPP_CMD_PAR_ERR |               \
-	 ADF_C4XXX_RI_MEM_PAR_ERR | ADF_C4XXX_TI_MEM_PAR_ERR)
+#define ADF_C4XXX_ERRSOU9_ERROR_MASK                             \
+	(ADF_C4XXX_ME_UNCORR_ERROR | ADF_C4XXX_CPP_CMD_PAR_ERR | \
+	    ADF_C4XXX_RI_MEM_PAR_ERR | ADF_C4XXX_TI_MEM_PAR_ERR)
 
 #define ADF_C4XXX_HI_ME_UNCERR_LOG (0x60100)
 #define ADF_C4XXX_HI_ME_UNCERR_LOG_ENABLE (0x61608)
@@ -227,7 +227,7 @@
 #define ADF_C4XXX_RI_MEM_PAR_ERR_FERR (0x61618)
 #define ADF_C4XXX_RI_MEM_PAR_ERR_EN0_MASK (0x7FFFFF)
 #define ADF_C4XXX_RI_MEM_MSIX_TBL_INT_MASK (BIT(22))
-#define ADF_C4XXX_RI_MEM_PAR_ERR_STS_MASK                                      \
+#define ADF_C4XXX_RI_MEM_PAR_ERR_STS_MASK \
 	(ADF_C4XXX_RI_MEM_PAR_ERR_EN0_MASK ^ ADF_C4XXX_RI_MEM_MSIX_TBL_INT_MASK)
 
 /* TI Memory Parity Error Status Register
@@ -264,7 +264,7 @@
 #define ADF_C4XXX_IASTATSSM_CPPPAR_ERR_MASK BIT(15)
 #define ADF_C4XXX_IASTATSSM_RFPAR_ERR_MASK BIT(16)
 
-#define ADF_C4XXX_IAINTSTATSSM(i) ((i)*0x4000 + 0x206C)
+#define ADF_C4XXX_IAINTSTATSSM(i) ((i) * 0x4000 + 0x206C)
 #define ADF_C4XXX_IASTATSSM_MASK 0x1DFFF
 #define ADF_C4XXX_IASTATSSM_CLR_MASK 0xFFFE2000
 #define ADF_C4XXX_IASTATSSM_BITS 17
@@ -278,7 +278,7 @@
  * This register is used to unmask SSM interrupts to host
  * reported by ERRSOU10.
  */
-#define ADF_C4XXX_GET_INTMASKSSM_OFFSET(accel) ((accel)*0x4000)
+#define ADF_C4XXX_GET_INTMASKSSM_OFFSET(accel) ((accel) * 0x4000)
 
 /* Base address of SPP parity error mask register
  * CSR name: sppparerrmsk[0..11]
@@ -289,21 +289,21 @@
  * This register is used to unmask SPP parity errors interrupts to host
  * reported by ERRSOU10.
  */
-#define ADF_C4XXX_GET_SPPPARERRMSK_OFFSET(accel)                               \
-	(ADF_C4XXX_SPPPARERRMSK_OFFSET + ((accel)*0x4000))
+#define ADF_C4XXX_GET_SPPPARERRMSK_OFFSET(accel) \
+	(ADF_C4XXX_SPPPARERRMSK_OFFSET + ((accel) * 0x4000))
 
-#define ADF_C4XXX_EXPRPSSMCPR0(i) ((i)*0x4000 + 0x400)
-#define ADF_C4XXX_EXPRPSSMXLT0(i) ((i)*0x4000 + 0x500)
-#define ADF_C4XXX_EXPRPSSMCPR1(i) ((i)*0x4000 + 0x1400)
-#define ADF_C4XXX_EXPRPSSMXLT1(i) ((i)*0x4000 + 0x1500)
+#define ADF_C4XXX_EXPRPSSMCPR0(i) ((i) * 0x4000 + 0x400)
+#define ADF_C4XXX_EXPRPSSMXLT0(i) ((i) * 0x4000 + 0x500)
+#define ADF_C4XXX_EXPRPSSMCPR1(i) ((i) * 0x4000 + 0x1400)
+#define ADF_C4XXX_EXPRPSSMXLT1(i) ((i) * 0x4000 + 0x1500)
 
 #define ADF_C4XXX_EXPRPSSM_FATAL_MASK BIT(2)
 #define ADF_C4XXX_EXPRPSSM_SOFT_MASK BIT(3)
 
 #define ADF_C4XXX_PPERR_INTS_CLEAR_MASK BIT(0)
 
-#define ADF_C4XXX_SSMSOFTERRORPARITY(i) ((i)*0x4000 + 0x1000)
-#define ADF_C4XXX_SSMCPPERR(i) ((i)*0x4000 + 0x2030)
+#define ADF_C4XXX_SSMSOFTERRORPARITY(i) ((i) * 0x4000 + 0x1000)
+#define ADF_C4XXX_SSMCPPERR(i) ((i) * 0x4000 + 0x2030)
 
 /* ethernet doorbell in ERRMSK11
  * timisc in ERRMSK11
@@ -413,21 +413,23 @@
 #define ADF_C4XXX_TGT_UERR (BIT(9) | BIT(8) | BIT(7) | BIT(2))
 
 /* Slice power down register */
-#define ADF_C4XXX_SLICEPWRDOWN(i) (((i)*0x4000) + 0x2C)
+#define ADF_C4XXX_SLICEPWRDOWN(i) (((i) * 0x4000) + 0x2C)
 
 /* Enabling PKE0 to PKE4. */
-#define ADF_C4XXX_MMP_PWR_UP_MSK                                               \
+#define ADF_C4XXX_MMP_PWR_UP_MSK \
 	(BIT(20) | BIT(19) | BIT(18) | BIT(17) | BIT(16))
 
 /* Error registers for MMP0-MMP4. */
 #define ADF_C4XXX_MAX_MMP (5)
 
-#define ADF_C4XXX_MMP_BASE(i) ((i)*0x1000 % 0x3800)
-#define ADF_C4XXX_CERRSSMMMP(i, n) ((i)*0x4000 + ADF_C4XXX_MMP_BASE(n) + 0x380)
-#define ADF_C4XXX_UERRSSMMMP(i, n) ((i)*0x4000 + ADF_C4XXX_MMP_BASE(n) + 0x388)
-#define ADF_C4XXX_UERRSSMMMPAD(i, n)                                           \
-	((i)*0x4000 + ADF_C4XXX_MMP_BASE(n) + 0x38C)
-#define ADF_C4XXX_INTMASKSSM(i) ((i)*0x4000 + 0x0)
+#define ADF_C4XXX_MMP_BASE(i) ((i) * 0x1000 % 0x3800)
+#define ADF_C4XXX_CERRSSMMMP(i, n) \
+	((i) * 0x4000 + ADF_C4XXX_MMP_BASE(n) + 0x380)
+#define ADF_C4XXX_UERRSSMMMP(i, n) \
+	((i) * 0x4000 + ADF_C4XXX_MMP_BASE(n) + 0x388)
+#define ADF_C4XXX_UERRSSMMMPAD(i, n) \
+	((i) * 0x4000 + ADF_C4XXX_MMP_BASE(n) + 0x38C)
+#define ADF_C4XXX_INTMASKSSM(i) ((i) * 0x4000 + 0x0)
 
 #define ADF_C4XXX_UERRSSMMMP_INTS_CLEAR_MASK ((BIT(16) | BIT(0)))
 #define ADF_C4XXX_CERRSSMMMP_INTS_CLEAR_MASK BIT(0)
@@ -438,7 +440,7 @@
 /* Bit<3> enables logging of MMP correctable errors */
 #define ADF_C4XXX_CERRSSMMMP_EN BIT(3)
 
-#define ADF_C4XXX_ERRMSK_VF2PF_OFFSET(i) (ADF_C4XXX_ERRMSK4 + ((i)*0x04))
+#define ADF_C4XXX_ERRMSK_VF2PF_OFFSET(i) (ADF_C4XXX_ERRMSK4 + ((i) * 0x04))
 
 /* RAM base address registers */
 #define ADF_C4XXX_RAMBASEADDRHI 0x71020
@@ -488,25 +490,25 @@
 #define ADF_C4XXX_IXP_RESET_GENERIC_ARAM BIT(2)
 
 /* Default accel unit configuration */
-#define ADF_C4XXX_NUM_CY_AU                                                    \
-	{                                                                      \
-		[DEV_SKU_1] = 4, [DEV_SKU_1_CY] = 6, [DEV_SKU_2] = 3,          \
-		[DEV_SKU_2_CY] = 4, [DEV_SKU_3] = 1, [DEV_SKU_3_CY] = 2,       \
-		[DEV_SKU_UNKNOWN] = 0                                          \
+#define ADF_C4XXX_NUM_CY_AU                                              \
+	{                                                                \
+		[DEV_SKU_1] = 4, [DEV_SKU_1_CY] = 6, [DEV_SKU_2] = 3,    \
+		[DEV_SKU_2_CY] = 4, [DEV_SKU_3] = 1, [DEV_SKU_3_CY] = 2, \
+		[DEV_SKU_UNKNOWN] = 0                                    \
 	}
-#define ADF_C4XXX_NUM_DC_AU                                                    \
-	{                                                                      \
-		[DEV_SKU_1] = 2, [DEV_SKU_1_CY] = 0, [DEV_SKU_2] = 1,          \
-		[DEV_SKU_2_CY] = 0, [DEV_SKU_3] = 1, [DEV_SKU_3_CY] = 0,       \
-		[DEV_SKU_UNKNOWN] = 0                                          \
+#define ADF_C4XXX_NUM_DC_AU                                              \
+	{                                                                \
+		[DEV_SKU_1] = 2, [DEV_SKU_1_CY] = 0, [DEV_SKU_2] = 1,    \
+		[DEV_SKU_2_CY] = 0, [DEV_SKU_3] = 1, [DEV_SKU_3_CY] = 0, \
+		[DEV_SKU_UNKNOWN] = 0                                    \
 	}
 
 #define ADF_C4XXX_NUM_ACCEL_PER_AU 2
-#define ADF_C4XXX_NUM_INLINE_AU                                                \
-	{                                                                      \
-		[DEV_SKU_1] = 0, [DEV_SKU_1_CY] = 0, [DEV_SKU_2] = 0,          \
-		[DEV_SKU_2_CY] = 0, [DEV_SKU_3] = 0, [DEV_SKU_3_CY] = 0,       \
-		[DEV_SKU_UNKNOWN] = 0                                          \
+#define ADF_C4XXX_NUM_INLINE_AU                                          \
+	{                                                                \
+		[DEV_SKU_1] = 0, [DEV_SKU_1_CY] = 0, [DEV_SKU_2] = 0,    \
+		[DEV_SKU_2_CY] = 0, [DEV_SKU_3] = 0, [DEV_SKU_3_CY] = 0, \
+		[DEV_SKU_UNKNOWN] = 0                                    \
 	}
 #define ADF_C4XXX_6_AE 6
 #define ADF_C4XXX_4_AE 4
@@ -531,20 +533,21 @@
 #define ADF_C4XXX_WRKTHD2PARTMAP 0x82000
 #define ADF_C4XXX_WQM_SIZE 0x4
 
-#define ADF_C4XXX_DEFAULT_PARTITIONS                                           \
-	(ADF_C4XXX_PART_ASYM | ADF_C4XXX_PART_SYM << 8 |                       \
-	 ADF_C4XXX_PART_UNUSED << 16 | ADF_C4XXX_PART_DC << 24)
+#define ADF_C4XXX_DEFAULT_PARTITIONS                     \
+	(ADF_C4XXX_PART_ASYM | ADF_C4XXX_PART_SYM << 8 | \
+	    ADF_C4XXX_PART_UNUSED << 16 | ADF_C4XXX_PART_DC << 24)
 
 /* SKU configurations */
 #define ADF_C4XXX_HIGH_SKU_AES 32
 #define ADF_C4XXX_MED_SKU_AES 24
 #define ADF_C4XXX_LOW_SKU_AES 12
 
-#define READ_CSR_WQM(csr_addr, csr_offset, index)                              \
-	ADF_CSR_RD(csr_addr, (csr_offset) + ((index)*ADF_C4XXX_WQM_SIZE))
+#define READ_CSR_WQM(csr_addr, csr_offset, index) \
+	ADF_CSR_RD(csr_addr, (csr_offset) + ((index) * ADF_C4XXX_WQM_SIZE))
 
-#define WRITE_CSR_WQM(csr_addr, csr_offset, index, value)                      \
-	ADF_CSR_WR(csr_addr, (csr_offset) + ((index)*ADF_C4XXX_WQM_SIZE), value)
+#define WRITE_CSR_WQM(csr_addr, csr_offset, index, value)                   \
+	ADF_CSR_WR(csr_addr, (csr_offset) + ((index) * ADF_C4XXX_WQM_SIZE), \
+	    value)
 
 /* Firmware Binary */
 #define ADF_C4XXX_FW "qat_c4xxx_fw"

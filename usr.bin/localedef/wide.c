@@ -35,11 +35,13 @@
  * this approach means that we need a method for each and every encoding.
  */
 #include <sys/cdefs.h>
+#include <sys/types.h>
+
 #include <ctype.h>
 #include <stdlib.h>
-#include <wchar.h>
 #include <string.h>
-#include <sys/types.h>
+#include <wchar.h>
+
 #include "localedef.h"
 
 static int towide_none(wchar_t *, const char *, unsigned);
@@ -60,7 +62,7 @@ static int tomb_mbs(char *, wchar_t);
 
 static int (*_towide)(wchar_t *, const char *, unsigned) = towide_none;
 static int (*_tomb)(char *, wchar_t) = tomb_none;
-static char _encoding_buffer[20] = {'N','O','N','E'};
+static char _encoding_buffer[20] = { 'N', 'O', 'N', 'E' };
 static const char *_encoding = _encoding_buffer;
 static int _nbits = 7;
 
@@ -82,44 +84,44 @@ static struct {
 	 * be later extensions, but it won't happen.)  This means we only need
 	 * 21 bits to be able to encode the entire range of priorities.
 	 */
-	{ "UTF-8",	"UTF-8",	21, towide_utf8, tomb_utf8 },
-	{ "UTF8",	"UTF-8",	21, towide_utf8, tomb_utf8 },
-	{ "utf8",	"UTF-8",	21, towide_utf8, tomb_utf8 },
-	{ "utf-8",	"UTF-8",	21, towide_utf8, tomb_utf8 },
+	{ "UTF-8", "UTF-8", 21, towide_utf8, tomb_utf8 },
+	{ "UTF8", "UTF-8", 21, towide_utf8, tomb_utf8 },
+	{ "utf8", "UTF-8", 21, towide_utf8, tomb_utf8 },
+	{ "utf-8", "UTF-8", 21, towide_utf8, tomb_utf8 },
 
-	{ "EUC-CN",	"EUC-CN",	16, towide_euccn, tomb_mbs },
-	{ "eucCN",	"EUC-CN",	16, towide_euccn, tomb_mbs },
+	{ "EUC-CN", "EUC-CN", 16, towide_euccn, tomb_mbs },
+	{ "eucCN", "EUC-CN", 16, towide_euccn, tomb_mbs },
 	/*
 	 * Because the 3-byte form of EUC-JP use the same leading byte,
 	 * only 17 bits required to provide unique priorities.  (The low
 	 * bit of that first byte is set.)  By setting this value low,
 	 * we can get by with only 3 bytes in the strxfrm expansion.
 	 */
-	{ "EUC-JP",	"EUC-JP",	17, towide_eucjp, tomb_mbs },
-	{ "eucJP",	"EUC-JP",	17, towide_eucjp, tomb_mbs },
+	{ "EUC-JP", "EUC-JP", 17, towide_eucjp, tomb_mbs },
+	{ "eucJP", "EUC-JP", 17, towide_eucjp, tomb_mbs },
 
-	{ "EUC-KR",	"EUC-KR",	16, towide_euckr, tomb_mbs },
-	{ "eucKR",	"EUC-KR",	16, towide_euckr, tomb_mbs },
+	{ "EUC-KR", "EUC-KR", 16, towide_euckr, tomb_mbs },
+	{ "eucKR", "EUC-KR", 16, towide_euckr, tomb_mbs },
 	/*
 	 * EUC-TW uses 2 bytes most of the time, but 4 bytes if the
 	 * high order byte is 0x8E.  However, with 4 byte encodings,
 	 * the third byte will be A0-B0.  So we only need to consider
 	 * the lower order 24 bits for collation.
 	 */
-	{ "EUC-TW",	"EUC-TW",	24, towide_euctw, tomb_mbs },
-	{ "eucTW",	"EUC-TW",	24, towide_euctw, tomb_mbs },
+	{ "EUC-TW", "EUC-TW", 24, towide_euctw, tomb_mbs },
+	{ "eucTW", "EUC-TW", 24, towide_euctw, tomb_mbs },
 
-	{ "MS_Kanji",	"MSKanji",	16, towide_mskanji, tomb_mbs },
-	{ "MSKanji",	"MSKanji",	16, towide_mskanji, tomb_mbs },
-	{ "PCK",	"MSKanji",	16, towide_mskanji, tomb_mbs },
-	{ "SJIS",	"MSKanji",	16, towide_mskanji, tomb_mbs },
-	{ "Shift_JIS",	"MSKanji",	16, towide_mskanji, tomb_mbs },
+	{ "MS_Kanji", "MSKanji", 16, towide_mskanji, tomb_mbs },
+	{ "MSKanji", "MSKanji", 16, towide_mskanji, tomb_mbs },
+	{ "PCK", "MSKanji", 16, towide_mskanji, tomb_mbs },
+	{ "SJIS", "MSKanji", 16, towide_mskanji, tomb_mbs },
+	{ "Shift_JIS", "MSKanji", 16, towide_mskanji, tomb_mbs },
 
-	{ "BIG5",	"BIG5",		16, towide_big5, tomb_mbs },
-	{ "big5",	"BIG5",		16, towide_big5, tomb_mbs },
-	{ "Big5",	"BIG5",		16, towide_big5, tomb_mbs },
+	{ "BIG5", "BIG5", 16, towide_big5, tomb_mbs },
+	{ "big5", "BIG5", 16, towide_big5, tomb_mbs },
+	{ "Big5", "BIG5", 16, towide_big5, tomb_mbs },
 
-	{ "GBK",	"GBK",		16, towide_gbk,	tomb_mbs },
+	{ "GBK", "GBK", 16, towide_gbk, tomb_mbs },
 
 	/*
 	 * GB18030 can get away with just 31 bits.  This is because the
@@ -127,12 +129,12 @@ static struct {
 	 * at least one of the other bits in that 4 byte value will
 	 * be non-zero.
 	 */
-	{ "GB18030",	"GB18030",	31, towide_gb18030, tomb_mbs },
+	{ "GB18030", "GB18030", 31, towide_gb18030, tomb_mbs },
 
 	/*
 	 * This should probably be an aliase for euc-cn, or vice versa.
 	 */
-	{ "GB2312",	"GB2312",	16, towide_gb2312, tomb_mbs },
+	{ "GB2312", "GB2312", 16, towide_gb2312, tomb_mbs },
 
 	{ NULL, NULL, 0, 0, 0 },
 };
@@ -151,23 +153,23 @@ show_mb(const char *mb)
 	buf[0] = 0;
 	while (*mb != 0) {
 		char scr[8];
-		(void) snprintf(scr, sizeof (scr), "\\x%02x", *mb);
-		(void) strlcat(buf, scr, sizeof (buf));
+		(void)snprintf(scr, sizeof(scr), "\\x%02x", *mb);
+		(void)strlcat(buf, scr, sizeof(buf));
 		mb++;
 	}
 	return (buf);
 }
 
-static char	*widemsg;
+static char *widemsg;
 
 void
 werr(const char *fmt, ...)
 {
-	char	*msg;
+	char *msg;
 
-	va_list	va;
+	va_list va;
 	va_start(va, fmt);
-	(void) vasprintf(&msg, fmt, va);
+	(void)vasprintf(&msg, fmt, va);
 	va_end(va);
 
 	free(widemsg);
@@ -206,10 +208,10 @@ tomb_none(char *mb, wchar_t wc)
 int
 towide_utf8(wchar_t *wc, const char *mb, unsigned n)
 {
-	wchar_t	c;
-	int	nb;
-	wchar_t	lv;	/* lowest legal value */
-	int	i;
+	wchar_t c;
+	int nb;
+	wchar_t lv; /* lowest legal value */
+	int i;
 	const uint8_t *s = (const uint8_t *)mb;
 
 	c = *s;
@@ -311,7 +313,7 @@ tomb_utf8(char *mb, wchar_t wc)
 static int
 towide_dbcs(wchar_t *wc, const char *mb, unsigned n)
 {
-	wchar_t	c;
+	wchar_t c;
 
 	c = *(const uint8_t *)mb;
 
@@ -341,7 +343,7 @@ int
 tomb_mbs(char *mb, wchar_t wc)
 {
 	uint8_t *s = (uint8_t *)mb;
-	int 	n = 0, c;
+	int n = 0, c;
 
 	if ((wc & 0xff000000U) != 0) {
 		n = 4;
@@ -362,7 +364,6 @@ tomb_mbs(char *mb, wchar_t wc)
 	s[c] = 0;
 	return (c);
 }
-
 
 /*
  * big5 is a simple dual byte character set.
@@ -401,7 +402,7 @@ towide_gb2312(wchar_t *wc, const char *mb, unsigned n)
 int
 towide_gb18030(wchar_t *wc, const char *mb, unsigned n)
 {
-	wchar_t	c;
+	wchar_t c;
 
 	c = *(const uint8_t *)mb;
 
@@ -444,7 +445,7 @@ towide_gb18030(wchar_t *wc, const char *mb, unsigned n)
 int
 towide_mskanji(wchar_t *wc, const char *mb, unsigned n)
 {
-	wchar_t	c;
+	wchar_t c;
 
 	c = *(const uint8_t *)mb;
 
@@ -475,12 +476,12 @@ towide_mskanji(wchar_t *wc, const char *mb, unsigned n)
  * CS2 and CS3 are and what the first byte of them is.
  */
 static int
-towide_euc_impl(wchar_t *wc, const char *mb, unsigned n,
-    uint8_t cs2, uint8_t cs2width, uint8_t cs3, uint8_t cs3width)
+towide_euc_impl(wchar_t *wc, const char *mb, unsigned n, uint8_t cs2,
+    uint8_t cs2width, uint8_t cs3, uint8_t cs3width)
 {
 	int i;
 	int width = 2;
-	wchar_t	c;
+	wchar_t c;
 
 	c = *(const uint8_t *)mb;
 
@@ -593,7 +594,7 @@ to_wide(wchar_t *wc, const char *mb)
 int
 to_mb(char *mb, wchar_t wc)
 {
-	int	rv;
+	int rv;
 
 	if ((rv = _tomb(mb, wc)) < 0) {
 		warn("%s", widemsg);
@@ -606,9 +607,9 @@ to_mb(char *mb, wchar_t wc)
 char *
 to_mb_string(const wchar_t *wcs)
 {
-	char	*mbs;
-	char	*ptr;
-	int	len;
+	char *mbs;
+	char *ptr;
+	int len;
 
 	mbs = malloc((wcslen(wcs) * mb_cur_max) + 1);
 	if (mbs == NULL) {

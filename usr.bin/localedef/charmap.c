@@ -35,15 +35,15 @@
 #include <sys/types.h>
 #include <sys/tree.h>
 
+#include <limits.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <limits.h>
-#include <stddef.h>
 #include <unistd.h>
+
 #include "localedef.h"
 #include "parser.h"
-
 
 typedef struct charmap {
 	const char *name;
@@ -67,157 +67,51 @@ RB_GENERATE_STATIC(cmap_wc, charmap, rb_wc, cmap_compare_wc);
 
 static const struct {
 	const char *name;
-	int	ch;
-} portable_chars[] = {
-	{ "NUL",		'\0' },
-	{ "SOH",		'\x01' },
-	{ "STX",		'\x02' },
-	{ "ETX",		'\x03' },
-	{ "EOT",		'\x04' },
-	{ "ENQ",		'\x05' },
-	{ "ACK",		'\x06' },
-	{ "BEL",		'\a' },
-	{ "alert",		'\a' },
-	{ "BS",			'\b' },
-	{ "backspace",		'\b' },
-	{ "HT",			'\t' },
-	{ "tab",		'\t' },
-	{ "LF",			'\n' },
-	{ "newline",		'\n' },
-	{ "VT",			'\v' },
-	{ "vertical-tab",	'\v' },
-	{ "FF",			'\f' },
-	{ "form-feed",		'\f' },
-	{ "CR",			'\r' },
-	{ "carriage-return",	'\r' },
-	{ "SO",			'\x0e' },
-	{ "SI",			'\x0f' },
-	{ "DLE",		'\x10' },
-	{ "DC1",		'\x11' },
-	{ "DC2",		'\x12' },
-	{ "DC3",		'\x13' },
-	{ "DC4",		'\x14' },
-	{ "NAK",		'\x15' },
-	{ "SYN",		'\x16' },
-	{ "ETB",		'\x17' },
-	{ "CAN",		'\x18' },
-	{ "EM",			'\x19' },
-	{ "SUB",		'\x1a' },
-	{ "ESC",		'\x1b' },
-	{ "FS",			'\x1c' },
-	{ "IS4",		'\x1c' },
-	{ "GS",			'\x1d' },
-	{ "IS3",		'\x1d' },
-	{ "RS",			'\x1e' },
-	{ "IS2",		'\x1e' },
-	{ "US",			'\x1f' },
-	{ "IS1",		'\x1f' },
-	{ "DEL",		'\x7f' },
-	{ "space",		' ' },
-	{ "exclamation-mark",	'!' },
-	{ "quotation-mark",	'"' },
-	{ "number-sign",	'#' },
-	{ "dollar-sign",	'$' },
-	{ "percent-sign",	'%' },
-	{ "ampersand",		'&' },
-	{ "apostrophe",		'\'' },
-	{ "left-parenthesis",	'(' },
-	{ "right-parenthesis",	')' },
-	{ "asterisk",		'*' },
-	{ "plus-sign",		'+' },
-	{ "comma",		 ','},
-	{ "hyphen-minus",	'-' },
-	{ "hyphen",		'-' },
-	{ "full-stop",		'.' },
-	{ "period",		'.' },
-	{ "slash",		'/' },
-	{ "solidus",		'/' },
-	{ "zero",		'0' },
-	{ "one",		'1' },
-	{ "two",		'2' },
-	{ "three",		'3' },
-	{ "four",		'4' },
-	{ "five",		'5' },
-	{ "six",		'6' },
-	{ "seven",		'7' },
-	{ "eight",		'8' },
-	{ "nine",		'9' },
-	{ "colon",		':' },
-	{ "semicolon",		';' },
-	{ "less-than-sign",	'<' },
-	{ "equals-sign",	'=' },
-	{ "greater-than-sign",	'>' },
-	{ "question-mark",	'?' },
-	{ "commercial-at",	'@' },
-	{ "left-square-bracket", '[' },
-	{ "backslash",		'\\' },
-	{ "reverse-solidus",	'\\' },
-	{ "right-square-bracket", ']' },
-	{ "circumflex",		'^' },
-	{ "circumflex-accent",	'^' },
-	{ "low-line",		'_' },
-	{ "underscore",		'_' },
-	{ "grave-accent",	'`' },
-	{ "left-brace",		'{' },
-	{ "left-curly-bracket",	'{' },
-	{ "vertical-line",	'|' },
-	{ "right-brace",	'}' },
-	{ "right-curly-bracket", '}' },
-	{ "tilde",		'~' },
-	{ "A", 'A' },
-	{ "B", 'B' },
-	{ "C", 'C' },
-	{ "D", 'D' },
-	{ "E", 'E' },
-	{ "F", 'F' },
-	{ "G", 'G' },
-	{ "H", 'H' },
-	{ "I", 'I' },
-	{ "J", 'J' },
-	{ "K", 'K' },
-	{ "L", 'L' },
-	{ "M", 'M' },
-	{ "N", 'N' },
-	{ "O", 'O' },
-	{ "P", 'P' },
-	{ "Q", 'Q' },
-	{ "R", 'R' },
-	{ "S", 'S' },
-	{ "T", 'T' },
-	{ "U", 'U' },
-	{ "V", 'V' },
-	{ "W", 'W' },
-	{ "X", 'X' },
-	{ "Y", 'Y' },
-	{ "Z", 'Z' },
-	{ "a", 'a' },
-	{ "b", 'b' },
-	{ "c", 'c' },
-	{ "d", 'd' },
-	{ "e", 'e' },
-	{ "f", 'f' },
-	{ "g", 'g' },
-	{ "h", 'h' },
-	{ "i", 'i' },
-	{ "j", 'j' },
-	{ "k", 'k' },
-	{ "l", 'l' },
-	{ "m", 'm' },
-	{ "n", 'n' },
-	{ "o", 'o' },
-	{ "p", 'p' },
-	{ "q", 'q' },
-	{ "r", 'r' },
-	{ "s", 's' },
-	{ "t", 't' },
-	{ "u", 'u' },
-	{ "v", 'v' },
-	{ "w", 'w' },
-	{ "x", 'x' },
-	{ "y", 'y' },
-	{ "z", 'z' },
-	{ NULL, 0 }
-};
+	int ch;
+} portable_chars[] = { { "NUL", '\0' }, { "SOH", '\x01' }, { "STX", '\x02' },
+	{ "ETX", '\x03' }, { "EOT", '\x04' }, { "ENQ", '\x05' },
+	{ "ACK", '\x06' }, { "BEL", '\a' }, { "alert", '\a' }, { "BS", '\b' },
+	{ "backspace", '\b' }, { "HT", '\t' }, { "tab", '\t' }, { "LF", '\n' },
+	{ "newline", '\n' }, { "VT", '\v' }, { "vertical-tab", '\v' },
+	{ "FF", '\f' }, { "form-feed", '\f' }, { "CR", '\r' },
+	{ "carriage-return", '\r' }, { "SO", '\x0e' }, { "SI", '\x0f' },
+	{ "DLE", '\x10' }, { "DC1", '\x11' }, { "DC2", '\x12' },
+	{ "DC3", '\x13' }, { "DC4", '\x14' }, { "NAK", '\x15' },
+	{ "SYN", '\x16' }, { "ETB", '\x17' }, { "CAN", '\x18' },
+	{ "EM", '\x19' }, { "SUB", '\x1a' }, { "ESC", '\x1b' },
+	{ "FS", '\x1c' }, { "IS4", '\x1c' }, { "GS", '\x1d' },
+	{ "IS3", '\x1d' }, { "RS", '\x1e' }, { "IS2", '\x1e' },
+	{ "US", '\x1f' }, { "IS1", '\x1f' }, { "DEL", '\x7f' },
+	{ "space", ' ' }, { "exclamation-mark", '!' },
+	{ "quotation-mark", '"' }, { "number-sign", '#' },
+	{ "dollar-sign", '$' }, { "percent-sign", '%' }, { "ampersand", '&' },
+	{ "apostrophe", '\'' }, { "left-parenthesis", '(' },
+	{ "right-parenthesis", ')' }, { "asterisk", '*' }, { "plus-sign", '+' },
+	{ "comma", ',' }, { "hyphen-minus", '-' }, { "hyphen", '-' },
+	{ "full-stop", '.' }, { "period", '.' }, { "slash", '/' },
+	{ "solidus", '/' }, { "zero", '0' }, { "one", '1' }, { "two", '2' },
+	{ "three", '3' }, { "four", '4' }, { "five", '5' }, { "six", '6' },
+	{ "seven", '7' }, { "eight", '8' }, { "nine", '9' }, { "colon", ':' },
+	{ "semicolon", ';' }, { "less-than-sign", '<' }, { "equals-sign", '=' },
+	{ "greater-than-sign", '>' }, { "question-mark", '?' },
+	{ "commercial-at", '@' }, { "left-square-bracket", '[' },
+	{ "backslash", '\\' }, { "reverse-solidus", '\\' },
+	{ "right-square-bracket", ']' }, { "circumflex", '^' },
+	{ "circumflex-accent", '^' }, { "low-line", '_' },
+	{ "underscore", '_' }, { "grave-accent", '`' }, { "left-brace", '{' },
+	{ "left-curly-bracket", '{' }, { "vertical-line", '|' },
+	{ "right-brace", '}' }, { "right-curly-bracket", '}' },
+	{ "tilde", '~' }, { "A", 'A' }, { "B", 'B' }, { "C", 'C' },
+	{ "D", 'D' }, { "E", 'E' }, { "F", 'F' }, { "G", 'G' }, { "H", 'H' },
+	{ "I", 'I' }, { "J", 'J' }, { "K", 'K' }, { "L", 'L' }, { "M", 'M' },
+	{ "N", 'N' }, { "O", 'O' }, { "P", 'P' }, { "Q", 'Q' }, { "R", 'R' },
+	{ "S", 'S' }, { "T", 'T' }, { "U", 'U' }, { "V", 'V' }, { "W", 'W' },
+	{ "X", 'X' }, { "Y", 'Y' }, { "Z", 'Z' }, { "a", 'a' }, { "b", 'b' },
+	{ "c", 'c' }, { "d", 'd' }, { "e", 'e' }, { "f", 'f' }, { "g", 'g' },
+	{ "h", 'h' }, { "i", 'i' }, { "j", 'j' }, { "k", 'k' }, { "l", 'l' },
+	{ "m", 'm' }, { "n", 'n' }, { "o", 'o' }, { "p", 'p' }, { "q", 'q' },
+	{ "r", 'r' }, { "s", 's' }, { "t", 't' }, { "u", 'u' }, { "v", 'v' },
+	{ "w", 'w' }, { "x", 'x' }, { "y", 'y' }, { "z", 'z' }, { NULL, 0 } };
 
 static int
 cmap_compare_sym(const void *n1, const void *n2)
@@ -250,8 +144,8 @@ init_charmap(void)
 static void
 add_charmap_impl(const char *sym, wchar_t wc, int nodups)
 {
-	charmap_t	srch;
-	charmap_t	*n = NULL;
+	charmap_t srch;
+	charmap_t *n = NULL;
 
 	srch.wc = wc;
 	srch.name = sym;
@@ -260,8 +154,9 @@ add_charmap_impl(const char *sym, wchar_t wc, int nodups)
 	 * also possibly insert the wide mapping, although note that there
 	 * can only be one of these per wide character code.
 	 */
-	if ((wc != (wchar_t)-1) && ((RB_FIND(cmap_wc, &cmap_wc, &srch)) == NULL)) {
-		if ((n = calloc(1, sizeof (*n))) == NULL) {
+	if ((wc != (wchar_t)-1) &&
+	    ((RB_FIND(cmap_wc, &cmap_wc, &srch)) == NULL)) {
+		if ((n = calloc(1, sizeof(*n))) == NULL) {
 			errf("out of memory");
 			return;
 		}
@@ -276,7 +171,7 @@ add_charmap_impl(const char *sym, wchar_t wc, int nodups)
 			}
 			return;
 		}
-		if ((n == NULL) && ((n = calloc(1, sizeof (*n))) == NULL)) {
+		if ((n == NULL) && ((n = calloc(1, sizeof(*n))) == NULL)) {
 			errf("out of memory");
 			return;
 		}
@@ -313,10 +208,10 @@ add_charmap_undefined(char *sym)
 void
 add_charmap_range(char *s, char *e, int wc)
 {
-	int	ls, le;
-	int	si;
-	int	sn, en;
-	int	i;
+	int ls, le;
+	int si;
+	int sn, en;
+	int i;
 
 	static const char *digits = "0123456789";
 
@@ -336,7 +231,7 @@ add_charmap_range(char *s, char *e, int wc)
 
 	for (i = sn; i <= en; i++) {
 		char *nn;
-		(void) asprintf(&nn, "%s%0*u", s, ls - si, i);
+		(void)asprintf(&nn, "%s%0*u", s, ls - si, i);
 		if (nn == NULL) {
 			errf("out of memory");
 			return;
@@ -362,7 +257,7 @@ add_charmap_char(const char *name, int val)
 void
 add_charmap_posix(void)
 {
-	int	i;
+	int i;
 
 	for (i = 0; portable_chars[i].name; i++) {
 		add_charmap_char(portable_chars[i].name, portable_chars[i].ch);
@@ -372,8 +267,8 @@ add_charmap_posix(void)
 int
 lookup_charmap(const char *sym, wchar_t *wc)
 {
-	charmap_t	srch;
-	charmap_t	*n;
+	charmap_t srch;
+	charmap_t *n;
 
 	srch.name = sym;
 	n = RB_FIND(cmap_sym, &cmap_sym, &srch);

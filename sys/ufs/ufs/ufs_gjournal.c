@@ -26,26 +26,25 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_ufs.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/buf.h>
 #include <sys/kernel.h>
-#include <sys/vnode.h>
 #include <sys/lock.h>
 #include <sys/mount.h>
 #include <sys/mutex.h>
+#include <sys/vnode.h>
 
-#include <ufs/ufs/extattr.h>
-#include <ufs/ufs/quota.h>
-#include <ufs/ufs/inode.h>
-#include <ufs/ufs/ufsmount.h>
-#include <ufs/ufs/gjournal.h>
-
-#include <ufs/ffs/fs.h>
 #include <ufs/ffs/ffs_extern.h>
+#include <ufs/ffs/fs.h>
+#include <ufs/ufs/extattr.h>
+#include <ufs/ufs/gjournal.h>
+#include <ufs/ufs/inode.h>
+#include <ufs/ufs/quota.h>
+#include <ufs/ufs/ufsmount.h>
 
 /*
  * Change the number of unreferenced inodes.
@@ -82,7 +81,8 @@ ufs_gjournal_modref(struct vnode *vp, int count)
 	}
 	if ((uint64_t)ino >= fs->fs_ipg * fs->fs_ncg)
 		panic("ufs_gjournal_modref: range: dev = %s, ino = %ju, "
-		    "fs = %s", devtoname(dev), (intmax_t)ino, fs->fs_fsmnt);
+		      "fs = %s",
+		    devtoname(dev), (intmax_t)ino, fs->fs_fsmnt);
 	if ((error = ffs_getcg(fs, devvp, cg, 0, &bp, &cgp)) != 0)
 		return (error);
 	cgp->cg_unrefs += count;

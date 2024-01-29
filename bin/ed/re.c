@@ -27,6 +27,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "ed.h"
 
 const char *errmsg = "";
@@ -46,7 +47,8 @@ get_compiled_pattern(void)
 	if ((delimiter = *ibufp) == ' ') {
 		errmsg = "invalid pattern delimiter";
 		return NULL;
-	} else if (delimiter == '\n' || *++ibufp == '\n' || *ibufp == delimiter) {
+	} else if (delimiter == '\n' || *++ibufp == '\n' ||
+	    *ibufp == delimiter) {
 		if (!expr)
 			errmsg = "no previous pattern";
 		return expr;
@@ -55,7 +57,7 @@ get_compiled_pattern(void)
 	/* buffer alloc'd && not reserved */
 	if (expr && !patlock)
 		regfree(expr);
-	else if ((expr = (pattern_t *) malloc(sizeof(pattern_t))) == NULL) {
+	else if ((expr = (pattern_t *)malloc(sizeof(pattern_t))) == NULL) {
 		fprintf(stderr, "%s\n", strerror(errno));
 		errmsg = "out of memory";
 		return NULL;
@@ -70,14 +72,13 @@ get_compiled_pattern(void)
 	return expr;
 }
 
-
 /* extract_pattern: copy a pattern string from the command buffer; return
    pointer to the copy */
 char *
 extract_pattern(int delimiter)
 {
-	static char *lhbuf = NULL;	/* buffer */
-	static int lhbufsz = 0;		/* buffer size */
+	static char *lhbuf = NULL; /* buffer */
+	static int lhbufsz = 0;	   /* buffer size */
 
 	char *nd;
 	int len;
@@ -107,7 +108,6 @@ extract_pattern(int delimiter)
 	return (isbinary) ? NUL_TO_NEWLINE(lhbuf, len) : lhbuf;
 }
 
-
 /* parse_char_class: expand a POSIX character class */
 char *
 parse_char_class(char *s)
@@ -119,9 +119,10 @@ parse_char_class(char *s)
 	if (*s == ']')
 		s++;
 	for (; *s != ']' && *s != '\n'; s++)
-		if (*s == '[' && ((d = *(s+1)) == '.' || d == ':' || d == '='))
+		if (*s == '[' &&
+		    ((d = *(s + 1)) == '.' || d == ':' || d == '='))
 			for (s++, c = *++s; *s != ']' || c != d; s++)
 				if ((c = *s) == '\n')
 					return NULL;
-	return  (*s == ']') ? s : NULL;
+	return (*s == ']') ? s : NULL;
 }

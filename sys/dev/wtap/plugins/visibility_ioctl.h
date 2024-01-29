@@ -39,12 +39,12 @@
 #include <sys/param.h>
 
 struct link {
-      int	op; //0 remove, 1 link
-      int 	id1;
-      int	id2;
+	int op; // 0 remove, 1 link
+	int id1;
+	int id2;
 };
 
-#define VISIOCTLOPEN _IOW('W', 3, int) // 0 close, 1 open
+#define VISIOCTLOPEN _IOW('W', 3, int)	       // 0 close, 1 open
 #define VISIOCTLLINK _IOW('W', 4, struct link) //
 
 #endif

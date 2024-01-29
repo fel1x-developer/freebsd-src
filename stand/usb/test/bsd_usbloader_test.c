@@ -23,8 +23,8 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
@@ -34,7 +34,7 @@ extern void usb_idle(void);
 extern void usb_init(void);
 extern void usb_uninit(void);
 
-#define	hz 1000
+#define hz 1000
 
 #ifdef HAVE_MALLOC
 void *

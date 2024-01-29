@@ -30,15 +30,16 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <paths.h>
-#include <stdlib.h>
 #include <signal.h>
+#include <stdlib.h>
 #include <unistd.h>
-#include "un-namespace.h"
+
 #include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 int
 daemonfd(int chdirfd, int nullfd)

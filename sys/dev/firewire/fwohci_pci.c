@@ -35,30 +35,29 @@
  */
 
 #include <sys/cdefs.h>
-#define BOUNCE_BUFFER_TEST	0
+#define BOUNCE_BUFFER_TEST 0
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/bus.h>
-#include <sys/queue.h>
-#include <machine/bus.h>
-#include <sys/rman.h>
-#include <sys/malloc.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
-#include <machine/resource.h>
+#include <sys/queue.h>
+#include <sys/rman.h>
 
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
+#include <machine/bus.h>
+#include <machine/resource.h>
 
 #include <dev/firewire/firewire.h>
 #include <dev/firewire/firewirereg.h>
-
 #include <dev/firewire/fwdma.h>
 #include <dev/firewire/fwohcireg.h>
 #include <dev/firewire/fwohcivar.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 static int fwohci_pci_attach(device_t self);
 static int fwohci_pci_detach(device_t self);
@@ -185,9 +184,9 @@ fwohci_pci_probe(device_t dev)
 		device_set_desc(dev, "Adaptec AHA-894x/AIC-5800");
 		return BUS_PROBE_DEFAULT;
 	}
-	if (pci_get_class(dev) == PCIC_SERIALBUS
-			&& pci_get_subclass(dev) == PCIS_SERIALBUS_FW
-			&& pci_get_progif(dev) == PCI_INTERFACE_OHCI) {
+	if (pci_get_class(dev) == PCIC_SERIALBUS &&
+	    pci_get_subclass(dev) == PCIS_SERIALBUS_FW &&
+	    pci_get_progif(dev) == PCI_INTERFACE_OHCI) {
 		if (bootverbose)
 			device_printf(dev, "vendor=%x, dev=%x\n",
 			    pci_get_vendor(dev), pci_get_device(dev));
@@ -206,7 +205,7 @@ fwohci_pci_init(device_t self)
 
 	cmd = pci_read_config(self, PCIR_COMMAND, 2);
 	cmd |= PCIM_CMD_BUSMASTEREN | PCIM_CMD_MWRICEN;
-#if 1  /* for broken hardware */
+#if 1 /* for broken hardware */
 	cmd &= ~PCIM_CMD_MWRICEN;
 #endif
 	pci_write_config(self, PCIR_COMMAND, cmd, 2);
@@ -226,10 +225,10 @@ fwohci_pci_init(device_t self)
 	}
 
 	if (firewire_debug) {
-		device_printf(self, "latency timer %d -> %d.\n",
-			olatency, latency);
-		device_printf(self, "cache size %d -> %d.\n",
-			ocache_line, cache_line);
+		device_printf(self, "latency timer %d -> %d.\n", olatency,
+		    latency);
+		device_printf(self, "cache size %d -> %d.\n", ocache_line,
+		    cache_line);
 	}
 
 	return 0;
@@ -255,24 +254,22 @@ fwohci_pci_attach(device_t self)
 	if (!sc->bsr) {
 		device_printf(self, "Could not map memory\n");
 		return ENXIO;
-        }
+	}
 
 	sc->bst = rman_get_bustag(sc->bsr);
 	sc->bsh = rman_get_bushandle(sc->bsr);
 
 	rid = 0;
 	sc->irq_res = bus_alloc_resource_any(self, SYS_RES_IRQ, &rid,
-				     RF_SHAREABLE | RF_ACTIVE);
+	    RF_SHAREABLE | RF_ACTIVE);
 	if (sc->irq_res == NULL) {
 		device_printf(self, "Could not allocate irq\n");
 		fwohci_pci_detach(self);
 		return ENXIO;
 	}
 
-	err = bus_setup_intr(self, sc->irq_res,
-				INTR_TYPE_NET | INTR_MPSAFE,
-				NULL, (driver_intr_t *) fwohci_intr,
-				sc, &sc->ih);
+	err = bus_setup_intr(self, sc->irq_res, INTR_TYPE_NET | INTR_MPSAFE,
+	    NULL, (driver_intr_t *)fwohci_intr, sc, &sc->ih);
 
 	if (err) {
 		device_printf(self, "Could not setup irq, %d\n", err);
@@ -281,26 +278,27 @@ fwohci_pci_attach(device_t self)
 	}
 
 	err = bus_dma_tag_create(
-				/*parent*/bus_get_dma_tag(self),
-				/*alignment*/1,
-				/*boundary*/0,
+	    /*parent*/ bus_get_dma_tag(self),
+	    /*alignment*/ 1,
+	    /*boundary*/ 0,
 #if BOUNCE_BUFFER_TEST
-				/*lowaddr*/BUS_SPACE_MAXADDR_24BIT,
+	    /*lowaddr*/ BUS_SPACE_MAXADDR_24BIT,
 #else
-				/*lowaddr*/BUS_SPACE_MAXADDR_32BIT,
+	    /*lowaddr*/ BUS_SPACE_MAXADDR_32BIT,
 #endif
-				/*highaddr*/BUS_SPACE_MAXADDR,
-				/*filter*/NULL, /*filterarg*/NULL,
-				/*maxsize*/0x100000,
-				/*nsegments*/0x20,
-				/*maxsegsz*/0x8000,
-				/*flags*/BUS_DMA_ALLOCNOW,
-				/*lockfunc*/busdma_lock_mutex,
-				/*lockarg*/FW_GMTX(&sc->fc),
-				&sc->fc.dmat);
+	    /*highaddr*/ BUS_SPACE_MAXADDR,
+	    /*filter*/ NULL, /*filterarg*/ NULL,
+	    /*maxsize*/ 0x100000,
+	    /*nsegments*/ 0x20,
+	    /*maxsegsz*/ 0x8000,
+	    /*flags*/ BUS_DMA_ALLOCNOW,
+	    /*lockfunc*/ busdma_lock_mutex,
+	    /*lockarg*/ FW_GMTX(&sc->fc), &sc->fc.dmat);
 	if (err != 0) {
-		device_printf(self, "fwohci_pci_attach: Could not allocate DMA "
-		    "tag - error %d\n", err);
+		device_printf(self,
+		    "fwohci_pci_attach: Could not allocate DMA "
+		    "tag - error %d\n",
+		    err);
 		fwohci_pci_detach(self);
 		return (ENOMEM);
 	}
@@ -340,8 +338,8 @@ fwohci_pci_detach(device_t self)
 
 	/* disable interrupts that might have been switched on */
 	if (sc->bst && sc->bsh)
-		bus_space_write_4(sc->bst, sc->bsh,
-				  FWOHCI_INTMASKCLR, OHCI_INT_EN);
+		bus_space_write_4(sc->bst, sc->bsh, FWOHCI_INTMASKCLR,
+		    OHCI_INT_EN);
 
 	if (sc->irq_res) {
 		int err;
@@ -349,7 +347,7 @@ fwohci_pci_detach(device_t self)
 			err = bus_teardown_intr(self, sc->irq_res, sc->ih);
 			if (err)
 				device_printf(self,
-					 "Could not tear down irq, %d\n", err);
+				    "Could not tear down irq, %d\n", err);
 			sc->ih = NULL;
 		}
 		bus_release_resource(self, SYS_RES_IRQ, 0, sc->irq_res);
@@ -445,15 +443,15 @@ fwohci_pci_add_child(device_t dev, u_int order, const char *name, int unit)
 
 static device_method_t fwohci_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		fwohci_pci_probe),
-	DEVMETHOD(device_attach,	fwohci_pci_attach),
-	DEVMETHOD(device_detach,	fwohci_pci_detach),
-	DEVMETHOD(device_suspend,	fwohci_pci_suspend),
-	DEVMETHOD(device_resume,	fwohci_pci_resume),
-	DEVMETHOD(device_shutdown,	fwohci_pci_shutdown),
+	DEVMETHOD(device_probe, fwohci_pci_probe),
+	DEVMETHOD(device_attach, fwohci_pci_attach),
+	DEVMETHOD(device_detach, fwohci_pci_detach),
+	DEVMETHOD(device_suspend, fwohci_pci_suspend),
+	DEVMETHOD(device_resume, fwohci_pci_resume),
+	DEVMETHOD(device_shutdown, fwohci_pci_shutdown),
 
 	/* Bus interface */
-	DEVMETHOD(bus_add_child,	fwohci_pci_add_child),
+	DEVMETHOD(bus_add_child, fwohci_pci_add_child),
 
 	DEVMETHOD_END
 };

@@ -34,31 +34,33 @@
 
 #include <sys/types.h>
 #include <sys/systm.h>
-#include <sys/bus.h>
 #include <sys/bitstring.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
-#include <sys/rman.h>
-#include <sys/tree.h>
-#include <sys/taskqueue.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
+#include <sys/rman.h>
+#include <sys/taskqueue.h>
+#include <sys/tree.h>
+
 #include <vm/vm.h>
 #include <vm/pmap.h>
-#include <contrib/dev/acpica/include/acpi.h>
+
 #include <dev/acpica/acpivar.h>
+#include <dev/iommu/iommu.h>
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
-#include <dev/iommu/iommu.h>
 
 #include <arm64/iommu/iommu.h>
+#include <contrib/dev/acpica/include/acpi.h>
 
 #include "smmuvar.h"
 
-#define	MEMORY_RESOURCE_SIZE	0x20000
-#define	MAX_SMMU		8
+#define MEMORY_RESOURCE_SIZE 0x20000
+#define MAX_SMMU 8
 
 struct smmu_acpi_devinfo {
-	struct resource_list	di_rl;
+	struct resource_list di_rl;
 };
 
 struct iort_table_data {
@@ -78,7 +80,7 @@ iort_handler(ACPI_SUBTABLE_HEADER *entry, void *arg)
 	iort_data = (struct iort_table_data *)arg;
 	i = iort_data->count;
 
-	switch(entry->Type) {
+	switch (entry->Type) {
 	case ACPI_IORT_NODE_SMMU_V3:
 		if (i == MAX_SMMU) {
 			printf("SMMUv3 found, but no space available.\n");
@@ -169,7 +171,7 @@ static int
 smmu_acpi_probe(device_t dev)
 {
 
-	switch((uintptr_t)acpi_get_private(dev) & 0xffffffff) {
+	switch ((uintptr_t)acpi_get_private(dev) & 0xffffffff) {
 	case ACPI_IORT_SMMU_V3_GENERIC:
 		/* Generic SMMUv3 */
 		break;
@@ -200,8 +202,8 @@ smmu_acpi_attach(device_t dev)
 		sc->features |= SMMU_FEATURE_COHERENCY;
 
 	if (bootverbose)
-		device_printf(sc->dev, "%s: features %x\n",
-		    __func__, sc->features);
+		device_printf(sc->dev, "%s: features %x\n", __func__,
+		    sc->features);
 
 	rid = 0;
 	sc->res[0] = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
@@ -265,8 +267,7 @@ smmu_acpi_attach(device_t dev)
 
 error:
 	if (bootverbose) {
-		device_printf(dev,
-		    "Failed to attach. Error %d\n", err);
+		device_printf(dev, "Failed to attach. Error %d\n", err);
 	}
 	/* Failure so free resources. */
 	smmu_detach(dev);
@@ -276,9 +277,9 @@ error:
 
 static device_method_t smmu_acpi_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,		smmu_acpi_identify),
-	DEVMETHOD(device_probe,			smmu_acpi_probe),
-	DEVMETHOD(device_attach,		smmu_acpi_attach),
+	DEVMETHOD(device_identify, smmu_acpi_identify),
+	DEVMETHOD(device_probe, smmu_acpi_probe),
+	DEVMETHOD(device_attach, smmu_acpi_attach),
 
 	/* End */
 	DEVMETHOD_END

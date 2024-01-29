@@ -30,20 +30,20 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
+#include <sys/gpio.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/gpio.h>
+#include <sys/rman.h>
+
 #include <machine/bus.h>
 
+#include <dev/clk/clk.h>
+#include <dev/gpio/gpiobusvar.h>
+#include <dev/hwreset/hwreset.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-#include <dev/gpio/gpiobusvar.h>
-
-#include <dev/clk/clk.h>
-#include <dev/hwreset/hwreset.h>
-#include <dev/regulator/regulator.h>
 #include <dev/phy/phy_usb.h>
+#include <dev/regulator/regulator.h>
 
 #include "phynode_if.h"
 
@@ -59,10 +59,10 @@ enum awusbphy_type {
 };
 
 struct aw_usbphy_conf {
-	int			num_phys;
-	enum awusbphy_type	phy_type;
-	bool			pmu_unk1;
-	bool			phy0_route;
+	int num_phys;
+	enum awusbphy_type phy_type;
+	bool pmu_unk1;
+	bool phy0_route;
 };
 
 static const struct aw_usbphy_conf a10_usbphy_conf = {
@@ -122,30 +122,30 @@ static const struct aw_usbphy_conf h6_usbphy_conf = {
 };
 
 static struct ofw_compat_data compat_data[] = {
-	{ "allwinner,sun4i-a10-usb-phy",	(uintptr_t)&a10_usbphy_conf },
-	{ "allwinner,sun5i-a13-usb-phy",	(uintptr_t)&a13_usbphy_conf },
-	{ "allwinner,sun6i-a31-usb-phy",	(uintptr_t)&a31_usbphy_conf },
-	{ "allwinner,sun7i-a20-usb-phy",	(uintptr_t)&a20_usbphy_conf },
-	{ "allwinner,sun8i-h3-usb-phy",		(uintptr_t)&h3_usbphy_conf },
-	{ "allwinner,sun50i-a64-usb-phy",	(uintptr_t)&a64_usbphy_conf },
-	{ "allwinner,sun8i-a83t-usb-phy",	(uintptr_t)&a83t_usbphy_conf },
-	{ "allwinner,sun50i-h6-usb-phy",	(uintptr_t)&h6_usbphy_conf },
-	{ NULL,					0 }
+	{ "allwinner,sun4i-a10-usb-phy", (uintptr_t)&a10_usbphy_conf },
+	{ "allwinner,sun5i-a13-usb-phy", (uintptr_t)&a13_usbphy_conf },
+	{ "allwinner,sun6i-a31-usb-phy", (uintptr_t)&a31_usbphy_conf },
+	{ "allwinner,sun7i-a20-usb-phy", (uintptr_t)&a20_usbphy_conf },
+	{ "allwinner,sun8i-h3-usb-phy", (uintptr_t)&h3_usbphy_conf },
+	{ "allwinner,sun50i-a64-usb-phy", (uintptr_t)&a64_usbphy_conf },
+	{ "allwinner,sun8i-a83t-usb-phy", (uintptr_t)&a83t_usbphy_conf },
+	{ "allwinner,sun50i-h6-usb-phy", (uintptr_t)&h6_usbphy_conf },
+	{ NULL, 0 }
 };
 
 struct awusbphy_softc {
-	struct resource *	phy_ctrl;
-	struct resource **	pmu;
-	regulator_t *		reg;
-	gpio_pin_t		id_det_pin;
-	int			id_det_valid;
-	gpio_pin_t		vbus_det_pin;
-	int			vbus_det_valid;
-	struct aw_usbphy_conf	*phy_conf;
-	int			mode;
+	struct resource *phy_ctrl;
+	struct resource **pmu;
+	regulator_t *reg;
+	gpio_pin_t id_det_pin;
+	int id_det_valid;
+	gpio_pin_t vbus_det_pin;
+	int vbus_det_valid;
+	struct aw_usbphy_conf *phy_conf;
+	int mode;
 };
 
- /* Phy class and methods. */
+/* Phy class and methods. */
 static int awusbphy_phy_enable(struct phynode *phy, bool enable);
 static int awusbphy_get_mode(struct phynode *phy, int *mode);
 static int awusbphy_set_mode(struct phynode *phy, int mode);
@@ -156,37 +156,37 @@ static phynode_usb_method_t awusbphy_phynode_methods[] = {
 
 	PHYNODEMETHOD_END
 };
-DEFINE_CLASS_1(awusbphy_phynode, awusbphy_phynode_class, awusbphy_phynode_methods,
-  sizeof(struct phynode_usb_sc), phynode_usb_class);
+DEFINE_CLASS_1(awusbphy_phynode, awusbphy_phynode_class,
+    awusbphy_phynode_methods, sizeof(struct phynode_usb_sc), phynode_usb_class);
 
-#define	RD4(res, o)	bus_read_4(res, (o))
-#define	WR4(res, o, v)	bus_write_4(res, (o), (v))
-#define	CLR4(res, o, m)	WR4(res, o, RD4(res, o) & ~(m))
-#define	SET4(res, o, m)	WR4(res, o, RD4(res, o) | (m))
+#define RD4(res, o) bus_read_4(res, (o))
+#define WR4(res, o, v) bus_write_4(res, (o), (v))
+#define CLR4(res, o, m) WR4(res, o, RD4(res, o) & ~(m))
+#define SET4(res, o, m) WR4(res, o, RD4(res, o) | (m))
 
-#define	PHY_CSR		0x00
-#define	 ID_PULLUP_EN		(1 << 17)
-#define	 DPDM_PULLUP_EN		(1 << 16)
-#define	 FORCE_ID		(0x3 << 14)
-#define	 FORCE_ID_SHIFT		14
-#define	 FORCE_ID_LOW		2
-#define	 FORCE_ID_HIGH		3
-#define	 FORCE_VBUS_VALID	(0x3 << 12)
-#define	 FORCE_VBUS_VALID_SHIFT	12
-#define	 FORCE_VBUS_VALID_LOW	2
-#define	 FORCE_VBUS_VALID_HIGH	3
-#define	 VBUS_CHANGE_DET	(1 << 6)
-#define	 ID_CHANGE_DET		(1 << 5)
-#define	 DPDM_CHANGE_DET	(1 << 4)
-#define	OTG_PHY_CFG	0x20
-#define	 OTG_PHY_ROUTE_OTG	(1 << 0)
-#define	PMU_IRQ_ENABLE	0x00
-#define	 PMU_AHB_INCR8		(1 << 10)
-#define	 PMU_AHB_INCR4		(1 << 9)
-#define	 PMU_AHB_INCRX_ALIGN	(1 << 8)
-#define	 PMU_ULPI_BYPASS	(1 << 0)
-#define	PMU_UNK_H3	0x10
-#define	 PMU_UNK_H3_CLR		0x2
+#define PHY_CSR 0x00
+#define ID_PULLUP_EN (1 << 17)
+#define DPDM_PULLUP_EN (1 << 16)
+#define FORCE_ID (0x3 << 14)
+#define FORCE_ID_SHIFT 14
+#define FORCE_ID_LOW 2
+#define FORCE_ID_HIGH 3
+#define FORCE_VBUS_VALID (0x3 << 12)
+#define FORCE_VBUS_VALID_SHIFT 12
+#define FORCE_VBUS_VALID_LOW 2
+#define FORCE_VBUS_VALID_HIGH 3
+#define VBUS_CHANGE_DET (1 << 6)
+#define ID_CHANGE_DET (1 << 5)
+#define DPDM_CHANGE_DET (1 << 4)
+#define OTG_PHY_CFG 0x20
+#define OTG_PHY_ROUTE_OTG (1 << 0)
+#define PMU_IRQ_ENABLE 0x00
+#define PMU_AHB_INCR8 (1 << 10)
+#define PMU_AHB_INCR4 (1 << 9)
+#define PMU_AHB_INCRX_ALIGN (1 << 8)
+#define PMU_ULPI_BYPASS (1 << 0)
+#define PMU_UNK_H3 0x10
+#define PMU_UNK_H3_CLR 0x2
 
 static void
 awusbphy_configure(device_t dev, int phyno)
@@ -201,8 +201,9 @@ awusbphy_configure(device_t dev, int phyno)
 	if (sc->phy_conf->pmu_unk1 == true)
 		CLR4(sc->pmu[phyno], PMU_UNK_H3, PMU_UNK_H3_CLR);
 
-	SET4(sc->pmu[phyno], PMU_IRQ_ENABLE, PMU_ULPI_BYPASS |
-	    PMU_AHB_INCR8 | PMU_AHB_INCR4 | PMU_AHB_INCRX_ALIGN);
+	SET4(sc->pmu[phyno], PMU_IRQ_ENABLE,
+	    PMU_ULPI_BYPASS | PMU_AHB_INCR8 | PMU_AHB_INCR4 |
+		PMU_AHB_INCRX_ALIGN);
 }
 
 static int
@@ -220,10 +221,13 @@ awusbphy_init(device_t dev)
 	sc = device_get_softc(dev);
 	node = ofw_bus_get_node(dev);
 
-	sc->phy_conf = (struct aw_usbphy_conf *)ofw_bus_search_compatible(dev, compat_data)->ocd_data;
+	sc->phy_conf = (struct aw_usbphy_conf *)ofw_bus_search_compatible(dev,
+	    compat_data)
+			   ->ocd_data;
 
 	/* Get phy_ctrl region */
-	if (ofw_bus_find_string_index(node, "reg-names", "phy_ctrl", &rid) != 0) {
+	if (ofw_bus_find_string_index(node, "reg-names", "phy_ctrl", &rid) !=
+	    0) {
 		device_printf(dev, "Cannot locate phy control resource\n");
 		return (ENXIO);
 	}
@@ -275,8 +279,8 @@ awusbphy_init(device_t dev)
 			sc->reg[off] = reg;
 
 		snprintf(pname, sizeof(pname), "pmu%d", off);
-		if (ofw_bus_find_string_index(node, "reg-names",
-		    pname, &rid) != 0)
+		if (ofw_bus_find_string_index(node, "reg-names", pname, &rid) !=
+		    0)
 			continue;
 
 		sc->pmu[off] = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
@@ -362,7 +366,8 @@ awusbphy_phy_enable(struct phynode *phynode, bool enable)
 		/* TODO check vbus_power-supply as well. */
 		if (sc->vbus_det_valid && vbus_det == 1) {
 			if (bootverbose)
-				device_printf(dev, "External VBUS detected, "
+				device_printf(dev,
+				    "External VBUS detected, "
 				    "not enabling the regulator\n");
 			return (0);
 		}
@@ -375,8 +380,7 @@ awusbphy_phy_enable(struct phynode *phynode, bool enable)
 
 out:
 	if (error != 0) {
-		device_printf(dev,
-		    "couldn't %s regulator for phy %jd\n",
+		device_printf(dev, "couldn't %s regulator for phy %jd\n",
 		    enable ? "enable" : "disable", (intmax_t)phy);
 		return (error);
 	}
@@ -419,7 +423,7 @@ awusbphy_set_mode(struct phynode *phynode, int mode)
 
 	if (sc->mode == mode)
 		return (0);
-	if (mode == PHY_USB_MODE_OTG)	/* TODO */
+	if (mode == PHY_USB_MODE_OTG) /* TODO */
 		return (EOPNOTSUPP);
 
 	error = awusbphy_vbus_detect(dev, &vbus_det);
@@ -430,8 +434,8 @@ awusbphy_set_mode(struct phynode *phynode, int mode)
 	val &= ~(VBUS_CHANGE_DET | ID_CHANGE_DET | DPDM_CHANGE_DET);
 	val |= (ID_PULLUP_EN | DPDM_PULLUP_EN);
 	val &= ~FORCE_VBUS_VALID;
-	val |= (vbus_det ? FORCE_VBUS_VALID_HIGH : FORCE_VBUS_VALID_LOW) <<
-	    FORCE_VBUS_VALID_SHIFT;
+	val |= (vbus_det ? FORCE_VBUS_VALID_HIGH : FORCE_VBUS_VALID_LOW)
+	    << FORCE_VBUS_VALID_SHIFT;
 	val &= ~FORCE_ID;
 
 	switch (mode) {
@@ -506,17 +510,14 @@ awusbphy_attach(device_t dev)
 
 static device_method_t awusbphy_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		awusbphy_probe),
-	DEVMETHOD(device_attach,	awusbphy_attach),
+	DEVMETHOD(device_probe, awusbphy_probe),
+	DEVMETHOD(device_attach, awusbphy_attach),
 
 	DEVMETHOD_END
 };
 
-static driver_t awusbphy_driver = {
-	"awusbphy",
-	awusbphy_methods,
-	sizeof(struct awusbphy_softc)
-};
+static driver_t awusbphy_driver = { "awusbphy", awusbphy_methods,
+	sizeof(struct awusbphy_softc) };
 
 /* aw_usbphy needs to come up after regulators/gpio/etc, but before ehci/ohci */
 EARLY_DRIVER_MODULE(awusbphy, simplebus, awusbphy_driver, 0, 0,

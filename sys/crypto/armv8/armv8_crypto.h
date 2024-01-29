@@ -29,19 +29,19 @@
 #ifndef _ARMV8_CRYPTO_H_
 #define _ARMV8_CRYPTO_H_
 
-#define	AES256_ROUNDS	14
-#define	AES_SCHED_LEN	((AES256_ROUNDS + 1) * AES_BLOCK_LEN)
+#define AES256_ROUNDS 14
+#define AES_SCHED_LEN ((AES256_ROUNDS + 1) * AES_BLOCK_LEN)
 
 typedef struct {
-	uint32_t		aes_key[AES_SCHED_LEN/4];
-	int			aes_rounds;
+	uint32_t aes_key[AES_SCHED_LEN / 4];
+	int aes_rounds;
 } AES_key_t;
 
 typedef union {
-		uint64_t u[2];
-		uint32_t d[4];
-		uint8_t c[16];
-		size_t t[16 / sizeof(size_t)];
+	uint64_t u[2];
+	uint32_t d[4];
+	uint8_t c[16];
+	size_t t[16 / sizeof(size_t)];
 } __uint128_val_t;
 
 struct armv8_crypto_session {
@@ -53,13 +53,16 @@ struct armv8_crypto_session {
 
 /* Prototypes for aesv8-armx.S */
 void aes_v8_encrypt(uint8_t *in, uint8_t *out, const AES_key_t *key);
-int aes_v8_set_encrypt_key(const unsigned char *userKey, const int bits, const AES_key_t *key);
-int aes_v8_set_decrypt_key(const unsigned char *userKey, const int bits, const AES_key_t *key);
+int aes_v8_set_encrypt_key(const unsigned char *userKey, const int bits,
+    const AES_key_t *key);
+int aes_v8_set_decrypt_key(const unsigned char *userKey, const int bits,
+    const AES_key_t *key);
 
 /* Prototypes for ghashv8-armx.S */
 void gcm_init_v8(__uint128_val_t Htable[16], const uint64_t Xi[2]);
 void gcm_gmult_v8(uint64_t Xi[2], const __uint128_val_t Htable[16]);
-void gcm_ghash_v8(uint64_t Xi[2], const __uint128_val_t Htable[16], const uint8_t *inp, size_t len);
+void gcm_ghash_v8(uint64_t Xi[2], const __uint128_val_t Htable[16],
+    const uint8_t *inp, size_t len);
 
 void armv8_aes_encrypt_cbc(const AES_key_t *key, size_t len,
     struct crypto_buffer_cursor *fromc, struct crypto_buffer_cursor *toc,
@@ -67,17 +70,14 @@ void armv8_aes_encrypt_cbc(const AES_key_t *key, size_t len,
 void armv8_aes_decrypt_cbc(const AES_key_t *, size_t,
     struct crypto_buffer_cursor *fromc, struct crypto_buffer_cursor *toc,
     const uint8_t[static AES_BLOCK_LEN]);
-void armv8_aes_encrypt_gcm(AES_key_t *, size_t,
-    struct crypto_buffer_cursor *, struct crypto_buffer_cursor *,
-    size_t, const uint8_t *,
-    uint8_t tag[static GMAC_DIGEST_LEN],
-    const uint8_t[static AES_GCM_IV_LEN],
+void armv8_aes_encrypt_gcm(AES_key_t *, size_t, struct crypto_buffer_cursor *,
+    struct crypto_buffer_cursor *, size_t, const uint8_t *,
+    uint8_t tag[static GMAC_DIGEST_LEN], const uint8_t[static AES_GCM_IV_LEN],
     const __uint128_val_t *);
-int armv8_aes_decrypt_gcm(AES_key_t *, size_t,
-    struct crypto_buffer_cursor *, struct crypto_buffer_cursor *,
-    size_t, const uint8_t *, const uint8_t tag[static GMAC_DIGEST_LEN],
-    const uint8_t[static AES_GCM_IV_LEN],
-    const __uint128_val_t *);
+int armv8_aes_decrypt_gcm(AES_key_t *, size_t, struct crypto_buffer_cursor *,
+    struct crypto_buffer_cursor *, size_t, const uint8_t *,
+    const uint8_t tag[static GMAC_DIGEST_LEN],
+    const uint8_t[static AES_GCM_IV_LEN], const __uint128_val_t *);
 
 void armv8_aes_encrypt_xts(AES_key_t *, const void *, size_t,
     struct crypto_buffer_cursor *, struct crypto_buffer_cursor *,

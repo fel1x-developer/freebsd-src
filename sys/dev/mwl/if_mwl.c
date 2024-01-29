@@ -40,216 +40,214 @@
 #include "opt_wlan.h"
 
 #include <sys/param.h>
-#include <sys/systm.h> 
-#include <sys/sysctl.h>
-#include <sys/mbuf.h>   
-#include <sys/malloc.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
+#include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/callout.h>
+#include <sys/endian.h>
+#include <sys/errno.h>
 #include <sys/kernel.h>
+#include <sys/kthread.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
-#include <sys/errno.h>
-#include <sys/callout.h>
-#include <sys/bus.h>
-#include <sys/endian.h>
-#include <sys/kthread.h>
+#include <sys/sysctl.h>
 #include <sys/taskqueue.h>
 
 #include <machine/bus.h>
 
+#include <net/bpf.h>
+#include <net/ethernet.h>
 #include <net/if.h>
-#include <net/if_var.h>
+#include <net/if_arp.h>
 #include <net/if_dl.h>
+#include <net/if_llc.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_llc.h>
-
-#include <net/bpf.h>
-
-#include <net80211/ieee80211_var.h>
+#include <net/if_var.h>
 #include <net80211/ieee80211_input.h>
 #include <net80211/ieee80211_regdomain.h>
+#include <net80211/ieee80211_var.h>
 
 #ifdef INET
-#include <netinet/in.h>
 #include <netinet/if_ether.h>
+#include <netinet/in.h>
 #endif /* INET */
 
 #include <dev/mwl/if_mwlvar.h>
 #include <dev/mwl/mwldiag.h>
 
 static struct ieee80211vap *mwl_vap_create(struct ieee80211com *,
-		    const char [IFNAMSIZ], int, enum ieee80211_opmode, int,
-		    const uint8_t [IEEE80211_ADDR_LEN],
-		    const uint8_t [IEEE80211_ADDR_LEN]);
-static void	mwl_vap_delete(struct ieee80211vap *);
-static int	mwl_setupdma(struct mwl_softc *);
-static int	mwl_hal_reset(struct mwl_softc *sc);
-static int	mwl_init(struct mwl_softc *);
-static void	mwl_parent(struct ieee80211com *);
-static int	mwl_reset(struct ieee80211vap *, u_long);
-static void	mwl_stop(struct mwl_softc *);
-static void	mwl_start(struct mwl_softc *);
-static int	mwl_transmit(struct ieee80211com *, struct mbuf *);
-static int	mwl_raw_xmit(struct ieee80211_node *, struct mbuf *,
-			const struct ieee80211_bpf_params *);
-static int	mwl_media_change(if_t);
-static void	mwl_watchdog(void *);
-static int	mwl_ioctl(struct ieee80211com *, u_long, void *);
-static void	mwl_radar_proc(void *, int);
-static void	mwl_chanswitch_proc(void *, int);
-static void	mwl_bawatchdog_proc(void *, int);
-static int	mwl_key_alloc(struct ieee80211vap *,
-			struct ieee80211_key *,
-			ieee80211_keyix *, ieee80211_keyix *);
-static int	mwl_key_delete(struct ieee80211vap *,
-			const struct ieee80211_key *);
-static int	mwl_key_set(struct ieee80211vap *,
-			const struct ieee80211_key *);
-static int	_mwl_key_set(struct ieee80211vap *,
-			const struct ieee80211_key *,
-			const uint8_t mac[IEEE80211_ADDR_LEN]);
-static int	mwl_mode_init(struct mwl_softc *);
-static void	mwl_update_mcast(struct ieee80211com *);
-static void	mwl_update_promisc(struct ieee80211com *);
-static void	mwl_updateslot(struct ieee80211com *);
-static int	mwl_beacon_setup(struct ieee80211vap *);
-static void	mwl_beacon_update(struct ieee80211vap *, int);
+    const char[IFNAMSIZ], int, enum ieee80211_opmode, int,
+    const uint8_t[IEEE80211_ADDR_LEN], const uint8_t[IEEE80211_ADDR_LEN]);
+static void mwl_vap_delete(struct ieee80211vap *);
+static int mwl_setupdma(struct mwl_softc *);
+static int mwl_hal_reset(struct mwl_softc *sc);
+static int mwl_init(struct mwl_softc *);
+static void mwl_parent(struct ieee80211com *);
+static int mwl_reset(struct ieee80211vap *, u_long);
+static void mwl_stop(struct mwl_softc *);
+static void mwl_start(struct mwl_softc *);
+static int mwl_transmit(struct ieee80211com *, struct mbuf *);
+static int mwl_raw_xmit(struct ieee80211_node *, struct mbuf *,
+    const struct ieee80211_bpf_params *);
+static int mwl_media_change(if_t);
+static void mwl_watchdog(void *);
+static int mwl_ioctl(struct ieee80211com *, u_long, void *);
+static void mwl_radar_proc(void *, int);
+static void mwl_chanswitch_proc(void *, int);
+static void mwl_bawatchdog_proc(void *, int);
+static int mwl_key_alloc(struct ieee80211vap *, struct ieee80211_key *,
+    ieee80211_keyix *, ieee80211_keyix *);
+static int mwl_key_delete(struct ieee80211vap *, const struct ieee80211_key *);
+static int mwl_key_set(struct ieee80211vap *, const struct ieee80211_key *);
+static int _mwl_key_set(struct ieee80211vap *, const struct ieee80211_key *,
+    const uint8_t mac[IEEE80211_ADDR_LEN]);
+static int mwl_mode_init(struct mwl_softc *);
+static void mwl_update_mcast(struct ieee80211com *);
+static void mwl_update_promisc(struct ieee80211com *);
+static void mwl_updateslot(struct ieee80211com *);
+static int mwl_beacon_setup(struct ieee80211vap *);
+static void mwl_beacon_update(struct ieee80211vap *, int);
 #ifdef MWL_HOST_PS_SUPPORT
-static void	mwl_update_ps(struct ieee80211vap *, int);
-static int	mwl_set_tim(struct ieee80211_node *, int);
+static void mwl_update_ps(struct ieee80211vap *, int);
+static int mwl_set_tim(struct ieee80211_node *, int);
 #endif
-static int	mwl_dma_setup(struct mwl_softc *);
-static void	mwl_dma_cleanup(struct mwl_softc *);
+static int mwl_dma_setup(struct mwl_softc *);
+static void mwl_dma_cleanup(struct mwl_softc *);
 static struct ieee80211_node *mwl_node_alloc(struct ieee80211vap *,
-		    const uint8_t [IEEE80211_ADDR_LEN]);
-static void	mwl_node_cleanup(struct ieee80211_node *);
-static void	mwl_node_drain(struct ieee80211_node *);
-static void	mwl_node_getsignal(const struct ieee80211_node *,
-			int8_t *, int8_t *);
-static void	mwl_node_getmimoinfo(const struct ieee80211_node *,
-			struct ieee80211_mimo_info *);
-static int	mwl_rxbuf_init(struct mwl_softc *, struct mwl_rxbuf *);
-static void	mwl_rx_proc(void *, int);
-static void	mwl_txq_init(struct mwl_softc *sc, struct mwl_txq *, int);
-static int	mwl_tx_setup(struct mwl_softc *, int, int);
-static int	mwl_wme_update(struct ieee80211com *);
-static void	mwl_tx_cleanupq(struct mwl_softc *, struct mwl_txq *);
-static void	mwl_tx_cleanup(struct mwl_softc *);
-static uint16_t	mwl_calcformat(uint8_t rate, const struct ieee80211_node *);
-static int	mwl_tx_start(struct mwl_softc *, struct ieee80211_node *,
-			     struct mwl_txbuf *, struct mbuf *);
-static void	mwl_tx_proc(void *, int);
-static int	mwl_chan_set(struct mwl_softc *, struct ieee80211_channel *);
-static void	mwl_draintxq(struct mwl_softc *);
-static void	mwl_cleartxq(struct mwl_softc *, struct ieee80211vap *);
-static int	mwl_recv_action(struct ieee80211_node *,
-			const struct ieee80211_frame *,
-			const uint8_t *, const uint8_t *);
-static int	mwl_addba_request(struct ieee80211_node *,
-			struct ieee80211_tx_ampdu *, int dialogtoken,
-			int baparamset, int batimeout);
-static int	mwl_addba_response(struct ieee80211_node *,
-			struct ieee80211_tx_ampdu *, int status,
-			int baparamset, int batimeout);
-static void	mwl_addba_stop(struct ieee80211_node *,
-			struct ieee80211_tx_ampdu *);
-static int	mwl_startrecv(struct mwl_softc *);
+    const uint8_t[IEEE80211_ADDR_LEN]);
+static void mwl_node_cleanup(struct ieee80211_node *);
+static void mwl_node_drain(struct ieee80211_node *);
+static void mwl_node_getsignal(const struct ieee80211_node *, int8_t *,
+    int8_t *);
+static void mwl_node_getmimoinfo(const struct ieee80211_node *,
+    struct ieee80211_mimo_info *);
+static int mwl_rxbuf_init(struct mwl_softc *, struct mwl_rxbuf *);
+static void mwl_rx_proc(void *, int);
+static void mwl_txq_init(struct mwl_softc *sc, struct mwl_txq *, int);
+static int mwl_tx_setup(struct mwl_softc *, int, int);
+static int mwl_wme_update(struct ieee80211com *);
+static void mwl_tx_cleanupq(struct mwl_softc *, struct mwl_txq *);
+static void mwl_tx_cleanup(struct mwl_softc *);
+static uint16_t mwl_calcformat(uint8_t rate, const struct ieee80211_node *);
+static int mwl_tx_start(struct mwl_softc *, struct ieee80211_node *,
+    struct mwl_txbuf *, struct mbuf *);
+static void mwl_tx_proc(void *, int);
+static int mwl_chan_set(struct mwl_softc *, struct ieee80211_channel *);
+static void mwl_draintxq(struct mwl_softc *);
+static void mwl_cleartxq(struct mwl_softc *, struct ieee80211vap *);
+static int mwl_recv_action(struct ieee80211_node *,
+    const struct ieee80211_frame *, const uint8_t *, const uint8_t *);
+static int mwl_addba_request(struct ieee80211_node *,
+    struct ieee80211_tx_ampdu *, int dialogtoken, int baparamset,
+    int batimeout);
+static int mwl_addba_response(struct ieee80211_node *,
+    struct ieee80211_tx_ampdu *, int status, int baparamset, int batimeout);
+static void mwl_addba_stop(struct ieee80211_node *,
+    struct ieee80211_tx_ampdu *);
+static int mwl_startrecv(struct mwl_softc *);
 static MWL_HAL_APMODE mwl_getapmode(const struct ieee80211vap *,
-			struct ieee80211_channel *);
-static int	mwl_setapmode(struct ieee80211vap *, struct ieee80211_channel*);
-static void	mwl_scan_start(struct ieee80211com *);
-static void	mwl_scan_end(struct ieee80211com *);
-static void	mwl_set_channel(struct ieee80211com *);
-static int	mwl_peerstadb(struct ieee80211_node *,
-			int aid, int staid, MWL_HAL_PEERINFO *pi);
-static int	mwl_localstadb(struct ieee80211vap *);
-static int	mwl_newstate(struct ieee80211vap *, enum ieee80211_state, int);
-static int	allocstaid(struct mwl_softc *sc, int aid);
-static void	delstaid(struct mwl_softc *sc, int staid);
-static void	mwl_newassoc(struct ieee80211_node *, int);
-static void	mwl_agestations(void *);
-static int	mwl_setregdomain(struct ieee80211com *,
-			struct ieee80211_regdomain *, int,
-			struct ieee80211_channel []);
-static void	mwl_getradiocaps(struct ieee80211com *, int, int *,
-			struct ieee80211_channel []);
-static int	mwl_getchannels(struct mwl_softc *);
+    struct ieee80211_channel *);
+static int mwl_setapmode(struct ieee80211vap *, struct ieee80211_channel *);
+static void mwl_scan_start(struct ieee80211com *);
+static void mwl_scan_end(struct ieee80211com *);
+static void mwl_set_channel(struct ieee80211com *);
+static int mwl_peerstadb(struct ieee80211_node *, int aid, int staid,
+    MWL_HAL_PEERINFO *pi);
+static int mwl_localstadb(struct ieee80211vap *);
+static int mwl_newstate(struct ieee80211vap *, enum ieee80211_state, int);
+static int allocstaid(struct mwl_softc *sc, int aid);
+static void delstaid(struct mwl_softc *sc, int staid);
+static void mwl_newassoc(struct ieee80211_node *, int);
+static void mwl_agestations(void *);
+static int mwl_setregdomain(struct ieee80211com *, struct ieee80211_regdomain *,
+    int, struct ieee80211_channel[]);
+static void mwl_getradiocaps(struct ieee80211com *, int, int *,
+    struct ieee80211_channel[]);
+static int mwl_getchannels(struct mwl_softc *);
 
-static void	mwl_sysctlattach(struct mwl_softc *);
-static void	mwl_announce(struct mwl_softc *);
+static void mwl_sysctlattach(struct mwl_softc *);
+static void mwl_announce(struct mwl_softc *);
 
 SYSCTL_NODE(_hw, OID_AUTO, mwl, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
     "Marvell driver parameters");
 
-static	int mwl_rxdesc = MWL_RXDESC;		/* # rx desc's to allocate */
-SYSCTL_INT(_hw_mwl, OID_AUTO, rxdesc, CTLFLAG_RW, &mwl_rxdesc,
-	    0, "rx descriptors allocated");
-static	int mwl_rxbuf = MWL_RXBUF;		/* # rx buffers to allocate */
-SYSCTL_INT(_hw_mwl, OID_AUTO, rxbuf, CTLFLAG_RWTUN, &mwl_rxbuf,
-	    0, "rx buffers allocated");
-static	int mwl_txbuf = MWL_TXBUF;		/* # tx buffers to allocate */
-SYSCTL_INT(_hw_mwl, OID_AUTO, txbuf, CTLFLAG_RWTUN, &mwl_txbuf,
-	    0, "tx buffers allocated");
-static	int mwl_txcoalesce = 8;		/* # tx packets to q before poking f/w*/
-SYSCTL_INT(_hw_mwl, OID_AUTO, txcoalesce, CTLFLAG_RWTUN, &mwl_txcoalesce,
-	    0, "tx buffers to send at once");
-static	int mwl_rxquota = MWL_RXBUF;		/* # max buffers to process */
-SYSCTL_INT(_hw_mwl, OID_AUTO, rxquota, CTLFLAG_RWTUN, &mwl_rxquota,
-	    0, "max rx buffers to process per interrupt");
-static	int mwl_rxdmalow = 3;			/* # min buffers for wakeup */
-SYSCTL_INT(_hw_mwl, OID_AUTO, rxdmalow, CTLFLAG_RWTUN, &mwl_rxdmalow,
-	    0, "min free rx buffers before restarting traffic");
+static int mwl_rxdesc = MWL_RXDESC; /* # rx desc's to allocate */
+SYSCTL_INT(_hw_mwl, OID_AUTO, rxdesc, CTLFLAG_RW, &mwl_rxdesc, 0,
+    "rx descriptors allocated");
+static int mwl_rxbuf = MWL_RXBUF; /* # rx buffers to allocate */
+SYSCTL_INT(_hw_mwl, OID_AUTO, rxbuf, CTLFLAG_RWTUN, &mwl_rxbuf, 0,
+    "rx buffers allocated");
+static int mwl_txbuf = MWL_TXBUF; /* # tx buffers to allocate */
+SYSCTL_INT(_hw_mwl, OID_AUTO, txbuf, CTLFLAG_RWTUN, &mwl_txbuf, 0,
+    "tx buffers allocated");
+static int mwl_txcoalesce = 8; /* # tx packets to q before poking f/w*/
+SYSCTL_INT(_hw_mwl, OID_AUTO, txcoalesce, CTLFLAG_RWTUN, &mwl_txcoalesce, 0,
+    "tx buffers to send at once");
+static int mwl_rxquota = MWL_RXBUF; /* # max buffers to process */
+SYSCTL_INT(_hw_mwl, OID_AUTO, rxquota, CTLFLAG_RWTUN, &mwl_rxquota, 0,
+    "max rx buffers to process per interrupt");
+static int mwl_rxdmalow = 3; /* # min buffers for wakeup */
+SYSCTL_INT(_hw_mwl, OID_AUTO, rxdmalow, CTLFLAG_RWTUN, &mwl_rxdmalow, 0,
+    "min free rx buffers before restarting traffic");
 
 #ifdef MWL_DEBUG
-static	int mwl_debug = 0;
-SYSCTL_INT(_hw_mwl, OID_AUTO, debug, CTLFLAG_RWTUN, &mwl_debug,
-	    0, "control debugging printfs");
+static int mwl_debug = 0;
+SYSCTL_INT(_hw_mwl, OID_AUTO, debug, CTLFLAG_RWTUN, &mwl_debug, 0,
+    "control debugging printfs");
 enum {
-	MWL_DEBUG_XMIT		= 0x00000001,	/* basic xmit operation */
-	MWL_DEBUG_XMIT_DESC	= 0x00000002,	/* xmit descriptors */
-	MWL_DEBUG_RECV		= 0x00000004,	/* basic recv operation */
-	MWL_DEBUG_RECV_DESC	= 0x00000008,	/* recv descriptors */
-	MWL_DEBUG_RESET		= 0x00000010,	/* reset processing */
-	MWL_DEBUG_BEACON 	= 0x00000020,	/* beacon handling */
-	MWL_DEBUG_INTR		= 0x00000040,	/* ISR */
-	MWL_DEBUG_TX_PROC	= 0x00000080,	/* tx ISR proc */
-	MWL_DEBUG_RX_PROC	= 0x00000100,	/* rx ISR proc */
-	MWL_DEBUG_KEYCACHE	= 0x00000200,	/* key cache management */
-	MWL_DEBUG_STATE		= 0x00000400,	/* 802.11 state transitions */
-	MWL_DEBUG_NODE		= 0x00000800,	/* node management */
-	MWL_DEBUG_RECV_ALL	= 0x00001000,	/* trace all frames (beacons) */
-	MWL_DEBUG_TSO		= 0x00002000,	/* TSO processing */
-	MWL_DEBUG_AMPDU		= 0x00004000,	/* BA stream handling */
-	MWL_DEBUG_ANY		= 0xffffffff
+	MWL_DEBUG_XMIT = 0x00000001,	  /* basic xmit operation */
+	MWL_DEBUG_XMIT_DESC = 0x00000002, /* xmit descriptors */
+	MWL_DEBUG_RECV = 0x00000004,	  /* basic recv operation */
+	MWL_DEBUG_RECV_DESC = 0x00000008, /* recv descriptors */
+	MWL_DEBUG_RESET = 0x00000010,	  /* reset processing */
+	MWL_DEBUG_BEACON = 0x00000020,	  /* beacon handling */
+	MWL_DEBUG_INTR = 0x00000040,	  /* ISR */
+	MWL_DEBUG_TX_PROC = 0x00000080,	  /* tx ISR proc */
+	MWL_DEBUG_RX_PROC = 0x00000100,	  /* rx ISR proc */
+	MWL_DEBUG_KEYCACHE = 0x00000200,  /* key cache management */
+	MWL_DEBUG_STATE = 0x00000400,	  /* 802.11 state transitions */
+	MWL_DEBUG_NODE = 0x00000800,	  /* node management */
+	MWL_DEBUG_RECV_ALL = 0x00001000,  /* trace all frames (beacons) */
+	MWL_DEBUG_TSO = 0x00002000,	  /* TSO processing */
+	MWL_DEBUG_AMPDU = 0x00004000,	  /* BA stream handling */
+	MWL_DEBUG_ANY = 0xffffffff
 };
-#define	IS_BEACON(wh) \
-    ((wh->i_fc[0] & (IEEE80211_FC0_TYPE_MASK|IEEE80211_FC0_SUBTYPE_MASK)) == \
-	 (IEEE80211_FC0_TYPE_MGT|IEEE80211_FC0_SUBTYPE_BEACON))
-#define	IFF_DUMPPKTS_RECV(sc, wh) \
-    ((sc->sc_debug & MWL_DEBUG_RECV) && \
-      ((sc->sc_debug & MWL_DEBUG_RECV_ALL) || !IS_BEACON(wh)))
-#define	IFF_DUMPPKTS_XMIT(sc) \
-	(sc->sc_debug & MWL_DEBUG_XMIT)
+#define IS_BEACON(wh)                                                   \
+	((wh->i_fc[0] &                                                 \
+	     (IEEE80211_FC0_TYPE_MASK | IEEE80211_FC0_SUBTYPE_MASK)) == \
+	    (IEEE80211_FC0_TYPE_MGT | IEEE80211_FC0_SUBTYPE_BEACON))
+#define IFF_DUMPPKTS_RECV(sc, wh)           \
+	((sc->sc_debug & MWL_DEBUG_RECV) && \
+	    ((sc->sc_debug & MWL_DEBUG_RECV_ALL) || !IS_BEACON(wh)))
+#define IFF_DUMPPKTS_XMIT(sc) (sc->sc_debug & MWL_DEBUG_XMIT)
 
-#define	DPRINTF(sc, m, fmt, ...) do {				\
-	if (sc->sc_debug & (m))					\
-		printf(fmt, __VA_ARGS__);			\
-} while (0)
-#define	KEYPRINTF(sc, hk, mac) do {				\
-	if (sc->sc_debug & MWL_DEBUG_KEYCACHE)			\
-		mwl_keyprint(sc, __func__, hk, mac);		\
-} while (0)
-static	void mwl_printrxbuf(const struct mwl_rxbuf *bf, u_int ix);
-static	void mwl_printtxbuf(const struct mwl_txbuf *bf, u_int qnum, u_int ix);
+#define DPRINTF(sc, m, fmt, ...)                  \
+	do {                                      \
+		if (sc->sc_debug & (m))           \
+			printf(fmt, __VA_ARGS__); \
+	} while (0)
+#define KEYPRINTF(sc, hk, mac)                               \
+	do {                                                 \
+		if (sc->sc_debug & MWL_DEBUG_KEYCACHE)       \
+			mwl_keyprint(sc, __func__, hk, mac); \
+	} while (0)
+static void mwl_printrxbuf(const struct mwl_rxbuf *bf, u_int ix);
+static void mwl_printtxbuf(const struct mwl_txbuf *bf, u_int qnum, u_int ix);
 #else
-#define	IFF_DUMPPKTS_RECV(sc, wh)	0
-#define	IFF_DUMPPKTS_XMIT(sc)		0
-#define	DPRINTF(sc, m, fmt, ...)	do { (void )sc; } while (0)
-#define	KEYPRINTF(sc, k, mac)		do { (void )sc; } while (0)
+#define IFF_DUMPPKTS_RECV(sc, wh) 0
+#define IFF_DUMPPKTS_XMIT(sc) 0
+#define DPRINTF(sc, m, fmt, ...) \
+	do {                     \
+		(void)sc;        \
+	} while (0)
+#define KEYPRINTF(sc, k, mac) \
+	do {                  \
+		(void)sc;     \
+	} while (0)
 #endif
 
 static MALLOC_DEFINE(M_MWLDEV, "mwldev", "mwl driver dma buffers");
@@ -299,8 +297,8 @@ mwl_attach(uint16_t devid, struct mwl_softc *sc)
 	 */
 	MWL_RXFREE_INIT(sc);
 
-	mh = mwl_hal_attach(sc->sc_dev, devid,
-	    sc->sc_io1h, sc->sc_io1t, sc->sc_dmat);
+	mh = mwl_hal_attach(sc->sc_dev, devid, sc->sc_io1h, sc->sc_io1t,
+	    sc->sc_dmat);
 	if (mh == NULL) {
 		device_printf(sc->sc_dev, "unable to attach HAL\n");
 		error = EIO;
@@ -326,9 +324,9 @@ mwl_attach(uint16_t devid, struct mwl_softc *sc)
 	if (error != 0)
 		goto bad1;
 
-	sc->sc_txantenna = 0;		/* h/w default */
-	sc->sc_rxantenna = 0;		/* h/w default */
-	sc->sc_invalid = 0;		/* ready to go, enable int handling */
+	sc->sc_txantenna = 0; /* h/w default */
+	sc->sc_rxantenna = 0; /* h/w default */
+	sc->sc_invalid = 0;   /* ready to go, enable int handling */
 	sc->sc_ageinterval = MWL_AGEINTERVAL;
 
 	/*
@@ -342,8 +340,8 @@ mwl_attach(uint16_t devid, struct mwl_softc *sc)
 		    error);
 		goto bad1;
 	}
-	error = mwl_setupdma(sc);	/* push to firmware */
-	if (error != 0)			/* NB: mwl_setupdma prints msg */
+	error = mwl_setupdma(sc); /* push to firmware */
+	if (error != 0)		  /* NB: mwl_setupdma prints msg */
 		goto bad1;
 
 	callout_init(&sc->sc_timer, 1);
@@ -351,9 +349,9 @@ mwl_attach(uint16_t devid, struct mwl_softc *sc)
 	mbufq_init(&sc->sc_snd, ifqmaxlen);
 
 	sc->sc_tq = taskqueue_create("mwl_taskq", M_NOWAIT,
-		taskqueue_thread_enqueue, &sc->sc_tq);
-	taskqueue_start_threads(&sc->sc_tq, 1, PI_NET,
-		"%s taskq", device_get_nameunit(sc->sc_dev));
+	    taskqueue_thread_enqueue, &sc->sc_tq);
+	taskqueue_start_threads(&sc->sc_tq, 1, PI_NET, "%s taskq",
+	    device_get_nameunit(sc->sc_dev));
 
 	NET_TASK_INIT(&sc->sc_rxtask, 0, mwl_rx_proc, sc);
 	TASK_INIT(&sc->sc_radartask, 0, mwl_radar_proc, sc);
@@ -364,7 +362,7 @@ mwl_attach(uint16_t devid, struct mwl_softc *sc)
 	if (!mwl_tx_setup(sc, WME_AC_BK, MWL_WME_AC_BK)) {
 		device_printf(sc->sc_dev,
 		    "unable to setup xmit queue for %s traffic!\n",
-		     ieee80211_wme_acnames[WME_AC_BK]);
+		    ieee80211_wme_acnames[WME_AC_BK]);
 		error = EIO;
 		goto bad2;
 	}
@@ -393,67 +391,62 @@ mwl_attach(uint16_t devid, struct mwl_softc *sc)
 	/* XXX not right but it's not used anywhere important */
 	ic->ic_phytype = IEEE80211_T_OFDM;
 	ic->ic_opmode = IEEE80211_M_STA;
-	ic->ic_caps =
-		  IEEE80211_C_STA		/* station mode supported */
-		| IEEE80211_C_HOSTAP		/* hostap mode */
-		| IEEE80211_C_MONITOR		/* monitor mode */
+	ic->ic_caps = IEEE80211_C_STA /* station mode supported */
+	    | IEEE80211_C_HOSTAP      /* hostap mode */
+	    | IEEE80211_C_MONITOR     /* monitor mode */
 #if 0
 		| IEEE80211_C_IBSS		/* ibss, nee adhoc, mode */
 		| IEEE80211_C_AHDEMO		/* adhoc demo mode */
 #endif
-		| IEEE80211_C_MBSS		/* mesh point link mode */
-		| IEEE80211_C_WDS		/* WDS supported */
-		| IEEE80211_C_SHPREAMBLE	/* short preamble supported */
-		| IEEE80211_C_SHSLOT		/* short slot time supported */
-		| IEEE80211_C_WME		/* WME/WMM supported */
-		| IEEE80211_C_BURST		/* xmit bursting supported */
-		| IEEE80211_C_WPA		/* capable of WPA1+WPA2 */
-		| IEEE80211_C_BGSCAN		/* capable of bg scanning */
-		| IEEE80211_C_TXFRAG		/* handle tx frags */
-		| IEEE80211_C_TXPMGT		/* capable of txpow mgt */
-		| IEEE80211_C_DFS		/* DFS supported */
-		;
+	    | IEEE80211_C_MBSS	     /* mesh point link mode */
+	    | IEEE80211_C_WDS	     /* WDS supported */
+	    | IEEE80211_C_SHPREAMBLE /* short preamble supported */
+	    | IEEE80211_C_SHSLOT     /* short slot time supported */
+	    | IEEE80211_C_WME	     /* WME/WMM supported */
+	    | IEEE80211_C_BURST	     /* xmit bursting supported */
+	    | IEEE80211_C_WPA	     /* capable of WPA1+WPA2 */
+	    | IEEE80211_C_BGSCAN     /* capable of bg scanning */
+	    | IEEE80211_C_TXFRAG     /* handle tx frags */
+	    | IEEE80211_C_TXPMGT     /* capable of txpow mgt */
+	    | IEEE80211_C_DFS	     /* DFS supported */
+	    ;
 
-	ic->ic_htcaps =
-		  IEEE80211_HTCAP_SMPS_ENA	/* SM PS mode enabled */
-		| IEEE80211_HTCAP_CHWIDTH40	/* 40MHz channel width */
-		| IEEE80211_HTCAP_SHORTGI20	/* short GI in 20MHz */
-		| IEEE80211_HTCAP_SHORTGI40	/* short GI in 40MHz */
-		| IEEE80211_HTCAP_RXSTBC_2STREAM/* 1-2 spatial streams */
+	ic->ic_htcaps = IEEE80211_HTCAP_SMPS_ENA /* SM PS mode enabled */
+	    | IEEE80211_HTCAP_CHWIDTH40		 /* 40MHz channel width */
+	    | IEEE80211_HTCAP_SHORTGI20		 /* short GI in 20MHz */
+	    | IEEE80211_HTCAP_SHORTGI40		 /* short GI in 40MHz */
+	    | IEEE80211_HTCAP_RXSTBC_2STREAM	 /* 1-2 spatial streams */
 #if MWL_AGGR_SIZE == 7935
-		| IEEE80211_HTCAP_MAXAMSDU_7935	/* max A-MSDU length */
+	    | IEEE80211_HTCAP_MAXAMSDU_7935 /* max A-MSDU length */
 #else
-		| IEEE80211_HTCAP_MAXAMSDU_3839	/* max A-MSDU length */
+	    | IEEE80211_HTCAP_MAXAMSDU_3839 /* max A-MSDU length */
 #endif
 #if 0
 		| IEEE80211_HTCAP_PSMP		/* PSMP supported */
 		| IEEE80211_HTCAP_40INTOLERANT	/* 40MHz intolerant */
 #endif
-		/* s/w capabilities */
-		| IEEE80211_HTC_HT		/* HT operation */
-		| IEEE80211_HTC_AMPDU		/* tx A-MPDU */
-		| IEEE80211_HTC_AMSDU		/* tx A-MSDU */
-		| IEEE80211_HTC_SMPS		/* SMPS available */
-		;
+	    /* s/w capabilities */
+	    | IEEE80211_HTC_HT	  /* HT operation */
+	    | IEEE80211_HTC_AMPDU /* tx A-MPDU */
+	    | IEEE80211_HTC_AMSDU /* tx A-MSDU */
+	    | IEEE80211_HTC_SMPS  /* SMPS available */
+	    ;
 
 	/*
 	 * Mark h/w crypto support.
 	 * XXX no way to query h/w support.
 	 */
-	ic->ic_cryptocaps |= IEEE80211_CRYPTO_WEP
-			  |  IEEE80211_CRYPTO_AES_CCM
-			  |  IEEE80211_CRYPTO_TKIP
-			  |  IEEE80211_CRYPTO_TKIPMIC
-			  ;
+	ic->ic_cryptocaps |= IEEE80211_CRYPTO_WEP | IEEE80211_CRYPTO_AES_CCM |
+	    IEEE80211_CRYPTO_TKIP | IEEE80211_CRYPTO_TKIPMIC;
 	/*
 	 * Transmit requires space in the packet for a special
 	 * format transmit record and optional padding between
 	 * this record and the payload.  Ask the net80211 layer
 	 * to arrange this when encapsulating packets so we can
-	 * add it efficiently. 
+	 * add it efficiently.
 	 */
 	ic->ic_headroom = sizeof(struct mwltxrec) -
-		sizeof(struct ieee80211_frame);
+	    sizeof(struct ieee80211_frame);
 
 	IEEE80211_ADDR_COPY(ic->ic_macaddr, sc->sc_hwspecs.macAddr);
 
@@ -496,11 +489,10 @@ mwl_attach(uint16_t devid, struct mwl_softc *sc)
 	ic->ic_vap_create = mwl_vap_create;
 	ic->ic_vap_delete = mwl_vap_delete;
 
-	ieee80211_radiotap_attach(ic,
-	    &sc->sc_tx_th.wt_ihdr, sizeof(sc->sc_tx_th),
-		MWL_TX_RADIOTAP_PRESENT,
+	ieee80211_radiotap_attach(ic, &sc->sc_tx_th.wt_ihdr,
+	    sizeof(sc->sc_tx_th), MWL_TX_RADIOTAP_PRESENT,
 	    &sc->sc_rx_th.wr_ihdr, sizeof(sc->sc_rx_th),
-		MWL_RX_RADIOTAP_PRESENT);
+	    MWL_RX_RADIOTAP_PRESENT);
 	/*
 	 * Setup dynamic sysctl's now that country code and
 	 * regdomain are available from the hal.
@@ -566,13 +558,13 @@ assign_address(struct mwl_softc *sc, uint8_t mac[IEEE80211_ADDR_LEN], int clone)
 	if (clone && mwl_hal_ismbsscapable(sc->sc_mh)) {
 		/* NB: we only do this if h/w supports multiple bssid */
 		for (i = 0; i < 32; i++)
-			if ((sc->sc_bssidmask & (1<<i)) == 0)
+			if ((sc->sc_bssidmask & (1 << i)) == 0)
 				break;
 		if (i != 0)
-			mac[0] |= (i << 2)|0x2;
+			mac[0] |= (i << 2) | 0x2;
 	} else
 		i = 0;
-	sc->sc_bssidmask |= 1<<i;
+	sc->sc_bssidmask |= 1 << i;
 	if (i == 0)
 		sc->sc_nbssid0++;
 }
@@ -582,7 +574,7 @@ reclaim_address(struct mwl_softc *sc, const uint8_t mac[IEEE80211_ADDR_LEN])
 {
 	int i = mac[0] >> 2;
 	if (i != 0 || --sc->sc_nbssid0 == 0)
-		sc->sc_bssidmask &= ~(1<<i);
+		sc->sc_bssidmask &= ~(1 << i);
 }
 
 static struct ieee80211vap *
@@ -624,9 +616,9 @@ mwl_vap_create(struct ieee80211com *ic, const char name[IFNAMSIZ], int unit,
 		flags |= IEEE80211_CLONE_NOBEACONS;
 		break;
 	case IEEE80211_M_WDS:
-		hvap = NULL;		/* NB: we use associated AP vap */
+		hvap = NULL; /* NB: we use associated AP vap */
 		if (sc->sc_napvaps == 0)
-			return NULL;	/* no existing AP vap */
+			return NULL; /* no existing AP vap */
 		break;
 	case IEEE80211_M_MONITOR:
 		hvap = NULL;
@@ -644,7 +636,7 @@ mwl_vap_create(struct ieee80211com *ic, const char name[IFNAMSIZ], int unit,
 		 * WDS vaps must have an associated AP vap; find one.
 		 * XXX not right.
 		 */
-		TAILQ_FOREACH(apvap, &ic->ic_vaps, iv_next)
+		TAILQ_FOREACH (apvap, &ic->ic_vaps, iv_next)
 			if (apvap->iv_opmode == IEEE80211_M_HOSTAP) {
 				mvp->mv_ap_hvap = MWL_VAP(apvap)->mv_hvap;
 				break;
@@ -656,7 +648,7 @@ mwl_vap_create(struct ieee80211com *ic, const char name[IFNAMSIZ], int unit,
 	/* override with driver methods */
 	mvp->mv_newstate = vap->iv_newstate;
 	vap->iv_newstate = mwl_newstate;
-	vap->iv_max_keyix = 0;	/* XXX */
+	vap->iv_max_keyix = 0; /* XXX */
 	vap->iv_key_alloc = mwl_key_alloc;
 	vap->iv_key_delete = mwl_key_delete;
 	vap->iv_key_set = mwl_key_set;
@@ -725,7 +717,7 @@ mwl_vap_delete(struct ieee80211vap *vap)
 	/* XXX disallow ap vap delete if WDS still present */
 	if (sc->sc_running) {
 		/* quiesce h/w while we remove the vap */
-		mwl_hal_intrset(mh, 0);		/* disable interrupts */
+		mwl_hal_intrset(mh, 0); /* disable interrupts */
 	}
 	ieee80211_vap_detach(vap);
 	switch (opmode) {
@@ -733,7 +725,7 @@ mwl_vap_delete(struct ieee80211vap *vap)
 	case IEEE80211_M_MBSS:
 	case IEEE80211_M_STA:
 		KASSERT(hvap != NULL, ("no hal vap handle"));
-		(void) mwl_hal_delstation(hvap, vap->iv_myaddr);
+		(void)mwl_hal_delstation(hvap, vap->iv_myaddr);
 		mwl_hal_delvap(hvap);
 		if (opmode == IEEE80211_M_HOSTAP || opmode == IEEE80211_M_MBSS)
 			sc->sc_napvaps--;
@@ -774,7 +766,7 @@ mwl_resume(struct mwl_softc *sc)
 	MWL_UNLOCK(sc);
 
 	if (error == 0)
-		ieee80211_start_all(&sc->sc_ic);	/* start all vap's */
+		ieee80211_start_all(&sc->sc_ic); /* start all vap's */
 }
 
 void
@@ -808,12 +800,12 @@ mwl_intr(void *arg)
 	/*
 	 * Figure out the reason(s) for the interrupt.
 	 */
-	mwl_hal_getisr(mh, &status);		/* NB: clears ISR too */
-	if (status == 0)			/* must be a shared irq */
+	mwl_hal_getisr(mh, &status); /* NB: clears ISR too */
+	if (status == 0)	     /* must be a shared irq */
 		return;
 
-	DPRINTF(sc, MWL_DEBUG_INTR, "%s: status 0x%x imask 0x%x\n",
-	    __func__, status, sc->sc_imask);
+	DPRINTF(sc, MWL_DEBUG_INTR, "%s: status 0x%x imask 0x%x\n", __func__,
+	    status, sc->sc_imask);
 	if (status & MACREG_A2HRIC_BIT_RX_RDY)
 		taskqueue_enqueue(sc->sc_tq, &sc->sc_rxtask);
 	if (status & MACREG_A2HRIC_BIT_TX_DONE)
@@ -852,8 +844,8 @@ mwl_radar_proc(void *arg, int pending)
 	struct mwl_softc *sc = arg;
 	struct ieee80211com *ic = &sc->sc_ic;
 
-	DPRINTF(sc, MWL_DEBUG_ANY, "%s: radar detected, pending %u\n",
-	    __func__, pending);
+	DPRINTF(sc, MWL_DEBUG_ANY, "%s: radar detected, pending %u\n", __func__,
+	    pending);
 
 	sc->sc_stats.mst_radardetect++;
 	/* XXX stop h/w BA streams? */
@@ -898,8 +890,8 @@ mwl_bawatchdog_proc(void *arg, int pending)
 	sc->sc_stats.mst_bawatchdog++;
 
 	if (mwl_hal_getwatchdogbitmap(mh, &bitmap) != 0) {
-		DPRINTF(sc, MWL_DEBUG_AMPDU,
-		    "%s: could not get bitmap\n", __func__);
+		DPRINTF(sc, MWL_DEBUG_AMPDU, "%s: could not get bitmap\n",
+		    __func__);
 		sc->sc_stats.mst_bawatchdog_failed++;
 		return;
 	}
@@ -925,8 +917,8 @@ mwl_bawatchdog_proc(void *arg, int pending)
 		if (sp != NULL) {
 			mwl_bawatchdog(sp);
 		} else {
-			DPRINTF(sc, MWL_DEBUG_AMPDU,
-			    "%s: no BA stream %d\n", __func__, bitmap);
+			DPRINTF(sc, MWL_DEBUG_AMPDU, "%s: no BA stream %d\n",
+			    __func__, bitmap);
 			sc->sc_stats.mst_bawatchdog_notfound++;
 		}
 	}
@@ -948,9 +940,11 @@ mwl_mapchan(MWL_HAL_CHANNEL *hc, const struct ieee80211_channel *chan)
 	if (IEEE80211_IS_CHAN_HT40(chan)) {
 		hc->channelFlags.ChnlWidth = MWL_CH_40_MHz_WIDTH;
 		if (IEEE80211_IS_CHAN_HT40U(chan))
-			hc->channelFlags.ExtChnlOffset = MWL_EXT_CH_ABOVE_CTRL_CH;
+			hc->channelFlags.ExtChnlOffset =
+			    MWL_EXT_CH_ABOVE_CTRL_CH;
 		else
-			hc->channelFlags.ExtChnlOffset = MWL_EXT_CH_BELOW_CTRL_CH;
+			hc->channelFlags.ExtChnlOffset =
+			    MWL_EXT_CH_BELOW_CTRL_CH;
 	} else
 		hc->channelFlags.ChnlWidth = MWL_CH_20_MHz_WIDTH;
 	/* XXX 10MHz channels */
@@ -971,13 +965,13 @@ mwl_setupdma(struct mwl_softc *sc)
 	WR4(sc, sc->sc_hwspecs.rxDescRead, sc->sc_hwdma.rxDescRead);
 	WR4(sc, sc->sc_hwspecs.rxDescWrite, sc->sc_hwdma.rxDescRead);
 
-	for (i = 0; i < MWL_NUM_TX_QUEUES-MWL_NUM_ACK_QUEUES; i++) {
+	for (i = 0; i < MWL_NUM_TX_QUEUES - MWL_NUM_ACK_QUEUES; i++) {
 		struct mwl_txq *txq = &sc->sc_txq[i];
 		sc->sc_hwdma.wcbBase[i] = txq->dma.dd_desc_paddr;
 		WR4(sc, sc->sc_hwspecs.wcbBase[i], sc->sc_hwdma.wcbBase[i]);
 	}
 	sc->sc_hwdma.maxNumTxWcb = mwl_txbuf;
-	sc->sc_hwdma.maxNumWCB = MWL_NUM_TX_QUEUES-MWL_NUM_ACK_QUEUES;
+	sc->sc_hwdma.maxNumWCB = MWL_NUM_TX_QUEUES - MWL_NUM_ACK_QUEUES;
 
 	error = mwl_hal_sethwdma(sc->sc_mh, &sc->sc_hwdma);
 	if (error != 0) {
@@ -1037,8 +1031,8 @@ mwl_setrates(struct ieee80211vap *vap)
 	mvp->mv_eapolformat = htole16(mwl_calcformat(rates.MgtRate, ni));
 
 	return mwl_hal_settxrate(mvp->mv_hvap,
-	    tp->ucastrate != IEEE80211_FIXED_RATE_NONE ?
-		RATE_FIXED : RATE_AUTO, &rates);
+	    tp->ucastrate != IEEE80211_FIXED_RATE_NONE ? RATE_FIXED : RATE_AUTO,
+	    &rates);
 }
 
 /*
@@ -1095,14 +1089,14 @@ mwl_map2regioncode(const struct ieee80211_regdomain *rd)
 	case SKU_JAPAN:
 		return DOMAIN_CODE_MKK;
 	case SKU_ROW:
-		return DOMAIN_CODE_DGT;	/* Taiwan */
+		return DOMAIN_CODE_DGT; /* Taiwan */
 	case SKU_APAC:
 	case SKU_APAC2:
 	case SKU_APAC3:
-		return DOMAIN_CODE_AUS;	/* Australia */
+		return DOMAIN_CODE_AUS; /* Australia */
 	}
 	/* XXX KOREA? */
-	return DOMAIN_CODE_FCC;			/* XXX? */
+	return DOMAIN_CODE_FCC; /* XXX? */
 }
 
 static int
@@ -1123,8 +1117,8 @@ mwl_hal_reset(struct mwl_softc *sc)
 
 	mwl_hal_setregioncode(mh, mwl_map2regioncode(&ic->ic_regdomain));
 
-	mwl_hal_setaggampduratemode(mh, 1, 80);		/* XXX */
-	mwl_hal_setcfend(mh, 0);			/* XXX */
+	mwl_hal_setaggampduratemode(mh, 1, 80); /* XXX */
+	mwl_hal_setcfend(mh, 0);		/* XXX */
 
 	return 1;
 }
@@ -1163,21 +1157,17 @@ mwl_init(struct mwl_softc *sc)
 	/*
 	 * Enable interrupts.
 	 */
-	sc->sc_imask = MACREG_A2HRIC_BIT_RX_RDY
-		     | MACREG_A2HRIC_BIT_TX_DONE
-		     | MACREG_A2HRIC_BIT_OPC_DONE
+	sc->sc_imask = MACREG_A2HRIC_BIT_RX_RDY | MACREG_A2HRIC_BIT_TX_DONE |
+	    MACREG_A2HRIC_BIT_OPC_DONE
 #if 0
 		     | MACREG_A2HRIC_BIT_MAC_EVENT
 #endif
-		     | MACREG_A2HRIC_BIT_ICV_ERROR
-		     | MACREG_A2HRIC_BIT_RADAR_DETECT
-		     | MACREG_A2HRIC_BIT_CHAN_SWITCH
+	    | MACREG_A2HRIC_BIT_ICV_ERROR | MACREG_A2HRIC_BIT_RADAR_DETECT |
+	    MACREG_A2HRIC_BIT_CHAN_SWITCH
 #if 0
 		     | MACREG_A2HRIC_BIT_QUEUE_EMPTY
 #endif
-		     | MACREG_A2HRIC_BIT_BA_WATCHDOG
-		     | MACREQ_A2HRIC_BIT_TX_ACK
-		     ;
+	    | MACREG_A2HRIC_BIT_BA_WATCHDOG | MACREQ_A2HRIC_BIT_TX_ACK;
 
 	sc->sc_running = 1;
 	mwl_hal_intrset(mh, sc->sc_imask);
@@ -1213,20 +1203,25 @@ mwl_reset_vap(struct ieee80211vap *vap, int state)
 	/* XXX off by 1? */
 	mwl_hal_setrtsthreshold(hvap, vap->iv_rtsthreshold);
 	/* XXX auto? 20/40 split? */
-	mwl_hal_sethtgi(hvap, (vap->iv_flags_ht &
-	    (IEEE80211_FHT_SHORTGI20|IEEE80211_FHT_SHORTGI40)) ? 1 : 0);
-	mwl_hal_setnprot(hvap, ic->ic_htprotmode == IEEE80211_PROT_NONE ?
-	    HTPROTECT_NONE : HTPROTECT_AUTO);
+	mwl_hal_sethtgi(hvap,
+	    (vap->iv_flags_ht &
+		(IEEE80211_FHT_SHORTGI20 | IEEE80211_FHT_SHORTGI40)) ?
+		1 :
+		0);
+	mwl_hal_setnprot(hvap,
+	    ic->ic_htprotmode == IEEE80211_PROT_NONE ? HTPROTECT_NONE :
+						       HTPROTECT_AUTO);
 	/* XXX txpower cap */
 
 	/* re-setup beacons */
 	if (state == IEEE80211_S_RUN &&
 	    (vap->iv_opmode == IEEE80211_M_HOSTAP ||
-	     vap->iv_opmode == IEEE80211_M_MBSS ||
-	     vap->iv_opmode == IEEE80211_M_IBSS)) {
+		vap->iv_opmode == IEEE80211_M_MBSS ||
+		vap->iv_opmode == IEEE80211_M_IBSS)) {
 		mwl_setapmode(vap, vap->iv_bss->ni_chan);
-		mwl_hal_setnprotmode(hvap, _IEEE80211_MASKSHIFT(
-		    ic->ic_curhtprotmode, IEEE80211_HTINFO_OPMODE));
+		mwl_hal_setnprotmode(hvap,
+		    _IEEE80211_MASKSHIFT(ic->ic_curhtprotmode,
+			IEEE80211_HTINFO_OPMODE));
 		return mwl_beacon_setup(vap);
 	}
 	return 0;
@@ -1242,14 +1237,14 @@ mwl_reset(struct ieee80211vap *vap, u_long cmd)
 	struct mwl_hal_vap *hvap = MWL_VAP(vap)->mv_hvap;
 	int error = 0;
 
-	if (hvap != NULL) {			/* WDS, MONITOR, etc. */
+	if (hvap != NULL) { /* WDS, MONITOR, etc. */
 		struct ieee80211com *ic = vap->iv_ic;
 		struct mwl_softc *sc = ic->ic_softc;
 		struct mwl_hal *mh = sc->sc_mh;
 
 		/* XXX handle DWDS sta vap change */
 		/* XXX do we need to disable interrupts? */
-		mwl_hal_intrset(mh, 0);		/* disable interrupts */
+		mwl_hal_intrset(mh, 0); /* disable interrupts */
 		error = mwl_reset_vap(vap, vap->iv_state);
 		mwl_hal_intrset(mh, sc->sc_imask);
 	}
@@ -1277,8 +1272,8 @@ mwl_gettxbuf(struct mwl_softc *sc, struct mwl_txq *txq)
 	}
 	MWL_TXQ_UNLOCK(txq);
 	if (bf == NULL)
-		DPRINTF(sc, MWL_DEBUG_XMIT,
-		    "%s: out of xmit buffers on q %d\n", __func__, txq->qnum);
+		DPRINTF(sc, MWL_DEBUG_XMIT, "%s: out of xmit buffers on q %d\n",
+		    __func__, txq->qnum);
 	return bf;
 }
 
@@ -1337,7 +1332,7 @@ mwl_start(struct mwl_softc *sc)
 	struct ieee80211_node *ni;
 	struct mwl_txbuf *bf;
 	struct mbuf *m;
-	struct mwl_txq *txq = NULL;	/* XXX silence gcc */
+	struct mwl_txq *txq = NULL; /* XXX silence gcc */
 	int nqueued;
 
 	MWL_LOCK_ASSERT(sc);
@@ -1348,9 +1343,9 @@ mwl_start(struct mwl_softc *sc)
 		/*
 		 * Grab the node for the destination.
 		 */
-		ni = (struct ieee80211_node *) m->m_pkthdr.rcvif;
+		ni = (struct ieee80211_node *)m->m_pkthdr.rcvif;
 		KASSERT(ni != NULL, ("no node"));
-		m->m_pkthdr.rcvif = NULL;	/* committed, clear ref */
+		m->m_pkthdr.rcvif = NULL; /* committed, clear ref */
 		/*
 		 * Grab a TX buffer and associated resources.
 		 * We honor the classification by the 802.11 layer.
@@ -1364,8 +1359,8 @@ mwl_start(struct mwl_softc *sc)
 			sc->sc_stats.mst_tx_qstop++;
 			break;
 #else
-			DPRINTF(sc, MWL_DEBUG_XMIT,
-			    "%s: tail drop on q %d\n", __func__, txq->qnum);
+			DPRINTF(sc, MWL_DEBUG_XMIT, "%s: tail drop on q %d\n",
+			    __func__, txq->qnum);
 			sc->sc_stats.mst_tx_qdrop++;
 			continue;
 #endif /* MWL_TX_NODROP */
@@ -1375,8 +1370,8 @@ mwl_start(struct mwl_softc *sc)
 		 * Pass the frame to the h/w for transmission.
 		 */
 		if (mwl_tx_start(sc, ni, bf, m)) {
-			if_inc_counter(ni->ni_vap->iv_ifp,
-			    IFCOUNTER_OERRORS, 1);
+			if_inc_counter(ni->ni_vap->iv_ifp, IFCOUNTER_OERRORS,
+			    1);
 			mwl_puttxbuf_head(txq, bf);
 			ieee80211_free_node(ni);
 			continue;
@@ -1388,7 +1383,7 @@ mwl_start(struct mwl_softc *sc)
 			 * see below about (lack of) locking.
 			 */
 			nqueued = 0;
-			mwl_hal_txstart(sc->sc_mh, 0/*XXX*/);
+			mwl_hal_txstart(sc->sc_mh, 0 /*XXX*/);
 		}
 	}
 	if (nqueued) {
@@ -1405,13 +1400,13 @@ mwl_start(struct mwl_softc *sc)
 		 *
 		 * NB: the queue id isn't used so 0 is ok.
 		 */
-		mwl_hal_txstart(sc->sc_mh, 0/*XXX*/);
+		mwl_hal_txstart(sc->sc_mh, 0 /*XXX*/);
 	}
 }
 
 static int
 mwl_raw_xmit(struct ieee80211_node *ni, struct mbuf *m,
-	const struct ieee80211_bpf_params *params)
+    const struct ieee80211_bpf_params *params)
 {
 	struct ieee80211com *ic = ni->ni_ic;
 	struct mwl_softc *sc = ic->ic_softc;
@@ -1443,7 +1438,7 @@ mwl_raw_xmit(struct ieee80211_node *ni, struct mbuf *m,
 	if (mwl_tx_start(sc, ni, bf, m)) {
 		mwl_puttxbuf_head(txq, bf);
 
-		return EIO;		/* XXX */
+		return EIO; /* XXX */
 	}
 	/*
 	 * NB: We don't need to lock against tx done because
@@ -1458,7 +1453,7 @@ mwl_raw_xmit(struct ieee80211_node *ni, struct mbuf *m,
 	 *
 	 * NB: the queue id isn't used so 0 is ok.
 	 */
-	mwl_hal_txstart(sc->sc_mh, 0/*XXX*/);
+	mwl_hal_txstart(sc->sc_mh, 0 /*XXX*/);
 	return 0;
 }
 
@@ -1480,8 +1475,8 @@ mwl_media_change(if_t ifp)
 
 #ifdef MWL_DEBUG
 static void
-mwl_keyprint(struct mwl_softc *sc, const char *tag,
-	const MWL_HAL_KEYVAL *hk, const uint8_t mac[IEEE80211_ADDR_LEN])
+mwl_keyprint(struct mwl_softc *sc, const char *tag, const MWL_HAL_KEYVAL *hk,
+    const uint8_t mac[IEEE80211_ADDR_LEN])
 {
 	static const char *ciphers[] = {
 		"WEP",
@@ -1513,17 +1508,17 @@ mwl_keyprint(struct mwl_softc *sc, const char *tag,
  */
 static int
 mwl_key_alloc(struct ieee80211vap *vap, struct ieee80211_key *k,
-	ieee80211_keyix *keyix, ieee80211_keyix *rxkeyix)
+    ieee80211_keyix *keyix, ieee80211_keyix *rxkeyix)
 {
 	struct mwl_softc *sc = vap->iv_ic->ic_softc;
 
 	if (k->wk_keyix != IEEE80211_KEYIX_NONE ||
 	    (k->wk_flags & IEEE80211_KEY_GROUP)) {
 		if (!(&vap->iv_nw_keys[0] <= k &&
-		      k < &vap->iv_nw_keys[IEEE80211_WEP_NKID])) {
+			k < &vap->iv_nw_keys[IEEE80211_WEP_NKID])) {
 			/* should not happen */
-			DPRINTF(sc, MWL_DEBUG_KEYCACHE,
-				"%s: bogus group key\n", __func__);
+			DPRINTF(sc, MWL_DEBUG_KEYCACHE, "%s: bogus group key\n",
+			    __func__);
 			return 0;
 		}
 		/* give the caller what they requested */
@@ -1546,8 +1541,8 @@ mwl_key_delete(struct ieee80211vap *vap, const struct ieee80211_key *k)
 	struct mwl_softc *sc = vap->iv_ic->ic_softc;
 	struct mwl_hal_vap *hvap = MWL_VAP(vap)->mv_hvap;
 	MWL_HAL_KEYVAL hk;
-	const uint8_t bcastaddr[IEEE80211_ADDR_LEN] =
-	    { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+	const uint8_t bcastaddr[IEEE80211_ADDR_LEN] = { 0xff, 0xff, 0xff, 0xff,
+		0xff, 0xff };
 
 	if (hvap == NULL) {
 		if (vap->iv_opmode != IEEE80211_M_WDS) {
@@ -1560,8 +1555,8 @@ mwl_key_delete(struct ieee80211vap *vap, const struct ieee80211_key *k)
 		hvap = MWL_VAP(vap)->mv_ap_hvap;
 	}
 
-	DPRINTF(sc, MWL_DEBUG_KEYCACHE, "%s: delete key %u\n",
-	    __func__, k->wk_keyix);
+	DPRINTF(sc, MWL_DEBUG_KEYCACHE, "%s: delete key %u\n", __func__,
+	    k->wk_keyix);
 
 	memset(&hk, 0, sizeof(hk));
 	hk.keyIndex = k->wk_keyix;
@@ -1581,7 +1576,7 @@ mwl_key_delete(struct ieee80211vap *vap, const struct ieee80211_key *k)
 		    __func__, k->wk_cipher->ic_cipher);
 		return 0;
 	}
-	return (mwl_hal_keyreset(hvap, &hk, bcastaddr) == 0);	/*XXX*/
+	return (mwl_hal_keyreset(hvap, &hk, bcastaddr) == 0); /*XXX*/
 }
 
 static __inline int
@@ -1609,13 +1604,13 @@ mwl_key_set(struct ieee80211vap *vap, const struct ieee80211_key *k)
 
 static int
 _mwl_key_set(struct ieee80211vap *vap, const struct ieee80211_key *k,
-	const uint8_t mac[IEEE80211_ADDR_LEN])
+    const uint8_t mac[IEEE80211_ADDR_LEN])
 {
-#define	GRPXMIT	(IEEE80211_KEY_XMIT | IEEE80211_KEY_GROUP)
+#define GRPXMIT (IEEE80211_KEY_XMIT | IEEE80211_KEY_GROUP)
 /* NB: static wep keys are marked GROUP+tx/rx; GTK will be tx or rx */
-#define	IEEE80211_IS_STATICKEY(k) \
-	(((k)->wk_flags & (GRPXMIT|IEEE80211_KEY_RECV)) == \
-	 (GRPXMIT|IEEE80211_KEY_RECV))
+#define IEEE80211_IS_STATICKEY(k)                            \
+	(((k)->wk_flags & (GRPXMIT | IEEE80211_KEY_RECV)) == \
+	    (GRPXMIT | IEEE80211_KEY_RECV))
 	struct mwl_softc *sc = vap->iv_ic->ic_softc;
 	struct mwl_hal_vap *hvap = MWL_VAP(vap)->mv_hvap;
 	const struct ieee80211_cipher *cip = k->wk_cipher;
@@ -1623,7 +1618,7 @@ _mwl_key_set(struct ieee80211vap *vap, const struct ieee80211_key *k,
 	MWL_HAL_KEYVAL hk;
 
 	KASSERT((k->wk_flags & IEEE80211_KEY_SWCRYPT) == 0,
-		("s/w crypto set?"));
+	    ("s/w crypto set?"));
 
 	if (hvap == NULL) {
 		if (vap->iv_opmode != IEEE80211_M_WDS) {
@@ -1645,7 +1640,7 @@ _mwl_key_set(struct ieee80211vap *vap, const struct ieee80211_key *k,
 			hk.keyFlags = KEY_FLAG_WEP_TXKEY;
 		if (!IEEE80211_IS_STATICKEY(k)) {
 			/* NB: WEP is never used for the PTK */
-			(void) addgroupflags(&hk, k);
+			(void)addgroupflags(&hk, k);
 		}
 		break;
 	case IEEE80211_CIPHER_TKIP:
@@ -1857,8 +1852,9 @@ mwl_beacon_update(struct ieee80211vap *vap, int item)
 		mwl_updateslot(ic);
 		break;
 	case IEEE80211_BEACON_HTINFO:
-		mwl_hal_setnprotmode(hvap, _IEEE80211_MASKSHIFT(
-		    ic->ic_curhtprotmode, IEEE80211_HTINFO_OPMODE));
+		mwl_hal_setnprotmode(hvap,
+		    _IEEE80211_MASKSHIFT(ic->ic_curhtprotmode,
+			IEEE80211_HTINFO_OPMODE));
 		break;
 	case IEEE80211_BEACON_CAPS:
 	case IEEE80211_BEACON_WME:
@@ -1876,7 +1872,7 @@ mwl_beacon_update(struct ieee80211vap *vap, int item)
 static void
 mwl_load_cb(void *arg, bus_dma_segment_t *segs, int nsegs, int error)
 {
-	bus_addr_t *paddr = (bus_addr_t*) arg;
+	bus_addr_t *paddr = (bus_addr_t *)arg;
 	KASSERT(error == 0, ("error %u on bus_dma callback", error));
 	*paddr = segs->ds_addr;
 }
@@ -1904,7 +1900,7 @@ mwl_set_tim(struct ieee80211_node *ni, int set)
 	struct ieee80211vap *vap = ni->ni_vap;
 	struct mwl_vap *mvp = MWL_VAP(vap);
 
-	if (mvp->mv_set_tim(ni, set)) {		/* NB: state change */
+	if (mvp->mv_set_tim(ni, set)) { /* NB: state change */
 		mwl_hal_setpowersave_sta(mvp->mv_hvap,
 		    IEEE80211_AID(ni->ni_associd), set);
 		return 1;
@@ -1914,17 +1910,15 @@ mwl_set_tim(struct ieee80211_node *ni, int set)
 #endif /* MWL_HOST_PS_SUPPORT */
 
 static int
-mwl_desc_setup(struct mwl_softc *sc, const char *name,
-	struct mwl_descdma *dd,
-	int nbuf, size_t bufsize, int ndesc, size_t descsize)
+mwl_desc_setup(struct mwl_softc *sc, const char *name, struct mwl_descdma *dd,
+    int nbuf, size_t bufsize, int ndesc, size_t descsize)
 {
 	uint8_t *ds;
 	int error;
 
 	DPRINTF(sc, MWL_DEBUG_RESET,
-	    "%s: %s DMA: %u bufs (%ju) %u desc/buf (%ju)\n",
-	    __func__, name, nbuf, (uintmax_t) bufsize,
-	    ndesc, (uintmax_t) descsize);
+	    "%s: %s DMA: %u bufs (%ju) %u desc/buf (%ju)\n", __func__, name,
+	    nbuf, (uintmax_t)bufsize, ndesc, (uintmax_t)descsize);
 
 	dd->dd_name = name;
 	dd->dd_desc_len = nbuf * ndesc * descsize;
@@ -1932,49 +1926,50 @@ mwl_desc_setup(struct mwl_softc *sc, const char *name,
 	/*
 	 * Setup DMA descriptor area.
 	 */
-	error = bus_dma_tag_create(bus_get_dma_tag(sc->sc_dev),	/* parent */
-		       PAGE_SIZE, 0,		/* alignment, bounds */
-		       BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-		       BUS_SPACE_MAXADDR,	/* highaddr */
-		       NULL, NULL,		/* filter, filterarg */
-		       dd->dd_desc_len,		/* maxsize */
-		       1,			/* nsegments */
-		       dd->dd_desc_len,		/* maxsegsize */
-		       BUS_DMA_ALLOCNOW,	/* flags */
-		       NULL,			/* lockfunc */
-		       NULL,			/* lockarg */
-		       &dd->dd_dmat);
+	error = bus_dma_tag_create(bus_get_dma_tag(sc->sc_dev), /* parent */
+	    PAGE_SIZE, 0,	     /* alignment, bounds */
+	    BUS_SPACE_MAXADDR_32BIT, /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filter, filterarg */
+	    dd->dd_desc_len,	     /* maxsize */
+	    1,			     /* nsegments */
+	    dd->dd_desc_len,	     /* maxsegsize */
+	    BUS_DMA_ALLOCNOW,	     /* flags */
+	    NULL,		     /* lockfunc */
+	    NULL,		     /* lockarg */
+	    &dd->dd_dmat);
 	if (error != 0) {
-		device_printf(sc->sc_dev, "cannot allocate %s DMA tag\n", dd->dd_name);
+		device_printf(sc->sc_dev, "cannot allocate %s DMA tag\n",
+		    dd->dd_name);
 		return error;
 	}
 
 	/* allocate descriptors */
-	error = bus_dmamem_alloc(dd->dd_dmat, (void**) &dd->dd_desc,
-				 BUS_DMA_NOWAIT | BUS_DMA_COHERENT, 
-				 &dd->dd_dmamap);
+	error = bus_dmamem_alloc(dd->dd_dmat, (void **)&dd->dd_desc,
+	    BUS_DMA_NOWAIT | BUS_DMA_COHERENT, &dd->dd_dmamap);
 	if (error != 0) {
-		device_printf(sc->sc_dev, "unable to alloc memory for %u %s descriptors, "
-			"error %u\n", nbuf * ndesc, dd->dd_name, error);
+		device_printf(sc->sc_dev,
+		    "unable to alloc memory for %u %s descriptors, "
+		    "error %u\n",
+		    nbuf * ndesc, dd->dd_name, error);
 		goto fail1;
 	}
 
-	error = bus_dmamap_load(dd->dd_dmat, dd->dd_dmamap,
-				dd->dd_desc, dd->dd_desc_len,
-				mwl_load_cb, &dd->dd_desc_paddr,
-				BUS_DMA_NOWAIT);
+	error = bus_dmamap_load(dd->dd_dmat, dd->dd_dmamap, dd->dd_desc,
+	    dd->dd_desc_len, mwl_load_cb, &dd->dd_desc_paddr, BUS_DMA_NOWAIT);
 	if (error != 0) {
-		device_printf(sc->sc_dev, "unable to map %s descriptors, error %u\n",
-			dd->dd_name, error);
+		device_printf(sc->sc_dev,
+		    "unable to map %s descriptors, error %u\n", dd->dd_name,
+		    error);
 		goto fail2;
 	}
 
 	ds = dd->dd_desc;
 	memset(ds, 0, dd->dd_desc_len);
 	DPRINTF(sc, MWL_DEBUG_RESET,
-	    "%s: %s DMA map: %p (%lu) -> 0x%jx (%lu)\n",
-	    __func__, dd->dd_name, ds, (u_long) dd->dd_desc_len,
-	    (uintmax_t) dd->dd_desc_paddr, /*XXX*/ (u_long) dd->dd_desc_len);
+	    "%s: %s DMA map: %p (%lu) -> 0x%jx (%lu)\n", __func__, dd->dd_name,
+	    ds, (u_long)dd->dd_desc_len, (uintmax_t)dd->dd_desc_paddr,
+	    /*XXX*/ (u_long)dd->dd_desc_len);
 
 	return 0;
 fail2:
@@ -1996,7 +1991,7 @@ mwl_desc_cleanup(struct mwl_softc *sc, struct mwl_descdma *dd)
 	memset(dd, 0, sizeof(*dd));
 }
 
-/* 
+/*
  * Construct a tx q's free list.  The order of entries on
  * the list must reflect the physical layout of tx descriptors
  * because the firmware pre-fetches descriptors.
@@ -2016,7 +2011,7 @@ mwl_txq_reset(struct mwl_softc *sc, struct mwl_txq *txq)
 	txq->nfree = i;
 }
 
-#define	DS2PHYS(_dd, _ds) \
+#define DS2PHYS(_dd, _ds) \
 	((_dd)->dd_desc_paddr + ((caddr_t)(_ds) - (caddr_t)(_dd)->dd_desc))
 
 static int
@@ -2026,9 +2021,8 @@ mwl_txdma_setup(struct mwl_softc *sc, struct mwl_txq *txq)
 	struct mwl_txbuf *bf;
 	struct mwl_txdesc *ds;
 
-	error = mwl_desc_setup(sc, "tx", &txq->dma,
-			mwl_txbuf, sizeof(struct mwl_txbuf),
-			MWL_TXDESC, sizeof(struct mwl_txdesc));
+	error = mwl_desc_setup(sc, "tx", &txq->dma, mwl_txbuf,
+	    sizeof(struct mwl_txbuf), MWL_TXDESC, sizeof(struct mwl_txdesc));
 	if (error != 0)
 		return error;
 
@@ -2037,7 +2031,7 @@ mwl_txdma_setup(struct mwl_softc *sc, struct mwl_txq *txq)
 	bf = malloc(bsize, M_MWLDEV, M_NOWAIT | M_ZERO);
 	if (bf == NULL) {
 		device_printf(sc->sc_dev, "malloc of %u tx buffers failed\n",
-			mwl_txbuf);
+		    mwl_txbuf);
 		return ENOMEM;
 	}
 	txq->dma.dd_bufptr = bf;
@@ -2047,10 +2041,12 @@ mwl_txdma_setup(struct mwl_softc *sc, struct mwl_txq *txq)
 		bf->bf_desc = ds;
 		bf->bf_daddr = DS2PHYS(&txq->dma, ds);
 		error = bus_dmamap_create(sc->sc_dmat, BUS_DMA_NOWAIT,
-				&bf->bf_dmamap);
+		    &bf->bf_dmamap);
 		if (error != 0) {
-			device_printf(sc->sc_dev, "unable to create dmamap for tx "
-				"buffer %u, error %u\n", i, error);
+			device_printf(sc->sc_dev,
+			    "unable to create dmamap for tx "
+			    "buffer %u, error %u\n",
+			    i, error);
 			return error;
 		}
 	}
@@ -2090,9 +2086,8 @@ mwl_rxdma_setup(struct mwl_softc *sc)
 	struct mwl_rxdesc *ds;
 	caddr_t data;
 
-	error = mwl_desc_setup(sc, "rx", &sc->sc_rxdma,
-			mwl_rxdesc, sizeof(struct mwl_rxbuf),
-			1, sizeof(struct mwl_rxdesc));
+	error = mwl_desc_setup(sc, "rx", &sc->sc_rxdma, mwl_rxdesc,
+	    sizeof(struct mwl_rxbuf), 1, sizeof(struct mwl_rxdesc));
 	if (error != 0)
 		return error;
 
@@ -2106,45 +2101,43 @@ mwl_rxdma_setup(struct mwl_softc *sc)
 	 * rx descriptors configured so we have some slop to hold
 	 * us while frames are processed.
 	 */
-	if (mwl_rxbuf < 2*mwl_rxdesc) {
+	if (mwl_rxbuf < 2 * mwl_rxdesc) {
 		device_printf(sc->sc_dev,
 		    "too few rx dma buffers (%d); increasing to %d\n",
-		    mwl_rxbuf, 2*mwl_rxdesc);
-		mwl_rxbuf = 2*mwl_rxdesc;
+		    mwl_rxbuf, 2 * mwl_rxdesc);
+		mwl_rxbuf = 2 * mwl_rxdesc;
 	}
 	jumbosize = roundup(MWL_AGGR_SIZE, PAGE_SIZE);
-	sc->sc_rxmemsize = mwl_rxbuf*jumbosize;
+	sc->sc_rxmemsize = mwl_rxbuf * jumbosize;
 
-	error = bus_dma_tag_create(sc->sc_dmat,	/* parent */
-		       PAGE_SIZE, 0,		/* alignment, bounds */
-		       BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-		       BUS_SPACE_MAXADDR,	/* highaddr */
-		       NULL, NULL,		/* filter, filterarg */
-		       sc->sc_rxmemsize,	/* maxsize */
-		       1,			/* nsegments */
-		       sc->sc_rxmemsize,	/* maxsegsize */
-		       BUS_DMA_ALLOCNOW,	/* flags */
-		       NULL,			/* lockfunc */
-		       NULL,			/* lockarg */
-		       &sc->sc_rxdmat);
+	error = bus_dma_tag_create(sc->sc_dmat, /* parent */
+	    PAGE_SIZE, 0,			/* alignment, bounds */
+	    BUS_SPACE_MAXADDR_32BIT,		/* lowaddr */
+	    BUS_SPACE_MAXADDR,			/* highaddr */
+	    NULL, NULL,				/* filter, filterarg */
+	    sc->sc_rxmemsize,			/* maxsize */
+	    1,					/* nsegments */
+	    sc->sc_rxmemsize,			/* maxsegsize */
+	    BUS_DMA_ALLOCNOW,			/* flags */
+	    NULL,				/* lockfunc */
+	    NULL,				/* lockarg */
+	    &sc->sc_rxdmat);
 	if (error != 0) {
 		device_printf(sc->sc_dev, "could not create rx DMA tag\n");
 		return error;
 	}
 
-	error = bus_dmamem_alloc(sc->sc_rxdmat, (void**) &sc->sc_rxmem,
-				 BUS_DMA_NOWAIT | BUS_DMA_COHERENT, 
-				 &sc->sc_rxmap);
+	error = bus_dmamem_alloc(sc->sc_rxdmat, (void **)&sc->sc_rxmem,
+	    BUS_DMA_NOWAIT | BUS_DMA_COHERENT, &sc->sc_rxmap);
 	if (error != 0) {
-		device_printf(sc->sc_dev, "could not alloc %ju bytes of rx DMA memory\n",
-		    (uintmax_t) sc->sc_rxmemsize);
+		device_printf(sc->sc_dev,
+		    "could not alloc %ju bytes of rx DMA memory\n",
+		    (uintmax_t)sc->sc_rxmemsize);
 		return error;
 	}
 
-	error = bus_dmamap_load(sc->sc_rxdmat, sc->sc_rxmap,
-				sc->sc_rxmem, sc->sc_rxmemsize,
-				mwl_load_cb, &sc->sc_rxmem_paddr,
-				BUS_DMA_NOWAIT);
+	error = bus_dmamap_load(sc->sc_rxdmat, sc->sc_rxmap, sc->sc_rxmem,
+	    sc->sc_rxmemsize, mwl_load_cb, &sc->sc_rxmem_paddr, BUS_DMA_NOWAIT);
 	if (error != 0) {
 		device_printf(sc->sc_dev, "could not load rx DMA map\n");
 		return error;
@@ -2156,7 +2149,8 @@ mwl_rxdma_setup(struct mwl_softc *sc)
 	bsize = mwl_rxdesc * sizeof(struct mwl_rxbuf);
 	bf = malloc(bsize, M_MWLDEV, M_NOWAIT | M_ZERO);
 	if (bf == NULL) {
-		device_printf(sc->sc_dev, "malloc of %u rx buffers failed\n", bsize);
+		device_printf(sc->sc_dev, "malloc of %u rx buffers failed\n",
+		    bsize);
 		return error;
 	}
 	sc->sc_rxdma.dd_bufptr = bf;
@@ -2167,7 +2161,7 @@ mwl_rxdma_setup(struct mwl_softc *sc)
 		bf->bf_desc = ds;
 		bf->bf_daddr = DS2PHYS(&sc->sc_rxdma, ds);
 		/* pre-assign dma buffer */
-		bf->bf_data = ((uint8_t *)sc->sc_rxmem) + (i*jumbosize);
+		bf->bf_data = ((uint8_t *)sc->sc_rxmem) + (i * jumbosize);
 		/* NB: tail is intentional to preserve descriptor order */
 		STAILQ_INSERT_TAIL(&sc->sc_rxbuf, bf, bf_list);
 	}
@@ -2177,7 +2171,7 @@ mwl_rxdma_setup(struct mwl_softc *sc)
 	 */
 	SLIST_INIT(&sc->sc_rxfree);
 	for (; i < mwl_rxbuf; i++) {
-		data = ((uint8_t *)sc->sc_rxmem) + (i*jumbosize);
+		data = ((uint8_t *)sc->sc_rxmem) + (i * jumbosize);
 		rbuf = MWL_JUMBO_DATA2BUF(data);
 		SLIST_INSERT_HEAD(&sc->sc_rxfree, rbuf, next);
 		sc->sc_nrxfree++;
@@ -2244,7 +2238,7 @@ mwl_node_alloc(struct ieee80211vap *vap, const uint8_t mac[IEEE80211_ADDR_LEN])
 	const size_t space = sizeof(struct mwl_node);
 	struct mwl_node *mn;
 
-	mn = malloc(space, M_80211_NODE, M_NOWAIT|M_ZERO);
+	mn = malloc(space, M_80211_NODE, M_NOWAIT | M_ZERO);
 	if (mn == NULL) {
 		/* XXX stat+msg */
 		return NULL;
@@ -2257,11 +2251,11 @@ static void
 mwl_node_cleanup(struct ieee80211_node *ni)
 {
 	struct ieee80211com *ic = ni->ni_ic;
-        struct mwl_softc *sc = ic->ic_softc;
+	struct mwl_softc *sc = ic->ic_softc;
 	struct mwl_node *mn = MWL_NODE(ni);
 
-	DPRINTF(sc, MWL_DEBUG_NODE, "%s: ni %p ic %p staid %d\n",
-	    __func__, ni, ni->ni_ic, mn->mn_staid);
+	DPRINTF(sc, MWL_DEBUG_NODE, "%s: ni %p ic %p staid %d\n", __func__, ni,
+	    ni->ni_ic, mn->mn_staid);
 
 	if (mn->mn_staid != 0) {
 		struct ieee80211vap *vap = ni->ni_vap;
@@ -2352,11 +2346,11 @@ static void
 mwl_node_drain(struct ieee80211_node *ni)
 {
 	struct ieee80211com *ic = ni->ni_ic;
-        struct mwl_softc *sc = ic->ic_softc;
+	struct mwl_softc *sc = ic->ic_softc;
 	struct mwl_node *mn = MWL_NODE(ni);
 
-	DPRINTF(sc, MWL_DEBUG_NODE, "%s: ni %p vap %p staid %d\n",
-	    __func__, ni, ni->ni_vap, mn->mn_staid);
+	DPRINTF(sc, MWL_DEBUG_NODE, "%s: ni %p vap %p staid %d\n", __func__, ni,
+	    ni->ni_vap, mn->mn_staid);
 
 	/* NB: call up first to age out ampdu q's */
 	sc->sc_node_drain(ni);
@@ -2390,10 +2384,10 @@ mwl_node_getsignal(const struct ieee80211_node *ni, int8_t *rssi, int8_t *noise)
 	/* XXX need to smooth data */
 	*noise = -MWL_NODE_CONST(ni)->mn_ai.nf;
 #else
-	*noise = -95;		/* XXX */
+	*noise = -95; /* XXX */
 #endif
 #else
-	*noise = -95;		/* XXX */
+	*noise = -95; /* XXX */
 #endif
 }
 
@@ -2410,20 +2404,18 @@ mwl_node_getsignal(const struct ieee80211_node *ni, int8_t *rssi, int8_t *noise)
  */
 static void
 mwl_node_getmimoinfo(const struct ieee80211_node *ni,
-	struct ieee80211_mimo_info *mi)
+    struct ieee80211_mimo_info *mi)
 {
-#define	CVT(_dst, _src) do {						\
-	(_dst) = rssi + ((logdbtbl[_src] - logdbtbl[rssi_max]) >> 2);	\
-	(_dst) = (_dst) > 64 ? 127 : ((_dst) << 1);			\
-} while (0)
-	static const int8_t logdbtbl[32] = {
-	       0,   0,  24,  38,  48,  56,  62,  68, 
-	      72,  76,  80,  83,  86,  89,  92,  94, 
-	      96,  98, 100, 102, 104, 106, 107, 109, 
-	     110, 112, 113, 115, 116, 117, 118, 119
-	};
+#define CVT(_dst, _src)                                                       \
+	do {                                                                  \
+		(_dst) = rssi + ((logdbtbl[_src] - logdbtbl[rssi_max]) >> 2); \
+		(_dst) = (_dst) > 64 ? 127 : ((_dst) << 1);                   \
+	} while (0)
+	static const int8_t logdbtbl[32] = { 0, 0, 24, 38, 48, 56, 62, 68, 72,
+		76, 80, 83, 86, 89, 92, 94, 96, 98, 100, 102, 104, 106, 107,
+		109, 110, 112, 113, 115, 116, 117, 118, 119 };
 	const struct mwl_node *mn = MWL_NODE_CONST(ni);
-	uint8_t rssi = mn->mn_ai.rsvd1/2;		/* XXX */
+	uint8_t rssi = mn->mn_ai.rsvd1 / 2; /* XXX */
 	uint32_t rssi_max;
 
 	rssi_max = mn->mn_ai.rssi_a;
@@ -2454,8 +2446,8 @@ mwl_getrxdma(struct mwl_softc *sc)
 	MWL_RXFREE_LOCK(sc);
 	buf = SLIST_FIRST(&sc->sc_rxfree);
 	if (buf == NULL) {
-		DPRINTF(sc, MWL_DEBUG_ANY,
-		    "%s: out of rx dma buffers\n", __func__);
+		DPRINTF(sc, MWL_DEBUG_ANY, "%s: out of rx dma buffers\n",
+		    __func__);
 		sc->sc_stats.mst_rx_nodmabuf++;
 		data = NULL;
 	} else {
@@ -2537,10 +2529,10 @@ mwl_ext_free(struct mbuf *m)
 }
 
 struct mwl_frame_bar {
-	u_int8_t	i_fc[2];
-	u_int8_t	i_dur[2];
-	u_int8_t	i_ra[IEEE80211_ADDR_LEN];
-	u_int8_t	i_ta[IEEE80211_ADDR_LEN];
+	u_int8_t i_fc[2];
+	u_int8_t i_dur[2];
+	u_int8_t i_ra[IEEE80211_ADDR_LEN];
+	u_int8_t i_ta[IEEE80211_ADDR_LEN];
 	/* ctl, seq, FCS */
 } __packed;
 
@@ -2554,7 +2546,7 @@ mwl_anyhdrsize(const void *data)
 {
 	const struct ieee80211_frame *wh = data;
 
-	if ((wh->i_fc[0]&IEEE80211_FC0_TYPE_MASK) == IEEE80211_FC0_TYPE_CTL) {
+	if ((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) == IEEE80211_FC0_TYPE_CTL) {
 		switch (wh->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK) {
 		case IEEE80211_FC0_SUBTYPE_CTS:
 		case IEEE80211_FC0_SUBTYPE_ACK:
@@ -2574,7 +2566,7 @@ mwl_handlemicerror(struct ieee80211com *ic, const uint8_t *data)
 	struct ieee80211_node *ni;
 
 	wh = (const struct ieee80211_frame *)(data + sizeof(uint16_t));
-	ni = ieee80211_find_rxnode(ic, (const struct ieee80211_frame_min *) wh);
+	ni = ieee80211_find_rxnode(ic, (const struct ieee80211_frame_min *)wh);
 	if (ni != NULL) {
 		ieee80211_notify_michael_failure(ni->ni_vap, wh, 0);
 		ieee80211_free_node(ni);
@@ -2594,9 +2586,9 @@ mwl_handlemicerror(struct ieee80211com *ic, const uint8_t *data)
 static __inline int
 cvtrssi(uint8_t ssi)
 {
-	int rssi = (int) ssi + 8;
+	int rssi = (int)ssi + 8;
 	/* XXX hack guess until we have a real noise floor */
-	rssi = 2*(87 - rssi);	/* NB: .5 dBm units */
+	rssi = 2 * (87 - rssi); /* NB: .5 dBm units */
 	return (rssi < 0 ? 0 : rssi > 127 ? 127 : rssi);
 }
 
@@ -2619,7 +2611,7 @@ mwl_rx_proc(void *arg, int npending)
 	DPRINTF(sc, MWL_DEBUG_RX_PROC, "%s: pending %u rdptr 0x%x wrptr 0x%x\n",
 	    __func__, npending, RD4(sc, sc->sc_hwspecs.rxDescRead),
 	    RD4(sc, sc->sc_hwspecs.rxDescWrite));
-	nf = -96;			/* XXX */
+	nf = -96; /* XXX */
 	bf = sc->sc_rxnext;
 	for (ntodo = mwl_rxquota; ntodo > 0; ntodo--) {
 		if (bf == NULL)
@@ -2633,10 +2625,10 @@ mwl_rx_proc(void *arg, int npending)
 			 * Note the firmware will not advance to the next
 			 * descriptor with a dma buffer so we must mimic
 			 * this or we'll get out of sync.
-			 */ 
+			 */
 			DPRINTF(sc, MWL_DEBUG_ANY,
 			    "%s: rx buf w/o dma memory\n", __func__);
-			(void) mwl_rxbuf_init(sc, bf);
+			(void)mwl_rxbuf_init(sc, bf);
 			sc->sc_stats.mst_rx_dmabufmissing++;
 			break;
 		}
@@ -2673,7 +2665,8 @@ mwl_rx_proc(void *arg, int npending)
 		 * Sync the data buffer.
 		 */
 		len = le16toh(ds->PktLen);
-		bus_dmamap_sync(sc->sc_rxdmat, sc->sc_rxmap, BUS_DMASYNC_POSTREAD);
+		bus_dmamap_sync(sc->sc_rxdmat, sc->sc_rxmap,
+		    BUS_DMASYNC_POSTREAD);
 		/*
 		 * The 802.11 header is provided all or in part at the front;
 		 * use it to calculate the true size of the header that we'll
@@ -2705,8 +2698,8 @@ mwl_rx_proc(void *arg, int npending)
 		 */
 		MGETHDR(m, M_NOWAIT, MT_DATA);
 		if (m == NULL) {
-			DPRINTF(sc, MWL_DEBUG_ANY,
-			    "%s: no rx mbuf\n", __func__);
+			DPRINTF(sc, MWL_DEBUG_ANY, "%s: no rx mbuf\n",
+			    __func__);
 			sc->sc_stats.mst_rx_nombuf++;
 			goto rx_next;
 		}
@@ -2729,7 +2722,7 @@ mwl_rx_proc(void *arg, int npending)
 			m_free(m);
 			/* disable RX interrupt and mark state */
 			mwl_hal_intrset(sc->sc_mh,
-			    sc->sc_imask &~ MACREG_A2HRIC_BIT_RX_RDY);
+			    sc->sc_imask & ~MACREG_A2HRIC_BIT_RX_RDY);
 			sc->sc_rxblocked = 1;
 			ieee80211_drain(ic);
 			/* XXX check rxblocked and immediately start again? */
@@ -2772,8 +2765,8 @@ mwl_rx_proc(void *arg, int npending)
 #ifdef MWL_HOST_PS_SUPPORT
 		wh->i_fc[1] &= ~IEEE80211_FC1_PROTECTED;
 #else
-		wh->i_fc[1] &= ~(IEEE80211_FC1_PROTECTED |
-		    IEEE80211_FC1_PWR_MGT);
+		wh->i_fc[1] &= ~(
+		    IEEE80211_FC1_PROTECTED | IEEE80211_FC1_PWR_MGT);
 #endif
 
 		if (ieee80211_radiotap_active(ic)) {
@@ -2785,12 +2778,12 @@ mwl_rx_proc(void *arg, int npending)
 			tap->wr_antnoise = nf;
 		}
 		if (IFF_DUMPPKTS_RECV(sc, wh)) {
-			ieee80211_dump_pkt(ic, mtod(m, caddr_t),
-			    len, ds->Rate, rssi);
+			ieee80211_dump_pkt(ic, mtod(m, caddr_t), len, ds->Rate,
+			    rssi);
 		}
 		/* dispatch */
 		ni = ieee80211_find_rxnode(ic,
-		    (const struct ieee80211_frame_min *) wh);
+		    (const struct ieee80211_frame_min *)wh);
 		if (ni != NULL) {
 			mn = MWL_NODE(ni);
 #ifdef MWL_ANT_INFO_SUPPORT
@@ -2802,13 +2795,13 @@ mwl_rx_proc(void *arg, int npending)
 			/* tag AMPDU aggregates for reorder processing */
 			if (ni->ni_flags & IEEE80211_NODE_HT)
 				m->m_flags |= M_AMPDU;
-			(void) ieee80211_input(ni, m, rssi, nf);
+			(void)ieee80211_input(ni, m, rssi, nf);
 			ieee80211_free_node(ni);
 		} else
-			(void) ieee80211_input_all(ic, m, rssi, nf);
-rx_next:
+			(void)ieee80211_input_all(ic, m, rssi, nf);
+	rx_next:
 		/* NB: ignore ENOMEM so we process more descriptors */
-		(void) mwl_rxbuf_init(sc, bf);
+		(void)mwl_rxbuf_init(sc, bf);
 		bf = STAILQ_NEXT(bf, bf_list);
 	}
 rx_stop:
@@ -2829,12 +2822,12 @@ mwl_txq_init(struct mwl_softc *sc, struct mwl_txq *txq, int qnum)
 
 	MWL_TXQ_LOCK_INIT(sc, txq);
 	txq->qnum = qnum;
-	txq->txpri = 0;	/* XXX */
+	txq->txpri = 0; /* XXX */
 #if 0
 	/* NB: q setup by mwl_txdma_setup XXX */
 	STAILQ_INIT(&txq->free);
 #endif
-	STAILQ_FOREACH(bf, &txq->free, bf_list) {
+	STAILQ_FOREACH (bf, &txq->free, bf_list) {
 		bf->bf_txq = txq;
 
 		ds = bf->bf_desc;
@@ -2857,13 +2850,13 @@ mwl_tx_setup(struct mwl_softc *sc, int ac, int mvtype)
 	struct mwl_txq *txq;
 
 	if (ac >= nitems(sc->sc_ac2q)) {
-		device_printf(sc->sc_dev, "AC %u out of range, max %zu!\n",
-			ac, nitems(sc->sc_ac2q));
+		device_printf(sc->sc_dev, "AC %u out of range, max %zu!\n", ac,
+		    nitems(sc->sc_ac2q));
 		return 0;
 	}
 	if (mvtype >= MWL_NUM_TX_QUEUES) {
 		device_printf(sc->sc_dev, "mvtype %u out of range, max %u!\n",
-			mvtype, MWL_NUM_TX_QUEUES);
+		    mvtype, MWL_NUM_TX_QUEUES);
 		return 0;
 	}
 	txq = &sc->sc_txq[mvtype];
@@ -2878,7 +2871,7 @@ mwl_tx_setup(struct mwl_softc *sc, int ac, int mvtype)
 static int
 mwl_txq_update(struct mwl_softc *sc, int ac)
 {
-#define	MWL_EXPONENT_TO_VALUE(v)	((1<<v)-1)
+#define MWL_EXPONENT_TO_VALUE(v) ((1 << v) - 1)
 	struct ieee80211com *ic = &sc->sc_ic;
 	struct chanAccParams chp;
 	struct mwl_txq *txq = sc->sc_ac2q[ac];
@@ -2893,12 +2886,13 @@ mwl_txq_update(struct mwl_softc *sc, int ac)
 	/* XXX in sta mode need to pass log values for cwmin/max */
 	cwmin = MWL_EXPONENT_TO_VALUE(wmep->wmep_logcwmin);
 	cwmax = MWL_EXPONENT_TO_VALUE(wmep->wmep_logcwmax);
-	txoplim = wmep->wmep_txopLimit;		/* NB: units of 32us */
+	txoplim = wmep->wmep_txopLimit; /* NB: units of 32us */
 
 	if (mwl_hal_setedcaparams(mh, txq->qnum, cwmin, cwmax, aifs, txoplim)) {
-		device_printf(sc->sc_dev, "unable to update hardware queue "
-			"parameters for %s traffic!\n",
-			ieee80211_wme_acnames[ac]);
+		device_printf(sc->sc_dev,
+		    "unable to update hardware queue "
+		    "parameters for %s traffic!\n",
+		    ieee80211_wme_acnames[ac]);
 		return 0;
 	}
 	return 1;
@@ -2914,9 +2908,11 @@ mwl_wme_update(struct ieee80211com *ic)
 	struct mwl_softc *sc = ic->ic_softc;
 
 	return !mwl_txq_update(sc, WME_AC_BE) ||
-	    !mwl_txq_update(sc, WME_AC_BK) ||
-	    !mwl_txq_update(sc, WME_AC_VI) ||
-	    !mwl_txq_update(sc, WME_AC_VO) ? EIO : 0;
+		!mwl_txq_update(sc, WME_AC_BK) ||
+		!mwl_txq_update(sc, WME_AC_VI) ||
+		!mwl_txq_update(sc, WME_AC_VO) ?
+	    EIO :
+	    0;
 }
 
 /*
@@ -2952,11 +2948,10 @@ mwl_tx_dmasetup(struct mwl_softc *sc, struct mwl_txbuf *bf, struct mbuf *m0)
 	 * also calculates the number of descriptors we need.
 	 */
 	error = bus_dmamap_load_mbuf_sg(sc->sc_dmat, bf->bf_dmamap, m0,
-				     bf->bf_segs, &bf->bf_nseg,
-				     BUS_DMA_NOWAIT);
+	    bf->bf_segs, &bf->bf_nseg, BUS_DMA_NOWAIT);
 	if (error == EFBIG) {
 		/* XXX packet requires too many descriptors */
-		bf->bf_nseg = MWL_TXDESC+1;
+		bf->bf_nseg = MWL_TXDESC + 1;
 	} else if (error != 0) {
 		sc->sc_stats.mst_tx_busdma++;
 		m_freem(m0);
@@ -2967,7 +2962,7 @@ mwl_tx_dmasetup(struct mwl_softc *sc, struct mwl_txbuf *bf, struct mbuf *m0)
 	 * require too many TX descriptors.  We try to convert
 	 * the latter to a cluster.
 	 */
-	if (error == EFBIG) {		/* too many desc's, linearize */
+	if (error == EFBIG) { /* too many desc's, linearize */
 		sc->sc_stats.mst_tx_linear++;
 #if MWL_TXDESC > 1
 		m = m_collapse(m0, M_NOWAIT, MWL_TXDESC);
@@ -2981,8 +2976,7 @@ mwl_tx_dmasetup(struct mwl_softc *sc, struct mwl_txbuf *bf, struct mbuf *m0)
 		}
 		m0 = m;
 		error = bus_dmamap_load_mbuf_sg(sc->sc_dmat, bf->bf_dmamap, m0,
-					     bf->bf_segs, &bf->bf_nseg,
-					     BUS_DMA_NOWAIT);
+		    bf->bf_segs, &bf->bf_nseg, BUS_DMA_NOWAIT);
 		if (error != 0) {
 			sc->sc_stats.mst_tx_busdma++;
 			m_freem(m0);
@@ -2990,13 +2984,13 @@ mwl_tx_dmasetup(struct mwl_softc *sc, struct mwl_txbuf *bf, struct mbuf *m0)
 		}
 		KASSERT(bf->bf_nseg <= MWL_TXDESC,
 		    ("too many segments after defrag; nseg %u", bf->bf_nseg));
-	} else if (bf->bf_nseg == 0) {		/* null packet, discard */
+	} else if (bf->bf_nseg == 0) { /* null packet, discard */
 		sc->sc_stats.mst_tx_nodata++;
 		m_freem(m0);
 		return EIO;
 	}
-	DPRINTF(sc, MWL_DEBUG_XMIT, "%s: m %p len %u\n",
-		__func__, m0, m0->m_pkthdr.len);
+	DPRINTF(sc, MWL_DEBUG_XMIT, "%s: m %p len %u\n", __func__, m0,
+	    m0->m_pkthdr.len);
 	bus_dmamap_sync(sc->sc_dmat, bf->bf_dmamap, BUS_DMASYNC_PREWRITE);
 	bf->bf_m = m0;
 
@@ -3007,19 +3001,32 @@ static __inline int
 mwl_cvtlegacyrate(int rate)
 {
 	switch (rate) {
-	case 2:	 return 0;
-	case 4:	 return 1;
-	case 11: return 2;
-	case 22: return 3;
-	case 44: return 4;
-	case 12: return 5;
-	case 18: return 6;
-	case 24: return 7;
-	case 36: return 8;
-	case 48: return 9;
-	case 72: return 10;
-	case 96: return 11;
-	case 108:return 12;
+	case 2:
+		return 0;
+	case 4:
+		return 1;
+	case 11:
+		return 2;
+	case 22:
+		return 3;
+	case 44:
+		return 4;
+	case 12:
+		return 5;
+	case 18:
+		return 6;
+	case 24:
+		return 7;
+	case 36:
+		return 8;
+	case 48:
+		return 9;
+	case 72:
+		return 10;
+	case 96:
+		return 11;
+	case 108:
+		return 12;
 	}
 	return 0;
 }
@@ -3034,38 +3041,41 @@ mwl_calcformat(uint8_t rate, const struct ieee80211_node *ni)
 {
 	uint16_t fmt;
 
-	fmt = _IEEE80211_SHIFTMASK(3, EAGLE_TXD_ANTENNA)
-	    | (IEEE80211_IS_CHAN_HT40D(ni->ni_chan) ?
-		EAGLE_TXD_EXTCHAN_LO : EAGLE_TXD_EXTCHAN_HI);
-	if (rate & IEEE80211_RATE_MCS) {	/* HT MCS */
+	fmt = _IEEE80211_SHIFTMASK(3, EAGLE_TXD_ANTENNA) |
+	    (IEEE80211_IS_CHAN_HT40D(ni->ni_chan) ? EAGLE_TXD_EXTCHAN_LO :
+						    EAGLE_TXD_EXTCHAN_HI);
+	if (rate & IEEE80211_RATE_MCS) { /* HT MCS */
 		fmt |= EAGLE_TXD_FORMAT_HT
 		    /* NB: 0x80 implicitly stripped from ucastrate */
 		    | _IEEE80211_SHIFTMASK(rate, EAGLE_TXD_RATE);
 		/* XXX short/long GI may be wrong; re-check */
 		if (IEEE80211_IS_CHAN_HT40(ni->ni_chan)) {
-			fmt |= EAGLE_TXD_CHW_40
-			    | (ni->ni_htcap & IEEE80211_HTCAP_SHORTGI40 ?
-			        EAGLE_TXD_GI_SHORT : EAGLE_TXD_GI_LONG);
+			fmt |= EAGLE_TXD_CHW_40 |
+			    (ni->ni_htcap & IEEE80211_HTCAP_SHORTGI40 ?
+				    EAGLE_TXD_GI_SHORT :
+				    EAGLE_TXD_GI_LONG);
 		} else {
-			fmt |= EAGLE_TXD_CHW_20
-			    | (ni->ni_htcap & IEEE80211_HTCAP_SHORTGI20 ?
-			        EAGLE_TXD_GI_SHORT : EAGLE_TXD_GI_LONG);
+			fmt |= EAGLE_TXD_CHW_20 |
+			    (ni->ni_htcap & IEEE80211_HTCAP_SHORTGI20 ?
+				    EAGLE_TXD_GI_SHORT :
+				    EAGLE_TXD_GI_LONG);
 		}
-	} else {			/* legacy rate */
-		fmt |= EAGLE_TXD_FORMAT_LEGACY
-		    | _IEEE80211_SHIFTMASK(mwl_cvtlegacyrate(rate),
-			EAGLE_TXD_RATE)
-		    | EAGLE_TXD_CHW_20
+	} else { /* legacy rate */
+		fmt |= EAGLE_TXD_FORMAT_LEGACY |
+		    _IEEE80211_SHIFTMASK(mwl_cvtlegacyrate(rate),
+			EAGLE_TXD_RATE) |
+		    EAGLE_TXD_CHW_20
 		    /* XXX iv_flags & IEEE80211_F_SHPREAMBLE? */
 		    | (ni->ni_capinfo & IEEE80211_CAPINFO_SHORT_PREAMBLE ?
-			EAGLE_TXD_PREAMBLE_SHORT : EAGLE_TXD_PREAMBLE_LONG);
+			      EAGLE_TXD_PREAMBLE_SHORT :
+			      EAGLE_TXD_PREAMBLE_LONG);
 	}
 	return fmt;
 }
 
 static int
-mwl_tx_start(struct mwl_softc *sc, struct ieee80211_node *ni, struct mwl_txbuf *bf,
-    struct mbuf *m0)
+mwl_tx_start(struct mwl_softc *sc, struct ieee80211_node *ni,
+    struct mwl_txbuf *bf, struct mbuf *m0)
 {
 	struct ieee80211com *ic = &sc->sc_ic;
 	struct ieee80211vap *vap = ni->ni_vap;
@@ -3129,7 +3139,7 @@ mwl_tx_start(struct mwl_softc *sc, struct ieee80211_node *ni, struct mwl_txbuf *
 	}
 
 	if (ieee80211_radiotap_active_vap(vap)) {
-		sc->sc_tx_th.wt_flags = 0;	/* XXX */
+		sc->sc_tx_th.wt_flags = 0; /* XXX */
 		if (iswep)
 			sc->sc_tx_th.wt_flags |= IEEE80211_RADIOTAP_F_WEP;
 #if 0
@@ -3157,8 +3167,8 @@ mwl_tx_start(struct mwl_softc *sc, struct ieee80211_node *ni, struct mwl_txbuf *
 			    "not enough headroom, need %d found %zd, "
 			    "m_flags 0x%x m_len %d\n",
 			    space, M_LEADINGSPACE(m0), m0->m_flags, m0->m_len);
-			ieee80211_dump_pkt(ic,
-			    mtod(m0, const uint8_t *), m0->m_len, 0, -1);
+			ieee80211_dump_pkt(ic, mtod(m0, const uint8_t *),
+			    m0->m_len, 0, -1);
 			m_freem(m0);
 			sc->sc_stats.mst_tx_noheadroom++;
 			return EIO;
@@ -3166,7 +3176,7 @@ mwl_tx_start(struct mwl_softc *sc, struct ieee80211_node *ni, struct mwl_txbuf *
 		M_PREPEND(m0, space, M_NOWAIT);
 	}
 	tr = mtod(m0, struct mwltxrec *);
-	if (wh != (struct ieee80211_frame *) &tr->wh)
+	if (wh != (struct ieee80211_frame *)&tr->wh)
 		ovbcopy(wh, &tr->wh, hdrlen);
 	/*
 	 * Note: the "firmware length" is actually the length
@@ -3183,12 +3193,12 @@ mwl_tx_start(struct mwl_softc *sc, struct ieee80211_node *ni, struct mwl_txbuf *
 	error = mwl_tx_dmasetup(sc, bf, m0);
 	if (error != 0) {
 		/* NB: stat collected in mwl_tx_dmasetup */
-		DPRINTF(sc, MWL_DEBUG_XMIT,
-		    "%s: unable to setup dma\n", __func__);
+		DPRINTF(sc, MWL_DEBUG_XMIT, "%s: unable to setup dma\n",
+		    __func__);
 		return error;
 	}
-	bf->bf_node = ni;			/* NB: held reference */
-	m0 = bf->bf_m;				/* NB: may have changed */
+	bf->bf_node = ni; /* NB: held reference */
+	m0 = bf->bf_m;	  /* NB: may have changed */
 	tr = mtod(m0, struct mwltxrec *);
 	wh = (struct ieee80211_frame *)&tr->wh;
 
@@ -3198,7 +3208,7 @@ mwl_tx_start(struct mwl_softc *sc, struct ieee80211_node *ni, struct mwl_txbuf *
 	ds = bf->bf_desc;
 	txq = bf->bf_txq;
 
-	ds->QosCtrl = qos;			/* NB: already little-endian */
+	ds->QosCtrl = qos; /* NB: already little-endian */
 #if MWL_TXDESC == 1
 	/*
 	 * NB: multiframes should be zero because the descriptors
@@ -3278,7 +3288,7 @@ mwl_tx_start(struct mwl_softc *sc, struct ieee80211_node *ni, struct mwl_txbuf *
 		break;
 	default:
 		device_printf(sc->sc_dev, "bogus frame type 0x%x (%s)\n",
-			wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK, __func__);
+		    wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK, __func__);
 		sc->sc_stats.mst_tx_badframetype++;
 		m_freem(m0);
 		return EIO;
@@ -3286,7 +3296,7 @@ mwl_tx_start(struct mwl_softc *sc, struct ieee80211_node *ni, struct mwl_txbuf *
 
 	if (IFF_DUMPPKTS_XMIT(sc))
 		ieee80211_dump_pkt(ic,
-		    mtod(m0, const uint8_t *)+sizeof(uint16_t),
+		    mtod(m0, const uint8_t *) + sizeof(uint16_t),
 		    m0->m_len - sizeof(uint16_t), ds->DataRate, -1);
 
 	MWL_TXQ_LOCK(txq);
@@ -3303,8 +3313,8 @@ mwl_tx_start(struct mwl_softc *sc, struct ieee80211_node *ni, struct mwl_txbuf *
 static __inline int
 mwl_cvtlegacyrix(int rix)
 {
-	static const int ieeerates[] =
-	    { 2, 4, 11, 22, 44, 12, 18, 24, 36, 48, 72, 96, 108 };
+	static const int ieeerates[] = { 2, 4, 11, 22, 44, 12, 18, 24, 36, 48,
+		72, 96, 108 };
 	return (rix < nitems(ieeerates) ? ieeerates[rix] : 0);
 }
 
@@ -3314,7 +3324,7 @@ mwl_cvtlegacyrix(int rix)
 static int
 mwl_tx_processq(struct mwl_softc *sc, struct mwl_txq *txq)
 {
-#define	EAGLE_TXD_STATUS_MCAST \
+#define EAGLE_TXD_STATUS_MCAST \
 	(EAGLE_TXD_STATUS_MULTICAST_TX | EAGLE_TXD_STATUS_BROADCAST_TX)
 	struct ieee80211com *ic = &sc->sc_ic;
 	struct mwl_txbuf *bf;
@@ -3323,7 +3333,8 @@ mwl_tx_processq(struct mwl_softc *sc, struct mwl_txq *txq)
 	int nreaped;
 	uint32_t status;
 
-	DPRINTF(sc, MWL_DEBUG_TX_PROC, "%s: tx queue %u\n", __func__, txq->qnum);
+	DPRINTF(sc, MWL_DEBUG_TX_PROC, "%s: tx queue %u\n", __func__,
+	    txq->qnum);
 	for (nreaped = 0;; nreaped++) {
 		MWL_TXQ_LOCK(txq);
 		bf = STAILQ_FIRST(&txq->active);
@@ -3453,11 +3464,11 @@ mwl_tx_draintxq(struct mwl_softc *sc, struct mwl_txq *txq)
 #ifdef MWL_DEBUG
 		if (sc->sc_debug & MWL_DEBUG_RESET) {
 			struct ieee80211com *ic = &sc->sc_ic;
-			const struct mwltxrec *tr =
-			    mtod(bf->bf_m, const struct mwltxrec *);
+			const struct mwltxrec *tr = mtod(bf->bf_m,
+			    const struct mwltxrec *);
 			mwl_printtxbuf(bf, txq->qnum, ix);
 			ieee80211_dump_pkt(ic, (const uint8_t *)&tr->wh,
-				bf->bf_m->m_len - sizeof(tr->fwlen), 0, -1);
+			    bf->bf_m->m_len - sizeof(tr->fwlen), 0, -1);
 		}
 #endif /* MWL_DEBUG */
 		bus_dmamap_unload(sc->sc_dmat, bf->bf_dmamap);
@@ -3518,7 +3529,7 @@ mwl_cleartxq(struct mwl_softc *sc, struct ieee80211vap *vap)
 	for (i = 0; i < MWL_NUM_TX_QUEUES; i++) {
 		txq = &sc->sc_txq[i];
 		MWL_TXQ_LOCK(txq);
-		STAILQ_FOREACH(bf, &txq->active, bf_list) {
+		STAILQ_FOREACH (bf, &txq->active, bf_list) {
 			struct ieee80211_node *ni = bf->bf_node;
 			if (ni != NULL && ni->ni_vap == vap) {
 				bf->bf_node = NULL;
@@ -3531,16 +3542,16 @@ mwl_cleartxq(struct mwl_softc *sc, struct ieee80211vap *vap)
 
 static int
 mwl_recv_action(struct ieee80211_node *ni, const struct ieee80211_frame *wh,
-	const uint8_t *frm, const uint8_t *efrm)
+    const uint8_t *frm, const uint8_t *efrm)
 {
 	struct mwl_softc *sc = ni->ni_ic->ic_softc;
 	const struct ieee80211_action *ia;
 
-	ia = (const struct ieee80211_action *) frm;
+	ia = (const struct ieee80211_action *)frm;
 	if (ia->ia_category == IEEE80211_ACTION_CAT_HT &&
 	    ia->ia_action == IEEE80211_ACTION_HT_MIMOPWRSAVE) {
 		const struct ieee80211_action_ht_mimopowersave *mps =
-		    (const struct ieee80211_action_ht_mimopowersave *) ia;
+		    (const struct ieee80211_action_ht_mimopowersave *)ia;
 
 		mwl_hal_setmimops(sc->sc_mh, ni->ni_macaddr,
 		    mps->am_control & IEEE80211_A_HT_MIMOPWRSAVE_ENA,
@@ -3553,7 +3564,7 @@ mwl_recv_action(struct ieee80211_node *ni, const struct ieee80211_frame *wh,
 
 static int
 mwl_addba_request(struct ieee80211_node *ni, struct ieee80211_tx_ampdu *tap,
-	int dialogtoken, int baparamset, int batimeout)
+    int dialogtoken, int baparamset, int batimeout)
 {
 	struct mwl_softc *sc = ni->ni_ic->ic_softc;
 	struct ieee80211vap *vap = ni->ni_vap;
@@ -3572,19 +3583,19 @@ mwl_addba_request(struct ieee80211_node *ni, struct ieee80211_tx_ampdu *tap,
 		else
 #endif
 #if MWL_MAXBA > 2
-		if (mn->mn_ba[2].bastream == NULL)
+		    if (mn->mn_ba[2].bastream == NULL)
 			bas = &mn->mn_ba[2];
 		else
 #endif
 #if MWL_MAXBA > 1
-		if (mn->mn_ba[1].bastream == NULL)
+		    if (mn->mn_ba[1].bastream == NULL)
 			bas = &mn->mn_ba[1];
 		else
 #endif
 #if MWL_MAXBA > 0
-		if (mn->mn_ba[0].bastream == NULL)
+		    if (mn->mn_ba[0].bastream == NULL)
 			bas = &mn->mn_ba[0];
-		else 
+		else
 #endif
 		{
 			/* sta already has max BA streams */
@@ -3597,8 +3608,7 @@ mwl_addba_request(struct ieee80211_node *ni, struct ieee80211_tx_ampdu *tap,
 		/* NB: no held reference to ni */
 		sp = mwl_hal_bastream_alloc(MWL_VAP(vap)->mv_hvap,
 		    (baparamset & IEEE80211_BAPS_POLICY_IMMEDIATE) != 0,
-		    ni->ni_macaddr, tap->txa_tid, ni->ni_htparam,
-		    ni, tap);
+		    ni->ni_macaddr, tap->txa_tid, ni->ni_htparam, ni, tap);
 		if (sp == NULL) {
 			/*
 			 * No available stream, return 0 so no
@@ -3617,15 +3627,17 @@ mwl_addba_request(struct ieee80211_node *ni, struct ieee80211_tx_ampdu *tap,
 	}
 	/* fetch current seq# from the firmware; if available */
 	if (mwl_hal_bastream_get_seqno(sc->sc_mh, bas->bastream,
-	    vap->iv_opmode == IEEE80211_M_STA ? vap->iv_myaddr : ni->ni_macaddr,
-	    &tap->txa_start) != 0)
+		vap->iv_opmode == IEEE80211_M_STA ? vap->iv_myaddr :
+						    ni->ni_macaddr,
+		&tap->txa_start) != 0)
 		tap->txa_start = 0;
-	return sc->sc_addba_request(ni, tap, dialogtoken, baparamset, batimeout);
+	return sc->sc_addba_request(ni, tap, dialogtoken, baparamset,
+	    batimeout);
 }
 
 static int
 mwl_addba_response(struct ieee80211_node *ni, struct ieee80211_tx_ampdu *tap,
-	int code, int baparamset, int batimeout)
+    int code, int baparamset, int batimeout)
 {
 	struct mwl_softc *sc = ni->ni_ic->ic_softc;
 	struct mwl_bastate *bas;
@@ -3634,8 +3646,8 @@ mwl_addba_response(struct ieee80211_node *ni, struct ieee80211_tx_ampdu *tap,
 	if (bas == NULL) {
 		/* XXX should not happen */
 		DPRINTF(sc, MWL_DEBUG_AMPDU,
-		    "%s: no BA stream allocated, TID %d\n",
-		    __func__, tap->txa_tid);
+		    "%s: no BA stream allocated, TID %d\n", __func__,
+		    tap->txa_tid);
 		sc->sc_stats.mst_addba_nostream++;
 		return 0;
 	}
@@ -3648,7 +3660,8 @@ mwl_addba_response(struct ieee80211_node *ni, struct ieee80211_tx_ampdu *tap,
 		 * we know resources are available because we
 		 * pre-allocated one before forming the request.
 		 */
-		bufsiz = _IEEE80211_MASKSHIFT(baparamset, IEEE80211_BAPS_BUFSIZ);
+		bufsiz = _IEEE80211_MASKSHIFT(baparamset,
+		    IEEE80211_BAPS_BUFSIZ);
 		if (bufsiz == 0)
 			bufsiz = IEEE80211_AGGR_BAWMAX;
 		error = mwl_hal_bastream_create(MWL_VAP(vap)->mv_hvap,
@@ -3664,8 +3677,9 @@ mwl_addba_response(struct ieee80211_node *ni, struct ieee80211_tx_ampdu *tap,
 
 			DPRINTF(sc, MWL_DEBUG_AMPDU,
 			    "%s: create failed, error %d, bufsiz %d TID %d "
-			    "htparam 0x%x\n", __func__, error, bufsiz,
-			    tap->txa_tid, ni->ni_htparam);
+			    "htparam 0x%x\n",
+			    __func__, error, bufsiz, tap->txa_tid,
+			    ni->ni_htparam);
 			sc->sc_stats.mst_bacreate_failed++;
 			return 0;
 		}
@@ -3673,8 +3687,9 @@ mwl_addba_response(struct ieee80211_node *ni, struct ieee80211_tx_ampdu *tap,
 		mwl_bastream_setup(bas, tap->txa_tid, bas->bastream->txq);
 		DPRINTF(sc, MWL_DEBUG_AMPDU,
 		    "%s: bastream %p assigned to txq %d TID %d bufsiz %d "
-		    "htparam 0x%x\n", __func__, bas->bastream,
-		    bas->txq, tap->txa_tid, bufsiz, ni->ni_htparam);
+		    "htparam 0x%x\n",
+		    __func__, bas->bastream, bas->txq, tap->txa_tid, bufsiz,
+		    ni->ni_htparam);
 	} else {
 		/*
 		 * Other side NAK'd us; return the resources.
@@ -3719,12 +3734,12 @@ mwl_startrecv(struct mwl_softc *sc)
 		struct mwl_rxdesc *ds;
 
 		prev = NULL;
-		STAILQ_FOREACH(bf, &sc->sc_rxbuf, bf_list) {
+		STAILQ_FOREACH (bf, &sc->sc_rxbuf, bf_list) {
 			int error = mwl_rxbuf_init(sc, bf);
 			if (error != 0) {
 				DPRINTF(sc, MWL_DEBUG_RECV,
-					"%s: mwl_rxbuf_init failed %d\n",
-					__func__, error);
+				    "%s: mwl_rxbuf_init failed %d\n", __func__,
+				    error);
 				return error;
 			}
 			if (prev != NULL) {
@@ -3735,12 +3750,12 @@ mwl_startrecv(struct mwl_softc *sc)
 		}
 		if (prev != NULL) {
 			ds = prev->bf_desc;
-			ds->pPhysNext =
-			    htole32(STAILQ_FIRST(&sc->sc_rxbuf)->bf_daddr);
+			ds->pPhysNext = htole32(
+			    STAILQ_FIRST(&sc->sc_rxbuf)->bf_daddr);
 		}
 		sc->sc_recvsetup = 1;
 	}
-	mwl_mode_init(sc);		/* set filters, etc. */
+	mwl_mode_init(sc); /* set filters, etc. */
 	return 0;
 }
 
@@ -3768,7 +3783,7 @@ mwl_getapmode(const struct ieee80211vap *vap, struct ieee80211_channel *chan)
 	else if (IEEE80211_IS_CHAN_A(chan))
 		mode = AP_MODE_A_ONLY;
 	else
-		mode = AP_MODE_MIXED;		/* XXX should not happen? */
+		mode = AP_MODE_MIXED; /* XXX should not happen? */
 	return mode;
 }
 
@@ -3790,8 +3805,8 @@ mwl_chan_set(struct mwl_softc *sc, struct ieee80211_channel *chan)
 	MWL_HAL_CHANNEL hchan;
 	int maxtxpow;
 
-	DPRINTF(sc, MWL_DEBUG_RESET, "%s: chan %u MHz/flags 0x%x\n",
-	    __func__, chan->ic_freq, chan->ic_flags);
+	DPRINTF(sc, MWL_DEBUG_RESET, "%s: chan %u MHz/flags 0x%x\n", __func__,
+	    chan->ic_freq, chan->ic_flags);
 
 	/*
 	 * Convert to a HAL channel description with
@@ -3799,7 +3814,7 @@ mwl_chan_set(struct mwl_softc *sc, struct ieee80211_channel *chan)
 	 * operating mode.
 	 */
 	mwl_mapchan(&hchan, chan);
-	mwl_hal_intrset(mh, 0);		/* disable interrupts */
+	mwl_hal_intrset(mh, 0); /* disable interrupts */
 #if 0
 	mwl_draintxq(sc);		/* clear pending tx frames */
 #endif
@@ -3811,7 +3826,7 @@ mwl_chan_set(struct mwl_softc *sc, struct ieee80211_channel *chan)
 	 * for this channel.
 	 * XXX min bound?
 	 */
-	maxtxpow = 2*chan->ic_maxregpower;
+	maxtxpow = 2 * chan->ic_maxregpower;
 	if (maxtxpow > ic->ic_txpowlimit)
 		maxtxpow = ic->ic_txpowlimit;
 	mwl_hal_settxpower(mh, &hchan, maxtxpow / 2);
@@ -3860,10 +3875,10 @@ mwl_set_channel(struct ieee80211com *ic)
 {
 	struct mwl_softc *sc = ic->ic_softc;
 
-	(void) mwl_chan_set(sc, ic->ic_curchan);
+	(void)mwl_chan_set(sc, ic->ic_curchan);
 }
 
-/* 
+/*
  * Handle a channel switch request.  We inform the firmware
  * and mark the global state to suppress various actions.
  * NB: we issue only one request to the fw; we may be called
@@ -3891,20 +3906,22 @@ mwl_startcsa(struct ieee80211vap *vap)
  * global key table of the vap to each sta db entry.
  */
 static void
-mwl_setanywepkey(struct ieee80211vap *vap, const uint8_t mac[IEEE80211_ADDR_LEN])
+mwl_setanywepkey(struct ieee80211vap *vap,
+    const uint8_t mac[IEEE80211_ADDR_LEN])
 {
-	if ((vap->iv_flags & (IEEE80211_F_PRIVACY|IEEE80211_F_WPA)) ==
+	if ((vap->iv_flags & (IEEE80211_F_PRIVACY | IEEE80211_F_WPA)) ==
 		IEEE80211_F_PRIVACY &&
 	    vap->iv_def_txkey != IEEE80211_KEYIX_NONE &&
 	    vap->iv_nw_keys[vap->iv_def_txkey].wk_keyix != IEEE80211_KEYIX_NONE)
-		(void) _mwl_key_set(vap, &vap->iv_nw_keys[vap->iv_def_txkey],
-				    mac);
+		(void)_mwl_key_set(vap, &vap->iv_nw_keys[vap->iv_def_txkey],
+		    mac);
 }
 
 static int
-mwl_peerstadb(struct ieee80211_node *ni, int aid, int staid, MWL_HAL_PEERINFO *pi)
+mwl_peerstadb(struct ieee80211_node *ni, int aid, int staid,
+    MWL_HAL_PEERINFO *pi)
 {
-#define	WME(ie) ((const struct ieee80211_wme_info *) ie)
+#define WME(ie) ((const struct ieee80211_wme_info *)ie)
 	struct ieee80211vap *vap = ni->ni_vap;
 	struct mwl_hal_vap *hvap;
 	int error;
@@ -3918,8 +3935,7 @@ mwl_peerstadb(struct ieee80211_node *ni, int aid, int staid, MWL_HAL_PEERINFO *p
 		hvap = MWL_VAP(vap)->mv_ap_hvap;
 	} else
 		hvap = MWL_VAP(vap)->mv_hvap;
-	error = mwl_hal_newstation(hvap, ni->ni_macaddr,
-	    aid, staid, pi,
+	error = mwl_hal_newstation(hvap, ni->ni_macaddr, aid, staid, pi,
 	    ni->ni_flags & (IEEE80211_NODE_QOS | IEEE80211_NODE_HT),
 	    ni->ni_ies.wme_ie != NULL ? WME(ni->ni_ies.wme_ie)->wme_info : 0);
 	if (error == 0) {
@@ -3943,7 +3959,7 @@ mwl_setglobalkeys(struct ieee80211vap *vap)
 	wk = &vap->iv_nw_keys[0];
 	for (; wk < &vap->iv_nw_keys[IEEE80211_WEP_NKID]; wk++)
 		if (wk->wk_keyix != IEEE80211_KEYIX_NONE)
-			(void) _mwl_key_set(vap, wk, vap->iv_myaddr);
+			(void)_mwl_key_set(vap, wk, vap->iv_myaddr);
 }
 
 /*
@@ -3958,19 +3974,45 @@ get_rate_bitmap(const struct ieee80211_rateset *rs)
 	rates = 0;
 	for (i = 0; i < rs->rs_nrates; i++)
 		switch (rs->rs_rates[i] & IEEE80211_RATE_VAL) {
-		case 2:	  rates |= 0x001; break;
-		case 4:	  rates |= 0x002; break;
-		case 11:  rates |= 0x004; break;
-		case 22:  rates |= 0x008; break;
-		case 44:  rates |= 0x010; break;
-		case 12:  rates |= 0x020; break;
-		case 18:  rates |= 0x040; break;
-		case 24:  rates |= 0x080; break;
-		case 36:  rates |= 0x100; break;
-		case 48:  rates |= 0x200; break;
-		case 72:  rates |= 0x400; break;
-		case 96:  rates |= 0x800; break;
-		case 108: rates |= 0x1000; break;
+		case 2:
+			rates |= 0x001;
+			break;
+		case 4:
+			rates |= 0x002;
+			break;
+		case 11:
+			rates |= 0x004;
+			break;
+		case 22:
+			rates |= 0x008;
+			break;
+		case 44:
+			rates |= 0x010;
+			break;
+		case 12:
+			rates |= 0x020;
+			break;
+		case 18:
+			rates |= 0x040;
+			break;
+		case 24:
+			rates |= 0x080;
+			break;
+		case 36:
+			rates |= 0x100;
+			break;
+		case 48:
+			rates |= 0x200;
+			break;
+		case 72:
+			rates |= 0x400;
+			break;
+		case 96:
+			rates |= 0x800;
+			break;
+		case 108:
+			rates |= 0x1000;
+			break;
 		}
 	return rates;
 }
@@ -3987,7 +4029,7 @@ get_htrate_bitmap(const struct ieee80211_htrateset *rs)
 	rates = 0;
 	for (i = 0; i < rs->rs_nrates; i++) {
 		if (rs->rs_rates[i] < 16)
-			rates |= 1<<rs->rs_rates[i];
+			rates |= 1 << rs->rs_rates[i];
 	}
 	return rates;
 }
@@ -4008,7 +4050,7 @@ mkpeerinfo(MWL_HAL_PEERINFO *pi, const struct ieee80211_node *ni)
 		/* HT capabilities, etc */
 		pi->HTCapabilitiesInfo = ni->ni_htcap;
 		/* XXX pi.HTCapabilitiesInfo */
-	        pi->MacHTParamInfo = ni->ni_htparam;	
+		pi->MacHTParamInfo = ni->ni_htparam;
 		pi->HTRateBitMap = get_htrate_bitmap(&ni->ni_htrates);
 		pi->AddHtInfo.ControlChan = ni->ni_htctlchan;
 		pi->AddHtInfo.AddChan = ni->ni_ht2ndchan;
@@ -4035,7 +4077,7 @@ mkpeerinfo(MWL_HAL_PEERINFO *pi, const struct ieee80211_node *ni)
 static int
 mwl_localstadb(struct ieee80211vap *vap)
 {
-#define	WME(ie) ((const struct ieee80211_wme_info *) ie)
+#define WME(ie) ((const struct ieee80211_wme_info *)ie)
 	struct mwl_hal_vap *hvap = MWL_VAP(vap)->mv_hvap;
 	struct ieee80211_node *bss;
 	MWL_HAL_PEERINFO pi;
@@ -4045,18 +4087,19 @@ mwl_localstadb(struct ieee80211vap *vap)
 	case IEEE80211_M_STA:
 		bss = vap->iv_bss;
 		error = mwl_hal_newstation(hvap, vap->iv_myaddr, 0, 0,
-		    vap->iv_state == IEEE80211_S_RUN ?
-			mkpeerinfo(&pi, bss) : NULL,
+		    vap->iv_state == IEEE80211_S_RUN ? mkpeerinfo(&pi, bss) :
+						       NULL,
 		    (bss->ni_flags & (IEEE80211_NODE_QOS | IEEE80211_NODE_HT)),
 		    bss->ni_ies.wme_ie != NULL ?
-			WME(bss->ni_ies.wme_ie)->wme_info : 0);
+			WME(bss->ni_ies.wme_ie)->wme_info :
+			0);
 		if (error == 0)
 			mwl_setglobalkeys(vap);
 		break;
 	case IEEE80211_M_HOSTAP:
 	case IEEE80211_M_MBSS:
-		error = mwl_hal_newstation(hvap, vap->iv_myaddr,
-		    0, 0, NULL, vap->iv_flags & IEEE80211_F_WME, 0);
+		error = mwl_hal_newstation(hvap, vap->iv_myaddr, 0, 0, NULL,
+		    vap->iv_flags & IEEE80211_F_WME, 0);
 		if (error == 0)
 			mwl_setglobalkeys(vap);
 		break;
@@ -4080,9 +4123,9 @@ mwl_newstate(struct ieee80211vap *vap, enum ieee80211_state nstate, int arg)
 	enum ieee80211_state ostate = vap->iv_state;
 	int error;
 
-	DPRINTF(sc, MWL_DEBUG_STATE, "%s: %s: %s -> %s\n",
-	    if_name(vap->iv_ifp), __func__,
-	    ieee80211_state_name[ostate], ieee80211_state_name[nstate]);
+	DPRINTF(sc, MWL_DEBUG_STATE, "%s: %s: %s -> %s\n", if_name(vap->iv_ifp),
+	    __func__, ieee80211_state_name[ostate],
+	    ieee80211_state_name[nstate]);
 
 	callout_stop(&sc->sc_timer);
 	/*
@@ -4115,7 +4158,7 @@ mwl_newstate(struct ieee80211vap *vap, enum ieee80211_state nstate, int arg)
 		 */
 		ni = vap->iv_bss;
 		MWL_NODE(ni)->mn_hvap = hvap;
-		(void) mwl_peerstadb(ni, 0, 0, NULL);
+		(void)mwl_peerstadb(ni, 0, 0, NULL);
 	} else if (nstate == IEEE80211_S_CSA) {
 		/* XXX move to below? */
 		if (vap->iv_opmode == IEEE80211_M_HOSTAP ||
@@ -4210,7 +4253,7 @@ mwl_newstate(struct ieee80211vap *vap, enum ieee80211_state nstate, int arg)
 		 * Start timer to prod firmware.
 		 */
 		if (sc->sc_ageinterval != 0)
-			callout_reset(&sc->sc_timer, sc->sc_ageinterval*hz,
+			callout_reset(&sc->sc_timer, sc->sc_ageinterval * hz,
 			    mwl_agestations, sc);
 	} else if (nstate == IEEE80211_S_SLEEP) {
 		/* XXX set chip in power save */
@@ -4257,7 +4300,7 @@ static void
 mwl_newassoc(struct ieee80211_node *ni, int isnew)
 {
 	struct ieee80211vap *vap = ni->ni_vap;
-        struct mwl_softc *sc = vap->iv_ic->ic_softc;
+	struct mwl_softc *sc = vap->iv_ic->ic_softc;
 	struct mwl_node *mn = MWL_NODE(ni);
 	MWL_HAL_PEERINFO pi;
 	uint16_t aid;
@@ -4276,8 +4319,7 @@ mwl_newassoc(struct ieee80211_node *ni, int isnew)
 	error = mwl_peerstadb(ni, aid, mn->mn_staid, mkpeerinfo(&pi, ni));
 	if (error != 0) {
 		DPRINTF(sc, MWL_DEBUG_NODE,
-		    "%s: error %d creating sta db entry\n",
-		    __func__, error);
+		    "%s: error %d creating sta db entry\n", __func__, error);
 		/* XXX how to deal with error? */
 	}
 }
@@ -4292,8 +4334,8 @@ mwl_agestations(void *arg)
 	struct mwl_softc *sc = arg;
 
 	mwl_hal_setkeepalive(sc->sc_mh);
-	if (sc->sc_ageinterval != 0)		/* NB: catch dynamic changes */
-		callout_schedule(&sc->sc_timer, sc->sc_ageinterval*hz);
+	if (sc->sc_ageinterval != 0) /* NB: catch dynamic changes */
+		callout_schedule(&sc->sc_timer, sc->sc_ageinterval * hz);
 }
 
 static const struct mwl_hal_channel *
@@ -4311,7 +4353,7 @@ findhalchannel(const MWL_HAL_CHANNELINFO *ci, int ieee)
 
 static int
 mwl_setregdomain(struct ieee80211com *ic, struct ieee80211_regdomain *rd,
-	int nchan, struct ieee80211_channel chans[])
+    int nchan, struct ieee80211_channel chans[])
 {
 	struct mwl_softc *sc = ic->ic_softc;
 	struct mwl_hal *mh = sc->sc_mh;
@@ -4324,25 +4366,27 @@ mwl_setregdomain(struct ieee80211com *ic, struct ieee80211_regdomain *rd,
 
 		if (IEEE80211_IS_CHAN_2GHZ(c)) {
 			mwl_hal_getchannelinfo(mh, MWL_FREQ_BAND_2DOT4GHZ,
-			    IEEE80211_IS_CHAN_HT40(c) ?
-				MWL_CH_40_MHz_WIDTH : MWL_CH_20_MHz_WIDTH, &ci);
+			    IEEE80211_IS_CHAN_HT40(c) ? MWL_CH_40_MHz_WIDTH :
+							MWL_CH_20_MHz_WIDTH,
+			    &ci);
 		} else if (IEEE80211_IS_CHAN_5GHZ(c)) {
 			mwl_hal_getchannelinfo(mh, MWL_FREQ_BAND_5GHZ,
-			    IEEE80211_IS_CHAN_HT40(c) ?
-				MWL_CH_40_MHz_WIDTH : MWL_CH_20_MHz_WIDTH, &ci);
+			    IEEE80211_IS_CHAN_HT40(c) ? MWL_CH_40_MHz_WIDTH :
+							MWL_CH_20_MHz_WIDTH,
+			    &ci);
 		} else {
 			device_printf(sc->sc_dev,
 			    "%s: channel %u freq %u/0x%x not 2.4/5GHz\n",
 			    __func__, c->ic_ieee, c->ic_freq, c->ic_flags);
 			return EINVAL;
 		}
-		/* 
+		/*
 		 * Verify channel has cal data and cap tx power.
 		 */
 		hc = findhalchannel(ci, c->ic_ieee);
 		if (hc != NULL) {
-			if (c->ic_maxpower > 2*hc->maxTxPow)
-				c->ic_maxpower = 2*hc->maxTxPow;
+			if (c->ic_maxpower > 2 * hc->maxTxPow)
+				c->ic_maxpower = 2 * hc->maxTxPow;
 			goto next;
 		}
 		if (IEEE80211_IS_CHAN_HT40(c)) {
@@ -4352,28 +4396,27 @@ mwl_setregdomain(struct ieee80211com *ic, struct ieee80211_regdomain *rd,
 			 */
 			hc = findhalchannel(ci, c->ic_extieee);
 			if (hc != NULL) {
-				if (c->ic_maxpower > 2*hc->maxTxPow)
-					c->ic_maxpower = 2*hc->maxTxPow;
+				if (c->ic_maxpower > 2 * hc->maxTxPow)
+					c->ic_maxpower = 2 * hc->maxTxPow;
 				goto next;
 			}
 		}
 		device_printf(sc->sc_dev,
 		    "%s: no cal data for channel %u ext %u freq %u/0x%x\n",
-		    __func__, c->ic_ieee, c->ic_extieee,
-		    c->ic_freq, c->ic_flags);
+		    __func__, c->ic_ieee, c->ic_extieee, c->ic_freq,
+		    c->ic_flags);
 		return EINVAL;
-	next:
-		;
+	next:;
 	}
 	return 0;
 }
 
-#define	IEEE80211_CHAN_HTG	(IEEE80211_CHAN_HT|IEEE80211_CHAN_G)
-#define	IEEE80211_CHAN_HTA	(IEEE80211_CHAN_HT|IEEE80211_CHAN_A)
+#define IEEE80211_CHAN_HTG (IEEE80211_CHAN_HT | IEEE80211_CHAN_G)
+#define IEEE80211_CHAN_HTA (IEEE80211_CHAN_HT | IEEE80211_CHAN_A)
 
 static void
 addht40channels(struct ieee80211_channel chans[], int maxchans, int *nchans,
-	const MWL_HAL_CHANNELINFO *ci, int flags)
+    const MWL_HAL_CHANNELINFO *ci, int flags)
 {
 	int i, error;
 
@@ -4389,7 +4432,7 @@ addht40channels(struct ieee80211_channel chans[], int maxchans, int *nchans,
 
 static void
 addchannels(struct ieee80211_channel chans[], int maxchans, int *nchans,
-	const MWL_HAL_CHANNELINFO *ci, const uint8_t bands[])
+    const MWL_HAL_CHANNELINFO *ci, const uint8_t bands[])
 {
 	int i, error;
 
@@ -4397,14 +4440,14 @@ addchannels(struct ieee80211_channel chans[], int maxchans, int *nchans,
 	for (i = 0; i < ci->nchannels && error == 0; i++) {
 		const struct mwl_hal_channel *hc = &ci->channels[i];
 
-		error = ieee80211_add_channel(chans, maxchans, nchans,
-		    hc->ieee, hc->freq, hc->maxTxPow, 0, bands);
+		error = ieee80211_add_channel(chans, maxchans, nchans, hc->ieee,
+		    hc->freq, hc->maxTxPow, 0, bands);
 	}
 }
 
 static void
 getchannels(struct mwl_softc *sc, int maxchans, int *nchans,
-	struct ieee80211_channel chans[])
+    struct ieee80211_channel chans[])
 {
 	const MWL_HAL_CHANNELINFO *ci;
 	uint8_t bands[IEEE80211_MODE_BYTES];
@@ -4416,32 +4459,34 @@ getchannels(struct mwl_softc *sc, int maxchans, int *nchans,
 	 * (if desired).
 	 */
 	*nchans = 0;
-	if (mwl_hal_getchannelinfo(sc->sc_mh,
-	    MWL_FREQ_BAND_2DOT4GHZ, MWL_CH_20_MHz_WIDTH, &ci) == 0) {
+	if (mwl_hal_getchannelinfo(sc->sc_mh, MWL_FREQ_BAND_2DOT4GHZ,
+		MWL_CH_20_MHz_WIDTH, &ci) == 0) {
 		memset(bands, 0, sizeof(bands));
 		setbit(bands, IEEE80211_MODE_11B);
 		setbit(bands, IEEE80211_MODE_11G);
 		setbit(bands, IEEE80211_MODE_11NG);
 		addchannels(chans, maxchans, nchans, ci, bands);
 	}
-	if (mwl_hal_getchannelinfo(sc->sc_mh,
-	    MWL_FREQ_BAND_5GHZ, MWL_CH_20_MHz_WIDTH, &ci) == 0) {
+	if (mwl_hal_getchannelinfo(sc->sc_mh, MWL_FREQ_BAND_5GHZ,
+		MWL_CH_20_MHz_WIDTH, &ci) == 0) {
 		memset(bands, 0, sizeof(bands));
 		setbit(bands, IEEE80211_MODE_11A);
 		setbit(bands, IEEE80211_MODE_11NA);
 		addchannels(chans, maxchans, nchans, ci, bands);
 	}
-	if (mwl_hal_getchannelinfo(sc->sc_mh,
-	    MWL_FREQ_BAND_2DOT4GHZ, MWL_CH_40_MHz_WIDTH, &ci) == 0)
-		addht40channels(chans, maxchans, nchans, ci, IEEE80211_CHAN_HTG);
-	if (mwl_hal_getchannelinfo(sc->sc_mh,
-	    MWL_FREQ_BAND_5GHZ, MWL_CH_40_MHz_WIDTH, &ci) == 0)
-		addht40channels(chans, maxchans, nchans, ci, IEEE80211_CHAN_HTA);
+	if (mwl_hal_getchannelinfo(sc->sc_mh, MWL_FREQ_BAND_2DOT4GHZ,
+		MWL_CH_40_MHz_WIDTH, &ci) == 0)
+		addht40channels(chans, maxchans, nchans, ci,
+		    IEEE80211_CHAN_HTG);
+	if (mwl_hal_getchannelinfo(sc->sc_mh, MWL_FREQ_BAND_5GHZ,
+		MWL_CH_40_MHz_WIDTH, &ci) == 0)
+		addht40channels(chans, maxchans, nchans, ci,
+		    IEEE80211_CHAN_HTA);
 }
 
 static void
-mwl_getradiocaps(struct ieee80211com *ic,
-	int maxchans, int *nchans, struct ieee80211_channel chans[])
+mwl_getradiocaps(struct ieee80211com *ic, int maxchans, int *nchans,
+    struct ieee80211_channel chans[])
 {
 	struct mwl_softc *sc = ic->ic_softc;
 
@@ -4465,7 +4510,7 @@ mwl_getchannels(struct mwl_softc *sc)
 	ic->ic_regdomain.regdomain = SKU_DEBUG;
 	ic->ic_regdomain.country = CTRY_DEFAULT;
 	ic->ic_regdomain.location = 'I';
-	ic->ic_regdomain.isocc[0] = ' ';	/* XXX? */
+	ic->ic_regdomain.isocc[0] = ' '; /* XXX? */
 	ic->ic_regdomain.isocc[1] = ' ';
 	return (ic->ic_nchans == 0 ? EIO : 0);
 }
@@ -4479,14 +4524,16 @@ mwl_printrxbuf(const struct mwl_rxbuf *bf, u_int ix)
 	const struct mwl_rxdesc *ds = bf->bf_desc;
 	uint32_t status = le32toh(ds->Status);
 
-	printf("R[%2u] (DS.V:%p DS.P:0x%jx) NEXT:%08x DATA:%08x RC:%02x%s\n"
-	       "      STAT:%02x LEN:%04x RSSI:%02x CHAN:%02x RATE:%02x QOS:%04x HT:%04x\n",
+	printf(
+	    "R[%2u] (DS.V:%p DS.P:0x%jx) NEXT:%08x DATA:%08x RC:%02x%s\n"
+	    "      STAT:%02x LEN:%04x RSSI:%02x CHAN:%02x RATE:%02x QOS:%04x HT:%04x\n",
 	    ix, ds, (uintmax_t)bf->bf_daddr, le32toh(ds->pPhysNext),
-	    le32toh(ds->pPhysBuffData), ds->RxControl, 
-	    ds->RxControl != EAGLE_RXD_CTRL_DRIVER_OWN ?
-	        "" : (status & EAGLE_RXD_STATUS_OK) ? " *" : " !",
-	    ds->Status, le16toh(ds->PktLen), ds->RSSI, ds->Channel,
-	    ds->Rate, le16toh(ds->QosCtrl), le16toh(ds->HtSig2));
+	    le32toh(ds->pPhysBuffData), ds->RxControl,
+	    ds->RxControl != EAGLE_RXD_CTRL_DRIVER_OWN ? "" :
+		(status & EAGLE_RXD_STATUS_OK)	       ? " *" :
+							 " !",
+	    ds->Status, le16toh(ds->PktLen), ds->RSSI, ds->Channel, ds->Rate,
+	    le16toh(ds->QosCtrl), le16toh(ds->HtSig2));
 }
 
 static void
@@ -4498,25 +4545,24 @@ mwl_printtxbuf(const struct mwl_txbuf *bf, u_int qnum, u_int ix)
 	printf("Q%u[%3u]", qnum, ix);
 	printf(" (DS.V:%p DS.P:0x%jx)\n", ds, (uintmax_t)bf->bf_daddr);
 	printf("    NEXT:%08x DATA:%08x LEN:%04x STAT:%08x%s\n",
-	    le32toh(ds->pPhysNext),
-	    le32toh(ds->PktPtr), le16toh(ds->PktLen), status,
-	    status & EAGLE_TXD_STATUS_USED ?
-		"" : (status & 3) != 0 ? " *" : " !");
+	    le32toh(ds->pPhysNext), le32toh(ds->PktPtr), le16toh(ds->PktLen),
+	    status,
+	    status & EAGLE_TXD_STATUS_USED ? "" :
+		(status & 3) != 0	   ? " *" :
+					     " !");
 	printf("    RATE:%02x PRI:%x QOS:%04x SAP:%08x FORMAT:%04x\n",
 	    ds->DataRate, ds->TxPriority, le16toh(ds->QosCtrl),
 	    le32toh(ds->SapPktInfo), le16toh(ds->Format));
 #if MWL_TXDESC > 1
-	printf("    MULTIFRAMES:%u LEN:%04x %04x %04x %04x %04x %04x\n"
-	    , le32toh(ds->multiframes)
-	    , le16toh(ds->PktLenArray[0]), le16toh(ds->PktLenArray[1])
-	    , le16toh(ds->PktLenArray[2]), le16toh(ds->PktLenArray[3])
-	    , le16toh(ds->PktLenArray[4]), le16toh(ds->PktLenArray[5])
-	);
-	printf("    DATA:%08x %08x %08x %08x %08x %08x\n"
-	    , le32toh(ds->PktPtrArray[0]), le32toh(ds->PktPtrArray[1])
-	    , le32toh(ds->PktPtrArray[2]), le32toh(ds->PktPtrArray[3])
-	    , le32toh(ds->PktPtrArray[4]), le32toh(ds->PktPtrArray[5])
-	);
+	printf("    MULTIFRAMES:%u LEN:%04x %04x %04x %04x %04x %04x\n",
+	    le32toh(ds->multiframes), le16toh(ds->PktLenArray[0]),
+	    le16toh(ds->PktLenArray[1]), le16toh(ds->PktLenArray[2]),
+	    le16toh(ds->PktLenArray[3]), le16toh(ds->PktLenArray[4]),
+	    le16toh(ds->PktLenArray[5]));
+	printf("    DATA:%08x %08x %08x %08x %08x %08x\n",
+	    le32toh(ds->PktPtrArray[0]), le32toh(ds->PktPtrArray[1]),
+	    le32toh(ds->PktPtrArray[2]), le32toh(ds->PktPtrArray[3]),
+	    le32toh(ds->PktPtrArray[4]), le32toh(ds->PktPtrArray[5]));
 #endif
 #if 0
 { const uint8_t *cp = (const uint8_t *) ds;
@@ -4567,8 +4613,7 @@ mwl_watchdog(void *arg)
 			device_printf(sc->sc_dev,
 			    "transmit timeout (firmware hung?)\n");
 		else
-			device_printf(sc->sc_dev,
-			    "transmit timeout\n");
+			device_printf(sc->sc_dev, "transmit timeout\n");
 #if 0
 		mwl_reset(sc);
 mwl_txq_dump(&sc->sc_txq[0]);/*XXX*/
@@ -4628,7 +4673,7 @@ mwl_ioctl_diag(struct mwl_softc *sc, struct mwl_diag *md)
 			md->md_out_size = outsize;
 		if (outdata != NULL)
 			error = copyout(outdata, md->md_out_data,
-					md->md_out_size);
+			    md->md_out_size);
 	} else {
 		error = EINVAL;
 	}
@@ -4665,9 +4710,9 @@ mwl_ioctl_reset(struct mwl_softc *sc, struct mwl_diag *md)
 	 * Reset tx/rx data structures; after reload we must
 	 * re-start the driver's notion of the next xmit/recv.
 	 */
-	mwl_draintxq(sc);		/* clear pending frames */
-	mwl_resettxq(sc);		/* rebuild tx q lists */
-	sc->sc_rxnext = NULL;		/* force rx to start at the list head */
+	mwl_draintxq(sc);     /* clear pending frames */
+	mwl_resettxq(sc);     /* rebuild tx q lists */
+	sc->sc_rxnext = NULL; /* force rx to start at the list head */
 	return 0;
 }
 #endif /* MWL_DIAGAPI */
@@ -4698,7 +4743,7 @@ mwl_parent(struct ieee80211com *ic)
 			 * probably a better way to deal with this.
 			 */
 			if (!sc->sc_invalid) {
-				mwl_init(sc);	/* XXX lose error */
+				mwl_init(sc); /* XXX lose error */
 				startall = 1;
 			}
 		}
@@ -4733,15 +4778,15 @@ mwl_ioctl(struct ieee80211com *ic, u_long cmd, void *data)
 		 * to a local structure.
 		 */
 		return (copyout(&sc->sc_stats, ifr_data_get_ptr(ifr),
-		    sizeof (sc->sc_stats)));
+		    sizeof(sc->sc_stats)));
 #ifdef MWL_DIAGAPI
 	case SIOCGMVDIAG:
 		/* XXX check privs */
-		return mwl_ioctl_diag(sc, (struct mwl_diag *) ifr);
+		return mwl_ioctl_diag(sc, (struct mwl_diag *)ifr);
 	case SIOCGMVRESET:
 		/* XXX check privs */
 		MWL_LOCK(sc);
-		error = mwl_ioctl_reset(sc,(struct mwl_diag *) ifr); 
+		error = mwl_ioctl_reset(sc, (struct mwl_diag *)ifr);
 		MWL_UNLOCK(sc);
 		break;
 #endif /* MWL_DIAGAPI */
@@ -4752,7 +4797,7 @@ mwl_ioctl(struct ieee80211com *ic, u_long cmd, void *data)
 	return (error);
 }
 
-#ifdef	MWL_DEBUG
+#ifdef MWL_DEBUG
 static int
 mwl_sysctl_debug(SYSCTL_HANDLER_ARGS)
 {
@@ -4772,7 +4817,7 @@ mwl_sysctl_debug(SYSCTL_HANDLER_ARGS)
 static void
 mwl_sysctlattach(struct mwl_softc *sc)
 {
-#ifdef	MWL_DEBUG
+#ifdef MWL_DEBUG
 	struct sysctl_ctx_list *ctx = device_get_sysctl_ctx(sc->sc_dev);
 	struct sysctl_oid *tree = device_get_sysctl_tree(sc->sc_dev);
 
@@ -4790,25 +4835,28 @@ static void
 mwl_announce(struct mwl_softc *sc)
 {
 
-	device_printf(sc->sc_dev, "Rev A%d hardware, v%d.%d.%d.%d firmware (regioncode %d)\n",
-		sc->sc_hwspecs.hwVersion,
-		(sc->sc_hwspecs.fwReleaseNumber>>24) & 0xff,
-		(sc->sc_hwspecs.fwReleaseNumber>>16) & 0xff,
-		(sc->sc_hwspecs.fwReleaseNumber>>8) & 0xff,
-		(sc->sc_hwspecs.fwReleaseNumber>>0) & 0xff,
-		sc->sc_hwspecs.regionCode);
+	device_printf(sc->sc_dev,
+	    "Rev A%d hardware, v%d.%d.%d.%d firmware (regioncode %d)\n",
+	    sc->sc_hwspecs.hwVersion,
+	    (sc->sc_hwspecs.fwReleaseNumber >> 24) & 0xff,
+	    (sc->sc_hwspecs.fwReleaseNumber >> 16) & 0xff,
+	    (sc->sc_hwspecs.fwReleaseNumber >> 8) & 0xff,
+	    (sc->sc_hwspecs.fwReleaseNumber >> 0) & 0xff,
+	    sc->sc_hwspecs.regionCode);
 	sc->sc_fwrelease = sc->sc_hwspecs.fwReleaseNumber;
 
 	if (bootverbose) {
 		int i;
 		for (i = 0; i <= WME_AC_VO; i++) {
 			struct mwl_txq *txq = sc->sc_ac2q[i];
-			device_printf(sc->sc_dev, "Use hw queue %u for %s traffic\n",
-				txq->qnum, ieee80211_wme_acnames[i]);
+			device_printf(sc->sc_dev,
+			    "Use hw queue %u for %s traffic\n", txq->qnum,
+			    ieee80211_wme_acnames[i]);
 		}
 	}
 	if (bootverbose || mwl_rxdesc != MWL_RXDESC)
-		device_printf(sc->sc_dev, "using %u rx descriptors\n", mwl_rxdesc);
+		device_printf(sc->sc_dev, "using %u rx descriptors\n",
+		    mwl_rxdesc);
 	if (bootverbose || mwl_rxbuf != MWL_RXBUF)
 		device_printf(sc->sc_dev, "using %u rx buffers\n", mwl_rxbuf);
 	if (bootverbose || mwl_txbuf != MWL_TXBUF)

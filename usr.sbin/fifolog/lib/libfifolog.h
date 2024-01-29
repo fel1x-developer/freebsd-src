@@ -37,11 +37,13 @@ const char *fifolog_create(const char *fn, off_t size, ssize_t recsize);
 
 /* READERS */
 
-typedef void fifolog_reader_render_t(void *priv, time_t when, unsigned flag, const unsigned char *p, unsigned l);
+typedef void fifolog_reader_render_t(void *priv, time_t when, unsigned flag,
+    const unsigned char *p, unsigned l);
 struct fifolog_reader;
 struct fifolog_reader *fifolog_reader_open(const char *fname);
 off_t fifolog_reader_seek(const struct fifolog_reader *fl, time_t t0);
-void fifolog_reader_process(struct fifolog_reader *fl, off_t from, fifolog_reader_render_t *func, void *priv, time_t end);
+void fifolog_reader_process(struct fifolog_reader *fl, off_t from,
+    fifolog_reader_render_t *func, void *priv, time_t end);
 
 /* UTILS */
 time_t get_date(char *p);

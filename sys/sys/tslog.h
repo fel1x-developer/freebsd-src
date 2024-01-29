@@ -25,7 +25,7 @@
  */
 
 #ifndef _TSLOG_H_
-#define	_TSLOG_H_
+#define _TSLOG_H_
 
 #ifdef _KERNEL
 #ifdef TSLOG
@@ -33,10 +33,10 @@
 #include <sys/pcpu.h>
 #endif
 
-#define TS_ENTER	0
-#define TS_EXIT		1
-#define TS_THREAD	2
-#define TS_EVENT	3
+#define TS_ENTER 0
+#define TS_EXIT 1
+#define TS_THREAD 2
+#define TS_EVENT 3
 
 #define TSENTER() TSRAW(curthread, TS_ENTER, __func__, NULL)
 #define TSENTER2(x) TSRAW(curthread, TS_ENTER, __func__, x)
@@ -61,8 +61,8 @@ void tslog(void *, int, const char *, const char *);
 #define TSRAW_USER(a, b, c, d) tslog_user(a, b, c, d)
 void tslog_user(pid_t, pid_t, const char *, const char *);
 #else
-#define TSRAW(a, b, c, d)		/* Timestamp logging disabled */
-#define TSRAW_USER(a, b, c, d)		/* Timestamp logging disabled */
+#define TSRAW(a, b, c, d)      /* Timestamp logging disabled */
+#define TSRAW_USER(a, b, c, d) /* Timestamp logging disabled */
 #endif
 
 #endif /* _KERNEL */

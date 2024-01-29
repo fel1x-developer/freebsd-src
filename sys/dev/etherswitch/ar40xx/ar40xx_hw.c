@@ -26,6 +26,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
@@ -34,48 +35,45 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
 
 #include <machine/bus.h>
+
+#include <dev/clk/clk.h>
+#include <dev/etherswitch/ar40xx/ar40xx_debug.h>
+#include <dev/etherswitch/ar40xx/ar40xx_hw.h>
+#include <dev/etherswitch/ar40xx/ar40xx_reg.h>
+#include <dev/etherswitch/ar40xx/ar40xx_var.h>
+#include <dev/etherswitch/etherswitch.h>
+#include <dev/fdt/fdt_common.h>
+#include <dev/hwreset/hwreset.h>
 #include <dev/iicbus/iic.h>
-#include <dev/iicbus/iiconf.h>
 #include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
+#include <dev/mdio/mdio.h>
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
-#include <dev/mdio/mdio.h>
-#include <dev/clk/clk.h>
-#include <dev/hwreset/hwreset.h>
-
-#include <dev/fdt/fdt_common.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include <dev/etherswitch/etherswitch.h>
-
-#include <dev/etherswitch/ar40xx/ar40xx_var.h>
-#include <dev/etherswitch/ar40xx/ar40xx_reg.h>
-#include <dev/etherswitch/ar40xx/ar40xx_hw.h>
-#include <dev/etherswitch/ar40xx/ar40xx_debug.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
 
 /*
  * XXX these are here for now; move the code using these
  * into main.c once this is all done!
  */
-#include <dev/etherswitch/ar40xx/ar40xx_hw_vtu.h>
-#include <dev/etherswitch/ar40xx/ar40xx_hw_port.h>
 #include <dev/etherswitch/ar40xx/ar40xx_hw_mirror.h>
+#include <dev/etherswitch/ar40xx/ar40xx_hw_port.h>
+#include <dev/etherswitch/ar40xx/ar40xx_hw_vtu.h>
 
+#include "etherswitch_if.h"
 #include "mdio_if.h"
 #include "miibus_if.h"
-#include "etherswitch_if.h"
 
 /*
  * Reset the ESS switch.  This also resets the ESS ethernet
@@ -93,16 +91,15 @@ ar40xx_hw_ess_reset(struct ar40xx_softc *sc)
 		device_printf(sc->sc_dev, "ERROR: failed to assert reset\n");
 		return ret;
 	}
-	DELAY(10*1000);
+	DELAY(10 * 1000);
 
 	ret = hwreset_deassert(sc->sc_ess_rst);
 	if (ret != 0) {
-		device_printf(sc->sc_dev,
-		    "ERROR: failed to deassert reset\n");
+		device_printf(sc->sc_dev, "ERROR: failed to deassert reset\n");
 		return ret;
 	}
 
-	DELAY(10*1000);
+	DELAY(10 * 1000);
 
 	return (0);
 }
@@ -115,14 +112,13 @@ ar40xx_hw_init_globals(struct ar40xx_softc *sc)
 	AR40XX_DPRINTF(sc, AR40XX_DBG_HW_INIT, "%s: called\n", __func__);
 
 	/* enable CPU port and disable mirror port */
-	reg = AR40XX_FWD_CTRL0_CPU_PORT_EN
-	     | AR40XX_FWD_CTRL0_MIRROR_PORT;
+	reg = AR40XX_FWD_CTRL0_CPU_PORT_EN | AR40XX_FWD_CTRL0_MIRROR_PORT;
 	AR40XX_REG_WRITE(sc, AR40XX_REG_FWD_CTRL0, reg);
 
 	/* forward multicast and broadcast frames to CPU */
-	reg = (AR40XX_PORTS_ALL << AR40XX_FWD_CTRL1_UC_FLOOD_S)
-	    | (AR40XX_PORTS_ALL << AR40XX_FWD_CTRL1_MC_FLOOD_S)
-	    | (AR40XX_PORTS_ALL << AR40XX_FWD_CTRL1_BC_FLOOD_S);
+	reg = (AR40XX_PORTS_ALL << AR40XX_FWD_CTRL1_UC_FLOOD_S) |
+	    (AR40XX_PORTS_ALL << AR40XX_FWD_CTRL1_MC_FLOOD_S) |
+	    (AR40XX_PORTS_ALL << AR40XX_FWD_CTRL1_BC_FLOOD_S);
 	AR40XX_REG_WRITE(sc, AR40XX_REG_FWD_CTRL1, reg);
 
 	/* enable jumbo frames */
@@ -140,8 +136,8 @@ ar40xx_hw_init_globals(struct ar40xx_softc *sc)
 	AR40XX_REG_WRITE(sc, AR40XX_REG_EEE_CTRL, 0);
 
 	/* set flowctrl thershold for cpu port */
-	reg = (AR40XX_PORT0_FC_THRESH_ON_DFLT << 16)
-	    | AR40XX_PORT0_FC_THRESH_OFF_DFLT;
+	reg = (AR40XX_PORT0_FC_THRESH_ON_DFLT << 16) |
+	    AR40XX_PORT0_FC_THRESH_OFF_DFLT;
 	AR40XX_REG_WRITE(sc, AR40XX_REG_PORT_FLOWCTRL_THRESH(0), reg);
 
 	AR40XX_REG_BARRIER_WRITE(sc);
@@ -160,18 +156,18 @@ ar40xx_hw_vlan_init(struct ar40xx_softc *sc)
 	sc->sc_vlan.vlan = 1;
 
 	/* Configure initial LAN/WAN bitmap and include CPU port as tagged */
-	sc->sc_vlan.vlan_id[AR40XX_LAN_VLAN] = AR40XX_LAN_VLAN
-	    | ETHERSWITCH_VID_VALID;
-	sc->sc_vlan.vlan_id[AR40XX_WAN_VLAN] = AR40XX_WAN_VLAN
-	    | ETHERSWITCH_VID_VALID;
+	sc->sc_vlan.vlan_id[AR40XX_LAN_VLAN] = AR40XX_LAN_VLAN |
+	    ETHERSWITCH_VID_VALID;
+	sc->sc_vlan.vlan_id[AR40XX_WAN_VLAN] = AR40XX_WAN_VLAN |
+	    ETHERSWITCH_VID_VALID;
 
-	sc->sc_vlan.vlan_ports[AR40XX_LAN_VLAN] =
-	    sc->sc_config.switch_cpu_bmp | sc->sc_config.switch_lan_bmp;
+	sc->sc_vlan.vlan_ports[AR40XX_LAN_VLAN] = sc->sc_config.switch_cpu_bmp |
+	    sc->sc_config.switch_lan_bmp;
 	sc->sc_vlan.vlan_untagged[AR40XX_LAN_VLAN] =
 	    sc->sc_config.switch_lan_bmp;
 
-	sc->sc_vlan.vlan_ports[AR40XX_WAN_VLAN] =
-	    sc->sc_config.switch_cpu_bmp | sc->sc_config.switch_wan_bmp;
+	sc->sc_vlan.vlan_ports[AR40XX_WAN_VLAN] = sc->sc_config.switch_cpu_bmp |
+	    sc->sc_config.switch_wan_bmp;
 	sc->sc_vlan.vlan_untagged[AR40XX_WAN_VLAN] =
 	    sc->sc_config.switch_wan_bmp;
 
@@ -226,8 +222,8 @@ ar40xx_hw_sw_hw_apply(struct ar40xx_softc *sc)
 
 			if (!vp)
 				continue;
-			if ((sc->sc_vlan.vlan_id[j]
-			    & ETHERSWITCH_VID_VALID) == 0)
+			if ((sc->sc_vlan.vlan_id[j] & ETHERSWITCH_VID_VALID) ==
+			    0)
 				continue;
 
 			for (i = 0; i < AR40XX_NUM_PORTS; i++) {
@@ -258,7 +254,7 @@ ar40xx_hw_sw_hw_apply(struct ar40xx_softc *sc)
 	 * Update per-port destination mask, vlan tag settings
 	 */
 	for (i = 0; i < AR40XX_NUM_PORTS; i++)
-		(void) ar40xx_hw_port_setup(sc, i, portmask[i]);
+		(void)ar40xx_hw_port_setup(sc, i, portmask[i]);
 
 	/* Set the mirror register config */
 	ret = ar40xx_hw_mirror_set_registers(sc);
@@ -292,7 +288,8 @@ ar40xx_hw_wait_bit(struct ar40xx_softc *sc, int reg, uint32_t mask,
 		DELAY(20);
 	}
 
-	device_printf(sc->sc_dev, "ERROR: timeout for reg "
+	device_printf(sc->sc_dev,
+	    "ERROR: timeout for reg "
 	    "%08x: %08x & %08x != %08x\n",
 	    (unsigned int)reg, t, mask, val);
 	return (ETIMEDOUT);
@@ -308,7 +305,7 @@ ar40xx_hw_read_switch_mac_address(struct ar40xx_softc *sc,
 	uint32_t ret0, ret1;
 	char *s;
 
-	s = (void *) ea;
+	s = (void *)ea;
 
 	AR40XX_LOCK_ASSERT(sc);
 
@@ -336,7 +333,7 @@ ar40xx_hw_write_switch_mac_address(struct ar40xx_softc *sc,
 	uint32_t ret0 = 0, ret1 = 0;
 	char *s;
 
-	s = (void *) ea;
+	s = (void *)ea;
 
 	AR40XX_LOCK_ASSERT(sc);
 

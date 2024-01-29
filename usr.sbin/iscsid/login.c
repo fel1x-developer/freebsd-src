@@ -31,15 +31,17 @@
 
 #include <sys/types.h>
 #include <sys/ioctl.h>
+
+#include <netinet/in.h>
+
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <netinet/in.h>
 
-#include "iscsid.h"
 #include "iscsi_proto.h"
+#include "iscsid.h"
 
 static int
 login_nsg(const struct pdu *response)
@@ -97,7 +99,8 @@ login_target_error_str(int class, int detail)
 		case 0x02:
 			return ("Target moved permanently");
 		default:
-			snprintf(msg, sizeof(msg), "unknown redirection; "
+			snprintf(msg, sizeof(msg),
+			    "unknown redirection; "
 			    "Status-Class 0x%x, Status-Detail 0x%x",
 			    class, detail);
 			return (msg);
@@ -129,7 +132,8 @@ login_target_error_str(int class, int detail)
 		case 0x0b:
 			return ("Invalid during login");
 		default:
-			snprintf(msg, sizeof(msg), "unknown initiator error; "
+			snprintf(msg, sizeof(msg),
+			    "unknown initiator error; "
 			    "Status-Class 0x%x, Status-Detail 0x%x",
 			    class, detail);
 			return (msg);
@@ -143,13 +147,15 @@ login_target_error_str(int class, int detail)
 		case 0x02:
 			return ("Out of resources");
 		default:
-			snprintf(msg, sizeof(msg), "unknown target error; "
+			snprintf(msg, sizeof(msg),
+			    "unknown target error; "
 			    "Status-Class 0x%x, Status-Detail 0x%x",
 			    class, detail);
 			return (msg);
 		}
 	default:
-		snprintf(msg, sizeof(msg), "unknown error; "
+		snprintf(msg, sizeof(msg),
+		    "unknown error; "
 		    "Status-Class 0x%x, Status-Detail 0x%x",
 		    class, detail);
 		return (msg);
@@ -192,7 +198,7 @@ login_handle_redirection(struct iscsid_connection *conn, struct pdu *response)
 	const char *target_address;
 
 	bhslr = (struct iscsi_bhs_login_response *)response->pdu_bhs;
-	assert (bhslr->bhslr_status_class == 1);
+	assert(bhslr->bhslr_status_class == 1);
 
 	response_keys = keys_new();
 	keys_load_pdu(response_keys, response);
@@ -232,11 +238,15 @@ login_receive(struct connection *conn)
 	if ((bhslr->bhslr_flags & BHSLR_FLAGS_CONTINUE) != 0)
 		log_errx(1, "received Login PDU with unsupported \"C\" flag");
 	if (bhslr->bhslr_version_max != 0x00)
-		log_errx(1, "received Login PDU with unsupported "
-		    "Version-max 0x%x", bhslr->bhslr_version_max);
+		log_errx(1,
+		    "received Login PDU with unsupported "
+		    "Version-max 0x%x",
+		    bhslr->bhslr_version_max);
 	if (bhslr->bhslr_version_active != 0x00)
-		log_errx(1, "received Login PDU with unsupported "
-		    "Version-active 0x%x", bhslr->bhslr_version_active);
+		log_errx(1,
+		    "received Login PDU with unsupported "
+		    "Version-active 0x%x",
+		    bhslr->bhslr_version_active);
 	if (bhslr->bhslr_status_class == 1) {
 		login_handle_redirection((struct iscsid_connection *)conn,
 		    response);
@@ -256,8 +266,8 @@ login_receive(struct connection *conn)
 		 * to be bug in NetBSD iSCSI target.
 		 */
 		log_warnx("received Login PDU with wrong StatSN: "
-		    "is %u, should be %u", ntohl(bhslr->bhslr_statsn),
-		    conn->conn_statsn + 1);
+			  "is %u, should be %u",
+		    ntohl(bhslr->bhslr_statsn), conn->conn_statsn + 1);
 	}
 	conn->conn_tsih = ntohs(bhslr->bhslr_tsih);
 	conn->conn_statsn = ntohl(bhslr->bhslr_statsn);
@@ -304,8 +314,7 @@ login_new_request(struct connection *conn, int csg)
 }
 
 static int
-login_list_prefers(const char *list,
-    const char *choice1, const char *choice2)
+login_list_prefers(const char *list, const char *choice1, const char *choice2)
 {
 	char *tofree, *str, *token;
 
@@ -348,16 +357,17 @@ login_negotiate_key(struct iscsid_connection *conn, const char *name,
 		switch (which) {
 		case 1:
 			log_debugx("target prefers CRC32C "
-			    "for header digest; we'll use it");
+				   "for header digest; we'll use it");
 			conn->conn.conn_header_digest = CONN_DIGEST_CRC32C;
 			break;
 		case 2:
 			log_debugx("target prefers not to do "
-			    "header digest; we'll comply");
+				   "header digest; we'll comply");
 			break;
 		default:
 			log_warnx("target sent unrecognized "
-			    "HeaderDigest value \"%s\"; will use None", value);
+				  "HeaderDigest value \"%s\"; will use None",
+			    value);
 			break;
 		}
 	} else if (strcmp(name, "DataDigest") == 0) {
@@ -365,16 +375,17 @@ login_negotiate_key(struct iscsid_connection *conn, const char *name,
 		switch (which) {
 		case 1:
 			log_debugx("target prefers CRC32C "
-			    "for data digest; we'll use it");
+				   "for data digest; we'll use it");
 			conn->conn.conn_data_digest = CONN_DIGEST_CRC32C;
 			break;
 		case 2:
 			log_debugx("target prefers not to do "
-			    "data digest; we'll comply");
+				   "data digest; we'll comply");
 			break;
 		default:
 			log_warnx("target sent unrecognized "
-			    "DataDigest value \"%s\"; will use None", value);
+				  "DataDigest value \"%s\"; will use None",
+			    value);
 			break;
 		}
 	} else if (strcmp(name, "MaxConnections") == 0) {
@@ -392,12 +403,13 @@ login_negotiate_key(struct iscsid_connection *conn, const char *name,
 	} else if (strcmp(name, "MaxRecvDataSegmentLength") == 0) {
 		tmp = strtoul(value, NULL, 10);
 		if (tmp <= 0)
-			log_errx(1, "received invalid "
+			log_errx(1,
+			    "received invalid "
 			    "MaxRecvDataSegmentLength");
 		if (tmp > isl->isl_max_send_data_segment_length) {
 			log_debugx("capping max_send_data_segment_length "
-			    "from %d to %d", tmp,
-			    isl->isl_max_send_data_segment_length);
+				   "from %d to %d",
+			    tmp, isl->isl_max_send_data_segment_length);
 			tmp = isl->isl_max_send_data_segment_length;
 		}
 		conn->conn.conn_max_send_data_segment_length = tmp;
@@ -407,7 +419,8 @@ login_negotiate_key(struct iscsid_connection *conn, const char *name,
 			log_errx(1, "received invalid MaxBurstLength");
 		if (tmp > isl->isl_max_burst_length) {
 			log_debugx("capping MaxBurstLength "
-			    "from %d to %d", tmp, isl->isl_max_burst_length);
+				   "from %d to %d",
+			    tmp, isl->isl_max_burst_length);
 			tmp = isl->isl_max_burst_length;
 		}
 		conn->conn.conn_max_burst_length = tmp;
@@ -417,7 +430,8 @@ login_negotiate_key(struct iscsid_connection *conn, const char *name,
 			log_errx(1, "received invalid FirstBurstLength");
 		if (tmp > isl->isl_first_burst_length) {
 			log_debugx("capping FirstBurstLength "
-			    "from %d to %d", tmp, isl->isl_first_burst_length);
+				   "from %d to %d",
+			    tmp, isl->isl_first_burst_length);
 			tmp = isl->isl_first_burst_length;
 		}
 		conn->conn.conn_first_burst_length = tmp;
@@ -445,12 +459,13 @@ login_negotiate_key(struct iscsid_connection *conn, const char *name,
 	} else if (strcmp(name, "InitiatorRecvDataSegmentLength") == 0) {
 		tmp = strtoul(value, NULL, 10);
 		if (tmp <= 0)
-			log_errx(1, "received invalid "
+			log_errx(1,
+			    "received invalid "
 			    "InitiatorRecvDataSegmentLength");
 		if ((int)tmp > isl->isl_max_recv_data_segment_length) {
 			log_debugx("capping InitiatorRecvDataSegmentLength "
-			    "from %d to %d", tmp,
-			    isl->isl_max_recv_data_segment_length);
+				   "from %d to %d",
+			    tmp, isl->isl_max_recv_data_segment_length);
 			tmp = isl->isl_max_recv_data_segment_length;
 		}
 		conn->conn.conn_max_recv_data_segment_length = tmp;
@@ -464,13 +479,13 @@ login_negotiate_key(struct iscsid_connection *conn, const char *name,
 		}
 		if (tmp > isl->isl_max_send_data_segment_length) {
 			log_debugx("capping TargetRecvDataSegmentLength "
-			    "from %d to %d", tmp,
-			    isl->isl_max_send_data_segment_length);
+				   "from %d to %d",
+			    tmp, isl->isl_max_send_data_segment_length);
 			tmp = isl->isl_max_send_data_segment_length;
 		}
 		conn->conn.conn_max_send_data_segment_length = tmp;
 	} else {
-		log_debugx("unknown key \"%s\"; ignoring",  name);
+		log_debugx("unknown key \"%s\"; ignoring", name);
 	}
 }
 
@@ -490,8 +505,8 @@ login_negotiate(struct iscsid_connection *conn)
 
 	isl = &conn->conn_limits;
 	log_debugx("Limits for offload \"%s\" are "
-	    "MaxRecvDataSegment=%d, max_send_dsl=%d, "
-	    "MaxBurstLength=%d, FirstBurstLength=%d",
+		   "MaxRecvDataSegment=%d, max_send_dsl=%d, "
+		   "MaxBurstLength=%d, FirstBurstLength=%d",
 	    conn->conn_conf.isc_offload, isl->isl_max_recv_data_segment_length,
 	    isl->isl_max_send_data_segment_length, isl->isl_max_burst_length,
 	    isl->isl_first_burst_length);
@@ -518,9 +533,11 @@ login_negotiate(struct iscsid_connection *conn)
 		keys_add(request_keys, "InitialR2T", "Yes");
 		keys_add(request_keys, "MaxOutstandingR2T", "1");
 		if (conn->conn_conf.isc_iser == 1) {
-			keys_add_int(request_keys, "InitiatorRecvDataSegmentLength",
+			keys_add_int(request_keys,
+			    "InitiatorRecvDataSegmentLength",
 			    isl->isl_max_recv_data_segment_length);
-			keys_add_int(request_keys, "TargetRecvDataSegmentLength",
+			keys_add_int(request_keys,
+			    "TargetRecvDataSegmentLength",
 			    isl->isl_max_send_data_segment_length);
 			keys_add(request_keys, "RDMAExtensions", "Yes");
 		} else {
@@ -554,8 +571,8 @@ login_negotiate(struct iscsid_connection *conn)
 		if (response_keys->keys_names[i] == NULL)
 			break;
 
-		login_negotiate_key(conn,
-		    response_keys->keys_names[i], response_keys->keys_values[i]);
+		login_negotiate_key(conn, response_keys->keys_names[i],
+		    response_keys->keys_values[i]);
 	}
 
 	keys_delete(response_keys);
@@ -568,13 +585,14 @@ login_negotiate(struct iscsid_connection *conn)
 
 		nrequests++;
 		if (nrequests > 5) {
-			log_warnx("received login response "
+			log_warnx(
+			    "received login response "
 			    "without the \"T\" flag too many times; giving up");
 			break;
 		}
 
 		log_debugx("received login response "
-		    "without the \"T\" flag; sending another request");
+			   "without the \"T\" flag; sending another request");
 
 		pdu_delete(response);
 
@@ -592,7 +610,7 @@ login_negotiate(struct iscsid_connection *conn)
 	pdu_delete(response);
 
 	log_debugx("operational parameter negotiation done; "
-	    "transitioning to Full Feature phase");
+		   "transitioning to Full Feature phase");
 }
 
 static void
@@ -620,7 +638,7 @@ login_send_chap_r(struct pdu *response)
 	const char *chap_a, *chap_c, *chap_i;
 	char *chap_r;
 	int error;
-        char *mutual_chap_c, *mutual_chap_i;
+	char *mutual_chap_c, *mutual_chap_i;
 
 	/*
 	 * As in the rest of the initiator, 'request' means
@@ -649,14 +667,17 @@ login_send_chap_r(struct pdu *response)
 		log_errx(1, "received CHAP packet without CHAP_I");
 
 	if (strcmp(chap_a, "5") != 0) {
-		log_errx(1, "received CHAP packet "
-		    "with unsupported CHAP_A \"%s\"", chap_a);
+		log_errx(1,
+		    "received CHAP packet "
+		    "with unsupported CHAP_A \"%s\"",
+		    chap_a);
 	}
 
 	rchap = rchap_new(conn->conn_conf.isc_secret);
 	error = rchap_receive(rchap, chap_i, chap_c);
 	if (error != 0) {
-		log_errx(1, "received CHAP packet "
+		log_errx(1,
+		    "received CHAP packet "
 		    "with malformed CHAP_I or CHAP_C");
 	}
 	chap_r = rchap_get_response(rchap);
@@ -677,7 +698,7 @@ login_send_chap_r(struct pdu *response)
 	 */
 	if (conn->conn_conf.isc_mutual_user[0] != '\0') {
 		log_debugx("requesting mutual authentication; "
-		    "binary challenge size is %zd bytes",
+			   "binary challenge size is %zd bytes",
 		    sizeof(conn->conn_mutual_chap->chap_challenge));
 
 		assert(conn->conn_mutual_chap == NULL);
@@ -709,16 +730,16 @@ login_verify_mutual(const struct pdu *response)
 	response_keys = keys_new();
 	keys_load_pdu(response_keys, response);
 
-        chap_n = keys_find(response_keys, "CHAP_N");
-        if (chap_n == NULL)
-                log_errx(1, "received CHAP Response PDU without CHAP_N");
-        chap_r = keys_find(response_keys, "CHAP_R");
-        if (chap_r == NULL)
-                log_errx(1, "received CHAP Response PDU without CHAP_R");
+	chap_n = keys_find(response_keys, "CHAP_N");
+	if (chap_n == NULL)
+		log_errx(1, "received CHAP Response PDU without CHAP_N");
+	chap_r = keys_find(response_keys, "CHAP_R");
+	if (chap_r == NULL)
+		log_errx(1, "received CHAP Response PDU without CHAP_R");
 
 	error = chap_receive(conn->conn_mutual_chap, chap_r);
 	if (error != 0)
-                log_errx(1, "received CHAP Response PDU with invalid CHAP_R");
+		log_errx(1, "received CHAP Response PDU with invalid CHAP_R");
 
 	if (strcmp(chap_n, conn->conn_conf.isc_mutual_user) != 0) {
 		fail(&conn->conn, "Mutual CHAP failed");
@@ -729,7 +750,7 @@ login_verify_mutual(const struct pdu *response)
 	    conn->conn_conf.isc_mutual_secret);
 	if (error != 0) {
 		fail(&conn->conn, "Mutual CHAP failed");
-                log_errx(1, "mutual CHAP authentication failed: wrong secret");
+		log_errx(1, "mutual CHAP authentication failed: wrong secret");
 	}
 
 	keys_delete(response_keys);
@@ -800,16 +821,15 @@ login(struct iscsid_connection *conn)
 	} else {
 		keys_add(request_keys, "AuthMethod", "None");
 	}
-	keys_add(request_keys, "InitiatorName",
-	    conn->conn_conf.isc_initiator);
+	keys_add(request_keys, "InitiatorName", conn->conn_conf.isc_initiator);
 	if (conn->conn_conf.isc_initiator_alias[0] != '\0') {
 		keys_add(request_keys, "InitiatorAlias",
 		    conn->conn_conf.isc_initiator_alias);
 	}
 	if (conn->conn_conf.isc_discovery == 0) {
 		keys_add(request_keys, "SessionType", "Normal");
-		keys_add(request_keys,
-		    "TargetName", conn->conn_conf.isc_target);
+		keys_add(request_keys, "TargetName",
+		    conn->conn_conf.isc_target);
 	} else {
 		keys_add(request_keys, "SessionType", "Discovery");
 	}
@@ -838,21 +858,22 @@ login(struct iscsid_connection *conn)
 		if (strcmp(response_keys->keys_names[i], "AuthMethod") == 0)
 			continue;
 
-		login_negotiate_key(conn,
-		    response_keys->keys_names[i], response_keys->keys_values[i]);
+		login_negotiate_key(conn, response_keys->keys_names[i],
+		    response_keys->keys_values[i]);
 	}
 
 	bhslr2 = (struct iscsi_bhs_login_response *)response->pdu_bhs;
 	if ((bhslr2->bhslr_flags & BHSLR_FLAGS_TRANSIT) != 0 &&
 	    login_nsg(response) == BHSLR_STAGE_OPERATIONAL_NEGOTIATION) {
 		if (conn->conn_conf.isc_mutual_user[0] != '\0') {
-			log_errx(1, "target requested transition "
+			log_errx(1,
+			    "target requested transition "
 			    "to operational parameter negotiation, "
 			    "but we require mutual CHAP");
 		}
 
 		log_debugx("target requested transition "
-		    "to operational parameter negotiation");
+			   "to operational parameter negotiation");
 		keys_delete(response_keys);
 		pdu_delete(response);
 		login_negotiate(conn);
@@ -864,7 +885,8 @@ login(struct iscsid_connection *conn)
 		log_errx(1, "received response without AuthMethod");
 	if (strcmp(auth_method, "None") == 0) {
 		if (conn->conn_conf.isc_mutual_user[0] != '\0') {
-			log_errx(1, "target does not require authantication, "
+			log_errx(1,
+			    "target does not require authantication, "
 			    "but we require mutual CHAP");
 		}
 
@@ -877,14 +899,17 @@ login(struct iscsid_connection *conn)
 
 	if (strcmp(auth_method, "CHAP") != 0) {
 		fail(&conn->conn, "Unsupported AuthMethod");
-		log_errx(1, "received response "
-		    "with unsupported AuthMethod \"%s\"", auth_method);
+		log_errx(1,
+		    "received response "
+		    "with unsupported AuthMethod \"%s\"",
+		    auth_method);
 	}
 
 	if (conn->conn_conf.isc_user[0] == '\0' ||
 	    conn->conn_conf.isc_secret[0] == '\0') {
 		fail(&conn->conn, "Authentication required");
-		log_errx(1, "target requests CHAP authentication, but we don't "
+		log_errx(1,
+		    "target requests CHAP authentication, but we don't "
 		    "have user and secret");
 	}
 

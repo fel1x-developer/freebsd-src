@@ -41,9 +41,7 @@
 
 static struct options {
 	const char *dev;
-} opt = {
-	.dev = NULL
-};
+} opt = { .dev = NULL };
 
 static const struct args args[] = {
 	{ arg_string, &opt.dev, "controller-id|namespace-id" },
@@ -53,8 +51,8 @@ static const struct args args[] = {
 static void
 reset(const struct cmd *f, int argc, char *argv[])
 {
-	int	fd;
-	char	*path;
+	int fd;
+	char *path;
 	uint32_t nsid;
 
 	if (arg_parse(argc, argv, f))

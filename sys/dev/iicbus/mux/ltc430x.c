@@ -25,42 +25,41 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/systm.h>
 
 #include <dev/iicbus/iicbus.h>
 #include <dev/iicbus/iiconf.h>
+
 #include "iicbus_if.h"
 #include "iicmux_if.h"
 
 static struct chip_info {
-	const char 	*partname;
-	const char	*description;
-	int		numchannels;
+	const char *partname;
+	const char *description;
+	int numchannels;
 } chip_infos[] = {
-	{"ltc4305", "LTC4305 I2C Mux", 2},
-	{"ltc4306", "LTC4306 I2C Mux", 4},
+	{ "ltc4305", "LTC4305 I2C Mux", 2 },
+	{ "ltc4306", "LTC4306 I2C Mux", 4 },
 };
-#define CHIP_NONE	(-1)
-#define	CHIP_LTC4305	0
-#define	CHIP_LTC4306	1
+#define CHIP_NONE (-1)
+#define CHIP_LTC4305 0
+#define CHIP_LTC4306 1
 
 #ifdef FDT
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 #include <dev/ofw/openfirm.h>
 
-static struct ofw_compat_data compat_data[] = {
-	{"lltc,ltc4305",  CHIP_LTC4305},
-	{"lltc,ltc4306",  CHIP_LTC4306},
-	{NULL,            CHIP_NONE}
-};
+static struct ofw_compat_data compat_data[] = { { "lltc,ltc4305",
+						    CHIP_LTC4305 },
+	{ "lltc,ltc4306", CHIP_LTC4306 }, { NULL, CHIP_NONE } };
 IICBUS_FDT_PNP_INFO(compat_data);
 #endif
 
@@ -74,11 +73,11 @@ struct ltc430x_softc {
 /*
  * The datasheet doesn't name the registers, it calls them control register 0-3.
  */
-#define	LTC430X_CTLREG_0	0
-#define	LTC430X_CTLREG_1	1
-#define	LTC430X_CTLREG_2	2
-#define	  LTC430X_CR2_ENABLE_MW	  (1u << 3) /* Enable mass write address. */
-#define	LTC430X_CTLREG_3	3
+#define LTC430X_CTLREG_0 0
+#define LTC430X_CTLREG_1 1
+#define LTC430X_CTLREG_2 2
+#define LTC430X_CR2_ENABLE_MW (1u << 3) /* Enable mass write address. */
+#define LTC430X_CTLREG_3 3
 
 static int
 ltc430x_bus_select(device_t dev, int busidx, struct iic_reqbus_data *rd)
@@ -122,7 +121,7 @@ ltc430x_find_chiptype(device_t dev)
 	int i;
 
 	if (resource_string_value(device_get_name(dev), device_get_unit(dev),
-	    "chip_type", &type) == 0) {
+		"chip_type", &type) == 0) {
 		for (i = 0; i < nitems(chip_infos); ++i) {
 			if (strcasecmp(type, chip_infos[i].partname) == 0) {
 				return (i);
@@ -180,12 +179,12 @@ ltc430x_attach(device_t dev)
 #endif
 
 	if (resource_int_value(device_get_name(dev), device_get_unit(dev),
-	    "idle_disconnect", &val) == 0) {
+		"idle_disconnect", &val) == 0) {
 		sc->idle_disconnect = val;
 	}
 
 	if (resource_int_value(device_get_name(dev), device_get_unit(dev),
-	    "ctlreg2", &val) == 0) {
+		"ctlreg2", &val) == 0) {
 		ctlreg2 = val;
 	}
 
@@ -229,12 +228,12 @@ ltc430x_detach(device_t dev)
 
 static device_method_t ltc430x_methods[] = {
 	/* device methods */
-	DEVMETHOD(device_probe,			ltc430x_probe),
-	DEVMETHOD(device_attach,		ltc430x_attach),
-	DEVMETHOD(device_detach,		ltc430x_detach),
+	DEVMETHOD(device_probe, ltc430x_probe),
+	DEVMETHOD(device_attach, ltc430x_attach),
+	DEVMETHOD(device_detach, ltc430x_detach),
 
 	/* iicmux methods */
-	DEVMETHOD(iicmux_bus_select,		ltc430x_bus_select),
+	DEVMETHOD(iicmux_bus_select, ltc430x_bus_select),
 
 	DEVMETHOD_END
 };
@@ -251,4 +250,3 @@ DRIVER_MODULE(iicbus, ltc430x, iicbus_driver, 0, 0);
 
 MODULE_DEPEND(ltc430x, iicmux, 1, 1, 1);
 MODULE_DEPEND(ltc430x, iicbus, 1, 1, 1);
-

@@ -27,79 +27,52 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <errno.h>
-#include <stdio.h>
+#include <geom/cache/g_cache.h>
+#include <libgeom.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <strings.h>
-#include <libgeom.h>
-#include <geom/cache/g_cache.h>
 
 #include "core/geom.h"
 #include "misc/subr.h"
 
-
 uint32_t lib_version = G_LIB_VERSION;
 uint32_t version = G_CACHE_VERSION;
 
-#define	GCACHE_BLOCKSIZE	"65536"
-#define	GCACHE_SIZE		"100"
+#define GCACHE_BLOCKSIZE "65536"
+#define GCACHE_SIZE "100"
 
 static void cache_main(struct gctl_req *req, unsigned flags);
 static void cache_clear(struct gctl_req *req);
 static void cache_dump(struct gctl_req *req);
 static void cache_label(struct gctl_req *req);
 
-struct g_command class_commands[] = {
-	{ "clear", G_FLAG_VERBOSE, cache_main, G_NULL_OPTS,
-	    "[-v] prov ..."
-	},
+struct g_command class_commands[] = { { "clear", G_FLAG_VERBOSE, cache_main,
+					  G_NULL_OPTS, "[-v] prov ..." },
 	{ "configure", G_FLAG_VERBOSE, NULL,
-	    {
-		{ 'b', "blocksize", "0", G_TYPE_NUMBER },
-		{ 's', "size", "0", G_TYPE_NUMBER },
-		G_OPT_SENTINEL
-	    },
-	    "[-v] [-b blocksize] [-s size] name"
-	},
+	    { { 'b', "blocksize", "0", G_TYPE_NUMBER },
+		{ 's', "size", "0", G_TYPE_NUMBER }, G_OPT_SENTINEL },
+	    "[-v] [-b blocksize] [-s size] name" },
 	{ "create", G_FLAG_VERBOSE | G_FLAG_LOADKLD, NULL,
-	    {
-		{ 'b', "blocksize", GCACHE_BLOCKSIZE, G_TYPE_NUMBER },
-		{ 's', "size", GCACHE_SIZE, G_TYPE_NUMBER },
-		G_OPT_SENTINEL
-	    },
-	    "[-v] [-b blocksize] [-s size] name prov"
-	},
+	    { { 'b', "blocksize", GCACHE_BLOCKSIZE, G_TYPE_NUMBER },
+		{ 's', "size", GCACHE_SIZE, G_TYPE_NUMBER }, G_OPT_SENTINEL },
+	    "[-v] [-b blocksize] [-s size] name prov" },
 	{ "destroy", G_FLAG_VERBOSE, NULL,
-	    {
-		{ 'f', "force", NULL, G_TYPE_BOOL },
-		G_OPT_SENTINEL
-	    },
-	    "[-fv] name ..."
-	},
-	{ "dump", 0, cache_main, G_NULL_OPTS,
-	    "prov ..."
-	},
+	    { { 'f', "force", NULL, G_TYPE_BOOL }, G_OPT_SENTINEL },
+	    "[-fv] name ..." },
+	{ "dump", 0, cache_main, G_NULL_OPTS, "prov ..." },
 	{ "label", G_FLAG_VERBOSE | G_FLAG_LOADKLD, cache_main,
-	    {
-		{ 'b', "blocksize", GCACHE_BLOCKSIZE, G_TYPE_NUMBER },
-		{ 's', "size", GCACHE_SIZE, G_TYPE_NUMBER },
-		G_OPT_SENTINEL
-	    },
-	    "[-v] [-b blocksize] [-s size] name prov"
-	},
-	{ "reset", G_FLAG_VERBOSE, NULL, G_NULL_OPTS,
-	    "[-v] name ..."
-	},
+	    { { 'b', "blocksize", GCACHE_BLOCKSIZE, G_TYPE_NUMBER },
+		{ 's', "size", GCACHE_SIZE, G_TYPE_NUMBER }, G_OPT_SENTINEL },
+	    "[-v] [-b blocksize] [-s size] name prov" },
+	{ "reset", G_FLAG_VERBOSE, NULL, G_NULL_OPTS, "[-v] name ..." },
 	{ "stop", G_FLAG_VERBOSE, NULL,
-	    {
-		{ 'f', "force", NULL, G_TYPE_BOOL },
-		G_OPT_SENTINEL
-	    },
-	    "[-fv] name ..."
-	},
-	G_CMD_SENTINEL
-};
+	    { { 'f', "force", NULL, G_TYPE_BOOL }, G_OPT_SENTINEL },
+	    "[-fv] name ..." },
+	G_CMD_SENTINEL };
 
 static int verbose = 0;
 
@@ -154,16 +127,16 @@ cache_label(struct gctl_req *req)
 	name = gctl_get_ascii(req, "arg1");
 	md.md_provsize = g_get_mediasize(name);
 	if (md.md_provsize == 0) {
-		fprintf(stderr, "Can't get mediasize of %s: %s.\n",
-		    name, strerror(errno));
+		fprintf(stderr, "Can't get mediasize of %s: %s.\n", name,
+		    strerror(errno));
 		gctl_error(req, "Not fully done.");
 		return;
 	}
 	cache_metadata_encode(&md, sector);
 	error = g_metadata_store(name, sector, sizeof(sector));
 	if (error != 0) {
-		fprintf(stderr, "Can't store metadata on %s: %s.\n",
-		    name, strerror(error));
+		fprintf(stderr, "Can't store metadata on %s: %s.\n", name,
+		    strerror(error));
 		gctl_error(req, "Not fully done.");
 		return;
 	}

@@ -116,8 +116,8 @@ priv_cred_setegid(int asroot, int injail, struct test *test)
 		expect("priv_setegid(!asroot, !injail)", error, -1, EPERM);
 }
 
-static const gid_t	gidset[] = {GID_WHEEL, GID_OTHER};
-static const int	gidset_len = sizeof(gidset) / sizeof(gid_t);
+static const gid_t gidset[] = { GID_WHEEL, GID_OTHER };
+static const int gidset_len = sizeof(gidset) / sizeof(gid_t);
 
 void
 priv_cred_setgroups(int asroot, int injail, struct test *test)
@@ -202,5 +202,4 @@ priv_cred_setresgid(int asroot, int injail, struct test *test)
 void
 priv_cred_cleanup(int asroot, int injail, struct test *test)
 {
-
 }

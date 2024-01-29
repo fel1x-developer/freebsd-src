@@ -27,18 +27,19 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 
+#include <sys/cdefs.h>
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/eventhandler.h>
 #include <sys/lock.h>
-#include <sys/types.h>
 #include <sys/mbuf.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sx.h>
+
 #include <net/bpf.h>
 #include <net/ethernet.h>
 #include <net/if.h>
@@ -96,7 +97,7 @@ static void tracer_media_status(if_t, struct ifmediareq *);
 /* match name (request/response) */
 struct match_rr {
 	const char *name;
-	int lock;	/* set to 1 to returned sc locked. */
+	int lock; /* set to 1 to returned sc locked. */
 	struct adapter *sc;
 	int rc;
 };
@@ -109,8 +110,9 @@ match_name(struct adapter *sc, void *arg)
 	if (strcmp(device_get_nameunit(sc->dev), mrr->name) != 0)
 		return;
 
-	KASSERT(mrr->sc == NULL, ("%s: multiple matches (%p, %p) for %s",
-	    __func__, mrr->sc, sc, mrr->name));
+	KASSERT(mrr->sc == NULL,
+	    ("%s: multiple matches (%p, %p) for %s", __func__, mrr->sc, sc,
+		mrr->name));
 
 	mrr->sc = sc;
 	if (mrr->lock)
@@ -123,8 +125,7 @@ static int
 t4_cloner_match(struct if_clone *ifc, const char *name)
 {
 
-	if (strncmp(name, "t4nex", 5) != 0 &&
-	    strncmp(name, "t5nex", 5) != 0 &&
+	if (strncmp(name, "t4nex", 5) != 0 && strncmp(name, "t5nex", 5) != 0 &&
 	    strncmp(name, "t6nex", 5) != 0)
 		return (0);
 	if (name[5] < '0' || name[5] > '9')
@@ -139,7 +140,7 @@ t4_cloner_create(struct if_clone *ifc, char *name, size_t len, caddr_t params)
 	struct adapter *sc;
 	if_t ifp;
 	int rc;
-	const uint8_t lla[ETHER_ADDR_LEN] = {0, 0, 0, 0, 0, 0};
+	const uint8_t lla[ETHER_ADDR_LEN] = { 0, 0, 0, 0, 0, 0 };
 
 	mrr.name = name;
 	mrr.lock = 1;
@@ -151,8 +152,8 @@ t4_cloner_create(struct if_clone *ifc, char *name, size_t len, caddr_t params)
 		return (mrr.rc);
 	sc = mrr.sc;
 
-	KASSERT(sc != NULL, ("%s: name (%s) matched but softc is NULL",
-	    __func__, name));
+	KASSERT(sc != NULL,
+	    ("%s: name (%s) matched but softc is NULL", __func__, name));
 	ASSERT_SYNCHRONIZED_OP(sc);
 
 	sx_xlock(&t4_trace_lock);
@@ -413,8 +414,8 @@ t4_trace_pkt(struct sge_iq *iq, const struct rss_header *rss, struct mbuf *m)
 	struct adapter *sc = iq->adapter;
 	if_t ifp;
 
-	KASSERT(m != NULL, ("%s: no payload with opcode %02x", __func__,
-	    rss->opcode));
+	KASSERT(m != NULL,
+	    ("%s: no payload with opcode %02x", __func__, rss->opcode));
 
 	mtx_lock(&sc->ifp_lock);
 	ifp = sc->ifp;
@@ -435,8 +436,8 @@ t5_trace_pkt(struct sge_iq *iq, const struct rss_header *rss, struct mbuf *m)
 	struct adapter *sc = iq->adapter;
 	if_t ifp;
 
-	KASSERT(m != NULL, ("%s: no payload with opcode %02x", __func__,
-	    rss->opcode));
+	KASSERT(m != NULL,
+	    ("%s: no payload with opcode %02x", __func__, rss->opcode));
 
 	mtx_lock(&sc->ifp_lock);
 	ifp = sc->ifp;
@@ -450,7 +451,6 @@ t5_trace_pkt(struct sge_iq *iq, const struct rss_header *rss, struct mbuf *m)
 
 	return (0);
 }
-
 
 static void
 tracer_init(void *arg)

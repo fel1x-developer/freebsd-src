@@ -26,10 +26,10 @@
 #include <sys/types.h>
 #include <sys/sysctl.h>
 
-#include <bsm/audit.h>
 #include <machine/sysarch.h>
 
 #include <atf-c.h>
+#include <bsm/audit.h>
 #include <unistd.h>
 
 #include "utils.h"
@@ -39,18 +39,17 @@ static char miscreg[80];
 static struct pollfd fds[1];
 static const char *auclass = "ot";
 
-
 /*
  * Success case of audit(2) is skipped for now as the behaviour is quite
  * undeterministic. It will be added when the intermittency is resolved.
  */
 
-
 ATF_TC_WITH_CLEANUP(audit_failure);
 ATF_TC_HEAD(audit_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"audit(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "audit(2) call");
 }
 
 ATF_TC_BODY(audit_failure, tc)
@@ -69,12 +68,12 @@ ATF_TC_CLEANUP(audit_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(sysarch_success);
 ATF_TC_HEAD(sysarch_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"sysarch(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "sysarch(2) call");
 }
 
 ATF_TC_BODY(sysarch_success, tc)
@@ -83,30 +82,28 @@ ATF_TC_BODY(sysarch_success, tc)
 	snprintf(miscreg, sizeof(miscreg), "sysarch.*%d.*return,success", pid);
 
 	/* Set sysnum to the syscall corresponding to the system architecture */
-#if defined(I386_GET_IOPERM)		/* i386 */
+#if defined(I386_GET_IOPERM) /* i386 */
 	struct i386_ioperm_args i3sysarg;
 	bzero(&i3sysarg, sizeof(i3sysarg));
 
-#elif defined(AMD64_GET_FSBASE)		/* amd64 */
+#elif defined(AMD64_GET_FSBASE) /* amd64 */
 	register_t amd64arg;
 
-#elif defined(ARM_SYNC_ICACHE)		/* ARM */
+#elif defined(ARM_SYNC_ICACHE) /* ARM */
 	struct arm_sync_icache_args armsysarg;
 	bzero(&armsysarg, sizeof(armsysarg));
 
-#elif defined(SPARC_UTRAP_INSTALL)	/* Sparc64 */
-	struct sparc_utrap_args handler = {
-		.type		= UT_DIVISION_BY_ZERO,
+#elif defined(SPARC_UTRAP_INSTALL) /* Sparc64 */
+	struct sparc_utrap_args handler = { .type = UT_DIVISION_BY_ZERO,
 		/* We don't want to change the previous handlers */
-		.new_precise	= (void *)UTH_NOCHANGE,
-		.new_deferred	= (void *)UTH_NOCHANGE,
-		.old_precise	= NULL,
-		.old_deferred	= NULL
-	};
+		.new_precise = (void *)UTH_NOCHANGE,
+		.new_deferred = (void *)UTH_NOCHANGE,
+		.old_precise = NULL,
+		.old_deferred = NULL };
 
 	struct sparc_utrap_install_args sparc64arg = {
-		.num 		= ST_DIVISION_BY_ZERO,
-		.handlers	= &handler
+		.num = ST_DIVISION_BY_ZERO,
+		.handlers = &handler
 	};
 #else
 	/* For PowerPC, ARM64, RISCV archs, sysarch(2) is not supported */
@@ -131,12 +128,12 @@ ATF_TC_CLEANUP(sysarch_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(sysarch_failure);
 ATF_TC_HEAD(sysarch_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-				       "sysarch(2) call for any architecture");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "sysarch(2) call for any architecture");
 }
 
 ATF_TC_BODY(sysarch_failure, tc)
@@ -155,12 +152,12 @@ ATF_TC_CLEANUP(sysarch_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(sysctl_success);
 ATF_TC_HEAD(sysctl_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"sysctl(3) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "sysctl(3) call");
 }
 
 ATF_TC_BODY(sysctl_success, tc)
@@ -186,12 +183,12 @@ ATF_TC_CLEANUP(sysctl_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(sysctl_failure);
 ATF_TC_HEAD(sysctl_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"sysctl(3) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "sysctl(3) call");
 }
 
 ATF_TC_BODY(sysctl_failure, tc)
@@ -209,7 +206,6 @@ ATF_TC_CLEANUP(sysctl_failure, tc)
 {
 	cleanup();
 }
-
 
 ATF_TP_ADD_TCS(tp)
 {

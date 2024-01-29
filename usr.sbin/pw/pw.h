@@ -34,41 +34,29 @@
 
 #include "pwupd.h"
 
-enum _mode
-{
-        M_ADD,
-        M_DELETE,
-        M_UPDATE,
-        M_PRINT,
+enum _mode {
+	M_ADD,
+	M_DELETE,
+	M_UPDATE,
+	M_PRINT,
 	M_NEXT,
 	M_LOCK,
 	M_UNLOCK,
-        M_NUM
+	M_NUM
 };
 
-enum _passmode
-{
-	P_NO,
-	P_NONE,
-	P_RANDOM,
-	P_YES
-};
+enum _passmode { P_NO, P_NONE, P_RANDOM, P_YES };
 
-enum _which
-{
-        W_USER,
-        W_GROUP,
-        W_NUM
-};
+enum _which { W_USER, W_GROUP, W_NUM };
 
-#define	_DEF_DIRMODE	(S_IRWXU | S_IRWXG | S_IRWXO)
-#define	_PW_CONF	"pw.conf"
-#define _UC_MAXLINE	1024
-#define _UC_MAXSHELLS	32
+#define _DEF_DIRMODE (S_IRWXU | S_IRWXG | S_IRWXO)
+#define _PW_CONF "pw.conf"
+#define _UC_MAXLINE 1024
+#define _UC_MAXSHELLS 32
 
 struct userconf *get_userconfig(const char *cfg);
-struct userconf *read_userconfig(char const * file);
-int write_userconfig(struct userconf *cnf, char const * file);
+struct userconf *read_userconfig(char const *file);
+int write_userconfig(struct userconf *cnf, char const *file);
 
 int pw_group_add(int argc, char **argv, char *name);
 int pw_group_del(int argc, char **argv, char *name);
@@ -99,18 +87,19 @@ int groupadd(struct userconf *, char *name, gid_t id, char *members, int fd,
 
 int nis_update(void);
 
-int boolean_val(char const * str, int dflt);
-int passwd_val(char const * str, int dflt);
+int boolean_val(char const *str, int dflt);
+int passwd_val(char const *str, int dflt);
 char const *boolean_str(int val);
-char *newstr(char const * p);
+char *newstr(char const *p);
 
-void pw_log(struct userconf * cnf, int mode, int which, char const * fmt,...) __printflike(4, 5);
+void pw_log(struct userconf *cnf, int mode, int which, char const *fmt, ...)
+    __printflike(4, 5);
 char *pw_pwcrypt(char *password);
 
 extern const char *Modes[];
 extern const char *Which[];
 
-uintmax_t strtounum(const char * __restrict, uintmax_t, uintmax_t,
-    const char ** __restrict);
+uintmax_t strtounum(const char *__restrict, uintmax_t, uintmax_t,
+    const char **__restrict);
 
 bool grp_has_member(struct group *grp, const char *name);

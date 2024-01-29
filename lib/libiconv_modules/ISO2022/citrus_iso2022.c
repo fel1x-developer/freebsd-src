@@ -1,4 +1,5 @@
-/*	$NetBSD: citrus_iso2022.c,v 1.20 2010/12/07 22:01:45 joerg Exp $	*/
+/*	$NetBSD: citrus_iso2022.c,v 1.20 2010/12/07 22:01:45 joerg Exp $
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
@@ -27,7 +28,8 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Citrus: xpg4dl/FreeBSD/lib/libc/locale/iso2022.c,v 1.23 2001/06/21 01:51:44 yamt Exp $
+ *	$Citrus: xpg4dl/FreeBSD/lib/libc/locale/iso2022.c,v 1.23 2001/06/21
+ *01:51:44 yamt Exp $
  */
 
 #include <sys/types.h>
@@ -42,17 +44,15 @@
 #include <string.h>
 #include <wchar.h>
 
-#include "citrus_namespace.h"
-#include "citrus_types.h"
-#include "citrus_module.h"
-#include "citrus_stdenc.h"
 #include "citrus_iso2022.h"
-
+#include "citrus_module.h"
+#include "citrus_namespace.h"
+#include "citrus_stdenc.h"
+#include "citrus_types.h"
 
 /* ----------------------------------------------------------------------
  * private stuffs used by templates
  */
-
 
 /*
  * wchar_t mappings:
@@ -72,121 +72,125 @@
  *				1xxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx
  */
 
-#define CS94		(0U)
-#define CS96		(1U)
-#define CS94MULTI	(2U)
-#define CS96MULTI	(3U)
+#define CS94 (0U)
+#define CS96 (1U)
+#define CS94MULTI (2U)
+#define CS96MULTI (3U)
 
 typedef struct {
-	unsigned char	 type;
-	unsigned char	 final;
-	unsigned char	 interm;
-	unsigned char	 vers;
+	unsigned char type;
+	unsigned char final;
+	unsigned char interm;
+	unsigned char vers;
 } _ISO2022Charset;
 
-static const _ISO2022Charset ascii    = { CS94, 'B', '\0', '\0' };
+static const _ISO2022Charset ascii = { CS94, 'B', '\0', '\0' };
 static const _ISO2022Charset iso88591 = { CS96, 'A', '\0', '\0' };
 
 typedef struct {
-	_ISO2022Charset	g[4];
+	_ISO2022Charset g[4];
 	/* need 3 bits to hold -1, 0, ..., 3 */
-	int	gl:3,
-		gr:3,
-		singlegl:3,
-		singlegr:3;
-	char ch[7];	/* longest escape sequence (ESC & V ESC $ ( F) */
+	int gl : 3, gr : 3, singlegl : 3, singlegr : 3;
+	char ch[7]; /* longest escape sequence (ESC & V ESC $ ( F) */
 	size_t chlen;
 	int flags;
-#define _ISO2022STATE_FLAG_INITIALIZED	1
+#define _ISO2022STATE_FLAG_INITIALIZED 1
 } _ISO2022State;
 
 typedef struct {
-	_ISO2022Charset	*recommend[4];
-	size_t	recommendsize[4];
-	_ISO2022Charset	initg[4];
-	int	maxcharset;
-	int	flags;
-#define	F_8BIT	0x0001
-#define	F_NOOLD	0x0002
-#define	F_SI	0x0010	/*0F*/
-#define	F_SO	0x0020	/*0E*/
-#define	F_LS0	0x0010	/*0F*/
-#define	F_LS1	0x0020	/*0E*/
-#define	F_LS2	0x0040	/*ESC n*/
-#define	F_LS3	0x0080	/*ESC o*/
-#define	F_LS1R	0x0100	/*ESC ~*/
-#define	F_LS2R	0x0200	/*ESC }*/
-#define	F_LS3R	0x0400	/*ESC |*/
-#define	F_SS2	0x0800	/*ESC N*/
-#define	F_SS3	0x1000	/*ESC O*/
-#define	F_SS2R	0x2000	/*8E*/
-#define	F_SS3R	0x4000	/*8F*/
+	_ISO2022Charset *recommend[4];
+	size_t recommendsize[4];
+	_ISO2022Charset initg[4];
+	int maxcharset;
+	int flags;
+#define F_8BIT 0x0001
+#define F_NOOLD 0x0002
+#define F_SI 0x0010   /*0F*/
+#define F_SO 0x0020   /*0E*/
+#define F_LS0 0x0010  /*0F*/
+#define F_LS1 0x0020  /*0E*/
+#define F_LS2 0x0040  /*ESC n*/
+#define F_LS3 0x0080  /*ESC o*/
+#define F_LS1R 0x0100 /*ESC ~*/
+#define F_LS2R 0x0200 /*ESC }*/
+#define F_LS3R 0x0400 /*ESC |*/
+#define F_SS2 0x0800  /*ESC N*/
+#define F_SS3 0x1000  /*ESC O*/
+#define F_SS2R 0x2000 /*8E*/
+#define F_SS3R 0x4000 /*8F*/
 } _ISO2022EncodingInfo;
 
-#define _CEI_TO_EI(_cei_)		(&(_cei_)->ei)
-#define _CEI_TO_STATE(_cei_, _func_)	(_cei_)->states.s_##_func_
+#define _CEI_TO_EI(_cei_) (&(_cei_)->ei)
+#define _CEI_TO_STATE(_cei_, _func_) (_cei_)->states.s_##_func_
 
-#define _FUNCNAME(m)			_citrus_ISO2022_##m
-#define _ENCODING_INFO			_ISO2022EncodingInfo
-#define _ENCODING_STATE			_ISO2022State
-#define _ENCODING_MB_CUR_MAX(_ei_)	MB_LEN_MAX
-#define _ENCODING_IS_STATE_DEPENDENT	1
-#define _STATE_NEEDS_EXPLICIT_INIT(_ps_)	\
-    (!((_ps_)->flags & _ISO2022STATE_FLAG_INITIALIZED))
+#define _FUNCNAME(m) _citrus_ISO2022_##m
+#define _ENCODING_INFO _ISO2022EncodingInfo
+#define _ENCODING_STATE _ISO2022State
+#define _ENCODING_MB_CUR_MAX(_ei_) MB_LEN_MAX
+#define _ENCODING_IS_STATE_DEPENDENT 1
+#define _STATE_NEEDS_EXPLICIT_INIT(_ps_) \
+	(!((_ps_)->flags & _ISO2022STATE_FLAG_INITIALIZED))
 
+#define _ISO2022INVALID (wchar_t) - 1
 
-#define _ISO2022INVALID (wchar_t)-1
-
-static __inline bool isc0(__uint8_t x)
+static __inline bool
+isc0(__uint8_t x)
 {
 
 	return ((x & 0x1f) == x);
 }
 
-static __inline bool isc1(__uint8_t x)
+static __inline bool
+isc1(__uint8_t x)
 {
 
 	return (0x80 <= x && x <= 0x9f);
 }
 
-static __inline bool iscntl(__uint8_t x)
+static __inline bool
+iscntl(__uint8_t x)
 {
 
 	return (isc0(x) || isc1(x) || x == 0x7f);
 }
 
-static __inline bool is94(__uint8_t x)
+static __inline bool
+is94(__uint8_t x)
 {
 
 	return (0x21 <= x && x <= 0x7e);
 }
 
-static __inline bool is96(__uint8_t x)
+static __inline bool
+is96(__uint8_t x)
 {
 
 	return (0x20 <= x && x <= 0x7f);
 }
 
-static __inline bool isecma(__uint8_t x)
+static __inline bool
+isecma(__uint8_t x)
 {
 
 	return (0x30 <= x && x <= 0x7f);
 }
 
-static __inline bool isinterm(__uint8_t x)
+static __inline bool
+isinterm(__uint8_t x)
 {
 
 	return (0x20 <= x && x <= 0x2f);
 }
 
-static __inline bool isthree(__uint8_t x)
+static __inline bool
+isthree(__uint8_t x)
 {
 
 	return (0x60 <= x && x <= 0x6f);
 }
 
 static __inline int
-getcs(const char * __restrict p, _ISO2022Charset * __restrict cs)
+getcs(const char *__restrict p, _ISO2022Charset *__restrict cs)
 {
 
 	if (!strncmp(p, "94$", 3) && p[3] && !p[4]) {
@@ -205,7 +209,7 @@ getcs(const char * __restrict p, _ISO2022Charset * __restrict cs)
 		cs->vers = '\0';
 		cs->type = CS94;
 	} else if (!strncmp(p, "96", 2) && p[2] && !p[3]) {
-		cs->final = (unsigned char )(p[2] & 0xff);
+		cs->final = (unsigned char)(p[2] & 0xff);
 		cs->interm = '\0';
 		cs->vers = '\0';
 		cs->type = CS96;
@@ -215,14 +219,12 @@ getcs(const char * __restrict p, _ISO2022Charset * __restrict cs)
 	return (0);
 }
 
-
-#define _NOTMATCH	0
-#define _MATCH		1
-#define _PARSEFAIL	2
+#define _NOTMATCH 0
+#define _MATCH 1
+#define _PARSEFAIL 2
 
 static __inline int
-get_recommend(_ISO2022EncodingInfo * __restrict ei,
-    const char * __restrict token)
+get_recommend(_ISO2022EncodingInfo *__restrict ei, const char *__restrict token)
 {
 	_ISO2022Charset cs, *p;
 	int i;
@@ -278,13 +280,11 @@ get_recommend(_ISO2022EncodingInfo * __restrict ei,
 }
 
 static __inline int
-get_initg(_ISO2022EncodingInfo * __restrict ei,
-    const char * __restrict token)
+get_initg(_ISO2022EncodingInfo *__restrict ei, const char *__restrict token)
 {
 	_ISO2022Charset cs;
 
-	if (strncmp("INIT", &token[0], 4) ||
-	    !strchr("0123", token[4]) ||
+	if (strncmp("INIT", &token[0], 4) || !strchr("0123", token[4]) ||
 	    token[5] != '=')
 		return (_NOTMATCH);
 
@@ -300,8 +300,7 @@ get_initg(_ISO2022EncodingInfo * __restrict ei,
 }
 
 static __inline int
-get_max(_ISO2022EncodingInfo * __restrict ei,
-    const char * __restrict token)
+get_max(_ISO2022EncodingInfo *__restrict ei, const char *__restrict token)
 {
 	if (!strcmp(token, "MAX1"))
 		ei->maxcharset = 1;
@@ -315,33 +314,18 @@ get_max(_ISO2022EncodingInfo * __restrict ei,
 	return (_MATCH);
 }
 
-
 static __inline int
-get_flags(_ISO2022EncodingInfo * __restrict ei,
-    const char * __restrict token)
+get_flags(_ISO2022EncodingInfo *__restrict ei, const char *__restrict token)
 {
 	static struct {
-		const char	*tag;
-		int		flag;
-	} const tags[] = {
-		{ "DUMMY",	0	},
-		{ "8BIT",	F_8BIT	},
-		{ "NOOLD",	F_NOOLD	},
-		{ "SI",		F_SI	},
-		{ "SO",		F_SO	},
-		{ "LS0",	F_LS0	},
-		{ "LS1",	F_LS1	},
-		{ "LS2",	F_LS2	},
-		{ "LS3",	F_LS3	},
-		{ "LS1R",	F_LS1R	},
-		{ "LS2R",	F_LS2R	},
-		{ "LS3R",	F_LS3R	},
-		{ "SS2",	F_SS2	},
-		{ "SS3",	F_SS3	},
-		{ "SS2R",	F_SS2R	},
-		{ "SS3R",	F_SS3R	},
-		{ NULL,		0 }
-	};
+		const char *tag;
+		int flag;
+	} const tags[] = { { "DUMMY", 0 }, { "8BIT", F_8BIT },
+		{ "NOOLD", F_NOOLD }, { "SI", F_SI }, { "SO", F_SO },
+		{ "LS0", F_LS0 }, { "LS1", F_LS1 }, { "LS2", F_LS2 },
+		{ "LS3", F_LS3 }, { "LS1R", F_LS1R }, { "LS2R", F_LS2R },
+		{ "LS3R", F_LS3R }, { "SS2", F_SS2 }, { "SS3", F_SS3 },
+		{ "SS2R", F_SS2R }, { "SS3R", F_SS3R }, { NULL, 0 } };
 	int i;
 
 	for (i = 0; tags[i].tag; i++)
@@ -353,10 +337,9 @@ get_flags(_ISO2022EncodingInfo * __restrict ei,
 	return (_NOTMATCH);
 }
 
-
 static __inline int
-_citrus_ISO2022_parse_variable(_ISO2022EncodingInfo * __restrict ei,
-    const void * __restrict var, size_t lenvar __unused)
+_citrus_ISO2022_parse_variable(_ISO2022EncodingInfo *__restrict ei,
+    const void *__restrict var, size_t lenvar __unused)
 {
 	char const *e, *v;
 	char buf[20];
@@ -370,7 +353,7 @@ _citrus_ISO2022_parse_variable(_ISO2022EncodingInfo * __restrict ei,
 	if (!var)
 		return (EFTYPE);
 
-	v = (const char *) var;
+	v = (const char *)var;
 
 	/* initialize structure */
 	ei->maxcharset = 0;
@@ -409,7 +392,6 @@ _citrus_ISO2022_parse_variable(_ISO2022EncodingInfo * __restrict ei,
 		if (ret == _PARSEFAIL)
 			goto parsefail;
 		v = e;
-
 	}
 
 	return (0);
@@ -425,8 +407,8 @@ parsefail:
 
 static __inline void
 /*ARGSUSED*/
-_citrus_ISO2022_init_state(_ISO2022EncodingInfo * __restrict ei,
-    _ISO2022State * __restrict s)
+_citrus_ISO2022_init_state(_ISO2022EncodingInfo *__restrict ei,
+    _ISO2022State *__restrict s)
 {
 	int i;
 
@@ -466,8 +448,8 @@ _citrus_ISO2022_unpack_state(_ISO2022EncodingInfo * __restrict ei __unused,
 
 static int
 /*ARGSUSED*/
-_citrus_ISO2022_encoding_module_init(_ISO2022EncodingInfo * __restrict ei,
-    const void * __restrict var, size_t lenvar)
+_citrus_ISO2022_encoding_module_init(_ISO2022EncodingInfo *__restrict ei,
+    const void *__restrict var, size_t lenvar)
 {
 
 	return (_citrus_ISO2022_parse_variable(ei, var, lenvar));
@@ -477,13 +459,12 @@ static void
 /*ARGSUSED*/
 _citrus_ISO2022_encoding_module_uninit(_ISO2022EncodingInfo *ei __unused)
 {
-
 }
 
-#define	ESC	'\033'
-#define	ECMA	-1
-#define	INTERM	-2
-#define	OECMA	-3
+#define ESC '\033'
+#define ECMA -1
+#define INTERM -2
+#define OECMA -3
 static const struct seqtable {
 	int type;
 	int csoff;
@@ -494,41 +475,237 @@ static const struct seqtable {
 	int chars[10];
 } seqtable[] = {
 	/* G0 94MULTI special */
-	{ CS94MULTI, -1, 2, -1, -1,	3, { ESC, '$', OECMA }, },
+	{
+	    CS94MULTI,
+	    -1,
+	    2,
+	    -1,
+	    -1,
+	    3,
+	    { ESC, '$', OECMA },
+	},
 	/* G0 94MULTI special with version identification */
-	{ CS94MULTI, -1, 5, -1, 2,	6, { ESC, '&', ECMA, ESC, '$', OECMA }, },
+	{
+	    CS94MULTI,
+	    -1,
+	    5,
+	    -1,
+	    2,
+	    6,
+	    { ESC, '&', ECMA, ESC, '$', OECMA },
+	},
 	/* G? 94 */
-	{ CS94, 1, 2, -1, -1,		3, { ESC, CS94, ECMA, }, },
+	{
+	    CS94,
+	    1,
+	    2,
+	    -1,
+	    -1,
+	    3,
+	    {
+		ESC,
+		CS94,
+		ECMA,
+	    },
+	},
 	/* G? 94 with 2nd intermediate char */
-	{ CS94, 1, 3, 2, -1,		4, { ESC, CS94, INTERM, ECMA, }, },
+	{
+	    CS94,
+	    1,
+	    3,
+	    2,
+	    -1,
+	    4,
+	    {
+		ESC,
+		CS94,
+		INTERM,
+		ECMA,
+	    },
+	},
 	/* G? 96 */
-	{ CS96, 1, 2, -1, -1,		3, { ESC, CS96, ECMA, }, },
+	{
+	    CS96,
+	    1,
+	    2,
+	    -1,
+	    -1,
+	    3,
+	    {
+		ESC,
+		CS96,
+		ECMA,
+	    },
+	},
 	/* G? 96 with 2nd intermediate char */
-	{ CS96, 1, 3, 2, -1,		4, { ESC, CS96, INTERM, ECMA, }, },
+	{
+	    CS96,
+	    1,
+	    3,
+	    2,
+	    -1,
+	    4,
+	    {
+		ESC,
+		CS96,
+		INTERM,
+		ECMA,
+	    },
+	},
 	/* G? 94MULTI */
-	{ CS94MULTI, 2, 3, -1, -1,	4, { ESC, '$', CS94, ECMA, }, },
+	{
+	    CS94MULTI,
+	    2,
+	    3,
+	    -1,
+	    -1,
+	    4,
+	    {
+		ESC,
+		'$',
+		CS94,
+		ECMA,
+	    },
+	},
 	/* G? 96MULTI */
-	{ CS96MULTI, 2, 3, -1, -1,	4, { ESC, '$', CS96, ECMA, }, },
+	{
+	    CS96MULTI,
+	    2,
+	    3,
+	    -1,
+	    -1,
+	    4,
+	    {
+		ESC,
+		'$',
+		CS96,
+		ECMA,
+	    },
+	},
 	/* G? 94MULTI with version specification */
-	{ CS94MULTI, 5, 6, -1, 2,	7, { ESC, '&', ECMA, ESC, '$', CS94, ECMA, }, },
+	{
+	    CS94MULTI,
+	    5,
+	    6,
+	    -1,
+	    2,
+	    7,
+	    {
+		ESC,
+		'&',
+		ECMA,
+		ESC,
+		'$',
+		CS94,
+		ECMA,
+	    },
+	},
 	/* LS2/3 */
-	{ -1, -1, -1, -1, -1,		2, { ESC, 'n', }, },
-	{ -1, -1, -1, -1, -1,		2, { ESC, 'o', }, },
+	{
+	    -1,
+	    -1,
+	    -1,
+	    -1,
+	    -1,
+	    2,
+	    {
+		ESC,
+		'n',
+	    },
+	},
+	{
+	    -1,
+	    -1,
+	    -1,
+	    -1,
+	    -1,
+	    2,
+	    {
+		ESC,
+		'o',
+	    },
+	},
 	/* LS1/2/3R */
-	{ -1, -1, -1, -1, -1,		2, { ESC, '~', }, },
-	{ -1, -1, -1, -1, -1,		2, { ESC, /*{*/ '}', }, },
-	{ -1, -1, -1, -1, -1,		2, { ESC, '|', }, },
+	{
+	    -1,
+	    -1,
+	    -1,
+	    -1,
+	    -1,
+	    2,
+	    {
+		ESC,
+		'~',
+	    },
+	},
+	{
+	    -1,
+	    -1,
+	    -1,
+	    -1,
+	    -1,
+	    2,
+	    {
+		ESC,
+		/*{*/ '}',
+	    },
+	},
+	{
+	    -1,
+	    -1,
+	    -1,
+	    -1,
+	    -1,
+	    2,
+	    {
+		ESC,
+		'|',
+	    },
+	},
 	/* SS2/3 */
-	{ -1, -1, -1, -1, -1,		2, { ESC, 'N', }, },
-	{ -1, -1, -1, -1, -1,		2, { ESC, 'O', }, },
+	{
+	    -1,
+	    -1,
+	    -1,
+	    -1,
+	    -1,
+	    2,
+	    {
+		ESC,
+		'N',
+	    },
+	},
+	{
+	    -1,
+	    -1,
+	    -1,
+	    -1,
+	    -1,
+	    2,
+	    {
+		ESC,
+		'O',
+	    },
+	},
 	/* end of records */
-//	{ 0, }
-	{  0,  0,  0,  0,  0,		0, { ESC,  0, }, }
+	//	{ 0, }
+	{
+	    0,
+	    0,
+	    0,
+	    0,
+	    0,
+	    0,
+	    {
+		ESC,
+		0,
+	    },
+	}
 };
 
 static int
-seqmatch(const char * __restrict s, size_t n,
-    const struct seqtable * __restrict sp)
+seqmatch(const char *__restrict s, size_t n,
+    const struct seqtable *__restrict sp)
 {
 	const int *p;
 
@@ -573,9 +750,9 @@ terminate:
 }
 
 static wchar_t
-_ISO2022_sgetwchar(_ISO2022EncodingInfo * __restrict ei __unused,
-    char * __restrict string, size_t n, char ** __restrict result,
-    _ISO2022State * __restrict psenc)
+_ISO2022_sgetwchar(_ISO2022EncodingInfo *__restrict ei __unused,
+    char *__restrict string, size_t n, char **__restrict result,
+    _ISO2022State *__restrict psenc)
 {
 	const struct seqtable *sp;
 	wchar_t wchar = 0;
@@ -598,8 +775,9 @@ _ISO2022_sgetwchar(_ISO2022EncodingInfo * __restrict ei __unused,
 
 		/* SS2/3R */
 		if (1 <= n && string[0] && strchr("\217\216", string[0])) {
-			psenc->singlegl = psenc->singlegr =
-			    (string[0] - '\216') + 2;
+			psenc->singlegl = psenc->singlegr = (string[0] -
+								'\216') +
+			    2;
 			string++;
 			n--;
 			continue;
@@ -654,8 +832,8 @@ _ISO2022_sgetwchar(_ISO2022EncodingInfo * __restrict ei __unused,
 		}
 
 		/* LS2/3 */
-		if (2 <= n && string[0] == '\033' &&
-		    string[1] && strchr("no", string[1])) {
+		if (2 <= n && string[0] == '\033' && string[1] &&
+		    strchr("no", string[1])) {
 			psenc->gl = string[1] - 'n' + 2;
 			string += 2;
 			n -= 2;
@@ -663,9 +841,9 @@ _ISO2022_sgetwchar(_ISO2022EncodingInfo * __restrict ei __unused,
 		}
 
 		/* LS1/2/3R */
-			/* XXX: { for vi showmatch */
-		if (2 <= n && string[0] == '\033' &&
-		    string[1] && strchr("~}|", string[1])) {
+		/* XXX: { for vi showmatch */
+		if (2 <= n && string[0] == '\033' && string[1] &&
+		    strchr("~}|", string[1])) {
 			psenc->gr = 3 - (string[1] - '|');
 			string += 2;
 			n -= 2;
@@ -729,7 +907,7 @@ eat:
 		cur = (psenc->singlegl == -1) ? psenc->gl : psenc->singlegl;
 
 	if (cur == -1) {
-asis:
+	asis:
 		wchar = *string++ & 0xff;
 		if (result)
 			*result = string;
@@ -743,8 +921,7 @@ asis:
 	case CS94MULTI:
 	case CS96MULTI:
 		if (!isthree(psenc->g[cur].final)) {
-			if (2 <= n &&
-			    (string[0] & 0x80) == (string[1] & 0x80))
+			if (2 <= n && (string[0] & 0x80) == (string[1] & 0x80))
 				break;
 		} else {
 			if (3 <= n &&
@@ -800,7 +977,8 @@ asis:
 		}
 		wchar = psenc->g[cur].final;
 		wchar = (wchar << 8);
-		wchar |= (psenc->g[cur].interm ? (0x80 | psenc->g[cur].interm) : 0);
+		wchar |= (psenc->g[cur].interm ? (0x80 | psenc->g[cur].interm) :
+						 0);
 		wchar = (wchar << 8);
 		wchar = (wchar << 8) | (*string++ & 0x7f);
 		break;
@@ -814,7 +992,8 @@ asis:
 		}
 		wchar = psenc->g[cur].final;
 		wchar = (wchar << 8);
-		wchar |= (psenc->g[cur].interm ? (0x80 | psenc->g[cur].interm) : 0);
+		wchar |= (psenc->g[cur].interm ? (0x80 | psenc->g[cur].interm) :
+						 0);
 		wchar = (wchar << 8);
 		wchar = (wchar << 8) | (*string++ & 0x7f);
 		wchar |= 0x80;
@@ -839,12 +1018,10 @@ asis:
 	return (wchar);
 }
 
-
-
 static int
-_citrus_ISO2022_mbrtowc_priv(_ISO2022EncodingInfo * __restrict ei,
-    wchar_t * __restrict pwc, char ** __restrict s,
-    size_t n, _ISO2022State * __restrict psenc, size_t * __restrict nresult)
+_citrus_ISO2022_mbrtowc_priv(_ISO2022EncodingInfo *__restrict ei,
+    wchar_t *__restrict pwc, char **__restrict s, size_t n,
+    _ISO2022State *__restrict psenc, size_t *__restrict nresult)
 {
 	char *p, *result, *s0;
 	wchar_t wchar;
@@ -879,8 +1056,8 @@ _citrus_ISO2022_mbrtowc_priv(_ISO2022EncodingInfo * __restrict ei,
 			n--;
 		}
 
-		wchar = _ISO2022_sgetwchar(ei, p, psenc->chlen - (p-psenc->ch),
-		    &result, psenc);
+		wchar = _ISO2022_sgetwchar(ei, p,
+		    psenc->chlen - (p - psenc->ch), &result, psenc);
 		c += result - p;
 		if (wchar != _ISO2022INVALID) {
 			if (psenc->chlen > (size_t)c)
@@ -952,8 +1129,8 @@ restart:
 }
 
 static int
-recommendation(_ISO2022EncodingInfo * __restrict ei,
-    _ISO2022Charset * __restrict cs)
+recommendation(_ISO2022EncodingInfo *__restrict ei,
+    _ISO2022Charset *__restrict cs)
 {
 	_ISO2022Charset *recommend;
 	size_t j;
@@ -1006,9 +1183,9 @@ recommendation(_ISO2022EncodingInfo * __restrict ei,
 }
 
 static int
-_ISO2022_sputwchar(_ISO2022EncodingInfo * __restrict ei, wchar_t wc,
-    char * __restrict string, size_t n, char ** __restrict result,
-    _ISO2022State * __restrict psenc, size_t * __restrict nresult)
+_ISO2022_sputwchar(_ISO2022EncodingInfo *__restrict ei, wchar_t wc,
+    char *__restrict string, size_t n, char **__restrict result,
+    _ISO2022State *__restrict psenc, size_t *__restrict nresult)
 {
 	_ISO2022Charset cs;
 	char *p;
@@ -1142,8 +1319,7 @@ sideok:
 		break;
 	case CS94MULTI:
 	case CS96MULTI:
-		i = !iscntl(wc & 0xff) ?
-		    (isthree(cs.final) ? 3 : 2) : 1;
+		i = !iscntl(wc & 0xff) ? (isthree(cs.final) ? 3 : 2) : 1;
 		break;
 	}
 	while (i-- > 0)
@@ -1172,9 +1348,9 @@ ilseq:
 }
 
 static int
-_citrus_ISO2022_put_state_reset(_ISO2022EncodingInfo * __restrict ei,
-    char * __restrict s, size_t n, _ISO2022State * __restrict psenc,
-    size_t * __restrict nresult)
+_citrus_ISO2022_put_state_reset(_ISO2022EncodingInfo *__restrict ei,
+    char *__restrict s, size_t n, _ISO2022State *__restrict psenc,
+    size_t *__restrict nresult)
 {
 	char *result;
 	char buf[MB_LEN_MAX];
@@ -1189,7 +1365,7 @@ _citrus_ISO2022_put_state_reset(_ISO2022EncodingInfo * __restrict ei,
 		return (ret);
 	}
 
-	if (sizeof(buf) < len || n < len-1) {
+	if (sizeof(buf) < len || n < len - 1) {
 		/* XXX should recover state? */
 		*nresult = (size_t)-1;
 		return (E2BIG);
@@ -1201,9 +1377,9 @@ _citrus_ISO2022_put_state_reset(_ISO2022EncodingInfo * __restrict ei,
 }
 
 static int
-_citrus_ISO2022_wcrtomb_priv(_ISO2022EncodingInfo * __restrict ei,
-    char * __restrict s, size_t n, wchar_t wc,
-    _ISO2022State * __restrict psenc, size_t * __restrict nresult)
+_citrus_ISO2022_wcrtomb_priv(_ISO2022EncodingInfo *__restrict ei,
+    char *__restrict s, size_t n, wchar_t wc, _ISO2022State *__restrict psenc,
+    size_t *__restrict nresult)
 {
 	char *result;
 	char buf[MB_LEN_MAX];
@@ -1231,8 +1407,8 @@ _citrus_ISO2022_wcrtomb_priv(_ISO2022EncodingInfo * __restrict ei,
 
 static __inline int
 /*ARGSUSED*/
-_citrus_ISO2022_stdenc_wctocs(_ISO2022EncodingInfo * __restrict ei __unused,
-    _csid_t * __restrict csid, _index_t * __restrict idx, wchar_t wc)
+_citrus_ISO2022_stdenc_wctocs(_ISO2022EncodingInfo *__restrict ei __unused,
+    _csid_t *__restrict csid, _index_t *__restrict idx, wchar_t wc)
 {
 	wchar_t m, nm;
 
@@ -1250,15 +1426,15 @@ _citrus_ISO2022_stdenc_wctocs(_ISO2022EncodingInfo * __restrict ei __unused,
 		m |= 0x00007F00;
 	}
 	*csid = (_csid_t)m;
-	*idx  = (_index_t)nm;
+	*idx = (_index_t)nm;
 
 	return (0);
 }
 
 static __inline int
 /*ARGSUSED*/
-_citrus_ISO2022_stdenc_cstowc(_ISO2022EncodingInfo * __restrict ei __unused,
-    wchar_t * __restrict wc, _csid_t csid, _index_t idx)
+_citrus_ISO2022_stdenc_cstowc(_ISO2022EncodingInfo *__restrict ei __unused,
+    wchar_t *__restrict wc, _csid_t csid, _index_t idx)
 {
 
 	*wc = (wchar_t)(csid & 0x7F808080) | (wchar_t)idx;
@@ -1268,8 +1444,9 @@ _citrus_ISO2022_stdenc_cstowc(_ISO2022EncodingInfo * __restrict ei __unused,
 
 static __inline int
 /*ARGSUSED*/
-_citrus_ISO2022_stdenc_get_state_desc_generic(_ISO2022EncodingInfo * __restrict ei __unused,
-    _ISO2022State * __restrict psenc, int * __restrict rstate)
+_citrus_ISO2022_stdenc_get_state_desc_generic(
+    _ISO2022EncodingInfo *__restrict ei __unused,
+    _ISO2022State *__restrict psenc, int *__restrict rstate)
 {
 
 	if (psenc->chlen == 0) {

@@ -21,37 +21,36 @@
 
 /**
 *******************************************************************************
- * @ingroup SalCtrl
- * @description
- *      This function allocates memory for a specific instance type.
- *      Zeros this memory and sets the generic service section of
- *      the instance memory.
- *
- * @context
- *      This function is called from the generic services init.
- *
- * @assumptions
- *      None
- * @sideEffects
- *      None
- * @reentrant
- *      No
- * @threadSafe
- *      Yes
- *
- * @param[in]  service         The type of the service to be created
- *                             (e.g. CRYPTO)
- * @param[in]  instance_num    The logical instance number which will
- *                             run the service
- * @param[out] pObj            Pointer to specific service instance memory
- * @retVal CPA_STATUS_SUCCESS  Instance memory successfully allocated
- * @retVal CPA_STATUS_RESOURCE Instance memory not successfully allocated
- * @retVal CPA_STATUS_FAIL     Unsupported service type
- *
- *****************************************************************************/
-CpaStatus SalCtrl_ServiceCreate(sal_service_type_t service,
-				Cpa32U instance_num,
-				sal_service_t **pObj);
+* @ingroup SalCtrl
+* @description
+*      This function allocates memory for a specific instance type.
+*      Zeros this memory and sets the generic service section of
+*      the instance memory.
+*
+* @context
+*      This function is called from the generic services init.
+*
+* @assumptions
+*      None
+* @sideEffects
+*      None
+* @reentrant
+*      No
+* @threadSafe
+*      Yes
+*
+* @param[in]  service         The type of the service to be created
+*                             (e.g. CRYPTO)
+* @param[in]  instance_num    The logical instance number which will
+*                             run the service
+* @param[out] pObj            Pointer to specific service instance memory
+* @retVal CPA_STATUS_SUCCESS  Instance memory successfully allocated
+* @retVal CPA_STATUS_RESOURCE Instance memory not successfully allocated
+* @retVal CPA_STATUS_FAIL     Unsupported service type
+*
+*****************************************************************************/
+CpaStatus SalCtrl_ServiceCreate(sal_service_type_t service, Cpa32U instance_num,
+    sal_service_t **pObj);
 
 /******************************************************************************
  * @ingroup SalCtl
@@ -87,73 +86,73 @@ CpaStatus SalCtrl_ServiceCreate(sal_service_type_t service,
  *                              overwritten with status returned from function.
  *
  *****************************************************************************/
-#define SAL_FOR_EACH(list, type, device, function, status_ret)                 \
-	do {                                                                   \
-		sal_list_t *curr_element = list;                               \
-		CpaStatus status_temp = CPA_STATUS_SUCCESS;                    \
-		typeof(type) *process = NULL;                                  \
-		while (NULL != curr_element) {                                 \
-			process =                                              \
-			    (typeof(type) *)SalList_getObject(curr_element);   \
-			status_temp = process->function(device, process);      \
-			if ((CPA_STATUS_SUCCESS != status_temp) &&             \
-			    (CPA_STATUS_RETRY != status_temp)) {               \
-				status_ret = status_temp;                      \
-				break;                                         \
-			} else {                                               \
-				if (CPA_STATUS_RETRY == status_temp) {         \
-					status_ret = status_temp;              \
-				}                                              \
-			}                                                      \
-			curr_element = SalList_next(curr_element);             \
-		}                                                              \
+#define SAL_FOR_EACH(list, type, device, function, status_ret)            \
+	do {                                                              \
+		sal_list_t *curr_element = list;                          \
+		CpaStatus status_temp = CPA_STATUS_SUCCESS;               \
+		typeof(type) *process = NULL;                             \
+		while (NULL != curr_element) {                            \
+			process = (typeof(type) *)SalList_getObject(      \
+			    curr_element);                                \
+			status_temp = process->function(device, process); \
+			if ((CPA_STATUS_SUCCESS != status_temp) &&        \
+			    (CPA_STATUS_RETRY != status_temp)) {          \
+				status_ret = status_temp;                 \
+				break;                                    \
+			} else {                                          \
+				if (CPA_STATUS_RETRY == status_temp) {    \
+					status_ret = status_temp;         \
+				}                                         \
+			}                                                 \
+			curr_element = SalList_next(curr_element);        \
+		}                                                         \
 	} while (0)
 
 /**
 *******************************************************************************
- * @ingroup SalCtl
- * @description
- *      This macro goes through the 'list' passed in as a parameter. For each
- *      element found in the list, it peforms a cast to the type of the element
- *      given by the 'type' parameter. Finally, it checks the state of the
- *      element and if it is in state 'state_check' then it calls the
- *      function given by the 'function' parameter, passing itself
- *      and the device as parameters.
- *      If the element is not in 'state_check' it returns from the macro.
- *
- *      In case of error (i.e. 'function' does not return _SUCCESS)
- *      processing of the 'list' elements will continue.
- *
- * @context
- *      This macro is used by both the service and qat event handlers.
- *
- * @assumptions
- *      None
- * @sideEffects
- *      None
- *
- * @param[in]  list             The list of services or qats as a type of list_t
- * @param[in]  type             It identifies the type of the object
- *                              inside the list: service or qat
- * @param[in]  device           The ADF accelerator handle for the device
- * @param[in]  function         The function pointer to call
- * @param[in]  state_check      The state to check for
- *
- *****************************************************************************/
-#define SAL_FOR_EACH_STATE(list, type, device, function, state_check)          \
-	do {                                                                   \
-		sal_list_t *curr_element = list;                               \
-		typeof(type) *process = NULL;                                  \
-		while (NULL != curr_element) {                                 \
-			process =                                              \
-			    (typeof(type) *)SalList_getObject(curr_element);   \
-			if (process->state == state_check) {                   \
-				process->function(device, process);            \
-			} else {                                               \
-				break;                                         \
-			}                                                      \
-			curr_element = SalList_next(curr_element);             \
-		}                                                              \
+* @ingroup SalCtl
+* @description
+*      This macro goes through the 'list' passed in as a parameter. For each
+*      element found in the list, it peforms a cast to the type of the element
+*      given by the 'type' parameter. Finally, it checks the state of the
+*      element and if it is in state 'state_check' then it calls the
+*      function given by the 'function' parameter, passing itself
+*      and the device as parameters.
+*      If the element is not in 'state_check' it returns from the macro.
+*
+*      In case of error (i.e. 'function' does not return _SUCCESS)
+*      processing of the 'list' elements will continue.
+*
+* @context
+*      This macro is used by both the service and qat event handlers.
+*
+* @assumptions
+*      None
+* @sideEffects
+*      None
+*
+* @param[in]  list             The list of services or qats as a type of list_t
+* @param[in]  type             It identifies the type of the object
+*                              inside the list: service or qat
+* @param[in]  device           The ADF accelerator handle for the device
+* @param[in]  function         The function pointer to call
+* @param[in]  state_check      The state to check for
+*
+*****************************************************************************/
+#define SAL_FOR_EACH_STATE(list, type, device, function, state_check) \
+	do {                                                          \
+		sal_list_t *curr_element = list;                      \
+		typeof(type) *process = NULL;                         \
+		while (NULL != curr_element) {                        \
+			process = (typeof(type) *)SalList_getObject(  \
+			    curr_element);                            \
+			if (process->state == state_check) {          \
+				process->function(device, process);   \
+			} else {                                      \
+				break;                                \
+			}                                             \
+			curr_element = SalList_next(curr_element);    \
+		}                                                     \
 	} while (0)
 
 /*************************************************************************
@@ -257,7 +256,7 @@ CpaStatus SalCtrl_CryptoStop(icp_accel_dev_t *device, sal_service_t *service);
  *
  *************************************************************************/
 CpaStatus SalCtrl_CryptoShutdown(icp_accel_dev_t *device,
-				 sal_service_t *service);
+    sal_service_t *service);
 
 /*************************************************************************
  * @ingroup SalCtrl
@@ -282,7 +281,7 @@ CpaStatus SalCtrl_CryptoShutdown(icp_accel_dev_t *device,
  *
  *************************************************************************/
 void SalCtrl_CyQueryCapabilities(sal_service_t *pGenericService,
-				 CpaCyCapabilitiesInfo *pCapInfo);
+    CpaCyCapabilitiesInfo *pCapInfo);
 
 /*************************************************************************
  * @ingroup SalCtrl
@@ -309,7 +308,7 @@ void SalCtrl_CyQueryCapabilities(sal_service_t *pGenericService,
  *************************************************************************/
 
 CpaStatus SalCtrl_CompressionInit(icp_accel_dev_t *device,
-				  sal_service_t *service);
+    sal_service_t *service);
 
 /*************************************************************************
  * @ingroup SalCtrl
@@ -334,7 +333,7 @@ CpaStatus SalCtrl_CompressionInit(icp_accel_dev_t *device,
  *************************************************************************/
 
 CpaStatus SalCtrl_CompressionStart(icp_accel_dev_t *device,
-				   sal_service_t *service);
+    sal_service_t *service);
 
 /*************************************************************************
  * @ingroup SalCtrl
@@ -361,7 +360,7 @@ CpaStatus SalCtrl_CompressionStart(icp_accel_dev_t *device,
  *************************************************************************/
 
 CpaStatus SalCtrl_CompressionStop(icp_accel_dev_t *device,
-				  sal_service_t *service);
+    sal_service_t *service);
 
 /*************************************************************************
  * @ingroup SalCtrl
@@ -388,7 +387,7 @@ CpaStatus SalCtrl_CompressionStop(icp_accel_dev_t *device,
  *************************************************************************/
 
 CpaStatus SalCtrl_CompressionShutdown(icp_accel_dev_t *device,
-				      sal_service_t *service);
+    sal_service_t *service);
 
 /*************************************************************************
  * @ingroup SalCtrl
@@ -415,7 +414,7 @@ CpaStatus SalCtrl_CompressionShutdown(icp_accel_dev_t *device,
  *************************************************************************/
 
 CpaStatus SalCtrl_GetEnabledServices(icp_accel_dev_t *device,
-				     Cpa32U *pEnabledServices);
+    Cpa32U *pEnabledServices);
 
 /*************************************************************************
  * @ingroup SalCtrl
@@ -440,7 +439,7 @@ CpaStatus SalCtrl_GetEnabledServices(icp_accel_dev_t *device,
  *************************************************************************/
 
 CpaBoolean SalCtrl_IsServiceEnabled(Cpa32U enabled_services,
-				    sal_service_type_t service);
+    sal_service_type_t service);
 
 /*************************************************************************
  * @ingroup SalCtrl
@@ -466,7 +465,7 @@ CpaBoolean SalCtrl_IsServiceEnabled(Cpa32U enabled_services,
  *
  *************************************************************************/
 CpaBoolean SalCtrl_IsServiceSupported(icp_accel_dev_t *device,
-				      sal_service_type_t service);
+    sal_service_type_t service);
 
 /*************************************************************************
  * @ingroup SalCtrl
@@ -491,6 +490,6 @@ CpaBoolean SalCtrl_IsServiceSupported(icp_accel_dev_t *device,
  *************************************************************************/
 
 CpaStatus SalCtrl_GetSupportedServices(icp_accel_dev_t *device,
-				       Cpa32U enabled_services);
+    Cpa32U enabled_services);
 
 #endif

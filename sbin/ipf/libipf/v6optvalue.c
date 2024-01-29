@@ -8,11 +8,10 @@
  */
 #include "ipf.h"
 
-
-
-u_32_t getv6optbyname(char *optname)
+u_32_t
+getv6optbyname(char *optname)
 {
-#ifdef	USE_INET6
+#ifdef USE_INET6
 	struct ipopt_names *io;
 
 	for (io = v6ionames; io->on_name; io++)
@@ -22,10 +21,10 @@ u_32_t getv6optbyname(char *optname)
 	return (-1);
 }
 
-
-u_32_t getv6optbyvalue(int optval)
+u_32_t
+getv6optbyvalue(int optval)
 {
-#ifdef	USE_INET6
+#ifdef USE_INET6
 	struct ipopt_names *io;
 
 	for (io = v6ionames; io->on_name; io++)

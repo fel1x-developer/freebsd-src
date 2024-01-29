@@ -41,6 +41,7 @@
 #include <sys/sx.h>
 #include <sys/sysctl.h>
 #include <sys/uio.h>
+
 #include <machine/bus.h>
 
 #ifdef FDT
@@ -48,8 +49,8 @@
 #include <dev/ofw/ofw_bus_subr.h>
 #endif
 
-#include <dev/iicbus/iiconf.h>
 #include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
 
 #include "iicbus_if.h"
 
@@ -59,68 +60,65 @@
  * here to limit how long we occupy the bus with a single transfer, and because
  * there are temporary buffers of these sizes allocated on the stack.
  */
-#define	MAX_RD_SZ	256	/* Largest read size we support */
-#define	MAX_WR_SZ	256	/* Largest write size we support */
+#define MAX_RD_SZ 256 /* Largest read size we support */
+#define MAX_WR_SZ 256 /* Largest write size we support */
 
 struct icee_softc {
-	device_t	dev;		/* Myself */
-	struct cdev	*cdev;		/* user interface */
-	int		addr;		/* Slave address on the bus */
-	int		size;		/* How big am I? */
-	int		type;		/* What address type 8 or 16 bit? */
-	int		wr_sz;		/* What's the write page size */
+	device_t dev;	   /* Myself */
+	struct cdev *cdev; /* user interface */
+	int addr;	   /* Slave address on the bus */
+	int size;	   /* How big am I? */
+	int type;	   /* What address type 8 or 16 bit? */
+	int wr_sz;	   /* What's the write page size */
 };
 
 #ifdef FDT
 struct eeprom_desc {
-	int	    type;
-	int	    size;
-	int	    wr_sz;
+	int type;
+	int size;
+	int wr_sz;
 	const char *name;
 };
 
 static struct eeprom_desc type_desc[] = {
-	{ 8,        128,   8, "AT24C01"},
-	{ 8,        256,   8, "AT24C02"},
-	{ 8,        512,  16, "AT24C04"},
-	{ 8,       1024,  16, "AT24C08"},
-	{ 8,   2 * 1024,  16, "AT24C16"},
-	{16,   4 * 1024,  32, "AT24C32"},
-	{16,   8 * 1024,  32, "AT24C64"},
-	{16,  16 * 1024,  64, "AT24C128"},
-	{16,  32 * 1024,  64, "AT24C256"},
-	{16,  64 * 1024, 128, "AT24C512"},
-	{16, 128 * 1024, 256, "AT24CM01"},
+	{ 8, 128, 8, "AT24C01" },
+	{ 8, 256, 8, "AT24C02" },
+	{ 8, 512, 16, "AT24C04" },
+	{ 8, 1024, 16, "AT24C08" },
+	{ 8, 2 * 1024, 16, "AT24C16" },
+	{ 16, 4 * 1024, 32, "AT24C32" },
+	{ 16, 8 * 1024, 32, "AT24C64" },
+	{ 16, 16 * 1024, 64, "AT24C128" },
+	{ 16, 32 * 1024, 64, "AT24C256" },
+	{ 16, 64 * 1024, 128, "AT24C512" },
+	{ 16, 128 * 1024, 256, "AT24CM01" },
 };
 
 static struct ofw_compat_data compat_data[] = {
-	{"atmel,24c01",	  (uintptr_t)(&type_desc[0])},
-	{"atmel,24c02",	  (uintptr_t)(&type_desc[1])},
-	{"atmel,24c04",	  (uintptr_t)(&type_desc[2])},
-	{"atmel,24c08",	  (uintptr_t)(&type_desc[3])},
-	{"atmel,24c16",	  (uintptr_t)(&type_desc[4])},
-	{"atmel,24c32",	  (uintptr_t)(&type_desc[5])},
-	{"atmel,24c64",	  (uintptr_t)(&type_desc[6])},
-	{"atmel,24c128",  (uintptr_t)(&type_desc[7])},
-	{"atmel,24c256",  (uintptr_t)(&type_desc[8])},
-	{"atmel,24c512",  (uintptr_t)(&type_desc[9])},
-	{"atmel,24c1024", (uintptr_t)(&type_desc[10])},
-	{NULL,		  (uintptr_t)NULL},
+	{ "atmel,24c01", (uintptr_t)(&type_desc[0]) },
+	{ "atmel,24c02", (uintptr_t)(&type_desc[1]) },
+	{ "atmel,24c04", (uintptr_t)(&type_desc[2]) },
+	{ "atmel,24c08", (uintptr_t)(&type_desc[3]) },
+	{ "atmel,24c16", (uintptr_t)(&type_desc[4]) },
+	{ "atmel,24c32", (uintptr_t)(&type_desc[5]) },
+	{ "atmel,24c64", (uintptr_t)(&type_desc[6]) },
+	{ "atmel,24c128", (uintptr_t)(&type_desc[7]) },
+	{ "atmel,24c256", (uintptr_t)(&type_desc[8]) },
+	{ "atmel,24c512", (uintptr_t)(&type_desc[9]) },
+	{ "atmel,24c1024", (uintptr_t)(&type_desc[10]) },
+	{ NULL, (uintptr_t)NULL },
 };
 #endif
 
-#define CDEV2SOFTC(dev)		((dev)->si_drv1)
+#define CDEV2SOFTC(dev) ((dev)->si_drv1)
 
 /* cdev routines */
 static d_read_t icee_read;
 static d_write_t icee_write;
 
-static struct cdevsw icee_cdevsw =
-{
-	.d_version = D_VERSION,
+static struct cdevsw icee_cdevsw = { .d_version = D_VERSION,
 	.d_read = icee_read,
-	.d_write = icee_write
-};
+	.d_write = icee_write };
 
 static int
 icee_probe(device_t dev)
@@ -131,8 +129,8 @@ icee_probe(device_t dev)
 	if (!ofw_bus_status_okay(dev))
 		return (ENXIO);
 
-	d = (struct eeprom_desc *)
-	    ofw_bus_search_compatible(dev, compat_data)->ocd_data;
+	d = (struct eeprom_desc *)ofw_bus_search_compatible(dev, compat_data)
+		->ocd_data;
 	if (d != NULL) {
 		device_set_desc(dev, d->name);
 		return (BUS_PROBE_DEFAULT);
@@ -150,11 +148,12 @@ icee_init(struct icee_softc *sc)
 #ifdef FDT
 	struct eeprom_desc *d;
 
-	d = (struct eeprom_desc *)
-	    ofw_bus_search_compatible(sc->dev, compat_data)->ocd_data;
+	d = (struct eeprom_desc *)ofw_bus_search_compatible(sc->dev,
+	    compat_data)
+		->ocd_data;
 	if (d != NULL) {
-		sc->size  = d->size;
-		sc->type  = d->type;
+		sc->size = d->size;
+		sc->type = d->type;
 		sc->wr_sz = d->wr_sz;
 		return (0);
 	}
@@ -220,8 +219,8 @@ icee_read(struct cdev *dev, struct uio *uio, int ioflag)
 	uint8_t data[MAX_RD_SZ];
 	int error, i, len, slave;
 	struct iic_msg msgs[2] = {
-	     { 0, IIC_M_WR, 1, addr },
-	     { 0, IIC_M_RD, 0, data },
+		{ 0, IIC_M_WR, 1, addr },
+		{ 0, IIC_M_RD, 0, data },
 	};
 
 	sc = CDEV2SOFTC(dev);
@@ -279,10 +278,10 @@ icee_write(struct cdev *dev, struct uio *uio, int ioflag)
 	int error, len, slave, waitlimit;
 	uint8_t data[MAX_WR_SZ + 2];
 	struct iic_msg wr[1] = {
-	     { 0, IIC_M_WR, 0, data },
+		{ 0, IIC_M_WR, 0, data },
 	};
 	struct iic_msg rd[1] = {
-	     { 0, IIC_M_RD, 1, data },
+		{ 0, IIC_M_RD, 1, data },
 	};
 
 	sc = CDEV2SOFTC(dev);
@@ -334,13 +333,11 @@ icee_write(struct cdev *dev, struct uio *uio, int ioflag)
 	return error;
 }
 
-static device_method_t icee_methods[] = {
-	DEVMETHOD(device_probe,		icee_probe),
-	DEVMETHOD(device_attach,	icee_attach),
-	DEVMETHOD(device_detach,	icee_detach),
+static device_method_t icee_methods[] = { DEVMETHOD(device_probe, icee_probe),
+	DEVMETHOD(device_attach, icee_attach),
+	DEVMETHOD(device_detach, icee_detach),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 static driver_t icee_driver = {
 	"icee",

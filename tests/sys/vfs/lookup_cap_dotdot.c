@@ -26,8 +26,8 @@
 
 #include <sys/param.h>
 #include <sys/capsicum.h>
-#include <sys/sysctl.h>
 #include <sys/stat.h>
+#include <sys/sysctl.h>
 
 #include <atf-c.h>
 #include <errno.h>
@@ -45,7 +45,7 @@ touchat(int _dirfd, const char *name)
 	int fd;
 
 	ATF_REQUIRE((fd = openat(_dirfd, name, O_CREAT | O_TRUNC | O_WRONLY,
-	    0777)) >= 0);
+			 0777)) >= 0);
 	ATF_REQUIRE(close(fd) == 0);
 }
 
@@ -227,7 +227,8 @@ ATF_TC_BODY(lookup_cap_dotdot__negative, tc)
 
 	ATF_REQUIRE_ERRNO(ENOTCAPABLE, openat(dirfd, "..", O_RDONLY) < 0);
 	ATF_REQUIRE_ERRNO(ENOTCAPABLE, openat(dirfd, "d1/../..", O_RDONLY) < 0);
-	ATF_REQUIRE_ERRNO(ENOTCAPABLE, openat(dirfd, "../testdir/d1/f1", O_RDONLY) < 0);
+	ATF_REQUIRE_ERRNO(ENOTCAPABLE,
+	    openat(dirfd, "../testdir/d1/f1", O_RDONLY) < 0);
 }
 
 ATF_TC(lookup_cap_dotdot__root);

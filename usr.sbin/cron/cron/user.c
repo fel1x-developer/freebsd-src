@@ -19,7 +19,6 @@
  * SOFTWARE.
  */
 
-
 /* vix 26jan87 [log is in RCS file]
  */
 
@@ -33,7 +32,7 @@ free_user(user *u)
 	entry *e, *ne;
 
 	free(u->name);
-	for (e = u->crontab;  e != NULL;  e = ne) {
+	for (e = u->crontab; e != NULL; e = ne) {
 		ne = e->next;
 		free_entry(e);
 	}
@@ -64,9 +63,10 @@ load_user(int crontab_fd, struct passwd *pw, const char *name)
 
 	Debug(DPARS, ("load_user()\n"))
 
-	/* file is open.  build user entry, then read the crontab file.
-	 */
-	if ((u = (user *) malloc(sizeof(user))) == NULL) {
+	    /* file is open.  build user entry, then read the crontab file.
+	     */
+	    if ((u = (user *)malloc(sizeof(user))) == NULL)
+	{
 		errno = ENOMEM;
 		return (NULL);
 	}
@@ -77,7 +77,7 @@ load_user(int crontab_fd, struct passwd *pw, const char *name)
 	}
 	u->crontab = NULL;
 
-	/* 
+	/*
 	 * init environment.  this will be copied/augmented for each entry.
 	 */
 	if ((envp = env_init()) == NULL) {
@@ -96,7 +96,7 @@ load_user(int crontab_fd, struct passwd *pw, const char *name)
 			u = NULL;
 			goto done;
 		case FALSE:
-			User_name = u->name;    /* for log_error */
+			User_name = u->name; /* for log_error */
 			e = load_entry(file, log_error, pw, envp);
 			if (e) {
 				e->next = u->crontab;
@@ -115,9 +115,8 @@ load_user(int crontab_fd, struct passwd *pw, const char *name)
 		}
 	}
 
- done:
+done:
 	env_free(envp);
 	fclose(file);
-	Debug(DPARS, ("...load_user() done\n"))
-	return (u);
+	Debug(DPARS, ("...load_user() done\n")) return (u);
 }

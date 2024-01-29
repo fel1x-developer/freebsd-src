@@ -35,17 +35,18 @@
 #include <sys/types.h>
 #include <sys/tree.h>
 
-#include <stdio.h>
-#include <stddef.h>
-#include <stdlib.h>
 #include <errno.h>
+#include <limits.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <wchar.h>
-#include <limits.h>
+
+#include "collate.h"
 #include "localedef.h"
 #include "parser.h"
-#include "collate.h"
 
 _Static_assert(COLL_WEIGHTS_MAX == 10, "This code assumes a value of 10");
 
@@ -131,33 +132,33 @@ _Static_assert(COLL_WEIGHTS_MAX == 10, "This code assumes a value of 10");
  * priority dependent on <A>.)
  */
 typedef enum {
-	UNKNOWN,	/* priority is totally unknown */
-	RESOLVED,	/* priority value fully resolved */
-	REFER		/* priority is a reference (index) */
+	UNKNOWN,  /* priority is totally unknown */
+	RESOLVED, /* priority value fully resolved */
+	REFER	  /* priority is a reference (index) */
 } res_t;
 
 typedef struct weight {
-	int32_t		pri;
-	int		opt;
+	int32_t pri;
+	int opt;
 	RB_ENTRY(weight) entry;
 } weight_t;
 
 typedef struct priority {
-	res_t		res;
-	int32_t		pri;
-	int		pass;
-	int		lineno;
+	res_t res;
+	int32_t pri;
+	int pass;
+	int lineno;
 } collpri_t;
 
-#define	NUM_WT	collinfo.directive_count
+#define NUM_WT collinfo.directive_count
 
 /*
  * These are the abstract collating symbols, which are just a symbolic
  * way to reference a priority.
  */
 struct collsym {
-	char		*name;
-	int32_t		ref;
+	char *name;
+	int32_t ref;
 	RB_ENTRY(collsym) entry;
 };
 
@@ -166,8 +167,8 @@ struct collsym {
  * different priorities at different levels.
  */
 typedef struct collundef {
-	char		*name;
-	int32_t		ref[COLL_WEIGHTS_MAX];
+	char *name;
+	int32_t ref[COLL_WEIGHTS_MAX];
 	RB_ENTRY(collundef) entry;
 } collundef_t;
 
@@ -178,9 +179,9 @@ typedef struct collundef {
  * as a character between <C> and <D>.
  */
 struct collelem {
-	char		*symbol;
-	wchar_t		*expand;
-	int32_t		ref[COLL_WEIGHTS_MAX];
+	char *symbol;
+	wchar_t *expand;
+	int32_t ref[COLL_WEIGHTS_MAX];
 	RB_ENTRY(collelem) rb_bysymbol;
 	RB_ENTRY(collelem) rb_byexpand;
 };
@@ -189,8 +190,8 @@ struct collelem {
  * Individual characters have a sequence of weights as well.
  */
 typedef struct collchar {
-	wchar_t		wc;
-	int32_t		ref[COLL_WEIGHTS_MAX];
+	wchar_t wc;
+	int32_t ref[COLL_WEIGHTS_MAX];
 	RB_ENTRY(collchar) entry;
 } collchar_t;
 
@@ -200,11 +201,11 @@ typedef struct collchar {
  * fully resolved priority for the key, because creation of
  * substitutions creates a resolved priority at the same time.
  */
-typedef struct subst{
-	int32_t		key;
-	int32_t		ref[COLLATE_STR_LEN];
-	RB_ENTRY(subst)	entry;
-	RB_ENTRY(subst)	entry_ref;
+typedef struct subst {
+	int32_t key;
+	int32_t ref[COLLATE_STR_LEN];
+	RB_ENTRY(subst) entry;
+	RB_ENTRY(subst) entry_ref;
 } subst_t;
 
 static RB_HEAD(collsyms, collsym) collsyms;
@@ -215,7 +216,7 @@ static RB_HEAD(collchars, collchar) collchars;
 static RB_HEAD(substs, subst) substs[COLL_WEIGHTS_MAX];
 static RB_HEAD(substs_ref, subst) substs_ref[COLL_WEIGHTS_MAX];
 static RB_HEAD(weights, weight) weights[COLL_WEIGHTS_MAX];
-static int32_t		nweight[COLL_WEIGHTS_MAX];
+static int32_t nweight[COLL_WEIGHTS_MAX];
 
 /*
  * This is state tracking for the ellipsis token.  Note that we start
@@ -257,9 +258,9 @@ static int32_t subst_count[COLL_WEIGHTS_MAX];
 static int32_t chain_count;
 static int32_t large_count;
 
-static collpri_t	*prilist = NULL;
-static int		numpri = 0;
-static int		maxpri = 0;
+static collpri_t *prilist = NULL;
+static int numpri = 0;
+static int maxpri = 0;
 
 static void start_order(int);
 
@@ -270,9 +271,9 @@ new_pri(void)
 
 	if (numpri >= maxpri) {
 		maxpri = maxpri ? maxpri * 2 : 1024;
-		prilist = realloc(prilist, sizeof (collpri_t) * maxpri);
+		prilist = realloc(prilist, sizeof(collpri_t) * maxpri);
 		if (prilist == NULL) {
-			fprintf(stderr,"out of memory\n");
+			fprintf(stderr, "out of memory\n");
 			return (-1);
 		}
 		for (i = numpri; i < maxpri; i++) {
@@ -297,7 +298,7 @@ get_pri(int32_t ref)
 static void
 set_pri(int32_t ref, int32_t v, res_t res)
 {
-	collpri_t	*pri;
+	collpri_t *pri;
 
 	pri = get_pri(ref);
 
@@ -312,8 +313,7 @@ set_pri(int32_t ref, int32_t v, res_t res)
 	}
 
 	if (pri->res != UNKNOWN) {
-		warn("repeated item in order list (first on %d)",
-		    pri->lineno);
+		warn("repeated item in order list (first on %d)", pri->lineno);
 		return;
 	}
 	pri->lineno = lineno;
@@ -324,8 +324,8 @@ set_pri(int32_t ref, int32_t v, res_t res)
 static int32_t
 resolve_pri(int32_t ref)
 {
-	collpri_t	*pri;
-	static int32_t	pass = 0;
+	collpri_t *pri;
+	static int32_t pass = 0;
 
 	pri = get_pri(ref);
 	pass++;
@@ -333,7 +333,7 @@ resolve_pri(int32_t ref)
 		if (pri->pass == pass) {
 			/* report a line with the circular symbol */
 			lineno = pri->lineno;
-			fprintf(stderr,"circular reference in order list\n");
+			fprintf(stderr, "circular reference in order list\n");
 			return (-1);
 		}
 		if ((pri->pri < 0) || (pri->pri >= numpri)) {
@@ -356,8 +356,8 @@ resolve_pri(int32_t ref)
 static int
 weight_compare(const void *n1, const void *n2)
 {
-	int32_t	k1 = ((const weight_t *)n1)->pri;
-	int32_t	k2 = ((const weight_t *)n2)->pri;
+	int32_t k1 = ((const weight_t *)n1)->pri;
+	int32_t k2 = ((const weight_t *)n2)->pri;
 
 	return (k1 < k2 ? -1 : k1 > k2 ? 1 : 0);
 }
@@ -401,7 +401,8 @@ element_compare_symbol(const void *n1, const void *n2)
 	return ((rv < 0) ? -1 : (rv > 0) ? 1 : 0);
 }
 
-RB_GENERATE_STATIC(elem_by_symbol, collelem, rb_bysymbol, element_compare_symbol);
+RB_GENERATE_STATIC(elem_by_symbol, collelem, rb_bysymbol,
+    element_compare_symbol);
 
 static int
 element_compare_expand(const void *n1, const void *n2)
@@ -414,13 +415,14 @@ element_compare_expand(const void *n1, const void *n2)
 	return ((rv < 0) ? -1 : (rv > 0) ? 1 : 0);
 }
 
-RB_GENERATE_STATIC(elem_by_expand, collelem, rb_byexpand, element_compare_expand);
+RB_GENERATE_STATIC(elem_by_expand, collelem, rb_byexpand,
+    element_compare_expand);
 
 static int
 collchar_compare(const void *n1, const void *n2)
 {
-	wchar_t	k1 = ((const collchar_t *)n1)->wc;
-	wchar_t	k2 = ((const collchar_t *)n2)->wc;
+	wchar_t k1 = ((const collchar_t *)n1)->wc;
+	wchar_t k2 = ((const collchar_t *)n2)->wc;
 
 	return (k1 < k2 ? -1 : k1 > k2 ? 1 : 0);
 }
@@ -430,8 +432,8 @@ RB_GENERATE_STATIC(collchars, collchar, entry, collchar_compare);
 static int
 subst_compare(const void *n1, const void *n2)
 {
-	int32_t	k1 = ((const subst_t *)n1)->key;
-	int32_t	k2 = ((const subst_t *)n2)->key;
+	int32_t k1 = ((const subst_t *)n1)->key;
+	int32_t k2 = ((const subst_t *)n2)->key;
 
 	return (k1 < k2 ? -1 : k1 > k2 ? 1 : 0);
 }
@@ -473,7 +475,7 @@ init_collate(void)
 		nweight[i] = 1;
 	}
 
-	(void) memset(&collinfo, 0, sizeof (collinfo));
+	(void)memset(&collinfo, 0, sizeof(collinfo));
 
 	/* allocate some initial priorities */
 	pri_ignore = new_pri();
@@ -491,10 +493,10 @@ init_collate(void)
 void
 define_collsym(char *name)
 {
-	collsym_t	*sym;
+	collsym_t *sym;
 
 	if ((sym = calloc(1, sizeof(*sym))) == NULL) {
-		fprintf(stderr,"out of memory\n");
+		fprintf(stderr, "out of memory\n");
 		return;
 	}
 	sym->name = name;
@@ -515,7 +517,7 @@ define_collsym(char *name)
 collsym_t *
 lookup_collsym(char *name)
 {
-	collsym_t	srch;
+	collsym_t srch;
 
 	srch.name = name;
 	return (RB_FIND(collsyms, &collsyms, &srch));
@@ -524,7 +526,7 @@ lookup_collsym(char *name)
 collelem_t *
 lookup_collelem(char *symbol)
 {
-	collelem_t	srch;
+	collelem_t srch;
 
 	srch.symbol = symbol;
 	return (RB_FIND(elem_by_symbol, &elem_by_symbol, &srch));
@@ -533,15 +535,15 @@ lookup_collelem(char *symbol)
 static collundef_t *
 get_collundef(char *name)
 {
-	collundef_t	srch;
-	collundef_t	*ud;
-	int		i;
+	collundef_t srch;
+	collundef_t *ud;
+	int i;
 
 	srch.name = name;
 	if ((ud = RB_FIND(collundefs, &collundefs, &srch)) == NULL) {
 		if (((ud = calloc(1, sizeof(*ud))) == NULL) ||
 		    ((ud->name = strdup(name)) == NULL)) {
-			fprintf(stderr,"out of memory\n");
+			fprintf(stderr, "out of memory\n");
 			free(ud);
 			return (NULL);
 		}
@@ -557,9 +559,9 @@ get_collundef(char *name)
 static collchar_t *
 get_collchar(wchar_t wc, int create)
 {
-	collchar_t	srch;
-	collchar_t	*cc;
-	int		i;
+	collchar_t srch;
+	collchar_t *cc;
+	int i;
 
 	srch.wc = wc;
 	cc = RB_FIND(collchars, &collchars, &srch);
@@ -590,10 +592,10 @@ end_order_collsym(collsym_t *sym)
 void
 end_order(void)
 {
-	int		i;
-	int32_t		pri;
-	int32_t		ref;
-	collpri_t	*p;
+	int i;
+	int32_t pri;
+	int32_t ref;
+	collpri_t *p;
 
 	/* advance the priority/weight */
 	pri = nextpri;
@@ -602,8 +604,7 @@ end_order(void)
 	case T_CHAR:
 		for (i = 0; i < NUM_WT; i++) {
 			if (((ref = order_weights[i]) < 0) ||
-			    ((p = get_pri(ref)) == NULL) ||
-			    (p->pri == -1)) {
+			    ((p = get_pri(ref)) == NULL) || (p->pri == -1)) {
 				/* unspecified weight is a self reference */
 				set_pri(currchar->ref[i], pri, RESOLVED);
 			} else {
@@ -647,8 +648,7 @@ end_order(void)
 	case T_UNDEFINED:
 		for (i = 0; i < NUM_WT; i++) {
 			if (((ref = order_weights[i]) < 0) ||
-			    ((p = get_pri(ref)) == NULL) ||
-			    (p->pri == -1)) {
+			    ((p = get_pri(ref)) == NULL) || (p->pri == -1)) {
 				set_pri(pri_undefined[i], -1, RESOLVED);
 			} else {
 				set_pri(pri_undefined[i], ref, REFER);
@@ -660,8 +660,7 @@ end_order(void)
 	case T_SYMBOL:
 		for (i = 0; i < NUM_WT; i++) {
 			if (((ref = order_weights[i]) < 0) ||
-			    ((p = get_pri(ref)) == NULL) ||
-			    (p->pri == -1)) {
+			    ((p = get_pri(ref)) == NULL) || (p->pri == -1)) {
 				set_pri(currundef->ref[i], pri, RESOLVED);
 			} else {
 				set_pri(currundef->ref[i], ref, REFER);
@@ -680,7 +679,7 @@ end_order(void)
 static void
 start_order(int type)
 {
-	int	i;
+	int i;
 
 	lastorder = currorder;
 	currorder = type;
@@ -712,8 +711,8 @@ start_order_symbol(char *name)
 void
 start_order_char(wchar_t wc)
 {
-	collchar_t	*cc;
-	int32_t		ref;
+	collchar_t *cc;
+	int32_t ref;
 
 	start_order(T_CHAR);
 
@@ -725,7 +724,7 @@ start_order_char(wchar_t wc)
 	 * different weights than the range members.
 	 */
 	if (lastorder == T_ELLIPSIS) {
-		int		i;
+		int i;
 
 		if (wc < ellipsis_start) {
 			fprintf(stderr, "malformed range!\n");
@@ -771,7 +770,7 @@ start_order_collelem(collelem_t *e)
 void
 start_order_ellipsis(void)
 {
-	int	i;
+	int i;
 
 	start_order(T_ELLIPSIS);
 
@@ -788,11 +787,11 @@ start_order_ellipsis(void)
 void
 define_collelem(char *name, wchar_t *wcs)
 {
-	collelem_t	*e;
-	int		i;
+	collelem_t *e;
+	int i;
 
 	if (wcslen(wcs) >= COLLATE_STR_LEN) {
-		fprintf(stderr,"expanded collation element too long\n");
+		fprintf(stderr, "expanded collation element too long\n");
 		return;
 	}
 
@@ -850,7 +849,8 @@ void
 add_order_directive(void)
 {
 	if (collinfo.directive_count >= COLL_WEIGHTS_MAX) {
-		fprintf(stderr, "too many directives (max %d)\n", COLL_WEIGHTS_MAX);
+		fprintf(stderr, "too many directives (max %d)\n",
+		    COLL_WEIGHTS_MAX);
 		return;
 	}
 	collinfo.directive_count++;
@@ -920,10 +920,10 @@ void
 add_order_subst(void)
 {
 	subst_t srch;
-	subst_t	*s;
+	subst_t *s;
 	int i;
 
-	(void) memset(&srch, 0, sizeof (srch));
+	(void)memset(&srch, 0, sizeof(srch));
 	for (i = 0; i < curr_subst; i++) {
 		srch.ref[i] = subst_weights[i];
 		subst_weights[i] = 0;
@@ -932,7 +932,7 @@ add_order_subst(void)
 
 	if (s == NULL) {
 		if ((s = calloc(1, sizeof(*s))) == NULL) {
-			fprintf(stderr,"out of memory\n");
+			fprintf(stderr, "out of memory\n");
 			return;
 		}
 		s->key = new_pri();
@@ -964,7 +964,6 @@ add_order_subst(void)
 	}
 	curr_subst = 0;
 
-
 	/*
 	 * We are using the current (unique) priority as a search key
 	 * in the substitution table.
@@ -976,7 +975,7 @@ static void
 add_subst_pri(int32_t ref)
 {
 	if (curr_subst >= COLLATE_STR_LEN) {
-		fprintf(stderr,"substitution string is too long\n");
+		fprintf(stderr, "substitution string is too long\n");
 		return;
 	}
 	subst_weights[curr_subst] = ref;
@@ -988,9 +987,7 @@ add_subst_char(wchar_t wc)
 {
 	collchar_t *cc;
 
-
-	if (((cc = get_collchar(wc, 1)) == NULL) ||
-	    (cc->wc != wc)) {
+	if (((cc = get_collchar(wc, 1)) == NULL) || (cc->wc != wc)) {
 		INTERR;
 		return;
 	}
@@ -1059,9 +1056,9 @@ add_weights(int32_t *refs)
 int32_t
 get_weight(int32_t ref, int pass)
 {
-	weight_t	srch;
-	weight_t	*w;
-	int32_t		pri;
+	weight_t srch;
+	weight_t *w;
+	int32_t pri;
 
 	pri = resolve_pri(ref);
 	if (pri & COLLATE_SUBST_PRIORITY) {
@@ -1092,37 +1089,39 @@ wsncpy(wchar_t *s1, const wchar_t *s2, size_t n)
 	return (os1);
 }
 
-#define RB_COUNT(x, name, head, cnt) do { \
-	(cnt) = 0; \
-	RB_FOREACH(x, name, (head)) { \
-		(cnt)++; \
-	} \
-} while (0)
+#define RB_COUNT(x, name, head, cnt)           \
+	do {                                   \
+		(cnt) = 0;                     \
+		RB_FOREACH (x, name, (head)) { \
+			(cnt)++;               \
+		}                              \
+	} while (0)
 
-#define RB_NUMNODES(type, name, head, cnt) do { \
-	type *t; \
-	cnt = 0; \
-	RB_FOREACH(t, name, head) { \
-		cnt++; \
-	} \
-} while (0)
+#define RB_NUMNODES(type, name, head, cnt)   \
+	do {                                 \
+		type *t;                     \
+		cnt = 0;                     \
+		RB_FOREACH (t, name, head) { \
+			cnt++;               \
+		}                            \
+	} while (0)
 
 void
 dump_collate(void)
 {
-	FILE			*f;
-	int			i, j, n;
-	size_t			sz;
-	int32_t			pri;
-	collelem_t		*ce;
-	collchar_t		*cc;
-	subst_t			*sb;
-	char			fmt_version[COLLATE_FMT_VERSION_LEN];
-	char			def_version[XLOCALE_DEF_VERSION_LEN];
-	collate_char_t		chars[UCHAR_MAX + 1];
-	collate_large_t		*large;
-	collate_subst_t		*subst[COLL_WEIGHTS_MAX];
-	collate_chain_t		*chain;
+	FILE *f;
+	int i, j, n;
+	size_t sz;
+	int32_t pri;
+	collelem_t *ce;
+	collchar_t *cc;
+	subst_t *sb;
+	char fmt_version[COLLATE_FMT_VERSION_LEN];
+	char def_version[XLOCALE_DEF_VERSION_LEN];
+	collate_char_t chars[UCHAR_MAX + 1];
+	collate_large_t *large;
+	collate_subst_t *subst[COLL_WEIGHTS_MAX];
+	collate_chain_t *chain;
 
 	/*
 	 * We have to run through a preliminary pass to identify all the
@@ -1132,16 +1131,16 @@ dump_collate(void)
 		add_weight(pri_ignore, i);
 	}
 	for (i = 0; i < NUM_WT; i++) {
-		RB_FOREACH(sb, substs, &substs[i]) {
+		RB_FOREACH (sb, substs, &substs[i]) {
 			for (j = 0; sb->ref[j]; j++) {
 				add_weight(sb->ref[j], i);
 			}
 		}
 	}
-	RB_FOREACH(ce, elem_by_expand, &elem_by_expand) {
+	RB_FOREACH (ce, elem_by_expand, &elem_by_expand) {
 		add_weights(ce->ref);
 	}
-	RB_FOREACH(cc, collchars, &collchars) {
+	RB_FOREACH (cc, collchars, &collchars) {
 		add_weights(cc->ref);
 	}
 
@@ -1152,18 +1151,18 @@ dump_collate(void)
 	 */
 	for (i = 0; i < NUM_WT; i++) {
 		weight_t *w;
-		RB_FOREACH(w, weights, &weights[i]) {
+		RB_FOREACH (w, weights, &weights[i]) {
 			w->opt = nweight[i];
 			nweight[i] += 1;
 		}
 	}
 
-	(void) memset(&chars, 0, sizeof (chars));
-	(void) memset(fmt_version, 0, COLLATE_FMT_VERSION_LEN);
-	(void) strlcpy(fmt_version, COLLATE_FMT_VERSION, sizeof (fmt_version));
-	(void) memset(def_version, 0, XLOCALE_DEF_VERSION_LEN);
+	(void)memset(&chars, 0, sizeof(chars));
+	(void)memset(fmt_version, 0, COLLATE_FMT_VERSION_LEN);
+	(void)strlcpy(fmt_version, COLLATE_FMT_VERSION, sizeof(fmt_version));
+	(void)memset(def_version, 0, XLOCALE_DEF_VERSION_LEN);
 	if (version)
-		(void) strlcpy(def_version, version, sizeof (def_version));
+		(void)strlcpy(def_version, version, sizeof(def_version));
 
 	/*
 	 * We need to make sure we arrange for the UNDEFINED field
@@ -1188,13 +1187,13 @@ dump_collate(void)
 	for (i = 0; i <= UCHAR_MAX; i++) {
 		if ((cc = get_collchar(i, 0)) != NULL) {
 			for (j = 0; j < NUM_WT; j++) {
-				chars[i].pri[j] =
-				    htote(get_weight(cc->ref[j], j));
+				chars[i].pri[j] = htote(
+				    get_weight(cc->ref[j], j));
 			}
 		} else {
 			for (j = 0; j < NUM_WT; j++) {
-				chars[i].pri[j] =
-				    htote(get_weight(pri_undefined[j], j));
+				chars[i].pri[j] = htote(
+				    get_weight(pri_undefined[j], j));
 			}
 			/*
 			 * Per POSIX, for undefined characters, we
@@ -1218,7 +1217,7 @@ dump_collate(void)
 			return;
 		}
 		n = 0;
-		RB_FOREACH(sb, substs, &substs[i]) {
+		RB_FOREACH (sb, substs, &substs[i]) {
 			if ((st[n].key = resolve_pri(sb->key)) < 0) {
 				/* by definition these resolve! */
 				INTERR;
@@ -1228,8 +1227,7 @@ dump_collate(void)
 			}
 			st[n].key = htote(st[n].key);
 			for (j = 0; sb->ref[j]; j++) {
-				st[n].pri[j] = htote(get_weight(sb->ref[j],
-				    i));
+				st[n].pri[j] = htote(get_weight(sb->ref[j], i));
 			}
 			n++;
 		}
@@ -1237,7 +1235,6 @@ dump_collate(void)
 			INTERR;
 		subst[i] = st;
 	}
-
 
 	/*
 	 * Chains, i.e. collating elements
@@ -1249,8 +1246,8 @@ dump_collate(void)
 		return;
 	}
 	n = 0;
-	RB_FOREACH(ce, elem_by_expand, &elem_by_expand) {
-		(void) wsncpy(chain[n].str, ce->expand, COLLATE_STR_LEN);
+	RB_FOREACH (ce, elem_by_expand, &elem_by_expand) {
+		(void)wsncpy(chain[n].str, ce->expand, COLLATE_STR_LEN);
 		for (i = 0; i < NUM_WT; i++) {
 			chain[n].pri[i] = htote(get_weight(ce->ref[i], i));
 		}
@@ -1270,8 +1267,8 @@ dump_collate(void)
 	}
 
 	i = 0;
-	RB_FOREACH(cc, collchars, &collchars) {
-		int	undef = 0;
+	RB_FOREACH (cc, collchars, &collchars) {
+		int undef = 0;
 		/* we already gathered those */
 		if (cc->wc <= UCHAR_MAX)
 			continue;
@@ -1305,22 +1302,22 @@ dump_collate(void)
 
 	if ((wr_category(fmt_version, COLLATE_FMT_VERSION_LEN, f) < 0) ||
 	    (wr_category(def_version, XLOCALE_DEF_VERSION_LEN, f) < 0) ||
-	    (wr_category(&collinfo, sizeof (collinfo), f) < 0) ||
-	    (wr_category(&chars, sizeof (chars), f) < 0)) {
+	    (wr_category(&collinfo, sizeof(collinfo), f) < 0) ||
+	    (wr_category(&chars, sizeof(chars), f) < 0)) {
 		return;
 	}
 
 	for (i = 0; i < NUM_WT; i++) {
-		sz = sizeof (collate_subst_t) * subst_count[i];
+		sz = sizeof(collate_subst_t) * subst_count[i];
 		if (wr_category(subst[i], sz, f) < 0) {
 			return;
 		}
 	}
-	sz = sizeof (collate_chain_t) * chain_count;
+	sz = sizeof(collate_chain_t) * chain_count;
 	if (wr_category(chain, sz, f) < 0) {
 		return;
 	}
-	sz = sizeof (collate_large_t) * large_count;
+	sz = sizeof(collate_large_t) * large_count;
 	if (wr_category(large, sz, f) < 0) {
 		return;
 	}

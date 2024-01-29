@@ -24,21 +24,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #ifndef _LINUXKPI_LINUX_TIME_H_
-#define	_LINUXKPI_LINUX_TIME_H_
+#define _LINUXKPI_LINUX_TIME_H_
 
-#define	MSEC_PER_SEC	1000L
+#define MSEC_PER_SEC 1000L
 
-#define	NSEC_PER_USEC	1000L
-#define	NSEC_PER_MSEC	1000000L
-#define	NSEC_PER_SEC	1000000000L
+#define NSEC_PER_USEC 1000L
+#define NSEC_PER_MSEC 1000000L
+#define NSEC_PER_SEC 1000000000L
 
-#define	USEC_PER_MSEC	1000L
-#define	USEC_PER_SEC	1000000L
+#define USEC_PER_MSEC 1000L
+#define USEC_PER_SEC 1000000L
 
-#define	timespec64 timespec
+#define timespec64 timespec
 
-#include <sys/time.h>
 #include <sys/stdint.h>
+#include <sys/time.h>
 
 #include <linux/math64.h>
 
@@ -68,10 +68,10 @@ static inline int64_t
 timeval_to_ns(const struct timeval *tv)
 {
 	return ((int64_t)tv->tv_sec * NSEC_PER_SEC) +
-		tv->tv_usec * NSEC_PER_USEC;
+	    tv->tv_usec * NSEC_PER_USEC;
 }
 
-#define getrawmonotonic(ts)	nanouptime(ts)
+#define getrawmonotonic(ts) nanouptime(ts)
 
 static inline struct timespec
 timespec_sub(struct timespec lhs, struct timespec rhs)
@@ -119,13 +119,13 @@ ns_to_timespec(const int64_t nsec)
 	return (ts);
 }
 
-#define	ns_to_timespec64(_x)	ns_to_timespec(_x)
+#define ns_to_timespec64(_x) ns_to_timespec(_x)
 
 static inline int
 timespec_valid(const struct timespec *ts)
 {
-	if (ts->tv_sec < 0 || ts->tv_sec > 100000000 ||
-	    ts->tv_nsec < 0 || ts->tv_nsec >= 1000000000)
+	if (ts->tv_sec < 0 || ts->tv_sec > 100000000 || ts->tv_nsec < 0 ||
+	    ts->tv_nsec >= 1000000000)
 		return (0);
 	return (1);
 }

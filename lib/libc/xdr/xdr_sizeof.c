@@ -37,11 +37,13 @@
  * when serialized using XDR.
  */
 
-#include "namespace.h"
+#include <sys/types.h>
+
 #include <rpc/types.h>
 #include <rpc/xdr.h>
-#include <sys/types.h>
 #include <stdlib.h>
+
+#include "namespace.h"
 #include "un-namespace.h"
 
 /* ARGSUSED */
@@ -86,18 +88,18 @@ x_inline(XDR *xdrs, u_int len)
 	if (len < (u_int)(uintptr_t)xdrs->x_base) {
 		/* x_private was already allocated */
 		xdrs->x_handy += len;
-		return ((int32_t *) xdrs->x_private);
+		return ((int32_t *)xdrs->x_private);
 	} else {
 		/* Free the earlier space and allocate new area */
 		if (xdrs->x_private)
 			free(xdrs->x_private);
-		if ((xdrs->x_private = (caddr_t) malloc(len)) == NULL) {
+		if ((xdrs->x_private = (caddr_t)malloc(len)) == NULL) {
 			xdrs->x_base = 0;
 			return (NULL);
 		}
 		xdrs->x_base = (caddr_t)(uintptr_t)len;
 		xdrs->x_handy += len;
-		return ((int32_t *) xdrs->x_private);
+		return ((int32_t *)xdrs->x_private);
 	}
 }
 
@@ -127,8 +129,8 @@ xdr_sizeof(xdrproc_t func, void *data)
 	struct xdr_ops ops;
 	bool_t stat;
 	/* to stop ANSI-C compiler from complaining */
-	typedef  bool_t (* dummyfunc1)(XDR *, long *);
-	typedef  bool_t (* dummyfunc2)(XDR *, caddr_t, u_int);
+	typedef bool_t (*dummyfunc1)(XDR *, long *);
+	typedef bool_t (*dummyfunc2)(XDR *, caddr_t, u_int);
 
 	ops.x_putlong = x_putlong;
 	ops.x_putbytes = x_putbytes;
@@ -138,17 +140,17 @@ xdr_sizeof(xdrproc_t func, void *data)
 	ops.x_destroy = x_destroy;
 
 	/* the other harmless ones */
-	ops.x_getlong =  (dummyfunc1) harmless;
-	ops.x_getbytes = (dummyfunc2) harmless;
+	ops.x_getlong = (dummyfunc1)harmless;
+	ops.x_getbytes = (dummyfunc2)harmless;
 
 	x.x_op = XDR_ENCODE;
 	x.x_ops = &ops;
 	x.x_handy = 0;
-	x.x_private = (caddr_t) NULL;
-	x.x_base = (caddr_t) 0;
+	x.x_private = (caddr_t)NULL;
+	x.x_base = (caddr_t)0;
 
 	stat = func(&x, data);
 	if (x.x_private)
 		free(x.x_private);
-	return (stat == TRUE ? (unsigned) x.x_handy: 0);
+	return (stat == TRUE ? (unsigned)x.x_handy : 0);
 }

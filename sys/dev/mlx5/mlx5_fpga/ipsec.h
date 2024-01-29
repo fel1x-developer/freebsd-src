@@ -38,31 +38,34 @@
 #ifdef CONFIG_MLX5_FPGA
 
 void *mlx5_fpga_ipsec_sa_cmd_exec(struct mlx5_core_dev *mdev,
-				  struct mlx5_accel_ipsec_sa *cmd);
+    struct mlx5_accel_ipsec_sa *cmd);
 int mlx5_fpga_ipsec_sa_cmd_wait(void *context);
 
 u32 mlx5_fpga_ipsec_device_caps(struct mlx5_core_dev *mdev);
 unsigned int mlx5_fpga_ipsec_counters_count(struct mlx5_core_dev *mdev);
 int mlx5_fpga_ipsec_counters_read(struct mlx5_core_dev *mdev, u64 *counters,
-				  unsigned int counters_count);
+    unsigned int counters_count);
 
 int mlx5_fpga_ipsec_init(struct mlx5_core_dev *mdev);
 void mlx5_fpga_ipsec_cleanup(struct mlx5_core_dev *mdev);
 
 #else
 
-static inline void *mlx5_fpga_ipsec_sa_cmd_exec(struct mlx5_core_dev *mdev,
-						struct mlx5_accel_ipsec_sa *cmd)
+static inline void *
+mlx5_fpga_ipsec_sa_cmd_exec(struct mlx5_core_dev *mdev,
+    struct mlx5_accel_ipsec_sa *cmd)
 {
 	return ERR_PTR(-EOPNOTSUPP);
 }
 
-static inline int mlx5_fpga_ipsec_sa_cmd_wait(void *context)
+static inline int
+mlx5_fpga_ipsec_sa_cmd_wait(void *context)
 {
 	return -EOPNOTSUPP;
 }
 
-static inline u32 mlx5_fpga_ipsec_device_caps(struct mlx5_core_dev *mdev)
+static inline u32
+mlx5_fpga_ipsec_device_caps(struct mlx5_core_dev *mdev)
 {
 	return 0;
 }
@@ -73,21 +76,23 @@ mlx5_fpga_ipsec_counters_count(struct mlx5_core_dev *mdev)
 	return 0;
 }
 
-static inline int mlx5_fpga_ipsec_counters_read(struct mlx5_core_dev *mdev,
-						u64 *counters)
+static inline int
+mlx5_fpga_ipsec_counters_read(struct mlx5_core_dev *mdev, u64 *counters)
 {
 	return 0;
 }
 
-static inline int mlx5_fpga_ipsec_init(struct mlx5_core_dev *mdev)
+static inline int
+mlx5_fpga_ipsec_init(struct mlx5_core_dev *mdev)
 {
 	return 0;
 }
 
-static inline void mlx5_fpga_ipsec_cleanup(struct mlx5_core_dev *mdev)
+static inline void
+mlx5_fpga_ipsec_cleanup(struct mlx5_core_dev *mdev)
 {
 }
 
 #endif /* CONFIG_MLX5_FPGA */
 
-#endif	/* __MLX5_FPGA_SADB_H__ */
+#endif /* __MLX5_FPGA_SADB_H__ */

@@ -43,12 +43,12 @@ enum icp_qat_fw_cnv_error_type {
 	CNV_ERR_TYPE_UNKNOWN_ERROR
 };
 
-#define CNV_ERROR_TYPE_GET(latest_error)                                       \
-	({                                                                     \
-		__typeof__(latest_error) _lerror = latest_error;               \
-		(_lerror >> 12) > CNV_ERR_TYPE_UNKNOWN_ERROR ?                 \
-		    CNV_ERR_TYPE_UNKNOWN_ERROR :                               \
-		    (enum icp_qat_fw_cnv_error_type)(_lerror >> 12);           \
+#define CNV_ERROR_TYPE_GET(latest_error)                             \
+	({                                                           \
+		__typeof__(latest_error) _lerror = latest_error;     \
+		(_lerror >> 12) > CNV_ERR_TYPE_UNKNOWN_ERROR ?       \
+		    CNV_ERR_TYPE_UNKNOWN_ERROR :                     \
+		    (enum icp_qat_fw_cnv_error_type)(_lerror >> 12); \
 	})
 #define CNV_ERROR_LENGTH_DELTA_GET(latest_error)                               \
 	({                                                                     \
@@ -204,14 +204,13 @@ struct icp_qat_fw_init_admin_hb_cnt {
 #define ICP_QAT_FW_COMN_HEARTBEAT_FLAG_BITPOS 0
 #define ICP_QAT_FW_COMN_HEARTBEAT_FLAG_MASK 0x1
 #define ICP_QAT_FW_COMN_STATUS_RESRVD_FLD_MASK 0xFE
-#define ICP_QAT_FW_COMN_HEARTBEAT_HDR_FLAG_GET(hdr_t)                          \
+#define ICP_QAT_FW_COMN_HEARTBEAT_HDR_FLAG_GET(hdr_t) \
 	ICP_QAT_FW_COMN_HEARTBEAT_FLAG_GET(hdr_t.flags)
 
-#define ICP_QAT_FW_COMN_HEARTBEAT_HDR_FLAG_SET(hdr_t, val)                     \
+#define ICP_QAT_FW_COMN_HEARTBEAT_HDR_FLAG_SET(hdr_t, val) \
 	ICP_QAT_FW_COMN_HEARTBEAT_FLAG_SET(hdr_t, val)
 
-#define ICP_QAT_FW_COMN_HEARTBEAT_FLAG_GET(flags)                              \
-	QAT_FIELD_GET(flags,                                                   \
-		      ICP_QAT_FW_COMN_HEARTBEAT_FLAG_BITPOS,                   \
-		      ICP_QAT_FW_COMN_HEARTBEAT_FLAG_MASK)
+#define ICP_QAT_FW_COMN_HEARTBEAT_FLAG_GET(flags)                   \
+	QAT_FIELD_GET(flags, ICP_QAT_FW_COMN_HEARTBEAT_FLAG_BITPOS, \
+	    ICP_QAT_FW_COMN_HEARTBEAT_FLAG_MASK)
 #endif

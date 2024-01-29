@@ -25,11 +25,12 @@
  */
 
 #include <sys/param.h>
+
 #include <dev/hyperv/vmbus/x86/hyperv_machdep.h>
 
 uint64_t
-hypercall_md(volatile void *hc_addr, uint64_t in_val,
-    uint64_t in_paddr, uint64_t out_paddr)
+hypercall_md(volatile void *hc_addr, uint64_t in_val, uint64_t in_paddr,
+    uint64_t out_paddr)
 {
 	uint32_t in_val_hi = in_val >> 32;
 	uint32_t in_val_lo = in_val & 0xFFFFFFFF;
@@ -39,10 +40,10 @@ hypercall_md(volatile void *hc_addr, uint64_t in_val,
 	uint32_t out_paddr_hi = out_paddr >> 32;
 	uint32_t out_paddr_lo = out_paddr & 0xFFFFFFFF;
 
-	__asm__ __volatile__ ("call *%8" : "=d"(status_hi), "=a"(status_lo) :
-	    "d" (in_val_hi), "a" (in_val_lo),
-	    "b" (in_paddr_hi), "c" (in_paddr_lo),
-	    "D"(out_paddr_hi), "S"(out_paddr_lo),
-	    "m" (hc_addr));
+	__asm__ __volatile__("call *%8"
+			     : "=d"(status_hi), "=a"(status_lo)
+			     : "d"(in_val_hi), "a"(in_val_lo), "b"(in_paddr_hi),
+			     "c"(in_paddr_lo), "D"(out_paddr_hi),
+			     "S"(out_paddr_lo), "m"(hc_addr));
 	return (status_lo | ((uint64_t)status_hi << 32));
 }

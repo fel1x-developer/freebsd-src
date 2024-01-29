@@ -34,7 +34,6 @@
  * and release on file close.
  */
 
-
 #include <sys/cdefs.h>
 /**
  * struct ttm_object_file
@@ -53,11 +52,12 @@
 
 #define pr_fmt(fmt) "[TTM] " fmt
 
-#include <dev/drm2/drmP.h>
-#include <dev/drm2/drm.h>
 #include <sys/rwlock.h>
-#include <dev/drm2/ttm/ttm_object.h>
+
+#include <dev/drm2/drm.h>
+#include <dev/drm2/drmP.h>
 #include <dev/drm2/ttm/ttm_module.h>
+#include <dev/drm2/ttm/ttm_object.h>
 
 struct ttm_object_file {
 	struct ttm_object_device *tdev;
@@ -125,14 +125,15 @@ ttm_object_file_ref(struct ttm_object_file *tfile)
 	return tfile;
 }
 
-static void ttm_object_file_destroy(struct ttm_object_file *tfile)
+static void
+ttm_object_file_destroy(struct ttm_object_file *tfile)
 {
 
 	free(tfile, M_TTM_OBJ_FILE);
 }
 
-
-static inline void ttm_object_file_unref(struct ttm_object_file **p_tfile)
+static inline void
+ttm_object_file_unref(struct ttm_object_file **p_tfile)
 {
 	struct ttm_object_file *tfile = *p_tfile;
 
@@ -141,14 +142,13 @@ static inline void ttm_object_file_unref(struct ttm_object_file **p_tfile)
 		ttm_object_file_destroy(tfile);
 }
 
-
-int ttm_base_object_init(struct ttm_object_file *tfile,
-			 struct ttm_base_object *base,
-			 bool shareable,
-			 enum ttm_object_type object_type,
-			 void (*rcount_release) (struct ttm_base_object **),
-			 void (*ref_obj_release) (struct ttm_base_object *,
-						  enum ttm_ref_type ref_type))
+int
+ttm_base_object_init(struct ttm_object_file *tfile,
+    struct ttm_base_object *base, bool shareable,
+    enum ttm_object_type object_type,
+    void (*rcount_release)(struct ttm_base_object **),
+    void (
+	*ref_obj_release)(struct ttm_base_object *, enum ttm_ref_type ref_type))
 {
 	struct ttm_object_device *tdev = tfile->tdev;
 	int ret;
@@ -161,9 +161,8 @@ int ttm_base_object_init(struct ttm_object_file *tfile,
 	refcount_init(&base->refcount, 1);
 	rw_init(&tdev->object_lock, "ttmbao");
 	rw_wlock(&tdev->object_lock);
-	ret = drm_ht_just_insert_please(&tdev->object_hash,
-					    &base->hash,
-					    (unsigned long)base, 31, 0, 0);
+	ret = drm_ht_just_insert_please(&tdev->object_hash, &base->hash,
+	    (unsigned long)base, 31, 0, 0);
 	rw_wunlock(&tdev->object_lock);
 	if (unlikely(ret != 0))
 		goto out_err0;
@@ -183,7 +182,8 @@ out_err0:
 	return ret;
 }
 
-static void ttm_release_base(struct ttm_base_object *base)
+static void
+ttm_release_base(struct ttm_base_object *base)
 {
 	struct ttm_object_device *tdev = base->tfile->tdev;
 
@@ -202,7 +202,8 @@ static void ttm_release_base(struct ttm_base_object *base)
 	rw_wlock(&tdev->object_lock);
 }
 
-void ttm_base_object_unref(struct ttm_base_object **p_base)
+void
+ttm_base_object_unref(struct ttm_base_object **p_base)
 {
 	struct ttm_base_object *base = *p_base;
 	struct ttm_object_device *tdev = base->tfile->tdev;
@@ -220,8 +221,8 @@ void ttm_base_object_unref(struct ttm_base_object **p_base)
 	rw_wunlock(&tdev->object_lock);
 }
 
-struct ttm_base_object *ttm_base_object_lookup(struct ttm_object_file *tfile,
-					       uint32_t key)
+struct ttm_base_object *
+ttm_base_object_lookup(struct ttm_object_file *tfile, uint32_t key)
 {
 	struct ttm_object_device *tdev = tfile->tdev;
 	struct ttm_base_object *base;
@@ -252,9 +253,9 @@ struct ttm_base_object *ttm_base_object_lookup(struct ttm_object_file *tfile,
 
 MALLOC_DEFINE(M_TTM_OBJ_REF, "ttm_obj_ref", "TTM Ref Objects");
 
-int ttm_ref_object_add(struct ttm_object_file *tfile,
-		       struct ttm_base_object *base,
-		       enum ttm_ref_type ref_type, bool *existed)
+int
+ttm_ref_object_add(struct ttm_object_file *tfile, struct ttm_base_object *base,
+    enum ttm_ref_type ref_type, bool *existed)
 {
 	struct drm_open_hash *ht = &tfile->ref_hash[ref_type];
 	struct ttm_ref_object *ref;
@@ -277,8 +278,8 @@ int ttm_ref_object_add(struct ttm_object_file *tfile,
 		}
 
 		rw_runlock(&tfile->lock);
-		ret = ttm_mem_global_alloc(mem_glob, sizeof(*ref),
-					   false, false);
+		ret = ttm_mem_global_alloc(mem_glob, sizeof(*ref), false,
+		    false);
 		if (unlikely(ret != 0))
 			return ret;
 		ref = malloc(sizeof(*ref), M_TTM_OBJ_REF, M_WAITOK);
@@ -315,7 +316,8 @@ int ttm_ref_object_add(struct ttm_object_file *tfile,
 	return ret;
 }
 
-static void ttm_ref_object_release(struct ttm_ref_object *ref)
+static void
+ttm_ref_object_release(struct ttm_ref_object *ref)
 {
 	struct ttm_base_object *base = ref->obj;
 	struct ttm_object_file *tfile = ref->tfile;
@@ -336,8 +338,9 @@ static void ttm_ref_object_release(struct ttm_ref_object *ref)
 	rw_wlock(&tfile->lock);
 }
 
-int ttm_ref_object_base_unref(struct ttm_object_file *tfile,
-			      unsigned long key, enum ttm_ref_type ref_type)
+int
+ttm_ref_object_base_unref(struct ttm_object_file *tfile, unsigned long key,
+    enum ttm_ref_type ref_type)
 {
 	struct drm_open_hash *ht = &tfile->ref_hash[ref_type];
 	struct ttm_ref_object *ref;
@@ -357,7 +360,8 @@ int ttm_ref_object_base_unref(struct ttm_object_file *tfile,
 	return 0;
 }
 
-void ttm_object_file_release(struct ttm_object_file **p_tfile)
+void
+ttm_object_file_release(struct ttm_object_file **p_tfile)
 {
 	struct ttm_ref_object *ref;
 	struct list_head *list;
@@ -385,8 +389,8 @@ void ttm_object_file_release(struct ttm_object_file **p_tfile)
 	ttm_object_file_unref(&tfile);
 }
 
-struct ttm_object_file *ttm_object_file_init(struct ttm_object_device *tdev,
-					     unsigned int hash_order)
+struct ttm_object_file *
+ttm_object_file_init(struct ttm_object_device *tdev, unsigned int hash_order)
 {
 	struct ttm_object_file *tfile;
 	unsigned int i;
@@ -419,9 +423,8 @@ out_err:
 
 MALLOC_DEFINE(M_TTM_OBJ_DEV, "ttm_obj_dev", "TTM Device Objects");
 
-struct ttm_object_device *ttm_object_device_init(struct ttm_mem_global
-						 *mem_glob,
-						 unsigned int hash_order)
+struct ttm_object_device *
+ttm_object_device_init(struct ttm_mem_global *mem_glob, unsigned int hash_order)
 {
 	struct ttm_object_device *tdev;
 	int ret;
@@ -439,7 +442,8 @@ struct ttm_object_device *ttm_object_device_init(struct ttm_mem_global
 	return NULL;
 }
 
-void ttm_object_device_release(struct ttm_object_device **p_tdev)
+void
+ttm_object_device_release(struct ttm_object_device **p_tdev)
 {
 	struct ttm_object_device *tdev = *p_tdev;
 

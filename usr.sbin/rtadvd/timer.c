@@ -39,20 +39,19 @@
 #include <net/if_dl.h>
 #include <netinet/in.h>
 
-#include <unistd.h>
-#include <syslog.h>
+#include <netdb.h>
+#include <search.h>
 #include <stdlib.h>
 #include <string.h>
-#include <search.h>
+#include <syslog.h>
 #include <time.h>
-#include <netdb.h>
+#include <unistd.h>
 
 #include "rtadvd.h"
-#include "timer_subr.h"
 #include "timer.h"
+#include "timer_subr.h"
 
-struct rtadvd_timer_head_t ra_timer =
-    TAILQ_HEAD_INITIALIZER(ra_timer);
+struct rtadvd_timer_head_t ra_timer = TAILQ_HEAD_INITIALIZER(ra_timer);
 static struct timespec tm_limit;
 static struct timespec tm_max;
 
@@ -60,8 +59,10 @@ void
 rtadvd_timer_init(void)
 {
 	/* Generate maximum time in timespec. */
-	tm_limit.tv_sec = (-1) & ~((time_t)1 << ((sizeof(tm_max.tv_sec) * 8) - 1));
-	tm_limit.tv_nsec = (-1) & ~((long)1 << ((sizeof(tm_max.tv_nsec) * 8) - 1));
+	tm_limit.tv_sec = (-1) &
+	    ~((time_t)1 << ((sizeof(tm_max.tv_sec) * 8) - 1));
+	tm_limit.tv_nsec = (-1) &
+	    ~((long)1 << ((sizeof(tm_max.tv_nsec) * 8) - 1));
 	tm_max = tm_limit;
 	TAILQ_INIT(&ra_timer);
 }
@@ -71,7 +72,7 @@ rtadvd_update_timeout_handler(void)
 {
 	struct ifinfo *ifi;
 
-	TAILQ_FOREACH(ifi, &ifilist, ifi_next) {
+	TAILQ_FOREACH (ifi, &ifilist, ifi_next) {
 		switch (ifi->ifi_state) {
 		case IFI_STATE_CONFIGURED:
 		case IFI_STATE_TRANSITIVE:
@@ -91,9 +92,8 @@ rtadvd_update_timeout_handler(void)
 			if (ifi->ifi_ra_timer == NULL)
 				continue;
 
-			syslog(LOG_DEBUG,
-			    "<%s> remove timer for %s (idx=%d)", __func__,
-			    ifi->ifi_ifname, ifi->ifi_ifindex);
+			syslog(LOG_DEBUG, "<%s> remove timer for %s (idx=%d)",
+			    __func__, ifi->ifi_ifname, ifi->ifi_ifindex);
 			rtadvd_remove_timer(ifi->ifi_ra_timer);
 			ifi->ifi_ra_timer = NULL;
 			break;
@@ -103,21 +103,19 @@ rtadvd_update_timeout_handler(void)
 
 struct rtadvd_timer *
 rtadvd_add_timer(struct rtadvd_timer *(*timeout)(void *),
-    void (*update)(void *, struct timespec *),
-    void *timeodata, void *updatedata)
+    void (*update)(void *, struct timespec *), void *timeodata,
+    void *updatedata)
 {
 	struct rtadvd_timer *rat;
 
 	if (timeout == NULL) {
-		syslog(LOG_ERR,
-		    "<%s> timeout function unspecified", __func__);
+		syslog(LOG_ERR, "<%s> timeout function unspecified", __func__);
 		exit(1);
 	}
 
 	rat = malloc(sizeof(*rat));
 	if (rat == NULL) {
-		syslog(LOG_ERR,
-		    "<%s> can't allocate memory", __func__);
+		syslog(LOG_ERR, "<%s> can't allocate memory", __func__);
 		exit(1);
 	}
 	memset(rat, 0, sizeof(*rat));
@@ -159,12 +157,13 @@ rtadvd_check_timer(void)
 
 	clock_gettime(CLOCK_MONOTONIC_FAST, &now);
 	tm_max = tm_limit;
-	TAILQ_FOREACH(rat, &ra_timer, rat_next) {
+	TAILQ_FOREACH (rat, &ra_timer, rat_next) {
 		if (TS_CMP(&rat->rat_tm, &now, <=)) {
 			if (((*rat->rat_expire)(rat->rat_expire_data) == NULL))
 				continue; /* the timer was removed */
 			if (rat->rat_update)
-				(*rat->rat_update)(rat->rat_update_data, &rat->rat_tm);
+				(*rat->rat_update)(rat->rat_update_data,
+				    &rat->rat_tm);
 			TS_ADD(&rat->rat_tm, &now, &rat->rat_tm);
 		}
 		if (TS_CMP(&rat->rat_tm, &tm_max, <))

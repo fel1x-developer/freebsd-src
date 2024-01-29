@@ -25,21 +25,22 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/eventhandler.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/bus.h>
+#include <sys/eventhandler.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rwlock.h>
-#include <sys/socket.h>
 #include <sys/sbuf.h>
+#include <sys/socket.h>
+
 #include <netinet/in.h>
 
 #include "common/common.h"
@@ -107,7 +108,8 @@ found:
 }
 
 static struct l2t_entry *
-find_or_alloc_l2e(struct l2t_data *d, uint16_t vlan, uint8_t port, uint8_t *dmac)
+find_or_alloc_l2e(struct l2t_data *d, uint16_t vlan, uint8_t port,
+    uint8_t *dmac)
 {
 	struct l2t_entry *end, *e, **p;
 	struct l2t_entry *first_free = NULL;
@@ -119,11 +121,11 @@ find_or_alloc_l2e(struct l2t_data *d, uint16_t vlan, uint8_t port, uint8_t *dmac
 		} else if (e->state == L2T_STATE_SWITCHING &&
 		    memcmp(e->dmac, dmac, ETHER_ADDR_LEN) == 0 &&
 		    e->vlan == vlan && e->lport == port)
-			return (e);	/* Found existing entry that matches. */
+			return (e); /* Found existing entry that matches. */
 	}
 
 	if (first_free == NULL)
-		return (NULL);	/* No match and no room for a new entry. */
+		return (NULL); /* No match and no room for a new entry. */
 
 	/*
 	 * The entry we found may be an inactive entry that is
@@ -153,8 +155,8 @@ mk_write_l2e(struct adapter *sc, struct l2t_entry *e, int sync, int reply,
 	req = dst;
 	idx = e->idx + sc->vres.l2t.start;
 	INIT_TP_WR(req, 0);
-	OPCODE_TID(req) = htonl(MK_OPCODE_TID(CPL_L2T_WRITE_REQ, idx |
-	    V_SYNC_WR(sync) | V_TID_QID(e->iqid)));
+	OPCODE_TID(req) = htonl(MK_OPCODE_TID(CPL_L2T_WRITE_REQ,
+	    idx | V_SYNC_WR(sync) | V_TID_QID(e->iqid)));
 	req->params = htons(V_L2T_W_PORT(e->lport) | V_L2T_W_NOREPLY(!reply));
 	req->l2t_idx = htons(idx);
 	req->vlan = htons(e->vlan);
@@ -207,8 +209,8 @@ t4_write_l2e(struct l2t_entry *e, int sync)
  * TLS work requests that will depend on it being written.
  */
 struct l2t_entry *
-t4_l2t_alloc_tls(struct adapter *sc, struct sge_txq *txq, void *dst,
-    int *ndesc, uint16_t vlan, uint8_t port, uint8_t *eth_addr)
+t4_l2t_alloc_tls(struct adapter *sc, struct sge_txq *txq, void *dst, int *ndesc,
+    uint16_t vlan, uint8_t port, uint8_t *eth_addr)
 {
 	struct l2t_data *d;
 	struct l2t_entry *e;
@@ -294,7 +296,7 @@ t4_l2t_alloc_switching(struct adapter *sc, uint16_t vlan, uint8_t port,
 	e = find_or_alloc_l2e(d, vlan, port, eth_addr);
 	if (e) {
 		if (atomic_load_acq_int(&e->refcnt) == 0) {
-			mtx_lock(&e->lock);    /* avoid race with t4_l2t_free */
+			mtx_lock(&e->lock); /* avoid race with t4_l2t_free */
 			e->wrq = &sc->sge.ctrlq[0];
 			e->iqid = sc->sge.fwq.abs_id;
 			e->state = L2T_STATE_SWITCHING;
@@ -324,10 +326,10 @@ t4_init_l2t(struct adapter *sc, int flags)
 	struct l2t_data *d;
 
 	l2t_size = sc->vres.l2t.size;
-	if (l2t_size < 2)	/* At least 1 bucket for IP and 1 for IPv6 */
+	if (l2t_size < 2) /* At least 1 bucket for IP and 1 for IPv6 */
 		return (EINVAL);
 
-	d = malloc(sizeof(*d) + l2t_size * sizeof (struct l2t_entry), M_CXGBE,
+	d = malloc(sizeof(*d) + l2t_size * sizeof(struct l2t_entry), M_CXGBE,
 	    M_ZERO | flags);
 	if (!d)
 		return (ENOMEM);
@@ -393,13 +395,20 @@ static char
 l2e_state(const struct l2t_entry *e)
 {
 	switch (e->state) {
-	case L2T_STATE_VALID: return 'V';  /* valid, fast-path entry */
-	case L2T_STATE_STALE: return 'S';  /* needs revalidation, but usable */
-	case L2T_STATE_SYNC_WRITE: return 'W';
-	case L2T_STATE_RESOLVING: return STAILQ_EMPTY(&e->wr_list) ? 'R' : 'A';
-	case L2T_STATE_SWITCHING: return 'X';
-	case L2T_STATE_TLS: return 'T';
-	default: return 'U';
+	case L2T_STATE_VALID:
+		return 'V'; /* valid, fast-path entry */
+	case L2T_STATE_STALE:
+		return 'S'; /* needs revalidation, but usable */
+	case L2T_STATE_SYNC_WRITE:
+		return 'W';
+	case L2T_STATE_RESOLVING:
+		return STAILQ_EMPTY(&e->wr_list) ? 'R' : 'A';
+	case L2T_STATE_SWITCHING:
+		return 'X';
+	case L2T_STATE_TLS:
+		return 'T';
+	default:
+		return 'U';
 	}
 }
 
@@ -431,7 +440,8 @@ sysctl_l2t(SYSCTL_HANDLER_ARGS)
 			goto skip;
 
 		if (header == 0) {
-			sbuf_printf(sb, " Idx IP address      "
+			sbuf_printf(sb,
+			    " Idx IP address      "
 			    "Ethernet address  VLAN/P LP State Users Port");
 			header = 1;
 		}
@@ -445,14 +455,14 @@ sysctl_l2t(SYSCTL_HANDLER_ARGS)
 		/*
 		 * XXX: IPv6 addresses may not align properly in the output.
 		 */
-		sbuf_printf(sb, "\n%4u %-15s %02x:%02x:%02x:%02x:%02x:%02x %4d"
-			   " %u %2u   %c   %5u %s",
-			   e->idx, ip, e->dmac[0], e->dmac[1], e->dmac[2],
-			   e->dmac[3], e->dmac[4], e->dmac[5],
-			   e->vlan & 0xfff, vlan_prio(e), e->lport,
-			   l2e_state(e), atomic_load_acq_int(&e->refcnt),
-			   e->ifp ? if_name(e->ifp) : "-");
-skip:
+		sbuf_printf(sb,
+		    "\n%4u %-15s %02x:%02x:%02x:%02x:%02x:%02x %4d"
+		    " %u %2u   %c   %5u %s",
+		    e->idx, ip, e->dmac[0], e->dmac[1], e->dmac[2], e->dmac[3],
+		    e->dmac[4], e->dmac[5], e->vlan & 0xfff, vlan_prio(e),
+		    e->lport, l2e_state(e), atomic_load_acq_int(&e->refcnt),
+		    e->ifp ? if_name(e->ifp) : "-");
+	skip:
 		mtx_unlock(&e->lock);
 	}
 

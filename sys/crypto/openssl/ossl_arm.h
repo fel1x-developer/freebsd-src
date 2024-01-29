@@ -34,13 +34,12 @@
 
 #include <crypto/openssl/ossl.h>
 #include <crypto/openssl/ossl_cipher.h>
-
 #include <opencrypto/cryptodev.h>
 
 struct bsaes_key {
 	struct ossl_aes_keysched ks;
 	int converted;
-#define	BSAES_KEY_SIZE	(128 * (RIJNDAEL_MAXNR - 1) + 2 * AES_BLOCK_LEN)
+#define BSAES_KEY_SIZE (128 * (RIJNDAEL_MAXNR - 1) + 2 * AES_BLOCK_LEN)
 	uint8_t bitslice[BSAES_KEY_SIZE] __aligned(8);
 } __aligned(8);
 
@@ -49,8 +48,8 @@ ossl_cipher_encrypt_t ossl_bsaes_cbc_encrypt;
 void AES_encrypt(const void *, void *, const void *);
 
 static inline void
-AES_CBC_ENCRYPT(const unsigned char *in, unsigned char *out,
-    size_t length, const void *key, unsigned char *iv, int encrypt)
+AES_CBC_ENCRYPT(const unsigned char *in, unsigned char *out, size_t length,
+    const void *key, unsigned char *iv, int encrypt)
 {
 	struct bsaes_key bsks;
 	uint32_t iv32[4], scratch[4];

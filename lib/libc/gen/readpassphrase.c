@@ -1,4 +1,5 @@
-/*	$OpenBSD: readpassphrase.c,v 1.24 2013/11/24 23:51:29 deraadt Exp $	*/
+/*	$OpenBSD: readpassphrase.c,v 1.24 2013/11/24 23:51:29 deraadt Exp $
+ */
 
 /*
  * Copyright (c) 2000-2002, 2007, 2010
@@ -21,19 +22,20 @@
  * Materiel Command, USAF, under agreement number F39502-99-1-0512.
  */
 
-#include "namespace.h"
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <paths.h>
 #include <pwd.h>
+#include <readpassphrase.h>
 #include <signal.h>
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
-#include <readpassphrase.h>
-#include "un-namespace.h"
+
 #include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 static volatile sig_atomic_t signo[NSIG];
 
@@ -52,7 +54,7 @@ readpassphrase(const char *prompt, char *buf, size_t bufsiz, int flags)
 	/* I suppose we could alloc on demand in this case (XXX). */
 	if (bufsiz == 0) {
 		errno = EINVAL;
-		return(NULL);
+		return (NULL);
 	}
 
 restart:
@@ -67,11 +69,11 @@ restart:
 	 */
 	input_is_tty = 0;
 	if (!(flags & RPP_STDIN)) {
-        	input = output = _open(_PATH_TTY, O_RDWR | O_CLOEXEC);
+		input = output = _open(_PATH_TTY, O_RDWR | O_CLOEXEC);
 		if (input == -1) {
 			if (flags & RPP_REQUIRE_TTY) {
 				errno = ENOTTY;
-				return(NULL);
+				return (NULL);
 			}
 			input = STDIN_FILENO;
 			output = STDERR_FILENO;
@@ -94,7 +96,7 @@ restart:
 			term.c_lflag &= ~(ECHO | ECHONL);
 		if (term.c_cc[VSTATUS] != _POSIX_VDISABLE)
 			term.c_cc[VSTATUS] = _POSIX_VDISABLE;
-		(void)tcsetattr(input, TCSAFLUSH|TCSASOFT, &term);
+		(void)tcsetattr(input, TCSAFLUSH | TCSASOFT, &term);
 	} else {
 		memset(&term, 0, sizeof(term));
 		term.c_lflag |= ECHO;
@@ -108,7 +110,7 @@ restart:
 	 * things like SIGXCPU and SIGVTALRM for now.
 	 */
 	sigemptyset(&sa.sa_mask);
-	sa.sa_flags = 0;		/* don't restart system calls */
+	sa.sa_flags = 0; /* don't restart system calls */
 	sa.sa_handler = handler;
 	(void)__libc_sigaction(SIGALRM, &sa, &savealrm);
 	(void)__libc_sigaction(SIGHUP, &sa, &savehup);
@@ -144,7 +146,7 @@ restart:
 
 	/* Restore old terminal settings and signals. */
 	if (memcmp(&term, &oterm, sizeof(term)) != 0) {
-		while (tcsetattr(input, TCSAFLUSH|TCSASOFT, &oterm) == -1 &&
+		while (tcsetattr(input, TCSAFLUSH | TCSASOFT, &oterm) == -1 &&
 		    errno == EINTR && !signo[SIGTTOU])
 			continue;
 	}
@@ -180,7 +182,7 @@ restart:
 
 	if (save_errno)
 		errno = save_errno;
-	return(nr == -1 ? NULL : buf);
+	return (nr == -1 ? NULL : buf);
 }
 
 char *
@@ -190,10 +192,11 @@ getpass(const char *prompt)
 
 	if (readpassphrase(prompt, buf, sizeof(buf), RPP_ECHO_OFF) == NULL)
 		buf[0] = '\0';
-	return(buf);
+	return (buf);
 }
 
-static void handler(int s)
+static void
+handler(int s)
 {
 
 	signo[s] = 1;

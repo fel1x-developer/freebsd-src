@@ -64,9 +64,9 @@
 #include <dev/iicbus/iicbus.h>
 #include <dev/iicbus/iiconf.h>
 #ifdef FDT
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
 #endif
 
 #include "clock_if.h"
@@ -76,95 +76,95 @@
  * I2C address 1010 001x : PCA2129 PCF2127 PCF2129 PCF8563 PCF8565
  * I2C address 1101 000x : PCF8523
  */
-#define	PCF8563_ADDR		0xa2
-#define	PCF8523_ADDR		0xd0
+#define PCF8563_ADDR 0xa2
+#define PCF8523_ADDR 0xd0
 
 /*
  * Registers, bits within them, and masks that are common to all chip types.
  */
-#define	PCF85xx_R_CS1		0x00	/* CS1 and CS2 control regs are in */
-#define	PCF85xx_R_CS2		0x01	/* the same location on all chips. */
+#define PCF85xx_R_CS1 0x00 /* CS1 and CS2 control regs are in */
+#define PCF85xx_R_CS2 0x01 /* the same location on all chips. */
 
-#define	PCF85xx_B_CS1_STOP	0x20	/* Stop time incrementing bit */
-#define	PCF85xx_B_SECOND_OS	0x80	/* Oscillator Stopped bit */
+#define PCF85xx_B_CS1_STOP 0x20	 /* Stop time incrementing bit */
+#define PCF85xx_B_SECOND_OS 0x80 /* Oscillator Stopped bit */
 
-#define	PCF85xx_M_SECOND	0x7f	/* Masks for all BCD time regs... */
-#define	PCF85xx_M_MINUTE	0x7f
-#define	PCF85xx_M_12HOUR	0x1f
-#define	PCF85xx_M_24HOUR	0x3f
-#define	PCF85xx_M_DAY		0x3f
-#define	PCF85xx_M_MONTH		0x1f
-#define	PCF85xx_M_YEAR		0xff
+#define PCF85xx_M_SECOND 0x7f /* Masks for all BCD time regs... */
+#define PCF85xx_M_MINUTE 0x7f
+#define PCF85xx_M_12HOUR 0x1f
+#define PCF85xx_M_24HOUR 0x3f
+#define PCF85xx_M_DAY 0x3f
+#define PCF85xx_M_MONTH 0x1f
+#define PCF85xx_M_YEAR 0xff
 
 /*
  * PCF2127-specific registers, bits, and masks.
  */
-#define	PCF2127_R_TMR_CTL	0x10	/* Timer/watchdog control */
+#define PCF2127_R_TMR_CTL 0x10 /* Timer/watchdog control */
 
-#define	PCF2127_M_TMR_CTRL	0xe3	/* Mask off undef bits */
+#define PCF2127_M_TMR_CTRL 0xe3 /* Mask off undef bits */
 
-#define	PCF2127_B_TMR_CD	0x40	/* Run in countdown mode */
-#define	PCF2127_B_TMR_64HZ	0x01	/* Timer frequency 64Hz */
+#define PCF2127_B_TMR_CD 0x40	/* Run in countdown mode */
+#define PCF2127_B_TMR_64HZ 0x01 /* Timer frequency 64Hz */
 
-#define	PCF2127_R_TS_CTL	0x12	/* Timestamp control */
-#define	PCF2127_B_TSOFF		0x40	/* Turn off timestamp function */
+#define PCF2127_R_TS_CTL 0x12 /* Timestamp control */
+#define PCF2127_B_TSOFF 0x40  /* Turn off timestamp function */
 
-#define	PCF2127_R_AGING_OFFSET	0x19	/* Frequency aging offset in PPM */
+#define PCF2127_R_AGING_OFFSET 0x19 /* Frequency aging offset in PPM */
 
 /*
  * PCA/PCF2129-specific registers, bits, and masks.
  */
-#define	PCF2129_B_CS1_12HR	0x04	/* Use 12-hour (AM/PM) mode bit */
-#define	PCF2129_B_CLKOUT_OTPR	0x20	/* OTP refresh command */
-#define	PCF2129_B_CLKOUT_HIGHZ	0x07	/* Clock Out Freq = disable */
+#define PCF2129_B_CS1_12HR 0x04	    /* Use 12-hour (AM/PM) mode bit */
+#define PCF2129_B_CLKOUT_OTPR 0x20  /* OTP refresh command */
+#define PCF2129_B_CLKOUT_HIGHZ 0x07 /* Clock Out Freq = disable */
 
 /*
  * PCF8523-specific registers, bits, and masks.
  */
-#define	PCF8523_R_CS3		0x02	/* Control and status reg 3 */
-#define	PCF8523_R_SECOND	0x03	/* Seconds */
-#define	PCF8523_R_TMR_CLKOUT	0x0F	/* Timer and clockout control */
-#define	PCF8523_R_TMR_A_FREQ	0x10	/* Timer A frequency control */
-#define	PCF8523_R_TMR_A_COUNT	0x11	/* Timer A count */
+#define PCF8523_R_CS3 0x02	   /* Control and status reg 3 */
+#define PCF8523_R_SECOND 0x03	   /* Seconds */
+#define PCF8523_R_TMR_CLKOUT 0x0F  /* Timer and clockout control */
+#define PCF8523_R_TMR_A_FREQ 0x10  /* Timer A frequency control */
+#define PCF8523_R_TMR_A_COUNT 0x11 /* Timer A count */
 
-#define	PCF8523_M_TMR_A_FREQ	0x07	/* Mask off undef bits */
+#define PCF8523_M_TMR_A_FREQ 0x07 /* Mask off undef bits */
 
-#define	PCF8523_B_HOUR_PM	0x20	/* PM bit */
-#define	PCF8523_B_CS1_SOFTRESET	0x58	/* Initiate Soft Reset bits */
-#define	PCF8523_B_CS1_12HR	0x08	/* Use 12-hour (AM/PM) mode bit */
-#define	PCF8523_B_CLKOUT_TACD	0x02	/* TimerA runs in CountDown mode */
-#define	PCF8523_B_CLKOUT_HIGHZ	0x38	/* Clock Out Freq = disable */
-#define	PCF8523_B_TMR_A_64HZ	0x01	/* Timer A freq 64Hz */
+#define PCF8523_B_HOUR_PM 0x20	     /* PM bit */
+#define PCF8523_B_CS1_SOFTRESET 0x58 /* Initiate Soft Reset bits */
+#define PCF8523_B_CS1_12HR 0x08	     /* Use 12-hour (AM/PM) mode bit */
+#define PCF8523_B_CLKOUT_TACD 0x02   /* TimerA runs in CountDown mode */
+#define PCF8523_B_CLKOUT_HIGHZ 0x38  /* Clock Out Freq = disable */
+#define PCF8523_B_TMR_A_64HZ 0x01    /* Timer A freq 64Hz */
 
-#define	PCF8523_M_CS3_PM	0xE0	/* Power mode mask */
-#define	PCF8523_B_CS3_PM_NOBAT	0xE0	/* PM bits: no battery usage */
-#define	PCF8523_B_CS3_PM_STD	0x00	/* PM bits: standard */
-#define	PCF8523_B_CS3_PM_DSNBM	0xa0	/* PM bits: direct switch, no bat mon */
-#define	PCF8523_B_CS3_BLF	0x04	/* Battery Low Flag bit */
+#define PCF8523_M_CS3_PM 0xE0	    /* Power mode mask */
+#define PCF8523_B_CS3_PM_NOBAT 0xE0 /* PM bits: no battery usage */
+#define PCF8523_B_CS3_PM_STD 0x00   /* PM bits: standard */
+#define PCF8523_B_CS3_PM_DSNBM 0xa0 /* PM bits: direct switch, no bat mon */
+#define PCF8523_B_CS3_BLF 0x04	    /* Battery Low Flag bit */
 
 /*
  * PCF8563-specific registers, bits, and masks.
  */
-#define	PCF8563_R_SECOND	0x02	/* Seconds */
+#define PCF8563_R_SECOND 0x02 /* Seconds */
 
-#define	PCF8563_R_CLKOUT	0x0d	/* Clock output control */
+#define PCF8563_R_CLKOUT 0x0d /* Clock output control */
 
-#define	PCF8563_R_TMR_CTRL	0x0e	/* Timer control */
-#define	PCF8563_R_TMR_COUNT	0x0f	/* Timer count */
+#define PCF8563_R_TMR_CTRL 0x0e	 /* Timer control */
+#define PCF8563_R_TMR_COUNT 0x0f /* Timer count */
 
-#define	PCF8563_M_TMR_CTRL	0x93	/* Mask off undef bits */
+#define PCF8563_M_TMR_CTRL 0x93 /* Mask off undef bits */
 
-#define	PCF8563_B_TMR_ENABLE	0x80	/* Enable countdown timer */
-#define	PCF8563_B_TMR_64HZ	0x01	/* Timer frequency 64Hz */
+#define PCF8563_B_TMR_ENABLE 0x80 /* Enable countdown timer */
+#define PCF8563_B_TMR_64HZ 0x01	  /* Timer frequency 64Hz */
 
-#define	PCF8563_B_MONTH_C	0x80	/* Century bit */
+#define PCF8563_B_MONTH_C 0x80 /* Century bit */
 
 /*
  * We use the countdown timer for fractional seconds.  We program it for 64 Hz,
  * the fastest available rate that doesn't roll over in less than a second.
  */
-#define	TMR_TICKS_SEC		64
-#define	TMR_TICKS_HALFSEC	32
+#define TMR_TICKS_SEC 64
+#define TMR_TICKS_HALFSEC 32
 
 /*
  * The chip types we support.
@@ -199,22 +199,21 @@ struct time_regs {
 };
 
 struct nxprtc_softc {
-	device_t	dev;
-	device_t	busdev;
-	struct intr_config_hook
-			config_hook;
-	u_int		flags;		/* SC_F_* flags */
-	u_int		chiptype;	/* Type of PCF85xx chip */
-	time_t		bat_time;	/* Next time to check battery */
-	int		freqadj;	/* Current freq adj in PPM */
-	uint8_t		secaddr;	/* Address of seconds register */
-	uint8_t		tmcaddr;	/* Address of timer count register */
-	bool		use_timer;	/* Use timer for fractional sec */
-	bool		use_ampm;	/* Chip is set to use am/pm mode */
-	bool		is212x;		/* Chip type is 2127 or 2129 */
+	device_t dev;
+	device_t busdev;
+	struct intr_config_hook config_hook;
+	u_int flags;	 /* SC_F_* flags */
+	u_int chiptype;	 /* Type of PCF85xx chip */
+	time_t bat_time; /* Next time to check battery */
+	int freqadj;	 /* Current freq adj in PPM */
+	uint8_t secaddr; /* Address of seconds register */
+	uint8_t tmcaddr; /* Address of timer count register */
+	bool use_timer;	 /* Use timer for fractional sec */
+	bool use_ampm;	 /* Chip is set to use am/pm mode */
+	bool is212x;	 /* Chip type is 2127 or 2129 */
 };
 
-#define	SC_F_CPOL	(1 << 0)	/* Century bit means 19xx */
+#define SC_F_CPOL (1 << 0) /* Century bit means 19xx */
 
 /*
  * When doing i2c IO, indicate that we need to wait for exclusive bus ownership,
@@ -223,7 +222,7 @@ struct nxprtc_softc {
  * functions to ensure that only one client at a time accesses the hardware for
  * the entire series of operations it takes to read or write the clock.
  */
-#define	WAITFLAGS	(IIC_WAIT | IIC_RECURSIVE)
+#define WAITFLAGS (IIC_WAIT | IIC_RECURSIVE)
 
 /*
  * We use the compat_data table to look up hint strings in the non-FDT case, so
@@ -234,24 +233,24 @@ typedef struct ofw_compat_data nxprtc_compat_data;
 #else
 typedef struct {
 	const char *ocd_str;
-	uintptr_t  ocd_data;
+	uintptr_t ocd_data;
 } nxprtc_compat_data;
 #endif
 
 static nxprtc_compat_data compat_data[] = {
-	{"nxp,pca2129",     TYPE_PCA2129},
-	{"nxp,pca8565",     TYPE_PCA8565},
-	{"nxp,pcf2127",     TYPE_PCF2127},
-	{"nxp,pcf2129",     TYPE_PCF2129},
-	{"nxp,pcf8523",     TYPE_PCF8523},
-	{"nxp,pcf8563",     TYPE_PCF8563},
+	{ "nxp,pca2129", TYPE_PCA2129 },
+	{ "nxp,pca8565", TYPE_PCA8565 },
+	{ "nxp,pcf2127", TYPE_PCF2127 },
+	{ "nxp,pcf2129", TYPE_PCF2129 },
+	{ "nxp,pcf8523", TYPE_PCF8523 },
+	{ "nxp,pcf8563", TYPE_PCF8563 },
 
 	/* Undocumented compat strings known to exist in the wild... */
-	{"pcf8563",         TYPE_PCF8563},
-	{"phg,pcf8563",     TYPE_PCF8563},
-	{"philips,pcf8563", TYPE_PCF8563},
+	{ "pcf8563", TYPE_PCF8563 },
+	{ "phg,pcf8563", TYPE_PCF8563 },
+	{ "philips,pcf8563", TYPE_PCF8563 },
 
-	{NULL,              TYPE_NONE},
+	{ NULL, TYPE_NONE },
 };
 
 static int
@@ -263,26 +262,27 @@ nxprtc_readfrom(device_t slavedev, uint8_t regaddr, void *buffer,
 	uint8_t slaveaddr;
 
 	/*
-	 * Two transfers back to back with a stop and start between them; first we
-	 * write the address-within-device, then we read from the device.  This
-	 * is used instead of the standard iicdev_readfrom() because some of the
-	 * chips we service don't support i2c repeat-start operations (grrrrr)
-	 * so we do two completely separate transfers with a full stop between.
+	 * Two transfers back to back with a stop and start between them; first
+	 * we write the address-within-device, then we read from the device.
+	 * This is used instead of the standard iicdev_readfrom() because some
+	 * of the chips we service don't support i2c repeat-start operations
+	 * (grrrrr) so we do two completely separate transfers with a full stop
+	 * between.
 	 */
 	slaveaddr = iicbus_get_addr(slavedev);
 
 	msg.slave = slaveaddr;
 	msg.flags = IIC_M_WR;
-	msg.len   = 1;
-	msg.buf   = &regaddr;
+	msg.len = 1;
+	msg.buf = &regaddr;
 
 	if ((err = iicbus_transfer_excl(slavedev, &msg, 1, waithow)) != 0)
 		return (err);
 
 	msg.slave = slaveaddr;
 	msg.flags = IIC_M_RD;
-	msg.len   = buflen;
-	msg.buf   = buffer;
+	msg.len = buflen;
+	msg.buf = buffer;
 
 	return (iicbus_transfer_excl(slavedev, &msg, 1, waithow));
 }
@@ -325,7 +325,7 @@ read_timeregs(struct nxprtc_softc *sc, struct time_regs *tregs, uint8_t *tmr)
 				continue;
 		}
 		if ((err = nxprtc_readfrom(sc->dev, sc->secaddr, tregs,
-		    sizeof(*tregs), WAITFLAGS)) != 0)
+			 sizeof(*tregs), WAITFLAGS)) != 0)
 			break;
 	} while (sc->use_timer && tregs->sec != sec);
 
@@ -354,8 +354,8 @@ static int
 write_timeregs(struct nxprtc_softc *sc, struct time_regs *tregs)
 {
 
-	return (iicdev_writeto(sc->dev, sc->secaddr, tregs,
-	    sizeof(*tregs), WAITFLAGS));
+	return (iicdev_writeto(sc->dev, sc->secaddr, tregs, sizeof(*tregs),
+	    WAITFLAGS));
 }
 
 static int
@@ -439,8 +439,8 @@ pcf8523_start(struct nxprtc_softc *sc)
 	struct sysctl_ctx_list *ctx;
 	struct sysctl_oid_list *tree;
 	struct csr {
-		uint8_t	cs1;
-		uint8_t	cs2;
+		uint8_t cs1;
+		uint8_t cs2;
 		uint8_t cs3;
 		uint8_t sec;
 	} csr;
@@ -448,8 +448,8 @@ pcf8523_start(struct nxprtc_softc *sc)
 	uint8_t clkout, freqadj;
 
 	/* Read the control and status registers. */
-	if ((err = nxprtc_readfrom(sc->dev, PCF85xx_R_CS1, &csr,
-	    sizeof(csr), WAITFLAGS)) != 0){
+	if ((err = nxprtc_readfrom(sc->dev, PCF85xx_R_CS1, &csr, sizeof(csr),
+		 WAITFLAGS)) != 0) {
 		device_printf(sc->dev, "cannot read RTC control regs\n");
 		return (err);
 	}
@@ -462,13 +462,13 @@ pcf8523_start(struct nxprtc_softc *sc)
 	 */
 	if ((csr.cs3 & PCF8523_M_CS3_PM) == PCF8523_B_CS3_PM_NOBAT ||
 	    (csr.cs1 & PCF85xx_B_CS1_STOP) || (csr.sec & PCF85xx_B_SECOND_OS)) {
-		device_printf(sc->dev, 
+		device_printf(sc->dev,
 		    "WARNING: RTC battery failed; time is invalid\n");
 
 		/*
 		 * For 212x series...
-		 * - Turn off the POR-Override bit (used for mfg test only), 
-		 *   by writing zero to cs 1 (all other bits power on as zero). 
+		 * - Turn off the POR-Override bit (used for mfg test only),
+		 *   by writing zero to cs 1 (all other bits power on as zero).
 		 * - Turn off the timestamp option to save the power used to
 		 *   monitor that input pin.
 		 * - Trigger OTP refresh by forcing the OTPR bit to zero then
@@ -542,7 +542,8 @@ pcf8523_start(struct nxprtc_softc *sc)
 
 		SYSCTL_ADD_PROC(ctx, tree, OID_AUTO, "freqadj",
 		    CTLFLAG_RWTUN | CTLTYPE_INT | CTLFLAG_MPSAFE, sc, 0,
-		    freqadj_sysctl, "I", "Frequency adjust in PPM, range [-7,+8]");
+		    freqadj_sysctl, "I",
+		    "Frequency adjust in PPM, range [-7,+8]");
 	} else {
 		if (csr.cs1 & PCF8523_B_CS1_12HR)
 			sc->use_ampm = true;
@@ -613,15 +614,15 @@ static int
 pcf8563_start(struct nxprtc_softc *sc)
 {
 	struct csr {
-		uint8_t	cs1;
-		uint8_t	cs2;
+		uint8_t cs1;
+		uint8_t cs2;
 		uint8_t sec;
 	} csr;
 	int err;
 
 	/* Read the control and status registers. */
-	if ((err = nxprtc_readfrom(sc->dev, PCF85xx_R_CS1, &csr,
-	    sizeof(csr), WAITFLAGS)) != 0){
+	if ((err = nxprtc_readfrom(sc->dev, PCF85xx_R_CS1, &csr, sizeof(csr),
+		 WAITFLAGS)) != 0) {
 		device_printf(sc->dev, "cannot read RTC control regs\n");
 		return (err);
 	}
@@ -633,7 +634,7 @@ pcf8563_start(struct nxprtc_softc *sc)
 	 *  - The clock-increment STOP flag is set (this is just insane).
 	 */
 	if ((csr.cs1 & PCF85xx_B_CS1_STOP) || (csr.sec & PCF85xx_B_SECOND_OS)) {
-		device_printf(sc->dev, 
+		device_printf(sc->dev,
 		    "WARNING: RTC battery failed; time is invalid\n");
 		/*
 		 * - Turn off the POR-Override bit (used for mfg test only), by
@@ -774,12 +775,12 @@ nxprtc_gettime(device_t dev, struct timespec *ts)
 
 	bct.nsec = ((uint64_t)tmrcount * 1000000000) / TMR_TICKS_SEC;
 	bct.ispm = (tregs.hour & PCF8523_B_HOUR_PM) != 0;
-	bct.sec  = tregs.sec   & PCF85xx_M_SECOND;
-	bct.min  = tregs.min   & PCF85xx_M_MINUTE;
-	bct.hour = tregs.hour  & hourmask;
-	bct.day  = tregs.day   & PCF85xx_M_DAY;
-	bct.mon  = tregs.month & PCF85xx_M_MONTH;
-	bct.year = tregs.year  & PCF85xx_M_YEAR;
+	bct.sec = tregs.sec & PCF85xx_M_SECOND;
+	bct.min = tregs.min & PCF85xx_M_MINUTE;
+	bct.hour = tregs.hour & hourmask;
+	bct.day = tregs.day & PCF85xx_M_DAY;
+	bct.mon = tregs.month & PCF85xx_M_MONTH;
+	bct.year = tregs.year & PCF85xx_M_YEAR;
 
 	/*
 	 * Old PCF8563 datasheets recommended that the C bit be 1 for 19xx and 0
@@ -792,10 +793,10 @@ nxprtc_gettime(device_t dev, struct timespec *ts)
 			if (bct.year < 0x70)
 				sc->flags |= SC_F_CPOL;
 		} else if (bct.year >= 0x70)
-				sc->flags |= SC_F_CPOL;
+			sc->flags |= SC_F_CPOL;
 	}
 
-	clock_dbgprint_bcd(sc->dev, CLOCK_DBG_READ, &bct); 
+	clock_dbgprint_bcd(sc->dev, CLOCK_DBG_READ, &bct);
 	err = clock_bcd_to_ts(&bct, ts, sc->use_ampm);
 	ts->tv_sec += utc_offset();
 
@@ -845,16 +846,16 @@ nxprtc_settime(device_t dev, struct timespec *ts)
 			if (bct.year >= 0x2000)
 				cflag = PCF8563_B_MONTH_C;
 		} else if (bct.year < 0x2000)
-				cflag = PCF8563_B_MONTH_C;
+			cflag = PCF8563_B_MONTH_C;
 	}
 
-	tregs.sec   = bct.sec;
-	tregs.min   = bct.min;
-	tregs.hour  = bct.hour | (bct.ispm ? PCF8523_B_HOUR_PM : 0);
-	tregs.day   = bct.day;
+	tregs.sec = bct.sec;
+	tregs.min = bct.min;
+	tregs.hour = bct.hour | (bct.ispm ? PCF8523_B_HOUR_PM : 0);
+	tregs.day = bct.day;
 	tregs.month = bct.mon;
-	tregs.year  = (bct.year & 0xff) | cflag;
-	tregs.wday  = bct.dow;
+	tregs.year = (bct.year & 0xff) | cflag;
+	tregs.wday = bct.dow;
 
 	/*
 	 * Set the time, reset the timer count register, then start the clocks.
@@ -900,8 +901,8 @@ nxprtc_get_chiptype(device_t dev)
 	 * comparing the hinted chip type to the compat strings.  The table end
 	 * marker ocd_data is TYPE_NONE.
 	 */
-	if (resource_string_value(device_get_name(dev), 
-	    device_get_unit(dev), "compatible", &htype) == 0) {
+	if (resource_string_value(device_get_name(dev), device_get_unit(dev),
+		"compatible", &htype) == 0) {
 		for (cdata = compat_data; cdata->ocd_str != NULL; ++cdata) {
 			if (strcmp(htype, cdata->ocd_str) == 0)
 				break;
@@ -993,16 +994,15 @@ nxprtc_detach(device_t dev)
 	return (0);
 }
 
-static device_method_t nxprtc_methods[] = {
-	DEVMETHOD(device_probe,		nxprtc_probe),
-	DEVMETHOD(device_attach,	nxprtc_attach),
-	DEVMETHOD(device_detach,	nxprtc_detach),
+static device_method_t nxprtc_methods[] = { DEVMETHOD(device_probe,
+						nxprtc_probe),
+	DEVMETHOD(device_attach, nxprtc_attach),
+	DEVMETHOD(device_detach, nxprtc_detach),
 
-	DEVMETHOD(clock_gettime,	nxprtc_gettime),
-	DEVMETHOD(clock_settime,	nxprtc_settime),
+	DEVMETHOD(clock_gettime, nxprtc_gettime),
+	DEVMETHOD(clock_settime, nxprtc_settime),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 static driver_t nxprtc_driver = {
 	"nxprtc",

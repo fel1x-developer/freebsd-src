@@ -27,17 +27,17 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
+#include <sys/systm.h>
 #include <sys/conf.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/random.h>
-#include <sys/systm.h>
 
-#include <machine/segments.h>
-#include <machine/pcb.h>
 #include <machine/md_var.h>
+#include <machine/pcb.h>
+#include <machine/segments.h>
 #include <machine/specialreg.h>
 
 #include <dev/random/randomdev.h>
@@ -58,15 +58,13 @@ VIA_RNG_store(void *buf)
 	uint32_t retval = 0;
 	uint32_t rate = 0;
 
-	__asm __volatile(
-		"movl	$0,%%edx\n\t"
-		".byte 0x0f, 0xa7, 0xc0"
-			: "=a" (retval), "+d" (rate), "+D" (buf)
-			:
-			: "memory"
-	);
+	__asm __volatile("movl	$0,%%edx\n\t"
+			 ".byte 0x0f, 0xa7, 0xc0"
+			 : "=a"(retval), "+d"(rate), "+D"(buf)
+			 :
+			 : "memory");
 	if (rate == 0)
-		return (retval&0x1f);
+		return (retval & 0x1f);
 	return (0);
 }
 
@@ -99,7 +97,8 @@ nehemiah_modevent(module_t mod, int type, void *unused)
 	case MOD_LOAD:
 		if (via_feature_rng & VIA_HAS_RNG) {
 			random_source_register(&random_nehemiah);
-			printf("random: fast provider: \"%s\"\n", random_nehemiah.rs_ident);
+			printf("random: fast provider: \"%s\"\n",
+			    random_nehemiah.rs_ident);
 		}
 		break;
 
@@ -115,17 +114,12 @@ nehemiah_modevent(module_t mod, int type, void *unused)
 	default:
 		error = EOPNOTSUPP;
 		break;
-
 	}
 
 	return (error);
 }
 
-static moduledata_t nehemiah_mod = {
-	"nehemiah",
-	nehemiah_modevent,
-	0
-};
+static moduledata_t nehemiah_mod = { "nehemiah", nehemiah_modevent, 0 };
 
 DECLARE_MODULE(nehemiah, nehemiah_mod, SI_SUB_RANDOM, SI_ORDER_FOURTH);
 MODULE_VERSION(nehemiah, 1);

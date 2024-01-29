@@ -38,6 +38,7 @@
 #include <sys/sysctl.h>
 #include <sys/wait.h>
 
+#include <atf-c.h>
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -47,9 +48,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <atf-c.h>
-
-#define	TEST_PATH_LEN	256
+#define TEST_PATH_LEN 256
 static char test_path[TEST_PATH_LEN];
 static char test_path2[TEST_PATH_LEN];
 static unsigned int test_path_idx = 0;
@@ -63,10 +62,8 @@ gen_a_test_path(char *path)
 
 	test_path_idx++;
 
-	ATF_REQUIRE_MSG(mkstemp(path) != -1,
-	    "mkstemp failed; errno=%d", errno);
-	ATF_REQUIRE_MSG(unlink(path) == 0,
-	    "unlink failed; errno=%d", errno);
+	ATF_REQUIRE_MSG(mkstemp(path) != -1, "mkstemp failed; errno=%d", errno);
+	ATF_REQUIRE_MSG(unlink(path) == 0, "unlink failed; errno=%d", errno);
 }
 
 static void
@@ -93,7 +90,8 @@ shm_open_should_fail(const char *path, int flags, mode_t mode, int error)
 	ATF_CHECK_MSG(fd == -1, "shm_open didn't fail");
 	ATF_CHECK_MSG(error == errno,
 	    "shm_open didn't fail with expected errno; errno=%d; expected "
-	    "errno=%d", errno, error);
+	    "errno=%d",
+	    errno, error);
 }
 
 /*
@@ -106,7 +104,8 @@ shm_unlink_should_fail(const char *path, int error)
 	ATF_CHECK_MSG(shm_unlink(path) == -1, "shm_unlink didn't fail");
 	ATF_CHECK_MSG(error == errno,
 	    "shm_unlink didn't fail with expected errno; errno=%d; expected "
-	    "errno=%d", errno, error);
+	    "errno=%d",
+	    errno, error);
 }
 
 /*
@@ -121,7 +120,7 @@ scribble_object(const char *path, char value)
 
 	ATF_REQUIRE(0 < (pagesize = getpagesize()));
 
-	fd = shm_open(path, O_CREAT|O_EXCL|O_RDWR, 0777);
+	fd = shm_open(path, O_CREAT | O_EXCL | O_RDWR, 0777);
 	if (fd < 0 && errno == EEXIST) {
 		if (shm_unlink(test_path) < 0)
 			atf_tc_fail("shm_unlink");
@@ -158,7 +157,8 @@ verify_object(const char *path, char expected_value)
 
 	fd = shm_open(path, O_RDONLY, 0777);
 	if (fd < 0)
-		atf_tc_fail("shm_open failed in verify_object; errno=%d, path=%s",
+		atf_tc_fail(
+		    "shm_open failed in verify_object; errno=%d, path=%s",
 		    errno, path);
 
 	page = mmap(0, pagesize, PROT_READ, MAP_SHARED, fd, 0);
@@ -166,7 +166,7 @@ verify_object(const char *path, char expected_value)
 		atf_tc_fail("mmap(1)");
 	if (page[0] != expected_value)
 		atf_tc_fail("Renamed object has incorrect value; has"
-		    "%d (0x%x, '%c'), expected %d (0x%x, '%c')\n",
+			    "%d (0x%x, '%c'), expected %d (0x%x, '%c')\n",
 		    page[0], page[0], isprint(page[0]) ? page[0] : ' ',
 		    expected_value, expected_value,
 		    isprint(expected_value) ? expected_value : ' ');
@@ -346,11 +346,13 @@ ATF_TC_BODY(rename_bad_path_pointer, tc)
 	gen_test_path();
 	rc = shm_rename(test_path, bad_path, 0);
 	if (rc != -1)
-		atf_tc_fail("shm_rename of nonexisting shm succeeded unexpectedly");
+		atf_tc_fail(
+		    "shm_rename of nonexisting shm succeeded unexpectedly");
 
 	rc = shm_rename(bad_path, test_path, 0);
 	if (rc != -1)
-		atf_tc_fail("shm_rename of nonexisting shm succeeded unexpectedly");
+		atf_tc_fail(
+		    "shm_rename of nonexisting shm succeeded unexpectedly");
 }
 
 ATF_TC_WITHOUT_HEAD(rename_from_nonexisting);
@@ -362,10 +364,12 @@ ATF_TC_BODY(rename_from_nonexisting, tc)
 	gen_test_path2();
 	rc = shm_rename(test_path, test_path2, 0);
 	if (rc != -1)
-		atf_tc_fail("shm_rename of nonexisting shm succeeded unexpectedly");
+		atf_tc_fail(
+		    "shm_rename of nonexisting shm succeeded unexpectedly");
 
 	if (errno != ENOENT)
-		atf_tc_fail("Expected ENOENT to rename of nonexistent shm; got %d",
+		atf_tc_fail(
+		    "Expected ENOENT to rename of nonexistent shm; got %d",
 		    errno);
 }
 
@@ -457,7 +461,7 @@ ATF_TC_BODY(rename_to_exchange, tc)
 	close(fd_to);
 
 	ATF_REQUIRE_MSG(shm_rename(test_path, test_path2,
-	    SHM_RENAME_EXCHANGE) == 0,
+			    SHM_RENAME_EXCHANGE) == 0,
 	    "shm_rename failed; errno=%d", errno);
 
 	// Read back renamed; verify contents
@@ -480,7 +484,7 @@ ATF_TC_BODY(rename_to_exchange_nonexisting, tc)
 	gen_test_path2();
 
 	ATF_REQUIRE_MSG(shm_rename(test_path, test_path2,
-	    SHM_RENAME_EXCHANGE) == 0,
+			    SHM_RENAME_EXCHANGE) == 0,
 	    "shm_rename failed; errno=%d", errno);
 
 	// Read back renamed; verify contents
@@ -504,7 +508,7 @@ ATF_TC_BODY(rename_to_self, tc)
 
 	verify_object(test_path, expected_value);
 }
-	
+
 ATF_TC_WITHOUT_HEAD(rename_bad_flag);
 ATF_TC_BODY(rename_bad_flag, tc)
 {
@@ -526,7 +530,8 @@ ATF_TC_BODY(rename_bad_flag, tc)
 	rc = shm_rename(test_path, test_path2, INT_MIN);
 	ATF_REQUIRE_MSG((rc == -1) && (errno == EINVAL),
 	    "shm_rename should have failed with EINVAL; got: return=%d, "
-	    "errno=%d", rc, errno);
+	    "errno=%d",
+	    rc, errno);
 }
 
 ATF_TC_WITHOUT_HEAD(reopen_object);
@@ -579,7 +584,8 @@ ATF_TC_BODY(readonly_mmap_write, tc)
 
 	if (errno != EACCES)
 		atf_tc_fail("mmap(PROT_WRITE) didn't fail with EACCES; "
-		    "errno=%d", errno);
+			    "errno=%d",
+		    errno);
 
 	close(fd);
 	ATF_REQUIRE_MSG(shm_unlink(test_path) != -1,
@@ -678,12 +684,12 @@ ATF_TC_BODY(open_create_existing_object, tc)
 
 	gen_test_path();
 
-	fd = shm_open(test_path, O_RDONLY|O_CREAT, 0777);
+	fd = shm_open(test_path, O_RDONLY | O_CREAT, 0777);
 	ATF_REQUIRE_MSG(fd >= 0, "shm_open failed; errno=%d", errno);
 	close(fd);
 
-	shm_open_should_fail(test_path, O_RDONLY|O_CREAT|O_EXCL,
-	    0777, EEXIST);
+	shm_open_should_fail(test_path, O_RDONLY | O_CREAT | O_EXCL, 0777,
+	    EEXIST);
 
 	ATF_REQUIRE_MSG(shm_unlink(test_path) != -1,
 	    "shm_unlink failed; errno=%d", errno);
@@ -700,20 +706,20 @@ ATF_TC_BODY(trunc_resets_object, tc)
 	/* Create object and set size to 1024. */
 	fd = shm_open(test_path, O_RDWR | O_CREAT, 0777);
 	ATF_REQUIRE_MSG(fd >= 0, "shm_open(1) failed; errno=%d", errno);
-	ATF_REQUIRE_MSG(ftruncate(fd, 1024) != -1,
-	    "ftruncate failed; errno=%d", errno);
-	ATF_REQUIRE_MSG(fstat(fd, &sb) != -1,
-	    "fstat(1) failed; errno=%d", errno);
+	ATF_REQUIRE_MSG(ftruncate(fd, 1024) != -1, "ftruncate failed; errno=%d",
+	    errno);
+	ATF_REQUIRE_MSG(fstat(fd, &sb) != -1, "fstat(1) failed; errno=%d",
+	    errno);
 	ATF_REQUIRE_MSG(sb.st_size == 1024, "size %d != 1024", (int)sb.st_size);
 	close(fd);
 
 	/* Open with O_TRUNC which should reset size to 0. */
 	fd = shm_open(test_path, O_RDWR | O_TRUNC, 0777);
 	ATF_REQUIRE_MSG(fd >= 0, "shm_open(2) failed; errno=%d", errno);
-	ATF_REQUIRE_MSG(fstat(fd, &sb) != -1,
-	    "fstat(2) failed; errno=%d", errno);
-	ATF_REQUIRE_MSG(sb.st_size == 0,
-	    "size was not 0 after truncation: %d", (int)sb.st_size);
+	ATF_REQUIRE_MSG(fstat(fd, &sb) != -1, "fstat(2) failed; errno=%d",
+	    errno);
+	ATF_REQUIRE_MSG(sb.st_size == 0, "size was not 0 after truncation: %d",
+	    (int)sb.st_size);
 	close(fd);
 	ATF_REQUIRE_MSG(shm_unlink(test_path) != -1,
 	    "shm_unlink failed; errno=%d", errno);
@@ -749,7 +755,7 @@ ATF_TC_BODY(object_resize, tc)
 	ATF_REQUIRE(0 < (pagesize = getpagesize()));
 
 	/* Start off with a size of a single page. */
-	fd = shm_open(SHM_ANON, O_CREAT|O_RDWR, 0777);
+	fd = shm_open(SHM_ANON, O_CREAT | O_RDWR, 0777);
 	if (fd < 0)
 		atf_tc_fail("shm_open failed; errno=%d", errno);
 
@@ -760,11 +766,11 @@ ATF_TC_BODY(object_resize, tc)
 		atf_tc_fail("fstat(1) failed; errno=%d", errno);
 
 	if (sb.st_size != pagesize)
-		atf_tc_fail("first resize failed (%d != %d)",
-		    (int)sb.st_size, pagesize);
+		atf_tc_fail("first resize failed (%d != %d)", (int)sb.st_size,
+		    pagesize);
 
 	/* Write a '1' to the first byte. */
-	page = mmap(0, pagesize, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+	page = mmap(0, pagesize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	if (page == MAP_FAILED)
 		atf_tc_fail("mmap(1)");
 
@@ -781,11 +787,11 @@ ATF_TC_BODY(object_resize, tc)
 		atf_tc_fail("fstat(2) failed; errno=%d", errno);
 
 	if (sb.st_size != pagesize * 2)
-		atf_tc_fail("second resize failed (%d != %d)",
-		    (int)sb.st_size, pagesize * 2);
+		atf_tc_fail("second resize failed (%d != %d)", (int)sb.st_size,
+		    pagesize * 2);
 
 	/* Check for '1' at the first byte. */
-	page = mmap(0, pagesize * 2, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+	page = mmap(0, pagesize * 2, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	if (page == MAP_FAILED)
 		atf_tc_fail("mmap(2) failed; errno=%d", errno);
 
@@ -803,8 +809,8 @@ ATF_TC_BODY(object_resize, tc)
 		atf_tc_fail("fstat(3) failed; errno=%d", errno);
 
 	if (sb.st_size != pagesize)
-		atf_tc_fail("third resize failed (%d != %d)",
-		    (int)sb.st_size, pagesize);
+		atf_tc_fail("third resize failed (%d != %d)", (int)sb.st_size,
+		    pagesize);
 
 	/*
 	 * Fork a child process to make sure the second page is no
@@ -847,8 +853,8 @@ ATF_TC_BODY(object_resize, tc)
 		atf_tc_fail("fstat(2) failed; errno=%d", errno);
 
 	if (sb.st_size != pagesize * 2)
-		atf_tc_fail("fourth resize failed (%d != %d)",
-		    (int)sb.st_size, pagesize);
+		atf_tc_fail("fourth resize failed (%d != %d)", (int)sb.st_size,
+		    pagesize);
 
 	/*
 	 * Note that the mapping at 'page' for the second page is
@@ -860,8 +866,8 @@ ATF_TC_BODY(object_resize, tc)
 	 * grown are zero-filled.
 	 */
 	if (page[pagesize] != 0)
-		atf_tc_fail("invalid data at %d: %x != 0",
-		    pagesize, (int)page[pagesize]);
+		atf_tc_fail("invalid data at %d: %x != 0", pagesize,
+		    (int)page[pagesize]);
 
 	close(fd);
 }
@@ -887,8 +893,8 @@ ATF_TC_BODY(shm_functionality_across_fork, tc)
 #ifndef _POSIX_SHARED_MEMORY_OBJECTS
 	printf("_POSIX_SHARED_MEMORY_OBJECTS is undefined\n");
 #else
-	printf("_POSIX_SHARED_MEMORY_OBJECTS is defined as %ld\n", 
-	       (long)_POSIX_SHARED_MEMORY_OBJECTS - 0);
+	printf("_POSIX_SHARED_MEMORY_OBJECTS is defined as %ld\n",
+	    (long)_POSIX_SHARED_MEMORY_OBJECTS - 0);
 	if (_POSIX_SHARED_MEMORY_OBJECTS - 0 == -1)
 		printf("***Indicates this feature may be unsupported!\n");
 #endif
@@ -896,10 +902,11 @@ ATF_TC_BODY(shm_functionality_across_fork, tc)
 	scval = sysconf(_SC_SHARED_MEMORY_OBJECTS);
 	if (scval == -1 && errno != 0) {
 		atf_tc_fail("sysconf(_SC_SHARED_MEMORY_OBJECTS) failed; "
-		    "errno=%d", errno);
+			    "errno=%d",
+		    errno);
 	} else {
 		printf("sysconf(_SC_SHARED_MEMORY_OBJECTS) returns %ld\n",
-		       scval);
+		    scval);
 		if (scval == -1)
 			printf("***Indicates this feature is unsupported!\n");
 	}
@@ -1180,8 +1187,7 @@ ATF_TC_BODY(accounting, tc)
 	ATF_REQUIRE(st.st_blksize * st.st_blocks == (blkcnt_t)shm_sz);
 
 	range.r_offset = page_size;
-	range.r_len = len = (shm_max_pages - 1) * page_size -
-	    range.r_offset;
+	range.r_len = len = (shm_max_pages - 1) * page_size - range.r_offset;
 	ATF_CHECK_MSG(fspacectl(fd, SPACECTL_DEALLOC, &range, 0, &range) == 0,
 	    "SPACECTL_DEALLOC failed; errno=%d", errno);
 	ATF_REQUIRE(fstat(fd, &st) == 0);
@@ -1198,7 +1204,8 @@ shm_open_large(int psind, int policy, size_t sz)
 	fd = shm_create_largepage(SHM_ANON, O_CREAT | O_RDWR, psind, policy, 0);
 	if (fd < 0 && errno == ENOTTY)
 		atf_tc_skip("no large page support");
-	ATF_REQUIRE_MSG(fd >= 0, "shm_create_largepage failed; errno=%d", errno);
+	ATF_REQUIRE_MSG(fd >= 0, "shm_create_largepage failed; errno=%d",
+	    errno);
 
 	error = ftruncate(fd, sz);
 	if (error != 0 && errno == ENOMEM)
@@ -1261,15 +1268,16 @@ ATF_TC_BODY(largepage_basic, tc)
 			ATF_REQUIRE_MSG((vec[p] & MINCORE_INCORE) != 0,
 			    "page %zu is not mapped", p);
 			ATF_REQUIRE_MSG((vec[p] & MINCORE_SUPER) ==
-			    MINCORE_PSIND(i),
-			    "page %zu is not in a %zu-byte superpage",
-			    p, ps[i]);
+				MINCORE_PSIND(i),
+			    "page %zu is not in a %zu-byte superpage", p,
+			    ps[i]);
 		}
 
 		/* Validate zeroing. */
 		for (size_t p = 0; p < ps[i] / ps[0]; p++) {
 			ATF_REQUIRE_MSG(memcmp(addr + p * ps[0], zeroes,
-			    ps[0]) == 0, "page %zu miscompare", p);
+					    ps[0]) == 0,
+			    "page %zu miscompare", p);
 		}
 
 		free(vec);
@@ -1365,8 +1373,8 @@ ATF_TC_BODY(largepage_mmap, tc)
 		 */
 		addr = mmap(NULL, ps[i - 1], PROT_READ | PROT_WRITE, MAP_SHARED,
 		    fd, 0);
-		ATF_REQUIRE_MSG(addr == MAP_FAILED,
-		    "mmap(%zu bytes) succeeded", ps[i - 1]);
+		ATF_REQUIRE_MSG(addr == MAP_FAILED, "mmap(%zu bytes) succeeded",
+		    ps[i - 1]);
 		ATF_REQUIRE_MSG(errno == EINVAL,
 		    "mmap(%zu bytes) failed; error=%d", ps[i - 1], errno);
 
@@ -1410,13 +1418,13 @@ ATF_TC_BODY(largepage_mmap, tc)
 		addr1 = mmap(NULL, ps[i], PROT_READ | PROT_WRITE,
 		    MAP_ANON | MAP_PRIVATE | MAP_ALIGNED(ffsl(ps[i]) - 1), -1,
 		    0);
-		ATF_REQUIRE_MSG(addr1 != MAP_FAILED,
-		    "mmap failed; error=%d", errno);
+		ATF_REQUIRE_MSG(addr1 != MAP_FAILED, "mmap failed; error=%d",
+		    errno);
 		*(volatile char *)addr1 = '\0';
 		addr = mmap(addr1, ps[i], PROT_READ | PROT_WRITE,
 		    MAP_SHARED | MAP_FIXED, fd, 0);
-		ATF_REQUIRE_MSG(addr != MAP_FAILED,
-		    "mmap failed; error=%d", errno);
+		ATF_REQUIRE_MSG(addr != MAP_FAILED, "mmap failed; error=%d",
+		    errno);
 		ATF_REQUIRE_MSG(addr == addr1,
 		    "mmap disobeyed MAP_FIXED, %p %p", addr, addr1);
 		*(volatile char *)addr = 0; /* fault */
@@ -1425,7 +1433,7 @@ ATF_TC_BODY(largepage_mmap, tc)
 			ATF_REQUIRE_MSG((vec[p] & MINCORE_INCORE) != 0,
 			    "page %zu is not resident", p);
 			ATF_REQUIRE_MSG((vec[p] & MINCORE_SUPER) ==
-			    MINCORE_PSIND(i),
+				MINCORE_PSIND(i),
 			    "page %zu is not resident", p);
 		}
 
@@ -1434,8 +1442,8 @@ ATF_TC_BODY(largepage_mmap, tc)
 		 */
 		addr = mmap(NULL, ps[i], PROT_READ | PROT_WRITE, MAP_PRIVATE,
 		    fd, 0);
-		ATF_REQUIRE_MSG(addr == MAP_FAILED,
-		    "mmap(%zu bytes) succeeded", ps[i]);
+		ATF_REQUIRE_MSG(addr == MAP_FAILED, "mmap(%zu bytes) succeeded",
+		    ps[i]);
 
 		ATF_REQUIRE(close(fd) == 0);
 	}
@@ -1487,8 +1495,8 @@ largepage_madvise(char *addr, size_t sz, int advice, int error)
 		ATF_REQUIRE_MSG(madvise(addr, sz, advice) != 0,
 		    "madvise(%zu, %d) succeeded", sz, advice);
 		ATF_REQUIRE_MSG(errno == error,
-		    "unexpected error %d from madvise(%zu, %d)",
-		    errno, sz, advice);
+		    "unexpected error %d from madvise(%zu, %d)", errno, sz,
+		    advice);
 	}
 }
 
@@ -1658,8 +1666,8 @@ largepage_protect(char *addr, size_t sz, int prot, int error)
 		ATF_REQUIRE_MSG(mprotect(addr, sz, prot) != 0,
 		    "mprotect(%zu, %x) succeeded", sz, prot);
 		ATF_REQUIRE_MSG(errno == error,
-		    "unexpected error %d from mprotect(%zu, %x)",
-		    errno, sz, prot);
+		    "unexpected error %d from mprotect(%zu, %x)", errno, sz,
+		    prot);
 	}
 }
 
@@ -1858,8 +1866,8 @@ ATF_TC_BODY(largepage_pipe, tc)
 		ATF_REQUIRE(close(pfd[1]) == 0);
 		len = write(pfd[0], addr, ps[i]);
 		ATF_REQUIRE_MSG(len >= 0, "write() failed; error=%d", errno);
-		ATF_REQUIRE_MSG(len == (ssize_t)ps[i],
-		    "short write; len=%zd", len);
+		ATF_REQUIRE_MSG(len == (ssize_t)ps[i], "short write; len=%zd",
+		    len);
 		ATF_REQUIRE(close(pfd[0]) == 0);
 
 		ATF_REQUIRE_MSG(waitpid(child, &status, 0) == child,
@@ -1889,7 +1897,8 @@ ATF_TC_BODY(largepage_reopen, tc)
 	    SHM_LARGEPAGE_ALLOC_DEFAULT, 0600);
 	if (fd < 0 && errno == ENOTTY)
 		atf_tc_skip("no large page support");
-	ATF_REQUIRE_MSG(fd >= 0, "shm_create_largepage failed; error=%d", errno);
+	ATF_REQUIRE_MSG(fd >= 0, "shm_create_largepage failed; error=%d",
+	    errno);
 
 	ATF_REQUIRE_MSG(ftruncate(fd, ps[psind]) == 0,
 	    "ftruncate failed; error=%d", errno);
@@ -1914,8 +1923,7 @@ ATF_TC_BODY(largepage_reopen, tc)
 
 	ATF_REQUIRE_MSG(shm_unlink(test_path) == 0,
 	    "shm_unlink failed; errno=%d", errno);
-	ATF_REQUIRE_MSG(close(fd) == 0,
-	    "close failed; errno=%d", errno);
+	ATF_REQUIRE_MSG(close(fd) == 0, "close failed; errno=%d", errno);
 }
 
 ATF_TP_ADD_TCS(tp)

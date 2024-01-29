@@ -24,13 +24,13 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#ifndef	__AR40XX_HW_MIB_H__
-#define	__AR40XX_HW_MIB_H__
+#ifndef __AR40XX_HW_MIB_H__
+#define __AR40XX_HW_MIB_H__
 
-extern	int ar40xx_hw_mib_op(struct ar40xx_softc *sc, uint32_t op);
-extern	int ar40xx_hw_mib_capture(struct ar40xx_softc *sc);
-extern	int ar40xx_hw_mib_flush(struct ar40xx_softc *sc);
+extern int ar40xx_hw_mib_op(struct ar40xx_softc *sc, uint32_t op);
+extern int ar40xx_hw_mib_capture(struct ar40xx_softc *sc);
+extern int ar40xx_hw_mib_flush(struct ar40xx_softc *sc);
 
-extern	int ar40xx_hw_mib_fetch(struct ar40xx_softc *sc, int port);
+extern int ar40xx_hw_mib_fetch(struct ar40xx_softc *sc, int port);
 
-#endif	/* __AR40XX_HW_MIB_H__ */
+#endif /* __AR40XX_HW_MIB_H__ */

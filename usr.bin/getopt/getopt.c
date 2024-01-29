@@ -20,11 +20,11 @@ main(int argc, char *argv[])
 	if (caph_limit_stdio() < 0 || caph_enter() < 0)
 		err(1, "capsicum");
 
-	optind = 2;	/* Past the program name and the option letters. */
+	optind = 2; /* Past the program name and the option letters. */
 	while ((c = getopt(argc, argv, argv[1])) != -1)
 		switch (c) {
 		case '?':
-			status = 1;	/* getopt routine gave message */
+			status = 1; /* getopt routine gave message */
 			break;
 		default:
 			if (optarg != NULL)

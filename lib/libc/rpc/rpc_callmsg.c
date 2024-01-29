@@ -6,27 +6,27 @@
  * Copyright (c) 2009, Sun Microsystems, Inc.
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
+ * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * - Redistributions of source code must retain the above copyright notice, 
+ * - Redistributions of source code must retain the above copyright notice,
  *   this list of conditions and the following disclaimer.
- * - Redistributions in binary form must reproduce the above copyright notice, 
- *   this list of conditions and the following disclaimer in the documentation 
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
  *   and/or other materials provided with the distribution.
- * - Neither the name of Sun Microsystems, Inc. nor the names of its 
- *   contributors may be used to endorse or promote products derived 
+ * - Neither the name of Sun Microsystems, Inc. nor the names of its
+ *   contributors may be used to endorse or promote products derived
  *   from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -37,12 +37,12 @@
  *
  */
 
-#include "namespace.h"
 #include <assert.h>
+#include <rpc/rpc.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <rpc/rpc.h>
+#include "namespace.h"
 #include "un-namespace.h"
 
 /*
@@ -65,10 +65,11 @@ xdr_callmsg(XDR *xdrs, struct rpc_msg *cmsg)
 		if (cmsg->rm_call.cb_verf.oa_length > MAX_AUTH_BYTES) {
 			return (FALSE);
 		}
-		buf = XDR_INLINE(xdrs, 8 * BYTES_PER_XDR_UNIT
-			+ RNDUP(cmsg->rm_call.cb_cred.oa_length)
-			+ 2 * BYTES_PER_XDR_UNIT
-			+ RNDUP(cmsg->rm_call.cb_verf.oa_length));
+		buf = XDR_INLINE(xdrs,
+		    8 * BYTES_PER_XDR_UNIT +
+			RNDUP(cmsg->rm_call.cb_cred.oa_length) +
+			2 * BYTES_PER_XDR_UNIT +
+			RNDUP(cmsg->rm_call.cb_verf.oa_length));
 		if (buf != NULL) {
 			IXDR_PUT_INT32(buf, cmsg->rm_xid);
 			IXDR_PUT_ENUM(buf, cmsg->rm_direction);
@@ -87,7 +88,7 @@ xdr_callmsg(XDR *xdrs, struct rpc_msg *cmsg)
 			IXDR_PUT_INT32(buf, oa->oa_length);
 			if (oa->oa_length) {
 				memmove(buf, oa->oa_base, oa->oa_length);
-				buf += RNDUP(oa->oa_length) / sizeof (int32_t);
+				buf += RNDUP(oa->oa_length) / sizeof(int32_t);
 			}
 			oa = &cmsg->rm_call.cb_verf;
 			IXDR_PUT_ENUM(buf, oa->oa_flavor);
@@ -124,15 +125,15 @@ xdr_callmsg(XDR *xdrs, struct rpc_msg *cmsg)
 					return (FALSE);
 				}
 				if (oa->oa_base == NULL) {
-					oa->oa_base = (caddr_t)
-					    mem_alloc(oa->oa_length);
+					oa->oa_base = (caddr_t)mem_alloc(
+					    oa->oa_length);
 					if (oa->oa_base == NULL)
 						return (FALSE);
 				}
 				buf = XDR_INLINE(xdrs, RNDUP(oa->oa_length));
 				if (buf == NULL) {
 					if (xdr_opaque(xdrs, oa->oa_base,
-					    oa->oa_length) == FALSE) {
+						oa->oa_length) == FALSE) {
 						return (FALSE);
 					}
 				} else {
@@ -160,15 +161,15 @@ xdr_callmsg(XDR *xdrs, struct rpc_msg *cmsg)
 					return (FALSE);
 				}
 				if (oa->oa_base == NULL) {
-					oa->oa_base = (caddr_t)
-					    mem_alloc(oa->oa_length);
+					oa->oa_base = (caddr_t)mem_alloc(
+					    oa->oa_length);
 					if (oa->oa_base == NULL)
 						return (FALSE);
 				}
 				buf = XDR_INLINE(xdrs, RNDUP(oa->oa_length));
 				if (buf == NULL) {
 					if (xdr_opaque(xdrs, oa->oa_base,
-					    oa->oa_length) == FALSE) {
+						oa->oa_length) == FALSE) {
 						return (FALSE);
 					}
 				} else {
@@ -184,16 +185,15 @@ xdr_callmsg(XDR *xdrs, struct rpc_msg *cmsg)
 		}
 	}
 	prm_direction = &cmsg->rm_direction;
-	if (
-	    xdr_u_int32_t(xdrs, &(cmsg->rm_xid)) &&
-	    xdr_enum(xdrs, (enum_t *) prm_direction) &&
+	if (xdr_u_int32_t(xdrs, &(cmsg->rm_xid)) &&
+	    xdr_enum(xdrs, (enum_t *)prm_direction) &&
 	    (cmsg->rm_direction == CALL) &&
 	    xdr_rpcvers(xdrs, &(cmsg->rm_call.cb_rpcvers)) &&
 	    (cmsg->rm_call.cb_rpcvers == RPC_MSG_VERSION) &&
 	    xdr_rpcprog(xdrs, &(cmsg->rm_call.cb_prog)) &&
 	    xdr_rpcvers(xdrs, &(cmsg->rm_call.cb_vers)) &&
 	    xdr_rpcproc(xdrs, &(cmsg->rm_call.cb_proc)) &&
-	    xdr_opaque_auth(xdrs, &(cmsg->rm_call.cb_cred)) )
+	    xdr_opaque_auth(xdrs, &(cmsg->rm_call.cb_cred)))
 		return (xdr_opaque_auth(xdrs, &(cmsg->rm_call.cb_verf)));
 	return (FALSE);
 }

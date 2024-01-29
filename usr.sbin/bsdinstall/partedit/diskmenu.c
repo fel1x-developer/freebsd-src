@@ -51,10 +51,10 @@ diskmenu_show(const char *title, const char *text, struct partedit_item *items,
 		bsditems[i].depth = 2 * items[i].indentation;
 		/* old menu sets max namelen to 10 */
 		bsditems[i].name = items[i].name;
-		humanize_number(size, 7, items[i].size, "B",
-		    HN_AUTOSCALE, HN_DECIMAL);
+		humanize_number(size, 7, items[i].size, "B", HN_AUTOSCALE,
+		    HN_DECIMAL);
 		mp = items[i].mountpoint != NULL ? items[i].mountpoint : "";
-		asprintf(__DECONST(char**, &bsditems[i].desc),
+		asprintf(__DECONST(char **, &bsditems[i].desc),
 		    "  %-9s %-15s %s", size, items[i].type, mp);
 		bsditems[i].bottomdesc = "";
 	}
@@ -63,22 +63,23 @@ diskmenu_show(const char *title, const char *text, struct partedit_item *items,
 	conf.title = title;
 	conf.menu.align_left = true;
 	conf.text.escape = true;
-	conf.key.f1_message="[\\Z1\\ZbC\\Znreate]: a new partition.\n"
-		"[\\Z1\\ZbD\\Znelete]: selected partition(s).\n"
-		"[\\Z1\\ZbM\\Znodify]: partition type or mountpoint.\n"
-		"[\\Z1\\ZbR\\Znevert]: changes to disk setup.\n"
-		"[\\Z1\\ZbA\\Znuto]:   guided partitioning tool.\n"
-		"[\\Z1\\ZbF\\Zninish]: will ask to apply changes.";
+	conf.key.f1_message =
+	    "[\\Z1\\ZbC\\Znreate]: a new partition.\n"
+	    "[\\Z1\\ZbD\\Znelete]: selected partition(s).\n"
+	    "[\\Z1\\ZbM\\Znodify]: partition type or mountpoint.\n"
+	    "[\\Z1\\ZbR\\Znevert]: changes to disk setup.\n"
+	    "[\\Z1\\ZbA\\Znuto]:   guided partitioning tool.\n"
+	    "[\\Z1\\ZbF\\Zninish]: will ask to apply changes.";
 	conf.menu.shortcut_buttons = true;
-	conf.button.ok_label       = "Create";
-	conf.button.with_extra     = true;
-	conf.button.extra_label    = "Delete";
-	conf.button.cancel_label   = "Modify";
-	conf.button.with_help      = true;
-	conf.button.help_label     = "Revert";
+	conf.button.ok_label = "Create";
+	conf.button.with_extra = true;
+	conf.button.extra_label = "Delete";
+	conf.button.cancel_label = "Modify";
+	conf.button.with_help = true;
+	conf.button.help_label = "Revert";
 	conf.button.right1_label = "Auto";
 	conf.button.right2_label = "Finish";
-	conf.button.default_label  = "Finish";
+	conf.button.default_label = "Finish";
 	output = bsddialog_menu(&conf, text, 20, 0, 10, nitems, bsditems,
 	    focusitem);
 

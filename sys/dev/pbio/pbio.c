@@ -32,96 +32,96 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>		/* SYSINIT stuff */
 #include <sys/bus.h>
-#include <sys/resource.h>
-#include <sys/syslog.h>
-#include <sys/sysctl.h>
-#include <sys/conf.h>		/* cdevsw stuff */
-#include <sys/malloc.h>		/* malloc region definitions */
+#include <sys/conf.h> /* cdevsw stuff */
+#include <sys/fcntl.h>
+#include <sys/kernel.h> /* SYSINIT stuff */
+#include <sys/malloc.h> /* malloc region definitions */
 #include <sys/module.h>
+#include <sys/resource.h>
+#include <sys/rman.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/syslog.h>
+#include <sys/uio.h>
+
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
-#include <dev/pbio/pbioio.h>		/* pbio IOCTL definitions */
-#include <sys/uio.h>
-#include <sys/fcntl.h>
-#include <sys/sx.h>
+
+#include <dev/pbio/pbioio.h> /* pbio IOCTL definitions */
+
 #include <isa/isavar.h>
 
 /* Function prototypes (these should all be static) */
-static	d_open_t	pbioopen;
-static	d_read_t	pbioread;
-static	d_write_t	pbiowrite;
-static	d_ioctl_t	pbioioctl;
-static	d_poll_t	pbiopoll;
-static	int		pbioprobe(device_t);
-static	int		pbioattach(device_t);
+static d_open_t pbioopen;
+static d_read_t pbioread;
+static d_write_t pbiowrite;
+static d_ioctl_t pbioioctl;
+static d_poll_t pbiopoll;
+static int pbioprobe(device_t);
+static int pbioattach(device_t);
 
 /* Device registers */
-#define	PBIO_PORTA	0
-#define	PBIO_PORTB	1
-#define	PBIO_PORTC	2
-#define	PBIO_CFG	3
-#define	PBIO_IOSIZE	4
+#define PBIO_PORTA 0
+#define PBIO_PORTB 1
+#define PBIO_PORTC 2
+#define PBIO_CFG 3
+#define PBIO_IOSIZE 4
 
 /* Per-port buffer size */
-#define	PBIO_BUFSIZ 64
+#define PBIO_BUFSIZ 64
 
 /* Number of /dev entries */
-#define	PBIO_NPORTS 4
+#define PBIO_NPORTS 4
 
 /* I/O port range */
-#define	IO_PBIOSIZE 4
+#define IO_PBIOSIZE 4
 
-static char *port_names[] = {"a", "b", "ch", "cl"};
+static char *port_names[] = { "a", "b", "ch", "cl" };
 
-#define	PBIO_PNAME(n)		(port_names[(n)])
+#define PBIO_PNAME(n) (port_names[(n)])
 
-#define	PORT(dev)		(dev2unit(dev))
+#define PORT(dev) (dev2unit(dev))
 
-#define	pbio_addr(dev)		((dev)->si_drv1)
+#define pbio_addr(dev) ((dev)->si_drv1)
 
-static struct cdevsw pbio_cdevsw = {
-	.d_version = D_VERSION,
+static struct cdevsw pbio_cdevsw = { .d_version = D_VERSION,
 	.d_open = pbioopen,
 	.d_read = pbioread,
 	.d_write = pbiowrite,
 	.d_ioctl = pbioioctl,
 	.d_poll = pbiopoll,
-	.d_name = "pbio"
-};
+	.d_name = "pbio" };
 
 /*
  * Data specific to each I/O port
  */
 struct portdata {
 	struct cdev *port;
-	int	diff;			/* When true read only differences */
-	int	ipace;			/* Input pace */
-	int	opace;			/* Output pace */
-	char	oldval;			/* Last value read */
-	char	buff[PBIO_BUFSIZ];	/* Per-port data buffer */
+	int diff;		/* When true read only differences */
+	int ipace;		/* Input pace */
+	int opace;		/* Output pace */
+	char oldval;		/* Last value read */
+	char buff[PBIO_BUFSIZ]; /* Per-port data buffer */
 };
 
 /*
  * One of these per allocated device
  */
 struct pbio_softc {
-	struct portdata pd[PBIO_NPORTS];/* Per port data */
-	int	iomode;			/* Virtualized I/O mode port value */
-					/* The real port is write-only */
+	struct portdata pd[PBIO_NPORTS]; /* Per port data */
+	int iomode;			 /* Virtualized I/O mode port value */
+					 /* The real port is write-only */
 	struct resource *res;
 	struct sx lock;
 };
 
-typedef	struct pbio_softc *sc_p;
+typedef struct pbio_softc *sc_p;
 
 static device_method_t pbio_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		pbioprobe),
-	DEVMETHOD(device_attach,	pbioattach),
-	{ 0, 0 }
+	DEVMETHOD(device_probe, pbioprobe),
+	DEVMETHOD(device_attach, pbioattach), { 0, 0 }
 };
 
 static char driver_name[] = "pbio";
@@ -151,13 +151,13 @@ pboutb(struct pbio_softc *scp, int off, uint8_t val)
 static int
 pbioprobe(device_t dev)
 {
-	int		rid;
+	int rid;
 	struct pbio_softc *scp = device_get_softc(dev);
 #ifdef GENERIC_PBIO_PROBE
 	unsigned char val;
 #endif
 
-	if (isa_get_logicalid(dev))		/* skip PnP probes */
+	if (isa_get_logicalid(dev)) /* skip PnP probes */
 		return (ENXIO);
 	rid = 0;
 	scp->res = bus_alloc_resource_anywhere(dev, SYS_RES_IOPORT, &rid,
@@ -174,7 +174,7 @@ pbioprobe(device_t dev)
 	/* Set all ports to output */
 	pboutb(scp, PBIO_CFG, 0x80);
 	printf("pbio val(CFG: 0x%03x)=0x%02x (should be 0x80)\n",
-		rman_get_start(scp->res), pbinb(scp, PBIO_CFG));
+	    rman_get_start(scp->res), pbinb(scp, PBIO_CFG));
 	pboutb(scp, PBIO_PORTA, 0xa5);
 	val = pbinb(scp, PBIO_PORTA);
 	printf("pbio val=0x%02x (should be 0xa5)\n", val);
@@ -203,12 +203,12 @@ pbioprobe(device_t dev)
  * we can also trust the unit number.
  */
 static int
-pbioattach (device_t dev)
+pbioattach(device_t dev)
 {
 	struct make_dev_args args;
 	int unit;
 	int i;
-	int		rid;
+	int rid;
 	struct pbio_softc *sc;
 
 	sc = device_get_softc(dev);
@@ -222,7 +222,7 @@ pbioattach (device_t dev)
 	/*
 	 * Store whatever seems wise.
 	 */
-	sc->iomode = 0x9b;		/* All ports to input */
+	sc->iomode = 0x9b; /* All ports to input */
 
 	sx_init(&sc->lock, "pbio");
 	for (i = 0; i < PBIO_NPORTS; i++) {
@@ -240,7 +240,7 @@ pbioattach (device_t dev)
 }
 
 static int
-pbioioctl (struct cdev *dev, u_long cmd, caddr_t data, int flag,
+pbioioctl(struct cdev *dev, u_long cmd, caddr_t data, int flag,
     struct thread *td)
 {
 	struct pbio_softc *scp;
@@ -276,22 +276,31 @@ pbioioctl (struct cdev *dev, u_long cmd, caddr_t data, int flag,
 	return (error);
 }
 
-static  int
+static int
 pbioopen(struct cdev *dev, int oflags, int devtype, struct thread *td)
 {
 	struct pbio_softc *scp;
 	int error, ocfg, port;
-	int portbit;			/* Port configuration bit */
+	int portbit; /* Port configuration bit */
 
 	port = PORT(dev);
 	scp = pbio_addr(dev);
 
 	switch (port) {
-	case 0: portbit = 0x10; break;	/* Port A */
-	case 1: portbit = 0x02; break;	/* Port B */
-	case 2: portbit = 0x08; break;	/* Port CH */
-	case 3: portbit = 0x01; break;	/* Port CL */
-	default: return (ENODEV);
+	case 0:
+		portbit = 0x10;
+		break; /* Port A */
+	case 1:
+		portbit = 0x02;
+		break; /* Port B */
+	case 2:
+		portbit = 0x08;
+		break; /* Port CH */
+	case 3:
+		portbit = 0x01;
+		break; /* Port CL */
+	default:
+		return (ENODEV);
 	}
 	ocfg = scp->iomode;
 
@@ -350,7 +359,7 @@ portval(int port, struct pbio_softc *scp, char *val)
 	}
 }
 
-static  int
+static int
 pbioread(struct cdev *dev, struct uio *uio, int ioflag)
 {
 	struct pbio_softc *scp;
@@ -424,7 +433,7 @@ pbiowrite(struct cdev *dev, struct uio *uio, int ioflag)
 	return (ret);
 }
 
-static  int
+static int
 pbiopoll(struct cdev *dev, int which, struct thread *td)
 {
 	/*

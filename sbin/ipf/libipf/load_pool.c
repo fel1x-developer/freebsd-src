@@ -7,12 +7,13 @@
  * $Id$
  */
 
-#include <fcntl.h>
 #include <sys/ioctl.h>
+
+#include <fcntl.h>
+
 #include "ipf.h"
 #include "netinet/ip_lookup.h"
 #include "netinet/ip_pool.h"
-
 
 int
 load_pool(ip_pool_t *plp, ioctlfunc_t iocfunc)
@@ -40,7 +41,7 @@ load_pool(ip_pool_t *plp, ioctlfunc_t iocfunc)
 		if (pool_ioctl(iocfunc, SIOCLOOKUPADDTABLE, &op)) {
 			if ((opts & OPT_DONOTHING) == 0) {
 				return (ipf_perror_fd(pool_fd(), iocfunc,
-						     "add lookup table"));
+				    "add lookup table"));
 			}
 		}
 	}
@@ -50,19 +51,18 @@ load_pool(ip_pool_t *plp, ioctlfunc_t iocfunc)
 
 	if ((opts & OPT_VERBOSE) != 0) {
 		pool.ipo_list = plp->ipo_list;
-		(void) printpool(&pool, bcopywrap, pool.ipo_name, opts, NULL);
+		(void)printpool(&pool, bcopywrap, pool.ipo_name, opts, NULL);
 		pool.ipo_list = NULL;
 	}
 
 	for (a = plp->ipo_list; a != NULL; a = a->ipn_next)
-		load_poolnode(plp->ipo_unit, pool.ipo_name,
-				     a, 0, iocfunc);
+		load_poolnode(plp->ipo_unit, pool.ipo_name, a, 0, iocfunc);
 
 	if ((opts & OPT_REMOVE) != 0) {
 		if (pool_ioctl(iocfunc, SIOCLOOKUPDELTABLE, &op))
 			if ((opts & OPT_DONOTHING) == 0) {
 				return (ipf_perror_fd(pool_fd(), iocfunc,
-						     "delete lookup table"));
+				    "delete lookup table"));
 			}
 	}
 	return (0);

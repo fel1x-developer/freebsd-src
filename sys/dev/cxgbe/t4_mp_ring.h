@@ -38,24 +38,24 @@ typedef u_int (*ring_drain_t)(struct mp_ring *, u_int, u_int, bool *);
 typedef u_int (*ring_can_drain_t)(struct mp_ring *);
 
 struct mp_ring {
-	volatile uint64_t	state __aligned(CACHE_LINE_SIZE);
-	struct malloc_type *	mt;
+	volatile uint64_t state __aligned(CACHE_LINE_SIZE);
+	struct malloc_type *mt;
 
-	int			size __aligned(CACHE_LINE_SIZE);
-	void *			cookie;
-	ring_drain_t		drain;
-	ring_can_drain_t	can_drain;	/* cheap, may be unreliable */
-	struct mtx *		cons_lock;
-	counter_u64_t		dropped;
-	counter_u64_t		consumer[4];
-	counter_u64_t		not_consumer;
-	counter_u64_t		abdications;
-	counter_u64_t		consumed;
-	counter_u64_t		cons_idle;
-	counter_u64_t		cons_idle2;
-	counter_u64_t		stalls;
+	int size __aligned(CACHE_LINE_SIZE);
+	void *cookie;
+	ring_drain_t drain;
+	ring_can_drain_t can_drain; /* cheap, may be unreliable */
+	struct mtx *cons_lock;
+	counter_u64_t dropped;
+	counter_u64_t consumer[4];
+	counter_u64_t not_consumer;
+	counter_u64_t abdications;
+	counter_u64_t consumed;
+	counter_u64_t cons_idle;
+	counter_u64_t cons_idle2;
+	counter_u64_t stalls;
 
-	void * volatile		items[] __aligned(CACHE_LINE_SIZE);
+	void *volatile items[] __aligned(CACHE_LINE_SIZE);
 };
 
 int mp_ring_alloc(struct mp_ring **, int, void *, ring_drain_t,

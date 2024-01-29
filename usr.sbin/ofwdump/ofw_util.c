@@ -37,13 +37,14 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-#include "pathnames.h"
 #include "ofw_util.h"
+#include "pathnames.h"
 
-#define	OFW_IOCTL(fd, cmd, val)	do {					\
-	if (ioctl(fd, cmd, val) == -1)					\
-		err(EX_IOERR, "ioctl(..., " #cmd ", ...) failed");	\
-} while (0)
+#define OFW_IOCTL(fd, cmd, val)                                            \
+	do {                                                               \
+		if (ioctl(fd, cmd, val) == -1)                             \
+			err(EX_IOERR, "ioctl(..., " #cmd ", ...) failed"); \
+	} while (0)
 
 int
 ofw_open(int mode)

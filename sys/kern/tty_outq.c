@@ -30,10 +30,10 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/queue.h>
-#include <sys/systm.h>
 #include <sys/tty.h>
 #include <sys/uio.h>
 
@@ -51,34 +51,37 @@
  */
 
 struct ttyoutq_block {
-	struct ttyoutq_block	*tob_next;
-	char			tob_data[TTYOUTQ_DATASIZE];
+	struct ttyoutq_block *tob_next;
+	char tob_data[TTYOUTQ_DATASIZE];
 };
 
 static uma_zone_t ttyoutq_zone;
 
-#define	TTYOUTQ_INSERT_TAIL(to, tob) do {				\
-	if (to->to_end == 0) {						\
-		tob->tob_next = to->to_firstblock;			\
-		to->to_firstblock = tob;				\
-	} else {							\
-		tob->tob_next = to->to_lastblock->tob_next;		\
-		to->to_lastblock->tob_next = tob;			\
-	}								\
-	to->to_nblocks++;						\
-} while (0)
+#define TTYOUTQ_INSERT_TAIL(to, tob)                                \
+	do {                                                        \
+		if (to->to_end == 0) {                              \
+			tob->tob_next = to->to_firstblock;          \
+			to->to_firstblock = tob;                    \
+		} else {                                            \
+			tob->tob_next = to->to_lastblock->tob_next; \
+			to->to_lastblock->tob_next = tob;           \
+		}                                                   \
+		to->to_nblocks++;                                   \
+	} while (0)
 
-#define	TTYOUTQ_REMOVE_HEAD(to) do {					\
-	to->to_firstblock = to->to_firstblock->tob_next;		\
-	to->to_nblocks--;						\
-} while (0)
+#define TTYOUTQ_REMOVE_HEAD(to)                                  \
+	do {                                                     \
+		to->to_firstblock = to->to_firstblock->tob_next; \
+		to->to_nblocks--;                                \
+	} while (0)
 
-#define	TTYOUTQ_RECYCLE(to, tob) do {					\
-	if (to->to_quota <= to->to_nblocks)				\
-		uma_zfree(ttyoutq_zone, tob);				\
-	else								\
-		TTYOUTQ_INSERT_TAIL(to, tob);				\
-} while (0)
+#define TTYOUTQ_RECYCLE(to, tob)                      \
+	do {                                          \
+		if (to->to_quota <= to->to_nblocks)   \
+			uma_zfree(ttyoutq_zone, tob); \
+		else                                  \
+			TTYOUTQ_INSERT_TAIL(to, tob); \
+	} while (0)
 
 void
 ttyoutq_flush(struct ttyoutq *to)

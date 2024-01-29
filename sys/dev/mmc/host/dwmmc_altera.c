@@ -24,9 +24,11 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "opt_mmccam.h"
+
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/queue.h>
 #include <sys/taskqueue.h>
@@ -34,17 +36,13 @@
 #include <machine/bus.h>
 
 #include <dev/mmc/bridge.h>
+#include <dev/mmc/host/dwmmc_var.h>
 #include <dev/mmc/mmc_fdt_helpers.h>
-
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include <dev/mmc/host/dwmmc_var.h>
-
-#include "opt_mmccam.h"
-
 static struct ofw_compat_data compat_data[] = {
-	{"altr,socfpga-dw-mshc",	1},
-	{NULL,				0},
+	{ "altr,socfpga-dw-mshc", 1 },
+	{ NULL, 0 },
 };
 
 static int
@@ -57,7 +55,8 @@ altera_dwmmc_probe(device_t dev)
 	if (ofw_bus_search_compatible(dev, compat_data)->ocd_data == 0)
 		return (ENXIO);
 
-	device_set_desc(dev, "Synopsys DesignWare Mobile "
+	device_set_desc(dev,
+	    "Synopsys DesignWare Mobile "
 	    "Storage Host Controller (Altera)");
 
 	return (BUS_PROBE_VENDOR);

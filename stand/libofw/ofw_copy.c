@@ -26,7 +26,7 @@
 
 #include <sys/cdefs.h>
 /*
- * MD primitives supporting placement of module data 
+ * MD primitives supporting placement of module data
  *
  * XXX should check load address/size against memory top.
  */
@@ -34,33 +34,31 @@
 
 #include "libofw.h"
 
-#define	READIN_BUF	(4 * 1024)
-#define	PAGE_SIZE	0x1000
-#define	PAGE_MASK	0x0fff
-#define	MAPMEM_PAGE_INC 128 /* Half-MB at a time */
+#define READIN_BUF (4 * 1024)
+#define PAGE_SIZE 0x1000
+#define PAGE_MASK 0x0fff
+#define MAPMEM_PAGE_INC 128 /* Half-MB at a time */
 
-
-#define	roundup(x, y)	((((x)+((y)-1))/(y))*(y))
+#define roundup(x, y) ((((x) + ((y)-1)) / (y)) * (y))
 
 static int
 ofw_mapmem(vm_offset_t dest, const size_t len)
 {
-        void    *destp, *addr;
-        size_t  dlen;
-        size_t  resid;
-	size_t  nlen;
-        static vm_offset_t last_dest = 0;
-        static size_t last_len = 0;
+	void *destp, *addr;
+	size_t dlen;
+	size_t resid;
+	size_t nlen;
+	static vm_offset_t last_dest = 0;
+	static size_t last_len = 0;
 
 	nlen = len;
-        /*
-         * Check to see if this region fits in a prior mapping.
-         * Allocations are generally sequential, so only check
-         * the last one.
-         */
-        if (dest >= last_dest &&
-            (dest + len) <= (last_dest + last_len)) {
-                return (0);
+	/*
+	 * Check to see if this region fits in a prior mapping.
+	 * Allocations are generally sequential, so only check
+	 * the last one.
+	 */
+	if (dest >= last_dest && (dest + len) <= (last_dest + last_len)) {
+		return (0);
 	}
 
 	/*
@@ -71,72 +69,72 @@ ofw_mapmem(vm_offset_t dest, const size_t len)
 		dest = last_dest + last_len;
 	}
 
-        destp = (void *)(dest & ~PAGE_MASK);
-        resid = dest & PAGE_MASK;
+	destp = (void *)(dest & ~PAGE_MASK);
+	resid = dest & PAGE_MASK;
 
 	/*
 	 * To avoid repeated mappings on small allocations,
 	 * never map anything less than MAPMEM_PAGE_INC pages at a time
 	 */
-	if ((nlen + resid) < PAGE_SIZE*MAPMEM_PAGE_INC) {
-		dlen = PAGE_SIZE*MAPMEM_PAGE_INC;
+	if ((nlen + resid) < PAGE_SIZE * MAPMEM_PAGE_INC) {
+		dlen = PAGE_SIZE * MAPMEM_PAGE_INC;
 	} else
 		dlen = roundup(nlen + resid, PAGE_SIZE);
 
-        if (OF_call_method("claim", memory, 3, 1, destp, dlen, 0, &addr)
-            == -1) {
-                printf("ofw_mapmem: physical claim failed\n");
-                return (ENOMEM);
-        }
+	if (OF_call_method("claim", memory, 3, 1, destp, dlen, 0, &addr) ==
+	    -1) {
+		printf("ofw_mapmem: physical claim failed\n");
+		return (ENOMEM);
+	}
 
 	/*
 	 * We only do virtual memory management when real_mode is false.
 	 */
 	if (real_mode == 0) {
-		if (OF_call_method("claim", mmu, 3, 1, destp, dlen, 0, &addr)
-		    == -1) {
+		if (OF_call_method("claim", mmu, 3, 1, destp, dlen, 0, &addr) ==
+		    -1) {
 			printf("ofw_mapmem: virtual claim failed\n");
 			return (ENOMEM);
 		}
 
-		if (OF_call_method("map", mmu, 4, 0, destp, destp, dlen, 0)
-		    == -1) {
+		if (OF_call_method("map", mmu, 4, 0, destp, destp, dlen, 0) ==
+		    -1) {
 			printf("ofw_mapmem: map failed\n");
 			return (ENOMEM);
 		}
 	}
-        last_dest = (vm_offset_t) destp;
-        last_len  = dlen;
+	last_dest = (vm_offset_t)destp;
+	last_len = dlen;
 
-        return (0);
+	return (0);
 }
 
 ssize_t
 ofw_copyin(const void *src, vm_offset_t dest, const size_t len)
 {
-        if (ofw_mapmem(dest, len)) {
-                printf("ofw_copyin: map error\n");
-                return (0);
-        }
+	if (ofw_mapmem(dest, len)) {
+		printf("ofw_copyin: map error\n");
+		return (0);
+	}
 
-        bcopy(src, (void *)dest, len);
-        return(len);
+	bcopy(src, (void *)dest, len);
+	return (len);
 }
 
 ssize_t
 ofw_copyout(const vm_offset_t src, void *dest, const size_t len)
 {
 	bcopy((void *)src, dest, len);
-	return(len);
+	return (len);
 }
 
 ssize_t
 ofw_readin(readin_handle_t fd, vm_offset_t dest, const size_t len)
 {
-	void		*buf;
-	size_t		resid, chunk, get;
-	ssize_t		got;
-	vm_offset_t	p;
+	void *buf;
+	size_t resid, chunk, get;
+	ssize_t got;
+	vm_offset_t p;
 
 	p = dest;
 
@@ -144,14 +142,14 @@ ofw_readin(readin_handle_t fd, vm_offset_t dest, const size_t len)
 	buf = malloc(chunk);
 	if (buf == NULL) {
 		printf("ofw_readin: buf malloc failed\n");
-		return(0);
+		return (0);
 	}
 
-        if (ofw_mapmem(dest, len)) {
-                printf("ofw_readin: map error\n");
-                free(buf);
-                return (0);
-        }
+	if (ofw_mapmem(dest, len)) {
+		printf("ofw_readin: map error\n");
+		free(buf);
+		return (0);
+	}
 
 	for (resid = len; resid > 0; resid -= got, p += got) {
 		get = min(chunk, resid);
@@ -167,5 +165,5 @@ ofw_readin(readin_handle_t fd, vm_offset_t dest, const size_t len)
 	}
 
 	free(buf);
-	return(len - resid);
+	return (len - resid);
 }

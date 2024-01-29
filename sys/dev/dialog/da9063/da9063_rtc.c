@@ -28,9 +28,9 @@
 /* Dialog Semiconductor DA9063 RTC */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
 #include <sys/clock.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
@@ -41,23 +41,21 @@
 #include "clock_if.h"
 #include "da9063_if.h"
 
-#define	DA9063_RTC_BASE_YEAR	2000
+#define DA9063_RTC_BASE_YEAR 2000
 
 struct da9063_rtc_softc {
-	device_t	dev;
-	device_t	parent;
-	struct mtx	mtx;
+	device_t dev;
+	device_t parent;
+	struct mtx mtx;
 };
 
-#define	DA9063_RTC_LOCK(sc)		mtx_lock(&(sc)->mtx)
-#define	DA9063_RTC_UNLOCK(sc)		mtx_unlock(&(sc)->mtx)
-#define	DA9063_RTC_ASSERT_LOCKED(sc)	mtx_assert(&(sc)->mtx, MA_OWNED);
-#define	DA9063_RTC_ASSERT_UNLOCKED(sc)	mtx_assert(&(sc)->mtx, MA_NOTOWNED);
+#define DA9063_RTC_LOCK(sc) mtx_lock(&(sc)->mtx)
+#define DA9063_RTC_UNLOCK(sc) mtx_unlock(&(sc)->mtx)
+#define DA9063_RTC_ASSERT_LOCKED(sc) mtx_assert(&(sc)->mtx, MA_OWNED);
+#define DA9063_RTC_ASSERT_UNLOCKED(sc) mtx_assert(&(sc)->mtx, MA_NOTOWNED);
 
-static struct ofw_compat_data compat_data[] = {
-	{ "dlg,da9063-rtc",	1 },
-	{ NULL,			0 }
-};
+static struct ofw_compat_data compat_data[] = { { "dlg,da9063-rtc", 1 },
+	{ NULL, 0 } };
 
 static int
 da9063_rtc_read_ct(struct da9063_rtc_softc *sc, struct clocktime *ct)
@@ -134,8 +132,7 @@ da9063_rtc_write_ct(struct da9063_rtc_softc *sc, struct clocktime *ct)
 		return (error);
 
 	error = DA9063_WRITE(sc->parent, DA9063_COUNT_Y,
-	    (ct->year - DA9063_RTC_BASE_YEAR) &
-	    DA9063_COUNT_Y_COUNT_YEAR_MASK);
+	    (ct->year - DA9063_RTC_BASE_YEAR) & DA9063_COUNT_Y_COUNT_YEAR_MASK);
 	if (error != 0)
 		return (error);
 
@@ -276,13 +273,13 @@ da9063_rtc_detach(device_t dev)
 
 static device_method_t da9063_rtc_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		da9063_rtc_probe),
-	DEVMETHOD(device_attach,	da9063_rtc_attach),
-	DEVMETHOD(device_detach,	da9063_rtc_detach),
+	DEVMETHOD(device_probe, da9063_rtc_probe),
+	DEVMETHOD(device_attach, da9063_rtc_attach),
+	DEVMETHOD(device_detach, da9063_rtc_detach),
 
 	/* Clock interface */
-	DEVMETHOD(clock_gettime,	da9063_rtc_gettime),
-	DEVMETHOD(clock_settime,	da9063_rtc_settime),
+	DEVMETHOD(clock_gettime, da9063_rtc_gettime),
+	DEVMETHOD(clock_settime, da9063_rtc_settime),
 
 	DEVMETHOD_END,
 };

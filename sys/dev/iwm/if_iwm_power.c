@@ -86,59 +86,55 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include <sys/cdefs.h>
-#include "opt_wlan.h"
 #include "opt_iwm.h"
+#include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/endian.h>
 #include <sys/firmware.h>
 #include <sys/kernel.h>
+#include <sys/linker.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
-#include <sys/mutex.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/linker.h>
 
 #include <machine/bus.h>
 #include <machine/endian.h>
 #include <machine/resource.h>
 
-#include <dev/pci/pcivar.h>
+#include <dev/iwm/if_iwm_constants.h>
+#include <dev/iwm/if_iwm_debug.h>
+#include <dev/iwm/if_iwm_power.h>
+#include <dev/iwm/if_iwm_util.h>
+#include <dev/iwm/if_iwmreg.h>
+#include <dev/iwm/if_iwmvar.h>
 #include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include <net/bpf.h>
-
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_arp.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
-
+#include <net/if_var.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_ratectl.h>
+#include <net80211/ieee80211_regdomain.h>
+#include <net80211/ieee80211_var.h>
+#include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
-#include <netinet/if_ether.h>
 #include <netinet/ip.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_regdomain.h>
-#include <net80211/ieee80211_ratectl.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/iwm/if_iwmreg.h>
-#include <dev/iwm/if_iwmvar.h>
-#include <dev/iwm/if_iwm_debug.h>
-#include <dev/iwm/if_iwm_constants.h>
-#include <dev/iwm/if_iwm_util.h>
-#include <dev/iwm/if_iwm_power.h>
 
 static int iwm_power_scheme = IWM_POWER_SCHEME_BPS;
 
@@ -148,36 +144,32 @@ TUNABLE_INT("hw.iwm.power_scheme", &iwm_power_scheme);
  * BEGIN mvm/power.c
  */
 
-#define IWM_POWER_KEEP_ALIVE_PERIOD_SEC    25
+#define IWM_POWER_KEEP_ALIVE_PERIOD_SEC 25
 
 static int
 iwm_beacon_filter_send_cmd(struct iwm_softc *sc,
-	struct iwm_beacon_filter_cmd *cmd)
+    struct iwm_beacon_filter_cmd *cmd)
 {
 	int ret;
 
-	ret = iwm_send_cmd_pdu(sc, IWM_REPLY_BEACON_FILTERING_CMD,
-	    0, sizeof(struct iwm_beacon_filter_cmd), cmd);
+	ret = iwm_send_cmd_pdu(sc, IWM_REPLY_BEACON_FILTERING_CMD, 0,
+	    sizeof(struct iwm_beacon_filter_cmd), cmd);
 
 	if (!ret) {
 		IWM_DPRINTF(sc, IWM_DEBUG_PWRSAVE | IWM_DEBUG_CMD,
 		    "ba_enable_beacon_abort is: %d\n",
 		    le32toh(cmd->ba_enable_beacon_abort));
 		IWM_DPRINTF(sc, IWM_DEBUG_PWRSAVE | IWM_DEBUG_CMD,
-		    "ba_escape_timer is: %d\n",
-		    le32toh(cmd->ba_escape_timer));
+		    "ba_escape_timer is: %d\n", le32toh(cmd->ba_escape_timer));
 		IWM_DPRINTF(sc, IWM_DEBUG_PWRSAVE | IWM_DEBUG_CMD,
-		    "bf_debug_flag is: %d\n",
-		    le32toh(cmd->bf_debug_flag));
+		    "bf_debug_flag is: %d\n", le32toh(cmd->bf_debug_flag));
 		IWM_DPRINTF(sc, IWM_DEBUG_PWRSAVE | IWM_DEBUG_CMD,
 		    "bf_enable_beacon_filter is: %d\n",
 		    le32toh(cmd->bf_enable_beacon_filter));
 		IWM_DPRINTF(sc, IWM_DEBUG_PWRSAVE | IWM_DEBUG_CMD,
-		    "bf_energy_delta is: %d\n",
-		    le32toh(cmd->bf_energy_delta));
+		    "bf_energy_delta is: %d\n", le32toh(cmd->bf_energy_delta));
 		IWM_DPRINTF(sc, IWM_DEBUG_PWRSAVE | IWM_DEBUG_CMD,
-		    "bf_escape_timer is: %d\n",
-		    le32toh(cmd->bf_escape_timer));
+		    "bf_escape_timer is: %d\n", le32toh(cmd->bf_escape_timer));
 		IWM_DPRINTF(sc, IWM_DEBUG_PWRSAVE | IWM_DEBUG_CMD,
 		    "bf_roaming_energy_delta is: %d\n",
 		    le32toh(cmd->bf_roaming_energy_delta));
@@ -198,8 +190,8 @@ iwm_beacon_filter_send_cmd(struct iwm_softc *sc,
 }
 
 static void
-iwm_beacon_filter_set_cqm_params(struct iwm_softc *sc,
-	struct iwm_vap *ivp, struct iwm_beacon_filter_cmd *cmd)
+iwm_beacon_filter_set_cqm_params(struct iwm_softc *sc, struct iwm_vap *ivp,
+    struct iwm_beacon_filter_cmd *cmd)
 {
 	cmd->ba_enable_beacon_abort = htole32(sc->sc_bf.ba_enabled);
 }
@@ -242,12 +234,11 @@ iwm_power_is_radar(struct iwm_softc *sc)
 		radar_detect = TRUE;
 	}
 
-        return radar_detect;
+	return radar_detect;
 }
 
 static void
-iwm_power_config_skip_dtim(struct iwm_softc *sc,
-	struct iwm_mac_power_cmd *cmd)
+iwm_power_config_skip_dtim(struct iwm_softc *sc, struct iwm_mac_power_cmd *cmd)
 {
 	struct ieee80211com *ic = &sc->sc_ic;
 	struct ieee80211vap *vap = TAILQ_FIRST(&ic->ic_vaps);
@@ -258,8 +249,8 @@ iwm_power_config_skip_dtim(struct iwm_softc *sc,
 	cmd->skip_dtim_periods = 0;
 	cmd->flags &= ~htole16(IWM_POWER_FLAGS_SKIP_OVER_DTIM_MSK);
 
-        if (iwm_power_is_radar(sc))
-                return;
+	if (iwm_power_is_radar(sc))
+		return;
 
 	if (dtimper >= 10)
 		return;
@@ -277,7 +268,7 @@ iwm_power_config_skip_dtim(struct iwm_softc *sc,
 
 static void
 iwm_power_build_cmd(struct iwm_softc *sc, struct iwm_vap *ivp,
-	struct iwm_mac_power_cmd *cmd)
+    struct iwm_mac_power_cmd *cmd)
 {
 	struct ieee80211vap *vap = &ivp->iv_vap;
 	struct ieee80211_node *ni = vap->iv_bss;
@@ -285,8 +276,8 @@ iwm_power_build_cmd(struct iwm_softc *sc, struct iwm_vap *ivp,
 	int keep_alive;
 	boolean_t bss_conf_ps = FALSE;
 
-	cmd->id_and_color = htole32(IWM_FW_CMD_ID_AND_COLOR(ivp->id,
-	    ivp->color));
+	cmd->id_and_color = htole32(
+	    IWM_FW_CMD_ID_AND_COLOR(ivp->id, ivp->color));
 	dtimper = vap->iv_dtim_period ?: 1;
 
 	/*
@@ -296,8 +287,8 @@ iwm_power_build_cmd(struct iwm_softc *sc, struct iwm_vap *ivp,
 	 * is at least 3 * DTIM
 	 */
 	dtimper_msec = dtimper * ni->ni_intval;
-	keep_alive
-	    = imax(3 * dtimper_msec, 1000 * IWM_POWER_KEEP_ALIVE_PERIOD_SEC);
+	keep_alive = imax(3 * dtimper_msec,
+	    1000 * IWM_POWER_KEEP_ALIVE_PERIOD_SEC);
 	keep_alive = roundup(keep_alive, 1000) / 1000;
 	cmd->keep_alive_seconds = htole16(keep_alive);
 
@@ -317,10 +308,8 @@ iwm_power_build_cmd(struct iwm_softc *sc, struct iwm_vap *ivp,
 
 	iwm_power_config_skip_dtim(sc, cmd);
 
-	cmd->rx_data_timeout =
-		htole32(IWM_DEFAULT_PS_RX_DATA_TIMEOUT);
-	cmd->tx_data_timeout =
-		htole32(IWM_DEFAULT_PS_TX_DATA_TIMEOUT);
+	cmd->rx_data_timeout = htole32(IWM_DEFAULT_PS_RX_DATA_TIMEOUT);
+	cmd->tx_data_timeout = htole32(IWM_DEFAULT_PS_TX_DATA_TIMEOUT);
 }
 
 static int
@@ -331,13 +320,13 @@ iwm_power_send_cmd(struct iwm_softc *sc, struct iwm_vap *ivp)
 	iwm_power_build_cmd(sc, ivp, &cmd);
 	iwm_power_log(sc, &cmd);
 
-	return iwm_send_cmd_pdu(sc, IWM_MAC_PM_POWER_TABLE, 0,
-	    sizeof(cmd), &cmd);
+	return iwm_send_cmd_pdu(sc, IWM_MAC_PM_POWER_TABLE, 0, sizeof(cmd),
+	    &cmd);
 }
 
 static int
 _iwm_enable_beacon_filter(struct iwm_softc *sc, struct iwm_vap *ivp,
-	struct iwm_beacon_filter_cmd *cmd)
+    struct iwm_beacon_filter_cmd *cmd)
 {
 	int ret;
 
@@ -384,7 +373,7 @@ iwm_power_set_ps(struct iwm_softc *sc)
 	/* disable PS if CAM */
 	disable_ps = (iwm_power_scheme == IWM_POWER_SCHEME_CAM);
 	/* ...or if any of the vifs require PS to be off */
-	TAILQ_FOREACH(vap, &sc->sc_ic.ic_vaps, iv_next) {
+	TAILQ_FOREACH (vap, &sc->sc_ic.ic_vaps, iv_next) {
 		struct iwm_vap *ivp = IWM_VAP(vap);
 		if (ivp->phy_ctxt != NULL && ivp->ps_disabled)
 			disable_ps = TRUE;
@@ -482,6 +471,5 @@ iwm_power_update_device(struct iwm_softc *sc)
 	IWM_DPRINTF(sc, IWM_DEBUG_PWRSAVE | IWM_DEBUG_CMD,
 	    "Sending device power command with flags = 0x%X\n", cmd.flags);
 
-	return iwm_send_cmd_pdu(sc,
-	    IWM_POWER_TABLE_CMD, 0, sizeof(cmd), &cmd);
+	return iwm_send_cmd_pdu(sc, IWM_POWER_TABLE_CMD, 0, sizeof(cmd), &cmd);
 }

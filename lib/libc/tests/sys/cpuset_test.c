@@ -34,39 +34,38 @@
 #include <sys/uio.h>
 #include <sys/wait.h>
 
+#include <atf-c.h>
 #include <errno.h>
 #include <stdio.h>
 #include <unistd.h>
 
-#include <atf-c.h>
-
-#define	SP_PARENT	0
-#define	SP_CHILD	1
+#define SP_PARENT 0
+#define SP_CHILD 1
 
 struct jail_test_info {
-	cpuset_t	jail_tidmask;
-	cpusetid_t	jail_cpuset;
-	cpusetid_t	jail_child_cpuset;
+	cpuset_t jail_tidmask;
+	cpusetid_t jail_cpuset;
+	cpusetid_t jail_child_cpuset;
 };
 
 struct jail_test_cb_params {
-	struct jail_test_info		info;
-	cpuset_t			mask;
-	cpusetid_t			rootid;
-	cpusetid_t			setid;
+	struct jail_test_info info;
+	cpuset_t mask;
+	cpusetid_t rootid;
+	cpusetid_t setid;
 };
 
 typedef void (*jail_test_cb)(struct jail_test_cb_params *);
 
-#define	FAILURE_JAIL	42
-#define	FAILURE_MASK	43
-#define	FAILURE_JAILSET	44
-#define	FAILURE_PIDSET	45
-#define	FAILURE_SEND	46
-#define	FAILURE_DEADLK	47
-#define	FAILURE_ATTACH	48
-#define	FAILURE_BADAFFIN	49
-#define	FAILURE_SUCCESS	50
+#define FAILURE_JAIL 42
+#define FAILURE_MASK 43
+#define FAILURE_JAILSET 44
+#define FAILURE_PIDSET 45
+#define FAILURE_SEND 46
+#define FAILURE_DEADLK 47
+#define FAILURE_ATTACH 48
+#define FAILURE_BADAFFIN 49
+#define FAILURE_SUCCESS 50
 
 static const char *
 do_jail_errstr(int error)
@@ -101,8 +100,9 @@ skip_ltncpu(int ncpu, cpuset_t *mask)
 {
 
 	CPU_ZERO(mask);
-	ATF_REQUIRE_EQ(0, cpuset_getaffinity(CPU_LEVEL_CPUSET, CPU_WHICH_PID,
-	    -1, sizeof(*mask), mask));
+	ATF_REQUIRE_EQ(0,
+	    cpuset_getaffinity(CPU_LEVEL_CPUSET, CPU_WHICH_PID, -1,
+		sizeof(*mask), mask));
 	if (CPU_COUNT(mask) < ncpu)
 		atf_tc_skip("Test requires %d or more cores.", ncpu);
 }
@@ -117,16 +117,16 @@ ATF_TC_BODY(newset, tc)
 	cpusetid_t nsetid, setid, qsetid;
 
 	/* Obtain our initial set id. */
-	ATF_REQUIRE_EQ(0, cpuset_getid(CPU_LEVEL_CPUSET, CPU_WHICH_TID, -1,
-	    &setid));
+	ATF_REQUIRE_EQ(0,
+	    cpuset_getid(CPU_LEVEL_CPUSET, CPU_WHICH_TID, -1, &setid));
 
 	/* Create a new one. */
 	ATF_REQUIRE_EQ(0, cpuset(&nsetid));
 	ATF_CHECK(nsetid != setid);
 
 	/* Query id again, make sure it's equal to the one we just got. */
-	ATF_REQUIRE_EQ(0, cpuset_getid(CPU_LEVEL_CPUSET, CPU_WHICH_TID, -1,
-	    &qsetid));
+	ATF_REQUIRE_EQ(0,
+	    cpuset_getid(CPU_LEVEL_CPUSET, CPU_WHICH_TID, -1, &qsetid));
 	ATF_CHECK_EQ(nsetid, qsetid);
 }
 
@@ -134,26 +134,26 @@ ATF_TC(transient);
 ATF_TC_HEAD(transient, tc)
 {
 	atf_tc_set_md_var(tc, "descr",
-	   "Test that transient cpusets are freed.");
+	    "Test that transient cpusets are freed.");
 }
 ATF_TC_BODY(transient, tc)
 {
 	cpusetid_t isetid, scratch, setid;
 
-	ATF_REQUIRE_EQ(0, cpuset_getid(CPU_LEVEL_CPUSET, CPU_WHICH_PID, -1,
-	    &isetid));
+	ATF_REQUIRE_EQ(0,
+	    cpuset_getid(CPU_LEVEL_CPUSET, CPU_WHICH_PID, -1, &isetid));
 
 	ATF_REQUIRE_EQ(0, cpuset(&setid));
-	ATF_REQUIRE_EQ(0, cpuset_getid(CPU_LEVEL_CPUSET, CPU_WHICH_CPUSET,
-	    setid, &scratch));
+	ATF_REQUIRE_EQ(0,
+	    cpuset_getid(CPU_LEVEL_CPUSET, CPU_WHICH_CPUSET, setid, &scratch));
 
 	/*
 	 * Return back to our initial cpuset; the kernel should free the cpuset
 	 * we just created.
 	 */
 	ATF_REQUIRE_EQ(0, cpuset_setid(CPU_WHICH_PID, -1, isetid));
-	ATF_REQUIRE_EQ(-1, cpuset_getid(CPU_LEVEL_CPUSET, CPU_WHICH_CPUSET,
-	    setid, &scratch));
+	ATF_REQUIRE_EQ(-1,
+	    cpuset_getid(CPU_LEVEL_CPUSET, CPU_WHICH_CPUSET, setid, &scratch));
 	ATF_CHECK_EQ(ESRCH, errno);
 }
 
@@ -199,12 +199,14 @@ ATF_TC_BODY(deadlk, tc)
 		}
 	}
 
-	ATF_REQUIRE_EQ(0, cpuset_setaffinity(CPU_LEVEL_CPUSET, CPU_WHICH_PID,
-	    -1, sizeof(mask), &mask));
+	ATF_REQUIRE_EQ(0,
+	    cpuset_setaffinity(CPU_LEVEL_CPUSET, CPU_WHICH_PID, -1,
+		sizeof(mask), &mask));
 
 	/* Must be a strict subset! */
-	ATF_REQUIRE_EQ(-1, cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_TID,
-	    -1, sizeof(dismask), &dismask));
+	ATF_REQUIRE_EQ(-1,
+	    cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_TID, -1,
+		sizeof(dismask), &dismask));
 	ATF_REQUIRE_EQ(EINVAL, errno);
 
 	/*
@@ -213,12 +215,15 @@ ATF_TC_BODY(deadlk, tc)
 	 * dismask, we should then personally be restricted down to the single
 	 * overlapping CPOU.
 	 */
-	ATF_REQUIRE_EQ(0, cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_TID,
-	    -1, sizeof(mask), &mask));
-	ATF_REQUIRE_EQ(0, cpuset_setaffinity(CPU_LEVEL_CPUSET, CPU_WHICH_PID,
-	    -1, sizeof(dismask), &dismask));
-	ATF_REQUIRE_EQ(0, cpuset_getaffinity(CPU_LEVEL_WHICH, CPU_WHICH_TID,
-	    -1, sizeof(mask), &mask));
+	ATF_REQUIRE_EQ(0,
+	    cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_TID, -1, sizeof(mask),
+		&mask));
+	ATF_REQUIRE_EQ(0,
+	    cpuset_setaffinity(CPU_LEVEL_CPUSET, CPU_WHICH_PID, -1,
+		sizeof(dismask), &dismask));
+	ATF_REQUIRE_EQ(0,
+	    cpuset_getaffinity(CPU_LEVEL_WHICH, CPU_WHICH_TID, -1, sizeof(mask),
+		&mask));
 	ATF_REQUIRE_EQ(1, CPU_COUNT(&mask));
 	ATF_REQUIRE(CPU_ISSET(second, &mask));
 
@@ -228,8 +233,9 @@ ATF_TC_BODY(deadlk, tc)
 	 * process will then not have anything to run on.
 	 */
 	CPU_CLR(second, &dismask);
-	ATF_REQUIRE_EQ(-1, cpuset_setaffinity(CPU_LEVEL_CPUSET, CPU_WHICH_PID,
-	    -1, sizeof(dismask), &dismask));
+	ATF_REQUIRE_EQ(-1,
+	    cpuset_setaffinity(CPU_LEVEL_CPUSET, CPU_WHICH_PID, -1,
+		sizeof(dismask), &dismask));
 	ATF_REQUIRE_EQ(EDEADLK, errno);
 }
 
@@ -255,8 +261,8 @@ do_jail(int sock)
 
 	/* Record parameters, kick them over, then make a swift exit. */
 	CPU_ZERO(&info.jail_tidmask);
-	error = cpuset_getaffinity(CPU_LEVEL_WHICH, CPU_WHICH_TID,
-	    -1, sizeof(info.jail_tidmask), &info.jail_tidmask);
+	error = cpuset_getaffinity(CPU_LEVEL_WHICH, CPU_WHICH_TID, -1,
+	    sizeof(info.jail_tidmask), &info.jail_tidmask);
 	if (error != 0)
 		return (FAILURE_MASK);
 
@@ -286,13 +292,14 @@ do_jail_test(int ncpu, bool newset, jail_test_cb prologue,
 
 	skip_ltncpu(ncpu, &cbp.mask);
 
-	ATF_REQUIRE_EQ(0, cpuset_getid(CPU_LEVEL_ROOT, CPU_WHICH_PID, -1,
-	    &cbp.rootid));
+	ATF_REQUIRE_EQ(0,
+	    cpuset_getid(CPU_LEVEL_ROOT, CPU_WHICH_PID, -1, &cbp.rootid));
 	if (newset)
 		ATF_REQUIRE_EQ(0, cpuset(&cbp.setid));
 	else
-		ATF_REQUIRE_EQ(0, cpuset_getid(CPU_LEVEL_CPUSET, CPU_WHICH_PID,
-		    -1, &cbp.setid));
+		ATF_REQUIRE_EQ(0,
+		    cpuset_getid(CPU_LEVEL_CPUSET, CPU_WHICH_PID, -1,
+			&cbp.setid));
 	/* Special hack for prison0; it uses cpuset 1 as the root. */
 	if (cbp.rootid == 0)
 		cbp.rootid = 1;
@@ -319,8 +326,8 @@ do_jail_test(int ncpu, bool newset, jail_test_cb prologue,
 		    errno == EINTR) {
 		}
 
-		ATF_REQUIRE_EQ(sizeof(cbp.info), recv(sock, &cbp.info,
-		    sizeof(cbp.info), 0));
+		ATF_REQUIRE_EQ(sizeof(cbp.info),
+		    recv(sock, &cbp.info, sizeof(cbp.info), 0));
 
 		/* Sanity check the exit info. */
 		ATF_REQUIRE_EQ(pid, error);
@@ -350,8 +357,9 @@ jail_attach_mutate_pro(struct jail_test_cb_params *cbp)
 	count = CPU_COUNT(mask);
 	CPU_CLR(CPU_FFS(mask) - 1, mask);
 	ATF_REQUIRE_EQ(count - 1, CPU_COUNT(mask));
-	ATF_REQUIRE_EQ(0, cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_TID,
-	    -1, sizeof(*mask), mask));
+	ATF_REQUIRE_EQ(0,
+	    cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_TID, -1,
+		sizeof(*mask), mask));
 }
 
 static void
@@ -535,8 +543,8 @@ try_attach_child(int jid, cpuset_t *expected_mask)
 
 	/* If we had an expected mask, check it against the new process mask. */
 	CPU_ZERO(&mask);
-	if (cpuset_getaffinity(CPU_LEVEL_CPUSET, CPU_WHICH_PID,
-	    -1, sizeof(mask), &mask) != 0) {
+	if (cpuset_getaffinity(CPU_LEVEL_CPUSET, CPU_WHICH_PID, -1,
+		sizeof(mask), &mask) != 0) {
 		return (FAILURE_MASK);
 	}
 
@@ -626,16 +634,19 @@ ATF_TC_BODY(jail_attach_disjoint, tc)
 	 */
 	scpu = CPU_FFS(&jmask) - 1;
 
-	ATF_REQUIRE_EQ(0, cpuset_setaffinity(CPU_LEVEL_ROOT, CPU_WHICH_JAIL,
-	    jid, sizeof(jmask), &jmask));
-	ATF_REQUIRE_EQ(0, cpuset_setaffinity(CPU_LEVEL_CPUSET, CPU_WHICH_CPUSET,
-	    setid, sizeof(smask), &smask));
+	ATF_REQUIRE_EQ(0,
+	    cpuset_setaffinity(CPU_LEVEL_ROOT, CPU_WHICH_JAIL, jid,
+		sizeof(jmask), &jmask));
+	ATF_REQUIRE_EQ(0,
+	    cpuset_setaffinity(CPU_LEVEL_CPUSET, CPU_WHICH_CPUSET, setid,
+		sizeof(smask), &smask));
 
 	try_attach(jid, &jmask);
 
 	CPU_SET(scpu, &smask);
-	ATF_REQUIRE_EQ(0, cpuset_setaffinity(CPU_LEVEL_CPUSET, CPU_WHICH_CPUSET,
-	    setid, sizeof(smask), &smask));
+	ATF_REQUIRE_EQ(0,
+	    cpuset_setaffinity(CPU_LEVEL_CPUSET, CPU_WHICH_CPUSET, setid,
+		sizeof(smask), &smask));
 
 	CPU_CLR(fcpu, &smask);
 	try_attach(jid, &smask);
@@ -655,8 +666,8 @@ ATF_TC_BODY(badparent, tc)
 	/* Need to mask off at least one CPU. */
 	skip_ltncpu(2, &mask);
 
-	ATF_REQUIRE_EQ(0, cpuset_getid(CPU_LEVEL_CPUSET, CPU_WHICH_TID, -1,
-	    &origsetid));
+	ATF_REQUIRE_EQ(0,
+	    cpuset_getid(CPU_LEVEL_CPUSET, CPU_WHICH_TID, -1, &origsetid));
 
 	ATF_REQUIRE_EQ(0, cpuset(&setid));
 
@@ -665,12 +676,13 @@ ATF_TC_BODY(badparent, tc)
 	 * set.
 	 */
 	CPU_CLR(CPU_FFS(&mask) - 1, &mask);
-	ATF_REQUIRE_EQ(0, cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_TID,
-	    -1, sizeof(mask), &mask));
+	ATF_REQUIRE_EQ(0,
+	    cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_TID, -1, sizeof(mask),
+		&mask));
 
 	ATF_REQUIRE_EQ(0, cpuset_setid(CPU_WHICH_PID, -1, origsetid));
-	ATF_REQUIRE_EQ(0, cpuset_getid(CPU_LEVEL_CPUSET, CPU_WHICH_TID, -1,
-	    &finalsetid));
+	ATF_REQUIRE_EQ(0,
+	    cpuset_getid(CPU_LEVEL_CPUSET, CPU_WHICH_TID, -1, &finalsetid));
 
 	ATF_REQUIRE_EQ(finalsetid, origsetid);
 }

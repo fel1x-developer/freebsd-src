@@ -27,8 +27,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	__DWC1000_CORE_H__
-#define	 __DWC1000_CORE_H__
+#ifndef __DWC1000_CORE_H__
+#define __DWC1000_CORE_H__
 
 int dwc1000_miibus_read_reg(device_t dev, int phy, int reg);
 int dwc1000_miibus_write_reg(device_t dev, int phy, int reg, int val);
@@ -43,4 +43,4 @@ void dwc1000_harvest_stats(struct dwc_softc *sc);
 void dwc1000_intr(struct dwc_softc *softc);
 void dwc1000_intr_disable(struct dwc_softc *sc);
 
-#endif	/* __DWC1000_CORE_H__ */
+#endif /* __DWC1000_CORE_H__ */

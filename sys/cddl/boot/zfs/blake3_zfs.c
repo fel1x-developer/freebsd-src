@@ -42,7 +42,7 @@ zio_checksum_blake3_native(const void *buf, uint64_t size,
 	Blake3_Update(&ctx, buf, size);
 	Blake3_Final(&ctx, (uint8_t *)zcp);
 
-	memset(&ctx, 0, sizeof (ctx));
+	memset(&ctx, 0, sizeof(ctx));
 }
 
 /*
@@ -74,7 +74,7 @@ zio_checksum_blake3_tmpl_init(const zio_cksum_salt_t *salt)
 {
 	BLAKE3_CTX *ctx;
 
-	ASSERT(sizeof (salt->zcs_bytes) == 32);
+	ASSERT(sizeof(salt->zcs_bytes) == 32);
 
 	/* init reference object */
 	ctx = calloc(1, sizeof(*ctx));

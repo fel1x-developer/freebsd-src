@@ -38,17 +38,26 @@
  */
 
 #include <sys/param.h>
-#include <sys/capsicum.h>
 #include <sys/callout.h>
+#include <sys/capsicum.h>
 #include <sys/ioctl.h>
 #include <sys/linker.h>
 #include <sys/module.h>
+#include <sys/nv.h>
 #include <sys/queue.h>
 #include <sys/sbuf.h>
-#include <sys/nv.h>
 #include <sys/stat.h>
+
 #include <assert.h>
 #include <bsdxml.h>
+#include <cam/ctl/ctl.h>
+#include <cam/ctl/ctl_backend.h>
+#include <cam/ctl/ctl_io.h>
+#include <cam/ctl/ctl_ioctl.h>
+#include <cam/ctl/ctl_scsi_all.h>
+#include <cam/ctl/ctl_util.h>
+#include <cam/scsi/scsi_all.h>
+#include <cam/scsi/scsi_message.h>
 #include <capsicum_helpers.h>
 #include <ctype.h>
 #include <errno.h>
@@ -58,14 +67,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <cam/scsi/scsi_all.h>
-#include <cam/scsi/scsi_message.h>
-#include <cam/ctl/ctl.h>
-#include <cam/ctl/ctl_io.h>
-#include <cam/ctl/ctl_backend.h>
-#include <cam/ctl/ctl_ioctl.h>
-#include <cam/ctl/ctl_util.h>
-#include <cam/ctl/ctl_scsi_all.h>
 
 #include "ctld.h"
 
@@ -73,11 +74,11 @@
 #include <netdb.h>
 #endif
 
-#define	NVLIST_BUFSIZE	1024
+#define NVLIST_BUFSIZE 1024
 
 extern bool proxy_mode;
 
-static int	ctl_fd = 0;
+static int ctl_fd = 0;
 
 void
 kernel_init(void)
@@ -95,7 +96,7 @@ kernel_init(void)
 	}
 	if (ctl_fd < 0)
 		log_err(1, "failed to open %s", CTL_DEFAULT_DEV);
-#ifdef	WANT_ISCSI
+#ifdef WANT_ISCSI
 	else {
 		saved_errno = errno;
 		if (modfind("cfiscsi") == -1 && kldload("cfiscsi") == -1)
@@ -126,7 +127,7 @@ struct cctl_lun {
 	char *serial_number;
 	char *device_id;
 	char *ctld_name;
-	STAILQ_HEAD(,cctl_lun_nv) attr_list;
+	STAILQ_HEAD(, cctl_lun_nv) attr_list;
 	STAILQ_ENTRY(cctl_lun) links;
 };
 
@@ -140,16 +141,16 @@ struct cctl_port {
 	char *cfiscsi_target;
 	uint16_t cfiscsi_portal_group_tag;
 	char *ctld_portal_group_name;
-	STAILQ_HEAD(,cctl_lun_nv) attr_list;
+	STAILQ_HEAD(, cctl_lun_nv) attr_list;
 	STAILQ_ENTRY(cctl_port) links;
 };
 
 struct cctl_devlist_data {
 	int num_luns;
-	STAILQ_HEAD(,cctl_lun) lun_list;
+	STAILQ_HEAD(, cctl_lun) lun_list;
 	struct cctl_lun *cur_lun;
 	int num_ports;
-	STAILQ_HEAD(,cctl_port) port_list;
+	STAILQ_HEAD(, cctl_port) port_list;
 	struct cctl_port *cur_port;
 	int level;
 	struct sbuf *cur_sb[32];
@@ -165,10 +166,10 @@ cctl_start_element(void *user_data, const char *name, const char **attr)
 	devlist = (struct cctl_devlist_data *)user_data;
 	cur_lun = devlist->cur_lun;
 	devlist->level++;
-	if ((u_int)devlist->level >= (sizeof(devlist->cur_sb) /
-	    sizeof(devlist->cur_sb[0])))
+	if ((u_int)devlist->level >=
+	    (sizeof(devlist->cur_sb) / sizeof(devlist->cur_sb[0])))
 		log_errx(1, "%s: too many nesting levels, %zd max", __func__,
-		     sizeof(devlist->cur_sb) / sizeof(devlist->cur_sb[0]));
+		    sizeof(devlist->cur_sb) / sizeof(devlist->cur_sb[0]));
 
 	devlist->cur_sb[devlist->level] = sbuf_new_auto();
 	if (devlist->cur_sb[devlist->level] == NULL)
@@ -192,10 +193,11 @@ cctl_start_element(void *user_data, const char *name, const char **attr)
 
 		for (i = 0; attr[i] != NULL; i += 2) {
 			if (strcmp(attr[i], "id") == 0) {
-				cur_lun->lun_id = strtoull(attr[i+1], NULL, 0);
+				cur_lun->lun_id = strtoull(attr[i + 1], NULL,
+				    0);
 			} else {
 				log_errx(1, "%s: invalid LUN attribute %s = %s",
-				     __func__, attr[i], attr[i+1]);
+				    __func__, attr[i], attr[i + 1]);
 			}
 		}
 	}
@@ -211,13 +213,12 @@ cctl_end_element(void *user_data, const char *name)
 	devlist = (struct cctl_devlist_data *)user_data;
 	cur_lun = devlist->cur_lun;
 
-	if ((cur_lun == NULL)
-	 && (strcmp(name, "ctllunlist") != 0))
+	if ((cur_lun == NULL) && (strcmp(name, "ctllunlist") != 0))
 		log_errx(1, "%s: cur_lun == NULL! (name = %s)", __func__, name);
 
 	if (devlist->cur_sb[devlist->level] == NULL)
 		log_errx(1, "%s: no valid sbuf at level %d (name %s)", __func__,
-		     devlist->level, name);
+		    devlist->level, name);
 
 	sbuf_finish(devlist->cur_sb[devlist->level]);
 	str = checked_strdup(sbuf_data(devlist->cur_sb[devlist->level]));
@@ -236,15 +237,18 @@ cctl_end_element(void *user_data, const char *name)
 		str = NULL;
 	} else if (strcmp(name, "lun_type") == 0) {
 		if (str == NULL)
-			log_errx(1, "%s: %s missing its argument", __func__, name);
+			log_errx(1, "%s: %s missing its argument", __func__,
+			    name);
 		cur_lun->device_type = strtoull(str, NULL, 0);
 	} else if (strcmp(name, "size") == 0) {
 		if (str == NULL)
-			log_errx(1, "%s: %s missing its argument", __func__, name);
+			log_errx(1, "%s: %s missing its argument", __func__,
+			    name);
 		cur_lun->size_blocks = strtoull(str, NULL, 0);
 	} else if (strcmp(name, "blocksize") == 0) {
 		if (str == NULL)
-			log_errx(1, "%s: %s missing its argument", __func__, name);
+			log_errx(1, "%s: %s missing its argument", __func__,
+			    name);
 		cur_lun->blocksize = strtoul(str, NULL, 0);
 	} else if (strcmp(name, "serial_number") == 0) {
 		cur_lun->serial_number = str;
@@ -287,10 +291,10 @@ cctl_start_pelement(void *user_data, const char *name, const char **attr)
 	devlist = (struct cctl_devlist_data *)user_data;
 	cur_port = devlist->cur_port;
 	devlist->level++;
-	if ((u_int)devlist->level >= (sizeof(devlist->cur_sb) /
-	    sizeof(devlist->cur_sb[0])))
+	if ((u_int)devlist->level >=
+	    (sizeof(devlist->cur_sb) / sizeof(devlist->cur_sb[0])))
 		log_errx(1, "%s: too many nesting levels, %zd max", __func__,
-		     sizeof(devlist->cur_sb) / sizeof(devlist->cur_sb[0]));
+		    sizeof(devlist->cur_sb) / sizeof(devlist->cur_sb[0]));
 
 	devlist->cur_sb[devlist->level] = sbuf_new_auto();
 	if (devlist->cur_sb[devlist->level] == NULL)
@@ -314,10 +318,11 @@ cctl_start_pelement(void *user_data, const char *name, const char **attr)
 
 		for (i = 0; attr[i] != NULL; i += 2) {
 			if (strcmp(attr[i], "id") == 0) {
-				cur_port->port_id = strtoul(attr[i+1], NULL, 0);
+				cur_port->port_id = strtoul(attr[i + 1], NULL,
+				    0);
 			} else {
 				log_errx(1, "%s: invalid LUN attribute %s = %s",
-				     __func__, attr[i], attr[i+1]);
+				    __func__, attr[i], attr[i + 1]);
 			}
 		}
 	}
@@ -333,13 +338,13 @@ cctl_end_pelement(void *user_data, const char *name)
 	devlist = (struct cctl_devlist_data *)user_data;
 	cur_port = devlist->cur_port;
 
-	if ((cur_port == NULL)
-	 && (strcmp(name, "ctlportlist") != 0))
-		log_errx(1, "%s: cur_port == NULL! (name = %s)", __func__, name);
+	if ((cur_port == NULL) && (strcmp(name, "ctlportlist") != 0))
+		log_errx(1, "%s: cur_port == NULL! (name = %s)", __func__,
+		    name);
 
 	if (devlist->cur_sb[devlist->level] == NULL)
 		log_errx(1, "%s: no valid sbuf at level %d (name %s)", __func__,
-		     devlist->level, name);
+		    devlist->level, name);
 
 	sbuf_finish(devlist->cur_sb[devlist->level]);
 	str = checked_strdup(sbuf_data(devlist->cur_sb[devlist->level]));
@@ -361,22 +366,26 @@ cctl_end_pelement(void *user_data, const char *name)
 		str = NULL;
 	} else if (strcmp(name, "physical_port") == 0) {
 		if (str == NULL)
-			log_errx(1, "%s: %s missing its argument", __func__, name);
+			log_errx(1, "%s: %s missing its argument", __func__,
+			    name);
 		cur_port->pp = strtoul(str, NULL, 0);
 	} else if (strcmp(name, "virtual_port") == 0) {
 		if (str == NULL)
-			log_errx(1, "%s: %s missing its argument", __func__, name);
+			log_errx(1, "%s: %s missing its argument", __func__,
+			    name);
 		cur_port->vp = strtoul(str, NULL, 0);
 	} else if (strcmp(name, "cfiscsi_target") == 0) {
 		cur_port->cfiscsi_target = str;
 		str = NULL;
 	} else if (strcmp(name, "cfiscsi_state") == 0) {
 		if (str == NULL)
-			log_errx(1, "%s: %s missing its argument", __func__, name);
+			log_errx(1, "%s: %s missing its argument", __func__,
+			    name);
 		cur_port->cfiscsi_state = strtoul(str, NULL, 0);
 	} else if (strcmp(name, "cfiscsi_portal_group_tag") == 0) {
 		if (str == NULL)
-			log_errx(1, "%s: %s missing its argument", __func__, name);
+			log_errx(1, "%s: %s missing its argument", __func__,
+			    name);
 		cur_port->cfiscsi_portal_group_tag = strtoul(str, NULL, 0);
 	} else if (strcmp(name, "ctld_portal_group_name") == 0) {
 		cur_port->ctld_portal_group_name = str;
@@ -538,26 +547,27 @@ retry_port:
 	conf = conf_new();
 
 	name = NULL;
-	STAILQ_FOREACH(port, &devlist.port_list, links) {
+	STAILQ_FOREACH (port, &devlist.port_list, links) {
 		if (strcmp(port->port_frontend, "ha") == 0)
 			continue;
 		free(name);
 		if (port->pp == 0 && port->vp == 0) {
 			name = checked_strdup(port->port_name);
 		} else if (port->vp == 0) {
-			retval = asprintf(&name, "%s/%d",
-			    port->port_name, port->pp);
+			retval = asprintf(&name, "%s/%d", port->port_name,
+			    port->pp);
 			if (retval <= 0)
 				log_err(1, "asprintf");
 		} else {
-			retval = asprintf(&name, "%s/%d/%d",
-			    port->port_name, port->pp, port->vp);
+			retval = asprintf(&name, "%s/%d/%d", port->port_name,
+			    port->pp, port->vp);
 			if (retval <= 0)
 				log_err(1, "asprintf");
 		}
 
 		if (port->cfiscsi_target == NULL) {
-			log_debugx("CTL port %u \"%s\" wasn't managed by ctld; ",
+			log_debugx(
+			    "CTL port %u \"%s\" wasn't managed by ctld; ",
 			    port->port_id, name);
 			pp = pport_find(conf, name);
 			if (pp == NULL) {
@@ -600,7 +610,8 @@ retry_port:
 			log_debugx("found new kernel portal group %s for CTL port %ld",
 			    port->ctld_portal_group_name, port->port_id);
 #endif
-			pg = portal_group_new(conf, port->ctld_portal_group_name);
+			pg = portal_group_new(conf,
+			    port->ctld_portal_group_name);
 			if (pg == NULL) {
 				log_warnx("portal_group_new failed");
 				continue;
@@ -616,26 +627,27 @@ retry_port:
 	}
 	free(name);
 
-	STAILQ_FOREACH(lun, &devlist.lun_list, links) {
+	STAILQ_FOREACH (lun, &devlist.lun_list, links) {
 		struct cctl_lun_nv *nv;
 
 		if (lun->ctld_name == NULL) {
 			log_debugx("CTL lun %ju wasn't managed by ctld; "
-			    "ignoring", (uintmax_t)lun->lun_id);
+				   "ignoring",
+			    (uintmax_t)lun->lun_id);
 			continue;
 		}
 
 		cl = lun_find(conf, lun->ctld_name);
 		if (cl != NULL) {
 			log_warnx("found CTL lun %ju \"%s\", "
-			    "also backed by CTL lun %d; ignoring",
+				  "also backed by CTL lun %d; ignoring",
 			    (uintmax_t)lun->lun_id, lun->ctld_name,
 			    cl->l_ctl_lun);
 			continue;
 		}
 
-		log_debugx("found CTL lun %ju \"%s\"",
-		    (uintmax_t)lun->lun_id, lun->ctld_name);
+		log_debugx("found CTL lun %ju \"%s\"", (uintmax_t)lun->lun_id,
+		    lun->ctld_name);
 
 		cl = lun_new(conf, lun->ctld_name);
 		if (cl == NULL) {
@@ -650,7 +662,7 @@ retry_port:
 		lun_set_size(cl, lun->size_blocks * cl->l_blocksize);
 		lun_set_ctl_lun(cl, lun->lun_id);
 
-		STAILQ_FOREACH(nv, &lun->attr_list, links) {
+		STAILQ_FOREACH (nv, &lun->attr_list, links) {
 			if (strcmp(nv->name, "file") == 0 ||
 			    strcmp(nv->name, "dev") == 0) {
 				lun_set_path(cl, nv->value);
@@ -659,8 +671,8 @@ retry_port:
 			o = option_new(&cl->l_options, nv->name, nv->value);
 			if (o == NULL)
 				log_warnx("unable to add CTL lun option %s "
-				    "for CTL lun %ju \"%s\"",
-				    nv->name, (uintmax_t) lun->lun_id,
+					  "for CTL lun %ju \"%s\"",
+				    nv->name, (uintmax_t)lun->lun_id,
 				    cl->l_name);
 		}
 	}
@@ -695,13 +707,13 @@ kernel_lun_add(struct lun *lun)
 
 	if (lun->l_serial != NULL) {
 		strncpy(req.reqdata.create.serial_num, lun->l_serial,
-			sizeof(req.reqdata.create.serial_num));
+		    sizeof(req.reqdata.create.serial_num));
 		req.reqdata.create.flags |= CTL_LUN_FLAG_SERIAL_NUM;
 	}
 
 	if (lun->l_device_id != NULL) {
 		strncpy(req.reqdata.create.device_id, lun->l_device_id,
-			sizeof(req.reqdata.create.device_id));
+		    sizeof(req.reqdata.create.device_id));
 		req.reqdata.create.flags |= CTL_LUN_FLAG_DEVID;
 	}
 
@@ -736,7 +748,7 @@ kernel_lun_add(struct lun *lun)
 			return (1);
 		}
 
-		TAILQ_FOREACH(o, &lun->l_options, o_next)
+		TAILQ_FOREACH (o, &lun->l_options, o_next)
 			nvlist_add_string(req.args_nvl, o->o_name, o->o_value);
 
 		req.args = nvlist_pack(req.args_nvl, &req.args_len);
@@ -764,8 +776,7 @@ kernel_lun_add(struct lun *lun)
 	case CTL_LUN_OK:
 		break;
 	default:
-		log_warnx("unknown LUN creation status: %d",
-		    req.status);
+		log_warnx("unknown LUN creation status: %d", req.status);
 		return (1);
 	}
 
@@ -819,7 +830,7 @@ kernel_lun_modify(struct lun *lun)
 			return (1);
 		}
 
-		TAILQ_FOREACH(o, &lun->l_options, o_next)
+		TAILQ_FOREACH (o, &lun->l_options, o_next)
 			nvlist_add_string(req.args_nvl, o->o_name, o->o_value);
 
 		req.args = nvlist_pack(req.args_nvl, &req.args_len);
@@ -847,8 +858,7 @@ kernel_lun_modify(struct lun *lun)
 	case CTL_LUN_OK:
 		break;
 	default:
-		log_warnx("unknown LUN modification status: %d",
-		    req.status);
+		log_warnx("unknown LUN modification status: %d", req.status);
 		return (1);
 	}
 
@@ -897,18 +907,19 @@ kernel_handoff(struct ctld_connection *conn)
 	bzero(&req, sizeof(req));
 
 	req.type = CTL_ISCSI_HANDOFF;
-	strlcpy(req.data.handoff.initiator_name,
-	    conn->conn_initiator_name, sizeof(req.data.handoff.initiator_name));
-	strlcpy(req.data.handoff.initiator_addr,
-	    conn->conn_initiator_addr, sizeof(req.data.handoff.initiator_addr));
+	strlcpy(req.data.handoff.initiator_name, conn->conn_initiator_name,
+	    sizeof(req.data.handoff.initiator_name));
+	strlcpy(req.data.handoff.initiator_addr, conn->conn_initiator_addr,
+	    sizeof(req.data.handoff.initiator_addr));
 	if (conn->conn_initiator_alias != NULL) {
 		strlcpy(req.data.handoff.initiator_alias,
-		    conn->conn_initiator_alias, sizeof(req.data.handoff.initiator_alias));
+		    conn->conn_initiator_alias,
+		    sizeof(req.data.handoff.initiator_alias));
 	}
 	memcpy(req.data.handoff.initiator_isid, conn->conn_initiator_isid,
 	    sizeof(req.data.handoff.initiator_isid));
-	strlcpy(req.data.handoff.target_name,
-	    conn->conn_target->t_name, sizeof(req.data.handoff.target_name));
+	strlcpy(req.data.handoff.target_name, conn->conn_target->t_name,
+	    sizeof(req.data.handoff.target_name));
 	if (conn->conn_portal->p_portal_group->pg_offload != NULL) {
 		strlcpy(req.data.handoff.offload,
 		    conn->conn_portal->p_portal_group->pg_offload,
@@ -940,13 +951,16 @@ kernel_handoff(struct ctld_connection *conn)
 	req.data.handoff.immediate_data = conn->conn.conn_immediate_data;
 
 	if (ioctl(ctl_fd, CTL_ISCSI, &req) == -1) {
-		log_err(1, "error issuing CTL_ISCSI ioctl; "
+		log_err(1,
+		    "error issuing CTL_ISCSI ioctl; "
 		    "dropping connection");
 	}
 
 	if (req.status != CTL_ISCSI_OK) {
-		log_errx(1, "error returned from CTL iSCSI handoff request: "
-		    "%s; dropping connection", req.error_str);
+		log_errx(1,
+		    "error returned from CTL iSCSI handoff request: "
+		    "%s; dropping connection",
+		    req.error_str);
 	}
 }
 
@@ -967,13 +981,16 @@ kernel_limits(const char *offload, int s, int *max_recv_dsl, int *max_send_dsl,
 	cilp->socket = s;
 
 	if (ioctl(ctl_fd, CTL_ISCSI, &req) == -1) {
-		log_err(1, "error issuing CTL_ISCSI ioctl; "
+		log_err(1,
+		    "error issuing CTL_ISCSI ioctl; "
 		    "dropping connection");
 	}
 
 	if (req.status != CTL_ISCSI_OK) {
-		log_errx(1, "error returned from CTL iSCSI limits request: "
-		    "%s; dropping connection", req.error_str);
+		log_errx(1,
+		    "error returned from CTL iSCSI limits request: "
+		    "%s; dropping connection",
+		    req.error_str);
 	}
 
 	if (cilp->max_recv_data_segment_length != 0) {
@@ -991,14 +1008,14 @@ kernel_limits(const char *offload, int s, int *max_recv_dsl, int *max_send_dsl,
 
 	if (offload != NULL) {
 		log_debugx("Kernel limits for offload \"%s\" are "
-		    "MaxRecvDataSegment=%d, max_send_dsl=%d, "
-		    "MaxBurstLength=%d, FirstBurstLength=%d",
+			   "MaxRecvDataSegment=%d, max_send_dsl=%d, "
+			   "MaxBurstLength=%d, FirstBurstLength=%d",
 		    offload, *max_recv_dsl, *max_send_dsl, *max_burst_length,
 		    *first_burst_length);
 	} else {
 		log_debugx("Kernel limits are "
-		    "MaxRecvDataSegment=%d, max_send_dsl=%d, "
-		    "MaxBurstLength=%d, FirstBurstLength=%d",
+			   "MaxRecvDataSegment=%d, max_send_dsl=%d, "
+			   "MaxBurstLength=%d, FirstBurstLength=%d",
 		    *max_recv_dsl, *max_send_dsl, *max_burst_length,
 		    *first_burst_length);
 	}
@@ -1036,7 +1053,7 @@ kernel_port_add(struct port *port)
 				    "cfiscsi_target_alias", targ->t_alias);
 			}
 
-			TAILQ_FOREACH(o, &pg->pg_options, o_next)
+			TAILQ_FOREACH (o, &pg->pg_options, o_next)
 				nvlist_add_string(req.args_nvl, o->o_name,
 				    o->o_value);
 		}
@@ -1066,7 +1083,8 @@ kernel_port_add(struct port *port)
 			return (1);
 		}
 		if (req.status == CTL_LUN_ERROR) {
-			log_warnx("error returned from port creation request: %s",
+			log_warnx(
+			    "error returned from port creation request: %s",
 			    req.error_str);
 			return (1);
 		}
@@ -1214,7 +1232,8 @@ kernel_port_remove(struct port *port)
 			return (1);
 		}
 		if (req.status == CTL_LUN_ERROR) {
-			log_warnx("error returned from port removal request: %s",
+			log_warnx(
+			    "error returned from port removal request: %s",
 			    req.error_str);
 			return (1);
 		}
@@ -1262,8 +1281,8 @@ kernel_listen(struct addrinfo *ai, bool iser, int portal_id)
 }
 
 void
-kernel_accept(int *connection_id, int *portal_id,
-    struct sockaddr *client_sa, socklen_t *client_salen)
+kernel_accept(int *connection_id, int *portal_id, struct sockaddr *client_sa,
+    socklen_t *client_salen)
 {
 	struct ctl_iscsi req;
 	struct sockaddr_storage ss;
@@ -1301,13 +1320,16 @@ kernel_send(struct pdu *pdu)
 	req.data.send.data_segment = pdu->pdu_data;
 
 	if (ioctl(ctl_fd, CTL_ISCSI, &req) == -1) {
-		log_err(1, "error issuing CTL_ISCSI ioctl; "
+		log_err(1,
+		    "error issuing CTL_ISCSI ioctl; "
 		    "dropping connection");
 	}
 
 	if (req.status != CTL_ISCSI_OK) {
-		log_errx(1, "error returned from CTL iSCSI send: "
-		    "%s; dropping connection", req.error_str);
+		log_errx(1,
+		    "error returned from CTL iSCSI send: "
+		    "%s; dropping connection",
+		    req.error_str);
 	}
 }
 
@@ -1332,15 +1354,17 @@ kernel_receive(struct pdu *pdu)
 	req.data.receive.data_segment = pdu->pdu_data;
 
 	if (ioctl(ctl_fd, CTL_ISCSI, &req) == -1) {
-		log_err(1, "error issuing CTL_ISCSI ioctl; "
+		log_err(1,
+		    "error issuing CTL_ISCSI ioctl; "
 		    "dropping connection");
 	}
 
 	if (req.status != CTL_ISCSI_OK) {
-		log_errx(1, "error returned from CTL iSCSI receive: "
-		    "%s; dropping connection", req.error_str);
+		log_errx(1,
+		    "error returned from CTL iSCSI receive: "
+		    "%s; dropping connection",
+		    req.error_str);
 	}
-
 }
 
 #endif /* ICL_KERNEL_PROXY */
@@ -1369,4 +1393,3 @@ kernel_capsicate(void)
 	else
 		log_warnx("Capsicum capability mode not supported");
 }
-

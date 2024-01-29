@@ -37,18 +37,19 @@
  */
 
 #include <sys/types.h>
-#include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/time.h>
 
-#include <rpc/rpc.h>
 #include <rpc/key_prot.h>
+#include <rpc/rpc.h>
 
 #ifdef YP
 #include <sys/wait.h>
+
+#include <netdb.h>
 #include <rpcsvc/yp_prot.h>
 #include <rpcsvc/ypclnt.h>
-#include <netdb.h>
-#endif	/* YP */
+#endif /* YP */
 
 #include <err.h>
 #include <pwd.h>
@@ -62,25 +63,25 @@
 #ifdef YP
 #define MAXMAPNAMELEN 256
 #else
-#define	YPOP_CHANGE 1			/* change, do not add */
-#define	YPOP_INSERT 2			/* add, do not change */
-#define	YPOP_DELETE 3			/* delete this entry */
-#define	YPOP_STORE  4			/* add, or change */
-#define	ERR_ACCESS	1
-#define	ERR_MALLOC	2
-#define	ERR_READ	3
-#define	ERR_WRITE	4
-#define	ERR_DBASE	5
-#define	ERR_KEY		6
+#define YPOP_CHANGE 1 /* change, do not add */
+#define YPOP_INSERT 2 /* add, do not change */
+#define YPOP_DELETE 3 /* delete this entry */
+#define YPOP_STORE 4  /* add, or change */
+#define ERR_ACCESS 1
+#define ERR_MALLOC 2
+#define ERR_READ 3
+#define ERR_WRITE 4
+#define ERR_DBASE 5
+#define ERR_KEY 6
 #endif
 
 #ifdef YP
-static char YPDBPATH[]="/var/yp";
+static char YPDBPATH[] = "/var/yp";
 static char PKMAP[] = "publickey.byname";
 #else
 static char PKFILE[] = "/etc/publickey";
 static const char *err_string(int);
-#endif	/* YP */
+#endif /* YP */
 
 static void usage(void) __dead2;
 
@@ -92,15 +93,15 @@ main(int argc, char *argv[])
 	char secret[HEXKEYBYTES + 1];
 	char crypt1[HEXKEYBYTES + KEYCHECKSUMSIZE + 1];
 	char crypt2[HEXKEYBYTES + KEYCHECKSUMSIZE + 1];
-	int status;	
+	int status;
 	char *pass;
 	struct passwd *pw;
 #ifdef undef
 	struct hostent *h;
 #endif
 
-	if (argc != 3 || !(strcmp(argv[1], "-u") == 0 ||
-		strcmp(argv[1], "-h") == 0)) {
+	if (argc != 3 ||
+	    !(strcmp(argv[1], "-u") == 0 || strcmp(argv[1], "-h") == 0)) {
 		usage();
 	}
 	if (geteuid() != 0)
@@ -109,7 +110,7 @@ main(int argc, char *argv[])
 #ifdef YP
 	if (chdir(YPDBPATH) < 0)
 		warn("cannot chdir to %s", YPDBPATH);
-#endif	/* YP */
+#endif /* YP */
 	if (strcmp(argv[1], "-u") == 0) {
 		pw = getpwnam(argv[2]);
 		if (pw == NULL)
@@ -135,10 +136,10 @@ main(int argc, char *argv[])
 	crypt1[HEXKEYBYTES + KEYCHECKSUMSIZE] = 0;
 	xencrypt(crypt1, pass);
 
-	memcpy(crypt2, crypt1, HEXKEYBYTES + KEYCHECKSUMSIZE + 1);	
+	memcpy(crypt2, crypt1, HEXKEYBYTES + KEYCHECKSUMSIZE + 1);
 	xdecrypt(crypt2, getpass("Retype password:"));
 	if (memcmp(crypt2, crypt2 + HEXKEYBYTES, KEYCHECKSUMSIZE) != 0 ||
-		memcmp(crypt2, secret, HEXKEYBYTES) != 0)
+	    memcmp(crypt2, secret, HEXKEYBYTES) != 0)
 		errx(1, "password incorrect");
 
 #ifdef YP
@@ -146,11 +147,11 @@ main(int argc, char *argv[])
 #endif
 	if ((status = setpublicmap(name, public, crypt1))) {
 #ifdef YP
-		errx(1, "unable to update NIS database (%u): %s", 
-			status, yperr_string(status));
+		errx(1, "unable to update NIS database (%u): %s", status,
+		    yperr_string(status));
 #else
-		errx(1, "unable to update publickey database (%u): %s",
-			status, err_string(status));
+		errx(1, "unable to update publickey database (%u): %s", status,
+		    err_string(status));
 #endif
 	}
 	(void)printf("Your new key has been successfully stored away.\n");
@@ -161,9 +162,8 @@ main(int argc, char *argv[])
 static void
 usage(void)
 {
-	(void)fprintf(stderr, "%s\n%s\n",
-		"usage: newkey -h hostname",
-		"       newkey -u username");
+	(void)fprintf(stderr, "%s\n%s\n", "usage: newkey -h hostname",
+	    "       newkey -u username");
 	exit(1);
 }
 
@@ -177,20 +177,20 @@ setpublicmap(char *name, char *public, char *secret)
 
 	(void)sprintf(pkent, "%s:%s", public, secret);
 #ifdef YP
-	return (mapupdate(name, PKMAP, YPOP_STORE,
-		strlen(name), name, strlen(pkent), pkent));
+	return (mapupdate(name, PKMAP, YPOP_STORE, strlen(name), name,
+	    strlen(pkent), pkent));
 #else
-	return (localupdate(name, PKFILE, YPOP_STORE,
-		strlen(name), name, strlen(pkent), pkent));
+	return (localupdate(name, PKFILE, YPOP_STORE, strlen(name), name,
+	    strlen(pkent), pkent));
 #endif
-	}
- 
+}
+
 #ifndef YP
-	/*
-	 * This returns a pointer to an error message string appropriate
-	 * to an input error code.  An input value of zero will return
-	 * a success message.
-	 */
+/*
+ * This returns a pointer to an error message string appropriate
+ * to an input error code.  An input value of zero will return
+ * a success message.
+ */
 static const char *
 err_string(int code)
 {

@@ -28,26 +28,27 @@
 #ifdef LIBUSB_GLOBAL_INCLUDE_FILE
 #include LIBUSB_GLOBAL_INCLUDE_FILE
 #else
+#include <sys/types.h>
+#include <sys/queue.h>
+
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <time.h>
-#include <sys/queue.h>
-#include <sys/types.h>
+#include <unistd.h>
 #endif
 
 #include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
 #include <dev/usb/usb_ioctl.h>
+#include <dev/usb/usbdi.h>
 
 #include "libusb20.h"
 #include "libusb20_desc.h"
 #include "libusb20_int.h"
 
-#ifndef	IOUSB
+#ifndef IOUSB
 #define IOUSB(a) a
 #endif
 
@@ -216,8 +217,8 @@ ugen20_enumerate(struct libusb20_device *pdev, const char *id)
 
 	snprintf(pdev->usb_desc, sizeof(pdev->usb_desc),
 	    USB_GENERIC_NAME "%u.%u: <%s %s> at usbus%u", pdev->bus_number,
-	    pdev->device_address, devinfo.udi_vendor,
-	    devinfo.udi_product, pdev->bus_number);
+	    pdev->device_address, devinfo.udi_vendor, devinfo.udi_product,
+	    pdev->bus_number);
 
 	/* get device port path, if any */
 	if (ioctl(f, IOUSB(USB_GET_DEV_PORT_PATH), &udpp) == 0 &&
@@ -235,18 +236,18 @@ done:
 struct ugen20_urd_state {
 	struct usb_read_dir urd;
 	uint32_t nparsed;
-	int	f;
+	int f;
 	uint8_t *ptr;
 	const char *src;
 	const char *dst;
-	uint8_t	buf[256];
-	uint8_t	dummy_zero[1];
+	uint8_t buf[256];
+	uint8_t dummy_zero[1];
 };
 
 static int
 ugen20_readdir(struct ugen20_urd_state *st)
 {
-	;				/* style fix */
+	; /* style fix */
 repeat:
 	if (st->ptr == NULL) {
 		st->urd.urd_startentry += st->nparsed;
@@ -272,8 +273,7 @@ repeat:
 	st->ptr = st->ptr + st->ptr[0];
 	st->nparsed++;
 
-	if ((st->ptr < st->buf) ||
-	    (st->ptr > st->dummy_zero)) {
+	if ((st->ptr < st->buf) || (st->ptr > st->dummy_zero)) {
 		/* invalid entry */
 		return (EINVAL);
 	}
@@ -294,10 +294,8 @@ ugen20_init_backend(struct libusb20_backend *pbe)
 
 	while (ugen20_readdir(&state) == 0) {
 
-		if ((state.src[0] != 'u') ||
-		    (state.src[1] != 'g') ||
-		    (state.src[2] != 'e') ||
-		    (state.src[3] != 'n')) {
+		if ((state.src[0] != 'u') || (state.src[1] != 'g') ||
+		    (state.src[2] != 'e') || (state.src[3] != 'n')) {
 			continue;
 		}
 		pdev = libusb20_dev_alloc();
@@ -312,7 +310,7 @@ ugen20_init_backend(struct libusb20_backend *pbe)
 		libusb20_be_enqueue_device(pbe, pdev);
 	}
 	close(state.f);
-	return (0);			/* success */
+	return (0); /* success */
 }
 
 static void
@@ -454,18 +452,18 @@ ugen20_close_device(struct libusb20_device *pdev)
 	close(pdev->file_ctrl);
 	pdev->file = -1;
 	pdev->file_ctrl = -1;
-	return (0);			/* success */
+	return (0); /* success */
 }
 
 static void
 ugen20_exit_backend(struct libusb20_backend *pbe)
 {
-	return;				/* nothing to do */
+	return; /* nothing to do */
 }
 
 static int
-ugen20_get_config_desc_full(struct libusb20_device *pdev,
-    uint8_t **ppbuf, uint16_t *plen, uint8_t cfg_index)
+ugen20_get_config_desc_full(struct libusb20_device *pdev, uint8_t **ppbuf,
+    uint16_t *plen, uint8_t cfg_index)
 {
 	struct usb_gen_descriptor gen_desc;
 	struct usb_config_descriptor cdesc;
@@ -512,7 +510,7 @@ ugen20_get_config_desc_full(struct libusb20_device *pdev,
 	*ppbuf = ptr;
 	*plen = len;
 
-	return (0);			/* success */
+	return (0); /* success */
 }
 
 static int
@@ -543,8 +541,8 @@ ugen20_set_config_index(struct libusb20_device *pdev, uint8_t cfg_index)
 }
 
 static int
-ugen20_set_alt_index(struct libusb20_device *pdev,
-    uint8_t iface_index, uint8_t alt_index)
+ugen20_set_alt_index(struct libusb20_device *pdev, uint8_t iface_index,
+    uint8_t alt_index)
 {
 	struct usb_alt_interface alt_iface;
 
@@ -654,7 +652,7 @@ ugen20_get_power_mode(struct libusb20_device *pdev, uint8_t *power_mode)
 		break;
 	}
 	*power_mode = temp;
-	return (0);			/* success */
+	return (0); /* success */
 }
 
 static int
@@ -666,11 +664,12 @@ ugen20_get_power_usage(struct libusb20_device *pdev, uint16_t *power_usage)
 		return (LIBUSB20_ERROR_OTHER);
 	}
 	*power_usage = temp;
-	return (0);			/* success */
+	return (0); /* success */
 }
 
 static int
-ugen20_get_stats(struct libusb20_device *pdev, struct libusb20_device_stats *pstats)
+ugen20_get_stats(struct libusb20_device *pdev,
+    struct libusb20_device_stats *pstats)
 {
 	struct usb_device_stats st;
 
@@ -689,37 +688,35 @@ ugen20_get_stats(struct libusb20_device *pdev, struct libusb20_device_stats *pst
 	pstats->xfer_fail[2] = st.uds_requests_fail[2];
 	pstats->xfer_fail[3] = st.uds_requests_fail[3];
 
-	return (0);			/* success */
+	return (0); /* success */
 }
 
 static int
-ugen20_kernel_driver_active(struct libusb20_device *pdev,
-    uint8_t iface_index)
+ugen20_kernel_driver_active(struct libusb20_device *pdev, uint8_t iface_index)
 {
 	int temp = iface_index;
 
 	if (ioctl(pdev->file_ctrl, IOUSB(USB_IFACE_DRIVER_ACTIVE), &temp)) {
 		return (LIBUSB20_ERROR_OTHER);
 	}
-	return (0);			/* kernel driver is active */
+	return (0); /* kernel driver is active */
 }
 
 static int
-ugen20_detach_kernel_driver(struct libusb20_device *pdev,
-    uint8_t iface_index)
+ugen20_detach_kernel_driver(struct libusb20_device *pdev, uint8_t iface_index)
 {
 	int temp = iface_index;
 
 	if (ioctl(pdev->file_ctrl, IOUSB(USB_IFACE_DRIVER_DETACH), &temp)) {
 		return (LIBUSB20_ERROR_OTHER);
 	}
-	return (0);			/* kernel driver is detached */
+	return (0); /* kernel driver is detached */
 }
 
 static int
 ugen20_do_request_sync(struct libusb20_device *pdev,
-    struct LIBUSB20_CONTROL_SETUP_DECODED *setup,
-    void *data, uint16_t *pactlen, uint32_t timeout, uint8_t flags)
+    struct LIBUSB20_CONTROL_SETUP_DECODED *setup, void *data, uint16_t *pactlen,
+    uint32_t timeout, uint8_t flags)
 {
 	struct usb_ctl_request req;
 
@@ -729,8 +726,8 @@ ugen20_do_request_sync(struct libusb20_device *pdev,
 	if (!(flags & LIBUSB20_TRANSFER_SINGLE_SHORT_NOT_OK)) {
 		req.ucr_flags |= USB_SHORT_XFER_OK;
 	}
-	if (libusb20_me_encode(&req.ucr_request,
-	    sizeof(req.ucr_request), setup)) {
+	if (libusb20_me_encode(&req.ucr_request, sizeof(req.ucr_request),
+		setup)) {
 		/* ignore */
 	}
 	if (ioctl(pdev->file_ctrl, IOUSB(USB_DO_REQUEST), &req)) {
@@ -740,7 +737,7 @@ ugen20_do_request_sync(struct libusb20_device *pdev,
 		/* get actual length */
 		*pactlen = req.ucr_actlen;
 	}
-	return (0);			/* request was successful */
+	return (0); /* request was successful */
 }
 
 static int
@@ -752,7 +749,7 @@ ugen20_process(struct libusb20_device *pdev)
 
 	while (1) {
 
-	  if (ioctl(pdev->file, IOUSB(USB_FS_COMPLETE), &temp)) {
+		if (ioctl(pdev->file, IOUSB(USB_FS_COMPLETE), &temp)) {
 			if (errno == EBUSY) {
 				break;
 			} else {
@@ -790,7 +787,7 @@ ugen20_process(struct libusb20_device *pdev)
 		}
 		libusb20_tr_callback_wrapper(xfer);
 	}
-	return (0);			/* done */
+	return (0); /* done */
 }
 
 static int
@@ -820,7 +817,8 @@ ugen20_tr_open(struct libusb20_transfer *xfer, uint32_t MaxBufSize,
 	if (stream_id != 0) {
 		temp.fs_open_stream.stream_id = stream_id;
 
-		if (ioctl(xfer->pdev->file, IOUSB(USB_FS_OPEN_STREAM), &temp.fs_open_stream))
+		if (ioctl(xfer->pdev->file, IOUSB(USB_FS_OPEN_STREAM),
+			&temp.fs_open_stream))
 			return (LIBUSB20_ERROR_INVALID_PARAM);
 	} else {
 		if (ioctl(xfer->pdev->file, IOUSB(USB_FS_OPEN), &temp.fs_open))
@@ -837,7 +835,7 @@ ugen20_tr_open(struct libusb20_transfer *xfer, uint32_t MaxBufSize,
 	fsep->ppBuffer = xfer->ppBuffer;
 	fsep->pLength = xfer->pLength;
 
-	return (0);			/* success */
+	return (0); /* success */
 }
 
 static int
@@ -852,7 +850,7 @@ ugen20_tr_close(struct libusb20_transfer *xfer)
 	if (ioctl(xfer->pdev->file, IOUSB(USB_FS_CLOSE), &temp)) {
 		return (LIBUSB20_ERROR_INVALID_PARAM);
 	}
-	return (0);			/* success */
+	return (0); /* success */
 }
 
 static int
@@ -869,7 +867,7 @@ ugen20_tr_clear_stall_sync(struct libusb20_transfer *xfer)
 	if (ioctl(xfer->pdev->file, IOUSB(USB_FS_CLEAR_STALL_SYNC), &temp)) {
 		return (LIBUSB20_ERROR_INVALID_PARAM);
 	}
-	return (0);			/* success */
+	return (0); /* success */
 }
 
 static void
@@ -908,7 +906,7 @@ ugen20_tr_submit(struct libusb20_transfer *xfer)
 	if (ioctl(xfer->pdev->file, IOUSB(USB_FS_START), &temp)) {
 		/* ignore any errors - should never happen */
 	}
-	return;				/* success */
+	return; /* success */
 }
 
 static void
@@ -948,8 +946,8 @@ ugen20_be_ioctl(uint32_t cmd, void *data)
 }
 
 static int
-ugen20_dev_get_iface_desc(struct libusb20_device *pdev, 
-    uint8_t iface_index, char *buf, uint8_t len)
+ugen20_dev_get_iface_desc(struct libusb20_device *pdev, uint8_t iface_index,
+    char *buf, uint8_t len)
 {
 	struct usb_gen_descriptor ugd;
 
@@ -966,8 +964,7 @@ ugen20_dev_get_iface_desc(struct libusb20_device *pdev,
 }
 
 static int
-ugen20_dev_get_info(struct libusb20_device *pdev,
-    struct usb_device_info *pinfo)
+ugen20_dev_get_info(struct libusb20_device *pdev, struct usb_device_info *pinfo)
 {
 	if (ioctl(pdev->file, IOUSB(USB_GET_DEVICEINFO), pinfo)) {
 		return (LIBUSB20_ERROR_INVALID_PARAM);
@@ -976,8 +973,8 @@ ugen20_dev_get_info(struct libusb20_device *pdev,
 }
 
 static int
-ugen20_root_get_dev_quirk(struct libusb20_backend *pbe,
-    uint16_t quirk_index, struct libusb20_quirk *pq)
+ugen20_root_get_dev_quirk(struct libusb20_backend *pbe, uint16_t quirk_index,
+    struct libusb20_quirk *pq)
 {
 	struct usb_gen_quirk q;
 	int error;

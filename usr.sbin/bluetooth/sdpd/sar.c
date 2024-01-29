@@ -32,7 +32,9 @@
 
 #include <sys/queue.h>
 #include <sys/uio.h>
+
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
 #include <assert.h>
 #define L2CAP_SOCKET_CHECKED
@@ -40,6 +42,7 @@
 #include <errno.h>
 #include <sdp.h>
 #include <stdio.h> /* for NULL */
+
 #include "profile.h"
 #include "provider.h"
 #include "server.h"
@@ -53,12 +56,11 @@
  */
 
 static int32_t
-server_prepare_attr_value_pair(
-		provider_p const provider, uint16_t attr,
-		uint8_t *buf, uint8_t const * const eob)
+server_prepare_attr_value_pair(provider_p const provider, uint16_t attr,
+    uint8_t *buf, uint8_t const *const eob)
 {
-	profile_attr_create_p	cf = profile_get_attr(provider->profile, attr);
-	int32_t			len;
+	profile_attr_create_p cf = profile_get_attr(provider->profile, attr);
+	int32_t len;
 
 	if (cf == NULL)
 		return (0); /* no attribute */
@@ -69,7 +71,7 @@ server_prepare_attr_value_pair(
 	SDP_PUT8(SDP_DATA_UINT16, buf);
 	SDP_PUT16(attr, buf);
 
-	len = cf(buf, eob, (uint8_t const *) provider, sizeof(*provider));
+	len = cf(buf, eob, (uint8_t const *)provider, sizeof(*provider));
 	if (len < 0)
 		return (-1);
 
@@ -83,12 +85,11 @@ server_prepare_attr_value_pair(
  */
 
 int32_t
-server_prepare_attr_list(provider_p const provider,
-		uint8_t const *req, uint8_t const * const req_end,
-		uint8_t *rsp, uint8_t const * const rsp_end)
+server_prepare_attr_list(provider_p const provider, uint8_t const *req,
+    uint8_t const *const req_end, uint8_t *rsp, uint8_t const *const rsp_end)
 {
-	uint8_t	*ptr = rsp + 3;
-	int32_t	 type, hi, lo, len;
+	uint8_t *ptr = rsp + 3;
+	int32_t type, hi, lo, len;
 
 	if (ptr > rsp_end)
 		return (-1);
@@ -118,8 +119,9 @@ server_prepare_attr_list(provider_p const provider,
 			/* NOT REACHED */
 		}
 
-		for (; lo <= hi; lo ++) {
-			len = server_prepare_attr_value_pair(provider, lo, ptr, rsp_end);
+		for (; lo <= hi; lo++) {
+			len = server_prepare_attr_value_pair(provider, lo, ptr,
+			    rsp_end);
 			if (len < 0)
 				return (-1);
 
@@ -143,15 +145,15 @@ server_prepare_attr_list(provider_p const provider,
 int32_t
 server_prepare_service_attribute_response(server_p srv, int32_t fd)
 {
-	uint8_t const	*req = srv->req + sizeof(sdp_pdu_t);
-	uint8_t const	*req_end = req + ((sdp_pdu_p)(srv->req))->len;
-	uint8_t		*rsp = srv->fdidx[fd].rsp;
-	uint8_t const	*rsp_end = rsp + NG_L2CAP_MTU_MAXIMUM;
+	uint8_t const *req = srv->req + sizeof(sdp_pdu_t);
+	uint8_t const *req_end = req + ((sdp_pdu_p)(srv->req))->len;
+	uint8_t *rsp = srv->fdidx[fd].rsp;
+	uint8_t const *rsp_end = rsp + NG_L2CAP_MTU_MAXIMUM;
 
-	uint8_t		*ptr = NULL;
-	provider_t	*provider = NULL;
-	uint32_t	 handle;
-	int32_t		 type, rsp_limit, aidlen, cslen, cs;
+	uint8_t *ptr = NULL;
+	provider_t *provider = NULL;
+	uint32_t handle;
+	int32_t type, rsp_limit, aidlen, cslen, cs;
 
 	/*
 	 * Minimal Service Attribute Request request
@@ -186,17 +188,17 @@ server_prepare_service_attribute_response(server_p srv, int32_t fd)
 
 	case SDP_DATA_SEQ32:
 		SDP_GET32(aidlen, req);
- 		break;
+		break;
 	}
 	if (aidlen <= 0)
 		return (SDP_ERROR_CODE_INVALID_REQUEST_SYNTAX);
 
-	ptr = (uint8_t *) req + aidlen;
+	ptr = (uint8_t *)req + aidlen;
 
 	/* Get ContinuationState */
 	if (ptr + 1 > req_end)
 		return (SDP_ERROR_CODE_INVALID_REQUEST_SYNTAX);
-		
+
 	SDP_GET8(cslen, ptr);
 	if (cslen != 0) {
 		if (cslen != 2 || req_end - ptr != 2)
@@ -225,7 +227,8 @@ server_prepare_service_attribute_response(server_p srv, int32_t fd)
 	 *	[ attr value ]
 	 */
 
-	cs = server_prepare_attr_list(provider, req, req+aidlen, rsp, rsp_end);
+	cs = server_prepare_attr_list(provider, req, req + aidlen, rsp,
+	    rsp_end);
 	if (cs < 0)
 		return (SDP_ERROR_CODE_INSUFFICIENT_RESOURCES);
 
@@ -241,20 +244,20 @@ server_prepare_service_attribute_response(server_p srv, int32_t fd)
 }
 
 /*
- * Send SDP Service [Search] Attribute Response 
+ * Send SDP Service [Search] Attribute Response
  */
 
 int32_t
 server_send_service_attribute_response(server_p srv, int32_t fd)
 {
-	uint8_t		*rsp = srv->fdidx[fd].rsp + srv->fdidx[fd].rsp_cs;
-	uint8_t		*rsp_end = srv->fdidx[fd].rsp + srv->fdidx[fd].rsp_size;
+	uint8_t *rsp = srv->fdidx[fd].rsp + srv->fdidx[fd].rsp_cs;
+	uint8_t *rsp_end = srv->fdidx[fd].rsp + srv->fdidx[fd].rsp_size;
 
-	struct iovec	iov[4];
-	sdp_pdu_t	pdu;
-	uint16_t	bcount;
-	uint8_t		cs[3];
-	int32_t		size;
+	struct iovec iov[4];
+	sdp_pdu_t pdu;
+	uint16_t bcount;
+	uint8_t cs[3];
+	int32_t size;
 
 	/* First update continuation state  (assume we will send all data) */
 	size = rsp_end - rsp;
@@ -267,8 +270,8 @@ server_send_service_attribute_response(server_p srv, int32_t fd)
 		 */
 
 		while ((rsp_end - rsp) + 3 > srv->fdidx[fd].rsp_limit) {
-			rsp_end --;
-			srv->fdidx[fd].rsp_cs --;
+			rsp_end--;
+			srv->fdidx[fd].rsp_cs--;
 		}
 
 		cs[0] = 2;
@@ -304,7 +307,8 @@ server_send_service_attribute_response(server_p srv, int32_t fd)
 	iov[3].iov_len = 1 + cs[0];
 
 	do {
-		size = writev(fd, (struct iovec const *) &iov, sizeof(iov)/sizeof(iov[0]));
+		size = writev(fd, (struct iovec const *)&iov,
+		    sizeof(iov) / sizeof(iov[0]));
 	} while (size < 0 && errno == EINTR);
 
 	/* Check if we have sent (or failed to sent) last response chunk */
@@ -313,7 +317,6 @@ server_send_service_attribute_response(server_p srv, int32_t fd)
 		srv->fdidx[fd].rsp_size = 0;
 		srv->fdidx[fd].rsp_limit = 0;
 	}
-	
-	return ((size < 0)? errno : 0);
-}
 
+	return ((size < 0) ? errno : 0);
+}

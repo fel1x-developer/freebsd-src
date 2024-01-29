@@ -25,10 +25,10 @@
  */
 
 #include <sys/param.h>
-#include <sys/conf.h>
-#include <sys/bus.h>
-#include <sys/kernel.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/conf.h>
+#include <sys/kernel.h>
 
 #include <machine/bus.h>
 
@@ -36,16 +36,12 @@
 
 #include "clkdev_if.h"
 
-#define	WR4(_clk, off, val)						\
-	CLKDEV_WRITE_4(clknode_get_device(_clk), off, val)
-#define	RD4(_clk, off, val)						\
-	CLKDEV_READ_4(clknode_get_device(_clk), off, val)
-#define	MD4(_clk, off, clr, set )					\
+#define WR4(_clk, off, val) CLKDEV_WRITE_4(clknode_get_device(_clk), off, val)
+#define RD4(_clk, off, val) CLKDEV_READ_4(clknode_get_device(_clk), off, val)
+#define MD4(_clk, off, clr, set) \
 	CLKDEV_MODIFY_4(clknode_get_device(_clk), off, clr, set)
-#define	DEVICE_LOCK(_clk)							\
-	CLKDEV_DEVICE_LOCK(clknode_get_device(_clk))
-#define	DEVICE_UNLOCK(_clk)						\
-	CLKDEV_DEVICE_UNLOCK(clknode_get_device(_clk))
+#define DEVICE_LOCK(_clk) CLKDEV_DEVICE_LOCK(clknode_get_device(_clk))
+#define DEVICE_UNLOCK(_clk) CLKDEV_DEVICE_UNLOCK(clknode_get_device(_clk))
 
 static int clknode_div_init(struct clknode *clk, device_t dev);
 static int clknode_div_recalc(struct clknode *clk, uint64_t *req);
@@ -53,30 +49,29 @@ static int clknode_div_set_freq(struct clknode *clknode, uint64_t fin,
     uint64_t *fout, int flag, int *stop);
 
 struct clknode_div_sc {
-	struct mtx	*mtx;
+	struct mtx *mtx;
 	struct resource *mem_res;
-	uint32_t	offset;
-	uint32_t	i_shift;
-	uint32_t	i_mask;
-	uint32_t	i_width;
-	uint32_t	f_shift;
-	uint32_t	f_mask;
-	uint32_t	f_width;
-	int		div_flags;
-	uint32_t	divider;	/* in natural form */
+	uint32_t offset;
+	uint32_t i_shift;
+	uint32_t i_mask;
+	uint32_t i_width;
+	uint32_t f_shift;
+	uint32_t f_mask;
+	uint32_t f_width;
+	int div_flags;
+	uint32_t divider; /* in natural form */
 
-	struct clk_div_table	*div_table;
+	struct clk_div_table *div_table;
 };
 
 static clknode_method_t clknode_div_methods[] = {
 	/* Device interface */
-	CLKNODEMETHOD(clknode_init,		clknode_div_init),
-	CLKNODEMETHOD(clknode_recalc_freq,	clknode_div_recalc),
-	CLKNODEMETHOD(clknode_set_freq,		clknode_div_set_freq),
-	CLKNODEMETHOD_END
+	CLKNODEMETHOD(clknode_init, clknode_div_init),
+	CLKNODEMETHOD(clknode_recalc_freq, clknode_div_recalc),
+	CLKNODEMETHOD(clknode_set_freq, clknode_div_set_freq), CLKNODEMETHOD_END
 };
 DEFINE_CLASS_1(clknode_div, clknode_div_class, clknode_div_methods,
-   sizeof(struct clknode_div_sc), clknode_class);
+    sizeof(struct clknode_div_sc), clknode_class);
 
 static uint32_t
 clknode_div_table_get_divider(struct clknode_div_sc *sc, uint32_t divider)
@@ -138,7 +133,7 @@ clknode_div_init(struct clknode *clk, device_t dev)
 		panic("%s: divider is zero!\n", clknode_get_name(clk));
 
 	clknode_init_parent_idx(clk, 0);
-	return(0);
+	return (0);
 }
 
 static int
@@ -149,9 +144,9 @@ clknode_div_recalc(struct clknode *clk, uint64_t *freq)
 	sc = clknode_get_softc(clk);
 	if (sc->divider == 0) {
 		printf("%s: %s divider is zero!\n", clknode_get_name(clk),
-		__func__);
+		    __func__);
 		*freq = 0;
-		return(EINVAL);
+		return (EINVAL);
 	}
 	*freq = (*freq << sc->f_width) / sc->divider;
 	return (0);
@@ -159,7 +154,7 @@ clknode_div_recalc(struct clknode *clk, uint64_t *freq)
 
 static int
 clknode_div_set_freq(struct clknode *clk, uint64_t fin, uint64_t *fout,
-  int flags, int *stop)
+    int flags, int *stop)
 {
 	struct clknode_div_sc *sc;
 	uint64_t divider, _fin, _fout;
@@ -181,19 +176,19 @@ clknode_div_set_freq(struct clknode *clk, uint64_t fin, uint64_t *fout,
 
 	/* Break divider into integer and fractional parts. */
 	i_div = divider >> sc->f_width;
-	f_div = divider  & sc->f_mask;
+	f_div = divider & sc->f_mask;
 
 	if (i_div == 0) {
 		printf("%s: %s integer divider is zero!\n",
-		     clknode_get_name(clk), __func__);
-		return(EINVAL);
+		    clknode_get_name(clk), __func__);
+		return (EINVAL);
 	}
 
 	*stop = 1;
 	hw_i_div = i_div;
 	if (sc->div_flags & CLK_DIV_WITH_TABLE) {
 		if (clknode_div_table_get_value(sc, &hw_i_div) != 0)
-				return (ERANGE);
+			return (ERANGE);
 	} else {
 		if (!(sc->div_flags & CLK_DIV_ZERO_BASED))
 			hw_i_div--;

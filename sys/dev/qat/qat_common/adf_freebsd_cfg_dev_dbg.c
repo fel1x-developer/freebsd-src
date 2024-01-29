@@ -1,19 +1,21 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
-#include "qat_freebsd.h"
-#include "adf_common_drv.h"
-#include "adf_cfg_device.h"
-#include "adf_cfg_dev_dbg.h"
+#include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/libkern.h>
 #include <sys/lock.h>
-#include <sys/kernel.h>
+#include <sys/malloc.h>
 #include <sys/sbuf.h>
 #include <sys/sx.h>
-#include <sys/systm.h>
-#include <sys/malloc.h>
 
-static int qat_dev_cfg_show(SYSCTL_HANDLER_ARGS)
+#include "adf_cfg_dev_dbg.h"
+#include "adf_cfg_device.h"
+#include "adf_common_drv.h"
+#include "qat_freebsd.h"
+
+static int
+qat_dev_cfg_show(SYSCTL_HANDLER_ARGS)
 {
 	struct adf_cfg_device_data *dev_cfg;
 	struct adf_cfg_section *sec;
@@ -45,17 +47,10 @@ adf_cfg_dev_dbg_add(struct adf_accel_dev *accel_dev)
 	device_t dev;
 
 	dev = GET_DEV(accel_dev);
-	dev_cfg_data->debug =
-	    SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev),
-			    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)),
-			    OID_AUTO,
-			    "dev_cfg",
-			    CTLFLAG_RD | CTLTYPE_STRING,
-			    dev_cfg_data,
-			    0,
-			    qat_dev_cfg_show,
-			    "A",
-			    "Device configuration");
+	dev_cfg_data->debug = SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev),
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO, "dev_cfg",
+	    CTLFLAG_RD | CTLTYPE_STRING, dev_cfg_data, 0, qat_dev_cfg_show, "A",
+	    "Device configuration");
 
 	if (!dev_cfg_data->debug) {
 		device_printf(dev, "Failed to create qat cfg sysctl.\n");

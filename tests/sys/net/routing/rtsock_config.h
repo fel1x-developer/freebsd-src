@@ -31,7 +31,7 @@
 #include "params.h"
 
 struct rtsock_config_options {
-	int num_interfaces;	/* number of interfaces to create */
+	int num_interfaces; /* number of interfaces to create */
 };
 
 struct rtsock_test_config {
@@ -117,12 +117,15 @@ config_setup(const atf_tc_t *tc, struct rtsock_config_options *co)
 	sa_fill_mask6(&c->mask6, c->plen6);
 
 	/* Fill in interface IPv6 address. Assume the first address in net */
-	memcpy(&c->addr6.sin6_addr, &c->net6.sin6_addr, sizeof(struct in6_addr));
+	memcpy(&c->addr6.sin6_addr, &c->net6.sin6_addr,
+	    sizeof(struct in6_addr));
 #define _s6_addr32 __u6_addr.__u6_addr32
-	c->addr6.sin6_addr._s6_addr32[3] = htonl(ntohl(c->net6.sin6_addr._s6_addr32[3]) + 1);
+	c->addr6.sin6_addr._s6_addr32[3] = htonl(
+	    ntohl(c->net6.sin6_addr._s6_addr32[3]) + 1);
 #undef _s6_addr32
 	inet_ntop(AF_INET6, &c->net6.sin6_addr, c->net6_str, INET6_ADDRSTRLEN);
-	inet_ntop(AF_INET6, &c->addr6.sin6_addr, c->addr6_str, INET6_ADDRSTRLEN);
+	inet_ntop(AF_INET6, &c->addr6.sin6_addr, c->addr6_str,
+	    INET6_ADDRSTRLEN);
 
 	ATF_CHECK_ERRNO(0, true);
 

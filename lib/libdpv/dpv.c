@@ -10,7 +10,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -25,9 +25,9 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <sys/types.h>
 #include <sys/wait.h>
 
 #include <ctype.h>
@@ -50,8 +50,8 @@
 #include "util.h"
 
 /* Test Mechanics (Only used when dpv_config.options |= DPV_TEST_MODE) */
-#define INCREMENT		1	/* Increment % per-pass test-mode */
-#define XDIALOG_INCREMENT	15	/* different for slower Xdialog(1) */
+#define INCREMENT 1	     /* Increment % per-pass test-mode */
+#define XDIALOG_INCREMENT 15 /* different for slower Xdialog(1) */
 static uint8_t increment = INCREMENT;
 
 /* Debugging */
@@ -67,14 +67,14 @@ long long dpv_overall_read = 0;
 static char pathbuf[PATH_MAX];
 
 /* Extra display information */
-uint8_t keep_tite = FALSE;	/* dpv_config.keep_tite */
-uint8_t no_labels = FALSE;	/* dpv_config.options & DPV_NO_LABELS */
-uint8_t wide = FALSE;		/* dpv_config.options & DPV_WIDE_MODE */
-char *aprompt = NULL;		/* dpv_config.aprompt */
-char *msg_done = NULL;		/* dpv_config.msg_done */
-char *msg_fail = NULL;		/* dpv_config.msg_fail */
-char *msg_pending = NULL;	/* dpv_config.msg_pending */
-char *pprompt = NULL;		/* dpv_config.pprompt */
+uint8_t keep_tite = FALSE; /* dpv_config.keep_tite */
+uint8_t no_labels = FALSE; /* dpv_config.options & DPV_NO_LABELS */
+uint8_t wide = FALSE;	   /* dpv_config.options & DPV_WIDE_MODE */
+char *aprompt = NULL;	   /* dpv_config.aprompt */
+char *msg_done = NULL;	   /* dpv_config.msg_done */
+char *msg_fail = NULL;	   /* dpv_config.msg_fail */
+char *msg_pending = NULL;  /* dpv_config.msg_pending */
+char *pprompt = NULL;	   /* dpv_config.pprompt */
 
 /* Status-Line format for when using dialog(3) */
 static const char *status_format_custom = NULL;
@@ -139,29 +139,29 @@ dpv(struct dpv_config *config, struct dpv_file_node *file_list)
 	char init_prompt[PROMPT_MAX + 1] = "";
 
 	/* Initialize globals to default values */
-	aprompt		= NULL;
-	pprompt		= NULL;
-	options		= 0;
-	action		= NULL;
-	backtitle	= NULL;
-	debug		= FALSE;
-	dialog_test	= FALSE;
+	aprompt = NULL;
+	pprompt = NULL;
+	options = 0;
+	action = NULL;
+	backtitle = NULL;
+	debug = FALSE;
+	dialog_test = FALSE;
 	dialog_updates_per_second = DIALOG_UPDATES_PER_SEC;
-	display_limit	= DISPLAY_LIMIT_DEFAULT;
-	display_type	= DPV_DISPLAY_LIBDIALOG;
-	keep_tite	= FALSE;
-	label_size	= LABEL_SIZE_DEFAULT;
-	msg_done	= NULL;
-	msg_fail	= NULL;
-	msg_pending	= NULL;
-	no_labels	= FALSE;
-	output		= NULL;
-	output_type	= DPV_OUTPUT_NONE;
-	pbar_size	= PBAR_SIZE_DEFAULT;
+	display_limit = DISPLAY_LIMIT_DEFAULT;
+	display_type = DPV_DISPLAY_LIBDIALOG;
+	keep_tite = FALSE;
+	label_size = LABEL_SIZE_DEFAULT;
+	msg_done = NULL;
+	msg_fail = NULL;
+	msg_pending = NULL;
+	no_labels = FALSE;
+	output = NULL;
+	output_type = DPV_OUTPUT_NONE;
+	pbar_size = PBAR_SIZE_DEFAULT;
 	status_format_custom = NULL;
 	status_updates_per_second = STATUS_UPDATES_PER_SEC;
-	title		= NULL;
-	wide		= FALSE;
+	title = NULL;
+	wide = FALSE;
 
 	/* Process config options (overriding defaults) */
 	if (config != NULL) {
@@ -185,27 +185,27 @@ dpv(struct dpv_config *config, struct dpv_file_node *file_list)
 			    config->pprompt);
 		}
 
-		options		= config->options;
-		action		= config->action;
-		backtitle	= config->backtitle;
-		debug		= config->debug;
-		dialog_test	= ((options & DPV_TEST_MODE) != 0);
+		options = config->options;
+		action = config->action;
+		backtitle = config->backtitle;
+		debug = config->debug;
+		dialog_test = ((options & DPV_TEST_MODE) != 0);
 		dialog_updates_per_second = config->dialog_updates_per_second;
-		display_limit	= config->display_limit;
-		display_type	= config->display_type;
-		keep_tite	= config->keep_tite;
-		label_size	= config->label_size;
-		msg_done	= (char *)config->msg_done;
-		msg_fail	= (char *)config->msg_fail;
-		msg_pending	= (char *)config->msg_pending;
-		no_labels	= ((options & DPV_NO_LABELS) != 0);
-		no_overrun	= ((options & DPV_NO_OVERRUN) != 0);
-		output          = config->output;
-		output_type	= config->output_type;
-		pbar_size	= config->pbar_size;
+		display_limit = config->display_limit;
+		display_type = config->display_type;
+		keep_tite = config->keep_tite;
+		label_size = config->label_size;
+		msg_done = (char *)config->msg_done;
+		msg_fail = (char *)config->msg_fail;
+		msg_pending = (char *)config->msg_pending;
+		no_labels = ((options & DPV_NO_LABELS) != 0);
+		no_overrun = ((options & DPV_NO_OVERRUN) != 0);
+		output = config->output;
+		output_type = config->output_type;
+		pbar_size = config->pbar_size;
 		status_updates_per_second = config->status_updates_per_second;
-		title		= config->title;
-		wide		= ((options & DPV_WIDE_MODE) != 0);
+		title = config->title;
+		wide = ((options & DPV_WIDE_MODE) != 0);
 
 		/* Enforce some minimums (pedantic) */
 		if (display_limit < -1)
@@ -237,37 +237,38 @@ dpv(struct dpv_config *config, struct dpv_file_node *file_list)
 	/* Process the type of display we've been requested to produce */
 	switch (display_type) {
 	case DPV_DISPLAY_STDOUT:
-		debug		= TRUE;
-		use_color	= FALSE;
-		use_dialog	= FALSE;
-		use_libdialog	= FALSE;
-		use_xdialog	= FALSE;
+		debug = TRUE;
+		use_color = FALSE;
+		use_dialog = FALSE;
+		use_libdialog = FALSE;
+		use_xdialog = FALSE;
 		break;
 	case DPV_DISPLAY_DIALOG:
-		use_color	= TRUE;
-		use_dialog	= TRUE;
-		use_libdialog	= FALSE;
-		use_xdialog	= FALSE;
+		use_color = TRUE;
+		use_dialog = TRUE;
+		use_libdialog = FALSE;
+		use_xdialog = FALSE;
 		break;
 	case DPV_DISPLAY_XDIALOG:
 		snprintf(dialog, PATH_MAX, XDIALOG);
-		use_color	= FALSE;
-		use_dialog	= FALSE;
-		use_libdialog	= FALSE;
-		use_xdialog	= TRUE;
+		use_color = FALSE;
+		use_dialog = FALSE;
+		use_libdialog = FALSE;
+		use_xdialog = TRUE;
 		break;
 	default:
-		use_color	= TRUE;
-		use_dialog	= FALSE;
-		use_libdialog	= TRUE;
-		use_xdialog	= FALSE;
+		use_color = TRUE;
+		use_dialog = FALSE;
+		use_libdialog = TRUE;
+		use_xdialog = FALSE;
 		break;
 	} /* display_type */
 
 	/* Enforce additional minimums that require knowing our display type */
 	if (dialog_updates_per_second == 0)
 		dialog_updates_per_second = use_xdialog ?
-			XDIALOG_UPDATES_PER_SEC : DIALOG_UPDATES_PER_SEC;
+		    XDIALOG_UPDATES_PER_SEC :
+		    DIALOG_UPDATES_PER_SEC;
 
 	/* Allow forceful override of use_color */
 	if (config != NULL && (config->options & DPV_USE_COLOR) != 0)
@@ -286,7 +287,8 @@ dpv(struct dpv_config *config, struct dpv_file_node *file_list)
 		dpv_nfiles++;
 
 		/* dialog(3) only expands literal newlines */
-		if (use_libdialog) strexpandnl(curfile->name);
+		if (use_libdialog)
+			strexpandnl(curfile->name);
 
 		/* Optionally calculate label size for file */
 		if (shrink_label_size) {
@@ -311,14 +313,14 @@ dpv(struct dpv_config *config, struct dpv_file_node *file_list)
 					label_size += 3;
 			}
 
-			if (max_cols > 0 && label_size > (max_cols - pbar_size
-			    - 9))
+			if (max_cols > 0 &&
+			    label_size > (max_cols - pbar_size - 9))
 				label_size = max_cols - pbar_size - 9;
 		}
 
 		if (debug)
-			warnx("label=[%s] path=[%s] size=%lli",
-			    curfile->name, curfile->path, curfile->length);
+			warnx("label=[%s] path=[%s] size=%lli", curfile->name,
+			    curfile->path, curfile->length);
 	} /* file_list */
 
 	/* Optionally process the contents of DIALOGRC (~/.dialogrc) */
@@ -336,8 +338,7 @@ dpv(struct dpv_config *config, struct dpv_file_node *file_list)
 		use_colors = dialog_state.use_colors;
 		gauge_color[0] = 48 + dlg_color_table[GAUGE_ATTR].fg;
 		gauge_color[1] = 48 + dlg_color_table[GAUGE_ATTR].bg;
-		gauge_color[2] = dlg_color_table[GAUGE_ATTR].hilite ?
-		    'b' : 'B';
+		gauge_color[2] = dlg_color_table[GAUGE_ATTR].hilite ? 'b' : 'B';
 		gauge_color[3] = '\0';
 		end_dialog();
 		if (debug) {
@@ -372,10 +373,9 @@ dpv(struct dpv_config *config, struct dpv_file_node *file_list)
 
 	/* Print some debugging information */
 	if (debug) {
-		warnx("%s: %s(%i) max rows x cols = %i x %i",
-		    __func__, use_xdialog ? XDIALOG : DIALOG,
-		    use_libdialog ? 3 : 1, dialog_maxrows(),
-		    dialog_maxcols());
+		warnx("%s: %s(%i) max rows x cols = %i x %i", __func__,
+		    use_xdialog ? XDIALOG : DIALOG, use_libdialog ? 3 : 1,
+		    dialog_maxrows(), dialog_maxcols());
 	}
 
 	/* Xdialog(1) updates a lot slower than dialog(1) */
@@ -400,8 +400,10 @@ dpv(struct dpv_config *config, struct dpv_file_node *file_list)
 		len = strlen(pprompt);
 		len += strcount(pprompt, "\\n") * 2;
 		if (len > DPV_PPROMPT_MAX)
-			errx(EXIT_FAILURE, "%s: Oops, pprompt buffer overflow "
-			    "(%zu > %i)", __func__, len, DPV_PPROMPT_MAX);
+			errx(EXIT_FAILURE,
+			    "%s: Oops, pprompt buffer overflow "
+			    "(%zu > %i)",
+			    __func__, len, DPV_PPROMPT_MAX);
 		if (replaceall(pprompt, "\\n", "\n\\n\n") < 0)
 			err(EXIT_FAILURE, "%s: replaceall()", __func__);
 	}
@@ -415,8 +417,10 @@ dpv(struct dpv_config *config, struct dpv_file_node *file_list)
 		len = strlen(aprompt);
 		len += strcount(aprompt, "\\n") * 2;
 		if (len > DPV_APROMPT_MAX)
-			errx(EXIT_FAILURE, "%s: Oops, aprompt buffer overflow "
-			    " (%zu > %i)", __func__, len, DPV_APROMPT_MAX);
+			errx(EXIT_FAILURE,
+			    "%s: Oops, aprompt buffer overflow "
+			    " (%zu > %i)",
+			    __func__, len, DPV_APROMPT_MAX);
 		if (replaceall(aprompt, "\\n", "\n\\n\n") < 0)
 			err(EXIT_FAILURE, "%s: replaceall()", __func__);
 	}
@@ -458,10 +462,12 @@ dpv(struct dpv_config *config, struct dpv_file_node *file_list)
 		/* First non-whitespace character that dialog(1) will see */
 		if (fc != NULL && *fc >= '0' && *fc <= '9')
 			warnx("%s: WARNING! text argument to `-p' begins with "
-			    "a number (not recommended)", __func__);
+			      "a number (not recommended)",
+			    __func__);
 		else if (fc > pprompt)
 			warnx("%s: WARNING! text argument to `-p' begins with "
-			    "whitespace (not recommended)", __func__);
+			      "whitespace (not recommended)",
+			    __func__);
 
 		/*
 		 * If no pprompt or pprompt is all whitespace, check the first
@@ -474,20 +480,22 @@ dpv(struct dpv_config *config, struct dpv_file_node *file_list)
 				fc++;
 			/* First non-whitespace char that dialog(1) will see */
 			if (fc != NULL && *fc >= '0' && *fc <= '9')
-				warnx("%s: WARNING! File name `%s' begins "
+				warnx(
+				    "%s: WARNING! File name `%s' begins "
 				    "with a number (use `-p text' for safety)",
 				    __func__, first_file->name);
 		}
 	}
 
 	dprompt_init(file_list);
-		/* Reads: label_size pbar_size pprompt aprompt dpv_nfiles */
-		/* Inits: dheight and dwidth */
+	/* Reads: label_size pbar_size pprompt aprompt dpv_nfiles */
+	/* Inits: dheight and dwidth */
 
 	/* Default localeconv(3) settings for dialog(3) status */
 	setlocale(LC_NUMERIC,
-		getenv("LC_ALL") == NULL && getenv("LC_NUMERIC") == NULL ?
-		LC_NUMERIC_DEFAULT : "");
+	    getenv("LC_ALL") == NULL && getenv("LC_NUMERIC") == NULL ?
+		LC_NUMERIC_DEFAULT :
+		"");
 
 	if (!debug) {
 		/* Internally create the initial `--gauge' prompt text */
@@ -520,8 +528,8 @@ dpv(struct dpv_config *config, struct dpv_file_node *file_list)
 	}
 
 	/* Add test mode identifier to default status line if enabled */
-	if (dialog_test && (strlen(status_format_default) + 12) <
-	    DPV_STATUS_FORMAT_MAX)
+	if (dialog_test &&
+	    (strlen(status_format_default) + 12) < DPV_STATUS_FORMAT_MAX)
 		strcat(status_format_default, " [TEST MODE]");
 
 	/* Verify custom status format */
@@ -529,7 +537,7 @@ dpv(struct dpv_config *config, struct dpv_file_node *file_list)
 	if (status_format_custom != NULL &&
 	    status_fmt == status_format_default) {
 		warnx("WARNING! Invalid status_format configuration `%s'",
-		      status_format_custom);
+		    status_format_custom);
 		warnx("Default status_format `%s'", status_format_default);
 	}
 
@@ -572,21 +580,21 @@ dpv(struct dpv_config *config, struct dpv_file_node *file_list)
 			case DPV_OUTPUT_FILE:
 				path_fmt = fmtcheck(output, "%s");
 				if (path_fmt == output)
-					len = snprintf(pathbuf,
-					    PATH_MAX, output, curfile->name);
+					len = snprintf(pathbuf, PATH_MAX,
+					    output, curfile->name);
 				else
-					len = snprintf(pathbuf,
-					    PATH_MAX, "%s", output);
+					len = snprintf(pathbuf, PATH_MAX, "%s",
+					    output);
 				if (len >= PATH_MAX) {
 					warnx("%s:%d:%s: pathbuf[%u] too small"
-					    "to hold output argument",
+					      "to hold output argument",
 					    __FILE__, __LINE__, __func__,
 					    PATH_MAX);
 					return (-1);
 				}
 				if ((output_out = open(pathbuf,
-				    O_CREAT|O_WRONLY, DEFFILEMODE & ~mask))
-				    < 0) {
+					 O_CREAT | O_WRONLY,
+					 DEFFILEMODE & ~mask)) < 0) {
 					warn("%s", pathbuf);
 					return (-1);
 				}
@@ -600,9 +608,9 @@ dpv(struct dpv_config *config, struct dpv_file_node *file_list)
 			if (dialog_test) {
 				usleep(50000);
 				pct += increment;
-				dpv_overall_read +=
-				    (int)(random() / 512 / dpv_nfiles);
-				    /* 512 limits fake readout to Megabytes */
+				dpv_overall_read += (int)(random() / 512 /
+				    dpv_nfiles);
+				/* 512 limits fake readout to Megabytes */
 			} else if (action != NULL)
 				pct = action(curfile, output_out);
 
@@ -623,18 +631,16 @@ dpv(struct dpv_config *config, struct dpv_file_node *file_list)
 
 			/* Update dialog (be it dialog(3), dialog(1), etc.) */
 			if ((dialog_updates_per_second != 0 &&
-			   (
-			    seconds != dialog_old_seconds ||
-			    now.tv_usec - dialog_last_update >=
-			        dialog_update_usec ||
-			    nthfile != dialog_old_nthfile
-			   )) || pct == 100
-			) {
+				(seconds != dialog_old_seconds ||
+				    now.tv_usec - dialog_last_update >=
+					dialog_update_usec ||
+				    nthfile != dialog_old_nthfile)) ||
+			    pct == 100) {
 				/* Calculate overall progress (rounding up) */
 				overall = (100 * nthfile - 100 + pct) /
 				    dpv_nfiles;
 				if (((100 * nthfile - 100 + pct) * 10 /
-				    dpv_nfiles % 100) > 50)
+					dpv_nfiles % 100) > 50)
 					overall++;
 
 				dprompt_recreate(list_head, curfile, pct);
@@ -657,17 +663,14 @@ dpv(struct dpv_config *config, struct dpv_file_node *file_list)
 			/* Update the status line */
 			if ((use_libdialog && !debug) &&
 			    status_updates_per_second != 0 &&
-			   (
-			    keep_going != TRUE ||
-			    seconds != status_old_seconds ||
-			    now.tv_usec - status_last_update >=
-			        status_update_usec ||
-			    nthfile != status_old_nthfile
-			   )
-			) {
+			    (keep_going != TRUE ||
+				seconds != status_old_seconds ||
+				now.tv_usec - status_last_update >=
+				    status_update_usec ||
+				nthfile != status_old_nthfile)) {
 				status_printf(status_fmt, dpv_overall_read,
-				    (dpv_overall_read / (seconds == 0 ? 1 :
-					seconds) * 1.0),
+				    (dpv_overall_read /
+					(seconds == 0 ? 1 : seconds) * 1.0),
 				    1, /* XXX until we add parallelism XXX */
 				    files_left);
 				status_old_seconds = seconds;
@@ -678,7 +681,7 @@ dpv(struct dpv_config *config, struct dpv_file_node *file_list)
 
 		if (!dialog_test && output_out >= 0) {
 			close(output_out);
-			waitpid(output_pid, (int *)NULL, 0);	
+			waitpid(output_pid, (int *)NULL, 0);
 		}
 
 		if (dpv_abort)
@@ -694,7 +697,7 @@ dpv(struct dpv_config *config, struct dpv_file_node *file_list)
 			end_dialog();
 		else {
 			close(dialog_out);
-			waitpid(pid, (int *)NULL, 0);	
+			waitpid(pid, (int *)NULL, 0);
 		}
 		if (!keep_tite && !dpv_interrupt)
 			printf("\n");

@@ -43,8 +43,8 @@
 
 #include <sys/param.h>
 #include <sys/file.h>
-#include <sys/sockio.h>
 #include <sys/socket.h>
+#include <sys/sockio.h>
 
 #include <net/if.h>
 #include <net/if_media.h>
@@ -59,12 +59,11 @@
 
 #include "ah.h"
 #include "ah_desc.h"
-#include "net80211/ieee80211_ioctl.h"
-#include "net80211/ieee80211_radiotap.h"
+#include "ctrl.h"
 #include "if_athioctl.h"
 #include "if_athrate.h"
-
-#include "ctrl.h"
+#include "net80211/ieee80211_ioctl.h"
+#include "net80211/ieee80211_radiotap.h"
 
 int
 ath_driver_req_init(struct ath_driver_req *req)
@@ -143,7 +142,7 @@ ath_driver_req_zero_stats(struct ath_driver_req *req)
 
 	/* Setup ifreq */
 	bzero(&ifr, sizeof(ifr));
-	strncpy(ifr.ifr_name, req->ifname, sizeof (ifr.ifr_name));
+	strncpy(ifr.ifr_name, req->ifname, sizeof(ifr.ifr_name));
 	ifr.ifr_data = NULL;
 
 	/* ioctl */
@@ -164,8 +163,8 @@ ath_driver_req_fetch_stats(struct ath_driver_req *req, struct ath_stats *st)
 
 	/* Setup ifreq */
 	bzero(&ifr, sizeof(ifr));
-	strncpy(ifr.ifr_name, req->ifname, sizeof (ifr.ifr_name));
-	ifr.ifr_data = (caddr_t) st;
+	strncpy(ifr.ifr_name, req->ifname, sizeof(ifr.ifr_name));
+	ifr.ifr_data = (caddr_t)st;
 
 	/* ioctl */
 	ret = ioctl(req->s, SIOCGATHSTATS, &ifr);
@@ -186,15 +185,14 @@ ath_drive_req_fetch_aggr_stats(struct ath_driver_req *req,
 
 	/* Setup ifreq */
 	bzero(&ifr, sizeof(ifr));
-	strncpy(ifr.ifr_name, req->ifname, sizeof (ifr.ifr_name));
-	ifr.ifr_data = (caddr_t) tx;
+	strncpy(ifr.ifr_name, req->ifname, sizeof(ifr.ifr_name));
+	ifr.ifr_data = (caddr_t)tx;
 
 	/* ioctl */
 	ret = ioctl(req->s, SIOCGATHAGSTATS, &ifr);
 	if (ret < 0)
 		warn("%s: ioctl", __func__);
 	return (ret);
-
 }
 
 /*

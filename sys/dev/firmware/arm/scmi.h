@@ -28,12 +28,12 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_ARM64_SCMI_SCMI_H_
-#define	_ARM64_SCMI_SCMI_H_
+#ifndef _ARM64_SCMI_SCMI_H_
+#define _ARM64_SCMI_SCMI_H_
 
-#define	SCMI_LOCK(sc)		mtx_lock(&(sc)->mtx)
-#define	SCMI_UNLOCK(sc)		mtx_unlock(&(sc)->mtx)
-#define	SCMI_ASSERT_LOCKED(sc)	mtx_assert(&(sc)->mtx, MA_OWNED)
+#define SCMI_LOCK(sc) mtx_lock(&(sc)->mtx)
+#define SCMI_UNLOCK(sc) mtx_unlock(&(sc)->mtx)
+#define SCMI_ASSERT_LOCKED(sc) mtx_assert(&(sc)->mtx, MA_OWNED)
 
 #define dprintf(fmt, ...)
 
@@ -41,26 +41,26 @@
 struct scmi_smt_header {
 	uint32_t reserved;
 	uint32_t channel_status;
-#define	SCMI_SHMEM_CHAN_STAT_CHANNEL_ERROR	(1 << 1)
-#define	SCMI_SHMEM_CHAN_STAT_CHANNEL_FREE	(1 << 0)
+#define SCMI_SHMEM_CHAN_STAT_CHANNEL_ERROR (1 << 1)
+#define SCMI_SHMEM_CHAN_STAT_CHANNEL_FREE (1 << 0)
 	uint32_t reserved1[2];
 	uint32_t flags;
-#define	SCMI_SHMEM_FLAG_INTR_ENABLED		(1 << 0)
+#define SCMI_SHMEM_FLAG_INTR_ENABLED (1 << 0)
 	uint32_t length;
 	uint32_t msg_header;
 	uint8_t msg_payload[0];
 };
 
-#define	SMT_HEADER_SIZE			sizeof(struct scmi_smt_header)
+#define SMT_HEADER_SIZE sizeof(struct scmi_smt_header)
 
-#define	SMT_HEADER_TOKEN_S		18
-#define	SMT_HEADER_TOKEN_M		(0x3fff << SMT_HEADER_TOKEN_S)
-#define	SMT_HEADER_PROTOCOL_ID_S	10
-#define	SMT_HEADER_PROTOCOL_ID_M	(0xff << SMT_HEADER_PROTOCOL_ID_S)
-#define	SMT_HEADER_MESSAGE_TYPE_S	8
-#define	SMT_HEADER_MESSAGE_TYPE_M	(0x3 << SMT_HEADER_MESSAGE_TYPE_S)
-#define	SMT_HEADER_MESSAGE_ID_S		0
-#define	SMT_HEADER_MESSAGE_ID_M		(0xff << SMT_HEADER_MESSAGE_ID_S)
+#define SMT_HEADER_TOKEN_S 18
+#define SMT_HEADER_TOKEN_M (0x3fff << SMT_HEADER_TOKEN_S)
+#define SMT_HEADER_PROTOCOL_ID_S 10
+#define SMT_HEADER_PROTOCOL_ID_M (0xff << SMT_HEADER_PROTOCOL_ID_S)
+#define SMT_HEADER_MESSAGE_TYPE_S 8
+#define SMT_HEADER_MESSAGE_TYPE_M (0x3 << SMT_HEADER_MESSAGE_TYPE_S)
+#define SMT_HEADER_MESSAGE_ID_S 0
+#define SMT_HEADER_MESSAGE_ID_M (0xff << SMT_HEADER_MESSAGE_ID_S)
 
 struct scmi_req {
 	int protocol_id;

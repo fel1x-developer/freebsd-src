@@ -24,38 +24,36 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/sockio.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/sockio.h>
+#include <sys/taskqueue.h>
 
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/if_rtwn_rx.h>
-
+#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/rtl8812a/r12a.h>
 #include <dev/rtwn/rtl8812a/r12a_reg.h>
 #include <dev/rtwn/rtl8812a/r12a_var.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_var.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 int
 r12a_ioctl_net(struct ieee80211com *ic, u_long cmd, void *data)
@@ -67,8 +65,7 @@ r12a_ioctl_net(struct ieee80211com *ic, u_long cmd, void *data)
 
 	error = 0;
 	switch (cmd) {
-	case SIOCSIFCAP:
-	{
+	case SIOCSIFCAP: {
 		struct ieee80211vap *vap;
 		int changed, rxmask;
 
@@ -97,8 +94,8 @@ r12a_ioctl_net(struct ieee80211com *ic, u_long cmd, void *data)
 		}
 		RTWN_UNLOCK(sc);
 
-		IEEE80211_LOCK(ic);	/* XXX */
-		TAILQ_FOREACH(vap, &ic->ic_vaps, iv_next) {
+		IEEE80211_LOCK(ic); /* XXX */
+		TAILQ_FOREACH (vap, &ic->ic_vaps, iv_next) {
 			if_t ifp = vap->iv_ifp;
 
 			if_setcapenablebit(ifp, 0,
@@ -109,7 +106,7 @@ r12a_ioctl_net(struct ieee80211com *ic, u_long cmd, void *data)
 		break;
 	}
 	default:
-		error = ENOTTY;		/* for net80211 */
+		error = ENOTTY; /* for net80211 */
 		break;
 	}
 

@@ -1,4 +1,5 @@
-/*	$NetBSD: citrus_csmapper.h,v 1.3 2013/06/24 17:28:35 joerg Exp $	*/
+/*	$NetBSD: citrus_csmapper.h,v 1.3 2013/06/24 17:28:35 joerg Exp $
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
@@ -31,19 +32,18 @@
 #ifndef _CITRUS_CSMAPPER_H_
 #define _CITRUS_CSMAPPER_H_
 
-#define _citrus_csmapper		_citrus_mapper
-#define _citrus_csmapper_close		_citrus_mapper_close
-#define _citrus_csmapper_convert	_citrus_mapper_convert
-#define _citrus_csmapper_init_state	_citrus_mapper_init_state
-#define _citrus_csmapper_get_state_size	_citrus_mapper_get_state_size
-#define _citrus_csmapper_get_src_max	_citrus_mapper_get_src_max
-#define _citrus_csmapper_get_dst_max	_citrus_mapper_get_dst_max
+#define _citrus_csmapper _citrus_mapper
+#define _citrus_csmapper_close _citrus_mapper_close
+#define _citrus_csmapper_convert _citrus_mapper_convert
+#define _citrus_csmapper_init_state _citrus_mapper_init_state
+#define _citrus_csmapper_get_state_size _citrus_mapper_get_state_size
+#define _citrus_csmapper_get_src_max _citrus_mapper_get_src_max
+#define _citrus_csmapper_get_dst_max _citrus_mapper_get_dst_max
 
-#define _CITRUS_CSMAPPER_F_PREVENT_PIVOT	0x00000001
+#define _CITRUS_CSMAPPER_F_PREVENT_PIVOT 0x00000001
 __BEGIN_DECLS
-int	 _citrus_csmapper_open(struct _citrus_csmapper *__restrict *__restrict,
-	    const char *__restrict, const char *__restrict, uint32_t,
-	    unsigned long *);
+int _citrus_csmapper_open(struct _citrus_csmapper *__restrict *__restrict,
+    const char *__restrict, const char *__restrict, uint32_t, unsigned long *);
 __END_DECLS
 
 #endif

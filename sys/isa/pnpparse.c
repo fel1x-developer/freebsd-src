@@ -28,9 +28,9 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
-#include <sys/bus.h>
 
 #include <machine/stdarg.h>
 
@@ -38,10 +38,10 @@
 #include <isa/pnpreg.h>
 #include <isa/pnpvar.h>
 
-#define	MAXDEP	8
+#define MAXDEP 8
 
-#define I16(p)	((p)[0] + ((p)[1] << 8))
-#define I32(p)	(I16(p) + (I16((p)+2) << 16))
+#define I16(p) ((p)[0] + ((p)[1] << 8))
+#define I32(p) (I16(p) + (I16((p) + 2) << 16))
 
 void
 pnp_printf(uint32_t id, char *fmt, ...)
@@ -58,7 +58,7 @@ pnp_printf(uint32_t id, char *fmt, ...)
 
 static int
 pnp_parse_desc(device_t dev, u_char tag, u_char *res, int len,
-	       struct isa_config *config, int ldn)
+    struct isa_config *config, int ldn)
 {
 	char buf[100];
 	uint32_t id;
@@ -82,7 +82,7 @@ pnp_parse_desc(device_t dev, u_char tag, u_char *res, int len,
 		case PNP_TAG_END_DEPENDANT:
 			if (bootverbose)
 				pnp_printf(id, "unexpected small tag %d\n",
-					   PNP_SRES_NUM(tag));
+				    PNP_SRES_NUM(tag));
 			/* shouldn't happen; quit now */
 			return (1);
 
@@ -95,7 +95,7 @@ pnp_parse_desc(device_t dev, u_char tag, u_char *res, int len,
 			if (isa_get_compatid(dev) == 0)
 				isa_set_compatid(dev, compat_id);
 			break;
-	    
+
 		case PNP_TAG_IRQ_FORMAT:
 			if (config->ic_nirq == ISA_NIRQ) {
 				pnp_printf(id, "too many irqs\n");
@@ -109,7 +109,7 @@ pnp_parse_desc(device_t dev, u_char tag, u_char *res, int len,
 			}
 			if (bootverbose)
 				pnp_printf(id, "adding irq mask %#02x\n",
-					   I16(res));
+				    I16(res));
 			config->ic_irqmask[config->ic_nirq] = I16(res);
 			config->ic_nirq++;
 			break;
@@ -127,7 +127,7 @@ pnp_parse_desc(device_t dev, u_char tag, u_char *res, int len,
 			}
 			if (bootverbose)
 				pnp_printf(id, "adding dma mask %#02x\n",
-					   res[0]);
+				    res[0]);
 			config->ic_drqmask[config->ic_ndrq] = res[0];
 			config->ic_ndrq++;
 			break;
@@ -147,26 +147,27 @@ pnp_parse_desc(device_t dev, u_char tag, u_char *res, int len,
 				break;
 			}
 			if (bootverbose) {
-				pnp_printf(id, "adding io range "
-					   "%#x-%#x, size=%#x, "
-					   "align=%#x\n",
-					   I16(res + 1),
-					   I16(res + 3) + res[6]-1,
-					   res[6], res[5]);
+				pnp_printf(id,
+				    "adding io range "
+				    "%#x-%#x, size=%#x, "
+				    "align=%#x\n",
+				    I16(res + 1), I16(res + 3) + res[6] - 1,
+				    res[6], res[5]);
 			}
-			config->ic_port[config->ic_nport].ir_start =
-			    I16(res + 1);
-			config->ic_port[config->ic_nport].ir_end =
-			    I16(res + 3) + res[6] - 1;
+			config->ic_port[config->ic_nport].ir_start = I16(
+			    res + 1);
+			config->ic_port[config->ic_nport].ir_end = I16(res +
+								       3) +
+			    res[6] - 1;
 			config->ic_port[config->ic_nport].ir_size = res[6];
 			if (res[5] == 0) {
-			    /* Make sure align is at least one */
-			    res[5] = 1;
+				/* Make sure align is at least one */
+				res[5] = 1;
 			}
 			config->ic_port[config->ic_nport].ir_align = res[5];
 			config->ic_nport++;
 			pnp_check_quirks(isa_get_vendorid(dev),
-					 isa_get_logicalid(dev), ldn, config);
+			    isa_get_logicalid(dev), ldn, config);
 			break;
 
 		case PNP_TAG_IO_FIXED:
@@ -184,16 +185,15 @@ pnp_parse_desc(device_t dev, u_char tag, u_char *res, int len,
 				break;
 			}
 			if (bootverbose) {
-				pnp_printf(id, "adding fixed io range "
-					   "%#x-%#x, size=%#x, "
-					   "align=%#x\n",
-					   I16(res),
-					   I16(res) + res[2] - 1,
-					   res[2], 1);
+				pnp_printf(id,
+				    "adding fixed io range "
+				    "%#x-%#x, size=%#x, "
+				    "align=%#x\n",
+				    I16(res), I16(res) + res[2] - 1, res[2], 1);
 			}
 			config->ic_port[config->ic_nport].ir_start = I16(res);
-			config->ic_port[config->ic_nport].ir_end =
-			    I16(res) + res[2] - 1;
+			config->ic_port[config->ic_nport].ir_end = I16(res) +
+			    res[2] - 1;
 			config->ic_port[config->ic_nport].ir_size = res[2];
 			config->ic_port[config->ic_nport].ir_align = 1;
 			config->ic_nport++;
@@ -207,7 +207,7 @@ pnp_parse_desc(device_t dev, u_char tag, u_char *res, int len,
 		default:
 			/* Skip this resource */
 			pnp_printf(id, "unexpected small tag %d\n",
-				      PNP_SRES_NUM(tag));
+			    PNP_SRES_NUM(tag));
 			break;
 		}
 	} else {
@@ -232,7 +232,7 @@ pnp_parse_desc(device_t dev, u_char tag, u_char *res, int len,
 			buf[len] = '\0';
 			device_set_desc_copy(dev, buf);
 			break;
-			
+
 		case PNP_TAG_MEMORY_RANGE:
 			if (config->ic_nmem == ISA_NMEM) {
 				pnp_printf(id, "too many memory ranges\n");
@@ -249,19 +249,21 @@ pnp_parse_desc(device_t dev, u_char tag, u_char *res, int len,
 			}
 			if (bootverbose) {
 				temp = I16(res + 7) << 8;
-				pnp_printf(id, "adding memory range "
-					   "%#x-%#x, size=%#x, "
-					   "align=%#x\n",
-					   I16(res + 1) << 8,
-					   (I16(res + 3) << 8) + temp - 1,
-					   temp, I16(res + 5));
+				pnp_printf(id,
+				    "adding memory range "
+				    "%#x-%#x, size=%#x, "
+				    "align=%#x\n",
+				    I16(res + 1) << 8,
+				    (I16(res + 3) << 8) + temp - 1, temp,
+				    I16(res + 5));
 			}
-			config->ic_mem[config->ic_nmem].ir_start =
-			    I16(res + 1) << 8;
-			config->ic_mem[config->ic_nmem].ir_end =
-			    (I16(res + 3) << 8) + (I16(res + 7) << 8) - 1;
-			config->ic_mem[config->ic_nmem].ir_size =
-			    I16(res + 7) << 8;
+			config->ic_mem[config->ic_nmem].ir_start = I16(res + 1)
+			    << 8;
+			config->ic_mem[config->ic_nmem].ir_end = (I16(res + 3)
+								     << 8) +
+			    (I16(res + 7) << 8) - 1;
+			config->ic_mem[config->ic_nmem].ir_size = I16(res + 7)
+			    << 8;
 			config->ic_mem[config->ic_nmem].ir_align = I16(res + 5);
 			if (!config->ic_mem[config->ic_nmem].ir_align)
 				config->ic_mem[config->ic_nmem].ir_align =
@@ -284,16 +286,17 @@ pnp_parse_desc(device_t dev, u_char tag, u_char *res, int len,
 				break;
 			}
 			if (bootverbose) {
-				pnp_printf(id, "adding memory32 range "
-					   "%#x-%#x, size=%#x, "
-					   "align=%#x\n",
-					   I32(res + 1),
-					   I32(res + 5) + I32(res + 13) - 1,
-					   I32(res + 13), I32(res + 9));
+				pnp_printf(id,
+				    "adding memory32 range "
+				    "%#x-%#x, size=%#x, "
+				    "align=%#x\n",
+				    I32(res + 1),
+				    I32(res + 5) + I32(res + 13) - 1,
+				    I32(res + 13), I32(res + 9));
 			}
 			config->ic_mem[config->ic_nmem].ir_start = I32(res + 1);
-			config->ic_mem[config->ic_nmem].ir_end =
-			    I32(res + 5) + I32(res + 13) - 1;
+			config->ic_mem[config->ic_nmem].ir_end = I32(res + 5) +
+			    I32(res + 13) - 1;
 			config->ic_mem[config->ic_nmem].ir_size = I32(res + 13);
 			config->ic_mem[config->ic_nmem].ir_align = I32(res + 9);
 			config->ic_nmem++;
@@ -313,15 +316,16 @@ pnp_parse_desc(device_t dev, u_char tag, u_char *res, int len,
 				break;
 			}
 			if (bootverbose) {
-				pnp_printf(id, "adding fixed memory32 range "
-					   "%#x-%#x, size=%#x\n",
-					   I32(res + 1),
-					   I32(res + 1) + I32(res + 5) - 1,
-					   I32(res + 5));
+				pnp_printf(id,
+				    "adding fixed memory32 range "
+				    "%#x-%#x, size=%#x\n",
+				    I32(res + 1),
+				    I32(res + 1) + I32(res + 5) - 1,
+				    I32(res + 5));
 			}
 			config->ic_mem[config->ic_nmem].ir_start = I32(res + 1);
-			config->ic_mem[config->ic_nmem].ir_end =
-			    I32(res + 1) + I32(res + 5) - 1;
+			config->ic_mem[config->ic_nmem].ir_end = I32(res + 1) +
+			    I32(res + 5) - 1;
 			config->ic_mem[config->ic_nmem].ir_size = I32(res + 5);
 			config->ic_mem[config->ic_nmem].ir_align = 1;
 			config->ic_nmem++;
@@ -330,7 +334,7 @@ pnp_parse_desc(device_t dev, u_char tag, u_char *res, int len,
 		default:
 			/* Skip this resource */
 			pnp_printf(id, "unexpected large tag %d\n",
-				   PNP_SRES_NUM(tag));
+			    PNP_SRES_NUM(tag));
 			break;
 		}
 	}
@@ -342,18 +346,18 @@ pnp_parse_desc(device_t dev, u_char tag, u_char *res, int len,
  * Parse a single "dependent" resource combination.
  */
 
-u_char
-*pnp_parse_dependant(device_t dev, u_char *resources, int len,
-		     struct isa_config *config, int ldn)
+u_char *
+pnp_parse_dependant(device_t dev, u_char *resources, int len,
+    struct isa_config *config, int ldn)
 {
 
 	return pnp_scan_resources(dev, resources, len, config, ldn,
-				  pnp_parse_desc);
+	    pnp_parse_desc);
 }
 
 static void
 pnp_merge_resources(device_t dev, struct isa_config *from,
-		    struct isa_config *to)
+    struct isa_config *to)
 {
 	device_t parent;
 	int i;
@@ -419,8 +423,8 @@ pnp_parse_resources(device_t dev, u_char *resources, int len, int ldn)
 	parent = device_get_parent(dev);
 	id = isa_get_logicalid(dev);
 
-	configs = (struct isa_config *)malloc(sizeof(*configs)*(1 + MAXDEP),
-					      M_DEVBUF, M_NOWAIT | M_ZERO);
+	configs = (struct isa_config *)malloc(sizeof(*configs) * (1 + MAXDEP),
+	    M_DEVBUF, M_NOWAIT | M_ZERO);
 	if (configs == NULL) {
 		device_printf(parent, "No memory to parse PNP data\n");
 		return;
@@ -452,14 +456,15 @@ pnp_parse_resources(device_t dev, u_char *resources, int len, int ldn)
 					 * then parse the "dependent" resources.
 					 */
 					pnp_merge_resources(dev, &configs[0],
-							    config);
+					    config);
 					pnp_parse_dependant(dev, start,
-							    p - start - 1,
-							    config, ldn);
+					    p - start - 1, config, ldn);
 				}
 				start = p + l;
 				if (ncfgs > MAXDEP) {
-					device_printf(parent, "too many dependent configs (%d)\n", MAXDEP);
+					device_printf(parent,
+					    "too many dependent configs (%d)\n",
+					    MAXDEP);
 					len = 0;
 					break;
 				}
@@ -474,14 +479,14 @@ pnp_parse_resources(device_t dev, u_char *resources, int len, int ldn)
 					priorities[ncfgs] = 1;
 				if (bootverbose)
 					pnp_printf(id, "start dependent (%d)\n",
-						   priorities[ncfgs]);
+					    priorities[ncfgs]);
 				ncfgs++;
 				break;
 
 			case PNP_TAG_END_DEPENDANT:
 				if (start == NULL) {
 					device_printf(parent,
-						      "malformed resources\n");
+					    "malformed resources\n");
 					len = 0;
 					break;
 				}
@@ -491,7 +496,7 @@ pnp_parse_resources(device_t dev, u_char *resources, int len, int ldn)
 				 */
 				pnp_merge_resources(dev, &configs[0], config);
 				pnp_parse_dependant(dev, start, p - start - 1,
-						    config, ldn);
+				    config, ldn);
 				start = NULL;
 				if (bootverbose)
 					pnp_printf(id, "end dependent\n");
@@ -507,7 +512,7 @@ pnp_parse_resources(device_t dev, u_char *resources, int len, int ldn)
 			case PNP_TAG_END:
 				if (start != NULL) {
 					device_printf(parent,
-						      "malformed resources\n");
+					    "malformed resources\n");
 				}
 				len = 0;
 				break;
@@ -564,9 +569,9 @@ pnp_parse_resources(device_t dev, u_char *resources, int len, int ldn)
 	free(configs, M_DEVBUF);
 }
 
-u_char
-*pnp_scan_resources(device_t dev, u_char *resources, int len,
-		    struct isa_config *config, int ldn, pnp_scan_cb *cb)
+u_char *
+pnp_scan_resources(device_t dev, u_char *resources, int len,
+    struct isa_config *config, int ldn, pnp_scan_cb *cb)
 {
 	u_char *p;
 	u_char tag;

@@ -34,23 +34,23 @@
 #include <net/if_types.h>
 #include <net/route.h>
 #include <net/route/nhop.h>
-
 #include <netinet/in.h>
 
 #include <arpa/inet.h>
+#include <err.h>
 #include <libutil.h>
+#include <libxo/xo.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
-#include <err.h>
-#include <libxo/xo.h>
-#include "netstat.h"
-#include "common.h"
 
-#define	WID_GW_DEFAULT(af)	(((af) == AF_INET6) ? 40 : 18)
+#include "common.h"
+#include "netstat.h"
+
+#define WID_GW_DEFAULT(af) (((af) == AF_INET6) ? 40 : 18)
 
 static int wid_gw;
 static int wid_if = 10;
@@ -58,13 +58,13 @@ static int wid_nhidx = 8;
 static int wid_refcnt = 8;
 
 struct nhop_entry {
-	char	gw[64];
-	char	ifname[IFNAMSIZ];
+	char gw[64];
+	char ifname[IFNAMSIZ];
 };
 
 struct nhop_map {
-	struct nhop_entry	*ptr;
-	size_t			size;
+	struct nhop_entry *ptr;
+	size_t size;
 };
 static struct nhop_map global_nhop_map;
 
@@ -87,14 +87,11 @@ print_nhgroup_header(int af1 __unused)
 {
 
 	xo_emit("{T:/%-*.*s}{T:/%-*.*s}{T:/%*.*s}{T:/%*.*s}{T:/%*.*s}"
-	    "{T:/%*.*s}{T:/%*s}\n",
-		wid_nhidx,	wid_nhidx,	"GrpIdx",
-		wid_nhidx,	wid_nhidx,	"NhIdx",
-		wid_nhidx,	wid_nhidx,	"Weight",
-		wid_nhidx,	wid_nhidx,	"Slots",
-		wid_gw,		wid_gw,		"Gateway",
-		wid_if,		wid_if,		"Netif",
-		wid_refcnt,			"Refcnt");
+		"{T:/%*.*s}{T:/%*s}\n",
+	    wid_nhidx, wid_nhidx, "GrpIdx", wid_nhidx, wid_nhidx, "NhIdx",
+	    wid_nhidx, wid_nhidx, "Weight", wid_nhidx, wid_nhidx, "Slots",
+	    wid_gw, wid_gw, "Gateway", wid_if, wid_if, "Netif", wid_refcnt,
+	    "Refcnt");
 }
 
 static void
@@ -111,7 +108,6 @@ print_padding(char sym, int len)
 	buffer[len + 4] = '\0';
 	xo_emit(buffer);
 }
-
 
 static void
 print_nhgroup_entry_sysctl(const char *name, struct rt_msghdr *rtm,
@@ -134,7 +130,8 @@ print_nhgroup_entry_sysctl(const char *name, struct rt_msghdr *rtm,
 
 	xo_open_instance(name);
 
-	snprintf(buffer, sizeof(buffer), "{[:-%d}{:nhgrp-index/%%lu}{]:} ", wid_nhidx);
+	snprintf(buffer, sizeof(buffer), "{[:-%d}{:nhgrp-index/%%lu}{]:} ",
+	    wid_nhidx);
 
 	xo_emit(buffer, nhge->nhg_idx);
 
@@ -166,7 +163,8 @@ print_nhgroup_entry_sysctl(const char *name, struct rt_msghdr *rtm,
 		ne = nhop_get(&global_nhop_map, ext_cp[i].nh_idx);
 		if (ne != NULL) {
 			xo_emit("{t:nh-gw/%*.*s}", wid_gw, wid_gw, ne->gw);
-			xo_emit("{t:nh-interface/%*.*s}", wid_if, wid_if, ne->ifname);
+			xo_emit("{t:nh-interface/%*.*s}", wid_if, wid_if,
+			    ne->ifname);
 		}
 		xo_emit("\n");
 		xo_close_instance("nhop-weight");
@@ -215,7 +213,7 @@ dump_nhgrp_sysctl(int fibnum, int af, struct nhops_dump *nd)
 		errx(2, "malloc(%lu)", (unsigned long)needed);
 	if (sysctl(mib, nitems(mib), buf, &needed, NULL, 0) < 0)
 		err(1, "sysctl: net.route.0.%d.nhgrpdump.%d", af, fibnum);
-	lim  = buf + needed;
+	lim = buf + needed;
 
 	/*
 	 * nexhops groups are received unsorted. Collect everything first,
@@ -231,7 +229,8 @@ dump_nhgrp_sysctl(int fibnum, int af, struct nhops_dump *nd)
 
 		if (nhg_count >= nhg_size) {
 			nhg_size *= 2;
-			nhg_map = realloc(nhg_map, nhg_size * sizeof(struct nhops_map));
+			nhg_map = realloc(nhg_map,
+			    nhg_size * sizeof(struct nhops_map));
 		}
 
 		nhg = (struct nhgrp_external *)(rtm + 1);
@@ -241,7 +240,8 @@ dump_nhgrp_sysctl(int fibnum, int af, struct nhops_dump *nd)
 	}
 
 	if (nhg_count > 0)
-		qsort(nhg_map, nhg_count, sizeof(struct nhops_map), cmp_nhg_idx);
+		qsort(nhg_map, nhg_count, sizeof(struct nhops_map),
+		    cmp_nhg_idx);
 	nd->nh_buf = buf;
 	nd->nh_count = nhg_count;
 	nd->nh_map = nhg_map;
@@ -350,4 +350,3 @@ nhgrp_print(int fibnum, int af)
 	print_nhgrp_sysctl(fibnum, af);
 	xo_close_container("route-nhgrp-information");
 }
-

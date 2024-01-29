@@ -47,52 +47,52 @@
 #include "dd.h"
 #include "extern.h"
 
-static int	c_arg(const void *, const void *);
-static int	c_conv(const void *, const void *);
-static int	c_iflag(const void *, const void *);
-static int	c_oflag(const void *, const void *);
-static void	f_bs(char *);
-static void	f_cbs(char *);
-static void	f_conv(char *);
-static void	f_count(char *);
-static void	f_files(char *);
-static void	f_fillchar(char *);
-static void	f_ibs(char *);
-static void	f_if(char *);
-static void	f_iflag(char *);
-static void	f_obs(char *);
-static void	f_of(char *);
-static void	f_oflag(char *);
-static void	f_seek(char *);
-static void	f_skip(char *);
-static void	f_speed(char *);
-static void	f_status(char *);
+static int c_arg(const void *, const void *);
+static int c_conv(const void *, const void *);
+static int c_iflag(const void *, const void *);
+static int c_oflag(const void *, const void *);
+static void f_bs(char *);
+static void f_cbs(char *);
+static void f_conv(char *);
+static void f_count(char *);
+static void f_files(char *);
+static void f_fillchar(char *);
+static void f_ibs(char *);
+static void f_if(char *);
+static void f_iflag(char *);
+static void f_obs(char *);
+static void f_of(char *);
+static void f_oflag(char *);
+static void f_seek(char *);
+static void f_skip(char *);
+static void f_speed(char *);
+static void f_status(char *);
 static uintmax_t get_num(const char *);
-static off_t	get_off_t(const char *);
+static off_t get_off_t(const char *);
 
 static const struct arg {
 	const char *name;
 	void (*f)(char *);
 	uint64_t set, noset;
 } args[] = {
-	{ "bs",		f_bs,		C_BS,	 C_BS|C_IBS|C_OBS|C_OSYNC },
-	{ "cbs",	f_cbs,		C_CBS,	 C_CBS },
-	{ "conv",	f_conv,		0,	 0 },
-	{ "count",	f_count,	C_COUNT, C_COUNT },
-	{ "files",	f_files,	C_FILES, C_FILES },
-	{ "fillchar",	f_fillchar,	C_FILL,	 C_FILL },
-	{ "ibs",	f_ibs,		C_IBS,	 C_BS|C_IBS },
-	{ "if",		f_if,		C_IF,	 C_IF },
-	{ "iflag",	f_iflag,	0,	 0 },
-	{ "iseek",	f_skip,		C_SKIP,	 C_SKIP },
-	{ "obs",	f_obs,		C_OBS,	 C_BS|C_OBS },
-	{ "of",		f_of,		C_OF,	 C_OF },
-	{ "oflag",	f_oflag,	0,	 0 },
-	{ "oseek",	f_seek,		C_SEEK,	 C_SEEK },
-	{ "seek",	f_seek,		C_SEEK,	 C_SEEK },
-	{ "skip",	f_skip,		C_SKIP,	 C_SKIP },
-	{ "speed",	f_speed,	0,	 0 },
-	{ "status",	f_status,	C_STATUS,C_STATUS },
+	{ "bs", f_bs, C_BS, C_BS | C_IBS | C_OBS | C_OSYNC },
+	{ "cbs", f_cbs, C_CBS, C_CBS },
+	{ "conv", f_conv, 0, 0 },
+	{ "count", f_count, C_COUNT, C_COUNT },
+	{ "files", f_files, C_FILES, C_FILES },
+	{ "fillchar", f_fillchar, C_FILL, C_FILL },
+	{ "ibs", f_ibs, C_IBS, C_BS | C_IBS },
+	{ "if", f_if, C_IF, C_IF },
+	{ "iflag", f_iflag, 0, 0 },
+	{ "iseek", f_skip, C_SKIP, C_SKIP },
+	{ "obs", f_obs, C_OBS, C_BS | C_OBS },
+	{ "of", f_of, C_OF, C_OF },
+	{ "oflag", f_oflag, 0, 0 },
+	{ "oseek", f_seek, C_SEEK, C_SEEK },
+	{ "seek", f_seek, C_SEEK, C_SEEK },
+	{ "skip", f_skip, C_SKIP, C_SKIP },
+	{ "speed", f_speed, 0, 0 },
+	{ "status", f_status, C_STATUS, C_STATUS },
 };
 
 static char *oper;
@@ -110,7 +110,9 @@ jcl(char **argv)
 
 	while ((oper = *++argv) != NULL) {
 		if ((oper = strdup(oper)) == NULL)
-			errx(1, "unable to allocate space for the argument \"%s\"", *argv);
+			errx(1,
+			    "unable to allocate space for the argument \"%s\"",
+			    *argv);
 		if ((arg = strchr(oper, '=')) == NULL)
 			errx(1, "unknown operand %s", oper);
 		*arg++ = '\0';
@@ -118,11 +120,12 @@ jcl(char **argv)
 			errx(1, "no value specified for %s", oper);
 		tmp.name = oper;
 		if (!(ap = (struct arg *)bsearch(&tmp, args,
-		    sizeof(args)/sizeof(struct arg), sizeof(struct arg),
-		    c_arg)))
+			  sizeof(args) / sizeof(struct arg), sizeof(struct arg),
+			  c_arg)))
 			errx(1, "unknown operand %s", tmp.name);
 		if (ddflags & ap->noset)
-			errx(1, "%s: illegal argument combination or already set",
+			errx(1,
+			    "%s: illegal argument combination or already set",
 			    tmp.name);
 		ddflags |= ap->set;
 		ap->f(arg);
@@ -136,8 +139,8 @@ jcl(char **argv)
 		 * just wanted to set both the input and output block sizes
 		 * and didn't want the bs semantics, so we don't warn.
 		 */
-		if (ddflags & (C_BLOCK | C_LCASE | C_SWAB | C_UCASE |
-		    C_UNBLOCK))
+		if (ddflags &
+		    (C_BLOCK | C_LCASE | C_SWAB | C_UCASE | C_UNBLOCK))
 			ddflags &= ~C_BS;
 
 		/* Bs supersedes ibs and obs. */
@@ -165,7 +168,8 @@ jcl(char **argv)
 				cfunc = block;
 			}
 		} else
-			errx(1, "cbs meaningless if not doing record operations");
+			errx(1,
+			    "cbs meaningless if not doing record operations");
 	} else
 		cfunc = def;
 }
@@ -258,8 +262,8 @@ static const struct iflag {
 	const char *name;
 	uint64_t set, noset;
 } ilist[] = {
-	{ "direct",	C_IDIRECT,	0 },
-	{ "fullblock",	C_IFULLBLOCK,	C_SYNC },
+	{ "direct", C_IDIRECT, 0 },
+	{ "fullblock", C_IFULLBLOCK, C_SYNC },
 };
 
 static void
@@ -342,34 +346,34 @@ f_status(char *arg)
 	else
 		errx(1, "unknown status %s", arg);
 }
- 
+
 static const struct conv {
 	const char *name;
 	uint64_t set, noset;
 	const u_char *ctab;
 } clist[] = {
-	{ "ascii",	C_ASCII,	C_EBCDIC,	e2a_POSIX },
-	{ "block",	C_BLOCK,	C_UNBLOCK,	NULL },
-	{ "ebcdic",	C_EBCDIC,	C_ASCII,	a2e_POSIX },
-	{ "fdatasync",	C_FDATASYNC,	0,		NULL },
-	{ "fsync",	C_FSYNC,	0,		NULL },
-	{ "ibm",	C_EBCDIC,	C_ASCII,	a2ibm_POSIX },
-	{ "lcase",	C_LCASE,	C_UCASE,	NULL },
-	{ "noerror",	C_NOERROR,	0,		NULL },
-	{ "notrunc",	C_NOTRUNC,	0,		NULL },
-	{ "oldascii",	C_ASCII,	C_EBCDIC,	e2a_32V },
-	{ "oldebcdic",	C_EBCDIC,	C_ASCII,	a2e_32V },
-	{ "oldibm",	C_EBCDIC,	C_ASCII,	a2ibm_32V },
-	{ "osync",	C_OSYNC,	C_BS,		NULL },
-	{ "pareven",	C_PAREVEN,	C_PARODD|C_PARSET|C_PARNONE, NULL},
-	{ "parnone",	C_PARNONE,	C_PARODD|C_PARSET|C_PAREVEN, NULL},
-	{ "parodd",	C_PARODD,	C_PAREVEN|C_PARSET|C_PARNONE, NULL},
-	{ "parset",	C_PARSET,	C_PARODD|C_PAREVEN|C_PARNONE, NULL},
-	{ "sparse",	C_SPARSE,	0,		NULL },
-	{ "swab",	C_SWAB,		0,		NULL },
-	{ "sync",	C_SYNC,		C_IFULLBLOCK,	NULL },
-	{ "ucase",	C_UCASE,	C_LCASE,	NULL },
-	{ "unblock",	C_UNBLOCK,	C_BLOCK,	NULL },
+	{ "ascii", C_ASCII, C_EBCDIC, e2a_POSIX },
+	{ "block", C_BLOCK, C_UNBLOCK, NULL },
+	{ "ebcdic", C_EBCDIC, C_ASCII, a2e_POSIX },
+	{ "fdatasync", C_FDATASYNC, 0, NULL },
+	{ "fsync", C_FSYNC, 0, NULL },
+	{ "ibm", C_EBCDIC, C_ASCII, a2ibm_POSIX },
+	{ "lcase", C_LCASE, C_UCASE, NULL },
+	{ "noerror", C_NOERROR, 0, NULL },
+	{ "notrunc", C_NOTRUNC, 0, NULL },
+	{ "oldascii", C_ASCII, C_EBCDIC, e2a_32V },
+	{ "oldebcdic", C_EBCDIC, C_ASCII, a2e_32V },
+	{ "oldibm", C_EBCDIC, C_ASCII, a2ibm_32V },
+	{ "osync", C_OSYNC, C_BS, NULL },
+	{ "pareven", C_PAREVEN, C_PARODD | C_PARSET | C_PARNONE, NULL },
+	{ "parnone", C_PARNONE, C_PARODD | C_PARSET | C_PAREVEN, NULL },
+	{ "parodd", C_PARODD, C_PAREVEN | C_PARSET | C_PARNONE, NULL },
+	{ "parset", C_PARSET, C_PARODD | C_PAREVEN | C_PARNONE, NULL },
+	{ "sparse", C_SPARSE, 0, NULL },
+	{ "swab", C_SWAB, 0, NULL },
+	{ "sync", C_SYNC, C_IFULLBLOCK, NULL },
+	{ "ucase", C_UCASE, C_LCASE, NULL },
+	{ "unblock", C_UNBLOCK, C_BLOCK, NULL },
 };
 
 static void
@@ -403,9 +407,9 @@ static const struct oflag {
 	const char *name;
 	uint64_t set;
 } olist[] = {
-	{ "direct",	C_ODIRECT },
-	{ "fsync",	C_OFSYNC },
-	{ "sync",	C_OFSYNC },
+	{ "direct", C_ODIRECT },
+	{ "fsync", C_OFSYNC },
+	{ "sync", C_OFSYNC },
 };
 
 static void
@@ -480,8 +484,8 @@ postfix_to_mult(const char expr)
  *	5) A positive decimal number followed by a 'g' or 'G' (mult by 1 << 30).
  *	6) A positive decimal number followed by a 't' or 'T' (mult by 1 << 40).
  *	7) A positive decimal number followed by a 'p' or 'P' (mult by 1 << 50).
- *	8) A positive decimal number followed by a 'w' or 'W' (mult by sizeof int).
- *	9) Two or more positive decimal numbers (with/without [BbKkMmGgWw])
+ *	8) A positive decimal number followed by a 'w' or 'W' (mult by sizeof
+ *int). 9) Two or more positive decimal numbers (with/without [BbKkMmGgWw])
  *	   separated by 'x' or 'X' (also '*' for backwards compatibility),
  *	   specifying the product of the indicated values.
  */
@@ -493,7 +497,7 @@ get_num(const char *val)
 
 	errno = 0;
 	num = strtoumax(val, &expr, 0);
-	if (expr == val)			/* No valid digits. */
+	if (expr == val) /* No valid digits. */
 		errx(1, "%s: invalid numeric value", oper);
 	if (errno != 0)
 		err(1, "%s", oper);
@@ -510,20 +514,20 @@ get_num(const char *val)
 	}
 
 	switch (*expr) {
-		case '\0':
+	case '\0':
+		break;
+	case '*': /* Backward compatible. */
+	case 'X':
+	case 'x':
+		mult = get_num(expr + 1);
+		prevnum = num;
+		num *= mult;
+		if (num / mult == prevnum)
 			break;
-		case '*':			/* Backward compatible. */
-		case 'X':
-		case 'x':
-			mult = get_num(expr + 1);
-			prevnum = num;
-			num *= mult;
-			if (num / mult == prevnum)
-				break;
-erange:
-			errx(1, "%s: %s", oper, strerror(ERANGE));
-		default:
-			errx(1, "%s: illegal numeric value", oper);
+	erange:
+		errx(1, "%s: %s", oper, strerror(ERANGE));
+	default:
+		errx(1, "%s: illegal numeric value", oper);
 	}
 	return (num);
 }
@@ -542,7 +546,7 @@ get_off_t(const char *val)
 
 	errno = 0;
 	num = strtoimax(val, &expr, 0);
-	if (expr == val)			/* No valid digits. */
+	if (expr == val) /* No valid digits. */
 		errx(1, "%s: invalid numeric value", oper);
 	if (errno != 0)
 		err(1, "%s", oper);
@@ -559,20 +563,20 @@ get_off_t(const char *val)
 	}
 
 	switch (*expr) {
-		case '\0':
+	case '\0':
+		break;
+	case '*': /* Backward compatible. */
+	case 'X':
+	case 'x':
+		mult = (intmax_t)get_off_t(expr + 1);
+		prevnum = num;
+		num *= mult;
+		if ((prevnum > 0) == (num > 0) && num / mult == prevnum)
 			break;
-		case '*':			/* Backward compatible. */
-		case 'X':
-		case 'x':
-			mult = (intmax_t)get_off_t(expr + 1);
-			prevnum = num;
-			num *= mult;
-			if ((prevnum > 0) == (num > 0) && num / mult == prevnum)
-				break;
-erange:
-			errx(1, "%s: %s", oper, strerror(ERANGE));
-		default:
-			errx(1, "%s: illegal numeric value", oper);
+	erange:
+		errx(1, "%s: %s", oper, strerror(ERANGE));
+	default:
+		errx(1, "%s: illegal numeric value", oper);
 	}
 	return (num);
 }

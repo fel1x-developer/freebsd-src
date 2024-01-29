@@ -30,44 +30,44 @@
 #define _VIAWD_H_
 
 struct viawd_device {
-	uint16_t		device;
-	char			*desc;
+	uint16_t device;
+	char *desc;
 };
 
 struct viawd_softc {
-	device_t		dev;
-	device_t		sb_dev;
+	device_t dev;
+	device_t sb_dev;
 
-	int			wd_rid;
-	struct resource		*wd_res;
+	int wd_rid;
+	struct resource *wd_res;
 
-	eventhandler_tag	ev_tag;
-	unsigned int		timeout;
+	eventhandler_tag ev_tag;
+	unsigned int timeout;
 };
 
-#define VENDORID_VIA		0x1106
-#define DEVICEID_VT8251		0x3287
-#define DEVICEID_CX700		0x8324
-#define DEVICEID_VX800		0x8353
-#define DEVICEID_VX855		0x8409
-#define DEVICEID_VX900		0x8410
+#define VENDORID_VIA 0x1106
+#define DEVICEID_VT8251 0x3287
+#define DEVICEID_CX700 0x8324
+#define DEVICEID_VX800 0x8353
+#define DEVICEID_VX855 0x8409
+#define DEVICEID_VX900 0x8410
 
-#define VIAWD_CONFIG_BASE	0xE8
+#define VIAWD_CONFIG_BASE 0xE8
 
-#define VIAWD_MEM_LEN		8
+#define VIAWD_MEM_LEN 8
 
-#define VIAWD_MEM_CTRL		0x00
-#define VIAWD_MEM_CTRL_TRIGGER	0x000000080
-#define VIAWD_MEM_CTRL_DISABLE	0x000000008
-#define VIAWD_MEM_CTRL_POWEROFF	0x000000004
-#define VIAWD_MEM_CTRL_FIRED	0x000000002
-#define VIAWD_MEM_CTRL_ENABLE	0x000000001
+#define VIAWD_MEM_CTRL 0x00
+#define VIAWD_MEM_CTRL_TRIGGER 0x000000080
+#define VIAWD_MEM_CTRL_DISABLE 0x000000008
+#define VIAWD_MEM_CTRL_POWEROFF 0x000000004
+#define VIAWD_MEM_CTRL_FIRED 0x000000002
+#define VIAWD_MEM_CTRL_ENABLE 0x000000001
 
-#define VIAWD_MEM_COUNT		0x04
+#define VIAWD_MEM_COUNT 0x04
 
-#define VIAWD_MEM_COUNT_MIN	1
-#define VIAWD_MEM_COUNT_MAX	1023
+#define VIAWD_MEM_COUNT_MIN 1
+#define VIAWD_MEM_COUNT_MAX 1023
 
-#define VIAWD_TIMEOUT_SHUTDOWN	(5 * 60)
+#define VIAWD_TIMEOUT_SHUTDOWN (5 * 60)
 
 #endif

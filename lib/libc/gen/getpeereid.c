@@ -26,7 +26,6 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/ucred.h>
@@ -34,6 +33,8 @@
 
 #include <errno.h>
 #include <unistd.h>
+
+#include "namespace.h"
 #include "un-namespace.h"
 
 int

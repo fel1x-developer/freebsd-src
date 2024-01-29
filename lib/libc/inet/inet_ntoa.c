@@ -29,28 +29,29 @@
  * SUCH DAMAGE.
  */
 
-#include "port_before.h"
-
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 
+#include <netinet/in.h>
+
+#include <arpa/inet.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "port_after.h"
+#include "port_before.h"
 
 /*%
  * Convert network-format internet address
  * to base 256 d.d.d.d representation.
  */
 /*const*/ char *
-inet_ntoa(struct in_addr in) {
+inet_ntoa(struct in_addr in)
+{
 	static char ret[18];
 
 	strcpy(ret, "[inet_ntoa error]");
-	(void) inet_ntop(AF_INET, &in, ret, sizeof ret);
+	(void)inet_ntop(AF_INET, &in, ret, sizeof ret);
 	return (ret);
 }
 
@@ -58,7 +59,7 @@ char *
 inet_ntoa_r(struct in_addr in, char *buf, socklen_t size)
 {
 
-	(void) inet_ntop(AF_INET, &in, buf, size);
+	(void)inet_ntop(AF_INET, &in, buf, size);
 	return (buf);
 }
 

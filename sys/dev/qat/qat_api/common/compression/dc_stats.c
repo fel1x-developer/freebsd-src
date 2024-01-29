@@ -25,23 +25,23 @@
  * Include private header files
  *******************************************************************************
  */
-#include "lac_common.h"
-#include "icp_accel_devices.h"
-#include "sal_statistics.h"
-#include "dc_session.h"
 #include "dc_datapath.h"
+#include "dc_session.h"
+#include "dc_stats.h"
+#include "icp_accel_devices.h"
+#include "lac_common.h"
 #include "lac_mem_pools.h"
 #include "sal_service_state.h"
+#include "sal_statistics.h"
 #include "sal_types_compression.h"
-#include "dc_stats.h"
 
 CpaStatus
 dcStatsInit(sal_compression_service_t *pService)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 
-	pService->pCompStatsArr =
-	    LAC_OS_MALLOC(COMPRESSION_NUM_STATS * sizeof(QatUtilsAtomic));
+	pService->pCompStatsArr = LAC_OS_MALLOC(
+	    COMPRESSION_NUM_STATS * sizeof(QatUtilsAtomic));
 
 	if (pService->pCompStatsArr == NULL) {
 		status = CPA_STATUS_RESOURCE;

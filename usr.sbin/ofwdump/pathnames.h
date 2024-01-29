@@ -25,4 +25,4 @@
 
 #include <paths.h>
 
-#define PATH_DEV_OPENFIRM	_PATH_DEV "openfirm"
+#define PATH_DEV_OPENFIRM _PATH_DEV "openfirm"

@@ -33,7 +33,7 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-static void	usage(void);
+static void usage(void);
 
 int
 main(int argc, char *argv[])
@@ -41,12 +41,12 @@ main(int argc, char *argv[])
 	int fd;
 	int i;
 	int rval;
-	
+
 	if (argc < 2) {
 		usage();
 		/* NOTREACHED */
 	}
-	
+
 	rval = EX_OK;
 	for (i = 1; i < argc; ++i) {
 		if ((fd = open(argv[i], O_RDONLY)) == -1) {

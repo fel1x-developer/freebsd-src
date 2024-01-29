@@ -42,38 +42,35 @@
 #include <net/if_types.h>
 #include <net/route.h>
 #include <net/route/nhop.h>
-
-#include <netinet/in.h>
 #include <netgraph/ng_socket.h>
+#include <netinet/in.h>
 
 #include <arpa/inet.h>
+#include <err.h>
 #include <ifaddrs.h>
 #include <libutil.h>
+#include <libxo/xo.h>
 #include <netdb.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
-#include <err.h>
-#include <libxo/xo.h>
-#include "netstat.h"
+
 #include "common.h"
+#include "netstat.h"
 
 /* column widths; each followed by one space */
 #ifndef INET6
-#define	WID_DST_DEFAULT(af) 	18	/* width of destination column */
-#define	WID_GW_DEFAULT(af)	18	/* width of gateway column */
-#define	WID_IF_DEFAULT(af)	(Wflag ? 10 : 8) /* width of netif column */
+#define WID_DST_DEFAULT(af) 18		    /* width of destination column */
+#define WID_GW_DEFAULT(af) 18		    /* width of gateway column */
+#define WID_IF_DEFAULT(af) (Wflag ? 10 : 8) /* width of netif column */
 #else
-#define	WID_DST_DEFAULT(af) \
-	((af) == AF_INET6 ? (numeric_addr ? 33: 18) : 18)
-#define	WID_GW_DEFAULT(af) \
-	((af) == AF_INET6 ? (numeric_addr ? 29 : 18) : 18)
-#define	WID_IF_DEFAULT(af)	((af) == AF_INET6 ? 8 : (Wflag ? 10 : 8))
+#define WID_DST_DEFAULT(af) ((af) == AF_INET6 ? (numeric_addr ? 33 : 18) : 18)
+#define WID_GW_DEFAULT(af) ((af) == AF_INET6 ? (numeric_addr ? 29 : 18) : 18)
+#define WID_IF_DEFAULT(af) ((af) == AF_INET6 ? 8 : (Wflag ? 10 : 8))
 #endif /*INET6*/
 static int wid_dst;
 static int wid_gw;
@@ -86,37 +83,27 @@ static int wid_nhtype;
 static int wid_refcnt;
 static int wid_prepend;
 
-static struct bits nh_bits[] = {
-	{ NHF_REJECT,	'R', "reject" },
-	{ NHF_BLACKHOLE,'B', "blackhole" },
-	{ NHF_REDIRECT,	'r', "redirect" },
-	{ NHF_GATEWAY,	'G', "gateway" },
-	{ NHF_DEFAULT,	'd', "default" },
-	{ NHF_BROADCAST,'b', "broadcast" },
-	{ 0 , 0, NULL }
-};
+static struct bits nh_bits[] = { { NHF_REJECT, 'R', "reject" },
+	{ NHF_BLACKHOLE, 'B', "blackhole" }, { NHF_REDIRECT, 'r', "redirect" },
+	{ NHF_GATEWAY, 'G', "gateway" }, { NHF_DEFAULT, 'd', "default" },
+	{ NHF_BROADCAST, 'b', "broadcast" }, { 0, 0, NULL } };
 
-static char *nh_types[] = {
-	"empty", /* 0 */
-	"v4/resolve", /* 1 */
-	"v4/gw",
-	"v6/resolve",
-	"v6/gw"
-};
+static char *nh_types[] = { "empty", /* 0 */
+	"v4/resolve",		     /* 1 */
+	"v4/gw", "v6/resolve", "v6/gw" };
 
 struct nhop_entry {
-	char	gw[64];
-	char	ifname[IFNAMSIZ];
+	char gw[64];
+	char ifname[IFNAMSIZ];
 };
 
 struct nhop_map {
-	struct nhop_entry	*ptr;
-	size_t			size;
+	struct nhop_entry *ptr;
+	size_t size;
 };
 static struct nhop_map global_nhop_map;
 
 static struct nhop_entry *nhop_get(struct nhop_map *map, uint32_t idx);
-
 
 static struct ifmap_entry *ifmap;
 static size_t ifmap_size;
@@ -127,8 +114,8 @@ print_sockaddr_buf(char *buf, size_t bufsize, const struct sockaddr *sa)
 
 	switch (sa->sa_family) {
 	case AF_INET:
-		inet_ntop(AF_INET, &((struct sockaddr_in *)sa)->sin_addr,
-		    buf, bufsize);
+		inet_ntop(AF_INET, &((struct sockaddr_in *)sa)->sin_addr, buf,
+		    bufsize);
 		break;
 	case AF_INET6:
 		inet_ntop(AF_INET6, &((struct sockaddr_in6 *)sa)->sin6_addr,
@@ -168,34 +155,27 @@ print_addr(const char *name, const char *addr, int width)
 	return (protrusion);
 }
 
-
 static void
 print_nhop_header(int af1 __unused)
 {
 
 	if (Wflag) {
-		xo_emit("{T:/%-*.*s} {T:/%-*.*s} {T:/%-*.*s} {T:/%-*.*s} {T:/%*.*s} "
+		xo_emit(
+		    "{T:/%-*.*s} {T:/%-*.*s} {T:/%-*.*s} {T:/%-*.*s} {T:/%*.*s} "
 		    "{T:/%*.*s} {T:/%-*.*s} {T:/%*.*s} {T:/%*.*s} {T:/%*.*s} {T:/%*s}\n",
-			wid_nhidx,	wid_nhidx,	"Idx",
-			wid_nhtype,	wid_nhtype,	"Type",
-			wid_dst,	wid_dst,	"IFA",
-			wid_gw,		wid_gw,		"Gateway",
-			wid_flags,	wid_flags,	"Flags",
-			wid_pksent,	wid_pksent,	"Use",
-			wid_mtu,	wid_mtu,	"Mtu",
-			wid_if,		wid_if,		"Netif",
-			wid_if,		wid_if,		"Addrif",
-			wid_refcnt,	wid_refcnt,	"Refcnt",
-			wid_prepend,			"Prepend");
+		    wid_nhidx, wid_nhidx, "Idx", wid_nhtype, wid_nhtype, "Type",
+		    wid_dst, wid_dst, "IFA", wid_gw, wid_gw, "Gateway",
+		    wid_flags, wid_flags, "Flags", wid_pksent, wid_pksent,
+		    "Use", wid_mtu, wid_mtu, "Mtu", wid_if, wid_if, "Netif",
+		    wid_if, wid_if, "Addrif", wid_refcnt, wid_refcnt, "Refcnt",
+		    wid_prepend, "Prepend");
 	} else {
-		xo_emit("{T:/%-*.*s} {T:/%-*.*s} {T:/%-*.*s} {T:/%-*.*s} {T:/%*.*s} "
+		xo_emit(
+		    "{T:/%-*.*s} {T:/%-*.*s} {T:/%-*.*s} {T:/%-*.*s} {T:/%*.*s} "
 		    " {T:/%*s}\n",
-			wid_nhidx,	wid_nhidx,	"Idx",
-			wid_dst,	wid_dst,	"IFA",
-			wid_gw,		wid_gw,		"Gateway",
-			wid_flags,	wid_flags,	"Flags",
-			wid_if,		wid_if,		"Netif",
-			wid_prepend,			"Refcnt");
+		    wid_nhidx, wid_nhidx, "Idx", wid_dst, wid_dst, "IFA",
+		    wid_gw, wid_gw, "Gateway", wid_flags, wid_flags, "Flags",
+		    wid_if, wid_if, "Netif", wid_prepend, "Refcnt");
 	}
 }
 
@@ -205,7 +185,7 @@ nhop_map_update(struct nhop_map *map, uint32_t idx, char *gw, char *ifname)
 	if (idx >= map->size) {
 		uint32_t new_size;
 		size_t sz;
-		if (map->size  == 0)
+		if (map->size == 0)
 			new_size = 32;
 		else
 			new_size = map->size * 2;
@@ -216,7 +196,8 @@ nhop_map_update(struct nhop_map *map, uint32_t idx, char *gw, char *ifname)
 		if ((map->ptr = realloc(map->ptr, sz)) == NULL)
 			errx(2, "realloc(%zu) failed", sz);
 
-		memset(&map->ptr[map->size], 0, (new_size - map->size) * sizeof(struct nhop_entry));
+		memset(&map->ptr[map->size], 0,
+		    (new_size - map->size) * sizeof(struct nhop_entry));
 		map->size = new_size;
 	}
 
@@ -236,7 +217,8 @@ nhop_get(struct nhop_map *map, uint32_t idx)
 }
 
 static void
-print_nhop_entry_sysctl(const char *name, struct rt_msghdr *rtm, struct nhop_external *nh)
+print_nhop_entry_sysctl(const char *name, struct rt_msghdr *rtm,
+    struct nhop_external *nh)
 {
 	char buffer[128];
 	char iface_name[128];
@@ -247,8 +229,9 @@ print_nhop_entry_sysctl(const char *name, struct rt_msghdr *rtm, struct nhop_ext
 
 	xo_open_instance(name);
 
-	snprintf(buffer, sizeof(buffer), "{[:-%d}{:index/%%lu}{]:} ", wid_nhidx);
-	//xo_emit("{t:index/%-lu} ", wid_nhidx, nh->nh_idx);
+	snprintf(buffer, sizeof(buffer), "{[:-%d}{:index/%%lu}{]:} ",
+	    wid_nhidx);
+	// xo_emit("{t:index/%-lu} ", wid_nhidx, nh->nh_idx);
 	xo_emit(buffer, nh->nh_idx);
 
 	if (Wflag) {
@@ -264,8 +247,8 @@ print_nhop_entry_sysctl(const char *name, struct rt_msghdr *rtm, struct nhop_ext
 	}
 
 	na = (struct nhop_addrs *)((char *)nh + nh->nh_len);
-	//inet_ntop(nh->nh_family, &nh->nh_src, src_addr, sizeof(src_addr));
-	//protrusion = p_addr("ifa", src_addr, wid_dst);
+	// inet_ntop(nh->nh_family, &nh->nh_src, src_addr, sizeof(src_addr));
+	// protrusion = p_addr("ifa", src_addr, wid_dst);
 	sa_gw = (struct sockaddr *)((char *)na + na->gw_sa_off);
 	sa_ifa = (struct sockaddr *)((char *)na + na->src_sa_off);
 	protrusion = p_sockaddr("ifa", sa_ifa, NULL, RTF_HOST, wid_dst);
@@ -283,14 +266,14 @@ print_nhop_entry_sysctl(const char *name, struct rt_msghdr *rtm, struct nhop_ext
 	snprintf(buffer, sizeof(buffer), "{[:-%d}{:flags/%%s}{]:} ",
 	    wid_flags - protrusion);
 
-	//p_nhflags(nh->nh_flags, buffer);
+	// p_nhflags(nh->nh_flags, buffer);
 	print_flags_generic(rtm->rtm_flags, rt_bits, buffer, "rt_flags_pretty");
 
 	if (Wflag) {
 		xo_emit("{t:use/%*lu} ", wid_pksent, nh->nh_pksent);
 		xo_emit("{t:mtu/%*lu} ", wid_mtu, nh->nh_mtu);
 	}
-	//printf("IDX: %d IFACE: %s FAMILY: %d TYPE: %d FLAGS: %X GW \n");
+	// printf("IDX: %d IFACE: %s FAMILY: %d TYPE: %d FLAGS: %X GW \n");
 
 	if (Wflag)
 		xo_emit("{t:interface-name/%*s}", wid_if, iface_name);
@@ -298,7 +281,8 @@ print_nhop_entry_sysctl(const char *name, struct rt_msghdr *rtm, struct nhop_ext
 		xo_emit("{t:interface-name/%*.*s}", wid_if, wid_if, iface_name);
 
 	memset(iface_name, 0, sizeof(iface_name));
-	if (nh->aifindex < (uint32_t)ifmap_size && nh->ifindex != nh->aifindex) {
+	if (nh->aifindex < (uint32_t)ifmap_size &&
+	    nh->ifindex != nh->aifindex) {
 		strlcpy(iface_name, ifmap[nh->aifindex].ifname,
 		    sizeof(iface_name));
 		if (*iface_name == '\0')
@@ -359,11 +343,11 @@ dump_nhops_sysctl(int fibnum, int af, struct nhops_dump *nd)
 		errx(2, "malloc(%lu)", (unsigned long)needed);
 	if (sysctl(mib, nitems(mib), buf, &needed, NULL, 0) < 0)
 		err(1, "sysctl: net.route.0.%d.nhdump.%d", af, fibnum);
-	lim  = buf + needed;
+	lim = buf + needed;
 
 	/*
-	 * nexhops are received unsorted. Collect everything first, sort and then display
-	 * sorted.
+	 * nexhops are received unsorted. Collect everything first, sort and
+	 * then display sorted.
 	 */
 	nh_count = 0;
 	nh_size = 16;
@@ -375,10 +359,11 @@ dump_nhops_sysctl(int fibnum, int af, struct nhops_dump *nd)
 
 		if (nh_count >= nh_size) {
 			nh_size *= 2;
-			nh_map = realloc(nh_map, nh_size * sizeof(struct nhops_map));
+			nh_map = realloc(nh_map,
+			    nh_size * sizeof(struct nhops_map));
 		}
 
-		nh = (struct nhop_external *)(rtm + 1); 
+		nh = (struct nhop_external *)(rtm + 1);
 		nh_map[nh_count].idx = nh->nh_idx;
 		nh_map[nh_count].rtm = rtm;
 		nh_count++;
@@ -476,4 +461,3 @@ nhops_print(int fibnum, int af)
 	print_nhops_sysctl(fibnum, af);
 	xo_close_container("route-nhop-information");
 }
-

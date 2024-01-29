@@ -37,40 +37,40 @@
 #include <arm/vmparam.h>
 #else /* !__arm__ */
 
-#ifndef	_MACHINE_VMPARAM_H_
-#define	_MACHINE_VMPARAM_H_
+#ifndef _MACHINE_VMPARAM_H_
+#define _MACHINE_VMPARAM_H_
 
 /*
  * Virtual memory related constants, all in bytes
  */
 #ifndef MAXTSIZ
-#define	MAXTSIZ		(1*1024*1024*1024)	/* max text size */
+#define MAXTSIZ (1 * 1024 * 1024 * 1024) /* max text size */
 #endif
 #ifndef DFLDSIZ
-#define	DFLDSIZ		(128*1024*1024)		/* initial data size limit */
+#define DFLDSIZ (128 * 1024 * 1024) /* initial data size limit */
 #endif
 #ifndef MAXDSIZ
-#define	MAXDSIZ		(1*1024*1024*1024)	/* max data size */
+#define MAXDSIZ (1 * 1024 * 1024 * 1024) /* max data size */
 #endif
 #ifndef DFLSSIZ
-#define	DFLSSIZ		(128*1024*1024)		/* initial stack size limit */
+#define DFLSSIZ (128 * 1024 * 1024) /* initial stack size limit */
 #endif
 #ifndef MAXSSIZ
-#define	MAXSSIZ		(1*1024*1024*1024)	/* max stack size */
+#define MAXSSIZ (1 * 1024 * 1024 * 1024) /* max stack size */
 #endif
 #ifndef SGROWSIZ
-#define	SGROWSIZ	(128*1024)		/* amount to grow stack */
+#define SGROWSIZ (128 * 1024) /* amount to grow stack */
 #endif
 
 /*
  * The physical address space is sparsely populated.
  */
-#define	VM_PHYSSEG_SPARSE
+#define VM_PHYSSEG_SPARSE
 
 /*
  * The number of PHYSSEG entries.
  */
-#define	VM_PHYSSEG_MAX		64
+#define VM_PHYSSEG_MAX 64
 
 /*
  * Create two free page pools: VM_FREEPOOL_DEFAULT is the default pool
@@ -78,18 +78,18 @@
  * the pool from which physical pages for small UMA objects are
  * allocated.
  */
-#define	VM_NFREEPOOL		2
-#define	VM_FREEPOOL_DEFAULT	0
-#define	VM_FREEPOOL_DIRECT	1
+#define VM_NFREEPOOL 2
+#define VM_FREEPOOL_DEFAULT 0
+#define VM_FREEPOOL_DIRECT 1
 
 /*
  * Create two free page lists: VM_FREELIST_DMA32 is for physical pages that have
  * physical addresses below 4G, and VM_FREELIST_DEFAULT is for all other
  * physical pages.
  */
-#define	VM_NFREELIST		2
-#define	VM_FREELIST_DEFAULT	0
-#define	VM_FREELIST_DMA32	1
+#define VM_NFREELIST 2
+#define VM_FREELIST_DEFAULT 0
+#define VM_FREELIST_DMA32 1
 
 /*
  * When PAGE_SIZE is 4KB, an allocation size of 16MB is supported in order
@@ -100,20 +100,20 @@
  * both 2MB page TLB misses and cache misses during the page table walk when
  * a 2MB page TLB miss does occur.
  */
-#define	VM_NFREEORDER		13
+#define VM_NFREEORDER 13
 
 /*
  * Enable superpage reservations: 1 level.
  */
-#ifndef	VM_NRESERVLEVEL
-#define	VM_NRESERVLEVEL		1
+#ifndef VM_NRESERVLEVEL
+#define VM_NRESERVLEVEL 1
 #endif
 
 /*
  * Level 0 reservations consist of 512 pages.
  */
-#ifndef	VM_LEVEL_0_ORDER
-#define	VM_LEVEL_0_ORDER	9
+#ifndef VM_LEVEL_0_ORDER
+#define VM_LEVEL_0_ORDER 9
 #endif
 
 /**
@@ -156,82 +156,81 @@
  * VM_MIN_USER_ADDRESS and VM_MAX_USER_ADDRESS define the start and end of the
  * user address space.
  */
-#define	VM_MIN_ADDRESS		(0x0000000000000000UL)
-#define	VM_MAX_ADDRESS		(0xffffffffffffffffUL)
+#define VM_MIN_ADDRESS (0x0000000000000000UL)
+#define VM_MAX_ADDRESS (0xffffffffffffffffUL)
 
 /* 512 GiB of kernel addresses */
-#define	VM_MIN_KERNEL_ADDRESS	(0xffff000000000000UL)
-#define	VM_MAX_KERNEL_ADDRESS	(0xffff008000000000UL)
+#define VM_MIN_KERNEL_ADDRESS (0xffff000000000000UL)
+#define VM_MAX_KERNEL_ADDRESS (0xffff008000000000UL)
 
 /* 128 GiB KASAN shadow map */
-#define	KASAN_MIN_ADDRESS	(0xffff008000000000UL)
-#define	KASAN_MAX_ADDRESS	(0xffff00a000000000UL)
+#define KASAN_MIN_ADDRESS (0xffff008000000000UL)
+#define KASAN_MAX_ADDRESS (0xffff00a000000000UL)
 
 /* The address bits that hold a pointer authentication code */
-#define	PAC_ADDR_MASK		(0xff7f000000000000UL)
+#define PAC_ADDR_MASK (0xff7f000000000000UL)
 
 /* If true addr is in the kernel address space */
-#define	ADDR_IS_KERNEL(addr)	(((addr) & (1ul << 55)) == (1ul << 55))
+#define ADDR_IS_KERNEL(addr) (((addr) & (1ul << 55)) == (1ul << 55))
 /* If true addr is in its canonical form (i.e. no TBI, PAC, etc.) */
-#define	ADDR_IS_CANONICAL(addr)	\
-    (((addr) & 0xffff000000000000UL) == 0 || \
-     ((addr) & 0xffff000000000000UL) == 0xffff000000000000UL)
-#define	ADDR_MAKE_CANONICAL(addr) ({			\
-	__typeof(addr) _tmp_addr = (addr);		\
-							\
-	_tmp_addr &= ~0xffff000000000000UL;		\
-	if (ADDR_IS_KERNEL(addr))			\
-		_tmp_addr |= 0xffff000000000000UL;	\
-							\
-	_tmp_addr;					\
-})
+#define ADDR_IS_CANONICAL(addr)                  \
+	(((addr) & 0xffff000000000000UL) == 0 || \
+	    ((addr) & 0xffff000000000000UL) == 0xffff000000000000UL)
+#define ADDR_MAKE_CANONICAL(addr)                          \
+	({                                                 \
+		__typeof(addr) _tmp_addr = (addr);         \
+                                                           \
+		_tmp_addr &= ~0xffff000000000000UL;        \
+		if (ADDR_IS_KERNEL(addr))                  \
+			_tmp_addr |= 0xffff000000000000UL; \
+                                                           \
+		_tmp_addr;                                 \
+	})
 
 /* 95 TiB maximum for the direct map region */
-#define	DMAP_MIN_ADDRESS	(0xffffa00000000000UL)
-#define	DMAP_MAX_ADDRESS	(0xffffff0000000000UL)
+#define DMAP_MIN_ADDRESS (0xffffa00000000000UL)
+#define DMAP_MAX_ADDRESS (0xffffff0000000000UL)
 
-#define	DMAP_MIN_PHYSADDR	(dmap_phys_base)
-#define	DMAP_MAX_PHYSADDR	(dmap_phys_max)
+#define DMAP_MIN_PHYSADDR (dmap_phys_base)
+#define DMAP_MAX_PHYSADDR (dmap_phys_max)
 
 /* True if pa is in the dmap range */
-#define	PHYS_IN_DMAP(pa)	((pa) >= DMAP_MIN_PHYSADDR && \
-    (pa) < DMAP_MAX_PHYSADDR)
+#define PHYS_IN_DMAP(pa) ((pa) >= DMAP_MIN_PHYSADDR && (pa) < DMAP_MAX_PHYSADDR)
 /* True if va is in the dmap range */
-#define	VIRT_IN_DMAP(va)	((va) >= DMAP_MIN_ADDRESS && \
-    (va) < (dmap_max_addr))
+#define VIRT_IN_DMAP(va) ((va) >= DMAP_MIN_ADDRESS && (va) < (dmap_max_addr))
 
-#define	PMAP_HAS_DMAP	1
-#define	PHYS_TO_DMAP(pa)						\
-({									\
-	KASSERT(PHYS_IN_DMAP(pa),					\
-	    ("%s: PA out of range, PA: 0x%lx", __func__,		\
-	    (vm_paddr_t)(pa)));						\
-	((pa) - dmap_phys_base) + DMAP_MIN_ADDRESS;			\
-})
+#define PMAP_HAS_DMAP 1
+#define PHYS_TO_DMAP(pa)                                         \
+	({                                                       \
+		KASSERT(PHYS_IN_DMAP(pa),                        \
+		    ("%s: PA out of range, PA: 0x%lx", __func__, \
+			(vm_paddr_t)(pa)));                      \
+		((pa)-dmap_phys_base) + DMAP_MIN_ADDRESS;        \
+	})
 
-#define	DMAP_TO_PHYS(va)						\
-({									\
-	KASSERT(VIRT_IN_DMAP(va),					\
-	    ("%s: VA out of range, VA: 0x%lx", __func__,		\
-	    (vm_offset_t)(va)));					\
-	((va) - DMAP_MIN_ADDRESS) + dmap_phys_base;			\
-})
+#define DMAP_TO_PHYS(va)                                         \
+	({                                                       \
+		KASSERT(VIRT_IN_DMAP(va),                        \
+		    ("%s: VA out of range, VA: 0x%lx", __func__, \
+			(vm_offset_t)(va)));                     \
+		((va)-DMAP_MIN_ADDRESS) + dmap_phys_base;        \
+	})
 
-#define	VM_MIN_USER_ADDRESS	(0x0000000000000000UL)
-#define	VM_MAX_USER_ADDRESS	(0x0001000000000000UL)
+#define VM_MIN_USER_ADDRESS (0x0000000000000000UL)
+#define VM_MAX_USER_ADDRESS (0x0001000000000000UL)
 
-#define	VM_MINUSER_ADDRESS	(VM_MIN_USER_ADDRESS)
-#define	VM_MAXUSER_ADDRESS	(VM_MAX_USER_ADDRESS)
+#define VM_MINUSER_ADDRESS (VM_MIN_USER_ADDRESS)
+#define VM_MAXUSER_ADDRESS (VM_MAX_USER_ADDRESS)
 
-#define	KERNBASE		(VM_MIN_KERNEL_ADDRESS)
-#define	SHAREDPAGE		(VM_MAXUSER_ADDRESS - PAGE_SIZE)
-#define	USRSTACK		SHAREDPAGE
+#define KERNBASE (VM_MIN_KERNEL_ADDRESS)
+#define SHAREDPAGE (VM_MAXUSER_ADDRESS - PAGE_SIZE)
+#define USRSTACK SHAREDPAGE
 
 /*
  * How many physical pages per kmem arena virtual page.
  */
 #ifndef VM_KMEM_SIZE_SCALE
-#define	VM_KMEM_SIZE_SCALE	(1)
+#define VM_KMEM_SIZE_SCALE (1)
 #endif
 
 /*
@@ -239,19 +238,19 @@
  * kernel map.
  */
 #ifndef VM_KMEM_SIZE_MAX
-#define	VM_KMEM_SIZE_MAX	((VM_MAX_KERNEL_ADDRESS - \
-    VM_MIN_KERNEL_ADDRESS + 1) * 3 / 5)
+#define VM_KMEM_SIZE_MAX \
+	((VM_MAX_KERNEL_ADDRESS - VM_MIN_KERNEL_ADDRESS + 1) * 3 / 5)
 #endif
 
 /*
  * Initial pagein size of beginning of executable file.
  */
-#ifndef	VM_INITIAL_PAGEIN
-#define	VM_INITIAL_PAGEIN	16
+#ifndef VM_INITIAL_PAGEIN
+#define VM_INITIAL_PAGEIN 16
 #endif
 
 #if !defined(KASAN) && !defined(KMSAN)
-#define	UMA_MD_SMALL_ALLOC
+#define UMA_MD_SMALL_ALLOC
 #endif
 
 #ifndef LOCORE
@@ -263,19 +262,19 @@ extern vm_offset_t vm_max_kernel_address;
 
 #endif
 
-#define	ZERO_REGION_SIZE	(64 * 1024)	/* 64KB */
+#define ZERO_REGION_SIZE (64 * 1024) /* 64KB */
 
-#define	DEVMAP_MAX_VADDR	VM_MAX_KERNEL_ADDRESS
+#define DEVMAP_MAX_VADDR VM_MAX_KERNEL_ADDRESS
 
 /*
  * The pmap can create non-transparent large page mappings.
  */
-#define	PMAP_HAS_LARGEPAGES	1
+#define PMAP_HAS_LARGEPAGES 1
 
 /*
  * Need a page dump array for minidump.
  */
-#define MINIDUMP_PAGE_TRACKING	1
+#define MINIDUMP_PAGE_TRACKING 1
 
 #endif /* !_MACHINE_VMPARAM_H_ */
 

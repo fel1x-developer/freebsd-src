@@ -1,6 +1,6 @@
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
- * 
+ *
  * Copyright (c) 2020 Val Packett <val@packett.cool>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -11,7 +11,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -25,14 +25,12 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_LINUXKPI_ASM_FPU_API_H_
-#define	_LINUXKPI_ASM_FPU_API_H_
+#ifndef _LINUXKPI_ASM_FPU_API_H_
+#define _LINUXKPI_ASM_FPU_API_H_
 
-#define	kernel_fpu_begin() \
-   lkpi_kernel_fpu_begin()
+#define kernel_fpu_begin() lkpi_kernel_fpu_begin()
 
-#define	kernel_fpu_end() \
-   lkpi_kernel_fpu_end()
+#define kernel_fpu_end() lkpi_kernel_fpu_end()
 
 extern void lkpi_kernel_fpu_begin(void);
 extern void lkpi_kernel_fpu_end(void);

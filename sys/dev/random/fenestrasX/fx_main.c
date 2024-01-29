@@ -93,30 +93,26 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/domainset.h>
 #include <sys/fail.h>
+#include <sys/kernel.h>
 #include <sys/limits.h>
 #include <sys/lock.h>
-#include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
 #include <sys/random.h>
 #include <sys/sdt.h>
 #include <sys/smp.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
-
-#include <machine/cpu.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
 #include <vm/vm_page.h>
-#include <vm/vm_phys.h>
 #include <vm/vm_pagequeue.h>
+#include <vm/vm_param.h>
+#include <vm/vm_phys.h>
 
-#include <dev/random/randomdev.h>
-#include <dev/random/random_harvestq.h>
-#include <dev/random/uint128.h>
+#include <machine/cpu.h>
 
 #include <dev/random/fenestrasX/fx_brng.h>
 #include <dev/random/fenestrasX/fx_hash.h>
@@ -124,6 +120,9 @@
 #include <dev/random/fenestrasX/fx_priv.h>
 #include <dev/random/fenestrasX/fx_pub.h>
 #include <dev/random/fenestrasX/fx_rng.h>
+#include <dev/random/random_harvestq.h>
+#include <dev/random/randomdev.h>
+#include <dev/random/uint128.h>
 
 struct fxrng_buffered_rng fxrng_root;
 uint64_t __read_mostly fxrng_root_generation;
@@ -203,7 +202,8 @@ _fxrng_alg_read(uint8_t *output, size_t nbytes, uint64_t *seed_version_out)
 		 */
 		ASSERT_DEBUG(atomic_load_acq_64(&fxrng_root_generation) != 0,
 		    "%s: attempting to seed child BRNG when root hasn't "
-		    "been initialized yet.", __func__);
+		    "been initialized yet.",
+		    __func__);
 
 		FXRNG_BRNG_LOCK(&fxrng_root);
 #ifdef WITNESS
@@ -225,7 +225,7 @@ _fxrng_alg_read(uint8_t *output, size_t nbytes, uint64_t *seed_version_out)
 		tmp = NULL;
 		while (tmp == NULL)
 			if (atomic_fcmpset_ptr((uintptr_t *)pcpu_brng_p,
-			    (uintptr_t *)&tmp, (uintptr_t)rng))
+				(uintptr_t *)&tmp, (uintptr_t)rng))
 				goto have_valid_rng;
 
 		/*

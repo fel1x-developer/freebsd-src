@@ -33,8 +33,8 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
@@ -43,8 +43,8 @@
 #include <sys/sbuf.h>
 #include <sys/sysctl.h>
 
-#include <dev/iicbus/iiconf.h>
 #include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
 
 #include "iicbus_if.h"
 
@@ -103,17 +103,17 @@ iicbus_attach_common(device_t dev, u_int bus_freq)
 	mtx_init(&sc->lock, "iicbus", NULL, MTX_DEF);
 	iicbus_init_frequency(dev, bus_freq);
 	iicbus_reset(dev, IIC_FASTEST, 0, NULL);
-	if (resource_int_value(device_get_name(dev),
-		device_get_unit(dev), "strict", &strict) == 0)
+	if (resource_int_value(device_get_name(dev), device_get_unit(dev),
+		"strict", &strict) == 0)
 		sc->strict = strict;
 	else
 		sc->strict = 1;
 
-	/* device probing is meaningless since the bus is supposed to be
-	 * hot-plug. Moreover, some I2C chips do not appreciate random
-	 * accesses like stop after start to fast, reads for less than
-	 * x bytes...
-	 */
+		/* device probing is meaningless since the bus is supposed to be
+		 * hot-plug. Moreover, some I2C chips do not appreciate random
+		 * accesses like stop after start to fast, reads for less than
+		 * x bytes...
+		 */
 #if SCAN_IICBUS
 	printf("Probing for devices on iicbus%d:", device_get_unit(dev));
 
@@ -128,7 +128,7 @@ iicbus_attach_common(device_t dev, u_int bus_freq)
 	bus_generic_probe(dev);
 	bus_enumerate_hinted_children(dev);
 	bus_generic_attach(dev);
-        return (0);
+	return (0);
 }
 
 static int
@@ -244,8 +244,8 @@ static device_t
 iicbus_add_child(device_t dev, u_int order, const char *name, int unit)
 {
 
-	return (iicbus_add_child_common(
-	    dev, order, name, unit, sizeof(struct iicbus_ivar)));
+	return (iicbus_add_child_common(dev, order, name, unit,
+	    sizeof(struct iicbus_ivar)));
 }
 
 static void
@@ -320,9 +320,8 @@ iicbus_init_frequency(device_t dev, u_int bus_freq)
 	 * user and thus the one that always takes precedence.
 	 */
 	SYSCTL_ADD_UINT(device_get_sysctl_ctx(dev),
-	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)),
-	    OID_AUTO, "frequency", CTLFLAG_RWTUN, &sc->bus_freq,
-	    sc->bus_freq, "Bus frequency in Hz");
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO, "frequency",
+	    CTLFLAG_RWTUN, &sc->bus_freq, sc->bus_freq, "Bus frequency in Hz");
 }
 
 static u_int
@@ -342,43 +341,43 @@ iicbus_get_frequency(device_t dev, u_char speed)
 
 static device_method_t iicbus_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		iicbus_probe),
-	DEVMETHOD(device_attach,	iicbus_attach),
-	DEVMETHOD(device_detach,	iicbus_detach),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	bus_generic_resume),
+	DEVMETHOD(device_probe, iicbus_probe),
+	DEVMETHOD(device_attach, iicbus_attach),
+	DEVMETHOD(device_detach, iicbus_detach),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
 
 	/* bus interface */
-	DEVMETHOD(bus_setup_intr,	bus_generic_setup_intr),
-	DEVMETHOD(bus_teardown_intr,	bus_generic_teardown_intr),
+	DEVMETHOD(bus_setup_intr, bus_generic_setup_intr),
+	DEVMETHOD(bus_teardown_intr, bus_generic_teardown_intr),
 	DEVMETHOD(bus_activate_resource, bus_generic_activate_resource),
 	DEVMETHOD(bus_deactivate_resource, bus_generic_deactivate_resource),
-	DEVMETHOD(bus_adjust_resource,	bus_generic_adjust_resource),
-	DEVMETHOD(bus_alloc_resource,	bus_generic_rl_alloc_resource),
-	DEVMETHOD(bus_get_resource,	bus_generic_rl_get_resource),
+	DEVMETHOD(bus_adjust_resource, bus_generic_adjust_resource),
+	DEVMETHOD(bus_alloc_resource, bus_generic_rl_alloc_resource),
+	DEVMETHOD(bus_get_resource, bus_generic_rl_get_resource),
 	DEVMETHOD(bus_release_resource, bus_generic_rl_release_resource),
-	DEVMETHOD(bus_set_resource,	bus_generic_rl_set_resource),
+	DEVMETHOD(bus_set_resource, bus_generic_rl_set_resource),
 	DEVMETHOD(bus_get_resource_list, iicbus_get_resource_list),
-	DEVMETHOD(bus_add_child,	iicbus_add_child),
-	DEVMETHOD(bus_print_child,	iicbus_print_child),
-	DEVMETHOD(bus_probe_nomatch,	iicbus_probe_nomatch),
-	DEVMETHOD(bus_read_ivar,	iicbus_read_ivar),
-	DEVMETHOD(bus_write_ivar,	iicbus_write_ivar),
-	DEVMETHOD(bus_child_pnpinfo,	iicbus_child_pnpinfo),
-	DEVMETHOD(bus_child_location,	iicbus_child_location),
-	DEVMETHOD(bus_hinted_child,	iicbus_hinted_child),
+	DEVMETHOD(bus_add_child, iicbus_add_child),
+	DEVMETHOD(bus_print_child, iicbus_print_child),
+	DEVMETHOD(bus_probe_nomatch, iicbus_probe_nomatch),
+	DEVMETHOD(bus_read_ivar, iicbus_read_ivar),
+	DEVMETHOD(bus_write_ivar, iicbus_write_ivar),
+	DEVMETHOD(bus_child_pnpinfo, iicbus_child_pnpinfo),
+	DEVMETHOD(bus_child_location, iicbus_child_location),
+	DEVMETHOD(bus_hinted_child, iicbus_hinted_child),
 
 	/* iicbus interface */
-	DEVMETHOD(iicbus_transfer,	iicbus_transfer),
-	DEVMETHOD(iicbus_get_frequency,	iicbus_get_frequency),
+	DEVMETHOD(iicbus_transfer, iicbus_transfer),
+	DEVMETHOD(iicbus_get_frequency, iicbus_get_frequency),
 
 	DEVMETHOD_END
 };
 
 driver_t iicbus_driver = {
-        "iicbus",
-        iicbus_methods,
-        sizeof(struct iicbus_softc),
+	"iicbus",
+	iicbus_methods,
+	sizeof(struct iicbus_softc),
 };
 
 MODULE_VERSION(iicbus, IICBUS_MODVER);

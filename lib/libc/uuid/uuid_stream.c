@@ -29,6 +29,7 @@
  */
 
 #include <sys/endian.h>
+
 #include <uuid.h>
 
 /*

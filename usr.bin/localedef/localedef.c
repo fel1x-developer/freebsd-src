@@ -32,26 +32,27 @@
  * POSIX localedef.
  */
 #include <sys/cdefs.h>
+#include <sys/types.h>
 #include <sys/endian.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <dirent.h>
 #include <errno.h>
-#include <string.h>
 #include <libgen.h>
-#include <stddef.h>
-#include <unistd.h>
 #include <limits.h>
 #include <locale.h>
-#include <dirent.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
 #include "collate.h"
 #include "localedef.h"
 #include "parser.h"
 
-#ifndef	TEXT_DOMAIN
-#define	TEXT_DOMAIN	"SYS_TEST"
+#ifndef TEXT_DOMAIN
+#define TEXT_DOMAIN "SYS_TEST"
 #endif
 
 static int bsd = 0;
@@ -93,11 +94,11 @@ static char *
 category_file(void)
 {
 	if (bsd)
-		(void) snprintf(locpath, sizeof (locpath), "%s.%s",
-		    locname, category_name());
+		(void)snprintf(locpath, sizeof(locpath), "%s.%s", locname,
+		    category_name());
 	else
-		(void) snprintf(locpath, sizeof (locpath), "%s/%s",
-		    locname, category_name());
+		(void)snprintf(locpath, sizeof(locpath), "%s/%s", locname,
+		    category_name());
 	return (locpath);
 }
 
@@ -107,13 +108,13 @@ open_category(void)
 	FILE *file;
 
 	if (verbose) {
-		(void) printf("Writing category %s: ", category_name());
-		(void) fflush(stdout);
+		(void)printf("Writing category %s: ", category_name());
+		(void)fflush(stdout);
 	}
 
 	/* make the parent directory */
 	if (!bsd)
-		(void) mkdir(dirname(category_file()), 0755);
+		(void)mkdir(dirname(category_file()), 0755);
 
 	/*
 	 * note that we have to regenerate the file name, as dirname
@@ -131,17 +132,17 @@ void
 close_category(FILE *f)
 {
 	if (fchmod(fileno(f), 0644) < 0) {
-		(void) fclose(f);
-		(void) unlink(category_file());
+		(void)fclose(f);
+		(void)unlink(category_file());
 		errf("%s", strerror(errno));
 	}
 	if (fclose(f) < 0) {
-		(void) unlink(category_file());
+		(void)unlink(category_file());
 		errf("%s", strerror(errno));
 	}
 	if (verbose) {
-		(void) fprintf(stdout, "done.\n");
-		(void) fflush(stdout);
+		(void)fprintf(stdout, "done.\n");
+		(void)fflush(stdout);
 	}
 }
 
@@ -153,41 +154,40 @@ close_category(FILE *f)
 void
 copy_category(char *src)
 {
-	char	srcpath[PATH_MAX];
-	int	rv;
+	char srcpath[PATH_MAX];
+	int rv;
 
-	(void) snprintf(srcpath, sizeof (srcpath), "%s/%s",
-	    src, category_name());
+	(void)snprintf(srcpath, sizeof(srcpath), "%s/%s", src, category_name());
 	rv = access(srcpath, R_OK);
 	if ((rv != 0) && (strchr(srcpath, '/') == NULL)) {
 		/* Maybe we should try the system locale */
-		(void) snprintf(srcpath, sizeof (srcpath),
+		(void)snprintf(srcpath, sizeof(srcpath),
 		    "/usr/lib/locale/%s/%s", src, category_name());
 		rv = access(srcpath, R_OK);
 	}
 
 	if (rv != 0) {
-		fprintf(stderr,"source locale data unavailable: %s\n", src);
+		fprintf(stderr, "source locale data unavailable: %s\n", src);
 		return;
 	}
 
 	if (verbose > 1) {
-		(void) printf("Copying category %s from %s: ",
-		    category_name(), src);
-		(void) fflush(stdout);
+		(void)printf("Copying category %s from %s: ", category_name(),
+		    src);
+		(void)fflush(stdout);
 	}
 
 	/* make the parent directory */
 	if (!bsd)
-		(void) mkdir(dirname(category_file()), 0755);
+		(void)mkdir(dirname(category_file()), 0755);
 
 	if (link(srcpath, category_file()) != 0) {
-		fprintf(stderr,"unable to copy locale data: %s\n",
-			strerror(errno));
+		fprintf(stderr, "unable to copy locale data: %s\n",
+		    strerror(errno));
 		return;
 	}
 	if (verbose > 1) {
-		(void) printf("done.\n");
+		(void)printf("done.\n");
 	}
 }
 
@@ -195,14 +195,14 @@ int
 putl_category(const char *s, FILE *f)
 {
 	if (s && fputs(s, f) == EOF) {
-		(void) fclose(f);
-		(void) unlink(category_file());
+		(void)fclose(f);
+		(void)unlink(category_file());
 		errf("%s", strerror(errno));
 		return (EOF);
 	}
 	if (fputc('\n', f) == EOF) {
-		(void) fclose(f);
-		(void) unlink(category_file());
+		(void)fclose(f);
+		(void)unlink(category_file());
 		errf("%s", strerror(errno));
 		return (EOF);
 	}
@@ -216,8 +216,8 @@ wr_category(void *buf, size_t sz, FILE *f)
 		return (0);
 	}
 	if (fwrite(buf, sz, 1, f) < 1) {
-		(void) fclose(f);
-		(void) unlink(category_file());
+		(void)fclose(f);
+		(void)unlink(category_file());
 		errf("%s", strerror(errno));
 		return (EOF);
 	}
@@ -241,19 +241,19 @@ int yyparse(void);
 static void
 usage(void)
 {
-	(void) fprintf(stderr, "Usage: localedef [options] localename\n");
-	(void) fprintf(stderr, "[options] are:\n");
-	(void) fprintf(stderr, "  -D          : BSD-style output\n");
-	(void) fprintf(stderr, "  -b          : big-endian output\n");
-	(void) fprintf(stderr, "  -c          : ignore warnings\n");
-	(void) fprintf(stderr, "  -l          : little-endian output\n");
-	(void) fprintf(stderr, "  -v          : verbose output\n");
-	(void) fprintf(stderr, "  -U          : ignore undefined symbols\n");
-	(void) fprintf(stderr, "  -f charmap  : use given charmap file\n");
-	(void) fprintf(stderr, "  -u encoding : assume encoding\n");
-	(void) fprintf(stderr, "  -w widths   : use screen widths file\n");
-	(void) fprintf(stderr, "  -i locsrc   : source file for locale\n");
-	(void) fprintf(stderr, "  -V version  : version string for locale\n");
+	(void)fprintf(stderr, "Usage: localedef [options] localename\n");
+	(void)fprintf(stderr, "[options] are:\n");
+	(void)fprintf(stderr, "  -D          : BSD-style output\n");
+	(void)fprintf(stderr, "  -b          : big-endian output\n");
+	(void)fprintf(stderr, "  -c          : ignore warnings\n");
+	(void)fprintf(stderr, "  -l          : little-endian output\n");
+	(void)fprintf(stderr, "  -v          : verbose output\n");
+	(void)fprintf(stderr, "  -U          : ignore undefined symbols\n");
+	(void)fprintf(stderr, "  -f charmap  : use given charmap file\n");
+	(void)fprintf(stderr, "  -u encoding : assume encoding\n");
+	(void)fprintf(stderr, "  -w widths   : use screen widths file\n");
+	(void)fprintf(stderr, "  -i locsrc   : source file for locale\n");
+	(void)fprintf(stderr, "  -V version  : version string for locale\n");
 	exit(4);
 }
 
@@ -278,7 +278,7 @@ main(int argc, char **argv)
 	yydebug = 0;
 #endif
 
-	(void) setlocale(LC_ALL, "");
+	(void)setlocale(LC_ALL, "");
 
 	while ((c = getopt(argc, argv, "blw:i:cf:u:vUDV:")) != -1) {
 		switch (c) {
@@ -326,30 +326,30 @@ main(int argc, char **argv)
 	}
 	locname = argv[argc - 1];
 	if (verbose) {
-		(void) printf("Processing locale %s.\n", locname);
+		(void)printf("Processing locale %s.\n", locname);
 	}
 
 	if (version && strlen(version) >= XLOCALE_DEF_VERSION_LEN) {
-		(void) fprintf(stderr, "Version string too long.\n");
+		(void)fprintf(stderr, "Version string too long.\n");
 		exit(1);
 	}
 
 	if (cfname) {
 		if (verbose)
-			(void) printf("Loading charmap %s.\n", cfname);
+			(void)printf("Loading charmap %s.\n", cfname);
 		reset_scanner(cfname);
-		(void) yyparse();
+		(void)yyparse();
 	}
 
 	if (wfname) {
 		if (verbose)
-			(void) printf("Loading widths %s.\n", wfname);
+			(void)printf("Loading widths %s.\n", wfname);
 		reset_scanner(wfname);
-		(void) yyparse();
+		(void)yyparse();
 	}
 
 	if (verbose) {
-		(void) printf("Loading POSIX portable characters.\n");
+		(void)printf("Loading POSIX portable characters.\n");
 	}
 	add_charmap_posix();
 
@@ -362,18 +362,17 @@ main(int argc, char **argv)
 	/* make the directory for the locale if not already present */
 	if (!bsd) {
 		while ((dir = opendir(locname)) == NULL) {
-			if ((errno != ENOENT) ||
-			    (mkdir(locname, 0755) <  0)) {
+			if ((errno != ENOENT) || (mkdir(locname, 0755) < 0)) {
 				errf("%s", strerror(errno));
 			}
 		}
-		(void) closedir(dir);
-		(void) mkdir(dirname(category_file()), 0755);
+		(void)closedir(dir);
+		(void)mkdir(dirname(category_file()), 0755);
 	}
 
-	(void) yyparse();
+	(void)yyparse();
 	if (verbose) {
-		(void) printf("All done.\n");
+		(void)printf("All done.\n");
 	}
 	return (warnings ? 1 : 0);
 }

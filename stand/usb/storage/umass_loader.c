@@ -31,19 +31,18 @@
 #include <sys/param.h>
 
 #include <bootstrap.h>
+#include <disk.h>
+#include <stand.h>
 #include <stdarg.h>
 
-#include <stand.h>
-#include <disk.h>
-
-#define	HAVE_STANDARD_DEFS
+#define HAVE_STANDARD_DEFS
 
 #include USB_GLOBAL_INCLUDE_FILE
 
 #include "umass_common.h"
 
 static int umass_disk_init(void);
-static int umass_disk_open(struct open_file *,...);
+static int umass_disk_open(struct open_file *, ...);
 static int umass_disk_close(struct open_file *);
 static void umass_disk_cleanup(void);
 static int umass_disk_ioctl(struct open_file *, u_long, void *);
@@ -95,10 +94,12 @@ umass_disk_strategy(void *devdata, int flag, daddr_t dblk, size_t size,
 
 	flag &= F_MASK;
 	if (flag == F_WRITE) {
-		if (usb_msc_write_10(umass_uaa.device, 0, dblk, size >> 9, buf) != 0)
+		if (usb_msc_write_10(umass_uaa.device, 0, dblk, size >> 9,
+			buf) != 0)
 			return (EINVAL);
 	} else if (flag == F_READ) {
-		if (usb_msc_read_10(umass_uaa.device, 0, dblk, size >> 9, buf) != 0)
+		if (usb_msc_read_10(umass_uaa.device, 0, dblk, size >> 9,
+			buf) != 0)
 			return (EINVAL);
 	} else {
 		return (EROFS);
@@ -115,14 +116,16 @@ umass_disk_open_sub(struct disk_devdesc *dev)
 	uint32_t nblock;
 	uint32_t blocksize;
 
-	if (usb_msc_read_capacity(umass_uaa.device, 0, &nblock, &blocksize) != 0)
+	if (usb_msc_read_capacity(umass_uaa.device, 0, &nblock, &blocksize) !=
+	    0)
 		return (EINVAL);
 
-	return (disk_open(dev, ((uint64_t)nblock + 1) * (uint64_t)blocksize, blocksize));
+	return (disk_open(dev, ((uint64_t)nblock + 1) * (uint64_t)blocksize,
+	    blocksize));
 }
 
 static int
-umass_disk_open(struct open_file *f,...)
+umass_disk_open(struct open_file *f, ...)
 {
 	va_list ap;
 	struct disk_devdesc *dev;
@@ -157,14 +160,14 @@ umass_disk_ioctl(struct open_file *f, u_long cmd, void *buf)
 	switch (cmd) {
 	case DIOCGSECTORSIZE:
 	case DIOCGMEDIASIZE:
-		if (usb_msc_read_capacity(umass_uaa.device, 0,
-		    &nblock, &blocksize) != 0)
+		if (usb_msc_read_capacity(umass_uaa.device, 0, &nblock,
+			&blocksize) != 0)
 			return (EINVAL);
 
 		if (cmd == DIOCGMEDIASIZE)
-			*(uint64_t*)buf = nblock;
+			*(uint64_t *)buf = nblock;
 		else
-			*(uint32_t*)buf = blocksize;
+			*(uint32_t *)buf = blocksize;
 
 		return (0);
 	default:
@@ -213,7 +216,6 @@ umass_disk_cleanup(void)
 
 	usb_uninit();
 }
-
 
 /* USB specific functions */
 

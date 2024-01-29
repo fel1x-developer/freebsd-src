@@ -28,10 +28,10 @@
 
 #include <sys/types.h>
 
-#include <time.h>
-#include <assert.h>
-
 #include <machine/vmm.h>
+
+#include <assert.h>
+#include <time.h>
 #include <vmmapi.h>
 
 #include "acpi.h"
@@ -39,17 +39,17 @@
 #include "pci_lpc.h"
 #include "rtc.h"
 
-#define	IO_RTC		0x70
+#define IO_RTC 0x70
 
-#define	RTC_LMEM_LSB	0x34
-#define	RTC_LMEM_MSB	0x35
-#define	RTC_HMEM_LSB	0x5b
-#define	RTC_HMEM_SB	0x5c
-#define	RTC_HMEM_MSB	0x5d
+#define RTC_LMEM_LSB 0x34
+#define RTC_LMEM_MSB 0x35
+#define RTC_HMEM_LSB 0x5b
+#define RTC_HMEM_SB 0x5c
+#define RTC_HMEM_MSB 0x5d
 
-#define	m_64KB		(64*1024)
-#define	m_16MB		(16*1024*1024)
-#define	m_4GB		(4ULL*1024*1024*1024)
+#define m_64KB (64 * 1024)
+#define m_16MB (16 * 1024 * 1024)
+#define m_4GB (4ULL * 1024 * 1024 * 1024)
 
 /*
  * Returns the current RTC time as number of seconds since 00:00:00 Jan 1, 1970

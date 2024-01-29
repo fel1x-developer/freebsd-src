@@ -29,18 +29,18 @@
  * System calls related to processes and protection
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/jail.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/socket.h>
-#include <sys/jail.h>
 
 #include <netinet/in.h>
 #include <netinet/in_pcb.h>

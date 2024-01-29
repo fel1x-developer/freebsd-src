@@ -31,17 +31,16 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/cpu.h>
 #include <sys/cpuset.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
+#include <sys/rman.h>
 #include <sys/smp.h>
 
+#include <dev/clk/clk.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/clk/clk.h>
 #include <dev/regulator/regulator.h>
 
 #include "cpufreq_if.h"
@@ -58,17 +57,17 @@ enum opp_version {
 };
 
 struct cpufreq_dt_opp {
-	uint64_t	freq;
-	uint32_t	uvolt_target;
-	uint32_t	uvolt_min;
-	uint32_t	uvolt_max;
-	uint32_t	uamps;
-	uint32_t	clk_latency;
-	bool		turbo_mode;
-	bool		opp_suspend;
+	uint64_t freq;
+	uint32_t uvolt_target;
+	uint32_t uvolt_min;
+	uint32_t uvolt_max;
+	uint32_t uamps;
+	uint32_t clk_latency;
+	bool turbo_mode;
+	bool opp_suspend;
 };
 
-#define	CPUFREQ_DT_HAVE_REGULATOR(sc)	((sc)->reg != NULL)
+#define CPUFREQ_DT_HAVE_REGULATOR(sc) ((sc)->reg != NULL)
 
 struct cpufreq_dt_softc {
 	device_t dev;
@@ -91,7 +90,7 @@ cpufreq_dt_notify(device_t dev, uint64_t freq)
 
 	sc = device_get_softc(dev);
 
-	CPU_FOREACH(cpu) {
+	CPU_FOREACH (cpu) {
 		if (CPU_ISSET(cpu, &sc->cpus)) {
 			pc = pcpu_find(cpu);
 			pc->pc_clock = freq;
@@ -113,7 +112,8 @@ cpufreq_dt_find_opp(device_t dev, uint64_t freq)
 	DPRINTF(dev, "Looking for freq %ju\n", freq);
 	for (n = 0; n < sc->nopp; n++) {
 		diff = abs64((int64_t)sc->opp[n].freq - (int64_t)freq);
-		DPRINTF(dev, "Testing %ju, diff is %ju\n", sc->opp[n].freq, diff);
+		DPRINTF(dev, "Testing %ju, diff is %ju\n", sc->opp[n].freq,
+		    diff);
 		if (diff < best_diff) {
 			best_diff = diff;
 			best_n = n;
@@ -216,14 +216,13 @@ cpufreq_dt_set(device_t dev, const struct cf_setting *set)
 		return (EINVAL);
 	}
 	DPRINTF(sc->dev, "Current freq %ju, uvolt: %d\n", freq, uvolt);
-	DPRINTF(sc->dev, "Target freq %ju, , uvolt: %d\n",
-	    opp->freq, opp->uvolt_target);
+	DPRINTF(sc->dev, "Target freq %ju, , uvolt: %d\n", opp->freq,
+	    opp->uvolt_target);
 
 	if (CPUFREQ_DT_HAVE_REGULATOR(sc) && (uvolt < opp->uvolt_target)) {
-		DPRINTF(dev, "Changing regulator from %u to %u\n",
-		    uvolt, opp->uvolt_target);
-		error = regulator_set_voltage(sc->reg,
-		    opp->uvolt_min,
+		DPRINTF(dev, "Changing regulator from %u to %u\n", uvolt,
+		    opp->uvolt_target);
+		error = regulator_set_voltage(sc->reg, opp->uvolt_min,
 		    opp->uvolt_max);
 		if (error != 0) {
 			DPRINTF(dev, "Failed, backout\n");
@@ -237,17 +236,15 @@ cpufreq_dt_set(device_t dev, const struct cf_setting *set)
 		DPRINTF(dev, "Failed, backout\n");
 		/* Restore previous voltage (best effort) */
 		if (CPUFREQ_DT_HAVE_REGULATOR(sc))
-			error = regulator_set_voltage(sc->reg,
-			    copp->uvolt_min,
+			error = regulator_set_voltage(sc->reg, copp->uvolt_min,
 			    copp->uvolt_max);
 		return (ENXIO);
 	}
 
 	if (CPUFREQ_DT_HAVE_REGULATOR(sc) && (uvolt > opp->uvolt_target)) {
-		DPRINTF(dev, "Changing regulator from %u to %u\n",
-		    uvolt, opp->uvolt_target);
-		error = regulator_set_voltage(sc->reg,
-		    opp->uvolt_min,
+		DPRINTF(dev, "Changing regulator from %u to %u\n", uvolt,
+		    opp->uvolt_target);
+		error = regulator_set_voltage(sc->reg, opp->uvolt_min,
 		    opp->uvolt_max);
 		if (error != 0) {
 			DPRINTF(dev, "Failed to switch regulator to %d\n",
@@ -318,8 +315,8 @@ cpufreq_dt_identify(driver_t *driver, device_t parent)
 	if (device_find_child(parent, "cpufreq_dt", -1) != NULL)
 		return;
 
-	if (BUS_ADD_CHILD(parent, 0, "cpufreq_dt", device_get_unit(parent))
-	    == NULL)
+	if (BUS_ADD_CHILD(parent, 0, "cpufreq_dt", device_get_unit(parent)) ==
+	    NULL)
 		device_printf(parent, "add cpufreq_dt child failed\n");
 }
 
@@ -338,7 +335,7 @@ cpufreq_dt_probe(device_t dev)
 		return (ENXIO);
 
 	if (!OF_hasprop(node, "operating-points") &&
-	  !OF_hasprop(node, "operating-points-v2"))
+	    !OF_hasprop(node, "operating-points-v2"))
 		return (ENXIO);
 
 	device_set_desc(dev, "Generic cpufreq driver");
@@ -371,8 +368,7 @@ cpufreq_dt_oppv1_parse(struct cpufreq_dt_softc *sc, phandle_t node)
 		if (bootverbose)
 			device_printf(sc->dev, "%ju.%03ju MHz, %u uV\n",
 			    sc->opp[n].freq / 1000000,
-			    sc->opp[n].freq % 1000000,
-			    sc->opp[n].uvolt_target);
+			    sc->opp[n].freq % 1000000, sc->opp[n].uvolt_target);
 	}
 	free(opp, M_OFWPROP);
 
@@ -392,7 +388,7 @@ cpufreq_dt_oppv2_parse(struct cpufreq_dt_softc *sc, phandle_t node)
 	 * and a regulator.  So, it's OK if they're not there.
 	 */
 	if (OF_getencprop(node, "operating-points-v2", &opp_xref,
-	    sizeof(opp_xref)) == -1) {
+		sizeof(opp_xref)) == -1) {
 		device_printf(sc->dev, "Cannot get xref to oppv2 table\n");
 		return (ENXIO);
 	}
@@ -414,8 +410,8 @@ cpufreq_dt_oppv2_parse(struct cpufreq_dt_softc *sc, phandle_t node)
 	for (i = 0, opp_table = OF_child(opp_table); opp_table > 0;
 	     opp_table = OF_peer(opp_table), i++) {
 		/* opp-hz is a required property */
-		if (OF_getencprop(opp_table, "opp-hz", cell,
-		    sizeof(cell)) == -1)
+		if (OF_getencprop(opp_table, "opp-hz", cell, sizeof(cell)) ==
+		    -1)
 			continue;
 
 		sc->opp[i].freq = cell[0];
@@ -423,7 +419,7 @@ cpufreq_dt_oppv2_parse(struct cpufreq_dt_softc *sc, phandle_t node)
 		sc->opp[i].freq |= cell[1];
 
 		if (OF_getencprop(opp_table, "clock-latency", &lat,
-		    sizeof(lat)) == -1)
+			sizeof(lat)) == -1)
 			sc->opp[i].clk_latency = CPUFREQ_VAL_UNKNOWN;
 		else
 			sc->opp[i].clk_latency = (int)lat;
@@ -462,8 +458,7 @@ cpufreq_dt_oppv2_parse(struct cpufreq_dt_softc *sc, phandle_t node)
 		if (bootverbose)
 			device_printf(sc->dev, "%ju.%03ju Mhz (%u uV)\n",
 			    sc->opp[i].freq / 1000000,
-			    sc->opp[i].freq % 1000000,
-			    sc->opp[i].uvolt_target);
+			    sc->opp[i].freq % 1000000, sc->opp[i].uvolt_target);
 	}
 	return (0);
 }
@@ -498,11 +493,11 @@ cpufreq_dt_attach(device_t dev)
 	 * quite yet.  If it's operating-points-v2 then regulator
 	 * and voltage entries are optional.
 	 */
-	if (regulator_get_by_ofw_property(dev, node, "cpu-supply",
-	    &sc->reg) == 0)
+	if (regulator_get_by_ofw_property(dev, node, "cpu-supply", &sc->reg) ==
+	    0)
 		device_printf(dev, "Found cpu-supply\n");
 	else if (regulator_get_by_ofw_property(dev, node, "cpu0-supply",
-	    &sc->reg) == 0)
+		     &sc->reg) == 0)
 		device_printf(dev, "Found cpu0-supply\n");
 
 	/*
@@ -543,16 +538,14 @@ cpufreq_dt_attach(device_t dev)
 			device_printf(dev, "Failed to parse opp-v1 table\n");
 			goto error;
 		}
-		OF_getencprop(node, "operating-points", &opp,
-		    sizeof(opp));
+		OF_getencprop(node, "operating-points", &opp, sizeof(opp));
 	} else if (version == OPP_V2) {
 		rv = cpufreq_dt_oppv2_parse(sc, node);
 		if (rv != 0) {
 			device_printf(dev, "Failed to parse opp-v2 table\n");
 			goto error;
 		}
-		OF_getencprop(node, "operating-points-v2", &opp,
-		    sizeof(opp));
+		OF_getencprop(node, "operating-points-v2", &opp, sizeof(opp));
 	} else {
 		device_printf(dev, "operating points version is incorrect\n");
 		goto error;
@@ -563,8 +556,10 @@ cpufreq_dt_attach(device_t dev)
 	 */
 	CPU_ZERO(&sc->cpus);
 	cnode = OF_parent(node);
-	for (cpu = 0, cnode = OF_child(cnode); cnode > 0; cnode = OF_peer(cnode)) {
-		if (OF_getprop(cnode, "device_type", device_type, sizeof(device_type)) <= 0)
+	for (cpu = 0, cnode = OF_child(cnode); cnode > 0;
+	     cnode = OF_peer(cnode)) {
+		if (OF_getprop(cnode, "device_type", device_type,
+			sizeof(device_type)) <= 0)
 			continue;
 		if (strcmp(device_type, "cpu") != 0)
 			continue;
@@ -580,10 +575,11 @@ cpufreq_dt_attach(device_t dev)
 			OF_getencprop(cnode, "operating-points", &copp,
 			    sizeof(copp));
 		else if (version == OPP_V2)
-			OF_getencprop(cnode, "operating-points-v2",
-			    &copp, sizeof(copp));
+			OF_getencprop(cnode, "operating-points-v2", &copp,
+			    sizeof(copp));
 		if (opp == copp) {
-			DPRINTF(dev, "CPU %d is using the same opp as this one (%d)\n",
+			DPRINTF(dev,
+			    "CPU %d is using the same opp as this one (%d)\n",
 			    cpu, sc->cpu);
 			CPU_SET(cpu, &sc->cpus);
 		}
@@ -604,15 +600,15 @@ error:
 
 static device_method_t cpufreq_dt_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,	cpufreq_dt_identify),
-	DEVMETHOD(device_probe,		cpufreq_dt_probe),
-	DEVMETHOD(device_attach,	cpufreq_dt_attach),
+	DEVMETHOD(device_identify, cpufreq_dt_identify),
+	DEVMETHOD(device_probe, cpufreq_dt_probe),
+	DEVMETHOD(device_attach, cpufreq_dt_attach),
 
 	/* cpufreq interface */
-	DEVMETHOD(cpufreq_drv_get,	cpufreq_dt_get),
-	DEVMETHOD(cpufreq_drv_set,	cpufreq_dt_set),
-	DEVMETHOD(cpufreq_drv_type,	cpufreq_dt_type),
-	DEVMETHOD(cpufreq_drv_settings,	cpufreq_dt_settings),
+	DEVMETHOD(cpufreq_drv_get, cpufreq_dt_get),
+	DEVMETHOD(cpufreq_drv_set, cpufreq_dt_set),
+	DEVMETHOD(cpufreq_drv_type, cpufreq_dt_type),
+	DEVMETHOD(cpufreq_drv_settings, cpufreq_dt_settings),
 
 	DEVMETHOD_END
 };

@@ -25,6 +25,5 @@
  * SUCH DAMAGE.
  */
 
-
 #define WEAK_STRNCPY
 #include "../../string/strncpy.c"

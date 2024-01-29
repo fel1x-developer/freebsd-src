@@ -26,8 +26,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_LINUXKPI_NET_IEEE80211_RADIOTAP_H
-#define	_LINUXKPI_NET_IEEE80211_RADIOTAP_H
+#ifndef _LINUXKPI_NET_IEEE80211_RADIOTAP_H
+#define _LINUXKPI_NET_IEEE80211_RADIOTAP_H
 
 /* Any possibly duplicate content is only maintained in one place now. */
 #include <net80211/ieee80211_radiotap.h>
@@ -39,13 +39,13 @@
  * We consider it LinuxKPI specific so it stays here.
  */
 struct ieee80211_vendor_radiotap {
-	u32		present;
-	u8		align;
-	u8		oui[3];
-	u8		subns;
-	u8		pad;
-	__le16		len;
-	u8		data[0];
+	u32 present;
+	u8 align;
+	u8 oui[3];
+	u8 subns;
+	u8 pad;
+	__le16 len;
+	u8 data[0];
 };
 
-#endif	/* _LINUXKPI_NET_IEEE80211_RADIOTAP_H */
+#endif /* _LINUXKPI_NET_IEEE80211_RADIOTAP_H */

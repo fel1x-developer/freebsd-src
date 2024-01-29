@@ -1,12 +1,13 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
 #include <sys/types.h>
-#include <sys/sysctl.h>
 #include <sys/systm.h>
-#include "adf_heartbeat_dbg.h"
-#include "adf_common_drv.h"
+#include <sys/sysctl.h>
+
 #include "adf_cfg.h"
+#include "adf_common_drv.h"
 #include "adf_heartbeat.h"
+#include "adf_heartbeat_dbg.h"
 
 #define HB_SYSCTL_ERR(RC)                                                           \
 	do {                                                                        \
@@ -18,7 +19,8 @@
 	} while (0)
 
 /* Handler for HB status check */
-static int qat_dev_hb_read(SYSCTL_HANDLER_ARGS)
+static int
+qat_dev_hb_read(SYSCTL_HANDLER_ARGS)
 {
 	enum adf_device_heartbeat_status hb_status = DEV_HB_UNRESPONSIVE;
 	struct adf_accel_dev *accel_dev = arg1;
@@ -58,41 +60,25 @@ adf_heartbeat_dbg_add(struct adf_accel_dev *accel_dev)
 		return EINVAL;
 
 	hb = accel_dev->heartbeat;
-	qat_hb_sysctl_ctx =
-	    device_get_sysctl_ctx(accel_dev->accel_pci_dev.pci_dev);
-	qat_hb_sysctl_tree =
-	    device_get_sysctl_tree(accel_dev->accel_pci_dev.pci_dev);
+	qat_hb_sysctl_ctx = device_get_sysctl_ctx(
+	    accel_dev->accel_pci_dev.pci_dev);
+	qat_hb_sysctl_tree = device_get_sysctl_tree(
+	    accel_dev->accel_pci_dev.pci_dev);
 
 	rc = SYSCTL_ADD_UINT(qat_hb_sysctl_ctx,
-			     SYSCTL_CHILDREN(qat_hb_sysctl_tree),
-			     OID_AUTO,
-			     "heartbeat_sent",
-			     CTLFLAG_RD,
-			     &hb->hb_sent_counter,
-			     0,
-			     "HB sent count");
+	    SYSCTL_CHILDREN(qat_hb_sysctl_tree), OID_AUTO, "heartbeat_sent",
+	    CTLFLAG_RD, &hb->hb_sent_counter, 0, "HB sent count");
 	HB_SYSCTL_ERR(rc);
 
 	rc = SYSCTL_ADD_UINT(qat_hb_sysctl_ctx,
-			     SYSCTL_CHILDREN(qat_hb_sysctl_tree),
-			     OID_AUTO,
-			     "heartbeat_failed",
-			     CTLFLAG_RD,
-			     &hb->hb_failed_counter,
-			     0,
-			     "HB failed count");
+	    SYSCTL_CHILDREN(qat_hb_sysctl_tree), OID_AUTO, "heartbeat_failed",
+	    CTLFLAG_RD, &hb->hb_failed_counter, 0, "HB failed count");
 	HB_SYSCTL_ERR(rc);
 
 	rc = SYSCTL_ADD_PROC(qat_hb_sysctl_ctx,
-			     SYSCTL_CHILDREN(qat_hb_sysctl_tree),
-			     OID_AUTO,
-			     "heartbeat",
-			     CTLTYPE_INT | CTLFLAG_RD,
-			     accel_dev,
-			     0,
-			     qat_dev_hb_read,
-			     "IU",
-			     "QAT device status");
+	    SYSCTL_CHILDREN(qat_hb_sysctl_tree), OID_AUTO, "heartbeat",
+	    CTLTYPE_INT | CTLFLAG_RD, accel_dev, 0, qat_dev_hb_read, "IU",
+	    "QAT device status");
 	HB_SYSCTL_ERR(rc);
 	return 0;
 }

@@ -7,24 +7,24 @@
 #endif
 #include <errno.h>
 #include <netdb.h>
+#include <port_after.h>
+#include <resolv_mt.h>
 #include <stdlib.h>
 #include <string.h>
-#include <resolv_mt.h>
-#include <port_after.h>
 
 #ifdef DO_PTHREADS
-static pthread_key_t	key;
-static int		mt_key_initialized = 0;
+static pthread_key_t key;
+static int mt_key_initialized = 0;
 
-static int		__res_init_ctx(void);
-static void		__res_destroy_ctx(void *);
+static int __res_init_ctx(void);
+static void __res_destroy_ctx(void *);
 
 #if defined(sun) && !defined(__GNUC__)
-#pragma init	(_mtctxres_init)
+#pragma init(_mtctxres_init)
 #endif
 #endif
 
-static mtctxres_t	sharedctx;
+static mtctxres_t sharedctx;
 
 #ifdef DO_PTHREADS
 /*
@@ -33,7 +33,8 @@ static mtctxres_t	sharedctx;
  * no need for locking.
  */
 static void
-_mtctxres_init(void) {
+_mtctxres_init(void)
+{
 	int pthread_keycreate_ret;
 
 	pthread_keycreate_ret = pthread_key_create(&key, __res_destroy_ctx);
@@ -49,23 +50,25 @@ _mtctxres_init(void) {
  * and __res_disable_mt() entry points. They're do-nothing routines.
  */
 int
-__res_enable_mt(void) {
+__res_enable_mt(void)
+{
 	return (-1);
 }
 
 int
-__res_disable_mt(void) {
+__res_disable_mt(void)
+{
 	return (0);
 }
 #endif
 
 #ifdef DO_PTHREADS
 static int
-__res_init_ctx(void) {
+__res_init_ctx(void)
+{
 
-	mtctxres_t	*mt;
-	int		ret;
-
+	mtctxres_t *mt;
+	int ret;
 
 	if (pthread_getspecific(key) != 0) {
 		/* Already exists */
@@ -77,7 +80,7 @@ __res_init_ctx(void) {
 		return (-1);
 	}
 
-	memset(mt, 0, sizeof (mtctxres_t));
+	memset(mt, 0, sizeof(mtctxres_t));
 
 	if ((ret = pthread_setspecific(key, mt)) != 0) {
 		free(mt);
@@ -89,16 +92,18 @@ __res_init_ctx(void) {
 }
 
 static void
-__res_destroy_ctx(void *value) {
+__res_destroy_ctx(void *value)
+{
 
 	free(value);
 }
 #endif
 
 mtctxres_t *
-___mtctxres(void) {
+___mtctxres(void)
+{
 #ifdef DO_PTHREADS
-	mtctxres_t	*mt;
+	mtctxres_t *mt;
 
 #ifdef _LIBC
 	if (pthread_main_np() != 0)
@@ -112,9 +117,9 @@ ___mtctxres(void) {
 	 */
 	if (!mt_key_initialized) {
 		static pthread_mutex_t keylock = PTHREAD_MUTEX_INITIALIZER;
-                if (pthread_mutex_lock(&keylock) == 0) {
+		if (pthread_mutex_lock(&keylock) == 0) {
 			_mtctxres_init();
-			(void) pthread_mutex_unlock(&keylock);
+			(void)pthread_mutex_unlock(&keylock);
 		}
 	}
 
@@ -126,7 +131,7 @@ ___mtctxres(void) {
 	if (mt_key_initialized) {
 		if (((mt = pthread_getspecific(key)) != NULL) ||
 		    (__res_init_ctx() == 0 &&
-		     (mt = pthread_getspecific(key)) != NULL)) {
+			(mt = pthread_getspecific(key)) != NULL)) {
 			return (mt);
 		}
 	}

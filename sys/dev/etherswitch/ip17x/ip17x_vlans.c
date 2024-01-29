@@ -29,28 +29,27 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
-#include <sys/systm.h>
 #include <sys/socket.h>
 
-#include <net/if.h>
-
-#include <dev/mii/mii.h>
-
 #include <dev/etherswitch/etherswitch.h>
+#include <dev/etherswitch/ip17x/ip175c.h>
 #include <dev/etherswitch/ip17x/ip17x_phy.h>
 #include <dev/etherswitch/ip17x/ip17x_reg.h>
 #include <dev/etherswitch/ip17x/ip17x_var.h>
 #include <dev/etherswitch/ip17x/ip17x_vlans.h>
-#include <dev/etherswitch/ip17x/ip175c.h>
+#include <dev/mii/mii.h>
 
+#include <net/if.h>
+
+#include "etherswitch_if.h"
 #include "mdio_if.h"
 #include "miibus_if.h"
-#include "etherswitch_if.h"
 
 /*
  * Reset vlans to default state.
@@ -161,7 +160,7 @@ ip17x_setvgroup(device_t dev, etherswitch_vlangroup_t *vg)
 			if (i != vg->es_vlangroup &&
 			    sc->vlan[i].vlanid & ETHERSWITCH_VID_VALID &&
 			    (sc->vlan[i].vlanid & ETHERSWITCH_VID_MASK) ==
-			    (vg->es_vid & ETHERSWITCH_VID_MASK))
+				(vg->es_vid & ETHERSWITCH_VID_MASK))
 				return (EINVAL);
 		}
 		sc->vlan[vg->es_vlangroup].vlanid = vg->es_vid &

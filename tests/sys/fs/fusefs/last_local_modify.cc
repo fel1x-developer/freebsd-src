@@ -71,7 +71,9 @@ enum Mutator {
  * Using strings with ::testing::Values gives better output with
  * --gtest_list_tests
  */
-enum Mutator writer_from_str(const char* s) {
+enum Mutator
+writer_from_str(const char *s)
+{
 	if (0 == strcmp("VOP_ALLOCATE", s))
 		return VOP_ALLOCATE;
 	else if (0 == strcmp("VOP_COPY_FILE_RANGE", s))
@@ -82,52 +84,60 @@ enum Mutator writer_from_str(const char* s) {
 		return VOP_WRITE;
 }
 
-uint32_t fuse_op_from_mutator(enum Mutator mutator) {
-	switch(mutator) {
+uint32_t
+fuse_op_from_mutator(enum Mutator mutator)
+{
+	switch (mutator) {
 	case VOP_ALLOCATE:
-		return(FUSE_FALLOCATE);
+		return (FUSE_FALLOCATE);
 	case VOP_COPY_FILE_RANGE:
-		return(FUSE_COPY_FILE_RANGE);
+		return (FUSE_COPY_FILE_RANGE);
 	case VOP_SETATTR:
-		return(FUSE_SETATTR);
+		return (FUSE_SETATTR);
 	case VOP_WRITE:
-		return(FUSE_WRITE);
+		return (FUSE_WRITE);
 	}
 }
 
-class LastLocalModify: public FuseTest, public WithParamInterface<const char*> {
-public:
-virtual void SetUp() {
-	m_init_flags = FUSE_EXPORT_SUPPORT;
+class LastLocalModify : public FuseTest,
+			public WithParamInterface<const char *> {
+    public:
+	virtual void SetUp()
+	{
+		m_init_flags = FUSE_EXPORT_SUPPORT;
 
-	FuseTest::SetUp();
-}
+		FuseTest::SetUp();
+	}
 };
 
-static void* allocate_th(void* arg) {
+static void *
+allocate_th(void *arg)
+{
 	int fd;
 	ssize_t r;
-	sem_t *sem = (sem_t*) arg;
+	sem_t *sem = (sem_t *)arg;
 
 	if (sem)
 		sem_wait(sem);
 
 	fd = open("mountpoint/some_file.txt", O_RDWR);
 	if (fd < 0)
-		return (void*)(intptr_t)errno;
+		return (void *)(intptr_t)errno;
 
 	r = posix_fallocate(fd, 0, 15);
 	LastLocalModify::leak(fd);
 	if (r >= 0)
 		return 0;
 	else
-		return (void*)(intptr_t)errno;
+		return (void *)(intptr_t)errno;
 }
 
-static void* copy_file_range_th(void* arg) {
+static void *
+copy_file_range_th(void *arg)
+{
 	ssize_t r;
 	int fd;
-	sem_t *sem = (sem_t*) arg;
+	sem_t *sem = (sem_t *)arg;
 	off_t off_in = 0;
 	off_t off_out = 10;
 	ssize_t len = 5;
@@ -136,54 +146,58 @@ static void* copy_file_range_th(void* arg) {
 		sem_wait(sem);
 	fd = open("mountpoint/some_file.txt", O_RDWR);
 	if (fd < 0)
-		return (void*)(intptr_t)errno;
+		return (void *)(intptr_t)errno;
 
 	r = copy_file_range(fd, &off_in, fd, &off_out, len, 0);
 	if (r >= 0) {
 		LastLocalModify::leak(fd);
 		return 0;
 	} else
-		return (void*)(intptr_t)errno;
+		return (void *)(intptr_t)errno;
 }
 
-static void* setattr_th(void* arg) {
+static void *
+setattr_th(void *arg)
+{
 	int fd;
 	ssize_t r;
-	sem_t *sem = (sem_t*) arg;
+	sem_t *sem = (sem_t *)arg;
 
 	if (sem)
 		sem_wait(sem);
 
 	fd = open("mountpoint/some_file.txt", O_RDWR);
 	if (fd < 0)
-		return (void*)(intptr_t)errno;
+		return (void *)(intptr_t)errno;
 
 	r = ftruncate(fd, 15);
 	LastLocalModify::leak(fd);
 	if (r >= 0)
 		return 0;
 	else
-		return (void*)(intptr_t)errno;
+		return (void *)(intptr_t)errno;
 }
 
-static void* write_th(void* arg) {
+static void *
+write_th(void *arg)
+{
 	ssize_t r;
 	int fd;
-	sem_t *sem = (sem_t*) arg;
+	sem_t *sem = (sem_t *)arg;
 	const char BUF[] = "abcdefghijklmn";
 
 	if (sem)
 		sem_wait(sem);
 	fd = open("mountpoint/some_file.txt", O_RDWR);
 	if (fd < 0)
-		return (void*)(intptr_t)errno;
+		return (void *)(intptr_t)errno;
 
 	r = write(fd, BUF, sizeof(BUF));
 	if (r >= 0) {
 		LastLocalModify::leak(fd);
 		return 0;
 	} else
-		return (void*)(intptr_t)errno;
+		return (void *)(intptr_t)errno;
 }
 
 /*
@@ -227,107 +241,111 @@ TEST_P(LastLocalModify, lookup)
 	ASSERT_EQ(0, sem_init(&sem, 0, 0)) << strerror(errno);
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.InSequence(seq)
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		/* Called by the mutator, caches attributes but not entries */
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.nodeid = ino;
-		out.body.entry.attr.size = oldsize;
-		out.body.entry.nodeid = ino;
-		out.body.entry.attr_valid_nsec = NAP_NS / 2;
-		out.body.entry.attr.ino = ino;
-		out.body.entry.attr.mode = S_IFREG | 0644;
-	})));
+	    .InSequence(seq)
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    /* Called by the mutator, caches attributes but not entries
+		     */
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.nodeid = ino;
+		    out.body.entry.attr.size = oldsize;
+		    out.body.entry.nodeid = ino;
+		    out.body.entry.attr_valid_nsec = NAP_NS / 2;
+		    out.body.entry.attr.ino = ino;
+		    out.body.entry.attr.mode = S_IFREG | 0644;
+	    })));
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == mutator_op &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).InSequence(seq)
-	.WillOnce(Invoke([&](auto in, auto &out __unused) {
-		/*
-		 * The mutator changes the file size, but in order to simulate
-		 * a race, don't reply.  Instead, just save the unique for
-		 * later.
-		 */
-		mutator_unique = in.header.unique;
-		switch(mutator) {
-		case VOP_WRITE:
-			mutator_size = in.body.write.size;
-			break;
-		case VOP_COPY_FILE_RANGE:
-			mutator_size = in.body.copy_file_range.len;
-			break;
-		default:
-			break;
-		}
-		/* Allow the lookup thread to proceed */
-		sem_post(&sem);
-	}));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == mutator_op &&
+				    in.header.nodeid == ino);
+			},
+			Eq(true)),
+		_))
+	    .InSequence(seq)
+	    .WillOnce(Invoke([&](auto in, auto &out __unused) {
+		    /*
+		     * The mutator changes the file size, but in order to
+		     * simulate a race, don't reply.  Instead, just save the
+		     * unique for later.
+		     */
+		    mutator_unique = in.header.unique;
+		    switch (mutator) {
+		    case VOP_WRITE:
+			    mutator_size = in.body.write.size;
+			    break;
+		    case VOP_COPY_FILE_RANGE:
+			    mutator_size = in.body.copy_file_range.len;
+			    break;
+		    default:
+			    break;
+		    }
+		    /* Allow the lookup thread to proceed */
+		    sem_post(&sem);
+	    }));
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.InSequence(seq)
-	.WillOnce(Invoke([&](auto in __unused, auto& out) {
-		std::unique_ptr<mockfs_buf_out> out0(new mockfs_buf_out);
-		std::unique_ptr<mockfs_buf_out> out1(new mockfs_buf_out);
+	    .InSequence(seq)
+	    .WillOnce(Invoke([&](auto in __unused, auto &out) {
+		    std::unique_ptr<mockfs_buf_out> out0(new mockfs_buf_out);
+		    std::unique_ptr<mockfs_buf_out> out1(new mockfs_buf_out);
 
-		/* First complete the lookup request, returning the old size */
-		out0->header.unique = in.header.unique;
-		SET_OUT_HEADER_LEN(*out0, entry);
-		out0->body.entry.attr.mode = S_IFREG | 0644;
-		out0->body.entry.nodeid = ino;
-		out0->body.entry.entry_valid = UINT64_MAX;
-		out0->body.entry.attr_valid = UINT64_MAX;
-		out0->body.entry.attr.size = oldsize;
-		out.push_back(std::move(out0));
+		    /* First complete the lookup request, returning the old size
+		     */
+		    out0->header.unique = in.header.unique;
+		    SET_OUT_HEADER_LEN(*out0, entry);
+		    out0->body.entry.attr.mode = S_IFREG | 0644;
+		    out0->body.entry.nodeid = ino;
+		    out0->body.entry.entry_valid = UINT64_MAX;
+		    out0->body.entry.attr_valid = UINT64_MAX;
+		    out0->body.entry.attr.size = oldsize;
+		    out.push_back(std::move(out0));
 
-		/* Then, respond to the mutator request */
-		out1->header.unique = mutator_unique;
-		switch(mutator) {
-		case VOP_ALLOCATE:
-			out1->header.error = 0;
-			out1->header.len = sizeof(out1->header);
-			break;
-		case VOP_COPY_FILE_RANGE:
-			SET_OUT_HEADER_LEN(*out1, write);
-			out1->body.write.size = mutator_size;
-			break;
-		case VOP_SETATTR:
-			SET_OUT_HEADER_LEN(*out1, attr);
-			out1->body.attr.attr.ino = ino;
-			out1->body.attr.attr.mode = S_IFREG | 0644;
-			out1->body.attr.attr.size = newsize;	// Changed size
-			out1->body.attr.attr_valid = UINT64_MAX;
-			break;
-		case VOP_WRITE:
-			SET_OUT_HEADER_LEN(*out1, write);
-			out1->body.write.size = mutator_size;
-			break;
-		}
-		out.push_back(std::move(out1));
-	}));
+		    /* Then, respond to the mutator request */
+		    out1->header.unique = mutator_unique;
+		    switch (mutator) {
+		    case VOP_ALLOCATE:
+			    out1->header.error = 0;
+			    out1->header.len = sizeof(out1->header);
+			    break;
+		    case VOP_COPY_FILE_RANGE:
+			    SET_OUT_HEADER_LEN(*out1, write);
+			    out1->body.write.size = mutator_size;
+			    break;
+		    case VOP_SETATTR:
+			    SET_OUT_HEADER_LEN(*out1, attr);
+			    out1->body.attr.attr.ino = ino;
+			    out1->body.attr.attr.mode = S_IFREG | 0644;
+			    out1->body.attr.attr.size = newsize; // Changed size
+			    out1->body.attr.attr_valid = UINT64_MAX;
+			    break;
+		    case VOP_WRITE:
+			    SET_OUT_HEADER_LEN(*out1, write);
+			    out1->body.write.size = mutator_size;
+			    break;
+		    }
+		    out.push_back(std::move(out1));
+	    }));
 
 	/* Start the mutator thread */
-	switch(mutator) {
+	switch (mutator) {
 	case VOP_ALLOCATE:
-		ASSERT_EQ(0, pthread_create(&th0, NULL, allocate_th,
-			NULL)) << strerror(errno);
+		ASSERT_EQ(0, pthread_create(&th0, NULL, allocate_th, NULL))
+		    << strerror(errno);
 		break;
 	case VOP_COPY_FILE_RANGE:
-		ASSERT_EQ(0, pthread_create(&th0, NULL, copy_file_range_th,
-			NULL)) << strerror(errno);
+		ASSERT_EQ(0,
+		    pthread_create(&th0, NULL, copy_file_range_th, NULL))
+		    << strerror(errno);
 		break;
 	case VOP_SETATTR:
 		ASSERT_EQ(0, pthread_create(&th0, NULL, setattr_th, NULL))
-			<< strerror(errno);
+		    << strerror(errno);
 		break;
 	case VOP_WRITE:
 		ASSERT_EQ(0, pthread_create(&th0, NULL, write_th, NULL))
-			<< strerror(errno);
+		    << strerror(errno);
 		break;
 	}
-
 
 	/* Wait for FUSE_SETATTR to be sent */
 	sem_wait(&sem);
@@ -384,112 +402,118 @@ TEST_P(LastLocalModify, vfs_vget)
 	ASSERT_EQ(0, sem_init(&sem, 0, 0)) << strerror(errno);
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.Times(1)
-	.InSequence(seq)
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out)
-	{
-		/* Called by getfh, caches attributes but not entries */
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.nodeid = ino;
-		out.body.entry.attr.size = oldsize;
-		out.body.entry.nodeid = ino;
-		out.body.entry.attr_valid_nsec = NAP_NS / 2;
-		out.body.entry.attr.ino = ino;
-		out.body.entry.attr.mode = S_IFREG | 0644;
-	})));
-	EXPECT_LOOKUP(ino, ".")
-	.InSequence(seq)
-	.WillOnce(Invoke([&](auto in, auto &out __unused) {
-		/* Called by fhstat.  Block to simulate a race */
-		lookup_unique = in.header.unique;
-		sem_post(&sem);
-	}));
+	    .Times(1)
+	    .InSequence(seq)
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    /* Called by getfh, caches attributes but not entries */
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.nodeid = ino;
+		    out.body.entry.attr.size = oldsize;
+		    out.body.entry.nodeid = ino;
+		    out.body.entry.attr_valid_nsec = NAP_NS / 2;
+		    out.body.entry.attr.ino = ino;
+		    out.body.entry.attr.mode = S_IFREG | 0644;
+	    })));
+	EXPECT_LOOKUP(ino, ".").InSequence(seq).WillOnce(
+	    Invoke([&](auto in, auto &out __unused) {
+		    /* Called by fhstat.  Block to simulate a race */
+		    lookup_unique = in.header.unique;
+		    sem_post(&sem);
+	    }));
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.Times(1)
-	.InSequence(seq)
-	.WillRepeatedly(Invoke(ReturnImmediate([=](auto in __unused, auto& out)
-	{
-		/* Called by VOP_SETATTR, caches attributes but not entries */
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.nodeid = ino;
-		out.body.entry.attr.size = oldsize;
-		out.body.entry.nodeid = ino;
-		out.body.entry.attr_valid_nsec = NAP_NS / 2;
-		out.body.entry.attr.ino = ino;
-		out.body.entry.attr.mode = S_IFREG | 0644;
-	})));
+	    .Times(1)
+	    .InSequence(seq)
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+			/* Called by VOP_SETATTR, caches attributes but not
+			 * entries */
+			SET_OUT_HEADER_LEN(out, entry);
+			out.body.entry.nodeid = ino;
+			out.body.entry.attr.size = oldsize;
+			out.body.entry.nodeid = ino;
+			out.body.entry.attr_valid_nsec = NAP_NS / 2;
+			out.body.entry.attr.ino = ino;
+			out.body.entry.attr.mode = S_IFREG | 0644;
+		})));
 
 	/* Called by the mutator thread */
 	expect_open(ino, 0, 1);
 
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == mutator_op &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).InSequence(seq)
-	.WillOnce(Invoke([&](auto in __unused, auto& out) {
-		std::unique_ptr<mockfs_buf_out> out0(new mockfs_buf_out);
-		std::unique_ptr<mockfs_buf_out> out1(new mockfs_buf_out);
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == mutator_op &&
+				    in.header.nodeid == ino);
+			},
+			Eq(true)),
+		_))
+	    .InSequence(seq)
+	    .WillOnce(Invoke([&](auto in __unused, auto &out) {
+		    std::unique_ptr<mockfs_buf_out> out0(new mockfs_buf_out);
+		    std::unique_ptr<mockfs_buf_out> out1(new mockfs_buf_out);
 
-		/* First complete the lookup request, returning the old size */
-		out0->header.unique = lookup_unique;
-		SET_OUT_HEADER_LEN(*out0, entry);
-		out0->body.entry.attr.mode = S_IFREG | 0644;
-		out0->body.entry.nodeid = ino;
-		out0->body.entry.entry_valid = UINT64_MAX;
-		out0->body.entry.attr_valid = UINT64_MAX;
-		out0->body.entry.attr.size = oldsize;
-		out.push_back(std::move(out0));
+		    /* First complete the lookup request, returning the old size
+		     */
+		    out0->header.unique = lookup_unique;
+		    SET_OUT_HEADER_LEN(*out0, entry);
+		    out0->body.entry.attr.mode = S_IFREG | 0644;
+		    out0->body.entry.nodeid = ino;
+		    out0->body.entry.entry_valid = UINT64_MAX;
+		    out0->body.entry.attr_valid = UINT64_MAX;
+		    out0->body.entry.attr.size = oldsize;
+		    out.push_back(std::move(out0));
 
-		/* Then, respond to the mutator request */
-		out1->header.unique = in.header.unique;
-		switch(mutator) {
-		case VOP_ALLOCATE:
-			out1->header.error = 0;
-			out1->header.len = sizeof(out1->header);
-			break;
-		case VOP_COPY_FILE_RANGE:
-			SET_OUT_HEADER_LEN(*out1, write);
-			out1->body.write.size = in.body.copy_file_range.len;
-			break;
-		case VOP_SETATTR:
-			SET_OUT_HEADER_LEN(*out1, attr);
-			out1->body.attr.attr.ino = ino;
-			out1->body.attr.attr.mode = S_IFREG | 0644;
-			out1->body.attr.attr.size = newsize;	// Changed size
-			out1->body.attr.attr_valid = UINT64_MAX;
-			break;
-		case VOP_WRITE:
-			SET_OUT_HEADER_LEN(*out1, write);
-			out1->body.write.size = in.body.write.size;
-			break;
-		}
-		out.push_back(std::move(out1));
-	}));
+		    /* Then, respond to the mutator request */
+		    out1->header.unique = in.header.unique;
+		    switch (mutator) {
+		    case VOP_ALLOCATE:
+			    out1->header.error = 0;
+			    out1->header.len = sizeof(out1->header);
+			    break;
+		    case VOP_COPY_FILE_RANGE:
+			    SET_OUT_HEADER_LEN(*out1, write);
+			    out1->body.write.size = in.body.copy_file_range.len;
+			    break;
+		    case VOP_SETATTR:
+			    SET_OUT_HEADER_LEN(*out1, attr);
+			    out1->body.attr.attr.ino = ino;
+			    out1->body.attr.attr.mode = S_IFREG | 0644;
+			    out1->body.attr.attr.size = newsize; // Changed size
+			    out1->body.attr.attr_valid = UINT64_MAX;
+			    break;
+		    case VOP_WRITE:
+			    SET_OUT_HEADER_LEN(*out1, write);
+			    out1->body.write.size = in.body.write.size;
+			    break;
+		    }
+		    out.push_back(std::move(out1));
+	    }));
 
 	/* First get a file handle */
 	ASSERT_EQ(0, getfh(FULLPATH, &fhp)) << strerror(errno);
 
 	/* Start the mutator thread */
-	switch(mutator) {
+	switch (mutator) {
 	case VOP_ALLOCATE:
-		ASSERT_EQ(0, pthread_create(&th0, NULL, allocate_th,
-			(void*)&sem)) << strerror(errno);
+		ASSERT_EQ(0,
+		    pthread_create(&th0, NULL, allocate_th, (void *)&sem))
+		    << strerror(errno);
 		break;
 	case VOP_COPY_FILE_RANGE:
-		ASSERT_EQ(0, pthread_create(&th0, NULL, copy_file_range_th,
-			(void*)&sem)) << strerror(errno);
+		ASSERT_EQ(0,
+		    pthread_create(&th0, NULL, copy_file_range_th,
+			(void *)&sem))
+		    << strerror(errno);
 		break;
 	case VOP_SETATTR:
-		ASSERT_EQ(0, pthread_create(&th0, NULL, setattr_th,
-			(void*)&sem)) << strerror(errno);
+		ASSERT_EQ(0,
+		    pthread_create(&th0, NULL, setattr_th, (void *)&sem))
+		    << strerror(errno);
 		break;
 	case VOP_WRITE:
-		ASSERT_EQ(0, pthread_create(&th0, NULL, write_th, (void*)&sem))
-			<< strerror(errno);
+		ASSERT_EQ(0, pthread_create(&th0, NULL, write_th, (void *)&sem))
+		    << strerror(errno);
 		break;
 	}
 
@@ -503,12 +527,5 @@ TEST_P(LastLocalModify, vfs_vget)
 	EXPECT_EQ(0, (intptr_t)thr0_value);
 }
 
-
 INSTANTIATE_TEST_SUITE_P(LLM, LastLocalModify,
-	Values(
-		"VOP_ALLOCATE",
-		"VOP_COPY_FILE_RANGE",
-		"VOP_SETATTR",
-		"VOP_WRITE"
-	)
-);
+    Values("VOP_ALLOCATE", "VOP_COPY_FILE_RANGE", "VOP_SETATTR", "VOP_WRITE"));

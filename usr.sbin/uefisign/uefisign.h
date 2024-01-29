@@ -29,62 +29,61 @@
  */
 
 #ifndef EFISIGN_H
-#define	EFISIGN_H
+#define EFISIGN_H
 
-#include <stdbool.h>
 #include <openssl/evp.h>
+#include <stdbool.h>
 
-#define	DIGEST		"SHA256"
-#define	MAX_SECTIONS	128
+#define DIGEST "SHA256"
+#define MAX_SECTIONS 128
 
 struct executable {
-	const char	*x_path;
-	FILE		*x_fp;
+	const char *x_path;
+	FILE *x_fp;
 
-	char		*x_buf;
-	size_t		x_len;
+	char *x_buf;
+	size_t x_len;
 
 	/*
 	 * Set by pe_parse(), used by digest().
 	 */
-	size_t		x_headers_len;
+	size_t x_headers_len;
 
-	off_t		x_checksum_off;
-	size_t		x_checksum_len;
+	off_t x_checksum_off;
+	size_t x_checksum_len;
 
-	off_t		x_certificate_entry_off;
-	size_t		x_certificate_entry_len;
+	off_t x_certificate_entry_off;
+	size_t x_certificate_entry_len;
 
-	int		x_nsections;
-	off_t		x_section_off[MAX_SECTIONS];
-	size_t		x_section_len[MAX_SECTIONS];
+	int x_nsections;
+	off_t x_section_off[MAX_SECTIONS];
+	size_t x_section_len[MAX_SECTIONS];
 
 	/*
 	 * Computed by digest().
 	 */
-	unsigned char	x_digest[EVP_MAX_MD_SIZE];
-	unsigned int	x_digest_len;
+	unsigned char x_digest[EVP_MAX_MD_SIZE];
+	unsigned int x_digest_len;
 
 	/*
 	 * Received from the parent process, which computes it in sign().
 	 */
-	void		*x_signature;
-	size_t		x_signature_len;
+	void *x_signature;
+	size_t x_signature_len;
 };
 
+FILE *checked_fopen(const char *path, const char *mode);
+void send_chunk(const void *buf, size_t len, int pipefd);
+void receive_chunk(void **bufp, size_t *lenp, int pipefd);
 
-FILE	*checked_fopen(const char *path, const char *mode);
-void	send_chunk(const void *buf, size_t len, int pipefd);
-void	receive_chunk(void **bufp, size_t *lenp, int pipefd);
+int child(const char *inpath, const char *outpath, int pipefd, bool Vflag,
+    bool vflag);
 
-int	child(const char *inpath, const char *outpath, int pipefd,
-	    bool Vflag, bool vflag);
-
-void	parse(struct executable *x);
-void	update(struct executable *x);
-size_t	signature_size(const struct executable *x);
-void	show_certificate(const struct executable *x);
-void	range_check(const struct executable *x,
-	    off_t off, size_t len, const char *name);
+void parse(struct executable *x);
+void update(struct executable *x);
+size_t signature_size(const struct executable *x);
+void show_certificate(const struct executable *x);
+void range_check(const struct executable *x, off_t off, size_t len,
+    const char *name);
 
 #endif /* !EFISIGN_H */

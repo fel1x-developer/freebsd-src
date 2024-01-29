@@ -25,23 +25,25 @@
  */
 
 #ifndef SYS_DEV_RANDOM_RANDOM_HARVESTQ_H_INCLUDED
-#define	SYS_DEV_RANDOM_RANDOM_HARVESTQ_H_INCLUDED
+#define SYS_DEV_RANDOM_RANDOM_HARVESTQ_H_INCLUDED
 
-#define	HARVESTSIZE	2	/* Max length in words of each harvested entropy unit */
+#define HARVESTSIZE 2 /* Max length in words of each harvested entropy unit */
 
 /* These are used to queue harvested packets of entropy. The entropy
  * buffer size is pretty arbitrary.
  */
 struct harvest_event {
-	uint32_t	he_somecounter;		/* fast counter for clock jitter */
-	uint32_t	he_entropy[HARVESTSIZE];/* some harvested entropy */
-	uint8_t		he_size;		/* harvested entropy byte count */
-	uint8_t		he_destination;		/* destination pool of this entropy */
-	uint8_t		he_source;		/* origin of the entropy */
+	uint32_t he_somecounter;	  /* fast counter for clock jitter */
+	uint32_t he_entropy[HARVESTSIZE]; /* some harvested entropy */
+	uint8_t he_size;		  /* harvested entropy byte count */
+	uint8_t he_destination;		  /* destination pool of this entropy */
+	uint8_t he_source;		  /* origin of the entropy */
 };
 
-#define	RANDOM_HARVEST_INIT_LOCK(x)	mtx_init(&harvest_context.hc_mtx, "entropy harvest mutex", NULL, MTX_SPIN)
-#define	RANDOM_HARVEST_LOCK(x)		mtx_lock_spin(&harvest_context.hc_mtx)
-#define	RANDOM_HARVEST_UNLOCK(x)	mtx_unlock_spin(&harvest_context.hc_mtx)
+#define RANDOM_HARVEST_INIT_LOCK(x)                                      \
+	mtx_init(&harvest_context.hc_mtx, "entropy harvest mutex", NULL, \
+	    MTX_SPIN)
+#define RANDOM_HARVEST_LOCK(x) mtx_lock_spin(&harvest_context.hc_mtx)
+#define RANDOM_HARVEST_UNLOCK(x) mtx_unlock_spin(&harvest_context.hc_mtx)
 
 #endif /* SYS_DEV_RANDOM_RANDOM_HARVESTQ_H_INCLUDED */

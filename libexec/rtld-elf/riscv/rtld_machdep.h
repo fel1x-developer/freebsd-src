@@ -34,9 +34,10 @@
  */
 
 #ifndef RTLD_MACHDEP_H
-#define RTLD_MACHDEP_H	1
+#define RTLD_MACHDEP_H 1
 
 #include <sys/types.h>
+
 #include <machine/atomic.h>
 #include <machine/tls.h>
 
@@ -45,12 +46,13 @@ struct Struct_Obj_Entry;
 uint64_t set_gp(struct Struct_Obj_Entry *obj);
 
 /* Return the address of the .dynamic section in the dynamic linker. */
-#define rtld_dynamic(obj)                                               \
-({                                                                      \
-	Elf_Addr _dynamic_addr;                                         \
-	__asm __volatile("lla       %0, _DYNAMIC" : "=r"(_dynamic_addr));   \
-	(const Elf_Dyn *)_dynamic_addr;                                 \
-})
+#define rtld_dynamic(obj)                                 \
+	({                                                \
+		Elf_Addr _dynamic_addr;                   \
+		__asm __volatile("lla       %0, _DYNAMIC" \
+				 : "=r"(_dynamic_addr));  \
+		(const Elf_Dyn *)_dynamic_addr;           \
+	})
 
 Elf_Addr reloc_jmpslot(Elf_Addr *where, Elf_Addr target,
     const struct Struct_Obj_Entry *defobj, const struct Struct_Obj_Entry *obj,
@@ -59,44 +61,41 @@ Elf_Addr reloc_jmpslot(Elf_Addr *where, Elf_Addr target,
 #define make_function_pointer(def, defobj) \
 	((defobj)->relocbase + (def)->st_value)
 
-#define call_initfini_pointer(obj, target)				\
-({									\
-	uint64_t old0;							\
-	old0 = set_gp(obj);						\
-	(((InitFunc)(target))());					\
-	__asm __volatile("mv    gp, %0" :: "r"(old0));			\
-})
+#define call_initfini_pointer(obj, target)                    \
+	({                                                    \
+		uint64_t old0;                                \
+		old0 = set_gp(obj);                           \
+		(((InitFunc)(target))());                     \
+		__asm __volatile("mv    gp, %0" ::"r"(old0)); \
+	})
 
-#define call_init_pointer(obj, target)					\
-({									\
-	uint64_t old1;							\
-	old1 = set_gp(obj);						\
-	(((InitArrFunc)(target))(main_argc, main_argv, environ));	\
-	__asm __volatile("mv    gp, %0" :: "r"(old1));			\
-})
+#define call_init_pointer(obj, target)                                    \
+	({                                                                \
+		uint64_t old1;                                            \
+		old1 = set_gp(obj);                                       \
+		(((InitArrFunc)(target))(main_argc, main_argv, environ)); \
+		__asm __volatile("mv    gp, %0" ::"r"(old1));             \
+	})
 
-#define	call_ifunc_resolver(ptr) \
-	(((Elf_Addr (*)(void))ptr)())
+#define call_ifunc_resolver(ptr) (((Elf_Addr(*)(void))ptr)())
 
 /*
  * TLS
  */
 
-#define round(size, align) \
-    (((size) + (align) - 1) & ~((align) - 1))
-#define calculate_first_tls_offset(size, align, offset)	\
-    TLS_TCB_SIZE
+#define round(size, align) (((size) + (align)-1) & ~((align)-1))
+#define calculate_first_tls_offset(size, align, offset) TLS_TCB_SIZE
 #define calculate_tls_offset(prev_offset, prev_size, size, align, offset) \
-    round(prev_offset + prev_size, align)
-#define calculate_tls_post_size(align)  0
+	round(prev_offset + prev_size, align)
+#define calculate_tls_post_size(align) 0
 
 typedef struct {
 	unsigned long ti_module;
 	unsigned long ti_offset;
 } tls_index;
 
-extern void *__tls_get_addr(tls_index* ti);
+extern void *__tls_get_addr(tls_index *ti);
 
-#define	md_abi_variant_hook(x)
+#define md_abi_variant_hook(x)
 
 #endif

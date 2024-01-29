@@ -33,21 +33,19 @@
 
 #include "extern.h"
 
-#define	DC_VER		"1.3-FreeBSD"
+#define DC_VER "1.3-FreeBSD"
 
-static void		 usage(void);
+static void usage(void);
 
-extern char		*__progname;
+extern char *__progname;
 
-static struct source	 src;
+static struct source src;
 
-static const struct option long_options[] =
-{
-	{"expression",		required_argument,	NULL,	'e'},
-	{"file",		required_argument,	NULL,	'f'},
-	{"help",		no_argument,		NULL,	'h'},
-	{"version",		no_argument,		NULL,	'V'}
-};
+static const struct option long_options[] = { { "expression", required_argument,
+						  NULL, 'e' },
+	{ "file", required_argument, NULL, 'f' },
+	{ "help", no_argument, NULL, 'h' },
+	{ "version", no_argument, NULL, 'V' } };
 
 static void
 usage(void)
@@ -58,7 +56,8 @@ usage(void)
 }
 
 static void
-procfd(int fd, char *fname) {
+procfd(int fd, char *fname)
+{
 	struct stat st;
 	FILE *file;
 
@@ -70,7 +69,7 @@ procfd(int fd, char *fname) {
 	if (S_ISDIR(st.st_mode)) {
 		errno = EISDIR;
 		err(1, "%s", fname);
-	}                
+	}
 	src_setstream(&src, file);
 	reset_bmachine(&src);
 	eval();
@@ -84,7 +83,8 @@ main(int argc, char *argv[])
 	bool extended_regs = false, preproc_done = false;
 
 	/* accept and ignore a single dash to be 4.4BSD dc(1) compatible */
-	while ((ch = getopt_long(argc, argv, "e:f:hVx", long_options, NULL)) != -1) {
+	while ((ch = getopt_long(argc, argv, "e:f:hVx", long_options, NULL)) !=
+	    -1) {
 		switch (ch) {
 		case 'e':
 			if (!preproc_done)
@@ -134,8 +134,7 @@ main(int argc, char *argv[])
 			err(1, "cannot open file %s", argv[0]);
 
 		if (caph_limit_stream(fd, CAPH_READ) < 0 ||
-		    caph_limit_stdio() < 0 ||
-		    caph_enter() < 0)
+		    caph_limit_stdio() < 0 || caph_enter() < 0)
 			err(1, "capsicum");
 
 		procfd(fd, argv[0]);

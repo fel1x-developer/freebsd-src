@@ -26,9 +26,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_nvme.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/sysctl.h>
@@ -44,8 +44,8 @@ bool nvme_verbose_cmd_dump = false;
 
 SYSCTL_NODE(_hw, OID_AUTO, nvme, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
     "NVMe sysctl tunables");
-SYSCTL_INT(_hw_nvme, OID_AUTO, use_nvd, CTLFLAG_RDTUN,
-    &nvme_use_nvd, 1, "1 = Create NVD devices, 0 = Create NDA devices");
+SYSCTL_INT(_hw_nvme, OID_AUTO, use_nvd, CTLFLAG_RDTUN, &nvme_use_nvd, 1,
+    "1 = Create NVD devices, 0 = Create NDA devices");
 SYSCTL_BOOL(_hw_nvme, OID_AUTO, verbose_cmd_dump, CTLFLAG_RWTUN,
     &nvme_verbose_cmd_dump, 0,
     "enable verbose command printing when a command fails");
@@ -77,8 +77,8 @@ nvme_dump_queue(struct nvme_qpair *qpair)
 static int
 nvme_sysctl_dump_debug(SYSCTL_HANDLER_ARGS)
 {
-	struct nvme_qpair 	*qpair = arg1;
-	uint32_t		val = 0;
+	struct nvme_qpair *qpair = arg1;
+	uint32_t val = 0;
 
 	int error = sysctl_handle_int(oidp, &val, 0, req);
 
@@ -96,8 +96,7 @@ nvme_sysctl_int_coal_time(SYSCTL_HANDLER_ARGS)
 {
 	struct nvme_controller *ctrlr = arg1;
 	uint32_t oldval = ctrlr->int_coal_time;
-	int error = sysctl_handle_int(oidp, &ctrlr->int_coal_time, 0,
-	    req);
+	int error = sysctl_handle_int(oidp, &ctrlr->int_coal_time, 0, req);
 
 	if (error)
 		return (error);
@@ -115,8 +114,7 @@ nvme_sysctl_int_coal_threshold(SYSCTL_HANDLER_ARGS)
 {
 	struct nvme_controller *ctrlr = arg1;
 	uint32_t oldval = ctrlr->int_coal_threshold;
-	int error = sysctl_handle_int(oidp, &ctrlr->int_coal_threshold, 0,
-	    req);
+	int error = sysctl_handle_int(oidp, &ctrlr->int_coal_threshold, 0, req);
 
 	if (error)
 		return (error);
@@ -169,9 +167,9 @@ nvme_qpair_reset_stats(struct nvme_qpair *qpair)
 static int
 nvme_sysctl_num_cmds(SYSCTL_HANDLER_ARGS)
 {
-	struct nvme_controller 	*ctrlr = arg1;
-	int64_t			num_cmds = 0;
-	int			i;
+	struct nvme_controller *ctrlr = arg1;
+	int64_t num_cmds = 0;
+	int i;
 
 	num_cmds = ctrlr->adminq.num_cmds;
 
@@ -184,9 +182,9 @@ nvme_sysctl_num_cmds(SYSCTL_HANDLER_ARGS)
 static int
 nvme_sysctl_num_intr_handler_calls(SYSCTL_HANDLER_ARGS)
 {
-	struct nvme_controller 	*ctrlr = arg1;
-	int64_t			num_intr_handler_calls = 0;
-	int			i;
+	struct nvme_controller *ctrlr = arg1;
+	int64_t num_intr_handler_calls = 0;
+	int i;
 
 	num_intr_handler_calls = ctrlr->adminq.num_intr_handler_calls;
 
@@ -199,9 +197,9 @@ nvme_sysctl_num_intr_handler_calls(SYSCTL_HANDLER_ARGS)
 static int
 nvme_sysctl_num_retries(SYSCTL_HANDLER_ARGS)
 {
-	struct nvme_controller 	*ctrlr = arg1;
-	int64_t			num_retries = 0;
-	int			i;
+	struct nvme_controller *ctrlr = arg1;
+	int64_t num_retries = 0;
+	int i;
 
 	num_retries = ctrlr->adminq.num_retries;
 
@@ -214,9 +212,9 @@ nvme_sysctl_num_retries(SYSCTL_HANDLER_ARGS)
 static int
 nvme_sysctl_num_failures(SYSCTL_HANDLER_ARGS)
 {
-	struct nvme_controller 	*ctrlr = arg1;
-	int64_t			num_failures = 0;
-	int			i;
+	struct nvme_controller *ctrlr = arg1;
+	int64_t num_failures = 0;
+	int i;
 
 	num_failures = ctrlr->adminq.num_failures;
 
@@ -229,9 +227,9 @@ nvme_sysctl_num_failures(SYSCTL_HANDLER_ARGS)
 static int
 nvme_sysctl_num_ignored(SYSCTL_HANDLER_ARGS)
 {
-	struct nvme_controller 	*ctrlr = arg1;
-	int64_t			num_ignored = 0;
-	int			i;
+	struct nvme_controller *ctrlr = arg1;
+	int64_t num_ignored = 0;
+	int i;
 
 	num_ignored = ctrlr->adminq.num_ignored;
 
@@ -244,9 +242,9 @@ nvme_sysctl_num_ignored(SYSCTL_HANDLER_ARGS)
 static int
 nvme_sysctl_num_recovery_nolock(SYSCTL_HANDLER_ARGS)
 {
-	struct nvme_controller 	*ctrlr = arg1;
-	int64_t			num;
-	int			i;
+	struct nvme_controller *ctrlr = arg1;
+	int64_t num;
+	int i;
 
 	num = ctrlr->adminq.num_recovery_nolock;
 
@@ -259,8 +257,8 @@ nvme_sysctl_num_recovery_nolock(SYSCTL_HANDLER_ARGS)
 static int
 nvme_sysctl_reset_stats(SYSCTL_HANDLER_ARGS)
 {
-	struct nvme_controller 	*ctrlr = arg1;
-	uint32_t		i, val = 0;
+	struct nvme_controller *ctrlr = arg1;
+	uint32_t i, val = 0;
 
 	int error = sysctl_handle_int(oidp, &val, 0, req);
 
@@ -281,7 +279,7 @@ static void
 nvme_sysctl_initialize_queue(struct nvme_qpair *qpair,
     struct sysctl_ctx_list *ctrlr_ctx, struct sysctl_oid *que_tree)
 {
-	struct sysctl_oid_list	*que_list = SYSCTL_CHILDREN(que_tree);
+	struct sysctl_oid_list *que_list = SYSCTL_CHILDREN(que_tree);
 
 	SYSCTL_ADD_UINT(ctrlr_ctx, que_list, OID_AUTO, "num_entries",
 	    CTLFLAG_RD, &qpair->num_entries, 0,
@@ -289,18 +287,18 @@ nvme_sysctl_initialize_queue(struct nvme_qpair *qpair,
 	SYSCTL_ADD_UINT(ctrlr_ctx, que_list, OID_AUTO, "num_trackers",
 	    CTLFLAG_RD, &qpair->num_trackers, 0,
 	    "Number of trackers pre-allocated for this queue pair");
-	SYSCTL_ADD_UINT(ctrlr_ctx, que_list, OID_AUTO, "sq_head",
-	    CTLFLAG_RD, &qpair->sq_head, 0,
+	SYSCTL_ADD_UINT(ctrlr_ctx, que_list, OID_AUTO, "sq_head", CTLFLAG_RD,
+	    &qpair->sq_head, 0,
 	    "Current head of submission queue (as observed by driver)");
-	SYSCTL_ADD_UINT(ctrlr_ctx, que_list, OID_AUTO, "sq_tail",
-	    CTLFLAG_RD, &qpair->sq_tail, 0,
+	SYSCTL_ADD_UINT(ctrlr_ctx, que_list, OID_AUTO, "sq_tail", CTLFLAG_RD,
+	    &qpair->sq_tail, 0,
 	    "Current tail of submission queue (as observed by driver)");
-	SYSCTL_ADD_UINT(ctrlr_ctx, que_list, OID_AUTO, "cq_head",
-	    CTLFLAG_RD, &qpair->cq_head, 0,
+	SYSCTL_ADD_UINT(ctrlr_ctx, que_list, OID_AUTO, "cq_head", CTLFLAG_RD,
+	    &qpair->cq_head, 0,
 	    "Current head of completion queue (as observed by driver)");
 
-	SYSCTL_ADD_QUAD(ctrlr_ctx, que_list, OID_AUTO, "num_cmds",
-	    CTLFLAG_RD, &qpair->num_cmds, "Number of commands submitted");
+	SYSCTL_ADD_QUAD(ctrlr_ctx, que_list, OID_AUTO, "num_cmds", CTLFLAG_RD,
+	    &qpair->num_cmds, "Number of commands submitted");
 	SYSCTL_ADD_QUAD(ctrlr_ctx, que_list, OID_AUTO, "num_intr_handler_calls",
 	    CTLFLAG_RD, &qpair->num_intr_handler_calls,
 	    "Number of times interrupt handler was invoked (will typically be "
@@ -318,94 +316,87 @@ nvme_sysctl_initialize_queue(struct nvme_qpair *qpair,
 	    CTLFLAG_RD, &qpair->num_recovery_nolock,
 	    "Number of times that we failed to lock recovery in the ISR");
 
-	SYSCTL_ADD_PROC(ctrlr_ctx, que_list, OID_AUTO,
-	    "dump_debug", CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_MPSAFE,
-	    qpair, 0, nvme_sysctl_dump_debug, "IU", "Dump debug data");
+	SYSCTL_ADD_PROC(ctrlr_ctx, que_list, OID_AUTO, "dump_debug",
+	    CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_MPSAFE, qpair, 0,
+	    nvme_sysctl_dump_debug, "IU", "Dump debug data");
 }
 
 void
 nvme_sysctl_initialize_ctrlr(struct nvme_controller *ctrlr)
 {
-	struct sysctl_ctx_list	*ctrlr_ctx;
-	struct sysctl_oid	*ctrlr_tree, *que_tree;
-	struct sysctl_oid_list	*ctrlr_list;
-#define QUEUE_NAME_LENGTH	16
-	char			queue_name[QUEUE_NAME_LENGTH];
-	int			i;
+	struct sysctl_ctx_list *ctrlr_ctx;
+	struct sysctl_oid *ctrlr_tree, *que_tree;
+	struct sysctl_oid_list *ctrlr_list;
+#define QUEUE_NAME_LENGTH 16
+	char queue_name[QUEUE_NAME_LENGTH];
+	int i;
 
 	ctrlr_ctx = device_get_sysctl_ctx(ctrlr->dev);
 	ctrlr_tree = device_get_sysctl_tree(ctrlr->dev);
 	ctrlr_list = SYSCTL_CHILDREN(ctrlr_tree);
 
 	SYSCTL_ADD_UINT(ctrlr_ctx, ctrlr_list, OID_AUTO, "num_io_queues",
-	    CTLFLAG_RD, &ctrlr->num_io_queues, 0,
-	    "Number of I/O queue pairs");
+	    CTLFLAG_RD, &ctrlr->num_io_queues, 0, "Number of I/O queue pairs");
 
-	SYSCTL_ADD_PROC(ctrlr_ctx, ctrlr_list, OID_AUTO,
-	    "int_coal_time", CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_MPSAFE,
-	    ctrlr, 0, nvme_sysctl_int_coal_time, "IU",
+	SYSCTL_ADD_PROC(ctrlr_ctx, ctrlr_list, OID_AUTO, "int_coal_time",
+	    CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_MPSAFE, ctrlr, 0,
+	    nvme_sysctl_int_coal_time, "IU",
 	    "Interrupt coalescing timeout (in microseconds)");
 
-	SYSCTL_ADD_PROC(ctrlr_ctx, ctrlr_list, OID_AUTO,
-	    "int_coal_threshold",
+	SYSCTL_ADD_PROC(ctrlr_ctx, ctrlr_list, OID_AUTO, "int_coal_threshold",
 	    CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_MPSAFE, ctrlr, 0,
 	    nvme_sysctl_int_coal_threshold, "IU",
 	    "Interrupt coalescing threshold");
 
-	SYSCTL_ADD_PROC(ctrlr_ctx, ctrlr_list, OID_AUTO,
-	    "admin_timeout_period", CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_MPSAFE,
+	SYSCTL_ADD_PROC(ctrlr_ctx, ctrlr_list, OID_AUTO, "admin_timeout_period",
+	    CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_MPSAFE,
 	    &ctrlr->admin_timeout_period, 0, nvme_sysctl_timeout_period, "IU",
 	    "Timeout period for Admin queue (in seconds)");
 
-	SYSCTL_ADD_PROC(ctrlr_ctx, ctrlr_list, OID_AUTO,
-	    "timeout_period", CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_MPSAFE,
-	    &ctrlr->timeout_period, 0, nvme_sysctl_timeout_period, "IU",
+	SYSCTL_ADD_PROC(ctrlr_ctx, ctrlr_list, OID_AUTO, "timeout_period",
+	    CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_MPSAFE, &ctrlr->timeout_period,
+	    0, nvme_sysctl_timeout_period, "IU",
 	    "Timeout period for I/O queues (in seconds)");
 
-	SYSCTL_ADD_PROC(ctrlr_ctx, ctrlr_list, OID_AUTO,
-	    "num_cmds", CTLTYPE_S64 | CTLFLAG_RD | CTLFLAG_MPSAFE,
-	    ctrlr, 0, nvme_sysctl_num_cmds, "IU",
-	    "Number of commands submitted");
+	SYSCTL_ADD_PROC(ctrlr_ctx, ctrlr_list, OID_AUTO, "num_cmds",
+	    CTLTYPE_S64 | CTLFLAG_RD | CTLFLAG_MPSAFE, ctrlr, 0,
+	    nvme_sysctl_num_cmds, "IU", "Number of commands submitted");
 
 	SYSCTL_ADD_PROC(ctrlr_ctx, ctrlr_list, OID_AUTO,
-	    "num_intr_handler_calls",
-	    CTLTYPE_S64 | CTLFLAG_RD | CTLFLAG_MPSAFE, ctrlr, 0,
-	    nvme_sysctl_num_intr_handler_calls, "IU",
+	    "num_intr_handler_calls", CTLTYPE_S64 | CTLFLAG_RD | CTLFLAG_MPSAFE,
+	    ctrlr, 0, nvme_sysctl_num_intr_handler_calls, "IU",
 	    "Number of times interrupt handler was invoked (will "
 	    "typically be less than number of actual interrupts "
 	    "generated due to coalescing)");
 
-	SYSCTL_ADD_PROC(ctrlr_ctx, ctrlr_list, OID_AUTO,
-	    "num_retries", CTLTYPE_S64 | CTLFLAG_RD | CTLFLAG_MPSAFE,
-	    ctrlr, 0, nvme_sysctl_num_retries, "IU",
-	    "Number of commands retried");
+	SYSCTL_ADD_PROC(ctrlr_ctx, ctrlr_list, OID_AUTO, "num_retries",
+	    CTLTYPE_S64 | CTLFLAG_RD | CTLFLAG_MPSAFE, ctrlr, 0,
+	    nvme_sysctl_num_retries, "IU", "Number of commands retried");
 
-	SYSCTL_ADD_PROC(ctrlr_ctx, ctrlr_list, OID_AUTO,
-	    "num_failures", CTLTYPE_S64 | CTLFLAG_RD | CTLFLAG_MPSAFE,
-	    ctrlr, 0, nvme_sysctl_num_failures, "IU",
+	SYSCTL_ADD_PROC(ctrlr_ctx, ctrlr_list, OID_AUTO, "num_failures",
+	    CTLTYPE_S64 | CTLFLAG_RD | CTLFLAG_MPSAFE, ctrlr, 0,
+	    nvme_sysctl_num_failures, "IU",
 	    "Number of commands ending in failure after all retries");
 
-	SYSCTL_ADD_PROC(ctrlr_ctx, ctrlr_list, OID_AUTO,
-	    "num_ignored", CTLTYPE_S64 | CTLFLAG_RD | CTLFLAG_MPSAFE,
-	    ctrlr, 0, nvme_sysctl_num_ignored, "IU",
+	SYSCTL_ADD_PROC(ctrlr_ctx, ctrlr_list, OID_AUTO, "num_ignored",
+	    CTLTYPE_S64 | CTLFLAG_RD | CTLFLAG_MPSAFE, ctrlr, 0,
+	    nvme_sysctl_num_ignored, "IU",
 	    "Number of interrupts ignored administratively");
 
-	SYSCTL_ADD_PROC(ctrlr_ctx, ctrlr_list, OID_AUTO,
-	    "num_recovery_nolock", CTLTYPE_S64 | CTLFLAG_RD | CTLFLAG_MPSAFE,
-	    ctrlr, 0, nvme_sysctl_num_recovery_nolock, "IU",
+	SYSCTL_ADD_PROC(ctrlr_ctx, ctrlr_list, OID_AUTO, "num_recovery_nolock",
+	    CTLTYPE_S64 | CTLFLAG_RD | CTLFLAG_MPSAFE, ctrlr, 0,
+	    nvme_sysctl_num_recovery_nolock, "IU",
 	    "Number of times that we failed to lock recovery in the ISR");
 
-	SYSCTL_ADD_PROC(ctrlr_ctx, ctrlr_list, OID_AUTO,
-	    "reset_stats", CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_MPSAFE, ctrlr,
-	    0, nvme_sysctl_reset_stats, "IU", "Reset statistics to zero");
+	SYSCTL_ADD_PROC(ctrlr_ctx, ctrlr_list, OID_AUTO, "reset_stats",
+	    CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_MPSAFE, ctrlr, 0,
+	    nvme_sysctl_reset_stats, "IU", "Reset statistics to zero");
 
-	SYSCTL_ADD_UINT(ctrlr_ctx, ctrlr_list, OID_AUTO, "cap_lo",
-	    CTLFLAG_RD, &ctrlr->cap_lo, 0,
-	    "Low 32-bits of capacities for the drive");
+	SYSCTL_ADD_UINT(ctrlr_ctx, ctrlr_list, OID_AUTO, "cap_lo", CTLFLAG_RD,
+	    &ctrlr->cap_lo, 0, "Low 32-bits of capacities for the drive");
 
-	SYSCTL_ADD_UINT(ctrlr_ctx, ctrlr_list, OID_AUTO, "cap_hi",
-	    CTLFLAG_RD, &ctrlr->cap_hi, 0,
-	    "Hi 32-bits of capacities for the drive");
+	SYSCTL_ADD_UINT(ctrlr_ctx, ctrlr_list, OID_AUTO, "cap_hi", CTLFLAG_RD,
+	    &ctrlr->cap_hi, 0, "Hi 32-bits of capacities for the drive");
 
 	que_tree = SYSCTL_ADD_NODE(ctrlr_ctx, ctrlr_list, OID_AUTO, "adminq",
 	    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "Admin Queue");

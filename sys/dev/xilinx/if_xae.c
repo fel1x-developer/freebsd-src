@@ -43,14 +43,6 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 
-#include <net/bpf.h>
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
-#include <net/if_var.h>
-
 #include <machine/bus.h>
 
 #include <dev/mii/mii.h>
@@ -58,71 +50,68 @@
 #include <dev/mii/tiphy.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/xilinx/axidma.h>
 #include <dev/xilinx/if_xaereg.h>
 #include <dev/xilinx/if_xaevar.h>
 
-#include <dev/xilinx/axidma.h>
+#include <net/bpf.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
 
 #include "miibus_if.h"
 
-#define	READ4(_sc, _reg) \
-	bus_read_4((_sc)->res[0], _reg)
-#define	WRITE4(_sc, _reg, _val) \
-	bus_write_4((_sc)->res[0], _reg, _val)
+#define READ4(_sc, _reg) bus_read_4((_sc)->res[0], _reg)
+#define WRITE4(_sc, _reg, _val) bus_write_4((_sc)->res[0], _reg, _val)
 
-#define	READ8(_sc, _reg) \
-	bus_read_8((_sc)->res[0], _reg)
-#define	WRITE8(_sc, _reg, _val) \
-	bus_write_8((_sc)->res[0], _reg, _val)
+#define READ8(_sc, _reg) bus_read_8((_sc)->res[0], _reg)
+#define WRITE8(_sc, _reg, _val) bus_write_8((_sc)->res[0], _reg, _val)
 
-#define	XAE_LOCK(sc)			mtx_lock(&(sc)->mtx)
-#define	XAE_UNLOCK(sc)			mtx_unlock(&(sc)->mtx)
-#define	XAE_ASSERT_LOCKED(sc)		mtx_assert(&(sc)->mtx, MA_OWNED)
-#define	XAE_ASSERT_UNLOCKED(sc)		mtx_assert(&(sc)->mtx, MA_NOTOWNED)
+#define XAE_LOCK(sc) mtx_lock(&(sc)->mtx)
+#define XAE_UNLOCK(sc) mtx_unlock(&(sc)->mtx)
+#define XAE_ASSERT_LOCKED(sc) mtx_assert(&(sc)->mtx, MA_OWNED)
+#define XAE_ASSERT_UNLOCKED(sc) mtx_assert(&(sc)->mtx, MA_NOTOWNED)
 
 #define XAE_DEBUG
 #undef XAE_DEBUG
 
 #ifdef XAE_DEBUG
-#define dprintf(fmt, ...)  printf(fmt, ##__VA_ARGS__)
+#define dprintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
 #define dprintf(fmt, ...)
 #endif
 
-#define	RX_QUEUE_SIZE		64
-#define	TX_QUEUE_SIZE		64
-#define	NUM_RX_MBUF		16
-#define	BUFRING_SIZE		8192
-#define	MDIO_CLK_DIV_DEFAULT	29
+#define RX_QUEUE_SIZE 64
+#define TX_QUEUE_SIZE 64
+#define NUM_RX_MBUF 16
+#define BUFRING_SIZE 8192
+#define MDIO_CLK_DIV_DEFAULT 29
 
-#define	PHY1_RD(sc, _r)		\
-	xae_miibus_read_reg(sc->dev, 1, _r)
-#define	PHY1_WR(sc, _r, _v)	\
-	xae_miibus_write_reg(sc->dev, 1, _r, _v)
+#define PHY1_RD(sc, _r) xae_miibus_read_reg(sc->dev, 1, _r)
+#define PHY1_WR(sc, _r, _v) xae_miibus_write_reg(sc->dev, 1, _r, _v)
 
-#define	PHY_RD(sc, _r)		\
-	xae_miibus_read_reg(sc->dev, sc->phy_addr, _r)
-#define	PHY_WR(sc, _r, _v)	\
-	xae_miibus_write_reg(sc->dev, sc->phy_addr, _r, _v)
+#define PHY_RD(sc, _r) xae_miibus_read_reg(sc->dev, sc->phy_addr, _r)
+#define PHY_WR(sc, _r, _v) xae_miibus_write_reg(sc->dev, sc->phy_addr, _r, _v)
 
 /* Use this macro to access regs > 0x1f */
-#define WRITE_TI_EREG(sc, reg, data) {					\
-	PHY_WR(sc, MII_MMDACR, MMDACR_DADDRMASK);			\
-	PHY_WR(sc, MII_MMDAADR, reg);					\
-	PHY_WR(sc, MII_MMDACR, MMDACR_DADDRMASK | MMDACR_FN_DATANPI);	\
-	PHY_WR(sc, MII_MMDAADR, data);					\
-}
+#define WRITE_TI_EREG(sc, reg, data)                                          \
+	{                                                                     \
+		PHY_WR(sc, MII_MMDACR, MMDACR_DADDRMASK);                     \
+		PHY_WR(sc, MII_MMDAADR, reg);                                 \
+		PHY_WR(sc, MII_MMDACR, MMDACR_DADDRMASK | MMDACR_FN_DATANPI); \
+		PHY_WR(sc, MII_MMDAADR, data);                                \
+	}
 
 /* Not documented, Xilinx VCU118 workaround */
-#define	 CFG4_SGMII_TMR			0x160 /* bits 8:7 MUST be '10' */
-#define	DP83867_SGMIICTL1		0xD3 /* not documented register */
-#define	 SGMIICTL1_SGMII_6W		(1 << 14) /* no idea what it is */
+#define CFG4_SGMII_TMR 0x160	     /* bits 8:7 MUST be '10' */
+#define DP83867_SGMIICTL1 0xD3	     /* not documented register */
+#define SGMIICTL1_SGMII_6W (1 << 14) /* no idea what it is */
 
-static struct resource_spec xae_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ SYS_RES_IRQ,		0,	RF_ACTIVE },
-	{ -1, 0 }
-};
+static struct resource_spec xae_spec[] = { { SYS_RES_MEMORY, 0, RF_ACTIVE },
+	{ SYS_RES_IRQ, 0, RF_ACTIVE }, { -1, 0 } };
 
 static void xae_stop_locked(struct xae_softc *sc);
 static void xae_setup_rxfilter(struct xae_softc *sc);
@@ -136,8 +125,8 @@ xae_rx_enqueue(struct xae_softc *sc, uint32_t n)
 	for (i = 0; i < n; i++) {
 		m = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
 		if (m == NULL) {
-			device_printf(sc->dev,
-			    "%s: Can't alloc rx mbuf\n", __func__);
+			device_printf(sc->dev, "%s: Can't alloc rx mbuf\n",
+			    __func__);
 			return (-1);
 		}
 
@@ -155,13 +144,13 @@ xae_get_phyaddr(phandle_t node, int *phy_addr)
 	pcell_t phy_handle, phy_reg;
 
 	if (OF_getencprop(node, "phy-handle", (void *)&phy_handle,
-	    sizeof(phy_handle)) <= 0)
+		sizeof(phy_handle)) <= 0)
 		return (ENXIO);
 
 	phy_node = OF_node_from_xref(phy_handle);
 
-	if (OF_getencprop(phy_node, "reg", (void *)&phy_reg,
-	    sizeof(phy_reg)) <= 0)
+	if (OF_getencprop(phy_node, "reg", (void *)&phy_reg, sizeof(phy_reg)) <=
+	    0)
 		return (ENXIO);
 
 	*phy_addr = phy_reg;
@@ -272,8 +261,8 @@ xae_transmit_locked(if_t ifp)
 	enq = 0;
 
 	while ((m = drbr_peek(ifp, br)) != NULL) {
-		error = xdma_enqueue_mbuf(sc->xchan_tx,
-		    &m, 0, 4, 4, XDMA_MEM_TO_DEV);
+		error = xdma_enqueue_mbuf(sc->xchan_tx, &m, 0, 4, 4,
+		    XDMA_MEM_TO_DEV);
 		if (error != 0) {
 			/* No space in request queue available yet. */
 			drbr_putback(ifp, br, m);
@@ -286,7 +275,7 @@ xae_transmit_locked(if_t ifp)
 
 		/* If anyone is interested give them a copy. */
 		ETHER_BPF_MTAP(ifp, m);
-        }
+	}
 
 	if (enq > 0)
 		xdma_queue_submit(sc->xchan_tx);
@@ -361,7 +350,7 @@ xae_stat(struct xae_softc *sc, int counter_id)
 	uint64_t delta;
 
 	KASSERT(counter_id < XAE_MAX_COUNTERS,
-		("counter %d is out of range", counter_id));
+	    ("counter %d is out of range", counter_id));
 
 	new = READ8(sc, XAE_STATCNT(counter_id));
 	old = sc->counters[counter_id];
@@ -386,8 +375,8 @@ xae_harvest_stats(struct xae_softc *sc)
 	if_inc_counter(ifp, IFCOUNTER_IMCASTS, xae_stat(sc, RX_GOOD_MCASTS));
 	if_inc_counter(ifp, IFCOUNTER_IERRORS,
 	    xae_stat(sc, RX_FRAME_CHECK_SEQ_ERROR) +
-	    xae_stat(sc, RX_LEN_OUT_OF_RANGE) +
-	    xae_stat(sc, RX_ALIGNMENT_ERRORS));
+		xae_stat(sc, RX_LEN_OUT_OF_RANGE) +
+		xae_stat(sc, RX_ALIGNMENT_ERRORS));
 
 	if_inc_counter(ifp, IFCOUNTER_OBYTES, xae_stat(sc, TX_BYTES));
 	if_inc_counter(ifp, IFCOUNTER_OPACKETS, xae_stat(sc, TX_GOOD_FRAMES));
@@ -397,9 +386,9 @@ xae_harvest_stats(struct xae_softc *sc)
 
 	if_inc_counter(ifp, IFCOUNTER_COLLISIONS,
 	    xae_stat(sc, TX_SINGLE_COLLISION_FRAMES) +
-	    xae_stat(sc, TX_MULTI_COLLISION_FRAMES) +
-	    xae_stat(sc, TX_LATE_COLLISIONS) +
-	    xae_stat(sc, TX_EXCESS_COLLISIONS));
+		xae_stat(sc, TX_MULTI_COLLISION_FRAMES) +
+		xae_stat(sc, TX_LATE_COLLISIONS) +
+		xae_stat(sc, TX_EXCESS_COLLISIONS));
 }
 
 static void
@@ -473,7 +462,7 @@ xae_init(void *arg)
 }
 
 static void
-xae_media_status(if_t  ifp, struct ifmediareq *ifmr)
+xae_media_status(if_t ifp, struct ifmediareq *ifmr)
 {
 	struct xae_softc *sc;
 	struct mii_data *mii;
@@ -496,7 +485,7 @@ xae_media_change_locked(struct xae_softc *sc)
 }
 
 static int
-xae_media_change(if_t  ifp)
+xae_media_change(if_t ifp)
 {
 	struct xae_softc *sc;
 	int error;
@@ -641,7 +630,6 @@ xae_ioctl(if_t ifp, u_long cmd, caddr_t data)
 static void
 xae_intr(void *arg)
 {
-
 }
 
 static int
@@ -659,8 +647,7 @@ xae_get_hwaddr(struct xae_softc *sc, uint8_t *hwaddr)
 	if (len != ETHER_ADDR_LEN)
 		return (EINVAL);
 
-	OF_getprop(node, "local-mac-address", hwaddr,
-	    ETHER_ADDR_LEN);
+	OF_getprop(node, "local-mac-address", hwaddr, ETHER_ADDR_LEN);
 
 	return (0);
 }
@@ -811,8 +798,8 @@ get_xdma_axistream(struct xae_softc *sc)
 		device_printf(sc->dev, "Could not find DMA controller.\n");
 		return (ENXIO);
 	}
-	data = malloc(sizeof(struct axidma_fdt_data),
-	    M_DEVBUF, (M_WAITOK | M_ZERO));
+	data = malloc(sizeof(struct axidma_fdt_data), M_DEVBUF,
+	    (M_WAITOK | M_ZERO));
 	data->id = AXIDMA_TX_CHAN;
 	sc->xdma_tx->data = data;
 
@@ -821,8 +808,8 @@ get_xdma_axistream(struct xae_softc *sc)
 		device_printf(sc->dev, "Could not find DMA controller.\n");
 		return (ENXIO);
 	}
-	data = malloc(sizeof(struct axidma_fdt_data),
-	    M_DEVBUF, (M_WAITOK | M_ZERO));
+	data = malloc(sizeof(struct axidma_fdt_data), M_DEVBUF,
+	    (M_WAITOK | M_ZERO));
 	data->id = AXIDMA_RX_CHAN;
 	sc->xdma_rx->data = data;
 
@@ -838,7 +825,7 @@ setup_xdma(struct xae_softc *sc)
 
 	dev = sc->dev;
 
-	/* Get xDMA controller */   
+	/* Get xDMA controller */
 	error = get_xdma_std(sc);
 
 	if (error) {
@@ -860,8 +847,8 @@ setup_xdma(struct xae_softc *sc)
 	}
 
 	/* Setup interrupt handler. */
-	error = xdma_setup_intr(sc->xchan_tx, 0,
-	    xae_xdma_tx_intr, sc, &sc->ih_tx);
+	error = xdma_setup_intr(sc->xchan_tx, 0, xae_xdma_tx_intr, sc,
+	    &sc->ih_tx);
 	if (error) {
 		device_printf(sc->dev,
 		    "Can't setup xDMA TX interrupt handler.\n");
@@ -876,8 +863,8 @@ setup_xdma(struct xae_softc *sc)
 	}
 
 	/* Setup interrupt handler. */
-	error = xdma_setup_intr(sc->xchan_rx, XDMA_INTR_NET,
-	    xae_xdma_rx_intr, sc, &sc->ih_rx);
+	error = xdma_setup_intr(sc->xchan_rx, XDMA_INTR_NET, xae_xdma_rx_intr,
+	    sc, &sc->ih_rx);
 	if (error) {
 		device_printf(sc->dev,
 		    "Can't setup xDMA RX interrupt handler.\n");
@@ -892,22 +879,20 @@ setup_xdma(struct xae_softc *sc)
 	}
 
 	xdma_prep_sg(sc->xchan_tx,
-	    TX_QUEUE_SIZE,	/* xchan requests queue size */
-	    MCLBYTES,	/* maxsegsize */
-	    8,		/* maxnsegs */
-	    16,		/* alignment */
-	    0,		/* boundary */
-	    BUS_SPACE_MAXADDR_32BIT,
-	    BUS_SPACE_MAXADDR);
+	    TX_QUEUE_SIZE, /* xchan requests queue size */
+	    MCLBYTES,	   /* maxsegsize */
+	    8,		   /* maxnsegs */
+	    16,		   /* alignment */
+	    0,		   /* boundary */
+	    BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR);
 
 	xdma_prep_sg(sc->xchan_rx,
-	    RX_QUEUE_SIZE,	/* xchan requests queue size */
-	    MCLBYTES,	/* maxsegsize */
-	    1,		/* maxnsegs */
-	    16,		/* alignment */
-	    0,		/* boundary */
-	    BUS_SPACE_MAXADDR_32BIT,
-	    BUS_SPACE_MAXADDR);
+	    RX_QUEUE_SIZE, /* xchan requests queue size */
+	    MCLBYTES,	   /* maxsegsize */
+	    1,		   /* maxnsegs */
+	    16,		   /* alignment */
+	    0,		   /* boundary */
+	    BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR);
 
 	return (0);
 }
@@ -945,11 +930,10 @@ xae_attach(device_t dev)
 		return (ENXIO);
 	}
 
-	mtx_init(&sc->mtx, device_get_nameunit(sc->dev),
-	    MTX_NETWORK_LOCK, MTX_DEF);
+	mtx_init(&sc->mtx, device_get_nameunit(sc->dev), MTX_NETWORK_LOCK,
+	    MTX_DEF);
 
-	sc->br = buf_ring_alloc(BUFRING_SIZE, M_DEVBUF,
-	    M_NOWAIT, &sc->mtx);
+	sc->br = buf_ring_alloc(BUFRING_SIZE, M_DEVBUF, M_NOWAIT, &sc->mtx);
 	if (sc->br == NULL)
 		return (ENOMEM);
 
@@ -962,8 +946,7 @@ xae_attach(device_t dev)
 	sc->bst = rman_get_bustag(sc->res[0]);
 	sc->bsh = rman_get_bushandle(sc->res[0]);
 
-	device_printf(sc->dev, "Identification: %x\n",
-	    READ4(sc, XAE_IDENT));
+	device_printf(sc->dev, "Identification: %x\n", READ4(sc, XAE_IDENT));
 
 	/* Get MAC addr */
 	if (xae_get_hwaddr(sc, sc->macaddr)) {
@@ -1012,8 +995,7 @@ xae_attach(device_t dev)
 
 	/* Attach the mii driver. */
 	error = mii_attach(dev, &sc->miibus, ifp, xae_media_change,
-	    xae_media_status, BMSR_DEFCAPMASK, sc->phy_addr,
-	    MII_OFFSET_ANY, 0);
+	    xae_media_status, BMSR_DEFCAPMASK, sc->phy_addr, MII_OFFSET_ANY, 0);
 
 	if (error != 0) {
 		device_printf(dev, "PHY attach failed\n");
@@ -1043,8 +1025,8 @@ xae_detach(device_t dev)
 
 	sc = device_get_softc(dev);
 
-	KASSERT(mtx_initialized(&sc->mtx), ("%s: mutex not initialized",
-	    device_get_nameunit(dev)));
+	KASSERT(mtx_initialized(&sc->mtx),
+	    ("%s: mutex not initialized", device_get_nameunit(dev)));
 
 	ifp = sc->ifp;
 
@@ -1124,17 +1106,14 @@ xae_miibus_statchg(device_t dev)
 	WRITE4(sc, XAE_SPEED, reg);
 }
 
-static device_method_t xae_methods[] = {
-	DEVMETHOD(device_probe,		xae_probe),
-	DEVMETHOD(device_attach,	xae_attach),
-	DEVMETHOD(device_detach,	xae_detach),
+static device_method_t xae_methods[] = { DEVMETHOD(device_probe, xae_probe),
+	DEVMETHOD(device_attach, xae_attach),
+	DEVMETHOD(device_detach, xae_detach),
 
 	/* MII Interface */
-	DEVMETHOD(miibus_readreg,	xae_miibus_read_reg),
-	DEVMETHOD(miibus_writereg,	xae_miibus_write_reg),
-	DEVMETHOD(miibus_statchg,	xae_miibus_statchg),
-	{ 0, 0 }
-};
+	DEVMETHOD(miibus_readreg, xae_miibus_read_reg),
+	DEVMETHOD(miibus_writereg, xae_miibus_write_reg),
+	DEVMETHOD(miibus_statchg, xae_miibus_statchg), { 0, 0 } };
 
 driver_t xae_driver = {
 	"xae",

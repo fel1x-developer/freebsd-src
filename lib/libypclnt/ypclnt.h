@@ -38,19 +38,19 @@
 
 typedef struct ypclnt ypclnt_t;
 struct ypclnt {
-	char	*domain;	/* Domain name */
-	char	*map;		/* Map name */
-	char	*server;	/* Server name */
-	char	*error;		/* Error message */
+	char *domain; /* Domain name */
+	char *map;    /* Map name */
+	char *server; /* Server name */
+	char *error;  /* Error message */
 };
 
 struct passwd;
 
-ypclnt_t	*ypclnt_new(const char *, const char *, const char *);
-void		 ypclnt_free(ypclnt_t *);
-void		 ypclnt_error(ypclnt_t *, const char *, const char *, ...);
-int		 ypclnt_connect(ypclnt_t *);
-int		 ypclnt_havepasswdd(ypclnt_t *);
-int		 ypclnt_passwd(ypclnt_t *, const struct passwd *, const char *);
+ypclnt_t *ypclnt_new(const char *, const char *, const char *);
+void ypclnt_free(ypclnt_t *);
+void ypclnt_error(ypclnt_t *, const char *, const char *, ...);
+int ypclnt_connect(ypclnt_t *);
+int ypclnt_havepasswdd(ypclnt_t *);
+int ypclnt_passwd(ypclnt_t *, const struct passwd *, const char *);
 
 #endif

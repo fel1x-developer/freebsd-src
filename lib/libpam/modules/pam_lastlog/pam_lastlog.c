@@ -58,14 +58,14 @@
 #define PAM_SM_SESSION
 
 #include <security/pam_appl.h>
-#include <security/pam_modules.h>
 #include <security/pam_mod_misc.h>
+#include <security/pam_modules.h>
 
-#define	PAM_UTMPX_ID	"utmpx_id"
+#define PAM_UTMPX_ID "utmpx_id"
 
 PAM_EXTERN int
-pam_sm_open_session(pam_handle_t *pamh, int flags,
-    int argc __unused, const char *argv[] __unused)
+pam_sm_open_session(pam_handle_t *pamh, int flags, int argc __unused,
+    const char *argv[] __unused)
 {
 	struct utmpx *utx, utl;
 	time_t t;
@@ -108,8 +108,9 @@ pam_sm_open_session(pam_handle_t *pamh, int flags,
 			if (utx != NULL && utx->ut_type == USER_PROCESS) {
 				t = utx->ut_tv.tv_sec;
 				if (*utx->ut_host != '\0')
-					pam_info(pamh, "Last login: %.*s from %s",
-					    24 - 5, ctime(&t), utx->ut_host);
+					pam_info(pamh,
+					    "Last login: %.*s from %s", 24 - 5,
+					    ctime(&t), utx->ut_host);
 				else
 					pam_info(pamh, "Last login: %.*s on %s",
 					    24 - 5, ctime(&t), utx->ut_line);
@@ -151,8 +152,8 @@ err:
 }
 
 PAM_EXTERN int
-pam_sm_close_session(pam_handle_t *pamh, int flags __unused,
-    int argc __unused, const char *argv[] __unused)
+pam_sm_close_session(pam_handle_t *pamh, int flags __unused, int argc __unused,
+    const char *argv[] __unused)
 {
 	struct utmpx utl;
 	const void *id;
@@ -171,7 +172,7 @@ pam_sm_close_session(pam_handle_t *pamh, int flags __unused,
 
 	return (PAM_SUCCESS);
 
- err:
+err:
 	if (openpam_get_option(pamh, "no_fail"))
 		return (PAM_SUCCESS);
 	return (pam_err);

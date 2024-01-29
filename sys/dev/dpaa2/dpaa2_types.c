@@ -33,7 +33,7 @@
 
 #include "dpaa2_types.h"
 
-#define COMPARE_TYPE(t, v)		(strncmp((v), (t), strlen((v))) == 0)
+#define COMPARE_TYPE(t, v) (strncmp((v), (t), strlen((v))) == 0)
 
 /**
  * @brief Convert DPAA2 device type to string.
@@ -105,8 +105,8 @@ void
 dpaa2_dmamap_oneseg_cb(void *arg, bus_dma_segment_t *segs, int nseg, int error)
 {
 	if (error == 0) {
-		KASSERT(nseg == 1, ("%s: too many segments: nseg=%d\n",
-		    __func__, nseg));
+		KASSERT(nseg == 1,
+		    ("%s: too many segments: nseg=%d\n", __func__, nseg));
 		*(bus_addr_t *)arg = segs[0].ds_addr;
 	} else {
 		panic("%s: error=%d\n", __func__, error);

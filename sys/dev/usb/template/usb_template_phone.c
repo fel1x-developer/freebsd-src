@@ -37,34 +37,33 @@
 #ifdef USB_GLOBAL_INCLUDE_FILE
 #include USB_GLOBAL_INCLUDE_FILE
 #else
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
-
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-#include <dev/usb/usb_core.h>
-#include <dev/usb/usb_cdc.h>
-#include <dev/usb/usb_ioctl.h>
-#include <dev/usb/usb_util.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/template/usb_template.h>
-#endif			/* USB_GLOBAL_INCLUDE_FILE */
+#include <dev/usb/usb.h>
+#include <dev/usb/usb_cdc.h>
+#include <dev/usb/usb_core.h>
+#include <dev/usb/usb_ioctl.h>
+#include <dev/usb/usb_util.h>
+#include <dev/usb/usbdi.h>
+#endif /* USB_GLOBAL_INCLUDE_FILE */
 
 enum {
 	PHONE_LANG_INDEX,
@@ -78,25 +77,25 @@ enum {
 	PHONE_MAX_INDEX,
 };
 
-#define	PHONE_DEFAULT_VENDOR_ID		USB_TEMPLATE_VENDOR
-#define	PHONE_DEFAULT_PRODUCT_ID	0x05dc
-#define	PHONE_DEFAULT_MIXER		"Mixer interface"
-#define	PHONE_DEFAULT_RECORD		"Record interface"
-#define	PHONE_DEFAULT_PLAYBACK		"Playback interface"
-#define	PHONE_DEFAULT_HID		"HID interface"
-#define	PHONE_DEFAULT_MANUFACTURER	USB_TEMPLATE_MANUFACTURER
-#define	PHONE_DEFAULT_PRODUCT		"USB Phone Device"
-#define	PHONE_DEFAULT_SERIAL_NUMBER	"March 2008"
+#define PHONE_DEFAULT_VENDOR_ID USB_TEMPLATE_VENDOR
+#define PHONE_DEFAULT_PRODUCT_ID 0x05dc
+#define PHONE_DEFAULT_MIXER "Mixer interface"
+#define PHONE_DEFAULT_RECORD "Record interface"
+#define PHONE_DEFAULT_PLAYBACK "Playback interface"
+#define PHONE_DEFAULT_HID "HID interface"
+#define PHONE_DEFAULT_MANUFACTURER USB_TEMPLATE_MANUFACTURER
+#define PHONE_DEFAULT_PRODUCT "USB Phone Device"
+#define PHONE_DEFAULT_SERIAL_NUMBER "March 2008"
 
-static struct usb_string_descriptor	phone_mixer;
-static struct usb_string_descriptor	phone_record;
-static struct usb_string_descriptor	phone_playback;
-static struct usb_string_descriptor	phone_hid;
-static struct usb_string_descriptor	phone_manufacturer;
-static struct usb_string_descriptor	phone_product;
-static struct usb_string_descriptor	phone_serial_number;
+static struct usb_string_descriptor phone_mixer;
+static struct usb_string_descriptor phone_record;
+static struct usb_string_descriptor phone_playback;
+static struct usb_string_descriptor phone_hid;
+static struct usb_string_descriptor phone_manufacturer;
+static struct usb_string_descriptor phone_product;
+static struct usb_string_descriptor phone_serial_number;
 
-static struct sysctl_ctx_list		phone_ctx_list;
+static struct sysctl_ctx_list phone_ctx_list;
 
 /* prototypes */
 
@@ -106,48 +105,31 @@ static struct sysctl_ctx_list		phone_ctx_list;
  * Some of the phone descriptors were dumped from no longer in
  * production Yealink VOIP USB phone adapter:
  */
-static uint8_t phone_hid_descriptor[] = {
-	0x05, 0x0b, 0x09, 0x01, 0xa1, 0x01, 0x05, 0x09,
-	0x19, 0x01, 0x29, 0x3f, 0x15, 0x00, 0x25, 0x01,
-	0x75, 0x01, 0x95, 0x80, 0x81, 0x00, 0x05, 0x08,
-	0x19, 0x01, 0x29, 0x10, 0x15, 0x00, 0x25, 0x01,
-	0x75, 0x01, 0x95, 0x80, 0x91, 0x00, 0xc0
-};
+static uint8_t phone_hid_descriptor[] = { 0x05, 0x0b, 0x09, 0x01, 0xa1, 0x01,
+	0x05, 0x09, 0x19, 0x01, 0x29, 0x3f, 0x15, 0x00, 0x25, 0x01, 0x75, 0x01,
+	0x95, 0x80, 0x81, 0x00, 0x05, 0x08, 0x19, 0x01, 0x29, 0x10, 0x15, 0x00,
+	0x25, 0x01, 0x75, 0x01, 0x95, 0x80, 0x91, 0x00, 0xc0 };
 
-static const uint8_t phone_raw_desc_0[] = {
-	0x0a, 0x24, 0x01, 0x00, 0x01, 0x4a, 0x00, 0x02,
-	0x01, 0x02
-};
+static const uint8_t phone_raw_desc_0[] = { 0x0a, 0x24, 0x01, 0x00, 0x01, 0x4a,
+	0x00, 0x02, 0x01, 0x02 };
 
-static const uint8_t phone_raw_desc_1[] = {
-	0x0c, 0x24, 0x02, 0x01, 0x01, 0x02, 0x00, 0x01,
-	0x00, 0x00, 0x00, 0x00
-};
+static const uint8_t phone_raw_desc_1[] = { 0x0c, 0x24, 0x02, 0x01, 0x01, 0x02,
+	0x00, 0x01, 0x00, 0x00, 0x00, 0x00 };
 
-static const uint8_t phone_raw_desc_2[] = {
-	0x0c, 0x24, 0x02, 0x02, 0x01, 0x01, 0x00, 0x01,
-	0x00, 0x00, 0x00, 0x00
-};
+static const uint8_t phone_raw_desc_2[] = { 0x0c, 0x24, 0x02, 0x02, 0x01, 0x01,
+	0x00, 0x01, 0x00, 0x00, 0x00, 0x00 };
 
-static const uint8_t phone_raw_desc_3[] = {
-	0x09, 0x24, 0x03, 0x03, 0x01, 0x03, 0x00, 0x06,
-	0x00
-};
+static const uint8_t phone_raw_desc_3[] = { 0x09, 0x24, 0x03, 0x03, 0x01, 0x03,
+	0x00, 0x06, 0x00 };
 
-static const uint8_t phone_raw_desc_4[] = {
-	0x09, 0x24, 0x03, 0x04, 0x01, 0x01, 0x00, 0x05,
-	0x00
-};
+static const uint8_t phone_raw_desc_4[] = { 0x09, 0x24, 0x03, 0x04, 0x01, 0x01,
+	0x00, 0x05, 0x00 };
 
-static const uint8_t phone_raw_desc_5[] = {
-	0x0b, 0x24, 0x06, 0x05, 0x01, 0x02, 0x03, 0x00,
-	0x03, 0x00, 0x00
-};
+static const uint8_t phone_raw_desc_5[] = { 0x0b, 0x24, 0x06, 0x05, 0x01, 0x02,
+	0x03, 0x00, 0x03, 0x00, 0x00 };
 
-static const uint8_t phone_raw_desc_6[] = {
-	0x0b, 0x24, 0x06, 0x06, 0x02, 0x02, 0x03, 0x00,
-	0x03, 0x00, 0x00
-};
+static const uint8_t phone_raw_desc_6[] = { 0x0b, 0x24, 0x06, 0x06, 0x02, 0x02,
+	0x03, 0x00, 0x03, 0x00, 0x00 };
 
 static const void *phone_raw_iface_0_desc[] = {
 	phone_raw_desc_0,
@@ -161,7 +143,7 @@ static const void *phone_raw_iface_0_desc[] = {
 };
 
 static const struct usb_temp_interface_desc phone_iface_0 = {
-	.ppEndpoints = NULL,		/* no endpoints */
+	.ppEndpoints = NULL, /* no endpoints */
 	.ppRawDesc = phone_raw_iface_0_desc,
 	.bInterfaceClass = UICLASS_AUDIO,
 	.bInterfaceSubClass = UISUBCLASS_AUDIOCONTROL,
@@ -169,19 +151,16 @@ static const struct usb_temp_interface_desc phone_iface_0 = {
 	.iInterface = PHONE_MIXER_INDEX,
 };
 
-static const uint8_t phone_raw_desc_20[] = {
-	0x07, 0x24, 0x01, 0x04, 0x01, 0x01, 0x00
-};
+static const uint8_t phone_raw_desc_20[] = { 0x07, 0x24, 0x01, 0x04, 0x01, 0x01,
+	0x00 };
 
-static const uint8_t phone_raw_desc_21[] = {
-	0x0b, 0x24, 0x02, 0x01, 0x01, 0x02, 0x10, 0x01,
+static const uint8_t phone_raw_desc_21[] = { 0x0b, 0x24, 0x02, 0x01, 0x01, 0x02,
+	0x10, 0x01,
 	/* 8kHz */
-	0x40, 0x1f, 0x00
-};
+	0x40, 0x1f, 0x00 };
 
-static const uint8_t phone_raw_desc_22[] = {
-	0x07, 0x25, 0x01, 0x00, 0x00, 0x00, 0x00
-};
+static const uint8_t phone_raw_desc_22[] = { 0x07, 0x25, 0x01, 0x00, 0x00, 0x00,
+	0x00 };
 
 static const void *phone_raw_iface_1_desc[] = {
 	phone_raw_desc_20,
@@ -200,8 +179,8 @@ static const struct usb_temp_packet_size phone_isoc_mps = {
 };
 
 static const struct usb_temp_interval phone_isoc_interval = {
-	.bInterval[USB_SPEED_FULL] = 1,	/* 1:1 */
-	.bInterval[USB_SPEED_HIGH] = 4,	/* 1:8 */
+	.bInterval[USB_SPEED_FULL] = 1, /* 1:1 */
+	.bInterval[USB_SPEED_HIGH] = 4, /* 1:8 */
 };
 
 static const struct usb_temp_endpoint_desc phone_isoc_in_ep = {
@@ -218,8 +197,8 @@ static const struct usb_temp_endpoint_desc *phone_iface_1_ep[] = {
 };
 
 static const struct usb_temp_interface_desc phone_iface_1_alt_0 = {
-	.ppEndpoints = NULL,		/* no endpoints */
-	.ppRawDesc = NULL,		/* no raw descriptors */
+	.ppEndpoints = NULL, /* no endpoints */
+	.ppRawDesc = NULL,   /* no raw descriptors */
 	.bInterfaceClass = UICLASS_AUDIO,
 	.bInterfaceSubClass = UISUBCLASS_AUDIOSTREAM,
 	.bInterfaceProtocol = 0,
@@ -233,22 +212,19 @@ static const struct usb_temp_interface_desc phone_iface_1_alt_1 = {
 	.bInterfaceSubClass = UISUBCLASS_AUDIOSTREAM,
 	.bInterfaceProtocol = 0,
 	.iInterface = PHONE_PLAYBACK_INDEX,
-	.isAltInterface = 1,		/* this is an alternate setting */
+	.isAltInterface = 1, /* this is an alternate setting */
 };
 
-static const uint8_t phone_raw_desc_30[] = {
-	0x07, 0x24, 0x01, 0x02, 0x01, 0x01, 0x00
-};
+static const uint8_t phone_raw_desc_30[] = { 0x07, 0x24, 0x01, 0x02, 0x01, 0x01,
+	0x00 };
 
-static const uint8_t phone_raw_desc_31[] = {
-	0x0b, 0x24, 0x02, 0x01, 0x01, 0x02, 0x10, 0x01,
+static const uint8_t phone_raw_desc_31[] = { 0x0b, 0x24, 0x02, 0x01, 0x01, 0x02,
+	0x10, 0x01,
 	/* 8kHz */
-	0x40, 0x1f, 0x00
-};
+	0x40, 0x1f, 0x00 };
 
-static const uint8_t phone_raw_desc_32[] = {
-	0x07, 0x25, 0x01, 0x00, 0x00, 0x00, 0x00
-};
+static const uint8_t phone_raw_desc_32[] = { 0x07, 0x25, 0x01, 0x00, 0x00, 0x00,
+	0x00 };
 
 static const void *phone_raw_iface_2_desc[] = {
 	phone_raw_desc_30,
@@ -275,8 +251,8 @@ static const struct usb_temp_endpoint_desc *phone_iface_2_ep[] = {
 };
 
 static const struct usb_temp_interface_desc phone_iface_2_alt_0 = {
-	.ppEndpoints = NULL,		/* no endpoints */
-	.ppRawDesc = NULL,		/* no raw descriptors */
+	.ppEndpoints = NULL, /* no endpoints */
+	.ppRawDesc = NULL,   /* no raw descriptors */
 	.bInterfaceClass = UICLASS_AUDIO,
 	.bInterfaceSubClass = UISUBCLASS_AUDIOSTREAM,
 	.bInterfaceProtocol = 0,
@@ -290,13 +266,11 @@ static const struct usb_temp_interface_desc phone_iface_2_alt_1 = {
 	.bInterfaceSubClass = UISUBCLASS_AUDIOSTREAM,
 	.bInterfaceProtocol = 0,
 	.iInterface = PHONE_RECORD_INDEX,
-	.isAltInterface = 1,		/* this is an alternate setting */
+	.isAltInterface = 1, /* this is an alternate setting */
 };
 
-static const uint8_t phone_hid_raw_desc_0[] = {
-	0x09, 0x21, 0x00, 0x01, 0x00, 0x01, 0x22, sizeof(phone_hid_descriptor),
-	0x00
-};
+static const uint8_t phone_hid_raw_desc_0[] = { 0x09, 0x21, 0x00, 0x01, 0x00,
+	0x01, 0x22, sizeof(phone_hid_descriptor), 0x00 };
 
 static const void *phone_hid_desc_0[] = {
 	phone_hid_raw_desc_0,
@@ -309,8 +283,8 @@ static const struct usb_temp_packet_size phone_hid_mps = {
 };
 
 static const struct usb_temp_interval phone_hid_interval = {
-	.bInterval[USB_SPEED_FULL] = 2,		/* 2ms */
-	.bInterval[USB_SPEED_HIGH] = 2,		/* 2ms */
+	.bInterval[USB_SPEED_FULL] = 2, /* 2ms */
+	.bInterval[USB_SPEED_HIGH] = 2, /* 2ms */
 };
 
 static const struct usb_temp_endpoint_desc phone_hid_in_ep = {
@@ -438,8 +412,7 @@ phone_init(void *arg __unused)
 	    PHONE_DEFAULT_RECORD);
 	usb_make_str_desc(&phone_playback, sizeof(phone_playback),
 	    PHONE_DEFAULT_PLAYBACK);
-	usb_make_str_desc(&phone_hid, sizeof(phone_hid),
-	    PHONE_DEFAULT_HID);
+	usb_make_str_desc(&phone_hid, sizeof(phone_hid), PHONE_DEFAULT_HID);
 	usb_make_str_desc(&phone_manufacturer, sizeof(phone_manufacturer),
 	    PHONE_DEFAULT_MANUFACTURER);
 	usb_make_str_desc(&phone_product, sizeof(phone_product),
@@ -451,15 +424,14 @@ phone_init(void *arg __unused)
 	sysctl_ctx_init(&phone_ctx_list);
 
 	parent = SYSCTL_ADD_NODE(&phone_ctx_list,
-	    SYSCTL_STATIC_CHILDREN(_hw_usb_templates), OID_AUTO,
-	    parent_name, CTLFLAG_RW | CTLFLAG_MPSAFE,
-	    0, "USB Phone device side template");
+	    SYSCTL_STATIC_CHILDREN(_hw_usb_templates), OID_AUTO, parent_name,
+	    CTLFLAG_RW | CTLFLAG_MPSAFE, 0, "USB Phone device side template");
 	SYSCTL_ADD_U16(&phone_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
-	    "vendor_id", CTLFLAG_RWTUN,
-	    &usb_template_cdce.idVendor, 1, "Vendor identifier");
+	    "vendor_id", CTLFLAG_RWTUN, &usb_template_cdce.idVendor, 1,
+	    "Vendor identifier");
 	SYSCTL_ADD_U16(&phone_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
-	    "product_id", CTLFLAG_RWTUN,
-	    &usb_template_cdce.idProduct, 1, "Product identifier");
+	    "product_id", CTLFLAG_RWTUN, &usb_template_cdce.idProduct, 1,
+	    "Product identifier");
 #if 0
 	SYSCTL_ADD_PROC(&phone_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
 	    "mixer", CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
@@ -484,8 +456,8 @@ phone_init(void *arg __unused)
 	    "A", "Manufacturer string");
 	SYSCTL_ADD_PROC(&phone_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
 	    "product", CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    &phone_product, sizeof(phone_product), usb_temp_sysctl,
-	    "A", "Product string");
+	    &phone_product, sizeof(phone_product), usb_temp_sysctl, "A",
+	    "Product string");
 	SYSCTL_ADD_PROC(&phone_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
 	    "serial_number", CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
 	    &phone_serial_number, sizeof(phone_serial_number), usb_temp_sysctl,

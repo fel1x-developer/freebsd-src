@@ -31,48 +31,47 @@
  */
 
 #include <sys/param.h>
-#include <sys/systm.h> 
-#include <sys/sysctl.h>
-#include <sys/malloc.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/kernel.h>
-#include <sys/errno.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
-
-#include <sys/linker.h>
+#include <sys/errno.h>
 #include <sys/firmware.h>
+#include <sys/kernel.h>
+#include <sys/linker.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mutex.h>
+#include <sys/socket.h>
+#include <sys/sockio.h>
+#include <sys/sysctl.h>
 
 #include <machine/bus.h>
 
+#include <dev/mwl/mwldiag.h>
 #include <dev/mwl/mwlhal.h>
 #include <dev/mwl/mwlreg.h>
 
-#include <sys/socket.h>
-#include <sys/sockio.h>
 #include <net/if.h>
-#include <dev/mwl/mwldiag.h>
 
-#define	MWLHAL_DEBUG			/* debug msgs */
+#define MWLHAL_DEBUG /* debug msgs */
 
 typedef enum {
-    WL_ANTENNAMODE_RX = 0xffff,
-    WL_ANTENNAMODE_TX = 2,
+	WL_ANTENNAMODE_RX = 0xffff,
+	WL_ANTENNAMODE_TX = 2,
 } wlantennamode_e;
 
 typedef enum {
-    WL_TX_POWERLEVEL_LOW = 5,
-    WL_TX_POWERLEVEL_MEDIUM = 10,
-    WL_TX_POWERLEVEL_HIGH = 15,
+	WL_TX_POWERLEVEL_LOW = 5,
+	WL_TX_POWERLEVEL_MEDIUM = 10,
+	WL_TX_POWERLEVEL_HIGH = 15,
 } wltxpowerlevel_e;
 
-#define	MWL_CMDBUF_SIZE	0x4000		/* size of f/w command buffer */
-#define	MWL_BASTREAMS_MAX	7	/* max BA streams (NB: fw >3.3.5.9) */
-#define	MWL_BAQID_MAX		8	/* max BA Q id's (NB: fw >3.3.5.9) */
-#define	MWL_MBSS_AP_MAX		8	/* max ap vap's */
-#define	MWL_MBSS_STA_MAX	24	/* max station/client vap's */
-#define	MWL_MBSS_MAX	(MWL_MBSS_AP_MAX+MWL_MBSS_STA_MAX)
+#define MWL_CMDBUF_SIZE 0x4000 /* size of f/w command buffer */
+#define MWL_BASTREAMS_MAX 7    /* max BA streams (NB: fw >3.3.5.9) */
+#define MWL_BAQID_MAX 8	       /* max BA Q id's (NB: fw >3.3.5.9) */
+#define MWL_MBSS_AP_MAX 8      /* max ap vap's */
+#define MWL_MBSS_STA_MAX 24    /* max station/client vap's */
+#define MWL_MBSS_MAX (MWL_MBSS_AP_MAX + MWL_MBSS_STA_MAX)
 
 /*
  * BA stream -> queue ID mapping
@@ -81,59 +80,61 @@ typedef enum {
  * implemented in firmware.
  */
 static const int ba2qid[MWL_BASTREAMS_MAX] = {
-	5, 6				/* h/w supported */
+	5, 6 /* h/w supported */
 #if MWL_BASTREAMS_MAX == 7
-	, 7, 0, 1, 2, 3 		/* f/w supported */
+	,
+	7, 0, 1, 2, 3 /* f/w supported */
 #endif
 };
 static int qid2ba[MWL_BAQID_MAX];
 
-#define	IEEE80211_ADDR_LEN	6	/* XXX */
-#define	IEEE80211_ADDR_COPY(_dst, _src) \
-	memcpy(_dst, _src, IEEE80211_ADDR_LEN)
-#define	IEEE80211_ADDR_EQ(_dst, _src) \
+#define IEEE80211_ADDR_LEN 6 /* XXX */
+#define IEEE80211_ADDR_COPY(_dst, _src) memcpy(_dst, _src, IEEE80211_ADDR_LEN)
+#define IEEE80211_ADDR_EQ(_dst, _src) \
 	(memcmp(_dst, _src, IEEE80211_ADDR_LEN) == 0)
 
-#define	_CMD_SETUP(pCmd, type, cmd) do {				\
-	pCmd = (type *)&mh->mh_cmdbuf[0];				\
-	memset(pCmd, 0, sizeof(type));					\
-	pCmd->CmdHdr.Cmd = htole16(cmd);				\
-	pCmd->CmdHdr.Length = htole16(sizeof(type));			\
-} while (0)
+#define _CMD_SETUP(pCmd, type, cmd)                          \
+	do {                                                 \
+		pCmd = (type *)&mh->mh_cmdbuf[0];            \
+		memset(pCmd, 0, sizeof(type));               \
+		pCmd->CmdHdr.Cmd = htole16(cmd);             \
+		pCmd->CmdHdr.Length = htole16(sizeof(type)); \
+	} while (0)
 
-#define	_VCMD_SETUP(vap, pCmd, type, cmd) do {				\
-	_CMD_SETUP(pCmd, type, cmd);					\
-	pCmd->CmdHdr.MacId = vap->macid;				\
-} while (0)
+#define _VCMD_SETUP(vap, pCmd, type, cmd)        \
+	do {                                     \
+		_CMD_SETUP(pCmd, type, cmd);     \
+		pCmd->CmdHdr.MacId = vap->macid; \
+	} while (0)
 
-#define	PWTAGETRATETABLE20M	14*4
-#define	PWTAGETRATETABLE40M	9*4
-#define	PWTAGETRATETABLE20M_5G	35*4
-#define	PWTAGETRATETABLE40M_5G	16*4
+#define PWTAGETRATETABLE20M 14 * 4
+#define PWTAGETRATETABLE40M 9 * 4
+#define PWTAGETRATETABLE20M_5G 35 * 4
+#define PWTAGETRATETABLE40M_5G 16 * 4
 
 struct mwl_hal_bastream {
-	MWL_HAL_BASTREAM public;	/* public state */
-	uint8_t	stream;			/* stream # */
-	uint8_t	setup;			/* f/w cmd sent */
-	uint8_t ba_policy;		/* direct/delayed BA policy */
-	uint8_t	tid;
-	uint8_t	paraminfo;
+	MWL_HAL_BASTREAM public; /* public state */
+	uint8_t stream;		 /* stream # */
+	uint8_t setup;		 /* f/w cmd sent */
+	uint8_t ba_policy;	 /* direct/delayed BA policy */
+	uint8_t tid;
+	uint8_t paraminfo;
 	uint8_t macaddr[IEEE80211_ADDR_LEN];
 };
 
 struct mwl_hal_priv;
 
 struct mwl_hal_vap {
-	struct mwl_hal_priv *mh;	/* back pointer */
-	uint16_t bss_type;		/* f/w type */
-	uint8_t vap_type;		/* MWL_HAL_BSSTYPE */
-	uint8_t	macid;			/* for passing to f/w */
+	struct mwl_hal_priv *mh; /* back pointer */
+	uint16_t bss_type;	 /* f/w type */
+	uint8_t vap_type;	 /* MWL_HAL_BSSTYPE */
+	uint8_t macid;		 /* for passing to f/w */
 	uint8_t flags;
-#define	MVF_RUNNING	0x01		/* BSS_START issued */
-#define	MVF_STATION	0x02		/* sta db entry created */
-	uint8_t mac[IEEE80211_ADDR_LEN];/* mac address */
+#define MVF_RUNNING 0x01		 /* BSS_START issued */
+#define MVF_STATION 0x02		 /* sta db entry created */
+	uint8_t mac[IEEE80211_ADDR_LEN]; /* mac address */
 };
-#define	MWLVAP(_vap)	((_vap)->mh)
+#define MWLVAP(_vap) ((_vap)->mh)
 
 /*
  * Per-device state.  We allocate a single cmd buffer for
@@ -149,39 +150,39 @@ struct mwl_hal_vap {
  * to finish.
  */
 struct mwl_hal_priv {
-	struct mwl_hal	public;		/* public area */
-	device_t	mh_dev;
-	char		mh_mtxname[12];
-	struct mtx	mh_mtx;
-	bus_dma_tag_t	mh_dmat;	/* bus DMA tag for cmd buffer */
-	bus_dma_segment_t mh_seg;	/* segment for cmd buffer */
-	bus_dmamap_t	mh_dmamap;	/* DMA map for cmd buffer */
-	uint16_t	*mh_cmdbuf;	/* f/w cmd buffer */
-	bus_addr_t	mh_cmdaddr;	/* physaddr of cmd buffer */
-	int		mh_flags;
-#define	MHF_CALDATA	0x0001		/* cal data retrieved */
-#define	MHF_FWHANG	0x0002		/* fw appears hung */
-#define	MHF_MBSS	0x0004		/* mbss enabled */
-	struct mwl_hal_vap mh_vaps[MWL_MBSS_MAX+1];
-	int		mh_bastreams;	/* bit mask of available BA streams */
-	int		mh_regioncode;	/* XXX last region code sent to fw */
+	struct mwl_hal public; /* public area */
+	device_t mh_dev;
+	char mh_mtxname[12];
+	struct mtx mh_mtx;
+	bus_dma_tag_t mh_dmat;	  /* bus DMA tag for cmd buffer */
+	bus_dma_segment_t mh_seg; /* segment for cmd buffer */
+	bus_dmamap_t mh_dmamap;	  /* DMA map for cmd buffer */
+	uint16_t *mh_cmdbuf;	  /* f/w cmd buffer */
+	bus_addr_t mh_cmdaddr;	  /* physaddr of cmd buffer */
+	int mh_flags;
+#define MHF_CALDATA 0x0001 /* cal data retrieved */
+#define MHF_FWHANG 0x0002  /* fw appears hung */
+#define MHF_MBSS 0x0004	   /* mbss enabled */
+	struct mwl_hal_vap mh_vaps[MWL_MBSS_MAX + 1];
+	int mh_bastreams;  /* bit mask of available BA streams */
+	int mh_regioncode; /* XXX last region code sent to fw */
 	struct mwl_hal_bastream mh_streams[MWL_BASTREAMS_MAX];
-	int		mh_debug;
+	int mh_debug;
 	MWL_HAL_CHANNELINFO mh_20M;
 	MWL_HAL_CHANNELINFO mh_40M;
 	MWL_HAL_CHANNELINFO mh_20M_5G;
 	MWL_HAL_CHANNELINFO mh_40M_5G;
-	int		mh_SDRAMSIZE_Addr;
-	uint32_t	mh_RTSSuccesses;/* cumulative stats for read-on-clear */
-	uint32_t	mh_RTSFailures;
-	uint32_t	mh_RxDuplicateFrames;
-	uint32_t	mh_FCSErrorCount;
-	MWL_DIAG_REVS	mh_revs;
+	int mh_SDRAMSIZE_Addr;
+	uint32_t mh_RTSSuccesses; /* cumulative stats for read-on-clear */
+	uint32_t mh_RTSFailures;
+	uint32_t mh_RxDuplicateFrames;
+	uint32_t mh_FCSErrorCount;
+	MWL_DIAG_REVS mh_revs;
 };
-#define	MWLPRIV(_mh)	((struct mwl_hal_priv *)(_mh))
+#define MWLPRIV(_mh) ((struct mwl_hal_priv *)(_mh))
 
 static int mwl_hal_setmac_locked(struct mwl_hal_vap *,
-	const uint8_t addr[IEEE80211_ADDR_LEN]);
+    const uint8_t addr[IEEE80211_ADDR_LEN]);
 static int mwlExecuteCmd(struct mwl_hal_priv *, unsigned short cmd);
 static int mwlGetPwrCalTable(struct mwl_hal_priv *);
 #ifdef MWLHAL_DEBUG
@@ -226,7 +227,7 @@ WR4(struct mwl_hal_priv *mh, bus_size_t off, uint32_t val)
 static void
 mwl_hal_load_cb(void *arg, bus_dma_segment_t *segs, int nsegs, int error)
 {
-	bus_addr_t *paddr = (bus_addr_t*) arg;
+	bus_addr_t *paddr = (bus_addr_t *)arg;
 	KASSERT(error == 0, ("error %u on bus_dma callback", error));
 	*paddr = segs->ds_addr;
 }
@@ -240,8 +241,8 @@ mwl_hal_load_cb(void *arg, bus_dma_segment_t *segs, int nsegs, int error)
  * in BAR 1; the driver passes in the tag and handle we need.
  */
 struct mwl_hal *
-mwl_hal_attach(device_t dev, uint16_t devid,
-    bus_space_handle_t ioh, bus_space_tag_t iot, bus_dma_tag_t tag)
+mwl_hal_attach(device_t dev, uint16_t devid, bus_space_handle_t ioh,
+    bus_space_tag_t iot, bus_dma_tag_t tag)
 {
 	struct mwl_hal_priv *mh;
 	struct mwl_hal_vap *hvap;
@@ -260,8 +261,10 @@ mwl_hal_attach(device_t dev, uint16_t devid,
 		if (mh->mh_streams[i].public.txq < MWL_BAQID_MAX)
 			qid2ba[mh->mh_streams[i].public.txq] = i;
 		else
-			device_printf(dev, "unexpected BA tx qid %d for "
-			    "stream %d\n", mh->mh_streams[i].public.txq, i);
+			device_printf(dev,
+			    "unexpected BA tx qid %d for "
+			    "stream %d\n",
+			    mh->mh_streams[i].public.txq, i);
 	}
 	/* setup constant portion of vap state */
 	/* XXX should get max ap/client vap's from f/w */
@@ -287,8 +290,8 @@ mwl_hal_attach(device_t dev, uint16_t devid,
 		hvap->macid = i;
 	}
 	mh->mh_revs.mh_devid = devid;
-	snprintf(mh->mh_mtxname, sizeof(mh->mh_mtxname),
-	    "%s_hal", device_get_nameunit(dev));
+	snprintf(mh->mh_mtxname, sizeof(mh->mh_mtxname), "%s_hal",
+	    device_get_nameunit(dev));
 	mtx_init(&mh->mh_mtx, mh->mh_mtxname, NULL, MTX_DEF);
 
 	/*
@@ -296,41 +299,42 @@ mwl_hal_attach(device_t dev, uint16_t devid,
 	 * space of the h/w.  We request "coherent" memory which
 	 * will be uncached on some architectures.
 	 */
-	error = bus_dma_tag_create(tag,		/* parent */
-		       PAGE_SIZE, 0,		/* alignment, bounds */
-		       BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-		       BUS_SPACE_MAXADDR,	/* highaddr */
-		       NULL, NULL,		/* filter, filterarg */
-		       MWL_CMDBUF_SIZE,		/* maxsize */
-		       1,			/* nsegments */
-		       MWL_CMDBUF_SIZE,		/* maxsegsize */
-		       BUS_DMA_ALLOCNOW,	/* flags */
-		       NULL,			/* lockfunc */
-		       NULL,			/* lockarg */
-		       &mh->mh_dmat);
+	error = bus_dma_tag_create(tag, /* parent */
+	    PAGE_SIZE, 0,		/* alignment, bounds */
+	    BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
+	    BUS_SPACE_MAXADDR,		/* highaddr */
+	    NULL, NULL,			/* filter, filterarg */
+	    MWL_CMDBUF_SIZE,		/* maxsize */
+	    1,				/* nsegments */
+	    MWL_CMDBUF_SIZE,		/* maxsegsize */
+	    BUS_DMA_ALLOCNOW,		/* flags */
+	    NULL,			/* lockfunc */
+	    NULL,			/* lockarg */
+	    &mh->mh_dmat);
 	if (error != 0) {
-		device_printf(dev, "unable to allocate memory for cmd tag, "
-			"error %u\n", error);
+		device_printf(dev,
+		    "unable to allocate memory for cmd tag, "
+		    "error %u\n",
+		    error);
 		goto fail0;
 	}
 
 	/* allocate descriptors */
-	error = bus_dmamem_alloc(mh->mh_dmat, (void**) &mh->mh_cmdbuf,
-				 BUS_DMA_NOWAIT | BUS_DMA_COHERENT, 
-				 &mh->mh_dmamap);
+	error = bus_dmamem_alloc(mh->mh_dmat, (void **)&mh->mh_cmdbuf,
+	    BUS_DMA_NOWAIT | BUS_DMA_COHERENT, &mh->mh_dmamap);
 	if (error != 0) {
-		device_printf(dev, "unable to allocate memory for cmd buffer, "
-			"error %u\n", error);
+		device_printf(dev,
+		    "unable to allocate memory for cmd buffer, "
+		    "error %u\n",
+		    error);
 		goto fail1;
 	}
 
-	error = bus_dmamap_load(mh->mh_dmat, mh->mh_dmamap,
-				mh->mh_cmdbuf, MWL_CMDBUF_SIZE,
-				mwl_hal_load_cb, &mh->mh_cmdaddr,
-				BUS_DMA_NOWAIT);
+	error = bus_dmamap_load(mh->mh_dmat, mh->mh_dmamap, mh->mh_cmdbuf,
+	    MWL_CMDBUF_SIZE, mwl_hal_load_cb, &mh->mh_cmdaddr, BUS_DMA_NOWAIT);
 	if (error != 0) {
 		device_printf(dev, "unable to load cmd buffer, error %u\n",
-			error);
+		    error);
 		goto fail2;
 	}
 
@@ -341,15 +345,15 @@ mwl_hal_attach(device_t dev, uint16_t devid,
 	 * mwl_hal_fwload.
 	 */
 	switch (devid) {
-	case 0x2a02:		/* CB82 */
-	case 0x2a03:		/* CB85 */
-	case 0x2a08:		/* MC85_B1 */
-	case 0x2a0b:		/* CB85AP */
+	case 0x2a02: /* CB82 */
+	case 0x2a03: /* CB85 */
+	case 0x2a08: /* MC85_B1 */
+	case 0x2a0b: /* CB85AP */
 	case 0x2a24:
-		mh->mh_SDRAMSIZE_Addr = 0x40fe70b7;	/* 8M SDRAM */
+		mh->mh_SDRAMSIZE_Addr = 0x40fe70b7; /* 8M SDRAM */
 		break;
-	case 0x2a04:		/* MC85 */
-		mh->mh_SDRAMSIZE_Addr = 0x40fc70b7;	/* 16M SDRAM */
+	case 0x2a04:				    /* MC85 */
+		mh->mh_SDRAMSIZE_Addr = 0x40fc70b7; /* 16M SDRAM */
 		break;
 	default:
 		break;
@@ -385,7 +389,7 @@ mwlResetHalState(struct mwl_hal_priv *mh)
 	int i;
 
 	/* XXX get from f/w */
-	mh->mh_bastreams = (1<<MWL_BASTREAMS_MAX)-1;
+	mh->mh_bastreams = (1 << MWL_BASTREAMS_MAX) - 1;
 	for (i = 0; i < MWL_MBSS_MAX; i++)
 		mh->mh_vaps[i].mh = NULL;
 	/*
@@ -407,7 +411,7 @@ mwlResetHalState(struct mwl_hal_priv *mh)
 
 struct mwl_hal_vap *
 mwl_hal_newvap(struct mwl_hal *mh0, MWL_HAL_BSSTYPE type,
-	const uint8_t mac[IEEE80211_ADDR_LEN])
+    const uint8_t mac[IEEE80211_ADDR_LEN])
 {
 	struct mwl_hal_priv *mh = MWLPRIV(mh0);
 	struct mwl_hal_vap *vap;
@@ -455,7 +459,7 @@ mwl_hal_getdebug(struct mwl_hal *mh)
 void
 mwl_hal_setbastreams(struct mwl_hal *mh, int mask)
 {
-	MWLPRIV(mh)->mh_bastreams = mask & ((1<<MWL_BASTREAMS_MAX)-1);
+	MWLPRIV(mh)->mh_bastreams = mask & ((1 << MWL_BASTREAMS_MAX) - 1);
 }
 
 int
@@ -564,7 +568,7 @@ mwl_hal_gethwspecs(struct mwl_hal *mh0, struct mwl_hal_hwspec *hw)
 	MWL_HAL_LOCK(mh);
 	_CMD_SETUP(pCmd, HostCmd_DS_GET_HW_SPEC, HostCmd_CMD_GET_HW_SPEC);
 	memset(&pCmd->PermanentAddr[0], 0xff, IEEE80211_ADDR_LEN);
-	pCmd->ulFwAwakeCookie = htole32((unsigned int)mh->mh_cmdaddr+2048);
+	pCmd->ulFwAwakeCookie = htole32((unsigned int)mh->mh_cmdaddr + 2048);
 
 	retval = mwlExecuteCmd(mh, HostCmd_CMD_GET_HW_SPEC);
 	if (retval == 0) {
@@ -573,8 +577,8 @@ mwl_hal_gethwspecs(struct mwl_hal *mh0, struct mwl_hal_hwspec *hw)
 		hw->wcbBase[1] = le32toh(pCmd->WcbBase1[0]) & 0x0000ffff;
 		hw->wcbBase[2] = le32toh(pCmd->WcbBase1[1]) & 0x0000ffff;
 		hw->wcbBase[3] = le32toh(pCmd->WcbBase1[2]) & 0x0000ffff;
-		hw->rxDescRead = le32toh(pCmd->RxPdRdPtr)& 0x0000ffff;
-		hw->rxDescWrite = le32toh(pCmd->RxPdWrPtr)& 0x0000ffff;
+		hw->rxDescRead = le32toh(pCmd->RxPdRdPtr) & 0x0000ffff;
+		hw->rxDescWrite = le32toh(pCmd->RxPdWrPtr) & 0x0000ffff;
 		hw->regionCode = le16toh(pCmd->RegionCode) & 0x00ff;
 		hw->fwReleaseNumber = le32toh(pCmd->FWReleaseNumber);
 		hw->maxNumWCB = le16toh(pCmd->NumOfWCB);
@@ -583,15 +587,15 @@ mwl_hal_gethwspecs(struct mwl_hal *mh0, struct mwl_hal_hwspec *hw)
 		hw->hwVersion = pCmd->Version;
 		hw->hostInterface = pCmd->HostIf;
 
-		mh->mh_revs.mh_macRev = hw->hwVersion;		/* XXX */
-		mh->mh_revs.mh_phyRev = hw->hostInterface;	/* XXX */
+		mh->mh_revs.mh_macRev = hw->hwVersion;	   /* XXX */
+		mh->mh_revs.mh_phyRev = hw->hostInterface; /* XXX */
 
 		minrev = ((hw->fwReleaseNumber) >> 16) & 0xff;
 		if (minrev >= 4) {
 			/* starting with 3.4.x.x s/w BA streams supported */
-			mh->mh_bastreams &= (1<<MWL_BASTREAMS_MAX)-1;
+			mh->mh_bastreams &= (1 << MWL_BASTREAMS_MAX) - 1;
 		} else
-			mh->mh_bastreams &= (1<<2)-1;
+			mh->mh_bastreams &= (1 << 2) - 1;
 	}
 	MWL_HAL_UNLOCK(mh);
 	return retval;
@@ -617,13 +621,13 @@ mwl_hal_sethwdma(struct mwl_hal *mh0, const struct mwl_hal_txrxdma *dma)
 	pCmd->WcbBase[3] = htole32(dma->wcbBase[3]);
 	pCmd->TxWcbNumPerQueue = htole32(dma->maxNumTxWcb);
 	pCmd->NumTxQueues = htole32(dma->maxNumWCB);
-	pCmd->TotalRxWcb = htole32(1);		/* XXX */
+	pCmd->TotalRxWcb = htole32(1); /* XXX */
 	pCmd->RxPdWrPtr = htole32(dma->rxDescRead);
 	pCmd->Flags = htole32(SET_HW_SPEC_HOSTFORM_BEACON
 #ifdef MWL_HOST_PS_SUPPORT
-		    | SET_HW_SPEC_HOST_POWERSAVE
+	    | SET_HW_SPEC_HOST_POWERSAVE
 #endif
-		    | SET_HW_SPEC_HOSTFORM_PROBERESP);
+	    | SET_HW_SPEC_HOSTFORM_PROBERESP);
 	/* disable multi-bss operation for A1-A4 parts */
 	if (mh->mh_revs.mh_macRev < 5)
 		pCmd->Flags |= htole32(SET_HW_SPEC_DISABLEMBSS);
@@ -652,7 +656,7 @@ mwl_hal_gethwstats(struct mwl_hal *mh0, struct mwl_hal_hwstats *stats)
 
 	MWL_HAL_LOCK(mh);
 	_CMD_SETUP(pCmd, HostCmd_DS_802_11_GET_STAT,
-		HostCmd_CMD_802_11_GET_STAT);
+	    HostCmd_CMD_802_11_GET_STAT);
 
 	retval = mwlExecuteCmd(mh, HostCmd_CMD_802_11_GET_STAT);
 	if (retval == 0) {
@@ -660,7 +664,7 @@ mwl_hal_gethwstats(struct mwl_hal *mh0, struct mwl_hal_hwstats *stats)
 		uint32_t *dp = (uint32_t *)&stats->TxRetrySuccesses;
 		int i;
 
-		for (i = 0; i < sizeof(*stats)/sizeof(uint32_t); i++)
+		for (i = 0; i < sizeof(*stats) / sizeof(uint32_t); i++)
 			dp[i] = le32toh(sp[i]);
 		/*
 		 * Update stats not returned by f/w but available
@@ -695,7 +699,7 @@ mwl_hal_sethtgi(struct mwl_hal_vap *vap, int GIType)
 
 	MWL_HAL_LOCK(mh);
 	_VCMD_SETUP(vap, pCmd, HostCmd_FW_HT_GUARD_INTERVAL,
-		HostCmd_CMD_HT_GUARD_INTERVAL);
+	    HostCmd_CMD_HT_GUARD_INTERVAL);
 	pCmd->Action = htole32(HostCmd_ACT_GEN_SET);
 
 	if (GIType == 0) {
@@ -725,7 +729,7 @@ mwl_hal_setradio(struct mwl_hal *mh0, int onoff, MWL_HAL_PREAMBLE preamble)
 
 	MWL_HAL_LOCK(mh);
 	_CMD_SETUP(pCmd, HostCmd_DS_802_11_RADIO_CONTROL,
-		HostCmd_CMD_802_11_RADIO_CONTROL);
+	    HostCmd_CMD_802_11_RADIO_CONTROL);
 	pCmd->Action = htole16(HostCmd_ACT_GEN_SET);
 	if (onoff == 0)
 		pCmd->Control = 0;
@@ -756,9 +760,9 @@ mwl_hal_setantenna(struct mwl_hal *mh0, MWL_HAL_ANTENNA dirSet, int ant)
 
 	MWL_HAL_LOCK(mh);
 	_CMD_SETUP(pCmd, HostCmd_DS_802_11_RF_ANTENNA,
-		HostCmd_CMD_802_11_RF_ANTENNA);
+	    HostCmd_CMD_802_11_RF_ANTENNA);
 	pCmd->Action = htole16(dirSet);
-	if (ant == 0)			/* default to all/both antennae */
+	if (ant == 0) /* default to all/both antennae */
 		ant = 3;
 	pCmd->AntennaMode = htole16(ant);
 
@@ -781,8 +785,8 @@ mwl_hal_setrtsthreshold(struct mwl_hal_vap *vap, int threshold)
 
 	MWL_HAL_LOCK(mh);
 	_VCMD_SETUP(vap, pCmd, HostCmd_DS_802_11_RTS_THSD,
-		HostCmd_CMD_802_11_RTS_THSD);
-	pCmd->Action  = htole16(HostCmd_ACT_GEN_SET);
+	    HostCmd_CMD_802_11_RTS_THSD);
+	pCmd->Action = htole16(HostCmd_ACT_GEN_SET);
 	pCmd->Threshold = htole16(threshold);
 
 	retval = mwlExecuteCmd(mh, HostCmd_CMD_802_11_RTS_THSD);
@@ -802,7 +806,7 @@ mwl_hal_setinframode(struct mwl_hal_vap *vap)
 
 	MWL_HAL_LOCK(mh);
 	_VCMD_SETUP(vap, pCmd, HostCmd_FW_SET_INFRA_MODE,
-		HostCmd_CMD_SET_INFRA_MODE);
+	    HostCmd_CMD_SET_INFRA_MODE);
 
 	retval = mwlExecuteCmd(mh, HostCmd_CMD_SET_INFRA_MODE);
 	MWL_HAL_UNLOCK(mh);
@@ -821,7 +825,7 @@ mwl_hal_setradardetection(struct mwl_hal *mh0, MWL_HAL_RADAR action)
 
 	MWL_HAL_LOCK(mh);
 	_CMD_SETUP(pCmd, HostCmd_802_11h_Detect_Radar,
-		HostCmd_CMD_802_11H_DETECT_RADAR);
+	    HostCmd_CMD_802_11H_DETECT_RADAR);
 	pCmd->CmdHdr.Length = htole16(sizeof(HostCmd_802_11h_Detect_Radar));
 	pCmd->Action = htole16(action);
 	if (mh->mh_regioncode == DOMAIN_CODE_ETSI_131)
@@ -830,7 +834,7 @@ mwl_hal_setradardetection(struct mwl_hal *mh0, MWL_HAL_RADAR action)
 	retval = mwlExecuteCmd(mh, HostCmd_CMD_802_11H_DETECT_RADAR);
 	MWL_HAL_UNLOCK(mh);
 	return retval;
-} 
+}
 
 /*
  * Convert public channel flags definition to a
@@ -847,7 +851,8 @@ cvtChannelFlags(const MWL_HAL_CHANNEL *chan)
 	 *     precise band info causes it to lockup (sometimes).
 	 */
 	w = (chan->channelFlags.FreqBand == MWL_FREQ_BAND_2DOT4GHZ) ?
-		FREQ_BAND_2DOT4GHZ : FREQ_BAND_5GHZ;
+	    FREQ_BAND_2DOT4GHZ :
+	    FREQ_BAND_5GHZ;
 	switch (chan->channelFlags.ChnlWidth) {
 	case MWL_CH_10_MHz_WIDTH:
 		w |= CH_10_MHz_WIDTH;
@@ -881,8 +886,8 @@ cvtChannelFlags(const MWL_HAL_CHANNEL *chan)
  * channels.
  */
 int
-mwl_hal_setchannelswitchie(struct mwl_hal *mh0,
-	const MWL_HAL_CHANNEL *nextchan, uint32_t mode, uint32_t count)
+mwl_hal_setchannelswitchie(struct mwl_hal *mh0, const MWL_HAL_CHANNEL *nextchan,
+    uint32_t mode, uint32_t count)
 {
 	struct mwl_hal_priv *mh = MWLPRIV(mh0);
 	HostCmd_SET_SWITCH_CHANNEL *pCmd;
@@ -890,10 +895,10 @@ mwl_hal_setchannelswitchie(struct mwl_hal *mh0,
 
 	MWL_HAL_LOCK(mh);
 	_CMD_SETUP(pCmd, HostCmd_SET_SWITCH_CHANNEL,
-		HostCmd_CMD_SET_SWITCH_CHANNEL);
+	    HostCmd_CMD_SET_SWITCH_CHANNEL);
 	pCmd->Next11hChannel = htole32(nextchan->channel);
 	pCmd->Mode = htole32(mode);
-	pCmd->InitialCount = htole32(count+1);
+	pCmd->InitialCount = htole32(count + 1);
 	pCmd->ChannelFlags = cvtChannelFlags(nextchan);
 
 	retval = mwlExecuteCmd(mh, HostCmd_CMD_SET_SWITCH_CHANNEL);
@@ -913,7 +918,7 @@ mwl_hal_setregioncode(struct mwl_hal *mh0, int regionCode)
 
 	MWL_HAL_LOCK(mh);
 	_CMD_SETUP(pCmd, HostCmd_SET_REGIONCODE_INFO,
-		HostCmd_CMD_SET_REGION_CODE);
+	    HostCmd_CMD_SET_REGION_CODE);
 	/* XXX map pseudo-codes to fw codes */
 	switch (regionCode) {
 	case DOMAIN_CODE_ETSI_131:
@@ -931,12 +936,12 @@ mwl_hal_setregioncode(struct mwl_hal *mh0, int regionCode)
 	return retval;
 }
 
-#define	RATEVAL(r)	((r) &~ RATE_MCS)
-#define	RATETYPE(r)	(((r) & RATE_MCS) ? HT_RATE_TYPE : LEGACY_RATE_TYPE)
+#define RATEVAL(r) ((r) & ~RATE_MCS)
+#define RATETYPE(r) (((r) & RATE_MCS) ? HT_RATE_TYPE : LEGACY_RATE_TYPE)
 
 int
 mwl_hal_settxrate(struct mwl_hal_vap *vap, MWL_HAL_TXRATE_HANDLING handling,
-	const MWL_HAL_TXRATE *rate)
+    const MWL_HAL_TXRATE *rate)
 {
 	struct mwl_hal_priv *mh = MWLVAP(vap);
 	HostCmd_FW_USE_FIXED_RATE *pCmd;
@@ -945,7 +950,7 @@ mwl_hal_settxrate(struct mwl_hal_vap *vap, MWL_HAL_TXRATE_HANDLING handling,
 
 	MWL_HAL_LOCK(mh);
 	_VCMD_SETUP(vap, pCmd, HostCmd_FW_USE_FIXED_RATE,
-		HostCmd_CMD_SET_FIXED_RATE);
+	    HostCmd_CMD_SET_FIXED_RATE);
 
 	pCmd->MulticastRate = RATEVAL(rate->McastRate);
 	pCmd->MultiRateTxType = RATETYPE(rate->McastRate);
@@ -956,10 +961,9 @@ mwl_hal_settxrate(struct mwl_hal_vap *vap, MWL_HAL_TXRATE_HANDLING handling,
 		pCmd->Action = htole32(HostCmd_ACT_GEN_SET);
 		pCmd->AllowRateDrop = htole32(FIXED_RATE_WITHOUT_AUTORATE_DROP);
 		fp = pCmd->FixedRateTable;
-		fp->FixedRate =
-		    htole32(RATEVAL(rate->RateSeries[0].Rate));
-		fp->FixRateTypeFlags.FixRateType =
-		    htole32(RATETYPE(rate->RateSeries[0].Rate));
+		fp->FixedRate = htole32(RATEVAL(rate->RateSeries[0].Rate));
+		fp->FixRateTypeFlags.FixRateType = htole32(
+		    RATETYPE(rate->RateSeries[0].Rate));
 		pCmd->EntryCount = htole32(1);
 	} else if (handling == RATE_FIXED_DROP) {
 		pCmd->Action = htole32(HostCmd_ACT_GEN_SET);
@@ -969,18 +973,18 @@ mwl_hal_settxrate(struct mwl_hal_vap *vap, MWL_HAL_TXRATE_HANDLING handling,
 		for (i = 0; i < 4; i++) {
 			if (rate->RateSeries[0].TryCount == 0)
 				break;
-			fp->FixRateTypeFlags.FixRateType =
-			    htole32(RATETYPE(rate->RateSeries[i].Rate));
-			fp->FixedRate =
-			    htole32(RATEVAL(rate->RateSeries[i].Rate));
-			fp->FixRateTypeFlags.RetryCountValid =
-			    htole32(RETRY_COUNT_VALID);
-			fp->RetryCount =
-			    htole32(rate->RateSeries[i].TryCount-1);
+			fp->FixRateTypeFlags.FixRateType = htole32(
+			    RATETYPE(rate->RateSeries[i].Rate));
+			fp->FixedRate = htole32(
+			    RATEVAL(rate->RateSeries[i].Rate));
+			fp->FixRateTypeFlags.RetryCountValid = htole32(
+			    RETRY_COUNT_VALID);
+			fp->RetryCount = htole32(
+			    rate->RateSeries[i].TryCount - 1);
 			n++;
 		}
 		pCmd->EntryCount = htole32(n);
-	} else 
+	} else
 		pCmd->Action = htole32(HostCmd_ACT_NOT_USE_FIXED_RATE);
 
 	retval = mwlExecuteCmd(mh, HostCmd_CMD_SET_FIXED_RATE);
@@ -996,8 +1000,7 @@ mwl_hal_settxrate_auto(struct mwl_hal *mh0, const MWL_HAL_TXRATE *rate)
 	int retval;
 
 	MWL_HAL_LOCK(mh);
-	_CMD_SETUP(pCmd, HostCmd_FW_USE_FIXED_RATE,
-		HostCmd_CMD_SET_FIXED_RATE);
+	_CMD_SETUP(pCmd, HostCmd_FW_USE_FIXED_RATE, HostCmd_CMD_SET_FIXED_RATE);
 
 	pCmd->MulticastRate = RATEVAL(rate->McastRate);
 	pCmd->MultiRateTxType = RATETYPE(rate->McastRate);
@@ -1025,8 +1028,7 @@ mwl_hal_setslottime(struct mwl_hal *mh0, int usecs)
 		return EINVAL;
 
 	MWL_HAL_LOCK(mh);
-	_CMD_SETUP(pCmd, HostCmd_FW_SET_SLOT,
-	    HostCmd_CMD_802_11_SET_SLOT);
+	_CMD_SETUP(pCmd, HostCmd_FW_SET_SLOT, HostCmd_CMD_802_11_SET_SLOT);
 	pCmd->Action = htole16(HostCmd_ACT_GEN_SET);
 	pCmd->Slot = (usecs == 9 ? 1 : 0);
 
@@ -1071,7 +1073,8 @@ findchannel(const struct mwl_hal_priv *mh, const MWL_HAL_CHANNEL *c)
 		i = chan - 1;
 		if (c->channelFlags.ChnlWidth == MWL_CH_40_MHz_WIDTH) {
 			ci = &mh->mh_40M;
-			if (c->channelFlags.ExtChnlOffset == MWL_EXT_CH_BELOW_CTRL_CH)
+			if (c->channelFlags.ExtChnlOffset ==
+			    MWL_EXT_CH_BELOW_CTRL_CH)
 				i -= 4;
 		} else
 			ci = &mh->mh_20M;
@@ -1080,7 +1083,8 @@ findchannel(const struct mwl_hal_priv *mh, const MWL_HAL_CHANNEL *c)
 	} else if (c->channelFlags.FreqBand == MWL_FREQ_BAND_5GHZ) {
 		if (c->channelFlags.ChnlWidth == MWL_CH_40_MHz_WIDTH) {
 			ci = &mh->mh_40M_5G;
-			if (c->channelFlags.ExtChnlOffset == MWL_EXT_CH_BELOW_CTRL_CH)
+			if (c->channelFlags.ExtChnlOffset ==
+			    MWL_EXT_CH_BELOW_CTRL_CH)
 				chan -= 4;
 		} else
 			ci = &mh->mh_20M_5G;
@@ -1095,7 +1099,8 @@ findchannel(const struct mwl_hal_priv *mh, const MWL_HAL_CHANNEL *c)
 }
 
 int
-mwl_hal_settxpower(struct mwl_hal *mh0, const MWL_HAL_CHANNEL *c, uint8_t maxtxpow)
+mwl_hal_settxpower(struct mwl_hal *mh0, const MWL_HAL_CHANNEL *c,
+    uint8_t maxtxpow)
 {
 	struct mwl_hal_priv *mh = MWLPRIV(mh0);
 	HostCmd_DS_802_11_RF_TX_POWER *pCmd;
@@ -1133,7 +1138,7 @@ mwl_hal_settxpower(struct mwl_hal *mh0, const MWL_HAL_CHANNEL *c, uint8_t maxtxp
 
 int
 mwl_hal_getchannelinfo(struct mwl_hal *mh0, int band, int chw,
-	const MWL_HAL_CHANNELINFO **ci)
+    const MWL_HAL_CHANNELINFO **ci)
 {
 	struct mwl_hal_priv *mh = MWLPRIV(mh0);
 
@@ -1142,8 +1147,8 @@ mwl_hal_getchannelinfo(struct mwl_hal *mh0, int band, int chw,
 		*ci = (chw == MWL_CH_20_MHz_WIDTH) ? &mh->mh_20M : &mh->mh_40M;
 		break;
 	case MWL_FREQ_BAND_5GHZ:
-		*ci = (chw == MWL_CH_20_MHz_WIDTH) ?
-		     &mh->mh_20M_5G : &mh->mh_40M_5G;
+		*ci = (chw == MWL_CH_20_MHz_WIDTH) ? &mh->mh_20M_5G :
+						     &mh->mh_40M_5G;
 		break;
 	default:
 		return EINVAL;
@@ -1163,8 +1168,8 @@ mwl_hal_setmcast(struct mwl_hal *mh0, int nmc, const uint8_t macs[])
 
 	MWL_HAL_LOCK(mh);
 	_CMD_SETUP(pCmd, HostCmd_DS_MAC_MULTICAST_ADR,
-		HostCmd_CMD_MAC_MULTICAST_ADR);
-	memcpy(pCmd->MACList, macs, nmc*IEEE80211_ADDR_LEN);
+	    HostCmd_CMD_MAC_MULTICAST_ADR);
+	memcpy(pCmd->MACList, macs, nmc * IEEE80211_ADDR_LEN);
 	pCmd->NumOfAdrs = htole16(nmc);
 	pCmd->Action = htole16(0xffff);
 
@@ -1175,7 +1180,7 @@ mwl_hal_setmcast(struct mwl_hal *mh0, int nmc, const uint8_t macs[])
 
 int
 mwl_hal_keyset(struct mwl_hal_vap *vap, const MWL_HAL_KEYVAL *kv,
-	const uint8_t mac[IEEE80211_ADDR_LEN])
+    const uint8_t mac[IEEE80211_ADDR_LEN])
 {
 	struct mwl_hal_priv *mh = MWLVAP(vap);
 	HostCmd_FW_UPDATE_ENCRYPTION_SET_KEY *pCmd;
@@ -1183,8 +1188,8 @@ mwl_hal_keyset(struct mwl_hal_vap *vap, const MWL_HAL_KEYVAL *kv,
 
 	MWL_HAL_LOCK(mh);
 	_VCMD_SETUP(vap, pCmd, HostCmd_FW_UPDATE_ENCRYPTION_SET_KEY,
-		HostCmd_CMD_UPDATE_ENCRYPTION);
-	if (kv->keyFlags & (KEY_FLAG_TXGROUPKEY|KEY_FLAG_RXGROUPKEY))
+	    HostCmd_CMD_UPDATE_ENCRYPTION);
+	if (kv->keyFlags & (KEY_FLAG_TXGROUPKEY | KEY_FLAG_RXGROUPKEY))
 		pCmd->ActionType = htole32(EncrActionTypeSetGroupKey);
 	else
 		pCmd->ActionType = htole32(EncrActionTypeSetKey);
@@ -1200,14 +1205,14 @@ mwl_hal_keyset(struct mwl_hal_vap *vap, const MWL_HAL_KEYVAL *kv,
 		break;
 	case KEY_TYPE_ID_TKIP:
 		pCmd->KeyParam.KeyLen = htole16(sizeof(TKIP_TYPE_KEY));
-		pCmd->KeyParam.Key.TkipKey.TkipRsc.low =
-			htole16(kv->key.tkip.rsc.low);
-		pCmd->KeyParam.Key.TkipKey.TkipRsc.high =
-			htole32(kv->key.tkip.rsc.high);
-		pCmd->KeyParam.Key.TkipKey.TkipTsc.low =
-			htole16(kv->key.tkip.tsc.low);
-		pCmd->KeyParam.Key.TkipKey.TkipTsc.high =
-			htole32(kv->key.tkip.tsc.high);
+		pCmd->KeyParam.Key.TkipKey.TkipRsc.low = htole16(
+		    kv->key.tkip.rsc.low);
+		pCmd->KeyParam.Key.TkipKey.TkipRsc.high = htole32(
+		    kv->key.tkip.rsc.high);
+		pCmd->KeyParam.Key.TkipKey.TkipTsc.low = htole16(
+		    kv->key.tkip.tsc.low);
+		pCmd->KeyParam.Key.TkipKey.TkipTsc.high = htole32(
+		    kv->key.tkip.tsc.high);
 		break;
 	case KEY_TYPE_ID_AES:
 		pCmd->KeyParam.KeyLen = htole16(sizeof(AES_TYPE_KEY));
@@ -1224,7 +1229,8 @@ mwl_hal_keyset(struct mwl_hal_vap *vap, const MWL_HAL_KEYVAL *kv,
 }
 
 int
-mwl_hal_keyreset(struct mwl_hal_vap *vap, const MWL_HAL_KEYVAL *kv, const uint8_t mac[IEEE80211_ADDR_LEN])
+mwl_hal_keyreset(struct mwl_hal_vap *vap, const MWL_HAL_KEYVAL *kv,
+    const uint8_t mac[IEEE80211_ADDR_LEN])
 {
 	struct mwl_hal_priv *mh = MWLVAP(vap);
 	HostCmd_FW_UPDATE_ENCRYPTION_SET_KEY *pCmd;
@@ -1232,7 +1238,7 @@ mwl_hal_keyreset(struct mwl_hal_vap *vap, const MWL_HAL_KEYVAL *kv, const uint8_
 
 	MWL_HAL_LOCK(mh);
 	_VCMD_SETUP(vap, pCmd, HostCmd_FW_UPDATE_ENCRYPTION_SET_KEY,
-		HostCmd_CMD_UPDATE_ENCRYPTION);
+	    HostCmd_CMD_UPDATE_ENCRYPTION);
 	pCmd->ActionType = htole16(EncrActionTypeRemoveKey);
 	pCmd->KeyParam.Length = htole16(sizeof(pCmd->KeyParam));
 	pCmd->KeyParam.KeyTypeId = htole16(kv->keyTypeId);
@@ -1250,7 +1256,7 @@ mwl_hal_keyreset(struct mwl_hal_vap *vap, const MWL_HAL_KEYVAL *kv, const uint8_
 
 static int
 mwl_hal_setmac_locked(struct mwl_hal_vap *vap,
-	const uint8_t addr[IEEE80211_ADDR_LEN])
+    const uint8_t addr[IEEE80211_ADDR_LEN])
 {
 	struct mwl_hal_priv *mh = MWLVAP(vap);
 	HostCmd_DS_SET_MAC *pCmd;
@@ -1258,8 +1264,8 @@ mwl_hal_setmac_locked(struct mwl_hal_vap *vap,
 	_VCMD_SETUP(vap, pCmd, HostCmd_DS_SET_MAC, HostCmd_CMD_SET_MAC_ADDR);
 	IEEE80211_ADDR_COPY(&pCmd->MacAddr[0], addr);
 #ifdef MWL_MBSS_SUPPORT
-	pCmd->MacType = vap->bss_type;		/* NB: already byte swapped */
-	IEEE80211_ADDR_COPY(vap->mac, addr);	/* XXX do only if success */
+	pCmd->MacType = vap->bss_type;	     /* NB: already byte swapped */
+	IEEE80211_ADDR_COPY(vap->mac, addr); /* XXX do only if success */
 #endif
 	return mwlExecuteCmd(mh, HostCmd_CMD_SET_MAC_ADDR);
 }
@@ -1287,7 +1293,8 @@ mwl_hal_setbeacon(struct mwl_hal_vap *vap, const void *frame, size_t frameLen)
 	MWL_HAL_LOCK(mh);
 	_VCMD_SETUP(vap, pCmd, HostCmd_DS_SET_BEACON, HostCmd_CMD_SET_BEACON);
 	/* XXX override _VCMD_SETUP */
-	pCmd->CmdHdr.Length = htole16(sizeof(HostCmd_DS_SET_BEACON)-1+frameLen);
+	pCmd->CmdHdr.Length = htole16(
+	    sizeof(HostCmd_DS_SET_BEACON) - 1 + frameLen);
 	pCmd->FrmBodyLen = htole16(frameLen);
 	memcpy(pCmd->FrmBody, frame, frameLen);
 
@@ -1305,7 +1312,7 @@ mwl_hal_setpowersave_bss(struct mwl_hal_vap *vap, uint8_t nsta)
 
 	MWL_HAL_LOCK(mh);
 	_VCMD_SETUP(vap, pCmd, HostCmd_SET_POWERSAVESTATION,
-		HostCmd_CMD_SET_POWERSAVESTATION);
+	    HostCmd_CMD_SET_POWERSAVESTATION);
 	pCmd->NumberOfPowersave = nsta;
 
 	retval = mwlExecuteCmd(mh, HostCmd_CMD_SET_POWERSAVESTATION);
@@ -1332,10 +1339,10 @@ mwl_hal_setpowersave_sta(struct mwl_hal_vap *vap, uint16_t aid, int ena)
 
 int
 mwl_hal_setassocid(struct mwl_hal_vap *vap,
-	const uint8_t bssId[IEEE80211_ADDR_LEN], uint16_t assocId)
+    const uint8_t bssId[IEEE80211_ADDR_LEN], uint16_t assocId)
 {
 	struct mwl_hal_priv *mh = MWLVAP(vap);
-	HostCmd_FW_SET_AID *pCmd = (HostCmd_FW_SET_AID *) &mh->mh_cmdbuf[0];
+	HostCmd_FW_SET_AID *pCmd = (HostCmd_FW_SET_AID *)&mh->mh_cmdbuf[0];
 	int retval;
 
 	MWL_HAL_LOCK(mh);
@@ -1359,7 +1366,7 @@ mwl_hal_setchannel(struct mwl_hal *mh0, const MWL_HAL_CHANNEL *chan)
 	_CMD_SETUP(pCmd, HostCmd_FW_SET_RF_CHANNEL, HostCmd_CMD_SET_RF_CHANNEL);
 	pCmd->Action = htole16(HostCmd_ACT_GEN_SET);
 	pCmd->CurrentChannel = chan->channel;
-	pCmd->ChannelFlags = cvtChannelFlags(chan);	/* NB: byte-swapped */
+	pCmd->ChannelFlags = cvtChannelFlags(chan); /* NB: byte-swapped */
 
 	retval = mwlExecuteCmd(mh, HostCmd_CMD_SET_RF_CHANNEL);
 	MWL_HAL_UNLOCK(mh);
@@ -1368,8 +1375,7 @@ mwl_hal_setchannel(struct mwl_hal *mh0, const MWL_HAL_CHANNEL *chan)
 
 static int
 bastream_check_available(struct mwl_hal_vap *vap, int qid,
-	const uint8_t Macaddr[IEEE80211_ADDR_LEN],
-	uint8_t Tid, uint8_t ParamInfo)
+    const uint8_t Macaddr[IEEE80211_ADDR_LEN], uint8_t Tid, uint8_t ParamInfo)
 {
 	struct mwl_hal_priv *mh = MWLVAP(vap);
 	HostCmd_FW_BASTREAM *pCmd;
@@ -1380,20 +1386,19 @@ bastream_check_available(struct mwl_hal_vap *vap, int qid,
 	_VCMD_SETUP(vap, pCmd, HostCmd_FW_BASTREAM, HostCmd_CMD_BASTREAM);
 	pCmd->ActionType = htole32(BaCheckCreateStream);
 	pCmd->BaInfo.CreateParams.BarThrs = htole32(63);
-	pCmd->BaInfo.CreateParams.WindowSize = htole32(64); 
+	pCmd->BaInfo.CreateParams.WindowSize = htole32(64);
 	pCmd->BaInfo.CreateParams.IdleThrs = htole32(0x22000);
 	IEEE80211_ADDR_COPY(&pCmd->BaInfo.CreateParams.PeerMacAddr[0], Macaddr);
 	pCmd->BaInfo.CreateParams.DialogToken = 10;
 	pCmd->BaInfo.CreateParams.Tid = Tid;
 	pCmd->BaInfo.CreateParams.QueueId = qid;
-	pCmd->BaInfo.CreateParams.ParamInfo = (uint8_t) ParamInfo;
+	pCmd->BaInfo.CreateParams.ParamInfo = (uint8_t)ParamInfo;
 #if 0
 	cvtBAFlags(&pCmd->BaInfo.CreateParams.Flags, sp->ba_policy, 0);
 #else
-	pCmd->BaInfo.CreateParams.Flags =
-			  htole32(BASTREAM_FLAG_IMMEDIATE_TYPE)
-			| htole32(BASTREAM_FLAG_DIRECTION_UPSTREAM)
-			;
+	pCmd->BaInfo.CreateParams.Flags = htole32(
+					      BASTREAM_FLAG_IMMEDIATE_TYPE) |
+	    htole32(BASTREAM_FLAG_DIRECTION_UPSTREAM);
 #endif
 
 	retval = mwlExecuteCmd(mh, HostCmd_CMD_BASTREAM);
@@ -1411,8 +1416,8 @@ bastream_check_available(struct mwl_hal_vap *vap, int qid,
 
 const MWL_HAL_BASTREAM *
 mwl_hal_bastream_alloc(struct mwl_hal_vap *vap, int ba_policy,
-	const uint8_t Macaddr[IEEE80211_ADDR_LEN],
-	uint8_t Tid, uint8_t ParamInfo, void *a1, void *a2)
+    const uint8_t Macaddr[IEEE80211_ADDR_LEN], uint8_t Tid, uint8_t ParamInfo,
+    void *a1, void *a2)
 {
 	struct mwl_hal_priv *mh = MWLVAP(vap);
 	struct mwl_hal_bastream *sp;
@@ -1424,14 +1429,14 @@ mwl_hal_bastream_alloc(struct mwl_hal_vap *vap, int ba_policy,
 		MWL_HAL_UNLOCK(mh);
 		return NULL;
 	}
-	for (s = 0; (mh->mh_bastreams & (1<<s)) == 0; s++)
+	for (s = 0; (mh->mh_bastreams & (1 << s)) == 0; s++)
 		;
 	if (bastream_check_available(vap, s, Macaddr, Tid, ParamInfo)) {
 		MWL_HAL_UNLOCK(mh);
 		return NULL;
 	}
 	sp = &mh->mh_streams[s];
-	mh->mh_bastreams &= ~(1<<s);
+	mh->mh_bastreams &= ~(1 << s);
 	sp->public.data[0] = a1;
 	sp->public.data[1] = a2;
 	IEEE80211_ADDR_COPY(sp->macaddr, Macaddr);
@@ -1450,18 +1455,18 @@ mwl_hal_bastream_lookup(struct mwl_hal *mh0, int s)
 
 	if (!(0 <= s && s < MWL_BASTREAMS_MAX))
 		return NULL;
-	if (mh->mh_bastreams & (1<<s))
+	if (mh->mh_bastreams & (1 << s))
 		return NULL;
 	return &mh->mh_streams[s].public;
 }
 
-#ifndef	__DECONST
-#define	__DECONST(type, var)	((type)(uintptr_t)(const void *)(var))
+#ifndef __DECONST
+#define __DECONST(type, var) ((type)(uintptr_t)(const void *)(var))
 #endif
 
 int
-mwl_hal_bastream_create(struct mwl_hal_vap *vap,
-	const MWL_HAL_BASTREAM *s, int BarThrs, int WindowSize, uint16_t seqno)
+mwl_hal_bastream_create(struct mwl_hal_vap *vap, const MWL_HAL_BASTREAM *s,
+    int BarThrs, int WindowSize, uint16_t seqno)
 {
 	struct mwl_hal_priv *mh = MWLVAP(vap);
 	struct mwl_hal_bastream *sp = __DECONST(struct mwl_hal_bastream *, s);
@@ -1491,10 +1496,9 @@ mwl_hal_bastream_create(struct mwl_hal_vap *vap,
 #if 0
 	cvtBAFlags(&pCmd->BaInfo.CreateParams.Flags, sp->ba_policy, 0);
 #else
-	pCmd->BaInfo.CreateParams.Flags =
-			  htole32(BASTREAM_FLAG_IMMEDIATE_TYPE)
-			| htole32(BASTREAM_FLAG_DIRECTION_UPSTREAM)
-			;
+	pCmd->BaInfo.CreateParams.Flags = htole32(
+					      BASTREAM_FLAG_IMMEDIATE_TYPE) |
+	    htole32(BASTREAM_FLAG_DIRECTION_UPSTREAM);
 #endif
 
 	retval = mwlExecuteCmd(mh, HostCmd_CMD_BASTREAM);
@@ -1529,14 +1533,14 @@ mwl_hal_bastream_destroy(struct mwl_hal *mh0, const MWL_HAL_BASTREAM *s)
 	if (sp->setup) {
 		_CMD_SETUP(pCmd, HostCmd_FW_BASTREAM, HostCmd_CMD_BASTREAM);
 		pCmd->ActionType = htole32(BaDestroyStream);
-		pCmd->BaInfo.DestroyParams.FwBaContext.Context =
-		    htole32(sp->stream);
+		pCmd->BaInfo.DestroyParams.FwBaContext.Context = htole32(
+		    sp->stream);
 
 		retval = mwlExecuteCmd(mh, HostCmd_CMD_BASTREAM);
 	} else
 		retval = 0;
 	/* NB: always reclaim stream */
-	mh->mh_bastreams |= 1<<sp->stream;
+	mh->mh_bastreams |= 1 << sp->stream;
 	sp->public.data[0] = NULL;
 	sp->public.data[1] = NULL;
 	sp->setup = 0;
@@ -1545,9 +1549,8 @@ mwl_hal_bastream_destroy(struct mwl_hal *mh0, const MWL_HAL_BASTREAM *s)
 }
 
 int
-mwl_hal_bastream_get_seqno(struct mwl_hal *mh0,
-	const MWL_HAL_BASTREAM *s, const uint8_t Macaddr[IEEE80211_ADDR_LEN],
-	uint16_t *pseqno)
+mwl_hal_bastream_get_seqno(struct mwl_hal *mh0, const MWL_HAL_BASTREAM *s,
+    const uint8_t Macaddr[IEEE80211_ADDR_LEN], uint16_t *pseqno)
 {
 	struct mwl_hal_priv *mh = MWLPRIV(mh0);
 	struct mwl_hal_bastream *sp = __DECONST(struct mwl_hal_bastream *, s);
@@ -1564,7 +1567,7 @@ mwl_hal_bastream_get_seqno(struct mwl_hal *mh0,
 		*pseqno = le16toh(pCmd->SeqNo);
 	MWL_HAL_UNLOCK(mh);
 	return retval;
-}	
+}
 
 int
 mwl_hal_getwatchdogbitmap(struct mwl_hal *mh0, uint8_t bitmap[1])
@@ -1575,7 +1578,7 @@ mwl_hal_getwatchdogbitmap(struct mwl_hal *mh0, uint8_t bitmap[1])
 
 	MWL_HAL_LOCK(mh);
 	_CMD_SETUP(pCmd, HostCmd_FW_GET_WATCHDOG_BITMAP,
-		HostCmd_CMD_GET_WATCHDOG_BITMAP);
+	    HostCmd_CMD_GET_WATCHDOG_BITMAP);
 
 	retval = mwlExecuteCmd(mh, HostCmd_CMD_GET_WATCHDOG_BITMAP);
 	if (retval == 0) {
@@ -1600,13 +1603,13 @@ mwl_hal_setaggampduratemode(struct mwl_hal *mh0, int mode, int threshold)
 
 	MWL_HAL_LOCK(mh);
 	_CMD_SETUP(pCmd, HostCmd_FW_AMPDU_RETRY_RATEDROP_MODE,
-		HostCmd_CMD_AMPDU_RETRY_RATEDROP_MODE);
+	    HostCmd_CMD_AMPDU_RETRY_RATEDROP_MODE);
 	pCmd->Action = htole16(1);
 	pCmd->Option = htole32(mode);
 	pCmd->Threshold = htole32(threshold);
 
 	retval = mwlExecuteCmd(mh, HostCmd_CMD_AMPDU_RETRY_RATEDROP_MODE);
-	MWL_HAL_UNLOCK(mh);   
+	MWL_HAL_UNLOCK(mh);
 	return retval;
 }
 
@@ -1619,12 +1622,12 @@ mwl_hal_getaggampduratemode(struct mwl_hal *mh0, int *mode, int *threshold)
 
 	MWL_HAL_LOCK(mh);
 	_CMD_SETUP(pCmd, HostCmd_FW_AMPDU_RETRY_RATEDROP_MODE,
-		HostCmd_CMD_AMPDU_RETRY_RATEDROP_MODE);
+	    HostCmd_CMD_AMPDU_RETRY_RATEDROP_MODE);
 	pCmd->Action = htole16(0);
 
 	retval = mwlExecuteCmd(mh, HostCmd_CMD_AMPDU_RETRY_RATEDROP_MODE);
-	MWL_HAL_UNLOCK(mh);   
-	*mode =  le32toh(pCmd->Option);
+	MWL_HAL_UNLOCK(mh);
+	*mode = le32toh(pCmd->Option);
 	*threshold = le32toh(pCmd->Threshold);
 	return retval;
 }
@@ -1640,12 +1643,11 @@ mwl_hal_setcfend(struct mwl_hal *mh0, int ena)
 	int retval;
 
 	MWL_HAL_LOCK(mh);
-	_CMD_SETUP(pCmd, HostCmd_CFEND_ENABLE,
-		HostCmd_CMD_CFEND_ENABLE);
+	_CMD_SETUP(pCmd, HostCmd_CFEND_ENABLE, HostCmd_CMD_CFEND_ENABLE);
 	pCmd->Enable = htole32(ena);
 
 	retval = mwlExecuteCmd(mh, HostCmd_CMD_CFEND_ENABLE);
-	MWL_HAL_UNLOCK(mh); 
+	MWL_HAL_UNLOCK(mh);
 	return retval;
 }
 
@@ -1654,13 +1656,13 @@ mwl_hal_setdwds(struct mwl_hal *mh0, int ena)
 {
 	HostCmd_DWDS_ENABLE *pCmd;
 	struct mwl_hal_priv *mh = MWLPRIV(mh0);
-   	int retval;
+	int retval;
 
 	MWL_HAL_LOCK(mh);
 	_CMD_SETUP(pCmd, HostCmd_DWDS_ENABLE, HostCmd_CMD_DWDS_ENABLE);
 	pCmd->Enable = htole32(ena);
 	retval = mwlExecuteCmd(mh, HostCmd_CMD_DWDS_ENABLE);
-  	MWL_HAL_UNLOCK(mh);
+	MWL_HAL_UNLOCK(mh);
 	return retval;
 }
 
@@ -1681,8 +1683,8 @@ cvtPeerInfo(PeerInfo_t *to, const MWL_HAL_PEERINFO *from)
 /* XXX station id must be in [0..63] */
 int
 mwl_hal_newstation(struct mwl_hal_vap *vap,
-	const uint8_t addr[IEEE80211_ADDR_LEN], uint16_t aid, uint16_t sid, 
-	const MWL_HAL_PEERINFO *peer, int isQosSta, int wmeInfo)
+    const uint8_t addr[IEEE80211_ADDR_LEN], uint16_t aid, uint16_t sid,
+    const MWL_HAL_PEERINFO *peer, int isQosSta, int wmeInfo)
 {
 	struct mwl_hal_priv *mh = MWLVAP(vap);
 	HostCmd_FW_SET_NEW_STN *pCmd;
@@ -1692,7 +1694,7 @@ mwl_hal_newstation(struct mwl_hal_vap *vap,
 	_VCMD_SETUP(vap, pCmd, HostCmd_FW_SET_NEW_STN, HostCmd_CMD_SET_NEW_STN);
 	pCmd->AID = htole16(aid);
 	pCmd->StnId = htole16(sid);
-	pCmd->Action = htole16(0);	/* SET */
+	pCmd->Action = htole16(0); /* SET */
 	if (peer != NULL) {
 		/* NB: must fix up byte order */
 		cvtPeerInfo(&pCmd->PeerInfo, peer);
@@ -1710,7 +1712,7 @@ mwl_hal_newstation(struct mwl_hal_vap *vap,
 
 int
 mwl_hal_delstation(struct mwl_hal_vap *vap,
-	const uint8_t addr[IEEE80211_ADDR_LEN])
+    const uint8_t addr[IEEE80211_ADDR_LEN])
 {
 	struct mwl_hal_priv *mh = MWLVAP(vap);
 	HostCmd_FW_SET_NEW_STN *pCmd;
@@ -1721,7 +1723,7 @@ mwl_hal_delstation(struct mwl_hal_vap *vap,
 	if (!islocal || (vap->flags & MVF_STATION)) {
 		_VCMD_SETUP(vap, pCmd, HostCmd_FW_SET_NEW_STN,
 		    HostCmd_CMD_SET_NEW_STN);
-		pCmd->Action = htole16(2);	/* REMOVE */
+		pCmd->Action = htole16(2); /* REMOVE */
 		IEEE80211_ADDR_COPY(&pCmd->MacAddr[0], addr);
 		retval = mwlExecuteCmd(mh, HostCmd_CMD_SET_NEW_STN);
 		if (islocal)
@@ -1745,7 +1747,7 @@ mwl_hal_setkeepalive(struct mwl_hal *mh0)
 
 	MWL_HAL_LOCK(mh);
 	_CMD_SETUP(pCmd, HostCmd_FW_SET_KEEP_ALIVE_TICK,
-		HostCmd_CMD_SET_KEEP_ALIVE);
+	    HostCmd_CMD_SET_KEEP_ALIVE);
 	/*
 	 * NB: tick must be 0 to prod the f/w;
 	 *     a non-zero value is a noop.
@@ -1823,8 +1825,8 @@ mwl_hal_setgprot(struct mwl_hal *mh0, int prot)
 
 	MWL_HAL_LOCK(mh);
 	_CMD_SETUP(pCmd, HostCmd_FW_SET_G_PROTECT_FLAG,
-		HostCmd_CMD_SET_G_PROTECT_FLAG);
-	pCmd->GProtectFlag  = htole32(prot);
+	    HostCmd_CMD_SET_G_PROTECT_FLAG);
+	pCmd->GProtectFlag = htole32(prot);
 
 	retval = mwlExecuteCmd(mh, HostCmd_CMD_SET_G_PROTECT_FLAG);
 	MWL_HAL_UNLOCK(mh);
@@ -1839,8 +1841,7 @@ mwl_hal_setwmm(struct mwl_hal *mh0, int onoff)
 	int retval;
 
 	MWL_HAL_LOCK(mh);
-	_CMD_SETUP(pCmd, HostCmd_FW_SetWMMMode,
-		HostCmd_CMD_SET_WMM_MODE);
+	_CMD_SETUP(pCmd, HostCmd_FW_SetWMMMode, HostCmd_CMD_SET_WMM_MODE);
 	pCmd->Action = htole16(onoff);
 
 	retval = mwlExecuteCmd(mh, HostCmd_CMD_SET_WMM_MODE);
@@ -1849,8 +1850,8 @@ mwl_hal_setwmm(struct mwl_hal *mh0, int onoff)
 }
 
 int
-mwl_hal_setedcaparams(struct mwl_hal *mh0, uint8_t qnum,
-	uint32_t CWmin, uint32_t CWmax, uint8_t AIFSN,  uint16_t TXOPLimit)
+mwl_hal_setedcaparams(struct mwl_hal *mh0, uint8_t qnum, uint32_t CWmin,
+    uint32_t CWmax, uint8_t AIFSN, uint16_t TXOPLimit)
 {
 	struct mwl_hal_priv *mh = MWLPRIV(mh0);
 	HostCmd_FW_SET_EDCA_PARAMS *pCmd;
@@ -1858,18 +1859,18 @@ mwl_hal_setedcaparams(struct mwl_hal *mh0, uint8_t qnum,
 
 	MWL_HAL_LOCK(mh);
 	_CMD_SETUP(pCmd, HostCmd_FW_SET_EDCA_PARAMS,
-		HostCmd_CMD_SET_EDCA_PARAMS);
+	    HostCmd_CMD_SET_EDCA_PARAMS);
 	/*
 	 * NB: CWmin and CWmax are always set.
 	 *     TxOpLimit is set if bit 0x2 is marked in Action
 	 *     AIFSN is set if bit 0x4 is marked in Action
 	 */
-	pCmd->Action = htole16(0xffff);	/* NB: set everything */
+	pCmd->Action = htole16(0xffff); /* NB: set everything */
 	pCmd->TxOP = htole16(TXOPLimit);
 	pCmd->CWMax = htole32(CWmax);
 	pCmd->CWMin = htole32(CWmin);
 	pCmd->AIFSN = AIFSN;
-	pCmd->TxQNum = qnum;		/* XXX check */
+	pCmd->TxQNum = qnum; /* XXX check */
 
 	retval = mwlExecuteCmd(mh, HostCmd_CMD_SET_EDCA_PARAMS);
 	MWL_HAL_UNLOCK(mh);
@@ -1886,7 +1887,7 @@ mwl_hal_setrateadaptmode(struct mwl_hal *mh0, uint16_t mode)
 
 	MWL_HAL_LOCK(mh);
 	_CMD_SETUP(pCmd, HostCmd_DS_SET_RATE_ADAPT_MODE,
-		HostCmd_CMD_SET_RATE_ADAPT_MODE);
+	    HostCmd_CMD_SET_RATE_ADAPT_MODE);
 	pCmd->Action = htole16(HostCmd_ACT_GEN_SET);
 	pCmd->RateAdaptMode = htole16(mode);
 
@@ -1904,7 +1905,7 @@ mwl_hal_setcsmode(struct mwl_hal *mh0, MWL_HAL_CSMODE csmode)
 
 	MWL_HAL_LOCK(mh);
 	_CMD_SETUP(pCmd, HostCmd_DS_SET_LINKADAPT_CS_MODE,
-		HostCmd_CMD_SET_LINKADAPT_CS_MODE);
+	    HostCmd_CMD_SET_LINKADAPT_CS_MODE);
 	pCmd->Action = htole16(HostCmd_ACT_GEN_SET);
 	pCmd->CSMode = htole16(csmode);
 
@@ -1923,8 +1924,8 @@ mwl_hal_setnprot(struct mwl_hal_vap *vap, MWL_HAL_HTPROTECT mode)
 	/* XXX validate mode */
 	MWL_HAL_LOCK(mh);
 	_VCMD_SETUP(vap, pCmd, HostCmd_FW_SET_N_PROTECT_FLAG,
-		HostCmd_CMD_SET_N_PROTECT_FLAG);
-	pCmd->NProtectFlag  = htole32(mode);
+	    HostCmd_CMD_SET_N_PROTECT_FLAG);
+	pCmd->NProtectFlag = htole32(mode);
 
 	retval = mwlExecuteCmd(mh, HostCmd_CMD_SET_N_PROTECT_FLAG);
 	MWL_HAL_UNLOCK(mh);
@@ -1940,7 +1941,7 @@ mwl_hal_setnprotmode(struct mwl_hal_vap *vap, uint8_t mode)
 
 	MWL_HAL_LOCK(mh);
 	_VCMD_SETUP(vap, pCmd, HostCmd_FW_SET_N_PROTECT_OPMODE,
-		HostCmd_CMD_SET_N_PROTECT_OPMODE);
+	    HostCmd_CMD_SET_N_PROTECT_OPMODE);
 	pCmd->NProtectOpMode = mode;
 
 	retval = mwlExecuteCmd(mh, HostCmd_CMD_SET_N_PROTECT_OPMODE);
@@ -1957,7 +1958,7 @@ mwl_hal_setoptimizationlevel(struct mwl_hal *mh0, int level)
 
 	MWL_HAL_LOCK(mh);
 	_CMD_SETUP(pCmd, HostCmd_FW_SET_OPTIMIZATION_LEVEL,
-		HostCmd_CMD_SET_OPTIMIZATION_LEVEL);
+	    HostCmd_CMD_SET_OPTIMIZATION_LEVEL);
 	pCmd->OptLevel = level;
 
 	retval = mwlExecuteCmd(mh, HostCmd_CMD_SET_OPTIMIZATION_LEVEL);
@@ -1967,7 +1968,7 @@ mwl_hal_setoptimizationlevel(struct mwl_hal *mh0, int level)
 
 int
 mwl_hal_setmimops(struct mwl_hal *mh0, const uint8_t addr[IEEE80211_ADDR_LEN],
-	uint8_t enable, uint8_t mode)
+    uint8_t enable, uint8_t mode)
 {
 	struct mwl_hal_priv *mh = MWLPRIV(mh0);
 	HostCmd_FW_SET_MIMOPSHT *pCmd;
@@ -1998,11 +1999,11 @@ mwlGetCalTable(struct mwl_hal_priv *mh, uint8_t annex, uint8_t index)
 	memset(pCmd->calTbl, 0, sizeof(pCmd->calTbl));
 
 	retval = mwlExecuteCmd(mh, HostCmd_CMD_GET_CALTABLE);
-	if (retval == 0 &&
-	    pCmd->calTbl[0] != annex && annex != 0 && annex != 255)
+	if (retval == 0 && pCmd->calTbl[0] != annex && annex != 0 &&
+	    annex != 255)
 		retval = EIO;
 	return retval;
-}							  
+}
 
 /*
  * Calculate the max tx power from the channel's cal data.
@@ -2032,7 +2033,7 @@ get5Ghz(MWL_HAL_CHANNELINFO *ci, const uint8_t table[], int len)
 
 		if (table[i] == 0)
 			continue;
-		f = 5000 + 5*table[i];
+		f = 5000 + 5 * table[i];
 		if (f < l)
 			l = f;
 		if (f > h)
@@ -2041,7 +2042,7 @@ get5Ghz(MWL_HAL_CHANNELINFO *ci, const uint8_t table[], int len)
 		hc->freq = f;
 		hc->ieee = table[i];
 		memcpy(hc->targetPowers, &table[i], 4);
-		setmaxtxpow(hc, 1, 4);		/* NB: col 1 is the freq, skip*/
+		setmaxtxpow(hc, 1, 4); /* NB: col 1 is the freq, skip*/
 		j++;
 	}
 	ci->nchannels = j;
@@ -2055,8 +2056,8 @@ ieee2mhz(int chan)
 	if (chan == 14)
 		return 2484;
 	if (chan < 14)
-		return 2407 + chan*5;
-	return 2512 + (chan-15)*20;
+		return 2407 + chan * 5;
+	return 2512 + (chan - 15) * 20;
 }
 
 /*
@@ -2070,8 +2071,8 @@ get2Ghz(MWL_HAL_CHANNELINFO *ci, const uint8_t table[], int len)
 	j = 0;
 	for (i = 0; i < len; i += 4) {
 		struct mwl_hal_channel *hc = &ci->channels[j];
-		hc->ieee = 1+j;
-		hc->freq = ieee2mhz(1+j);
+		hc->ieee = 1 + j;
+		hc->freq = ieee2mhz(1 + j);
 		memcpy(hc->targetPowers, &table[i], 4);
 		setmaxtxpow(hc, 0, 4);
 		j++;
@@ -2089,7 +2090,8 @@ dumpcaldata(const char *name, const uint8_t *table, int n)
 	int i;
 	printf("\n%s:\n", name);
 	for (i = 0; i < n; i += 4)
-		printf("[%2d] %3d %3d %3d %3d\n", i/4, table[i+0], table[i+1], table[i+2], table[i+3]);
+		printf("[%2d] %3d %3d %3d %3d\n", i / 4, table[i + 0],
+		    table[i + 1], table[i + 2], table[i + 3]);
 }
 #endif
 
@@ -2102,13 +2104,13 @@ mwlGetPwrCalTable(struct mwl_hal_priv *mh)
 
 	MWL_HAL_LOCK(mh);
 	/* NB: we hold the lock so it's ok to use cmdbuf */
-	data = ((const HostCmd_FW_GET_CALTABLE *) mh->mh_cmdbuf)->calTbl;
+	data = ((const HostCmd_FW_GET_CALTABLE *)mh->mh_cmdbuf)->calTbl;
 	if (mwlGetCalTable(mh, 33, 0) == 0) {
 		len = (data[2] | (data[3] << 8)) - 12;
 		if (len > PWTAGETRATETABLE20M)
 			len = PWTAGETRATETABLE20M;
 #ifdef DUMPCALDATA
-dumpcaldata("2.4G 20M", &data[12], len);/*XXX*/
+		dumpcaldata("2.4G 20M", &data[12], len); /*XXX*/
 #endif
 		get2Ghz(&mh->mh_20M, &data[12], len);
 	}
@@ -2117,7 +2119,7 @@ dumpcaldata("2.4G 20M", &data[12], len);/*XXX*/
 		if (len > PWTAGETRATETABLE40M)
 			len = PWTAGETRATETABLE40M;
 #ifdef DUMPCALDATA
-dumpcaldata("2.4G 40M", &data[12], len);/*XXX*/
+		dumpcaldata("2.4G 40M", &data[12], len); /*XXX*/
 #endif
 		ci = &mh->mh_40M;
 		get2Ghz(ci, &data[12], len);
@@ -2127,7 +2129,7 @@ dumpcaldata("2.4G 40M", &data[12], len);/*XXX*/
 		if (len > PWTAGETRATETABLE20M_5G)
 			len = PWTAGETRATETABLE20M_5G;
 #ifdef DUMPCALDATA
-dumpcaldata("5G 20M", &data[20], len);/*XXX*/
+		dumpcaldata("5G 20M", &data[20], len); /*XXX*/
 #endif
 		get5Ghz(&mh->mh_20M_5G, &data[20], len);
 	}
@@ -2136,7 +2138,7 @@ dumpcaldata("5G 20M", &data[20], len);/*XXX*/
 		if (len > PWTAGETRATETABLE40M_5G)
 			len = PWTAGETRATETABLE40M_5G;
 #ifdef DUMPCALDATA
-dumpcaldata("5G 40M", &data[20], len);/*XXX*/
+		dumpcaldata("5G 40M", &data[20], len); /*XXX*/
 #endif
 		ci = &mh->mh_40M_5G;
 		get5Ghz(ci, &data[20], len);
@@ -2156,7 +2158,7 @@ mwl_hal_getregioncode(struct mwl_hal *mh0, uint8_t *countryCode)
 	retval = mwlGetCalTable(mh, 0, 0);
 	if (retval == 0) {
 		const HostCmd_FW_GET_CALTABLE *pCmd =
-		    (const HostCmd_FW_GET_CALTABLE *) mh->mh_cmdbuf;
+		    (const HostCmd_FW_GET_CALTABLE *)mh->mh_cmdbuf;
 		*countryCode = pCmd->calTbl[16];
 	}
 	MWL_HAL_UNLOCK(mh);
@@ -2171,7 +2173,7 @@ mwl_hal_setpromisc(struct mwl_hal *mh0, int ena)
 
 	MWL_HAL_LOCK(mh);
 	v = RD4(mh, MACREG_REG_PROMISCUOUS);
-	WR4(mh, MACREG_REG_PROMISCUOUS, ena ? v | 1 : v &~ 1);
+	WR4(mh, MACREG_REG_PROMISCUOUS, ena ? v | 1 : v & ~1);
 	MWL_HAL_UNLOCK(mh);
 	return 0;
 }
@@ -2207,13 +2209,13 @@ mwl_hal_GetBeacon(struct mwl_hal *mh0, uint8_t *pBcn, uint16_t *pLen)
 	}
 	MWL_HAL_UNLOCK(mh);
 	return retval;
-}	
+}
 
 int
 mwl_hal_SetRifs(struct mwl_hal *mh0, uint8_t QNum)
 {
 	struct mwl_hal_priv *mh = MWLPRIV(mh0);
-	HostCmd_FW_SET_RIFS  *pCmd;
+	HostCmd_FW_SET_RIFS *pCmd;
 	int retval;
 
 	MWL_HAL_LOCK(mh);
@@ -2237,7 +2239,7 @@ getRFReg(struct mwl_hal_priv *mh, int flag, uint32_t reg, uint32_t *val)
 
 	MWL_HAL_LOCK(mh);
 	_CMD_SETUP(pCmd, HostCmd_DS_RF_REG_ACCESS, HostCmd_CMD_RF_REG_ACCESS);
-	pCmd->Offset =  htole16(reg);
+	pCmd->Offset = htole16(reg);
 	pCmd->Action = htole16(flag);
 	pCmd->Value = htole32(*val);
 
@@ -2256,7 +2258,7 @@ getBBReg(struct mwl_hal_priv *mh, int flag, uint32_t reg, uint32_t *val)
 
 	MWL_HAL_LOCK(mh);
 	_CMD_SETUP(pCmd, HostCmd_DS_BBP_REG_ACCESS, HostCmd_CMD_BBP_REG_ACCESS);
-	pCmd->Offset =  htole16(reg);
+	pCmd->Offset = htole16(reg);
 	pCmd->Action = htole16(flag);
 	pCmd->Value = htole32(*val);
 
@@ -2269,15 +2271,15 @@ getBBReg(struct mwl_hal_priv *mh, int flag, uint32_t reg, uint32_t *val)
 
 static u_int
 mwl_hal_getregdump(struct mwl_hal_priv *mh, const MWL_DIAG_REGRANGE *regs,
-	void *dstbuf, int space)
+    void *dstbuf, int space)
 {
 	uint32_t *dp = dstbuf;
 	int i;
 
-	for (i = 0; space >= 2*sizeof(uint32_t); i++) {
+	for (i = 0; space >= 2 * sizeof(uint32_t); i++) {
 		u_int r = regs[i].start;
 		u_int e = regs[i].end;
-		*dp++ = (r<<16) | e;
+		*dp++ = (r << 16) | e;
 		space -= sizeof(uint32_t);
 		do {
 			if (MWL_DIAG_ISMAC(r))
@@ -2297,13 +2299,12 @@ mwl_hal_getregdump(struct mwl_hal_priv *mh, const MWL_DIAG_REGRANGE *regs,
 			space -= sizeof(uint32_t);
 		} while (r <= e && space >= sizeof(uint32_t));
 	}
-	return (char *) dp - (char *) dstbuf;
+	return (char *)dp - (char *)dstbuf;
 }
 
 int
-mwl_hal_getdiagstate(struct mwl_hal *mh0, int request,
-	const void *args, uint32_t argsize,
-	void **result, uint32_t *resultsize)
+mwl_hal_getdiagstate(struct mwl_hal *mh0, int request, const void *args,
+    uint32_t argsize, void **result, uint32_t *resultsize)
 {
 	struct mwl_hal_priv *mh = MWLPRIV(mh0);
 
@@ -2313,10 +2314,11 @@ mwl_hal_getdiagstate(struct mwl_hal *mh0, int request,
 		*resultsize = sizeof(mh->mh_revs);
 		return 1;
 	case MWL_DIAG_CMD_REGS:
-		*resultsize = mwl_hal_getregdump(mh, args, *result, *resultsize);
+		*resultsize = mwl_hal_getregdump(mh, args, *result,
+		    *resultsize);
 		return 1;
 	case MWL_DIAG_CMD_HOSTCMD: {
-		FWCmdHdr *pCmd = (FWCmdHdr *) &mh->mh_cmdbuf[0];
+		FWCmdHdr *pCmd = (FWCmdHdr *)&mh->mh_cmdbuf[0];
 		int retval;
 
 		MWL_HAL_LOCK(mh);
@@ -2362,7 +2364,7 @@ mwlWaitForCmdComplete(struct mwl_hal_priv *mh, uint16_t cmdCode)
 	for (i = 0; i < MAX_WAIT_FW_COMPLETE_ITERATIONS; i++) {
 		if (mh->mh_cmdbuf[0] == le16toh(cmdCode))
 			return 1;
-		DELAY(1*1000);
+		DELAY(1 * 1000);
 	}
 	return 0;
 #undef MAX_WAIT_FW_COMPLETE_ITERATIONS
@@ -2378,14 +2380,14 @@ mwlExecuteCmd(struct mwl_hal_priv *mh, unsigned short cmd)
 	    (mh->mh_debug & MWL_HAL_DEBUG_IGNHANG) == 0) {
 #ifdef MWLHAL_DEBUG
 		device_printf(mh->mh_dev, "firmware hung, skipping cmd %s\n",
-			mwlcmdname(cmd));
+		    mwlcmdname(cmd));
 #else
 		device_printf(mh->mh_dev, "firmware hung, skipping cmd 0x%x\n",
-			cmd);
+		    cmd);
 #endif
 		return ENXIO;
 	}
-	if (RD4(mh,  MACREG_REG_INT_CODE) == 0xffffffff) {
+	if (RD4(mh, MACREG_REG_INT_CODE) == 0xffffffff) {
 		device_printf(mh->mh_dev, "%s: device not present!\n",
 		    __func__);
 		return EIO;
@@ -2397,11 +2399,11 @@ mwlExecuteCmd(struct mwl_hal_priv *mh, unsigned short cmd)
 	mwlSendCmd(mh);
 	if (!mwlWaitForCmdComplete(mh, 0x8000 | cmd)) {
 #ifdef MWLHAL_DEBUG
-		device_printf(mh->mh_dev,
-		    "timeout waiting for f/w cmd %s\n", mwlcmdname(cmd));
+		device_printf(mh->mh_dev, "timeout waiting for f/w cmd %s\n",
+		    mwlcmdname(cmd));
 #else
-		device_printf(mh->mh_dev,
-		    "timeout waiting for f/w cmd 0x%x\n", cmd);
+		device_printf(mh->mh_dev, "timeout waiting for f/w cmd 0x%x\n",
+		    cmd);
 #endif
 		mh->mh_flags |= MHF_FWHANG;
 		return ETIMEDOUT;
@@ -2418,20 +2420,20 @@ mwlExecuteCmd(struct mwl_hal_priv *mh, unsigned short cmd)
 /*
  * Firmware download support.
  */
-#define FW_DOWNLOAD_BLOCK_SIZE	256  
-#define FW_CHECK_USECS		(5*1000)	/* 5ms */
-#define FW_MAX_NUM_CHECKS	200  
+#define FW_DOWNLOAD_BLOCK_SIZE 256
+#define FW_CHECK_USECS (5 * 1000) /* 5ms */
+#define FW_MAX_NUM_CHECKS 200
 
 #if 0
 /* XXX read f/w from file */
-#include <dev/mwl/mwlbootfw.h>
 #include <dev/mwl/mwl88W8363fw.h>
+#include <dev/mwl/mwlbootfw.h>
 #endif
 
 static void
 mwlFwReset(struct mwl_hal_priv *mh)
 {
-	if (RD4(mh,  MACREG_REG_INT_CODE) == 0xffffffff) {
+	if (RD4(mh, MACREG_REG_INT_CODE) == 0xffffffff) {
 		device_printf(mh->mh_dev, "%s: device not present!\n",
 		    __func__);
 		return;
@@ -2477,7 +2479,7 @@ mwlSendBlock(struct mwl_hal_priv *mh, int bsize, const void *data, size_t dsize)
 {
 	mh->mh_cmdbuf[0] = htole16(HostCmd_CMD_CODE_DNLD);
 	mh->mh_cmdbuf[1] = htole16(bsize);
-	memcpy(&mh->mh_cmdbuf[4], data , dsize);
+	memcpy(&mh->mh_cmdbuf[4], data, dsize);
 	mwlTriggerPciCmd(mh);
 	/* XXX 2000 vs 200 */
 	if (mwlWaitFor(mh, MACREG_INT_CODE_CMD_FINISHED)) {
@@ -2485,8 +2487,8 @@ mwlSendBlock(struct mwl_hal_priv *mh, int bsize, const void *data, size_t dsize)
 		return 1;
 	}
 	device_printf(mh->mh_dev,
-	    "%s: timeout waiting for CMD_FINISHED, INT_CODE 0x%x\n",
-	    __func__, RD4(mh, MACREG_REG_INT_CODE));
+	    "%s: timeout waiting for CMD_FINISHED, INT_CODE 0x%x\n", __func__,
+	    RD4(mh, MACREG_REG_INT_CODE));
 	return 0;
 }
 
@@ -2503,8 +2505,8 @@ mwlSendBlock2(struct mwl_hal_priv *mh, const void *data, size_t dsize)
 		return 1;
 	}
 	device_printf(mh->mh_dev,
-	    "%s: timeout waiting for CMD_FINISHED, INT_CODE 0x%x\n",
-	    __func__, RD4(mh, MACREG_REG_INT_CODE));
+	    "%s: timeout waiting for CMD_FINISHED, INT_CODE 0x%x\n", __func__,
+	    RD4(mh, MACREG_REG_INT_CODE));
 	return 0;
 }
 
@@ -2535,8 +2537,8 @@ mwl_hal_fwload(struct mwl_hal *mh0, void *fwargs)
 
 	fw = firmware_get(fwname);
 	if (fw == NULL) {
-		device_printf(mh->mh_dev,
-		    "could not load firmware image %s\n", fwname);
+		device_printf(mh->mh_dev, "could not load firmware image %s\n",
+		    fwname);
 		return ENXIO;
 	}
 	fmdata = fw->data;
@@ -2547,8 +2549,8 @@ mwl_hal_fwload(struct mwl_hal *mh0, void *fwargs)
 		error = ENXIO;
 		goto bad2;
 	}
-	if (fmdata[0] == 0x01 && fmdata[1] == 0x00 &&
-	    fmdata[2] == 0x00 && fmdata[3] == 0x00) {
+	if (fmdata[0] == 0x01 && fmdata[1] == 0x00 && fmdata[2] == 0x00 &&
+	    fmdata[3] == 0x00) {
 		/*
 		 * 2-stage load, get the boot firmware.
 		 */
@@ -2572,8 +2574,8 @@ mwl_hal_fwload(struct mwl_hal *mh0, void *fwargs)
 		/** Set up sdram controller for superflyv2 **/
 		mwlPokeSdramController(mh, mh->mh_SDRAMSIZE_Addr);
 	}
-	device_printf(mh->mh_dev, "load %s firmware image (%u bytes)\n",
-	    fwname, fmsize);
+	device_printf(mh->mh_dev, "load %s firmware image (%u bytes)\n", fwname,
+	    fmsize);
 	if (fwboot != NULL) {
 		/*
 		 * Do 2-stage load.  The 1st stage loader is setup
@@ -2585,21 +2587,22 @@ mwl_hal_fwload(struct mwl_hal *mh0, void *fwargs)
 		 */
 		/* XXX assumes hlpimage fits in a block */
 		/* NB: zero size block indicates download is finished */
-		if (!mwlSendBlock(mh, fwboot->datasize, fwboot->data, fwboot->datasize) ||
+		if (!mwlSendBlock(mh, fwboot->datasize, fwboot->data,
+			fwboot->datasize) ||
 		    !mwlSendBlock(mh, 0, NULL, 0)) {
 			error = ETIMEDOUT;
 			goto bad;
 		}
-		DELAY(200*FW_CHECK_USECS);
+		DELAY(200 * FW_CHECK_USECS);
 		if (mh->mh_SDRAMSIZE_Addr != 0) {
 			/** Set up sdram controller for superflyv2 **/
 			mwlPokeSdramController(mh, mh->mh_SDRAMSIZE_Addr);
 		}
-		nbytes = ntries = 0;		/* NB: silence compiler */
-		for (fp = fmdata, ep = fp + fmsize; fp < ep; ) {
+		nbytes = ntries = 0; /* NB: silence compiler */
+		for (fp = fmdata, ep = fp + fmsize; fp < ep;) {
 			WR4(mh, MACREG_REG_INT_CODE, 0);
 			blocksize = RD4(mh, MACREG_REG_SCRATCH);
-			if (blocksize == 0)	/* download complete */
+			if (blocksize == 0) /* download complete */
 				break;
 			if (blocksize > 0x00000c00) {
 				error = EINVAL;
@@ -2636,7 +2639,8 @@ mwl_hal_fwload(struct mwl_hal *mh0, void *fwargs)
 			nbytes = ep - fp;
 			if (nbytes > FW_DOWNLOAD_BLOCK_SIZE)
 				nbytes = FW_DOWNLOAD_BLOCK_SIZE;
-			if (!mwlSendBlock(mh, FW_DOWNLOAD_BLOCK_SIZE, fp, nbytes)) {
+			if (!mwlSendBlock(mh, FW_DOWNLOAD_BLOCK_SIZE, fp,
+				nbytes)) {
 				error = EIO;
 				goto bad;
 			}
@@ -2682,56 +2686,58 @@ static const char *
 mwlcmdname(int cmd)
 {
 	static char buf[12];
-#define	CMD(x)	case HostCmd_CMD_##x: return #x
+#define CMD(x)                \
+	case HostCmd_CMD_##x: \
+		return #x
 	switch (cmd) {
-	CMD(CODE_DNLD);
-	CMD(GET_HW_SPEC);
-	CMD(SET_HW_SPEC);
-	CMD(MAC_MULTICAST_ADR);
-	CMD(802_11_GET_STAT);
-	CMD(MAC_REG_ACCESS);
-	CMD(BBP_REG_ACCESS);
-	CMD(RF_REG_ACCESS);
-	CMD(802_11_RADIO_CONTROL);
-	CMD(802_11_RF_TX_POWER);
-	CMD(802_11_RF_ANTENNA);
-	CMD(SET_BEACON);
-	CMD(SET_RF_CHANNEL);
-	CMD(SET_AID);
-	CMD(SET_INFRA_MODE);
-	CMD(SET_G_PROTECT_FLAG);
-	CMD(802_11_RTS_THSD);
-	CMD(802_11_SET_SLOT);
-	CMD(SET_EDCA_PARAMS);
-	CMD(802_11H_DETECT_RADAR);
-	CMD(SET_WMM_MODE);
-	CMD(HT_GUARD_INTERVAL);
-	CMD(SET_FIXED_RATE);
-	CMD(SET_LINKADAPT_CS_MODE);
-	CMD(SET_MAC_ADDR);
-	CMD(SET_RATE_ADAPT_MODE);
-	CMD(BSS_START);
-	CMD(SET_NEW_STN);
-	CMD(SET_KEEP_ALIVE);
-	CMD(SET_APMODE);
-	CMD(SET_SWITCH_CHANNEL);
-	CMD(UPDATE_ENCRYPTION);
-	CMD(BASTREAM);
-	CMD(SET_RIFS);
-	CMD(SET_N_PROTECT_FLAG);
-	CMD(SET_N_PROTECT_OPMODE);
-	CMD(SET_OPTIMIZATION_LEVEL);
-	CMD(GET_CALTABLE);
-	CMD(SET_MIMOPSHT);
-	CMD(GET_BEACON);
-	CMD(SET_REGION_CODE);
-	CMD(SET_POWERSAVESTATION);
-	CMD(SET_TIM);
-	CMD(GET_TIM);
-	CMD(GET_SEQNO);
-	CMD(DWDS_ENABLE);
-	CMD(AMPDU_RETRY_RATEDROP_MODE);
-	CMD(CFEND_ENABLE);
+		CMD(CODE_DNLD);
+		CMD(GET_HW_SPEC);
+		CMD(SET_HW_SPEC);
+		CMD(MAC_MULTICAST_ADR);
+		CMD(802_11_GET_STAT);
+		CMD(MAC_REG_ACCESS);
+		CMD(BBP_REG_ACCESS);
+		CMD(RF_REG_ACCESS);
+		CMD(802_11_RADIO_CONTROL);
+		CMD(802_11_RF_TX_POWER);
+		CMD(802_11_RF_ANTENNA);
+		CMD(SET_BEACON);
+		CMD(SET_RF_CHANNEL);
+		CMD(SET_AID);
+		CMD(SET_INFRA_MODE);
+		CMD(SET_G_PROTECT_FLAG);
+		CMD(802_11_RTS_THSD);
+		CMD(802_11_SET_SLOT);
+		CMD(SET_EDCA_PARAMS);
+		CMD(802_11H_DETECT_RADAR);
+		CMD(SET_WMM_MODE);
+		CMD(HT_GUARD_INTERVAL);
+		CMD(SET_FIXED_RATE);
+		CMD(SET_LINKADAPT_CS_MODE);
+		CMD(SET_MAC_ADDR);
+		CMD(SET_RATE_ADAPT_MODE);
+		CMD(BSS_START);
+		CMD(SET_NEW_STN);
+		CMD(SET_KEEP_ALIVE);
+		CMD(SET_APMODE);
+		CMD(SET_SWITCH_CHANNEL);
+		CMD(UPDATE_ENCRYPTION);
+		CMD(BASTREAM);
+		CMD(SET_RIFS);
+		CMD(SET_N_PROTECT_FLAG);
+		CMD(SET_N_PROTECT_OPMODE);
+		CMD(SET_OPTIMIZATION_LEVEL);
+		CMD(GET_CALTABLE);
+		CMD(SET_MIMOPSHT);
+		CMD(GET_BEACON);
+		CMD(SET_REGION_CODE);
+		CMD(SET_POWERSAVESTATION);
+		CMD(SET_TIM);
+		CMD(GET_TIM);
+		CMD(GET_SEQNO);
+		CMD(DWDS_ENABLE);
+		CMD(AMPDU_RETRY_RATEDROP_MODE);
+		CMD(CFEND_ENABLE);
 	}
 	snprintf(buf, sizeof(buf), "0x%x", cmd);
 	return buf;
@@ -2748,15 +2754,14 @@ dumpresult(struct mwl_hal_priv *mh, int showresult)
 	len = le16toh(h->Length);
 #ifdef MWL_MBSS_SUPPORT
 	device_printf(mh->mh_dev, "Cmd %s Length %d SeqNum %d MacId %d",
-	    mwlcmdname(le16toh(h->Cmd) &~ 0x8000), len, h->SeqNum, h->MacId);
+	    mwlcmdname(le16toh(h->Cmd) & ~0x8000), len, h->SeqNum, h->MacId);
 #else
 	device_printf(mh->mh_dev, "Cmd %s Length %d SeqNum %d",
-	    mwlcmdname(le16toh(h->Cmd) &~ 0x8000), len, le16toh(h->SeqNum));
+	    mwlcmdname(le16toh(h->Cmd) & ~0x8000), len, le16toh(h->SeqNum));
 #endif
 	if (showresult) {
-		const char *results[] =
-		    { "OK", "ERROR", "NOT_SUPPORT", "PENDING", "BUSY",
-		      "PARTIAL_DATA" };
+		const char *results[] = { "OK", "ERROR", "NOT_SUPPORT",
+			"PENDING", "BUSY", "PARTIAL_DATA" };
 		int result = le16toh(h->Result);
 
 		if (result <= HostCmd_RESULT_PARTIAL_DATA)

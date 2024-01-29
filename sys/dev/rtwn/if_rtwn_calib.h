@@ -17,6 +17,6 @@
 #ifndef IF_RTWN_CALIB_H
 #define IF_RTWN_CALIB_H
 
-void	rtwn_calib_to(void *);
+void rtwn_calib_to(void *);
 
-#endif	/* IF_RTWN_CALIB_H */
+#endif /* IF_RTWN_CALIB_H */

@@ -29,17 +29,17 @@
 #include <sys/module.h>
 #include <sys/socket.h>
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <err.h>
-#include <stdio.h>
-#include <poll.h>
-
 #include <netlink/netlink.h>
 #include <netlink/netlink_generic.h>
 #include <netlink/netlink_snl.h>
 #include <netlink/netlink_snl_generic.h>
+
+#include <err.h>
+#include <poll.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 static int monitor_mcast(int argc, char **argv);
 static int list_families(int argc, char **argv);
@@ -58,7 +58,7 @@ static struct commands {
 static struct mcast_parsers {
 	const char *family;
 	void (*parser)(struct snl_state *ss, struct nlmsghdr *hdr);
-} mcast_parsers [] = {
+} mcast_parsers[] = {
 	{ "nlctrl", parser_nlctrl_notify },
 };
 
@@ -72,15 +72,16 @@ struct genl_ctrl_ops {
 	struct genl_ctrl_op **ops;
 };
 
-#define _OUT(_field)	offsetof(struct genl_ctrl_op, _field)
+#define _OUT(_field) offsetof(struct genl_ctrl_op, _field)
 static struct snl_attr_parser _nla_p_getops[] = {
-	{ .type = CTRL_ATTR_OP_ID, .off = _OUT(id), .cb = snl_attr_get_uint32},
-	{ .type = CTRL_ATTR_OP_FLAGS, .off = _OUT(flags), .cb = snl_attr_get_uint32 },
+	{ .type = CTRL_ATTR_OP_ID, .off = _OUT(id), .cb = snl_attr_get_uint32 },
+	{ .type = CTRL_ATTR_OP_FLAGS,
+	    .off = _OUT(flags),
+	    .cb = snl_attr_get_uint32 },
 };
 #undef _OUT
-SNL_DECLARE_ATTR_PARSER_EXT(genl_ctrl_op_parser,
-		sizeof(struct genl_ctrl_op),
-		_nla_p_getops, NULL);
+SNL_DECLARE_ATTR_PARSER_EXT(genl_ctrl_op_parser, sizeof(struct genl_ctrl_op),
+    _nla_p_getops, NULL);
 
 struct genl_family {
 	uint16_t id;
@@ -92,24 +93,34 @@ struct genl_family {
 	struct genl_ctrl_ops ops;
 };
 
-#define	_OUT(_field)	offsetof(struct genl_family, _field)
+#define _OUT(_field) offsetof(struct genl_family, _field)
 static struct snl_attr_parser _nla_p_getfamily[] = {
-	{ .type = CTRL_ATTR_FAMILY_ID , .off = _OUT(id), .cb = snl_attr_get_uint16 },
-	{ .type = CTRL_ATTR_FAMILY_NAME, .off = _OUT(name), .cb = snl_attr_get_string },
-	{ .type = CTRL_ATTR_VERSION, .off = _OUT(version), .cb = snl_attr_get_uint32 },
-	{ .type = CTRL_ATTR_VERSION, .off = _OUT(hdrsize), .cb = snl_attr_get_uint32 },
-	{ .type = CTRL_ATTR_MAXATTR, .off = _OUT(max_attr), .cb = snl_attr_get_uint32 },
+	{ .type = CTRL_ATTR_FAMILY_ID,
+	    .off = _OUT(id),
+	    .cb = snl_attr_get_uint16 },
+	{ .type = CTRL_ATTR_FAMILY_NAME,
+	    .off = _OUT(name),
+	    .cb = snl_attr_get_string },
+	{ .type = CTRL_ATTR_VERSION,
+	    .off = _OUT(version),
+	    .cb = snl_attr_get_uint32 },
+	{ .type = CTRL_ATTR_VERSION,
+	    .off = _OUT(hdrsize),
+	    .cb = snl_attr_get_uint32 },
+	{ .type = CTRL_ATTR_MAXATTR,
+	    .off = _OUT(max_attr),
+	    .cb = snl_attr_get_uint32 },
 	{
-		.type = CTRL_ATTR_OPS,
-		.off = _OUT(ops),
-		.cb = snl_attr_get_parray,
-		.arg = &genl_ctrl_op_parser,
+	    .type = CTRL_ATTR_OPS,
+	    .off = _OUT(ops),
+	    .cb = snl_attr_get_parray,
+	    .arg = &genl_ctrl_op_parser,
 	},
 	{
-		.type = CTRL_ATTR_MCAST_GROUPS,
-		.off = _OUT(mcast_groups),
-		.cb = snl_attr_get_parray,
-		.arg = &_genl_ctrl_mc_parser,
+	    .type = CTRL_ATTR_MCAST_GROUPS,
+	    .off = _OUT(mcast_groups),
+	    .cb = snl_attr_get_parray,
+	    .arg = &_genl_ctrl_mc_parser,
 	},
 };
 #undef _OUT
@@ -133,17 +144,17 @@ dump_operations(struct genl_ctrl_ops *ops)
 	printf("\tsupported operations: \n");
 	for (uint32_t i = 0; i < ops->num_ops; i++) {
 		printf("\t  - ID: %#02x, Capabilities: %#02x (",
-		    ops->ops[i]->id,
-		    ops->ops[i]->flags);
+		    ops->ops[i]->id, ops->ops[i]->flags);
 		for (size_t j = 0; j < nitems(op_caps); j++)
-			if ((ops->ops[i]->flags & op_caps[j].flag) == op_caps[j].flag)
+			if ((ops->ops[i]->flags & op_caps[j].flag) ==
+			    op_caps[j].flag)
 				printf("%s; ", op_caps[j].str);
 		printf("\b\b)\n");
 	}
 }
 
 static void
-dump_mcast_groups( struct snl_genl_ctrl_mcast_groups *mcast_groups)
+dump_mcast_groups(struct snl_genl_ctrl_mcast_groups *mcast_groups)
 {
 	if (mcast_groups->num_groups == 0)
 		return;
@@ -166,9 +177,9 @@ static void
 dump_family(struct genl_family *family)
 {
 	printf("Name: %s\n\tID: %#02hx, Version: %#02x, "
-	    "header size: %d, max attributes: %d\n",
-	    family->name, family->id, family->version,
-	    family->hdrsize, family->max_attr);
+	       "header size: %d, max attributes: %d\n",
+	    family->name, family->id, family->version, family->hdrsize,
+	    family->max_attr);
 	dump_operations(&family->ops);
 	dump_mcast_groups(&family->mcast_groups);
 }
@@ -178,8 +189,7 @@ parser_nlctrl_notify(struct snl_state *ss, struct nlmsghdr *hdr)
 {
 	struct genl_family family = {};
 
-	if (snl_parse_nlmsg(ss, hdr, &genl_family_parser,
-				&family))
+	if (snl_parse_nlmsg(ss, hdr, &genl_family_parser, &family))
 		dump_family(&family);
 }
 
@@ -212,22 +222,26 @@ monitor_mcast(int argc __unused, char **argv)
 		errx(EXIT_FAILURE, "Unknown family '%s'", argv[0]);
 	for (uint32_t i = 0; i < attrs.mcast_groups.num_groups; i++) {
 		if (strcmp(attrs.mcast_groups.groups[i]->mcast_grp_name,
-		    argv[1]) == 0) {
+			argv[1]) == 0) {
 			found = true;
 			if (setsockopt(ss.fd, SOL_NETLINK,
-			    NETLINK_ADD_MEMBERSHIP,
-			    (void *)&attrs.mcast_groups.groups[i]->mcast_grp_id,
-			    sizeof(attrs.mcast_groups.groups[i]->mcast_grp_id))
-			    == -1)
-				err(EXIT_FAILURE, "Cannot subscribe to command "
+				NETLINK_ADD_MEMBERSHIP,
+				(void *)&attrs.mcast_groups.groups[i]
+				    ->mcast_grp_id,
+				sizeof(attrs.mcast_groups.groups[i]
+					   ->mcast_grp_id)) == -1)
+				err(EXIT_FAILURE,
+				    "Cannot subscribe to command "
 				    "notify");
 			break;
 		}
 	}
 	if (!found)
-		errx(EXIT_FAILURE, "No such multicat group '%s'"
-		    " in family '%s'", argv[1], argv[0]);
-	for (size_t i= 0; i < nitems(mcast_parsers); i++) {
+		errx(EXIT_FAILURE,
+		    "No such multicat group '%s'"
+		    " in family '%s'",
+		    argv[1], argv[0]);
+	for (size_t i = 0; i < nitems(mcast_parsers); i++) {
 		if (strcmp(mcast_parsers[i].family, argv[0]) == 0) {
 			parser = mcast_parsers[i].parser;
 			break;
@@ -246,7 +260,6 @@ monitor_mcast(int argc __unused, char **argv)
 		hdr = snl_read_message(&ss);
 		if (hdr != NULL && hdr->nlmsg_type != NLMSG_ERROR)
 			parser(&ss, hdr);
-
 	}
 
 	return (EXIT_SUCCESS);

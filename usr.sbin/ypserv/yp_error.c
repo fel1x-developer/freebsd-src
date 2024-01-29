@@ -40,9 +40,11 @@
  */
 
 #include <sys/types.h>
-#include <stdio.h>
+
 #include <stdarg.h>
+#include <stdio.h>
 #include <syslog.h>
+
 #include "yp_extern.h"
 
 extern int _rpcpmstart;
@@ -53,7 +55,7 @@ static void
 __verr(const char *fmt, va_list ap)
 {
 	if (debug && !_rpcpmstart) {
-		fprintf(stderr,"%s: ",progname);
+		fprintf(stderr, "%s: ", progname);
 		vfprintf(stderr, fmt, ap);
 		fprintf(stderr, "\n");
 	} else {
@@ -66,6 +68,6 @@ yp_error(const char *fmt, ...)
 {
 	va_list ap;
 	va_start(ap, fmt);
-	__verr(fmt,ap);
+	__verr(fmt, ap);
 	va_end(ap);
 }

@@ -27,8 +27,8 @@
  * Mountain View, California  94043
  */
 
-#ifndef	_OPENSOLARIS_RPC_XDR_H_
-#define	_OPENSOLARIS_RPC_XDR_H_
+#ifndef _OPENSOLARIS_RPC_XDR_H_
+#define _OPENSOLARIS_RPC_XDR_H_
 
 #include_next <rpc/xdr.h>
 
@@ -60,11 +60,11 @@ xdrmem_control(XDR *xdrs, int request, void *info)
 }
 
 #undef XDR_CONTROL
-#define	XDR_CONTROL(xdrs, req, op)					\
-	(((xdrs)->x_ops->x_control == NULL) ?				\
-	    xdrmem_control((xdrs), (req), (op)) :			\
-	    (*(xdrs)->x_ops->x_control)(xdrs, req, op))   
+#define XDR_CONTROL(xdrs, req, op)                    \
+	(((xdrs)->x_ops->x_control == NULL) ?         \
+		xdrmem_control((xdrs), (req), (op)) : \
+		(*(xdrs)->x_ops->x_control)(xdrs, req, op))
 
-#endif	/* !_KERNEL */
+#endif /* !_KERNEL */
 
-#endif	/* !_OPENSOLARIS_RPC_XDR_H_ */
+#endif /* !_OPENSOLARIS_RPC_XDR_H_ */

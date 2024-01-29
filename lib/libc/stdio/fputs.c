@@ -32,20 +32,21 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
-#include "un-namespace.h"
+
 #include "fvwrite.h"
 #include "libc_private.h"
 #include "local.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 /*
  * Write the given string to the given file.
  */
 int
-fputs_unlocked(const char * __restrict s, FILE * __restrict fp)
+fputs_unlocked(const char *__restrict s, FILE *__restrict fp)
 {
 	int retval;
 	struct __suio uio;
@@ -63,7 +64,7 @@ fputs_unlocked(const char * __restrict s, FILE * __restrict fp)
 }
 
 int
-fputs(const char * __restrict s, FILE * __restrict fp)
+fputs(const char *__restrict s, FILE *__restrict fp)
 {
 	int retval;
 

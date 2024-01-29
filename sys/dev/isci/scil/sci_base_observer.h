@@ -77,10 +77,9 @@ struct SCI_BASE_SUBJECT;
  *        that is invoked for all observers participating in the observer
  *        design pattern.
  */
-typedef void (*SCI_BASE_OBSERVER_UPDATE_T)(
-   struct SCI_BASE_OBSERVER *this_observer,
-   struct SCI_BASE_SUBJECT  *the_subject
-);
+typedef void (
+    *SCI_BASE_OBSERVER_UPDATE_T)(struct SCI_BASE_OBSERVER *this_observer,
+    struct SCI_BASE_SUBJECT *the_subject);
 
 /**
  * @struct SCI_BASE_OBSERVER
@@ -88,18 +87,18 @@ typedef void (*SCI_BASE_OBSERVER_UPDATE_T)(
  * @brief This structure defines the fields necessary for an object that
  *        intends to participate as an observer.
  */
-typedef struct SCI_BASE_OBSERVER
-{
-   /**
-    * This filed points to the next observer if there is one
-    */
-    struct SCI_BASE_OBSERVER *next;
+typedef struct SCI_BASE_OBSERVER {
+	/**
+	 * This filed points to the next observer if there is one
+	 */
+	struct SCI_BASE_OBSERVER *next;
 
-   /**
-    * This field defines the function pointer that is invoked in order to
-    * notify the observer of a change in the subject (i.e. observed object).
-    */
-   SCI_BASE_OBSERVER_UPDATE_T update;
+	/**
+	 * This field defines the function pointer that is invoked in order to
+	 * notify the observer of a change in the subject (i.e. observed
+	 * object).
+	 */
+	SCI_BASE_OBSERVER_UPDATE_T update;
 
 } SCI_BASE_OBSERVER_T;
 
@@ -113,10 +112,8 @@ typedef struct SCI_BASE_OBSERVER
  *
  * @return none
  */
-void sci_base_observer_construct(
-   struct SCI_BASE_OBSERVER   *this_observer,
-   SCI_BASE_OBSERVER_UPDATE_T  update
-);
+void sci_base_observer_construct(struct SCI_BASE_OBSERVER *this_observer,
+    SCI_BASE_OBSERVER_UPDATE_T update);
 
 /**
  * @brief This method performs the actions of construction and attaches to the
@@ -130,11 +127,8 @@ void sci_base_observer_construct(
  *       the constructor.
  * @param[in] the_subject This parameter specifies the subject to observe.
  */
-void sci_base_observer_initialize(
-   struct SCI_BASE_OBSERVER   *this_observer,
-   SCI_BASE_OBSERVER_UPDATE_T  update,
-   struct SCI_BASE_SUBJECT    *the_subject
-);
+void sci_base_observer_initialize(struct SCI_BASE_OBSERVER *this_observer,
+    SCI_BASE_OBSERVER_UPDATE_T update, struct SCI_BASE_SUBJECT *the_subject);
 
 /**
  * @brief This method will call the observers update function
@@ -146,10 +140,8 @@ void sci_base_observer_initialize(
  *
  * @return none
  */
-void sci_base_observer_update(
-   struct SCI_BASE_OBSERVER *this_observer,
-   struct SCI_BASE_SUBJECT  *the_subject
-);
+void sci_base_observer_update(struct SCI_BASE_OBSERVER *this_observer,
+    struct SCI_BASE_SUBJECT *the_subject);
 
 #else // defined(SCI_LOGGING)
 

@@ -34,31 +34,31 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/ioctl.h>
-#include <sys/stdint.h>
 #include <sys/types.h>
 #include <sys/endian.h>
-#include <sys/sbuf.h>
+#include <sys/ioctl.h>
 #include <sys/queue.h>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <inttypes.h>
-#include <unistd.h>
-#include <string.h>
-#include <strings.h>
-#include <fcntl.h>
-#include <ctype.h>
-#include <limits.h>
-#include <err.h>
+#include <sys/sbuf.h>
+#include <sys/stdint.h>
 
 #include <cam/cam.h>
-#include <cam/cam_debug.h>
 #include <cam/cam_ccb.h>
+#include <cam/cam_debug.h>
 #include <cam/scsi/scsi_all.h>
-#include <cam/scsi/scsi_pass.h>
 #include <cam/scsi/scsi_message.h>
+#include <cam/scsi/scsi_pass.h>
 #include <camlib.h>
+#include <ctype.h>
+#include <err.h>
+#include <fcntl.h>
+#include <inttypes.h>
+#include <limits.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+#include <unistd.h>
+
 #include "camcontrol.h"
 
 struct persist_transport_id {
@@ -70,37 +70,26 @@ struct persist_transport_id {
 /*
  * Service Actions for PERSISTENT RESERVE IN.
  */
-static struct scsi_nv persist_in_actions[] = {
-	{ "read_keys", SPRI_RK },
-	{ "read_reservation", SPRI_RR },
-	{ "report_capabilities", SPRI_RC },
-	{ "read_full_status", SPRI_RS }
-};
+static struct scsi_nv persist_in_actions[] = { { "read_keys", SPRI_RK },
+	{ "read_reservation", SPRI_RR }, { "report_capabilities", SPRI_RC },
+	{ "read_full_status", SPRI_RS } };
 
 /*
  * Service Actions for PERSISTENT RESERVE OUT.
  */
-static struct scsi_nv persist_out_actions[] = {
-	{ "register", SPRO_REGISTER },
-	{ "reserve", SPRO_RESERVE },
-	{ "release" , SPRO_RELEASE },
-	{ "clear", SPRO_CLEAR },
-	{ "preempt", SPRO_PREEMPT },
-	{ "preempt_abort", SPRO_PRE_ABO },
-	{ "register_ignore", SPRO_REG_IGNO },
+static struct scsi_nv persist_out_actions[] = { { "register", SPRO_REGISTER },
+	{ "reserve", SPRO_RESERVE }, { "release", SPRO_RELEASE },
+	{ "clear", SPRO_CLEAR }, { "preempt", SPRO_PREEMPT },
+	{ "preempt_abort", SPRO_PRE_ABO }, { "register_ignore", SPRO_REG_IGNO },
 	{ "register_move", SPRO_REG_MOVE },
-	{ "replace_lost", SPRO_REPL_LOST_RES }
-};
+	{ "replace_lost", SPRO_REPL_LOST_RES } };
 
 /*
  * Known reservation scopes.  As of SPC-4, only LU_SCOPE is used in the
  * spec.  The others are obsolete.
  */
-static struct scsi_nv persist_scope_table[] = {
-	{ "lun", SPR_LU_SCOPE },
-	{ "extent", SPR_EXTENT_SCOPE },
-	{ "element", SPR_ELEMENT_SCOPE }
-};
+static struct scsi_nv persist_scope_table[] = { { "lun", SPR_LU_SCOPE },
+	{ "extent", SPR_EXTENT_SCOPE }, { "element", SPR_ELEMENT_SCOPE } };
 
 /*
  * Reservation types.  The longer name for a given reservation type is
@@ -108,14 +97,11 @@ static struct scsi_nv persist_scope_table[] = {
  * reservation type.  We step through the table linearly when looking for
  * the text name for a particular numeric reservation type value.
  */
-static struct scsi_nv persist_type_table[] = {
-	{ "read_shared", SPR_TYPE_RD_SHARED },
-	{ "write_exclusive", SPR_TYPE_WR_EX },
-	{ "wr_ex", SPR_TYPE_WR_EX },
-	{ "read_exclusive", SPR_TYPE_RD_EX },
-	{ "rd_ex", SPR_TYPE_RD_EX },
-	{ "exclusive_access", SPR_TYPE_EX_AC },
-	{ "ex_ac", SPR_TYPE_EX_AC },
+static struct scsi_nv persist_type_table[] = { { "read_shared",
+						   SPR_TYPE_RD_SHARED },
+	{ "write_exclusive", SPR_TYPE_WR_EX }, { "wr_ex", SPR_TYPE_WR_EX },
+	{ "read_exclusive", SPR_TYPE_RD_EX }, { "rd_ex", SPR_TYPE_RD_EX },
+	{ "exclusive_access", SPR_TYPE_EX_AC }, { "ex_ac", SPR_TYPE_EX_AC },
 	{ "write_exclusive_reg_only", SPR_TYPE_WR_EX_RO },
 	{ "wr_ex_ro", SPR_TYPE_WR_EX_RO },
 	{ "exclusive_access_reg_only", SPR_TYPE_EX_AC_RO },
@@ -123,8 +109,7 @@ static struct scsi_nv persist_type_table[] = {
 	{ "write_exclusive_all_regs", SPR_TYPE_WR_EX_AR },
 	{ "wr_ex_ar", SPR_TYPE_WR_EX_AR },
 	{ "exclusive_access_all_regs", SPR_TYPE_EX_AC_AR },
-	{ "ex_ac_ar", SPR_TYPE_EX_AC_AR }
-};
+	{ "ex_ac_ar", SPR_TYPE_EX_AC_AR } };
 
 /*
  * Print out the standard scope/type field.
@@ -136,18 +121,19 @@ persist_print_scopetype(uint8_t scopetype)
 	int num_entries;
 
 	num_entries = sizeof(persist_scope_table) /
-		      sizeof(persist_scope_table[0]);
+	    sizeof(persist_scope_table[0]);
 	tmpstr = scsi_nv_to_str(persist_scope_table, num_entries,
-				scopetype & SPR_SCOPE_MASK);
-	fprintf(stdout, "Scope: %s (%#x)\n", (tmpstr != NULL) ? tmpstr :
-		"Unknown", (scopetype & SPR_SCOPE_MASK) >> SPR_SCOPE_SHIFT);
+	    scopetype & SPR_SCOPE_MASK);
+	fprintf(stdout, "Scope: %s (%#x)\n",
+	    (tmpstr != NULL) ? tmpstr : "Unknown",
+	    (scopetype & SPR_SCOPE_MASK) >> SPR_SCOPE_SHIFT);
 
 	num_entries = sizeof(persist_type_table) /
-		      sizeof(persist_type_table[0]);
+	    sizeof(persist_type_table[0]);
 	tmpstr = scsi_nv_to_str(persist_type_table, num_entries,
-				scopetype & SPR_TYPE_MASK);
-	fprintf(stdout, "Type: %s (%#x)\n", (tmpstr != NULL) ? tmpstr :
-		"Unknown", scopetype & SPR_TYPE_MASK);
+	    scopetype & SPR_TYPE_MASK);
+	fprintf(stdout, "Type: %s (%#x)\n",
+	    (tmpstr != NULL) ? tmpstr : "Unknown", scopetype & SPR_TYPE_MASK);
 }
 
 static void
@@ -188,20 +174,21 @@ persist_print_res(struct scsi_per_res_in_header *hdr, uint32_t valid_len)
 			fprintf(stdout, "No reservations.\n");
 		else
 			warnx("unable to print reservation, only got %u "
-			      "valid bytes", length);
+			      "valid bytes",
+			    length);
 		return;
 	}
 	fprintf(stdout, "PRgeneration: %#x\n",
-		scsi_4btoul(res->header.generation));
+	    scsi_4btoul(res->header.generation));
 	fprintf(stdout, "Reservation Key: %#jx\n",
-		(uintmax_t)scsi_8btou64(res->data.reservation));
+	    (uintmax_t)scsi_8btou64(res->data.reservation));
 	fprintf(stdout, "Scope address: %#x\n",
-		scsi_4btoul(res->data.scope_addr));
+	    scsi_4btoul(res->data.scope_addr));
 
 	persist_print_scopetype(res->data.scopetype);
 
 	fprintf(stdout, "Extent length: %u\n",
-		scsi_2btoul(res->data.extent_length));
+	    scsi_2btoul(res->data.extent_length));
 }
 
 /*
@@ -221,12 +208,12 @@ persist_print_keys(struct scsi_per_res_in_header *hdr, uint32_t valid_len)
 
 	fprintf(stdout, "PRgeneration: %#x\n", scsi_4btoul(hdr->generation));
 	fprintf(stdout, "%u key%s%s\n", num_keys, (num_keys == 1) ? "" : "s",
-		(num_keys == 0) ? "." : ":");
+	    (num_keys == 0) ? "." : ":");
 
 	for (i = 0, key = (struct scsi_per_res_key *)&hdr[1]; i < num_keys;
 	     i++, key++) {
 		fprintf(stdout, "%u: %#jx\n", i,
-			(uintmax_t)scsi_8btou64(key->key));
+		    (uintmax_t)scsi_8btou64(key->key));
 	}
 }
 
@@ -246,25 +233,27 @@ persist_print_cap(struct scsi_per_res_cap *cap, uint32_t valid_len)
 	type_mask = scsi_2btoul(cap->type_mask);
 
 	if (length < __offsetof(struct scsi_per_res_cap, type_mask)) {
-		fprintf(stdout, "Insufficient data (%u bytes) to report "
-			"full capabilities\n", length);
+		fprintf(stdout,
+		    "Insufficient data (%u bytes) to report "
+		    "full capabilities\n",
+		    length);
 		return;
 	}
 	if (length >= __offsetof(struct scsi_per_res_cap, reserved))
 		check_type_mask = 1;
-	
+
 	fprintf(stdout, "Replace Lost Reservation Capable (RLR_C): %d\n",
-		(cap->flags1 & SPRI_RLR_C) ? 1 : 0);
+	    (cap->flags1 & SPRI_RLR_C) ? 1 : 0);
 	fprintf(stdout, "Compatible Reservation Handling (CRH): %d\n",
-		(cap->flags1 & SPRI_CRH) ? 1 : 0);
+	    (cap->flags1 & SPRI_CRH) ? 1 : 0);
 	fprintf(stdout, "Specify Initiator Ports Capable (SIP_C): %d\n",
-		(cap->flags1 & SPRI_SIP_C) ? 1 : 0);
+	    (cap->flags1 & SPRI_SIP_C) ? 1 : 0);
 	fprintf(stdout, "All Target Ports Capable (ATP_C): %d\n",
-		(cap->flags1 & SPRI_ATP_C) ? 1 : 0);
+	    (cap->flags1 & SPRI_ATP_C) ? 1 : 0);
 	fprintf(stdout, "Persist Through Power Loss Capable (PTPL_C): %d\n",
-		(cap->flags1 & SPRI_PTPL_C) ? 1 : 0);
+	    (cap->flags1 & SPRI_PTPL_C) ? 1 : 0);
 	fprintf(stdout, "ALLOW COMMANDS field: (%#x)\n",
-		(cap->flags2 & SPRI_ALLOW_CMD_MASK) >> SPRI_ALLOW_CMD_SHIFT);
+	    (cap->flags2 & SPRI_ALLOW_CMD_MASK) >> SPRI_ALLOW_CMD_SHIFT);
 	/*
 	 * These cases are cut-and-pasted from SPC4r36l.  There is no
 	 * succinct way to describe these otherwise, and even with the
@@ -274,97 +263,98 @@ persist_print_cap(struct scsi_per_res_cap *cap, uint32_t valid_len)
 	switch (cap->flags2 & SPRI_ALLOW_CMD_MASK) {
 	case SPRI_ALLOW_1:
 		fprintf(stdout,
-"    The device server allows the TEST UNIT READY command through Write\n"
-"    Exclusive type reservations and Exclusive Access type reservations\n"
-"    and does not provide information about whether the following commands\n"
-"    are allowed through Write Exclusive type reservations:\n"
-"        a) the MODE SENSE command, READ ATTRIBUTE command, READ BUFFER\n"
-"           command, RECEIVE COPY RESULTS command, RECEIVE DIAGNOSTIC\n"
-"           RESULTS command, REPORT SUPPORTED OPERATION CODES command,\n"
-"           and REPORT SUPPORTED TASK MANAGEMENT FUNCTION command; and\n"
-"        b) the READ DEFECT DATA command (see SBC-3).\n");
+		    "    The device server allows the TEST UNIT READY command through Write\n"
+		    "    Exclusive type reservations and Exclusive Access type reservations\n"
+		    "    and does not provide information about whether the following commands\n"
+		    "    are allowed through Write Exclusive type reservations:\n"
+		    "        a) the MODE SENSE command, READ ATTRIBUTE command, READ BUFFER\n"
+		    "           command, RECEIVE COPY RESULTS command, RECEIVE DIAGNOSTIC\n"
+		    "           RESULTS command, REPORT SUPPORTED OPERATION CODES command,\n"
+		    "           and REPORT SUPPORTED TASK MANAGEMENT FUNCTION command; and\n"
+		    "        b) the READ DEFECT DATA command (see SBC-3).\n");
 		break;
 	case SPRI_ALLOW_2:
 		fprintf(stdout,
-"    The device server allows the TEST UNIT READY command through Write\n"
-"    Exclusive type reservations and Exclusive Access type reservations\n"
-"    and does not allow the following commands through Write Exclusive type\n"
-"    reservations:\n"
-"        a) the MODE SENSE command, READ ATTRIBUTE command, READ BUFFER\n"
-"           command, RECEIVE DIAGNOSTIC RESULTS command, REPORT SUPPORTED\n"
-"           OPERATION CODES command, and REPORT SUPPORTED TASK MANAGEMENT\n"
-"           FUNCTION command; and\n"
-"        b) the READ DEFECT DATA command.\n"
-"    The device server does not allow the RECEIVE COPY RESULTS command\n"
-"    through Write Exclusive type reservations or Exclusive Access type\n"
-"    reservations.\n");
+		    "    The device server allows the TEST UNIT READY command through Write\n"
+		    "    Exclusive type reservations and Exclusive Access type reservations\n"
+		    "    and does not allow the following commands through Write Exclusive type\n"
+		    "    reservations:\n"
+		    "        a) the MODE SENSE command, READ ATTRIBUTE command, READ BUFFER\n"
+		    "           command, RECEIVE DIAGNOSTIC RESULTS command, REPORT SUPPORTED\n"
+		    "           OPERATION CODES command, and REPORT SUPPORTED TASK MANAGEMENT\n"
+		    "           FUNCTION command; and\n"
+		    "        b) the READ DEFECT DATA command.\n"
+		    "    The device server does not allow the RECEIVE COPY RESULTS command\n"
+		    "    through Write Exclusive type reservations or Exclusive Access type\n"
+		    "    reservations.\n");
 		break;
 	case SPRI_ALLOW_3:
 		fprintf(stdout,
-"    The device server allows the TEST UNIT READY command through Write\n"
-"    Exclusive type reservations and Exclusive Access type reservations\n"
-"    and allows the following commands through Write Exclusive type\n"
-"    reservations:\n"
-"        a) the MODE SENSE command, READ ATTRIBUTE command, READ BUFFER\n"
-"           command, RECEIVE DIAGNOSTIC RESULTS command, REPORT SUPPORTED\n"
-"           OPERATION CODES command, and REPORT SUPPORTED TASK MANAGEMENT\n"
-"           FUNCTION command; and\n"
-"        b) the READ DEFECT DATA command.\n"
-"    The device server does not allow the RECEIVE COPY RESULTS command\n"
-"    through Write Exclusive type reservations or Exclusive Access type\n"
-"    reservations.\n");
+		    "    The device server allows the TEST UNIT READY command through Write\n"
+		    "    Exclusive type reservations and Exclusive Access type reservations\n"
+		    "    and allows the following commands through Write Exclusive type\n"
+		    "    reservations:\n"
+		    "        a) the MODE SENSE command, READ ATTRIBUTE command, READ BUFFER\n"
+		    "           command, RECEIVE DIAGNOSTIC RESULTS command, REPORT SUPPORTED\n"
+		    "           OPERATION CODES command, and REPORT SUPPORTED TASK MANAGEMENT\n"
+		    "           FUNCTION command; and\n"
+		    "        b) the READ DEFECT DATA command.\n"
+		    "    The device server does not allow the RECEIVE COPY RESULTS command\n"
+		    "    through Write Exclusive type reservations or Exclusive Access type\n"
+		    "    reservations.\n");
 		break;
 	case SPRI_ALLOW_4:
 		fprintf(stdout,
-"    The device server allows the TEST UNIT READY command and the RECEIVE\n"
-"    COPY RESULTS command through Write Exclusive type reservations and\n"
-"    Exclusive Access type reservations and allows the following commands\n"
-"    through Write Exclusive type reservations:\n"
-"        a) the MODE SENSE command, READ ATTRIBUTE command, READ BUFFER\n"
-"           command, RECEIVE DIAGNOSTIC RESULTS command, REPORT SUPPORTED\n"
-"           OPERATION CODES command, and REPORT SUPPORTED TASK MANAGEMENT\n"
-"           FUNCTION command; and\n"
-"        b) the READ DEFECT DATA command.\n");
+		    "    The device server allows the TEST UNIT READY command and the RECEIVE\n"
+		    "    COPY RESULTS command through Write Exclusive type reservations and\n"
+		    "    Exclusive Access type reservations and allows the following commands\n"
+		    "    through Write Exclusive type reservations:\n"
+		    "        a) the MODE SENSE command, READ ATTRIBUTE command, READ BUFFER\n"
+		    "           command, RECEIVE DIAGNOSTIC RESULTS command, REPORT SUPPORTED\n"
+		    "           OPERATION CODES command, and REPORT SUPPORTED TASK MANAGEMENT\n"
+		    "           FUNCTION command; and\n"
+		    "        b) the READ DEFECT DATA command.\n");
 		break;
 	case SPRI_ALLOW_NA:
 		fprintf(stdout,
-"    No information is provided about whether certain commands are allowed\n"
-"    through certain types of persistent reservations.\n");
+		    "    No information is provided about whether certain commands are allowed\n"
+		    "    through certain types of persistent reservations.\n");
 		break;
 	default:
-		fprintf(stdout,
-"    Unknown ALLOW COMMANDS value %#x\n",
-			(cap->flags2 & SPRI_ALLOW_CMD_MASK) >>
+		fprintf(stdout, "    Unknown ALLOW COMMANDS value %#x\n",
+		    (cap->flags2 & SPRI_ALLOW_CMD_MASK) >>
 			SPRI_ALLOW_CMD_SHIFT);
 		break;
 	}
 	fprintf(stdout, "Persist Through Power Loss Activated (PTPL_A): %d\n",
-		(cap->flags2 & SPRI_PTPL_A) ? 1 : 0);
-	if ((check_type_mask != 0)
-	 && (cap->flags2 & SPRI_TMV)) {
+	    (cap->flags2 & SPRI_PTPL_A) ? 1 : 0);
+	if ((check_type_mask != 0) && (cap->flags2 & SPRI_TMV)) {
 		fprintf(stdout, "Supported Persistent Reservation Types:\n");
-		fprintf(stdout, "    Write Exclusive - All Registrants "
-			"(WR_EX_AR): %d\n",
-			(type_mask & SPRI_TM_WR_EX_AR)? 1 : 0);
-		fprintf(stdout, "    Exclusive Access - Registrants Only "
-			"(EX_AC_RO): %d\n",
-			(type_mask & SPRI_TM_EX_AC_RO) ? 1 : 0);
-		fprintf(stdout, "    Write Exclusive - Registrants Only "
-			"(WR_EX_RO): %d\n",
-			(type_mask & SPRI_TM_WR_EX_RO)? 1 : 0);
+		fprintf(stdout,
+		    "    Write Exclusive - All Registrants "
+		    "(WR_EX_AR): %d\n",
+		    (type_mask & SPRI_TM_WR_EX_AR) ? 1 : 0);
+		fprintf(stdout,
+		    "    Exclusive Access - Registrants Only "
+		    "(EX_AC_RO): %d\n",
+		    (type_mask & SPRI_TM_EX_AC_RO) ? 1 : 0);
+		fprintf(stdout,
+		    "    Write Exclusive - Registrants Only "
+		    "(WR_EX_RO): %d\n",
+		    (type_mask & SPRI_TM_WR_EX_RO) ? 1 : 0);
 		fprintf(stdout, "    Exclusive Access (EX_AC): %d\n",
-			(type_mask & SPRI_TM_EX_AC) ? 1 : 0);
+		    (type_mask & SPRI_TM_EX_AC) ? 1 : 0);
 		fprintf(stdout, "    Write Exclusive (WR_EX): %d\n",
-			(type_mask & SPRI_TM_WR_EX) ? 1 : 0);
-		fprintf(stdout, "    Exclusive Access - All Registrants "
-			"(EX_AC_AR): %d\n",
-			(type_mask & SPRI_TM_EX_AC_AR) ? 1 : 0);
+		    (type_mask & SPRI_TM_WR_EX) ? 1 : 0);
+		fprintf(stdout,
+		    "    Exclusive Access - All Registrants "
+		    "(EX_AC_AR): %d\n",
+		    (type_mask & SPRI_TM_EX_AC_AR) ? 1 : 0);
 	} else {
-		fprintf(stdout, "Persistent Reservation Type Mask is NOT "
-			"valid\n");
+		fprintf(stdout,
+		    "Persistent Reservation Type Mask is NOT "
+		    "valid\n");
 	}
-
-	
 }
 
 static void
@@ -383,37 +373,37 @@ persist_print_full(struct scsi_per_res_in_header *hdr, uint32_t valid_len)
 			fprintf(stdout, "No reservations.\n");
 		else
 			warnx("unable to print reservation, only got %u "
-			      "valid bytes", length);
+			      "valid bytes",
+			    length);
 		return;
 	}
 
 	fprintf(stdout, "PRgeneration: %#x\n", scsi_4btoul(hdr->generation));
 	cur_pos = (uint8_t *)&hdr[1];
 	for (len_to_go = length, i = 0,
-	     desc = (struct scsi_per_res_in_full_desc *)cur_pos;
+	    desc = (struct scsi_per_res_in_full_desc *)cur_pos;
 	     len_to_go >= sizeof(*desc);
 	     desc = (struct scsi_per_res_in_full_desc *)cur_pos, i++) {
 		uint32_t additional_length, cur_length;
 
-
 		fprintf(stdout, "Reservation Key: %#jx\n",
-			(uintmax_t)scsi_8btou64(desc->res_key.key));
+		    (uintmax_t)scsi_8btou64(desc->res_key.key));
 		fprintf(stdout, "All Target Ports (ALL_TG_PT): %d\n",
-			(desc->flags & SPRI_FULL_ALL_TG_PT) ? 1 : 0);
+		    (desc->flags & SPRI_FULL_ALL_TG_PT) ? 1 : 0);
 		fprintf(stdout, "Reservation Holder (R_HOLDER): %d\n",
-			(desc->flags & SPRI_FULL_R_HOLDER) ? 1 : 0);
-		
+		    (desc->flags & SPRI_FULL_R_HOLDER) ? 1 : 0);
+
 		if (desc->flags & SPRI_FULL_R_HOLDER)
 			persist_print_scopetype(desc->scopetype);
 
 		if ((desc->flags & SPRI_FULL_ALL_TG_PT) == 0)
 			fprintf(stdout, "Relative Target Port ID: %#x\n",
-				scsi_2btoul(desc->rel_trgt_port_id));
+			    scsi_2btoul(desc->rel_trgt_port_id));
 
 		additional_length = scsi_4btoul(desc->additional_length);
 
 		persist_print_transportid(desc->transport_id,
-					  additional_length);
+		    additional_length);
 
 		cur_length = sizeof(*desc) + additional_length;
 		len_to_go -= cur_length;
@@ -423,8 +413,8 @@ persist_print_full(struct scsi_per_res_in_header *hdr, uint32_t valid_len)
 
 int
 scsipersist(struct cam_device *device, int argc, char **argv, char *combinedopt,
-	    int task_attr, int retry_count, int timeout, int verbosemode,
-	    int err_recover)
+    int task_attr, int retry_count, int timeout, int verbosemode,
+    int err_recover)
 {
 	union ccb *ccb = NULL;
 	int c, in = 0, out = 0;
@@ -440,7 +430,8 @@ scsipersist(struct cam_device *device, int argc, char **argv, char *combinedopt,
 	struct scsi_nv *table = NULL;
 	size_t table_size = 0, id_len = 0;
 	uint32_t valid_len = 0;
-	int all_tg_pt = 0, aptpl = 0, spec_i_pt = 0, unreg = 0,rel_port_set = 0;
+	int all_tg_pt = 0, aptpl = 0, spec_i_pt = 0, unreg = 0,
+	    rel_port_set = 0;
 
 	STAILQ_INIT(&transport_id_list);
 
@@ -494,7 +485,7 @@ scsipersist(struct cam_device *device, int argc, char **argv, char *combinedopt,
 			id_len += id->alloc_len;
 			break;
 		}
-		case 'k': 
+		case 'k':
 		case 'K': {
 			char *endptr;
 			uint64_t tmpval;
@@ -522,30 +513,32 @@ scsipersist(struct cam_device *device, int argc, char **argv, char *combinedopt,
 				in = 1;
 				table = persist_in_actions;
 				table_size = sizeof(persist_in_actions) /
-					sizeof(persist_in_actions[0]);
+				    sizeof(persist_in_actions[0]);
 			} else {
 				out = 1;
 				table = persist_out_actions;
 				table_size = sizeof(persist_out_actions) /
-					sizeof(persist_out_actions[0]);
+				    sizeof(persist_out_actions[0]);
 			}
 
 			if ((in + out) > 1) {
 				warnx("%s: only one in (-i) or out (-o) "
-				    "action is allowed", __func__);
+				      "action is allowed",
+				    __func__);
 				error = 1;
 				goto bailout;
 			}
 
 			status = scsi_get_nv(table, table_size, optarg,
-					     &table_entry,SCSI_NV_FLAG_IG_CASE);
+			    &table_entry, SCSI_NV_FLAG_IG_CASE);
 			if (status == SCSI_NV_FOUND)
 				action = table[table_entry].value;
 			else {
 				warnx("%s: %s %s option %s", __func__,
 				    (status == SCSI_NV_AMBIGUOUS) ?
-				    "ambiguous" : "invalid", in ? "in" :
-				    "out", optarg);
+					"ambiguous" :
+					"invalid",
+				    in ? "in" : "out", optarg);
 				error = 1;
 				goto bailout;
 			}
@@ -581,8 +574,8 @@ scsipersist(struct cam_device *device, int argc, char **argv, char *combinedopt,
 			if (isdigit(optarg[0])) {
 				scope = strtol(optarg, &endptr, 0);
 				if (*endptr != '\0') {
-					warnx("%s: invalid scope %s",
-					       __func__, optarg);
+					warnx("%s: invalid scope %s", __func__,
+					    optarg);
 					error = 1;
 					goto bailout;
 				}
@@ -592,16 +585,18 @@ scsipersist(struct cam_device *device, int argc, char **argv, char *combinedopt,
 			}
 
 			scope_size = sizeof(persist_scope_table) /
-				     sizeof(persist_scope_table[0]);
+			    sizeof(persist_scope_table[0]);
 			scope_table = persist_scope_table;
 			status = scsi_get_nv(scope_table, scope_size, optarg,
-					     &table_entry,SCSI_NV_FLAG_IG_CASE);
+			    &table_entry, SCSI_NV_FLAG_IG_CASE);
 			if (status == SCSI_NV_FOUND)
 				scope = scope_table[table_entry].value;
 			else {
 				warnx("%s: %s scope %s", __func__,
-				      (status == SCSI_NV_AMBIGUOUS) ?
-				      "ambiguous" : "invalid", optarg);
+				    (status == SCSI_NV_AMBIGUOUS) ?
+					"ambiguous" :
+					"invalid",
+				    optarg);
 				error = 1;
 				goto bailout;
 			}
@@ -625,7 +620,7 @@ scsipersist(struct cam_device *device, int argc, char **argv, char *combinedopt,
 				res_type = strtol(optarg, &endptr, 0);
 				if (*endptr != '\0') {
 					warnx("%s: invalid reservation type %s",
-					       __func__, optarg);
+					    __func__, optarg);
 					error = 1;
 					goto bailout;
 				}
@@ -633,17 +628,18 @@ scsipersist(struct cam_device *device, int argc, char **argv, char *combinedopt,
 			}
 
 			res_type_size = sizeof(persist_type_table) /
-					sizeof(persist_type_table[0]);
+			    sizeof(persist_type_table[0]);
 			rtype_table = persist_type_table;
-			status = scsi_get_nv(rtype_table, res_type_size,
-					     optarg, &table_entry,
-					     SCSI_NV_FLAG_IG_CASE);
+			status = scsi_get_nv(rtype_table, res_type_size, optarg,
+			    &table_entry, SCSI_NV_FLAG_IG_CASE);
 			if (status == SCSI_NV_FOUND)
 				res_type = rtype_table[table_entry].value;
 			else {
 				warnx("%s: %s reservation type %s", __func__,
-				      (status == SCSI_NV_AMBIGUOUS) ?
-				      "ambiguous" : "invalid", optarg);
+				    (status == SCSI_NV_AMBIGUOUS) ?
+					"ambiguous" :
+					"invalid",
+				    optarg);
 				error = 1;
 				goto bailout;
 			}
@@ -708,22 +704,23 @@ scsipersist(struct cam_device *device, int argc, char **argv, char *combinedopt,
 		 */
 		if (action == SPRO_REG_MOVE) {
 			if (num_ids != 1) {
-			    	warnx("%s: register and move requires a "
-				    "single transport ID (-I)", __func__);
+				warnx("%s: register and move requires a "
+				      "single transport ID (-I)",
+				    __func__);
 				error = 1;
 				goto bailout;
 			}
 			if (rel_port_set == 0) {
 				warnx("%s: register and move requires a "
-				    "relative target port (-R)", __func__);
+				      "relative target port (-R)",
+				    __func__);
 				error = 1;
 				goto bailout;
 			}
 			res_len = sizeof(struct scsi_per_res_reg_move) + id_len;
 		} else {
 			res_len = sizeof(struct scsi_per_res_out_parms);
-			if ((action == SPRO_REGISTER)
-			 && (num_ids != 0)) {
+			if ((action == SPRO_REGISTER) && (num_ids != 0)) {
 				/*
 				 * If the user specifies any IDs with the
 				 * register service action, turn on the
@@ -731,8 +728,8 @@ scsipersist(struct cam_device *device, int argc, char **argv, char *combinedopt,
 				 */
 				spec_i_pt = 1;
 				res_len += id_len;
-				res_len +=
-				    sizeof(struct scsi_per_res_out_trans_ids);
+				res_len += sizeof(
+				    struct scsi_per_res_out_trans_ids);
 			}
 		}
 	}
@@ -751,14 +748,14 @@ retry:
 
 	if (in != 0) {
 		scsi_persistent_reserve_in(&ccb->csio,
-					   /*retries*/ retry_count,
-					   /*cbfcnp*/ NULL,
-					   /*tag_action*/ task_attr,
-					   /*service_action*/ action,
-					   /*data_ptr*/ res_buf,
-					   /*dxfer_len*/ res_len,
-					   /*sense_len*/ SSD_FULL_SIZE,
-					   /*timeout*/ timeout ? timeout :5000);
+		    /*retries*/ retry_count,
+		    /*cbfcnp*/ NULL,
+		    /*tag_action*/ task_attr,
+		    /*service_action*/ action,
+		    /*data_ptr*/ res_buf,
+		    /*dxfer_len*/ res_len,
+		    /*sense_len*/ SSD_FULL_SIZE,
+		    /*timeout*/ timeout ? timeout : 5000);
 
 	} else {
 		switch (action) {
@@ -770,12 +767,12 @@ retry:
 				bufptr = res_buf +
 				    sizeof(struct scsi_per_res_out_parms) +
 				    sizeof(struct scsi_per_res_out_trans_ids);
-				STAILQ_FOREACH(id, &transport_id_list, links) {
+				STAILQ_FOREACH (id, &transport_id_list, links) {
 					bcopy(id->hdr, bufptr, id->alloc_len);
 					bufptr += id->alloc_len;
 				}
-				id_hdr = (struct scsi_per_res_out_trans_ids *)
-				    (res_buf +
+				id_hdr = (struct scsi_per_res_out_trans_ids
+					*)(res_buf +
 				    sizeof(struct scsi_per_res_out_parms));
 				scsi_ulto4b(id_len, id_hdr->additional_length);
 			}
@@ -833,16 +830,16 @@ retry:
 			break;
 		}
 		scsi_persistent_reserve_out(&ccb->csio,
-					    /*retries*/ retry_count,
-					    /*cbfcnp*/ NULL,
-					    /*tag_action*/ task_attr,
-					    /*service_action*/ action,
-					    /*scope*/ scope,
-					    /*res_type*/ res_type,
-					    /*data_ptr*/ res_buf,
-					    /*dxfer_len*/ res_len,
-					    /*sense_len*/ SSD_FULL_SIZE,
-					    /*timeout*/ timeout ?timeout :5000);
+		    /*retries*/ retry_count,
+		    /*cbfcnp*/ NULL,
+		    /*tag_action*/ task_attr,
+		    /*service_action*/ action,
+		    /*scope*/ scope,
+		    /*res_type*/ res_type,
+		    /*data_ptr*/ res_buf,
+		    /*dxfer_len*/ res_len,
+		    /*sense_len*/ SSD_FULL_SIZE,
+		    /*timeout*/ timeout ? timeout : 5000);
 	}
 
 	/* Disable freezing the device queue */
@@ -852,16 +849,16 @@ retry:
 		ccb->ccb_h.flags |= CAM_PASS_ERR_RECOVER;
 
 	if (cam_send_ccb(device, ccb) < 0) {
-		warn("error sending PERSISTENT RESERVE %s", (in != 0) ?
-		    "IN" : "OUT");
+		warn("error sending PERSISTENT RESERVE %s",
+		    (in != 0) ? "IN" : "OUT");
 		error = 1;
 		goto bailout;
 	}
 
 	if ((ccb->ccb_h.status & CAM_STATUS_MASK) != CAM_REQ_CMP) {
 		if (verbosemode != 0) {
-			cam_error_print(device, ccb, CAM_ESF_ALL,
-					CAM_EPF_ALL, stderr);
+			cam_error_print(device, ccb, CAM_ESF_ALL, CAM_EPF_ALL,
+			    stderr);
 		}
 		error = 1;
 		goto bailout;
@@ -880,8 +877,8 @@ retry:
 		uint32_t hdr_len;
 
 		if (valid_len < sizeof(*hdr)) {
-			warnx("%s: only got %d valid bytes, need %zd",
-			      __func__, valid_len, sizeof(*hdr));
+			warnx("%s: only got %d valid bytes, need %zd", __func__,
+			    valid_len, sizeof(*hdr));
 			error = 1;
 			goto bailout;
 		}
@@ -907,8 +904,8 @@ retry:
 		uint32_t cap_len;
 
 		if (valid_len < sizeof(*cap)) {
-			warnx("%s: only got %u valid bytes, need %zd",
-			      __func__, valid_len, sizeof(*cap));
+			warnx("%s: only got %u valid bytes, need %zd", __func__,
+			    valid_len, sizeof(*cap));
 			error = 1;
 			goto bailout;
 		}
@@ -920,8 +917,8 @@ retry:
 			 * it's just more trouble.
 			 */
 			warnx("%s: reported size %u is different "
-			    "than expected size %zd", __func__,
-			    cap_len, sizeof(*cap));
+			      "than expected size %zd",
+			    __func__, cap_len, sizeof(*cap));
 		}
 
 		/*
@@ -947,7 +944,7 @@ bailout:
 	if (ccb != NULL)
 		cam_freeccb(ccb);
 
-	STAILQ_FOREACH_SAFE(id, &transport_id_list, links, id2) {
+	STAILQ_FOREACH_SAFE (id, &transport_id_list, links, id2) {
 		STAILQ_REMOVE(&transport_id_list, id, persist_transport_id,
 		    links);
 		free(id);

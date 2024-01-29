@@ -29,7 +29,6 @@
  * SUCH DAMAGE.
  */
 
-#include "lp.cdefs.h"		/* A cross-platform version of <sys/cdefs.h> */
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/uio.h>
@@ -40,6 +39,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+
+#include "lp.cdefs.h" /* A cross-platform version of <sys/cdefs.h> */
 #include "lp.h"
 #include "pathnames.h"
 
@@ -58,7 +59,7 @@ startdaemon(const struct printer *pp)
 	s = socket(PF_LOCAL, SOCK_STREAM, 0);
 	if (s < 0) {
 		warn("socket");
-		return(0);
+		return (0);
 	}
 	memset(&un, 0, sizeof(un));
 	un.sun_family = AF_LOCAL;
@@ -72,28 +73,28 @@ startdaemon(const struct printer *pp)
 	if (connectres < 0) {
 		warn("Unable to connect to %s", _PATH_SOCKETNAME);
 		warnx("Check to see if the master 'lpd' process is running.");
-		(void) close(s);
-		return(0);
+		(void)close(s);
+		return (0);
 	}
 
 	/*
-	 * Avoid overruns without putting artificial limitations on 
+	 * Avoid overruns without putting artificial limitations on
 	 * the length.
 	 */
 	if (writel(s, "\1", pp->printer, "\n", (char *)0) <= 0) {
 		warn("write");
-		(void) close(s);
-		return(0);
+		(void)close(s);
+		return (0);
 	}
 	if (read(s, &c, 1) == 1) {
-		if (c == '\0') {		/* everything is OK */
-			(void) close(s);
-			return(1);
+		if (c == '\0') { /* everything is OK */
+			(void)close(s);
+			return (1);
 		}
 		putchar(c);
 	}
 	while ((n = read(s, &c, 1)) > 0)
 		putchar(c);
-	(void) close(s);
-	return(0);
+	(void)close(s);
+	return (0);
 }

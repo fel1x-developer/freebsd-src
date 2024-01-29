@@ -35,7 +35,7 @@
 #include "e1000_api.h"
 
 /*
- * NOTE: the following routines using the e1000 
+ * NOTE: the following routines using the e1000
  * 	naming style are provided to the shared
  *	code but are OS specific
  */
@@ -73,7 +73,7 @@ int32_t
 e1000_read_pcie_cap_reg(struct e1000_hw *hw, u32 reg, u16 *value)
 {
 	device_t dev = ((struct e1000_osdep *)hw->back)->dev;
-	u32	offset;
+	u32 offset;
 
 	pci_find_cap(dev, PCIY_EXPRESS, &offset);
 	*value = pci_read_config(dev, offset + reg, 2);
@@ -87,7 +87,7 @@ int32_t
 e1000_write_pcie_cap_reg(struct e1000_hw *hw, u32 reg, u16 *value)
 {
 	device_t dev = ((struct e1000_osdep *)hw->back)->dev;
-	u32	offset;
+	u32 offset;
 
 	pci_find_cap(dev, PCIY_EXPRESS, &offset);
 	pci_write_config(dev, offset + reg, *value, 2);

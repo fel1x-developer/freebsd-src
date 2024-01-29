@@ -41,8 +41,8 @@
 #include <netlink/netlink_linux.h>
 #include <netlink/netlink_var.h>
 
-#define	DEBUG_MOD_NAME	nl_io
-#define	DEBUG_MAX_LEVEL	LOG_DEBUG3
+#define DEBUG_MOD_NAME nl_io
+#define DEBUG_MAX_LEVEL LOG_DEBUG3
 #include <netlink/netlink_debug.h>
 _DECLARE_DEBUG(LOG_INFO);
 
@@ -168,8 +168,8 @@ nl_on_transmit(struct nlpcb *nlp)
 		struct sockbuf *sb = &so->so_rcv;
 		NLP_LOG(LOG_DEBUG, nlp,
 		    "socket RX overflowed, %lu messages (%lu bytes) dropped. "
-		    "bytes: [%u/%u]", dropped_messages, dropped_bytes,
-		    sb->sb_ccc, sb->sb_hiwat);
+		    "bytes: [%u/%u]",
+		    dropped_messages, dropped_bytes, sb->sb_ccc, sb->sb_hiwat);
 		/* TODO: send netlink message */
 	}
 
@@ -204,7 +204,8 @@ nl_send(struct nl_writer *nw, struct nlpcb *nlp)
 	MPASS(nw->buf != NULL);
 	MPASS(nw->buf->datalen > 0);
 
-	IF_DEBUG_LEVEL(LOG_DEBUG2) {
+	IF_DEBUG_LEVEL(LOG_DEBUG2)
+	{
 		struct nlmsghdr *hdr = (struct nlmsghdr *)nw->buf->data;
 		NLP_LOG(LOG_DEBUG2, nlp,
 		    "TX len %u msgs %u msg type %d first hdrlen %u",
@@ -258,12 +259,13 @@ nl_receive_message(struct nlmsghdr *hdr, int remaining_length,
 	nl_handler_f handler = nl_handlers[nlp->nl_proto].cb;
 	int error = 0;
 
-	NLP_LOG(LOG_DEBUG2, nlp, "msg len: %u type: %d: flags: 0x%X seq: %u pid: %u",
-	    hdr->nlmsg_len, hdr->nlmsg_type, hdr->nlmsg_flags, hdr->nlmsg_seq,
-	    hdr->nlmsg_pid);
+	NLP_LOG(LOG_DEBUG2, nlp,
+	    "msg len: %u type: %d: flags: 0x%X seq: %u pid: %u", hdr->nlmsg_len,
+	    hdr->nlmsg_type, hdr->nlmsg_flags, hdr->nlmsg_seq, hdr->nlmsg_pid);
 
 	if (__predict_false(hdr->nlmsg_len > remaining_length)) {
-		NLP_LOG(LOG_DEBUG, nlp, "message is not entirely present: want %d got %d",
+		NLP_LOG(LOG_DEBUG, nlp,
+		    "message is not entirely present: want %d got %d",
 		    hdr->nlmsg_len, remaining_length);
 		return (EINVAL);
 	} else if (__predict_false(hdr->nlmsg_len < sizeof(*hdr))) {
@@ -275,15 +277,18 @@ nl_receive_message(struct nlmsghdr *hdr, int remaining_length,
 
 	npt->hdr = hdr;
 
-	if (hdr->nlmsg_flags & NLM_F_REQUEST && hdr->nlmsg_type >= NLMSG_MIN_TYPE) {
+	if (hdr->nlmsg_flags & NLM_F_REQUEST &&
+	    hdr->nlmsg_type >= NLMSG_MIN_TYPE) {
 		NL_LOG(LOG_DEBUG2, "handling message with msg type: %d",
-		   hdr->nlmsg_type);
+		    hdr->nlmsg_type);
 
 		if (nlp->nl_linux && linux_netlink_p != NULL) {
 			struct nlmsghdr *hdr_orig = hdr;
-			hdr = linux_netlink_p->msg_from_linux(nlp->nl_proto, hdr, npt);
+			hdr = linux_netlink_p->msg_from_linux(nlp->nl_proto,
+			    hdr, npt);
 			if (hdr == NULL) {
-				 /* Failed to translate to kernel format. Report an error back */
+				/* Failed to translate to kernel format. Report
+				 * an error back */
 				hdr = hdr_orig;
 				npt->hdr = hdr;
 				if (hdr->nlmsg_flags & NLM_F_ACK)
@@ -346,8 +351,8 @@ nl_process_nbuf(struct nl_buf *nb, struct nlpcb *nlp)
 		hdr = (struct nlmsghdr *)&nb->data[nb->offset];
 		/* Save length prior to calling handler */
 		int msglen = NLMSG_ALIGN(hdr->nlmsg_len);
-		NL_LOG(LOG_DEBUG3, "parsing offset %d/%d",
-		    nb->offset, nb->datalen);
+		NL_LOG(LOG_DEBUG3, "parsing offset %d/%d", nb->offset,
+		    nb->datalen);
 		npt_clear(&npt);
 		error = nl_receive_message(hdr, nb->datalen - nb->offset, nlp,
 		    &npt);

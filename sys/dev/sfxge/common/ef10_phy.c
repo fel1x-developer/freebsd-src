@@ -29,19 +29,18 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "efx.h"
 #include "efx_impl.h"
 
 #if EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2
 
-static			void
-mcdi_phy_decode_cap(
-	__in		uint32_t mcdi_cap,
-	__out		uint32_t *maskp)
+static void
+mcdi_phy_decode_cap(__in uint32_t mcdi_cap, __out uint32_t *maskp)
 {
 	uint32_t mask;
 
-#define	CHECK_CAP(_cap) \
+#define CHECK_CAP(_cap) \
 	EFX_STATIC_ASSERT(EFX_PHY_CAP_##_cap == MC_CMD_PHY_CAP_##_cap##_LBN)
 
 	CHECK_CAP(10HDX);
@@ -117,21 +116,15 @@ mcdi_phy_decode_cap(
 	*maskp = mask;
 }
 
-static			void
-mcdi_phy_decode_link_mode(
-	__in		efx_nic_t *enp,
-	__in		uint32_t link_flags,
-	__in		unsigned int speed,
-	__in		unsigned int fcntl,
-	__in		uint32_t fec,
-	__out		efx_link_mode_t *link_modep,
-	__out		unsigned int *fcntlp,
-	__out		efx_phy_fec_type_t *fecp)
+static void
+mcdi_phy_decode_link_mode(__in efx_nic_t *enp, __in uint32_t link_flags,
+    __in unsigned int speed, __in unsigned int fcntl, __in uint32_t fec,
+    __out efx_link_mode_t *link_modep, __out unsigned int *fcntlp,
+    __out efx_phy_fec_type_t *fecp)
 {
-	boolean_t fd = !!(link_flags &
-		    (1 << MC_CMD_GET_LINK_OUT_FULL_DUPLEX_LBN));
-	boolean_t up = !!(link_flags &
-		    (1 << MC_CMD_GET_LINK_OUT_LINK_UP_LBN));
+	boolean_t fd = !!(
+	    link_flags & (1 << MC_CMD_GET_LINK_OUT_FULL_DUPLEX_LBN));
+	boolean_t up = !!(link_flags & (1 << MC_CMD_GET_LINK_OUT_LINK_UP_LBN));
 
 	_NOTE(ARGUNUSED(enp))
 
@@ -186,11 +179,9 @@ mcdi_phy_decode_link_mode(
 	}
 }
 
-			void
-ef10_phy_link_ev(
-	__in		efx_nic_t *enp,
-	__in		efx_qword_t *eqp,
-	__out		efx_link_mode_t *link_modep)
+void
+ef10_phy_link_ev(__in efx_nic_t *enp, __in efx_qword_t *eqp,
+    __out efx_link_mode_t *link_modep)
 {
 	efx_port_t *epp = &(enp->en_port);
 	unsigned int link_flags;
@@ -233,11 +224,10 @@ ef10_phy_link_ev(
 
 	link_flags = MCDI_EV_FIELD(eqp, LINKCHANGE_LINK_FLAGS);
 	mcdi_phy_decode_link_mode(enp, link_flags, speed,
-				    MCDI_EV_FIELD(eqp, LINKCHANGE_FCNTL),
-				    MC_CMD_FEC_NONE, &link_mode,
-				    &fcntl, &fec);
+	    MCDI_EV_FIELD(eqp, LINKCHANGE_FCNTL), MC_CMD_FEC_NONE, &link_mode,
+	    &fcntl, &fec);
 	mcdi_phy_decode_cap(MCDI_EV_FIELD(eqp, LINKCHANGE_LP_CAP),
-			    &lp_cap_mask);
+	    &lp_cap_mask);
 
 	/*
 	 * It's safe to update ep_lp_cap_mask without the driver's port lock
@@ -256,10 +246,8 @@ ef10_phy_link_ev(
 	*link_modep = link_mode;
 }
 
-	__checkReturn	efx_rc_t
-ef10_phy_power(
-	__in		efx_nic_t *enp,
-	__in		boolean_t power)
+__checkReturn efx_rc_t
+ef10_phy_power(__in efx_nic_t *enp, __in boolean_t power)
 {
 	efx_rc_t rc;
 
@@ -280,15 +268,13 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-ef10_phy_get_link(
-	__in		efx_nic_t *enp,
-	__out		ef10_link_state_t *elsp)
+__checkReturn efx_rc_t
+ef10_phy_get_link(__in efx_nic_t *enp, __out ef10_link_state_t *elsp)
 {
 	efx_mcdi_req_t req;
 	uint32_t fec;
 	EFX_MCDI_DECLARE_BUF(payload, MC_CMD_GET_LINK_IN_LEN,
-		MC_CMD_GET_LINK_OUT_V2_LEN);
+	    MC_CMD_GET_LINK_OUT_V2_LEN);
 	efx_rc_t rc;
 
 	req.emr_cmd = MC_CMD_GET_LINK;
@@ -310,9 +296,9 @@ ef10_phy_get_link(
 	}
 
 	mcdi_phy_decode_cap(MCDI_OUT_DWORD(req, GET_LINK_OUT_CAP),
-			    &elsp->epls.epls_adv_cap_mask);
+	    &elsp->epls.epls_adv_cap_mask);
 	mcdi_phy_decode_cap(MCDI_OUT_DWORD(req, GET_LINK_OUT_LP_CAP),
-			    &elsp->epls.epls_lp_cap_mask);
+	    &elsp->epls.epls_lp_cap_mask);
 
 	if (req.emr_out_length_used < MC_CMD_GET_LINK_OUT_V2_LEN)
 		fec = MC_CMD_FEC_NONE;
@@ -320,16 +306,16 @@ ef10_phy_get_link(
 		fec = MCDI_OUT_DWORD(req, GET_LINK_OUT_V2_FEC_TYPE);
 
 	mcdi_phy_decode_link_mode(enp, MCDI_OUT_DWORD(req, GET_LINK_OUT_FLAGS),
-			    MCDI_OUT_DWORD(req, GET_LINK_OUT_LINK_SPEED),
-			    MCDI_OUT_DWORD(req, GET_LINK_OUT_FCNTL),
-			    fec, &elsp->epls.epls_link_mode,
-			    &elsp->epls.epls_fcntl, &elsp->epls.epls_fec);
+	    MCDI_OUT_DWORD(req, GET_LINK_OUT_LINK_SPEED),
+	    MCDI_OUT_DWORD(req, GET_LINK_OUT_FCNTL), fec,
+	    &elsp->epls.epls_link_mode, &elsp->epls.epls_fcntl,
+	    &elsp->epls.epls_fec);
 
 	if (req.emr_out_length_used < MC_CMD_GET_LINK_OUT_V2_LEN) {
 		elsp->epls.epls_ld_cap_mask = 0;
 	} else {
 		mcdi_phy_decode_cap(MCDI_OUT_DWORD(req, GET_LINK_OUT_V2_LD_CAP),
-				    &elsp->epls.epls_ld_cap_mask);
+		    &elsp->epls.epls_ld_cap_mask);
 	}
 
 #if EFSYS_OPT_LOOPBACK
@@ -338,7 +324,7 @@ ef10_phy_get_link(
 	 * MCDI value directly. Agreement is checked in efx_loopback_mask().
 	 */
 	elsp->els_loopback = MCDI_OUT_DWORD(req, GET_LINK_OUT_LOOPBACK_MODE);
-#endif	/* EFSYS_OPT_LOOPBACK */
+#endif /* EFSYS_OPT_LOOPBACK */
 
 	elsp->els_mac_up = MCDI_OUT_DWORD(req, GET_LINK_OUT_MAC_FAULT) == 0;
 
@@ -352,14 +338,13 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-ef10_phy_reconfigure(
-	__in		efx_nic_t *enp)
+__checkReturn efx_rc_t
+ef10_phy_reconfigure(__in efx_nic_t *enp)
 {
 	efx_port_t *epp = &(enp->en_port);
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload, MC_CMD_SET_LINK_IN_LEN,
-		MC_CMD_SET_LINK_OUT_LEN);
+	    MC_CMD_SET_LINK_OUT_LEN);
 	uint32_t cap_mask;
 #if EFSYS_OPT_PHY_LED_CONTROL
 	unsigned int led_mode;
@@ -380,41 +365,39 @@ ef10_phy_reconfigure(
 	req.emr_out_length = MC_CMD_SET_LINK_OUT_LEN;
 
 	cap_mask = epp->ep_adv_cap_mask;
-	MCDI_IN_POPULATE_DWORD_10(req, SET_LINK_IN_CAP,
-		PHY_CAP_10HDX, (cap_mask >> EFX_PHY_CAP_10HDX) & 0x1,
-		PHY_CAP_10FDX, (cap_mask >> EFX_PHY_CAP_10FDX) & 0x1,
-		PHY_CAP_100HDX, (cap_mask >> EFX_PHY_CAP_100HDX) & 0x1,
-		PHY_CAP_100FDX, (cap_mask >> EFX_PHY_CAP_100FDX) & 0x1,
-		PHY_CAP_1000HDX, (cap_mask >> EFX_PHY_CAP_1000HDX) & 0x1,
-		PHY_CAP_1000FDX, (cap_mask >> EFX_PHY_CAP_1000FDX) & 0x1,
-		PHY_CAP_10000FDX, (cap_mask >> EFX_PHY_CAP_10000FDX) & 0x1,
-		PHY_CAP_PAUSE, (cap_mask >> EFX_PHY_CAP_PAUSE) & 0x1,
-		PHY_CAP_ASYM, (cap_mask >> EFX_PHY_CAP_ASYM) & 0x1,
-		PHY_CAP_AN, (cap_mask >> EFX_PHY_CAP_AN) & 0x1);
+	MCDI_IN_POPULATE_DWORD_10(req, SET_LINK_IN_CAP, PHY_CAP_10HDX,
+	    (cap_mask >> EFX_PHY_CAP_10HDX) & 0x1, PHY_CAP_10FDX,
+	    (cap_mask >> EFX_PHY_CAP_10FDX) & 0x1, PHY_CAP_100HDX,
+	    (cap_mask >> EFX_PHY_CAP_100HDX) & 0x1, PHY_CAP_100FDX,
+	    (cap_mask >> EFX_PHY_CAP_100FDX) & 0x1, PHY_CAP_1000HDX,
+	    (cap_mask >> EFX_PHY_CAP_1000HDX) & 0x1, PHY_CAP_1000FDX,
+	    (cap_mask >> EFX_PHY_CAP_1000FDX) & 0x1, PHY_CAP_10000FDX,
+	    (cap_mask >> EFX_PHY_CAP_10000FDX) & 0x1, PHY_CAP_PAUSE,
+	    (cap_mask >> EFX_PHY_CAP_PAUSE) & 0x1, PHY_CAP_ASYM,
+	    (cap_mask >> EFX_PHY_CAP_ASYM) & 0x1, PHY_CAP_AN,
+	    (cap_mask >> EFX_PHY_CAP_AN) & 0x1);
 	/* Too many fields for POPULATE macros, so insert this afterwards */
-	MCDI_IN_SET_DWORD_FIELD(req, SET_LINK_IN_CAP,
-	    PHY_CAP_25000FDX, (cap_mask >> EFX_PHY_CAP_25000FDX) & 0x1);
-	MCDI_IN_SET_DWORD_FIELD(req, SET_LINK_IN_CAP,
-	    PHY_CAP_40000FDX, (cap_mask >> EFX_PHY_CAP_40000FDX) & 0x1);
-	MCDI_IN_SET_DWORD_FIELD(req, SET_LINK_IN_CAP,
-	    PHY_CAP_50000FDX, (cap_mask >> EFX_PHY_CAP_50000FDX) & 0x1);
-	MCDI_IN_SET_DWORD_FIELD(req, SET_LINK_IN_CAP,
-	    PHY_CAP_100000FDX, (cap_mask >> EFX_PHY_CAP_100000FDX) & 0x1);
+	MCDI_IN_SET_DWORD_FIELD(req, SET_LINK_IN_CAP, PHY_CAP_25000FDX,
+	    (cap_mask >> EFX_PHY_CAP_25000FDX) & 0x1);
+	MCDI_IN_SET_DWORD_FIELD(req, SET_LINK_IN_CAP, PHY_CAP_40000FDX,
+	    (cap_mask >> EFX_PHY_CAP_40000FDX) & 0x1);
+	MCDI_IN_SET_DWORD_FIELD(req, SET_LINK_IN_CAP, PHY_CAP_50000FDX,
+	    (cap_mask >> EFX_PHY_CAP_50000FDX) & 0x1);
+	MCDI_IN_SET_DWORD_FIELD(req, SET_LINK_IN_CAP, PHY_CAP_100000FDX,
+	    (cap_mask >> EFX_PHY_CAP_100000FDX) & 0x1);
 
-	MCDI_IN_SET_DWORD_FIELD(req, SET_LINK_IN_CAP,
-	    PHY_CAP_BASER_FEC, (cap_mask >> EFX_PHY_CAP_BASER_FEC) & 0x1);
+	MCDI_IN_SET_DWORD_FIELD(req, SET_LINK_IN_CAP, PHY_CAP_BASER_FEC,
+	    (cap_mask >> EFX_PHY_CAP_BASER_FEC) & 0x1);
 	MCDI_IN_SET_DWORD_FIELD(req, SET_LINK_IN_CAP,
 	    PHY_CAP_BASER_FEC_REQUESTED,
 	    (cap_mask >> EFX_PHY_CAP_BASER_FEC_REQUESTED) & 0x1);
 
-	MCDI_IN_SET_DWORD_FIELD(req, SET_LINK_IN_CAP,
-	    PHY_CAP_RS_FEC, (cap_mask >> EFX_PHY_CAP_RS_FEC) & 0x1);
-	MCDI_IN_SET_DWORD_FIELD(req, SET_LINK_IN_CAP,
-	    PHY_CAP_RS_FEC_REQUESTED,
+	MCDI_IN_SET_DWORD_FIELD(req, SET_LINK_IN_CAP, PHY_CAP_RS_FEC,
+	    (cap_mask >> EFX_PHY_CAP_RS_FEC) & 0x1);
+	MCDI_IN_SET_DWORD_FIELD(req, SET_LINK_IN_CAP, PHY_CAP_RS_FEC_REQUESTED,
 	    (cap_mask >> EFX_PHY_CAP_RS_FEC_REQUESTED) & 0x1);
 
-	MCDI_IN_SET_DWORD_FIELD(req, SET_LINK_IN_CAP,
-	    PHY_CAP_25G_BASER_FEC,
+	MCDI_IN_SET_DWORD_FIELD(req, SET_LINK_IN_CAP, PHY_CAP_25G_BASER_FEC,
 	    (cap_mask >> EFX_PHY_CAP_25G_BASER_FEC) & 0x1);
 	MCDI_IN_SET_DWORD_FIELD(req, SET_LINK_IN_CAP,
 	    PHY_CAP_25G_BASER_FEC_REQUESTED,
@@ -422,7 +405,7 @@ ef10_phy_reconfigure(
 
 #if EFSYS_OPT_LOOPBACK
 	MCDI_IN_SET_DWORD(req, SET_LINK_IN_LOOPBACK_MODE,
-		    epp->ep_loopback_type);
+	    epp->ep_loopback_type);
 	switch (epp->ep_loopback_link_mode) {
 	case EFX_LINK_100FDX:
 		speed = 100;
@@ -451,14 +434,14 @@ ef10_phy_reconfigure(
 #else
 	MCDI_IN_SET_DWORD(req, SET_LINK_IN_LOOPBACK_MODE, MC_CMD_LOOPBACK_NONE);
 	speed = 0;
-#endif	/* EFSYS_OPT_LOOPBACK */
+#endif /* EFSYS_OPT_LOOPBACK */
 	MCDI_IN_SET_DWORD(req, SET_LINK_IN_LOOPBACK_SPEED, speed);
 
 #if EFSYS_OPT_PHY_FLAGS
 	MCDI_IN_SET_DWORD(req, SET_LINK_IN_FLAGS, epp->ep_phy_flags);
 #else
 	MCDI_IN_SET_DWORD(req, SET_LINK_IN_FLAGS, 0);
-#endif	/* EFSYS_OPT_PHY_FLAGS */
+#endif /* EFSYS_OPT_PHY_FLAGS */
 
 	efx_mcdi_execute(enp, &req);
 
@@ -468,7 +451,7 @@ ef10_phy_reconfigure(
 	}
 
 	/* And set the blink mode */
-	(void) memset(payload, 0, sizeof (payload));
+	(void)memset(payload, 0, sizeof(payload));
 	req.emr_cmd = MC_CMD_SET_ID_LED;
 	req.emr_in_buf = payload;
 	req.emr_in_length = MC_CMD_SET_ID_LED_IN_LEN;
@@ -494,7 +477,7 @@ ef10_phy_reconfigure(
 	MCDI_IN_SET_DWORD(req, SET_ID_LED_IN_STATE, led_mode);
 #else
 	MCDI_IN_SET_DWORD(req, SET_ID_LED_IN_STATE, MC_CMD_LED_DEFAULT);
-#endif	/* EFSYS_OPT_PHY_LED_CONTROL */
+#endif /* EFSYS_OPT_PHY_LED_CONTROL */
 
 	efx_mcdi_execute(enp, &req);
 
@@ -515,13 +498,12 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-ef10_phy_verify(
-	__in		efx_nic_t *enp)
+__checkReturn efx_rc_t
+ef10_phy_verify(__in efx_nic_t *enp)
 {
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload, MC_CMD_GET_PHY_STATE_IN_LEN,
-		MC_CMD_GET_PHY_STATE_OUT_LEN);
+	    MC_CMD_GET_PHY_STATE_OUT_LEN);
 	uint32_t state;
 	efx_rc_t rc;
 
@@ -563,20 +545,16 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-ef10_phy_oui_get(
-	__in		efx_nic_t *enp,
-	__out		uint32_t *ouip)
+__checkReturn efx_rc_t
+ef10_phy_oui_get(__in efx_nic_t *enp, __out uint32_t *ouip)
 {
 	_NOTE(ARGUNUSED(enp, ouip))
 
 	return (ENOTSUP);
 }
 
-	__checkReturn	efx_rc_t
-ef10_phy_link_state_get(
-	__in		efx_nic_t *enp,
-	__out		efx_phy_link_state_t  *eplsp)
+__checkReturn efx_rc_t
+ef10_phy_link_state_get(__in efx_nic_t *enp, __out efx_phy_link_state_t *eplsp)
 {
 	efx_rc_t rc;
 	ef10_link_state_t els;
@@ -597,26 +575,23 @@ fail1:
 
 #if EFSYS_OPT_PHY_STATS
 
-	__checkReturn				efx_rc_t
-ef10_phy_stats_update(
-	__in					efx_nic_t *enp,
-	__in					efsys_mem_t *esmp,
-	__inout_ecount(EFX_PHY_NSTATS)		uint32_t *stat)
+__checkReturn efx_rc_t
+ef10_phy_stats_update(__in efx_nic_t *enp, __in efsys_mem_t *esmp,
+    __inout_ecount(EFX_PHY_NSTATS) uint32_t *stat)
 {
 	/* TBD: no stats support in firmware yet */
 	_NOTE(ARGUNUSED(enp, esmp))
-	memset(stat, 0, EFX_PHY_NSTATS * sizeof (*stat));
+	memset(stat, 0, EFX_PHY_NSTATS * sizeof(*stat));
 
 	return (0);
 }
 
-#endif	/* EFSYS_OPT_PHY_STATS */
+#endif /* EFSYS_OPT_PHY_STATS */
 
 #if EFSYS_OPT_BIST
 
-	__checkReturn		efx_rc_t
-ef10_bist_enable_offline(
-	__in			efx_nic_t *enp)
+__checkReturn efx_rc_t
+ef10_bist_enable_offline(__in efx_nic_t *enp)
 {
 	efx_rc_t rc;
 
@@ -631,10 +606,8 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-ef10_bist_start(
-	__in			efx_nic_t *enp,
-	__in			efx_bist_type_t type)
+__checkReturn efx_rc_t
+ef10_bist_start(__in efx_nic_t *enp, __in efx_bist_type_t type)
 {
 	efx_rc_t rc;
 
@@ -649,37 +622,33 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-ef10_bist_poll(
-	__in			efx_nic_t *enp,
-	__in			efx_bist_type_t type,
-	__out			efx_bist_result_t *resultp,
-	__out_opt __drv_when(count > 0, __notnull)
-	uint32_t *value_maskp,
-	__out_ecount_opt(count)	__drv_when(count > 0, __notnull)
-	unsigned long *valuesp,
-	__in			size_t count)
+__checkReturn efx_rc_t
+ef10_bist_poll(__in efx_nic_t *enp, __in efx_bist_type_t type,
+    __out efx_bist_result_t *resultp,
+    __out_opt __drv_when(count > 0, __notnull) uint32_t *value_maskp,
+    __out_ecount_opt(count)
+	__drv_when(count > 0, __notnull) unsigned long *valuesp,
+    __in size_t count)
 {
 	/*
 	 * MCDI_CTL_SDU_LEN_MAX_V1 is large enough cover all BIST results,
 	 * whilst not wasting stack.
 	 */
 	EFX_MCDI_DECLARE_BUF(payload, MC_CMD_POLL_BIST_IN_LEN,
-		MCDI_CTL_SDU_LEN_MAX_V1);
+	    MCDI_CTL_SDU_LEN_MAX_V1);
 	efx_nic_cfg_t *encp = &(enp->en_nic_cfg);
 	efx_mcdi_req_t req;
 	uint32_t value_mask = 0;
 	uint32_t result;
 	efx_rc_t rc;
 
-	EFX_STATIC_ASSERT(MC_CMD_POLL_BIST_OUT_LEN <=
-	    MCDI_CTL_SDU_LEN_MAX_V1);
-	EFX_STATIC_ASSERT(MC_CMD_POLL_BIST_OUT_SFT9001_LEN <=
-	    MCDI_CTL_SDU_LEN_MAX_V1);
-	EFX_STATIC_ASSERT(MC_CMD_POLL_BIST_OUT_MRSFP_LEN <=
-	    MCDI_CTL_SDU_LEN_MAX_V1);
-	EFX_STATIC_ASSERT(MC_CMD_POLL_BIST_OUT_MEM_LEN <=
-	    MCDI_CTL_SDU_LEN_MAX_V1);
+	EFX_STATIC_ASSERT(MC_CMD_POLL_BIST_OUT_LEN <= MCDI_CTL_SDU_LEN_MAX_V1);
+	EFX_STATIC_ASSERT(
+	    MC_CMD_POLL_BIST_OUT_SFT9001_LEN <= MCDI_CTL_SDU_LEN_MAX_V1);
+	EFX_STATIC_ASSERT(
+	    MC_CMD_POLL_BIST_OUT_MRSFP_LEN <= MCDI_CTL_SDU_LEN_MAX_V1);
+	EFX_STATIC_ASSERT(
+	    MC_CMD_POLL_BIST_OUT_MEM_LEN <= MCDI_CTL_SDU_LEN_MAX_V1);
 
 	_NOTE(ARGUNUSED(type))
 
@@ -702,7 +671,7 @@ ef10_bist_poll(
 	}
 
 	if (count > 0)
-		(void) memset(valuesp, '\0', count * sizeof (unsigned long));
+		(void)memset(valuesp, '\0', count * sizeof(unsigned long));
 
 	result = MCDI_OUT_DWORD(req, POLL_BIST_OUT_RESULT);
 
@@ -710,38 +679,35 @@ ef10_bist_poll(
 	    req.emr_out_length >= MC_CMD_POLL_BIST_OUT_MEM_LEN &&
 	    count > EFX_BIST_MEM_ECC_FATAL) {
 		if (valuesp != NULL) {
-			valuesp[EFX_BIST_MEM_TEST] =
-			    MCDI_OUT_DWORD(req, POLL_BIST_OUT_MEM_TEST);
-			valuesp[EFX_BIST_MEM_ADDR] =
-			    MCDI_OUT_DWORD(req, POLL_BIST_OUT_MEM_ADDR);
-			valuesp[EFX_BIST_MEM_BUS] =
-			    MCDI_OUT_DWORD(req, POLL_BIST_OUT_MEM_BUS);
-			valuesp[EFX_BIST_MEM_EXPECT] =
-			    MCDI_OUT_DWORD(req, POLL_BIST_OUT_MEM_EXPECT);
-			valuesp[EFX_BIST_MEM_ACTUAL] =
-			    MCDI_OUT_DWORD(req, POLL_BIST_OUT_MEM_ACTUAL);
-			valuesp[EFX_BIST_MEM_ECC] =
-			    MCDI_OUT_DWORD(req, POLL_BIST_OUT_MEM_ECC);
-			valuesp[EFX_BIST_MEM_ECC_PARITY] =
-			    MCDI_OUT_DWORD(req, POLL_BIST_OUT_MEM_ECC_PARITY);
-			valuesp[EFX_BIST_MEM_ECC_FATAL] =
-			    MCDI_OUT_DWORD(req, POLL_BIST_OUT_MEM_ECC_FATAL);
+			valuesp[EFX_BIST_MEM_TEST] = MCDI_OUT_DWORD(req,
+			    POLL_BIST_OUT_MEM_TEST);
+			valuesp[EFX_BIST_MEM_ADDR] = MCDI_OUT_DWORD(req,
+			    POLL_BIST_OUT_MEM_ADDR);
+			valuesp[EFX_BIST_MEM_BUS] = MCDI_OUT_DWORD(req,
+			    POLL_BIST_OUT_MEM_BUS);
+			valuesp[EFX_BIST_MEM_EXPECT] = MCDI_OUT_DWORD(req,
+			    POLL_BIST_OUT_MEM_EXPECT);
+			valuesp[EFX_BIST_MEM_ACTUAL] = MCDI_OUT_DWORD(req,
+			    POLL_BIST_OUT_MEM_ACTUAL);
+			valuesp[EFX_BIST_MEM_ECC] = MCDI_OUT_DWORD(req,
+			    POLL_BIST_OUT_MEM_ECC);
+			valuesp[EFX_BIST_MEM_ECC_PARITY] = MCDI_OUT_DWORD(req,
+			    POLL_BIST_OUT_MEM_ECC_PARITY);
+			valuesp[EFX_BIST_MEM_ECC_FATAL] = MCDI_OUT_DWORD(req,
+			    POLL_BIST_OUT_MEM_ECC_FATAL);
 		}
 		value_mask |= (1 << EFX_BIST_MEM_TEST) |
-		    (1 << EFX_BIST_MEM_ADDR) |
-		    (1 << EFX_BIST_MEM_BUS) |
-		    (1 << EFX_BIST_MEM_EXPECT) |
-		    (1 << EFX_BIST_MEM_ACTUAL) |
-		    (1 << EFX_BIST_MEM_ECC) |
-		    (1 << EFX_BIST_MEM_ECC_PARITY) |
+		    (1 << EFX_BIST_MEM_ADDR) | (1 << EFX_BIST_MEM_BUS) |
+		    (1 << EFX_BIST_MEM_EXPECT) | (1 << EFX_BIST_MEM_ACTUAL) |
+		    (1 << EFX_BIST_MEM_ECC) | (1 << EFX_BIST_MEM_ECC_PARITY) |
 		    (1 << EFX_BIST_MEM_ECC_FATAL);
 	} else if (result == MC_CMD_POLL_BIST_FAILED &&
 	    encp->enc_phy_type == EFX_PHY_XFI_FARMI &&
 	    req.emr_out_length >= MC_CMD_POLL_BIST_OUT_MRSFP_LEN &&
 	    count > EFX_BIST_FAULT_CODE) {
 		if (valuesp != NULL)
-			valuesp[EFX_BIST_FAULT_CODE] =
-			    MCDI_OUT_DWORD(req, POLL_BIST_OUT_MRSFP_TEST);
+			valuesp[EFX_BIST_FAULT_CODE] = MCDI_OUT_DWORD(req,
+			    POLL_BIST_OUT_MRSFP_TEST);
 		value_mask |= 1 << EFX_BIST_FAULT_CODE;
 	}
 
@@ -766,15 +732,13 @@ fail1:
 	return (rc);
 }
 
-			void
-ef10_bist_stop(
-	__in		efx_nic_t *enp,
-	__in		efx_bist_type_t type)
+void
+ef10_bist_stop(__in efx_nic_t *enp, __in efx_bist_type_t type)
 {
 	/* There is no way to stop BIST on EF10. */
 	_NOTE(ARGUNUSED(enp, type))
 }
 
-#endif	/* EFSYS_OPT_BIST */
+#endif /* EFSYS_OPT_BIST */
 
-#endif	/* EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2 */
+#endif /* EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2 */

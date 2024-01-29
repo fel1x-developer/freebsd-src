@@ -35,17 +35,18 @@
 #ifdef HAVE_KERNEL_OPTION_HEADERS
 #include "opt_snd.h"
 #endif
-#include <dev/sound/pcm/sound.h>
-#include <dev/sound/pcm/pcm.h>
 #include <dev/sound/pcm/g711.h>
 #include <dev/sound/pcm/intpcm.h>
+#include <dev/sound/pcm/pcm.h>
+#include <dev/sound/pcm/sound.h>
+
 #include "feeder_if.h"
 
 #define SND_USE_FXDIV
 #include "snd_fxdiv_gen.h"
 #endif
 
-#define FEEDFORMAT_RESERVOIR	(SND_CHN_MAX * PCM_32_BPS)
+#define FEEDFORMAT_RESERVOIR (SND_CHN_MAX * PCM_32_BPS)
 
 INTPCM_DECLARE(intpcm_conv_tables)
 
@@ -75,47 +76,28 @@ intpcm_write_null(uint8_t *dst, intpcm_t v __unused)
 	_PCM_WRITE_S16_LE(dst, 0);
 }
 
-#define FEEDFORMAT_ENTRY(SIGN, BIT, ENDIAN)				\
-	{								\
-		AFMT_##SIGN##BIT##_##ENDIAN,				\
-		intpcm_read_##SIGN##BIT##ENDIAN,			\
-		intpcm_write_##SIGN##BIT##ENDIAN			\
+#define FEEDFORMAT_ENTRY(SIGN, BIT, ENDIAN)                                   \
+	{                                                                     \
+		AFMT_##SIGN##BIT##_##ENDIAN, intpcm_read_##SIGN##BIT##ENDIAN, \
+		    intpcm_write_##SIGN##BIT##ENDIAN                          \
 	}
 
 static const struct {
 	uint32_t format;
 	intpcm_read_t *read;
 	intpcm_write_t *write;
-} feed_format_ops[] = {
-	FEEDFORMAT_ENTRY(S,  8, NE),
-	FEEDFORMAT_ENTRY(S, 16, LE),
-	FEEDFORMAT_ENTRY(S, 24, LE),
-	FEEDFORMAT_ENTRY(S, 32, LE),
-	FEEDFORMAT_ENTRY(S, 16, BE),
-	FEEDFORMAT_ENTRY(S, 24, BE),
-	FEEDFORMAT_ENTRY(S, 32, BE),
-	FEEDFORMAT_ENTRY(U,  8, NE),
-	FEEDFORMAT_ENTRY(U, 16, LE),
-	FEEDFORMAT_ENTRY(U, 24, LE),
-	FEEDFORMAT_ENTRY(U, 32, LE),
-	FEEDFORMAT_ENTRY(U, 16, BE),
-	FEEDFORMAT_ENTRY(U, 24, BE),
-	FEEDFORMAT_ENTRY(U, 32, BE),
-	{
-		AFMT_MU_LAW,
-		intpcm_read_ulaw, intpcm_write_ulaw
-	},
-	{
-		AFMT_A_LAW,
-		intpcm_read_alaw, intpcm_write_alaw
-	},
-	{
-		AFMT_AC3,
-		intpcm_read_null, intpcm_write_null
-	}
-};
+} feed_format_ops[] = { FEEDFORMAT_ENTRY(S, 8, NE), FEEDFORMAT_ENTRY(S, 16, LE),
+	FEEDFORMAT_ENTRY(S, 24, LE), FEEDFORMAT_ENTRY(S, 32, LE),
+	FEEDFORMAT_ENTRY(S, 16, BE), FEEDFORMAT_ENTRY(S, 24, BE),
+	FEEDFORMAT_ENTRY(S, 32, BE), FEEDFORMAT_ENTRY(U, 8, NE),
+	FEEDFORMAT_ENTRY(U, 16, LE), FEEDFORMAT_ENTRY(U, 24, LE),
+	FEEDFORMAT_ENTRY(U, 32, LE), FEEDFORMAT_ENTRY(U, 16, BE),
+	FEEDFORMAT_ENTRY(U, 24, BE), FEEDFORMAT_ENTRY(U, 32, BE),
+	{ AFMT_MU_LAW, intpcm_read_ulaw, intpcm_write_ulaw },
+	{ AFMT_A_LAW, intpcm_read_alaw, intpcm_write_alaw },
+	{ AFMT_AC3, intpcm_read_null, intpcm_write_null } };
 
-#define FEEDFORMAT_TAB_SIZE						\
+#define FEEDFORMAT_TAB_SIZE \
 	((int32_t)(sizeof(feed_format_ops) / sizeof(feed_format_ops[0])))
 
 static int
@@ -133,8 +115,8 @@ feed_format_init(struct pcm_feeder *f)
 	rd_op = NULL;
 	wr_op = NULL;
 
-	for (i = 0; i < FEEDFORMAT_TAB_SIZE &&
-	    (rd_op == NULL || wr_op == NULL); i++) {
+	for (i = 0; i < FEEDFORMAT_TAB_SIZE && (rd_op == NULL || wr_op == NULL);
+	     i++) {
 		if (rd_op == NULL &&
 		    AFMT_ENCODING(f->desc->in) == feed_format_ops[i].format)
 			rd_op = feed_format_ops[i].read;
@@ -145,7 +127,7 @@ feed_format_init(struct pcm_feeder *f)
 
 	if (rd_op == NULL || wr_op == NULL) {
 		printf("%s(): failed to initialize io ops "
-		    "in=0x%08x out=0x%08x\n",
+		       "in=0x%08x out=0x%08x\n",
 		    __func__, f->desc->in, f->desc->out);
 		return (EINVAL);
 	}
@@ -258,17 +240,14 @@ feed_format_feed(struct pcm_feeder *f, struct pcm_channel *c, uint8_t *b,
 }
 
 static struct pcm_feederdesc feeder_format_desc[] = {
-	{ FEEDER_FORMAT, 0, 0, 0, 0 },
-	{ 0, 0, 0, 0, 0 }
+	{ FEEDER_FORMAT, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }
 };
 
-static kobj_method_t feeder_format_methods[] = {
-	KOBJMETHOD(feeder_init,		feed_format_init),
-	KOBJMETHOD(feeder_free,		feed_format_free),
-	KOBJMETHOD(feeder_set,		feed_format_set),
-	KOBJMETHOD(feeder_feed,		feed_format_feed),
-	KOBJMETHOD_END
-};
+static kobj_method_t feeder_format_methods[] = { KOBJMETHOD(feeder_init,
+						     feed_format_init),
+	KOBJMETHOD(feeder_free, feed_format_free),
+	KOBJMETHOD(feeder_set, feed_format_set),
+	KOBJMETHOD(feeder_feed, feed_format_feed), KOBJMETHOD_END };
 
 FEEDER_DECLARE(feeder_format, NULL);
 

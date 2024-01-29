@@ -35,14 +35,16 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <string.h>
-#include <stdio.h>
-#include <pwd.h>
+
 #include <grp.h>
+#include <pwd.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include "pax.h"
+#include <string.h>
+
 #include "cache.h"
 #include "extern.h"
+#include "pax.h"
 
 /*
  * routines that control user, group, uid and gid caches (for the archive
@@ -51,12 +53,12 @@
  * these routines cache BOTH hits and misses, a major performance improvement
  */
 
-static	int pwopn = 0;		/* is password file open */
-static	int gropn = 0;		/* is group file open */
-static UIDC **uidtb = NULL;	/* uid to name cache */
-static GIDC **gidtb = NULL;	/* gid to name cache */
-static UIDC **usrtb = NULL;	/* user name to uid cache */
-static GIDC **grptb = NULL;	/* group name to gid cache */
+static int pwopn = 0;	    /* is password file open */
+static int gropn = 0;	    /* is group file open */
+static UIDC **uidtb = NULL; /* uid to name cache */
+static GIDC **gidtb = NULL; /* gid to name cache */
+static UIDC **usrtb = NULL; /* user name to uid cache */
+static GIDC **grptb = NULL; /* group name to gid cache */
 
 /*
  * uidtb_start
@@ -71,15 +73,15 @@ uidtb_start(void)
 	static int fail = 0;
 
 	if (uidtb != NULL)
-		return(0);
+		return (0);
 	if (fail)
-		return(-1);
+		return (-1);
 	if ((uidtb = (UIDC **)calloc(UID_SZ, sizeof(UIDC *))) == NULL) {
 		++fail;
 		paxwarn(1, "Unable to allocate memory for user id cache table");
-		return(-1);
+		return (-1);
 	}
-	return(0);
+	return (0);
 }
 
 /*
@@ -95,15 +97,16 @@ gidtb_start(void)
 	static int fail = 0;
 
 	if (gidtb != NULL)
-		return(0);
+		return (0);
 	if (fail)
-		return(-1);
+		return (-1);
 	if ((gidtb = (GIDC **)calloc(GID_SZ, sizeof(GIDC *))) == NULL) {
 		++fail;
-		paxwarn(1, "Unable to allocate memory for group id cache table");
-		return(-1);
+		paxwarn(1,
+		    "Unable to allocate memory for group id cache table");
+		return (-1);
 	}
-	return(0);
+	return (0);
 }
 
 /*
@@ -119,15 +122,16 @@ usrtb_start(void)
 	static int fail = 0;
 
 	if (usrtb != NULL)
-		return(0);
+		return (0);
 	if (fail)
-		return(-1);
+		return (-1);
 	if ((usrtb = (UIDC **)calloc(UNM_SZ, sizeof(UIDC *))) == NULL) {
 		++fail;
-		paxwarn(1, "Unable to allocate memory for user name cache table");
-		return(-1);
+		paxwarn(1,
+		    "Unable to allocate memory for user name cache table");
+		return (-1);
 	}
-	return(0);
+	return (0);
 }
 
 /*
@@ -143,15 +147,16 @@ grptb_start(void)
 	static int fail = 0;
 
 	if (grptb != NULL)
-		return(0);
+		return (0);
 	if (fail)
-		return(-1);
+		return (-1);
 	if ((grptb = (GIDC **)calloc(GNM_SZ, sizeof(GIDC *))) == NULL) {
 		++fail;
-		paxwarn(1,"Unable to allocate memory for group name cache table");
-		return(-1);
+		paxwarn(1,
+		    "Unable to allocate memory for group name cache table");
+		return (-1);
 	}
-	return(0);
+	return (0);
 }
 
 /*
@@ -169,7 +174,7 @@ name_uid(uid_t uid, int frc)
 	UIDC *ptr;
 
 	if ((uidtb == NULL) && (uidtb_start() < 0))
-		return("");
+		return ("");
 
 	/*
 	 * see if we have this uid cached
@@ -180,8 +185,8 @@ name_uid(uid_t uid, int frc)
 		 * have an entry for this uid
 		 */
 		if (frc || (ptr->valid == VALID))
-			return(ptr->name);
-		return("");
+			return (ptr->name);
+		return ("");
 	}
 
 	/*
@@ -200,25 +205,25 @@ name_uid(uid_t uid, int frc)
 		 * a string that is the uid in numeric format
 		 */
 		if (ptr == NULL)
-			return("");
+			return ("");
 		ptr->uid = uid;
 		ptr->valid = INVALID;
 		(void)snprintf(ptr->name, sizeof(ptr->name), "%lu",
-			       (unsigned long)uid);
+		    (unsigned long)uid);
 		if (frc == 0)
-			return("");
+			return ("");
 	} else {
 		/*
 		 * there is an entry for this uid in the password file
 		 */
 		if (ptr == NULL)
-			return(pw->pw_name);
+			return (pw->pw_name);
 		ptr->uid = uid;
 		(void)strncpy(ptr->name, pw->pw_name, UNMLEN - 1);
-		ptr->name[UNMLEN-1] = '\0';
+		ptr->name[UNMLEN - 1] = '\0';
 		ptr->valid = VALID;
 	}
-	return(ptr->name);
+	return (ptr->name);
 }
 
 /*
@@ -236,7 +241,7 @@ name_gid(gid_t gid, int frc)
 	GIDC *ptr;
 
 	if ((gidtb == NULL) && (gidtb_start() < 0))
-		return("");
+		return ("");
 
 	/*
 	 * see if we have this gid cached
@@ -247,8 +252,8 @@ name_gid(gid_t gid, int frc)
 		 * have an entry for this gid
 		 */
 		if (frc || (ptr->valid == VALID))
-			return(ptr->name);
-		return("");
+			return (ptr->name);
+		return ("");
 	}
 
 	/*
@@ -267,25 +272,25 @@ name_gid(gid_t gid, int frc)
 		 * a string that is the gid in numeric format
 		 */
 		if (ptr == NULL)
-			return("");
+			return ("");
 		ptr->gid = gid;
 		ptr->valid = INVALID;
 		(void)snprintf(ptr->name, sizeof(ptr->name), "%lu",
-			       (unsigned long)gid);
+		    (unsigned long)gid);
 		if (frc == 0)
-			return("");
+			return ("");
 	} else {
 		/*
 		 * there is an entry for this group in the group file
 		 */
 		if (ptr == NULL)
-			return(gr->gr_name);
+			return (gr->gr_name);
 		ptr->gid = gid;
 		(void)strncpy(ptr->name, gr->gr_name, GNMLEN - 1);
-		ptr->name[GNMLEN-1] = '\0';
+		ptr->name[GNMLEN - 1] = '\0';
 		ptr->valid = VALID;
 	}
-	return(ptr->name);
+	return (ptr->name);
 }
 
 /*
@@ -306,9 +311,9 @@ uid_name(char *name, uid_t *uid)
 	 * return -1 for mangled names
 	 */
 	if (((namelen = strlen(name)) == 0) || (name[0] == '\0'))
-		return(-1);
+		return (-1);
 	if ((usrtb == NULL) && (usrtb_start() < 0))
-		return(-1);
+		return (-1);
 
 	/*
 	 * look up in hash table, if found and valid return the uid,
@@ -317,9 +322,9 @@ uid_name(char *name, uid_t *uid)
 	ptr = usrtb[st_hash(name, namelen, UNM_SZ)];
 	if ((ptr != NULL) && (ptr->valid > 0) && !strcmp(name, ptr->name)) {
 		if (ptr->valid == INVALID)
-			return(-1);
+			return (-1);
 		*uid = ptr->uid;
-		return(0);
+		return (0);
 	}
 
 	if (!pwopn) {
@@ -328,8 +333,8 @@ uid_name(char *name, uid_t *uid)
 	}
 
 	if (ptr == NULL)
-		ptr = usrtb[st_hash(name, namelen, UNM_SZ)] =
-		  (UIDC *)malloc(sizeof(UIDC));
+		ptr = usrtb[st_hash(name, namelen, UNM_SZ)] = (UIDC *)malloc(
+		    sizeof(UIDC));
 
 	/*
 	 * no match, look it up, if no match store it as an invalid entry,
@@ -337,19 +342,19 @@ uid_name(char *name, uid_t *uid)
 	 */
 	if (ptr == NULL) {
 		if ((pw = getpwnam(name)) == NULL)
-			return(-1);
+			return (-1);
 		*uid = pw->pw_uid;
-		return(0);
+		return (0);
 	}
 	(void)strncpy(ptr->name, name, UNMLEN - 1);
-	ptr->name[UNMLEN-1] = '\0';
+	ptr->name[UNMLEN - 1] = '\0';
 	if ((pw = getpwnam(name)) == NULL) {
 		ptr->valid = INVALID;
-		return(-1);
+		return (-1);
 	}
 	ptr->valid = VALID;
 	*uid = ptr->uid = pw->pw_uid;
-	return(0);
+	return (0);
 }
 
 /*
@@ -370,9 +375,9 @@ gid_name(char *name, gid_t *gid)
 	 * return -1 for mangled names
 	 */
 	if (((namelen = strlen(name)) == 0) || (name[0] == '\0'))
-		return(-1);
+		return (-1);
 	if ((grptb == NULL) && (grptb_start() < 0))
-		return(-1);
+		return (-1);
 
 	/*
 	 * look up in hash table, if found and valid return the uid,
@@ -381,9 +386,9 @@ gid_name(char *name, gid_t *gid)
 	ptr = grptb[st_hash(name, namelen, GID_SZ)];
 	if ((ptr != NULL) && (ptr->valid > 0) && !strcmp(name, ptr->name)) {
 		if (ptr->valid == INVALID)
-			return(-1);
+			return (-1);
 		*gid = ptr->gid;
-		return(0);
+		return (0);
 	}
 
 	if (!gropn) {
@@ -391,8 +396,8 @@ gid_name(char *name, gid_t *gid)
 		++gropn;
 	}
 	if (ptr == NULL)
-		ptr = grptb[st_hash(name, namelen, GID_SZ)] =
-		  (GIDC *)malloc(sizeof(GIDC));
+		ptr = grptb[st_hash(name, namelen, GID_SZ)] = (GIDC *)malloc(
+		    sizeof(GIDC));
 
 	/*
 	 * no match, look it up, if no match store it as an invalid entry,
@@ -400,18 +405,18 @@ gid_name(char *name, gid_t *gid)
 	 */
 	if (ptr == NULL) {
 		if ((gr = getgrnam(name)) == NULL)
-			return(-1);
+			return (-1);
 		*gid = gr->gr_gid;
-		return(0);
+		return (0);
 	}
 
 	(void)strncpy(ptr->name, name, GNMLEN - 1);
-	ptr->name[GNMLEN-1] = '\0';
+	ptr->name[GNMLEN - 1] = '\0';
 	if ((gr = getgrnam(name)) == NULL) {
 		ptr->valid = INVALID;
-		return(-1);
+		return (-1);
 	}
 	ptr->valid = VALID;
 	*gid = ptr->gid = gr->gr_gid;
-	return(0);
+	return (0);
 }

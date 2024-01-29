@@ -30,13 +30,12 @@
 
 struct _gss_mechanism_cred {
 	SLIST_ENTRY(_gss_mechanism_cred) gmc_link;
-	struct _gss_mech_switch *gmc_mech;	/* mechanism ops for MC */
-	gss_OID			gmc_mech_oid;	/* mechanism oid for MC */
-	gss_cred_id_t		gmc_cred;	/* underlying MC */
+	struct _gss_mech_switch *gmc_mech; /* mechanism ops for MC */
+	gss_OID gmc_mech_oid;		   /* mechanism oid for MC */
+	gss_cred_id_t gmc_cred;		   /* underlying MC */
 };
 SLIST_HEAD(_gss_mechanism_cred_list, _gss_mechanism_cred);
 
 struct _gss_cred {
 	struct _gss_mechanism_cred_list gc_mc;
 };
-

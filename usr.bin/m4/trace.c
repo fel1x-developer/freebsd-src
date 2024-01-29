@@ -26,31 +26,32 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <sys/cdefs.h>
+
 #include <err.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "extern.h"
 #include "mdef.h"
 #include "stdd.h"
-#include "extern.h"
 
 FILE *traceout;
 
-#define TRACE_ARGS	1
+#define TRACE_ARGS 1
 #define TRACE_EXPANSION 2
-#define TRACE_QUOTE	4
-#define TRACE_FILENAME	8
-#define TRACE_LINENO	16
-#define TRACE_CONT	32
-#define TRACE_ID	64
-#define TRACE_NEWFILE	128	/* not implemented yet */
-#define TRACE_INPUT	256	/* not implemented yet */
+#define TRACE_QUOTE 4
+#define TRACE_FILENAME 8
+#define TRACE_LINENO 16
+#define TRACE_CONT 32
+#define TRACE_ID 64
+#define TRACE_NEWFILE 128 /* not implemented yet */
+#define TRACE_INPUT 256	  /* not implemented yet */
 
 static unsigned int letter_to_flag(int);
 static void print_header(struct input_file *);
 static int frame_level(void);
-
 
 unsigned int trace_flags = TRACE_QUOTE | TRACE_EXPANSION;
 
@@ -68,7 +69,7 @@ trace_file(const char *name)
 static unsigned int
 letter_to_flag(int c)
 {
-	switch(c) {
+	switch (c) {
 	case 'a':
 		return TRACE_ARGS;
 	case 'e':
@@ -106,7 +107,7 @@ set_trace_flags(const char *s)
 		mode = *s++;
 	while (*s)
 		f |= letter_to_flag(*s++);
-	switch(mode) {
+	switch (mode) {
 	case 0:
 		trace_flags = f;
 		break;
@@ -126,7 +127,7 @@ frame_level(void)
 	int framep;
 
 	for (framep = fp, level = 0; framep != 0;
-		level++,framep = mstack[framep-3].sfra)
+	     level++, framep = mstack[framep - 3].sfra)
 		;
 	return level;
 }
@@ -163,8 +164,7 @@ trace(const char *argv[], int argc, struct input_file *inp)
 		delim[1] = EOS;
 		for (i = 2; i < argc; i++) {
 			fprintf(traceout, "%s%s%s%s", delim,
-			    (trace_flags & TRACE_QUOTE) ? lquote : "",
-			    argv[i],
+			    (trace_flags & TRACE_QUOTE) ? lquote : "", argv[i],
 			    (trace_flags & TRACE_QUOTE) ? rquote : "");
 			delim[0] = COMMA;
 			delim[1] = ' ';

@@ -37,34 +37,33 @@
 #ifdef USB_GLOBAL_INCLUDE_FILE
 #include USB_GLOBAL_INCLUDE_FILE
 #else
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
-
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-#include <dev/usb/usb_core.h>
-#include <dev/usb/usb_cdc.h>
-#include <dev/usb/usb_ioctl.h>
-#include <dev/usb/usb_util.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/template/usb_template.h>
-#endif			/* USB_GLOBAL_INCLUDE_FILE */
+#include <dev/usb/usb.h>
+#include <dev/usb/usb_cdc.h>
+#include <dev/usb/usb_core.h>
+#include <dev/usb/usb_ioctl.h>
+#include <dev/usb/usb_util.h>
+#include <dev/usb/usbdi.h>
+#endif /* USB_GLOBAL_INCLUDE_FILE */
 
 enum {
 	AUDIO_LANG_INDEX,
@@ -77,23 +76,23 @@ enum {
 	AUDIO_MAX_INDEX,
 };
 
-#define	AUDIO_DEFAULT_VENDOR_ID		USB_TEMPLATE_VENDOR
-#define	AUDIO_DEFAULT_PRODUCT_ID	0x27e0
-#define	AUDIO_DEFAULT_MIXER		"Mixer interface"
-#define	AUDIO_DEFAULT_RECORD		"Record interface"
-#define	AUDIO_DEFAULT_PLAYBACK		"Playback interface"
-#define	AUDIO_DEFAULT_MANUFACTURER	USB_TEMPLATE_MANUFACTURER
-#define	AUDIO_DEFAULT_PRODUCT		"Audio Test Device"
-#define	AUDIO_DEFAULT_SERIAL_NUMBER	"March 2008"
+#define AUDIO_DEFAULT_VENDOR_ID USB_TEMPLATE_VENDOR
+#define AUDIO_DEFAULT_PRODUCT_ID 0x27e0
+#define AUDIO_DEFAULT_MIXER "Mixer interface"
+#define AUDIO_DEFAULT_RECORD "Record interface"
+#define AUDIO_DEFAULT_PLAYBACK "Playback interface"
+#define AUDIO_DEFAULT_MANUFACTURER USB_TEMPLATE_MANUFACTURER
+#define AUDIO_DEFAULT_PRODUCT "Audio Test Device"
+#define AUDIO_DEFAULT_SERIAL_NUMBER "March 2008"
 
-static struct usb_string_descriptor	audio_mixer;
-static struct usb_string_descriptor	audio_record;
-static struct usb_string_descriptor	audio_playback;
-static struct usb_string_descriptor	audio_manufacturer;
-static struct usb_string_descriptor	audio_product;
-static struct usb_string_descriptor	audio_serial_number;
+static struct usb_string_descriptor audio_mixer;
+static struct usb_string_descriptor audio_record;
+static struct usb_string_descriptor audio_playback;
+static struct usb_string_descriptor audio_manufacturer;
+static struct usb_string_descriptor audio_product;
+static struct usb_string_descriptor audio_serial_number;
 
-static struct sysctl_ctx_list		audio_ctx_list;
+static struct sysctl_ctx_list audio_ctx_list;
 
 /* prototypes */
 
@@ -104,85 +103,53 @@ static struct sysctl_ctx_list		audio_ctx_list;
  * from a Creative Labs USB audio device.
  */
 
-static const uint8_t audio_raw_desc_0[] = {
-	0x0a, 0x24, 0x01, 0x00, 0x01, 0xa9, 0x00, 0x02,
-	0x01, 0x02
-};
+static const uint8_t audio_raw_desc_0[] = { 0x0a, 0x24, 0x01, 0x00, 0x01, 0xa9,
+	0x00, 0x02, 0x01, 0x02 };
 
-static const uint8_t audio_raw_desc_1[] = {
-	0x0c, 0x24, 0x02, 0x01, 0x01, 0x01, 0x00, 0x02,
-	0x03, 0x00, 0x00, 0x00
-};
+static const uint8_t audio_raw_desc_1[] = { 0x0c, 0x24, 0x02, 0x01, 0x01, 0x01,
+	0x00, 0x02, 0x03, 0x00, 0x00, 0x00 };
 
-static const uint8_t audio_raw_desc_2[] = {
-	0x0c, 0x24, 0x02, 0x02, 0x01, 0x02, 0x00, 0x02,
-	0x03, 0x00, 0x00, 0x00
-};
+static const uint8_t audio_raw_desc_2[] = { 0x0c, 0x24, 0x02, 0x02, 0x01, 0x02,
+	0x00, 0x02, 0x03, 0x00, 0x00, 0x00 };
 
-static const uint8_t audio_raw_desc_3[] = {
-	0x0c, 0x24, 0x02, 0x03, 0x03, 0x06, 0x00, 0x02,
-	0x03, 0x00, 0x00, 0x00
-};
+static const uint8_t audio_raw_desc_3[] = { 0x0c, 0x24, 0x02, 0x03, 0x03, 0x06,
+	0x00, 0x02, 0x03, 0x00, 0x00, 0x00 };
 
-static const uint8_t audio_raw_desc_4[] = {
-	0x0c, 0x24, 0x02, 0x04, 0x05, 0x06, 0x00, 0x02,
-	0x03, 0x00, 0x00, 0x00
-};
+static const uint8_t audio_raw_desc_4[] = { 0x0c, 0x24, 0x02, 0x04, 0x05, 0x06,
+	0x00, 0x02, 0x03, 0x00, 0x00, 0x00 };
 
-static const uint8_t audio_raw_desc_5[] = {
-	0x09, 0x24, 0x03, 0x05, 0x05, 0x06, 0x00, 0x01,
-	0x00
-};
+static const uint8_t audio_raw_desc_5[] = { 0x09, 0x24, 0x03, 0x05, 0x05, 0x06,
+	0x00, 0x01, 0x00 };
 
-static const uint8_t audio_raw_desc_6[] = {
-	0x09, 0x24, 0x03, 0x06, 0x01, 0x03, 0x00, 0x09,
-	0x00
-};
+static const uint8_t audio_raw_desc_6[] = { 0x09, 0x24, 0x03, 0x06, 0x01, 0x03,
+	0x00, 0x09, 0x00 };
 
-static const uint8_t audio_raw_desc_7[] = {
-	0x09, 0x24, 0x03, 0x07, 0x01, 0x01, 0x00, 0x08,
-	0x00
-};
+static const uint8_t audio_raw_desc_7[] = { 0x09, 0x24, 0x03, 0x07, 0x01, 0x01,
+	0x00, 0x08, 0x00 };
 
-static const uint8_t audio_raw_desc_8[] = {
-	0x09, 0x24, 0x05, 0x08, 0x03, 0x0a, 0x0b, 0x0c,
-	0x00
-};
+static const uint8_t audio_raw_desc_8[] = { 0x09, 0x24, 0x05, 0x08, 0x03, 0x0a,
+	0x0b, 0x0c, 0x00 };
 
-static const uint8_t audio_raw_desc_9[] = {
-	0x0a, 0x24, 0x06, 0x09, 0x0f, 0x01, 0x01, 0x02,
-	0x02, 0x00
-};
+static const uint8_t audio_raw_desc_9[] = { 0x0a, 0x24, 0x06, 0x09, 0x0f, 0x01,
+	0x01, 0x02, 0x02, 0x00 };
 
-static const uint8_t audio_raw_desc_10[] = {
-	0x0a, 0x24, 0x06, 0x0a, 0x02, 0x01, 0x43, 0x00,
-	0x00, 0x00
-};
+static const uint8_t audio_raw_desc_10[] = { 0x0a, 0x24, 0x06, 0x0a, 0x02, 0x01,
+	0x43, 0x00, 0x00, 0x00 };
 
-static const uint8_t audio_raw_desc_11[] = {
-	0x0a, 0x24, 0x06, 0x0b, 0x03, 0x01, 0x01, 0x02,
-	0x02, 0x00
-};
+static const uint8_t audio_raw_desc_11[] = { 0x0a, 0x24, 0x06, 0x0b, 0x03, 0x01,
+	0x01, 0x02, 0x02, 0x00 };
 
-static const uint8_t audio_raw_desc_12[] = {
-	0x0a, 0x24, 0x06, 0x0c, 0x04, 0x01, 0x01, 0x00,
-	0x00, 0x00
-};
+static const uint8_t audio_raw_desc_12[] = { 0x0a, 0x24, 0x06, 0x0c, 0x04, 0x01,
+	0x01, 0x00, 0x00, 0x00 };
 
-static const uint8_t audio_raw_desc_13[] = {
-	0x0a, 0x24, 0x06, 0x0d, 0x02, 0x01, 0x03, 0x00,
-	0x00, 0x00
-};
+static const uint8_t audio_raw_desc_13[] = { 0x0a, 0x24, 0x06, 0x0d, 0x02, 0x01,
+	0x03, 0x00, 0x00, 0x00 };
 
-static const uint8_t audio_raw_desc_14[] = {
-	0x0a, 0x24, 0x06, 0x0e, 0x03, 0x01, 0x01, 0x02,
-	0x02, 0x00
-};
+static const uint8_t audio_raw_desc_14[] = { 0x0a, 0x24, 0x06, 0x0e, 0x03, 0x01,
+	0x01, 0x02, 0x02, 0x00 };
 
-static const uint8_t audio_raw_desc_15[] = {
-	0x0f, 0x24, 0x04, 0x0f, 0x03, 0x01, 0x0d, 0x0e,
-	0x02, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00
-};
+static const uint8_t audio_raw_desc_15[] = { 0x0f, 0x24, 0x04, 0x0f, 0x03, 0x01,
+	0x0d, 0x0e, 0x02, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
 static const void *audio_raw_iface_0_desc[] = {
 	audio_raw_desc_0,
@@ -205,7 +172,7 @@ static const void *audio_raw_iface_0_desc[] = {
 };
 
 static const struct usb_temp_interface_desc audio_iface_0 = {
-	.ppEndpoints = NULL,		/* no endpoints */
+	.ppEndpoints = NULL, /* no endpoints */
 	.ppRawDesc = audio_raw_iface_0_desc,
 	.bInterfaceClass = UICLASS_AUDIO,
 	.bInterfaceSubClass = UISUBCLASS_AUDIOCONTROL,
@@ -213,20 +180,18 @@ static const struct usb_temp_interface_desc audio_iface_0 = {
 	.iInterface = AUDIO_MIXER_INDEX,
 };
 
-static const uint8_t audio_raw_desc_20[] = {
-	0x07, 0x24, 0x01, 0x01, 0x03, 0x01, 0x00
+static const uint8_t audio_raw_desc_20[] = { 0x07, 0x24, 0x01, 0x01, 0x03, 0x01,
+	0x00
 
 };
 
-static const uint8_t audio_raw_desc_21[] = {
-	0x0b, 0x24, 0x02, 0x01, 0x02, 0x02, 0x10, 0x01,
+static const uint8_t audio_raw_desc_21[] = { 0x0b, 0x24, 0x02, 0x01, 0x02, 0x02,
+	0x10, 0x01,
 	/* 48kHz */
-	0x80, 0xbb, 0x00
-};
+	0x80, 0xbb, 0x00 };
 
-static const uint8_t audio_raw_desc_22[] = {
-	0x07, 0x25, 0x01, 0x00, 0x01, 0x04, 0x00
-};
+static const uint8_t audio_raw_desc_22[] = { 0x07, 0x25, 0x01, 0x00, 0x01, 0x04,
+	0x00 };
 
 static const void *audio_raw_iface_1_desc[] = {
 	audio_raw_desc_20,
@@ -240,13 +205,13 @@ static const void *audio_raw_ep_1_desc[] = {
 };
 
 static const struct usb_temp_packet_size audio_isoc_mps = {
-  .mps[USB_SPEED_FULL] = 0xC8,
-  .mps[USB_SPEED_HIGH] = 0xC8,
+	.mps[USB_SPEED_FULL] = 0xC8,
+	.mps[USB_SPEED_HIGH] = 0xC8,
 };
 
 static const struct usb_temp_interval audio_isoc_interval = {
-	.bInterval[USB_SPEED_FULL] = 1,	/* 1:1 */
-	.bInterval[USB_SPEED_HIGH] = 4,	/* 1:8 */
+	.bInterval[USB_SPEED_FULL] = 1, /* 1:1 */
+	.bInterval[USB_SPEED_HIGH] = 4, /* 1:8 */
 };
 
 static const struct usb_temp_endpoint_desc audio_isoc_out_ep = {
@@ -263,8 +228,8 @@ static const struct usb_temp_endpoint_desc *audio_iface_1_ep[] = {
 };
 
 static const struct usb_temp_interface_desc audio_iface_1_alt_0 = {
-	.ppEndpoints = NULL,		/* no endpoints */
-	.ppRawDesc = NULL,		/* no raw descriptors */
+	.ppEndpoints = NULL, /* no endpoints */
+	.ppRawDesc = NULL,   /* no raw descriptors */
 	.bInterfaceClass = UICLASS_AUDIO,
 	.bInterfaceSubClass = UISUBCLASS_AUDIOSTREAM,
 	.bInterfaceProtocol = 0,
@@ -278,23 +243,21 @@ static const struct usb_temp_interface_desc audio_iface_1_alt_1 = {
 	.bInterfaceSubClass = UISUBCLASS_AUDIOSTREAM,
 	.bInterfaceProtocol = 0,
 	.iInterface = AUDIO_PLAYBACK_INDEX,
-	.isAltInterface = 1,		/* this is an alternate setting */
+	.isAltInterface = 1, /* this is an alternate setting */
 };
 
-static const uint8_t audio_raw_desc_30[] = {
-	0x07, 0x24, 0x01, 0x07, 0x01, 0x01, 0x00
+static const uint8_t audio_raw_desc_30[] = { 0x07, 0x24, 0x01, 0x07, 0x01, 0x01,
+	0x00
 
 };
 
-static const uint8_t audio_raw_desc_31[] = {
-	0x0b, 0x24, 0x02, 0x01, 0x02, 0x02, 0x10, 0x01,
+static const uint8_t audio_raw_desc_31[] = { 0x0b, 0x24, 0x02, 0x01, 0x02, 0x02,
+	0x10, 0x01,
 	/* 48kHz */
-	0x80, 0xbb, 0x00
-};
+	0x80, 0xbb, 0x00 };
 
-static const uint8_t audio_raw_desc_32[] = {
-	0x07, 0x25, 0x01, 0x01, 0x00, 0x00, 0x00
-};
+static const uint8_t audio_raw_desc_32[] = { 0x07, 0x25, 0x01, 0x01, 0x00, 0x00,
+	0x00 };
 
 static const void *audio_raw_iface_2_desc[] = {
 	audio_raw_desc_30,
@@ -321,8 +284,8 @@ static const struct usb_temp_endpoint_desc *audio_iface_2_ep[] = {
 };
 
 static const struct usb_temp_interface_desc audio_iface_2_alt_0 = {
-	.ppEndpoints = NULL,		/* no endpoints */
-	.ppRawDesc = NULL,		/* no raw descriptors */
+	.ppEndpoints = NULL, /* no endpoints */
+	.ppRawDesc = NULL,   /* no raw descriptors */
 	.bInterfaceClass = UICLASS_AUDIO,
 	.bInterfaceSubClass = UISUBCLASS_AUDIOSTREAM,
 	.bInterfaceProtocol = 0,
@@ -336,7 +299,7 @@ static const struct usb_temp_interface_desc audio_iface_2_alt_1 = {
 	.bInterfaceSubClass = UISUBCLASS_AUDIOSTREAM,
 	.bInterfaceProtocol = 0,
 	.iInterface = AUDIO_RECORD_INDEX,
-	.isAltInterface = 1,		/* this is an alternate setting */
+	.isAltInterface = 1, /* this is an alternate setting */
 };
 
 static const struct usb_temp_interface_desc *audio_interfaces[] = {
@@ -431,15 +394,15 @@ audio_init(void *arg __unused)
 	sysctl_ctx_init(&audio_ctx_list);
 
 	parent = SYSCTL_ADD_NODE(&audio_ctx_list,
-	    SYSCTL_STATIC_CHILDREN(_hw_usb_templates), OID_AUTO,
-	    parent_name, CTLFLAG_RW | CTLFLAG_MPSAFE,
-	    0, "USB Audio Interface device side template");
+	    SYSCTL_STATIC_CHILDREN(_hw_usb_templates), OID_AUTO, parent_name,
+	    CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
+	    "USB Audio Interface device side template");
 	SYSCTL_ADD_U16(&audio_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
-	    "vendor_id", CTLFLAG_RWTUN, &usb_template_audio.idVendor,
-	    1, "Vendor identifier");
+	    "vendor_id", CTLFLAG_RWTUN, &usb_template_audio.idVendor, 1,
+	    "Vendor identifier");
 	SYSCTL_ADD_U16(&audio_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
-	    "product_id", CTLFLAG_RWTUN, &usb_template_audio.idProduct,
-	    1, "Product identifier");
+	    "product_id", CTLFLAG_RWTUN, &usb_template_audio.idProduct, 1,
+	    "Product identifier");
 #if 0
 	SYSCTL_ADD_PROC(&audio_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
 	    "mixer", CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
@@ -460,8 +423,8 @@ audio_init(void *arg __unused)
 	    "A", "Manufacturer string");
 	SYSCTL_ADD_PROC(&audio_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
 	    "product", CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    &audio_product, sizeof(audio_product), usb_temp_sysctl,
-	    "A", "Product string");
+	    &audio_product, sizeof(audio_product), usb_temp_sysctl, "A",
+	    "Product string");
 	SYSCTL_ADD_PROC(&audio_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
 	    "serial_number", CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
 	    &audio_serial_number, sizeof(audio_serial_number), usb_temp_sysctl,

@@ -30,9 +30,9 @@
 #include <sys/bus.h>
 #include <sys/kernel.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-
 #include <dev/acpica/acpivar.h>
+
+#include <contrib/dev/acpica/include/acpi.h>
 
 /*
  * ARM64TODO: Implement this.

@@ -27,15 +27,15 @@
  *
  */
 
-#include <sys/cdefs.h>
 #include "opt_splash.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/linker.h>
 #include <sys/fbio.h>
 #include <sys/kernel.h>
+#include <sys/linker.h>
+#include <sys/malloc.h>
 #include <sys/module.h>
 
 #include <dev/fb/fbreg.h>
@@ -44,17 +44,17 @@
 MODULE_VERSION(splash, 1);
 
 /* video adapter and image decoder */
-static video_adapter_t	*splash_adp;
-static splash_decoder_t	*splash_decoder;
+static video_adapter_t *splash_adp;
+static splash_decoder_t *splash_decoder;
 
 /* decoder candidates */
-static int		decoders;
+static int decoders;
 static splash_decoder_t **decoder_set;
 #define DECODER_ARRAY_DELTA 4
 
 /* console driver callback */
-static int		(*splash_callback)(int, void *);
-static void		*splash_arg;
+static int (*splash_callback)(int, void *);
+static void *splash_arg;
 
 static int
 splash_find_data(splash_decoder_t *decoder)
@@ -87,11 +87,11 @@ static int
 splash_test(splash_decoder_t *decoder)
 {
 	if (splash_find_data(decoder))
-		return ENOENT;	/* XXX */
+		return ENOENT; /* XXX */
 	if (*decoder->init && (*decoder->init)(splash_adp)) {
 		decoder->data = NULL;
 		decoder->data_size = 0;
-		return ENODEV;	/* XXX */
+		return ENODEV; /* XXX */
 	}
 	if (bootverbose)
 		printf("splash: image decoder found: %s\n", decoder->name);
@@ -134,12 +134,13 @@ splash_register(splash_decoder_t *decoder)
 				break;
 		}
 		if ((i >= decoders) && (decoders % DECODER_ARRAY_DELTA) == 0) {
-			p = malloc(sizeof(*p)*(decoders + DECODER_ARRAY_DELTA),
-			   	M_DEVBUF, M_NOWAIT);
+			p = malloc(sizeof(*p) *
+				(decoders + DECODER_ARRAY_DELTA),
+			    M_DEVBUF, M_NOWAIT);
 			if (p == NULL)
 				return ENOMEM;
 			if (decoder_set != NULL) {
-				bcopy(decoder_set, p, sizeof(*p)*decoders);
+				bcopy(decoder_set, p, sizeof(*p) * decoders);
 				free(decoder_set, M_DEVBUF);
 			}
 			decoder_set = p;

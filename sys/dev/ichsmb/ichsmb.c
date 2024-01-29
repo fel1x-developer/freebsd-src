@@ -4,7 +4,7 @@
  * Author: Archie Cobbs <archie@freebsd.org>
  * Copyright (c) 2000 Whistle Communications, Inc.
  * All rights reserved.
- * 
+ *
  * Subject to the following obligations and disclaimer of warranty, use and
  * redistribution of this software, in source or object code forms, with or
  * without modifications are expressly permitted by Whistle Communications;
@@ -15,7 +15,7 @@
  *    Communications, Inc. trademarks, including the mark "WHISTLE
  *    COMMUNICATIONS" on advertising, endorsements, or otherwise except as
  *    such appears in the above copyright notice or in the software.
- * 
+ *
  * THIS SOFTWARE IS BEING PROVIDED BY WHISTLE COMMUNICATIONS "AS IS", AND
  * TO THE MAXIMUM EXTENT PERMITTED BY LAW, WHISTLE COMMUNICATIONS MAKES NO
  * REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED, REGARDING THIS SOFTWARE,
@@ -46,38 +46,41 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
+#include <sys/bus.h>
 #include <sys/errno.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/rman.h>
 #include <sys/syslog.h>
-#include <sys/bus.h>
 
 #include <machine/bus.h>
-#include <sys/rman.h>
 #include <machine/resource.h>
 
-#include <dev/smbus/smbconf.h>
-
-#include <dev/ichsmb/ichsmb_var.h>
 #include <dev/ichsmb/ichsmb_reg.h>
+#include <dev/ichsmb/ichsmb_var.h>
+#include <dev/smbus/smbconf.h>
 
 /*
  * Enable debugging by defining ICHSMB_DEBUG to a non-zero value.
  */
-#define ICHSMB_DEBUG	0
+#define ICHSMB_DEBUG 0
 #if ICHSMB_DEBUG != 0
-#define DBG(fmt, args...)	\
-	do { printf("%s: " fmt, __func__ , ## args); } while (0)
+#define DBG(fmt, args...)                             \
+	do {                                          \
+		printf("%s: " fmt, __func__, ##args); \
+	} while (0)
 #else
-#define DBG(fmt, args...)	do { } while (0)
+#define DBG(fmt, args...) \
+	do {              \
+	} while (0)
 #endif
 
 /*
  * Our child device driver name
  */
-#define DRIVER_SMBUS	"smbus"
+#define DRIVER_SMBUS "smbus"
 
 /*
  * Internal functions
@@ -140,7 +143,7 @@ fail:
 			SMBUS METHODS
 ********************************************************************/
 
-int 
+int
 ichsmb_callback(device_t dev, int index, void *data)
 {
 	int smb_error = 0;
@@ -152,7 +155,7 @@ ichsmb_callback(device_t dev, int index, void *data)
 	case SMB_RELEASE_BUS:
 		break;
 	default:
-		smb_error = SMB_EABORT;	/* XXX */
+		smb_error = SMB_EABORT; /* XXX */
 		break;
 	}
 	DBG("smb_error=%d\n", smb_error);
@@ -166,16 +169,16 @@ ichsmb_quick(device_t dev, u_char slave, int how)
 	int smb_error;
 
 	DBG("slave=0x%02x how=%d\n", slave, how);
-	KASSERT(sc->ich_cmd == -1,
-	    ("%s: ich_cmd=%d\n", __func__ , sc->ich_cmd));
+	KASSERT(sc->ich_cmd == -1, ("%s: ich_cmd=%d\n", __func__, sc->ich_cmd));
 	switch (how) {
 	case SMB_QREAD:
 	case SMB_QWRITE:
 		mtx_lock(&sc->mutex);
 		sc->ich_cmd = ICH_HST_CNT_SMB_CMD_QUICK;
 		bus_write_1(sc->io_res, ICH_XMIT_SLVA,
-		    slave | (how == SMB_QREAD ?
-	    		ICH_XMIT_SLVA_READ : ICH_XMIT_SLVA_WRITE));
+		    slave |
+			(how == SMB_QREAD ? ICH_XMIT_SLVA_READ :
+					    ICH_XMIT_SLVA_WRITE));
 		bus_write_1(sc->io_res, ICH_HST_CNT,
 		    ICH_HST_CNT_START | ICH_HST_CNT_INTREN | sc->ich_cmd);
 		smb_error = ichsmb_wait(sc);
@@ -195,12 +198,10 @@ ichsmb_sendb(device_t dev, u_char slave, char byte)
 	int smb_error;
 
 	DBG("slave=0x%02x byte=0x%02x\n", slave, (u_char)byte);
-	KASSERT(sc->ich_cmd == -1,
-	    ("%s: ich_cmd=%d\n", __func__ , sc->ich_cmd));
+	KASSERT(sc->ich_cmd == -1, ("%s: ich_cmd=%d\n", __func__, sc->ich_cmd));
 	mtx_lock(&sc->mutex);
 	sc->ich_cmd = ICH_HST_CNT_SMB_CMD_BYTE;
-	bus_write_1(sc->io_res, ICH_XMIT_SLVA,
-	    slave | ICH_XMIT_SLVA_WRITE);
+	bus_write_1(sc->io_res, ICH_XMIT_SLVA, slave | ICH_XMIT_SLVA_WRITE);
 	bus_write_1(sc->io_res, ICH_HST_CMD, byte);
 	bus_write_1(sc->io_res, ICH_HST_CNT,
 	    ICH_HST_CNT_START | ICH_HST_CNT_INTREN | sc->ich_cmd);
@@ -217,12 +218,10 @@ ichsmb_recvb(device_t dev, u_char slave, char *byte)
 	int smb_error;
 
 	DBG("slave=0x%02x\n", slave);
-	KASSERT(sc->ich_cmd == -1,
-	    ("%s: ich_cmd=%d\n", __func__ , sc->ich_cmd));
+	KASSERT(sc->ich_cmd == -1, ("%s: ich_cmd=%d\n", __func__, sc->ich_cmd));
 	mtx_lock(&sc->mutex);
 	sc->ich_cmd = ICH_HST_CNT_SMB_CMD_BYTE;
-	bus_write_1(sc->io_res, ICH_XMIT_SLVA,
-	    slave | ICH_XMIT_SLVA_READ);
+	bus_write_1(sc->io_res, ICH_XMIT_SLVA, slave | ICH_XMIT_SLVA_READ);
 	bus_write_1(sc->io_res, ICH_HST_CNT,
 	    ICH_HST_CNT_START | ICH_HST_CNT_INTREN | sc->ich_cmd);
 	if ((smb_error = ichsmb_wait(sc)) == SMB_ENOERR)
@@ -238,14 +237,12 @@ ichsmb_writeb(device_t dev, u_char slave, char cmd, char byte)
 	const sc_p sc = device_get_softc(dev);
 	int smb_error;
 
-	DBG("slave=0x%02x cmd=0x%02x byte=0x%02x\n",
-	    slave, (u_char)cmd, (u_char)byte);
-	KASSERT(sc->ich_cmd == -1,
-	    ("%s: ich_cmd=%d\n", __func__ , sc->ich_cmd));
+	DBG("slave=0x%02x cmd=0x%02x byte=0x%02x\n", slave, (u_char)cmd,
+	    (u_char)byte);
+	KASSERT(sc->ich_cmd == -1, ("%s: ich_cmd=%d\n", __func__, sc->ich_cmd));
 	mtx_lock(&sc->mutex);
 	sc->ich_cmd = ICH_HST_CNT_SMB_CMD_BYTE_DATA;
-	bus_write_1(sc->io_res, ICH_XMIT_SLVA,
-	    slave | ICH_XMIT_SLVA_WRITE);
+	bus_write_1(sc->io_res, ICH_XMIT_SLVA, slave | ICH_XMIT_SLVA_WRITE);
 	bus_write_1(sc->io_res, ICH_HST_CMD, cmd);
 	bus_write_1(sc->io_res, ICH_D0, byte);
 	bus_write_1(sc->io_res, ICH_HST_CNT,
@@ -262,14 +259,12 @@ ichsmb_writew(device_t dev, u_char slave, char cmd, short word)
 	const sc_p sc = device_get_softc(dev);
 	int smb_error;
 
-	DBG("slave=0x%02x cmd=0x%02x word=0x%04x\n",
-	    slave, (u_char)cmd, (u_int16_t)word);
-	KASSERT(sc->ich_cmd == -1,
-	    ("%s: ich_cmd=%d\n", __func__ , sc->ich_cmd));
+	DBG("slave=0x%02x cmd=0x%02x word=0x%04x\n", slave, (u_char)cmd,
+	    (u_int16_t)word);
+	KASSERT(sc->ich_cmd == -1, ("%s: ich_cmd=%d\n", __func__, sc->ich_cmd));
 	mtx_lock(&sc->mutex);
 	sc->ich_cmd = ICH_HST_CNT_SMB_CMD_WORD_DATA;
-	bus_write_1(sc->io_res, ICH_XMIT_SLVA,
-	    slave | ICH_XMIT_SLVA_WRITE);
+	bus_write_1(sc->io_res, ICH_XMIT_SLVA, slave | ICH_XMIT_SLVA_WRITE);
 	bus_write_1(sc->io_res, ICH_HST_CMD, cmd);
 	bus_write_1(sc->io_res, ICH_D0, word & 0xff);
 	bus_write_1(sc->io_res, ICH_D1, word >> 8);
@@ -288,12 +283,10 @@ ichsmb_readb(device_t dev, u_char slave, char cmd, char *byte)
 	int smb_error;
 
 	DBG("slave=0x%02x cmd=0x%02x\n", slave, (u_char)cmd);
-	KASSERT(sc->ich_cmd == -1,
-	    ("%s: ich_cmd=%d\n", __func__ , sc->ich_cmd));
+	KASSERT(sc->ich_cmd == -1, ("%s: ich_cmd=%d\n", __func__, sc->ich_cmd));
 	mtx_lock(&sc->mutex);
 	sc->ich_cmd = ICH_HST_CNT_SMB_CMD_BYTE_DATA;
-	bus_write_1(sc->io_res, ICH_XMIT_SLVA,
-	    slave | ICH_XMIT_SLVA_READ);
+	bus_write_1(sc->io_res, ICH_XMIT_SLVA, slave | ICH_XMIT_SLVA_READ);
 	bus_write_1(sc->io_res, ICH_HST_CMD, cmd);
 	bus_write_1(sc->io_res, ICH_HST_CNT,
 	    ICH_HST_CNT_START | ICH_HST_CNT_INTREN | sc->ich_cmd);
@@ -311,20 +304,16 @@ ichsmb_readw(device_t dev, u_char slave, char cmd, short *word)
 	int smb_error;
 
 	DBG("slave=0x%02x cmd=0x%02x\n", slave, (u_char)cmd);
-	KASSERT(sc->ich_cmd == -1,
-	    ("%s: ich_cmd=%d\n", __func__ , sc->ich_cmd));
+	KASSERT(sc->ich_cmd == -1, ("%s: ich_cmd=%d\n", __func__, sc->ich_cmd));
 	mtx_lock(&sc->mutex);
 	sc->ich_cmd = ICH_HST_CNT_SMB_CMD_WORD_DATA;
-	bus_write_1(sc->io_res, ICH_XMIT_SLVA,
-	    slave | ICH_XMIT_SLVA_READ);
+	bus_write_1(sc->io_res, ICH_XMIT_SLVA, slave | ICH_XMIT_SLVA_READ);
 	bus_write_1(sc->io_res, ICH_HST_CMD, cmd);
 	bus_write_1(sc->io_res, ICH_HST_CNT,
 	    ICH_HST_CNT_START | ICH_HST_CNT_INTREN | sc->ich_cmd);
 	if ((smb_error = ichsmb_wait(sc)) == SMB_ENOERR) {
-		*word = (bus_read_1(sc->io_res,
-			ICH_D0) & 0xff)
-		  | (bus_read_1(sc->io_res,
-			ICH_D1) << 8);
+		*word = (bus_read_1(sc->io_res, ICH_D0) & 0xff) |
+		    (bus_read_1(sc->io_res, ICH_D1) << 8);
 	}
 	mtx_unlock(&sc->mutex);
 	DBG("smb_error=%d word=0x%04x\n", smb_error, (u_int16_t)*word);
@@ -337,24 +326,20 @@ ichsmb_pcall(device_t dev, u_char slave, char cmd, short sdata, short *rdata)
 	const sc_p sc = device_get_softc(dev);
 	int smb_error;
 
-	DBG("slave=0x%02x cmd=0x%02x sdata=0x%04x\n",
-	    slave, (u_char)cmd, (u_int16_t)sdata);
-	KASSERT(sc->ich_cmd == -1,
-	    ("%s: ich_cmd=%d\n", __func__ , sc->ich_cmd));
+	DBG("slave=0x%02x cmd=0x%02x sdata=0x%04x\n", slave, (u_char)cmd,
+	    (u_int16_t)sdata);
+	KASSERT(sc->ich_cmd == -1, ("%s: ich_cmd=%d\n", __func__, sc->ich_cmd));
 	mtx_lock(&sc->mutex);
 	sc->ich_cmd = ICH_HST_CNT_SMB_CMD_PROC_CALL;
-	bus_write_1(sc->io_res, ICH_XMIT_SLVA,
-	    slave | ICH_XMIT_SLVA_WRITE);
+	bus_write_1(sc->io_res, ICH_XMIT_SLVA, slave | ICH_XMIT_SLVA_WRITE);
 	bus_write_1(sc->io_res, ICH_HST_CMD, cmd);
 	bus_write_1(sc->io_res, ICH_D0, sdata & 0xff);
 	bus_write_1(sc->io_res, ICH_D1, sdata >> 8);
 	bus_write_1(sc->io_res, ICH_HST_CNT,
 	    ICH_HST_CNT_START | ICH_HST_CNT_INTREN | sc->ich_cmd);
 	if ((smb_error = ichsmb_wait(sc)) == SMB_ENOERR) {
-		*rdata = (bus_read_1(sc->io_res,
-			ICH_D0) & 0xff)
-		  | (bus_read_1(sc->io_res,
-			ICH_D1) << 8);
+		*rdata = (bus_read_1(sc->io_res, ICH_D0) & 0xff) |
+		    (bus_read_1(sc->io_res, ICH_D1) << 8);
 	}
 	mtx_unlock(&sc->mutex);
 	DBG("smb_error=%d rdata=0x%04x\n", smb_error, (u_int16_t)*rdata);
@@ -369,33 +354,32 @@ ichsmb_bwrite(device_t dev, u_char slave, char cmd, u_char count, char *buf)
 
 	DBG("slave=0x%02x cmd=0x%02x count=%d\n", slave, (u_char)cmd, count);
 #if ICHSMB_DEBUG
-#define DISP(ch)	(((ch) < 0x20 || (ch) >= 0x7e) ? '.' : (ch))
+#define DISP(ch) (((ch) < 0x20 || (ch) >= 0x7e) ? '.' : (ch))
 	{
-	    u_char *p;
+		u_char *p;
 
-	    for (p = (u_char *)buf; p - (u_char *)buf < 32; p += 8) {
-		DBG("%02x: %02x %02x %02x %02x %02x %02x %02x %02x"
-		    "  %c%c%c%c%c%c%c%c", (p - (u_char *)buf),
-		    p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
-		    DISP(p[0]), DISP(p[1]), DISP(p[2]), DISP(p[3]), 
-		    DISP(p[4]), DISP(p[5]), DISP(p[6]), DISP(p[7]));
-	    }
+		for (p = (u_char *)buf; p - (u_char *)buf < 32; p += 8) {
+			DBG("%02x: %02x %02x %02x %02x %02x %02x %02x %02x"
+			    "  %c%c%c%c%c%c%c%c",
+			    (p - (u_char *)buf), p[0], p[1], p[2], p[3], p[4],
+			    p[5], p[6], p[7], DISP(p[0]), DISP(p[1]),
+			    DISP(p[2]), DISP(p[3]), DISP(p[4]), DISP(p[5]),
+			    DISP(p[6]), DISP(p[7]));
+		}
 	}
 #undef DISP
 #endif
-	KASSERT(sc->ich_cmd == -1,
-	    ("%s: ich_cmd=%d\n", __func__ , sc->ich_cmd));
+	KASSERT(sc->ich_cmd == -1, ("%s: ich_cmd=%d\n", __func__, sc->ich_cmd));
 	if (count < 1 || count > 32)
 		return (SMB_EINVAL);
 	bcopy(buf, sc->block_data, count);
 	sc->block_count = count;
-	sc->block_index = 1;	/* buf[0] is written here */
+	sc->block_index = 1; /* buf[0] is written here */
 	sc->block_write = true;
 
 	mtx_lock(&sc->mutex);
 	sc->ich_cmd = ICH_HST_CNT_SMB_CMD_BLOCK;
-	bus_write_1(sc->io_res, ICH_XMIT_SLVA,
-	    slave | ICH_XMIT_SLVA_WRITE);
+	bus_write_1(sc->io_res, ICH_XMIT_SLVA, slave | ICH_XMIT_SLVA_WRITE);
 	bus_write_1(sc->io_res, ICH_HST_CMD, cmd);
 	bus_write_1(sc->io_res, ICH_D0, count);
 	bus_write_1(sc->io_res, ICH_BLOCK_DB, buf[0]);
@@ -414,8 +398,7 @@ ichsmb_bread(device_t dev, u_char slave, char cmd, u_char *count, char *buf)
 	int smb_error;
 
 	DBG("slave=0x%02x cmd=0x%02x\n", slave, (u_char)cmd);
-	KASSERT(sc->ich_cmd == -1,
-	    ("%s: ich_cmd=%d\n", __func__ , sc->ich_cmd));
+	KASSERT(sc->ich_cmd == -1, ("%s: ich_cmd=%d\n", __func__, sc->ich_cmd));
 	bzero(sc->block_data, sizeof(sc->block_data));
 	sc->block_count = 0;
 	sc->block_index = 0;
@@ -423,8 +406,7 @@ ichsmb_bread(device_t dev, u_char slave, char cmd, u_char *count, char *buf)
 
 	mtx_lock(&sc->mutex);
 	sc->ich_cmd = ICH_HST_CNT_SMB_CMD_BLOCK;
-	bus_write_1(sc->io_res, ICH_XMIT_SLVA,
-	    slave | ICH_XMIT_SLVA_READ);
+	bus_write_1(sc->io_res, ICH_XMIT_SLVA, slave | ICH_XMIT_SLVA_READ);
 	bus_write_1(sc->io_res, ICH_HST_CMD, cmd);
 	bus_write_1(sc->io_res, ICH_HST_CNT,
 	    ICH_HST_CNT_START | ICH_HST_CNT_INTREN | sc->ich_cmd);
@@ -435,17 +417,18 @@ ichsmb_bread(device_t dev, u_char slave, char cmd, u_char *count, char *buf)
 	mtx_unlock(&sc->mutex);
 	DBG("smb_error=%d\n", smb_error);
 #if ICHSMB_DEBUG
-#define DISP(ch)	(((ch) < 0x20 || (ch) >= 0x7e) ? '.' : (ch))
+#define DISP(ch) (((ch) < 0x20 || (ch) >= 0x7e) ? '.' : (ch))
 	{
-	    u_char *p;
+		u_char *p;
 
-	    for (p = (u_char *)buf; p - (u_char *)buf < 32; p += 8) {
-		DBG("%02x: %02x %02x %02x %02x %02x %02x %02x %02x"
-		    "  %c%c%c%c%c%c%c%c", (p - (u_char *)buf),
-		    p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
-		    DISP(p[0]), DISP(p[1]), DISP(p[2]), DISP(p[3]), 
-		    DISP(p[4]), DISP(p[5]), DISP(p[6]), DISP(p[7]));
-	    }
+		for (p = (u_char *)buf; p - (u_char *)buf < 32; p += 8) {
+			DBG("%02x: %02x %02x %02x %02x %02x %02x %02x %02x"
+			    "  %c%c%c%c%c%c%c%c",
+			    (p - (u_char *)buf), p[0], p[1], p[2], p[3], p[4],
+			    p[5], p[6], p[7], DISP(p[0]), DISP(p[1]),
+			    DISP(p[2]), DISP(p[3]), DISP(p[4]), DISP(p[5]),
+			    DISP(p[6]), DISP(p[7]));
+		}
 	}
 #undef DISP
 #endif
@@ -472,11 +455,11 @@ static const u_int8_t ichsmb_state_irqs[] = {
 	/* process call */
 	(ICH_HST_STA_BUS_ERR | ICH_HST_STA_DEV_ERR | ICH_HST_STA_INTR),
 	/* block */
-	(ICH_HST_STA_BUS_ERR | ICH_HST_STA_DEV_ERR | ICH_HST_STA_INTR
-	    | ICH_HST_STA_BYTE_DONE_STS),
+	(ICH_HST_STA_BUS_ERR | ICH_HST_STA_DEV_ERR | ICH_HST_STA_INTR |
+	    ICH_HST_STA_BYTE_DONE_STS),
 	/* i2c read (not used) */
-	(ICH_HST_STA_BUS_ERR | ICH_HST_STA_DEV_ERR | ICH_HST_STA_INTR
-	    | ICH_HST_STA_BYTE_DONE_STS)
+	(ICH_HST_STA_BUS_ERR | ICH_HST_STA_DEV_ERR | ICH_HST_STA_INTR |
+	    ICH_HST_STA_BYTE_DONE_STS)
 };
 
 /*
@@ -492,7 +475,7 @@ ichsmb_device_intr(void *cookie)
 	u_int8_t status;
 	u_int8_t ok_bits;
 	int cmd_index;
-        int count;
+	int count;
 
 	mtx_lock(&sc->mutex);
 	for (count = 0; count < maxloops; count++) {
@@ -500,8 +483,9 @@ ichsmb_device_intr(void *cookie)
 		/* Get and reset status bits */
 		status = bus_read_1(sc->io_res, ICH_HST_STA);
 #if ICHSMB_DEBUG
-		if ((status & ~(ICH_HST_STA_INUSE_STS | ICH_HST_STA_HOST_BUSY))
-		    || count > 0) {
+		if ((status &
+			~(ICH_HST_STA_INUSE_STS | ICH_HST_STA_HOST_BUSY)) ||
+		    count > 0) {
 			DBG("%d stat=0x%02x\n", count, status);
 		}
 #endif
@@ -524,14 +508,14 @@ ichsmb_device_intr(void *cookie)
 			cmd_index = sc->ich_cmd >> 2;
 			KASSERT(cmd_index < sizeof(ichsmb_state_irqs),
 			    ("%s: ich_cmd=%d", device_get_nameunit(dev),
-			    sc->ich_cmd));
+				sc->ich_cmd));
 			ok_bits |= ichsmb_state_irqs[cmd_index];
 		}
 		if ((status & ~ok_bits) != 0) {
 			device_printf(dev, "irq 0x%02x during 0x%02x\n", status,
 			    sc->ich_cmd);
-			bus_write_1(sc->io_res,
-			    ICH_HST_STA, (status & ~ok_bits));
+			bus_write_1(sc->io_res, ICH_HST_STA,
+			    (status & ~ok_bits));
 			continue;
 		}
 
@@ -543,13 +527,13 @@ ichsmb_device_intr(void *cookie)
 
 		/* Check for bus error */
 		if (status & ICH_HST_STA_BUS_ERR) {
-			sc->smb_error = SMB_ECOLLI;	/* XXX SMB_EBUSERR? */
+			sc->smb_error = SMB_ECOLLI; /* XXX SMB_EBUSERR? */
 			goto finished;
 		}
 
 		/* Check for device error */
 		if (status & ICH_HST_STA_DEV_ERR) {
-			sc->smb_error = SMB_ENOACK;	/* or SMB_ETIMEOUT? */
+			sc->smb_error = SMB_ENOACK; /* or SMB_ETIMEOUT? */
 			goto finished;
 		}
 
@@ -559,25 +543,25 @@ ichsmb_device_intr(void *cookie)
 				if (sc->block_index < sc->block_count) {
 
 					/* Write next byte */
-					bus_write_1(sc->io_res,
-					    ICH_BLOCK_DB,
+					bus_write_1(sc->io_res, ICH_BLOCK_DB,
 					    sc->block_data[sc->block_index++]);
 				}
 			} else {
 
 				/* First interrupt, get the count also */
 				if (sc->block_index == 0) {
-					sc->block_count = bus_read_1(
-					    sc->io_res, ICH_D0);
+					sc->block_count = bus_read_1(sc->io_res,
+					    ICH_D0);
 					if (sc->block_count < 1 ||
 					    sc->block_count > 32) {
-						device_printf(dev, "block read "
+						device_printf(dev,
+						    "block read "
 						    "wrong length: %d\n",
 						    sc->block_count);
 						bus_write_1(sc->io_res,
 						    ICH_HST_CNT,
 						    ICH_HST_CNT_KILL |
-						    ICH_HST_CNT_INTREN);
+							ICH_HST_CNT_INTREN);
 						sc->block_count = 0;
 						sc->killed = true;
 					}
@@ -589,7 +573,7 @@ ichsmb_device_intr(void *cookie)
 					/* Read next byte */
 					sc->block_data[sc->block_index++] =
 					    bus_read_1(sc->io_res,
-					      ICH_BLOCK_DB);
+						ICH_BLOCK_DB);
 
 					/*
 					 * Set "LAST_BYTE" bit before reading
@@ -600,8 +584,8 @@ ichsmb_device_intr(void *cookie)
 						bus_write_1(sc->io_res,
 						    ICH_HST_CNT,
 						    ICH_HST_CNT_LAST_BYTE |
-						    ICH_HST_CNT_INTREN |
-						    sc->ich_cmd);
+							ICH_HST_CNT_INTREN |
+							sc->ich_cmd);
 					}
 				}
 			}
@@ -610,10 +594,9 @@ ichsmb_device_intr(void *cookie)
 		/* Check command completion */
 		if (status & ICH_HST_STA_INTR) {
 			sc->smb_error = SMB_ENOERR;
-finished:
+		finished:
 			sc->ich_cmd = -1;
-			bus_write_1(sc->io_res,
-			    ICH_HST_STA, status);
+			bus_write_1(sc->io_res, ICH_HST_STA, status);
 			wakeup(sc);
 			break;
 		}
@@ -640,8 +623,7 @@ ichsmb_wait(sc_p sc)
 	const device_t dev = sc->dev;
 	int error, smb_error;
 
-	KASSERT(sc->ich_cmd != -1,
-	    ("%s: ich_cmd=%d\n", __func__ , sc->ich_cmd));
+	KASSERT(sc->ich_cmd != -1, ("%s: ich_cmd=%d\n", __func__, sc->ich_cmd));
 	mtx_assert(&sc->mutex, MA_OWNED);
 	error = msleep(sc, &sc->mutex, PZERO, "ichsmb", hz / 4);
 	DBG("msleep -> %d\n", error);
@@ -675,13 +657,13 @@ ichsmb_release_resources(sc_p sc)
 		sc->irq_handle = NULL;
 	}
 	if (sc->irq_res != NULL) {
-		bus_release_resource(dev,
-		    SYS_RES_IRQ, sc->irq_rid, sc->irq_res);
+		bus_release_resource(dev, SYS_RES_IRQ, sc->irq_rid,
+		    sc->irq_res);
 		sc->irq_res = NULL;
 	}
 	if (sc->io_res != NULL) {
-		bus_release_resource(dev,
-		    SYS_RES_IOPORT, sc->io_rid, sc->io_res);
+		bus_release_resource(dev, SYS_RES_IOPORT, sc->io_rid,
+		    sc->io_res);
 		sc->io_res = NULL;
 	}
 }
@@ -698,7 +680,7 @@ ichsmb_detach(device_t dev)
 	device_delete_child(dev, sc->smb);
 	ichsmb_release_resources(sc);
 	mtx_destroy(&sc->mutex);
-	
+
 	return 0;
 }
 

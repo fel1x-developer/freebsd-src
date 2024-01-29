@@ -40,9 +40,9 @@
 
 #include <machine/bus.h>
 
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_pci.h>
 #include <dev/ofw/ofw_subr.h>
+#include <dev/ofw/openfirm.h>
 
 static void
 get_addr_props(phandle_t node, uint32_t *addrp, uint32_t *sizep, int *pcip)
@@ -63,7 +63,7 @@ get_addr_props(phandle_t node, uint32_t *addrp, uint32_t *sizep, int *pcip)
 		if (res != -1) {
 			type[sizeof(type) - 1] = '\0';
 			if (strcmp(type, "pci") == 0 ||
-			    strcmp(type, "pciex")== 0)
+			    strcmp(type, "pciex") == 0)
 				pci = 1;
 		}
 	}
@@ -76,8 +76,8 @@ get_addr_props(phandle_t node, uint32_t *addrp, uint32_t *sizep, int *pcip)
 }
 
 int
-ofw_reg_to_paddr(phandle_t dev, int regno, bus_addr_t *paddr,
-    bus_size_t *psize, pcell_t *ppci_hi)
+ofw_reg_to_paddr(phandle_t dev, int regno, bus_addr_t *paddr, bus_size_t *psize,
+    pcell_t *ppci_hi)
 {
 	static pcell_t cell[256];
 	pcell_t pci_hi;
@@ -100,8 +100,8 @@ ofw_reg_to_paddr(phandle_t dev, int regno, bus_addr_t *paddr,
 		return (EINVAL);
 
 	get_addr_props(bridge, &naddr, &nsize, &pci);
-	res = OF_getencprop(dev, (pci) ? "assigned-addresses" : "reg",
-	    cell, sizeof(cell));
+	res = OF_getencprop(dev, (pci) ? "assigned-addresses" : "reg", cell,
+	    sizeof(cell));
 	if (res == -1)
 		return (ENXIO);
 	if (res % sizeof(cell[0]))
@@ -152,9 +152,9 @@ ofw_reg_to_paddr(phandle_t dev, int regno, bus_addr_t *paddr,
 			raddr = 0;
 			for (c = 0; c < naddr; c++)
 				raddr = ((uint64_t)raddr << 32) | cell[regno++];
-			rspc = (pcib)
-			    ? cell[regno] & OFW_PCI_PHYS_HI_SPACEMASK
-			    : OFW_PADDR_NOT_PCI;
+			rspc = (pcib) ?
+			    cell[regno] & OFW_PCI_PHYS_HI_SPACEMASK :
+			    OFW_PADDR_NOT_PCI;
 			baddr = 0;
 			for (c = 0; c < nbridge; c++)
 				baddr = ((uint64_t)baddr << 32) | cell[regno++];
@@ -194,7 +194,7 @@ int
 ofw_parse_bootargs(void)
 {
 	phandle_t chosen;
-	char buf[2048];		/* early stack supposedly big enough */
+	char buf[2048]; /* early stack supposedly big enough */
 	int err;
 
 	chosen = OF_finddevice("/chosen");

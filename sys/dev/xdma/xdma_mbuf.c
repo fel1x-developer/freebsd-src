@@ -28,11 +28,12 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
+
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/conf.h>
 #include <sys/bus.h>
+#include <sys/conf.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/mbuf.h>
@@ -56,7 +57,7 @@ xdma_dequeue_mbuf(xdma_channel_t *xchan, struct mbuf **mp,
 	struct xdma_request *xr_tmp;
 
 	QUEUE_OUT_LOCK(xchan);
-	TAILQ_FOREACH_SAFE(xr, &xchan->queue_out, xr_next, xr_tmp) {
+	TAILQ_FOREACH_SAFE (xr, &xchan->queue_out, xr_next, xr_tmp) {
 		TAILQ_REMOVE(&xchan->queue_out, xr, xr_next);
 		break;
 	}
@@ -75,9 +76,8 @@ xdma_dequeue_mbuf(xdma_channel_t *xchan, struct mbuf **mp,
 }
 
 int
-xdma_enqueue_mbuf(xdma_channel_t *xchan, struct mbuf **mp,
-    uintptr_t addr, uint8_t src_width, uint8_t dst_width,
-    enum xdma_direction dir)
+xdma_enqueue_mbuf(xdma_channel_t *xchan, struct mbuf **mp, uintptr_t addr,
+    uint8_t src_width, uint8_t dst_width, enum xdma_direction dir)
 {
 	struct xdma_request *xr;
 
@@ -133,8 +133,7 @@ xdma_mbuf_defrag(xdma_channel_t *xchan, struct xdma_request *xr)
 		return (c); /* Nothing to do. */
 
 	if ((m = m_defrag(xr->m, M_NOWAIT)) == NULL) {
-		device_printf(xdma->dma_dev,
-		    "%s: Can't defrag mbuf\n",
+		device_printf(xdma->dma_dev, "%s: Can't defrag mbuf\n",
 		    __func__);
 		return (c);
 	}

@@ -40,24 +40,23 @@ __BEGIN_DECLS
  */
 
 struct sdp_session {
-	uint16_t	 flags;
-#define SDP_SESSION_LOCAL	(1 << 0)
-	uint16_t	 tid;   /* current session transaction ID (tid) */
-	uint16_t	 omtu;  /* outgoing MTU (req buffer size) */
-	uint16_t	 imtu;  /* incoming MTU (rsp buffer size) */
-	uint8_t		*req;	/* request buffer (start) */
-	uint8_t		*req_e;	/* request buffer (end) */
-	uint8_t		*rsp;	/* response buffer (start) */
-	uint8_t		*rsp_e;	/* response buffer (end) */
-	uint32_t	 cslen; /* continuation state length */
-	uint8_t		 cs[16];/* continuation state */
-	int32_t		 s;     /* L2CAP socket */
-	int32_t		 error;	/* last error code */
+	uint16_t flags;
+#define SDP_SESSION_LOCAL (1 << 0)
+	uint16_t tid;	/* current session transaction ID (tid) */
+	uint16_t omtu;	/* outgoing MTU (req buffer size) */
+	uint16_t imtu;	/* incoming MTU (rsp buffer size) */
+	uint8_t *req;	/* request buffer (start) */
+	uint8_t *req_e; /* request buffer (end) */
+	uint8_t *rsp;	/* response buffer (start) */
+	uint8_t *rsp_e; /* response buffer (end) */
+	uint32_t cslen; /* continuation state length */
+	uint8_t cs[16]; /* continuation state */
+	int32_t s;	/* L2CAP socket */
+	int32_t error;	/* last error code */
 };
-typedef struct sdp_session	sdp_session_t;
-typedef struct sdp_session *	sdp_session_p;
+typedef struct sdp_session sdp_session_t;
+typedef struct sdp_session *sdp_session_p;
 
 __END_DECLS
 
 #endif /* ndef _SDP_INT_H_ */
-

@@ -32,9 +32,10 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 
+#include <netinet/in.h>
+
+#include <arpa/inet.h>
 #include <assert.h>
 #include <errno.h>
 #include <libutil.h>
@@ -48,9 +49,9 @@
 
 #include "pjdlog.h"
 
-#define	PJDLOG_NEVER_INITIALIZED	0
-#define	PJDLOG_NOT_INITIALIZED		1
-#define	PJDLOG_INITIALIZED		2
+#define PJDLOG_NEVER_INITIALIZED 0
+#define PJDLOG_NOT_INITIALIZED 1
+#define PJDLOG_INITIALIZED 2
 
 static int pjdlog_initialized = PJDLOG_NEVER_INITIALIZED;
 static int pjdlog_mode, pjdlog_debug_level;
@@ -68,7 +69,7 @@ pjdlog_printf_arginfo_humanized_number(const struct printf_info *pi __unused,
 
 static int
 pjdlog_printf_render_humanized_number(struct __printf_io *io,
-    const struct printf_info *pi, const void * const *arg)
+    const struct printf_info *pi, const void *const *arg)
 {
 	char buf[5];
 	intmax_t num;
@@ -83,8 +84,8 @@ pjdlog_printf_render_humanized_number(struct __printf_io *io,
 }
 
 static int
-pjdlog_printf_arginfo_sockaddr(const struct printf_info *pi __unused,
-    size_t n, int *argt)
+pjdlog_printf_arginfo_sockaddr(const struct printf_info *pi __unused, size_t n,
+    int *argt)
 {
 
 	assert(n >= 1);
@@ -94,16 +95,15 @@ pjdlog_printf_arginfo_sockaddr(const struct printf_info *pi __unused,
 
 static int
 pjdlog_printf_render_sockaddr(struct __printf_io *io,
-    const struct printf_info *pi, const void * const *arg)
+    const struct printf_info *pi, const void *const *arg)
 {
 	const struct sockaddr_storage *ss;
 	char buf[64];
 	int ret;
 
-	ss = *(const struct sockaddr_storage * const *)arg[0];
+	ss = *(const struct sockaddr_storage *const *)arg[0];
 	switch (ss->ss_family) {
-	case AF_INET:
-	    {
+	case AF_INET: {
 		char addr[INET_ADDRSTRLEN];
 		const struct sockaddr_in *sin;
 		unsigned int port;
@@ -111,15 +111,14 @@ pjdlog_printf_render_sockaddr(struct __printf_io *io,
 		sin = (const struct sockaddr_in *)ss;
 		port = ntohs(sin->sin_port);
 		if (inet_ntop(ss->ss_family, &sin->sin_addr, addr,
-		    sizeof(addr)) == NULL) {
+			sizeof(addr)) == NULL) {
 			PJDLOG_ABORT("inet_ntop(AF_INET) failed: %s.",
 			    strerror(errno));
 		}
 		snprintf(buf, sizeof(buf), "%s:%u", addr, port);
 		break;
-	    }
-	case AF_INET6:
-	    {
+	}
+	case AF_INET6: {
 		char addr[INET6_ADDRSTRLEN];
 		const struct sockaddr_in6 *sin;
 		unsigned int port;
@@ -127,13 +126,13 @@ pjdlog_printf_render_sockaddr(struct __printf_io *io,
 		sin = (const struct sockaddr_in6 *)ss;
 		port = ntohs(sin->sin6_port);
 		if (inet_ntop(ss->ss_family, &sin->sin6_addr, addr,
-		    sizeof(addr)) == NULL) {
+			sizeof(addr)) == NULL) {
 			PJDLOG_ABORT("inet_ntop(AF_INET6) failed: %s.",
 			    strerror(errno));
 		}
 		snprintf(buf, sizeof(buf), "[%s]:%u", addr, port);
 		break;
-	    }
+	}
 	default:
 		snprintf(buf, sizeof(buf), "[unsupported family %hhu]",
 		    ss->ss_family);
@@ -161,8 +160,7 @@ pjdlog_init(int mode)
 		register_printf_render('N',
 		    pjdlog_printf_render_humanized_number,
 		    pjdlog_printf_arginfo_humanized_number);
-		register_printf_render('S',
-		    pjdlog_printf_render_sockaddr,
+		register_printf_render('S', pjdlog_printf_render_sockaddr,
 		    pjdlog_printf_arginfo_sockaddr);
 	}
 
@@ -322,7 +320,7 @@ pjdlog_level_string(int loglevel)
 		return ("DEBUG");
 	}
 	assert(!"Invalid log level.");
-	abort();	/* XXX: gcc */
+	abort(); /* XXX: gcc */
 }
 
 /*
@@ -365,8 +363,7 @@ pjdlogv_common(int loglevel, int debuglevel, int error, const char *fmt,
 	saved_errno = errno;
 
 	switch (pjdlog_mode) {
-	case PJDLOG_MODE_STD:
-	    {
+	case PJDLOG_MODE_STD: {
 		FILE *out;
 
 		/*
@@ -387,7 +384,7 @@ pjdlogv_common(int loglevel, int debuglevel, int error, const char *fmt,
 			break;
 		default:
 			assert(!"Invalid loglevel.");
-			abort();	/* XXX: gcc */
+			abort(); /* XXX: gcc */
 		}
 
 		fprintf(out, "[%s]", pjdlog_level_string(loglevel));
@@ -401,9 +398,8 @@ pjdlogv_common(int loglevel, int debuglevel, int error, const char *fmt,
 		fprintf(out, "\n");
 		fflush(out);
 		break;
-	    }
-	case PJDLOG_MODE_SYSLOG:
-	    {
+	}
+	case PJDLOG_MODE_SYSLOG: {
 		char log[1024];
 		int len;
 
@@ -416,7 +412,7 @@ pjdlogv_common(int loglevel, int debuglevel, int error, const char *fmt,
 		}
 		syslog(loglevel, "%s", log);
 		break;
-	    }
+	}
 	default:
 		assert(!"Invalid mode.");
 	}
@@ -597,15 +593,18 @@ pjdlog_abort(const char *func, const char *file, int line,
 			pjdlog_critical("Aborted at file %s, line %d.", file,
 			    line);
 		} else {
-			pjdlog_critical("Aborted at function %s, file %s, line %d.",
-			    func, file, line);
+			pjdlog_critical(
+			    "Aborted at function %s, file %s, line %d.", func,
+			    file, line);
 		}
 	} else {
 		if (func == NULL) {
-			pjdlog_critical("Assertion failed: (%s), file %s, line %d.",
+			pjdlog_critical(
+			    "Assertion failed: (%s), file %s, line %d.",
 			    failedexpr, file, line);
 		} else {
-			pjdlog_critical("Assertion failed: (%s), function %s, file %s, line %d.",
+			pjdlog_critical(
+			    "Assertion failed: (%s), function %s, file %s, line %d.",
 			    failedexpr, func, file, line);
 		}
 	}

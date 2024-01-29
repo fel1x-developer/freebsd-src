@@ -36,15 +36,14 @@
  *
  */
 
-#include "namespace.h"
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pthread.h>
-#include "un-namespace.h"
 
 #include "local.h"
-
+#include "namespace.h"
+#include "un-namespace.h"
 
 /*
  * Weak symbols for externally visible functions in this file:
@@ -88,7 +87,7 @@ int
 _ftrylockfile(FILE *fp)
 {
 	pthread_t curthread = _pthread_self();
-	int	ret = 0;
+	int ret = 0;
 
 	if (fp->_fl_owner == curthread)
 		fp->_fl_count++;
@@ -99,16 +98,15 @@ _ftrylockfile(FILE *fp)
 	else if (_pthread_mutex_trylock(&fp->_fl_mutex) == 0) {
 		fp->_fl_owner = curthread;
 		fp->_fl_count = 1;
-	}
-	else
+	} else
 		ret = -1;
 	return (ret);
 }
 
-void 
+void
 _funlockfile(FILE *fp)
 {
-	pthread_t	curthread = _pthread_self();
+	pthread_t curthread = _pthread_self();
 
 	/*
 	 * Check if this file is owned by the current thread:

@@ -31,19 +31,17 @@
 
 struct hn_softc;
 
-int		hn_rndis_attach(struct hn_softc *sc, int mtu, int *init_done);
-void		hn_rndis_detach(struct hn_softc *sc);
-int		hn_rndis_conf_rss(struct hn_softc *sc, uint16_t flags);
-int		hn_rndis_query_rsscaps(struct hn_softc *sc, int *rxr_cnt);
-int		hn_rndis_get_eaddr(struct hn_softc *sc, uint8_t *eaddr);
+int hn_rndis_attach(struct hn_softc *sc, int mtu, int *init_done);
+void hn_rndis_detach(struct hn_softc *sc);
+int hn_rndis_conf_rss(struct hn_softc *sc, uint16_t flags);
+int hn_rndis_query_rsscaps(struct hn_softc *sc, int *rxr_cnt);
+int hn_rndis_get_eaddr(struct hn_softc *sc, uint8_t *eaddr);
 /* link_status: NDIS_MEDIA_STATE_ */
-int		hn_rndis_get_linkstatus(struct hn_softc *sc,
-		    uint32_t *link_status);
-int		hn_rndis_get_mtu(struct hn_softc *sc, uint32_t *mtu);
+int hn_rndis_get_linkstatus(struct hn_softc *sc, uint32_t *link_status);
+int hn_rndis_get_mtu(struct hn_softc *sc, uint32_t *mtu);
 /* filter: NDIS_PACKET_TYPE_. */
-int		hn_rndis_set_rxfilter(struct hn_softc *sc, uint32_t filter);
-void		hn_rndis_rx_ctrl(struct hn_softc *sc, const void *data,
-		    int dlen);
-int		hn_rndis_reconf_offload(struct hn_softc *sc, int mtu);
+int hn_rndis_set_rxfilter(struct hn_softc *sc, uint32_t filter);
+void hn_rndis_rx_ctrl(struct hn_softc *sc, const void *data, int dlen);
+int hn_rndis_reconf_offload(struct hn_softc *sc, int mtu);
 
-#endif  /* !_HN_RNDIS_H_ */
+#endif /* !_HN_RNDIS_H_ */

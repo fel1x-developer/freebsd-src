@@ -40,36 +40,35 @@
 #include <net/if.h>
 #include <net/if_dl.h>
 #include <net/if_types.h>
+#include <netgraph/ng_socket.h>
+#include <netinet/in.h>
 #include <netlink/netlink.h>
 #include <netlink/netlink_route.h>
 #include <netlink/netlink_snl.h>
 #include <netlink/netlink_snl_route.h>
-#include <netlink/netlink_snl_route_parsers.h>
 #include <netlink/netlink_snl_route_compat.h>
-
-#include <netinet/in.h>
-#include <netgraph/ng_socket.h>
+#include <netlink/netlink_snl_route_parsers.h>
 
 #include <arpa/inet.h>
+#include <err.h>
 #include <ifaddrs.h>
 #include <libutil.h>
+#include <libxo/xo.h>
 #include <netdb.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
-#include <err.h>
-#include <libxo/xo.h>
-#include "netstat.h"
+
 #include "common.h"
+#include "netstat.h"
 #include "nl_defs.h"
 
-
-static void p_rtentry_netlink(struct snl_state *ss, const char *name, struct nlmsghdr *hdr);
+static void p_rtentry_netlink(struct snl_state *ss, const char *name,
+    struct nlmsghdr *hdr);
 
 static struct ifmap_entry *ifmap;
 static size_t ifmap_size;
@@ -96,23 +95,26 @@ prepare_ifmap_netlink(struct snl_state *ss, size_t *pifmap_size)
 	struct nlmsghdr *hdr;
 	struct snl_errmsg_data e = {};
 
-	while ((hdr = snl_read_reply_multi(ss, msg.hdr.nlmsg_seq, &e)) != NULL) {
+	while (
+	    (hdr = snl_read_reply_multi(ss, msg.hdr.nlmsg_seq, &e)) != NULL) {
 		struct snl_parsed_link_simple link = {};
 
-		if (!snl_parse_nlmsg(ss, hdr, &snl_rtm_link_parser_simple, &link))
+		if (!snl_parse_nlmsg(ss, hdr, &snl_rtm_link_parser_simple,
+			&link))
 			continue;
 		if (link.ifi_index >= ifmap_size) {
-			size_t size = roundup2(link.ifi_index + 1, 32) * sizeof(struct ifmap_entry);
+			size_t size = roundup2(link.ifi_index + 1, 32) *
+			    sizeof(struct ifmap_entry);
 			if ((ifmap = realloc(ifmap, size)) == NULL)
 				errx(2, "realloc(%zu) failed", size);
 			memset(&ifmap[ifmap_size], 0,
-			    size - ifmap_size *
-			    sizeof(struct ifmap_entry));
+			    size - ifmap_size * sizeof(struct ifmap_entry));
 			ifmap_size = roundup2(link.ifi_index + 1, 32);
 		}
 		if (*ifmap[link.ifi_index].ifname != '\0')
 			continue;
-		strlcpy(ifmap[link.ifi_index].ifname, link.ifla_ifname, IFNAMSIZ);
+		strlcpy(ifmap[link.ifi_index].ifname, link.ifla_ifname,
+		    IFNAMSIZ);
 		ifmap[link.ifi_index].mtu = link.ifla_mtu;
 	}
 	*pifmap_size = ifmap_size;
@@ -144,7 +146,8 @@ gen_mask(int family, int plen, struct sockaddr *sa)
 		struct sockaddr_in sin = {
 			.sin_family = AF_INET,
 			.sin_len = sizeof(struct sockaddr_in),
-			.sin_addr.s_addr = htonl(plen ? ~((1 << (32 - plen)) - 1) : 0),
+			.sin_addr.s_addr = htonl(
+			    plen ? ~((1 << (32 - plen)) - 1) : 0),
 		};
 		*((struct sockaddr_in *)sa) = sin;
 	}
@@ -172,7 +175,8 @@ p_path(struct snl_parsed_route *rt, bool is_mpath)
 	gen_mask(rt->rtm_family, rt->rtm_dst_len, pmask);
 	add_scopeid(rt->rta_dst, rt->rta_oif);
 	add_scopeid(rt->rta_gw, rt->rta_oif);
-	protrusion = p_sockaddr("destination", rt->rta_dst, pmask, rt->rta_rtflags, wid.dst);
+	protrusion = p_sockaddr("destination", rt->rta_dst, pmask,
+	    rt->rta_rtflags, wid.dst);
 	protrusion = p_sockaddr("gateway", rt->rta_gw, NULL, RTF_HOST,
 	    wid.gw - protrusion);
 	snprintf(buffer, sizeof(buffer), "{[:-%d}{:flags/%%s}{]:} ",
@@ -203,7 +207,8 @@ p_path(struct snl_parsed_route *rt, bool is_mpath)
 
 	if (Wflag) {
 		/* XXX: use=0? */
-		xo_emit("{t:nhop/%*lu} ", wid.mtu, is_mpath ? 0 : rt->rta_knh_id);
+		xo_emit("{t:nhop/%*lu} ", wid.mtu,
+		    is_mpath ? 0 : rt->rta_knh_id);
 
 		if (rt->rtax_mtu != 0)
 			xo_emit("{t:mtu/%*lu} ", wid.mtu, rt->rtax_mtu);
@@ -211,7 +216,6 @@ p_path(struct snl_parsed_route *rt, bool is_mpath)
 			/* use interface mtu */
 			xo_emit("{P:/%*s} ", wid.mtu, "");
 		}
-
 	}
 
 	if (Wflag)
@@ -243,8 +247,10 @@ p_rtentry_netlink(struct snl_state *ss, const char *name, struct nlmsghdr *hdr)
 			rt.rta_gw = nhop->gw;
 			rt.rta_oif = nhop->ifindex;
 			rt.rtax_weight = nhop->rtnh_weight;
-			rt.rta_rtflags = nhop->rta_rtflags ? nhop->rta_rtflags : orig_rtflags;
-			rt.rtax_mtu = nhop->rtax_mtu ? nhop->rtax_mtu : orig_mtu;
+			rt.rta_rtflags = nhop->rta_rtflags ? nhop->rta_rtflags :
+							     orig_rtflags;
+			rt.rtax_mtu = nhop->rtax_mtu ? nhop->rtax_mtu :
+						       orig_mtu;
 
 			xo_open_instance(name);
 			p_path(&rt, true);
@@ -309,7 +315,8 @@ p_rtable_netlink(int fibnum, int af)
 
 	xo_open_container("route-table");
 	xo_open_list("rt-family");
-	while ((hdr = snl_read_reply_multi(&ss, msg.hdr.nlmsg_seq, &e)) != NULL) {
+	while (
+	    (hdr = snl_read_reply_multi(&ss, msg.hdr.nlmsg_seq, &e)) != NULL) {
 		struct rtmsg *rtm = (struct rtmsg *)(hdr + 1);
 		/* Only print family first time. */
 		if (fam != rtm->rtm_family) {
@@ -337,5 +344,3 @@ p_rtable_netlink(int fibnum, int af)
 	snl_free(&ss);
 	return (true);
 }
-
-

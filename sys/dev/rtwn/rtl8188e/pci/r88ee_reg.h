@@ -17,7 +17,7 @@
 #ifndef R88EE_REG_H
 #define R88EE_REG_H
 
-#include <dev/rtwn/rtl8192c/pci/r92ce_reg.h>
 #include <dev/rtwn/rtl8188e/r88e_reg.h>
+#include <dev/rtwn/rtl8192c/pci/r92ce_reg.h>
 
-#endif	/* R88EE_REG_H */
+#endif /* R88EE_REG_H */

@@ -27,19 +27,20 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/cpu.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/pcpu.h>
+#include <sys/rman.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
-#include <dev/pci/pcivar.h>
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
+
+#include <dev/pci/pcivar.h>
 
 #include "cpufreq_if.h"
 
@@ -53,78 +54,74 @@
  */
 
 struct ichss_softc {
-	device_t	 dev;
-	int		 bm_rid;	/* Bus-mastering control (PM2REG). */
-	struct resource	*bm_reg;
-	int		 ctrl_rid;	/* Control/status register. */
-	struct resource	*ctrl_reg;
-	struct cf_setting sets[2];	/* Only two settings. */
+	device_t dev;
+	int bm_rid; /* Bus-mastering control (PM2REG). */
+	struct resource *bm_reg;
+	int ctrl_rid; /* Control/status register. */
+	struct resource *ctrl_reg;
+	struct cf_setting sets[2]; /* Only two settings. */
 };
 
 /* Supported PCI IDs. */
-#define PCI_VENDOR_INTEL	0x8086
-#define PCI_DEV_82801BA		0x244c /* ICH2M */
-#define PCI_DEV_82801CA		0x248c /* ICH3M */
-#define PCI_DEV_82801DB		0x24cc /* ICH4M */
-#define PCI_DEV_82815_MC	0x1130 /* Unsupported/buggy part */
+#define PCI_VENDOR_INTEL 0x8086
+#define PCI_DEV_82801BA 0x244c	/* ICH2M */
+#define PCI_DEV_82801CA 0x248c	/* ICH3M */
+#define PCI_DEV_82801DB 0x24cc	/* ICH4M */
+#define PCI_DEV_82815_MC 0x1130 /* Unsupported/buggy part */
 
 /* PCI config registers for finding PMBASE and enabling SpeedStep. */
-#define ICHSS_PMBASE_OFFSET	0x40
-#define ICHSS_PMCFG_OFFSET	0xa0
+#define ICHSS_PMBASE_OFFSET 0x40
+#define ICHSS_PMCFG_OFFSET 0xa0
 
 /* Values and masks. */
-#define ICHSS_ENABLE		(1<<3)	/* Enable SpeedStep control. */
-#define ICHSS_IO_REG		0x1	/* Access register via I/O space. */
-#define ICHSS_PMBASE_MASK	0xff80	/* PMBASE address bits. */
-#define ICHSS_CTRL_BIT		0x1	/* 0 is high speed, 1 is low. */
-#define ICHSS_BM_DISABLE	0x1
+#define ICHSS_ENABLE (1 << 3)	 /* Enable SpeedStep control. */
+#define ICHSS_IO_REG 0x1	 /* Access register via I/O space. */
+#define ICHSS_PMBASE_MASK 0xff80 /* PMBASE address bits. */
+#define ICHSS_CTRL_BIT 0x1	 /* 0 is high speed, 1 is low. */
+#define ICHSS_BM_DISABLE 0x1
 
 /* Offsets from PMBASE for various registers. */
-#define ICHSS_BM_OFFSET		0x20
-#define ICHSS_CTRL_OFFSET	0x50
+#define ICHSS_BM_OFFSET 0x20
+#define ICHSS_CTRL_OFFSET 0x50
 
-#define ICH_GET_REG(reg) 				\
-	(bus_space_read_1(rman_get_bustag((reg)), 	\
-	    rman_get_bushandle((reg)), 0))
-#define ICH_SET_REG(reg, val)				\
-	(bus_space_write_1(rman_get_bustag((reg)), 	\
-	    rman_get_bushandle((reg)), 0, (val)))
+#define ICH_GET_REG(reg) \
+	(bus_space_read_1(rman_get_bustag((reg)), rman_get_bushandle((reg)), 0))
+#define ICH_SET_REG(reg, val)                                                 \
+	(bus_space_write_1(rman_get_bustag((reg)), rman_get_bushandle((reg)), \
+	    0, (val)))
 
-static void	ichss_identify(driver_t *driver, device_t parent);
-static int	ichss_probe(device_t dev);
-static int	ichss_attach(device_t dev);
-static int	ichss_detach(device_t dev);
-static int	ichss_settings(device_t dev, struct cf_setting *sets,
-		    int *count);
-static int	ichss_set(device_t dev, const struct cf_setting *set);
-static int	ichss_get(device_t dev, struct cf_setting *set);
-static int	ichss_type(device_t dev, int *type);
+static void ichss_identify(driver_t *driver, device_t parent);
+static int ichss_probe(device_t dev);
+static int ichss_attach(device_t dev);
+static int ichss_detach(device_t dev);
+static int ichss_settings(device_t dev, struct cf_setting *sets, int *count);
+static int ichss_set(device_t dev, const struct cf_setting *set);
+static int ichss_get(device_t dev, struct cf_setting *set);
+static int ichss_type(device_t dev, int *type);
 
 static device_method_t ichss_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,	ichss_identify),
-	DEVMETHOD(device_probe,		ichss_probe),
-	DEVMETHOD(device_attach,	ichss_attach),
-	DEVMETHOD(device_detach,	ichss_detach),
+	DEVMETHOD(device_identify, ichss_identify),
+	DEVMETHOD(device_probe, ichss_probe),
+	DEVMETHOD(device_attach, ichss_attach),
+	DEVMETHOD(device_detach, ichss_detach),
 
 	/* cpufreq interface */
-	DEVMETHOD(cpufreq_drv_set,	ichss_set),
-	DEVMETHOD(cpufreq_drv_get,	ichss_get),
-	DEVMETHOD(cpufreq_drv_type,	ichss_type),
-	DEVMETHOD(cpufreq_drv_settings,	ichss_settings),
-	DEVMETHOD_END
+	DEVMETHOD(cpufreq_drv_set, ichss_set),
+	DEVMETHOD(cpufreq_drv_get, ichss_get),
+	DEVMETHOD(cpufreq_drv_type, ichss_type),
+	DEVMETHOD(cpufreq_drv_settings, ichss_settings), DEVMETHOD_END
 };
 
-static driver_t ichss_driver = {
-	"ichss", ichss_methods, sizeof(struct ichss_softc)
-};
+static driver_t ichss_driver = { "ichss", ichss_methods,
+	sizeof(struct ichss_softc) };
 
 DRIVER_MODULE(ichss, cpu, ichss_driver, 0, 0);
 
 static device_t ich_device;
 
 #if 0
-#define DPRINT(x...)	printf(x)
+#define DPRINT(x...) printf(x)
 #else
 #define DPRINT(x...)
 #endif
@@ -160,8 +157,8 @@ ichss_identify(driver_t *driver, device_t parent)
 	if (ich_device == NULL ||
 	    pci_get_vendor(ich_device) != PCI_VENDOR_INTEL ||
 	    (pci_get_device(ich_device) != PCI_DEV_82801BA &&
-	    pci_get_device(ich_device) != PCI_DEV_82801CA &&
-	    pci_get_device(ich_device) != PCI_DEV_82801DB))
+		pci_get_device(ich_device) != PCI_DEV_82801CA &&
+		pci_get_device(ich_device) != PCI_DEV_82801DB))
 		return;
 
 	/*
@@ -201,8 +198,7 @@ ichss_identify(driver_t *driver, device_t parent)
 	}
 
 	/* Add the bus master arbitration and control registers. */
-	bus_set_resource(child, SYS_RES_IOPORT, 0, pmbase + ICHSS_BM_OFFSET,
-	    1);
+	bus_set_resource(child, SYS_RES_IOPORT, 0, pmbase + ICHSS_BM_OFFSET, 1);
 	bus_set_resource(child, SYS_RES_IOPORT, 1, pmbase + ICHSS_CTRL_OFFSET,
 	    1);
 }
@@ -356,8 +352,8 @@ ichss_set(device_t dev, const struct cf_setting *set)
 
 	/* Check if the desired state was indeed selected. */
 	if (req_val != (new_val & ICHSS_CTRL_BIT)) {
-	    device_printf(sc->dev, "transition to %d failed\n", req_val);
-	    return (ENXIO);
+		device_printf(sc->dev, "transition to %d failed\n", req_val);
+		return (ENXIO);
 	}
 
 	/* Re-initialize our cycle counter if we don't know this new state. */

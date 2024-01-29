@@ -27,26 +27,30 @@
  */
 
 #include <sys/param.h>
-#include <sys/module.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/ata.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
-#include <sys/malloc.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/rman.h>
 #include <sys/sema.h>
 #include <sys/taskqueue.h>
+
 #include <vm/uma.h>
-#include <machine/stdarg.h>
-#include <machine/resource.h>
+
 #include <machine/bus.h>
-#include <sys/rman.h>
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
+#include <machine/resource.h>
+#include <machine/stdarg.h>
+
 #include <dev/ata/ata-all.h>
 #include <dev/ata/ata-pci.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
 #include <ata_if.h>
 
 /* local prototypes */
@@ -56,8 +60,8 @@ static int ata_marvell_setmode(device_t dev, int target, int mode);
 static int ata_marvell_dummy_chipinit(device_t dev);
 
 /* misc defines */
-#define MV_61XX		61
-#define MV_91XX		91
+#define MV_61XX 61
+#define MV_91XX 91
 
 /*
  * Marvell chipset support functions
@@ -68,51 +72,52 @@ static int ata_marvell_dummy_chipinit(device_t dev);
 	((ch->unit & 3) * 0x2000) + (ch->unit > 3 ? 0x30000 : 0x20000)
 
 struct ata_marvell_response {
-    u_int16_t   tag;
-    u_int8_t    edma_status;
-    u_int8_t    dev_status;
-    u_int32_t   timestamp;
+	u_int16_t tag;
+	u_int8_t edma_status;
+	u_int8_t dev_status;
+	u_int32_t timestamp;
 };
 
 struct ata_marvell_dma_prdentry {
-    u_int32_t addrlo;
-    u_int32_t count;
-    u_int32_t addrhi;
-    u_int32_t reserved;
-};  
+	u_int32_t addrlo;
+	u_int32_t count;
+	u_int32_t addrhi;
+	u_int32_t reserved;
+};
 
 static int
 ata_marvell_probe(device_t dev)
 {
-    struct ata_pci_controller *ctlr = device_get_softc(dev);
-    static const struct ata_chip_id ids[] =
-    {{ ATA_M88SE6101, 0, 0, MV_61XX, ATA_UDMA6, "88SE6101" },
-     { ATA_M88SE6102, 0, 0, MV_61XX, ATA_UDMA6, "88SE6102" },
-     { ATA_M88SE6111, 0, 1, MV_61XX, ATA_UDMA6, "88SE6111" },
-     { ATA_M88SE6121, 0, 2, MV_61XX, ATA_UDMA6, "88SE6121" },
-     { ATA_M88SE6141, 0, 4, MV_61XX, ATA_UDMA6, "88SE6141" },
-     { ATA_M88SE6145, 0, 4, MV_61XX, ATA_UDMA6, "88SE6145" },
-     { 0x91a41b4b,    0, 0, MV_91XX, ATA_UDMA6, "88SE912x" },
-     { 0, 0, 0, 0, 0, 0}};
+	struct ata_pci_controller *ctlr = device_get_softc(dev);
+	static const struct ata_chip_id ids[] = {
+		{ ATA_M88SE6101, 0, 0, MV_61XX, ATA_UDMA6, "88SE6101" },
+		{ ATA_M88SE6102, 0, 0, MV_61XX, ATA_UDMA6, "88SE6102" },
+		{ ATA_M88SE6111, 0, 1, MV_61XX, ATA_UDMA6, "88SE6111" },
+		{ ATA_M88SE6121, 0, 2, MV_61XX, ATA_UDMA6, "88SE6121" },
+		{ ATA_M88SE6141, 0, 4, MV_61XX, ATA_UDMA6, "88SE6141" },
+		{ ATA_M88SE6145, 0, 4, MV_61XX, ATA_UDMA6, "88SE6145" },
+		{ 0x91a41b4b, 0, 0, MV_91XX, ATA_UDMA6, "88SE912x" },
+		{ 0, 0, 0, 0, 0, 0 }
+	};
 
-    if (pci_get_vendor(dev) != ATA_MARVELL_ID &&
-	pci_get_vendor(dev) != ATA_MARVELL2_ID)
-	return ENXIO;
+	if (pci_get_vendor(dev) != ATA_MARVELL_ID &&
+	    pci_get_vendor(dev) != ATA_MARVELL2_ID)
+		return ENXIO;
 
-    if (!(ctlr->chip = ata_match_chip(dev, ids)))
-	return ENXIO;
+	if (!(ctlr->chip = ata_match_chip(dev, ids)))
+		return ENXIO;
 
-    ata_set_desc(dev);
+	ata_set_desc(dev);
 
-    switch (ctlr->chip->cfg2) {
-    case MV_61XX:
-	ctlr->chipinit = ata_marvell_chipinit;
-	break;
-    case MV_91XX:
-	ctlr->chipinit = ata_marvell_dummy_chipinit;
-	break;
-    }
-    return (BUS_PROBE_LOW_PRIORITY);
+	switch (ctlr->chip->cfg2) {
+	case MV_61XX:
+		ctlr->chipinit = ata_marvell_chipinit;
+		break;
+	case MV_91XX:
+		ctlr->chipinit = ata_marvell_dummy_chipinit;
+		break;
+	}
+	return (BUS_PROBE_LOW_PRIORITY);
 }
 
 static int
@@ -125,18 +130,18 @@ ata_marvell_chipinit(device_t dev)
 		return ENXIO;
 	/* Create AHCI subdevice if AHCI part present. */
 	if (ctlr->chip->cfg1) {
-	    	child = device_add_child(dev, NULL, -1);
+		child = device_add_child(dev, NULL, -1);
 		if (child != NULL) {
-		    device_set_ivars(child, (void *)(intptr_t)-1);
-		    bus_generic_attach(dev);
+			device_set_ivars(child, (void *)(intptr_t)-1);
+			bus_generic_attach(dev);
 		}
 	}
-        ctlr->ch_attach = ata_marvell_ch_attach;
+	ctlr->ch_attach = ata_marvell_ch_attach;
 	ctlr->ch_detach = ata_pci_ch_detach;
 	ctlr->reset = ata_generic_reset;
-        ctlr->setmode = ata_marvell_setmode;
-        ctlr->channels = 1;
-        return (0);
+	ctlr->setmode = ata_marvell_setmode;
+	ctlr->channels = 1;
+	return (0);
 }
 
 static int
@@ -146,7 +151,7 @@ ata_marvell_ch_attach(device_t dev)
 	int error;
 
 	error = ata_pci_ch_attach(dev);
-    	/* dont use 32 bit PIO transfers */
+	/* dont use 32 bit PIO transfers */
 	ch->flags |= ATA_USE_16BIT;
 	ch->flags |= ATA_CHECKS_CABLE;
 	return (error);
@@ -155,7 +160,8 @@ ata_marvell_ch_attach(device_t dev)
 static int
 ata_marvell_setmode(device_t dev, int target, int mode)
 {
-	struct ata_pci_controller *ctlr = device_get_softc(device_get_parent(dev));
+	struct ata_pci_controller *ctlr = device_get_softc(
+	    device_get_parent(dev));
 	struct ata_channel *ch = device_get_softc(dev);
 
 	mode = min(mode, ctlr->chip->max_dma);
@@ -174,8 +180,8 @@ ata_marvell_dummy_chipinit(device_t dev)
 {
 	struct ata_pci_controller *ctlr = device_get_softc(dev);
 
-        ctlr->channels = 0;
-        return (0);
+	ctlr->channels = 0;
+	return (0);
 }
 
 ATA_DECLARE_DRIVER(ata_marvell);

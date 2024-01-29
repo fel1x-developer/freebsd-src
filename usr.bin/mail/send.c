@@ -29,8 +29,8 @@
  * SUCH DAMAGE.
  */
 
-#include "rcv.h"
 #include "extern.h"
+#include "rcv.h"
 
 /*
  * Mail -- a mail program
@@ -47,7 +47,7 @@
  */
 int
 sendmessage(struct message *mp, FILE *obuf, struct ignoretab *doign,
-	char *prefix)
+    char *prefix)
 {
 	long count;
 	FILE *ibuf;
@@ -110,7 +110,7 @@ sendmessage(struct message *mp, FILE *obuf, struct ignoretab *doign,
 			 * Pick up the header field if we have one.
 			 */
 			for (cp = line; (c = *cp++) != '\0' && c != ':' &&
-			    !isspace((unsigned char)c);)
+			     !isspace((unsigned char)c);)
 				;
 			cp2 = --cp;
 			while (isspace((unsigned char)*cp++))
@@ -135,11 +135,11 @@ sendmessage(struct message *mp, FILE *obuf, struct ignoretab *doign,
 				 * If it is an ignored field and
 				 * we care about such things, skip it.
 				 */
-				*cp2 = '\0';	/* temporarily null terminate */
+				*cp2 = '\0'; /* temporarily null terminate */
 				if (doign && isign(line, doign))
 					ignoring = 1;
 				else if ((line[0] == 's' || line[0] == 'S') &&
-					 strcasecmp(line, "status") == 0) {
+				    strcasecmp(line, "status") == 0) {
 					/*
 					 * If the field is "status," go compute
 					 * and print the real Status: field
@@ -151,7 +151,7 @@ sendmessage(struct message *mp, FILE *obuf, struct ignoretab *doign,
 					ignoring = 1;
 				} else {
 					ignoring = 0;
-					*cp2 = c;	/* restore */
+					*cp2 = c; /* restore */
 				}
 				infld = 1;
 			}
@@ -177,7 +177,7 @@ sendmessage(struct message *mp, FILE *obuf, struct ignoretab *doign,
 	 * Copy out message body
 	 */
 	if (doign == ignoreall)
-		count--;		/* skip final blank line */
+		count--; /* skip final blank line */
 	if (prefix != NULL)
 		while (count > 0) {
 			if (fgets(line, sizeof(line), ibuf) == NULL) {
@@ -192,8 +192,8 @@ sendmessage(struct message *mp, FILE *obuf, struct ignoretab *doign,
 			if (c > 1)
 				fputs(prefix, obuf);
 			else
-				(void)fwrite(prefix, sizeof(*prefix),
-				    prefixlen, obuf);
+				(void)fwrite(prefix, sizeof(*prefix), prefixlen,
+				    obuf);
 			(void)fwrite(line, sizeof(*line), c, obuf);
 			if (ferror(obuf))
 				return (-1);
@@ -229,8 +229,8 @@ statusput(struct message *mp, FILE *obuf, char *prefix)
 		*cp++ = 'O';
 	*cp = '\0';
 	if (statout[0] != '\0')
-		fprintf(obuf, "%sStatus: %s\n",
-			prefix == NULL ? "" : prefix, statout);
+		fprintf(obuf, "%sStatus: %s\n", prefix == NULL ? "" : prefix,
+		    statout);
 }
 
 /*
@@ -239,7 +239,7 @@ statusput(struct message *mp, FILE *obuf, char *prefix)
  */
 int
 mail(struct name *to, struct name *cc, struct name *bcc, struct name *smopts,
-	char *subject, char *replyto)
+    char *subject, char *replyto)
 {
 	struct header head;
 
@@ -253,7 +253,6 @@ mail(struct name *to, struct name *cc, struct name *bcc, struct name *smopts,
 	mail1(&head, 0);
 	return (0);
 }
-
 
 /*
  * Send mail to a bunch of user names.  The interface is through
@@ -429,14 +428,14 @@ fixhead(struct header *hp, struct name *tolist)
 		if (np->n_type & GDEL)
 			continue;
 		if ((np->n_type & GMASK) == GTO)
-			hp->h_to =
-			    cat(hp->h_to, nalloc(np->n_name, np->n_type));
+			hp->h_to = cat(hp->h_to,
+			    nalloc(np->n_name, np->n_type));
 		else if ((np->n_type & GMASK) == GCC)
-			hp->h_cc =
-			    cat(hp->h_cc, nalloc(np->n_name, np->n_type));
+			hp->h_cc = cat(hp->h_cc,
+			    nalloc(np->n_name, np->n_type));
 		else if ((np->n_type & GMASK) == GBCC)
-			hp->h_bcc =
-			    cat(hp->h_bcc, nalloc(np->n_name, np->n_type));
+			hp->h_bcc = cat(hp->h_bcc,
+			    nalloc(np->n_name, np->n_type));
 	}
 }
 
@@ -451,10 +450,9 @@ infix(struct header *hp, FILE *fi)
 	int c, fd;
 	char tempname[PATHSIZE];
 
-	(void)snprintf(tempname, sizeof(tempname),
-	    "%s/mail.RsXXXXXXXXXX", tmpdir);
-	if ((fd = mkstemp(tempname)) == -1 ||
-	    (nfo = Fdopen(fd, "w")) == NULL) {
+	(void)snprintf(tempname, sizeof(tempname), "%s/mail.RsXXXXXXXXXX",
+	    tmpdir);
+	if ((fd = mkstemp(tempname)) == -1 || (nfo = Fdopen(fd, "w")) == NULL) {
 		warn("%s", tempname);
 		return (fi);
 	}
@@ -466,7 +464,7 @@ infix(struct header *hp, FILE *fi)
 	}
 	(void)rm(tempname);
 	(void)puthead(hp, nfo,
-	    GTO|GSUBJECT|GCC|GBCC|GREPLYTO|GINREPLYTO|GNL|GCOMMA);
+	    GTO | GSUBJECT | GCC | GBCC | GREPLYTO | GINREPLYTO | GNL | GCOMMA);
 	c = getc(fi);
 	while (c != EOF) {
 		(void)putc(c, nfo);
@@ -502,13 +500,13 @@ puthead(struct header *hp, FILE *fo, int w)
 
 	gotcha = 0;
 	if (hp->h_to != NULL && w & GTO)
-		fmt("To:", hp->h_to, fo, w&GCOMMA), gotcha++;
+		fmt("To:", hp->h_to, fo, w & GCOMMA), gotcha++;
 	if (hp->h_subject != NULL && w & GSUBJECT)
 		fprintf(fo, "Subject: %s\n", hp->h_subject), gotcha++;
 	if (hp->h_cc != NULL && w & GCC)
-		fmt("Cc:", hp->h_cc, fo, w&GCOMMA), gotcha++;
+		fmt("Cc:", hp->h_cc, fo, w & GCOMMA), gotcha++;
 	if (hp->h_bcc != NULL && w & GBCC)
-		fmt("Bcc:", hp->h_bcc, fo, w&GCOMMA), gotcha++;
+		fmt("Bcc:", hp->h_bcc, fo, w & GCOMMA), gotcha++;
 	if (hp->h_replyto != NULL && w & GREPLYTO)
 		fprintf(fo, "Reply-To: %s\n", hp->h_replyto), gotcha++;
 	if (hp->h_inreplyto != NULL && w & GINREPLYTO)
@@ -534,7 +532,7 @@ fmt(const char *str, struct name *np, FILE *fo, int comma)
 		if (np->n_flink == NULL)
 			comma = 0;
 		len = strlen(np->n_name);
-		col++;		/* for the space */
+		col++; /* for the space */
 		if (col + len + comma > 72 && col > 4) {
 			fprintf(fo, "\n    ");
 			col = 4;

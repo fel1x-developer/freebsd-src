@@ -37,24 +37,29 @@
 
 #include <sys/types.h>
 #include <sys/param.h>
-#include <sys/endian.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/endian.h>
+#include <sys/kernel.h>
+#include <sys/malloc.h>
 #include <sys/mbuf.h>
 #include <sys/protosw.h>
-#include <sys/socket.h>
-#include <sys/malloc.h>
-#include <sys/kernel.h>
-#include <sys/bus.h>
-#include <machine/bus.h>
 #include <sys/rman.h>
-#include <machine/resource.h>
+#include <sys/socket.h>
+
 #include <vm/vm.h>
 #include <vm/pmap.h>
-#include <machine/clock.h>
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
 
-#define ASSERT(x) if(!(x)) panic("IXGBE: x")
+#include <machine/bus.h>
+#include <machine/clock.h>
+#include <machine/resource.h>
+
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
+#define ASSERT(x) \
+	if (!(x)) \
+	panic("IXGBE: x")
 #define EWARN(H, W) printf(W)
 
 enum {
@@ -68,57 +73,58 @@ enum {
 
 /* The happy-fun DELAY macro is defined in /usr/src/sys/i386/include/clock.h */
 #define usec_delay(x) DELAY(x)
-#define msec_delay(x) DELAY(1000*(x))
+#define msec_delay(x) DELAY(1000 * (x))
 
 #define DBG 0
-#define MSGOUT(S, A, B)     printf(S "\n", A, B)
-#define DEBUGFUNC(F)        DEBUGOUT(F);
+#define MSGOUT(S, A, B) printf(S "\n", A, B)
+#define DEBUGFUNC(F) DEBUGOUT(F);
 #if DBG
-	#define DEBUGOUT(S)         printf(S "\n")
-	#define DEBUGOUT1(S,A)      printf(S "\n",A)
-	#define DEBUGOUT2(S,A,B)    printf(S "\n",A,B)
-	#define DEBUGOUT3(S,A,B,C)  printf(S "\n",A,B,C)
-	#define DEBUGOUT4(S,A,B,C,D)  printf(S "\n",A,B,C,D)
-	#define DEBUGOUT5(S,A,B,C,D,E)  printf(S "\n",A,B,C,D,E)
-	#define DEBUGOUT6(S,A,B,C,D,E,F)  printf(S "\n",A,B,C,D,E,F)
-	#define DEBUGOUT7(S,A,B,C,D,E,F,G)  printf(S "\n",A,B,C,D,E,F,G)
-	#define ERROR_REPORT1 ERROR_REPORT
-	#define ERROR_REPORT2 ERROR_REPORT
-	#define ERROR_REPORT3 ERROR_REPORT
-	#define ERROR_REPORT(level, format, arg...) do { \
-		switch (level) { \
-		case IXGBE_ERROR_SOFTWARE: \
-		case IXGBE_ERROR_CAUTION: \
-		case IXGBE_ERROR_POLLING: \
-		case IXGBE_ERROR_INVALID_STATE: \
-		case IXGBE_ERROR_UNSUPPORTED: \
-		case IXGBE_ERROR_ARGUMENT: \
-			device_printf(ixgbe_dev_from_hw(hw), format, ## arg); \
-			break; \
-		default: \
-			break; \
-		} \
+#define DEBUGOUT(S) printf(S "\n")
+#define DEBUGOUT1(S, A) printf(S "\n", A)
+#define DEBUGOUT2(S, A, B) printf(S "\n", A, B)
+#define DEBUGOUT3(S, A, B, C) printf(S "\n", A, B, C)
+#define DEBUGOUT4(S, A, B, C, D) printf(S "\n", A, B, C, D)
+#define DEBUGOUT5(S, A, B, C, D, E) printf(S "\n", A, B, C, D, E)
+#define DEBUGOUT6(S, A, B, C, D, E, F) printf(S "\n", A, B, C, D, E, F)
+#define DEBUGOUT7(S, A, B, C, D, E, F, G) printf(S "\n", A, B, C, D, E, F, G)
+#define ERROR_REPORT1 ERROR_REPORT
+#define ERROR_REPORT2 ERROR_REPORT
+#define ERROR_REPORT3 ERROR_REPORT
+#define ERROR_REPORT(level, format, arg...)                                  \
+	do {                                                                 \
+		switch (level) {                                             \
+		case IXGBE_ERROR_SOFTWARE:                                   \
+		case IXGBE_ERROR_CAUTION:                                    \
+		case IXGBE_ERROR_POLLING:                                    \
+		case IXGBE_ERROR_INVALID_STATE:                              \
+		case IXGBE_ERROR_UNSUPPORTED:                                \
+		case IXGBE_ERROR_ARGUMENT:                                   \
+			device_printf(ixgbe_dev_from_hw(hw), format, ##arg); \
+			break;                                               \
+		default:                                                     \
+			break;                                               \
+		}                                                            \
 	} while (0)
 #else
-	#define DEBUGOUT(S)
-	#define DEBUGOUT1(S,A)
-	#define DEBUGOUT2(S,A,B)
-	#define DEBUGOUT3(S,A,B,C)
-	#define DEBUGOUT4(S,A,B,C,D)
-	#define DEBUGOUT5(S,A,B,C,D,E)
-	#define DEBUGOUT6(S,A,B,C,D,E,F)
-	#define DEBUGOUT7(S,A,B,C,D,E,F,G)
+#define DEBUGOUT(S)
+#define DEBUGOUT1(S, A)
+#define DEBUGOUT2(S, A, B)
+#define DEBUGOUT3(S, A, B, C)
+#define DEBUGOUT4(S, A, B, C, D)
+#define DEBUGOUT5(S, A, B, C, D, E)
+#define DEBUGOUT6(S, A, B, C, D, E, F)
+#define DEBUGOUT7(S, A, B, C, D, E, F, G)
 
-	#define ERROR_REPORT1(S,A)
-	#define ERROR_REPORT2(S,A,B)
-	#define ERROR_REPORT3(S,A,B,C)
+#define ERROR_REPORT1(S, A)
+#define ERROR_REPORT2(S, A, B)
+#define ERROR_REPORT3(S, A, B, C)
 #endif
 
-#define CMD_MEM_WRT_INVALIDATE          0x0010  /* BIT_4 */
-#define PCI_COMMAND_REGISTER            PCIR_COMMAND
+#define CMD_MEM_WRT_INVALIDATE 0x0010 /* BIT_4 */
+#define PCI_COMMAND_REGISTER PCIR_COMMAND
 
 /* Shared code dropped this define.. */
-#define IXGBE_INTEL_VENDOR_ID		0x8086
+#define IXGBE_INTEL_VENDOR_ID 0x8086
 
 /* Bunch of defines for shared code bogosity */
 #define UNREFERENCED_PARAMETER(_p)
@@ -127,8 +133,8 @@ enum {
 #define UNREFERENCED_3PARAMETER(_p, _q, _r)
 #define UNREFERENCED_4PARAMETER(_p, _q, _r, _s)
 
-#define IXGBE_NTOHL(_i)	ntohl(_i)
-#define IXGBE_NTOHS(_i)	ntohs(_i)
+#define IXGBE_NTOHL(_i) ntohl(_i)
+#define IXGBE_NTOHS(_i) ntohs(_i)
 
 /* XXX these need to be revisited */
 #define IXGBE_CPU_TO_LE16 htole16
@@ -139,32 +145,32 @@ enum {
 #define IXGBE_CPU_TO_BE32 htobe32
 #define IXGBE_BE32_TO_CPU be32toh
 
-typedef uint8_t		u8;
-typedef int8_t		s8;
-typedef uint16_t	u16;
-typedef int16_t		s16;
-typedef uint32_t	u32;
-typedef int32_t		s32;
-typedef uint64_t	u64;
+typedef uint8_t u8;
+typedef int8_t s8;
+typedef uint16_t u16;
+typedef int16_t s16;
+typedef uint32_t u32;
+typedef int32_t s32;
+typedef uint64_t u64;
 #ifndef __bool_true_false_are_defined
-typedef boolean_t	bool;
+typedef boolean_t bool;
 #endif
 
 /* shared code requires this */
-#define __le16  u16
-#define __le32  u32
-#define __le64  u64
-#define __be16  u16
-#define __be32  u32
-#define __be64  u64
+#define __le16 u16
+#define __le32 u32
+#define __le64 u64
+#define __be16 u16
+#define __be32 u32
+#define __be64 u64
 
 #define le16_to_cpu
 
 #if defined(__i386__) || defined(__amd64__)
-static __inline
-void prefetch(void *x)
+static __inline void
+prefetch(void *x)
 {
-	__asm volatile("prefetcht0 %0" :: "m" (*(unsigned long *)x));
+	__asm volatile("prefetcht0 %0" ::"m"(*(unsigned long *)x));
 }
 #else
 #define prefetch(x)
@@ -189,9 +195,8 @@ ixgbe_bcopy(void *restrict _src, void *restrict _dst, int l)
 	return (0);
 }
 
-struct ixgbe_osdep
-{
-	bus_space_tag_t    mem_bus_space_tag;
+struct ixgbe_osdep {
+	bus_space_tag_t mem_bus_space_tag;
 	bus_space_handle_t mem_bus_space_handle;
 };
 
@@ -215,10 +220,10 @@ extern void ixgbe_write_reg(struct ixgbe_hw *, u32, u32);
 
 extern u32 ixgbe_read_reg_array(struct ixgbe_hw *, u32, u32);
 #define IXGBE_READ_REG_ARRAY(a, reg, offset) \
-    ixgbe_read_reg_array(a, reg, offset)
+	ixgbe_read_reg_array(a, reg, offset)
 
 extern void ixgbe_write_reg_array(struct ixgbe_hw *, u32, u32, u32);
 #define IXGBE_WRITE_REG_ARRAY(a, reg, offset, val) \
-    ixgbe_write_reg_array(a, reg, offset, val)
+	ixgbe_write_reg_array(a, reg, offset, val)
 
 #endif /* _IXGBE_OSDEP_H_ */

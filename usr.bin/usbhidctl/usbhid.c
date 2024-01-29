@@ -31,17 +31,19 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <sys/types.h>
+
+#include <dev/usb/usbhid.h>
+
+#include <ctype.h>
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
-#include <fcntl.h>
 #include <unistd.h>
-#include <err.h>
-#include <ctype.h>
-#include <errno.h>
 #include <usbhid.h>
-#include <dev/usb/usbhid.h>
 
 static struct variable {
 	char *name;
@@ -80,8 +82,9 @@ parceargs(report_desc_t r, int all, int nnames, char **names)
 			errx(1, "Must not specify -w to read variables");
 		cp = 0;
 		for (d = hid_start_parse(r,
-		    1<<hid_input | 1<<hid_output | 1<<hid_feature, -1);
-		    hid_get_item(d, &h); ) {
+			 1 << hid_input | 1 << hid_output | 1 << hid_feature,
+			 -1);
+		     hid_get_item(d, &h);) {
 			if (h.kind == hid_collection) {
 				cp += sprintf(&colls[cp], "%s%s:%s",
 				    cp != 0 ? "." : "",
@@ -98,12 +101,13 @@ parceargs(report_desc_t r, int all, int nnames, char **names)
 				}
 			}
 			if ((h.kind != hid_input && h.kind != hid_output &&
-			    h.kind != hid_feature) || (h.flags & HIO_CONST))
+				h.kind != hid_feature) ||
+			    (h.flags & HIO_CONST))
 				continue;
 			var = malloc(sizeof(*var));
 			memset(var, 0, sizeof(*var));
-			asprintf(&var->name, "%s%s%s:%s",
-			    colls, colls[0] != 0 ? "." : "",
+			asprintf(&var->name, "%s%s%s:%s", colls,
+			    colls[0] != 0 ? "." : "",
 			    hid_usage_page(HID_PAGE(h.usage)),
 			    hid_usage_in_page(h.usage));
 			var->h = h;
@@ -125,17 +129,17 @@ parceargs(report_desc_t r, int all, int nnames, char **names)
 			if (!wflag)
 				errx(1, "Must specify -w to write variables");
 			var->val = atoi(tmp2);
-		} else
-			if (wflag)
-				errx(1, "Must not specify -w to read variables");
+		} else if (wflag)
+			errx(1, "Must not specify -w to read variables");
 		*pnext = var;
 		pnext = &var->next;
 
 		instance = 0;
 		cp = 0;
 		for (d = hid_start_parse(r,
-		    1<<hid_input | 1<<hid_output | 1<<hid_feature, -1);
-		    hid_get_item(d, &h); ) {
+			 1 << hid_input | 1 << hid_output | 1 << hid_feature,
+			 -1);
+		     hid_get_item(d, &h);) {
 			if (h.kind == hid_collection) {
 				cp += sprintf(&colls[cp], "%s%s:%s",
 				    cp != 0 ? "." : "",
@@ -152,10 +156,11 @@ parceargs(report_desc_t r, int all, int nnames, char **names)
 				}
 			}
 			if ((h.kind != hid_input && h.kind != hid_output &&
-			    h.kind != hid_feature) || (h.flags & HIO_CONST))
+				h.kind != hid_feature) ||
+			    (h.flags & HIO_CONST))
 				continue;
-			snprintf(hname, sizeof(hname), "%s%s%s:%s",
-			    colls, colls[0] != 0 ? "." : "",
+			snprintf(hname, sizeof(hname), "%s%s%s:%s", colls,
+			    colls[0] != 0 ? "." : "",
 			    hid_usage_page(HID_PAGE(h.usage)),
 			    hid_usage_in_page(h.usage));
 			t = strlen(hname) - strlen(var->name);
@@ -182,17 +187,17 @@ usage(void)
 {
 
 	fprintf(stderr,
-                "usage: %s -f device "
-                "[-l] [-n] [-r] [-t tablefile] [-v] [-x] [-z] name ...\n",
-                getprogname());
+	    "usage: %s -f device "
+	    "[-l] [-n] [-r] [-t tablefile] [-v] [-x] [-z] name ...\n",
+	    getprogname());
 	fprintf(stderr,
-                "       %s -f device "
-                "[-l] [-n] [-r] [-t tablefile] [-v] [-x] [-z] -a\n",
-                getprogname());
+	    "       %s -f device "
+	    "[-l] [-n] [-r] [-t tablefile] [-v] [-x] [-z] -a\n",
+	    getprogname());
 	fprintf(stderr,
-                "       %s -f device "
-                "[-t tablefile] [-v] [-z] -w name=value\n",
-                getprogname());
+	    "       %s -f device "
+	    "[-t tablefile] [-v] [-z] -w name=value\n",
+	    getprogname());
 	exit(1);
 }
 
@@ -202,16 +207,15 @@ dumpitem(const char *label, struct hid_item *h)
 	if ((h->flags & HIO_CONST) && !verbose)
 		return;
 	printf("%s rid=%d pos=%d size=%d count=%d page=%s usage=%s%s%s", label,
-	       h->report_ID, h->pos, h->report_size, h->report_count,
-	       hid_usage_page(HID_PAGE(h->usage)),
-	       hid_usage_in_page(h->usage),
-	       h->flags & HIO_CONST ? " Const" : "",
-	       h->flags & HIO_VARIABLE ? "" : " Array");
-	printf(", logical range %d..%d",
-	       h->logical_minimum, h->logical_maximum);
+	    h->report_ID, h->pos, h->report_size, h->report_count,
+	    hid_usage_page(HID_PAGE(h->usage)), hid_usage_in_page(h->usage),
+	    h->flags & HIO_CONST ? " Const" : "",
+	    h->flags & HIO_VARIABLE ? "" : " Array");
+	printf(", logical range %d..%d", h->logical_minimum,
+	    h->logical_maximum);
 	if (h->physical_minimum != h->physical_maximum)
-		printf(", physical range %d..%d",
-		       h->physical_minimum, h->physical_maximum);
+		printf(", physical range %d..%d", h->physical_minimum,
+		    h->physical_maximum);
 	if (h->unit)
 		printf(", unit=0x%02x exp=%d", h->unit, h->unit_exponent);
 	printf("\n");
@@ -223,13 +227,20 @@ hid_collection_type(int32_t type)
 	static char num[8];
 
 	switch (type) {
-	case 0: return ("Physical");
-	case 1: return ("Application");
-	case 2: return ("Logical");
-	case 3: return ("Report");
-	case 4: return ("Named_Array");
-	case 5: return ("Usage_Switch");
-	case 6: return ("Usage_Modifier");
+	case 0:
+		return ("Physical");
+	case 1:
+		return ("Application");
+	case 2:
+		return ("Logical");
+	case 3:
+		return ("Report");
+	case 4:
+		return ("Named_Array");
+	case 5:
+		return ("Usage_Switch");
+	case 6:
+		return ("Usage_Modifier");
 	}
 	snprintf(num, sizeof(num), "0x%02x", type);
 	return (num);
@@ -242,13 +253,13 @@ dumpitems(report_desc_t r)
 	struct hid_item h;
 	int size;
 
-	for (d = hid_start_parse(r, ~0, -1); hid_get_item(d, &h); ) {
+	for (d = hid_start_parse(r, ~0, -1); hid_get_item(d, &h);) {
 		switch (h.kind) {
 		case hid_collection:
 			printf("Collection type=%s page=%s usage=%s\n",
-			       hid_collection_type(h.collection),
-			       hid_usage_page(HID_PAGE(h.usage)),
-			       hid_usage_in_page(h.usage));
+			    hid_collection_type(h.collection),
+			    hid_usage_page(HID_PAGE(h.usage)),
+			    hid_usage_in_page(h.usage));
 			break;
 		case hid_endcollection:
 			printf("End collection\n");
@@ -290,7 +301,7 @@ prdata(u_char *buf, struct hid_item *h)
 			printf("%d", (int)data);
 		else
 			printf("%u", data);
-                if (hexdump)
+		if (hexdump)
 			printf(" [0x%x]", data);
 		h->pos += h->report_size;
 	}
@@ -345,8 +356,9 @@ dumpdata(int f, report_desc_t rd, int loop)
 		}
 		if (verbose) {
 			printf("Got %s report %d (%d bytes):",
-			    kind == hid_output ? "output" :
-			    kind == hid_feature ? "feature" : "input",
+			    kind == hid_output	    ? "output" :
+				kind == hid_feature ? "feature" :
+						      "input",
 			    use_rid ? dbuf[0] : 0, dlen);
 			if (havedata) {
 				for (i = 0; i < dlen; i++)
@@ -384,59 +396,66 @@ writedata(int f, report_desc_t rd)
 
 	kind = 0;
 	rid = 0;
-	for (kind = 0; kind < 3; kind ++) {
-	    for (rid = 0; rid < 256; rid ++) {
-		for (var = vars; var; var = var->next) {
-			if (rid == var->h.report_ID && kind == var->h.kind)
-				break;
-		}
-		if (var == NULL)
-			continue;
-		dlen = hid_report_size(rd, kind, rid);
-		if (dlen <= 0)
-			continue;
-		dbuf = malloc(dlen);
-		memset(dbuf, 0, dlen);
-		dbuf[0] = rid;
-		if (!zflag && hid_get_report(f, kind, dbuf, dlen) == 0) {
+	for (kind = 0; kind < 3; kind++) {
+		for (rid = 0; rid < 256; rid++) {
+			for (var = vars; var; var = var->next) {
+				if (rid == var->h.report_ID &&
+				    kind == var->h.kind)
+					break;
+			}
+			if (var == NULL)
+				continue;
+			dlen = hid_report_size(rd, kind, rid);
+			if (dlen <= 0)
+				continue;
+			dbuf = malloc(dlen);
+			memset(dbuf, 0, dlen);
+			dbuf[0] = rid;
+			if (!zflag &&
+			    hid_get_report(f, kind, dbuf, dlen) == 0) {
+				if (verbose) {
+					printf("Got %s report %d (%d bytes):",
+					    kind == hid_input	   ? "input" :
+						kind == hid_output ? "output" :
+								     "feature",
+					    rid, dlen);
+					for (i = 0; i < dlen; i++)
+						printf(" %02x", dbuf[i]);
+					printf("\n");
+				}
+			} else if (!zflag) {
+				warn("hid_get_report(rid %d)", rid);
+				if (verbose) {
+					printf(
+					    "Can't get %s report %d (%d bytes). "
+					    "Will be initialized with zeros.\n",
+					    kind == hid_input	   ? "input" :
+						kind == hid_output ? "output" :
+								     "feature",
+					    rid, dlen);
+				}
+			}
+			for (var = vars; var; var = var->next) {
+				if (rid != var->h.report_ID ||
+				    kind != var->h.kind)
+					continue;
+				hid_set_data(dbuf, &var->h, var->val);
+			}
 			if (verbose) {
-				printf("Got %s report %d (%d bytes):",
-				    kind == hid_input ? "input" :
-				    kind == hid_output ? "output" : "feature",
+				printf("Setting %s report %d (%d bytes):",
+				    kind == hid_output	    ? "output" :
+					kind == hid_feature ? "feature" :
+							      "input",
 				    rid, dlen);
 				for (i = 0; i < dlen; i++)
 					printf(" %02x", dbuf[i]);
 				printf("\n");
 			}
-		} else if (!zflag) {
-			warn("hid_get_report(rid %d)", rid);
-			if (verbose) {
-				printf("Can't get %s report %d (%d bytes). "
-				    "Will be initialized with zeros.\n",
-				    kind == hid_input ? "input" :
-				    kind == hid_output ? "output" : "feature",
-				    rid, dlen);
-			}
+			r = hid_set_report(f, kind, dbuf, dlen);
+			if (r != 0)
+				warn("hid_set_report(rid %d)", rid);
+			free(dbuf);
 		}
-		for (var = vars; var; var = var->next) {
-			if (rid != var->h.report_ID || kind != var->h.kind)
-				continue;
-			hid_set_data(dbuf, &var->h, var->val);
-		}
-		if (verbose) {
-			printf("Setting %s report %d (%d bytes):",
-			    kind == hid_output ? "output" :
-			    kind == hid_feature ? "feature" : "input",
-			    rid, dlen);
-			for (i = 0; i < dlen; i++)
-				printf(" %02x", dbuf[i]);
-			printf("\n");
-		}
-		r = hid_set_report(f, kind, dbuf, dlen);
-		if (r != 0)
-			warn("hid_set_report(rid %d)", rid);
-		free(dbuf);
-	    }
 	}
 }
 
@@ -453,7 +472,7 @@ main(int argc, char **argv)
 	int loop = 0;
 
 	while ((ch = getopt(argc, argv, "af:lnrt:vwxz")) != -1) {
-		switch(ch) {
+		switch (ch) {
 		case 'a':
 			all++;
 			break;

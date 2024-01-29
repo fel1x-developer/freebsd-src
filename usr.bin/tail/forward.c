@@ -32,27 +32,24 @@
  * SUCH DAMAGE.
  */
 
-
-
-#include <sys/param.h>
-#include <sys/mount.h>
 #include <sys/types.h>
+#include <sys/param.h>
+#include <sys/event.h>
+#include <sys/mman.h>
+#include <sys/mount.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <sys/mman.h>
-#include <sys/event.h>
 
+#include <casper/cap_fileargs.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <libcasper.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <libcasper.h>
-#include <casper/cap_fileargs.h>
 
 #include "extern.h"
 
@@ -61,9 +58,9 @@ static int show(file_info_t *);
 static void set_events(file_info_t *files);
 
 /* defines for inner loop actions */
-#define USE_SLEEP	0
-#define USE_KQUEUE	1
-#define ADD_EVENTS	2
+#define USE_SLEEP 0
+#define USE_KQUEUE 1
+#define ADD_EVENTS 2
 
 static struct kevent *ev;
 static int action = USE_SLEEP;
@@ -98,7 +95,7 @@ forward(FILE *fp, const char *fn, enum STYLE style, off_t off, struct stat *sbp)
 {
 	int ch;
 
-	switch(style) {
+	switch (style) {
 	case FBYTES:
 		if (off == 0)
 			break;
@@ -109,14 +106,15 @@ forward(FILE *fp, const char *fn, enum STYLE style, off_t off, struct stat *sbp)
 				ierr(fn);
 				return;
 			}
-		} else while (off--)
-			if ((ch = getc(fp)) == EOF) {
-				if (ferror(fp)) {
-					ierr(fn);
-					return;
+		} else
+			while (off--)
+				if ((ch = getc(fp)) == EOF) {
+					if (ferror(fp)) {
+						ierr(fn);
+						return;
+					}
+					break;
 				}
-				break;
-			}
 		break;
 	case FLINES:
 		if (off == 0)
@@ -141,14 +139,14 @@ forward(FILE *fp, const char *fn, enum STYLE style, off_t off, struct stat *sbp)
 				return;
 			}
 		} else if (off == 0) {
-			while (getc(fp) != EOF);
+			while (getc(fp) != EOF)
+				;
 			if (ferror(fp)) {
 				ierr(fn);
 				return;
 			}
-		} else
-			if (bytes(fp, fn, off))
-				return;
+		} else if (bytes(fp, fn, off))
+			return;
 		break;
 	case RLINES:
 		if (S_ISREG(sbp->st_mode) && sbp->st_size > 0)
@@ -160,14 +158,14 @@ forward(FILE *fp, const char *fn, enum STYLE style, off_t off, struct stat *sbp)
 			} else
 				rlines(fp, fn, off, sbp);
 		else if (off == 0) {
-			while (getc(fp) != EOF);
+			while (getc(fp) != EOF)
+				;
 			if (ferror(fp)) {
 				ierr(fn);
 				return;
 			}
-		} else
-			if (lines(fp, fn, off))
-				return;
+		} else if (lines(fp, fn, off))
+			return;
 		break;
 	default:
 		break;
@@ -343,12 +341,11 @@ follow(file_info_t *files, enum STYLE style, off_t off)
 		if (Fflag) {
 			for (i = 0, file = files; i < no_files; i++, file++) {
 				if (!file->fp) {
-					file->fp =
-					    fileargs_fopen(fa, file->file_name,
-					    "r");
+					file->fp = fileargs_fopen(fa,
+					    file->file_name, "r");
 					if (file->fp != NULL &&
-					    fstat(fileno(file->fp), &file->st)
-					    == -1) {
+					    fstat(fileno(file->fp),
+						&file->st) == -1) {
 						fclose(file->fp);
 						file->fp = NULL;
 					}
@@ -408,7 +405,8 @@ follow(file_info_t *files, enum STYLE style, off_t off)
 			 * for its generation are transient.
 			 */
 			do {
-				n = kevent(kq, NULL, 0, ev, 1, Fflag ? &ts : NULL);
+				n = kevent(kq, NULL, 0, ev, 1,
+				    Fflag ? &ts : NULL);
 				if (n < 0 && errno != EINTR)
 					err(1, "kevent");
 			} while (n < 0);
@@ -417,7 +415,8 @@ follow(file_info_t *files, enum STYLE style, off_t off)
 				break;
 			} else if (ev->filter == EVFILT_READ && ev->data < 0) {
 				/* file shrank, reposition to end */
-				if (lseek(ev->ident, (off_t)0, SEEK_END) == -1) {
+				if (lseek(ev->ident, (off_t)0, SEEK_END) ==
+				    -1) {
 					ierr(file->file_name);
 					continue;
 				}
@@ -425,7 +424,7 @@ follow(file_info_t *files, enum STYLE style, off_t off)
 			break;
 
 		case USE_SLEEP:
-			(void) usleep(250000);
+			(void)usleep(250000);
 			break;
 		}
 	}

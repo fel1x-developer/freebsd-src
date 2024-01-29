@@ -28,23 +28,24 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/errno.h>
+
+#include <err.h>
+#include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <err.h>
-#include <locale.h>
-#include <sys/errno.h>
 
 static void usage(void) __dead2;
 
-int 
+int
 main(int argc, char **argv)
 {
 	char *cp;
 	char *errstr;
 	long errnum;
 
-	(void) setlocale(LC_MESSAGES, "");
+	(void)setlocale(LC_MESSAGES, "");
 	if (argc != 2)
 		usage();
 
@@ -55,7 +56,7 @@ main(int argc, char **argv)
 	if (errno != 0)
 		err(1, NULL);
 
-	if ((errstr = strerror(errnum)) == NULL) 
+	if ((errstr = strerror(errnum)) == NULL)
 		err(1, NULL);
 
 	printf("%s\n", errstr);
@@ -63,10 +64,9 @@ main(int argc, char **argv)
 	exit(0);
 }
 
-static void 
+static void
 usage(void)
 {
 	fprintf(stderr, "usage: perror number\n");
 	exit(1);
 }
-

@@ -10,7 +10,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -28,19 +28,18 @@
 #include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/linker.h>
-#include <sys/module.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/sysctl.h>
-
 
 SYSCTL_NODE(_debug, OID_AUTO, redzone, CTLFLAG_RW, 0, "");
 
-#define	REDZONE_MALLOC_UNDERFLOW		0
-#define	REDZONE_MALLOC_OVERFLOW			1
-#define	REDZONE_REALLOC_SMALLER_UNDERFLOW	2
-#define	REDZONE_REALLOC_SMALLER_OVERFLOW	3
-#define	REDZONE_REALLOC_BIGGER_UNDERFLOW	4
-#define	REDZONE_REALLOC_BIGGER_OVERFLOW		5
+#define REDZONE_MALLOC_UNDERFLOW 0
+#define REDZONE_MALLOC_OVERFLOW 1
+#define REDZONE_REALLOC_SMALLER_UNDERFLOW 2
+#define REDZONE_REALLOC_SMALLER_OVERFLOW 3
+#define REDZONE_REALLOC_BIGGER_UNDERFLOW 4
+#define REDZONE_REALLOC_BIGGER_OVERFLOW 5
 
 static int
 redzone_sysctl(SYSCTL_HANDLER_ARGS)
@@ -102,20 +101,25 @@ redzone_sysctl(SYSCTL_HANDLER_ARGS)
 		break;
 	}
 	free(p, M_TEMP);
-        return (0);
+	return (0);
 }
-SYSCTL_PROC(_debug_redzone, OID_AUTO, malloc_underflow, CTLTYPE_INT | CTLFLAG_RW,
-    NULL, REDZONE_MALLOC_UNDERFLOW, redzone_sysctl, "I", "");
+SYSCTL_PROC(_debug_redzone, OID_AUTO, malloc_underflow,
+    CTLTYPE_INT | CTLFLAG_RW, NULL, REDZONE_MALLOC_UNDERFLOW, redzone_sysctl,
+    "I", "");
 SYSCTL_PROC(_debug_redzone, OID_AUTO, malloc_overflow, CTLTYPE_INT | CTLFLAG_RW,
     NULL, REDZONE_MALLOC_OVERFLOW, redzone_sysctl, "I", "");
-SYSCTL_PROC(_debug_redzone, OID_AUTO, realloc_smaller_underflow, CTLTYPE_INT | CTLFLAG_RW,
-    NULL, REDZONE_REALLOC_SMALLER_UNDERFLOW, redzone_sysctl, "I", "");
-SYSCTL_PROC(_debug_redzone, OID_AUTO, realloc_smaller_overflow, CTLTYPE_INT | CTLFLAG_RW,
-    NULL, REDZONE_REALLOC_SMALLER_OVERFLOW, redzone_sysctl, "I", "");
-SYSCTL_PROC(_debug_redzone, OID_AUTO, realloc_bigger_underflow, CTLTYPE_INT | CTLFLAG_RW,
-    NULL, REDZONE_REALLOC_BIGGER_UNDERFLOW, redzone_sysctl, "I", "");
-SYSCTL_PROC(_debug_redzone, OID_AUTO, realloc_bigger_overflow, CTLTYPE_INT | CTLFLAG_RW,
-    NULL, REDZONE_REALLOC_BIGGER_OVERFLOW, redzone_sysctl, "I", "");
+SYSCTL_PROC(_debug_redzone, OID_AUTO, realloc_smaller_underflow,
+    CTLTYPE_INT | CTLFLAG_RW, NULL, REDZONE_REALLOC_SMALLER_UNDERFLOW,
+    redzone_sysctl, "I", "");
+SYSCTL_PROC(_debug_redzone, OID_AUTO, realloc_smaller_overflow,
+    CTLTYPE_INT | CTLFLAG_RW, NULL, REDZONE_REALLOC_SMALLER_OVERFLOW,
+    redzone_sysctl, "I", "");
+SYSCTL_PROC(_debug_redzone, OID_AUTO, realloc_bigger_underflow,
+    CTLTYPE_INT | CTLFLAG_RW, NULL, REDZONE_REALLOC_BIGGER_UNDERFLOW,
+    redzone_sysctl, "I", "");
+SYSCTL_PROC(_debug_redzone, OID_AUTO, realloc_bigger_overflow,
+    CTLTYPE_INT | CTLFLAG_RW, NULL, REDZONE_REALLOC_BIGGER_OVERFLOW,
+    redzone_sysctl, "I", "");
 
 static int
 redzone_modevent(module_t mod, int type, void *data)
@@ -130,9 +134,5 @@ redzone_modevent(module_t mod, int type, void *data)
 	}
 	return (0);
 }
-static moduledata_t redzone_module = {
-	"redzone",
-	redzone_modevent,
-	NULL
-};
+static moduledata_t redzone_module = { "redzone", redzone_modevent, NULL };
 DECLARE_MODULE(redzone, redzone_module, SI_SUB_DRIVERS, SI_ORDER_MIDDLE);

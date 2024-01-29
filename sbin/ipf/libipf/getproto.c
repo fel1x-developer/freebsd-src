@@ -7,8 +7,9 @@
  * $Id$
  */
 
-#include "ipf.h"
 #include <ctype.h>
+
+#include "ipf.h"
 
 int getproto(char *name);
 

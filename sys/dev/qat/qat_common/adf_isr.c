@@ -1,28 +1,24 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
-#include "qat_freebsd.h"
-#include "adf_cfg.h"
-#include "adf_common_drv.h"
-#include "adf_accel_devices.h"
-#include "icp_qat_uclo.h"
-#include "icp_qat_fw.h"
-#include "icp_qat_fw_init_admin.h"
-#include "adf_cfg_strings.h"
-#include "adf_transport_access_macros.h"
-#include "adf_transport_internal.h"
 #include <sys/types.h>
 #include <sys/bus.h>
-#include <sys/smp.h>
-#include <dev/pci/pcivar.h>
 #include <sys/malloc.h>
+#include <sys/smp.h>
+
+#include <dev/pci/pcivar.h>
+
 #include "adf_accel_devices.h"
-#include "adf_common_drv.h"
 #include "adf_cfg.h"
-#include "adf_cfg_strings.h"
 #include "adf_cfg_common.h"
+#include "adf_cfg_strings.h"
+#include "adf_common_drv.h"
+#include "adf_dev_err.h"
 #include "adf_transport_access_macros.h"
 #include "adf_transport_internal.h"
-#include "adf_dev_err.h"
+#include "icp_qat_fw.h"
+#include "icp_qat_fw_init_admin.h"
+#include "icp_qat_uclo.h"
+#include "qat_freebsd.h"
 
 TASKQUEUE_DEFINE_THREAD(qat_pf);
 
@@ -47,9 +43,8 @@ adf_enable_msix(struct adf_accel_dev *accel_dev)
 		vectors = NULL;
 	} else {
 		num_vectors = hw_data->num_banks + 1;
-		vectors = malloc(num_vectors * sizeof(u_int),
-				 M_QAT,
-				 M_WAITOK | M_ZERO);
+		vectors = malloc(num_vectors * sizeof(u_int), M_QAT,
+		    M_WAITOK | M_ZERO);
 		vectors[hw_data->num_banks] = 1;
 	}
 
@@ -61,18 +56,18 @@ adf_enable_msix(struct adf_accel_dev *accel_dev)
 	}
 	if (error) {
 		device_printf(GET_DEV(accel_dev),
-			      "Failed to enable MSI-X IRQ(s)\n");
+		    "Failed to enable MSI-X IRQ(s)\n");
 		free(vectors, M_QAT);
 		return error;
 	}
 
 	if (vectors != NULL) {
-		error =
-		    pci_remap_msix(info_pci_dev->pci_dev, num_vectors, vectors);
+		error = pci_remap_msix(info_pci_dev->pci_dev, num_vectors,
+		    vectors);
 		free(vectors, M_QAT);
 		if (error) {
 			device_printf(GET_DEV(accel_dev),
-				      "Failed to remap MSI-X IRQ(s)\n");
+			    "Failed to remap MSI-X IRQ(s)\n");
 			pci_release_msi(info_pci_dev->pci_dev);
 			return error;
 		}
@@ -94,9 +89,8 @@ adf_msix_isr_bundle(void *bank_ptr)
 	struct adf_etr_data *priv_data = bank->accel_dev->transport;
 	struct adf_hw_csr_ops *csr_ops = GET_CSR_OPS(bank->accel_dev);
 
-	csr_ops->write_csr_int_flag_and_col(bank->csr_addr,
-					    bank->bank_number,
-					    0);
+	csr_ops->write_csr_int_flag_and_col(bank->csr_addr, bank->bank_number,
+	    0);
 	adf_response_handler((uintptr_t)&priv_data->banks[bank->bank_number]);
 	return;
 }
@@ -106,8 +100,8 @@ adf_msix_isr_ae(void *dev_ptr)
 {
 	struct adf_accel_dev *accel_dev = dev_ptr;
 	struct adf_hw_device_data *hw_data = accel_dev->hw_device;
-	struct adf_bar *pmisc =
-	    &GET_BARS(accel_dev)[hw_data->get_misc_bar_id(hw_data)];
+	struct adf_bar *pmisc = &GET_BARS(
+	    accel_dev)[hw_data->get_misc_bar_id(hw_data)];
 	struct resource *pmisc_bar_addr = pmisc->virt_addr;
 	u32 errsou3;
 	u32 errsou5;
@@ -141,20 +135,17 @@ adf_get_irq_affinity(struct adf_accel_dev *accel_dev, int bank)
 	char val[ADF_CFG_MAX_VAL_LEN_IN_BYTES];
 	char bankName[ADF_CFG_MAX_KEY_LEN_IN_BYTES];
 
-	snprintf(bankName,
-		 ADF_CFG_MAX_KEY_LEN_IN_BYTES - 1,
-		 ADF_ETRMGR_CORE_AFFINITY_FORMAT,
-		 bank);
+	snprintf(bankName, ADF_CFG_MAX_KEY_LEN_IN_BYTES - 1,
+	    ADF_ETRMGR_CORE_AFFINITY_FORMAT, bank);
 	bankName[ADF_CFG_MAX_KEY_LEN_IN_BYTES - 1] = '\0';
 
 	if (adf_cfg_get_param_value(accel_dev, "Accelerator0", bankName, val)) {
 		device_printf(GET_DEV(accel_dev),
-			      "No CoreAffinity Set - using default core: %d\n",
-			      core);
+		    "No CoreAffinity Set - using default core: %d\n", core);
 	} else {
 		if (compat_strtouint(val, 10, &core)) {
 			device_printf(GET_DEV(accel_dev),
-				      "Can't get cpu core ID\n");
+			    "Can't get cpu core ID\n");
 		}
 	}
 	return (core);
@@ -178,83 +169,58 @@ adf_request_irqs(struct adf_accel_dev *accel_dev)
 			rid = i + 1;
 			msixe[i].irq =
 			    bus_alloc_resource_any(info_pci_dev->pci_dev,
-						   SYS_RES_IRQ,
-						   &rid,
-						   RF_ACTIVE);
+				SYS_RES_IRQ, &rid, RF_ACTIVE);
 			if (msixe[i].irq == NULL) {
-				device_printf(
-				    GET_DEV(accel_dev),
+				device_printf(GET_DEV(accel_dev),
 				    "failed to allocate IRQ for bundle %d\n",
 				    i);
 				return ENXIO;
 			}
 
 			ret = bus_setup_intr(info_pci_dev->pci_dev,
-					     msixe[i].irq,
-					     INTR_TYPE_MISC | INTR_MPSAFE,
-					     NULL,
-					     adf_msix_isr_bundle,
-					     bank,
-					     &msixe[i].cookie);
+			    msixe[i].irq, INTR_TYPE_MISC | INTR_MPSAFE, NULL,
+			    adf_msix_isr_bundle, bank, &msixe[i].cookie);
 			if (ret) {
-				device_printf(
-				    GET_DEV(accel_dev),
-				    "failed to enable IRQ for bundle %d\n",
-				    i);
+				device_printf(GET_DEV(accel_dev),
+				    "failed to enable IRQ for bundle %d\n", i);
 				bus_release_resource(info_pci_dev->pci_dev,
-						     SYS_RES_IRQ,
-						     rid,
-						     msixe[i].irq);
+				    SYS_RES_IRQ, rid, msixe[i].irq);
 				msixe[i].irq = NULL;
 				return ret;
 			}
 
 			computed_core = adf_get_irq_affinity(accel_dev, i);
-			bus_describe_intr(info_pci_dev->pci_dev,
-					  msixe[i].irq,
-					  msixe[i].cookie,
-					  "b%d",
-					  i);
-			bus_bind_intr(info_pci_dev->pci_dev,
-				      msixe[i].irq,
-				      computed_core);
+			bus_describe_intr(info_pci_dev->pci_dev, msixe[i].irq,
+			    msixe[i].cookie, "b%d", i);
+			bus_bind_intr(info_pci_dev->pci_dev, msixe[i].irq,
+			    computed_core);
 		}
 	}
 
 	/* Request msix irq for AE */
 	rid = hw_data->num_banks + 1;
 	msixe[i].irq = bus_alloc_resource_any(info_pci_dev->pci_dev,
-					      SYS_RES_IRQ,
-					      &rid,
-					      RF_ACTIVE);
+	    SYS_RES_IRQ, &rid, RF_ACTIVE);
 	if (msixe[i].irq == NULL) {
 		device_printf(GET_DEV(accel_dev),
-			      "failed to allocate IRQ for ae-cluster\n");
+		    "failed to allocate IRQ for ae-cluster\n");
 		return ENXIO;
 	}
 
-	ret = bus_setup_intr(info_pci_dev->pci_dev,
-			     msixe[i].irq,
-			     INTR_TYPE_MISC | INTR_MPSAFE,
-			     NULL,
-			     adf_msix_isr_ae,
-			     accel_dev,
-			     &msixe[i].cookie);
+	ret = bus_setup_intr(info_pci_dev->pci_dev, msixe[i].irq,
+	    INTR_TYPE_MISC | INTR_MPSAFE, NULL, adf_msix_isr_ae, accel_dev,
+	    &msixe[i].cookie);
 	if (ret) {
 		device_printf(GET_DEV(accel_dev),
-			      "failed to enable IRQ for ae-cluster\n");
-		bus_release_resource(info_pci_dev->pci_dev,
-				     SYS_RES_IRQ,
-				     rid,
-				     msixe[i].irq);
+		    "failed to enable IRQ for ae-cluster\n");
+		bus_release_resource(info_pci_dev->pci_dev, SYS_RES_IRQ, rid,
+		    msixe[i].irq);
 		msixe[i].irq = NULL;
 		return ret;
 	}
 
-	bus_describe_intr(info_pci_dev->pci_dev,
-			  msixe[i].irq,
-			  msixe[i].cookie,
-			  "ae");
+	bus_describe_intr(info_pci_dev->pci_dev, msixe[i].irq, msixe[i].cookie,
+	    "ae");
 	return ret;
 }
 
@@ -269,11 +235,9 @@ adf_free_irqs(struct adf_accel_dev *accel_dev)
 		for (i = 0; i < info_pci_dev->msix_entries.num_entries; i++) {
 			if (msixe[i].irq != NULL && msixe[i].cookie != NULL) {
 				bus_teardown_intr(info_pci_dev->pci_dev,
-						  msixe[i].irq,
-						  msixe[i].cookie);
+				    msixe[i].irq, msixe[i].cookie);
 				bus_free_resource(info_pci_dev->pci_dev,
-						  SYS_RES_IRQ,
-						  msixe[i].irq);
+				    SYS_RES_IRQ, msixe[i].irq);
 			}
 		}
 	}
@@ -290,9 +254,8 @@ adf_isr_alloc_msix_entry_table(struct adf_accel_dev *accel_dev)
 	if (!accel_dev->u1.pf.vf_info)
 		msix_num_entries += hw_data->num_banks;
 
-	entries = malloc(msix_num_entries * sizeof(struct msix_entry),
-			 M_QAT,
-			 M_WAITOK | M_ZERO);
+	entries = malloc(msix_num_entries * sizeof(struct msix_entry), M_QAT,
+	    M_WAITOK | M_ZERO);
 
 	accel_dev->accel_pci_dev.msix_entries.num_entries = msix_num_entries;
 	accel_dev->accel_pci_dev.msix_entries.entries = entries;

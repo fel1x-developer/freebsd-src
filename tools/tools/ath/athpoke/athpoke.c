@@ -26,27 +26,25 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
-#include "diag.h"
-
-#include "ah.h"
-#include "ah_internal.h"
-
-#include "dumpregs.h"
-
-#include <getopt.h>
-#include <stdlib.h>
-#include <string.h>
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
+#include <getopt.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "ah.h"
+#include "ah_internal.h"
+#include "diag.h"
+#include "dumpregs.h"
 
 typedef struct {
 	HAL_REVS revs;
-#define	MAXREGS	5*1024
+#define MAXREGS 5 * 1024
 	struct dumpreg *regs[MAXREGS];
 	u_int nregs;
 } dumpregs_t;
-static	dumpregs_t state;
+static dumpregs_t state;
 
 static uint32_t regread(int s, struct ath_diag *atd, uint32_t r);
 static void regwrite(int s, struct ath_diag *atd, uint32_t r, uint32_t v);
@@ -83,10 +81,10 @@ main(int argc, char *argv[])
 			usage();
 			/*NOTREACHED*/
 		}
-	strncpy(atd.ad_name, ifname, sizeof (atd.ad_name));
+	strncpy(atd.ad_name, ifname, sizeof(atd.ad_name));
 
 	atd.ad_id = HAL_DIAG_REVS;
-	atd.ad_out_data = (caddr_t) &state.revs;
+	atd.ad_out_data = (caddr_t)&state.revs;
 	atd.ad_out_size = sizeof(state.revs);
 	if (ioctl(s, SIOCGATHDIAG, &atd) < 0)
 		err(1, atd.ad_name);
@@ -105,13 +103,13 @@ main(int argc, char *argv[])
 		dr = reglookup(argv[0]);
 		if (dr == NULL) {
 			errno = 0;
-			reg = (uint32_t) strtoul(argv[0], &eptr, 0);
+			reg = (uint32_t)strtoul(argv[0], &eptr, 0);
 			if (argv[0] == eptr || eptr[0] != '\0')
 				errx(1, "invalid register \"%s\"", argv[0]);
 		} else
 			reg = dr->addr;
 		if (cp != NULL)
-			regwrite(s, &atd, reg, (uint32_t) strtoul(cp, NULL, 0));
+			regwrite(s, &atd, reg, (uint32_t)strtoul(cp, NULL, 0));
 		printf("%s = %08x\n", argv[0], regread(s, &atd, reg));
 	}
 	return 0;
@@ -126,9 +124,9 @@ regread(int s, struct ath_diag *atd, uint32_t r)
 	ra.start = r;
 	ra.end = 0;
 
-	atd->ad_in_data = (caddr_t) &ra;
+	atd->ad_in_data = (caddr_t)&ra;
 	atd->ad_in_size = sizeof(ra);
-	atd->ad_out_data = (caddr_t) v;
+	atd->ad_out_data = (caddr_t)v;
 	atd->ad_out_size = sizeof(v);
 	atd->ad_id = HAL_DIAG_REGS | ATH_DIAG_IN | ATH_DIAG_DYN;
 	if (ioctl(s, SIOCGATHDIAG, atd) < 0)
@@ -143,7 +141,7 @@ regwrite(int s, struct ath_diag *atd, uint32_t r, uint32_t v)
 
 	rw.addr = r;
 	rw.value = v;
-	atd->ad_in_data = (caddr_t) &rw;
+	atd->ad_in_data = (caddr_t)&rw;
 	atd->ad_in_size = sizeof(rw);
 	atd->ad_id = HAL_DIAG_SETREGS | ATH_DIAG_IN;
 	if (ioctl(s, SIOCGATHDIAG, atd) < 0)
@@ -159,8 +157,8 @@ regcompar(const void *a, const void *b)
 }
 
 void
-register_regs(struct dumpreg *chipregs, u_int nchipregs,
-	int def_srev_min, int def_srev_max, int def_phy_min, int def_phy_max)
+register_regs(struct dumpreg *chipregs, u_int nchipregs, int def_srev_min,
+    int def_srev_max, int def_phy_min, int def_phy_max)
 {
 	const int existing_regs = state.nregs;
 	int i, j;
@@ -183,17 +181,17 @@ register_regs(struct dumpreg *chipregs, u_int nchipregs,
 			 */
 			if (nr->addr == r->addr &&
 			    (nr->name == r->name ||
-			     nr->name != NULL && r->name != NULL &&
-			     strcmp(nr->name, r->name) == 0)) {
+				nr->name != NULL && r->name != NULL &&
+				    strcmp(nr->name, r->name) == 0)) {
 				if (nr->srevMin < r->srevMin &&
 				    (r->srevMin <= nr->srevMax &&
-				     nr->srevMax+1 <= r->srevMax)) {
+					nr->srevMax + 1 <= r->srevMax)) {
 					r->srevMin = nr->srevMin;
 					goto skip;
 				}
 				if (nr->srevMax > r->srevMax &&
 				    (r->srevMin <= nr->srevMin &&
-				     nr->srevMin <= r->srevMax)) {
+					nr->srevMin <= r->srevMax)) {
 					r->srevMax = nr->srevMax;
 					goto skip;
 				}
@@ -207,22 +205,21 @@ register_regs(struct dumpreg *chipregs, u_int nchipregs,
 		if (state.nregs == MAXREGS)
 			errx(-1, "too many registers; bump MAXREGS");
 		state.regs[state.nregs++] = nr;
-	skip:
-		;
+	skip:;
 	}
 	qsort(state.regs, state.nregs, sizeof(struct dumpreg *), regcompar);
 }
 
 void
-register_keycache(u_int nslots,
-	int def_srev_min, int def_srev_max, int def_phy_min, int def_phy_max)
+register_keycache(u_int nslots, int def_srev_min, int def_srev_max,
+    int def_phy_min, int def_phy_max)
 {
 	/* discard, no use */
 }
 
 void
-register_range(u_int brange, u_int erange, int type,
-	int def_srev_min, int def_srev_max, int def_phy_min, int def_phy_max)
+register_range(u_int brange, u_int erange, int type, int def_srev_min,
+    int def_srev_max, int def_phy_min, int def_phy_max)
 {
 	/* discard, no use */
 }

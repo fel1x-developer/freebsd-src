@@ -25,10 +25,10 @@
  */
 
 #ifndef _OPENSOLARIS_SYS_MNTTAB_H_
-#define	_OPENSOLARIS_SYS_MNTTAB_H_
+#define _OPENSOLARIS_SYS_MNTTAB_H_
 
-#ifndef	_KERNEL
+#ifndef _KERNEL
 #include <mnttab.h>
 #endif
 
-#endif	/* !_OPENSOLARIS_MNTTAB_H_ */
+#endif /* !_OPENSOLARIS_MNTTAB_H_ */

@@ -29,11 +29,10 @@
  *
  */
 
-
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/conf.h>
 #include <sys/condvar.h>
+#include <sys/conf.h>
 #include <sys/ioccom.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
@@ -46,11 +45,10 @@
 
 #include <fs/autofs/autofs.h>
 
-static const char *autofs_opts[] = {
-	"from", "master_options", "master_prefix", NULL
-};
+static const char *autofs_opts[] = { "from", "master_options", "master_prefix",
+	NULL };
 
-extern struct autofs_softc	*autofs_softc;
+extern struct autofs_softc *autofs_softc;
 
 static int
 autofs_mount(struct mount *mp)
@@ -73,7 +71,8 @@ autofs_mount(struct mount *mp)
 	if (vfs_getopt(mp->mnt_optnew, "fspath", (void **)&fspath, NULL))
 		return (EINVAL);
 
-	if (vfs_getopt(mp->mnt_optnew, "master_options", (void **)&options, NULL))
+	if (vfs_getopt(mp->mnt_optnew, "master_options", (void **)&options,
+		NULL))
 		return (EINVAL);
 
 	if (vfs_getopt(mp->mnt_optnew, "master_prefix", (void **)&prefix, NULL))
@@ -137,7 +136,7 @@ autofs_unmount(struct mount *mp, int mntflags)
 	for (;;) {
 		found = false;
 		sx_xlock(&autofs_softc->sc_lock);
-		TAILQ_FOREACH(ar, &autofs_softc->sc_requests, ar_next) {
+		TAILQ_FOREACH (ar, &autofs_softc->sc_requests, ar_next) {
 			if (ar->ar_mount != amp)
 				continue;
 			ar->ar_error = ENXIO;
@@ -205,13 +204,13 @@ autofs_statfs(struct mount *mp, struct statfs *sbp)
 }
 
 static struct vfsops autofs_vfsops = {
-	.vfs_fhtovp =		NULL, /* XXX */
-	.vfs_mount =		autofs_mount,
-	.vfs_unmount =		autofs_unmount,
-	.vfs_root =		autofs_root,
-	.vfs_statfs =		autofs_statfs,
-	.vfs_init =		autofs_init,
-	.vfs_uninit =		autofs_uninit,
+	.vfs_fhtovp = NULL, /* XXX */
+	.vfs_mount = autofs_mount,
+	.vfs_unmount = autofs_unmount,
+	.vfs_root = autofs_root,
+	.vfs_statfs = autofs_statfs,
+	.vfs_init = autofs_init,
+	.vfs_uninit = autofs_uninit,
 };
 
 VFS_SET(autofs_vfsops, autofs, VFCF_SYNTHETIC | VFCF_NETWORK);

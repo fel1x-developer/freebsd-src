@@ -27,6 +27,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/fcntl.h>
@@ -35,12 +36,11 @@
 #include <sys/module.h>
 #include <sys/socket.h>
 #include <sys/sx.h>
-#include <sys/systm.h>
 #include <sys/uio.h>
 
-#include <net/if.h>
-
 #include <dev/etherswitch/etherswitch.h>
+
+#include <net/if.h>
 
 #include "etherswitch_if.h"
 
@@ -56,10 +56,10 @@ static void etherswitch_identify(driver_t *driver, device_t parent);
 
 static device_method_t etherswitch_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_identify,	etherswitch_identify),
-	DEVMETHOD(device_probe,		etherswitch_probe),
-	DEVMETHOD(device_attach,	etherswitch_attach),
-	DEVMETHOD(device_detach,	etherswitch_detach),
+	DEVMETHOD(device_identify, etherswitch_identify),
+	DEVMETHOD(device_probe, etherswitch_probe),
+	DEVMETHOD(device_attach, etherswitch_attach),
+	DEVMETHOD(device_detach, etherswitch_detach),
 
 	DEVMETHOD_END
 };
@@ -70,13 +70,13 @@ driver_t etherswitch_driver = {
 	sizeof(struct etherswitch_softc),
 };
 
-static	d_ioctl_t	etherswitchioctl;
+static d_ioctl_t etherswitchioctl;
 
 static struct cdevsw etherswitch_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_flags =	D_TRACKCLOSE,
-	.d_ioctl =	etherswitchioctl,
-	.d_name =	"etherswitch",
+	.d_version = D_VERSION,
+	.d_flags = D_TRACKCLOSE,
+	.d_ioctl = etherswitchioctl,
+	.d_name = "etherswitch",
 };
 
 static void
@@ -93,7 +93,7 @@ etherswitch_probe(device_t dev)
 
 	return (0);
 }
-	
+
 static int
 etherswitch_attach(device_t dev)
 {
@@ -122,7 +122,8 @@ etherswitch_attach(device_t dev)
 static int
 etherswitch_detach(device_t dev)
 {
-	struct etherswitch_softc *sc = (struct etherswitch_softc *)device_get_softc(dev);
+	struct etherswitch_softc *sc = (struct etherswitch_softc *)
+	    device_get_softc(dev);
 
 	if (sc->sc_devnode)
 		destroy_dev(sc->sc_devnode);
@@ -131,7 +132,8 @@ etherswitch_detach(device_t dev)
 }
 
 static int
-etherswitchioctl(struct cdev *cdev, u_long cmd, caddr_t data, int flags, struct thread *td)
+etherswitchioctl(struct cdev *cdev, u_long cmd, caddr_t data, int flags,
+    struct thread *td)
 {
 	struct etherswitch_softc *sc = cdev->si_drv1;
 	device_t dev = sc->sc_dev;
@@ -148,14 +150,14 @@ etherswitchioctl(struct cdev *cdev, u_long cmd, caddr_t data, int flags, struct 
 		info = ETHERSWITCH_GETINFO(etherswitch);
 		bcopy(info, data, sizeof(etherswitch_info_t));
 		break;
-		
+
 	case IOETHERSWITCHGETREG:
 		reg = (etherswitch_reg_t *)data;
 		ETHERSWITCH_LOCK(etherswitch);
 		reg->val = ETHERSWITCH_READREG(etherswitch, reg->reg);
 		ETHERSWITCH_UNLOCK(etherswitch);
 		break;
-	
+
 	case IOETHERSWITCHSETREG:
 		reg = (etherswitch_reg_t *)data;
 		ETHERSWITCH_LOCK(etherswitch);
@@ -164,29 +166,35 @@ etherswitchioctl(struct cdev *cdev, u_long cmd, caddr_t data, int flags, struct 
 		break;
 
 	case IOETHERSWITCHGETPORT:
-		error = ETHERSWITCH_GETPORT(etherswitch, (etherswitch_port_t *)data);
+		error = ETHERSWITCH_GETPORT(etherswitch,
+		    (etherswitch_port_t *)data);
 		break;
 
 	case IOETHERSWITCHSETPORT:
-		error = ETHERSWITCH_SETPORT(etherswitch, (etherswitch_port_t *)data);
+		error = ETHERSWITCH_SETPORT(etherswitch,
+		    (etherswitch_port_t *)data);
 		break;
 
 	case IOETHERSWITCHGETVLANGROUP:
-		error = ETHERSWITCH_GETVGROUP(etherswitch, (etherswitch_vlangroup_t *)data);
+		error = ETHERSWITCH_GETVGROUP(etherswitch,
+		    (etherswitch_vlangroup_t *)data);
 		break;
 
 	case IOETHERSWITCHSETVLANGROUP:
-		error = ETHERSWITCH_SETVGROUP(etherswitch, (etherswitch_vlangroup_t *)data);
+		error = ETHERSWITCH_SETVGROUP(etherswitch,
+		    (etherswitch_vlangroup_t *)data);
 		break;
 
 	case IOETHERSWITCHGETPHYREG:
 		phyreg = (etherswitch_phyreg_t *)data;
-		phyreg->val = ETHERSWITCH_READPHYREG(etherswitch, phyreg->phy, phyreg->reg);
+		phyreg->val = ETHERSWITCH_READPHYREG(etherswitch, phyreg->phy,
+		    phyreg->reg);
 		break;
-	
+
 	case IOETHERSWITCHSETPHYREG:
 		phyreg = (etherswitch_phyreg_t *)data;
-		error = ETHERSWITCH_WRITEPHYREG(etherswitch, phyreg->phy, phyreg->reg, phyreg->val);
+		error = ETHERSWITCH_WRITEPHYREG(etherswitch, phyreg->phy,
+		    phyreg->reg, phyreg->val);
 		break;
 
 	case IOETHERSWITCHGETCONF:
@@ -196,7 +204,8 @@ etherswitchioctl(struct cdev *cdev, u_long cmd, caddr_t data, int flags, struct 
 		break;
 
 	case IOETHERSWITCHSETCONF:
-		error = ETHERSWITCH_SETCONF(etherswitch, (etherswitch_conf_t *)data);
+		error = ETHERSWITCH_SETCONF(etherswitch,
+		    (etherswitch_conf_t *)data);
 		break;
 
 	case IOETHERSWITCHFLUSHALL:
@@ -209,11 +218,12 @@ etherswitchioctl(struct cdev *cdev, u_long cmd, caddr_t data, int flags, struct 
 		break;
 
 	case IOETHERSWITCHGETTABLE:
-		error = ETHERSWITCH_FETCH_TABLE(etherswitch, (void *) data);
+		error = ETHERSWITCH_FETCH_TABLE(etherswitch, (void *)data);
 		break;
 
 	case IOETHERSWITCHGETTABLEENTRY:
-		error = ETHERSWITCH_FETCH_TABLE_ENTRY(etherswitch, (void *) data);
+		error = ETHERSWITCH_FETCH_TABLE_ENTRY(etherswitch,
+		    (void *)data);
 		break;
 
 	default:

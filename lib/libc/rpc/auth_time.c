@@ -25,32 +25,36 @@
  *	needed to deal with TCP connections.
  */
 
-#include "namespace.h"
-#include <stdio.h>
-#include <syslog.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <netdb.h>
-#include <sys/signal.h>
 #include <sys/errno.h>
+#include <sys/signal.h>
 #include <sys/socket.h>
+
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
+#include <netdb.h>
 #include <rpc/rpc.h>
 #include <rpc/rpc_com.h>
 #include <rpc/rpcb_prot.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <syslog.h>
+#include <unistd.h>
+
+#include "namespace.h"
 #undef NIS
 #include <rpcsvc/nis.h>
+
 #include "un-namespace.h"
 
-extern int _rpc_dtablesize( void );
+extern int _rpc_dtablesize(void);
 
 #ifdef TESTING
-#define	msg(x)	printf("ERROR: %s\n", x)
+#define msg(x) printf("ERROR: %s\n", x)
 /* #define msg(x) syslog(LOG_ERR, "%s", x) */
 #else
-#define	msg(x)
+#define msg(x)
 #endif
 
 static int saw_alarm = 0;
@@ -68,26 +72,26 @@ alarm_hndler(int s)
  * from internet time-service time, into UNIX time we subtract the
  * following offset :
  */
-#define	NYEARS	(1970 - 1900)
-#define	TOFFSET ((u_long)60*60*24*(365*NYEARS + (NYEARS/4)))
-
+#define NYEARS (1970 - 1900)
+#define TOFFSET ((u_long)60 * 60 * 24 * (365 * NYEARS + (NYEARS / 4)))
 
 /*
  * Stolen from rpc.nisd:
  * Turn a 'universal address' into a struct sockaddr_in.
  * Bletch.
  */
-static int uaddr_to_sockaddr(char *uaddr, struct sockaddr_in *sin)
+static int
+uaddr_to_sockaddr(char *uaddr, struct sockaddr_in *sin)
 {
-	unsigned char		p_bytes[2];
-	int			i;
-	unsigned long		a[6];
+	unsigned char p_bytes[2];
+	int i;
+	unsigned long a[6];
 
-	i = sscanf(uaddr, "%lu.%lu.%lu.%lu.%lu.%lu", &a[0], &a[1], &a[2],
-						&a[3], &a[4], &a[5]);
+	i = sscanf(uaddr, "%lu.%lu.%lu.%lu.%lu.%lu", &a[0], &a[1], &a[2], &a[3],
+	    &a[4], &a[5]);
 
 	if (i < 6)
-		return(1);
+		return (1);
 
 	for (i = 0; i < 4; i++)
 		sin->sin_addr.s_addr |= (a[i] & 0x000000FF) << (8 * i);
@@ -109,7 +113,7 @@ static int uaddr_to_sockaddr(char *uaddr, struct sockaddr_in *sin)
 static void
 free_eps(endpoint eps[], int num)
 {
-	int		i;
+	int i;
 
 	for (i = 0; i < num; i++) {
 		free(eps[i].uaddr);
@@ -136,15 +140,15 @@ free_eps(endpoint eps[], int num)
  * maxep - max array size
  */
 static nis_server *
-get_server(struct sockaddr_in *sin, char *host, nis_server *srv,
-    endpoint eps[], int maxep)
+get_server(struct sockaddr_in *sin, char *host, nis_server *srv, endpoint eps[],
+    int maxep)
 {
-	char			hname[256];
-	int			num_ep = 0, i;
-	struct hostent		*he;
-	struct hostent		dummy;
-	char			*ptr[2];
-	endpoint		*ep;
+	char hname[256];
+	int num_ep = 0, i;
+	struct hostent *he;
+	struct hostent dummy;
+	char *ptr[2];
+	endpoint *ep;
 
 	if (host == NULL && sin == NULL)
 		return (NULL);
@@ -152,7 +156,7 @@ get_server(struct sockaddr_in *sin, char *host, nis_server *srv,
 	if (sin == NULL) {
 		he = gethostbyname(host);
 		if (he == NULL)
-			return(NULL);
+			return (NULL);
 	} else {
 		he = &dummy;
 		ptr[0] = (char *)&sin->sin_addr.s_addr;
@@ -165,36 +169,38 @@ get_server(struct sockaddr_in *sin, char *host, nis_server *srv,
 	 * for UDP.
 	 */
 	for (i = 0, ep = eps; (he->h_addr_list[i] != NULL) && (num_ep < maxep);
-	    i++, ep++, num_ep++) {
+	     i++, ep++, num_ep++) {
 		struct in_addr *a;
 
 		a = (struct in_addr *)he->h_addr_list[i];
 		snprintf(hname, sizeof(hname), "%s.0.111", inet_ntoa(*a));
 		ep->uaddr = strdup(hname);
 		ep->family = strdup("inet");
-		ep->proto =  strdup("tcp");
-		if (ep->uaddr == NULL || ep->family == NULL || ep->proto == NULL) {
+		ep->proto = strdup("tcp");
+		if (ep->uaddr == NULL || ep->family == NULL ||
+		    ep->proto == NULL) {
 			free_eps(eps, num_ep + 1);
 			return (NULL);
 		}
 	}
 
 	for (i = 0; (he->h_addr_list[i] != NULL) && (num_ep < maxep);
-	    i++, ep++, num_ep++) {
+	     i++, ep++, num_ep++) {
 		struct in_addr *a;
 
 		a = (struct in_addr *)he->h_addr_list[i];
 		snprintf(hname, sizeof(hname), "%s.0.111", inet_ntoa(*a));
 		ep->uaddr = strdup(hname);
 		ep->family = strdup("inet");
-		ep->proto =  strdup("udp");
-		if (ep->uaddr == NULL || ep->family == NULL || ep->proto == NULL) {
+		ep->proto = strdup("udp");
+		if (ep->uaddr == NULL || ep->family == NULL ||
+		    ep->proto == NULL) {
 			free_eps(eps, num_ep + 1);
 			return (NULL);
 		}
 	}
 
-	srv->name = (nis_name) host;
+	srv->name = (nis_name)host;
 	srv->ep.ep_len = num_ep;
 	srv->ep.ep_val = eps;
 	srv->key_type = NIS_PK_NONE;
@@ -235,26 +241,26 @@ int
 __rpc_get_time_offset(struct timeval *td, nis_server *srv, char *thost,
     char **uaddr, struct sockaddr_in *netid)
 {
-	CLIENT			*clnt; 		/* Client handle 	*/
-	endpoint		*ep,		/* useful endpoints	*/
-				*useep = NULL;	/* endpoint of xp	*/
-	char			*useua = NULL;	/* uaddr of selected xp	*/
-	int			epl, i;		/* counters		*/
-	enum clnt_stat		status;		/* result of clnt_call	*/
-	u_long			thetime, delta;
-	int			needfree = 0;
-	struct timeval		tv;
-	int			time_valid;
-	int			udp_ep = -1, tcp_ep = -1;
-	int			a1, a2, a3, a4;
-	char			ut[64], ipuaddr[64];
-	endpoint		teps[32];
-	nis_server		tsrv;
-	void			(*oldsig)(int) = NULL; /* old alarm handler */
-	struct sockaddr_in	sin;
-	socklen_t		len;
-	int			s = RPC_ANYSOCK;
-	int			type = 0;
+	CLIENT *clnt;	       /* Client handle 	*/
+	endpoint *ep,	       /* useful endpoints	*/
+	    *useep = NULL;     /* endpoint of xp	*/
+	char *useua = NULL;    /* uaddr of selected xp	*/
+	int epl, i;	       /* counters		*/
+	enum clnt_stat status; /* result of clnt_call	*/
+	u_long thetime, delta;
+	int needfree = 0;
+	struct timeval tv;
+	int time_valid;
+	int udp_ep = -1, tcp_ep = -1;
+	int a1, a2, a3, a4;
+	char ut[64], ipuaddr[64];
+	endpoint teps[32];
+	nis_server tsrv;
+	void (*oldsig)(int) = NULL; /* old alarm handler */
+	struct sockaddr_in sin;
+	socklen_t len;
+	int s = RPC_ANYSOCK;
+	int type = 0;
 
 	td->tv_sec = 0;
 	td->tv_usec = 0;
@@ -268,21 +274,21 @@ __rpc_get_time_offset(struct timeval *td, nis_server *srv, char *thost,
 			msg("both timehost and srv pointer used!");
 			return (0);
 		}
-		if (! srv) {
+		if (!srv) {
 			srv = get_server(netid, thost, &tsrv, teps, 32);
 			if (srv == NULL) {
 				msg("unable to contruct server data.");
 				return (0);
 			}
-			needfree = 1;	/* need to free data in endpoints */
+			needfree = 1; /* need to free data in endpoints */
 		}
 
 		ep = srv->ep.ep_val;
 		epl = srv->ep.ep_len;
 
 		/* Identify the TCP and UDP endpoints */
-		for (i = 0;
-			(i < epl) && ((udp_ep == -1) || (tcp_ep == -1)); i++) {
+		for (i = 0; (i < epl) && ((udp_ep == -1) || (tcp_ep == -1));
+		     i++) {
 			if (strcasecmp(ep[i].proto, "udp") == 0)
 				udp_ep = i;
 			if (strcasecmp(ep[i].proto, "tcp") == 0)
@@ -346,7 +352,7 @@ __rpc_get_time_offset(struct timeval *td, nis_server *srv, char *thost,
 	tv.tv_usec = 0;
 	time_valid = 0;
 	status = clnt_call(clnt, RPCBPROC_GETTIME, (xdrproc_t)xdr_void, NULL,
-					(xdrproc_t)xdr_u_long, &thetime, tv);
+	    (xdrproc_t)xdr_u_long, &thetime, tv);
 	/*
 	 * The only error we check for is anything but success. In
 	 * fact we could have seen PROGMISMATCH if talking to a 4.1
@@ -404,13 +410,13 @@ __rpc_get_time_offset(struct timeval *td, nis_server *srv, char *thost,
 				FD_ZERO(&readfds);
 				FD_SET(s, &readfds);
 				res = _select(_rpc_dtablesize(), &readfds,
-				     (fd_set *)NULL, (fd_set *)NULL, &timeout);
+				    (fd_set *)NULL, (fd_set *)NULL, &timeout);
 			} while (res < 0 && errno == EINTR);
 			if (res <= 0)
 				goto error;
 			len = sizeof(from);
 			res = _recvfrom(s, (char *)&thetime, sizeof(thetime), 0,
-				       (struct sockaddr *)&from, &len);
+			    (struct sockaddr *)&from, &len);
 			if (res == -1) {
 				msg("recvfrom failed on udp transport.");
 				goto error;
@@ -421,7 +427,7 @@ __rpc_get_time_offset(struct timeval *td, nis_server *srv, char *thost,
 
 			oldsig = (void (*)(int))signal(SIGALRM, alarm_hndler);
 			saw_alarm = 0; /* global tracking the alarm */
-			alarm(20); /* only wait 20 seconds */
+			alarm(20);     /* only wait 20 seconds */
 			res = _connect(s, (struct sockaddr *)&sin, sizeof(sin));
 			if (res == -1) {
 				msg("failed to connect to tcp endpoint.");
@@ -467,7 +473,7 @@ error:
 	if (clnt != NULL)
 		clnt_destroy(clnt);
 
-	alarm(0);	/* reset that alarm if its outstanding */
+	alarm(0); /* reset that alarm if its outstanding */
 	if (oldsig) {
 		signal(SIGALRM, oldsig);
 	}
@@ -484,7 +490,7 @@ error:
 		tv.tv_sec += (tv.tv_sec > 500000) ? 1 : 0;
 		delta = (thetime > tv.tv_sec) ? thetime - tv.tv_sec :
 						tv.tv_sec - thetime;
-		td->tv_sec = (thetime < tv.tv_sec) ? - delta : delta;
+		td->tv_sec = (thetime < tv.tv_sec) ? -delta : delta;
 		td->tv_usec = 0;
 	} else {
 		msg("unable to get the server's time.");

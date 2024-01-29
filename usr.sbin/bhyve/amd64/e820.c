@@ -95,12 +95,11 @@ e820_dump_table(void)
 	uint64_t i;
 
 	EPRINTLN("E820 map:");
-	
+
 	i = 0;
-	TAILQ_FOREACH(element, &e820_table, chain) {
-		EPRINTLN("  (%4lu) [%16lx, %16lx] %s", i,
-		    element->base, element->end,
-		    e820_get_type_name(element->type));
+	TAILQ_FOREACH (element, &e820_table, chain) {
+		EPRINTLN("  (%4lu) [%16lx, %16lx] %s", i, element->base,
+		    element->end, e820_get_type_name(element->type));
 
 		++i;
 	}
@@ -115,7 +114,7 @@ e820_get_fwcfg_item(void)
 	int count, i;
 
 	count = 0;
-	TAILQ_FOREACH(element, &e820_table, chain) {
+	TAILQ_FOREACH (element, &e820_table, chain) {
 		++count;
 	}
 	if (count == 0) {
@@ -137,7 +136,7 @@ e820_get_fwcfg_item(void)
 
 	i = 0;
 	entries = (struct e820_entry *)fwcfg_item->data;
-	TAILQ_FOREACH(element, &e820_table, chain) {
+	TAILQ_FOREACH (element, &e820_table, chain) {
 		struct e820_entry *entry = &entries[i];
 
 		entry->base = element->base;
@@ -169,7 +168,7 @@ e820_add_entry(const uint64_t base, const uint64_t end,
 	 * E820 table should always be sorted in ascending order. Therefore,
 	 * search for a range whose end is larger than the base parameter.
 	 */
-	TAILQ_FOREACH(element, &e820_table, chain) {
+	TAILQ_FOREACH (element, &e820_table, chain) {
 		if (element->end > base) {
 			break;
 		}
@@ -199,12 +198,13 @@ e820_add_entry(const uint64_t base, const uint64_t end,
 	}
 
 	/*
-	 * If some one tries to allocate a specific address, it could happen, that
-	 * this address is not allocatable. Therefore, do some checks. If the
-	 * address is not allocatable, don't panic. The user may have a fallback and
-	 * tries to allocate another address. This is true for the GVT-d emulation
-	 * which tries to reuse the host address of the graphics stolen memory and
-	 * falls back to allocating the highest address below 4 GB.
+	 * If some one tries to allocate a specific address, it could happen,
+	 * that this address is not allocatable. Therefore, do some checks. If
+	 * the address is not allocatable, don't panic. The user may have a
+	 * fallback and tries to allocate another address. This is true for the
+	 * GVT-d emulation which tries to reuse the host address of the graphics
+	 * stolen memory and falls back to allocating the highest address below
+	 * 4 GB.
 	 */
 	if (element == NULL || element->type != E820_TYPE_MEMORY ||
 	    (base < element->base || end > element->end))
@@ -276,7 +276,7 @@ e820_add_memory_hole(const uint64_t base, const uint64_t end)
 	 * E820 table should be always sorted in ascending order. Therefore,
 	 * search for an element which end is larger than the base parameter.
 	 */
-	TAILQ_FOREACH(element, &e820_table, chain) {
+	TAILQ_FOREACH (element, &e820_table, chain) {
 		if (element->end > base) {
 			break;
 		}
@@ -338,16 +338,17 @@ e820_alloc_highest(const uint64_t max_address, const uint64_t length,
 {
 	struct e820_element *element;
 
-	TAILQ_FOREACH_REVERSE(element, &e820_table, e820_table, chain) {
+	TAILQ_FOREACH_REVERSE (element, &e820_table, e820_table, chain) {
 		uint64_t address, base, end;
 
 		end = MIN(max_address, element->end);
 		base = roundup2(element->base, alignment);
 
 		/*
-		 * If end - length == 0, we would allocate memory at address 0. This
-		 * address is mostly unusable and we should avoid allocating it.
-		 * Therefore, search for another block in that case.
+		 * If end - length == 0, we would allocate memory at address 0.
+		 * This address is mostly unusable and we should avoid
+		 * allocating it. Therefore, search for another block in that
+		 * case.
 		 */
 		if (element->type != E820_TYPE_MEMORY || end < base ||
 		    end - base < length || end - length == 0) {
@@ -372,7 +373,7 @@ e820_alloc_lowest(const uint64_t min_address, const uint64_t length,
 {
 	struct e820_element *element;
 
-	TAILQ_FOREACH(element, &e820_table, chain) {
+	TAILQ_FOREACH (element, &e820_table, chain) {
 		uint64_t base, end;
 
 		end = element->end;
@@ -479,8 +480,8 @@ e820_finalize(void)
 		warnx("invalid e820 table");
 		return (ENOMEM);
 	}
-	error = qemu_fwcfg_add_file("etc/e820",
-	    e820_fwcfg_item->size, e820_fwcfg_item->data);
+	error = qemu_fwcfg_add_file("etc/e820", e820_fwcfg_item->size,
+	    e820_fwcfg_item->data);
 	if (error != 0) {
 		warnx("could not add qemu fwcfg etc/e820");
 		return (error);

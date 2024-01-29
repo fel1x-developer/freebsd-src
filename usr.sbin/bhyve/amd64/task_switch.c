@@ -30,17 +30,17 @@
 #include <sys/_iovec.h>
 #include <sys/mman.h>
 
-#include <x86/psl.h>
-#include <x86/specialreg.h>
 #include <machine/vmm.h>
 #include <machine/vmm_instruction_emul.h>
+
+#include <x86/psl.h>
+#include <x86/specialreg.h>
 
 #include <assert.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-
 #include <vmmapi.h>
 
 #include "bhyverun.h"
@@ -51,50 +51,50 @@
  * issues because all of its fields are defined as signed integers.
  */
 struct tss32 {
-	uint16_t	tss_link;
-	uint16_t	rsvd1;
-	uint32_t	tss_esp0;
-	uint16_t	tss_ss0;
-	uint16_t	rsvd2;
-	uint32_t	tss_esp1;
-	uint16_t	tss_ss1;
-	uint16_t	rsvd3;
-	uint32_t	tss_esp2;
-	uint16_t	tss_ss2;
-	uint16_t	rsvd4;
-	uint32_t	tss_cr3;
-	uint32_t	tss_eip;
-	uint32_t	tss_eflags;
-	uint32_t	tss_eax;
-	uint32_t	tss_ecx;
-	uint32_t	tss_edx;
-	uint32_t	tss_ebx;
-	uint32_t	tss_esp;
-	uint32_t	tss_ebp;
-	uint32_t	tss_esi;
-	uint32_t	tss_edi;
-	uint16_t	tss_es;
-	uint16_t	rsvd5;
-	uint16_t	tss_cs;
-	uint16_t	rsvd6;
-	uint16_t	tss_ss;
-	uint16_t	rsvd7;
-	uint16_t	tss_ds;
-	uint16_t	rsvd8;
-	uint16_t	tss_fs;
-	uint16_t	rsvd9;
-	uint16_t	tss_gs;
-	uint16_t	rsvd10;
-	uint16_t	tss_ldt;
-	uint16_t	rsvd11;
-	uint16_t	tss_trap;
-	uint16_t	tss_iomap;
+	uint16_t tss_link;
+	uint16_t rsvd1;
+	uint32_t tss_esp0;
+	uint16_t tss_ss0;
+	uint16_t rsvd2;
+	uint32_t tss_esp1;
+	uint16_t tss_ss1;
+	uint16_t rsvd3;
+	uint32_t tss_esp2;
+	uint16_t tss_ss2;
+	uint16_t rsvd4;
+	uint32_t tss_cr3;
+	uint32_t tss_eip;
+	uint32_t tss_eflags;
+	uint32_t tss_eax;
+	uint32_t tss_ecx;
+	uint32_t tss_edx;
+	uint32_t tss_ebx;
+	uint32_t tss_esp;
+	uint32_t tss_ebp;
+	uint32_t tss_esi;
+	uint32_t tss_edi;
+	uint16_t tss_es;
+	uint16_t rsvd5;
+	uint16_t tss_cs;
+	uint16_t rsvd6;
+	uint16_t tss_ss;
+	uint16_t rsvd7;
+	uint16_t tss_ds;
+	uint16_t rsvd8;
+	uint16_t tss_fs;
+	uint16_t rsvd9;
+	uint16_t tss_gs;
+	uint16_t rsvd10;
+	uint16_t tss_ldt;
+	uint16_t rsvd11;
+	uint16_t tss_trap;
+	uint16_t tss_iomap;
 };
 static_assert(sizeof(struct tss32) == 104, "compile-time assertion failed");
 
-#define	SEL_START(sel)	(((sel) & ~0x7))
-#define	SEL_LIMIT(sel)	(((sel) | 0x7))
-#define	TSS_BUSY(type)	(((type) & 0x2) != 0)
+#define SEL_START(sel) (((sel) & ~0x7))
+#define SEL_LIMIT(sel) (((sel) | 0x7))
+#define TSS_BUSY(type) (((type) & 0x2) != 0)
 
 static uint64_t
 GETREG(struct vcpu *vcpu, int reg)
@@ -200,9 +200,8 @@ desc_table_limit_check(struct vcpu *vcpu, uint16_t sel)
  * Returns -1 otherwise.
  */
 static int
-desc_table_rw(struct vcpu *vcpu, struct vm_guest_paging *paging,
-    uint16_t sel, struct user_segment_descriptor *desc, bool doread,
-    int *faultptr)
+desc_table_rw(struct vcpu *vcpu, struct vm_guest_paging *paging, uint16_t sel,
+    struct user_segment_descriptor *desc, bool doread, int *faultptr)
 {
 	struct iovec iov[2];
 	uint64_t base;
@@ -228,8 +227,8 @@ desc_table_rw(struct vcpu *vcpu, struct vm_guest_paging *paging,
 }
 
 static int
-desc_table_read(struct vcpu *vcpu, struct vm_guest_paging *paging,
-    uint16_t sel, struct user_segment_descriptor *desc, int *faultptr)
+desc_table_read(struct vcpu *vcpu, struct vm_guest_paging *paging, uint16_t sel,
+    struct user_segment_descriptor *desc, int *faultptr)
 {
 	return (desc_table_rw(vcpu, paging, sel, desc, true, faultptr));
 }
@@ -249,8 +248,8 @@ desc_table_write(struct vcpu *vcpu, struct vm_guest_paging *paging,
  * Returns -1 otherwise.
  */
 static int
-read_tss_descriptor(struct vcpu *vcpu, struct vm_task_switch *ts,
-    uint16_t sel, struct user_segment_descriptor *desc, int *faultptr)
+read_tss_descriptor(struct vcpu *vcpu, struct vm_task_switch *ts, uint16_t sel,
+    struct user_segment_descriptor *desc, int *faultptr)
 {
 	struct vm_guest_paging sup_paging;
 	int error;
@@ -268,7 +267,7 @@ read_tss_descriptor(struct vcpu *vcpu, struct vm_task_switch *ts,
 	}
 
 	sup_paging = ts->paging;
-	sup_paging.cpl = 0;		/* implicit supervisor mode */
+	sup_paging.cpl = 0; /* implicit supervisor mode */
 	error = desc_table_read(vcpu, &sup_paging, sel, desc, faultptr);
 	return (error);
 }
@@ -305,8 +304,8 @@ ldt_desc(int sd_type)
  * Validate the descriptor 'seg_desc' associated with 'segment'.
  */
 static int
-validate_seg_desc(struct vcpu *vcpu, struct vm_task_switch *ts,
-    int segment, struct seg_desc *seg_desc, int *faultptr)
+validate_seg_desc(struct vcpu *vcpu, struct vm_task_switch *ts, int segment,
+    struct seg_desc *seg_desc, int *faultptr)
 {
 	struct vm_guest_paging sup_paging;
 	struct user_segment_descriptor usd;
@@ -360,13 +359,13 @@ validate_seg_desc(struct vcpu *vcpu, struct vm_task_switch *ts,
 		}
 		seg_desc->base = 0;
 		seg_desc->limit = 0;
-		seg_desc->access = 0x10000;	/* unusable */
+		seg_desc->access = 0x10000; /* unusable */
 		return (0);
 	}
 
 	/* Read the descriptor from the GDT/LDT */
 	sup_paging = ts->paging;
-	sup_paging.cpl = 0;	/* implicit supervisor mode */
+	sup_paging.cpl = 0; /* implicit supervisor mode */
 	error = desc_table_read(vcpu, &sup_paging, sel, &usd, faultptr);
 	if (error || *faultptr)
 		return (error);
@@ -431,8 +430,8 @@ validate_seg_desc(struct vcpu *vcpu, struct vm_task_switch *ts,
 }
 
 static void
-tss32_save(struct vcpu *vcpu, struct vm_task_switch *task_switch,
-    uint32_t eip, struct tss32 *tss, struct iovec *iov)
+tss32_save(struct vcpu *vcpu, struct vm_task_switch *task_switch, uint32_t eip,
+    struct tss32 *tss, struct iovec *iov)
 {
 
 	/* General purpose registers */
@@ -620,8 +619,8 @@ tss32_restore(struct vmctx *ctx, struct vcpu *vcpu, struct vm_task_switch *ts,
  * code to be saved (e.g. #PF).
  */
 static int
-push_errcode(struct vcpu *vcpu, struct vm_guest_paging *paging,
-    int task_type, uint32_t errcode, int *faultptr)
+push_errcode(struct vcpu *vcpu, struct vm_guest_paging *paging, int task_type,
+    uint32_t errcode, int *faultptr)
 {
 	struct iovec iov[2];
 	struct seg_desc seg_desc;
@@ -663,8 +662,8 @@ push_errcode(struct vcpu *vcpu, struct vm_guest_paging *paging,
 	esp = GETREG(vcpu, VM_REG_GUEST_RSP);
 	esp -= bytes;
 
-	if (vie_calculate_gla(paging->cpu_mode, VM_REG_GUEST_SS,
-	    &seg_desc, esp, bytes, stacksize, PROT_WRITE, &gla)) {
+	if (vie_calculate_gla(paging->cpu_mode, VM_REG_GUEST_SS, &seg_desc, esp,
+		bytes, stacksize, PROT_WRITE, &gla)) {
 		sel_exception(vcpu, IDT_SS, stacksel, 1);
 		*faultptr = 1;
 		return (0);
@@ -676,8 +675,8 @@ push_errcode(struct vcpu *vcpu, struct vm_guest_paging *paging,
 		return (0);
 	}
 
-	error = vm_copy_setup(vcpu, paging, gla, bytes, PROT_WRITE,
-	    iov, nitems(iov), faultptr);
+	error = vm_copy_setup(vcpu, paging, gla, bytes, PROT_WRITE, iov,
+	    nitems(iov), faultptr);
 	if (error || *faultptr)
 		return (error);
 
@@ -690,13 +689,13 @@ push_errcode(struct vcpu *vcpu, struct vm_guest_paging *paging,
  * Evaluate return value from helper functions and potentially return to
  * the VM run loop.
  */
-#define	CHKERR(error,fault)						\
-	do {								\
-		assert((error == 0) || (error == EFAULT));		\
-		if (error)						\
-			return (VMEXIT_ABORT);				\
-		else if (fault)						\
-			return (VMEXIT_CONTINUE);			\
+#define CHKERR(error, fault)                               \
+	do {                                               \
+		assert((error == 0) || (error == EFAULT)); \
+		if (error)                                 \
+			return (VMEXIT_ABORT);             \
+		else if (fault)                            \
+			return (VMEXIT_CONTINUE);          \
 	} while (0)
 
 int vmexit_task_switch(struct vmctx *, struct vcpu *, struct vm_run *);
@@ -738,7 +737,7 @@ vmexit_task_switch(struct vmctx *ctx, struct vcpu *vcpu, struct vm_run *vmrun)
 	 * - accesses to the task state segment during task switch
 	 */
 	sup_paging = *paging;
-	sup_paging.cpl = 0;	/* implicit supervisor mode */
+	sup_paging.cpl = 0; /* implicit supervisor mode */
 
 	/* Fetch the new TSS descriptor */
 	error = read_tss_descriptor(vcpu, task_switch, nt_sel, &nt_desc,
@@ -813,8 +812,7 @@ vmexit_task_switch(struct vmctx *ctx, struct vcpu *vcpu, struct vm_run *vmrun)
 	}
 
 	/* Get the old TSS base and limit from the guest's task register */
-	error = vm_get_desc(vcpu, VM_REG_GUEST_TR, &ot_base, &ot_lim,
-	    &access);
+	error = vm_get_desc(vcpu, VM_REG_GUEST_TR, &ot_base, &ot_lim, &access);
 	assert(error == 0);
 	assert(!SEG_DESC_UNUSABLE(access) && SEG_DESC_PRESENT(access));
 	ot_type = SEG_DESC_TYPE(access);
@@ -837,8 +835,8 @@ vmexit_task_switch(struct vmctx *ctx, struct vcpu *vcpu, struct vm_run *vmrun)
 	 */
 	if (reason == TSR_IRET || reason == TSR_JMP) {
 		ot_desc.sd_type &= ~0x2;
-		error = desc_table_write(vcpu, &sup_paging, ot_sel,
-		    &ot_desc, &fault);
+		error = desc_table_write(vcpu, &sup_paging, ot_sel, &ot_desc,
+		    &fault);
 		CHKERR(error, fault);
 	}
 
@@ -856,8 +854,8 @@ vmexit_task_switch(struct vmctx *ctx, struct vcpu *vcpu, struct vm_run *vmrun)
 	 */
 	if (reason != TSR_IRET) {
 		nt_desc.sd_type |= 0x2;
-		error = desc_table_write(vcpu, &sup_paging, nt_sel,
-		    &nt_desc, &fault);
+		error = desc_table_write(vcpu, &sup_paging, nt_sel, &nt_desc,
+		    &fault);
 		CHKERR(error, fault);
 	}
 

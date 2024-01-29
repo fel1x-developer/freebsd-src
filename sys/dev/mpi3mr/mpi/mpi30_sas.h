@@ -11,11 +11,11 @@
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation and/or other
- *    materials provided with the distribution.
+ *    this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
  * 3. Neither the name of the Broadcom Inc. nor the names of its contributors
- *    may be used to endorse or promote products derived from this software without
- *    specific prior written permission.
+ *    may be used to endorse or promote products derived from this software
+ * without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -40,60 +40,58 @@
  */
 
 #ifndef MPI30_SAS_H
-#define MPI30_SAS_H     1
+#define MPI30_SAS_H 1
 
 /*****************************************************************************
  *              SAS Device Info Definitions                                  *
  ****************************************************************************/
-#define MPI3_SAS_DEVICE_INFO_SSP_TARGET             (0x00000100)
-#define MPI3_SAS_DEVICE_INFO_STP_SATA_TARGET        (0x00000080)
-#define MPI3_SAS_DEVICE_INFO_SMP_TARGET             (0x00000040)
-#define MPI3_SAS_DEVICE_INFO_SSP_INITIATOR          (0x00000020)
-#define MPI3_SAS_DEVICE_INFO_STP_INITIATOR          (0x00000010)
-#define MPI3_SAS_DEVICE_INFO_SMP_INITIATOR          (0x00000008)
-#define MPI3_SAS_DEVICE_INFO_DEVICE_TYPE_MASK       (0x00000007)
-#define MPI3_SAS_DEVICE_INFO_DEVICE_TYPE_NO_DEVICE  (0x00000000)
+#define MPI3_SAS_DEVICE_INFO_SSP_TARGET (0x00000100)
+#define MPI3_SAS_DEVICE_INFO_STP_SATA_TARGET (0x00000080)
+#define MPI3_SAS_DEVICE_INFO_SMP_TARGET (0x00000040)
+#define MPI3_SAS_DEVICE_INFO_SSP_INITIATOR (0x00000020)
+#define MPI3_SAS_DEVICE_INFO_STP_INITIATOR (0x00000010)
+#define MPI3_SAS_DEVICE_INFO_SMP_INITIATOR (0x00000008)
+#define MPI3_SAS_DEVICE_INFO_DEVICE_TYPE_MASK (0x00000007)
+#define MPI3_SAS_DEVICE_INFO_DEVICE_TYPE_NO_DEVICE (0x00000000)
 #define MPI3_SAS_DEVICE_INFO_DEVICE_TYPE_END_DEVICE (0x00000001)
-#define MPI3_SAS_DEVICE_INFO_DEVICE_TYPE_EXPANDER   (0x00000002)
+#define MPI3_SAS_DEVICE_INFO_DEVICE_TYPE_EXPANDER (0x00000002)
 
 /*****************************************************************************
  *              SMP Passthrough Request Message                              *
  ****************************************************************************/
-typedef struct _MPI3_SMP_PASSTHROUGH_REQUEST
-{
-    U16                     HostTag;                        /* 0x00 */
-    U8                      IOCUseOnly02;                   /* 0x02 */
-    U8                      Function;                       /* 0x03 */
-    U16                     IOCUseOnly04;                   /* 0x04 */
-    U8                      IOCUseOnly06;                   /* 0x06 */
-    U8                      MsgFlags;                       /* 0x07 */
-    U16                     ChangeCount;                    /* 0x08 */
-    U8                      Reserved0A;                     /* 0x0A */
-    U8                      IOUnitPort;                     /* 0x0B */
-    U32                     Reserved0C[3];                  /* 0x0C */
-    U64                     SASAddress;                     /* 0x18 */
-    MPI3_SGE_SIMPLE         RequestSGE;                     /* 0x20 */
-    MPI3_SGE_SIMPLE         ResponseSGE;                    /* 0x30 */
+typedef struct _MPI3_SMP_PASSTHROUGH_REQUEST {
+	U16 HostTag;		     /* 0x00 */
+	U8 IOCUseOnly02;	     /* 0x02 */
+	U8 Function;		     /* 0x03 */
+	U16 IOCUseOnly04;	     /* 0x04 */
+	U8 IOCUseOnly06;	     /* 0x06 */
+	U8 MsgFlags;		     /* 0x07 */
+	U16 ChangeCount;	     /* 0x08 */
+	U8 Reserved0A;		     /* 0x0A */
+	U8 IOUnitPort;		     /* 0x0B */
+	U32 Reserved0C[3];	     /* 0x0C */
+	U64 SASAddress;		     /* 0x18 */
+	MPI3_SGE_SIMPLE RequestSGE;  /* 0x20 */
+	MPI3_SGE_SIMPLE ResponseSGE; /* 0x30 */
 } MPI3_SMP_PASSTHROUGH_REQUEST, MPI3_POINTER PTR_MPI3_SMP_PASSTHROUGH_REQUEST,
-  Mpi3SmpPassthroughRequest_t, MPI3_POINTER pMpi3SmpPassthroughRequest_t;
+    Mpi3SmpPassthroughRequest_t, MPI3_POINTER pMpi3SmpPassthroughRequest_t;
 
 /*****************************************************************************
  *              SMP Passthrough Reply Message                               *
  ****************************************************************************/
-typedef struct _MPI3_SMP_PASSTHROUGH_REPLY
-{
-    U16                     HostTag;                        /* 0x00 */
-    U8                      IOCUseOnly02;                   /* 0x02 */
-    U8                      Function;                       /* 0x03 */
-    U16                     IOCUseOnly04;                   /* 0x04 */
-    U8                      IOCUseOnly06;                   /* 0x06 */
-    U8                      MsgFlags;                       /* 0x07 */
-    U16                     IOCUseOnly08;                   /* 0x08 */
-    U16                     IOCStatus;                      /* 0x0A */
-    U32                     IOCLogInfo;                     /* 0x0C */
-    U16                     ResponseDataLength;             /* 0x10 */
-    U16                     Reserved12;                     /* 0x12 */
+typedef struct _MPI3_SMP_PASSTHROUGH_REPLY {
+	U16 HostTag;		/* 0x00 */
+	U8 IOCUseOnly02;	/* 0x02 */
+	U8 Function;		/* 0x03 */
+	U16 IOCUseOnly04;	/* 0x04 */
+	U8 IOCUseOnly06;	/* 0x06 */
+	U8 MsgFlags;		/* 0x07 */
+	U16 IOCUseOnly08;	/* 0x08 */
+	U16 IOCStatus;		/* 0x0A */
+	U32 IOCLogInfo;		/* 0x0C */
+	U16 ResponseDataLength; /* 0x10 */
+	U16 Reserved12;		/* 0x12 */
 } MPI3_SMP_PASSTHROUGH_REPLY, MPI3_POINTER PTR_MPI3_SMP_PASSTHROUGH_REPLY,
-  Mpi3SmpPassthroughReply_t, MPI3_POINTER pMpi3SmpPassthroughReply_t;
+    Mpi3SmpPassthroughReply_t, MPI3_POINTER pMpi3SmpPassthroughReply_t;
 
-#endif  /* MPI30_SAS_H */
+#endif /* MPI30_SAS_H */

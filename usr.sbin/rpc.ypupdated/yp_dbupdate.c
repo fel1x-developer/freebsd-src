@@ -35,18 +35,19 @@
 #include <sys/cdefs.h>
 #include <sys/fcntl.h>
 
+#include <db.h>
+#include <errno.h>
+#include <limits.h>
+#include <rpcsvc/ypclnt.h>
+#include <rpcsvc/ypupdate_prot.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
-#include <limits.h>
-#include <db.h>
 #include <unistd.h>
-#include <rpcsvc/ypclnt.h>
-#include <rpcsvc/ypupdate_prot.h>
-#include "ypxfr_extern.h"
+
 #include "ypupdated_extern.h"
+#include "ypxfr_extern.h"
 
 static int
 yp_domake(char *map, char *domain)
@@ -57,19 +58,19 @@ yp_domake(char *map, char *domain)
 	case 0:
 		execlp(MAP_UPDATE_PATH, MAP_UPDATE, map, domain, (char *)NULL);
 		yp_error("couldn't exec map update process: %s",
-						strerror(errno));
+		    strerror(errno));
 		exit(1);
 		break;
 	case -1:
 		yp_error("fork() failed: %s", strerror(errno));
-		return(YPERR_YPERR);
+		return (YPERR_YPERR);
 		break;
 	default:
 		children++;
 		break;
 	}
 
-	return(0);
+	return (0);
 }
 
 int
@@ -84,13 +85,12 @@ ypmap_update(char *netname, char *map, unsigned int op, unsigned int keylen,
 	int rval = 0;
 
 	if ((domptr = strchr(netname, '@')) == NULL)
-		return(ERR_ACCESS);
+		return (ERR_ACCESS);
 	domptr++;
-
 
 	dbp = yp_open_db_rw(domptr, map, O_RDWR);
 	if (dbp == NULL)
-		return(ERR_DBASE);
+		return (ERR_DBASE);
 
 	key.data = keyval;
 	key.size = keylen;
@@ -128,7 +128,7 @@ ypmap_update(char *netname, char *map, unsigned int op, unsigned int keylen,
 
 	if (rval) {
 		(void)(dbp->close)(dbp);
-		return(rval);
+		return (rval);
 	}
 
 	snprintf(yplastbuf, sizeof(yplastbuf), "%jd", (intmax_t)time(NULL));
@@ -139,9 +139,9 @@ ypmap_update(char *netname, char *map, unsigned int op, unsigned int keylen,
 	if (yp_put_record(dbp, &key, &data, 1) != YP_TRUE) {
 		yp_error("failed to update timestamp in %s/%s", domptr, map);
 		(void)(dbp->close)(dbp);
-		return(ERR_DBASE);
+		return (ERR_DBASE);
 	}
 
 	(void)(dbp->close)(dbp);
-	return(yp_domake(map, domptr));
+	return (yp_domake(map, domptr));
 }

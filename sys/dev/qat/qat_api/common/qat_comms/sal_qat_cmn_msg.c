@@ -25,12 +25,12 @@
 * Include private header files
 *******************************************************************************
 */
-#include "qat_utils.h"
 #include "icp_accel_devices.h"
 #include "icp_qat_fw_la.h"
 #include "icp_qat_hw.h"
 #include "lac_common.h"
 #include "lac_mem.h"
+#include "qat_utils.h"
 #include "sal_qat_cmn_msg.h"
 
 /********************************************************************
@@ -53,16 +53,15 @@
  *****************************************/
 void
 SalQatMsg_CmnHdrWrite(icp_qat_fw_comn_req_t *pMsg,
-		      icp_qat_fw_comn_request_id_t serviceType,
-		      uint8_t serviceCmdId,
-		      icp_qat_fw_comn_flags cmnFlags,
-		      icp_qat_fw_serv_specif_flags serviceCmdFlags)
+    icp_qat_fw_comn_request_id_t serviceType, uint8_t serviceCmdId,
+    icp_qat_fw_comn_flags cmnFlags,
+    icp_qat_fw_serv_specif_flags serviceCmdFlags)
 {
 	icp_qat_fw_comn_req_hdr_t *pHeader = &(pMsg->comn_hdr);
 
 	/* LW0 */
-	pHeader->hdr_flags =
-	    ICP_QAT_FW_COMN_HDR_FLAGS_BUILD(ICP_QAT_FW_COMN_REQ_FLAG_SET);
+	pHeader->hdr_flags = ICP_QAT_FW_COMN_HDR_FLAGS_BUILD(
+	    ICP_QAT_FW_COMN_REQ_FLAG_SET);
 	pHeader->service_type = (uint8_t)serviceType;
 	pHeader->service_cmd_id = serviceCmdId;
 	pHeader->resrvd1 = 0;
@@ -97,12 +96,8 @@ SalQatMsg_CmnHdrWrite(icp_qat_fw_comn_req_t *pMsg,
  *
  *****************************************/
 void inline SalQatMsg_CmnMidWrite(icp_qat_fw_la_bulk_req_t *pReq,
-				  const void *pOpaqueData,
-				  Cpa8U bufferFormat,
-				  Cpa64U srcBuffer,
-				  Cpa64U dstBuffer,
-				  Cpa32U srcLength,
-				  Cpa32U dstLength)
+    const void *pOpaqueData, Cpa8U bufferFormat, Cpa64U srcBuffer,
+    Cpa64U dstBuffer, Cpa32U srcLength, Cpa32U dstLength)
 {
 	icp_qat_fw_comn_req_mid_t *pMid = &(pReq->comn_mid);
 
@@ -121,7 +116,7 @@ void inline SalQatMsg_CmnMidWrite(icp_qat_fw_la_bulk_req_t *pReq,
 	if (bufferFormat == QAT_COMN_PTR_TYPE_SGL) {
 		/* Using ScatterGatherLists so set flag in header */
 		ICP_QAT_FW_COMN_PTR_TYPE_SET(pReq->comn_hdr.comn_req_flags,
-					     QAT_COMN_PTR_TYPE_SGL);
+		    QAT_COMN_PTR_TYPE_SGL);
 
 		/* Assumption: No need to set src and dest length in this case
 		 * as not
@@ -130,7 +125,7 @@ void inline SalQatMsg_CmnMidWrite(icp_qat_fw_la_bulk_req_t *pReq,
 	} else {
 		/* Using Flat buffers so set flag in header */
 		ICP_QAT_FW_COMN_PTR_TYPE_SET(pReq->comn_hdr.comn_req_flags,
-					     QAT_COMN_PTR_TYPE_FLAT);
+		    QAT_COMN_PTR_TYPE_FLAT);
 
 		pMid->src_length = srcLength;
 		pMid->dst_length = dstLength;
@@ -152,8 +147,7 @@ void inline SalQatMsg_CmnMidWrite(icp_qat_fw_la_bulk_req_t *pReq,
  *
  *****************************************/
 void
-SalQatMsg_ContentDescHdrWrite(
-    icp_qat_fw_comn_req_t *pMsg,
+SalQatMsg_ContentDescHdrWrite(icp_qat_fw_comn_req_t *pMsg,
     const sal_qat_content_desc_info_t *pContentDescInfo)
 {
 	icp_qat_fw_comn_req_hdr_cd_pars_t *pCd_pars = &(pMsg->cd_pars);
@@ -203,10 +197,8 @@ SalQatMsg_CtrlBlkSetToReserved(icp_qat_fw_comn_req_t *pMsg)
  *
  *****************************************/
 CpaStatus
-SalQatMsg_transPutMsg(icp_comms_trans_handle trans_handle,
-		      void *pqat_msg,
-		      Cpa32U size_in_lws,
-		      Cpa8U service)
+SalQatMsg_transPutMsg(icp_comms_trans_handle trans_handle, void *pqat_msg,
+    Cpa32U size_in_lws, Cpa8U service)
 {
 	return icp_adf_transPutMsg(trans_handle, pqat_msg, size_in_lws);
 }

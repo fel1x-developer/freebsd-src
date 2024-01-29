@@ -36,10 +36,9 @@
 #error "Unsupported long double format"
 #endif
 
-#define	BIAS	(LDBL_MAX_EXP - 1)
+#define BIAS (LDBL_MAX_EXP - 1)
 
-static const float
-shift[2] = {
+static const float shift[2] = {
 #if LDBL_MANT_DIG == 64
 	0x1.0p63, -0x1.0p63
 #elif LDBL_MANT_DIG == 113
@@ -63,7 +62,7 @@ rintl(long double x)
 
 	if (ex >= BIAS + LDBL_MANT_DIG - 1) {
 		if (ex == BIAS + LDBL_MAX_EXP)
-			return (x + x);	/* Inf, NaN, or unsupported format */
+			return (x + x); /* Inf, NaN, or unsupported format */
 		return (x);		/* finite and already an integer */
 	}
 	sign = expsign >> 15;

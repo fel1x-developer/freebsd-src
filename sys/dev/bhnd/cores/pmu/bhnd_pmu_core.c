@@ -30,12 +30,12 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
-#include <sys/bus.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/systm.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
@@ -50,20 +50,19 @@
  */
 
 /* Supported device identifiers */
-static const struct bhnd_device bhnd_pmucore_devices[] = {
-	BHND_DEVICE(BCM, PMU, NULL, NULL),
+static const struct bhnd_device bhnd_pmucore_devices[] = { BHND_DEVICE(BCM, PMU,
+							       NULL, NULL),
 
-	BHND_DEVICE_END
-};
+	BHND_DEVICE_END };
 
 static int
 bhnd_pmu_core_probe(device_t dev)
 {
-	const struct bhnd_device	*id;
-	int				 error;
+	const struct bhnd_device *id;
+	int error;
 
 	id = bhnd_device_lookup(dev, bhnd_pmucore_devices,
-	     sizeof(bhnd_pmucore_devices[0]));
+	    sizeof(bhnd_pmucore_devices[0]));
 	if (id == NULL)
 		return (ENXIO);
 
@@ -78,10 +77,10 @@ bhnd_pmu_core_probe(device_t dev)
 static int
 bhnd_pmu_core_attach(device_t dev)
 {
-	struct bhnd_pmu_softc	*sc;
-	struct bhnd_resource	*res;
-	int			 error;
-	int			 rid;
+	struct bhnd_pmu_softc *sc;
+	struct bhnd_resource *res;
+	int error;
+	int rid;
 
 	sc = device_get_softc(dev);
 
@@ -114,8 +113,8 @@ bhnd_pmu_core_attach(device_t dev)
 static int
 bhnd_pmu_core_detach(device_t dev)
 {
-	struct bhnd_pmu_softc	*sc;
-	int			 error;
+	struct bhnd_pmu_softc *sc;
+	int error;
 
 	sc = device_get_softc(dev);
 
@@ -129,9 +128,9 @@ bhnd_pmu_core_detach(device_t dev)
 
 static device_method_t bhnd_pmucore_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		bhnd_pmu_core_probe),
-	DEVMETHOD(device_attach,	bhnd_pmu_core_attach),
-	DEVMETHOD(device_detach,	bhnd_pmu_core_detach),
+	DEVMETHOD(device_probe, bhnd_pmu_core_probe),
+	DEVMETHOD(device_attach, bhnd_pmu_core_attach),
+	DEVMETHOD(device_detach, bhnd_pmu_core_detach),
 
 	DEVMETHOD_END
 };

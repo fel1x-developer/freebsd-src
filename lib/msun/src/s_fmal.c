@@ -212,7 +212,7 @@ fmal(long double x, long double y, long double z)
 				return (z);
 			else
 				return (nextafterl(z, -INFINITY));
-		default:	/* FE_UPWARD */
+		default: /* FE_UPWARD */
 			if (x > 0.0 ^ y < 0.0)
 				return (nextafterl(z, INFINITY));
 			else

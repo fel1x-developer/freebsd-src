@@ -31,11 +31,8 @@
 
 #include <sys/param.h>
 #include <sys/socket.h>
-#include <sys/wait.h>
 #include <sys/stat.h>
-
-#include <ufs/ufs/dinode.h>
-#include <ufs/ffs/fs.h>
+#include <sys/wait.h>
 
 #include <protocols/dumprestore.h>
 
@@ -49,30 +46,32 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
 #include <unistd.h>
 
 #include "dump.h"
 
-ino_t	curino;			/* current inumber; used globally */
-int	newtape;		/* new tape flag */
-union	u_spcl u_spcl;		/* mapping of variables in a control block */
+ino_t curino;	     /* current inumber; used globally */
+int newtape;	     /* new tape flag */
+union u_spcl u_spcl; /* mapping of variables in a control block */
 
-static	int tapefd;		/* tape file descriptor */
-static	long asize;		/* number of 0.1" units written on cur tape */
-static	int writesize;		/* size of malloc()ed buffer for tape */
-static	int64_t lastspclrec = -1; /* tape block number of last written header */
-static	int trecno = 0;		/* next record to write in current block */
-static	long blocksthisvol;	/* number of blocks on current output file */
-static	char *nexttape;
-static	FILE *popenfp = NULL;
+static int tapefd;		 /* tape file descriptor */
+static long asize;		 /* number of 0.1" units written on cur tape */
+static int writesize;		 /* size of malloc()ed buffer for tape */
+static int64_t lastspclrec = -1; /* tape block number of last written header */
+static int trecno = 0;		 /* next record to write in current block */
+static long blocksthisvol;	 /* number of blocks on current output file */
+static char *nexttape;
+static FILE *popenfp = NULL;
 
-static	int atomic_read(int, void *, int);
-static	int atomic_write(int, const void *, int);
-static	void worker(int, int);
-static	void create_workers(void);
-static	void flushtape(void);
-static	void killall(void);
-static	void rollforward(void);
+static int atomic_read(int, void *, int);
+static int atomic_write(int, const void *, int);
+static void worker(int, int);
+static void create_workers(void);
+static void flushtape(void);
+static void killall(void);
+static void rollforward(void);
 
 /*
  * Concurrent dump mods (Caltech) - disk block reading and tape writing
@@ -88,30 +87,30 @@ struct req {
 };
 static int reqsiz;
 
-#define WORKERS 3		/* 1 worker writing, 1 reading, 1 for slack */
+#define WORKERS 3 /* 1 worker writing, 1 reading, 1 for slack */
 static struct worker {
-	int64_t tapea;		/* header number at start of this chunk */
-	int64_t firstrec;	/* record number of this block */
-	int count;		/* count to next header (used for TS_TAPE */
-				/* after EOT) */
-	int inode;		/* inode that we are currently dealing with */
-	int fd;			/* FD for this worker */
-	int pid;		/* PID for this worker */
-	int sent;		/* 1 == we've sent this worker requests */
+	int64_t tapea;		  /* header number at start of this chunk */
+	int64_t firstrec;	  /* record number of this block */
+	int count;		  /* count to next header (used for TS_TAPE */
+				  /* after EOT) */
+	int inode;		  /* inode that we are currently dealing with */
+	int fd;			  /* FD for this worker */
+	int pid;		  /* PID for this worker */
+	int sent;		  /* 1 == we've sent this worker requests */
 	char (*tblock)[TP_BSIZE]; /* buffer for data blocks */
-	struct req *req;	/* buffer for requests */
-} workers[WORKERS+1];
+	struct req *req;	  /* buffer for requests */
+} workers[WORKERS + 1];
 static struct worker *wp;
 
-static char	(*nextblock)[TP_BSIZE];
+static char (*nextblock)[TP_BSIZE];
 
-static int master;	/* pid of master, for sending error signals */
-static int tenths;	/* length of tape used per block written */
+static int master; /* pid of master, for sending error signals */
+static int tenths; /* length of tape used per block written */
 static volatile sig_atomic_t caught; /* have we caught the signal to proceed? */
-static volatile sig_atomic_t ready; /* reached the lock point without having */
-			/* received the SIGUSR2 signal from the prev worker? */
-static jmp_buf jmpbuf;	/* where to jump to if we are ready when the */
-			/* SIGUSR2 arrives from the previous worker */
+static volatile sig_atomic_t ready;  /* reached the lock point without having */
+/* received the SIGUSR2 signal from the prev worker? */
+static jmp_buf jmpbuf; /* where to jump to if we are ready when the */
+		       /* SIGUSR2 arrives from the previous worker */
 
 int
 alloctape(void)
@@ -130,19 +129,21 @@ alloctape(void)
 	 */
 	if (blocksperfile == 0 && !unlimited)
 		tenths = writesize / density +
-		    (cartridge ? 16 : density == 625 ? 5 : 8);
+		    (cartridge		   ? 16 :
+			    density == 625 ? 5 :
+					     8);
 	/*
 	 * Allocate tape buffer contiguous with the array of instruction
 	 * packets, so flushtape() can write them together with one write().
 	 * Align tape buffer on page boundary to speed up tape write().
 	 */
 	for (i = 0; i <= WORKERS; i++) {
-		buf = (char *)
-		    malloc((unsigned)(reqsiz + writesize + pgoff + TP_BSIZE));
+		buf = (char *)malloc(
+		    (unsigned)(reqsiz + writesize + pgoff + TP_BSIZE));
 		if (buf == NULL)
-			return(0);
-		workers[i].tblock = (char (*)[TP_BSIZE])
-		    (((long)&buf[ntrec + 1] + pgoff) &~ pgoff);
+			return (0);
+		workers[i].tblock = (char(*)[TP_BSIZE])(
+		    ((long)&buf[ntrec + 1] + pgoff) & ~pgoff);
 		workers[i].req = (struct req *)workers[i].tblock - ntrec - 1;
 	}
 	wp = &workers[0];
@@ -150,7 +151,7 @@ alloctape(void)
 	wp->tapea = 0;
 	wp->firstrec = 0;
 	nextblock = wp->tblock;
-	return(1);
+	return (1);
 }
 
 void
@@ -160,7 +161,7 @@ writerec(char *dp, int isspcl)
 	wp->req[trecno].dblk = (ufs2_daddr_t)0;
 	wp->req[trecno].count = 1;
 	/* Can't do a structure assignment due to alignment problems */
-	bcopy(dp, *(nextblock)++, sizeof (union u_spcl));
+	bcopy(dp, *(nextblock)++, sizeof(union u_spcl));
 	if (isspcl)
 		lastspclrec = spcl.c_tapea;
 	trecno++;
@@ -189,7 +190,7 @@ dumpblock(ufs2_daddr_t blkno, int size)
 	}
 }
 
-int	nogripe = 0;
+int nogripe = 0;
 
 void
 tperror(int signo __unused)
@@ -227,7 +228,7 @@ flushtape(void)
 
 	int siz = (char *)nextblock - (char *)wp->req;
 
-	wp->req[trecno].count = 0;			/* Sentinel */
+	wp->req[trecno].count = 0; /* Sentinel */
 
 	if (atomic_write(wp->fd, (const void *)wp->req, siz) != siz)
 		quit("error writing command pipe: %s\n", strerror(errno));
@@ -240,8 +241,8 @@ flushtape(void)
 
 	/* Read results back from next worker */
 	if (wp->sent) {
-		if (atomic_read(wp->fd, (void *)&got, sizeof got)
-		    != sizeof got) {
+		if (atomic_read(wp->fd, (void *)&got, sizeof got) !=
+		    sizeof got) {
 			perror("  DUMP: error reading command pipe in master");
 			dumpabort(0);
 		}
@@ -258,9 +259,10 @@ flushtape(void)
 			for (i = 0; i < WORKERS; i++) {
 				if (workers[i].sent) {
 					if (atomic_read(workers[i].fd,
-					    (void *)&got, sizeof got)
-					    != sizeof got) {
-						perror("  DUMP: error reading command pipe in master");
+						(void *)&got,
+						sizeof got) != sizeof got) {
+						perror(
+						    "  DUMP: error reading command pipe in master");
 						dumpabort(0);
 					}
 					workers[i].sent = 0;
@@ -290,8 +292,9 @@ flushtape(void)
 	asize += tenths;
 	blockswritten += ntrec;
 	blocksthisvol += ntrec;
-	if (!pipeout && !unlimited && (blocksperfile ?
-	    (blocksthisvol >= blocksperfile) : (asize > tsize))) {
+	if (!pipeout && !unlimited &&
+	    (blocksperfile ? (blocksthisvol >= blocksperfile) :
+			     (asize > tsize))) {
 		close_rewind();
 		startnewtape(0);
 	}
@@ -315,9 +318,10 @@ trewind(void)
 		 * fixme: punt for now.
 		 */
 		if (workers[f].sent) {
-			if (atomic_read(workers[f].fd, (void *)&got, sizeof got)
-			    != sizeof got) {
-				perror("  DUMP: error reading command pipe in master");
+			if (atomic_read(workers[f].fd, (void *)&got,
+				sizeof got) != sizeof got) {
+				perror(
+				    "  DUMP: error reading command pipe in master");
 				dumpabort(0);
 			}
 			workers[f].sent = 0;
@@ -327,9 +331,9 @@ trewind(void)
 				quit("or use no size estimate at all.\n");
 			}
 		}
-		(void) close(workers[f].fd);
+		(void)close(workers[f].fd);
 	}
-	while (wait((int *)NULL) >= 0)	/* wait for any signals from workers */
+	while (wait((int *)NULL) >= 0) /* wait for any signals from workers */
 		/* void */;
 
 	if (pipeout)
@@ -356,10 +360,10 @@ trewind(void)
 		(void)close(tapefd);
 		return;
 	}
-	(void) close(tapefd);
+	(void)close(tapefd);
 	while ((f = open(tape, 0)) < 0)
-		sleep (10);
-	(void) close(f);
+		sleep(10);
+	(void)close(f);
 }
 
 void
@@ -372,7 +376,7 @@ close_rewind()
 		return;
 	(void)time((time_t *)&(tstart_changevol));
 	if (!nogripe) {
-		msg("Change Volumes: Mount volume #%d\n", tapeno+1);
+		msg("Change Volumes: Mount volume #%d\n", tapeno + 1);
 		broadcast("CHANGE DUMP VOLUMES!\a\a\n");
 	}
 	while (!query("Is the new volume mounted and ready to go?"))
@@ -456,7 +460,7 @@ rollforward(void)
 			 * block...
 			 */
 			q->dblk = prev->dblk +
-				prev->count * (TP_BSIZE / DEV_BSIZE);
+			    prev->count * (TP_BSIZE / DEV_BSIZE);
 			ntb = (union u_spcl *)twp->tblock;
 		} else {
 			/*
@@ -479,8 +483,8 @@ rollforward(void)
 	 * worked ok, otherwise the tape is much too short!
 	 */
 	if (wp->sent) {
-		if (atomic_read(wp->fd, (void *)&got, sizeof got)
-		    != sizeof got) {
+		if (atomic_read(wp->fd, (void *)&got, sizeof got) !=
+		    sizeof got) {
 			perror("  DUMP: error reading command pipe in master");
 			dumpabort(0);
 		}
@@ -504,11 +508,11 @@ rollforward(void)
 void
 startnewtape(int top)
 {
-	int	parentpid;
-	int	childpid;
-	int	status;
-	char	*p;
-	sig_t	interrupt_save;
+	int parentpid;
+	int childpid;
+	int status;
+	char *p;
+	sig_t interrupt_save;
 
 	interrupt_save = signal(SIGINT, SIG_IGN);
 	parentpid = getpid();
@@ -518,7 +522,7 @@ restore_check_point:
 	/*
 	 *	All signals are inherited...
 	 */
-	setproctitle(NULL);	/* Restore the proctitle. */
+	setproctitle(NULL); /* Restore the proctitle. */
 	childpid = fork();
 	if (childpid < 0) {
 		msg("Context save fork fails in parent %d\n", parentpid);
@@ -534,57 +538,56 @@ restore_check_point:
 		signal(SIGINT, SIG_IGN);
 #ifdef TDEBUG
 		msg("Tape: %d; parent process: %d child process %d\n",
-			tapeno+1, parentpid, childpid);
+		    tapeno + 1, parentpid, childpid);
 #endif /* TDEBUG */
 		if (waitpid(childpid, &status, 0) == -1)
 			msg("Waiting for child %d: %s\n", childpid,
 			    strerror(errno));
 		if (status & 0xFF) {
-			msg("Child %d returns LOB status %o\n",
-				childpid, status&0xFF);
+			msg("Child %d returns LOB status %o\n", childpid,
+			    status & 0xFF);
 		}
 		status = (status >> 8) & 0xFF;
 #ifdef TDEBUG
-		switch(status) {
-			case X_FINOK:
-				msg("Child %d finishes X_FINOK\n", childpid);
-				break;
-			case X_ABORT:
-				msg("Child %d finishes X_ABORT\n", childpid);
-				break;
-			case X_REWRITE:
-				msg("Child %d finishes X_REWRITE\n", childpid);
-				break;
-			default:
-				msg("Child %d finishes unknown %d\n",
-					childpid, status);
-				break;
+		switch (status) {
+		case X_FINOK:
+			msg("Child %d finishes X_FINOK\n", childpid);
+			break;
+		case X_ABORT:
+			msg("Child %d finishes X_ABORT\n", childpid);
+			break;
+		case X_REWRITE:
+			msg("Child %d finishes X_REWRITE\n", childpid);
+			break;
+		default:
+			msg("Child %d finishes unknown %d\n", childpid, status);
+			break;
 		}
 #endif /* TDEBUG */
-		switch(status) {
-			case X_FINOK:
-				Exit(X_FINOK);
-			case X_ABORT:
-				Exit(X_ABORT);
-			case X_REWRITE:
-				goto restore_check_point;
-			default:
-				msg("Bad return code from dump: %d\n", status);
-				Exit(X_ABORT);
+		switch (status) {
+		case X_FINOK:
+			Exit(X_FINOK);
+		case X_ABORT:
+			Exit(X_ABORT);
+		case X_REWRITE:
+			goto restore_check_point;
+		default:
+			msg("Bad return code from dump: %d\n", status);
+			Exit(X_ABORT);
 		}
 		/*NOTREACHED*/
-	} else {	/* we are the child; just continue */
+	} else { /* we are the child; just continue */
 #ifdef TDEBUG
-		sleep(4);	/* allow time for parent's message to get out */
-		msg("Child on Tape %d has parent %d, my pid = %d\n",
-			tapeno+1, parentpid, getpid());
+		sleep(4); /* allow time for parent's message to get out */
+		msg("Child on Tape %d has parent %d, my pid = %d\n", tapeno + 1,
+		    parentpid, getpid());
 #endif /* TDEBUG */
 		/*
 		 * If we have a name like "/dev/rmt0,/dev/rmt1",
 		 * use the name before the comma first, and save
 		 * the remaining names for subsequent volumes.
 		 */
-		tapeno++;               /* current tape sequence */
+		tapeno++; /* current tape sequence */
 		if (nexttape || strchr(tape, ',')) {
 			if (nexttape && *nexttape)
 				tape = nexttape;
@@ -615,27 +618,29 @@ restore_check_point:
 		} else {
 #ifdef RDUMP
 			while ((tapefd = (host ? rmtopen(tape, 2) :
-				open(tape, O_WRONLY|O_CREAT, 0666))) < 0)
+						 open(tape, O_WRONLY | O_CREAT,
+						     0666))) < 0)
 #else
-			while ((tapefd =
-			    open(tape, O_WRONLY|O_CREAT, 0666)) < 0)
+			while (
+			    (tapefd = open(tape, O_WRONLY | O_CREAT, 0666)) < 0)
 #endif
-			    {
+			{
 				msg("Cannot open output \"%s\".\n", tape);
 				if (!query("Do you want to retry the open?"))
 					dumpabort(0);
 			}
 		}
 
-		create_workers();  /* Share open tape file descriptor with workers */
+		create_workers(); /* Share open tape file descriptor with
+				     workers */
 		if (popenout)
-			close(tapefd);	/* Give up our copy of it. */
+			close(tapefd); /* Give up our copy of it. */
 		signal(SIGINFO, infosch);
 
 		asize = 0;
 		blocksthisvol = 0;
 		if (top)
-			newtape++;		/* new tape signal */
+			newtape++; /* new tape signal */
 		spcl.c_count = wp->count;
 		/*
 		 * measure firstrec in TP_BSIZE units since restore doesn't
@@ -647,7 +652,7 @@ restore_check_point:
 		writeheader((ino_t)wp->inode);
 		if (tapeno > 1)
 			msg("Volume %d begins with blocks from inode %d\n",
-				tapeno, wp->inode);
+			    tapeno, wp->inode);
 	}
 }
 
@@ -657,7 +662,7 @@ dumpabort(int signo __unused)
 
 	if (master != 0 && master != getpid())
 		/* Signals master to call dumpabort */
-		(void) kill(master, SIGTERM);
+		(void)kill(master, SIGTERM);
 	else {
 		killall();
 		msg("The ENTIRE dump is aborted.\n");
@@ -698,10 +703,10 @@ create_workers(void)
 
 	master = getpid();
 
-	signal(SIGTERM, dumpabort);  /* Worker sends SIGTERM on dumpabort() */
+	signal(SIGTERM, dumpabort); /* Worker sends SIGTERM on dumpabort() */
 	signal(SIGPIPE, sigpipe);
-	signal(SIGUSR1, tperror);    /* Worker sends SIGUSR1 on tape errors */
-	signal(SIGUSR2, proceed);    /* Worker sends SIGUSR2 to next worker */
+	signal(SIGUSR1, tperror); /* Worker sends SIGUSR1 on tape errors */
+	signal(SIGUSR2, proceed); /* Worker sends SIGUSR2 to next worker */
 
 	for (i = 0; i < WORKERS; i++) {
 		if (i == wp - &workers[0]) {
@@ -717,19 +722,19 @@ create_workers(void)
 
 		workers[i].fd = cmd[1];
 		workers[i].sent = 0;
-		if (workers[i].pid == 0) { 	    /* Worker starts up here */
+		if (workers[i].pid == 0) { /* Worker starts up here */
 			for (j = 0; j <= i; j++)
-			        (void) close(workers[j].fd);
-			signal(SIGINT, SIG_IGN);    /* Master handles this */
+				(void)close(workers[j].fd);
+			signal(SIGINT, SIG_IGN); /* Master handles this */
 			worker(cmd[0], i);
 			Exit(X_FINOK);
 		}
 	}
 
 	for (i = 0; i < WORKERS; i++)
-		(void) atomic_write(workers[i].fd,
-			      (const void *) &workers[(i + 1) % WORKERS].pid,
-		              sizeof workers[0].pid);
+		(void)atomic_write(workers[i].fd,
+		    (const void *)&workers[(i + 1) % WORKERS].pid,
+		    sizeof workers[0].pid);
 
 	master = 0;
 }
@@ -741,7 +746,7 @@ killall(void)
 
 	for (i = 0; i < WORKERS; i++)
 		if (workers[i].pid > 0) {
-			(void) kill(workers[i].pid, SIGKILL);
+			(void)kill(workers[i].pid, SIGKILL);
 			workers[i].sent = 0;
 		}
 }
@@ -762,16 +767,17 @@ worker(int cmd, int worker_number)
 	/*
 	 * Need our own seek pointer.
 	 */
-	(void) close(diskfd);
+	(void)close(diskfd);
 	if ((diskfd = open(disk, O_RDONLY)) < 0)
 		quit("worker couldn't reopen disk: %s\n", strerror(errno));
 
 	/*
 	 * Need the pid of the next worker in the loop...
 	 */
-	if ((nread = atomic_read(cmd, (void *)&nextworker, sizeof nextworker))
-	    != sizeof nextworker) {
-		quit("master/worker protocol botched - didn't get pid of next worker.\n");
+	if ((nread = atomic_read(cmd, (void *)&nextworker,
+		 sizeof nextworker)) != sizeof nextworker) {
+		quit(
+		    "master/worker protocol botched - didn't get pid of next worker.\n");
 	}
 
 	/*
@@ -784,18 +790,19 @@ worker(int cmd, int worker_number)
 		     trecno += p->count, p += p->count) {
 			if (p->dblk) {
 				blkread(p->dblk, wp->tblock[trecno],
-					p->count * TP_BSIZE);
+				    p->count * TP_BSIZE);
 			} else {
-				if (p->count != 1 || atomic_read(cmd,
-				    (void *)wp->tblock[trecno],
-				    TP_BSIZE) != TP_BSIZE)
-				       quit("master/worker protocol botched.\n");
+				if (p->count != 1 ||
+				    atomic_read(cmd, (void *)wp->tblock[trecno],
+					TP_BSIZE) != TP_BSIZE)
+					quit(
+					    "master/worker protocol botched.\n");
 			}
 		}
 		if (setjmp(jmpbuf) == 0) {
 			ready = 1;
 			if (!caught)
-				(void) pause();
+				(void)pause();
 		}
 		ready = 0;
 		caught = 0;
@@ -808,12 +815,12 @@ worker(int cmd, int worker_number)
 		while (eot_count < 10 && size < writesize) {
 #ifdef RDUMP
 			if (host)
-				wrote = rmtwrite(wp->tblock[0]+size,
-				    writesize-size);
+				wrote = rmtwrite(wp->tblock[0] + size,
+				    writesize - size);
 			else
 #endif
-				wrote = write(tapefd, wp->tblock[0]+size,
-				    writesize-size);
+				wrote = write(tapefd, wp->tblock[0] + size,
+				    writesize - size);
 #ifdef WRITEDEBUG
 			printf("worker %d wrote %d\n", worker_number, wrote);
 #endif
@@ -826,8 +833,9 @@ worker(int cmd, int worker_number)
 
 #ifdef WRITEDEBUG
 		if (size != writesize)
-		 printf("worker %d only wrote %d out of %d bytes and gave up.\n",
-		     worker_number, size, writesize);
+			printf(
+			    "worker %d only wrote %d out of %d bytes and gave up.\n",
+			    worker_number, size, writesize);
 #endif
 
 		/*
@@ -842,9 +850,9 @@ worker(int cmd, int worker_number)
 			size = 0;
 
 		if (wrote < 0) {
-			(void) kill(master, SIGUSR1);
+			(void)kill(master, SIGUSR1);
 			for (;;)
-				(void) sigpause(0);
+				(void)sigpause(0);
 		} else {
 			/*
 			 * pass size of write back to master
@@ -858,7 +866,7 @@ worker(int cmd, int worker_number)
 		 * If partial write, don't want next worker to go.
 		 * Also jolts him awake.
 		 */
-		(void) kill(nextworker, SIGUSR2);
+		(void)kill(nextworker, SIGUSR2);
 	}
 	if (nread != 0)
 		quit("error reading command pipe: %s\n", strerror(errno));

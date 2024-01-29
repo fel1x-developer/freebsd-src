@@ -28,8 +28,8 @@
 /*
  * This implements support for ARM's Power State Co-ordination Interface
  * [PSCI]. The implementation adheres to version 0.2 of the PSCI specification
- * but also supports v0.1. PSCI standardizes operations such as system reset, CPU
- * on/off/suspend. PSCI requires a compliant firmware implementation.
+ * but also supports v0.1. PSCI standardizes operations such as system reset,
+ * CPU on/off/suspend. PSCI requires a compliant firmware implementation.
  *
  * The PSCI specification used for this implementation is available at:
  *
@@ -40,10 +40,10 @@
  *   supports get_version, system_reset and cpu_on].
  */
 
-#include <sys/cdefs.h>
 #include "opt_acpi.h"
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -56,24 +56,25 @@
 #include <machine/machdep.h>
 
 #ifdef DEV_ACPI
-#include <contrib/dev/acpica/include/acpi.h>
 #include <dev/acpica/acpivar.h>
+
+#include <contrib/dev/acpica/include/acpi.h>
 #endif
 
 #ifdef FDT
 #include <dev/fdt/fdt_common.h>
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
 #endif
 
 #include <dev/psci/psci.h>
 
 struct psci_softc {
-	device_t        dev;
+	device_t dev;
 
-	uint32_t	psci_version;
-	uint32_t	psci_fnids[PSCI_FN_MAX];
+	uint32_t psci_version;
+	uint32_t psci_fnids[PSCI_FN_MAX];
 };
 
 #ifdef FDT
@@ -85,19 +86,19 @@ struct psci_softc *psci_softc = NULL;
 bool psci_present;
 
 #ifdef __arm__
-#define	USE_ACPI	0
-#define	USE_FDT		1
+#define USE_ACPI 0
+#define USE_FDT 1
 #elif defined(__aarch64__)
-#define	USE_ACPI	(arm64_bus_method == ARM64_BUS_ACPI)
-#define	USE_FDT		(arm64_bus_method == ARM64_BUS_FDT)
+#define USE_ACPI (arm64_bus_method == ARM64_BUS_ACPI)
+#define USE_FDT (arm64_bus_method == ARM64_BUS_FDT)
 #else
 #error Unknown architecture
 #endif
 
 #ifdef FDT
 struct psci_init_def {
-	int		default_version;
-	psci_initfn_t	psci_init;
+	int default_version;
+	psci_initfn_t psci_init;
 };
 
 static struct psci_init_def psci_v1_0_init_def = {
@@ -116,10 +117,9 @@ static struct psci_init_def psci_v0_1_init_def = {
 };
 
 static struct ofw_compat_data compat_data[] = {
-	{"arm,psci-1.0",        (uintptr_t)&psci_v1_0_init_def},
-	{"arm,psci-0.2",        (uintptr_t)&psci_v0_2_init_def},
-	{"arm,psci",            (uintptr_t)&psci_v0_1_init_def},
-	{NULL,                  0}
+	{ "arm,psci-1.0", (uintptr_t)&psci_v1_0_init_def },
+	{ "arm,psci-0.2", (uintptr_t)&psci_v0_2_init_def },
+	{ "arm,psci", (uintptr_t)&psci_v0_1_init_def }, { NULL, 0 }
 };
 #endif
 
@@ -128,8 +128,7 @@ static void psci_shutdown(void *, int);
 
 static int psci_find_callfn(psci_callfn_t *);
 static int psci_def_callfn(register_t, register_t, register_t, register_t,
-	register_t, register_t, register_t, register_t,
-	struct arm_smccc_res *res);
+    register_t, register_t, register_t, register_t, struct arm_smccc_res *res);
 
 psci_callfn_t psci_callfn = psci_def_callfn;
 
@@ -151,9 +150,8 @@ SYSINIT(psci_start, SI_SUB_CPU, SI_ORDER_FIRST, psci_init, NULL);
 
 static int
 psci_def_callfn(register_t a __unused, register_t b __unused,
-    register_t c __unused, register_t d __unused,
-    register_t e __unused, register_t f __unused,
-    register_t g __unused, register_t h __unused,
+    register_t c __unused, register_t d __unused, register_t e __unused,
+    register_t f __unused, register_t g __unused, register_t h __unused,
     struct arm_smccc_res *res __unused)
 {
 
@@ -164,12 +162,11 @@ psci_def_callfn(register_t a __unused, register_t b __unused,
 static int psci_fdt_probe(device_t dev);
 static int psci_fdt_attach(device_t dev);
 
-static device_method_t psci_fdt_methods[] = {
-	DEVMETHOD(device_probe,     psci_fdt_probe),
-	DEVMETHOD(device_attach,    psci_fdt_attach),
+static device_method_t psci_fdt_methods[] = { DEVMETHOD(device_probe,
+						  psci_fdt_probe),
+	DEVMETHOD(device_attach, psci_fdt_attach),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 static driver_t psci_fdt_driver = {
 	"psci",
@@ -238,9 +235,9 @@ static int psci_acpi_attach(device_t);
 
 static device_method_t psci_acpi_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,	psci_acpi_identify),
-	DEVMETHOD(device_probe,		psci_acpi_probe),
-	DEVMETHOD(device_attach,	psci_acpi_attach),
+	DEVMETHOD(device_identify, psci_acpi_identify),
+	DEVMETHOD(device_probe, psci_acpi_probe),
+	DEVMETHOD(device_attach, psci_acpi_attach),
 
 	DEVMETHOD_END
 };
@@ -301,8 +298,8 @@ psci_acpi_identify(driver_t *driver, device_t parent)
 
 	flags = psci_acpi_bootflags();
 	if ((flags & ACPI_FADT_PSCI_COMPLIANT) != 0) {
-		dev = BUS_ADD_CHILD(parent,
-		    BUS_PASS_CPU + BUS_PASS_ORDER_FIRST, "psci", -1);
+		dev = BUS_ADD_CHILD(parent, BUS_PASS_CPU + BUS_PASS_ORDER_FIRST,
+		    "psci", -1);
 
 		if (dev != NULL)
 			acpi_set_private(dev, (void *)(uintptr_t)flags);
@@ -500,7 +497,7 @@ psci_v0_1_init(device_t dev, int default_version __unused)
 
 	/* Zero out the function ID table - Is this needed ? */
 	for (psci_fn = PSCI_FN_VERSION, psci_fnid = PSCI_FNID_VERSION;
-	    psci_fn < PSCI_FN_MAX; psci_fn++, psci_fnid++)
+	     psci_fn < PSCI_FN_MAX; psci_fn++, psci_fnid++)
 		sc->psci_fnids[psci_fn] = 0;
 
 	/* PSCI v0.1 doesn't specify function IDs. Get them from DT */
@@ -530,7 +527,7 @@ psci_v0_1_init(device_t dev, int default_version __unused)
 	if (bootverbose)
 		device_printf(dev, "PSCI version 0.1 available\n");
 
-	return(0);
+	return (0);
 }
 #endif
 
@@ -541,16 +538,17 @@ psci_v0_2_init(device_t dev, int default_version)
 	int version;
 
 	/* PSCI v0.2 specifies explicit function IDs. */
-	sc->psci_fnids[PSCI_FN_VERSION]		    = PSCI_FNID_VERSION;
-	sc->psci_fnids[PSCI_FN_CPU_SUSPEND]	    = PSCI_FNID_CPU_SUSPEND;
-	sc->psci_fnids[PSCI_FN_CPU_OFF]		    = PSCI_FNID_CPU_OFF;
-	sc->psci_fnids[PSCI_FN_CPU_ON]		    = PSCI_FNID_CPU_ON;
-	sc->psci_fnids[PSCI_FN_AFFINITY_INFO]	    = PSCI_FNID_AFFINITY_INFO;
-	sc->psci_fnids[PSCI_FN_MIGRATE]		    = PSCI_FNID_MIGRATE;
-	sc->psci_fnids[PSCI_FN_MIGRATE_INFO_TYPE]   = PSCI_FNID_MIGRATE_INFO_TYPE;
-	sc->psci_fnids[PSCI_FN_MIGRATE_INFO_UP_CPU] = PSCI_FNID_MIGRATE_INFO_UP_CPU;
-	sc->psci_fnids[PSCI_FN_SYSTEM_OFF]	    = PSCI_FNID_SYSTEM_OFF;
-	sc->psci_fnids[PSCI_FN_SYSTEM_RESET]	    = PSCI_FNID_SYSTEM_RESET;
+	sc->psci_fnids[PSCI_FN_VERSION] = PSCI_FNID_VERSION;
+	sc->psci_fnids[PSCI_FN_CPU_SUSPEND] = PSCI_FNID_CPU_SUSPEND;
+	sc->psci_fnids[PSCI_FN_CPU_OFF] = PSCI_FNID_CPU_OFF;
+	sc->psci_fnids[PSCI_FN_CPU_ON] = PSCI_FNID_CPU_ON;
+	sc->psci_fnids[PSCI_FN_AFFINITY_INFO] = PSCI_FNID_AFFINITY_INFO;
+	sc->psci_fnids[PSCI_FN_MIGRATE] = PSCI_FNID_MIGRATE;
+	sc->psci_fnids[PSCI_FN_MIGRATE_INFO_TYPE] = PSCI_FNID_MIGRATE_INFO_TYPE;
+	sc->psci_fnids[PSCI_FN_MIGRATE_INFO_UP_CPU] =
+	    PSCI_FNID_MIGRATE_INFO_UP_CPU;
+	sc->psci_fnids[PSCI_FN_SYSTEM_OFF] = PSCI_FNID_SYSTEM_OFF;
+	sc->psci_fnids[PSCI_FN_SYSTEM_RESET] = PSCI_FNID_SYSTEM_RESET;
 
 	version = _psci_get_version(sc);
 
@@ -565,8 +563,8 @@ psci_v0_2_init(device_t dev, int default_version)
 
 		version = default_version;
 		printf("PSCI get_version() function is not implemented, "
-		    " assuming v%d.%d\n", PSCI_VER_MAJOR(version),
-		    PSCI_VER_MINOR(version));
+		       " assuming v%d.%d\n",
+		    PSCI_VER_MAJOR(version), PSCI_VER_MINOR(version));
 	}
 
 	sc->psci_version = version;

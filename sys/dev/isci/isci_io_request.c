@@ -31,22 +31,19 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <dev/isci/isci.h>
-
-#include <cam/scsi/scsi_all.h>
-#include <cam/scsi/scsi_message.h>
-
 #include <dev/isci/scil/intel_sas.h>
-
 #include <dev/isci/scil/sci_util.h>
-
-#include <dev/isci/scil/scif_io_request.h>
+#include <dev/isci/scil/scic_io_request.h>
+#include <dev/isci/scil/scic_user_callback.h>
 #include <dev/isci/scil/scif_controller.h>
+#include <dev/isci/scil/scif_io_request.h>
 #include <dev/isci/scil/scif_remote_device.h>
 #include <dev/isci/scil/scif_user_callback.h>
 
-#include <dev/isci/scil/scic_io_request.h>
-#include <dev/isci/scil/scic_user_callback.h>
+#include <cam/scsi/scsi_all.h>
+#include <cam/scsi/scsi_message.h>
 
 /**
  * @brief This user callback will inform the user that an IO request has
@@ -69,8 +66,8 @@ scif_cb_io_request_complete(SCI_CONTROLLER_HANDLE_T scif_controller,
     SCI_REMOTE_DEVICE_HANDLE_T remote_device,
     SCI_IO_REQUEST_HANDLE_T io_request, SCI_IO_STATUS completion_status)
 {
-	struct ISCI_IO_REQUEST *isci_request =
-	    (struct ISCI_IO_REQUEST *)sci_object_get_association(io_request);
+	struct ISCI_IO_REQUEST *isci_request = (struct ISCI_IO_REQUEST *)
+	    sci_object_get_association(io_request);
 
 	scif_controller_complete_io(scif_controller, remote_device, io_request);
 	isci_io_request_complete(scif_controller, remote_device, isci_request,
@@ -89,9 +86,10 @@ isci_io_request_complete(SCI_CONTROLLER_HANDLE_T scif_controller,
 	struct ccb_scsiio *csio;
 
 	complete_ccb = TRUE;
-	isci_controller = (struct ISCI_CONTROLLER *) sci_object_get_association(scif_controller);
-	isci_remote_device =
-		(struct ISCI_REMOTE_DEVICE *) sci_object_get_association(remote_device);
+	isci_controller = (struct ISCI_CONTROLLER *)sci_object_get_association(
+	    scif_controller);
+	isci_remote_device = (struct ISCI_REMOTE_DEVICE *)
+	    sci_object_get_association(remote_device);
 
 	ccb = isci_request->ccb;
 	csio = &ccb->csio;
@@ -103,7 +101,7 @@ isci_io_request_complete(SCI_CONTROLLER_HANDLE_T scif_controller,
 		if (ccb->ccb_h.func_code == XPT_SMP_IO) {
 			void *smp_response =
 			    scif_io_request_get_response_iu_address(
-			        isci_request->sci_object);
+				isci_request->sci_object);
 
 			memcpy(ccb->smpio.smp_response, smp_response,
 			    ccb->smpio.smp_response_len);
@@ -115,18 +113,17 @@ isci_io_request_complete(SCI_CONTROLLER_HANDLE_T scif_controller,
 		ccb->ccb_h.status |= CAM_REQ_CMP;
 		ccb->csio.resid = ccb->csio.dxfer_len -
 		    scif_io_request_get_number_of_bytes_transferred(
-		        isci_request->sci_object);
+			isci_request->sci_object);
 		break;
 
-	case SCI_IO_FAILURE_RESPONSE_VALID:
-	{
-		SCI_SSP_RESPONSE_IU_T * response_buffer;
+	case SCI_IO_FAILURE_RESPONSE_VALID: {
+		SCI_SSP_RESPONSE_IU_T *response_buffer;
 		uint32_t sense_length;
 		int error_code, sense_key, asc, ascq;
 
 		response_buffer = (SCI_SSP_RESPONSE_IU_T *)
 		    scif_io_request_get_response_iu_address(
-		        isci_request->sci_object);
+			isci_request->sci_object);
 
 		sense_length = sci_ssp_get_sense_data_length(
 		    response_buffer->sense_data_length);
@@ -139,8 +136,8 @@ isci_io_request_complete(SCI_CONTROLLER_HANDLE_T scif_controller,
 		csio->scsi_status = response_buffer->status;
 		ccb->ccb_h.status |= CAM_SCSI_STATUS_ERROR;
 		ccb->ccb_h.status |= CAM_AUTOSNS_VALID;
-		scsi_extract_sense( &csio->sense_data, &error_code, &sense_key,
-		    &asc, &ascq );
+		scsi_extract_sense(&csio->sense_data, &error_code, &sense_key,
+		    &asc, &ascq);
 		isci_log_message(1, "ISCI",
 		    "isci: bus=%x target=%x lun=%x cdb[0]=%x status=%x key=%x asc=%x ascq=%x\n",
 		    ccb->ccb_h.path_id, ccb->ccb_h.target_id,
@@ -175,27 +172,24 @@ isci_io_request_complete(SCI_CONTROLLER_HANDLE_T scif_controller,
 		ccb->ccb_h.status |= CAM_DEV_NOT_THERE;
 		break;
 
-	case SCI_IO_FAILURE_NO_NCQ_TAG_AVAILABLE:
-		{
-			struct ccb_relsim ccb_relsim;
-			struct cam_path *path;
+	case SCI_IO_FAILURE_NO_NCQ_TAG_AVAILABLE: {
+		struct ccb_relsim ccb_relsim;
+		struct cam_path *path;
 
-			xpt_create_path(&path, NULL,
-			    cam_sim_path(isci_controller->sim),
-			    isci_remote_device->index, 0);
+		xpt_create_path(&path, NULL, cam_sim_path(isci_controller->sim),
+		    isci_remote_device->index, 0);
 
-			memset(&ccb_relsim, 0, sizeof(ccb_relsim));
-			xpt_setup_ccb(&ccb_relsim.ccb_h, path, 5);
-			ccb_relsim.ccb_h.func_code = XPT_REL_SIMQ;
-			ccb_relsim.ccb_h.flags = CAM_DEV_QFREEZE;
-			ccb_relsim.release_flags = RELSIM_ADJUST_OPENINGS;
-			ccb_relsim.openings =
-			    scif_remote_device_get_max_queue_depth(remote_device);
-			xpt_action((union ccb *)&ccb_relsim);
-			xpt_free_path(path);
-			complete_ccb = FALSE;
-		}
-		break;
+		memset(&ccb_relsim, 0, sizeof(ccb_relsim));
+		xpt_setup_ccb(&ccb_relsim.ccb_h, path, 5);
+		ccb_relsim.ccb_h.func_code = XPT_REL_SIMQ;
+		ccb_relsim.ccb_h.flags = CAM_DEV_QFREEZE;
+		ccb_relsim.release_flags = RELSIM_ADJUST_OPENINGS;
+		ccb_relsim.openings = scif_remote_device_get_max_queue_depth(
+		    remote_device);
+		xpt_action((union ccb *)&ccb_relsim);
+		xpt_free_path(path);
+		complete_ccb = FALSE;
+	} break;
 
 	case SCI_IO_FAILURE:
 	case SCI_IO_FAILURE_REQUIRES_SCSI_ABORT:
@@ -240,7 +234,8 @@ isci_io_request_complete(SCI_CONTROLLER_HANDLE_T scif_controller,
 
 		if (ccb->ccb_h.status & CAM_SIM_QUEUED) {
 
-			KASSERT(ccb == isci_remote_device->queued_ccb_in_progress,
+			KASSERT(ccb ==
+				isci_remote_device->queued_ccb_in_progress,
 			    ("multiple internally queued ccbs in flight"));
 
 			TAILQ_REMOVE(&isci_remote_device->queued_ccbs,
@@ -259,7 +254,8 @@ isci_io_request_complete(SCI_CONTROLLER_HANDLE_T scif_controller,
 		}
 
 		if (isci_remote_device->frozen_lun_mask != 0) {
-			isci_remote_device_release_device_queue(isci_remote_device);
+			isci_remote_device_release_device_queue(
+			    isci_remote_device);
 		}
 
 		xpt_done(ccb);
@@ -274,7 +270,8 @@ isci_io_request_complete(SCI_CONTROLLER_HANDLE_T scif_controller,
 
 		if (ccb->ccb_h.status & CAM_SIM_QUEUED) {
 
-			KASSERT(ccb == isci_remote_device->queued_ccb_in_progress,
+			KASSERT(ccb ==
+				isci_remote_device->queued_ccb_in_progress,
 			    ("multiple internally queued ccbs in flight"));
 
 			/*
@@ -316,16 +313,16 @@ isci_io_request_complete(SCI_CONTROLLER_HANDLE_T scif_controller,
  * @return None.
  */
 void
-scic_cb_io_request_get_physical_address(SCI_CONTROLLER_HANDLE_T	controller,
+scic_cb_io_request_get_physical_address(SCI_CONTROLLER_HANDLE_T controller,
     SCI_IO_REQUEST_HANDLE_T io_request, void *virtual_address,
     SCI_PHYSICAL_ADDRESS *physical_address)
 {
-	SCI_IO_REQUEST_HANDLE_T scif_request =
-	    sci_object_get_association(io_request);
-	struct ISCI_REQUEST *isci_request =
-	    sci_object_get_association(scif_request);
+	SCI_IO_REQUEST_HANDLE_T scif_request = sci_object_get_association(
+	    io_request);
+	struct ISCI_REQUEST *isci_request = sci_object_get_association(
+	    scif_request);
 
-	if(isci_request != NULL) {
+	if (isci_request != NULL) {
 		/* isci_request is not NULL, meaning this is a request initiated
 		 *  by CAM or the isci layer (i.e. device reset for I/O
 		 *  timeout).  Therefore we can calculate the physical address
@@ -333,8 +330,7 @@ scic_cb_io_request_get_physical_address(SCI_CONTROLLER_HANDLE_T	controller,
 		 *  object.
 		 */
 		*physical_address = isci_request->physical_address +
-		    (uintptr_t)virtual_address -
-		    (uintptr_t)isci_request;
+		    (uintptr_t)virtual_address - (uintptr_t)isci_request;
 	} else {
 		/* isci_request is NULL, meaning this is a request generated
 		 *  internally by SCIL (i.e. for SMP requests or NCQ error
@@ -344,15 +340,18 @@ scic_cb_io_request_get_physical_address(SCI_CONTROLLER_HANDLE_T	controller,
 		 *  framework requests.
 		 */
 		SCI_CONTROLLER_HANDLE_T scif_controller =
-		    (SCI_CONTROLLER_HANDLE_T) sci_object_get_association(controller);
+		    (SCI_CONTROLLER_HANDLE_T)sci_object_get_association(
+			controller);
 		struct ISCI_CONTROLLER *isci_controller =
-		    (struct ISCI_CONTROLLER *)sci_object_get_association(scif_controller);
+		    (struct ISCI_CONTROLLER *)sci_object_get_association(
+			scif_controller);
 		U64 virt_addr_offset = (uintptr_t)virtual_address -
-		    (U64)isci_controller->uncached_controller_memory.virtual_address;
+		    (U64)isci_controller->uncached_controller_memory
+			.virtual_address;
 
-		*physical_address =
-		    isci_controller->uncached_controller_memory.physical_address
-		    + virt_addr_offset;
+		*physical_address = isci_controller->uncached_controller_memory
+					.physical_address +
+		    virt_addr_offset;
 	}
 }
 
@@ -367,10 +366,10 @@ scic_cb_io_request_get_physical_address(SCI_CONTROLLER_HANDLE_T	controller,
  * @return This method returns the virtual address of the CDB.
  */
 void *
-scif_cb_io_request_get_cdb_address(void * scif_user_io_request)
+scif_cb_io_request_get_cdb_address(void *scif_user_io_request)
 {
-	struct ISCI_IO_REQUEST *isci_request =
-	    (struct ISCI_IO_REQUEST *)scif_user_io_request;
+	struct ISCI_IO_REQUEST *isci_request = (struct ISCI_IO_REQUEST *)
+	    scif_user_io_request;
 
 	return (scsiio_cdb_ptr(&isci_request->ccb->csio));
 }
@@ -386,10 +385,10 @@ scif_cb_io_request_get_cdb_address(void * scif_user_io_request)
  * @return This method returns the length of the CDB.
  */
 uint32_t
-scif_cb_io_request_get_cdb_length(void * scif_user_io_request)
+scif_cb_io_request_get_cdb_length(void *scif_user_io_request)
 {
-	struct ISCI_IO_REQUEST *isci_request =
-	    (struct ISCI_IO_REQUEST *)scif_user_io_request;
+	struct ISCI_IO_REQUEST *isci_request = (struct ISCI_IO_REQUEST *)
+	    scif_user_io_request;
 
 	return (isci_request->ccb->csio.cdb_len);
 }
@@ -410,10 +409,10 @@ scif_cb_io_request_get_cdb_length(void * scif_user_io_request)
  * @return This method returns the LUN associated with this request.
  */
 uint32_t
-scif_cb_io_request_get_lun(void * scif_user_io_request)
+scif_cb_io_request_get_lun(void *scif_user_io_request)
 {
-	struct ISCI_IO_REQUEST *isci_request =
-	    (struct ISCI_IO_REQUEST *)scif_user_io_request;
+	struct ISCI_IO_REQUEST *isci_request = (struct ISCI_IO_REQUEST *)
+	    scif_user_io_request;
 
 	return (isci_request->ccb->ccb_h.target_lun);
 }
@@ -435,14 +434,14 @@ scif_cb_io_request_get_lun(void * scif_user_io_request)
  *         IO request.
  */
 uint32_t
-scif_cb_io_request_get_task_attribute(void * scif_user_io_request)
+scif_cb_io_request_get_task_attribute(void *scif_user_io_request)
 {
-	struct ISCI_IO_REQUEST *isci_request =
-	    (struct ISCI_IO_REQUEST *)scif_user_io_request;
+	struct ISCI_IO_REQUEST *isci_request = (struct ISCI_IO_REQUEST *)
+	    scif_user_io_request;
 	uint32_t task_attribute;
 
-	if((isci_request->ccb->ccb_h.flags & CAM_TAG_ACTION_VALID) != 0)
-		switch(isci_request->ccb->csio.tag_action) {
+	if ((isci_request->ccb->ccb_h.flags & CAM_TAG_ACTION_VALID) != 0)
+		switch (isci_request->ccb->csio.tag_action) {
 		case MSG_HEAD_OF_Q_TAG:
 			task_attribute = SCI_SAS_HEAD_OF_QUEUE_ATTRIBUTE;
 			break;
@@ -482,7 +481,7 @@ scif_cb_io_request_get_task_attribute(void * scif_user_io_request)
  *         IO request.
  */
 uint32_t
-scif_cb_io_request_get_command_priority(void * scif_user_io_request)
+scif_cb_io_request_get_command_priority(void *scif_user_io_request)
 {
 	return (0);
 }
@@ -507,12 +506,11 @@ scif_cb_io_request_get_command_priority(void * scif_user_io_request)
  *         parameters.
  */
 uint8_t *
-scif_cb_io_request_get_virtual_address_from_sgl(void * scif_user_io_request,
+scif_cb_io_request_get_virtual_address_from_sgl(void *scif_user_io_request,
     uint32_t byte_offset)
 {
-	struct ISCI_IO_REQUEST	*isci_request;
-	union ccb		*ccb;
-
+	struct ISCI_IO_REQUEST *isci_request;
+	union ccb *ccb;
 
 	isci_request = scif_user_io_request;
 	ccb = isci_request->ccb;
@@ -549,13 +547,12 @@ scif_cb_io_request_get_virtual_address_from_sgl(void * scif_user_io_request,
  *         transferred for this IO request.
  */
 uint32_t
-scif_cb_io_request_get_transfer_length(void * scif_user_io_request)
+scif_cb_io_request_get_transfer_length(void *scif_user_io_request)
 {
-	struct ISCI_IO_REQUEST *isci_request =
-	    (struct ISCI_IO_REQUEST *)scif_user_io_request;
+	struct ISCI_IO_REQUEST *isci_request = (struct ISCI_IO_REQUEST *)
+	    scif_user_io_request;
 
 	return (isci_request->ccb->csio.dxfer_len);
-
 }
 
 /**
@@ -570,10 +567,10 @@ scif_cb_io_request_get_transfer_length(void * scif_user_io_request)
  *         SCI_IO_REQUEST_DATA_IN, or SCI_IO_REQUEST_NO_DATA.
  */
 SCI_IO_REQUEST_DATA_DIRECTION
-scif_cb_io_request_get_data_direction(void * scif_user_io_request)
+scif_cb_io_request_get_data_direction(void *scif_user_io_request)
 {
-	struct ISCI_IO_REQUEST *isci_request =
-	    (struct ISCI_IO_REQUEST *)scif_user_io_request;
+	struct ISCI_IO_REQUEST *isci_request = (struct ISCI_IO_REQUEST *)
+	    scif_user_io_request;
 
 	switch (isci_request->ccb->ccb_h.flags & CAM_DIR_MASK) {
 	case CAM_DIR_IN:
@@ -610,11 +607,11 @@ scif_cb_io_request_get_data_direction(void * scif_user_io_request)
  * @return None.
  */
 void
-scif_cb_io_request_get_next_sge(void * scif_user_io_request,
-    void * current_sge_address, void ** next_sge)
+scif_cb_io_request_get_next_sge(void *scif_user_io_request,
+    void *current_sge_address, void **next_sge)
 {
-	struct ISCI_IO_REQUEST *isci_request =
-	    (struct ISCI_IO_REQUEST *)scif_user_io_request;
+	struct ISCI_IO_REQUEST *isci_request = (struct ISCI_IO_REQUEST *)
+	    scif_user_io_request;
 
 	if (isci_request->current_sge_index == isci_request->num_segments)
 		*next_sge = NULL;
@@ -688,7 +685,8 @@ isci_io_request_construct(void *arg, bus_dma_segment_t *seg, int nseg,
 {
 	union ccb *ccb;
 	struct ISCI_IO_REQUEST *io_request = (struct ISCI_IO_REQUEST *)arg;
-	SCI_REMOTE_DEVICE_HANDLE_T *device = io_request->parent.remote_device_handle;
+	SCI_REMOTE_DEVICE_HANDLE_T *device =
+	    io_request->parent.remote_device_handle;
 	SCI_STATUS status;
 
 	io_request->num_segments = nseg;
@@ -701,11 +699,10 @@ isci_io_request_construct(void *arg, bus_dma_segment_t *seg, int nseg,
 		return;
 	}
 
-	status = scif_io_request_construct(
-	    io_request->parent.controller_handle,
+	status = scif_io_request_construct(io_request->parent.controller_handle,
 	    io_request->parent.remote_device_handle,
 	    SCI_CONTROLLER_INVALID_IO_TAG, (void *)io_request,
-	    (void *)((char*)io_request + sizeof(struct ISCI_IO_REQUEST)),
+	    (void *)((char *)io_request + sizeof(struct ISCI_IO_REQUEST)),
 	    &io_request->sci_object);
 
 	if (status != SCI_SUCCESS) {
@@ -719,9 +716,9 @@ isci_io_request_construct(void *arg, bus_dma_segment_t *seg, int nseg,
 	bus_dmamap_sync(io_request->parent.dma_tag, io_request->parent.dma_map,
 	    BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
 
-	status = (SCI_STATUS)scif_controller_start_io(
-	    io_request->parent.controller_handle, device,
-	    io_request->sci_object, SCI_CONTROLLER_INVALID_IO_TAG);
+	status = (SCI_STATUS)
+	    scif_controller_start_io(io_request->parent.controller_handle,
+		device, io_request->sci_object, SCI_CONTROLLER_INVALID_IO_TAG);
 
 	if (status != SCI_SUCCESS) {
 		isci_io_request_complete(io_request->parent.controller_handle,
@@ -774,8 +771,8 @@ isci_io_request_execute_scsi_io(union ccb *ccb,
 	io_request->parent.remote_device_handle = device->sci_object;
 
 	error = bus_dmamap_load_ccb(io_request->parent.dma_tag,
-	    io_request->parent.dma_map, ccb,
-	    isci_io_request_construct, io_request, 0x0);
+	    io_request->parent.dma_map, ccb, isci_io_request_construct,
+	    io_request, 0x0);
 	/* A resource shortage from BUSDMA will be automatically
 	 * continued at a later point, pushing the CCB processing
 	 * forward, which will in turn unfreeze the simq.
@@ -791,7 +788,7 @@ isci_io_request_timeout(void *arg)
 {
 	struct ISCI_IO_REQUEST *request = (struct ISCI_IO_REQUEST *)arg;
 	struct ISCI_REMOTE_DEVICE *remote_device = (struct ISCI_REMOTE_DEVICE *)
-		sci_object_get_association(request->parent.remote_device_handle);
+	    sci_object_get_association(request->parent.remote_device_handle);
 	struct ISCI_CONTROLLER *controller = remote_device->domain->controller;
 
 	mtx_lock(&controller->lock);
@@ -814,10 +811,11 @@ isci_io_request_timeout(void *arg)
  */
 static uint32_t
 smp_io_request_cb_get_request_buffer(SCI_IO_REQUEST_HANDLE_T core_request,
-    uint8_t ** smp_request_buffer)
+    uint8_t **smp_request_buffer)
 {
 	struct ISCI_IO_REQUEST *isci_request = (struct ISCI_IO_REQUEST *)
-	    sci_object_get_association(sci_object_get_association(core_request));
+	    sci_object_get_association(
+		sci_object_get_association(core_request));
 
 	*smp_request_buffer = isci_request->ccb->smpio.smp_request +
 	    sizeof(SMP_REQUEST_HEADER_T);
@@ -838,9 +836,10 @@ static uint8_t
 smp_io_request_cb_get_function(SCI_IO_REQUEST_HANDLE_T core_request)
 {
 	struct ISCI_IO_REQUEST *isci_request = (struct ISCI_IO_REQUEST *)
-	    sci_object_get_association(sci_object_get_association(core_request));
-	SMP_REQUEST_HEADER_T *header =
-	    (SMP_REQUEST_HEADER_T *)isci_request->ccb->smpio.smp_request;
+	    sci_object_get_association(
+		sci_object_get_association(core_request));
+	SMP_REQUEST_HEADER_T *header = (SMP_REQUEST_HEADER_T *)
+					   isci_request->ccb->smpio.smp_request;
 
 	return (header->function);
 }
@@ -857,15 +856,17 @@ static uint8_t
 smp_io_request_cb_get_frame_type(SCI_IO_REQUEST_HANDLE_T core_request)
 {
 	struct ISCI_IO_REQUEST *isci_request = (struct ISCI_IO_REQUEST *)
-	    sci_object_get_association(sci_object_get_association(core_request));
-	SMP_REQUEST_HEADER_T *header =
-	    (SMP_REQUEST_HEADER_T *)isci_request->ccb->smpio.smp_request;
+	    sci_object_get_association(
+		sci_object_get_association(core_request));
+	SMP_REQUEST_HEADER_T *header = (SMP_REQUEST_HEADER_T *)
+					   isci_request->ccb->smpio.smp_request;
 
 	return (header->smp_frame_type);
 }
 
 /**
- * @brief This callback method gets the allocated response length for an SMP request.
+ * @brief This callback method gets the allocated response length for an SMP
+ * request.
  *
  * @param[in]  core_request This parameter specifies the SCI core's request
  *             object associated with the SMP request.
@@ -877,9 +878,10 @@ smp_io_request_cb_get_allocated_response_length(
     SCI_IO_REQUEST_HANDLE_T core_request)
 {
 	struct ISCI_IO_REQUEST *isci_request = (struct ISCI_IO_REQUEST *)
-	    sci_object_get_association(sci_object_get_association(core_request));
-	SMP_REQUEST_HEADER_T *header =
-	    (SMP_REQUEST_HEADER_T *)isci_request->ccb->smpio.smp_request;
+	    sci_object_get_association(
+		sci_object_get_association(core_request));
+	SMP_REQUEST_HEADER_T *header = (SMP_REQUEST_HEADER_T *)
+					   isci_request->ccb->smpio.smp_request;
 
 	return (header->allocated_response_length);
 }
@@ -893,7 +895,7 @@ isci_smp_request_construct(struct ISCI_IO_REQUEST *request)
 	status = scif_request_construct(request->parent.controller_handle,
 	    request->parent.remote_device_handle, SCI_CONTROLLER_INVALID_IO_TAG,
 	    (void *)request,
-	    (void *)((char*)request + sizeof(struct ISCI_IO_REQUEST)),
+	    (void *)((char *)request + sizeof(struct ISCI_IO_REQUEST)),
 	    &request->sci_object);
 
 	if (status == SCI_SUCCESS) {
@@ -924,7 +926,8 @@ isci_io_request_execute_smp_io(union ccb *ccb,
 	struct ISCI_REQUEST *request;
 	struct ISCI_IO_REQUEST *io_request;
 	SCI_REMOTE_DEVICE_HANDLE_T smp_device_handle;
-	struct ISCI_REMOTE_DEVICE *end_device = controller->remote_device[target_id];
+	struct ISCI_REMOTE_DEVICE *end_device =
+	    controller->remote_device[target_id];
 
 	/* SMP commands are sent to an end device, because SMP devices are not
 	 *  exposed to the kernel.  It is our responsibility to use this method
@@ -971,7 +974,7 @@ isci_io_request_execute_smp_io(union ccb *ccb,
 
 	sci_object_set_association(io_request->sci_object, io_request);
 
-	status = (SCI_STATUS) scif_controller_start_io(
+	status = (SCI_STATUS)scif_controller_start_io(
 	    controller->scif_controller_handle, smp_device_handle,
 	    io_request->sci_object, SCI_CONTROLLER_INVALID_IO_TAG);
 
@@ -983,6 +986,6 @@ isci_io_request_execute_smp_io(union ccb *ccb,
 
 	if (ccb->ccb_h.timeout != CAM_TIME_INFINITY)
 		callout_reset_sbt(&io_request->parent.timer,
-		    SBT_1MS *  ccb->ccb_h.timeout, 0, isci_io_request_timeout,
+		    SBT_1MS * ccb->ccb_h.timeout, 0, isci_io_request_timeout,
 		    request, 0);
 }

@@ -52,8 +52,8 @@ int
 priv_vfs_utimes_froot_setup(int asroot, int injail, struct test *test)
 {
 
-	setup_file("priv_vfs_utimes_froot_setup: fpath", fpath,
-	    UID_ROOT, GID_WHEEL, 0600);
+	setup_file("priv_vfs_utimes_froot_setup: fpath", fpath, UID_ROOT,
+	    GID_WHEEL, 0600);
 	fpath_initialized = 1;
 	return (0);
 }
@@ -62,8 +62,8 @@ int
 priv_vfs_utimes_fowner_setup(int asroot, int injail, struct test *test)
 {
 
-	setup_file("priv_vfs_utimes_fowner_setup: fpath", fpath,
-	    UID_OWNER, GID_OWNER, 0600);
+	setup_file("priv_vfs_utimes_fowner_setup: fpath", fpath, UID_OWNER,
+	    GID_OWNER, 0600);
 	fpath_initialized = 1;
 	return (0);
 }
@@ -78,8 +78,8 @@ priv_vfs_utimes_fother_setup(int asroot, int injail, struct test *test)
 	 * which is possible as a writer, and non-NULL, which requires
 	 * ownership.
 	 */
-	setup_file("priv_vfs_utimes_fother_setup: fpath", fpath,
-	    UID_OTHER, GID_OTHER, 0666);
+	setup_file("priv_vfs_utimes_fother_setup: fpath", fpath, UID_OTHER,
+	    GID_OTHER, 0666);
 	fpath_initialized = 1;
 	return (0);
 }
@@ -100,11 +100,9 @@ priv_vfs_utimes_froot(int asroot, int injail, struct test *test)
 	if (asroot && !injail)
 		expect("priv_vfs_utimes_froot(root, !jail)", error, 0, 0);
 	if (!asroot && injail)
-		expect("priv_vfs_utimes_froot(!root, jail)", error, -1,
-		    EPERM);
+		expect("priv_vfs_utimes_froot(!root, jail)", error, -1, EPERM);
 	if (!asroot && !injail)
-		expect("priv_vfs_utimes_froot(!root, !jail)", error, -1,
-		    EPERM);
+		expect("priv_vfs_utimes_froot(!root, !jail)", error, -1, EPERM);
 }
 
 void
@@ -114,11 +112,9 @@ priv_vfs_utimes_froot_null(int asroot, int injail, struct test *test)
 
 	error = utimes(fpath, NULL);
 	if (asroot && injail)
-		expect("priv_vfs_utimes_froot_null(root, jail)", error, 0,
-		    0);
+		expect("priv_vfs_utimes_froot_null(root, jail)", error, 0, 0);
 	if (asroot && !injail)
-		expect("priv_vfs_utimes_froot_null(root, !jail)", error, 0,
-		    0);
+		expect("priv_vfs_utimes_froot_null(root, !jail)", error, 0, 0);
 	if (!asroot && injail)
 		expect("priv_vfs_utimes_froot_null(!root, jail)", error, -1,
 		    EACCES);
@@ -155,14 +151,11 @@ priv_vfs_utimes_fowner_null(int asroot, int injail, struct test *test)
 
 	error = utimes(fpath, NULL);
 	if (asroot && injail)
-		expect("priv_vfs_utimes_fowner_null(root, jail)", error, 0,
-		    0);
+		expect("priv_vfs_utimes_fowner_null(root, jail)", error, 0, 0);
 	if (asroot && !injail)
-		expect("priv_vfs_utimes_fowner_null(root, !jail)", error, 0,
-		    0);
+		expect("priv_vfs_utimes_fowner_null(root, !jail)", error, 0, 0);
 	if (!asroot && injail)
-		expect("priv_vfs_utimes_fowner_null(!root, jail)", error, 0,
-		    0);
+		expect("priv_vfs_utimes_fowner_null(!root, jail)", error, 0, 0);
 	if (!asroot && !injail)
 		expect("priv_vfs_utimes_fowner_null(!root, !jail)", error, 0,
 		    0);
@@ -184,8 +177,7 @@ priv_vfs_utimes_fother(int asroot, int injail, struct test *test)
 	if (asroot && !injail)
 		expect("priv_vfs_utimes_fother(root, !jail)", error, 0, 0);
 	if (!asroot && injail)
-		expect("priv_vfs_utimes_fother(!root, jail)", error, -1,
-		    EPERM);
+		expect("priv_vfs_utimes_fother(!root, jail)", error, -1, EPERM);
 	if (!asroot && !injail)
 		expect("priv_vfs_utimes_fother(!root, !jail)", error, -1,
 		    EPERM);
@@ -198,14 +190,11 @@ priv_vfs_utimes_fother_null(int asroot, int injail, struct test *test)
 
 	error = utimes(fpath, NULL);
 	if (asroot && injail)
-		expect("priv_vfs_utimes_fother_null(root, jail)", error, 0,
-		    0);
+		expect("priv_vfs_utimes_fother_null(root, jail)", error, 0, 0);
 	if (asroot && !injail)
-		expect("priv_vfs_utimes_fother_null(root, !jail)", error, 0,
-		    0);
+		expect("priv_vfs_utimes_fother_null(root, !jail)", error, 0, 0);
 	if (!asroot && injail)
-		expect("priv_vfs_utimes_fother_null(!root, jail)", error, 0,
-		    0);
+		expect("priv_vfs_utimes_fother_null(!root, jail)", error, 0, 0);
 	if (!asroot && !injail)
 		expect("priv_vfs_utimes_fother_null(!root, !jail)", error, 0,
 		    0);

@@ -138,19 +138,14 @@ typedef struct lac_sym_qat_hash_state_buffer_info_s {
  * @return void
  *
  *****************************************************************************/
-void
-LacSymQat_HashContentDescInit(icp_qat_la_bulk_req_ftr_t *pMsg,
-			      CpaInstanceHandle instanceHandle,
-			      const CpaCySymHashSetupData *pHashSetupData,
-			      void *pHwBlockBase,
-			      Cpa32U hashBlkOffsetInHwBlock,
-			      icp_qat_fw_slice_t nextSlice,
-			      icp_qat_hw_auth_mode_t qatHashMode,
-			      CpaBoolean useSymConstantsTable,
-			      CpaBoolean useOptimisedContentDesc,
-			      CpaBoolean useStatefulSha3ContentDesc,
-			      lac_sym_qat_hash_precompute_info_t *pPrecompute,
-			      Cpa32U *pHashBlkSizeInBytes);
+void LacSymQat_HashContentDescInit(icp_qat_la_bulk_req_ftr_t *pMsg,
+    CpaInstanceHandle instanceHandle,
+    const CpaCySymHashSetupData *pHashSetupData, void *pHwBlockBase,
+    Cpa32U hashBlkOffsetInHwBlock, icp_qat_fw_slice_t nextSlice,
+    icp_qat_hw_auth_mode_t qatHashMode, CpaBoolean useSymConstantsTable,
+    CpaBoolean useOptimisedContentDesc, CpaBoolean useStatefulSha3ContentDesc,
+    lac_sym_qat_hash_precompute_info_t *pPrecompute,
+    Cpa32U *pHashBlkSizeInBytes);
 
 /**
  ******************************************************************************
@@ -175,8 +170,7 @@ LacSymQat_HashContentDescInit(icp_qat_la_bulk_req_ftr_t *pMsg,
  * @return None
  *
  *****************************************************************************/
-void LacSymQat_HashStatePrefixAadBufferSizeGet(
-    icp_qat_la_bulk_req_ftr_t *pMsg,
+void LacSymQat_HashStatePrefixAadBufferSizeGet(icp_qat_la_bulk_req_ftr_t *pMsg,
     lac_sym_qat_hash_state_buffer_info_t *pHashStateBuf);
 
 /**
@@ -208,11 +202,8 @@ void LacSymQat_HashStatePrefixAadBufferSizeGet(
  *****************************************************************************/
 void LacSymQat_HashStatePrefixAadBufferPopulate(
     lac_sym_qat_hash_state_buffer_info_t *pHashStateBuf,
-    icp_qat_la_bulk_req_ftr_t *pMsg,
-    Cpa8U *pInnerPrefixAad,
-    Cpa8U innerPrefixSize,
-    Cpa8U *pOuterPrefix,
-    Cpa8U outerPrefixSize);
+    icp_qat_la_bulk_req_ftr_t *pMsg, Cpa8U *pInnerPrefixAad,
+    Cpa8U innerPrefixSize, Cpa8U *pOuterPrefix, Cpa8U outerPrefixSize);
 
 /**
  ******************************************************************************
@@ -254,18 +245,11 @@ void LacSymQat_HashStatePrefixAadBufferPopulate(
  * @return CPA_STATUS_SUCCESS or CPA_STATUS_FAIL
  *
  *****************************************************************************/
-CpaStatus LacSymQat_HashRequestParamsPopulate(
-    icp_qat_fw_la_bulk_req_t *pReq,
-    Cpa32U authOffsetInBytes,
-    Cpa32U authLenInBytes,
-    sal_service_t *pService,
-    lac_sym_qat_hash_state_buffer_info_t *pHashStateBuf,
-    Cpa32U qatPacketType,
-    Cpa32U hashResultSize,
-    CpaBoolean digestVerify,
-    Cpa8U *pAuthResult,
-    CpaCySymHashAlgorithm alg,
-    void *data);
+CpaStatus LacSymQat_HashRequestParamsPopulate(icp_qat_fw_la_bulk_req_t *pReq,
+    Cpa32U authOffsetInBytes, Cpa32U authLenInBytes, sal_service_t *pService,
+    lac_sym_qat_hash_state_buffer_info_t *pHashStateBuf, Cpa32U qatPacketType,
+    Cpa32U hashResultSize, CpaBoolean digestVerify, Cpa8U *pAuthResult,
+    CpaCySymHashAlgorithm alg, void *data);
 
 /**
  ******************************************************************************
@@ -296,18 +280,13 @@ CpaStatus LacSymQat_HashRequestParamsPopulate(
  *
  *****************************************************************************/
 void LacSymQat_HashGetCfgData(CpaInstanceHandle pInstance,
-			      icp_qat_hw_auth_mode_t qatHashMode,
-			      CpaCySymHashMode apiHashMode,
-			      CpaCySymHashAlgorithm apiHashAlgorithm,
-			      icp_qat_hw_auth_algo_t *pQatAlgorithm,
-			      CpaBoolean *pQatNested);
+    icp_qat_hw_auth_mode_t qatHashMode, CpaCySymHashMode apiHashMode,
+    CpaCySymHashAlgorithm apiHashAlgorithm,
+    icp_qat_hw_auth_algo_t *pQatAlgorithm, CpaBoolean *pQatNested);
 
-void LacSymQat_HashSetupReqParamsMetaData(
-    icp_qat_la_bulk_req_ftr_t *pMsg,
+void LacSymQat_HashSetupReqParamsMetaData(icp_qat_la_bulk_req_ftr_t *pMsg,
     CpaInstanceHandle instanceHandle,
-    const CpaCySymHashSetupData *pHashSetupData,
-    CpaBoolean hashStateBuffer,
-    icp_qat_hw_auth_mode_t qatHashMode,
-    CpaBoolean digestVerify);
+    const CpaCySymHashSetupData *pHashSetupData, CpaBoolean hashStateBuffer,
+    icp_qat_hw_auth_mode_t qatHashMode, CpaBoolean digestVerify);
 
 #endif /* LAC_SYM_QAT_HASH_H */

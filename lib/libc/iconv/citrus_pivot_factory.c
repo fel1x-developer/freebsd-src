@@ -38,18 +38,18 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "citrus_namespace.h"
-#include "citrus_region.h"
 #include "citrus_bcs.h"
 #include "citrus_db_factory.h"
 #include "citrus_db_hash.h"
-#include "citrus_pivot_file.h"
+#include "citrus_namespace.h"
 #include "citrus_pivot_factory.h"
+#include "citrus_pivot_file.h"
+#include "citrus_region.h"
 
 struct src_entry {
-	char				*se_name;
-	struct _citrus_db_factory	*se_df;
-	STAILQ_ENTRY(src_entry)		 se_entry;
+	char *se_name;
+	struct _citrus_db_factory *se_df;
+	STAILQ_ENTRY(src_entry) se_entry;
 };
 STAILQ_HEAD(src_head, src_entry);
 
@@ -59,7 +59,7 @@ find_src(struct src_head *sh, struct src_entry **rse, const char *name)
 	int ret;
 	struct src_entry *se;
 
-	STAILQ_FOREACH(se, sh, se_entry) {
+	STAILQ_FOREACH (se, sh, se_entry) {
 		if (_bcs_strcasecmp(se->se_name, name) == 0) {
 			*rse = se;
 			return (0);
@@ -98,7 +98,6 @@ free_src(struct src_head *sh)
 		free(se);
 	}
 }
-
 
 #define T_COMM '#'
 static int
@@ -166,7 +165,7 @@ dump_db(struct src_head *sh, struct _region *r)
 	if (ret)
 		return (ret);
 
-	STAILQ_FOREACH(se, sh, se_entry) {
+	STAILQ_FOREACH (se, sh, se_entry) {
 		size = _db_factory_calc_size(se->se_df);
 		ptr = malloc(size);
 		if (ptr == NULL)

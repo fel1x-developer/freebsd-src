@@ -48,16 +48,16 @@
 
 #include "find.h"
 
-time_t now;			/* time find was run */
-int dotfd;			/* starting directory */
-int ftsoptions;			/* options for the ftsopen(3) call */
-int ignore_readdir_race;	/* ignore readdir race */
-int isdepth;			/* do directories on post-order visit */
-int isoutput;			/* user specified output operator */
-int issort;         		/* do hierarchies in lexicographical order */
-int isxargs;			/* don't permit xargs delimiting chars */
+time_t now;			  /* time find was run */
+int dotfd;			  /* starting directory */
+int ftsoptions;			  /* options for the ftsopen(3) call */
+int ignore_readdir_race;	  /* ignore readdir race */
+int isdepth;			  /* do directories on post-order visit */
+int isoutput;			  /* user specified output operator */
+int issort;			  /* do hierarchies in lexicographical order */
+int isxargs;			  /* don't permit xargs delimiting chars */
 int mindepth = -1, maxdepth = -1; /* minimum and maximum depth */
-int regexp_flags = REG_BASIC;	/* use the "basic" regexp by default*/
+int regexp_flags = REG_BASIC;	  /* use the "basic" regexp by default*/
 int exitstatus;
 volatile sig_atomic_t showinfo = 0;
 
@@ -72,7 +72,7 @@ main(int argc, char *argv[])
 
 	(void)setlocale(LC_ALL, "");
 
-	(void)time(&now);	/* initialize the time-of-day */
+	(void)time(&now); /* initialize the time-of-day */
 
 	(void)signal(SIGINFO, siginfo_handler);
 
@@ -152,8 +152,8 @@ static void
 usage(void)
 {
 	(void)fprintf(stderr, "%s\n%s\n",
-"usage: find [-H | -L | -P] [-EXdsx] [-f path] path ... [expression]",
-"       find [-H | -L | -P] [-EXdsx] -f path [path ...] [expression]");
+	    "usage: find [-H | -L | -P] [-EXdsx] [-f path] path ... [expression]",
+	    "       find [-H | -L | -P] [-EXdsx] -f path [path ...] [expression]");
 	exit(1);
 }
 

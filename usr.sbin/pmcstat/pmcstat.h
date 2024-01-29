@@ -30,59 +30,60 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_PMCSTAT_H_
-#define	_PMCSTAT_H_
+#ifndef _PMCSTAT_H_
+#define _PMCSTAT_H_
 
 #include <libpmcstat.h>
 
-#define	DEFAULT_WAIT_INTERVAL		5.0
-#define	DEFAULT_DISPLAY_HEIGHT		256		/* file virtual height */
-#define	DEFAULT_DISPLAY_WIDTH		1024		/* file virtual width */
-#define	DEFAULT_BUFFER_SIZE		4096
-#define	DEFAULT_CALLGRAPH_DEPTH		16
+#define DEFAULT_WAIT_INTERVAL 5.0
+#define DEFAULT_DISPLAY_HEIGHT 256 /* file virtual height */
+#define DEFAULT_DISPLAY_WIDTH 1024 /* file virtual width */
+#define DEFAULT_BUFFER_SIZE 4096
+#define DEFAULT_CALLGRAPH_DEPTH 16
 
-#define	PRINT_HEADER_PREFIX		"# "
+#define PRINT_HEADER_PREFIX "# "
 
-#define	PMCSTAT_DEFAULT_NW_HOST		"localhost"
-#define	PMCSTAT_DEFAULT_NW_PORT		"9000"
+#define PMCSTAT_DEFAULT_NW_HOST "localhost"
+#define PMCSTAT_DEFAULT_NW_PORT "9000"
 
-#define	PMCSTAT_LDD_COMMAND		"/usr/bin/ldd"
+#define PMCSTAT_LDD_COMMAND "/usr/bin/ldd"
 
-#define	PMCSTAT_PRINT_ENTRY(T,...) do {					\
-		(void) fprintf(args.pa_printfile, "%-9s", T);		\
-		(void) fprintf(args.pa_printfile, " "  __VA_ARGS__);	\
-		(void) fprintf(args.pa_printfile, "\n");		\
+#define PMCSTAT_PRINT_ENTRY(T, ...)                                \
+	do {                                                       \
+		(void)fprintf(args.pa_printfile, "%-9s", T);       \
+		(void)fprintf(args.pa_printfile, " " __VA_ARGS__); \
+		(void)fprintf(args.pa_printfile, "\n");            \
 	} while (0)
 
-#define PMCSTAT_PL_NONE		0
-#define PMCSTAT_PL_CALLGRAPH	1
-#define PMCSTAT_PL_GPROF	2
-#define PMCSTAT_PL_ANNOTATE	3
-#define PMCSTAT_PL_CALLTREE	4
-#define PMCSTAT_PL_ANNOTATE_CG	5
+#define PMCSTAT_PL_NONE 0
+#define PMCSTAT_PL_CALLGRAPH 1
+#define PMCSTAT_PL_GPROF 2
+#define PMCSTAT_PL_ANNOTATE 3
+#define PMCSTAT_PL_CALLTREE 4
+#define PMCSTAT_PL_ANNOTATE_CG 5
 
-#define PMCSTAT_TOP_DELTA 	0
-#define PMCSTAT_TOP_ACCUM	1
+#define PMCSTAT_TOP_DELTA 0
+#define PMCSTAT_TOP_ACCUM 1
 
-extern int pmcstat_displayheight;	/* current terminal height */
-extern int pmcstat_displaywidth;	/* current terminal width */
-extern struct pmcstat_args args;	/* command line args */
+extern int pmcstat_displayheight; /* current terminal height */
+extern int pmcstat_displaywidth;  /* current terminal width */
+extern struct pmcstat_args args;  /* command line args */
 
 /* Function prototypes */
-void	pmcstat_cleanup(void);
-void	pmcstat_find_targets(const char *_arg);
-void	pmcstat_kill_process(void);
-void	pmcstat_print_counters(void);
-void	pmcstat_print_headers(void);
-void	pmcstat_print_pmcs(void);
-void	pmcstat_show_usage(void);
-void	pmcstat_start_pmcs(void);
-int	pmcstat_process_log(void);
-int	pmcstat_keypress_log(void);
-void	pmcstat_display_log(void);
-void	pmcstat_pluginconfigure_log(char *_opt);
-void	pmcstat_topexit(void);
+void pmcstat_cleanup(void);
+void pmcstat_find_targets(const char *_arg);
+void pmcstat_kill_process(void);
+void pmcstat_print_counters(void);
+void pmcstat_print_headers(void);
+void pmcstat_print_pmcs(void);
+void pmcstat_show_usage(void);
+void pmcstat_start_pmcs(void);
+int pmcstat_process_log(void);
+int pmcstat_keypress_log(void);
+void pmcstat_display_log(void);
+void pmcstat_pluginconfigure_log(char *_opt);
+void pmcstat_topexit(void);
 
 void pmcstat_log_shutdown_logging(void);
 void pmcstat_log_initialize_logging(void);
-#endif	/* _PMCSTAT_H_ */
+#endif /* _PMCSTAT_H_ */

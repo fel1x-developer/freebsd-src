@@ -57,26 +57,27 @@
  */
 
 /* Default width */
-static int snd_u_shift = 9;	/* 0 - 0x1ff :  512 distinct soundcards   */
-static int snd_d_shift = 5;	/* 0 - 0x1f  :   32 distinct device types */
-static int snd_c_shift = 10;	/* 0 - 0x3ff : 1024 distinct channels
-					       (256 limit "by design",
-					       except for clone devices)  */
+static int snd_u_shift = 9;  /* 0 - 0x1ff :  512 distinct soundcards   */
+static int snd_d_shift = 5;  /* 0 - 0x1f  :   32 distinct device types */
+static int snd_c_shift = 10; /* 0 - 0x3ff : 1024 distinct channels
+					    (256 limit "by design",
+					    except for clone devices)  */
 
 static int snd_unit_initialized = 0;
 
 #ifdef SND_DIAGNOSTIC
-#define SND_UNIT_ASSERT()	do {					\
-	if (snd_unit_initialized == 0)					\
-		panic("%s(): Uninitialized sound unit!", __func__);	\
-} while (0)
+#define SND_UNIT_ASSERT()                                                   \
+	do {                                                                \
+		if (snd_unit_initialized == 0)                              \
+			panic("%s(): Uninitialized sound unit!", __func__); \
+	} while (0)
 #else
-#define SND_UNIT_ASSERT()	KASSERT(snd_unit_initialized != 0,	\
-				("%s(): Uninitialized sound unit!",	\
-				__func__))
+#define SND_UNIT_ASSERT()                  \
+	KASSERT(snd_unit_initialized != 0, \
+	    ("%s(): Uninitialized sound unit!", __func__))
 #endif
 
-#define MKMASK(x)	((1 << snd_##x##_shift) - 1)
+#define MKMASK(x) ((1 << snd_##x##_shift) - 1)
 
 int
 snd_max_u(void)
@@ -181,7 +182,7 @@ snd_unit_init(void)
 			i = roundup2(i, 2);
 
 		for (snd_u_shift = 0; (i >> (snd_u_shift + 1)) != 0;
-		    snd_u_shift++)
+		     snd_u_shift++)
 			;
 
 		/*
@@ -193,6 +194,6 @@ snd_unit_init(void)
 
 	if (bootverbose != 0)
 		printf("%s() u=0x%08x [%d] d=0x%08x [%d] c=0x%08x [%d]\n",
-		    __func__, SND_U_MASK, snd_max_u() + 1,
-		    SND_D_MASK, snd_max_d() + 1, SND_C_MASK, snd_max_c() + 1);
+		    __func__, SND_U_MASK, snd_max_u() + 1, SND_D_MASK,
+		    snd_max_d() + 1, SND_C_MASK, snd_max_c() + 1);
 }

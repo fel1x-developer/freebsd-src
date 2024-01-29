@@ -53,32 +53,28 @@
  */
 
 #ifndef _RPC_RPCB_CLNT_H
-#define	_RPC_RPCB_CLNT_H
+#define _RPC_RPCB_CLNT_H
 
 /* rpcb_clnt.h 1.3 88/12/05 SMI */
 
-#include <rpc/types.h>
 #include <rpc/rpcb_prot.h>
+#include <rpc/types.h>
 
 __BEGIN_DECLS
 extern bool_t rpcb_set(const rpcprog_t, const rpcvers_t,
-		       const struct netconfig  *, const struct netbuf *);
+    const struct netconfig *, const struct netbuf *);
 extern bool_t rpcb_unset(const rpcprog_t, const rpcvers_t,
-			 const struct netconfig *);
-extern rpcblist	*rpcb_getmaps(const struct netconfig *, const char *);
-extern enum clnt_stat rpcb_rmtcall(const struct netconfig *,
-				   const char *, const rpcprog_t,
-				   const rpcvers_t, const rpcproc_t,
-				   const xdrproc_t, const caddr_t,
-				   const xdrproc_t, const caddr_t,
-				   const struct timeval,
-				   const struct netbuf *);
+    const struct netconfig *);
+extern rpcblist *rpcb_getmaps(const struct netconfig *, const char *);
+extern enum clnt_stat rpcb_rmtcall(const struct netconfig *, const char *,
+    const rpcprog_t, const rpcvers_t, const rpcproc_t, const xdrproc_t,
+    const caddr_t, const xdrproc_t, const caddr_t, const struct timeval,
+    const struct netbuf *);
 extern bool_t rpcb_getaddr(const rpcprog_t, const rpcvers_t,
-			   const struct netconfig *, struct netbuf *,
-			   const  char *);
+    const struct netconfig *, struct netbuf *, const char *);
 extern bool_t rpcb_gettime(const char *, time_t *);
 extern char *rpcb_taddr2uaddr(struct netconfig *, struct netbuf *);
 extern struct netbuf *rpcb_uaddr2taddr(struct netconfig *, char *);
 __END_DECLS
 
-#endif	/* !_RPC_RPCB_CLNT_H */
+#endif /* !_RPC_RPCB_CLNT_H */

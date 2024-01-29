@@ -1,5 +1,7 @@
-#include <fcntl.h>
 #include <sys/ioctl.h>
+
+#include <fcntl.h>
+
 #include "ipf.h"
 
 void
@@ -12,7 +14,7 @@ ipf_perror(int err, char *string)
 }
 
 int
-ipf_perror_fd( int fd, ioctlfunc_t iocfunc, char *string)
+ipf_perror_fd(int fd, ioctlfunc_t iocfunc, char *string)
 {
 	int save;
 	int realerr;
@@ -25,7 +27,6 @@ ipf_perror_fd( int fd, ioctlfunc_t iocfunc, char *string)
 	fprintf(stderr, "%d:", realerr);
 	ipf_perror(realerr, string);
 	return (realerr ? realerr : save);
-
 }
 
 void

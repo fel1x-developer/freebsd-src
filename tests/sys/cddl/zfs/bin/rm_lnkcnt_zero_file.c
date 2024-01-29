@@ -24,7 +24,6 @@
  * Use is subject to license terms.
  */
 
-
 /*
  * --------------------------------------------------------------------
  * The purpose of this test is to see if the bug reported (#4723351) for
@@ -32,13 +31,14 @@
  * --------------------------------------------------------------------
  *
  */
-#define	_REENTRANT 1
-#include <stdio.h>
-#include <fcntl.h>
-#include <pthread.h>
-#include <errno.h>
+#define _REENTRANT 1
 #include <sys/types.h>
 #include <sys/stat.h>
+
+#include <errno.h>
+#include <fcntl.h>
+#include <pthread.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -60,10 +60,10 @@ mover(void *a)
 
 	while (TRUE) {
 		idx = pickidx();
-		(void) sprintf(buf, "%s.%03d", filebase, idx);
+		(void)sprintf(buf, "%s.%03d", filebase, idx);
 		ret = rename(filebase, buf);
 		if (ret < 0 && errno != ENOENT)
-			(void) perror("renaming file");
+			(void)perror("renaming file");
 	}
 
 	return (NULL);
@@ -78,10 +78,10 @@ cleaner(void *a)
 
 	while (TRUE) {
 		idx = pickidx();
-		(void) sprintf(buf, "%s.%03d", filebase, idx);
+		(void)sprintf(buf, "%s.%03d", filebase, idx);
 		ret = remove(buf);
 		if (ret < 0 && errno != ENOENT)
-			(void) perror("removing file");
+			(void)perror("removing file");
 	}
 
 	return (NULL);
@@ -93,11 +93,11 @@ writer(void *a)
 	int *fd = (int *)a;
 
 	while (TRUE) {
-		(void) close (*fd);
+		(void)close(*fd);
 		*fd = open(filebase, O_APPEND | O_RDWR | O_CREAT, 0644);
 		if (*fd < 0)
 			perror("refreshing file");
-		(void) write(*fd, "test\n", 5);
+		(void)write(*fd, "test\n", 5);
 	}
 
 	return (NULL);
@@ -110,7 +110,7 @@ main(int argc, char **argv)
 	pthread_t tid;
 
 	if (argc == 1) {
-		(void) printf("Usage: %s <filebase>\n", argv[0]);
+		(void)printf("Usage: %s <filebase>\n", argv[0]);
 		exit(-1);
 	}
 
@@ -121,13 +121,13 @@ main(int argc, char **argv)
 		exit(-1);
 	}
 
-	if (pthread_setconcurrency(4)) {	/* 3 threads + main */
+	if (pthread_setconcurrency(4)) { /* 3 threads + main */
 		fprintf(stderr, "failed to set concurrency\n");
 		exit(-1);
 	}
-	(void) pthread_create(&tid, NULL, mover, NULL);
-	(void) pthread_create(&tid, NULL, cleaner, NULL);
-	(void) pthread_create(&tid, NULL, writer, (void *) &fd);
+	(void)pthread_create(&tid, NULL, mover, NULL);
+	(void)pthread_create(&tid, NULL, cleaner, NULL);
+	(void)pthread_create(&tid, NULL, writer, (void *)&fd);
 
 	while (TRUE) {
 		int ret;
@@ -135,11 +135,11 @@ main(int argc, char **argv)
 
 		ret = stat(filebase, &st);
 		if (ret == 0 && (st.st_nlink > 2 || st.st_nlink < 1)) {
-			(void) printf("st.st_nlink = %d, exiting\n", \
+			(void)printf("st.st_nlink = %d, exiting\n",
 			    (int)st.st_nlink);
 			exit(0);
 		}
-		(void) sleep(1);
+		(void)sleep(1);
 	}
 
 	return (0);

@@ -39,8 +39,8 @@
  *
  *    #include <list>
  */
-#ifndef	_VDEV_ITERATOR_H_
-#define	_VDEV_ITERATOR_H_
+#ifndef _VDEV_ITERATOR_H_
+#define _VDEV_ITERATOR_H_
 
 /*=========================== Forward Declarations ===========================*/
 struct zpool_handle;
@@ -59,9 +59,8 @@ typedef bool VdevCallback_t(Vdev &vdev, void *cbArg);
  * \brief VdevIterator provides mechanisms for traversing and searching
  *        the leaf vdevs contained in a ZFS pool configuration.
  */
-class VdevIterator
-{
-public:
+class VdevIterator {
+    public:
 	/**
 	 * \brief Instantiate a VdevIterator for the given ZFS pool.
 	 *
@@ -81,7 +80,7 @@ public:
 	 * \brief Reset this iterator's cursor so that Next() will
 	 *        report the first member of the pool.
 	 */
-	void      Reset();
+	void Reset();
 
 	/**
 	 * \brief Report the leaf vdev at this iterator's cursor and increment
@@ -111,11 +110,11 @@ public:
 	 * \param cb     Callback function to execute for each member.
 	 * \param cbArg  Argument to pass to cb.
 	 */
-	void	  Each(VdevCallback_t *cb, void *cbArg);
+	void Each(VdevCallback_t *cb, void *cbArg);
 
-private:
-	nvlist_t                *m_poolConfig;
-	std::list<nvlist_t *>	 m_vdevQueue;
+    private:
+	nvlist_t *m_poolConfig;
+	std::list<nvlist_t *> m_vdevQueue;
 };
 
-#endif	/* _VDEV_ITERATOR_H_ */
+#endif /* _VDEV_ITERATOR_H_ */

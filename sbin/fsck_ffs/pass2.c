@@ -32,18 +32,17 @@
 #include <sys/param.h>
 #include <sys/sysctl.h>
 
-#include <ufs/ufs/dinode.h>
-#include <ufs/ufs/dir.h>
-#include <ufs/ffs/fs.h>
-
 #include <err.h>
 #include <errno.h>
 #include <stdint.h>
 #include <string.h>
+#include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
+#include <ufs/ufs/dir.h>
 
 #include "fsck.h"
 
-#define MINDIRSIZE	(sizeof (struct dirtemplate))
+#define MINDIRSIZE (sizeof(struct dirtemplate))
 
 static int fix_extraneous(struct inoinfo *, struct inodesc *);
 static int deleteentry(struct inodesc *);
@@ -162,12 +161,12 @@ pass2(void)
 			getpathname(pathbuf, inp->i_number, inp->i_number);
 			if (usedsoftdep)
 				pfatal("%s %s: LENGTH %jd NOT MULTIPLE OF %d",
-					"DIRECTORY", pathbuf,
-					(intmax_t)inp->i_isize, DIRBLKSIZ);
+				    "DIRECTORY", pathbuf,
+				    (intmax_t)inp->i_isize, DIRBLKSIZ);
 			else
 				pwarn("%s %s: LENGTH %jd NOT MULTIPLE OF %d",
-					"DIRECTORY", pathbuf,
-					(intmax_t)inp->i_isize, DIRBLKSIZ);
+				    "DIRECTORY", pathbuf,
+				    (intmax_t)inp->i_isize, DIRBLKSIZ);
 			if (preen)
 				printf(" (ADJUSTED)\n");
 			inp->i_isize = roundup(inp->i_isize, DIRBLKSIZ);
@@ -231,8 +230,8 @@ pass2(void)
 		printf("CURRENTLY POINTS TO I=%ju (%s), ",
 		    (uintmax_t)inp->i_dotdot, pathbuf);
 		getpathname(pathbuf, inp->i_parent, inp->i_parent);
-		printf("SHOULD POINT TO I=%ju (%s)",
-		    (uintmax_t)inp->i_parent, pathbuf);
+		printf("SHOULD POINT TO I=%ju (%s)", (uintmax_t)inp->i_parent,
+		    pathbuf);
 		if (cursnapshot != 0) {
 			/*
 			 * We need to:
@@ -240,16 +239,16 @@ pass2(void)
 			 *    setdotdot(inp->i_dotdot, inp->i_parent);
 			 */
 			cmd.value = inp->i_number;
-			if (sysctlbyname("vfs.ffs.setcwd", 0, 0,
-			    &cmd, sizeof cmd) == -1) {
+			if (sysctlbyname("vfs.ffs.setcwd", 0, 0, &cmd,
+				sizeof cmd) == -1) {
 				/* kernel lacks support for these functions */
 				printf(" (IGNORED)\n");
 				continue;
 			}
 			cmd.value = inp->i_dotdot; /* verify same value */
 			cmd.size = inp->i_parent;  /* new parent */
-			if (sysctlbyname("vfs.ffs.setdotdot", 0, 0,
-			    &cmd, sizeof cmd) == -1) {
+			if (sysctlbyname("vfs.ffs.setdotdot", 0, 0, &cmd,
+				sizeof cmd) == -1) {
 				printf(" (FIX FAILED: %s)\n", strerror(errno));
 				continue;
 			}
@@ -266,7 +265,7 @@ pass2(void)
 		inoinfo(inp->i_parent)->ino_linkcnt--;
 		inp->i_dotdot = inp->i_parent;
 		(void)changeino(inp->i_number, "..", inp->i_parent,
-		    getinoinfo(inp->i_parent)->i_depth  + 1);
+		    getinoinfo(inp->i_parent)->i_depth + 1);
 	}
 	/*
 	 * Mark all the directories that can be found from the root.
@@ -319,7 +318,7 @@ pass2check(struct inodesc *idesc)
 		/* Not enough space to add '.', replace first entry with '.' */
 		if (dirp->d_ino != 0) {
 			pwarn("\nFIRST ENTRY IN DIRECTORY CONTAINS %s\n",
-			     dirp->d_name);
+			    dirp->d_name);
 			errmsg = "REPLACE WITH '.'";
 		}
 		if (reply(errmsg) == 0)
@@ -442,9 +441,8 @@ chk1:
 	}
 chk2:
 	if (dirp->d_ino == 0)
-		return (ret|KEEPON);
-	if (dirp->d_namlen <= 2 &&
-	    dirp->d_name[0] == '.' &&
+		return (ret | KEEPON);
+	if (dirp->d_namlen <= 2 && dirp->d_name[0] == '.' &&
 	    idesc->id_entryno >= 2) {
 		if (dirp->d_namlen == 1) {
 			direrror(idesc->id_number, "EXTRA '.' ENTRY");
@@ -467,14 +465,14 @@ chk2:
 		fileerror(idesc->id_number, dirp->d_ino, "I OUT OF RANGE");
 		n = reply("REMOVE");
 	} else if (((dirp->d_ino == UFS_WINO && dirp->d_type != DT_WHT) ||
-		    (dirp->d_ino != UFS_WINO && dirp->d_type == DT_WHT))) {
+		       (dirp->d_ino != UFS_WINO && dirp->d_type == DT_WHT))) {
 		fileerror(idesc->id_number, dirp->d_ino, "BAD WHITEOUT ENTRY");
 		dirp->d_ino = UFS_WINO;
 		dirp->d_type = DT_WHT;
 		if (reply("FIX") == 1)
 			ret |= ALTERED;
 	} else {
-again:
+	again:
 		switch (inoinfo(dirp->d_ino)->ino_state) {
 		case USTATE:
 			if (idesc->id_entryno <= 2)
@@ -497,16 +495,16 @@ again:
 			} else {
 				getpathname(dirname, idesc->id_number,
 				    dirp->d_ino);
-				pwarn("ZERO LENGTH DIRECTORY %s I=%ju",
-				    dirname, (uintmax_t)dirp->d_ino);
+				pwarn("ZERO LENGTH DIRECTORY %s I=%ju", dirname,
+				    (uintmax_t)dirp->d_ino);
 				/*
 				 * We need to:
 				 *    setcwd(idesc->id_parent);
 				 *    rmdir(dirp->d_name);
 				 */
 				cmd.value = idesc->id_number;
-				if (sysctlbyname("vfs.ffs.setcwd", 0, 0,
-				    &cmd, sizeof cmd) == -1) {
+				if (sysctlbyname("vfs.ffs.setcwd", 0, 0, &cmd,
+					sizeof cmd) == -1) {
 					/* kernel lacks support */
 					printf(" (IGNORED)\n");
 					n = 1;
@@ -528,8 +526,10 @@ again:
 				break;
 			ginode(dirp->d_ino, &ip);
 			dp = ip.i_dp;
-			inoinfo(dirp->d_ino)->ino_state =
-			   (DIP(dp, di_mode) & IFMT) == IFDIR ? DSTATE : FSTATE;
+			inoinfo(dirp->d_ino)->ino_state = (DIP(dp, di_mode) &
+							      IFMT) == IFDIR ?
+			    DSTATE :
+			    FSTATE;
 			inoinfo(dirp->d_ino)->ino_linkcnt = DIP(dp, di_nlink);
 			irelse(&ip);
 			goto again;
@@ -571,9 +571,9 @@ again:
 		}
 	}
 	if (n == 0)
-		return (ret|KEEPON);
+		return (ret | KEEPON);
 	dirp->d_ino = 0;
-	return (ret|KEEPON|ALTERED);
+	return (ret | KEEPON | ALTERED);
 }
 
 static int
@@ -616,17 +616,17 @@ fix_extraneous(struct inoinfo *inp, struct inodesc *idesc)
 	 * For cases 1-4 we eliminate the new name;
 	 * for case 5 we eliminate the old name.
 	 */
-	if (inp->i_dotdot == 0 ||		    /* Case 1 */
-	    idesc->id_number == inp->i_parent ||    /* Case 2 */
-	    inp->i_dotdot != idesc->id_number ||    /* Case 3 */
-	    inp->i_dotdot == inp->i_parent) {	    /* Case 4 */
+	if (inp->i_dotdot == 0 ||		 /* Case 1 */
+	    idesc->id_number == inp->i_parent || /* Case 2 */
+	    inp->i_dotdot != idesc->id_number || /* Case 3 */
+	    inp->i_dotdot == inp->i_parent) {	 /* Case 4 */
 		getpathname(newname, idesc->id_number, idesc->id_number);
 		if (strcmp(newname, "/") != 0)
-			strcat (newname, "/");
+			strcat(newname, "/");
 		strcat(newname, idesc->id_dirp->d_name);
 		getpathname(oldname, inp->i_number, inp->i_number);
-		pwarn("%s IS AN EXTRANEOUS HARD LINK TO DIRECTORY %s",
-		    newname, oldname);
+		pwarn("%s IS AN EXTRANEOUS HARD LINK TO DIRECTORY %s", newname,
+		    oldname);
 		if (cursnapshot != 0) {
 			/*
 			 * We need to
@@ -634,15 +634,15 @@ fix_extraneous(struct inoinfo *inp, struct inodesc *idesc)
 			 *    unlink(idesc->id_dirp->d_name);
 			 */
 			cmd.value = idesc->id_number;
-			if (sysctlbyname("vfs.ffs.setcwd", 0, 0,
-			    &cmd, sizeof cmd) == -1) {
+			if (sysctlbyname("vfs.ffs.setcwd", 0, 0, &cmd,
+				sizeof cmd) == -1) {
 				printf(" (IGNORED)\n");
 				return (0);
 			}
 			cmd.value = (intptr_t)idesc->id_dirp->d_name;
 			cmd.size = inp->i_number; /* verify same name */
-			if (sysctlbyname("vfs.ffs.unlink", 0, 0,
-			    &cmd, sizeof cmd) == -1) {
+			if (sysctlbyname("vfs.ffs.unlink", 0, 0, &cmd,
+				sizeof cmd) == -1) {
 				printf(" (UNLINK FAILED: %s)\n",
 				    strerror(errno));
 				return (0);
@@ -671,8 +671,8 @@ fix_extraneous(struct inoinfo *inp, struct inodesc *idesc)
 		 *    unlink(last component of oldname pathname);
 		 */
 		cmd.value = inp->i_parent;
-		if (sysctlbyname("vfs.ffs.setcwd", 0, 0,
-		    &cmd, sizeof cmd) == -1) {
+		if (sysctlbyname("vfs.ffs.setcwd", 0, 0, &cmd, sizeof cmd) ==
+		    -1) {
 			printf(" (IGNORED)\n");
 			return (0);
 		}
@@ -682,14 +682,13 @@ fix_extraneous(struct inoinfo *inp, struct inodesc *idesc)
 		}
 		cmd.value = (intptr_t)(cp + 1);
 		cmd.size = inp->i_number; /* verify same name */
-		if (sysctlbyname("vfs.ffs.unlink", 0, 0,
-		    &cmd, sizeof cmd) == -1) {
-			printf(" (UNLINK FAILED: %s)\n",
-			    strerror(errno));
+		if (sysctlbyname("vfs.ffs.unlink", 0, 0, &cmd, sizeof cmd) ==
+		    -1) {
+			printf(" (UNLINK FAILED: %s)\n", strerror(errno));
 			return (0);
 		}
 		printf(" (REMOVED)\n");
-		inp->i_parent = idesc->id_number;  /* reparent to correct dir */
+		inp->i_parent = idesc->id_number; /* reparent to correct dir */
 		return (0);
 	}
 	if (!preen && !reply("REMOVE"))
@@ -703,7 +702,7 @@ fix_extraneous(struct inoinfo *inp, struct inodesc *idesc)
 	if ((ckinode(ip.i_dp, &dotdesc) & FOUND) && preen)
 		printf(" (REMOVED)\n");
 	irelse(&ip);
-	inp->i_parent = idesc->id_number;  /* reparent to correct directory */
+	inp->i_parent = idesc->id_number; /* reparent to correct directory */
 	inoinfo(inp->i_number)->ino_linkcnt++; /* name gone, return reference */
 	return (0);
 }
@@ -716,7 +715,7 @@ deleteentry(struct inodesc *idesc)
 	if (idesc->id_entryno++ < 2 || dirp->d_ino != idesc->id_parent)
 		return (KEEPON);
 	dirp->d_ino = 0;
-	return (ALTERED|STOP|FOUND);
+	return (ALTERED | STOP | FOUND);
 }
 
 /*
@@ -726,6 +725,6 @@ static int
 blksort(const void *arg1, const void *arg2)
 {
 
-	return ((*(struct inoinfo * const *)arg1)->i_blks[0] -
-		(*(struct inoinfo * const *)arg2)->i_blks[0]);
+	return ((*(struct inoinfo *const *)arg1)->i_blks[0] -
+	    (*(struct inoinfo *const *)arg2)->i_blks[0]);
 }

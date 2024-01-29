@@ -43,9 +43,9 @@
 #define _RPC_RPCENT_H
 
 struct rpcent {
-      char    *r_name;        /* name of server for this rpc program */
-      char    **r_aliases;    /* alias list */
-      int     r_number;       /* rpc program number */
+	char *r_name;	  /* name of server for this rpc program */
+	char **r_aliases; /* alias list */
+	int r_number;	  /* rpc program number */
 };
 
 __BEGIN_DECLS

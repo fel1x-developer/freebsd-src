@@ -28,27 +28,26 @@
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
+
 #include <machine/bus.h>
 
+#include <dev/clk/clk.h>
+#include <dev/hwreset/hwreset.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
 #include <dev/uart/uart.h>
 #include <dev/uart/uart_bus.h>
 #include <dev/uart/uart_cpu_fdt.h>
 #include <dev/uart/uart_dev_ns8250.h>
 
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/clk/clk.h>
-#include <dev/hwreset/hwreset.h>
-
 #include "uart_if.h"
 
 struct snps_softc {
-	struct ns8250_softc	ns8250;
+	struct ns8250_softc ns8250;
 
-	clk_t			baudclk;
-	clk_t			apb_pclk;
-	hwreset_t		reset;
+	clk_t baudclk;
+	clk_t apb_pclk;
+	hwreset_t reset;
 };
 
 /*
@@ -63,7 +62,7 @@ struct snps_softc {
  * options EARLY_PRINTF
  *
  * remove the if 0
-*/
+ */
 #if 0
 #ifdef EARLY_PRINTF
 static void
@@ -89,23 +88,21 @@ early_putc_t *early_putc = uart_snps_early_putc;
 #endif /* EARLY_PRINTF */
 #endif
 
-static kobj_method_t snps_methods[] = {
-	KOBJMETHOD(uart_probe,		ns8250_bus_probe),
-	KOBJMETHOD(uart_attach,		ns8250_bus_attach),
-	KOBJMETHOD(uart_detach,		ns8250_bus_detach),
-	KOBJMETHOD(uart_flush,		ns8250_bus_flush),
-	KOBJMETHOD(uart_getsig,		ns8250_bus_getsig),
-	KOBJMETHOD(uart_ioctl,		ns8250_bus_ioctl),
-	KOBJMETHOD(uart_ipend,		ns8250_bus_ipend),
-	KOBJMETHOD(uart_param,		ns8250_bus_param),
-	KOBJMETHOD(uart_receive,	ns8250_bus_receive),
-	KOBJMETHOD(uart_setsig,		ns8250_bus_setsig),
-	KOBJMETHOD(uart_transmit,	ns8250_bus_transmit),
-	KOBJMETHOD(uart_txbusy,		ns8250_bus_txbusy),
-	KOBJMETHOD(uart_grab,		ns8250_bus_grab),
-	KOBJMETHOD(uart_ungrab,		ns8250_bus_ungrab),
-	KOBJMETHOD_END
-};
+static kobj_method_t snps_methods[] = { KOBJMETHOD(uart_probe,
+					    ns8250_bus_probe),
+	KOBJMETHOD(uart_attach, ns8250_bus_attach),
+	KOBJMETHOD(uart_detach, ns8250_bus_detach),
+	KOBJMETHOD(uart_flush, ns8250_bus_flush),
+	KOBJMETHOD(uart_getsig, ns8250_bus_getsig),
+	KOBJMETHOD(uart_ioctl, ns8250_bus_ioctl),
+	KOBJMETHOD(uart_ipend, ns8250_bus_ipend),
+	KOBJMETHOD(uart_param, ns8250_bus_param),
+	KOBJMETHOD(uart_receive, ns8250_bus_receive),
+	KOBJMETHOD(uart_setsig, ns8250_bus_setsig),
+	KOBJMETHOD(uart_transmit, ns8250_bus_transmit),
+	KOBJMETHOD(uart_txbusy, ns8250_bus_txbusy),
+	KOBJMETHOD(uart_grab, ns8250_bus_grab),
+	KOBJMETHOD(uart_ungrab, ns8250_bus_ungrab), KOBJMETHOD_END };
 
 struct uart_class uart_snps_class = {
 	"snps",
@@ -117,9 +114,9 @@ struct uart_class uart_snps_class = {
 };
 
 static struct ofw_compat_data compat_data[] = {
-	{ "snps,dw-apb-uart",		(uintptr_t)&uart_snps_class },
-	{ "marvell,armada-38x-uart",	(uintptr_t)&uart_snps_class },
-	{ NULL,				(uintptr_t)NULL }
+	{ "snps,dw-apb-uart", (uintptr_t)&uart_snps_class },
+	{ "marvell,armada-38x-uart", (uintptr_t)&uart_snps_class },
+	{ NULL, (uintptr_t)NULL }
 };
 UART_FDT_CLASS(compat_data);
 
@@ -159,7 +156,8 @@ snps_probe(device_t dev)
 		return (ENXIO);
 
 	uart_class = (struct uart_class *)ofw_bus_search_compatible(dev,
-	    compat_data)->ocd_data;
+	    compat_data)
+			 ->ocd_data;
 	if (uart_class == NULL)
 		return (ENXIO);
 
@@ -211,7 +209,8 @@ snps_probe(device_t dev)
 	if (bootverbose && clock == 0)
 		device_printf(dev, "could not determine frequency\n");
 
-	error = uart_bus_probe(dev, (int)shift, (int)iowidth, (int)clock, 0, 0, UART_F_BUSY_DETECT);
+	error = uart_bus_probe(dev, (int)shift, (int)iowidth, (int)clock, 0, 0,
+	    UART_F_BUSY_DETECT);
 	if (error > 0)
 		return (error);
 
@@ -271,16 +270,12 @@ snps_detach(device_t dev)
 
 static device_method_t snps_bus_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		snps_probe),
-	DEVMETHOD(device_attach,	uart_bus_attach),
-	DEVMETHOD(device_detach, 	snps_detach),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, snps_probe),
+	DEVMETHOD(device_attach, uart_bus_attach),
+	DEVMETHOD(device_detach, snps_detach), DEVMETHOD_END
 };
 
-static driver_t snps_uart_driver = {
-	uart_driver_name,
-	snps_bus_methods,
-	sizeof(struct snps_softc)
-};
+static driver_t snps_uart_driver = { uart_driver_name, snps_bus_methods,
+	sizeof(struct snps_softc) };
 
 DRIVER_MODULE(uart_snps, simplebus, snps_uart_driver, 0, 0);

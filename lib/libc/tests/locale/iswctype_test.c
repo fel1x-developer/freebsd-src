@@ -32,14 +32,14 @@
  */
 
 #include <sys/param.h>
+
+#include <atf-c.h>
 #include <errno.h>
 #include <locale.h>
 #include <stdio.h>
 #include <string.h>
 #include <wchar.h>
 #include <wctype.h>
-
-#include <atf-c.h>
 
 static void
 require_lc_ctype(const char *locale_name)
@@ -59,20 +59,10 @@ static int i, j;
 static struct {
 	const char *name;
 	int (*func)(wint_t);
-} cls[] = {
-	{ "alnum", iswalnum },
-	{ "alpha", iswalpha },
-	{ "blank", iswblank },
-	{ "cntrl", iswcntrl },
-	{ "digit", iswdigit },
-	{ "graph", iswgraph },
-	{ "lower", iswlower },
-	{ "print", iswprint },
-	{ "punct", iswpunct },
-	{ "space", iswspace },
-	{ "upper", iswupper },
-	{ "xdigit", iswxdigit }
-};
+} cls[] = { { "alnum", iswalnum }, { "alpha", iswalpha }, { "blank", iswblank },
+	{ "cntrl", iswcntrl }, { "digit", iswdigit }, { "graph", iswgraph },
+	{ "lower", iswlower }, { "print", iswprint }, { "punct", iswpunct },
+	{ "space", iswspace }, { "upper", iswupper }, { "xdigit", iswxdigit } };
 
 ATF_TC_WITHOUT_HEAD(iswctype_c_locale_test);
 ATF_TC_BODY(iswctype_c_locale_test, tc)

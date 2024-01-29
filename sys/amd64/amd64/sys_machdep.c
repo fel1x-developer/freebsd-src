@@ -30,10 +30,10 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_capsicum.h"
 #include "opt_ktrace.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/capsicum.h>
@@ -51,9 +51,9 @@
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
-#include <vm/vm_kern.h>		/* for kernel_map */
-#include <vm/vm_map.h>
 #include <vm/vm_extern.h>
+#include <vm/vm_kern.h> /* for kernel_map */
+#include <vm/vm_map.h>
 
 #include <machine/frame.h>
 #include <machine/md_var.h>
@@ -68,12 +68,11 @@
 static void user_ldt_deref(struct proc_ldt *pldt);
 static void user_ldt_derefl(struct proc_ldt *pldt);
 
-#define	MAX_LD		8192
+#define MAX_LD 8192
 
 int max_ldt_segment = 512;
-SYSCTL_INT(_machdep, OID_AUTO, max_ldt_segment, CTLFLAG_RDTUN,
-    &max_ldt_segment, 0,
-    "Maximum number of allowed LDT segments in the single address space");
+SYSCTL_INT(_machdep, OID_AUTO, max_ldt_segment, CTLFLAG_RDTUN, &max_ldt_segment,
+    0, "Maximum number of allowed LDT segments in the single address space");
 
 static void
 max_ldt_segment_init(void *arg __unused)
@@ -122,10 +121,12 @@ sysarch_ldt(struct thread *td, struct sysarch_args *uap, int uap_space)
 			return (EINVAL);
 		set_pcb_flags(td->td_pcb, PCB_FULL_IRET);
 		if (largs->descs != NULL) {
-			lp = malloc(largs->num * sizeof(struct
-			    user_segment_descriptor), M_TEMP, M_WAITOK);
-			error = copyin(largs->descs, lp, largs->num *
-			    sizeof(struct user_segment_descriptor));
+			lp = malloc(largs->num *
+				sizeof(struct user_segment_descriptor),
+			    M_TEMP, M_WAITOK);
+			error = copyin(largs->descs, lp,
+			    largs->num *
+				sizeof(struct user_segment_descriptor));
 			if (error == 0)
 				error = amd64_set_ldt(td, largs, lp);
 			free(lp, M_TEMP);
@@ -234,12 +235,12 @@ sysarch(struct thread *td, struct sysarch_args *uap)
 	case I386_GET_IOPERM:
 	case I386_SET_IOPERM:
 		if ((error = copyin(uap->parms, &iargs,
-		    sizeof(struct i386_ioperm_args))) != 0)
+			 sizeof(struct i386_ioperm_args))) != 0)
 			return (error);
 		break;
 	case I386_GET_XFPUSTATE:
 		if ((error = copyin(uap->parms, &i386xfpu,
-		    sizeof(struct i386_get_xfpustate))) != 0)
+			 sizeof(struct i386_get_xfpustate))) != 0)
 			return (error);
 		a64xfpu.addr = (void *)(uintptr_t)i386xfpu.addr;
 		a64xfpu.len = i386xfpu.len;
@@ -247,7 +248,7 @@ sysarch(struct thread *td, struct sysarch_args *uap)
 	case I386_SET_PKRU:
 	case I386_CLEAR_PKRU:
 		if ((error = copyin(uap->parms, &i386pkru,
-		    sizeof(struct i386_set_pkru))) != 0)
+			 sizeof(struct i386_set_pkru))) != 0)
 			return (error);
 		a64pkru.addr = (void *)(uintptr_t)i386pkru.addr;
 		a64pkru.len = i386pkru.len;
@@ -256,13 +257,13 @@ sysarch(struct thread *td, struct sysarch_args *uap)
 		break;
 	case AMD64_GET_XFPUSTATE:
 		if ((error = copyin(uap->parms, &a64xfpu,
-		    sizeof(struct amd64_get_xfpustate))) != 0)
+			 sizeof(struct amd64_get_xfpustate))) != 0)
 			return (error);
 		break;
 	case AMD64_SET_PKRU:
 	case AMD64_CLEAR_PKRU:
 		if ((error = copyin(uap->parms, &a64pkru,
-		    sizeof(struct amd64_set_pkru))) != 0)
+			 sizeof(struct amd64_set_pkru))) != 0)
 			return (error);
 		break;
 	default:
@@ -312,7 +313,7 @@ sysarch(struct thread *td, struct sysarch_args *uap)
 		error = copyout(&pcb->pcb_fsbase, uap->parms,
 		    sizeof(pcb->pcb_fsbase));
 		break;
-		
+
 	case AMD64_SET_FSBASE:
 		error = copyin(uap->parms, &a64base, sizeof(a64base));
 		if (!error) {
@@ -345,8 +346,8 @@ sysarch(struct thread *td, struct sysarch_args *uap)
 
 	case I386_GET_XFPUSTATE:
 	case AMD64_GET_XFPUSTATE:
-		if (a64xfpu.len > cpu_max_ext_state_size -
-		    sizeof(struct savefpu))
+		if (a64xfpu.len >
+		    cpu_max_ext_state_size - sizeof(struct savefpu))
 			return (EINVAL);
 		fpugetregs(td);
 		error = copyout((char *)(get_pcb_user_save_td(td) + 1),
@@ -362,8 +363,9 @@ sysarch(struct thread *td, struct sysarch_args *uap)
 		map = &td->td_proc->p_vmspace->vm_map;
 		vm_map_lock_read(map);
 		error = pmap_pkru_set(PCPU_GET(curpmap),
-		    (vm_offset_t)a64pkru.addr, (vm_offset_t)a64pkru.addr +
-		    a64pkru.len, a64pkru.keyidx, a64pkru.flags);
+		    (vm_offset_t)a64pkru.addr,
+		    (vm_offset_t)a64pkru.addr + a64pkru.len, a64pkru.keyidx,
+		    a64pkru.flags);
 		vm_map_unlock_read(map);
 		break;
 
@@ -415,8 +417,8 @@ amd64_set_ioperm(struct thread *td, struct i386_ioperm_args *uap)
 	pcb = td->td_pcb;
 	if (pcb->pcb_tssp == NULL) {
 		tssp = kmem_malloc(ctob(IOPAGES + 1), M_WAITOK);
-		pmap_pti_add_kva((vm_offset_t)tssp, (vm_offset_t)tssp +
-		    ctob(IOPAGES + 1), false);
+		pmap_pti_add_kva((vm_offset_t)tssp,
+		    (vm_offset_t)tssp + ctob(IOPAGES + 1), false);
 		iomap = (char *)&tssp[1];
 		memset(iomap, 0xff, IOPERM_BITMAP_SIZE);
 		critical_enter();
@@ -538,8 +540,8 @@ user_ldt_alloc(struct proc *p, int force)
 	}
 
 	if (pldt != NULL) {
-		bcopy(pldt->ldt_base, new_ldt->ldt_base, max_ldt_segment *
-		    sizeof(struct user_segment_descriptor));
+		bcopy(pldt->ldt_base, new_ldt->ldt_base,
+		    max_ldt_segment * sizeof(struct user_segment_descriptor));
 		user_ldt_derefl(pldt);
 	}
 	critical_enter();
@@ -614,9 +616,9 @@ amd64_get_ldt(struct thread *td, struct i386_ldt_args *uap)
 	u_int i, num;
 	int error;
 
-#ifdef	DEBUG
-	printf("amd64_get_ldt: start=%u num=%u descs=%p\n",
-	    uap->start, uap->num, (void *)uap->descs);
+#ifdef DEBUG
+	printf("amd64_get_ldt: start=%u num=%u descs=%p\n", uap->start,
+	    uap->num, (void *)uap->descs);
 #endif
 
 	pldt = td->td_proc->p_md.md_ldt;
@@ -632,8 +634,8 @@ amd64_get_ldt(struct thread *td, struct i386_ldt_args *uap)
 	for (i = 0; i < num; i++)
 		data[i] = ((volatile uint64_t *)lp)[i];
 	mtx_unlock(&dt_lock);
-	error = copyout(data, uap->descs, num *
-	    sizeof(struct user_segment_descriptor));
+	error = copyout(data, uap->descs,
+	    num * sizeof(struct user_segment_descriptor));
 	free(data, M_TEMP);
 	if (error == 0)
 		td->td_retval[0] = num;
@@ -651,9 +653,9 @@ amd64_set_ldt(struct thread *td, struct i386_ldt_args *uap,
 	u_int largest_ld, i;
 	int error;
 
-#ifdef	DEBUG
-	printf("amd64_set_ldt: start=%u num=%u descs=%p\n",
-	    uap->start, uap->num, (void *)uap->descs);
+#ifdef DEBUG
+	printf("amd64_set_ldt: start=%u num=%u descs=%p\n", uap->start,
+	    uap->num, (void *)uap->descs);
 #endif
 	mdp = &td->td_proc->p_md;
 	error = 0;
@@ -685,8 +687,7 @@ amd64_set_ldt(struct thread *td, struct i386_ldt_args *uap,
 		/* verify range of descriptors to modify */
 		largest_ld = uap->start + uap->num;
 		if (uap->start >= max_ldt_segment ||
-		    largest_ld > max_ldt_segment ||
-		    largest_ld < uap->start)
+		    largest_ld > max_ldt_segment || largest_ld < uap->start)
 			return (EINVAL);
 	}
 
@@ -695,7 +696,7 @@ amd64_set_ldt(struct thread *td, struct i386_ldt_args *uap,
 		dp = &descs[i];
 
 		switch (dp->sd_type) {
-		case SDT_SYSNULL:	/* system null */
+		case SDT_SYSNULL: /* system null */
 			dp->sd_p = 0;
 			break;
 		case SDT_SYS286TSS:
@@ -716,29 +717,29 @@ amd64_set_ldt(struct thread *td, struct i386_ldt_args *uap,
 			return (EACCES);
 
 		/* memory segment types */
-		case SDT_MEMEC:   /* memory execute only conforming */
+		case SDT_MEMEC:	  /* memory execute only conforming */
 		case SDT_MEMEAC:  /* memory execute only accessed conforming */
 		case SDT_MEMERC:  /* memory execute read conforming */
 		case SDT_MEMERAC: /* memory execute read accessed conforming */
-			 /* Must be "present" if executable and conforming. */
+			/* Must be "present" if executable and conforming. */
 			if (dp->sd_p == 0)
 				return (EACCES);
 			break;
-		case SDT_MEMRO:   /* memory read only */
+		case SDT_MEMRO:	  /* memory read only */
 		case SDT_MEMROA:  /* memory read only accessed */
-		case SDT_MEMRW:   /* memory read write */
+		case SDT_MEMRW:	  /* memory read write */
 		case SDT_MEMRWA:  /* memory read write accessed */
 		case SDT_MEMROD:  /* memory read only expand dwn limit */
 		case SDT_MEMRODA: /* memory read only expand dwn lim accessed */
 		case SDT_MEMRWD:  /* memory read write expand dwn limit */
 		case SDT_MEMRWDA: /* memory read write expand dwn lim acessed */
-		case SDT_MEME:    /* memory execute only */
-		case SDT_MEMEA:   /* memory execute only accessed */
-		case SDT_MEMER:   /* memory execute read */
+		case SDT_MEME:	  /* memory execute only */
+		case SDT_MEMEA:	  /* memory execute only accessed */
+		case SDT_MEMER:	  /* memory execute read */
 		case SDT_MEMERA:  /* memory execute read accessed */
 			break;
 		default:
-			return(EINVAL);
+			return (EINVAL);
 		}
 
 		/* Only user (ring-3) descriptors may be present. */

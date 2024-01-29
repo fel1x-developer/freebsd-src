@@ -49,7 +49,7 @@ typedef enum {
 } vi_cmd_t;
 
 typedef struct vimage_status {
-	char name[MAXPATHLEN];		/* Must be first field for strcmp(). */
+	char name[MAXPATHLEN]; /* Must be first field for strcmp(). */
 	char path[MAXPATHLEN];
 	char hostname[MAXPATHLEN];
 	char domainname[MAXPATHLEN];
@@ -64,8 +64,8 @@ typedef struct vimage_status {
 	int mount;
 } vstat_t;
 
-#define	VST_SIZE_STEP	1024
-#define	MAXPARAMS	32
+#define VST_SIZE_STEP 1024
+#define MAXPARAMS 32
 
 static int getjail(vstat_t *, int, int);
 
@@ -163,14 +163,16 @@ main(int argc, char **argv)
 			/* Skip non-matching vnames / hierarchies. */
 			if (namelen &&
 			    ((strlen(vst[vst_last].name) < namelen ||
-			    strncmp(vst[vst_last].name, argv[0], namelen) != 0)
-			    || (strlen(vst[vst_last].name) > namelen &&
-			    vst[vst_last].name[namelen] != '.')))
+				 strncmp(vst[vst_last].name, argv[0],
+				     namelen) != 0) ||
+				(strlen(vst[vst_last].name) > namelen &&
+				    vst[vst_last].name[namelen] != '.')))
 				continue;
 			/* Skip any sub-trees if -r not requested. */
 			if (!recurse &&
 			    (strlen(vst[vst_last].name) < namelen ||
-			    strchr(&vst[vst_last].name[namelen], '.') != NULL))
+				strchr(&vst[vst_last].name[namelen], '.') !=
+				    NULL))
 				continue;
 			/* Grow vst table if necessary. */
 			if (++vst_last == vst_size) {
@@ -183,7 +185,7 @@ main(int argc, char **argv)
 		if (vst == NULL)
 			break;
 		/* Sort: the key is the 1st field in *vst, i.e. vimage name. */
-		qsort(vst, vst_last, sizeof(*vst), (void *) strcmp);
+		qsort(vst, vst_last, sizeof(*vst), (void *)strcmp);
 		for (i = 0; i < vst_last; i++) {
 			if (!verbose) {
 				printf("%s\n", vst[i].name);
@@ -232,7 +234,8 @@ main(int argc, char **argv)
 				break;
 			if ((s = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
 				break;
-			for (namelen = 0; isalpha(ifname[namelen]); namelen++);
+			for (namelen = 0; isalpha(ifname[namelen]); namelen++)
+				;
 			i = 0;
 			/* Search for a free ifunit in target vnet.  Unsafe. */
 			while (ioctl(s, SIOCSIFNAME, (caddr_t)&ifreq) < 0) {
@@ -250,15 +253,10 @@ main(int argc, char **argv)
 		exit(0);
 
 	case VI_CREATE:
-		if (jail_setv(JAIL_CREATE,
-		    "name", argv[0],
-		    "vnet", NULL,
-		    "host", NULL,
-		    "persist", NULL,
-		    "allow.raw_sockets", "true",
-		    "allow.socket_af", "true",
-		    "allow.mount", "true",
-		    NULL) < 0)
+		if (jail_setv(JAIL_CREATE, "name", argv[0], "vnet", NULL,
+			"host", NULL, "persist", NULL, "allow.raw_sockets",
+			"true", "allow.socket_af", "true", "allow.mount",
+			"true", NULL) < 0)
 			break;
 		if (argc == 1)
 			exit(0);
@@ -303,7 +301,7 @@ main(int argc, char **argv)
 				execlp("/bin/sh", invocname, NULL);
 			else
 				execlp(str, invocname, NULL);
-		} else 
+		} else
 			execvp(argv[1], &argv[1]);
 		break;
 
@@ -322,7 +320,7 @@ main(int argc, char **argv)
 static int
 getjail(vstat_t *vs, int lastjid, int verbose)
 {
-	struct jailparam params[32];	/* Must be > max(psize). */
+	struct jailparam params[32]; /* Must be > max(psize). */
 	int psize = 0;
 
 	bzero(params, sizeof(params));
@@ -363,8 +361,7 @@ getjail(vstat_t *vs, int lastjid, int verbose)
 	    sizeof(vs->childmax));
 
 	jailparam_init(&params[psize], "cpuset.id");
-	jailparam_import_raw(&params[psize++], &vs->cpuset,
-	    sizeof(vs->cpuset));
+	jailparam_import_raw(&params[psize++], &vs->cpuset, sizeof(vs->cpuset));
 
 	jailparam_init(&params[psize], "parent");
 	jailparam_import_raw(&params[psize++], &vs->parentjid,

@@ -12,7 +12,7 @@
  * no representations about the suitability of this software for any
  * purpose.  It is provided "as is" without express or implied
  * warranty.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY M.I.T. ``AS IS''.  M.I.T. DISCLAIMS
  * ALL EXPRESS OR IMPLIED WARRANTIES WITH REGARD TO THIS SOFTWARE,
  * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
@@ -35,9 +35,9 @@
 #include <sys/sysctl.h>
 
 #include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_private.h>
 #include <net/if_mib.h>
+#include <net/if_private.h>
+#include <net/if_var.h>
 #include <net/vnet.h>
 
 /*
@@ -85,7 +85,7 @@ sysctl_ifdata(SYSCTL_HANDLER_ARGS) /* XXX bad syntax! */
 	if (ifp == NULL)
 		return (ENOENT);
 
-	switch(name[1]) {
+	switch (name[1]) {
 	default:
 		error = ENOENT;
 		goto out;
@@ -100,8 +100,8 @@ sysctl_ifdata(SYSCTL_HANDLER_ARGS) /* XXX bad syntax! */
 		ifmd.ifmd_flags = ifp->if_flags | ifp->if_drv_flags;
 		ifmd.ifmd_snd_len = ifp->if_snd.ifq_len;
 		ifmd.ifmd_snd_maxlen = ifp->if_snd.ifq_maxlen;
-		ifmd.ifmd_snd_drops =
-		    ifp->if_get_counter(ifp, IFCOUNTER_OQDROPS);
+		ifmd.ifmd_snd_drops = ifp->if_get_counter(ifp,
+		    IFCOUNTER_OQDROPS);
 
 		error = SYSCTL_OUT(req, &ifmd, sizeof ifmd);
 		if (error)
@@ -139,5 +139,4 @@ out:
 
 SYSCTL_DECL(_net_link_generic);
 static SYSCTL_NODE(_net_link_generic, IFMIB_IFDATA, ifdata,
-    CTLFLAG_RD | CTLFLAG_MPSAFE, sysctl_ifdata,
-    "Interface table");
+    CTLFLAG_RD | CTLFLAG_MPSAFE, sysctl_ifdata, "Interface table");

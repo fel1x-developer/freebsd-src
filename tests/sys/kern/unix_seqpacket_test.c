@@ -23,23 +23,22 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+
+#include <atf-c.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
 #include <signal.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-
 #include <stdio.h>
-
-#include <atf-c.h>
 
 /*
  * Helper functions
  */
 
-#define MIN(x, y)	((x) < (y) ? (x) : (y))
-#define MAX(x, y)	((x) > (y) ? (x) : (y))
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
+#define MAX(x, y) ((x) > (y) ? (x) : (y))
 
 static void
 do_socketpair(int *sv)
@@ -71,7 +70,7 @@ do_socketpair_nonblocking(int *sv)
  * Returns a pair of sockets made the hard way: bind, listen, connect & accept
  * @return	const char* The path to the socket
  */
-static const char*
+static const char *
 mk_pair_of_sockets(int *sv)
 {
 	struct sockaddr_un sun;
@@ -93,7 +92,7 @@ mk_pair_of_sockets(int *sv)
 	/* Create the other socket */
 	s2 = socket(PF_LOCAL, SOCK_SEQPACKET, 0);
 	ATF_REQUIRE(s2 >= 0);
-	err = connect(s2, (struct sockaddr*)&sun, sizeof(sun));
+	err = connect(s2, (struct sockaddr *)&sun, sizeof(sun));
 	if (err != 0) {
 		perror("connect");
 		atf_tc_fail("connect(2) failed");
@@ -138,22 +137,23 @@ test_eagain(int sndbufsize, int rcvbufsize)
 	/* setup the socket pair */
 	do_socketpair_nonblocking(sv);
 	/* Setup the buffers */
-	ATF_REQUIRE_EQ(0, setsockopt(sv[0], SOL_SOCKET, SO_SNDBUF, &sndbufsize,
-	    sizeof(sndbufsize)));
-	ATF_REQUIRE_EQ(0, setsockopt(sv[1], SOL_SOCKET, SO_RCVBUF, &rcvbufsize,
-	    sizeof(rcvbufsize)));
+	ATF_REQUIRE_EQ(0,
+	    setsockopt(sv[0], SOL_SOCKET, SO_SNDBUF, &sndbufsize,
+		sizeof(sndbufsize)));
+	ATF_REQUIRE_EQ(0,
+	    setsockopt(sv[1], SOL_SOCKET, SO_RCVBUF, &rcvbufsize,
+		sizeof(rcvbufsize)));
 
 	bzero(sndbuf, pktsize);
 	/* Send data until we get EAGAIN */
-	for(i=0; i < numpkts; i++) {
+	for (i = 0; i < numpkts; i++) {
 		ssize = send(sv[0], sndbuf, pktsize, MSG_EOR);
 		if (ssize == -1) {
 			if (errno == EAGAIN) {
 				close(sv[0]);
 				close(sv[1]);
 				atf_tc_pass();
-			}
-			else {
+			} else {
 				perror("send");
 				atf_tc_fail("send returned < 0 but not EAGAIN");
 			}
@@ -163,7 +163,8 @@ test_eagain(int sndbufsize, int rcvbufsize)
 }
 
 static void
-test_sendrecv_symmetric_buffers(int bufsize, int blocking) {
+test_sendrecv_symmetric_buffers(int bufsize, int blocking)
+{
 	int s;
 	int sv[2];
 	const ssize_t pktsize = bufsize / 2;
@@ -222,15 +223,17 @@ test_pipe_simulator(int sndbufsize, int rcvbufsize)
 	/* setup the socket pair */
 	do_socketpair_nonblocking(sv);
 	/* Setup the buffers */
-	ATF_REQUIRE_EQ(0, setsockopt(sv[0], SOL_SOCKET, SO_SNDBUF, &sndbufsize,
-	    sizeof(sndbufsize)));
-	ATF_REQUIRE_EQ(0, setsockopt(sv[1], SOL_SOCKET, SO_RCVBUF, &rcvbufsize,
-	    sizeof(rcvbufsize)));
+	ATF_REQUIRE_EQ(0,
+	    setsockopt(sv[0], SOL_SOCKET, SO_SNDBUF, &sndbufsize,
+		sizeof(sndbufsize)));
+	ATF_REQUIRE_EQ(0,
+	    setsockopt(sv[1], SOL_SOCKET, SO_RCVBUF, &rcvbufsize,
+		sizeof(rcvbufsize)));
 
 	/* Send a total amount of data comfortably greater than the buffers */
 	numpkts = MAX(sndbufsize, rcvbufsize) * 8 / pktsize;
-	for (num_sent=0, num_received=0;
-	     num_sent < numpkts || num_received < numpkts; ) {
+	for (num_sent = 0, num_received = 0;
+	     num_sent < numpkts || num_received < numpkts;) {
 		if (currently_sending && num_sent < numpkts) {
 			/* The simulated sending process */
 			/* fill the buffer */
@@ -248,7 +251,7 @@ test_pipe_simulator(int sndbufsize, int rcvbufsize)
 					perror("send");
 					atf_tc_fail("send failed");
 				}
-			} else  {
+			} else {
 				ATF_CHECK_EQ_MSG(pktsize, ssize,
 				    "expected %zd=send(...) but got %zd",
 				    pktsize, ssize);
@@ -262,18 +265,17 @@ test_pipe_simulator(int sndbufsize, int rcvbufsize)
 					currently_sending = true;
 					ATF_REQUIRE_MSG(num_sent < numpkts,
 					    "Packets were lost!");
-				}
-				else {
+				} else {
 					perror("recv");
 					atf_tc_fail("recv failed");
 				}
-			} else  {
+			} else {
 				ATF_CHECK_EQ_MSG(pktsize, rsize,
 				    "expected %zd=recv(...) but got %zd",
 				    pktsize, rsize);
 				memset(comparebuf, num_received, pktsize);
-				ATF_CHECK_EQ_MSG(0, memcmp(comparebuf, rcvbuf,
-				    			   pktsize),
+				ATF_CHECK_EQ_MSG(0,
+				    memcmp(comparebuf, rcvbuf, pktsize),
 				    "Received data miscompare");
 				num_received++;
 			}
@@ -284,43 +286,42 @@ test_pipe_simulator(int sndbufsize, int rcvbufsize)
 }
 
 typedef struct {
-	ssize_t	pktsize;
-	int	numpkts;
-	int	so;
+	ssize_t pktsize;
+	int numpkts;
+	int so;
 } test_pipe_thread_data_t;
 
-static void*
-test_pipe_writer(void* args)
+static void *
+test_pipe_writer(void *args)
 {
-	test_pipe_thread_data_t* td = args;
+	test_pipe_thread_data_t *td = args;
 	char sndbuf[td->pktsize];
 	ssize_t ssize;
 	int i;
 
-	for(i=0; i < td->numpkts; i++) {
-			memset(sndbuf, i, td->pktsize);
-			ssize = send(td->so, sndbuf, td->pktsize, MSG_EOR);
-			if (ssize < 0) {
-				perror("send");
-				atf_tc_fail("send returned < 0");
-			}
-			ATF_CHECK_EQ_MSG(td->pktsize, ssize,
-			    		 "expected %zd=send(...) but got %zd",
-			    		  td->pktsize, ssize);
+	for (i = 0; i < td->numpkts; i++) {
+		memset(sndbuf, i, td->pktsize);
+		ssize = send(td->so, sndbuf, td->pktsize, MSG_EOR);
+		if (ssize < 0) {
+			perror("send");
+			atf_tc_fail("send returned < 0");
+		}
+		ATF_CHECK_EQ_MSG(td->pktsize, ssize,
+		    "expected %zd=send(...) but got %zd", td->pktsize, ssize);
 	}
 	return (0);
 }
 
-static void*
-test_pipe_reader(void* args)
+static void *
+test_pipe_reader(void *args)
 {
-	test_pipe_thread_data_t* td = args;
+	test_pipe_thread_data_t *td = args;
 	char rcvbuf[td->pktsize];
 	char comparebuf[td->pktsize];
 	ssize_t rsize;
 	int i, d;
 
-	for(i=0; i < td->numpkts; i++) {
+	for (i = 0; i < td->numpkts; i++) {
 		memset(comparebuf, i, td->pktsize);
 		rsize = recv(td->so, rcvbuf, td->pktsize, MSG_WAITALL);
 		if (rsize < 0) {
@@ -328,15 +329,13 @@ test_pipe_reader(void* args)
 			atf_tc_fail("recv returned < 0");
 		}
 		ATF_CHECK_EQ_MSG(td->pktsize, rsize,
-		    		 "expected %zd=send(...) but got %zd",
-				 td->pktsize, rsize);
+		    "expected %zd=send(...) but got %zd", td->pktsize, rsize);
 		d = memcmp(comparebuf, rcvbuf, td->pktsize);
-		ATF_CHECK_EQ_MSG(0, d,
-		    		 "Received data miscompare on packet %d", i);
+		ATF_CHECK_EQ_MSG(0, d, "Received data miscompare on packet %d",
+		    i);
 	}
 	return (0);
 }
-
 
 static void
 test_pipe(int sndbufsize, int rcvbufsize)
@@ -350,10 +349,12 @@ test_pipe(int sndbufsize, int rcvbufsize)
 	/* setup the socket pair */
 	do_socketpair(sv);
 	/* Setup the buffers */
-	ATF_REQUIRE_EQ(0, setsockopt(sv[0], SOL_SOCKET, SO_SNDBUF, &sndbufsize,
-	    sizeof(sndbufsize)));
-	ATF_REQUIRE_EQ(0, setsockopt(sv[1], SOL_SOCKET, SO_RCVBUF, &rcvbufsize,
-	    sizeof(rcvbufsize)));
+	ATF_REQUIRE_EQ(0,
+	    setsockopt(sv[0], SOL_SOCKET, SO_SNDBUF, &sndbufsize,
+		sizeof(sndbufsize)));
+	ATF_REQUIRE_EQ(0,
+	    setsockopt(sv[1], SOL_SOCKET, SO_RCVBUF, &rcvbufsize,
+		sizeof(rcvbufsize)));
 
 	/* Send a total amount of data comfortably greater than the buffers */
 	numpkts = MAX(sndbufsize, rcvbufsize) * 8 / pktsize;
@@ -365,16 +366,18 @@ test_pipe(int sndbufsize, int rcvbufsize)
 	reader_data.pktsize = pktsize;
 	reader_data.numpkts = numpkts;
 	reader_data.so = sv[1];
-	ATF_REQUIRE_EQ(0, pthread_create(&writer, NULL, test_pipe_writer,
-	    				 (void*)&writer_data));
+	ATF_REQUIRE_EQ(0,
+	    pthread_create(&writer, NULL, test_pipe_writer,
+		(void *)&writer_data));
 	/*
 	 * Give the writer time to start writing, and hopefully block, before
 	 * starting the reader.  This increases the likelihood of the test case
 	 * failing due to PR kern/185812
 	 */
 	usleep(1000);
-	ATF_REQUIRE_EQ(0, pthread_create(&reader, NULL, test_pipe_reader,
-	    				 (void*)&reader_data));
+	ATF_REQUIRE_EQ(0,
+	    pthread_create(&reader, NULL, test_pipe_reader,
+		(void *)&reader_data));
 
 	/* Join the children */
 	ATF_REQUIRE_EQ(0, pthread_join(writer, NULL));
@@ -382,7 +385,6 @@ test_pipe(int sndbufsize, int rcvbufsize)
 	close(sv[0]);
 	close(sv[1]);
 }
-
 
 /*
  * Test Cases
@@ -497,7 +499,7 @@ ATF_TC_BODY(connect, tc)
 	/* Create the other socket */
 	s2 = socket(PF_LOCAL, SOCK_SEQPACKET, 0);
 	ATF_REQUIRE(s2 >= 0);
-	err = connect(s2, (struct sockaddr*)&sun, sizeof(sun));
+	err = connect(s2, (struct sockaddr *)&sun, sizeof(sun));
 	if (err != 0) {
 		perror("connect");
 		atf_tc_fail("connect(2) failed");
@@ -516,7 +518,6 @@ ATF_TC_BODY(accept, tc)
 	close(sv[0]);
 	close(sv[1]);
 }
-
 
 /* Set O_NONBLOCK on the socket */
 ATF_TC_WITHOUT_HEAD(fcntl_nonblock);
@@ -552,7 +553,8 @@ ATF_TC_BODY(resize_buffers, tc)
 	ATF_CHECK_EQ(0, getsockopt(s, SOL_SOCKET, SO_RCVBUF, &xr, &sl));
 	printf("Default                       | %7d | %7d |\n", xs, xr);
 
-	if (setsockopt(s, SOL_SOCKET, SO_SNDBUF, &sndbuf, sizeof(sndbuf)) != 0){
+	if (setsockopt(s, SOL_SOCKET, SO_SNDBUF, &sndbuf, sizeof(sndbuf)) !=
+	    0) {
 		perror("setsockopt");
 		atf_tc_fail("setsockopt(SO_SNDBUF) failed");
 	}
@@ -560,7 +562,8 @@ ATF_TC_BODY(resize_buffers, tc)
 	ATF_CHECK_EQ(0, getsockopt(s, SOL_SOCKET, SO_RCVBUF, &xr, &sl));
 	printf("After changing SNDBUF         | %7d | %7d |\n", xs, xr);
 
-	if (setsockopt(s, SOL_SOCKET, SO_RCVBUF, &rcvbuf, sizeof(rcvbuf)) != 0){
+	if (setsockopt(s, SOL_SOCKET, SO_RCVBUF, &rcvbuf, sizeof(rcvbuf)) !=
+	    0) {
 		perror("setsockopt");
 		atf_tc_fail("setsockopt(SO_RCVBUF) failed");
 	}
@@ -588,18 +591,20 @@ ATF_TC_BODY(resize_connected_buffers, tc)
 	do_socketpair(sv);
 
 	printf("                       Socket Buffer Sizes\n");
-	printf("                              | Left Socket       | Right Socket      |\n");
-	printf("                              | SNDBUF  | RCVBUF  | SNDBUF  | RCVBUF  |\n");
+	printf(
+	    "                              | Left Socket       | Right Socket      |\n");
+	printf(
+	    "                              | SNDBUF  | RCVBUF  | SNDBUF  | RCVBUF  |\n");
 	ATF_CHECK_EQ(0, getsockopt(sv[0], SOL_SOCKET, SO_SNDBUF, &ls, &sl));
 	ATF_CHECK_EQ(0, getsockopt(sv[0], SOL_SOCKET, SO_RCVBUF, &lr, &sl));
 	ATF_CHECK_EQ(0, getsockopt(sv[1], SOL_SOCKET, SO_SNDBUF, &rs, &sl));
 	ATF_CHECK_EQ(0, getsockopt(sv[1], SOL_SOCKET, SO_RCVBUF, &rr, &sl));
-	printf("Default                       | %7d | %7d | %7d | %7d |\n",
-	    ls, lr, rs, rr);
+	printf("Default                       | %7d | %7d | %7d | %7d |\n", ls,
+	    lr, rs, rr);
 
 	/* Update one side's send buffer */
 	err = setsockopt(sv[0], SOL_SOCKET, SO_SNDBUF, &sndbuf, sizeof(sndbuf));
-	if (err != 0){
+	if (err != 0) {
 		perror("setsockopt");
 		atf_tc_fail("setsockopt(SO_SNDBUF) failed");
 	}
@@ -608,12 +613,12 @@ ATF_TC_BODY(resize_connected_buffers, tc)
 	ATF_CHECK_EQ(0, getsockopt(sv[0], SOL_SOCKET, SO_RCVBUF, &lr, &sl));
 	ATF_CHECK_EQ(0, getsockopt(sv[1], SOL_SOCKET, SO_SNDBUF, &rs, &sl));
 	ATF_CHECK_EQ(0, getsockopt(sv[1], SOL_SOCKET, SO_RCVBUF, &rr, &sl));
-	printf("After changing Left's SNDBUF  | %7d | %7d | %7d | %7d |\n",
-	    ls, lr, rs, rr);
+	printf("After changing Left's SNDBUF  | %7d | %7d | %7d | %7d |\n", ls,
+	    lr, rs, rr);
 
 	/* Update the same side's receive buffer */
 	err = setsockopt(sv[0], SOL_SOCKET, SO_RCVBUF, &rcvbuf, sizeof(rcvbuf));
-	if (err != 0){
+	if (err != 0) {
 		perror("setsockopt");
 		atf_tc_fail("setsockopt(SO_RCVBUF) failed");
 	}
@@ -622,12 +627,11 @@ ATF_TC_BODY(resize_connected_buffers, tc)
 	ATF_CHECK_EQ(0, getsockopt(sv[0], SOL_SOCKET, SO_RCVBUF, &lr, &sl));
 	ATF_CHECK_EQ(0, getsockopt(sv[1], SOL_SOCKET, SO_SNDBUF, &rs, &sl));
 	ATF_CHECK_EQ(0, getsockopt(sv[1], SOL_SOCKET, SO_RCVBUF, &rr, &sl));
-	printf("After changing Left's RCVBUF  | %7d | %7d | %7d | %7d |\n",
-	    ls, lr, rs, rr);
+	printf("After changing Left's RCVBUF  | %7d | %7d | %7d | %7d |\n", ls,
+	    lr, rs, rr);
 	close(sv[0]);
 	close(sv[1]);
 }
-
 
 /* send(2) and recv(2) a single short record */
 ATF_TC_WITHOUT_HEAD(send_recv);
@@ -644,7 +648,7 @@ ATF_TC_BODY(send_recv, tc)
 	do_socketpair(sv);
 
 	/* send and receive a small packet */
-	datalen = strlen(data) + 1;	/* +1 for the null */
+	datalen = strlen(data) + 1; /* +1 for the null */
 	ssize = send(sv[0], data, datalen, MSG_EOR);
 	if (ssize < 0) {
 		perror("send");
@@ -670,7 +674,7 @@ ATF_TC_WITHOUT_HEAD(sendto_recvfrom);
 ATF_TC_BODY(sendto_recvfrom, tc)
 {
 #ifdef TEST_SEQ_PACKET_SOURCE_ADDRESS
-	const char* path;
+	const char *path;
 #endif
 	struct sockaddr_storage from;
 	int sv[2];
@@ -685,10 +689,10 @@ ATF_TC_BODY(sendto_recvfrom, tc)
 #ifdef TEST_SEQ_PACKET_SOURCE_ADDRESS
 	path =
 #endif
-		mk_pair_of_sockets(sv);
+	    mk_pair_of_sockets(sv);
 
 	/* send and receive a small packet */
-	datalen = strlen(data) + 1;	/* +1 for the null */
+	datalen = strlen(data) + 1; /* +1 for the null */
 	ssize = sendto(sv[0], data, datalen, MSG_EOR, NULL, 0);
 	if (ssize < 0) {
 		perror("send");
@@ -699,7 +703,7 @@ ATF_TC_BODY(sendto_recvfrom, tc)
 
 	fromlen = sizeof(from);
 	rsize = recvfrom(sv[1], recv_buf, bufsize, MSG_WAITALL,
-	    (struct sockaddr*)&from, &fromlen);
+	    (struct sockaddr *)&from, &fromlen);
 	if (ssize < 0) {
 		perror("recvfrom");
 		atf_tc_fail("recvfrom returned < 0");
@@ -714,7 +718,7 @@ ATF_TC_BODY(sendto_recvfrom, tc)
 	 * these checks may be reenabled
 	 */
 	ATF_CHECK_EQ(PF_LOCAL, from.ss_family);
-	ATF_CHECK_STREQ(path, ((struct sockaddr_un*)&from)->sun_path);
+	ATF_CHECK_STREQ(path, ((struct sockaddr_un *)&from)->sun_path);
 #endif
 	close(sv[0]);
 	close(sv[1]);
@@ -737,7 +741,7 @@ ATF_TC_BODY(send_recv_with_connect, tc)
 	mk_pair_of_sockets(sv);
 
 	/* send and receive a small packet */
-	datalen = strlen(data) + 1;	/* +1 for the null */
+	datalen = strlen(data) + 1; /* +1 for the null */
 	ssize = send(sv[0], data, datalen, MSG_EOR);
 	if (ssize < 0) {
 		perror("send");
@@ -777,14 +781,14 @@ ATF_TC_BODY(shutdown_send, tc)
 	/* Create the other socket */
 	s2 = socket(PF_LOCAL, SOCK_SEQPACKET, 0);
 	ATF_REQUIRE(s2 >= 0);
-	err = connect(s2, (struct sockaddr*)&sun, sizeof(sun));
+	err = connect(s2, (struct sockaddr *)&sun, sizeof(sun));
 	if (err != 0) {
 		perror("connect");
 		atf_tc_fail("connect(2) failed");
 	}
 
 	ATF_CHECK_EQ(0, shutdown(s2, SHUT_RDWR));
-	datalen = strlen(data) + 1;	/* +1 for the null */
+	datalen = strlen(data) + 1; /* +1 for the null */
 	/* USE MSG_NOSIGNAL so we don't get SIGPIPE */
 	ssize = send(s2, data, datalen, MSG_EOR | MSG_NOSIGNAL);
 	ATF_CHECK_EQ(EPIPE, errno);
@@ -818,7 +822,7 @@ ATF_TC_BODY(shutdown_send_sigpipe, tc)
 	/* Create the other socket */
 	s2 = socket(PF_LOCAL, SOCK_SEQPACKET, 0);
 	ATF_REQUIRE(s2 >= 0);
-	err = connect(s2, (struct sockaddr*)&sun, sizeof(sun));
+	err = connect(s2, (struct sockaddr *)&sun, sizeof(sun));
 	if (err != 0) {
 		perror("connect");
 		atf_tc_fail("connect(2) failed");
@@ -826,7 +830,7 @@ ATF_TC_BODY(shutdown_send_sigpipe, tc)
 
 	ATF_CHECK_EQ(0, shutdown(s2, SHUT_RDWR));
 	ATF_REQUIRE(SIG_ERR != signal(SIGPIPE, shutdown_send_sigpipe_handler));
-	datalen = strlen(data) + 1;	/* +1 for the null */
+	datalen = strlen(data) + 1; /* +1 for the null */
 	(void)send(s2, data, datalen, MSG_EOR);
 	ATF_CHECK_EQ(1, got_sigpipe);
 	close(s);
@@ -853,7 +857,7 @@ ATF_TC_BODY(send_recv_nonblocking, tc)
 	ATF_CHECK_EQ(-1, rsize);
 
 	/* send and receive a small packet */
-	datalen = strlen(data) + 1;	/* +1 for the null */
+	datalen = strlen(data) + 1; /* +1 for the null */
 	ssize = send(sv[0], data, datalen, MSG_EOR);
 	if (ssize < 0) {
 		perror("send");
@@ -885,10 +889,12 @@ ATF_TC_BODY(emsgsize, tc)
 	/* setup the socket pair */
 	do_socketpair(sv);
 	/* Setup the buffers */
-	ATF_REQUIRE_EQ(0, setsockopt(sv[0], SOL_SOCKET, SO_SNDBUF, &sndbufsize,
-	    sizeof(sndbufsize)));
-	ATF_REQUIRE_EQ(0, setsockopt(sv[1], SOL_SOCKET, SO_RCVBUF, &rcvbufsize,
-	    sizeof(rcvbufsize)));
+	ATF_REQUIRE_EQ(0,
+	    setsockopt(sv[0], SOL_SOCKET, SO_SNDBUF, &sndbufsize,
+		sizeof(sndbufsize)));
+	ATF_REQUIRE_EQ(0,
+	    setsockopt(sv[1], SOL_SOCKET, SO_RCVBUF, &rcvbufsize,
+		sizeof(rcvbufsize)));
 
 	ssize = send(sv[0], sndbuf, pktsize, MSG_EOR);
 	ATF_CHECK_EQ(EMSGSIZE, errno);
@@ -914,10 +920,12 @@ ATF_TC_BODY(emsgsize_nonblocking, tc)
 	/* setup the socket pair */
 	do_socketpair_nonblocking(sv);
 	/* Setup the buffers */
-	ATF_REQUIRE_EQ(0, setsockopt(sv[0], SOL_SOCKET, SO_SNDBUF, &sndbufsize,
-	    sizeof(sndbufsize)));
-	ATF_REQUIRE_EQ(0, setsockopt(sv[1], SOL_SOCKET, SO_RCVBUF, &rcvbufsize,
-	    sizeof(rcvbufsize)));
+	ATF_REQUIRE_EQ(0,
+	    setsockopt(sv[0], SOL_SOCKET, SO_SNDBUF, &sndbufsize,
+		sizeof(sndbufsize)));
+	ATF_REQUIRE_EQ(0,
+	    setsockopt(sv[1], SOL_SOCKET, SO_RCVBUF, &rcvbufsize,
+		sizeof(rcvbufsize)));
 
 	ssize = send(sv[0], sndbuf, pktsize, MSG_EOR);
 	ATF_CHECK_EQ(EMSGSIZE, errno);
@@ -925,7 +933,6 @@ ATF_TC_BODY(emsgsize_nonblocking, tc)
 	close(sv[0]);
 	close(sv[1]);
 }
-
 
 /*
  * We should get EAGAIN if we try to send a message larger than the socket
@@ -952,7 +959,6 @@ ATF_TC_BODY(eagain_128k_128k, tc)
 	test_eagain(131072, 131072);
 }
 
-
 /*
  * nonblocking send(2) and recv(2) of several records, which should collectively
  * fill up the send buffer but not the receive buffer
@@ -973,16 +979,18 @@ ATF_TC_BODY(rcvbuf_oversized, tc)
 
 	/* setup the socket pair */
 	do_socketpair_nonblocking(sv);
-	ATF_REQUIRE_EQ(0, setsockopt(sv[0], SOL_SOCKET, SO_SNDBUF, &sndbufsize,
-	    sizeof(sndbufsize)));
-	ATF_REQUIRE_EQ(0, setsockopt(sv[1], SOL_SOCKET, SO_RCVBUF, &rcvbufsize,
-	    sizeof(rcvbufsize)));
+	ATF_REQUIRE_EQ(0,
+	    setsockopt(sv[0], SOL_SOCKET, SO_SNDBUF, &sndbufsize,
+		sizeof(sndbufsize)));
+	ATF_REQUIRE_EQ(0,
+	    setsockopt(sv[1], SOL_SOCKET, SO_RCVBUF, &rcvbufsize,
+		sizeof(rcvbufsize)));
 
 	/*
 	 * Send and receive packets that are collectively greater than the send
 	 * buffer, but less than the receive buffer
 	 */
-	for (i=0; i < numpkts; i++) {
+	for (i = 0; i < numpkts; i++) {
 		/* Fill the buffer */
 		memset(sndbuf, i, pktsize);
 
@@ -1078,7 +1086,6 @@ ATF_TC_BODY(pipe_128k_128k, tc)
 	test_pipe(131072, 131072);
 }
 
-
 /*
  * Test single-packet I/O with and without blocking, with symmetric buffers of
  * various sizes
@@ -1133,7 +1140,6 @@ ATF_TC_BODY(sendrecv_128k_nonblocking, tc)
 {
 	test_sendrecv_symmetric_buffers(128 * 1024, false);
 }
-
 
 /*
  * Main.

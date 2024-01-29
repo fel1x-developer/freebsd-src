@@ -26,7 +26,6 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_acpi.h"
 #include "opt_cpu.h"
 #include "opt_ddb.h"
@@ -34,6 +33,7 @@
 #include "opt_sched.h"
 #include "opt_smp.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -53,45 +53,47 @@
 #include <sys/sysctl.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
 #include <vm/pmap.h>
-#include <vm/vm_kern.h>
 #include <vm/vm_extern.h>
+#include <vm/vm_kern.h>
 #include <vm/vm_page.h>
+#include <vm/vm_param.h>
 #include <vm/vm_phys.h>
 
-#include <x86/apicreg.h>
 #include <machine/clock.h>
-#include <machine/cputypes.h>
+#include <machine/cpu.h>
 #include <machine/cpufunc.h>
-#include <x86/mca.h>
+#include <machine/cputypes.h>
 #include <machine/md_var.h>
 #include <machine/pcb.h>
 #include <machine/psl.h>
 #include <machine/smp.h>
 #include <machine/specialreg.h>
 #include <machine/tss.h>
-#include <x86/ucode.h>
-#include <machine/cpu.h>
+
+#include <x86/apicreg.h>
 #include <x86/init.h>
+#include <x86/mca.h>
+#include <x86/ucode.h>
 
 #ifdef DEV_ACPI
-#include <contrib/dev/acpica/include/acpi.h>
 #include <dev/acpica/acpivar.h>
+
+#include <contrib/dev/acpica/include/acpi.h>
 #endif
 
-#define WARMBOOT_TARGET		0
-#define WARMBOOT_OFF		(KERNBASE + 0x0467)
-#define WARMBOOT_SEG		(KERNBASE + 0x0469)
+#define WARMBOOT_TARGET 0
+#define WARMBOOT_OFF (KERNBASE + 0x0467)
+#define WARMBOOT_SEG (KERNBASE + 0x0469)
 
-#define CMOS_REG		(0x70)
-#define CMOS_DATA		(0x71)
-#define BIOS_RESET		(0x0f)
-#define BIOS_WARM		(0x0a)
+#define CMOS_REG (0x70)
+#define CMOS_DATA (0x71)
+#define BIOS_RESET (0x0f)
+#define BIOS_WARM (0x0a)
 
-#define GiB(v)			(v ## ULL << 30)
+#define GiB(v) (v##ULL << 30)
 
-#define	AP_BOOTPT_SZ		(PAGE_SIZE * 4)
+#define AP_BOOTPT_SZ (PAGE_SIZE * 4)
 
 /* Temporary variables for init_secondary()  */
 static char *doublefault_stack;
@@ -127,12 +129,15 @@ cpu_mp_start(void)
 	    SDT_SYSIGT, SEL_KPL, 0);
 
 	/* Install an inter-CPU IPI for all-CPU rendezvous */
-	setidt(IPI_RENDEZVOUS, pti ? IDTVEC(rendezvous_pti) :
-	    IDTVEC(rendezvous), SDT_SYSIGT, SEL_KPL, 0);
+	setidt(IPI_RENDEZVOUS,
+	    pti ? IDTVEC(rendezvous_pti) : IDTVEC(rendezvous), SDT_SYSIGT,
+	    SEL_KPL, 0);
 
 	/* Install generic inter-CPU IPI handler */
-	setidt(IPI_BITMAP_VECTOR, pti ? IDTVEC(ipi_intr_bitmap_handler_pti) :
-	    IDTVEC(ipi_intr_bitmap_handler), SDT_SYSIGT, SEL_KPL, 0);
+	setidt(IPI_BITMAP_VECTOR,
+	    pti ? IDTVEC(ipi_intr_bitmap_handler_pti) :
+		  IDTVEC(ipi_intr_bitmap_handler),
+	    SDT_SYSIGT, SEL_KPL, 0);
 
 	/* Install an inter-CPU IPI for CPU stop/restart */
 	setidt(IPI_STOP, pti ? IDTVEC(cpustop_pti) : IDTVEC(cpustop),
@@ -143,8 +148,8 @@ cpu_mp_start(void)
 	    SDT_SYSIGT, SEL_KPL, 0);
 
 	/* Install an IPI for calling delayed SWI */
-	setidt(IPI_SWI, pti ? IDTVEC(ipi_swi_pti) : IDTVEC(ipi_swi),
-	    SDT_SYSIGT, SEL_KPL, 0);
+	setidt(IPI_SWI, pti ? IDTVEC(ipi_swi_pti) : IDTVEC(ipi_swi), SDT_SYSIGT,
+	    SEL_KPL, 0);
 
 	/* Set boot_cpu_id if needed. */
 	if (boot_cpu_id == -1) {
@@ -203,7 +208,8 @@ init_secondary(void)
 	pc->pc_tssp = &pc->pc_common_tss;
 	pc->pc_rsp0 = 0;
 	pc->pc_pti_rsp0 = (((vm_offset_t)&pc->pc_pti_stack +
-	    PC_PTI_STACK_SZ * sizeof(uint64_t)) & ~0xful);
+			       PC_PTI_STACK_SZ * sizeof(uint64_t)) &
+	    ~0xful);
 	gdt = pc->pc_gdt;
 	pc->pc_tss = (struct system_segment_descriptor *)&gdt[GPROC0_SEL];
 	pc->pc_fs32p = &gdt[GUFS32_SEL];
@@ -255,11 +261,11 @@ init_secondary(void)
 	    (struct system_segment_descriptor *)&gdt[GPROC0_SEL]);
 	ap_gdt.rd_limit = NGDT * sizeof(gdt[0]) - 1;
 	ap_gdt.rd_base = (u_long)gdt;
-	lgdt(&ap_gdt);			/* does magic intra-segment return */
+	lgdt(&ap_gdt); /* does magic intra-segment return */
 
-	wrmsr(MSR_FSBASE, 0);		/* User value */
+	wrmsr(MSR_FSBASE, 0); /* User value */
 	wrmsr(MSR_GSBASE, (uint64_t)pc);
-	wrmsr(MSR_KGSBASE, 0);		/* User value */
+	wrmsr(MSR_KGSBASE, 0); /* User value */
 	fix_cpuid();
 
 	lidt(&r_idt);
@@ -366,21 +372,21 @@ start_all_aps(void)
 	for (i = 0; i < NPDEPG; i++)
 		v_pd[i] = (3UL * NBPDP + (i << PDRSHIFT)) | X86_PG_V |
 		    X86_PG_RW | X86_PG_A | X86_PG_M | PG_PS;
-	v_pdp[0] = VM_PAGE_TO_PHYS(m_pd[0]) | X86_PG_V |
-	    X86_PG_RW | X86_PG_A | X86_PG_M;
-	v_pdp[1] = VM_PAGE_TO_PHYS(m_pd[1]) | X86_PG_V |
-	    X86_PG_RW | X86_PG_A | X86_PG_M;
-	v_pdp[2] = VM_PAGE_TO_PHYS(m_pd[2]) | X86_PG_V |
-	    X86_PG_RW | X86_PG_A | X86_PG_M;
-	v_pdp[3] = VM_PAGE_TO_PHYS(m_pd[3]) | X86_PG_V |
-	    X86_PG_RW | X86_PG_A | X86_PG_M;
+	v_pdp[0] = VM_PAGE_TO_PHYS(m_pd[0]) | X86_PG_V | X86_PG_RW | X86_PG_A |
+	    X86_PG_M;
+	v_pdp[1] = VM_PAGE_TO_PHYS(m_pd[1]) | X86_PG_V | X86_PG_RW | X86_PG_A |
+	    X86_PG_M;
+	v_pdp[2] = VM_PAGE_TO_PHYS(m_pd[2]) | X86_PG_V | X86_PG_RW | X86_PG_A |
+	    X86_PG_M;
+	v_pdp[3] = VM_PAGE_TO_PHYS(m_pd[3]) | X86_PG_V | X86_PG_RW | X86_PG_A |
+	    X86_PG_M;
 	old_pml45 = kernel_pmap->pm_pmltop[0];
 	if (la57) {
-		kernel_pmap->pm_pmltop[0] = VM_PAGE_TO_PHYS(m_pml4) |
-		    X86_PG_V | X86_PG_RW | X86_PG_A | X86_PG_M;
+		kernel_pmap->pm_pmltop[0] = VM_PAGE_TO_PHYS(m_pml4) | X86_PG_V |
+		    X86_PG_RW | X86_PG_A | X86_PG_M;
 	}
-	v_pml4[0] = VM_PAGE_TO_PHYS(m_pdp) | X86_PG_V |
-	    X86_PG_RW | X86_PG_A | X86_PG_M;
+	v_pml4[0] = VM_PAGE_TO_PHYS(m_pdp) | X86_PG_V | X86_PG_RW | X86_PG_A |
+	    X86_PG_M;
 	pmap_invalidate_all(kernel_pmap);
 
 	/* copy the AP 1st level boot code */
@@ -390,7 +396,7 @@ start_all_aps(void)
 
 	/* save the current value of the warm-start vector */
 	if (!efi_boot)
-		mpbioswarmvec = *((u_int32_t *) WARMBOOT_OFF);
+		mpbioswarmvec = *((u_int32_t *)WARMBOOT_OFF);
 	outb(CMOS_REG, BIOS_RESET);
 	mpbiosreason = inb(CMOS_DATA);
 
@@ -400,7 +406,7 @@ start_all_aps(void)
 		*((volatile u_short *)WARMBOOT_SEG) = (boot_address >> 4);
 	}
 	outb(CMOS_REG, BIOS_RESET);
-	outb(CMOS_DATA, BIOS_WARM);	/* 'warm-start' */
+	outb(CMOS_DATA, BIOS_WARM); /* 'warm-start' */
 
 	/* start each AP */
 	domain = 0;
@@ -415,18 +421,17 @@ start_all_aps(void)
 		    M_WAITOK | M_ZERO);
 		doublefault_stack = kmem_malloc(DBLFAULT_STACK_SIZE,
 		    M_WAITOK | M_ZERO);
-		mce_stack = kmem_malloc(MCE_STACK_SIZE,
-		    M_WAITOK | M_ZERO);
-		nmi_stack = kmem_malloc_domainset(
-		    DOMAINSET_PREF(domain), NMI_STACK_SIZE, M_WAITOK | M_ZERO);
-		dbg_stack = kmem_malloc_domainset(
-		    DOMAINSET_PREF(domain), DBG_STACK_SIZE, M_WAITOK | M_ZERO);
+		mce_stack = kmem_malloc(MCE_STACK_SIZE, M_WAITOK | M_ZERO);
+		nmi_stack = kmem_malloc_domainset(DOMAINSET_PREF(domain),
+		    NMI_STACK_SIZE, M_WAITOK | M_ZERO);
+		dbg_stack = kmem_malloc_domainset(DOMAINSET_PREF(domain),
+		    DBG_STACK_SIZE, M_WAITOK | M_ZERO);
 		dpcpu = kmem_malloc_domainset(DOMAINSET_PREF(domain),
 		    DPCPU_SIZE, M_WAITOK | M_ZERO);
 
 		bootpcpu = &__pcpu[cpu];
-		bootSTK = (char *)bootstacks[cpu] +
-		    kstack_pages * PAGE_SIZE - 8;
+		bootSTK = (char *)bootstacks[cpu] + kstack_pages * PAGE_SIZE -
+		    8;
 		bootAP = cpu;
 
 		/* attempt to start the Application Processor */
@@ -437,7 +442,7 @@ start_all_aps(void)
 			panic("AP #%d (PHY# %d) failed!", cpu, apic_id);
 		}
 
-		CPU_SET(cpu, &all_cpus);	/* record AP in CPU map */
+		CPU_SET(cpu, &all_cpus); /* record AP in CPU map */
 	}
 
 	/* restore the warmstart vector */
@@ -487,10 +492,10 @@ start_ap(int apic_id, vm_paddr_t boot_address)
 	/* Wait up to 5 seconds for it to start. */
 	for (ms = 0; ms < 5000; ms++) {
 		if (mp_naps > cpus)
-			return 1;	/* return SUCCESS */
+			return 1; /* return SUCCESS */
 		DELAY(1000);
 	}
-	return 0;		/* return FAILURE */
+	return 0; /* return FAILURE */
 }
 
 /*
@@ -502,17 +507,17 @@ start_ap(int apic_id, vm_paddr_t boot_address)
  * enum to avoid both namespace and ABI issues (with enums).
  */
 enum invl_op_codes {
-      INVL_OP_TLB		= 1,
-      INVL_OP_TLB_INVPCID	= 2,
-      INVL_OP_TLB_INVPCID_PTI	= 3,
-      INVL_OP_TLB_PCID		= 4,
-      INVL_OP_PGRNG		= 5,
-      INVL_OP_PGRNG_INVPCID	= 6,
-      INVL_OP_PGRNG_PCID	= 7,
-      INVL_OP_PG		= 8,
-      INVL_OP_PG_INVPCID	= 9,
-      INVL_OP_PG_PCID		= 10,
-      INVL_OP_CACHE		= 11,
+	INVL_OP_TLB = 1,
+	INVL_OP_TLB_INVPCID = 2,
+	INVL_OP_TLB_INVPCID_PTI = 3,
+	INVL_OP_TLB_PCID = 4,
+	INVL_OP_PGRNG = 5,
+	INVL_OP_PGRNG_INVPCID = 6,
+	INVL_OP_PGRNG_PCID = 7,
+	INVL_OP_PG = 8,
+	INVL_OP_PG_INVPCID = 9,
+	INVL_OP_PG_PCID = 10,
+	INVL_OP_CACHE = 11,
 };
 
 /*
@@ -544,7 +549,8 @@ invl_scoreboard_init(void *arg __unused)
 	u_int i;
 
 	invl_scoreboard = malloc(sizeof(uint32_t) * (mp_maxid + 1) *
-	    (mp_maxid + 1), M_DEVBUF, M_WAITOK);
+		(mp_maxid + 1),
+	    M_DEVBUF, M_WAITOK);
 	for (i = 0; i < (mp_maxid + 1) * (mp_maxid + 1); i++)
 		invl_scoreboard[i] = 1;
 
@@ -650,10 +656,10 @@ smp_targeted_tlb_shootdown(pmap_t pmap, vm_offset_t addr1, vm_offset_t addr2,
 	/* Fence between filling smp_tlb fields and clearing scoreboard. */
 	atomic_thread_fence_rel();
 
-	CPU_FOREACH_ISSET(cpu, &mask) {
+	CPU_FOREACH_ISSET (cpu, &mask) {
 		KASSERT(*invl_scoreboard_slot(cpu) != 0,
-		    ("IPI scoreboard is zero, initiator %d target %d",
-		    curcpu, cpu));
+		    ("IPI scoreboard is zero, initiator %d target %d", curcpu,
+			cpu));
 		*invl_scoreboard_slot(cpu) = 0;
 	}
 
@@ -668,7 +674,7 @@ smp_targeted_tlb_shootdown(pmap_t pmap, vm_offset_t addr1, vm_offset_t addr2,
 		ipi_selected(mask, IPI_INVLOP);
 	}
 	curcpu_cb(pmap, addr1, addr2);
-	CPU_FOREACH_ISSET(cpu, &mask) {
+	CPU_FOREACH_ISSET (cpu, &mask) {
 		p_cpudone = invl_scoreboard_slot(cpu);
 		while (atomic_load_int(p_cpudone) != generation)
 			ia32_pause();
@@ -761,8 +767,8 @@ invltlb_invpcid_handler(pmap_t smp_tlb_pmap)
 	d.pcid = pmap_get_pcid(smp_tlb_pmap);
 	d.pad = 0;
 	d.addr = 0;
-	invpcid(&d, smp_tlb_pmap == kernel_pmap ? INVPCID_CTXGLOB :
-	    INVPCID_CTX);
+	invpcid(&d,
+	    smp_tlb_pmap == kernel_pmap ? INVPCID_CTXGLOB : INVPCID_CTX);
 }
 
 static void
@@ -817,8 +823,8 @@ invltlb_pcid_handler(pmap_t smp_tlb_pmap)
 		 * CPU.
 		 */
 		if (smp_tlb_pmap == PCPU_GET(curpmap)) {
-			load_cr3(smp_tlb_pmap->pm_cr3 |
-			    pmap_get_pcid(smp_tlb_pmap));
+			load_cr3(
+			    smp_tlb_pmap->pm_cr3 | pmap_get_pcid(smp_tlb_pmap));
 			if (smp_tlb_pmap->pm_ucr3 != PMAP_NO_CR3)
 				PCPU_SET(ucr3_load_mask, ~CR3_PCID_SAVE);
 		}
@@ -1040,7 +1046,7 @@ invlop_handler(void)
 	scoreboard = invl_scoreboard_getcpu(PCPU_GET(cpuid));
 	for (;;) {
 		for (initiator_cpu_id = 0; initiator_cpu_id <= mp_maxid;
-		    initiator_cpu_id++) {
+		     initiator_cpu_id++) {
 			if (atomic_load_int(&scoreboard[initiator_cpu_id]) == 0)
 				break;
 		}

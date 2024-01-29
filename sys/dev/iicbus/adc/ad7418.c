@@ -30,39 +30,39 @@
  */
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
-#include <sys/bus.h>
-#include <sys/sysctl.h>
 #include <sys/sx.h>
+#include <sys/sysctl.h>
 
 #include <dev/iicbus/iiconf.h>
 
 #include "iicbus_if.h"
 
-#define	IIC_M_WR	0	/* write operation */
+#define IIC_M_WR 0 /* write operation */
 
-#define	AD7418_ADDR	0x50	/* slave address */
+#define AD7418_ADDR 0x50 /* slave address */
 
-#define	AD7418_TEMP	0	/* Temperature Value (r/o) */
-#define	AD7418_CONF	1	/* Config Register (r/w) */
-#define	AD7418_CONF_SHUTDOWN	0x01
-#define	AD7418_CONF_CHAN	0xe0	/* channel select mask */
-#define	AD7418_CHAN_TEMP	0x00	/* temperature channel */
-#define	AD7418_CHAN_VOLT	0x80	/* voltage channel */
-#define	AD7418_THYST	2	/* Thyst Setpoint (r/o) */
-#define	AD7418_TOTI	3	/* Toti Setpoint */
-#define	AD7418_VOLT	4	/* ADC aka Voltage (r/o) */
-#define	AD7418_CONF2	5	/* Config2 Register (r/w) */
+#define AD7418_TEMP 0 /* Temperature Value (r/o) */
+#define AD7418_CONF 1 /* Config Register (r/w) */
+#define AD7418_CONF_SHUTDOWN 0x01
+#define AD7418_CONF_CHAN 0xe0 /* channel select mask */
+#define AD7418_CHAN_TEMP 0x00 /* temperature channel */
+#define AD7418_CHAN_VOLT 0x80 /* voltage channel */
+#define AD7418_THYST 2	      /* Thyst Setpoint (r/o) */
+#define AD7418_TOTI 3	      /* Toti Setpoint */
+#define AD7418_VOLT 4	      /* ADC aka Voltage (r/o) */
+#define AD7418_CONF2 5	      /* Config2 Register (r/w) */
 
 struct ad7418_softc {
-	device_t	sc_dev;
-	struct sx	sc_lock;
-	int		sc_curchan;	/* current channel */
-	int		sc_curtemp;
-	int		sc_curvolt;
-	int		sc_lastupdate;	/* in ticks */
+	device_t sc_dev;
+	struct sx sc_lock;
+	int sc_curchan; /* current channel */
+	int sc_curtemp;
+	int sc_curvolt;
+	int sc_lastupdate; /* in ticks */
 };
 
 static void ad7418_update(struct ad7418_softc *);
@@ -116,40 +116,40 @@ ad7418_attach(device_t dev)
 
 	sx_init(&sc->sc_lock, "ad7418");
 
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "temp", CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_NEEDGIANT, sc, 0,
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "temp",
+	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_NEEDGIANT, sc, 0,
 	    ad7418_sysctl_temp, "I", "operating temperature");
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "volt", CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_NEEDGIANT, sc, 0,
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "volt",
+	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_NEEDGIANT, sc, 0,
 	    ad7418_sysctl_voltage, "I", "input voltage");
 
 	/* enable chip if configured in shutdown mode */
 	conf = ad7418_read_1(dev, AD7418_CONF);
 	if (conf >= 0 && (conf & AD7418_CONF_SHUTDOWN))
-		ad7418_write_1(dev, AD7418_CONF, conf &~ AD7418_CONF_SHUTDOWN);
+		ad7418_write_1(dev, AD7418_CONF, conf & ~AD7418_CONF_SHUTDOWN);
 
 	return (0);
 }
 
 static int
-ad7418_read_1(device_t dev, int reg) 
+ad7418_read_1(device_t dev, int reg)
 {
 	uint8_t addr = reg;
 	uint8_t data[1];
 	struct iic_msg msgs[2] = {
-	     { AD7418_ADDR, IIC_M_WR, 1, &addr },
-	     { AD7418_ADDR, IIC_M_RD, 1, data },
+		{ AD7418_ADDR, IIC_M_WR, 1, &addr },
+		{ AD7418_ADDR, IIC_M_RD, 1, data },
 	};
 	return iicbus_transfer(dev, msgs, 2) != 0 ? -1 : data[0];
 }
 
 static int
-ad7418_write_1(device_t dev, int reg, int v) 
+ad7418_write_1(device_t dev, int reg, int v)
 {
 	/* NB: register pointer precedes actual data */
 	uint8_t data[2];
 	struct iic_msg msgs[1] = {
-	     { AD7418_ADDR, IIC_M_WR, 2, data },
+		{ AD7418_ADDR, IIC_M_WR, 2, data },
 	};
 	data[0] = reg;
 	data[1] = v & 0xff;
@@ -161,8 +161,9 @@ ad7418_set_channel(struct ad7418_softc *sc, int chan)
 {
 	if (sc->sc_curchan == chan)
 		return;
-	ad7418_write_1(sc->sc_dev, AD7418_CONF, 
-	    (ad7418_read_1(sc->sc_dev, AD7418_CONF) &~ AD7418_CONF_CHAN)|chan);
+	ad7418_write_1(sc->sc_dev, AD7418_CONF,
+	    (ad7418_read_1(sc->sc_dev, AD7418_CONF) & ~AD7418_CONF_CHAN) |
+		chan);
 	sc->sc_curchan = chan;
 #if 0
 	/*
@@ -176,17 +177,17 @@ ad7418_set_channel(struct ad7418_softc *sc, int chan)
 }
 
 static int
-ad7418_read_2(device_t dev, int reg) 
+ad7418_read_2(device_t dev, int reg)
 {
 	uint8_t addr = reg;
 	uint8_t data[2];
 	struct iic_msg msgs[2] = {
-	     { AD7418_ADDR, IIC_M_WR, 1, &addr },
-	     { AD7418_ADDR, IIC_M_RD, 2, data },
+		{ AD7418_ADDR, IIC_M_WR, 1, &addr },
+		{ AD7418_ADDR, IIC_M_RD, 2, data },
 	};
 	/* NB: D15..D8 precede D7..D0 per data sheet (Fig 12) */
-	return iicbus_transfer(dev, msgs, 2) != 0 ?
-		-1 : ((data[0] << 8) | data[1]);
+	return iicbus_transfer(dev, msgs, 2) != 0 ? -1 :
+						    ((data[0] << 8) | data[1]);
 }
 
 static void
@@ -209,12 +210,11 @@ ad7418_update(struct ad7418_softc *sc)
 	}
 }
 
-static device_method_t ad7418_methods[] = {
-	DEVMETHOD(device_probe,		ad7418_probe),
-	DEVMETHOD(device_attach,	ad7418_attach),
+static device_method_t ad7418_methods[] = { DEVMETHOD(device_probe,
+						ad7418_probe),
+	DEVMETHOD(device_attach, ad7418_attach),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 static driver_t ad7418_driver = {
 	"ad7418",

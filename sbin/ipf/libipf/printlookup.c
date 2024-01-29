@@ -8,24 +8,22 @@
 
 #include "ipf.h"
 
-
 void
 printlookup(char *base, i6addr_t *addr, i6addr_t *mask)
 {
 	char name[32];
 
-	switch (addr->iplookuptype)
-	{
-	case IPLT_POOL :
+	switch (addr->iplookuptype) {
+	case IPLT_POOL:
 		PRINTF("pool/");
 		break;
-	case IPLT_HASH :
+	case IPLT_HASH:
 		PRINTF("hash/");
 		break;
-	case IPLT_DSTLIST :
+	case IPLT_DSTLIST:
 		PRINTF("dstlist/");
 		break;
-	default :
+	default:
 		PRINTF("lookup(%x)=", addr->iplookuptype);
 		break;
 	}

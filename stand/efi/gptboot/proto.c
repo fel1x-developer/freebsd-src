@@ -24,20 +24,20 @@
  */
 
 #include <sys/param.h>
+#include <sys/gpt.h>
+
 #include <machine/elf.h>
 #include <machine/stdarg.h>
-#include <stand.h>
 
 #include <efi.h>
-#include <eficonsctl.h>
 #include <efichar.h>
+#include <eficonsctl.h>
+#include <stand.h>
 
 #include "boot_module.h"
+#include "gpt.h"
 #include "paths.h"
 #include "proto.h"
-
-#include "gpt.h"
-#include <sys/gpt.h>
 static const uuid_t freebsd_ufs_uuid = GPT_ENT_TYPE_FREEBSD_UFS;
 static char secbuf[4096] __aligned(4096);
 static struct dsk dsk;
@@ -65,8 +65,8 @@ drvread(struct dsk *dskp, void *buf, daddr_t lba, unsigned nblk)
 	status = dev->ReadBlocks(dev, dev->Media->MediaId, lba, size, buf);
 	if (status != EFI_SUCCESS) {
 		DPRINTF("dskread: failed dev: %p, id: %u, lba: %ju, size: %d, "
-		    "status: %lu\n", devinfo->dev,
-		    dev->Media->MediaId, (uintmax_t)lba, size,
+			"status: %lu\n",
+		    devinfo->dev, dev->Media->MediaId, (uintmax_t)lba, size,
 		    EFI_ERROR_CODE(status));
 		return (-1);
 	}
@@ -95,8 +95,8 @@ drvwrite(struct dsk *dskp, void *buf, daddr_t lba, unsigned nblk)
 	status = dev->WriteBlocks(dev, dev->Media->MediaId, lba, size, buf);
 	if (status != EFI_SUCCESS) {
 		DPRINTF("dskread: failed dev: %p, id: %u, lba: %ju, size: %d, "
-		    "status: %lu\n", devinfo->dev,
-		    dev->Media->MediaId, (uintmax_t)lba, size,
+			"status: %lu\n",
+		    devinfo->dev, dev->Media->MediaId, (uintmax_t)lba, size,
 		    EFI_ERROR_CODE(status));
 		return (-1);
 	}
@@ -189,7 +189,8 @@ probe_handle(EFI_HANDLE h, EFI_DEVICE_PATH *imgpath)
 		free(trimmed);
 		DPRINTF("Found raw device\n");
 		if (raw_device) {
-			printf(BOOTPROG": Found two raw devices, inconceivable?\n");
+			printf(BOOTPROG
+			    ": Found two raw devices, inconceivable?\n");
 			return;
 		}
 		raw_device = devinfo;
@@ -235,7 +236,7 @@ choice_protocol(EFI_HANDLE *handles, UINTN nhandles, EFI_DEVICE_PATH *imgpath)
 	probe_handles(handles, nhandles, imgpath);
 	dsk.devinfo = raw_device;
 	if (dsk.devinfo == NULL) {
-		printf(BOOTPROG": unable to find raw disk to read gpt\n");
+		printf(BOOTPROG ": unable to find raw disk to read gpt\n");
 		return;
 	}
 
@@ -257,18 +258,18 @@ choice_protocol(EFI_HANDLE *handles, UINTN nhandles, EFI_DEVICE_PATH *imgpath)
 		parts++;
 		bootdev = find_partition(dsk.part);
 		if (bootdev == NULL) {
-			printf(BOOTPROG": Can't find partition %d\n",
+			printf(BOOTPROG ": Can't find partition %d\n",
 			    dsk.part);
 			goto next;
 		}
 		if (mod->load(fn, bootdev, &loaderbuf, &loadersize) !=
 		    EFI_SUCCESS) {
-			printf(BOOTPROG": Can't load %s from partition %d\n",
+			printf(BOOTPROG ": Can't load %s from partition %d\n",
 			    fn, dsk.part);
 			goto next;
 		}
 		try_boot(mod, bootdev, loaderbuf, loadersize);
-next:
+	next:
 		gptbootfailed(&dsk);
 	}
 	if (parts == 0)

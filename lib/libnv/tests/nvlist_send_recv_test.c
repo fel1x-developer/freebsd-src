@@ -28,24 +28,23 @@
  */
 
 #include <sys/param.h>
+#include <sys/nv.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
 #include <sys/wait.h>
-#include <sys/nv.h>
 
-#include <stdlib.h>
+#include <atf-c.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <paths.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <atf-c.h>
-
-#define	ALPHABET	"abcdefghijklmnopqrstuvwxyz"
-#define	fd_is_valid(fd)	(fcntl((fd), F_GETFL) != -1 || errno != EBADF)
+#define ALPHABET "abcdefghijklmnopqrstuvwxyz"
+#define fd_is_valid(fd) (fcntl((fd), F_GETFL) != -1 || errno != EBADF)
 
 static void
 send_nvlist_child(int sock)
@@ -202,9 +201,9 @@ send_nvlist_parent(int sock)
 	ATF_REQUIRE(type == NV_TYPE_BINARY);
 	ATF_REQUIRE(strcmp(name, "nvlist/binary/" ALPHABET) == 0);
 	ATF_REQUIRE(memcmp(nvlist_get_binary(nvl, name, NULL), ALPHABET,
-	    sizeof(ALPHABET)) == 0);
+			sizeof(ALPHABET)) == 0);
 	ATF_REQUIRE(memcmp(nvlist_get_binary(nvl, name, &size), ALPHABET,
-	    sizeof(ALPHABET)) == 0);
+			sizeof(ALPHABET)) == 0);
 	ATF_REQUIRE(size == sizeof(ALPHABET));
 
 	name = nvlist_next(nvl, &type, &cookie);
@@ -313,9 +312,9 @@ send_nvlist_parent(int sock)
 	ATF_REQUIRE(ctype == NV_TYPE_BINARY);
 	ATF_REQUIRE(strcmp(cname, "nvlist/binary/" ALPHABET) == 0);
 	ATF_REQUIRE(memcmp(nvlist_get_binary(cnvl, cname, NULL), ALPHABET,
-	    sizeof(ALPHABET)) == 0);
+			sizeof(ALPHABET)) == 0);
 	ATF_REQUIRE(memcmp(nvlist_get_binary(cnvl, cname, &size), ALPHABET,
-	    sizeof(ALPHABET)) == 0);
+			sizeof(ALPHABET)) == 0);
 	ATF_REQUIRE(size == sizeof(ALPHABET));
 
 	cname = nvlist_next(cnvl, &ctype, &ccookie);
@@ -392,7 +391,7 @@ nopenfds(void)
 	return (n);
 }
 
-#define	NFDS	512
+#define NFDS 512
 
 static void
 send_many_fds_child(int sock)
@@ -485,10 +484,11 @@ ATF_TC_BODY(nvlist_send_recv__send_many_fds__dgram, tc)
 	/* size of the largest datagram to send */
 	temp_maxdgram = 16772;
 	len = sizeof(maxdgram);
-	error = sysctlbyname("net.local.dgram.maxdgram", &maxdgram,
-	    &len, &temp_maxdgram, sizeof(temp_maxdgram));
+	error = sysctlbyname("net.local.dgram.maxdgram", &maxdgram, &len,
+	    &temp_maxdgram, sizeof(temp_maxdgram));
 	if (error != 0)
-		atf_tc_skip("cannot set net.local.dgram.maxdgram: %s", strerror(errno));
+		atf_tc_skip("cannot set net.local.dgram.maxdgram: %s",
+		    strerror(errno));
 
 	/*
 	 * The receive queue fills up quicker than it's being emptied,
@@ -496,19 +496,22 @@ ATF_TC_BODY(nvlist_send_recv__send_many_fds__dgram, tc)
 	 */
 	temp_recvspace = 1048576;
 	len = sizeof(recvspace);
-	error = sysctlbyname("net.local.dgram.recvspace", &recvspace,
-	    &len, &temp_recvspace, sizeof(temp_recvspace));
+	error = sysctlbyname("net.local.dgram.recvspace", &recvspace, &len,
+	    &temp_recvspace, sizeof(temp_recvspace));
 	if (error != 0)
-		atf_tc_skip("cannot set net.local.dgram.recvspace: %s", strerror(errno));
+		atf_tc_skip("cannot set net.local.dgram.recvspace: %s",
+		    strerror(errno));
 
 	nvlist_send_recv__send_many_fds(SOCK_DGRAM);
 
 	/* restore original values */
-	error = sysctlbyname("net.local.dgram.maxdgram", NULL, NULL, &maxdgram, sizeof(maxdgram));
+	error = sysctlbyname("net.local.dgram.maxdgram", NULL, NULL, &maxdgram,
+	    sizeof(maxdgram));
 	if (error != 0)
 		warn("failed to restore net.local.dgram.maxdgram");
 
-	error = sysctlbyname("net.local.dgram.recvspace", NULL, NULL, &recvspace, sizeof(recvspace));
+	error = sysctlbyname("net.local.dgram.recvspace", NULL, NULL,
+	    &recvspace, sizeof(recvspace));
 	if (error != 0)
 		warn("failed to restore net.local.dgram.recvspace");
 }

@@ -33,34 +33,34 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/firmware.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
-#include <sys/firmware.h>
 #include <sys/socket.h>
 
 #include <machine/bus.h>
-#include <sys/bus.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/ethernet.h>
-
-#include <net80211/ieee80211_var.h>
 
 #include <dev/malo/if_malo.h>
 
-#define MALO_WAITOK				1
-#define MALO_NOWAIT				0
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_var.h>
+#include <net80211/ieee80211_var.h>
 
-#define	_CMD_SETUP(pCmd, _type, _cmd) do {				\
-	pCmd = (_type *)&mh->mh_cmdbuf[0];				\
-	memset(pCmd, 0, sizeof(_type));					\
-	pCmd->cmdhdr.cmd = htole16(_cmd);				\
-	pCmd->cmdhdr.length = htole16(sizeof(_type));			\
-} while (0)
+#define MALO_WAITOK 1
+#define MALO_NOWAIT 0
+
+#define _CMD_SETUP(pCmd, _type, _cmd)                         \
+	do {                                                  \
+		pCmd = (_type *)&mh->mh_cmdbuf[0];            \
+		memset(pCmd, 0, sizeof(_type));               \
+		pCmd->cmdhdr.cmd = htole16(_cmd);             \
+		pCmd->cmdhdr.length = htole16(sizeof(_type)); \
+	} while (0)
 
 static __inline uint32_t
 malo_hal_read4(struct malo_hal *mh, bus_size_t off)
@@ -77,7 +77,7 @@ malo_hal_write4(struct malo_hal *mh, bus_size_t off, uint32_t val)
 static void
 malo_hal_load_cb(void *arg, bus_dma_segment_t *segs, int nsegs, int error)
 {
-	bus_addr_t *paddr = (bus_addr_t*) arg;
+	bus_addr_t *paddr = (bus_addr_t *)arg;
 
 	KASSERT(error == 0, ("error %u on bus_dma callback", error));
 	*paddr = segs->ds_addr;
@@ -92,8 +92,8 @@ malo_hal_load_cb(void *arg, bus_dma_segment_t *segs, int nsegs, int error)
  * in BAR 1; the driver passes in the tag and handle we need.
  */
 struct malo_hal *
-malo_hal_attach(device_t dev, uint16_t devid,
-    bus_space_handle_t ioh, bus_space_tag_t iot, bus_dma_tag_t tag)
+malo_hal_attach(device_t dev, uint16_t devid, bus_space_handle_t ioh,
+    bus_space_tag_t iot, bus_dma_tag_t tag)
 {
 	int error;
 	struct malo_hal *mh;
@@ -106,8 +106,8 @@ malo_hal_attach(device_t dev, uint16_t devid,
 	mh->mh_ioh = ioh;
 	mh->mh_iot = iot;
 
-	snprintf(mh->mh_mtxname, sizeof(mh->mh_mtxname),
-	    "%s_hal", device_get_nameunit(dev));
+	snprintf(mh->mh_mtxname, sizeof(mh->mh_mtxname), "%s_hal",
+	    device_get_nameunit(dev));
 	mtx_init(&mh->mh_mtx, mh->mh_mtxname, NULL, MTX_DEF);
 
 	/*
@@ -115,41 +115,43 @@ malo_hal_attach(device_t dev, uint16_t devid,
 	 * space of the h/w.  We request "coherent" memory which
 	 * will be uncached on some architectures.
 	 */
-	error = bus_dma_tag_create(tag,		/* parent */
-		       PAGE_SIZE, 0,		/* alignment, bounds */
-		       BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-		       BUS_SPACE_MAXADDR,	/* highaddr */
-		       NULL, NULL,		/* filter, filterarg */
-		       MALO_CMDBUF_SIZE,	/* maxsize */
-		       1,			/* nsegments */
-		       MALO_CMDBUF_SIZE,	/* maxsegsize */
-		       BUS_DMA_ALLOCNOW,	/* flags */
-		       NULL,			/* lockfunc */
-		       NULL,			/* lockarg */
-		       &mh->mh_dmat);
+	error = bus_dma_tag_create(tag, /* parent */
+	    PAGE_SIZE, 0,		/* alignment, bounds */
+	    BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
+	    BUS_SPACE_MAXADDR,		/* highaddr */
+	    NULL, NULL,			/* filter, filterarg */
+	    MALO_CMDBUF_SIZE,		/* maxsize */
+	    1,				/* nsegments */
+	    MALO_CMDBUF_SIZE,		/* maxsegsize */
+	    BUS_DMA_ALLOCNOW,		/* flags */
+	    NULL,			/* lockfunc */
+	    NULL,			/* lockarg */
+	    &mh->mh_dmat);
 	if (error != 0) {
-		device_printf(dev, "unable to allocate memory for cmd tag, "
-			"error %u\n", error);
+		device_printf(dev,
+		    "unable to allocate memory for cmd tag, "
+		    "error %u\n",
+		    error);
 		goto fail;
 	}
 
 	/* allocate descriptors */
-	error = bus_dmamem_alloc(mh->mh_dmat, (void**) &mh->mh_cmdbuf,
-				 BUS_DMA_NOWAIT | BUS_DMA_COHERENT, 
-				 &mh->mh_dmamap);
+	error = bus_dmamem_alloc(mh->mh_dmat, (void **)&mh->mh_cmdbuf,
+	    BUS_DMA_NOWAIT | BUS_DMA_COHERENT, &mh->mh_dmamap);
 	if (error != 0) {
-		device_printf(dev, "unable to allocate memory for cmd buffer, "
-			"error %u\n", error);
+		device_printf(dev,
+		    "unable to allocate memory for cmd buffer, "
+		    "error %u\n",
+		    error);
 		goto fail;
 	}
 
-	error = bus_dmamap_load(mh->mh_dmat, mh->mh_dmamap,
-				mh->mh_cmdbuf, MALO_CMDBUF_SIZE,
-				malo_hal_load_cb, &mh->mh_cmdaddr,
-				BUS_DMA_NOWAIT);
+	error = bus_dmamap_load(mh->mh_dmat, mh->mh_dmamap, mh->mh_cmdbuf,
+	    MALO_CMDBUF_SIZE, malo_hal_load_cb, &mh->mh_cmdaddr,
+	    BUS_DMA_NOWAIT);
 	if (error != 0) {
 		device_printf(dev, "unable to load cmd buffer, error %u\n",
-			error);
+		    error);
 		goto fail;
 	}
 
@@ -157,8 +159,7 @@ malo_hal_attach(device_t dev, uint16_t devid,
 
 fail:
 	if (mh->mh_cmdbuf != NULL)
-		bus_dmamem_free(mh->mh_dmat, mh->mh_cmdbuf,
-		    mh->mh_dmamap);
+		bus_dmamem_free(mh->mh_dmat, mh->mh_cmdbuf, mh->mh_dmamap);
 	if (mh->mh_dmat)
 		bus_dma_tag_destroy(mh->mh_dmat);
 	free(mh, M_DEVBUF);
@@ -209,7 +210,7 @@ malo_hal_execute_cmd(struct malo_hal *mh, unsigned short cmd)
 	if ((mh->mh_flags & MHF_FWHANG) &&
 	    (mh->mh_debug & MALO_HAL_DEBUG_IGNHANG) == 0) {
 		device_printf(mh->mh_dev, "firmware hung, skipping cmd 0x%x\n",
-			cmd);
+		    cmd);
 		return ENXIO;
 	}
 
@@ -221,8 +222,8 @@ malo_hal_execute_cmd(struct malo_hal *mh, unsigned short cmd)
 
 	malo_hal_send_cmd(mh);
 	if (!malo_hal_waitforcmd(mh, cmd | 0x8000)) {
-		device_printf(mh->mh_dev,
-		    "timeout waiting for f/w cmd 0x%x\n", cmd);
+		device_printf(mh->mh_dev, "timeout waiting for f/w cmd 0x%x\n",
+		    cmd);
 		mh->mh_flags |= MHF_FWHANG;
 		return ETIMEDOUT;
 	}
@@ -249,7 +250,7 @@ malo_hal_get_cal_table(struct malo_hal *mh, uint8_t annex, uint8_t index)
 	if (ret == 0 && cmd->caltbl[0] != annex && annex != 0 && annex != 255)
 		ret = EIO;
 	return ret;
-}							  
+}
 
 static int
 malo_hal_get_pwrcal_table(struct malo_hal *mh, struct malo_hal_caldata *cal)
@@ -259,11 +260,11 @@ malo_hal_get_pwrcal_table(struct malo_hal *mh, struct malo_hal_caldata *cal)
 
 	MALO_HAL_LOCK(mh);
 	/* NB: we hold the lock so it's ok to use cmdbuf */
-	data = ((const struct malo_cmd_caltable *) mh->mh_cmdbuf)->caltbl;
+	data = ((const struct malo_cmd_caltable *)mh->mh_cmdbuf)->caltbl;
 	if (malo_hal_get_cal_table(mh, 33, 0) == 0) {
 		len = (data[2] | (data[3] << 8)) - 12;
 		/* XXX validate len */
-		memcpy(cal->pt_ratetable_20m, &data[12], len);	
+		memcpy(cal->pt_ratetable_20m, &data[12], len);
 	}
 	mh->mh_flags |= MHF_CALDATA;
 	MALO_HAL_UNLOCK(mh);
@@ -290,7 +291,7 @@ static void
 malo_hal_fw_reset(struct malo_hal *mh)
 {
 
-	if (malo_hal_read4(mh,  MALO_REG_INT_CODE) == 0xffffffff) {
+	if (malo_hal_read4(mh, MALO_REG_INT_CODE) == 0xffffffff) {
 		device_printf(mh->mh_dev, "%s: device not present!\n",
 		    __func__);
 		return;
@@ -335,12 +336,12 @@ malo_hal_waitfor(struct malo_hal *mh, uint32_t val)
  * Firmware block xmit when talking to the boot-rom.
  */
 static int
-malo_hal_send_helper(struct malo_hal *mh, int bsize,
-    const void *data, size_t dsize, int waitfor)
+malo_hal_send_helper(struct malo_hal *mh, int bsize, const void *data,
+    size_t dsize, int waitfor)
 {
 	mh->mh_cmdbuf[0] = htole16(MALO_HOSTCMD_CODE_DNLD);
 	mh->mh_cmdbuf[1] = htole16(bsize);
-	memcpy(&mh->mh_cmdbuf[4], data , dsize);
+	memcpy(&mh->mh_cmdbuf[4], data, dsize);
 
 	malo_hal_trigger_pcicmd(mh);
 
@@ -352,7 +353,7 @@ malo_hal_send_helper(struct malo_hal *mh, int bsize,
 		device_printf(mh->mh_dev,
 		    "%s: timeout waiting for CMD_FINISHED, INT_CODE 0x%x\n",
 		    __func__, malo_hal_read4(mh, MALO_REG_INT_CODE));
-		
+
 		return ETIMEDOUT;
 	}
 
@@ -379,7 +380,7 @@ malo_hal_fwload_helper(struct malo_hal *mh, char *helper)
 	    helper, fw->datasize);
 
 	error = malo_hal_send_helper(mh, fw->datasize, fw->data, fw->datasize,
-		MALO_WAITOK);
+	    MALO_WAITOK);
 	if (error != 0)
 		goto fail;
 
@@ -457,7 +458,7 @@ malo_hal_fwload_main(struct malo_hal *mh, char *firmware)
 			goto fail;
 		DELAY(500);
 	}
-	
+
 	/*
 	 * send a command with size 0 to tell that the firmware has been
 	 * uploaded
@@ -515,7 +516,7 @@ malo_hal_fwload(struct malo_hal *mh, char *helper, char *firmware)
 
 	if (opmode != MALO_HOSTCMD_STA_MODE)
 		malo_hal_trigger_pcicmd(mh);
-	
+
 	for (i = 0; i < MALO_FW_MAX_NUM_CHECKS; i++) {
 		malo_hal_write4(mh, MALO_REG_GEN_PTR, opmode);
 		DELAY(MALO_FW_CHECK_USECS);
@@ -555,8 +556,8 @@ malo_hal_gethwspecs(struct malo_hal *mh, struct malo_hal_hwspec *hw)
 		hw->wcbbase[1] = le32toh(cmd->wcbbase1) & 0x0000ffff;
 		hw->wcbbase[2] = le32toh(cmd->wcbbase2) & 0x0000ffff;
 		hw->wcbbase[3] = le32toh(cmd->wcbbase3) & 0x0000ffff;
-		hw->rxdesc_read = le32toh(cmd->rxpdrd_ptr)& 0x0000ffff;
-		hw->rxdesc_write = le32toh(cmd->rxpdwr_ptr)& 0x0000ffff;
+		hw->rxdesc_read = le32toh(cmd->rxpdrd_ptr) & 0x0000ffff;
+		hw->rxdesc_write = le32toh(cmd->rxpdwr_ptr) & 0x0000ffff;
 		hw->regioncode = le16toh(cmd->regioncode) & 0x00ff;
 		hw->fw_releasenum = le32toh(cmd->fw_releasenum);
 		hw->maxnum_wcb = le16toh(cmd->num_wcb);
@@ -601,7 +602,7 @@ malo_hal_setantenna(struct malo_hal *mh, enum malo_hal_antenna dirset, int ant)
 	_CMD_SETUP(cmd, struct malo_cmd_rf_antenna,
 	    MALO_HOSTCMD_802_11_RF_ANTENNA);
 	cmd->action = htole16(dirset);
-	if (ant == 0) {			/* default to all/both antennae */
+	if (ant == 0) { /* default to all/both antennae */
 		/* XXX never reach now.  */
 		ant = 3;
 	}
@@ -687,7 +688,7 @@ malo_hal_settxpower(struct malo_hal *mh, const struct malo_hal_channel *c)
 	uint8_t chan = c->channel;
 	uint16_t pow;
 	int i, idx, ret;
-	
+
 	MALO_HAL_LOCK(mh);
 
 	_CMD_SETUP(cmd, struct malo_cmd_rf_tx_power,
@@ -721,12 +722,11 @@ malo_hal_setassocid(struct malo_hal *mh,
 
 	MALO_HAL_LOCK(mh);
 
-	_CMD_SETUP(cmd, struct malo_cmd_fw_set_aid,
-	    MALO_HOSTCMD_SET_AID);
+	_CMD_SETUP(cmd, struct malo_cmd_fw_set_aid, MALO_HOSTCMD_SET_AID);
 	cmd->cmdhdr.seqnum = 1;
 	cmd->associd = htole16(associd);
 	IEEE80211_ADDR_COPY(&cmd->macaddr[0], bssid);
-	
+
 	ret = malo_hal_execute_cmd(mh, MALO_HOSTCMD_SET_AID);
 	MALO_HAL_UNLOCK(mh);
 	return ret;
@@ -740,9 +740,9 @@ malo_hal_setassocid(struct malo_hal *mh,
 void
 malo_hal_txstart(struct malo_hal *mh, int qnum)
 {
-	bus_space_write_4(mh->mh_iot, mh->mh_ioh,
-	    MALO_REG_H2A_INTERRUPT_EVENTS, MALO_H2ARIC_BIT_PPA_READY);
-	(void) bus_space_read_4(mh->mh_iot, mh->mh_ioh, MALO_REG_INT_CODE);
+	bus_space_write_4(mh->mh_iot, mh->mh_ioh, MALO_REG_H2A_INTERRUPT_EVENTS,
+	    MALO_H2ARIC_BIT_PPA_READY);
+	(void)bus_space_read_4(mh->mh_iot, mh->mh_ioh, MALO_REG_INT_CODE);
 }
 
 /*
@@ -755,13 +755,13 @@ malo_hal_getisr(struct malo_hal *mh, uint32_t *status)
 
 	cause = bus_space_read_4(mh->mh_iot, mh->mh_ioh,
 	    MALO_REG_A2H_INTERRUPT_CAUSE);
-	if (cause == 0xffffffff) {	/* card removed */
+	if (cause == 0xffffffff) { /* card removed */
 		cause = 0;
 	} else if (cause != 0) {
 		/* clear cause bits */
 		bus_space_write_4(mh->mh_iot, mh->mh_ioh,
-		    MALO_REG_A2H_INTERRUPT_CAUSE, cause &~ mh->mh_imask);
-		(void) bus_space_read_4(mh->mh_iot, mh->mh_ioh,
+		    MALO_REG_A2H_INTERRUPT_CAUSE, cause & ~mh->mh_imask);
+		(void)bus_space_read_4(mh->mh_iot, mh->mh_ioh,
 		    MALO_REG_INT_CODE);
 		cause &= mh->mh_imask;
 	}
@@ -789,7 +789,7 @@ malo_hal_prescan(struct malo_hal *mh)
 
 	_CMD_SETUP(cmd, struct malo_cmd_prescan, MALO_HOSTCMD_SET_PRE_SCAN);
 	cmd->cmdhdr.seqnum = 1;
-	
+
 	ret = malo_hal_execute_cmd(mh, MALO_HOSTCMD_SET_PRE_SCAN);
 
 	MALO_HAL_UNLOCK(mh);
@@ -850,7 +850,7 @@ malo_hal_set_rate(struct malo_hal *mh, uint16_t curmode, uint8_t rate)
 	cmd->aprates[2] = 11;
 	cmd->aprates[3] = 22;
 	if (curmode == IEEE80211_MODE_11G) {
-		cmd->aprates[4] = 0;		/* XXX reserved?  */
+		cmd->aprates[4] = 0; /* XXX reserved?  */
 		cmd->aprates[5] = 12;
 		cmd->aprates[6] = 18;
 		cmd->aprates[7] = 24;

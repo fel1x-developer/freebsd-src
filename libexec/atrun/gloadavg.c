@@ -49,21 +49,20 @@ gloadavg(void)
  * error
  */
 {
-    double result;
+	double result;
 #ifndef __FreeBSD__
-    FILE *fp;
-    
-    if((fp=fopen(PROC_DIR "loadavg","r")) == NULL)
-	result = -1.0;
-    else
-    {
-	if(fscanf(fp,"%lf",&result) != 1)
-	    result = -1.0;
-	fclose(fp);
-    }
+	FILE *fp;
+
+	if ((fp = fopen(PROC_DIR "loadavg", "r")) == NULL)
+		result = -1.0;
+	else {
+		if (fscanf(fp, "%lf", &result) != 1)
+			result = -1.0;
+		fclose(fp);
+	}
 #else
-    if (getloadavg(&result, 1) != 1)
-	    perr("error in getloadavg");
+	if (getloadavg(&result, 1) != 1)
+		perr("error in getloadavg");
 #endif
-    return result;
+	return result;
 }

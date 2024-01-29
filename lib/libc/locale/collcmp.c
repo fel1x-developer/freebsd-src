@@ -33,13 +33,15 @@
 
 #include <string.h>
 #include <wchar.h>
+
 #include "collate.h"
 
 /*
  * Compare two characters using collate
  */
 
-int __collate_range_cmp(char c1, char c2)
+int
+__collate_range_cmp(char c1, char c2)
 {
 	char s1[2], s2[2];
 
@@ -50,7 +52,8 @@ int __collate_range_cmp(char c1, char c2)
 	return (strcoll(s1, s2));
 }
 
-int __wcollate_range_cmp(wchar_t c1, wchar_t c2)
+int
+__wcollate_range_cmp(wchar_t c1, wchar_t c2)
 {
 	wchar_t s1[2], s2[2];
 

@@ -30,11 +30,12 @@
  */
 
 #include <sys/types.h>
+
 #include <err.h>
 #include <errno.h>
+#include <langinfo.h>
 #include <locale.h>
 #include <login_cap.h>
-#include <langinfo.h>
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,28 +45,28 @@
 
 #include "calendar.h"
 
-#define	UTCOFFSET_NOTSET	100	/* Expected between -24 and +24 */
-#define	LONGITUDE_NOTSET	1000	/* Expected between -360 and +360 */
+#define UTCOFFSET_NOTSET 100  /* Expected between -24 and +24 */
+#define LONGITUDE_NOTSET 1000 /* Expected between -360 and +360 */
 
-struct passwd	*pw;
-int		doall = 0;
-int		debug = 0;
-static char	*DEBUG = NULL;
-static time_t	f_time = 0;
-double		UTCOffset = UTCOFFSET_NOTSET;
-int		EastLongitude = LONGITUDE_NOTSET;
+struct passwd *pw;
+int doall = 0;
+int debug = 0;
+static char *DEBUG = NULL;
+static time_t f_time = 0;
+double UTCOffset = UTCOFFSET_NOTSET;
+int EastLongitude = LONGITUDE_NOTSET;
 #ifdef WITH_ICONV
-const char	*outputEncoding = NULL;
+const char *outputEncoding = NULL;
 #endif
 
-static void	usage(void) __dead2;
+static void usage(void) __dead2;
 
 int
 main(int argc, char *argv[])
 {
-	int	f_dayAfter = 0;		/* days after current date */
-	int	f_dayBefore = 0;	/* days before current date */
-	int	Friday = 5;		/* day before weekend */
+	int f_dayAfter = 0;  /* days after current date */
+	int f_dayBefore = 0; /* days before current date */
+	int Friday = 5;	     /* day before weekend */
 
 	int ch;
 	struct tm tp1, tp2;
@@ -74,7 +75,7 @@ main(int argc, char *argv[])
 
 	while ((ch = getopt(argc, argv, "-A:aB:D:dF:f:l:t:U:W:?")) != -1)
 		switch (ch) {
-		case '-':		/* backward contemptible */
+		case '-': /* backward contemptible */
 		case 'a':
 			if (getuid()) {
 				errno = EPERM;
@@ -164,7 +165,7 @@ main(int argc, char *argv[])
 
 			/* hh:mm:ss -> hh.mmss */
 			uo = mm + (100.0 * (ss / 60.0));
-			uo /=  60.0 / 100.0;
+			uo /= 60.0 / 100.0;
 			uo = hh + uo / 100;
 
 			UTCOffset = uo;
@@ -211,7 +212,7 @@ main(int argc, char *argv[])
 
 				lc = login_getpwclass(pw);
 				if (setusercontext(lc, pw, pw->pw_uid,
-				    LOGIN_SETALL) != 0)
+					LOGIN_SETALL) != 0)
 					errx(1, "setusercontext");
 				setenv("HOME", pw->pw_dir, 1);
 				cal();
@@ -220,7 +221,8 @@ main(int argc, char *argv[])
 		}
 	else {
 #ifdef WITH_ICONV
-		/* Save the information about the encoding used in the terminal. */
+		/* Save the information about the encoding used in the terminal.
+		 */
 		outputEncoding = strdup(nl_langinfo(CODESET));
 		if (outputEncoding == NULL)
 			errx(1, "cannot allocate memory");
@@ -230,7 +232,6 @@ main(int argc, char *argv[])
 	exit(0);
 }
 
-
 static void __dead2
 usage(void)
 {
@@ -238,7 +239,6 @@ usage(void)
 	fprintf(stderr, "%s\n%s\n%s\n",
 	    "usage: calendar [-A days] [-a] [-B days] [-D sun|moon] [-d]",
 	    "		     [-F friday] [-f calendarfile] [-l longitude]",
-	    "		     [-t dd[.mm[.year]]] [-U utcoffset] [-W days]"
-	    );
+	    "		     [-t dd[.mm[.year]]] [-U utcoffset] [-W days]");
 	exit(1);
 }

@@ -41,8 +41,8 @@
  *
  *     #include <devdctl/exception.h>
  */
-#ifndef	_ZFSD_EXCEPTION_H_
-#define	_ZFSD_EXCEPTION_H_
+#ifndef _ZFSD_EXCEPTION_H_
+#define _ZFSD_EXCEPTION_H_
 
 /*=========================== Forward Declarations ===========================*/
 struct zpool_handle;
@@ -56,9 +56,8 @@ typedef struct nvlist nvlist_t;
 /**
  * \brief Class allowing unified reporting/logging of exceptional events.
  */
-class ZfsdException : public DevdCtl::Exception
-{
-public:
+class ZfsdException : public DevdCtl::Exception {
+    public:
 	/**
 	 * \brief ZfsdException constructor allowing arbitrary string
 	 *        data to be reported.
@@ -99,9 +98,10 @@ public:
 	 * \brief Emit exception data to syslog(3).
 	 */
 	virtual void Log() const;
-private:
-	nvlist_t     *m_poolConfig;
-	nvlist_t     *m_vdevConfig;
+
+    private:
+	nvlist_t *m_poolConfig;
+	nvlist_t *m_vdevConfig;
 };
 
 #endif /* _ZFSD_EXCEPTION_H_ */

@@ -26,19 +26,19 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stdio.h>
 
 #include "debug.h"
 
-static	int	trace_level = 0;
-static	int	trace_level_bk = 0;
+static int trace_level = 0;
+static int trace_level_bk = 0;
 
 void
 nscd_trace_in(const char *s, const char *f, int l)
 {
 	int i;
-	if (trace_level < TRACE_WANTED)
-	{
+	if (trace_level < TRACE_WANTED) {
 		for (i = 0; i < trace_level; ++i)
 			printf("\t");
 
@@ -53,8 +53,7 @@ nscd_trace_point(const char *f, int l)
 {
 	int i;
 
-	if (trace_level < TRACE_WANTED)
-	{
+	if (trace_level < TRACE_WANTED) {
 		for (i = 0; i < trace_level - 1; ++i)
 			printf("\t");
 
@@ -67,8 +66,7 @@ nscd_trace_msg(const char *msg, const char *f, int l)
 {
 	int i;
 
-	if (trace_level < TRACE_WANTED)
-	{
+	if (trace_level < TRACE_WANTED) {
 		for (i = 0; i < trace_level - 1; ++i)
 			printf("\t");
 
@@ -81,8 +79,7 @@ nscd_trace_ptr(const char *desc, const void *p, const char *f, int l)
 {
 	int i;
 
-	if (trace_level < TRACE_WANTED)
-	{
+	if (trace_level < TRACE_WANTED) {
 		for (i = 0; i < trace_level - 1; ++i)
 			printf("\t");
 
@@ -95,12 +92,11 @@ nscd_trace_int(const char *desc, int i, const char *f, int l)
 {
 	int j;
 
-	if (trace_level < TRACE_WANTED)
-	{
+	if (trace_level < TRACE_WANTED) {
 		for (j = 0; j < trace_level - 1; ++j)
 			printf("\t");
 
-		printf("= INT %s: %i, %s: %d\n",desc, i, f, l);
+		printf("= INT %s: %i, %s: %d\n", desc, i, f, l);
 	}
 }
 
@@ -109,8 +105,7 @@ nscd_trace_str(const char *desc, const char *s, const char *f, int l)
 {
 	int i;
 
-	if (trace_level < TRACE_WANTED)
-	{
+	if (trace_level < TRACE_WANTED) {
 		for (i = 0; i < trace_level - 1; ++i)
 			printf("\t");
 
@@ -124,8 +119,7 @@ nscd_trace_out(const char *s, const char *f, int l)
 	int i;
 
 	--trace_level;
-	if (trace_level < TRACE_WANTED)
-	{
+	if (trace_level < TRACE_WANTED) {
 		for (i = 0; i < trace_level; ++i)
 			printf("\t");
 

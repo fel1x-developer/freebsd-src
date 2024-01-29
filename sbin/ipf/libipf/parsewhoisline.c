@@ -62,7 +62,7 @@ parsewhoisline(char *line, addrfamily_t *addrp, addrfamily_t *maskp)
 		addrp->adf_addr = a61;
 		addrp->adf_family = AF_INET6;
 		addrp->adf_len = offsetof(addrfamily_t, adf_addr) +
-				 sizeof(struct in6_addr);
+		    sizeof(struct in6_addr);
 
 		maskp->adf_addr.i6[0] = ~(a62.i6[0] ^ a61.i6[0]);
 		maskp->adf_addr.i6[1] = ~(a62.i6[1] ^ a61.i6[1]);
@@ -80,7 +80,7 @@ parsewhoisline(char *line, addrfamily_t *addrp, addrfamily_t *maskp)
 		maskp->adf_len = addrp->adf_len;
 
 		if (IP6_MASKNEQ(&addrp->adf_addr.in6, &maskp->adf_addr.in6,
-				&addrp->adf_addr.in6)) {
+			&addrp->adf_addr.in6)) {
 			return (-1);
 		}
 		return (0);
@@ -109,7 +109,7 @@ parsewhoisline(char *line, addrfamily_t *addrp, addrfamily_t *maskp)
 	addrp->adf_addr.in4 = a1;
 	addrp->adf_family = AF_INET;
 	addrp->adf_len = offsetof(addrfamily_t, adf_addr) +
-			 sizeof(struct in_addr);
+	    sizeof(struct in_addr);
 	maskp->adf_addr.in4.s_addr = ~(a2.s_addr ^ a1.s_addr);
 
 	/*

@@ -30,84 +30,81 @@
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/rman.h>
+
 #include <machine/bus.h>
 
 #include <dev/clk/clk.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
+#include "a37x0_tbg_pll.h"
 #include "clkdev_if.h"
 
-#include "a37x0_tbg_pll.h"
+#define NUM_TBG 4
 
-#define NUM_TBG			4
+#define TBG_CTRL0 0x4
+#define TBG_CTRL1 0x8
+#define TBG_CTRL7 0x20
+#define TBG_CTRL8 0x30
 
-#define TBG_CTRL0		0x4
-#define TBG_CTRL1		0x8
-#define TBG_CTRL7		0x20
-#define TBG_CTRL8		0x30
+#define TBG_MASK 0x1FF
 
-#define TBG_MASK		0x1FF
+#define TBG_A_REFDIV 0
+#define TBG_B_REFDIV 16
 
-#define TBG_A_REFDIV		0
-#define TBG_B_REFDIV		16
+#define TBG_A_FBDIV 2
+#define TBG_B_FBDIV 18
 
-#define TBG_A_FBDIV		2
-#define TBG_B_FBDIV		18
+#define TBG_A_VCODIV_SEL 0
+#define TBG_B_VCODIV_SEL 16
 
-#define TBG_A_VCODIV_SEL	0
-#define TBG_B_VCODIV_SEL	16
-
-#define TBG_A_VCODIV_DIFF	1
-#define TBG_B_VCODIV_DIFF	17
+#define TBG_A_VCODIV_DIFF 1
+#define TBG_B_VCODIV_DIFF 17
 
 struct a37x0_tbg_softc {
-	device_t 		dev;
-	struct clkdom		*clkdom;
-	struct resource		*res;
+	device_t dev;
+	struct clkdom *clkdom;
+	struct resource *res;
 };
 
 static struct resource_spec a37x0_tbg_clk_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ -1, 0 }
+	{ SYS_RES_MEMORY, 0, RF_ACTIVE }, { -1, 0 }
 };
 
 struct a37x0_tbg_def {
-	char 			*name;
-	uint32_t		refdiv_shift;
-	uint32_t		fbdiv_shift;
-	uint32_t		vcodiv_offset;
-	uint32_t		vcodiv_shift;
-	uint32_t		tbg_bypass_en;
+	char *name;
+	uint32_t refdiv_shift;
+	uint32_t fbdiv_shift;
+	uint32_t vcodiv_offset;
+	uint32_t vcodiv_shift;
+	uint32_t tbg_bypass_en;
 };
 
-static const struct a37x0_tbg_def tbg[NUM_TBG] = {
-	{"TBG-A-P", TBG_A_REFDIV, TBG_A_FBDIV, TBG_CTRL8, TBG_A_VCODIV_DIFF, 9},
-	{"TBG-B-P", TBG_B_REFDIV, TBG_B_FBDIV, TBG_CTRL8,
-	    TBG_B_VCODIV_DIFF, 25},
-	{"TBG-A-S", TBG_A_REFDIV, TBG_A_FBDIV, TBG_CTRL1, TBG_A_VCODIV_SEL, 9},
-	{"TBG-B-S", TBG_B_REFDIV, TBG_B_FBDIV, TBG_CTRL1, TBG_B_VCODIV_SEL, 25}
-};
+static const struct a37x0_tbg_def tbg[NUM_TBG] = { { "TBG-A-P", TBG_A_REFDIV,
+						       TBG_A_FBDIV, TBG_CTRL8,
+						       TBG_A_VCODIV_DIFF, 9 },
+	{ "TBG-B-P", TBG_B_REFDIV, TBG_B_FBDIV, TBG_CTRL8, TBG_B_VCODIV_DIFF,
+	    25 },
+	{ "TBG-A-S", TBG_A_REFDIV, TBG_A_FBDIV, TBG_CTRL1, TBG_A_VCODIV_SEL,
+	    9 },
+	{ "TBG-B-S", TBG_B_REFDIV, TBG_B_FBDIV, TBG_CTRL1, TBG_B_VCODIV_SEL,
+	    25 } };
 
 static int a37x0_tbg_read_4(device_t, bus_addr_t, uint32_t *);
 static int a37x0_tbg_attach(device_t);
 static int a37x0_tbg_detach(device_t);
 static int a37x0_tbg_probe(device_t);
 
-static device_method_t a37x0_tbg_methods [] = {
-	DEVMETHOD(device_attach,	a37x0_tbg_attach),
-	DEVMETHOD(device_detach,	a37x0_tbg_detach),
-	DEVMETHOD(device_probe,		a37x0_tbg_probe),
+static device_method_t a37x0_tbg_methods[] = { DEVMETHOD(device_attach,
+						   a37x0_tbg_attach),
+	DEVMETHOD(device_detach, a37x0_tbg_detach),
+	DEVMETHOD(device_probe, a37x0_tbg_probe),
 
-	DEVMETHOD(clkdev_read_4,	a37x0_tbg_read_4),
+	DEVMETHOD(clkdev_read_4, a37x0_tbg_read_4),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
-static driver_t a37x0_tbg_driver = {
-	"a37x0_tbg",
-	a37x0_tbg_methods,
-	sizeof(struct a37x0_tbg_softc)
-};
+static driver_t a37x0_tbg_driver = { "a37x0_tbg", a37x0_tbg_methods,
+	sizeof(struct a37x0_tbg_softc) };
 
 EARLY_DRIVER_MODULE(a37x0_tbg, simplebus, a37x0_tbg_driver, 0, 0,
     BUS_PASS_TIMER + BUS_PASS_ORDER_MIDDLE);

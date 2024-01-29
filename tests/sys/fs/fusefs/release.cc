@@ -38,38 +38,42 @@ extern "C" {
 
 using namespace testing;
 
-class Release: public FuseTest {
+class Release : public FuseTest {
 
-public:
-void expect_lookup(const char *relpath, uint64_t ino, int times)
-{
-	FuseTest::expect_lookup(relpath, ino, S_IFREG | 0644, 0, times);
-}
+    public:
+	void expect_lookup(const char *relpath, uint64_t ino, int times)
+	{
+		FuseTest::expect_lookup(relpath, ino, S_IFREG | 0644, 0, times);
+	}
 
-void expect_release(uint64_t ino, uint64_t lock_owner,
-	uint32_t flags, int error)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_RELEASE &&
-				in.header.nodeid == ino &&
-				in.body.release.lock_owner == lock_owner &&
-				in.body.release.fh == FH &&
-				in.body.release.flags == flags);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(error)))
-	.RetiresOnSaturation();
-}
+	void expect_release(uint64_t ino, uint64_t lock_owner, uint32_t flags,
+	    int error)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					return (
+					    in.header.opcode == FUSE_RELEASE &&
+					    in.header.nodeid == ino &&
+					    in.body.release.lock_owner ==
+						lock_owner &&
+					    in.body.release.fh == FH &&
+					    in.body.release.flags == flags);
+				},
+				Eq(true)),
+			_))
+		    .WillOnce(Invoke(ReturnErrno(error)))
+		    .RetiresOnSaturation();
+	}
 };
 
-class ReleaseWithLocks: public Release {
-	virtual void SetUp() {
+class ReleaseWithLocks : public Release {
+	virtual void SetUp()
+	{
 		m_init_flags = FUSE_POSIX_LOCKS;
 		Release::SetUp();
 	}
 };
-
 
 /* If a file descriptor is duplicated, only the last close causes RELEASE */
 TEST_F(Release, dup)
@@ -83,7 +87,7 @@ TEST_F(Release, dup)
 	expect_open(ino, 0, 1);
 	expect_flush(ino, 1, ReturnErrno(0));
 	expect_release(ino, getpid(), O_RDONLY, 0);
-	
+
 	fd = open(FULLPATH, O_RDONLY);
 	ASSERT_LE(0, fd) << strerror(errno);
 
@@ -94,7 +98,7 @@ TEST_F(Release, dup)
 	ASSERT_EQ(0, close(fd)) << strerror(errno);
 }
 
-/* 
+/*
  * Some FUSE filesystem cache data internally and flush it on release.  Such
  * filesystems may generate errors during release.  On Linux, these get
  * returned by close(2).  However, POSIX does not require close(2) to return
@@ -113,7 +117,7 @@ TEST_F(Release, eio)
 	expect_open(ino, 0, 1);
 	expect_flush(ino, 1, ReturnErrno(0));
 	expect_release(ino, getpid(), O_WRONLY, EIO);
-	
+
 	fd = open(FULLPATH, O_WRONLY);
 	ASSERT_LE(0, fd) << strerror(errno);
 
@@ -135,7 +139,7 @@ TEST_F(Release, DISABLED_flags)
 	expect_open(ino, 0, 1);
 	expect_flush(ino, 1, ReturnErrno(0));
 	expect_release(ino, getpid(), O_RDWR | O_APPEND, 0);
-	
+
 	fd = open(FULLPATH, O_RDWR | O_APPEND);
 	ASSERT_LE(0, fd) << strerror(errno);
 
@@ -158,7 +162,7 @@ TEST_F(Release, multiple_opens)
 	expect_open(ino, 0, 2);
 	expect_flush(ino, 2, ReturnErrno(0));
 	expect_release(ino, getpid(), O_RDONLY, 0);
-	
+
 	fd = open(FULLPATH, O_RDONLY);
 	ASSERT_LE(0, fd) << strerror(errno);
 
@@ -181,7 +185,7 @@ TEST_F(Release, ok)
 	expect_open(ino, 0, 1);
 	expect_flush(ino, 1, ReturnErrno(0));
 	expect_release(ino, getpid(), O_RDONLY, 0);
-	
+
 	fd = open(FULLPATH, O_RDONLY);
 	ASSERT_LE(0, fd) << strerror(errno);
 
@@ -200,24 +204,28 @@ TEST_F(ReleaseWithLocks, unlock_on_close)
 
 	expect_lookup(RELPATH, ino, 1);
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_SETLK &&
-				in.header.nodeid == ino &&
-				in.body.setlk.lk.type == F_RDLCK &&
-				in.body.setlk.fh == FH);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(0)));
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_SETLK &&
-				in.header.nodeid == ino &&
-				in.body.setlk.lk.type == F_UNLCK &&
-				in.body.setlk.fh == FH);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(0)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_SETLK &&
+				    in.header.nodeid == ino &&
+				    in.body.setlk.lk.type == F_RDLCK &&
+				    in.body.setlk.fh == FH);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnErrno(0)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_SETLK &&
+				    in.header.nodeid == ino &&
+				    in.body.setlk.lk.type == F_UNLCK &&
+				    in.body.setlk.fh == FH);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnErrno(0)));
 	expect_flush(ino, 1, ReturnErrno(0));
 	expect_release(ino, static_cast<uint64_t>(pid), O_RDWR, 0);
 

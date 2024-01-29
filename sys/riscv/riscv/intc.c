@@ -34,15 +34,14 @@
  */
 
 #include <sys/cdefs.h>
-
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/cpuset.h>
+#include <sys/interrupt.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/proc.h>
-#include <sys/cpuset.h>
-#include <sys/interrupt.h>
 #include <sys/smp.h>
 
 #include <machine/bus.h>
@@ -52,26 +51,25 @@
 #include <machine/intr.h>
 
 #include <dev/fdt/simplebus.h>
-
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
 
 #include "pic_if.h"
 
-#define	INTC_NIRQS	16
+#define INTC_NIRQS 16
 
 struct intc_irqsrc {
-	struct intr_irqsrc	isrc;
-	u_int			irq;
+	struct intr_irqsrc isrc;
+	u_int irq;
 };
 
 struct intc_softc {
-	device_t		dev;
-	struct intc_irqsrc	isrcs[INTC_NIRQS];
+	device_t dev;
+	struct intc_irqsrc isrcs[INTC_NIRQS];
 };
 
-static int	intc_intr(void *arg);
+static int intc_intr(void *arg);
 
 static phandle_t
 intc_ofw_find(device_t dev, uint32_t hartid)
@@ -167,8 +165,8 @@ intc_attach(device_t dev)
 	isrcs = sc->isrcs;
 	for (i = 0; i < INTC_NIRQS; i++) {
 		isrcs[i].irq = i;
-		flags = i == IRQ_SOFTWARE_SUPERVISOR
-		    ? INTR_ISRCF_IPI : INTR_ISRCF_PPI;
+		flags = i == IRQ_SOFTWARE_SUPERVISOR ? INTR_ISRCF_IPI :
+						       INTR_ISRCF_PPI;
 		error = intr_isrc_register(&isrcs[i].isrc, sc->dev, flags,
 		    "%s,%u", name, i);
 		if (error != 0) {
@@ -230,8 +228,8 @@ intc_map_intr(device_t dev, struct intr_map_data *data,
 }
 
 static int
-intc_setup_intr(device_t dev, struct intr_irqsrc *isrc,
-    struct resource *res, struct intr_map_data *data)
+intc_setup_intr(device_t dev, struct intr_irqsrc *isrc, struct resource *res,
+    struct intr_map_data *data)
 {
 	if (isrc->isrc_flags & INTR_ISRCF_PPI)
 		CPU_SET(PCPU_GET(cpuid), &isrc->isrc_cpu);
@@ -281,8 +279,7 @@ intc_intr(void *arg)
 	src = &sc->isrcs[active_irq];
 	if (intr_isrc_dispatch(&src->isrc, frame) != 0) {
 		intc_disable_intr(sc->dev, &src->isrc);
-		device_printf(sc->dev, "Stray irq %lu disabled\n",
-		    active_irq);
+		device_printf(sc->dev, "Stray irq %lu disabled\n", active_irq);
 	}
 
 	return (FILTER_HANDLED);
@@ -290,17 +287,17 @@ intc_intr(void *arg)
 
 static device_method_t intc_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,	intc_identify),
-	DEVMETHOD(device_probe,		intc_probe),
-	DEVMETHOD(device_attach,	intc_attach),
+	DEVMETHOD(device_identify, intc_identify),
+	DEVMETHOD(device_probe, intc_probe),
+	DEVMETHOD(device_attach, intc_attach),
 
 	/* Interrupt controller interface */
-	DEVMETHOD(pic_disable_intr,	intc_disable_intr),
-	DEVMETHOD(pic_enable_intr,	intc_enable_intr),
-	DEVMETHOD(pic_map_intr,		intc_map_intr),
-	DEVMETHOD(pic_setup_intr,	intc_setup_intr),
+	DEVMETHOD(pic_disable_intr, intc_disable_intr),
+	DEVMETHOD(pic_enable_intr, intc_enable_intr),
+	DEVMETHOD(pic_map_intr, intc_map_intr),
+	DEVMETHOD(pic_setup_intr, intc_setup_intr),
 #ifdef SMP
-	DEVMETHOD(pic_init_secondary,	intc_init_secondary),
+	DEVMETHOD(pic_init_secondary, intc_init_secondary),
 #endif
 
 	DEVMETHOD_END

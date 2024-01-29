@@ -1,4 +1,4 @@
-/*- 
+/*-
  *  privs.h - header for privileged operations
  *
  * SPDX-License-Identifier: BSD-2-Clause
@@ -68,40 +68,55 @@ uid_t real_uid, effective_uid;
 gid_t real_gid, effective_gid;
 #endif
 
-#define RELINQUISH_PRIVS { \
-	real_uid = getuid(); \
-	effective_uid = geteuid(); \
-	real_gid = getgid(); \
-	effective_gid = getegid(); \
-	if (seteuid(real_uid) != 0) err(1, "seteuid failed"); \
-	if (setegid(real_gid) != 0) err(1, "setegid failed"); \
-}
+#define RELINQUISH_PRIVS                          \
+	{                                         \
+		real_uid = getuid();              \
+		effective_uid = geteuid();        \
+		real_gid = getgid();              \
+		effective_gid = getegid();        \
+		if (seteuid(real_uid) != 0)       \
+			err(1, "seteuid failed"); \
+		if (setegid(real_gid) != 0)       \
+			err(1, "setegid failed"); \
+	}
 
-#define RELINQUISH_PRIVS_ROOT(a, b) { \
-	real_uid = (a); \
-	effective_uid = geteuid(); \
-	real_gid = (b); \
-	effective_gid = getegid(); \
-	if (setegid(real_gid) != 0) err(1, "setegid failed"); \
-	if (seteuid(real_uid) != 0) err(1, "seteuid failed"); \
-}
+#define RELINQUISH_PRIVS_ROOT(a, b)               \
+	{                                         \
+		real_uid = (a);                   \
+		effective_uid = geteuid();        \
+		real_gid = (b);                   \
+		effective_gid = getegid();        \
+		if (setegid(real_gid) != 0)       \
+			err(1, "setegid failed"); \
+		if (seteuid(real_uid) != 0)       \
+			err(1, "seteuid failed"); \
+	}
 
-#define PRIV_START { \
-	if (seteuid(effective_uid) != 0) err(1, "seteuid failed"); \
-	if (setegid(effective_gid) != 0) err(1, "setegid failed"); \
-}
+#define PRIV_START                                \
+	{                                         \
+		if (seteuid(effective_uid) != 0)  \
+			err(1, "seteuid failed"); \
+		if (setegid(effective_gid) != 0)  \
+			err(1, "setegid failed"); \
+	}
 
-#define PRIV_END { \
-	if (setegid(real_gid) != 0) err(1, "setegid failed"); \
-	if (seteuid(real_uid) != 0) err(1, "seteuid failed"); \
-}
+#define PRIV_END                                  \
+	{                                         \
+		if (setegid(real_gid) != 0)       \
+			err(1, "setegid failed"); \
+		if (seteuid(real_uid) != 0)       \
+			err(1, "seteuid failed"); \
+	}
 
-#define REDUCE_PRIV(a, b) { \
-	PRIV_START \
-	effective_uid = (a); \
-	effective_gid = (b); \
-	if (setregid((gid_t)-1, effective_gid) != 0) err(1, "setregid failed"); \
-	if (setreuid((uid_t)-1, effective_uid) != 0) err(1, "setreuid failed"); \
-	PRIV_END \
-}
+#define REDUCE_PRIV(a, b)                                    \
+	{                                                    \
+		PRIV_START                                   \
+		effective_uid = (a);                         \
+		effective_gid = (b);                         \
+		if (setregid((gid_t)-1, effective_gid) != 0) \
+			err(1, "setregid failed");           \
+		if (setreuid((uid_t)-1, effective_uid) != 0) \
+			err(1, "setreuid failed");           \
+		PRIV_END                                     \
+	}
 #endif

@@ -5,29 +5,28 @@
  */
 
 #include <sys/param.h>
-#include <sys/mount.h>
 #include <sys/file.h>
-#include <sys/stat.h>
+#include <sys/mount.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 
-#include <ufs/ufs/quota.h>
-#include <rpc/rpc.h>
-#include <rpcsvc/rquota.h>
 #include <arpa/inet.h>
-#include <netdb.h>
-
 #include <ctype.h>
+#include <err.h>
 #include <errno.h>
 #include <fstab.h>
 #include <grp.h>
 #include <libutil.h>
+#include <netdb.h>
 #include <pwd.h>
+#include <rpc/rpc.h>
+#include <rpcsvc/rquota.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <err.h>
 #include <string.h>
 #include <syslog.h>
+#include <ufs/ufs/quota.h>
 #include <unistd.h>
 
 static void rquota_service_1(struct svc_req *request, SVCXPRT *transp);
@@ -81,7 +80,7 @@ main(int argc, char **argv)
 		(void)signal(SIGHUP, cleanup);
 	}
 
-	openlog("rpc.rquotad", LOG_CONS|LOG_PID, LOG_DAEMON);
+	openlog("rpc.rquotad", LOG_CONS | LOG_PID, LOG_DAEMON);
 
 	/* create and register the service */
 	if (from_inetd) {
@@ -91,29 +90,27 @@ main(int argc, char **argv)
 			exit(1);
 		}
 		vers = RQUOTAVERS;
-		ok = svc_reg(transp, RQUOTAPROG, RQUOTAVERS,
-		    rquota_service_1, NULL);
+		ok = svc_reg(transp, RQUOTAPROG, RQUOTAVERS, rquota_service_1,
+		    NULL);
 		if (ok) {
 			vers = EXT_RQUOTAVERS;
 			ok = svc_reg(transp, RQUOTAPROG, EXT_RQUOTAVERS,
-				     rquota_service_2, NULL);
+			    rquota_service_2, NULL);
 		}
 	} else {
 		vers = RQUOTAVERS;
-		ok = svc_create(rquota_service_1,
-		    RQUOTAPROG, RQUOTAVERS, "udp");
+		ok = svc_create(rquota_service_1, RQUOTAPROG, RQUOTAVERS,
+		    "udp");
 		if (ok) {
 			vers = EXT_RQUOTAVERS;
-			ok = svc_create(rquota_service_2,
-					RQUOTAPROG, EXT_RQUOTAVERS, "udp");
-
+			ok = svc_create(rquota_service_2, RQUOTAPROG,
+			    EXT_RQUOTAVERS, "udp");
 		}
 	}
 	if (!ok) {
-		syslog(LOG_ERR,
-		    "unable to register (RQUOTAPROG, %s, %s)",
-		       vers == RQUOTAVERS ? "RQUOTAVERS" : "EXT_RQUOTAVERS",
-		       from_inetd ? "(inetd)" : "udp");
+		syslog(LOG_ERR, "unable to register (RQUOTAPROG, %s, %s)",
+		    vers == RQUOTAVERS ? "RQUOTAVERS" : "EXT_RQUOTAVERS",
+		    from_inetd ? "(inetd)" : "udp");
 		exit(1);
 	}
 
@@ -180,7 +177,8 @@ sendquota(struct svc_req *request, SVCXPRT *transp)
 	if (request->rq_cred.oa_flavor != AUTH_UNIX) {
 		/* bad auth */
 		getq_rslt.status = Q_EPERM;
-	} else if (!getfsquota(USRQUOTA, getq_args.gqa_uid, getq_args.gqa_pathp, &dqblk)) {
+	} else if (!getfsquota(USRQUOTA, getq_args.gqa_uid, getq_args.gqa_pathp,
+		       &dqblk)) {
 		/* failed, return noquota */
 		getq_rslt.status = Q_NOQUOTA;
 	} else {
@@ -188,8 +186,8 @@ sendquota(struct svc_req *request, SVCXPRT *transp)
 		getq_rslt.status = Q_OK;
 		getq_rslt.getquota_rslt_u.gqr_rquota.rq_active = TRUE;
 		scale = 1 << flsll(dqblk.dqb_bhardlimit >> 32);
-		getq_rslt.getquota_rslt_u.gqr_rquota.rq_bsize =
-		    DEV_BSIZE * scale;
+		getq_rslt.getquota_rslt_u.gqr_rquota.rq_bsize = DEV_BSIZE *
+		    scale;
 		getq_rslt.getquota_rslt_u.gqr_rquota.rq_bhardlimit =
 		    dqblk.dqb_bhardlimit / scale;
 		getq_rslt.getquota_rslt_u.gqr_rquota.rq_bsoftlimit =
@@ -225,14 +223,16 @@ sendquota_extended(struct svc_req *request, SVCXPRT *transp)
 	int scale;
 
 	bzero(&getq_args, sizeof(getq_args));
-	if (!svc_getargs(transp, (xdrproc_t)xdr_ext_getquota_args, &getq_args)) {
+	if (!svc_getargs(transp, (xdrproc_t)xdr_ext_getquota_args,
+		&getq_args)) {
 		svcerr_decode(transp);
 		return;
 	}
 	if (request->rq_cred.oa_flavor != AUTH_UNIX) {
 		/* bad auth */
 		getq_rslt.status = Q_EPERM;
-	} else if (!getfsquota(getq_args.gqa_type, getq_args.gqa_id, getq_args.gqa_pathp, &dqblk)) {
+	} else if (!getfsquota(getq_args.gqa_type, getq_args.gqa_id,
+		       getq_args.gqa_pathp, &dqblk)) {
 		/* failed, return noquota */
 		getq_rslt.status = Q_NOQUOTA;
 	} else {
@@ -240,8 +240,8 @@ sendquota_extended(struct svc_req *request, SVCXPRT *transp)
 		getq_rslt.status = Q_OK;
 		getq_rslt.getquota_rslt_u.gqr_rquota.rq_active = TRUE;
 		scale = 1 << flsll(dqblk.dqb_bhardlimit >> 32);
-		getq_rslt.getquota_rslt_u.gqr_rquota.rq_bsize =
-		    DEV_BSIZE * scale;
+		getq_rslt.getquota_rslt_u.gqr_rquota.rq_bsize = DEV_BSIZE *
+		    scale;
 		getq_rslt.getquota_rslt_u.gqr_rquota.rq_bhardlimit =
 		    dqblk.dqb_bhardlimit / scale;
 		getq_rslt.getquota_rslt_u.gqr_rquota.rq_bsoftlimit =
@@ -293,22 +293,21 @@ getfsquota(int type, long id, char *path, struct dqblk *dqblk)
 	fst.fs_file = path;
 	fst.fs_mntops = blank;
 	fst.fs_vfstype = blank;
-	
+
 	if (type != USRQUOTA && type != GRPQUOTA)
 		return (0);
-	
+
 	qf = quota_open(&fst, type, O_RDONLY);
 	if (debug)
-		warnx("quota_open(<%s, %s>, %d) returned %p",
-		      fst.fs_file, fst.fs_mntops, type,
-		      qf);
+		warnx("quota_open(<%s, %s>, %d) returned %p", fst.fs_file,
+		    fst.fs_mntops, type, qf);
 	if (qf == NULL)
 		return (0);
 
 	rv = quota_read(qf, dqblk, id) == 0;
 	quota_close(qf);
 	if (debug)
-		warnx("getfsquota(%d, %ld, %s, %p) -> %d",
-		      type, id, path, dqblk, rv);
+		warnx("getfsquota(%d, %ld, %s, %p) -> %d", type, id, path,
+		    dqblk, rv);
 	return (rv);
 }

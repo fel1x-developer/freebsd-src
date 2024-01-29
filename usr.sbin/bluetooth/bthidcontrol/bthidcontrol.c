@@ -31,6 +31,7 @@
  */
 
 #include <sys/queue.h>
+
 #include <assert.h>
 #define L2CAP_SOCKET_CHECKED
 #include <bluetooth.h>
@@ -41,15 +42,18 @@
 #include <string.h>
 #include <unistd.h>
 #include <usbhid.h>
+
 #include "bthid_config.h"
 #include "bthidcontrol.h"
 
 static int do_bthid_command(bdaddr_p bdaddr, int argc, char **argv);
-static struct bthid_command * find_bthid_command(char const *command, struct bthid_command *category);
+static struct bthid_command *find_bthid_command(char const *command,
+    struct bthid_command *category);
 static void print_bthid_command(struct bthid_command *category);
 static void usage(void) __dead2;
 
-int32_t hid_sdp_query(bdaddr_t const *local, bdaddr_t const *remote, int32_t *error);
+int32_t hid_sdp_query(bdaddr_t const *local, bdaddr_t const *remote,
+    int32_t *error);
 
 uint32_t verbose = 0;
 
@@ -60,8 +64,8 @@ uint32_t verbose = 0;
 int
 main(int argc, char *argv[])
 {
-	bdaddr_t	bdaddr;
-	int		opt;
+	bdaddr_t bdaddr;
+	int opt;
 
 	hid_init(NULL);
 	memcpy(&bdaddr, NG_HCI_BDADDR_ANY, sizeof(bdaddr));
@@ -70,10 +74,11 @@ main(int argc, char *argv[])
 		switch (opt) {
 		case 'a': /* bdaddr */
 			if (!bt_aton(optarg, &bdaddr)) {
-				struct hostent  *he = NULL;
+				struct hostent *he = NULL;
 
 				if ((he = bt_gethostbyname(optarg)) == NULL)
-					errx(1, "%s: %s", optarg, hstrerror(h_errno));
+					errx(1, "%s: %s", optarg,
+					    hstrerror(h_errno));
 
 				memcpy(&bdaddr, he->h_addr, sizeof(bdaddr));
 			}
@@ -111,21 +116,22 @@ main(int argc, char *argv[])
 static int
 do_bthid_command(bdaddr_p bdaddr, int argc, char **argv)
 {
-	char			*cmd = argv[0];
-	struct bthid_command	*c = NULL;
-	int			 e, help;
+	char *cmd = argv[0];
+	struct bthid_command *c = NULL;
+	int e, help;
 
 	help = 0;
 	if (strcasecmp(cmd, "help") == 0) {
-		argc --;
-		argv ++;
+		argc--;
+		argv++;
 
 		if (argc <= 0) {
 			fprintf(stdout, "Supported commands:\n");
 			print_bthid_command(sdp_commands);
 			print_bthid_command(hid_commands);
-			fprintf(stdout, "\nFor more information use " \
-					"'help command'\n");
+			fprintf(stdout,
+			    "\nFor more information use "
+			    "'help command'\n");
 
 			return (OK);
 		}
@@ -134,9 +140,9 @@ do_bthid_command(bdaddr_p bdaddr, int argc, char **argv)
 		cmd = argv[0];
 	}
 
-	c = find_bthid_command(cmd, sdp_commands); 
+	c = find_bthid_command(cmd, sdp_commands);
 	if (c == NULL)
-		c = find_bthid_command(cmd, hid_commands); 
+		c = find_bthid_command(cmd, hid_commands);
 
 	if (c == NULL) {
 		fprintf(stdout, "Unknown command: \"%s\"\n", cmd);
@@ -144,7 +150,7 @@ do_bthid_command(bdaddr_p bdaddr, int argc, char **argv)
 	}
 
 	if (!help)
-		e = (c->handler)(bdaddr, -- argc, ++ argv);
+		e = (c->handler)(bdaddr, --argc, ++argv);
 	else
 		e = USAGE;
 
@@ -154,15 +160,17 @@ do_bthid_command(bdaddr_p bdaddr, int argc, char **argv)
 		break;
 
 	case ERROR:
-		fprintf(stdout, "Could not execute command \"%s\". %s\n",
-				cmd, strerror(errno));
+		fprintf(stdout, "Could not execute command \"%s\". %s\n", cmd,
+		    strerror(errno));
 		break;
 
 	case USAGE:
 		fprintf(stdout, "Usage: %s\n%s\n", c->command, c->description);
 		break;
 
-	default: assert(0); break;
+	default:
+		assert(0);
+		break;
 	}
 
 	return (e);
@@ -171,21 +179,21 @@ do_bthid_command(bdaddr_p bdaddr, int argc, char **argv)
 /* Try to find command in specified category */
 static struct bthid_command *
 find_bthid_command(char const *command, struct bthid_command *category)
-{ 
-	struct bthid_command	*c = NULL;
-  
+{
+	struct bthid_command *c = NULL;
+
 	for (c = category; c->command != NULL; c++) {
-		char	*c_end = strchr(c->command, ' ');
-  
+		char *c_end = strchr(c->command, ' ');
+
 		if (c_end != NULL) {
-			int	len = c_end - c->command;
- 
+			int len = c_end - c->command;
+
 			if (strncasecmp(command, c->command, len) == 0)
 				return (c);
 		} else if (strcasecmp(command, c->command) == 0)
-				return (c);
+			return (c);
 	}
-  
+
 	return (NULL);
 } /* find_bthid_command */
 
@@ -193,25 +201,24 @@ find_bthid_command(char const *command, struct bthid_command *category)
 static void
 print_bthid_command(struct bthid_command *category)
 {
-	struct bthid_command	*c = NULL;
- 
+	struct bthid_command *c = NULL;
+
 	for (c = category; c->command != NULL; c++)
 		fprintf(stdout, "\t%s\n", c->command);
 } /* print_bthid_command */
 
-/* Usage */ 
+/* Usage */
 static void
 usage(void)
 {
 	fprintf(stderr,
-"Usage: bthidcontrol options command\n" \
-"Where options are:\n"
-"	-a bdaddr	specify bdaddr\n" \
-"	-c file		specify path to the bthidd config file\n" \
-"	-H file		specify path to the bthidd HIDs file\n" \
-"	-h		display usage and quit\n" \
-"	-v		be verbose\n" \
-"	command		one of the supported commands\n");
+	    "Usage: bthidcontrol options command\n"
+	    "Where options are:\n"
+	    "	-a bdaddr	specify bdaddr\n"
+	    "	-c file		specify path to the bthidd config file\n"
+	    "	-H file		specify path to the bthidd HIDs file\n"
+	    "	-h		display usage and quit\n"
+	    "	-v		be verbose\n"
+	    "	command		one of the supported commands\n");
 	exit(255);
 } /* usage */
-

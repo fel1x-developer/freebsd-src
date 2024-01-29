@@ -47,9 +47,8 @@
 #include "opt_isa.h"
 
 #include <sys/param.h>
-#include <sys/bus.h>
 #include <sys/systm.h>
-#include <sys/proc.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/ktr.h>
 #include <sys/lock.h>
@@ -64,31 +63,30 @@
 #include <sys/sysent.h>
 #include <sys/uio.h>
 #include <sys/vmmeter.h>
-#include <security/audit/audit.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
 #include <vm/pmap.h>
+#include <vm/vm_extern.h>
 #include <vm/vm_kern.h>
 #include <vm/vm_map.h>
 #include <vm/vm_page.h>
-#include <vm/vm_extern.h>
+#include <vm/vm_param.h>
 
 #include <machine/cpu.h>
+#include <machine/cpufunc.h>
+#include <machine/frame.h>
 #include <machine/intr_machdep.h>
 #include <machine/md_var.h>
-
-#include <compat/freebsd32/freebsd32_signal.h>
-#include <compat/freebsd32/freebsd32_util.h>
-#include <compat/ia32/ia32_signal.h>
+#include <machine/pcb.h>
 #include <machine/psl.h>
 #include <machine/segments.h>
 #include <machine/specialreg.h>
 #include <machine/sysarch.h>
-#include <machine/frame.h>
-#include <machine/md_var.h>
-#include <machine/pcb.h>
-#include <machine/cpufunc.h>
+
+#include <compat/freebsd32/freebsd32_signal.h>
+#include <compat/freebsd32/freebsd32_util.h>
+#include <compat/ia32/ia32_signal.h>
+#include <security/audit/audit.h>
 
 #include "vdso_ia32_offsets.h"
 
@@ -96,12 +94,12 @@ extern const char _binary_elf_vdso32_so_1_start[];
 extern const char _binary_elf_vdso32_so_1_end[];
 extern char _binary_elf_vdso32_so_1_size;
 
-#define	IDTVEC(name)	__CONCAT(X,name)
+#define IDTVEC(name) __CONCAT(X, name)
 
 extern inthand_t IDTVEC(int0x80_syscall), IDTVEC(int0x80_syscall_pti),
     IDTVEC(rsvd), IDTVEC(rsvd_pti);
 
-void ia32_syscall(struct trapframe *frame);	/* Called from asm code */
+void ia32_syscall(struct trapframe *frame); /* Called from asm code */
 
 void
 ia32_set_syscall_retval(struct thread *td, int error)
@@ -149,7 +147,7 @@ ia32_fetch_syscall_args(struct thread *td)
 		frame->tf_rip = eip;
 		frame->tf_cs = cs;
 		frame->tf_rsp += 2 * sizeof(u_int32_t);
-		frame->tf_err = 7;		/* size of lcall $7,$0 */
+		frame->tf_err = 7; /* size of lcall $7,$0 */
 	}
 #endif
 
@@ -182,10 +180,10 @@ ia32_fetch_syscall_args(struct thread *td)
 		sa->code = tmp;
 		params += sizeof(quad_t);
 	}
- 	if (sa->code >= p->p_sysent->sv_size)
+	if (sa->code >= p->p_sysent->sv_size)
 		sa->callp = &nosys_sysent;
-  	else
- 		sa->callp = &p->p_sysent->sv_table[sa->code];
+	else
+		sa->callp = &p->p_sysent->sv_table[sa->code];
 
 	if (params != NULL && sa->callp->sy_narg != 0)
 		error = copyin(params, (caddr_t)args,
@@ -241,16 +239,17 @@ static void
 ia32_syscall_enable(void *dummy)
 {
 
- 	setidt(IDT_SYSCALL, pti ? &IDTVEC(int0x80_syscall_pti) :
-	    &IDTVEC(int0x80_syscall), SDT_SYSIGT, SEL_UPL, 0);
+	setidt(IDT_SYSCALL,
+	    pti ? &IDTVEC(int0x80_syscall_pti) : &IDTVEC(int0x80_syscall),
+	    SDT_SYSIGT, SEL_UPL, 0);
 }
 
 static void
 ia32_syscall_disable(void *dummy)
 {
 
- 	setidt(IDT_SYSCALL, pti ? &IDTVEC(rsvd_pti) : &IDTVEC(rsvd),
-	    SDT_SYSIGT, SEL_KPL, 0);
+	setidt(IDT_SYSCALL, pti ? &IDTVEC(rsvd_pti) : &IDTVEC(rsvd), SDT_SYSIGT,
+	    SEL_KPL, 0);
 }
 
 SYSINIT(ia32_syscall, SI_SUB_EXEC, SI_ORDER_ANY, ia32_syscall_enable, NULL);

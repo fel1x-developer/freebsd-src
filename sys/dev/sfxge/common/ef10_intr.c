@@ -29,50 +29,44 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "efx.h"
 #include "efx_impl.h"
 
 #if EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2
 
-	__checkReturn	efx_rc_t
-ef10_intr_init(
-	__in		efx_nic_t *enp,
-	__in		efx_intr_type_t type,
-	__in		efsys_mem_t *esmp)
+__checkReturn efx_rc_t
+ef10_intr_init(__in efx_nic_t *enp, __in efx_intr_type_t type,
+    __in efsys_mem_t *esmp)
 {
 	_NOTE(ARGUNUSED(enp, type, esmp))
 	return (0);
 }
 
-			void
-ef10_intr_enable(
-	__in		efx_nic_t *enp)
+void
+ef10_intr_enable(__in efx_nic_t *enp)
 {
 	_NOTE(ARGUNUSED(enp))
 }
 
-			void
-ef10_intr_disable(
-	__in		efx_nic_t *enp)
+void
+ef10_intr_disable(__in efx_nic_t *enp)
 {
 	_NOTE(ARGUNUSED(enp))
 }
 
-			void
-ef10_intr_disable_unlocked(
-	__in		efx_nic_t *enp)
+void
+ef10_intr_disable_unlocked(__in efx_nic_t *enp)
 {
 	_NOTE(ARGUNUSED(enp))
 }
 
-static	__checkReturn	efx_rc_t
-efx_mcdi_trigger_interrupt(
-	__in		efx_nic_t *enp,
-	__in		unsigned int level)
+static __checkReturn efx_rc_t
+efx_mcdi_trigger_interrupt(__in efx_nic_t *enp, __in unsigned int level)
 {
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload, MC_CMD_TRIGGER_INTERRUPT_IN_LEN,
-		MC_CMD_TRIGGER_INTERRUPT_OUT_LEN);
+	    MC_CMD_TRIGGER_INTERRUPT_OUT_LEN);
 	efx_rc_t rc;
 
 	EFSYS_ASSERT(enp->en_family == EFX_FAMILY_HUNTINGTON ||
@@ -110,10 +104,8 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-ef10_intr_trigger(
-	__in		efx_nic_t *enp,
-	__in		unsigned int level)
+__checkReturn efx_rc_t
+ef10_intr_trigger(__in efx_nic_t *enp, __in unsigned int level)
 {
 	efx_nic_cfg_t *encp = &(enp->en_nic_cfg);
 	efx_rc_t rc;
@@ -140,11 +132,9 @@ fail1:
 	return (rc);
 }
 
-			void
-ef10_intr_status_line(
-	__in		efx_nic_t *enp,
-	__out		boolean_t *fatalp,
-	__out		uint32_t *qmaskp)
+void
+ef10_intr_status_line(__in efx_nic_t *enp, __out boolean_t *fatalp,
+    __out uint32_t *qmaskp)
 {
 	efx_dword_t dword;
 
@@ -161,11 +151,9 @@ ef10_intr_status_line(
 	*fatalp = B_FALSE;
 }
 
-			void
-ef10_intr_status_message(
-	__in		efx_nic_t *enp,
-	__in		unsigned int message,
-	__out		boolean_t *fatalp)
+void
+ef10_intr_status_message(__in efx_nic_t *enp, __in unsigned int message,
+    __out boolean_t *fatalp)
 {
 	EFSYS_ASSERT(enp->en_family == EFX_FAMILY_HUNTINGTON ||
 	    enp->en_family == EFX_FAMILY_MEDFORD ||
@@ -177,19 +165,17 @@ ef10_intr_status_message(
 	*fatalp = B_FALSE;
 }
 
-			void
-ef10_intr_fatal(
-	__in		efx_nic_t *enp)
+void
+ef10_intr_fatal(__in efx_nic_t *enp)
 {
 	/* EF10 fatal errors are reported via events */
 	_NOTE(ARGUNUSED(enp))
 }
 
-			void
-ef10_intr_fini(
-	__in		efx_nic_t *enp)
+void
+ef10_intr_fini(__in efx_nic_t *enp)
 {
 	_NOTE(ARGUNUSED(enp))
 }
 
-#endif	/* EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2 */
+#endif /* EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2 */

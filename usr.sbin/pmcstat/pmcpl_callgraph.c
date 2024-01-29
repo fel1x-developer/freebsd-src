@@ -61,24 +61,23 @@
 #include <netdb.h>
 #include <pmc.h>
 #include <pmclog.h>
-#include <sysexits.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sysexits.h>
 #include <unistd.h>
 
+#include "pmcpl_callgraph.h"
 #include "pmcstat.h"
 #include "pmcstat_log.h"
 #include "pmcstat_top.h"
-#include "pmcpl_callgraph.h"
 
-#define	min(A,B)		((A) < (B) ? (A) : (B))
-#define	max(A,B)		((A) > (B) ? (A) : (B))
+#define min(A, B) ((A) < (B) ? (A) : (B))
+#define max(A, B) ((A) > (B) ? (A) : (B))
 
 /* Get the sample value in percent related to nsamples. */
-#define PMCPL_CG_COUNTP(a) \
-	((a)->pcg_count * 100.0 / nsamples)
+#define PMCPL_CG_COUNTP(a) ((a)->pcg_count * 100.0 / nsamples)
 
 /*
  * The toplevel CG nodes (i.e., with rank == 0) are placed in a hash table.
@@ -115,7 +114,7 @@ pmcstat_cgnode_free(struct pmcstat_cgnode *cg)
 {
 	struct pmcstat_cgnode *cgc, *cgtmp;
 
-	LIST_FOREACH_SAFE(cgc, &cg->pcg_children, pcg_sibling, cgtmp)
+	LIST_FOREACH_SAFE (cgc, &cg->pcg_children, pcg_sibling, cgtmp)
 		pmcstat_cgnode_free(cgc);
 	free(cg);
 }
@@ -144,7 +143,7 @@ pmcstat_cgnode_hash_lookup_pc(struct pmcstat_process *pp, pmc_id_t pmcid,
 	image = ppm->ppm_image;
 
 	loadaddress = ppm->ppm_lowpc + image->pi_vaddr - image->pi_start;
-	pc -= loadaddress;	/* Convert to an offset in the image. */
+	pc -= loadaddress; /* Convert to an offset in the image. */
 
 	/*
 	 * Try determine the function at this offset.  If we can't
@@ -163,8 +162,7 @@ pmcstat_cgnode_hash_lookup_pc(struct pmcstat_process *pp, pmc_id_t pmcid,
 	hash &= PMCSTAT_HASH_MASK;
 
 	cg = NULL;
-	LIST_FOREACH(h, &pmcstat_cgnode_hash[hash], pch_next)
-	{
+	LIST_FOREACH (h, &pmcstat_cgnode_hash[hash], pch_next) {
 		if (h->pch_pmcid != pmcid)
 			continue;
 
@@ -201,9 +199,9 @@ pmcstat_cgnode_compare(const void *a, const void *b)
 {
 	const struct pmcstat_cgnode *const *pcg1, *const *pcg2, *cg1, *cg2;
 
-	pcg1 = (const struct pmcstat_cgnode *const *) a;
+	pcg1 = (const struct pmcstat_cgnode *const *)a;
 	cg1 = *pcg1;
-	pcg2 = (const struct pmcstat_cgnode *const *) b;
+	pcg2 = (const struct pmcstat_cgnode *const *)b;
 	cg2 = *pcg2;
 
 	/* Sort in reverse order */
@@ -225,9 +223,8 @@ pmcstat_cgnode_find(struct pmcstat_cgnode *parent, struct pmcstat_image *image,
 {
 	struct pmcstat_cgnode *child;
 
-	LIST_FOREACH(child, &parent->pcg_children, pcg_sibling) {
-		if (child->pcg_image == image &&
-		    child->pcg_func == pcoffset)
+	LIST_FOREACH (child, &parent->pcg_children, pcg_sibling) {
+		if (child->pcg_image == image && child->pcg_func == pcoffset)
 			return (child);
 	}
 
@@ -262,59 +259,56 @@ pmcstat_cgnode_print(struct pmcstat_cgnode *cg, int depth, uint32_t total)
 	space = " ";
 
 	if (depth > 0)
-		(void) fprintf(args.pa_graphfile, "%*s", depth, space);
+		(void)fprintf(args.pa_graphfile, "%*s", depth, space);
 
 	if (cg->pcg_count == total)
-		(void) fprintf(args.pa_graphfile, "100.0%% ");
+		(void)fprintf(args.pa_graphfile, "100.0%% ");
 	else
-		(void) fprintf(args.pa_graphfile, "%05.2f%% ",
+		(void)fprintf(args.pa_graphfile, "%05.2f%% ",
 		    100.0 * cg->pcg_count / total);
 
 	n = fprintf(args.pa_graphfile, " [%u] ", cg->pcg_count);
 
 	/* #samples is a 12 character wide field. */
 	if (n < 12)
-		(void) fprintf(args.pa_graphfile, "%*s", 12 - n, space);
+		(void)fprintf(args.pa_graphfile, "%*s", 12 - n, space);
 
 	if (depth > 0)
-		(void) fprintf(args.pa_graphfile, "%*s", depth, space);
+		(void)fprintf(args.pa_graphfile, "%*s", depth, space);
 
 	sym = pmcstat_symbol_search(cg->pcg_image, cg->pcg_func);
 	if (sym)
-		(void) fprintf(args.pa_graphfile, "%s",
+		(void)fprintf(args.pa_graphfile, "%s",
 		    pmcstat_string_unintern(sym->ps_name));
 	else
-		(void) fprintf(args.pa_graphfile, "%p",
-		    (void *) (cg->pcg_image->pi_vaddr + cg->pcg_func));
+		(void)fprintf(args.pa_graphfile, "%p",
+		    (void *)(cg->pcg_image->pi_vaddr + cg->pcg_func));
 
-	if (pmcstat_previous_filename_printed !=
-	    cg->pcg_image->pi_fullpath) {
+	if (pmcstat_previous_filename_printed != cg->pcg_image->pi_fullpath) {
 		pmcstat_previous_filename_printed = cg->pcg_image->pi_fullpath;
-		(void) fprintf(args.pa_graphfile, " @ %s\n",
-		    pmcstat_string_unintern(
-		    pmcstat_previous_filename_printed));
+		(void)fprintf(args.pa_graphfile, " @ %s\n",
+		    pmcstat_string_unintern(pmcstat_previous_filename_printed));
 	} else
-		(void) fprintf(args.pa_graphfile, "\n");
+		(void)fprintf(args.pa_graphfile, "\n");
 
 	if (cg->pcg_nchildren == 0)
 		return;
 
-	if ((sortbuffer = (struct pmcstat_cgnode **)
-		malloc(sizeof(struct pmcstat_cgnode *) *
-		    cg->pcg_nchildren)) == NULL)
+	if ((sortbuffer = (struct pmcstat_cgnode **)malloc(
+		 sizeof(struct pmcstat_cgnode *) * cg->pcg_nchildren)) == NULL)
 		err(EX_OSERR, "ERROR: Cannot print callgraph");
 	cgn = sortbuffer;
 
-	LIST_FOREACH(pcg, &cg->pcg_children, pcg_sibling)
-	    *cgn++ = pcg;
+	LIST_FOREACH (pcg, &cg->pcg_children, pcg_sibling)
+		*cgn++ = pcg;
 
-	assert(cgn - sortbuffer == (int) cg->pcg_nchildren);
+	assert(cgn - sortbuffer == (int)cg->pcg_nchildren);
 
 	qsort(sortbuffer, cg->pcg_nchildren, sizeof(struct pmcstat_cgnode *),
 	    pmcstat_cgnode_compare);
 
 	for (cgn = sortbuffer, n = 0; n < cg->pcg_nchildren; n++, cgn++)
-		pmcstat_cgnode_print(*cgn, depth+1, cg->pcg_count);
+		pmcstat_cgnode_print(*cgn, depth + 1, cg->pcg_count);
 
 	free(sortbuffer);
 }
@@ -336,7 +330,7 @@ pmcpl_cg_process(struct pmcstat_process *pp, struct pmcstat_pmcrecord *pmcr,
 	struct pmcstat_process *km;
 	pmc_id_t pmcid;
 
-	(void) cpu;
+	(void)cpu;
 
 	/*
 	 * Find the callgraph node recorded in the global hash table
@@ -370,8 +364,8 @@ pmcpl_cg_process(struct pmcstat_process *pp, struct pmcstat_pmcrecord *pmcr,
 	 */
 	km = pmcstat_kernproc;
 
-	for (n = 1; n < (uint32_t) args.pa_graphdepth && n < nsamples; n++,
-	    parent = child) {
+	for (n = 1; n < (uint32_t)args.pa_graphdepth && n < nsamples;
+	     n++, parent = child) {
 		pc = cc[n];
 
 		ppm = pmcstat_process_find_map(usermode ? pp : km, pc);
@@ -420,18 +414,18 @@ pmcstat_callgraph_print_for_pmcid(struct pmcstat_pmcrecord *pmcr)
 
 	nsamples = 0;
 	pmcid = pmcr->pr_pmcid;
-	if ((sortbuffer = (struct pmcstat_cgnode **)
-	    malloc(sizeof(struct pmcstat_cgnode *) *
-	    pmcstat_cgnode_hash_count)) == NULL)
+	if ((sortbuffer = (struct pmcstat_cgnode **)malloc(
+		 sizeof(struct pmcstat_cgnode *) *
+		 pmcstat_cgnode_hash_count)) == NULL)
 		err(EX_OSERR, "ERROR: Cannot sort callgraph");
 	cgn = sortbuffer;
 
 	for (n = 0; n < PMCSTAT_NHASH; n++)
-		LIST_FOREACH(pch, &pmcstat_cgnode_hash[n], pch_next)
-		    if (pch->pch_pmcid == pmcid) {
-			    nsamples += pch->pch_cgnode->pcg_count;
-			    *cgn++ = pch->pch_cgnode;
-		    }
+		LIST_FOREACH (pch, &pmcstat_cgnode_hash[n], pch_next)
+			if (pch->pch_pmcid == pmcid) {
+				nsamples += pch->pch_cgnode->pcg_count;
+				*cgn++ = pch->pch_cgnode;
+			}
 
 	nentries = cgn - sortbuffer;
 	assert(nentries <= pmcstat_cgnode_hash_count);
@@ -444,15 +438,13 @@ pmcstat_callgraph_print_for_pmcid(struct pmcstat_pmcrecord *pmcr)
 	qsort(sortbuffer, nentries, sizeof(struct pmcstat_cgnode *),
 	    pmcstat_cgnode_compare);
 
-	(void) fprintf(args.pa_graphfile,
-	    "@ %s [%u samples]\n\n",
-	    pmcstat_string_unintern(pmcr->pr_pmcname),
-	    nsamples);
+	(void)fprintf(args.pa_graphfile, "@ %s [%u samples]\n\n",
+	    pmcstat_string_unintern(pmcr->pr_pmcname), nsamples);
 
 	for (cgn = sortbuffer, n = 0; n < nentries; n++, cgn++) {
 		pmcstat_previous_filename_printed = NULL;
 		pmcstat_cgnode_print(*cgn, 0, nsamples);
-		(void) fprintf(args.pa_graphfile, "\n");
+		(void)fprintf(args.pa_graphfile, "\n");
 	}
 
 	free(sortbuffer);
@@ -467,13 +459,13 @@ pmcstat_callgraph_print(void)
 {
 	struct pmcstat_pmcrecord *pmcr;
 
-	LIST_FOREACH(pmcr, &pmcstat_pmcs, pr_next)
-	    pmcstat_callgraph_print_for_pmcid(pmcr);
+	LIST_FOREACH (pmcr, &pmcstat_pmcs, pr_next)
+		pmcstat_callgraph_print_for_pmcid(pmcr);
 }
 
 static void
-pmcstat_cgnode_topprint(struct pmcstat_cgnode *cg,
-    int depth __unused, uint32_t nsamples)
+pmcstat_cgnode_topprint(struct pmcstat_cgnode *cg, int depth __unused,
+    uint32_t nsamples)
 {
 	int v_attrs, vs_len, ns_len, width, len, n, nchildren;
 	float v;
@@ -492,7 +484,8 @@ pmcstat_cgnode_topprint(struct pmcstat_cgnode *cg,
 		snprintf(ns, sizeof(ns), "%p",
 		    (void *)(cg->pcg_image->pi_vaddr + cg->pcg_func));
 	} else {
-		switch (args.pa_flags & (FLAG_SKIP_TOP_FN_RES | FLAG_SHOW_OFFSET)) {
+		switch (
+		    args.pa_flags & (FLAG_SKIP_TOP_FN_RES | FLAG_SHOW_OFFSET)) {
 		case FLAG_SKIP_TOP_FN_RES | FLAG_SHOW_OFFSET:
 		case FLAG_SKIP_TOP_FN_RES:
 			snprintf(ns, sizeof(ns), "%p",
@@ -514,8 +507,7 @@ pmcstat_cgnode_topprint(struct pmcstat_cgnode *cg,
 	PMCSTAT_PRINTW("%5.5s", vs);
 	PMCSTAT_ATTROFF(v_attrs);
 	PMCSTAT_PRINTW(" %-10.10s %-30.30s",
-	    pmcstat_string_unintern(cg->pcg_image->pi_name),
-	    ns);
+	    pmcstat_string_unintern(cg->pcg_image->pi_name), ns);
 
 	nchildren = cg->pcg_nchildren;
 	if (nchildren == 0) {
@@ -525,14 +517,13 @@ pmcstat_cgnode_topprint(struct pmcstat_cgnode *cg,
 
 	width = pmcstat_displaywidth - 40;
 
-	if ((sortbuffer = (struct pmcstat_cgnode **)
-		malloc(sizeof(struct pmcstat_cgnode *) *
-		    nchildren)) == NULL)
+	if ((sortbuffer = (struct pmcstat_cgnode **)malloc(
+		 sizeof(struct pmcstat_cgnode *) * nchildren)) == NULL)
 		err(EX_OSERR, "ERROR: Cannot print callgraph");
 	cgn = sortbuffer;
 
-	LIST_FOREACH(pcg, &cg->pcg_children, pcg_sibling)
-	    *cgn++ = pcg;
+	LIST_FOREACH (pcg, &cg->pcg_children, pcg_sibling)
+		*cgn++ = pcg;
 
 	assert(cgn - sortbuffer == (int)nchildren);
 
@@ -613,18 +604,18 @@ pmcpl_cg_topdisplay(void)
 
 	nsamples = 0;
 
-	if ((sortbuffer = (struct pmcstat_cgnode **)
-	    malloc(sizeof(struct pmcstat_cgnode *) *
-	    pmcstat_cgnode_hash_count)) == NULL)
+	if ((sortbuffer = (struct pmcstat_cgnode **)malloc(
+		 sizeof(struct pmcstat_cgnode *) *
+		 pmcstat_cgnode_hash_count)) == NULL)
 		err(EX_OSERR, "ERROR: Cannot sort callgraph");
 	cgn = sortbuffer;
 
 	for (n = 0; n < PMCSTAT_NHASH; n++)
-		LIST_FOREACH(pch, &pmcstat_cgnode_hash[n], pch_next)
-		    if (pmcr == NULL || pch->pch_pmcid == pmcr->pr_pmcid) {
-			    nsamples += pch->pch_cgnode->pcg_count;
-			    *cgn++ = pch->pch_cgnode;
-		    }
+		LIST_FOREACH (pch, &pmcstat_cgnode_hash[n], pch_next)
+			if (pmcr == NULL || pch->pch_pmcid == pmcr->pr_pmcid) {
+				nsamples += pch->pch_cgnode->pcg_count;
+				*cgn++ = pch->pch_cgnode;
+			}
 
 	nentries = cgn - sortbuffer;
 	assert(nentries <= pmcstat_cgnode_hash_count);
@@ -637,8 +628,8 @@ pmcpl_cg_topdisplay(void)
 	qsort(sortbuffer, nentries, sizeof(struct pmcstat_cgnode *),
 	    pmcstat_cgnode_compare);
 
-	PMCSTAT_PRINTW("%5.5s %-10.10s %-30.30s %s\n",
-	    "%SAMP", "IMAGE", "FUNCTION", "CALLERS");
+	PMCSTAT_PRINTW("%5.5s %-10.10s %-30.30s %s\n", "%SAMP", "IMAGE",
+	    "FUNCTION", "CALLERS");
 
 	nentries = min(pmcstat_displayheight - 2, nentries);
 
@@ -662,7 +653,8 @@ pmcpl_cg_topkeypress(int c, void *arg)
 
 	w = (WINDOW *)arg;
 
-	(void) c; (void) w;
+	(void)c;
+	(void)w;
 
 	return 0;
 }
@@ -688,7 +680,7 @@ pmcpl_cg_shutdown(FILE *mf)
 	int i;
 	struct pmcstat_cgnode_hash *pch, *pchtmp;
 
-	(void) mf;
+	(void)mf;
 
 	if (args.pa_flags & FLAG_DO_CALLGRAPHS)
 		pmcstat_callgraph_print();
@@ -697,7 +689,7 @@ pmcpl_cg_shutdown(FILE *mf)
 	 * Free memory.
 	 */
 	for (i = 0; i < PMCSTAT_NHASH; i++) {
-		LIST_FOREACH_SAFE(pch, &pmcstat_cgnode_hash[i], pch_next,
+		LIST_FOREACH_SAFE (pch, &pmcstat_cgnode_hash[i], pch_next,
 		    pchtmp) {
 			pmcstat_cgnode_free(pch->pch_cgnode);
 			LIST_REMOVE(pch, pch_next);
@@ -705,4 +697,3 @@ pmcpl_cg_shutdown(FILE *mf)
 		}
 	}
 }
-

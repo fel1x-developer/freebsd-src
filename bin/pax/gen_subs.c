@@ -34,14 +34,16 @@
  */
 
 #include <sys/types.h>
-#include <sys/time.h>
 #include <sys/stat.h>
+#include <sys/time.h>
+
 #include <langinfo.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include "pax.h"
+
 #include "extern.h"
+#include "pax.h"
 
 /*
  * a collection of general purpose subroutines used by pax
@@ -52,11 +54,11 @@
  */
 #define MODELEN 20
 #define DATELEN 64
-#define SIXMONTHS	 ((365 / 2) * 86400)
-#define CURFRMTM	"%b %e %H:%M"
-#define OLDFRMTM	"%b %e  %Y"
-#define CURFRMTD	"%e %b %H:%M"
-#define OLDFRMTD	"%e %b  %Y"
+#define SIXMONTHS ((365 / 2) * 86400)
+#define CURFRMTM "%b %e %H:%M"
+#define OLDFRMTM "%b %e  %Y"
+#define CURFRMTD "%e %b %H:%M"
+#define OLDFRMTD "%e %b  %Y"
 
 static int d_first = -1;
 
@@ -101,17 +103,19 @@ ls_list(ARCHD *arcn, time_t now, FILE *fp)
 	/*
 	 * print file mode, link count, uid, gid and time
 	 */
-	if (strftime(f_date,DATELEN,timefrmt,localtime(&(sbp->st_mtime))) == 0)
+	if (strftime(f_date, DATELEN, timefrmt, localtime(&(sbp->st_mtime))) ==
+	    0)
 		f_date[0] = '\0';
 	(void)fprintf(fp, "%s%2ju %-12s %-12s ", f_mode,
-		(uintmax_t)sbp->st_nlink,
-		name_uid(sbp->st_uid, 1), name_gid(sbp->st_gid, 1));
+	    (uintmax_t)sbp->st_nlink, name_uid(sbp->st_uid, 1),
+	    name_gid(sbp->st_gid, 1));
 
 	/*
 	 * print device id's for devices, or sizes for other nodes
 	 */
 	if ((arcn->type == PAX_CHR) || (arcn->type == PAX_BLK))
-		(void)fprintf(fp, "%4lu,%4lu ", (unsigned long)MAJOR(sbp->st_rdev),
+		(void)fprintf(fp, "%4lu,%4lu ",
+		    (unsigned long)MAJOR(sbp->st_rdev),
 		    (unsigned long)MINOR(sbp->st_rdev));
 	else {
 		(void)fprintf(fp, "%9ju ", (uintmax_t)sbp->st_size);
@@ -155,7 +159,7 @@ ls_tty(ARCHD *arcn)
 	 * convert time to string, and print
 	 */
 	if (strftime(f_date, DATELEN, timefrmt,
-	    localtime(&(arcn->sb.st_mtime))) == 0)
+		localtime(&(arcn->sb.st_mtime))) == 0)
 		f_date[0] = '\0';
 	strmode(arcn->sb.st_mode, f_mode);
 	tty_prnt("%s%s %s\n", f_mode, f_date, arcn->name);
@@ -165,7 +169,7 @@ ls_tty(ARCHD *arcn)
 /*
  * l_strncpy()
  *	copy src to dest up to len chars (stopping at first '\0').
- *	when src is shorter than len, pads to len with '\0'. 
+ *	when src is shorter than len, pads to len with '\0'.
  * Return:
  *	number of chars copied. (Note this is a real performance win over
  *	doing a strncpy(), a strlen(), and then a possible memset())
@@ -184,7 +188,7 @@ l_strncpy(char *dest, const char *src, int len)
 	len = dest - start;
 	while (dest < stop)
 		*dest++ = '\0';
-	return(len);
+	return (len);
 }
 
 /*
@@ -227,10 +231,10 @@ asc_ul(char *str, int len, int base)
 				break;
 		}
 	} else {
- 		while ((str < stop) && (*str >= '0') && (*str <= '7'))
+		while ((str < stop) && (*str >= '0') && (*str <= '7'))
 			tval = (tval << 3) + (*str++ - '0');
 	}
-	return(tval);
+	return (tval);
 }
 
 /*
@@ -279,8 +283,8 @@ ul_asc(u_long val, char *str, int len, int base)
 	while (pt >= str)
 		*pt-- = '0';
 	if (val != (u_long)0)
-		return(-1);
-	return(0);
+		return (-1);
+	return (0);
 }
 
 /*
@@ -323,10 +327,10 @@ asc_uqd(char *str, int len, int base)
 				break;
 		}
 	} else {
- 		while ((str < stop) && (*str >= '0') && (*str <= '7'))
+		while ((str < stop) && (*str >= '0') && (*str <= '7'))
 			tval = (tval << 3) + (*str++ - '0');
 	}
-	return(tval);
+	return (tval);
 }
 
 /*
@@ -375,6 +379,6 @@ uqd_asc(u_quad_t val, char *str, int len, int base)
 	while (pt >= str)
 		*pt-- = '0';
 	if (val != (u_quad_t)0)
-		return(-1);
-	return(0);
+		return (-1);
+	return (0);
 }

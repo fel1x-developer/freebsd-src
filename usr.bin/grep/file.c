@@ -31,10 +31,10 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 
 #include <err.h>
 #include <errno.h>
@@ -48,8 +48,8 @@
 
 #include "grep.h"
 
-#define	MAXBUFSIZ	(32 * 1024)
-#define	LNBUFBUMP	80
+#define MAXBUFSIZ (32 * 1024)
+#define LNBUFBUMP 80
 
 static char *buffer;
 static char *bufpos;
@@ -106,7 +106,7 @@ grep_fgetln(struct file *f, struct parsec *pc)
 
 	if (bufrem == 0) {
 		/* Return zero length to indicate EOF */
-		pc->ln.len= 0;
+		pc->ln.len = 0;
 		return (bufpos);
 	}
 
@@ -125,7 +125,7 @@ grep_fgetln(struct file *f, struct parsec *pc)
 	}
 
 	/* We have to copy the current buffered data to the line buffer */
-	for (len = bufrem, off = 0; ; len += bufrem) {
+	for (len = bufrem, off = 0;; len += bufrem) {
 		/* Make sure there is room for more data */
 		if (grep_lnbufgrow(len + LNBUFBUMP))
 			goto error;
@@ -149,7 +149,7 @@ grep_fgetln(struct file *f, struct parsec *pc)
 		diff = p - bufpos;
 		len += diff;
 		if (grep_lnbufgrow(len + 1))
-		    goto error;
+			goto error;
 		memcpy(lnbuf + off, bufpos, diff);
 		bufrem -= diff;
 		bufpos = p;
@@ -192,8 +192,8 @@ grep_open(const char *path)
 			flags |= MAP_PREFAULT_READ;
 #endif
 			fsiz = st.st_size;
-			buffer = mmap(NULL, fsiz, PROT_READ, flags,
-			     f->fd, (off_t)0);
+			buffer = mmap(NULL, fsiz, PROT_READ, flags, f->fd,
+			    (off_t)0);
 			if (buffer == MAP_FAILED)
 				filebehave = FILE_STDIO;
 			else {

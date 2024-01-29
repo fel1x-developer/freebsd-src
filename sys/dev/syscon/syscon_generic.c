@@ -47,9 +47,9 @@
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include "syscon_if.h"
 #include "syscon.h"
 #include "syscon_generic.h"
+#include "syscon_if.h"
 
 MALLOC_DECLARE(M_SYSCON);
 
@@ -63,28 +63,27 @@ static int syscon_generic_detach(device_t dev);
 /*
  * Generic syscon driver (FDT)
  */
-static struct ofw_compat_data compat_data[] = {
-	{"syscon",	1},
-	{NULL,		0}
-};
+static struct ofw_compat_data compat_data[] = { { "syscon", 1 }, { NULL, 0 } };
 
-#define SYSCON_LOCK(_sc)		mtx_lock_spin(&(_sc)->mtx)
-#define	SYSCON_UNLOCK(_sc)		mtx_unlock_spin(&(_sc)->mtx)
-#define SYSCON_LOCK_INIT(_sc)		mtx_init(&(_sc)->mtx,		\
-	    device_get_nameunit((_sc)->dev), "syscon", MTX_SPIN)
-#define SYSCON_LOCK_DESTROY(_sc)	mtx_destroy(&(_sc)->mtx);
-#define SYSCON_ASSERT_LOCKED(_sc)	mtx_assert(&(_sc)->mtx, MA_OWNED);
-#define SYSCON_ASSERT_UNLOCKED(_sc)	mtx_assert(&(_sc)->mtx, MA_NOTOWNED);
+#define SYSCON_LOCK(_sc) mtx_lock_spin(&(_sc)->mtx)
+#define SYSCON_UNLOCK(_sc) mtx_unlock_spin(&(_sc)->mtx)
+#define SYSCON_LOCK_INIT(_sc)                                            \
+	mtx_init(&(_sc)->mtx, device_get_nameunit((_sc)->dev), "syscon", \
+	    MTX_SPIN)
+#define SYSCON_LOCK_DESTROY(_sc) mtx_destroy(&(_sc)->mtx);
+#define SYSCON_ASSERT_LOCKED(_sc) mtx_assert(&(_sc)->mtx, MA_OWNED);
+#define SYSCON_ASSERT_UNLOCKED(_sc) mtx_assert(&(_sc)->mtx, MA_NOTOWNED);
 
 static syscon_method_t syscon_generic_methods[] = {
-	SYSCONMETHOD(syscon_unlocked_read_4,  syscon_generic_unlocked_read_4),
+	SYSCONMETHOD(syscon_unlocked_read_4, syscon_generic_unlocked_read_4),
 	SYSCONMETHOD(syscon_unlocked_write_4, syscon_generic_unlocked_write_4),
-	SYSCONMETHOD(syscon_unlocked_modify_4, syscon_generic_unlocked_modify_4),
+	SYSCONMETHOD(syscon_unlocked_modify_4,
+	    syscon_generic_unlocked_modify_4),
 
 	SYSCONMETHOD_END
 };
-DEFINE_CLASS_1(syscon_generic, syscon_generic_class, syscon_generic_methods,
-    0, syscon_class);
+DEFINE_CLASS_1(syscon_generic, syscon_generic_class, syscon_generic_methods, 0,
+    syscon_class);
 
 static uint32_t
 syscon_generic_unlocked_read_4(struct syscon *syscon, bus_size_t offset)
@@ -99,7 +98,8 @@ syscon_generic_unlocked_read_4(struct syscon *syscon, bus_size_t offset)
 }
 
 static int
-syscon_generic_unlocked_write_4(struct syscon *syscon, bus_size_t offset, uint32_t val)
+syscon_generic_unlocked_write_4(struct syscon *syscon, bus_size_t offset,
+    uint32_t val)
 {
 	struct syscon_generic_softc *sc;
 
@@ -178,7 +178,7 @@ syscon_generic_attach(device_t dev)
 
 	SYSCON_LOCK_INIT(sc);
 	sc->syscon = syscon_create_ofw_node(dev, &syscon_generic_class,
-		ofw_bus_get_node(dev));
+	    ofw_bus_get_node(dev));
 	if (sc->syscon == NULL) {
 		device_printf(dev, "Failed to create/register syscon\n");
 		syscon_generic_detach(dev);
@@ -218,18 +218,19 @@ syscon_generic_detach(device_t dev)
 
 static device_method_t syscon_generic_dmethods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		syscon_generic_probe),
-	DEVMETHOD(device_attach,	syscon_generic_attach),
-	DEVMETHOD(device_detach,	syscon_generic_detach),
+	DEVMETHOD(device_probe, syscon_generic_probe),
+	DEVMETHOD(device_attach, syscon_generic_attach),
+	DEVMETHOD(device_detach, syscon_generic_detach),
 
-	DEVMETHOD(syscon_device_lock,	syscon_generic_lock),
-	DEVMETHOD(syscon_device_unlock,	syscon_generic_unlock),
+	DEVMETHOD(syscon_device_lock, syscon_generic_lock),
+	DEVMETHOD(syscon_device_unlock, syscon_generic_unlock),
 
 	DEVMETHOD_END
 };
 
-DEFINE_CLASS_1(syscon_generic_dev, syscon_generic_driver, syscon_generic_dmethods,
-    sizeof(struct syscon_generic_softc), simplebus_driver);
+DEFINE_CLASS_1(syscon_generic_dev, syscon_generic_driver,
+    syscon_generic_dmethods, sizeof(struct syscon_generic_softc),
+    simplebus_driver);
 
 EARLY_DRIVER_MODULE(syscon_generic, simplebus, syscon_generic_driver, 0, 0,
     BUS_PASS_DEFAULT);

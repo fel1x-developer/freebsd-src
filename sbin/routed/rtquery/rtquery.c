@@ -33,19 +33,21 @@
 #include <sys/protosw.h>
 #include <sys/socket.h>
 #include <sys/time.h>
+
 #include <netinet/in.h>
 #define RIPVERSION RIPv2
 #include <protocols/routed.h>
+
 #include <arpa/inet.h>
-#include <netdb.h>
 #include <errno.h>
-#include <unistd.h>
+#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #ifdef sgi
-#include <strings.h>
 #include <bstring.h>
+#include <strings.h>
 #endif
 
 #define UNUSED __attribute__((unused))
@@ -58,52 +60,51 @@
 #else
 #define MD5_DIGEST_LEN 16
 typedef struct {
-	u_int32_t state[4];		/* state (ABCD) */
-	u_int32_t count[2];		/* # of bits, modulo 2^64 (LSB 1st) */
-	unsigned char buffer[64];	/* input buffer */
+	u_int32_t state[4];	  /* state (ABCD) */
+	u_int32_t count[2];	  /* # of bits, modulo 2^64 (LSB 1st) */
+	unsigned char buffer[64]; /* input buffer */
 } MD5_CTX;
-extern void MD5Init(MD5_CTX*);
-extern void MD5Update(MD5_CTX*, u_char*, u_int);
-extern void MD5Final(u_char[MD5_DIGEST_LEN], MD5_CTX*);
+extern void MD5Init(MD5_CTX *);
+extern void MD5Update(MD5_CTX *, u_char *, u_int);
+extern void MD5Final(u_char[MD5_DIGEST_LEN], MD5_CTX *);
 #endif
 
+#define WTIME 15	   /* Time to wait for all responses */
+#define STIME (250 * 1000) /* usec to wait for another response */
 
-#define	WTIME	15		/* Time to wait for all responses */
-#define	STIME	(250*1000)	/* usec to wait for another response */
-
-int	soc;
+int soc;
 
 const char *pgmname;
 
 union {
 	struct rip rip;
-	char	packet[MAXPACKETSIZE+MAXPATHLEN];
+	char packet[MAXPACKETSIZE + MAXPATHLEN];
 } omsg_buf;
 #define OMSG omsg_buf.rip
 int omsg_len = sizeof(struct rip);
 
 union {
-	struct	rip rip;
-	char	packet[MAXPACKETSIZE+1024];
-	} imsg_buf;
+	struct rip rip;
+	char packet[MAXPACKETSIZE + 1024];
+} imsg_buf;
 #define IMSG imsg_buf.rip
 
-int	nflag;				/* numbers, no names */
-int	pflag;				/* play the `gated` game */
-int	ripv2 = 1;			/* use RIP version 2 */
-int	wtime = WTIME;
-int	rflag;				/* 1=ask about a particular route */
-int	trace, not_trace;		/* send trace command or not */
-int	auth_type = RIP_AUTH_NONE;
-char	passwd[RIP_AUTH_PW_LEN];
-u_long	keyid;
+int nflag;     /* numbers, no names */
+int pflag;     /* play the `gated` game */
+int ripv2 = 1; /* use RIP version 2 */
+int wtime = WTIME;
+int rflag;	      /* 1=ask about a particular route */
+int trace, not_trace; /* send trace command or not */
+int auth_type = RIP_AUTH_NONE;
+char passwd[RIP_AUTH_PW_LEN];
+u_long keyid;
 
-struct timeval sent;			/* when query sent */
+struct timeval sent; /* when query sent */
 
 static char localhost_str[] = "localhost";
-static char *default_argv[] = {localhost_str, 0};
+static char *default_argv[] = { localhost_str, 0 };
 
-static void rip_input(struct sockaddr_in*, int);
+static void rip_input(struct sockaddr_in *, int);
 static int out(const char *);
 static void trace_loop(char *argv[]) __attribute((__noreturn__));
 static void query_loop(char *argv[], int) __attribute((__noreturn__));
@@ -112,10 +113,8 @@ static u_int std_mask(u_int);
 static int parse_quote(char **, const char *, char *, char *, int);
 static void usage(void) __dead2;
 
-
 int
-main(int argc,
-     char *argv[])
+main(int argc, char *argv[])
 {
 	int ch, bsize;
 	char *p, *options, *value, delim;
@@ -145,8 +144,7 @@ main(int argc,
 		case 'w':
 			not_trace = 1;
 			wtime = (int)strtoul(optarg, &p, 0);
-			if (*p != '\0'
-			    || wtime <= 0)
+			if (*p != '\0' || wtime <= 0)
 				usage();
 			break;
 
@@ -158,13 +156,13 @@ main(int argc,
 			if (!rflag) {
 				struct hostent *hp = gethostbyname(optarg);
 				if (hp == NULL) {
-					fprintf(stderr, "%s: %s:",
-						pgmname, optarg);
+					fprintf(stderr, "%s: %s:", pgmname,
+					    optarg);
 					herror(0);
 					exit(1);
 				}
 				memcpy(&OMSG.rip_nets[0].n_dst, hp->h_addr,
-				       sizeof(OMSG.rip_nets[0].n_dst));
+				    sizeof(OMSG.rip_nets[0].n_dst));
 				OMSG.rip_nets[0].n_family = RIP_AF_INET;
 				OMSG.rip_nets[0].n_mask = -1;
 				rflag = 1;
@@ -181,67 +179,66 @@ main(int argc,
 				static char off_str[] = "off";
 				static char dump_str[] = "dump";
 				static char *traceopts[] = {
-#				    define TRACE_ON	0
+#define TRACE_ON 0
 					on_str,
-#				    define TRACE_MORE	1
+#define TRACE_MORE 1
 					more_str,
-#				    define TRACE_OFF	2
+#define TRACE_OFF 2
 					off_str,
-#				    define TRACE_DUMP	3
-					dump_str,
-					0
+#define TRACE_DUMP 3
+					dump_str, 0
 				};
 				result = "";
-				switch (getsubopt(&options,traceopts,&value)) {
+				switch (
+				    getsubopt(&options, traceopts, &value)) {
 				case TRACE_ON:
 					OMSG.rip_cmd = RIPCMD_TRACEON;
-					if (!value
-					    || strlen(value) > MAXPATHLEN)
-					    usage();
+					if (!value ||
+					    strlen(value) > MAXPATHLEN)
+						usage();
 					result = value;
 					break;
 				case TRACE_MORE:
 					if (value)
-					    usage();
+						usage();
 					OMSG.rip_cmd = RIPCMD_TRACEON;
 					break;
 				case TRACE_OFF:
 					if (value)
-					    usage();
+						usage();
 					OMSG.rip_cmd = RIPCMD_TRACEOFF;
 					break;
 				case TRACE_DUMP:
 					if (value)
-					    usage();
+						usage();
 					OMSG.rip_cmd = RIPCMD_TRACEON;
 					result = "dump/../table";
 					break;
 				default:
 					usage();
 				}
-				strcpy((char*)OMSG.rip_tracefile, result);
+				strcpy((char *)OMSG.rip_tracefile, result);
 				omsg_len += strlen(result) - sizeof(OMSG.ripun);
 			}
 			break;
 
 		case 'a':
 			not_trace = 1;
-			p = strchr(optarg,'=');
+			p = strchr(optarg, '=');
 			if (!p)
 				usage();
 			*p++ = '\0';
-			if (!strcasecmp("passwd",optarg))
+			if (!strcasecmp("passwd", optarg))
 				auth_type = RIP_AUTH_PW;
-			else if (!strcasecmp("md5_passwd",optarg))
+			else if (!strcasecmp("md5_passwd", optarg))
 				auth_type = RIP_AUTH_MD5;
 			else
 				usage();
-			if (0 > parse_quote(&p,"|",&delim,
-					    passwd, sizeof(passwd)))
+			if (0 > parse_quote(&p, "|", &delim, passwd,
+				    sizeof(passwd)))
 				usage();
-			if (auth_type == RIP_AUTH_MD5
-			    && delim == '|') {
-				keyid = strtoul(p+1,&p,0);
+			if (auth_type == RIP_AUTH_MD5 && delim == '|') {
+				keyid = strtoul(p + 1, &p, 0);
 				if (keyid > 255 || *p != '\0')
 					usage();
 			} else if (delim != '\0') {
@@ -251,7 +248,7 @@ main(int argc,
 
 		default:
 			usage();
-	}
+		}
 	argv += optind;
 	argc -= optind;
 	if (not_trace && trace)
@@ -268,11 +265,11 @@ main(int argc,
 	}
 
 	/* be prepared to receive a lot of routes */
-	for (bsize = 127*1024; ; bsize -= 1024) {
-		if (setsockopt(soc, SOL_SOCKET, SO_RCVBUF,
-			       &bsize, sizeof(bsize)) == 0)
+	for (bsize = 127 * 1024;; bsize -= 1024) {
+		if (setsockopt(soc, SOL_SOCKET, SO_RCVBUF, &bsize,
+			sizeof(bsize)) == 0)
 			break;
-		if (bsize <= 4*1024) {
+		if (bsize <= 4 * 1024) {
 			perror("setsockopt SO_RCVBUF");
 			break;
 		}
@@ -286,18 +283,16 @@ main(int argc,
 	return 0;
 }
 
-
 static void
 usage(void)
 {
 	fprintf(stderr,
-		"usage:  rtquery [-np1] [-r tgt_rt] [-w wtime]"
-		" [-a type=passwd] host1 [host2 ...]\n"
-		"\trtquery -t {on=filename|more|off|dump}"
-				" host1 [host2 ...]\n");
+	    "usage:  rtquery [-np1] [-r tgt_rt] [-w wtime]"
+	    " [-a type=passwd] host1 [host2 ...]\n"
+	    "\trtquery -t {on=filename|more|off|dump}"
+	    " host1 [host2 ...]\n");
 	exit(1);
 }
-
 
 /* tell the target hosts about tracing
  */
@@ -323,14 +318,13 @@ trace_loop(char *argv[])
 #ifdef _HAVE_SIN_LEN
 	myaddr.sin_len = sizeof(myaddr);
 #endif
-	myaddr.sin_port = htons(IPPORT_RESERVED-1);
+	myaddr.sin_port = htons(IPPORT_RESERVED - 1);
 	while (bind(soc, (struct sockaddr *)&myaddr, sizeof(myaddr)) < 0) {
-		if (errno != EADDRINUSE
-		    || myaddr.sin_port == 0) {
+		if (errno != EADDRINUSE || myaddr.sin_port == 0) {
 			perror("bind");
 			exit(2);
 		}
-		myaddr.sin_port = htons(ntohs(myaddr.sin_port)-1);
+		myaddr.sin_port = htons(ntohs(myaddr.sin_port) - 1);
 	}
 
 	res = 1;
@@ -341,14 +335,13 @@ trace_loop(char *argv[])
 	exit(res);
 }
 
-
 /* query all of the listed hosts
  */
 static void
 query_loop(char *argv[], int argc)
 {
-#	define NA0 (OMSG.rip_auths[0])
-#	define NA2 (OMSG.rip_auths[2])
+#define NA0 (OMSG.rip_auths[0])
+#define NA2 (OMSG.rip_auths[2])
 	struct seen {
 		struct seen *next;
 		struct in_addr addr;
@@ -360,7 +353,6 @@ query_loop(char *argv[], int argc)
 	struct sockaddr_in from;
 	int fromlen;
 	MD5_CTX md5_ctx;
-
 
 	OMSG.rip_cmd = (pflag) ? RIPCMD_POLL : RIPCMD_REQUEST;
 	if (ripv2) {
@@ -379,17 +371,16 @@ query_loop(char *argv[], int argc)
 			NA0.au.a_md5.md5_keyid = (int8_t)keyid;
 			NA0.au.a_md5.md5_auth_len = RIP_AUTH_MD5_KEY_LEN;
 			NA0.au.a_md5.md5_seqno = 0;
-			cc = (char *)&NA2-(char *)&OMSG;
+			cc = (char *)&NA2 - (char *)&OMSG;
 			NA0.au.a_md5.md5_pkt_len = htons(cc);
 			NA2.a_family = RIP_AF_AUTH;
 			NA2.a_type = htons(1);
 			MD5Init(&md5_ctx);
-			MD5Update(&md5_ctx,
-				  (u_char *)&OMSG, cc);
-			MD5Update(&md5_ctx,
-				  (u_char *)passwd, RIP_AUTH_MD5_HASH_LEN);
+			MD5Update(&md5_ctx, (u_char *)&OMSG, cc);
+			MD5Update(&md5_ctx, (u_char *)passwd,
+			    RIP_AUTH_MD5_HASH_LEN);
 			MD5Final(NA2.au.au_pw, &md5_ctx);
-			omsg_len += 2*sizeof(OMSG.rip_nets[0]);
+			omsg_len += 2 * sizeof(OMSG.rip_nets[0]);
 		}
 
 	} else {
@@ -410,12 +401,12 @@ query_loop(char *argv[], int argc)
 		FD_SET(soc, &bits);
 		delay.tv_sec = 0;
 		delay.tv_usec = STIME;
-		cc = select(soc+1, &bits, 0,0, &delay);
+		cc = select(soc + 1, &bits, 0, 0, &delay);
 		if (cc > 0) {
 			fromlen = sizeof(from);
 			cc = recvfrom(soc, imsg_buf.packet,
-				      sizeof(imsg_buf.packet), 0,
-				      (struct sockaddr *)&from, &fromlen);
+			    sizeof(imsg_buf.packet), 0,
+			    (struct sockaddr *)&from, &fromlen);
 			if (cc < 0) {
 				perror("recvfrom");
 				exit(1);
@@ -434,7 +425,7 @@ query_loop(char *argv[], int argc)
 				sp = malloc(sizeof(*sp));
 				if (sp == NULL) {
 					fprintf(stderr,
-						"rtquery: malloc failed\n");
+					    "rtquery: malloc failed\n");
 					exit(1);
 				}
 				sp->addr = from.sin_addr;
@@ -477,9 +468,8 @@ query_loop(char *argv[], int argc)
 	}
 
 	/* fail if there was no answer */
-	exit (answered >= argc ? 0 : 1);
+	exit(answered >= argc ? 0 : 1);
 }
-
 
 /* send to one host
  */
@@ -509,8 +499,8 @@ out(const char *host)
 	}
 	router.sin_port = htons(RIP_PORT);
 
-	if (sendto(soc, &omsg_buf, omsg_len, 0,
-		   (struct sockaddr *)&router, sizeof(router)) < 0) {
+	if (sendto(soc, &omsg_buf, omsg_len, 0, (struct sockaddr *)&router,
+		sizeof(router)) < 0) {
 		perror(host);
 		return -1;
 	}
@@ -518,27 +508,25 @@ out(const char *host)
 	return 0;
 }
 
-
 /*
  * Convert string to printable characters
  */
 static char *
 qstring(u_char *s, int len)
 {
-	static char buf[8*20+1];
+	static char buf[8 * 20 + 1];
 	char *p;
 	u_char *s2, c;
 
-
-	for (p = buf; len != 0 && p < &buf[sizeof(buf)-1]; len--) {
+	for (p = buf; len != 0 && p < &buf[sizeof(buf) - 1]; len--) {
 		c = *s++;
 		if (c == '\0') {
-			for (s2 = s+1; s2 < &s[len]; s2++) {
+			for (s2 = s + 1; s2 < &s[len]; s2++) {
 				if (*s2 != '\0')
 					break;
 			}
 			if (s2 >= &s[len])
-			    goto exit;
+				goto exit;
 		}
 
 		if (c >= ' ' && c < 0x7f && c != '\\') {
@@ -551,10 +539,10 @@ qstring(u_char *s, int len)
 			*p++ = '\\';
 			break;
 		case '\n':
-			*p++= 'n';
+			*p++ = 'n';
 			break;
 		case '\r':
-			*p++= 'r';
+			*p++ = 'r';
 			break;
 		case '\t':
 			*p++ = 't';
@@ -563,7 +551,7 @@ qstring(u_char *s, int len)
 			*p++ = 'b';
 			break;
 		default:
-			p += sprintf(p,"%o",c);
+			p += sprintf(p, "%o", c);
 			break;
 		}
 	}
@@ -572,13 +560,11 @@ exit:
 	return buf;
 }
 
-
 /*
  * Handle an incoming RIP packet.
  */
 static void
-rip_input(struct sockaddr_in *from,
-	  int size)
+rip_input(struct sockaddr_in *from, int size)
 {
 	struct netinfo *n, *lim;
 	struct in_addr in;
@@ -594,18 +580,16 @@ rip_input(struct sockaddr_in *from,
 	struct netent *np;
 	struct netauth *na;
 
-
 	if (nflag) {
 		printf("%s:", inet_ntoa(from->sin_addr));
 	} else {
-		hp = gethostbyaddr((char*)&from->sin_addr,
-				   sizeof(struct in_addr), AF_INET);
+		hp = gethostbyaddr((char *)&from->sin_addr,
+		    sizeof(struct in_addr), AF_INET);
 		if (hp == NULL) {
-			printf("%s:",
-			       inet_ntoa(from->sin_addr));
+			printf("%s:", inet_ntoa(from->sin_addr));
 		} else {
 			printf("%s (%s):", hp->h_name,
-			       inet_ntoa(from->sin_addr));
+			    inet_ntoa(from->sin_addr));
 		}
 	}
 	if (IMSG.rip_cmd != RIPCMD_RESPONSE) {
@@ -613,23 +597,23 @@ rip_input(struct sockaddr_in *from,
 		return;
 	}
 	printf(" RIPv%d%s %d bytes\n", IMSG.rip_vers,
-	       (IMSG.rip_vers != RIPv1 && IMSG.rip_vers != RIPv2) ? " ?" : "",
-	       size);
+	    (IMSG.rip_vers != RIPv1 && IMSG.rip_vers != RIPv2) ? " ?" : "",
+	    size);
 	if (size > MAXPACKETSIZE) {
 		if (size > (int)sizeof(imsg_buf) - (int)sizeof(*n)) {
 			printf("       at least %d bytes too long\n",
-			       size-MAXPACKETSIZE);
+			    size - MAXPACKETSIZE);
 			size = (int)sizeof(imsg_buf) - (int)sizeof(*n);
 		} else {
 			printf("       %d bytes too long\n",
-			       size-MAXPACKETSIZE);
+			    size - MAXPACKETSIZE);
 		}
-	} else if (size%sizeof(*n) != sizeof(struct rip)%sizeof(*n)) {
+	} else if (size % sizeof(*n) != sizeof(struct rip) % sizeof(*n)) {
 		printf("    response of bad length=%d\n", size);
 	}
 
 	n = IMSG.rip_nets;
-	lim = (struct netinfo *)((char*)n + size) - 1;
+	lim = (struct netinfo *)((char *)n + size) - 1;
 	for (; n <= lim; n++) {
 		name = "";
 		if (n->n_family == RIP_AF_INET) {
@@ -641,17 +625,16 @@ rip_input(struct sockaddr_in *from,
 			if (mask != 0) {
 				sp = &net_buf[strlen(net_buf)];
 				if (IMSG.rip_vers == RIPv1) {
-					(void)sprintf(sp," mask=%#x ? ",mask);
+					(void)sprintf(sp, " mask=%#x ? ", mask);
 					mask = 0;
 				} else if (mask + dmask == 0) {
-					for (i = 0;
-					     (i != 32
-					      && ((1<<i)&mask) == 0);
+					for (i = 0; (i != 32 &&
+						 ((1 << i) & mask) == 0);
 					     i++)
 						continue;
-					(void)sprintf(sp, "/%d",32-i);
+					(void)sprintf(sp, "/%d", 32 - i);
 				} else {
-					(void)sprintf(sp," (mask %#x)", mask);
+					(void)sprintf(sp, " (mask %#x)", mask);
 				}
 			}
 
@@ -671,110 +654,102 @@ rip_input(struct sockaddr_in *from,
 				 */
 				if ((in.s_addr & ~mask) == 0) {
 					np = getnetbyaddr((long)in.s_addr,
-							  AF_INET);
+					    AF_INET);
 					if (np != NULL)
 						name = np->n_name;
 					else if (in.s_addr == 0)
 						name = "default";
 				}
-				if (name[0] == '\0'
-				    && ((in.s_addr & ~mask) != 0
-					|| mask == 0xffffffff)) {
-					hp = gethostbyaddr((char*)&in,
-							   sizeof(in),
-							   AF_INET);
+				if (name[0] == '\0' &&
+				    ((in.s_addr & ~mask) != 0 ||
+					mask == 0xffffffff)) {
+					hp = gethostbyaddr((char *)&in,
+					    sizeof(in), AF_INET);
 					if (hp != NULL)
 						name = hp->h_name;
 				}
 			}
 
 		} else if (n->n_family == RIP_AF_AUTH) {
-			na = (struct netauth*)n;
-			if (na->a_type == RIP_AUTH_PW
-			    && n == IMSG.rip_nets) {
+			na = (struct netauth *)n;
+			if (na->a_type == RIP_AUTH_PW && n == IMSG.rip_nets) {
 				(void)printf("  Password Authentication:"
 					     " \"%s\"\n",
-					     qstring(na->au.au_pw,
-						     RIP_AUTH_PW_LEN));
+				    qstring(na->au.au_pw, RIP_AUTH_PW_LEN));
 				continue;
 			}
 
-			if (na->a_type == RIP_AUTH_MD5
-			    && n == IMSG.rip_nets) {
+			if (na->a_type == RIP_AUTH_MD5 && n == IMSG.rip_nets) {
 				(void)printf("  MD5 Auth"
 					     " len=%d KeyID=%d"
 					     " auth_len=%d"
 					     " seqno=%#x"
 					     " rsvd=%#x,%#x\n",
-					     ntohs(na->au.a_md5.md5_pkt_len),
-					     na->au.a_md5.md5_keyid,
-					     na->au.a_md5.md5_auth_len,
-					     (int)ntohl(na->au.a_md5.md5_seqno),
-					     na->au.a_md5.rsvd[0],
-					     na->au.a_md5.rsvd[1]);
+				    ntohs(na->au.a_md5.md5_pkt_len),
+				    na->au.a_md5.md5_keyid,
+				    na->au.a_md5.md5_auth_len,
+				    (int)ntohl(na->au.a_md5.md5_seqno),
+				    na->au.a_md5.rsvd[0], na->au.a_md5.rsvd[1]);
 				md5_authed = 1;
 				continue;
 			}
 			(void)printf("  Authentication type %d: ",
-				     ntohs(na->a_type));
+			    ntohs(na->a_type));
 			for (i = 0; i < (int)sizeof(na->au.au_pw); i++)
 				(void)printf("%02x ", na->au.au_pw[i]);
 			putc('\n', stdout);
-			if (md5_authed && n+1 > lim
-			    && na->a_type == ntohs(1)) {
+			if (md5_authed && n + 1 > lim &&
+			    na->a_type == ntohs(1)) {
 				MD5Init(&md5_ctx);
 				MD5Update(&md5_ctx, (u_char *)&IMSG,
-					  (char *)na-(char *)&IMSG
-					  +RIP_AUTH_MD5_HASH_XTRA);
+				    (char *)na - (char *)&IMSG +
+					RIP_AUTH_MD5_HASH_XTRA);
 				MD5Update(&md5_ctx, (u_char *)passwd,
-					  RIP_AUTH_MD5_KEY_LEN);
+				    RIP_AUTH_MD5_KEY_LEN);
 				MD5Final(hash, &md5_ctx);
 				(void)printf("    %s hash\n",
-					     memcmp(hash, na->au.au_pw,
-						    sizeof(hash))
-					     ? "WRONG" : "correct");
+				    memcmp(hash, na->au.au_pw, sizeof(hash)) ?
+					"WRONG" :
+					"correct");
 			}
 			continue;
 
 		} else {
 			(void)sprintf(net_buf, "(af %#x) %d.%d.%d.%d",
-				      ntohs(n->n_family),
-				      (u_char)(n->n_dst >> 24),
-				      (u_char)(n->n_dst >> 16),
-				      (u_char)(n->n_dst >> 8),
-				      (u_char)n->n_dst);
+			    ntohs(n->n_family), (u_char)(n->n_dst >> 24),
+			    (u_char)(n->n_dst >> 16), (u_char)(n->n_dst >> 8),
+			    (u_char)n->n_dst);
 		}
 
-		(void)printf("  %-18s metric %2d %-10s",
-			     net_buf, (int)ntohl(n->n_metric), name);
+		(void)printf("  %-18s metric %2d %-10s", net_buf,
+		    (int)ntohl(n->n_metric), name);
 
 		if (n->n_nhop != 0) {
 			in.s_addr = n->n_nhop;
 			if (nflag)
 				hp = NULL;
 			else
-				hp = gethostbyaddr((char*)&in, sizeof(in),
-						   AF_INET);
+				hp = gethostbyaddr((char *)&in, sizeof(in),
+				    AF_INET);
 			(void)printf(" nhop=%-15s%s",
-				     (hp != NULL) ? hp->h_name : inet_ntoa(in),
-				     (IMSG.rip_vers == RIPv1) ? " ?" : "");
+			    (hp != NULL) ? hp->h_name : inet_ntoa(in),
+			    (IMSG.rip_vers == RIPv1) ? " ?" : "");
 		}
 		if (n->n_tag != 0)
 			(void)printf(" tag=%#x%s", n->n_tag,
-				     (IMSG.rip_vers == RIPv1) ? " ?" : "");
+			    (IMSG.rip_vers == RIPv1) ? " ?" : "");
 		putc('\n', stdout);
 	}
 }
 
-
 /* Return the classical netmask for an IP address.
  */
 static u_int
-std_mask(u_int addr)			/* in network order */
+std_mask(u_int addr) /* in network order */
 {
-	addr = ntohl(addr);		/* was a host, not a network */
+	addr = ntohl(addr); /* was a host, not a network */
 
-	if (addr == 0)			/* default route has mask 0 */
+	if (addr == 0) /* default route has mask 0 */
 		return 0;
 	if (IN_CLASSA(addr))
 		return IN_CLASSA_NET;
@@ -783,27 +758,24 @@ std_mask(u_int addr)			/* in network order */
 	return IN_CLASSC_NET;
 }
 
-
 /* get a network number as a name or a number, with an optional "/xx"
  * netmask.
  */
-static int				/* 0=bad */
-getnet(char *name,
-       struct netinfo *rt)
+static int /* 0=bad */
+getnet(char *name, struct netinfo *rt)
 {
 	int i;
 	struct netent *nentp;
 	u_int mask;
 	struct in_addr in;
-	char hname[MAXHOSTNAMELEN+1];
+	char hname[MAXHOSTNAMELEN + 1];
 	char *mname, *p;
-
 
 	/* Detect and separate "1.2.3.4/24"
 	 */
-	if (NULL != (mname = strrchr(name,'/'))) {
+	if (NULL != (mname = strrchr(name, '/'))) {
 		i = (int)(mname - name);
-		if (i > (int)sizeof(hname)-1)	/* name too long */
+		if (i > (int)sizeof(hname) - 1) /* name too long */
 			return 0;
 		memmove(hname, name, i);
 		hname[i] = '\0';
@@ -828,7 +800,7 @@ getnet(char *name,
 		mask = (u_int)strtoul(mname, &p, 0);
 		if (*p != '\0' || mask > 32)
 			return 0;
-		mask = 0xffffffff << (32-mask);
+		mask = 0xffffffff << (32 - mask);
 	}
 
 	rt->n_dst = htonl(in.s_addr);
@@ -837,19 +809,13 @@ getnet(char *name,
 	return 1;
 }
 
-
 /* strtok(), but honoring backslash
  */
-static int				/* -1=bad */
-parse_quote(char **linep,
-	    const char *delims,
-	    char *delimp,
-	    char *buf,
-	    int	lim)
+static int /* -1=bad */
+parse_quote(char **linep, const char *delims, char *delimp, char *buf, int lim)
 {
 	char c, *pc;
 	const char *p;
-
 
 	pc = *linep;
 	if (*pc == '\0')
@@ -874,9 +840,9 @@ parse_quote(char **linep,
 			} else if (c >= '0' && c <= '7') {
 				c -= '0';
 				if (*pc >= '0' && *pc <= '7') {
-					c = (c<<3)+(*pc++ - '0');
+					c = (c << 3) + (*pc++ - '0');
 					if (*pc >= '0' && *pc <= '7')
-					    c = (c<<3)+(*pc++ - '0');
+						c = (c << 3) + (*pc++ - '0');
 				}
 			}
 
@@ -893,7 +859,7 @@ parse_quote(char **linep,
 exit:
 	if (delimp != NULL)
 		*delimp = c;
-	*linep = pc-1;
+	*linep = pc - 1;
 	if (lim != 0)
 		*buf = '\0';
 	return 0;

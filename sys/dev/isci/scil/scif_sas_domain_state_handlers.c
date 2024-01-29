@@ -67,11 +67,10 @@
  *          tree of the completion routine, then no action is necessary.
  */
 
-
-#include <dev/isci/scil/scic_port.h>
 #include <dev/isci/scil/scic_io_request.h>
-#include <dev/isci/scil/scif_sas_logger.h>
+#include <dev/isci/scil/scic_port.h>
 #include <dev/isci/scil/scif_sas_domain.h>
+#include <dev/isci/scil/scif_sas_logger.h>
 
 //******************************************************************************
 //* P R O T E C T E D   M E T H O D S
@@ -81,25 +80,20 @@
 //* S T A R T I N G   H A N D L E R S
 //******************************************************************************
 
-static
-SCI_STATUS scif_sas_domain_starting_port_ready_handler(
-   SCI_BASE_DOMAIN_T * domain
-)
+static SCI_STATUS
+scif_sas_domain_starting_port_ready_handler(SCI_BASE_DOMAIN_T *domain)
 {
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
-      "scif_sas_domain_starting_port_ready_handler(0x%x) enter\n",
-      domain
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
+	    "scif_sas_domain_starting_port_ready_handler(0x%x) enter\n",
+	    domain));
 
-   // The domain was previously completely stopped.  Now that the port is
-   // ready we can transition the domain to the ready state.
-   sci_base_state_machine_change_state(
-      &domain->state_machine, SCI_BASE_DOMAIN_STATE_READY
-   );
+	// The domain was previously completely stopped.  Now that the port is
+	// ready we can transition the domain to the ready state.
+	sci_base_state_machine_change_state(&domain->state_machine,
+	    SCI_BASE_DOMAIN_STATE_READY);
 
-   return SCI_SUCCESS;
+	return SCI_SUCCESS;
 }
 
 //******************************************************************************
@@ -119,35 +113,27 @@ SCI_STATUS scif_sas_domain_starting_port_ready_handler(
  * @retval SCI_SUCCESS This value is returned when the discover operation
  *         begins successfully.
  */
-static
-SCI_STATUS scif_sas_domain_ready_discover_handler(
-   SCI_BASE_DOMAIN_T * domain,
-   U32                 op_timeout,
-   U32                 device_timeout
-)
+static SCI_STATUS
+scif_sas_domain_ready_discover_handler(SCI_BASE_DOMAIN_T *domain,
+    U32 op_timeout, U32 device_timeout)
 {
-   SCIF_SAS_DOMAIN_T * fw_domain = (SCIF_SAS_DOMAIN_T *)domain;
+	SCIF_SAS_DOMAIN_T *fw_domain = (SCIF_SAS_DOMAIN_T *)domain;
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
-      "scif_sas_domain_ready_discover_handler(0x%x, 0x%x, 0x%x) enter\n",
-      domain, op_timeout, device_timeout
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
+	    "scif_sas_domain_ready_discover_handler(0x%x, 0x%x, 0x%x) enter\n",
+	    domain, op_timeout, device_timeout));
 
-   fw_domain->operation.timeout        = op_timeout;
-   fw_domain->operation.device_timeout = device_timeout;
-   fw_domain->operation.status         = SCI_SUCCESS;
+	fw_domain->operation.timeout = op_timeout;
+	fw_domain->operation.device_timeout = device_timeout;
+	fw_domain->operation.status = SCI_SUCCESS;
 
-   scif_cb_timer_start(
-      fw_domain->controller,
-      fw_domain->operation.timer,
-      fw_domain->operation.timeout
-   );
+	scif_cb_timer_start(fw_domain->controller, fw_domain->operation.timer,
+	    fw_domain->operation.timeout);
 
-   scif_sas_domain_transition_to_discovering_state(fw_domain);
+	scif_sas_domain_transition_to_discovering_state(fw_domain);
 
-   return fw_domain->operation.status;
+	return fw_domain->operation.status;
 }
 
 /**
@@ -159,30 +145,23 @@ SCI_STATUS scif_sas_domain_ready_discover_handler(
  *
  * @return
  */
-static
-SCI_STATUS scif_sas_domain_ready_port_not_ready_handler(
-   SCI_BASE_DOMAIN_T * domain,
-   U32                 reason_code
-)
+static SCI_STATUS
+scif_sas_domain_ready_port_not_ready_handler(SCI_BASE_DOMAIN_T *domain,
+    U32 reason_code)
 {
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
-      "scif_sas_domain_ready_port_not_ready_handler(0x%x, 0x%x) enter\n",
-      domain,
-      reason_code
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
+	    "scif_sas_domain_ready_port_not_ready_handler(0x%x, 0x%x) enter\n",
+	    domain, reason_code));
 
-   if (reason_code != SCIC_PORT_NOT_READY_HARD_RESET_REQUESTED)
-   {
-      // Change to the STOPPING state to cause existing request
-      // completions to be terminated and devices removed.
-      sci_base_state_machine_change_state(
-         &domain->state_machine, SCI_BASE_DOMAIN_STATE_STOPPING
-      );
-   }
+	if (reason_code != SCIC_PORT_NOT_READY_HARD_RESET_REQUESTED) {
+		// Change to the STOPPING state to cause existing request
+		// completions to be terminated and devices removed.
+		sci_base_state_machine_change_state(&domain->state_machine,
+		    SCI_BASE_DOMAIN_STATE_STOPPING);
+	}
 
-   return SCI_SUCCESS;
+	return SCI_SUCCESS;
 }
 
 /**
@@ -203,39 +182,31 @@ SCI_STATUS scif_sas_domain_ready_port_not_ready_handler(
  * @retval SCI_SUCCESS This value is returned when the start IO operation
  *         begins successfully.
  */
-static
-SCI_STATUS scif_sas_domain_ready_start_io_handler(
-   SCI_BASE_DOMAIN_T        * domain,
-   SCI_BASE_REMOTE_DEVICE_T * remote_device,
-   SCI_BASE_REQUEST_T       * io_request
-)
+static SCI_STATUS
+scif_sas_domain_ready_start_io_handler(SCI_BASE_DOMAIN_T *domain,
+    SCI_BASE_REMOTE_DEVICE_T *remote_device, SCI_BASE_REQUEST_T *io_request)
 {
-   SCIF_SAS_DOMAIN_T        * fw_domain  = (SCIF_SAS_DOMAIN_T*) domain;
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device  = (SCIF_SAS_REMOTE_DEVICE_T*)
-                                           remote_device;
-   SCIF_SAS_REQUEST_T       * fw_request = (SCIF_SAS_REQUEST_T*) io_request;
-   SCI_STATUS                 status;
+	SCIF_SAS_DOMAIN_T *fw_domain = (SCIF_SAS_DOMAIN_T *)domain;
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+	    remote_device;
+	SCIF_SAS_REQUEST_T *fw_request = (SCIF_SAS_REQUEST_T *)io_request;
+	SCI_STATUS status;
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_IO_REQUEST,
-      "scif_sas_domain_ready_start_io_handler(0x%x, 0x%x, 0x%x) enter\n",
-      domain, remote_device, io_request
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_IO_REQUEST,
+	    "scif_sas_domain_ready_start_io_handler(0x%x, 0x%x, 0x%x) enter\n",
+	    domain, remote_device, io_request));
 
-   status = fw_device->state_handlers->parent.start_io_handler(
-               &fw_device->parent, &fw_request->parent
-            );
+	status = fw_device->state_handlers->parent.start_io_handler(
+	    &fw_device->parent, &fw_request->parent);
 
-   if (status == SCI_SUCCESS)
-   {
-      // Add the IO to the list of outstanding requests on the domain.
-      sci_fast_list_insert_tail(
-         &fw_domain->request_list, &fw_request->list_element
-      );
-   }
+	if (status == SCI_SUCCESS) {
+		// Add the IO to the list of outstanding requests on the domain.
+		sci_fast_list_insert_tail(&fw_domain->request_list,
+		    &fw_request->list_element);
+	}
 
-   return status;
+	return status;
 }
 
 /**
@@ -256,30 +227,24 @@ SCI_STATUS scif_sas_domain_ready_start_io_handler(
  * @retval SCI_SUCCESS This value is returned when the complete IO operation
  *         is successful.
  */
-static
-SCI_STATUS scif_sas_domain_ready_complete_io_handler(
-   SCI_BASE_DOMAIN_T        * domain,
-   SCI_BASE_REMOTE_DEVICE_T * remote_device,
-   SCI_BASE_REQUEST_T       * io_request
-)
+static SCI_STATUS
+scif_sas_domain_ready_complete_io_handler(SCI_BASE_DOMAIN_T *domain,
+    SCI_BASE_REMOTE_DEVICE_T *remote_device, SCI_BASE_REQUEST_T *io_request)
 {
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device = (SCIF_SAS_REMOTE_DEVICE_T*)
-                                          remote_device;
-   SCIF_SAS_REQUEST_T       * fw_request= (SCIF_SAS_REQUEST_T*) io_request;
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+	    remote_device;
+	SCIF_SAS_REQUEST_T *fw_request = (SCIF_SAS_REQUEST_T *)io_request;
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_IO_REQUEST,
-      "scif_sas_domain_ready_complete_io_handler(0x%x, 0x%x, 0x%x) enter\n",
-      domain, remote_device, io_request
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_IO_REQUEST,
+	    "scif_sas_domain_ready_complete_io_handler(0x%x, 0x%x, 0x%x) enter\n",
+	    domain, remote_device, io_request));
 
-   // Remove the IO from the list of outstanding requests on the domain.
-   sci_fast_list_remove_element(&fw_request->list_element);
+	// Remove the IO from the list of outstanding requests on the domain.
+	sci_fast_list_remove_element(&fw_request->list_element);
 
-   return fw_device->state_handlers->parent.complete_io_handler(
-             &fw_device->parent, &fw_request->parent
-          );
+	return fw_device->state_handlers->parent.complete_io_handler(
+	    &fw_device->parent, &fw_request->parent);
 }
 
 /**
@@ -300,22 +265,17 @@ SCI_STATUS scif_sas_domain_ready_complete_io_handler(
  * @retval SCI_SUCCESS This value is returned when the continue IO operation
  *         begins successfully.
  */
-static
-SCI_STATUS scif_sas_domain_ready_continue_io_handler(
-   SCI_BASE_DOMAIN_T        * domain,
-   SCI_BASE_REMOTE_DEVICE_T * remote_device,
-   SCI_BASE_REQUEST_T       * io_request
-)
+static SCI_STATUS
+scif_sas_domain_ready_continue_io_handler(SCI_BASE_DOMAIN_T *domain,
+    SCI_BASE_REMOTE_DEVICE_T *remote_device, SCI_BASE_REQUEST_T *io_request)
 {
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_IO_REQUEST,
-      "scif_sas_domain_ready_continue_io_handler(0x%x, 0x%x, 0x%x) enter\n",
-      domain, remote_device, io_request
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_IO_REQUEST,
+	    "scif_sas_domain_ready_continue_io_handler(0x%x, 0x%x, 0x%x) enter\n",
+	    domain, remote_device, io_request));
 
-   /// @todo fix return code handling.
-   return SCI_FAILURE;
+	/// @todo fix return code handling.
+	return SCI_FAILURE;
 }
 
 /**
@@ -336,39 +296,32 @@ SCI_STATUS scif_sas_domain_ready_continue_io_handler(
  * @retval SCI_SUCCESS This value is returned when the start task operation
  *         begins successfully.
  */
-static
-SCI_STATUS scif_sas_domain_ready_start_task_handler(
-   SCI_BASE_DOMAIN_T        * domain,
-   SCI_BASE_REMOTE_DEVICE_T * remote_device,
-   SCI_BASE_REQUEST_T       * task_request
-)
+static SCI_STATUS
+scif_sas_domain_ready_start_task_handler(SCI_BASE_DOMAIN_T *domain,
+    SCI_BASE_REMOTE_DEVICE_T *remote_device, SCI_BASE_REQUEST_T *task_request)
 {
-   SCIF_SAS_DOMAIN_T        * fw_domain  = (SCIF_SAS_DOMAIN_T*) domain;
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device  = (SCIF_SAS_REMOTE_DEVICE_T*)
-                                           remote_device;
-   SCIF_SAS_REQUEST_T       * fw_request = (SCIF_SAS_REQUEST_T*) task_request;
-   SCI_STATUS                 status;
+	SCIF_SAS_DOMAIN_T *fw_domain = (SCIF_SAS_DOMAIN_T *)domain;
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+	    remote_device;
+	SCIF_SAS_REQUEST_T *fw_request = (SCIF_SAS_REQUEST_T *)task_request;
+	SCI_STATUS status;
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_TASK_MANAGEMENT,
-      "scif_sas_domain_ready_start_task_handler(0x%x, 0x%x, 0x%x) enter\n",
-      domain, remote_device, task_request
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_TASK_MANAGEMENT,
+	    "scif_sas_domain_ready_start_task_handler(0x%x, 0x%x, 0x%x) enter\n",
+	    domain, remote_device, task_request));
 
-   status = fw_device->state_handlers->parent.start_task_handler(
-               &fw_device->parent, &fw_request->parent
-            );
+	status = fw_device->state_handlers->parent.start_task_handler(
+	    &fw_device->parent, &fw_request->parent);
 
-   if (status == SCI_SUCCESS)
-   {
-      // Add the task to the list of outstanding requests on the domain.
-      sci_fast_list_insert_tail(
-         &fw_domain->request_list, &fw_request->list_element
-      );
-   }
+	if (status == SCI_SUCCESS) {
+		// Add the task to the list of outstanding requests on the
+		// domain.
+		sci_fast_list_insert_tail(&fw_domain->request_list,
+		    &fw_request->list_element);
+	}
 
-   return status;
+	return status;
 }
 
 /**
@@ -389,32 +342,25 @@ SCI_STATUS scif_sas_domain_ready_start_task_handler(
  * @retval SCI_SUCCESS This value is returned when the complete task operation
  *         begins successfully.
  */
-static
-SCI_STATUS scif_sas_domain_ready_complete_task_handler(
-   SCI_BASE_DOMAIN_T        * domain,
-   SCI_BASE_REMOTE_DEVICE_T * remote_device,
-   SCI_BASE_REQUEST_T       * task_request
-)
+static SCI_STATUS
+scif_sas_domain_ready_complete_task_handler(SCI_BASE_DOMAIN_T *domain,
+    SCI_BASE_REMOTE_DEVICE_T *remote_device, SCI_BASE_REQUEST_T *task_request)
 {
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device  = (SCIF_SAS_REMOTE_DEVICE_T*)
-                                           remote_device;
-   SCIF_SAS_REQUEST_T       * fw_request = (SCIF_SAS_REQUEST_T*) task_request;
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+	    remote_device;
+	SCIF_SAS_REQUEST_T *fw_request = (SCIF_SAS_REQUEST_T *)task_request;
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_TASK_MANAGEMENT,
-      "scif_sas_domain_ready_complete_task_handler(0x%x, 0x%x, 0x%x) enter\n",
-      domain, remote_device, task_request
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_TASK_MANAGEMENT,
+	    "scif_sas_domain_ready_complete_task_handler(0x%x, 0x%x, 0x%x) enter\n",
+	    domain, remote_device, task_request));
 
-   // Remove the IO from the list of outstanding requests on the domain.
-   sci_fast_list_remove_element(&fw_request->list_element);
+	// Remove the IO from the list of outstanding requests on the domain.
+	sci_fast_list_remove_element(&fw_request->list_element);
 
-   return fw_device->state_handlers->parent.complete_task_handler(
-             &fw_device->parent, &fw_request->parent
-          );
+	return fw_device->state_handlers->parent.complete_task_handler(
+	    &fw_device->parent, &fw_request->parent);
 }
-
 
 /**
  * @brief This method provides READY state specific handling for when a user
@@ -434,52 +380,43 @@ SCI_STATUS scif_sas_domain_ready_complete_task_handler(
  * @retval SCI_SUCCESS This value is returned when the start IO operation
  *         begins successfully.
  */
-static
-SCI_STATUS scif_sas_domain_ready_start_high_priority_io_handler(
-   SCI_BASE_DOMAIN_T        * domain,
-   SCI_BASE_REMOTE_DEVICE_T * remote_device,
-   SCI_BASE_REQUEST_T       * io_request
-)
+static SCI_STATUS
+scif_sas_domain_ready_start_high_priority_io_handler(SCI_BASE_DOMAIN_T *domain,
+    SCI_BASE_REMOTE_DEVICE_T *remote_device, SCI_BASE_REQUEST_T *io_request)
 {
-   SCIF_SAS_DOMAIN_T        * fw_domain  = (SCIF_SAS_DOMAIN_T*) domain;
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device  = (SCIF_SAS_REMOTE_DEVICE_T*)
-                                           remote_device;
-   SCIF_SAS_REQUEST_T       * fw_request = (SCIF_SAS_REQUEST_T*) io_request;
-   SCI_STATUS                 status;
+	SCIF_SAS_DOMAIN_T *fw_domain = (SCIF_SAS_DOMAIN_T *)domain;
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+	    remote_device;
+	SCIF_SAS_REQUEST_T *fw_request = (SCIF_SAS_REQUEST_T *)io_request;
+	SCI_STATUS status;
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_IO_REQUEST,
-      "scif_sas_domain_ready_start_high_priority_request_handler(0x%x, 0x%x, 0x%x) enter\n",
-      domain, remote_device, io_request
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_IO_REQUEST,
+	    "scif_sas_domain_ready_start_high_priority_request_handler(0x%x, 0x%x, 0x%x) enter\n",
+	    domain, remote_device, io_request));
 
-   status = fw_device->state_handlers->start_high_priority_io_handler(
-               &fw_device->parent, &fw_request->parent
-            );
+	status = fw_device->state_handlers->start_high_priority_io_handler(
+	    &fw_device->parent, &fw_request->parent);
 
-   if (status == SCI_SUCCESS)
-   {
-      // Add the IO to the list of outstanding requests on the domain.
+	if (status == SCI_SUCCESS) {
+		// Add the IO to the list of outstanding requests on the domain.
 
-      // When domain is in READY state, this high priority io is likely
-      // a smp Phy Control or Discover request sent to parent device of
-      // a target device, which is to be Target Reset. This high priority
-      // IO's probably has already been added to the domain's list as a
-      // SCIF_SAS_TASK_REQUEST. We need to check if it is already on the
-      // list.
+		// When domain is in READY state, this high priority io is
+		// likely a smp Phy Control or Discover request sent to parent
+		// device of a target device, which is to be Target Reset. This
+		// high priority IO's probably has already been added to the
+		// domain's list as a SCIF_SAS_TASK_REQUEST. We need to check if
+		// it is already on the list.
 
-      if ( ! sci_fast_list_is_on_this_list(
-                &fw_domain->request_list, &fw_request->list_element))
+		if (!sci_fast_list_is_on_this_list(&fw_domain->request_list,
+			&fw_request->list_element))
 
-         sci_fast_list_insert_tail(
-            &fw_domain->request_list, &fw_request->list_element
-         );
-   }
+			sci_fast_list_insert_tail(&fw_domain->request_list,
+			    &fw_request->list_element);
+	}
 
-   return status;
+	return status;
 }
-
 
 /**
  * @brief This method provides READY state specific handling for
@@ -500,72 +437,60 @@ SCI_STATUS scif_sas_domain_ready_start_high_priority_io_handler(
  * @retval SCI_SUCCESS This value is returned when the complete IO operation
  *         is successful.
  */
-static
-SCI_STATUS scif_sas_domain_ready_complete_high_priority_io_handler(
-   SCI_BASE_DOMAIN_T        * domain,
-   SCI_BASE_REMOTE_DEVICE_T * remote_device,
-   SCI_BASE_REQUEST_T       * io_request,
-   void                     * response_data,
-   SCI_IO_STATUS              completion_status
-)
+static SCI_STATUS
+scif_sas_domain_ready_complete_high_priority_io_handler(
+    SCI_BASE_DOMAIN_T *domain, SCI_BASE_REMOTE_DEVICE_T *remote_device,
+    SCI_BASE_REQUEST_T *io_request, void *response_data,
+    SCI_IO_STATUS completion_status)
 {
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device = (SCIF_SAS_REMOTE_DEVICE_T*)
-                                          remote_device;
-   SCIF_SAS_REQUEST_T       * fw_request= (SCIF_SAS_REQUEST_T*) io_request;
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+	    remote_device;
+	SCIF_SAS_REQUEST_T *fw_request = (SCIF_SAS_REQUEST_T *)io_request;
 
-   SCIC_TRANSPORT_PROTOCOL    protocol;
+	SCIC_TRANSPORT_PROTOCOL protocol;
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_IO_REQUEST,
-      "scif_sas_domain_ready_complete_high_priority_io_handler(0x%x, 0x%x, 0x%x, 0x%x) enter\n",
-      domain, remote_device, io_request, response_data
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_IO_REQUEST,
+	    "scif_sas_domain_ready_complete_high_priority_io_handler(0x%x, 0x%x, 0x%x, 0x%x) enter\n",
+	    domain, remote_device, io_request, response_data));
 
-   protocol = scic_io_request_get_protocol(fw_request->core_object);
+	protocol = scic_io_request_get_protocol(fw_request->core_object);
 
-   // If the request is an SMP HARD/LINK RESET request, then the request
-   // came through the task management path (partially).  As a result,
-   // the accounting for the request is managed in the task request
-   // completion path.  Thus, only change the domain request counter if
-   // the request is not an SMP target reset of some sort.
-   if (
-         (protocol != SCIC_SMP_PROTOCOL)
-      || (fw_device->protocol_device.smp_device.current_activity !=
-                SCIF_SAS_SMP_REMOTE_DEVICE_ACTIVITY_TARGET_RESET)
-      )
-   {
-      sci_fast_list_remove_element(&fw_request->list_element);
-   }
+	// If the request is an SMP HARD/LINK RESET request, then the request
+	// came through the task management path (partially).  As a result,
+	// the accounting for the request is managed in the task request
+	// completion path.  Thus, only change the domain request counter if
+	// the request is not an SMP target reset of some sort.
+	if ((protocol != SCIC_SMP_PROTOCOL) ||
+	    (fw_device->protocol_device.smp_device.current_activity !=
+		SCIF_SAS_SMP_REMOTE_DEVICE_ACTIVITY_TARGET_RESET)) {
+		sci_fast_list_remove_element(&fw_request->list_element);
+	}
 
-   return fw_device->state_handlers->complete_high_priority_io_handler(
-             &fw_device->parent, &fw_request->parent, response_data, completion_status
-          );
+	return fw_device->state_handlers->complete_high_priority_io_handler(
+	    &fw_device->parent, &fw_request->parent, response_data,
+	    completion_status);
 }
 
 //******************************************************************************
 //* S T O P P I N G   H A N D L E R S
 //******************************************************************************
 
-static
-SCI_STATUS scif_sas_domain_stopping_device_stop_complete_handler(
-   SCI_BASE_DOMAIN_T        * domain,
-   SCI_BASE_REMOTE_DEVICE_T * remote_device
-)
+static SCI_STATUS
+scif_sas_domain_stopping_device_stop_complete_handler(SCI_BASE_DOMAIN_T *domain,
+    SCI_BASE_REMOTE_DEVICE_T *remote_device)
 {
-   SCIF_SAS_DOMAIN_T * fw_domain = (SCIF_SAS_DOMAIN_T *) domain;
+	SCIF_SAS_DOMAIN_T *fw_domain = (SCIF_SAS_DOMAIN_T *)domain;
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN,
-      "scif_sas_domain_stopping_device_stop_complete_handler(0x%x, 0x%x) enter\n",
-      domain, remote_device
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN,
+	    "scif_sas_domain_stopping_device_stop_complete_handler(0x%x, 0x%x) enter\n",
+	    domain, remote_device));
 
-   // Attempt to transition to the stopped state.
-   scif_sas_domain_transition_to_stopped_state(fw_domain);
+	// Attempt to transition to the stopped state.
+	scif_sas_domain_transition_to_stopped_state(fw_domain);
 
-   return SCI_SUCCESS;
+	return SCI_SUCCESS;
 }
 
 /**
@@ -586,33 +511,26 @@ SCI_STATUS scif_sas_domain_stopping_device_stop_complete_handler(
  * @retval SCI_SUCCESS This value is returned when the complete IO operation
  *         is successful.
  */
-static
-SCI_STATUS scif_sas_domain_stopping_complete_io_handler(
-   SCI_BASE_DOMAIN_T        * domain,
-   SCI_BASE_REMOTE_DEVICE_T * remote_device,
-   SCI_BASE_REQUEST_T       * io_request
-)
+static SCI_STATUS
+scif_sas_domain_stopping_complete_io_handler(SCI_BASE_DOMAIN_T *domain,
+    SCI_BASE_REMOTE_DEVICE_T *remote_device, SCI_BASE_REQUEST_T *io_request)
 {
-   SCIF_SAS_DOMAIN_T * fw_domain = (SCIF_SAS_DOMAIN_T *) domain;
-   SCI_STATUS          status;
+	SCIF_SAS_DOMAIN_T *fw_domain = (SCIF_SAS_DOMAIN_T *)domain;
+	SCI_STATUS status;
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_IO_REQUEST,
-      "scif_sas_domain_stopping_complete_io_handler(0x%x, 0x%x, 0x%x) enter\n",
-      domain, remote_device, io_request
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_IO_REQUEST,
+	    "scif_sas_domain_stopping_complete_io_handler(0x%x, 0x%x, 0x%x) enter\n",
+	    domain, remote_device, io_request));
 
-   status = scif_sas_domain_ready_complete_io_handler(
-               domain, remote_device, io_request
-            );
+	status = scif_sas_domain_ready_complete_io_handler(domain,
+	    remote_device, io_request);
 
-   // Attempt to transition to the stopped state.
-   scif_sas_domain_transition_to_stopped_state(fw_domain);
+	// Attempt to transition to the stopped state.
+	scif_sas_domain_transition_to_stopped_state(fw_domain);
 
-   return status;
+	return status;
 }
-
 
 /**
  * @brief This method provides STOPPING state specific handling for
@@ -632,35 +550,28 @@ SCI_STATUS scif_sas_domain_stopping_complete_io_handler(
  * @retval SCI_SUCCESS This value is returned when the complete IO operation
  *         is successful.
  */
-static
-SCI_STATUS scif_sas_domain_stopping_complete_high_priority_io_handler(
-   SCI_BASE_DOMAIN_T        * domain,
-   SCI_BASE_REMOTE_DEVICE_T * remote_device,
-   SCI_BASE_REQUEST_T       * io_request,
-   void                     * response_data,
-   SCI_IO_STATUS              completion_status
-)
+static SCI_STATUS
+scif_sas_domain_stopping_complete_high_priority_io_handler(
+    SCI_BASE_DOMAIN_T *domain, SCI_BASE_REMOTE_DEVICE_T *remote_device,
+    SCI_BASE_REQUEST_T *io_request, void *response_data,
+    SCI_IO_STATUS completion_status)
 {
-   SCIF_SAS_DOMAIN_T * fw_domain = (SCIF_SAS_DOMAIN_T *) domain;
-   SCI_STATUS          status;
+	SCIF_SAS_DOMAIN_T *fw_domain = (SCIF_SAS_DOMAIN_T *)domain;
+	SCI_STATUS status;
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_IO_REQUEST,
-      "scif_sas_domain_stopping_complete_io_handler(0x%x, 0x%x, 0x%x) enter\n",
-      domain, remote_device, io_request
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_IO_REQUEST,
+	    "scif_sas_domain_stopping_complete_io_handler(0x%x, 0x%x, 0x%x) enter\n",
+	    domain, remote_device, io_request));
 
-   status = scif_sas_domain_ready_complete_high_priority_io_handler(
-               domain, remote_device, io_request, response_data, completion_status
-            );
+	status = scif_sas_domain_ready_complete_high_priority_io_handler(domain,
+	    remote_device, io_request, response_data, completion_status);
 
-   // Attempt to transition to the stopped state.
-   scif_sas_domain_transition_to_stopped_state(fw_domain);
+	// Attempt to transition to the stopped state.
+	scif_sas_domain_transition_to_stopped_state(fw_domain);
 
-   return status;
+	return status;
 }
-
 
 /**
  * @brief This method provides STOPPING state specific handling for
@@ -675,31 +586,25 @@ SCI_STATUS scif_sas_domain_stopping_complete_high_priority_io_handler(
  * @retval SCI_SUCCESS This value is returned when the complete task operation
  *         begins successfully.
  */
-static
-SCI_STATUS scif_sas_domain_stopping_complete_task_handler(
-   SCI_BASE_DOMAIN_T        * domain,
-   SCI_BASE_REMOTE_DEVICE_T * remote_device,
-   SCI_BASE_REQUEST_T       * task_request
-)
+static SCI_STATUS
+scif_sas_domain_stopping_complete_task_handler(SCI_BASE_DOMAIN_T *domain,
+    SCI_BASE_REMOTE_DEVICE_T *remote_device, SCI_BASE_REQUEST_T *task_request)
 {
-   SCIF_SAS_DOMAIN_T * fw_domain = (SCIF_SAS_DOMAIN_T *) domain;
-   SCI_STATUS          status;
+	SCIF_SAS_DOMAIN_T *fw_domain = (SCIF_SAS_DOMAIN_T *)domain;
+	SCI_STATUS status;
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_TASK_MANAGEMENT,
-      "scif_sas_domain_stopping_complete_task_handler(0x%x, 0x%x, 0x%x) enter\n",
-      domain, remote_device, task_request
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_TASK_MANAGEMENT,
+	    "scif_sas_domain_stopping_complete_task_handler(0x%x, 0x%x, 0x%x) enter\n",
+	    domain, remote_device, task_request));
 
-   status = scif_sas_domain_ready_complete_task_handler(
-               domain, remote_device, task_request
-            );
+	status = scif_sas_domain_ready_complete_task_handler(domain,
+	    remote_device, task_request);
 
-   // Attempt to transition to the stopped state.
-   scif_sas_domain_transition_to_stopped_state(fw_domain);
+	// Attempt to transition to the stopped state.
+	scif_sas_domain_transition_to_stopped_state(fw_domain);
 
-   return SCI_SUCCESS;
+	return SCI_SUCCESS;
 }
 
 //******************************************************************************
@@ -717,72 +622,57 @@ SCI_STATUS scif_sas_domain_stopping_complete_task_handler(
  *
  * @return
  */
-static
-SCI_STATUS scif_sas_domain_discovering_port_not_ready_handler(
-   SCI_BASE_DOMAIN_T * domain,
-   U32                 reason_code
-)
+static SCI_STATUS
+scif_sas_domain_discovering_port_not_ready_handler(SCI_BASE_DOMAIN_T *domain,
+    U32 reason_code)
 {
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
-      "scif_sas_domain_discovering_port_not_ready_handler(0x%x, 0x%x) enter\n",
-      domain,
-      reason_code
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
+	    "scif_sas_domain_discovering_port_not_ready_handler(0x%x, 0x%x) enter\n",
+	    domain, reason_code));
 
-   // Change to the STOPPING state to cause existing request
-   // completions to be terminated and devices removed.
-   sci_base_state_machine_change_state(
-      &domain->state_machine, SCI_BASE_DOMAIN_STATE_STOPPING
-   );
+	// Change to the STOPPING state to cause existing request
+	// completions to be terminated and devices removed.
+	sci_base_state_machine_change_state(&domain->state_machine,
+	    SCI_BASE_DOMAIN_STATE_STOPPING);
 
-   return SCI_SUCCESS;
+	return SCI_SUCCESS;
 }
 
-static
-SCI_STATUS scif_sas_domain_discovering_device_start_complete_handler(
-   SCI_BASE_DOMAIN_T        * domain,
-   SCI_BASE_REMOTE_DEVICE_T * remote_device
-)
+static SCI_STATUS
+scif_sas_domain_discovering_device_start_complete_handler(
+    SCI_BASE_DOMAIN_T *domain, SCI_BASE_REMOTE_DEVICE_T *remote_device)
 {
-   SCIF_SAS_DOMAIN_T * fw_domain = (SCIF_SAS_DOMAIN_T *)domain;
+	SCIF_SAS_DOMAIN_T *fw_domain = (SCIF_SAS_DOMAIN_T *)domain;
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
-      "scif_sas_domain_discovering_device_start_complete_handler(0x%x) enter\n",
-      domain, remote_device
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
+	    "scif_sas_domain_discovering_device_start_complete_handler(0x%x) enter\n",
+	    domain, remote_device));
 
-   //domain will decide what's next step.
-   scif_sas_domain_continue_discover(fw_domain);
+	// domain will decide what's next step.
+	scif_sas_domain_continue_discover(fw_domain);
 
-   return SCI_SUCCESS;
+	return SCI_SUCCESS;
 }
 
 // ---------------------------------------------------------------------------
 
-static
-SCI_STATUS scif_sas_domain_discovering_device_stop_complete_handler(
-   SCI_BASE_DOMAIN_T        * domain,
-   SCI_BASE_REMOTE_DEVICE_T * remote_device
-)
+static SCI_STATUS
+scif_sas_domain_discovering_device_stop_complete_handler(
+    SCI_BASE_DOMAIN_T *domain, SCI_BASE_REMOTE_DEVICE_T *remote_device)
 {
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
-      "scif_sas_domain_discovering_device_stop_complete_handler(0x%x) enter\n",
-      domain, remote_device
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
+	    "scif_sas_domain_discovering_device_stop_complete_handler(0x%x) enter\n",
+	    domain, remote_device));
 
-   return SCI_FAILURE;
+	return SCI_FAILURE;
 }
 
-
 /**
- * @brief This method provides DISCOVERING state specific handling for when a user
- *        attempts to start a high priority IO request.
+ * @brief This method provides DISCOVERING state specific handling for when a
+ * user attempts to start a high priority IO request.
  *
  * @param[in]  domain This parameter specifies the domain object
  *             on which the user is attempting to perform a start IO
@@ -798,48 +688,40 @@ SCI_STATUS scif_sas_domain_discovering_device_stop_complete_handler(
  * @retval SCI_SUCCESS This value is returned when the start IO operation
  *         begins successfully.
  */
-static
-SCI_STATUS scif_sas_domain_discovering_start_high_priority_io_handler(
-   SCI_BASE_DOMAIN_T        * domain,
-   SCI_BASE_REMOTE_DEVICE_T * remote_device,
-   SCI_BASE_REQUEST_T       * io_request
-)
+static SCI_STATUS
+scif_sas_domain_discovering_start_high_priority_io_handler(
+    SCI_BASE_DOMAIN_T *domain, SCI_BASE_REMOTE_DEVICE_T *remote_device,
+    SCI_BASE_REQUEST_T *io_request)
 {
-   SCIF_SAS_DOMAIN_T        * fw_domain  = (SCIF_SAS_DOMAIN_T*) domain;
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device  = (SCIF_SAS_REMOTE_DEVICE_T*)
-                                           remote_device;
-   SCIF_SAS_REQUEST_T       * fw_request = (SCIF_SAS_REQUEST_T*) io_request;
-   SCI_STATUS                 status;
+	SCIF_SAS_DOMAIN_T *fw_domain = (SCIF_SAS_DOMAIN_T *)domain;
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+	    remote_device;
+	SCIF_SAS_REQUEST_T *fw_request = (SCIF_SAS_REQUEST_T *)io_request;
+	SCI_STATUS status;
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_IO_REQUEST,
-      "scif_sas_domain_discovery_start_high_priority_request_handler(0x%x, 0x%x, 0x%x) enter\n",
-      domain, remote_device, io_request
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_IO_REQUEST,
+	    "scif_sas_domain_discovery_start_high_priority_request_handler(0x%x, 0x%x, 0x%x) enter\n",
+	    domain, remote_device, io_request));
 
-   status = fw_device->state_handlers->start_high_priority_io_handler(
-               &fw_device->parent, &fw_request->parent
-            );
+	status = fw_device->state_handlers->start_high_priority_io_handler(
+	    &fw_device->parent, &fw_request->parent);
 
-   if (status == SCI_SUCCESS)
-   {
-      // Add the IO to the list of outstanding requests on the domain.
+	if (status == SCI_SUCCESS) {
+		// Add the IO to the list of outstanding requests on the domain.
 
-      // It is possible this high priority IO's has already been added to
-      // the domain's list as a SCIF_SAS_TASK_REQUEST. We need to check
-      // if it is already on the list.
-      if ( ! sci_fast_list_is_on_this_list(
-               &fw_domain->request_list, &fw_request->list_element))
+		// It is possible this high priority IO's has already been added
+		// to the domain's list as a SCIF_SAS_TASK_REQUEST. We need to
+		// check if it is already on the list.
+		if (!sci_fast_list_is_on_this_list(&fw_domain->request_list,
+			&fw_request->list_element))
 
-         sci_fast_list_insert_tail(
-            &fw_domain->request_list, &fw_request->list_element
-         );
-   }
+			sci_fast_list_insert_tail(&fw_domain->request_list,
+			    &fw_request->list_element);
+	}
 
-   return status;
+	return status;
 }
-
 
 /**
  * @brief This method provides DISCOVERING state specific handling for
@@ -860,23 +742,17 @@ SCI_STATUS scif_sas_domain_discovering_start_high_priority_io_handler(
  * @retval SCI_SUCCESS This value is returned when the complete IO operation
  *         is successful.
  */
-static
-SCI_STATUS scif_sas_domain_discovering_complete_io_handler(
-   SCI_BASE_DOMAIN_T        * domain,
-   SCI_BASE_REMOTE_DEVICE_T * remote_device,
-   SCI_BASE_REQUEST_T       * io_request
-)
+static SCI_STATUS
+scif_sas_domain_discovering_complete_io_handler(SCI_BASE_DOMAIN_T *domain,
+    SCI_BASE_REMOTE_DEVICE_T *remote_device, SCI_BASE_REQUEST_T *io_request)
 {
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_IO_REQUEST,
-      "scif_sas_domain_discovering_complete_io_handler(0x%x, 0x%x, 0x%x) enter\n",
-      domain, remote_device, io_request
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_IO_REQUEST,
+	    "scif_sas_domain_discovering_complete_io_handler(0x%x, 0x%x, 0x%x) enter\n",
+	    domain, remote_device, io_request));
 
-   return scif_sas_domain_ready_complete_io_handler(
-             domain, remote_device, io_request
-          );
+	return scif_sas_domain_ready_complete_io_handler(domain, remote_device,
+	    io_request);
 }
 
 /**
@@ -898,51 +774,42 @@ SCI_STATUS scif_sas_domain_discovering_complete_io_handler(
  * @retval SCI_SUCCESS This value is returned when the complete IO operation
  *         is successful.
  */
-static
-SCI_STATUS scif_sas_domain_discovering_complete_high_priority_io_handler(
-   SCI_BASE_DOMAIN_T        * domain,
-   SCI_BASE_REMOTE_DEVICE_T * remote_device,
-   SCI_BASE_REQUEST_T       * io_request,
-   void                     * response_data,
-   SCI_IO_STATUS              completion_status
-)
+static SCI_STATUS
+scif_sas_domain_discovering_complete_high_priority_io_handler(
+    SCI_BASE_DOMAIN_T *domain, SCI_BASE_REMOTE_DEVICE_T *remote_device,
+    SCI_BASE_REQUEST_T *io_request, void *response_data,
+    SCI_IO_STATUS completion_status)
 {
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device = (SCIF_SAS_REMOTE_DEVICE_T*)
-                                          remote_device;
-   SCIF_SAS_REQUEST_T       * fw_request= (SCIF_SAS_REQUEST_T*) io_request;
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+	    remote_device;
+	SCIF_SAS_REQUEST_T *fw_request = (SCIF_SAS_REQUEST_T *)io_request;
 
-   SCIC_TRANSPORT_PROTOCOL    protocol;
+	SCIC_TRANSPORT_PROTOCOL protocol;
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_IO_REQUEST,
-      "scif_sas_domain_discovering_complete_high_priority_io_handler(0x%x, 0x%x, 0x%x, 0x%x) enter\n",
-      domain, remote_device, io_request, response_data
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_IO_REQUEST,
+	    "scif_sas_domain_discovering_complete_high_priority_io_handler(0x%x, 0x%x, 0x%x, 0x%x) enter\n",
+	    domain, remote_device, io_request, response_data));
 
-   protocol = scic_io_request_get_protocol(fw_request->core_object);
+	protocol = scic_io_request_get_protocol(fw_request->core_object);
 
-   // Remove the IO from the list of outstanding requests on the domain.
+	// Remove the IO from the list of outstanding requests on the domain.
 
-   // If the request is an SMP HARD/LINK RESET request, then the request
-   // came through the task management path (partially).  As a result,
-   // the accounting for the request is managed in the task request
-   // completion path.  Thus, only change the domain request counter if
-   // the request is not an SMP target reset of some sort.
-   if (
-         (protocol != SCIC_SMP_PROTOCOL)
-      || (fw_device->protocol_device.smp_device.current_activity !=
-                SCIF_SAS_SMP_REMOTE_DEVICE_ACTIVITY_TARGET_RESET)
-   )
-   {
-      sci_fast_list_remove_element(&fw_request->list_element);
-   }
+	// If the request is an SMP HARD/LINK RESET request, then the request
+	// came through the task management path (partially).  As a result,
+	// the accounting for the request is managed in the task request
+	// completion path.  Thus, only change the domain request counter if
+	// the request is not an SMP target reset of some sort.
+	if ((protocol != SCIC_SMP_PROTOCOL) ||
+	    (fw_device->protocol_device.smp_device.current_activity !=
+		SCIF_SAS_SMP_REMOTE_DEVICE_ACTIVITY_TARGET_RESET)) {
+		sci_fast_list_remove_element(&fw_request->list_element);
+	}
 
-   return fw_device->state_handlers->complete_high_priority_io_handler(
-             &fw_device->parent, &fw_request->parent, response_data, completion_status
-          );
+	return fw_device->state_handlers->complete_high_priority_io_handler(
+	    &fw_device->parent, &fw_request->parent, response_data,
+	    completion_status);
 }
-
 
 /**
  * @brief This method provides DISCOVERING state specific handling for
@@ -963,24 +830,18 @@ SCI_STATUS scif_sas_domain_discovering_complete_high_priority_io_handler(
  * @retval SCI_SUCCESS This value is returned when the continue IO operation
  *         is successful.
  */
-static
-SCI_STATUS scif_sas_domain_discovering_continue_io_handler(
-   SCI_BASE_DOMAIN_T        * domain,
-   SCI_BASE_REMOTE_DEVICE_T * remote_device,
-   SCI_BASE_REQUEST_T       * io_request
-)
+static SCI_STATUS
+scif_sas_domain_discovering_continue_io_handler(SCI_BASE_DOMAIN_T *domain,
+    SCI_BASE_REMOTE_DEVICE_T *remote_device, SCI_BASE_REQUEST_T *io_request)
 {
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_IO_REQUEST,
-      "scif_sas_domain_discovering_continue_io_handler(0x%x, 0x%x, 0x%x) enter\n",
-      domain, remote_device, io_request
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_IO_REQUEST,
+	    "scif_sas_domain_discovering_continue_io_handler(0x%x, 0x%x, 0x%x) enter\n",
+	    domain, remote_device, io_request));
 
-   /// @todo fix return code handling.
-   return SCI_FAILURE;
+	/// @todo fix return code handling.
+	return SCI_FAILURE;
 }
-
 
 /**
  * @brief This method provides handling when a user attempts to start
@@ -999,40 +860,34 @@ SCI_STATUS scif_sas_domain_discovering_continue_io_handler(
  * @retval SCI_FAILURE_INVALID_STATE This value is returned for any tasks,
  *         except for HARD RESET.
  */
-static
-SCI_STATUS scif_sas_domain_discovering_start_task_handler(
-   SCI_BASE_DOMAIN_T        * domain,
-   SCI_BASE_REMOTE_DEVICE_T * remote_device,
-   SCI_BASE_REQUEST_T       * task_request
-)
+static SCI_STATUS
+scif_sas_domain_discovering_start_task_handler(SCI_BASE_DOMAIN_T *domain,
+    SCI_BASE_REMOTE_DEVICE_T *remote_device, SCI_BASE_REQUEST_T *task_request)
 {
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device = (SCIF_SAS_REMOTE_DEVICE_T*)
-                                          remote_device;
-   SCIF_SAS_TASK_REQUEST_T  * fw_task = (SCIF_SAS_TASK_REQUEST_T*)task_request;
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+	    remote_device;
+	SCIF_SAS_TASK_REQUEST_T *fw_task = (SCIF_SAS_TASK_REQUEST_T *)
+	    task_request;
 
-   //Only let target reset go through.
-   if (scif_sas_task_request_get_function(fw_task)
-             == SCI_SAS_HARD_RESET)
-   {
-      //If the domain is in the middle of smp DISCOVER process,
-      //interrupt it. After target reset is done, resume the smp DISCOVERY.
-      scif_sas_domain_cancel_smp_activities(fw_device->domain);
+	// Only let target reset go through.
+	if (scif_sas_task_request_get_function(fw_task) == SCI_SAS_HARD_RESET) {
+		// If the domain is in the middle of smp DISCOVER process,
+		// interrupt it. After target reset is done, resume the smp
+		// DISCOVERY.
+		scif_sas_domain_cancel_smp_activities(fw_device->domain);
 
-      return scif_sas_domain_ready_start_task_handler(domain, remote_device, task_request);
-   }
-   else{
-      SCIF_LOG_WARNING((
-         sci_base_object_get_logger(domain),
-         SCIF_LOG_OBJECT_DOMAIN,
-         "Domain:0x%x Device:0x%x State:0x%x start task message invalid\n",
-         domain, remote_device,
-         sci_base_state_machine_get_state(&domain->state_machine)
-      ));
+		return scif_sas_domain_ready_start_task_handler(domain,
+		    remote_device, task_request);
+	} else {
+		SCIF_LOG_WARNING((sci_base_object_get_logger(domain),
+		    SCIF_LOG_OBJECT_DOMAIN,
+		    "Domain:0x%x Device:0x%x State:0x%x start task message invalid\n",
+		    domain, remote_device,
+		    sci_base_state_machine_get_state(&domain->state_machine)));
 
-      return SCI_FAILURE_INVALID_STATE;
-   }
+		return SCI_FAILURE_INVALID_STATE;
+	}
 }
-
 
 /**
  * @brief This method provides DISCOVERING state specific handling for
@@ -1053,27 +908,21 @@ SCI_STATUS scif_sas_domain_discovering_start_task_handler(
  * @retval SCI_SUCCESS This value is returned when the complete task request
  *         is successful.
  */
-static
-SCI_STATUS scif_sas_domain_discovering_complete_task_handler(
-   SCI_BASE_DOMAIN_T        * domain,
-   SCI_BASE_REMOTE_DEVICE_T * remote_device,
-   SCI_BASE_REQUEST_T       * task_request
-)
+static SCI_STATUS
+scif_sas_domain_discovering_complete_task_handler(SCI_BASE_DOMAIN_T *domain,
+    SCI_BASE_REMOTE_DEVICE_T *remote_device, SCI_BASE_REQUEST_T *task_request)
 {
-   SCI_STATUS status;
+	SCI_STATUS status;
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_TASK_MANAGEMENT,
-      "scif_sas_domain_discovering_complete_task_handler(0x%x, 0x%x, 0x%x) enter\n",
-      domain, remote_device, task_request
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_TASK_MANAGEMENT,
+	    "scif_sas_domain_discovering_complete_task_handler(0x%x, 0x%x, 0x%x) enter\n",
+	    domain, remote_device, task_request));
 
-   status = scif_sas_domain_ready_complete_task_handler(
-               domain, remote_device, task_request
-            );
+	status = scif_sas_domain_ready_complete_task_handler(domain,
+	    remote_device, task_request);
 
-   return status;
+	return status;
 }
 
 //******************************************************************************
@@ -1100,22 +949,17 @@ SCI_STATUS scif_sas_domain_discovering_complete_task_handler(
  *         are not allowed.
  * @retval SCI_FAILURE_INVALID_STATE This value is always returned.
  */
-static
-SCI_STATUS scif_sas_domain_default_discover_handler(
-   SCI_BASE_DOMAIN_T * domain,
-   U32                 op_timeout,
-   U32                 device_timeout
-)
+static SCI_STATUS
+scif_sas_domain_default_discover_handler(SCI_BASE_DOMAIN_T *domain,
+    U32 op_timeout, U32 device_timeout)
 {
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger((SCIF_SAS_DOMAIN_T *)domain),
-      SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
-      "Domain:0x%x State:0x%x requested to discover in invalid state\n",
-      domain,
-      sci_base_state_machine_get_state(&domain->state_machine)
-   ));
+	SCIF_LOG_WARNING((sci_base_object_get_logger(
+			      (SCIF_SAS_DOMAIN_T *)domain),
+	    SCIF_LOG_OBJECT_DOMAIN | SCIF_LOG_OBJECT_DOMAIN_DISCOVERY,
+	    "Domain:0x%x State:0x%x requested to discover in invalid state\n",
+	    domain, sci_base_state_machine_get_state(&domain->state_machine)));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -1127,20 +971,14 @@ SCI_STATUS scif_sas_domain_default_discover_handler(
  *
  * @return
  */
-static
-SCI_STATUS scif_sas_domain_default_port_ready_handler(
-   SCI_BASE_DOMAIN_T * domain
-)
+static SCI_STATUS
+scif_sas_domain_default_port_ready_handler(SCI_BASE_DOMAIN_T *domain)
 {
-   SCIF_LOG_INFO((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN,
-      "Domain:0x%x State:0x%x port now ready\n",
-      domain,
-      sci_base_state_machine_get_state(&domain->state_machine)
-   ));
+	SCIF_LOG_INFO((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN, "Domain:0x%x State:0x%x port now ready\n",
+	    domain, sci_base_state_machine_get_state(&domain->state_machine)));
 
-   return SCI_SUCCESS;
+	return SCI_SUCCESS;
 }
 
 /**
@@ -1152,22 +990,17 @@ SCI_STATUS scif_sas_domain_default_port_ready_handler(
  *
  * @return
  */
-static
-SCI_STATUS scif_sas_domain_default_port_not_ready_handler(
-   SCI_BASE_DOMAIN_T * domain,
-   U32                 reason_code
-)
+static SCI_STATUS
+scif_sas_domain_default_port_not_ready_handler(SCI_BASE_DOMAIN_T *domain,
+    U32 reason_code)
 {
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN,
-      "Domain:0x%x State:0x%x Port Not Ready 0x%x in invalid state\n",
-      domain,
-      sci_base_state_machine_get_state(&domain->state_machine),
-      reason_code
-   ));
+	SCIF_LOG_WARNING((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN,
+	    "Domain:0x%x State:0x%x Port Not Ready 0x%x in invalid state\n",
+	    domain, sci_base_state_machine_get_state(&domain->state_machine),
+	    reason_code));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -1188,22 +1021,17 @@ SCI_STATUS scif_sas_domain_default_port_not_ready_handler(
  *         are not allowed.
  * @retval SCI_FAILURE_INVALID_STATE This value is always returned.
  */
-static
-SCI_STATUS scif_sas_domain_default_start_io_handler(
-   SCI_BASE_DOMAIN_T        * domain,
-   SCI_BASE_REMOTE_DEVICE_T * remote_device,
-   SCI_BASE_REQUEST_T       * io_request
-)
+static SCI_STATUS
+scif_sas_domain_default_start_io_handler(SCI_BASE_DOMAIN_T *domain,
+    SCI_BASE_REMOTE_DEVICE_T *remote_device, SCI_BASE_REQUEST_T *io_request)
 {
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN,
-      "Domain:0x%x Device:0x%x State:0x%x start IO message invalid\n",
-      domain, remote_device,
-      sci_base_state_machine_get_state(&domain->state_machine)
-   ));
+	SCIF_LOG_WARNING(
+	    (sci_base_object_get_logger(domain), SCIF_LOG_OBJECT_DOMAIN,
+		"Domain:0x%x Device:0x%x State:0x%x start IO message invalid\n",
+		domain, remote_device,
+		sci_base_state_machine_get_state(&domain->state_machine)));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -1224,24 +1052,18 @@ SCI_STATUS scif_sas_domain_default_start_io_handler(
  *         are not allowed.
  * @retval SCI_FAILURE_INVALID_STATE This value is always returned.
  */
-static
-SCI_STATUS scif_sas_domain_default_complete_io_handler(
-   SCI_BASE_DOMAIN_T        * domain,
-   SCI_BASE_REMOTE_DEVICE_T * remote_device,
-   SCI_BASE_REQUEST_T       * io_request
-)
+static SCI_STATUS
+scif_sas_domain_default_complete_io_handler(SCI_BASE_DOMAIN_T *domain,
+    SCI_BASE_REMOTE_DEVICE_T *remote_device, SCI_BASE_REQUEST_T *io_request)
 {
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN,
-      "Domain:0x%x Device:0x%x State:0x%x complete IO message invalid\n",
-      domain, remote_device,
-      sci_base_state_machine_get_state(&domain->state_machine)
-   ));
+	SCIF_LOG_WARNING((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN,
+	    "Domain:0x%x Device:0x%x State:0x%x complete IO message invalid\n",
+	    domain, remote_device,
+	    sci_base_state_machine_get_state(&domain->state_machine)));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
-
 
 /**
  * @brief This method provides default handling (i.e. returns an error)
@@ -1261,24 +1083,19 @@ SCI_STATUS scif_sas_domain_default_complete_io_handler(
  *         are not allowed.
  * @retval SCI_FAILURE_INVALID_STATE This value is always returned.
  */
-static
-SCI_STATUS scif_sas_domain_default_complete_high_priority_io_handler(
-   SCI_BASE_DOMAIN_T        * domain,
-   SCI_BASE_REMOTE_DEVICE_T * remote_device,
-   SCI_BASE_REQUEST_T       * io_request,
-   void                     * response_data,
-   SCI_IO_STATUS              completion_status
-)
+static SCI_STATUS
+scif_sas_domain_default_complete_high_priority_io_handler(
+    SCI_BASE_DOMAIN_T *domain, SCI_BASE_REMOTE_DEVICE_T *remote_device,
+    SCI_BASE_REQUEST_T *io_request, void *response_data,
+    SCI_IO_STATUS completion_status)
 {
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN,
-      "Domain:0x%x Device:0x%x State:0x%x complete IO message invalid\n",
-      domain, remote_device,
-      sci_base_state_machine_get_state(&domain->state_machine)
-   ));
+	SCIF_LOG_WARNING((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN,
+	    "Domain:0x%x Device:0x%x State:0x%x complete IO message invalid\n",
+	    domain, remote_device,
+	    sci_base_state_machine_get_state(&domain->state_machine)));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -1299,22 +1116,17 @@ SCI_STATUS scif_sas_domain_default_complete_high_priority_io_handler(
  *         are not allowed.
  * @retval SCI_FAILURE_INVALID_STATE This value is always returned.
  */
-static
-SCI_STATUS scif_sas_domain_default_continue_io_handler(
-   SCI_BASE_DOMAIN_T        * domain,
-   SCI_BASE_REMOTE_DEVICE_T * remote_device,
-   SCI_BASE_REQUEST_T       * io_request
-)
+static SCI_STATUS
+scif_sas_domain_default_continue_io_handler(SCI_BASE_DOMAIN_T *domain,
+    SCI_BASE_REMOTE_DEVICE_T *remote_device, SCI_BASE_REQUEST_T *io_request)
 {
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN,
-      "Domain:0x%x Device:0x%x State:0x%x contineu IO message invalid\n",
-      domain, remote_device,
-      sci_base_state_machine_get_state(&domain->state_machine)
-   ));
+	SCIF_LOG_WARNING((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN,
+	    "Domain:0x%x Device:0x%x State:0x%x contineu IO message invalid\n",
+	    domain, remote_device,
+	    sci_base_state_machine_get_state(&domain->state_machine)));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -1335,22 +1147,17 @@ SCI_STATUS scif_sas_domain_default_continue_io_handler(
  *         are not allowed.
  * @retval SCI_FAILURE_INVALID_STATE This value is always returned.
  */
-static
-SCI_STATUS scif_sas_domain_default_start_task_handler(
-   SCI_BASE_DOMAIN_T        * domain,
-   SCI_BASE_REMOTE_DEVICE_T * remote_device,
-   SCI_BASE_REQUEST_T       * task_request
-)
+static SCI_STATUS
+scif_sas_domain_default_start_task_handler(SCI_BASE_DOMAIN_T *domain,
+    SCI_BASE_REMOTE_DEVICE_T *remote_device, SCI_BASE_REQUEST_T *task_request)
 {
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN,
-      "Domain:0x%x Device:0x%x State:0x%x start task message invalid\n",
-      domain, remote_device,
-      sci_base_state_machine_get_state(&domain->state_machine)
-   ));
+	SCIF_LOG_WARNING((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN,
+	    "Domain:0x%x Device:0x%x State:0x%x start task message invalid\n",
+	    domain, remote_device,
+	    sci_base_state_machine_get_state(&domain->state_machine)));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -1371,22 +1178,17 @@ SCI_STATUS scif_sas_domain_default_start_task_handler(
  *         are not allowed.
  * @retval SCI_FAILURE_INVALID_STATE This value is always returned.
  */
-static
-SCI_STATUS scif_sas_domain_default_complete_task_handler(
-   SCI_BASE_DOMAIN_T        * domain,
-   SCI_BASE_REMOTE_DEVICE_T * remote_device,
-   SCI_BASE_REQUEST_T       * task_request
-)
+static SCI_STATUS
+scif_sas_domain_default_complete_task_handler(SCI_BASE_DOMAIN_T *domain,
+    SCI_BASE_REMOTE_DEVICE_T *remote_device, SCI_BASE_REQUEST_T *task_request)
 {
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN,
-      "Domain:0x%x Device:0x%x State:0x%x complete task message invalid\n",
-      domain, remote_device,
-      sci_base_state_machine_get_state(&domain->state_machine)
-   ));
+	SCIF_LOG_WARNING((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN,
+	    "Domain:0x%x Device:0x%x State:0x%x complete task message invalid\n",
+	    domain, remote_device,
+	    sci_base_state_machine_get_state(&domain->state_machine)));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -1402,21 +1204,17 @@ SCI_STATUS scif_sas_domain_default_complete_task_handler(
  *         completion is not allowed.
  * @retval SCI_FAILURE_INVALID_STATE This value is always returned.
  */
-static
-SCI_STATUS scif_sas_domain_default_device_start_complete_handler(
-   SCI_BASE_DOMAIN_T        * domain,
-   SCI_BASE_REMOTE_DEVICE_T * remote_device
-)
+static SCI_STATUS
+scif_sas_domain_default_device_start_complete_handler(SCI_BASE_DOMAIN_T *domain,
+    SCI_BASE_REMOTE_DEVICE_T *remote_device)
 {
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN,
-      "Domain:0x%x Device:0x%x State:0x%x device stop complete message invalid\n",
-      domain, remote_device,
-      sci_base_state_machine_get_state(&domain->state_machine)
-   ));
+	SCIF_LOG_WARNING((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN,
+	    "Domain:0x%x Device:0x%x State:0x%x device stop complete message invalid\n",
+	    domain, remote_device,
+	    sci_base_state_machine_get_state(&domain->state_machine)));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -1432,21 +1230,17 @@ SCI_STATUS scif_sas_domain_default_device_start_complete_handler(
  *         completion is not allowed.
  * @retval SCI_FAILURE_INVALID_STATE This value is always returned.
  */
-static
-SCI_STATUS scif_sas_domain_default_device_stop_complete_handler(
-   SCI_BASE_DOMAIN_T        * domain,
-   SCI_BASE_REMOTE_DEVICE_T * remote_device
-)
+static SCI_STATUS
+scif_sas_domain_default_device_stop_complete_handler(SCI_BASE_DOMAIN_T *domain,
+    SCI_BASE_REMOTE_DEVICE_T *remote_device)
 {
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN,
-      "Domain:0x%x Device:0x%x State:0x%x device stop complete message invalid\n",
-      domain, remote_device,
-      sci_base_state_machine_get_state(&domain->state_machine)
-   ));
+	SCIF_LOG_WARNING((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN,
+	    "Domain:0x%x Device:0x%x State:0x%x device stop complete message invalid\n",
+	    domain, remote_device,
+	    sci_base_state_machine_get_state(&domain->state_machine)));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -1462,23 +1256,18 @@ SCI_STATUS scif_sas_domain_default_device_stop_complete_handler(
  *         is not allowed.
  * @retval SCI_FAILURE_INVALID_STATE This value is always returned.
  */
-static
-SCI_STATUS scif_sas_domain_default_device_destruct_handler(
-   SCI_BASE_DOMAIN_T        * domain,
-   SCI_BASE_REMOTE_DEVICE_T * remote_device
-)
+static SCI_STATUS
+scif_sas_domain_default_device_destruct_handler(SCI_BASE_DOMAIN_T *domain,
+    SCI_BASE_REMOTE_DEVICE_T *remote_device)
 {
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN,
-      "Domain:0x%x Device:0x%x State:0x%x device destruct in invalid state\n",
-      domain, remote_device,
-      sci_base_state_machine_get_state(&domain->state_machine)
-   ));
+	SCIF_LOG_WARNING((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN,
+	    "Domain:0x%x Device:0x%x State:0x%x device destruct in invalid state\n",
+	    domain, remote_device,
+	    sci_base_state_machine_get_state(&domain->state_machine)));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
-
 
 /**
  * @brief This method provides handling when sci user destruct a remote
@@ -1494,137 +1283,115 @@ SCI_STATUS scif_sas_domain_default_device_destruct_handler(
  * @retval SCI_SUCCESS This value is returned when a remote device is
  *         successfully removed from domain.
  */
-static
-SCI_STATUS scif_sas_domain_discovering_device_destruct_handler(
-   SCI_BASE_DOMAIN_T        * domain,
-   SCI_BASE_REMOTE_DEVICE_T * remote_device
-)
+static SCI_STATUS
+scif_sas_domain_discovering_device_destruct_handler(SCI_BASE_DOMAIN_T *domain,
+    SCI_BASE_REMOTE_DEVICE_T *remote_device)
 {
-   SCIF_SAS_DOMAIN_T * fw_domain = (SCIF_SAS_DOMAIN_T *)domain;
+	SCIF_SAS_DOMAIN_T *fw_domain = (SCIF_SAS_DOMAIN_T *)domain;
 
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger(domain),
-      SCIF_LOG_OBJECT_DOMAIN,
-      "Domain:0x%x Device:0x%x State:0x%x device destruct in domain DISCOVERING state\n",
-      domain, remote_device,
-      sci_base_state_machine_get_state(&domain->state_machine)
-   ));
+	SCIF_LOG_WARNING((sci_base_object_get_logger(domain),
+	    SCIF_LOG_OBJECT_DOMAIN,
+	    "Domain:0x%x Device:0x%x State:0x%x device destruct in domain DISCOVERING state\n",
+	    domain, remote_device,
+	    sci_base_state_machine_get_state(&domain->state_machine)));
 
-   //remove the remote device from domain's remote_device_list
-   sci_abstract_list_erase(
-      &(fw_domain->remote_device_list),
-      remote_device
-   );
+	// remove the remote device from domain's remote_device_list
+	sci_abstract_list_erase(&(fw_domain->remote_device_list),
+	    remote_device);
 
-   return SCI_SUCCESS;
+	return SCI_SUCCESS;
 }
 
-
 #define scif_sas_domain_stopped_discover_handler \
-        scif_sas_domain_ready_discover_handler
+	scif_sas_domain_ready_discover_handler
 
 #define scif_sas_domain_default_start_high_priority_io_handler \
-        scif_sas_domain_default_start_io_handler
-
+	scif_sas_domain_default_start_io_handler
 
 SCI_BASE_DOMAIN_STATE_HANDLER_T
-   scif_sas_domain_state_handler_table[SCI_BASE_DOMAIN_MAX_STATES] =
-{
-   // SCI_BASE_DOMAIN_STATE_INITIAL
-   {
-      scif_sas_domain_default_discover_handler,
-      scif_sas_domain_default_port_ready_handler,
-      scif_sas_domain_default_port_not_ready_handler,
-      scif_sas_domain_default_device_start_complete_handler,
-      scif_sas_domain_default_device_stop_complete_handler,
-      scif_sas_domain_default_device_destruct_handler,
-      scif_sas_domain_default_start_io_handler,
-      scif_sas_domain_default_start_high_priority_io_handler,
-      scif_sas_domain_default_complete_io_handler,
-      scif_sas_domain_default_complete_high_priority_io_handler,
-      scif_sas_domain_default_continue_io_handler,
-      scif_sas_domain_default_start_task_handler,
-      scif_sas_domain_default_complete_task_handler
-   },
-   // SCI_BASE_DOMAIN_STATE_STARTING
-   {
-      scif_sas_domain_default_discover_handler,
-      scif_sas_domain_starting_port_ready_handler,
-      scif_sas_domain_default_port_not_ready_handler,
-      scif_sas_domain_default_device_start_complete_handler,
-      scif_sas_domain_default_device_stop_complete_handler,
-      scif_sas_domain_default_device_destruct_handler,
-      scif_sas_domain_default_start_io_handler,
-      scif_sas_domain_default_start_high_priority_io_handler,
-      scif_sas_domain_default_complete_io_handler,
-      scif_sas_domain_default_complete_high_priority_io_handler,
-      scif_sas_domain_default_continue_io_handler,
-      scif_sas_domain_default_start_task_handler,
-      scif_sas_domain_default_complete_task_handler
-   },
-   // SCI_BASE_DOMAIN_STATE_READY
-   {
-      scif_sas_domain_ready_discover_handler,
-      scif_sas_domain_default_port_ready_handler,
-      scif_sas_domain_ready_port_not_ready_handler,
-      scif_sas_domain_default_device_start_complete_handler,
-      scif_sas_domain_default_device_stop_complete_handler,
-      scif_sas_domain_default_device_destruct_handler,
-      scif_sas_domain_ready_start_io_handler,
-      scif_sas_domain_ready_start_high_priority_io_handler,
-      scif_sas_domain_ready_complete_io_handler,
-      scif_sas_domain_ready_complete_high_priority_io_handler,
-      scif_sas_domain_ready_continue_io_handler,
-      scif_sas_domain_ready_start_task_handler,
-      scif_sas_domain_ready_complete_task_handler
-   },
-   // SCI_BASE_DOMAIN_STATE_STOPPING
-   {
-      scif_sas_domain_default_discover_handler,
-      scif_sas_domain_default_port_ready_handler,
-      scif_sas_domain_default_port_not_ready_handler,
-      scif_sas_domain_default_device_start_complete_handler,
-      scif_sas_domain_stopping_device_stop_complete_handler,
-      scif_sas_domain_default_device_destruct_handler,
-      scif_sas_domain_default_start_io_handler,
-      scif_sas_domain_default_start_high_priority_io_handler,
-      scif_sas_domain_stopping_complete_io_handler,
-      scif_sas_domain_stopping_complete_high_priority_io_handler,
-      scif_sas_domain_default_continue_io_handler,
-      scif_sas_domain_default_start_task_handler,
-      scif_sas_domain_stopping_complete_task_handler
-   },
-   // SCI_BASE_DOMAIN_STATE_STOPPED
-   {
-      scif_sas_domain_stopped_discover_handler,
-      scif_sas_domain_default_port_ready_handler,
-      scif_sas_domain_default_port_not_ready_handler,
-      scif_sas_domain_default_device_start_complete_handler,
-      scif_sas_domain_default_device_stop_complete_handler,
-      scif_sas_domain_default_device_destruct_handler,
-      scif_sas_domain_default_start_io_handler,
-      scif_sas_domain_default_start_high_priority_io_handler,
-      scif_sas_domain_default_complete_io_handler,
-      scif_sas_domain_default_complete_high_priority_io_handler,
-      scif_sas_domain_default_continue_io_handler,
-      scif_sas_domain_default_start_task_handler,
-      scif_sas_domain_default_complete_task_handler
-   },
-   // SCI_BASE_DOMAIN_STATE_DISCOVERING
-   {
-      scif_sas_domain_default_discover_handler,
-      scif_sas_domain_default_port_ready_handler,
-      scif_sas_domain_discovering_port_not_ready_handler,
-      scif_sas_domain_discovering_device_start_complete_handler,
-      scif_sas_domain_discovering_device_stop_complete_handler,
-      scif_sas_domain_discovering_device_destruct_handler,  //
-      scif_sas_domain_default_start_io_handler,
-      scif_sas_domain_discovering_start_high_priority_io_handler,
-      scif_sas_domain_discovering_complete_io_handler,
-      scif_sas_domain_discovering_complete_high_priority_io_handler, //
-      scif_sas_domain_discovering_continue_io_handler,
-      scif_sas_domain_discovering_start_task_handler,
-      scif_sas_domain_discovering_complete_task_handler
-   }
+scif_sas_domain_state_handler_table[SCI_BASE_DOMAIN_MAX_STATES] = {
+	// SCI_BASE_DOMAIN_STATE_INITIAL
+	{ scif_sas_domain_default_discover_handler,
+	    scif_sas_domain_default_port_ready_handler,
+	    scif_sas_domain_default_port_not_ready_handler,
+	    scif_sas_domain_default_device_start_complete_handler,
+	    scif_sas_domain_default_device_stop_complete_handler,
+	    scif_sas_domain_default_device_destruct_handler,
+	    scif_sas_domain_default_start_io_handler,
+	    scif_sas_domain_default_start_high_priority_io_handler,
+	    scif_sas_domain_default_complete_io_handler,
+	    scif_sas_domain_default_complete_high_priority_io_handler,
+	    scif_sas_domain_default_continue_io_handler,
+	    scif_sas_domain_default_start_task_handler,
+	    scif_sas_domain_default_complete_task_handler },
+	// SCI_BASE_DOMAIN_STATE_STARTING
+	{ scif_sas_domain_default_discover_handler,
+	    scif_sas_domain_starting_port_ready_handler,
+	    scif_sas_domain_default_port_not_ready_handler,
+	    scif_sas_domain_default_device_start_complete_handler,
+	    scif_sas_domain_default_device_stop_complete_handler,
+	    scif_sas_domain_default_device_destruct_handler,
+	    scif_sas_domain_default_start_io_handler,
+	    scif_sas_domain_default_start_high_priority_io_handler,
+	    scif_sas_domain_default_complete_io_handler,
+	    scif_sas_domain_default_complete_high_priority_io_handler,
+	    scif_sas_domain_default_continue_io_handler,
+	    scif_sas_domain_default_start_task_handler,
+	    scif_sas_domain_default_complete_task_handler },
+	// SCI_BASE_DOMAIN_STATE_READY
+	{ scif_sas_domain_ready_discover_handler,
+	    scif_sas_domain_default_port_ready_handler,
+	    scif_sas_domain_ready_port_not_ready_handler,
+	    scif_sas_domain_default_device_start_complete_handler,
+	    scif_sas_domain_default_device_stop_complete_handler,
+	    scif_sas_domain_default_device_destruct_handler,
+	    scif_sas_domain_ready_start_io_handler,
+	    scif_sas_domain_ready_start_high_priority_io_handler,
+	    scif_sas_domain_ready_complete_io_handler,
+	    scif_sas_domain_ready_complete_high_priority_io_handler,
+	    scif_sas_domain_ready_continue_io_handler,
+	    scif_sas_domain_ready_start_task_handler,
+	    scif_sas_domain_ready_complete_task_handler },
+	// SCI_BASE_DOMAIN_STATE_STOPPING
+	{ scif_sas_domain_default_discover_handler,
+	    scif_sas_domain_default_port_ready_handler,
+	    scif_sas_domain_default_port_not_ready_handler,
+	    scif_sas_domain_default_device_start_complete_handler,
+	    scif_sas_domain_stopping_device_stop_complete_handler,
+	    scif_sas_domain_default_device_destruct_handler,
+	    scif_sas_domain_default_start_io_handler,
+	    scif_sas_domain_default_start_high_priority_io_handler,
+	    scif_sas_domain_stopping_complete_io_handler,
+	    scif_sas_domain_stopping_complete_high_priority_io_handler,
+	    scif_sas_domain_default_continue_io_handler,
+	    scif_sas_domain_default_start_task_handler,
+	    scif_sas_domain_stopping_complete_task_handler },
+	// SCI_BASE_DOMAIN_STATE_STOPPED
+	{ scif_sas_domain_stopped_discover_handler,
+	    scif_sas_domain_default_port_ready_handler,
+	    scif_sas_domain_default_port_not_ready_handler,
+	    scif_sas_domain_default_device_start_complete_handler,
+	    scif_sas_domain_default_device_stop_complete_handler,
+	    scif_sas_domain_default_device_destruct_handler,
+	    scif_sas_domain_default_start_io_handler,
+	    scif_sas_domain_default_start_high_priority_io_handler,
+	    scif_sas_domain_default_complete_io_handler,
+	    scif_sas_domain_default_complete_high_priority_io_handler,
+	    scif_sas_domain_default_continue_io_handler,
+	    scif_sas_domain_default_start_task_handler,
+	    scif_sas_domain_default_complete_task_handler },
+	// SCI_BASE_DOMAIN_STATE_DISCOVERING
+	{ scif_sas_domain_default_discover_handler,
+	    scif_sas_domain_default_port_ready_handler,
+	    scif_sas_domain_discovering_port_not_ready_handler,
+	    scif_sas_domain_discovering_device_start_complete_handler,
+	    scif_sas_domain_discovering_device_stop_complete_handler,
+	    scif_sas_domain_discovering_device_destruct_handler, //
+	    scif_sas_domain_default_start_io_handler,
+	    scif_sas_domain_discovering_start_high_priority_io_handler,
+	    scif_sas_domain_discovering_complete_io_handler,
+	    scif_sas_domain_discovering_complete_high_priority_io_handler, //
+	    scif_sas_domain_discovering_continue_io_handler,
+	    scif_sas_domain_discovering_start_task_handler,
+	    scif_sas_domain_discovering_complete_task_handler }
 };
-

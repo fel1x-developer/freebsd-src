@@ -50,11 +50,11 @@
 #include <libctf.h>
 #endif
 #include <libutil.h>
-
 #include <zlib.h>
+
 #include "_libproc.h"
 
-#define	PATH_DEBUG_DIR	"/usr/lib/debug"
+#define PATH_DEBUG_DIR "/usr/lib/debug"
 
 #ifdef NO_CTF
 typedef struct ctf_file ctf_file_t;
@@ -494,8 +494,8 @@ lookup_symbol_by_addr(Elf *e, struct symtab *symtab, uintptr_t addr,
 }
 
 int
-proc_addr2sym(struct proc_handle *p, uintptr_t addr, char *name,
-    size_t namesz, GElf_Sym *symcopy)
+proc_addr2sym(struct proc_handle *p, uintptr_t addr, char *name, size_t namesz,
+    GElf_Sym *symcopy)
 {
 	struct file_info *file;
 	struct map_info *mapping;
@@ -504,7 +504,8 @@ proc_addr2sym(struct proc_handle *p, uintptr_t addr, char *name,
 	int error;
 
 	if ((mapping = _proc_addr2map(p, addr)) == NULL) {
-		DPRINTFX("ERROR: proc_addr2map failed to resolve 0x%jx", (uintmax_t)addr);
+		DPRINTFX("ERROR: proc_addr2map failed to resolve 0x%jx",
+		    (uintmax_t)addr);
 		return (-1);
 	}
 	if (open_object(mapping) != 0) {
@@ -515,7 +516,8 @@ proc_addr2sym(struct proc_handle *p, uintptr_t addr, char *name,
 
 	file = mapping->file;
 	off = file->ehdr.e_type == ET_DYN ?
-	    mapping->map.pr_vaddr - mapping->map.pr_offset : 0;
+	    mapping->map.pr_vaddr - mapping->map.pr_offset :
+	    0;
 	if (addr < off)
 		return (ENOENT);
 	addr -= off;
@@ -560,8 +562,8 @@ _proc_name2map(struct proc_handle *p, const char *name)
 			return (mapping);
 	}
 	if (strcmp(name, "a.out") == 0)
-		return (_proc_addr2map(p,
-		    p->mappings[p->exec_map].map.pr_vaddr));
+		return (
+		    _proc_addr2map(p, p->mappings[p->exec_map].map.pr_vaddr));
 	return (NULL);
 }
 
@@ -620,7 +622,8 @@ proc_name2sym(struct proc_handle *p, const char *object, const char *symbol,
 
 	file = mapping->file;
 	off = file->ehdr.e_type == ET_DYN ?
-	    mapping->map.pr_vaddr - mapping->map.pr_offset : 0;
+	    mapping->map.pr_vaddr - mapping->map.pr_offset :
+	    0;
 
 	error = lookup_symbol_by_name(file->elf, &file->dynsymtab, symbol,
 	    symcopy, si);

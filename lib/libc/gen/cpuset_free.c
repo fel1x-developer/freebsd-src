@@ -23,8 +23,8 @@
  * SUCH DAMAGE.
  */
 
-#include <stdlib.h>
 #include <sched.h>
+#include <stdlib.h>
 
 void
 __cpuset_free(cpuset_t *ptr)

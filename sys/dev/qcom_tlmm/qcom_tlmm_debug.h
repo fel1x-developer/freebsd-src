@@ -25,17 +25,17 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	__QCOM_TLMM_DEBUG_H__
-#define	__QCOM_TLMM_DEBUG_H__
+#ifndef __QCOM_TLMM_DEBUG_H__
+#define __QCOM_TLMM_DEBUG_H__
 
-#define	QCOM_TLMM_DEBUG_PINMUX			0x00000001
+#define QCOM_TLMM_DEBUG_PINMUX 0x00000001
 
-#define	QCOM_TLMM_DPRINTF(sc, flags, ...)				\
-	do {								\
-		if ((sc)->sc_debug & flags)				\
-			device_printf((sc)->dev, __VA_ARGS__);		\
+#define QCOM_TLMM_DPRINTF(sc, flags, ...)                      \
+	do {                                                   \
+		if ((sc)->sc_debug & flags)                    \
+			device_printf((sc)->dev, __VA_ARGS__); \
 	} while (0)
 
-extern	void qcom_tlmm_debug_sysctl_attach(struct qcom_tlmm_softc *sc);
+extern void qcom_tlmm_debug_sysctl_attach(struct qcom_tlmm_softc *sc);
 
-#endif	/* __QCOM_TLMM_DEBUG_H__ */
+#endif /* __QCOM_TLMM_DEBUG_H__ */

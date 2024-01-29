@@ -11,12 +11,12 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
 
 #include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "mdX.h"
 
@@ -25,18 +25,18 @@ MDXEnd(MDX_CTX *ctx, char *buf)
 {
 	int i;
 	unsigned char digest[LENGTH];
-	static const char hex[]="0123456789abcdef";
+	static const char hex[] = "0123456789abcdef";
 
 	if (!buf)
-		buf = malloc(2*LENGTH + 1);
+		buf = malloc(2 * LENGTH + 1);
 	if (!buf)
 		return 0;
 	MDXFinal(digest, ctx);
 	for (i = 0; i < LENGTH; i++) {
-		buf[i+i] = hex[digest[i] >> 4];
-		buf[i+i+1] = hex[digest[i] & 0x0f];
+		buf[i + i] = hex[digest[i] >> 4];
+		buf[i + i + 1] = hex[digest[i] & 0x0f];
 	}
-	buf[i+i] = '\0';
+	buf[i + i] = '\0';
 	return buf;
 }
 
@@ -49,7 +49,7 @@ MDXFd(int fd, char *buf)
 char *
 MDXFdChunk(int fd, char *buf, off_t ofs, off_t len)
 {
-	unsigned char buffer[16*1024];
+	unsigned char buffer[16 * 1024];
 	MDX_CTX ctx;
 	struct stat stbuf;
 	int readrv, e;
@@ -104,18 +104,18 @@ MDXFileChunk(const char *filename, char *buf, off_t ofs, off_t len)
 		return NULL;
 	ret = MDXFdChunk(fd, buf, ofs, len);
 	e = errno;
-	close (fd);
+	close(fd);
 	errno = e;
 	return ret;
 }
 
 char *
-MDXData (const void *data, unsigned int len, char *buf)
+MDXData(const void *data, unsigned int len, char *buf)
 {
 	MDX_CTX ctx;
 
 	MDXInit(&ctx);
-	MDXUpdate(&ctx,data,len);
+	MDXUpdate(&ctx, data, len);
 	return (MDXEnd(&ctx, buf));
 }
 

@@ -41,22 +41,24 @@ extern "C" {
 
 using namespace testing;
 
-class Lookup: public FuseTest {};
+class Lookup : public FuseTest { };
 
-class Lookup_7_8: public Lookup {
-public:
-virtual void SetUp() {
-	m_kernel_minor_version = 8;
-	Lookup::SetUp();
-}
+class Lookup_7_8 : public Lookup {
+    public:
+	virtual void SetUp()
+	{
+		m_kernel_minor_version = 8;
+		Lookup::SetUp();
+	}
 };
 
-class LookupExportable: public Lookup {
-public:
-virtual void SetUp() {
-	m_init_flags = FUSE_EXPORT_SUPPORT;
-	Lookup::SetUp();
-}
+class LookupExportable : public Lookup {
+    public:
+	virtual void SetUp()
+	{
+		m_init_flags = FUSE_EXPORT_SUPPORT;
+		Lookup::SetUp();
+	}
 };
 
 /*
@@ -72,26 +74,26 @@ TEST_F(Lookup, attr_cache)
 	struct stat sb;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.nodeid = ino;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.attr.ino = ino;	// Must match nodeid
-		out.body.entry.attr.mode = S_IFREG | 0644;
-		out.body.entry.attr.size = 1;
-		out.body.entry.attr.blocks = 2;
-		out.body.entry.attr.atime = 3;
-		out.body.entry.attr.mtime = 4;
-		out.body.entry.attr.ctime = 5;
-		out.body.entry.attr.atimensec = 6;
-		out.body.entry.attr.mtimensec = 7;
-		out.body.entry.attr.ctimensec = 8;
-		out.body.entry.attr.nlink = 9;
-		out.body.entry.attr.uid = 10;
-		out.body.entry.attr.gid = 11;
-		out.body.entry.attr.rdev = 12;
-		out.body.entry.generation = generation;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.nodeid = ino;
+		    out.body.entry.attr_valid = UINT64_MAX;
+		    out.body.entry.attr.ino = ino; // Must match nodeid
+		    out.body.entry.attr.mode = S_IFREG | 0644;
+		    out.body.entry.attr.size = 1;
+		    out.body.entry.attr.blocks = 2;
+		    out.body.entry.attr.atime = 3;
+		    out.body.entry.attr.mtime = 4;
+		    out.body.entry.attr.ctime = 5;
+		    out.body.entry.attr.atimensec = 6;
+		    out.body.entry.attr.mtimensec = 7;
+		    out.body.entry.attr.ctimensec = 8;
+		    out.body.entry.attr.nlink = 9;
+		    out.body.entry.attr.uid = 10;
+		    out.body.entry.attr.gid = 11;
+		    out.body.entry.attr.rdev = 12;
+		    out.body.entry.generation = generation;
+	    })));
 	/* stat(2) issues a VOP_LOOKUP followed by a VOP_GETATTR */
 	ASSERT_EQ(0, stat(FULLPATH, &sb)) << strerror(errno);
 	EXPECT_EQ(1, sb.st_size);
@@ -110,14 +112,14 @@ TEST_F(Lookup, attr_cache)
 	EXPECT_EQ(S_IFREG | 0644, sb.st_mode);
 
 	// fuse(4) does not _yet_ support inode generations
-	//EXPECT_EQ(generation, sb.st_gen);
+	// EXPECT_EQ(generation, sb.st_gen);
 
-	//st_birthtim and st_flags are not supported by protocol 7.8.  They're
-	//only supported as OS-specific extensions to OSX.
-	//EXPECT_EQ(, sb.st_birthtim);
-	//EXPECT_EQ(, sb.st_flags);
-	
-	//FUSE can't set st_blksize until protocol 7.9
+	// st_birthtim and st_flags are not supported by protocol 7.8.  They're
+	// only supported as OS-specific extensions to OSX.
+	// EXPECT_EQ(, sb.st_birthtim);
+	// EXPECT_EQ(, sb.st_flags);
+
+	// FUSE can't set st_blksize until protocol 7.9
 }
 
 /*
@@ -132,14 +134,15 @@ TEST_F(Lookup, attr_cache_timeout)
 	struct stat sb;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.Times(2)
-	.WillRepeatedly(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.nodeid = ino;
-		out.body.entry.attr_valid_nsec = NAP_NS / 2;
-		out.body.entry.attr.ino = ino;	// Must match nodeid
-		out.body.entry.attr.mode = S_IFREG | 0644;
-	})));
+	    .Times(2)
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+			SET_OUT_HEADER_LEN(out, entry);
+			out.body.entry.nodeid = ino;
+			out.body.entry.attr_valid_nsec = NAP_NS / 2;
+			out.body.entry.attr.ino = ino; // Must match nodeid
+			out.body.entry.attr.mode = S_IFREG | 0644;
+		})));
 
 	/* access(2) will issue a VOP_LOOKUP and fill the attr cache */
 	ASSERT_EQ(0, access(FULLPATH, F_OK)) << strerror(errno);
@@ -156,13 +159,13 @@ TEST_F(Lookup, dot)
 	uint64_t ino = 42;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELDIRPATH)
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFDIR | 0755;
-		out.body.entry.nodeid = ino;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.entry_valid = UINT64_MAX;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = S_IFDIR | 0755;
+		    out.body.entry.nodeid = ino;
+		    out.body.entry.attr_valid = UINT64_MAX;
+		    out.body.entry.entry_valid = UINT64_MAX;
+	    })));
 
 	/*
 	 * access(2) is one of the few syscalls that will not (always) follow
@@ -177,13 +180,13 @@ TEST_F(Lookup, dotdot)
 	const char RELDIRPATH[] = "some_dir";
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELDIRPATH)
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFDIR | 0755;
-		out.body.entry.nodeid = 14;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.entry_valid = UINT64_MAX;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = S_IFDIR | 0755;
+		    out.body.entry.nodeid = 14;
+		    out.body.entry.attr_valid = UINT64_MAX;
+		    out.body.entry.entry_valid = UINT64_MAX;
+	    })));
 
 	/*
 	 * access(2) is one of the few syscalls that will not (always) follow
@@ -203,24 +206,24 @@ TEST_F(Lookup, dotdot_entry_cache_timeout)
 	uint64_t bar_ino = 43;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, "foo")
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFDIR | 0755;
-		out.body.entry.nodeid = foo_ino;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.entry_valid = 0;	// immediate timeout
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = S_IFDIR | 0755;
+		    out.body.entry.nodeid = foo_ino;
+		    out.body.entry.attr_valid = UINT64_MAX;
+		    out.body.entry.entry_valid = 0; // immediate timeout
+	    })));
 	EXPECT_LOOKUP(foo_ino, "bar")
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFDIR | 0755;
-		out.body.entry.nodeid = bar_ino;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.entry_valid = UINT64_MAX;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = S_IFDIR | 0755;
+		    out.body.entry.nodeid = bar_ino;
+		    out.body.entry.attr_valid = UINT64_MAX;
+		    out.body.entry.entry_valid = UINT64_MAX;
+	    })));
 	expect_opendir(bar_ino);
 
-	int fd = open("mountpoint/foo/bar", O_EXEC| O_DIRECTORY);
+	int fd = open("mountpoint/foo/bar", O_EXEC | O_DIRECTORY);
 	ASSERT_LE(0, fd) << strerror(errno);
 	EXPECT_EQ(0, faccessat(fd, "../..", F_OK, 0)) << strerror(errno);
 }
@@ -238,38 +241,40 @@ TEST_F(Lookup, dotdot_no_parent_nid)
 	int fd;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, "foo")
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFDIR | 0755;
-		out.body.entry.nodeid = foo_ino;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.entry_valid = UINT64_MAX;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = S_IFDIR | 0755;
+		    out.body.entry.nodeid = foo_ino;
+		    out.body.entry.attr_valid = UINT64_MAX;
+		    out.body.entry.entry_valid = UINT64_MAX;
+	    })));
 	EXPECT_LOOKUP(foo_ino, "bar")
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFDIR | 0755;
-		out.body.entry.nodeid = bar_ino;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.entry_valid = UINT64_MAX;
-	})));
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_OPENDIR);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, open);
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = S_IFDIR | 0755;
+		    out.body.entry.nodeid = bar_ino;
+		    out.body.entry.attr_valid = UINT64_MAX;
+		    out.body.entry.entry_valid = UINT64_MAX;
+	    })));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_OPENDIR);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, open);
+	    })));
 	expect_forget(foo_ino, 1, NULL);
 
-	fd = open("mountpoint/foo/bar", O_EXEC| O_DIRECTORY);
+	fd = open("mountpoint/foo/bar", O_EXEC | O_DIRECTORY);
 	ASSERT_LE(0, fd) << strerror(errno);
 	// Try (and fail) to unmount the file system, to reclaim the mountpoint
 	// and foo vnodes.
 	ASSERT_NE(0, unmount("mountpoint", 0));
 	EXPECT_EQ(EBUSY, errno);
-	nap();		// Because vnode reclamation is asynchronous
+	nap(); // Because vnode reclamation is asynchronous
 	EXPECT_NE(0, faccessat(fd, "../..", F_OK, 0));
 	EXPECT_EQ(ESTALE, errno);
 }
@@ -284,11 +289,11 @@ TEST_F(Lookup, ejustreturn)
 	const char RELPATH[] = "does_not_exist";
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		out.header.len = sizeof(out.header);
-		out.header.error = 2;
-		out.expected_errno = EINVAL;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    out.header.len = sizeof(out.header);
+		    out.header.error = 2;
+		    out.expected_errno = EINVAL;
+	    })));
 
 	EXPECT_NE(0, access(FULLPATH, F_OK));
 
@@ -301,7 +306,7 @@ TEST_F(Lookup, enoent)
 	const char RELPATH[] = "does_not_exist";
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
 	EXPECT_NE(0, access(FULLPATH, F_OK));
 	EXPECT_EQ(ENOENT, errno);
 }
@@ -312,12 +317,12 @@ TEST_F(Lookup, enotdir)
 	const char RELPATH[] = "not_a_dir";
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.entry_valid = UINT64_MAX;
-		out.body.entry.attr.mode = S_IFREG | 0644;
-		out.body.entry.nodeid = 42;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.entry_valid = UINT64_MAX;
+		    out.body.entry.attr.mode = S_IFREG | 0644;
+		    out.body.entry.nodeid = 42;
+	    })));
 
 	ASSERT_EQ(-1, access(FULLPATH, F_OK));
 	ASSERT_EQ(ENOTDIR, errno);
@@ -333,28 +338,28 @@ TEST_F(Lookup, entry_cache)
 	const char RELPATH[] = "some_file.txt";
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.entry_valid = UINT64_MAX;
-		out.body.entry.attr.mode = S_IFREG | 0644;
-		out.body.entry.nodeid = 14;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.entry_valid = UINT64_MAX;
+		    out.body.entry.attr.mode = S_IFREG | 0644;
+		    out.body.entry.nodeid = 14;
+	    })));
 	ASSERT_EQ(0, access(FULLPATH, F_OK)) << strerror(errno);
 	/* The second access(2) should use the cache */
 	ASSERT_EQ(0, access(FULLPATH, F_OK)) << strerror(errno);
 }
 
-/* 
+/*
  * If the daemon returns an error of 0 and an inode of 0, that's a flag for
  * "ENOENT and cache it" with the given entry_timeout
  */
 TEST_F(Lookup, entry_cache_negative)
 {
-	struct timespec entry_valid = {.tv_sec = TIME_T_MAX, .tv_nsec = 0};
+	struct timespec entry_valid = { .tv_sec = TIME_T_MAX, .tv_nsec = 0 };
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, "does_not_exist")
-	.Times(1)
-	.WillOnce(Invoke(ReturnNegativeCache(&entry_valid)));
+	    .Times(1)
+	    .WillOnce(Invoke(ReturnNegativeCache(&entry_valid)));
 
 	EXPECT_NE(0, access("mountpoint/does_not_exist", F_OK));
 	EXPECT_EQ(ENOENT, errno);
@@ -367,11 +372,11 @@ TEST_F(Lookup, entry_cache_negative_timeout)
 {
 	const char *RELPATH = "does_not_exist";
 	const char *FULLPATH = "mountpoint/does_not_exist";
-	struct timespec entry_valid = {.tv_sec = 0, .tv_nsec = NAP_NS / 2};
+	struct timespec entry_valid = { .tv_sec = 0, .tv_nsec = NAP_NS / 2 };
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.Times(2)
-	.WillRepeatedly(Invoke(ReturnNegativeCache(&entry_valid)));
+	    .Times(2)
+	    .WillRepeatedly(Invoke(ReturnNegativeCache(&entry_valid)));
 
 	EXPECT_NE(0, access(FULLPATH, F_OK));
 	EXPECT_EQ(ENOENT, errno);
@@ -393,13 +398,14 @@ TEST_F(Lookup, entry_cache_timeout)
 	const char RELPATH[] = "some_file.txt";
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.Times(2)
-	.WillRepeatedly(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.entry_valid_nsec = NAP_NS / 2;
-		out.body.entry.attr.mode = S_IFREG | 0644;
-		out.body.entry.nodeid = 14;
-	})));
+	    .Times(2)
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+			SET_OUT_HEADER_LEN(out, entry);
+			out.body.entry.entry_valid_nsec = NAP_NS / 2;
+			out.body.entry.attr.mode = S_IFREG | 0644;
+			out.body.entry.nodeid = 14;
+		})));
 
 	/* access(2) will issue a VOP_LOOKUP and fill the entry cache */
 	ASSERT_EQ(0, access(FULLPATH, F_OK)) << strerror(errno);
@@ -416,11 +422,11 @@ TEST_F(Lookup, ok)
 	const char RELPATH[] = "some_file.txt";
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFREG | 0644;
-		out.body.entry.nodeid = 14;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = S_IFREG | 0644;
+		    out.body.entry.nodeid = 14;
+	    })));
 	/*
 	 * access(2) is one of the few syscalls that will not (always) follow
 	 * up a successful VOP_LOOKUP with another VOP.
@@ -440,17 +446,17 @@ TEST_F(Lookup, parent_inode)
 	uint64_t dir_ino = 2;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, DIRPATH)
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFDIR | 0755;
-		out.body.entry.nodeid = dir_ino;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = S_IFDIR | 0755;
+		    out.body.entry.nodeid = dir_ino;
+	    })));
 	EXPECT_LOOKUP(dir_ino, RELPATH)
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFREG | 0644;
-		out.body.entry.nodeid = dir_ino;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = S_IFREG | 0644;
+		    out.body.entry.nodeid = dir_ino;
+	    })));
 	/*
 	 * access(2) is one of the few syscalls that will not (always) follow
 	 * up a successful VOP_LOOKUP with another VOP.
@@ -469,17 +475,17 @@ TEST_F(Lookup, subdir)
 	uint64_t file_ino = 3;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, DIRPATH)
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFDIR | 0755;
-		out.body.entry.nodeid = dir_ino;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = S_IFDIR | 0755;
+		    out.body.entry.nodeid = dir_ino;
+	    })));
 	EXPECT_LOOKUP(dir_ino, RELPATH)
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFREG | 0644;
-		out.body.entry.nodeid = file_ino;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = S_IFREG | 0644;
+		    out.body.entry.nodeid = file_ino;
+	    })));
 	/*
 	 * access(2) is one of the few syscalls that will not (always) follow
 	 * up a successful VOP_LOOKUP with another VOP.
@@ -501,25 +507,26 @@ TEST_F(Lookup, vtype_conflict)
 	uint64_t ino = 42;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, FIRSTRELPATH)
-	.WillOnce(Invoke(
-		ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFDIR | 0644;
-		out.body.entry.nodeid = ino;
-		out.body.entry.attr.nlink = 1;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = S_IFDIR | 0644;
+		    out.body.entry.nodeid = ino;
+		    out.body.entry.attr.nlink = 1;
+	    })));
 	expect_lookup(SECONDRELPATH, ino, S_IFREG | 0755, 0, 1, UINT64_MAX);
 	// VOP_FORGET happens asynchronously, so it may or may not arrive
 	// before the test completes.
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_FORGET &&
-				in.header.nodeid == ino &&
-				in.body.forget.nlookup == 1);
-		}, Eq(true)),
-		_)
-	).Times(AtMost(1))
-	.WillOnce(Invoke([=](auto in __unused, auto &out __unused) { }));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_FORGET &&
+				    in.header.nodeid == ino &&
+				    in.body.forget.nlookup == 1);
+			},
+			Eq(true)),
+		_))
+	    .Times(AtMost(1))
+	    .WillOnce(Invoke([=](auto in __unused, auto &out __unused) {}));
 
 	ASSERT_EQ(0, access(FIRSTFULLPATH, F_OK)) << strerror(errno);
 	EXPECT_EQ(0, access(SECONDFULLPATH, F_OK)) << strerror(errno);
@@ -531,11 +538,11 @@ TEST_F(Lookup_7_8, ok)
 	const char RELPATH[] = "some_file.txt";
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry_7_8);
-		out.body.entry.attr.mode = S_IFREG | 0644;
-		out.body.entry.nodeid = 14;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry_7_8);
+		    out.body.entry.attr.mode = S_IFREG | 0644;
+		    out.body.entry.nodeid = 14;
+	    })));
 	/*
 	 * access(2) is one of the few syscalls that will not (always) follow
 	 * up a successful VOP_LOOKUP with another VOP.
@@ -553,32 +560,32 @@ TEST_F(LookupExportable, dotdot_entry_cache_timeout)
 	uint64_t bar_ino = 43;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, "foo")
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFDIR | 0755;
-		out.body.entry.nodeid = foo_ino;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.entry_valid = 0;	// immediate timeout
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = S_IFDIR | 0755;
+		    out.body.entry.nodeid = foo_ino;
+		    out.body.entry.attr_valid = UINT64_MAX;
+		    out.body.entry.entry_valid = 0; // immediate timeout
+	    })));
 	EXPECT_LOOKUP(foo_ino, "bar")
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFDIR | 0755;
-		out.body.entry.nodeid = bar_ino;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.entry_valid = UINT64_MAX;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = S_IFDIR | 0755;
+		    out.body.entry.nodeid = bar_ino;
+		    out.body.entry.attr_valid = UINT64_MAX;
+		    out.body.entry.entry_valid = UINT64_MAX;
+	    })));
 	expect_opendir(bar_ino);
 	EXPECT_LOOKUP(foo_ino, "..")
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFDIR | 0755;
-		out.body.entry.nodeid = FUSE_ROOT_ID;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.entry_valid = UINT64_MAX;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = S_IFDIR | 0755;
+		    out.body.entry.nodeid = FUSE_ROOT_ID;
+		    out.body.entry.attr_valid = UINT64_MAX;
+		    out.body.entry.entry_valid = UINT64_MAX;
+	    })));
 
-	int fd = open("mountpoint/foo/bar", O_EXEC| O_DIRECTORY);
+	int fd = open("mountpoint/foo/bar", O_EXEC | O_DIRECTORY);
 	ASSERT_LE(0, fd) << strerror(errno);
 	/* FreeBSD's fusefs driver always uses the same cache expiration time
 	 * for ".." as for the directory itself.  So we need to look up two
@@ -600,53 +607,55 @@ TEST_F(LookupExportable, dotdot_no_parent_nid)
 	int fd;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, "foo")
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFDIR | 0755;
-		out.body.entry.nodeid = foo_ino;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.entry_valid = UINT64_MAX;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = S_IFDIR | 0755;
+		    out.body.entry.nodeid = foo_ino;
+		    out.body.entry.attr_valid = UINT64_MAX;
+		    out.body.entry.entry_valid = UINT64_MAX;
+	    })));
 	EXPECT_LOOKUP(foo_ino, "bar")
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFDIR | 0755;
-		out.body.entry.nodeid = bar_ino;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.entry_valid = UINT64_MAX;
-	})));
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_OPENDIR);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, open);
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = S_IFDIR | 0755;
+		    out.body.entry.nodeid = bar_ino;
+		    out.body.entry.attr_valid = UINT64_MAX;
+		    out.body.entry.entry_valid = UINT64_MAX;
+	    })));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_OPENDIR);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, open);
+	    })));
 	expect_forget(foo_ino, 1, NULL);
 	EXPECT_LOOKUP(bar_ino, "..")
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFDIR | 0755;
-		out.body.entry.nodeid = foo_ino;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.entry_valid = UINT64_MAX;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = S_IFDIR | 0755;
+		    out.body.entry.nodeid = foo_ino;
+		    out.body.entry.attr_valid = UINT64_MAX;
+		    out.body.entry.entry_valid = UINT64_MAX;
+	    })));
 	EXPECT_LOOKUP(foo_ino, "..")
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFDIR | 0755;
-		out.body.entry.nodeid = FUSE_ROOT_ID;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.entry_valid = UINT64_MAX;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = S_IFDIR | 0755;
+		    out.body.entry.nodeid = FUSE_ROOT_ID;
+		    out.body.entry.attr_valid = UINT64_MAX;
+		    out.body.entry.entry_valid = UINT64_MAX;
+	    })));
 
-	fd = open("mountpoint/foo/bar", O_EXEC| O_DIRECTORY);
+	fd = open("mountpoint/foo/bar", O_EXEC | O_DIRECTORY);
 	ASSERT_LE(0, fd) << strerror(errno);
 	// Try (and fail) to unmount the file system, to reclaim the mountpoint
 	// and foo vnodes.
 	ASSERT_NE(0, unmount("mountpoint", 0));
 	EXPECT_EQ(EBUSY, errno);
-	nap();		// Because vnode reclamation is asynchronous
+	nap(); // Because vnode reclamation is asynchronous
 	EXPECT_EQ(0, faccessat(fd, "../..", F_OK, 0)) << strerror(errno);
 }

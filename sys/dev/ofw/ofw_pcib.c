@@ -26,28 +26,27 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/module.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/kernel.h>
+#include <sys/module.h>
 #include <sys/rman.h>
 
-#include <dev/ofw/openfirm.h>
-#include <dev/ofw/ofw_pci.h>
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-#include <dev/ofw/ofwpci.h>
-
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcib_private.h>
+#include <vm/vm.h>
+#include <vm/pmap.h>
 
 #include <machine/bus.h>
 #include <machine/md_var.h>
 #include <machine/resource.h>
 
-#include <vm/vm.h>
-#include <vm/pmap.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/ofw_pci.h>
+#include <dev/ofw/ofwpci.h>
+#include <dev/ofw/openfirm.h>
+#include <dev/pci/pcib_private.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include "pcib_if.h"
 
@@ -56,31 +55,31 @@
  * some platforms it should be set at fdt.h file
  */
 #ifndef PCI_MAP_INTR
-#define	PCI_MAP_INTR	4
+#define PCI_MAP_INTR 4
 #endif
 
-#define	PCI_INTR_PINS	4
+#define PCI_INTR_PINS 4
 
 /*
  * bus interface.
  */
 static struct rman *ofw_pcib_get_rman(device_t, int, u_int);
-static struct resource * ofw_pcib_alloc_resource(device_t, device_t,
-    int, int *, rman_res_t, rman_res_t, rman_res_t, u_int);
+static struct resource *ofw_pcib_alloc_resource(device_t, device_t, int, int *,
+    rman_res_t, rman_res_t, rman_res_t, u_int);
 static int ofw_pcib_release_resource(device_t, device_t, int, int,
     struct resource *);
 static int ofw_pcib_activate_resource(device_t, device_t, int, int,
     struct resource *);
 static int ofw_pcib_deactivate_resource(device_t, device_t, int, int,
     struct resource *);
-static int ofw_pcib_adjust_resource(device_t, device_t, int,
-    struct resource *, rman_res_t, rman_res_t);
+static int ofw_pcib_adjust_resource(device_t, device_t, int, struct resource *,
+    rman_res_t, rman_res_t);
 static int ofw_pcib_map_resource(device_t, device_t, int, struct resource *,
     struct resource_map_request *, struct resource_map *);
 static int ofw_pcib_unmap_resource(device_t, device_t, int, struct resource *,
     struct resource_map *);
-static int ofw_pcib_translate_resource(device_t bus, int type,
-	rman_res_t start, rman_res_t *newstart);
+static int ofw_pcib_translate_resource(device_t bus, int type, rman_res_t start,
+    rman_res_t *newstart);
 
 #ifdef __powerpc__
 static bus_space_tag_t ofw_pcib_bus_get_bus_tag(device_t, device_t);
@@ -104,36 +103,36 @@ static int ofw_pcib_fill_ranges(phandle_t, struct ofw_pci_range *);
 /*
  * Driver methods.
  */
-static device_method_t	ofw_pcib_methods[] = {
+static device_method_t ofw_pcib_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_attach,	ofw_pcib_attach),
+	DEVMETHOD(device_attach, ofw_pcib_attach),
 
 	/* Bus interface */
-	DEVMETHOD(bus_print_child,	bus_generic_print_child),
-	DEVMETHOD(bus_read_ivar,	ofw_pcib_read_ivar),
-	DEVMETHOD(bus_write_ivar,	ofw_pcib_write_ivar),
-	DEVMETHOD(bus_setup_intr,	bus_generic_setup_intr),
-	DEVMETHOD(bus_teardown_intr,	bus_generic_teardown_intr),
-	DEVMETHOD(bus_get_rman,		ofw_pcib_get_rman),
-	DEVMETHOD(bus_alloc_resource,	ofw_pcib_alloc_resource),
-	DEVMETHOD(bus_release_resource,	ofw_pcib_release_resource),
-	DEVMETHOD(bus_activate_resource,	ofw_pcib_activate_resource),
-	DEVMETHOD(bus_deactivate_resource,	ofw_pcib_deactivate_resource),
-	DEVMETHOD(bus_adjust_resource,	ofw_pcib_adjust_resource),
-	DEVMETHOD(bus_map_resource,	ofw_pcib_map_resource),
-	DEVMETHOD(bus_unmap_resource,	ofw_pcib_unmap_resource),
-	DEVMETHOD(bus_translate_resource,	ofw_pcib_translate_resource),
+	DEVMETHOD(bus_print_child, bus_generic_print_child),
+	DEVMETHOD(bus_read_ivar, ofw_pcib_read_ivar),
+	DEVMETHOD(bus_write_ivar, ofw_pcib_write_ivar),
+	DEVMETHOD(bus_setup_intr, bus_generic_setup_intr),
+	DEVMETHOD(bus_teardown_intr, bus_generic_teardown_intr),
+	DEVMETHOD(bus_get_rman, ofw_pcib_get_rman),
+	DEVMETHOD(bus_alloc_resource, ofw_pcib_alloc_resource),
+	DEVMETHOD(bus_release_resource, ofw_pcib_release_resource),
+	DEVMETHOD(bus_activate_resource, ofw_pcib_activate_resource),
+	DEVMETHOD(bus_deactivate_resource, ofw_pcib_deactivate_resource),
+	DEVMETHOD(bus_adjust_resource, ofw_pcib_adjust_resource),
+	DEVMETHOD(bus_map_resource, ofw_pcib_map_resource),
+	DEVMETHOD(bus_unmap_resource, ofw_pcib_unmap_resource),
+	DEVMETHOD(bus_translate_resource, ofw_pcib_translate_resource),
 #ifdef __powerpc__
-	DEVMETHOD(bus_get_bus_tag,	ofw_pcib_bus_get_bus_tag),
+	DEVMETHOD(bus_get_bus_tag, ofw_pcib_bus_get_bus_tag),
 #endif
 
 	/* pcib interface */
-	DEVMETHOD(pcib_maxslots,	ofw_pcib_maxslots),
-	DEVMETHOD(pcib_route_interrupt,	ofw_pcib_route_interrupt),
-	DEVMETHOD(pcib_request_feature,	pcib_request_feature_allow),
+	DEVMETHOD(pcib_maxslots, ofw_pcib_maxslots),
+	DEVMETHOD(pcib_route_interrupt, ofw_pcib_route_interrupt),
+	DEVMETHOD(pcib_request_feature, pcib_request_feature_allow),
 
 	/* ofw_bus interface */
-	DEVMETHOD(ofw_bus_get_node,	ofw_pcib_get_node),
+	DEVMETHOD(ofw_bus_get_node, ofw_pcib_get_node),
 
 	DEVMETHOD_END
 };
@@ -256,8 +255,8 @@ ofw_pcib_init(device_t dev)
 		if (error != 0) {
 			device_printf(dev,
 			    "rman_manage_region(%x, %#jx, %#jx) failed. "
-			    "error = %d\n", rp->pci_hi &
-			    OFW_PCI_PHYS_HI_SPACEMASK, rp->pci,
+			    "error = %d\n",
+			    rp->pci_hi & OFW_PCI_PHYS_HI_SPACEMASK, rp->pci,
 			    rp->pci + rp->size - 1, error);
 			goto out_full;
 		}
@@ -335,8 +334,8 @@ ofw_pcib_route_interrupt(device_t bus, device_t dev, int pin)
 	    (pci_get_function(dev) << OFW_PCI_PHYS_HI_FUNCTIONSHIFT);
 
 	intrcells = ofw_bus_lookup_imap(ofw_bus_get_node(dev),
-	    &sc->sc_pci_iinfo, &reg, sizeof(reg), &pintr, sizeof(pintr),
-	    mintr, sizeof(mintr), &iparent);
+	    &sc->sc_pci_iinfo, &reg, sizeof(reg), &pintr, sizeof(pintr), mintr,
+	    sizeof(mintr), &iparent);
 	if (intrcells != 0) {
 		pintr = ofw_bus_map_intr(dev, iparent, intrcells, mintr);
 		return (pintr);
@@ -348,8 +347,8 @@ ofw_pcib_route_interrupt(device_t bus, device_t dev, int pin)
 	if (pin > PCI_INTR_PINS)
 		return (pin);
 
-	device_printf(bus, "could not route pin %d for device %d.%d\n",
-	    pin, pci_get_slot(dev), pci_get_function(dev));
+	device_printf(bus, "could not route pin %d for device %d.%d\n", pin,
+	    pci_get_slot(dev), pci_get_function(dev));
 	return (PCI_INVALID_IRQ);
 }
 
@@ -406,8 +405,8 @@ ofw_pcib_nranges(phandle_t node, struct ofw_pci_cell_info *info)
 
 	OF_getencprop(OF_parent(node), "#address-cells",
 	    &(info->host_address_cells), sizeof(info->host_address_cells));
-	OF_getencprop(node, "#address-cells",
-	    &(info->pci_address_cell), sizeof(info->pci_address_cell));
+	OF_getencprop(node, "#address-cells", &(info->pci_address_cell),
+	    sizeof(info->pci_address_cell));
 	OF_getencprop(node, "#size-cells", &(info->size_cells),
 	    sizeof(info->size_cells));
 
@@ -417,7 +416,7 @@ ofw_pcib_nranges(phandle_t node, struct ofw_pci_cell_info *info)
 
 	return (nbase_ranges / sizeof(cell_t) /
 	    (info->pci_address_cell + info->host_address_cells +
-	    info->size_cells));
+		info->size_cells));
 }
 
 static struct resource *
@@ -440,8 +439,8 @@ ofw_pcib_alloc_resource(device_t bus, device_t child, int type, int *rid,
 		return (bus_generic_rman_alloc_resource(bus, child, type, rid,
 		    start, end, count, flags));
 	default:
-		return (bus_generic_alloc_resource(bus, child, type, rid,
-		    start, end, count, flags));
+		return (bus_generic_alloc_resource(bus, child, type, rid, start,
+		    end, count, flags));
 	}
 }
 
@@ -457,22 +456,22 @@ ofw_pcib_release_resource(device_t bus, device_t child, int type, int rid,
 	switch (type) {
 #if defined(NEW_PCIB) && defined(PCI_RES_BUS)
 	case PCI_RES_BUS:
-		return (pci_domain_release_bus(sc->sc_pci_domain, child, rid,
-		    res));
+		return (
+		    pci_domain_release_bus(sc->sc_pci_domain, child, rid, res));
 #endif
 	case SYS_RES_MEMORY:
 	case SYS_RES_IOPORT:
 		return (bus_generic_rman_release_resource(bus, child, type, rid,
 		    res));
 	default:
-		return (bus_generic_release_resource(bus, child, type, rid,
-		    res));
+		return (
+		    bus_generic_release_resource(bus, child, type, rid, res));
 	}
 }
 
 static int
 ofw_pcib_translate_resource(device_t bus, int type, rman_res_t start,
-	rman_res_t *newstart)
+    rman_res_t *newstart)
 {
 	struct ofw_pci_softc *sc;
 	struct ofw_pci_range *rp;
@@ -483,8 +482,8 @@ ofw_pcib_translate_resource(device_t bus, int type, rman_res_t start,
 	/*
 	 * Map this through the ranges list
 	 */
-	for (rp = sc->sc_range; rp < sc->sc_range + sc->sc_nrange &&
-	    rp->pci_hi != 0; rp++) {
+	for (rp = sc->sc_range;
+	     rp < sc->sc_range + sc->sc_nrange && rp->pci_hi != 0; rp++) {
 		if (start < rp->pci || start >= rp->pci + rp->size)
 			continue;
 
@@ -526,11 +525,11 @@ ofw_pcib_activate_resource(device_t bus, device_t child, int type, int rid,
 #endif
 	case SYS_RES_MEMORY:
 	case SYS_RES_IOPORT:
-		return (bus_generic_rman_activate_resource(bus, child, type, rid,
-		    res));
+		return (bus_generic_rman_activate_resource(bus, child, type,
+		    rid, res));
 	default:
-		return (bus_generic_activate_resource(bus, child, type, rid,
-		    res));
+		return (
+		    bus_generic_activate_resource(bus, child, type, rid, res));
 	}
 }
 
@@ -566,8 +565,8 @@ ofw_pcib_map_resource(device_t dev, device_t child, int type,
 	 * Map this through the ranges list
 	 */
 	sc = device_get_softc(dev);
-	for (rp = sc->sc_range; rp < sc->sc_range + sc->sc_nrange &&
-	    rp->pci_hi != 0; rp++) {
+	for (rp = sc->sc_range;
+	     rp < sc->sc_range + sc->sc_nrange && rp->pci_hi != 0; rp++) {
 		if (start < rp->pci || start >= rp->pci + rp->size)
 			continue;
 
@@ -748,7 +747,7 @@ ofw_pcib_get_rman(device_t bus, int type, u_int flags)
 	case SYS_RES_IOPORT:
 		return (&sc->sc_io_rman);
 	case SYS_RES_MEMORY:
-		if (sc->sc_have_pmem  && (flags & RF_PREFETCHABLE))
+		if (sc->sc_have_pmem && (flags & RF_PREFETCHABLE))
 			return (&sc->sc_pmem_rman);
 		else
 			return (&sc->sc_mem_rman);

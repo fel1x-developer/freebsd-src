@@ -28,18 +28,21 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_apic.h"
 #include "opt_cpu.h"
 #include "opt_pmap.h"
 #include "opt_smp.h"
 #include "opt_vm.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+
 #include <vm/vm.h>
 #include <vm/vm_param.h>
-#define	PMTYPE	pmap_nopae_
-#define	pm_pdir	pm_pdir_nopae
-#include <machine/pmap_nopae.h>
+#define PMTYPE pmap_nopae_
+#define pm_pdir pm_pdir_nopae
 #include <vm/pmap.h>
+
+#include <machine/pmap_nopae.h>
+
 #include "pmap.c"

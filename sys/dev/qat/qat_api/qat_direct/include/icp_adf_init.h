@@ -11,9 +11,9 @@
 #ifndef ICP_ADF_INIT_H
 #define ICP_ADF_INIT_H
 
-#include "icp_accel_devices.h"
-#include "adf_kernel_types.h"
 #include "adf_cfg_common.h"
+#include "adf_kernel_types.h"
+#include "icp_accel_devices.h"
 
 /*
  * Events that will be sending to subsystem. The order of the enum
@@ -60,10 +60,8 @@ typedef enum icp_adf_ringInfoService_e {
  * Ring info callback. Function is used to send operation and ring info
  * to enable or disable ring polling by ME
  */
-typedef CpaStatus (*ringInfoCb)(icp_accel_dev_t *accel_dev,
-				Cpa32U ringNumber,
-				icp_adf_ringInfoOperation_t operation,
-				icp_adf_ringInfoService_t info);
+typedef CpaStatus (*ringInfoCb)(icp_accel_dev_t *accel_dev, Cpa32U ringNumber,
+    icp_adf_ringInfoOperation_t operation, icp_adf_ringInfoService_t info);
 
 /*
  * Registration handle structure
@@ -71,8 +69,7 @@ typedef CpaStatus (*ringInfoCb)(icp_accel_dev_t *accel_dev,
  */
 typedef struct subservice_registation_handle_s {
 	CpaStatus (*subserviceEventHandler)(icp_accel_dev_t *accel_dev,
-					    icp_adf_subsystemEvent_t event,
-					    void *param);
+	    icp_adf_subsystemEvent_t event, void *param);
 	struct {
 		Cpa32U subsystemInitBit : 1;
 		Cpa32U subsystemStartBit : 1;
@@ -122,7 +119,7 @@ CpaStatus icp_adf_subsystemUnregister(subservice_registation_handle_t *handle);
  *   CPA_STATUS_FAIL      on failure
  */
 CpaStatus icp_adf_accesLayerRingInfoCbRegister(icp_accel_dev_t *accel_dev,
-					       ringInfoCb);
+    ringInfoCb);
 
 /*
  * icp_adf_accesLayerRingInfoCbUnregister
@@ -147,8 +144,8 @@ void icp_adf_accesLayerRingInfoCbUnregister(icp_accel_dev_t *accel_dev);
  *   CPA_FALSE  if subsystem is not started
  */
 
-CpaBoolean
-icp_adf_isSubsystemStarted(subservice_registation_handle_t *subsystem_hdl);
+CpaBoolean icp_adf_isSubsystemStarted(
+    subservice_registation_handle_t *subsystem_hdl);
 
 /*
  * icp_adf_isDevStarted

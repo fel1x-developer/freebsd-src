@@ -29,63 +29,63 @@
  * SUCH DAMAGE.
  */
 
-#include "defs.h"
-#include "pathnames.h"
-#include <signal.h>
-#include <fcntl.h>
 #include <sys/file.h>
 
-pid_t	mypid;
+#include <fcntl.h>
+#include <signal.h>
 
-naddr	myaddr;				/* system address */
-static char myname[MAXHOSTNAMELEN+1];
+#include "defs.h"
+#include "pathnames.h"
+
+pid_t mypid;
+
+naddr myaddr; /* system address */
+static char myname[MAXHOSTNAMELEN + 1];
 
 static int verbose;
 
-int	supplier;			/* supply or broadcast updates */
-int	supplier_set;
-static int ipforwarding = 1;		/* kernel forwarding on */
+int supplier; /* supply or broadcast updates */
+int supplier_set;
+static int ipforwarding = 1; /* kernel forwarding on */
 
-static int default_gateway;		/* 1=advertise default */
+static int default_gateway; /* 1=advertise default */
 static int background = 1;
-int	ridhosts;			/* 1=reduce host routes */
-int	mhome;				/* 1=want multi-homed host route */
-int	advertise_mhome;		/* 1=must continue advertising it */
-int	auth_ok = 1;			/* 1=ignore auth if we do not care */
-int	insecure;			/* Reply to special queries or not */
+int ridhosts;	     /* 1=reduce host routes */
+int mhome;	     /* 1=want multi-homed host route */
+int advertise_mhome; /* 1=must continue advertising it */
+int auth_ok = 1;     /* 1=ignore auth if we do not care */
+int insecure;	     /* Reply to special queries or not */
 
-struct timeval epoch;			/* when started */
+struct timeval epoch; /* when started */
 struct timeval clk;
 static struct timeval prev_clk;
 static int usec_fudge;
-struct timeval now;			/* current idea of time */
-time_t	now_stale;
-time_t	now_expire;
-time_t	now_garbage;
+struct timeval now; /* current idea of time */
+time_t now_stale;
+time_t now_expire;
+time_t now_garbage;
 
-static struct timeval next_bcast;	/* next general broadcast */
-struct timeval no_flash = {		/* inhibit flash update */
-	EPOCH+SUPPLY_INTERVAL, 0
+static struct timeval next_bcast; /* next general broadcast */
+struct timeval no_flash = {	  /* inhibit flash update */
+	EPOCH + SUPPLY_INTERVAL, 0
 };
 
 static struct timeval flush_kern_timer;
 
 static fd_set fdbits;
 static int sock_max;
-int	rip_sock = -1;			/* RIP socket */
-const struct interface *rip_sock_mcast;	/* current multicast interface */
-int	rt_sock;			/* routing socket */
-int	rt_sock_seqno;
+int rip_sock = -1;			/* RIP socket */
+const struct interface *rip_sock_mcast; /* current multicast interface */
+int rt_sock;				/* routing socket */
+int rt_sock_seqno;
 
-
-static  int get_rip_sock(naddr, int);
+static int get_rip_sock(naddr, int);
 static void timevalsub(struct timeval *, struct timeval *, struct timeval *);
 static void sigalrm(int s UNUSED);
 static void sigterm(int sig);
 
 int
-main(int argc,
-     char *argv[])
+main(int argc, char *argv[])
 {
 	int n, mib[4], off;
 	size_t len;
@@ -98,7 +98,6 @@ main(int argc,
 	struct interface *ifp;
 	struct parm parm;
 	char *tracename = 0;
-
 
 	/* Some shells are badly broken and send SIGHUP to backgrounded
 	 * processes.
@@ -118,7 +117,7 @@ main(int argc,
 	now_garbage = EPOCH - GARBAGE_TIME;
 	wtime.tv_sec = 0;
 
-	(void)gethostname(myname, sizeof(myname)-1);
+	(void)gethostname(myname, sizeof(myname) - 1);
 	(void)gethost(myname, &myaddr);
 
 	while ((n = getopt(argc, argv, "isqdghmAtvT:F:P:")) != -1) {
@@ -150,12 +149,12 @@ main(int argc,
 				default_gateway = 1;
 			break;
 
-		case 'h':		/* suppress extra host routes */
+		case 'h': /* suppress extra host routes */
 			ridhosts = 1;
 			break;
 
-		case 'm':		/* advertise host route */
-			mhome = 1;	/* on multi-homed hosts */
+		case 'm':	   /* advertise host route */
+			mhome = 1; /* on multi-homed hosts */
 			break;
 
 		case 'A':
@@ -173,19 +172,17 @@ main(int argc,
 			tracename = optarg;
 			break;
 
-		case 'F':		/* minimal routes for SLIP */
+		case 'F': /* minimal routes for SLIP */
 			n = FAKE_METRIC;
-			p = strchr(optarg,',');
+			p = strchr(optarg, ',');
 			if (p && *p != '\0') {
-				n = (int)strtoul(p+1, &q, 0);
-				if (*q == '\0'
-				    && n <= HOPCNT_INFINITY-1
-				    && n >= 1)
+				n = (int)strtoul(p + 1, &q, 0);
+				if (*q == '\0' && n <= HOPCNT_INFINITY - 1 &&
+				    n >= 1)
 					*p = '\0';
 			}
 			if (!getnet(optarg, &p_net, &p_mask)) {
-				msglog("bad network; \"-F %s\"",
-				       optarg);
+				msglog("bad network; \"-F %s\"", optarg);
 				break;
 			}
 			memset(&parm, 0, sizeof(parm));
@@ -227,9 +224,10 @@ main(int argc,
 	if (tracename != 0 && tracename[0] == '\0')
 		goto usage;
 	if (argc != 0) {
-usage:
-		logbad(0, "usage: routed [-sqdghmAtv] [-T tracefile]"
-		       " [-F net[,metric]] [-P parms]");
+	usage:
+		logbad(0,
+		    "usage: routed [-sqdghmAtv] [-T tracefile]"
+		    " [-F net[,metric]] [-P parms]");
 	}
 	if (geteuid() != 0) {
 		if (verbose)
@@ -264,10 +262,9 @@ usage:
 		}
 	}
 
-
 	signal(SIGALRM, sigalrm);
 	if (!background)
-		signal(SIGHUP, sigterm);    /* SIGHUP fatal during debugging */
+		signal(SIGHUP, sigterm); /* SIGHUP fatal during debugging */
 	signal(SIGTERM, sigterm);
 	signal(SIGINT, sigterm);
 	signal(SIGUSR1, sigtrace_on);
@@ -275,7 +272,7 @@ usage:
 
 	/* get into the background */
 	if (background && daemon(0, 1) < 0)
-		BADERR(0,"daemon()");
+		BADERR(0, "daemon()");
 
 	mypid = getpid();
 
@@ -283,22 +280,21 @@ usage:
 	 */
 	rt_sock = socket(AF_ROUTE, SOCK_RAW, 0);
 	if (rt_sock < 0)
-		BADERR(1,"rt_sock = socket()");
+		BADERR(1, "rt_sock = socket()");
 	if (fcntl(rt_sock, F_SETFL, O_NONBLOCK) == -1)
 		logbad(1, "fcntl(rt_sock) O_NONBLOCK: %s", strerror(errno));
 	off = 0;
-	if (setsockopt(rt_sock, SOL_SOCKET,SO_USELOOPBACK,
-		       &off,sizeof(off)) < 0)
+	if (setsockopt(rt_sock, SOL_SOCKET, SO_USELOOPBACK, &off, sizeof(off)) <
+	    0)
 		LOGERR("setsockopt(SO_USELOOPBACK,0)");
 
 	fix_select();
 
-
 	if (tracename != 0) {
-		strncpy(inittracename, tracename, sizeof(inittracename)-1);
+		strncpy(inittracename, tracename, sizeof(inittracename) - 1);
 		set_tracefile(inittracename, "%s", -1);
 	} else {
-		tracelevel_msg("%s", -1);   /* turn on tracing to stdio */
+		tracelevel_msg("%s", -1); /* turn on tracing to stdio */
 	}
 
 	bufinit();
@@ -313,9 +309,10 @@ usage:
 	 * at a random time so a bunch of systems do not get synchronized
 	 * after a power failure.
 	 */
-	intvl_random(&next_bcast, EPOCH+MIN_WAITTIME, EPOCH+SUPPLY_INTERVAL);
+	intvl_random(&next_bcast, EPOCH + MIN_WAITTIME,
+	    EPOCH + SUPPLY_INTERVAL);
 	age_timer.tv_usec = next_bcast.tv_usec;
-	age_timer.tv_sec = EPOCH+MIN_WAITTIME;
+	age_timer.tv_sec = EPOCH + MIN_WAITTIME;
 	rdisc_timer = next_bcast;
 	ifinit_timer.tv_usec = next_bcast.tv_usec;
 
@@ -338,8 +335,8 @@ usage:
 	for (;;) {
 		prev_clk = clk;
 		gettimeofday(&clk, 0);
-		if (prev_clk.tv_sec == clk.tv_sec
-		    && prev_clk.tv_usec == clk.tv_usec+usec_fudge) {
+		if (prev_clk.tv_sec == clk.tv_sec &&
+		    prev_clk.tv_usec == clk.tv_usec + usec_fudge) {
 			/* Much of `routed` depends on time always advancing.
 			 * On systems that do not guarantee that gettimeofday()
 			 * produces unique timestamps even if called within
@@ -352,8 +349,7 @@ usage:
 			usec_fudge = 0;
 
 			timevalsub(&t2, &clk, &prev_clk);
-			if (t2.tv_sec < 0
-			    || t2.tv_sec > wtime.tv_sec + 5) {
+			if (t2.tv_sec < 0 || t2.tv_sec > wtime.tv_sec + 5) {
 				/* Deal with time changes before other
 				 * housekeeping to keep everything straight.
 				 */
@@ -394,8 +390,8 @@ usage:
 		timevalsub(&t2, &flush_kern_timer, &now);
 		if (t2.tv_sec <= 0) {
 			flush_kern();
-			flush_kern_timer.tv_sec = (now.tv_sec
-						   + CHECK_QUIET_INTERVAL);
+			flush_kern_timer.tv_sec = (now.tv_sec +
+			    CHECK_QUIET_INTERVAL);
 			continue;
 		}
 		if (timercmp(&t2, &wtime, <))
@@ -423,8 +419,8 @@ usage:
 				 * pick a 30-second anniversary of the
 				 * original broadcast time.
 				 */
-				n = 1 + (0-t2.tv_sec)/SUPPLY_INTERVAL;
-				next_bcast.tv_sec += n*SUPPLY_INTERVAL;
+				n = 1 + (0 - t2.tv_sec) / SUPPLY_INTERVAL;
+				next_bcast.tv_sec += n * SUPPLY_INTERVAL;
 
 				continue;
 			}
@@ -439,9 +435,8 @@ usage:
 		 * If we are within MIN_WAITTIME seconds of a full update,
 		 * do not bother.
 		 */
-		if (need_flash
-		    && supplier
-		    && no_flash.tv_sec+MIN_WAITTIME < next_bcast.tv_sec) {
+		if (need_flash && supplier &&
+		    no_flash.tv_sec + MIN_WAITTIME < next_bcast.tv_sec) {
 			/* accurate to the millisecond */
 			if (!timercmp(&no_flash, &now, >))
 				rip_bcast(1);
@@ -481,7 +476,6 @@ usage:
 		if (timercmp(&t2, &wtime, <))
 			wtime = t2;
 
-
 		/* wait for input or a timer to expire.
 		 */
 		trace_flush();
@@ -489,7 +483,7 @@ usage:
 		n = select(sock_max, &ibits, 0, 0, &wtime);
 		if (n <= 0) {
 			if (n < 0 && errno != EINTR && errno != EAGAIN)
-				BADERR(1,"select");
+				BADERR(1, "select");
 			continue;
 		}
 
@@ -506,18 +500,17 @@ usage:
 			n--;
 		}
 
-		LIST_FOREACH(ifp, &ifnet, int_list) {
+		LIST_FOREACH (ifp, &ifnet, int_list) {
 			if (n <= 0)
 				break;
-			if (ifp->int_rip_sock >= 0
-			    && FD_ISSET(ifp->int_rip_sock, &ibits)) {
+			if (ifp->int_rip_sock >= 0 &&
+			    FD_ISSET(ifp->int_rip_sock, &ibits)) {
 				read_rip(ifp->int_rip_sock, ifp);
 				n--;
 			}
 		}
 	}
 }
-
 
 /* ARGSUSED */
 static void
@@ -530,105 +523,96 @@ sigalrm(int s UNUSED)
 	trace_act("SIGALRM");
 }
 
-
 /* watch for fatal signals */
 static void
 sigterm(int sig)
 {
 	stopint = sig;
-	(void)signal(sig, SIG_DFL);	/* catch it only once */
+	(void)signal(sig, SIG_DFL); /* catch it only once */
 }
-
 
 void
 fix_select(void)
 {
 	struct interface *ifp;
 
-
 	FD_ZERO(&fdbits);
 	sock_max = 0;
 
 	FD_SET(rt_sock, &fdbits);
 	if (sock_max <= rt_sock)
-		sock_max = rt_sock+1;
+		sock_max = rt_sock + 1;
 	if (rip_sock >= 0) {
 		FD_SET(rip_sock, &fdbits);
 		if (sock_max <= rip_sock)
-			sock_max = rip_sock+1;
+			sock_max = rip_sock + 1;
 	}
-	LIST_FOREACH(ifp, &ifnet, int_list) {
+	LIST_FOREACH (ifp, &ifnet, int_list) {
 		if (ifp->int_rip_sock >= 0) {
 			FD_SET(ifp->int_rip_sock, &fdbits);
 			if (sock_max <= ifp->int_rip_sock)
-				sock_max = ifp->int_rip_sock+1;
+				sock_max = ifp->int_rip_sock + 1;
 		}
 	}
 	if (rdisc_sock >= 0) {
 		FD_SET(rdisc_sock, &fdbits);
 		if (sock_max <= rdisc_sock)
-			sock_max = rdisc_sock+1;
+			sock_max = rdisc_sock + 1;
 	}
 }
 
-
 void
-fix_sock(int sock,
-	 const char *name)
+fix_sock(int sock, const char *name)
 {
 	int on;
-#define MIN_SOCKBUF (4*1024)
+#define MIN_SOCKBUF (4 * 1024)
 	static int rbuf;
 
 	if (fcntl(sock, F_SETFL, O_NONBLOCK) == -1)
-		logbad(1, "fcntl(%s) O_NONBLOCK: %s",
-		       name, strerror(errno));
+		logbad(1, "fcntl(%s) O_NONBLOCK: %s", name, strerror(errno));
 	on = 1;
-	if (setsockopt(sock, SOL_SOCKET,SO_BROADCAST, &on,sizeof(on)) < 0)
-		msglog("setsockopt(%s,SO_BROADCAST): %s",
-		       name, strerror(errno));
+	if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &on, sizeof(on)) < 0)
+		msglog("setsockopt(%s,SO_BROADCAST): %s", name,
+		    strerror(errno));
 #ifdef USE_PASSIFNAME
 	on = 1;
-	if (setsockopt(sock, SOL_SOCKET, SO_PASSIFNAME, &on,sizeof(on)) < 0)
-		msglog("setsockopt(%s,SO_PASSIFNAME): %s",
-		       name, strerror(errno));
+	if (setsockopt(sock, SOL_SOCKET, SO_PASSIFNAME, &on, sizeof(on)) < 0)
+		msglog("setsockopt(%s,SO_PASSIFNAME): %s", name,
+		    strerror(errno));
 #endif
 
 	if (rbuf >= MIN_SOCKBUF) {
-		if (setsockopt(sock, SOL_SOCKET, SO_RCVBUF,
-			       &rbuf, sizeof(rbuf)) < 0)
-			msglog("setsockopt(%s,SO_RCVBUF=%d): %s",
-			       name, rbuf, strerror(errno));
+		if (setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &rbuf,
+			sizeof(rbuf)) < 0)
+			msglog("setsockopt(%s,SO_RCVBUF=%d): %s", name, rbuf,
+			    strerror(errno));
 	} else {
-		for (rbuf = 60*1024; ; rbuf -= 4096) {
-			if (setsockopt(sock, SOL_SOCKET, SO_RCVBUF,
-				       &rbuf, sizeof(rbuf)) == 0) {
+		for (rbuf = 60 * 1024;; rbuf -= 4096) {
+			if (setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &rbuf,
+				sizeof(rbuf)) == 0) {
 				trace_act("RCVBUF=%d", rbuf);
 				break;
 			}
 			if (rbuf < MIN_SOCKBUF) {
 				msglog("setsockopt(%s,SO_RCVBUF = %d): %s",
-				       name, rbuf, strerror(errno));
+				    name, rbuf, strerror(errno));
 				break;
 			}
 		}
 	}
 }
 
-
 /* get a rip socket
  */
-static int				/* <0 or file descriptor */
-get_rip_sock(naddr addr,
-	     int serious)		/* 1=failure to bind is serious */
+static int			      /* <0 or file descriptor */
+get_rip_sock(naddr addr, int serious) /* 1=failure to bind is serious */
 {
 	struct sockaddr_in rsin;
 	unsigned char ttl;
 	int s;
 
-
 	if ((s = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
-		BADERR(1,"rip_sock = socket()");
+		BADERR(1, "rip_sock = socket()");
 
 	memset(&rsin, 0, sizeof(rsin));
 #ifdef _HAVE_SIN_LEN
@@ -643,16 +627,14 @@ get_rip_sock(naddr addr,
 		close(s);
 		return -1;
 	}
-	fix_sock(s,"rip_sock");
+	fix_sock(s, "rip_sock");
 
 	ttl = 1;
-	if (setsockopt(s, IPPROTO_IP, IP_MULTICAST_TTL,
-		       &ttl, sizeof(ttl)) < 0)
-		DBGERR(1,"rip_sock setsockopt(IP_MULTICAST_TTL)");
+	if (setsockopt(s, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl)) < 0)
+		DBGERR(1, "rip_sock setsockopt(IP_MULTICAST_TTL)");
 
 	return s;
 }
-
 
 /* turn off main RIP socket */
 void
@@ -660,7 +642,6 @@ rip_off(void)
 {
 	struct interface *ifp;
 	naddr addr;
-
 
 	if (rip_sock >= 0 && !mhome) {
 		trace_act("turn off RIP");
@@ -670,13 +651,13 @@ rip_off(void)
 
 		/* get non-broadcast sockets to listen to queries.
 		 */
-		LIST_FOREACH(ifp, &ifnet, int_list) {
+		LIST_FOREACH (ifp, &ifnet, int_list) {
 			if (ifp->int_state & IS_REMOTE)
 				continue;
 			if (ifp->int_rip_sock < 0) {
-				addr = ((ifp->int_if_flags & IFF_POINTOPOINT)
-					? ifp->int_dstaddr
-					: ifp->int_addr);
+				addr = ((ifp->int_if_flags & IFF_POINTOPOINT) ?
+					ifp->int_dstaddr :
+					ifp->int_addr);
 				ifp->int_rip_sock = get_rip_sock(addr, 0);
 			}
 		}
@@ -687,7 +668,6 @@ rip_off(void)
 	}
 }
 
-
 /* turn on RIP multicast input via an interface
  */
 static void
@@ -696,9 +676,9 @@ rip_mcast_on(struct interface *ifp)
 	struct group_req gr;
 	struct sockaddr_in *sin;
 
-	if (!IS_RIP_IN_OFF(ifp->int_state)
-	    && (ifp->int_if_flags & IFF_MULTICAST)
-	    && !(ifp->int_state & IS_ALIAS)) {
+	if (!IS_RIP_IN_OFF(ifp->int_state) &&
+	    (ifp->int_if_flags & IFF_MULTICAST) &&
+	    !(ifp->int_state & IS_ALIAS)) {
 		memset(&gr, 0, sizeof(gr));
 		gr.gr_interface = ifp->int_index;
 		sin = (struct sockaddr_in *)&gr.gr_group;
@@ -707,12 +687,11 @@ rip_mcast_on(struct interface *ifp)
 		sin->sin_len = sizeof(struct sockaddr_in);
 #endif
 		sin->sin_addr.s_addr = htonl(INADDR_RIP_GROUP);
-		if (setsockopt(rip_sock, IPPROTO_IP, MCAST_JOIN_GROUP,
-			       &gr, sizeof(gr)) < 0)
+		if (setsockopt(rip_sock, IPPROTO_IP, MCAST_JOIN_GROUP, &gr,
+			sizeof(gr)) < 0)
 			LOGERR("setsockopt(MCAST_JOIN_GROUP RIP)");
 	}
 }
-
 
 /* Prepare socket used for RIP.
  */
@@ -741,7 +720,7 @@ rip_on(struct interface *ifp)
 		 * since that would let two daemons bind to the broadcast
 		 * socket.
 		 */
-		LIST_FOREACH(ifp, &ifnet, int_list) {
+		LIST_FOREACH (ifp, &ifnet, int_list) {
 			if (ifp->int_rip_sock >= 0) {
 				(void)close(ifp->int_rip_sock);
 				ifp->int_rip_sock = -1;
@@ -753,18 +732,17 @@ rip_on(struct interface *ifp)
 
 		/* Do not advertise anything until we have heard something
 		 */
-		if (next_bcast.tv_sec < now.tv_sec+MIN_WAITTIME)
-			next_bcast.tv_sec = now.tv_sec+MIN_WAITTIME;
+		if (next_bcast.tv_sec < now.tv_sec + MIN_WAITTIME)
+			next_bcast.tv_sec = now.tv_sec + MIN_WAITTIME;
 
-		LIST_FOREACH(ifp, &ifnet, int_list) {
+		LIST_FOREACH (ifp, &ifnet, int_list) {
 			ifp->int_query_time = NEVER;
 			rip_mcast_on(ifp);
 		}
 		ifinit_timer.tv_sec = now.tv_sec;
 
-	} else if (ifp != NULL
-		   && !(ifp->int_state & IS_REMOTE)
-		   && ifp->int_rip_sock < 0) {
+	} else if (ifp != NULL && !(ifp->int_state & IS_REMOTE) &&
+	    ifp->int_rip_sock < 0) {
 		/* RIP is off, so ensure there are sockets on which
 		 * to listen for queries.
 		 */
@@ -774,37 +752,32 @@ rip_on(struct interface *ifp)
 	fix_select();
 }
 
-
 /* die if malloc(3) fails
  */
 void *
-rtmalloc(size_t size,
-	 const char *msg)
+rtmalloc(size_t size, const char *msg)
 {
 	void *p = malloc(size);
 	if (p == NULL)
-		logbad(1,"malloc(%lu) failed in %s", (u_long)size, msg);
+		logbad(1, "malloc(%lu) failed in %s", (u_long)size, msg);
 	return p;
 }
-
 
 /* get a random instant in an interval
  */
 void
-intvl_random(struct timeval *tp,	/* put value here */
-	     u_long lo,			/* value is after this second */
-	     u_long hi)			/* and before this */
+intvl_random(struct timeval *tp, /* put value here */
+    u_long lo,			 /* value is after this second */
+    u_long hi)			 /* and before this */
 {
-	tp->tv_sec = (time_t)(hi == lo
-			      ? lo
-			      : (lo + arc4random_uniform(1 + hi - lo)));
+	tp->tv_sec = (time_t)(hi == lo ?
+		lo :
+		(lo + arc4random_uniform(1 + hi - lo)));
 	tp->tv_usec = arc4random_uniform(1000000);
 }
 
-
 void
-timevaladd(struct timeval *t1,
-	   struct timeval *t2)
+timevaladd(struct timeval *t1, struct timeval *t2)
 {
 
 	t1->tv_sec += t2->tv_sec;
@@ -814,13 +787,10 @@ timevaladd(struct timeval *t1,
 	}
 }
 
-
 /* t1 = t2 - t3
  */
 static void
-timevalsub(struct timeval *t1,
-	   struct timeval *t2,
-	   struct timeval *t3)
+timevalsub(struct timeval *t1, struct timeval *t2, struct timeval *t3)
 {
 	t1->tv_sec = t2->tv_sec - t3->tv_sec;
 	if ((t1->tv_usec = t2->tv_usec - t3->tv_usec) < 0) {
@@ -828,7 +798,6 @@ timevalsub(struct timeval *t1,
 		t1->tv_usec += 1000000;
 	}
 }
-
 
 /* put a message into the system log
  */
@@ -852,7 +821,6 @@ msglog(const char *p, ...)
 	}
 }
 
-
 /* Put a message about a bad system into the system log if
  * we have not complained about it recently.
  *
@@ -872,7 +840,7 @@ msglim(struct msg_limit *lim, naddr addr, const char *p, ...)
 	 * or the slot for the bad router.
 	 */
 	ms = ms1 = lim->subs;
-	for (i = MSG_SUBJECT_N; ; i--, ms1++) {
+	for (i = MSG_SUBJECT_N;; i--, ms1++) {
 		if (i == 0) {
 			/* Reuse a slot at most once every 10 minutes.
 			 */
@@ -880,7 +848,7 @@ msglim(struct msg_limit *lim, naddr addr, const char *p, ...)
 				ms = NULL;
 			} else {
 				ms = ms1;
-				lim->reuse = now.tv_sec + 10*60;
+				lim->reuse = now.tv_sec + 10 * 60;
 			}
 			break;
 		}
@@ -897,7 +865,7 @@ msglim(struct msg_limit *lim, naddr addr, const char *p, ...)
 	}
 	if (ms != NULL) {
 		ms->addr = addr;
-		ms->until = now.tv_sec + 60*60;	/* 60 minutes */
+		ms->until = now.tv_sec + 60 * 60; /* 60 minutes */
 
 		trace_flush();
 		for (p1 = p; *p1 == ' '; p1++)
@@ -916,7 +884,6 @@ msglim(struct msg_limit *lim, naddr addr, const char *p, ...)
 	}
 }
 
-
 void
 logbad(int dump, const char *p, ...)
 {
@@ -931,7 +898,7 @@ logbad(int dump, const char *p, ...)
 	va_start(args, p);
 	(void)vfprintf(stderr, p, args);
 	va_end(args);
-	(void)fputs("; giving up\n",stderr);
+	(void)fputs("; giving up\n", stderr);
 	(void)fflush(stderr);
 
 	if (dump)

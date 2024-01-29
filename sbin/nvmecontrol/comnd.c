@@ -72,7 +72,7 @@ gen_usage(const struct cmd *t)
 	struct cmd *walker;
 
 	fprintf(stderr, "usage:\n");
-	SLIST_FOREACH(walker, &t->subcmd, link) {
+	SLIST_FOREACH (walker, &t->subcmd, link) {
 		print_usage(walker);
 	}
 	exit(EX_USAGE);
@@ -90,9 +90,9 @@ cmd_dispatch(int argc, char *argv[], const struct cmd *t)
 		gen_usage(t);
 		return (1);
 	}
-	SLIST_FOREACH(walker, &t->subcmd, link) {
+	SLIST_FOREACH (walker, &t->subcmd, link) {
 		if (strcmp(argv[1], walker->name) == 0) {
-			walker->fn(walker, argc-1, &argv[1]);
+			walker->fn(walker, argc - 1, &argv[1]);
 			return (0);
 		}
 	}
@@ -120,7 +120,7 @@ arg_suffix(char *buf, size_t len, arg_type at)
 }
 
 void
-arg_help(int argc __unused, char * const *argv, const struct cmd *f)
+arg_help(int argc __unused, char *const *argv, const struct cmd *f)
 {
 	int i;
 	char buf[31];
@@ -146,7 +146,8 @@ arg_help(int argc __unused, char * const *argv, const struct cmd *f)
 		for (i = 0; opts[i].long_arg != NULL; i++) {
 			*buf = '\0';
 			if (isprint(opts[i].short_arg)) {
-				snprintf(buf, sizeof(buf), " -%c, ", opts[i].short_arg);
+				snprintf(buf, sizeof(buf), " -%c, ",
+				    opts[i].short_arg);
 			} else {
 				strlcpy(buf, "    ", sizeof(buf));
 			}
@@ -170,7 +171,7 @@ find_long(struct option *lopts, int ch)
 }
 
 int
-arg_parse(int argc, char * const * argv, const struct cmd *f)
+arg_parse(int argc, char *const *argv, const struct cmd *f)
 {
 	int i, n, idx, ch;
 	uint64_t v;
@@ -193,7 +194,8 @@ arg_parse(int argc, char * const * argv, const struct cmd *f)
 	idx = 0;
 	for (i = 0; i < n; i++) {
 		lopts[i].name = opts[i].long_arg;
-		lopts[i].has_arg = opts[i].at == arg_none ? no_argument : required_argument;
+		lopts[i].has_arg = opts[i].at == arg_none ? no_argument :
+							    required_argument;
 		lopts[i].flag = NULL;
 		lopts[i].val = opts[i].short_arg;
 		if (isprint(opts[i].short_arg)) {
@@ -260,7 +262,8 @@ arg_parse(int argc, char * const * argv, const struct cmd *f)
 	if (args) {
 		while (args->descr) {
 			if (optind >= argc) {
-				fprintf(stderr, "Missing arg %s\n", args->descr);
+				fprintf(stderr, "Missing arg %s\n",
+				    args->descr);
 				arg_help(argc, argv, f);
 				free(lopts);
 				free(shortopts);
@@ -322,7 +325,7 @@ cmd_register(struct cmd *up, struct cmd *cmd)
 	SLIST_INIT(&cmd->subcmd);
 	cmd->parent = up;
 	last = NULL;
-	SLIST_FOREACH(walker, &up->subcmd, link) {
+	SLIST_FOREACH (walker, &up->subcmd, link) {
 		if (strcmp(walker->name, cmd->name) > 0)
 			break;
 		last = walker;
@@ -337,5 +340,4 @@ cmd_register(struct cmd *up, struct cmd *cmd)
 void
 cmd_init(void)
 {
-
 }

@@ -26,27 +26,27 @@
  *
  */
 
-#ifndef	_TBG_CLK_PLL_H_
-#define	_TBG_CLK_PLL_H_
+#ifndef _TBG_CLK_PLL_H_
+#define _TBG_CLK_PLL_H_
 
 #include <dev/clk/clk.h>
 
 struct a37x0_tbg_pll_reg_def {
-	uint32_t		offset;
-	uint32_t		shift;
-	uint32_t		mask;
+	uint32_t offset;
+	uint32_t shift;
+	uint32_t mask;
 };
 
 struct a37x0_tbg_pll_clk_def {
-        struct clknode_init_def 		clkdef;
+	struct clknode_init_def clkdef;
 
-	struct a37x0_tbg_pll_reg_def		vcodiv;
-	struct a37x0_tbg_pll_reg_def		refdiv;
-	struct a37x0_tbg_pll_reg_def		fbdiv;
+	struct a37x0_tbg_pll_reg_def vcodiv;
+	struct a37x0_tbg_pll_reg_def refdiv;
+	struct a37x0_tbg_pll_reg_def fbdiv;
 
-	struct a37x0_tbg_pll_reg_def		tbg_bypass;
+	struct a37x0_tbg_pll_reg_def tbg_bypass;
 };
 
 int a37x0_tbg_pll_clk_register(struct clkdom *,
-		    const struct a37x0_tbg_pll_clk_def *);
+    const struct a37x0_tbg_pll_clk_def *);
 #endif

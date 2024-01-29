@@ -55,13 +55,12 @@
  * Callback used by the bus DMA code to obtain the segment address.
  */
 static void
-iavf_dmamap_cb(void *arg, bus_dma_segment_t * segs, int nseg __unused,
-	       int error)
+iavf_dmamap_cb(void *arg, bus_dma_segment_t *segs, int nseg __unused, int error)
 {
-        if (error)
-                return;
-        *(bus_addr_t *) arg = segs->ds_addr;
-        return;
+	if (error)
+		return;
+	*(bus_addr_t *)arg = segs->ds_addr;
+	return;
 }
 
 /**
@@ -76,10 +75,10 @@ iavf_dmamap_cb(void *arg, bus_dma_segment_t * segs, int nseg __unused,
  */
 enum iavf_status
 iavf_allocate_virt_mem(struct iavf_hw *hw __unused, struct iavf_virt_mem *mem,
-		       u32 size)
+    u32 size)
 {
 	mem->va = malloc(size, M_IAVF, M_NOWAIT | M_ZERO);
-	return(mem->va == NULL);
+	return (mem->va == NULL);
 }
 
 /**
@@ -97,7 +96,7 @@ iavf_free_virt_mem(struct iavf_hw *hw __unused, struct iavf_virt_mem *mem)
 	free(mem->va, M_IAVF);
 	mem->va = NULL;
 
-	return(0);
+	return (0);
 }
 
 /**
@@ -115,53 +114,52 @@ iavf_free_virt_mem(struct iavf_hw *hw __unused, struct iavf_virt_mem *mem)
  */
 enum iavf_status
 iavf_allocate_dma_mem(struct iavf_hw *hw, struct iavf_dma_mem *mem,
-	enum iavf_memory_type type __unused, u64 size, u32 alignment)
+    enum iavf_memory_type type __unused, u64 size, u32 alignment)
 {
-	device_t	dev = ((struct iavf_osdep *)hw->back)->dev;
-	int		err;
+	device_t dev = ((struct iavf_osdep *)hw->back)->dev;
+	int err;
 
-
-	err = bus_dma_tag_create(bus_get_dma_tag(dev),	/* parent */
-			       alignment, 0,	/* alignment, bounds */
-			       BUS_SPACE_MAXADDR,	/* lowaddr */
-			       BUS_SPACE_MAXADDR,	/* highaddr */
-			       NULL, NULL,	/* filter, filterarg */
-			       size,	/* maxsize */
-			       1,	/* nsegments */
-			       size,	/* maxsegsize */
-			       BUS_DMA_ALLOCNOW, /* flags */
-			       NULL,	/* lockfunc */
-			       NULL,	/* lockfuncarg */
-			       &mem->tag);
+	err = bus_dma_tag_create(bus_get_dma_tag(dev), /* parent */
+	    alignment, 0,			       /* alignment, bounds */
+	    BUS_SPACE_MAXADDR,			       /* lowaddr */
+	    BUS_SPACE_MAXADDR,			       /* highaddr */
+	    NULL, NULL,				       /* filter, filterarg */
+	    size,				       /* maxsize */
+	    1,					       /* nsegments */
+	    size,				       /* maxsegsize */
+	    BUS_DMA_ALLOCNOW,			       /* flags */
+	    NULL,				       /* lockfunc */
+	    NULL,				       /* lockfuncarg */
+	    &mem->tag);
 	if (err != 0) {
 		device_printf(dev,
 		    "iavf_allocate_dma: bus_dma_tag_create failed, "
-		    "error %u\n", err);
+		    "error %u\n",
+		    err);
 		goto fail_0;
 	}
 	err = bus_dmamem_alloc(mem->tag, (void **)&mem->va,
-			     BUS_DMA_NOWAIT | BUS_DMA_ZERO, &mem->map);
+	    BUS_DMA_NOWAIT | BUS_DMA_ZERO, &mem->map);
 	if (err != 0) {
 		device_printf(dev,
 		    "iavf_allocate_dma: bus_dmamem_alloc failed, "
-		    "error %u\n", err);
+		    "error %u\n",
+		    err);
 		goto fail_1;
 	}
-	err = bus_dmamap_load(mem->tag, mem->map, mem->va,
-			    size,
-			    iavf_dmamap_cb,
-			    &mem->pa,
-			    BUS_DMA_NOWAIT);
+	err = bus_dmamap_load(mem->tag, mem->map, mem->va, size, iavf_dmamap_cb,
+	    &mem->pa, BUS_DMA_NOWAIT);
 	if (err != 0) {
 		device_printf(dev,
 		    "iavf_allocate_dma: bus_dmamap_load failed, "
-		    "error %u\n", err);
+		    "error %u\n",
+		    err);
 		goto fail_2;
 	}
 	mem->nseg = 1;
 	mem->size = size;
 	bus_dmamap_sync(mem->tag, mem->map,
-	    BUS_DMASYNC_PREREAD|BUS_DMASYNC_PREWRITE);
+	    BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
 	return (0);
 fail_2:
 	bus_dmamem_free(mem->tag, mem->va, mem->map);
@@ -207,8 +205,7 @@ iavf_free_dma_mem(struct iavf_hw *hw __unused, struct iavf_dma_mem *mem)
 void
 iavf_init_spinlock(struct iavf_spinlock *lock)
 {
-	mtx_init(&lock->mutex, "mutex",
-	    "iavf spinlock", MTX_DEF | MTX_DUPOK);
+	mtx_init(&lock->mutex, "mutex", "iavf spinlock", MTX_DEF | MTX_DUPOK);
 }
 
 /**
@@ -292,12 +289,11 @@ iavf_debug_shared(struct iavf_hw *hw, uint64_t mask, char *fmt, ...)
 u16
 iavf_read_pci_cfg(struct iavf_hw *hw, u32 reg)
 {
-        u16 value;
+	u16 value;
 
-        value = pci_read_config(((struct iavf_osdep *)hw->back)->dev,
-            reg, 2);
+	value = pci_read_config(((struct iavf_osdep *)hw->back)->dev, reg, 2);
 
-        return (value);
+	return (value);
 }
 
 /**
@@ -312,10 +308,9 @@ iavf_read_pci_cfg(struct iavf_hw *hw, u32 reg)
 void
 iavf_write_pci_cfg(struct iavf_hw *hw, u32 reg, u16 value)
 {
-        pci_write_config(((struct iavf_osdep *)hw->back)->dev,
-            reg, value, 2);
+	pci_write_config(((struct iavf_osdep *)hw->back)->dev, reg, value, 2);
 
-        return;
+	return;
 }
 
 /**
@@ -334,7 +329,7 @@ iavf_rd32(struct iavf_hw *hw, uint32_t reg)
 
 	KASSERT(reg < osdep->mem_bus_space_size,
 	    ("iavf: register offset %#jx too large (max is %#jx)",
-	    (uintmax_t)reg, (uintmax_t)osdep->mem_bus_space_size));
+		(uintmax_t)reg, (uintmax_t)osdep->mem_bus_space_size));
 
 	return (bus_space_read_4(osdep->mem_bus_space_tag,
 	    osdep->mem_bus_space_handle, reg));
@@ -355,10 +350,10 @@ iavf_wr32(struct iavf_hw *hw, uint32_t reg, uint32_t val)
 
 	KASSERT(reg < osdep->mem_bus_space_size,
 	    ("iavf: register offset %#jx too large (max is %#jx)",
-	    (uintmax_t)reg, (uintmax_t)osdep->mem_bus_space_size));
+		(uintmax_t)reg, (uintmax_t)osdep->mem_bus_space_size));
 
-	bus_space_write_4(osdep->mem_bus_space_tag,
-	    osdep->mem_bus_space_handle, reg, val);
+	bus_space_write_4(osdep->mem_bus_space_tag, osdep->mem_bus_space_handle,
+	    reg, val);
 }
 
 /**

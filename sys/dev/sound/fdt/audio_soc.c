@@ -23,37 +23,37 @@
  *
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/clock.h>
+#include <sys/endian.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
-#include <sys/endian.h>
 
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
 #include <dev/sound/fdt/audio_dai.h>
 #include <dev/sound/pcm/sound.h>
+
 #include "audio_dai_if.h"
 
-#define	AUDIO_BUFFER_SIZE	48000 * 4
+#define AUDIO_BUFFER_SIZE 48000 * 4
 
 struct audio_soc_aux_node {
-	SLIST_ENTRY(audio_soc_aux_node)	link;
-	device_t			dev;
+	SLIST_ENTRY(audio_soc_aux_node) link;
+	device_t dev;
 };
 
 struct audio_soc_channel {
-	struct audio_soc_softc	*sc;	/* parent device's softc */
-	struct pcm_channel 	*pcm;	/* PCM channel */
-	struct snd_dbuf		*buf;	/* PCM buffer */
-	int			dir;	/* direction */
+	struct audio_soc_softc *sc; /* parent device's softc */
+	struct pcm_channel *pcm;    /* PCM channel */
+	struct snd_dbuf *buf;	    /* PCM buffer */
+	int dir;		    /* direction */
 };
 
 struct audio_soc_softc {
@@ -61,45 +61,45 @@ struct audio_soc_softc {
 	 * pcm_register assumes that sc is snddev_info,
 	 * so this has to be first structure member for "compatibility"
 	 */
-	struct snddev_info	info;
-	device_t		dev;
-	char			*name;
+	struct snddev_info info;
+	device_t dev;
+	char *name;
 	struct intr_config_hook init_hook;
-	device_t		cpu_dev;
-	device_t		codec_dev;
-	SLIST_HEAD(, audio_soc_aux_node)	aux_devs;
-	unsigned int		mclk_fs;
-	struct audio_soc_channel 	play_channel;
-	struct audio_soc_channel 	rec_channel;
+	device_t cpu_dev;
+	device_t codec_dev;
+	SLIST_HEAD(, audio_soc_aux_node) aux_devs;
+	unsigned int mclk_fs;
+	struct audio_soc_channel play_channel;
+	struct audio_soc_channel rec_channel;
 	/*
 	 * The format is from the CPU node, for CODEC node clock roles
 	 * need to be reversed.
 	 */
-	uint32_t		format;
-	uint32_t		link_mclk_fs;
+	uint32_t format;
+	uint32_t link_mclk_fs;
 };
 
 static struct ofw_compat_data compat_data[] = {
-	{"simple-audio-card",	1},
-	{NULL,			0},
+	{ "simple-audio-card", 1 },
+	{ NULL, 0 },
 };
 
 static struct {
 	const char *name;
 	unsigned int fmt;
 } ausoc_dai_formats[] = {
-	{ "i2s",	AUDIO_DAI_FORMAT_I2S },
-	{ "right_j",	AUDIO_DAI_FORMAT_RJ },
-	{ "left_j",	AUDIO_DAI_FORMAT_LJ },
-	{ "dsp_a",	AUDIO_DAI_FORMAT_DSPA },
-	{ "dsp_b",	AUDIO_DAI_FORMAT_DSPB },
-	{ "ac97",	AUDIO_DAI_FORMAT_AC97 },
-	{ "pdm",	AUDIO_DAI_FORMAT_PDM },
+	{ "i2s", AUDIO_DAI_FORMAT_I2S },
+	{ "right_j", AUDIO_DAI_FORMAT_RJ },
+	{ "left_j", AUDIO_DAI_FORMAT_LJ },
+	{ "dsp_a", AUDIO_DAI_FORMAT_DSPA },
+	{ "dsp_b", AUDIO_DAI_FORMAT_DSPB },
+	{ "ac97", AUDIO_DAI_FORMAT_AC97 },
+	{ "pdm", AUDIO_DAI_FORMAT_PDM },
 };
 
-static int	audio_soc_probe(device_t dev);
-static int	audio_soc_attach(device_t dev);
-static int	audio_soc_detach(device_t dev);
+static int audio_soc_probe(device_t dev);
+static int audio_soc_attach(device_t dev);
+static int audio_soc_detach(device_t dev);
 
 /*
  * Invert master/slave roles for CODEC side of the node
@@ -166,14 +166,19 @@ audio_soc_chan_setspeed(kobj_t obj, void *data, uint32_t speed)
 	if (sc->link_mclk_fs) {
 		rate = speed * sc->link_mclk_fs;
 		if (AUDIO_DAI_SET_SYSCLK(sc->cpu_dev, rate, AUDIO_DAI_CLOCK_IN))
-			device_printf(sc->dev, "failed to set sysclk for CPU node\n");
+			device_printf(sc->dev,
+			    "failed to set sysclk for CPU node\n");
 
-		if (AUDIO_DAI_SET_SYSCLK(sc->codec_dev, rate, AUDIO_DAI_CLOCK_OUT))
-			device_printf(sc->dev, "failed to set sysclk for codec node\n");
+		if (AUDIO_DAI_SET_SYSCLK(sc->codec_dev, rate,
+			AUDIO_DAI_CLOCK_OUT))
+			device_printf(sc->dev,
+			    "failed to set sysclk for codec node\n");
 
-		SLIST_FOREACH(aux_node, &sc->aux_devs, link) {
-			if (AUDIO_DAI_SET_SYSCLK(aux_node->dev, rate, AUDIO_DAI_CLOCK_OUT))
-				device_printf(sc->dev, "failed to set sysclk for aux node\n");
+		SLIST_FOREACH (aux_node, &sc->aux_devs, link) {
+			if (AUDIO_DAI_SET_SYSCLK(aux_node->dev, rate,
+				AUDIO_DAI_CLOCK_OUT))
+				device_printf(sc->dev,
+				    "failed to set sysclk for aux node\n");
 		}
 	}
 
@@ -182,7 +187,7 @@ audio_soc_chan_setspeed(kobj_t obj, void *data, uint32_t speed)
 	 */
 	speed = AUDIO_DAI_SET_CHANSPEED(sc->cpu_dev, speed);
 	AUDIO_DAI_SET_CHANSPEED(sc->codec_dev, speed);
-	SLIST_FOREACH(aux_node, &sc->aux_devs, link) {
+	SLIST_FOREACH (aux_node, &sc->aux_devs, link) {
 		AUDIO_DAI_SET_CHANSPEED(aux_node->dev, speed);
 	}
 
@@ -203,7 +208,7 @@ audio_soc_chan_getptr(kobj_t obj, void *data)
 
 static void *
 audio_soc_chan_init(kobj_t obj, void *devinfo, struct snd_dbuf *b,
-	struct pcm_channel *c, int dir)
+    struct pcm_channel *c, int dir)
 {
 	struct audio_soc_channel *ausoc_chan;
 	void *buffer;
@@ -233,7 +238,7 @@ audio_soc_chan_trigger(kobj_t obj, void *data, int go)
 	ausoc_chan = (struct audio_soc_channel *)data;
 	sc = ausoc_chan->sc;
 	AUDIO_DAI_TRIGGER(sc->codec_dev, go, ausoc_chan->dir);
-	SLIST_FOREACH(aux_node, &sc->aux_devs, link) {
+	SLIST_FOREACH (aux_node, &sc->aux_devs, link) {
 		AUDIO_DAI_TRIGGER(aux_node->dev, go, ausoc_chan->dir);
 	}
 
@@ -268,17 +273,15 @@ audio_soc_chan_getcaps(kobj_t obj, void *data)
 	return AUDIO_DAI_GET_CAPS(sc->cpu_dev);
 }
 
-static kobj_method_t audio_soc_chan_methods[] = {
-	KOBJMETHOD(channel_init, 	audio_soc_chan_init),
-	KOBJMETHOD(channel_free, 	audio_soc_chan_free),
-	KOBJMETHOD(channel_setformat, 	audio_soc_chan_setformat),
-	KOBJMETHOD(channel_setspeed, 	audio_soc_chan_setspeed),
-	KOBJMETHOD(channel_setblocksize,audio_soc_chan_setblocksize),
-	KOBJMETHOD(channel_trigger,	audio_soc_chan_trigger),
-	KOBJMETHOD(channel_getptr,	audio_soc_chan_getptr),
-	KOBJMETHOD(channel_getcaps,	audio_soc_chan_getcaps),
-	KOBJMETHOD_END
-};
+static kobj_method_t audio_soc_chan_methods[] = { KOBJMETHOD(channel_init,
+						      audio_soc_chan_init),
+	KOBJMETHOD(channel_free, audio_soc_chan_free),
+	KOBJMETHOD(channel_setformat, audio_soc_chan_setformat),
+	KOBJMETHOD(channel_setspeed, audio_soc_chan_setspeed),
+	KOBJMETHOD(channel_setblocksize, audio_soc_chan_setblocksize),
+	KOBJMETHOD(channel_trigger, audio_soc_chan_trigger),
+	KOBJMETHOD(channel_getptr, audio_soc_chan_getptr),
+	KOBJMETHOD(channel_getcaps, audio_soc_chan_getcaps), KOBJMETHOD_END };
 CHANNEL_DECLARE(audio_soc_chan);
 
 static void
@@ -288,7 +291,8 @@ audio_soc_intr(void *arg)
 	int channel_intr_required;
 
 	sc = (struct audio_soc_softc *)arg;
-	channel_intr_required = AUDIO_DAI_INTR(sc->cpu_dev, sc->play_channel.buf, sc->rec_channel.buf);
+	channel_intr_required = AUDIO_DAI_INTR(sc->cpu_dev,
+	    sc->play_channel.buf, sc->rec_channel.buf);
 	if (channel_intr_required & AUDIO_DAI_PLAY_INTR)
 		chn_intr(sc->play_channel.pcm);
 	if (channel_intr_required & AUDIO_DAI_REC_INTR)
@@ -332,7 +336,8 @@ audio_soc_init(void *arg)
 		return;
 	}
 	if ((OF_getencprop(child, "sound-dai", &xref, sizeof(xref))) <= 0) {
-		device_printf(sc->dev, "missing sound-dai property in cpu node\n");
+		device_printf(sc->dev,
+		    "missing sound-dai property in cpu node\n");
 		return;
 	}
 	daidev = OF_device_from_xref(xref);
@@ -348,7 +353,8 @@ audio_soc_init(void *arg)
 		return;
 	}
 	if ((OF_getencprop(child, "sound-dai", &xref, sizeof(xref))) <= 0) {
-		device_printf(sc->dev, "missing sound-dai property in codec node\n");
+		device_printf(sc->dev,
+		    "missing sound-dai property in codec node\n");
 		return;
 	}
 	daidev = OF_device_from_xref(xref);
@@ -360,16 +366,20 @@ audio_soc_init(void *arg)
 
 	/* Add AUX devices */
 	aux_devs = NULL;
-	ncells = OF_getencprop_alloc_multi(node, "simple-audio-card,aux-devs", sizeof(*aux_devs),
-	    (void **)&aux_devs);
+	ncells = OF_getencprop_alloc_multi(node, "simple-audio-card,aux-devs",
+	    sizeof(*aux_devs), (void **)&aux_devs);
 
 	for (i = 0; i < ncells; i++) {
 		auxdev = OF_device_from_xref(aux_devs[i]);
 		if (auxdev == NULL)
-			device_printf(sc->dev, "warning: no driver attached to aux node\n");
-		aux_node = (struct audio_soc_aux_node *)malloc(sizeof(*aux_node), M_DEVBUF, M_NOWAIT);
+			device_printf(sc->dev,
+			    "warning: no driver attached to aux node\n");
+		aux_node = (struct audio_soc_aux_node *)malloc(sizeof(
+								   *aux_node),
+		    M_DEVBUF, M_NOWAIT);
 		if (aux_node == NULL) {
-			device_printf(sc->dev, "failed to allocate aux node struct\n");
+			device_printf(sc->dev,
+			    "failed to allocate aux node struct\n");
 			return;
 		}
 		aux_node->dev = auxdev;
@@ -385,14 +395,17 @@ audio_soc_init(void *arg)
 	}
 
 	/* Reverse clock roles for CODEC */
-	if (AUDIO_DAI_INIT(sc->codec_dev, audio_soc_reverse_clocks(sc->format))) {
+	if (AUDIO_DAI_INIT(sc->codec_dev,
+		audio_soc_reverse_clocks(sc->format))) {
 		device_printf(sc->dev, "failed to initialize codec node\n");
 		return;
 	}
 
-	SLIST_FOREACH(aux_node, &sc->aux_devs, link) {
-		if (AUDIO_DAI_INIT(aux_node->dev, audio_soc_reverse_clocks(sc->format))) {
-			device_printf(sc->dev, "failed to initialize aux node\n");
+	SLIST_FOREACH (aux_node, &sc->aux_devs, link) {
+		if (AUDIO_DAI_INIT(aux_node->dev,
+			audio_soc_reverse_clocks(sc->format))) {
+			device_printf(sc->dev,
+			    "failed to initialize aux node\n");
 			return;
 		}
 	}
@@ -405,14 +418,16 @@ audio_soc_init(void *arg)
 	sc->play_channel.sc = sc;
 	sc->rec_channel.sc = sc;
 
-	pcm_addchan(sc->dev, PCMDIR_PLAY, &audio_soc_chan_class, &sc->play_channel);
-	pcm_addchan(sc->dev, PCMDIR_REC, &audio_soc_chan_class, &sc->rec_channel);
+	pcm_addchan(sc->dev, PCMDIR_PLAY, &audio_soc_chan_class,
+	    &sc->play_channel);
+	pcm_addchan(sc->dev, PCMDIR_REC, &audio_soc_chan_class,
+	    &sc->rec_channel);
 
 	pcm_setstatus(sc->dev, "at simplebus");
 
 	AUDIO_DAI_SETUP_INTR(sc->cpu_dev, audio_soc_intr, sc);
 	AUDIO_DAI_SETUP_MIXER(sc->codec_dev, sc->dev);
-	SLIST_FOREACH(aux_node, &sc->aux_devs, link) {
+	SLIST_FOREACH (aux_node, &sc->aux_devs, link) {
 		AUDIO_DAI_SETUP_MIXER(aux_node->dev, sc->dev);
 	}
 }
@@ -458,8 +473,8 @@ audio_soc_attach(device_t dev)
 	} else
 		fmt = AUDIO_DAI_FORMAT_I2S;
 
-	if (OF_getencprop(node, "simple-audio-card,mclk-fs",
-	    &sc->link_mclk_fs, sizeof(sc->link_mclk_fs)) <= 0)
+	if (OF_getencprop(node, "simple-audio-card,mclk-fs", &sc->link_mclk_fs,
+		sizeof(sc->link_mclk_fs)) <= 0)
 		sc->link_mclk_fs = 0;
 
 	/* Unless specified otherwise, CPU node is the master */
@@ -467,28 +482,32 @@ audio_soc_attach(device_t dev)
 
 	cpu_child = ofw_bus_find_child(node, "simple-audio-card,cpu");
 
-	if ((OF_getencprop(node, "simple-audio-card,frame-master", &xref, sizeof(xref))) > 0)
+	if ((OF_getencprop(node, "simple-audio-card,frame-master", &xref,
+		sizeof(xref))) > 0)
 		frame_master = cpu_child == OF_node_from_xref(xref);
 
-	if ((OF_getencprop(node, "simple-audio-card,bitclock-master", &xref, sizeof(xref))) > 0)
+	if ((OF_getencprop(node, "simple-audio-card,bitclock-master", &xref,
+		sizeof(xref))) > 0)
 		bitclock_master = cpu_child == OF_node_from_xref(xref);
 
 	if (frame_master) {
-		clk = bitclock_master ?
-		    AUDIO_DAI_CLOCK_CBM_CFM : AUDIO_DAI_CLOCK_CBS_CFM;
+		clk = bitclock_master ? AUDIO_DAI_CLOCK_CBM_CFM :
+					AUDIO_DAI_CLOCK_CBS_CFM;
 	} else {
-		clk = bitclock_master ?
-		    AUDIO_DAI_CLOCK_CBM_CFS : AUDIO_DAI_CLOCK_CBS_CFS;
+		clk = bitclock_master ? AUDIO_DAI_CLOCK_CBM_CFS :
+					AUDIO_DAI_CLOCK_CBS_CFS;
 	}
 
-	bool bitclock_inversion = OF_hasprop(node, "simple-audio-card,bitclock-inversion");
-	bool frame_inversion = OF_hasprop(node, "simple-audio-card,frame-inversion");
+	bool bitclock_inversion = OF_hasprop(node,
+	    "simple-audio-card,bitclock-inversion");
+	bool frame_inversion = OF_hasprop(node,
+	    "simple-audio-card,frame-inversion");
 	if (bitclock_inversion) {
-		pol = frame_inversion ?
-		    AUDIO_DAI_POLARITY_IB_IF : AUDIO_DAI_POLARITY_IB_NF;
+		pol = frame_inversion ? AUDIO_DAI_POLARITY_IB_IF :
+					AUDIO_DAI_POLARITY_IB_NF;
 	} else {
-		pol = frame_inversion ?
-		    AUDIO_DAI_POLARITY_NB_IF : AUDIO_DAI_POLARITY_NB_NF;
+		pol = frame_inversion ? AUDIO_DAI_POLARITY_NB_IF :
+					AUDIO_DAI_POLARITY_NB_NF;
 	}
 
 	sc->format = AUDIO_DAI_FORMAT(fmt, pol, clk);
@@ -520,10 +539,10 @@ audio_soc_detach(device_t dev)
 }
 
 static device_method_t audio_soc_methods[] = {
-        /* device_if methods */
-	DEVMETHOD(device_probe,		audio_soc_probe),
-	DEVMETHOD(device_attach,	audio_soc_attach),
-	DEVMETHOD(device_detach,	audio_soc_detach),
+	/* device_if methods */
+	DEVMETHOD(device_probe, audio_soc_probe),
+	DEVMETHOD(device_attach, audio_soc_attach),
+	DEVMETHOD(device_detach, audio_soc_detach),
 
 	DEVMETHOD_END,
 };

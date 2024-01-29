@@ -24,9 +24,9 @@
  */
 
 #ifndef _OPENSOLARIS_SYS_DKIO_H_
-#define	_OPENSOLARIS_SYS_DKIO_H_
+#define _OPENSOLARIS_SYS_DKIO_H_
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -39,17 +39,17 @@ extern "C" {
  *	The CDROM Driver		151 - 200.
  *	The USCSI ioctl			201 - 250.
  */
-#define	DKIOC		(0x04 << 8)
+#define DKIOC (0x04 << 8)
 
 /*
  * The following ioctls are generic in nature and need to be
  * suported as appropriate by all disk drivers
  */
-#define	DKIOCGGEOM	(DKIOC|1)		/* Get geometry */
-#define	DKIOCINFO	(DKIOC|3)		/* Get info */
-#define	DKIOCEJECT	(DKIOC|6)		/* Generic 'eject' */
-#define	DKIOCGVTOC	(DKIOC|11)		/* Get VTOC */
-#define	DKIOCSVTOC	(DKIOC|12)		/* Set VTOC & Write to Disk */
+#define DKIOCGGEOM (DKIOC | 1)	/* Get geometry */
+#define DKIOCINFO (DKIOC | 3)	/* Get info */
+#define DKIOCEJECT (DKIOC | 6)	/* Generic 'eject' */
+#define DKIOCGVTOC (DKIOC | 11) /* Get VTOC */
+#define DKIOCSVTOC (DKIOC | 12) /* Set VTOC & Write to Disk */
 
 /*
  * Disk Cache Controls.  These ioctls should be supported by
@@ -71,14 +71,14 @@ extern "C" {
  * NOTE: In some cases, the callback may be done BEFORE the ioctl call
  * returns.  The caller's locking strategy should be prepared for this case.
  */
-#define	DKIOCFLUSHWRITECACHE	(DKIOC|34)	/* flush cache to phys medium */
+#define DKIOCFLUSHWRITECACHE (DKIOC | 34) /* flush cache to phys medium */
 
 struct dk_callback {
 	void (*dkc_callback)(void *dkc_cookie, int error);
 	void *dkc_cookie;
 };
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 

@@ -41,7 +41,7 @@
 #include <sys/module.h>
 #include <sys/sysctl.h>
 
-#define	HID_DEBUG_VAR	hid_debug
+#define HID_DEBUG_VAR hid_debug
 #include <dev/hid/hid.h>
 #include <dev/hid/hidquirk.h>
 
@@ -51,11 +51,11 @@
  * Define this unconditionally in case a kernel module is loaded that
  * has been compiled with debugging options.
  */
-int	hid_debug = 0;
+int hid_debug = 0;
 
 SYSCTL_NODE(_hw, OID_AUTO, hid, CTLFLAG_RW, 0, "HID debugging");
-SYSCTL_INT(_hw_hid, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &hid_debug, 0, "Debug level");
+SYSCTL_INT(_hw_hid, OID_AUTO, debug, CTLFLAG_RWTUN, &hid_debug, 0,
+    "Debug level");
 
 static void hid_clear_local(struct hid_item *);
 static uint8_t hid_get_byte(struct hid_data *s, const uint16_t wSize);
@@ -63,10 +63,10 @@ static uint8_t hid_get_byte(struct hid_data *s, const uint16_t wSize);
 static hid_test_quirk_t hid_test_quirk_w;
 hid_test_quirk_t *hid_test_quirk_p = &hid_test_quirk_w;
 
-#define	MAXUSAGE 64
-#define	MAXPUSH 4
-#define	MAXID 16
-#define	MAXLOCCNT 2048
+#define MAXUSAGE 64
+#define MAXPUSH 4
+#define MAXID 16
+#define MAXLOCCNT 2048
 
 struct hid_pos_data {
 	int32_t rid;
@@ -79,19 +79,19 @@ struct hid_data {
 	const uint8_t *p;
 	struct hid_item cur[MAXPUSH];
 	struct hid_pos_data last_pos[MAXID];
-	int32_t	usages_min[MAXUSAGE];
-	int32_t	usages_max[MAXUSAGE];
-	int32_t usage_last;	/* last seen usage */
-	uint32_t loc_size;	/* last seen size */
-	uint32_t loc_count;	/* last seen count */
-	uint32_t ncount;	/* end usage item count */
-	uint32_t icount;	/* current usage item count */
-	uint8_t	kindset;	/* we have 5 kinds so 8 bits are enough */
-	uint8_t	pushlevel;	/* current pushlevel */
-	uint8_t	nusage;		/* end "usages_min/max" index */
-	uint8_t	iusage;		/* current "usages_min/max" index */
-	uint8_t ousage;		/* current "usages_min/max" offset */
-	uint8_t	susage;		/* usage set flags */
+	int32_t usages_min[MAXUSAGE];
+	int32_t usages_max[MAXUSAGE];
+	int32_t usage_last; /* last seen usage */
+	uint32_t loc_size;  /* last seen size */
+	uint32_t loc_count; /* last seen count */
+	uint32_t ncount;    /* end usage item count */
+	uint32_t icount;    /* current usage item count */
+	uint8_t kindset;    /* we have 5 kinds so 8 bits are enough */
+	uint8_t pushlevel;  /* current pushlevel */
+	uint8_t nusage;	    /* end "usages_min/max" index */
+	uint8_t iusage;	    /* current "usages_min/max" index */
+	uint8_t ousage;	    /* current "usages_min/max" offset */
+	uint8_t susage;	    /* usage set flags */
 };
 
 /*------------------------------------------------------------------------*
@@ -176,8 +176,9 @@ hid_start_parse(const void *d, hid_size_t len, int kindset)
 {
 	struct hid_data *s;
 
-	if ((kindset-1) & kindset) {
-		DPRINTFN(0, "Only one bit can be "
+	if ((kindset - 1) & kindset) {
+		DPRINTFN(0,
+		    "Only one bit can be "
 		    "set in the kindset\n");
 		return (NULL);
 	}
@@ -248,7 +249,7 @@ hid_get_item(struct hid_data *s, struct hid_item *h)
 
 	c = &s->cur[s->pushlevel];
 
- top:
+top:
 	/* check if there is an array of items */
 	if (s->icount < s->ncount) {
 		/* get current usage */
@@ -257,10 +258,10 @@ hid_get_item(struct hid_data *s, struct hid_item *h)
 			c->usage = dval;
 			s->usage_last = dval;
 			if (dval == s->usages_max[s->iusage]) {
-				s->iusage ++;
+				s->iusage++;
 				s->ousage = 0;
 			} else {
-				s->ousage ++;
+				s->ousage++;
 			}
 		} else {
 			DPRINTFN(1, "Using last usage\n");
@@ -273,18 +274,19 @@ hid_get_item(struct hid_data *s, struct hid_item *h)
 			c->usages[c->nusages++] = s->usages_min[s->iusage++];
 		if ((c->flags & HIO_VARIABLE) == 0 && s->ousage == 0 &&
 		    s->iusage < s->nusage)
-			DPRINTFN(0, "HID_ITEM_MAXUSAGE should be increased "
+			DPRINTFN(0,
+			    "HID_ITEM_MAXUSAGE should be increased "
 			    "up to %hhu to parse the HID report descriptor\n",
 			    s->nusage);
-		s->icount ++;
-		/* 
+		s->icount++;
+		/*
 		 * Only copy HID item, increment position and return
 		 * if correct kindset!
 		 */
 		if (s->kindset & (1 << c->kind)) {
 			*h = *c;
-			DPRINTFN(1, "%u,%u,%u\n", h->loc.pos,
-			    h->loc.size, h->loc.count);
+			DPRINTFN(1, "%u,%u,%u\n", h->loc.pos, h->loc.size,
+			    h->loc.count);
 			c->loc.pos += c->loc.size * c->loc.count;
 			return (1);
 		}
@@ -307,7 +309,7 @@ hid_get_item(struct hid_data *s, struct hid_item *h)
 			bSize = hid_get_byte(s, 1);
 			bSize |= hid_get_byte(s, 1) << 8;
 			bTag = hid_get_byte(s, 1);
-			bType = 0xff;	/* XXX what should it be */
+			bType = 0xff; /* XXX what should it be */
 		} else {
 			/* short item */
 			bTag = bSize >> 4;
@@ -340,17 +342,17 @@ hid_get_item(struct hid_data *s, struct hid_item *h)
 			break;
 		default:
 			dval = hid_get_byte(s, bSize);
-			DPRINTFN(0, "bad length %u (data=0x%02x)\n",
-			    bSize, dval);
+			DPRINTFN(0, "bad length %u (data=0x%02x)\n", bSize,
+			    dval);
 			continue;
 		}
 
 		switch (bType) {
-		case 0:		/* Main */
+		case 0: /* Main */
 			switch (bTag) {
-			case 8:	/* Input */
+			case 8: /* Input */
 				c->kind = hid_input;
-		ret:
+			ret:
 				c->flags = dval;
 				c->loc.count = s->loc_count;
 				c->loc.size = s->loc_size;
@@ -358,7 +360,8 @@ hid_get_item(struct hid_data *s, struct hid_item *h)
 				if (c->flags & HIO_VARIABLE) {
 					/* range check usage count */
 					if (c->loc.count > MAXLOCCNT) {
-						DPRINTFN(0, "Number of "
+						DPRINTFN(0,
+						    "Number of "
 						    "items(%u) truncated to %u\n",
 						    (unsigned)(c->loc.count),
 						    MAXLOCCNT);
@@ -366,7 +369,7 @@ hid_get_item(struct hid_data *s, struct hid_item *h)
 					} else
 						s->ncount = c->loc.count;
 
-					/* 
+					/*
 					 * The "top" loop will return
 					 * one and one item:
 					 */
@@ -376,10 +379,10 @@ hid_get_item(struct hid_data *s, struct hid_item *h)
 				}
 				goto top;
 
-			case 9:	/* Output */
+			case 9: /* Output */
 				c->kind = hid_output;
 				goto ret;
-			case 10:	/* Collection */
+			case 10: /* Collection */
 				c->kind = hid_collection;
 				c->collection = dval;
 				c->collevel++;
@@ -387,10 +390,10 @@ hid_get_item(struct hid_data *s, struct hid_item *h)
 				c->nusages = 1;
 				*h = *c;
 				return (1);
-			case 11:	/* Feature */
+			case 11: /* Feature */
 				c->kind = hid_feature;
 				goto ret;
-			case 12:	/* End collection */
+			case 12: /* End collection */
 				c->kind = hid_endcollection;
 				if (c->collevel == 0) {
 					DPRINTFN(0, "invalid end collection\n");
@@ -404,7 +407,7 @@ hid_get_item(struct hid_data *s, struct hid_item *h)
 				break;
 			}
 			break;
-		case 1:		/* Global */
+		case 1: /* Global */
 			switch (bTag) {
 			case 0:
 				c->_usage_page = dval << 16;
@@ -438,13 +441,14 @@ hid_get_item(struct hid_data *s, struct hid_item *h)
 				/* mask because value is unsigned */
 				s->loc_count = dval & mask;
 				break;
-			case 10:	/* Push */
+			case 10: /* Push */
 				/* stop parsing, if invalid push level */
 				if ((s->pushlevel + 1) >= MAXPUSH) {
-					DPRINTFN(0, "Cannot push item @ %d\n", s->pushlevel);
+					DPRINTFN(0, "Cannot push item @ %d\n",
+					    s->pushlevel);
 					return (0);
 				}
-				s->pushlevel ++;
+				s->pushlevel++;
 				s->cur[s->pushlevel] = *c;
 				/* store size and count */
 				c->loc.size = s->loc_size;
@@ -452,13 +456,13 @@ hid_get_item(struct hid_data *s, struct hid_item *h)
 				/* update current item pointer */
 				c = &s->cur[s->pushlevel];
 				break;
-			case 11:	/* Pop */
+			case 11: /* Pop */
 				/* stop parsing, if invalid push level */
 				if (s->pushlevel == 0) {
 					DPRINTFN(0, "Cannot pop item @ 0\n");
 					return (0);
 				}
-				s->pushlevel --;
+				s->pushlevel--;
 				/* preserve position */
 				oldpos = c->loc.pos;
 				c = &s->cur[s->pushlevel];
@@ -475,7 +479,7 @@ hid_get_item(struct hid_data *s, struct hid_item *h)
 				break;
 			}
 			break;
-		case 2:		/* Local */
+		case 2: /* Local */
 			switch (bTag) {
 			case 0:
 				if (bSize != 4)
@@ -487,7 +491,7 @@ hid_get_item(struct hid_data *s, struct hid_item *h)
 				if (s->nusage < MAXUSAGE) {
 					s->usages_min[s->nusage] = dval;
 					s->usages_max[s->nusage] = dval;
-					s->nusage ++;
+					s->nusage++;
 				} else {
 					DPRINTFN(0, "max usage reached\n");
 				}
@@ -518,11 +522,11 @@ hid_get_item(struct hid_data *s, struct hid_item *h)
 				if ((s->nusage < MAXUSAGE) &&
 				    (c->usage_minimum <= c->usage_maximum)) {
 					/* add usage range */
-					s->usages_min[s->nusage] = 
+					s->usages_min[s->nusage] =
 					    c->usage_minimum;
-					s->usages_max[s->nusage] = 
+					s->usages_max[s->nusage] =
 					    c->usage_maximum;
-					s->nusage ++;
+					s->nusage++;
 				} else {
 					DPRINTFN(0, "Usage set dropped\n");
 				}
@@ -713,7 +717,7 @@ hid_get_data_sub(const uint8_t *buf, hid_size_t len, struct hid_location *loc,
 	if (hsize > 32)
 		hsize = 32;
 
-	/* Get data in a safe way */	
+	/* Get data in a safe way */
 	data = 0;
 	rpos = (hpos / 8);
 	n = (hsize + 7) / 8;
@@ -734,8 +738,8 @@ hid_get_data_sub(const uint8_t *buf, hid_size_t len, struct hid_location *loc,
 	else
 		data = (uint32_t)((uint32_t)data << n) >> n;
 
-	DPRINTFN(11, "hid_get_data: loc %d/%d = %lu\n",
-	    loc->pos, loc->size, (long)data);
+	DPRINTFN(11, "hid_get_data: loc %d/%d = %lu\n", loc->pos, loc->size,
+	    (long)data);
 	return (data);
 }
 
@@ -748,15 +752,15 @@ hid_get_data(const uint8_t *buf, hid_size_t len, struct hid_location *loc)
 uint32_t
 hid_get_udata(const uint8_t *buf, hid_size_t len, struct hid_location *loc)
 {
-        return (hid_get_data_sub(buf, len, loc, 0));
+	return (hid_get_data_sub(buf, len, loc, 0));
 }
 
 /*------------------------------------------------------------------------*
  *	hid_put_data
  *------------------------------------------------------------------------*/
 void
-hid_put_udata(uint8_t *buf, hid_size_t len,
-    struct hid_location *loc, unsigned int value)
+hid_put_udata(uint8_t *buf, hid_size_t len, struct hid_location *loc,
+    unsigned int value)
 {
 	uint32_t hpos = loc->pos;
 	uint32_t hsize = loc->size;
@@ -773,7 +777,7 @@ hid_put_udata(uint8_t *buf, hid_size_t len,
 	if (hsize > 32)
 		hsize = 32;
 
-	/* Put data in a safe way */	
+	/* Put data in a safe way */
 	rpos = (hpos / 8);
 	n = (hsize + 7) / 8;
 	data = ((uint64_t)value) << (hpos % 8);
@@ -803,8 +807,7 @@ hid_is_collection(const void *desc, hid_size_t size, int32_t usage)
 		return (0);
 
 	while ((err = hid_get_item(hd, &hi))) {
-		 if (hi.kind == hid_collection &&
-		     hi.usage == usage)
+		if (hi.kind == hid_collection && hi.usage == usage)
 			break;
 	}
 	hid_end_parse(hd);
@@ -822,22 +825,22 @@ hid_item_resolution(struct hid_item *hi)
 	 * Request 39 Tbl 17 http://www.usb.org/developers/hidpage/HUTRR39b.pdf
 	 */
 	static const int64_t scale[0x10][2] = {
-	    [0x00] = { 1, 1 },
-	    [0x01] = { 1, 10 },
-	    [0x02] = { 1, 100 },
-	    [0x03] = { 1, 1000 },
-	    [0x04] = { 1, 10000 },
-	    [0x05] = { 1, 100000 },
-	    [0x06] = { 1, 1000000 },
-	    [0x07] = { 1, 10000000 },
-	    [0x08] = { 100000000, 1 },
-	    [0x09] = { 10000000, 1 },
-	    [0x0A] = { 1000000, 1 },
-	    [0x0B] = { 100000, 1 },
-	    [0x0C] = { 10000, 1 },
-	    [0x0D] = { 1000, 1 },
-	    [0x0E] = { 100, 1 },
-	    [0x0F] = { 10, 1 },
+		[0x00] = { 1, 1 },
+		[0x01] = { 1, 10 },
+		[0x02] = { 1, 100 },
+		[0x03] = { 1, 1000 },
+		[0x04] = { 1, 10000 },
+		[0x05] = { 1, 100000 },
+		[0x06] = { 1, 1000000 },
+		[0x07] = { 1, 10000000 },
+		[0x08] = { 100000000, 1 },
+		[0x09] = { 10000000, 1 },
+		[0x0A] = { 1000000, 1 },
+		[0x0B] = { 100000, 1 },
+		[0x0C] = { 10000, 1 },
+		[0x0D] = { 1000, 1 },
+		[0x0E] = { 100, 1 },
+		[0x0F] = { 10, 1 },
 	};
 	int64_t logical_size;
 	int64_t physical_size;
@@ -916,8 +919,8 @@ hid_is_mouse(const void *d_ptr, uint16_t d_len)
 			if (mdepth != 0)
 				mdepth++;
 			else if (hi.collection == 1 &&
-			     hi.usage ==
-			      HID_USAGE2(HUP_GENERIC_DESKTOP, HUG_MOUSE))
+			    hi.usage ==
+				HID_USAGE2(HUP_GENERIC_DESKTOP, HUG_MOUSE))
 				mdepth++;
 			break;
 		case hid_endcollection:
@@ -928,12 +931,14 @@ hid_is_mouse(const void *d_ptr, uint16_t d_len)
 			if (mdepth == 0)
 				break;
 			if (hi.usage ==
-			     HID_USAGE2(HUP_GENERIC_DESKTOP, HUG_X) &&
-			    (hi.flags & (HIO_CONST|HIO_RELATIVE)) == HIO_RELATIVE)
+				HID_USAGE2(HUP_GENERIC_DESKTOP, HUG_X) &&
+			    (hi.flags & (HIO_CONST | HIO_RELATIVE)) ==
+				HIO_RELATIVE)
 				found++;
 			if (hi.usage ==
-			     HID_USAGE2(HUP_GENERIC_DESKTOP, HUG_Y) &&
-			    (hi.flags & (HIO_CONST|HIO_RELATIVE)) == HIO_RELATIVE)
+				HID_USAGE2(HUP_GENERIC_DESKTOP, HUG_Y) &&
+			    (hi.flags & (HIO_CONST | HIO_RELATIVE)) ==
+				HIO_RELATIVE)
 				found++;
 			break;
 		default:
@@ -957,7 +962,7 @@ int
 hid_is_keyboard(const void *d_ptr, uint16_t d_len)
 {
 	if (hid_is_collection(d_ptr, d_len,
-	    HID_USAGE2(HUP_GENERIC_DESKTOP, HUG_KEYBOARD)))
+		HID_USAGE2(HUP_GENERIC_DESKTOP, HUG_KEYBOARD)))
 		return (1);
 	return (0);
 }
@@ -985,7 +990,7 @@ hid_test_quirk(const struct hid_device_info *dev_info, uint16_t quirk)
 	}
 
 	/* search global quirk table, if any */
-	found = (hid_test_quirk_p) (dev_info, quirk);
+	found = (hid_test_quirk_p)(dev_info, quirk);
 
 	return (found);
 }
@@ -993,7 +998,7 @@ hid_test_quirk(const struct hid_device_info *dev_info, uint16_t quirk)
 static bool
 hid_test_quirk_w(const struct hid_device_info *dev_info, uint16_t quirk)
 {
-	return (false);			/* no match */
+	return (false); /* no match */
 }
 
 int
@@ -1005,7 +1010,7 @@ hid_add_dynamic_quirk(struct hid_device_info *dev_info, uint16_t quirk)
 		if (dev_info->autoQuirk[x] == 0 ||
 		    dev_info->autoQuirk[x] == quirk) {
 			dev_info->autoQuirk[x] = quirk;
-			return (0);     /* success */
+			return (0); /* success */
 		}
 	}
 	return (ENOSPC);
@@ -1075,8 +1080,8 @@ int
 hid_set_report(device_t dev, const void *data, hid_size_t len, uint8_t type,
     uint8_t id)
 {
-	return (HID_SET_REPORT(device_get_parent(dev), dev, data, len, type,
-	    id));
+	return (
+	    HID_SET_REPORT(device_get_parent(dev), dev, data, len, type, id));
 }
 
 int

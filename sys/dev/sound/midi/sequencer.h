@@ -34,42 +34,42 @@
 #ifndef _SEQUENCER_H_
 #define _SEQUENCER_H_
 
-#define NSEQ_MAX	16
+#define NSEQ_MAX 16
 
 /*
  * many variables should be reduced to a range. Here define a macro
  */
 
-#define RANGE(var, low, high) (var) = \
-((var)<(low)?(low) : (var)>(high)?(high) : (var))
+#define RANGE(var, low, high) \
+	(var) = ((var) < (low) ? (low) : (var) > (high) ? (high) : (var))
 
 #ifdef _KERNEL
 
-void	seq_timer(void *arg);
+void seq_timer(void *arg);
 
 SYSCTL_DECL(_hw_midi_seq);
 
 extern int seq_debug;
 
-#define SEQ_DEBUG(y, x)			\
-	do {				\
-		if (seq_debug >= y) {	\
-			(x);		\
-		}			\
+#define SEQ_DEBUG(y, x)               \
+	do {                          \
+		if (seq_debug >= y) { \
+			(x);          \
+		}                     \
 	} while (0)
 
 SYSCTL_DECL(_hw_midi);
 
-#endif					/* _KERNEL */
+#endif /* _KERNEL */
 
-#define SYNTHPROP_MIDI		1
-#define SYNTHPROP_SYNTH		2
-#define SYNTHPROP_RX		4
-#define SYNTHPROP_TX		8
+#define SYNTHPROP_MIDI 1
+#define SYNTHPROP_SYNTH 2
+#define SYNTHPROP_RX 4
+#define SYNTHPROP_TX 8
 
 struct _midi_cmdtab {
-	int	cmd;
-	char   *name;
+	int cmd;
+	char *name;
 };
 typedef struct _midi_cmdtab midi_cmdtab;
 extern midi_cmdtab cmdtab_seqevent[];
@@ -78,12 +78,8 @@ extern midi_cmdtab cmdtab_timer[];
 extern midi_cmdtab cmdtab_seqcv[];
 extern midi_cmdtab cmdtab_seqccmn[];
 
-char   *midi_cmdname(int cmd, midi_cmdtab * tab);
+char *midi_cmdname(int cmd, midi_cmdtab *tab);
 
-enum {
-	MORE,
-	TIMERARMED,
-	QUEUEFULL
-};
+enum { MORE, TIMERARMED, QUEUEFULL };
 
 #endif

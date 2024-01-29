@@ -38,7 +38,10 @@
 #include "cap_test.h"
 
 /* Initialize a named test. Requires test_NAME() function to be declared. */
-#define	TEST_INIT(name)	{ #name, test_##name, FAILED }
+#define TEST_INIT(name)                    \
+	{                                  \
+		#name, test_##name, FAILED \
+	}
 
 /* All of the tests that can be run. */
 struct test all_tests[] = {
@@ -71,12 +74,11 @@ main(int argc, char *argv[])
 	 * Otherwise, run only the specified tests.
 	 */
 	printf("1..%d\n", argc - 1);
-	for (int i = 1; i < argc; i++)
-	{
+	for (int i = 1; i < argc; i++) {
 		int found = 0;
 		for (int j = 0; j < test_count; j++) {
 			if (strncmp(argv[i], all_tests[j].t_name,
-			    strlen(argv[i])) == 0) {
+				strlen(argv[i])) == 0) {
 				found = 1;
 				execute(i, all_tests + j);
 				break;
@@ -91,7 +93,8 @@ main(int argc, char *argv[])
 }
 
 int
-execute(int id, struct test *t) {
+execute(int id, struct test *t)
+{
 	int result;
 
 	pid_t pid = fork();
@@ -100,7 +103,8 @@ execute(int id, struct test *t) {
 	if (pid) {
 		/* Parent: wait for result from child. */
 		int status;
-		while (waitpid(pid, &status, 0) != pid) {}
+		while (waitpid(pid, &status, 0) != pid) {
+		}
 		if (WIFEXITED(status))
 			result = WEXITSTATUS(status);
 		else
@@ -110,9 +114,8 @@ execute(int id, struct test *t) {
 		exit(t->t_run());
 	}
 
-	printf("%s %d - %s\n",
-		(result == PASSED) ? "ok" : "not ok",
-		id, t->t_name);
+	printf("%s %d - %s\n", (result == PASSED) ? "ok" : "not ok", id,
+	    t->t_name);
 
 	return (result);
 }

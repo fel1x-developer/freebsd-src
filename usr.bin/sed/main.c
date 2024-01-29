@@ -35,8 +35,8 @@
  */
 
 #include <sys/types.h>
-#include <sys/mman.h>
 #include <sys/param.h>
+#include <sys/mman.h>
 #include <sys/stat.h>
 
 #include <err.h>
@@ -60,8 +60,8 @@
  */
 struct s_compunit {
 	struct s_compunit *next;
-	enum e_cut {CU_FILE, CU_STRING} type;
-	char *s;			/* Pointer to string or fname */
+	enum e_cut { CU_FILE, CU_STRING } type;
+	char *s; /* Pointer to string or fname */
 };
 
 /*
@@ -84,15 +84,15 @@ struct s_flist {
  */
 static struct s_flist *files, **fl_nextp = &files;
 
-FILE *infile;			/* Current input file */
-FILE *outfile;			/* Current output file */
+FILE *infile;  /* Current input file */
+FILE *outfile; /* Current output file */
 
 int aflag, eflag, nflag;
 int rflags = 0;
 int quit = 0;
-static int rval;		/* Exit status */
+static int rval; /* Exit status */
 
-static int ispan;		/* Whether inplace editing spans across files */
+static int ispan; /* Whether inplace editing spans across files */
 
 /*
  * Current file and line number; line numbers restart across compilation
@@ -101,8 +101,8 @@ static int ispan;		/* Whether inplace editing spans across files */
  */
 const char *fname;		/* File name. */
 const char *outfname;		/* Output file name */
-static char oldfname[PATH_MAX];	/* Old file name (for in-place editing) */
-static char tmpfname[PATH_MAX];	/* Temporary file name (for in-place editing) */
+static char oldfname[PATH_MAX]; /* Old file name (for in-place editing) */
+static char tmpfname[PATH_MAX]; /* Temporary file name (for in-place editing) */
 const char *inplace;		/* Inplace edit file extension. */
 u_long linenum;
 
@@ -116,7 +116,7 @@ main(int argc, char *argv[])
 	int c, fflag, fflagstdin;
 	char *temp_arg;
 
-	(void) setlocale(LC_ALL, "");
+	(void)setlocale(LC_ALL, "");
 
 	fflag = 0;
 	fflagstdin = 0;
@@ -124,13 +124,13 @@ main(int argc, char *argv[])
 
 	while ((c = getopt(argc, argv, "EI:ae:f:i:lnru")) != -1)
 		switch (c) {
-		case 'r':		/* Gnu sed compat */
+		case 'r': /* Gnu sed compat */
 		case 'E':
 			rflags = REG_EXTENDED;
 			break;
 		case 'I':
 			inplace = optarg;
-			ispan = 1;	/* span across input files */
+			ispan = 1; /* span across input files */
 			break;
 		case 'a':
 			aflag = 1;
@@ -151,17 +151,17 @@ main(int argc, char *argv[])
 			break;
 		case 'i':
 			inplace = optarg;
-			ispan = 0;	/* don't span across input files */
+			ispan = 0; /* don't span across input files */
 			break;
 		case 'l':
-			if(setvbuf(stdout, NULL, _IOLBF, 0) != 0)
+			if (setvbuf(stdout, NULL, _IOLBF, 0) != 0)
 				warnx("setting line buffered output failed");
 			break;
 		case 'n':
 			nflag = 1;
 			break;
 		case 'u':
-			if(setvbuf(stdout, NULL, _IONBF, 0) != 0)
+			if (setvbuf(stdout, NULL, _IONBF, 0) != 0)
 				warnx("setting unbuffered output failed");
 			break;
 		default:
@@ -200,7 +200,8 @@ usage(void)
 	(void)fprintf(stderr,
 	    "usage: %s script [-Ealnru] [-i extension] [file ...]\n"
 	    "\t%s [-Ealnu] [-i extension] [-e script] ... [-f script_file]"
-	    " ... [file ...]\n", getprogname(), getprogname());
+	    " ... [file ...]\n",
+	    getprogname(), getprogname());
 	exit(1);
 }
 
@@ -211,9 +212,9 @@ usage(void)
 char *
 cu_fgets(char *buf, int n, int *more)
 {
-	static enum {ST_EOF, ST_FILE, ST_STRING} state = ST_EOF;
-	static FILE *f;		/* Current open file */
-	static char *s;		/* Current pointer inside string */
+	static enum { ST_EOF, ST_FILE, ST_STRING } state = ST_EOF;
+	static FILE *f; /* Current open file */
+	static char *s; /* Current pointer inside string */
 	static char string_ident[30];
 	char *p;
 
@@ -233,17 +234,18 @@ again:
 				fname = "stdin";
 			} else {
 				if ((f = fopen(script->s, "r")) == NULL)
-				        err(1, "%s", script->s);
+					err(1, "%s", script->s);
 				fname = script->s;
 			}
 			state = ST_FILE;
 			goto again;
 		case CU_STRING:
 			if (((size_t)snprintf(string_ident,
-			    sizeof(string_ident), "\"%s\"", script->s)) >=
+				sizeof(string_ident), "\"%s\"", script->s)) >=
 			    sizeof(string_ident) - 1)
 				(void)strcpy(string_ident +
-				    sizeof(string_ident) - 6, " ...\"");
+					sizeof(string_ident) - 6,
+				    " ...\"");
 			fname = string_ident;
 			s = script->s;
 			state = ST_STRING;
@@ -355,7 +357,7 @@ mf_fgets(SPACE *sp, enum e_spflag spflag)
 				 * are not supported on all filesystems.
 				 */
 				if ((link(fname, oldfname) != 0) &&
-				   (rename(fname, oldfname) != 0)) {
+				    (rename(fname, oldfname) != 0)) {
 					warn("rename()");
 					if (*tmpfname)
 						unlink(tmpfname);
@@ -398,8 +400,7 @@ mf_fgets(SPACE *sp, enum e_spflag spflag)
 				    "in-place editing only",
 				    "works for regular files");
 			if (*inplace != '\0') {
-				strlcpy(oldfname, fname,
-				    sizeof(oldfname));
+				strlcpy(oldfname, fname, sizeof(oldfname));
 				len = strlcat(oldfname, inplace,
 				    sizeof(oldfname));
 				if (len > (ssize_t)sizeof(oldfname))
@@ -530,14 +531,10 @@ lastline(void)
 	int ch;
 
 	if (feof(infile)) {
-		return !(
-		    (inplace == NULL || ispan) &&
-		    next_files_have_lines());
+		return !((inplace == NULL || ispan) && next_files_have_lines());
 	}
 	if ((ch = getc(infile)) == EOF) {
-		return !(
-		    (inplace == NULL || ispan) &&
-		    next_files_have_lines());
+		return !((inplace == NULL || ispan) && next_files_have_lines());
 	}
 	ungetc(ch, infile);
 	return (0);

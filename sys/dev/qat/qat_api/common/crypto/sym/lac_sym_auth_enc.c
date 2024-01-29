@@ -21,18 +21,17 @@
 
 #include "cpa.h"
 #include "cpa_cy_sym.h"
-
 #include "icp_accel_devices.h"
+#include "icp_adf_debug.h"
 #include "icp_adf_init.h"
 #include "icp_adf_transport.h"
-#include "icp_adf_debug.h"
 /*
 *******************************************************************************
 * Include private header files
 *******************************************************************************
 */
-#include "lac_log.h"
 #include "lac_common.h"
+#include "lac_log.h"
 #include "lac_session.h"
 #include "lac_sym_auth_enc.h"
 
@@ -42,18 +41,16 @@
 #define LAC_ALG_CHAIN_CCM_B0_FLAGS_T_SHIFT 3
 
 /* This macro builds flags field to be put in B0 block for CCM algorithm */
-#define LAC_ALG_CHAIN_CCM_BUILD_B0_FLAGS(Adata, t, q)                          \
-	((((Adata) > 0 ? 1 : 0) << LAC_ALG_CHAIN_CCM_B0_FLAGS_ADATA_SHIFT) |   \
-	 ((((t)-2) >> 1) << LAC_ALG_CHAIN_CCM_B0_FLAGS_T_SHIFT) | ((q)-1))
+#define LAC_ALG_CHAIN_CCM_BUILD_B0_FLAGS(Adata, t, q)                        \
+	((((Adata) > 0 ? 1 : 0) << LAC_ALG_CHAIN_CCM_B0_FLAGS_ADATA_SHIFT) | \
+	    ((((t)-2) >> 1) << LAC_ALG_CHAIN_CCM_B0_FLAGS_T_SHIFT) | ((q)-1))
 
 /**
  * @ingroup LacAuthEnc
  */
 CpaStatus
-LacSymAlgChain_CheckCCMData(Cpa8U *pAdditionalAuthData,
-			    Cpa8U *pIv,
-			    Cpa32U messageLenToCipherInBytes,
-			    Cpa32U ivLenInBytes)
+LacSymAlgChain_CheckCCMData(Cpa8U *pAdditionalAuthData, Cpa8U *pIv,
+    Cpa32U messageLenToCipherInBytes, Cpa32U ivLenInBytes)
 {
 	Cpa8U q = 0;
 
@@ -65,8 +62,8 @@ LacSymAlgChain_CheckCCMData(Cpa8U *pAdditionalAuthData,
 	    ivLenInBytes > LAC_ALG_CHAIN_CCM_N_LEN_IN_BYTES_MAX) {
 		LAC_INVALID_PARAM_LOG2("ivLenInBytes for CCM algorithm  "
 				       "must be between %d and %d inclusive",
-				       LAC_ALG_CHAIN_CCM_N_LEN_IN_BYTES_MIN,
-				       LAC_ALG_CHAIN_CCM_N_LEN_IN_BYTES_MAX);
+		    LAC_ALG_CHAIN_CCM_N_LEN_IN_BYTES_MIN,
+		    LAC_ALG_CHAIN_CCM_N_LEN_IN_BYTES_MAX);
 		return CPA_STATUS_INVALID_PARAM;
 	}
 
@@ -91,16 +88,13 @@ LacSymAlgChain_CheckCCMData(Cpa8U *pAdditionalAuthData,
 	return CPA_STATUS_SUCCESS;
 }
 
-
 /**
  * @ingroup LacAuthEnc
  */
 void
 LacSymAlgChain_PrepareCCMData(lac_session_desc_t *pSessionDesc,
-			      Cpa8U *pAdditionalAuthData,
-			      Cpa8U *pIv,
-			      Cpa32U messageLenToCipherInBytes,
-			      Cpa32U ivLenInBytes)
+    Cpa8U *pAdditionalAuthData, Cpa8U *pIv, Cpa32U messageLenToCipherInBytes,
+    Cpa32U ivLenInBytes)
 {
 	Cpa8U n =
 	    ivLenInBytes; /* assumes ivLenInBytes has been param checked */
@@ -128,10 +122,8 @@ LacSymAlgChain_PrepareCCMData(lac_session_desc_t *pSessionDesc,
 
 	/* populate B0 block */
 	/* first, set the flags field */
-	pAdditionalAuthData[0] =
-	    LAC_ALG_CHAIN_CCM_BUILD_B0_FLAGS(lenOfEncodedLen,
-					     pSessionDesc->hashResultSize,
-					     q);
+	pAdditionalAuthData[0] = LAC_ALG_CHAIN_CCM_BUILD_B0_FLAGS(
+	    lenOfEncodedLen, pSessionDesc->hashResultSize, q);
 	/* bytes 1 to n are already set with nonce by the user*/
 	/* put Q in bytes 16-q...15 */
 	bitStrQ = QAT_UTILS_HOST_TO_NW_32(messageLenToCipherInBytes);
@@ -139,39 +131,35 @@ LacSymAlgChain_PrepareCCMData(lac_session_desc_t *pSessionDesc,
 	if (q > sizeof(bitStrQ)) {
 		memset(pAdditionalAuthData + n + 1, 0, q);
 		memcpy(pAdditionalAuthData + n + 1 + (q - sizeof(bitStrQ)),
-		       (Cpa8U *)&bitStrQ,
-		       sizeof(bitStrQ));
+		    (Cpa8U *)&bitStrQ, sizeof(bitStrQ));
 	} else {
 		memcpy(pAdditionalAuthData + n + 1,
-		       ((Cpa8U *)&bitStrQ) + (sizeof(bitStrQ) - q),
-		       q);
+		    ((Cpa8U *)&bitStrQ) + (sizeof(bitStrQ) - q), q);
 	}
 
 	/* populate B1-Bn blocks */
 	if (lenAEncoded > 0) {
-		*(Cpa16U
-		      *)(&pAdditionalAuthData[1 + LAC_ALG_CHAIN_CCM_NQ_CONST]) =
-		    lenAEncoded;
+		*(Cpa16U *)(&pAdditionalAuthData[1 +
+		    LAC_ALG_CHAIN_CCM_NQ_CONST]) = lenAEncoded;
 		/* Next bytes are already set by the user with
 		 * the associated data 'a' */
 
 		/* Check if padding is required */
 		if (((pSessionDesc->aadLenInBytes + lenOfEncodedLen) %
-		     LAC_HASH_AES_CCM_BLOCK_SIZE) != 0) {
+			LAC_HASH_AES_CCM_BLOCK_SIZE) != 0) {
 			Cpa8U paddingLen = 0;
 			Cpa8U paddingIndex = 0;
 
 			paddingLen = LAC_HASH_AES_CCM_BLOCK_SIZE -
 			    ((pSessionDesc->aadLenInBytes + lenOfEncodedLen) %
-			     LAC_HASH_AES_CCM_BLOCK_SIZE);
+				LAC_HASH_AES_CCM_BLOCK_SIZE);
 
 			paddingIndex = 1 + LAC_ALG_CHAIN_CCM_NQ_CONST;
-			paddingIndex +=
-			    lenOfEncodedLen + pSessionDesc->aadLenInBytes;
+			paddingIndex += lenOfEncodedLen +
+			    pSessionDesc->aadLenInBytes;
 
-			memset(&pAdditionalAuthData[paddingIndex],
-			       0,
-			       paddingLen);
+			memset(&pAdditionalAuthData[paddingIndex], 0,
+			    paddingLen);
 		}
 	}
 }
@@ -181,7 +169,7 @@ LacSymAlgChain_PrepareCCMData(lac_session_desc_t *pSessionDesc,
  */
 void
 LacSymAlgChain_PrepareGCMData(lac_session_desc_t *pSessionDesc,
-			      Cpa8U *pAdditionalAuthData)
+    Cpa8U *pAdditionalAuthData)
 {
 	Cpa8U paddingLen = 0;
 
@@ -189,8 +177,7 @@ LacSymAlgChain_PrepareGCMData(lac_session_desc_t *pSessionDesc,
 		paddingLen = LAC_HASH_AES_GCM_BLOCK_SIZE -
 		    (pSessionDesc->aadLenInBytes % LAC_HASH_AES_GCM_BLOCK_SIZE);
 
-		memset(&pAdditionalAuthData[pSessionDesc->aadLenInBytes],
-		       0,
-		       paddingLen);
+		memset(&pAdditionalAuthData[pSessionDesc->aadLenInBytes], 0,
+		    paddingLen);
 	}
 }

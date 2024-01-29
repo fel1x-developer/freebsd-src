@@ -76,15 +76,15 @@ ef_i386_reloc(struct elf_file *ef, const void *reldata, Elf_Type reltype,
 		addend = le32dec(where);
 
 	switch (rtype) {
-	case R_386_RELATIVE:	/* B + A */
+	case R_386_RELATIVE: /* B + A */
 		addr = relbase + addend;
 		le32enc(where, addr);
 		break;
-	case R_386_32:	/* S + A - P */
+	case R_386_32: /* S + A - P */
 		addr = EF_SYMADDR(ef, symidx) + addend;
 		le32enc(where, addr);
 		break;
-	case R_386_GLOB_DAT:	/* S */
+	case R_386_GLOB_DAT: /* S */
 		addr = EF_SYMADDR(ef, symidx);
 		le32enc(where, addr);
 		break;

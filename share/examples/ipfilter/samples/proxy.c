@@ -9,9 +9,9 @@
  * with a NAT rue like this:
  * rdr smc0 0/0 port 80 -> 127.0.0.1/32 port 1
  */
+#include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
-#include <fcntl.h>
 #include <syslog.h>
 #if !defined(__SVR4) && !defined(__svr4__)
 #include <strings.h>
@@ -19,45 +19,45 @@
 #include <sys/byteorder.h>
 #endif
 #include <sys/types.h>
-#include <sys/time.h>
 #include <sys/param.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+
+#include <stddef.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <stddef.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
 #if defined(sun) && (defined(__svr4__) || defined(__SVR4))
-# include <sys/ioccom.h>
-# include <sys/sysmacros.h>
+#include <sys/ioccom.h>
+#include <sys/sysmacros.h>
 #endif
+#include <net/if.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
-#include <net/if.h>
-#include <netdb.h>
-#include <arpa/nameser.h>
+
 #include <arpa/inet.h>
-#include <resolv.h>
+#include <arpa/nameser.h>
 #include <ctype.h>
+#include <netdb.h>
+#include <resolv.h>
+
 #include "netinet/ip_compat.h"
 #include "netinet/ip_fil.h"
 #include "netinet/ip_nat.h"
-#include "netinet/ip_state.h"
 #include "netinet/ip_proxy.h"
-#include "netinet/ip_nat.h"
+#include "netinet/ip_state.h"
 #include "netinet/ipl.h"
 
-
-main(argc, argv)
-	int argc;
-	char *argv[];
+main(argc, argv) int argc;
+char *argv[];
 {
-	struct	sockaddr_in	sin, sloc, sout;
-	ipfobj_t	obj;
-	natlookup_t	natlook;
-	char	buffer[512];
-	int	namelen, fd, n;
+	struct sockaddr_in sin, sloc, sout;
+	ipfobj_t obj;
+	natlookup_t natlook;
+	char buffer[512];
+	int namelen, fd, n;
 
 	/*
 	 * get IP# and port # of the remote end of the connection (at the
@@ -104,8 +104,8 @@ main(argc, argv)
 		exit(-1);
 	}
 
-#define	DO_NAT_OUT
-#ifdef	DO_NAT_OUT
+#define DO_NAT_OUT
+#ifdef DO_NAT_OUT
 	if (argc > 1)
 		do_nat_out(0, 1, fd, &natlook, argv[1]);
 #else
@@ -113,10 +113,10 @@ main(argc, argv)
 	/*
 	 * Log it
 	 */
-	syslog(LOG_DAEMON|LOG_INFO, "connect to %s,%d",
-		inet_ntoa(natlook.nl_realip), ntohs(natlook.nl_realport));
-	printf("connect to %s,%d\n",
-		inet_ntoa(natlook.nl_realip), ntohs(natlook.nl_realport));
+	syslog(LOG_DAEMON | LOG_INFO, "connect to %s,%d",
+	    inet_ntoa(natlook.nl_realip), ntohs(natlook.nl_realport));
+	printf("connect to %s,%d\n", inet_ntoa(natlook.nl_realip),
+	    ntohs(natlook.nl_realport));
 
 	/*
 	 * Just echo data read in from stdin to stdout
@@ -128,12 +128,10 @@ main(argc, argv)
 #endif
 }
 
-
-#ifdef	DO_NAT_OUT
-do_nat_out(in, out, fd, nlp, extif)
-	int fd;
-	natlookup_t *nlp;
-	char *extif;
+#ifdef DO_NAT_OUT
+do_nat_out(in, out, fd, nlp, extif) int fd;
+natlookup_t *nlp;
+char *extif;
 {
 	nat_save_t ns, *nsp = &ns;
 	struct sockaddr_in usin;
@@ -150,9 +148,9 @@ do_nat_out(in, out, fd, nlp, extif)
 	nat->nat_dir = NAT_OUTBOUND;
 	if ((extif != NULL) && (*extif != '\0')) {
 		strncpy(nat->nat_ifnames[0], extif,
-			sizeof(nat->nat_ifnames[0]));
+		    sizeof(nat->nat_ifnames[0]));
 		strncpy(nat->nat_ifnames[1], extif,
-			sizeof(nat->nat_ifnames[1]));
+		    sizeof(nat->nat_ifnames[1]));
 		nat->nat_ifnames[0][sizeof(nat->nat_ifnames[0]) - 1] = '\0';
 		nat->nat_ifnames[1][sizeof(nat->nat_ifnames[1]) - 1] = '\0';
 	}
@@ -162,11 +160,11 @@ do_nat_out(in, out, fd, nlp, extif)
 	usin.sin_family = AF_INET;
 	usin.sin_addr = nlp->nl_realip;
 	usin.sin_port = nlp->nl_realport;
-	(void) connect(ofd, (struct sockaddr *)&usin, sizeof(usin));
+	(void)connect(ofd, (struct sockaddr *)&usin, sizeof(usin));
 	slen = sizeof(usin);
-	(void) getsockname(ofd, (struct sockaddr *)&usin, &slen);
+	(void)getsockname(ofd, (struct sockaddr *)&usin, &slen);
 	close(ofd);
-printf("local IP# to use: %s\n", inet_ntoa(usin.sin_addr));
+	printf("local IP# to use: %s\n", inet_ntoa(usin.sin_addr));
 
 	if ((ofd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
 		perror("socket");
@@ -176,7 +174,7 @@ printf("local IP# to use: %s\n", inet_ntoa(usin.sin_addr));
 	slen = sizeof(usin);
 	if (getsockname(ofd, (struct sockaddr *)&usin, &slen))
 		perror("getsockname");
-printf("local port# to use: %d\n", ntohs(usin.sin_port));
+	printf("local port# to use: %d\n", ntohs(usin.sin_port));
 
 	nat->nat_inip = usin.sin_addr;
 	nat->nat_outip = nlp->nl_outip;
@@ -216,18 +214,16 @@ printf("local port# to use: %d\n", ntohs(usin.sin_port));
 
 	usin.sin_addr = nlp->nl_realip;
 	usin.sin_port = nlp->nl_realport;
-printf("remote end for connection: %s,%d\n", inet_ntoa(usin.sin_addr),
-ntohs(usin.sin_port));
-fflush(stdout);
+	printf("remote end for connection: %s,%d\n", inet_ntoa(usin.sin_addr),
+	    ntohs(usin.sin_port));
+	fflush(stdout);
 	if (connect(ofd, (struct sockaddr *)&usin, sizeof(usin)))
 		perror("connect");
 
 	relay(in, out, ofd);
 }
 
-
-relay(in, out, net)
-	int in, out, net;
+relay(in, out, net) int in, out, net;
 {
 	char netbuf[1024], outbuf[1024];
 	char *nwptr, *nrptr, *owptr, *orptr;

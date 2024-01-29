@@ -7,158 +7,148 @@
  */
 #include <sys/param.h>
 #if defined(KERNEL) || defined(_KERNEL)
-# undef KERNEL
-# undef _KERNEL
-# define        KERNEL	1
-# define        _KERNEL	1
+#undef KERNEL
+#undef _KERNEL
+#define KERNEL 1
+#define _KERNEL 1
 #endif
 #if defined(__FreeBSD__) && !defined(_KERNEL)
-# include <osreldate.h>
+#include <osreldate.h>
 #endif
 #ifndef SOLARIS
-# if defined(sun) && defined(__SVR4)
-#  define	SOLARIS		1
-# else
-#  define	SOLARIS		0
-# endif
+#if defined(sun) && defined(__SVR4)
+#define SOLARIS 1
+#else
+#define SOLARIS 0
 #endif
-#include <sys/errno.h>
+#endif
 #include <sys/types.h>
+#include <sys/errno.h>
 #include <sys/file.h>
 #ifndef _KERNEL
-# include <stdio.h>
-# include <string.h>
-# include <stdlib.h>
-# include <ctype.h>
-# define _KERNEL
-# define KERNEL
-# include <sys/uio.h>
-# undef _KERNEL
-# undef KERNEL
+#include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#define _KERNEL
+#define KERNEL
+#include <sys/uio.h>
+#undef _KERNEL
+#undef KERNEL
 #endif
 #if defined(__FreeBSD__) && defined(_KERNEL)
-# include <sys/fcntl.h>
-# include <sys/filio.h>
+#include <sys/fcntl.h>
+#include <sys/filio.h>
 #else
-# include <sys/ioctl.h>
+#include <sys/ioctl.h>
 #endif
 #include <sys/time.h>
 #if defined(_KERNEL)
-# include <sys/systm.h>
-# if (defined(NetBSD) && (__NetBSD_Version__ >= 104000000))
-#  include <sys/proc.h>
-# endif
+#include <sys/systm.h>
+#if (defined(NetBSD) && (__NetBSD_Version__ >= 104000000))
+#include <sys/proc.h>
+#endif
 #endif /* _KERNEL */
-# if defined(NetBSD) || defined(__FreeBSD__)
-#  include <sys/dirent.h>
-# include <sys/mbuf.h>
-# include <sys/select.h>
-# endif
-# if defined(__FreeBSD__)
-#  include <sys/selinfo.h>
-# endif
+#if defined(NetBSD) || defined(__FreeBSD__)
+#include <sys/dirent.h>
+#include <sys/mbuf.h>
+#include <sys/select.h>
+#endif
+#if defined(__FreeBSD__)
+#include <sys/selinfo.h>
+#endif
 #if SOLARIS && defined(_KERNEL)
-#  include <sys/filio.h>
-#  include <sys/cred.h>
-#  include <sys/ddi.h>
-#  include <sys/sunddi.h>
-#  include <sys/ksynch.h>
-#  include <sys/kmem.h>
-#  include <sys/mkdev.h>
-#  include <sys/dditypes.h>
-#  include <sys/cmn_err.h>
+#include <sys/cmn_err.h>
+#include <sys/cred.h>
+#include <sys/ddi.h>
+#include <sys/dditypes.h>
+#include <sys/filio.h>
+#include <sys/kmem.h>
+#include <sys/ksynch.h>
+#include <sys/mkdev.h>
+#include <sys/sunddi.h>
 #endif /* SOLARIS && _KERNEL */
-# include <sys/protosw.h>
+#include <sys/protosw.h>
 #include <sys/socket.h>
 
 #include <net/if.h>
 #ifdef sun
-# include <net/af.h>
+#include <net/af.h>
 #endif
 #if defined(__FreeBSD__)
-# include <net/if_var.h>
-# include <net/if_private.h>
+#include <net/if_private.h>
+#include <net/if_var.h>
 #endif
 #include <netinet/in.h>
-# include <netinet/in_var.h>
 #include <netinet/in_systm.h>
+#include <netinet/in_var.h>
 #include <netinet/ip.h>
+#include <netinet/ip_icmp.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
-#include <netinet/ip_icmp.h>
 #ifdef USE_INET6
-# include <netinet/icmp6.h>
+#include <netinet/icmp6.h>
 #endif
-# include <netinet/ip_var.h>
+#include <netinet/ip_var.h>
 #ifndef _KERNEL
-# include <syslog.h>
+#include <syslog.h>
 #endif
-#include "netinet/ip_compat.h"
 #include <netinet/tcpip.h>
-#include "netinet/ip_fil.h"
-#include "netinet/ip_nat.h"
-#include "netinet/ip_frag.h"
-#include "netinet/ip_state.h"
+
 #include "netinet/ip_auth.h"
+#include "netinet/ip_compat.h"
+#include "netinet/ip_fil.h"
+#include "netinet/ip_frag.h"
+#include "netinet/ip_nat.h"
+#include "netinet/ip_state.h"
 #if defined(__FreeBSD__) || defined(__NetBSD__)
-# include <sys/malloc.h>
+#include <sys/malloc.h>
 #endif
 /* END OF INCLUDES */
 
-#ifdef	IPFILTER_LOG
+#ifdef IPFILTER_LOG
 
 typedef struct ipf_log_softc_s {
-	ipfmutex_t	ipl_mutex[IPL_LOGSIZE];
-# if SOLARIS && defined(_KERNEL)
-	kcondvar_t	ipl_wait[IPL_LOGSIZE];
-# endif
-	iplog_t		**iplh[IPL_LOGSIZE];
-	iplog_t		*iplt[IPL_LOGSIZE];
-	iplog_t		*ipll[IPL_LOGSIZE];
-	u_long		ipl_logfail[IPL_LOGSIZE];
-	u_long		ipl_logok[IPL_LOGSIZE];
-	fr_info_t	ipl_crc[IPL_LOGSIZE];
-	u_32_t		ipl_counter[IPL_LOGSIZE];
-	int		ipl_suppress;
-	int		ipl_logall;
-	int		ipl_log_init;
-	int		ipl_logsize;
-	int		ipl_used[IPL_LOGSIZE];
-	int		ipl_magic[IPL_LOGSIZE];
-	ipftuneable_t	*ipf_log_tune;
-	int		ipl_readers[IPL_LOGSIZE];
+	ipfmutex_t ipl_mutex[IPL_LOGSIZE];
+#if SOLARIS && defined(_KERNEL)
+	kcondvar_t ipl_wait[IPL_LOGSIZE];
+#endif
+	iplog_t **iplh[IPL_LOGSIZE];
+	iplog_t *iplt[IPL_LOGSIZE];
+	iplog_t *ipll[IPL_LOGSIZE];
+	u_long ipl_logfail[IPL_LOGSIZE];
+	u_long ipl_logok[IPL_LOGSIZE];
+	fr_info_t ipl_crc[IPL_LOGSIZE];
+	u_32_t ipl_counter[IPL_LOGSIZE];
+	int ipl_suppress;
+	int ipl_logall;
+	int ipl_log_init;
+	int ipl_logsize;
+	int ipl_used[IPL_LOGSIZE];
+	int ipl_magic[IPL_LOGSIZE];
+	ipftuneable_t *ipf_log_tune;
+	int ipl_readers[IPL_LOGSIZE];
 } ipf_log_softc_t;
 
 static int magic[IPL_LOGSIZE] = { IPL_MAGIC, IPL_MAGIC_NAT, IPL_MAGIC_STATE,
-				  IPL_MAGIC, IPL_MAGIC, IPL_MAGIC,
-				  IPL_MAGIC, IPL_MAGIC };
+	IPL_MAGIC, IPL_MAGIC, IPL_MAGIC, IPL_MAGIC, IPL_MAGIC };
 
 static ipftuneable_t ipf_log_tuneables[] = {
 	/* log */
-	{ { (void *)offsetof(ipf_log_softc_t, ipl_suppress) },
-		"log_suppress",		0,	1,
-		stsizeof(ipf_log_softc_t, ipl_suppress),
-		0,			NULL,	NULL },
-	{ { (void *)offsetof(ipf_log_softc_t, ipl_logall) },
-		"log_all",		0,	1,
-		stsizeof(ipf_log_softc_t, ipl_logall),
-		0,			NULL,	NULL },
-	{ { (void *)offsetof(ipf_log_softc_t, ipl_logsize) },
-		"log_size",		0,	0x80000,
-		stsizeof(ipf_log_softc_t, ipl_logsize),
-		0,			NULL,	NULL },
-	{ { NULL },		NULL,			0,	0,
-		0,
-		0,			NULL,	NULL }
+	{ { (void *)offsetof(ipf_log_softc_t, ipl_suppress) }, "log_suppress",
+	    0, 1, stsizeof(ipf_log_softc_t, ipl_suppress), 0, NULL, NULL },
+	{ { (void *)offsetof(ipf_log_softc_t, ipl_logall) }, "log_all", 0, 1,
+	    stsizeof(ipf_log_softc_t, ipl_logall), 0, NULL, NULL },
+	{ { (void *)offsetof(ipf_log_softc_t, ipl_logsize) }, "log_size", 0,
+	    0x80000, stsizeof(ipf_log_softc_t, ipl_logsize), 0, NULL, NULL },
+	{ { NULL }, NULL, 0, 0, 0, 0, NULL, NULL }
 };
-
 
 int
 ipf_log_main_load(void)
 {
 	return (0);
 }
-
 
 int
 ipf_log_main_unload(void)
@@ -188,8 +178,7 @@ ipf_log_soft_create(ipf_main_softc_t *softc)
 	bcopy((char *)magic, (char *)softl->ipl_magic, sizeof(magic));
 
 	softl->ipf_log_tune = ipf_tune_array_copy(softl,
-						  sizeof(ipf_log_tuneables),
-						  ipf_log_tuneables);
+	    sizeof(ipf_log_tuneables), ipf_log_tuneables);
 	if (softl->ipf_log_tune == NULL) {
 		ipf_log_soft_destroy(softc, softl);
 		return (NULL);
@@ -232,12 +221,10 @@ ipf_log_soft_init(ipf_main_softc_t *softc, void *arg)
 		bzero((char *)&softl->ipl_crc[i], sizeof(softl->ipl_crc[i]));
 	}
 
-
 	softl->ipl_log_init = 1;
 
 	return (0);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_log_soft_fini                                           */
@@ -258,7 +245,7 @@ ipf_log_soft_fini(ipf_main_softc_t *softc, void *arg)
 	softl->ipl_log_init = 0;
 
 	for (i = IPL_LOGMAX; i >= 0; i--) {
-		(void) ipf_log_clear(softc, i);
+		(void)ipf_log_clear(softc, i);
 
 		/*
 		 * This is a busy-wait loop so as to avoid yet another lock
@@ -266,16 +253,16 @@ ipf_log_soft_fini(ipf_main_softc_t *softc, void *arg)
 		 */
 		MUTEX_ENTER(&softl->ipl_mutex[i]);
 		while (softl->ipl_readers[i] > 0) {
-# if SOLARIS && defined(_KERNEL)
+#if SOLARIS && defined(_KERNEL)
 			cv_broadcast(&softl->ipl_wait[i]);
 			MUTEX_EXIT(&softl->ipl_mutex[i]);
 			delay(100);
 			pollwakeup(&softc->ipf_poll_head[i], POLLRDNORM);
-# else
+#else
 			MUTEX_EXIT(&softl->ipl_mutex[i]);
 			WAKEUP(softl->iplh, i);
 			POLLWAKEUP(i);
-# endif
+#endif
 			MUTEX_ENTER(&softl->ipl_mutex[i]);
 		}
 		MUTEX_EXIT(&softl->ipl_mutex[i]);
@@ -283,7 +270,6 @@ ipf_log_soft_fini(ipf_main_softc_t *softc, void *arg)
 
 	return (0);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_log_soft_destroy                                        */
@@ -300,9 +286,9 @@ ipf_log_soft_destroy(ipf_main_softc_t *softc, void *arg)
 	int i;
 
 	for (i = IPL_LOGMAX; i >= 0; i--) {
-# if SOLARIS && defined(_KERNEL)
+#if SOLARIS && defined(_KERNEL)
 		cv_destroy(&softl->ipl_wait[i]);
-# endif
+#endif
 		MUTEX_DESTROY(&softl->ipl_mutex[i]);
 	}
 
@@ -314,7 +300,6 @@ ipf_log_soft_destroy(ipf_main_softc_t *softc, void *arg)
 
 	KFREE(softl);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_log_pkt                                                 */
@@ -340,11 +325,11 @@ ipf_log_pkt(fr_info_t *fin, u_int flags)
 	ipflog_t ipfl;
 	u_char p;
 	mb_t *m;
-# if SOLARIS && defined(_KERNEL) && !defined(FW_HOOKS)
+#if SOLARIS && defined(_KERNEL) && !defined(FW_HOOKS)
 	qif_t *ifp;
-# else
+#else
 	struct ifnet *ifp;
-# endif /* SOLARIS */
+#endif /* SOLARIS */
 
 	m = fin->fin_m;
 	if (m == NULL)
@@ -373,23 +358,21 @@ ipf_log_pkt(fr_info_t *fin, u_int flags)
 			 * include the information about the packet which
 			 * caused the error.
 			 */
-			switch (icmp->icmp_type)
-			{
-			case ICMP_UNREACH :
-			case ICMP_SOURCEQUENCH :
-			case ICMP_REDIRECT :
-			case ICMP_TIMXCEED :
-			case ICMP_PARAMPROB :
+			switch (icmp->icmp_type) {
+			case ICMP_UNREACH:
+			case ICMP_SOURCEQUENCH:
+			case ICMP_REDIRECT:
+			case ICMP_TIMXCEED:
+			case ICMP_PARAMPROB:
 				hlen += MIN(sizeof(struct icmp) + 8,
-					    fin->fin_dlen);
+				    fin->fin_dlen);
 				break;
-			default :
-				hlen += MIN(sizeof(struct icmp),
-					    fin->fin_dlen);
+			default:
+				hlen += MIN(sizeof(struct icmp), fin->fin_dlen);
 				break;
 			}
 		}
-# ifdef USE_INET6
+#ifdef USE_INET6
 		else if (p == IPPROTO_ICMPV6) {
 			struct icmp6_hdr *icmp;
 
@@ -402,40 +385,40 @@ ipf_log_pkt(fr_info_t *fin, u_int flags)
 			 */
 			if (icmp->icmp6_type < 128) {
 				hlen += MIN(sizeof(struct icmp6_hdr) + 8,
-					    fin->fin_dlen);
+				    fin->fin_dlen);
 			} else {
 				hlen += MIN(sizeof(struct icmp6_hdr),
-					    fin->fin_dlen);
+				    fin->fin_dlen);
 			}
 		}
-# endif
+#endif
 	}
 	/*
 	 * Get the interface number and name to which this packet is
 	 * currently associated.
 	 */
-# if SOLARIS && defined(_KERNEL)
-#  if !defined(FW_HOOKS)
+#if SOLARIS && defined(_KERNEL)
+#if !defined(FW_HOOKS)
 	ipfl.fl_unit = (u_int)ifp->qf_ppa;
-#  endif
+#endif
 	COPYIFNAME(fin->fin_v, ifp, ipfl.fl_ifname);
-# else
-#  if (defined(NetBSD) && (NetBSD  <= 1991011) && (NetBSD >= 199603)) || \
-      defined(__FreeBSD__)
+#else
+#if (defined(NetBSD) && (NetBSD <= 1991011) && (NetBSD >= 199603)) || \
+    defined(__FreeBSD__)
 	COPYIFNAME(fin->fin_v, ifp, ipfl.fl_ifname);
-#  else
+#else
 	ipfl.fl_unit = (u_int)ifp->if_unit;
-#   if defined(_KERNEL)
+#if defined(_KERNEL)
 	if ((ipfl.fl_ifname[0] = ifp->if_name[0]))
 		if ((ipfl.fl_ifname[1] = ifp->if_name[1]))
 			if ((ipfl.fl_ifname[2] = ifp->if_name[2]))
 				ipfl.fl_ifname[3] = ifp->if_name[3];
-#   else
-	(void) strncpy(ipfl.fl_ifname, IFNAME(ifp), sizeof(ipfl.fl_ifname));
+#else
+	(void)strncpy(ipfl.fl_ifname, IFNAME(ifp), sizeof(ipfl.fl_ifname));
 	ipfl.fl_ifname[sizeof(ipfl.fl_ifname) - 1] = '\0';
-#   endif
-#  endif
-# endif /* __hpux || SOLARIS */
+#endif
+#endif
+#endif /* __hpux || SOLARIS */
 	mlen = fin->fin_plen - hlen;
 	if (!softl->ipl_logall) {
 		mlen = (flags & FR_LOGBODY) ? MIN(mlen, 128) : 0;
@@ -447,7 +430,7 @@ ipf_log_pkt(fr_info_t *fin, u_int flags)
 	ipfl.fl_plen = (u_char)mlen;
 	ipfl.fl_hlen = (u_char)hlen;
 	ipfl.fl_rule = fin->fin_rule;
-	(void) strncpy(ipfl.fl_group, fin->fin_group, FR_GROUPLEN);
+	(void)strncpy(ipfl.fl_group, fin->fin_group, FR_GROUPLEN);
 	if (fin->fin_fr != NULL) {
 		ipfl.fl_loglevel = fin->fin_fr->fr_loglevel;
 		ipfl.fl_logtag = fin->fin_fr->fr_logtag;
@@ -457,7 +440,7 @@ ipf_log_pkt(fr_info_t *fin, u_int flags)
 	}
 	if (fin->fin_nattag != NULL)
 		bcopy(fin->fin_nattag, (void *)&ipfl.fl_nattag,
-		      sizeof(ipfl.fl_nattag));
+		    sizeof(ipfl.fl_nattag));
 	ipfl.fl_flags = flags;
 	ipfl.fl_breason = (fin->fin_reason & 0xff);
 	ipfl.fl_dir = fin->fin_out;
@@ -466,7 +449,7 @@ ipf_log_pkt(fr_info_t *fin, u_int flags)
 	ptrs[0] = (void *)&ipfl;
 	sizes[0] = sizeof(ipfl);
 	types[0] = 0;
-# if SOLARIS && defined(_KERNEL)
+#if SOLARIS && defined(_KERNEL)
 	/*
 	 * Are we copied from the mblk or an aligned array ?
 	 */
@@ -479,14 +462,13 @@ ipf_log_pkt(fr_info_t *fin, u_int flags)
 		sizes[1] = hlen + mlen;
 		types[1] = 0;
 	}
-# else
+#else
 	ptrs[1] = m;
 	sizes[1] = hlen + mlen;
 	types[1] = 1;
-# endif /* SOLARIS */
+#endif /* SOLARIS */
 	return (ipf_log_items(softc, IPL_LOGIPF, fin, ptrs, sizes, types, 2));
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_log_items                                               */
@@ -505,7 +487,7 @@ ipf_log_pkt(fr_info_t *fin, u_int flags)
 /* ------------------------------------------------------------------------ */
 int
 ipf_log_items(ipf_main_softc_t *softc, int unit, fr_info_t *fin, void **items,
-	size_t *itemsz, int *types, int cnt)
+    size_t *itemsz, int *types, int cnt)
 {
 	ipf_log_softc_t *softl = softc->ipf_log_soft;
 	caddr_t buf, ptr;
@@ -574,7 +556,7 @@ ipf_log_items(ipf_main_softc_t *softc, int unit, fr_info_t *fin, void **items,
 			if ((softl->ipll[unit] != NULL) &&
 			    (fin->fin_crc == softl->ipl_crc[unit].fin_crc) &&
 			    bcmp((char *)fin, (char *)&softl->ipl_crc[unit],
-				 FI_LCSIZE) == 0) {
+				FI_LCSIZE) == 0) {
 				softl->ipll[unit]->ipl_count++;
 				MUTEX_EXIT(&softl->ipl_mutex[unit]);
 				SPL_X(s);
@@ -582,7 +564,7 @@ ipf_log_items(ipf_main_softc_t *softc, int unit, fr_info_t *fin, void **items,
 				return (0);
 			}
 			bcopy((char *)fin, (char *)&softl->ipl_crc[unit],
-			      FI_LCSIZE);
+			    FI_LCSIZE);
 			softl->ipl_crc[unit].fin_crc = fin->fin_crc;
 		} else
 			bzero((char *)&softl->ipl_crc[unit], FI_CSIZE);
@@ -602,19 +584,18 @@ ipf_log_items(ipf_main_softc_t *softc, int unit, fr_info_t *fin, void **items,
 	 * Now that the log record has been completed and added to the queue,
 	 * wake up any listeners who may want to read it.
 	 */
-# if SOLARIS && defined(_KERNEL)
+#if SOLARIS && defined(_KERNEL)
 	cv_signal(&softl->ipl_wait[unit]);
 	MUTEX_EXIT(&softl->ipl_mutex[unit]);
 	pollwakeup(&softc->ipf_poll_head[unit], POLLRDNORM);
-# else
+#else
 	MUTEX_EXIT(&softl->ipl_mutex[unit]);
 	WAKEUP(softl->iplh, unit);
 	POLLWAKEUP(unit);
-# endif
+#endif
 	SPL_X(s);
 	return (0);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_log_read                                                */
@@ -672,15 +653,15 @@ ipf_log_read(ipf_main_softc_t *softc, minor_t unit, struct uio *uio)
 	softl->ipl_readers[unit]++;
 
 	while (softl->ipl_log_init == 1 && softl->iplt[unit] == NULL) {
-# if SOLARIS && defined(_KERNEL)
+#if SOLARIS && defined(_KERNEL)
 		if (!cv_wait_sig(&softl->ipl_wait[unit],
-				 &softl->ipl_mutex[unit].ipf_lk)) {
+			&softl->ipl_mutex[unit].ipf_lk)) {
 			softl->ipl_readers[unit]--;
 			MUTEX_EXIT(&softl->ipl_mutex[unit]);
 			IPFERROR(40003);
 			return (EINTR);
 		}
-# else
+#else
 		MUTEX_EXIT(&softl->ipl_mutex[unit]);
 		SPL_X(s);
 		error = SLEEP(unit + softl->iplh, "ipl sleep");
@@ -692,7 +673,7 @@ ipf_log_read(ipf_main_softc_t *softc, minor_t unit, struct uio *uio)
 			IPFERROR(40004);
 			return (error);
 		}
-# endif /* SOLARIS */
+#endif /* SOLARIS */
 	}
 	if (softl->ipl_log_init != 1) {
 		softl->ipl_readers[unit]--;
@@ -701,9 +682,9 @@ ipf_log_read(ipf_main_softc_t *softc, minor_t unit, struct uio *uio)
 		return (EIO);
 	}
 
-# if defined(BSD)
+#if defined(BSD)
 	uio->uio_rw = UIO_READ;
-# endif
+#endif
 
 	for (; (ipl = softl->iplt[unit]) != NULL;) {
 		dlen = ipl->ipl_dsize;
@@ -742,7 +723,6 @@ ipf_log_read(ipf_main_softc_t *softc, minor_t unit, struct uio *uio)
 	return (error);
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_log_clear                                               */
 /* Returns:     int      - number of log bytes cleared.                     */
@@ -775,7 +755,6 @@ ipf_log_clear(ipf_main_softc_t *softc, minor_t unit)
 	return (used);
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_log_canread                                             */
 /* Returns:     int      - 0 == no data to read, 1 = data present           */
@@ -792,7 +771,6 @@ ipf_log_canread(ipf_main_softc_t *softc, int unit)
 
 	return (softl->iplt[unit] != NULL);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_log_canread                                             */
@@ -814,7 +792,6 @@ ipf_log_bytesused(ipf_main_softc_t *softc, int unit)
 	return (softl->ipl_used[unit]);
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_log_failures                                            */
 /* Returns:     U_QUAD_T - number of log failures                           */
@@ -834,7 +811,6 @@ ipf_log_failures(ipf_main_softc_t *softc, int unit)
 
 	return (softl->ipl_logfail[unit]);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_log_logok                                               */

@@ -26,37 +26,37 @@
  * MAC registers.
  */
 /* System Configuration. */
-#define R92C_USB_SIE_INTF		0x0e0
+#define R92C_USB_SIE_INTF 0x0e0
 
 /*
  * USB registers.
  */
-#define R92C_USB_SUSPEND		0xfe10
-#define R92C_USB_INFO			0xfe17
-#define R92C_USB_SPECIAL_OPTION		0xfe55
-#define R92C_USB_HCPWM			0xfe57
-#define R92C_USB_HRPWM			0xfe58
-#define R92C_USB_DMA_AGG_TO		0xfe5b
-#define R92C_USB_AGG_TO			0xfe5c
-#define R92C_USB_AGG_TH			0xfe5d
-#define R92C_USB_VID			0xfe60
-#define R92C_USB_PID			0xfe62
-#define R92C_USB_OPTIONAL		0xfe64
-#define R92C_USB_EP			0xfe65
-#define R92C_USB_PHY			0xfe68
-#define R92C_USB_MAC_ADDR		0xfe70
-#define R92C_USB_STRING			0xfe80
+#define R92C_USB_SUSPEND 0xfe10
+#define R92C_USB_INFO 0xfe17
+#define R92C_USB_SPECIAL_OPTION 0xfe55
+#define R92C_USB_HCPWM 0xfe57
+#define R92C_USB_HRPWM 0xfe58
+#define R92C_USB_DMA_AGG_TO 0xfe5b
+#define R92C_USB_AGG_TO 0xfe5c
+#define R92C_USB_AGG_TH 0xfe5d
+#define R92C_USB_VID 0xfe60
+#define R92C_USB_PID 0xfe62
+#define R92C_USB_OPTIONAL 0xfe64
+#define R92C_USB_EP 0xfe65
+#define R92C_USB_PHY 0xfe68
+#define R92C_USB_MAC_ADDR 0xfe70
+#define R92C_USB_STRING 0xfe80
 
 /* Bits for R92C_USB_SPECIAL_OPTION. */
-#define R92C_USB_SPECIAL_OPTION_AGG_EN		0x08
-#define R92C_USB_SPECIAL_OPTION_INT_BULK_SEL	0x10
+#define R92C_USB_SPECIAL_OPTION_AGG_EN 0x08
+#define R92C_USB_SPECIAL_OPTION_INT_BULK_SEL 0x10
 
 /* Bits for R92C_USB_EP. */
-#define R92C_USB_EP_HQ_M	0x000f
-#define R92C_USB_EP_HQ_S	0
-#define R92C_USB_EP_NQ_M	0x00f0
-#define R92C_USB_EP_NQ_S	4
-#define R92C_USB_EP_LQ_M	0x0f00
-#define R92C_USB_EP_LQ_S	8
+#define R92C_USB_EP_HQ_M 0x000f
+#define R92C_USB_EP_HQ_S 0
+#define R92C_USB_EP_NQ_M 0x00f0
+#define R92C_USB_EP_NQ_S 4
+#define R92C_USB_EP_LQ_M 0x0f00
+#define R92C_USB_EP_LQ_S 8
 
-#endif	/* R92CU_REG_H */
+#endif /* R92CU_REG_H */

@@ -46,6 +46,7 @@
 #include <getopt.h>
 #include <kvm.h>
 #include <libgen.h>
+#include <libpmcstat.h>
 #include <limits.h>
 #include <locale.h>
 #include <math.h>
@@ -61,16 +62,11 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-#include <libpmcstat.h>
 #include "cmd_pmc.h"
 
-
-static struct option longopts[] = {
-	{"long-desc", no_argument, NULL, 'U'},
-	{"desc", no_argument, NULL, 'u'},
-	{"full", no_argument, NULL, 'f'},
-	{NULL, 0, NULL, 0}
-};
+static struct option longopts[] = { { "long-desc", no_argument, NULL, 'U' },
+	{ "desc", no_argument, NULL, 'u' }, { "full", no_argument, NULL, 'f' },
+	{ NULL, 0, NULL, 0 } };
 
 static void __dead2
 usage(void)
@@ -79,8 +75,7 @@ usage(void)
 	    "\t list events\n"
 	    "\t -u, desc -- short description of event\n"
 	    "\t -U, long-desc -- long description of event\n"
-	    "\t -f, full -- full event details\n"
-	    );
+	    "\t -f, full -- full event details\n");
 }
 
 int
@@ -90,7 +85,8 @@ cmd_pmc_list_events(int argc, char **argv)
 	int option;
 
 	do_long_descr = do_descr = do_full = 0;
-	while ((option = getopt_long(argc, argv, "Uuf", longopts, NULL)) != -1) {
+	while (
+	    (option = getopt_long(argc, argv, "Uuf", longopts, NULL)) != -1) {
 		switch (option) {
 		case 'U':
 			do_long_descr = 1;
@@ -109,7 +105,8 @@ cmd_pmc_list_events(int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 	if ((do_long_descr | do_descr | do_full) && argc == 0) {
-		warnx("event or event substring required when option provided\n");
+		warnx(
+		    "event or event substring required when option provided\n");
 		usage();
 	}
 	if (do_full)

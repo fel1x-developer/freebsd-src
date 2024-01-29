@@ -27,29 +27,30 @@
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
 
+#include <sys/types.h>
+#include <sys/endian.h>
+#include <sys/sysctl.h>
+#include <sys/time.h>
+
+#include <net/if.h>
+
+#include <err.h>
+#include <fcntl.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <signal.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <string.h>
-#include <err.h>
-#include <net/if.h>
-#include <sys/endian.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/sysctl.h>
-
-#include "net80211/ieee80211_ioctl.h"
-#include "net80211/ieee80211_radiotap.h"
+#include <unistd.h>
 
 #include "if_iwn_ioctl.h"
 #include "if_iwnreg.h"
-#include "iwnstats.h"
 #include "iwn_ioctl.h"
+#include "iwnstats.h"
+#include "net80211/ieee80211_ioctl.h"
+#include "net80211/ieee80211_radiotap.h"
 
-#define	IWN_DEFAULT_IF		"iwn0"
+#define IWN_DEFAULT_IF "iwn0"
 
 static struct iwnstats *
 iwnstats_new(const char *ifname)
@@ -73,73 +74,49 @@ static void
 iwn_stats_phy_print(struct iwn_rx_phy_stats *rxphy, const char *prefix)
 {
 
-	printf("%s: %s: ina=%d, fina=%d, bad_plcp=%d, bad_crc32=%d, overrun=%d, eoverrun=%d\n",
-	        __func__,
-		prefix,
-		le32toh(rxphy->ina),
-		le32toh(rxphy->fina),
-		le32toh(rxphy->bad_plcp),
-		le32toh(rxphy->bad_crc32),
-		le32toh(rxphy->overrun),
-		le32toh(rxphy->eoverrun));
+	printf(
+	    "%s: %s: ina=%d, fina=%d, bad_plcp=%d, bad_crc32=%d, overrun=%d, eoverrun=%d\n",
+	    __func__, prefix, le32toh(rxphy->ina), le32toh(rxphy->fina),
+	    le32toh(rxphy->bad_plcp), le32toh(rxphy->bad_crc32),
+	    le32toh(rxphy->overrun), le32toh(rxphy->eoverrun));
 
-	printf("%s: %s: fa=%d, bad_fina_sync=%d, sfd_timeout=%d, fina_timeout=%d, no_rts_ack=%d\n",
-	        __func__,
-		prefix,
-		le32toh(rxphy->fa),
-		le32toh(rxphy->bad_fina_sync),
-		le32toh(rxphy->sfd_timeout),
-		le32toh(rxphy->fina_timeout),
-		le32toh(rxphy->no_rts_ack));
+	printf(
+	    "%s: %s: fa=%d, bad_fina_sync=%d, sfd_timeout=%d, fina_timeout=%d, no_rts_ack=%d\n",
+	    __func__, prefix, le32toh(rxphy->fa), le32toh(rxphy->bad_fina_sync),
+	    le32toh(rxphy->sfd_timeout), le32toh(rxphy->fina_timeout),
+	    le32toh(rxphy->no_rts_ack));
 
-	printf("%s: %s: rxe_limit=%d, ack=%d, cts=%d, ba_resp=%d, dsp_kill=%d, bad_mh=%d, rssi_sum=%d\n",
-	        __func__,
-		prefix,
-		le32toh(rxphy->rxe_limit),
-		le32toh(rxphy->ack),
-		le32toh(rxphy->cts),
-		le32toh(rxphy->ba_resp),
-		le32toh(rxphy->dsp_kill),
-		le32toh(rxphy->bad_mh),
-		le32toh(rxphy->rssi_sum));
+	printf(
+	    "%s: %s: rxe_limit=%d, ack=%d, cts=%d, ba_resp=%d, dsp_kill=%d, bad_mh=%d, rssi_sum=%d\n",
+	    __func__, prefix, le32toh(rxphy->rxe_limit), le32toh(rxphy->ack),
+	    le32toh(rxphy->cts), le32toh(rxphy->ba_resp),
+	    le32toh(rxphy->dsp_kill), le32toh(rxphy->bad_mh),
+	    le32toh(rxphy->rssi_sum));
 }
 
 static void
 iwn_stats_rx_general_print(struct iwn_rx_general_stats *g)
 {
 
-	printf("%s: bad_cts=%d, bad_ack=%d, not_bss=%d, filtered=%d, bad_chan=%d, beacons=%d\n",
-	    __func__,
-	    le32toh(g->bad_cts),
-	    le32toh(g->bad_ack),
-	    le32toh(g->not_bss),
-	    le32toh(g->filtered),
-	    le32toh(g->bad_chan),
+	printf(
+	    "%s: bad_cts=%d, bad_ack=%d, not_bss=%d, filtered=%d, bad_chan=%d, beacons=%d\n",
+	    __func__, le32toh(g->bad_cts), le32toh(g->bad_ack),
+	    le32toh(g->not_bss), le32toh(g->filtered), le32toh(g->bad_chan),
 	    le32toh(g->beacons));
 
 	/* XXX it'd be nice to have adc/ina saturated as a % of time */
 	printf("%s: missed_beacons=%d, adc_saturated=%d, ina_searched=%d\n",
-	    __func__,
-	    le32toh(g->missed_beacons),
-	    le32toh(g->adc_saturated),
+	    __func__, le32toh(g->missed_beacons), le32toh(g->adc_saturated),
 	    le32toh(g->ina_searched));
 
 	printf("%s: noise=[%d, %d, %d] flags=0x%08x, load=%d, fa=%d\n",
-	    __func__,
-	    le32toh(g->noise[0]),
-	    le32toh(g->noise[1]),
-	    le32toh(g->noise[2]),
-	    le32toh(g->flags),
-	    le32toh(g->load),
+	    __func__, le32toh(g->noise[0]), le32toh(g->noise[1]),
+	    le32toh(g->noise[2]), le32toh(g->flags), le32toh(g->load),
 	    le32toh(g->fa));
 
-	printf("%s: rssi=[%d, %d, %d] energy=[%d %d %d]\n",
-	    __func__,
-	    le32toh(g->rssi[0]),
-	    le32toh(g->rssi[1]),
-	    le32toh(g->rssi[2]),
-	    le32toh(g->energy[0]),
-	    le32toh(g->energy[1]),
+	printf("%s: rssi=[%d, %d, %d] energy=[%d %d %d]\n", __func__,
+	    le32toh(g->rssi[0]), le32toh(g->rssi[1]), le32toh(g->rssi[2]),
+	    le32toh(g->energy[0]), le32toh(g->energy[1]),
 	    le32toh(g->energy[2]));
 }
 
@@ -147,43 +124,32 @@ static void
 iwn_stats_tx_print(struct iwn_tx_stats *tx)
 {
 
-	printf("%s: preamble=%d, rx_detected=%d, bt_defer=%d, bt_kill=%d, short_len=%d\n",
-	    __func__,
-	    le32toh(tx->preamble),
-	    le32toh(tx->rx_detected),
-	    le32toh(tx->bt_defer),
-	    le32toh(tx->bt_kill),
+	printf(
+	    "%s: preamble=%d, rx_detected=%d, bt_defer=%d, bt_kill=%d, short_len=%d\n",
+	    __func__, le32toh(tx->preamble), le32toh(tx->rx_detected),
+	    le32toh(tx->bt_defer), le32toh(tx->bt_kill),
 	    le32toh(tx->short_len));
 
-	printf("%s: cts_timeout=%d, ack_timeout=%d, exp_ack=%d, ack=%d, msdu=%d\n",
-	    __func__,
-	    le32toh(tx->cts_timeout),
-	    le32toh(tx->ack_timeout),
-	    le32toh(tx->exp_ack),
-	    le32toh(tx->ack),
-	    le32toh(tx->msdu));
+	printf(
+	    "%s: cts_timeout=%d, ack_timeout=%d, exp_ack=%d, ack=%d, msdu=%d\n",
+	    __func__, le32toh(tx->cts_timeout), le32toh(tx->ack_timeout),
+	    le32toh(tx->exp_ack), le32toh(tx->ack), le32toh(tx->msdu));
 
-	printf("%s: burst_err1=%d, burst_err2=%d, cts_collision=%d, ack_collision=%d\n",
-	    __func__,
-	    le32toh(tx->burst_err1),
-	    le32toh(tx->burst_err2),
-	    le32toh(tx->cts_collision),
-	    le32toh(tx->ack_collision));
+	printf(
+	    "%s: burst_err1=%d, burst_err2=%d, cts_collision=%d, ack_collision=%d\n",
+	    __func__, le32toh(tx->burst_err1), le32toh(tx->burst_err2),
+	    le32toh(tx->cts_collision), le32toh(tx->ack_collision));
 
-	printf("%s: ba_timeout=%d, ba_resched=%d, query_ampdu=%d, query=%d, query_ampdu_frag=%d\n",
-	    __func__,
-	    le32toh(tx->ba_timeout),
-	    le32toh(tx->ba_resched),
-	    le32toh(tx->query_ampdu),
-	    le32toh(tx->query),
+	printf(
+	    "%s: ba_timeout=%d, ba_resched=%d, query_ampdu=%d, query=%d, query_ampdu_frag=%d\n",
+	    __func__, le32toh(tx->ba_timeout), le32toh(tx->ba_resched),
+	    le32toh(tx->query_ampdu), le32toh(tx->query),
 	    le32toh(tx->query_ampdu_frag));
 
-	printf("%s: query_mismatch=%d, not_ready=%d, underrun=%d, bt_ht_kill=%d, rx_ba_resp=%d\n",
-	    __func__,
-	    le32toh(tx->query_mismatch),
-	    le32toh(tx->not_ready),
-	    le32toh(tx->underrun),
-	    le32toh(tx->bt_ht_kill),
+	printf(
+	    "%s: query_mismatch=%d, not_ready=%d, underrun=%d, bt_ht_kill=%d, rx_ba_resp=%d\n",
+	    __func__, le32toh(tx->query_mismatch), le32toh(tx->not_ready),
+	    le32toh(tx->underrun), le32toh(tx->bt_ht_kill),
 	    le32toh(tx->rx_ba_resp));
 }
 
@@ -191,48 +157,37 @@ static void
 iwn_stats_ht_phy_print(struct iwn_rx_ht_phy_stats *ht)
 {
 
-	printf("%s: bad_plcp=%d, overrun=%d, eoverrun=%d, good_crc32=%d, bad_crc32=%d\n",
-	    __func__,
-	    le32toh(ht->bad_plcp),
-	    le32toh(ht->overrun),
-	    le32toh(ht->eoverrun),
-	    le32toh(ht->good_crc32),
+	printf(
+	    "%s: bad_plcp=%d, overrun=%d, eoverrun=%d, good_crc32=%d, bad_crc32=%d\n",
+	    __func__, le32toh(ht->bad_plcp), le32toh(ht->overrun),
+	    le32toh(ht->eoverrun), le32toh(ht->good_crc32),
 	    le32toh(ht->bad_crc32));
 
 	printf("%s: bad_mh=%d, good_ampdu_crc32=%d, ampdu=%d, fragment=%d\n",
-	    __func__,
-	    le32toh(ht->bad_plcp),
-	    le32toh(ht->good_ampdu_crc32),
-	    le32toh(ht->ampdu),
-	    le32toh(ht->fragment));
+	    __func__, le32toh(ht->bad_plcp), le32toh(ht->good_ampdu_crc32),
+	    le32toh(ht->ampdu), le32toh(ht->fragment));
 }
-
 
 static void
 iwn_stats_general_print(struct iwn_stats *stats)
 {
 
 	/* General */
-	printf("%s: temp=%d, temp_m=%d, burst_check=%d, burst=%d, sleep=%d, slot_out=%d, slot_idle=%d\n",
-	        __func__,
-		le32toh(stats->general.temp),
-		le32toh(stats->general.temp_m),
-		le32toh(stats->general.burst_check),
-		le32toh(stats->general.burst),
-		le32toh(stats->general.sleep),
-		le32toh(stats->general.slot_out),
-		le32toh(stats->general.slot_idle));
-	printf("%s: slot_out=%d, ttl_tstamp=0x%08x, tx_ant_a=%d, tx_ant_b=%d, exec=%d, probe=%d\n",
-	        __func__,
-		le32toh(stats->general.slot_out),
-		le32toh(stats->general.ttl_tstamp),
-		le32toh(stats->general.tx_ant_a),
-		le32toh(stats->general.tx_ant_b),
-		le32toh(stats->general.exec),
-		le32toh(stats->general.probe));
-	printf("%s: rx_enabled=%d\n",
-	        __func__,
-		le32toh(stats->general.rx_enabled));
+	printf(
+	    "%s: temp=%d, temp_m=%d, burst_check=%d, burst=%d, sleep=%d, slot_out=%d, slot_idle=%d\n",
+	    __func__, le32toh(stats->general.temp),
+	    le32toh(stats->general.temp_m), le32toh(stats->general.burst_check),
+	    le32toh(stats->general.burst), le32toh(stats->general.sleep),
+	    le32toh(stats->general.slot_out),
+	    le32toh(stats->general.slot_idle));
+	printf(
+	    "%s: slot_out=%d, ttl_tstamp=0x%08x, tx_ant_a=%d, tx_ant_b=%d, exec=%d, probe=%d\n",
+	    __func__, le32toh(stats->general.slot_out),
+	    le32toh(stats->general.ttl_tstamp),
+	    le32toh(stats->general.tx_ant_a), le32toh(stats->general.tx_ant_b),
+	    le32toh(stats->general.exec), le32toh(stats->general.probe));
+	printf("%s: rx_enabled=%d\n", __func__,
+	    le32toh(stats->general.rx_enabled));
 }
 
 static void
@@ -279,8 +234,7 @@ main(int argc, char *argv[])
 	ifname = strdup(IWN_DEFAULT_IF);
 
 	/* Parse command line arguments */
-	while ((ch = getopt(argc, argv,
-	    "hi:")) != -1) {
+	while ((ch = getopt(argc, argv, "hi:")) != -1) {
 		switch (ch) {
 		case 'i':
 			if (ifname)

@@ -29,15 +29,14 @@
 #ifndef _HDA_EMUL_H_
 #define _HDA_EMUL_H_
 
+#include <sys/types.h>
+#include <sys/kernel.h>
+#include <sys/queue.h>
+
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
-#include <assert.h>
-
-#include <sys/types.h>
-#include <sys/queue.h>
-#include <sys/kernel.h>
 
 #include "hda_reg.h"
 
@@ -46,9 +45,11 @@
  */
 #if DEBUG_HDA == 1
 extern FILE *dbg;
-#define DPRINTF(fmt, arg...)						\
-do {fprintf(dbg, "%s-%d: " fmt "\n", __func__, __LINE__, ##arg);		\
-fflush(dbg); } while (0)
+#define DPRINTF(fmt, arg...)                                                 \
+	do {                                                                 \
+		fprintf(dbg, "%s-%d: " fmt "\n", __func__, __LINE__, ##arg); \
+		fflush(dbg);                                                 \
+	} while (0)
 #ifndef DEBUG_HDA_FILE
 #define DEBUG_HDA_FILE "/tmp/bhyve_hda.log"
 #endif
@@ -56,7 +57,7 @@ fflush(dbg); } while (0)
 #define DPRINTF(fmt, arg...)
 #endif
 
-#define HDA_FIFO_SIZE			0x100
+#define HDA_FIFO_SIZE 0x100
 
 struct hda_softc;
 struct hda_codec_class;
@@ -72,21 +73,21 @@ struct hda_codec_inst {
 struct hda_codec_class {
 	const char *name;
 	int (*init)(struct hda_codec_inst *hci, const char *play,
-		const char *rec);
+	    const char *rec);
 	int (*reset)(struct hda_codec_inst *hci);
 	int (*command)(struct hda_codec_inst *hci, uint32_t cmd_data);
 	int (*notify)(struct hda_codec_inst *hci, uint8_t run, uint8_t stream,
-		uint8_t dir);
+	    uint8_t dir);
 };
 
 struct hda_ops {
 	int (*signal)(struct hda_codec_inst *hci);
 	int (*response)(struct hda_codec_inst *hci, uint32_t response,
-		uint8_t unsol);
-	int (*transfer)(struct hda_codec_inst *hci, uint8_t stream,
-		uint8_t dir, uint8_t *buf, size_t count);
+	    uint8_t unsol);
+	int (*transfer)(struct hda_codec_inst *hci, uint8_t stream, uint8_t dir,
+	    uint8_t *buf, size_t count);
 };
 
-#define HDA_EMUL_SET(x)		DATA_SET(hda_codec_class_set, x)
+#define HDA_EMUL_SET(x) DATA_SET(hda_codec_class_set, x)
 
-#endif	/* _HDA_EMUL_H_ */
+#endif /* _HDA_EMUL_H_ */

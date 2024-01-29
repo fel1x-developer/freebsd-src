@@ -30,15 +30,16 @@
 #ifndef ECORE_SP_H
 #define ECORE_SP_H
 
-
 #include <sys/types.h>
-#include <sys/endian.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/malloc.h>
+#include <sys/endian.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mutex.h>
+
 #include <machine/bus.h>
+
 #include <net/ethernet.h>
 
 #if _BYTE_ORDER == _LITTLE_ENDIAN
@@ -61,9 +62,9 @@
 #undef __LITTLE_ENDIAN
 #endif
 
-#include "ecore_mfw_req.h"
 #include "ecore_fw_defs.h"
 #include "ecore_hsi.h"
+#include "ecore_mfw_req.h"
 #include "ecore_reg.h"
 
 struct bxe_softc;
@@ -78,43 +79,44 @@ typedef volatile int ecore_atomic_t;
 
 #define ETH_ALEN ETHER_ADDR_LEN /* 6 */
 
-#define ECORE_SWCID_SHIFT   17
-#define ECORE_SWCID_MASK    ((0x1 << ECORE_SWCID_SHIFT) - 1)
+#define ECORE_SWCID_SHIFT 17
+#define ECORE_SWCID_MASK ((0x1 << ECORE_SWCID_SHIFT) - 1)
 
 #define ECORE_MC_HASH_SIZE 8
-#define ECORE_MC_HASH_OFFSET(sc, i)                                          \
-    (BAR_TSTRORM_INTMEM +                                                    \
-     TSTORM_APPROXIMATE_MATCH_MULTICAST_FILTERING_OFFSET(FUNC_ID(sc)) + i*4)
+#define ECORE_MC_HASH_OFFSET(sc, i)                                            \
+	(BAR_TSTRORM_INTMEM +                                                  \
+	    TSTORM_APPROXIMATE_MATCH_MULTICAST_FILTERING_OFFSET(FUNC_ID(sc)) + \
+	    i * 4)
 
-#define ECORE_MAX_MULTICAST   64
-#define ECORE_MAX_EMUL_MULTI  1
+#define ECORE_MAX_MULTICAST 64
+#define ECORE_MAX_EMUL_MULTI 1
 
 #define IRO sc->iro_array
 
 typedef struct mtx ECORE_MUTEX;
 #define ECORE_MUTEX_INIT(_mutex) \
-    mtx_init(_mutex, "ecore_lock", "ECORE Lock", MTX_DEF)
-#define ECORE_MUTEX_LOCK(_mutex)   mtx_lock(_mutex)
+	mtx_init(_mutex, "ecore_lock", "ECORE Lock", MTX_DEF)
+#define ECORE_MUTEX_LOCK(_mutex) mtx_lock(_mutex)
 #define ECORE_MUTEX_UNLOCK(_mutex) mtx_unlock(_mutex)
 
 typedef struct mtx ECORE_MUTEX_SPIN;
 #define ECORE_SPIN_LOCK_INIT(_spin, _sc) \
-    mtx_init(_spin, "ecore_lock", "ECORE Lock", MTX_DEF)
-#define ECORE_SPIN_LOCK_BH(_spin)   mtx_lock(_spin) /* bh = bottom-half */
+	mtx_init(_spin, "ecore_lock", "ECORE Lock", MTX_DEF)
+#define ECORE_SPIN_LOCK_BH(_spin) mtx_lock(_spin)     /* bh = bottom-half */
 #define ECORE_SPIN_UNLOCK_BH(_spin) mtx_unlock(_spin) /* bh = bottom-half */
 
-#define ECORE_SMP_MB_AFTER_CLEAR_BIT()  mb()
+#define ECORE_SMP_MB_AFTER_CLEAR_BIT() mb()
 #define ECORE_SMP_MB_BEFORE_CLEAR_BIT() mb()
-#define ECORE_SMP_MB()                  mb()
-#define ECORE_SMP_RMB()                 rmb()
-#define ECORE_SMP_WMB()                 wmb()
-#define ECORE_MMIOWB()                  wmb()
+#define ECORE_SMP_MB() mb()
+#define ECORE_SMP_RMB() rmb()
+#define ECORE_SMP_WMB() wmb()
+#define ECORE_MMIOWB() wmb()
 
-#define ECORE_SET_BIT_NA(bit, var)   bit_set(var, bit) /* non-atomic */
+#define ECORE_SET_BIT_NA(bit, var) bit_set(var, bit)	 /* non-atomic */
 #define ECORE_CLEAR_BIT_NA(bit, var) bit_clear(var, bit) /* non-atomic */
-#define ECORE_TEST_BIT(bit, var)     bxe_test_bit(bit, var)
-#define ECORE_SET_BIT(bit, var)      bxe_set_bit(bit, var)
-#define ECORE_CLEAR_BIT(bit, var)    bxe_clear_bit(bit, var)
+#define ECORE_TEST_BIT(bit, var) bxe_test_bit(bit, var)
+#define ECORE_SET_BIT(bit, var) bxe_set_bit(bit, var)
+#define ECORE_CLEAR_BIT(bit, var) bxe_clear_bit(bit, var)
 #define ECORE_TEST_AND_CLEAR_BIT(bit, var) bxe_test_and_clear_bit(bit, var)
 
 #define ECORE_ATOMIC_READ(a) atomic_load_acq_int((volatile int *)a)
@@ -122,16 +124,15 @@ typedef struct mtx ECORE_MUTEX_SPIN;
 #define ECORE_ATOMIC_CMPXCHG(a, o, n) bxe_cmpxchg((volatile int *)a, o, n)
 
 #define ECORE_RET_PENDING(pending_bit, pending) \
-    (ECORE_TEST_BIT(pending_bit, pending) ? ECORE_PENDING : ECORE_SUCCESS)
+	(ECORE_TEST_BIT(pending_bit, pending) ? ECORE_PENDING : ECORE_SUCCESS)
 
-#define ECORE_SET_FLAG(value, mask, flag)      \
-    do {                                       \
-        (value) &= ~(mask);                    \
-        (value) |= ((flag) << (mask##_SHIFT)); \
-    } while (0)
+#define ECORE_SET_FLAG(value, mask, flag)              \
+	do {                                           \
+		(value) &= ~(mask);                    \
+		(value) |= ((flag) << (mask##_SHIFT)); \
+	} while (0)
 
-#define ECORE_GET_FLAG(value, mask) \
-    (((value) &= (mask)) >> (mask##_SHIFT))
+#define ECORE_GET_FLAG(value, mask) (((value) &= (mask)) >> (mask##_SHIFT))
 
 #define ECORE_MIGHT_SLEEP()
 
@@ -145,329 +146,315 @@ typedef struct mtx ECORE_MUTEX_SPIN;
 #define ECORE_CPU_TO_LE32(x) htole32(x)
 
 #define ECORE_WAIT(_s, _t) DELAY(1000)
-#define ECORE_MSLEEP(_t)   DELAY((_t) * 1000)
+#define ECORE_MSLEEP(_t) DELAY((_t) * 1000)
 
-#define ECORE_LIKELY(x)   __predict_true(x)
+#define ECORE_LIKELY(x) __predict_true(x)
 #define ECORE_UNLIKELY(x) __predict_false(x)
 
 #define ECORE_ZALLOC(_size, _flags, _sc) \
-    malloc(_size, M_TEMP, (M_NOWAIT | M_ZERO))
+	malloc(_size, M_TEMP, (M_NOWAIT | M_ZERO))
 
 #define ECORE_CALLOC(_len, _size, _flags, _sc) \
-    mallocarray(_len, _size, M_TEMP, (M_NOWAIT | M_ZERO))
+	mallocarray(_len, _size, M_TEMP, (M_NOWAIT | M_ZERO))
 
 #define ECORE_FREE(_s, _buf, _size) free(_buf, M_TEMP)
 
-#define SC_ILT(sc)  ((sc)->ilt)
-#define ILOG2(x)    bxe_ilog2(x)
+#define SC_ILT(sc) ((sc)->ilt)
+#define ILOG2(x) bxe_ilog2(x)
 
-#define ECORE_ILT_ZALLOC(x, y, size)                                       \
-    do {                                                                   \
-        x = malloc(sizeof(struct bxe_dma), M_DEVBUF, (M_NOWAIT | M_ZERO)); \
-        if (x) {                                                           \
-            if (bxe_dma_alloc((struct bxe_softc *)sc,                      \
-                              size, (struct bxe_dma *)x,                   \
-                              "ECORE_ILT") != 0) {                         \
-                free(x, M_DEVBUF);                                         \
-                x = NULL;                                                  \
-                *y = 0;                                                    \
-            } else {                                                       \
-                *y = ((struct bxe_dma *)x)->paddr;                         \
-            }                                                              \
-        }                                                                  \
-    } while (0)
+#define ECORE_ILT_ZALLOC(x, y, size)                                      \
+	do {                                                              \
+		x = malloc(sizeof(struct bxe_dma), M_DEVBUF,              \
+		    (M_NOWAIT | M_ZERO));                                 \
+		if (x) {                                                  \
+			if (bxe_dma_alloc((struct bxe_softc *)sc, size,   \
+				(struct bxe_dma *)x, "ECORE_ILT") != 0) { \
+				free(x, M_DEVBUF);                        \
+				x = NULL;                                 \
+				*y = 0;                                   \
+			} else {                                          \
+				*y = ((struct bxe_dma *)x)->paddr;        \
+			}                                                 \
+		}                                                         \
+	} while (0)
 
-#define ECORE_ILT_FREE(x, y, size)                   \
-    do {                                             \
-        if (x) {                                     \
-            bxe_dma_free((struct bxe_softc *)sc, x); \
-            free(x, M_DEVBUF);                       \
-            x = NULL;                                \
-            y = 0;                                   \
-        }                                            \
-    } while (0)
+#define ECORE_ILT_FREE(x, y, size)                               \
+	do {                                                     \
+		if (x) {                                         \
+			bxe_dma_free((struct bxe_softc *)sc, x); \
+			free(x, M_DEVBUF);                       \
+			x = NULL;                                \
+			y = 0;                                   \
+		}                                                \
+	} while (0)
 
 #define ECORE_IS_VALID_ETHER_ADDR(_mac) TRUE
 
-#define ECORE_IS_MF_SD_MODE   IS_MF_SD_MODE
-#define ECORE_IS_MF_SI_MODE   IS_MF_SI_MODE
+#define ECORE_IS_MF_SD_MODE IS_MF_SD_MODE
+#define ECORE_IS_MF_SI_MODE IS_MF_SI_MODE
 #define ECORE_IS_MF_AFEX_MODE IS_MF_AFEX_MODE
 
 #define ECORE_SET_CTX_VALIDATION bxe_set_ctx_validation
 
 #define ECORE_UPDATE_COALESCE_SB_INDEX bxe_update_coalesce_sb_index
 
-#define ECORE_ALIGN(x, a) ((((x) + (a) - 1) / (a)) * (a))
+#define ECORE_ALIGN(x, a) ((((x) + (a)-1) / (a)) * (a))
 
 #define ECORE_REG_WR_DMAE_LEN REG_WR_DMAE_LEN
 
-#define ECORE_PATH_ID     SC_PATH
-#define ECORE_PORT_ID     SC_PORT
-#define ECORE_FUNC_ID     SC_FUNC
+#define ECORE_PATH_ID SC_PATH
+#define ECORE_PORT_ID SC_PORT
+#define ECORE_FUNC_ID SC_FUNC
 #define ECORE_ABS_FUNC_ID SC_ABS_FUNC
 
 uint32_t calc_crc32(uint8_t *crc32_packet, uint32_t crc32_length,
-                    uint32_t crc32_seed, uint8_t complement);
+    uint32_t crc32_seed, uint8_t complement);
 static inline uint32_t
 ECORE_CRC32_LE(uint32_t seed, uint8_t *mac, uint32_t len)
 {
-    uint32_t packet_buf[2] = {0};
-    memcpy(((uint8_t *)(&packet_buf[0]))+2, &mac[0], 2);
-    memcpy(&packet_buf[1], &mac[2], 4);
-    return bswap32(calc_crc32((uint8_t *)packet_buf, 8, seed, 0));
+	uint32_t packet_buf[2] = { 0 };
+	memcpy(((uint8_t *)(&packet_buf[0])) + 2, &mac[0], 2);
+	memcpy(&packet_buf[1], &mac[2], 4);
+	return bswap32(calc_crc32((uint8_t *)packet_buf, 8, seed, 0));
 }
 
 #define ecore_sp_post(_sc, _a, _b, _c, _d) \
-    bxe_sp_post(_sc, _a, _b, U64_HI(_c), U64_LO(_c), _d)
+	bxe_sp_post(_sc, _a, _b, U64_HI(_c), U64_LO(_c), _d)
 
 #ifdef ECORE_STOP_ON_ERROR
 
-#define ECORE_DBG_BREAK_IF(exp)     \
-    do {                            \
-        if (__predict_false(exp)) { \
-            panic("ECORE");         \
-        }                           \
-    } while (0)
+#define ECORE_DBG_BREAK_IF(exp)             \
+	do {                                \
+		if (__predict_false(exp)) { \
+			panic("ECORE");     \
+		}                           \
+	} while (0)
 
-#define ECORE_BUG()                               \
-    do {                                          \
-        panic("BUG (%s:%d)", __FILE__, __LINE__); \
-    } while(0);
+#define ECORE_BUG()                                       \
+	do {                                              \
+		panic("BUG (%s:%d)", __FILE__, __LINE__); \
+	} while (0);
 
-#define ECORE_BUG_ON(exp)                                \
-    do {                                                 \
-        if (__predict_true(exp)) {                       \
-            panic("BUG_ON (%s:%d)", __FILE__, __LINE__); \
-        }                                                \
-    } while (0)
+#define ECORE_BUG_ON(exp)                                            \
+	do {                                                         \
+		if (__predict_true(exp)) {                           \
+			panic("BUG_ON (%s:%d)", __FILE__, __LINE__); \
+		}                                                    \
+	} while (0)
 
 #else
 
-
 extern unsigned long bxe_debug;
-#define BXE_DEBUG_ECORE_DBG_BREAK_IF   0x01
-#define BXE_DEBUG_ECORE_BUG            0x02
-#define BXE_DEBUG_ECORE_BUG_ON         0x04
+#define BXE_DEBUG_ECORE_DBG_BREAK_IF 0x01
+#define BXE_DEBUG_ECORE_BUG 0x02
+#define BXE_DEBUG_ECORE_BUG_ON 0x04
 
-#define ECORE_DBG_BREAK_IF(exp)     \
-    if (bxe_debug & BXE_DEBUG_ECORE_DBG_BREAK_IF) \
-        printf("%s (%s,%d)\n", __FUNCTION__, __FILE__, __LINE__);
+#define ECORE_DBG_BREAK_IF(exp)                       \
+	if (bxe_debug & BXE_DEBUG_ECORE_DBG_BREAK_IF) \
+		printf("%s (%s,%d)\n", __FUNCTION__, __FILE__, __LINE__);
 
-#define ECORE_BUG(exp)     \
-    if (bxe_debug & BXE_DEBUG_ECORE_BUG) \
-        printf("%s (%s,%d)\n", __FUNCTION__, __FILE__, __LINE__);
+#define ECORE_BUG(exp)                       \
+	if (bxe_debug & BXE_DEBUG_ECORE_BUG) \
+		printf("%s (%s,%d)\n", __FUNCTION__, __FILE__, __LINE__);
 
-#define ECORE_BUG_ON(exp)     \
-    if (bxe_debug & BXE_DEBUG_ECORE_BUG_ON) \
-        printf("%s (%s,%d)\n", __FUNCTION__, __FILE__, __LINE__);
-
+#define ECORE_BUG_ON(exp)                       \
+	if (bxe_debug & BXE_DEBUG_ECORE_BUG_ON) \
+		printf("%s (%s,%d)\n", __FUNCTION__, __FILE__, __LINE__);
 
 #endif /* #ifdef ECORE_STOP_ON_ERROR */
 
-#define ECORE_ERR(str, ...) \
-    BLOGE(sc, "ECORE: " str, ##__VA_ARGS__)
+#define ECORE_ERR(str, ...) BLOGE(sc, "ECORE: " str, ##__VA_ARGS__)
 
 #define DBG_SP 0x00000004 /* defined in bxe.h */
 
-#define ECORE_MSG(sc, m, ...) \
-    BLOGD(sc, DBG_SP, "ECORE: " m, ##__VA_ARGS__)
+#define ECORE_MSG(sc, m, ...) BLOGD(sc, DBG_SP, "ECORE: " m, ##__VA_ARGS__)
 
-typedef struct _ecore_list_entry_t
-{
-    struct _ecore_list_entry_t *next, *prev;
+typedef struct _ecore_list_entry_t {
+	struct _ecore_list_entry_t *next, *prev;
 } ecore_list_entry_t;
 
-typedef struct ecore_list_t
-{
-    ecore_list_entry_t *head, *tail;
-    unsigned long cnt;
+typedef struct ecore_list_t {
+	ecore_list_entry_t *head, *tail;
+	unsigned long cnt;
 } ecore_list_t;
 
 /* initialize the list */
-#define ECORE_LIST_INIT(_list) \
-    do {                       \
-        (_list)->head = NULL;  \
-        (_list)->tail = NULL;  \
-        (_list)->cnt  = 0;     \
-    } while (0)
+#define ECORE_LIST_INIT(_list)        \
+	do {                          \
+		(_list)->head = NULL; \
+		(_list)->tail = NULL; \
+		(_list)->cnt = 0;     \
+	} while (0)
 
 /* return TRUE if the element is the last on the list */
-#define ECORE_LIST_IS_LAST(_elem, _list) \
-    (_elem == (_list)->tail)
+#define ECORE_LIST_IS_LAST(_elem, _list) (_elem == (_list)->tail)
 
 /* return TRUE if the list is empty */
-#define ECORE_LIST_IS_EMPTY(_list) \
-    ((_list)->cnt == 0)
+#define ECORE_LIST_IS_EMPTY(_list) ((_list)->cnt == 0)
 
 /* return the first element */
-#define ECORE_LIST_FIRST_ENTRY(_list, cast, _link) \
-    (cast *)((_list)->head)
+#define ECORE_LIST_FIRST_ENTRY(_list, cast, _link) (cast *)((_list)->head)
 
 /* return the next element */
-#define ECORE_LIST_NEXT(_elem, _link, cast) \
-    (cast *)((&((_elem)->_link))->next)
+#define ECORE_LIST_NEXT(_elem, _link, cast) (cast *)((&((_elem)->_link))->next)
 
 /* push an element on the head of the list */
-#define ECORE_LIST_PUSH_HEAD(_elem, _list)              \
-    do {                                                \
-        (_elem)->prev = (ecore_list_entry_t *)0;        \
-        (_elem)->next = (_list)->head;                  \
-        if ((_list)->tail == (ecore_list_entry_t *)0) { \
-            (_list)->tail = (_elem);                    \
-        } else {                                        \
-            (_list)->head->prev = (_elem);              \
-        }                                               \
-        (_list)->head = (_elem);                        \
-        (_list)->cnt++;                                 \
-    } while (0)
+#define ECORE_LIST_PUSH_HEAD(_elem, _list)                      \
+	do {                                                    \
+		(_elem)->prev = (ecore_list_entry_t *)0;        \
+		(_elem)->next = (_list)->head;                  \
+		if ((_list)->tail == (ecore_list_entry_t *)0) { \
+			(_list)->tail = (_elem);                \
+		} else {                                        \
+			(_list)->head->prev = (_elem);          \
+		}                                               \
+		(_list)->head = (_elem);                        \
+		(_list)->cnt++;                                 \
+	} while (0)
 
 /* push an element on the tail of the list */
-#define ECORE_LIST_PUSH_TAIL(_elem, _list)       \
-    do {                                         \
-        (_elem)->next = (ecore_list_entry_t *)0; \
-        (_elem)->prev = (_list)->tail;           \
-        if ((_list)->tail) {                     \
-            (_list)->tail->next = (_elem);       \
-        } else {                                 \
-            (_list)->head = (_elem);             \
-        }                                        \
-        (_list)->tail = (_elem);                 \
-        (_list)->cnt++;                          \
-    } while (0)
+#define ECORE_LIST_PUSH_TAIL(_elem, _list)               \
+	do {                                             \
+		(_elem)->next = (ecore_list_entry_t *)0; \
+		(_elem)->prev = (_list)->tail;           \
+		if ((_list)->tail) {                     \
+			(_list)->tail->next = (_elem);   \
+		} else {                                 \
+			(_list)->head = (_elem);         \
+		}                                        \
+		(_list)->tail = (_elem);                 \
+		(_list)->cnt++;                          \
+	} while (0)
 
 /* push list1 on the head of list2 and return with list1 as empty */
-#define ECORE_LIST_SPLICE_INIT(_list1, _list2)     \
-    do {                                           \
-        (_list1)->tail->next = (_list2)->head;     \
-        if ((_list2)->head) {                      \
-            (_list2)->head->prev = (_list1)->tail; \
-        } else {                                   \
-            (_list2)->tail = (_list1)->tail;       \
-        }                                          \
-        (_list2)->head = (_list1)->head;           \
-        (_list2)->cnt += (_list1)->cnt;            \
-        (_list1)->head = NULL;                     \
-        (_list1)->tail = NULL;                     \
-        (_list1)->cnt  = 0;                        \
-    } while (0)
+#define ECORE_LIST_SPLICE_INIT(_list1, _list2)                 \
+	do {                                                   \
+		(_list1)->tail->next = (_list2)->head;         \
+		if ((_list2)->head) {                          \
+			(_list2)->head->prev = (_list1)->tail; \
+		} else {                                       \
+			(_list2)->tail = (_list1)->tail;       \
+		}                                              \
+		(_list2)->head = (_list1)->head;               \
+		(_list2)->cnt += (_list1)->cnt;                \
+		(_list1)->head = NULL;                         \
+		(_list1)->tail = NULL;                         \
+		(_list1)->cnt = 0;                             \
+	} while (0)
 
 /* remove an element from the list */
-#define ECORE_LIST_REMOVE_ENTRY(_elem, _list)                      \
-    do {                                                           \
-        if ((_list)->head == (_elem)) {                            \
-            if ((_list)->head) {                                   \
-                (_list)->head = (_list)->head->next;               \
-                if ((_list)->head) {                               \
-                    (_list)->head->prev = (ecore_list_entry_t *)0; \
-                } else {                                           \
-                    (_list)->tail = (ecore_list_entry_t *)0;       \
-                }                                                  \
-                (_list)->cnt--;                                    \
-            }                                                      \
-        } else if ((_list)->tail == (_elem)) {                     \
-            if ((_list)->tail) {                                   \
-                (_list)->tail = (_list)->tail->prev;               \
-                if ((_list)->tail) {                               \
-                    (_list)->tail->next = (ecore_list_entry_t *)0; \
-                } else {                                           \
-                    (_list)->head = (ecore_list_entry_t *)0;       \
-                }                                                  \
-                (_list)->cnt--;                                    \
-            }                                                      \
-        } else {                                                   \
-            (_elem)->prev->next = (_elem)->next;                   \
-            (_elem)->next->prev = (_elem)->prev;                   \
-            (_list)->cnt--;                                        \
-        }                                                          \
-    } while (0)
+#define ECORE_LIST_REMOVE_ENTRY(_elem, _list)                        \
+	do {                                                         \
+		if ((_list)->head == (_elem)) {                      \
+			if ((_list)->head) {                         \
+				(_list)->head = (_list)->head->next; \
+				if ((_list)->head) {                 \
+					(_list)->head->prev =        \
+					    (ecore_list_entry_t *)0; \
+				} else {                             \
+					(_list)->tail =              \
+					    (ecore_list_entry_t *)0; \
+				}                                    \
+				(_list)->cnt--;                      \
+			}                                            \
+		} else if ((_list)->tail == (_elem)) {               \
+			if ((_list)->tail) {                         \
+				(_list)->tail = (_list)->tail->prev; \
+				if ((_list)->tail) {                 \
+					(_list)->tail->next =        \
+					    (ecore_list_entry_t *)0; \
+				} else {                             \
+					(_list)->head =              \
+					    (ecore_list_entry_t *)0; \
+				}                                    \
+				(_list)->cnt--;                      \
+			}                                            \
+		} else {                                             \
+			(_elem)->prev->next = (_elem)->next;         \
+			(_elem)->next->prev = (_elem)->prev;         \
+			(_list)->cnt--;                              \
+		}                                                    \
+	} while (0)
 
 /* walk the list */
-#define ECORE_LIST_FOR_EACH_ENTRY(pos, _list, _link, cast) \
-    for (pos = ECORE_LIST_FIRST_ENTRY(_list, cast, _link); \
-         pos;                                              \
-         pos = ECORE_LIST_NEXT(pos, _link, cast))
+#define ECORE_LIST_FOR_EACH_ENTRY(pos, _list, _link, cast)          \
+	for (pos = ECORE_LIST_FIRST_ENTRY(_list, cast, _link); pos; \
+	     pos = ECORE_LIST_NEXT(pos, _link, cast))
 
 /* walk the list (safely) */
 #define ECORE_LIST_FOR_EACH_ENTRY_SAFE(pos, n, _list, _link, cast) \
-     for (pos = ECORE_LIST_FIRST_ENTRY(_list, cast, _lint),        \
-          n = (pos) ? ECORE_LIST_NEXT(pos, _link, cast) : NULL;    \
-          pos != NULL;                                             \
-          pos = (cast *)n,                                         \
-          n = (pos) ? ECORE_LIST_NEXT(pos, _link, cast) : NULL)
-
+	for (pos = ECORE_LIST_FIRST_ENTRY(_list, cast, _lint),     \
+	    n = (pos) ? ECORE_LIST_NEXT(pos, _link, cast) : NULL;  \
+	     pos != NULL; pos = (cast *)n,                         \
+	    n = (pos) ? ECORE_LIST_NEXT(pos, _link, cast) : NULL)
 
 /* Manipulate a bit vector defined as an array of uint64_t */
 
 /* Number of bits in one sge_mask array element */
-#define BIT_VEC64_ELEM_SZ     64
-#define BIT_VEC64_ELEM_SHIFT  6
-#define BIT_VEC64_ELEM_MASK   ((uint64_t)BIT_VEC64_ELEM_SZ - 1)
+#define BIT_VEC64_ELEM_SZ 64
+#define BIT_VEC64_ELEM_SHIFT 6
+#define BIT_VEC64_ELEM_MASK ((uint64_t)BIT_VEC64_ELEM_SZ - 1)
 
-#define __BIT_VEC64_SET_BIT(el, bit)            \
-    do {                                        \
-        el = ((el) | ((uint64_t)0x1 << (bit))); \
-    } while (0)
+#define __BIT_VEC64_SET_BIT(el, bit)                    \
+	do {                                            \
+		el = ((el) | ((uint64_t)0x1 << (bit))); \
+	} while (0)
 
-#define __BIT_VEC64_CLEAR_BIT(el, bit)             \
-    do {                                           \
-        el = ((el) & (~((uint64_t)0x1 << (bit)))); \
-    } while (0)
+#define __BIT_VEC64_CLEAR_BIT(el, bit)                     \
+	do {                                               \
+		el = ((el) & (~((uint64_t)0x1 << (bit)))); \
+	} while (0)
 
-#define BIT_VEC64_SET_BIT(vec64, idx)                           \
-    __BIT_VEC64_SET_BIT((vec64)[(idx) >> BIT_VEC64_ELEM_SHIFT], \
-                        (idx) & BIT_VEC64_ELEM_MASK)
+#define BIT_VEC64_SET_BIT(vec64, idx)                               \
+	__BIT_VEC64_SET_BIT((vec64)[(idx) >> BIT_VEC64_ELEM_SHIFT], \
+	    (idx) & BIT_VEC64_ELEM_MASK)
 
-#define BIT_VEC64_CLEAR_BIT(vec64, idx)                           \
-    __BIT_VEC64_CLEAR_BIT((vec64)[(idx) >> BIT_VEC64_ELEM_SHIFT], \
-                          (idx) & BIT_VEC64_ELEM_MASK)
+#define BIT_VEC64_CLEAR_BIT(vec64, idx)                               \
+	__BIT_VEC64_CLEAR_BIT((vec64)[(idx) >> BIT_VEC64_ELEM_SHIFT], \
+	    (idx) & BIT_VEC64_ELEM_MASK)
 
-#define BIT_VEC64_TEST_BIT(vec64, idx)          \
-    (((vec64)[(idx) >> BIT_VEC64_ELEM_SHIFT] >> \
-      ((idx) & BIT_VEC64_ELEM_MASK)) & 0x1)
+#define BIT_VEC64_TEST_BIT(vec64, idx)              \
+	(((vec64)[(idx) >> BIT_VEC64_ELEM_SHIFT] >> \
+	     ((idx) & BIT_VEC64_ELEM_MASK)) &       \
+	    0x1)
 
 /*
  * Creates a bitmask of all ones in less significant bits.
  * idx - index of the most significant bit in the created mask
  */
-#define BIT_VEC64_ONES_MASK(idx)                                 \
-    (((uint64_t)0x1 << (((idx) & BIT_VEC64_ELEM_MASK) + 1)) - 1)
+#define BIT_VEC64_ONES_MASK(idx) \
+	(((uint64_t)0x1 << (((idx) & BIT_VEC64_ELEM_MASK) + 1)) - 1)
 #define BIT_VEC64_ELEM_ONE_MASK ((uint64_t)(~0))
 
 /* fill in a MAC address the way the FW likes it */
 static inline void
-ecore_set_fw_mac_addr(uint16_t *fw_hi,
-                      uint16_t *fw_mid,
-                      uint16_t *fw_lo,
-                      uint8_t  *mac)
+ecore_set_fw_mac_addr(uint16_t *fw_hi, uint16_t *fw_mid, uint16_t *fw_lo,
+    uint8_t *mac)
 {
-    ((uint8_t *)fw_hi)[0]  = mac[1];
-    ((uint8_t *)fw_hi)[1]  = mac[0];
-    ((uint8_t *)fw_mid)[0] = mac[3];
-    ((uint8_t *)fw_mid)[1] = mac[2];
-    ((uint8_t *)fw_lo)[0]  = mac[5];
-    ((uint8_t *)fw_lo)[1]  = mac[4];
+	((uint8_t *)fw_hi)[0] = mac[1];
+	((uint8_t *)fw_hi)[1] = mac[0];
+	((uint8_t *)fw_mid)[0] = mac[3];
+	((uint8_t *)fw_mid)[1] = mac[2];
+	((uint8_t *)fw_lo)[0] = mac[5];
+	((uint8_t *)fw_lo)[1] = mac[4];
 }
 
-
 enum ecore_status_t {
-    ECORE_EXISTS  = -6,
-    ECORE_IO      = -5,
-    ECORE_TIMEOUT = -4,
-    ECORE_INVAL   = -3,
-    ECORE_BUSY    = -2,
-    ECORE_NOMEM   = -1,
-    ECORE_SUCCESS = 0,
-    /* PENDING is not an error and should be positive */
-    ECORE_PENDING = 1,
+	ECORE_EXISTS = -6,
+	ECORE_IO = -5,
+	ECORE_TIMEOUT = -4,
+	ECORE_INVAL = -3,
+	ECORE_BUSY = -2,
+	ECORE_NOMEM = -1,
+	ECORE_SUCCESS = 0,
+	/* PENDING is not an error and should be positive */
+	ECORE_PENDING = 1,
 };
 
 enum {
-    SWITCH_UPDATE,
-    AFEX_UPDATE,
+	SWITCH_UPDATE,
+	AFEX_UPDATE,
 };
-
-
-
 
 struct bxe_softc;
 struct eth_context;
@@ -482,7 +469,7 @@ enum {
 	RAMROD_DRV_CLR_ONLY,
 	/* Configure HW according to the current object state */
 	RAMROD_RESTORE,
-	 /* Execute the next command now */
+	/* Execute the next command now */
 	RAMROD_EXEC,
 	/* Don't add a new command and continue execution of posponed
 	 * commands. If not set a new command will be added to the
@@ -526,24 +513,23 @@ enum {
 };
 
 struct ecore_raw_obj {
-	uint8_t		func_id;
+	uint8_t func_id;
 
 	/* Queue params */
-	uint8_t		cl_id;
-	uint32_t		cid;
+	uint8_t cl_id;
+	uint32_t cid;
 
 	/* Ramrod data buffer params */
-	void		*rdata;
-	ecore_dma_addr_t	rdata_mapping;
+	void *rdata;
+	ecore_dma_addr_t rdata_mapping;
 
 	/* Ramrod state params */
-	int		state;   /* "ramrod is pending" state bit */
-	unsigned long	*pstate; /* pointer to state buffer */
+	int state;	       /* "ramrod is pending" state bit */
+	unsigned long *pstate; /* pointer to state buffer */
 
-	ecore_obj_type	obj_type;
+	ecore_obj_type obj_type;
 
-	int (*wait_comp)(struct bxe_softc *sc,
-			 struct ecore_raw_obj *o);
+	int (*wait_comp)(struct bxe_softc *sc, struct ecore_raw_obj *o);
 
 	bool (*check_pending)(struct ecore_raw_obj *o);
 	void (*clear_pending)(struct ecore_raw_obj *o);
@@ -609,12 +595,12 @@ union ecore_exe_queue_cmd_data {
 };
 
 struct ecore_exeq_elem {
-	ecore_list_entry_t		link;
+	ecore_list_entry_t link;
 
 	/* Length of this element in the exe_chunk. */
-	int				cmd_len;
+	int cmd_len;
 
-	union ecore_exe_queue_cmd_data	cmd_data;
+	union ecore_exe_queue_cmd_data cmd_data;
 };
 
 union ecore_qable_obj;
@@ -625,41 +611,35 @@ union ecore_exeq_comp_elem {
 
 struct ecore_exe_queue_obj;
 
-typedef int (*exe_q_validate)(struct bxe_softc *sc,
-			      union ecore_qable_obj *o,
-			      struct ecore_exeq_elem *elem);
+typedef int (*exe_q_validate)(struct bxe_softc *sc, union ecore_qable_obj *o,
+    struct ecore_exeq_elem *elem);
 
-typedef int (*exe_q_remove)(struct bxe_softc *sc,
-			    union ecore_qable_obj *o,
-			    struct ecore_exeq_elem *elem);
+typedef int (*exe_q_remove)(struct bxe_softc *sc, union ecore_qable_obj *o,
+    struct ecore_exeq_elem *elem);
 
 /* Return positive if entry was optimized, 0 - if not, negative
  * in case of an error.
  */
-typedef int (*exe_q_optimize)(struct bxe_softc *sc,
-			      union ecore_qable_obj *o,
-			      struct ecore_exeq_elem *elem);
-typedef int (*exe_q_execute)(struct bxe_softc *sc,
-			     union ecore_qable_obj *o,
-			     ecore_list_t *exe_chunk,
-			     unsigned long *ramrod_flags);
-typedef struct ecore_exeq_elem *
-			(*exe_q_get)(struct ecore_exe_queue_obj *o,
-				     struct ecore_exeq_elem *elem);
+typedef int (*exe_q_optimize)(struct bxe_softc *sc, union ecore_qable_obj *o,
+    struct ecore_exeq_elem *elem);
+typedef int (*exe_q_execute)(struct bxe_softc *sc, union ecore_qable_obj *o,
+    ecore_list_t *exe_chunk, unsigned long *ramrod_flags);
+typedef struct ecore_exeq_elem *(
+    *exe_q_get)(struct ecore_exe_queue_obj *o, struct ecore_exeq_elem *elem);
 
 struct ecore_exe_queue_obj {
 	/* Commands pending for an execution. */
-	ecore_list_t	exe_queue;
+	ecore_list_t exe_queue;
 
 	/* Commands pending for an completion. */
-	ecore_list_t	pending_comp;
+	ecore_list_t pending_comp;
 
-	ECORE_MUTEX_SPIN		lock;
+	ECORE_MUTEX_SPIN lock;
 
 	/* Maximum length of commands' list for one execution */
-	int			exe_chunk_len;
+	int exe_chunk_len;
 
-	union ecore_qable_obj	*owner;
+	union ecore_qable_obj *owner;
 
 	/****** Virtual functions ******/
 	/**
@@ -668,13 +648,13 @@ struct ecore_exe_queue_obj {
 	 *
 	 * Must run under exe_queue->lock
 	 */
-	exe_q_validate		validate;
+	exe_q_validate validate;
 
 	/**
 	 * Called before removing pending commands, cleaning allocated
 	 * resources (e.g., credits from validate)
 	 */
-	 exe_q_remove		remove;
+	exe_q_remove remove;
 
 	/**
 	 * This will try to cancel the current pending commands list
@@ -684,18 +664,18 @@ struct ecore_exe_queue_obj {
 	 *
 	 * Must run under exe_queue->lock
 	 */
-	exe_q_optimize		optimize;
+	exe_q_optimize optimize;
 
 	/**
 	 * Run the next commands chunk (owner specific).
 	 */
-	exe_q_execute		execute;
+	exe_q_execute execute;
 
 	/**
 	 * Return the exe_queue element containing the specific command
 	 * if any. Otherwise return NULL.
 	 */
-	exe_q_get		get;
+	exe_q_get get;
 };
 /***************** Classification verbs: Set/Del MAC/VLAN/VLAN-MAC ************/
 /*
@@ -703,16 +683,16 @@ struct ecore_exe_queue_obj {
  * rules.
  */
 struct ecore_vlan_mac_registry_elem {
-	ecore_list_entry_t	link;
+	ecore_list_entry_t link;
 
 	/* Used to store the cam offset used for the mac/vlan/vlan-mac.
 	 * Relevant for 57710 and 57711 only. VLANs and MACs share the
 	 * same CAM for these chips.
 	 */
-	int			cam_offset;
+	int cam_offset;
 
 	/* Needed for DEL and RESTORE flows */
-	unsigned long		vlan_mac_flags;
+	unsigned long vlan_mac_flags;
 
 	union ecore_classification_ramrod_data u;
 };
@@ -727,12 +707,10 @@ enum {
 	ECORE_DONT_CONSUME_CAM_CREDIT_DEST,
 };
 /* When looking for matching filters, some flags are not interesting */
-#define ECORE_VLAN_MAC_CMP_MASK	(1 << ECORE_UC_LIST_MAC | \
-				 1 << ECORE_ETH_MAC | \
-				 1 << ECORE_ISCSI_ETH_MAC | \
-				 1 << ECORE_NETQ_ETH_MAC)
-#define ECORE_VLAN_MAC_CMP_FLAGS(flags) \
-	((flags) & ECORE_VLAN_MAC_CMP_MASK)
+#define ECORE_VLAN_MAC_CMP_MASK                        \
+	(1 << ECORE_UC_LIST_MAC | 1 << ECORE_ETH_MAC | \
+	    1 << ECORE_ISCSI_ETH_MAC | 1 << ECORE_NETQ_ETH_MAC)
+#define ECORE_VLAN_MAC_CMP_FLAGS(flags) ((flags) & ECORE_VLAN_MAC_CMP_MASK)
 
 struct ecore_vlan_mac_ramrod_params {
 	/* Object to run the command from */
@@ -751,25 +729,25 @@ struct ecore_vlan_mac_obj {
 	/* Bookkeeping list: will prevent the addition of already existing
 	 * entries.
 	 */
-	ecore_list_t		head;
+	ecore_list_t head;
 	/* Implement a simple reader/writer lock on the head list.
 	 * all these fields should only be accessed under the exe_queue lock
 	 */
-	uint8_t		head_reader; /* Num. of readers accessing head list */
-	bool		head_exe_request; /* Pending execution request. */
-	unsigned long	saved_ramrod_flags; /* Ramrods of pending execution */
+	uint8_t head_reader;   /* Num. of readers accessing head list */
+	bool head_exe_request; /* Pending execution request. */
+	unsigned long saved_ramrod_flags; /* Ramrods of pending execution */
 
 	/* Execution queue interface instance */
-	struct ecore_exe_queue_obj	exe_queue;
+	struct ecore_exe_queue_obj exe_queue;
 
 	/* MACs credit pool */
-	struct ecore_credit_pool_obj	*macs_pool;
+	struct ecore_credit_pool_obj *macs_pool;
 
 	/* VLANs credit pool */
-	struct ecore_credit_pool_obj	*vlans_pool;
+	struct ecore_credit_pool_obj *vlans_pool;
 
 	/* RAMROD command to be used */
-	int				ramrod_cmd;
+	int ramrod_cmd;
 
 	/* copy first n elements onto preallocated buffer
 	 *
@@ -783,8 +761,8 @@ struct ecore_vlan_mac_obj {
 	 */
 
 	int (*get_n_elements)(struct bxe_softc *sc,
-			      struct ecore_vlan_mac_obj *o, int n, uint8_t *base,
-			      uint8_t stride, uint8_t size);
+	    struct ecore_vlan_mac_obj *o, int n, uint8_t *base, uint8_t stride,
+	    uint8_t size);
 
 	/**
 	 * Checks if ADD-ramrod with the given params may be performed.
@@ -792,19 +770,17 @@ struct ecore_vlan_mac_obj {
 	 * @return zero if the element may be added
 	 */
 
-	int (*check_add)(struct bxe_softc *sc,
-			 struct ecore_vlan_mac_obj *o,
-			 union ecore_classification_ramrod_data *data);
+	int (*check_add)(struct bxe_softc *sc, struct ecore_vlan_mac_obj *o,
+	    union ecore_classification_ramrod_data *data);
 
 	/**
 	 * Checks if DEL-ramrod with the given params may be performed.
 	 *
 	 * @return TRUE if the element may be deleted
 	 */
-	struct ecore_vlan_mac_registry_elem *
-		(*check_del)(struct bxe_softc *sc,
-			     struct ecore_vlan_mac_obj *o,
-			     union ecore_classification_ramrod_data *data);
+	struct ecore_vlan_mac_registry_elem *(*check_del)(struct bxe_softc *sc,
+	    struct ecore_vlan_mac_obj *o,
+	    union ecore_classification_ramrod_data *data);
 
 	/**
 	 * Checks if DEL-ramrod with the given params may be performed.
@@ -812,9 +788,8 @@ struct ecore_vlan_mac_obj {
 	 * @return TRUE if the element may be deleted
 	 */
 	bool (*check_move)(struct bxe_softc *sc,
-			   struct ecore_vlan_mac_obj *src_o,
-			   struct ecore_vlan_mac_obj *dst_o,
-			   union ecore_classification_ramrod_data *data);
+	    struct ecore_vlan_mac_obj *src_o, struct ecore_vlan_mac_obj *dst_o,
+	    union ecore_classification_ramrod_data *data);
 
 	/**
 	 *  Update the relevant credit object(s) (consume/return
@@ -828,18 +803,16 @@ struct ecore_vlan_mac_obj {
 	/**
 	 * Configures one rule in the ramrod data buffer.
 	 */
-	void (*set_one_rule)(struct bxe_softc *sc,
-			     struct ecore_vlan_mac_obj *o,
-			     struct ecore_exeq_elem *elem, int rule_idx,
-			     int cam_offset);
+	void (*set_one_rule)(struct bxe_softc *sc, struct ecore_vlan_mac_obj *o,
+	    struct ecore_exeq_elem *elem, int rule_idx, int cam_offset);
 
 	/**
-	*  Delete all configured elements having the given
-	*  vlan_mac_flags specification. Assumes no pending for
-	*  execution commands. Will schedule all all currently
-	*  configured MACs/VLANs/VLAN-MACs matching the vlan_mac_flags
-	*  specification for deletion and will use the given
-	*  ramrod_flags for the last DEL operation.
+	 *  Delete all configured elements having the given
+	 *  vlan_mac_flags specification. Assumes no pending for
+	 *  execution commands. Will schedule all all currently
+	 *  configured MACs/VLANs/VLAN-MACs matching the vlan_mac_flags
+	 *  specification for deletion and will use the given
+	 *  ramrod_flags for the last DEL operation.
 	 *
 	 * @param sc
 	 * @param o
@@ -850,10 +823,8 @@ struct ecore_vlan_mac_obj {
 	 *         if there are pending for completion commands,
 	 *         negative value in case of failure.
 	 */
-	int (*delete_all)(struct bxe_softc *sc,
-			  struct ecore_vlan_mac_obj *o,
-			  unsigned long *vlan_mac_flags,
-			  unsigned long *ramrod_flags);
+	int (*delete_all)(struct bxe_softc *sc, struct ecore_vlan_mac_obj *o,
+	    unsigned long *vlan_mac_flags, unsigned long *ramrod_flags);
 
 	/**
 	 * Reconfigures the next MAC/VLAN/VLAN-MAC element from the previously
@@ -871,8 +842,8 @@ struct ecore_vlan_mac_obj {
 	 * @return int
 	 */
 	int (*restore)(struct bxe_softc *sc,
-		       struct ecore_vlan_mac_ramrod_params *p,
-		       struct ecore_vlan_mac_registry_elem **ppos);
+	    struct ecore_vlan_mac_ramrod_params *p,
+	    struct ecore_vlan_mac_registry_elem **ppos);
 
 	/**
 	 * Should be called on a completion arrival.
@@ -892,8 +863,7 @@ struct ecore_vlan_mac_obj {
 	 *         error in the cqe).
 	 */
 	int (*complete)(struct bxe_softc *sc, struct ecore_vlan_mac_obj *o,
-			union event_ring_elem *cqe,
-			unsigned long *ramrod_flags);
+	    union event_ring_elem *cqe, unsigned long *ramrod_flags);
 
 	/**
 	 * Wait for completion of all commands. Don't schedule new ones,
@@ -909,8 +879,8 @@ enum {
 	ECORE_LLH_CAM_MAX_PF_LINE = NIG_REG_LLH1_FUNC_MEM_SIZE / 2
 };
 
-void ecore_set_mac_in_nig(struct bxe_softc *sc,
-			  bool add, unsigned char *dev_addr, int index);
+void ecore_set_mac_in_nig(struct bxe_softc *sc, bool add,
+    unsigned char *dev_addr, int index);
 
 /** RX_MODE verbs:DROP_ALL/ACCEPT_ALL/ACCEPT_ALL_MULTI/ACCEPT_ALL_VLAN/NORMAL */
 
@@ -957,10 +927,10 @@ struct ecore_rx_mode_ramrod_params {
 
 struct ecore_rx_mode_obj {
 	int (*config_rx_mode)(struct bxe_softc *sc,
-			      struct ecore_rx_mode_ramrod_params *p);
+	    struct ecore_rx_mode_ramrod_params *p);
 
 	int (*wait_comp)(struct bxe_softc *sc,
-			 struct ecore_rx_mode_ramrod_params *p);
+	    struct ecore_rx_mode_ramrod_params *p);
 };
 
 /********************** Set multicast group ***********************************/
@@ -1005,8 +975,8 @@ struct ecore_mcast_obj {
 
 	union {
 		struct {
-		#define ECORE_MCAST_BINS_NUM	256
-		#define ECORE_MCAST_VEC_SZ	(ECORE_MCAST_BINS_NUM / 64)
+#define ECORE_MCAST_BINS_NUM 256
+#define ECORE_MCAST_VEC_SZ (ECORE_MCAST_BINS_NUM / 64)
 			uint64_t vec[ECORE_MCAST_VEC_SZ];
 
 			/** Number of BINs to clear. Should be updated
@@ -1042,8 +1012,7 @@ struct ecore_mcast_obj {
 	 * @param cmd command to execute (ECORE_MCAST_CMD_X, see above)
 	 */
 	int (*config_mcast)(struct bxe_softc *sc,
-			    struct ecore_mcast_ramrod_params *p,
-			    enum ecore_mcast_cmd cmd);
+	    struct ecore_mcast_ramrod_params *p, enum ecore_mcast_cmd cmd);
 
 	/**
 	 * Fills the ramrod data during the RESTORE flow.
@@ -1057,16 +1026,14 @@ struct ecore_mcast_obj {
 	 *         handled registry element.
 	 */
 	int (*hdl_restore)(struct bxe_softc *sc, struct ecore_mcast_obj *o,
-			   int start_bin, int *rdata_idx);
+	    int start_bin, int *rdata_idx);
 
 	int (*enqueue_cmd)(struct bxe_softc *sc, struct ecore_mcast_obj *o,
-			   struct ecore_mcast_ramrod_params *p,
-			   enum ecore_mcast_cmd cmd);
+	    struct ecore_mcast_ramrod_params *p, enum ecore_mcast_cmd cmd);
 
-	void (*set_one_rule)(struct bxe_softc *sc,
-			     struct ecore_mcast_obj *o, int idx,
-			     union ecore_mcast_config_data *cfg_data,
-			     enum ecore_mcast_cmd cmd);
+	void (*set_one_rule)(struct bxe_softc *sc, struct ecore_mcast_obj *o,
+	    int idx, union ecore_mcast_config_data *cfg_data,
+	    enum ecore_mcast_cmd cmd);
 
 	/** Checks if there are more mcast MACs to be set or a previous
 	 *  command is still pending.
@@ -1089,15 +1056,13 @@ struct ecore_mcast_obj {
 	 * feasible.
 	 */
 	int (*validate)(struct bxe_softc *sc,
-			struct ecore_mcast_ramrod_params *p,
-			enum ecore_mcast_cmd cmd);
+	    struct ecore_mcast_ramrod_params *p, enum ecore_mcast_cmd cmd);
 
 	/**
 	 * Restore the values of internal counters in case of a failure.
 	 */
 	void (*revert)(struct bxe_softc *sc,
-		       struct ecore_mcast_ramrod_params *p,
-		       int old_num_bins);
+	    struct ecore_mcast_ramrod_params *p, int old_num_bins);
 
 	int (*get_registry_size)(struct ecore_mcast_obj *o);
 	void (*set_registry_size)(struct ecore_mcast_obj *o, int n);
@@ -1107,10 +1072,10 @@ struct ecore_mcast_obj {
 struct ecore_credit_pool_obj {
 
 	/* Current amount of credit in the pool */
-	ecore_atomic_t	credit;
+	ecore_atomic_t credit;
 
 	/* Maximum allowed credit. put() will check against it. */
-	int		pool_sz;
+	int pool_sz;
 
 	/* Allocate a pool table statically.
 	 *
@@ -1118,11 +1083,11 @@ struct ecore_credit_pool_obj {
 	 *
 	 * The set bit in the table will mean that the entry is available.
 	 */
-#define ECORE_POOL_VEC_SIZE	(MAX_MAC_CREDIT_E2 / 64)
-	uint64_t		pool_mirror[ECORE_POOL_VEC_SIZE];
+#define ECORE_POOL_VEC_SIZE (MAX_MAC_CREDIT_E2 / 64)
+	uint64_t pool_mirror[ECORE_POOL_VEC_SIZE];
 
 	/* Base pool offset (initialized differently */
-	int		base_pool_offset;
+	int base_pool_offset;
 
 	/**
 	 * Get the next free pool entry.
@@ -1185,39 +1150,39 @@ struct ecore_config_rss_params {
 	struct ecore_rss_config_obj *rss_obj;
 
 	/* may have RAMROD_COMP_WAIT set only */
-	unsigned long	ramrod_flags;
+	unsigned long ramrod_flags;
 
 	/* ECORE_RSS_X bits */
-	unsigned long	rss_flags;
+	unsigned long rss_flags;
 
 	/* Number hash bits to take into an account */
-	uint8_t		rss_result_mask;
+	uint8_t rss_result_mask;
 
 	/* Indirection table */
-	uint8_t		ind_table[T_ETH_INDIRECTION_TABLE_SIZE];
+	uint8_t ind_table[T_ETH_INDIRECTION_TABLE_SIZE];
 
 	/* RSS hash values */
-	uint32_t		rss_key[10];
+	uint32_t rss_key[10];
 
 	/* valid only iff ECORE_RSS_UPDATE_TOE is set */
-	uint16_t		toe_rss_bitmap;
+	uint16_t toe_rss_bitmap;
 };
 
 struct ecore_rss_config_obj {
-	struct ecore_raw_obj	raw;
+	struct ecore_raw_obj raw;
 
 	/* RSS engine to use */
-	uint8_t			engine_id;
+	uint8_t engine_id;
 
 	/* Last configured indirection table */
-	uint8_t			ind_table[T_ETH_INDIRECTION_TABLE_SIZE];
+	uint8_t ind_table[T_ETH_INDIRECTION_TABLE_SIZE];
 
 	/* flags for enabling 4-tupple hash on UDP */
-	uint8_t			udp_rss_v4;
-	uint8_t			udp_rss_v6;
+	uint8_t udp_rss_v4;
+	uint8_t udp_rss_v6;
 
 	int (*config_rss)(struct bxe_softc *sc,
-			  struct ecore_config_rss_params *p);
+	    struct ecore_config_rss_params *p);
 };
 
 /*********************** Queue state update ***********************************/
@@ -1317,11 +1282,11 @@ enum ecore_q_type {
 	ECORE_Q_TYPE_HAS_TX,
 };
 
-#define ECORE_PRIMARY_CID_INDEX			0
-#define ECORE_MULTI_TX_COS_E1X			3 /* QM only */
-#define ECORE_MULTI_TX_COS_E2_E3A0		2
-#define ECORE_MULTI_TX_COS_E3B0			3
-#define ECORE_MULTI_TX_COS			3 /* Maximum possible */
+#define ECORE_PRIMARY_CID_INDEX 0
+#define ECORE_MULTI_TX_COS_E1X 3 /* QM only */
+#define ECORE_MULTI_TX_COS_E2_E3A0 2
+#define ECORE_MULTI_TX_COS_E3B0 3
+#define ECORE_MULTI_TX_COS 3 /* Maximum possible */
 #define MAC_PAD (ECORE_ALIGN(ETH_ALEN, sizeof(uint32_t)) - ETH_ALEN)
 /* DMAE channel to be used by FW for timesync workaroun. A driver that sends
  * timesync-related ramrods must not use this DMAE command ID.
@@ -1330,17 +1295,17 @@ enum ecore_q_type {
 
 struct ecore_queue_init_params {
 	struct {
-		unsigned long	flags;
-		uint16_t		hc_rate;
-		uint8_t		fw_sb_id;
-		uint8_t		sb_cq_index;
+		unsigned long flags;
+		uint16_t hc_rate;
+		uint8_t fw_sb_id;
+		uint8_t sb_cq_index;
 	} tx;
 
 	struct {
-		unsigned long	flags;
-		uint16_t		hc_rate;
-		uint8_t		fw_sb_id;
-		uint8_t		sb_cq_index;
+		unsigned long flags;
+		uint16_t hc_rate;
+		uint8_t fw_sb_id;
+		uint8_t sb_cq_index;
 	} rx;
 
 	/* CID context in the host memory */
@@ -1361,12 +1326,12 @@ struct ecore_queue_cfc_del_params {
 };
 
 struct ecore_queue_update_params {
-	unsigned long	update_flags; /* ECORE_Q_UPDATE_XX bits */
-	uint16_t		def_vlan;
-	uint16_t		silent_removal_value;
-	uint16_t		silent_removal_mask;
-/* index within the tx_only cids of this queue object */
-	uint8_t		cid_index;
+	unsigned long update_flags; /* ECORE_Q_UPDATE_XX bits */
+	uint16_t def_vlan;
+	uint16_t silent_removal_value;
+	uint16_t silent_removal_mask;
+	/* index within the tx_only cids of this queue object */
+	uint8_t cid_index;
 };
 
 struct ecore_queue_update_tpa_params {
@@ -1388,52 +1353,52 @@ struct ecore_queue_update_tpa_params {
 };
 
 struct rxq_pause_params {
-	uint16_t		bd_th_lo;
-	uint16_t		bd_th_hi;
-	uint16_t		rcq_th_lo;
-	uint16_t		rcq_th_hi;
-	uint16_t		sge_th_lo; /* valid iff ECORE_Q_FLG_TPA */
-	uint16_t		sge_th_hi; /* valid iff ECORE_Q_FLG_TPA */
-	uint16_t		pri_map;
+	uint16_t bd_th_lo;
+	uint16_t bd_th_hi;
+	uint16_t rcq_th_lo;
+	uint16_t rcq_th_hi;
+	uint16_t sge_th_lo; /* valid iff ECORE_Q_FLG_TPA */
+	uint16_t sge_th_hi; /* valid iff ECORE_Q_FLG_TPA */
+	uint16_t pri_map;
 };
 
 /* general */
 struct ecore_general_setup_params {
 	/* valid iff ECORE_Q_FLG_STATS */
-	uint8_t		stat_id;
+	uint8_t stat_id;
 
-	uint8_t		spcl_id;
-	uint16_t		mtu;
-	uint8_t		cos;
+	uint8_t spcl_id;
+	uint16_t mtu;
+	uint8_t cos;
 
-	uint8_t		fp_hsi;
+	uint8_t fp_hsi;
 };
 
 struct ecore_rxq_setup_params {
 	/* dma */
-	ecore_dma_addr_t	dscr_map;
-	ecore_dma_addr_t	sge_map;
-	ecore_dma_addr_t	rcq_map;
-	ecore_dma_addr_t	rcq_np_map;
+	ecore_dma_addr_t dscr_map;
+	ecore_dma_addr_t sge_map;
+	ecore_dma_addr_t rcq_map;
+	ecore_dma_addr_t rcq_np_map;
 
-	uint16_t		drop_flags;
-	uint16_t		buf_sz;
-	uint8_t		fw_sb_id;
-	uint8_t		cl_qzone_id;
+	uint16_t drop_flags;
+	uint16_t buf_sz;
+	uint8_t fw_sb_id;
+	uint8_t cl_qzone_id;
 
 	/* valid iff ECORE_Q_FLG_TPA */
-	uint16_t		tpa_agg_sz;
-	uint16_t		sge_buf_sz;
-	uint8_t		max_sges_pkt;
-	uint8_t		max_tpa_queues;
-	uint8_t		rss_engine_id;
+	uint16_t tpa_agg_sz;
+	uint16_t sge_buf_sz;
+	uint8_t max_sges_pkt;
+	uint8_t max_tpa_queues;
+	uint8_t rss_engine_id;
 
 	/* valid iff ECORE_Q_FLG_MCAST */
-	uint8_t		mcast_engine_id;
+	uint8_t mcast_engine_id;
 
-	uint8_t		cache_line_log;
+	uint8_t cache_line_log;
 
-	uint8_t		sb_cq_index;
+	uint8_t sb_cq_index;
 
 	/* valid iff BXN2X_Q_FLG_SILENT_VLAN_REM */
 	uint16_t silent_removal_value;
@@ -1442,17 +1407,17 @@ struct ecore_rxq_setup_params {
 
 struct ecore_txq_setup_params {
 	/* dma */
-	ecore_dma_addr_t	dscr_map;
+	ecore_dma_addr_t dscr_map;
 
-	uint8_t		fw_sb_id;
-	uint8_t		sb_cq_index;
-	uint8_t		cos;		/* valid iff ECORE_Q_FLG_COS */
-	uint16_t		traffic_type;
+	uint8_t fw_sb_id;
+	uint8_t sb_cq_index;
+	uint8_t cos; /* valid iff ECORE_Q_FLG_COS */
+	uint16_t traffic_type;
 	/* equals to the leading rss client id, used for TX classification*/
-	uint8_t		tss_leading_cl_id;
+	uint8_t tss_leading_cl_id;
 
 	/* valid iff ECORE_Q_FLG_DEF_VLAN */
-	uint16_t		default_vlan;
+	uint16_t default_vlan;
 };
 
 struct ecore_queue_setup_params {
@@ -1464,11 +1429,11 @@ struct ecore_queue_setup_params {
 };
 
 struct ecore_queue_setup_tx_only_params {
-	struct ecore_general_setup_params	gen_params;
-	struct ecore_txq_setup_params		txq_params;
-	unsigned long				flags;
+	struct ecore_general_setup_params gen_params;
+	struct ecore_txq_setup_params txq_params;
+	unsigned long flags;
 	/* index within the tx_only cids of this queue object */
-	uint8_t					cid_index;
+	uint8_t cid_index;
 };
 
 struct ecore_queue_state_params {
@@ -1482,13 +1447,13 @@ struct ecore_queue_state_params {
 
 	/* Params according to the current command */
 	union {
-		struct ecore_queue_update_params	update;
-		struct ecore_queue_update_tpa_params    update_tpa;
-		struct ecore_queue_setup_params		setup;
-		struct ecore_queue_init_params		init;
-		struct ecore_queue_setup_tx_only_params	tx_only;
-		struct ecore_queue_terminate_params	terminate;
-		struct ecore_queue_cfc_del_params	cfc_del;
+		struct ecore_queue_update_params update;
+		struct ecore_queue_update_tpa_params update_tpa;
+		struct ecore_queue_setup_params setup;
+		struct ecore_queue_init_params init;
+		struct ecore_queue_setup_tx_only_params tx_only;
+		struct ecore_queue_terminate_params terminate;
+		struct ecore_queue_cfc_del_params cfc_del;
 	} params;
 };
 
@@ -1498,9 +1463,9 @@ struct ecore_viflist_params {
 };
 
 struct ecore_queue_sp_obj {
-	uint32_t		cids[ECORE_MULTI_TX_COS];
-	uint8_t		cl_id;
-	uint8_t		func_id;
+	uint32_t cids[ECORE_MULTI_TX_COS];
+	uint8_t cl_id;
+	uint8_t func_id;
 
 	/* number of traffic classes supported by queue.
 	 * The primary connection of the queue supports the first traffic
@@ -1516,18 +1481,18 @@ struct ecore_queue_sp_obj {
 	enum ecore_q_state state, next_state;
 
 	/* bits from enum ecore_q_type */
-	unsigned long	type;
+	unsigned long type;
 
 	/* ECORE_Q_CMD_XX bits. This object implements "one
 	 * pending" paradigm but for debug and tracing purposes it's
 	 * more convenient to have different bits for different
 	 * commands.
 	 */
-	unsigned long	pending;
+	unsigned long pending;
 
 	/* Buffer to use as a ramrod data and its mapping */
-	void		*rdata;
-	ecore_dma_addr_t	rdata_mapping;
+	void *rdata;
+	ecore_dma_addr_t rdata_mapping;
 
 	/**
 	 * Performs one state change according to the given parameters.
@@ -1535,31 +1500,29 @@ struct ecore_queue_sp_obj {
 	 * @return 0 in case of success and negative value otherwise.
 	 */
 	int (*send_cmd)(struct bxe_softc *sc,
-			struct ecore_queue_state_params *params);
+	    struct ecore_queue_state_params *params);
 
 	/**
 	 * Sets the pending bit according to the requested transition.
 	 */
 	int (*set_pending)(struct ecore_queue_sp_obj *o,
-			   struct ecore_queue_state_params *params);
+	    struct ecore_queue_state_params *params);
 
 	/**
 	 * Checks that the requested state transition is legal.
 	 */
 	int (*check_transition)(struct bxe_softc *sc,
-				struct ecore_queue_sp_obj *o,
-				struct ecore_queue_state_params *params);
+	    struct ecore_queue_sp_obj *o,
+	    struct ecore_queue_state_params *params);
 
 	/**
 	 * Completes the pending command.
 	 */
-	int (*complete_cmd)(struct bxe_softc *sc,
-			    struct ecore_queue_sp_obj *o,
-			    enum ecore_queue_cmd);
+	int (*complete_cmd)(struct bxe_softc *sc, struct ecore_queue_sp_obj *o,
+	    enum ecore_queue_cmd);
 
-	int (*wait_comp)(struct bxe_softc *sc,
-			 struct ecore_queue_sp_obj *o,
-			 enum ecore_queue_cmd cmd);
+	int (*wait_comp)(struct bxe_softc *sc, struct ecore_queue_sp_obj *o,
+	    enum ecore_queue_cmd cmd);
 };
 
 /********************** Function state update *********************************/
@@ -1657,7 +1620,7 @@ struct ecore_func_start_params {
 	uint8_t inner_clss_vxlan;
 
 	/* Enable RSS according to inner header */
-	uint8_t inner_rss; 
+	uint8_t inner_rss;
 
 	/** Allows accepting of packets failing MF classification, possibly
 	 * only matching a given ethertype
@@ -1733,7 +1696,7 @@ struct ecore_func_state_params {
 	enum ecore_func_cmd cmd;
 
 	/* may have RAMROD_COMP_WAIT set only */
-	unsigned long	ramrod_flags;
+	unsigned long ramrod_flags;
 
 	/* Params according to the current command */
 	union {
@@ -1775,33 +1738,33 @@ struct ecore_func_sp_drv_ops {
 };
 
 struct ecore_func_sp_obj {
-	enum ecore_func_state	state, next_state;
+	enum ecore_func_state state, next_state;
 
 	/* ECORE_FUNC_CMD_XX bits. This object implements "one
 	 * pending" paradigm but for debug and tracing purposes it's
 	 * more convenient to have different bits for different
 	 * commands.
 	 */
-	unsigned long		pending;
+	unsigned long pending;
 
 	/* Buffer to use as a ramrod data and its mapping */
-	void			*rdata;
-	ecore_dma_addr_t		rdata_mapping;
+	void *rdata;
+	ecore_dma_addr_t rdata_mapping;
 
 	/* Buffer to use as a afex ramrod data and its mapping.
 	 * This can't be same rdata as above because afex ramrod requests
 	 * can arrive to the object in parallel to other ramrod requests.
 	 */
-	void			*afex_rdata;
-	ecore_dma_addr_t		afex_rdata_mapping;
+	void *afex_rdata;
+	ecore_dma_addr_t afex_rdata_mapping;
 
 	/* this mutex validates that when pending flag is taken, the next
 	 * ramrod to be sent will be the one set the pending bit
 	 */
-	ECORE_MUTEX		one_pending_mutex;
+	ECORE_MUTEX one_pending_mutex;
 
 	/* Driver interface */
-	struct ecore_func_sp_drv_ops	*drv;
+	struct ecore_func_sp_drv_ops *drv;
 
 	/**
 	 * Performs one state change according to the given parameters.
@@ -1809,24 +1772,23 @@ struct ecore_func_sp_obj {
 	 * @return 0 in case of success and negative value otherwise.
 	 */
 	int (*send_cmd)(struct bxe_softc *sc,
-			struct ecore_func_state_params *params);
+	    struct ecore_func_state_params *params);
 
 	/**
 	 * Checks that the requested state transition is legal.
 	 */
 	int (*check_transition)(struct bxe_softc *sc,
-				struct ecore_func_sp_obj *o,
-				struct ecore_func_state_params *params);
+	    struct ecore_func_sp_obj *o,
+	    struct ecore_func_state_params *params);
 
 	/**
 	 * Completes the pending command.
 	 */
-	int (*complete_cmd)(struct bxe_softc *sc,
-			    struct ecore_func_sp_obj *o,
-			    enum ecore_func_cmd cmd);
+	int (*complete_cmd)(struct bxe_softc *sc, struct ecore_func_sp_obj *o,
+	    enum ecore_func_cmd cmd);
 
 	int (*wait_comp)(struct bxe_softc *sc, struct ecore_func_sp_obj *o,
-			 enum ecore_func_cmd cmd);
+	    enum ecore_func_cmd cmd);
 };
 
 /********************** Interfaces ********************************************/
@@ -1835,82 +1797,75 @@ union ecore_qable_obj {
 	struct ecore_vlan_mac_obj vlan_mac;
 };
 /************** Function state update *********/
-void ecore_init_func_obj(struct bxe_softc *sc,
-			 struct ecore_func_sp_obj *obj,
-			 void *rdata, ecore_dma_addr_t rdata_mapping,
-			 void *afex_rdata, ecore_dma_addr_t afex_rdata_mapping,
-			 struct ecore_func_sp_drv_ops *drv_iface);
+void ecore_init_func_obj(struct bxe_softc *sc, struct ecore_func_sp_obj *obj,
+    void *rdata, ecore_dma_addr_t rdata_mapping, void *afex_rdata,
+    ecore_dma_addr_t afex_rdata_mapping,
+    struct ecore_func_sp_drv_ops *drv_iface);
 
 int ecore_func_state_change(struct bxe_softc *sc,
-			    struct ecore_func_state_params *params);
+    struct ecore_func_state_params *params);
 
 enum ecore_func_state ecore_func_get_state(struct bxe_softc *sc,
-					   struct ecore_func_sp_obj *o);
+    struct ecore_func_sp_obj *o);
 /******************* Queue State **************/
-void ecore_init_queue_obj(struct bxe_softc *sc,
-			  struct ecore_queue_sp_obj *obj, uint8_t cl_id, uint32_t *cids,
-			  uint8_t cid_cnt, uint8_t func_id, void *rdata,
-			  ecore_dma_addr_t rdata_mapping, unsigned long type);
+void ecore_init_queue_obj(struct bxe_softc *sc, struct ecore_queue_sp_obj *obj,
+    uint8_t cl_id, uint32_t *cids, uint8_t cid_cnt, uint8_t func_id,
+    void *rdata, ecore_dma_addr_t rdata_mapping, unsigned long type);
 
 int ecore_queue_state_change(struct bxe_softc *sc,
-			     struct ecore_queue_state_params *params);
+    struct ecore_queue_state_params *params);
 
 int ecore_get_q_logical_state(struct bxe_softc *sc,
-			       struct ecore_queue_sp_obj *obj);
+    struct ecore_queue_sp_obj *obj);
 
 /********************* VLAN-MAC ****************/
 void ecore_init_mac_obj(struct bxe_softc *sc,
-			struct ecore_vlan_mac_obj *mac_obj,
-			uint8_t cl_id, uint32_t cid, uint8_t func_id, void *rdata,
-			ecore_dma_addr_t rdata_mapping, int state,
-			unsigned long *pstate, ecore_obj_type type,
-			struct ecore_credit_pool_obj *macs_pool);
+    struct ecore_vlan_mac_obj *mac_obj, uint8_t cl_id, uint32_t cid,
+    uint8_t func_id, void *rdata, ecore_dma_addr_t rdata_mapping, int state,
+    unsigned long *pstate, ecore_obj_type type,
+    struct ecore_credit_pool_obj *macs_pool);
 
 void ecore_init_vlan_obj(struct bxe_softc *sc,
-			 struct ecore_vlan_mac_obj *vlan_obj,
-			 uint8_t cl_id, uint32_t cid, uint8_t func_id, void *rdata,
-			 ecore_dma_addr_t rdata_mapping, int state,
-			 unsigned long *pstate, ecore_obj_type type,
-			 struct ecore_credit_pool_obj *vlans_pool);
+    struct ecore_vlan_mac_obj *vlan_obj, uint8_t cl_id, uint32_t cid,
+    uint8_t func_id, void *rdata, ecore_dma_addr_t rdata_mapping, int state,
+    unsigned long *pstate, ecore_obj_type type,
+    struct ecore_credit_pool_obj *vlans_pool);
 
 void ecore_init_vlan_mac_obj(struct bxe_softc *sc,
-			     struct ecore_vlan_mac_obj *vlan_mac_obj,
-			     uint8_t cl_id, uint32_t cid, uint8_t func_id, void *rdata,
-			     ecore_dma_addr_t rdata_mapping, int state,
-			     unsigned long *pstate, ecore_obj_type type,
-			     struct ecore_credit_pool_obj *macs_pool,
-			     struct ecore_credit_pool_obj *vlans_pool);
+    struct ecore_vlan_mac_obj *vlan_mac_obj, uint8_t cl_id, uint32_t cid,
+    uint8_t func_id, void *rdata, ecore_dma_addr_t rdata_mapping, int state,
+    unsigned long *pstate, ecore_obj_type type,
+    struct ecore_credit_pool_obj *macs_pool,
+    struct ecore_credit_pool_obj *vlans_pool);
 
 void ecore_init_vxlan_fltr_obj(struct bxe_softc *sc,
-			       struct ecore_vlan_mac_obj *vlan_mac_obj,
-			       uint8_t cl_id, uint32_t cid, uint8_t func_id, void *rdata,
-			       ecore_dma_addr_t rdata_mapping, int state,
-			       unsigned long *pstate, ecore_obj_type type,
-			       struct ecore_credit_pool_obj *macs_pool,
-			       struct ecore_credit_pool_obj *vlans_pool);
+    struct ecore_vlan_mac_obj *vlan_mac_obj, uint8_t cl_id, uint32_t cid,
+    uint8_t func_id, void *rdata, ecore_dma_addr_t rdata_mapping, int state,
+    unsigned long *pstate, ecore_obj_type type,
+    struct ecore_credit_pool_obj *macs_pool,
+    struct ecore_credit_pool_obj *vlans_pool);
 
 int ecore_vlan_mac_h_read_lock(struct bxe_softc *sc,
-					struct ecore_vlan_mac_obj *o);
+    struct ecore_vlan_mac_obj *o);
 void ecore_vlan_mac_h_read_unlock(struct bxe_softc *sc,
-				  struct ecore_vlan_mac_obj *o);
+    struct ecore_vlan_mac_obj *o);
 int ecore_vlan_mac_h_write_lock(struct bxe_softc *sc,
-				struct ecore_vlan_mac_obj *o);
+    struct ecore_vlan_mac_obj *o);
 void ecore_vlan_mac_h_write_unlock(struct bxe_softc *sc,
-					  struct ecore_vlan_mac_obj *o);
+    struct ecore_vlan_mac_obj *o);
 int ecore_config_vlan_mac(struct bxe_softc *sc,
-			   struct ecore_vlan_mac_ramrod_params *p);
+    struct ecore_vlan_mac_ramrod_params *p);
 
 int ecore_vlan_mac_move(struct bxe_softc *sc,
-			struct ecore_vlan_mac_ramrod_params *p,
-			struct ecore_vlan_mac_obj *dest_o);
+    struct ecore_vlan_mac_ramrod_params *p, struct ecore_vlan_mac_obj *dest_o);
 
 /********************* RX MODE ****************/
 
-void ecore_init_rx_mode_obj(struct bxe_softc *sc,
-			    struct ecore_rx_mode_obj *o);
+void ecore_init_rx_mode_obj(struct bxe_softc *sc, struct ecore_rx_mode_obj *o);
 
 /**
- * ecore_config_rx_mode - Send and RX_MODE ramrod according to the provided parameters.
+ * ecore_config_rx_mode - Send and RX_MODE ramrod according to the provided
+ * parameters.
  *
  * @p: Command parameters
  *
@@ -1919,16 +1874,15 @@ void ecore_init_rx_mode_obj(struct bxe_softc *sc,
  *         negative - if there were errors
  */
 int ecore_config_rx_mode(struct bxe_softc *sc,
-			 struct ecore_rx_mode_ramrod_params *p);
+    struct ecore_rx_mode_ramrod_params *p);
 
 /****************** MULTICASTS ****************/
 
 void ecore_init_mcast_obj(struct bxe_softc *sc,
-			  struct ecore_mcast_obj *mcast_obj,
-			  uint8_t mcast_cl_id, uint32_t mcast_cid, uint8_t func_id,
-			  uint8_t engine_id, void *rdata, ecore_dma_addr_t rdata_mapping,
-			  int state, unsigned long *pstate,
-			  ecore_obj_type type);
+    struct ecore_mcast_obj *mcast_obj, uint8_t mcast_cl_id, uint32_t mcast_cid,
+    uint8_t func_id, uint8_t engine_id, void *rdata,
+    ecore_dma_addr_t rdata_mapping, int state, unsigned long *pstate,
+    ecore_obj_type type);
 
 /**
  * ecore_config_mcast - Configure multicast MACs list.
@@ -1951,34 +1905,29 @@ void ecore_init_mcast_obj(struct bxe_softc *sc,
  *         completions.
  */
 int ecore_config_mcast(struct bxe_softc *sc,
-		       struct ecore_mcast_ramrod_params *p,
-		       enum ecore_mcast_cmd cmd);
+    struct ecore_mcast_ramrod_params *p, enum ecore_mcast_cmd cmd);
 
 /****************** CREDIT POOL ****************/
 void ecore_init_mac_credit_pool(struct bxe_softc *sc,
-				struct ecore_credit_pool_obj *p, uint8_t func_id,
-				uint8_t func_num);
+    struct ecore_credit_pool_obj *p, uint8_t func_id, uint8_t func_num);
 void ecore_init_vlan_credit_pool(struct bxe_softc *sc,
-				 struct ecore_credit_pool_obj *p, uint8_t func_id,
-				 uint8_t func_num);
-void ecore_init_credit_pool(struct ecore_credit_pool_obj *p,
-			    int base, int credit);
+    struct ecore_credit_pool_obj *p, uint8_t func_id, uint8_t func_num);
+void ecore_init_credit_pool(struct ecore_credit_pool_obj *p, int base,
+    int credit);
 
 /****************** RSS CONFIGURATION ****************/
 void ecore_init_rss_config_obj(struct bxe_softc *sc,
-			       struct ecore_rss_config_obj *rss_obj,
-			       uint8_t cl_id, uint32_t cid, uint8_t func_id, uint8_t engine_id,
-			       void *rdata, ecore_dma_addr_t rdata_mapping,
-			       int state, unsigned long *pstate,
-			       ecore_obj_type type);
+    struct ecore_rss_config_obj *rss_obj, uint8_t cl_id, uint32_t cid,
+    uint8_t func_id, uint8_t engine_id, void *rdata,
+    ecore_dma_addr_t rdata_mapping, int state, unsigned long *pstate,
+    ecore_obj_type type);
 
 /**
  * ecore_config_rss - Updates RSS configuration according to provided parameters
  *
  * Return: 0 in case of success
  */
-int ecore_config_rss(struct bxe_softc *sc,
-		     struct ecore_config_rss_params *p);
+int ecore_config_rss(struct bxe_softc *sc, struct ecore_config_rss_params *p);
 
 /**
  * ecore_get_rss_ind_table - Return the current ind_table configuration.
@@ -1988,16 +1937,16 @@ int ecore_config_rss(struct bxe_softc *sc,
  *                  T_ETH_INDIRECTION_TABLE_SIZE bytes long.
  */
 void ecore_get_rss_ind_table(struct ecore_rss_config_obj *rss_obj,
-			     uint8_t *ind_table);
+    uint8_t *ind_table);
 
-#define PF_MAC_CREDIT_E2(sc, func_num)					\
-	((MAX_MAC_CREDIT_E2 - GET_NUM_VFS_PER_PATH(sc) * VF_MAC_CREDIT_CNT) /	\
-	 func_num + GET_NUM_VFS_PER_PF(sc) * VF_MAC_CREDIT_CNT)
+#define PF_MAC_CREDIT_E2(sc, func_num)                                        \
+	((MAX_MAC_CREDIT_E2 - GET_NUM_VFS_PER_PATH(sc) * VF_MAC_CREDIT_CNT) / \
+		func_num +                                                    \
+	    GET_NUM_VFS_PER_PF(sc) * VF_MAC_CREDIT_CNT)
 
-#define PF_VLAN_CREDIT_E2(sc, func_num)					 \
+#define PF_VLAN_CREDIT_E2(sc, func_num)                                        \
 	((MAX_MAC_CREDIT_E2 - GET_NUM_VFS_PER_PATH(sc) * VF_VLAN_CREDIT_CNT) / \
-	 func_num + GET_NUM_VFS_PER_PF(sc) * VF_VLAN_CREDIT_CNT)
-
+		func_num +                                                     \
+	    GET_NUM_VFS_PER_PF(sc) * VF_VLAN_CREDIT_CNT)
 
 #endif /* ECORE_SP_H */
-

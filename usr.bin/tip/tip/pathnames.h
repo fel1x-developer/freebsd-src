@@ -34,7 +34,7 @@
 
 #include <paths.h>
 
-#define	_PATH_ACULOG		"/var/log/aculog"
-#define	_PATH_LOCKDIRNAME	"/var/spool/lock/LCK..%s"
-#define	_PATH_PHONES		"/etc/phones"
-#define	_PATH_REMOTE		"/etc/remote"
+#define _PATH_ACULOG "/var/log/aculog"
+#define _PATH_LOCKDIRNAME "/var/spool/lock/LCK..%s"
+#define _PATH_PHONES "/etc/phones"
+#define _PATH_REMOTE "/etc/remote"

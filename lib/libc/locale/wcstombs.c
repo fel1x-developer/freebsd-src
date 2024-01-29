@@ -34,11 +34,12 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <wchar.h>
+
 #include "mblocal.h"
 
 size_t
-wcstombs_l(char * __restrict s, const wchar_t * __restrict pwcs, size_t n,
-		locale_t locale)
+wcstombs_l(char *__restrict s, const wchar_t *__restrict pwcs, size_t n,
+    locale_t locale)
 {
 	static const mbstate_t initial;
 	mbstate_t mbs;
@@ -47,11 +48,11 @@ wcstombs_l(char * __restrict s, const wchar_t * __restrict pwcs, size_t n,
 
 	mbs = initial;
 	pwcsp = pwcs;
-	return (XLOCALE_CTYPE(locale)->__wcsnrtombs(s, &pwcsp, SIZE_T_MAX, n, &mbs));
+	return (XLOCALE_CTYPE(locale)->__wcsnrtombs(s, &pwcsp, SIZE_T_MAX, n,
+	    &mbs));
 }
 size_t
-wcstombs(char * __restrict s, const wchar_t * __restrict pwcs, size_t n)
+wcstombs(char *__restrict s, const wchar_t *__restrict pwcs, size_t n)
 {
 	return wcstombs_l(s, pwcs, n, __get_locale());
 }
-

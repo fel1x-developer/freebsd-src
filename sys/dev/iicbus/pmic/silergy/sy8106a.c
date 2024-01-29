@@ -30,48 +30,44 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
 #include <sys/kernel.h>
-#include <sys/reboot.h>
 #include <sys/module.h>
+#include <sys/reboot.h>
+#include <sys/rman.h>
 
 #include <dev/iicbus/iicbus.h>
 #include <dev/iicbus/iiconf.h>
-
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
 #include <dev/regulator/regulator.h>
 
 #include "iicbus_if.h"
 #include "regdev_if.h"
 
-#define	VOUT1_SEL		0x01
-#define	 SEL_GO			(1 << 7)
-#define	 SEL_VOLTAGE_MASK	0x7f
-#define	 SEL_VOLTAGE_BASE	680000	/* uV */
-#define	 SEL_VOLTAGE_STEP	10000	/* uV */
-#define	VOUT_COM		0x02
-#define	 COM_DISABLE		(1 << 0)
-#define	SYS_STATUS		0x06
+#define VOUT1_SEL 0x01
+#define SEL_GO (1 << 7)
+#define SEL_VOLTAGE_MASK 0x7f
+#define SEL_VOLTAGE_BASE 680000 /* uV */
+#define SEL_VOLTAGE_STEP 10000	/* uV */
+#define VOUT_COM 0x02
+#define COM_DISABLE (1 << 0)
+#define SYS_STATUS 0x06
 
-static struct ofw_compat_data compat_data[] = {
-	{ "silergy,sy8106a",			1 },
-	{ NULL,					0 }
-};
+static struct ofw_compat_data compat_data[] = { { "silergy,sy8106a", 1 },
+	{ NULL, 0 } };
 
 struct sy8106a_reg_sc {
-	struct regnode		*regnode;
-	device_t		base_dev;
-	phandle_t		xref;
+	struct regnode *regnode;
+	device_t base_dev;
+	phandle_t xref;
 	struct regnode_std_param *param;
 };
 
 struct sy8106a_softc {
-	uint16_t		addr;
+	uint16_t addr;
 
 	/* Regulator */
-	struct sy8106a_reg_sc	*reg;
+	struct sy8106a_reg_sc *reg;
 };
 
 static int
@@ -176,18 +172,17 @@ sy8106a_regnode_get_voltage(struct regnode *regnode, int *uvolt)
 	sc = regnode_get_softc(regnode);
 
 	sy8106a_read(sc->base_dev, VOUT1_SEL, &val, 1);
-	*uvolt = (val & SEL_VOLTAGE_MASK) * SEL_VOLTAGE_STEP +
-	    SEL_VOLTAGE_BASE;
+	*uvolt = (val & SEL_VOLTAGE_MASK) * SEL_VOLTAGE_STEP + SEL_VOLTAGE_BASE;
 
 	return (0);
 }
 
 static regnode_method_t sy8106a_regnode_methods[] = {
 	/* Regulator interface */
-	REGNODEMETHOD(regnode_init,		sy8106a_regnode_init),
-	REGNODEMETHOD(regnode_enable,		sy8106a_regnode_enable),
-	REGNODEMETHOD(regnode_set_voltage,	sy8106a_regnode_set_voltage),
-	REGNODEMETHOD(regnode_get_voltage,	sy8106a_regnode_get_voltage),
+	REGNODEMETHOD(regnode_init, sy8106a_regnode_init),
+	REGNODEMETHOD(regnode_enable, sy8106a_regnode_enable),
+	REGNODEMETHOD(regnode_set_voltage, sy8106a_regnode_set_voltage),
+	REGNODEMETHOD(regnode_get_voltage, sy8106a_regnode_get_voltage),
 	REGNODEMETHOD_END
 };
 DEFINE_CLASS_1(sy8106a_regnode, sy8106a_regnode_class, sy8106a_regnode_methods,
@@ -273,11 +268,11 @@ sy8106a_attach(device_t dev)
 
 static device_method_t sy8106a_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		sy8106a_probe),
-	DEVMETHOD(device_attach,	sy8106a_attach),
+	DEVMETHOD(device_probe, sy8106a_probe),
+	DEVMETHOD(device_attach, sy8106a_attach),
 
 	/* Regdev interface */
-	DEVMETHOD(regdev_map,		sy8106a_regdev_map),
+	DEVMETHOD(regdev_map, sy8106a_regdev_map),
 
 	DEVMETHOD_END
 };

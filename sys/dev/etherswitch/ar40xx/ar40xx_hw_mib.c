@@ -26,6 +26,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
@@ -34,47 +35,41 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
 
 #include <machine/bus.h>
+
+#include <dev/clk/clk.h>
+#include <dev/etherswitch/ar40xx/ar40xx_hw.h>
+#include <dev/etherswitch/ar40xx/ar40xx_hw_mib.h>
+#include <dev/etherswitch/ar40xx/ar40xx_reg.h>
+#include <dev/etherswitch/ar40xx/ar40xx_var.h>
+#include <dev/etherswitch/etherswitch.h>
+#include <dev/fdt/fdt_common.h>
+#include <dev/hwreset/hwreset.h>
 #include <dev/iicbus/iic.h>
-#include <dev/iicbus/iiconf.h>
 #include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
+#include <dev/mdio/mdio.h>
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
-#include <dev/mdio/mdio.h>
-#include <dev/clk/clk.h>
-#include <dev/hwreset/hwreset.h>
-
-#include <dev/fdt/fdt_common.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include <dev/etherswitch/etherswitch.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
 
-#include <dev/etherswitch/ar40xx/ar40xx_var.h>
-#include <dev/etherswitch/ar40xx/ar40xx_reg.h>
-#include <dev/etherswitch/ar40xx/ar40xx_hw.h>
-#include <dev/etherswitch/ar40xx/ar40xx_hw_mib.h>
-
+#include "etherswitch_if.h"
 #include "mdio_if.h"
 #include "miibus_if.h"
-#include "etherswitch_if.h"
 
-
-#define MIB_DESC(_s , _o, _n)   \
-	{		       \
-		.size = (_s),   \
-		.offset = (_o), \
-		.name = (_n),   \
+#define MIB_DESC(_s, _o, _n)                                \
+	{                                                   \
+		.size = (_s), .offset = (_o), .name = (_n), \
 	}
 
 static const struct ar40xx_mib_desc ar40xx_mibs[] = {
@@ -119,7 +114,6 @@ static const struct ar40xx_mib_desc ar40xx_mibs[] = {
 	MIB_DESC(1, AR40XX_STATS_TXLATECOL, "TxLateCol"),
 };
 
-
 int
 ar40xx_hw_mib_op(struct ar40xx_softc *sc, uint32_t op)
 {
@@ -137,12 +131,10 @@ ar40xx_hw_mib_op(struct ar40xx_softc *sc, uint32_t op)
 	AR40XX_REG_BARRIER_WRITE(sc);
 
 	/* Now wait */
-	ret = ar40xx_hw_wait_bit(sc, AR40XX_REG_MIB_FUNC,
-	    AR40XX_MIB_BUSY, 0);
+	ret = ar40xx_hw_wait_bit(sc, AR40XX_REG_MIB_FUNC, AR40XX_MIB_BUSY, 0);
 	if (ret != 0) {
 		device_printf(sc->sc_dev,
-		    "%s: ERROR: timeout waiting for MIB load\n",
-		    __func__);
+		    "%s: ERROR: timeout waiting for MIB load\n", __func__);
 	}
 
 	return ret;
@@ -173,8 +165,7 @@ ar40xx_hw_mib_fetch(struct ar40xx_softc *sc, int port)
 	uint32_t base, reg;
 	int i;
 
-	base = AR40XX_REG_PORT_STATS_START
-	    + (AR40XX_REG_PORT_STATS_LEN * port);
+	base = AR40XX_REG_PORT_STATS_START + (AR40XX_REG_PORT_STATS_LEN * port);
 
 	/* For now just print them out, we'll store them later */
 	AR40XX_REG_BARRIER_READ(sc);
@@ -183,11 +174,13 @@ ar40xx_hw_mib_fetch(struct ar40xx_softc *sc, int port)
 
 		val = AR40XX_REG_READ(sc, base + ar40xx_mibs[i].offset);
 		if (ar40xx_mibs[i].size == 2) {
-			reg = AR40XX_REG_READ(sc, base + ar40xx_mibs[i].offset + 4);
-			val |= ((uint64_t) reg << 32);
+			reg = AR40XX_REG_READ(sc,
+			    base + ar40xx_mibs[i].offset + 4);
+			val |= ((uint64_t)reg << 32);
 		}
 
-		device_printf(sc->sc_dev, "%s[%d] = %llu\n", ar40xx_mibs[i].name, port, val);
+		device_printf(sc->sc_dev, "%s[%d] = %llu\n",
+		    ar40xx_mibs[i].name, port, val);
 	}
 
 	return (0);

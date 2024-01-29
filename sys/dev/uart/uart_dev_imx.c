@@ -28,33 +28,34 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_ddb.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/kdb.h>
+
 #include <machine/bus.h>
 
 #include <dev/uart/uart.h>
+#include <dev/uart/uart_bus.h>
 #include <dev/uart/uart_cpu.h>
 #include <dev/uart/uart_cpu_fdt.h>
-#include <dev/uart/uart_bus.h>
 #include <dev/uart/uart_dev_imx.h>
 
 #if defined(__aarch64__)
-#define	IMX_ENABLE_CLOCKS
+#define IMX_ENABLE_CLOCKS
 #endif
 
 #ifdef IMX_ENABLE_CLOCKS
 #include <dev/clk/clk.h>
 #endif
 
-#include "uart_if.h"
-
 #include <arm/freescale/imx/imx_ccmvar.h>
+
+#include "uart_if.h"
 
 /*
  * The hardare FIFOs are 32 bytes.  We want an interrupt when there are 24 bytes
@@ -63,9 +64,9 @@
  * 5mbps, which means 2uS per char, so at full speed 8 bytes provides only 16uS
  * to get into the interrupt handler and service the fifo.
  */
-#define	IMX_FIFOSZ		32
-#define	IMX_RXFIFO_LEVEL	24
-#define	IMX_TXFIFO_LEVEL	24
+#define IMX_FIFOSZ 32
+#define IMX_RXFIFO_LEVEL 24
+#define IMX_TXFIFO_LEVEL 24
 
 /*
  * Low-level UART interface.
@@ -114,10 +115,9 @@ imx_uart_getbaud(struct uart_bas *bas)
 {
 	uint32_t rate, ubir, ubmr;
 	u_int baud, blo, bhi, i;
-	static const u_int predivs[] = {6, 5, 4, 3, 2, 1, 7, 1};
-	static const u_int std_rates[] = {
-		9600, 14400, 19200, 38400, 57600, 115200, 230400, 460800, 921600
-	};
+	static const u_int predivs[] = { 6, 5, 4, 3, 2, 1, 7, 1 };
+	static const u_int std_rates[] = { 9600, 14400, 19200, 38400, 57600,
+		115200, 230400, 460800, 921600 };
 
 	/*
 	 * Get the baud rate the hardware is programmed for, then search the
@@ -133,7 +133,7 @@ imx_uart_getbaud(struct uart_bas *bas)
 	rate = bas->rclk / predivs[i];
 	ubir = GETREG(bas, REG(UBIR)) + 1;
 	ubmr = GETREG(bas, REG(UBMR)) + 1;
-	baud = ((rate / 16 ) * ubir) / ubmr;
+	baud = ((rate / 16) * ubir) / ubmr;
 
 	blo = (baud * 100) / 103;
 	bhi = (baud * 100) / 97;
@@ -149,12 +149,12 @@ imx_uart_getbaud(struct uart_bas *bas)
 }
 
 static void
-imx_uart_init(struct uart_bas *bas, int baudrate, int databits, 
-    int stopbits, int parity)
+imx_uart_init(struct uart_bas *bas, int baudrate, int databits, int stopbits,
+    int parity)
 {
 	uint32_t baseclk, reg;
 
-        /* Enable the device and the RX/TX channels. */
+	/* Enable the device and the RX/TX channels. */
 	SET(bas, REG(UCR1), FLD(UCR1, UARTEN));
 	SET(bas, REG(UCR2), FLD(UCR2, RXEN) | FLD(UCR2, TXEN));
 
@@ -179,7 +179,7 @@ imx_uart_init(struct uart_bas *bas, int baudrate, int databits,
 		break;
 	case UART_PARITY_MARK:
 	case UART_PARITY_SPACE:
-                /* FALLTHROUGH: Hardware doesn't support mark/space. */
+		/* FALLTHROUGH: Hardware doesn't support mark/space. */
 	case UART_PARITY_NONE:
 	default:
 		DIS(bas, UCR2, PREN);
@@ -201,7 +201,8 @@ imx_uart_init(struct uart_bas *bas, int baudrate, int databits,
 	if ((baudrate > 0) && (bas->rclk != 0)) {
 		baseclk = bas->rclk;
 		reg = GETREG(bas, REG(UFCR));
-		reg = (reg & ~IMXUART_UFCR_RFDIV_MASK) | IMXUART_UFCR_RFDIV_DIV1;
+		reg = (reg & ~IMXUART_UFCR_RFDIV_MASK) |
+		    IMXUART_UFCR_RFDIV_DIV1;
 		SETREG(bas, REG(UFCR), reg);
 		SETREG(bas, REG(UBIR), 15);
 		SETREG(bas, REG(UBMR), (baseclk / baudrate) - 1);
@@ -222,7 +223,6 @@ imx_uart_init(struct uart_bas *bas, int baudrate, int databits,
 static void
 imx_uart_term(struct uart_bas *bas)
 {
-
 }
 
 static void
@@ -282,50 +282,43 @@ static int imx_uart_bus_transmit(struct uart_softc *);
 static void imx_uart_bus_grab(struct uart_softc *);
 static void imx_uart_bus_ungrab(struct uart_softc *);
 
-static kobj_method_t imx_uart_methods[] = {
-	KOBJMETHOD(uart_attach,		imx_uart_bus_attach),
-	KOBJMETHOD(uart_detach,		imx_uart_bus_detach),
-	KOBJMETHOD(uart_flush,		imx_uart_bus_flush),
-	KOBJMETHOD(uart_getsig,		imx_uart_bus_getsig),
-	KOBJMETHOD(uart_ioctl,		imx_uart_bus_ioctl),
-	KOBJMETHOD(uart_ipend,		imx_uart_bus_ipend),
-	KOBJMETHOD(uart_param,		imx_uart_bus_param),
-	KOBJMETHOD(uart_probe,		imx_uart_bus_probe),
-	KOBJMETHOD(uart_receive,	imx_uart_bus_receive),
-	KOBJMETHOD(uart_setsig,		imx_uart_bus_setsig),
-	KOBJMETHOD(uart_transmit,	imx_uart_bus_transmit),
-	KOBJMETHOD(uart_grab,		imx_uart_bus_grab),
-	KOBJMETHOD(uart_ungrab,		imx_uart_bus_ungrab),
-	{ 0, 0 }
-};
+static kobj_method_t imx_uart_methods[] = { KOBJMETHOD(uart_attach,
+						imx_uart_bus_attach),
+	KOBJMETHOD(uart_detach, imx_uart_bus_detach),
+	KOBJMETHOD(uart_flush, imx_uart_bus_flush),
+	KOBJMETHOD(uart_getsig, imx_uart_bus_getsig),
+	KOBJMETHOD(uart_ioctl, imx_uart_bus_ioctl),
+	KOBJMETHOD(uart_ipend, imx_uart_bus_ipend),
+	KOBJMETHOD(uart_param, imx_uart_bus_param),
+	KOBJMETHOD(uart_probe, imx_uart_bus_probe),
+	KOBJMETHOD(uart_receive, imx_uart_bus_receive),
+	KOBJMETHOD(uart_setsig, imx_uart_bus_setsig),
+	KOBJMETHOD(uart_transmit, imx_uart_bus_transmit),
+	KOBJMETHOD(uart_grab, imx_uart_bus_grab),
+	KOBJMETHOD(uart_ungrab, imx_uart_bus_ungrab), { 0, 0 } };
 
-static struct uart_class uart_imx_class = {
-	"imx",
-	imx_uart_methods,
-	sizeof(struct imx_uart_softc),
-	.uc_ops = &uart_imx_uart_ops,
-	.uc_range = 0x100,
-	.uc_rclk = 24000000, /* TODO: get value from CCM */
-	.uc_rshift = 0
-};
+static struct uart_class uart_imx_class = { "imx", imx_uart_methods,
+	sizeof(struct imx_uart_softc), .uc_ops = &uart_imx_uart_ops,
+	.uc_range = 0x100, .uc_rclk = 24000000, /* TODO: get value from CCM */
+	.uc_rshift = 0 };
 
 static struct ofw_compat_data compat_data[] = {
-	{"fsl,imx6q-uart",	(uintptr_t)&uart_imx_class},
-	{"fsl,imx53-uart",	(uintptr_t)&uart_imx_class},
-	{"fsl,imx51-uart",	(uintptr_t)&uart_imx_class},
-	{"fsl,imx31-uart",	(uintptr_t)&uart_imx_class},
-	{"fsl,imx27-uart",	(uintptr_t)&uart_imx_class},
-	{"fsl,imx25-uart",	(uintptr_t)&uart_imx_class},
-	{"fsl,imx21-uart",	(uintptr_t)&uart_imx_class},
-	{NULL,			(uintptr_t)NULL},
+	{ "fsl,imx6q-uart", (uintptr_t)&uart_imx_class },
+	{ "fsl,imx53-uart", (uintptr_t)&uart_imx_class },
+	{ "fsl,imx51-uart", (uintptr_t)&uart_imx_class },
+	{ "fsl,imx31-uart", (uintptr_t)&uart_imx_class },
+	{ "fsl,imx27-uart", (uintptr_t)&uart_imx_class },
+	{ "fsl,imx25-uart", (uintptr_t)&uart_imx_class },
+	{ "fsl,imx21-uart", (uintptr_t)&uart_imx_class },
+	{ NULL, (uintptr_t)NULL },
 };
 UART_FDT_CLASS_AND_DEVICE(compat_data);
 
-#define	SIGCHG(c, i, s, d)				\
-	if (c) {					\
-		i |= (i & s) ? s : s | d;		\
-	} else {					\
-		i = (i & s) ? (i & ~s) | d : i;		\
+#define SIGCHG(c, i, s, d)                      \
+	if (c) {                                \
+		i |= (i & s) ? s : s | d;       \
+	} else {                                \
+		i = (i & s) ? (i & ~s) | d : i; \
 	}
 
 #ifdef IMX_ENABLE_CLOCKS
@@ -476,7 +469,7 @@ imx_uart_bus_ioctl(struct uart_softc *sc, int request, intptr_t data)
 		/* TODO */
 		break;
 	case UART_IOCTL_BAUD:
-		*(u_int*)data = imx_uart_getbaud(bas);
+		*(u_int *)data = imx_uart_getbaud(bas);
 		break;
 	default:
 		error = EINVAL;
@@ -522,7 +515,7 @@ imx_uart_bus_ipend(struct uart_softc *sc)
 	 * fifo and no new data has arrived for 8 character periods (aging
 	 * timer), we have input data to process.
 	 */
-	if (((usr1 & FLD(USR1, RRDY)) && (ucr1 & FLD(UCR1, RRDYEN))) || 
+	if (((usr1 & FLD(USR1, RRDY)) && (ucr1 & FLD(UCR1, RRDYEN))) ||
 	    ((usr1 & FLD(USR1, AGTIM)) && (ucr2 & FLD(UCR2, ATEN)))) {
 		DIS(bas, UCR1, RRDYEN);
 		DIS(bas, UCR2, ATEN);

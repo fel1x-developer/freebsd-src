@@ -61,19 +61,14 @@
  *        for the task request.
  */
 
-#include <dev/isci/scil/sati_types.h>
 #include <dev/isci/scil/sati_translator_sequence.h>
+#include <dev/isci/scil/sati_types.h>
 
-SATI_STATUS sati_lun_reset_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_task,
-   void                       * ata_io
-);
+SATI_STATUS
+sati_lun_reset_translate_command(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_task, void *ata_io);
 
-void sati_lun_reset_translate_resposne(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * ata_input_data,
-   void                       * scsi_task
-);
+void sati_lun_reset_translate_resposne(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *ata_input_data, void *scsi_task);
 
 #endif // _SATI_LUN_RESET_H_

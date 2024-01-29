@@ -25,22 +25,23 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/eventhandler.h>
 #include <sys/fnv_hash.h>
-#include <sys/systm.h>
 #include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/bus.h>
 #include <sys/lock.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rwlock.h>
-#include <sys/socket.h>
 #include <sys/sbuf.h>
+#include <sys/socket.h>
+
 #include <netinet/in.h>
 
 #include "common/common.h"
@@ -55,11 +56,11 @@ struct filter_entry {
 	LIST_ENTRY(filter_entry) link_4t;
 	LIST_ENTRY(filter_entry) link_tid;
 
-	uint32_t valid:1;	/* filter allocated and valid */
-	uint32_t locked:1;	/* filter is administratively locked or busy */
-	uint32_t pending:1;	/* filter action is pending firmware reply */
+	uint32_t valid : 1;	/* filter allocated and valid */
+	uint32_t locked : 1;	/* filter is administratively locked or busy */
+	uint32_t pending : 1;	/* filter action is pending firmware reply */
 	int tid;		/* tid of the filter TCB */
-	struct l2t_entry *l2te;	/* L2 table entry for DMAC rewrite */
+	struct l2t_entry *l2te; /* L2 table entry for DMAC rewrite */
 	struct smt_entry *smt;	/* SMT entry for SMAC rewrite */
 
 	struct t4_filter_specification fs;
@@ -148,7 +149,7 @@ free_hftid_hash(struct tid_info *t)
 		/* Remove everything from the tid hash. */
 		head = t->hftid_hash_tid;
 		for (i = 0; i <= t->hftid_tid_mask; i++) {
-			LIST_FOREACH_SAFE(f, &head[i], link_tid, ftmp) {
+			LIST_FOREACH_SAFE (f, &head[i], link_tid, ftmp) {
 				LIST_REMOVE(f, link_tid);
 			}
 		}
@@ -156,7 +157,7 @@ free_hftid_hash(struct tid_info *t)
 		/* Remove and then free each filter in the 4t hash. */
 		head = t->hftid_hash_4t;
 		for (i = 0; i <= t->hftid_4t_mask; i++) {
-			LIST_FOREACH_SAFE(f, &head[i], link_4t, ftmp) {
+			LIST_FOREACH_SAFE (f, &head[i], link_4t, ftmp) {
 #ifdef INVARIANTS
 				n += f->fs.type ? 2 : 1;
 #endif
@@ -271,7 +272,7 @@ lookup_hf(struct adapter *sc, struct t4_filter_specification *fs, uint32_t hash)
 	if (hash == 0)
 		hash = hf_hashfn_4t(fs);
 
-	LIST_FOREACH(f, &head[hash & t->hftid_4t_mask], link_4t) {
+	LIST_FOREACH (f, &head[hash & t->hftid_4t_mask], link_4t) {
 		if (filter_eq(&f->fs, fs))
 			return (f);
 	}
@@ -291,7 +292,7 @@ lookup_hftid(struct adapter *sc, int tid)
 	MPASS(head != NULL);
 
 	hash = hf_hashfn_tid(tid);
-	LIST_FOREACH(f, &head[hash & t->hftid_tid_mask], link_tid) {
+	LIST_FOREACH (f, &head[hash & t->hftid_tid_mask], link_tid) {
 		if (f->tid == tid)
 			return (f);
 	}
@@ -372,7 +373,7 @@ static int
 mode_to_iconf(uint32_t mode)
 {
 	if ((mode & T4_FILTER_VNIC) == 0)
-		return (-1);	/* ingress config doesn't matter. */
+		return (-1); /* ingress config doesn't matter. */
 
 	if (mode & T4_FILTER_IC_VNIC)
 		return (FW_VNIC_MODE_PF_VF);
@@ -424,8 +425,9 @@ check_fspec_against_fconf_iconf(struct adapter *sc,
 
 #ifdef notyet
 	if (fs->val.encap_vld || fs->mask.encap_vld) {
-		if (tpp->vnic_mode != FW_VNIC_MODE_ENCAP_EN);
-			return (EINVAL);
+		if (tpp->vnic_mode != FW_VNIC_MODE_ENCAP_EN)
+			;
+		return (EINVAL);
 		fconf |= F_VNIC_ID;
 	}
 #endif
@@ -514,7 +516,7 @@ set_filter_mode(struct adapter *sc, uint32_t mode)
 	iconf = mode_to_iconf(mode);
 	fconf = mode_to_fconf(mode);
 	if ((iconf == -1 || iconf == tp->vnic_mode) && fconf == tp->filter_mode)
-		return (0);	/* Nothing to do */
+		return (0); /* Nothing to do */
 
 	rc = begin_synchronized_op(sc, NULL, SLEEP_OK | INTR_OK, "t4setfm");
 	if (rc)
@@ -525,9 +527,9 @@ set_filter_mode(struct adapter *sc, uint32_t mode)
 		goto done;
 	}
 
-	if (sc->tids.ftids_in_use > 0 ||	/* TCAM filters active */
-	    sc->tids.hpftids_in_use > 0 ||	/* hi-pri TCAM filters active */
-	    sc->tids.tids_in_use > 0) {		/* TOE or hashfilters active */
+	if (sc->tids.ftids_in_use > 0 ||   /* TCAM filters active */
+	    sc->tids.hpftids_in_use > 0 || /* hi-pri TCAM filters active */
+	    sc->tids.tids_in_use > 0) {	   /* TOE or hashfilters active */
 		rc = EBUSY;
 		goto done;
 	}
@@ -556,7 +558,7 @@ set_filter_mask(struct adapter *sc, uint32_t mode)
 	iconf = mode_to_iconf(mode);
 	fmask = mode_to_fconf(mode);
 	if ((iconf == -1 || iconf == tp->vnic_mode) && fmask == tp->filter_mask)
-		return (0);	/* Nothing to do */
+		return (0); /* Nothing to do */
 
 	/*
 	 * We aren't going to change the global filter mode or VNIC mode here.
@@ -576,7 +578,7 @@ set_filter_mask(struct adapter *sc, uint32_t mode)
 		goto done;
 	}
 
-	if (sc->tids.tids_in_use > 0) {		/* TOE or hashfilters active */
+	if (sc->tids.tids_in_use > 0) { /* TOE or hashfilters active */
 		rc = EBUSY;
 		goto done;
 	}
@@ -711,49 +713,45 @@ set_tcamfilter(struct adapter *sc, struct t4_filter *t, struct l2t_entry *l2te,
 	else
 		fwr->op_pkd = htobe32(V_FW_WR_OP(FW_FILTER_WR));
 	fwr->len16_pkd = htobe32(FW_LEN16(*fwr));
-	fwr->tid_to_iq =
-	    htobe32(V_FW_FILTER_WR_TID(f->tid) |
-		V_FW_FILTER_WR_RQTYPE(f->fs.type) |
-		V_FW_FILTER_WR_NOREPLY(0) |
-		V_FW_FILTER_WR_IQ(f->fs.iq));
-	fwr->del_filter_to_l2tix =
-	    htobe32(V_FW_FILTER_WR_RPTTID(f->fs.rpttid) |
-		V_FW_FILTER_WR_DROP(f->fs.action == FILTER_DROP) |
-		V_FW_FILTER_WR_DIRSTEER(f->fs.dirsteer) |
-		V_FW_FILTER_WR_MASKHASH(f->fs.maskhash) |
-		V_FW_FILTER_WR_DIRSTEERHASH(f->fs.dirsteerhash) |
-		V_FW_FILTER_WR_LPBK(f->fs.action == FILTER_SWITCH) |
-		V_FW_FILTER_WR_DMAC(f->fs.newdmac) |
-		V_FW_FILTER_WR_SMAC(f->fs.newsmac) |
-		V_FW_FILTER_WR_INSVLAN(f->fs.newvlan == VLAN_INSERT ||
-		    f->fs.newvlan == VLAN_REWRITE) |
-		V_FW_FILTER_WR_RMVLAN(f->fs.newvlan == VLAN_REMOVE ||
-		    f->fs.newvlan == VLAN_REWRITE) |
-		V_FW_FILTER_WR_HITCNTS(f->fs.hitcnts) |
-		V_FW_FILTER_WR_TXCHAN(f->fs.eport) |
-		V_FW_FILTER_WR_PRIO(f->fs.prio) |
-		V_FW_FILTER_WR_L2TIX(f->l2te ? f->l2te->idx : 0));
+	fwr->tid_to_iq = htobe32(V_FW_FILTER_WR_TID(f->tid) |
+	    V_FW_FILTER_WR_RQTYPE(f->fs.type) | V_FW_FILTER_WR_NOREPLY(0) |
+	    V_FW_FILTER_WR_IQ(f->fs.iq));
+	fwr->del_filter_to_l2tix = htobe32(V_FW_FILTER_WR_RPTTID(f->fs.rpttid) |
+	    V_FW_FILTER_WR_DROP(f->fs.action == FILTER_DROP) |
+	    V_FW_FILTER_WR_DIRSTEER(f->fs.dirsteer) |
+	    V_FW_FILTER_WR_MASKHASH(f->fs.maskhash) |
+	    V_FW_FILTER_WR_DIRSTEERHASH(f->fs.dirsteerhash) |
+	    V_FW_FILTER_WR_LPBK(f->fs.action == FILTER_SWITCH) |
+	    V_FW_FILTER_WR_DMAC(f->fs.newdmac) |
+	    V_FW_FILTER_WR_SMAC(f->fs.newsmac) |
+	    V_FW_FILTER_WR_INSVLAN(
+		f->fs.newvlan == VLAN_INSERT || f->fs.newvlan == VLAN_REWRITE) |
+	    V_FW_FILTER_WR_RMVLAN(
+		f->fs.newvlan == VLAN_REMOVE || f->fs.newvlan == VLAN_REWRITE) |
+	    V_FW_FILTER_WR_HITCNTS(f->fs.hitcnts) |
+	    V_FW_FILTER_WR_TXCHAN(f->fs.eport) |
+	    V_FW_FILTER_WR_PRIO(f->fs.prio) |
+	    V_FW_FILTER_WR_L2TIX(f->l2te ? f->l2te->idx : 0));
 	fwr->ethtype = htobe16(f->fs.val.ethtype);
 	fwr->ethtypem = htobe16(f->fs.mask.ethtype);
-	fwr->frag_to_ovlan_vldm =
-	    (V_FW_FILTER_WR_FRAG(f->fs.val.frag) |
-		V_FW_FILTER_WR_FRAGM(f->fs.mask.frag) |
-		V_FW_FILTER_WR_IVLAN_VLD(f->fs.val.vlan_vld) |
-		V_FW_FILTER_WR_OVLAN_VLD(vnic_vld) |
-		V_FW_FILTER_WR_IVLAN_VLDM(f->fs.mask.vlan_vld) |
-		V_FW_FILTER_WR_OVLAN_VLDM(vnic_vld_mask));
+	fwr->frag_to_ovlan_vldm = (V_FW_FILTER_WR_FRAG(f->fs.val.frag) |
+	    V_FW_FILTER_WR_FRAGM(f->fs.mask.frag) |
+	    V_FW_FILTER_WR_IVLAN_VLD(f->fs.val.vlan_vld) |
+	    V_FW_FILTER_WR_OVLAN_VLD(vnic_vld) |
+	    V_FW_FILTER_WR_IVLAN_VLDM(f->fs.mask.vlan_vld) |
+	    V_FW_FILTER_WR_OVLAN_VLDM(vnic_vld_mask));
 	fwr->smac_sel = 0;
 	fwr->rx_chan_rx_rpl_iq = htobe16(V_FW_FILTER_WR_RX_CHAN(0) |
 	    V_FW_FILTER_WR_RX_RPL_IQ(sc->sge.fwq.abs_id));
-	fwr->maci_to_matchtypem =
-	    htobe32(V_FW_FILTER_WR_MACI(f->fs.val.macidx) |
-		V_FW_FILTER_WR_MACIM(f->fs.mask.macidx) |
-		V_FW_FILTER_WR_FCOE(f->fs.val.fcoe) |
-		V_FW_FILTER_WR_FCOEM(f->fs.mask.fcoe) |
-		V_FW_FILTER_WR_PORT(f->fs.val.iport) |
-		V_FW_FILTER_WR_PORTM(f->fs.mask.iport) |
-		V_FW_FILTER_WR_MATCHTYPE(f->fs.val.matchtype) |
-		V_FW_FILTER_WR_MATCHTYPEM(f->fs.mask.matchtype));
+	fwr->maci_to_matchtypem = htobe32(
+	    V_FW_FILTER_WR_MACI(f->fs.val.macidx) |
+	    V_FW_FILTER_WR_MACIM(f->fs.mask.macidx) |
+	    V_FW_FILTER_WR_FCOE(f->fs.val.fcoe) |
+	    V_FW_FILTER_WR_FCOEM(f->fs.mask.fcoe) |
+	    V_FW_FILTER_WR_PORT(f->fs.val.iport) |
+	    V_FW_FILTER_WR_PORTM(f->fs.mask.iport) |
+	    V_FW_FILTER_WR_MATCHTYPE(f->fs.val.matchtype) |
+	    V_FW_FILTER_WR_MATCHTYPEM(f->fs.mask.matchtype));
 	fwr->ptcl = f->fs.val.proto;
 	fwr->ptclm = f->fs.mask.proto;
 	fwr->ttyp = f->fs.val.tos;
@@ -762,22 +760,23 @@ set_tcamfilter(struct adapter *sc, struct t4_filter *t, struct l2t_entry *l2te,
 	fwr->ivlanm = htobe16(f->fs.mask.vlan);
 	fwr->ovlan = htobe16(f->fs.val.vnic);
 	fwr->ovlanm = htobe16(f->fs.mask.vnic);
-	bcopy(f->fs.val.dip, fwr->lip, sizeof (fwr->lip));
-	bcopy(f->fs.mask.dip, fwr->lipm, sizeof (fwr->lipm));
-	bcopy(f->fs.val.sip, fwr->fip, sizeof (fwr->fip));
-	bcopy(f->fs.mask.sip, fwr->fipm, sizeof (fwr->fipm));
+	bcopy(f->fs.val.dip, fwr->lip, sizeof(fwr->lip));
+	bcopy(f->fs.mask.dip, fwr->lipm, sizeof(fwr->lipm));
+	bcopy(f->fs.val.sip, fwr->fip, sizeof(fwr->fip));
+	bcopy(f->fs.mask.sip, fwr->fipm, sizeof(fwr->fipm));
 	fwr->lp = htobe16(f->fs.val.dport);
 	fwr->lpm = htobe16(f->fs.mask.dport);
 	fwr->fp = htobe16(f->fs.val.sport);
 	fwr->fpm = htobe16(f->fs.mask.sport);
 	/* sma = 0 tells the fw to use SMAC_SEL for source MAC address */
-	bzero(fwr->sma, sizeof (fwr->sma));
+	bzero(fwr->sma, sizeof(fwr->sma));
 	if (sc->params.filter2_wr_support) {
-		fwr->filter_type_swapmac =
-		    V_FW_FILTER2_WR_SWAPMAC(f->fs.swapmac);
-		fwr->natmode_to_ulp_type =
-		    V_FW_FILTER2_WR_ULP_TYPE(f->fs.nat_mode ?
-			ULP_MODE_TCPDDP : ULP_MODE_NONE) |
+		fwr->filter_type_swapmac = V_FW_FILTER2_WR_SWAPMAC(
+		    f->fs.swapmac);
+		fwr->natmode_to_ulp_type = V_FW_FILTER2_WR_ULP_TYPE(
+					       f->fs.nat_mode ?
+						   ULP_MODE_TCPDDP :
+						   ULP_MODE_NONE) |
 		    V_FW_FILTER2_WR_NATFLAGCHECK(f->fs.nat_flag_chk) |
 		    V_FW_FILTER2_WR_NATMODE(f->fs.nat_mode);
 		memcpy(fwr->newlip, f->fs.nat_dip, sizeof(fwr->newlip));
@@ -818,8 +817,8 @@ hashfilter_ntuple(struct adapter *sc, const struct t4_filter_specification *fs,
 	 * in the Compressed Filter Tuple.
 	 */
 	if (tp->vlan_shift >= 0 && fs->mask.vlan) {
-		*ftuple |= (uint64_t)(F_FT_VLAN_VLD | fs->val.vlan) <<
-		    tp->vlan_shift;
+		*ftuple |= (uint64_t)(F_FT_VLAN_VLD | fs->val.vlan)
+		    << tp->vlan_shift;
 		fmask |= F_VLAN;
 	}
 
@@ -951,7 +950,7 @@ set_filter(struct adapter *sc, struct t4_filter *t)
 	/* T4 doesn't support VLAN tag removal or rewrite, swapmac, and NAT. */
 	if (is_t4(sc) && t->fs.action == FILTER_SWITCH &&
 	    (t->fs.newvlan == VLAN_REMOVE || t->fs.newvlan == VLAN_REWRITE ||
-	    t->fs.swapmac || t->fs.nat_mode))
+		t->fs.swapmac || t->fs.nat_mode))
 		return (ENOTSUP);
 
 	if (t->fs.action == FILTER_SWITCH && t->fs.eport >= sc->params.nports)
@@ -960,7 +959,8 @@ set_filter(struct adapter *sc, struct t4_filter *t)
 		return (EINVAL);
 
 	/* Can't specify an iqid/rss_info if not steering. */
-	if (!t->fs.dirsteer && !t->fs.dirsteerhash && !t->fs.maskhash && t->fs.iq)
+	if (!t->fs.dirsteer && !t->fs.dirsteerhash && !t->fs.maskhash &&
+	    t->fs.iq)
 		return (EINVAL);
 
 	/* Validate against the global filter mode and ingress config */
@@ -995,9 +995,10 @@ set_filter(struct adapter *sc, struct t4_filter *t)
 		MPASS(ti->nhpftids != 0);
 		KASSERT(ti->hpftids_in_use == 0,
 		    ("%s: no memory allocated but hpftids_in_use is %u",
-		    __func__, ti->hpftids_in_use));
+			__func__, ti->hpftids_in_use));
 		ti->hpftid_tab = malloc(sizeof(struct filter_entry) *
-		    ti->nhpftids, M_CXGBE, M_NOWAIT | M_ZERO);
+			ti->nhpftids,
+		    M_CXGBE, M_NOWAIT | M_ZERO);
 		if (ti->hpftid_tab == NULL) {
 			rc = ENOMEM;
 			goto done;
@@ -1009,8 +1010,8 @@ set_filter(struct adapter *sc, struct t4_filter *t)
 	} else if (__predict_false(ti->ftid_tab == NULL)) {
 		MPASS(ti->nftids != 0);
 		KASSERT(ti->ftids_in_use == 0,
-		    ("%s: no memory allocated but ftids_in_use is %u",
-		    __func__, ti->ftids_in_use));
+		    ("%s: no memory allocated but ftids_in_use is %u", __func__,
+			ti->ftids_in_use));
 		ti->ftid_tab = malloc(sizeof(struct filter_entry) * ti->nftids,
 		    M_CXGBE, M_NOWAIT | M_ZERO);
 		if (ti->ftid_tab == NULL) {
@@ -1059,7 +1060,7 @@ done:
 		rc = set_tcamfilter(sc, t, l2te, smt);
 
 	if (rc != 0 && rc != EINPROGRESS) {
-error:
+	error:
 		if (l2te)
 			t4_l2t_release(l2te);
 		if (smt)
@@ -1093,7 +1094,7 @@ del_tcamfilter(struct adapter *sc, struct t4_filter *t)
 		tid_base = sc->tids.ftid_base;
 #endif
 	}
-	MPASS(f != NULL);	/* Caller checked this. */
+	MPASS(f != NULL); /* Caller checked this. */
 	if (t->idx >= nfilters) {
 		rc = EINVAL;
 		goto done;
@@ -1113,17 +1114,18 @@ del_tcamfilter(struct adapter *sc, struct t4_filter *t)
 		goto done;
 	}
 	MPASS(f->tid == tid_base + t->idx);
-	fwr = start_wrq_wr(&sc->sge.ctrlq[0], howmany(sizeof(*fwr), 16), &cookie);
+	fwr = start_wrq_wr(&sc->sge.ctrlq[0], howmany(sizeof(*fwr), 16),
+	    &cookie);
 	if (fwr == NULL) {
 		rc = ENOMEM;
 		goto done;
 	}
 
-	bzero(fwr, sizeof (*fwr));
+	bzero(fwr, sizeof(*fwr));
 	t4_mk_filtdelwr(f->tid, fwr, sc->sge.fwq.abs_id);
 	f->pending = 1;
 	commit_wrq_wr(&sc->sge.ctrlq[0], fwr, &cookie);
-	t->fs = f->fs;	/* extra info for the caller */
+	t->fs = f->fs; /* extra info for the caller */
 
 	for (;;) {
 		if (f->pending == 0) {
@@ -1190,17 +1192,19 @@ set_tcb_field(struct adapter *sc, u_int tid, uint16_t word, uint64_t mask,
 	struct wrq_cookie cookie;
 	struct cpl_set_tcb_field *req;
 
-	req = start_wrq_wr(&sc->sge.ctrlq[0], howmany(sizeof(*req), 16), &cookie);
+	req = start_wrq_wr(&sc->sge.ctrlq[0], howmany(sizeof(*req), 16),
+	    &cookie);
 	if (req == NULL)
 		return (ENOMEM);
 	bzero(req, sizeof(*req));
 	INIT_TP_WR_MIT_CPL(req, CPL_SET_TCB_FIELD, tid);
 	if (no_reply == 0) {
-		req->reply_ctrl = htobe16(V_QUEUENO(sc->sge.fwq.abs_id) |
-		    V_NO_REPLY(0));
+		req->reply_ctrl = htobe16(
+		    V_QUEUENO(sc->sge.fwq.abs_id) | V_NO_REPLY(0));
 	} else
 		req->reply_ctrl = htobe16(V_NO_REPLY(1));
-	req->word_cookie = htobe16(V_WORD(word) | V_COOKIE(CPL_COOKIE_HASHFILTER));
+	req->word_cookie = htobe16(
+	    V_WORD(word) | V_COOKIE(CPL_COOKIE_HASHFILTER));
 	req->mask = htobe64(mask);
 	req->val = htobe64(val);
 	commit_wrq_wr(&sc->sge.ctrlq[0], req, &cookie);
@@ -1214,7 +1218,7 @@ set_tcb_tflag(struct adapter *sc, int tid, u_int bit_pos, u_int val,
     u_int no_reply)
 {
 
-	return (set_tcb_field(sc, tid,  W_TCB_T_FLAGS, 1ULL << bit_pos,
+	return (set_tcb_field(sc, tid, W_TCB_T_FLAGS, 1ULL << bit_pos,
 	    (uint64_t)val << bit_pos, no_reply));
 }
 
@@ -1227,9 +1231,8 @@ t4_filter_rpl(struct sge_iq *iq, const struct rss_header *rss, struct mbuf *m)
 	u_int rc, idx;
 	struct filter_entry *f;
 
-	KASSERT(m == NULL, ("%s: payload with opcode %02x", __func__,
-	    rss->opcode));
-
+	KASSERT(m == NULL,
+	    ("%s: payload with opcode %02x", __func__, rss->opcode));
 
 	if (is_hpftid(sc, tid)) {
 		idx = tid - sc->tids.hpftid_base;
@@ -1244,9 +1247,10 @@ t4_filter_rpl(struct sge_iq *iq, const struct rss_header *rss, struct mbuf *m)
 	rc = G_COOKIE(rpl->cookie);
 
 	mtx_lock(&sc->tids.ftid_lock);
-	KASSERT(f->pending, ("%s: reply %d for filter[%u] that isn't pending.",
-	    __func__, rc, tid));
-	switch(rc) {
+	KASSERT(f->pending,
+	    ("%s: reply %d for filter[%u] that isn't pending.", __func__, rc,
+		tid));
+	switch (rc) {
 	case FW_FILTER_WR_FLT_ADDED:
 		/* set-filter succeeded */
 		f->valid = 1;
@@ -1304,8 +1308,8 @@ t4_hashfilter_ao_rpl(struct sge_iq *iq, const struct rss_header *rss,
 
 	mtx_lock(&sc->tids.hftid_lock);
 	KASSERT(f->pending, ("%s: hashfilter[%p] isn't pending.", __func__, f));
-	KASSERT(f->tid == -1, ("%s: hashfilter[%p] has tid %d already.",
-	    __func__, f, f->tid));
+	KASSERT(f->tid == -1,
+	    ("%s: hashfilter[%p] has tid %d already.", __func__, f, f->tid));
 	if (status == CPL_ERR_NONE) {
 		f->tid = GET_TID(cpl);
 		MPASS(lookup_hftid(sc, f->tid) == NULL);
@@ -1351,10 +1355,10 @@ t4_hashfilter_tcb_rpl(struct sge_iq *iq, const struct rss_header *rss,
 	mtx_lock(&sc->tids.hftid_lock);
 	f = lookup_hftid(sc, tid);
 	KASSERT(f->tid == tid, ("%s: filter tid mismatch", __func__));
-	KASSERT(f->pending, ("%s: hashfilter %p [%u] isn't pending.", __func__,
-	    f, tid));
-	KASSERT(f->valid == 0, ("%s: hashfilter %p [%u] is valid already.",
-	    __func__, f, tid));
+	KASSERT(f->pending,
+	    ("%s: hashfilter %p [%u] isn't pending.", __func__, f, tid));
+	KASSERT(f->valid == 0,
+	    ("%s: hashfilter %p [%u] is valid already.", __func__, f, tid));
 	f->pending = 0;
 	if (rpl->status == 0) {
 		f->valid = 1;
@@ -1386,10 +1390,10 @@ t4_del_hashfilter_rpl(struct sge_iq *iq, const struct rss_header *rss,
 	mtx_lock(&sc->tids.hftid_lock);
 	f = lookup_hftid(sc, tid);
 	KASSERT(f->tid == tid, ("%s: filter tid mismatch", __func__));
-	KASSERT(f->pending, ("%s: hashfilter %p [%u] isn't pending.", __func__,
-	    f, tid));
-	KASSERT(f->valid, ("%s: hashfilter %p [%u] isn't valid.", __func__, f,
-	    tid));
+	KASSERT(f->pending,
+	    ("%s: hashfilter %p [%u] isn't pending.", __func__, f, tid));
+	KASSERT(f->valid,
+	    ("%s: hashfilter %p [%u] isn't valid.", __func__, f, tid));
 	f->pending = 0;
 	if (cpl->status == 0) {
 		f->valid = 0;
@@ -1523,7 +1527,7 @@ mk_act_open_req6(struct adapter *sc, struct filter_entry *f, int atid,
 
 	OPCODE_TID(cpl) = htobe32(MK_OPCODE_TID(CPL_ACT_OPEN_REQ6,
 	    V_TID_QID(sc->sge.fwq.abs_id) | V_TID_TID(atid) |
-	    V_TID_COOKIE(CPL_COOKIE_HASHFILTER)));
+		V_TID_COOKIE(CPL_COOKIE_HASHFILTER)));
 	cpl->local_port = htobe16(f->fs.val.dport);
 	cpl->peer_port = htobe16(f->fs.val.sport);
 	cpl->local_ip_hi = *(uint64_t *)(&f->fs.val.dip);
@@ -1531,9 +1535,9 @@ mk_act_open_req6(struct adapter *sc, struct filter_entry *f, int atid,
 	cpl->peer_ip_hi = *(uint64_t *)(&f->fs.val.sip);
 	cpl->peer_ip_lo = *(((uint64_t *)&f->fs.val.sip) + 1);
 	cpl->opt0 = htobe64(V_NAGLE(f->fs.newvlan == VLAN_REMOVE ||
-	    f->fs.newvlan == VLAN_REWRITE) | V_DELACK(f->fs.hitcnts) |
-	    V_L2T_IDX(f->l2te ? f->l2te->idx : 0) | V_TX_CHAN(f->fs.eport) |
-	    V_NO_CONG(f->fs.rpttid) |
+				f->fs.newvlan == VLAN_REWRITE) |
+	    V_DELACK(f->fs.hitcnts) | V_L2T_IDX(f->l2te ? f->l2te->idx : 0) |
+	    V_TX_CHAN(f->fs.eport) | V_NO_CONG(f->fs.rpttid) |
 	    V_ULP_MODE(f->fs.nat_mode ? ULP_MODE_TCPDDP : ULP_MODE_NONE) |
 	    F_TCAM_BYPASS | F_NON_OFFLOAD);
 
@@ -1542,7 +1546,8 @@ mk_act_open_req6(struct adapter *sc, struct filter_entry *f, int atid,
 	    V_TX_QUEUE(f->fs.nat_mode) | V_WND_SCALE_EN(f->fs.nat_flag_chk) |
 	    V_RX_FC_DISABLE(f->fs.nat_seq_chk ? 1 : 0) | F_T5_OPT_2_VALID |
 	    F_RX_CHANNEL | V_SACK_EN(f->fs.swapmac) |
-	    V_CONG_CNTRL((f->fs.action == FILTER_DROP) | (f->fs.dirsteer << 1)) |
+	    V_CONG_CNTRL(
+		(f->fs.action == FILTER_DROP) | (f->fs.dirsteer << 1)) |
 	    V_PACE(f->fs.maskhash | (f->fs.dirsteerhash << 1)));
 }
 
@@ -1567,17 +1572,17 @@ mk_act_open_req(struct adapter *sc, struct filter_entry *f, int atid,
 
 	OPCODE_TID(cpl) = htobe32(MK_OPCODE_TID(CPL_ACT_OPEN_REQ,
 	    V_TID_QID(sc->sge.fwq.abs_id) | V_TID_TID(atid) |
-	    V_TID_COOKIE(CPL_COOKIE_HASHFILTER)));
+		V_TID_COOKIE(CPL_COOKIE_HASHFILTER)));
 	cpl->local_port = htobe16(f->fs.val.dport);
 	cpl->peer_port = htobe16(f->fs.val.sport);
 	cpl->local_ip = f->fs.val.dip[0] | f->fs.val.dip[1] << 8 |
 	    f->fs.val.dip[2] << 16 | f->fs.val.dip[3] << 24;
 	cpl->peer_ip = f->fs.val.sip[0] | f->fs.val.sip[1] << 8 |
-		f->fs.val.sip[2] << 16 | f->fs.val.sip[3] << 24;
+	    f->fs.val.sip[2] << 16 | f->fs.val.sip[3] << 24;
 	cpl->opt0 = htobe64(V_NAGLE(f->fs.newvlan == VLAN_REMOVE ||
-	    f->fs.newvlan == VLAN_REWRITE) | V_DELACK(f->fs.hitcnts) |
-	    V_L2T_IDX(f->l2te ? f->l2te->idx : 0) | V_TX_CHAN(f->fs.eport) |
-	    V_NO_CONG(f->fs.rpttid) |
+				f->fs.newvlan == VLAN_REWRITE) |
+	    V_DELACK(f->fs.hitcnts) | V_L2T_IDX(f->l2te ? f->l2te->idx : 0) |
+	    V_TX_CHAN(f->fs.eport) | V_NO_CONG(f->fs.rpttid) |
 	    V_ULP_MODE(f->fs.nat_mode ? ULP_MODE_TCPDDP : ULP_MODE_NONE) |
 	    F_TCAM_BYPASS | F_NON_OFFLOAD);
 
@@ -1586,7 +1591,8 @@ mk_act_open_req(struct adapter *sc, struct filter_entry *f, int atid,
 	    V_TX_QUEUE(f->fs.nat_mode) | V_WND_SCALE_EN(f->fs.nat_flag_chk) |
 	    V_RX_FC_DISABLE(f->fs.nat_seq_chk ? 1 : 0) | F_T5_OPT_2_VALID |
 	    F_RX_CHANNEL | V_SACK_EN(f->fs.swapmac) |
-	    V_CONG_CNTRL((f->fs.action == FILTER_DROP) | (f->fs.dirsteer << 1)) |
+	    V_CONG_CNTRL(
+		(f->fs.action == FILTER_DROP) | (f->fs.dirsteer << 1)) |
 	    V_PACE(f->fs.maskhash | (f->fs.dirsteerhash << 1)));
 }
 
@@ -1595,18 +1601,12 @@ act_open_cpl_len16(struct adapter *sc, int isipv6)
 {
 	int idx;
 	static const int sz_table[3][2] = {
-		{
-			howmany(sizeof (struct cpl_act_open_req), 16),
-			howmany(sizeof (struct cpl_act_open_req6), 16)
-		},
-		{
-			howmany(sizeof (struct cpl_t5_act_open_req), 16),
-			howmany(sizeof (struct cpl_t5_act_open_req6), 16)
-		},
-		{
-			howmany(sizeof (struct cpl_t6_act_open_req), 16),
-			howmany(sizeof (struct cpl_t6_act_open_req6), 16)
-		},
+		{ howmany(sizeof(struct cpl_act_open_req), 16),
+		    howmany(sizeof(struct cpl_act_open_req6), 16) },
+		{ howmany(sizeof(struct cpl_t5_act_open_req), 16),
+		    howmany(sizeof(struct cpl_t5_act_open_req6), 16) },
+		{ howmany(sizeof(struct cpl_t6_act_open_req), 16),
+		    howmany(sizeof(struct cpl_t6_act_open_req6), 16) },
 	};
 
 	MPASS(chip_id(sc) >= CHELSIO_T4);
@@ -1687,7 +1687,8 @@ set_hashfilter(struct adapter *sc, struct t4_filter *t, uint64_t ftuple,
 			}
 			break;
 		}
-		if (cv_wait_sig(&sc->tids.hftid_cv, &sc->tids.hftid_lock) != 0) {
+		if (cv_wait_sig(&sc->tids.hftid_cv, &sc->tids.hftid_lock) !=
+		    0) {
 			f->locked = 0;
 			rc = EINPROGRESS;
 			break;
@@ -1699,12 +1700,13 @@ done:
 }
 
 /* SET_TCB_FIELD sent as a ULP command looks like this */
-#define LEN__SET_TCB_FIELD_ULP (sizeof(struct ulp_txpkt) + \
-    sizeof(struct ulptx_idata) + sizeof(struct cpl_set_tcb_field_core))
+#define LEN__SET_TCB_FIELD_ULP                                   \
+	(sizeof(struct ulp_txpkt) + sizeof(struct ulptx_idata) + \
+	    sizeof(struct cpl_set_tcb_field_core))
 
 static void *
 mk_set_tcb_field_ulp(struct ulp_txpkt *ulpmc, uint64_t word, uint64_t mask,
-		uint64_t val, uint32_t tid, uint32_t qid)
+    uint64_t val, uint32_t tid, uint32_t qid)
 {
 	struct ulptx_idata *ulpsc;
 	struct cpl_set_tcb_field_core *req;
@@ -1733,8 +1735,9 @@ mk_set_tcb_field_ulp(struct ulp_txpkt *ulpmc, uint64_t word, uint64_t mask,
 }
 
 /* ABORT_REQ sent as a ULP command looks like this */
-#define LEN__ABORT_REQ_ULP (sizeof(struct ulp_txpkt) + \
-	sizeof(struct ulptx_idata) + sizeof(struct cpl_abort_req_core))
+#define LEN__ABORT_REQ_ULP                                       \
+	(sizeof(struct ulp_txpkt) + sizeof(struct ulptx_idata) + \
+	    sizeof(struct cpl_abort_req_core))
 
 static void *
 mk_abort_req_ulp(struct ulp_txpkt *ulpmc, uint32_t tid)
@@ -1765,8 +1768,9 @@ mk_abort_req_ulp(struct ulp_txpkt *ulpmc, uint32_t tid)
 }
 
 /* ABORT_RPL sent as a ULP command looks like this */
-#define LEN__ABORT_RPL_ULP (sizeof(struct ulp_txpkt) + \
-	sizeof(struct ulptx_idata) + sizeof(struct cpl_abort_rpl_core))
+#define LEN__ABORT_RPL_ULP                                       \
+	(sizeof(struct ulp_txpkt) + sizeof(struct ulptx_idata) + \
+	    sizeof(struct cpl_abort_rpl_core))
 
 static void *
 mk_abort_rpl_ulp(struct ulp_txpkt *ulpmc, uint32_t tid)
@@ -1861,7 +1865,7 @@ del_hashfilter(struct adapter *sc, struct t4_filter *t)
 	f->locked = 1;
 	f->pending = 1;
 	commit_wrq_wr(&sc->sge.ctrlq[0], wr, &cookie);
-	t->fs = f->fs;	/* extra info for the caller */
+	t->fs = f->fs; /* extra info for the caller */
 
 	for (;;) {
 		MPASS(f->locked);
@@ -1886,7 +1890,7 @@ done:
 	return (rc);
 }
 
-#define WORD_MASK       0xffffffff
+#define WORD_MASK 0xffffffff
 static void
 set_nat_params(struct adapter *sc, struct filter_entry *f, const bool dip,
     const bool sip, const bool dp, const bool sp)
@@ -1896,57 +1900,69 @@ set_nat_params(struct adapter *sc, struct filter_entry *f, const bool dip,
 		if (f->fs.type) {
 			set_tcb_field(sc, f->tid, W_TCB_SND_UNA_RAW, WORD_MASK,
 			    f->fs.nat_dip[15] | f->fs.nat_dip[14] << 8 |
-			    f->fs.nat_dip[13] << 16 | f->fs.nat_dip[12] << 24, 1);
+				f->fs.nat_dip[13] << 16 |
+				f->fs.nat_dip[12] << 24,
+			    1);
 
-			set_tcb_field(sc, f->tid,
-			    W_TCB_SND_UNA_RAW + 1, WORD_MASK,
+			set_tcb_field(sc, f->tid, W_TCB_SND_UNA_RAW + 1,
+			    WORD_MASK,
 			    f->fs.nat_dip[11] | f->fs.nat_dip[10] << 8 |
-			    f->fs.nat_dip[9] << 16 | f->fs.nat_dip[8] << 24, 1);
+				f->fs.nat_dip[9] << 16 | f->fs.nat_dip[8] << 24,
+			    1);
 
-			set_tcb_field(sc, f->tid,
-			    W_TCB_SND_UNA_RAW + 2, WORD_MASK,
+			set_tcb_field(sc, f->tid, W_TCB_SND_UNA_RAW + 2,
+			    WORD_MASK,
 			    f->fs.nat_dip[7] | f->fs.nat_dip[6] << 8 |
-			    f->fs.nat_dip[5] << 16 | f->fs.nat_dip[4] << 24, 1);
+				f->fs.nat_dip[5] << 16 | f->fs.nat_dip[4] << 24,
+			    1);
 
-			set_tcb_field(sc, f->tid,
-			    W_TCB_SND_UNA_RAW + 3, WORD_MASK,
+			set_tcb_field(sc, f->tid, W_TCB_SND_UNA_RAW + 3,
+			    WORD_MASK,
 			    f->fs.nat_dip[3] | f->fs.nat_dip[2] << 8 |
-			    f->fs.nat_dip[1] << 16 | f->fs.nat_dip[0] << 24, 1);
+				f->fs.nat_dip[1] << 16 | f->fs.nat_dip[0] << 24,
+			    1);
 		} else {
-			set_tcb_field(sc, f->tid,
-			    W_TCB_RX_FRAG3_LEN_RAW, WORD_MASK,
+			set_tcb_field(sc, f->tid, W_TCB_RX_FRAG3_LEN_RAW,
+			    WORD_MASK,
 			    f->fs.nat_dip[3] | f->fs.nat_dip[2] << 8 |
-			    f->fs.nat_dip[1] << 16 | f->fs.nat_dip[0] << 24, 1);
+				f->fs.nat_dip[1] << 16 | f->fs.nat_dip[0] << 24,
+			    1);
 		}
 	}
 
 	if (sip) {
 		if (f->fs.type) {
-			set_tcb_field(sc, f->tid,
-			    W_TCB_RX_FRAG2_PTR_RAW, WORD_MASK,
+			set_tcb_field(sc, f->tid, W_TCB_RX_FRAG2_PTR_RAW,
+			    WORD_MASK,
 			    f->fs.nat_sip[15] | f->fs.nat_sip[14] << 8 |
-			    f->fs.nat_sip[13] << 16 | f->fs.nat_sip[12] << 24, 1);
+				f->fs.nat_sip[13] << 16 |
+				f->fs.nat_sip[12] << 24,
+			    1);
 
-			set_tcb_field(sc, f->tid,
-			    W_TCB_RX_FRAG2_PTR_RAW + 1, WORD_MASK,
+			set_tcb_field(sc, f->tid, W_TCB_RX_FRAG2_PTR_RAW + 1,
+			    WORD_MASK,
 			    f->fs.nat_sip[11] | f->fs.nat_sip[10] << 8 |
-			    f->fs.nat_sip[9] << 16 | f->fs.nat_sip[8] << 24, 1);
+				f->fs.nat_sip[9] << 16 | f->fs.nat_sip[8] << 24,
+			    1);
 
-			set_tcb_field(sc, f->tid,
-			    W_TCB_RX_FRAG2_PTR_RAW + 2, WORD_MASK,
+			set_tcb_field(sc, f->tid, W_TCB_RX_FRAG2_PTR_RAW + 2,
+			    WORD_MASK,
 			    f->fs.nat_sip[7] | f->fs.nat_sip[6] << 8 |
-			    f->fs.nat_sip[5] << 16 | f->fs.nat_sip[4] << 24, 1);
+				f->fs.nat_sip[5] << 16 | f->fs.nat_sip[4] << 24,
+			    1);
 
-			set_tcb_field(sc, f->tid,
-			    W_TCB_RX_FRAG2_PTR_RAW + 3, WORD_MASK,
+			set_tcb_field(sc, f->tid, W_TCB_RX_FRAG2_PTR_RAW + 3,
+			    WORD_MASK,
 			    f->fs.nat_sip[3] | f->fs.nat_sip[2] << 8 |
-			    f->fs.nat_sip[1] << 16 | f->fs.nat_sip[0] << 24, 1);
+				f->fs.nat_sip[1] << 16 | f->fs.nat_sip[0] << 24,
+			    1);
 
 		} else {
 			set_tcb_field(sc, f->tid,
 			    W_TCB_RX_FRAG3_START_IDX_OFFSET_RAW, WORD_MASK,
 			    f->fs.nat_sip[3] | f->fs.nat_sip[2] << 8 |
-			    f->fs.nat_sip[1] << 16 | f->fs.nat_sip[0] << 24, 1);
+				f->fs.nat_sip[1] << 16 | f->fs.nat_sip[0] << 24,
+			    1);
 		}
 	}
 
@@ -1988,7 +2004,7 @@ configure_hashfilter_tcb(struct adapter *sc, struct filter_entry *f)
 		updated++;
 	}
 
-	switch(f->fs.nat_mode) {
+	switch (f->fs.nat_mode) {
 	case NAT_MODE_NONE:
 		break;
 	case NAT_MODE_DIP:
@@ -2020,9 +2036,8 @@ configure_hashfilter_tcb(struct adapter *sc, struct filter_entry *f)
 		updated++;
 		break;
 	default:
-		MPASS(0);	/* should have been validated earlier */
+		MPASS(0); /* should have been validated earlier */
 		break;
-
 	}
 
 	if (f->fs.nat_seq_chk) {
@@ -2034,10 +2049,12 @@ configure_hashfilter_tcb(struct adapter *sc, struct filter_entry *f)
 
 	if (is_t5(sc) && f->fs.action == FILTER_DROP) {
 		/*
-		 * Migrating = 1, Non-offload = 0 to get a T5 hashfilter to drop.
+		 * Migrating = 1, Non-offload = 0 to get a T5 hashfilter to
+		 * drop.
 		 */
-		set_tcb_field(sc, f->tid, W_TCB_T_FLAGS, V_TF_NON_OFFLOAD(1) |
-		    V_TF_MIGRATING(1), V_TF_MIGRATING(1), 1);
+		set_tcb_field(sc, f->tid, W_TCB_T_FLAGS,
+		    V_TF_NON_OFFLOAD(1) | V_TF_MIGRATING(1), V_TF_MIGRATING(1),
+		    1);
 		updated++;
 	}
 
@@ -2054,7 +2071,7 @@ configure_hashfilter_tcb(struct adapter *sc, struct filter_entry *f)
 	if (f->fs.hitcnts || updated > 0) {
 		set_tcb_field(sc, f->tid, W_TCB_TIMESTAMP,
 		    V_TCB_TIMESTAMP(M_TCB_TIMESTAMP) |
-		    V_TCB_T_RTT_TS_RECENT_AGE(M_TCB_T_RTT_TS_RECENT_AGE),
+			V_TCB_T_RTT_TS_RECENT_AGE(M_TCB_T_RTT_TS_RECENT_AGE),
 		    V_TCB_TIMESTAMP(0ULL) | V_TCB_T_RTT_TS_RECENT_AGE(0ULL), 0);
 		return (EINPROGRESS);
 	}

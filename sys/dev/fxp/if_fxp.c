@@ -43,9 +43,9 @@
 #include <sys/bus.h>
 #include <sys/endian.h>
 #include <sys/kernel.h>
-#include <sys/mbuf.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/mbuf.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
@@ -53,35 +53,32 @@
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
 
+#include <machine/bus.h>
+#include <machine/in_cksum.h>
+#include <machine/resource.h>
+
+#include <dev/fxp/if_fxpreg.h>
+#include <dev/fxp/if_fxpvar.h>
+#include <dev/fxp/rcvbundl.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
+#include <dev/pci/pcireg.h> /* for PCIM_CMD_xxx */
+#include <dev/pci/pcivar.h>
+
 #include <net/bpf.h>
 #include <net/ethernet.h>
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_arp.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
+#include <net/if_var.h>
 #include <net/if_vlan_var.h>
-
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
-
-#include <machine/bus.h>
-#include <machine/in_cksum.h>
-#include <machine/resource.h>
-
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>		/* for PCIM_CMD_xxx */
-
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-
-#include <dev/fxp/if_fxpreg.h>
-#include <dev/fxp/if_fxpvar.h>
-#include <dev/fxp/rcvbundl.h>
 
 MODULE_DEPEND(fxp, pci, 1, 1, 1);
 MODULE_DEPEND(fxp, ether, 1, 1, 1);
@@ -97,7 +94,7 @@ MODULE_DEPEND(fxp, miibus, 1, 1, 1);
  * alignes the packet after the Ethernet header at a 32-bit
  * boundary.  HOWEVER!  This means that the RFA is misaligned!
  */
-#define	RFA_ALIGNMENT_FUDGE	2
+#define RFA_ALIGNMENT_FUDGE 2
 
 /*
  * Set initial transmit threshold at 64 (512 bytes). This is
@@ -114,41 +111,41 @@ static int tx_threshold = 64;
  * See struct fxp_cb_config for the bit definitions.
  */
 static const u_char fxp_cb_config_template[] = {
-	0x0, 0x0,		/* cb_status */
-	0x0, 0x0,		/* cb_command */
-	0x0, 0x0, 0x0, 0x0,	/* link_addr */
-	0x0,	/*  0 */
-	0x0,	/*  1 */
-	0x0,	/*  2 */
-	0x0,	/*  3 */
-	0x0,	/*  4 */
-	0x0,	/*  5 */
-	0x32,	/*  6 */
-	0x0,	/*  7 */
-	0x0,	/*  8 */
-	0x0,	/*  9 */
-	0x6,	/* 10 */
-	0x0,	/* 11 */
-	0x0,	/* 12 */
-	0x0,	/* 13 */
-	0xf2,	/* 14 */
-	0x48,	/* 15 */
-	0x0,	/* 16 */
-	0x40,	/* 17 */
-	0xf0,	/* 18 */
-	0x0,	/* 19 */
-	0x3f,	/* 20 */
-	0x5,	/* 21 */
-	0x0,	/* 22 */
-	0x0,	/* 23 */
-	0x0,	/* 24 */
-	0x0,	/* 25 */
-	0x0,	/* 26 */
-	0x0,	/* 27 */
-	0x0,	/* 28 */
-	0x0,	/* 29 */
-	0x0,	/* 30 */
-	0x0	/* 31 */
+	0x0, 0x0,	    /* cb_status */
+	0x0, 0x0,	    /* cb_command */
+	0x0, 0x0, 0x0, 0x0, /* link_addr */
+	0x0,		    /*  0 */
+	0x0,		    /*  1 */
+	0x0,		    /*  2 */
+	0x0,		    /*  3 */
+	0x0,		    /*  4 */
+	0x0,		    /*  5 */
+	0x32,		    /*  6 */
+	0x0,		    /*  7 */
+	0x0,		    /*  8 */
+	0x0,		    /*  9 */
+	0x6,		    /* 10 */
+	0x0,		    /* 11 */
+	0x0,		    /* 12 */
+	0x0,		    /* 13 */
+	0xf2,		    /* 14 */
+	0x48,		    /* 15 */
+	0x0,		    /* 16 */
+	0x40,		    /* 17 */
+	0xf0,		    /* 18 */
+	0x0,		    /* 19 */
+	0x3f,		    /* 20 */
+	0x5,		    /* 21 */
+	0x0,		    /* 22 */
+	0x0,		    /* 23 */
+	0x0,		    /* 24 */
+	0x0,		    /* 25 */
+	0x0,		    /* 26 */
+	0x0,		    /* 27 */
+	0x0,		    /* 28 */
+	0x0,		    /* 29 */
+	0x0,		    /* 30 */
+	0x0		    /* 31 */
 };
 
 /*
@@ -158,139 +155,133 @@ static const u_char fxp_cb_config_template[] = {
  * them.
  */
 static const struct fxp_ident fxp_ident_table[] = {
-    { 0x8086, 0x1029,	-1,	0, "Intel 82559 PCI/CardBus Pro/100" },
-    { 0x8086, 0x1030,	-1,	0, "Intel 82559 Pro/100 Ethernet" },
-    { 0x8086, 0x1031,	-1,	3, "Intel 82801CAM (ICH3) Pro/100 VE Ethernet" },
-    { 0x8086, 0x1032,	-1,	3, "Intel 82801CAM (ICH3) Pro/100 VE Ethernet" },
-    { 0x8086, 0x1033,	-1,	3, "Intel 82801CAM (ICH3) Pro/100 VM Ethernet" },
-    { 0x8086, 0x1034,	-1,	3, "Intel 82801CAM (ICH3) Pro/100 VM Ethernet" },
-    { 0x8086, 0x1035,	-1,	3, "Intel 82801CAM (ICH3) Pro/100 Ethernet" },
-    { 0x8086, 0x1036,	-1,	3, "Intel 82801CAM (ICH3) Pro/100 Ethernet" },
-    { 0x8086, 0x1037,	-1,	3, "Intel 82801CAM (ICH3) Pro/100 Ethernet" },
-    { 0x8086, 0x1038,	-1,	3, "Intel 82801CAM (ICH3) Pro/100 VM Ethernet" },
-    { 0x8086, 0x1039,	-1,	4, "Intel 82801DB (ICH4) Pro/100 VE Ethernet" },
-    { 0x8086, 0x103A,	-1,	4, "Intel 82801DB (ICH4) Pro/100 Ethernet" },
-    { 0x8086, 0x103B,	-1,	4, "Intel 82801DB (ICH4) Pro/100 VM Ethernet" },
-    { 0x8086, 0x103C,	-1,	4, "Intel 82801DB (ICH4) Pro/100 Ethernet" },
-    { 0x8086, 0x103D,	-1,	4, "Intel 82801DB (ICH4) Pro/100 VE Ethernet" },
-    { 0x8086, 0x103E,	-1,	4, "Intel 82801DB (ICH4) Pro/100 VM Ethernet" },
-    { 0x8086, 0x1050,	-1,	5, "Intel 82801BA (D865) Pro/100 VE Ethernet" },
-    { 0x8086, 0x1051,	-1,	5, "Intel 82562ET (ICH5/ICH5R) Pro/100 VE Ethernet" },
-    { 0x8086, 0x1059,	-1,	0, "Intel 82551QM Pro/100 M Mobile Connection" },
-    { 0x8086, 0x1064,	-1,	6, "Intel 82562EZ (ICH6)" },
-    { 0x8086, 0x1065,	-1,	6, "Intel 82562ET/EZ/GT/GZ PRO/100 VE Ethernet" },
-    { 0x8086, 0x1068,	-1,	6, "Intel 82801FBM (ICH6-M) Pro/100 VE Ethernet" },
-    { 0x8086, 0x1069,	-1,	6, "Intel 82562EM/EX/GX Pro/100 Ethernet" },
-    { 0x8086, 0x1091,	-1,	7, "Intel 82562GX Pro/100 Ethernet" },
-    { 0x8086, 0x1092,	-1,	7, "Intel Pro/100 VE Network Connection" },
-    { 0x8086, 0x1093,	-1,	7, "Intel Pro/100 VM Network Connection" },
-    { 0x8086, 0x1094,	-1,	7, "Intel Pro/100 946GZ (ICH7) Network Connection" },
-    { 0x8086, 0x1209,	-1,	0, "Intel 82559ER Embedded 10/100 Ethernet" },
-    { 0x8086, 0x1229,	0x01,	0, "Intel 82557 Pro/100 Ethernet" },
-    { 0x8086, 0x1229,	0x02,	0, "Intel 82557 Pro/100 Ethernet" },
-    { 0x8086, 0x1229,	0x03,	0, "Intel 82557 Pro/100 Ethernet" },
-    { 0x8086, 0x1229,	0x04,	0, "Intel 82558 Pro/100 Ethernet" },
-    { 0x8086, 0x1229,	0x05,	0, "Intel 82558 Pro/100 Ethernet" },
-    { 0x8086, 0x1229,	0x06,	0, "Intel 82559 Pro/100 Ethernet" },
-    { 0x8086, 0x1229,	0x07,	0, "Intel 82559 Pro/100 Ethernet" },
-    { 0x8086, 0x1229,	0x08,	0, "Intel 82559 Pro/100 Ethernet" },
-    { 0x8086, 0x1229,	0x09,	0, "Intel 82559ER Pro/100 Ethernet" },
-    { 0x8086, 0x1229,	0x0c,	0, "Intel 82550 Pro/100 Ethernet" },
-    { 0x8086, 0x1229,	0x0d,	0, "Intel 82550C Pro/100 Ethernet" },
-    { 0x8086, 0x1229,	0x0e,	0, "Intel 82550 Pro/100 Ethernet" },
-    { 0x8086, 0x1229,	0x0f,	0, "Intel 82551 Pro/100 Ethernet" },
-    { 0x8086, 0x1229,	0x10,	0, "Intel 82551 Pro/100 Ethernet" },
-    { 0x8086, 0x1229,	-1,	0, "Intel 82557/8/9 Pro/100 Ethernet" },
-    { 0x8086, 0x2449,	-1,	2, "Intel 82801BA/CAM (ICH2/3) Pro/100 Ethernet" },
-    { 0x8086, 0x27dc,	-1,	7, "Intel 82801GB (ICH7) 10/100 Ethernet" },
-    { 0,      0,	-1,	0, NULL },
+	{ 0x8086, 0x1029, -1, 0, "Intel 82559 PCI/CardBus Pro/100" },
+	{ 0x8086, 0x1030, -1, 0, "Intel 82559 Pro/100 Ethernet" },
+	{ 0x8086, 0x1031, -1, 3, "Intel 82801CAM (ICH3) Pro/100 VE Ethernet" },
+	{ 0x8086, 0x1032, -1, 3, "Intel 82801CAM (ICH3) Pro/100 VE Ethernet" },
+	{ 0x8086, 0x1033, -1, 3, "Intel 82801CAM (ICH3) Pro/100 VM Ethernet" },
+	{ 0x8086, 0x1034, -1, 3, "Intel 82801CAM (ICH3) Pro/100 VM Ethernet" },
+	{ 0x8086, 0x1035, -1, 3, "Intel 82801CAM (ICH3) Pro/100 Ethernet" },
+	{ 0x8086, 0x1036, -1, 3, "Intel 82801CAM (ICH3) Pro/100 Ethernet" },
+	{ 0x8086, 0x1037, -1, 3, "Intel 82801CAM (ICH3) Pro/100 Ethernet" },
+	{ 0x8086, 0x1038, -1, 3, "Intel 82801CAM (ICH3) Pro/100 VM Ethernet" },
+	{ 0x8086, 0x1039, -1, 4, "Intel 82801DB (ICH4) Pro/100 VE Ethernet" },
+	{ 0x8086, 0x103A, -1, 4, "Intel 82801DB (ICH4) Pro/100 Ethernet" },
+	{ 0x8086, 0x103B, -1, 4, "Intel 82801DB (ICH4) Pro/100 VM Ethernet" },
+	{ 0x8086, 0x103C, -1, 4, "Intel 82801DB (ICH4) Pro/100 Ethernet" },
+	{ 0x8086, 0x103D, -1, 4, "Intel 82801DB (ICH4) Pro/100 VE Ethernet" },
+	{ 0x8086, 0x103E, -1, 4, "Intel 82801DB (ICH4) Pro/100 VM Ethernet" },
+	{ 0x8086, 0x1050, -1, 5, "Intel 82801BA (D865) Pro/100 VE Ethernet" },
+	{ 0x8086, 0x1051, -1, 5,
+	    "Intel 82562ET (ICH5/ICH5R) Pro/100 VE Ethernet" },
+	{ 0x8086, 0x1059, -1, 0, "Intel 82551QM Pro/100 M Mobile Connection" },
+	{ 0x8086, 0x1064, -1, 6, "Intel 82562EZ (ICH6)" },
+	{ 0x8086, 0x1065, -1, 6, "Intel 82562ET/EZ/GT/GZ PRO/100 VE Ethernet" },
+	{ 0x8086, 0x1068, -1, 6,
+	    "Intel 82801FBM (ICH6-M) Pro/100 VE Ethernet" },
+	{ 0x8086, 0x1069, -1, 6, "Intel 82562EM/EX/GX Pro/100 Ethernet" },
+	{ 0x8086, 0x1091, -1, 7, "Intel 82562GX Pro/100 Ethernet" },
+	{ 0x8086, 0x1092, -1, 7, "Intel Pro/100 VE Network Connection" },
+	{ 0x8086, 0x1093, -1, 7, "Intel Pro/100 VM Network Connection" },
+	{ 0x8086, 0x1094, -1, 7,
+	    "Intel Pro/100 946GZ (ICH7) Network Connection" },
+	{ 0x8086, 0x1209, -1, 0, "Intel 82559ER Embedded 10/100 Ethernet" },
+	{ 0x8086, 0x1229, 0x01, 0, "Intel 82557 Pro/100 Ethernet" },
+	{ 0x8086, 0x1229, 0x02, 0, "Intel 82557 Pro/100 Ethernet" },
+	{ 0x8086, 0x1229, 0x03, 0, "Intel 82557 Pro/100 Ethernet" },
+	{ 0x8086, 0x1229, 0x04, 0, "Intel 82558 Pro/100 Ethernet" },
+	{ 0x8086, 0x1229, 0x05, 0, "Intel 82558 Pro/100 Ethernet" },
+	{ 0x8086, 0x1229, 0x06, 0, "Intel 82559 Pro/100 Ethernet" },
+	{ 0x8086, 0x1229, 0x07, 0, "Intel 82559 Pro/100 Ethernet" },
+	{ 0x8086, 0x1229, 0x08, 0, "Intel 82559 Pro/100 Ethernet" },
+	{ 0x8086, 0x1229, 0x09, 0, "Intel 82559ER Pro/100 Ethernet" },
+	{ 0x8086, 0x1229, 0x0c, 0, "Intel 82550 Pro/100 Ethernet" },
+	{ 0x8086, 0x1229, 0x0d, 0, "Intel 82550C Pro/100 Ethernet" },
+	{ 0x8086, 0x1229, 0x0e, 0, "Intel 82550 Pro/100 Ethernet" },
+	{ 0x8086, 0x1229, 0x0f, 0, "Intel 82551 Pro/100 Ethernet" },
+	{ 0x8086, 0x1229, 0x10, 0, "Intel 82551 Pro/100 Ethernet" },
+	{ 0x8086, 0x1229, -1, 0, "Intel 82557/8/9 Pro/100 Ethernet" },
+	{ 0x8086, 0x2449, -1, 2,
+	    "Intel 82801BA/CAM (ICH2/3) Pro/100 Ethernet" },
+	{ 0x8086, 0x27dc, -1, 7, "Intel 82801GB (ICH7) 10/100 Ethernet" },
+	{ 0, 0, -1, 0, NULL },
 };
 
 #ifdef FXP_IP_CSUM_WAR
-#define FXP_CSUM_FEATURES    (CSUM_IP | CSUM_TCP | CSUM_UDP)
+#define FXP_CSUM_FEATURES (CSUM_IP | CSUM_TCP | CSUM_UDP)
 #else
-#define FXP_CSUM_FEATURES    (CSUM_TCP | CSUM_UDP)
+#define FXP_CSUM_FEATURES (CSUM_TCP | CSUM_UDP)
 #endif
 
-static int		fxp_probe(device_t dev);
-static int		fxp_attach(device_t dev);
-static int		fxp_detach(device_t dev);
-static int		fxp_shutdown(device_t dev);
-static int		fxp_suspend(device_t dev);
-static int		fxp_resume(device_t dev);
+static int fxp_probe(device_t dev);
+static int fxp_attach(device_t dev);
+static int fxp_detach(device_t dev);
+static int fxp_shutdown(device_t dev);
+static int fxp_suspend(device_t dev);
+static int fxp_resume(device_t dev);
 
 static const struct fxp_ident *fxp_find_ident(device_t dev);
-static void		fxp_intr(void *xsc);
-static void		fxp_rxcsum(struct fxp_softc *sc, if_t ifp,
-			    struct mbuf *m, uint16_t status, int pos);
-static int		fxp_intr_body(struct fxp_softc *sc, if_t ifp,
-			    uint8_t statack, int count);
-static void 		fxp_init(void *xsc);
-static void 		fxp_init_body(struct fxp_softc *sc, int);
-static void 		fxp_tick(void *xsc);
-static void 		fxp_start(if_t ifp);
-static void 		fxp_start_body(if_t ifp);
-static int		fxp_encap(struct fxp_softc *sc, struct mbuf **m_head);
-static void		fxp_txeof(struct fxp_softc *sc);
-static void		fxp_stop(struct fxp_softc *sc);
-static void 		fxp_release(struct fxp_softc *sc);
-static int		fxp_ioctl(if_t ifp, u_long command,
-			    caddr_t data);
-static void 		fxp_watchdog(struct fxp_softc *sc);
-static void		fxp_add_rfabuf(struct fxp_softc *sc,
-			    struct fxp_rx *rxp);
-static void		fxp_discard_rfabuf(struct fxp_softc *sc,
-			    struct fxp_rx *rxp);
-static int		fxp_new_rfabuf(struct fxp_softc *sc,
-			    struct fxp_rx *rxp);
-static void		fxp_mc_addrs(struct fxp_softc *sc);
-static void		fxp_mc_setup(struct fxp_softc *sc);
-static uint16_t		fxp_eeprom_getword(struct fxp_softc *sc, int offset,
-			    int autosize);
-static void 		fxp_eeprom_putword(struct fxp_softc *sc, int offset,
-			    uint16_t data);
-static void		fxp_autosize_eeprom(struct fxp_softc *sc);
-static void		fxp_load_eeprom(struct fxp_softc *sc);
-static void		fxp_read_eeprom(struct fxp_softc *sc, u_short *data,
-			    int offset, int words);
-static void		fxp_write_eeprom(struct fxp_softc *sc, u_short *data,
-			    int offset, int words);
-static int		fxp_ifmedia_upd(if_t ifp);
-static void		fxp_ifmedia_sts(if_t ifp,
-			    struct ifmediareq *ifmr);
-static int		fxp_serial_ifmedia_upd(if_t ifp);
-static void		fxp_serial_ifmedia_sts(if_t ifp,
-			    struct ifmediareq *ifmr);
-static int		fxp_miibus_readreg(device_t dev, int phy, int reg);
-static int		fxp_miibus_writereg(device_t dev, int phy, int reg,
-			    int value);
-static void		fxp_miibus_statchg(device_t dev);
-static void		fxp_load_ucode(struct fxp_softc *sc);
-static void		fxp_update_stats(struct fxp_softc *sc);
-static void		fxp_sysctl_node(struct fxp_softc *sc);
-static int		sysctl_int_range(SYSCTL_HANDLER_ARGS,
-			    int low, int high);
-static int		sysctl_hw_fxp_bundle_max(SYSCTL_HANDLER_ARGS);
-static int		sysctl_hw_fxp_int_delay(SYSCTL_HANDLER_ARGS);
-static void 		fxp_scb_wait(struct fxp_softc *sc);
-static void		fxp_scb_cmd(struct fxp_softc *sc, int cmd);
-static void		fxp_dma_wait(struct fxp_softc *sc,
-			    volatile uint16_t *status, bus_dma_tag_t dmat,
-			    bus_dmamap_t map);
+static void fxp_intr(void *xsc);
+static void fxp_rxcsum(struct fxp_softc *sc, if_t ifp, struct mbuf *m,
+    uint16_t status, int pos);
+static int fxp_intr_body(struct fxp_softc *sc, if_t ifp, uint8_t statack,
+    int count);
+static void fxp_init(void *xsc);
+static void fxp_init_body(struct fxp_softc *sc, int);
+static void fxp_tick(void *xsc);
+static void fxp_start(if_t ifp);
+static void fxp_start_body(if_t ifp);
+static int fxp_encap(struct fxp_softc *sc, struct mbuf **m_head);
+static void fxp_txeof(struct fxp_softc *sc);
+static void fxp_stop(struct fxp_softc *sc);
+static void fxp_release(struct fxp_softc *sc);
+static int fxp_ioctl(if_t ifp, u_long command, caddr_t data);
+static void fxp_watchdog(struct fxp_softc *sc);
+static void fxp_add_rfabuf(struct fxp_softc *sc, struct fxp_rx *rxp);
+static void fxp_discard_rfabuf(struct fxp_softc *sc, struct fxp_rx *rxp);
+static int fxp_new_rfabuf(struct fxp_softc *sc, struct fxp_rx *rxp);
+static void fxp_mc_addrs(struct fxp_softc *sc);
+static void fxp_mc_setup(struct fxp_softc *sc);
+static uint16_t fxp_eeprom_getword(struct fxp_softc *sc, int offset,
+    int autosize);
+static void fxp_eeprom_putword(struct fxp_softc *sc, int offset, uint16_t data);
+static void fxp_autosize_eeprom(struct fxp_softc *sc);
+static void fxp_load_eeprom(struct fxp_softc *sc);
+static void fxp_read_eeprom(struct fxp_softc *sc, u_short *data, int offset,
+    int words);
+static void fxp_write_eeprom(struct fxp_softc *sc, u_short *data, int offset,
+    int words);
+static int fxp_ifmedia_upd(if_t ifp);
+static void fxp_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr);
+static int fxp_serial_ifmedia_upd(if_t ifp);
+static void fxp_serial_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr);
+static int fxp_miibus_readreg(device_t dev, int phy, int reg);
+static int fxp_miibus_writereg(device_t dev, int phy, int reg, int value);
+static void fxp_miibus_statchg(device_t dev);
+static void fxp_load_ucode(struct fxp_softc *sc);
+static void fxp_update_stats(struct fxp_softc *sc);
+static void fxp_sysctl_node(struct fxp_softc *sc);
+static int sysctl_int_range(SYSCTL_HANDLER_ARGS, int low, int high);
+static int sysctl_hw_fxp_bundle_max(SYSCTL_HANDLER_ARGS);
+static int sysctl_hw_fxp_int_delay(SYSCTL_HANDLER_ARGS);
+static void fxp_scb_wait(struct fxp_softc *sc);
+static void fxp_scb_cmd(struct fxp_softc *sc, int cmd);
+static void fxp_dma_wait(struct fxp_softc *sc, volatile uint16_t *status,
+    bus_dma_tag_t dmat, bus_dmamap_t map);
 
 static device_method_t fxp_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		fxp_probe),
-	DEVMETHOD(device_attach,	fxp_attach),
-	DEVMETHOD(device_detach,	fxp_detach),
-	DEVMETHOD(device_shutdown,	fxp_shutdown),
-	DEVMETHOD(device_suspend,	fxp_suspend),
-	DEVMETHOD(device_resume,	fxp_resume),
+	DEVMETHOD(device_probe, fxp_probe),
+	DEVMETHOD(device_attach, fxp_attach),
+	DEVMETHOD(device_detach, fxp_detach),
+	DEVMETHOD(device_shutdown, fxp_shutdown),
+	DEVMETHOD(device_suspend, fxp_suspend),
+	DEVMETHOD(device_resume, fxp_resume),
 
 	/* MII interface */
-	DEVMETHOD(miibus_readreg,	fxp_miibus_readreg),
-	DEVMETHOD(miibus_writereg,	fxp_miibus_writereg),
-	DEVMETHOD(miibus_statchg,	fxp_miibus_statchg),
+	DEVMETHOD(miibus_readreg, fxp_miibus_readreg),
+	DEVMETHOD(miibus_writereg, fxp_miibus_writereg),
+	DEVMETHOD(miibus_statchg, fxp_miibus_statchg),
 
 	DEVMETHOD_END
 };
@@ -307,16 +298,13 @@ MODULE_PNP_INFO("U16:vendor;U16:device", pci, fxp, fxp_ident_table,
 DRIVER_MODULE(miibus, fxp, miibus_driver, NULL, NULL);
 
 static struct resource_spec fxp_res_spec_mem[] = {
-	{ SYS_RES_MEMORY,	FXP_PCI_MMBA,	RF_ACTIVE },
-	{ SYS_RES_IRQ,		0,		RF_ACTIVE | RF_SHAREABLE },
-	{ -1, 0 }
+	{ SYS_RES_MEMORY, FXP_PCI_MMBA, RF_ACTIVE },
+	{ SYS_RES_IRQ, 0, RF_ACTIVE | RF_SHAREABLE }, { -1, 0 }
 };
 
-static struct resource_spec fxp_res_spec_io[] = {
-	{ SYS_RES_IOPORT,	FXP_PCI_IOBA,	RF_ACTIVE },
-	{ SYS_RES_IRQ,		0,		RF_ACTIVE | RF_SHAREABLE },
-	{ -1, 0 }
-};
+static struct resource_spec fxp_res_spec_io[] = { { SYS_RES_IOPORT,
+						      FXP_PCI_IOBA, RF_ACTIVE },
+	{ SYS_RES_IRQ, 0, RF_ACTIVE | RF_SHAREABLE }, { -1, 0 } };
 
 /*
  * Wait for the previous command to be accepted (but not necessarily
@@ -483,7 +471,7 @@ fxp_attach(device_t dev)
 
 	if (bootverbose) {
 		device_printf(dev, "using %s space register mapping\n",
-		   sc->fxp_spec == fxp_res_spec_mem ? "memory" : "I/O");
+		    sc->fxp_spec == fxp_res_spec_mem ? "memory" : "I/O");
 	}
 
 	/*
@@ -553,8 +541,8 @@ fxp_attach(device_t dev)
 	 * Determine whether we must use the 503 serial interface.
 	 */
 	data = sc->eeprom[FXP_EEPROM_MAP_PRI_PHY];
-	if (sc->revision == FXP_REV_82557 && (data & FXP_PHY_DEVICE_MASK) != 0
-	    && (data & FXP_PHY_SERIAL_ONLY))
+	if (sc->revision == FXP_REV_82557 &&
+	    (data & FXP_PHY_DEVICE_MASK) != 0 && (data & FXP_PHY_SERIAL_ONLY))
 		sc->flags |= FXP_FLAG_SERIAL_MEDIA;
 
 	fxp_sysctl_node(sc);
@@ -573,7 +561,7 @@ fxp_attach(device_t dev)
 	if ((sc->ident->ich >= 2 && sc->ident->ich <= 3) ||
 	    (sc->ident->ich == 0 && sc->revision >= FXP_REV_82559_A0)) {
 		data = sc->eeprom[FXP_EEPROM_MAP_ID];
-		if (data & 0x02) {			/* STB enable */
+		if (data & 0x02) { /* STB enable */
 			uint16_t cksum;
 			int i;
 
@@ -590,8 +578,8 @@ fxp_attach(device_t dev)
 			cksum = 0xBABA - cksum;
 			fxp_write_eeprom(sc, &cksum, i, 1);
 			device_printf(dev,
-			    "EEPROM checksum @ 0x%x: 0x%x -> 0x%x\n",
-			    i, sc->eeprom[i], cksum);
+			    "EEPROM checksum @ 0x%x: 0x%x -> 0x%x\n", i,
+			    sc->eeprom[i], cksum);
 			sc->eeprom[i] = cksum;
 			/*
 			 * If the user elects to continue, try the software
@@ -638,15 +626,16 @@ fxp_attach(device_t dev)
 	 * Be careful to do this only on the right devices.
 	 */
 	if (sc->revision == FXP_REV_82550 || sc->revision == FXP_REV_82550_C ||
-	    sc->revision == FXP_REV_82551_E || sc->revision == FXP_REV_82551_F
-	    || sc->revision == FXP_REV_82551_10) {
-		sc->rfa_size = sizeof (struct fxp_rfa);
+	    sc->revision == FXP_REV_82551_E ||
+	    sc->revision == FXP_REV_82551_F ||
+	    sc->revision == FXP_REV_82551_10) {
+		sc->rfa_size = sizeof(struct fxp_rfa);
 		sc->tx_cmd = FXP_CB_COMMAND_IPCBXMIT;
 		sc->flags |= FXP_FLAG_EXT_RFA;
 		/* Use extended RFA instead of 82559 checksum mode. */
 		sc->flags &= ~FXP_FLAG_82559_RXCSUM;
 	} else {
-		sc->rfa_size = sizeof (struct fxp_rfa) - FXP_RFAX_LEN;
+		sc->rfa_size = sizeof(struct fxp_rfa) - FXP_RFAX_LEN;
 		sc->tx_cmd = FXP_CB_COMMAND_XMIT;
 	}
 
@@ -669,8 +658,8 @@ fxp_attach(device_t dev)
 	}
 
 	error = bus_dma_tag_create(bus_get_dma_tag(dev), 2, 0,
-	    BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR, NULL, NULL,
-	    MCLBYTES, 1, MCLBYTES, 0, NULL, NULL, &sc->fxp_rxmtag);
+	    BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR, NULL, NULL, MCLBYTES, 1,
+	    MCLBYTES, 0, NULL, NULL, &sc->fxp_rxmtag);
 	if (error) {
 		device_printf(dev, "could not create RX DMA tag\n");
 		goto fail;
@@ -678,8 +667,8 @@ fxp_attach(device_t dev)
 
 	error = bus_dma_tag_create(bus_get_dma_tag(dev), 4, 0,
 	    BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR, NULL, NULL,
-	    sizeof(struct fxp_stats), 1, sizeof(struct fxp_stats), 0,
-	    NULL, NULL, &sc->fxp_stag);
+	    sizeof(struct fxp_stats), 1, sizeof(struct fxp_stats), 0, NULL,
+	    NULL, &sc->fxp_stag);
 	if (error) {
 		device_printf(dev, "could not create stats DMA tag\n");
 		goto fail;
@@ -700,8 +689,8 @@ fxp_attach(device_t dev)
 	}
 
 	error = bus_dma_tag_create(bus_get_dma_tag(dev), 4, 0,
-	    BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR, NULL, NULL,
-	    FXP_TXCB_SZ, 1, FXP_TXCB_SZ, 0, NULL, NULL, &sc->cbl_tag);
+	    BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR, NULL, NULL, FXP_TXCB_SZ,
+	    1, FXP_TXCB_SZ, 0, NULL, NULL, &sc->cbl_tag);
 	if (error) {
 		device_printf(dev, "could not create TxCB DMA tag\n");
 		goto fail;
@@ -714,9 +703,9 @@ fxp_attach(device_t dev)
 		goto fail;
 	}
 
-	error = bus_dmamap_load(sc->cbl_tag, sc->cbl_map,
-	    sc->fxp_desc.cbl_list, FXP_TXCB_SZ, fxp_dma_map_addr,
-	    &sc->fxp_desc.cbl_addr, BUS_DMA_NOWAIT);
+	error = bus_dmamap_load(sc->cbl_tag, sc->cbl_map, sc->fxp_desc.cbl_list,
+	    FXP_TXCB_SZ, fxp_dma_map_addr, &sc->fxp_desc.cbl_addr,
+	    BUS_DMA_NOWAIT);
 	if (error) {
 		device_printf(dev, "could not load TxCB DMA buffer\n");
 		goto fail;
@@ -724,8 +713,8 @@ fxp_attach(device_t dev)
 
 	error = bus_dma_tag_create(bus_get_dma_tag(dev), 4, 0,
 	    BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR, NULL, NULL,
-	    sizeof(struct fxp_cb_mcs), 1, sizeof(struct fxp_cb_mcs), 0,
-	    NULL, NULL, &sc->mcs_tag);
+	    sizeof(struct fxp_cb_mcs), 1, sizeof(struct fxp_cb_mcs), 0, NULL,
+	    NULL, &sc->mcs_tag);
 	if (error) {
 		device_printf(dev,
 		    "could not create multicast setup DMA tag\n");
@@ -802,7 +791,7 @@ fxp_attach(device_t dev)
 		    pci_get_revid(dev));
 		device_printf(dev, "Dynamic Standby mode is %s\n",
 		    sc->eeprom[FXP_EEPROM_MAP_ID] & 0x02 ? "enabled" :
-		    "disabled");
+							   "disabled");
 	}
 
 	/*
@@ -815,8 +804,8 @@ fxp_attach(device_t dev)
 	 * is configured.  This is, in essence, manual configuration.
 	 */
 	if (sc->flags & FXP_FLAG_SERIAL_MEDIA) {
-		ifmedia_add(&sc->sc_media, IFM_ETHER|IFM_MANUAL, 0, NULL);
-		ifmedia_set(&sc->sc_media, IFM_ETHER|IFM_MANUAL);
+		ifmedia_add(&sc->sc_media, IFM_ETHER | IFM_MANUAL, 0, NULL);
+		ifmedia_set(&sc->sc_media, IFM_ETHER | IFM_MANUAL);
 	} else {
 		/*
 		 * i82557 wedge when isolating all of their PHYs.
@@ -881,10 +870,12 @@ fxp_attach(device_t dev)
 	if_setcapabilitiesbit(ifp, IFCAP_VLAN_MTU, 0);
 	if_setcapenablebit(ifp, IFCAP_VLAN_MTU, 0);
 	if ((sc->flags & FXP_FLAG_EXT_RFA) != 0) {
-		if_setcapabilitiesbit(ifp, IFCAP_VLAN_HWTAGGING |
-		    IFCAP_VLAN_HWCSUM | IFCAP_VLAN_HWTSO, 0);
-		if_setcapenablebit(ifp, IFCAP_VLAN_HWTAGGING |
-		    IFCAP_VLAN_HWCSUM | IFCAP_VLAN_HWTSO, 0);
+		if_setcapabilitiesbit(ifp,
+		    IFCAP_VLAN_HWTAGGING | IFCAP_VLAN_HWCSUM | IFCAP_VLAN_HWTSO,
+		    0);
+		if_setcapenablebit(ifp,
+		    IFCAP_VLAN_HWTAGGING | IFCAP_VLAN_HWCSUM | IFCAP_VLAN_HWTSO,
+		    0);
 	}
 
 	/*
@@ -898,7 +889,7 @@ fxp_attach(device_t dev)
 	 * Hook our interrupt after all initialization is complete.
 	 */
 	error = bus_setup_intr(dev, sc->fxp_res[1], INTR_TYPE_NET | INTR_MPSAFE,
-			       NULL, fxp_intr, sc, &sc->ih);
+	    NULL, fxp_intr, sc, &sc->ih);
 	if (error) {
 		device_printf(dev, "could not setup irq\n");
 		ether_ifdetach(sc->ifp);
@@ -1280,7 +1271,7 @@ fxp_autosize_eeprom(struct fxp_softc *sc)
 	sc->eeprom_size = 8;
 
 	/* autosize */
-	(void) fxp_eeprom_getword(sc, 0, 1);
+	(void)fxp_eeprom_getword(sc, 0, 1);
 }
 
 static void
@@ -1314,8 +1305,8 @@ fxp_load_eeprom(struct fxp_softc *sc)
 	cksum = 0xBABA - cksum;
 	if (cksum != sc->eeprom[(1 << sc->eeprom_size) - 1])
 		device_printf(sc->dev,
-		    "EEPROM checksum mismatch! (0x%04x -> 0x%04x)\n",
-		    cksum, sc->eeprom[(1 << sc->eeprom_size) - 1]);
+		    "EEPROM checksum mismatch! (0x%04x -> 0x%04x)\n", cksum,
+		    sc->eeprom[(1 << sc->eeprom_size) - 1]);
 }
 
 /*
@@ -1499,7 +1490,7 @@ fxp_encap(struct fxp_softc *sc, struct mbuf **m_head)
 		    (tcp->th_off << 2));
 		tcp->th_sum = in_pseudo(ip->ip_src.s_addr, ip->ip_dst.s_addr,
 		    htons(IPPROTO_TCP + (tcp->th_off << 2) +
-		    m->m_pkthdr.tso_segsz));
+			m->m_pkthdr.tso_segsz));
 		/* Compute total TCP payload. */
 		tcp_payload = m->m_pkthdr.len - ip_off - (ip->ip_hl << 2);
 		tcp_payload -= tcp->th_off << 2;
@@ -1530,7 +1521,7 @@ fxp_encap(struct fxp_softc *sc, struct mbuf **m_head)
 		 * As long as the datagram contains 4 or more bytes
 		 * of data, you're ok.
 		 *
-                 * The following code attempts to work around this
+		 * The following code attempts to work around this
 		 * problem: if the datagram is less than 38 bytes
 		 * in size (14 bytes ether header, 20 bytes IP header,
 		 * plus 4 bytes of data), we punt and compute the IP
@@ -1620,8 +1611,7 @@ fxp_encap(struct fxp_softc *sc, struct mbuf **m_head)
 		cbp->tbdtso.tb_size = htole32(m->m_pkthdr.tso_segsz << 16);
 		cbp->tbd[1].tb_size |= htole32(tcp_payload << 16);
 		cbp->ipcb_ip_schedule |= FXP_IPCB_LARGESEND_ENABLE |
-		    FXP_IPCB_IP_CHECKSUM_ENABLE |
-		    FXP_IPCB_TCP_PACKET |
+		    FXP_IPCB_IP_CHECKSUM_ENABLE | FXP_IPCB_TCP_PACKET |
 		    FXP_IPCB_TCPUDP_CHECKSUM_ENABLE;
 	}
 	/* Configure VLAN hardware tag insertion. */
@@ -1635,13 +1625,11 @@ fxp_encap(struct fxp_softc *sc, struct mbuf **m_head)
 	txp->tx_cb->cb_status = 0;
 	txp->tx_cb->byte_count = 0;
 	if (sc->tx_queued != FXP_CXINT_THRESH - 1)
-		txp->tx_cb->cb_command =
-		    htole16(sc->tx_cmd | FXP_CB_COMMAND_SF |
-		    FXP_CB_COMMAND_S);
+		txp->tx_cb->cb_command = htole16(
+		    sc->tx_cmd | FXP_CB_COMMAND_SF | FXP_CB_COMMAND_S);
 	else
-		txp->tx_cb->cb_command =
-		    htole16(sc->tx_cmd | FXP_CB_COMMAND_SF |
-		    FXP_CB_COMMAND_S | FXP_CB_COMMAND_I);
+		txp->tx_cb->cb_command = htole16(sc->tx_cmd |
+		    FXP_CB_COMMAND_SF | FXP_CB_COMMAND_S | FXP_CB_COMMAND_I);
 	if ((m->m_pkthdr.csum_flags & CSUM_TSO) == 0)
 		txp->tx_cb->tx_threshold = tx_threshold;
 
@@ -1756,8 +1744,8 @@ fxp_txeof(struct fxp_softc *sc)
 	bus_dmamap_sync(sc->cbl_tag, sc->cbl_map,
 	    BUS_DMASYNC_POSTREAD | BUS_DMASYNC_POSTWRITE);
 	for (txp = sc->fxp_desc.tx_first; sc->tx_queued &&
-	    (le16toh(txp->tx_cb->cb_status) & FXP_CB_STATUS_C) != 0;
-	    txp = txp->tx_next) {
+	     (le16toh(txp->tx_cb->cb_status) & FXP_CB_STATUS_C) != 0;
+	     txp = txp->tx_next) {
 		if (txp->tx_mbuf != NULL) {
 			bus_dmamap_sync(sc->fxp_txmtag, txp->tx_map,
 			    BUS_DMASYNC_POSTWRITE);
@@ -1778,8 +1766,8 @@ fxp_txeof(struct fxp_softc *sc)
 }
 
 static void
-fxp_rxcsum(struct fxp_softc *sc, if_t ifp, struct mbuf *m,
-    uint16_t status, int pos)
+fxp_rxcsum(struct fxp_softc *sc, if_t ifp, struct mbuf *m, uint16_t status,
+    int pos)
 {
 	struct ether_header *eh;
 	struct ip *ip;
@@ -1822,7 +1810,7 @@ fxp_rxcsum(struct fxp_softc *sc, if_t ifp, struct mbuf *m,
 	if (ntohs(ip->ip_len) != pktlen)
 		return;
 	if (ip->ip_off & htons(IP_MF | IP_OFFMASK))
-		return;	/* can't handle fragmented packet */
+		return; /* can't handle fragmented packet */
 
 	switch (ip->ip_p) {
 	case IPPROTO_TCP:
@@ -1856,8 +1844,7 @@ fxp_rxcsum(struct fxp_softc *sc, if_t ifp, struct mbuf *m,
 }
 
 static int
-fxp_intr_body(struct fxp_softc *sc, if_t ifp, uint8_t statack,
-    int count)
+fxp_intr_body(struct fxp_softc *sc, if_t ifp, uint8_t statack, int count)
 {
 	struct mbuf *m;
 	struct fxp_rx *rxp;
@@ -1971,9 +1958,10 @@ fxp_intr_body(struct fxp_softc *sc, if_t ifp, uint8_t statack,
 			}
 			if (total_len < (int)sizeof(struct ether_header) ||
 			    total_len > (MCLBYTES - RFA_ALIGNMENT_FUDGE -
-			    sc->rfa_size) ||
-			    status & (FXP_RFA_STATUS_CRC |
-			    FXP_RFA_STATUS_ALIGN | FXP_RFA_STATUS_OVERRUN)) {
+					    sc->rfa_size) ||
+			    status &
+				(FXP_RFA_STATUS_CRC | FXP_RFA_STATUS_ALIGN |
+				    FXP_RFA_STATUS_OVERRUN)) {
 				m_freem(m);
 				fxp_add_rfabuf(sc, rxp);
 				continue;
@@ -1982,13 +1970,14 @@ fxp_intr_body(struct fxp_softc *sc, if_t ifp, uint8_t statack,
 			m->m_pkthdr.len = m->m_len = total_len;
 			if_setrcvif(m, ifp);
 
-                        /* Do IP checksum checking. */
+			/* Do IP checksum checking. */
 			if ((if_getcapenable(ifp) & IFCAP_RXCSUM) != 0)
 				fxp_rxcsum(sc, ifp, m, status, total_len);
-			if ((if_getcapenable(ifp) & IFCAP_VLAN_HWTAGGING) != 0 &&
+			if ((if_getcapenable(ifp) & IFCAP_VLAN_HWTAGGING) !=
+				0 &&
 			    (status & FXP_RFA_STATUS_VLAN) != 0) {
-				m->m_pkthdr.ether_vtag =
-				    ntohs(rfa->rfax_vlan_id);
+				m->m_pkthdr.ether_vtag = ntohs(
+				    rfa->rfax_vlan_id);
 				m->m_flags |= M_VLANTAG;
 			}
 			/*
@@ -2049,8 +2038,8 @@ fxp_update_stats(struct fxp_softc *sc)
 		hsp->tx_lostcrs += le32toh(sp->tx_lostcrs);
 		hsp->tx_deffered += le32toh(sp->tx_deffered);
 		hsp->tx_single_collisions += le32toh(sp->tx_single_collisions);
-		hsp->tx_multiple_collisions +=
-		    le32toh(sp->tx_multiple_collisions);
+		hsp->tx_multiple_collisions += le32toh(
+		    sp->tx_multiple_collisions);
 		hsp->tx_total_collisions += le32toh(sp->tx_total_collisions);
 		hsp->rx_good += le32toh(sp->rx_good);
 		hsp->rx_crc_errors += le32toh(sp->rx_crc_errors);
@@ -2080,9 +2069,9 @@ fxp_update_stats(struct fxp_softc *sc)
 		}
 		if_inc_counter(ifp, IFCOUNTER_IERRORS,
 		    le32toh(sp->rx_crc_errors) +
-		    le32toh(sp->rx_alignment_errors) +
-		    le32toh(sp->rx_rnr_errors) +
-		    le32toh(sp->rx_overrun_errors));
+			le32toh(sp->rx_alignment_errors) +
+			le32toh(sp->rx_rnr_errors) +
+			le32toh(sp->rx_overrun_errors));
 		/*
 		 * If any transmit underruns occurred, bump up the transmit
 		 * threshold by another 512 bytes (64 * 8).
@@ -2344,99 +2333,102 @@ fxp_init_body(struct fxp_softc *sc, int setmedia)
 	 */
 	bcopy(fxp_cb_config_template, cbp, sizeof(fxp_cb_config_template));
 
-	cbp->cb_status =	0;
-	cbp->cb_command =	htole16(FXP_CB_COMMAND_CONFIG |
-	    FXP_CB_COMMAND_EL);
-	cbp->link_addr =	0xffffffff;	/* (no) next command */
-	cbp->byte_count =	sc->flags & FXP_FLAG_EXT_RFA ? 32 : 22;
-	cbp->rx_fifo_limit =	8;	/* rx fifo threshold (32 bytes) */
-	cbp->tx_fifo_limit =	0;	/* tx fifo threshold (0 bytes) */
-	cbp->adaptive_ifs =	0;	/* (no) adaptive interframe spacing */
-	cbp->mwi_enable =	sc->flags & FXP_FLAG_MWI_ENABLE ? 1 : 0;
-	cbp->type_enable =	0;	/* actually reserved */
-	cbp->read_align_en =	sc->flags & FXP_FLAG_READ_ALIGN ? 1 : 0;
-	cbp->end_wr_on_cl =	sc->flags & FXP_FLAG_WRITE_ALIGN ? 1 : 0;
-	cbp->rx_dma_bytecount =	0;	/* (no) rx DMA max */
-	cbp->tx_dma_bytecount =	0;	/* (no) tx DMA max */
-	cbp->dma_mbce =		0;	/* (disable) dma max counters */
-	cbp->late_scb =		0;	/* (don't) defer SCB update */
-	cbp->direct_dma_dis =	1;	/* disable direct rcv dma mode */
-	cbp->tno_int_or_tco_en =0;	/* (disable) tx not okay interrupt */
-	cbp->ci_int =		1;	/* interrupt on CU idle */
-	cbp->ext_txcb_dis = 	sc->flags & FXP_FLAG_EXT_TXCB ? 0 : 1;
-	cbp->ext_stats_dis = 	1;	/* disable extended counters */
-	cbp->keep_overrun_rx = 	0;	/* don't pass overrun frames to host */
-	cbp->save_bf =		sc->flags & FXP_FLAG_SAVE_BAD ? 1 : prm;
-	cbp->disc_short_rx =	!prm;	/* discard short packets */
-	cbp->underrun_retry =	1;	/* retry mode (once) on DMA underrun */
-	cbp->two_frames =	0;	/* do not limit FIFO to 2 frames */
-	cbp->dyn_tbd =		sc->flags & FXP_FLAG_EXT_RFA ? 1 : 0;
-	cbp->ext_rfa =		sc->flags & FXP_FLAG_EXT_RFA ? 1 : 0;
-	cbp->mediatype =	sc->flags & FXP_FLAG_SERIAL_MEDIA ? 0 : 1;
-	cbp->csma_dis =		0;	/* (don't) disable link */
-	cbp->tcp_udp_cksum =	((sc->flags & FXP_FLAG_82559_RXCSUM) != 0 &&
-	    (if_getcapenable(ifp) & IFCAP_RXCSUM) != 0) ? 1 : 0;
-	cbp->vlan_tco =		0;	/* (don't) enable vlan wakeup */
-	cbp->link_wake_en =	0;	/* (don't) assert PME# on link change */
-	cbp->arp_wake_en =	0;	/* (don't) assert PME# on arp */
-	cbp->mc_wake_en =	0;	/* (don't) enable PME# on mcmatch */
-	cbp->nsai =		1;	/* (don't) disable source addr insert */
-	cbp->preamble_length =	2;	/* (7 byte) preamble */
-	cbp->loopback =		0;	/* (don't) loopback */
-	cbp->linear_priority =	0;	/* (normal CSMA/CD operation) */
-	cbp->linear_pri_mode =	0;	/* (wait after xmit only) */
-	cbp->interfrm_spacing =	6;	/* (96 bits of) interframe spacing */
-	cbp->promiscuous =	prm;	/* promiscuous mode */
-	cbp->bcast_disable =	0;	/* (don't) disable broadcasts */
-	cbp->wait_after_win =	0;	/* (don't) enable modified backoff alg*/
-	cbp->ignore_ul =	0;	/* consider U/L bit in IA matching */
-	cbp->crc16_en =		0;	/* (don't) enable crc-16 algorithm */
-	cbp->crscdt =		sc->flags & FXP_FLAG_SERIAL_MEDIA ? 1 : 0;
+	cbp->cb_status = 0;
+	cbp->cb_command = htole16(FXP_CB_COMMAND_CONFIG | FXP_CB_COMMAND_EL);
+	cbp->link_addr = 0xffffffff; /* (no) next command */
+	cbp->byte_count = sc->flags & FXP_FLAG_EXT_RFA ? 32 : 22;
+	cbp->rx_fifo_limit = 8; /* rx fifo threshold (32 bytes) */
+	cbp->tx_fifo_limit = 0; /* tx fifo threshold (0 bytes) */
+	cbp->adaptive_ifs = 0;	/* (no) adaptive interframe spacing */
+	cbp->mwi_enable = sc->flags & FXP_FLAG_MWI_ENABLE ? 1 : 0;
+	cbp->type_enable = 0; /* actually reserved */
+	cbp->read_align_en = sc->flags & FXP_FLAG_READ_ALIGN ? 1 : 0;
+	cbp->end_wr_on_cl = sc->flags & FXP_FLAG_WRITE_ALIGN ? 1 : 0;
+	cbp->rx_dma_bytecount = 0;  /* (no) rx DMA max */
+	cbp->tx_dma_bytecount = 0;  /* (no) tx DMA max */
+	cbp->dma_mbce = 0;	    /* (disable) dma max counters */
+	cbp->late_scb = 0;	    /* (don't) defer SCB update */
+	cbp->direct_dma_dis = 1;    /* disable direct rcv dma mode */
+	cbp->tno_int_or_tco_en = 0; /* (disable) tx not okay interrupt */
+	cbp->ci_int = 1;	    /* interrupt on CU idle */
+	cbp->ext_txcb_dis = sc->flags & FXP_FLAG_EXT_TXCB ? 0 : 1;
+	cbp->ext_stats_dis = 1;	  /* disable extended counters */
+	cbp->keep_overrun_rx = 0; /* don't pass overrun frames to host */
+	cbp->save_bf = sc->flags & FXP_FLAG_SAVE_BAD ? 1 : prm;
+	cbp->disc_short_rx = !prm; /* discard short packets */
+	cbp->underrun_retry = 1;   /* retry mode (once) on DMA underrun */
+	cbp->two_frames = 0;	   /* do not limit FIFO to 2 frames */
+	cbp->dyn_tbd = sc->flags & FXP_FLAG_EXT_RFA ? 1 : 0;
+	cbp->ext_rfa = sc->flags & FXP_FLAG_EXT_RFA ? 1 : 0;
+	cbp->mediatype = sc->flags & FXP_FLAG_SERIAL_MEDIA ? 0 : 1;
+	cbp->csma_dis = 0; /* (don't) disable link */
+	cbp->tcp_udp_cksum = ((sc->flags & FXP_FLAG_82559_RXCSUM) != 0 &&
+				 (if_getcapenable(ifp) & IFCAP_RXCSUM) != 0) ?
+	    1 :
+	    0;
+	cbp->vlan_tco = 0;	   /* (don't) enable vlan wakeup */
+	cbp->link_wake_en = 0;	   /* (don't) assert PME# on link change */
+	cbp->arp_wake_en = 0;	   /* (don't) assert PME# on arp */
+	cbp->mc_wake_en = 0;	   /* (don't) enable PME# on mcmatch */
+	cbp->nsai = 1;		   /* (don't) disable source addr insert */
+	cbp->preamble_length = 2;  /* (7 byte) preamble */
+	cbp->loopback = 0;	   /* (don't) loopback */
+	cbp->linear_priority = 0;  /* (normal CSMA/CD operation) */
+	cbp->linear_pri_mode = 0;  /* (wait after xmit only) */
+	cbp->interfrm_spacing = 6; /* (96 bits of) interframe spacing */
+	cbp->promiscuous = prm;	   /* promiscuous mode */
+	cbp->bcast_disable = 0;	   /* (don't) disable broadcasts */
+	cbp->wait_after_win = 0;   /* (don't) enable modified backoff alg*/
+	cbp->ignore_ul = 0;	   /* consider U/L bit in IA matching */
+	cbp->crc16_en = 0;	   /* (don't) enable crc-16 algorithm */
+	cbp->crscdt = sc->flags & FXP_FLAG_SERIAL_MEDIA ? 1 : 0;
 
-	cbp->stripping =	!prm;	/* truncate rx packet to byte count */
-	cbp->padding =		1;	/* (do) pad short tx packets */
-	cbp->rcv_crc_xfer =	0;	/* (don't) xfer CRC to host */
-	cbp->long_rx_en =	sc->flags & FXP_FLAG_LONG_PKT_EN ? 1 : 0;
-	cbp->ia_wake_en =	0;	/* (don't) wake up on address match */
-	cbp->magic_pkt_dis =	sc->flags & FXP_FLAG_WOL ? 0 : 1;
-	cbp->force_fdx =	0;	/* (don't) force full duplex */
-	cbp->fdx_pin_en =	1;	/* (enable) FDX# pin */
-	cbp->multi_ia =		0;	/* (don't) accept multiple IAs */
-	cbp->mc_all =		if_getflags(ifp) & IFF_ALLMULTI ? 1 : prm;
-	cbp->gamla_rx =		sc->flags & FXP_FLAG_EXT_RFA ? 1 : 0;
-	cbp->vlan_strip_en =	((sc->flags & FXP_FLAG_EXT_RFA) != 0 &&
-	    (if_getcapenable(ifp) & IFCAP_VLAN_HWTAGGING) != 0) ? 1 : 0;
+	cbp->stripping = !prm; /* truncate rx packet to byte count */
+	cbp->padding = 1;      /* (do) pad short tx packets */
+	cbp->rcv_crc_xfer = 0; /* (don't) xfer CRC to host */
+	cbp->long_rx_en = sc->flags & FXP_FLAG_LONG_PKT_EN ? 1 : 0;
+	cbp->ia_wake_en = 0; /* (don't) wake up on address match */
+	cbp->magic_pkt_dis = sc->flags & FXP_FLAG_WOL ? 0 : 1;
+	cbp->force_fdx = 0;  /* (don't) force full duplex */
+	cbp->fdx_pin_en = 1; /* (enable) FDX# pin */
+	cbp->multi_ia = 0;   /* (don't) accept multiple IAs */
+	cbp->mc_all = if_getflags(ifp) & IFF_ALLMULTI ? 1 : prm;
+	cbp->gamla_rx = sc->flags & FXP_FLAG_EXT_RFA ? 1 : 0;
+	cbp->vlan_strip_en = ((sc->flags & FXP_FLAG_EXT_RFA) != 0 &&
+				 (if_getcapenable(ifp) &
+				     IFCAP_VLAN_HWTAGGING) != 0) ?
+	    1 :
+	    0;
 
 	if (sc->revision == FXP_REV_82557) {
 		/*
 		 * The 82557 has no hardware flow control, the values
 		 * below are the defaults for the chip.
 		 */
-		cbp->fc_delay_lsb =	0;
-		cbp->fc_delay_msb =	0x40;
-		cbp->pri_fc_thresh =	3;
-		cbp->tx_fc_dis =	0;
-		cbp->rx_fc_restop =	0;
-		cbp->rx_fc_restart =	0;
-		cbp->fc_filter =	0;
-		cbp->pri_fc_loc =	1;
+		cbp->fc_delay_lsb = 0;
+		cbp->fc_delay_msb = 0x40;
+		cbp->pri_fc_thresh = 3;
+		cbp->tx_fc_dis = 0;
+		cbp->rx_fc_restop = 0;
+		cbp->rx_fc_restart = 0;
+		cbp->fc_filter = 0;
+		cbp->pri_fc_loc = 1;
 	} else {
 		/* Set pause RX FIFO threshold to 1KB. */
 		CSR_WRITE_1(sc, FXP_CSR_FC_THRESH, 1);
 		/* Set pause time. */
-		cbp->fc_delay_lsb =	0xff;
-		cbp->fc_delay_msb =	0xff;
-		cbp->pri_fc_thresh =	3;
+		cbp->fc_delay_lsb = 0xff;
+		cbp->fc_delay_msb = 0xff;
+		cbp->pri_fc_thresh = 3;
 		mii = device_get_softc(sc->miibus);
-		if ((IFM_OPTIONS(mii->mii_media_active) &
-		    IFM_ETH_TXPAUSE) != 0)
+		if ((IFM_OPTIONS(mii->mii_media_active) & IFM_ETH_TXPAUSE) != 0)
 			/* enable transmit FC */
 			cbp->tx_fc_dis = 0;
 		else
 			/* disable transmit FC */
 			cbp->tx_fc_dis = 1;
-		if ((IFM_OPTIONS(mii->mii_media_active) &
-		    IFM_ETH_RXPAUSE) != 0) {
+		if ((IFM_OPTIONS(mii->mii_media_active) & IFM_ETH_RXPAUSE) !=
+		    0) {
 			/* enable FC restart/restop frames */
 			cbp->rx_fc_restart = 1;
 			cbp->rx_fc_restop = 1;
@@ -2445,8 +2437,8 @@ fxp_init_body(struct fxp_softc *sc, int setmedia)
 			cbp->rx_fc_restart = 0;
 			cbp->rx_fc_restop = 0;
 		}
-		cbp->fc_filter =	!prm;	/* drop FC frames to host */
-		cbp->pri_fc_loc =	1;	/* FC pri location (byte31) */
+		cbp->fc_filter = !prm; /* drop FC frames to host */
+		cbp->pri_fc_loc = 1;   /* FC pri location (byte31) */
 	}
 
 	/* Enable 82558 and 82559 extended statistics functionality. */
@@ -2515,11 +2507,11 @@ fxp_init_body(struct fxp_softc *sc, int setmedia)
 		tcbp[i].link_addr = htole32(sc->fxp_desc.cbl_addr +
 		    (((i + 1) & FXP_TXCB_MASK) * sizeof(struct fxp_cb_tx)));
 		if (sc->flags & FXP_FLAG_EXT_TXCB)
-			tcbp[i].tbd_array_addr =
-			    htole32(FXP_TXCB_DMA_ADDR(sc, &tcbp[i].tbd[2]));
+			tcbp[i].tbd_array_addr = htole32(
+			    FXP_TXCB_DMA_ADDR(sc, &tcbp[i].tbd[2]));
 		else
-			tcbp[i].tbd_array_addr =
-			    htole32(FXP_TXCB_DMA_ADDR(sc, &tcbp[i].tbd[0]));
+			tcbp[i].tbd_array_addr = htole32(
+			    FXP_TXCB_DMA_ADDR(sc, &tcbp[i].tbd[0]));
 		txp[i].tx_next = &txp[(i + 1) & FXP_TXCB_MASK];
 	}
 	/*
@@ -2556,11 +2548,11 @@ fxp_init_body(struct fxp_softc *sc, int setmedia)
 	 * ... but only do that if we are not polling. And because (presumably)
 	 * the default is interrupts on, we need to disable them explicitly!
 	 */
-	if (if_getcapenable(ifp) & IFCAP_POLLING )
+	if (if_getcapenable(ifp) & IFCAP_POLLING)
 		CSR_WRITE_1(sc, FXP_CSR_SCB_INTRCNTL, FXP_SCB_INTR_DISABLE);
 	else
 #endif /* DEVICE_POLLING */
-	CSR_WRITE_1(sc, FXP_CSR_SCB_INTRCNTL, 0);
+		CSR_WRITE_1(sc, FXP_CSR_SCB_INTRCNTL, 0);
 
 	/*
 	 * Start stats updater.
@@ -2579,7 +2571,7 @@ static void
 fxp_serial_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr)
 {
 
-	ifmr->ifm_active = IFM_ETHER|IFM_MANUAL;
+	ifmr->ifm_active = IFM_ETHER | IFM_MANUAL;
 }
 
 /*
@@ -2590,11 +2582,11 @@ fxp_ifmedia_upd(if_t ifp)
 {
 	struct fxp_softc *sc = if_getsoftc(ifp);
 	struct mii_data *mii;
-	struct mii_softc	*miisc;
+	struct mii_softc *miisc;
 
 	mii = device_get_softc(sc->miibus);
 	FXP_LOCK(sc);
-	LIST_FOREACH(miisc, &mii->mii_phys, mii_list)
+	LIST_FOREACH (miisc, &mii->mii_phys, mii_list)
 		PHY_RESET(miisc);
 	mii_mediachg(mii);
 	FXP_UNLOCK(sc);
@@ -2668,8 +2660,8 @@ fxp_new_rfabuf(struct fxp_softc *sc, struct fxp_rx *rxp)
 
 	/* Map the RFA into DMA memory. */
 	error = bus_dmamap_load(sc->fxp_rxmtag, sc->spare_map, rfa,
-	    MCLBYTES - RFA_ALIGNMENT_FUDGE, fxp_dma_map_addr,
-	    &rxp->rx_addr, BUS_DMA_NOWAIT);
+	    MCLBYTES - RFA_ALIGNMENT_FUDGE, fxp_dma_map_addr, &rxp->rx_addr,
+	    BUS_DMA_NOWAIT);
 	if (error) {
 		m_freem(m);
 		return (error);
@@ -2699,8 +2691,8 @@ fxp_add_rfabuf(struct fxp_softc *sc, struct fxp_rx *rxp)
 	 */
 	if (sc->fxp_desc.rx_head != NULL) {
 		p_rx = sc->fxp_desc.rx_tail;
-		p_rfa = (struct fxp_rfa *)
-		    (p_rx->rx_mbuf->m_ext.ext_buf + RFA_ALIGNMENT_FUDGE);
+		p_rfa = (struct fxp_rfa *)(p_rx->rx_mbuf->m_ext.ext_buf +
+		    RFA_ALIGNMENT_FUDGE);
 		p_rx->rx_next = rxp;
 		le32enc(&p_rfa->link_addr, rxp->rx_addr);
 		p_rfa->rfa_control = 0;
@@ -2762,8 +2754,9 @@ fxp_miibus_readreg(device_t dev, int phy, int reg)
 	CSR_WRITE_4(sc, FXP_CSR_MDICONTROL,
 	    (FXP_MDI_READ << 26) | (reg << 16) | (phy << 21));
 
-	while (((value = CSR_READ_4(sc, FXP_CSR_MDICONTROL)) & 0x10000000) == 0
-	    && count--)
+	while (
+	    ((value = CSR_READ_4(sc, FXP_CSR_MDICONTROL)) & 0x10000000) == 0 &&
+	    count--)
 		DELAY(10);
 
 	if (count <= 0)
@@ -2780,10 +2773,10 @@ fxp_miibus_writereg(device_t dev, int phy, int reg, int value)
 
 	CSR_WRITE_4(sc, FXP_CSR_MDICONTROL,
 	    (FXP_MDI_WRITE << 26) | (reg << 16) | (phy << 21) |
-	    (value & 0xffff));
+		(value & 0xffff));
 
-	while ((CSR_READ_4(sc, FXP_CSR_MDICONTROL) & 0x10000000) == 0 &&
-	    count--)
+	while (
+	    (CSR_READ_4(sc, FXP_CSR_MDICONTROL) & 0x10000000) == 0 && count--)
 		DELAY(10);
 
 	if (count <= 0)
@@ -2804,7 +2797,7 @@ fxp_miibus_statchg(device_t dev)
 	if (mii == NULL || ifp == (void *)NULL ||
 	    (if_getdrvflags(ifp) & IFF_DRV_RUNNING) == 0 ||
 	    (mii->mii_media_status & (IFM_AVALID | IFM_ACTIVE)) !=
-	    (IFM_AVALID | IFM_ACTIVE))
+		(IFM_AVALID | IFM_ACTIVE))
 		return;
 
 	if (IFM_SUBTYPE(mii->mii_media_active) == IFM_10_T &&
@@ -2842,7 +2835,8 @@ fxp_ioctl(if_t ifp, u_long command, caddr_t data)
 		if (if_getflags(ifp) & IFF_UP) {
 			if (((if_getdrvflags(ifp) & IFF_DRV_RUNNING) != 0) &&
 			    ((if_getflags(ifp) ^ sc->if_flags) &
-			    (IFF_PROMISC | IFF_ALLMULTI | IFF_LINK0)) != 0) {
+				(IFF_PROMISC | IFF_ALLMULTI | IFF_LINK0)) !=
+				0) {
 				if_setdrvflagbits(ifp, 0, IFF_DRV_RUNNING);
 				fxp_init_body(sc, 0);
 			} else if ((if_getdrvflags(ifp) & IFF_DRV_RUNNING) == 0)
@@ -2869,10 +2863,10 @@ fxp_ioctl(if_t ifp, u_long command, caddr_t data)
 	case SIOCGIFMEDIA:
 		if (sc->miibus != NULL) {
 			mii = device_get_softc(sc->miibus);
-                        error = ifmedia_ioctl(ifp, ifr,
-                            &mii->mii_media, command);
+			error = ifmedia_ioctl(ifp, ifr, &mii->mii_media,
+			    command);
 		} else {
-                        error = ifmedia_ioctl(ifp, ifr, &sc->sc_media, command);
+			error = ifmedia_ioctl(ifp, ifr, &sc->sc_media, command);
 		}
 		break;
 
@@ -2884,7 +2878,7 @@ fxp_ioctl(if_t ifp, u_long command, caddr_t data)
 			if (ifr->ifr_reqcap & IFCAP_POLLING) {
 				error = ether_poll_register(fxp_poll, ifp);
 				if (error)
-					return(error);
+					return (error);
 				FXP_LOCK(sc);
 				CSR_WRITE_1(sc, FXP_CSR_SCB_INTRCNTL,
 				    FXP_SCB_INTR_DISABLE);
@@ -2947,8 +2941,8 @@ fxp_ioctl(if_t ifp, u_long command, caddr_t data)
 		    (if_getcapabilities(ifp) & IFCAP_VLAN_HWTAGGING) != 0) {
 			if_togglecapenable(ifp, IFCAP_VLAN_HWTAGGING);
 			if ((if_getcapenable(ifp) & IFCAP_VLAN_HWTAGGING) == 0)
-				if_setcapenablebit(ifp, 0, IFCAP_VLAN_HWTSO |
-				    IFCAP_VLAN_HWCSUM);
+				if_setcapenablebit(ifp, 0,
+				    IFCAP_VLAN_HWTSO | IFCAP_VLAN_HWCSUM);
 			reinit++;
 		}
 		if (reinit > 0 &&
@@ -3030,8 +3024,8 @@ fxp_mc_setup(struct fxp_softc *sc)
 	 * case when nothing is queued, but make sure anyway.
 	 */
 	count = 100;
-	while ((CSR_READ_1(sc, FXP_CSR_SCB_RUSCUS) >> 6) !=
-	    FXP_SCB_CUS_IDLE && --count)
+	while ((CSR_READ_1(sc, FXP_CSR_SCB_RUSCUS) >> 6) != FXP_SCB_CUS_IDLE &&
+	    --count)
 		DELAY(10);
 	if (count == 0) {
 		device_printf(sc->dev, "command queue timeout\n");
@@ -3058,31 +3052,30 @@ static uint32_t fxp_ucode_d102[] = D102_B_RCVBUNDLE_UCODE;
 static uint32_t fxp_ucode_d102c[] = D102_C_RCVBUNDLE_UCODE;
 static uint32_t fxp_ucode_d102e[] = D102_E_RCVBUNDLE_UCODE;
 
-#define UCODE(x)	x, sizeof(x)/sizeof(uint32_t)
+#define UCODE(x) x, sizeof(x) / sizeof(uint32_t)
 
 static const struct ucode {
-	uint32_t	revision;
-	uint32_t	*ucode;
-	int		length;
-	u_short		int_delay_offset;
-	u_short		bundle_max_offset;
-} ucode_table[] = {
-	{ FXP_REV_82558_A4, UCODE(fxp_ucode_d101a), D101_CPUSAVER_DWORD, 0 },
+	uint32_t revision;
+	uint32_t *ucode;
+	int length;
+	u_short int_delay_offset;
+	u_short bundle_max_offset;
+} ucode_table[] = { { FXP_REV_82558_A4, UCODE(fxp_ucode_d101a),
+			D101_CPUSAVER_DWORD, 0 },
 	{ FXP_REV_82558_B0, UCODE(fxp_ucode_d101b0), D101_CPUSAVER_DWORD, 0 },
-	{ FXP_REV_82559_A0, UCODE(fxp_ucode_d101ma),
-	    D101M_CPUSAVER_DWORD, D101M_CPUSAVER_BUNDLE_MAX_DWORD },
-	{ FXP_REV_82559S_A, UCODE(fxp_ucode_d101s),
-	    D101S_CPUSAVER_DWORD, D101S_CPUSAVER_BUNDLE_MAX_DWORD },
-	{ FXP_REV_82550, UCODE(fxp_ucode_d102),
-	    D102_B_CPUSAVER_DWORD, D102_B_CPUSAVER_BUNDLE_MAX_DWORD },
-	{ FXP_REV_82550_C, UCODE(fxp_ucode_d102c),
-	    D102_C_CPUSAVER_DWORD, D102_C_CPUSAVER_BUNDLE_MAX_DWORD },
-	{ FXP_REV_82551_F, UCODE(fxp_ucode_d102e),
-	    D102_E_CPUSAVER_DWORD, D102_E_CPUSAVER_BUNDLE_MAX_DWORD },
-	{ FXP_REV_82551_10, UCODE(fxp_ucode_d102e),
-	    D102_E_CPUSAVER_DWORD, D102_E_CPUSAVER_BUNDLE_MAX_DWORD },
-	{ 0, NULL, 0, 0, 0 }
-};
+	{ FXP_REV_82559_A0, UCODE(fxp_ucode_d101ma), D101M_CPUSAVER_DWORD,
+	    D101M_CPUSAVER_BUNDLE_MAX_DWORD },
+	{ FXP_REV_82559S_A, UCODE(fxp_ucode_d101s), D101S_CPUSAVER_DWORD,
+	    D101S_CPUSAVER_BUNDLE_MAX_DWORD },
+	{ FXP_REV_82550, UCODE(fxp_ucode_d102), D102_B_CPUSAVER_DWORD,
+	    D102_B_CPUSAVER_BUNDLE_MAX_DWORD },
+	{ FXP_REV_82550_C, UCODE(fxp_ucode_d102c), D102_C_CPUSAVER_DWORD,
+	    D102_C_CPUSAVER_BUNDLE_MAX_DWORD },
+	{ FXP_REV_82551_F, UCODE(fxp_ucode_d102e), D102_E_CPUSAVER_DWORD,
+	    D102_E_CPUSAVER_BUNDLE_MAX_DWORD },
+	{ FXP_REV_82551_10, UCODE(fxp_ucode_d102e), D102_E_CPUSAVER_DWORD,
+	    D102_E_CPUSAVER_BUNDLE_MAX_DWORD },
+	{ 0, NULL, 0, 0, 0 } };
 
 static void
 fxp_load_ucode(struct fxp_softc *sc)
@@ -3102,15 +3095,15 @@ fxp_load_ucode(struct fxp_softc *sc)
 	cbp = (struct fxp_cb_ucode *)sc->fxp_desc.cbl_list;
 	cbp->cb_status = 0;
 	cbp->cb_command = htole16(FXP_CB_COMMAND_UCODE | FXP_CB_COMMAND_EL);
-	cbp->link_addr = 0xffffffff;    	/* (no) next command */
+	cbp->link_addr = 0xffffffff; /* (no) next command */
 	for (i = 0; i < uc->length; i++)
 		cbp->ucode[i] = htole32(uc->ucode[i]);
 	if (uc->int_delay_offset)
-		*(uint16_t *)&cbp->ucode[uc->int_delay_offset] =
-		    htole16(sc->tunable_int_delay + sc->tunable_int_delay / 2);
+		*(uint16_t *)&cbp->ucode[uc->int_delay_offset] = htole16(
+		    sc->tunable_int_delay + sc->tunable_int_delay / 2);
 	if (uc->bundle_max_offset)
-		*(uint16_t *)&cbp->ucode[uc->bundle_max_offset] =
-		    htole16(sc->tunable_bundle_max);
+		*(uint16_t *)&cbp->ucode[uc->bundle_max_offset] = htole16(
+		    sc->tunable_bundle_max);
 	/*
 	 * Download the ucode to the chip.
 	 */
@@ -3129,7 +3122,7 @@ fxp_load_ucode(struct fxp_softc *sc)
 	bzero(cbp, FXP_TXCB_SZ);
 }
 
-#define FXP_SYSCTL_STAT_ADD(c, h, n, p, d)	\
+#define FXP_SYSCTL_STAT_ADD(c, h, n, p, d) \
 	SYSCTL_ADD_UINT(c, h, OID_AUTO, n, CTLFLAG_RD, p, 0, d)
 
 static void
@@ -3144,14 +3137,14 @@ fxp_sysctl_node(struct fxp_softc *sc)
 	child = SYSCTL_CHILDREN(device_get_sysctl_tree(sc->dev));
 
 	SYSCTL_ADD_PROC(ctx, child, OID_AUTO, "int_delay",
-	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE,
-	    &sc->tunable_int_delay, 0, sysctl_hw_fxp_int_delay, "I",
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, &sc->tunable_int_delay,
+	    0, sysctl_hw_fxp_int_delay, "I",
 	    "FXP driver receive interrupt microcode bundling delay");
 	SYSCTL_ADD_PROC(ctx, child, OID_AUTO, "bundle_max",
-	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE,
-	    &sc->tunable_bundle_max, 0, sysctl_hw_fxp_bundle_max, "I",
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, &sc->tunable_bundle_max,
+	    0, sysctl_hw_fxp_bundle_max, "I",
 	    "FXP driver receive interrupt microcode bundle size limit");
-	SYSCTL_ADD_INT(ctx, child,OID_AUTO, "rnr", CTLFLAG_RD, &sc->rnr, 0,
+	SYSCTL_ADD_INT(ctx, child, OID_AUTO, "rnr", CTLFLAG_RD, &sc->rnr, 0,
 	    "FXP RNR events");
 
 	/*
@@ -3159,9 +3152,9 @@ fxp_sysctl_node(struct fxp_softc *sc)
 	 */
 	sc->tunable_int_delay = TUNABLE_INT_DELAY;
 	sc->tunable_bundle_max = TUNABLE_BUNDLE_MAX;
-	(void) resource_int_value(device_get_name(sc->dev),
+	(void)resource_int_value(device_get_name(sc->dev),
 	    device_get_unit(sc->dev), "int_delay", &sc->tunable_int_delay);
-	(void) resource_int_value(device_get_name(sc->dev),
+	(void)resource_int_value(device_get_name(sc->dev),
 	    device_get_unit(sc->dev), "bundle_max", &sc->tunable_bundle_max);
 	sc->rnr = 0;
 
@@ -3174,46 +3167,46 @@ fxp_sysctl_node(struct fxp_softc *sc)
 	tree = SYSCTL_ADD_NODE(ctx, parent, OID_AUTO, "rx",
 	    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "Rx MAC statistics");
 	child = SYSCTL_CHILDREN(tree);
-	FXP_SYSCTL_STAT_ADD(ctx, child, "good_frames",
-	    &hsp->rx_good, "Good frames");
-	FXP_SYSCTL_STAT_ADD(ctx, child, "crc_errors",
-	    &hsp->rx_crc_errors, "CRC errors");
+	FXP_SYSCTL_STAT_ADD(ctx, child, "good_frames", &hsp->rx_good,
+	    "Good frames");
+	FXP_SYSCTL_STAT_ADD(ctx, child, "crc_errors", &hsp->rx_crc_errors,
+	    "CRC errors");
 	FXP_SYSCTL_STAT_ADD(ctx, child, "alignment_errors",
 	    &hsp->rx_alignment_errors, "Alignment errors");
-	FXP_SYSCTL_STAT_ADD(ctx, child, "rnr_errors",
-	    &hsp->rx_rnr_errors, "RNR errors");
+	FXP_SYSCTL_STAT_ADD(ctx, child, "rnr_errors", &hsp->rx_rnr_errors,
+	    "RNR errors");
 	FXP_SYSCTL_STAT_ADD(ctx, child, "overrun_errors",
 	    &hsp->rx_overrun_errors, "Overrun errors");
-	FXP_SYSCTL_STAT_ADD(ctx, child, "cdt_errors",
-	    &hsp->rx_cdt_errors, "Collision detect errors");
-	FXP_SYSCTL_STAT_ADD(ctx, child, "shortframes",
-	    &hsp->rx_shortframes, "Short frame errors");
+	FXP_SYSCTL_STAT_ADD(ctx, child, "cdt_errors", &hsp->rx_cdt_errors,
+	    "Collision detect errors");
+	FXP_SYSCTL_STAT_ADD(ctx, child, "shortframes", &hsp->rx_shortframes,
+	    "Short frame errors");
 	if (sc->revision >= FXP_REV_82558_A4) {
-		FXP_SYSCTL_STAT_ADD(ctx, child, "pause",
-		    &hsp->rx_pause, "Pause frames");
-		FXP_SYSCTL_STAT_ADD(ctx, child, "controls",
-		    &hsp->rx_controls, "Unsupported control frames");
+		FXP_SYSCTL_STAT_ADD(ctx, child, "pause", &hsp->rx_pause,
+		    "Pause frames");
+		FXP_SYSCTL_STAT_ADD(ctx, child, "controls", &hsp->rx_controls,
+		    "Unsupported control frames");
 	}
 	if (sc->revision >= FXP_REV_82559_A0)
-		FXP_SYSCTL_STAT_ADD(ctx, child, "tco",
-		    &hsp->rx_tco, "TCO frames");
+		FXP_SYSCTL_STAT_ADD(ctx, child, "tco", &hsp->rx_tco,
+		    "TCO frames");
 
 	/* Tx MAC statistics. */
 	tree = SYSCTL_ADD_NODE(ctx, parent, OID_AUTO, "tx",
 	    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "Tx MAC statistics");
 	child = SYSCTL_CHILDREN(tree);
-	FXP_SYSCTL_STAT_ADD(ctx, child, "good_frames",
-	    &hsp->tx_good, "Good frames");
-	FXP_SYSCTL_STAT_ADD(ctx, child, "maxcols",
-	    &hsp->tx_maxcols, "Maximum collisions errors");
-	FXP_SYSCTL_STAT_ADD(ctx, child, "latecols",
-	    &hsp->tx_latecols, "Late collisions errors");
-	FXP_SYSCTL_STAT_ADD(ctx, child, "underruns",
-	    &hsp->tx_underruns, "Underrun errors");
-	FXP_SYSCTL_STAT_ADD(ctx, child, "lostcrs",
-	    &hsp->tx_lostcrs, "Lost carrier sense");
-	FXP_SYSCTL_STAT_ADD(ctx, child, "deffered",
-	    &hsp->tx_deffered, "Deferred");
+	FXP_SYSCTL_STAT_ADD(ctx, child, "good_frames", &hsp->tx_good,
+	    "Good frames");
+	FXP_SYSCTL_STAT_ADD(ctx, child, "maxcols", &hsp->tx_maxcols,
+	    "Maximum collisions errors");
+	FXP_SYSCTL_STAT_ADD(ctx, child, "latecols", &hsp->tx_latecols,
+	    "Late collisions errors");
+	FXP_SYSCTL_STAT_ADD(ctx, child, "underruns", &hsp->tx_underruns,
+	    "Underrun errors");
+	FXP_SYSCTL_STAT_ADD(ctx, child, "lostcrs", &hsp->tx_lostcrs,
+	    "Lost carrier sense");
+	FXP_SYSCTL_STAT_ADD(ctx, child, "deffered", &hsp->tx_deffered,
+	    "Deferred");
 	FXP_SYSCTL_STAT_ADD(ctx, child, "single_collisions",
 	    &hsp->tx_single_collisions, "Single collisions");
 	FXP_SYSCTL_STAT_ADD(ctx, child, "multiple_collisions",
@@ -3221,11 +3214,11 @@ fxp_sysctl_node(struct fxp_softc *sc)
 	FXP_SYSCTL_STAT_ADD(ctx, child, "total_collisions",
 	    &hsp->tx_total_collisions, "Total collisions");
 	if (sc->revision >= FXP_REV_82558_A4)
-		FXP_SYSCTL_STAT_ADD(ctx, child, "pause",
-		    &hsp->tx_pause, "Pause frames");
+		FXP_SYSCTL_STAT_ADD(ctx, child, "pause", &hsp->tx_pause,
+		    "Pause frames");
 	if (sc->revision >= FXP_REV_82559_A0)
-		FXP_SYSCTL_STAT_ADD(ctx, child, "tco",
-		    &hsp->tx_tco, "TCO frames");
+		FXP_SYSCTL_STAT_ADD(ctx, child, "tco", &hsp->tx_tco,
+		    "TCO frames");
 }
 
 #undef FXP_SYSCTL_STAT_ADD

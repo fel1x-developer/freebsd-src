@@ -34,24 +34,24 @@
 #include <uchar.h>
 
 #include "../iconv/citrus_hash.h"
-#include "../iconv/citrus_module.h"
 #include "../iconv/citrus_iconv.h"
+#include "../iconv/citrus_module.h"
 #include "mblocal.h"
 
 typedef struct {
-	bool			initialized;
-	struct _citrus_iconv	iconv;
+	bool initialized;
+	struct _citrus_iconv iconv;
 	union {
-		charXX_t	widechar[SRCBUF_LEN];
-		char		bytes[sizeof(charXX_t) * SRCBUF_LEN];
+		charXX_t widechar[SRCBUF_LEN];
+		char bytes[sizeof(charXX_t) * SRCBUF_LEN];
 	} srcbuf;
-	size_t			srcbuf_len;
+	size_t srcbuf_len;
 } _ConversionState;
 _Static_assert(sizeof(_ConversionState) <= sizeof(mbstate_t),
     "Size of _ConversionState must not exceed mbstate_t's size.");
 
 size_t
-cXXrtomb_l(char * __restrict s, charXX_t c, mbstate_t * __restrict ps,
+cXXrtomb_l(char *__restrict s, charXX_t c, mbstate_t *__restrict ps,
     locale_t locale)
 {
 	_ConversionState *cs;
@@ -69,7 +69,7 @@ cXXrtomb_l(char * __restrict s, charXX_t c, mbstate_t * __restrict ps,
 	/* Reinitialize mbstate_t. */
 	if (s == NULL || !cs->initialized) {
 		if (_citrus_iconv_open(&handle, UTF_XX_INTERNAL,
-		    nl_langinfo_l(CODESET, locale)) != 0) {
+			nl_langinfo_l(CODESET, locale)) != 0) {
 			cs->initialized = false;
 			errno = EINVAL;
 			return (-1);
@@ -95,7 +95,7 @@ cXXrtomb_l(char * __restrict s, charXX_t c, mbstate_t * __restrict ps,
 	if (err == EINVAL)
 		return (0);
 	cs->srcbuf_len = 0;
-	
+
 	/* Illegal sequence. */
 	if (dst == s) {
 		errno = EILSEQ;
@@ -105,7 +105,7 @@ cXXrtomb_l(char * __restrict s, charXX_t c, mbstate_t * __restrict ps,
 }
 
 size_t
-cXXrtomb(char * __restrict s, charXX_t c, mbstate_t * __restrict ps)
+cXXrtomb(char *__restrict s, charXX_t c, mbstate_t *__restrict ps)
 {
 
 	return (cXXrtomb_l(s, c, ps, __get_locale()));

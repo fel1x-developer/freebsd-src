@@ -1,6 +1,5 @@
 #include "ipf.h"
 
-
 void
 printtcpflags(u_32_t tcpf, u_32_t tcpfm)
 {

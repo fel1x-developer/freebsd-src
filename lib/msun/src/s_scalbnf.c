@@ -9,9 +9,13 @@
 #include <math.h>
 #include <stdint.h>
 
-float scalbnf(float x, int n)
+float
+scalbnf(float x, int n)
 {
-	union {float f; uint32_t i;} u;
+	union {
+		float f;
+		uint32_t i;
+	} u;
 	float_t y = x;
 
 	if (n > 127) {
@@ -33,7 +37,7 @@ float scalbnf(float x, int n)
 				n = -126;
 		}
 	}
-	u.i = (uint32_t)(0x7f+n)<<23;
+	u.i = (uint32_t)(0x7f + n) << 23;
 	x = y * u.f;
 	return x;
 }

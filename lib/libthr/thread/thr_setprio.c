@@ -30,25 +30,27 @@
  */
 
 #include <sys/cdefs.h>
-#include "namespace.h"
-#include <pthread.h>
-#include "un-namespace.h"
 
+#include <pthread.h>
+
+#include "namespace.h"
 #include "thr_private.h"
+#include "un-namespace.h"
 
 __weak_reference(_pthread_setprio, pthread_setprio);
 
 int
 _pthread_setprio(pthread_t pthread, int prio)
 {
-	struct pthread	*curthread = _get_curthread();
-	struct sched_param	param;
-	int	ret;
+	struct pthread *curthread = _get_curthread();
+	struct sched_param param;
+	int ret;
 
 	param.sched_priority = prio;
 	if (pthread == curthread)
 		THR_LOCK(curthread);
-	else if ((ret = _thr_find_thread(curthread, pthread, /*include dead*/0)))
+	else if ((ret = _thr_find_thread(curthread, pthread,
+		      /*include dead*/ 0)))
 		return (ret);
 	if (pthread->attr.sched_policy == SCHED_OTHER ||
 	    pthread->attr.prio == prio) {
@@ -56,7 +58,7 @@ _pthread_setprio(pthread_t pthread, int prio)
 		ret = 0;
 	} else {
 		ret = _thr_setscheduler(pthread->tid,
-			pthread->attr.sched_policy, &param);
+		    pthread->attr.sched_policy, &param);
 		if (ret == -1)
 			ret = errno;
 		else

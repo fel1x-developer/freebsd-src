@@ -27,19 +27,18 @@
  */
 
 #include <sys/cdefs.h>
-#include <proc_service.h>
-#include <stddef.h>
-#include <thread_db.h>
-#include <unistd.h>
-#include <sys/cdefs.h>
 #include <sys/endian.h>
 #include <sys/errno.h>
 #include <sys/linker_set.h>
 
+#include <proc_service.h>
+#include <stddef.h>
+#include <thread_db.h>
+#include <unistd.h>
+
 #include "thread_db_int.h"
 
-struct td_thragent 
-{
+struct td_thragent {
 	TD_THRAGENT_FIELDS;
 };
 
@@ -54,7 +53,8 @@ td_init(void)
 	struct ta_ops *ops_p, **ops_pp;
 
 	ret = 0;
-	SET_FOREACH(ops_pp, __ta_ops) {
+	SET_FOREACH(ops_pp, __ta_ops)
+	{
 		ops_p = *ops_pp;
 		if (ops_p->to_init != NULL) {
 			tmp = ops_p->to_init();
@@ -107,7 +107,8 @@ td_ta_new(struct ps_prochandle *ph, td_thragent_t **pta)
 {
 	struct ta_ops *ops_p, **ops_pp;
 
-	SET_FOREACH(ops_pp, __ta_ops) {
+	SET_FOREACH(ops_pp, __ta_ops)
+	{
 		ops_p = *ops_pp;
 		if (ops_p->to_ta_new(ph, pta) == TD_OK) {
 			TAILQ_INSERT_HEAD(&proclist, *pta, ta_next);
@@ -125,17 +126,16 @@ td_ta_set_event(const td_thragent_t *ta, td_thr_events_t *events)
 }
 
 td_err_e
-td_ta_thr_iter(const td_thragent_t *ta, td_thr_iter_f *callback,
-    void *cbdata_p, td_thr_state_e state, int ti_pri, sigset_t *ti_sigmask_p,
+td_ta_thr_iter(const td_thragent_t *ta, td_thr_iter_f *callback, void *cbdata_p,
+    td_thr_state_e state, int ti_pri, sigset_t *ti_sigmask_p,
     unsigned int ti_user_flags)
 {
 	return (ta->ta_ops->to_ta_thr_iter(ta, callback, cbdata_p, state,
-		    ti_pri, ti_sigmask_p, ti_user_flags));
+	    ti_pri, ti_sigmask_p, ti_user_flags));
 }
 
 td_err_e
-td_ta_tsd_iter(const td_thragent_t *ta, td_key_iter_f *callback,
-    void *cbdata_p)
+td_ta_tsd_iter(const td_thragent_t *ta, td_key_iter_f *callback, void *cbdata_p)
 {
 	return (ta->ta_ops->to_ta_tsd_iter(ta, callback, cbdata_p));
 }
@@ -181,7 +181,7 @@ td_thr_old_get_info(const td_thrhandle_t *th, td_old_thrinfo_t *info)
 	const td_thragent_t *ta = th->th_ta;
 	return (ta->ta_ops->to_thr_old_get_info(th, info));
 }
-__sym_compat(td_thr_get_info, td_thr_old_get_info, FBSD_1.0);
+__sym_compat(td_thr_get_info, td_thr_old_get_info, FBSD_1 .0);
 
 td_err_e
 td_thr_get_info(const td_thrhandle_t *th, td_thrinfo_t *info)
@@ -198,7 +198,6 @@ td_thr_getxmmregs(const td_thrhandle_t *th, char *fxsave)
 	return (ta->ta_ops->to_thr_getxmmregs(th, fxsave));
 }
 #endif
-
 
 td_err_e
 td_thr_getfpregs(const td_thrhandle_t *th, prfpregset_t *fpregset)
@@ -274,8 +273,8 @@ td_thr_sstep(const td_thrhandle_t *th, int step)
  */
 
 static int
-thr_pread(struct ps_prochandle *ph, psaddr_t addr, uint64_t *val,
-    u_int size, u_int byteorder)
+thr_pread(struct ps_prochandle *ph, psaddr_t addr, uint64_t *val, u_int size,
+    u_int byteorder)
 {
 	uint8_t buf[sizeof(*val)];
 	ps_err_e err;
@@ -365,8 +364,8 @@ thr_pread_ptr(const struct td_thragent *ta, psaddr_t addr, psaddr_t *val)
 }
 
 static int
-thr_pwrite(struct ps_prochandle *ph, psaddr_t addr, uint64_t val,
-    u_int size, u_int byteorder)
+thr_pwrite(struct ps_prochandle *ph, psaddr_t addr, uint64_t val, u_int size,
+    u_int byteorder)
 {
 	uint8_t buf[sizeof(val)];
 	ps_err_e err;
@@ -439,4 +438,3 @@ thr_pwrite_ptr(const struct td_thragent *ta, psaddr_t addr, psaddr_t val)
 
 	return (thr_pwrite(ta->ph, addr, val, sizeof(void *), BYTE_ORDER));
 }
-

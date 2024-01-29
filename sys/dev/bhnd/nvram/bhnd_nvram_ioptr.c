@@ -30,8 +30,8 @@
 #include <sys/cdefs.h>
 #ifdef _KERNEL
 #include <sys/param.h>
-#include <sys/malloc.h>
 #include <sys/systm.h>
+#include <sys/malloc.h>
 #else /* !_KERNEL */
 #include <errno.h>
 #include <stdint.h>
@@ -39,10 +39,9 @@
 #include <string.h>
 #endif /* _KERNEL */
 
-#include "bhnd_nvram_private.h"
-
 #include "bhnd_nvram_io.h"
 #include "bhnd_nvram_iovar.h"
+#include "bhnd_nvram_private.h"
 
 /**
  * Memory-backed NVRAM I/O context.
@@ -52,11 +51,11 @@
  * bhnd_nvram_io_write_ptr().
  */
 struct bhnd_nvram_ioptr {
-	struct bhnd_nvram_io	 io;		/**< common I/O instance state */
-	void			*ptr;		/**< backing memory */
-	size_t			 size;		/**< size at @p ptr */
-	size_t			 capacity;	/**< capacity at @p ptr */
-	uint32_t		 flags;		/**< flags (see BHND_NVRAM_IOPTR_*) */
+	struct bhnd_nvram_io io; /**< common I/O instance state */
+	void *ptr;		 /**< backing memory */
+	size_t size;		 /**< size at @p ptr */
+	size_t capacity;	 /**< capacity at @p ptr */
+	uint32_t flags;		 /**< flags (see BHND_NVRAM_IOPTR_*) */
 };
 
 BHND_NVRAM_IOPS_DEFN(ioptr)
@@ -83,7 +82,7 @@ struct bhnd_nvram_io *
 bhnd_nvram_ioptr_new(const void *ptr, size_t size, size_t capacity,
     uint32_t flags)
 {
-	struct bhnd_nvram_ioptr	*ioptr;
+	struct bhnd_nvram_ioptr *ioptr;
 
 	/* Sanity check the capacity */
 	if (size > capacity)
@@ -105,21 +104,21 @@ bhnd_nvram_ioptr_new(const void *ptr, size_t size, size_t capacity,
 
 static void
 bhnd_nvram_ioptr_free(struct bhnd_nvram_io *io)
-{	
+{
 	bhnd_nv_free(io);
 }
 
 static size_t
 bhnd_nvram_ioptr_getsize(struct bhnd_nvram_io *io)
 {
-	struct bhnd_nvram_ioptr	*ioptr = (struct bhnd_nvram_ioptr *)io;
+	struct bhnd_nvram_ioptr *ioptr = (struct bhnd_nvram_ioptr *)io;
 	return (ioptr->size);
 }
 
 static int
 bhnd_nvram_ioptr_setsize(struct bhnd_nvram_io *io, size_t size)
 {
-	struct bhnd_nvram_ioptr	*ioptr = (struct bhnd_nvram_ioptr *)io;
+	struct bhnd_nvram_ioptr *ioptr = (struct bhnd_nvram_ioptr *)io;
 
 	/* Must be writable */
 	if (!(ioptr->flags & BHND_NVRAM_IOPTR_RDWR))
@@ -136,7 +135,7 @@ bhnd_nvram_ioptr_setsize(struct bhnd_nvram_io *io, size_t size)
 /* Common ioptr_(read|write)_ptr implementation */
 static int
 bhnd_nvram_ioptr_ptr(struct bhnd_nvram_ioptr *ioptr, size_t offset, void **ptr,
-		     size_t nbytes, size_t *navail)
+    size_t nbytes, size_t *navail)
 {
 	size_t avail;
 
@@ -159,13 +158,13 @@ bhnd_nvram_ioptr_ptr(struct bhnd_nvram_ioptr *ioptr, size_t offset, void **ptr,
 
 static int
 bhnd_nvram_ioptr_read_ptr(struct bhnd_nvram_io *io, size_t offset,
-			  const void **ptr, size_t nbytes, size_t *navail)
+    const void **ptr, size_t nbytes, size_t *navail)
 {
-	struct bhnd_nvram_ioptr	*ioptr;
-	void			*writep;
-	int			 error;
+	struct bhnd_nvram_ioptr *ioptr;
+	void *writep;
+	int error;
 
-	ioptr = (struct bhnd_nvram_ioptr *) io;
+	ioptr = (struct bhnd_nvram_ioptr *)io;
 
 	/* Return a pointer into our backing buffer */
 	error = bhnd_nvram_ioptr_ptr(ioptr, offset, &writep, nbytes, navail);
@@ -178,12 +177,12 @@ bhnd_nvram_ioptr_read_ptr(struct bhnd_nvram_io *io, size_t offset,
 }
 
 static int
-bhnd_nvram_ioptr_write_ptr(struct bhnd_nvram_io *io, size_t offset,
-			   void **ptr, size_t nbytes, size_t *navail)
+bhnd_nvram_ioptr_write_ptr(struct bhnd_nvram_io *io, size_t offset, void **ptr,
+    size_t nbytes, size_t *navail)
 {
-	struct bhnd_nvram_ioptr	*ioptr;
+	struct bhnd_nvram_ioptr *ioptr;
 
-	ioptr = (struct bhnd_nvram_ioptr *) io;
+	ioptr = (struct bhnd_nvram_ioptr *)io;
 
 	/* Must be writable */
 	if (!(ioptr->flags & BHND_NVRAM_IOPTR_RDWR))
@@ -195,10 +194,10 @@ bhnd_nvram_ioptr_write_ptr(struct bhnd_nvram_io *io, size_t offset,
 
 static int
 bhnd_nvram_ioptr_read(struct bhnd_nvram_io *io, size_t offset, void *buffer,
-		      size_t nbytes)
+    size_t nbytes)
 {
-	const void	*ptr;
-	int		 error;
+	const void *ptr;
+	int error;
 
 	/* Try to fetch a direct pointer for at least nbytes */
 	if ((error = bhnd_nvram_io_read_ptr(io, offset, &ptr, nbytes, NULL)))
@@ -210,11 +209,11 @@ bhnd_nvram_ioptr_read(struct bhnd_nvram_io *io, size_t offset, void *buffer,
 }
 
 static int
-bhnd_nvram_ioptr_write(struct bhnd_nvram_io *io, size_t offset,
-		       void *buffer, size_t nbytes)
+bhnd_nvram_ioptr_write(struct bhnd_nvram_io *io, size_t offset, void *buffer,
+    size_t nbytes)
 {
-	void	*ptr;
-	int	 error;
+	void *ptr;
+	int error;
 
 	/* Try to fetch a direct pointer for at least nbytes */
 	if ((error = bhnd_nvram_io_write_ptr(io, offset, &ptr, nbytes, NULL)))

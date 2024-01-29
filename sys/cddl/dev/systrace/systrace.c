@@ -52,9 +52,9 @@
 #include <sys/uio.h>
 #include <sys/unistd.h>
 
-#include <cddl/dev/dtrace/dtrace_cddl.h>
-
 #include <machine/stdarg.h>
+
+#include <cddl/dev/dtrace/dtrace_cddl.h>
 
 #ifdef LINUX_SYSTRACE
 #if defined(__amd64__)
@@ -70,11 +70,11 @@
 #else
 #error Only i386 and amd64 are supported.
 #endif
-#define	MODNAME		"linux"
+#define MODNAME "linux"
 extern struct sysent linux_sysent[];
-#define	MAXSYSCALL	LINUX_SYS_MAXSYSCALL
-#define	SYSCALLNAMES	linux_syscallnames
-#define	SYSENT		linux_sysent
+#define MAXSYSCALL LINUX_SYS_MAXSYSCALL
+#define SYSCALLNAMES linux_syscallnames
+#define SYSENT linux_sysent
 #elif defined(LINUX32_SYSTRACE)
 #if defined(__amd64__)
 #include <amd64/linux32/linux.h>
@@ -84,49 +84,51 @@ extern struct sysent linux_sysent[];
 #else
 #error Only amd64 is supported.
 #endif
-#define	MODNAME		"linux32"
+#define MODNAME "linux32"
 extern struct sysent linux32_sysent[];
-#define	MAXSYSCALL	LINUX32_SYS_MAXSYSCALL
-#define	SYSCALLNAMES	linux32_syscallnames
-#define	SYSENT		linux32_sysent
+#define MAXSYSCALL LINUX32_SYS_MAXSYSCALL
+#define SYSCALLNAMES linux32_syscallnames
+#define SYSENT linux32_sysent
 #elif defined(FREEBSD32_SYSTRACE)
 /*
  * The syscall arguments are processed into a DTrace argument array
  * using a generated function. See sys/tools/makesyscalls.lua.
  */
 #include <compat/freebsd32/freebsd32_proto.h>
-#include <compat/freebsd32/freebsd32_util.h>
 #include <compat/freebsd32/freebsd32_syscall.h>
+#include <compat/freebsd32/freebsd32_util.h>
+
 #include <compat/freebsd32/freebsd32_systrace_args.c>
 extern const char *freebsd32_syscallnames[];
-#define	MODNAME		"freebsd32"
-#define	MAXSYSCALL	FREEBSD32_SYS_MAXSYSCALL
-#define	SYSCALLNAMES	freebsd32_syscallnames
-#define	SYSENT		freebsd32_sysent
+#define MODNAME "freebsd32"
+#define MAXSYSCALL FREEBSD32_SYS_MAXSYSCALL
+#define SYSCALLNAMES freebsd32_syscallnames
+#define SYSENT freebsd32_sysent
 #else
 /*
  * The syscall arguments are processed into a DTrace argument array
  * using a generated function. See sys/tools/makesyscalls.lua.
  */
 #include <sys/syscall.h>
+
 #include <kern/systrace_args.c>
-#define	MODNAME		"freebsd"
-#define	MAXSYSCALL	SYS_MAXSYSCALL
-#define	SYSCALLNAMES	syscallnames
-#define	SYSENT		sysent
-#define	NATIVE_ABI
+#define MODNAME "freebsd"
+#define MAXSYSCALL SYS_MAXSYSCALL
+#define SYSCALLNAMES syscallnames
+#define SYSENT sysent
+#define NATIVE_ABI
 #endif
 
-#define	PROVNAME	"syscall"
-#define	DEVNAME	        "dtrace/systrace/" MODNAME
+#define PROVNAME "syscall"
+#define DEVNAME "dtrace/systrace/" MODNAME
 
-#define	SYSTRACE_ARTIFICIAL_FRAMES	1
+#define SYSTRACE_ARTIFICIAL_FRAMES 1
 
-#define	SYSTRACE_SHIFT			16
-#define	SYSTRACE_ISENTRY(x)		((int)(x) >> SYSTRACE_SHIFT)
-#define	SYSTRACE_SYSNUM(x)		((int)(x) & ((1 << SYSTRACE_SHIFT) - 1))
-#define	SYSTRACE_ENTRY(id)		((1 << SYSTRACE_SHIFT) | (id))
-#define	SYSTRACE_RETURN(id)		(id)
+#define SYSTRACE_SHIFT 16
+#define SYSTRACE_ISENTRY(x) ((int)(x) >> SYSTRACE_SHIFT)
+#define SYSTRACE_SYSNUM(x) ((int)(x) & ((1 << SYSTRACE_SHIFT) - 1))
+#define SYSTRACE_ENTRY(id) ((1 << SYSTRACE_SHIFT) | (id))
+#define SYSTRACE_RETURN(id) (id)
 
 #if ((1 << SYSTRACE_SHIFT) <= MAXSYSCALL)
 #error 1 << SYSTRACE_SHIFT must exceed number of system calls
@@ -134,44 +136,47 @@ extern const char *freebsd32_syscallnames[];
 
 static int systrace_enabled_count;
 
-static void	systrace_load(void *);
-static void	systrace_unload(void *);
+static void systrace_load(void *);
+static void systrace_unload(void *);
 
-static void	systrace_getargdesc(void *, dtrace_id_t, void *,
-		    dtrace_argdesc_t *);
-static uint64_t	systrace_getargval(void *, dtrace_id_t, void *, int, int);
-static void	systrace_provide(void *, dtrace_probedesc_t *);
-static void	systrace_destroy(void *, dtrace_id_t, void *);
-static void	systrace_enable(void *, dtrace_id_t, void *);
-static void	systrace_disable(void *, dtrace_id_t, void *);
+static void systrace_getargdesc(void *, dtrace_id_t, void *,
+    dtrace_argdesc_t *);
+static uint64_t systrace_getargval(void *, dtrace_id_t, void *, int, int);
+static void systrace_provide(void *, dtrace_probedesc_t *);
+static void systrace_destroy(void *, dtrace_id_t, void *);
+static void systrace_enable(void *, dtrace_id_t, void *);
+static void systrace_disable(void *, dtrace_id_t, void *);
 
 static union {
-	const char	**p_constnames;
-	char		**pp_syscallnames;
+	const char **p_constnames;
+	char **pp_syscallnames;
 } uglyhack = { SYSCALLNAMES };
 
 static dtrace_pattr_t systrace_attr = {
-{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_COMMON },
-{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
-{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_ISA },
-{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_COMMON },
-{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_ISA },
+	{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING,
+	    DTRACE_CLASS_COMMON },
+	{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE,
+	    DTRACE_CLASS_UNKNOWN },
+	{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE,
+	    DTRACE_CLASS_ISA },
+	{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING,
+	    DTRACE_CLASS_COMMON },
+	{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE,
+	    DTRACE_CLASS_ISA },
 };
 
-static dtrace_pops_t systrace_pops = {
-	.dtps_provide =		systrace_provide,
-	.dtps_provide_module =	NULL,
-	.dtps_enable =		systrace_enable,
-	.dtps_disable =		systrace_disable,
-	.dtps_suspend =		NULL,
-	.dtps_resume =		NULL,
-	.dtps_getargdesc =	systrace_getargdesc,
-	.dtps_getargval =	systrace_getargval,
-	.dtps_usermode =	NULL,
-	.dtps_destroy =		systrace_destroy
-};
+static dtrace_pops_t systrace_pops = { .dtps_provide = systrace_provide,
+	.dtps_provide_module = NULL,
+	.dtps_enable = systrace_enable,
+	.dtps_disable = systrace_disable,
+	.dtps_suspend = NULL,
+	.dtps_resume = NULL,
+	.dtps_getargdesc = systrace_getargdesc,
+	.dtps_getargval = systrace_getargval,
+	.dtps_usermode = NULL,
+	.dtps_destroy = systrace_destroy };
 
-static dtrace_provider_id_t	systrace_id;
+static dtrace_provider_id_t systrace_id;
 
 #ifdef NATIVE_ABI
 /*
@@ -270,7 +275,7 @@ systrace_provide(void *arg, dtrace_probedesc_t *desc)
 
 	for (i = 0; i < MAXSYSCALL; i++) {
 		if (dtrace_probe_lookup(systrace_id, MODNAME,
-		    uglyhack.pp_syscallnames[i], "entry") != 0)
+			uglyhack.pp_syscallnames[i], "entry") != 0)
 			continue;
 
 		(void)dtrace_probe_create(systrace_id, MODNAME,
@@ -336,7 +341,7 @@ systrace_load(void *dummy __unused)
 {
 
 	if (dtrace_register(PROVNAME, &systrace_attr, DTRACE_PRIV_USER, NULL,
-	    &systrace_pops, NULL, &systrace_id) != 0)
+		&systrace_pops, NULL, &systrace_id) != 0)
 		return;
 
 #ifdef NATIVE_ABI
@@ -375,13 +380,12 @@ systrace_modevent(module_t mod __unused, int type, void *data __unused)
 	default:
 		error = EOPNOTSUPP;
 		break;
-
 	}
 	return (error);
 }
 
-SYSINIT(systrace_load, SI_SUB_DTRACE_PROVIDER, SI_ORDER_ANY,
-    systrace_load, NULL);
+SYSINIT(systrace_load, SI_SUB_DTRACE_PROVIDER, SI_ORDER_ANY, systrace_load,
+    NULL);
 SYSUNINIT(systrace_unload, SI_SUB_DTRACE_PROVIDER, SI_ORDER_ANY,
     systrace_unload, NULL);
 

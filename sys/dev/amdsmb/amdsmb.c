@@ -25,24 +25,26 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/systm.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
 
-#include <dev/pci/pcivar.h>
 #include <dev/pci/pcireg.h>
-
+#include <dev/pci/pcivar.h>
 #include <dev/smbus/smbconf.h>
+
 #include "smbus_if.h"
 
-#define	AMDSMB_DEBUG(x)	if (amdsmb_debug) (x)
+#define AMDSMB_DEBUG(x)   \
+	if (amdsmb_debug) \
+	(x)
 
 #ifdef DEBUG
 static int amdsmb_debug = 1;
@@ -50,59 +52,59 @@ static int amdsmb_debug = 1;
 static int amdsmb_debug = 0;
 #endif
 
-#define	AMDSMB_VENDORID_AMD		0x1022
-#define	AMDSMB_DEVICEID_AMD8111_SMB2	0x746a
+#define AMDSMB_VENDORID_AMD 0x1022
+#define AMDSMB_DEVICEID_AMD8111_SMB2 0x746a
 
 /*
  * ACPI 3.0, Chapter 12, Embedded Controller Interface.
  */
-#define	EC_DATA		0x00	/* data register */
-#define	EC_SC		0x04	/* status of controller */
-#define	EC_CMD		0x04	/* command register */
+#define EC_DATA 0x00 /* data register */
+#define EC_SC 0x04   /* status of controller */
+#define EC_CMD 0x04  /* command register */
 
-#define	EC_SC_IBF	0x02	/* data ready for embedded controller */
-#define	EC_SC_OBF	0x01	/* data ready for host */
-#define	EC_CMD_WR	0x81	/* write EC */
-#define	EC_CMD_RD	0x80	/* read EC */
+#define EC_SC_IBF 0x02 /* data ready for embedded controller */
+#define EC_SC_OBF 0x01 /* data ready for host */
+#define EC_CMD_WR 0x81 /* write EC */
+#define EC_CMD_RD 0x80 /* read EC */
 
 /*
  * ACPI 3.0, Chapter 12, SMBus Host Controller Interface.
  */
-#define	SMB_PRTCL	0x00	/* protocol */
-#define	SMB_STS		0x01	/* status */
-#define	SMB_ADDR	0x02	/* address */
-#define	SMB_CMD		0x03	/* command */
-#define	SMB_DATA	0x04	/* 32 data registers */
-#define	SMB_BCNT	0x24	/* number of data bytes */
-#define	SMB_ALRM_A	0x25	/* alarm address */
-#define	SMB_ALRM_D	0x26	/* 2 bytes alarm data */
+#define SMB_PRTCL 0x00	/* protocol */
+#define SMB_STS 0x01	/* status */
+#define SMB_ADDR 0x02	/* address */
+#define SMB_CMD 0x03	/* command */
+#define SMB_DATA 0x04	/* 32 data registers */
+#define SMB_BCNT 0x24	/* number of data bytes */
+#define SMB_ALRM_A 0x25 /* alarm address */
+#define SMB_ALRM_D 0x26 /* 2 bytes alarm data */
 
-#define	SMB_STS_DONE	0x80
-#define	SMB_STS_ALRM	0x40
-#define	SMB_STS_RES	0x20
-#define	SMB_STS_STATUS	0x1f
-#define	SMB_STS_OK	0x00	/* OK */
-#define	SMB_STS_UF	0x07	/* Unknown Failure */
-#define	SMB_STS_DANA	0x10	/* Device Address Not Acknowledged */
-#define	SMB_STS_DED	0x11	/* Device Error Detected */
-#define	SMB_STS_DCAD	0x12	/* Device Command Access Denied */
-#define	SMB_STS_UE	0x13	/* Unknown Error */
-#define	SMB_STS_DAD	0x17	/* Device Access Denied */
-#define	SMB_STS_T	0x18	/* Timeout */
-#define	SMB_STS_HUP	0x19	/* Host Unsupported Protocol */
-#define	SMB_STS_B	0x1a	/* Busy */
-#define	SMB_STS_PEC	0x1f	/* PEC (CRC-8) Error */
+#define SMB_STS_DONE 0x80
+#define SMB_STS_ALRM 0x40
+#define SMB_STS_RES 0x20
+#define SMB_STS_STATUS 0x1f
+#define SMB_STS_OK 0x00	  /* OK */
+#define SMB_STS_UF 0x07	  /* Unknown Failure */
+#define SMB_STS_DANA 0x10 /* Device Address Not Acknowledged */
+#define SMB_STS_DED 0x11  /* Device Error Detected */
+#define SMB_STS_DCAD 0x12 /* Device Command Access Denied */
+#define SMB_STS_UE 0x13	  /* Unknown Error */
+#define SMB_STS_DAD 0x17  /* Device Access Denied */
+#define SMB_STS_T 0x18	  /* Timeout */
+#define SMB_STS_HUP 0x19  /* Host Unsupported Protocol */
+#define SMB_STS_B 0x1a	  /* Busy */
+#define SMB_STS_PEC 0x1f  /* PEC (CRC-8) Error */
 
-#define	SMB_PRTCL_WRITE			0x00
-#define	SMB_PRTCL_READ			0x01
-#define	SMB_PRTCL_QUICK			0x02
-#define	SMB_PRTCL_BYTE			0x04
-#define	SMB_PRTCL_BYTE_DATA		0x06
-#define	SMB_PRTCL_WORD_DATA		0x08
-#define	SMB_PRTCL_BLOCK_DATA		0x0a
-#define	SMB_PRTCL_PROC_CALL		0x0c
-#define	SMB_PRTCL_BLOCK_PROC_CALL	0x0d
-#define	SMB_PRTCL_PEC			0x80
+#define SMB_PRTCL_WRITE 0x00
+#define SMB_PRTCL_READ 0x01
+#define SMB_PRTCL_QUICK 0x02
+#define SMB_PRTCL_BYTE 0x04
+#define SMB_PRTCL_BYTE_DATA 0x06
+#define SMB_PRTCL_WORD_DATA 0x08
+#define SMB_PRTCL_BLOCK_DATA 0x0a
+#define SMB_PRTCL_PROC_CALL 0x0c
+#define SMB_PRTCL_BLOCK_PROC_CALL 0x0d
+#define SMB_PRTCL_PEC 0x80
 
 struct amdsmb_softc {
 	int rid;
@@ -111,20 +113,19 @@ struct amdsmb_softc {
 	struct mtx lock;
 };
 
-#define	AMDSMB_LOCK(amdsmb)		mtx_lock(&(amdsmb)->lock)
-#define	AMDSMB_UNLOCK(amdsmb)		mtx_unlock(&(amdsmb)->lock)
-#define	AMDSMB_LOCK_ASSERT(amdsmb)	mtx_assert(&(amdsmb)->lock, MA_OWNED)
+#define AMDSMB_LOCK(amdsmb) mtx_lock(&(amdsmb)->lock)
+#define AMDSMB_UNLOCK(amdsmb) mtx_unlock(&(amdsmb)->lock)
+#define AMDSMB_LOCK_ASSERT(amdsmb) mtx_assert(&(amdsmb)->lock, MA_OWNED)
 
-#define	AMDSMB_ECINB(amdsmb, register)					\
-	(bus_read_1(amdsmb->res, register))
-#define	AMDSMB_ECOUTB(amdsmb, register, value) \
+#define AMDSMB_ECINB(amdsmb, register) (bus_read_1(amdsmb->res, register))
+#define AMDSMB_ECOUTB(amdsmb, register, value) \
 	(bus_write_1(amdsmb->res, register, value))
 
-static int	amdsmb_detach(device_t dev);
+static int amdsmb_detach(device_t dev);
 
 struct pci_device_table amdsmb_devs[] = {
 	{ PCI_DEV(AMDSMB_VENDORID_AMD, AMDSMB_DEVICEID_AMD8111_SMB2),
-	  PCI_DESCR("AMD-8111 SMBus 2.0 Controller") }
+	    PCI_DESCR("AMD-8111 SMBus 2.0 Controller") }
 };
 
 static int
@@ -149,7 +150,7 @@ amdsmb_attach(device_t dev)
 	amdsmb_sc->rid = PCIR_BAR(0);
 
 	amdsmb_sc->res = bus_alloc_resource_any(dev, SYS_RES_IOPORT,
-		&amdsmb_sc->rid, RF_ACTIVE);
+	    &amdsmb_sc->rid, RF_ACTIVE);
 
 	if (amdsmb_sc->res == NULL) {
 		device_printf(dev, "could not map i/o space\n");
@@ -280,8 +281,7 @@ amdsmb_wait(struct amdsmb_softc *sc)
 
 	AMDSMB_LOCK_ASSERT(sc);
 	amdsmb_ec_read(sc, SMB_PRTCL, &temp);
-	if (temp != 0)
-	{
+	if (temp != 0) {
 		count = 10000;
 		do {
 			DELAY(500);
@@ -369,7 +369,7 @@ amdsmb_sendb(device_t dev, u_char slave, char byte)
 	error = amdsmb_wait(sc);
 
 	AMDSMB_DEBUG(printf("amdsmb: SENDB to 0x%x, byte=0x%x, error=0x%x\n",
-	   slave, byte, error));
+	    slave, byte, error));
 	AMDSMB_UNLOCK(sc);
 
 	return (error);
@@ -410,7 +410,8 @@ amdsmb_writeb(device_t dev, u_char slave, char cmd, char byte)
 	error = amdsmb_wait(sc);
 
 	AMDSMB_DEBUG(printf("amdsmb: WRITEB to 0x%x, cmd=0x%x, byte=0x%x, "
-	    "error=0x%x\n", slave, cmd, byte, error));
+			    "error=0x%x\n",
+	    slave, cmd, byte, error));
 	AMDSMB_UNLOCK(sc);
 
 	return (error);
@@ -431,7 +432,8 @@ amdsmb_readb(device_t dev, u_char slave, char cmd, char *byte)
 		amdsmb_ec_read(sc, SMB_DATA, byte);
 
 	AMDSMB_DEBUG(printf("amdsmb: READB from 0x%x, cmd=0x%x, byte=0x%x, "
-	    "error=0x%x\n", slave, cmd, (unsigned char)*byte, error));
+			    "error=0x%x\n",
+	    slave, cmd, (unsigned char)*byte, error));
 	AMDSMB_UNLOCK(sc);
 
 	return (error);
@@ -453,7 +455,8 @@ amdsmb_writew(device_t dev, u_char slave, char cmd, short word)
 	error = amdsmb_wait(sc);
 
 	AMDSMB_DEBUG(printf("amdsmb: WRITEW to 0x%x, cmd=0x%x, word=0x%x, "
-	    "error=0x%x\n", slave, cmd, word, error));
+			    "error=0x%x\n",
+	    slave, cmd, word, error));
 	AMDSMB_UNLOCK(sc);
 
 	return (error);
@@ -478,7 +481,8 @@ amdsmb_readw(device_t dev, u_char slave, char cmd, short *word)
 	}
 
 	AMDSMB_DEBUG(printf("amdsmb: READW from 0x%x, cmd=0x%x, word=0x%x, "
-	    "error=0x%x\n", slave, cmd, (unsigned short)*word, error));
+			    "error=0x%x\n",
+	    slave, cmd, (unsigned short)*word, error));
 	AMDSMB_UNLOCK(sc);
 
 	return (error);
@@ -505,7 +509,8 @@ amdsmb_bwrite(device_t dev, u_char slave, char cmd, u_char count, char *buf)
 	error = amdsmb_wait(sc);
 
 	AMDSMB_DEBUG(printf("amdsmb: WRITEBLK to 0x%x, count=0x%x, cmd=0x%x, "
-	    "error=0x%x", slave, count, cmd, error));
+			    "error=0x%x",
+	    slave, count, cmd, error));
 	AMDSMB_UNLOCK(sc);
 
 	return (error);
@@ -537,7 +542,8 @@ amdsmb_bread(device_t dev, u_char slave, char cmd, u_char *count, char *buf)
 	}
 
 	AMDSMB_DEBUG(printf("amdsmb: READBLK to 0x%x, count=0x%x, cmd=0x%x, "
-	    "error=0x%x", slave, *count, cmd, error));
+			    "error=0x%x",
+	    slave, *count, cmd, error));
 	AMDSMB_UNLOCK(sc);
 
 	return (error);
@@ -545,22 +551,21 @@ amdsmb_bread(device_t dev, u_char slave, char cmd, u_char *count, char *buf)
 
 static device_method_t amdsmb_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		amdsmb_probe),
-	DEVMETHOD(device_attach,	amdsmb_attach),
-	DEVMETHOD(device_detach,	amdsmb_detach),
+	DEVMETHOD(device_probe, amdsmb_probe),
+	DEVMETHOD(device_attach, amdsmb_attach),
+	DEVMETHOD(device_detach, amdsmb_detach),
 
 	/* SMBus interface */
-	DEVMETHOD(smbus_callback,	amdsmb_callback),
-	DEVMETHOD(smbus_quick,		amdsmb_quick),
-	DEVMETHOD(smbus_sendb,		amdsmb_sendb),
-	DEVMETHOD(smbus_recvb,		amdsmb_recvb),
-	DEVMETHOD(smbus_writeb,		amdsmb_writeb),
-	DEVMETHOD(smbus_readb,		amdsmb_readb),
-	DEVMETHOD(smbus_writew,		amdsmb_writew),
-	DEVMETHOD(smbus_readw,		amdsmb_readw),
-	DEVMETHOD(smbus_bwrite,		amdsmb_bwrite),
-	DEVMETHOD(smbus_bread,		amdsmb_bread),
-	{ 0, 0 }
+	DEVMETHOD(smbus_callback, amdsmb_callback),
+	DEVMETHOD(smbus_quick, amdsmb_quick),
+	DEVMETHOD(smbus_sendb, amdsmb_sendb),
+	DEVMETHOD(smbus_recvb, amdsmb_recvb),
+	DEVMETHOD(smbus_writeb, amdsmb_writeb),
+	DEVMETHOD(smbus_readb, amdsmb_readb),
+	DEVMETHOD(smbus_writew, amdsmb_writew),
+	DEVMETHOD(smbus_readw, amdsmb_readw),
+	DEVMETHOD(smbus_bwrite, amdsmb_bwrite),
+	DEVMETHOD(smbus_bread, amdsmb_bread), { 0, 0 }
 };
 
 static driver_t amdsmb_driver = {

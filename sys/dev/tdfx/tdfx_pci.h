@@ -33,8 +33,8 @@
 
 /* tdfx_pci.h -- Prototypes for tdfx device methods */
 /* Copyright (C) 2000-2001 by Coleman Kane <cokane@FreeBSD.org> */
-#include <sys/proc.h>
 #include <sys/conf.h>
+#include <sys/proc.h>
 
 /* Driver functions */
 static int tdfx_probe(device_t dev);

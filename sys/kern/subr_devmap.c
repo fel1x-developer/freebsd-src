@@ -32,9 +32,11 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/devmap.h>
+
 #include <vm/vm.h>
-#include <vm/vm_extern.h>
 #include <vm/pmap.h>
+#include <vm/vm_extern.h>
+
 #include <machine/vmparam.h>
 
 static const struct devmap_entry *devmap_table;
@@ -46,10 +48,10 @@ static boolean_t devmap_bootstrap_done = false;
  * automatically allocated virtual addresses carved out of the top of kva space.
  * Allocation begins immediately below the max kernel virtual address.
  */
-#define	AKVA_DEVMAP_MAX_ENTRIES	32
-static struct devmap_entry	akva_devmap_entries[AKVA_DEVMAP_MAX_ENTRIES];
-static u_int			akva_devmap_idx;
-static vm_offset_t		akva_devmap_vaddr = DEVMAP_MAX_VADDR;
+#define AKVA_DEVMAP_MAX_ENTRIES 32
+static struct devmap_entry akva_devmap_entries[AKVA_DEVMAP_MAX_ENTRIES];
+static u_int akva_devmap_idx;
+static vm_offset_t akva_devmap_vaddr = DEVMAP_MAX_VADDR;
 
 #if defined(__aarch64__) || defined(__riscv)
 extern int early_boot;
@@ -132,7 +134,8 @@ devmap_add_entry(vm_paddr_t pa, vm_size_t sz)
 	if (akva_devmap_idx == 0)
 		devmap_register_table(akva_devmap_entries);
 
-	 /* Allocate virtual address space from the top of kva downwards. */
+		/* Allocate virtual address space from the top of kva downwards.
+		 */
 #ifdef __arm__
 	/*
 	 * If the range being mapped is aligned and sized to 1MB boundaries then
@@ -147,9 +150,9 @@ devmap_add_entry(vm_paddr_t pa, vm_size_t sz)
 		akva_devmap_vaddr = trunc_page(akva_devmap_vaddr - sz);
 	}
 	m = &akva_devmap_entries[akva_devmap_idx++];
-	m->pd_va    = akva_devmap_vaddr;
-	m->pd_pa    = pa;
-	m->pd_size  = sz;
+	m->pd_va = akva_devmap_vaddr;
+	m->pd_pa = pa;
+	m->pd_size = sz;
 }
 
 /*
@@ -224,7 +227,7 @@ devmap_ptov(vm_paddr_t pa, vm_size_t size)
  * corresponding physical address, or DEVMAP_PADDR_NOTFOUND if not found.
  */
 vm_paddr_t
-devmap_vtop(void * vpva, vm_size_t size)
+devmap_vtop(void *vpva, vm_size_t size)
 {
 	const struct devmap_entry *pd;
 	vm_offset_t va;
@@ -256,7 +259,7 @@ void *
 pmap_mapdev(vm_paddr_t pa, vm_size_t size)
 {
 	vm_offset_t va, offset;
-	void * rva;
+	void *rva;
 
 	/* First look in the static mapping table. */
 	if ((rva = devmap_ptov(pa, size)) != NULL)
@@ -288,7 +291,7 @@ void *
 pmap_mapdev_attr(vm_paddr_t pa, vm_size_t size, vm_memattr_t ma)
 {
 	vm_offset_t va, offset;
-	void * rva;
+	void *rva;
 
 	/* First look in the static mapping table. */
 	if ((rva = devmap_ptov(pa, size)) != NULL)
@@ -301,7 +304,8 @@ pmap_mapdev_attr(vm_paddr_t pa, vm_size_t size, vm_memattr_t ma)
 	if (early_boot) {
 		akva_devmap_vaddr = trunc_page(akva_devmap_vaddr - size);
 		va = akva_devmap_vaddr;
-		KASSERT(va >= (VM_MAX_KERNEL_ADDRESS - (PMAP_MAPDEV_EARLY_SIZE)),
+		KASSERT(va >=
+			(VM_MAX_KERNEL_ADDRESS - (PMAP_MAPDEV_EARLY_SIZE)),
 		    ("Too many early devmap mappings 2"));
 	} else
 		va = kva_alloc(size);

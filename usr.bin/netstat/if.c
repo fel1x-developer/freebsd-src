@@ -36,17 +36,18 @@
 #include <sys/socketvar.h>
 #include <sys/time.h>
 
+#include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_dl.h>
 #include <net/if_types.h>
-#include <net/ethernet.h>
 #include <netinet/in.h>
 #include <netinet/in_var.h>
+
 #include <arpa/inet.h>
 #ifdef PF
-#include <net/pfvar.h>
-#include <net/pflow.h>
 #include <net/if_pfsync.h>
+#include <net/pflow.h>
+#include <net/pfvar.h>
 #endif
 
 #include <err.h>
@@ -56,6 +57,7 @@
 #ifdef INET6
 #include <netdb.h>
 #endif
+#include <libxo/xo.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -64,47 +66,46 @@
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
-#include <libxo/xo.h>
 
 #include "netstat.h"
 
 static void sidewaysintpr(void);
 
 #ifdef PF
-static const char* pfsyncacts[] = {
-	/* PFSYNC_ACT_CLR */		"clear all request",
-	/* PFSYNC_ACT_INS_1301 */	"13.1 state insert",
-	/* PFSYNC_ACT_INS_ACK */	"state inserted ack",
-	/* PFSYNC_ACT_UPD_1301 */	"13.1 state update",
-	/* PFSYNC_ACT_UPD_C */		"compressed state update",
-	/* PFSYNC_ACT_UPD_REQ */	"uncompressed state request",
-	/* PFSYNC_ACT_DEL */		"state delete",
-	/* PFSYNC_ACT_DEL_C */		"compressed state delete",
-	/* PFSYNC_ACT_INS_F */		"fragment insert",
-	/* PFSYNC_ACT_DEL_F */		"fragment delete",
-	/* PFSYNC_ACT_BUS */		"bulk update mark",
-	/* PFSYNC_ACT_TDB */		"TDB replay counter update",
-	/* PFSYNC_ACT_EOF */		"end of frame mark",
-	/* PFSYNC_ACT_INS_1400 */	"state insert",
-	/* PFSYNC_ACT_UPD_1400 */	"state update",
+static const char *pfsyncacts[] = {
+	/* PFSYNC_ACT_CLR */ "clear all request",
+	/* PFSYNC_ACT_INS_1301 */ "13.1 state insert",
+	/* PFSYNC_ACT_INS_ACK */ "state inserted ack",
+	/* PFSYNC_ACT_UPD_1301 */ "13.1 state update",
+	/* PFSYNC_ACT_UPD_C */ "compressed state update",
+	/* PFSYNC_ACT_UPD_REQ */ "uncompressed state request",
+	/* PFSYNC_ACT_DEL */ "state delete",
+	/* PFSYNC_ACT_DEL_C */ "compressed state delete",
+	/* PFSYNC_ACT_INS_F */ "fragment insert",
+	/* PFSYNC_ACT_DEL_F */ "fragment delete",
+	/* PFSYNC_ACT_BUS */ "bulk update mark",
+	/* PFSYNC_ACT_TDB */ "TDB replay counter update",
+	/* PFSYNC_ACT_EOF */ "end of frame mark",
+	/* PFSYNC_ACT_INS_1400 */ "state insert",
+	/* PFSYNC_ACT_UPD_1400 */ "state update",
 };
 
-static const char* pfsyncacts_name[] = {
-	/* PFSYNC_ACT_CLR */		"clear-all-request",
-	/* PFSYNC_ACT_INS_1301 */	"state-insert-1301",
-	/* PFSYNC_ACT_INS_ACK */	"state-inserted-ack",
-	/* PFSYNC_ACT_UPD_1301 */	"state-update-1301",
-	/* PFSYNC_ACT_UPD_C */		"compressed-state-update",
-	/* PFSYNC_ACT_UPD_REQ */	"uncompressed-state-request",
-	/* PFSYNC_ACT_DEL */		"state-delete",
-	/* PFSYNC_ACT_DEL_C */		"compressed-state-delete",
-	/* PFSYNC_ACT_INS_F */		"fragment-insert",
-	/* PFSYNC_ACT_DEL_F */		"fragment-delete",
-	/* PFSYNC_ACT_BUS */		"bulk-update-mark",
-	/* PFSYNC_ACT_TDB */		"TDB-replay-counter-update",
-	/* PFSYNC_ACT_EOF */		"end-of-frame-mark",
-	/* PFSYNC_ACT_INS_1400 */	"state-insert",
-	/* PFSYNC_ACT_UPD_1400 */	"state-update",
+static const char *pfsyncacts_name[] = {
+	/* PFSYNC_ACT_CLR */ "clear-all-request",
+	/* PFSYNC_ACT_INS_1301 */ "state-insert-1301",
+	/* PFSYNC_ACT_INS_ACK */ "state-inserted-ack",
+	/* PFSYNC_ACT_UPD_1301 */ "state-update-1301",
+	/* PFSYNC_ACT_UPD_C */ "compressed-state-update",
+	/* PFSYNC_ACT_UPD_REQ */ "uncompressed-state-request",
+	/* PFSYNC_ACT_DEL */ "state-delete",
+	/* PFSYNC_ACT_DEL_C */ "compressed-state-delete",
+	/* PFSYNC_ACT_INS_F */ "fragment-insert",
+	/* PFSYNC_ACT_DEL_F */ "fragment-delete",
+	/* PFSYNC_ACT_BUS */ "bulk-update-mark",
+	/* PFSYNC_ACT_TDB */ "TDB-replay-counter-update",
+	/* PFSYNC_ACT_EOF */ "end-of-frame-mark",
+	/* PFSYNC_ACT_INS_1400 */ "state-insert",
+	/* PFSYNC_ACT_UPD_1400 */ "state-update",
 };
 
 static void
@@ -117,8 +118,8 @@ pfsync_acts_stats(const char *list, const char *desc, uint64_t *a)
 		if (*a || sflag <= 1) {
 			xo_open_instance(list);
 			xo_emit("\t\t{e:name}{:count/%ju} {N:/%s%s %s}\n",
-			    pfsyncacts_name[i], (uintmax_t)(*a),
-			    pfsyncacts[i], plural(*a), desc);
+			    pfsyncacts_name[i], (uintmax_t)(*a), pfsyncacts[i],
+			    plural(*a), desc);
 			xo_close_instance(list);
 		}
 	}
@@ -134,50 +135,67 @@ pfsync_stats(u_long off, const char *name, int af1 __unused, int proto __unused)
 	struct pfsyncstats pfsyncstat;
 
 	if (fetch_stats("net.pfsync.stats", off, &pfsyncstat,
-	    sizeof(pfsyncstat), kread) != 0)
+		sizeof(pfsyncstat), kread) != 0)
 		return;
 
 	xo_emit("{T:/%s}:\n", name);
 	xo_open_container(name);
 
-#define	p(f, m) if (pfsyncstat.f || sflag <= 1) \
+#define p(f, m)                         \
+	if (pfsyncstat.f || sflag <= 1) \
 	xo_emit(m, (uintmax_t)pfsyncstat.f, plural(pfsyncstat.f))
 
-	p(pfsyncs_ipackets, "\t{:received-inet-packets/%ju} "
+	p(pfsyncs_ipackets,
+	    "\t{:received-inet-packets/%ju} "
 	    "{N:/packet%s received (IPv4)}\n");
-	p(pfsyncs_ipackets6, "\t{:received-inet6-packets/%ju} "
+	p(pfsyncs_ipackets6,
+	    "\t{:received-inet6-packets/%ju} "
 	    "{N:/packet%s received (IPv6)}\n");
 	pfsync_acts_stats("input-histogram", "received",
 	    &pfsyncstat.pfsyncs_iacts[0]);
-	p(pfsyncs_badif, "\t\t{:dropped-bad-interface/%ju} "
+	p(pfsyncs_badif,
+	    "\t\t{:dropped-bad-interface/%ju} "
 	    "{N:/packet%s discarded for bad interface}\n");
-	p(pfsyncs_badttl, "\t\t{:dropped-bad-ttl/%ju} "
+	p(pfsyncs_badttl,
+	    "\t\t{:dropped-bad-ttl/%ju} "
 	    "{N:/packet%s discarded for bad ttl}\n");
-	p(pfsyncs_hdrops, "\t\t{:dropped-short-header/%ju} "
+	p(pfsyncs_hdrops,
+	    "\t\t{:dropped-short-header/%ju} "
 	    "{N:/packet%s shorter than header}\n");
-	p(pfsyncs_badver, "\t\t{:dropped-bad-version/%ju} "
+	p(pfsyncs_badver,
+	    "\t\t{:dropped-bad-version/%ju} "
 	    "{N:/packet%s discarded for bad version}\n");
-	p(pfsyncs_badauth, "\t\t{:dropped-bad-auth/%ju} "
+	p(pfsyncs_badauth,
+	    "\t\t{:dropped-bad-auth/%ju} "
 	    "{N:/packet%s discarded for bad HMAC}\n");
-	p(pfsyncs_badact,"\t\t{:dropped-bad-action/%ju} "
+	p(pfsyncs_badact,
+	    "\t\t{:dropped-bad-action/%ju} "
 	    "{N:/packet%s discarded for bad action}\n");
-	p(pfsyncs_badlen, "\t\t{:dropped-short/%ju} "
+	p(pfsyncs_badlen,
+	    "\t\t{:dropped-short/%ju} "
 	    "{N:/packet%s discarded for short packet}\n");
-	p(pfsyncs_badval, "\t\t{:dropped-bad-values/%ju} "
+	p(pfsyncs_badval,
+	    "\t\t{:dropped-bad-values/%ju} "
 	    "{N:/state%s discarded for bad values}\n");
-	p(pfsyncs_stale, "\t\t{:dropped-stale-state/%ju} "
+	p(pfsyncs_stale,
+	    "\t\t{:dropped-stale-state/%ju} "
 	    "{N:/stale state%s}\n");
-	p(pfsyncs_badstate, "\t\t{:dropped-failed-lookup/%ju} "
+	p(pfsyncs_badstate,
+	    "\t\t{:dropped-failed-lookup/%ju} "
 	    "{N:/failed state lookup\\/insert%s}\n");
-	p(pfsyncs_opackets, "\t{:sent-inet-packets/%ju} "
+	p(pfsyncs_opackets,
+	    "\t{:sent-inet-packets/%ju} "
 	    "{N:/packet%s sent (IPv4})\n");
-	p(pfsyncs_opackets6, "\t{:send-inet6-packets/%ju} "
+	p(pfsyncs_opackets6,
+	    "\t{:send-inet6-packets/%ju} "
 	    "{N:/packet%s sent (IPv6})\n");
 	pfsync_acts_stats("output-histogram", "sent",
 	    &pfsyncstat.pfsyncs_oacts[0]);
-	p(pfsyncs_onomem, "\t\t{:discarded-no-memory/%ju} "
+	p(pfsyncs_onomem,
+	    "\t\t{:discarded-no-memory/%ju} "
 	    "{N:/failure%s due to mbuf memory error}\n");
-	p(pfsyncs_oerrors, "\t\t{:send-errors/%ju} "
+	p(pfsyncs_oerrors,
+	    "\t\t{:send-errors/%ju} "
 	    "{N:/send error%s}\n");
 #undef p
 	xo_close_container(name);
@@ -188,19 +206,21 @@ pflow_stats(u_long off, const char *name, int af1 __unused, int proto __unused)
 {
 	struct pflowstats pflowstat;
 
-	if (fetch_stats("net.pflow.stats", off, &pflowstat,
-	    sizeof(pflowstat), kread) != 0)
+	if (fetch_stats("net.pflow.stats", off, &pflowstat, sizeof(pflowstat),
+		kread) != 0)
 		return;
 
 	xo_emit("{T:/%s}:\n", name);
 	xo_open_container(name);
 
-#define	p(f, m) if (pflowstat.f || sflag <= 1) \
+#define p(f, m)                        \
+	if (pflowstat.f || sflag <= 1) \
 	xo_emit(m, (uintmax_t)pflowstat.f, plural(pflowstat.f))
 
 	p(pflow_flows, "\t{:flows/%ju} {N:/flow%s sent}\n");
 	p(pflow_packets, "\t{:packets/%ju} {N:/packet%s sent}\n");
-	p(pflow_onomem, "\t{:nomem/%ju} "
+	p(pflow_onomem,
+	    "\t{:nomem/%ju} "
 	    "{N:/send failed due to mbuf memory error}\n");
 	p(pflow_oerrors, "\t{:send-error/%ju} {N:/send error}\n");
 #undef p
@@ -213,8 +233,8 @@ pflow_stats(u_long off, const char *name, int af1 __unused, int proto __unused)
  * Display a formatted value, or a '-' in the same space.
  */
 static void
-show_stat(const char *fmt, int width, const char *name,
-    u_long value, short showvalue, int div1000)
+show_stat(const char *fmt, int width, const char *name, u_long value,
+    short showvalue, int div1000)
 {
 	const char *lsep, *rsep;
 	char newfmt[64];
@@ -239,20 +259,22 @@ show_stat(const char *fmt, int width, const char *name,
 	 * XXX: workaround {P:} modifier can't be empty and doesn't seem to
 	 * take args... so we need to conditionally include it in the format.
 	 */
-#define maybe_pad(pad)	do {						    \
-	if (strlen(pad)) {						    \
-		snprintf(newfmt, sizeof(newfmt), "{P:%s}", pad);	    \
-		xo_emit(newfmt);					    \
-	}								    \
-} while (0)
+#define maybe_pad(pad)                                                   \
+	do {                                                             \
+		if (strlen(pad)) {                                       \
+			snprintf(newfmt, sizeof(newfmt), "{P:%s}", pad); \
+			xo_emit(newfmt);                                 \
+		}                                                        \
+	} while (0)
 
 	if (hflag) {
 		char buf[5];
 
 		/* Format in human readable form. */
 		humanize_number(buf, sizeof(buf), (int64_t)value, "",
-		    HN_AUTOSCALE, HN_NOSPACE | HN_DECIMAL | \
-		    ((div1000) ? HN_DIVISOR_1000 : 0));
+		    HN_AUTOSCALE,
+		    HN_NOSPACE | HN_DECIMAL |
+			((div1000) ? HN_DIVISOR_1000 : 0));
 		maybe_pad(lsep);
 		snprintf(newfmt, sizeof(newfmt), "{:%s/%%%ds}", name, width);
 		xo_emit(newfmt, buf);
@@ -260,8 +282,8 @@ show_stat(const char *fmt, int width, const char *name,
 	} else {
 		/* Construct the format string. */
 		maybe_pad(lsep);
-		snprintf(newfmt, sizeof(newfmt), "{:%s/%%%d%s}",
-		    name, width, fmt);
+		snprintf(newfmt, sizeof(newfmt), "{:%s/%%%d%s}", name, width,
+		    fmt);
 		xo_emit(newfmt, value);
 		maybe_pad(rsep);
 	}
@@ -274,7 +296,7 @@ static struct ifmaddrs *
 next_ifma(struct ifmaddrs *ifma, const char *name, const sa_family_t family)
 {
 
-	for(; ifma != NULL; ifma = ifma->ifma_next) {
+	for (; ifma != NULL; ifma = ifma->ifma_next) {
 		struct sockaddr_dl *sdl;
 
 		sdl = (struct sockaddr_dl *)ifma->ifma_name;
@@ -329,8 +351,7 @@ process_ifa_addr(enum process_op op, struct ifaddrs *ifa, int *max_net_len,
 		if (network != NULL)
 			*network = true;
 		break;
-	case AF_LINK:
-	    {
+	case AF_LINK: {
 		struct sockaddr_dl *sdl;
 		char linknum[sizeof("<Link#32767>")];
 
@@ -338,8 +359,7 @@ process_ifa_addr(enum process_op op, struct ifaddrs *ifa, int *max_net_len,
 		snprintf(linknum, sizeof(linknum), "<Link#%d>", sdl->sdl_index);
 		if (op == MEASURE) {
 			net_len = strlen(linknum);
-			if (sdl->sdl_nlen == 0 &&
-			    sdl->sdl_alen == 0 &&
+			if (sdl->sdl_nlen == 0 && sdl->sdl_alen == 0 &&
 			    sdl->sdl_slen == 0)
 				addr_len = 1;
 			else
@@ -347,8 +367,7 @@ process_ifa_addr(enum process_op op, struct ifaddrs *ifa, int *max_net_len,
 		} else {
 			xo_emit("{t:network/%-*.*s}  ", net_len, net_len,
 			    linknum);
-			if (sdl->sdl_nlen == 0 &&
-			    sdl->sdl_alen == 0 &&
+			if (sdl->sdl_nlen == 0 && sdl->sdl_alen == 0 &&
 			    sdl->sdl_slen == 0)
 				xo_emit("{P:/%*s} ", addr_len, "");
 			else
@@ -358,7 +377,7 @@ process_ifa_addr(enum process_op op, struct ifaddrs *ifa, int *max_net_len,
 		if (link != NULL)
 			*link = true;
 		break;
-	    }
+	}
 	}
 
 	if (op == MEASURE) {
@@ -372,7 +391,7 @@ process_ifa_addr(enum process_op op, struct ifaddrs *ifa, int *max_net_len,
 static int
 max_num_len(int max_len, u_long num)
 {
-	int len = 2;		/* include space */
+	int len = 2; /* include space */
 
 	for (; num > 10; len++)
 		num /= 10;
@@ -400,8 +419,7 @@ intpr(void (*pfunc)(char *), int af)
 		err(EX_OSERR, "getifmaddrs");
 
 	for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
-		if (interface != NULL &&
-		    strcmp(ifa->ifa_name, interface) != 0)
+		if (interface != NULL && strcmp(ifa->ifa_name, interface) != 0)
 			continue;
 		if (af != AF_UNSPEC && ifa->ifa_addr->sa_family != af)
 			continue;
@@ -409,10 +427,9 @@ intpr(void (*pfunc)(char *), int af)
 		if ((ifa->ifa_flags & IFF_UP) == 0)
 			++ifn_len;
 		ifn_len_max = MAX(ifn_len_max, ifn_len);
-		process_ifa_addr(MEASURE, ifa, &net_len, &addr_len,
-		    NULL, NULL);
+		process_ifa_addr(MEASURE, ifa, &net_len, &addr_len, NULL, NULL);
 
-#define	IFA_STAT(s)	(((struct if_data *)ifa->ifa_data)->ifi_ ## s)
+#define IFA_STAT(s) (((struct if_data *)ifa->ifa_data)->ifi_##s)
 		if (!hflag) {
 			npkt_len = max_num_len(npkt_len, IFA_STAT(ipackets));
 			npkt_len = max_num_len(npkt_len, IFA_STAT(opackets));
@@ -435,10 +452,10 @@ intpr(void (*pfunc)(char *), int af)
 	if (!pfunc) {
 		xo_emit("{T:/%-*.*s}", ifn_len_max, ifn_len_max, "Name");
 		xo_emit(" {T:/%5.5s} {T:/%-*.*s}  {T:/%-*.*s} {T:/%*.*s} "
-		    "{T:/%*.*s} {T:/%*.*s}",
+			"{T:/%*.*s} {T:/%*.*s}",
 		    "Mtu", net_len, net_len, "Network", addr_len, addr_len,
-		    "Address", npkt_len, npkt_len, "Ipkts",
-		    nerr_len, nerr_len, "Ierrs", nerr_len, nerr_len, "Idrop");
+		    "Address", npkt_len, npkt_len, "Ipkts", nerr_len, nerr_len,
+		    "Ierrs", nerr_len, nerr_len, "Idrop");
 		if (bflag)
 			xo_emit(" {T:/%*.*s}", nbyte_len, nbyte_len, "Ibytes");
 		xo_emit(" {T:/%*.*s} {T:/%*.*s}", npkt_len, npkt_len, "Opkts",
@@ -453,7 +470,7 @@ intpr(void (*pfunc)(char *), int af)
 
 	for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
 		bool network = false, link = false;
-		char *name, *xname, buf[IFNAMSIZ+1];
+		char *name, *xname, buf[IFNAMSIZ + 1];
 
 		if (interface != NULL && strcmp(ifa->ifa_name, interface) != 0)
 			continue;
@@ -467,7 +484,7 @@ intpr(void (*pfunc)(char *), int af)
 			/*
 			 * Skip all ifaddrs belonging to same interface.
 			 */
-			while(ifa->ifa_next != NULL &&
+			while (ifa->ifa_next != NULL &&
 			    (strcmp(ifa->ifa_next->ifa_name, name) == 0)) {
 				ifa = ifa->ifa_next;
 			}
@@ -487,32 +504,32 @@ intpr(void (*pfunc)(char *), int af)
 		} else
 			xname = name;
 
-		xo_emit("{d:/%-*.*s}{etk:name}{eq:flags/0x%x}",
-		    ifn_len_max, ifn_len_max, xname, name, ifa->ifa_flags);
+		xo_emit("{d:/%-*.*s}{etk:name}{eq:flags/0x%x}", ifn_len_max,
+		    ifn_len_max, xname, name, ifa->ifa_flags);
 
-#define IFA_MTU(ifa)	(((struct if_data *)(ifa)->ifa_data)->ifi_mtu)
+#define IFA_MTU(ifa) (((struct if_data *)(ifa)->ifa_data)->ifi_mtu)
 		show_stat("lu", 6, "mtu", IFA_MTU(ifa), IFA_MTU(ifa), 0);
 #undef IFA_MTU
 
-		process_ifa_addr(EMIT, ifa, &net_len, &addr_len,
-		    &network, &link);
+		process_ifa_addr(EMIT, ifa, &net_len, &addr_len, &network,
+		    &link);
 
 		show_stat("lu", npkt_len, "received-packets",
-		    IFA_STAT(ipackets), link|network, 1);
+		    IFA_STAT(ipackets), link | network, 1);
 		show_stat("lu", nerr_len, "received-errors", IFA_STAT(ierrors),
 		    link, 1);
 		show_stat("lu", nerr_len, "dropped-packets", IFA_STAT(iqdrops),
 		    link, 1);
 		if (bflag)
 			show_stat("lu", nbyte_len, "received-bytes",
-			    IFA_STAT(ibytes), link|network, 0);
+			    IFA_STAT(ibytes), link | network, 0);
 		show_stat("lu", npkt_len, "sent-packets", IFA_STAT(opackets),
-		    link|network, 1);
+		    link | network, 1);
 		show_stat("lu", nerr_len, "send-errors", IFA_STAT(oerrors),
 		    link, 1);
 		if (bflag)
 			show_stat("lu", nbyte_len, "sent-bytes",
-			    IFA_STAT(obytes), link|network, 0);
+			    IFA_STAT(obytes), link | network, 0);
 		show_stat("NRSlu", nerr_len, "collisions", IFA_STAT(collisions),
 		    link, 1);
 		if (dflag)
@@ -530,23 +547,21 @@ intpr(void (*pfunc)(char *), int af)
 		 */
 		xo_open_list("multicast-address");
 		for (ifma = next_ifma(ifmap, ifa->ifa_name,
-		    ifa->ifa_addr->sa_family);
-		    ifma != NULL;
-		    ifma = next_ifma(ifma, ifa->ifa_name,
-		    ifa->ifa_addr->sa_family)) {
+			 ifa->ifa_addr->sa_family);
+		     ifma != NULL; ifma = next_ifma(ifma, ifa->ifa_name,
+				       ifa->ifa_addr->sa_family)) {
 			const char *fmt = NULL;
 
 			xo_open_instance("multicast-address");
 			switch (ifma->ifma_addr->sa_family) {
-			case AF_LINK:
-			    {
+			case AF_LINK: {
 				struct sockaddr_dl *sdl;
 
 				sdl = (struct sockaddr_dl *)ifma->ifma_addr;
 				if (sdl->sdl_type != IFT_ETHER &&
 				    sdl->sdl_type != IFT_FDDI)
 					break;
-			    }
+			}
 				/* FALLTHROUGH */
 			case AF_INET:
 #ifdef INET6
@@ -558,17 +573,19 @@ intpr(void (*pfunc)(char *), int af)
 			if (fmt) {
 				if (Wflag)
 					xo_emit("{P:/%27s }"
-					    "{t:address/%-17s/}", "", fmt);
+						"{t:address/%-17s/}",
+					    "", fmt);
 				else
 					xo_emit("{P:/%25s }"
-					    "{t:address/%-17.17s/}", "", fmt);
+						"{t:address/%-17.17s/}",
+					    "", fmt);
 				if (ifma->ifma_addr->sa_family == AF_LINK) {
 					xo_emit(" {:received-packets/%8lu}",
 					    IFA_STAT(imcasts));
-					xo_emit("{P:/%*s}", bflag? 17 : 6, "");
+					xo_emit("{P:/%*s}", bflag ? 17 : 6, "");
 					xo_emit(" {:sent-packets/%8lu}",
 					    IFA_STAT(omcasts));
- 				}
+				}
 				xo_emit("\n");
 			}
 			xo_close_instance("multicast-address");
@@ -585,15 +602,15 @@ intpr(void (*pfunc)(char *), int af)
 }
 
 struct iftot {
-	u_long	ift_ip;			/* input packets */
-	u_long	ift_ie;			/* input errors */
-	u_long	ift_id;			/* input drops */
-	u_long	ift_op;			/* output packets */
-	u_long	ift_oe;			/* output errors */
-	u_long	ift_od;			/* output drops */
-	u_long	ift_co;			/* collisions */
-	u_long	ift_ib;			/* input bytes */
-	u_long	ift_ob;			/* output bytes */
+	u_long ift_ip; /* input packets */
+	u_long ift_ie; /* input errors */
+	u_long ift_id; /* input drops */
+	u_long ift_op; /* output packets */
+	u_long ift_oe; /* output errors */
+	u_long ift_od; /* output drops */
+	u_long ift_co; /* collisions */
+	u_long ift_ib; /* input bytes */
+	u_long ift_ob; /* output bytes */
 };
 
 /*
@@ -628,7 +645,7 @@ fill_iftot(struct iftot *st)
 		st->ift_oe += IFA_STAT(oerrors);
 		st->ift_od += IFA_STAT(oqdrops);
 		st->ift_ob += IFA_STAT(obytes);
- 		st->ift_co += IFA_STAT(collisions);
+		st->ift_co += IFA_STAT(collisions);
 	}
 
 	if (interface && found == false)
@@ -677,7 +694,7 @@ banner:
 	xo_emit("{T:/%17s} {T:/%14s} {T:/%16s}\n", "input",
 	    interface != NULL ? interface : "(Total)", "output");
 	xo_emit("{T:/%10s} {T:/%5s} {T:/%5s} {T:/%10s} {T:/%10s} {T:/%5s} "
-	    "{T:/%10s} {T:/%5s}",
+		"{T:/%10s} {T:/%5s}",
 	    "packets", "errs", "idrops", "bytes", "packets", "errs", "bytes",
 	    "colls");
 	if (dflag)
@@ -701,22 +718,15 @@ loop:
 	fill_iftot(new);
 
 	xo_open_instance("stats");
-	show_stat("lu", 10, "received-packets",
-	    new->ift_ip - old->ift_ip, 1, 1);
-	show_stat("lu", 5, "received-errors",
-	    new->ift_ie - old->ift_ie, 1, 1);
-	show_stat("lu", 5, "dropped-packets",
-	    new->ift_id - old->ift_id, 1, 1);
-	show_stat("lu", 10, "received-bytes",
-	    new->ift_ib - old->ift_ib, 1, 0);
-	show_stat("lu", 10, "sent-packets",
-	    new->ift_op - old->ift_op, 1, 1);
-	show_stat("lu", 5, "send-errors",
-	    new->ift_oe - old->ift_oe, 1, 1);
-	show_stat("lu", 10, "sent-bytes",
-	    new->ift_ob - old->ift_ob, 1, 0);
-	show_stat("NRSlu", 5, "collisions",
-	    new->ift_co - old->ift_co, 1, 1);
+	show_stat("lu", 10, "received-packets", new->ift_ip - old->ift_ip, 1,
+	    1);
+	show_stat("lu", 5, "received-errors", new->ift_ie - old->ift_ie, 1, 1);
+	show_stat("lu", 5, "dropped-packets", new->ift_id - old->ift_id, 1, 1);
+	show_stat("lu", 10, "received-bytes", new->ift_ib - old->ift_ib, 1, 0);
+	show_stat("lu", 10, "sent-packets", new->ift_op - old->ift_op, 1, 1);
+	show_stat("lu", 5, "send-errors", new->ift_oe - old->ift_oe, 1, 1);
+	show_stat("lu", 10, "sent-bytes", new->ift_ob - old->ift_ob, 1, 0);
+	show_stat("NRSlu", 5, "collisions", new->ift_co - old->ift_co, 1, 1);
 	if (dflag)
 		show_stat("LSlu", 5, "dropped-packets",
 		    new->ift_od - old->ift_od, 1, 1);

@@ -35,20 +35,18 @@
  */
 
 #ifndef _DEVDCTL_EVENT_FACTORY_H_
-#define	_DEVDCTL_EVENT_FACTORY_H_
+#define _DEVDCTL_EVENT_FACTORY_H_
 
 /*============================ Namespace Control =============================*/
-namespace DevdCtl
-{
+namespace DevdCtl {
 
 /*============================= Class Definitions ============================*/
 /*------------------------------- EventFactory -------------------------------*/
 /**
  * \brief Container for "event type" => "event object" creation methods.
  */
-class EventFactory
-{
-public:
+class EventFactory {
+    public:
 	/**
 	 * Event creation handlers are matched by event type and a
 	 * string representing the system emitting the event.
@@ -59,25 +57,23 @@ public:
 	typedef std::map<Key, Event::BuildMethod *> Registry;
 
 	/** Table record of factory methods to add to our registry. */
-	struct Record
-	{
-		Event::Type         m_type;
-		const char         *m_subsystem;
+	struct Record {
+		Event::Type m_type;
+		const char *m_subsystem;
 		Event::BuildMethod *m_buildMethod;
 	};
 
-	const Registry &GetRegistry()				const;
+	const Registry &GetRegistry() const;
 	Event *Build(Event::Type type, NVPairMap &nvpairs,
-		     const std::string eventString)		const;
+	    const std::string eventString) const;
 
 	EventFactory(Event::BuildMethod *defaultBuildMethod = NULL);
 
 	void UpdateRegistry(Record regEntries[], size_t numEntries);
 
-
-protected:
+    protected:
 	/** Registry of event factory methods providing O(log(n)) lookup. */
-	Registry	    m_registry;
+	Registry m_registry;
 
 	Event::BuildMethod *m_defaultBuildMethod;
 };

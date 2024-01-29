@@ -8,6 +8,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,13 +33,13 @@ main(int argc, char *argv[])
 	radix = 10;
 	while ((c = getopt(argc, argv, "n:sx")) != -1) {
 		switch (c) {
-		case 'n':	/* Max. number of bytes per line. */
+		case 'n': /* Max. number of bytes per line. */
 			maxcount = strtol(optarg, NULL, 10);
 			break;
-		case 's':	/* Be more style(9) comliant. */
+		case 's': /* Be more style(9) comliant. */
 			pretty = 1;
 			break;
-		case 'x':	/* Print hexadecimal numbers. */
+		case 'x': /* Print hexadecimal numbers. */
 			radix = 16;
 			break;
 		case '?':
@@ -52,7 +53,7 @@ main(int argc, char *argv[])
 	if (argc > 0)
 		printf("%s\n", argv[0]);
 	count = linepos = 0;
-	while((c = getchar()) != EOF) {
+	while ((c = getchar()) != EOF) {
 		if (count) {
 			putchar(',');
 			linepos++;

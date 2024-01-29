@@ -31,9 +31,9 @@
 #include <sys/types.h>
 #endif
 
-#define SHA224_BLOCK_LENGTH		64
-#define SHA224_DIGEST_LENGTH		28
-#define SHA224_DIGEST_STRING_LENGTH	(SHA224_DIGEST_LENGTH * 2 + 1)
+#define SHA224_BLOCK_LENGTH 64
+#define SHA224_DIGEST_LENGTH 28
+#define SHA224_DIGEST_STRING_LENGTH (SHA224_DIGEST_LENGTH * 2 + 1)
 
 typedef struct SHA224Context {
 	uint32_t state[8];
@@ -46,48 +46,48 @@ __BEGIN_DECLS
 /* Ensure libmd symbols do not clash with libcrypto */
 
 #ifndef SHA224_Init
-#define SHA224_Init		_libmd_SHA224_Init
+#define SHA224_Init _libmd_SHA224_Init
 #endif
 #ifndef SHA224_Update
-#define SHA224_Update		_libmd_SHA224_Update
+#define SHA224_Update _libmd_SHA224_Update
 #endif
 #ifndef SHA224_Final
-#define SHA224_Final		_libmd_SHA224_Final
+#define SHA224_Final _libmd_SHA224_Final
 #endif
 #ifndef SHA224_End
-#define SHA224_End		_libmd_SHA224_End
+#define SHA224_End _libmd_SHA224_End
 #endif
 #ifndef SHA224_Fd
-#define SHA224_Fd		_libmd_SHA224_Fd
+#define SHA224_Fd _libmd_SHA224_Fd
 #endif
 #ifndef SHA224_FdChunk
-#define SHA224_FdChunk		_libmd_SHA224_FdChunk
+#define SHA224_FdChunk _libmd_SHA224_FdChunk
 #endif
 #ifndef SHA224_File
-#define SHA224_File		_libmd_SHA224_File
+#define SHA224_File _libmd_SHA224_File
 #endif
 #ifndef SHA224_FileChunk
-#define SHA224_FileChunk	_libmd_SHA224_FileChunk
+#define SHA224_FileChunk _libmd_SHA224_FileChunk
 #endif
 #ifndef SHA224_Data
-#define SHA224_Data		_libmd_SHA224_Data
+#define SHA224_Data _libmd_SHA224_Data
 #endif
 
 #ifndef SHA224_version
-#define SHA224_version		_libmd_SHA224_version
+#define SHA224_version _libmd_SHA224_version
 #endif
 
-void	SHA224_Init(SHA224_CTX *);
-void	SHA224_Update(SHA224_CTX *, const void *, size_t);
-void	SHA224_Final(unsigned char [__min_size(SHA224_DIGEST_LENGTH)],
+void SHA224_Init(SHA224_CTX *);
+void SHA224_Update(SHA224_CTX *, const void *, size_t);
+void SHA224_Final(unsigned char[__min_size(SHA224_DIGEST_LENGTH)],
     SHA224_CTX *);
 #ifndef _KERNEL
-char   *SHA224_End(SHA224_CTX *, char *);
-char   *SHA224_Data(const void *, unsigned int, char *);
-char   *SHA224_Fd(int, char *);
-char   *SHA224_FdChunk(int, char *, off_t, off_t);
-char   *SHA224_File(const char *, char *);
-char   *SHA224_FileChunk(const char *, char *, off_t, off_t);
+char *SHA224_End(SHA224_CTX *, char *);
+char *SHA224_Data(const void *, unsigned int, char *);
+char *SHA224_Fd(int, char *);
+char *SHA224_FdChunk(int, char *, off_t, off_t);
+char *SHA224_File(const char *, char *);
+char *SHA224_FileChunk(const char *, char *, off_t, off_t);
 #endif
 __END_DECLS
 

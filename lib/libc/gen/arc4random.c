@@ -27,6 +27,9 @@
 #if defined(__FreeBSD__)
 #include <assert.h>
 #endif
+#include <sys/types.h>
+#include <sys/time.h>
+
 #include <fcntl.h>
 #include <limits.h>
 #include <pthread.h>
@@ -35,9 +38,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/types.h>
-#include <sys/time.h>
- 
+
 #include "libc_private.h"
 #include "un-namespace.h"
 
@@ -54,29 +55,29 @@
 
 #if defined(__GNUC__) || defined(_MSC_VER)
 #define inline __inline
-#else				/* __GNUC__ || _MSC_VER */
+#else /* __GNUC__ || _MSC_VER */
 #define inline
-#endif				/* !__GNUC__ && !_MSC_VER */
+#endif /* !__GNUC__ && !_MSC_VER */
 
-#define KEYSZ	32
-#define IVSZ	8
-#define BLOCKSZ	64
-#define RSBUFSZ	(16*BLOCKSZ)
+#define KEYSZ 32
+#define IVSZ 8
+#define BLOCKSZ 64
+#define RSBUFSZ (16 * BLOCKSZ)
 
-#define REKEY_BASE	(1024*1024) /* NB. should be a power of 2 */
+#define REKEY_BASE (1024 * 1024) /* NB. should be a power of 2 */
 
 /* Marked INHERIT_ZERO, so zero'd out in fork children. */
 static struct _rs {
-	size_t		rs_have;	/* valid bytes at end of rs_buf */
-	size_t		rs_count;	/* bytes till reseed */
+	size_t rs_have;	 /* valid bytes at end of rs_buf */
+	size_t rs_count; /* bytes till reseed */
 } *rs;
 
 /* Maybe be preserved in fork children, if _rs_allocate() decides. */
 static struct _rsx {
-	chacha_ctx	rs_chacha;	/* chacha context for random keystream */
-	u_char		rs_buf[RSBUFSZ];	/* keystream blocks */
+	chacha_ctx rs_chacha;	/* chacha context for random keystream */
+	u_char rs_buf[RSBUFSZ]; /* keystream blocks */
 #ifdef __FreeBSD__
-	uint32_t	rs_seed_generation;	/* 32-bit userspace RNG version */
+	uint32_t rs_seed_generation; /* 32-bit userspace RNG version */
 #endif
 } *rsx;
 
@@ -129,8 +130,8 @@ _rs_stir(void)
 	 * a hard error at some point, if the scheme is adopted.
 	 */
 	if (vdso_fxrngp != NULL)
-		rsx->rs_seed_generation =
-		    fxrng_load_acq_generation(&vdso_fxrngp->fx_generation32);
+		rsx->rs_seed_generation = fxrng_load_acq_generation(
+		    &vdso_fxrngp->fx_generation32);
 #endif
 
 	if (getentropy(rnd, sizeof rnd) == -1)
@@ -146,7 +147,7 @@ _rs_stir(void)
 #endif
 	else
 		_rs_rekey(rnd, sizeof(rnd));
-	explicit_bzero(rnd, sizeof(rnd));	/* discard source seed */
+	explicit_bzero(rnd, sizeof(rnd)); /* discard source seed */
 
 	/* invalidate rs_buf */
 	rs->rs_have = 0;
@@ -177,8 +178,8 @@ _rs_rekey(u_char *dat, size_t datlen)
 	memset(rsx->rs_buf, 0, sizeof(rsx->rs_buf));
 #endif
 	/* fill rs_buf with the keystream */
-	chacha_encrypt_bytes(&rsx->rs_chacha, rsx->rs_buf,
-	    rsx->rs_buf, sizeof(rsx->rs_buf));
+	chacha_encrypt_bytes(&rsx->rs_chacha, rsx->rs_buf, rsx->rs_buf,
+	    sizeof(rsx->rs_buf));
 	/* mix in optional user provided data */
 	if (dat) {
 		size_t i, m;
@@ -204,8 +205,8 @@ _rs_random_buf(void *_buf, size_t n)
 	while (n > 0) {
 		if (rs->rs_have > 0) {
 			m = minimum(n, rs->rs_have);
-			keystream = rsx->rs_buf + sizeof(rsx->rs_buf)
-			    - rs->rs_have;
+			keystream = rsx->rs_buf + sizeof(rsx->rs_buf) -
+			    rs->rs_have;
 			memcpy(buf, keystream, m);
 			memset(keystream, 0, m);
 			buf += m;

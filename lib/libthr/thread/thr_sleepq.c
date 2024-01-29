@@ -27,30 +27,32 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stdlib.h>
+
 #include "thr_private.h"
 
-#define HASHSHIFT	9
-#define HASHSIZE	(1 << HASHSHIFT)
-#define SC_HASH(wchan) ((unsigned)				\
-	((((uintptr_t)(wchan) >> 3)				\
-	^ ((uintptr_t)(wchan) >> (HASHSHIFT + 3)))		\
-	& (HASHSIZE - 1)))
-#define SC_LOOKUP(wc)	&sc_table[SC_HASH(wc)]
+#define HASHSHIFT 9
+#define HASHSIZE (1 << HASHSHIFT)
+#define SC_HASH(wchan)                                             \
+	((unsigned)((((uintptr_t)(wchan) >> 3) ^                   \
+			((uintptr_t)(wchan) >> (HASHSHIFT + 3))) & \
+	    (HASHSIZE - 1)))
+#define SC_LOOKUP(wc) &sc_table[SC_HASH(wc)]
 
 struct sleepqueue_chain {
-	struct umutex		sc_lock;
-	int			sc_enqcnt;
+	struct umutex sc_lock;
+	int sc_enqcnt;
 	LIST_HEAD(, sleepqueue) sc_queues;
-	int			sc_type;
+	int sc_type;
 };
 
-static struct sleepqueue_chain  sc_table[HASHSIZE];
+static struct sleepqueue_chain sc_table[HASHSIZE];
 
 void
 _sleepq_init(void)
 {
-	int	i;
+	int i;
 
 	for (i = 0; i < HASHSIZE; ++i) {
 		LIST_INIT(&sc_table[i].sc_queues);
@@ -90,7 +92,7 @@ _sleepq_unlock(void *wchan)
 {
 	struct sleepqueue_chain *sc;
 	struct pthread *curthread = _get_curthread();
-                    
+
 	sc = SC_LOOKUP(wchan);
 	THR_LOCK_RELEASE(curthread, &sc->sc_lock);
 }
@@ -100,7 +102,7 @@ lookup(struct sleepqueue_chain *sc, void *wchan)
 {
 	struct sleepqueue *sq;
 
-	LIST_FOREACH(sq, &sc->sc_queues, sq_hash)
+	LIST_FOREACH (sq, &sc->sc_queues, sq_hash)
 		if (sq->sq_wchan == wchan)
 			return (sq);
 	return (NULL);
@@ -156,8 +158,8 @@ _sleepq_remove(struct sleepqueue *sq, struct pthread *td)
 }
 
 void
-_sleepq_drop(struct sleepqueue *sq,
-	void (*cb)(struct pthread *, void *arg), void *arg)
+_sleepq_drop(struct sleepqueue *sq, void (*cb)(struct pthread *, void *arg),
+    void *arg)
 {
 	struct pthread *td;
 	struct sleepqueue *sq2;
@@ -172,7 +174,7 @@ _sleepq_drop(struct sleepqueue *sq,
 	td->sleepqueue = sq;
 	td->wchan = NULL;
 	sq2 = SLIST_FIRST(&sq->sq_freeq);
-	TAILQ_FOREACH(td, &sq->sq_blocked, wle) {
+	TAILQ_FOREACH (td, &sq->sq_blocked, wle) {
 		if (cb != NULL)
 			cb(td, arg);
 		td->sleepqueue = sq2;

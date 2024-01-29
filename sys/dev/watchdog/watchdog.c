@@ -33,6 +33,7 @@
 #include "opt_ddb.h"
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/eventhandler.h>
@@ -41,14 +42,13 @@
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/syscallsubr.h> /* kern_clock_gettime() */
 #include <sys/sysctl.h>
 #include <sys/syslog.h>
-#include <sys/systm.h>
 #include <sys/uio.h>
 #include <sys/watchdog.h>
-#include <machine/bus.h>
 
-#include <sys/syscallsubr.h> /* kern_clock_gettime() */
+#include <machine/bus.h>
 
 static int wd_set_pretimeout(int newtimeout, int disableiftoolong);
 static void wd_timeout_cb(void *arg);
@@ -58,24 +58,25 @@ static int wd_pretimeout;
 static int wd_pretimeout_act = WD_SOFT_LOG;
 
 static struct callout wd_softtimeo_handle;
-static int wd_softtimer;	/* true = use softtimer instead of hardware
-				   watchdog */
-static int wd_softtimeout_act = WD_SOFT_LOG;	/* action for the software timeout */
+static int wd_softtimer; /* true = use softtimer instead of hardware
+			    watchdog */
+static int wd_softtimeout_act =
+    WD_SOFT_LOG; /* action for the software timeout */
 
 static struct cdev *wd_dev;
 static volatile u_int wd_last_u;    /* last timeout value set by kern_do_pat */
-static u_int wd_last_u_sysctl;    /* last timeout value set by kern_do_pat */
-static u_int wd_last_u_sysctl_secs;    /* wd_last_u in seconds */
+static u_int wd_last_u_sysctl;	    /* last timeout value set by kern_do_pat */
+static u_int wd_last_u_sysctl_secs; /* wd_last_u in seconds */
 
 SYSCTL_NODE(_hw, OID_AUTO, watchdog, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
     "Main watchdog device");
-SYSCTL_UINT(_hw_watchdog, OID_AUTO, wd_last_u, CTLFLAG_RD,
-    &wd_last_u_sysctl, 0, "Watchdog last update time");
+SYSCTL_UINT(_hw_watchdog, OID_AUTO, wd_last_u, CTLFLAG_RD, &wd_last_u_sysctl, 0,
+    "Watchdog last update time");
 SYSCTL_UINT(_hw_watchdog, OID_AUTO, wd_last_u_secs, CTLFLAG_RD,
     &wd_last_u_sysctl_secs, 0, "Watchdog last update time");
 
 static int wd_lastpat_valid = 0;
-static time_t wd_lastpat = 0;	/* when the watchdog was last patted */
+static time_t wd_lastpat = 0; /* when the watchdog was last patted */
 
 /* Hook for external software watchdog to register for use if needed */
 void (*wdog_software_attach)(void);
@@ -156,7 +157,7 @@ wdog_kern_pat(u_int utim)
 		if (utim == 0) {
 			callout_stop(&wd_softtimeo_handle);
 		} else {
-			(void) callout_reset(&wd_softtimeo_handle,
+			(void)callout_reset(&wd_softtimeo_handle,
 			    pow2ns_to_ticks(utim), wd_timeout_cb, "soft");
 		}
 		error = 0;
@@ -211,11 +212,11 @@ wd_ioctl_patpat(caddr_t data)
 		return (EINVAL);
 	if ((u & (WD_ACTIVE | WD_PASSIVE)) == (WD_ACTIVE | WD_PASSIVE))
 		return (EINVAL);
-	if ((u & (WD_ACTIVE | WD_PASSIVE)) == 0 && ((u & WD_INTERVAL) > 0 ||
-	    (u & WD_LASTVAL) != 0))
+	if ((u & (WD_ACTIVE | WD_PASSIVE)) == 0 &&
+	    ((u & WD_INTERVAL) > 0 || (u & WD_LASTVAL) != 0))
 		return (EINVAL);
 	if (u & WD_PASSIVE)
-		return (ENOSYS);	/* XXX Not implemented yet */
+		return (ENOSYS); /* XXX Not implemented yet */
 	u &= ~(WD_ACTIVE | WD_PASSIVE);
 
 	return (wdog_kern_pat(u));
@@ -292,7 +293,7 @@ wd_set_pretimeout(int newtimeout, int disableiftoolong)
 		return 0;
 	}
 
-	timeout_ticks = pow2ns_to_ticks(utime) - (hz*newtimeout);
+	timeout_ticks = pow2ns_to_ticks(utime) - (hz * newtimeout);
 #if 0
 	printf("wd_set_pretimeout: "
 	    "newtimeout: %d, "
@@ -306,8 +307,8 @@ wd_set_pretimeout(int newtimeout, int disableiftoolong)
 #endif
 
 	/* We determined the value is sane, so reset the callout */
-	(void) callout_reset(&wd_pretimeo_handle,
-	    timeout_ticks, wd_timeout_cb, "pre");
+	(void)callout_reset(&wd_pretimeo_handle, timeout_ticks, wd_timeout_cb,
+	    "pre");
 	wd_pretimeout = newtimeout;
 	return 0;
 }
@@ -393,20 +394,20 @@ wdog_kern_last_timeout(void)
 }
 
 static struct cdevsw wd_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_ioctl =	wd_ioctl,
-	.d_name =	"watchdog",
+	.d_version = D_VERSION,
+	.d_ioctl = wd_ioctl,
+	.d_name = "watchdog",
 };
 
 static int
 watchdog_modevent(module_t mod __unused, int type, void *data __unused)
 {
-	switch(type) {
+	switch (type) {
 	case MOD_LOAD:
 		callout_init(&wd_pretimeo_handle, 1);
 		callout_init(&wd_softtimeo_handle, 1);
-		wd_dev = make_dev(&wd_cdevsw, 0,
-		    UID_ROOT, GID_WHEEL, 0600, _PATH_WATCHDOG);
+		wd_dev = make_dev(&wd_cdevsw, 0, UID_ROOT, GID_WHEEL, 0600,
+		    _PATH_WATCHDOG);
 		return 0;
 	case MOD_UNLOAD:
 		callout_stop(&wd_pretimeo_handle);

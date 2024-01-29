@@ -112,25 +112,25 @@
  */
 
 #include <sys/cdefs.h>
-#include "xgbe.h"
+
 #include "xgbe-common.h"
+#include "xgbe.h"
 
-#define XGBE_ABORT_COUNT	500
-#define XGBE_DISABLE_COUNT	1000
+#define XGBE_ABORT_COUNT 500
+#define XGBE_DISABLE_COUNT 1000
 
-#define XGBE_STD_SPEED		1
+#define XGBE_STD_SPEED 1
 
-#define XGBE_INTR_RX_FULL	BIT(IC_RAW_INTR_STAT_RX_FULL_INDEX)
-#define XGBE_INTR_TX_EMPTY	BIT(IC_RAW_INTR_STAT_TX_EMPTY_INDEX)
-#define XGBE_INTR_TX_ABRT	BIT(IC_RAW_INTR_STAT_TX_ABRT_INDEX)
-#define XGBE_INTR_STOP_DET	BIT(IC_RAW_INTR_STAT_STOP_DET_INDEX)
-#define XGBE_DEFAULT_INT_MASK	(XGBE_INTR_RX_FULL  |	\
-				 XGBE_INTR_TX_EMPTY |	\
-				 XGBE_INTR_TX_ABRT  |	\
-				 XGBE_INTR_STOP_DET)
+#define XGBE_INTR_RX_FULL BIT(IC_RAW_INTR_STAT_RX_FULL_INDEX)
+#define XGBE_INTR_TX_EMPTY BIT(IC_RAW_INTR_STAT_TX_EMPTY_INDEX)
+#define XGBE_INTR_TX_ABRT BIT(IC_RAW_INTR_STAT_TX_ABRT_INDEX)
+#define XGBE_INTR_STOP_DET BIT(IC_RAW_INTR_STAT_STOP_DET_INDEX)
+#define XGBE_DEFAULT_INT_MASK                                         \
+	(XGBE_INTR_RX_FULL | XGBE_INTR_TX_EMPTY | XGBE_INTR_TX_ABRT | \
+	    XGBE_INTR_STOP_DET)
 
-#define XGBE_I2C_READ		BIT(8)
-#define XGBE_I2C_STOP		BIT(9)
+#define XGBE_I2C_READ BIT(8)
+#define XGBE_I2C_STOP BIT(9)
 
 static int
 xgbe_i2c_abort(struct xgbe_prv_data *pdata)
@@ -303,9 +303,10 @@ xgbe_i2c_isr(void *data)
 	xgbe_i2c_clear_isr_interrupts(pdata, isr);
 
 	if (isr & XGBE_INTR_TX_ABRT) {
-		axgbe_printf(1, "%s: I2C TX_ABRT received (%#010x) for target "
-		    "%#04x\n", __func__, state->tx_abort_source,
-		    state->op->target);
+		axgbe_printf(1,
+		    "%s: I2C TX_ABRT received (%#010x) for target "
+		    "%#04x\n",
+		    __func__, state->tx_abort_source, state->op->target);
 
 		xgbe_i2c_disable_interrupts(pdata);
 
@@ -357,16 +358,15 @@ xgbe_i2c_get_features(struct xgbe_prv_data *pdata)
 
 	reg = XI2C_IOREAD(pdata, IC_COMP_PARAM_1);
 	i2c->max_speed_mode = XI2C_GET_BITS(reg, IC_COMP_PARAM_1,
-					    MAX_SPEED_MODE);
+	    MAX_SPEED_MODE);
 	i2c->rx_fifo_size = XI2C_GET_BITS(reg, IC_COMP_PARAM_1,
-					  RX_BUFFER_DEPTH);
+	    RX_BUFFER_DEPTH);
 	i2c->tx_fifo_size = XI2C_GET_BITS(reg, IC_COMP_PARAM_1,
-					  TX_BUFFER_DEPTH);
+	    TX_BUFFER_DEPTH);
 
 	axgbe_printf(3, "%s: I2C features: %s=%u, %s=%u, %s=%u\n", __func__,
-	    "MAX_SPEED_MODE", i2c->max_speed_mode,
-	    "RX_BUFFER_DEPTH", i2c->rx_fifo_size,
-	    "TX_BUFFER_DEPTH", i2c->tx_fifo_size);
+	    "MAX_SPEED_MODE", i2c->max_speed_mode, "RX_BUFFER_DEPTH",
+	    i2c->rx_fifo_size, "TX_BUFFER_DEPTH", i2c->tx_fifo_size);
 }
 
 static void
@@ -519,12 +519,12 @@ xgbe_i2c_init(struct xgbe_prv_data *pdata)
 void
 xgbe_init_function_ptrs_i2c(struct xgbe_i2c_if *i2c_if)
 {
-	i2c_if->i2c_init		= xgbe_i2c_init;
+	i2c_if->i2c_init = xgbe_i2c_init;
 
-	i2c_if->i2c_start		= xgbe_i2c_start;
-	i2c_if->i2c_stop		= xgbe_i2c_stop;
+	i2c_if->i2c_start = xgbe_i2c_start;
+	i2c_if->i2c_stop = xgbe_i2c_stop;
 
-	i2c_if->i2c_xfer		= xgbe_i2c_xfer;
+	i2c_if->i2c_xfer = xgbe_i2c_xfer;
 
-	i2c_if->i2c_isr			= xgbe_i2c_combined_isr;
+	i2c_if->i2c_isr = xgbe_i2c_combined_isr;
 }

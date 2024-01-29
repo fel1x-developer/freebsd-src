@@ -4,12 +4,12 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/time.h> /* for struct timeval in net/if.h */
 
-#include <sys/time.h>	/* for struct timeval in net/if.h */
 #include <net/if.h>
 #include <netinet/in.h>
 
-#ifdef	ETC_ETHERS
+#ifdef ETC_ETHERS
 #include <net/ethernet.h>
 #endif
 
@@ -31,29 +31,26 @@ lookup_hwa(char *hostname, int htype)
 	switch (htype) {
 
 		/* XXX - How is this done on other systems? -gwr */
-#ifdef	ETC_ETHERS
+#ifdef ETC_ETHERS
 	case HTYPE_ETHERNET:
-	case HTYPE_IEEE802:
-		{
-			static struct ether_addr ea;
-			/* This does a lookup in /etc/ethers */
-			if (ether_hostton(hostname, &ea)) {
-				report(LOG_ERR, "no HW addr for host \"%s\"",
-					   hostname);
-				return (u_char *) 0;
-			}
-			return (u_char *) & ea;
+	case HTYPE_IEEE802: {
+		static struct ether_addr ea;
+		/* This does a lookup in /etc/ethers */
+		if (ether_hostton(hostname, &ea)) {
+			report(LOG_ERR, "no HW addr for host \"%s\"", hostname);
+			return (u_char *)0;
 		}
+		return (u_char *)&ea;
+	}
 #endif /* ETC_ETHERS */
 
 	default:
 		report(LOG_ERR, "no lookup for HW addr type %d", htype);
-	}							/* switch */
+	} /* switch */
 
 	/* If the system can't do it, just return an error. */
-	return (u_char *) 0;
+	return (u_char *)0;
 }
-
 
 /*
  * Lookup an IP address.
@@ -69,7 +66,6 @@ lookup_ipa(char *hostname, u_int32 *result)
 	bcopy(hp->h_addr, result, sizeof(*result));
 	return 0;
 }
-
 
 /*
  * Lookup a netmask

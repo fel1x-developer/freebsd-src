@@ -29,17 +29,15 @@
 
 #include "ah.h"
 #include "ah_desc.h"
-#include "ah_internal.h"
 #include "ah_eeprom_v4k.h"
-
+#include "ah_internal.h"
+#include "ar5416/ar5416phy.h"
+#include "ar5416/ar5416reg.h"
 #include "ar9002/ar9280.h"
 #include "ar9002/ar9285.h"
-#include "ar5416/ar5416reg.h"
-#include "ar5416/ar5416phy.h"
-#include "ar9002/ar9285phy.h"
-#include "ar9002/ar9285_phy.h"
-
 #include "ar9002/ar9285_diversity.h"
+#include "ar9002/ar9285_phy.h"
+#include "ar9002/ar9285phy.h"
 
 /*
  * Set the antenna switch to control RX antenna diversity.
@@ -68,8 +66,8 @@ ar9285SetAntennaSwitch(struct ath_hal *ah, HAL_ANT_SETTING settings)
 
 	if (pModal->version < 3) {
 		HALDEBUG(ah, HAL_DEBUG_DIVERSITY, "%s: not supported\n",
-	    __func__);
-		return AH_FALSE;	/* Can't do diversity */
+		    __func__);
+		return AH_FALSE; /* Can't do diversity */
 	}
 
 	/* Store settings */
@@ -86,36 +84,47 @@ ar9285SetAntennaSwitch(struct ath_hal *ah, HAL_ANT_SETTING settings)
 	regVal = OS_REG_READ(ah, AR_PHY_MULTICHAIN_GAIN_CTL);
 	regVal &= (~(AR_PHY_9285_ANT_DIV_CTL_ALL));
 
-	/* enable antenna diversity only if diversityControl == HAL_ANT_VARIABLE */
+	/* enable antenna diversity only if diversityControl == HAL_ANT_VARIABLE
+	 */
 	if (settings == HAL_ANT_VARIABLE)
-	    regVal |= SM(ant_div_control1, AR_PHY_9285_ANT_DIV_CTL);
+		regVal |= SM(ant_div_control1, AR_PHY_9285_ANT_DIV_CTL);
 
 	if (settings == HAL_ANT_VARIABLE) {
-	    HALDEBUG(ah, HAL_DEBUG_DIVERSITY, "%s: HAL_ANT_VARIABLE\n",
-	      __func__);
-	    regVal |= SM(ant_div_control2, AR_PHY_9285_ANT_DIV_ALT_LNACONF);
-	    regVal |= SM((ant_div_control2 >> 2), AR_PHY_9285_ANT_DIV_MAIN_LNACONF);
-	    regVal |= SM((ant_div_control1 >> 1), AR_PHY_9285_ANT_DIV_ALT_GAINTB);
-	    regVal |= SM((ant_div_control1 >> 2), AR_PHY_9285_ANT_DIV_MAIN_GAINTB);
+		HALDEBUG(ah, HAL_DEBUG_DIVERSITY, "%s: HAL_ANT_VARIABLE\n",
+		    __func__);
+		regVal |= SM(ant_div_control2, AR_PHY_9285_ANT_DIV_ALT_LNACONF);
+		regVal |= SM((ant_div_control2 >> 2),
+		    AR_PHY_9285_ANT_DIV_MAIN_LNACONF);
+		regVal |= SM((ant_div_control1 >> 1),
+		    AR_PHY_9285_ANT_DIV_ALT_GAINTB);
+		regVal |= SM((ant_div_control1 >> 2),
+		    AR_PHY_9285_ANT_DIV_MAIN_GAINTB);
 	} else {
-	    if (settings == HAL_ANT_FIXED_A) {
-		/* Diversity disabled, RX = LNA1 */
-		HALDEBUG(ah, HAL_DEBUG_DIVERSITY, "%s: HAL_ANT_FIXED_A\n",
-		    __func__);
-		regVal |= SM(HAL_ANT_DIV_COMB_LNA2, AR_PHY_9285_ANT_DIV_ALT_LNACONF);
-		regVal |= SM(HAL_ANT_DIV_COMB_LNA1, AR_PHY_9285_ANT_DIV_MAIN_LNACONF);
-		regVal |= SM(AR_PHY_9285_ANT_DIV_GAINTB_0, AR_PHY_9285_ANT_DIV_ALT_GAINTB);
-		regVal |= SM(AR_PHY_9285_ANT_DIV_GAINTB_1, AR_PHY_9285_ANT_DIV_MAIN_GAINTB);
-	    }
-	    else if (settings == HAL_ANT_FIXED_B) {
-		/* Diversity disabled, RX = LNA2 */
-		HALDEBUG(ah, HAL_DEBUG_DIVERSITY, "%s: HAL_ANT_FIXED_B\n",
-		    __func__);
-		regVal |= SM(HAL_ANT_DIV_COMB_LNA1, AR_PHY_9285_ANT_DIV_ALT_LNACONF);
-		regVal |= SM(HAL_ANT_DIV_COMB_LNA2, AR_PHY_9285_ANT_DIV_MAIN_LNACONF);
-		regVal |= SM(AR_PHY_9285_ANT_DIV_GAINTB_1, AR_PHY_9285_ANT_DIV_ALT_GAINTB);
-		regVal |= SM(AR_PHY_9285_ANT_DIV_GAINTB_0, AR_PHY_9285_ANT_DIV_MAIN_GAINTB);
-	    }
+		if (settings == HAL_ANT_FIXED_A) {
+			/* Diversity disabled, RX = LNA1 */
+			HALDEBUG(ah, HAL_DEBUG_DIVERSITY,
+			    "%s: HAL_ANT_FIXED_A\n", __func__);
+			regVal |= SM(HAL_ANT_DIV_COMB_LNA2,
+			    AR_PHY_9285_ANT_DIV_ALT_LNACONF);
+			regVal |= SM(HAL_ANT_DIV_COMB_LNA1,
+			    AR_PHY_9285_ANT_DIV_MAIN_LNACONF);
+			regVal |= SM(AR_PHY_9285_ANT_DIV_GAINTB_0,
+			    AR_PHY_9285_ANT_DIV_ALT_GAINTB);
+			regVal |= SM(AR_PHY_9285_ANT_DIV_GAINTB_1,
+			    AR_PHY_9285_ANT_DIV_MAIN_GAINTB);
+		} else if (settings == HAL_ANT_FIXED_B) {
+			/* Diversity disabled, RX = LNA2 */
+			HALDEBUG(ah, HAL_DEBUG_DIVERSITY,
+			    "%s: HAL_ANT_FIXED_B\n", __func__);
+			regVal |= SM(HAL_ANT_DIV_COMB_LNA1,
+			    AR_PHY_9285_ANT_DIV_ALT_LNACONF);
+			regVal |= SM(HAL_ANT_DIV_COMB_LNA2,
+			    AR_PHY_9285_ANT_DIV_MAIN_LNACONF);
+			regVal |= SM(AR_PHY_9285_ANT_DIV_GAINTB_1,
+			    AR_PHY_9285_ANT_DIV_ALT_GAINTB);
+			regVal |= SM(AR_PHY_9285_ANT_DIV_GAINTB_0,
+			    AR_PHY_9285_ANT_DIV_MAIN_GAINTB);
+		}
 	}
 
 	OS_REG_WRITE(ah, AR_PHY_MULTICHAIN_GAIN_CTL, regVal);
@@ -123,7 +132,8 @@ ar9285SetAntennaSwitch(struct ath_hal *ah, HAL_ANT_SETTING settings)
 	regVal = OS_REG_READ(ah, AR_PHY_CCK_DETECT);
 	regVal &= (~AR_PHY_CCK_DETECT_BB_ENABLE_ANT_FAST_DIV);
 	if (settings == HAL_ANT_VARIABLE)
-	    regVal |= SM((ant_div_control1 >> 3), AR_PHY_CCK_DETECT_BB_ENABLE_ANT_FAST_DIV);
+		regVal |= SM((ant_div_control1 >> 3),
+		    AR_PHY_CCK_DETECT_BB_ENABLE_ANT_FAST_DIV);
 
 	OS_REG_WRITE(ah, AR_PHY_CCK_DETECT, regVal);
 	regVal = OS_REG_READ(ah, AR_PHY_CCK_DETECT);
@@ -139,14 +149,18 @@ ar9285SetAntennaSwitch(struct ath_hal *ah, HAL_ANT_SETTING settings)
 	 * settings for the LNA configuration and fast-bias.
 	 */
 	if (ar9285_check_div_comb(ah) && AH5212(ah)->ah_diversity == AH_TRUE) {
-		// If support DivComb, set MAIN to LNA1 and ALT to LNA2 at the first beginning
+		// If support DivComb, set MAIN to LNA1 and ALT to LNA2 at the
+		// first beginning
 		HALDEBUG(ah, HAL_DEBUG_DIVERSITY,
 		    "%s: Enable initial settings for combined diversity\n",
 		    __func__);
 		regVal = OS_REG_READ(ah, AR_PHY_MULTICHAIN_GAIN_CTL);
-		regVal &= (~(AR_PHY_9285_ANT_DIV_MAIN_LNACONF | AR_PHY_9285_ANT_DIV_ALT_LNACONF));
-		regVal |= (HAL_ANT_DIV_COMB_LNA1 << AR_PHY_9285_ANT_DIV_MAIN_LNACONF_S);
-		regVal |= (HAL_ANT_DIV_COMB_LNA2 << AR_PHY_9285_ANT_DIV_ALT_LNACONF_S);
+		regVal &= (~(AR_PHY_9285_ANT_DIV_MAIN_LNACONF |
+		    AR_PHY_9285_ANT_DIV_ALT_LNACONF));
+		regVal |= (HAL_ANT_DIV_COMB_LNA1
+		    << AR_PHY_9285_ANT_DIV_MAIN_LNACONF_S);
+		regVal |= (HAL_ANT_DIV_COMB_LNA2
+		    << AR_PHY_9285_ANT_DIV_ALT_LNACONF_S);
 		regVal &= (~(AR_PHY_9285_FAST_DIV_BIAS));
 		regVal |= (0 << AR_PHY_9285_FAST_DIV_BIAS_S);
 		OS_REG_WRITE(ah, AR_PHY_MULTICHAIN_GAIN_CTL, regVal);

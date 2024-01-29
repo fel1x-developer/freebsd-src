@@ -41,9 +41,7 @@
  */
 
 #include <sys/types.h>
-#include "namespace.h"
 #include <sys/acl.h>
-#include "un-namespace.h"
 
 #include <errno.h>
 #include <stdio.h>
@@ -52,12 +50,14 @@
 #include <unistd.h>
 
 #include "acl_support.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 acl_t
 acl_get_file(const char *path_p, acl_type_t type)
 {
-	acl_t	aclp;
-	int	error;
+	acl_t aclp;
+	int error;
 
 	aclp = acl_init(ACL_MAX_ENTRIES);
 	if (aclp == NULL)
@@ -79,8 +79,8 @@ acl_get_file(const char *path_p, acl_type_t type)
 acl_t
 acl_get_link_np(const char *path_p, acl_type_t type)
 {
-	acl_t	aclp;
-	int	error;
+	acl_t aclp;
+	int error;
 
 	aclp = acl_init(ACL_MAX_ENTRIES);
 	if (aclp == NULL)
@@ -111,8 +111,8 @@ acl_get_fd(int fd)
 acl_t
 acl_get_fd_np(int fd, acl_type_t type)
 {
-	acl_t	aclp;
-	int	error;
+	acl_t aclp;
+	int error;
 
 	aclp = acl_init(ACL_MAX_ENTRIES);
 	if (aclp == NULL)
@@ -163,7 +163,7 @@ acl_get_qualifier(acl_entry_t entry_d)
 		return (NULL);
 	}
 
-	switch(entry_d->ae_tag) {
+	switch (entry_d->ae_tag) {
 	case ACL_USER:
 	case ACL_GROUP:
 		retval = malloc(sizeof(uid_t));

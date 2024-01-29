@@ -60,29 +60,27 @@
  *        methods for the SCIC_SDS_PORT object.
  */
 
+#include <dev/isci/scil/intel_sas.h>
+#include <dev/isci/scil/sci_util.h>
+#include <dev/isci/scil/scic_controller.h>
 #include <dev/isci/scil/scic_phy.h>
 #include <dev/isci/scil/scic_port.h>
-#include <dev/isci/scil/scic_controller.h>
+#include <dev/isci/scil/scic_sds_controller.h>
+#include <dev/isci/scil/scic_sds_logger.h>
+#include <dev/isci/scil/scic_sds_phy.h>
+#include <dev/isci/scil/scic_sds_phy_registers.h>
+#include <dev/isci/scil/scic_sds_port.h>
+#include <dev/isci/scil/scic_sds_port_registers.h>
+#include <dev/isci/scil/scic_sds_remote_device.h>
+#include <dev/isci/scil/scic_sds_remote_node_context.h>
+#include <dev/isci/scil/scic_sds_request.h>
 #include <dev/isci/scil/scic_user_callback.h>
 
-#include <dev/isci/scil/scic_sds_controller.h>
-#include <dev/isci/scil/scic_sds_port.h>
-#include <dev/isci/scil/scic_sds_phy.h>
-#include <dev/isci/scil/scic_sds_remote_device.h>
-#include <dev/isci/scil/scic_sds_request.h>
-#include <dev/isci/scil/scic_sds_port_registers.h>
-#include <dev/isci/scil/scic_sds_logger.h>
-#include <dev/isci/scil/scic_sds_phy_registers.h>
+#define SCIC_SDS_PORT_MIN_TIMER_COUNT (SCI_MAX_PORTS)
+#define SCIC_SDS_PORT_MAX_TIMER_COUNT (SCI_MAX_PORTS)
 
-#include <dev/isci/scil/intel_sas.h>
-#include <dev/isci/scil/scic_sds_remote_node_context.h>
-#include <dev/isci/scil/sci_util.h>
-
-#define SCIC_SDS_PORT_MIN_TIMER_COUNT  (SCI_MAX_PORTS)
-#define SCIC_SDS_PORT_MAX_TIMER_COUNT  (SCI_MAX_PORTS)
-
-#define SCIC_SDS_PORT_HARD_RESET_TIMEOUT  (1000)
-#define SCU_DUMMY_INDEX    (0xFFFF)
+#define SCIC_SDS_PORT_HARD_RESET_TIMEOUT (1000)
+#define SCU_DUMMY_INDEX (0xFFFF)
 
 /**
  * This method will return a TRUE value if the specified phy can be assigned
@@ -109,54 +107,44 @@
  * @retval TRUE if this is a valid phy assignment for the port
  * @retval FALSE if this is not a valid phy assignment for the port
  */
-BOOL scic_sds_port_is_valid_phy_assignment(
-   SCIC_SDS_PORT_T *this_port,
-   U32              phy_index
-)
+BOOL
+scic_sds_port_is_valid_phy_assignment(SCIC_SDS_PORT_T *this_port, U32 phy_index)
 {
-   // Initialize to invalid value.
-   U32  existing_phy_index = SCI_MAX_PHYS;
-   U32  index;
+	// Initialize to invalid value.
+	U32 existing_phy_index = SCI_MAX_PHYS;
+	U32 index;
 
-   if ((this_port->physical_port_index == 1) && (phy_index != 1))
-   {
-      return FALSE;
-   }
+	if ((this_port->physical_port_index == 1) && (phy_index != 1)) {
+		return FALSE;
+	}
 
-   if (this_port->physical_port_index == 3 && phy_index != 3)
-   {
-      return FALSE;
-   }
+	if (this_port->physical_port_index == 3 && phy_index != 3) {
+		return FALSE;
+	}
 
-   if (
-          (this_port->physical_port_index == 2)
-       && ((phy_index == 0) || (phy_index == 1))
-      )
-   {
-      return FALSE;
-   }
+	if ((this_port->physical_port_index == 2) &&
+	    ((phy_index == 0) || (phy_index == 1))) {
+		return FALSE;
+	}
 
-   for (index = 0; index < SCI_MAX_PHYS; index++)
-   {
-      if (  (this_port->phy_table[index] != NULL)
-         && (index != phy_index) )
-      {
-         existing_phy_index = index;
-      }
-   }
+	for (index = 0; index < SCI_MAX_PHYS; index++) {
+		if ((this_port->phy_table[index] != NULL) &&
+		    (index != phy_index)) {
+			existing_phy_index = index;
+		}
+	}
 
-   // Ensure that all of the phys in the port are capable of
-   // operating at the same maximum link rate.
-   if (
-         (existing_phy_index < SCI_MAX_PHYS)
-      && (this_port->owning_controller->user_parameters.sds1.phys[
-             phy_index].max_speed_generation !=
-          this_port->owning_controller->user_parameters.sds1.phys[
-             existing_phy_index].max_speed_generation)
-      )
-      return FALSE;
+	// Ensure that all of the phys in the port are capable of
+	// operating at the same maximum link rate.
+	if ((existing_phy_index < SCI_MAX_PHYS) &&
+	    (this_port->owning_controller->user_parameters.sds1.phys[phy_index]
+		    .max_speed_generation !=
+		this_port->owning_controller->user_parameters.sds1
+		    .phys[existing_phy_index]
+		    .max_speed_generation))
+		return FALSE;
 
-   return TRUE;
+	return TRUE;
 }
 
 /**
@@ -169,31 +157,25 @@ BOOL scic_sds_port_is_valid_phy_assignment(
  * @return Return a bit mask indicating which phys are a part of this port.
  *         Each bit corresponds to a phy identifier (e.g. bit 0 = phy id 0).
  */
-U32 scic_sds_port_get_phys(
-   SCIC_SDS_PORT_T * this_port
-)
+U32
+scic_sds_port_get_phys(SCIC_SDS_PORT_T *this_port)
 {
-   U32 index;
-   U32 mask;
+	U32 index;
+	U32 mask;
 
-   SCIC_LOG_TRACE((
-      sci_base_object_get_logger(this_port),
-      SCIC_LOG_OBJECT_PORT,
-      "scic_sds_port_get_phys(0x%x) enter\n",
-      this_port
-   ));
+	SCIC_LOG_TRACE(
+	    (sci_base_object_get_logger(this_port), SCIC_LOG_OBJECT_PORT,
+		"scic_sds_port_get_phys(0x%x) enter\n", this_port));
 
-   mask = 0;
+	mask = 0;
 
-   for (index = 0; index < SCI_MAX_PHYS; index++)
-   {
-      if (this_port->phy_table[index] != NULL)
-      {
-         mask |= (1 << index);
-      }
-   }
+	for (index = 0; index < SCI_MAX_PHYS; index++) {
+		if (this_port->phy_table[index] != NULL) {
+			mask |= (1 << index);
+		}
+	}
 
-   return mask;
+	return mask;
 }
 
 /**
@@ -215,40 +197,27 @@ U32 scic_sds_port_get_phys(
  * @retval TRUE if this is a valid phy assignment for the port
  * @retval FALSE if this is not a valid phy assignment for the port
  */
-BOOL scic_sds_port_is_phy_mask_valid(
-   SCIC_SDS_PORT_T *this_port,
-   U32              phy_mask
-)
+BOOL
+scic_sds_port_is_phy_mask_valid(SCIC_SDS_PORT_T *this_port, U32 phy_mask)
 {
-   if (this_port->physical_port_index == 0)
-   {
-      if (  ((phy_mask & 0x0F) == 0x0F)
-         || ((phy_mask & 0x03) == 0x03)
-         || ((phy_mask & 0x01) == 0x01)
-         || (phy_mask == 0) )
-         return TRUE;
-   }
-   else if (this_port->physical_port_index == 1)
-   {
-      if (  ((phy_mask & 0x02) == 0x02)
-         || (phy_mask == 0) )
-         return TRUE;
-   }
-   else if (this_port->physical_port_index == 2)
-   {
-      if (  ((phy_mask & 0x0C) == 0x0C)
-         || ((phy_mask & 0x04) == 0x04)
-         || (phy_mask == 0) )
-         return TRUE;
-   }
-   else if (this_port->physical_port_index == 3)
-   {
-      if (  ((phy_mask & 0x08) == 0x08)
-         || (phy_mask == 0) )
-         return TRUE;
-   }
+	if (this_port->physical_port_index == 0) {
+		if (((phy_mask & 0x0F) == 0x0F) ||
+		    ((phy_mask & 0x03) == 0x03) ||
+		    ((phy_mask & 0x01) == 0x01) || (phy_mask == 0))
+			return TRUE;
+	} else if (this_port->physical_port_index == 1) {
+		if (((phy_mask & 0x02) == 0x02) || (phy_mask == 0))
+			return TRUE;
+	} else if (this_port->physical_port_index == 2) {
+		if (((phy_mask & 0x0C) == 0x0C) ||
+		    ((phy_mask & 0x04) == 0x04) || (phy_mask == 0))
+			return TRUE;
+	} else if (this_port->physical_port_index == 3) {
+		if (((phy_mask & 0x08) == 0x08) || (phy_mask == 0))
+			return TRUE;
+	}
 
-   return FALSE;
+	return FALSE;
 }
 
 /**
@@ -266,28 +235,22 @@ BOOL scic_sds_port_is_phy_mask_valid(
  * @retval All other values specify a SCIC_SDS_PHY object that is
  *         active in the port.
  */
-SCIC_SDS_PHY_T * scic_sds_port_get_a_connected_phy(
-   SCIC_SDS_PORT_T *this_port
-)
+SCIC_SDS_PHY_T *
+scic_sds_port_get_a_connected_phy(SCIC_SDS_PORT_T *this_port)
 {
-   U32             index;
-   SCIC_SDS_PHY_T *phy;
+	U32 index;
+	SCIC_SDS_PHY_T *phy;
 
-   for (index = 0; index < SCI_MAX_PHYS; index++)
-   {
-      // Ensure that the phy is both part of the port and currently
-      // connected to the remote end-point.
-      phy = this_port->phy_table[index];
-      if (
-            (phy != NULL)
-         && scic_sds_port_active_phy(this_port, phy)
-         )
-      {
-         return phy;
-      }
-   }
+	for (index = 0; index < SCI_MAX_PHYS; index++) {
+		// Ensure that the phy is both part of the port and currently
+		// connected to the remote end-point.
+		phy = this_port->phy_table[index];
+		if ((phy != NULL) && scic_sds_port_active_phy(this_port, phy)) {
+			return phy;
+		}
+	}
 
-   return NULL;
+	return NULL;
 }
 
 /**
@@ -305,30 +268,25 @@ SCIC_SDS_PHY_T * scic_sds_port_get_a_connected_phy(
  * @note This is a functional test that only fails if the phy is currently
  *       assigned to a different port.
  */
-SCI_STATUS scic_sds_port_set_phy(
-   SCIC_SDS_PORT_T *port,
-   SCIC_SDS_PHY_T  *phy
-)
+SCI_STATUS
+scic_sds_port_set_phy(SCIC_SDS_PORT_T *port, SCIC_SDS_PHY_T *phy)
 {
-   // Check to see if we can add this phy to a port
-   // that means that the phy is not part of a port and that the port does
-   // not already have a phy assigned to the phy index.
-   if (
-         (port->phy_table[phy->phy_index] == SCI_INVALID_HANDLE)
-      && (scic_sds_phy_get_port(phy) == SCI_INVALID_HANDLE)
-      && scic_sds_port_is_valid_phy_assignment(port, phy->phy_index)
-      )
-   {
-      // Phy is being added in the stopped state so we are in MPC mode
-      // make logical port index = physical port index
-      port->logical_port_index = port->physical_port_index;
-      port->phy_table[phy->phy_index] = phy;
-      scic_sds_phy_set_port(phy, port);
+	// Check to see if we can add this phy to a port
+	// that means that the phy is not part of a port and that the port does
+	// not already have a phy assigned to the phy index.
+	if ((port->phy_table[phy->phy_index] == SCI_INVALID_HANDLE) &&
+	    (scic_sds_phy_get_port(phy) == SCI_INVALID_HANDLE) &&
+	    scic_sds_port_is_valid_phy_assignment(port, phy->phy_index)) {
+		// Phy is being added in the stopped state so we are in MPC mode
+		// make logical port index = physical port index
+		port->logical_port_index = port->physical_port_index;
+		port->phy_table[phy->phy_index] = phy;
+		scic_sds_phy_set_port(phy, port);
 
-      return SCI_SUCCESS;
-   }
+		return SCI_SUCCESS;
+	}
 
-   return SCI_FAILURE;
+	return SCI_FAILURE;
 }
 
 /**
@@ -342,29 +300,23 @@ SCI_STATUS scic_sds_port_set_phy(
  * @retval TRUE if the phy is removed from the port.
  * @retval FALSE if this phy is not assined to this port.
  */
-SCI_STATUS scic_sds_port_clear_phy(
-   SCIC_SDS_PORT_T *port,
-   SCIC_SDS_PHY_T  *phy
-)
+SCI_STATUS
+scic_sds_port_clear_phy(SCIC_SDS_PORT_T *port, SCIC_SDS_PHY_T *phy)
 {
-   // Make sure that this phy is part of this port
-   if (
-           (port->phy_table[phy->phy_index] == phy)
-        && (scic_sds_phy_get_port(phy) == port)
-      )
-   {
-      // Yep it is assigned to this port so remove it
-      scic_sds_phy_set_port(
-         phy,
-         &scic_sds_port_get_controller(port)->port_table[SCI_MAX_PORTS]
-      );
+	// Make sure that this phy is part of this port
+	if ((port->phy_table[phy->phy_index] == phy) &&
+	    (scic_sds_phy_get_port(phy) == port)) {
+		// Yep it is assigned to this port so remove it
+		scic_sds_phy_set_port(phy,
+		    &scic_sds_port_get_controller(port)
+			 ->port_table[SCI_MAX_PORTS]);
 
-      port->phy_table[phy->phy_index] = SCI_INVALID_HANDLE;
+		port->phy_table[phy->phy_index] = SCI_INVALID_HANDLE;
 
-      return SCI_SUCCESS;
-   }
+		return SCI_SUCCESS;
+	}
 
-   return SCI_FAILURE;
+	return SCI_FAILURE;
 }
 
 /**
@@ -380,15 +332,12 @@ SCI_STATUS scic_sds_port_clear_phy(
  * @retval SCI_SUCCESS the phy has been added to the port.
  * @retval Any other status is failre to add the phy to the port.
  */
-SCI_STATUS scic_sds_port_add_phy(
-   SCIC_SDS_PORT_T * this_port,
-   SCIC_SDS_PHY_T  * the_phy
-)
+SCI_STATUS
+scic_sds_port_add_phy(SCIC_SDS_PORT_T *this_port, SCIC_SDS_PHY_T *the_phy)
 {
-   return this_port->state_handlers->parent.add_phy_handler(
-                                          &this_port->parent, &the_phy->parent);
+	return this_port->state_handlers->parent.add_phy_handler(
+	    &this_port->parent, &the_phy->parent);
 }
-
 
 /**
  * This method will remove the PHY from the selected PORT.
@@ -403,13 +352,11 @@ SCI_STATUS scic_sds_port_add_phy(
  * @retval SCI_SUCCESS the phy has been removed from the port.
  * @retval Any other status is failre to add the phy to the port.
  */
-SCI_STATUS scic_sds_port_remove_phy(
-   SCIC_SDS_PORT_T * this_port,
-   SCIC_SDS_PHY_T  * the_phy
-)
+SCI_STATUS
+scic_sds_port_remove_phy(SCIC_SDS_PORT_T *this_port, SCIC_SDS_PHY_T *the_phy)
 {
-   return this_port->state_handlers->parent.remove_phy_handler(
-                                          &this_port->parent, &the_phy->parent);
+	return this_port->state_handlers->parent.remove_phy_handler(
+	    &this_port->parent, &the_phy->parent);
 }
 
 /**
@@ -424,30 +371,26 @@ SCI_STATUS scic_sds_port_remove_phy(
  *
  * @return none
  */
-void scic_sds_port_get_sas_address(
-   SCIC_SDS_PORT_T   * this_port,
-   SCI_SAS_ADDRESS_T * sas_address
-)
+void
+scic_sds_port_get_sas_address(SCIC_SDS_PORT_T *this_port,
+    SCI_SAS_ADDRESS_T *sas_address)
 {
-   U32 index;
+	U32 index;
 
-   SCIC_LOG_TRACE((
-      sci_base_object_get_logger(this_port),
-      SCIC_LOG_OBJECT_PORT,
-      "scic_sds_port_get_sas_address(0x%x, 0x%x) enter\n",
-      this_port, sas_address
-   ));
+	SCIC_LOG_TRACE(
+	    (sci_base_object_get_logger(this_port), SCIC_LOG_OBJECT_PORT,
+		"scic_sds_port_get_sas_address(0x%x, 0x%x) enter\n", this_port,
+		sas_address));
 
-   sas_address->high = 0;
-   sas_address->low  = 0;
+	sas_address->high = 0;
+	sas_address->low = 0;
 
-   for (index = 0; index < SCI_MAX_PHYS; index++)
-   {
-      if (this_port->phy_table[index] != NULL)
-      {
-         scic_sds_phy_get_sas_address(this_port->phy_table[index], sas_address);
-      }
-   }
+	for (index = 0; index < SCI_MAX_PHYS; index++) {
+		if (this_port->phy_table[index] != NULL) {
+			scic_sds_phy_get_sas_address(
+			    this_port->phy_table[index], sas_address);
+		}
+	}
 }
 
 /**
@@ -464,30 +407,25 @@ void scic_sds_port_get_sas_address(
  *
  * @return none
  */
-static
-void scic_sds_port_get_protocols(
-   SCIC_SDS_PORT_T                            * this_port,
-   SCI_SAS_IDENTIFY_ADDRESS_FRAME_PROTOCOLS_T * protocols
-)
+static void
+scic_sds_port_get_protocols(SCIC_SDS_PORT_T *this_port,
+    SCI_SAS_IDENTIFY_ADDRESS_FRAME_PROTOCOLS_T *protocols)
 {
-   U8 index;
+	U8 index;
 
-   SCIC_LOG_TRACE((
-      sci_base_object_get_logger(this_port),
-      SCIC_LOG_OBJECT_PORT,
-      "scic_sds_port_get_protocols(0x%x, 0x%x) enter\n",
-      this_port, protocols
-   ));
+	SCIC_LOG_TRACE(
+	    (sci_base_object_get_logger(this_port), SCIC_LOG_OBJECT_PORT,
+		"scic_sds_port_get_protocols(0x%x, 0x%x) enter\n", this_port,
+		protocols));
 
-   protocols->u.all = 0;
+	protocols->u.all = 0;
 
-   for (index = 0; index < SCI_MAX_PHYS; index++)
-   {
-      if (this_port->phy_table[index] != NULL)
-      {
-         scic_sds_phy_get_protocols(this_port->phy_table[index], protocols);
-      }
-   }
+	for (index = 0; index < SCI_MAX_PHYS; index++) {
+		if (this_port->phy_table[index] != NULL) {
+			scic_sds_phy_get_protocols(this_port->phy_table[index],
+			    protocols);
+		}
+	}
 }
 
 /**
@@ -502,48 +440,39 @@ void scic_sds_port_get_protocols(
  *
  * @return none
  */
-void scic_sds_port_get_attached_sas_address(
-   SCIC_SDS_PORT_T   * this_port,
-   SCI_SAS_ADDRESS_T * sas_address
-)
+void
+scic_sds_port_get_attached_sas_address(SCIC_SDS_PORT_T *this_port,
+    SCI_SAS_ADDRESS_T *sas_address)
 {
-   SCI_SAS_IDENTIFY_ADDRESS_FRAME_PROTOCOLS_T protocols;
-   SCIC_SDS_PHY_T  *phy;
+	SCI_SAS_IDENTIFY_ADDRESS_FRAME_PROTOCOLS_T protocols;
+	SCIC_SDS_PHY_T *phy;
 
-   SCIC_LOG_TRACE((
-      sci_base_object_get_logger(this_port),
-      SCIC_LOG_OBJECT_PORT,
-      "scic_sds_port_get_attached_sas_address(0x%x, 0x%x) enter\n",
-      this_port, sas_address
-   ));
+	SCIC_LOG_TRACE(
+	    (sci_base_object_get_logger(this_port), SCIC_LOG_OBJECT_PORT,
+		"scic_sds_port_get_attached_sas_address(0x%x, 0x%x) enter\n",
+		this_port, sas_address));
 
-   // Ensure that the phy is both part of the port and currently
-   // connected to the remote end-point.
-   phy = scic_sds_port_get_a_connected_phy(this_port);
-   if (phy != NULL)
-   {
-      scic_sds_phy_get_attached_phy_protocols(phy, &protocols);
+	// Ensure that the phy is both part of the port and currently
+	// connected to the remote end-point.
+	phy = scic_sds_port_get_a_connected_phy(this_port);
+	if (phy != NULL) {
+		scic_sds_phy_get_attached_phy_protocols(phy, &protocols);
 
-      if (!protocols.u.bits.stp_target)
-      {
-         scic_sds_phy_get_attached_sas_address(phy, sas_address);
-      }
-      else
-      {
-         scic_sds_phy_get_sas_address(phy, sas_address);
-         sas_address->low += phy->phy_index;
+		if (!protocols.u.bits.stp_target) {
+			scic_sds_phy_get_attached_sas_address(phy, sas_address);
+		} else {
+			scic_sds_phy_get_sas_address(phy, sas_address);
+			sas_address->low += phy->phy_index;
 
-		 //Need to make up attached STP device's SAS address in
-		 //the same order as recorded IAF from SSP device.
-		 sas_address->high = SCIC_SWAP_DWORD(sas_address->high);
-		 sas_address->low = SCIC_SWAP_DWORD(sas_address->low);
-      }
-   }
-   else
-   {
-      sas_address->high = 0;
-      sas_address->low  = 0;
-   }
+			// Need to make up attached STP device's SAS address in
+			// the same order as recorded IAF from SSP device.
+			sas_address->high = SCIC_SWAP_DWORD(sas_address->high);
+			sas_address->low = SCIC_SWAP_DWORD(sas_address->low);
+		}
+	} else {
+		sas_address->high = 0;
+		sas_address->low = 0;
+	}
 }
 
 /**
@@ -560,27 +489,24 @@ void scic_sds_port_get_attached_sas_address(
  *
  * @return none
  */
-void scic_sds_port_get_attached_protocols(
-   SCIC_SDS_PORT_T                            * this_port,
-   SCI_SAS_IDENTIFY_ADDRESS_FRAME_PROTOCOLS_T * protocols
-)
+void
+scic_sds_port_get_attached_protocols(SCIC_SDS_PORT_T *this_port,
+    SCI_SAS_IDENTIFY_ADDRESS_FRAME_PROTOCOLS_T *protocols)
 {
-   SCIC_SDS_PHY_T  *phy;
+	SCIC_SDS_PHY_T *phy;
 
-   SCIC_LOG_TRACE((
-      sci_base_object_get_logger(this_port),
-      SCIC_LOG_OBJECT_PORT,
-      "scic_sds_port_get_attached_protocols(0x%x, 0x%x) enter\n",
-      this_port, protocols
-   ));
+	SCIC_LOG_TRACE(
+	    (sci_base_object_get_logger(this_port), SCIC_LOG_OBJECT_PORT,
+		"scic_sds_port_get_attached_protocols(0x%x, 0x%x) enter\n",
+		this_port, protocols));
 
-   // Ensure that the phy is both part of the port and currently
-   // connected to the remote end-point.
-   phy = scic_sds_port_get_a_connected_phy(this_port);
-   if (phy != NULL)
-      scic_sds_phy_get_attached_phy_protocols(phy, protocols);
-   else
-      protocols->u.all = 0;
+	// Ensure that the phy is both part of the port and currently
+	// connected to the remote end-point.
+	phy = scic_sds_port_get_a_connected_phy(this_port);
+	if (phy != NULL)
+		scic_sds_phy_get_attached_phy_protocols(phy, protocols);
+	else
+		protocols->u.all = 0;
 }
 
 /**
@@ -589,9 +515,10 @@ void scic_sds_port_get_attached_protocols(
  *
  * @return U32
  */
-U32 scic_sds_port_get_object_size(void)
+U32
+scic_sds_port_get_object_size(void)
 {
-   return sizeof(SCIC_SDS_PORT_T);
+	return sizeof(SCIC_SDS_PORT_T);
 }
 
 /**
@@ -600,9 +527,10 @@ U32 scic_sds_port_get_object_size(void)
  *
  * @return U32
  */
-U32 scic_sds_port_get_min_timer_count(void)
+U32
+scic_sds_port_get_min_timer_count(void)
 {
-   return SCIC_SDS_PORT_MIN_TIMER_COUNT;
+	return SCIC_SDS_PORT_MIN_TIMER_COUNT;
 }
 
 /**
@@ -611,33 +539,27 @@ U32 scic_sds_port_get_min_timer_count(void)
  *
  * @return U32
  */
-U32 scic_sds_port_get_max_timer_count(void)
+U32
+scic_sds_port_get_max_timer_count(void)
 {
-   return SCIC_SDS_PORT_MAX_TIMER_COUNT;
+	return SCIC_SDS_PORT_MAX_TIMER_COUNT;
 }
 
 #ifdef SCI_LOGGING
-void scic_sds_port_initialize_state_logging(
-   SCIC_SDS_PORT_T *this_port
-)
+void
+scic_sds_port_initialize_state_logging(SCIC_SDS_PORT_T *this_port)
 {
-   sci_base_state_machine_logger_initialize(
-      &this_port->parent.state_machine_logger,
-      &this_port->parent.state_machine,
-      &this_port->parent.parent,
-      scic_cb_logger_log_states,
-      "SCIC_SDS_PORT_T", "base state machine",
-      SCIC_LOG_OBJECT_PORT
-   );
+	sci_base_state_machine_logger_initialize(
+	    &this_port->parent.state_machine_logger,
+	    &this_port->parent.state_machine, &this_port->parent.parent,
+	    scic_cb_logger_log_states, "SCIC_SDS_PORT_T", "base state machine",
+	    SCIC_LOG_OBJECT_PORT);
 
-   sci_base_state_machine_logger_initialize(
-      &this_port->ready_substate_machine_logger,
-      &this_port->ready_substate_machine,
-      &this_port->parent.parent,
-      scic_cb_logger_log_states,
-      "SCIC_SDS_PORT_T", "ready substate machine",
-      SCIC_LOG_OBJECT_PORT
-   );
+	sci_base_state_machine_logger_initialize(
+	    &this_port->ready_substate_machine_logger,
+	    &this_port->ready_substate_machine, &this_port->parent.parent,
+	    scic_cb_logger_log_states, "SCIC_SDS_PORT_T",
+	    "ready substate machine", SCIC_LOG_OBJECT_PORT);
 }
 #endif
 
@@ -652,31 +574,28 @@ void scic_sds_port_initialize_state_logging(
  *
  * @return none
  */
-static
-void scic_sds_port_construct_dummy_rnc(
-   SCIC_SDS_PORT_T *this_port,
-   U16              rni
-)
+static void
+scic_sds_port_construct_dummy_rnc(SCIC_SDS_PORT_T *this_port, U16 rni)
 {
-   SCU_REMOTE_NODE_CONTEXT_T * rnc;
+	SCU_REMOTE_NODE_CONTEXT_T *rnc;
 
-   rnc = &(this_port->owning_controller->remote_node_context_table[rni]);
+	rnc = &(this_port->owning_controller->remote_node_context_table[rni]);
 
-   memset(rnc, 0, sizeof(SCU_REMOTE_NODE_CONTEXT_T));
+	memset(rnc, 0, sizeof(SCU_REMOTE_NODE_CONTEXT_T));
 
-   rnc->ssp.remote_sas_address_hi = 0;
-   rnc->ssp.remote_sas_address_lo = 0;
+	rnc->ssp.remote_sas_address_hi = 0;
+	rnc->ssp.remote_sas_address_lo = 0;
 
-   rnc->ssp.remote_node_index = rni;
-   rnc->ssp.remote_node_port_width = 1;
-   rnc->ssp.logical_port_index = this_port->physical_port_index;
+	rnc->ssp.remote_node_index = rni;
+	rnc->ssp.remote_node_port_width = 1;
+	rnc->ssp.logical_port_index = this_port->physical_port_index;
 
-   rnc->ssp.nexus_loss_timer_enable = FALSE;
-   rnc->ssp.check_bit = FALSE;
-   rnc->ssp.is_valid = TRUE;
-   rnc->ssp.is_remote_node_context = TRUE;
-   rnc->ssp.function_number = 0;
-   rnc->ssp.arbitration_wait_time = 0;
+	rnc->ssp.nexus_loss_timer_enable = FALSE;
+	rnc->ssp.check_bit = FALSE;
+	rnc->ssp.is_valid = TRUE;
+	rnc->ssp.is_remote_node_context = TRUE;
+	rnc->ssp.function_number = 0;
+	rnc->ssp.arbitration_wait_time = 0;
 }
 
 /**
@@ -690,70 +609,64 @@ void scic_sds_port_construct_dummy_rnc(
  * @param[in] tci The remote node index for this remote node context.
  *
  */
-static
-void scic_sds_port_construct_dummy_task(
-   SCIC_SDS_PORT_T *this_port,
-   U16              tci
-)
+static void
+scic_sds_port_construct_dummy_task(SCIC_SDS_PORT_T *this_port, U16 tci)
 {
-   SCU_TASK_CONTEXT_T * task_context;
+	SCU_TASK_CONTEXT_T *task_context;
 
-   task_context = scic_sds_controller_get_task_context_buffer(this_port->owning_controller, tci);
+	task_context = scic_sds_controller_get_task_context_buffer(
+	    this_port->owning_controller, tci);
 
-   memset(task_context, 0, sizeof(SCU_TASK_CONTEXT_T));
+	memset(task_context, 0, sizeof(SCU_TASK_CONTEXT_T));
 
-   task_context->abort = 0;
-   task_context->priority = 0;
-   task_context->initiator_request = 1;
-   task_context->connection_rate = 1;
-   task_context->protocol_engine_index = 0;
-   task_context->logical_port_index = this_port->physical_port_index;
-   task_context->protocol_type = SCU_TASK_CONTEXT_PROTOCOL_SSP;
-   task_context->task_index = scic_sds_io_tag_get_index(tci);
-   task_context->valid = SCU_TASK_CONTEXT_VALID;
-   task_context->context_type = SCU_TASK_CONTEXT_TYPE;
+	task_context->abort = 0;
+	task_context->priority = 0;
+	task_context->initiator_request = 1;
+	task_context->connection_rate = 1;
+	task_context->protocol_engine_index = 0;
+	task_context->logical_port_index = this_port->physical_port_index;
+	task_context->protocol_type = SCU_TASK_CONTEXT_PROTOCOL_SSP;
+	task_context->task_index = scic_sds_io_tag_get_index(tci);
+	task_context->valid = SCU_TASK_CONTEXT_VALID;
+	task_context->context_type = SCU_TASK_CONTEXT_TYPE;
 
-   task_context->remote_node_index = this_port->reserved_rni;
-   task_context->command_code = 0;
+	task_context->remote_node_index = this_port->reserved_rni;
+	task_context->command_code = 0;
 
-   task_context->link_layer_control = 0;
-   task_context->do_not_dma_ssp_good_response = 1;
-   task_context->strict_ordering = 0;
-   task_context->control_frame = 0;
-   task_context->timeout_enable = 0;
-   task_context->block_guard_enable = 0;
+	task_context->link_layer_control = 0;
+	task_context->do_not_dma_ssp_good_response = 1;
+	task_context->strict_ordering = 0;
+	task_context->control_frame = 0;
+	task_context->timeout_enable = 0;
+	task_context->block_guard_enable = 0;
 
-   task_context->address_modifier = 0;
+	task_context->address_modifier = 0;
 
-   task_context->task_phase = 0x01;
+	task_context->task_phase = 0x01;
 }
 
 /**
  * This routine will free any allocated dummy resources for this port.
  *
- * @param[in, out] this_port The port on which the resources are being destroyed.
+ * @param[in, out] this_port The port on which the resources are being
+ * destroyed.
  */
-static
-void scic_sds_port_destroy_dummy_resources(
-   SCIC_SDS_PORT_T * this_port
-)
+static void
+scic_sds_port_destroy_dummy_resources(SCIC_SDS_PORT_T *this_port)
 {
-   if (this_port->reserved_tci != SCU_DUMMY_INDEX)
-   {
-      scic_controller_free_io_tag(
-         this_port->owning_controller, this_port->reserved_tci
-      );
-   }
+	if (this_port->reserved_tci != SCU_DUMMY_INDEX) {
+		scic_controller_free_io_tag(this_port->owning_controller,
+		    this_port->reserved_tci);
+	}
 
-   if (this_port->reserved_rni != SCU_DUMMY_INDEX)
-   {
-      scic_sds_remote_node_table_release_remote_node_index(
-         &this_port->owning_controller->available_remote_nodes, 1, this_port->reserved_rni
-      );
-   }
+	if (this_port->reserved_rni != SCU_DUMMY_INDEX) {
+		scic_sds_remote_node_table_release_remote_node_index(
+		    &this_port->owning_controller->available_remote_nodes, 1,
+		    this_port->reserved_rni);
+	}
 
-   this_port->reserved_rni = SCU_DUMMY_INDEX;
-   this_port->reserved_tci = SCU_DUMMY_INDEX;
+	this_port->reserved_rni = SCU_DUMMY_INDEX;
+	this_port->reserved_tci = SCU_DUMMY_INDEX;
 }
 
 /**
@@ -763,49 +676,42 @@ void scic_sds_port_destroy_dummy_resources(
  * @param[in] port_index
  * @param[in] owning_controller
  */
-void scic_sds_port_construct(
-   SCIC_SDS_PORT_T         *this_port,
-   U8                      port_index,
-   SCIC_SDS_CONTROLLER_T   *owning_controller
-)
+void
+scic_sds_port_construct(SCIC_SDS_PORT_T *this_port, U8 port_index,
+    SCIC_SDS_CONTROLLER_T *owning_controller)
 {
-   U32 index;
+	U32 index;
 
-   sci_base_port_construct(
-      &this_port->parent,
-      sci_base_object_get_logger(owning_controller),
-      scic_sds_port_state_table
-   );
+	sci_base_port_construct(&this_port->parent,
+	    sci_base_object_get_logger(owning_controller),
+	    scic_sds_port_state_table);
 
-   sci_base_state_machine_construct(
-      scic_sds_port_get_ready_substate_machine(this_port),
-      &this_port->parent.parent,
-      scic_sds_port_ready_substate_table,
-      SCIC_SDS_PORT_READY_SUBSTATE_WAITING
-   );
+	sci_base_state_machine_construct(
+	    scic_sds_port_get_ready_substate_machine(this_port),
+	    &this_port->parent.parent, scic_sds_port_ready_substate_table,
+	    SCIC_SDS_PORT_READY_SUBSTATE_WAITING);
 
-   scic_sds_port_initialize_state_logging(this_port);
+	scic_sds_port_initialize_state_logging(this_port);
 
-   this_port->logical_port_index  = SCIC_SDS_DUMMY_PORT;
-   this_port->physical_port_index = port_index;
-   this_port->active_phy_mask     = 0;
-   this_port->enabled_phy_mask    = 0;
-   this_port->owning_controller = owning_controller;
+	this_port->logical_port_index = SCIC_SDS_DUMMY_PORT;
+	this_port->physical_port_index = port_index;
+	this_port->active_phy_mask = 0;
+	this_port->enabled_phy_mask = 0;
+	this_port->owning_controller = owning_controller;
 
-   this_port->started_request_count = 0;
-   this_port->assigned_device_count = 0;
+	this_port->started_request_count = 0;
+	this_port->assigned_device_count = 0;
 
-   this_port->reserved_rni = SCU_DUMMY_INDEX;
-   this_port->reserved_tci = SCU_DUMMY_INDEX;
+	this_port->reserved_rni = SCU_DUMMY_INDEX;
+	this_port->reserved_tci = SCU_DUMMY_INDEX;
 
-   this_port->timer_handle = SCI_INVALID_HANDLE;
+	this_port->timer_handle = SCI_INVALID_HANDLE;
 
-   this_port->port_task_scheduler_registers = NULL;
+	this_port->port_task_scheduler_registers = NULL;
 
-   for (index = 0; index < SCI_MAX_PHYS; index++)
-   {
-      this_port->phy_table[index] = NULL;
-   }
+	for (index = 0; index < SCI_MAX_PHYS; index++) {
+		this_port->phy_table[index] = NULL;
+	}
 }
 
 /**
@@ -824,18 +730,17 @@ void scic_sds_port_construct(
  * @retval SCI_FAILURE_UNSUPPORTED_PORT_CONFIGURATION This value is
  *         returned if the phy being added to the port
  */
-SCI_STATUS scic_sds_port_initialize(
-   SCIC_SDS_PORT_T *this_port,
-   void            *port_task_scheduler_registers,
-   void            *port_configuration_regsiter,
-   void            *viit_registers
-)
+SCI_STATUS
+scic_sds_port_initialize(SCIC_SDS_PORT_T *this_port,
+    void *port_task_scheduler_registers, void *port_configuration_regsiter,
+    void *viit_registers)
 {
-   this_port->port_task_scheduler_registers  = port_task_scheduler_registers;
-   this_port->port_pe_configuration_register = port_configuration_regsiter;
-   this_port->viit_registers                 = viit_registers;
+	this_port->port_task_scheduler_registers =
+	    port_task_scheduler_registers;
+	this_port->port_pe_configuration_register = port_configuration_regsiter;
+	this_port->viit_registers = viit_registers;
 
-   return SCI_SUCCESS;
+	return SCI_SUCCESS;
 }
 
 /**
@@ -858,158 +763,122 @@ SCI_STATUS scic_sds_port_initialize(
  *
  * @return none
  */
-void scic_sds_port_general_link_up_handler(
-   SCIC_SDS_PORT_T * this_port,
-   SCIC_SDS_PHY_T  * the_phy,
-   BOOL              do_notify_user,
-   BOOL              do_resume_phy
-)
+void
+scic_sds_port_general_link_up_handler(SCIC_SDS_PORT_T *this_port,
+    SCIC_SDS_PHY_T *the_phy, BOOL do_notify_user, BOOL do_resume_phy)
 {
-   SCI_SAS_ADDRESS_T  port_sas_address;
-   SCI_SAS_ADDRESS_T  phy_sas_address;
+	SCI_SAS_ADDRESS_T port_sas_address;
+	SCI_SAS_ADDRESS_T phy_sas_address;
 
-   scic_sds_port_get_attached_sas_address(this_port, &port_sas_address);
-   scic_sds_phy_get_attached_sas_address(the_phy, &phy_sas_address);
+	scic_sds_port_get_attached_sas_address(this_port, &port_sas_address);
+	scic_sds_phy_get_attached_sas_address(the_phy, &phy_sas_address);
 
-   // If the SAS address of the new phy matches the SAS address of
-   // other phys in the port OR this is the first phy in the port,
-   // then activate the phy and allow it to be used for operations
-   // in this port.
-   if (
-         (
-            (phy_sas_address.high == port_sas_address.high)
-         && (phy_sas_address.low  == port_sas_address.low )
-         )
-         || (this_port->active_phy_mask == 0)
-      )
-   {
-      scic_sds_port_activate_phy(this_port, the_phy, do_notify_user, do_resume_phy);
+	// If the SAS address of the new phy matches the SAS address of
+	// other phys in the port OR this is the first phy in the port,
+	// then activate the phy and allow it to be used for operations
+	// in this port.
+	if (((phy_sas_address.high == port_sas_address.high) &&
+		(phy_sas_address.low == port_sas_address.low)) ||
+	    (this_port->active_phy_mask == 0)) {
+		scic_sds_port_activate_phy(this_port, the_phy, do_notify_user,
+		    do_resume_phy);
 
-      if (this_port->parent.state_machine.current_state_id
-          == SCI_BASE_PORT_STATE_RESETTING)
-      {
-         sci_base_state_machine_change_state(
-            &this_port->parent.state_machine, SCI_BASE_PORT_STATE_READY
-         );
-      }
-   }
-   else
-   {
-      scic_sds_port_invalid_link_up(this_port, the_phy);
-   }
+		if (this_port->parent.state_machine.current_state_id ==
+		    SCI_BASE_PORT_STATE_RESETTING) {
+			sci_base_state_machine_change_state(
+			    &this_port->parent.state_machine,
+			    SCI_BASE_PORT_STATE_READY);
+		}
+	} else {
+		scic_sds_port_invalid_link_up(this_port, the_phy);
+	}
 }
 
 // ---------------------------------------------------------------------------
 
-SCI_STATUS scic_port_add_phy(
-   SCI_PORT_HANDLE_T handle,
-   SCI_PHY_HANDLE_T phy
-)
+SCI_STATUS
+scic_port_add_phy(SCI_PORT_HANDLE_T handle, SCI_PHY_HANDLE_T phy)
 {
-   #if defined (SCI_LOGGING)
-   SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)handle;
-   #endif // defined (SCI_LOGGING)
+#if defined(SCI_LOGGING)
+	SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)handle;
+#endif // defined (SCI_LOGGING)
 
-   SCIC_LOG_TRACE((
-      sci_base_object_get_logger(this_port),
-      SCIC_LOG_OBJECT_PORT,
-      "scic_port_add_phy(0x%x, 0x%x) enter\n",
-      handle, phy
-   ));
+	SCIC_LOG_TRACE(
+	    (sci_base_object_get_logger(this_port), SCIC_LOG_OBJECT_PORT,
+		"scic_port_add_phy(0x%x, 0x%x) enter\n", handle, phy));
 
-   SCIC_LOG_ERROR((
-      sci_base_object_get_logger(this_port),
-      SCIC_LOG_OBJECT_PORT,
-      "Interface function scic_port_add_phy() has been deprecated. "
-      "PORT configuration is handled through the OEM parameters.\n"
-   ));
+	SCIC_LOG_ERROR(
+	    (sci_base_object_get_logger(this_port), SCIC_LOG_OBJECT_PORT,
+		"Interface function scic_port_add_phy() has been deprecated. "
+		"PORT configuration is handled through the OEM parameters.\n"));
 
-   return SCI_FAILURE_ADDING_PHY_UNSUPPORTED;
-
+	return SCI_FAILURE_ADDING_PHY_UNSUPPORTED;
 }
 
 // ---------------------------------------------------------------------------
 
-SCI_STATUS scic_port_remove_phy(
-   SCI_PORT_HANDLE_T handle,
-   SCI_PHY_HANDLE_T phy
-)
+SCI_STATUS
+scic_port_remove_phy(SCI_PORT_HANDLE_T handle, SCI_PHY_HANDLE_T phy)
 {
-   #if defined (SCI_LOGGING)
-   SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)handle;
-   #endif // defined (SCI_LOGGING)
+#if defined(SCI_LOGGING)
+	SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)handle;
+#endif // defined (SCI_LOGGING)
 
-   SCIC_LOG_TRACE((
-      sci_base_object_get_logger(this_port),
-      SCIC_LOG_OBJECT_PORT,
-      "scic_port_remove_phy(0x%x, 0x%x) enter\n",
-      handle, phy
-   ));
+	SCIC_LOG_TRACE(
+	    (sci_base_object_get_logger(this_port), SCIC_LOG_OBJECT_PORT,
+		"scic_port_remove_phy(0x%x, 0x%x) enter\n", handle, phy));
 
-   SCIC_LOG_ERROR((
-      sci_base_object_get_logger(this_port),
-      SCIC_LOG_OBJECT_PORT,
-      "Interface function scic_port_remove_phy() has been deprecated. "
-      "PORT configuration is handled through the OEM parameters.\n"
-   ));
+	SCIC_LOG_ERROR((sci_base_object_get_logger(this_port),
+	    SCIC_LOG_OBJECT_PORT,
+	    "Interface function scic_port_remove_phy() has been deprecated. "
+	    "PORT configuration is handled through the OEM parameters.\n"));
 
-   return SCI_FAILURE_ADDING_PHY_UNSUPPORTED;
+	return SCI_FAILURE_ADDING_PHY_UNSUPPORTED;
 }
 
 // ---------------------------------------------------------------------------
 
-SCI_STATUS scic_port_get_properties(
-   SCI_PORT_HANDLE_T        port,
-   SCIC_PORT_PROPERTIES_T * properties
-)
+SCI_STATUS
+scic_port_get_properties(SCI_PORT_HANDLE_T port,
+    SCIC_PORT_PROPERTIES_T *properties)
 {
-   SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)port;
+	SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)port;
 
-   SCIC_LOG_TRACE((
-      sci_base_object_get_logger(this_port),
-      SCIC_LOG_OBJECT_PORT,
-      "scic_port_get_properties(0x%x, 0x%x) enter\n",
-      port, properties
-   ));
+	SCIC_LOG_TRACE((sci_base_object_get_logger(this_port),
+	    SCIC_LOG_OBJECT_PORT,
+	    "scic_port_get_properties(0x%x, 0x%x) enter\n", port, properties));
 
-   if (
-         (port == SCI_INVALID_HANDLE)
-      || (this_port->logical_port_index == SCIC_SDS_DUMMY_PORT)
-      )
-   {
-      return SCI_FAILURE_INVALID_PORT;
-   }
+	if ((port == SCI_INVALID_HANDLE) ||
+	    (this_port->logical_port_index == SCIC_SDS_DUMMY_PORT)) {
+		return SCI_FAILURE_INVALID_PORT;
+	}
 
-   properties->index    = this_port->logical_port_index;
-   properties->phy_mask = scic_sds_port_get_phys(this_port);
-   scic_sds_port_get_sas_address(this_port, &properties->local.sas_address);
-   scic_sds_port_get_protocols(this_port, &properties->local.protocols);
-   scic_sds_port_get_attached_sas_address(this_port, &properties->remote.sas_address);
-   scic_sds_port_get_attached_protocols(this_port, &properties->remote.protocols);
+	properties->index = this_port->logical_port_index;
+	properties->phy_mask = scic_sds_port_get_phys(this_port);
+	scic_sds_port_get_sas_address(this_port,
+	    &properties->local.sas_address);
+	scic_sds_port_get_protocols(this_port, &properties->local.protocols);
+	scic_sds_port_get_attached_sas_address(this_port,
+	    &properties->remote.sas_address);
+	scic_sds_port_get_attached_protocols(this_port,
+	    &properties->remote.protocols);
 
-   return SCI_SUCCESS;
+	return SCI_SUCCESS;
 }
 
 // ---------------------------------------------------------------------------
 
-SCI_STATUS scic_port_hard_reset(
-   SCI_PORT_HANDLE_T handle,
-   U32               reset_timeout
-)
+SCI_STATUS
+scic_port_hard_reset(SCI_PORT_HANDLE_T handle, U32 reset_timeout)
 {
-   SCIC_SDS_PORT_T * this_port = (SCIC_SDS_PORT_T *)handle;
+	SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)handle;
 
-   SCIC_LOG_TRACE((
-      sci_base_object_get_logger(this_port),
-      SCIC_LOG_OBJECT_PORT,
-      "scic_port_hard_reset(0x%x, 0x%x) enter\n",
-      handle, reset_timeout
-   ));
+	SCIC_LOG_TRACE((sci_base_object_get_logger(this_port),
+	    SCIC_LOG_OBJECT_PORT, "scic_port_hard_reset(0x%x, 0x%x) enter\n",
+	    handle, reset_timeout));
 
-   return this_port->state_handlers->parent.reset_handler(
-                                       &this_port->parent,
-                                       reset_timeout
-                                     );
+	return this_port->state_handlers->parent.reset_handler(
+	    &this_port->parent, reset_timeout);
 }
 
 /**
@@ -1020,20 +889,17 @@ SCI_STATUS scic_port_hard_reset(
  * @param[in] device_id The direct attached device ID to assign to the port.
  *       This will be the RNi for the device
  */
-void scic_sds_port_setup_transports(
-   SCIC_SDS_PORT_T * this_port,
-   U32               device_id
-)
+void
+scic_sds_port_setup_transports(SCIC_SDS_PORT_T *this_port, U32 device_id)
 {
-   U8 index;
+	U8 index;
 
-   for (index = 0; index < SCI_MAX_PHYS; index++)
-   {
-      if (this_port->active_phy_mask & (1 << index))
-      {
-         scic_sds_phy_setup_transport(this_port->phy_table[index], device_id);
-      }
-   }
+	for (index = 0; index < SCI_MAX_PHYS; index++) {
+		if (this_port->active_phy_mask & (1 << index)) {
+			scic_sds_phy_setup_transport(
+			    this_port->phy_table[index], device_id);
+		}
+	}
 }
 
 /**
@@ -1045,14 +911,11 @@ void scic_sds_port_setup_transports(
  * @param[in] this_port This is the port on which the phy should be enabled.
  * @return none
  */
-static
-void scic_sds_port_resume_phy(
-   SCIC_SDS_PORT_T * this_port,
-   SCIC_SDS_PHY_T  * the_phy
-)
+static void
+scic_sds_port_resume_phy(SCIC_SDS_PORT_T *this_port, SCIC_SDS_PHY_T *the_phy)
 {
-   scic_sds_phy_resume (the_phy);
-   this_port->enabled_phy_mask |= 1 << the_phy->phy_index;
+	scic_sds_phy_resume(the_phy);
+	this_port->enabled_phy_mask |= 1 << the_phy->phy_index;
 }
 /**
  * This method will activate the phy in the port.
@@ -1073,41 +936,35 @@ void scic_sds_port_resume_phy(
 
  * @return none
  */
-void scic_sds_port_activate_phy(
-   SCIC_SDS_PORT_T * this_port,
-   SCIC_SDS_PHY_T  * the_phy,
-   BOOL              do_notify_user,
-   BOOL              do_resume_phy
-)
+void
+scic_sds_port_activate_phy(SCIC_SDS_PORT_T *this_port, SCIC_SDS_PHY_T *the_phy,
+    BOOL do_notify_user, BOOL do_resume_phy)
 {
-   SCIC_SDS_CONTROLLER_T                      * controller;
-   SCI_SAS_IDENTIFY_ADDRESS_FRAME_PROTOCOLS_T   protocols;
+	SCIC_SDS_CONTROLLER_T *controller;
+	SCI_SAS_IDENTIFY_ADDRESS_FRAME_PROTOCOLS_T protocols;
 
-   SCIC_LOG_TRACE((
-      sci_base_object_get_logger(this_port),
-      SCIC_LOG_OBJECT_PORT,
-      "scic_sds_port_activate_phy(0x%x,0x%x,0x%x) enter\n",
-      this_port, the_phy, do_notify_user
-   ));
+	SCIC_LOG_TRACE(
+	    (sci_base_object_get_logger(this_port), SCIC_LOG_OBJECT_PORT,
+		"scic_sds_port_activate_phy(0x%x,0x%x,0x%x) enter\n", this_port,
+		the_phy, do_notify_user));
 
-   controller = scic_sds_port_get_controller(this_port);
-   scic_sds_phy_get_attached_phy_protocols(the_phy, &protocols);
+	controller = scic_sds_port_get_controller(this_port);
+	scic_sds_phy_get_attached_phy_protocols(the_phy, &protocols);
 
-   // If this is sata port then the phy has already been resumed
-   if (!protocols.u.bits.stp_target)
-   {
-      if (do_resume_phy == TRUE)
-      {
-         scic_sds_port_resume_phy(this_port, the_phy);
-      }
-   }
+	// If this is sata port then the phy has already been resumed
+	if (!protocols.u.bits.stp_target) {
+		if (do_resume_phy == TRUE) {
+			scic_sds_port_resume_phy(this_port, the_phy);
+		}
+	}
 
-   this_port->active_phy_mask |= 1 << the_phy->phy_index;
+	this_port->active_phy_mask |= 1 << the_phy->phy_index;
 
-   scic_sds_controller_clear_invalid_phy(controller, the_phy);
+	scic_sds_controller_clear_invalid_phy(controller, the_phy);
 
-   if (do_notify_user == TRUE)
-      scic_cb_port_link_up(this_port->owning_controller, this_port, the_phy);
+	if (do_notify_user == TRUE)
+		scic_cb_port_link_up(this_port->owning_controller, this_port,
+		    the_phy);
 }
 
 /**
@@ -1123,60 +980,57 @@ void scic_sds_port_activate_phy(
  *
  * @return none
  */
-void scic_sds_port_deactivate_phy(
-   SCIC_SDS_PORT_T * this_port,
-   SCIC_SDS_PHY_T  * the_phy,
-   BOOL              do_notify_user
-)
+void
+scic_sds_port_deactivate_phy(SCIC_SDS_PORT_T *this_port,
+    SCIC_SDS_PHY_T *the_phy, BOOL do_notify_user)
 {
-   SCIC_LOG_TRACE((
-      sci_base_object_get_logger(this_port),
-      SCIC_LOG_OBJECT_PORT,
-      "scic_sds_port_deactivate_phy(0x%x,0x%x,0x%x) enter\n",
-      this_port, the_phy, do_notify_user
-   ));
+	SCIC_LOG_TRACE(
+	    (sci_base_object_get_logger(this_port), SCIC_LOG_OBJECT_PORT,
+		"scic_sds_port_deactivate_phy(0x%x,0x%x,0x%x) enter\n",
+		this_port, the_phy, do_notify_user));
 
-   this_port->active_phy_mask &= ~(1 << the_phy->phy_index);
-   this_port->enabled_phy_mask  &= ~(1 << the_phy->phy_index);
+	this_port->active_phy_mask &= ~(1 << the_phy->phy_index);
+	this_port->enabled_phy_mask &= ~(1 << the_phy->phy_index);
 
-   the_phy->max_negotiated_speed = SCI_SAS_NO_LINK_RATE;
+	the_phy->max_negotiated_speed = SCI_SAS_NO_LINK_RATE;
 
-   // Re-assign the phy back to the LP as if it were a narrow port for APC mode.
-   // For MPC mode, the phy will remain in the port
-   if (this_port->owning_controller->oem_parameters.sds1.controller.mode_type
-       == SCIC_PORT_AUTOMATIC_CONFIGURATION_MODE)
-   {
-   SCU_PCSPExCR_WRITE(this_port, the_phy->phy_index, the_phy->phy_index);
-   }
+	// Re-assign the phy back to the LP as if it were a narrow port for APC
+	// mode. For MPC mode, the phy will remain in the port
+	if (this_port->owning_controller->oem_parameters.sds1.controller
+		.mode_type == SCIC_PORT_AUTOMATIC_CONFIGURATION_MODE) {
+		SCU_PCSPExCR_WRITE(this_port, the_phy->phy_index,
+		    the_phy->phy_index);
+	}
 
-   if (do_notify_user == TRUE)
-      scic_cb_port_link_down(this_port->owning_controller, this_port, the_phy);
+	if (do_notify_user == TRUE)
+		scic_cb_port_link_down(this_port->owning_controller, this_port,
+		    the_phy);
 }
 
 /**
- * This method will disable the phy and report that the phy is not valid for this
- * port object.
+ * This method will disable the phy and report that the phy is not valid for
+ * this port object.
  *
  * @param[in] this_port This is the port on which the phy should be disabled.
  * @param[in] the_phy This is the specific phy which to disabled.
  *
  * @return None
  */
-void scic_sds_port_invalid_link_up(
-   SCIC_SDS_PORT_T * this_port,
-   SCIC_SDS_PHY_T  * the_phy
-)
+void
+scic_sds_port_invalid_link_up(SCIC_SDS_PORT_T *this_port,
+    SCIC_SDS_PHY_T *the_phy)
 {
-   SCIC_SDS_CONTROLLER_T * controller = scic_sds_port_get_controller(this_port);
+	SCIC_SDS_CONTROLLER_T *controller = scic_sds_port_get_controller(
+	    this_port);
 
-   // Check to see if we have alreay reported this link as bad and if not go
-   // ahead and tell the SCI_USER that we have discovered an invalid link.
-   if ((controller->invalid_phy_mask & (1 << the_phy->phy_index)) == 0)
-   {
-      scic_sds_controller_set_invalid_phy(controller, the_phy);
+	// Check to see if we have alreay reported this link as bad and if not
+	// go ahead and tell the SCI_USER that we have discovered an invalid
+	// link.
+	if ((controller->invalid_phy_mask & (1 << the_phy->phy_index)) == 0) {
+		scic_sds_controller_set_invalid_phy(controller, the_phy);
 
-      scic_cb_port_invalid_link_up(controller, this_port, the_phy);
-   }
+		scic_cb_port_invalid_link_up(controller, this_port, the_phy);
+	}
 }
 
 /**
@@ -1191,23 +1045,19 @@ void scic_sds_port_invalid_link_up(
  * @retval TRUE Is returned if this is a wide ported port.
  * @retval FALSE Is returned if this is a narrow port.
  */
-static
-BOOL scic_sds_port_is_wide(
-   SCIC_SDS_PORT_T *this_port
-)
+static BOOL
+scic_sds_port_is_wide(SCIC_SDS_PORT_T *this_port)
 {
-   U32 index;
-   U32 phy_count = 0;
+	U32 index;
+	U32 phy_count = 0;
 
-   for (index = 0; index < SCI_MAX_PHYS; index++)
-   {
-      if (this_port->phy_table[index] != NULL)
-      {
-         phy_count++;
-      }
-   }
+	for (index = 0; index < SCI_MAX_PHYS; index++) {
+		if (this_port->phy_table[index] != NULL) {
+			phy_count++;
+		}
+	}
 
-   return (phy_count != 1);
+	return (phy_count != 1);
 }
 
 /**
@@ -1227,37 +1077,33 @@ BOOL scic_sds_port_is_wide(
  *       phys.  Since there are no wide ported SATA devices this could
  *       become an invalid port configuration.
  */
-BOOL scic_sds_port_link_detected(
-   SCIC_SDS_PORT_T *this_port,
-   SCIC_SDS_PHY_T  *the_phy
-)
+BOOL
+scic_sds_port_link_detected(SCIC_SDS_PORT_T *this_port, SCIC_SDS_PHY_T *the_phy)
 {
-   SCI_SAS_IDENTIFY_ADDRESS_FRAME_PROTOCOLS_T protocols;
+	SCI_SAS_IDENTIFY_ADDRESS_FRAME_PROTOCOLS_T protocols;
 
-   scic_sds_phy_get_attached_phy_protocols(the_phy, &protocols);
+	scic_sds_phy_get_attached_phy_protocols(the_phy, &protocols);
 
-   if (
-         (this_port->logical_port_index != SCIC_SDS_DUMMY_PORT)
-      && (protocols.u.bits.stp_target)
-      )
-   {
-      if (scic_sds_port_is_wide(this_port))
-      {
-         //direct attached Sata phy cannot be in wide port.
-         scic_sds_port_invalid_link_up( this_port, the_phy);
-      return FALSE;
-   }
-      else
-      {
-         SCIC_SDS_PORT_T *destination_port = &(this_port->owning_controller->port_table[the_phy->phy_index]);
+	if ((this_port->logical_port_index != SCIC_SDS_DUMMY_PORT) &&
+	    (protocols.u.bits.stp_target)) {
+		if (scic_sds_port_is_wide(this_port)) {
+			// direct attached Sata phy cannot be in wide port.
+			scic_sds_port_invalid_link_up(this_port, the_phy);
+			return FALSE;
+		} else {
+			SCIC_SDS_PORT_T *destination_port = &(
+			    this_port->owning_controller
+				->port_table[the_phy->phy_index]);
 
-         //add the phy to the its logical port for direct attached SATA. The phy will be added
-         //to port whose port_index will be the phy_index.
-         SCU_PCSPExCR_WRITE( destination_port, the_phy->phy_index, the_phy->phy_index);
-      }
-   }
+			// add the phy to the its logical port for direct
+			// attached SATA. The phy will be added to port whose
+			// port_index will be the phy_index.
+			SCU_PCSPExCR_WRITE(destination_port, the_phy->phy_index,
+			    the_phy->phy_index);
+		}
+	}
 
-   return TRUE;
+	return TRUE;
 }
 
 /**
@@ -1267,14 +1113,12 @@ BOOL scic_sds_port_link_detected(
  * @param[in] this_port
  * @param[in] phy
  */
-void scic_sds_port_link_up(
-   SCIC_SDS_PORT_T *this_port,
-   SCIC_SDS_PHY_T  *the_phy
-)
+void
+scic_sds_port_link_up(SCIC_SDS_PORT_T *this_port, SCIC_SDS_PHY_T *the_phy)
 {
-   the_phy->is_in_link_training = FALSE;
+	the_phy->is_in_link_training = FALSE;
 
-   this_port->state_handlers->link_up_handler(this_port, the_phy);
+	this_port->state_handlers->link_up_handler(this_port, the_phy);
 }
 
 /**
@@ -1284,12 +1128,10 @@ void scic_sds_port_link_up(
  * @param[in] this_port
  * @param[in] phy
  */
-void scic_sds_port_link_down(
-   SCIC_SDS_PORT_T *this_port,
-   SCIC_SDS_PHY_T  *the_phy
-)
+void
+scic_sds_port_link_down(SCIC_SDS_PORT_T *this_port, SCIC_SDS_PHY_T *the_phy)
 {
-   this_port->state_handlers->link_down_handler(this_port, the_phy);
+	this_port->state_handlers->link_down_handler(this_port, the_phy);
 }
 
 /**
@@ -1301,14 +1143,12 @@ void scic_sds_port_link_down(
  *
  * @return SCI_STATUS
  */
-SCI_STATUS scic_sds_port_start_io(
-   SCIC_SDS_PORT_T          *this_port,
-   SCIC_SDS_REMOTE_DEVICE_T *the_device,
-   SCIC_SDS_REQUEST_T       *the_io_request
-)
+SCI_STATUS
+scic_sds_port_start_io(SCIC_SDS_PORT_T *this_port,
+    SCIC_SDS_REMOTE_DEVICE_T *the_device, SCIC_SDS_REQUEST_T *the_io_request)
 {
-   return this_port->state_handlers->start_io_handler(
-                                       this_port, the_device, the_io_request);
+	return this_port->state_handlers->start_io_handler(this_port,
+	    the_device, the_io_request);
 }
 
 /**
@@ -1320,14 +1160,12 @@ SCI_STATUS scic_sds_port_start_io(
  *
  * @return SCI_STATUS
  */
-SCI_STATUS scic_sds_port_complete_io(
-   SCIC_SDS_PORT_T          *this_port,
-   SCIC_SDS_REMOTE_DEVICE_T *the_device,
-   SCIC_SDS_REQUEST_T       *the_io_request
-)
+SCI_STATUS
+scic_sds_port_complete_io(SCIC_SDS_PORT_T *this_port,
+    SCIC_SDS_REMOTE_DEVICE_T *the_device, SCIC_SDS_REQUEST_T *the_io_request)
 {
-   return this_port->state_handlers->complete_io_handler(
-                                       this_port, the_device, the_io_request);
+	return this_port->state_handlers->complete_io_handler(this_port,
+	    the_device, the_io_request);
 }
 
 /**
@@ -1337,78 +1175,57 @@ SCI_STATUS scic_sds_port_complete_io(
  * @param[in] port This is the parameter or cookie value that is provided
  *       to the timer construct operation.
  */
-void scic_sds_port_timeout_handler(
-   void *port
-)
+void
+scic_sds_port_timeout_handler(void *port)
 {
-   U32 current_state;
-   SCIC_SDS_PORT_T * this_port;
+	U32 current_state;
+	SCIC_SDS_PORT_T *this_port;
 
-   this_port = (SCIC_SDS_PORT_T *)port;
-   current_state = sci_base_state_machine_get_state(
-                           &this_port->parent.state_machine);
+	this_port = (SCIC_SDS_PORT_T *)port;
+	current_state = sci_base_state_machine_get_state(
+	    &this_port->parent.state_machine);
 
-   if (current_state == SCI_BASE_PORT_STATE_RESETTING)
-   {
-      // if the port is still in the resetting state then the timeout fired
-      // before the reset completed.
-      sci_base_state_machine_change_state(
-         &this_port->parent.state_machine,
-         SCI_BASE_PORT_STATE_FAILED
-      );
-   }
-   else if (current_state == SCI_BASE_PORT_STATE_STOPPED)
-   {
-      // if the port is stopped then the start request failed
-      // In this case stay in the stopped state.
-      SCIC_LOG_ERROR((
-         sci_base_object_get_logger(this_port),
-         SCIC_LOG_OBJECT_PORT,
-         "SCIC Port 0x%x failed to stop before tiemout.\n",
-         this_port
-      ));
-   }
-   else if (current_state == SCI_BASE_PORT_STATE_STOPPING)
-   {
-      // if the port is still stopping then the stop has not completed
-      scic_cb_port_stop_complete(
-         scic_sds_port_get_controller(this_port),
-         port,
-         SCI_FAILURE_TIMEOUT
-      );
-   }
-   else
-   {
-      // The port is in the ready state and we have a timer reporting a timeout
-      // this should not happen.
-      SCIC_LOG_ERROR((
-         sci_base_object_get_logger(this_port),
-         SCIC_LOG_OBJECT_PORT,
-         "SCIC Port 0x%x is processing a timeout operation in state %d.\n",
-         this_port, current_state
-      ));
-   }
+	if (current_state == SCI_BASE_PORT_STATE_RESETTING) {
+		// if the port is still in the resetting state then the timeout
+		// fired before the reset completed.
+		sci_base_state_machine_change_state(
+		    &this_port->parent.state_machine,
+		    SCI_BASE_PORT_STATE_FAILED);
+	} else if (current_state == SCI_BASE_PORT_STATE_STOPPED) {
+		// if the port is stopped then the start request failed
+		// In this case stay in the stopped state.
+		SCIC_LOG_ERROR((sci_base_object_get_logger(this_port),
+		    SCIC_LOG_OBJECT_PORT,
+		    "SCIC Port 0x%x failed to stop before tiemout.\n",
+		    this_port));
+	} else if (current_state == SCI_BASE_PORT_STATE_STOPPING) {
+		// if the port is still stopping then the stop has not completed
+		scic_cb_port_stop_complete(scic_sds_port_get_controller(
+					       this_port),
+		    port, SCI_FAILURE_TIMEOUT);
+	} else {
+		// The port is in the ready state and we have a timer reporting
+		// a timeout this should not happen.
+		SCIC_LOG_ERROR((sci_base_object_get_logger(this_port),
+		    SCIC_LOG_OBJECT_PORT,
+		    "SCIC Port 0x%x is processing a timeout operation in state %d.\n",
+		    this_port, current_state));
+	}
 }
 
 // ---------------------------------------------------------------------------
 
 #ifdef SCIC_DEBUG_ENABLED
-void scic_sds_port_decrement_request_count(
-   SCIC_SDS_PORT_T *this_port
-)
+void
+scic_sds_port_decrement_request_count(SCIC_SDS_PORT_T *this_port)
 {
-   if (this_port->started_request_count == 0)
-   {
-      SCIC_LOG_WARNING((
-         sci_base_object_get_logger(this_port),
-         SCIC_LOG_OBJECT_PORT,
-         "SCIC Port object requested to decrement started io count past zero.\n"
-      ));
-   }
-   else
-   {
-      this_port->started_request_count--;
-   }
+	if (this_port->started_request_count == 0) {
+		SCIC_LOG_WARNING((sci_base_object_get_logger(this_port),
+		    SCIC_LOG_OBJECT_PORT,
+		    "SCIC Port object requested to decrement started io count past zero.\n"));
+	} else {
+		this_port->started_request_count--;
+	}
 }
 #endif
 
@@ -1417,34 +1234,28 @@ void scic_sds_port_decrement_request_count(
  *
  * @param[in] this_port
  */
-void scic_sds_port_update_viit_entry(
-   SCIC_SDS_PORT_T *this_port
-)
+void
+scic_sds_port_update_viit_entry(SCIC_SDS_PORT_T *this_port)
 {
-   SCI_SAS_ADDRESS_T sas_address;
+	SCI_SAS_ADDRESS_T sas_address;
 
-   scic_sds_port_get_sas_address(this_port, &sas_address);
+	scic_sds_port_get_sas_address(this_port, &sas_address);
 
-   scu_port_viit_register_write(
-      this_port, initiator_sas_address_hi, sas_address.high);
+	scu_port_viit_register_write(this_port, initiator_sas_address_hi,
+	    sas_address.high);
 
-   scu_port_viit_register_write(
-      this_port, initiator_sas_address_lo, sas_address.low);
+	scu_port_viit_register_write(this_port, initiator_sas_address_lo,
+	    sas_address.low);
 
-   // This value get cleared just in case its not already cleared
-   scu_port_viit_register_write(
-      this_port, reserved, 0);
+	// This value get cleared just in case its not already cleared
+	scu_port_viit_register_write(this_port, reserved, 0);
 
-
-   // We are required to update the status register last
-   scu_port_viit_register_write(
-      this_port, status, (
-           SCU_VIIT_ENTRY_ID_VIIT
-         | SCU_VIIT_IPPT_INITIATOR
-         | ((1UL << this_port->physical_port_index) << SCU_VIIT_ENTRY_LPVIE_SHIFT)
-         | SCU_VIIT_STATUS_ALL_VALID
-         )
-   );
+	// We are required to update the status register last
+	scu_port_viit_register_write(this_port, status,
+	    (SCU_VIIT_ENTRY_ID_VIIT | SCU_VIIT_IPPT_INITIATOR |
+		((1UL << this_port->physical_port_index)
+		    << SCU_VIIT_ENTRY_LPVIE_SHIFT) |
+		SCU_VIIT_STATUS_ALL_VALID));
 }
 
 /**
@@ -1458,30 +1269,25 @@ void scic_sds_port_update_viit_entry(
  * @return This method returns the maximum negotiated speed of the slowest
  *         phy in the port.
  */
-SCI_SAS_LINK_RATE scic_sds_port_get_max_allowed_speed(
-   SCIC_SDS_PORT_T * this_port
-)
+SCI_SAS_LINK_RATE
+scic_sds_port_get_max_allowed_speed(SCIC_SDS_PORT_T *this_port)
 {
-   U16                index             = 0;
-   SCI_SAS_LINK_RATE  max_allowed_speed = SCI_SAS_600_GB;
-   SCIC_SDS_PHY_T   * phy               = NULL;
+	U16 index = 0;
+	SCI_SAS_LINK_RATE max_allowed_speed = SCI_SAS_600_GB;
+	SCIC_SDS_PHY_T *phy = NULL;
 
-   // Loop through all of the phys in this port and find the phy with the
-   // lowest maximum link rate.
-   for (index = 0; index < SCI_MAX_PHYS; index++)
-   {
-      phy = this_port->phy_table[index];
-      if (
-            (phy != NULL)
-         && (scic_sds_port_active_phy(this_port, phy) == TRUE)
-         && (phy->max_negotiated_speed < max_allowed_speed)
-         )
-         max_allowed_speed = phy->max_negotiated_speed;
-   }
+	// Loop through all of the phys in this port and find the phy with the
+	// lowest maximum link rate.
+	for (index = 0; index < SCI_MAX_PHYS; index++) {
+		phy = this_port->phy_table[index];
+		if ((phy != NULL) &&
+		    (scic_sds_port_active_phy(this_port, phy) == TRUE) &&
+		    (phy->max_negotiated_speed < max_allowed_speed))
+			max_allowed_speed = phy->max_negotiated_speed;
+	}
 
-   return max_allowed_speed;
+	return max_allowed_speed;
 }
-
 
 /**
  * @brief This method passes the event to core user.
@@ -1490,17 +1296,14 @@ SCI_SAS_LINK_RATE scic_sds_port_get_max_allowed_speed(
  *
  * @return none
  */
-void scic_sds_port_broadcast_change_received(
-   SCIC_SDS_PORT_T * this_port,
-   SCIC_SDS_PHY_T * this_phy
-)
+void
+scic_sds_port_broadcast_change_received(SCIC_SDS_PORT_T *this_port,
+    SCIC_SDS_PHY_T *this_phy)
 {
-   //notify the user.
-   scic_cb_port_bc_change_primitive_recieved(
-      this_port->owning_controller, this_port, this_phy
-   );
+	// notify the user.
+	scic_cb_port_bc_change_primitive_recieved(this_port->owning_controller,
+	    this_port, this_phy);
 }
-
 
 /**
  * @brief This API methhod enables the broadcast change notification from
@@ -1509,27 +1312,24 @@ void scic_sds_port_broadcast_change_received(
  *
  * @return none
  */
-void scic_port_enable_broadcast_change_notification(
-   SCI_PORT_HANDLE_T  port
-)
+void
+scic_port_enable_broadcast_change_notification(SCI_PORT_HANDLE_T port)
 {
-   SCIC_SDS_PORT_T * this_port = (SCIC_SDS_PORT_T *)port;
-   SCIC_SDS_PHY_T * phy;
-   U32 register_value;
-   U8 index;
+	SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)port;
+	SCIC_SDS_PHY_T *phy;
+	U32 register_value;
+	U8 index;
 
-   // Loop through all of the phys to enable BCN.
-   for (index = 0; index < SCI_MAX_PHYS; index++)
-   {
-      phy = this_port->phy_table[index];
-      if ( phy != NULL)
-      {
-         register_value = SCU_SAS_LLCTL_READ(phy);
+	// Loop through all of the phys to enable BCN.
+	for (index = 0; index < SCI_MAX_PHYS; index++) {
+		phy = this_port->phy_table[index];
+		if (phy != NULL) {
+			register_value = SCU_SAS_LLCTL_READ(phy);
 
-         // clear the bit by writing 1.
-         SCU_SAS_LLCTL_WRITE(phy, register_value);
-      }
-   }
+			// clear the bit by writing 1.
+			SCU_SAS_LLCTL_WRITE(phy, register_value);
+		}
+	}
 }
 
 /**
@@ -1540,26 +1340,21 @@ void scic_port_enable_broadcast_change_notification(
  * @param[in] this_port This parameter specifies the port whose resource is to
  *            be released.
  */
-void scic_sds_port_release_resource(
-   SCIC_SDS_CONTROLLER_T * controller,
-   SCIC_SDS_PORT_T *this_port
-)
+void
+scic_sds_port_release_resource(SCIC_SDS_CONTROLLER_T *controller,
+    SCIC_SDS_PORT_T *this_port)
 {
-   SCIC_LOG_TRACE((
-      sci_base_object_get_logger(this_port),
-      SCIC_LOG_OBJECT_PORT,
-      "scic_sds_port_release_resource(0x%x, 0x%x)\n",
-      controller, this_port
-   ));
+	SCIC_LOG_TRACE(
+	    (sci_base_object_get_logger(this_port), SCIC_LOG_OBJECT_PORT,
+		"scic_sds_port_release_resource(0x%x, 0x%x)\n", controller,
+		this_port));
 
-   //Currently, the only resource to be released is a timer.
-   if (this_port->timer_handle != NULL)
-   {
-      scic_cb_timer_destroy(controller, this_port->timer_handle);
-      this_port->timer_handle = NULL;
-   }
+	// Currently, the only resource to be released is a timer.
+	if (this_port->timer_handle != NULL) {
+		scic_cb_timer_destroy(controller, this_port->timer_handle);
+		this_port->timer_handle = NULL;
+	}
 }
-
 
 //******************************************************************************
 //* PORT STATE MACHINE
@@ -1579,20 +1374,18 @@ void scic_sds_port_release_resource(
  * @return SCI_STATUS
  * @retval SCI_FAILURE_INVALID_STATE
  */
-SCI_STATUS scic_sds_port_default_start_handler(
-   SCI_BASE_PORT_T *port
-)
+SCI_STATUS
+scic_sds_port_default_start_handler(SCI_BASE_PORT_T *port)
 {
-   SCIC_LOG_WARNING((
-      sci_base_object_get_logger((SCIC_SDS_PORT_T *)port),
-      SCIC_LOG_OBJECT_PORT,
-      "SCIC Port 0x%08x requested to start while in invalid state %d\n",
-      port,
-      sci_base_state_machine_get_state(
-         scic_sds_port_get_base_state_machine((SCIC_SDS_PORT_T *)port))
-   ));
+	SCIC_LOG_WARNING((sci_base_object_get_logger((SCIC_SDS_PORT_T *)port),
+	    SCIC_LOG_OBJECT_PORT,
+	    "SCIC Port 0x%08x requested to start while in invalid state %d\n",
+	    port,
+	    sci_base_state_machine_get_state(
+		scic_sds_port_get_base_state_machine(
+		    (SCIC_SDS_PORT_T *)port))));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -1605,20 +1398,18 @@ SCI_STATUS scic_sds_port_default_start_handler(
  * @return SCI_STATUS
  * @retval SCI_FAILURE_INVALID_STATE
  */
-SCI_STATUS scic_sds_port_default_stop_handler(
-   SCI_BASE_PORT_T *port
-)
+SCI_STATUS
+scic_sds_port_default_stop_handler(SCI_BASE_PORT_T *port)
 {
-   SCIC_LOG_WARNING((
-      sci_base_object_get_logger((SCIC_SDS_PORT_T *)port),
-      SCIC_LOG_OBJECT_PORT,
-      "SCIC Port 0x%08x requested to stop while in invalid state %d\n",
-      port,
-      sci_base_state_machine_get_state(
-         scic_sds_port_get_base_state_machine((SCIC_SDS_PORT_T *)port))
-   ));
+	SCIC_LOG_WARNING((sci_base_object_get_logger((SCIC_SDS_PORT_T *)port),
+	    SCIC_LOG_OBJECT_PORT,
+	    "SCIC Port 0x%08x requested to stop while in invalid state %d\n",
+	    port,
+	    sci_base_state_machine_get_state(
+		scic_sds_port_get_base_state_machine(
+		    (SCIC_SDS_PORT_T *)port))));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -1631,20 +1422,18 @@ SCI_STATUS scic_sds_port_default_stop_handler(
  * @return SCI_STATUS
  * @retval SCI_FAILURE_INVALID_STATE
  */
-SCI_STATUS scic_sds_port_default_destruct_handler(
-   SCI_BASE_PORT_T *port
-)
+SCI_STATUS
+scic_sds_port_default_destruct_handler(SCI_BASE_PORT_T *port)
 {
-   SCIC_LOG_WARNING((
-      sci_base_object_get_logger((SCIC_SDS_PORT_T *)port),
-      SCIC_LOG_OBJECT_PORT,
-      "SCIC Port 0x%08x requested to destruct while in invalid state %d\n",
-      port,
-      sci_base_state_machine_get_state(
-         scic_sds_port_get_base_state_machine((SCIC_SDS_PORT_T *)port))
-   ));
+	SCIC_LOG_WARNING((sci_base_object_get_logger((SCIC_SDS_PORT_T *)port),
+	    SCIC_LOG_OBJECT_PORT,
+	    "SCIC Port 0x%08x requested to destruct while in invalid state %d\n",
+	    port,
+	    sci_base_state_machine_get_state(
+		scic_sds_port_get_base_state_machine(
+		    (SCIC_SDS_PORT_T *)port))));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -1658,21 +1447,18 @@ SCI_STATUS scic_sds_port_default_destruct_handler(
  * @return SCI_STATUS
  * @retval SCI_FAILURE_INVALID_STATE
  */
-SCI_STATUS scic_sds_port_default_reset_handler(
-   SCI_BASE_PORT_T * port,
-   U32               timeout
-)
+SCI_STATUS
+scic_sds_port_default_reset_handler(SCI_BASE_PORT_T *port, U32 timeout)
 {
-   SCIC_LOG_WARNING((
-      sci_base_object_get_logger((SCIC_SDS_PORT_T *)port),
-      SCIC_LOG_OBJECT_PORT,
-      "SCIC Port 0x%08x requested to reset while in invalid state %d\n",
-      port,
-      sci_base_state_machine_get_state(
-         scic_sds_port_get_base_state_machine((SCIC_SDS_PORT_T *)port))
-   ));
+	SCIC_LOG_WARNING((sci_base_object_get_logger((SCIC_SDS_PORT_T *)port),
+	    SCIC_LOG_OBJECT_PORT,
+	    "SCIC Port 0x%08x requested to reset while in invalid state %d\n",
+	    port,
+	    sci_base_state_machine_get_state(
+		scic_sds_port_get_base_state_machine(
+		    (SCIC_SDS_PORT_T *)port))));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -1685,21 +1471,19 @@ SCI_STATUS scic_sds_port_default_reset_handler(
  * @return SCI_STATUS
  * @retval SCI_FAILURE_INVALID_STATE
  */
-SCI_STATUS scic_sds_port_default_add_phy_handler(
-   SCI_BASE_PORT_T *port,
-   SCI_BASE_PHY_T  *phy
-)
+SCI_STATUS
+scic_sds_port_default_add_phy_handler(SCI_BASE_PORT_T *port,
+    SCI_BASE_PHY_T *phy)
 {
-   SCIC_LOG_WARNING((
-      sci_base_object_get_logger((SCIC_SDS_PORT_T *)port),
-      SCIC_LOG_OBJECT_PORT,
-      "SCIC Port 0x%08x requested to add phy 0x%08x while in invalid state %d\n",
-      port, phy,
-      sci_base_state_machine_get_state(
-         scic_sds_port_get_base_state_machine((SCIC_SDS_PORT_T *)port))
-   ));
+	SCIC_LOG_WARNING((sci_base_object_get_logger((SCIC_SDS_PORT_T *)port),
+	    SCIC_LOG_OBJECT_PORT,
+	    "SCIC Port 0x%08x requested to add phy 0x%08x while in invalid state %d\n",
+	    port, phy,
+	    sci_base_state_machine_get_state(
+		scic_sds_port_get_base_state_machine(
+		    (SCIC_SDS_PORT_T *)port))));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -1712,21 +1496,19 @@ SCI_STATUS scic_sds_port_default_add_phy_handler(
  * @return SCI_STATUS
  * @retval SCI_FAILURE_INVALID_STATE
  */
-SCI_STATUS scic_sds_port_default_remove_phy_handler(
-   SCI_BASE_PORT_T *port,
-   SCI_BASE_PHY_T  *phy
-)
+SCI_STATUS
+scic_sds_port_default_remove_phy_handler(SCI_BASE_PORT_T *port,
+    SCI_BASE_PHY_T *phy)
 {
-   SCIC_LOG_WARNING((
-      sci_base_object_get_logger((SCIC_SDS_PORT_T *)port),
-      SCIC_LOG_OBJECT_PORT,
-      "SCIC Port 0x%08x requested to remove phy 0x%08x while in invalid state %d\n",
-      port, phy,
-      sci_base_state_machine_get_state(
-         scic_sds_port_get_base_state_machine((SCIC_SDS_PORT_T *)port))
-   ));
+	SCIC_LOG_WARNING((sci_base_object_get_logger((SCIC_SDS_PORT_T *)port),
+	    SCIC_LOG_OBJECT_PORT,
+	    "SCIC Port 0x%08x requested to remove phy 0x%08x while in invalid state %d\n",
+	    port, phy,
+	    sci_base_state_machine_get_state(
+		scic_sds_port_get_base_state_machine(
+		    (SCIC_SDS_PORT_T *)port))));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -1743,27 +1525,23 @@ SCI_STATUS scic_sds_port_default_remove_phy_handler(
  *       port object?  It seems possible if we implementing virtual functions
  *       but until then?
  */
-SCI_STATUS scic_sds_port_default_frame_handler(
-   SCIC_SDS_PORT_T * port,
-   U32               frame_index
-)
+SCI_STATUS
+scic_sds_port_default_frame_handler(SCIC_SDS_PORT_T *port, U32 frame_index)
 {
-   SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)port;
+	SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)port;
 
-   SCIC_LOG_WARNING((
-      sci_base_object_get_logger(this_port),
-      SCIC_LOG_OBJECT_PORT,
-      "SCIC Port 0x%08x requested to process frame %d while in invalid state %d\n",
-      port, frame_index,
-      sci_base_state_machine_get_state(
-         scic_sds_port_get_base_state_machine(this_port))
-   ));
+	SCIC_LOG_WARNING((sci_base_object_get_logger(this_port),
+	    SCIC_LOG_OBJECT_PORT,
+	    "SCIC Port 0x%08x requested to process frame %d while in invalid state %d\n",
+	    port, frame_index,
+	    sci_base_state_machine_get_state(
+		scic_sds_port_get_base_state_machine(this_port))));
 
-   scic_sds_controller_release_frame(
-      scic_sds_port_get_controller(this_port), frame_index
-   );
+	scic_sds_controller_release_frame(scic_sds_port_get_controller(
+					      this_port),
+	    frame_index);
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -1776,21 +1554,18 @@ SCI_STATUS scic_sds_port_default_frame_handler(
  * @return SCI_STATUS
  * @retval SCI_FAILURE_INVALID_STATE
  */
-SCI_STATUS scic_sds_port_default_event_handler(
-   SCIC_SDS_PORT_T * port,
-   U32               event_code
-)
+SCI_STATUS
+scic_sds_port_default_event_handler(SCIC_SDS_PORT_T *port, U32 event_code)
 {
-   SCIC_LOG_WARNING((
-      sci_base_object_get_logger((SCIC_SDS_PORT_T *)port),
-      SCIC_LOG_OBJECT_PORT,
-      "SCIC Port 0x%08x requested to process event 0x%08x while in invalid state %d\n",
-      port, event_code,
-      sci_base_state_machine_get_state(
-         scic_sds_port_get_base_state_machine((SCIC_SDS_PORT_T *)port))
-   ));
+	SCIC_LOG_WARNING((sci_base_object_get_logger((SCIC_SDS_PORT_T *)port),
+	    SCIC_LOG_OBJECT_PORT,
+	    "SCIC Port 0x%08x requested to process event 0x%08x while in invalid state %d\n",
+	    port, event_code,
+	    sci_base_state_machine_get_state(
+		scic_sds_port_get_base_state_machine(
+		    (SCIC_SDS_PORT_T *)port))));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -1803,19 +1578,16 @@ SCI_STATUS scic_sds_port_default_event_handler(
  * @return SCI_STATUS
  * @retval SCI_FAILURE_INVALID_STATE
  */
-void scic_sds_port_default_link_up_handler(
-   SCIC_SDS_PORT_T *this_port,
-   SCIC_SDS_PHY_T  *phy
-)
+void
+scic_sds_port_default_link_up_handler(SCIC_SDS_PORT_T *this_port,
+    SCIC_SDS_PHY_T *phy)
 {
-   SCIC_LOG_WARNING((
-      sci_base_object_get_logger(this_port),
-      SCIC_LOG_OBJECT_PORT,
-      "SCIC Port 0x%08x received link_up notification from phy 0x%08x while in invalid state %d\n",
-      this_port, phy,
-      sci_base_state_machine_get_state(
-         scic_sds_port_get_base_state_machine(this_port))
-   ));
+	SCIC_LOG_WARNING((sci_base_object_get_logger(this_port),
+	    SCIC_LOG_OBJECT_PORT,
+	    "SCIC Port 0x%08x received link_up notification from phy 0x%08x while in invalid state %d\n",
+	    this_port, phy,
+	    sci_base_state_machine_get_state(
+		scic_sds_port_get_base_state_machine(this_port))));
 }
 
 /**
@@ -1828,19 +1600,16 @@ void scic_sds_port_default_link_up_handler(
  * @return SCI_STATUS
  * @retval SCI_FAILURE_INVALID_STATE
  */
-void scic_sds_port_default_link_down_handler(
-   SCIC_SDS_PORT_T *this_port,
-   SCIC_SDS_PHY_T  *phy
-)
+void
+scic_sds_port_default_link_down_handler(SCIC_SDS_PORT_T *this_port,
+    SCIC_SDS_PHY_T *phy)
 {
-   SCIC_LOG_WARNING((
-      sci_base_object_get_logger(this_port),
-      SCIC_LOG_OBJECT_PORT,
-      "SCIC Port 0x%08x received link down notification from phy 0x%08x while in invalid state %d\n",
-      this_port, phy,
-      sci_base_state_machine_get_state(
-         scic_sds_port_get_base_state_machine(this_port))
-   ));
+	SCIC_LOG_WARNING((sci_base_object_get_logger(this_port),
+	    SCIC_LOG_OBJECT_PORT,
+	    "SCIC Port 0x%08x received link down notification from phy 0x%08x while in invalid state %d\n",
+	    this_port, phy,
+	    sci_base_state_machine_get_state(
+		scic_sds_port_get_base_state_machine(this_port))));
 }
 
 /**
@@ -1853,22 +1622,18 @@ void scic_sds_port_default_link_down_handler(
  * @return SCI_STATUS
  * @retval SCI_FAILURE_INVALID_STATE
  */
-SCI_STATUS scic_sds_port_default_start_io_handler(
-   SCIC_SDS_PORT_T          *this_port,
-   SCIC_SDS_REMOTE_DEVICE_T *device,
-   SCIC_SDS_REQUEST_T       *io_request
-)
+SCI_STATUS
+scic_sds_port_default_start_io_handler(SCIC_SDS_PORT_T *this_port,
+    SCIC_SDS_REMOTE_DEVICE_T *device, SCIC_SDS_REQUEST_T *io_request)
 {
-   SCIC_LOG_WARNING((
-      sci_base_object_get_logger(this_port),
-      SCIC_LOG_OBJECT_PORT,
-      "SCIC Port 0x%08x requested to start io request 0x%08x while in invalid state %d\n",
-      this_port, io_request,
-      sci_base_state_machine_get_state(
-         scic_sds_port_get_base_state_machine(this_port))
-   ));
+	SCIC_LOG_WARNING((sci_base_object_get_logger(this_port),
+	    SCIC_LOG_OBJECT_PORT,
+	    "SCIC Port 0x%08x requested to start io request 0x%08x while in invalid state %d\n",
+	    this_port, io_request,
+	    sci_base_state_machine_get_state(
+		scic_sds_port_get_base_state_machine(this_port))));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -1881,22 +1646,18 @@ SCI_STATUS scic_sds_port_default_start_io_handler(
  * @return SCI_STATUS
  * @retval SCI_FAILURE_INVALID_STATE
  */
-SCI_STATUS scic_sds_port_default_complete_io_handler(
-   SCIC_SDS_PORT_T          *this_port,
-   SCIC_SDS_REMOTE_DEVICE_T *device,
-   SCIC_SDS_REQUEST_T       *io_request
-)
+SCI_STATUS
+scic_sds_port_default_complete_io_handler(SCIC_SDS_PORT_T *this_port,
+    SCIC_SDS_REMOTE_DEVICE_T *device, SCIC_SDS_REQUEST_T *io_request)
 {
-   SCIC_LOG_WARNING((
-      sci_base_object_get_logger(this_port),
-      SCIC_LOG_OBJECT_PORT,
-      "SCIC Port 0x%08x requested to complete io request 0x%08x while in invalid state %d\n",
-      this_port, io_request,
-      sci_base_state_machine_get_state(
-         scic_sds_port_get_base_state_machine(this_port))
-   ));
+	SCIC_LOG_WARNING((sci_base_object_get_logger(this_port),
+	    SCIC_LOG_OBJECT_PORT,
+	    "SCIC Port 0x%08x requested to complete io request 0x%08x while in invalid state %d\n",
+	    this_port, io_request,
+	    sci_base_state_machine_get_state(
+		scic_sds_port_get_base_state_machine(this_port))));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 //****************************************************************************
@@ -1918,45 +1679,32 @@ SCI_STATUS scic_sds_port_default_complete_io_handler(
  * @return SCI_STATUS
  * @retval SCI_SUCCESS
  */
-static
-SCI_STATUS scic_sds_port_general_complete_io_handler(
-   SCIC_SDS_PORT_T          *port,
-   SCIC_SDS_REMOTE_DEVICE_T *device,
-   SCIC_SDS_REQUEST_T       *io_request
-)
+static SCI_STATUS
+scic_sds_port_general_complete_io_handler(SCIC_SDS_PORT_T *port,
+    SCIC_SDS_REMOTE_DEVICE_T *device, SCIC_SDS_REQUEST_T *io_request)
 {
-   SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)port;
+	SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)port;
 
-   scic_sds_port_decrement_request_count(this_port);
+	scic_sds_port_decrement_request_count(this_port);
 
-   return SCI_SUCCESS;
+	return SCI_SUCCESS;
 }
 
 //****************************************************************************
 //* STOPPED STATE HANDLERS
 //****************************************************************************
-static
-BOOL scic_sds_port_requires_scheduler_workaround(
-   SCIC_SDS_PORT_T * this_port
-)
+static BOOL
+scic_sds_port_requires_scheduler_workaround(SCIC_SDS_PORT_T *this_port)
 {
-   if (
-         (
-           this_port->owning_controller->logical_port_entries
-         < this_port->owning_controller->task_context_entries
-         )
-      && (
-           this_port->owning_controller->logical_port_entries
-         < this_port->owning_controller->remote_node_entries
-         )
-      )
-   {
-      return TRUE;
-   }
+	if ((this_port->owning_controller->logical_port_entries <
+		this_port->owning_controller->task_context_entries) &&
+	    (this_port->owning_controller->logical_port_entries <
+		this_port->owning_controller->remote_node_entries)) {
+		return TRUE;
+	}
 
-   return FALSE;
+	return FALSE;
 }
-
 
 /**
  * This method takes the SCIC_SDS_PORT from a stopped state and attempts to
@@ -1974,99 +1722,81 @@ BOOL scic_sds_port_requires_scheduler_workaround(
  * @retval SCI_SUCCESS the start request is successful and the SCIC_SDS_PORT
  *         object has transitioned to the SCI_BASE_PORT_STATE_READY.
  */
-static
-SCI_STATUS scic_sds_port_stopped_state_start_handler(
-   SCI_BASE_PORT_T *port
-)
+static SCI_STATUS
+scic_sds_port_stopped_state_start_handler(SCI_BASE_PORT_T *port)
 {
-   U32 phy_mask;
-   SCI_STATUS status = SCI_SUCCESS;
-   SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)port;
+	U32 phy_mask;
+	SCI_STATUS status = SCI_SUCCESS;
+	SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)port;
 
-   if (this_port->assigned_device_count > 0)
-   {
-      /// @todo This is a start failure operation because there are still
-      ///       devices assigned to this port.  There must be no devices
-      ///       assigned to a port on a start operation.
-      return SCI_FAILURE_UNSUPPORTED_PORT_CONFIGURATION;
-   }
+	if (this_port->assigned_device_count > 0) {
+		/// @todo This is a start failure operation because there are
+		/// still
+		///       devices assigned to this port.  There must be no
+		///       devices assigned to a port on a start operation.
+		return SCI_FAILURE_UNSUPPORTED_PORT_CONFIGURATION;
+	}
 
-   this_port->timer_handle = scic_cb_timer_create(
-      scic_sds_port_get_controller(this_port),
-      scic_sds_port_timeout_handler,
-      this_port
-   );
+	this_port->timer_handle =
+	    scic_cb_timer_create(scic_sds_port_get_controller(this_port),
+		scic_sds_port_timeout_handler, this_port);
 
-   if (this_port->timer_handle == SCI_INVALID_HANDLE)
-   {
-      return SCI_FAILURE_INSUFFICIENT_RESOURCES;
-   }
+	if (this_port->timer_handle == SCI_INVALID_HANDLE) {
+		return SCI_FAILURE_INSUFFICIENT_RESOURCES;
+	}
 
-   if (scic_sds_port_requires_scheduler_workaround(this_port))
-   {
-   if (this_port->reserved_rni == SCU_DUMMY_INDEX)
-   {
-      this_port->reserved_rni =
-         scic_sds_remote_node_table_allocate_remote_node(
-            &this_port->owning_controller->available_remote_nodes, 1
-         );
+	if (scic_sds_port_requires_scheduler_workaround(this_port)) {
+		if (this_port->reserved_rni == SCU_DUMMY_INDEX) {
+			this_port->reserved_rni =
+			    scic_sds_remote_node_table_allocate_remote_node(
+				&this_port->owning_controller
+				     ->available_remote_nodes,
+				1);
 
-      if (this_port->reserved_rni != SCU_DUMMY_INDEX)
-      {
-         scic_sds_port_construct_dummy_rnc(
-            this_port,
-            this_port->reserved_rni
-         );
-      }
-      else
-      {
-         status = SCI_FAILURE_INSUFFICIENT_RESOURCES;
-      }
-   }
+			if (this_port->reserved_rni != SCU_DUMMY_INDEX) {
+				scic_sds_port_construct_dummy_rnc(this_port,
+				    this_port->reserved_rni);
+			} else {
+				status = SCI_FAILURE_INSUFFICIENT_RESOURCES;
+			}
+		}
 
-   if (this_port->reserved_tci == SCU_DUMMY_INDEX)
-   {
-      // Allocate a TCI and remove the sequence nibble
-      this_port->reserved_tci =
-         scic_controller_allocate_io_tag(this_port->owning_controller);
+		if (this_port->reserved_tci == SCU_DUMMY_INDEX) {
+			// Allocate a TCI and remove the sequence nibble
+			this_port->reserved_tci =
+			    scic_controller_allocate_io_tag(
+				this_port->owning_controller);
 
-      if (this_port->reserved_tci != SCU_DUMMY_INDEX)
-      {
-         scic_sds_port_construct_dummy_task(this_port, this_port->reserved_tci);
-      }
-      else
-      {
-         status = SCI_FAILURE_INSUFFICIENT_RESOURCES;
-      }
-   }
-   }
+			if (this_port->reserved_tci != SCU_DUMMY_INDEX) {
+				scic_sds_port_construct_dummy_task(this_port,
+				    this_port->reserved_tci);
+			} else {
+				status = SCI_FAILURE_INSUFFICIENT_RESOURCES;
+			}
+		}
+	}
 
-   if (status == SCI_SUCCESS)
-   {
-      phy_mask = scic_sds_port_get_phys(this_port);
+	if (status == SCI_SUCCESS) {
+		phy_mask = scic_sds_port_get_phys(this_port);
 
-      // There are one or more phys assigned to this port.  Make sure
-      // the port's phy mask is in fact legal and supported by the
-      // silicon.
-      if (scic_sds_port_is_phy_mask_valid(this_port, phy_mask) == TRUE)
-      {
-         sci_base_state_machine_change_state(
-            scic_sds_port_get_base_state_machine(this_port),
-            SCI_BASE_PORT_STATE_READY
-         );
-      }
-      else
-      {
-         status = SCI_FAILURE;
-      }
-   }
+		// There are one or more phys assigned to this port.  Make sure
+		// the port's phy mask is in fact legal and supported by the
+		// silicon.
+		if (scic_sds_port_is_phy_mask_valid(this_port, phy_mask) ==
+		    TRUE) {
+			sci_base_state_machine_change_state(
+			    scic_sds_port_get_base_state_machine(this_port),
+			    SCI_BASE_PORT_STATE_READY);
+		} else {
+			status = SCI_FAILURE;
+		}
+	}
 
-   if (status != SCI_SUCCESS)
-   {
-      scic_sds_port_destroy_dummy_resources(this_port);
-   }
+	if (status != SCI_SUCCESS) {
+		scic_sds_port_destroy_dummy_resources(this_port);
+	}
 
-   return status;
+	return status;
 }
 
 /**
@@ -2080,13 +1810,11 @@ SCI_STATUS scic_sds_port_stopped_state_start_handler(
  * @retval SCI_SUCCESS the stop request is successful as the SCIC_SDS_PORT
  *         object is already stopped.
  */
-static
-SCI_STATUS scic_sds_port_stopped_state_stop_handler(
-   SCI_BASE_PORT_T *port
-)
+static SCI_STATUS
+scic_sds_port_stopped_state_stop_handler(SCI_BASE_PORT_T *port)
 {
-   // We are already stopped so there is nothing to do here
-   return SCI_SUCCESS;
+	// We are already stopped so there is nothing to do here
+	return SCI_SUCCESS;
 }
 
 /**
@@ -2101,16 +1829,14 @@ SCI_STATUS scic_sds_port_stopped_state_stop_handler(
  * @return SCI_STATUS
  * @retval SCI_SUCCESS
  */
-static
-SCI_STATUS scic_sds_port_stopped_state_destruct_handler(
-   SCI_BASE_PORT_T *port
-)
+static SCI_STATUS
+scic_sds_port_stopped_state_destruct_handler(SCI_BASE_PORT_T *port)
 {
-   SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)port;
+	SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)port;
 
-   sci_base_state_machine_stop(&this_port->parent.state_machine);
+	sci_base_state_machine_stop(&this_port->parent.state_machine);
 
-   return SCI_SUCCESS;
+	return SCI_SUCCESS;
 }
 
 /**
@@ -2128,39 +1854,32 @@ SCI_STATUS scic_sds_port_stopped_state_destruct_handler(
  *         can not be added to the port.
  * @retval SCI_SUCCESS if the phy is added to the port.
  */
-static
-SCI_STATUS scic_sds_port_stopped_state_add_phy_handler(
-   SCI_BASE_PORT_T *port,
-   SCI_BASE_PHY_T  *phy
-)
+static SCI_STATUS
+scic_sds_port_stopped_state_add_phy_handler(SCI_BASE_PORT_T *port,
+    SCI_BASE_PHY_T *phy)
 {
-   SCIC_SDS_PORT_T * this_port = (SCIC_SDS_PORT_T *)port;
-   SCIC_SDS_PHY_T  * this_phy  = (SCIC_SDS_PHY_T  *)phy;
-   SCI_SAS_ADDRESS_T port_sas_address;
+	SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)port;
+	SCIC_SDS_PHY_T *this_phy = (SCIC_SDS_PHY_T *)phy;
+	SCI_SAS_ADDRESS_T port_sas_address;
 
-   // Read the port assigned SAS Address if there is one
-   scic_sds_port_get_sas_address(this_port, &port_sas_address);
+	// Read the port assigned SAS Address if there is one
+	scic_sds_port_get_sas_address(this_port, &port_sas_address);
 
-   if (port_sas_address.high != 0 && port_sas_address.low != 0)
-   {
-      SCI_SAS_ADDRESS_T phy_sas_address;
+	if (port_sas_address.high != 0 && port_sas_address.low != 0) {
+		SCI_SAS_ADDRESS_T phy_sas_address;
 
-      // Make sure that the PHY SAS Address matches the SAS Address
-      // for this port.
-      scic_sds_phy_get_sas_address(this_phy, &phy_sas_address);
+		// Make sure that the PHY SAS Address matches the SAS Address
+		// for this port.
+		scic_sds_phy_get_sas_address(this_phy, &phy_sas_address);
 
-      if (
-            (port_sas_address.high != phy_sas_address.high)
-         || (port_sas_address.low  != phy_sas_address.low)
-         )
-      {
-         return SCI_FAILURE_UNSUPPORTED_PORT_CONFIGURATION;
-      }
-   }
+		if ((port_sas_address.high != phy_sas_address.high) ||
+		    (port_sas_address.low != phy_sas_address.low)) {
+			return SCI_FAILURE_UNSUPPORTED_PORT_CONFIGURATION;
+		}
+	}
 
-   return scic_sds_port_set_phy(this_port, this_phy);
+	return scic_sds_port_set_phy(this_port, this_phy);
 }
-
 
 /**
  * This method takes the SCIC_SDS_PORT that is in a stopped state and handles
@@ -2177,16 +1896,14 @@ SCI_STATUS scic_sds_port_stopped_state_add_phy_handler(
  *         can not be added to the port.
  * @retval SCI_SUCCESS if the phy is added to the port.
  */
-static
-SCI_STATUS scic_sds_port_stopped_state_remove_phy_handler(
-   SCI_BASE_PORT_T *port,
-   SCI_BASE_PHY_T  *phy
-)
+static SCI_STATUS
+scic_sds_port_stopped_state_remove_phy_handler(SCI_BASE_PORT_T *port,
+    SCI_BASE_PHY_T *phy)
 {
-   SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)port;
-   SCIC_SDS_PHY_T  *this_phy  = (SCIC_SDS_PHY_T  *)phy;
+	SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)port;
+	SCIC_SDS_PHY_T *this_phy = (SCIC_SDS_PHY_T *)phy;
 
-   return scic_sds_port_clear_phy(this_port, this_phy);
+	return scic_sds_port_clear_phy(this_port, this_phy);
 }
 
 //****************************************************************************
@@ -2218,26 +1935,21 @@ SCI_STATUS scic_sds_port_stopped_state_remove_phy_handler(
  * @return SCI_STATUS
  * @retval SCI_SUCCESS
  */
-static
-SCI_STATUS scic_sds_port_stopping_state_complete_io_handler(
-   SCIC_SDS_PORT_T          *port,
-   SCIC_SDS_REMOTE_DEVICE_T *device,
-   SCIC_SDS_REQUEST_T       *io_request
-)
+static SCI_STATUS
+scic_sds_port_stopping_state_complete_io_handler(SCIC_SDS_PORT_T *port,
+    SCIC_SDS_REMOTE_DEVICE_T *device, SCIC_SDS_REQUEST_T *io_request)
 {
-   SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)port;
+	SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)port;
 
-   scic_sds_port_decrement_request_count(this_port);
+	scic_sds_port_decrement_request_count(this_port);
 
-   if (this_port->started_request_count == 0)
-   {
-      sci_base_state_machine_change_state(
-         scic_sds_port_get_base_state_machine(this_port),
-         SCI_BASE_PORT_STATE_STOPPED
-      );
-   }
+	if (this_port->started_request_count == 0) {
+		sci_base_state_machine_change_state(
+		    scic_sds_port_get_base_state_machine(this_port),
+		    SCI_BASE_PORT_STATE_STOPPED);
+	}
 
-   return SCI_SUCCESS;
+	return SCI_SUCCESS;
 }
 
 //****************************************************************************
@@ -2253,19 +1965,15 @@ SCI_STATUS scic_sds_port_stopping_state_complete_io_handler(
  * @return SCI_STATUS
  * @retval SCI_SUCCESS
  */
-static
-SCI_STATUS scic_sds_port_reset_state_stop_handler(
-   SCI_BASE_PORT_T *port
-)
+static SCI_STATUS
+scic_sds_port_reset_state_stop_handler(SCI_BASE_PORT_T *port)
 {
-   SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)port;
+	SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)port;
 
-   sci_base_state_machine_change_state(
-      &this_port->parent.state_machine,
-      SCI_BASE_PORT_STATE_STOPPING
-   );
+	sci_base_state_machine_change_state(&this_port->parent.state_machine,
+	    SCI_BASE_PORT_STATE_STOPPING);
 
-   return SCI_SUCCESS;
+	return SCI_SUCCESS;
 }
 
 /**
@@ -2279,24 +1987,23 @@ SCI_STATUS scic_sds_port_reset_state_stop_handler(
  * @return SCI_STATUS
  * @retval SCI_SUCCESS
  */
-static
-void scic_sds_port_reset_state_link_up_handler(
-   SCIC_SDS_PORT_T *this_port,
-   SCIC_SDS_PHY_T  *phy
-)
+static void
+scic_sds_port_reset_state_link_up_handler(SCIC_SDS_PORT_T *this_port,
+    SCIC_SDS_PHY_T *phy)
 {
-   /// @todo We should make sure that the phy that has gone link up is the same
-   ///       one on which we sent the reset.  It is possible that the phy on
-   ///       which we sent the reset is not the one that has gone link up and we
-   ///       want to make sure that phy being reset comes back.  Consider the
-   ///       case where a reset is sent but before the hardware processes the
-   ///       reset it get a link up on the port because of a hot plug event.
-   ///       because of the reset request this phy will go link down almost
-   ///       immediately.
+	/// @todo We should make sure that the phy that has gone link up is the
+	/// same
+	///       one on which we sent the reset.  It is possible that the phy
+	///       on which we sent the reset is not the one that has gone link
+	///       up and we want to make sure that phy being reset comes back.
+	///       Consider the case where a reset is sent but before the
+	///       hardware processes the reset it get a link up on the port
+	///       because of a hot plug event. because of the reset request this
+	///       phy will go link down almost immediately.
 
-   // In the resetting state we don't notify the user regarding
-   // link up and link down notifications.
-   scic_sds_port_general_link_up_handler(this_port, phy, FALSE, TRUE);
+	// In the resetting state we don't notify the user regarding
+	// link up and link down notifications.
+	scic_sds_port_general_link_up_handler(this_port, phy, FALSE, TRUE);
 }
 
 /**
@@ -2309,107 +2016,84 @@ void scic_sds_port_reset_state_link_up_handler(
  * @return SCI_STATUS
  * @retval SCI_SUCCESS
  */
-static
-void scic_sds_port_reset_state_link_down_handler(
-   SCIC_SDS_PORT_T *this_port,
-   SCIC_SDS_PHY_T  *phy
-)
+static void
+scic_sds_port_reset_state_link_down_handler(SCIC_SDS_PORT_T *this_port,
+    SCIC_SDS_PHY_T *phy)
 {
-   // In the resetting state we don't notify the user regarding
-   // link up and link down notifications.
-   scic_sds_port_deactivate_phy(this_port, phy, FALSE);
+	// In the resetting state we don't notify the user regarding
+	// link up and link down notifications.
+	scic_sds_port_deactivate_phy(this_port, phy, FALSE);
 }
 
 // ---------------------------------------------------------------------------
 
 SCIC_SDS_PORT_STATE_HANDLER_T
-   scic_sds_port_state_handler_table[SCI_BASE_PORT_MAX_STATES] =
-{
-   // SCI_BASE_PORT_STATE_STOPPED
-   {
-      {
-         scic_sds_port_stopped_state_start_handler,
-         scic_sds_port_stopped_state_stop_handler,
-         scic_sds_port_stopped_state_destruct_handler,
-         scic_sds_port_default_reset_handler,
-         scic_sds_port_stopped_state_add_phy_handler,
-         scic_sds_port_stopped_state_remove_phy_handler
-      },
-      scic_sds_port_default_frame_handler,
-      scic_sds_port_default_event_handler,
-      scic_sds_port_default_link_up_handler,
-      scic_sds_port_default_link_down_handler,
-      scic_sds_port_default_start_io_handler,
-      scic_sds_port_default_complete_io_handler
-   },
-   // SCI_BASE_PORT_STATE_STOPPING
-   {
-      {
-         scic_sds_port_default_start_handler,
-         scic_sds_port_default_stop_handler,
-         scic_sds_port_default_destruct_handler,
-         scic_sds_port_default_reset_handler,
-         scic_sds_port_default_add_phy_handler,
-         scic_sds_port_default_remove_phy_handler
-      },
-      scic_sds_port_default_frame_handler,
-      scic_sds_port_default_event_handler,
-      scic_sds_port_default_link_up_handler,
-      scic_sds_port_default_link_down_handler,
-      scic_sds_port_default_start_io_handler,
-      scic_sds_port_stopping_state_complete_io_handler
-   },
-   // SCI_BASE_PORT_STATE_READY
-   {
-      {
-         scic_sds_port_default_start_handler,
-         scic_sds_port_default_stop_handler,
-         scic_sds_port_default_destruct_handler,
-         scic_sds_port_default_reset_handler,
-         scic_sds_port_default_add_phy_handler,
-         scic_sds_port_default_remove_phy_handler
-      },
-      scic_sds_port_default_frame_handler,
-      scic_sds_port_default_event_handler,
-      scic_sds_port_default_link_up_handler,
-      scic_sds_port_default_link_down_handler,
-      scic_sds_port_default_start_io_handler,
-      scic_sds_port_general_complete_io_handler
-   },
-   // SCI_BASE_PORT_STATE_RESETTING
-   {
-      {
-         scic_sds_port_default_start_handler,
-         scic_sds_port_reset_state_stop_handler,
-         scic_sds_port_default_destruct_handler,
-         scic_sds_port_default_reset_handler,
-         scic_sds_port_default_add_phy_handler,
-         scic_sds_port_default_remove_phy_handler
-      },
-      scic_sds_port_default_frame_handler,
-      scic_sds_port_default_event_handler,
-      scic_sds_port_reset_state_link_up_handler,
-      scic_sds_port_reset_state_link_down_handler,
-      scic_sds_port_default_start_io_handler,
-      scic_sds_port_general_complete_io_handler
-   },
-   // SCI_BASE_PORT_STATE_FAILED
-   {
-      {
-         scic_sds_port_default_start_handler,
-         scic_sds_port_default_stop_handler,
-         scic_sds_port_default_destruct_handler,
-         scic_sds_port_default_reset_handler,
-         scic_sds_port_default_add_phy_handler,
-         scic_sds_port_default_remove_phy_handler
-      },
-      scic_sds_port_default_frame_handler,
-      scic_sds_port_default_event_handler,
-      scic_sds_port_default_link_up_handler,
-      scic_sds_port_default_link_down_handler,
-      scic_sds_port_default_start_io_handler,
-      scic_sds_port_general_complete_io_handler
-   }
+scic_sds_port_state_handler_table[SCI_BASE_PORT_MAX_STATES] = {
+	// SCI_BASE_PORT_STATE_STOPPED
+	{ { scic_sds_port_stopped_state_start_handler,
+	      scic_sds_port_stopped_state_stop_handler,
+	      scic_sds_port_stopped_state_destruct_handler,
+	      scic_sds_port_default_reset_handler,
+	      scic_sds_port_stopped_state_add_phy_handler,
+	      scic_sds_port_stopped_state_remove_phy_handler },
+	    scic_sds_port_default_frame_handler,
+	    scic_sds_port_default_event_handler,
+	    scic_sds_port_default_link_up_handler,
+	    scic_sds_port_default_link_down_handler,
+	    scic_sds_port_default_start_io_handler,
+	    scic_sds_port_default_complete_io_handler },
+	// SCI_BASE_PORT_STATE_STOPPING
+	{ { scic_sds_port_default_start_handler,
+	      scic_sds_port_default_stop_handler,
+	      scic_sds_port_default_destruct_handler,
+	      scic_sds_port_default_reset_handler,
+	      scic_sds_port_default_add_phy_handler,
+	      scic_sds_port_default_remove_phy_handler },
+	    scic_sds_port_default_frame_handler,
+	    scic_sds_port_default_event_handler,
+	    scic_sds_port_default_link_up_handler,
+	    scic_sds_port_default_link_down_handler,
+	    scic_sds_port_default_start_io_handler,
+	    scic_sds_port_stopping_state_complete_io_handler },
+	// SCI_BASE_PORT_STATE_READY
+	{ { scic_sds_port_default_start_handler,
+	      scic_sds_port_default_stop_handler,
+	      scic_sds_port_default_destruct_handler,
+	      scic_sds_port_default_reset_handler,
+	      scic_sds_port_default_add_phy_handler,
+	      scic_sds_port_default_remove_phy_handler },
+	    scic_sds_port_default_frame_handler,
+	    scic_sds_port_default_event_handler,
+	    scic_sds_port_default_link_up_handler,
+	    scic_sds_port_default_link_down_handler,
+	    scic_sds_port_default_start_io_handler,
+	    scic_sds_port_general_complete_io_handler },
+	// SCI_BASE_PORT_STATE_RESETTING
+	{ { scic_sds_port_default_start_handler,
+	      scic_sds_port_reset_state_stop_handler,
+	      scic_sds_port_default_destruct_handler,
+	      scic_sds_port_default_reset_handler,
+	      scic_sds_port_default_add_phy_handler,
+	      scic_sds_port_default_remove_phy_handler },
+	    scic_sds_port_default_frame_handler,
+	    scic_sds_port_default_event_handler,
+	    scic_sds_port_reset_state_link_up_handler,
+	    scic_sds_port_reset_state_link_down_handler,
+	    scic_sds_port_default_start_io_handler,
+	    scic_sds_port_general_complete_io_handler },
+	// SCI_BASE_PORT_STATE_FAILED
+	{ { scic_sds_port_default_start_handler,
+	      scic_sds_port_default_stop_handler,
+	      scic_sds_port_default_destruct_handler,
+	      scic_sds_port_default_reset_handler,
+	      scic_sds_port_default_add_phy_handler,
+	      scic_sds_port_default_remove_phy_handler },
+	    scic_sds_port_default_frame_handler,
+	    scic_sds_port_default_event_handler,
+	    scic_sds_port_default_link_up_handler,
+	    scic_sds_port_default_link_down_handler,
+	    scic_sds_port_default_start_io_handler,
+	    scic_sds_port_general_complete_io_handler }
 };
 
 //******************************************************************************
@@ -2424,18 +2108,17 @@ SCIC_SDS_PORT_STATE_HANDLER_T
  *
  * @return none
  */
-static
-void scic_sds_port_enable_port_task_scheduler(
-   SCIC_SDS_PORT_T *this_port
-)
+static void
+scic_sds_port_enable_port_task_scheduler(SCIC_SDS_PORT_T *this_port)
 {
-   U32 pts_control_value;
+	U32 pts_control_value;
 
-   pts_control_value = scu_port_task_scheduler_read(this_port, control);
+	pts_control_value = scu_port_task_scheduler_read(this_port, control);
 
-   pts_control_value |= SCU_PTSxCR_GEN_BIT(ENABLE) | SCU_PTSxCR_GEN_BIT(SUSPEND);
+	pts_control_value |= SCU_PTSxCR_GEN_BIT(ENABLE) |
+	    SCU_PTSxCR_GEN_BIT(SUSPEND);
 
-   scu_port_task_scheduler_write(this_port, control, pts_control_value);
+	scu_port_task_scheduler_write(this_port, control, pts_control_value);
 }
 
 /**
@@ -2446,85 +2129,81 @@ void scic_sds_port_enable_port_task_scheduler(
  *
  * @return none
  */
-static
-void scic_sds_port_disable_port_task_scheduler(
-   SCIC_SDS_PORT_T *this_port
-)
+static void
+scic_sds_port_disable_port_task_scheduler(SCIC_SDS_PORT_T *this_port)
 {
-   U32 pts_control_value;
+	U32 pts_control_value;
 
-   pts_control_value = scu_port_task_scheduler_read(this_port, control);
+	pts_control_value = scu_port_task_scheduler_read(this_port, control);
 
-   pts_control_value &= ~(   SCU_PTSxCR_GEN_BIT(ENABLE)
-                           | SCU_PTSxCR_GEN_BIT(SUSPEND) );
+	pts_control_value &= ~(
+	    SCU_PTSxCR_GEN_BIT(ENABLE) | SCU_PTSxCR_GEN_BIT(SUSPEND));
 
-   scu_port_task_scheduler_write(this_port, control, pts_control_value);
+	scu_port_task_scheduler_write(this_port, control, pts_control_value);
 }
 
 /**
  *
  */
-static
-void scic_sds_port_post_dummy_remote_node(
-      SCIC_SDS_PORT_T *this_port
-)
+static void
+scic_sds_port_post_dummy_remote_node(SCIC_SDS_PORT_T *this_port)
 {
-   U32 command;
-   SCU_REMOTE_NODE_CONTEXT_T * rnc;
+	U32 command;
+	SCU_REMOTE_NODE_CONTEXT_T *rnc;
 
-   if (this_port->reserved_rni != SCU_DUMMY_INDEX)
-   {
-   rnc = &(this_port->owning_controller->remote_node_context_table[this_port->reserved_rni]);
+	if (this_port->reserved_rni != SCU_DUMMY_INDEX) {
+		rnc = &(
+		    this_port->owning_controller
+			->remote_node_context_table[this_port->reserved_rni]);
 
-   rnc->ssp.is_valid = TRUE;
+		rnc->ssp.is_valid = TRUE;
 
-   command = (
-       (SCU_CONTEXT_COMMAND_POST_RNC_32)
-     | (this_port->physical_port_index << SCU_CONTEXT_COMMAND_LOGICAL_PORT_SHIFT)
-     | (this_port->reserved_rni)
-   );
+		command = ((SCU_CONTEXT_COMMAND_POST_RNC_32) |
+		    (this_port->physical_port_index
+			<< SCU_CONTEXT_COMMAND_LOGICAL_PORT_SHIFT) |
+		    (this_port->reserved_rni));
 
-   scic_sds_controller_post_request(this_port->owning_controller, command);
+		scic_sds_controller_post_request(this_port->owning_controller,
+		    command);
 
-   scic_cb_stall_execution(10);
+		scic_cb_stall_execution(10);
 
-   command = (
-       (SCU_CONTEXT_COMMAND_POST_RNC_SUSPEND_TX_RX)
-     | (this_port->physical_port_index << SCU_CONTEXT_COMMAND_LOGICAL_PORT_SHIFT)
-     | (this_port->reserved_rni)
-   );
+		command = ((SCU_CONTEXT_COMMAND_POST_RNC_SUSPEND_TX_RX) |
+		    (this_port->physical_port_index
+			<< SCU_CONTEXT_COMMAND_LOGICAL_PORT_SHIFT) |
+		    (this_port->reserved_rni));
 
-   scic_sds_controller_post_request(this_port->owning_controller, command);
-}
+		scic_sds_controller_post_request(this_port->owning_controller,
+		    command);
+	}
 }
 
 /**
  *
  */
-static
-void scic_sds_port_invalidate_dummy_remote_node(
-   SCIC_SDS_PORT_T *this_port
-)
+static void
+scic_sds_port_invalidate_dummy_remote_node(SCIC_SDS_PORT_T *this_port)
 {
-   U32 command;
-   SCU_REMOTE_NODE_CONTEXT_T * rnc;
+	U32 command;
+	SCU_REMOTE_NODE_CONTEXT_T *rnc;
 
-   if (this_port->reserved_rni != SCU_DUMMY_INDEX)
-   {
-   rnc = &(this_port->owning_controller->remote_node_context_table[this_port->reserved_rni]);
+	if (this_port->reserved_rni != SCU_DUMMY_INDEX) {
+		rnc = &(
+		    this_port->owning_controller
+			->remote_node_context_table[this_port->reserved_rni]);
 
-   rnc->ssp.is_valid = FALSE;
+		rnc->ssp.is_valid = FALSE;
 
-   scic_cb_stall_execution(10);
+		scic_cb_stall_execution(10);
 
-   command = (
-       (SCU_CONTEXT_COMMAND_POST_RNC_INVALIDATE)
-     | (this_port->physical_port_index << SCU_CONTEXT_COMMAND_LOGICAL_PORT_SHIFT)
-     | (this_port->reserved_rni)
-   );
+		command = ((SCU_CONTEXT_COMMAND_POST_RNC_INVALIDATE) |
+		    (this_port->physical_port_index
+			<< SCU_CONTEXT_COMMAND_LOGICAL_PORT_SHIFT) |
+		    (this_port->reserved_rni));
 
-   scic_sds_controller_post_request(this_port->owning_controller, command);
-}
+		scic_sds_controller_post_request(this_port->owning_controller,
+		    command);
+	}
 }
 
 //******************************************************************************
@@ -2542,28 +2221,22 @@ void scic_sds_port_invalidate_dummy_remote_node(
  *
  * @return none
  */
-static
-void scic_sds_port_stopped_state_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scic_sds_port_stopped_state_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIC_SDS_PORT_T *this_port;
-   this_port = (SCIC_SDS_PORT_T *)object;
+	SCIC_SDS_PORT_T *this_port;
+	this_port = (SCIC_SDS_PORT_T *)object;
 
-   scic_sds_port_set_base_state_handlers(
-      this_port, SCI_BASE_PORT_STATE_STOPPED
-   );
+	scic_sds_port_set_base_state_handlers(this_port,
+	    SCI_BASE_PORT_STATE_STOPPED);
 
-   if (
-         SCI_BASE_PORT_STATE_STOPPING
-      == this_port->parent.state_machine.previous_state_id
-      )
-   {
-      // If we enter this state becasuse of a request to stop
-      // the port then we want to disable the hardwares port
-      // task scheduler.
-      scic_sds_port_disable_port_task_scheduler(this_port);
-   }
+	if (SCI_BASE_PORT_STATE_STOPPING ==
+	    this_port->parent.state_machine.previous_state_id) {
+		// If we enter this state becasuse of a request to stop
+		// the port then we want to disable the hardwares port
+		// task scheduler.
+		scic_sds_port_disable_port_task_scheduler(this_port);
+	}
 }
 
 /**
@@ -2576,16 +2249,14 @@ void scic_sds_port_stopped_state_enter(
  *
  * @return none
  */
-static
-void scic_sds_port_stopped_state_exit(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scic_sds_port_stopped_state_exit(SCI_BASE_OBJECT_T *object)
 {
-   SCIC_SDS_PORT_T *this_port;
-   this_port = (SCIC_SDS_PORT_T *)object;
+	SCIC_SDS_PORT_T *this_port;
+	this_port = (SCIC_SDS_PORT_T *)object;
 
-   // Enable and suspend the port task scheduler
-   scic_sds_port_enable_port_task_scheduler(this_port);
+	// Enable and suspend the port task scheduler
+	scic_sds_port_enable_port_task_scheduler(this_port);
 }
 
 /**
@@ -2599,48 +2270,35 @@ void scic_sds_port_stopped_state_exit(
  *
  * @return none
  */
-static
-void scic_sds_port_ready_state_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scic_sds_port_ready_state_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIC_SDS_PORT_T *this_port;
-   this_port = (SCIC_SDS_PORT_T *)object;
+	SCIC_SDS_PORT_T *this_port;
+	this_port = (SCIC_SDS_PORT_T *)object;
 
-   // Put the ready state handlers in place though they will not be there long
-   scic_sds_port_set_base_state_handlers(
-      this_port, SCI_BASE_PORT_STATE_READY
-   );
+	// Put the ready state handlers in place though they will not be there
+	// long
+	scic_sds_port_set_base_state_handlers(this_port,
+	    SCI_BASE_PORT_STATE_READY);
 
-   if (
-          SCI_BASE_PORT_STATE_RESETTING
-      == this_port->parent.state_machine.previous_state_id
-      )
-   {
-      scic_cb_port_hard_reset_complete(
-         scic_sds_port_get_controller(this_port),
-         this_port,
-         SCI_SUCCESS
-      );
-   }
-   else
-   {
-      // Notify the caller that the port is not yet ready
-      scic_cb_port_not_ready(
-         scic_sds_port_get_controller(this_port),
-         this_port,
-         SCIC_PORT_NOT_READY_NO_ACTIVE_PHYS
-      );
-   }
+	if (SCI_BASE_PORT_STATE_RESETTING ==
+	    this_port->parent.state_machine.previous_state_id) {
+		scic_cb_port_hard_reset_complete(scic_sds_port_get_controller(
+						     this_port),
+		    this_port, SCI_SUCCESS);
+	} else {
+		// Notify the caller that the port is not yet ready
+		scic_cb_port_not_ready(scic_sds_port_get_controller(this_port),
+		    this_port, SCIC_PORT_NOT_READY_NO_ACTIVE_PHYS);
+	}
 
-   // Post and suspend the dummy remote node context for this
-   // port.
-   scic_sds_port_post_dummy_remote_node(this_port);
+	// Post and suspend the dummy remote node context for this
+	// port.
+	scic_sds_port_post_dummy_remote_node(this_port);
 
-   // Start the ready substate machine
-   sci_base_state_machine_start(
-      scic_sds_port_get_ready_substate_machine(this_port)
-   );
+	// Start the ready substate machine
+	sci_base_state_machine_start(
+	    scic_sds_port_get_ready_substate_machine(this_port));
 }
 
 /**
@@ -2652,18 +2310,16 @@ void scic_sds_port_ready_state_enter(
  *
  * @return none
  */
-static
-void scic_sds_port_ready_state_exit(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scic_sds_port_ready_state_exit(SCI_BASE_OBJECT_T *object)
 {
-   SCIC_SDS_PORT_T *this_port;
-   this_port = (SCIC_SDS_PORT_T *)object;
+	SCIC_SDS_PORT_T *this_port;
+	this_port = (SCIC_SDS_PORT_T *)object;
 
-   sci_base_state_machine_stop(&this_port->ready_substate_machine);
+	sci_base_state_machine_stop(&this_port->ready_substate_machine);
 
-   scic_cb_stall_execution(10);
-   scic_sds_port_invalidate_dummy_remote_node(this_port);
+	scic_cb_stall_execution(10);
+	scic_sds_port_invalidate_dummy_remote_node(this_port);
 }
 
 /**
@@ -2676,17 +2332,14 @@ void scic_sds_port_ready_state_exit(
  *
  * @return none
  */
-static
-void scic_sds_port_resetting_state_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scic_sds_port_resetting_state_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIC_SDS_PORT_T *this_port;
-   this_port = (SCIC_SDS_PORT_T *)object;
+	SCIC_SDS_PORT_T *this_port;
+	this_port = (SCIC_SDS_PORT_T *)object;
 
-   scic_sds_port_set_base_state_handlers(
-      this_port, SCI_BASE_PORT_STATE_RESETTING
-   );
+	scic_sds_port_set_base_state_handlers(this_port,
+	    SCI_BASE_PORT_STATE_RESETTING);
 }
 
 /**
@@ -2698,18 +2351,14 @@ void scic_sds_port_resetting_state_enter(
  *
  * @return none
  */
-static
-void scic_sds_port_resetting_state_exit(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scic_sds_port_resetting_state_exit(SCI_BASE_OBJECT_T *object)
 {
-   SCIC_SDS_PORT_T *this_port;
-   this_port = (SCIC_SDS_PORT_T *)object;
+	SCIC_SDS_PORT_T *this_port;
+	this_port = (SCIC_SDS_PORT_T *)object;
 
-   scic_cb_timer_stop(
-      scic_sds_port_get_controller(this_port),
-      this_port->timer_handle
-   );
+	scic_cb_timer_stop(scic_sds_port_get_controller(this_port),
+	    this_port->timer_handle);
 }
 
 /**
@@ -2722,25 +2371,20 @@ void scic_sds_port_resetting_state_exit(
  *
  * @return none
  */
-static
-void scic_sds_port_stopping_state_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scic_sds_port_stopping_state_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIC_SDS_PORT_T *this_port;
-   this_port = (SCIC_SDS_PORT_T *)object;
+	SCIC_SDS_PORT_T *this_port;
+	this_port = (SCIC_SDS_PORT_T *)object;
 
-   scic_sds_port_set_base_state_handlers(
-      this_port, SCI_BASE_PORT_STATE_STOPPING
-   );
+	scic_sds_port_set_base_state_handlers(this_port,
+	    SCI_BASE_PORT_STATE_STOPPING);
 
-   if (this_port->started_request_count == 0)
-   {
-      sci_base_state_machine_change_state(
-         &this_port->parent.state_machine,
-         SCI_BASE_PORT_STATE_STOPPED
-      );
-   }
+	if (this_port->started_request_count == 0) {
+		sci_base_state_machine_change_state(
+		    &this_port->parent.state_machine,
+		    SCI_BASE_PORT_STATE_STOPPED);
+	}
 }
 
 /**
@@ -2752,26 +2396,20 @@ void scic_sds_port_stopping_state_enter(
  *
  * @return none
  */
-static
-void scic_sds_port_stopping_state_exit(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scic_sds_port_stopping_state_exit(SCI_BASE_OBJECT_T *object)
 {
-   SCIC_SDS_PORT_T *this_port;
-   this_port = (SCIC_SDS_PORT_T *)object;
+	SCIC_SDS_PORT_T *this_port;
+	this_port = (SCIC_SDS_PORT_T *)object;
 
-   scic_cb_timer_stop(
-      scic_sds_port_get_controller(this_port),
-      this_port->timer_handle
-   );
+	scic_cb_timer_stop(scic_sds_port_get_controller(this_port),
+	    this_port->timer_handle);
 
-   scic_cb_timer_destroy(
-      scic_sds_port_get_controller(this_port),
-      this_port->timer_handle
-   );
-   this_port->timer_handle = NULL;
+	scic_cb_timer_destroy(scic_sds_port_get_controller(this_port),
+	    this_port->timer_handle);
+	this_port->timer_handle = NULL;
 
-   scic_sds_port_destroy_dummy_resources(this_port);
+	scic_sds_port_destroy_dummy_resources(this_port);
 }
 
 /**
@@ -2784,55 +2422,32 @@ void scic_sds_port_stopping_state_exit(
  *
  * @return none
  */
-static
-void scic_sds_port_failed_state_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scic_sds_port_failed_state_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIC_SDS_PORT_T *this_port;
-   this_port = (SCIC_SDS_PORT_T *)object;
+	SCIC_SDS_PORT_T *this_port;
+	this_port = (SCIC_SDS_PORT_T *)object;
 
-   scic_sds_port_set_base_state_handlers(
-      this_port,
-      SCI_BASE_PORT_STATE_FAILED
-   );
+	scic_sds_port_set_base_state_handlers(this_port,
+	    SCI_BASE_PORT_STATE_FAILED);
 
-   scic_cb_port_hard_reset_complete(
-      scic_sds_port_get_controller(this_port),
-      this_port,
-      SCI_FAILURE_TIMEOUT
-   );
+	scic_cb_port_hard_reset_complete(scic_sds_port_get_controller(
+					     this_port),
+	    this_port, SCI_FAILURE_TIMEOUT);
 }
 
 // ---------------------------------------------------------------------------
 
-SCI_BASE_STATE_T scic_sds_port_state_table[SCI_BASE_PORT_MAX_STATES] =
-{
-   {
-      SCI_BASE_PORT_STATE_STOPPED,
-      scic_sds_port_stopped_state_enter,
-      scic_sds_port_stopped_state_exit
-   },
-   {
-      SCI_BASE_PORT_STATE_STOPPING,
-      scic_sds_port_stopping_state_enter,
-      scic_sds_port_stopping_state_exit
-   },
-   {
-      SCI_BASE_PORT_STATE_READY,
-      scic_sds_port_ready_state_enter,
-      scic_sds_port_ready_state_exit
-   },
-   {
-      SCI_BASE_PORT_STATE_RESETTING,
-      scic_sds_port_resetting_state_enter,
-      scic_sds_port_resetting_state_exit
-   },
-   {
-      SCI_BASE_PORT_STATE_FAILED,
-      scic_sds_port_failed_state_enter,
-      NULL
-   }
+SCI_BASE_STATE_T scic_sds_port_state_table[SCI_BASE_PORT_MAX_STATES] = {
+	{ SCI_BASE_PORT_STATE_STOPPED, scic_sds_port_stopped_state_enter,
+	    scic_sds_port_stopped_state_exit },
+	{ SCI_BASE_PORT_STATE_STOPPING, scic_sds_port_stopping_state_enter,
+	    scic_sds_port_stopping_state_exit },
+	{ SCI_BASE_PORT_STATE_READY, scic_sds_port_ready_state_enter,
+	    scic_sds_port_ready_state_exit },
+	{ SCI_BASE_PORT_STATE_RESETTING, scic_sds_port_resetting_state_enter,
+	    scic_sds_port_resetting_state_exit },
+	{ SCI_BASE_PORT_STATE_FAILED, scic_sds_port_failed_state_enter, NULL }
 };
 
 //******************************************************************************
@@ -2854,19 +2469,15 @@ SCI_BASE_STATE_T scic_sds_port_state_table[SCI_BASE_PORT_MAX_STATES] =
  * @return SCI_STATUS
  * @retval SCI_SUCCESS
  */
-static
-SCI_STATUS scic_sds_port_ready_substate_stop_handler(
-   SCI_BASE_PORT_T *port
-)
+static SCI_STATUS
+scic_sds_port_ready_substate_stop_handler(SCI_BASE_PORT_T *port)
 {
-   SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)port;
+	SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)port;
 
-   sci_base_state_machine_change_state(
-      &this_port->parent.state_machine,
-      SCI_BASE_PORT_STATE_STOPPING
-   );
+	sci_base_state_machine_change_state(&this_port->parent.state_machine,
+	    SCI_BASE_PORT_STATE_STOPPING);
 
-   return SCI_SUCCESS;
+	return SCI_SUCCESS;
 }
 
 /**
@@ -2884,72 +2495,62 @@ SCI_STATUS scic_sds_port_ready_substate_stop_handler(
  * @return SCI_STATUS
  * @retval SCI_SUCCESS
  */
-static
-SCI_STATUS scic_sds_port_ready_substate_complete_io_handler(
-   SCIC_SDS_PORT_T               *port,
-   struct SCIC_SDS_REMOTE_DEVICE *device,
-   struct SCIC_SDS_REQUEST       *io_request
-)
+static SCI_STATUS
+scic_sds_port_ready_substate_complete_io_handler(SCIC_SDS_PORT_T *port,
+    struct SCIC_SDS_REMOTE_DEVICE *device, struct SCIC_SDS_REQUEST *io_request)
 {
-   SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)port;
+	SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)port;
 
-   scic_sds_port_decrement_request_count(this_port);
+	scic_sds_port_decrement_request_count(this_port);
 
-   return SCI_SUCCESS;
+	return SCI_SUCCESS;
 }
 
-static
-SCI_STATUS scic_sds_port_ready_substate_add_phy_handler(
-   SCI_BASE_PORT_T *port,
-   SCI_BASE_PHY_T  *phy
-)
+static SCI_STATUS
+scic_sds_port_ready_substate_add_phy_handler(SCI_BASE_PORT_T *port,
+    SCI_BASE_PHY_T *phy)
 {
-   SCIC_SDS_PORT_T * this_port = (SCIC_SDS_PORT_T *)port;
-   SCIC_SDS_PHY_T  * this_phy  = (SCIC_SDS_PHY_T  *)phy;
-   SCI_STATUS        status;
+	SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)port;
+	SCIC_SDS_PHY_T *this_phy = (SCIC_SDS_PHY_T *)phy;
+	SCI_STATUS status;
 
-   status = scic_sds_port_set_phy(this_port, this_phy);
+	status = scic_sds_port_set_phy(this_port, this_phy);
 
-   if (status == SCI_SUCCESS)
-   {
-      scic_sds_port_general_link_up_handler(this_port, this_phy, TRUE, FALSE);
+	if (status == SCI_SUCCESS) {
+		scic_sds_port_general_link_up_handler(this_port, this_phy, TRUE,
+		    FALSE);
 
-      this_port->not_ready_reason = SCIC_PORT_NOT_READY_RECONFIGURING;
+		this_port->not_ready_reason = SCIC_PORT_NOT_READY_RECONFIGURING;
 
-      sci_base_state_machine_change_state(
-         &this_port->ready_substate_machine,
-         SCIC_SDS_PORT_READY_SUBSTATE_CONFIGURING
-      );
-   }
+		sci_base_state_machine_change_state(
+		    &this_port->ready_substate_machine,
+		    SCIC_SDS_PORT_READY_SUBSTATE_CONFIGURING);
+	}
 
-   return status;
+	return status;
 }
 
-static
-SCI_STATUS scic_sds_port_ready_substate_remove_phy_handler(
-   SCI_BASE_PORT_T *port,
-   SCI_BASE_PHY_T  *phy
-)
+static SCI_STATUS
+scic_sds_port_ready_substate_remove_phy_handler(SCI_BASE_PORT_T *port,
+    SCI_BASE_PHY_T *phy)
 {
-   SCIC_SDS_PORT_T * this_port = (SCIC_SDS_PORT_T *)port;
-   SCIC_SDS_PHY_T  * this_phy  = (SCIC_SDS_PHY_T  *)phy;
-   SCI_STATUS        status;
+	SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)port;
+	SCIC_SDS_PHY_T *this_phy = (SCIC_SDS_PHY_T *)phy;
+	SCI_STATUS status;
 
-   status = scic_sds_port_clear_phy(this_port, this_phy);
+	status = scic_sds_port_clear_phy(this_port, this_phy);
 
-   if (status == SCI_SUCCESS)
-   {
-      scic_sds_port_deactivate_phy(this_port, this_phy, TRUE);
+	if (status == SCI_SUCCESS) {
+		scic_sds_port_deactivate_phy(this_port, this_phy, TRUE);
 
-      this_port->not_ready_reason = SCIC_PORT_NOT_READY_RECONFIGURING;
+		this_port->not_ready_reason = SCIC_PORT_NOT_READY_RECONFIGURING;
 
-      sci_base_state_machine_change_state(
-         &this_port->ready_substate_machine,
-         SCIC_SDS_PORT_READY_SUBSTATE_CONFIGURING
-      );
-   }
+		sci_base_state_machine_change_state(
+		    &this_port->ready_substate_machine,
+		    SCIC_SDS_PORT_READY_SUBSTATE_CONFIGURING);
+	}
 
-   return status;
+	return status;
 }
 
 //****************************************************************************
@@ -2967,20 +2568,16 @@ SCI_STATUS scic_sds_port_ready_substate_remove_phy_handler(
  *
  * @return none
  */
-static
-void scic_sds_port_ready_waiting_substate_link_up_handler(
-   SCIC_SDS_PORT_T *this_port,
-   SCIC_SDS_PHY_T  *the_phy
-)
+static void
+scic_sds_port_ready_waiting_substate_link_up_handler(SCIC_SDS_PORT_T *this_port,
+    SCIC_SDS_PHY_T *the_phy)
 {
-   // Since this is the first phy going link up for the port we can just enable
-   // it and continue.
-   scic_sds_port_activate_phy(this_port, the_phy, TRUE, TRUE);
+	// Since this is the first phy going link up for the port we can just
+	// enable it and continue.
+	scic_sds_port_activate_phy(this_port, the_phy, TRUE, TRUE);
 
-   sci_base_state_machine_change_state(
-      &this_port->ready_substate_machine,
-      SCIC_SDS_PORT_READY_SUBSTATE_OPERATIONAL
-   );
+	sci_base_state_machine_change_state(&this_port->ready_substate_machine,
+	    SCIC_SDS_PORT_READY_SUBSTATE_OPERATIONAL);
 }
 
 /**
@@ -2998,14 +2595,11 @@ void scic_sds_port_ready_waiting_substate_link_up_handler(
  * @return SCI_STATUS
  * @retval SCI_FAILURE_INVALID_STATE
  */
-static
-SCI_STATUS scic_sds_port_ready_waiting_substate_start_io_handler(
-   SCIC_SDS_PORT_T          *port,
-   SCIC_SDS_REMOTE_DEVICE_T *device,
-   SCIC_SDS_REQUEST_T       *io_request
-)
+static SCI_STATUS
+scic_sds_port_ready_waiting_substate_start_io_handler(SCIC_SDS_PORT_T *port,
+    SCIC_SDS_REMOTE_DEVICE_T *device, SCIC_SDS_REQUEST_T *io_request)
 {
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 //****************************************************************************
@@ -3022,61 +2616,48 @@ SCI_STATUS scic_sds_port_ready_waiting_substate_start_io_handler(
  * @return SCI_STATUS
  * @retval SCI_SUCCESS
  */
-static
-SCI_STATUS scic_sds_port_ready_operational_substate_reset_handler(
-   SCI_BASE_PORT_T * port,
-   U32               timeout
-)
+static SCI_STATUS
+scic_sds_port_ready_operational_substate_reset_handler(SCI_BASE_PORT_T *port,
+    U32 timeout)
 {
-   SCI_STATUS        status = SCI_FAILURE_INVALID_PHY;
-   U32               phy_index;
-   SCIC_SDS_PORT_T * this_port = (SCIC_SDS_PORT_T *)port;
-   SCIC_SDS_PHY_T  * selected_phy = SCI_INVALID_HANDLE;
+	SCI_STATUS status = SCI_FAILURE_INVALID_PHY;
+	U32 phy_index;
+	SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)port;
+	SCIC_SDS_PHY_T *selected_phy = SCI_INVALID_HANDLE;
 
+	// Select a phy on which we can send the hard reset request.
+	for (phy_index = 0;
+	     (phy_index < SCI_MAX_PHYS) && (selected_phy == SCI_INVALID_HANDLE);
+	     phy_index++) {
+		selected_phy = this_port->phy_table[phy_index];
 
-   // Select a phy on which we can send the hard reset request.
-   for (
-         phy_index = 0;
-            (phy_index < SCI_MAX_PHYS)
-         && (selected_phy == SCI_INVALID_HANDLE);
-         phy_index++
-       )
-   {
-      selected_phy = this_port->phy_table[phy_index];
+		if ((selected_phy != SCI_INVALID_HANDLE) &&
+		    !scic_sds_port_active_phy(this_port, selected_phy)) {
+			// We found a phy but it is not ready select different
+			// phy
+			selected_phy = SCI_INVALID_HANDLE;
+		}
+	}
 
-      if (
-            (selected_phy != SCI_INVALID_HANDLE)
-         && !scic_sds_port_active_phy(this_port, selected_phy)
-         )
-      {
-         // We found a phy but it is not ready select different phy
-         selected_phy = SCI_INVALID_HANDLE;
-      }
-   }
+	// If we have a phy then go ahead and start the reset procedure
+	if (selected_phy != SCI_INVALID_HANDLE) {
+		status = scic_sds_phy_reset(selected_phy);
 
-   // If we have a phy then go ahead and start the reset procedure
-   if (selected_phy != SCI_INVALID_HANDLE)
-   {
-      status = scic_sds_phy_reset(selected_phy);
+		if (status == SCI_SUCCESS) {
+			scic_cb_timer_start(scic_sds_port_get_controller(
+						this_port),
+			    this_port->timer_handle, timeout);
 
-      if (status == SCI_SUCCESS)
-      {
-         scic_cb_timer_start(
-            scic_sds_port_get_controller(this_port),
-            this_port->timer_handle,
-            timeout
-         );
+			this_port->not_ready_reason =
+			    SCIC_PORT_NOT_READY_HARD_RESET_REQUESTED;
 
-         this_port->not_ready_reason = SCIC_PORT_NOT_READY_HARD_RESET_REQUESTED;
+			sci_base_state_machine_change_state(
+			    &this_port->parent.state_machine,
+			    SCI_BASE_PORT_STATE_RESETTING);
+		}
+	}
 
-         sci_base_state_machine_change_state(
-            &this_port->parent.state_machine,
-            SCI_BASE_PORT_STATE_RESETTING
-         );
-      }
-   }
-
-   return status;
+	return status;
 }
 
 /**
@@ -3090,13 +2671,11 @@ SCI_STATUS scic_sds_port_ready_operational_substate_reset_handler(
  *
  * @return none
  */
-static
-void scic_sds_port_ready_operational_substate_link_up_handler(
-   SCIC_SDS_PORT_T *this_port,
-   SCIC_SDS_PHY_T  *the_phy
-)
+static void
+scic_sds_port_ready_operational_substate_link_up_handler(
+    SCIC_SDS_PORT_T *this_port, SCIC_SDS_PHY_T *the_phy)
 {
-   scic_sds_port_general_link_up_handler(this_port, the_phy, TRUE, TRUE);
+	scic_sds_port_general_link_up_handler(this_port, the_phy, TRUE, TRUE);
 }
 
 /**
@@ -3111,24 +2690,20 @@ void scic_sds_port_ready_operational_substate_link_up_handler(
  *
  * @return none
  */
-static
-void scic_sds_port_ready_operational_substate_link_down_handler(
-   SCIC_SDS_PORT_T *this_port,
-   SCIC_SDS_PHY_T  *the_phy
-)
+static void
+scic_sds_port_ready_operational_substate_link_down_handler(
+    SCIC_SDS_PORT_T *this_port, SCIC_SDS_PHY_T *the_phy)
 {
-   scic_sds_port_deactivate_phy(this_port, the_phy, TRUE);
+	scic_sds_port_deactivate_phy(this_port, the_phy, TRUE);
 
-   // If there are no active phys left in the port, then transition
-   // the port to the WAITING state until such time as a phy goes
-   // link up.
-   if (this_port->active_phy_mask == 0)
-   {
-      sci_base_state_machine_change_state(
-         scic_sds_port_get_ready_substate_machine(this_port),
-         SCIC_SDS_PORT_READY_SUBSTATE_WAITING
-      );
-   }
+	// If there are no active phys left in the port, then transition
+	// the port to the WAITING state until such time as a phy goes
+	// link up.
+	if (this_port->active_phy_mask == 0) {
+		sci_base_state_machine_change_state(
+		    scic_sds_port_get_ready_substate_machine(this_port),
+		    SCIC_SDS_PORT_READY_SUBSTATE_WAITING);
+	}
 }
 
 /**
@@ -3146,18 +2721,15 @@ void scic_sds_port_ready_operational_substate_link_down_handler(
  * @return SCI_STATUS
  * @retval SCI_SUCCESS
  */
-static
-SCI_STATUS scic_sds_port_ready_operational_substate_start_io_handler(
-   SCIC_SDS_PORT_T          *port,
-   SCIC_SDS_REMOTE_DEVICE_T *device,
-   SCIC_SDS_REQUEST_T       *io_request
-)
+static SCI_STATUS
+scic_sds_port_ready_operational_substate_start_io_handler(SCIC_SDS_PORT_T *port,
+    SCIC_SDS_REMOTE_DEVICE_T *device, SCIC_SDS_REQUEST_T *io_request)
 {
-   SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)port;
+	SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)port;
 
-   scic_sds_port_increment_request_count(this_port);
+	scic_sds_port_increment_request_count(this_port);
 
-   return SCI_SUCCESS;
+	return SCI_SUCCESS;
 }
 
 //****************************************************************************
@@ -3174,31 +2746,28 @@ SCI_STATUS scic_sds_port_ready_operational_substate_start_io_handler(
  * @return SCI_STATUS
  * @retval SCI_FAILURE_INVALID_STATE
  */
-static
-SCI_STATUS scic_sds_port_ready_configuring_substate_add_phy_handler(
-   SCI_BASE_PORT_T *port,
-   SCI_BASE_PHY_T  *phy
-)
+static SCI_STATUS
+scic_sds_port_ready_configuring_substate_add_phy_handler(SCI_BASE_PORT_T *port,
+    SCI_BASE_PHY_T *phy)
 {
-   SCIC_SDS_PORT_T * this_port = (SCIC_SDS_PORT_T *)port;
-   SCIC_SDS_PHY_T  * this_phy  = (SCIC_SDS_PHY_T  *)phy;
-   SCI_STATUS        status;
+	SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)port;
+	SCIC_SDS_PHY_T *this_phy = (SCIC_SDS_PHY_T *)phy;
+	SCI_STATUS status;
 
-   status = scic_sds_port_set_phy(this_port, this_phy);
+	status = scic_sds_port_set_phy(this_port, this_phy);
 
-   if (status == SCI_SUCCESS)
-   {
-      scic_sds_port_general_link_up_handler(this_port, this_phy, TRUE, FALSE);
+	if (status == SCI_SUCCESS) {
+		scic_sds_port_general_link_up_handler(this_port, this_phy, TRUE,
+		    FALSE);
 
-      // Re-enter the configuring state since this may be the last phy in
-      // the port.
-      sci_base_state_machine_change_state(
-         &this_port->ready_substate_machine,
-         SCIC_SDS_PORT_READY_SUBSTATE_CONFIGURING
-      );
-   }
+		// Re-enter the configuring state since this may be the last phy
+		// in the port.
+		sci_base_state_machine_change_state(
+		    &this_port->ready_substate_machine,
+		    SCIC_SDS_PORT_READY_SUBSTATE_CONFIGURING);
+	}
 
-   return status;
+	return status;
 }
 
 /**
@@ -3211,31 +2780,27 @@ SCI_STATUS scic_sds_port_ready_configuring_substate_add_phy_handler(
  * @return SCI_STATUS
  * @retval SCI_FAILURE_INVALID_STATE
  */
-static
-SCI_STATUS scic_sds_port_ready_configuring_substate_remove_phy_handler(
-   SCI_BASE_PORT_T *port,
-   SCI_BASE_PHY_T  *phy
-)
+static SCI_STATUS
+scic_sds_port_ready_configuring_substate_remove_phy_handler(
+    SCI_BASE_PORT_T *port, SCI_BASE_PHY_T *phy)
 {
-   SCIC_SDS_PORT_T * this_port = (SCIC_SDS_PORT_T *)port;
-   SCIC_SDS_PHY_T  * this_phy  = (SCIC_SDS_PHY_T  *)phy;
-   SCI_STATUS        status;
+	SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)port;
+	SCIC_SDS_PHY_T *this_phy = (SCIC_SDS_PHY_T *)phy;
+	SCI_STATUS status;
 
-   status = scic_sds_port_clear_phy(this_port, this_phy);
+	status = scic_sds_port_clear_phy(this_port, this_phy);
 
-   if (status == SCI_SUCCESS)
-   {
-      scic_sds_port_deactivate_phy(this_port, this_phy, TRUE);
+	if (status == SCI_SUCCESS) {
+		scic_sds_port_deactivate_phy(this_port, this_phy, TRUE);
 
-      // Re-enter the configuring state since this may be the last phy in
-      // the port.
-      sci_base_state_machine_change_state(
-         &this_port->ready_substate_machine,
-         SCIC_SDS_PORT_READY_SUBSTATE_CONFIGURING
-      );
-   }
+		// Re-enter the configuring state since this may be the last phy
+		// in the port.
+		sci_base_state_machine_change_state(
+		    &this_port->ready_substate_machine,
+		    SCIC_SDS_PORT_READY_SUBSTATE_CONFIGURING);
+	}
 
-   return status;
+	return status;
 }
 
 /**
@@ -3248,91 +2813,76 @@ SCI_STATUS scic_sds_port_ready_configuring_substate_remove_phy_handler(
  * @param[in] device This is the device on which the io is completing.
  * @param[in] io_request This is the io request that is completing.
  */
-static
-SCI_STATUS scic_sds_port_ready_configuring_substate_complete_io_handler(
-   SCIC_SDS_PORT_T          *port,
-   SCIC_SDS_REMOTE_DEVICE_T *device,
-   SCIC_SDS_REQUEST_T       *io_request
-)
+static SCI_STATUS
+scic_sds_port_ready_configuring_substate_complete_io_handler(
+    SCIC_SDS_PORT_T *port, SCIC_SDS_REMOTE_DEVICE_T *device,
+    SCIC_SDS_REQUEST_T *io_request)
 {
-   scic_sds_port_decrement_request_count(port);
+	scic_sds_port_decrement_request_count(port);
 
-   if (port->started_request_count == 0)
-   {
-      sci_base_state_machine_change_state(
-         &port->ready_substate_machine,
-         SCIC_SDS_PORT_READY_SUBSTATE_OPERATIONAL
-      );
-   }
+	if (port->started_request_count == 0) {
+		sci_base_state_machine_change_state(
+		    &port->ready_substate_machine,
+		    SCIC_SDS_PORT_READY_SUBSTATE_OPERATIONAL);
+	}
 
-   return SCI_SUCCESS;
+	return SCI_SUCCESS;
 }
 
 // ---------------------------------------------------------------------------
 
 SCIC_SDS_PORT_STATE_HANDLER_T
-   scic_sds_port_ready_substate_handler_table[SCIC_SDS_PORT_READY_MAX_SUBSTATES] =
-{
-   // SCIC_SDS_PORT_READY_SUBSTATE_WAITING
-   {
-      {
-         scic_sds_port_default_start_handler,
-         scic_sds_port_ready_substate_stop_handler,
-         scic_sds_port_default_destruct_handler,
-         scic_sds_port_default_reset_handler,
-         scic_sds_port_ready_substate_add_phy_handler,
-         scic_sds_port_default_remove_phy_handler
-      },
-      scic_sds_port_default_frame_handler,
-      scic_sds_port_default_event_handler,
-      scic_sds_port_ready_waiting_substate_link_up_handler,
-      scic_sds_port_default_link_down_handler,
-      scic_sds_port_ready_waiting_substate_start_io_handler,
-      scic_sds_port_ready_substate_complete_io_handler,
-   },
-   // SCIC_SDS_PORT_READY_SUBSTATE_OPERATIONAL
-   {
-      {
-         scic_sds_port_default_start_handler,
-         scic_sds_port_ready_substate_stop_handler,
-         scic_sds_port_default_destruct_handler,
-         scic_sds_port_ready_operational_substate_reset_handler,
-         scic_sds_port_ready_substate_add_phy_handler,
-         scic_sds_port_ready_substate_remove_phy_handler
-      },
-      scic_sds_port_default_frame_handler,
-      scic_sds_port_default_event_handler,
-      scic_sds_port_ready_operational_substate_link_up_handler,
-      scic_sds_port_ready_operational_substate_link_down_handler,
-      scic_sds_port_ready_operational_substate_start_io_handler,
-      scic_sds_port_ready_substate_complete_io_handler
-   },
-   // SCIC_SDS_PORT_READY_SUBSTATE_CONFIGURING
-   {
-      {
-         scic_sds_port_default_start_handler,
-         scic_sds_port_ready_substate_stop_handler,
-         scic_sds_port_default_destruct_handler,
-         scic_sds_port_default_reset_handler,
-         scic_sds_port_ready_configuring_substate_add_phy_handler,
-         scic_sds_port_ready_configuring_substate_remove_phy_handler
-      },
-      scic_sds_port_default_frame_handler,
-      scic_sds_port_default_event_handler,
-      scic_sds_port_default_link_up_handler,
-      scic_sds_port_default_link_down_handler,
-      scic_sds_port_default_start_io_handler,
-      scic_sds_port_ready_configuring_substate_complete_io_handler
-   }
-};
+scic_sds_port_ready_substate_handler_table
+    [SCIC_SDS_PORT_READY_MAX_SUBSTATES] = {
+	    // SCIC_SDS_PORT_READY_SUBSTATE_WAITING
+	    {
+		{ scic_sds_port_default_start_handler,
+		    scic_sds_port_ready_substate_stop_handler,
+		    scic_sds_port_default_destruct_handler,
+		    scic_sds_port_default_reset_handler,
+		    scic_sds_port_ready_substate_add_phy_handler,
+		    scic_sds_port_default_remove_phy_handler },
+		scic_sds_port_default_frame_handler,
+		scic_sds_port_default_event_handler,
+		scic_sds_port_ready_waiting_substate_link_up_handler,
+		scic_sds_port_default_link_down_handler,
+		scic_sds_port_ready_waiting_substate_start_io_handler,
+		scic_sds_port_ready_substate_complete_io_handler,
+	    },
+	    // SCIC_SDS_PORT_READY_SUBSTATE_OPERATIONAL
+	    { { scic_sds_port_default_start_handler,
+		  scic_sds_port_ready_substate_stop_handler,
+		  scic_sds_port_default_destruct_handler,
+		  scic_sds_port_ready_operational_substate_reset_handler,
+		  scic_sds_port_ready_substate_add_phy_handler,
+		  scic_sds_port_ready_substate_remove_phy_handler },
+		scic_sds_port_default_frame_handler,
+		scic_sds_port_default_event_handler,
+		scic_sds_port_ready_operational_substate_link_up_handler,
+		scic_sds_port_ready_operational_substate_link_down_handler,
+		scic_sds_port_ready_operational_substate_start_io_handler,
+		scic_sds_port_ready_substate_complete_io_handler },
+	    // SCIC_SDS_PORT_READY_SUBSTATE_CONFIGURING
+	    { { scic_sds_port_default_start_handler,
+		  scic_sds_port_ready_substate_stop_handler,
+		  scic_sds_port_default_destruct_handler,
+		  scic_sds_port_default_reset_handler,
+		  scic_sds_port_ready_configuring_substate_add_phy_handler,
+		  scic_sds_port_ready_configuring_substate_remove_phy_handler },
+		scic_sds_port_default_frame_handler,
+		scic_sds_port_default_event_handler,
+		scic_sds_port_default_link_up_handler,
+		scic_sds_port_default_link_down_handler,
+		scic_sds_port_default_start_io_handler,
+		scic_sds_port_ready_configuring_substate_complete_io_handler }
+    };
 
 /**
  * This macro sets the port ready substate handlers.
  */
 #define scic_sds_port_set_ready_state_handlers(port, state_id) \
-   scic_sds_port_set_state_handlers( \
-      port, &scic_sds_port_ready_substate_handler_table[(state_id)] \
-   )
+	scic_sds_port_set_state_handlers(port,                 \
+	    &scic_sds_port_ready_substate_handler_table[(state_id)])
 
 //******************************************************************************
 //*  PORT STATE PRIVATE METHODS
@@ -3345,15 +2895,14 @@ SCIC_SDS_PORT_STATE_HANDLER_T
  *
  * @return none
  */
-void scic_sds_port_suspend_port_task_scheduler(
-   SCIC_SDS_PORT_T *this_port
-)
+void
+scic_sds_port_suspend_port_task_scheduler(SCIC_SDS_PORT_T *this_port)
 {
-   U32 pts_control_value;
+	U32 pts_control_value;
 
-   pts_control_value = scu_port_task_scheduler_read(this_port, control);
-   pts_control_value |= SCU_PTSxCR_GEN_BIT(SUSPEND);
-   scu_port_task_scheduler_write(this_port, control, pts_control_value);
+	pts_control_value = scu_port_task_scheduler_read(this_port, control);
+	pts_control_value |= SCU_PTSxCR_GEN_BIT(SUSPEND);
+	scu_port_task_scheduler_write(this_port, control, pts_control_value);
 }
 
 /**
@@ -3363,17 +2912,16 @@ void scic_sds_port_suspend_port_task_scheduler(
  *
  * @return none
  */
-void scic_sds_port_resume_port_task_scheduler(
-   SCIC_SDS_PORT_T *this_port
-)
+void
+scic_sds_port_resume_port_task_scheduler(SCIC_SDS_PORT_T *this_port)
 {
-   U32 pts_control_value;
+	U32 pts_control_value;
 
-   pts_control_value = scu_port_task_scheduler_read(this_port, control);
+	pts_control_value = scu_port_task_scheduler_read(this_port, control);
 
-   pts_control_value &= ~SCU_PTSxCR_GEN_BIT(SUSPEND);
+	pts_control_value &= ~SCU_PTSxCR_GEN_BIT(SUSPEND);
 
-   scu_port_task_scheduler_write(this_port, control, pts_control_value);
+	scu_port_task_scheduler_write(this_port, control, pts_control_value);
 }
 
 /**
@@ -3385,31 +2933,26 @@ void scic_sds_port_resume_port_task_scheduler(
  *
  * @return none
  */
-static
-void scic_sds_port_post_dummy_request(
-   SCIC_SDS_PORT_T *this_port
-)
+static void
+scic_sds_port_post_dummy_request(SCIC_SDS_PORT_T *this_port)
 {
-   U32 command;
-   SCU_TASK_CONTEXT_T * task_context;
+	U32 command;
+	SCU_TASK_CONTEXT_T *task_context;
 
-   if (this_port->reserved_tci != SCU_DUMMY_INDEX)
-   {
-   task_context = scic_sds_controller_get_task_context_buffer(
-                     this_port->owning_controller,
-                     this_port->reserved_tci
-                  );
+	if (this_port->reserved_tci != SCU_DUMMY_INDEX) {
+		task_context = scic_sds_controller_get_task_context_buffer(
+		    this_port->owning_controller, this_port->reserved_tci);
 
-   task_context->abort = 0;
+		task_context->abort = 0;
 
-   command = (
-         (SCU_CONTEXT_COMMAND_REQUEST_TYPE_POST_TC)
-      | (this_port->physical_port_index << SCU_CONTEXT_COMMAND_LOGICAL_PORT_SHIFT)
-      | (this_port->reserved_tci)
-   );
+		command = ((SCU_CONTEXT_COMMAND_REQUEST_TYPE_POST_TC) |
+		    (this_port->physical_port_index
+			<< SCU_CONTEXT_COMMAND_LOGICAL_PORT_SHIFT) |
+		    (this_port->reserved_tci));
 
-   scic_sds_controller_post_request(this_port->owning_controller, command);
-}
+		scic_sds_controller_post_request(this_port->owning_controller,
+		    command);
+	}
 }
 
 /**
@@ -3420,31 +2963,26 @@ void scic_sds_port_post_dummy_request(
  *
  * @return none
  */
-static
-void scic_sds_port_abort_dummy_request(
-   SCIC_SDS_PORT_T *this_port
-)
+static void
+scic_sds_port_abort_dummy_request(SCIC_SDS_PORT_T *this_port)
 {
-   U32 command;
-   SCU_TASK_CONTEXT_T * task_context;
+	U32 command;
+	SCU_TASK_CONTEXT_T *task_context;
 
-   if (this_port->reserved_tci != SCU_DUMMY_INDEX)
-   {
-   task_context = scic_sds_controller_get_task_context_buffer(
-                     this_port->owning_controller,
-                     this_port->reserved_tci
-                  );
+	if (this_port->reserved_tci != SCU_DUMMY_INDEX) {
+		task_context = scic_sds_controller_get_task_context_buffer(
+		    this_port->owning_controller, this_port->reserved_tci);
 
-   task_context->abort = 1;
+		task_context->abort = 1;
 
-   command = (
-        (SCU_CONTEXT_COMMAND_REQUEST_POST_TC_ABORT)
-      | (this_port->physical_port_index << SCU_CONTEXT_COMMAND_LOGICAL_PORT_SHIFT)
-      | (this_port->reserved_tci)
-   );
+		command = ((SCU_CONTEXT_COMMAND_REQUEST_POST_TC_ABORT) |
+		    (this_port->physical_port_index
+			<< SCU_CONTEXT_COMMAND_LOGICAL_PORT_SHIFT) |
+		    (this_port->reserved_tci));
 
-   scic_sds_controller_post_request(this_port->owning_controller, command);
-}
+		scic_sds_controller_post_request(this_port->owning_controller,
+		    command);
+	}
 }
 
 //******************************************************************************
@@ -3462,30 +3000,24 @@ void scic_sds_port_abort_dummy_request(
  *
  * @return none
  */
-static
-void scic_sds_port_ready_substate_waiting_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scic_sds_port_ready_substate_waiting_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)object;
+	SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)object;
 
-   scic_sds_port_set_ready_state_handlers(
-      this_port, SCIC_SDS_PORT_READY_SUBSTATE_WAITING
-   );
+	scic_sds_port_set_ready_state_handlers(this_port,
+	    SCIC_SDS_PORT_READY_SUBSTATE_WAITING);
 
-   scic_sds_port_suspend_port_task_scheduler(this_port);
+	scic_sds_port_suspend_port_task_scheduler(this_port);
 
+	this_port->not_ready_reason = SCIC_PORT_NOT_READY_NO_ACTIVE_PHYS;
 
-   this_port->not_ready_reason = SCIC_PORT_NOT_READY_NO_ACTIVE_PHYS;
-
-   if (this_port->active_phy_mask != 0)
-   {
-      // At least one of the phys on the port is ready
-      sci_base_state_machine_change_state(
-         &this_port->ready_substate_machine,
-         SCIC_SDS_PORT_READY_SUBSTATE_OPERATIONAL
-      );
-   }
+	if (this_port->active_phy_mask != 0) {
+		// At least one of the phys on the port is ready
+		sci_base_state_machine_change_state(
+		    &this_port->ready_substate_machine,
+		    SCIC_SDS_PORT_READY_SUBSTATE_OPERATIONAL);
+	}
 }
 
 /**
@@ -3498,13 +3030,11 @@ void scic_sds_port_ready_substate_waiting_enter(
  *
  * @return none
  */
-static
-void scic_sds_port_ready_substate_waiting_exit(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scic_sds_port_ready_substate_waiting_exit(SCI_BASE_OBJECT_T *object)
 {
-   SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)object;
-   scic_sds_port_resume_port_task_scheduler(this_port);
+	SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)object;
+	scic_sds_port_resume_port_task_scheduler(this_port);
 }
 
 /**
@@ -3518,47 +3048,39 @@ void scic_sds_port_ready_substate_waiting_exit(
  *
  * @return none
  */
-static
-void scic_sds_port_ready_substate_operational_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scic_sds_port_ready_substate_operational_enter(SCI_BASE_OBJECT_T *object)
 {
-   U32 index;
-   SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)object;
+	U32 index;
+	SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)object;
 
-   scic_sds_port_set_ready_state_handlers(
-      this_port, SCIC_SDS_PORT_READY_SUBSTATE_OPERATIONAL
-   );
+	scic_sds_port_set_ready_state_handlers(this_port,
+	    SCIC_SDS_PORT_READY_SUBSTATE_OPERATIONAL);
 
-   scic_cb_port_ready(
-      scic_sds_port_get_controller(this_port), this_port
-   );
+	scic_cb_port_ready(scic_sds_port_get_controller(this_port), this_port);
 
-   for (index = 0; index < SCI_MAX_PHYS; index++)
-   {
-      if (this_port->phy_table[index] != NULL)
-      {
-         scic_sds_port_write_phy_assignment(
-            this_port, this_port->phy_table[index]
-         );
+	for (index = 0; index < SCI_MAX_PHYS; index++) {
+		if (this_port->phy_table[index] != NULL) {
+			scic_sds_port_write_phy_assignment(this_port,
+			    this_port->phy_table[index]);
 
-         //if the bit at the index location for active phy mask is set and
-         //enabled_phy_mask is not set then resume the phy
-         if ( ( (this_port->active_phy_mask ^ this_port->enabled_phy_mask) & (1 << index) ) != 0)
-         {
-            scic_sds_port_resume_phy (
-               this_port,
-               this_port->phy_table[index]
-            );
-         }
-      }
-   }
+			// if the bit at the index location for active phy mask
+			// is set and enabled_phy_mask is not set then resume
+			// the phy
+			if (((this_port->active_phy_mask ^
+				 this_port->enabled_phy_mask) &
+				(1 << index)) != 0) {
+				scic_sds_port_resume_phy(this_port,
+				    this_port->phy_table[index]);
+			}
+		}
+	}
 
-   scic_sds_port_update_viit_entry(this_port);
+	scic_sds_port_update_viit_entry(this_port);
 
-   // Post the dummy task for the port so the hardware can schedule
-   // io correctly
-   scic_sds_port_post_dummy_request(this_port);
+	// Post the dummy task for the port so the hardware can schedule
+	// io correctly
+	scic_sds_port_post_dummy_request(this_port);
 }
 
 /**
@@ -3571,23 +3093,18 @@ void scic_sds_port_ready_substate_operational_enter(
  *
  * @return none
  */
-static
-void scic_sds_port_ready_substate_operational_exit(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scic_sds_port_ready_substate_operational_exit(SCI_BASE_OBJECT_T *object)
 {
-   SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)object;
+	SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)object;
 
-   // Kill the dummy task for this port if it has not yet posted
-   // the hardware will treat this as a NOP and just return abort
-   // complete.
-   scic_sds_port_abort_dummy_request(this_port);
+	// Kill the dummy task for this port if it has not yet posted
+	// the hardware will treat this as a NOP and just return abort
+	// complete.
+	scic_sds_port_abort_dummy_request(this_port);
 
-   scic_cb_port_not_ready(
-      scic_sds_port_get_controller(this_port),
-      this_port,
-      this_port->not_ready_reason
-   );
+	scic_cb_port_not_ready(scic_sds_port_get_controller(this_port),
+	    this_port, this_port->not_ready_reason);
 }
 
 //******************************************************************************
@@ -3604,59 +3121,40 @@ void scic_sds_port_ready_substate_operational_exit(
  *
  * @return none
  */
-static
-void scic_sds_port_ready_substate_configuring_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scic_sds_port_ready_substate_configuring_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)object;
+	SCIC_SDS_PORT_T *this_port = (SCIC_SDS_PORT_T *)object;
 
-   scic_sds_port_set_ready_state_handlers(
-      this_port, SCIC_SDS_PORT_READY_SUBSTATE_CONFIGURING
-   );
+	scic_sds_port_set_ready_state_handlers(this_port,
+	    SCIC_SDS_PORT_READY_SUBSTATE_CONFIGURING);
 
-   if (this_port->active_phy_mask == 0)
-   {
-      scic_cb_port_not_ready(
-         scic_sds_port_get_controller(this_port),
-         this_port,
-         SCIC_PORT_NOT_READY_NO_ACTIVE_PHYS
-      );
+	if (this_port->active_phy_mask == 0) {
+		scic_cb_port_not_ready(scic_sds_port_get_controller(this_port),
+		    this_port, SCIC_PORT_NOT_READY_NO_ACTIVE_PHYS);
 
-      sci_base_state_machine_change_state(
-         &this_port->ready_substate_machine,
-         SCIC_SDS_PORT_READY_SUBSTATE_WAITING
-      );
-   }
-   //do not wait for IO to go to 0 in this state.
-   else
-   {
-      sci_base_state_machine_change_state(
-         &this_port->ready_substate_machine,
-         SCIC_SDS_PORT_READY_SUBSTATE_OPERATIONAL
-      );
-   }
+		sci_base_state_machine_change_state(
+		    &this_port->ready_substate_machine,
+		    SCIC_SDS_PORT_READY_SUBSTATE_WAITING);
+	}
+	// do not wait for IO to go to 0 in this state.
+	else {
+		sci_base_state_machine_change_state(
+		    &this_port->ready_substate_machine,
+		    SCIC_SDS_PORT_READY_SUBSTATE_OPERATIONAL);
+	}
 }
 
 // ---------------------------------------------------------------------------
 
 SCI_BASE_STATE_T
-   scic_sds_port_ready_substate_table[SCIC_SDS_PORT_READY_MAX_SUBSTATES] =
-{
-   {
-      SCIC_SDS_PORT_READY_SUBSTATE_WAITING,
-      scic_sds_port_ready_substate_waiting_enter,
-      scic_sds_port_ready_substate_waiting_exit
-   },
-   {
-      SCIC_SDS_PORT_READY_SUBSTATE_OPERATIONAL,
-      scic_sds_port_ready_substate_operational_enter,
-      scic_sds_port_ready_substate_operational_exit
-   },
-   {
-      SCIC_SDS_PORT_READY_SUBSTATE_CONFIGURING,
-      scic_sds_port_ready_substate_configuring_enter,
-      NULL
-   }
+scic_sds_port_ready_substate_table[SCIC_SDS_PORT_READY_MAX_SUBSTATES] = {
+	{ SCIC_SDS_PORT_READY_SUBSTATE_WAITING,
+	    scic_sds_port_ready_substate_waiting_enter,
+	    scic_sds_port_ready_substate_waiting_exit },
+	{ SCIC_SDS_PORT_READY_SUBSTATE_OPERATIONAL,
+	    scic_sds_port_ready_substate_operational_enter,
+	    scic_sds_port_ready_substate_operational_exit },
+	{ SCIC_SDS_PORT_READY_SUBSTATE_CONFIGURING,
+	    scic_sds_port_ready_substate_configuring_enter, NULL }
 };
-

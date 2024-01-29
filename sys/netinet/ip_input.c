@@ -29,67 +29,67 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_bootp.h"
 #include "opt_inet.h"
-#include "opt_ipstealth.h"
 #include "opt_ipsec.h"
+#include "opt_ipstealth.h"
 #include "opt_route.h"
 #include "opt_rss.h"
 #include "opt_sctp.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/hhook.h>
-#include <sys/mbuf.h>
-#include <sys/malloc.h>
 #include <sys/domain.h>
-#include <sys/protosw.h>
-#include <sys/socket.h>
-#include <sys/time.h>
+#include <sys/hhook.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/protosw.h>
 #include <sys/rmlock.h>
 #include <sys/rwlock.h>
 #include <sys/sdt.h>
-#include <sys/syslog.h>
+#include <sys/socket.h>
 #include <sys/sysctl.h>
+#include <sys/syslog.h>
+#include <sys/time.h>
+
+#include <machine/in_cksum.h>
 
 #include <net/if.h>
-#include <net/if_types.h>
-#include <net/if_var.h>
 #include <net/if_dl.h>
 #include <net/if_private.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+#include <net/netisr.h>
 #include <net/pfil.h>
 #include <net/route.h>
 #include <net/route/nhop.h>
-#include <net/netisr.h>
 #include <net/rss_config.h>
 #include <net/vnet.h>
-
+#include <netinet/igmp_var.h>
 #include <netinet/in.h>
+#include <netinet/in_fib.h>
 #include <netinet/in_kdtrace.h>
+#include <netinet/in_pcb.h>
+#include <netinet/in_rss.h>
 #include <netinet/in_systm.h>
 #include <netinet/in_var.h>
 #include <netinet/ip.h>
-#include <netinet/in_fib.h>
-#include <netinet/in_pcb.h>
-#include <netinet/ip_var.h>
+#include <netinet/ip_carp.h>
 #include <netinet/ip_encap.h>
 #include <netinet/ip_fw.h>
 #include <netinet/ip_icmp.h>
-#include <netinet/igmp_var.h>
 #include <netinet/ip_options.h>
-#include <machine/in_cksum.h>
-#include <netinet/ip_carp.h>
-#include <netinet/in_rss.h>
+#include <netinet/ip_var.h>
 #ifdef SCTP
 #include <netinet/sctp_var.h>
 #endif
 
-#include <netipsec/ipsec_support.h>
-
 #include <sys/socketvar.h>
+
+#include <netipsec/ipsec_support.h>
 
 #include <security/mac/mac_framework.h>
 
@@ -107,8 +107,8 @@ extern void ipreass_destroy(void);
 VNET_DEFINE(int, rsvp_on);
 
 VNET_DEFINE(int, ipforwarding);
-SYSCTL_INT(_net_inet_ip, IPCTL_FORWARDING, forwarding, CTLFLAG_VNET | CTLFLAG_RW,
-    &VNET_NAME(ipforwarding), 0,
+SYSCTL_INT(_net_inet_ip, IPCTL_FORWARDING, forwarding,
+    CTLFLAG_VNET | CTLFLAG_RW, &VNET_NAME(ipforwarding), 0,
     "Enable IP forwarding between interfaces");
 
 /*
@@ -116,18 +116,18 @@ SYSCTL_INT(_net_inet_ip, IPCTL_FORWARDING, forwarding, CTLFLAG_VNET | CTLFLAG_RW
  * the same interface on which it was received.  See RFC 792.
  */
 VNET_DEFINE(int, ipsendredirects) = 1;
-SYSCTL_INT(_net_inet_ip, IPCTL_SENDREDIRECTS, redirect, CTLFLAG_VNET | CTLFLAG_RW,
-    &VNET_NAME(ipsendredirects), 0,
+SYSCTL_INT(_net_inet_ip, IPCTL_SENDREDIRECTS, redirect,
+    CTLFLAG_VNET | CTLFLAG_RW, &VNET_NAME(ipsendredirects), 0,
     "Enable sending IP redirects");
 
 VNET_DEFINE_STATIC(bool, ip_strong_es) = false;
-#define	V_ip_strong_es	VNET(ip_strong_es)
+#define V_ip_strong_es VNET(ip_strong_es)
 SYSCTL_BOOL(_net_inet_ip, OID_AUTO, rfc1122_strong_es,
     CTLFLAG_VNET | CTLFLAG_RW, &VNET_NAME(ip_strong_es), false,
     "Packet's IP destination address must match address on arrival interface");
 
 VNET_DEFINE_STATIC(bool, ip_sav) = true;
-#define	V_ip_sav	VNET(ip_sav)
+#define V_ip_sav VNET(ip_sav)
 SYSCTL_BOOL(_net_inet_ip, OID_AUTO, source_address_validation,
     CTLFLAG_VNET | CTLFLAG_RW, &VNET_NAME(ip_sav), true,
     "Drop incoming packets with source address that is a local address");
@@ -140,7 +140,7 @@ static struct netisr_handler ip_nh = {
 	.nh_name = "ip",
 	.nh_handler = ip_input,
 	.nh_proto = NETISR_IP,
-#ifdef	RSS
+#ifdef RSS
 	.nh_m2cpuid = rss_soft_m2cpuid_v4,
 	.nh_policy = NETISR_POLICY_CPU,
 	.nh_dispatch = NETISR_DISPATCH_HYBRID,
@@ -149,7 +149,7 @@ static struct netisr_handler ip_nh = {
 #endif
 };
 
-#ifdef	RSS
+#ifdef RSS
 /*
  * Directly dispatched frames are currently assumed
  * to have a flowid already calculated.
@@ -167,21 +167,22 @@ static struct netisr_handler ip_direct_nh = {
 };
 #endif
 
-ipproto_input_t		*ip_protox[IPPROTO_MAX] = {
-			    [0 ... IPPROTO_MAX - 1] = rip_input };
-ipproto_ctlinput_t	*ip_ctlprotox[IPPROTO_MAX] = {
-			    [0 ... IPPROTO_MAX - 1] = rip_ctlinput };
+ipproto_input_t *ip_protox[IPPROTO_MAX] = { [0 ... IPPROTO_MAX -
+						1] = rip_input };
+ipproto_ctlinput_t *ip_ctlprotox[IPPROTO_MAX] = { [0 ... IPPROTO_MAX -
+						      1] = rip_ctlinput };
 
-VNET_DEFINE(struct in_ifaddrhead, in_ifaddrhead);  /* first inet address */
-VNET_DEFINE(struct in_ifaddrhashhead *, in_ifaddrhashtbl); /* inet addr hash table  */
-VNET_DEFINE(u_long, in_ifaddrhmask);		/* mask for hash table */
+VNET_DEFINE(struct in_ifaddrhead, in_ifaddrhead); /* first inet address */
+VNET_DEFINE(struct in_ifaddrhashhead *,
+    in_ifaddrhashtbl);		     /* inet addr hash table  */
+VNET_DEFINE(u_long, in_ifaddrhmask); /* mask for hash table */
 
 /* Make sure it is safe to use hashinit(9) on CK_LIST. */
 CTASSERT(sizeof(struct in_ifaddrhashhead) == sizeof(LIST_HEAD(, in_addr)));
 
 #ifdef IPCTL_DEFMTU
-SYSCTL_INT(_net_inet_ip, IPCTL_DEFMTU, mtu, CTLFLAG_RW,
-    &ip_mtu, 0, "Default MTU");
+SYSCTL_INT(_net_inet_ip, IPCTL_DEFMTU, mtu, CTLFLAG_RW, &ip_mtu, 0,
+    "Default MTU");
 #endif
 
 #ifdef IPSTEALTH
@@ -257,11 +258,11 @@ sysctl_netinet_intr_queue_drops(SYSCTL_HANDLER_ARGS)
 }
 
 SYSCTL_PROC(_net_inet_ip, IPCTL_INTRQDROPS, intr_queue_drops,
-    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE,
-    0, 0, sysctl_netinet_intr_queue_drops, "I",
+    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, 0, 0,
+    sysctl_netinet_intr_queue_drops, "I",
     "Number of packets dropped from the IP input queue");
 
-#ifdef	RSS
+#ifdef RSS
 static int
 sysctl_netinet_intr_direct_queue_maxlen(SYSCTL_HANDLER_ARGS)
 {
@@ -276,9 +277,9 @@ sysctl_netinet_intr_direct_queue_maxlen(SYSCTL_HANDLER_ARGS)
 	return (netisr_setqlimit(&ip_direct_nh, qlimit));
 }
 SYSCTL_PROC(_net_inet_ip, IPCTL_INTRDQMAXLEN, intr_direct_queue_maxlen,
-    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE,
-    0, 0, sysctl_netinet_intr_direct_queue_maxlen,
-    "I", "Maximum size of the IP direct input queue");
+    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, 0, 0,
+    sysctl_netinet_intr_direct_queue_maxlen, "I",
+    "Maximum size of the IP direct input queue");
 
 static int
 sysctl_netinet_intr_direct_queue_drops(SYSCTL_HANDLER_ARGS)
@@ -301,7 +302,7 @@ SYSCTL_PROC(_net_inet_ip, IPCTL_INTRDQDROPS, intr_direct_queue_drops,
     CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, 0, 0,
     sysctl_netinet_intr_direct_queue_drops, "I",
     "Number of packets dropped from the IP direct input queue");
-#endif	/* RSS */
+#endif /* RSS */
 
 /*
  * IP initialization: fill in IP protocol switch table.
@@ -313,7 +314,8 @@ ip_vnet_init(void *arg __unused)
 	struct pfil_head_args args;
 
 	CK_STAILQ_INIT(&V_in_ifaddrhead);
-	V_in_ifaddrhashtbl = hashinit(INADDR_NHASH, M_IFADDR, &V_in_ifaddrhmask);
+	V_in_ifaddrhashtbl = hashinit(INADDR_NHASH, M_IFADDR,
+	    &V_in_ifaddrhmask);
 
 	/* Initialize IP reassembly queue. */
 	ipreass_vnet_init();
@@ -330,25 +332,25 @@ ip_vnet_init(void *arg __unused)
 	V_inet_local_pfil_head = pfil_head_register(&args);
 
 	if (hhook_head_register(HHOOK_TYPE_IPSEC_IN, AF_INET,
-	    &V_ipsec_hhh_in[HHOOK_IPSEC_INET],
-	    HHOOK_WAITOK | HHOOK_HEADISINVNET) != 0)
+		&V_ipsec_hhh_in[HHOOK_IPSEC_INET],
+		HHOOK_WAITOK | HHOOK_HEADISINVNET) != 0)
 		printf("%s: WARNING: unable to register input helper hook\n",
 		    __func__);
 	if (hhook_head_register(HHOOK_TYPE_IPSEC_OUT, AF_INET,
-	    &V_ipsec_hhh_out[HHOOK_IPSEC_INET],
-	    HHOOK_WAITOK | HHOOK_HEADISINVNET) != 0)
+		&V_ipsec_hhh_out[HHOOK_IPSEC_INET],
+		HHOOK_WAITOK | HHOOK_HEADISINVNET) != 0)
 		printf("%s: WARNING: unable to register output helper hook\n",
 		    __func__);
 
 #ifdef VIMAGE
 	netisr_register_vnet(&ip_nh);
-#ifdef	RSS
+#ifdef RSS
 	netisr_register_vnet(&ip_direct_nh);
 #endif
 #endif
 }
-VNET_SYSINIT(ip_vnet_init, SI_SUB_PROTO_DOMAIN, SI_ORDER_FOURTH,
-    ip_vnet_init, NULL);
+VNET_SYSINIT(ip_vnet_init, SI_SUB_PROTO_DOMAIN, SI_ORDER_FOURTH, ip_vnet_init,
+    NULL);
 
 static void
 ip_init(const void *unused __unused)
@@ -369,12 +371,12 @@ ip_init(const void *unused __unused)
 	IPPROTO_REGISTER(IPPROTO_GRE, encap4_input, NULL);
 	IPPROTO_REGISTER(IPPROTO_IPV6, encap4_input, NULL);
 	IPPROTO_REGISTER(IPPROTO_PIM, encap4_input, NULL);
-#ifdef SCTP	/* XXX: has a loadable & static version */
+#ifdef SCTP /* XXX: has a loadable & static version */
 	IPPROTO_REGISTER(IPPROTO_SCTP, sctp_input, sctp_ctlinput);
 #endif
 
 	netisr_register(&ip_nh);
-#ifdef	RSS
+#ifdef RSS
 	netisr_register(&ip_direct_nh);
 #endif
 }
@@ -386,7 +388,7 @@ ip_destroy(void *unused __unused)
 {
 	int error;
 
-#ifdef	RSS
+#ifdef RSS
 	netisr_unregister_vnet(&ip_direct_nh);
 #endif
 	netisr_unregister_vnet(&ip_nh);
@@ -395,14 +397,16 @@ ip_destroy(void *unused __unused)
 	error = hhook_head_deregister(V_ipsec_hhh_in[HHOOK_IPSEC_INET]);
 	if (error != 0) {
 		printf("%s: WARNING: unable to deregister input helper hook "
-		    "type HHOOK_TYPE_IPSEC_IN, id HHOOK_IPSEC_INET: "
-		    "error %d returned\n", __func__, error);
+		       "type HHOOK_TYPE_IPSEC_IN, id HHOOK_IPSEC_INET: "
+		       "error %d returned\n",
+		    __func__, error);
 	}
 	error = hhook_head_deregister(V_ipsec_hhh_out[HHOOK_IPSEC_INET]);
 	if (error != 0) {
 		printf("%s: WARNING: unable to deregister output helper hook "
-		    "type HHOOK_TYPE_IPSEC_OUT, id HHOOK_IPSEC_INET: "
-		    "error %d returned\n", __func__, error);
+		       "type HHOOK_TYPE_IPSEC_OUT, id HHOOK_IPSEC_INET: "
+		       "error %d returned\n",
+		    __func__, error);
 	}
 
 	/* Remove the IPv4 addresses from all interfaces. */
@@ -421,7 +425,7 @@ ip_destroy(void *unused __unused)
 VNET_SYSUNINIT(ip, SI_SUB_PROTO_DOMAIN, SI_ORDER_THIRD, ip_destroy, NULL);
 #endif
 
-#ifdef	RSS
+#ifdef RSS
 /*
  * IP direct input routine.
  *
@@ -461,8 +465,8 @@ ip_input(struct mbuf *m)
 	struct ifnet *ifp;
 	int hlen = 0;
 	uint16_t sum, ip_len;
-	int dchg = 0;				/* dest changed after fw */
-	struct in_addr odst;			/* original dst address */
+	int dchg = 0;	     /* dest changed after fw */
+	struct in_addr odst; /* original dst address */
 	bool strong_es;
 
 	M_ASSERTPKTHDR(m);
@@ -497,7 +501,8 @@ ip_input(struct mbuf *m)
 	}
 
 	hlen = ip->ip_hl << 2;
-	if (__predict_false(hlen < sizeof(struct ip))) {	/* minimum header length */
+	if (__predict_false(
+		hlen < sizeof(struct ip))) { /* minimum header length */
 		IPSTAT_INC(ips_badhlen);
 		goto bad;
 	}
@@ -554,7 +559,7 @@ ip_input(struct mbuf *m)
 	 * Drop packet if shorter than we expect.
 	 */
 	if (__predict_false(m->m_pkthdr.len < ip_len)) {
-tooshort:
+	tooshort:
 		IPSTAT_INC(ips_tooshort);
 		goto bad;
 	}
@@ -580,9 +585,9 @@ tooshort:
 	if (V_ipforwarding != 0
 #if defined(IPSEC) || defined(IPSEC_SUPPORT)
 	    && (!IPSEC_ENABLED(ipv4) ||
-	    IPSEC_CAPS(ipv4, m, IPSEC_CAP_OPERABLE) == 0)
+		   IPSEC_CAPS(ipv4, m, IPSEC_CAP_OPERABLE) == 0)
 #endif
-	    ) {
+	) {
 		/*
 		 * ip_dooptions() was run so we can ignore the source route (or
 		 * any IP options case) case for redirects in ip_tryforward().
@@ -602,7 +607,7 @@ tooshort:
 	 */
 	if (IPSEC_ENABLED(ipv4) &&
 	    IPSEC_CAPS(ipv4, m, IPSEC_CAP_BYPASS_FILTER) != 0)
-			goto passin;
+		goto passin;
 #endif
 
 	/*
@@ -618,10 +623,9 @@ tooshort:
 		goto passin;
 
 	odst = ip->ip_dst;
-	if (pfil_mbuf_in(V_inet_pfil_head, &m, ifp, NULL) !=
-	    PFIL_PASS)
+	if (pfil_mbuf_in(V_inet_pfil_head, &m, ifp, NULL) != PFIL_PASS)
 		return;
-	if (m == NULL)			/* consumed by filter */
+	if (m == NULL) /* consumed by filter */
 		return;
 
 	ip = mtod(m, struct ip *);
@@ -650,15 +654,15 @@ passin:
 	 * error was detected (causing an icmp message
 	 * to be sent and the original packet to be freed).
 	 */
-	if (hlen > sizeof (struct ip) && ip_dooptions(m, 0))
+	if (hlen > sizeof(struct ip) && ip_dooptions(m, 0))
 		return;
 
-        /* greedy RSVP, snatches any PATH packet of the RSVP protocol and no
-         * matter if it is destined to another node, or whether it is
-         * a multicast one, RSVP wants it! and prevents it from being forwarded
-         * anywhere else. Also checks if the rsvp daemon is running before
+	/* greedy RSVP, snatches any PATH packet of the RSVP protocol and no
+	 * matter if it is destined to another node, or whether it is
+	 * a multicast one, RSVP wants it! and prevents it from being forwarded
+	 * anywhere else. Also checks if the rsvp daemon is running before
 	 * grabbing the packet.
-         */
+	 */
 	if (ip->ip_p == IPPROTO_RSVP && V_rsvp_on)
 		goto ours;
 
@@ -669,7 +673,7 @@ passin:
 	 * with it).
 	 */
 	if (CK_STAILQ_EMPTY(&V_in_ifaddrhead) &&
-	    (m->m_flags & (M_MCAST|M_BCAST)) == 0)
+	    (m->m_flags & (M_MCAST | M_BCAST)) == 0)
 		goto ours;
 
 	/*
@@ -683,13 +687,14 @@ passin:
 	 *   checked it with carp_iamatch() and carp_forus().
 	 */
 	strong_es = V_ip_strong_es && (V_ipforwarding == 0) &&
-	    ((ifp->if_flags & IFF_LOOPBACK) == 0) &&
-	    ifp->if_carp == NULL && (dchg == 0);
+	    ((ifp->if_flags & IFF_LOOPBACK) == 0) && ifp->if_carp == NULL &&
+	    (dchg == 0);
 
 	/*
 	 * Check for exact addresses in the hash bucket.
 	 */
-	CK_LIST_FOREACH(ia, INADDR_HASH(ip->ip_dst.s_addr), ia_hash) {
+	CK_LIST_FOREACH(ia, INADDR_HASH(ip->ip_dst.s_addr), ia_hash)
+	{
 		if (IA_SIN(ia)->sin_addr.s_addr != ip->ip_dst.s_addr)
 			continue;
 
@@ -726,7 +731,8 @@ passin:
 	 * into the stack for SIMPLEX interfaces handled by ether_output().
 	 */
 	if (ifp->if_flags & IFF_BROADCAST) {
-		CK_STAILQ_FOREACH(ifa, &ifp->if_addrhead, ifa_link) {
+		CK_STAILQ_FOREACH(ifa, &ifp->if_addrhead, ifa_link)
+		{
 			if (ifa->ifa_addr->sa_family != AF_INET)
 				continue;
 			ia = ifatoia(ifa);
@@ -814,7 +820,7 @@ ours:
 	 * IPSTEALTH: Process non-routing options only
 	 * if the packet is destined for us.
 	 */
-	if (V_ipstealth && hlen > sizeof (struct ip) && ip_dooptions(m, 1))
+	if (V_ipstealth && hlen > sizeof(struct ip) && ip_dooptions(m, 1))
 		return;
 #endif /* IPSTEALTH */
 
@@ -827,7 +833,7 @@ ours:
 		if (pfil_mbuf_out(V_inet_local_pfil_head, &m, V_loif, NULL) !=
 		    PFIL_PASS)
 			return;
-		if (m == NULL)			/* consumed by filter */
+		if (m == NULL) /* consumed by filter */
 			return;
 		ip = mtod(m, struct ip *);
 	}
@@ -924,7 +930,8 @@ ip_forward(struct mbuf *m, int srcrt)
 
 	NET_EPOCH_ASSERT();
 
-	if (m->m_flags & (M_BCAST|M_MCAST) || in_canforward(ip->ip_dst) == 0) {
+	if (m->m_flags & (M_BCAST | M_MCAST) ||
+	    in_canforward(ip->ip_dst) == 0) {
 		IPSTAT_INC(ips_cantforward);
 		m_freem(m);
 		return;
@@ -1007,26 +1014,31 @@ ip_forward(struct mbuf *m, int srcrt)
 	 * or a route modified by a redirect.
 	 */
 	dest.s_addr = 0;
-	if (!srcrt && V_ipsendredirects &&
-	    ia != NULL && ia->ia_ifp == m->m_pkthdr.rcvif) {
+	if (!srcrt && V_ipsendredirects && ia != NULL &&
+	    ia->ia_ifp == m->m_pkthdr.rcvif) {
 		struct nhop_object *nh;
 
 		nh = ro.ro_nh;
 
-		if (nh != NULL && ((nh->nh_flags & (NHF_REDIRECT|NHF_DEFAULT)) == 0)) {
-			struct in_ifaddr *nh_ia = (struct in_ifaddr *)(nh->nh_ifa);
+		if (nh != NULL &&
+		    ((nh->nh_flags & (NHF_REDIRECT | NHF_DEFAULT)) == 0)) {
+			struct in_ifaddr *nh_ia =
+			    (struct in_ifaddr *)(nh->nh_ifa);
 			u_long src = ntohl(ip->ip_src.s_addr);
 
 			if (nh_ia != NULL &&
 			    (src & nh_ia->ia_subnetmask) == nh_ia->ia_subnet) {
-				/* Router requirements says to only send host redirects */
+				/* Router requirements says to only send host
+				 * redirects */
 				type = ICMP_REDIRECT;
 				code = ICMP_REDIRECT_HOST;
 				if (nh->nh_flags & NHF_GATEWAY) {
-				    if (nh->gw_sa.sa_family == AF_INET)
-					dest.s_addr = nh->gw4_sa.sin_addr.s_addr;
-				    else /* Do not redirect in case gw is AF_INET6 */
-					type = 0;
+					if (nh->gw_sa.sa_family == AF_INET)
+						dest.s_addr =
+						    nh->gw4_sa.sin_addr.s_addr;
+					else /* Do not redirect in case gw is
+						AF_INET6 */
+						type = 0;
 				} else
 					dest.s_addr = ip->ip_dst.s_addr;
 			}
@@ -1055,7 +1067,7 @@ ip_forward(struct mbuf *m, int srcrt)
 		return;
 
 	switch (error) {
-	case 0:				/* forwarded, but need redirect */
+	case 0: /* forwarded, but need redirect */
 		/* type, code set above */
 		break;
 
@@ -1091,15 +1103,15 @@ ip_forward(struct mbuf *m, int srcrt)
 		break;
 
 	case ENOBUFS:
-	case EACCES:			/* ipfw denied packet */
+	case EACCES: /* ipfw denied packet */
 		m_freem(mcopy);
 		return;
 	}
 	icmp_error(mcopy, type, code, dest.s_addr, mtu);
 }
 
-#define	CHECK_SO_CT(sp, ct) \
-    (((sp->so_options & SO_TIMESTAMP) && (sp->so_ts_clock == ct)) ? 1 : 0)
+#define CHECK_SO_CT(sp, ct) \
+	(((sp->so_options & SO_TIMESTAMP) && (sp->so_ts_clock == ct)) ? 1 : 0)
 
 void
 ip_savecontrol(struct inpcb *inp, struct mbuf **mp, struct ip *ip,
@@ -1113,8 +1125,8 @@ ip_savecontrol(struct inpcb *inp, struct mbuf **mp, struct ip *ip,
 		struct bintime boottimebin, bt;
 		struct timespec ts1;
 
-		if ((m->m_flags & (M_PKTHDR | M_TSTMP)) == (M_PKTHDR |
-		    M_TSTMP)) {
+		if ((m->m_flags & (M_PKTHDR | M_TSTMP)) ==
+		    (M_PKTHDR | M_TSTMP)) {
 			mbuf_tstmp2timespec(m, &ts1);
 			timespec2bintime(&ts1, &bt);
 			getboottimebin(&boottimebin);
@@ -1122,8 +1134,8 @@ ip_savecontrol(struct inpcb *inp, struct mbuf **mp, struct ip *ip,
 		} else {
 			bintime(&bt);
 		}
-		*mp = sbcreatecontrol(&bt, sizeof(bt), SCM_BINTIME,
-		    SOL_SOCKET, M_NOWAIT);
+		*mp = sbcreatecontrol(&bt, sizeof(bt), SCM_BINTIME, SOL_SOCKET,
+		    M_NOWAIT);
 		if (*mp != NULL) {
 			mp = &(*mp)->m_next;
 			stamped = true;
@@ -1134,8 +1146,8 @@ ip_savecontrol(struct inpcb *inp, struct mbuf **mp, struct ip *ip,
 		struct timespec ts1;
 		struct timeval tv;
 
-		if ((m->m_flags & (M_PKTHDR | M_TSTMP)) == (M_PKTHDR |
-		    M_TSTMP)) {
+		if ((m->m_flags & (M_PKTHDR | M_TSTMP)) ==
+		    (M_PKTHDR | M_TSTMP)) {
 			mbuf_tstmp2timespec(m, &ts1);
 			timespec2bintime(&ts1, &bt1);
 			getboottimebin(&boottimebin);
@@ -1154,8 +1166,8 @@ ip_savecontrol(struct inpcb *inp, struct mbuf **mp, struct ip *ip,
 		struct bintime boottimebin;
 		struct timespec ts, ts1;
 
-		if ((m->m_flags & (M_PKTHDR | M_TSTMP)) == (M_PKTHDR |
-		    M_TSTMP)) {
+		if ((m->m_flags & (M_PKTHDR | M_TSTMP)) ==
+		    (M_PKTHDR | M_TSTMP)) {
 			mbuf_tstmp2timespec(m, &ts);
 			getboottimebin(&boottimebin);
 			bintime2timespec(&boottimebin, &ts1);
@@ -1163,8 +1175,8 @@ ip_savecontrol(struct inpcb *inp, struct mbuf **mp, struct ip *ip,
 		} else {
 			nanotime(&ts);
 		}
-		*mp = sbcreatecontrol(&ts, sizeof(ts), SCM_REALTIME,
-		    SOL_SOCKET, M_NOWAIT);
+		*mp = sbcreatecontrol(&ts, sizeof(ts), SCM_REALTIME, SOL_SOCKET,
+		    M_NOWAIT);
 		if (*mp != NULL) {
 			mp = &(*mp)->m_next;
 			stamped = true;
@@ -1172,8 +1184,7 @@ ip_savecontrol(struct inpcb *inp, struct mbuf **mp, struct ip *ip,
 	} else if (CHECK_SO_CT(inp->inp_socket, SO_TS_MONOTONIC)) {
 		struct timespec ts;
 
-		if ((m->m_flags & (M_PKTHDR | M_TSTMP)) == (M_PKTHDR |
-		    M_TSTMP))
+		if ((m->m_flags & (M_PKTHDR | M_TSTMP)) == (M_PKTHDR | M_TSTMP))
 			mbuf_tstmp2timespec(m, &ts);
 		else
 			nanouptime(&ts);
@@ -1184,8 +1195,8 @@ ip_savecontrol(struct inpcb *inp, struct mbuf **mp, struct ip *ip,
 			stamped = true;
 		}
 	}
-	if (stamped && (m->m_flags & (M_PKTHDR | M_TSTMP)) == (M_PKTHDR |
-	    M_TSTMP)) {
+	if (stamped &&
+	    (m->m_flags & (M_PKTHDR | M_TSTMP)) == (M_PKTHDR | M_TSTMP)) {
 		struct sock_timestamp_info sti;
 
 		bzero(&sti, sizeof(sti));
@@ -1233,7 +1244,7 @@ ip_savecontrol(struct inpcb *inp, struct mbuf **mp, struct ip *ip,
 		struct ifnet *ifp;
 		struct sdlbuf {
 			struct sockaddr_dl sdl;
-			u_char	pad[32];
+			u_char pad[32];
 		} sdlbuf;
 		struct sockaddr_dl *sdp;
 		struct sockaddr_dl *sdl2 = &sdlbuf.sdl;
@@ -1249,9 +1260,9 @@ ip_savecontrol(struct inpcb *inp, struct mbuf **mp, struct ip *ip,
 			}
 			bcopy(sdp, sdl2, sdp->sdl_len);
 		} else {
-makedummy:
-			sdl2->sdl_len =
-			    offsetof(struct sockaddr_dl, sdl_data[0]);
+		makedummy:
+			sdl2->sdl_len = offsetof(struct sockaddr_dl,
+			    sdl_data[0]);
 			sdl2->sdl_family = AF_LINK;
 			sdl2->sdl_index = 0;
 			sdl2->sdl_nlen = sdl2->sdl_alen = sdl2->sdl_slen = 0;
@@ -1282,13 +1293,13 @@ makedummy:
 		    IPPROTO_IP, M_NOWAIT);
 		if (*mp)
 			mp = &(*mp)->m_next;
-		*mp = sbcreatecontrol(&flow_type, sizeof(uint32_t),
-		    IP_FLOWTYPE, IPPROTO_IP, M_NOWAIT);
+		*mp = sbcreatecontrol(&flow_type, sizeof(uint32_t), IP_FLOWTYPE,
+		    IPPROTO_IP, M_NOWAIT);
 		if (*mp)
 			mp = &(*mp)->m_next;
 	}
 
-#ifdef	RSS
+#ifdef RSS
 	if (inp->inp_flags2 & INP_RECVRSSBUCKETID) {
 		uint32_t flowid, flow_type;
 		uint32_t rss_bucketid;
@@ -1315,7 +1326,7 @@ makedummy:
 VNET_DEFINE_STATIC(int, ip_rsvp_on);
 VNET_DEFINE(struct socket *, ip_rsvpd);
 
-#define	V_ip_rsvp_on		VNET(ip_rsvp_on)
+#define V_ip_rsvp_on VNET(ip_rsvp_on)
 
 int
 ip_rsvp_init(struct socket *so)

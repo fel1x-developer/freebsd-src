@@ -32,6 +32,7 @@
 
 #include <sys/param.h>
 #include <sys/errno.h>
+
 #include <err.h>
 #include <fcntl.h>
 #include <libutil.h>
@@ -43,43 +44,48 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "mptutil.h"
 
 #ifdef DEBUG
-static void	dump_config(CONFIG_PAGE_RAID_VOL_0 *vol);
+static void dump_config(CONFIG_PAGE_RAID_VOL_0 *vol);
 #endif
 
 static long
 dehumanize(const char *value)
 {
-        char    *vtp;
-        long    iv;
- 
-        if (value == NULL)
-                return (0);
-        iv = strtoq(value, &vtp, 0);
-        if (vtp == value || (vtp[0] != '\0' && vtp[1] != '\0')) {
-                return (0);
-        }
-        switch (vtp[0]) {
-        case 't': case 'T':
-                iv *= 1024;
-                /* FALLTHROUGH */
-        case 'g': case 'G':
-                iv *= 1024;
-                /* FALLTHROUGH */
-        case 'm': case 'M':
-                iv *= 1024;
-                /* FALLTHROUGH */
-        case 'k': case 'K':
-                iv *= 1024;
-                /* FALLTHROUGH */
-        case '\0':
-                break;
-        default:
-                return (0);
-        }
-        return (iv);
+	char *vtp;
+	long iv;
+
+	if (value == NULL)
+		return (0);
+	iv = strtoq(value, &vtp, 0);
+	if (vtp == value || (vtp[0] != '\0' && vtp[1] != '\0')) {
+		return (0);
+	}
+	switch (vtp[0]) {
+	case 't':
+	case 'T':
+		iv *= 1024;
+		/* FALLTHROUGH */
+	case 'g':
+	case 'G':
+		iv *= 1024;
+		/* FALLTHROUGH */
+	case 'm':
+	case 'M':
+		iv *= 1024;
+		/* FALLTHROUGH */
+	case 'k':
+	case 'K':
+		iv *= 1024;
+		/* FALLTHROUGH */
+	case '\0':
+		break;
+	default:
+		return (0);
+	}
+	return (iv);
 }
 
 /*
@@ -183,21 +189,21 @@ mpt_create_physdisk(int fd, struct mpt_standalone_disk *disk, U8 *PhysDiskNum)
 	int error;
 	U32 ActionData;
 
-	error = mpt_read_config_page_header(fd, MPI_CONFIG_PAGETYPE_RAID_PHYSDISK,
-	    0, 0, &header, NULL);
+	error = mpt_read_config_page_header(fd,
+	    MPI_CONFIG_PAGETYPE_RAID_PHYSDISK, 0, 0, &header, NULL);
 	if (error)
 		return (error);
 	if (header.PageVersion > MPI_RAIDPHYSDISKPAGE0_PAGEVERSION) {
 		warnx("Unsupported RAID physdisk page 0 version %d",
 		    header.PageVersion);
 		return (EOPNOTSUPP);
-	}		
+	}
 	config_page = calloc(1, sizeof(CONFIG_PAGE_RAID_PHYS_DISK_0));
 	config_page->Header.PageType = MPI_CONFIG_PAGETYPE_RAID_PHYSDISK;
 	config_page->Header.PageNumber = 0;
 	config_page->Header.PageLength = sizeof(CONFIG_PAGE_RAID_PHYS_DISK_0) /
 	    4;
-	config_page->PhysDiskIOC = 0;	/* XXX */
+	config_page->PhysDiskIOC = 0; /* XXX */
 	config_page->PhysDiskBus = disk->bus;
 	config_page->PhysDiskID = disk->target;
 
@@ -278,8 +284,8 @@ clear_config(int ac, char **av)
 		error = mpt_raid_action(fd, MPI_RAID_ACTION_DELETE_VOLUME,
 		    vol->VolumeBus, vol->VolumeID, 0,
 		    MPI_RAID_ACTION_ADATA_DEL_PHYS_DISKS |
-		    MPI_RAID_ACTION_ADATA_ZERO_LBA0, NULL, 0, NULL, NULL, 0,
-		    NULL, NULL, 0);
+			MPI_RAID_ACTION_ADATA_ZERO_LBA0,
+		    NULL, 0, NULL, NULL, 0, NULL, NULL, 0);
 		if (error)
 			warnc(error, "Failed to delete volume %s",
 			    mpt_volume_name(vol->VolumeBus, vol->VolumeID));
@@ -320,30 +326,30 @@ clear_config(int ac, char **av)
 }
 MPT_COMMAND(top, clear, clear_config);
 
-#define	RT_RAID0	0
-#define	RT_RAID1	1
-#define	RT_RAID1E	2
+#define RT_RAID0 0
+#define RT_RAID1 1
+#define RT_RAID1E 2
 
 static struct raid_type_entry {
 	const char *name;
-	int	raid_type;
+	int raid_type;
 } raid_type_table[] = {
-	{ "raid0",	RT_RAID0 },
-	{ "raid-0",	RT_RAID0 },
-	{ "raid1",	RT_RAID1 },
-	{ "raid-1",	RT_RAID1 },
-	{ "mirror",	RT_RAID1 },
-	{ "raid1e",	RT_RAID1E },
-	{ "raid-1e",	RT_RAID1E },
-	{ NULL,		0 },
+	{ "raid0", RT_RAID0 },
+	{ "raid-0", RT_RAID0 },
+	{ "raid1", RT_RAID1 },
+	{ "raid-1", RT_RAID1 },
+	{ "mirror", RT_RAID1 },
+	{ "raid1e", RT_RAID1E },
+	{ "raid-1e", RT_RAID1E },
+	{ NULL, 0 },
 };
 
 struct config_id_state {
 	struct mpt_standalone_disk *sdisks;
 	struct mpt_drive_list *list;
 	CONFIG_PAGE_IOC_2 *ioc2;
-	U8	target_id;
-	int	nsdisks;
+	U8 target_id;
+	int nsdisks;
 };
 
 struct drive_info {
@@ -352,7 +358,7 @@ struct drive_info {
 };
 
 struct volume_info {
-	int	drive_count;
+	int drive_count;
 	struct drive_info *drives;
 };
 
@@ -383,21 +389,21 @@ parse_volume(int fd, int raid_type, struct config_id_state *state,
 	case RT_RAID0:
 		if (count < 2) {
 			warnx("RAID0 requires at least 2 drives in each "
-			    "array");
+			      "array");
 			return (EINVAL);
 		}
 		break;
 	case RT_RAID1:
 		if (count != 2) {
 			warnx("RAID1 requires exactly 2 drives in each "
-			    "array");
+			      "array");
 			return (EINVAL);
 		}
 		break;
 	case RT_RAID1E:
 		if (count < 3) {
 			warnx("RAID1E requires at least 3 drives in each "
-			    "array");
+			      "array");
 			return (EINVAL);
 		}
 		break;
@@ -419,7 +425,7 @@ parse_volume(int fd, int raid_type, struct config_id_state *state,
 
 		/* See if it is a standalone disk. */
 		if (mpt_lookup_standalone_disk(cp, state->sdisks,
-		    state->nsdisks, &i) < 0) {
+			state->nsdisks, &i) < 0) {
 			error = errno;
 			warn("Unable to lookup drive %s", cp);
 			return (error);
@@ -445,14 +451,13 @@ add_drives(int fd, struct volume_info *info, int verbose)
 	U8 PhysDiskNum;
 	int error, i;
 
-	for (i = 0, dinfo = info->drives; i < info->drive_count;
-	     i++, dinfo++) {
+	for (i = 0, dinfo = info->drives; i < info->drive_count; i++, dinfo++) {
 		if (dinfo->info == NULL) {
 			if (mpt_create_physdisk(fd, dinfo->sdisk,
-			    &PhysDiskNum) < 0) {
+				&PhysDiskNum) < 0) {
 				error = errno;
 				warn(
-			    "Failed to create physical disk page for %s",
+				    "Failed to create physical disk page for %s",
 				    dinfo->sdisk->devname);
 				return (error);
 			}
@@ -508,7 +513,7 @@ build_volume(int fd, struct volume_info *info, int raid_type, long stripe_size,
 	CONFIG_PAGE_RAID_VOL_0 *vol;
 	RAID_VOL0_PHYS_DISK *rdisk;
 	struct drive_info *dinfo;
-        U32 MinLBA;
+	U32 MinLBA;
 	uint64_t MaxLBA;
 	size_t page_size;
 	int error, i;
@@ -539,7 +544,7 @@ build_volume(int fd, struct volume_info *info, int raid_type, long stripe_size,
 	/* Properties */
 	vol->VolumeID = find_next_volume(state);
 	vol->VolumeBus = 0;
-	vol->VolumeIOC = 0;	/* XXX */
+	vol->VolumeIOC = 0; /* XXX */
 	vol->VolumeStatus.Flags = MPI_RAIDVOL0_STATUS_FLAG_ENABLED;
 	vol->VolumeStatus.State = MPI_RAIDVOL0_STATUS_STATE_OPTIMAL;
 	vol->VolumeSettings.Settings = MPI_RAIDVOL0_SETTING_USE_DEFAULTS;
@@ -576,7 +581,7 @@ build_volume(int fd, struct volume_info *info, int raid_type, long stripe_size,
 		break;
 	default:
 		/* Pacify gcc. */
-		abort();		
+		abort();
 	}
 
 	/*
@@ -586,9 +591,9 @@ build_volume(int fd, struct volume_info *info, int raid_type, long stripe_size,
 	 */
 	if (MaxLBA >> 32 != 0 &&
 	    !(state->ioc2->CapabilitiesFlags &
-	    MPI_IOCPAGE2_CAP_FLAGS_RAID_64_BIT_ADDRESSING)) {
+		MPI_IOCPAGE2_CAP_FLAGS_RAID_64_BIT_ADDRESSING)) {
 		warnx(
-	    "Controller does not support volumes > 2TB, truncating volume.");
+		    "Controller does not support volumes > 2TB, truncating volume.");
 		MaxLBA = 0xffffffff;
 	}
 	vol->MaxLBA = MaxLBA;
@@ -633,7 +638,7 @@ create_volume(int ac, char **av)
 		warnx("create: volume type required");
 		return (EINVAL);
 	}
-	
+
 	fd = mpt_open(mpt_unit);
 	if (fd < 0) {
 		error = errno;
@@ -712,9 +717,9 @@ create_volume(int ac, char **av)
 		warn("Failed to fetch standalone disk list");
 		close(fd);
 		return (error);
-	}	
+	}
 	state.target_id = 0xff;
-	
+
 	/* Parse the drive list. */
 	if (ac != 1) {
 		warnx("Exactly one drive list is required");
@@ -757,9 +762,10 @@ create_volume(int ac, char **av)
 #endif
 
 	/* Send the new volume to the controller. */
-	error = mpt_raid_action(fd, MPI_RAID_ACTION_CREATE_VOLUME, vol->VolumeBus,
-	    vol->VolumeID, 0, quick ? MPI_RAID_ACTION_ADATA_DO_NOT_SYNC : 0,
-	    vol, vol->Header.PageLength * 4, NULL, NULL, 0, NULL, NULL, 1);
+	error = mpt_raid_action(fd, MPI_RAID_ACTION_CREATE_VOLUME,
+	    vol->VolumeBus, vol->VolumeID, 0,
+	    quick ? MPI_RAID_ACTION_ADATA_DO_NOT_SYNC : 0, vol,
+	    vol->Header.PageLength * 4, NULL, NULL, 0, NULL, NULL, 1);
 	if (error) {
 		errno = error;
 		warn("Failed to add volume");
@@ -816,9 +822,10 @@ delete_volume(int ac, char **av)
 	}
 
 	error = mpt_raid_action(fd, MPI_RAID_ACTION_DELETE_VOLUME, VolumeBus,
-	    VolumeID, 0, MPI_RAID_ACTION_ADATA_DEL_PHYS_DISKS |
-	    MPI_RAID_ACTION_ADATA_ZERO_LBA0, NULL, 0, NULL, NULL, 0, NULL,
-	    NULL, 0);
+	    VolumeID, 0,
+	    MPI_RAID_ACTION_ADATA_DEL_PHYS_DISKS |
+		MPI_RAID_ACTION_ADATA_ZERO_LBA0,
+	    NULL, 0, NULL, NULL, 0, NULL, NULL, 0);
 	if (error) {
 		warnc(error, "Failed to delete volume");
 		close(fd);
@@ -858,7 +865,8 @@ find_volume_spare_pool(int fd, const char *name, int *pool)
 	if ((info->VolumeSettings.HotSparePool & ~MPI_RAID_HOT_SPARE_POOL_0) !=
 	    0) {
 		*pool = 1 << (ffs(info->VolumeSettings.HotSparePool &
-		    ~MPI_RAID_HOT_SPARE_POOL_0) - 1);
+				  ~MPI_RAID_HOT_SPARE_POOL_0) -
+			    1);
 		free(info);
 		return (0);
 	}
@@ -874,7 +882,7 @@ find_volume_spare_pool(int fd, const char *name, int *pool)
 		warn("Failed to fetch volume list");
 		return (error);
 	}
-	bzero(pool_count, sizeof(pool_count));	
+	bzero(pool_count, sizeof(pool_count));
 	vol = ioc2->RaidVolume;
 	for (i = 0; i < ioc2->NumActiveVolumes; vol++, i++) {
 		info = mpt_vol_info(fd, vol->VolumeBus, vol->VolumeID, NULL);
@@ -1047,7 +1055,6 @@ remove_spare(int ac, char **av)
 	}
 	mpt_free_pd_list(list);
 
-	
 	info = mpt_pd_info(fd, PhysDiskNum, NULL);
 	if (info == NULL) {
 		error = errno;
@@ -1191,7 +1198,7 @@ dump_config(CONFIG_PAGE_RAID_VOL_0 *vol)
 
 	printf("Volume Configuration (Debug):\n");
 	printf(
-   " Page Header: Type 0x%02x Number 0x%02x Length 0x%02x(%u) Version 0x%02x\n",
+	    " Page Header: Type 0x%02x Number 0x%02x Length 0x%02x(%u) Version 0x%02x\n",
 	    vol->Header.PageType, vol->Header.PageNumber,
 	    vol->Header.PageLength, vol->Header.PageLength * 4,
 	    vol->Header.PageVersion);
@@ -1203,8 +1210,8 @@ dump_config(CONFIG_PAGE_RAID_VOL_0 *vol)
 	    mpt_volstate(vol->VolumeStatus.State), vol->VolumeStatus.Flags);
 	printf("    Settings: 0x%04x (Spare Pools 0x%02x)\n",
 	    vol->VolumeSettings.Settings, vol->VolumeSettings.HotSparePool);
-	printf("      MaxLBA: %ju\n", (uintmax_t)vol->MaxLBAHigh << 32 |
-	    vol->MaxLBA);
+	printf("      MaxLBA: %ju\n",
+	    (uintmax_t)vol->MaxLBAHigh << 32 | vol->MaxLBA);
 	printf(" Stripe Size: %ld\n", (long)vol->StripeSize * 512);
 	printf(" %d Disks:\n", vol->NumPhysDisks);
 

@@ -26,64 +26,61 @@
 
 /* Driver for ptnet paravirtualized network device. */
 
-#include <sys/cdefs.h>
-
-#include <sys/types.h>
-#include <sys/param.h>
-#include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/sockio.h>
-#include <sys/mbuf.h>
-#include <sys/malloc.h>
-#include <sys/module.h>
-#include <sys/socket.h>
-#include <sys/sysctl.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/taskqueue.h>
-#include <sys/smp.h>
-#include <sys/time.h>
-#include <machine/smp.h>
-
-#include <vm/uma.h>
-#include <vm/vm.h>
-#include <vm/pmap.h>
-
-#include <net/ethernet.h>
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
-#include <net/if_dl.h>
-#include <net/if_types.h>
-#include <net/if_media.h>
-#include <net/if_vlan_var.h>
-#include <net/bpf.h>
-
-#include <netinet/in_systm.h>
-#include <netinet/in.h>
-#include <netinet/ip.h>
-#include <netinet/ip6.h>
-#include <netinet6/ip6_var.h>
-#include <netinet/udp.h>
-#include <netinet/tcp.h>
-
-#include <machine/bus.h>
-#include <machine/resource.h>
-#include <sys/bus.h>
-#include <sys/rman.h>
-
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
-
 #include "opt_inet.h"
 #include "opt_inet6.h"
 
+#include <sys/cdefs.h>
+#include <sys/types.h>
+#include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/rman.h>
 #include <sys/selinfo.h>
-#include <net/netmap.h>
+#include <sys/smp.h>
+#include <sys/socket.h>
+#include <sys/sockio.h>
+#include <sys/sysctl.h>
+#include <sys/taskqueue.h>
+#include <sys/time.h>
+
+#include <vm/vm.h>
+#include <vm/pmap.h>
+#include <vm/uma.h>
+
+#include <machine/bus.h>
+#include <machine/resource.h>
+#include <machine/smp.h>
+
 #include <dev/netmap/netmap_kern.h>
-#include <net/netmap_virt.h>
 #include <dev/netmap/netmap_mem2.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 #include <dev/virtio/network/virtio_net.h>
+
+#include <net/bpf.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+#include <net/if_vlan_var.h>
+#include <net/netmap.h>
+#include <net/netmap_virt.h>
+#include <netinet/in.h>
+#include <netinet/in_systm.h>
+#include <netinet/ip.h>
+#include <netinet/ip6.h>
+#include <netinet/tcp.h>
+#include <netinet/udp.h>
+#include <netinet6/ip6_var.h>
 
 #ifdef WITH_PTNETMAP
 
@@ -91,165 +88,157 @@
 #error "INET not defined, cannot support offloadings"
 #endif
 
-static uint64_t	ptnet_get_counter(if_t, ift_counter);
+static uint64_t ptnet_get_counter(if_t, ift_counter);
 
-//#define PTNETMAP_STATS
-//#define DEBUG
+// #define PTNETMAP_STATS
+// #define DEBUG
 #ifdef DEBUG
 #define DBG(x) x
-#else   /* !DEBUG */
+#else /* !DEBUG */
 #define DBG(x)
-#endif  /* !DEBUG */
+#endif /* !DEBUG */
 
 extern int ptnet_vnet_hdr; /* Tunable parameter */
 
 struct ptnet_softc;
 
 struct ptnet_queue_stats {
-	uint64_t	packets; /* if_[io]packets */
-	uint64_t	bytes;	 /* if_[io]bytes */
-	uint64_t	errors;	 /* if_[io]errors */
-	uint64_t	iqdrops; /* if_iqdrops */
-	uint64_t	mcasts;  /* if_[io]mcasts */
+	uint64_t packets; /* if_[io]packets */
+	uint64_t bytes;	  /* if_[io]bytes */
+	uint64_t errors;  /* if_[io]errors */
+	uint64_t iqdrops; /* if_iqdrops */
+	uint64_t mcasts;  /* if_[io]mcasts */
 #ifdef PTNETMAP_STATS
-	uint64_t	intrs;
-	uint64_t	kicks;
+	uint64_t intrs;
+	uint64_t kicks;
 #endif /* PTNETMAP_STATS */
 };
 
 struct ptnet_queue {
-	struct ptnet_softc		*sc;
-	struct				resource *irq;
-	void				*cookie;
-	int				kring_id;
-	struct nm_csb_atok		*atok;
-	struct nm_csb_ktoa		*ktoa;
-	unsigned int			kick;
-	struct mtx			lock;
-	struct buf_ring			*bufring; /* for TX queues */
-	struct ptnet_queue_stats	stats;
+	struct ptnet_softc *sc;
+	struct resource *irq;
+	void *cookie;
+	int kring_id;
+	struct nm_csb_atok *atok;
+	struct nm_csb_ktoa *ktoa;
+	unsigned int kick;
+	struct mtx lock;
+	struct buf_ring *bufring; /* for TX queues */
+	struct ptnet_queue_stats stats;
 #ifdef PTNETMAP_STATS
-	struct ptnet_queue_stats	last_stats;
+	struct ptnet_queue_stats last_stats;
 #endif /* PTNETMAP_STATS */
-	struct taskqueue		*taskq;
-	struct task			task;
-	char				lock_name[16];
+	struct taskqueue *taskq;
+	struct task task;
+	char lock_name[16];
 };
 
-#define PTNET_Q_LOCK(_pq)	mtx_lock(&(_pq)->lock)
-#define PTNET_Q_TRYLOCK(_pq)	mtx_trylock(&(_pq)->lock)
-#define PTNET_Q_UNLOCK(_pq)	mtx_unlock(&(_pq)->lock)
+#define PTNET_Q_LOCK(_pq) mtx_lock(&(_pq)->lock)
+#define PTNET_Q_TRYLOCK(_pq) mtx_trylock(&(_pq)->lock)
+#define PTNET_Q_UNLOCK(_pq) mtx_unlock(&(_pq)->lock)
 
 struct ptnet_softc {
-	device_t		dev;
-	if_t			ifp;
-	struct ifmedia		media;
-	struct mtx		lock;
-	char			lock_name[16];
-	char			hwaddr[ETHER_ADDR_LEN];
+	device_t dev;
+	if_t ifp;
+	struct ifmedia media;
+	struct mtx lock;
+	char lock_name[16];
+	char hwaddr[ETHER_ADDR_LEN];
 
 	/* Mirror of PTFEAT register. */
-	uint32_t		ptfeatures;
-	unsigned int		vnet_hdr_len;
+	uint32_t ptfeatures;
+	unsigned int vnet_hdr_len;
 
 	/* PCI BARs support. */
-	struct resource		*iomem;
-	struct resource		*msix_mem;
+	struct resource *iomem;
+	struct resource *msix_mem;
 
-	unsigned int		num_rings;
-	unsigned int		num_tx_rings;
-	struct ptnet_queue	*queues;
-	struct ptnet_queue	*rxqueues;
-	struct nm_csb_atok	*csb_gh;
-	struct nm_csb_ktoa	*csb_hg;
+	unsigned int num_rings;
+	unsigned int num_tx_rings;
+	struct ptnet_queue *queues;
+	struct ptnet_queue *rxqueues;
+	struct nm_csb_atok *csb_gh;
+	struct nm_csb_ktoa *csb_hg;
 
-	unsigned int		min_tx_space;
+	unsigned int min_tx_space;
 
 	struct netmap_pt_guest_adapter *ptna;
 
-	struct callout		tick;
+	struct callout tick;
 #ifdef PTNETMAP_STATS
-	struct timeval		last_ts;
+	struct timeval last_ts;
 #endif /* PTNETMAP_STATS */
 };
 
-#define PTNET_CORE_LOCK(_sc)	mtx_lock(&(_sc)->lock)
-#define PTNET_CORE_UNLOCK(_sc)	mtx_unlock(&(_sc)->lock)
+#define PTNET_CORE_LOCK(_sc) mtx_lock(&(_sc)->lock)
+#define PTNET_CORE_UNLOCK(_sc) mtx_unlock(&(_sc)->lock)
 
-static int	ptnet_probe(device_t);
-static int	ptnet_attach(device_t);
-static int	ptnet_detach(device_t);
-static int	ptnet_suspend(device_t);
-static int	ptnet_resume(device_t);
-static int	ptnet_shutdown(device_t);
+static int ptnet_probe(device_t);
+static int ptnet_attach(device_t);
+static int ptnet_detach(device_t);
+static int ptnet_suspend(device_t);
+static int ptnet_resume(device_t);
+static int ptnet_shutdown(device_t);
 
-static void	ptnet_init(void *opaque);
-static int	ptnet_ioctl(if_t ifp, u_long cmd, caddr_t data);
-static int	ptnet_init_locked(struct ptnet_softc *sc);
-static int	ptnet_stop(struct ptnet_softc *sc);
-static int	ptnet_transmit(if_t ifp, struct mbuf *m);
-static int	ptnet_drain_transmit_queue(struct ptnet_queue *pq,
-					   unsigned int budget,
-					   bool may_resched);
-static void	ptnet_qflush(if_t ifp);
-static void	ptnet_tx_task(void *context, int pending);
+static void ptnet_init(void *opaque);
+static int ptnet_ioctl(if_t ifp, u_long cmd, caddr_t data);
+static int ptnet_init_locked(struct ptnet_softc *sc);
+static int ptnet_stop(struct ptnet_softc *sc);
+static int ptnet_transmit(if_t ifp, struct mbuf *m);
+static int ptnet_drain_transmit_queue(struct ptnet_queue *pq,
+    unsigned int budget, bool may_resched);
+static void ptnet_qflush(if_t ifp);
+static void ptnet_tx_task(void *context, int pending);
 
-static int	ptnet_media_change(if_t ifp);
-static void	ptnet_media_status(if_t ifp, struct ifmediareq *ifmr);
+static int ptnet_media_change(if_t ifp);
+static void ptnet_media_status(if_t ifp, struct ifmediareq *ifmr);
 #ifdef PTNETMAP_STATS
-static void	ptnet_tick(void *opaque);
+static void ptnet_tick(void *opaque);
 #endif
 
-static int	ptnet_irqs_init(struct ptnet_softc *sc);
-static void	ptnet_irqs_fini(struct ptnet_softc *sc);
+static int ptnet_irqs_init(struct ptnet_softc *sc);
+static void ptnet_irqs_fini(struct ptnet_softc *sc);
 
 static uint32_t ptnet_nm_ptctl(struct ptnet_softc *sc, uint32_t cmd);
-static int      ptnet_nm_config(struct netmap_adapter *na,
-				struct nm_config_info *info);
-static void	ptnet_update_vnet_hdr(struct ptnet_softc *sc);
-static int	ptnet_nm_register(struct netmap_adapter *na, int onoff);
-static int	ptnet_nm_txsync(struct netmap_kring *kring, int flags);
-static int	ptnet_nm_rxsync(struct netmap_kring *kring, int flags);
-static void	ptnet_nm_intr(struct netmap_adapter *na, int onoff);
+static int ptnet_nm_config(struct netmap_adapter *na,
+    struct nm_config_info *info);
+static void ptnet_update_vnet_hdr(struct ptnet_softc *sc);
+static int ptnet_nm_register(struct netmap_adapter *na, int onoff);
+static int ptnet_nm_txsync(struct netmap_kring *kring, int flags);
+static int ptnet_nm_rxsync(struct netmap_kring *kring, int flags);
+static void ptnet_nm_intr(struct netmap_adapter *na, int onoff);
 
-static void	ptnet_tx_intr(void *opaque);
-static void	ptnet_rx_intr(void *opaque);
+static void ptnet_tx_intr(void *opaque);
+static void ptnet_rx_intr(void *opaque);
 
-static unsigned	ptnet_rx_discard(struct netmap_kring *kring,
-				 unsigned int head);
-static int	ptnet_rx_eof(struct ptnet_queue *pq, unsigned int budget,
-			     bool may_resched);
-static void	ptnet_rx_task(void *context, int pending);
+static unsigned ptnet_rx_discard(struct netmap_kring *kring, unsigned int head);
+static int ptnet_rx_eof(struct ptnet_queue *pq, unsigned int budget,
+    bool may_resched);
+static void ptnet_rx_task(void *context, int pending);
 
 #ifdef DEVICE_POLLING
 static poll_handler_t ptnet_poll;
 #endif
 
-static device_method_t ptnet_methods[] = {
-	DEVMETHOD(device_probe,			ptnet_probe),
-	DEVMETHOD(device_attach,		ptnet_attach),
-	DEVMETHOD(device_detach,		ptnet_detach),
-	DEVMETHOD(device_suspend,		ptnet_suspend),
-	DEVMETHOD(device_resume,		ptnet_resume),
-	DEVMETHOD(device_shutdown,		ptnet_shutdown),
-	DEVMETHOD_END
-};
+static device_method_t ptnet_methods[] = { DEVMETHOD(device_probe, ptnet_probe),
+	DEVMETHOD(device_attach, ptnet_attach),
+	DEVMETHOD(device_detach, ptnet_detach),
+	DEVMETHOD(device_suspend, ptnet_suspend),
+	DEVMETHOD(device_resume, ptnet_resume),
+	DEVMETHOD(device_shutdown, ptnet_shutdown), DEVMETHOD_END };
 
-static driver_t ptnet_driver = {
-	"ptnet",
-	ptnet_methods,
-	sizeof(struct ptnet_softc)
-};
+static driver_t ptnet_driver = { "ptnet", ptnet_methods,
+	sizeof(struct ptnet_softc) };
 
 /* We use (SI_ORDER_MIDDLE+2) here, see DEV_MODULE_ORDERED() invocation. */
 DRIVER_MODULE_ORDERED(ptnet, pci, ptnet_driver, NULL, NULL,
-		      SI_ORDER_MIDDLE + 2);
+    SI_ORDER_MIDDLE + 2);
 
 static int
 ptnet_probe(device_t dev)
 {
 	if (pci_get_vendor(dev) != PTNETMAP_PCI_VENDOR_ID ||
-		pci_get_device(dev) != PTNETMAP_PCI_NETIF_ID) {
+	    pci_get_device(dev) != PTNETMAP_PCI_NETIF_ID) {
 		return (ENXIO);
 	}
 
@@ -258,26 +247,27 @@ ptnet_probe(device_t dev)
 	return (BUS_PROBE_DEFAULT);
 }
 
-static inline void ptnet_kick(struct ptnet_queue *pq)
+static inline void
+ptnet_kick(struct ptnet_queue *pq)
 {
 #ifdef PTNETMAP_STATS
-	pq->stats.kicks ++;
+	pq->stats.kicks++;
 #endif /* PTNETMAP_STATS */
 	bus_write_4(pq->sc->iomem, pq->kick, 0);
 }
 
-#define PTNET_BUF_RING_SIZE	4096
-#define PTNET_RX_BUDGET		512
-#define PTNET_RX_BATCH		1
-#define PTNET_TX_BUDGET		512
-#define PTNET_TX_BATCH		64
-#define PTNET_HDR_SIZE		sizeof(struct virtio_net_hdr_mrg_rxbuf)
-#define PTNET_MAX_PKT_SIZE	65536
+#define PTNET_BUF_RING_SIZE 4096
+#define PTNET_RX_BUDGET 512
+#define PTNET_RX_BATCH 1
+#define PTNET_TX_BUDGET 512
+#define PTNET_TX_BATCH 64
+#define PTNET_HDR_SIZE sizeof(struct virtio_net_hdr_mrg_rxbuf)
+#define PTNET_MAX_PKT_SIZE 65536
 
-#define PTNET_CSUM_OFFLOAD	(CSUM_TCP | CSUM_UDP)
-#define PTNET_CSUM_OFFLOAD_IPV6	(CSUM_TCP_IPV6 | CSUM_UDP_IPV6)
-#define PTNET_ALL_OFFLOAD	(CSUM_TSO | PTNET_CSUM_OFFLOAD |\
-				 PTNET_CSUM_OFFLOAD_IPV6)
+#define PTNET_CSUM_OFFLOAD (CSUM_TCP | CSUM_UDP)
+#define PTNET_CSUM_OFFLOAD_IPV6 (CSUM_TCP_IPV6 | CSUM_UDP_IPV6)
+#define PTNET_ALL_OFFLOAD \
+	(CSUM_TSO | PTNET_CSUM_OFFLOAD | PTNET_CSUM_OFFLOAD_IPV6)
 
 static int
 ptnet_attach(device_t dev)
@@ -300,7 +290,7 @@ ptnet_attach(device_t dev)
 
 	rid = PCIR_BAR(PTNETMAP_IO_PCI_BAR);
 	sc->iomem = bus_alloc_resource_any(dev, SYS_RES_IOPORT, &rid,
-					   RF_ACTIVE);
+	    RF_ACTIVE);
 	if (sc->iomem == NULL) {
 		device_printf(dev, "Failed to map I/O BAR\n");
 		return (ENXIO);
@@ -321,14 +311,14 @@ ptnet_attach(device_t dev)
 
 	if (sc->num_rings * sizeof(struct nm_csb_atok) > PAGE_SIZE) {
 		device_printf(dev, "CSB cannot handle that many rings (%u)\n",
-				sc->num_rings);
+		    sc->num_rings);
 		err = ENOMEM;
 		goto err_path;
 	}
 
 	/* Allocate CSB and carry out CSB allocation protocol. */
-	sc->csb_gh = contigmalloc(2*PAGE_SIZE, M_DEVBUF, M_NOWAIT | M_ZERO,
-				  (size_t)0, -1UL, PAGE_SIZE, 0);
+	sc->csb_gh = contigmalloc(2 * PAGE_SIZE, M_DEVBUF, M_NOWAIT | M_ZERO,
+	    (size_t)0, -1UL, PAGE_SIZE, 0);
 	if (sc->csb_gh == NULL) {
 		device_printf(dev, "Failed to allocate CSB\n");
 		err = ENOMEM;
@@ -346,19 +336,17 @@ ptnet_attach(device_t dev)
 		/* CSB allocation protocol: write to BAH first, then
 		 * to BAL (for both GH and HG sections). */
 		bus_write_4(sc->iomem, PTNET_IO_CSB_GH_BAH,
-				(paddr >> 32) & 0xffffffff);
-		bus_write_4(sc->iomem, PTNET_IO_CSB_GH_BAL,
-				paddr & 0xffffffff);
+		    (paddr >> 32) & 0xffffffff);
+		bus_write_4(sc->iomem, PTNET_IO_CSB_GH_BAL, paddr & 0xffffffff);
 		paddr = vtophys(sc->csb_hg);
 		bus_write_4(sc->iomem, PTNET_IO_CSB_HG_BAH,
-				(paddr >> 32) & 0xffffffff);
-		bus_write_4(sc->iomem, PTNET_IO_CSB_HG_BAL,
-				paddr & 0xffffffff);
+		    (paddr >> 32) & 0xffffffff);
+		bus_write_4(sc->iomem, PTNET_IO_CSB_HG_BAL, paddr & 0xffffffff);
 	}
 
 	/* Allocate and initialize per-queue data structures. */
 	sc->queues = malloc(sizeof(struct ptnet_queue) * sc->num_rings,
-			    M_DEVBUF, M_NOWAIT | M_ZERO);
+	    M_DEVBUF, M_NOWAIT | M_ZERO);
 	if (sc->queues == NULL) {
 		err = ENOMEM;
 		goto err_path;
@@ -374,7 +362,7 @@ ptnet_attach(device_t dev)
 		pq->atok = sc->csb_gh + i;
 		pq->ktoa = sc->csb_hg + i;
 		snprintf(pq->lock_name, sizeof(pq->lock_name), "%s-%d",
-			 device_get_nameunit(dev), i);
+		    device_get_nameunit(dev), i);
 		mtx_init(&pq->lock, pq->lock_name, NULL, MTX_DEF);
 		if (i >= num_tx_rings) {
 			/* RX queue: fix kring_id. */
@@ -382,7 +370,7 @@ ptnet_attach(device_t dev)
 		} else {
 			/* TX queue: allocate buf_ring. */
 			pq->bufring = buf_ring_alloc(PTNET_BUF_RING_SIZE,
-						M_DEVBUF, M_NOWAIT, &pq->lock);
+			    M_DEVBUF, M_NOWAIT, &pq->lock);
 			if (pq->bufring == NULL) {
 				err = ENOMEM;
 				goto err_path;
@@ -416,7 +404,7 @@ ptnet_attach(device_t dev)
 	if_setqflushfn(ifp, ptnet_qflush);
 
 	ifmedia_init(&sc->media, IFM_IMASK, ptnet_media_change,
-		     ptnet_media_status);
+	    ptnet_media_status);
 	ifmedia_add(&sc->media, IFM_ETHER | IFM_10G_T | IFM_FDX, 0, NULL);
 	ifmedia_set(&sc->media, IFM_ETHER | IFM_10G_T | IFM_FDX);
 
@@ -439,11 +427,11 @@ ptnet_attach(device_t dev)
 		 * VLAN offloadings by inserting and removing the 802.1Q
 		 * header during transmit and receive. We are then able
 		 * to do checksum offloading of VLAN frames. */
-		if_setcapabilitiesbit(ifp, IFCAP_HWCSUM | IFCAP_HWCSUM_IPV6
-					| IFCAP_VLAN_HWCSUM
-					| IFCAP_TSO | IFCAP_LRO
-					| IFCAP_VLAN_HWTSO
-					| IFCAP_VLAN_HWTAGGING, 0);
+		if_setcapabilitiesbit(ifp,
+		    IFCAP_HWCSUM | IFCAP_HWCSUM_IPV6 | IFCAP_VLAN_HWCSUM |
+			IFCAP_TSO | IFCAP_LRO | IFCAP_VLAN_HWTSO |
+			IFCAP_VLAN_HWTAGGING,
+		    0);
 	}
 
 	if_setcapenable(ifp, if_getcapabilities(ifp));
@@ -451,8 +439,8 @@ ptnet_attach(device_t dev)
 	/* Don't enable polling by default. */
 	if_setcapabilitiesbit(ifp, IFCAP_POLLING, 0);
 #endif
-	snprintf(sc->lock_name, sizeof(sc->lock_name),
-		 "%s", device_get_nameunit(dev));
+	snprintf(sc->lock_name, sizeof(sc->lock_name), "%s",
+	    device_get_nameunit(dev));
 	mtx_init(&sc->lock, sc->lock_name, "ptnet core lock", MTX_DEF);
 	callout_init_mtx(&sc->tick, &sc->lock, 0);
 
@@ -474,7 +462,7 @@ ptnet_attach(device_t dev)
 	na_arg.nm_rxsync = ptnet_nm_rxsync;
 
 	netmap_pt_guest_attach(&na_arg, nifp_offset,
-                                bus_read_4(sc->iomem, PTNET_IO_HOSTMEMID));
+	    bus_read_4(sc->iomem, PTNET_IO_HOSTMEMID));
 
 	/* Now a netmap adapter for this ifp has been allocated, and it
 	 * can be accessed through NA(ifp). We also have to initialize the CSB
@@ -546,7 +534,7 @@ ptnet_detach(device_t dev)
 	ptnet_irqs_fini(sc);
 
 	if (sc->csb_gh) {
-		contigfree(sc->csb_gh, 2*PAGE_SIZE, M_DEVBUF);
+		contigfree(sc->csb_gh, 2 * PAGE_SIZE, M_DEVBUF);
 		sc->csb_gh = NULL;
 		sc->csb_hg = NULL;
 	}
@@ -568,7 +556,7 @@ ptnet_detach(device_t dev)
 
 	if (sc->iomem) {
 		bus_release_resource(dev, SYS_RES_IOPORT,
-				     PCIR_BAR(PTNETMAP_IO_PCI_BAR), sc->iomem);
+		    PCIR_BAR(PTNETMAP_IO_PCI_BAR), sc->iomem);
 		sc->iomem = NULL;
 	}
 
@@ -619,13 +607,13 @@ ptnet_irqs_init(struct ptnet_softc *sc)
 	int cpu_cur;
 	int i;
 
-	if (pci_find_cap(dev, PCIY_MSIX, NULL) != 0)  {
+	if (pci_find_cap(dev, PCIY_MSIX, NULL) != 0) {
 		device_printf(dev, "Could not find MSI-X capability\n");
 		return (ENXIO);
 	}
 
-	sc->msix_mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-					      &rid, RF_ACTIVE);
+	sc->msix_mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
+	    RF_ACTIVE);
 	if (sc->msix_mem == NULL) {
 		device_printf(dev, "Failed to allocate MSIX PCI BAR\n");
 		return (ENXIO);
@@ -647,10 +635,12 @@ ptnet_irqs_init(struct ptnet_softc *sc)
 
 		rid = i + 1;
 		pq->irq = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid,
-						 RF_ACTIVE);
+		    RF_ACTIVE);
 		if (pq->irq == NULL) {
-			device_printf(dev, "Failed to allocate interrupt "
-					   "for queue #%d\n", i);
+			device_printf(dev,
+			    "Failed to allocate interrupt "
+			    "for queue #%d\n",
+			    i);
 			err = ENOSPC;
 			goto err_path;
 		}
@@ -665,11 +655,12 @@ ptnet_irqs_init(struct ptnet_softc *sc)
 			handler = ptnet_rx_intr;
 		}
 		err = bus_setup_intr(dev, pq->irq, INTR_TYPE_NET | INTR_MPSAFE,
-				     NULL /* intr_filter */, handler,
-				     pq, &pq->cookie);
+		    NULL /* intr_filter */, handler, pq, &pq->cookie);
 		if (err) {
-			device_printf(dev, "Failed to register intr handler "
-					   "for queue #%d\n", i);
+			device_printf(dev,
+			    "Failed to register intr handler "
+			    "for queue #%d\n",
+			    i);
 			goto err_path;
 		}
 
@@ -692,9 +683,9 @@ ptnet_irqs_init(struct ptnet_softc *sc)
 			NET_TASK_INIT(&pq->task, 0, ptnet_rx_task, pq);
 
 		pq->taskq = taskqueue_create_fast("ptnet_queue", M_NOWAIT,
-					taskqueue_thread_enqueue, &pq->taskq);
+		    taskqueue_thread_enqueue, &pq->taskq);
 		taskqueue_start_threads(&pq->taskq, 1, PI_NET, "%s-pq-%d",
-					device_get_nameunit(sc->dev), cpu_cur);
+		    device_get_nameunit(sc->dev), cpu_cur);
 		cpu_cur = CPU_NEXT(cpu_cur);
 	}
 
@@ -733,8 +724,7 @@ ptnet_irqs_fini(struct ptnet_softc *sc)
 		pci_release_msi(dev);
 
 		bus_release_resource(dev, SYS_RES_MEMORY,
-				     PCIR_BAR(PTNETMAP_MSIX_PCI_BAR),
-				     sc->msix_mem);
+		    PCIR_BAR(PTNETMAP_MSIX_PCI_BAR), sc->msix_mem);
 		sc->msix_mem = NULL;
 	}
 }
@@ -774,8 +764,8 @@ ptnet_ioctl(if_t ifp, u_long cmd, caddr_t data)
 		break;
 
 	case SIOCSIFCAP:
-		device_printf(dev, "SIOCSIFCAP %x %x\n",
-			      ifr->ifr_reqcap, if_getcapenable(ifp));
+		device_printf(dev, "SIOCSIFCAP %x %x\n", ifr->ifr_reqcap,
+		    if_getcapenable(ifp));
 		mask = ifr->ifr_reqcap ^ if_getcapenable(ifp);
 #ifdef DEVICE_POLLING
 		if (mask & IFCAP_POLLING) {
@@ -790,7 +780,7 @@ ptnet_ioctl(if_t ifp, u_long cmd, caddr_t data)
 				/* Stop queues and sync with taskqueues. */
 				if_setdrvflagbits(ifp, 0, IFF_DRV_RUNNING);
 				for (i = 0; i < sc->num_rings; i++) {
-					pq = sc-> queues + i;
+					pq = sc->queues + i;
 					/* Make sure the worker sees the
 					 * IFF_DRV_RUNNING down. */
 					PTNET_Q_LOCK(pq);
@@ -799,28 +789,28 @@ ptnet_ioctl(if_t ifp, u_long cmd, caddr_t data)
 					/* Wait for rescheduling to finish. */
 					if (pq->taskq) {
 						taskqueue_drain(pq->taskq,
-								&pq->task);
+						    &pq->task);
 					}
 				}
 				if_setdrvflagbits(ifp, IFF_DRV_RUNNING, 0);
 			} else {
 				err = ether_poll_deregister(ifp);
 				for (i = 0; i < sc->num_rings; i++) {
-					pq = sc-> queues + i;
+					pq = sc->queues + i;
 					PTNET_Q_LOCK(pq);
 					pq->atok->appl_need_kick = 1;
 					PTNET_Q_UNLOCK(pq);
 				}
 			}
 		}
-#endif  /* DEVICE_POLLING */
+#endif /* DEVICE_POLLING */
 		if_setcapenable(ifp, ifr->ifr_reqcap);
 		break;
 
 	case SIOCSIFMTU:
 		/* We support any reasonable MTU. */
 		if (ifr->ifr_mtu < ETHERMIN ||
-				ifr->ifr_mtu > PTNET_MAX_PKT_SIZE) {
+		    ifr->ifr_mtu > PTNET_MAX_PKT_SIZE) {
 			err = EINVAL;
 		} else {
 			PTNET_CORE_LOCK(sc);
@@ -882,22 +872,25 @@ ptnet_init_locked(struct ptnet_softc *sc)
 	if (sc->ptna->backend_users == 0) {
 		ret = ptnet_nm_krings_create(na_nm);
 		if (ret) {
-			device_printf(sc->dev, "ptnet_nm_krings_create() "
-					       "failed\n");
+			device_printf(sc->dev,
+			    "ptnet_nm_krings_create() "
+			    "failed\n");
 			goto err_mem_finalize;
 		}
 
 		ret = netmap_mem_rings_create(na_dr);
 		if (ret) {
-			device_printf(sc->dev, "netmap_mem_rings_create() "
-					       "failed\n");
+			device_printf(sc->dev,
+			    "netmap_mem_rings_create() "
+			    "failed\n");
 			goto err_rings_create;
 		}
 
 		ret = netmap_mem_get_lut(na_dr->nm_mem, &na_dr->na_lut);
 		if (ret) {
-			device_printf(sc->dev, "netmap_mem_get_lut() "
-					       "failed\n");
+			device_printf(sc->dev,
+			    "netmap_mem_get_lut() "
+			    "failed\n");
 			goto err_get_lut;
 		}
 	}
@@ -912,7 +905,7 @@ ptnet_init_locked(struct ptnet_softc *sc)
 	KASSERT(nm_buf_size > 0, ("Invalid netmap buffer size"));
 	sc->min_tx_space = PTNET_MAX_PKT_SIZE / nm_buf_size + 2;
 	device_printf(sc->dev, "%s: min_tx_space = %u\n", __func__,
-		      sc->min_tx_space);
+	    sc->min_tx_space);
 #ifdef PTNETMAP_STATS
 	callout_reset(&sc->tick, hz, ptnet_tick, sc);
 #endif
@@ -1018,11 +1011,11 @@ ptnet_get_counter(if_t ifp, ift_counter cnt)
 		struct ptnet_queue *pq = sc->queues + i;
 		int idx = (i < sc->num_tx_rings) ? 0 : 1;
 
-		stats[idx].packets	+= pq->stats.packets;
-		stats[idx].bytes	+= pq->stats.bytes;
-		stats[idx].errors	+= pq->stats.errors;
-		stats[idx].iqdrops	+= pq->stats.iqdrops;
-		stats[idx].mcasts	+= pq->stats.mcasts;
+		stats[idx].packets += pq->stats.packets;
+		stats[idx].bytes += pq->stats.bytes;
+		stats[idx].errors += pq->stats.errors;
+		stats[idx].iqdrops += pq->stats.iqdrops;
+		stats[idx].mcasts += pq->stats.mcasts;
 	}
 
 	switch (cnt) {
@@ -1043,7 +1036,6 @@ ptnet_get_counter(if_t ifp, ift_counter cnt)
 	}
 }
 
-
 #ifdef PTNETMAP_STATS
 /* Called under core lock. */
 static void
@@ -1060,17 +1052,18 @@ ptnet_tick(void *opaque)
 
 		microtime(&now);
 		delta = now.tv_usec - sc->last_ts.tv_usec +
-			(now.tv_sec - sc->last_ts.tv_sec) * 1000000;
+		    (now.tv_sec - sc->last_ts.tv_sec) * 1000000;
 		delta /= 1000; /* in milliseconds */
 
 		if (delta == 0)
 			continue;
 
-		device_printf(sc->dev, "#%d[%u ms]:pkts %lu, kicks %lu, "
-			      "intr %lu\n", i, delta,
-			      (cur.packets - pq->last_stats.packets),
-			      (cur.kicks - pq->last_stats.kicks),
-			      (cur.intrs - pq->last_stats.intrs));
+		device_printf(sc->dev,
+		    "#%d[%u ms]:pkts %lu, kicks %lu, "
+		    "intr %lu\n",
+		    i, delta, (cur.packets - pq->last_stats.packets),
+		    (cur.kicks - pq->last_stats.kicks),
+		    (cur.intrs - pq->last_stats.intrs));
 		pq->last_stats = cur;
 	}
 	microtime(&sc->last_ts);
@@ -1110,9 +1103,8 @@ ptnet_nm_config(struct netmap_adapter *na, struct nm_config_info *info)
 	info->rx_buf_maxsize = NETMAP_BUF_SIZE(na);
 
 	device_printf(sc->dev, "txr %u, rxr %u, txd %u, rxd %u, rxbufsz %u\n",
-			info->num_tx_rings, info->num_rx_rings,
-			info->num_tx_descs, info->num_rx_descs,
-			info->rx_buf_maxsize);
+	    info->num_tx_rings, info->num_rx_rings, info->num_tx_descs,
+	    info->num_rx_descs, info->rx_buf_maxsize);
 
 	return 0;
 }
@@ -1137,16 +1129,16 @@ ptnet_sync_from_csb(struct ptnet_softc *sc, struct netmap_adapter *na)
 		kring->rhead = kring->ring->head = atok->head;
 		kring->rcur = kring->ring->cur = atok->cur;
 		kring->nr_hwcur = ktoa->hwcur;
-		kring->nr_hwtail = kring->rtail =
-			kring->ring->tail = ktoa->hwtail;
+		kring->nr_hwtail = kring->rtail = kring->ring->tail =
+		    ktoa->hwtail;
 
 		nm_prdis("%d,%d: csb {hc %u h %u c %u ht %u}", t, i,
-		   ktoa->hwcur, atok->head, atok->cur,
-		   ktoa->hwtail);
-		nm_prdis("%d,%d: kring {hc %u rh %u rc %u h %u c %u ht %u rt %u t %u}",
-		   t, i, kring->nr_hwcur, kring->rhead, kring->rcur,
-		   kring->ring->head, kring->ring->cur, kring->nr_hwtail,
-		   kring->rtail, kring->ring->tail);
+		    ktoa->hwcur, atok->head, atok->cur, ktoa->hwtail);
+		nm_prdis(
+		    "%d,%d: kring {hc %u rh %u rc %u h %u c %u ht %u rt %u t %u}",
+		    t, i, kring->nr_hwcur, kring->rhead, kring->rcur,
+		    kring->ring->head, kring->ring->cur, kring->nr_hwtail,
+		    kring->rtail, kring->ring->tail);
 	}
 }
 
@@ -1196,8 +1188,8 @@ ptnet_nm_register(struct netmap_adapter *na, int onoff)
 				pq = sc->queues + i;
 				pq->ktoa->kern_need_kick = 1;
 				pq->atok->appl_need_kick =
-					(!(if_getcapenable(ifp) & IFCAP_POLLING)
-						&& i >= sc->num_tx_rings);
+				    (!(if_getcapenable(ifp) & IFCAP_POLLING) &&
+					i >= sc->num_tx_rings);
 			}
 
 			/* Set the virtio-net header length. */
@@ -1215,8 +1207,8 @@ ptnet_nm_register(struct netmap_adapter *na, int onoff)
 			ptnet_sync_from_csb(sc, na);
 		}
 
-		/* If not native, don't call nm_set_native_flags, since we don't want
-		 * to replace if_transmit method, nor set NAF_NETMAP_ON */
+		/* If not native, don't call nm_set_native_flags, since we don't
+		 * want to replace if_transmit method, nor set NAF_NETMAP_ON */
 		if (native) {
 			netmap_krings_mode_commit(na, onoff);
 			nm_set_native_flags(na);
@@ -1290,7 +1282,7 @@ ptnet_tx_intr(void *opaque)
 
 	DBG(device_printf(sc->dev, "Tx interrupt #%d\n", pq->kring_id));
 #ifdef PTNETMAP_STATS
-	pq->stats.intrs ++;
+	pq->stats.intrs++;
 #endif /* PTNETMAP_STATS */
 
 	if (netmap_tx_irq(sc->ifp, pq->kring_id) != NM_IRQ_PASS) {
@@ -1313,7 +1305,7 @@ ptnet_rx_intr(void *opaque)
 
 	DBG(device_printf(sc->dev, "Rx interrupt #%d\n", pq->kring_id));
 #ifdef PTNETMAP_STATS
-	pq->stats.intrs ++;
+	pq->stats.intrs++;
 #endif /* PTNETMAP_STATS */
 
 	if (netmap_rx_irq(sc->ifp, pq->kring_id, &unused) != NM_IRQ_PASS) {
@@ -1336,14 +1328,14 @@ ptnet_vlan_tag_remove(struct mbuf *m)
 	m->m_flags |= M_VLANTAG;
 
 	/* Strip the 802.1Q header. */
-	bcopy((char *) evh, (char *) evh + ETHER_VLAN_ENCAP_LEN,
+	bcopy((char *)evh, (char *)evh + ETHER_VLAN_ENCAP_LEN,
 	    ETHER_HDR_LEN - ETHER_TYPE_LEN);
 	m_adj(m, ETHER_VLAN_ENCAP_LEN);
 }
 
 static void
 ptnet_ring_update(struct ptnet_queue *pq, struct netmap_kring *kring,
-		  unsigned int head, unsigned int sync_flags)
+    unsigned int head, unsigned int sync_flags)
 {
 	struct netmap_ring *ring = kring->ring;
 	struct nm_csb_atok *atok = pq->atok;
@@ -1366,15 +1358,15 @@ ptnet_ring_update(struct ptnet_queue *pq, struct netmap_kring *kring,
 	}
 }
 
-#define PTNET_TX_NOSPACE(_h, _k, _min)	\
-	((((_h) < (_k)->rtail) ? 0 : (_k)->nkr_num_slots) + \
-		(_k)->rtail - (_h)) < (_min)
+#define PTNET_TX_NOSPACE(_h, _k, _min)                                    \
+	((((_h) < (_k)->rtail) ? 0 : (_k)->nkr_num_slots) + (_k)->rtail - \
+	    (_h)) < (_min)
 
 /* This function may be called by the network stack, or by
  * by the taskqueue thread. */
 static int
 ptnet_drain_transmit_queue(struct ptnet_queue *pq, unsigned int budget,
-			   bool may_resched)
+    bool may_resched)
 {
 	struct ptnet_softc *sc = pq->sc;
 	bool have_vnet_hdr = sc->vnet_hdr_len;
@@ -1441,7 +1433,7 @@ ptnet_drain_transmit_queue(struct ptnet_queue *pq, unsigned int budget,
 				nm_stld_barrier();
 				ptnet_sync_tail(ktoa, kring);
 				if (likely(PTNET_TX_NOSPACE(head, kring,
-							    minspace))) {
+					minspace))) {
 					break;
 				}
 
@@ -1465,31 +1457,32 @@ ptnet_drain_transmit_queue(struct ptnet_queue *pq, unsigned int budget,
 		/* If needed, prepare the virtio-net header at the beginning
 		 * of the first slot. */
 		if (have_vnet_hdr) {
-			struct virtio_net_hdr *vh =
-					(struct virtio_net_hdr *)nmbuf;
+			struct virtio_net_hdr *vh = (struct virtio_net_hdr *)
+			    nmbuf;
 
 			/* For performance, we could replace this memset() with
 			 * two 8-bytes-wide writes. */
 			memset(nmbuf, 0, PTNET_HDR_SIZE);
 			if (mhead->m_pkthdr.csum_flags & PTNET_ALL_OFFLOAD) {
 				mhead = virtio_net_tx_offload(ifp, mhead, false,
-							 vh);
+				    vh);
 				if (unlikely(!mhead)) {
 					/* Packet dropped because errors
 					 * occurred while preparing the vnet
 					 * header. Let's go ahead with the next
 					 * packet. */
-					pq->stats.errors ++;
+					pq->stats.errors++;
 					drbr_advance(ifp, pq->bufring);
 					continue;
 				}
 			}
-			nm_prdis(1, "%s: [csum_flags %lX] vnet hdr: flags %x "
-			      "csum_start %u csum_ofs %u hdr_len = %u "
-			      "gso_size %u gso_type %x", __func__,
-			      mhead->m_pkthdr.csum_flags, vh->flags,
-			      vh->csum_start, vh->csum_offset, vh->hdr_len,
-			      vh->gso_size, vh->gso_type);
+			nm_prdis(1,
+			    "%s: [csum_flags %lX] vnet hdr: flags %x "
+			    "csum_start %u csum_ofs %u hdr_len = %u "
+			    "gso_size %u gso_type %x",
+			    __func__, mhead->m_pkthdr.csum_flags, vh->flags,
+			    vh->csum_start, vh->csum_offset, vh->hdr_len,
+			    vh->gso_size, vh->gso_type);
 
 			nmbuf += PTNET_HDR_SIZE;
 			nmbuf_bytes += PTNET_HDR_SIZE;
@@ -1521,7 +1514,7 @@ ptnet_drain_transmit_queue(struct ptnet_queue *pq, unsigned int budget,
 
 				head = nm_next(head, lim);
 				KASSERT(head != ring->tail,
-					("Unexpectedly run out of TX space"));
+				    ("Unexpectedly run out of TX space"));
 				slot = ring->slot + head;
 				nmbuf = NMB(na, slot);
 				nmbuf_bytes = 0;
@@ -1539,15 +1532,15 @@ ptnet_drain_transmit_queue(struct ptnet_queue *pq, unsigned int budget,
 		/* Copy the packet to listeners. */
 		ETHER_BPF_MTAP(ifp, mhead);
 
-		pq->stats.packets ++;
+		pq->stats.packets++;
 		pq->stats.bytes += mhead->m_pkthdr.len;
 		if (mhead->m_flags & M_MCAST) {
-			pq->stats.mcasts ++;
+			pq->stats.mcasts++;
 		}
 
 		m_freem(mhead);
 
-		count ++;
+		count++;
 		if (++batch_count == PTNET_TX_BATCH) {
 			ptnet_ring_update(pq, kring, head, NAF_FORCE_RECLAIM);
 			batch_count = 0;
@@ -1560,7 +1553,7 @@ ptnet_drain_transmit_queue(struct ptnet_queue *pq, unsigned int budget,
 
 	if (count >= budget && may_resched) {
 		DBG(nm_prlim(1, "out of budget: resched, %d mbufs pending\n",
-					drbr_inuse(ifp, pq->bufring)));
+		    drbr_inuse(ifp, pq->bufring)));
 		taskqueue_enqueue(pq->taskq, &pq->task);
 	}
 
@@ -1590,7 +1583,8 @@ ptnet_transmit(if_t ifp, struct mbuf *m)
 
 	/* Get the flow-id if available. */
 	queue_idx = (M_HASHTYPE_GET(m) != M_HASHTYPE_NONE) ?
-		    m->m_pkthdr.flowid : curcpu;
+	    m->m_pkthdr.flowid :
+	    curcpu;
 
 	if (unlikely(queue_idx >= sc->num_tx_rings)) {
 		queue_idx %= sc->num_tx_rings;
@@ -1601,9 +1595,8 @@ ptnet_transmit(if_t ifp, struct mbuf *m)
 	err = drbr_enqueue(ifp, pq->bufring, m);
 	if (err) {
 		/* ENOBUFS when the bufring is full */
-		nm_prlim(1, "%s: drbr_enqueue() failed %d\n",
-			__func__, err);
-		pq->stats.errors ++;
+		nm_prlim(1, "%s: drbr_enqueue() failed %d\n", __func__, err);
+		pq->stats.errors++;
 		return err;
 	}
 
@@ -1706,7 +1699,7 @@ ptnet_rx_eof(struct ptnet_queue *pq, unsigned int budget, bool may_resched)
 		unsigned int nmbuf_len;
 		uint8_t *nmbuf;
 		int deliver = 1; /* the mbuf to the network stack. */
-host_sync:
+	host_sync:
 		if (head == ring->tail) {
 			/* We ran out of slot, let's see if the host has
 			 * added some, by reading hwcur and hwtail from
@@ -1748,15 +1741,17 @@ host_sync:
 				 * If this is the case, discard. */
 				nm_prlim(1, "Fragmented vnet-hdr: dropping");
 				head = ptnet_rx_discard(kring, head);
-				pq->stats.iqdrops ++;
+				pq->stats.iqdrops++;
 				deliver = 0;
 				goto skip;
 			}
-			nm_prdis(1, "%s: vnet hdr: flags %x csum_start %u "
-			      "csum_ofs %u hdr_len = %u gso_size %u "
-			      "gso_type %x", __func__, vh->flags,
-			      vh->csum_start, vh->csum_offset, vh->hdr_len,
-			      vh->gso_size, vh->gso_type);
+			nm_prdis(1,
+			    "%s: vnet hdr: flags %x csum_start %u "
+			    "csum_ofs %u hdr_len = %u gso_size %u "
+			    "gso_type %x",
+			    __func__, vh->flags, vh->csum_start,
+			    vh->csum_offset, vh->hdr_len, vh->gso_size,
+			    vh->gso_type);
 			nmbuf += PTNET_HDR_SIZE;
 			nmbuf_len -= PTNET_HDR_SIZE;
 		}
@@ -1767,9 +1762,11 @@ host_sync:
 		 * to choose different sizes. */
 		mhead = mtail = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
 		if (unlikely(mhead == NULL)) {
-			device_printf(sc->dev, "%s: failed to allocate mbuf "
-				      "head\n", __func__);
-			pq->stats.errors ++;
+			device_printf(sc->dev,
+			    "%s: failed to allocate mbuf "
+			    "head\n",
+			    __func__);
+			pq->stats.errors++;
 			break;
 		}
 
@@ -1779,10 +1776,11 @@ host_sync:
 
 		/* Scan all the netmap slots containing the current packet. */
 		for (;;) {
-			DBG(device_printf(sc->dev, "%s: h %u t %u rcv frag "
-					  "len %u, flags %u\n", __func__,
-					  head, ring->tail, slot->len,
-					  slot->flags));
+			DBG(device_printf(sc->dev,
+			    "%s: h %u t %u rcv frag "
+			    "len %u, flags %u\n",
+			    __func__, head, ring->tail, slot->len,
+			    slot->flags));
 
 			mtail = ptnet_rx_slot(mtail, nmbuf, nmbuf_len);
 			if (unlikely(!mtail)) {
@@ -1791,15 +1789,15 @@ host_sync:
 				 * head position, free the mbuf chain, and
 				 * schedule the taskqueue to give the packet
 				 * another chance. */
-				device_printf(sc->dev, "%s: failed to allocate"
-					" mbuf frag, reset head %u --> %u\n",
-					__func__, head, prev_head);
+				device_printf(sc->dev,
+				    "%s: failed to allocate"
+				    " mbuf frag, reset head %u --> %u\n",
+				    __func__, head, prev_head);
 				head = prev_head;
 				m_freem(mhead);
-				pq->stats.errors ++;
+				pq->stats.errors++;
 				if (may_resched) {
-					taskqueue_enqueue(pq->taskq,
-							  &pq->task);
+					taskqueue_enqueue(pq->taskq, &pq->task);
 				}
 				goto escape;
 			}
@@ -1818,7 +1816,7 @@ host_sync:
 				 * the outer cycle (to do the double-check). */
 				nm_prlim(1, "Incomplete packet: dropping");
 				m_freem(mhead);
-				pq->stats.iqdrops ++;
+				pq->stats.iqdrops++;
 				goto host_sync;
 			}
 
@@ -1853,22 +1851,23 @@ host_sync:
 		if (unlikely(have_vnet_hdr && virtio_net_rx_csum(mhead, vh))) {
 			m_freem(mhead);
 			nm_prlim(1, "Csum offload error: dropping");
-			pq->stats.iqdrops ++;
+			pq->stats.iqdrops++;
 			deliver = 0;
 		}
 
-skip:
-		count ++;
+	skip:
+		count++;
 		if (++batch_count >= PTNET_RX_BATCH) {
-			/* Some packets have been (or will be) pushed to the network
-			 * stack. We need to update the CSB to tell the host about
-			 * the new ring->cur and ring->head (RX buffer refill). */
+			/* Some packets have been (or will be) pushed to the
+			 * network stack. We need to update the CSB to tell the
+			 * host about the new ring->cur and ring->head (RX
+			 * buffer refill). */
 			ptnet_ring_update(pq, kring, head, NAF_FORCE_READ);
 			batch_count = 0;
 		}
 
-		if (likely(deliver))  {
-			pq->stats.packets ++;
+		if (likely(deliver)) {
+			pq->stats.packets++;
 			pq->stats.bytes += mhead->m_pkthdr.len;
 
 			PTNET_Q_UNLOCK(pq);
@@ -1881,9 +1880,11 @@ skip:
 			 * ring from there. */
 			head = ring->head;
 
-			if (unlikely(!(if_getdrvflags(ifp) & IFF_DRV_RUNNING))) {
+			if (unlikely(
+				!(if_getdrvflags(ifp) & IFF_DRV_RUNNING))) {
 				/* The interface has gone down while we didn't
-				 * have the lock. Stop any processing and exit. */
+				 * have the lock. Stop any processing and exit.
+				 */
 				goto unlock;
 			}
 		}
@@ -1891,14 +1892,13 @@ skip:
 escape:
 	if (batch_count) {
 		ptnet_ring_update(pq, kring, head, NAF_FORCE_READ);
-
 	}
 
 	if (count >= budget && may_resched) {
 		/* If we ran out of budget or the double-check found new
 		 * slots to process, schedule the taskqueue. */
-		DBG(nm_prlim(1, "out of budget: resched h %u t %u\n",
-					head, ring->tail));
+		DBG(nm_prlim(1, "out of budget: resched h %u t %u\n", head,
+		    ring->tail));
 		taskqueue_enqueue(pq->taskq, &pq->task);
 	}
 unlock:
@@ -1956,10 +1956,9 @@ ptnet_poll(if_t ifp, enum poll_cmd cmd, int budget)
 
 			if (i < sc->num_tx_rings) {
 				rcnt += ptnet_drain_transmit_queue(pq,
-						   queue_budget, false);
+				    queue_budget, false);
 			} else {
-				rcnt += ptnet_rx_eof(pq, queue_budget,
-						      false);
+				rcnt += ptnet_rx_eof(pq, queue_budget, false);
 			}
 		}
 
@@ -1979,7 +1978,6 @@ ptnet_poll(if_t ifp, enum poll_cmd cmd, int budget)
 		budget -= rcnt;
 		borrow = true;
 	}
-
 
 	return count;
 }

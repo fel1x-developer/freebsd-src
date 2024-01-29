@@ -32,7 +32,7 @@
 #define _CITRUS_DB_HASH_H_
 
 __BEGIN_DECLS
-uint32_t	 _citrus_db_hash_std(struct _citrus_region *);
+uint32_t _citrus_db_hash_std(struct _citrus_region *);
 __END_DECLS
 
 #endif

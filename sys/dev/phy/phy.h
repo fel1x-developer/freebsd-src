@@ -24,7 +24,7 @@
  */
 
 #ifndef _DEV_PHY_H_
-#define	_DEV_PHY_H_
+#define _DEV_PHY_H_
 
 #include "opt_platform.h"
 
@@ -33,7 +33,7 @@
 #include <dev/ofw/ofw_bus.h>
 #endif
 
-#define	PHY_STATUS_ENABLED	0x00000001
+#define PHY_STATUS_ENABLED 0x00000001
 
 typedef enum phy_mode {
 	PHY_MODE_INVALID,
@@ -47,11 +47,11 @@ typedef enum phy_mode {
 	PHY_MODE_SATA,
 	PHY_MODE_LVDS,
 	PHY_MODE_DP
-} phy_mode_t ;
+} phy_mode_t;
 
 typedef enum phy_submode {
 	/* Common */
-	PHY_SUBMODE_NA = 0,		/* Not applicable */
+	PHY_SUBMODE_NA = 0, /* Not applicable */
 	PHY_SUBMODE_INTERNAL,
 
 	/* Ethernet  */
@@ -96,9 +96,9 @@ typedef struct phy *phy_t;
 
 /* Initialization parameters. */
 struct phynode_init_def {
-	intptr_t		id;		/* Phy ID */
+	intptr_t id; /* Phy ID */
 #ifdef FDT
-	 phandle_t 		ofw_node;	/* OFW node of phy */
+	phandle_t ofw_node; /* OFW node of phy */
 #endif
 };
 
@@ -107,10 +107,10 @@ struct phynode_init_def {
 /*
  * Shorthands for constructing method tables.
  */
-#define	PHYNODEMETHOD		KOBJMETHOD
-#define	PHYNODEMETHOD_END	KOBJMETHOD_END
-#define phynode_method_t	kobj_method_t
-#define phynode_class_t		kobj_class_t
+#define PHYNODEMETHOD KOBJMETHOD
+#define PHYNODEMETHOD_END KOBJMETHOD_END
+#define phynode_method_t kobj_method_t
+#define phynode_class_t kobj_class_t
 DECLARE_CLASS(phynode_class);
 
 /*

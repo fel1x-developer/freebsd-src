@@ -40,23 +40,22 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "sdpcontrol.h"
 
 /* Prototypes */
-static int                  do_sdp_command	(bdaddr_p, char const *, int,
-						 int, char **);
-static struct sdp_command * find_sdp_command	(char const *,
-						 struct sdp_command *); 
-static void                 print_sdp_command	(struct sdp_command *);
-static void                 usage		(void);
+static int do_sdp_command(bdaddr_p, char const *, int, int, char **);
+static struct sdp_command *find_sdp_command(char const *, struct sdp_command *);
+static void print_sdp_command(struct sdp_command *);
+static void usage(void);
 
 /* Main */
 int
 main(int argc, char *argv[])
 {
-	char const	*control = SDP_LOCAL_PATH;
-	int		 n, local;
-	bdaddr_t	 bdaddr;
+	char const *control = SDP_LOCAL_PATH;
+	int n, local;
+	bdaddr_t bdaddr;
 
 	memset(&bdaddr, 0, sizeof(bdaddr));
 	local = 0;
@@ -66,11 +65,12 @@ main(int argc, char *argv[])
 		switch (n) {
 		case 'a': /* bdaddr */
 			if (!bt_aton(optarg, &bdaddr)) {
-				struct hostent  *he = NULL;
+				struct hostent *he = NULL;
 
 				if ((he = bt_gethostbyname(optarg)) == NULL)
-					errx(1, "%s: %s", optarg, hstrerror(h_errno));
- 
+					errx(1, "%s: %s", optarg,
+					    hstrerror(h_errno));
+
 				memcpy(&bdaddr, he->h_addr, sizeof(bdaddr));
 			}
 			break;
@@ -90,7 +90,7 @@ main(int argc, char *argv[])
 		}
 	}
 
-	argc -= optind; 
+	argc -= optind;
 	argv += optind;
 
 	if (*argv == NULL)
@@ -101,24 +101,25 @@ main(int argc, char *argv[])
 
 /* Execute commands */
 static int
-do_sdp_command(bdaddr_p bdaddr, char const *control, int local,
-		int argc, char **argv)
+do_sdp_command(bdaddr_p bdaddr, char const *control, int local, int argc,
+    char **argv)
 {
-	char			*cmd = argv[0];
-	struct sdp_command	*c = NULL;
-	void			*xs = NULL;
-	int			 e, help;
+	char *cmd = argv[0];
+	struct sdp_command *c = NULL;
+	void *xs = NULL;
+	int e, help;
 
 	help = 0;
 	if (strcasecmp(cmd, "help") == 0) {
-		argc --;
-		argv ++;
+		argc--;
+		argv++;
 
 		if (argc <= 0) {
 			fprintf(stdout, "Supported commands:\n");
 			print_sdp_command(sdp_commands);
-			fprintf(stdout, "\nFor more information use " \
-				"'help command'\n");
+			fprintf(stdout,
+			    "\nFor more information use "
+			    "'help command'\n");
 
 			return (OK);
 		}
@@ -135,7 +136,8 @@ do_sdp_command(bdaddr_p bdaddr, char const *control, int local,
 
 	if (!help) {
 		if (!local) {
-			if (memcmp(bdaddr, NG_HCI_BDADDR_ANY, sizeof(*bdaddr)) == 0)
+			if (memcmp(bdaddr, NG_HCI_BDADDR_ANY,
+				sizeof(*bdaddr)) == 0)
 				usage();
 
 			xs = sdp_open(NG_HCI_BDADDR_ANY, bdaddr);
@@ -145,7 +147,7 @@ do_sdp_command(bdaddr_p bdaddr, char const *control, int local,
 		if (xs == NULL)
 			errx(1, "Could not create SDP session object");
 		if (sdp_error(xs) == 0)
-			e = (c->handler)(xs, -- argc, ++ argv);
+			e = (c->handler)(xs, --argc, ++argv);
 		else
 			e = ERROR;
 	} else
@@ -157,15 +159,17 @@ do_sdp_command(bdaddr_p bdaddr, char const *control, int local,
 		break;
 
 	case ERROR:
-		fprintf(stdout, "Could not execute command \"%s\". %s\n",
-			cmd, strerror(sdp_error(xs)));
+		fprintf(stdout, "Could not execute command \"%s\". %s\n", cmd,
+		    strerror(sdp_error(xs)));
 		break;
 
 	case USAGE:
 		fprintf(stdout, "Usage: %s\n%s\n", c->command, c->description);
 		break;
 
-	default: assert(0); break;
+	default:
+		assert(0);
+		break;
 	}
 
 	sdp_close(xs);
@@ -175,20 +179,20 @@ do_sdp_command(bdaddr_p bdaddr, char const *control, int local,
 
 /* Try to find command in specified category */
 static struct sdp_command *
-find_sdp_command(char const *command, struct sdp_command *category)   
+find_sdp_command(char const *command, struct sdp_command *category)
 {
-	struct sdp_command	*c = NULL;
+	struct sdp_command *c = NULL;
 
 	for (c = category; c->command != NULL; c++) {
-		char	*c_end = strchr(c->command, ' ');
+		char *c_end = strchr(c->command, ' ');
 
 		if (c_end != NULL) {
-			int	len = c_end - c->command;
+			int len = c_end - c->command;
 
 			if (strncasecmp(command, c->command, len) == 0)
 				return (c);
 		} else if (strcasecmp(command, c->command) == 0)
-				return (c);
+			return (c);
 	}
 
 	return (NULL);
@@ -198,7 +202,7 @@ find_sdp_command(char const *command, struct sdp_command *category)
 static void
 print_sdp_command(struct sdp_command *category)
 {
-	struct sdp_command	*c = NULL;
+	struct sdp_command *c = NULL;
 
 	for (c = category; c->command != NULL; c++)
 		fprintf(stdout, "\t%s\n", c->command);
@@ -209,13 +213,13 @@ static void
 usage(void)
 {
 	fprintf(stderr,
-"Usage: sdpcontrol options command\n" \
-"Where options are:\n"
-"	-a address	address to connect to\n" \
-"	-c path		path to the control socket (default is %s)\n" \
-"	-h		display usage and quit\n" \
-"	-l		connect to the local SDP server via control socket\n" \
-"	command		one of the supported commands\n", SDP_LOCAL_PATH);
+	    "Usage: sdpcontrol options command\n"
+	    "Where options are:\n"
+	    "	-a address	address to connect to\n"
+	    "	-c path		path to the control socket (default is %s)\n"
+	    "	-h		display usage and quit\n"
+	    "	-l		connect to the local SDP server via control socket\n"
+	    "	command		one of the supported commands\n",
+	    SDP_LOCAL_PATH);
 	exit(255);
 } /* usage */
-

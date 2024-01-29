@@ -33,6 +33,7 @@
  */
 
 #include <sys/queue.h>
+
 #include <assert.h>
 #define L2CAP_SOCKET_CHECKED
 #include <bluetooth.h>
@@ -44,10 +45,11 @@
 #include <syslog.h>
 #include <unistd.h>
 #include <usbhid.h>
+
 #include "bthid_config.h"
 #include "bthidd.h"
 
-static int32_t	client_socket(bdaddr_p bdaddr, uint16_t psm);
+static int32_t client_socket(bdaddr_p bdaddr, uint16_t psm);
 
 /*
  * Get next config entry and create outbound connection (if required)
@@ -57,18 +59,18 @@ static int32_t	client_socket(bdaddr_p bdaddr, uint16_t psm);
  *	Create_Connection command is still pending. Weird...
  */
 
-static int32_t	connect_in_progress = 0;
+static int32_t connect_in_progress = 0;
 
 int32_t
 client_rescan(bthid_server_p srv)
 {
-	static hid_device_p	d;
-	bthid_session_p		s;
+	static hid_device_p d;
+	bthid_session_p s;
 
 	assert(srv != NULL);
 
 	if (connect_in_progress)
-		return (0); /* another connect is still pending */ 
+		return (0); /* another connect is still pending */
 
 	d = get_next_hid_device(d);
 	if (d == NULL)
@@ -82,13 +84,14 @@ client_rescan(bthid_server_p srv)
 			return (0); /* device will initiate reconnect */
 	}
 
-	syslog(LOG_NOTICE, "Opening outbound session for %s " \
-		"(new_device=%d, reconnect_initiate=%d)",
-		bt_ntoa(&d->bdaddr, NULL), d->new_device, d->reconnect_initiate);
+	syslog(LOG_NOTICE,
+	    "Opening outbound session for %s "
+	    "(new_device=%d, reconnect_initiate=%d)",
+	    bt_ntoa(&d->bdaddr, NULL), d->new_device, d->reconnect_initiate);
 
 	if ((s = session_open(srv, d)) == NULL) {
 		syslog(LOG_CRIT, "Could not create outbound session for %s",
-			bt_ntoa(&d->bdaddr, NULL));
+		    bt_ntoa(&d->bdaddr, NULL));
 		return (-1);
 	}
 
@@ -96,7 +99,7 @@ client_rescan(bthid_server_p srv)
 	s->ctrl = client_socket(&s->bdaddr, d->control_psm);
 	if (s->ctrl < 0) {
 		syslog(LOG_ERR, "Could not open control channel to %s. %s (%d)",
-			bt_ntoa(&s->bdaddr, NULL), strerror(errno), errno);
+		    bt_ntoa(&s->bdaddr, NULL), strerror(errno), errno);
 		session_close(s);
 		return (-1);
 	}
@@ -119,10 +122,10 @@ client_rescan(bthid_server_p srv)
 int32_t
 client_connect(bthid_server_p srv, int32_t fd)
 {
-	bthid_session_p	s;
-	hid_device_p	d;
-	int32_t		error;
-	socklen_t	len;
+	bthid_session_p s;
+	hid_device_p d;
+	int32_t error;
+	socklen_t len;
 
 	assert(srv != NULL);
 	assert(fd >= 0);
@@ -137,7 +140,7 @@ client_connect(bthid_server_p srv, int32_t fd)
 	len = sizeof(error);
 	if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &len) < 0) {
 		syslog(LOG_ERR, "Could not get socket error for %s. %s (%d)",
-			bt_ntoa(&s->bdaddr, NULL), strerror(errno), errno);
+		    bt_ntoa(&s->bdaddr, NULL), strerror(errno), errno);
 		session_close(s);
 		connect_in_progress = 0;
 
@@ -146,7 +149,7 @@ client_connect(bthid_server_p srv, int32_t fd)
 
 	if (error != 0) {
 		syslog(LOG_ERR, "Could not connect to %s. %s (%d)",
-			bt_ntoa(&s->bdaddr, NULL), strerror(error), error);
+		    bt_ntoa(&s->bdaddr, NULL), strerror(error), error);
 		session_close(s);
 		connect_in_progress = 0;
 
@@ -160,10 +163,11 @@ client_connect(bthid_server_p srv, int32_t fd)
 
 		/* Open interrupt channel */
 		s->intr = client_socket(&s->bdaddr, d->interrupt_psm);
-		if (s->intr < 0) { 
-			syslog(LOG_ERR, "Could not open interrupt channel " \
-				"to %s. %s (%d)", bt_ntoa(&s->bdaddr, NULL),
-				strerror(errno), errno);
+		if (s->intr < 0) {
+			syslog(LOG_ERR,
+			    "Could not open interrupt channel "
+			    "to %s. %s (%d)",
+			    bt_ntoa(&s->bdaddr, NULL), strerror(errno), errno);
 			session_close(s);
 			connect_in_progress = 0;
 
@@ -213,8 +217,8 @@ client_connect(bthid_server_p srv, int32_t fd)
 static int
 client_socket(bdaddr_p bdaddr, uint16_t psm)
 {
-	struct sockaddr_l2cap	l2addr;
-	int32_t			s, m;
+	struct sockaddr_l2cap l2addr;
+	int32_t s, m;
 
 	s = socket(PF_BLUETOOTH, SOCK_SEQPACKET, BLUETOOTH_PROTO_L2CAP);
 	if (s < 0)
@@ -226,7 +230,7 @@ client_socket(bdaddr_p bdaddr, uint16_t psm)
 		return (-1);
 	}
 
-	if (fcntl(s, F_SETFL, (m|O_NONBLOCK)) < 0) {
+	if (fcntl(s, F_SETFL, (m | O_NONBLOCK)) < 0) {
 		close(s);
 		return (-1);
 	}
@@ -237,8 +241,8 @@ client_socket(bdaddr_p bdaddr, uint16_t psm)
 	l2addr.l2cap_psm = 0;
 	l2addr.l2cap_bdaddr_type = BDADDR_BREDR;
 	l2addr.l2cap_cid = 0;
-	
-	if (bind(s, (struct sockaddr *) &l2addr, sizeof(l2addr)) < 0) {
+
+	if (bind(s, (struct sockaddr *)&l2addr, sizeof(l2addr)) < 0) {
 		close(s);
 		return (-1);
 	}
@@ -246,7 +250,7 @@ client_socket(bdaddr_p bdaddr, uint16_t psm)
 	memcpy(&l2addr.l2cap_bdaddr, bdaddr, sizeof(l2addr.l2cap_bdaddr));
 	l2addr.l2cap_psm = htole16(psm);
 
-	if (connect(s, (struct sockaddr *) &l2addr, sizeof(l2addr)) < 0 &&
+	if (connect(s, (struct sockaddr *)&l2addr, sizeof(l2addr)) < 0 &&
 	    errno != EINPROGRESS) {
 		close(s);
 		return (-1);
@@ -254,4 +258,3 @@ client_socket(bdaddr_p bdaddr, uint16_t psm)
 
 	return (s);
 }
-

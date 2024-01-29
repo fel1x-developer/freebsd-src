@@ -30,7 +30,7 @@
  */
 
 #ifndef _GENERIC_EHCI_H_
-#define	_GENERIC_EHCI_H_
+#define _GENERIC_EHCI_H_
 
 extern driver_t generic_ehci_driver;
 

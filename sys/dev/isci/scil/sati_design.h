@@ -123,18 +123,21 @@ has not been drawn, but is assumed.
 - The use cases in green indicate the use case has been implemented in
   source.
 
-@image html Use_Case_Diagram__SATI__SATI_-_SPC.jpg "SCSI Primary Command Translation Use Cases"
+@image html Use_Case_Diagram__SATI__SATI_-_SPC.jpg "SCSI Primary Command
+Translation Use Cases"
 
 The SCSI Block Command (SBC) set is comprised of commands that are valid for
 block devices (e.g. disks).
 
-@image html Use_Case_Diagram__SATI__SATI_-_SBC.jpg "SCSI Block Command Translation Use Cases"
+@image html Use_Case_Diagram__SATI__SATI_-_SBC.jpg "SCSI Block Command
+Translation Use Cases"
 
 The SCSI-to-ATA Translation (SAT) specification defines a few of its own
 commands, parameter data, and log pages.  This use case diagram, however, only
 captures the SAT specific commands being translated.
 
-@image html Use_Case_Diagram__SATI__SATI_-_SAT_Specific.jpg "SCSI-to-ATA Translation Specific Use Cases"
+@image html Use_Case_Diagram__SATI__SATI_-_SAT_Specific.jpg "SCSI-to-ATA
+Translation Specific Use Cases"
 
 @section sati_class_hierarchy Class Hierarchy
 
@@ -148,12 +151,16 @@ captures the SAT specific commands being translated.
 This sequence diagram simply depicts the high-level translation sequence to
 be followed for command translations.
 
-@image html Sequence_Diagram__General_Cmd_Translation_Sequence__General_Cmd_Translation_Sequence.jpg "General Command Translation Sequence"
+@image html
+Sequence_Diagram__General_Cmd_Translation_Sequence__General_Cmd_Translation_Sequence.jpg
+"General Command Translation Sequence"
 
 This sequence diagram simply depicts the high-level translation sequence to
 be followed for response translations.
 
-@image html Sequence_Diagram__General_Rsp_Translation_Sequence__General_Rsp_Translation_Sequence.jpg "General Response Translation Sequence"
+@image html
+Sequence_Diagram__General_Rsp_Translation_Sequence__General_Rsp_Translation_Sequence.jpg
+"General Response Translation Sequence"
 
 This sequence diagram simply depicts the high-level translation sequence to
 be followed for data translations.  Some SCSI commands such as READ CAPACITY,
@@ -161,9 +168,10 @@ INQUIRY, etc. have payload data associated with them.  As a result, it is
 necessary for the ATA payload data to be translated to meet the expected SCSI
 output.
 
-@image html Sequence_Diagram__General_Data_Translation_Sequence__General_Data_Translation_Sequence.jpg "General Data Translation Sequence"
+@image html
+Sequence_Diagram__General_Data_Translation_Sequence__General_Data_Translation_Sequence.jpg
+"General Data Translation Sequence"
 
 */
 
 #endif // _SATI_DESIGN_H_
-

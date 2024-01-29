@@ -27,8 +27,11 @@
 
 #include <sys/param.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>
+
 #include <netinet/in.h>
+
+#include <arpa/inet.h>
+#include <atf-c.h>
 #include <errno.h>
 #include <netdb.h>
 #include <resolv.h>
@@ -38,15 +41,10 @@
 #include <stringlist.h>
 #include <unistd.h>
 
-#include <atf-c.h>
-
 #include "freebsd_test_suite/macros.h"
 #include "testutil.h"
 
-enum test_methods {
-	TEST_GETADDRINFO,
-	TEST_BUILD_SNAPSHOT
-};
+enum test_methods { TEST_GETADDRINFO, TEST_BUILD_SNAPSHOT };
 
 static struct addrinfo hints;
 static enum test_methods method = TEST_GETADDRINFO;
@@ -102,9 +100,9 @@ compare_addrinfo_(struct addrinfo *ai1, struct addrinfo *ai2)
 	    ai1->ai_protocol != ai2->ai_protocol ||
 	    ai1->ai_addrlen != ai2->ai_addrlen ||
 	    ((ai1->ai_addr == NULL || ai2->ai_addr == NULL) &&
-	     ai1->ai_addr != ai2->ai_addr) ||
+		ai1->ai_addr != ai2->ai_addr) ||
 	    ((ai1->ai_canonname == NULL || ai2->ai_canonname == NULL) &&
-	     ai1->ai_canonname != ai2->ai_canonname))
+		ai1->ai_canonname != ai2->ai_canonname))
 		return (-1);
 
 	if (ai1->ai_canonname != NULL &&
@@ -158,16 +156,15 @@ sdump_addrinfo(struct addrinfo *ai, char *buffer, size_t buflen)
 {
 	int written, i;
 
-	written = snprintf(buffer, buflen, "%d %d %d %d %d ",
-		ai->ai_flags, ai->ai_family, ai->ai_socktype, ai->ai_protocol,
-		ai->ai_addrlen);
+	written = snprintf(buffer, buflen, "%d %d %d %d %d ", ai->ai_flags,
+	    ai->ai_family, ai->ai_socktype, ai->ai_protocol, ai->ai_addrlen);
 	buffer += written;
 	if (written > (int)buflen)
 		return;
 	buflen -= written;
 
 	written = snprintf(buffer, buflen, "%s ",
-		ai->ai_canonname == NULL ? "(null)" : ai->ai_canonname);
+	    ai->ai_canonname == NULL ? "(null)" : ai->ai_canonname);
 	buffer += written;
 	if (written > (int)buflen)
 		return;
@@ -401,7 +398,7 @@ addrinfo_read_hostlist_func(struct addrinfo *ai, char *line)
 	} else {
 		printf("not found\n");
 
- 		memset(ai, 0, sizeof(struct addrinfo));
+		memset(ai, 0, sizeof(struct addrinfo));
 	}
 	return (0);
 }
@@ -431,12 +428,12 @@ run_tests(char *hostlist_file, const char *snapshot_file, int ai_family)
 	TEST_DATA_INIT(addrinfo, &td_snap, clone_addrinfo, free_addrinfo);
 
 	ATF_REQUIRE_MSG(access(hostlist_file, R_OK) == 0,
-		"can't access the hostlist file %s\n", hostlist_file);
+	    "can't access the hostlist file %s\n", hostlist_file);
 
 	printf("building host lists from %s\n", hostlist_file);
 
 	rv = TEST_SNAPSHOT_FILE_READ(addrinfo, hostlist_file, &td,
-		addrinfo_read_hostlist_func);
+	    addrinfo_read_hostlist_func);
 	if (rv != 0)
 		goto fin;
 
@@ -446,14 +443,15 @@ run_tests(char *hostlist_file, const char *snapshot_file, int ai_family)
 				method = TEST_BUILD_SNAPSHOT;
 			else {
 				printf("can't access the snapshot "
-				    "file %s\n", snapshot_file);
+				       "file %s\n",
+				    snapshot_file);
 
 				rv = -1;
 				goto fin;
 			}
 		} else {
 			rv = TEST_SNAPSHOT_FILE_READ(addrinfo, snapshot_file,
-				&td_snap, addrinfo_read_snapshot_func);
+			    &td_snap, addrinfo_read_snapshot_func);
 			if (rv != 0) {
 				printf("error reading snapshot file: %s\n",
 				    strerror(errno));
@@ -466,12 +464,12 @@ run_tests(char *hostlist_file, const char *snapshot_file, int ai_family)
 	case TEST_GETADDRINFO:
 		if (snapshot_file != NULL)
 			ATF_CHECK(DO_2PASS_TEST(addrinfo, &td, &td_snap,
-				compare_addrinfo, NULL) == 0);
+				      compare_addrinfo, NULL) == 0);
 		break;
 	case TEST_BUILD_SNAPSHOT:
 		if (snapshot_file != NULL) {
 			ATF_CHECK(TEST_SNAPSHOT_FILE_WRITE(addrinfo,
-			    snapshot_file, &td, sdump_addrinfo) == 0);
+				      snapshot_file, &td, sdump_addrinfo) == 0);
 		}
 		break;
 	default:
@@ -485,14 +483,16 @@ fin:
 	free(snapshot_file_copy);
 }
 
-#define	HOSTLIST_FILE	"mach"
-#define	RUN_TESTS(tc, snapshot_file, ai_family) do {			\
-	char *_hostlist_file;						\
-	ATF_REQUIRE(0 < asprintf(&_hostlist_file, "%s/%s",		\
-	    atf_tc_get_config_var(tc, "srcdir"), HOSTLIST_FILE));	\
-	run_tests(_hostlist_file, snapshot_file, ai_family);		\
-	free(_hostlist_file);						\
-} while (0)
+#define HOSTLIST_FILE "mach"
+#define RUN_TESTS(tc, snapshot_file, ai_family)                          \
+	do {                                                             \
+		char *_hostlist_file;                                    \
+		ATF_REQUIRE(0 < asprintf(&_hostlist_file, "%s/%s",       \
+				    atf_tc_get_config_var(tc, "srcdir"), \
+				    HOSTLIST_FILE));                     \
+		run_tests(_hostlist_file, snapshot_file, ai_family);     \
+		free(_hostlist_file);                                    \
+	} while (0)
 
 ATF_TC_WITHOUT_HEAD(pf_unspec);
 ATF_TC_BODY(pf_unspec, tc)

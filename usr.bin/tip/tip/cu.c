@@ -34,7 +34,7 @@
 
 #include "tip.h"
 
-static void	cuusage(void);
+static void cuusage(void);
 
 /*
  * Botch the interface to look like cu's
@@ -51,15 +51,15 @@ cumain(int argc, char *argv[])
 		cuusage();
 	CU = DV = NOSTR;
 	BR = DEFBR;
-	parity = 0;	/* none */
+	parity = 0; /* none */
 
 	/*
 	 * We want to accept -# as a speed.  It's easiest to look through
 	 * the arguments, replace -# with -s#, and let getopt() handle it.
 	 */
 	for (i = 1; i < argc; i++) {
-		if (argv[i][0] == '-' &&
-		    argv[i][1] >= '0' && argv[i][1] <= '9') {
+		if (argv[i][0] == '-' && argv[i][1] >= '0' &&
+		    argv[i][1] <= '9') {
 			asprintf(&cp, "-s%s", argv[i] + 1);
 			if (cp == NULL) {
 				fprintf(stderr,
@@ -106,15 +106,15 @@ cumain(int argc, char *argv[])
 			break;
 		case 'o':
 			if (parity != 0)
-				parity = 0;	/* -e -o */
+				parity = 0; /* -e -o */
 			else
-				parity = 1;	/* odd */
+				parity = 1; /* odd */
 			break;
 		case 'e':
 			if (parity != 0)
-				parity = 0;	/* -o -e */
+				parity = 0; /* -o -e */
 			else
-				parity = -1;	/* even */
+				parity = -1; /* even */
 			break;
 		default:
 			cuusage();
@@ -172,8 +172,7 @@ cumain(int argc, char *argv[])
 	}
 	setboolean(value(VERBOSE), FALSE);
 	if (HW && ttysetup(BR)) {
-		fprintf(stderr, "%s: unsupported speed %ld\n",
-		    __progname, BR);
+		fprintf(stderr, "%s: unsupported speed %ld\n", __progname, BR);
 		daemon_uid();
 		(void)uu_unlock(uucplock);
 		exit(3);
@@ -185,8 +184,7 @@ cumain(int argc, char *argv[])
 		exit(1);
 	}
 	if (!HW && ttysetup(BR)) {
-		fprintf(stderr, "%s: unsupported speed %ld\n",
-		    __progname, BR);
+		fprintf(stderr, "%s: unsupported speed %ld\n", __progname, BR);
 		daemon_uid();
 		(void)uu_unlock(uucplock);
 		exit(3);
@@ -196,7 +194,8 @@ cumain(int argc, char *argv[])
 static void
 cuusage(void)
 {
-	fprintf(stderr, "usage: cu [-ehot] [-a acu] [-l line] "
+	fprintf(stderr,
+	    "usage: cu [-ehot] [-a acu] [-l line] "
 	    "[-s speed | -speed] [phone-number]\n");
 	exit(8);
 }

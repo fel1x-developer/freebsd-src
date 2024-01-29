@@ -1,8 +1,8 @@
 
-#include <unistd.h>
 #include <fcntl.h>
+#include <unistd.h>
 
-static uint32_t buf[512/4];
+static uint32_t buf[512 / 4];
 main()
 {
 	u_int u = 0;
@@ -14,5 +14,5 @@ main()
 
 		printf("%u %u\n", u++, buf[0]);
 	}
-	exit (0);
+	exit(0);
 }

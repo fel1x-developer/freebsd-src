@@ -51,53 +51,52 @@
 #include <sys/endian.h>
 
 #include <dirent.h>
+#include <fs/msdosfs/bpb.h>
+#include <fs/msdosfs/msdosfsmount.h>
 #include <stdio.h>
 #include <string.h>
 
-#include <fs/msdosfs/bpb.h>
-#include "msdos/direntry.h"
-#include <fs/msdosfs/msdosfsmount.h>
-
 #include "makefs.h"
 #include "msdos.h"
+#include "msdos/direntry.h"
 
 static int char8ucs2str(const uint8_t *in, int n, uint16_t *out, int m);
 static void ucs2pad(uint16_t *buf, int len, int size);
 static int char8match(uint16_t *w1, uint16_t *w2, int n);
 
 static const u_char unix2dos[256] = {
-	0,    0,    0,    0,    0,    0,    0,    0,	/* 00-07 */
-	0,    0,    0,    0,    0,    0,    0,    0,	/* 08-0f */
-	0,    0,    0,    0,    0,    0,    0,    0,	/* 10-17 */
-	0,    0,    0,    0,    0,    0,    0,    0,	/* 18-1f */
-	0,    '!',  0,    '#',  '$',  '%',  '&',  '\'',	/* 20-27 */
-	'(',  ')',  0,    '+',  0,    '-',  0,    0,	/* 28-2f */
-	'0',  '1',  '2',  '3',  '4',  '5',  '6',  '7',	/* 30-37 */
-	'8',  '9',  0,    0,    0,    0,    0,    0,	/* 38-3f */
-	'@',  'A',  'B',  'C',  'D',  'E',  'F',  'G',	/* 40-47 */
-	'H',  'I',  'J',  'K',  'L',  'M',  'N',  'O',	/* 48-4f */
-	'P',  'Q',  'R',  'S',  'T',  'U',  'V',  'W',	/* 50-57 */
-	'X',  'Y',  'Z',  0,    0,    0,    '^',  '_',	/* 58-5f */
-	'`',  'A',  'B',  'C',  'D',  'E',  'F',  'G',	/* 60-67 */
-	'H',  'I',  'J',  'K',  'L',  'M',  'N',  'O',	/* 68-6f */
-	'P',  'Q',  'R',  'S',  'T',  'U',  'V',  'W',	/* 70-77 */
-	'X',  'Y',  'Z',  '{',  0,    '}',  '~',  0,	/* 78-7f */
-	0,    0,    0,    0,    0,    0,    0,    0,	/* 80-87 */
-	0,    0,    0,    0,    0,    0,    0,    0,	/* 88-8f */
-	0,    0,    0,    0,    0,    0,    0,    0,	/* 90-97 */
-	0,    0,    0,    0,    0,    0,    0,    0,	/* 98-9f */
-	0,    0xad, 0xbd, 0x9c, 0xcf, 0xbe, 0xdd, 0xf5,	/* a0-a7 */
-	0xf9, 0xb8, 0xa6, 0xae, 0xaa, 0xf0, 0xa9, 0xee,	/* a8-af */
-	0xf8, 0xf1, 0xfd, 0xfc, 0xef, 0xe6, 0xf4, 0xfa,	/* b0-b7 */
-	0xf7, 0xfb, 0xa7, 0xaf, 0xac, 0xab, 0xf3, 0xa8,	/* b8-bf */
-	0xb7, 0xb5, 0xb6, 0xc7, 0x8e, 0x8f, 0x92, 0x80,	/* c0-c7 */
-	0xd4, 0x90, 0xd2, 0xd3, 0xde, 0xd6, 0xd7, 0xd8,	/* c8-cf */
-	0xd1, 0xa5, 0xe3, 0xe0, 0xe2, 0xe5, 0x99, 0x9e,	/* d0-d7 */
-	0x9d, 0xeb, 0xe9, 0xea, 0x9a, 0xed, 0xe8, 0xe1,	/* d8-df */
-	0xb7, 0xb5, 0xb6, 0xc7, 0x8e, 0x8f, 0x92, 0x80,	/* e0-e7 */
-	0xd4, 0x90, 0xd2, 0xd3, 0xde, 0xd6, 0xd7, 0xd8,	/* e8-ef */
-	0xd1, 0xa5, 0xe3, 0xe0, 0xe2, 0xe5, 0x99, 0xf6,	/* f0-f7 */
-	0x9d, 0xeb, 0xe9, 0xea, 0x9a, 0xed, 0xe8, 0x98,	/* f8-ff */
+	0, 0, 0, 0, 0, 0, 0, 0,				/* 00-07 */
+	0, 0, 0, 0, 0, 0, 0, 0,				/* 08-0f */
+	0, 0, 0, 0, 0, 0, 0, 0,				/* 10-17 */
+	0, 0, 0, 0, 0, 0, 0, 0,				/* 18-1f */
+	0, '!', 0, '#', '$', '%', '&', '\'',		/* 20-27 */
+	'(', ')', 0, '+', 0, '-', 0, 0,			/* 28-2f */
+	'0', '1', '2', '3', '4', '5', '6', '7',		/* 30-37 */
+	'8', '9', 0, 0, 0, 0, 0, 0,			/* 38-3f */
+	'@', 'A', 'B', 'C', 'D', 'E', 'F', 'G',		/* 40-47 */
+	'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',		/* 48-4f */
+	'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W',		/* 50-57 */
+	'X', 'Y', 'Z', 0, 0, 0, '^', '_',		/* 58-5f */
+	'`', 'A', 'B', 'C', 'D', 'E', 'F', 'G',		/* 60-67 */
+	'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',		/* 68-6f */
+	'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W',		/* 70-77 */
+	'X', 'Y', 'Z', '{', 0, '}', '~', 0,		/* 78-7f */
+	0, 0, 0, 0, 0, 0, 0, 0,				/* 80-87 */
+	0, 0, 0, 0, 0, 0, 0, 0,				/* 88-8f */
+	0, 0, 0, 0, 0, 0, 0, 0,				/* 90-97 */
+	0, 0, 0, 0, 0, 0, 0, 0,				/* 98-9f */
+	0, 0xad, 0xbd, 0x9c, 0xcf, 0xbe, 0xdd, 0xf5,	/* a0-a7 */
+	0xf9, 0xb8, 0xa6, 0xae, 0xaa, 0xf0, 0xa9, 0xee, /* a8-af */
+	0xf8, 0xf1, 0xfd, 0xfc, 0xef, 0xe6, 0xf4, 0xfa, /* b0-b7 */
+	0xf7, 0xfb, 0xa7, 0xaf, 0xac, 0xab, 0xf3, 0xa8, /* b8-bf */
+	0xb7, 0xb5, 0xb6, 0xc7, 0x8e, 0x8f, 0x92, 0x80, /* c0-c7 */
+	0xd4, 0x90, 0xd2, 0xd3, 0xde, 0xd6, 0xd7, 0xd8, /* c8-cf */
+	0xd1, 0xa5, 0xe3, 0xe0, 0xe2, 0xe5, 0x99, 0x9e, /* d0-d7 */
+	0x9d, 0xeb, 0xe9, 0xea, 0x9a, 0xed, 0xe8, 0xe1, /* d8-df */
+	0xb7, 0xb5, 0xb6, 0xc7, 0x8e, 0x8f, 0x92, 0x80, /* e0-e7 */
+	0xd4, 0x90, 0xd2, 0xd3, 0xde, 0xd6, 0xd7, 0xd8, /* e8-ef */
+	0xd1, 0xa5, 0xe3, 0xe0, 0xe2, 0xe5, 0x99, 0xf6, /* f0-f7 */
+	0x9d, 0xeb, 0xe9, 0xea, 0x9a, 0xed, 0xe8, 0x98, /* f8-ff */
 };
 
 static const u_char u2l[256] = {
@@ -105,18 +104,18 @@ static const u_char u2l[256] = {
 	0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, /* 08-0f */
 	0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, /* 10-17 */
 	0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, /* 18-1f */
-	' ',  '!',  '"',  '#',  '$',  '%',  '&', '\'', /* 20-27 */
-	'(',  ')',  '*',  '+',  ',',  '-',  '.',  '/', /* 28-2f */
-	'0',  '1',  '2',  '3',  '4',  '5',  '6',  '7', /* 30-37 */
-	'8',  '9',  ':',  ';',  '<',  '=',  '>',  '?', /* 38-3f */
-	'@',  'a',  'b',  'c',  'd',  'e',  'f',  'g', /* 40-47 */
-	'h',  'i',  'j',  'k',  'l',  'm',  'n',  'o', /* 48-4f */
-	'p',  'q',  'r',  's',  't',  'u',  'v',  'w', /* 50-57 */
-	'x',  'y',  'z',  '[', '\\',  ']',  '^',  '_', /* 58-5f */
-	'`',  'a',  'b',  'c',  'd',  'e',  'f',  'g', /* 60-67 */
-	'h',  'i',  'j',  'k',  'l',  'm',  'n',  'o', /* 68-6f */
-	'p',  'q',  'r',  's',  't',  'u',  'v',  'w', /* 70-77 */
-	'x',  'y',  'z',  '{',  '|',  '}',  '~', 0x7f, /* 78-7f */
+	' ', '!', '"', '#', '$', '%', '&', '\'',	/* 20-27 */
+	'(', ')', '*', '+', ',', '-', '.', '/',		/* 28-2f */
+	'0', '1', '2', '3', '4', '5', '6', '7',		/* 30-37 */
+	'8', '9', ':', ';', '<', '=', '>', '?',		/* 38-3f */
+	'@', 'a', 'b', 'c', 'd', 'e', 'f', 'g',		/* 40-47 */
+	'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o',		/* 48-4f */
+	'p', 'q', 'r', 's', 't', 'u', 'v', 'w',		/* 50-57 */
+	'x', 'y', 'z', '[', '\\', ']', '^', '_',	/* 58-5f */
+	'`', 'a', 'b', 'c', 'd', 'e', 'f', 'g',		/* 60-67 */
+	'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o',		/* 68-6f */
+	'p', 'q', 'r', 's', 't', 'u', 'v', 'w',		/* 70-77 */
+	'x', 'y', 'z', '{', '|', '}', '~', 0x7f,	/* 78-7f */
 	0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, /* 80-87 */
 	0x88, 0x89, 0x8a, 0x8b, 0x8c, 0x8d, 0x8e, 0x8f, /* 88-8f */
 	0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, /* 90-97 */
@@ -363,8 +362,7 @@ unix2dosfn(const u_char *un, u_char dn[12], size_t unlen, u_int gen)
 		else
 			l = unlen - (dp - un);
 		for (i = 0, j = 8; i < l && j < 11; i++, j++) {
-			if (dp[i] != (dn[j] = unix2dos[dp[i]])
-			    && conv != 3)
+			if (dp[i] != (dn[j] = unix2dos[dp[i]]) && conv != 3)
 				conv = 2;
 			if (!dn[j]) {
 				conv = 3;
@@ -375,7 +373,8 @@ unix2dosfn(const u_char *un, u_char dn[12], size_t unlen, u_int gen)
 			conv = 3;
 		dp--;
 	} else {
-		for (dp = cp; *--dp == ' ' || *dp == '.';);
+		for (dp = cp; *--dp == ' ' || *dp == '.';)
+			;
 		dp++;
 	}
 
@@ -389,8 +388,7 @@ unix2dosfn(const u_char *un, u_char dn[12], size_t unlen, u_int gen)
 			dn[j] = ' ';
 		else
 			dn[j] = unix2dos[*un];
-		if ((*un != dn[j])
-		    && conv != 3)
+		if ((*un != dn[j]) && conv != 3)
 			conv = 2;
 		if (!dn[j]) {
 			conv = 3;
@@ -430,7 +428,8 @@ unix2dosfn(const u_char *un, u_char dn[12], size_t unlen, u_int gen)
 		*--wcp = gen % 10 + '0';
 	if (gen)
 		return 0;
-	for (i = 8; dn[--i] == ' ';);
+	for (i = 8; dn[--i] == ' ';)
+		;
 	i++;
 	if (gentext + sizeof(gentext) - wcp + 1 > 8 - i)
 		i = 8 - (gentext + sizeof(gentext) - wcp + 1);
@@ -468,7 +467,7 @@ static void
 ucs2pad(uint16_t *buf, int len, int size)
 {
 
-	if (len < size-1)
+	if (len < size - 1)
 		buf[len++] = 0x0000;
 	while (len < size)
 		buf[len++] = 0xffff;

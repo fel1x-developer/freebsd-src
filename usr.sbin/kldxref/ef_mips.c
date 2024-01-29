@@ -90,14 +90,14 @@ ef_mips_reloc(struct elf_file *ef, const void *reldata, Elf_Type reltype,
 	}
 
 	switch (rtype) {
-	case R_MIPS_64:		/* S + A */
+	case R_MIPS_64: /* S + A */
 		addr = EF_SYMADDR(ef, symidx) + addend;
 		if (elf_encoding(ef) == ELFDATA2LSB)
 			le64enc(where, addr);
 		else
 			be64enc(where, addr);
 		break;
-	case R_MIPS_32:		/* S + A */
+	case R_MIPS_32: /* S + A */
 		addr = EF_SYMADDR(ef, symidx) + addend;
 		if (elf_encoding(ef) == ELFDATA2LSB)
 			le32enc(where, addr);

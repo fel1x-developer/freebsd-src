@@ -28,19 +28,19 @@
  * SUCH DAMAGE.
  */
 
+#include <netinet/in.h>
+
 #include <assert.h>
+#include <md5.h>
+#include <resolv.h>
 #include <stdlib.h>
 #include <string.h>
-#include <netinet/in.h>
-#include <resolv.h>
-#include <md5.h>
 
 #include "libiscsiutil.h"
 
 static void
-chap_compute_md5(const char id, const char *secret,
-    const void *challenge, size_t challenge_len, void *response,
-    size_t response_len)
+chap_compute_md5(const char id, const char *secret, const void *challenge,
+    size_t challenge_len, void *response, size_t response_len)
 {
 	MD5_CTX ctx;
 
@@ -139,7 +139,7 @@ chap_hex2bin(const char *hex, void **binp, size_t *bin_lenp)
 
 	if (strncasecmp(hex, "0x", strlen("0x")) != 0) {
 		log_warnx("malformed variable, should start with \"0x\""
-		    " or \"0b\"");
+			  " or \"0b\"");
 		return (-1);
 	}
 
@@ -147,7 +147,7 @@ chap_hex2bin(const char *hex, void **binp, size_t *bin_lenp)
 	hex_len = strlen(hex);
 	if (hex_len < 1) {
 		log_warnx("malformed variable; doesn't contain anything "
-		    "but \"0x\"");
+			  "but \"0x\"");
 		return (-1);
 	}
 
@@ -272,7 +272,7 @@ chap_receive_bin(struct chap *chap, void *response, size_t response_len)
 
 	if (response_len != sizeof(chap->chap_response)) {
 		log_debugx("got CHAP response with invalid length; "
-		    "got %zd, should be %zd",
+			   "got %zd, should be %zd",
 		    response_len, sizeof(chap->chap_response));
 		return (1);
 	}
@@ -306,12 +306,12 @@ chap_authenticate(struct chap *chap, const char *secret)
 {
 	char expected_response[CHAP_DIGEST_LEN];
 
-	chap_compute_md5(chap->chap_id, secret,
-	    chap->chap_challenge, sizeof(chap->chap_challenge),
-	    expected_response, sizeof(expected_response));
+	chap_compute_md5(chap->chap_id, secret, chap->chap_challenge,
+	    sizeof(chap->chap_challenge), expected_response,
+	    sizeof(expected_response));
 
-	if (memcmp(chap->chap_response,
-	    expected_response, sizeof(expected_response)) != 0) {
+	if (memcmp(chap->chap_response, expected_response,
+		sizeof(expected_response)) != 0) {
 		return (-1);
 	}
 
@@ -377,8 +377,8 @@ rchap_receive(struct rchap *rchap, const char *id, const char *challenge)
 }
 
 static void
-rchap_get_response_bin(struct rchap *rchap,
-    void **responsep, size_t *response_lenp)
+rchap_get_response_bin(struct rchap *rchap, void **responsep,
+    size_t *response_lenp)
 {
 	void *response_bin;
 	size_t response_bin_len = CHAP_DIGEST_LEN;
@@ -388,8 +388,8 @@ rchap_get_response_bin(struct rchap *rchap,
 		log_err(1, "calloc");
 
 	chap_compute_md5(rchap->rchap_id, rchap->rchap_secret,
-	    rchap->rchap_challenge, rchap->rchap_challenge_len,
-	    response_bin, response_bin_len);
+	    rchap->rchap_challenge, rchap->rchap_challenge_len, response_bin,
+	    response_bin_len);
 
 	*responsep = response_bin;
 	*response_lenp = response_bin_len;

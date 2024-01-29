@@ -31,9 +31,9 @@
 
 #include <capsicum_helpers.h>
 #include <err.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 void usage(void);
 

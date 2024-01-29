@@ -23,33 +23,33 @@
  * SUCH DAMAGE.
  */
 
-#include "opt_rss.h"
 #include "opt_ratelimit.h"
+#include "opt_rss.h"
+
+#include <dev/mlx5/mlx5_ib/mlx5_ib.h>
 
 #include <linux/kref.h>
 #include <linux/slab.h>
 #include <rdma/ib_umem.h>
 
-#include <dev/mlx5/mlx5_ib/mlx5_ib.h>
-
 struct mlx5_ib_user_db_page {
-	struct list_head	list;
-	struct ib_umem	       *umem;
-	unsigned long		user_virt;
-	int			refcnt;
+	struct list_head list;
+	struct ib_umem *umem;
+	unsigned long user_virt;
+	int refcnt;
 };
 
-int mlx5_ib_db_map_user(struct mlx5_ib_ucontext *context, unsigned long virt,
-			struct mlx5_db *db)
+int
+mlx5_ib_db_map_user(struct mlx5_ib_ucontext *context, unsigned long virt,
+    struct mlx5_db *db)
 {
 	struct mlx5_ib_user_db_page *page;
 	int err = 0;
 
 	mutex_lock(&context->db_page_mutex);
 
-	list_for_each_entry(page, &context->db_page_list, list)
-		if (page->user_virt == (virt & PAGE_MASK))
-			goto found;
+	list_for_each_entry(page, &context->db_page_list,
+	    list) if (page->user_virt == (virt & PAGE_MASK)) goto found;
 
 	page = kmalloc(sizeof(*page), GFP_KERNEL);
 	if (!page) {
@@ -58,9 +58,9 @@ int mlx5_ib_db_map_user(struct mlx5_ib_ucontext *context, unsigned long virt,
 	}
 
 	page->user_virt = (virt & PAGE_MASK);
-	page->refcnt    = 0;
-	page->umem      = ib_umem_get(&context->ibucontext, virt & PAGE_MASK,
-				      PAGE_SIZE, 0, 0);
+	page->refcnt = 0;
+	page->umem = ib_umem_get(&context->ibucontext, virt & PAGE_MASK,
+	    PAGE_SIZE, 0, 0);
 	if (IS_ERR(page->umem)) {
 		err = PTR_ERR(page->umem);
 		kfree(page);
@@ -80,7 +80,8 @@ out:
 	return err;
 }
 
-void mlx5_ib_db_unmap_user(struct mlx5_ib_ucontext *context, struct mlx5_db *db)
+void
+mlx5_ib_db_unmap_user(struct mlx5_ib_ucontext *context, struct mlx5_db *db)
 {
 	mutex_lock(&context->db_page_mutex);
 

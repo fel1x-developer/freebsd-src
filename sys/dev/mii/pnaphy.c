@@ -45,53 +45,44 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
-#include <sys/errno.h>
-#include <sys/module.h>
 #include <sys/bus.h>
+#include <sys/errno.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
+#include <sys/socket.h>
+
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
 
 #include <net/if.h>
 #include <net/if_media.h>
 
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include "miidevs.h"
-
 #include "miibus_if.h"
+#include "miidevs.h"
 
 static int pnaphy_probe(device_t);
 static int pnaphy_attach(device_t);
 
 static device_method_t pnaphy_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		pnaphy_probe),
-	DEVMETHOD(device_attach,	pnaphy_attach),
-	DEVMETHOD(device_detach,	mii_phy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, pnaphy_probe),
+	DEVMETHOD(device_attach, pnaphy_attach),
+	DEVMETHOD(device_detach, mii_phy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), DEVMETHOD_END
 };
 
-static driver_t pnaphy_driver = {
-	"pnaphy",
-	pnaphy_methods,
-	sizeof(struct mii_softc)
-};
+static driver_t pnaphy_driver = { "pnaphy", pnaphy_methods,
+	sizeof(struct mii_softc) };
 
 DRIVER_MODULE(pnaphy, miibus, pnaphy_driver, 0, 0);
 
-static int	pnaphy_service(struct mii_softc *, struct mii_data *,int);
+static int pnaphy_service(struct mii_softc *, struct mii_data *, int);
 
-static const struct mii_phydesc pnaphys[] = {
-	MII_PHY_DESC(yyAMD, 79c901home),
-	MII_PHY_END
-};
+static const struct mii_phydesc pnaphys[] = { MII_PHY_DESC(yyAMD, 79c901home),
+	MII_PHY_END };
 
-static const struct mii_phy_funcs pnaphy_funcs = {
-	pnaphy_service,
-	ukphy_status,
-	mii_phy_reset
-};
+static const struct mii_phy_funcs pnaphy_funcs = { pnaphy_service, ukphy_status,
+	mii_phy_reset };
 
 static int
 pnaphy_probe(device_t dev)
@@ -104,8 +95,8 @@ static int
 pnaphy_attach(device_t dev)
 {
 
-	mii_phy_dev_attach(dev, MIIF_NOISOLATE | MIIF_IS_HPNA |
-	   MIIF_NOMANPAUSE, &pnaphy_funcs, 1);
+	mii_phy_dev_attach(dev, MIIF_NOISOLATE | MIIF_IS_HPNA | MIIF_NOMANPAUSE,
+	    &pnaphy_funcs, 1);
 	return (0);
 }
 

@@ -28,8 +28,12 @@
 #include <sys/param.h>
 #include <sys/socket.h>
 
-#include "ipfw2.h"
+#include <net/if.h>
+#include <netinet/in.h>
+#include <netinet/ip_fw.h>
+#include <netinet6/ip_fw_nptv6.h>
 
+#include <arpa/inet.h>
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
@@ -39,14 +43,9 @@
 #include <string.h>
 #include <sysexits.h>
 
-#include <net/if.h>
-#include <netinet/in.h>
-#include <netinet/ip_fw.h>
-#include <netinet6/ip_fw_nptv6.h>
-#include <arpa/inet.h>
+#include "ipfw2.h"
 
-
-typedef int (nptv6_cb_t)(ipfw_nptv6_cfg *i, const char *name, uint8_t set);
+typedef int(nptv6_cb_t)(ipfw_nptv6_cfg *i, const char *name, uint8_t set);
 static int nptv6_foreach(nptv6_cb_t *f, const char *name, uint8_t set,
     int sort);
 
@@ -57,19 +56,11 @@ static void nptv6_reset_stats(const char *name, uint8_t set);
 static int nptv6_show_cb(ipfw_nptv6_cfg *cfg, const char *name, uint8_t set);
 static int nptv6_destroy_cb(ipfw_nptv6_cfg *cfg, const char *name, uint8_t set);
 
-static struct _s_x nptv6cmds[] = {
-      { "create",	TOK_CREATE },
-      { "destroy",	TOK_DESTROY },
-      { "list",		TOK_LIST },
-      { "show",		TOK_LIST },
-      { "stats",	TOK_STATS },
-      { NULL, 0 }
-};
+static struct _s_x nptv6cmds[] = { { "create", TOK_CREATE },
+	{ "destroy", TOK_DESTROY }, { "list", TOK_LIST }, { "show", TOK_LIST },
+	{ "stats", TOK_STATS }, { NULL, 0 } };
 
-static struct _s_x nptv6statscmds[] = {
-      { "reset",	TOK_RESET },
-      { NULL, 0 }
-};
+static struct _s_x nptv6statscmds[] = { { "reset", TOK_RESET }, { NULL, 0 } };
 
 /*
  * This one handles all NPTv6-related commands
@@ -78,7 +69,7 @@ static struct _s_x nptv6statscmds[] = {
  *	ipfw [set N] nptv6 {NAME | all} destroy
  *	ipfw [set N] nptv6 {NAME | all} {list | show}
  */
-#define	nptv6_check_name	table_check_name
+#define nptv6_check_name table_check_name
 void
 ipfw_nptv6_handler(int ac, char *av[])
 {
@@ -90,7 +81,8 @@ ipfw_nptv6_handler(int ac, char *av[])
 		set = g_co.use_set - 1;
 	else
 		set = 0;
-	ac--; av++;
+	ac--;
+	av++;
 
 	NEED1("nptv6 needs instance name");
 	name = *av;
@@ -101,7 +93,8 @@ ipfw_nptv6_handler(int ac, char *av[])
 			errx(EX_USAGE, "nptv6 instance name %s is invalid",
 			    name);
 	}
-	ac--; av++;
+	ac--;
+	av++;
 	NEED1("nptv6 needs command");
 
 	tcmd = get_token(nptv6cmds, *av, "nptv6 command");
@@ -109,7 +102,8 @@ ipfw_nptv6_handler(int ac, char *av[])
 		errx(EX_USAGE, "nptv6 instance name required");
 	switch (tcmd) {
 	case TOK_CREATE:
-		ac--; av++;
+		ac--;
+		av++;
 		nptv6_create(name, set, ac, av);
 		break;
 	case TOK_LIST:
@@ -122,7 +116,8 @@ ipfw_nptv6_handler(int ac, char *av[])
 			nptv6_destroy(name, set);
 		break;
 	case TOK_STATS:
-		ac--; av++;
+		ac--;
+		av++;
 		if (ac == 0) {
 			nptv6_stats(name, set);
 			break;
@@ -132,7 +127,6 @@ ipfw_nptv6_handler(int ac, char *av[])
 			nptv6_reset_stats(name, set);
 	}
 }
-
 
 static void
 nptv6_fill_ntlv(ipfw_obj_ntlv *ntlv, const char *name, uint8_t set)
@@ -145,14 +139,9 @@ nptv6_fill_ntlv(ipfw_obj_ntlv *ntlv, const char *name, uint8_t set)
 	strlcpy(ntlv->name, name, sizeof(ntlv->name));
 }
 
-static struct _s_x nptv6newcmds[] = {
-      { "int_prefix",	TOK_INTPREFIX },
-      { "ext_prefix",	TOK_EXTPREFIX },
-      { "prefixlen",	TOK_PREFIXLEN },
-      { "ext_if",	TOK_EXTIF },
-      { NULL, 0 }
-};
-
+static struct _s_x nptv6newcmds[] = { { "int_prefix", TOK_INTPREFIX },
+	{ "ext_prefix", TOK_EXTPREFIX }, { "prefixlen", TOK_PREFIXLEN },
+	{ "ext_if", TOK_EXTIF }, { NULL, 0 } };
 
 static void
 nptv6_parse_prefix(const char *arg, struct in6_addr *prefix, int *len)
@@ -179,9 +168,9 @@ nptv6_parse_prefix(const char *arg, struct in6_addr *prefix, int *len)
  * ipfw nptv6 <NAME> create int_prefix <prefix> ext_prefix <prefix>
  * Request: [ ipfw_obj_lheader ipfw_nptv6_cfg ]
  */
-#define	NPTV6_HAS_INTPREFIX	0x01
-#define	NPTV6_HAS_EXTPREFIX	0x02
-#define	NPTV6_HAS_PREFIXLEN	0x04
+#define NPTV6_HAS_INTPREFIX 0x01
+#define NPTV6_HAS_EXTPREFIX 0x02
+#define NPTV6_HAS_PREFIXLEN 0x04
 static void
 nptv6_create(const char *name, uint8_t set, int ac, char *av[])
 {
@@ -200,7 +189,8 @@ nptv6_create(const char *name, uint8_t set, int ac, char *av[])
 	flags = 0;
 	while (ac > 0) {
 		tcmd = get_token(nptv6newcmds, *av, "option");
-		ac--; av++;
+		ac--;
+		av++;
 
 		switch (tcmd) {
 		case TOK_INTPREFIX:
@@ -209,7 +199,8 @@ nptv6_create(const char *name, uint8_t set, int ac, char *av[])
 			flags |= NPTV6_HAS_INTPREFIX;
 			if (plen > 0)
 				goto check_prefix;
-			ac--; av++;
+			ac--;
+			av++;
 			break;
 		case TOK_EXTPREFIX:
 			if (flags & NPTV6_HAS_EXTPREFIX)
@@ -220,7 +211,8 @@ nptv6_create(const char *name, uint8_t set, int ac, char *av[])
 			flags |= NPTV6_HAS_EXTPREFIX;
 			if (plen > 0)
 				goto check_prefix;
-			ac--; av++;
+			ac--;
+			av++;
 			break;
 		case TOK_EXTIF:
 			if (flags & NPTV6_HAS_EXTPREFIX)
@@ -232,24 +224,26 @@ nptv6_create(const char *name, uint8_t set, int ac, char *av[])
 			flags |= NPTV6_HAS_EXTPREFIX;
 			cfg->flags |= NPTV6_DYNAMIC_PREFIX;
 			strncpy(cfg->if_name, *av, sizeof(cfg->if_name));
-			ac--; av++;
+			ac--;
+			av++;
 			break;
 		case TOK_PREFIXLEN:
 			NEED1("IPv6 prefix length required");
 			plen = strtol(*av, &p, 10);
-check_prefix:
+		check_prefix:
 			if (*p != '\0' || plen < 8 || plen > 64)
 				errx(EX_USAGE, "wrong prefix length: %s", *av);
 			/* RFC 6296 Sec. 3.1 */
 			if (cfg->plen > 0 && cfg->plen != plen) {
 				warnx("Prefix length mismatch (%d vs %d).  "
-				    "It was extended up to %d",
+				      "It was extended up to %d",
 				    cfg->plen, plen, MAX(plen, cfg->plen));
 				plen = MAX(plen, cfg->plen);
 			}
 			cfg->plen = plen;
 			flags |= NPTV6_HAS_PREFIXLEN;
-			ac--; av++;
+			ac--;
+			av++;
 			break;
 		}
 	}
@@ -385,7 +379,6 @@ nptv6_destroy_cb(ipfw_nptv6_cfg *cfg, const char *name __unused, uint8_t set)
 	return (0);
 }
 
-
 /*
  * Compare NPTv6 instances names.
  * Honor number comparison.
@@ -446,4 +439,3 @@ nptv6_foreach(nptv6_cb_t *f, const char *name, uint8_t set, int sort)
 	}
 	return (0);
 }
-

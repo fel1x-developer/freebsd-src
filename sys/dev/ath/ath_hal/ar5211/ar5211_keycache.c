@@ -20,7 +20,6 @@
 
 #include "ah.h"
 #include "ah_internal.h"
-
 #include "ar5211/ar5211.h"
 #include "ar5211/ar5211reg.h"
 
@@ -28,8 +27,8 @@
  *  Chips-specific key cache routines.
  */
 
-#define	AR_KEYTABLE_SIZE	128
-#define	KEY_XOR			0xaa
+#define AR_KEYTABLE_SIZE 128
+#define KEY_XOR 0xaa
 
 /*
  * Return the size of the hardware key cache.
@@ -78,7 +77,8 @@ ar5211ResetKeyCacheEntry(struct ath_hal *ah, uint16_t entry)
  * Sets the mac part of the specified key cache entry and mark it valid.
  */
 HAL_BOOL
-ar5211SetKeyCacheEntryMac(struct ath_hal *ah, uint16_t entry, const uint8_t *mac)
+ar5211SetKeyCacheEntryMac(struct ath_hal *ah, uint16_t entry,
+    const uint8_t *mac)
 {
 	uint32_t macHi, macLo;
 
@@ -94,10 +94,10 @@ ar5211SetKeyCacheEntryMac(struct ath_hal *ah, uint16_t entry, const uint8_t *mac
 	 */
 	if (mac != AH_NULL) {
 		macHi = (mac[5] << 8) | mac[4];
-		macLo = (mac[3] << 24)| (mac[2] << 16)
-		      | (mac[1] << 8) | mac[0];
+		macLo = (mac[3] << 24) | (mac[2] << 16) | (mac[1] << 8) |
+		    mac[0];
 		macLo >>= 1;
-		macLo |= (macHi & 1) << 31;	/* carry */
+		macLo |= (macHi & 1) << 31; /* carry */
 		macHi >>= 1;
 	} else {
 		macLo = macHi = 0;
@@ -112,14 +112,14 @@ ar5211SetKeyCacheEntryMac(struct ath_hal *ah, uint16_t entry, const uint8_t *mac
  * Sets the contents of the specified key cache entry.
  */
 HAL_BOOL
-ar5211SetKeyCacheEntry(struct ath_hal *ah, uint16_t entry,
-                       const HAL_KEYVAL *k, const uint8_t *mac,
-                       int xorKey)
+ar5211SetKeyCacheEntry(struct ath_hal *ah, uint16_t entry, const HAL_KEYVAL *k,
+    const uint8_t *mac, int xorKey)
 {
 	uint32_t key0, key1, key2, key3, key4;
 	uint32_t keyType;
-	uint32_t xorMask= xorKey ?
-		(KEY_XOR << 24 | KEY_XOR << 16 | KEY_XOR << 8 | KEY_XOR) : 0;
+	uint32_t xorMask = xorKey ?
+	    (KEY_XOR << 24 | KEY_XOR << 16 | KEY_XOR << 8 | KEY_XOR) :
+	    0;
 
 	if (entry >= AR_KEYTABLE_SIZE) {
 		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: entry %u out of range\n",
@@ -133,8 +133,8 @@ ar5211SetKeyCacheEntry(struct ath_hal *ah, uint16_t entry,
 	case HAL_CIPHER_WEP:
 		if (k->kv_len < 40 / NBBY) {
 			HALDEBUG(ah, HAL_DEBUG_ANY,
-			    "%s: WEP key length %u too small\n",
-			    __func__, k->kv_len);
+			    "%s: WEP key length %u too small\n", __func__,
+			    k->kv_len);
 			return AH_FALSE;
 		}
 		if (k->kv_len <= 40 / NBBY)
@@ -149,15 +149,15 @@ ar5211SetKeyCacheEntry(struct ath_hal *ah, uint16_t entry,
 		break;
 	default:
 		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: cipher %u not supported\n",
-			__func__, k->kv_type);
+		    __func__, k->kv_type);
 		return AH_FALSE;
 	}
 
-	key0 = LE_READ_4(k->kv_val+0) ^ xorMask;
-	key1 = (LE_READ_2(k->kv_val+4) ^ xorMask) & 0xffff;
-	key2 = LE_READ_4(k->kv_val+6) ^ xorMask;
-	key3 = (LE_READ_2(k->kv_val+10) ^ xorMask) & 0xffff;
-	key4 = LE_READ_4(k->kv_val+12) ^ xorMask;
+	key0 = LE_READ_4(k->kv_val + 0) ^ xorMask;
+	key1 = (LE_READ_2(k->kv_val + 4) ^ xorMask) & 0xffff;
+	key2 = LE_READ_4(k->kv_val + 6) ^ xorMask;
+	key3 = (LE_READ_2(k->kv_val + 10) ^ xorMask) & 0xffff;
+	key4 = LE_READ_4(k->kv_val + 12) ^ xorMask;
 	if (k->kv_len <= 104 / NBBY)
 		key4 &= 0xff;
 

@@ -61,8 +61,9 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/queue.h>
+
 #include <archive.h>
 #include <err.h>
 #include <errno.h>
@@ -74,33 +75,26 @@
 
 #include "ar.h"
 
-enum options
-{
-	OPTION_HELP
-};
+enum options { OPTION_HELP };
 
-static struct option longopts[] =
-{
-	{"help", no_argument, NULL, OPTION_HELP},
-	{"version", no_argument, NULL, 'V'},
-	{NULL, 0, NULL, 0}
-};
+static struct option longopts[] = { { "help", no_argument, NULL, OPTION_HELP },
+	{ "version", no_argument, NULL, 'V' }, { NULL, 0, NULL, 0 } };
 
-static void	bsdar_usage(void);
-static void	ranlib_usage(void);
-static void	set_mode(struct bsdar *bsdar, char opt);
-static void	only_mode(struct bsdar *bsdar, const char *opt,
-		    const char *valid_modes);
-static void	bsdar_version(void);
-static void	ranlib_version(void);
+static void bsdar_usage(void);
+static void ranlib_usage(void);
+static void set_mode(struct bsdar *bsdar, char opt);
+static void only_mode(struct bsdar *bsdar, const char *opt,
+    const char *valid_modes);
+static void bsdar_version(void);
+static void ranlib_version(void);
 
 int
 main(int argc, char **argv)
 {
-	struct bsdar	*bsdar, bsdar_storage;
-	char		*p;
-	size_t		 len;
-	int		 exitcode, i, opt, Dflag, Uflag;
+	struct bsdar *bsdar, bsdar_storage;
+	char *p;
+	size_t len;
+	int exitcode, i, opt, Dflag, Uflag;
 
 	bsdar = &bsdar_storage;
 	memset(bsdar, 0, sizeof(*bsdar));
@@ -117,8 +111,8 @@ main(int argc, char **argv)
 	if (len >= strlen("ranlib") &&
 	    strcmp(bsdar->progname + len - strlen("ranlib"), "ranlib") == 0) {
 		while ((opt = getopt_long(argc, argv, "tDUV", longopts,
-		    NULL)) != -1) {
-			switch(opt) {
+			    NULL)) != -1) {
+			switch (opt) {
 			case 't':
 				/* Ignored. */
 				break;
@@ -169,8 +163,8 @@ main(int argc, char **argv)
 	}
 
 	while ((opt = getopt_long(argc, argv, "abCcdDfijlMmopqrSsTtUuVvxz",
-	    longopts, NULL)) != -1) {
-		switch(opt) {
+		    longopts, NULL)) != -1) {
+		switch (opt) {
 		case 'a':
 			bsdar->options |= AR_A;
 			break;
@@ -282,8 +276,10 @@ main(int argc, char **argv)
 	}
 
 	/* Set determinstic mode for -D, and by default without -U. */
-	if (Dflag || (Uflag == 0 && (bsdar->mode == 'q' || bsdar->mode == 'r' ||
-	    (bsdar->mode == '\0' && bsdar->options & AR_S))))
+	if (Dflag ||
+	    (Uflag == 0 &&
+		(bsdar->mode == 'q' || bsdar->mode == 'r' ||
+		    (bsdar->mode == '\0' && bsdar->options & AR_S))))
 		bsdar->options |= AR_D;
 
 	if (bsdar->options & AR_A)
@@ -323,11 +319,16 @@ main(int argc, char **argv)
 			exit(exitcode);
 	}
 
-	switch(bsdar->mode) {
-	case 'd': case 'm': case 'q': case 'r':
+	switch (bsdar->mode) {
+	case 'd':
+	case 'm':
+	case 'q':
+	case 'r':
 		exitcode = ar_write_archive(bsdar, bsdar->mode);
 		break;
-	case 'p': case 't': case 'x':
+	case 'p':
+	case 't':
+	case 'x':
 		exitcode = ar_read_archive(bsdar, bsdar->mode, stdout);
 		break;
 	default:
@@ -371,11 +372,13 @@ bsdar_usage(void)
 
 	(void)fprintf(stderr, "usage:  ar -d [-Tjsvz] archive file ...\n");
 	(void)fprintf(stderr, "\tar -m [-Tjsvz] archive file ...\n");
-	(void)fprintf(stderr, "\tar -m [-Tabijsvz] position archive file ...\n");
+	(void)fprintf(stderr,
+	    "\tar -m [-Tabijsvz] position archive file ...\n");
 	(void)fprintf(stderr, "\tar -p [-Tv] archive [file ...]\n");
 	(void)fprintf(stderr, "\tar -q [-TcDjsUvz] archive file ...\n");
 	(void)fprintf(stderr, "\tar -r [-TcDjsUuvz] archive file ...\n");
-	(void)fprintf(stderr, "\tar -r [-TabcDijsUuvz] position archive file ...\n");
+	(void)fprintf(stderr,
+	    "\tar -r [-TabcDijsUuvz] position archive file ...\n");
 	(void)fprintf(stderr, "\tar -s [-jz] archive\n");
 	(void)fprintf(stderr, "\tar -t [-Tv] archive [file ...]\n");
 	(void)fprintf(stderr, "\tar -x [-CTouv] archive [file ...]\n");
@@ -395,13 +398,15 @@ ranlib_usage(void)
 static void
 bsdar_version(void)
 {
-	(void)printf("BSD ar %s - %s\n", BSDAR_VERSION, archive_version_string());
+	(void)printf("BSD ar %s - %s\n", BSDAR_VERSION,
+	    archive_version_string());
 	exit(EXIT_SUCCESS);
 }
 
 static void
 ranlib_version(void)
 {
-	(void)printf("ranlib %s - %s\n", BSDAR_VERSION, archive_version_string());
+	(void)printf("ranlib %s - %s\n", BSDAR_VERSION,
+	    archive_version_string());
 	exit(EXIT_SUCCESS);
 }

@@ -33,17 +33,18 @@
  */
 
 #ifndef _DEV_MII_MIIVAR_H_
-#define	_DEV_MII_MIIVAR_H_
-
-#include <sys/queue.h>
-#include <net/if_var.h>	/* XXX driver API temporary */
+#define _DEV_MII_MIIVAR_H_
 
 #include "opt_platform.h"
 
+#include <sys/queue.h>
+
+#include <net/if_var.h> /* XXX driver API temporary */
+
 #ifdef FDT
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
 #endif
 
 /*
@@ -58,8 +59,8 @@ struct mii_softc;
  * layer.
  */
 struct mii_data {
-	struct ifmedia mii_media;	/* media information */
-	if_t mii_ifp;		/* pointer back to network interface */
+	struct ifmedia mii_media; /* media information */
+	if_t mii_ifp;		  /* pointer back to network interface */
 
 	/*
 	 * For network interfaces with multiple PHYs, a list of all
@@ -89,9 +90,9 @@ struct mii_phy_funcs {
 /*
  * Requests that can be made to the downcall.
  */
-#define	MII_TICK	1	/* once-per-second tick */
-#define	MII_MEDIACHG	2	/* user changed media; perform the switch */
-#define	MII_POLLSTAT	3	/* user requested media status; fill it in */
+#define MII_TICK 1     /* once-per-second tick */
+#define MII_MEDIACHG 2 /* user changed media; perform the switch */
+#define MII_POLLSTAT 3 /* user requested media status; fill it in */
 
 /*
  * Each PHY driver's softc has one of these as the first member.
@@ -99,90 +100,90 @@ struct mii_phy_funcs {
  * XXX BSDI used, and we would like to have the same interface.
  */
 struct mii_softc {
-	device_t mii_dev;		/* generic device glue */
+	device_t mii_dev; /* generic device glue */
 
-	LIST_ENTRY(mii_softc) mii_list;	/* entry on parent's PHY list */
+	LIST_ENTRY(mii_softc) mii_list; /* entry on parent's PHY list */
 
-	uint32_t mii_mpd_oui;		/* the PHY's OUI (MII_OUI())*/
-	uint32_t mii_mpd_model;		/* the PHY's model (MII_MODEL())*/
-	uint32_t mii_mpd_rev;		/* the PHY's revision (MII_REV())*/
-	u_int mii_capmask;		/* capability mask for BMSR */
-	u_int mii_phy;			/* our MII address */
-	u_int mii_offset;		/* first PHY, second PHY, etc. */
-	u_int mii_inst;			/* instance for ifmedia */
+	uint32_t mii_mpd_oui;	/* the PHY's OUI (MII_OUI())*/
+	uint32_t mii_mpd_model; /* the PHY's model (MII_MODEL())*/
+	uint32_t mii_mpd_rev;	/* the PHY's revision (MII_REV())*/
+	u_int mii_capmask;	/* capability mask for BMSR */
+	u_int mii_phy;		/* our MII address */
+	u_int mii_offset;	/* first PHY, second PHY, etc. */
+	u_int mii_inst;		/* instance for ifmedia */
 
 	/* Our PHY functions. */
 	const struct mii_phy_funcs *mii_funcs;
 
-	struct mii_data *mii_pdata;	/* pointer to parent's mii_data */
+	struct mii_data *mii_pdata; /* pointer to parent's mii_data */
 
-	u_int mii_flags;		/* misc. flags; see below */
-	u_int mii_capabilities;		/* capabilities from BMSR */
-	u_int mii_extcapabilities;	/* extended capabilities */
-	u_int mii_ticks;		/* MII_TICK counter */
-	u_int mii_anegticks;		/* ticks before retrying aneg */
-	u_int mii_media_active;		/* last active media */
-	u_int mii_media_status;		/* last active status */
-	u_int mii_maxspeed;		/* Max speed supported by this PHY */
+	u_int mii_flags;	   /* misc. flags; see below */
+	u_int mii_capabilities;	   /* capabilities from BMSR */
+	u_int mii_extcapabilities; /* extended capabilities */
+	u_int mii_ticks;	   /* MII_TICK counter */
+	u_int mii_anegticks;	   /* ticks before retrying aneg */
+	u_int mii_media_active;	   /* last active media */
+	u_int mii_media_status;	   /* last active status */
+	u_int mii_maxspeed;	   /* Max speed supported by this PHY */
 };
 typedef struct mii_softc mii_softc_t;
 
 /* mii_flags */
-#define	MIIF_INITDONE	0x00000001	/* has been initialized (mii_data) */
-#define	MIIF_NOISOLATE	0x00000002	/* do not isolate the PHY */
+#define MIIF_INITDONE 0x00000001  /* has been initialized (mii_data) */
+#define MIIF_NOISOLATE 0x00000002 /* do not isolate the PHY */
 #if 0
-#define	MIIF_NOLOOP	0x00000004	/* no loopback capability */
+#define MIIF_NOLOOP 0x00000004 /* no loopback capability */
 #endif
-#define	MIIF_DOINGAUTO	0x00000008	/* doing autonegotiation (mii_softc) */
-#define	MIIF_AUTOTSLEEP	0x00000010	/* use tsleep(), not callout() */
-#define	MIIF_HAVEFIBER	0x00000020	/* from parent: has fiber interface */
-#define	MIIF_HAVE_GTCR	0x00000040	/* has 100base-T2/1000base-T CR */
-#define	MIIF_IS_1000X	0x00000080	/* is a 1000BASE-X device */
-#define	MIIF_DOPAUSE	0x00000100	/* advertise PAUSE capability */
-#define	MIIF_IS_HPNA	0x00000200	/* is a HomePNA device */
-#define	MIIF_FORCEANEG	0x00000400	/* force auto-negotiation */
-#define	MIIF_RX_DELAY	0x00000800	/* add RX delay */
-#define	MIIF_TX_DELAY	0x00001000	/* add TX delay */
-#define	MIIF_NOMANPAUSE	0x00100000	/* no manual PAUSE selection */
-#define	MIIF_FORCEPAUSE	0x00200000	/* force PAUSE advertisement */
-#define	MIIF_MACPRIV0	0x01000000	/* private to the MAC driver */
-#define	MIIF_MACPRIV1	0x02000000	/* private to the MAC driver */
-#define	MIIF_MACPRIV2	0x04000000	/* private to the MAC driver */
-#define	MIIF_PHYPRIV0	0x10000000	/* private to the PHY driver */
-#define	MIIF_PHYPRIV1	0x20000000	/* private to the PHY driver */
-#define	MIIF_PHYPRIV2	0x40000000	/* private to the PHY driver */
+#define MIIF_DOINGAUTO 0x00000008  /* doing autonegotiation (mii_softc) */
+#define MIIF_AUTOTSLEEP 0x00000010 /* use tsleep(), not callout() */
+#define MIIF_HAVEFIBER 0x00000020  /* from parent: has fiber interface */
+#define MIIF_HAVE_GTCR 0x00000040  /* has 100base-T2/1000base-T CR */
+#define MIIF_IS_1000X 0x00000080   /* is a 1000BASE-X device */
+#define MIIF_DOPAUSE 0x00000100	   /* advertise PAUSE capability */
+#define MIIF_IS_HPNA 0x00000200	   /* is a HomePNA device */
+#define MIIF_FORCEANEG 0x00000400  /* force auto-negotiation */
+#define MIIF_RX_DELAY 0x00000800   /* add RX delay */
+#define MIIF_TX_DELAY 0x00001000   /* add TX delay */
+#define MIIF_NOMANPAUSE 0x00100000 /* no manual PAUSE selection */
+#define MIIF_FORCEPAUSE 0x00200000 /* force PAUSE advertisement */
+#define MIIF_MACPRIV0 0x01000000   /* private to the MAC driver */
+#define MIIF_MACPRIV1 0x02000000   /* private to the MAC driver */
+#define MIIF_MACPRIV2 0x04000000   /* private to the MAC driver */
+#define MIIF_PHYPRIV0 0x10000000   /* private to the PHY driver */
+#define MIIF_PHYPRIV1 0x20000000   /* private to the PHY driver */
+#define MIIF_PHYPRIV2 0x40000000   /* private to the PHY driver */
 
 /* Default mii_anegticks values */
-#define	MII_ANEGTICKS		5
-#define	MII_ANEGTICKS_GIGE	17
+#define MII_ANEGTICKS 5
+#define MII_ANEGTICKS_GIGE 17
 
-#define	MIIF_INHERIT_MASK	(MIIF_NOISOLATE|MIIF_NOLOOP|MIIF_AUTOTSLEEP)
+#define MIIF_INHERIT_MASK (MIIF_NOISOLATE | MIIF_NOLOOP | MIIF_AUTOTSLEEP)
 
 /*
  * Special `locators' passed to mii_attach().  If one of these is not
  * an `any' value, we look for *that* PHY and configure it.  If both
  * are not `any', that is an error, and mii_attach() will fail.
  */
-#define	MII_OFFSET_ANY		-1
-#define	MII_PHY_ANY		-1
+#define MII_OFFSET_ANY -1
+#define MII_PHY_ANY -1
 
 /*
  * Constants used to describe the type of attachment between MAC and PHY.
  */
 enum mii_contype {
-	MII_CONTYPE_UNKNOWN,	/* Must be have value 0. */
+	MII_CONTYPE_UNKNOWN, /* Must be have value 0. */
 
 	MII_CONTYPE_MII,
 	MII_CONTYPE_GMII,
 	MII_CONTYPE_SGMII,
 	MII_CONTYPE_QSGMII,
 	MII_CONTYPE_TBI,
-	MII_CONTYPE_REVMII,	/* Reverse MII */
+	MII_CONTYPE_REVMII, /* Reverse MII */
 	MII_CONTYPE_RMII,
 	MII_CONTYPE_RGMII,	/* Delays provided by MAC or PCB */
 	MII_CONTYPE_RGMII_ID,	/* Rx and tx delays provided by PHY */
-	MII_CONTYPE_RGMII_RXID,	/* Only rx delay provided by PHY */
-	MII_CONTYPE_RGMII_TXID,	/* Only tx delay provided by PHY */
+	MII_CONTYPE_RGMII_RXID, /* Only rx delay provided by PHY */
+	MII_CONTYPE_RGMII_TXID, /* Only tx delay provided by PHY */
 	MII_CONTYPE_RTBI,
 	MII_CONTYPE_SMII,
 	MII_CONTYPE_XGMII,
@@ -191,7 +192,7 @@ enum mii_contype {
 	MII_CONTYPE_2500BX,
 	MII_CONTYPE_RXAUI,
 
-	MII_CONTYPE_COUNT	/* Add new types before this line. */
+	MII_CONTYPE_COUNT /* Add new types before this line. */
 };
 typedef enum mii_contype mii_contype_t;
 
@@ -206,17 +207,16 @@ mii_contype_is_rgmii(mii_contype_t con)
  * Used to attach a PHY to a parent.
  */
 struct mii_attach_args {
-	struct mii_data *mii_data;	/* pointer to parent data */
-	u_int mii_phyno;		/* MII address */
-	u_int mii_offset;		/* first PHY, second PHY, etc. */
-	uint32_t mii_id1;		/* PHY ID register 1 */
-	uint32_t mii_id2;		/* PHY ID register 2 */
-	u_int mii_capmask;		/* capability mask for BMSR */
+	struct mii_data *mii_data; /* pointer to parent data */
+	u_int mii_phyno;	   /* MII address */
+	u_int mii_offset;	   /* first PHY, second PHY, etc. */
+	uint32_t mii_id1;	   /* PHY ID register 1 */
+	uint32_t mii_id2;	   /* PHY ID register 2 */
+	u_int mii_capmask;	   /* capability mask for BMSR */
 #ifdef FDT
 	struct ofw_bus_devinfo obd;
 	struct resource_list rl;
 #endif
-
 };
 typedef struct mii_attach_args mii_attach_args_t;
 
@@ -224,42 +224,40 @@ typedef struct mii_attach_args mii_attach_args_t;
  * Used to match a PHY.
  */
 struct mii_phydesc {
-	uint32_t mpd_oui;		/* the PHY's OUI */
-	uint32_t mpd_model;		/* the PHY's model */
-	const char *mpd_name;		/* the PHY's name */
+	uint32_t mpd_oui;     /* the PHY's OUI */
+	uint32_t mpd_model;   /* the PHY's model */
+	const char *mpd_name; /* the PHY's name */
 };
-#define MII_PHY_DESC(a, b) { MII_OUI_ ## a, MII_MODEL_ ## a ## _ ## b, \
-	MII_STR_ ## a ## _ ## b }
-#define MII_PHY_END	{ 0, 0, NULL }
+#define MII_PHY_DESC(a, b)                                          \
+	{                                                           \
+		MII_OUI_##a, MII_MODEL_##a##_##b, MII_STR_##a##_##b \
+	}
+#define MII_PHY_END        \
+	{                  \
+		0, 0, NULL \
+	}
 
 #ifdef _KERNEL
 
-#define PHY_READ(p, r) \
-	MIIBUS_READREG((p)->mii_dev, (p)->mii_phy, (r))
+#define PHY_READ(p, r) MIIBUS_READREG((p)->mii_dev, (p)->mii_phy, (r))
 
-#define PHY_WRITE(p, r, v) \
-	MIIBUS_WRITEREG((p)->mii_dev, (p)->mii_phy, (r), (v))
+#define PHY_WRITE(p, r, v) MIIBUS_WRITEREG((p)->mii_dev, (p)->mii_phy, (r), (v))
 
-#define	PHY_SERVICE(p, d, o) \
-	(*(p)->mii_funcs->pf_service)((p), (d), (o))
+#define PHY_SERVICE(p, d, o) (*(p)->mii_funcs->pf_service)((p), (d), (o))
 
-#define	PHY_STATUS(p) \
-	(*(p)->mii_funcs->pf_status)(p)
+#define PHY_STATUS(p) (*(p)->mii_funcs->pf_status)(p)
 
-#define	PHY_RESET(p) \
-	(*(p)->mii_funcs->pf_reset)(p)
+#define PHY_RESET(p) (*(p)->mii_funcs->pf_reset)(p)
 
-enum miibus_device_ivars {
-	MIIBUS_IVAR_FLAGS
-};
+enum miibus_device_ivars { MIIBUS_IVAR_FLAGS };
 
 /*
  * Simplified accessors for miibus
  */
-#define	MIIBUS_ACCESSOR(var, ivar, type)				\
+#define MIIBUS_ACCESSOR(var, ivar, type) \
 	__BUS_ACCESSOR(miibus, var, MIIBUS, ivar, type)
 
-MIIBUS_ACCESSOR(flags,		FLAGS,		u_int)
+MIIBUS_ACCESSOR(flags, FLAGS, u_int)
 
 DECLARE_CLASS(miibus_driver);
 
@@ -267,29 +265,28 @@ DECLARE_CLASS(miibus_driver);
 DECLARE_CLASS(miibus_fdt_driver);
 #endif
 
+int mii_attach(device_t, device_t *, if_t, ifm_change_cb_t, ifm_stat_cb_t, int,
+    int, int, int);
+int mii_mediachg(struct mii_data *);
+void mii_tick(struct mii_data *);
+void mii_pollstat(struct mii_data *);
+void mii_phy_add_media(struct mii_softc *);
 
-int	mii_attach(device_t, device_t *, if_t, ifm_change_cb_t,
-	    ifm_stat_cb_t, int, int, int, int);
-int	mii_mediachg(struct mii_data *);
-void	mii_tick(struct mii_data *);
-void	mii_pollstat(struct mii_data *);
-void	mii_phy_add_media(struct mii_softc *);
+int mii_phy_auto(struct mii_softc *);
+int mii_phy_detach(device_t dev);
+u_int mii_phy_flowstatus(struct mii_softc *);
+void mii_phy_reset(struct mii_softc *);
+void mii_phy_setmedia(struct mii_softc *sc);
+void mii_phy_update(struct mii_softc *, int);
+int mii_phy_tick(struct mii_softc *);
+int mii_phy_mac_match(struct mii_softc *, const char *);
+int mii_dev_mac_match(device_t, const char *);
+void *mii_phy_mac_softc(struct mii_softc *);
+void *mii_dev_mac_softc(device_t);
 
-int	mii_phy_auto(struct mii_softc *);
-int	mii_phy_detach(device_t dev);
-u_int	mii_phy_flowstatus(struct mii_softc *);
-void	mii_phy_reset(struct mii_softc *);
-void	mii_phy_setmedia(struct mii_softc *sc);
-void	mii_phy_update(struct mii_softc *, int);
-int	mii_phy_tick(struct mii_softc *);
-int	mii_phy_mac_match(struct mii_softc *, const char *);
-int	mii_dev_mac_match(device_t, const char *);
-void	*mii_phy_mac_softc(struct mii_softc *);
-void	*mii_dev_mac_softc(device_t);
-
-const struct mii_phydesc * mii_phy_match(const struct mii_attach_args *ma,
+const struct mii_phydesc *mii_phy_match(const struct mii_attach_args *ma,
     const struct mii_phydesc *mpd);
-const struct mii_phydesc * mii_phy_match_gen(const struct mii_attach_args *ma,
+const struct mii_phydesc *mii_phy_match_gen(const struct mii_attach_args *ma,
     const struct mii_phydesc *mpd, size_t endlen);
 int mii_phy_dev_probe(device_t dev, const struct mii_phydesc *mpd, int mrv);
 void mii_phy_dev_attach(device_t dev, u_int flags,
@@ -297,12 +294,12 @@ void mii_phy_dev_attach(device_t dev, u_int flags,
 
 device_attach_t miibus_attach;
 
-void	ukphy_status(struct mii_softc *);
+void ukphy_status(struct mii_softc *);
 
-u_int	mii_oui(u_int, u_int);
-#define	MII_OUI(id1, id2)	mii_oui(id1, id2)
-#define	MII_MODEL(id2)		(((id2) & IDR2_MODEL) >> 4)
-#define	MII_REV(id2)		((id2) & IDR2_REV)
+u_int mii_oui(u_int, u_int);
+#define MII_OUI(id1, id2) mii_oui(id1, id2)
+#define MII_MODEL(id2) (((id2) & IDR2_MODEL) >> 4)
+#define MII_REV(id2) ((id2) & IDR2_REV)
 
 #endif /* _KERNEL */
 

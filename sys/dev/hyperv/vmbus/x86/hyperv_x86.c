@@ -43,10 +43,10 @@
 
 #include <dev/hyperv/include/hyperv.h>
 #include <dev/hyperv/include/hyperv_busdma.h>
+#include <dev/hyperv/vmbus/hyperv_common_reg.h>
 #include <dev/hyperv/vmbus/hyperv_var.h>
 #include <dev/hyperv/vmbus/x86/hyperv_machdep.h>
 #include <dev/hyperv/vmbus/x86/hyperv_reg.h>
-#include <dev/hyperv/vmbus/hyperv_common_reg.h>
 
 #define HYPERV_FREEBSD_BUILD 0ULL
 #define HYPERV_FREEBSD_VERSION ((uint64_t)__FreeBSD_version)

@@ -49,7 +49,6 @@
  */
 
 #include <sys/cdefs.h>
-#include <opt_cc.h>
 #include <sys/param.h>
 #include <sys/kernel.h>
 #include <sys/libkern.h>
@@ -65,16 +64,17 @@
 #include <sys/sysctl.h>
 
 #include <net/vnet.h>
-
+#include <netinet/cc/cc.h>
+#include <netinet/cc/cc_module.h>
 #include <netinet/in.h>
 #include <netinet/in_pcb.h>
 #include <netinet/tcp.h>
+#include <netinet/tcp_hpts.h>
+#include <netinet/tcp_log_buf.h>
 #include <netinet/tcp_seq.h>
 #include <netinet/tcp_var.h>
-#include <netinet/tcp_log_buf.h>
-#include <netinet/tcp_hpts.h>
-#include <netinet/cc/cc.h>
-#include <netinet/cc/cc_module.h>
+
+#include <opt_cc.h>
 
 /*
  * Have a sane default if no CC_DEFAULT is specified in the kernel config file.
@@ -121,7 +121,6 @@ cc_release(struct cc_algo *algo)
 	refcount_release(&algo->cc_refcount);
 }
 
-
 void
 cc_attach(struct tcpcb *tp, struct cc_algo *algo)
 {
@@ -159,7 +158,8 @@ cc_default_algo(SYSCTL_HANDLER_ARGS)
 	/* Get the current default: */
 	CC_LIST_RLOCK();
 	if (CC_DEFAULT_ALGO() != NULL)
-		strlcpy(default_cc, CC_DEFAULT_ALGO()->name, sizeof(default_cc));
+		strlcpy(default_cc, CC_DEFAULT_ALGO()->name,
+		    sizeof(default_cc));
 	else
 		memset(default_cc, 0, TCP_CA_NAME_MAX);
 	CC_LIST_RUNLOCK();
@@ -173,7 +173,7 @@ cc_default_algo(SYSCTL_HANDLER_ARGS)
 	error = ESRCH;
 	/* Find algo with specified name and set it to default. */
 	CC_LIST_RLOCK();
-	STAILQ_FOREACH(funcs, &cc_list, entries) {
+	STAILQ_FOREACH (funcs, &cc_list, entries) {
 		if (strncmp(default_cc, funcs->name, sizeof(default_cc)))
 			continue;
 		if (funcs->flags & CC_MODULE_BEING_REMOVED) {
@@ -203,14 +203,14 @@ cc_list_available(SYSCTL_HANDLER_ARGS)
 
 	error = nalgos = 0;
 	CC_LIST_RLOCK();
-	STAILQ_FOREACH(algo, &cc_list, entries) {
+	STAILQ_FOREACH (algo, &cc_list, entries) {
 		nalgos++;
 	}
 	CC_LIST_RUNLOCK();
 	if (nalgos == 0) {
 		return (ENOENT);
 	}
-	bufsz = (nalgos+2) * ((TCP_CA_NAME_MAX + 13) + 1);
+	bufsz = (nalgos + 2) * ((TCP_CA_NAME_MAX + 13) + 1);
 	buffer = malloc(bufsz, M_TEMP, M_WAITOK);
 	cp = buffer;
 
@@ -220,11 +220,9 @@ cc_list_available(SYSCTL_HANDLER_ARGS)
 	bufsz -= linesz;
 	outsz = linesz;
 	CC_LIST_RLOCK();
-	STAILQ_FOREACH(algo, &cc_list, entries) {
-		linesz = snprintf(cp, bufsz, "%-16s%c %u\n",
-		    algo->name,
-		    (algo == CC_DEFAULT_ALGO()) ? '*' : ' ',
-		    algo->cc_refcount);
+	STAILQ_FOREACH (algo, &cc_list, entries) {
+		linesz = snprintf(cp, bufsz, "%-16s%c %u\n", algo->name,
+		    (algo == CC_DEFAULT_ALGO()) ? '*' : ' ', algo->cc_refcount);
 		if (linesz >= bufsz) {
 			error = EOVERFLOW;
 			break;
@@ -253,12 +251,12 @@ cc_check_default(struct cc_algo *remove_cc)
 	CC_LIST_LOCK_ASSERT();
 
 	VNET_LIST_RLOCK_NOSLEEP();
-	VNET_FOREACH(vnet_iter) {
+	VNET_FOREACH(vnet_iter)
+	{
 		CURVNET_SET(vnet_iter);
 		if ((CC_DEFAULT_ALGO() != NULL) &&
-		    strncmp(CC_DEFAULT_ALGO()->name,
-			    remove_cc->name,
-			    TCP_CA_NAME_MAX) == 0) {
+		    strncmp(CC_DEFAULT_ALGO()->name, remove_cc->name,
+			TCP_CA_NAME_MAX) == 0) {
 			cnt++;
 		}
 		CURVNET_RESTORE();
@@ -287,7 +285,7 @@ cc_deregister_algo_locked(struct cc_algo *remove_cc)
 	int found = 0;
 
 	/* This is unlikely to fail */
-	STAILQ_FOREACH(funcs, &cc_list, entries) {
+	STAILQ_FOREACH (funcs, &cc_list, entries) {
 		if (funcs == remove_cc)
 			found = 1;
 	}
@@ -297,9 +295,10 @@ cc_deregister_algo_locked(struct cc_algo *remove_cc)
 	}
 	/* We assert it should have been MOD_QUIESCE'd */
 	KASSERT((remove_cc->flags & CC_MODULE_BEING_REMOVED),
-		("remove_cc:%p does not have CC_MODULE_BEING_REMOVED flag", remove_cc));
+	    ("remove_cc:%p does not have CC_MODULE_BEING_REMOVED flag",
+		remove_cc));
 	if (cc_check_default(remove_cc)) {
-		return(EBUSY);
+		return (EBUSY);
 	}
 	if (remove_cc->cc_refcount != 0) {
 		return (EBUSY);
@@ -339,10 +338,9 @@ cc_register_algo(struct cc_algo *add_cc)
 	 * we're not trying to add a duplicate.
 	 */
 	CC_LIST_WLOCK();
-	STAILQ_FOREACH(funcs, &cc_list, entries) {
+	STAILQ_FOREACH (funcs, &cc_list, entries) {
 		if (funcs == add_cc ||
-		    strncmp(funcs->name, add_cc->name,
-			    TCP_CA_NAME_MAX) == 0) {
+		    strncmp(funcs->name, add_cc->name, TCP_CA_NAME_MAX) == 0) {
 			err = EEXIST;
 			break;
 		}
@@ -443,7 +441,7 @@ newreno_cc_after_idle(struct cc_var *ccv)
 	rw = tcp_compute_initwnd(tcp_maxseg(ccv->ccvc.tcp));
 
 	CCV(ccv, snd_ssthresh) = max(CCV(ccv, snd_ssthresh),
-	    CCV(ccv, snd_cwnd)-(CCV(ccv, snd_cwnd)>>2));
+	    CCV(ccv, snd_cwnd) - (CCV(ccv, snd_cwnd) >> 2));
 
 	CCV(ccv, snd_cwnd) = min(rw, CCV(ccv, snd_cwnd));
 }
@@ -470,8 +468,10 @@ newreno_cc_cong_signal(struct cc_var *ccv, uint32_t type)
 	KASSERT((type & CC_SIGPRIVMASK) == 0,
 	    ("%s: congestion signal type 0x%08x is private\n", __func__, type));
 
-	cwin = max(((uint64_t)cwin * (uint64_t)factor) / (100ULL * (uint64_t)mss),
-	    2) * mss;
+	cwin = max(((uint64_t)cwin * (uint64_t)factor) /
+		       (100ULL * (uint64_t)mss),
+		   2) *
+	    mss;
 
 	switch (type) {
 	case CC_NDUPACK:
@@ -489,9 +489,10 @@ newreno_cc_cong_signal(struct cc_var *ccv, uint32_t type)
 		}
 		break;
 	case CC_RTO:
-		CCV(ccv, snd_ssthresh) = max(min(CCV(ccv, snd_wnd),
-						 CCV(ccv, snd_cwnd)) / 2 / mss,
-					     2) * mss;
+		CCV(ccv, snd_ssthresh) =
+		    max(min(CCV(ccv, snd_wnd), CCV(ccv, snd_cwnd)) / 2 / mss,
+			2) *
+		    mss;
 		CCV(ccv, snd_cwnd) = mss;
 		break;
 	}
@@ -559,11 +560,10 @@ newreno_cc_ack_received(struct cc_var *ccv, uint16_t type)
 				abc_val = V_tcp_abc_l_var;
 			if (CCV(ccv, snd_nxt) == CCV(ccv, snd_max))
 				incr = min(ccv->bytes_this_ack,
-				    ccv->nsegs * abc_val *
-				    CCV(ccv, t_maxseg));
+				    ccv->nsegs * abc_val * CCV(ccv, t_maxseg));
 			else
-				incr = min(ccv->bytes_this_ack, CCV(ccv, t_maxseg));
-
+				incr = min(ccv->bytes_this_ack,
+				    CCV(ccv, t_maxseg));
 		}
 		/* ABC is on by default, so incr equals 0 frequently. */
 		if (incr > 0)
@@ -598,14 +598,15 @@ cc_modevent(module_t mod, int event_type, void *data)
 	err = 0;
 	algo = (struct cc_algo *)data;
 
-	switch(event_type) {
+	switch (event_type) {
 	case MOD_LOAD:
 		if ((algo->cc_data_sz == NULL) && (algo->cb_init != NULL)) {
 			/*
 			 * A module must have a cc_data_sz function
 			 * even if it has no data it should return 0.
 			 */
-			printf("Module Load Fails, it lacks a cc_data_sz() function but has a cb_init()!\n");
+			printf(
+			    "Module Load Fails, it lacks a cc_data_sz() function but has a cb_init()!\n");
 			err = EINVAL;
 			break;
 		}
@@ -622,8 +623,8 @@ cc_modevent(module_t mod, int event_type, void *data)
 		err = cc_stop_new_assignments(algo);
 		break;
 	case MOD_UNLOAD:
-		/* 
-		 * Deregister and remove the module from the list 
+		/*
+		 * Deregister and remove the module from the list
 		 */
 		CC_LIST_WLOCK();
 		/* Even with -f we can't unload if its the default */
@@ -657,48 +658,39 @@ SYSCTL_NODE(_net_inet_tcp, OID_AUTO, cc, CTLFLAG_RW | CTLFLAG_MPSAFE, NULL,
     "Congestion control related settings");
 
 SYSCTL_PROC(_net_inet_tcp_cc, OID_AUTO, algorithm,
-    CTLFLAG_VNET | CTLTYPE_STRING | CTLFLAG_RW | CTLFLAG_MPSAFE,
-    NULL, 0, cc_default_algo, "A",
-    "Default congestion control algorithm");
+    CTLFLAG_VNET | CTLTYPE_STRING | CTLFLAG_RW | CTLFLAG_MPSAFE, NULL, 0,
+    cc_default_algo, "A", "Default congestion control algorithm");
 
 SYSCTL_PROC(_net_inet_tcp_cc, OID_AUTO, available,
-    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE,
-    NULL, 0, cc_list_available, "A",
-    "List available congestion control algorithms");
+    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, 0, cc_list_available,
+    "A", "List available congestion control algorithms");
 
 SYSCTL_NODE(_net_inet_tcp_cc, OID_AUTO, hystartplusplus,
-    CTLFLAG_RW | CTLFLAG_MPSAFE, NULL,
-    "New Reno related HyStart++ settings");
+    CTLFLAG_RW | CTLFLAG_MPSAFE, NULL, "New Reno related HyStart++ settings");
 
 SYSCTL_UINT(_net_inet_tcp_cc_hystartplusplus, OID_AUTO, minrtt_thresh,
-    CTLFLAG_RW,
-    &hystart_minrtt_thresh, 4000,
-   "HyStarts++ minimum RTT thresh used in clamp (in microseconds)");
+    CTLFLAG_RW, &hystart_minrtt_thresh, 4000,
+    "HyStarts++ minimum RTT thresh used in clamp (in microseconds)");
 
 SYSCTL_UINT(_net_inet_tcp_cc_hystartplusplus, OID_AUTO, maxrtt_thresh,
-    CTLFLAG_RW,
-    &hystart_maxrtt_thresh, 16000,
-   "HyStarts++ maximum RTT thresh used in clamp (in microseconds)");
+    CTLFLAG_RW, &hystart_maxrtt_thresh, 16000,
+    "HyStarts++ maximum RTT thresh used in clamp (in microseconds)");
 
 SYSCTL_UINT(_net_inet_tcp_cc_hystartplusplus, OID_AUTO, n_rttsamples,
-    CTLFLAG_RW,
-    &hystart_n_rttsamples, 8,
-   "The number of RTT samples that must be seen to consider HyStart++");
+    CTLFLAG_RW, &hystart_n_rttsamples, 8,
+    "The number of RTT samples that must be seen to consider HyStart++");
 
 SYSCTL_UINT(_net_inet_tcp_cc_hystartplusplus, OID_AUTO, css_growth_div,
-    CTLFLAG_RW,
-    &hystart_css_growth_div, 4,
-   "The divisor to the growth when in Hystart++ CSS");
+    CTLFLAG_RW, &hystart_css_growth_div, 4,
+    "The divisor to the growth when in Hystart++ CSS");
 
-SYSCTL_UINT(_net_inet_tcp_cc_hystartplusplus, OID_AUTO, css_rounds,
-    CTLFLAG_RW,
+SYSCTL_UINT(_net_inet_tcp_cc_hystartplusplus, OID_AUTO, css_rounds, CTLFLAG_RW,
     &hystart_css_rounds, 5,
-   "The number of rounds HyStart++ lasts in CSS before falling to CA");
+    "The number of rounds HyStart++ lasts in CSS before falling to CA");
 
-SYSCTL_UINT(_net_inet_tcp_cc_hystartplusplus, OID_AUTO, bblogs,
-    CTLFLAG_RW,
+SYSCTL_UINT(_net_inet_tcp_cc_hystartplusplus, OID_AUTO, bblogs, CTLFLAG_RW,
     &hystart_bblogs, 0,
-   "Do we enable HyStart++ Black Box logs to be generated if BB logging is on");
+    "Do we enable HyStart++ Black Box logs to be generated if BB logging is on");
 
 VNET_DEFINE(int, cc_do_abe) = 0;
 SYSCTL_INT(_net_inet_tcp_cc, OID_AUTO, abe, CTLFLAG_VNET | CTLFLAG_RW,
@@ -706,7 +698,7 @@ SYSCTL_INT(_net_inet_tcp_cc, OID_AUTO, abe, CTLFLAG_VNET | CTLFLAG_RW,
     "Enable draft-ietf-tcpm-alternativebackoff-ecn (TCP Alternative Backoff with ECN)");
 
 VNET_DEFINE(int, cc_abe_frlossreduce) = 0;
-SYSCTL_INT(_net_inet_tcp_cc, OID_AUTO, abe_frlossreduce, CTLFLAG_VNET | CTLFLAG_RW,
-    &VNET_NAME(cc_abe_frlossreduce), 0,
+SYSCTL_INT(_net_inet_tcp_cc, OID_AUTO, abe_frlossreduce,
+    CTLFLAG_VNET | CTLFLAG_RW, &VNET_NAME(cc_abe_frlossreduce), 0,
     "Apply standard beta instead of ABE-beta during ECN-signalled congestion "
     "recovery episodes if loss also needs to be repaired");

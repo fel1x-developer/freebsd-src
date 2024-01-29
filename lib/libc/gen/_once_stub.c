@@ -27,10 +27,11 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <pthread.h>
-#include "un-namespace.h"
+
 #include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 /* This implements pthread_once() for the single-threaded case. */
 static int

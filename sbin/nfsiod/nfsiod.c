@@ -33,18 +33,18 @@
  */
 
 #include <sys/param.h>
-#include <sys/syslog.h>
-#include <sys/wait.h>
 #include <sys/linker.h>
 #include <sys/mount.h>
 #include <sys/sysctl.h>
+#include <sys/syslog.h>
+#include <sys/wait.h>
 
 #include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#define	MAXNFSDCNT      20
+#define MAXNFSDCNT 20
 
 static void
 usage(void)
@@ -105,9 +105,9 @@ main(int argc, char *argv[])
 	error = sysctlbyname("vfs.nfs.iodmax", &iodmax, &len, NULL, 0);
 	if (error < 0)
 		err(1, "sysctlbyname(\"vfs.nfs.iodmax\")");
-	if (num_servers == 0) {		/* no change */
-		printf("vfs.nfs.iodmin=%u\nvfs.nfs.iodmax=%u\n",
-		    iodmin, iodmax);
+	if (num_servers == 0) { /* no change */
+		printf("vfs.nfs.iodmin=%u\nvfs.nfs.iodmax=%u\n", iodmin,
+		    iodmax);
 		exit(0);
 	}
 	/* Catch the case where we're lowering num_servers below iodmin */
@@ -122,6 +122,5 @@ main(int argc, char *argv[])
 	error = sysctlbyname("vfs.nfs.iodmax", NULL, 0, &iodmax, sizeof iodmax);
 	if (error < 0)
 		err(1, "sysctlbyname(\"vfs.nfs.iodmax\")");
-	exit (0);
+	exit(0);
 }
-

@@ -68,32 +68,30 @@ extern "C" {
 #include <dev/isci/scil/sci_base_library.h>
 #include <dev/isci/scil/scif_library.h>
 
-
 /**
  * @struct SCIF_SAS_LIBRARY
  *
  * @brief The SCI SAS Framework library object acts as the root of the
  *        containment hierarchy for all framework objects.
  */
-typedef struct SCIF_SAS_LIBRARY
-{
-   /**
-    * The SCI_BASE_LIBRARY is the parent object for the SCIF_SAS_LIBRARY
-    * object.
-    */
-   SCI_BASE_LIBRARY_T  parent;
+typedef struct SCIF_SAS_LIBRARY {
+	/**
+	 * The SCI_BASE_LIBRARY is the parent object for the SCIF_SAS_LIBRARY
+	 * object.
+	 */
+	SCI_BASE_LIBRARY_T parent;
 
-   /**
-    * This field contains the handle for the SCI Core library object that
-    * is managed by the framework.
-    */
-   SCI_LIBRARY_HANDLE_T  core_object;
+	/**
+	 * This field contains the handle for the SCI Core library object that
+	 * is managed by the framework.
+	 */
+	SCI_LIBRARY_HANDLE_T core_object;
 
-   /**
-    * This field provides the library a reference to the controller objects
-    * being managed by this library.
-    */
-   struct SCIF_SAS_CONTROLLER * controllers;
+	/**
+	 * This field provides the library a reference to the controller objects
+	 * being managed by this library.
+	 */
+	struct SCIF_SAS_CONTROLLER *controllers;
 
 } SCIF_SAS_LIBRARY_T;
 
@@ -102,4 +100,3 @@ typedef struct SCIF_SAS_LIBRARY
 #endif // __cplusplus
 
 #endif // _SCIF_SAS_LIBRARY_H_
-

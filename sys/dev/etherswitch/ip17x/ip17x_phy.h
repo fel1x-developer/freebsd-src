@@ -28,11 +28,11 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	__IP17X_PHY_H__
-#define	__IP17X_PHY_H__
+#ifndef __IP17X_PHY_H__
+#define __IP17X_PHY_H__
 
 int ip17x_readphy(device_t, int, int);
 int ip17x_writephy(device_t, int, int, int);
 int ip17x_updatephy(device_t, int, int, int, int);
 
-#endif	/* __IP17X_PHY_H__ */
+#endif /* __IP17X_PHY_H__ */

@@ -3,36 +3,37 @@
  */
 
 #include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/ioctl.h>
+#include <sys/socket.h>
 
 #if defined(SUNOS) || defined(SVR4)
 #include <sys/sockio.h>
 #endif
-#ifdef	SVR4
+#ifdef SVR4
 #include <sys/stropts.h>
 #endif
 
-#include <sys/time.h>		/* for struct timeval in net/if.h */	
-#include <net/if.h>				/* for struct ifreq */
+#include <sys/time.h> /* for struct timeval in net/if.h */
+
+#include <net/if.h> /* for struct ifreq */
 #include <netinet/in.h>
 
-#ifndef	NO_UNISTD
+#ifndef NO_UNISTD
 #include <unistd.h>
 #endif
-#include <syslog.h>
-#include <errno.h>
 #include <assert.h>
+#include <errno.h>
+#include <syslog.h>
 
 #include "getif.h"
 #include "report.h"
 
-#ifdef	__bsdi__
+#ifdef __bsdi__
 #define BSD 43
 #endif
 
-static struct ifreq ifreq[10];	/* Holds interface configuration */
-static struct ifconf ifconf;	/* points to ifreq */
+static struct ifreq ifreq[10]; /* Holds interface configuration */
+static struct ifconf ifconf;   /* points to ifreq */
 
 static int nmatch(u_char *ca, u_char *cb);
 
@@ -48,11 +49,11 @@ getif(int s, struct in_addr *addrp)
 
 	/* If no address was supplied, just return NULL. */
 	if (!addrp)
-		return (struct ifreq *) 0;
+		return (struct ifreq *)0;
 
 	/* Get the interface config if not done already. */
 	if (ifconf.ifc_len == 0) {
-#ifdef	SVR4
+#ifdef SVR4
 		/*
 		 * SysVr4 returns garbage if you do this the obvious way!
 		 * This one took a while to figure out... -gwr
@@ -61,27 +62,27 @@ getif(int s, struct in_addr *addrp)
 		ioc.ic_cmd = SIOCGIFCONF;
 		ioc.ic_timout = 0;
 		ioc.ic_len = sizeof(ifreq);
-		ioc.ic_dp = (char *) ifreq;
-		m = ioctl(s, I_STR, (char *) &ioc);
+		ioc.ic_dp = (char *)ifreq;
+		m = ioctl(s, I_STR, (char *)&ioc);
 		ifconf.ifc_len = ioc.ic_len;
 		ifconf.ifc_req = ifreq;
-#else	/* SVR4 */
+#else  /* SVR4 */
 		ifconf.ifc_len = sizeof(ifreq);
 		ifconf.ifc_req = ifreq;
-		m = ioctl(s, SIOCGIFCONF, (caddr_t) & ifconf);
-#endif	/* SVR4 */
+		m = ioctl(s, SIOCGIFCONF, (caddr_t)&ifconf);
+#endif /* SVR4 */
 		if ((m < 0) || (ifconf.ifc_len <= 0)) {
 			report(LOG_ERR, "ioctl SIOCGIFCONF");
-			return (struct ifreq *) 0;
+			return (struct ifreq *)0;
 		}
 	}
-	maxmatch = 7;				/* this many bits or less... */
-	ifrmax = (struct ifreq *) 0;/* ... is not a valid match  */
-	p = (char *) ifreq;
+	maxmatch = 7;		    /* this many bits or less... */
+	ifrmax = (struct ifreq *)0; /* ... is not a valid match  */
+	p = (char *)ifreq;
 	len = ifconf.ifc_len;
 	while (len > 0) {
-		ifrq = (struct ifreq *) p;
-		sip = (struct sockaddr_in *) &ifrq->ifr_addr;
+		ifrq = (struct ifreq *)p;
+		sip = (struct sockaddr_in *)&ifrq->ifr_addr;
 		m = nmatch((u_char *)addrp, (u_char *)&(sip->sin_addr));
 		if (m > maxmatch) {
 			maxmatch = m;
@@ -108,8 +109,8 @@ getif(int s, struct in_addr *addrp)
 static int
 nmatch(u_char *ca, u_char *cb)
 {
-	u_int m = 0;				/* count of matching bits */
-	u_int n = 4;				/* bytes left, then bitmask */
+	u_int m = 0; /* count of matching bits */
+	u_int n = 4; /* bytes left, then bitmask */
 
 	/* Count matching bytes. */
 	while (n && (*ca == *cb)) {

@@ -29,18 +29,18 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <lua.h>
 #include <spawn.h>
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 
-#include <lua.h>
 #include "lauxlib.h"
 #include "lfbsd.h"
 
 extern char **environ;
 
-static const char**
+static const char **
 luaL_checkarraystrings(lua_State *L, int arg)
 {
 	const char **ret;
@@ -49,12 +49,13 @@ luaL_checkarraystrings(lua_State *L, int arg)
 	int abs_arg = lua_absindex(L, arg);
 	luaL_checktype(L, abs_arg, LUA_TTABLE);
 	n = lua_rawlen(L, abs_arg);
-	ret = lua_newuserdata(L, (n+1)*sizeof(char*));
-	for (i=0; i<n; i++) {
-		t = lua_rawgeti(L, abs_arg, i+1);
+	ret = lua_newuserdata(L, (n + 1) * sizeof(char *));
+	for (i = 0; i < n; i++) {
+		t = lua_rawgeti(L, abs_arg, i + 1);
 		if (t == LUA_TNIL)
 			break;
-		luaL_argcheck(L, t == LUA_TSTRING, arg, "expected array of strings");
+		luaL_argcheck(L, t == LUA_TSTRING, arg,
+		    "expected array of strings");
 		ret[i] = lua_tostring(L, -1);
 		lua_pop(L, 1);
 	}
@@ -67,7 +68,7 @@ lua_exec(lua_State *L)
 {
 	int r, pstat;
 	posix_spawn_file_actions_t action;
-	int stdin_pipe[2] = {-1, -1};
+	int stdin_pipe[2] = { -1, -1 };
 	pid_t pid;
 	const char **argv;
 	int n = lua_gettop(L);
@@ -86,8 +87,9 @@ lua_exec(lua_State *L)
 	posix_spawn_file_actions_addclose(&action, stdin_pipe[1]);
 
 	argv = luaL_checkarraystrings(L, 1);
-	if (0 != (r = posix_spawnp(&pid, argv[0], &action, NULL,
-		(char*const*)argv, environ))) {
+	if (0 !=
+	    (r = posix_spawnp(&pid, argv[0], &action, NULL, (char *const *)argv,
+		 environ))) {
 		lua_pushnil(L);
 		lua_pushstring(L, strerror(r));
 		lua_pushinteger(L, r);
@@ -119,7 +121,10 @@ lua_exec(lua_State *L)
 	return 1;
 }
 
-#define REG_SIMPLE(n)	{ #n, lua_ ## n }
+#define REG_SIMPLE(n)       \
+	{                   \
+		#n, lua_##n \
+	}
 static const struct luaL_Reg fbsd_lib[] = {
 	REG_SIMPLE(exec),
 	{ NULL, NULL },

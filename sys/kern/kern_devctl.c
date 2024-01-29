@@ -25,53 +25,53 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#include <sys/cdefs.h>
 #include "opt_bus.h"
 #include "opt_ddb.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/condvar.h>
 #include <sys/conf.h>
 #include <sys/eventhandler.h>
 #include <sys/filio.h>
-#include <sys/lock.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
 #include <sys/poll.h>
 #include <sys/priv.h>
 #include <sys/proc.h>
-#include <sys/condvar.h>
 #include <sys/queue.h>
-#include <machine/bus.h>
 #include <sys/sbuf.h>
 #include <sys/selinfo.h>
 #include <sys/smp.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 #include <sys/uio.h>
-#include <sys/bus.h>
 
+#include <vm/vm.h>
+#include <vm/uma.h>
+
+#include <machine/bus.h>
 #include <machine/cpu.h>
 #include <machine/stdarg.h>
-
-#include <vm/uma.h>
-#include <vm/vm.h>
 
 #include <ddb/ddb.h>
 
 STAILQ_HEAD(devq, dev_event_info);
 
 static struct dev_softc {
-	int		inuse;
-	int		nonblock;
-	int		queued;
-	int		async;
-	struct mtx	mtx;
-	struct cv	cv;
-	struct selinfo	sel;
-	struct devq	devq;
-	struct sigio	*sigio;
-	uma_zone_t	zone;
+	int inuse;
+	int nonblock;
+	int queued;
+	int async;
+	struct mtx mtx;
+	struct cv cv;
+	struct selinfo sel;
+	struct devq devq;
+	struct sigio *sigio;
+	uma_zone_t zone;
 } devsoftc;
 
 /*
@@ -87,20 +87,21 @@ static struct dev_softc {
 #define DEVCTL_DEFAULT_QUEUE_LEN 1000
 static int sysctl_devctl_queue(SYSCTL_HANDLER_ARGS);
 static int devctl_queue_length = DEVCTL_DEFAULT_QUEUE_LEN;
-SYSCTL_PROC(_hw_bus, OID_AUTO, devctl_queue, CTLTYPE_INT | CTLFLAG_RWTUN |
-    CTLFLAG_MPSAFE, NULL, 0, sysctl_devctl_queue, "I", "devctl queue length");
+SYSCTL_PROC(_hw_bus, OID_AUTO, devctl_queue,
+    CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, NULL, 0, sysctl_devctl_queue,
+    "I", "devctl queue length");
 
 static void devctl_attach_handler(void *arg __unused, device_t dev);
 static void devctl_detach_handler(void *arg __unused, device_t dev,
     enum evhdev_detach state);
 static void devctl_nomatch_handler(void *arg __unused, device_t dev);
 
-static d_open_t		devopen;
-static d_close_t	devclose;
-static d_read_t		devread;
-static d_ioctl_t	devioctl;
-static d_poll_t		devpoll;
-static d_kqfilter_t	devkqfilter;
+static d_open_t devopen;
+static d_close_t devclose;
+static d_read_t devread;
+static d_ioctl_t devioctl;
+static d_poll_t devpoll;
+static d_kqfilter_t devkqfilter;
 
 #define DEVCTL_BUFFER (1024 - sizeof(void *))
 struct dev_event_info {
@@ -108,20 +109,19 @@ struct dev_event_info {
 	char dei_data[DEVCTL_BUFFER];
 };
 
-
 static struct cdevsw dev_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_open =	devopen,
-	.d_close =	devclose,
-	.d_read =	devread,
-	.d_ioctl =	devioctl,
-	.d_poll =	devpoll,
-	.d_kqfilter =	devkqfilter,
-	.d_name =	"devctl",
+	.d_version = D_VERSION,
+	.d_open = devopen,
+	.d_close = devclose,
+	.d_read = devread,
+	.d_ioctl = devioctl,
+	.d_poll = devpoll,
+	.d_kqfilter = devkqfilter,
+	.d_name = "devctl",
 };
 
-static void	filt_devctl_detach(struct knote *kn);
-static int	filt_devctl_read(struct knote *kn, long hint);
+static void filt_devctl_detach(struct knote *kn);
+static int filt_devctl_read(struct knote *kn, long hint);
 
 static struct filterops devctl_rfiltops = {
 	.f_isfd = 1,
@@ -159,18 +159,18 @@ devctl_init(void)
 		z = devsoftc.zone = uma_zcreate("DEVCTL",
 		    sizeof(struct dev_event_info), NULL, NULL, NULL, NULL,
 		    UMA_ALIGN_PTR, 0);
-		reserve = max(devctl_queue_length / 50, 100);	/* 2% reserve */
+		reserve = max(devctl_queue_length / 50, 100); /* 2% reserve */
 		uma_zone_set_max(z, devctl_queue_length);
 		uma_zone_set_maxcache(z, 0);
 		uma_zone_reserve(z, reserve);
 		uma_prealloc(z, reserve);
 	}
-	EVENTHANDLER_REGISTER(device_attach, devctl_attach_handler,
-	    NULL, EVENTHANDLER_PRI_LAST);
-	EVENTHANDLER_REGISTER(device_detach, devctl_detach_handler,
-	    NULL, EVENTHANDLER_PRI_LAST);
-	EVENTHANDLER_REGISTER(device_nomatch, devctl_nomatch_handler,
-	    NULL, EVENTHANDLER_PRI_LAST);
+	EVENTHANDLER_REGISTER(device_attach, devctl_attach_handler, NULL,
+	    EVENTHANDLER_PRI_LAST);
+	EVENTHANDLER_REGISTER(device_detach, devctl_detach_handler, NULL,
+	    EVENTHANDLER_PRI_LAST);
+	EVENTHANDLER_REGISTER(device_nomatch, devctl_nomatch_handler, NULL,
+	    EVENTHANDLER_PRI_LAST);
 }
 SYSINIT(devctl_init, SI_SUB_DRIVERS, SI_ORDER_SECOND, devctl_init, NULL);
 
@@ -192,7 +192,8 @@ devctl_attach_handler(void *arg __unused, device_t dev)
  * happens.
  */
 static void
-devctl_detach_handler(void *arg __unused, device_t dev, enum evhdev_detach state)
+devctl_detach_handler(void *arg __unused, device_t dev,
+    enum evhdev_detach state)
 {
 	if (state == EVHDEV_DETACH_COMPLETE)
 		devaddq("-", device_get_nameunit(dev), dev);
@@ -276,18 +277,19 @@ devread(struct cdev *dev, struct uio *uio, int ioflag)
 	return (rv);
 }
 
-static	int
-devioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag, struct thread *td)
+static int
+devioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
+    struct thread *td)
 {
 	switch (cmd) {
 	case FIONBIO:
-		if (*(int*)data)
+		if (*(int *)data)
 			devsoftc.nonblock = 1;
 		else
 			devsoftc.nonblock = 0;
 		return (0);
 	case FIOASYNC:
-		if (*(int*)data)
+		if (*(int *)data)
 			devsoftc.async = 1;
 		else
 			devsoftc.async = 0;
@@ -308,10 +310,10 @@ devioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag, struct thread *t
 	return (ENOTTY);
 }
 
-static	int
+static int
 devpoll(struct cdev *dev, int events, struct thread *td)
 {
-	int	revents = 0;
+	int revents = 0;
 
 	mtx_lock(&devsoftc.mtx);
 	if (events & (POLLIN | POLLRDNORM)) {
@@ -401,7 +403,8 @@ devctl_alloc_dei_sb(struct sbuf *sb)
 
 	dei = devctl_alloc_dei();
 	if (dei != NULL)
-		sbuf_new(sb, dei->dei_data, sizeof(dei->dei_data), SBUF_FIXEDLEN);
+		sbuf_new(sb, dei->dei_data, sizeof(dei->dei_data),
+		    SBUF_FIXEDLEN);
 	return (dei);
 }
 
@@ -454,7 +457,7 @@ devctl_notify(const char *system, const char *subsystem, const char *type,
 	}
 	sbuf_putc(&sb, '\n');
 	if (sbuf_finish(&sb) != 0)
-		devctl_free_dei(dei);	/* overflow -> drop it */
+		devctl_free_dei(dei); /* overflow -> drop it */
 	else
 		devctl_queue(dei);
 }
@@ -501,7 +504,7 @@ devaddq(const char *type, const char *what, device_t dev)
 
 	/* Get the parent of this device, or / if high enough in the tree. */
 	if (device_get_parent(dev) == NULL)
-		parstr = ".";	/* Or '/' ? */
+		parstr = "."; /* Or '/' ? */
 	else
 		parstr = device_get_nameunit(device_get_parent(dev));
 	sbuf_cat(&sb, " on ");
@@ -523,8 +526,8 @@ devaddq(const char *type, const char *what, device_t dev)
 			t = "NOMATCH";
 			break;
 		}
-		devctl_notify_hook.send_f("device",
-		    what, t, sbuf_data(&sb) + beginlen);
+		devctl_notify_hook.send_f("device", what, t,
+		    sbuf_data(&sb) + beginlen);
 	}
 	devctl_queue(dei);
 	return;
@@ -603,4 +606,3 @@ devctl_unset_notify_hook(void)
 {
 	devctl_notify_hook.send_f = NULL;
 }
-

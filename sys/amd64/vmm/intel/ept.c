@@ -26,10 +26,10 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/kernel.h>
 #include <sys/smp.h>
 #include <sys/sysctl.h>
 
@@ -39,38 +39,37 @@
 
 #include <machine/vmm.h>
 
-#include "vmx_cpufunc.h"
 #include "ept.h"
+#include "vmx_cpufunc.h"
 
-#define	EPT_SUPPORTS_EXEC_ONLY(cap)	((cap) & (1UL << 0))
-#define	EPT_PWL4(cap)			((cap) & (1UL << 6))
-#define	EPT_MEMORY_TYPE_WB(cap)		((cap) & (1UL << 14))
-#define	EPT_PDE_SUPERPAGE(cap)		((cap) & (1UL << 16))	/* 2MB pages */
-#define	EPT_PDPTE_SUPERPAGE(cap)	((cap) & (1UL << 17))	/* 1GB pages */
-#define	INVEPT_SUPPORTED(cap)		((cap) & (1UL << 20))
-#define	AD_BITS_SUPPORTED(cap)		((cap) & (1UL << 21))
-#define	INVVPID_SUPPORTED(cap)		((cap) & (1UL << 32))
+#define EPT_SUPPORTS_EXEC_ONLY(cap) ((cap) & (1UL << 0))
+#define EPT_PWL4(cap) ((cap) & (1UL << 6))
+#define EPT_MEMORY_TYPE_WB(cap) ((cap) & (1UL << 14))
+#define EPT_PDE_SUPERPAGE(cap) ((cap) & (1UL << 16))   /* 2MB pages */
+#define EPT_PDPTE_SUPERPAGE(cap) ((cap) & (1UL << 17)) /* 1GB pages */
+#define INVEPT_SUPPORTED(cap) ((cap) & (1UL << 20))
+#define AD_BITS_SUPPORTED(cap) ((cap) & (1UL << 21))
+#define INVVPID_SUPPORTED(cap) ((cap) & (1UL << 32))
 
-#define	INVVPID_ALL_TYPES_MASK		0xF0000000000UL
-#define	INVVPID_ALL_TYPES_SUPPORTED(cap)	\
+#define INVVPID_ALL_TYPES_MASK 0xF0000000000UL
+#define INVVPID_ALL_TYPES_SUPPORTED(cap) \
 	(((cap) & INVVPID_ALL_TYPES_MASK) == INVVPID_ALL_TYPES_MASK)
 
-#define	INVEPT_ALL_TYPES_MASK		0x6000000UL
-#define	INVEPT_ALL_TYPES_SUPPORTED(cap)		\
+#define INVEPT_ALL_TYPES_MASK 0x6000000UL
+#define INVEPT_ALL_TYPES_SUPPORTED(cap) \
 	(((cap) & INVEPT_ALL_TYPES_MASK) == INVEPT_ALL_TYPES_MASK)
 
-#define	EPT_PWLEVELS		4		/* page walk levels */
-#define	EPT_ENABLE_AD_BITS	(1 << 6)
+#define EPT_PWLEVELS 4 /* page walk levels */
+#define EPT_ENABLE_AD_BITS (1 << 6)
 
 SYSCTL_DECL(_hw_vmm);
-SYSCTL_NODE(_hw_vmm, OID_AUTO, ept, CTLFLAG_RW | CTLFLAG_MPSAFE, NULL,
-    NULL);
+SYSCTL_NODE(_hw_vmm, OID_AUTO, ept, CTLFLAG_RW | CTLFLAG_MPSAFE, NULL, NULL);
 
 static int ept_enable_ad_bits;
 
 static int ept_pmap_flags;
-SYSCTL_INT(_hw_vmm_ept, OID_AUTO, pmap_flags, CTLFLAG_RD,
-    &ept_pmap_flags, 0, NULL);
+SYSCTL_INT(_hw_vmm_ept, OID_AUTO, pmap_flags, CTLFLAG_RD, &ept_pmap_flags, 0,
+    NULL);
 
 int
 ept_init(int ipinum)
@@ -87,12 +86,9 @@ ept_init(int ipinum)
 	 * - invvpid instruction with all possible types is supported
 	 * - invept instruction with all possible types is supported
 	 */
-	if (!EPT_PWL4(cap) ||
-	    !EPT_MEMORY_TYPE_WB(cap) ||
-	    !INVVPID_SUPPORTED(cap) ||
-	    !INVVPID_ALL_TYPES_SUPPORTED(cap) ||
-	    !INVEPT_SUPPORTED(cap) ||
-	    !INVEPT_ALL_TYPES_SUPPORTED(cap))
+	if (!EPT_PWL4(cap) || !EPT_MEMORY_TYPE_WB(cap) ||
+	    !INVVPID_SUPPORTED(cap) || !INVVPID_ALL_TYPES_SUPPORTED(cap) ||
+	    !INVEPT_SUPPORTED(cap) || !INVEPT_ALL_TYPES_SUPPORTED(cap))
 		return (EINVAL);
 
 	ept_pmap_flags = ipinum & PMAP_NESTED_IPIMASK;
@@ -100,7 +96,7 @@ ept_init(int ipinum)
 	use_superpages = 1;
 	TUNABLE_INT_FETCH("hw.vmm.ept.use_superpages", &use_superpages);
 	if (use_superpages && EPT_PDE_SUPERPAGE(cap))
-		ept_pmap_flags |= PMAP_PDE_SUPERPAGE;	/* 2MB superpage */
+		ept_pmap_flags |= PMAP_PDE_SUPERPAGE; /* 2MB superpage */
 
 	use_hw_ad_bits = 1;
 	TUNABLE_INT_FETCH("hw.vmm.ept.use_hw_ad_bits", &use_hw_ad_bits);

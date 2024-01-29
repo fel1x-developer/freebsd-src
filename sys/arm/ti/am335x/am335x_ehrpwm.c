@@ -37,15 +37,13 @@
 
 #include <machine/bus.h>
 
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
+#include <dev/ofw/openfirm.h>
 #include <dev/pwm/pwmc.h>
 
-#include "pwmbus_if.h"
-
 #include "am335x_pwm.h"
+#include "pwmbus_if.h"
 
 /*******************************************************************************
  * Enhanced resolution PWM driver.  Many of the advanced featues of the hardware
@@ -54,145 +52,145 @@
  ******************************************************************************/
 
 /* In ticks */
-#define	DEFAULT_PWM_PERIOD	1000
-#define	PWM_CLOCK		100000000UL
+#define DEFAULT_PWM_PERIOD 1000
+#define PWM_CLOCK 100000000UL
 
-#define	NS_PER_SEC		1000000000
+#define NS_PER_SEC 1000000000
 
-#define	PWM_LOCK(_sc)		mtx_lock(&(_sc)->sc_mtx)
-#define	PWM_UNLOCK(_sc)		mtx_unlock(&(_sc)->sc_mtx)
-#define	PWM_LOCK_ASSERT(_sc)    mtx_assert(&(_sc)->sc_mtx, MA_OWNED)
-#define	PWM_LOCK_INIT(_sc)	mtx_init(&(_sc)->sc_mtx, \
-    device_get_nameunit(_sc->sc_dev), "am335x_ehrpwm softc", MTX_DEF)
-#define	PWM_LOCK_DESTROY(_sc)	mtx_destroy(&(_sc)->sc_mtx)
+#define PWM_LOCK(_sc) mtx_lock(&(_sc)->sc_mtx)
+#define PWM_UNLOCK(_sc) mtx_unlock(&(_sc)->sc_mtx)
+#define PWM_LOCK_ASSERT(_sc) mtx_assert(&(_sc)->sc_mtx, MA_OWNED)
+#define PWM_LOCK_INIT(_sc)                                         \
+	mtx_init(&(_sc)->sc_mtx, device_get_nameunit(_sc->sc_dev), \
+	    "am335x_ehrpwm softc", MTX_DEF)
+#define PWM_LOCK_DESTROY(_sc) mtx_destroy(&(_sc)->sc_mtx)
 
-#define	EPWM_READ2(_sc, reg)	bus_read_2((_sc)->sc_mem_res, reg)
-#define	EPWM_WRITE2(_sc, reg, value)	\
-    bus_write_2((_sc)->sc_mem_res, reg, value)
+#define EPWM_READ2(_sc, reg) bus_read_2((_sc)->sc_mem_res, reg)
+#define EPWM_WRITE2(_sc, reg, value) bus_write_2((_sc)->sc_mem_res, reg, value)
 
-#define	EPWM_TBCTL		0x00
+#define EPWM_TBCTL 0x00
 /* see 15.2.2.11 for the first two, used in debug situations */
-#define		TBCTL_FREERUN_STOP_NEXT_TBC_INCREMENT	(0 << 14)
-#define		TBCTL_FREERUN_STOP_COMPLETE_CYCLE	(1 << 14)
+#define TBCTL_FREERUN_STOP_NEXT_TBC_INCREMENT (0 << 14)
+#define TBCTL_FREERUN_STOP_COMPLETE_CYCLE (1 << 14)
 /* ignore suspend control signal */
-#define		TBCTL_FREERUN				(2 << 14)
+#define TBCTL_FREERUN (2 << 14)
 
-#define		TBCTL_PHDIR_UP		(1 << 13)
-#define		TBCTL_PHDIR_DOWN	(0 << 13)
-#define		TBCTL_CLKDIV(x)		((x) << 10)
-#define		TBCTL_CLKDIV_MASK	(7 << 10)
-#define		TBCTL_HSPCLKDIV(x)	((x) << 7)
-#define		TBCTL_HSPCLKDIV_MASK	(7 << 7)
-#define		TBCTL_SYNCOSEL_DISABLED	(3 << 4)
-#define		TBCTL_PRDLD_SHADOW	(0 << 3)
-#define		TBCTL_PRDLD_IMMEDIATE	(1 << 3)
-#define		TBCTL_PHSEN_DISABLED	(0 << 2)
-#define		TBCTL_PHSEN_ENABLED	(1 << 2)
-#define		TBCTL_CTRMODE_MASK	(3)
-#define		TBCTL_CTRMODE_UP	(0 << 0)
-#define		TBCTL_CTRMODE_DOWN	(1 << 0)
-#define		TBCTL_CTRMODE_UPDOWN	(2 << 0)
-#define		TBCTL_CTRMODE_FREEZE	(3 << 0)
+#define TBCTL_PHDIR_UP (1 << 13)
+#define TBCTL_PHDIR_DOWN (0 << 13)
+#define TBCTL_CLKDIV(x) ((x) << 10)
+#define TBCTL_CLKDIV_MASK (7 << 10)
+#define TBCTL_HSPCLKDIV(x) ((x) << 7)
+#define TBCTL_HSPCLKDIV_MASK (7 << 7)
+#define TBCTL_SYNCOSEL_DISABLED (3 << 4)
+#define TBCTL_PRDLD_SHADOW (0 << 3)
+#define TBCTL_PRDLD_IMMEDIATE (1 << 3)
+#define TBCTL_PHSEN_DISABLED (0 << 2)
+#define TBCTL_PHSEN_ENABLED (1 << 2)
+#define TBCTL_CTRMODE_MASK (3)
+#define TBCTL_CTRMODE_UP (0 << 0)
+#define TBCTL_CTRMODE_DOWN (1 << 0)
+#define TBCTL_CTRMODE_UPDOWN (2 << 0)
+#define TBCTL_CTRMODE_FREEZE (3 << 0)
 
-#define	EPWM_TBSTS		0x02
-#define	EPWM_TBPHSHR		0x04
-#define	EPWM_TBPHS		0x06
-#define	EPWM_TBCNT		0x08
-#define	EPWM_TBPRD		0x0a
+#define EPWM_TBSTS 0x02
+#define EPWM_TBPHSHR 0x04
+#define EPWM_TBPHS 0x06
+#define EPWM_TBCNT 0x08
+#define EPWM_TBPRD 0x0a
 /* Counter-compare */
-#define	EPWM_CMPCTL		0x0e
-#define		CMPCTL_SHDWBMODE_SHADOW		(1 << 6)
-#define		CMPCTL_SHDWBMODE_IMMEDIATE	(0 << 6)
-#define		CMPCTL_SHDWAMODE_SHADOW		(1 << 4)
-#define		CMPCTL_SHDWAMODE_IMMEDIATE	(0 << 4)
-#define		CMPCTL_LOADBMODE_ZERO		(0 << 2)
-#define		CMPCTL_LOADBMODE_PRD		(1 << 2)
-#define		CMPCTL_LOADBMODE_EITHER		(2 << 2)
-#define		CMPCTL_LOADBMODE_FREEZE		(3 << 2)
-#define		CMPCTL_LOADAMODE_ZERO		(0 << 0)
-#define		CMPCTL_LOADAMODE_PRD		(1 << 0)
-#define		CMPCTL_LOADAMODE_EITHER		(2 << 0)
-#define		CMPCTL_LOADAMODE_FREEZE		(3 << 0)
-#define	EPWM_CMPAHR		0x10
-#define	EPWM_CMPA		0x12
-#define	EPWM_CMPB		0x14
+#define EPWM_CMPCTL 0x0e
+#define CMPCTL_SHDWBMODE_SHADOW (1 << 6)
+#define CMPCTL_SHDWBMODE_IMMEDIATE (0 << 6)
+#define CMPCTL_SHDWAMODE_SHADOW (1 << 4)
+#define CMPCTL_SHDWAMODE_IMMEDIATE (0 << 4)
+#define CMPCTL_LOADBMODE_ZERO (0 << 2)
+#define CMPCTL_LOADBMODE_PRD (1 << 2)
+#define CMPCTL_LOADBMODE_EITHER (2 << 2)
+#define CMPCTL_LOADBMODE_FREEZE (3 << 2)
+#define CMPCTL_LOADAMODE_ZERO (0 << 0)
+#define CMPCTL_LOADAMODE_PRD (1 << 0)
+#define CMPCTL_LOADAMODE_EITHER (2 << 0)
+#define CMPCTL_LOADAMODE_FREEZE (3 << 0)
+#define EPWM_CMPAHR 0x10
+#define EPWM_CMPA 0x12
+#define EPWM_CMPB 0x14
 /* CMPCTL_LOADAMODE_ZERO */
-#define	EPWM_AQCTLA		0x16
-#define	EPWM_AQCTLB		0x18
-#define		AQCTL_CBU_NONE		(0 << 8)
-#define		AQCTL_CBU_CLEAR		(1 << 8)
-#define		AQCTL_CBU_SET		(2 << 8)
-#define		AQCTL_CBU_TOGGLE	(3 << 8)
-#define		AQCTL_CAU_NONE		(0 << 4)
-#define		AQCTL_CAU_CLEAR		(1 << 4)
-#define		AQCTL_CAU_SET		(2 << 4)
-#define		AQCTL_CAU_TOGGLE	(3 << 4)
-#define		AQCTL_ZRO_NONE		(0 << 0)
-#define		AQCTL_ZRO_CLEAR		(1 << 0)
-#define		AQCTL_ZRO_SET		(2 << 0)
-#define		AQCTL_ZRO_TOGGLE	(3 << 0)
-#define	EPWM_AQSFRC		0x1a
-#define	EPWM_AQCSFRC		0x1c
-#define		AQCSFRC_OFF		0
-#define		AQCSFRC_LO		1
-#define		AQCSFRC_HI		2
-#define		AQCSFRC_MASK		3
-#define		AQCSFRC(chan, hilo)	((hilo) << (2 * chan))
+#define EPWM_AQCTLA 0x16
+#define EPWM_AQCTLB 0x18
+#define AQCTL_CBU_NONE (0 << 8)
+#define AQCTL_CBU_CLEAR (1 << 8)
+#define AQCTL_CBU_SET (2 << 8)
+#define AQCTL_CBU_TOGGLE (3 << 8)
+#define AQCTL_CAU_NONE (0 << 4)
+#define AQCTL_CAU_CLEAR (1 << 4)
+#define AQCTL_CAU_SET (2 << 4)
+#define AQCTL_CAU_TOGGLE (3 << 4)
+#define AQCTL_ZRO_NONE (0 << 0)
+#define AQCTL_ZRO_CLEAR (1 << 0)
+#define AQCTL_ZRO_SET (2 << 0)
+#define AQCTL_ZRO_TOGGLE (3 << 0)
+#define EPWM_AQSFRC 0x1a
+#define EPWM_AQCSFRC 0x1c
+#define AQCSFRC_OFF 0
+#define AQCSFRC_LO 1
+#define AQCSFRC_HI 2
+#define AQCSFRC_MASK 3
+#define AQCSFRC(chan, hilo) ((hilo) << (2 * chan))
 
 /* Trip-Zone module */
-#define	EPWM_TZSEL		0x24
-#define	EPWM_TZCTL		0x28
-#define	EPWM_TZFLG		0x2C
+#define EPWM_TZSEL 0x24
+#define EPWM_TZCTL 0x28
+#define EPWM_TZFLG 0x2C
 
 /* Dead band */
-#define EPWM_DBCTL		0x1E
-#define		DBCTL_MASK		(3 << 0)
-#define		DBCTL_BYPASS		0
-#define		DBCTL_RISING_EDGE	1
-#define		DBCTL_FALLING_EDGE	2
-#define		DBCTL_BOTH_EDGE		3
+#define EPWM_DBCTL 0x1E
+#define DBCTL_MASK (3 << 0)
+#define DBCTL_BYPASS 0
+#define DBCTL_RISING_EDGE 1
+#define DBCTL_FALLING_EDGE 2
+#define DBCTL_BOTH_EDGE 3
 
 /* PWM-chopper */
-#define EPWM_PCCTL		0x3C
-#define		PCCTL_CHPEN_MASK	(1 << 0)
-#define		PCCTL_CHPEN_DISABLE	0
-#define		PCCTL_CHPEN_ENABLE	1
+#define EPWM_PCCTL 0x3C
+#define PCCTL_CHPEN_MASK (1 << 0)
+#define PCCTL_CHPEN_DISABLE 0
+#define PCCTL_CHPEN_ENABLE 1
 
 /* High-Resolution PWM */
-#define	EPWM_HRCTL		0x40
-#define		HRCTL_DELMODE_BOTH	3
-#define		HRCTL_DELMODE_FALL	2
-#define		HRCTL_DELMODE_RISE	1
+#define EPWM_HRCTL 0x40
+#define HRCTL_DELMODE_BOTH 3
+#define HRCTL_DELMODE_FALL 2
+#define HRCTL_DELMODE_RISE 1
 
 static device_probe_t am335x_ehrpwm_probe;
 static device_attach_t am335x_ehrpwm_attach;
 static device_detach_t am335x_ehrpwm_detach;
 
 struct ehrpwm_channel {
-	u_int	duty;		/* on duration, in ns */
-	bool	enabled;	/* channel enabled? */
-	bool	inverted;	/* signal inverted? */
+	u_int duty;    /* on duration, in ns */
+	bool enabled;  /* channel enabled? */
+	bool inverted; /* signal inverted? */
 };
-#define	NUM_CHANNELS	2
+#define NUM_CHANNELS 2
 
 struct am335x_ehrpwm_softc {
-	device_t		sc_dev;
-	device_t		sc_busdev;
-	struct mtx		sc_mtx;
-	struct resource		*sc_mem_res;
-	int			sc_mem_rid;
+	device_t sc_dev;
+	device_t sc_busdev;
+	struct mtx sc_mtx;
+	struct resource *sc_mem_res;
+	int sc_mem_rid;
 
 	/* Things used for configuration via pwm(9) api. */
-	u_int			sc_clkfreq; /* frequency in Hz */
-	u_int			sc_clktick; /* duration in ns */
-	u_int			sc_period;  /* duration in ns */
-	struct ehrpwm_channel	sc_channels[NUM_CHANNELS];
+	u_int sc_clkfreq; /* frequency in Hz */
+	u_int sc_clktick; /* duration in ns */
+	u_int sc_period;  /* duration in ns */
+	struct ehrpwm_channel sc_channels[NUM_CHANNELS];
 };
 
 static struct ofw_compat_data compat_data[] = {
-	{"ti,am3352-ehrpwm",    true},
-	{"ti,am33xx-ehrpwm",    true},
-	{NULL,                  false},
+	{ "ti,am3352-ehrpwm", true },
+	{ "ti,am33xx-ehrpwm", true },
+	{ NULL, false },
 };
 SIMPLEBUS_PNP_INFO(compat_data);
 
@@ -213,7 +211,8 @@ am335x_ehrpwm_cfg_duty(struct am335x_ehrpwm_softc *sc, u_int chan, u_int duty)
 }
 
 static void
-am335x_ehrpwm_cfg_enable(struct am335x_ehrpwm_softc *sc, u_int chan, bool enable)
+am335x_ehrpwm_cfg_enable(struct am335x_ehrpwm_softc *sc, u_int chan,
+    bool enable)
 {
 	uint16_t regval;
 
@@ -245,7 +244,7 @@ am335x_ehrpwm_cfg_period(struct am335x_ehrpwm_softc *sc, u_int period)
 	if (period < 2 * NS_PER_SEC / PWM_CLOCK) {
 		sc->sc_clkfreq = 0;
 		sc->sc_clktick = 0;
-		sc->sc_period  = 0;
+		sc->sc_period = 0;
 		return (false);
 	}
 
@@ -281,7 +280,7 @@ am335x_ehrpwm_cfg_period(struct am335x_ehrpwm_softc *sc, u_int period)
 	    sc->sc_period != tbprd * pwmtick) {
 		sc->sc_clkfreq = pwmclk;
 		sc->sc_clktick = pwmtick;
-		sc->sc_period  = tbprd * pwmtick;
+		sc->sc_period = tbprd * pwmtick;
 
 		PWM_LOCK_ASSERT(sc);
 		regval = EPWM_READ2(sc, EPWM_TBCTL);
@@ -316,7 +315,8 @@ am335x_ehrpwm_channel_count(device_t dev, u_int *nchannel)
 }
 
 static int
-am335x_ehrpwm_channel_config(device_t dev, u_int channel, u_int period, u_int duty)
+am335x_ehrpwm_channel_config(device_t dev, u_int channel, u_int period,
+    u_int duty)
 {
 	struct am335x_ehrpwm_softc *sc;
 	bool status;
@@ -336,8 +336,8 @@ am335x_ehrpwm_channel_config(device_t dev, u_int channel, u_int period, u_int du
 }
 
 static int
-am335x_ehrpwm_channel_get_config(device_t dev, u_int channel, 
-    u_int *period, u_int *duty)
+am335x_ehrpwm_channel_get_config(device_t dev, u_int channel, u_int *period,
+    u_int *duty)
 {
 	struct am335x_ehrpwm_softc *sc;
 
@@ -351,8 +351,7 @@ am335x_ehrpwm_channel_get_config(device_t dev, u_int channel,
 }
 
 static int
-am335x_ehrpwm_channel_set_flags(device_t dev, u_int channel,
-       uint32_t flags)
+am335x_ehrpwm_channel_set_flags(device_t dev, u_int channel, uint32_t flags)
 {
 	struct am335x_ehrpwm_softc *sc;
 
@@ -386,8 +385,7 @@ am335x_ehrpwm_channel_set_flags(device_t dev, u_int channel,
 }
 
 static int
-am335x_ehrpwm_channel_get_flags(device_t dev, u_int channel,
-    uint32_t *flags)
+am335x_ehrpwm_channel_get_flags(device_t dev, u_int channel, uint32_t *flags)
 {
 	struct am335x_ehrpwm_softc *sc;
 	if (channel >= NUM_CHANNELS)
@@ -402,7 +400,6 @@ am335x_ehrpwm_channel_get_flags(device_t dev, u_int channel,
 
 	return (0);
 }
-
 
 static int
 am335x_ehrpwm_channel_enable(device_t dev, u_int channel, bool enable)
@@ -522,10 +519,10 @@ am335x_ehrpwm_attach(device_t dev)
 fail:
 	PWM_LOCK_DESTROY(sc);
 	if (sc->sc_mem_res)
-		bus_release_resource(dev, SYS_RES_MEMORY,
-		    sc->sc_mem_rid, sc->sc_mem_res);
+		bus_release_resource(dev, SYS_RES_MEMORY, sc->sc_mem_rid,
+		    sc->sc_mem_res);
 
-	return(ENXIO);
+	return (ENXIO);
 }
 
 static int
@@ -545,8 +542,8 @@ am335x_ehrpwm_detach(device_t dev)
 		device_delete_child(dev, sc->sc_busdev);
 
 	if (sc->sc_mem_res)
-		bus_release_resource(dev, SYS_RES_MEMORY,
-		    sc->sc_mem_rid, sc->sc_mem_res);
+		bus_release_resource(dev, SYS_RES_MEMORY, sc->sc_mem_rid,
+		    sc->sc_mem_res);
 
 	PWM_UNLOCK(sc);
 
@@ -566,25 +563,24 @@ am335x_ehrpwm_get_node(device_t bus, device_t dev)
 	return ofw_bus_get_node(bus);
 }
 
-static device_method_t am335x_ehrpwm_methods[] = {
-	DEVMETHOD(device_probe,		am335x_ehrpwm_probe),
-	DEVMETHOD(device_attach,	am335x_ehrpwm_attach),
-	DEVMETHOD(device_detach,	am335x_ehrpwm_detach),
+static device_method_t am335x_ehrpwm_methods[] = { DEVMETHOD(device_probe,
+						       am335x_ehrpwm_probe),
+	DEVMETHOD(device_attach, am335x_ehrpwm_attach),
+	DEVMETHOD(device_detach, am335x_ehrpwm_detach),
 
 	/* ofw_bus_if */
-	DEVMETHOD(ofw_bus_get_node,	am335x_ehrpwm_get_node),
+	DEVMETHOD(ofw_bus_get_node, am335x_ehrpwm_get_node),
 
 	/* pwm interface */
-	DEVMETHOD(pwmbus_channel_count,		am335x_ehrpwm_channel_count),
-	DEVMETHOD(pwmbus_channel_config,	am335x_ehrpwm_channel_config),
-	DEVMETHOD(pwmbus_channel_get_config,	am335x_ehrpwm_channel_get_config),
-	DEVMETHOD(pwmbus_channel_set_flags,	am335x_ehrpwm_channel_set_flags),
-	DEVMETHOD(pwmbus_channel_get_flags,	am335x_ehrpwm_channel_get_flags),
-	DEVMETHOD(pwmbus_channel_enable,	am335x_ehrpwm_channel_enable),
-	DEVMETHOD(pwmbus_channel_is_enabled,	am335x_ehrpwm_channel_is_enabled),
+	DEVMETHOD(pwmbus_channel_count, am335x_ehrpwm_channel_count),
+	DEVMETHOD(pwmbus_channel_config, am335x_ehrpwm_channel_config),
+	DEVMETHOD(pwmbus_channel_get_config, am335x_ehrpwm_channel_get_config),
+	DEVMETHOD(pwmbus_channel_set_flags, am335x_ehrpwm_channel_set_flags),
+	DEVMETHOD(pwmbus_channel_get_flags, am335x_ehrpwm_channel_get_flags),
+	DEVMETHOD(pwmbus_channel_enable, am335x_ehrpwm_channel_enable),
+	DEVMETHOD(pwmbus_channel_is_enabled, am335x_ehrpwm_channel_is_enabled),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 static driver_t am335x_ehrpwm_driver = {
 	"pwm",

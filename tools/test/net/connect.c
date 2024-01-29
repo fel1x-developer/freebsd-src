@@ -24,6 +24,11 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/types.h>
+#include <sys/socket.h>
+
+#include <netinet/in.h>
+
 #include <err.h>
 #include <errno.h>
 #include <stdio.h>
@@ -32,21 +37,19 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <netinet/in.h>
-
-#define PORT 6969 /* Default port */
+#define PORT 6969     /* Default port */
 #define RECV_LIMIT 64 /* When do we move listen to 0? */
 
 void usage(void);
 
-void usage()
+void
+usage()
 {
 	err(EX_USAGE, "connect [-p port]\n");
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
 
 	int ch, cli_sock, count = 0;
@@ -73,12 +76,11 @@ int main(int argc, char **argv)
 	cli_sock = socket(AF_INET, SOCK_STREAM, 0);
 
 	while ((cli_sock = connect(cli_sock, (struct sockaddr *)&remoteaddr,
-				   sizeof(remoteaddr))) >= 0) {
+		    sizeof(remoteaddr))) >= 0) {
 		count++;
 		close(cli_sock);
 		cli_sock = socket(AF_INET, SOCK_STREAM, 0);
 	}
 
 	printf("Exiting at %d with errno %d\n", count, errno);
-
 }

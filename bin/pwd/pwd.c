@@ -29,9 +29,9 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 
 #include <err.h>
 #include <errno.h>
@@ -86,7 +86,7 @@ usage(void)
 {
 
 	(void)fprintf(stderr, "usage: pwd [-L | -P]\n");
-  	exit(1);
+	exit(1);
 }
 
 static char *

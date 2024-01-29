@@ -51,7 +51,7 @@ static void cr3(void);
 static void rn1(void);
 static void rw1(void);
 static void rw2(void);
-static void (*functions[])(void) = {&cr1, &cr2, &cr3, &rn1, &rw1, &rw2};
+static void (*functions[])(void) = { &cr1, &cr2, &cr3, &rn1, &rw1, &rw2 };
 
 static volatile u_int *share;
 static int tests;
@@ -70,18 +70,18 @@ cr1(void)
 	setproctitle("%s", __func__);
 	for (j = 0; j < 10; j++) {
 		for (i = 0; i < loops; i++) {
-			snprintf(file, sizeof(file), "%s.%06d.%03d",
-			    __func__, getpid(), i);
+			snprintf(file, sizeof(file), "%s.%06d.%03d", __func__,
+			    getpid(), i);
 			if ((fd = open(file, O_RDWR | O_CREAT | O_TRUNC,
-			    DEFFILEMODE)) == -1)
+				 DEFFILEMODE)) == -1)
 				err(1, "open(%s)", file);
 			close(fd);
 			if (i % 1000 == 0)
 				usleep(100);
 		}
 		for (i = 0; i < loops; i++) {
-			snprintf(file, sizeof(file), "%s.%06d.%03d",
-			    __func__, getpid(), i);
+			snprintf(file, sizeof(file), "%s.%06d.%03d", __func__,
+			    getpid(), i);
 			if (unlink(file) == -1)
 				err(1, "unlink(%s)", file);
 		}
@@ -101,10 +101,10 @@ cr2(void)
 	setproctitle("%s", __func__);
 	for (j = 0; j < 3; j++) {
 		for (i = 0; i < 40000; i++) {
-			snprintf(file, sizeof(file), "%s.%06d.%03d",
-			    __func__, getpid(), i);
+			snprintf(file, sizeof(file), "%s.%06d.%03d", __func__,
+			    getpid(), i);
 			if ((fd = open(file, O_RDWR | O_CREAT | O_TRUNC,
-			    DEFFILEMODE)) == -1)
+				 DEFFILEMODE)) == -1)
 				err(1, "open(%s)", file);
 			close(fd);
 			if (unlink(file) == -1)
@@ -130,18 +130,18 @@ cr3(void)
 	getcwd(path, sizeof(path));
 	for (j = 0; j < 7; j++) {
 		for (i = 0; i < loops; i++) {
-			snprintf(file, sizeof(file), "%s/%s.%06d.%03d",
-			    path, __func__, getpid(), i);
+			snprintf(file, sizeof(file), "%s/%s.%06d.%03d", path,
+			    __func__, getpid(), i);
 			if ((fd = open(file, O_RDWR | O_CREAT | O_TRUNC,
-			    DEFFILEMODE)) == -1)
+				 DEFFILEMODE)) == -1)
 				err(1, "open(%s)", file);
 			close(fd);
 			if (i % 1000 == 0)
 				usleep(100);
 		}
 		for (i = 0; i < loops; i++) {
-			snprintf(file, sizeof(file), "%s/%s.%06d.%03d",
-			    path, __func__, getpid(), i);
+			snprintf(file, sizeof(file), "%s/%s.%06d.%03d", path,
+			    __func__, getpid(), i);
 			if (unlink(file) == -1)
 				err(1, "unlink(%s)", file);
 		}
@@ -163,14 +163,14 @@ rn1(void)
 
 	for (j = 0; j < 8; j++) {
 		for (i = 0; i < loops; i++) {
-			snprintf(file, sizeof(file), "%s.%06d.%03d",
-			    __func__, getpid(), i);
+			snprintf(file, sizeof(file), "%s.%06d.%03d", __func__,
+			    getpid(), i);
 			if ((fd = open(file, O_RDWR | O_CREAT | O_TRUNC,
-			    DEFFILEMODE)) == -1)
+				 DEFFILEMODE)) == -1)
 				err(1, "open(%s)", file);
 			close(fd);
-			snprintf(new, sizeof(new), "%s.%06d.%03d.new",
-			    __func__, getpid(), i);
+			snprintf(new, sizeof(new), "%s.%06d.%03d.new", __func__,
+			    getpid(), i);
 			if (rename(file, new) == -1)
 				err(1, "rename(%s, %s)", file, new);
 			if (unlink(new) == -1)
@@ -194,30 +194,30 @@ rw1(void)
 		usleep(100);
 
 	setproctitle("%s", __func__);
-        memset(buf, 0, sizeof(buf));
-        for (i = 0; i < loops; i++) {
-                snprintf(file, sizeof(file), "rw1.%06d.%03d", getpid(), i);
-                if ((fd = open(file, O_RDWR | O_CREAT | O_TRUNC,
-                    DEFFILEMODE)) == -1)
-                        err(1, "open(%s)", file);
-                if (write(fd, buf, sizeof(buf)) != sizeof(buf))
-                        err(1, "write(%s)", file);
-                close(fd);
-        }
-        for (i = 0; i < loops; i++) {
-                snprintf(file, sizeof(file), "rw1.%06d.%03d", getpid(), i);
-                if ((fd = open(file, O_RDONLY)) == -1)
-                        err(1, "open(%s)", file);
-                if (read(fd, buf, sizeof(buf)) != sizeof(buf))
-                        err(1, "write(%s)", file);
-                close(fd);
-                usleep(100);
-        }
-        for (i = 0; i < loops; i++) {
-                snprintf(file, sizeof(file), "rw1.%06d.%03d", getpid(), i);
-                if (unlink(file) == -1)
-                        err(1, "unlink(%s)", file);
-        }
+	memset(buf, 0, sizeof(buf));
+	for (i = 0; i < loops; i++) {
+		snprintf(file, sizeof(file), "rw1.%06d.%03d", getpid(), i);
+		if ((fd = open(file, O_RDWR | O_CREAT | O_TRUNC,
+			 DEFFILEMODE)) == -1)
+			err(1, "open(%s)", file);
+		if (write(fd, buf, sizeof(buf)) != sizeof(buf))
+			err(1, "write(%s)", file);
+		close(fd);
+	}
+	for (i = 0; i < loops; i++) {
+		snprintf(file, sizeof(file), "rw1.%06d.%03d", getpid(), i);
+		if ((fd = open(file, O_RDONLY)) == -1)
+			err(1, "open(%s)", file);
+		if (read(fd, buf, sizeof(buf)) != sizeof(buf))
+			err(1, "write(%s)", file);
+		close(fd);
+		usleep(100);
+	}
+	for (i = 0; i < loops; i++) {
+		snprintf(file, sizeof(file), "rw1.%06d.%03d", getpid(), i);
+		if (unlink(file) == -1)
+			err(1, "unlink(%s)", file);
+	}
 }
 
 static void
@@ -235,29 +235,29 @@ rw2(void)
 
 	setproctitle("%s", __func__);
 	buf = calloc(1, siz);
-        for (i = 0; i < loops; i++) {
-                snprintf(file, sizeof(file), "rw1.%06d.%03d", getpid(), i);
-                if ((fd = open(file, O_RDWR | O_CREAT | O_TRUNC,
-                    DEFFILEMODE)) == -1)
-                        err(1, "open(%s)", file);
-                if (write(fd, buf, siz) != siz)
-                        err(1, "write(%s)", file);
-                close(fd);
-        }
-        for (i = 0; i < loops; i++) {
-                snprintf(file, sizeof(file), "rw1.%06d.%03d", getpid(), i);
-                if ((fd = open(file, O_RDONLY)) == -1)
-                        err(1, "open(%s)", file);
-                if (read(fd, buf, siz) != siz)
-                        err(1, "write(%s)", file);
-                close(fd);
-                usleep(100);
-        }
-        for (i = 0; i < loops; i++) {
-                snprintf(file, sizeof(file), "rw1.%06d.%03d", getpid(), i);
-                if (unlink(file) == -1)
-                        err(1, "unlink(%s)", file);
-        }
+	for (i = 0; i < loops; i++) {
+		snprintf(file, sizeof(file), "rw1.%06d.%03d", getpid(), i);
+		if ((fd = open(file, O_RDWR | O_CREAT | O_TRUNC,
+			 DEFFILEMODE)) == -1)
+			err(1, "open(%s)", file);
+		if (write(fd, buf, siz) != siz)
+			err(1, "write(%s)", file);
+		close(fd);
+	}
+	for (i = 0; i < loops; i++) {
+		snprintf(file, sizeof(file), "rw1.%06d.%03d", getpid(), i);
+		if ((fd = open(file, O_RDONLY)) == -1)
+			err(1, "open(%s)", file);
+		if (read(fd, buf, siz) != siz)
+			err(1, "write(%s)", file);
+		close(fd);
+		usleep(100);
+	}
+	for (i = 0; i < loops; i++) {
+		snprintf(file, sizeof(file), "rw1.%06d.%03d", getpid(), i);
+		if (unlink(file) == -1)
+			err(1, "unlink(%s)", file);
+	}
 }
 
 static void
@@ -267,7 +267,7 @@ spawn(void f(), int idx)
 	int i, status;
 	char dir[128];
 
-	snprintf(dir, sizeof(dir), "f%d.%d.d",getpid(), idx);
+	snprintf(dir, sizeof(dir), "f%d.%d.d", getpid(), idx);
 	rmdir(dir);
 	if (mkdir(dir, 0770) == -1)
 		err(1, "mkdir(%s)", dir);
@@ -289,7 +289,6 @@ spawn(void f(), int idx)
 		err(1, "chdir(..)");
 	if (rmdir(dir) == -1)
 		err(1, "rmdir(%s)", dir);
-
 }
 
 void
@@ -310,7 +309,7 @@ main(int argc, char *argv[])
 
 	timing = 0;
 	while ((ch = getopt(argc, argv, "t")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case 't':
 			timing = 1;
 			break;
@@ -325,7 +324,7 @@ main(int argc, char *argv[])
 	pids = malloc(tests * sizeof(pid_t));
 	len = PAGE_SIZE;
 	if ((share = mmap(NULL, len, PROT_READ | PROT_WRITE,
-	    MAP_ANON | MAP_SHARED, -1, 0)) == MAP_FAILED)
+		 MAP_ANON | MAP_SHARED, -1, 0)) == MAP_FAILED)
 		err(1, "mmap");
 
 	gettimeofday(&t1, NULL);
@@ -334,7 +333,7 @@ main(int argc, char *argv[])
 			start = time(NULL);
 			spawn(functions[i], i);
 #if defined(DEBUG)
-			fprintf(stderr, "%d: %ld elapsed\n", i ,
+			fprintf(stderr, "%d: %ld elapsed\n", i,
 			    (long)(time(NULL) - start));
 #endif
 			_exit(0);
@@ -344,13 +343,13 @@ main(int argc, char *argv[])
 	}
 	for (i = 0; i < tests; i++) {
 		if (waitpid(pids[i], &status, 0) != pids[i])
-			err(1, "waitpid(%d). i=%d %s:%d", pids[i], i,
-					__func__, __LINE__);
+			err(1, "waitpid(%d). i=%d %s:%d", pids[i], i, __func__,
+			    __LINE__);
 	}
 	gettimeofday(&t2, NULL);
 	timersub(&t2, &t1, &diff);
 	if (timing == 1)
-		printf("%jd.%06ld\n",(intmax_t)diff.tv_sec, diff.tv_usec);
+		printf("%jd.%06ld\n", (intmax_t)diff.tv_sec, diff.tv_usec);
 
 	return (0);
 }

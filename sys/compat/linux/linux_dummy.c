@@ -27,8 +27,8 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/sdt.h>
 #include <sys/proc.h>
+#include <sys/sdt.h>
 
 /*
  * Including linux vs linux32 here is arbitrary -- the syscall args structures
@@ -45,14 +45,14 @@
 LIN_SDT_PROVIDER_DECLARE(LINUX_DTRACE);
 
 UNIMPLEMENTED(afs_syscall);
-UNIMPLEMENTED(create_module);	/* Added in Linux 1.0 removed in 2.6. */
+UNIMPLEMENTED(create_module); /* Added in Linux 1.0 removed in 2.6. */
 UNIMPLEMENTED(epoll_ctl_old);
 UNIMPLEMENTED(epoll_wait_old);
-UNIMPLEMENTED(get_kernel_syms);	/* Added in Linux 1.0 removed in 2.6. */
+UNIMPLEMENTED(get_kernel_syms); /* Added in Linux 1.0 removed in 2.6. */
 UNIMPLEMENTED(getpmsg);
-UNIMPLEMENTED(nfsservctl);	/* Added in Linux 2.2 removed in 3.1. */
+UNIMPLEMENTED(nfsservctl); /* Added in Linux 2.2 removed in 3.1. */
 UNIMPLEMENTED(putpmsg);
-UNIMPLEMENTED(query_module);	/* Added in Linux 2.2 removed in 2.6. */
+UNIMPLEMENTED(query_module); /* Added in Linux 2.2 removed in 2.6. */
 UNIMPLEMENTED(security);
 UNIMPLEMENTED(vserver);
 

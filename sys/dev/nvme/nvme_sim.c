@@ -33,30 +33,29 @@
 #include <sys/proc.h>
 #include <sys/smp.h>
 
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
 #include <cam/cam.h>
 #include <cam/cam_ccb.h>
+#include <cam/cam_debug.h>
 #include <cam/cam_sim.h>
 #include <cam/cam_xpt_sim.h>
-#include <cam/cam_debug.h>
-
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
 
 #include "nvme_private.h"
 
 #define ccb_accb_ptr spriv_ptr0
 #define ccb_ctrlr_ptr spriv_ptr1
-static void	nvme_sim_action(struct cam_sim *sim, union ccb *ccb);
-static void	nvme_sim_poll(struct cam_sim *sim);
+static void nvme_sim_action(struct cam_sim *sim, union ccb *ccb);
+static void nvme_sim_poll(struct cam_sim *sim);
 
-#define sim2softc(sim)	((struct nvme_sim_softc *)cam_sim_softc(sim))
-#define sim2ctrlr(sim)	(sim2softc(sim)->s_ctrlr)
+#define sim2softc(sim) ((struct nvme_sim_softc *)cam_sim_softc(sim))
+#define sim2ctrlr(sim) (sim2softc(sim)->s_ctrlr)
 
-struct nvme_sim_softc
-{
-	struct nvme_controller	*s_ctrlr;
-	struct cam_sim		*s_sim;
-	struct cam_path		*s_path;
+struct nvme_sim_softc {
+	struct nvme_controller *s_ctrlr;
+	struct cam_sim *s_sim;
+	struct cam_path *s_path;
 };
 
 static void
@@ -84,10 +83,10 @@ nvme_sim_nvmeio_done(void *ccb_arg, const struct nvme_completion *cpl)
 static void
 nvme_sim_nvmeio(struct cam_sim *sim, union ccb *ccb)
 {
-	struct ccb_nvmeio	*nvmeio = &ccb->nvmeio;
-	struct nvme_request	*req;
-	void			*payload;
-	uint32_t		size;
+	struct ccb_nvmeio *nvmeio = &ccb->nvmeio;
+	struct nvme_request *req;
+	void *payload;
+	uint32_t size;
 	struct nvme_controller *ctrlr;
 
 	ctrlr = sim2ctrlr(sim);
@@ -130,8 +129,8 @@ nvme_link_kBps(struct nvme_controller *ctrlr)
 	speed = status & PCIEM_LINK_STA_SPEED;
 	lanes = (status & PCIEM_LINK_STA_WIDTH) >> 4;
 	/*
-	 * Failsafe on link speed indicator. If it is insane report the number of
-	 * lanes as the speed. Not 100% accurate, but may be diagnostic.
+	 * Failsafe on link speed indicator. If it is insane report the number
+	 * of lanes as the speed. Not 100% accurate, but may be diagnostic.
 	 */
 	if (speed >= nitems(link))
 		speed = 0;
@@ -144,19 +143,18 @@ nvme_sim_action(struct cam_sim *sim, union ccb *ccb)
 	struct nvme_controller *ctrlr;
 
 	CAM_DEBUG(ccb->ccb_h.path, CAM_DEBUG_TRACE,
-	    ("nvme_sim_action: func= %#x\n",
-		ccb->ccb_h.func_code));
+	    ("nvme_sim_action: func= %#x\n", ccb->ccb_h.func_code));
 
 	ctrlr = sim2ctrlr(sim);
 
 	switch (ccb->ccb_h.func_code) {
-	case XPT_CALC_GEOMETRY:		/* Calculate Geometry Totally nuts ? XXX */
-		/* 
-		 * Only meaningful for old-school SCSI disks since only the SCSI
-		 * da driver generates them. Reject all these that slip through.
-		 */
-		/*FALLTHROUGH*/
-	case XPT_ABORT:			/* Abort the specified CCB */
+	case XPT_CALC_GEOMETRY: /* Calculate Geometry Totally nuts ? XXX */
+				/*
+				 * Only meaningful for old-school SCSI disks since only the SCSI
+				 * da driver generates them. Reject all these that slip through.
+				 */
+				/*FALLTHROUGH*/
+	case XPT_ABORT:		/* Abort the specified CCB */
 		ccb->ccb_h.status = CAM_REQ_INVALID;
 		break;
 	case XPT_SET_TRAN_SETTINGS:
@@ -166,10 +164,10 @@ nvme_sim_action(struct cam_sim *sim, union ccb *ccb)
 		 */
 		ccb->ccb_h.status = CAM_REQ_CMP;
 		break;
-	case XPT_PATH_INQ:		/* Path routing inquiry */
+	case XPT_PATH_INQ: /* Path routing inquiry */
 	{
-		struct ccb_pathinq	*cpi = &ccb->cpi;
-		device_t		dev = ctrlr->dev;
+		struct ccb_pathinq *cpi = &ccb->cpi;
+		device_t dev = ctrlr->dev;
 
 		/*
 		 * For devices that are reported as children of the AHCI
@@ -181,7 +179,7 @@ nvme_sim_action(struct cam_sim *sim, union ccb *ccb)
 		cpi->version_num = 1;
 		cpi->hba_inquiry = 0;
 		cpi->target_sprt = 0;
-		cpi->hba_misc =  PIM_UNMAPPED | PIM_NOSCAN;
+		cpi->hba_misc = PIM_UNMAPPED | PIM_NOSCAN;
 		cpi->hba_eng_cnt = 0;
 		cpi->max_target = 0;
 		cpi->max_lun = ctrlr->cdata.nn;
@@ -193,17 +191,19 @@ nvme_sim_action(struct cam_sim *sim, union ccb *ccb)
 		strlcpy(cpi->hba_vid, "NVMe", HBA_IDLEN);
 		strlcpy(cpi->dev_name, cam_sim_name(sim), DEV_IDLEN);
 		cpi->unit_number = cam_sim_unit(sim);
-		cpi->transport = XPORT_NVME;		/* XXX XPORT_PCIE ? */
+		cpi->transport = XPORT_NVME; /* XXX XPORT_PCIE ? */
 		cpi->transport_version = nvme_mmio_read_4(ctrlr, vs);
 		cpi->protocol = PROTO_NVME;
 		cpi->protocol_version = nvme_mmio_read_4(ctrlr, vs);
-		cpi->xport_specific.nvme.nsid = xpt_path_lun_id(ccb->ccb_h.path);
+		cpi->xport_specific.nvme.nsid = xpt_path_lun_id(
+		    ccb->ccb_h.path);
 		cpi->xport_specific.nvme.domain = pci_get_domain(dev);
 		cpi->xport_specific.nvme.bus = pci_get_bus(dev);
 		cpi->xport_specific.nvme.slot = pci_get_slot(dev);
 		cpi->xport_specific.nvme.function = pci_get_function(dev);
 		cpi->xport_specific.nvme.extra = 0;
-		strncpy(cpi->xport_specific.nvme.dev_name, device_get_nameunit(dev),
+		strncpy(cpi->xport_specific.nvme.dev_name,
+		    device_get_nameunit(dev),
 		    sizeof(cpi->xport_specific.nvme.dev_name));
 		cpi->hba_vendor = pci_get_vendor(dev);
 		cpi->hba_device = pci_get_device(dev);
@@ -212,11 +212,11 @@ nvme_sim_action(struct cam_sim *sim, union ccb *ccb)
 		cpi->ccb_h.status = CAM_REQ_CMP;
 		break;
 	}
-	case XPT_GET_TRAN_SETTINGS:	/* Get transport settings */
+	case XPT_GET_TRAN_SETTINGS: /* Get transport settings */
 	{
-		struct ccb_trans_settings	*cts;
-		struct ccb_trans_settings_nvme	*nvmep;
-		struct ccb_trans_settings_nvme	*nvmex;
+		struct ccb_trans_settings *cts;
+		struct ccb_trans_settings_nvme *nvmep;
+		struct ccb_trans_settings_nvme *nvmex;
 		device_t dev;
 		uint32_t status, caps, flags;
 
@@ -235,9 +235,13 @@ nvme_sim_action(struct cam_sim *sim, union ccb *ccb)
 			if ((flags & PCIEM_FLAGS_TYPE) == PCIEM_TYPE_ENDPOINT) {
 				nvmex->valid |= CTS_NVME_VALID_LINK;
 				nvmex->speed = status & PCIEM_LINK_STA_SPEED;
-				nvmex->lanes = (status & PCIEM_LINK_STA_WIDTH) >> 4;
-				nvmex->max_speed = caps & PCIEM_LINK_CAP_MAX_SPEED;
-				nvmex->max_lanes = (caps & PCIEM_LINK_CAP_MAX_WIDTH) >> 4;
+				nvmex->lanes = (status &
+						   PCIEM_LINK_STA_WIDTH) >>
+				    4;
+				nvmex->max_speed = caps &
+				    PCIEM_LINK_CAP_MAX_SPEED;
+				nvmex->max_lanes =
+				    (caps & PCIEM_LINK_CAP_MAX_WIDTH) >> 4;
 			}
 		}
 
@@ -252,29 +256,29 @@ nvme_sim_action(struct cam_sim *sim, union ccb *ccb)
 		cts->ccb_h.status = CAM_REQ_CMP;
 		break;
 	}
-	case XPT_TERM_IO:		/* Terminate the I/O process */
+	case XPT_TERM_IO:   /* Terminate the I/O process */
+			    /*
+			     * every driver handles this, but nothing generates it. Assume
+			     * it's OK to just say 'that worked'.
+			     */
+			    /*FALLTHROUGH*/
+	case XPT_RESET_DEV: /* Bus Device Reset the specified device */
+	case XPT_RESET_BUS: /* Reset the specified bus */
 		/*
-		 * every driver handles this, but nothing generates it. Assume
-		 * it's OK to just say 'that worked'.
-		 */
-		/*FALLTHROUGH*/
-	case XPT_RESET_DEV:		/* Bus Device Reset the specified device */
-	case XPT_RESET_BUS:		/* Reset the specified bus */
-		/*
-		 * NVMe doesn't really support physically resetting the bus. It's part
-		 * of the bus scanning dance, so return sucess to tell the process to
-		 * proceed.
+		 * NVMe doesn't really support physically resetting the bus.
+		 * It's part of the bus scanning dance, so return sucess to tell
+		 * the process to proceed.
 		 */
 		ccb->ccb_h.status = CAM_REQ_CMP;
 		break;
-	case XPT_NVME_IO:		/* Execute the requested I/O operation */
-	case XPT_NVME_ADMIN:		/* or Admin operation */
+	case XPT_NVME_IO:    /* Execute the requested I/O operation */
+	case XPT_NVME_ADMIN: /* or Admin operation */
 		if (ctrlr->is_failed) {
 			ccb->ccb_h.status = CAM_DEV_NOT_THERE;
 			break;
 		}
 		nvme_sim_nvmeio(sim, ccb);
-		return;			/* no done */
+		return; /* no done */
 	default:
 		ccb->ccb_h.status = CAM_REQ_INVALID;
 		break;
@@ -304,9 +308,8 @@ nvme_sim_new_controller(struct nvme_controller *ctrlr)
 	sc = malloc(sizeof(*sc), M_NVME, M_ZERO | M_WAITOK);
 	sc->s_ctrlr = ctrlr;
 
-	sc->s_sim = cam_sim_alloc(nvme_sim_action, nvme_sim_poll,
-	    "nvme", sc, device_get_unit(ctrlr->dev),
-	    NULL, max_trans, max_trans, devq);
+	sc->s_sim = cam_sim_alloc(nvme_sim_action, nvme_sim_poll, "nvme", sc,
+	    device_get_unit(ctrlr->dev), NULL, max_trans, max_trans, devq);
 	if (sc->s_sim == NULL) {
 		printf("Failed to allocate a sim\n");
 		cam_simq_free(devq);
@@ -316,8 +319,9 @@ nvme_sim_new_controller(struct nvme_controller *ctrlr)
 		printf("Failed to create a bus\n");
 		goto err2;
 	}
-	if (xpt_create_path(&sc->s_path, /*periph*/NULL, cam_sim_path(sc->s_sim),
-	    CAM_TARGET_WILDCARD, CAM_LUN_WILDCARD) != CAM_REQ_CMP) {
+	if (xpt_create_path(&sc->s_path, /*periph*/ NULL,
+		cam_sim_path(sc->s_sim), CAM_TARGET_WILDCARD,
+		CAM_LUN_WILDCARD) != CAM_REQ_CMP) {
 		printf("Failed to create a path\n");
 		goto err3;
 	}
@@ -327,7 +331,7 @@ nvme_sim_new_controller(struct nvme_controller *ctrlr)
 err3:
 	xpt_bus_deregister(cam_sim_path(sc->s_sim));
 err2:
-	cam_sim_free(sc->s_sim, /*free_devq*/TRUE);
+	cam_sim_free(sc->s_sim, /*free_devq*/ TRUE);
 err1:
 	free(sc, M_NVME);
 	return (NULL);
@@ -350,8 +354,8 @@ nvme_sim_ns_change(struct nvme_namespace *ns, void *sc_arg)
 	 * each new namespace, we create a new CAM path for it. We then
 	 * rescan the path to get it to enumerate.
 	 */
-	if (xpt_create_path(&ccb->ccb_h.path, /*periph*/NULL,
-	    cam_sim_path(sc->s_sim), 0, ns->id) != CAM_REQ_CMP) {
+	if (xpt_create_path(&ccb->ccb_h.path, /*periph*/ NULL,
+		cam_sim_path(sc->s_sim), 0, ns->id) != CAM_REQ_CMP) {
 		printf("unable to create path for rescan\n");
 		xpt_free_ccb(ccb);
 		return (NULL);
@@ -369,7 +373,7 @@ nvme_sim_controller_fail(void *ctrlr_arg)
 	xpt_async(AC_LOST_DEVICE, sc->s_path, NULL);
 	xpt_free_path(sc->s_path);
 	xpt_bus_deregister(cam_sim_path(sc->s_sim));
-	cam_sim_free(sc->s_sim, /*free_devq*/TRUE);
+	cam_sim_free(sc->s_sim, /*free_devq*/ TRUE);
 	free(sc, M_NVME);
 }
 
@@ -385,8 +389,7 @@ nvme_sim_init(void)
 	    nvme_sim_new_controller, NULL, nvme_sim_controller_fail);
 }
 
-SYSINIT(nvme_sim_register, SI_SUB_DRIVERS, SI_ORDER_ANY,
-    nvme_sim_init, NULL);
+SYSINIT(nvme_sim_register, SI_SUB_DRIVERS, SI_ORDER_ANY, nvme_sim_init, NULL);
 
 static void
 nvme_sim_uninit(void)
@@ -398,5 +401,5 @@ nvme_sim_uninit(void)
 	nvme_unregister_consumer(consumer_cookie);
 }
 
-SYSUNINIT(nvme_sim_unregister, SI_SUB_DRIVERS, SI_ORDER_ANY,
-    nvme_sim_uninit, NULL);
+SYSUNINIT(nvme_sim_unregister, SI_SUB_DRIVERS, SI_ORDER_ANY, nvme_sim_uninit,
+    NULL);

@@ -32,18 +32,18 @@
 #include <sys/cdefs.h>
 /*
  * Broadcom PCI/PCIe-Gen1 Host-PCI bridge.
- * 
+ *
  * This driver handles all interactions with PCI bridge cores operating in
  * root complex mode.
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/module.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
-#include <sys/rman.h>
 #include <machine/resource.h>
 
 #include <dev/bhnd/bhnd.h>
@@ -79,11 +79,10 @@ bhnd_pcie2b_resume(device_t dev)
 
 static device_method_t bhnd_pcie2b_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_attach,	bhnd_pcie2b_attach),
-	DEVMETHOD(device_detach,	bhnd_pcie2b_detach),
-	DEVMETHOD(device_suspend,	bhnd_pcie2b_suspend),
-	DEVMETHOD(device_resume,	bhnd_pcie2b_resume),
-	DEVMETHOD_END
+	DEVMETHOD(device_attach, bhnd_pcie2b_attach),
+	DEVMETHOD(device_detach, bhnd_pcie2b_detach),
+	DEVMETHOD(device_suspend, bhnd_pcie2b_suspend),
+	DEVMETHOD(device_resume, bhnd_pcie2b_resume), DEVMETHOD_END
 };
 
 DEFINE_CLASS_1(pcib, bhnd_pcie2b_driver, bhnd_pcie2b_methods,

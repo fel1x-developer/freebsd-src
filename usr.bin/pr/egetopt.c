@@ -38,6 +38,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
@@ -56,21 +57,21 @@
  *    combined with other options, but the + cannot.
  */
 
-int	eopterr = 1;		/* if error message should be printed */
-int	eoptind = 1;		/* index into parent argv vector */
-int	eoptopt;		/* character checked for validity */
-char	*eoptarg;		/* argument associated with option */
+int eopterr = 1; /* if error message should be printed */
+int eoptind = 1; /* index into parent argv vector */
+int eoptopt;	 /* character checked for validity */
+char *eoptarg;	 /* argument associated with option */
 
-#define	BADCH	(int)'?'
+#define BADCH (int)'?'
 
-static char	emsg[] = "";
+static char emsg[] = "";
 
 int
-egetopt(int nargc, char * const *nargv, const char *ostr)
+egetopt(int nargc, char *const *nargv, const char *ostr)
 {
-	static char *place = emsg;	/* option letter processing */
-	char *oli;			/* option letter list index */
-	static int delim;		/* which option delimiter */
+	static char *place = emsg; /* option letter processing */
+	char *oli;		   /* option letter list index */
+	static int delim;	   /* which option delimiter */
 	char *p;
 	static char savec = '\0';
 
@@ -111,9 +112,10 @@ egetopt(int nargc, char * const *nargv, const char *ostr)
 		 */
 		if ((eoptopt == (int)'-') && !*place)
 			return (-1);
-		if (strchr(ostr, '#') && (isdigit(eoptopt) ||
-		    (((eoptopt == (int)'-') || (eoptopt == (int)'+')) &&
-		      isdigit(*place)))) {
+		if (strchr(ostr, '#') &&
+		    (isdigit(eoptopt) ||
+			(((eoptopt == (int)'-') || (eoptopt == (int)'+')) &&
+			    isdigit(*place)))) {
 			/*
 			 * # option: +/- with a number is ok
 			 */
@@ -121,7 +123,7 @@ egetopt(int nargc, char * const *nargv, const char *ostr)
 				if (!isdigit(*p))
 					break;
 			}
-			eoptarg = place-1;
+			eoptarg = place - 1;
 
 			if (*p == '\0') {
 				place = emsg;
@@ -141,8 +143,8 @@ egetopt(int nargc, char * const *nargv, const char *ostr)
 				p = *nargv;
 			else
 				++p;
-			(void)fprintf(stderr, "%s: illegal option -- %c\n",
-			    p, eoptopt);
+			(void)fprintf(stderr, "%s: illegal option -- %c\n", p,
+			    eoptopt);
 		}
 		return (BADCH);
 	}
@@ -158,8 +160,8 @@ egetopt(int nargc, char * const *nargv, const char *ostr)
 			else
 				++p;
 			(void)fprintf(stderr,
-				"%s: illegal '+' delimiter with option -- %c\n",
-				p, eoptopt);
+			    "%s: illegal '+' delimiter with option -- %c\n", p,
+			    eoptopt);
 		}
 		return (BADCH);
 	}

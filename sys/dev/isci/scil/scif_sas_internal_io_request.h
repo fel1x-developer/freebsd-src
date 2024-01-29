@@ -65,14 +65,13 @@
 extern "C" {
 #endif // __cplusplus
 
-
-#include <dev/isci/scil/scif_io_request.h>
+#include <dev/isci/scil/intel_sas.h>
 #include <dev/isci/scil/sci_base_request.h>
-#include <dev/isci/scil/scif_sas_request.h>
+#include <dev/isci/scil/sci_controller_constants.h>
+#include <dev/isci/scil/scif_io_request.h>
 #include <dev/isci/scil/scif_sas_io_request.h>
 #include <dev/isci/scil/scif_sas_remote_device.h>
-#include <dev/isci/scil/intel_sas.h>
-#include <dev/isci/scil/sci_controller_constants.h>
+#include <dev/isci/scil/scif_sas_request.h>
 
 struct SCIF_SAS_CONTROLLER;
 
@@ -81,7 +80,7 @@ struct SCIF_SAS_CONTROLLER;
  *  IO request objects.  These objects are used for internal SMP requests
  *  and for NCQ error handling.
  */
-#define SCIF_SAS_MAX_INTERNAL_REQUEST_COUNT (SCI_MAX_DOMAINS*4)
+#define SCIF_SAS_MAX_INTERNAL_REQUEST_COUNT (SCI_MAX_DOMAINS * 4)
 
 /**
  * This constant dictates the minimum number of internal framework
@@ -93,7 +92,7 @@ struct SCIF_SAS_CONTROLLER;
  * This constant indicates the timeout value of an internal IO request
  * in mili-seconds.
  */
-#define SCIF_SAS_INTERNAL_REQUEST_TIMEOUT   3000
+#define SCIF_SAS_INTERNAL_REQUEST_TIMEOUT 3000
 
 /**
  * @struct SCIF_SAS_INTERNAL_IO_REQUEST
@@ -101,57 +100,43 @@ struct SCIF_SAS_CONTROLLER;
  * @brief The SCIF_SAS_INTERNAL_IO_REQUEST object represents the internal SAS
  *        IO request behavior for the framework component.
  */
-typedef struct SCIF_SAS_INTERNAL_IO_REQUEST
-{
-   /**
-    * The SCIF_SAS_IO_REQUEST is the parent object for the
-    * SCIF_SAS_INTERNAL_IO_REQUEST object.
-    */
-   SCIF_SAS_IO_REQUEST_T  parent;
+typedef struct SCIF_SAS_INTERNAL_IO_REQUEST {
+	/**
+	 * The SCIF_SAS_IO_REQUEST is the parent object for the
+	 * SCIF_SAS_INTERNAL_IO_REQUEST object.
+	 */
+	SCIF_SAS_IO_REQUEST_T parent;
 
-   /**
-    * This field will be utilized only by internal IO to handle timeout
-    * situation.
-    */
-   void * internal_io_timer;
+	/**
+	 * This field will be utilized only by internal IO to handle timeout
+	 * situation.
+	 */
+	void *internal_io_timer;
 
-}SCIF_SAS_INTERNAL_IO_REQUEST_T;
+} SCIF_SAS_INTERNAL_IO_REQUEST_T;
 
-
-U32 scif_sas_internal_request_get_object_size(
-   void
-);
+U32 scif_sas_internal_request_get_object_size(void);
 
 SCI_STATUS scif_sas_internal_io_request_construct_smp(
-   struct SCIF_SAS_CONTROLLER  * fw_controller,
-   SCIF_SAS_REMOTE_DEVICE_T    * fw_remote_device,
-   void                        * internal_io_memory,
-   U16                           io_tag,
-   SMP_REQUEST_T               * smp_command
-);
+    struct SCIF_SAS_CONTROLLER *fw_controller,
+    SCIF_SAS_REMOTE_DEVICE_T *fw_remote_device, void *internal_io_memory,
+    U16 io_tag, SMP_REQUEST_T *smp_command);
 
 SCI_STATUS scif_sas_internal_io_request_construct_stp(
-   SCIF_SAS_INTERNAL_IO_REQUEST_T * fw_io
-);
+    SCIF_SAS_INTERNAL_IO_REQUEST_T *fw_io);
 
-void scif_sas_internal_io_request_timeout_handler(
-   void * fw_io
-);
+void scif_sas_internal_io_request_timeout_handler(void *fw_io);
 
-void scif_sas_internal_io_request_complete(
-   struct SCIF_SAS_CONTROLLER     * fw_controller,
-   SCIF_SAS_INTERNAL_IO_REQUEST_T * fw_io,
-   SCI_STATUS                       completion_status
-);
+void
+scif_sas_internal_io_request_complete(struct SCIF_SAS_CONTROLLER *fw_controller,
+    SCIF_SAS_INTERNAL_IO_REQUEST_T *fw_io, SCI_STATUS completion_status);
 
-void scif_sas_internal_io_request_destruct(
-   struct SCIF_SAS_CONTROLLER     * fw_controller,
-   SCIF_SAS_INTERNAL_IO_REQUEST_T * fw_internal_io
-);
+void
+scif_sas_internal_io_request_destruct(struct SCIF_SAS_CONTROLLER *fw_controller,
+    SCIF_SAS_INTERNAL_IO_REQUEST_T *fw_internal_io);
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
 #endif // _SCIF_SAS_IO_REQUEST_H_
-

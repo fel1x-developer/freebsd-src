@@ -30,9 +30,11 @@
  */
 
 #include <sys/cdefs.h>
-#include "namespace.h"
+
 #include <pthread.h>
 #include <sched.h>
+
+#include "namespace.h"
 #include "un-namespace.h"
 
 __weak_reference(_pthread_yield, pthread_yield);

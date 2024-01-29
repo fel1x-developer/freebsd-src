@@ -10,8 +10,8 @@
  *
  *****************************************************************************/
 
-#include "lac_mem.h"
 #include "lac_list.h"
+#include "lac_mem.h"
 
 CpaStatus
 SalList_add(sal_list_t **list, sal_list_t **tail, void *pObj)

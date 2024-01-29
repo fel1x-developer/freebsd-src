@@ -42,9 +42,9 @@
 
 #include <sys/selinfo.h>
 
-#include <net/netmap.h>
-
 #include <dev/netmap/netmap_kern.h>
+
+#include <net/netmap.h>
 
 int ena_netmap_attach(struct ena_adapter *adapter);
 int ena_netmap_alloc_rx_slot(struct ena_adapter *adapter,

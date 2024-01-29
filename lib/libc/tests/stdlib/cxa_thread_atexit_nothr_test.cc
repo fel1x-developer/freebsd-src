@@ -25,8 +25,9 @@
  * SUCH DAMAGE.
  */
 
-#include <dlfcn.h>
 #include <atf-c++.hpp>
+#include <dlfcn.h>
+
 #include <cstdio>
 #include <cstdlib>
 
@@ -51,8 +52,8 @@ ATF_TEST_CASE_BODY(cxx__nothr)
 	/* Avoid coredump during f construction. */
 	output = stderr;
 
-	libthr_handle = dlopen("libthr.so.3", RTLD_LAZY | RTLD_GLOBAL |
-	    RTLD_NOLOAD);
+	libthr_handle = dlopen("libthr.so.3",
+	    RTLD_LAZY | RTLD_GLOBAL | RTLD_NOLOAD);
 	ATF_REQUIRE(libthr_handle == NULL);
 }
 

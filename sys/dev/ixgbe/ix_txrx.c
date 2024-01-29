@@ -58,16 +58,14 @@ static int ixgbe_tx_ctx_setup(struct ixgbe_adv_tx_context_desc *,
 extern void ixgbe_if_enable_intr(if_ctx_t ctx);
 static int ixgbe_determine_rsstype(uint16_t pkt_info);
 
-struct if_txrx ixgbe_txrx  = {
-	.ift_txd_encap = ixgbe_isc_txd_encap,
+struct if_txrx ixgbe_txrx = { .ift_txd_encap = ixgbe_isc_txd_encap,
 	.ift_txd_flush = ixgbe_isc_txd_flush,
 	.ift_txd_credits_update = ixgbe_isc_txd_credits_update,
 	.ift_rxd_available = ixgbe_isc_rxd_available,
 	.ift_rxd_pkt_get = ixgbe_isc_rxd_pkt_get,
 	.ift_rxd_refill = ixgbe_isc_rxd_refill,
 	.ift_rxd_flush = ixgbe_isc_rxd_flush,
-	.ift_legacy_intr = NULL
-};
+	.ift_legacy_intr = NULL };
 
 /************************************************************************
  * ixgbe_tx_ctx_setup
@@ -80,7 +78,7 @@ ixgbe_tx_ctx_setup(struct ixgbe_adv_tx_context_desc *TXD, if_pkt_info_t pi)
 {
 	uint32_t vlan_macip_lens, type_tucmd_mlhl;
 	uint32_t olinfo_status, mss_l4len_idx, pktlen, offload;
-	u8  ehdrlen;
+	u8 ehdrlen;
 
 	offload = true;
 	olinfo_status = mss_l4len_idx = vlan_macip_lens = type_tucmd_mlhl = 0;
@@ -105,7 +103,8 @@ ixgbe_tx_ctx_setup(struct ixgbe_adv_tx_context_desc *TXD, if_pkt_info_t pi)
 	/* First check if TSO is to be used */
 	if (pi->ipi_csum_flags & CSUM_TSO) {
 		/* This is used in the transmit desc in encap */
-		pktlen = pi->ipi_len - ehdrlen - pi->ipi_ip_hlen - pi->ipi_tcp_hlen;
+		pktlen = pi->ipi_len - ehdrlen - pi->ipi_ip_hlen -
+		    pi->ipi_tcp_hlen;
 		mss_l4len_idx |= (pi->ipi_tso_segsz << IXGBE_ADVTXD_MSS_SHIFT);
 		mss_l4len_idx |= (pi->ipi_tcp_hlen << IXGBE_ADVTXD_L4LEN_SHIFT);
 	}
@@ -115,7 +114,7 @@ ixgbe_tx_ctx_setup(struct ixgbe_adv_tx_context_desc *TXD, if_pkt_info_t pi)
 	if (pi->ipi_flags & IPI_TX_IPV4) {
 		type_tucmd_mlhl |= IXGBE_ADVTXD_TUCMD_IPV4;
 		/* Tell transmit desc to also do IPv4 checksum. */
-		if (pi->ipi_csum_flags & (CSUM_IP|CSUM_TSO))
+		if (pi->ipi_csum_flags & (CSUM_IP | CSUM_TSO))
 			olinfo_status |= IXGBE_TXD_POPTS_IXSM << 8;
 	} else if (pi->ipi_flags & IPI_TX_IPV6)
 		type_tucmd_mlhl |= IXGBE_ADVTXD_TUCMD_IPV6;
@@ -126,7 +125,8 @@ ixgbe_tx_ctx_setup(struct ixgbe_adv_tx_context_desc *TXD, if_pkt_info_t pi)
 
 	switch (pi->ipi_ipproto) {
 	case IPPROTO_TCP:
-		if (pi->ipi_csum_flags & (CSUM_IP_TCP | CSUM_IP6_TCP | CSUM_TSO))
+		if (pi->ipi_csum_flags &
+		    (CSUM_IP_TCP | CSUM_IP6_TCP | CSUM_TSO))
 			type_tucmd_mlhl |= IXGBE_ADVTXD_TUCMD_L4T_TCP;
 		else
 			offload = false;
@@ -168,20 +168,20 @@ ixgbe_tx_ctx_setup(struct ixgbe_adv_tx_context_desc *TXD, if_pkt_info_t pi)
 static int
 ixgbe_isc_txd_encap(void *arg, if_pkt_info_t pi)
 {
-	struct ixgbe_softc               *sc = arg;
-	if_softc_ctx_t                   scctx = sc->shared;
-	struct ix_tx_queue               *que = &sc->tx_queues[pi->ipi_qsidx];
-	struct tx_ring                   *txr = &que->txr;
-	int                              nsegs = pi->ipi_nsegs;
-	bus_dma_segment_t                *segs = pi->ipi_segs;
-	union ixgbe_adv_tx_desc          *txd = NULL;
+	struct ixgbe_softc *sc = arg;
+	if_softc_ctx_t scctx = sc->shared;
+	struct ix_tx_queue *que = &sc->tx_queues[pi->ipi_qsidx];
+	struct tx_ring *txr = &que->txr;
+	int nsegs = pi->ipi_nsegs;
+	bus_dma_segment_t *segs = pi->ipi_segs;
+	union ixgbe_adv_tx_desc *txd = NULL;
 	struct ixgbe_adv_tx_context_desc *TXD;
-	int                              i, j, first, pidx_last;
-	uint32_t                         olinfo_status, cmd, flags;
-	qidx_t                           ntxd;
+	int i, j, first, pidx_last;
+	uint32_t olinfo_status, cmd, flags;
+	qidx_t ntxd;
 
-	cmd =  (IXGBE_ADVTXD_DTYP_DATA |
-		IXGBE_ADVTXD_DCMD_IFCS | IXGBE_ADVTXD_DCMD_DEXT);
+	cmd = (IXGBE_ADVTXD_DTYP_DATA | IXGBE_ADVTXD_DCMD_IFCS |
+	    IXGBE_ADVTXD_DCMD_DEXT);
 
 	if (pi->ipi_mflags & M_VLANTAG)
 		cmd |= IXGBE_ADVTXD_DCMD_VLE;
@@ -190,10 +190,9 @@ ixgbe_isc_txd_encap(void *arg, if_pkt_info_t pi)
 	flags = (pi->ipi_flags & IPI_TX_INTR) ? IXGBE_TXD_CMD_RS : 0;
 	ntxd = scctx->isc_ntxd[0];
 
-	TXD = (struct ixgbe_adv_tx_context_desc *) &txr->tx_base[first];
+	TXD = (struct ixgbe_adv_tx_context_desc *)&txr->tx_base[first];
 	if ((pi->ipi_csum_flags & CSUM_OFFLOAD) ||
-	    (sc->feat_en & IXGBE_FEATURE_NEEDS_CTXD) ||
-	    pi->ipi_vtag) {
+	    (sc->feat_en & IXGBE_FEATURE_NEEDS_CTXD) || pi->ipi_vtag) {
 		/*********************************************
 		 * Set up the appropriate offload context
 		 * this will consume the first descriptor
@@ -249,9 +248,9 @@ ixgbe_isc_txd_encap(void *arg, if_pkt_info_t pi)
 static void
 ixgbe_isc_txd_flush(void *arg, uint16_t txqid, qidx_t pidx)
 {
-	struct ixgbe_softc     *sc = arg;
+	struct ixgbe_softc *sc = arg;
 	struct ix_tx_queue *que = &sc->tx_queues[txqid];
-	struct tx_ring     *txr = &que->txr;
+	struct tx_ring *txr = &que->txr;
 
 	IXGBE_WRITE_REG(&sc->hw, txr->tail, pidx);
 } /* ixgbe_isc_txd_flush */
@@ -263,14 +262,14 @@ static int
 ixgbe_isc_txd_credits_update(void *arg, uint16_t txqid, bool clear)
 {
 	struct ixgbe_softc *sc = arg;
-	if_softc_ctx_t     scctx = sc->shared;
+	if_softc_ctx_t scctx = sc->shared;
 	struct ix_tx_queue *que = &sc->tx_queues[txqid];
-	struct tx_ring     *txr = &que->txr;
-	qidx_t             processed = 0;
-	int                updated;
-	qidx_t             cur, prev, ntxd, rs_cidx;
-	int32_t            delta;
-	uint8_t            status;
+	struct tx_ring *txr = &que->txr;
+	qidx_t processed = 0;
+	int updated;
+	qidx_t cur, prev, ntxd, rs_cidx;
+	int32_t delta;
+	uint8_t status;
 
 	rs_cidx = txr->tx_rs_cidx;
 	if (rs_cidx == txr->tx_rs_pidx)
@@ -319,9 +318,9 @@ ixgbe_isc_txd_credits_update(void *arg, uint16_t txqid, bool clear)
 static void
 ixgbe_isc_rxd_refill(void *arg, if_rxd_update_t iru)
 {
-	struct ixgbe_softc *sc   = arg;
-	struct ix_rx_queue *que  = &sc->rx_queues[iru->iru_qsidx];
-	struct rx_ring *rxr      = &que->rxr;
+	struct ixgbe_softc *sc = arg;
+	struct ix_rx_queue *que = &sc->rx_queues[iru->iru_qsidx];
+	struct rx_ring *rxr = &que->rxr;
 	uint64_t *paddrs;
 	int i;
 	uint32_t next_pidx, pidx;
@@ -342,11 +341,12 @@ ixgbe_isc_rxd_refill(void *arg, if_rxd_update_t iru)
  * ixgbe_isc_rxd_flush
  ************************************************************************/
 static void
-ixgbe_isc_rxd_flush(void *arg, uint16_t qsidx, uint8_t flidx __unused, qidx_t pidx)
+ixgbe_isc_rxd_flush(void *arg, uint16_t qsidx, uint8_t flidx __unused,
+    qidx_t pidx)
 {
-	struct ixgbe_softc *sc  = arg;
+	struct ixgbe_softc *sc = arg;
 	struct ix_rx_queue *que = &sc->rx_queues[qsidx];
-	struct rx_ring     *rxr = &que->rxr;
+	struct rx_ring *rxr = &que->rxr;
 
 	IXGBE_WRITE_REG(&sc->hw, rxr->tail, pidx);
 } /* ixgbe_isc_rxd_flush */
@@ -357,12 +357,12 @@ ixgbe_isc_rxd_flush(void *arg, uint16_t qsidx, uint8_t flidx __unused, qidx_t pi
 static int
 ixgbe_isc_rxd_available(void *arg, uint16_t qsidx, qidx_t pidx, qidx_t budget)
 {
-	struct ixgbe_softc      *sc = arg;
-	struct ix_rx_queue      *que = &sc->rx_queues[qsidx];
-	struct rx_ring          *rxr = &que->rxr;
+	struct ixgbe_softc *sc = arg;
+	struct ix_rx_queue *que = &sc->rx_queues[qsidx];
+	struct rx_ring *rxr = &que->rxr;
 	union ixgbe_adv_rx_desc *rxd;
-	uint32_t                 staterr;
-	int                      cnt, i, nrxd;
+	uint32_t staterr;
+	int cnt, i, nrxd;
 
 	nrxd = sc->shared->isc_nrxd[0];
 	for (cnt = 0, i = pidx; cnt < nrxd && cnt <= budget;) {
@@ -391,16 +391,16 @@ ixgbe_isc_rxd_available(void *arg, uint16_t qsidx, qidx_t pidx, qidx_t budget)
 static int
 ixgbe_isc_rxd_pkt_get(void *arg, if_rxd_info_t ri)
 {
-	struct ixgbe_softc       *sc = arg;
-	if_softc_ctx_t		 scctx = sc->shared;
-	struct ix_rx_queue       *que = &sc->rx_queues[ri->iri_qsidx];
-	struct rx_ring           *rxr = &que->rxr;
-	union ixgbe_adv_rx_desc  *rxd;
+	struct ixgbe_softc *sc = arg;
+	if_softc_ctx_t scctx = sc->shared;
+	struct ix_rx_queue *que = &sc->rx_queues[ri->iri_qsidx];
+	struct rx_ring *rxr = &que->rxr;
+	union ixgbe_adv_rx_desc *rxd;
 
-	uint16_t                  pkt_info, len, cidx, i;
-	uint32_t                  ptype;
-	uint32_t                  staterr = 0;
-	bool                      eop;
+	uint16_t pkt_info, len, cidx, i;
+	uint32_t ptype;
+	uint32_t staterr = 0;
+	bool eop;
 
 	i = 0;
 	cidx = ri->iri_cidx;
@@ -410,11 +410,11 @@ ixgbe_isc_rxd_pkt_get(void *arg, if_rxd_info_t ri)
 		pkt_info = le16toh(rxd->wb.lower.lo_dword.hs_rss.pkt_info);
 
 		/* Error Checking then decrement count */
-		MPASS ((staterr & IXGBE_RXD_STAT_DD) != 0);
+		MPASS((staterr & IXGBE_RXD_STAT_DD) != 0);
 
 		len = le16toh(rxd->wb.upper.length);
 		ptype = le32toh(rxd->wb.lower.lo_dword.data) &
-			IXGBE_RXDADV_PKTTYPE_MASK;
+		    IXGBE_RXDADV_PKTTYPE_MASK;
 
 		ri->iri_len += len;
 		rxr->bytes += len;
@@ -425,7 +425,8 @@ ixgbe_isc_rxd_pkt_get(void *arg, if_rxd_info_t ri)
 		/* Make sure bad packets are discarded */
 		if (eop && (staterr & IXGBE_RXDADV_ERR_FRAME_ERR_MASK) != 0) {
 			if (sc->feat_en & IXGBE_FEATURE_VF)
-				if_inc_counter(ri->iri_ifp, IFCOUNTER_IERRORS, 1);
+				if_inc_counter(ri->iri_ifp, IFCOUNTER_IERRORS,
+				    1);
 
 			rxr->rx_discarded++;
 			return (EBADMSG);
@@ -445,7 +446,7 @@ ixgbe_isc_rxd_pkt_get(void *arg, if_rxd_info_t ri)
 	rxr->rx_bytes += ri->iri_len;
 
 	if ((scctx->isc_capenable & IFCAP_RXCSUM) != 0)
-		ixgbe_rx_checksum(staterr, ri,  ptype);
+		ixgbe_rx_checksum(staterr, ri, ptype);
 
 	ri->iri_flowid = le32toh(rxd->wb.lower.hi_dword.rss);
 	ri->iri_rsstype = ixgbe_determine_rsstype(pkt_info);
@@ -489,7 +490,7 @@ ixgbe_rx_checksum(uint32_t staterr, if_rxd_info_t ri, uint32_t ptype)
 	if (__predict_true(status & IXGBE_RXD_STAT_L4CS)) {
 		/* SCTP header present. */
 		if (__predict_false((ptype & IXGBE_RXDADV_PKTTYPE_ETQF) == 0 &&
-		    (ptype & IXGBE_RXDADV_PKTTYPE_SCTP) != 0)) {
+			(ptype & IXGBE_RXDADV_PKTTYPE_SCTP) != 0)) {
 			ri->iri_csum_flags |= CSUM_SCTP_VALID;
 		} else {
 			ri->iri_csum_flags |= CSUM_DATA_VALID | CSUM_PSEUDO_HDR;

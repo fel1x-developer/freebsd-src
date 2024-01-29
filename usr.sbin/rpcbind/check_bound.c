@@ -42,13 +42,14 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+
+#include <netconfig.h>
 #include <rpc/rpc.h>
 #include <rpc/svc_dg.h>
-#include <netconfig.h>
-#include <syslog.h>
-#include <string.h>
-#include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
+#include <syslog.h>
+#include <unistd.h>
 
 #include "rpcbind.h"
 
@@ -59,7 +60,7 @@ struct fdlist {
 	int check_binding;
 };
 
-static struct fdlist *fdhead;	/* Link list of the check fd's */
+static struct fdlist *fdhead; /* Link list of the check fd's */
 static struct fdlist *fdtail;
 static char *nullstring = "";
 
@@ -109,7 +110,7 @@ add_bndlist(struct netconfig *nconf, struct netbuf *baddr __unused)
 	newnconf = getnetconfigent(nconf->nc_netid);
 	if (newnconf == NULL)
 		return (-1);
-	fdl = malloc(sizeof (struct fdlist));
+	fdl = malloc(sizeof(struct fdlist));
 	if (fdl == NULL) {
 		freenetconfigent(newnconf);
 		syslog(LOG_ERR, "no memory!");
@@ -185,7 +186,7 @@ mergeaddr(SVCXPRT *xprt, char *netid, char *uaddr, char *saddr)
 	}
 	if (c_uaddr == NULL) {
 		syslog(LOG_ERR, "taddr2uaddr failed for %s",
-			fdl->nconf->nc_netid);
+		    fdl->nconf->nc_netid);
 		return (NULL);
 	}
 
@@ -208,7 +209,7 @@ mergeaddr(SVCXPRT *xprt, char *netid, char *uaddr, char *saddr)
 #ifdef ND_DEBUG
 	if (debugging)
 		fprintf(stderr, "mergeaddr: uaddr = %s, merged uaddr = %s\n",
-				uaddr, m_uaddr);
+		    uaddr, m_uaddr);
 #endif
 	free(allocated_uaddr);
 	return (m_uaddr);

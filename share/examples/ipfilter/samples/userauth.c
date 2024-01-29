@@ -1,24 +1,27 @@
 
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <fcntl.h>
 #include <sys/ioctl.h>
+#include <sys/socket.h>
+
+#include <net/if.h>
+#include <netinet/in.h>
+
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <netinet/in.h>
-#include <net/if.h>
+
+#include "ip_auth.h"
 #include "ip_compat.h"
 #include "ip_fil.h"
-#include "ip_auth.h"
 
-extern	int	errno;
+extern int errno;
 
 main()
 {
 	struct frauth fra;
 	struct frauth *frap = &fra;
 	fr_info_t *fin = &fra.fra_info;
-	fr_ip_t	*fi = &fin->fin_fi;
+	fr_ip_t *fi = &fin->fin_fi;
 	char yn[16];
 	int fd;
 
@@ -51,8 +54,8 @@ main()
 				fra.fra_pass |= FR_KEEPSTATE;
 		} else
 			fra.fra_pass |= FR_NOMATCH;
-		printf("answer = %c (%x), id %d idx %d\n", yn[0],
-			fra.fra_pass, fra.fra_info.fin_id, fra.fra_index);
+		printf("answer = %c (%x), id %d idx %d\n", yn[0], fra.fra_pass,
+		    fra.fra_info.fin_id, fra.fra_index);
 		if (ioctl(fd, SIOCAUTHR, &frap) != 0)
 			perror("SIOCAUTHR");
 	}

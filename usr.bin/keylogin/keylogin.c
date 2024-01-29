@@ -35,13 +35,13 @@
 /*
  * Set secret key on local machine
  */
+#include <pwd.h>
+#include <rpc/key_prot.h>
+#include <rpc/rpc.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pwd.h>
 #include <unistd.h>
-#include <rpc/rpc.h>
-#include <rpc/key_prot.h>
 
 extern int key_setnet(struct key_netstarg *);
 
@@ -57,8 +57,8 @@ main(void)
 		exit(1);
 	}
 
-	if (! getsecretkey(fullname, (char *)&(netst.st_priv_key),
-				getpass("Password:"))) {
+	if (!getsecretkey(fullname, (char *)&(netst.st_priv_key),
+		getpass("Password:"))) {
 		fprintf(stderr, "Can't find %s's secret key\n", fullname);
 		exit(1);
 	}

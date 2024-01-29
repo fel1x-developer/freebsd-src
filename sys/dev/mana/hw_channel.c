@@ -28,19 +28,20 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/types.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/kthread.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
-#include <sys/bus.h>
+
 #include <machine/bus.h>
 
-#include "mana.h"
 #include "hw_channel.h"
+#include "mana.h"
 
 static int
 mana_hwc_get_msg_index(struct hw_channel_context *hwc, uint16_t *msg_id)
@@ -78,8 +79,7 @@ mana_hwc_put_msg_index(struct hw_channel_context *hwc, uint16_t msg_id)
 
 static int
 mana_hwc_verify_resp_msg(const struct hwc_caller_ctx *caller_ctx,
-    const struct gdma_resp_hdr *resp_msg,
-    uint32_t resp_len)
+    const struct gdma_resp_hdr *resp_msg, uint32_t resp_len)
 {
 	if (resp_len < sizeof(*resp_msg))
 		return EPROTO;
@@ -98,7 +98,7 @@ mana_hwc_handle_resp(struct hw_channel_context *hwc, uint32_t resp_len,
 	int err;
 
 	if (!test_bit(resp_msg->response.hwc_msg_id,
-	    hwc->inflight_msg_res.map)) {
+		hwc->inflight_msg_res.map)) {
 		device_printf(hwc->dev, "hwc_rx: invalid msg_id = %u\n",
 		    resp_msg->response.hwc_msg_id);
 		return;
@@ -118,8 +118,7 @@ out:
 }
 
 static int
-mana_hwc_post_rx_wqe(const struct hwc_wq *hwc_rxq,
-    struct hwc_work_request *req)
+mana_hwc_post_rx_wqe(const struct hwc_wq *hwc_rxq, struct hwc_work_request *req)
 {
 	device_t dev = hwc_rxq->hwc->dev;
 	struct gdma_sge *sge;
@@ -137,8 +136,7 @@ mana_hwc_post_rx_wqe(const struct hwc_wq *hwc_rxq,
 
 	err = mana_gd_post_and_ring(hwc_rxq->gdma_wq, &req->wqe_req, NULL);
 	if (err)
-		device_printf(dev,
-		    "Failed to post WQE on HWC RQ: %d\n", err);
+		device_printf(dev, "Failed to post WQE on HWC RQ: %d\n", err);
 	return err;
 }
 
@@ -236,7 +234,6 @@ mana_hwc_rx_event_handler(void *ctx, uint32_t gdma_rxq_id,
 		return;
 	}
 
-
 	rq = hwc_rxq->gdma_wq;
 	wqe = mana_gd_get_wqe_ptr(rq, rx_oob->wqe_offset / GDMA_WQE_BU_SIZE);
 	dma_oob = (struct gdma_wqe *)wqe;
@@ -251,8 +248,7 @@ mana_hwc_rx_event_handler(void *ctx, uint32_t gdma_rxq_id,
 	rx_req_idx = (sge->address - rq_base_addr) / hwc->max_req_msg_size;
 
 	bus_dmamap_sync(hwc_rxq->msg_buf->mem_info.dma_tag,
-	    hwc_rxq->msg_buf->mem_info.dma_map,
-	    BUS_DMASYNC_POSTREAD);
+	    hwc_rxq->msg_buf->mem_info.dma_map, BUS_DMASYNC_POSTREAD);
 
 	rx_req = &hwc_rxq->msg_buf->reqs[rx_req_idx];
 	resp = (struct gdma_resp_hdr *)rx_req->buf_va;
@@ -271,8 +267,7 @@ mana_hwc_rx_event_handler(void *ctx, uint32_t gdma_rxq_id,
 	resp = NULL;
 
 	bus_dmamap_sync(hwc_rxq->msg_buf->mem_info.dma_tag,
-	    hwc_rxq->msg_buf->mem_info.dma_map,
-	    BUS_DMASYNC_PREREAD);
+	    hwc_rxq->msg_buf->mem_info.dma_map, BUS_DMASYNC_PREREAD);
 
 	mana_hwc_post_rx_wqe(hwc_rxq, rx_req);
 }
@@ -290,14 +285,12 @@ mana_hwc_tx_event_handler(void *ctx, uint32_t gdma_txq_id,
 	}
 
 	bus_dmamap_sync(hwc_txq->gdma_wq->mem_info.dma_tag,
-	    hwc_txq->gdma_wq->mem_info.dma_map,
-	    BUS_DMASYNC_POSTWRITE);
+	    hwc_txq->gdma_wq->mem_info.dma_map, BUS_DMASYNC_POSTWRITE);
 }
 
 static int
 mana_hwc_create_gdma_wq(struct hw_channel_context *hwc,
-    enum gdma_queue_type type, uint64_t queue_size,
-    struct gdma_queue **queue)
+    enum gdma_queue_type type, uint64_t queue_size, struct gdma_queue **queue)
 {
 	struct gdma_queue_spec spec = {};
 
@@ -312,10 +305,8 @@ mana_hwc_create_gdma_wq(struct hw_channel_context *hwc,
 }
 
 static int
-mana_hwc_create_gdma_cq(struct hw_channel_context *hwc,
-    uint64_t queue_size,
-    void *ctx, gdma_cq_callback *cb,
-    struct gdma_queue *parent_eq,
+mana_hwc_create_gdma_cq(struct hw_channel_context *hwc, uint64_t queue_size,
+    void *ctx, gdma_cq_callback *cb, struct gdma_queue *parent_eq,
     struct gdma_queue **queue)
 {
 	struct gdma_queue_spec spec = {};
@@ -331,10 +322,8 @@ mana_hwc_create_gdma_cq(struct hw_channel_context *hwc,
 }
 
 static int
-mana_hwc_create_gdma_eq(struct hw_channel_context *hwc,
-    uint64_t queue_size,
-    void *ctx, gdma_eq_callback *cb,
-    struct gdma_queue **queue)
+mana_hwc_create_gdma_eq(struct hw_channel_context *hwc, uint64_t queue_size,
+    void *ctx, gdma_eq_callback *cb, struct gdma_queue **queue)
 {
 	struct gdma_queue_spec spec = {};
 
@@ -364,12 +353,10 @@ mana_hwc_comp_event(void *ctx, struct gdma_queue *q_self)
 
 		if (completions[i].is_sq)
 			hwc_cq->tx_event_handler(hwc_cq->tx_event_ctx,
-			    completions[i].wq_num,
-			    &comp_data);
+			    completions[i].wq_num, &comp_data);
 		else
 			hwc_cq->rx_event_handler(hwc_cq->rx_event_ctx,
-			    completions[i].wq_num,
-			    &comp_data);
+			    completions[i].wq_num, &comp_data);
 	}
 
 	bus_dmamap_sync(q_self->mem_info.dma_tag, q_self->mem_info.dma_map,
@@ -394,11 +381,9 @@ mana_hwc_destroy_cq(struct gdma_context *gc, struct hwc_cq *hwc_cq)
 }
 
 static int
-mana_hwc_create_cq(struct hw_channel_context *hwc,
-    uint16_t q_depth,
-    gdma_eq_callback *callback, void *ctx,
-    hwc_rx_event_handler_t *rx_ev_hdlr, void *rx_ev_ctx,
-    hwc_tx_event_handler_t *tx_ev_hdlr, void *tx_ev_ctx,
+mana_hwc_create_cq(struct hw_channel_context *hwc, uint16_t q_depth,
+    gdma_eq_callback *callback, void *ctx, hwc_rx_event_handler_t *rx_ev_hdlr,
+    void *rx_ev_ctx, hwc_tx_event_handler_t *tx_ev_hdlr, void *tx_ev_ctx,
     struct hwc_cq **hwc_cq_ptr)
 {
 	struct gdma_queue *eq, *cq;
@@ -421,23 +406,23 @@ mana_hwc_create_cq(struct hw_channel_context *hwc,
 
 	err = mana_hwc_create_gdma_eq(hwc, eq_size, ctx, callback, &eq);
 	if (err) {
-		device_printf(hwc->dev,
-		    "Failed to create HWC EQ for RQ: %d\n", err);
+		device_printf(hwc->dev, "Failed to create HWC EQ for RQ: %d\n",
+		    err);
 		goto out;
 	}
 	hwc_cq->gdma_eq = eq;
 
-	err = mana_hwc_create_gdma_cq(hwc, cq_size, hwc_cq,
-	    mana_hwc_comp_event, eq, &cq);
+	err = mana_hwc_create_gdma_cq(hwc, cq_size, hwc_cq, mana_hwc_comp_event,
+	    eq, &cq);
 	if (err) {
-		device_printf(hwc->dev,
-		    "Failed to create HWC CQ for RQ: %d\n", err);
+		device_printf(hwc->dev, "Failed to create HWC CQ for RQ: %d\n",
+		    err);
 		goto out;
 	}
 	hwc_cq->gdma_cq = cq;
 
-	comp_buf = mallocarray(q_depth, sizeof(struct gdma_comp),
-	    M_DEVBUF, M_WAITOK | M_ZERO);
+	comp_buf = mallocarray(q_depth, sizeof(struct gdma_comp), M_DEVBUF,
+	    M_WAITOK | M_ZERO);
 	if (!comp_buf) {
 		err = ENOMEM;
 		goto out;
@@ -460,8 +445,7 @@ out:
 
 static int
 mana_hwc_alloc_dma_buf(struct hw_channel_context *hwc, uint16_t q_depth,
-    uint32_t max_msg_size,
-    struct hwc_dma_buf **dma_buf_ptr)
+    uint32_t max_msg_size, struct hwc_dma_buf **dma_buf_ptr)
 {
 	struct gdma_context *gc = hwc->gdma_dev->gdma_context;
 	struct hwc_work_request *hwc_wr;
@@ -474,7 +458,7 @@ mana_hwc_alloc_dma_buf(struct hw_channel_context *hwc, uint16_t q_depth,
 	int err;
 
 	dma_buf = malloc(sizeof(*dma_buf) +
-	    q_depth * sizeof(struct hwc_work_request),
+		q_depth * sizeof(struct hwc_work_request),
 	    M_DEVBUF, M_WAITOK | M_ZERO);
 	if (!dma_buf)
 		return ENOMEM;
@@ -486,8 +470,8 @@ mana_hwc_alloc_dma_buf(struct hw_channel_context *hwc, uint16_t q_depth,
 	gmi = &dma_buf->mem_info;
 	err = mana_gd_alloc_memory(gc, buf_size, gmi);
 	if (err) {
-		device_printf(hwc->dev,
-		    "Failed to allocate DMA buffer: %d\n", err);
+		device_printf(hwc->dev, "Failed to allocate DMA buffer: %d\n",
+		    err);
 		goto out;
 	}
 
@@ -523,8 +507,7 @@ mana_hwc_dealloc_dma_buf(struct hw_channel_context *hwc,
 }
 
 static void
-mana_hwc_destroy_wq(struct hw_channel_context *hwc,
-    struct hwc_wq *hwc_wq)
+mana_hwc_destroy_wq(struct hw_channel_context *hwc, struct hwc_wq *hwc_wq)
 {
 	mana_hwc_dealloc_dma_buf(hwc, hwc_wq->msg_buf);
 
@@ -536,9 +519,8 @@ mana_hwc_destroy_wq(struct hw_channel_context *hwc,
 }
 
 static int
-mana_hwc_create_wq(struct hw_channel_context *hwc,
-    enum gdma_queue_type q_type, uint16_t q_depth,
-    uint32_t max_msg_size, struct hwc_cq *hwc_cq,
+mana_hwc_create_wq(struct hw_channel_context *hwc, enum gdma_queue_type q_type,
+    uint16_t q_depth, uint32_t max_msg_size, struct hwc_cq *hwc_cq,
     struct hwc_wq **hwc_wq_ptr)
 {
 	struct gdma_queue *queue;
@@ -586,10 +568,8 @@ out:
 }
 
 static int
-mana_hwc_post_tx_wqe(const struct hwc_wq *hwc_txq,
-    struct hwc_work_request *req,
-    uint32_t dest_virt_rq_id, uint32_t dest_virt_rcq_id,
-    bool dest_pf)
+mana_hwc_post_tx_wqe(const struct hwc_wq *hwc_txq, struct hwc_work_request *req,
+    uint32_t dest_virt_rq_id, uint32_t dest_virt_rcq_id, bool dest_pf)
 {
 	device_t dev = hwc_txq->hwc->dev;
 	struct hwc_tx_oob *tx_oob;
@@ -627,8 +607,7 @@ mana_hwc_post_tx_wqe(const struct hwc_wq *hwc_txq,
 
 	err = mana_gd_post_and_ring(hwc_txq->gdma_wq, &req->wqe_req, NULL);
 	if (err)
-		device_printf(dev,
-		    "Failed to post WQE on HWC SQ: %d\n", err);
+		device_printf(dev, "Failed to post WQE on HWC SQ: %d\n", err);
 	return err;
 }
 
@@ -642,8 +621,8 @@ mana_hwc_init_inflight_msg(struct hw_channel_context *hwc, uint16_t num_msg)
 	err = mana_gd_alloc_res_map(num_msg, &hwc->inflight_msg_res,
 	    "gdma hwc res lock");
 	if (err)
-		device_printf(hwc->dev,
-		    "Failed to init inflight_msg_res: %d\n", err);
+		device_printf(hwc->dev, "Failed to init inflight_msg_res: %d\n",
+		    err);
 
 	return (err);
 }
@@ -667,8 +646,8 @@ mana_hwc_test_channel(struct hw_channel_context *hwc, uint16_t q_depth,
 			return err;
 	}
 
-	ctx = malloc(q_depth * sizeof(struct hwc_caller_ctx),
-	    M_DEVBUF, M_WAITOK | M_ZERO);
+	ctx = malloc(q_depth * sizeof(struct hwc_caller_ctx), M_DEVBUF,
+	    M_WAITOK | M_ZERO);
 	if (!ctx)
 		return ENOMEM;
 
@@ -682,8 +661,7 @@ mana_hwc_test_channel(struct hw_channel_context *hwc, uint16_t q_depth,
 
 static int
 mana_hwc_establish_channel(struct gdma_context *gc, uint16_t *q_depth,
-    uint32_t *max_req_msg_size,
-    uint32_t *max_resp_msg_size)
+    uint32_t *max_req_msg_size, uint32_t *max_resp_msg_size)
 {
 	struct hw_channel_context *hwc = gc->hwc.driver_data;
 	struct gdma_queue *rq = hwc->rxq->gdma_wq;
@@ -695,10 +673,8 @@ mana_hwc_establish_channel(struct gdma_context *gc, uint16_t *q_depth,
 	init_completion(&hwc->hwc_init_eqe_comp);
 
 	err = mana_smc_setup_hwc(&gc->shm_channel, false,
-	    eq->mem_info.dma_handle,
-	    cq->mem_info.dma_handle,
-	    rq->mem_info.dma_handle,
-	    sq->mem_info.dma_handle,
+	    eq->mem_info.dma_handle, cq->mem_info.dma_handle,
+	    rq->mem_info.dma_handle, sq->mem_info.dma_handle,
 	    eq->eq.msix_index);
 	if (err)
 		return err;
@@ -712,8 +688,8 @@ mana_hwc_establish_channel(struct gdma_context *gc, uint16_t *q_depth,
 
 	/* Both were set in mana_hwc_init_event_handler(). */
 	if (cq->id >= gc->max_num_cqs) {
-		mana_warn(NULL, "invalid cq id %u > %u\n",
-		    cq->id, gc->max_num_cqs);
+		mana_warn(NULL, "invalid cq id %u > %u\n", cq->id,
+		    gc->max_num_cqs);
 		return EPROTO;
 	}
 
@@ -740,10 +716,9 @@ mana_hwc_init_queues(struct hw_channel_context *hwc, uint16_t q_depth,
 	/* CQ is shared by SQ and RQ, so CQ's queue depth is the sum of SQ
 	 * queue depth and RQ queue depth.
 	 */
-	err = mana_hwc_create_cq(hwc, q_depth * 2,
-	    mana_hwc_init_event_handler, hwc,
-	    mana_hwc_rx_event_handler, hwc,
-	    mana_hwc_tx_event_handler, hwc, &hwc->cq);
+	err = mana_hwc_create_cq(hwc, q_depth * 2, mana_hwc_init_event_handler,
+	    hwc, mana_hwc_rx_event_handler, hwc, mana_hwc_tx_event_handler, hwc,
+	    &hwc->cq);
 	if (err) {
 		device_printf(hwc->dev, "Failed to create HWC CQ: %d\n", err);
 		goto out;
@@ -802,11 +777,9 @@ mana_hwc_create_channel(struct gdma_context *gc)
 	 * and doesn't touch the HWC device.
 	 */
 	err = mana_hwc_init_queues(hwc, HW_CHANNEL_VF_BOOTSTRAP_QUEUE_DEPTH,
-	    HW_CHANNEL_MAX_REQUEST_SIZE,
-	    HW_CHANNEL_MAX_RESPONSE_SIZE);
+	    HW_CHANNEL_MAX_REQUEST_SIZE, HW_CHANNEL_MAX_RESPONSE_SIZE);
 	if (err) {
-		device_printf(hwc->dev, "Failed to initialize HWC: %d\n",
-		    err);
+		device_printf(hwc->dev, "Failed to initialize HWC: %d\n", err);
 		goto out;
 	}
 
@@ -818,8 +791,8 @@ mana_hwc_create_channel(struct gdma_context *gc)
 	}
 
 	err = mana_hwc_test_channel(gc->hwc.driver_data,
-	    HW_CHANNEL_VF_BOOTSTRAP_QUEUE_DEPTH,
-	    max_req_msg_size, max_resp_msg_size);
+	    HW_CHANNEL_VF_BOOTSTRAP_QUEUE_DEPTH, max_req_msg_size,
+	    max_resp_msg_size);
 	if (err) {
 		/* Test failed, but the channel has been established */
 		device_printf(hwc->dev, "Failed to test HWC: %d\n", err);
@@ -892,8 +865,7 @@ mana_hwc_send_request(struct hw_channel_context *hwc, uint32_t req_len,
 	tx_wr = &txq->msg_buf->reqs[msg_id];
 
 	if (req_len > tx_wr->buf_len) {
-		device_printf(hwc->dev,
-		    "HWC: req msg size: %d > %d\n", req_len,
+		device_printf(hwc->dev, "HWC: req msg size: %d > %d\n", req_len,
 		    tx_wr->buf_len);
 		err = EINVAL;
 		goto out;
@@ -913,8 +885,8 @@ mana_hwc_send_request(struct hw_channel_context *hwc, uint32_t req_len,
 
 	err = mana_hwc_post_tx_wqe(txq, tx_wr, 0, 0, false);
 	if (err) {
-		device_printf(hwc->dev,
-		    "HWC: Failed to post send WQE: %d\n", err);
+		device_printf(hwc->dev, "HWC: Failed to post send WQE: %d\n",
+		    err);
 		goto out;
 	}
 
@@ -930,8 +902,8 @@ mana_hwc_send_request(struct hw_channel_context *hwc, uint32_t req_len,
 	}
 
 	if (ctx->status_code && ctx->status_code != GDMA_STATUS_MORE_ENTRIES) {
-		device_printf(hwc->dev,
-		    "HWC: Failed hw_channel req: 0x%x\n", ctx->status_code);
+		device_printf(hwc->dev, "HWC: Failed hw_channel req: 0x%x\n",
+		    ctx->status_code);
 		err = EPROTO;
 		goto out;
 	}

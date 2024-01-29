@@ -41,12 +41,11 @@
 
 #include <machine/fpu.h>
 
-#include <opencrypto/cryptodev.h>
-#include <opencrypto/xform_auth.h>
-
 #include <crypto/openssl/ossl.h>
 #include <crypto/openssl/ossl_chacha.h>
 #include <crypto/openssl/ossl_cipher.h>
+#include <opencrypto/cryptodev.h>
+#include <opencrypto/xform_auth.h>
 
 #include "cryptodev_if.h"
 
@@ -80,7 +79,7 @@ ossl_attach(device_t dev)
 	ossl_cpuid(sc);
 	sc->sc_cid = crypto_get_driverid(dev, sizeof(struct ossl_session),
 	    CRYPTOCAP_F_SOFTWARE | CRYPTOCAP_F_SYNC |
-	    CRYPTOCAP_F_ACCEL_SOFTWARE);
+		CRYPTOCAP_F_ACCEL_SOFTWARE);
 	if (sc->sc_cid < 0) {
 		device_printf(dev, "failed to allocate crypto driver id\n");
 		return (ENXIO);
@@ -128,7 +127,7 @@ ossl_lookup_hash(const struct crypto_session_params *csp)
 	}
 }
 
-static struct ossl_cipher*
+static struct ossl_cipher *
 ossl_lookup_cipher(const struct crypto_session_params *csp)
 {
 
@@ -182,8 +181,7 @@ ossl_probesession(device_t dev, const struct crypto_session_params *csp)
 			return (EINVAL);
 		break;
 	case CSP_MODE_ETA:
-		if (!sc->has_aes ||
-		    csp->csp_cipher_alg == CRYPTO_CHACHA20 ||
+		if (!sc->has_aes || csp->csp_cipher_alg == CRYPTO_CHACHA20 ||
 		    ossl_lookup_hash(csp) == NULL ||
 		    ossl_lookup_cipher(csp) == NULL)
 			return (EINVAL);
@@ -460,24 +458,20 @@ ossl_process(device_t dev, struct cryptop *crp, int hint)
 	return (0);
 }
 
-static device_method_t ossl_methods[] = {
-	DEVMETHOD(device_identify,	ossl_identify),
-	DEVMETHOD(device_probe,		ossl_probe),
-	DEVMETHOD(device_attach,	ossl_attach),
-	DEVMETHOD(device_detach,	ossl_detach),
+static device_method_t ossl_methods[] = { DEVMETHOD(device_identify,
+					      ossl_identify),
+	DEVMETHOD(device_probe, ossl_probe),
+	DEVMETHOD(device_attach, ossl_attach),
+	DEVMETHOD(device_detach, ossl_detach),
 
 	DEVMETHOD(cryptodev_probesession, ossl_probesession),
-	DEVMETHOD(cryptodev_newsession,	ossl_newsession),
-	DEVMETHOD(cryptodev_process,	ossl_process),
+	DEVMETHOD(cryptodev_newsession, ossl_newsession),
+	DEVMETHOD(cryptodev_process, ossl_process),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
-static driver_t ossl_driver = {
-	"ossl",
-	ossl_methods,
-	sizeof(struct ossl_softc)
-};
+static driver_t ossl_driver = { "ossl", ossl_methods,
+	sizeof(struct ossl_softc) };
 
 DRIVER_MODULE(ossl, nexus, ossl_driver, NULL, NULL);
 MODULE_VERSION(ossl, 1);

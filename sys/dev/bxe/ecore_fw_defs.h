@@ -30,25 +30,23 @@
 #ifndef ECORE_FW_DEFS_H
 #define ECORE_FW_DEFS_H
 
-
-#define CSTORM_ASSERT_LIST_INDEX_OFFSET	(IRO[152].base)
+#define CSTORM_ASSERT_LIST_INDEX_OFFSET (IRO[152].base)
 #define CSTORM_ASSERT_LIST_OFFSET(assertListEntry) \
 	(IRO[151].base + ((assertListEntry) * IRO[151].m1))
-#define CSTORM_EVENT_RING_DATA_OFFSET(pfId) \
-	(IRO[157].base + (((pfId)>>1) * IRO[157].m1) + (((pfId)&1) * \
-	IRO[157].m2))
-#define CSTORM_EVENT_RING_PROD_OFFSET(pfId) \
-	(IRO[158].base + (((pfId)>>1) * IRO[158].m1) + (((pfId)&1) * \
-	IRO[158].m2))
+#define CSTORM_EVENT_RING_DATA_OFFSET(pfId)              \
+	(IRO[157].base + (((pfId) >> 1) * IRO[157].m1) + \
+	    (((pfId) & 1) * IRO[157].m2))
+#define CSTORM_EVENT_RING_PROD_OFFSET(pfId)              \
+	(IRO[158].base + (((pfId) >> 1) * IRO[158].m1) + \
+	    (((pfId) & 1) * IRO[158].m2))
 #define CSTORM_FINAL_CLEANUP_COMPLETE_OFFSET(funcId) \
 	(IRO[163].base + ((funcId) * IRO[163].m1))
-#define CSTORM_FUNC_EN_OFFSET(funcId) \
-	(IRO[153].base + ((funcId) * IRO[153].m1))
+#define CSTORM_FUNC_EN_OFFSET(funcId) (IRO[153].base + ((funcId) * IRO[153].m1))
 #define CSTORM_HC_SYNC_LINE_INDEX_E1X_OFFSET(hcIndex, sbId) \
 	(IRO[143].base + ((hcIndex) * IRO[143].m1) + ((sbId) * IRO[143].m2))
-#define CSTORM_HC_SYNC_LINE_INDEX_E2_OFFSET(hcIndex, sbId) \
-	(IRO[142].base + (((hcIndex)>>2) * IRO[142].m1) + (((hcIndex)&3) \
-	* IRO[142].m2) + ((sbId) * IRO[142].m3))
+#define CSTORM_HC_SYNC_LINE_INDEX_E2_OFFSET(hcIndex, sbId)  \
+	(IRO[142].base + (((hcIndex) >> 2) * IRO[142].m1) + \
+	    (((hcIndex) & 3) * IRO[142].m2) + ((sbId) * IRO[142].m3))
 #define CSTORM_IGU_MODE_OFFSET (IRO[161].base)
 #define CSTORM_ISCSI_CQ_SIZE_OFFSET(pfId) \
 	(IRO[323].base + ((pfId) * IRO[323].m1))
@@ -99,21 +97,19 @@
 #define CSTORM_STATUS_BLOCK_OFFSET(sbId) \
 	(IRO[136].base + ((sbId) * IRO[136].m1))
 #define CSTORM_STATUS_BLOCK_SIZE (IRO[136].size)
-#define CSTORM_SYNC_BLOCK_OFFSET(sbId) \
-	(IRO[141].base + ((sbId) * IRO[141].m1))
+#define CSTORM_SYNC_BLOCK_OFFSET(sbId) (IRO[141].base + ((sbId) * IRO[141].m1))
 #define CSTORM_SYNC_BLOCK_SIZE (IRO[141].size)
 #define CSTORM_VF_TO_PF_OFFSET(funcId) \
 	(IRO[154].base + ((funcId) * IRO[154].m1))
 #define TSTORM_ACCEPT_CLASSIFY_FAILED_OFFSET (IRO[208].base)
 #define TSTORM_APPROXIMATE_MATCH_MULTICAST_FILTERING_OFFSET(pfId) \
 	(IRO[207].base + ((pfId) * IRO[207].m1))
-#define TSTORM_ASSERT_LIST_INDEX_OFFSET	(IRO[102].base)
+#define TSTORM_ASSERT_LIST_INDEX_OFFSET (IRO[102].base)
 #define TSTORM_ASSERT_LIST_OFFSET(assertListEntry) \
 	(IRO[101].base + ((assertListEntry) * IRO[101].m1))
 #define TSTORM_FUNCTION_COMMON_CONFIG_OFFSET(pfId) \
 	(IRO[205].base + ((pfId) * IRO[205].m1))
-#define TSTORM_FUNC_EN_OFFSET(funcId) \
-	(IRO[107].base + ((funcId) * IRO[107].m1))
+#define TSTORM_FUNC_EN_OFFSET(funcId) (IRO[107].base + ((funcId) * IRO[107].m1))
 #define TSTORM_ISCSI_ERROR_BITMAP_OFFSET(pfId) \
 	(IRO[278].base + ((pfId) * IRO[278].m1))
 #define TSTORM_ISCSI_NUM_OF_TASKS_OFFSET(pfId) \
@@ -144,15 +140,14 @@
 	(IRO[108].base + ((funcId) * IRO[108].m1))
 #define USTORM_AGG_DATA_OFFSET (IRO[212].base)
 #define USTORM_AGG_DATA_SIZE (IRO[212].size)
-#define USTORM_ASSERT_LIST_INDEX_OFFSET	(IRO[181].base)
+#define USTORM_ASSERT_LIST_INDEX_OFFSET (IRO[181].base)
 #define USTORM_ASSERT_LIST_OFFSET(assertListEntry) \
 	(IRO[180].base + ((assertListEntry) * IRO[180].m1))
 #define USTORM_ETH_PAUSE_ENABLED_OFFSET(portId) \
 	(IRO[187].base + ((portId) * IRO[187].m1))
 #define USTORM_FCOE_EQ_PROD_OFFSET(pfId) \
 	(IRO[325].base + ((pfId) * IRO[325].m1))
-#define USTORM_FUNC_EN_OFFSET(funcId) \
-	(IRO[182].base + ((funcId) * IRO[182].m1))
+#define USTORM_FUNC_EN_OFFSET(funcId) (IRO[182].base + ((funcId) * IRO[182].m1))
 #define USTORM_ISCSI_CQ_SIZE_OFFSET(pfId) \
 	(IRO[289].base + ((pfId) * IRO[289].m1))
 #define USTORM_ISCSI_CQ_SQN_SIZE_OFFSET(pfId) \
@@ -178,8 +173,7 @@
 #define USTORM_RECORD_SLOW_PATH_OFFSET(funcId) \
 	(IRO[184].base + ((funcId) * IRO[184].m1))
 #define USTORM_RX_PRODS_E1X_OFFSET(portId, clientId) \
-	(IRO[215].base + ((portId) * IRO[215].m1) + ((clientId) * \
-	IRO[215].m2))
+	(IRO[215].base + ((portId) * IRO[215].m1) + ((clientId) * IRO[215].m2))
 #define USTORM_RX_PRODS_E2_OFFSET(qzoneId) \
 	(IRO[216].base + ((qzoneId) * IRO[216].m1))
 #define USTORM_TPA_BTR_OFFSET (IRO[213].base)
@@ -188,15 +182,14 @@
 	(IRO[183].base + ((funcId) * IRO[183].m1))
 #define XSTORM_AGG_INT_FINAL_CLEANUP_COMP_TYPE (IRO[67].base)
 #define XSTORM_AGG_INT_FINAL_CLEANUP_INDEX (IRO[66].base)
-#define XSTORM_ASSERT_LIST_INDEX_OFFSET	(IRO[51].base)
+#define XSTORM_ASSERT_LIST_INDEX_OFFSET (IRO[51].base)
 #define XSTORM_ASSERT_LIST_OFFSET(assertListEntry) \
 	(IRO[50].base + ((assertListEntry) * IRO[50].m1))
 #define XSTORM_CMNG_PER_PORT_VARS_OFFSET(portId) \
 	(IRO[43].base + ((portId) * IRO[43].m1))
 #define XSTORM_FAIRNESS_PER_VN_VARS_OFFSET(pfId) \
 	(IRO[45].base + ((pfId) * IRO[45].m1))
-#define XSTORM_FUNC_EN_OFFSET(funcId) \
-	(IRO[47].base + ((funcId) * IRO[47].m1))
+#define XSTORM_FUNC_EN_OFFSET(funcId) (IRO[47].base + ((funcId) * IRO[47].m1))
 #define XSTORM_ISCSI_HQ_SIZE_OFFSET(pfId) \
 	(IRO[302].base + ((pfId) * IRO[302].m1))
 #define XSTORM_ISCSI_LOCAL_MAC_ADDR0_OFFSET(pfId) \
@@ -235,34 +228,29 @@
 	(IRO[44].base + ((pfId) * IRO[44].m1))
 #define XSTORM_RECORD_SLOW_PATH_OFFSET(funcId) \
 	(IRO[49].base + ((funcId) * IRO[49].m1))
-#define XSTORM_SPQ_DATA_OFFSET(funcId) \
-	(IRO[32].base + ((funcId) * IRO[32].m1))
+#define XSTORM_SPQ_DATA_OFFSET(funcId) (IRO[32].base + ((funcId) * IRO[32].m1))
 #define XSTORM_SPQ_DATA_SIZE (IRO[32].size)
 #define XSTORM_SPQ_PAGE_BASE_OFFSET(funcId) \
 	(IRO[30].base + ((funcId) * IRO[30].m1))
-#define XSTORM_SPQ_PROD_OFFSET(funcId) \
-	(IRO[31].base + ((funcId) * IRO[31].m1))
+#define XSTORM_SPQ_PROD_OFFSET(funcId) (IRO[31].base + ((funcId) * IRO[31].m1))
 #define XSTORM_TCP_GLOBAL_DEL_ACK_COUNTER_ENABLED_OFFSET(portId) \
 	(IRO[217].base + ((portId) * IRO[217].m1))
 #define XSTORM_TCP_GLOBAL_DEL_ACK_COUNTER_MAX_COUNT_OFFSET(portId) \
 	(IRO[218].base + ((portId) * IRO[218].m1))
-#define XSTORM_TCP_TX_SWS_TIMER_VAL_OFFSET(pfId) \
-	(IRO[220].base + (((pfId)>>1) * IRO[220].m1) + (((pfId)&1) * \
-	IRO[220].m2))
-#define XSTORM_VF_TO_PF_OFFSET(funcId) \
-	(IRO[48].base + ((funcId) * IRO[48].m1))
+#define XSTORM_TCP_TX_SWS_TIMER_VAL_OFFSET(pfId)         \
+	(IRO[220].base + (((pfId) >> 1) * IRO[220].m1) + \
+	    (((pfId) & 1) * IRO[220].m2))
+#define XSTORM_VF_TO_PF_OFFSET(funcId) (IRO[48].base + ((funcId) * IRO[48].m1))
 #define COMMON_ASM_INVALID_ASSERT_OPCODE (IRO[7].base)
-
 
 /* eth hsi version */
 #define ETH_FP_HSI_VERSION (ETH_FP_HSI_VER_2)
 
-
 /* Ethernet Ring parameters */
 #define X_ETH_LOCAL_RING_SIZE 13
-#define FIRST_BD_IN_PKT	0
+#define FIRST_BD_IN_PKT 0
 #define PARSE_BD_INDEX 1
-#define NUM_OF_ETH_BDS_IN_PAGE ((PAGE_SIZE)/(STRUCT_SIZE(eth_tx_bd)/8))
+#define NUM_OF_ETH_BDS_IN_PAGE ((PAGE_SIZE) / (STRUCT_SIZE(eth_tx_bd) / 8))
 #define U_ETH_NUM_OF_SGES_TO_FETCH 8
 #define U_ETH_MAX_SGES_FOR_PACKET 3
 
@@ -270,20 +258,20 @@
 #define U_ETH_LOCAL_BD_RING_SIZE 8
 #define U_ETH_LOCAL_SGE_RING_SIZE 10
 #define U_ETH_SGL_SIZE 8
-	/* The fw will padd the buffer with this value, so the IP header \
-	will be align to 4 Byte */
+/* The fw will padd the buffer with this value, so the IP header \
+will be align to 4 Byte */
 #define IP_HEADER_ALIGNMENT_PADDING 2
 
 #define U_ETH_SGES_PER_PAGE_INVERSE_MASK \
-	(0xFFFF - ((PAGE_SIZE/((STRUCT_SIZE(eth_rx_sge))/8))-1))
+	(0xFFFF - ((PAGE_SIZE / ((STRUCT_SIZE(eth_rx_sge)) / 8)) - 1))
 
-#define TU_ETH_CQES_PER_PAGE (PAGE_SIZE/(STRUCT_SIZE(eth_rx_cqe)/8))
-#define U_ETH_BDS_PER_PAGE (PAGE_SIZE/(STRUCT_SIZE(eth_rx_bd)/8))
-#define U_ETH_SGES_PER_PAGE (PAGE_SIZE/(STRUCT_SIZE(eth_rx_sge)/8))
+#define TU_ETH_CQES_PER_PAGE (PAGE_SIZE / (STRUCT_SIZE(eth_rx_cqe) / 8))
+#define U_ETH_BDS_PER_PAGE (PAGE_SIZE / (STRUCT_SIZE(eth_rx_bd) / 8))
+#define U_ETH_SGES_PER_PAGE (PAGE_SIZE / (STRUCT_SIZE(eth_rx_sge) / 8))
 
-#define U_ETH_BDS_PER_PAGE_MASK	(U_ETH_BDS_PER_PAGE-1)
-#define U_ETH_CQE_PER_PAGE_MASK	(TU_ETH_CQES_PER_PAGE-1)
-#define U_ETH_SGES_PER_PAGE_MASK (U_ETH_SGES_PER_PAGE-1)
+#define U_ETH_BDS_PER_PAGE_MASK (U_ETH_BDS_PER_PAGE - 1)
+#define U_ETH_CQE_PER_PAGE_MASK (TU_ETH_CQES_PER_PAGE - 1)
+#define U_ETH_SGES_PER_PAGE_MASK (U_ETH_SGES_PER_PAGE - 1)
 
 #define U_ETH_UNDEFINED_Q 0xFF
 
@@ -298,8 +286,8 @@
 /*The CRC32 seed, that is used for the hash(reduction) multicast address */
 #define ETH_CRC32_HASH_SEED 0x00000000
 
-#define ETH_CRC32_HASH_BIT_SIZE	(8)
-#define ETH_CRC32_HASH_MASK EVAL((1<<ETH_CRC32_HASH_BIT_SIZE)-1)
+#define ETH_CRC32_HASH_BIT_SIZE (8)
+#define ETH_CRC32_HASH_MASK EVAL((1 << ETH_CRC32_HASH_BIT_SIZE) - 1)
 
 /* Maximal L2 clients supported */
 #define ETH_MAX_RX_CLIENTS_E1 18
@@ -308,21 +296,19 @@
 
 /* Maximal statistics client Ids */
 #define MAX_STAT_COUNTER_ID_E1 36
-#define MAX_STAT_COUNTER_ID_E1H	56
+#define MAX_STAT_COUNTER_ID_E1H 56
 #define MAX_STAT_COUNTER_ID_E2 140
 
-#define MAX_MAC_CREDIT_E1 192 /* Per Chip */
+#define MAX_MAC_CREDIT_E1 192  /* Per Chip */
 #define MAX_MAC_CREDIT_E1H 256 /* Per Chip */
-#define MAX_MAC_CREDIT_E2 272 /* Per Path */
-#define MAX_VLAN_CREDIT_E1 0 /* Per Chip */
-#define MAX_VLAN_CREDIT_E1H 0 /* Per Chip */
+#define MAX_MAC_CREDIT_E2 272  /* Per Path */
+#define MAX_VLAN_CREDIT_E1 0   /* Per Chip */
+#define MAX_VLAN_CREDIT_E1H 0  /* Per Chip */
 #define MAX_VLAN_CREDIT_E2 272 /* Per Path */
-
 
 /* Maximal aggregation queues supported */
 #define ETH_MAX_AGGREGATION_QUEUES_E1 32
 #define ETH_MAX_AGGREGATION_QUEUES_E1H_E2 64
-
 
 #define ETH_NUM_OF_MCAST_BINS 256
 #define ETH_NUM_OF_MCAST_ENGINES_E2 72
@@ -334,7 +320,6 @@
 	(ETH_MAX_AGGREGATION_QUEUES_E1H_E2 + ETH_MIN_RX_CQES_WITHOUT_TPA)
 
 #define DISABLE_STATISTIC_COUNTER_ID_VALUE 0
-
 
 /* This file defines HSI constants common to all microcode flows */
 
@@ -353,11 +338,11 @@
 
 /* Number of indices per SB */
 #define HC_SB_MAX_INDICES_E1X 8 /* Multiple of 4 */
-#define HC_SB_MAX_INDICES_E2 8 /* Multiple of 4 */
+#define HC_SB_MAX_INDICES_E2 8	/* Multiple of 4 */
 
 /* Number of SB */
 #define HC_SB_MAX_SB_E1X 32
-#define HC_SB_MAX_SB_E2	136 /* include PF */
+#define HC_SB_MAX_SB_E2 136 /* include PF */
 
 /* ID of slow path status block */
 #define HC_SP_SB_ID 0xde
@@ -370,7 +355,6 @@
 
 /* max number of slow path commands per port */
 #define MAX_RAMRODS_PER_PORT 8
-
 
 /**** DEFINES FOR TIMERS/CLOCKS RESOLUTIONS ****/
 
@@ -400,8 +384,8 @@
 #define MAX_TRAFFIC_TYPES 8
 #define MAX_PFC_PRIORITIES 8
 #define MAX_VLAN_PRIORITIES 8
-	/* used by array traffic_type_to_priority[] to mark traffic type \
-	that is not mapped to priority*/
+/* used by array traffic_type_to_priority[] to mark traffic type \
+that is not mapped to priority*/
 #define LLFC_TRAFFIC_TYPE_TO_PRIORITY_UNMAPPED 0xFF
 
 /* Event Ring definitions */
@@ -416,7 +400,7 @@
 #define AFEX_LIST_TABLE_SIZE 4096
 
 /* invalid VNIC Id. used in VNIC classification */
-#define INVALID_VNIC_ID	0xFF
+#define INVALID_VNIC_ID 0xFF
 
 /* used for indicating an undefined RAM offset in the IRO arrays */
 #define UNDEF_IRO 0x80000000
@@ -426,6 +410,4 @@
 #define MAX_NUM_FCOE_TASKS_PER_ENGINE \
 	4096 /*Each port can have at max 1 function*/
 
-
 #endif /* ECORE_FW_DEFS_H */
-

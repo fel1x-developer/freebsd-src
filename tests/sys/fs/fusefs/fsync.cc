@@ -48,46 +48,50 @@ using namespace testing;
 #define FUSE_FSYNC_FDATASYNC 1
 #endif
 
-class Fsync: public FuseTest {
-public:
-void expect_fsync(uint64_t ino, uint32_t flags, int error, int times = 1)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_FSYNC &&
-				in.header.nodeid == ino &&
-				/* 
-				 * TODO: reenable pid check after fixing
-				 * bug 236379
-				 */
-				//(pid_t)in.header.pid == getpid() &&
-				in.body.fsync.fh == FH &&
-				in.body.fsync.fsync_flags == flags);
-		}, Eq(true)),
-		_)
-	).Times(times)
-	.WillRepeatedly(Invoke(ReturnErrno(error)));
-}
+class Fsync : public FuseTest {
+    public:
+	void expect_fsync(uint64_t ino, uint32_t flags, int error,
+	    int times = 1)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(
+			ResultOf(
+			    [=](auto in) {
+				    return (in.header.opcode == FUSE_FSYNC &&
+					in.header.nodeid == ino &&
+					/*
+					 * TODO: reenable pid check after fixing
+					 * bug 236379
+					 */
+					//(pid_t)in.header.pid == getpid() &&
+					in.body.fsync.fh == FH &&
+					in.body.fsync.fsync_flags == flags);
+			    },
+			    Eq(true)),
+			_))
+		    .Times(times)
+		    .WillRepeatedly(Invoke(ReturnErrno(error)));
+	}
 
-void expect_lookup(const char *relpath, uint64_t ino, int times = 1)
-{
-	FuseTest::expect_lookup(relpath, ino, S_IFREG | 0644, 0, times);
-}
+	void expect_lookup(const char *relpath, uint64_t ino, int times = 1)
+	{
+		FuseTest::expect_lookup(relpath, ino, S_IFREG | 0644, 0, times);
+	}
 
-void expect_write(uint64_t ino, uint64_t size, const void *contents)
-{
-	FuseTest::expect_write(ino, 0, size, size, 0, 0, contents);
-}
-
+	void expect_write(uint64_t ino, uint64_t size, const void *contents)
+	{
+		FuseTest::expect_write(ino, 0, size, size, 0, 0, contents);
+	}
 };
 
-class AioFsync: public Fsync {
-virtual void SetUp() {
-	if (!is_unsafe_aio_enabled())
-		GTEST_SKIP() <<
-			"vfs.aio.enable_unsafe must be set for this test";
-	FuseTest::SetUp();
-}
+class AioFsync : public Fsync {
+	virtual void SetUp()
+	{
+		if (!is_unsafe_aio_enabled())
+			GTEST_SKIP()
+			    << "vfs.aio.enable_unsafe must be set for this test";
+		FuseTest::SetUp();
+	}
 };
 
 /* https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=236379 */
@@ -137,21 +141,26 @@ TEST_F(Fsync, close)
 	expect_lookup(RELPATH, ino);
 	expect_open(ino, 0, 1);
 	expect_write(ino, bufsize, CONTENTS);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_SETATTR);
-		}, Eq(true)),
-		_)
-	).WillRepeatedly(Invoke(ReturnImmediate([=](auto i __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr.ino = ino;	// Must match nodeid
-	})));
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_FSYNC);
-		}, Eq(true)),
-		_)
-	).Times(0);
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_SETATTR);
+			},
+			Eq(true)),
+		_))
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto i __unused, auto &out) {
+			SET_OUT_HEADER_LEN(out, attr);
+			out.body.attr.attr.ino = ino; // Must match nodeid
+		})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_FSYNC);
+			},
+			Eq(true)),
+		_))
+	    .Times(0);
 	expect_flush(ino, 1, ReturnErrno(0));
 	expect_release(ino, FH);
 
@@ -212,7 +221,6 @@ TEST_F(Fsync, enosys)
 	EXPECT_EQ(0, fdatasync(fd));
 	leak(fd);
 }
-
 
 TEST_F(Fsync, fdatasync)
 {

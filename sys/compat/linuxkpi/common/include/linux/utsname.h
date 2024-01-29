@@ -23,18 +23,18 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_LINUXKPI_LINUX_UTSNAME_H
-#define	_LINUXKPI_LINUX_UTSNAME_H
+#ifndef _LINUXKPI_LINUX_UTSNAME_H
+#define _LINUXKPI_LINUX_UTSNAME_H
 
 #include <sys/types.h>
 #include <sys/jail.h>
 
 struct _utsname {
-	char			release[OSRELEASELEN];
+	char release[OSRELEASELEN];
 };
 
 struct uts_namespace {
-	struct _utsname		name;
+	struct _utsname name;
 };
 
 extern struct uts_namespace init_uts_ns;
@@ -46,4 +46,4 @@ init_utsname(void)
 	return &init_uts_ns.name;
 }
 
-#endif	/* _LINUXKPI_LINUX_UTSNAME_H */
+#endif /* _LINUXKPI_LINUX_UTSNAME_H */

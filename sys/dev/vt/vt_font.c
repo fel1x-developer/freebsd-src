@@ -29,20 +29,20 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/refcount.h>
-#include <sys/systm.h>
 
 #include <dev/vt/vt.h>
 
 static MALLOC_DEFINE(M_VTFONT, "vtfont", "vt font");
 
 /* Some limits to prevent abnormal fonts from being loaded. */
-#define	VTFONT_MAXMAPPINGS	65536
-#define	VTFONT_MAXGLYPHS	131072
-#define	VTFONT_MAXGLYPHSIZE	2097152
-#define	VTFONT_MAXDIMENSION	128
+#define VTFONT_MAXMAPPINGS 65536
+#define VTFONT_MAXGLYPHS 131072
+#define VTFONT_MAXGLYPHSIZE 2097152
+#define VTFONT_MAXDIMENSION 128
 
 static uint16_t
 vtfont_bisearch(const vfnt_map_t *map, unsigned int len, uint32_t src)
@@ -214,6 +214,7 @@ vtfont_load(vfnt_t *f, struct vt_font **ret)
 	*ret = vf;
 	return (0);
 
-bad:	vtfont_unref(vf);
+bad:
+	vtfont_unref(vf);
 	return (error);
 }

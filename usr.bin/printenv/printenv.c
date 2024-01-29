@@ -33,12 +33,12 @@
 
 #include <capsicum_helpers.h>
 #include <err.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-void	usage(void);
+void usage(void);
 extern char **environ;
 
 /*
@@ -58,7 +58,7 @@ main(int argc, char *argv[])
 		err(1, "capsicum");
 
 	while ((ch = getopt(argc, argv, "")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case '?':
 		default:
 			usage();

@@ -26,10 +26,11 @@
 
 #include <sys/cdefs.h>
 #include <sys/errno.h>
+
 #include <unistd.h>
 
-#include "image.h"
 #include "format.h"
+#include "image.h"
 
 static int
 raw_resize(lba_t imgsz __unused)

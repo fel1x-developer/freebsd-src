@@ -34,12 +34,12 @@
  */
 
 #include <sys/param.h>
-#include <sys/stat.h>
 #include <sys/capsicum.h>
 #include <sys/conf.h>
 #include <sys/disklabel.h>
 #include <sys/filio.h>
 #include <sys/mtio.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 
 #include <assert.h>
@@ -65,17 +65,17 @@ static void dd_in(void);
 static void getfdtype(IO *);
 static void setup(void);
 
-IO	in, out;		/* input/output state */
-STAT	st;			/* statistics */
-void	(*cfunc)(void);		/* conversion function */
-uintmax_t cpy_cnt;		/* # of blocks to copy */
-static off_t	pending = 0;	/* pending seek if sparse */
-uint64_t	ddflags = 0;	/* conversion options */
-size_t	cbsz;			/* conversion block size */
-uintmax_t files_cnt = 1;	/* # of files to copy */
-const	u_char *ctab;		/* conversion table */
-char	fill_char;		/* Character to fill with if defined */
-size_t	speed = 0;		/* maximum speed, in bytes per second */
+IO in, out;		  /* input/output state */
+STAT st;		  /* statistics */
+void (*cfunc)(void);	  /* conversion function */
+uintmax_t cpy_cnt;	  /* # of blocks to copy */
+static off_t pending = 0; /* pending seek if sparse */
+uint64_t ddflags = 0;	  /* conversion options */
+size_t cbsz;		  /* conversion block size */
+uintmax_t files_cnt = 1;  /* # of files to copy */
+const u_char *ctab;	  /* conversion table */
+char fill_char;		  /* Character to fill with if defined */
+size_t speed = 0;	  /* maximum speed, in bytes per second */
 volatile sig_atomic_t need_summary;
 volatile sig_atomic_t need_progress;
 volatile sig_atomic_t kill_signal;
@@ -83,7 +83,8 @@ volatile sig_atomic_t kill_signal;
 int
 main(int argc __unused, char *argv[])
 {
-	struct itimerval itv = { { 1, 0 }, { 1, 0 } }; /* SIGALARM every second, if needed */
+	struct itimerval itv = { { 1, 0 },
+		{ 1, 0 } }; /* SIGALARM every second, if needed */
 
 	prepare_io();
 
@@ -123,8 +124,8 @@ parity(u_char c)
 {
 	int i;
 
-	i = c ^ (c >> 1) ^ (c >> 2) ^ (c >> 3) ^ 
-	    (c >> 4) ^ (c >> 5) ^ (c >> 6) ^ (c >> 7);
+	i = c ^ (c >> 1) ^ (c >> 2) ^ (c >> 3) ^ (c >> 4) ^ (c >> 5) ^
+	    (c >> 6) ^ (c >> 7);
 	return (i & 1);
 }
 
@@ -231,7 +232,8 @@ setup(void)
 		if ((in.db = malloc((size_t)out.dbsz + in.dbsz - 1)) == NULL)
 			err(1, "input buffer");
 		out.db = in.db;
-	} else if ((in.db = malloc(MAX((size_t)in.dbsz, cbsz) + cbsz)) == NULL ||
+	} else if ((in.db = malloc(MAX((size_t)in.dbsz, cbsz) + cbsz)) ==
+		NULL ||
 	    (out.db = malloc(out.dbsz + cbsz)) == NULL)
 		err(1, "output buffer");
 
@@ -254,7 +256,7 @@ setup(void)
 		if (ftruncate(out.fd, out.offset * out.dbsz) == -1)
 			err(1, "truncating %s", out.name);
 
-	if (ddflags & (C_LCASE  | C_UCASE | C_ASCII | C_EBCDIC | C_PARITY)) {
+	if (ddflags & (C_LCASE | C_UCASE | C_ASCII | C_EBCDIC | C_PARITY)) {
 		if (ctab != NULL) {
 			for (cnt = 0; cnt <= 0377; ++cnt)
 				casetab[cnt] = ctab[cnt];
@@ -317,7 +319,7 @@ getfdtype(IO *io)
 		err(1, "%s", io->name);
 	if (S_ISREG(sb.st_mode))
 		io->flags |= ISTRUNC;
-	if (S_ISCHR(sb.st_mode) || S_ISBLK(sb.st_mode)) { 
+	if (S_ISCHR(sb.st_mode) || S_ISBLK(sb.st_mode)) {
 		if (ioctl(io->fd, FIODTYPE, &type) == -1) {
 			err(1, "%s", io->name);
 		} else {
@@ -382,7 +384,7 @@ dd_in(void)
 
 	for (;;) {
 		switch (cpy_cnt) {
-		case -1:			/* count=0 was specified */
+		case -1: /* count=0 was specified */
 			return;
 		case 0:
 			break;
@@ -409,7 +411,7 @@ dd_in(void)
 		}
 
 		in.dbrcnt = 0;
-fill:
+	fill:
 		before_io();
 		n = read(in.fd, in.dbp + in.dbrcnt, in.dbsz - in.dbrcnt);
 		after_io();
@@ -581,14 +583,17 @@ dd_out(int force)
 			} else {
 				if (pending != 0) {
 					/*
-					 * Seek past hole.  Note that we need to record the
-					 * reached offset, because we might have no more data
-					 * to write, in which case we'll need to call
+					 * Seek past hole.  Note that we need to
+					 * record the reached offset, because we
+					 * might have no more data to write, in
+					 * which case we'll need to call
 					 * ftruncate to extend the file size.
 					 */
-					out.seek_offset = lseek(out.fd, pending, SEEK_CUR);
+					out.seek_offset = lseek(out.fd, pending,
+					    SEEK_CUR);
 					if (out.seek_offset == -1)
-						err(2, "%s: seek error creating sparse file",
+						err(2,
+						    "%s: seek error creating sparse file",
 						    out.name);
 					pending = 0;
 				}
@@ -618,14 +623,16 @@ dd_out(int force)
 			else
 				++st.out_part;
 
-			if ((size_t) nw != cnt) {
+			if ((size_t)nw != cnt) {
 				if (out.flags & ISTAPE)
-					errx(1, "%s: short write on tape device",
-				    	out.name);
+					errx(1,
+					    "%s: short write on tape device",
+					    out.name);
 				if (out.flags & ISCHR && !warned) {
 					warned = 1;
-					warnx("%s: short write on character device",
-				    	out.name);
+					warnx(
+					    "%s: short write on character device",
+					    out.name);
 				}
 			}
 

@@ -38,39 +38,40 @@
 #include USB_GLOBAL_INCLUDE_FILE
 #else
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
 #include <sys/fcntl.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/proc.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_types.h>
-#include <net/if_clone.h>
-#include <net/bpf.h>
 #include <sys/sysctl.h>
-#include <net/route.h>
 
 #include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
+#include <dev/usb/usb_bus.h>
 #include <dev/usb/usb_busdma.h>
 #include <dev/usb/usb_controller.h>
 #include <dev/usb/usb_core.h>
-#include <dev/usb/usb_process.h>
 #include <dev/usb/usb_device.h>
-#include <dev/usb/usb_bus.h>
 #include <dev/usb/usb_pf.h>
+#include <dev/usb/usb_process.h>
 #include <dev/usb/usb_transfer.h>
-#endif			/* USB_GLOBAL_INCLUDE_FILE */
+#include <dev/usb/usbdi.h>
+
+#include <net/bpf.h>
+#include <net/if.h>
+#include <net/if_clone.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+#include <net/route.h>
+#endif /* USB_GLOBAL_INCLUDE_FILE */
 
 static void usbpf_init(void *);
 static void usbpf_uninit(void *);
 static int usbpf_ioctl(if_t, u_long, caddr_t);
 static int usbpf_clone_match(struct if_clone *, const char *);
 static int usbpf_clone_create(struct if_clone *, char *, size_t,
-	    struct ifc_data *, if_t *);
+    struct ifc_data *, if_t *);
 static int usbpf_clone_destroy(struct if_clone *, if_t, uint32_t);
 static struct usb_bus *usbpf_ifname2ubus(const char *);
 static uint32_t usbpf_aggregate_xferflags(struct usb_xfer_flags *);
@@ -179,7 +180,7 @@ usbpf_clone_create(struct if_clone *ifc, char *name, size_t len,
 	error = ifc_name2unit(name, &unit);
 	if (error)
 		return (error);
- 	if (unit < 0)
+	if (unit < 0)
 		return (EINVAL);
 
 	ubus = usbpf_ifname2ubus(name);
@@ -190,14 +191,16 @@ usbpf_clone_create(struct if_clone *ifc, char *name, size_t len,
 
 	error = ifc_alloc_unit(ifc, &unit);
 	if (error) {
-		device_printf(ubus->parent, "usbpf: Could not allocate "
+		device_printf(ubus->parent,
+		    "usbpf: Could not allocate "
 		    "instance\n");
 		return (error);
 	}
 	ifp = ubus->ifp = if_alloc(IFT_USB);
 	if (ifp == NULL) {
 		ifc_free_unit(ifc, unit);
-		device_printf(ubus->parent, "usbpf: Could not allocate "
+		device_printf(ubus->parent,
+		    "usbpf: Could not allocate "
 		    "instance\n");
 		return (ENOSPC);
 	}
@@ -377,13 +380,11 @@ usbpf_xfer_precompute_size(struct usb_xfer *xfer, int type)
 	for (x = 0; x != nframes; x++) {
 		if (usbpf_xfer_frame_is_read(xfer, x)) {
 			if (type != USBPF_XFERTAP_SUBMIT) {
-				totlen += USBPF_FRAME_ALIGN(
-				    xfer->frlengths[x]);
+				totlen += USBPF_FRAME_ALIGN(xfer->frlengths[x]);
 			}
 		} else {
 			if (type == USBPF_XFERTAP_SUBMIT) {
-				totlen += USBPF_FRAME_ALIGN(
-				    xfer->frlengths[x]);
+				totlen += USBPF_FRAME_ALIGN(xfer->frlengths[x]);
 			}
 		}
 	}
@@ -511,8 +512,8 @@ usbpf_xfertap(struct usb_xfer *xfer, int type)
 		/* copy USB data, if any */
 		if (length != 0) {
 			/* copy data */
-			usbd_copy_out(&xfer->frbuffers[frame],
-			    offset, ptr, length);
+			usbd_copy_out(&xfer->frbuffers[frame], offset, ptr,
+			    length);
 
 			/* align length */
 			temp = USBPF_FRAME_ALIGN(length);
@@ -527,7 +528,7 @@ usbpf_xfertap(struct usb_xfer *xfer, int type)
 		if (xfer->flags_int.isochronous_xfr) {
 			offset += usbd_xfer_old_frame_length(xfer, x);
 		} else {
-			frame ++;
+			frame++;
 		}
 	}
 

@@ -36,50 +36,49 @@ typedef void vtscsi_request_cb_t(struct vtscsi_softc *,
     struct vtscsi_request *);
 
 struct vtscsi_statistics {
-	unsigned long		scsi_cmd_timeouts;
-	unsigned long		dequeue_no_requests;
+	unsigned long scsi_cmd_timeouts;
+	unsigned long dequeue_no_requests;
 };
 
 struct vtscsi_softc {
-	device_t		 vtscsi_dev;
-	struct mtx		 vtscsi_mtx;
-	uint64_t		 vtscsi_features;
+	device_t vtscsi_dev;
+	struct mtx vtscsi_mtx;
+	uint64_t vtscsi_features;
 
-	uint16_t		 vtscsi_flags;
-#define VTSCSI_FLAG_INDIRECT		0x0001
-#define VTSCSI_FLAG_BIDIRECTIONAL	0x0002
-#define VTSCSI_FLAG_HOTPLUG		0x0004
-#define VTSCSI_FLAG_RESET		0x0008
-#define VTSCSI_FLAG_DETACH		0x0010
+	uint16_t vtscsi_flags;
+#define VTSCSI_FLAG_INDIRECT 0x0001
+#define VTSCSI_FLAG_BIDIRECTIONAL 0x0002
+#define VTSCSI_FLAG_HOTPLUG 0x0004
+#define VTSCSI_FLAG_RESET 0x0008
+#define VTSCSI_FLAG_DETACH 0x0010
 
-	uint16_t		 vtscsi_frozen;
-#define VTSCSI_FROZEN_NO_REQUESTS	0x01
-#define VTSCSI_FROZEN_REQUEST_VQ_FULL	0x02
+	uint16_t vtscsi_frozen;
+#define VTSCSI_FROZEN_NO_REQUESTS 0x01
+#define VTSCSI_FROZEN_REQUEST_VQ_FULL 0x02
 
-	struct sglist		*vtscsi_sglist;
+	struct sglist *vtscsi_sglist;
 
-	struct virtqueue	*vtscsi_control_vq;
-	struct virtqueue	*vtscsi_event_vq;
-	struct virtqueue	*vtscsi_request_vq;
+	struct virtqueue *vtscsi_control_vq;
+	struct virtqueue *vtscsi_event_vq;
+	struct virtqueue *vtscsi_request_vq;
 
-	struct cam_sim		*vtscsi_sim;
-	struct cam_path		*vtscsi_path;
+	struct cam_sim *vtscsi_sim;
+	struct cam_path *vtscsi_path;
 
-	int			 vtscsi_debug;
-	int			 vtscsi_nrequests;
-	int			 vtscsi_max_nsegs;
-	int			 vtscsi_event_buf_size;
+	int vtscsi_debug;
+	int vtscsi_nrequests;
+	int vtscsi_max_nsegs;
+	int vtscsi_event_buf_size;
 
-	TAILQ_HEAD(,vtscsi_request)
-				 vtscsi_req_free;
+	TAILQ_HEAD(, vtscsi_request)
+	vtscsi_req_free;
 
-	uint16_t		 vtscsi_max_channel;
-	uint16_t		 vtscsi_max_target;
-	uint32_t		 vtscsi_max_lun;
+	uint16_t vtscsi_max_channel;
+	uint16_t vtscsi_max_target;
+	uint32_t vtscsi_max_lun;
 
-#define VTSCSI_NUM_EVENT_BUFS	4
-	struct virtio_scsi_event
-				 vtscsi_event_bufs[VTSCSI_NUM_EVENT_BUFS];
+#define VTSCSI_NUM_EVENT_BUFS 4
+	struct virtio_scsi_event vtscsi_event_bufs[VTSCSI_NUM_EVENT_BUFS];
 
 	struct vtscsi_statistics vtscsi_stats;
 };
@@ -92,63 +91,61 @@ enum vtscsi_request_state {
 };
 
 struct vtscsi_request {
-	struct vtscsi_softc			*vsr_softc;
-	union ccb				*vsr_ccb;
-	vtscsi_request_cb_t			*vsr_complete;
+	struct vtscsi_softc *vsr_softc;
+	union ccb *vsr_ccb;
+	vtscsi_request_cb_t *vsr_complete;
 
-	void					*vsr_ptr0;
+	void *vsr_ptr0;
 /* Request when aborting a timedout command. */
-#define vsr_timedout_req	vsr_ptr0
+#define vsr_timedout_req vsr_ptr0
 
-	enum vtscsi_request_state		 vsr_state;
+	enum vtscsi_request_state vsr_state;
 
-	uint16_t				 vsr_flags;
-#define VTSCSI_REQ_FLAG_POLLED		0x01
-#define VTSCSI_REQ_FLAG_COMPLETE	0x02
-#define VTSCSI_REQ_FLAG_TIMEOUT_SET	0x04
+	uint16_t vsr_flags;
+#define VTSCSI_REQ_FLAG_POLLED 0x01
+#define VTSCSI_REQ_FLAG_COMPLETE 0x02
+#define VTSCSI_REQ_FLAG_TIMEOUT_SET 0x04
 
 	union {
-		struct virtio_scsi_cmd_req	 cmd;
-		struct virtio_scsi_ctrl_tmf_req	 tmf;
-		struct virtio_scsi_ctrl_an_req	 an;
+		struct virtio_scsi_cmd_req cmd;
+		struct virtio_scsi_ctrl_tmf_req tmf;
+		struct virtio_scsi_ctrl_an_req an;
 	} vsr_ureq;
-#define vsr_cmd_req 	vsr_ureq.cmd
-#define vsr_tmf_req 	vsr_ureq.tmf
-#define vsr_an_req	vsr_ureq.an
+#define vsr_cmd_req vsr_ureq.cmd
+#define vsr_tmf_req vsr_ureq.tmf
+#define vsr_an_req vsr_ureq.an
 
 	/* Make request and response non-contiguous. */
-	uint32_t				 vsr_pad;
+	uint32_t vsr_pad;
 
 	union {
-		struct virtio_scsi_cmd_resp	 cmd;
+		struct virtio_scsi_cmd_resp cmd;
 		struct virtio_scsi_ctrl_tmf_resp tmf;
-		struct virtio_scsi_ctrl_an_resp	 an;
+		struct virtio_scsi_ctrl_an_resp an;
 	} vsr_uresp;
-#define vsr_cmd_resp	vsr_uresp.cmd
-#define vsr_tmf_resp	vsr_uresp.tmf
-#define vsr_an_resp	vsr_uresp.an
+#define vsr_cmd_resp vsr_uresp.cmd
+#define vsr_tmf_resp vsr_uresp.tmf
+#define vsr_an_resp vsr_uresp.an
 
-	struct callout				 vsr_callout;
+	struct callout vsr_callout;
 
-	TAILQ_ENTRY(vtscsi_request)		 vsr_link;
+	TAILQ_ENTRY(vtscsi_request) vsr_link;
 };
 
 /* Private field in the CCB header that points to our request. */
-#define ccbh_vtscsi_req	spriv_ptr0
+#define ccbh_vtscsi_req spriv_ptr0
 
 /* Features desired/implemented by this driver. */
-#define VTSCSI_FEATURES \
-    (VIRTIO_SCSI_F_HOTPLUG		| \
-     VIRTIO_RING_F_INDIRECT_DESC)
+#define VTSCSI_FEATURES (VIRTIO_SCSI_F_HOTPLUG | VIRTIO_RING_F_INDIRECT_DESC)
 
-#define VTSCSI_MTX(_sc)			&(_sc)->vtscsi_mtx
-#define VTSCSI_LOCK_INIT(_sc, _name) 	mtx_init(VTSCSI_MTX(_sc), _name, \
-					    "VTSCSI Lock", MTX_DEF)
-#define VTSCSI_LOCK(_sc)		mtx_lock(VTSCSI_MTX(_sc))
-#define VTSCSI_UNLOCK(_sc)		mtx_unlock(VTSCSI_MTX(_sc))
-#define VTSCSI_LOCK_OWNED(_sc)		mtx_assert(VTSCSI_MTX(_sc), MA_OWNED)
-#define VTSCSI_LOCK_NOTOWNED(_sc) 	mtx_assert(VTSCSI_MTX(_sc), MA_NOTOWNED)
-#define VTSCSI_LOCK_DESTROY(_sc)	mtx_destroy(VTSCSI_MTX(_sc))
+#define VTSCSI_MTX(_sc) &(_sc)->vtscsi_mtx
+#define VTSCSI_LOCK_INIT(_sc, _name) \
+	mtx_init(VTSCSI_MTX(_sc), _name, "VTSCSI Lock", MTX_DEF)
+#define VTSCSI_LOCK(_sc) mtx_lock(VTSCSI_MTX(_sc))
+#define VTSCSI_UNLOCK(_sc) mtx_unlock(VTSCSI_MTX(_sc))
+#define VTSCSI_LOCK_OWNED(_sc) mtx_assert(VTSCSI_MTX(_sc), MA_OWNED)
+#define VTSCSI_LOCK_NOTOWNED(_sc) mtx_assert(VTSCSI_MTX(_sc), MA_NOTOWNED)
+#define VTSCSI_LOCK_DESTROY(_sc) mtx_destroy(VTSCSI_MTX(_sc))
 
 /*
  * Reasons for either freezing or thawing the SIMQ.
@@ -161,51 +158,55 @@ struct vtscsi_request {
  * same pool of requests, so the completion of a TMF command
  * could cause the SIMQ to be unfrozen.
  */
-#define VTSCSI_REQUEST		0x01
-#define VTSCSI_REQUEST_VQ	0x02
+#define VTSCSI_REQUEST 0x01
+#define VTSCSI_REQUEST_VQ 0x02
 
 /* Debug trace levels. */
-#define VTSCSI_INFO	0x01
-#define VTSCSI_ERROR	0x02
-#define VTSCSI_TRACE	0x04
+#define VTSCSI_INFO 0x01
+#define VTSCSI_ERROR 0x02
+#define VTSCSI_TRACE 0x04
 
-#define vtscsi_dprintf(_sc, _level, _msg, _args ...) do { 		\
-	if ((_sc)->vtscsi_debug & (_level))				\
-		device_printf((_sc)->vtscsi_dev, "%s: "_msg,		\
-		    __FUNCTION__, ##_args);				\
-} while (0)
+#define vtscsi_dprintf(_sc, _level, _msg, _args...)                  \
+	do {                                                         \
+		if ((_sc)->vtscsi_debug & (_level))                  \
+			device_printf((_sc)->vtscsi_dev, "%s: "_msg, \
+			    __FUNCTION__, ##_args);                  \
+	} while (0)
 
-#define vtscsi_dprintf_req(_req, _level, _msg, _args ...) do {		\
-	struct vtscsi_softc *__sc = (_req)->vsr_softc;			\
-	if ((__sc)->vtscsi_debug & (_level))				\
-		vtscsi_printf_req(_req, __FUNCTION__, _msg, ##_args);	\
-} while (0)
+#define vtscsi_dprintf_req(_req, _level, _msg, _args...)                      \
+	do {                                                                  \
+		struct vtscsi_softc *__sc = (_req)->vsr_softc;                \
+		if ((__sc)->vtscsi_debug & (_level))                          \
+			vtscsi_printf_req(_req, __FUNCTION__, _msg, ##_args); \
+	} while (0)
 
 /*
  * Set the status field in a CCB, optionally clearing non CCB_STATUS_* flags.
  */
-#define vtscsi_set_ccb_status(_ccbh, _status, _mask) do {		\
-	KASSERT(((_mask) & CAM_STATUS_MASK) == 0,			\
-	    ("%s:%d bad mask: 0x%x", __FUNCTION__, __LINE__, (_mask)));	\
-	(_ccbh)->status &= ~(CAM_STATUS_MASK | (_mask));		\
-	(_ccbh)->status |= (_status);					\
-} while (0)
+#define vtscsi_set_ccb_status(_ccbh, _status, _mask)                 \
+	do {                                                         \
+		KASSERT(((_mask) & CAM_STATUS_MASK) == 0,            \
+		    ("%s:%d bad mask: 0x%x", __FUNCTION__, __LINE__, \
+			(_mask)));                                   \
+		(_ccbh)->status &= ~(CAM_STATUS_MASK | (_mask));     \
+		(_ccbh)->status |= (_status);                        \
+	} while (0)
 
 /*
  * One segment each for the request and the response.
  */
-#define VTSCSI_MIN_SEGMENTS	2
+#define VTSCSI_MIN_SEGMENTS 2
 
 /*
  * Allocate additional requests for internal use such
  * as TM commands (e.g. aborting timedout commands).
  */
-#define VTSCSI_RESERVED_REQUESTS	10
+#define VTSCSI_RESERVED_REQUESTS 10
 
 /*
  * How to wait (or not) for request completion.
  */
-#define VTSCSI_EXECUTE_ASYNC	0
-#define VTSCSI_EXECUTE_POLL	1
+#define VTSCSI_EXECUTE_ASYNC 0
+#define VTSCSI_EXECUTE_POLL 1
 
 #endif /* _VIRTIO_SCSIVAR_H */

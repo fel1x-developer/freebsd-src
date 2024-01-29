@@ -44,11 +44,11 @@
 #endif
 
 #ifndef NIRQ
-#define	NIRQ		1024	/* XXX - It should be an option. */
+#define NIRQ 1024 /* XXX - It should be an option. */
 #endif
 
 #include <sys/intr.h>
 
 void arm_irq_memory_barrier(uintptr_t);
 
-#endif	/* _MACHINE_INTR_H */
+#endif /* _MACHINE_INTR_H */

@@ -24,6 +24,7 @@
  */
 
 #include <sys/types.h>
+
 #include "bootstrap.h"
 #include "host_syscall.h"
 #include "termios.h"
@@ -51,7 +52,7 @@ static void
 hostcons_probe(struct console *cp)
 {
 
-	cp->c_flags |= C_PRESENTIN|C_PRESENTOUT;
+	cp->c_flags |= C_PRESENTIN | C_PRESENTOUT;
 }
 
 static int
@@ -90,7 +91,7 @@ hostcons_getchar(void)
 static int
 hostcons_poll(void)
 {
-	struct host_timeval tv = {0,0};
+	struct host_timeval tv = { 0, 0 };
 	long fds = 1 << 0;
 	int ret;
 

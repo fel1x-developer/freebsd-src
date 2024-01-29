@@ -27,16 +27,15 @@
 
 #include <sys/param.h>
 
-#include <stand.h>
 #include <bootstrap.h>
-
 #include <efi.h>
 #include <efilib.h>
+#include <stand.h>
 
 #include "loader_efi.h"
 
-#define	M(x)	((x) * 1024 * 1024)
-#define	G(x)	(1UL * (x) * 1024 * 1024 * 1024)
+#define M(x) ((x) * 1024 * 1024)
+#define G(x) (1UL * (x) * 1024 * 1024 * 1024)
 
 #if defined(__amd64__)
 #include <machine/cpufunc.h>
@@ -47,13 +46,13 @@
  * The code is excerpted from sys/x86/x86/identcpu.c: identify_cpu(),
  * identify_hypervisor(), and dev/hyperv/vmbus/hyperv.c: hyperv_identify().
  */
-#define CPUID_LEAF_HV_MAXLEAF		0x40000000
-#define CPUID_LEAF_HV_INTERFACE		0x40000001
-#define CPUID_LEAF_HV_FEATURES		0x40000003
-#define CPUID_LEAF_HV_LIMITS		0x40000005
-#define CPUID_HV_IFACE_HYPERV		0x31237648	/* HV#1 */
-#define CPUID_HV_MSR_TIME_REFCNT	0x0002	/* MSR_HV_TIME_REF_COUNT */
-#define CPUID_HV_MSR_HYPERCALL		0x0020
+#define CPUID_LEAF_HV_MAXLEAF 0x40000000
+#define CPUID_LEAF_HV_INTERFACE 0x40000001
+#define CPUID_LEAF_HV_FEATURES 0x40000003
+#define CPUID_LEAF_HV_LIMITS 0x40000005
+#define CPUID_HV_IFACE_HYPERV 0x31237648 /* HV#1 */
+#define CPUID_HV_MSR_TIME_REFCNT 0x0002	 /* MSR_HV_TIME_REF_COUNT */
+#define CPUID_HV_MSR_HYPERCALL 0x0020
 
 static int
 running_on_hyperv(void)
@@ -127,8 +126,7 @@ efi_verify_staging_size(unsigned long *nr_pages)
 	}
 
 	ndesc = sz / dsz;
-	for (i = 0, p = map; i < ndesc;
-	     i++, p = NextMemoryDescriptor(p, dsz)) {
+	for (i = 0, p = map; i < ndesc; i++, p = NextMemoryDescriptor(p, dsz)) {
 		start = p->PhysicalStart;
 		end = start + p->NumberOfPages * EFI_PAGE_SIZE;
 
@@ -136,7 +134,7 @@ efi_verify_staging_size(unsigned long *nr_pages)
 			continue;
 
 		available_pages = p->NumberOfPages -
-			((KERNLOAD - start) >> EFI_PAGE_SHIFT);
+		    ((KERNLOAD - start) >> EFI_PAGE_SHIFT);
 		break;
 	}
 
@@ -148,8 +146,7 @@ efi_verify_staging_size(unsigned long *nr_pages)
 	i++;
 	p = NextMemoryDescriptor(p, dsz);
 
-	for ( ; i < ndesc;
-	     i++, p = NextMemoryDescriptor(p, dsz)) {
+	for (; i < ndesc; i++, p = NextMemoryDescriptor(p, dsz)) {
 		if (p->Type != EfiConventionalMemory &&
 		    p->Type != EfiLoaderData)
 			break;
@@ -173,38 +170,38 @@ out:
 #endif /* __amd64__ */
 
 #if defined(__arm__)
-#define	DEFAULT_EFI_STAGING_SIZE	32
+#define DEFAULT_EFI_STAGING_SIZE 32
 #else
-#define	DEFAULT_EFI_STAGING_SIZE	64
+#define DEFAULT_EFI_STAGING_SIZE 64
 #endif
 #ifndef EFI_STAGING_SIZE
-#define	EFI_STAGING_SIZE	DEFAULT_EFI_STAGING_SIZE
+#define EFI_STAGING_SIZE DEFAULT_EFI_STAGING_SIZE
 #endif
 
 #if defined(__aarch64__) || defined(__amd64__) || defined(__arm__) || \
     defined(__riscv)
-#define	EFI_STAGING_2M_ALIGN	1
+#define EFI_STAGING_2M_ALIGN 1
 #else
-#define	EFI_STAGING_2M_ALIGN	0
+#define EFI_STAGING_2M_ALIGN 0
 #endif
 
 #if defined(__amd64__)
-#define	EFI_STAGING_SLOP	M(8)
+#define EFI_STAGING_SLOP M(8)
 #else
-#define	EFI_STAGING_SLOP	0
+#define EFI_STAGING_SLOP 0
 #endif
 
 static u_long staging_slop = EFI_STAGING_SLOP;
 
-EFI_PHYSICAL_ADDRESS	staging, staging_end, staging_base;
-bool			stage_offset_set = false;
-ssize_t			stage_offset;
+EFI_PHYSICAL_ADDRESS staging, staging_end, staging_base;
+bool stage_offset_set = false;
+ssize_t stage_offset;
 
 static void
 efi_copy_free(void)
 {
-	BS->FreePages(staging_base, (staging_end - staging_base) /
-	    EFI_PAGE_SIZE);
+	BS->FreePages(staging_base,
+	    (staging_end - staging_base) / EFI_PAGE_SIZE);
 	stage_offset_set = false;
 	stage_offset = 0;
 }
@@ -295,15 +292,15 @@ get_staging_max(void)
 	res = copy_staging == COPY_STAGING_ENABLE ? G(1) : G(4);
 	return (res);
 }
-#define	EFI_ALLOC_METHOD	AllocateMaxAddress
+#define EFI_ALLOC_METHOD AllocateMaxAddress
 #else
-#define	EFI_ALLOC_METHOD	AllocateAnyPages
+#define EFI_ALLOC_METHOD AllocateAnyPages
 #endif
 
 int
 efi_copy_init(void)
 {
-	EFI_STATUS	status;
+	EFI_STATUS status;
 	unsigned long nr_pages;
 	vm_offset_t ess;
 
@@ -323,8 +320,8 @@ efi_copy_init(void)
 
 	staging = get_staging_max();
 #endif
-	status = BS->AllocatePages(EFI_ALLOC_METHOD, EfiLoaderCode,
-	    nr_pages, &staging);
+	status = BS->AllocatePages(EFI_ALLOC_METHOD, EfiLoaderCode, nr_pages,
+	    &staging);
 	if (EFI_ERROR(status)) {
 		printf("failed to allocate staging area: %lu\n",
 		    EFI_ERROR_CODE(status));
@@ -364,7 +361,7 @@ efi_check_space(vm_offset_t end)
 		if (end <= staging_end)
 			return (true);
 		panic("efi_check_space: cannot expand staging area "
-		    "after boot services were exited\n");
+		      "after boot services were exited\n");
 	}
 
 	/*
@@ -430,8 +427,8 @@ expand:
 #if defined(__amd64__)
 	new_base = get_staging_max();
 #endif
-	status = BS->AllocatePages(EFI_ALLOC_METHOD, EfiLoaderCode,
-	    nr_pages, &new_base);
+	status = BS->AllocatePages(EFI_ALLOC_METHOD, EfiLoaderCode, nr_pages,
+	    &new_base);
 	if (!EFI_ERROR(status)) {
 #if EFI_STAGING_2M_ALIGN
 		new_staging = roundup2(new_base, M(2));
@@ -444,8 +441,8 @@ expand:
 		 */
 		memcpy((void *)(uintptr_t)new_staging,
 		    (void *)(uintptr_t)staging, staging_end - staging);
-		BS->FreePages(staging_base, (staging_end - staging_base) /
-		    EFI_PAGE_SIZE);
+		BS->FreePages(staging_base,
+		    (staging_end - staging_base) / EFI_PAGE_SIZE);
 		stage_offset -= staging - new_staging;
 		staging = new_staging;
 		staging_end = new_base + nr_pages * EFI_PAGE_SIZE;
@@ -514,7 +511,7 @@ efi_readin(readin_handle_t fd, vm_offset_t dest, const size_t len)
 void
 efi_copy_finish(void)
 {
-	uint64_t	*src, *dst, *last;
+	uint64_t *src, *dst, *last;
 
 	src = (uint64_t *)(uintptr_t)staging;
 	dst = (uint64_t *)(uintptr_t)(staging - stage_offset);

@@ -47,8 +47,8 @@
 
 #include "main.h"
 
-#define KERN_HOSTNAME_STRING	"kern.hostname"
-#define	KERN_DOMAINNAME_STRING	"kern.domainname"
+#define KERN_HOSTNAME_STRING "kern.hostname"
+#define KERN_DOMAINNAME_STRING "kern.domainname"
 
 static char stored_hostname[1024];
 static char stored_domainname[1024];
@@ -60,8 +60,8 @@ priv_sysctl_write_setup(int asroot, int injail, struct test *test)
 	int error;
 
 	len = sizeof(stored_hostname);
-	error = sysctlbyname(KERN_HOSTNAME_STRING, stored_hostname, &len,
-	    NULL, 0);
+	error = sysctlbyname(KERN_HOSTNAME_STRING, stored_hostname, &len, NULL,
+	    0);
 	if (error) {
 		warn("priv_sysctl_write_setup: sysctlbyname(\"%s\")",
 		    KERN_HOSTNAME_STRING);
@@ -88,16 +88,13 @@ priv_sysctl_write(int asroot, int injail, struct test *test)
 	error = sysctlbyname(KERN_DOMAINNAME_STRING, NULL, NULL,
 	    stored_domainname, strlen(stored_domainname));
 	if (asroot && injail)
-		expect("priv_sysctl_write(asroot, injail)", error, -1,
-		    EPERM);
+		expect("priv_sysctl_write(asroot, injail)", error, -1, EPERM);
 	if (asroot && !injail)
 		expect("priv_sysctl_write(asroot, !injail)", error, 0, 0);
 	if (!asroot && injail)
-		expect("priv_sysctl_write(!asroot, injail)", error, -1,
-		    EPERM);
+		expect("priv_sysctl_write(!asroot, injail)", error, -1, EPERM);
 	if (!asroot && !injail)
-		expect("priv_sysctl_write(!asroot, !injail)", error, -1,
-		    EPERM);
+		expect("priv_sysctl_write(!asroot, !injail)", error, -1, EPERM);
 }
 
 void
@@ -105,8 +102,8 @@ priv_sysctl_writejail(int asroot, int injail, struct test *test)
 {
 	int error;
 
-	error = sysctlbyname(KERN_HOSTNAME_STRING, NULL, NULL,
-	    stored_hostname, strlen(stored_hostname));
+	error = sysctlbyname(KERN_HOSTNAME_STRING, NULL, NULL, stored_hostname,
+	    strlen(stored_hostname));
 	if (asroot && injail)
 		expect("priv_sysctl_writejail(asroot, injail)", error, 0, 0);
 	if (asroot && !injail)
@@ -122,5 +119,4 @@ priv_sysctl_writejail(int asroot, int injail, struct test *test)
 void
 priv_sysctl_write_cleanup(int asroot, int injail, struct test *test)
 {
-
 }

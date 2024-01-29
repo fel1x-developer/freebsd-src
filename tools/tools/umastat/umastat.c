@@ -38,13 +38,13 @@
 #include <unistd.h>
 
 static struct nlist namelist[] = {
-#define X_UMA_KEGS	0
+#define X_UMA_KEGS 0
 	{ .n_name = "_uma_kegs" },
-#define X_MP_MAXCPUS	1
+#define X_MP_MAXCPUS 1
 	{ .n_name = "_mp_maxcpus" },
-#define X_MP_MAXID	2 
+#define X_MP_MAXID 2
 	{ .n_name = "_mp_maxid" },
-#define	X_ALLCPU	3
+#define X_ALLCPU 3
 	{ .n_name = "_all_cpus" },
 	{ .n_name = "" },
 };
@@ -58,13 +58,11 @@ usage(void)
 }
 
 static int
-kread(kvm_t *kvm, void *kvm_pointer, void *address, size_t size,
-    size_t offset)
+kread(kvm_t *kvm, void *kvm_pointer, void *address, size_t size, size_t offset)
 {
 	ssize_t ret;
 
-	ret = kvm_read(kvm, (unsigned long)kvm_pointer + offset, address,
-	    size);
+	ret = kvm_read(kvm, (unsigned long)kvm_pointer + offset, address, size);
 	if (ret < 0)
 		return (MEMSTAT_ERROR_KVM);
 	if ((size_t)ret != size)
@@ -89,13 +87,12 @@ kread_string(kvm_t *kvm, const void *kvm_pointer, char *buffer, int buflen)
 			return (0);
 	}
 	/* Truncate. */
-	buffer[i-1] = '\0';
+	buffer[i - 1] = '\0';
 	return (0);
 }
 
 static int
-kread_symbol(kvm_t *kvm, int index, void *address, size_t size,
-    size_t offset)
+kread_symbol(kvm_t *kvm, int index, void *address, size_t size, size_t offset)
 {
 	ssize_t ret;
 
@@ -108,8 +105,8 @@ kread_symbol(kvm_t *kvm, int index, void *address, size_t size,
 }
 
 static const struct flaginfo {
-	u_int32_t	 fi_flag;
-	const char	*fi_name;
+	u_int32_t fi_flag;
+	const char *fi_name;
 } flaginfo[] = {
 	{ UMA_ZFLAG_MULTI, "multi" },
 	{ UMA_ZFLAG_DRAINING, "draining" },
@@ -152,7 +149,6 @@ uma_print_keg_flags(struct uma_keg *ukp, const char *spaces)
 				printf(" | ");
 			printf("%s", flaginfo[i].fi_name);
 		}
-
 	}
 	printf(";\n");
 }
@@ -161,7 +157,7 @@ static void
 uma_print_keg_align(struct uma_keg *ukp, const char *spaces)
 {
 
-	switch(ukp->uk_align) {
+	switch (ukp->uk_align) {
 	case UMA_ALIGN_PTR:
 		printf("%suk_align = UMA_ALIGN_PTR;\n", spaces);
 		break;
@@ -215,8 +211,8 @@ uma_print_bucketlist(kvm_t *kvm, struct bucketlist *bucketlist,
 
 	total_entries = total_cnt = 0;
 	count = 0;
-	for (ubp = LIST_FIRST(bucketlist); ubp != NULL; ubp =
-	    LIST_NEXT(&ub, ub_link)) {
+	for (ubp = LIST_FIRST(bucketlist); ubp != NULL;
+	     ubp = LIST_NEXT(&ub, ub_link)) {
 		ret = kread(kvm, ubp, &ub, sizeof(ub), 0);
 		if (ret != 0)
 			errx(-1, "uma_print_bucketlist: %s", kvm_geterr(kvm));
@@ -230,13 +226,13 @@ uma_print_bucketlist(kvm_t *kvm, struct bucketlist *bucketlist,
 	}
 
 	printf("\n");
-	printf("%s};  // total cnt %ju, total entries %ju\n", spaces,
-	    total_cnt, total_entries);
+	printf("%s};  // total cnt %ju, total entries %ju\n", spaces, total_cnt,
+	    total_entries);
 }
 
 static void
-uma_print_cache(kvm_t *kvm, struct uma_cache *cache, const char *name,
-    int cpu, const char *spaces, int *ub_cnt_add, int *ub_entries_add)
+uma_print_cache(kvm_t *kvm, struct uma_cache *cache, const char *name, int cpu,
+    const char *spaces, int *ub_cnt_add, int *ub_entries_add)
 {
 	struct uma_bucket ub;
 	int ret;
@@ -348,14 +344,14 @@ main(int argc, char *argv[])
 	 * it is statically declared as an array of size 1, so we need to
 	 * provide additional space.
 	 */
-	uzp_userspace_len = sizeof(struct uma_zone) + mp_maxid *
-	    sizeof(struct uma_cache);
+	uzp_userspace_len = sizeof(struct uma_zone) +
+	    mp_maxid * sizeof(struct uma_cache);
 	uzp_userspace = malloc(uzp_userspace_len);
 	if (uzp_userspace == NULL)
 		err(-1, "malloc");
 
-	for (kzp = LIST_FIRST(&uma_kegs); kzp != NULL; kzp =
-	    LIST_NEXT(&kz, uk_link)) {
+	for (kzp = LIST_FIRST(&uma_kegs); kzp != NULL;
+	     kzp = LIST_NEXT(&kz, uk_link)) {
 		ret = kread(kvm, kzp, &kz, sizeof(kz), 0);
 		if (ret != 0) {
 			free(uzp_userspace);
@@ -381,8 +377,8 @@ main(int argc, char *argv[])
 			printf("};\n");
 			continue;
 		}
-		for (uzp = LIST_FIRST(&kz.uk_zones); uzp != NULL; uzp =
-		    LIST_NEXT(uzp_userspace, uz_link)) {
+		for (uzp = LIST_FIRST(&kz.uk_zones); uzp != NULL;
+		     uzp = LIST_NEXT(uzp_userspace, uz_link)) {
 			/*
 			 * We actually copy in twice: once with the base
 			 * structure, so that we can then decide if we also
@@ -401,8 +397,7 @@ main(int argc, char *argv[])
 				    uzp_userspace_len, 0);
 				if (ret != 0) {
 					free(uzp_userspace);
-					errx(-1, "kread: %s",
-					    kvm_geterr(kvm));
+					errx(-1, "kread: %s", kvm_geterr(kvm));
 				}
 			}
 			ret = kread_string(kvm, uzp_userspace->uz_name, name,
@@ -421,10 +416,9 @@ main(int argc, char *argv[])
 			    uzp_userspace->uz_fails);
 			printf("    uz_sleeps = %ju;\n",
 			    uzp_userspace->uz_sleeps);
-			printf("    uz_count = %u;\n",
-			    uzp_userspace->uz_count);
-			uma_print_bucketlist(kvm, (void *)
-			    &uzp_userspace->uz_buckets, "uz_buckets",
+			printf("    uz_count = %u;\n", uzp_userspace->uz_count);
+			uma_print_bucketlist(kvm,
+			    (void *)&uzp_userspace->uz_buckets, "uz_buckets",
 			    "    ");
 
 			if (!(kz.uk_flags & UMA_ZFLAG_INTERNAL)) {
@@ -439,7 +433,8 @@ main(int argc, char *argv[])
 					    &ub_entries);
 				}
 				printf("    // %d cache total cnt, %d total "
-				    "entries\n", ub_cnt, ub_entries);
+				       "entries\n",
+				    ub_cnt, ub_entries);
 			}
 
 			printf("  };\n");

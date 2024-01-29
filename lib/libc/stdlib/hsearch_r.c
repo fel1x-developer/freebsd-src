@@ -123,8 +123,8 @@ hsearch_r(ENTRY item, ACTION action, ENTRY **retval, struct hsearch_data *htab)
 			if (entry->key != NULL) {
 				old_hash = hsearch_hash(hsearch->offset_basis,
 				    entry->key);
-				*hsearch_lookup_free(hsearch, old_hash) =
-				    *entry;
+				*hsearch_lookup_free(hsearch,
+				    old_hash) = *entry;
 			}
 		}
 

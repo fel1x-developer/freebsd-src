@@ -24,7 +24,7 @@
 ** contact me by email at the address above.
 **
 ** L I C E N S E  and  D I S C L A I M E R
-** 
+**
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions
 ** are met:
@@ -47,109 +47,106 @@
 ** SUCH DAMAGE.
 */
 
-
 #ifdef TESTMAIN
-#include <stdlib.h>
-#include <stdio.h>
 #include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
 #else
 #include <stand.h>
 #endif
 #include <stdarg.h>
 #include <string.h>
+
 #include "ficl.h"
 
 static char digits[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-
 /**************************************************************************
-                        v m B r a n c h R e l a t i v e 
-** 
+			v m B r a n c h R e l a t i v e
+**
 **************************************************************************/
-void vmBranchRelative(FICL_VM *pVM, int offset)
+void
+vmBranchRelative(FICL_VM *pVM, int offset)
 {
-    pVM->ip += offset;
-    return;
+	pVM->ip += offset;
+	return;
 }
 
-
 /**************************************************************************
-                        v m C r e a t e
+			v m C r e a t e
 ** Creates a virtual machine either from scratch (if pVM is NULL on entry)
 ** or by resizing and reinitializing an existing VM to the specified stack
 ** sizes.
 **************************************************************************/
-FICL_VM *vmCreate(FICL_VM *pVM, unsigned nPStack, unsigned nRStack)
+FICL_VM *
+vmCreate(FICL_VM *pVM, unsigned nPStack, unsigned nRStack)
 {
-    if (pVM == NULL)
-    {
-        pVM = (FICL_VM *)ficlMalloc(sizeof (FICL_VM));
-        assert (pVM);
-        memset(pVM, 0, sizeof (FICL_VM));
-    }
+	if (pVM == NULL) {
+		pVM = (FICL_VM *)ficlMalloc(sizeof(FICL_VM));
+		assert(pVM);
+		memset(pVM, 0, sizeof(FICL_VM));
+	}
 
-    if (pVM->pStack)
-        stackDelete(pVM->pStack);
-    pVM->pStack = stackCreate(nPStack);
+	if (pVM->pStack)
+		stackDelete(pVM->pStack);
+	pVM->pStack = stackCreate(nPStack);
 
-    if (pVM->rStack)
-        stackDelete(pVM->rStack);
-    pVM->rStack = stackCreate(nRStack);
+	if (pVM->rStack)
+		stackDelete(pVM->rStack);
+	pVM->rStack = stackCreate(nRStack);
 
 #if FICL_WANT_FLOAT
-    if (pVM->fStack)
-        stackDelete(pVM->fStack);
-    pVM->fStack = stackCreate(nPStack);
+	if (pVM->fStack)
+		stackDelete(pVM->fStack);
+	pVM->fStack = stackCreate(nPStack);
 #endif
 
-    pVM->textOut = ficlTextOut;
+	pVM->textOut = ficlTextOut;
 
-    vmReset(pVM);
-    return pVM;
+	vmReset(pVM);
+	return pVM;
 }
 
-
 /**************************************************************************
-                        v m D e l e t e
-** Free all memory allocated to the specified VM and its subordinate 
+			v m D e l e t e
+** Free all memory allocated to the specified VM and its subordinate
 ** structures.
 **************************************************************************/
-void vmDelete (FICL_VM *pVM)
+void
+vmDelete(FICL_VM *pVM)
 {
-    if (pVM)
-    {
-        ficlFree(pVM->pStack);
-        ficlFree(pVM->rStack);
+	if (pVM) {
+		ficlFree(pVM->pStack);
+		ficlFree(pVM->rStack);
 #if FICL_WANT_FLOAT
-        ficlFree(pVM->fStack);
+		ficlFree(pVM->fStack);
 #endif
-        ficlFree(pVM);
-    }
+		ficlFree(pVM);
+	}
 
-    return;
+	return;
 }
 
-
 /**************************************************************************
-                        v m E x e c u t e
+			v m E x e c u t e
 ** Sets up the specified word to be run by the inner interpreter.
 ** Executes the word's code part immediately, but in the case of
 ** colon definition, the definition itself needs the inner interp
 ** to complete. This does not happen until control reaches ficlExec
 **************************************************************************/
-void vmExecute(FICL_VM *pVM, FICL_WORD *pWord)
+void
+vmExecute(FICL_VM *pVM, FICL_WORD *pWord)
 {
-    pVM->runningWord = pWord;
-    pWord->code(pVM);
-    return;
+	pVM->runningWord = pWord;
+	pWord->code(pVM);
+	return;
 }
 
-
 /**************************************************************************
-                        v m I n n e r L o o p
+			v m I n n e r L o o p
 ** the mysterious inner interpreter...
 ** This loop is the address interpreter that makes colon definitions
-** work. Upon entry, it assumes that the IP points to an entry in 
+** work. Upon entry, it assumes that the IP points to an entry in
 ** a definition (the body of a colon word). It runs one word at a time
 ** until something does vmThrow. The catcher for this is expected to exist
 ** in the calling code.
@@ -157,9 +154,10 @@ void vmExecute(FICL_VM *pVM, FICL_WORD *pWord)
 ** Visual C++ 5 chokes on this loop in Release mode. Aargh.
 **************************************************************************/
 #if INLINE_INNER_LOOP == 0
-void vmInnerLoop(FICL_VM *pVM)
+void
+vmInnerLoop(FICL_VM *pVM)
 {
-    M_INNER_LOOP(pVM);
+	M_INNER_LOOP(pVM);
 }
 #endif
 #if 0
@@ -244,64 +242,60 @@ void vmInnerLoop(FICL_VM *pVM)
 }
 #endif
 
-
-
 /**************************************************************************
-                        v m G e t D i c t
+			v m G e t D i c t
 ** Returns the address dictionary for this VM's system
 **************************************************************************/
-FICL_DICT  *vmGetDict(FICL_VM *pVM)
+FICL_DICT *
+vmGetDict(FICL_VM *pVM)
 {
 	assert(pVM);
 	return pVM->pSys->dp;
 }
 
-
 /**************************************************************************
-                        v m G e t S t r i n g
+			v m G e t S t r i n g
 ** Parses a string out of the VM input buffer and copies up to the first
 ** FICL_STRING_MAX characters to the supplied destination buffer, a
 ** FICL_STRING. The destination string is NULL terminated.
-** 
+**
 ** Returns the address of the first unused character in the dest buffer.
 **************************************************************************/
-char *vmGetString(FICL_VM *pVM, FICL_STRING *spDest, char delimiter)
+char *
+vmGetString(FICL_VM *pVM, FICL_STRING *spDest, char delimiter)
 {
-    STRINGINFO si = vmParseStringEx(pVM, delimiter, 0);
+	STRINGINFO si = vmParseStringEx(pVM, delimiter, 0);
 
-    if (SI_COUNT(si) > FICL_STRING_MAX)
-    {
-        SI_SETLEN(si, FICL_STRING_MAX);
-    }
+	if (SI_COUNT(si) > FICL_STRING_MAX) {
+		SI_SETLEN(si, FICL_STRING_MAX);
+	}
 
-    strncpy(spDest->text, SI_PTR(si), SI_COUNT(si));
-    spDest->text[SI_COUNT(si)] = '\0';
-    spDest->count = (FICL_COUNT)SI_COUNT(si);
+	strncpy(spDest->text, SI_PTR(si), SI_COUNT(si));
+	spDest->text[SI_COUNT(si)] = '\0';
+	spDest->count = (FICL_COUNT)SI_COUNT(si);
 
-    return spDest->text + SI_COUNT(si) + 1;
+	return spDest->text + SI_COUNT(si) + 1;
 }
 
-
 /**************************************************************************
-                        v m G e t W o r d
-** vmGetWord calls vmGetWord0 repeatedly until it gets a string with 
+			v m G e t W o r d
+** vmGetWord calls vmGetWord0 repeatedly until it gets a string with
 ** non-zero length.
 **************************************************************************/
-STRINGINFO vmGetWord(FICL_VM *pVM)
+STRINGINFO
+vmGetWord(FICL_VM *pVM)
 {
-    STRINGINFO si = vmGetWord0(pVM);
+	STRINGINFO si = vmGetWord0(pVM);
 
-    if (SI_COUNT(si) == 0)
-    {
-        vmThrow(pVM, VM_RESTART);
-    }
+	if (SI_COUNT(si) == 0) {
+		vmThrow(pVM, VM_RESTART);
+	}
 
-    return si;
+	return si;
 }
 
-
 /**************************************************************************
-                        v m G e t W o r d 0
+			v m G e t W o r d 0
 ** Skip leading whitespace and parse a space delimited word from the tib.
 ** Returns the start address and length of the word. Updates the tib
 ** to reflect characters consumed, including the trailing delimiter.
@@ -309,496 +303,480 @@ STRINGINFO vmGetWord(FICL_VM *pVM)
 ** does not use vmParseString because it uses isspace() rather than a
 ** single  delimiter character.
 **************************************************************************/
-STRINGINFO vmGetWord0(FICL_VM *pVM)
+STRINGINFO
+vmGetWord0(FICL_VM *pVM)
 {
-    char *pSrc      = vmGetInBuf(pVM);
-    char *pEnd      = vmGetInBufEnd(pVM);
-    STRINGINFO si;
-    FICL_UNS count = 0;
-    char ch = 0;
+	char *pSrc = vmGetInBuf(pVM);
+	char *pEnd = vmGetInBufEnd(pVM);
+	STRINGINFO si;
+	FICL_UNS count = 0;
+	char ch = 0;
 
-    pSrc = skipSpace(pSrc, pEnd);
-    SI_SETPTR(si, pSrc);
+	pSrc = skipSpace(pSrc, pEnd);
+	SI_SETPTR(si, pSrc);
 
-/*
-    for (ch = *pSrc; (pEnd != pSrc) && !isspace(ch); ch = *++pSrc)
-    {
-        count++;
-    }
-*/
+	/*
+	    for (ch = *pSrc; (pEnd != pSrc) && !isspace(ch); ch = *++pSrc)
+	    {
+		count++;
+	    }
+	*/
 
-    /* Changed to make Purify happier.  --lch */
-    for (;;)
-    {
-        if (pEnd == pSrc)
-            break;
-        ch = *pSrc;
-        if (isspace(ch))
-            break;
-        count++;
-        pSrc++;
-    }
+	/* Changed to make Purify happier.  --lch */
+	for (;;) {
+		if (pEnd == pSrc)
+			break;
+		ch = *pSrc;
+		if (isspace(ch))
+			break;
+		count++;
+		pSrc++;
+	}
 
-    SI_SETLEN(si, count);
+	SI_SETLEN(si, count);
 
-    if ((pEnd != pSrc) && isspace(ch))    /* skip one trailing delimiter */
-        pSrc++;
+	if ((pEnd != pSrc) && isspace(ch)) /* skip one trailing delimiter */
+		pSrc++;
 
-    vmUpdateTib(pVM, pSrc);
+	vmUpdateTib(pVM, pSrc);
 
-    return si;
+	return si;
 }
 
-
 /**************************************************************************
-                        v m G e t W o r d T o P a d
+			v m G e t W o r d T o P a d
 ** Does vmGetWord and copies the result to the pad as a NULL terminated
-** string. Returns the length of the string. If the string is too long 
+** string. Returns the length of the string. If the string is too long
 ** to fit in the pad, it is truncated.
 **************************************************************************/
-int vmGetWordToPad(FICL_VM *pVM)
+int
+vmGetWordToPad(FICL_VM *pVM)
 {
-    STRINGINFO si;
-    char *cp = (char *)pVM->pad;
-    si = vmGetWord(pVM);
+	STRINGINFO si;
+	char *cp = (char *)pVM->pad;
+	si = vmGetWord(pVM);
 
-    if (SI_COUNT(si) > nPAD)
-        SI_SETLEN(si, nPAD);
+	if (SI_COUNT(si) > nPAD)
+		SI_SETLEN(si, nPAD);
 
-    strncpy(cp, SI_PTR(si), SI_COUNT(si));
-    cp[SI_COUNT(si)] = '\0';
-    return (int)(SI_COUNT(si));
+	strncpy(cp, SI_PTR(si), SI_COUNT(si));
+	cp[SI_COUNT(si)] = '\0';
+	return (int)(SI_COUNT(si));
 }
 
-
 /**************************************************************************
-                        v m P a r s e S t r i n g
+			v m P a r s e S t r i n g
 ** Parses a string out of the input buffer using the delimiter
 ** specified. Skips leading delimiters, marks the start of the string,
-** and counts characters to the next delimiter it encounters. It then 
+** and counts characters to the next delimiter it encounters. It then
 ** updates the vm input buffer to consume all these chars, including the
-** trailing delimiter. 
+** trailing delimiter.
 ** Returns the address and length of the parsed string, not including the
 ** trailing delimiter.
 **************************************************************************/
-STRINGINFO vmParseString(FICL_VM *pVM, char delim)
-{ 
-    return vmParseStringEx(pVM, delim, 1);
-}
-
-STRINGINFO vmParseStringEx(FICL_VM *pVM, char delim, char fSkipLeading)
+STRINGINFO
+vmParseString(FICL_VM *pVM, char delim)
 {
-    STRINGINFO si;
-    char *pSrc      = vmGetInBuf(pVM);
-    char *pEnd      = vmGetInBufEnd(pVM);
-    char ch;
-
-    if (fSkipLeading)
-    {                       /* skip lead delimiters */
-        while ((pSrc != pEnd) && (*pSrc == delim))
-            pSrc++;
-    }
-
-    SI_SETPTR(si, pSrc);    /* mark start of text */
-
-    for (ch = *pSrc; (pSrc != pEnd)
-                  && (ch != delim)
-                  && (ch != '\r') 
-                  && (ch != '\n'); ch = *++pSrc)
-    {
-        ;                   /* find next delimiter or end of line */
-    }
-
-                            /* set length of result */
-    SI_SETLEN(si, pSrc - SI_PTR(si));
-
-    if ((pSrc != pEnd) && (*pSrc == delim))     /* gobble trailing delimiter */
-        pSrc++;
-
-    vmUpdateTib(pVM, pSrc);
-    return si;
+	return vmParseStringEx(pVM, delim, 1);
 }
 
+STRINGINFO
+vmParseStringEx(FICL_VM *pVM, char delim, char fSkipLeading)
+{
+	STRINGINFO si;
+	char *pSrc = vmGetInBuf(pVM);
+	char *pEnd = vmGetInBufEnd(pVM);
+	char ch;
+
+	if (fSkipLeading) { /* skip lead delimiters */
+		while ((pSrc != pEnd) && (*pSrc == delim))
+			pSrc++;
+	}
+
+	SI_SETPTR(si, pSrc); /* mark start of text */
+
+	for (ch = *pSrc;
+	     (pSrc != pEnd) && (ch != delim) && (ch != '\r') && (ch != '\n');
+	     ch = *++pSrc) {
+		; /* find next delimiter or end of line */
+	}
+
+	/* set length of result */
+	SI_SETLEN(si, pSrc - SI_PTR(si));
+
+	if ((pSrc != pEnd) && (*pSrc == delim)) /* gobble trailing delimiter */
+		pSrc++;
+
+	vmUpdateTib(pVM, pSrc);
+	return si;
+}
 
 /**************************************************************************
-                        v m P o p
-** 
+			v m P o p
+**
 **************************************************************************/
-CELL vmPop(FICL_VM *pVM)
+CELL
+vmPop(FICL_VM *pVM)
 {
-    return stackPop(pVM->pStack);
+	return stackPop(pVM->pStack);
 }
 
-
 /**************************************************************************
-                        v m P u s h
-** 
+			v m P u s h
+**
 **************************************************************************/
-void vmPush(FICL_VM *pVM, CELL c)
+void
+vmPush(FICL_VM *pVM, CELL c)
 {
-    stackPush(pVM->pStack, c);
-    return;
+	stackPush(pVM->pStack, c);
+	return;
 }
 
-
 /**************************************************************************
-                        v m P o p I P
-** 
+			v m P o p I P
+**
 **************************************************************************/
-void vmPopIP(FICL_VM *pVM)
+void
+vmPopIP(FICL_VM *pVM)
 {
-    pVM->ip = (IPTYPE)(stackPopPtr(pVM->rStack));
-    return;
+	pVM->ip = (IPTYPE)(stackPopPtr(pVM->rStack));
+	return;
 }
 
-
 /**************************************************************************
-                        v m P u s h I P
-** 
+			v m P u s h I P
+**
 **************************************************************************/
-void vmPushIP(FICL_VM *pVM, IPTYPE newIP)
+void
+vmPushIP(FICL_VM *pVM, IPTYPE newIP)
 {
-    stackPushPtr(pVM->rStack, (void *)pVM->ip);
-    pVM->ip = newIP;
-    return;
+	stackPushPtr(pVM->rStack, (void *)pVM->ip);
+	pVM->ip = newIP;
+	return;
 }
 
-
 /**************************************************************************
-                        v m P u s h T i b
+			v m P u s h T i b
 ** Binds the specified input string to the VM and clears >IN (the index)
 **************************************************************************/
-void vmPushTib(FICL_VM *pVM, char *text, FICL_INT nChars, TIB *pSaveTib)
+void
+vmPushTib(FICL_VM *pVM, char *text, FICL_INT nChars, TIB *pSaveTib)
 {
-    if (pSaveTib)
-    {
-        *pSaveTib = pVM->tib;
-    }
+	if (pSaveTib) {
+		*pSaveTib = pVM->tib;
+	}
 
-    pVM->tib.cp = text;
-    pVM->tib.end = text + nChars;
-    pVM->tib.index = 0;
+	pVM->tib.cp = text;
+	pVM->tib.end = text + nChars;
+	pVM->tib.index = 0;
 }
 
-
-void vmPopTib(FICL_VM *pVM, TIB *pTib)
+void
+vmPopTib(FICL_VM *pVM, TIB *pTib)
 {
-    if (pTib)
-    {
-        pVM->tib = *pTib;
-    }
-    return;
+	if (pTib) {
+		pVM->tib = *pTib;
+	}
+	return;
 }
-
 
 /**************************************************************************
-                        v m Q u i t
-** 
+			v m Q u i t
+**
 **************************************************************************/
-void vmQuit(FICL_VM *pVM)
+void
+vmQuit(FICL_VM *pVM)
 {
-    stackReset(pVM->rStack);
-    pVM->fRestart    = 0;
-    pVM->ip          = NULL;
-    pVM->runningWord = NULL;
-    pVM->state       = INTERPRET;
-    pVM->tib.cp      = NULL;
-    pVM->tib.end     = NULL;
-    pVM->tib.index   = 0;
-    pVM->pad[0]      = '\0';
-    pVM->sourceID.i  = 0;
-    return;
+	stackReset(pVM->rStack);
+	pVM->fRestart = 0;
+	pVM->ip = NULL;
+	pVM->runningWord = NULL;
+	pVM->state = INTERPRET;
+	pVM->tib.cp = NULL;
+	pVM->tib.end = NULL;
+	pVM->tib.index = 0;
+	pVM->pad[0] = '\0';
+	pVM->sourceID.i = 0;
+	return;
 }
 
-
 /**************************************************************************
-                        v m R e s e t 
-** 
+			v m R e s e t
+**
 **************************************************************************/
-void vmReset(FICL_VM *pVM)
+void
+vmReset(FICL_VM *pVM)
 {
-    vmQuit(pVM);
-    stackReset(pVM->pStack);
+	vmQuit(pVM);
+	stackReset(pVM->pStack);
 #if FICL_WANT_FLOAT
-    stackReset(pVM->fStack);
+	stackReset(pVM->fStack);
 #endif
-    pVM->base        = 10;
-    return;
+	pVM->base = 10;
+	return;
 }
 
-
 /**************************************************************************
-                        v m S e t T e x t O u t
+			v m S e t T e x t O u t
 ** Binds the specified output callback to the vm. If you pass NULL,
 ** binds the default output function (ficlTextOut)
 **************************************************************************/
-void vmSetTextOut(FICL_VM *pVM, OUTFUNC textOut)
+void
+vmSetTextOut(FICL_VM *pVM, OUTFUNC textOut)
 {
-    if (textOut)
-        pVM->textOut = textOut;
-    else
-        pVM->textOut = ficlTextOut;
+	if (textOut)
+		pVM->textOut = textOut;
+	else
+		pVM->textOut = ficlTextOut;
 
-    return;
+	return;
 }
 
-
 /**************************************************************************
-                        v m T e x t O u t
+			v m T e x t O u t
 ** Feeds text to the vm's output callback
 **************************************************************************/
-void vmTextOut(FICL_VM *pVM, char *text, int fNewline)
+void
+vmTextOut(FICL_VM *pVM, char *text, int fNewline)
 {
-    assert(pVM);
-    assert(pVM->textOut);
-    (pVM->textOut)(pVM, text, fNewline);
+	assert(pVM);
+	assert(pVM->textOut);
+	(pVM->textOut)(pVM, text, fNewline);
 
-    return;
+	return;
 }
 
-
 /**************************************************************************
-                        v m T h r o w
-** 
+			v m T h r o w
+**
 **************************************************************************/
-void vmThrow(FICL_VM *pVM, int except)
+void
+vmThrow(FICL_VM *pVM, int except)
 {
-    if (pVM->pState)
-        longjmp(*(pVM->pState), except);
+	if (pVM->pState)
+		longjmp(*(pVM->pState), except);
 }
 
-
-void vmThrowErr(FICL_VM *pVM, char *fmt, ...)
+void
+vmThrowErr(FICL_VM *pVM, char *fmt, ...)
 {
-    va_list va;
-    va_start(va, fmt);
-    vsprintf(pVM->pad, fmt, va);
-    vmTextOut(pVM, pVM->pad, 1);
-    va_end(va);
-    longjmp(*(pVM->pState), VM_ERREXIT);
+	va_list va;
+	va_start(va, fmt);
+	vsprintf(pVM->pad, fmt, va);
+	vmTextOut(pVM, pVM->pad, 1);
+	va_end(va);
+	longjmp(*(pVM->pState), VM_ERREXIT);
 }
-
 
 /**************************************************************************
-                        w o r d I s I m m e d i a t e
-** 
+			w o r d I s I m m e d i a t e
+**
 **************************************************************************/
-int wordIsImmediate(FICL_WORD *pFW)
+int
+wordIsImmediate(FICL_WORD *pFW)
 {
-    return ((pFW != NULL) && (pFW->flags & FW_IMMEDIATE));
+	return ((pFW != NULL) && (pFW->flags & FW_IMMEDIATE));
 }
 
-
 /**************************************************************************
-                        w o r d I s C o m p i l e O n l y
-** 
+			w o r d I s C o m p i l e O n l y
+**
 **************************************************************************/
-int wordIsCompileOnly(FICL_WORD *pFW)
+int
+wordIsCompileOnly(FICL_WORD *pFW)
 {
-    return ((pFW != NULL) && (pFW->flags & FW_COMPILE));
+	return ((pFW != NULL) && (pFW->flags & FW_COMPILE));
 }
 
-
 /**************************************************************************
-                        s t r r e v
-** 
+			s t r r e v
+**
 **************************************************************************/
-char *strrev( char *string )    
-{                               /* reverse a string in-place */
-    int i = strlen(string);
-    char *p1 = string;          /* first char of string */
-    char *p2 = string + i - 1;  /* last non-NULL char of string */
-    char c;
+char *
+strrev(char *string)
+{ /* reverse a string in-place */
+	int i = strlen(string);
+	char *p1 = string;	   /* first char of string */
+	char *p2 = string + i - 1; /* last non-NULL char of string */
+	char c;
 
-    if (i > 1)
-    {
-        while (p1 < p2)
-        {
-            c = *p2;
-            *p2 = *p1;
-            *p1 = c;
-            p1++; p2--;
-        }
-    }
-        
-    return string;
+	if (i > 1) {
+		while (p1 < p2) {
+			c = *p2;
+			*p2 = *p1;
+			*p1 = c;
+			p1++;
+			p2--;
+		}
+	}
+
+	return string;
 }
 
-
 /**************************************************************************
-                        d i g i t _ t o _ c h a r
-** 
+			d i g i t _ t o _ c h a r
+**
 **************************************************************************/
-char digit_to_char(int value)
+char
+digit_to_char(int value)
 {
-    return digits[value];
+	return digits[value];
 }
 
-
 /**************************************************************************
-                        i s P o w e r O f T w o
+			i s P o w e r O f T w o
 ** Tests whether supplied argument is an integer power of 2 (2**n)
 ** where 32 > n > 1, and returns n if so. Otherwise returns zero.
 **************************************************************************/
-int isPowerOfTwo(FICL_UNS u)
+int
+isPowerOfTwo(FICL_UNS u)
 {
-    int i = 1;
-    FICL_UNS t = 2;
+	int i = 1;
+	FICL_UNS t = 2;
 
-    for (; ((t <= u) && (t != 0)); i++, t <<= 1)
-    {
-        if (u == t)
-            return i;
-    }
+	for (; ((t <= u) && (t != 0)); i++, t <<= 1) {
+		if (u == t)
+			return i;
+	}
 
-    return 0;
+	return 0;
 }
 
-
 /**************************************************************************
-                        l t o a
-** 
+			l t o a
+**
 **************************************************************************/
-char *ltoa( FICL_INT value, char *string, int radix )
-{                               /* convert long to string, any base */
-    char *cp = string;
-    int sign = ((radix == 10) && (value < 0));
-    int pwr;
+char *
+ltoa(FICL_INT value, char *string, int radix)
+{ /* convert long to string, any base */
+	char *cp = string;
+	int sign = ((radix == 10) && (value < 0));
+	int pwr;
 
-    assert(radix > 1);
-    assert(radix < 37);
-    assert(string);
+	assert(radix > 1);
+	assert(radix < 37);
+	assert(string);
 
-    pwr = isPowerOfTwo((FICL_UNS)radix);
+	pwr = isPowerOfTwo((FICL_UNS)radix);
 
-    if (sign)
-        value = -value;
+	if (sign)
+		value = -value;
 
-    if (value == 0)
-        *cp++ = '0';
-    else if (pwr != 0)
-    {
-        FICL_UNS v = (FICL_UNS) value;
-        FICL_UNS mask = (FICL_UNS) ~(-1 << pwr);
-        while (v)
-        {
-            *cp++ = digits[v & mask];
-            v >>= pwr;
-        }
-    }
-    else
-    {
-        UNSQR result;
-        DPUNS v;
-        v.hi = 0;
-        v.lo = (FICL_UNS)value;
-        while (v.lo)
-        {
-            result = ficlLongDiv(v, (FICL_UNS)radix);
-            *cp++ = digits[result.rem];
-            v.lo = result.quot;
-        }
-    }
+	if (value == 0)
+		*cp++ = '0';
+	else if (pwr != 0) {
+		FICL_UNS v = (FICL_UNS)value;
+		FICL_UNS mask = (FICL_UNS) ~(-1 << pwr);
+		while (v) {
+			*cp++ = digits[v & mask];
+			v >>= pwr;
+		}
+	} else {
+		UNSQR result;
+		DPUNS v;
+		v.hi = 0;
+		v.lo = (FICL_UNS)value;
+		while (v.lo) {
+			result = ficlLongDiv(v, (FICL_UNS)radix);
+			*cp++ = digits[result.rem];
+			v.lo = result.quot;
+		}
+	}
 
-    if (sign)
-        *cp++ = '-';
+	if (sign)
+		*cp++ = '-';
 
-    *cp++ = '\0';
+	*cp++ = '\0';
 
-    return strrev(string);
+	return strrev(string);
 }
 
-
 /**************************************************************************
-                        u l t o a
-** 
+			u l t o a
+**
 **************************************************************************/
-char *ultoa(FICL_UNS value, char *string, int radix )
-{                               /* convert long to string, any base */
-    char *cp = string;
-    DPUNS ud;
-    UNSQR result;
+char *
+ultoa(FICL_UNS value, char *string, int radix)
+{ /* convert long to string, any base */
+	char *cp = string;
+	DPUNS ud;
+	UNSQR result;
 
-    assert(radix > 1);
-    assert(radix < 37);
-    assert(string);
+	assert(radix > 1);
+	assert(radix < 37);
+	assert(string);
 
-    if (value == 0)
-        *cp++ = '0';
-    else
-    {
-        ud.hi = 0;
-        ud.lo = value;
-        result.quot = value;
+	if (value == 0)
+		*cp++ = '0';
+	else {
+		ud.hi = 0;
+		ud.lo = value;
+		result.quot = value;
 
-        while (ud.lo)
-        {
-            result = ficlLongDiv(ud, (FICL_UNS)radix);
-            ud.lo = result.quot;
-            *cp++ = digits[result.rem];
-        }
-    }
+		while (ud.lo) {
+			result = ficlLongDiv(ud, (FICL_UNS)radix);
+			ud.lo = result.quot;
+			*cp++ = digits[result.rem];
+		}
+	}
 
-    *cp++ = '\0';
+	*cp++ = '\0';
 
-    return strrev(string);
+	return strrev(string);
 }
 
-
 /**************************************************************************
-                        c a s e F o l d
+			c a s e F o l d
 ** Case folds a NULL terminated string in place. All characters
 ** get converted to lower case.
 **************************************************************************/
-char *caseFold(char *cp)
+char *
+caseFold(char *cp)
 {
-    char *oldCp = cp;
+	char *oldCp = cp;
 
-    while (*cp)
-    {
-        if (isupper(*cp))
-            *cp = (char)tolower(*cp);
-        cp++;
-    }
+	while (*cp) {
+		if (isupper(*cp))
+			*cp = (char)tolower(*cp);
+		cp++;
+	}
 
-    return oldCp;
+	return oldCp;
 }
 
-
 /**************************************************************************
-                        s t r i n c m p
+			s t r i n c m p
 ** (jws) simplified the code a bit in hopes of appeasing Purify
 **************************************************************************/
-int strincmp(char *cp1, char *cp2, FICL_UNS count)
+int
+strincmp(char *cp1, char *cp2, FICL_UNS count)
 {
-    int i = 0;
+	int i = 0;
 
-    for (; 0 < count; ++cp1, ++cp2, --count)
-    {
-        i = tolower(*cp1) - tolower(*cp2);
-        if (i != 0)
-            return i;
-        else if (*cp1 == '\0')
-            return 0;
-    }
-    return 0;
+	for (; 0 < count; ++cp1, ++cp2, --count) {
+		i = tolower(*cp1) - tolower(*cp2);
+		if (i != 0)
+			return i;
+		else if (*cp1 == '\0')
+			return 0;
+	}
+	return 0;
 }
 
 /**************************************************************************
-                        s k i p S p a c e
+			s k i p S p a c e
 ** Given a string pointer, returns a pointer to the first non-space
 ** char of the string, or to the NULL terminator if no such char found.
-** If the pointer reaches "end" first, stop there. Pass NULL to 
+** If the pointer reaches "end" first, stop there. Pass NULL to
 ** suppress this behavior.
 **************************************************************************/
-char *skipSpace(char *cp, char *end)
+char *
+skipSpace(char *cp, char *end)
 {
-    assert(cp);
+	assert(cp);
 
-    while ((cp != end) && isspace(*cp))
-        cp++;
+	while ((cp != end) && isspace(*cp))
+		cp++;
 
-    return cp;
+	return cp;
 }
-
-

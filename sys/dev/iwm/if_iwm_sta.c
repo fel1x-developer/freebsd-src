@@ -72,61 +72,57 @@
  *
  *****************************************************************************/
 
-#include <sys/cdefs.h>
-#include "opt_wlan.h"
 #include "opt_iwm.h"
+#include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/endian.h>
 #include <sys/firmware.h>
 #include <sys/kernel.h>
+#include <sys/linker.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
-#include <sys/mutex.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/linker.h>
 
 #include <machine/bus.h>
 #include <machine/endian.h>
 #include <machine/resource.h>
 
-#include <dev/pci/pcivar.h>
+#include <dev/iwm/if_iwm_config.h>
+#include <dev/iwm/if_iwm_constants.h>
+#include <dev/iwm/if_iwm_debug.h>
+#include <dev/iwm/if_iwm_mac_ctxt.h>
+#include <dev/iwm/if_iwm_sta.h>
+#include <dev/iwm/if_iwm_util.h>
+#include <dev/iwm/if_iwmreg.h>
+#include <dev/iwm/if_iwmvar.h>
 #include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include <net/bpf.h>
-
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_arp.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
-
+#include <net/if_var.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_ratectl.h>
+#include <net80211/ieee80211_regdomain.h>
+#include <net80211/ieee80211_var.h>
+#include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
-#include <netinet/if_ether.h>
 #include <netinet/ip.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_regdomain.h>
-#include <net80211/ieee80211_ratectl.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/iwm/if_iwmreg.h>
-#include <dev/iwm/if_iwmvar.h>
-#include <dev/iwm/if_iwm_config.h>
-#include <dev/iwm/if_iwm_debug.h>
-#include <dev/iwm/if_iwm_constants.h>
-#include <dev/iwm/if_iwm_util.h>
-#include <dev/iwm/if_iwm_mac_ctxt.h>
-#include <dev/iwm/if_iwm_sta.h>
 
 /*
  * New version of ADD_STA_sta command added new fields at the end of the
@@ -137,22 +133,21 @@ static inline int
 iwm_add_sta_cmd_size(struct iwm_softc *sc)
 {
 	return sc->cfg->mqrx_supported ? sizeof(struct iwm_add_sta_cmd) :
-	    sizeof(struct iwm_add_sta_cmd_v7);
+					 sizeof(struct iwm_add_sta_cmd_v7);
 }
 
 /* send station add/update command to firmware */
 int
-iwm_sta_send_to_fw(struct iwm_softc *sc, struct iwm_node *in,
-	boolean_t update)
+iwm_sta_send_to_fw(struct iwm_softc *sc, struct iwm_node *in, boolean_t update)
 {
 	struct iwm_vap *ivp = IWM_VAP(in->in_ni.ni_vap);
 	struct iwm_add_sta_cmd add_sta_cmd = {
 		.sta_id = IWM_STATION_ID,
-		.mac_id_n_color =
-		    htole32(IWM_FW_CMD_ID_AND_COLOR(ivp->id, ivp->color)),
+		.mac_id_n_color = htole32(
+		    IWM_FW_CMD_ID_AND_COLOR(ivp->id, ivp->color)),
 		.add_modify = update ? 1 : 0,
-		.station_flags_msk = htole32(IWM_STA_FLG_FAT_EN_MSK |
-					     IWM_STA_FLG_MIMO_EN_MSK),
+		.station_flags_msk = htole32(
+		    IWM_STA_FLG_FAT_EN_MSK | IWM_STA_FLG_MIMO_EN_MSK),
 		.tid_disable_tx = htole16(0xffff),
 	};
 	int ret;
@@ -162,21 +157,20 @@ iwm_sta_send_to_fw(struct iwm_softc *sc, struct iwm_node *in,
 	if (!update) {
 		int ac;
 		for (ac = 0; ac < WME_NUM_AC; ac++) {
-			add_sta_cmd.tfd_queue_msk |=
-			    htole32(1 << iwm_ac_to_tx_fifo[ac]);
+			add_sta_cmd.tfd_queue_msk |= htole32(
+			    1 << iwm_ac_to_tx_fifo[ac]);
 		}
 		IEEE80211_ADDR_COPY(&add_sta_cmd.addr, in->in_ni.ni_bssid);
 	}
 
-	add_sta_cmd.station_flags |=
-		htole32(agg_size << IWM_STA_FLG_MAX_AGG_SIZE_SHIFT);
-	add_sta_cmd.station_flags |=
-		htole32(mpdu_dens << IWM_STA_FLG_AGG_MPDU_DENS_SHIFT);
+	add_sta_cmd.station_flags |= htole32(
+	    agg_size << IWM_STA_FLG_MAX_AGG_SIZE_SHIFT);
+	add_sta_cmd.station_flags |= htole32(
+	    mpdu_dens << IWM_STA_FLG_AGG_MPDU_DENS_SHIFT);
 
 	status = IWM_ADD_STA_SUCCESS;
-	ret = iwm_send_cmd_pdu_status(sc, IWM_ADD_STA,
-					  iwm_add_sta_cmd_size(sc),
-					  &add_sta_cmd, &status);
+	ret = iwm_send_cmd_pdu_status(sc, IWM_ADD_STA, iwm_add_sta_cmd_size(sc),
+	    &add_sta_cmd, &status);
 	if (ret)
 		return ret;
 
@@ -212,17 +206,16 @@ iwm_drain_sta(struct iwm_softc *sc, struct iwm_vap *ivp, boolean_t drain)
 	int ret;
 	uint32_t status;
 
-	cmd.mac_id_n_color =
-	    htole32(IWM_FW_CMD_ID_AND_COLOR(ivp->id, ivp->color));
+	cmd.mac_id_n_color = htole32(
+	    IWM_FW_CMD_ID_AND_COLOR(ivp->id, ivp->color));
 	cmd.sta_id = IWM_STATION_ID;
 	cmd.add_modify = IWM_STA_MODE_MODIFY;
 	cmd.station_flags = drain ? htole32(IWM_STA_FLG_DRAIN_FLOW) : 0;
 	cmd.station_flags_msk = htole32(IWM_STA_FLG_DRAIN_FLOW);
 
 	status = IWM_ADD_STA_SUCCESS;
-	ret = iwm_send_cmd_pdu_status(sc, IWM_ADD_STA,
-					  iwm_add_sta_cmd_size(sc),
-					  &cmd, &status);
+	ret = iwm_send_cmd_pdu_status(sc, IWM_ADD_STA, iwm_add_sta_cmd_size(sc),
+	    &cmd, &status);
 	if (ret)
 		return ret;
 
@@ -254,11 +247,11 @@ iwm_rm_sta_common(struct iwm_softc *sc)
 	};
 	int ret;
 
-	ret = iwm_send_cmd_pdu(sc, IWM_REMOVE_STA, 0,
-				   sizeof(rm_sta_cmd), &rm_sta_cmd);
+	ret = iwm_send_cmd_pdu(sc, IWM_REMOVE_STA, 0, sizeof(rm_sta_cmd),
+	    &rm_sta_cmd);
 	if (ret) {
-		device_printf(sc->sc_dev,
-		    "Failed to remove station. Id=%d\n", IWM_STATION_ID);
+		device_printf(sc->sc_dev, "Failed to remove station. Id=%d\n",
+		    IWM_STATION_ID);
 		return ret;
 	}
 
@@ -266,8 +259,7 @@ iwm_rm_sta_common(struct iwm_softc *sc)
 }
 
 int
-iwm_rm_sta(struct iwm_softc *sc, struct ieee80211vap *vap,
-	boolean_t is_assoc)
+iwm_rm_sta(struct iwm_softc *sc, struct ieee80211vap *vap, boolean_t is_assoc)
 {
 	uint32_t tfd_queue_msk = 0;
 	int ret;
@@ -283,8 +275,7 @@ iwm_rm_sta(struct iwm_softc *sc, struct ieee80211vap *vap,
 	if (ret)
 		return ret;
 #ifdef notyet /* function not yet implemented */
-	ret = iwl_trans_wait_tx_queue_empty(mvm->trans,
-					    mvm_sta->tfd_queue_msk);
+	ret = iwl_trans_wait_tx_queue_empty(mvm->trans, mvm_sta->tfd_queue_msk);
 	if (ret)
 		return ret;
 #endif
@@ -329,9 +320,8 @@ iwm_add_int_sta_common(struct iwm_softc *sc, struct iwm_int_sta *sta,
 	if (addr)
 		IEEE80211_ADDR_COPY(cmd.addr, addr);
 
-	ret = iwm_send_cmd_pdu_status(sc, IWM_ADD_STA,
-					  iwm_add_sta_cmd_size(sc),
-					  &cmd, &status);
+	ret = iwm_send_cmd_pdu_status(sc, IWM_ADD_STA, iwm_add_sta_cmd_size(sc),
+	    &cmd, &status);
 	if (ret)
 		return ret;
 
@@ -363,7 +353,7 @@ iwm_add_aux_sta(struct iwm_softc *sc)
 		return ret;
 
 	ret = iwm_add_int_sta_common(sc, &sc->sc_aux_sta, NULL,
-					 IWM_MAC_INDEX_AUX, 0);
+	    IWM_MAC_INDEX_AUX, 0);
 
 	if (ret) {
 		memset(&sc->sc_aux_sta, 0, sizeof(sc->sc_aux_sta));
@@ -372,7 +362,8 @@ iwm_add_aux_sta(struct iwm_softc *sc)
 	return ret;
 }
 
-void iwm_del_aux_sta(struct iwm_softc *sc)
+void
+iwm_del_aux_sta(struct iwm_softc *sc)
 {
 	memset(&sc->sc_aux_sta, 0, sizeof(sc->sc_aux_sta));
 	sc->sc_aux_sta.sta_id = IWM_STATION_COUNT;

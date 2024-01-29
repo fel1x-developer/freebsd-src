@@ -62,74 +62,50 @@
 
 #if !defined(DISABLE_SATI_UNMAP)
 
-#include <dev/isci/scil/sati_types.h>
 #include <dev/isci/scil/sati_translator_sequence.h>
+#include <dev/isci/scil/sati_types.h>
 
-#define SATI_DSM_MAX_SECTOR_COUNT                     0xFFFF
-#define SATI_DSM_MAX_SECTOR_ADDRESS                   0xFFFFFFFFFFFF
-#define SATI_DSM_MAX_BUFFER_SIZE                      4096
+#define SATI_DSM_MAX_SECTOR_COUNT 0xFFFF
+#define SATI_DSM_MAX_SECTOR_ADDRESS 0xFFFFFFFFFFFF
+#define SATI_DSM_MAX_BUFFER_SIZE 4096
 
 #define SATI_UNMAP_SIZEOF_SCSI_UNMAP_BLOCK_DESCRIPTOR 16
-#define SATI_UNMAP_SIZEOF_SCSI_UNMAP_PARAMETER_LIST   8
+#define SATI_UNMAP_SIZEOF_SCSI_UNMAP_PARAMETER_LIST 8
 
-typedef struct _TRIM_PAIR
-{
-    U64 sector_address:48;
-    U64 sector_count:16;
+typedef struct _TRIM_PAIR {
+	U64 sector_address : 48;
+	U64 sector_count : 16;
 } TRIM_PAIR, *PTRIM_PAIR;
 
-U32 sati_unmap_calculate_dsm_blocks(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   U32                          dsm_descriptor_count
-);
+U32 sati_unmap_calculate_dsm_blocks(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    U32 dsm_descriptor_count);
 
-SATI_STATUS sati_unmap_construct(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io,
-   U32                          sector_count
-);
+SATI_STATUS sati_unmap_construct(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io, U32 sector_count);
 
-SATI_STATUS sati_unmap_load_next_descriptor(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io
-);
+SATI_STATUS
+sati_unmap_load_next_descriptor(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io);
 
 U32 sati_unmap_get_max_buffer_size_in_blocks(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence
-);
+    SATI_TRANSLATOR_SEQUENCE_T *sequence);
 
-SATI_STATUS sati_unmap_initial_processing(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+SATI_STATUS sati_unmap_initial_processing(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io);
 
-SATI_STATUS sati_unmap_process(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+SATI_STATUS sati_unmap_process(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io);
 
-SATI_STATUS sati_unmap_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+SATI_STATUS sati_unmap_translate_command(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io);
 
-SATI_STATUS sati_unmap_translate_response(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+SATI_STATUS sati_unmap_translate_response(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io);
 
-void sati_unmap_terminate(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+void sati_unmap_terminate(SATI_TRANSLATOR_SEQUENCE_T *sequence, void *scsi_io,
+    void *ata_io);
 #else // !defined(DISABLE_SATI_UNMAP)
-#define sati_unmap_terminate(sequence,scsi_io,ata_io)
+#define sati_unmap_terminate(sequence, scsi_io, ata_io)
 #endif // !defined(DISABLE_SATI_UNMAP)
 
 #endif // _SATI_UNMAP_H_

@@ -34,11 +34,11 @@
 
 #include <sys/param.h>
 
+#include <db.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <db.h>
 #include "btree.h"
 
 /*
@@ -74,8 +74,8 @@ __bt_ret(BTREE *t, EPG *e, DBT *key, DBT *rkey, DBT *data, DBT *rdata, int copy)
 		goto dataonly;
 
 	if (bl->flags & P_BIGKEY) {
-		if (__ovfl_get(t, bl->bytes,
-		    &key->size, &rkey->data, &rkey->size))
+		if (__ovfl_get(t, bl->bytes, &key->size, &rkey->data,
+			&rkey->size))
 			return (RET_ERROR);
 		key->data = rkey->data;
 	} else if (copy || F_ISSET(t, B_DB_LOCK)) {
@@ -99,8 +99,8 @@ dataonly:
 		return (RET_SUCCESS);
 
 	if (bl->flags & P_BIGDATA) {
-		if (__ovfl_get(t, bl->bytes + bl->ksize,
-		    &data->size, &rdata->data, &rdata->size))
+		if (__ovfl_get(t, bl->bytes + bl->ksize, &data->size,
+			&rdata->data, &rdata->size))
 			return (RET_ERROR);
 		data->data = rdata->data;
 	} else if (copy || F_ISSET(t, B_DB_LOCK)) {
@@ -176,8 +176,8 @@ __bt_cmp(BTREE *t, const DBT *k1, EPG *e)
 	}
 
 	if (bigkey) {
-		if (__ovfl_get(t, bigkey,
-		    &k2.size, &t->bt_rdata.data, &t->bt_rdata.size))
+		if (__ovfl_get(t, bigkey, &k2.size, &t->bt_rdata.data,
+			&t->bt_rdata.size))
 			return (RET_ERROR);
 		k2.data = t->bt_rdata.data;
 	}

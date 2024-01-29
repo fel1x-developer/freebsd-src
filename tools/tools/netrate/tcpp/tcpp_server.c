@@ -58,18 +58,18 @@
  * read into a small character buffer which we then convert to a length once
  * we have all the data.
  */
-#define	CONNECTION_MAGIC	0x6392af27
+#define CONNECTION_MAGIC 0x6392af27
 struct connection {
-	uint32_t	conn_magic;		/* Just magic. */
-	int		conn_fd;
-	struct tcpp_header	conn_header;	/* Header buffer. */
-	u_int		conn_header_len;	/* Bytes so far. */
-	u_int64_t	conn_data_len;		/* How much to sink. */
-	u_int64_t	conn_data_received;	/* How much so far. */
+	uint32_t conn_magic; /* Just magic. */
+	int conn_fd;
+	struct tcpp_header conn_header; /* Header buffer. */
+	u_int conn_header_len;		/* Bytes so far. */
+	u_int64_t conn_data_len;	/* How much to sink. */
+	u_int64_t conn_data_received;	/* How much so far. */
 };
 
-static pid_t			*pid_list;
-static int			 kq;
+static pid_t *pid_list;
+static int kq;
 
 static struct connection *
 tcpp_server_newconn(int listen_fd)
@@ -121,7 +121,7 @@ tcpp_server_closeconn(struct connection *conn)
 	free(conn);
 }
 
-static u_char buffer[256*1024];	/* Buffer in which to sink data. */
+static u_char buffer[256 * 1024]; /* Buffer in which to sink data. */
 static void
 tcpp_server_handleconn(struct kevent *kev)
 {
@@ -166,8 +166,8 @@ tcpp_server_handleconn(struct kevent *kev)
 			tcpp_server_closeconn(conn);
 			return;
 		}
-		if (len == 0 && conn->conn_data_received <
-		    conn->conn_header.th_len) {
+		if (len == 0 &&
+		    conn->conn_data_received < conn->conn_header.th_len) {
 			warnx("tcpp_server_handleconn: data premature eof");
 			tcpp_server_closeconn(conn);
 			return;
@@ -233,19 +233,19 @@ tcpp_server_worker(int workernum)
 	if (listen_sock < 0)
 		err(-1, "socket");
 	i = 1;
-	if (setsockopt(listen_sock, SOL_SOCKET, SO_NOSIGPIPE, &i, sizeof(i))
-	    < 0)
+	if (setsockopt(listen_sock, SOL_SOCKET, SO_NOSIGPIPE, &i, sizeof(i)) <
+	    0)
 		err(-1, "setsockopt");
 	i = 1;
-	if (setsockopt(listen_sock, SOL_SOCKET, SO_REUSEPORT, &i, sizeof(i))
-	    < 0)
+	if (setsockopt(listen_sock, SOL_SOCKET, SO_REUSEPORT, &i, sizeof(i)) <
+	    0)
 		err(-1, "setsockopt");
 	i = 1;
-	if (setsockopt(listen_sock, IPPROTO_TCP, TCP_NODELAY, &i, sizeof(i))
-	    < 0)
+	if (setsockopt(listen_sock, IPPROTO_TCP, TCP_NODELAY, &i, sizeof(i)) <
+	    0)
 		err(-1, "setsockopt");
 	if (bind(listen_sock, (struct sockaddr *)&localipbase,
-	    sizeof(localipbase)) < 0)
+		sizeof(localipbase)) < 0)
 		err(-1, "bind");
 	if (listen(listen_sock, 16384))
 		err(-1, "listen");
@@ -260,8 +260,8 @@ tcpp_server_worker(int workernum)
 	if (kevent(kq, &kev, 1, NULL, 0, NULL) < 0)
 		err(-1, "kevent");
 
-	while ((numevents = kevent(kq, NULL, 0, kev_array, mflag + 1, NULL))
-	    > 0) {
+	while (
+	    (numevents = kevent(kq, NULL, 0, kev_array, mflag + 1, NULL)) > 0) {
 		for (i = 0; i < numevents; i++) {
 			if (kev_array[i].ident == (u_int)listen_sock)
 				(void)tcpp_server_newconn(listen_sock);
@@ -341,7 +341,8 @@ tcpp_server(void)
 	 */
 	for (i = 0; i < pflag; i++) {
 		if (pid_list[i] != 0) {
-			while (waitpid(pid_list[i], NULL, 0) != pid_list[i]);
+			while (waitpid(pid_list[i], NULL, 0) != pid_list[i])
+				;
 		}
 	}
 }

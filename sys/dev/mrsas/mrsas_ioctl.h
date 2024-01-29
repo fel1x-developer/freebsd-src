@@ -32,22 +32,23 @@
  * those of the authors and should not be interpreted as representing
  * official policies,either expressed or implied, of the FreeBSD Project.
  *
- * Send feedback to: <megaraidfbsd@avagotech.com> Mail to: AVAGO TECHNOLOGIES, 1621
- * Barber Lane, Milpitas, CA 95035 ATTN: MegaRaid FreeBSD
+ * Send feedback to: <megaraidfbsd@avagotech.com> Mail to: AVAGO TECHNOLOGIES,
+ * 1621 Barber Lane, Milpitas, CA 95035 ATTN: MegaRaid FreeBSD
  *
  */
 
 #include <sys/cdefs.h>
 #ifndef MRSAS_IOCTL_H
-#define	MRSAS_IOCTL_H
+#define MRSAS_IOCTL_H
 
 #ifndef _IOWR
 #include <sys/ioccom.h>
-#endif					/* !_IOWR */
+#endif /* !_IOWR */
 
 #ifdef COMPAT_FREEBSD32
 /* Compilation error FIX */
 #include <sys/mount.h>
+
 #include <compat/freebsd32/freebsd32.h>
 #endif
 
@@ -60,28 +61,30 @@
  * into a somewhat unique, 32-bit value.
  */
 
-#define	MRSAS_IOC_GET_PCI_INFO				_IOR('M', 7, MRSAS_DRV_PCI_INFORMATION)
-#define	MRSAS_IOC_FIRMWARE_PASS_THROUGH64	_IOWR('M', 1, struct mrsas_iocpacket)
+#define MRSAS_IOC_GET_PCI_INFO _IOR('M', 7, MRSAS_DRV_PCI_INFORMATION)
+#define MRSAS_IOC_FIRMWARE_PASS_THROUGH64 _IOWR('M', 1, struct mrsas_iocpacket)
 #ifdef COMPAT_FREEBSD32
-#define	MRSAS_IOC_FIRMWARE_PASS_THROUGH32	_IOWR('M', 1, struct mrsas_iocpacket32)
+#define MRSAS_IOC_FIRMWARE_PASS_THROUGH32 \
+	_IOWR('M', 1, struct mrsas_iocpacket32)
 #endif
 
-#define	MRSAS_IOC_SCAN_BUS		_IO('M',  10)
+#define MRSAS_IOC_SCAN_BUS _IO('M', 10)
 
-#define	MRSAS_LINUX_CMD32		0xc1144d01
+#define MRSAS_LINUX_CMD32 0xc1144d01
 
-#define	MAX_IOCTL_SGE			16
-#define	MFI_FRAME_DIR_READ		0x0010
-#define	MFI_CMD_LD_SCSI_IO		0x03
+#define MAX_IOCTL_SGE 16
+#define MFI_FRAME_DIR_READ 0x0010
+#define MFI_CMD_LD_SCSI_IO 0x03
 
-#define	INQUIRY_CMD				0x12
-#define	INQUIRY_CMDLEN			6
-#define	INQUIRY_REPLY_LEN		96
-#define	INQUIRY_VENDOR			8	/* Offset in reply data to
-						 * vendor name */
-#define	SCSI_SENSE_BUFFERSIZE	96
+#define INQUIRY_CMD 0x12
+#define INQUIRY_CMDLEN 6
+#define INQUIRY_REPLY_LEN 96
+#define INQUIRY_VENDOR               \
+	8 /* Offset in reply data to \
+	   * vendor name */
+#define SCSI_SENSE_BUFFERSIZE 96
 
-#define	MEGAMFI_RAW_FRAME_SIZE	128
+#define MEGAMFI_RAW_FRAME_SIZE 128
 
 #pragma pack(1)
 struct mrsas_iocpacket {
@@ -94,7 +97,7 @@ struct mrsas_iocpacket {
 	union {
 		u_int8_t raw[MEGAMFI_RAW_FRAME_SIZE];
 		struct mrsas_header hdr;
-	}	frame;
+	} frame;
 	struct iovec sgl[MAX_IOCTL_SGE];
 };
 
@@ -112,12 +115,12 @@ struct mrsas_iocpacket32 {
 	union {
 		u_int8_t raw[MEGAMFI_RAW_FRAME_SIZE];
 		struct mrsas_header hdr;
-	}	frame;
+	} frame;
 	struct iovec32 sgl[MAX_IOCTL_SGE];
 };
 
 #pragma pack()
-#endif					/* COMPAT_FREEBSD32 */
+#endif /* COMPAT_FREEBSD32 */
 
 struct mfi_ioc_passthru {
 	struct mrsas_dcmd_frame ioc_frame;
@@ -126,6 +129,6 @@ struct mfi_ioc_passthru {
 	uint8_t *buf;
 } __packed;
 
-#define MFIIO_PASSTHRU  _IOWR('C', 102, struct mfi_ioc_passthru)
+#define MFIIO_PASSTHRU _IOWR('C', 102, struct mfi_ioc_passthru)
 
-#endif					/* MRSAS_IOCTL_H */
+#endif /* MRSAS_IOCTL_H */

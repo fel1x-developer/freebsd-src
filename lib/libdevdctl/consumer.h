@@ -33,12 +33,11 @@
 /**
  * \file devdctl_consumer.h
  */
-#ifndef	_DEVDCTL_CONSUMER_H_
-#define	_DEVDCTL_CONSUMER_H_
+#ifndef _DEVDCTL_CONSUMER_H_
+#define _DEVDCTL_CONSUMER_H_
 
 /*============================ Namespace Control =============================*/
-namespace DevdCtl
-{
+namespace DevdCtl {
 
 /*=========================== Forward Declarations ===========================*/
 class Event;
@@ -48,12 +47,10 @@ class Event;
 
 /**
  */
-class Consumer
-{
-public:
+class Consumer {
+    public:
 	Consumer(Event::BuildMethod *defBuilder = NULL,
-		 EventFactory::Record *regEntries = NULL,
-		 size_t numEntries = 0);
+	    EventFactory::Record *regEntries = NULL, size_t numEntries = 0);
 	virtual ~Consumer();
 
 	bool Connected() const;
@@ -64,17 +61,17 @@ public:
 	 */
 	int GetPollFd();
 
-	/**                                                          
-         * Queue an event for deferred processing or replay.
-         */ 
+	/**
+	 * Queue an event for deferred processing or replay.
+	 */
 	bool SaveEvent(const Event &event);
 
-	/**                                  
-	 * Reprocess any events saved via the SaveEvent() facility.   
+	/**
+	 * Reprocess any events saved via the SaveEvent() facility.
 	 *
 	 * \param discardUnconsumed  If true, events that are not consumed
 	 *                           during replay are discarded.
-	 */                                                              
+	 */
 	void ReplayUnconsumedEvents(bool discardUnconsumed);
 
 	/** Return an event, if one is available.  */
@@ -110,7 +107,7 @@ public:
 
 	EventFactory GetFactory();
 
-protected:
+    protected:
 	/**
 	 * \brief Reads the most recent record
 	 *
@@ -127,25 +124,25 @@ protected:
 		MAX_EVENT_SIZE = 8192,
 	};
 
-	static const char  s_devdSockPath[];
+	static const char s_devdSockPath[];
 
 	/**
 	 * File descriptor representing the unix domain socket
 	 * connection with devd.
 	 */
-	int                m_devdSockFD;
+	int m_devdSockFD;
 
-	EventFactory	   m_eventFactory;
+	EventFactory m_eventFactory;
 
 	/** Queued events for replay. */
-	EventList	   m_unconsumedEvents;
+	EventList m_unconsumedEvents;
 
-	/**                                                             
+	/**
 	 * Flag controlling whether events can be queued.  This boolean
 	 * is set during event replay to ensure that previosuly deferred
 	 * events are not requeued and thus retained forever.
 	 */
-	bool		   m_replayingEvents;
+	bool m_replayingEvents;
 };
 
 //- Consumer Const Public Inline Methods ---------------------------------------
@@ -169,4 +166,4 @@ Consumer::GetFactory()
 }
 
 } // namespace DevdCtl
-#endif	/* _DEVDCTL_CONSUMER_H_ */
+#endif /* _DEVDCTL_CONSUMER_H_ */

@@ -31,17 +31,19 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/endian.h>
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/disk.h>
+#include <sys/endian.h>
 #include <sys/ioctl.h>
-#include <sys/types.h>
 
+#include <cam/scsi/scsi_enc.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
 #include <glob.h>
+#include <libxo/xo.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -49,20 +51,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <libxo/xo.h>
-
-#include <cam/scsi/scsi_enc.h>
 
 #include "eltsub.h"
 
-#define SESUTIL_XO_VERSION	"1"
+#define SESUTIL_XO_VERSION "1"
 
-#define TEMPERATURE_OFFSET	20
+#define TEMPERATURE_OFFSET 20
 
-#define PRINT_STYLE_DASHED	0
-#define PRINT_STYLE_DASHED_2	1
-#define PRINT_STYLE_CSV 	2
-#define PRINT_STYLE_CSV_2	3
+#define PRINT_STYLE_DASHED 0
+#define PRINT_STYLE_DASHED_2 1
+#define PRINT_STYLE_CSV 2
+#define PRINT_STYLE_CSV_2 3
 
 static int encstatus(int argc, char **argv);
 static int fault(int argc, char **argv);
@@ -70,7 +69,7 @@ static int locate(int argc, char **argv);
 static int objmap(int argc, char **argv);
 static int sesled(int argc, char **argv, bool fault);
 static int show(int argc, char **argv);
-static void sesutil_print(int *style, const char *fmt, ...) __printflike(2,3);
+static void sesutil_print(int *style, const char *fmt, ...) __printflike(2, 3);
 
 static struct command {
 	const char *name;
@@ -78,20 +77,15 @@ static struct command {
 	const char *desc;
 	int (*exec)(int argc, char **argv);
 } cmds[] = {
-	{ "fault",
-	    "(<disk>|<sesid>|all) (on|off)",
-	    "Change the state of the fault LED associated with a disk",
-	    fault },
-	{ "locate",
-	    "(<disk>|<sesid>|all) (on|off)",
+	{ "fault", "(<disk>|<sesid>|all) (on|off)",
+	    "Change the state of the fault LED associated with a disk", fault },
+	{ "locate", "(<disk>|<sesid>|all) (on|off)",
 	    "Change the state of the locate LED associated with a disk",
 	    locate },
-	{ "map", "",
-	    "Print a map of the devices managed by the enclosure", objmap } ,
-	{ "show", "",
-	    "Print a human-friendly summary of the enclosure", show } ,
-	{ "status", "", "Print the status of the enclosure",
-	    encstatus },
+	{ "map", "", "Print a map of the devices managed by the enclosure",
+	    objmap },
+	{ "show", "", "Print a human-friendly summary of the enclosure", show },
+	{ "status", "", "Print the status of the enclosure", encstatus },
 };
 
 static const int nbcmds = nitems(cmds);
@@ -110,9 +104,11 @@ usage(FILE *out, const char *subcmd)
 	for (i = 0; i < nbcmds; i++) {
 		if (subcmd != NULL) {
 			if (strcmp(subcmd, cmds[i].name) == 0) {
-				fprintf(out, "Usage: %s %s [-u /dev/ses<N>] "
-				    "%s\n\t%s\n", getprogname(), subcmd,
-				    cmds[i].param, cmds[i].desc);
+				fprintf(out,
+				    "Usage: %s %s [-u /dev/ses<N>] "
+				    "%s\n\t%s\n",
+				    getprogname(), subcmd, cmds[i].param,
+				    cmds[i].desc);
 				break;
 			}
 			continue;
@@ -132,7 +128,7 @@ do_led(int fd, unsigned int idx, elm_type_t type, bool onoff, bool setfault)
 	struct ses_ctrl_dev_slot *slot;
 
 	o.elm_idx = idx;
-	if (ioctl(fd, ENCIOC_GETELMSTAT, (caddr_t) &o) < 0) {
+	if (ioctl(fd, ENCIOC_GETELMSTAT, (caddr_t)&o) < 0) {
 		close(fd);
 		xo_err(EXIT_FAILURE, "ENCIOC_GETELMSTAT");
 	}
@@ -140,7 +136,7 @@ do_led(int fd, unsigned int idx, elm_type_t type, bool onoff, bool setfault)
 	switch (type) {
 	case ELMTYP_DEVICE:
 	case ELMTYP_ARRAY_DEV:
-		slot = (struct ses_ctrl_dev_slot *) &o.cstat[0];
+		slot = (struct ses_ctrl_dev_slot *)&o.cstat[0];
 		ses_ctrl_common_set_select(&slot->common, 1);
 		if (setfault)
 			ses_ctrl_dev_slot_set_rqst_fault(slot, state);
@@ -150,7 +146,7 @@ do_led(int fd, unsigned int idx, elm_type_t type, bool onoff, bool setfault)
 	default:
 		return;
 	}
-	if (ioctl(fd, ENCIOC_SETELMSTAT, (caddr_t) &o) < 0) {
+	if (ioctl(fd, ENCIOC_SETELMSTAT, (caddr_t)&o) < 0) {
 		close(fd);
 		xo_err(EXIT_FAILURE, "ENCIOC_SETELMSTAT");
 	}
@@ -198,7 +194,8 @@ sesled(int argc, char **argv, bool setfault)
 	if (*endptr == '\0') {
 		endptr = strrchr(uflag, '*');
 		if (endptr != NULL && *endptr == '*') {
-			xo_warnx("Must specifying a SES device (-u) to use a SES "
+			xo_warnx(
+			    "Must specifying a SES device (-u) to use a SES "
 			    "id# to identify a disk");
 			usage(stderr, (setfault ? "fault" : "locate"));
 		}
@@ -238,13 +235,15 @@ sesled(int argc, char **argv, bool setfault)
 			 * accessing all devices
 			 */
 			if (errno == EACCES && g.gl_pathc > 1) {
-				xo_err(EXIT_FAILURE, "unable to access SES device");
+				xo_err(EXIT_FAILURE,
+				    "unable to access SES device");
 			}
-			xo_warn("unable to access SES device: %s", g.gl_pathv[i]);
+			xo_warn("unable to access SES device: %s",
+			    g.gl_pathv[i]);
 			continue;
 		}
 
-		if (ioctl(fd, ENCIOC_GETNELM, (caddr_t) &nobj) < 0) {
+		if (ioctl(fd, ENCIOC_GETNELM, (caddr_t)&nobj) < 0) {
 			close(fd);
 			xo_err(EXIT_FAILURE, "ENCIOC_GETNELM");
 		}
@@ -255,7 +254,7 @@ sesled(int argc, char **argv, bool setfault)
 			xo_err(EXIT_FAILURE, "calloc()");
 		}
 
-		if (ioctl(fd, ENCIOC_GETELMMAP, (caddr_t) objp) < 0) {
+		if (ioctl(fd, ENCIOC_GETELMMAP, (caddr_t)objp) < 0) {
 			free(objp);
 			close(fd);
 			xo_err(EXIT_FAILURE, "ENCIOC_GETELMMAP");
@@ -266,9 +265,10 @@ sesled(int argc, char **argv, bool setfault)
 				free(objp);
 				close(fd);
 				xo_errx(EXIT_FAILURE,
-				     "Requested SES ID does not exist");
+				    "Requested SES ID does not exist");
 			}
-			do_led(fd, sesid, objp[sesid].elm_type, onoff, setfault);
+			do_led(fd, sesid, objp[sesid].elm_type, onoff,
+			    setfault);
 			ndisks++;
 			free(objp);
 			close(fd);
@@ -285,7 +285,7 @@ sesled(int argc, char **argv, bool setfault)
 				if (ioctl(fd, ENCIOC_GETELMSTAT, &es) < 0) {
 					close(fd);
 					xo_err(EXIT_FAILURE,
-						"ENCIOC_GETELMSTAT");
+					    "ENCIOC_GETELMSTAT");
 				}
 				if ((es.cstat[0] & 0xf) == SES_OBJSTAT_NOACCESS)
 					continue;
@@ -298,14 +298,14 @@ sesled(int argc, char **argv, bool setfault)
 			objdn.elm_idx = objp[j].elm_idx;
 			objdn.elm_names_size = devnames_size;
 			objdn.elm_devnames = devnames;
-			if (ioctl(fd, ENCIOC_GETELMDEVNAMES,
-			    (caddr_t) &objdn) <0) {
+			if (ioctl(fd, ENCIOC_GETELMDEVNAMES, (caddr_t)&objdn) <
+			    0) {
 				continue;
 			}
 			if (objdn.elm_names_len > 0) {
 				if (disk_match(objdn.elm_devnames, disk, len)) {
-					do_led(fd, objdn.elm_idx, objp[j].elm_type,
-					    onoff, setfault);
+					do_led(fd, objdn.elm_idx,
+					    objp[j].elm_type, onoff, setfault);
 					ndisks++;
 					break;
 				}
@@ -316,8 +316,8 @@ sesled(int argc, char **argv, bool setfault)
 	}
 	globfree(&g);
 	if (ndisks == 0 && all == false) {
-		xo_errx(EXIT_FAILURE, "Count not find the SES id of device '%s'",
-		    disk);
+		xo_errx(EXIT_FAILURE,
+		    "Count not find the SES id of device '%s'", disk);
 	}
 
 	return (EXIT_SUCCESS);
@@ -367,7 +367,8 @@ print_extra_status(int eletype, u_char *cstat, int style)
 {
 
 	if (cstat[0] & 0x40) {
-		sesutil_print(&style, "{e:predicted_failure/true} Predicted Failure");
+		sesutil_print(&style,
+		    "{e:predicted_failure/true} Predicted Failure");
 	}
 	if (cstat[0] & 0x20) {
 		sesutil_print(&style, "{e:disabled/true} Disabled");
@@ -391,10 +392,12 @@ print_extra_status(int eletype, u_char *cstat, int style)
 		break;
 	case ELMTYP_THERM:
 		if (cstat[2]) {
-			sesutil_print(&style, "Temperature: {:temperature/%d}{Uw:C}",
+			sesutil_print(&style,
+			    "Temperature: {:temperature/%d}{Uw:C}",
 			    cstat[2] - TEMPERATURE_OFFSET);
 		} else {
-			sesutil_print(&style, "Temperature: -{q:temperature/reserved}");
+			sesutil_print(&style,
+			    "Temperature: -{q:temperature/reserved}");
 		}
 		break;
 	case ELMTYP_VOM:
@@ -456,13 +459,15 @@ objmap(int argc, char **argv __unused)
 			 * accessing all devices
 			 */
 			if (errno == EACCES && g.gl_pathc > 1) {
-				xo_err(EXIT_FAILURE, "unable to access SES device");
+				xo_err(EXIT_FAILURE,
+				    "unable to access SES device");
 			}
-			xo_warn("unable to access SES device: %s", g.gl_pathv[i]);
+			xo_warn("unable to access SES device: %s",
+			    g.gl_pathv[i]);
 			continue;
 		}
 
-		if (ioctl(fd, ENCIOC_GETNELM, (caddr_t) &nobj) < 0) {
+		if (ioctl(fd, ENCIOC_GETNELM, (caddr_t)&nobj) < 0) {
 			close(fd);
 			xo_err(EXIT_FAILURE, "ENCIOC_GETNELM");
 		}
@@ -473,7 +478,7 @@ objmap(int argc, char **argv __unused)
 			xo_err(EXIT_FAILURE, "calloc()");
 		}
 
-		if (ioctl(fd, ENCIOC_GETELMMAP, (caddr_t) e_ptr) < 0) {
+		if (ioctl(fd, ENCIOC_GETELMMAP, (caddr_t)e_ptr) < 0) {
 			close(fd);
 			xo_err(EXIT_FAILURE, "ENCIOC_GETELMMAP");
 		}
@@ -482,11 +487,11 @@ objmap(int argc, char **argv __unused)
 		xo_emit("{t:enc/%s}:\n", g.gl_pathv[i] + 5);
 		stri.bufsiz = sizeof(str);
 		stri.buf = &str[0];
-		if (ioctl(fd, ENCIOC_GETENCNAME, (caddr_t) &stri) == 0)
+		if (ioctl(fd, ENCIOC_GETENCNAME, (caddr_t)&stri) == 0)
 			xo_emit("\tEnclosure Name: {t:name/%s}\n", stri.buf);
 		stri.bufsiz = sizeof(str);
 		stri.buf = &str[0];
-		if (ioctl(fd, ENCIOC_GETENCID, (caddr_t) &stri) == 0)
+		if (ioctl(fd, ENCIOC_GETENCID, (caddr_t)&stri) == 0)
 			xo_emit("\tEnclosure ID: {t:id/%s}\n", stri.buf);
 
 		xo_open_list("elements");
@@ -494,16 +499,16 @@ objmap(int argc, char **argv __unused)
 			/* Get the status of the element */
 			memset(&e_status, 0, sizeof(e_status));
 			e_status.elm_idx = e_ptr[j].elm_idx;
-			if (ioctl(fd, ENCIOC_GETELMSTAT,
-			    (caddr_t) &e_status) < 0) {
+			if (ioctl(fd, ENCIOC_GETELMSTAT, (caddr_t)&e_status) <
+			    0) {
 				close(fd);
 				xo_err(EXIT_FAILURE, "ENCIOC_GETELMSTAT");
 			}
 			/* Get the description of the element */
 			e_desc.elm_idx = e_ptr[j].elm_idx;
 			e_desc.elm_desc_len = UINT16_MAX;
-			if (ioctl(fd, ENCIOC_GETELMDESC,
-			    (caddr_t) &e_desc) < 0) {
+			if (ioctl(fd, ENCIOC_GETELMDESC, (caddr_t)&e_desc) <
+			    0) {
 				close(fd);
 				xo_err(EXIT_FAILURE, "ENCIOC_GETELMDESC");
 			}
@@ -511,14 +516,15 @@ objmap(int argc, char **argv __unused)
 			/* Get the device name(s) of the element */
 			e_devname.elm_idx = e_ptr[j].elm_idx;
 			if (ioctl(fd, ENCIOC_GETELMDEVNAMES,
-			    (caddr_t) &e_devname) <0) {
+				(caddr_t)&e_devname) < 0) {
 				/* Continue even if we can't look up devnames */
 				e_devname.elm_devnames[0] = '\0';
 			}
 			xo_open_instance("elements");
-			xo_emit("\tElement {:id/%u}, Type: {:type/%s}\n", e_ptr[j].elm_idx,
-			    geteltnm(e_ptr[j].elm_type));
-			xo_emit("\t\tStatus: {:status/%s} ({q:status_code/0x%02x 0x%02x 0x%02x 0x%02x})\n",
+			xo_emit("\tElement {:id/%u}, Type: {:type/%s}\n",
+			    e_ptr[j].elm_idx, geteltnm(e_ptr[j].elm_type));
+			xo_emit(
+			    "\t\tStatus: {:status/%s} ({q:status_code/0x%02x 0x%02x 0x%02x 0x%02x})\n",
 			    scode2ascii(e_status.cstat[0]), e_status.cstat[0],
 			    e_status.cstat[1], e_status.cstat[2],
 			    e_status.cstat[3]);
@@ -527,10 +533,12 @@ objmap(int argc, char **argv __unused)
 				    e_desc.elm_desc_str);
 			}
 			if (e_devname.elm_names_len > 0) {
-				xo_emit("\t\tDevice Names: {:device_names/%s}\n",
+				xo_emit(
+				    "\t\tDevice Names: {:device_names/%s}\n",
 				    e_devname.elm_devnames);
 			}
-			print_extra_status(e_ptr[j].elm_type, e_status.cstat, PRINT_STYLE_DASHED);
+			print_extra_status(e_ptr[j].elm_type, e_status.cstat,
+			    PRINT_STYLE_DASHED);
 			xo_close_instance("elements");
 		}
 		xo_close_list("elements");
@@ -622,7 +630,8 @@ fetch_device_details(char *devnames, char **model, char **serial, off_t *size)
 }
 
 static void
-show_device(int fd, int elm_idx, encioc_elm_status_t e_status, encioc_elm_desc_t e_desc)
+show_device(int fd, int elm_idx, encioc_elm_status_t e_status,
+    encioc_elm_desc_t e_desc)
 {
 	encioc_elm_devnames_t e_devname;
 	char *model = NULL, *serial = NULL;
@@ -638,28 +647,32 @@ show_device(int fd, int elm_idx, encioc_elm_status_t e_status, encioc_elm_desc_t
 		xo_err(EXIT_FAILURE, "calloc()");
 	}
 
-	if (ioctl(fd, ENCIOC_GETELMDEVNAMES,
-	    (caddr_t) &e_devname) < 0) {
+	if (ioctl(fd, ENCIOC_GETELMDEVNAMES, (caddr_t)&e_devname) < 0) {
 		/* We don't care if this fails */
 		e_devname.elm_devnames[0] = '\0';
 		size = -1;
 	} else {
 		skip_pass_devices(e_devname.elm_devnames, 128);
-		fetch_device_details(e_devname.elm_devnames, &model, &serial, &size);
+		fetch_device_details(e_devname.elm_devnames, &model, &serial,
+		    &size);
 	}
 	xo_open_instance("elements");
 	xo_emit("{e:type/device_slot}");
-	xo_emit("{d:description/%-15s} ", e_desc.elm_desc_len > 0 ? e_desc.elm_desc_str : "-");
-	xo_emit("{e:description/%-15s}", e_desc.elm_desc_len > 0 ? e_desc.elm_desc_str : "");
-	xo_emit("{d:device_names/%-7s} ", e_devname.elm_names_len > 0 ? e_devname.elm_devnames : "-");
-	xo_emit("{e:device_names/%s}", e_devname.elm_names_len > 0 ? e_devname.elm_devnames : "");
+	xo_emit("{d:description/%-15s} ",
+	    e_desc.elm_desc_len > 0 ? e_desc.elm_desc_str : "-");
+	xo_emit("{e:description/%-15s}",
+	    e_desc.elm_desc_len > 0 ? e_desc.elm_desc_str : "");
+	xo_emit("{d:device_names/%-7s} ",
+	    e_devname.elm_names_len > 0 ? e_devname.elm_devnames : "-");
+	xo_emit("{e:device_names/%s}",
+	    e_devname.elm_names_len > 0 ? e_devname.elm_devnames : "");
 	xo_emit("{d:model/%-25s} ", model ? model : "-");
 	xo_emit("{e:model/%s}", model ? model : "");
 	xo_emit("{d:serial/%-20s} ", serial != NULL ? serial : "-");
 	xo_emit("{e:serial/%s}", serial != NULL ? serial : "");
 	if ((e_status.cstat[0] & 0xf) == SES_OBJSTAT_OK && size >= 0) {
-		xo_emit("{h,hn-1000:size/%ld}{e:status/%s}",
-		    size, scode2ascii(e_status.cstat[0]));
+		xo_emit("{h,hn-1000:size/%ld}{e:status/%s}", size,
+		    scode2ascii(e_status.cstat[0]));
 	} else {
 		xo_emit("{:status/%s}", scode2ascii(e_status.cstat[0]));
 	}
@@ -708,8 +721,8 @@ show_vom(encioc_elm_status_t e_status, encioc_elm_desc_t e_desc)
 
 	xo_open_instance("elements");
 	xo_emit("{e:type/voltage_sensor}");
-	xo_emit("{:description/%s}: {:voltage/%.2f}{Uw:V}",
-	    e_desc.elm_desc_str, be16dec(e_status.cstat + 2) / 100.0);
+	xo_emit("{:description/%s}: {:voltage/%.2f}{Uw:V}", e_desc.elm_desc_str,
+	    be16dec(e_status.cstat + 2) / 100.0);
 	xo_close_instance("elements");
 }
 
@@ -758,13 +771,15 @@ show(int argc, char **argv __unused)
 			 * accessing all devices
 			 */
 			if (errno == EACCES && g.gl_pathc > 1) {
-				xo_err(EXIT_FAILURE, "unable to access SES device");
+				xo_err(EXIT_FAILURE,
+				    "unable to access SES device");
 			}
-			xo_warn("unable to access SES device: %s", g.gl_pathv[i]);
+			xo_warn("unable to access SES device: %s",
+			    g.gl_pathv[i]);
 			continue;
 		}
 
-		if (ioctl(fd, ENCIOC_GETNELM, (caddr_t) &nobj) < 0) {
+		if (ioctl(fd, ENCIOC_GETNELM, (caddr_t)&nobj) < 0) {
 			close(fd);
 			xo_err(EXIT_FAILURE, "ENCIOC_GETNELM");
 		}
@@ -775,7 +790,7 @@ show(int argc, char **argv __unused)
 			xo_err(EXIT_FAILURE, "calloc()");
 		}
 
-		if (ioctl(fd, ENCIOC_GETELMMAP, (caddr_t) e_ptr) < 0) {
+		if (ioctl(fd, ENCIOC_GETELMMAP, (caddr_t)e_ptr) < 0) {
 			close(fd);
 			xo_err(EXIT_FAILURE, "ENCIOC_GETELMMAP");
 		}
@@ -790,11 +805,11 @@ show(int argc, char **argv __unused)
 		xo_emit("{t:enc/%s}: ", g.gl_pathv[i] + 5);
 		stri.bufsiz = sizeof(str);
 		stri.buf = &str[0];
-		if (ioctl(fd, ENCIOC_GETENCNAME, (caddr_t) &stri) == 0)
+		if (ioctl(fd, ENCIOC_GETENCNAME, (caddr_t)&stri) == 0)
 			xo_emit("<{t:name/%s}>; ", stri.buf);
 		stri.bufsiz = sizeof(str);
 		stri.buf = &str[0];
-		if (ioctl(fd, ENCIOC_GETENCID, (caddr_t) &stri) == 0)
+		if (ioctl(fd, ENCIOC_GETENCID, (caddr_t)&stri) == 0)
 			xo_emit("ID: {t:id/%s}", stri.buf);
 		xo_emit("\n");
 
@@ -804,8 +819,8 @@ show(int argc, char **argv __unused)
 			/* Get the status of the element */
 			memset(&e_status, 0, sizeof(e_status));
 			e_status.elm_idx = e_ptr[j].elm_idx;
-			if (ioctl(fd, ENCIOC_GETELMSTAT,
-			    (caddr_t) &e_status) < 0) {
+			if (ioctl(fd, ENCIOC_GETELMSTAT, (caddr_t)&e_status) <
+			    0) {
 				close(fd);
 				xo_err(EXIT_FAILURE, "ENCIOC_GETELMSTAT");
 			}
@@ -821,8 +836,8 @@ show(int argc, char **argv __unused)
 			/* Get the description of the element */
 			e_desc.elm_idx = e_ptr[j].elm_idx;
 			e_desc.elm_desc_len = UINT16_MAX;
-			if (ioctl(fd, ENCIOC_GETELMDESC,
-			    (caddr_t) &e_desc) < 0) {
+			if (ioctl(fd, ENCIOC_GETELMDESC, (caddr_t)&e_desc) <
+			    0) {
 				close(fd);
 				xo_err(EXIT_FAILURE, "ENCIOC_GETELMDESC");
 			}
@@ -832,9 +847,11 @@ show(int argc, char **argv __unused)
 			case ELMTYP_DEVICE:
 			case ELMTYP_ARRAY_DEV:
 				if (e_ptr[j].elm_type != prev_type)
-					xo_emit("Desc            Dev     Model                     Ident                Size/Status\n");
+					xo_emit(
+					    "Desc            Dev     Model                     Ident                Size/Status\n");
 
-				show_device(fd, e_ptr[j].elm_idx, e_status, e_desc);
+				show_device(fd, e_ptr[j].elm_idx, e_status,
+				    e_desc);
 				prev_type = e_ptr[j].elm_type;
 				break;
 			case ELMTYP_THERM:
@@ -860,8 +877,8 @@ show(int argc, char **argv __unused)
 				break;
 			}
 		}
-		if (prev_type != (elm_type_t)-1 &&
-		    prev_type != ELMTYP_DEVICE && prev_type != ELMTYP_ARRAY_DEV)
+		if (prev_type != (elm_type_t)-1 && prev_type != ELMTYP_DEVICE &&
+		    prev_type != ELMTYP_ARRAY_DEV)
 			xo_emit("\n");
 		xo_close_list("elements");
 		free(e_ptr);
@@ -910,13 +927,15 @@ encstatus(int argc, char **argv __unused)
 			 * accessing all devices
 			 */
 			if (errno == EACCES && g.gl_pathc > 1) {
-				xo_err(EXIT_FAILURE, "unable to access SES device");
+				xo_err(EXIT_FAILURE,
+				    "unable to access SES device");
 			}
-			xo_warn("unable to access SES device: %s", g.gl_pathv[i]);
+			xo_warn("unable to access SES device: %s",
+			    g.gl_pathv[i]);
 			continue;
 		}
 
-		if (ioctl(fd, ENCIOC_GETENCSTAT, (caddr_t) &estat) < 0) {
+		if (ioctl(fd, ENCIOC_GETENCSTAT, (caddr_t)&estat) < 0) {
 			xo_err(EXIT_FAILURE, "ENCIOC_GETENCSTAT");
 			close(fd);
 		}

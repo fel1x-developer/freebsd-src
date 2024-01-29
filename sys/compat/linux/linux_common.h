@@ -28,24 +28,23 @@
 #ifndef _LINUX_COMMON_H_
 #define _LINUX_COMMON_H_
 
-int	ifname_bsd_to_linux_ifp(struct ifnet *, char *, size_t);
-int	ifname_bsd_to_linux_idx(u_int, char *, size_t);
-int	ifname_bsd_to_linux_name(const char *, char *, size_t);
+int ifname_bsd_to_linux_ifp(struct ifnet *, char *, size_t);
+int ifname_bsd_to_linux_idx(u_int, char *, size_t);
+int ifname_bsd_to_linux_name(const char *, char *, size_t);
 struct ifnet *ifname_linux_to_ifp(struct thread *, const char *);
-int	ifname_linux_to_bsd(struct thread *, const char *, char *);
+int ifname_linux_to_bsd(struct thread *, const char *, char *);
 
-unsigned short	linux_ifflags(struct ifnet *);
-int		linux_ifhwaddr(struct ifnet *ifp, struct l_sockaddr *lsa);
+unsigned short linux_ifflags(struct ifnet *);
+int linux_ifhwaddr(struct ifnet *ifp, struct l_sockaddr *lsa);
 
-unsigned short	bsd_to_linux_ifflags(int);
-int		linux_to_bsd_domain(int domain);
-int		bsd_to_linux_domain(int domain);
-int		bsd_to_linux_sockaddr(const struct sockaddr *sa,
-		    struct l_sockaddr **lsa, socklen_t len);
-int		linux_to_bsd_sockaddr(const struct l_sockaddr *lsa,
-		    struct sockaddr **sap, socklen_t *len);
-void		linux_to_bsd_poll_events(struct thread *td, int fd,
-		    short lev, short *bev);
-void		bsd_to_linux_poll_events(short bev, short *lev);
+unsigned short bsd_to_linux_ifflags(int);
+int linux_to_bsd_domain(int domain);
+int bsd_to_linux_domain(int domain);
+int bsd_to_linux_sockaddr(const struct sockaddr *sa, struct l_sockaddr **lsa,
+    socklen_t len);
+int linux_to_bsd_sockaddr(const struct l_sockaddr *lsa, struct sockaddr **sap,
+    socklen_t *len);
+void linux_to_bsd_poll_events(struct thread *td, int fd, short lev, short *bev);
+void bsd_to_linux_poll_events(short bev, short *lev);
 
 #endif /* _LINUX_COMMON_H_ */

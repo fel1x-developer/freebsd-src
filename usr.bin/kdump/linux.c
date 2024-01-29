@@ -26,8 +26,9 @@
  */
 
 #include <sys/param.h>
-#include <sys/uio.h>
 #include <sys/ktrace.h>
+#include <sys/uio.h>
+
 #include <err.h>
 #include <errno.h>
 #include <stddef.h>
@@ -62,8 +63,8 @@ print_linux_signal(int signo)
 }
 
 void
-ktrsyscall_linux(struct ktr_syscall *ktr, register_t **resip,
-    int *resnarg, char *resc)
+ktrsyscall_linux(struct ktr_syscall *ktr, register_t **resip, int *resnarg,
+    char *resc)
 {
 	int narg = ktr->ktr_narg;
 	register_t *ip, *first;
@@ -285,8 +286,8 @@ ktrsyscall_linux(struct ktr_syscall *ktr, register_t **resip,
 
 #if defined(__amd64__)
 void
-ktrsyscall_linux32(struct ktr_syscall *ktr, register_t **resip,
-    int *resnarg, char *resc)
+ktrsyscall_linux32(struct ktr_syscall *ktr, register_t **resip, int *resnarg,
+    char *resc)
 {
 	int narg = ktr->ktr_narg;
 	register_t *ip, *first;

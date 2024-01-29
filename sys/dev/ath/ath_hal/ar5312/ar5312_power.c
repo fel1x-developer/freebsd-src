@@ -22,10 +22,9 @@
 
 #include "ah.h"
 #include "ah_internal.h"
-
+#include "ar5212/ar5212desc.h"
 #include "ar5312/ar5312.h"
 #include "ar5312/ar5312reg.h"
-#include "ar5212/ar5212desc.h"
 
 /*
  * Notify Power Mgt is enabled in self-generated frames.
@@ -39,7 +38,7 @@
 static HAL_BOOL
 ar5312SetPowerModeAwake(struct ath_hal *ah, int setChip)
 {
-        /* No need for this at the moment for APs */
+	/* No need for this at the moment for APs */
 	return AH_TRUE;
 }
 
@@ -50,7 +49,7 @@ ar5312SetPowerModeAwake(struct ath_hal *ah, int setChip)
 static void
 ar5312SetPowerModeSleep(struct ath_hal *ah, int setChip)
 {
-        /* No need for this at the moment for APs */
+	/* No need for this at the moment for APs */
 }
 
 /*
@@ -61,7 +60,7 @@ ar5312SetPowerModeSleep(struct ath_hal *ah, int setChip)
 static void
 ar5312SetPowerModeNetworkSleep(struct ath_hal *ah, int setChip)
 {
-        /* No need for this at the moment for APs */
+	/* No need for this at the moment for APs */
 }
 
 /*
@@ -72,18 +71,13 @@ HAL_BOOL
 ar5312SetPowerMode(struct ath_hal *ah, HAL_POWER_MODE mode, int setChip)
 {
 #ifdef AH_DEBUG
-	static const char* modes[] = {
-		"AWAKE",
-		"FULL-SLEEP",
-		"NETWORK SLEEP",
-		"UNDEFINED"
-	};
+	static const char *modes[] = { "AWAKE", "FULL-SLEEP", "NETWORK SLEEP",
+		"UNDEFINED" };
 #endif
 	int status = AH_TRUE;
 
 	HALDEBUG(ah, HAL_DEBUG_POWER, "%s: %s -> %s (%s)\n", __func__,
-		modes[ah->ah_powerMode], modes[mode],
-		setChip ? "set chip " : "");
+	    modes[ah->ah_powerMode], modes[mode], setChip ? "set chip " : "");
 	switch (mode) {
 	case HAL_PM_AWAKE:
 		status = ar5312SetPowerModeAwake(ah, setChip);
@@ -100,7 +94,7 @@ ar5312SetPowerMode(struct ath_hal *ah, HAL_POWER_MODE mode, int setChip)
 		return AH_FALSE;
 	}
 	ah->ah_powerMode = mode;
-	return status; 
+	return status;
 }
 
 /*
@@ -119,6 +113,6 @@ ar5312GetPowerMode(struct ath_hal *ah)
 HAL_BOOL
 ar5312GetPowerStatus(struct ath_hal *ah)
 {
-        return 0;		/* Currently, 5312 is never in sleep mode. */
+	return 0; /* Currently, 5312 is never in sleep mode. */
 }
 #endif /* AH_SUPPORT_AR5312 */

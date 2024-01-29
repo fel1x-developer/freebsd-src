@@ -27,7 +27,7 @@
  */
 
 #ifndef _ATOPCASE_VAR_H_
-#define	_ATOPCASE_VAR_H_
+#define _ATOPCASE_VAR_H_
 
 #include "opt_hid.h"
 
@@ -35,61 +35,60 @@
 #include <sys/bus.h>
 #include <sys/taskqueue.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
 #include <dev/acpica/acpivar.h>
-
 #include <dev/backlight/backlight.h>
-
 #include <dev/hid/hid.h>
 
+#include <contrib/dev/acpica/include/acpi.h>
+
 struct atopcase_child {
-	device_t		hidbus;
+	device_t hidbus;
 
-	struct hid_device_info	hw;
+	struct hid_device_info hw;
 
-	uint8_t			device;
-	uint8_t			name[80];
+	uint8_t device;
+	uint8_t name[80];
 
-	uint8_t			rdesc[ATOPCASE_MSG_SIZE];
-	size_t			rdesc_len;
+	uint8_t rdesc[ATOPCASE_MSG_SIZE];
+	size_t rdesc_len;
 
-	hid_intr_t		*intr_handler;
-	void			*intr_ctx;
+	hid_intr_t *intr_handler;
+	void *intr_ctx;
 
-	bool			open;
+	bool open;
 };
 
 struct atopcase_softc {
-	device_t		sc_dev;
+	device_t sc_dev;
 
-	ACPI_HANDLE		sc_handle;
-	int			sc_gpe_bit;
+	ACPI_HANDLE sc_handle;
+	int sc_gpe_bit;
 
-	int			sc_irq_rid;
-	struct resource		*sc_irq_res;
-	void			*sc_irq_ih;
-	volatile unsigned int	sc_intr_cnt;
+	int sc_irq_rid;
+	struct resource *sc_irq_res;
+	void *sc_irq_ih;
+	volatile unsigned int sc_intr_cnt;
 
-	struct timeout_task	sc_task;
-	struct taskqueue	*sc_tq;
+	struct timeout_task sc_task;
+	struct taskqueue *sc_tq;
 
-	bool			sc_booted;
-	bool			sc_wait_for_status;
+	bool sc_booted;
+	bool sc_wait_for_status;
 
-	uint8_t			sc_hid[HID_PNP_ID_SIZE];
-	uint8_t			sc_vendor[80];
-	uint8_t			sc_product[80];
-	uint8_t			sc_serial[80];
-	uint16_t		sc_vid;
-	uint16_t		sc_pid;
-	uint16_t		sc_ver;
+	uint8_t sc_hid[HID_PNP_ID_SIZE];
+	uint8_t sc_vendor[80];
+	uint8_t sc_product[80];
+	uint8_t sc_serial[80];
+	uint16_t sc_vid;
+	uint16_t sc_pid;
+	uint16_t sc_ver;
 
 	/*
 	 * Writes are complex and async (i.e. 2 responses arrive via interrupt)
 	 * and cannot be interleaved (no new writes until responses arrive).
 	 * they are serialized with sc_write_sx lock.
 	 */
-	struct sx		sc_write_sx;
+	struct sx sc_write_sx;
 	/*
 	 * SPI transfers must be separated by a small pause. As they can be
 	 * initiated by both interrupts and users, do ATOPCASE_SPI_PAUSE()
@@ -97,19 +96,19 @@ struct atopcase_softc {
 	 * depending on interupt source (GPE or PIC). Still use sc_write_sx
 	 * lock while polling.
 	 */
-	struct sx		sc_sx;
-	struct mtx		sc_mtx;
+	struct sx sc_sx;
+	struct mtx sc_mtx;
 
-	struct atopcase_child	sc_kb;
-	struct atopcase_child	sc_tp;
+	struct atopcase_child sc_kb;
+	struct atopcase_child sc_tp;
 
-	struct cdev		*sc_backlight;
-	uint32_t		sc_backlight_level;
+	struct cdev *sc_backlight;
+	uint32_t sc_backlight_level;
 
-	uint16_t		sc_msg_len;
-	uint8_t			sc_msg[ATOPCASE_MSG_SIZE];
-	struct atopcase_packet	sc_buf;
-	struct atopcase_packet	sc_junk;
+	uint16_t sc_msg_len;
+	uint8_t sc_msg[ATOPCASE_MSG_SIZE];
+	struct atopcase_packet sc_buf;
+	struct atopcase_packet sc_junk;
 };
 
 #ifdef HID_DEBUG

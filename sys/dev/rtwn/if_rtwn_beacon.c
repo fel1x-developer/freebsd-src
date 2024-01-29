@@ -17,46 +17,42 @@
  */
 
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/rtwn/if_rtwnvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <dev/rtwn/if_rtwn_beacon.h>
 #include <dev/rtwn/if_rtwn_debug.h>
 #include <dev/rtwn/if_rtwn_tx.h>
-
+#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/rtl8192c/r92c_reg.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 static void
 rtwn_reset_beacon_valid(struct rtwn_softc *sc, int id)
 {
 
-	KASSERT (id == 0 || id == 1, ("wrong port id %d\n", id));
+	KASSERT(id == 0 || id == 1, ("wrong port id %d\n", id));
 
 	/* XXX cannot be cleared on RTL8188CE */
-	rtwn_setbits_1_shift(sc, sc->bcn_status_reg[id],
-	    R92C_TDECTRL_BCN_VALID, 0, 2);
+	rtwn_setbits_1_shift(sc, sc->bcn_status_reg[id], R92C_TDECTRL_BCN_VALID,
+	    0, 2);
 
 	RTWN_DPRINTF(sc, RTWN_DEBUG_BEACON,
-	    "%s: 'beacon valid' bit for vap %d was unset\n",
-	    __func__, id);
+	    "%s: 'beacon valid' bit for vap %d was unset\n", __func__, id);
 }
 
 static int
@@ -72,8 +68,8 @@ rtwn_check_beacon_valid(struct rtwn_softc *sc, int id)
 	for (ntries = 0; ntries < 10; ntries++) {
 		if (rtwn_read_4(sc, reg) & R92C_TDECTRL_BCN_VALID) {
 			RTWN_DPRINTF(sc, RTWN_DEBUG_BEACON,
-			    "%s: beacon for vap %d was recognized\n",
-			    __func__, id);
+			    "%s: beacon for vap %d was recognized\n", __func__,
+			    id);
 			break;
 		}
 		rtwn_delay(sc, sc->bcn_check_interval);
@@ -90,7 +86,7 @@ rtwn_switch_bcnq(struct rtwn_softc *sc, int id)
 
 	if (sc->cur_bcnq_id != id) {
 		/* Wait until any previous transmit completes. */
-		(void) rtwn_check_beacon_valid(sc, sc->cur_bcnq_id);
+		(void)rtwn_check_beacon_valid(sc, sc->cur_bcnq_id);
 
 		/* Change current port. */
 		rtwn_beacon_select(sc, id);
@@ -144,8 +140,8 @@ rtwn_tx_beacon(struct rtwn_softc *sc, struct rtwn_vap *uvp)
 
 	RTWN_ASSERT_LOCKED(sc);
 
-	RTWN_DPRINTF(sc, RTWN_DEBUG_BEACON,
-	    "%s: sending beacon for vap %d\n", __func__, uvp->id);
+	RTWN_DPRINTF(sc, RTWN_DEBUG_BEACON, "%s: sending beacon for vap %d\n",
+	    __func__, uvp->id);
 
 	error = rtwn_tx_start(sc, NULL, uvp->bcn_mbuf, &uvp->bcn_desc.txd[0],
 	    IEEE80211_FC0_TYPE_MGT, uvp->id);
@@ -187,12 +183,11 @@ rtwn_update_beacon(struct ieee80211vap *vap, int item)
 			 */
 			/* XXX check TBTT? */
 			taskqueue_enqueue_timeout(taskqueue_thread,
-			    &uvp->tx_beacon_csa,
-			    msecs_to_ticks(ni->ni_intval));
+			    &uvp->tx_beacon_csa, msecs_to_ticks(ni->ni_intval));
 		}
 		break;
 	case IEEE80211_BEACON_TIM:
-		mcast = 1;	/* XXX */
+		mcast = 1; /* XXX */
 		break;
 	default:
 		break;
@@ -222,8 +217,7 @@ rtwn_tx_beacon_csa(void *arg, int npending __unused)
 	struct rtwn_softc *sc = ic->ic_softc;
 	struct rtwn_vap *rvp = RTWN_VAP(vap);
 
-	KASSERT (rvp->id == 0 || rvp->id == 1,
-	    ("wrong port id %d\n", rvp->id));
+	KASSERT(rvp->id == 0 || rvp->id == 1, ("wrong port id %d\n", rvp->id));
 
 	IEEE80211_LOCK(ic);
 	if (ic->ic_flags & IEEE80211_F_CSAPENDING) {
@@ -235,7 +229,7 @@ rtwn_tx_beacon_csa(void *arg, int npending __unused)
 	}
 	IEEE80211_UNLOCK(ic);
 
-	(void) rvp;
+	(void)rvp;
 }
 
 int
@@ -256,8 +250,8 @@ rtwn_tx_beacon_check(struct rtwn_softc *sc, struct rtwn_vap *uvp)
 	}
 	if (ntries == 5) {
 		device_printf(sc->sc_dev,
-		    "%s: cannot push beacon into chip, error %d!\n",
-		    __func__, error);
+		    "%s: cannot push beacon into chip, error %d!\n", __func__,
+		    error);
 		return (error);
 	}
 

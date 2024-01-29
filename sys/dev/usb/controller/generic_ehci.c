@@ -32,31 +32,29 @@
  * Generic EHCI driver based on the Allwinner A10 EHCI driver
  */
 
-#include <sys/cdefs.h>
 #include "opt_bus.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
 #include <sys/condvar.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-
-#include <dev/usb/usb_core.h>
-#include <dev/usb/usb_busdma.h>
-#include <dev/usb/usb_process.h>
-#include <dev/usb/usb_util.h>
-
-#include <dev/usb/usb_controller.h>
-#include <dev/usb/usb_bus.h>
 #include <dev/usb/controller/ehci.h>
 #include <dev/usb/controller/ehcireg.h>
+#include <dev/usb/usb.h>
+#include <dev/usb/usb_bus.h>
+#include <dev/usb/usb_busdma.h>
+#include <dev/usb/usb_controller.h>
+#include <dev/usb/usb_core.h>
+#include <dev/usb/usb_process.h>
+#include <dev/usb/usb_util.h>
+#include <dev/usb/usbdi.h>
 
 #include "generic_ehci.h"
 
@@ -74,8 +72,8 @@ generic_ehci_attach(device_t self)
 	sc->sc_bus.dma_bits = 32;
 
 	/* get all DMA memory */
-	if (usb_bus_mem_alloc_all(&sc->sc_bus,
-	    USB_GET_DMA_TAG(self), &ehci_iterate_hw_softc)) {
+	if (usb_bus_mem_alloc_all(&sc->sc_bus, USB_GET_DMA_TAG(self),
+		&ehci_iterate_hw_softc)) {
 		return (ENOMEM);
 	}
 
@@ -161,8 +159,7 @@ generic_ehci_detach(device_t self)
 		sc->sc_irq_res = NULL;
 	}
 	if (sc->sc_io_res) {
-		bus_release_resource(self, SYS_RES_MEMORY, 0,
-		    sc->sc_io_res);
+		bus_release_resource(self, SYS_RES_MEMORY, 0, sc->sc_io_res);
 		sc->sc_io_res = NULL;
 	}
 	usb_bus_mem_free_all(&sc->sc_bus, &ehci_iterate_hw_softc);
@@ -172,11 +169,11 @@ generic_ehci_detach(device_t self)
 
 static device_method_t ehci_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_attach,	generic_ehci_attach),
-	DEVMETHOD(device_detach,	generic_ehci_detach),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	bus_generic_resume),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
+	DEVMETHOD(device_attach, generic_ehci_attach),
+	DEVMETHOD(device_detach, generic_ehci_detach),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
 
 	DEVMETHOD_END
 };

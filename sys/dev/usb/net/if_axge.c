@@ -45,24 +45,23 @@
 #include <sys/sysctl.h>
 #include <sys/unistd.h>
 
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_media.h>
-
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
-
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
+
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_var.h>
+
 #include "usbdevs.h"
 
-#define	USB_DEBUG_VAR 	axge_debug
+#define USB_DEBUG_VAR axge_debug
+#include <dev/usb/net/if_axgereg.h>
+#include <dev/usb/net/usb_ethernet.h>
 #include <dev/usb/usb_debug.h>
 #include <dev/usb/usb_process.h>
-
-#include <dev/usb/net/usb_ethernet.h>
-#include <dev/usb/net/if_axgereg.h>
 
 #include "miibus_if.h"
 
@@ -71,8 +70,10 @@
  */
 
 static const STRUCT_USB_HOST_ID axge_devs[] = {
-#define	AXGE_DEV(v,p,i,...)	\
-	{ USB_VPI(USB_VENDOR_##v, USB_PRODUCT_##v##_##p, i), __VA_ARGS__ }
+#define AXGE_DEV(v, p, i, ...)                                                 \
+	{                                                                      \
+		USB_VPI(USB_VENDOR_##v, USB_PRODUCT_##v##_##p, i), __VA_ARGS__ \
+	}
 	AXGE_DEV(ASIX, AX88178A, AXGE_FLAG_178A),
 	AXGE_DEV(ASIX, AX88179, AXGE_FLAG_179, USB_DEV_BCD_LTEQ(0x0100)),
 	AXGE_DEV(ASIX, AX88179, AXGE_FLAG_179A, USB_DEV_BCD_GTEQ(0x0200)),
@@ -84,17 +85,14 @@ static const STRUCT_USB_HOST_ID axge_devs[] = {
 };
 
 static const struct {
-	uint8_t	ctrl;
+	uint8_t ctrl;
 	uint8_t timer_l;
-	uint8_t	timer_h;
-	uint8_t	size;
-	uint8_t	ifg;
-} __packed axge_bulk_size[] = {
-	{ 7, 0x4f, 0x00, 0x12, 0xff },
-	{ 7, 0x20, 0x03, 0x16, 0xff },
-	{ 7, 0xae, 0x07, 0x18, 0xff },
-	{ 7, 0xcc, 0x4c, 0x18, 0x08 }
-};
+	uint8_t timer_h;
+	uint8_t size;
+	uint8_t ifg;
+} __packed axge_bulk_size[] = { { 7, 0x4f, 0x00, 0x12, 0xff },
+	{ 7, 0x20, 0x03, 0x16, 0xff }, { 7, 0xae, 0x07, 0x18, 0xff },
+	{ 7, 0xcc, 0x4c, 0x18, 0x08 } };
 
 /* prototypes */
 
@@ -116,30 +114,29 @@ static uether_fn_t axge_start;
 static uether_fn_t axge_tick;
 static uether_fn_t axge_rxfilter;
 
-static int	axge_read_mem(struct axge_softc *, uint8_t, uint16_t,
-		    uint16_t, void *, int);
-static void	axge_write_mem(struct axge_softc *, uint8_t, uint16_t,
-		    uint16_t, void *, int);
-static uint8_t	axge_read_cmd_1(struct axge_softc *, uint8_t, uint16_t);
-static uint16_t	axge_read_cmd_2(struct axge_softc *, uint8_t, uint16_t,
-		    uint16_t);
-static void	axge_write_cmd_1(struct axge_softc *, uint8_t, uint16_t,
-		    uint8_t);
-static void	axge_write_cmd_2(struct axge_softc *, uint8_t, uint16_t,
-		    uint16_t, uint16_t);
-static void	axge_chip_init(struct axge_softc *);
-static void	axge_reset(struct axge_softc *);
+static int axge_read_mem(struct axge_softc *, uint8_t, uint16_t, uint16_t,
+    void *, int);
+static void axge_write_mem(struct axge_softc *, uint8_t, uint16_t, uint16_t,
+    void *, int);
+static uint8_t axge_read_cmd_1(struct axge_softc *, uint8_t, uint16_t);
+static uint16_t axge_read_cmd_2(struct axge_softc *, uint8_t, uint16_t,
+    uint16_t);
+static void axge_write_cmd_1(struct axge_softc *, uint8_t, uint16_t, uint8_t);
+static void axge_write_cmd_2(struct axge_softc *, uint8_t, uint16_t, uint16_t,
+    uint16_t);
+static void axge_chip_init(struct axge_softc *);
+static void axge_reset(struct axge_softc *);
 
-static int	axge_attach_post_sub(struct usb_ether *);
-static int	axge_ifmedia_upd(if_t);
-static void	axge_ifmedia_sts(if_t, struct ifmediareq *);
-static int	axge_ioctl(if_t, u_long, caddr_t);
-static void	axge_rx_frame(struct usb_ether *, struct usb_page_cache *, int);
-static void	axge_rxeof(struct usb_ether *, struct usb_page_cache *,
-		    unsigned, unsigned, uint32_t);
-static void	axge_csum_cfg(struct usb_ether *);
+static int axge_attach_post_sub(struct usb_ether *);
+static int axge_ifmedia_upd(if_t);
+static void axge_ifmedia_sts(if_t, struct ifmediareq *);
+static int axge_ioctl(if_t, u_long, caddr_t);
+static void axge_rx_frame(struct usb_ether *, struct usb_page_cache *, int);
+static void axge_rxeof(struct usb_ether *, struct usb_page_cache *, unsigned,
+    unsigned, uint32_t);
+static void axge_csum_cfg(struct usb_ether *);
 
-#define	AXGE_CSUM_FEATURES	(CSUM_IP | CSUM_TCP | CSUM_UDP)
+#define AXGE_CSUM_FEATURES (CSUM_IP | CSUM_TCP | CSUM_UDP)
 
 #ifdef USB_DEBUG
 static int axge_debug = 0;
@@ -174,14 +171,14 @@ static const struct usb_config axge_config[AXGE_N_TRANSFER] = {
 
 static device_method_t axge_methods[] = {
 	/* Device interface. */
-	DEVMETHOD(device_probe,		axge_probe),
-	DEVMETHOD(device_attach,	axge_attach),
-	DEVMETHOD(device_detach,	axge_detach),
+	DEVMETHOD(device_probe, axge_probe),
+	DEVMETHOD(device_attach, axge_attach),
+	DEVMETHOD(device_detach, axge_detach),
 
 	/* MII interface. */
-	DEVMETHOD(miibus_readreg,	axge_miibus_readreg),
-	DEVMETHOD(miibus_writereg,	axge_miibus_writereg),
-	DEVMETHOD(miibus_statchg,	axge_miibus_statchg),
+	DEVMETHOD(miibus_readreg, axge_miibus_readreg),
+	DEVMETHOD(miibus_writereg, axge_miibus_writereg),
+	DEVMETHOD(miibus_statchg, axge_miibus_statchg),
 
 	DEVMETHOD_END
 };
@@ -215,8 +212,8 @@ static const struct usb_ether_methods axge_ue_methods = {
 };
 
 static int
-axge_read_mem(struct axge_softc *sc, uint8_t cmd, uint16_t index,
-    uint16_t val, void *buf, int len)
+axge_read_mem(struct axge_softc *sc, uint8_t cmd, uint16_t index, uint16_t val,
+    void *buf, int len)
 {
 	struct usb_device_request req;
 
@@ -232,8 +229,8 @@ axge_read_mem(struct axge_softc *sc, uint8_t cmd, uint16_t index,
 }
 
 static void
-axge_write_mem(struct axge_softc *sc, uint8_t cmd, uint16_t index,
-    uint16_t val, void *buf, int len)
+axge_write_mem(struct axge_softc *sc, uint8_t cmd, uint16_t index, uint16_t val,
+    void *buf, int len)
 {
 	struct usb_device_request req;
 
@@ -373,7 +370,7 @@ axge_miibus_statchg(device_t dev)
 		if ((IFM_OPTIONS(mii->mii_media_active) & IFM_ETH_RXPAUSE) != 0)
 			val |= MSR_RFC;
 	}
-	val |=  MSR_RE;
+	val |= MSR_RE;
 	switch (IFM_SUBTYPE(mii->mii_media_active)) {
 	case IFM_1000_T:
 		val |= MSR_GM | MSR_EN_125MHZ;
@@ -480,14 +477,15 @@ axge_attach_post_sub(struct usb_ether *ue)
 	if_setsendqlen(ifp, ifqmaxlen);
 	if_setsendqready(ifp);
 
-	if_setcapabilitiesbit(ifp, IFCAP_VLAN_MTU | IFCAP_TXCSUM | IFCAP_RXCSUM, 0);
+	if_setcapabilitiesbit(ifp, IFCAP_VLAN_MTU | IFCAP_TXCSUM | IFCAP_RXCSUM,
+	    0);
 	if_sethwassist(ifp, AXGE_CSUM_FEATURES);
 	if_setcapenable(ifp, if_getcapabilities(ifp));
 
 	bus_topo_lock();
-	error = mii_attach(ue->ue_dev, &ue->ue_miibus, ifp,
-	    uether_ifmedia_upd, ue->ue_methods->ue_mii_sts,
-	    BMSR_DEFCAPMASK, AXGE_PHY_ADDR, MII_OFFSET_ANY, MIIF_DOPAUSE);
+	error = mii_attach(ue->ue_dev, &ue->ue_miibus, ifp, uether_ifmedia_upd,
+	    ue->ue_methods->ue_mii_sts, BMSR_DEFCAPMASK, AXGE_PHY_ADDR,
+	    MII_OFFSET_ANY, MIIF_DOPAUSE);
 	bus_topo_unlock();
 
 	return (error);
@@ -508,8 +506,8 @@ axge_ifmedia_upd(if_t ifp)
 	mii = GET_MII(sc);
 	AXGE_LOCK_ASSERT(sc, MA_OWNED);
 
-	LIST_FOREACH(miisc, &mii->mii_phys, mii_list)
-	    PHY_RESET(miisc);
+	LIST_FOREACH (miisc, &mii->mii_phys, mii_list)
+		PHY_RESET(miisc);
 	error = mii_mediachg(mii);
 
 	return (error);
@@ -575,8 +573,8 @@ axge_attach(device_t dev)
 	sc->sc_flags = USB_GET_DRIVER_INFO(uaa);
 
 	iface_index = AXGE_IFACE_IDX;
-	error = usbd_transfer_setup(uaa->device, &iface_index,
-	    sc->sc_xfer, axge_config, AXGE_N_TRANSFER, sc, &sc->sc_mtx);
+	error = usbd_transfer_setup(uaa->device, &iface_index, sc->sc_xfer,
+	    axge_config, AXGE_N_TRANSFER, sc, &sc->sc_mtx);
 	if (error) {
 		device_printf(dev, "allocating USB transfers failed\n");
 		mtx_destroy(&sc->sc_mtx);
@@ -594,11 +592,11 @@ axge_attach(device_t dev)
 		device_printf(dev, "could not attach interface\n");
 		goto detach;
 	}
-	return (0);			/* success */
+	return (0); /* success */
 
 detach:
 	axge_detach(dev);
-	return (ENXIO);			/* failure */
+	return (ENXIO); /* failure */
 }
 
 static int
@@ -656,7 +654,7 @@ axge_bulk_read_callback(struct usb_xfer *xfer, usb_error_t error)
 
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		uether_rxflush(ue);
@@ -689,7 +687,7 @@ axge_bulk_write_callback(struct usb_xfer *xfer, usb_error_t error)
 		if_setdrvflagbits(ifp, 0, IFF_DRV_OACTIVE);
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		if ((sc->sc_flags & AXGE_FLAG_LINK) == 0 ||
 		    (if_getdrvflags(ifp) & IFF_DRV_OACTIVE) != 0) {
 			/*
@@ -699,8 +697,9 @@ tr_setup:
 			return;
 		}
 
-		for (nframes = 0; nframes < AXGE_N_FRAMES &&
-		    !if_sendq_empty(ifp); nframes++) {
+		for (nframes = 0;
+		     nframes < AXGE_N_FRAMES && !if_sendq_empty(ifp);
+		     nframes++) {
 			m = if_dequeue(ifp);
 			if (m == NULL)
 				break;
@@ -879,8 +878,8 @@ axge_init(struct usb_ether *ue)
 	(void)axge_read_cmd_1(sc, AXGE_ACCESS_MAC, AXGE_MMSR);
 
 	/* Configure default medium type. */
-	axge_write_cmd_2(sc, AXGE_ACCESS_MAC, 2, AXGE_MSR, MSR_GM | MSR_FD |
-	    MSR_RFC | MSR_TFC | MSR_RE);
+	axge_write_cmd_2(sc, AXGE_ACCESS_MAC, 2, AXGE_MSR,
+	    MSR_GM | MSR_FD | MSR_RFC | MSR_TFC | MSR_RE);
 
 	usbd_xfer_set_stall(sc->sc_xfer[AXGE_BULK_DT_WR]);
 
@@ -1067,7 +1066,8 @@ axge_rxeof(struct usb_ether *ue, struct usb_page_cache *pc, unsigned offset,
 			    CSUM_IP_VALID;
 		if ((status & AXGE_RX_L4_CSUM_ERR) == 0 &&
 		    ((status & AXGE_RX_L4_TYPE_MASK) == AXGE_RX_L4_TYPE_UDP ||
-		    (status & AXGE_RX_L4_TYPE_MASK) == AXGE_RX_L4_TYPE_TCP)) {
+			(status & AXGE_RX_L4_TYPE_MASK) ==
+			    AXGE_RX_L4_TYPE_TCP)) {
 			m->m_pkthdr.csum_flags |= CSUM_DATA_VALID |
 			    CSUM_PSEUDO_HDR;
 			m->m_pkthdr.csum_data = 0xffff;

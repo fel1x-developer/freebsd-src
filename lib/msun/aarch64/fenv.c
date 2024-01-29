@@ -25,7 +25,7 @@
  * SUCH DAMAGE.
  */
 
-#define	__fenv_static
+#define __fenv_static
 #include "fenv.h"
 
 /*

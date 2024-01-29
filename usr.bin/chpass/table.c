@@ -30,27 +30,29 @@
  */
 
 #include <sys/types.h>
+
 #include <stddef.h>
+
 #include "chpass.h"
 
 ENTRY list[] = {
-	{ "login",		p_login,  1,   5, ": ", NULL },
-	{ "password",		p_passwd, 1,   8, ": ", NULL },
-	{ "uid",		p_uid,    1,   3, ": ", NULL },
-	{ "gid",		p_gid,    1,   3, ": ", NULL },
-	{ "class",		p_class,  1,   5, ": ", NULL },
-	{ "change",		p_change, 1,   6, NULL, NULL },
-	{ "expire",		p_expire, 1,   6, NULL, NULL },
-#ifdef RESTRICT_FULLNAME_CHANGE		/* do not allow fullname changes */
-	{ "full name",		p_gecos,  1,   9, ":,", NULL },
+	{ "login", p_login, 1, 5, ": ", NULL },
+	{ "password", p_passwd, 1, 8, ": ", NULL },
+	{ "uid", p_uid, 1, 3, ": ", NULL },
+	{ "gid", p_gid, 1, 3, ": ", NULL },
+	{ "class", p_class, 1, 5, ": ", NULL },
+	{ "change", p_change, 1, 6, NULL, NULL },
+	{ "expire", p_expire, 1, 6, NULL, NULL },
+#ifdef RESTRICT_FULLNAME_CHANGE /* do not allow fullname changes */
+	{ "full name", p_gecos, 1, 9, ":,", NULL },
 #else
-	{ "full name",		p_gecos,  0,   9, ":,", NULL },
+	{ "full name", p_gecos, 0, 9, ":,", NULL },
 #endif
-	{ "office phone",	p_gecos,  0,  12, ":,", NULL },
-	{ "home phone",		p_gecos,  0,  10, ":,", NULL },
-	{ "office location",	p_gecos,  0,  15, ":,", NULL },
-	{ "other information",	p_gecos,  0,  11, ": ", NULL },
-	{ "home directory",	p_hdir,   1,  14, ": ", NULL },
-	{ "shell",		p_shell,  0,   5, ": ", NULL },
+	{ "office phone", p_gecos, 0, 12, ":,", NULL },
+	{ "home phone", p_gecos, 0, 10, ":,", NULL },
+	{ "office location", p_gecos, 0, 15, ":,", NULL },
+	{ "other information", p_gecos, 0, 11, ": ", NULL },
+	{ "home directory", p_hdir, 1, 14, ": ", NULL },
+	{ "shell", p_shell, 0, 5, ": ", NULL },
 	{ NULL, NULL, 0, 0, NULL, NULL },
 };

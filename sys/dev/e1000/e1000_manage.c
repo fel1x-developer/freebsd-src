@@ -43,7 +43,8 @@
  *  Calculates the checksum for some buffer on a specified length.  The
  *  checksum calculated is returned.
  **/
-u8 e1000_calculate_checksum(u8 *buffer, u32 length)
+u8
+e1000_calculate_checksum(u8 *buffer, u32 length)
 {
 	u32 i;
 	u8 sum = 0;
@@ -56,7 +57,7 @@ u8 e1000_calculate_checksum(u8 *buffer, u32 length)
 	for (i = 0; i < length; i++)
 		sum += buffer[i];
 
-	return (u8) (0 - sum);
+	return (u8)(0 - sum);
 }
 
 /**
@@ -69,7 +70,8 @@ u8 e1000_calculate_checksum(u8 *buffer, u32 length)
  *  and also checks whether the previous command is completed.  It busy waits
  *  in case of previous command is not completed.
  **/
-s32 e1000_mng_enable_host_if_generic(struct e1000_hw *hw)
+s32
+e1000_mng_enable_host_if_generic(struct e1000_hw *hw)
 {
 	u32 hicr;
 	u8 i;
@@ -110,15 +112,15 @@ s32 e1000_mng_enable_host_if_generic(struct e1000_hw *hw)
  *  Reads the firmware semaphore register and returns true (>0) if
  *  manageability is enabled, else false (0).
  **/
-bool e1000_check_mng_mode_generic(struct e1000_hw *hw)
+bool
+e1000_check_mng_mode_generic(struct e1000_hw *hw)
 {
 	u32 fwsm = E1000_READ_REG(hw, E1000_FWSM);
 
 	DEBUGFUNC("e1000_check_mng_mode_generic");
 
-
 	return (fwsm & E1000_FWSM_MODE_MASK) ==
-		(E1000_MNG_IAMT_MODE << E1000_FWSM_MODE_SHIFT);
+	    (E1000_MNG_IAMT_MODE << E1000_FWSM_MODE_SHIFT);
 }
 
 /**
@@ -128,7 +130,8 @@ bool e1000_check_mng_mode_generic(struct e1000_hw *hw)
  *  Enables packet filtering on transmit packets if manageability is enabled
  *  and host interface is enabled.
  **/
-bool e1000_enable_tx_pkt_filtering_generic(struct e1000_hw *hw)
+bool
+e1000_enable_tx_pkt_filtering_generic(struct e1000_hw *hw)
 {
 	struct e1000_host_mng_dhcp_cookie *hdr = &hw->mng_cookie;
 	u32 *buffer = (u32 *)&hw->mng_cookie;
@@ -156,15 +159,15 @@ bool e1000_enable_tx_pkt_filtering_generic(struct e1000_hw *hw)
 	}
 
 	/* Read in the header.  Length and offset are in dwords. */
-	len    = E1000_MNG_DHCP_COOKIE_LENGTH >> 2;
+	len = E1000_MNG_DHCP_COOKIE_LENGTH >> 2;
 	offset = E1000_MNG_DHCP_COOKIE_OFFSET >> 2;
 	for (i = 0; i < len; i++)
 		*(buffer + i) = E1000_READ_REG_ARRAY_DWORD(hw, E1000_HOST_IF,
-							   offset + i);
+		    offset + i);
 	hdr_csum = hdr->checksum;
 	hdr->checksum = 0;
 	csum = e1000_calculate_checksum((u8 *)hdr,
-					E1000_MNG_DHCP_COOKIE_LENGTH);
+	    E1000_MNG_DHCP_COOKIE_LENGTH);
 	/* If either the checksums or signature don't match, then
 	 * the cookie area isn't considered valid, in which case we
 	 * take the safe route of assuming Tx filtering is enabled.
@@ -188,8 +191,9 @@ bool e1000_enable_tx_pkt_filtering_generic(struct e1000_hw *hw)
  *
  *  Writes the command header after does the checksum calculation.
  **/
-s32 e1000_mng_write_cmd_header_generic(struct e1000_hw *hw,
-				      struct e1000_host_mng_command_header *hdr)
+s32
+e1000_mng_write_cmd_header_generic(struct e1000_hw *hw,
+    struct e1000_host_mng_command_header *hdr)
 {
 	u16 i, length = sizeof(struct e1000_host_mng_command_header);
 
@@ -203,7 +207,7 @@ s32 e1000_mng_write_cmd_header_generic(struct e1000_hw *hw,
 	/* Write the relevant command block into the ram area. */
 	for (i = 0; i < length; i++) {
 		E1000_WRITE_REG_ARRAY_DWORD(hw, E1000_HOST_IF, i,
-					    *((u32 *) hdr + i));
+		    *((u32 *)hdr + i));
 		E1000_WRITE_FLUSH(hw);
 	}
 
@@ -222,8 +226,9 @@ s32 e1000_mng_write_cmd_header_generic(struct e1000_hw *hw,
  *  It also does alignment considerations to do the writes in most efficient
  *  way.  Also fills up the sum of the buffer in *buffer parameter.
  **/
-s32 e1000_mng_host_if_write_generic(struct e1000_hw *hw, u8 *buffer,
-				    u16 length, u16 offset, u8 *sum)
+s32
+e1000_mng_host_if_write_generic(struct e1000_hw *hw, u8 *buffer, u16 length,
+    u16 offset, u8 *sum)
 {
 	u8 *tmp;
 	u8 *bufptr = buffer;
@@ -268,7 +273,7 @@ s32 e1000_mng_host_if_write_generic(struct e1000_hw *hw, u8 *buffer,
 		}
 
 		E1000_WRITE_REG_ARRAY_DWORD(hw, E1000_HOST_IF, offset + i,
-					    data);
+		    data);
 	}
 	if (remaining) {
 		for (j = 0; j < sizeof(u32); j++) {
@@ -280,7 +285,7 @@ s32 e1000_mng_host_if_write_generic(struct e1000_hw *hw, u8 *buffer,
 			*sum += *(tmp + j);
 		}
 		E1000_WRITE_REG_ARRAY_DWORD(hw, E1000_HOST_IF, offset + i,
-					    data);
+		    data);
 	}
 
 	return E1000_SUCCESS;
@@ -294,8 +299,8 @@ s32 e1000_mng_host_if_write_generic(struct e1000_hw *hw, u8 *buffer,
  *
  *  Writes the DHCP information to the host interface.
  **/
-s32 e1000_mng_write_dhcp_info_generic(struct e1000_hw *hw, u8 *buffer,
-				      u16 length)
+s32
+e1000_mng_write_dhcp_info_generic(struct e1000_hw *hw, u8 *buffer, u16 length)
 {
 	struct e1000_host_mng_command_header hdr;
 	s32 ret_val;
@@ -316,7 +321,7 @@ s32 e1000_mng_write_dhcp_info_generic(struct e1000_hw *hw, u8 *buffer,
 
 	/* Populate the host interface with the contents of "buffer". */
 	ret_val = e1000_mng_host_if_write_generic(hw, buffer, length,
-						  sizeof(hdr), &(hdr.checksum));
+	    sizeof(hdr), &(hdr.checksum));
 	if (ret_val)
 		return ret_val;
 
@@ -339,7 +344,8 @@ s32 e1000_mng_write_dhcp_info_generic(struct e1000_hw *hw, u8 *buffer,
  *  Verifies the hardware needs to leave interface enabled so that frames can
  *  be directed to and from the management interface.
  **/
-bool e1000_enable_mng_pass_thru(struct e1000_hw *hw)
+bool
+e1000_enable_mng_pass_thru(struct e1000_hw *hw)
 {
 	u32 manc;
 	u32 fwsm, factps;
@@ -360,10 +366,10 @@ bool e1000_enable_mng_pass_thru(struct e1000_hw *hw)
 
 		if (!(factps & E1000_FACTPS_MNGCG) &&
 		    ((fwsm & E1000_FWSM_MODE_MASK) ==
-		     (e1000_mng_mode_pt << E1000_FWSM_MODE_SHIFT)))
+			(e1000_mng_mode_pt << E1000_FWSM_MODE_SHIFT)))
 			return true;
 	} else if ((hw->mac.type == e1000_82574) ||
-		   (hw->mac.type == e1000_82583)) {
+	    (hw->mac.type == e1000_82583)) {
 		u16 data;
 		s32 ret_val;
 
@@ -374,10 +380,10 @@ bool e1000_enable_mng_pass_thru(struct e1000_hw *hw)
 
 		if (!(factps & E1000_FACTPS_MNGCG) &&
 		    ((data & E1000_NVM_INIT_CTRL2_MNGM) ==
-		     (e1000_mng_mode_pt << 13)))
+			(e1000_mng_mode_pt << 13)))
 			return true;
 	} else if ((manc & E1000_MANC_SMBUS_EN) &&
-		   !(manc & E1000_MANC_ASF_EN)) {
+	    !(manc & E1000_MANC_ASF_EN)) {
 		return true;
 	}
 
@@ -393,7 +399,8 @@ bool e1000_enable_mng_pass_thru(struct e1000_hw *hw)
  *  Writes a buffer to the Host Interface.  Upon success, returns E1000_SUCCESS
  *  else returns E1000_ERR_HOST_INTERFACE_COMMAND.
  **/
-s32 e1000_host_interface_command(struct e1000_hw *hw, u8 *buffer, u32 length)
+s32
+e1000_host_interface_command(struct e1000_hw *hw, u8 *buffer, u32 length)
 {
 	u32 hicr, i;
 
@@ -430,7 +437,7 @@ s32 e1000_host_interface_command(struct e1000_hw *hw, u8 *buffer, u32 length)
 	 */
 	for (i = 0; i < length; i++)
 		E1000_WRITE_REG_ARRAY_DWORD(hw, E1000_HOST_IF, i,
-					    *((u32 *)buffer + i));
+		    *((u32 *)buffer + i));
 
 	/* Setting this bit tells the ARC that a new command is pending. */
 	E1000_WRITE_REG(hw, E1000_HICR, hicr | E1000_HICR_C);
@@ -451,8 +458,7 @@ s32 e1000_host_interface_command(struct e1000_hw *hw, u8 *buffer, u32 length)
 
 	for (i = 0; i < length; i++)
 		*((u32 *)buffer + i) = E1000_READ_REG_ARRAY_DWORD(hw,
-								  E1000_HOST_IF,
-								  i);
+		    E1000_HOST_IF, i);
 
 	return E1000_SUCCESS;
 }
@@ -467,7 +473,8 @@ s32 e1000_host_interface_command(struct e1000_hw *hw, u8 *buffer, u32 length)
  *  Upon success returns E1000_SUCCESS, returns E1000_ERR_CONFIG if not enabled
  *  in HW else returns E1000_ERR_HOST_INTERFACE_COMMAND.
  **/
-s32 e1000_load_firmware(struct e1000_hw *hw, u8 *buffer, u32 length)
+s32
+e1000_load_firmware(struct e1000_hw *hw, u8 *buffer, u32 length)
 {
 	u32 hicr, hibba, fwsm, icr, i;
 
@@ -524,7 +531,7 @@ s32 e1000_load_firmware(struct e1000_hw *hw, u8 *buffer, u32 length)
 		fwsm = E1000_READ_REG(hw, E1000_FWSM);
 		if ((fwsm & E1000_FWSM_FW_VALID) &&
 		    ((fwsm & E1000_FWSM_MODE_MASK) >> E1000_FWSM_MODE_SHIFT ==
-		    E1000_FWSM_HI_EN_ONLY_MODE))
+			E1000_FWSM_HI_EN_ONLY_MODE))
 			break;
 		msec_delay(1);
 	}
@@ -545,15 +552,14 @@ s32 e1000_load_firmware(struct e1000_hw *hw, u8 *buffer, u32 length)
 		if (!(i % E1000_HI_FW_BLOCK_DWORD_LENGTH)) {
 			/* Point to correct 1kB ram window */
 			hibba = E1000_HI_FW_BASE_ADDRESS +
-				((E1000_HI_FW_BLOCK_DWORD_LENGTH << 2) *
+			    ((E1000_HI_FW_BLOCK_DWORD_LENGTH << 2) *
 				(i / E1000_HI_FW_BLOCK_DWORD_LENGTH));
 
 			E1000_WRITE_REG(hw, E1000_HIBBA, hibba);
 		}
 
 		E1000_WRITE_REG_ARRAY_DWORD(hw, E1000_HOST_IF,
-					    i % E1000_HI_FW_BLOCK_DWORD_LENGTH,
-					    *((u32 *)buffer + i));
+		    i % E1000_HI_FW_BLOCK_DWORD_LENGTH, *((u32 *)buffer + i));
 	}
 
 	/* Setting this bit tells the ARC that a new FW is ready to execute. */

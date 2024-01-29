@@ -52,93 +52,282 @@
 #include "bthidd.h"
 #include "btuinput.h"
 
-static int16_t const mbuttons[8] = {
-	BTN_LEFT,
-	BTN_MIDDLE,
-	BTN_RIGHT,
-	BTN_SIDE,
-	BTN_EXTRA,
-	BTN_FORWARD,
-	BTN_BACK,
-	BTN_TASK
-};
+static int16_t const mbuttons[8] = { BTN_LEFT, BTN_MIDDLE, BTN_RIGHT, BTN_SIDE,
+	BTN_EXTRA, BTN_FORWARD, BTN_BACK, BTN_TASK };
 
 static uint16_t const led_codes[3] = {
-	LED_CAPSL,	/* CLKED */
-	LED_NUML,	/* NLKED */
-	LED_SCROLLL,	/* SLKED */
+	LED_CAPSL,   /* CLKED */
+	LED_NUML,    /* NLKED */
+	LED_SCROLLL, /* SLKED */
 };
 
-#define	NONE	KEY_RESERVED
+#define NONE KEY_RESERVED
 
 static uint16_t const keymap[0x100] = {
 	/* 0x00 - 0x27 */
-	NONE,	NONE,	NONE,	NONE,	KEY_A,	KEY_B,	KEY_C,	KEY_D,
-	KEY_E,	KEY_F,	KEY_G,	KEY_H,	KEY_I,	KEY_J,	KEY_K,	KEY_L,
-	KEY_M,	KEY_N,	KEY_O,	KEY_P,	KEY_Q,	KEY_R,	KEY_S,	KEY_T,
-	KEY_U,	KEY_V,	KEY_W,	KEY_X,	KEY_Y,	KEY_Z,	KEY_1,	KEY_2,
-	KEY_3,	KEY_4,	KEY_5,	KEY_6,	KEY_7,	KEY_8,	KEY_9,	KEY_0,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	KEY_A,
+	KEY_B,
+	KEY_C,
+	KEY_D,
+	KEY_E,
+	KEY_F,
+	KEY_G,
+	KEY_H,
+	KEY_I,
+	KEY_J,
+	KEY_K,
+	KEY_L,
+	KEY_M,
+	KEY_N,
+	KEY_O,
+	KEY_P,
+	KEY_Q,
+	KEY_R,
+	KEY_S,
+	KEY_T,
+	KEY_U,
+	KEY_V,
+	KEY_W,
+	KEY_X,
+	KEY_Y,
+	KEY_Z,
+	KEY_1,
+	KEY_2,
+	KEY_3,
+	KEY_4,
+	KEY_5,
+	KEY_6,
+	KEY_7,
+	KEY_8,
+	KEY_9,
+	KEY_0,
 	/* 0x28 - 0x3f */
-	KEY_ENTER,	KEY_ESC,	KEY_BACKSPACE,	KEY_TAB,
-	KEY_SPACE,	KEY_MINUS,	KEY_EQUAL,	KEY_LEFTBRACE,
-	KEY_RIGHTBRACE,	KEY_BACKSLASH,	KEY_BACKSLASH,	KEY_SEMICOLON,
-	KEY_APOSTROPHE,	KEY_GRAVE,	KEY_COMMA,	KEY_DOT,
-	KEY_SLASH,	KEY_CAPSLOCK,	KEY_F1,		KEY_F2,
-	KEY_F3,		KEY_F4,		KEY_F5,		KEY_F6,
+	KEY_ENTER,
+	KEY_ESC,
+	KEY_BACKSPACE,
+	KEY_TAB,
+	KEY_SPACE,
+	KEY_MINUS,
+	KEY_EQUAL,
+	KEY_LEFTBRACE,
+	KEY_RIGHTBRACE,
+	KEY_BACKSLASH,
+	KEY_BACKSLASH,
+	KEY_SEMICOLON,
+	KEY_APOSTROPHE,
+	KEY_GRAVE,
+	KEY_COMMA,
+	KEY_DOT,
+	KEY_SLASH,
+	KEY_CAPSLOCK,
+	KEY_F1,
+	KEY_F2,
+	KEY_F3,
+	KEY_F4,
+	KEY_F5,
+	KEY_F6,
 	/* 0x40 - 0x5f */
-	KEY_F7,		KEY_F8,		KEY_F9,		KEY_F10,
-	KEY_F11,	KEY_F12,	KEY_SYSRQ,	KEY_SCROLLLOCK,
-	KEY_PAUSE,	KEY_INSERT,	KEY_HOME,	KEY_PAGEUP,
-	KEY_DELETE,	KEY_END,	KEY_PAGEDOWN,	KEY_RIGHT,
-	KEY_LEFT,	KEY_DOWN,	KEY_UP,		KEY_NUMLOCK,
-	KEY_KPSLASH,	KEY_KPASTERISK,	KEY_KPMINUS,	KEY_KPPLUS,
-	KEY_KPENTER,	KEY_KP1,	KEY_KP2,	KEY_KP3,
-	KEY_KP4,	KEY_KP5,	KEY_KP6,	KEY_KP7,
+	KEY_F7,
+	KEY_F8,
+	KEY_F9,
+	KEY_F10,
+	KEY_F11,
+	KEY_F12,
+	KEY_SYSRQ,
+	KEY_SCROLLLOCK,
+	KEY_PAUSE,
+	KEY_INSERT,
+	KEY_HOME,
+	KEY_PAGEUP,
+	KEY_DELETE,
+	KEY_END,
+	KEY_PAGEDOWN,
+	KEY_RIGHT,
+	KEY_LEFT,
+	KEY_DOWN,
+	KEY_UP,
+	KEY_NUMLOCK,
+	KEY_KPSLASH,
+	KEY_KPASTERISK,
+	KEY_KPMINUS,
+	KEY_KPPLUS,
+	KEY_KPENTER,
+	KEY_KP1,
+	KEY_KP2,
+	KEY_KP3,
+	KEY_KP4,
+	KEY_KP5,
+	KEY_KP6,
+	KEY_KP7,
 	/* 0x60 - 0x7f */
-	KEY_KP8,	KEY_KP9,	KEY_KP0,	KEY_KPDOT,
-	KEY_102ND,	KEY_COMPOSE,	KEY_POWER,	KEY_KPEQUAL,
-	KEY_F13,	KEY_F14,	KEY_F15,	KEY_F16,
-	KEY_F17,	KEY_F18,	KEY_F19,	KEY_F20,
-	KEY_F21,	KEY_F22,	KEY_F23,	KEY_F24,
-	KEY_OPEN,	KEY_HELP,	KEY_PROPS,	KEY_FRONT,
-	KEY_STOP,	KEY_AGAIN,	KEY_UNDO,	KEY_CUT,
-	KEY_COPY,	KEY_PASTE,	KEY_FIND,	KEY_MUTE,
+	KEY_KP8,
+	KEY_KP9,
+	KEY_KP0,
+	KEY_KPDOT,
+	KEY_102ND,
+	KEY_COMPOSE,
+	KEY_POWER,
+	KEY_KPEQUAL,
+	KEY_F13,
+	KEY_F14,
+	KEY_F15,
+	KEY_F16,
+	KEY_F17,
+	KEY_F18,
+	KEY_F19,
+	KEY_F20,
+	KEY_F21,
+	KEY_F22,
+	KEY_F23,
+	KEY_F24,
+	KEY_OPEN,
+	KEY_HELP,
+	KEY_PROPS,
+	KEY_FRONT,
+	KEY_STOP,
+	KEY_AGAIN,
+	KEY_UNDO,
+	KEY_CUT,
+	KEY_COPY,
+	KEY_PASTE,
+	KEY_FIND,
+	KEY_MUTE,
 	/* 0x80 - 0x9f */
-	KEY_VOLUMEUP,	KEY_VOLUMEDOWN,	NONE,		NONE,
-	NONE,		KEY_KPCOMMA,	NONE,		KEY_RO,
-	KEY_KATAKANAHIRAGANA,	KEY_YEN,KEY_HENKAN,	KEY_MUHENKAN,
-	KEY_KPJPCOMMA,	NONE,		NONE,		NONE,
-	KEY_HANGEUL,	KEY_HANJA,	KEY_KATAKANA,	KEY_HIRAGANA,
-	KEY_ZENKAKUHANKAKU,	NONE,	NONE,		NONE,
-	NONE,		NONE,		NONE,		NONE,
-	NONE,		NONE,		NONE,		NONE,
+	KEY_VOLUMEUP,
+	KEY_VOLUMEDOWN,
+	NONE,
+	NONE,
+	NONE,
+	KEY_KPCOMMA,
+	NONE,
+	KEY_RO,
+	KEY_KATAKANAHIRAGANA,
+	KEY_YEN,
+	KEY_HENKAN,
+	KEY_MUHENKAN,
+	KEY_KPJPCOMMA,
+	NONE,
+	NONE,
+	NONE,
+	KEY_HANGEUL,
+	KEY_HANJA,
+	KEY_KATAKANA,
+	KEY_HIRAGANA,
+	KEY_ZENKAKUHANKAKU,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
 	/* 0xa0 - 0xbf */
-	NONE,		NONE,		NONE,		NONE,
-	NONE,		NONE,		NONE,		NONE,
-	NONE,		NONE,		NONE,		NONE,
-	NONE,		NONE,		NONE,		NONE,
-	NONE,		NONE,		NONE,		NONE,
-	NONE,		NONE,		NONE,		NONE,
-	NONE,		NONE,		NONE,		NONE,
-	NONE,		NONE,		NONE,		NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
 	/* 0xc0 - 0xdf */
-	NONE,		NONE,           NONE,		NONE,
-	NONE,		NONE,           NONE,		NONE,
-	NONE,		NONE,           NONE,		NONE,
-	NONE,		NONE,           NONE,		NONE,
-	NONE,		NONE,           NONE,		NONE,
-	NONE,		NONE,           NONE,		NONE,
-	NONE,		NONE,           NONE,		NONE,
-	NONE,		NONE,           NONE,		NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
 	/* 0xe0 - 0xff */
-	KEY_LEFTCTRL,	KEY_LEFTSHIFT,	KEY_LEFTALT,	KEY_LEFTMETA,
-	KEY_RIGHTCTRL,	KEY_RIGHTSHIFT,	KEY_RIGHTALT,	KEY_RIGHTMETA,
-	KEY_PLAYPAUSE,	KEY_STOPCD,	KEY_PREVIOUSSONG,KEY_NEXTSONG,
-	KEY_EJECTCD,	KEY_VOLUMEUP,	KEY_VOLUMEDOWN, KEY_MUTE,
-	KEY_WWW,	KEY_BACK,	KEY_FORWARD,	KEY_STOP,
-	KEY_FIND,	KEY_SCROLLUP,	KEY_SCROLLDOWN,	KEY_EDIT,
-	KEY_SLEEP,	KEY_COFFEE,	KEY_REFRESH,	KEY_CALC,
-	NONE,		NONE,		NONE,		NONE,
+	KEY_LEFTCTRL,
+	KEY_LEFTSHIFT,
+	KEY_LEFTALT,
+	KEY_LEFTMETA,
+	KEY_RIGHTCTRL,
+	KEY_RIGHTSHIFT,
+	KEY_RIGHTALT,
+	KEY_RIGHTMETA,
+	KEY_PLAYPAUSE,
+	KEY_STOPCD,
+	KEY_PREVIOUSSONG,
+	KEY_NEXTSONG,
+	KEY_EJECTCD,
+	KEY_VOLUMEUP,
+	KEY_VOLUMEDOWN,
+	KEY_MUTE,
+	KEY_WWW,
+	KEY_BACK,
+	KEY_FORWARD,
+	KEY_STOP,
+	KEY_FIND,
+	KEY_SCROLLUP,
+	KEY_SCROLLDOWN,
+	KEY_EDIT,
+	KEY_SLEEP,
+	KEY_COFFEE,
+	KEY_REFRESH,
+	KEY_CALC,
+	NONE,
+	NONE,
+	NONE,
+	NONE,
 };
 
 /* Consumer page usage mapping */
@@ -299,10 +488,10 @@ static uint16_t const consmap[0x300] = {
 static int32_t
 uinput_open_common(hid_device_p const p, bdaddr_p local, const uint8_t *name)
 {
-	struct uinput_setup	uisetup;
-	uint8_t			phys[UINPUT_MAX_NAME_SIZE];
-	uint8_t			uniq[UINPUT_MAX_NAME_SIZE];
-	int32_t			fd;
+	struct uinput_setup uisetup;
+	uint8_t phys[UINPUT_MAX_NAME_SIZE];
+	uint8_t uniq[UINPUT_MAX_NAME_SIZE];
+	int32_t fd;
 
 	/* Take local and remote bdaddr */
 	bt_ntoa(local, phys);
@@ -314,10 +503,10 @@ uinput_open_common(hid_device_p const p, bdaddr_p local, const uint8_t *name)
 
 	/* Set device name and bus/vendor information */
 	memset(&uisetup, 0, sizeof(uisetup));
-	snprintf(uisetup.name, UINPUT_MAX_NAME_SIZE,
-	    "%s, bdaddr %s", name, uniq);
+	snprintf(uisetup.name, UINPUT_MAX_NAME_SIZE, "%s, bdaddr %s", name,
+	    uniq);
 	uisetup.id.bustype = BUS_BLUETOOTH;
-	uisetup.id.vendor  = p->vendor_id;
+	uisetup.id.vendor = p->vendor_id;
 	uisetup.id.product = p->product_id;
 	uisetup.id.version = p->version;
 
@@ -338,8 +527,8 @@ uinput_open_common(hid_device_p const p, bdaddr_p local, const uint8_t *name)
 int32_t
 uinput_open_mouse(hid_device_p const p, bdaddr_p local)
 {
-	size_t	i;
-	int32_t	fd;
+	size_t i;
+	int32_t fd;
 
 	assert(p != NULL);
 
@@ -377,8 +566,8 @@ bail_out:
 int32_t
 uinput_open_keyboard(hid_device_p const p, bdaddr_p local)
 {
-	size_t	i;
-	int32_t	fd;
+	size_t i;
+	int32_t fd;
 
 	assert(p != NULL);
 
@@ -420,11 +609,11 @@ bail_out:
 }
 
 /* from sys/dev/evdev/evdev.h */
-#define	EVDEV_RCPT_HW_MOUSE	(1<<2)
-#define	EVDEV_RCPT_HW_KBD	(1<<3)
+#define EVDEV_RCPT_HW_MOUSE (1 << 2)
+#define EVDEV_RCPT_HW_KBD (1 << 3)
 
-#define	MASK_POLL_INTERVAL	5 /* seconds */
-#define	MASK_SYSCTL		"kern.evdev.rcpt_mask"
+#define MASK_POLL_INTERVAL 5 /* seconds */
+#define MASK_SYSCTL "kern.evdev.rcpt_mask"
 
 static int32_t
 uinput_get_rcpt_mask(void)
@@ -494,7 +683,7 @@ uinput_rep_mouse(int32_t fd, int32_t x, int32_t y, int32_t z, int32_t t,
 		if ((buttons & mask) == (obuttons & mask))
 			continue;
 		if (uinput_write_event(fd, EV_KEY, mbuttons[i],
-		    (buttons & mask) != 0) < 0)
+			(buttons & mask) != 0) < 0)
 			return (-1);
 	}
 
@@ -518,8 +707,7 @@ uinput_rep_key(int32_t fd, int32_t key, int32_t make)
 	if (!(rcpt_mask & EVDEV_RCPT_HW_KBD))
 		return (0);
 
-	if (key >= 0 && key < (int32_t)nitems(keymap) &&
-	    keymap[key] != NONE) {
+	if (key >= 0 && key < (int32_t)nitems(keymap) && keymap[key] != NONE) {
 		if (uinput_write_event(fd, EV_KEY, keymap[key], make) > 0 &&
 		    uinput_write_event(fd, EV_SYN, SYN_REPORT, 0) > 0)
 			return (0);
@@ -568,7 +756,7 @@ uinput_rep_leds(int32_t fd, int state, int mask)
 	for (i = 0; i < nitems(led_codes); i++) {
 		if (mask & (1 << i) &&
 		    uinput_write_event(fd, EV_LED, led_codes[i],
-					state & (1 << i) ? 1 : 0) < 0)
+			state & (1 << i) ? 1 : 0) < 0)
 			return (-1);
 	}
 

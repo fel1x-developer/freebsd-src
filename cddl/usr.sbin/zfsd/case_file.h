@@ -44,7 +44,7 @@
  *    #include "zfsd_event.h"
  */
 #ifndef _CASE_FILE_H_
-#define	_CASE_FILE_H_
+#define _CASE_FILE_H_
 
 /*=========================== Forward Declarations ===========================*/
 class CaseFile;
@@ -55,7 +55,7 @@ class Vdev;
 /**
  * CaseFileList is a specialization of the standard list STL container.
  */
-typedef std::list< CaseFile *> CaseFileList;
+typedef std::list<CaseFile *> CaseFileList;
 
 /*--------------------------------- CaseFile ---------------------------------*/
 /**
@@ -80,9 +80,8 @@ typedef std::list< CaseFile *> CaseFileList;
  * CaseFile%%s for missing, faulted, or degradded members are just recreated
  * at ZFSD startup instead of being deserialized from the file system.
  */
-class CaseFile
-{
-public:
+class CaseFile {
+    public:
 	/**
 	 * \brief Find a CaseFile object by a vdev's pool/vdev GUID tuple.
 	 *
@@ -106,8 +105,8 @@ public:
 	 * \param vdevGUID  Vdev GUID for the vdev of the CaseFile to find.
 	 * \param caseList  List of cases associated with the vdev.
 	 */
-	static void  Find(DevdCtl::Guid poolGUID, DevdCtl::Guid vdevGUID,
-				     CaseFileList &caseList);
+	static void Find(DevdCtl::Guid poolGUID, DevdCtl::Guid vdevGUID,
+	    CaseFileList &caseList);
 
 	/**
 	 * \brief Find a CaseFile object by a vdev's current/last known
@@ -127,7 +126,7 @@ public:
 	 * \param event		Try to consume this event with the casefile
 	 */
 	static void ReEvaluateByGuid(DevdCtl::Guid poolGUID,
-				     const ZfsEvent &event);
+	    const ZfsEvent &event);
 
 	/**
 	 * \brief Create or return an existing active CaseFile for the
@@ -143,17 +142,17 @@ public:
 	 * \brief Deserialize all serialized CaseFile objects found in
 	 *        the file system.
 	 */
-	static void      DeSerialize();
+	static void DeSerialize();
 
 	/**
 	 * \brief returns true if there are no CaseFiles
 	 */
-	static bool	Empty();
+	static bool Empty();
 
 	/**
 	 * \brief Emit syslog data on all active CaseFile%%s in the system.
 	 */
-	static void      LogAll();
+	static void LogAll();
 
 	/**
 	 * \brief Destroy the in-core cache of CaseFile data.
@@ -161,14 +160,14 @@ public:
 	 * This routine does not disturb the on disk, serialized, CaseFile
 	 * data.
 	 */
-	static void      PurgeAll();
+	static void PurgeAll();
 
-	DevdCtl::Guid PoolGUID()       const;
-	DevdCtl::Guid VdevGUID()       const;
-	vdev_state    VdevState()      const;
+	DevdCtl::Guid PoolGUID() const;
+	DevdCtl::Guid VdevGUID() const;
+	vdev_state VdevState() const;
 	const string &PoolGUIDString() const;
 	const string &VdevGUIDString() const;
-	const string &PhysicalPath()   const;
+	const string &PhysicalPath() const;
 
 	/**
 	 * \brief Attempt to resolve this CaseFile using the disk
@@ -185,7 +184,7 @@ public:
 	 * \return  True if this event was consumed by this CaseFile.
 	 */
 	bool ReEvaluate(const string &devPath, const string &physPath,
-			Vdev *vdev);
+	    Vdev *vdev);
 
 	/**
 	 * \brief Update this CaseFile in light of the provided ZfsEvent.
@@ -235,7 +234,7 @@ public:
 	 */
 	int IsSpare();
 
-protected:
+    protected:
 	enum {
 		/**
 		 * The number of soft errors on a vdev required
@@ -260,7 +259,7 @@ protected:
 	 * \return  Non-zero for a file to include in the selection,
 	 *          otherwise 0.
 	 */
-	static int  DeSerializeSelector(const struct dirent *dirEntry);
+	static int DeSerializeSelector(const struct dirent *dirEntry);
 
 	/**
 	 * \brief Given the name of a file containing serialized events from a
@@ -318,7 +317,7 @@ protected:
 	 *                every event in the file.
 	 */
 	void SerializeEvList(const DevdCtl::EventList events, int fd,
-			     const char* prefix=NULL) const;
+	    const char *prefix = NULL) const;
 
 	/**
 	 * \brief Unconditionally close a CaseFile.
@@ -357,7 +356,7 @@ protected:
 	 *
 	 * \return            true iff the replacement was successful
 	 */
-	bool Replace(const char* vdev_type, const char* path, bool isspare);
+	bool Replace(const char *vdev_type, const char *path, bool isspare);
 
 	/**
 	 * \brief Which vdev, if any, is replacing ours.
@@ -372,12 +371,12 @@ protected:
 	/**
 	 * \brief All CaseFiles being tracked by ZFSD.
 	 */
-	static CaseFileList  s_activeCases;
+	static CaseFileList s_activeCases;
 
 	/**
 	 * \brief The file system path to serialized CaseFile data.
 	 */
-	static const string  s_caseFilePath;
+	static const string s_caseFilePath;
 
 	/**
 	 * \brief The time ZFSD waits before promoting a tentative event
@@ -398,21 +397,21 @@ protected:
 	 */
 	DevdCtl::EventList m_tentativeEvents;
 
-	DevdCtl::Guid	   m_poolGUID;
-	DevdCtl::Guid	   m_vdevGUID;
-	vdev_state	   m_vdevState;
-	string		   m_poolGUIDString;
-	string		   m_vdevGUIDString;
-	string		   m_vdevPhysPath;
-	int		   m_is_spare;
+	DevdCtl::Guid m_poolGUID;
+	DevdCtl::Guid m_vdevGUID;
+	vdev_state m_vdevState;
+	string m_poolGUIDString;
+	string m_vdevGUIDString;
+	string m_vdevPhysPath;
+	int m_is_spare;
 
 	/**
 	 * \brief Callout activated when a grace period
 	 */
-	Callout		  m_tentativeTimer;
+	Callout m_tentativeTimer;
 
-private:
-	nvlist_t	*CaseVdev(zpool_handle_t *zhp)	const;
+    private:
+	nvlist_t *CaseVdev(zpool_handle_t *zhp) const;
 };
 
 inline DevdCtl::Guid

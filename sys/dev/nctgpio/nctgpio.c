@@ -30,16 +30,14 @@
  */
 
 #include <sys/cdefs.h>
-
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/eventhandler.h>
-#include <sys/lock.h>
-
-#include <sys/module.h>
 #include <sys/gpio.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/module.h>
 
 #include <machine/bus.h>
 
@@ -51,31 +49,31 @@
 #define NCT_PPOD_LDN 0xf /* LDN used to select Push-Pull/Open-Drain */
 
 /* Direct access through GPIO register table */
-#define	NCT_IO_GSR			0 /* Group Select */
-#define	NCT_IO_IOR			1 /* I/O */
-#define	NCT_IO_DAT			2 /* Data */
-#define	NCT_IO_INV			3 /* Inversion */
-#define	NCT_IO_DST          4 /* Status */
+#define NCT_IO_GSR 0 /* Group Select */
+#define NCT_IO_IOR 1 /* I/O */
+#define NCT_IO_DAT 2 /* Data */
+#define NCT_IO_INV 3 /* Inversion */
+#define NCT_IO_DST 4 /* Status */
 
-#define NCT_MAX_GROUP   9
-#define NCT_MAX_PIN     75
+#define NCT_MAX_GROUP 9
+#define NCT_MAX_PIN 75
 
-#define NCT_PIN_IS_VALID(_sc, _p)   ((_p) < (_sc)->npins)
-#define NCT_PIN_GROUP(_sc, _p)      ((_sc)->pinmap[(_p)].group)
-#define NCT_PIN_GRPNUM(_sc, _p)     ((_sc)->pinmap[(_p)].grpnum)
-#define NCT_PIN_BIT(_sc, _p)        ((_sc)->pinmap[(_p)].bit)
-#define NCT_PIN_BITMASK(_p)         (1 << ((_p) & 7))
+#define NCT_PIN_IS_VALID(_sc, _p) ((_p) < (_sc)->npins)
+#define NCT_PIN_GROUP(_sc, _p) ((_sc)->pinmap[(_p)].group)
+#define NCT_PIN_GRPNUM(_sc, _p) ((_sc)->pinmap[(_p)].grpnum)
+#define NCT_PIN_BIT(_sc, _p) ((_sc)->pinmap[(_p)].bit)
+#define NCT_PIN_BITMASK(_p) (1 << ((_p) & 7))
 
-#define NCT_GPIO_CAPS	(GPIO_PIN_INPUT | GPIO_PIN_OUTPUT | \
-	GPIO_PIN_OPENDRAIN | GPIO_PIN_PUSHPULL | \
-	GPIO_PIN_INVIN | GPIO_PIN_INVOUT)
+#define NCT_GPIO_CAPS                                            \
+	(GPIO_PIN_INPUT | GPIO_PIN_OUTPUT | GPIO_PIN_OPENDRAIN | \
+	    GPIO_PIN_PUSHPULL | GPIO_PIN_INVIN | GPIO_PIN_INVOUT)
 
 #define NCT_PREFER_INDIRECT_CHANNEL 2
 
-#define NCT_VERBOSE_PRINTF(dev, ...)            \
-	do {                                        \
-		if (__predict_false(bootverbose))       \
-			device_printf(dev, __VA_ARGS__);    \
+#define NCT_VERBOSE_PRINTF(dev, ...)                     \
+	do {                                             \
+		if (__predict_false(bootverbose))        \
+			device_printf(dev, __VA_ARGS__); \
 	} while (0)
 
 /*
@@ -89,64 +87,65 @@ typedef enum {
 } reg_t;
 
 struct nct_gpio_group {
- 	uint32_t    caps;
-	uint8_t     enable_ldn;
-	uint8_t     enable_reg;
-	uint8_t     enable_mask;
-	uint8_t     data_ldn;
-	uint8_t     iobase;
-	uint8_t     ppod_reg; /* Push-Pull/Open-Drain */
-	uint8_t     grpnum;
-	uint8_t     pinbits[8];
-	uint8_t     npins;
+	uint32_t caps;
+	uint8_t enable_ldn;
+	uint8_t enable_reg;
+	uint8_t enable_mask;
+	uint8_t data_ldn;
+	uint8_t iobase;
+	uint8_t ppod_reg; /* Push-Pull/Open-Drain */
+	uint8_t grpnum;
+	uint8_t pinbits[8];
+	uint8_t npins;
 };
 
 struct nct_softc {
-	device_t			dev;
-	device_t			busdev;
-	struct mtx			mtx;
-	struct resource			*iores;
-	int				iorid;
-	int				curgrp;
+	device_t dev;
+	device_t busdev;
+	struct mtx mtx;
+	struct resource *iores;
+	int iorid;
+	int curgrp;
 	struct {
-		uint8_t ior[NCT_MAX_GROUP + 1];       /* direction, 1: input 0: output */
-		uint8_t out[NCT_MAX_GROUP + 1];       /* output value */
+		uint8_t
+		    ior[NCT_MAX_GROUP + 1]; /* direction, 1: input 0: output */
+		uint8_t out[NCT_MAX_GROUP + 1];	      /* output value */
 		uint8_t out_known[NCT_MAX_GROUP + 1]; /* whether out is valid */
-		uint8_t inv[NCT_MAX_GROUP + 1];       /* inversion, 1: inverted */
+		uint8_t inv[NCT_MAX_GROUP + 1]; /* inversion, 1: inverted */
 	} cache;
-	struct gpio_pin				pins[NCT_MAX_PIN + 1];
-	struct nct_device			*nctdevp;
-	int							npins; /* Total number of pins */
+	struct gpio_pin pins[NCT_MAX_PIN + 1];
+	struct nct_device *nctdevp;
+	int npins; /* Total number of pins */
 
 	/* Lookup tables */
 	struct {
 		struct nct_gpio_group *group;
-		uint8_t                grpnum;
-		uint8_t                bit;
-	} pinmap[NCT_MAX_PIN+1];
-	struct nct_gpio_group *grpmap[NCT_MAX_GROUP+1];
+		uint8_t grpnum;
+		uint8_t bit;
+	} pinmap[NCT_MAX_PIN + 1];
+	struct nct_gpio_group *grpmap[NCT_MAX_GROUP + 1];
 };
 
-#define GPIO_LOCK_INIT(_sc)	mtx_init(&(_sc)->mtx,		\
-		device_get_nameunit(dev), NULL, MTX_DEF)
-#define GPIO_LOCK_DESTROY(_sc)		mtx_destroy(&(_sc)->mtx)
-#define GPIO_LOCK(_sc)		mtx_lock(&(_sc)->mtx)
-#define GPIO_UNLOCK(_sc)	mtx_unlock(&(_sc)->mtx)
-#define GPIO_ASSERT_LOCKED(_sc)	mtx_assert(&(_sc)->mtx, MA_OWNED)
-#define GPIO_ASSERT_UNLOCKED(_sc)	mtx_assert(&(_sc)->mtx, MA_NOTOWNED)
+#define GPIO_LOCK_INIT(_sc) \
+	mtx_init(&(_sc)->mtx, device_get_nameunit(dev), NULL, MTX_DEF)
+#define GPIO_LOCK_DESTROY(_sc) mtx_destroy(&(_sc)->mtx)
+#define GPIO_LOCK(_sc) mtx_lock(&(_sc)->mtx)
+#define GPIO_UNLOCK(_sc) mtx_unlock(&(_sc)->mtx)
+#define GPIO_ASSERT_LOCKED(_sc) mtx_assert(&(_sc)->mtx, MA_OWNED)
+#define GPIO_ASSERT_UNLOCKED(_sc) mtx_assert(&(_sc)->mtx, MA_NOTOWNED)
 
-#define GET_BIT(v, b)	(((v) >> (b)) & 1)
+#define GET_BIT(v, b) (((v) >> (b)) & 1)
 
 /*
  * For most devices there are several GPIO devices, we attach only to one of
  * them and use the rest without attaching.
  */
 struct nct_device {
-	uint16_t                  devid;
-	int                       extid;
-	const char               *descr;
-	int                       ngroups;
-	struct nct_gpio_group     groups[NCT_MAX_GROUP + 1];
+	uint16_t devid;
+	int extid;
+	const char *descr;
+	int ngroups;
+	struct nct_gpio_group groups[NCT_MAX_GROUP + 1];
 } nct_devices[] = {
 	{
 		.devid   = 0xa025,
@@ -753,12 +752,18 @@ static const char *
 io2str(uint8_t ioport)
 {
 	switch (ioport) {
-	case NCT_IO_GSR: return ("grpsel");
-	case NCT_IO_IOR: return ("io");
-	case NCT_IO_DAT: return ("data");
-	case NCT_IO_INV: return ("inv");
-	case NCT_IO_DST: return ("status");
-	default:         return ("?");
+	case NCT_IO_GSR:
+		return ("grpsel");
+	case NCT_IO_IOR:
+		return ("io");
+	case NCT_IO_DAT:
+		return ("data");
+	case NCT_IO_INV:
+		return ("inv");
+	case NCT_IO_DST:
+		return ("status");
+	default:
+		return ("?");
 	}
 }
 
@@ -771,7 +776,7 @@ nct_io_set_group(struct nct_softc *sc, uint8_t grpnum)
 		return;
 
 	NCT_VERBOSE_PRINTF(sc->dev, "write %s 0x%x ioport %d\n",
-		io2str(NCT_IO_GSR), grpnum, NCT_IO_GSR);
+	    io2str(NCT_IO_GSR), grpnum, NCT_IO_GSR);
 	bus_write_1(sc->iores, NCT_IO_GSR, grpnum);
 	sc->curgrp = grpnum;
 }
@@ -784,8 +789,8 @@ nct_io_read(struct nct_softc *sc, uint8_t grpnum, uint8_t reg)
 	nct_io_set_group(sc, grpnum);
 
 	val = bus_read_1(sc->iores, reg);
-	NCT_VERBOSE_PRINTF(sc->dev, "read %s 0x%x ioport %d\n",
-		io2str(reg), val, reg);
+	NCT_VERBOSE_PRINTF(sc->dev, "read %s 0x%x ioport %d\n", io2str(reg),
+	    val, reg);
 	return (val);
 }
 
@@ -794,8 +799,8 @@ nct_io_write(struct nct_softc *sc, uint8_t grpnum, uint8_t reg, uint8_t val)
 {
 	nct_io_set_group(sc, grpnum);
 
-	NCT_VERBOSE_PRINTF(sc->dev, "write %s 0x%x ioport %d\n",
-		io2str(reg), val, reg);
+	NCT_VERBOSE_PRINTF(sc->dev, "write %s 0x%x ioport %d\n", io2str(reg),
+	    val, reg);
 	bus_write_1(sc->iores, reg, val);
 }
 
@@ -815,10 +820,14 @@ static const char *
 reg2str(reg_t reg)
 {
 	switch (reg) {
-	case REG_IOR: return ("io");
-	case REG_DAT: return ("data");
-	case REG_INV: return ("inv");
-	default:      return ("?");
+	case REG_IOR:
+		return ("io");
+	case REG_DAT:
+		return ("data");
+	case REG_INV:
+		return ("inv");
+	default:
+		return ("?");
 	}
 }
 
@@ -826,18 +835,19 @@ static uint8_t
 nct_read_reg(struct nct_softc *sc, reg_t reg, uint8_t grpnum)
 {
 	struct nct_gpio_group *gp;
-	uint8_t                ioreg;
-	uint8_t                val;
+	uint8_t ioreg;
+	uint8_t val;
 
 	ioreg = nct_get_ioreg(sc, reg, grpnum);
 
 	if (sc->iores != NULL)
 		return (nct_io_read(sc, grpnum, ioreg));
 
-	gp  = sc->grpmap[grpnum];
+	gp = sc->grpmap[grpnum];
 	val = superio_ldn_read(sc->dev, gp->data_ldn, ioreg);
-	NCT_VERBOSE_PRINTF(sc->dev, "read %s 0x%x from group GPIO%u ioreg 0x%x\n",
-		reg2str(reg), val, grpnum, ioreg);
+	NCT_VERBOSE_PRINTF(sc->dev,
+	    "read %s 0x%x from group GPIO%u ioreg 0x%x\n", reg2str(reg), val,
+	    grpnum, ioreg);
 	return (val);
 }
 
@@ -848,12 +858,12 @@ nct_get_pin_cache(struct nct_softc *sc, uint32_t pin_num, uint8_t *cache)
 	uint8_t group;
 	uint8_t val;
 
-	KASSERT(NCT_PIN_IS_VALID(sc, pin_num), ("%s: invalid pin number %d",
-	    __func__, pin_num));
+	KASSERT(NCT_PIN_IS_VALID(sc, pin_num),
+	    ("%s: invalid pin number %d", __func__, pin_num));
 
 	group = NCT_PIN_GRPNUM(sc, pin_num);
-	bit   = NCT_PIN_BIT(sc, pin_num);
-	val   = cache[group];
+	bit = NCT_PIN_BIT(sc, pin_num);
+	val = cache[group];
 	return (GET_BIT(val, bit));
 }
 
@@ -861,7 +871,7 @@ static void
 nct_write_reg(struct nct_softc *sc, reg_t reg, uint8_t grpnum, uint8_t val)
 {
 	struct nct_gpio_group *gp;
-	uint8_t                ioreg;
+	uint8_t ioreg;
 
 	ioreg = nct_get_ioreg(sc, reg, grpnum);
 
@@ -873,8 +883,9 @@ nct_write_reg(struct nct_softc *sc, reg_t reg, uint8_t grpnum, uint8_t val)
 	gp = sc->grpmap[grpnum];
 	superio_ldn_write(sc->dev, gp->data_ldn, ioreg, val);
 
-	NCT_VERBOSE_PRINTF(sc->dev, "write %s 0x%x to group GPIO%u ioreg 0x%x\n",
-		reg2str(reg), val, grpnum, ioreg);
+	NCT_VERBOSE_PRINTF(sc->dev,
+	    "write %s 0x%x to group GPIO%u ioreg 0x%x\n", reg2str(reg), val,
+	    grpnum, ioreg);
 }
 
 static void
@@ -891,9 +902,9 @@ nct_set_pin_reg(struct nct_softc *sc, reg_t reg, uint32_t pin_num, bool val)
 	KASSERT(reg == REG_IOR || reg == REG_INV,
 	    ("%s: unsupported register %d", __func__, reg));
 
-	group  = NCT_PIN_GRPNUM(sc, pin_num);
-	bit    = NCT_PIN_BIT(sc, pin_num);
-	mask   = (uint8_t)1 << bit;
+	group = NCT_PIN_GRPNUM(sc, pin_num);
+	bit = NCT_PIN_BIT(sc, pin_num);
+	mask = (uint8_t)1 << bit;
 	bitval = (uint8_t)val << bit;
 
 	if (reg == REG_IOR)
@@ -955,7 +966,7 @@ nct_write_pin(struct nct_softc *sc, uint32_t pin_num, bool val)
 
 	KASSERT(!nct_pin_is_input(sc, pin_num), ("attempt to write input pin"));
 	group = NCT_PIN_GRPNUM(sc, pin_num);
-	bit   = NCT_PIN_BIT(sc, pin_num);
+	bit = NCT_PIN_BIT(sc, pin_num);
 
 	if (GET_BIT(sc->cache.out_known[group], bit) &&
 	    GET_BIT(sc->cache.out[group], bit) == val) {
@@ -973,27 +984,28 @@ nct_write_pin(struct nct_softc *sc, uint32_t pin_num, bool val)
 static bool
 nct_get_pin_reg(struct nct_softc *sc, reg_t reg, uint32_t pin_num)
 {
-	uint8_t            bit;
-	uint8_t            group;
-	uint8_t            val;
-	bool               b;
+	uint8_t bit;
+	uint8_t group;
+	uint8_t val;
+	bool b;
 
-	KASSERT(NCT_PIN_IS_VALID(sc, pin_num), ("%s: invalid pin number %d",
-			__func__, pin_num));
+	KASSERT(NCT_PIN_IS_VALID(sc, pin_num),
+	    ("%s: invalid pin number %d", __func__, pin_num));
 
 	group = NCT_PIN_GRPNUM(sc, pin_num);
-	bit   = NCT_PIN_BIT(sc, pin_num);
-	val   = nct_read_reg(sc, reg, group);
-	b     = GET_BIT(val, bit);
+	bit = NCT_PIN_BIT(sc, pin_num);
+	val = nct_read_reg(sc, reg, group);
+	b = GET_BIT(val, bit);
 
 	if (__predict_false(bootverbose)) {
 		if (nct_pin_is_input(sc, pin_num))
-			NCT_VERBOSE_PRINTF(sc->dev, "read %d from input pin %u<GPIO%u%u>\n",
-				b, pin_num, group, bit);
+			NCT_VERBOSE_PRINTF(sc->dev,
+			    "read %d from input pin %u<GPIO%u%u>\n", b, pin_num,
+			    group, bit);
 		else
 			NCT_VERBOSE_PRINTF(sc->dev,
-				"read %d from output pin %u<GPIO%u%u>, cache miss\n",
-				b, pin_num, group, bit);
+			    "read %d from output pin %u<GPIO%u%u>, cache miss\n",
+			    b, pin_num, group, bit);
 	}
 
 	return (b);
@@ -1009,21 +1021,21 @@ nct_read_pin(struct nct_softc *sc, uint32_t pin_num)
 {
 	uint8_t bit;
 	uint8_t group;
-	bool    val;
+	bool val;
 
 	if (nct_pin_is_input(sc, pin_num)) {
 		return (nct_get_pin_reg(sc, REG_DAT, pin_num));
 	}
 
 	group = NCT_PIN_GRPNUM(sc, pin_num);
-	bit   = NCT_PIN_BIT(sc, pin_num);
+	bit = NCT_PIN_BIT(sc, pin_num);
 
 	if (GET_BIT(sc->cache.out_known[group], bit)) {
 		val = GET_BIT(sc->cache.out[group], bit);
 
 		NCT_VERBOSE_PRINTF(sc->dev,
-			"read %d from output pin %u<GPIO%u%u>, cache hit\n",
-			val, pin_num, group, bit);
+		    "read %d from output pin %u<GPIO%u%u>, cache hit\n", val,
+		    pin_num, group, bit);
 
 		return (val);
 	}
@@ -1090,12 +1102,13 @@ static struct nct_device *
 nct_lookup_device(device_t dev)
 {
 	struct nct_device *nctdevp;
-	uint16_t           devid;
-	int                i, extid;
+	uint16_t devid;
+	int i, extid;
 
 	devid = superio_devid(dev);
 	extid = superio_extid(dev);
-	for (i = 0, nctdevp = nct_devices; i < nitems(nct_devices); i++, nctdevp++) {
+	for (i = 0, nctdevp = nct_devices; i < nitems(nct_devices);
+	     i++, nctdevp++) {
 		if (devid == nctdevp->devid && nctdevp->extid == extid)
 			return (nctdevp);
 	}
@@ -1106,7 +1119,7 @@ static int
 nct_probe(device_t dev)
 {
 	struct nct_device *nctdevp;
-	uint8_t            ldn;
+	uint8_t ldn;
 
 	ldn = superio_get_ldn(dev);
 
@@ -1137,12 +1150,13 @@ nct_attach(device_t dev)
 	uint8_t v;
 	int flags, i, g;
 
-	sc          = device_get_softc(dev);
-	sc->dev     = dev;
+	sc = device_get_softc(dev);
+	sc->dev = dev;
 	sc->nctdevp = nct_lookup_device(dev);
 
 	flags = 0;
-	(void)resource_int_value(device_get_name(dev), device_get_unit(dev), "flags", &flags);
+	(void)resource_int_value(device_get_name(dev), device_get_unit(dev),
+	    "flags", &flags);
 
 	if ((flags & NCT_PREFER_INDIRECT_CHANNEL) == 0) {
 		uint16_t iobase;
@@ -1150,11 +1164,12 @@ nct_attach(device_t dev)
 
 		/*
 		 * As strange as it may seem, I/O port base is configured in the
-		 * Logical Device 8 which is primarily used for WDT, but also plays
-		 * a role in GPIO configuration.
+		 * Logical Device 8 which is primarily used for WDT, but also
+		 * plays a role in GPIO configuration.
 		 */
 		iobase = 0;
-		dev_8 = superio_find_dev(device_get_parent(dev), SUPERIO_DEV_WDT, 8);
+		dev_8 = superio_find_dev(device_get_parent(dev),
+		    SUPERIO_DEV_WDT, 8);
 		if (dev_8 != NULL)
 			iobase = superio_get_iobase(dev_8);
 		if (iobase != 0 && iobase != 0xffff) {
@@ -1164,29 +1179,34 @@ nct_attach(device_t dev)
 			sc->curgrp = -1;
 			sc->iorid = 0;
 			err = bus_set_resource(dev, SYS_RES_IOPORT, sc->iorid,
-				iobase, 7); /* FIXME NCT6796D-E have 8 registers according to table 18.3. */
+			    iobase, 7); /* FIXME NCT6796D-E have 8 registers
+					   according to table 18.3. */
 			if (err == 0) {
-				sc->iores = bus_alloc_resource_any(dev, SYS_RES_IOPORT,
-					&sc->iorid, RF_ACTIVE);
+				sc->iores = bus_alloc_resource_any(dev,
+				    SYS_RES_IOPORT, &sc->iorid, RF_ACTIVE);
 				if (sc->iores == NULL) {
-					device_printf(dev, "can't map i/o space, "
-						"iobase=%#x\n", iobase);
+					device_printf(dev,
+					    "can't map i/o space, "
+					    "iobase=%#x\n",
+					    iobase);
 				}
 			} else {
 				device_printf(dev,
-					"failed to set io port resource at %#x\n", iobase);
+				    "failed to set io port resource at %#x\n",
+				    iobase);
 			}
 		}
 	}
-	NCT_VERBOSE_PRINTF(dev, "iores %p %s channel\n",
-		sc->iores, (sc->iores ? "direct" : "indirect"));
+	NCT_VERBOSE_PRINTF(dev, "iores %p %s channel\n", sc->iores,
+	    (sc->iores ? "direct" : "indirect"));
 
 	/* Enable GPIO groups */
-	for (g = 0, gp = sc->nctdevp->groups; g < sc->nctdevp->ngroups; g++, gp++) {
+	for (g = 0, gp = sc->nctdevp->groups; g < sc->nctdevp->ngroups;
+	     g++, gp++) {
 		NCT_VERBOSE_PRINTF(dev,
-			"GPIO%d: %d pins, enable with mask 0x%x via ldn 0x%x reg 0x%x\n",
-			gp->grpnum, gp->npins, gp->enable_mask, gp->enable_ldn,
-			gp->enable_reg);
+		    "GPIO%d: %d pins, enable with mask 0x%x via ldn 0x%x reg 0x%x\n",
+		    gp->grpnum, gp->npins, gp->enable_mask, gp->enable_ldn,
+		    gp->enable_reg);
 		v = superio_ldn_read(dev, gp->enable_ldn, gp->enable_reg);
 		v |= gp->enable_mask;
 		superio_ldn_write(dev, gp->enable_ldn, gp->enable_reg, v);
@@ -1195,22 +1215,24 @@ nct_attach(device_t dev)
 	GPIO_LOCK_INIT(sc);
 	GPIO_LOCK(sc);
 
-	pin_num   = 0;
+	pin_num = 0;
 	sc->npins = 0;
-	for (g = 0, gp = sc->nctdevp->groups; g < sc->nctdevp->ngroups; g++, gp++) {
+	for (g = 0, gp = sc->nctdevp->groups; g < sc->nctdevp->ngroups;
+	     g++, gp++) {
 
 		sc->grpmap[gp->grpnum] = gp;
 
 		/*
-		 * Caching input values is meaningless as an input can be changed at any
-		 * time by an external agent.  But outputs are controlled by this
-		 * driver, so it can cache their state.  Also, the hardware remembers
-		 * the output state of a pin when the pin is switched to input mode and
-		 * then back to output mode.  So, the cache stays valid.
-		 * The only problem is with pins that are in input mode at the attach
-		 * time.  For them the output state is not known until it is set by the
-		 * driver for the first time.
-		 * 'out' and 'out_known' bits form a tri-state output cache:
+		 * Caching input values is meaningless as an input can be
+		 * changed at any time by an external agent.  But outputs are
+		 * controlled by this driver, so it can cache their state. Also,
+		 * the hardware remembers the output state of a pin when the pin
+		 * is switched to input mode and then back to output mode.  So,
+		 * the cache stays valid. The only problem is with pins that are
+		 * in input mode at the attach time.  For them the output state
+		 * is not known until it is set by the driver for the first
+		 * time. 'out' and 'out_known' bits form a tri-state output
+		 * cache:
 		 * |-----+-----------+---------|
 		 * | out | out_known | cache   |
 		 * |-----+-----------+---------|
@@ -1219,26 +1241,29 @@ nct_attach(device_t dev)
 		 * |   1 |         1 |       1 |
 		 * |-----+-----------+---------|
 		 */
-		sc->cache.inv[gp->grpnum]       = nct_read_reg(sc, REG_INV, gp->grpnum);
-		sc->cache.ior[gp->grpnum]       = nct_read_reg(sc, REG_IOR, gp->grpnum);
-		sc->cache.out[gp->grpnum]       = nct_read_reg(sc, REG_DAT, gp->grpnum);
+		sc->cache.inv[gp->grpnum] = nct_read_reg(sc, REG_INV,
+		    gp->grpnum);
+		sc->cache.ior[gp->grpnum] = nct_read_reg(sc, REG_IOR,
+		    gp->grpnum);
+		sc->cache.out[gp->grpnum] = nct_read_reg(sc, REG_DAT,
+		    gp->grpnum);
 		sc->cache.out_known[gp->grpnum] = ~sc->cache.ior[gp->grpnum];
 
 		sc->npins += gp->npins;
 		for (i = 0; i < gp->npins; i++, pin_num++) {
 			struct gpio_pin *pin;
 
-			sc->pinmap[pin_num].group  = gp;
+			sc->pinmap[pin_num].group = gp;
 			sc->pinmap[pin_num].grpnum = gp->grpnum;
-			sc->pinmap[pin_num].bit    = gp->pinbits[i];
+			sc->pinmap[pin_num].bit = gp->pinbits[i];
 
-			pin           = &sc->pins[pin_num];
-			pin->gp_pin   = pin_num;
-			pin->gp_caps  = gp->caps;
+			pin = &sc->pins[pin_num];
+			pin->gp_pin = pin_num;
+			pin->gp_caps = gp->caps;
 			pin->gp_flags = 0;
 
 			snprintf(pin->gp_name, GPIOMAXNAME, "GPIO%u%u",
-				gp->grpnum, gp->pinbits[i]);
+			    gp->grpnum, gp->pinbits[i]);
 
 			if (nct_pin_is_input(sc, pin_num))
 				pin->gp_flags |= GPIO_PIN_INPUT;
@@ -1251,7 +1276,8 @@ nct_attach(device_t dev)
 				pin->gp_flags |= GPIO_PIN_PUSHPULL;
 
 			if (nct_pin_is_inverted(sc, pin_num))
-				pin->gp_flags |= (GPIO_PIN_INVIN | GPIO_PIN_INVOUT);
+				pin->gp_flags |= (GPIO_PIN_INVIN |
+				    GPIO_PIN_INVOUT);
 		}
 	}
 	NCT_VERBOSE_PRINTF(dev, "%d pins available\n", sc->npins);
@@ -1299,7 +1325,7 @@ nct_gpio_pin_max(device_t dev, int *maxpin)
 {
 	struct nct_softc *sc;
 
-	sc      = device_get_softc(dev);
+	sc = device_get_softc(dev);
 	*maxpin = sc->npins - 1;
 	return (0);
 }
@@ -1439,16 +1465,16 @@ nct_gpio_pin_setflags(device_t dev, uint32_t pin_num, uint32_t flags)
 		return (EINVAL);
 
 	if ((flags & (GPIO_PIN_INPUT | GPIO_PIN_OUTPUT)) ==
-		(GPIO_PIN_INPUT | GPIO_PIN_OUTPUT)) {
-			return (EINVAL);
+	    (GPIO_PIN_INPUT | GPIO_PIN_OUTPUT)) {
+		return (EINVAL);
 	}
 	if ((flags & (GPIO_PIN_OPENDRAIN | GPIO_PIN_PUSHPULL)) ==
-		(GPIO_PIN_OPENDRAIN | GPIO_PIN_PUSHPULL)) {
-			return (EINVAL);
+	    (GPIO_PIN_OPENDRAIN | GPIO_PIN_PUSHPULL)) {
+		return (EINVAL);
 	}
 	if ((flags & (GPIO_PIN_INVIN | GPIO_PIN_INVOUT)) ==
-		(GPIO_PIN_INVIN | GPIO_PIN_INVOUT)) {
-			return (EINVAL);
+	    (GPIO_PIN_INVIN | GPIO_PIN_INVOUT)) {
+		return (EINVAL);
 	}
 
 	GPIO_ASSERT_UNLOCKED(sc);
@@ -1477,8 +1503,8 @@ nct_gpio_pin_setflags(device_t dev, uint32_t pin_num, uint32_t flags)
 		else
 			nct_set_pin_pushpull(sc, pin_num);
 		pin->gp_flags &= ~(GPIO_PIN_OPENDRAIN | GPIO_PIN_PUSHPULL);
-		pin->gp_flags |=
-		    flags & (GPIO_PIN_OPENDRAIN | GPIO_PIN_PUSHPULL);
+		pin->gp_flags |= flags &
+		    (GPIO_PIN_OPENDRAIN | GPIO_PIN_PUSHPULL);
 	}
 	GPIO_UNLOCK(sc);
 
@@ -1487,29 +1513,25 @@ nct_gpio_pin_setflags(device_t dev, uint32_t pin_num, uint32_t flags)
 
 static device_method_t nct_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		nct_probe),
-	DEVMETHOD(device_attach,	nct_attach),
-	DEVMETHOD(device_detach,	nct_detach),
+	DEVMETHOD(device_probe, nct_probe),
+	DEVMETHOD(device_attach, nct_attach),
+	DEVMETHOD(device_detach, nct_detach),
 
 	/* GPIO */
-	DEVMETHOD(gpio_get_bus,		nct_gpio_get_bus),
-	DEVMETHOD(gpio_pin_max,		nct_gpio_pin_max),
-	DEVMETHOD(gpio_pin_get,		nct_gpio_pin_get),
-	DEVMETHOD(gpio_pin_set,		nct_gpio_pin_set),
-	DEVMETHOD(gpio_pin_toggle,	nct_gpio_pin_toggle),
-	DEVMETHOD(gpio_pin_getname,	nct_gpio_pin_getname),
-	DEVMETHOD(gpio_pin_getcaps,	nct_gpio_pin_getcaps),
-	DEVMETHOD(gpio_pin_getflags,	nct_gpio_pin_getflags),
-	DEVMETHOD(gpio_pin_setflags,	nct_gpio_pin_setflags),
+	DEVMETHOD(gpio_get_bus, nct_gpio_get_bus),
+	DEVMETHOD(gpio_pin_max, nct_gpio_pin_max),
+	DEVMETHOD(gpio_pin_get, nct_gpio_pin_get),
+	DEVMETHOD(gpio_pin_set, nct_gpio_pin_set),
+	DEVMETHOD(gpio_pin_toggle, nct_gpio_pin_toggle),
+	DEVMETHOD(gpio_pin_getname, nct_gpio_pin_getname),
+	DEVMETHOD(gpio_pin_getcaps, nct_gpio_pin_getcaps),
+	DEVMETHOD(gpio_pin_getflags, nct_gpio_pin_getflags),
+	DEVMETHOD(gpio_pin_setflags, nct_gpio_pin_setflags),
 
 	DEVMETHOD_END
 };
 
-static driver_t nct_driver = {
-	"gpio",
-	nct_methods,
-	sizeof(struct nct_softc)
-};
+static driver_t nct_driver = { "gpio", nct_methods, sizeof(struct nct_softc) };
 
 DRIVER_MODULE(nctgpio, superio, nct_driver, NULL, NULL);
 MODULE_DEPEND(nctgpio, gpiobus, 1, 1, 1);

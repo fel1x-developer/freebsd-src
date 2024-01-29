@@ -30,6 +30,7 @@
  */
 
 #include <sys/types.h>
+
 #include <err.h>
 #include <errno.h>
 #include <limits.h>
@@ -40,7 +41,7 @@
 #include <unistd.h>
 #include <wchar.h>
 
-#define	TAB	8
+#define TAB 8
 
 void check(FILE *);
 static void usage(void) __dead2;
@@ -55,7 +56,7 @@ main(int argc, char *argv[])
 	setlocale(LC_ALL, "");
 
 	while ((ch = getopt(argc, argv, "")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case '?':
 		default:
 			usage();
@@ -64,7 +65,7 @@ main(int argc, char *argv[])
 	argv += optind;
 
 	start = stop = 0;
-	switch(argc) {
+	switch (argc) {
 	case 2:
 		stop = strtol(argv[1], &p, 10);
 		if (stop <= 0 || *p)
@@ -126,4 +127,3 @@ usage(void)
 	(void)fprintf(stderr, "usage: colrm [start [stop]]\n");
 	exit(1);
 }
-

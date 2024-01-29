@@ -34,17 +34,19 @@
  */
 
 #include <sys/types.h>
-#include <sys/time.h>
 #include <sys/stat.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdio.h>
+#include <sys/time.h>
+
 #include <errno.h>
-#include <stdlib.h>
 #include <fts.h>
-#include "pax.h"
-#include "ftree.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
 #include "extern.h"
+#include "ftree.h"
+#include "pax.h"
 
 /*
  * routines to interface with the fts library function.
@@ -60,14 +62,14 @@
  * pax, they are read from stdin
  */
 
-static FTS *ftsp = NULL;		/* current FTS handle */
-static int ftsopts;			/* options to be used on fts_open */
-static char *farray[2];			/* array for passing each arg to fts */
-static FTREE *fthead = NULL;		/* head of linked list of file args */
-static FTREE *fttail = NULL;		/* tail of linked list of file args */
-static FTREE *ftcur = NULL;		/* current file arg being processed */
-static FTSENT *ftent = NULL;		/* current file tree entry */
-static int ftree_skip;			/* when set skip to next file arg */
+static FTS *ftsp = NULL;     /* current FTS handle */
+static int ftsopts;	     /* options to be used on fts_open */
+static char *farray[2];	     /* array for passing each arg to fts */
+static FTREE *fthead = NULL; /* head of linked list of file args */
+static FTREE *fttail = NULL; /* tail of linked list of file args */
+static FTREE *ftcur = NULL;  /* current file arg being processed */
+static FTSENT *ftent = NULL; /* current file tree entry */
+static int ftree_skip;	     /* when set skip to next file arg */
 
 static int ftree_arg(void);
 
@@ -111,16 +113,17 @@ ftree_start(void)
 	if (Xflag)
 		ftsopts |= FTS_XDEV;
 
-	if ((fthead == NULL) && ((farray[0] = malloc(PAXPATHLEN+2)) == NULL)) {
+	if ((fthead == NULL) &&
+	    ((farray[0] = malloc(PAXPATHLEN + 2)) == NULL)) {
 		paxwarn(1, "Unable to allocate memory for file name buffer");
-		return(-1);
+		return (-1);
 	}
 
 	if (ftree_arg() < 0)
-		return(-1);
+		return (-1);
 	if (tflag && (atdir_start() < 0))
-		return(-1);
-	return(0);
+		return (-1);
+	return (0);
 }
 
 /*
@@ -142,7 +145,7 @@ ftree_add(char *str, int chflg)
 	 */
 	if ((str == NULL) || (*str == '\0')) {
 		paxwarn(0, "Invalid file name argument");
-		return(-1);
+		return (-1);
 	}
 
 	/*
@@ -152,7 +155,7 @@ ftree_add(char *str, int chflg)
 	 */
 	if ((ft = (FTREE *)malloc(sizeof(FTREE))) == NULL) {
 		paxwarn(0, "Unable to allocate memory for filename");
-		return(-1);
+		return (-1);
 	}
 
 	if (((len = strlen(str) - 1) > 0) && (str[len] == '/'))
@@ -163,11 +166,11 @@ ftree_add(char *str, int chflg)
 	ft->fow = NULL;
 	if (fthead == NULL) {
 		fttail = fthead = ft;
-		return(0);
+		return (0);
 	}
 	fttail->fow = ft;
 	fttail = ft;
-	return(0);
+	return (0);
 }
 
 /*
@@ -241,7 +244,8 @@ ftree_chk(void)
 		if ((ft->refcnt > 0) || ft->chflg)
 			continue;
 		if (wban == 0) {
-			paxwarn(1,"WARNING! These file names were not selected:");
+			paxwarn(1,
+			    "WARNING! These file names were not selected:");
 			++wban;
 		}
 		(void)fprintf(stderr, "%s\n", ft->fname);
@@ -275,14 +279,14 @@ ftree_arg(void)
 	 * keep looping until we get a valid file tree to process. Stop when we
 	 * reach the end of the list (or get an eof on stdin)
 	 */
-	for(;;) {
+	for (;;) {
 		if (fthead == NULL) {
 			/*
 			 * the user didn't supply any args, get the file trees
 			 * to process from stdin;
 			 */
-			if (fgets(farray[0], PAXPATHLEN+1, stdin) == NULL)
-				return(-1);
+			if (fgets(farray[0], PAXPATHLEN + 1, stdin) == NULL)
+				return (-1);
 			if ((pt = strchr(farray[0], '\n')) != NULL)
 				*pt = '\0';
 		} else {
@@ -292,18 +296,18 @@ ftree_arg(void)
 			if (ftcur == NULL)
 				ftcur = fthead;
 			else if ((ftcur = ftcur->fow) == NULL)
-				return(-1);
+				return (-1);
 			if (ftcur->chflg) {
 				/* First fchdir() back... */
 				if (fchdir(cwdfd) < 0) {
 					syswarn(1, errno,
-					  "Can't fchdir to starting directory");
-					return(-1);
+					    "Can't fchdir to starting directory");
+					return (-1);
 				}
 				if (chdir(ftcur->fname) < 0) {
 					syswarn(1, errno, "Can't chdir to %s",
 					    ftcur->fname);
-					return(-1);
+					return (-1);
 				}
 				continue;
 			} else
@@ -322,7 +326,7 @@ ftree_arg(void)
 		if ((ftsp = fts_open(farray, ftsopts, NULL)) != NULL)
 			break;
 	}
-	return(0);
+	return (0);
 }
 
 /*
@@ -351,27 +355,27 @@ next_file(ARCHD *arcn)
 		 */
 		ftree_skip = 0;
 		if (ftree_arg() < 0)
-			return(-1);
+			return (-1);
 	}
 
 	/*
 	 * loop until we get a valid file to process
 	 */
-	for(;;) {
+	for (;;) {
 		if ((ftent = fts_read(ftsp)) == NULL) {
 			/*
 			 * out of files in this tree, go to next arg, if none
 			 * we are done
 			 */
 			if (ftree_arg() < 0)
-				return(-1);
+				return (-1);
 			continue;
 		}
 
 		/*
 		 * handle each type of fts_read() flag
 		 */
-		switch(ftent->fts_info) {
+		switch (ftent->fts_info) {
 		case FTS_D:
 		case FTS_DEFAULT:
 		case FTS_F:
@@ -390,8 +394,9 @@ next_file(ARCHD *arcn)
 			 * remember to force the time (this is -t on a read
 			 * directory, not a created directory).
 			 */
-			if (!tflag || (get_atdir(ftent->fts_statp->st_dev,
-			    ftent->fts_statp->st_ino, &mtime, &atime) < 0))
+			if (!tflag ||
+			    (get_atdir(ftent->fts_statp->st_dev,
+				 ftent->fts_statp->st_ino, &mtime, &atime) < 0))
 				continue;
 			set_ftime(ftent->fts_path, mtime, atime, 1);
 			continue;
@@ -399,7 +404,8 @@ next_file(ARCHD *arcn)
 			/*
 			 * fts claims a file system cycle
 			 */
-			paxwarn(1,"File system cycle found at %s",ftent->fts_path);
+			paxwarn(1, "File system cycle found at %s",
+			    ftent->fts_path);
 			continue;
 		case FTS_DNR:
 			syswarn(1, ftent->fts_errno,
@@ -411,8 +417,8 @@ next_file(ARCHD *arcn)
 			continue;
 		case FTS_NS:
 		case FTS_NSOK:
-			syswarn(1, ftent->fts_errno,
-			    "Unable to access %s", ftent->fts_path);
+			syswarn(1, ftent->fts_errno, "Unable to access %s",
+			    ftent->fts_path);
 			continue;
 		}
 
@@ -436,7 +442,7 @@ next_file(ARCHD *arcn)
 		 * end in case we cut short a file tree traversal). However
 		 * there is no way to reset access times on symlinks.
 		 */
-		switch(S_IFMT & arcn->sb.st_mode) {
+		switch (S_IFMT & arcn->sb.st_mode) {
 		case S_IFDIR:
 			arcn->type = PAX_DIR;
 			if (!tflag)
@@ -467,7 +473,7 @@ next_file(ARCHD *arcn)
 			 * have to read the symlink path from the file
 			 */
 			if ((cnt = readlink(ftent->fts_path, arcn->ln_name,
-			    PAXPATHLEN - 1)) < 0) {
+				 PAXPATHLEN - 1)) < 0) {
 				syswarn(1, errno, "Unable to read symlink %s",
 				    ftent->fts_path);
 				continue;
@@ -497,8 +503,9 @@ next_file(ARCHD *arcn)
 	/*
 	 * copy file name, set file name length
 	 */
-	arcn->nlen = l_strncpy(arcn->name, ftent->fts_path, sizeof(arcn->name) - 1);
+	arcn->nlen = l_strncpy(arcn->name, ftent->fts_path,
+	    sizeof(arcn->name) - 1);
 	arcn->name[arcn->nlen] = '\0';
 	arcn->org_name = ftent->fts_path;
-	return(0);
+	return (0);
 }

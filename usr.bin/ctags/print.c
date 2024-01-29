@@ -30,6 +30,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <limits.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -44,10 +45,10 @@
 void
 get_line(void)
 {
-	long	saveftell;
-	int	c;
-	int	cnt;
-	char	*cp;
+	long saveftell;
+	int c;
+	int cnt;
+	char *cp;
 
 	saveftell = ftell(inf);
 	(void)fseek(inf, lineftell, L_SET);
@@ -59,26 +60,27 @@ get_line(void)
 	 * line more than once; means you don't call this routine
 	 * unless you're sure you've got a keeper.
 	 */
-	else for (cnt = 0, cp = lbuf; GETC(!=, EOF) && cnt < ENDLINE; ++cnt) {
-		if (c == '\\') {		/* backslashes */
-			if (cnt > ENDLINE - 2)
+	else
+		for (cnt = 0, cp = lbuf; GETC(!=, EOF) && cnt < ENDLINE;
+		     ++cnt) {
+			if (c == '\\') { /* backslashes */
+				if (cnt > ENDLINE - 2)
+					break;
+				*cp++ = '\\';
+				*cp++ = '\\';
+				++cnt;
+			} else if (c == (int)searchar) { /* search character */
+				if (cnt > ENDLINE - 2)
+					break;
+				*cp++ = '\\';
+				*cp++ = c;
+				++cnt;
+			} else if (c == '\n') { /* end of keep */
+				*cp++ = '$';	/* can find whole line */
 				break;
-			*cp++ = '\\'; *cp++ = '\\';
-			++cnt;
+			} else
+				*cp++ = c;
 		}
-		else if (c == (int)searchar) {	/* search character */
-			if (cnt > ENDLINE - 2)
-				break;
-			*cp++ = '\\'; *cp++ = c;
-			++cnt;
-		}
-		else if (c == '\n') {	/* end of keep */
-			*cp++ = '$';		/* can find whole line */
-			break;
-		}
-		else
-			*cp++ = c;
-	}
 	*cp = EOS;
 	(void)fseek(inf, saveftell, L_SET);
 }
@@ -94,14 +96,14 @@ put_entries(NODE *node)
 	if (node->left)
 		put_entries(node->left);
 	if (vflag)
-		printf("%s %s %d\n",
-		    node->entry, node->file, (node->lno + 63) / 64);
+		printf("%s %s %d\n", node->entry, node->file,
+		    (node->lno + 63) / 64);
 	else if (xflag)
-		printf("%-16s %4d %-16s %s\n",
-		    node->entry, node->lno, node->file, node->pat);
+		printf("%-16s %4d %-16s %s\n", node->entry, node->lno,
+		    node->file, node->pat);
 	else
-		fprintf(outf, "%s\t%s\t%c^%s%c\n",
-		    node->entry, node->file, searchar, node->pat, searchar);
+		fprintf(outf, "%s\t%s\t%c^%s%c\n", node->entry, node->file,
+		    searchar, node->pat, searchar);
 	if (node->right)
 		put_entries(node->right);
 }

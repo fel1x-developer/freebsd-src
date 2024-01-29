@@ -17,28 +17,29 @@
  * OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "port_before.h"
-
 #include <sys/param.h>
 #include <sys/socket.h>
 
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
 #include <arpa/nameser.h>
-
 #include <ctype.h>
 #include <resolv.h>
 #include <resolv_mt.h>
 
 #include "port_after.h"
+#include "port_before.h"
 
 static char
-xtob(int c) {
+xtob(int c)
+{
 	return (c - (((c >= '0') && (c <= '9')) ? '0' : '7'));
 }
 
 u_int
-inet_nsap_addr(const char *ascii, u_char *binary, int maxlen) {
+inet_nsap_addr(const char *ascii, u_char *binary, int maxlen)
+{
 	u_char c, nib;
 	u_int len = 0;
 
@@ -63,18 +64,17 @@ inet_nsap_addr(const char *ascii, u_char *binary, int maxlen) {
 					len++;
 				} else
 					return (0);
-			}
-			else
+			} else
 				return (0);
-		}
-		else
+		} else
 			return (0);
 	}
 	return (len);
 }
 
 char *
-inet_nsap_ntoa(int binlen, const u_char *binary, char *ascii) {
+inet_nsap_ntoa(int binlen, const u_char *binary, char *ascii)
+{
 	int nib;
 	int i;
 	char *tmpbuf = inet_nsap_ntoa_tmpbuf;

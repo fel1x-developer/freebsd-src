@@ -26,8 +26,8 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
-#ifndef	__IF_BWN_CORDIC_H__
-#define	__IF_BWN_CORDIC_H__
+#ifndef __IF_BWN_CORDIC_H__
+#define __IF_BWN_CORDIC_H__
 
 /*
  * These functions are used by the PHY code.
@@ -39,13 +39,29 @@ struct bwn_c32 {
 	int32_t q;
 };
 
-#define	CORDIC_CONVERT(value)	(((value) >= 0) ?	\
-	    ((((value) >> 15) + 1) >> 1) :		\
-	    -((((-(value)) >> 15) + 1) >> 1))
+#define CORDIC_CONVERT(value)                            \
+	(((value) >= 0) ? ((((value) >> 15) + 1) >> 1) : \
+			  -((((-(value)) >> 15) + 1) >> 1))
 
 static const uint32_t bwn_arctg[] = {
-    2949120, 1740967, 919879, 466945, 234379, 117304, 58666, 29335, 14668,
-    7334, 3667, 1833, 917, 458, 229, 115, 57, 29,
+	2949120,
+	1740967,
+	919879,
+	466945,
+	234379,
+	117304,
+	58666,
+	29335,
+	14668,
+	7334,
+	3667,
+	1833,
+	917,
+	458,
+	229,
+	115,
+	57,
+	29,
 };
 
 /* http://bcm-v4.sipsolutions.net/802.11/PHY/Cordic */
@@ -56,7 +72,10 @@ bwn_cordic(int theta)
 	int32_t tmp;
 	int8_t signx = 1;
 	uint32_t angle = 0;
-	struct bwn_c32 ret = { .i = 39797, .q = 0, };
+	struct bwn_c32 ret = {
+		.i = 39797,
+		.q = 0,
+	};
 
 	while (theta > (180 << 16))
 		theta -= (360 << 16);
@@ -91,4 +110,4 @@ bwn_cordic(int theta)
 	return ret;
 }
 
-#endif	/* __IF_BWN_CORDIC_H__ */
+#endif /* __IF_BWN_CORDIC_H__ */

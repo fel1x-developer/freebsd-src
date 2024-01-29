@@ -30,22 +30,23 @@
 #include <sys/types.h>
 #include <sys/syscall.h>
 
-#include "namespace.h"
 #include <errno.h>
-#include <stddef.h>
 #include <signal.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <time.h>
+
+#include "namespace.h"
 #include "sigev_thread.h"
 #include "un-namespace.h"
 
 extern int __sys_ktimer_create(clockid_t, struct sigevent *__restrict,
-	int *__restrict);
+    int *__restrict);
 extern int __sys_ktimer_delete(int);
 extern int __sys_ktimer_gettime(int, struct itimerspec *);
 extern int __sys_ktimer_getoverrun(int);
-extern int __sys_ktimer_settime(int, int,
-	const struct itimerspec *__restrict, struct itimerspec *__restrict);
+extern int __sys_ktimer_settime(int, int, const struct itimerspec *__restrict,
+    struct itimerspec *__restrict);
 
 struct __timer {
 	int oshandle;
@@ -147,7 +148,7 @@ __timer_delete(timer_t timerid)
 	err = errno;
 	free(timerid);
 	errno = err;
-	return (ret);	
+	return (ret);
 }
 
 int
@@ -166,12 +167,11 @@ __timer_getoverrun(timer_t timerid)
 
 int
 __timer_settime(timer_t timerid, int flags,
-	const struct itimerspec *__restrict value,
-	struct itimerspec *__restrict ovalue)
+    const struct itimerspec *__restrict value,
+    struct itimerspec *__restrict ovalue)
 {
 
-	return __sys_ktimer_settime(timerid->oshandle,
-		flags, value, ovalue);
+	return __sys_ktimer_settime(timerid->oshandle, flags, value, ovalue);
 }
 
 #pragma weak timer_oshandle_np

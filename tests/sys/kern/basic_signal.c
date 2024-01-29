@@ -12,16 +12,16 @@
 
 #if defined(__aarch64__)
 #include <machine/armreg.h>
-#define	SET_TRACE_FLAG(ucp)	(ucp)->uc_mcontext.mc_gpregs.gp_spsr |= PSR_SS
-#define	CLR_TRACE_FLAG(ucp)	(ucp)->uc_mcontext.mc_gpregs.gp_spsr &= ~PSR_SS
+#define SET_TRACE_FLAG(ucp) (ucp)->uc_mcontext.mc_gpregs.gp_spsr |= PSR_SS
+#define CLR_TRACE_FLAG(ucp) (ucp)->uc_mcontext.mc_gpregs.gp_spsr &= ~PSR_SS
 #elif defined(__amd64__)
 #include <machine/psl.h>
-#define	SET_TRACE_FLAG(ucp)	(ucp)->uc_mcontext.mc_rflags |= PSL_T
-#define	CLR_TRACE_FLAG(ucp)	(ucp)->uc_mcontext.mc_rflags &= ~PSL_T
+#define SET_TRACE_FLAG(ucp) (ucp)->uc_mcontext.mc_rflags |= PSL_T
+#define CLR_TRACE_FLAG(ucp) (ucp)->uc_mcontext.mc_rflags &= ~PSL_T
 #elif defined(__i386__)
 #include <machine/psl.h>
-#define	SET_TRACE_FLAG(ucp)	(ucp)->uc_mcontext.mc_eflags |= PSL_T
-#define	CLR_TRACE_FLAG(ucp)	(ucp)->uc_mcontext.mc_eflags &= ~PSL_T
+#define SET_TRACE_FLAG(ucp) (ucp)->uc_mcontext.mc_eflags |= PSL_T
+#define CLR_TRACE_FLAG(ucp) (ucp)->uc_mcontext.mc_eflags &= ~PSL_T
 #endif
 
 static volatile sig_atomic_t signal_fired = 0;
@@ -153,16 +153,17 @@ sig_t32(int signo, siginfo_t *info __unused, void *ucp __unused)
 	t32_fired++;
 }
 
-
 ATF_TC(signal_test_T32_to_A32);
 
 ATF_TC_HEAD(signal_test_T32_to_A32, tc)
 {
 
-	atf_tc_set_md_var(tc, "descr", "Testing delivery of a signal from T32 to A32");
+	atf_tc_set_md_var(tc, "descr",
+	    "Testing delivery of a signal from T32 to A32");
 }
 
-t32_isa ATF_TC_BODY(signal_test_T32_to_A32, tc)
+t32_isa
+ATF_TC_BODY(signal_test_T32_to_A32, tc)
 {
 	/*
 	 * Setup the signal handlers
@@ -174,7 +175,8 @@ t32_isa ATF_TC_BODY(signal_test_T32_to_A32, tc)
 	ATF_REQUIRE(sigemptyset(&sa.sa_mask) == 0);
 	ATF_REQUIRE(sigaction(SIGUSR1, &sa, NULL) == 0);
 
-	ATF_REQUIRE((((uintptr_t)sig_a32) & 1) == 0); /* Make sure compiled as not thumb */
+	ATF_REQUIRE((((uintptr_t)sig_a32) & 1) ==
+	    0); /* Make sure compiled as not thumb */
 
 	ATF_CHECK(a32_fired == 0);
 	ATF_REQUIRE(raise(SIGUSR1) == 0);
@@ -186,10 +188,12 @@ ATF_TC(signal_test_A32_to_T32);
 ATF_TC_HEAD(signal_test_A32_to_T32, tc)
 {
 
-	atf_tc_set_md_var(tc, "descr", "Testing delivery of a signal from A32 to T32");
+	atf_tc_set_md_var(tc, "descr",
+	    "Testing delivery of a signal from A32 to T32");
 }
 
-a32_isa ATF_TC_BODY(signal_test_A32_to_T32, tc)
+a32_isa
+ATF_TC_BODY(signal_test_A32_to_T32, tc)
 {
 	/*
 	 * Setup the signal handlers
@@ -201,7 +205,8 @@ a32_isa ATF_TC_BODY(signal_test_A32_to_T32, tc)
 	ATF_REQUIRE(sigemptyset(&sa.sa_mask) == 0);
 	ATF_REQUIRE(sigaction(SIGUSR1, &sa, NULL) == 0);
 
-	ATF_REQUIRE((((uintptr_t)sig_t32) & 1) == 1);	/* Make sure compiled as thumb */
+	ATF_REQUIRE(
+	    (((uintptr_t)sig_t32) & 1) == 1); /* Make sure compiled as thumb */
 
 	ATF_CHECK(t32_fired == 0);
 	ATF_REQUIRE(raise(SIGUSR1) == 0);

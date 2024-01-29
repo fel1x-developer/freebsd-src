@@ -36,14 +36,14 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/namei.h>
 #include <sys/bio.h>
 #include <sys/buf.h>
-#include <sys/vnode.h>
 #include <sys/mount.h>
+#include <sys/namei.h>
+#include <sys/vnode.h>
 
-#include <fs/cd9660/iso.h>
 #include <fs/cd9660/cd9660_node.h>
+#include <fs/cd9660/iso.h>
 #include <fs/cd9660/iso_rrip.h>
 
 struct cd9660_ino_alloc_arg {
@@ -53,8 +53,7 @@ struct cd9660_ino_alloc_arg {
 };
 
 static int
-cd9660_ino_alloc(struct mount *mp, void *arg, int lkflags,
-    struct vnode **vpp)
+cd9660_ino_alloc(struct mount *mp, void *arg, int lkflags, struct vnode **vpp)
 {
 	struct cd9660_ino_alloc_arg *dd_arg;
 
@@ -98,22 +97,22 @@ cd9660_ino_alloc(struct mount *mp, void *arg, int lkflags,
 int
 cd9660_lookup(struct vop_cachedlookup_args *ap)
 {
-	struct vnode *vdp;		/* vnode for directory being searched */
-	struct iso_node *dp;		/* inode for directory being searched */
-	struct iso_mnt *imp;		/* filesystem that directory is in */
-	struct buf *bp;			/* a buffer of directory entries */
-	struct iso_directory_record *ep;/* the current directory entry */
-	struct iso_directory_record *ep2;/* copy of current directory entry */
-	int entryoffsetinblock;		/* offset of ep in bp's buffer */
-	int saveoffset = 0;		/* offset of last directory entry in dir */
-	doff_t i_diroff;		/* cached i_diroff value. */
-	doff_t i_offset;		/* cached i_offset value. */
-	int numdirpasses;		/* strategy for directory search */
-	doff_t endsearch;		/* offset to end directory search */
-	struct vnode *pdp;		/* saved dp during symlink work */
-	struct vnode *tdp;		/* returned by cd9660_vget_internal */
+	struct vnode *vdp;   /* vnode for directory being searched */
+	struct iso_node *dp; /* inode for directory being searched */
+	struct iso_mnt *imp; /* filesystem that directory is in */
+	struct buf *bp;	     /* a buffer of directory entries */
+	struct iso_directory_record *ep;  /* the current directory entry */
+	struct iso_directory_record *ep2; /* copy of current directory entry */
+	int entryoffsetinblock;		  /* offset of ep in bp's buffer */
+	int saveoffset = 0; /* offset of last directory entry in dir */
+	doff_t i_diroff;    /* cached i_diroff value. */
+	doff_t i_offset;    /* cached i_offset value. */
+	int numdirpasses;   /* strategy for directory search */
+	doff_t endsearch;   /* offset to end directory search */
+	struct vnode *pdp;  /* saved dp during symlink work */
+	struct vnode *tdp;  /* returned by cd9660_vget_internal */
 	struct cd9660_ino_alloc_arg dd_arg;
-	u_long bmask;			/* block offset mask */
+	u_long bmask; /* block offset mask */
 	int error;
 	cd_ino_t ino, i_ino;
 	int ltype, reclen;
@@ -146,8 +145,8 @@ cd9660_lookup(struct vop_cachedlookup_args *ap)
 	/*
 	 * A leading `=' means, we are looking for an associated file
 	 */
-	if ((assoc = (imp->iso_ftype != ISO_FTYPE_RRIP && *name == ASSOCCHAR)))
-	{
+	if ((assoc = (imp->iso_ftype != ISO_FTYPE_RRIP &&
+		 *name == ASSOCCHAR))) {
 		len--;
 		name++;
 	}
@@ -172,7 +171,7 @@ cd9660_lookup(struct vop_cachedlookup_args *ap)
 		i_offset = i_diroff;
 		if ((entryoffsetinblock = i_offset & bmask) &&
 		    (error = cd9660_blkatoff(vdp, (off_t)i_offset, NULL, &bp)))
-				return (error);
+			return (error);
 		numdirpasses = 2;
 		nchstats.ncs_2passes++;
 	}
@@ -188,22 +187,22 @@ searchloop:
 		if ((i_offset & bmask) == 0) {
 			if (bp != NULL)
 				brelse(bp);
-			if ((error =
-			    cd9660_blkatoff(vdp, (off_t)i_offset, NULL, &bp)) != 0)
+			if ((error = cd9660_blkatoff(vdp, (off_t)i_offset, NULL,
+				 &bp)) != 0)
 				return (error);
 			entryoffsetinblock = 0;
 		}
 		/*
 		 * Get pointer to next entry.
 		 */
-		ep = (struct iso_directory_record *)
-			((char *)bp->b_data + entryoffsetinblock);
+		ep = (struct iso_directory_record *)((char *)bp->b_data +
+		    entryoffsetinblock);
 
 		reclen = isonum_711(ep->length);
 		if (reclen == 0) {
 			/* skip to next block, if any */
-			i_offset =
-			    (i_offset & ~bmask) + imp->logical_block_size;
+			i_offset = (i_offset & ~bmask) +
+			    imp->logical_block_size;
 			continue;
 		}
 
@@ -216,8 +215,9 @@ searchloop:
 			break;
 
 		namelen = isonum_711(ep->name_len);
-		isoflags = isonum_711(imp->iso_ftype == ISO_FTYPE_HIGH_SIERRA?
-				      &ep->date[6]: ep->flags);
+		isoflags = isonum_711(imp->iso_ftype == ISO_FTYPE_HIGH_SIERRA ?
+			&ep->date[6] :
+			ep->flags);
 
 		if (reclen < ISO_DIRECTORY_RECORD_SIZE + namelen)
 			/* illegal entry, stop */
@@ -229,36 +229,34 @@ searchloop:
 		switch (imp->iso_ftype) {
 		default:
 			if (!(isoflags & 4) == !assoc) {
-				if ((len == 1
-				     && *name == '.')
-				    || (flags & ISDOTDOT)) {
-					if (namelen == 1
-					    && ep->name[0] == ((flags & ISDOTDOT) ? 1 : 0)) {
+				if ((len == 1 && *name == '.') ||
+				    (flags & ISDOTDOT)) {
+					if (namelen == 1 &&
+					    ep->name[0] ==
+						((flags & ISDOTDOT) ? 1 : 0)) {
 						/*
-						 * Save directory entry's inode number and
-						 * release directory buffer.
+						 * Save directory entry's inode
+						 * number and release directory
+						 * buffer.
 						 */
 						i_ino = isodirino(ep, imp);
 						goto found;
 					}
-					if (namelen != 1
-					    || ep->name[0] != 0)
+					if (namelen != 1 || ep->name[0] != 0)
 						goto notfound;
-				} else if (!(res = isofncmp(name, len,
-							    ep->name, namelen,
-							    imp->joliet_level,
-							    imp->im_flags,
-							    imp->im_d2l,
-							    imp->im_l2d))) {
+				} else if (!(res = isofncmp(name, len, ep->name,
+						 namelen, imp->joliet_level,
+						 imp->im_flags, imp->im_d2l,
+						 imp->im_l2d))) {
 					if (isoflags & 2)
 						ino = isodirino(ep, imp);
 					else
-						ino = dbtob(bp->b_blkno)
-							+ entryoffsetinblock;
+						ino = dbtob(bp->b_blkno) +
+						    entryoffsetinblock;
 					saveoffset = i_offset;
 				} else if (ino)
 					goto foundino;
-#ifdef	NOSORTBUG	/* On some CDs directory entries are not sorted correctly */
+#ifdef NOSORTBUG /* On some CDs directory entries are not sorted correctly */
 				else if (res < 0)
 					goto notfound;
 				else if (res > 0 && numdirpasses == 2)
@@ -267,14 +265,14 @@ searchloop:
 			}
 			break;
 		case ISO_FTYPE_RRIP:
-			if (isonum_711(ep->flags)&2)
+			if (isonum_711(ep->flags) & 2)
 				ino = isodirino(ep, imp);
 			else
 				ino = dbtob(bp->b_blkno) + entryoffsetinblock;
 			i_ino = ino;
 			cd9660_rrip_getname(ep, altname, &namelen, &i_ino, imp);
-			if (namelen == cnp->cn_namelen
-			    && !bcmp(name,altname,namelen))
+			if (namelen == cnp->cn_namelen &&
+			    !bcmp(name, altname, namelen))
 				goto found;
 			ino = 0;
 			break;
@@ -283,20 +281,20 @@ searchloop:
 		entryoffsetinblock += reclen;
 	}
 	if (ino) {
-foundino:
+	foundino:
 		i_ino = ino;
 		if (saveoffset != i_offset) {
-			if (lblkno(imp, i_offset) !=
-			    lblkno(imp, saveoffset)) {
+			if (lblkno(imp, i_offset) != lblkno(imp, saveoffset)) {
 				if (bp != NULL)
 					brelse(bp);
 				if ((error = cd9660_blkatoff(vdp,
-				    (off_t)saveoffset, NULL, &bp)) != 0)
+					 (off_t)saveoffset, NULL, &bp)) != 0)
 					return (error);
 			}
 			entryoffsetinblock = saveoffset & bmask;
-			ep = (struct iso_directory_record *)
-				((char *)bp->b_data + entryoffsetinblock);
+			ep =
+			    (struct iso_directory_record *)((char *)bp->b_data +
+				entryoffsetinblock);
 			reclen = isonum_711(ep->length);
 			i_offset = saveoffset;
 		}
@@ -386,7 +384,7 @@ found:
 			return (error);
 		*vpp = tdp;
 	} else if (dp->i_number == i_ino) {
-		VREF(vdp);	/* we want ourself, ie "." */
+		VREF(vdp); /* we want ourself, ie "." */
 		/*
 		 * When we lookup "." we still can be asked to lock it
 		 * differently.
@@ -401,8 +399,7 @@ found:
 		*vpp = vdp;
 	} else {
 		error = cd9660_vget_internal(vdp->v_mount, i_ino,
-					     cnp->cn_lkflags, &tdp,
-					     i_ino != ino, ep);
+		    cnp->cn_lkflags, &tdp, i_ino != ino, ep);
 		free(ep2, M_TEMP);
 		if (error)
 			return (error);
@@ -453,8 +450,9 @@ cd9660_blkatoff(struct vnode *vp, off_t offset, char **res, struct buf **bpp)
 	 * reconstituted buffer will have no knowledge of b_blkno.
 	 */
 	if (bp->b_blkno == bp->b_lblkno) {
-	        bp->b_blkno = (ip->iso_start + bp->b_lblkno) << (bshift - DEV_BSHIFT);
-        }
+		bp->b_blkno = (ip->iso_start + bp->b_lblkno)
+		    << (bshift - DEV_BSHIFT);
+	}
 
 	if (res)
 		*res = (char *)bp->b_data + blkoff(imp, offset);

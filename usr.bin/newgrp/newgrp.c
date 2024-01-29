@@ -44,12 +44,12 @@
 #include <string.h>
 #include <unistd.h>
 
-static void	 addgroup(const char *grpname);
-static void	 doshell(void);
-static int	 inarray(gid_t, const gid_t[], int);
-static void	 loginshell(void);
-static void	 restoregrps(void);
-static void	 usage(void);
+static void addgroup(const char *grpname);
+static void doshell(void);
+static int inarray(gid_t, const gid_t[], int);
+static void loginshell(void);
+static void restoregrps(void);
+static void usage(void);
 
 static struct passwd *pwd;
 static uid_t euid;
@@ -57,13 +57,15 @@ static uid_t euid;
 extern char **environ;
 
 /* Manipulate effective user ID. */
-#define PRIV_START do {				\
-		if (seteuid(euid) < 0)		\
-			err(1, "seteuid");	\
+#define PRIV_START                         \
+	do {                               \
+		if (seteuid(euid) < 0)     \
+			err(1, "seteuid"); \
 	} while (0)
-#define PRIV_END do {				\
-		if (seteuid(getuid()) < 0)	\
-			err(1, "seteuid");	\
+#define PRIV_END                           \
+	do {                               \
+		if (seteuid(getuid()) < 0) \
+			err(1, "seteuid"); \
 	} while (0)
 
 int
@@ -72,7 +74,8 @@ main(int argc, char *argv[])
 	int ch, login;
 
 	if ((euid = geteuid()) != 0)
-		warnx("need root permissions to function properly, check setuid bit");
+		warnx(
+		    "need root permissions to function properly, check setuid bit");
 	if (seteuid(getuid()) < 0)
 		err(1, "seteuid");
 
@@ -82,7 +85,7 @@ main(int argc, char *argv[])
 	login = 0;
 	while ((ch = getopt(argc, argv, "-l")) != -1) {
 		switch (ch) {
-		case '-':		/* Obsolescent */
+		case '-': /* Obsolescent */
 		case 'l':
 			login = 1;
 			break;
@@ -158,7 +161,7 @@ addgroup(const char *grpname)
 	/* Try it as a group name, then a group id. */
 	if ((grp = getgrnam(grpname)) == NULL)
 		if ((lgid = strtol(grpname, &ep, 10)) <= 0 || *ep != '\0' ||
-		    (grp = getgrgid((gid_t)lgid)) == NULL ) {
+		    (grp = getgrgid((gid_t)lgid)) == NULL) {
 			warnx("%s: bad group name", grpname);
 			return;
 		}
@@ -278,7 +281,7 @@ loginshell(void)
 
 	lc = login_getpwclass(pwd);
 	setusercontext(lc, pwd, pwd->pw_uid,
-	    LOGIN_SETPATH|LOGIN_SETUMASK|LOGIN_SETENV);
+	    LOGIN_SETPATH | LOGIN_SETUMASK | LOGIN_SETENV);
 	login_close(lc);
 	setenv("USER", pwd->pw_name, 1);
 	setenv("SHELL", shell, 1);

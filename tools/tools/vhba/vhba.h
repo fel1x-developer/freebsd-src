@@ -29,52 +29,47 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/endian.h>
-#include <sys/lock.h>
-#include <sys/kernel.h>
-#include <sys/queue.h>
-#include <sys/queue.h>
-#include <sys/malloc.h>
-#include <sys/taskqueue.h>
-#include <sys/mutex.h>
 #include <sys/condvar.h>
-
+#include <sys/conf.h>
+#include <sys/devicestat.h>
+#include <sys/endian.h>
+#include <sys/ioccom.h>
+#include <sys/kernel.h>
+#include <sys/kthread.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/proc.h>
+#include <sys/queue.h>
+#include <sys/taskqueue.h>
+#include <sys/unistd.h>
 
 #include <machine/bus.h>
 #include <machine/cpu.h>
 #include <machine/stdarg.h>
 
 #include <cam/cam.h>
-#include <cam/cam_debug.h>
 #include <cam/cam_ccb.h>
+#include <cam/cam_debug.h>
+#include <cam/cam_periph.h>
 #include <cam/cam_sim.h>
 #include <cam/cam_xpt.h>
+#include <cam/cam_xpt_periph.h>
 #include <cam/cam_xpt_sim.h>
-#include <cam/cam_debug.h>
 #include <cam/scsi/scsi_all.h>
 #include <cam/scsi/scsi_message.h>
 
-
-#include <sys/unistd.h>
-#include <sys/kthread.h>
-#include <sys/conf.h>
-#include <sys/module.h>
-#include <sys/ioccom.h>
-#include <sys/devicestat.h>
-#include <cam/cam_periph.h>
-#include <cam/cam_xpt_periph.h>
-
-#define	VHBA_MAXTGT	64
-#define	VHBA_MAXCMDS	256
+#define VHBA_MAXTGT 64
+#define VHBA_MAXCMDS 256
 
 typedef struct {
-	struct mtx              lock;
-	struct cam_sim *	sim;
-	struct cam_devq *       devq;
-	TAILQ_HEAD(, ccb_hdr)	actv;
-	TAILQ_HEAD(, ccb_hdr)	done;
-	void *			private;
+	struct mtx lock;
+	struct cam_sim *sim;
+	struct cam_devq *devq;
+	TAILQ_HEAD(, ccb_hdr) actv;
+	TAILQ_HEAD(, ccb_hdr) done;
+	void *private;
 } vhba_softc_t;
 
 /*
@@ -105,11 +100,11 @@ int vhba_modprobe(module_t, int, void *);
  * retrofits
  */
 #ifndef MODE_SENSE
-#define	MODE_SENSE	0x1a
+#define MODE_SENSE 0x1a
 #endif
-#ifndef	SMS_FORMAT_DEVICE_PAGE
-#define	SMS_FORMAT_DEVICE_PAGE	0x03
+#ifndef SMS_FORMAT_DEVICE_PAGE
+#define SMS_FORMAT_DEVICE_PAGE 0x03
 #endif
-#ifndef	SMS_GEOMETRY_PAGE
-#define	SMS_GEOMETRY_PAGE	0x04
+#ifndef SMS_GEOMETRY_PAGE
+#define SMS_GEOMETRY_PAGE 0x04
 #endif

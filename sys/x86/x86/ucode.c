@@ -29,20 +29,13 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/cpuset.h>
 #include <sys/kernel.h>
 #include <sys/linker.h>
 #include <sys/malloc.h>
 #include <sys/pcpu.h>
 #include <sys/smp.h>
-#include <sys/systm.h>
-
-#include <machine/atomic.h>
-#include <machine/cpufunc.h>
-#include <x86/specialreg.h>
-#include <machine/stdarg.h>
-#include <x86/ucode.h>
-#include <x86/x86_smp.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
@@ -50,9 +43,16 @@
 #include <vm/vm_kern.h>
 #include <vm/vm_param.h>
 
-static void	*ucode_intel_match(uint8_t *data, size_t *len);
-static int	ucode_intel_verify(struct ucode_intel_header *hdr,
-		    size_t resid);
+#include <machine/atomic.h>
+#include <machine/cpufunc.h>
+#include <machine/stdarg.h>
+
+#include <x86/specialreg.h>
+#include <x86/ucode.h>
+#include <x86/x86_smp.h>
+
+static void *ucode_intel_match(uint8_t *data, size_t *len);
+static int ucode_intel_verify(struct ucode_intel_header *hdr, size_t resid);
 
 static struct ucode_ops {
 	const char *vendor;
@@ -60,9 +60,9 @@ static struct ucode_ops {
 	void *(*match)(uint8_t *, size_t *);
 } loaders[] = {
 	{
-		.vendor = INTEL_VENDOR_ID,
-		.load = ucode_intel_load,
-		.match = ucode_intel_match,
+	    .vendor = INTEL_VENDOR_ID,
+	    .load = ucode_intel_load,
+	    .match = ucode_intel_match,
 	},
 };
 
@@ -200,8 +200,8 @@ ucode_intel_match(uint8_t *data, size_t *len)
 			total_size = UCODE_INTEL_DEFAULT_DATA_SIZE +
 			    sizeof(struct ucode_intel_header);
 		if (data_size > total_size + sizeof(struct ucode_intel_header))
-			table = (struct ucode_intel_extsig_table *)
-			    ((uint8_t *)(hdr + 1) + data_size);
+			table = (struct ucode_intel_extsig_table
+				*)((uint8_t *)(hdr + 1) + data_size);
 		else
 			table = NULL;
 

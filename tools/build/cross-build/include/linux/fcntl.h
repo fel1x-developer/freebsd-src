@@ -39,8 +39,9 @@
 #pragma once
 
 /* <bits/fcntl.h> includes <bits/stat.h> which contains a member __unused */
-#include "__unused_workaround_start.h"
-#include_next <fcntl.h>
-#include "__unused_workaround_end.h"
-
 #include <sys/file.h>
+
+#include_next <fcntl.h>
+
+#include "__unused_workaround_end.h"
+#include "__unused_workaround_start.h"

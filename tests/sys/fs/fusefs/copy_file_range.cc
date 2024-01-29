@@ -28,8 +28,8 @@
 extern "C" {
 #include <sys/param.h>
 #include <sys/mman.h>
-#include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/time.h>
 
 #include <fcntl.h>
 #include <signal.h>
@@ -41,107 +41,119 @@ extern "C" {
 
 using namespace testing;
 
-class CopyFileRange: public FuseTest {
-public:
+class CopyFileRange : public FuseTest {
+    public:
+	void expect_maybe_lseek(uint64_t ino)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					return (
+					    in.header.opcode == FUSE_LSEEK &&
+					    in.header.nodeid == ino);
+				},
+				Eq(true)),
+			_))
+		    .Times(AtMost(1))
+		    .WillRepeatedly(Invoke(ReturnErrno(ENOSYS)));
+	}
 
-void expect_maybe_lseek(uint64_t ino)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_LSEEK &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).Times(AtMost(1))
-	.WillRepeatedly(Invoke(ReturnErrno(ENOSYS)));
-}
+	void expect_open(uint64_t ino, uint32_t flags, int times, uint64_t fh)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					return (in.header.opcode == FUSE_OPEN &&
+					    in.header.nodeid == ino);
+				},
+				Eq(true)),
+			_))
+		    .Times(times)
+		    .WillRepeatedly(Invoke(
+			ReturnImmediate([=](auto in __unused, auto &out) {
+				out.header.len = sizeof(out.header);
+				SET_OUT_HEADER_LEN(out, open);
+				out.body.open.fh = fh;
+				out.body.open.open_flags = flags;
+			})));
+	}
 
-void expect_open(uint64_t ino, uint32_t flags, int times, uint64_t fh)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_OPEN &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).Times(times)
-	.WillRepeatedly(Invoke(
-		ReturnImmediate([=](auto in __unused, auto& out) {
-		out.header.len = sizeof(out.header);
-		SET_OUT_HEADER_LEN(out, open);
-		out.body.open.fh = fh;
-		out.body.open.open_flags = flags;
-	})));
-}
+	void expect_write(uint64_t ino, uint64_t offset, uint64_t isize,
+	    uint64_t osize, const void *contents)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					const char *buf = (const char *)
+							      in.body.bytes +
+					    sizeof(struct fuse_write_in);
 
-void expect_write(uint64_t ino, uint64_t offset, uint64_t isize,
-	uint64_t osize, const void *contents)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			const char *buf = (const char*)in.body.bytes +
-				sizeof(struct fuse_write_in);
-
-			return (in.header.opcode == FUSE_WRITE &&
-				in.header.nodeid == ino &&
-				in.body.write.offset == offset  &&
-				in.body.write.size == isize &&
-				0 == bcmp(buf, contents, isize));
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, write);
-		out.body.write.size = osize;
-	})));
-}
-
+					return (
+					    in.header.opcode == FUSE_WRITE &&
+					    in.header.nodeid == ino &&
+					    in.body.write.offset == offset &&
+					    in.body.write.size == isize &&
+					    0 == bcmp(buf, contents, isize));
+				},
+				Eq(true)),
+			_))
+		    .WillOnce(Invoke(
+			ReturnImmediate([=](auto in __unused, auto &out) {
+				SET_OUT_HEADER_LEN(out, write);
+				out.body.write.size = osize;
+			})));
+	}
 };
 
-
-class CopyFileRange_7_27: public CopyFileRange {
-public:
-virtual void SetUp() {
-	m_kernel_minor_version = 27;
-	CopyFileRange::SetUp();
-}
+class CopyFileRange_7_27 : public CopyFileRange {
+    public:
+	virtual void SetUp()
+	{
+		m_kernel_minor_version = 27;
+		CopyFileRange::SetUp();
+	}
 };
 
-class CopyFileRangeNoAtime: public CopyFileRange {
-public:
-virtual void SetUp() {
-	m_noatime = true;
-	CopyFileRange::SetUp();
-}
+class CopyFileRangeNoAtime : public CopyFileRange {
+    public:
+	virtual void SetUp()
+	{
+		m_noatime = true;
+		CopyFileRange::SetUp();
+	}
 };
 
-class CopyFileRangeRlimitFsize: public CopyFileRange {
-public:
-static sig_atomic_t s_sigxfsz;
-struct rlimit	m_initial_limit;
+class CopyFileRangeRlimitFsize : public CopyFileRange {
+    public:
+	static sig_atomic_t s_sigxfsz;
+	struct rlimit m_initial_limit;
 
-virtual void SetUp() {
-	s_sigxfsz = 0;
-	getrlimit(RLIMIT_FSIZE, &m_initial_limit);
-	CopyFileRange::SetUp();
-}
+	virtual void SetUp()
+	{
+		s_sigxfsz = 0;
+		getrlimit(RLIMIT_FSIZE, &m_initial_limit);
+		CopyFileRange::SetUp();
+	}
 
-void TearDown() {
-	struct sigaction sa;
+	void TearDown()
+	{
+		struct sigaction sa;
 
-	setrlimit(RLIMIT_FSIZE, &m_initial_limit);
+		setrlimit(RLIMIT_FSIZE, &m_initial_limit);
 
-	bzero(&sa, sizeof(sa));
-	sa.sa_handler = SIG_DFL;
-	sigaction(SIGXFSZ, &sa, NULL);
+		bzero(&sa, sizeof(sa));
+		sa.sa_handler = SIG_DFL;
+		sigaction(SIGXFSZ, &sa, NULL);
 
-	FuseTest::TearDown();
-}
-
+		FuseTest::TearDown();
+	}
 };
 
 sig_atomic_t CopyFileRangeRlimitFsize::s_sigxfsz = 0;
 
-void sigxfsz_handler(int __unused sig) {
+void
+sigxfsz_handler(int __unused sig)
+{
 	CopyFileRangeRlimitFsize::s_sigxfsz = 1;
 }
 
@@ -155,8 +167,8 @@ TEST_F(CopyFileRange, eio)
 	const uint64_t ino2 = 43;
 	const uint64_t fh1 = 0xdeadbeef1a7ebabe;
 	const uint64_t fh2 = 0xdeadc0de88c0ffee;
-	off_t fsize1 = 1 << 20;		/* 1 MiB */
-	off_t fsize2 = 1 << 19;		/* 512 KiB */
+	off_t fsize1 = 1 << 20; /* 1 MiB */
+	off_t fsize2 = 1 << 19; /* 512 KiB */
 	off_t start1 = 1 << 18;
 	off_t start2 = 3 << 17;
 	ssize_t len = 65536;
@@ -166,20 +178,25 @@ TEST_F(CopyFileRange, eio)
 	expect_lookup(RELPATH2, ino2, S_IFREG | 0644, fsize2, 1);
 	expect_open(ino1, 0, 1, fh1);
 	expect_open(ino2, 0, 1, fh2);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_COPY_FILE_RANGE &&
+	EXPECT_CALL(*m_mock,
+	    process(
+		ResultOf(
+		    [=](auto in) {
+			    return (in.header.opcode == FUSE_COPY_FILE_RANGE &&
 				in.header.nodeid == ino1 &&
 				in.body.copy_file_range.fh_in == fh1 &&
-				(off_t)in.body.copy_file_range.off_in == start1 &&
+				(off_t)in.body.copy_file_range.off_in ==
+				    start1 &&
 				in.body.copy_file_range.nodeid_out == ino2 &&
 				in.body.copy_file_range.fh_out == fh2 &&
-				(off_t)in.body.copy_file_range.off_out == start2 &&
+				(off_t)in.body.copy_file_range.off_out ==
+				    start2 &&
 				in.body.copy_file_range.len == (size_t)len &&
 				in.body.copy_file_range.flags == 0);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(EIO)));
+		    },
+		    Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnErrno(EIO)));
 
 	fd1 = open(FULLPATH1, O_RDONLY);
 	fd2 = open(FULLPATH2, O_WRONLY);
@@ -202,8 +219,8 @@ TEST_F(CopyFileRange, evicts_cache)
 	const uint64_t ino2 = 43;
 	const uint64_t fh1 = 0xdeadbeef1a7ebabe;
 	const uint64_t fh2 = 0xdeadc0de88c0ffee;
-	off_t fsize1 = 1 << 20;		/* 1 MiB */
-	off_t fsize2 = 1 << 19;		/* 512 KiB */
+	off_t fsize1 = 1 << 20; /* 1 MiB */
+	off_t fsize2 = 1 << 19; /* 512 KiB */
 	off_t start1 = 1 << 18;
 	off_t start2 = 3 << 17;
 	ssize_t len = m_maxbcachebuf;
@@ -217,24 +234,29 @@ TEST_F(CopyFileRange, evicts_cache)
 	expect_open(ino1, 0, 1, fh1);
 	expect_open(ino2, 0, 1, fh2);
 	expect_read(ino2, start2, m_maxbcachebuf, m_maxbcachebuf, buf0, -1,
-		fh2);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_COPY_FILE_RANGE &&
+	    fh2);
+	EXPECT_CALL(*m_mock,
+	    process(
+		ResultOf(
+		    [=](auto in) {
+			    return (in.header.opcode == FUSE_COPY_FILE_RANGE &&
 				in.header.nodeid == ino1 &&
 				in.body.copy_file_range.fh_in == fh1 &&
-				(off_t)in.body.copy_file_range.off_in == start1 &&
+				(off_t)in.body.copy_file_range.off_in ==
+				    start1 &&
 				in.body.copy_file_range.nodeid_out == ino2 &&
 				in.body.copy_file_range.fh_out == fh2 &&
-				(off_t)in.body.copy_file_range.off_out == start2 &&
+				(off_t)in.body.copy_file_range.off_out ==
+				    start2 &&
 				in.body.copy_file_range.len == (size_t)len &&
 				in.body.copy_file_range.flags == 0);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, write);
-		out.body.write.size = len;
-	})));
+		    },
+		    Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, write);
+		    out.body.write.size = len;
+	    })));
 
 	fd1 = open(FULLPATH1, O_RDONLY);
 	fd2 = open(FULLPATH2, O_RDWR);
@@ -242,7 +264,7 @@ TEST_F(CopyFileRange, evicts_cache)
 	// Prime cache
 	buf = new char[m_maxbcachebuf];
 	ASSERT_EQ(m_maxbcachebuf, pread(fd2, buf, m_maxbcachebuf, start2))
-		<< strerror(errno);
+	    << strerror(errno);
 	EXPECT_EQ(0, memcmp(buf0, buf, m_maxbcachebuf));
 
 	// Tell the FUSE server overwrite the region we just read
@@ -253,9 +275,9 @@ TEST_F(CopyFileRange, evicts_cache)
 	memset(buf1, 69, m_maxbcachebuf);
 	start2 -= len;
 	expect_read(ino2, start2, m_maxbcachebuf, m_maxbcachebuf, buf1, -1,
-		fh2);
+	    fh2);
 	ASSERT_EQ(m_maxbcachebuf, pread(fd2, buf, m_maxbcachebuf, start2))
-		<< strerror(errno);
+	    << strerror(errno);
 	EXPECT_EQ(0, memcmp(buf1, buf, m_maxbcachebuf));
 
 	delete[] buf1;
@@ -288,7 +310,7 @@ TEST_F(CopyFileRange, fallback)
 
 	len = strlen(contents);
 
-	/* 
+	/*
 	 * Ensure that we read to EOF, just so the buffer cache's read size is
 	 * predictable.
 	 */
@@ -296,20 +318,25 @@ TEST_F(CopyFileRange, fallback)
 	expect_lookup(RELPATH2, ino2, S_IFREG | 0644, fsize2, 1);
 	expect_open(ino1, 0, 1, fh1);
 	expect_open(ino2, 0, 1, fh2);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_COPY_FILE_RANGE &&
+	EXPECT_CALL(*m_mock,
+	    process(
+		ResultOf(
+		    [=](auto in) {
+			    return (in.header.opcode == FUSE_COPY_FILE_RANGE &&
 				in.header.nodeid == ino1 &&
 				in.body.copy_file_range.fh_in == fh1 &&
-				(off_t)in.body.copy_file_range.off_in == start1 &&
+				(off_t)in.body.copy_file_range.off_in ==
+				    start1 &&
 				in.body.copy_file_range.nodeid_out == ino2 &&
 				in.body.copy_file_range.fh_out == fh2 &&
-				(off_t)in.body.copy_file_range.off_out == start2 &&
+				(off_t)in.body.copy_file_range.off_out ==
+				    start2 &&
 				in.body.copy_file_range.len == (size_t)len &&
 				in.body.copy_file_range.flags == 0);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(ENOSYS)));
+		    },
+		    Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnErrno(ENOSYS)));
 	expect_maybe_lseek(ino1);
 	expect_read(ino1, start1, len, len, contents, 0);
 	expect_write(ino2, start2, len, len, contents);
@@ -354,26 +381,30 @@ TEST_F(CopyFileRange, mmap_write)
 	/* This write flushes the buffer filled by the mmap write */
 	expect_write(ino, 0, wsize, wsize, wbuf);
 
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_COPY_FILE_RANGE &&
-				(off_t)in.body.copy_file_range.off_in == offset2_in &&
-				(off_t)in.body.copy_file_range.off_out == offset2_out &&
-				in.body.copy_file_range.len == copysize
-			);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([&](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, write);
-		out.body.write.size = copysize;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (
+				    in.header.opcode == FUSE_COPY_FILE_RANGE &&
+				    (off_t)in.body.copy_file_range.off_in ==
+					offset2_in &&
+				    (off_t)in.body.copy_file_range.off_out ==
+					offset2_out &&
+				    in.body.copy_file_range.len == copysize);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([&](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, write);
+		    out.body.write.size = copysize;
+	    })));
 
 	fd = open(FULLPATH, O_RDWR);
 
 	/* First, write some data via mmap */
 	p = mmap(NULL, wsize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	ASSERT_NE(MAP_FAILED, p) << strerror(errno);
-	memmove((uint8_t*)p, wbuf, wsize);
+	memmove((uint8_t *)p, wbuf, wsize);
 	ASSERT_EQ(0, munmap(p, wsize)) << strerror(errno);
 
 	/*
@@ -386,7 +417,6 @@ TEST_F(CopyFileRange, mmap_write)
 	delete[] wbuf;
 	delete[] fbuf;
 }
-
 
 /*
  * copy_file_range should send SIGXFSZ and return EFBIG when the operation
@@ -403,8 +433,8 @@ TEST_F(CopyFileRangeRlimitFsize, signal)
 	const uint64_t ino2 = 43;
 	const uint64_t fh1 = 0xdeadbeef1a7ebabe;
 	const uint64_t fh2 = 0xdeadc0de88c0ffee;
-	off_t fsize1 = 1 << 20;		/* 1 MiB */
-	off_t fsize2 = 1 << 19;		/* 512 KiB */
+	off_t fsize1 = 1 << 20; /* 1 MiB */
+	off_t fsize2 = 1 << 19; /* 512 KiB */
 	off_t start1 = 1 << 18;
 	off_t start2 = fsize2;
 	ssize_t len = 65536;
@@ -414,12 +444,15 @@ TEST_F(CopyFileRangeRlimitFsize, signal)
 	expect_lookup(RELPATH2, ino2, S_IFREG | 0644, fsize2, 1);
 	expect_open(ino1, 0, 1, fh1);
 	expect_open(ino2, 0, 1, fh2);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_COPY_FILE_RANGE);
-		}, Eq(true)),
-		_)
-	).Times(0);
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (
+				    in.header.opcode == FUSE_COPY_FILE_RANGE);
+			},
+			Eq(true)),
+		_))
+	    .Times(0);
 
 	rl.rlim_cur = fsize2;
 	rl.rlim_max = m_initial_limit.rlim_max;
@@ -449,8 +482,8 @@ TEST_F(CopyFileRangeRlimitFsize, truncate)
 	const uint64_t ino2 = 43;
 	const uint64_t fh1 = 0xdeadbeef1a7ebabe;
 	const uint64_t fh2 = 0xdeadc0de88c0ffee;
-	off_t fsize1 = 1 << 20;		/* 1 MiB */
-	off_t fsize2 = 1 << 19;		/* 512 KiB */
+	off_t fsize1 = 1 << 20; /* 1 MiB */
+	off_t fsize2 = 1 << 19; /* 512 KiB */
 	off_t start1 = 1 << 18;
 	off_t start2 = fsize2;
 	ssize_t len = 65536;
@@ -461,18 +494,22 @@ TEST_F(CopyFileRangeRlimitFsize, truncate)
 	expect_lookup(RELPATH2, ino2, S_IFREG | 0644, fsize2, 1);
 	expect_open(ino1, 0, 1, fh1);
 	expect_open(ino2, 0, 1, fh2);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_COPY_FILE_RANGE &&
-				(off_t)in.body.copy_file_range.off_out == start2 &&
-				in.body.copy_file_range.len == (size_t)len / 2
-			);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, write);
-		out.body.write.size = len / 2;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (
+				    in.header.opcode == FUSE_COPY_FILE_RANGE &&
+				    (off_t)in.body.copy_file_range.off_out ==
+					start2 &&
+				    in.body.copy_file_range.len ==
+					(size_t)len / 2);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, write);
+		    out.body.write.size = len / 2;
+	    })));
 
 	rl.rlim_cur = limit;
 	rl.rlim_max = m_initial_limit.rlim_max;
@@ -494,8 +531,8 @@ TEST_F(CopyFileRange, ok)
 	const uint64_t ino2 = 43;
 	const uint64_t fh1 = 0xdeadbeef1a7ebabe;
 	const uint64_t fh2 = 0xdeadc0de88c0ffee;
-	off_t fsize1 = 1 << 20;		/* 1 MiB */
-	off_t fsize2 = 1 << 19;		/* 512 KiB */
+	off_t fsize1 = 1 << 20; /* 1 MiB */
+	off_t fsize2 = 1 << 19; /* 512 KiB */
 	off_t start1 = 1 << 18;
 	off_t start2 = 3 << 17;
 	ssize_t len = 65536;
@@ -505,30 +542,35 @@ TEST_F(CopyFileRange, ok)
 	expect_lookup(RELPATH2, ino2, S_IFREG | 0644, fsize2, 1);
 	expect_open(ino1, 0, 1, fh1);
 	expect_open(ino2, 0, 1, fh2);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_COPY_FILE_RANGE &&
+	EXPECT_CALL(*m_mock,
+	    process(
+		ResultOf(
+		    [=](auto in) {
+			    return (in.header.opcode == FUSE_COPY_FILE_RANGE &&
 				in.header.nodeid == ino1 &&
 				in.body.copy_file_range.fh_in == fh1 &&
-				(off_t)in.body.copy_file_range.off_in == start1 &&
+				(off_t)in.body.copy_file_range.off_in ==
+				    start1 &&
 				in.body.copy_file_range.nodeid_out == ino2 &&
 				in.body.copy_file_range.fh_out == fh2 &&
-				(off_t)in.body.copy_file_range.off_out == start2 &&
+				(off_t)in.body.copy_file_range.off_out ==
+				    start2 &&
 				in.body.copy_file_range.len == (size_t)len &&
 				in.body.copy_file_range.flags == 0);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, write);
-		out.body.write.size = len;
-	})));
+		    },
+		    Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, write);
+		    out.body.write.size = len;
+	    })));
 
 	fd1 = open(FULLPATH1, O_RDONLY);
 	fd2 = open(FULLPATH2, O_WRONLY);
 	ASSERT_EQ(len, copy_file_range(fd1, &start1, fd2, &start2, len, 0));
 }
 
-/* 
+/*
  * copy_file_range can make copies within a single file, as long as the ranges
  * don't overlap.
  * */
@@ -538,7 +580,7 @@ TEST_F(CopyFileRange, same_file)
 	const char RELPATH[] = "src.txt";
 	const uint64_t ino = 4;
 	const uint64_t fh = 0xdeadbeefa7ebabe;
-	off_t fsize = 1 << 20;		/* 1 MiB */
+	off_t fsize = 1 << 20; /* 1 MiB */
 	off_t off_in = 1 << 18;
 	off_t off_out = 3 << 17;
 	ssize_t len = 65536;
@@ -546,23 +588,29 @@ TEST_F(CopyFileRange, same_file)
 
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, fsize, 1);
 	expect_open(ino, 0, 1, fh);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_COPY_FILE_RANGE &&
-				in.header.nodeid == ino &&
-				in.body.copy_file_range.fh_in == fh &&
-				(off_t)in.body.copy_file_range.off_in == off_in &&
-				in.body.copy_file_range.nodeid_out == ino &&
-				in.body.copy_file_range.fh_out == fh &&
-				(off_t)in.body.copy_file_range.off_out == off_out &&
-				in.body.copy_file_range.len == (size_t)len &&
-				in.body.copy_file_range.flags == 0);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, write);
-		out.body.write.size = len;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (
+				    in.header.opcode == FUSE_COPY_FILE_RANGE &&
+				    in.header.nodeid == ino &&
+				    in.body.copy_file_range.fh_in == fh &&
+				    (off_t)in.body.copy_file_range.off_in ==
+					off_in &&
+				    in.body.copy_file_range.nodeid_out == ino &&
+				    in.body.copy_file_range.fh_out == fh &&
+				    (off_t)in.body.copy_file_range.off_out ==
+					off_out &&
+				    in.body.copy_file_range.len ==
+					(size_t)len &&
+				    in.body.copy_file_range.flags == 0);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, write);
+		    out.body.write.size = len;
+	    })));
 
 	fd = open(FULLPATH, O_RDWR);
 	ASSERT_EQ(len, copy_file_range(fd, &off_in, fd, &off_out, len, 0));
@@ -585,8 +633,8 @@ TEST_F(CopyFileRange, timestamps)
 	const uint64_t ino2 = 43;
 	const uint64_t fh1 = 0xdeadbeef1a7ebabe;
 	const uint64_t fh2 = 0xdeadc0de88c0ffee;
-	off_t fsize1 = 1 << 20;		/* 1 MiB */
-	off_t fsize2 = 1 << 19;		/* 512 KiB */
+	off_t fsize1 = 1 << 20; /* 1 MiB */
+	off_t fsize2 = 1 << 19; /* 512 KiB */
 	off_t start1 = 1 << 18;
 	off_t start2 = 3 << 17;
 	ssize_t len = 65536;
@@ -596,23 +644,28 @@ TEST_F(CopyFileRange, timestamps)
 	expect_lookup(RELPATH2, ino2, S_IFREG | 0644, fsize2, 1);
 	expect_open(ino1, 0, 1, fh1);
 	expect_open(ino2, 0, 1, fh2);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_COPY_FILE_RANGE &&
+	EXPECT_CALL(*m_mock,
+	    process(
+		ResultOf(
+		    [=](auto in) {
+			    return (in.header.opcode == FUSE_COPY_FILE_RANGE &&
 				in.header.nodeid == ino1 &&
 				in.body.copy_file_range.fh_in == fh1 &&
-				(off_t)in.body.copy_file_range.off_in == start1 &&
+				(off_t)in.body.copy_file_range.off_in ==
+				    start1 &&
 				in.body.copy_file_range.nodeid_out == ino2 &&
 				in.body.copy_file_range.fh_out == fh2 &&
-				(off_t)in.body.copy_file_range.off_out == start2 &&
+				(off_t)in.body.copy_file_range.off_out ==
+				    start2 &&
 				in.body.copy_file_range.len == (size_t)len &&
 				in.body.copy_file_range.flags == 0);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, write);
-		out.body.write.size = len;
-	})));
+		    },
+		    Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, write);
+		    out.body.write.size = len;
+	    })));
 
 	fd1 = open(FULLPATH1, O_RDONLY);
 	ASSERT_GE(fd1, 0);
@@ -656,23 +709,29 @@ TEST_F(CopyFileRange, extend)
 
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, fsize, 1);
 	expect_open(ino, 0, 1, fh);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_COPY_FILE_RANGE &&
-				in.header.nodeid == ino &&
-				in.body.copy_file_range.fh_in == fh &&
-				(off_t)in.body.copy_file_range.off_in == off_in &&
-				in.body.copy_file_range.nodeid_out == ino &&
-				in.body.copy_file_range.fh_out == fh &&
-				(off_t)in.body.copy_file_range.off_out == off_out &&
-				in.body.copy_file_range.len == (size_t)len &&
-				in.body.copy_file_range.flags == 0);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, write);
-		out.body.write.size = len;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (
+				    in.header.opcode == FUSE_COPY_FILE_RANGE &&
+				    in.header.nodeid == ino &&
+				    in.body.copy_file_range.fh_in == fh &&
+				    (off_t)in.body.copy_file_range.off_in ==
+					off_in &&
+				    in.body.copy_file_range.nodeid_out == ino &&
+				    in.body.copy_file_range.fh_out == fh &&
+				    (off_t)in.body.copy_file_range.off_out ==
+					off_out &&
+				    in.body.copy_file_range.len ==
+					(size_t)len &&
+				    in.body.copy_file_range.flags == 0);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, write);
+		    out.body.write.size = len;
+	    })));
 
 	fd = open(FULLPATH, O_RDWR);
 	ASSERT_GE(fd, 0);
@@ -705,7 +764,7 @@ TEST_F(CopyFileRange_7_27, fallback)
 
 	len = strlen(contents);
 
-	/* 
+	/*
 	 * Ensure that we read to EOF, just so the buffer cache's read size is
 	 * predictable.
 	 */
@@ -713,12 +772,15 @@ TEST_F(CopyFileRange_7_27, fallback)
 	expect_lookup(RELPATH2, ino2, S_IFREG | 0644, fsize2, 1);
 	expect_open(ino1, 0, 1, fh1);
 	expect_open(ino2, 0, 1, fh2);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_COPY_FILE_RANGE);
-		}, Eq(true)),
-		_)
-	).Times(0);
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (
+				    in.header.opcode == FUSE_COPY_FILE_RANGE);
+			},
+			Eq(true)),
+		_))
+	    .Times(0);
 	expect_maybe_lseek(ino1);
 	expect_read(ino1, start1, len, len, contents, 0);
 	expect_write(ino2, start2, len, len, contents);
@@ -748,8 +810,8 @@ TEST_F(CopyFileRangeNoAtime, timestamps)
 	const uint64_t ino2 = 43;
 	const uint64_t fh1 = 0xdeadbeef1a7ebabe;
 	const uint64_t fh2 = 0xdeadc0de88c0ffee;
-	off_t fsize1 = 1 << 20;		/* 1 MiB */
-	off_t fsize2 = 1 << 19;		/* 512 KiB */
+	off_t fsize1 = 1 << 20; /* 1 MiB */
+	off_t fsize2 = 1 << 19; /* 512 KiB */
 	off_t start1 = 1 << 18;
 	off_t start2 = 3 << 17;
 	ssize_t len = 65536;
@@ -759,23 +821,28 @@ TEST_F(CopyFileRangeNoAtime, timestamps)
 	expect_lookup(RELPATH2, ino2, S_IFREG | 0644, fsize2, 1);
 	expect_open(ino1, 0, 1, fh1);
 	expect_open(ino2, 0, 1, fh2);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_COPY_FILE_RANGE &&
+	EXPECT_CALL(*m_mock,
+	    process(
+		ResultOf(
+		    [=](auto in) {
+			    return (in.header.opcode == FUSE_COPY_FILE_RANGE &&
 				in.header.nodeid == ino1 &&
 				in.body.copy_file_range.fh_in == fh1 &&
-				(off_t)in.body.copy_file_range.off_in == start1 &&
+				(off_t)in.body.copy_file_range.off_in ==
+				    start1 &&
 				in.body.copy_file_range.nodeid_out == ino2 &&
 				in.body.copy_file_range.fh_out == fh2 &&
-				(off_t)in.body.copy_file_range.off_out == start2 &&
+				(off_t)in.body.copy_file_range.off_out ==
+				    start2 &&
 				in.body.copy_file_range.len == (size_t)len &&
 				in.body.copy_file_range.flags == 0);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, write);
-		out.body.write.size = len;
-	})));
+		    },
+		    Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, write);
+		    out.body.write.size = len;
+	    })));
 
 	fd1 = open(FULLPATH1, O_RDONLY);
 	ASSERT_GE(fd1, 0);

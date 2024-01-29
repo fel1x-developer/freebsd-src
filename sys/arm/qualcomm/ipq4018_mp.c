@@ -30,26 +30,26 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/reboot.h>
 #include <sys/devmap.h>
+#include <sys/reboot.h>
 #include <sys/smp.h>
 
 #include <vm/vm.h>
 
-#include <machine/cpu.h>
 #include <machine/bus.h>
+#include <machine/cpu.h>
 #include <machine/intr.h>
 #include <machine/machdep.h>
 #include <machine/platformvar.h>
 #include <machine/smp.h>
 
 #include <dev/fdt/fdt_common.h>
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_cpu.h>
+#include <dev/ofw/openfirm.h>
 
 #include <arm/qualcomm/ipq4018_machdep.h>
-#include <arm/qualcomm/qcom_scm_legacy.h>
 #include <arm/qualcomm/qcom_cpu_kpssv2.h>
+#include <arm/qualcomm/qcom_scm_legacy.h>
 
 #include "platform_if.h"
 
@@ -95,10 +95,11 @@ ipq4018_mp_start_ap(platform_t plat)
 	 * First step - SCM call to set the cold boot address to mpentry, so
 	 * CPUs hopefully start in the MP path.
 	 */
-	ret = qcom_scm_legacy_mp_set_cold_boot_address((vm_offset_t) mpentry);
+	ret = qcom_scm_legacy_mp_set_cold_boot_address((vm_offset_t)mpentry);
 	if (ret != 0)
 		panic("%s: Couldn't set cold boot address via SCM "
-		    "(error 0x%08x)", __func__, ret);
+		      "(error 0x%08x)",
+		    __func__, ret);
 
 	/*
 	 * Next step - loop over the CPU nodes and do the per-CPU setup

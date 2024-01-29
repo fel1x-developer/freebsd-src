@@ -25,11 +25,11 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_acpi.h"
 #include "opt_iommu.h"
 #include "opt_isa.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -41,24 +41,25 @@
 #include <sys/rman.h>
 #include <sys/sysctl.h>
 
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
-
 #include <vm/vm.h>
 #include <vm/pmap.h>
 
-#include <x86/apicreg.h>
 #include <machine/frame.h>
 #include <machine/intr_machdep.h>
-#include <x86/apicvar.h>
 #include <machine/resource.h>
 #include <machine/segments.h>
+
+#include <x86/apicreg.h>
+#include <x86/apicvar.h>
 #include <x86/iommu/iommu_intrmap.h>
 
-#define IOAPIC_ISA_INTS		16
-#define	IOAPIC_MEM_REGION	32
-#define	IOAPIC_REDTBL_LO(i)	(IOAPIC_REDTBL + (i) * 2)
-#define	IOAPIC_REDTBL_HI(i)	(IOAPIC_REDTBL_LO(i) + 1)
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
+#define IOAPIC_ISA_INTS 16
+#define IOAPIC_MEM_REGION 32
+#define IOAPIC_REDTBL_LO(i) (IOAPIC_REDTBL + (i) * 2)
+#define IOAPIC_REDTBL_HI(i) (IOAPIC_REDTBL_LO(i) + 1)
 
 static MALLOC_DEFINE(M_IOAPIC, "io_apic", "I/O APIC structures");
 
@@ -79,54 +80,54 @@ static MALLOC_DEFINE(M_IOAPIC, "io_apic", "I/O APIC structures");
 struct ioapic_intsrc {
 	struct intsrc io_intsrc;
 	int io_irq;
-	u_int io_intpin:8;
-	u_int io_vector:8;
+	u_int io_intpin : 8;
+	u_int io_vector : 8;
 	u_int io_cpu;
-	u_int io_activehi:1;
-	u_int io_edgetrigger:1;
-	u_int io_masked:1;
-	int io_bus:4;
+	u_int io_activehi : 1;
+	u_int io_edgetrigger : 1;
+	u_int io_masked : 1;
+	int io_bus : 4;
 	uint32_t io_lowreg;
 	u_int io_remap_cookie;
 };
 
 struct ioapic {
 	struct pic io_pic;
-	u_int io_id:8;			/* logical ID */
-	u_int io_apic_id:8;		/* Id as enumerated by MADT */
-	u_int io_hw_apic_id:8;		/* Content of APIC ID register */
-	u_int io_intbase:8;		/* System Interrupt base */
-	u_int io_numintr:8;
-	u_int io_haseoi:1;
-	volatile ioapic_t *io_addr;	/* XXX: should use bus_space */
+	u_int io_id : 8;	 /* logical ID */
+	u_int io_apic_id : 8;	 /* Id as enumerated by MADT */
+	u_int io_hw_apic_id : 8; /* Content of APIC ID register */
+	u_int io_intbase : 8;	 /* System Interrupt base */
+	u_int io_numintr : 8;
+	u_int io_haseoi : 1;
+	volatile ioapic_t *io_addr; /* XXX: should use bus_space */
 	vm_paddr_t io_paddr;
 	STAILQ_ENTRY(ioapic) io_next;
-	device_t pci_dev;		/* matched pci device, if found */
-	struct resource *pci_wnd;	/* BAR 0, should be same or alias to
-					   io_paddr */
+	device_t pci_dev;	  /* matched pci device, if found */
+	struct resource *pci_wnd; /* BAR 0, should be same or alias to
+				     io_paddr */
 	struct ioapic_intsrc io_pins[0];
 };
 
-static u_int	ioapic_read(volatile ioapic_t *apic, int reg);
-static void	ioapic_write(volatile ioapic_t *apic, int reg, u_int val);
+static u_int ioapic_read(volatile ioapic_t *apic, int reg);
+static void ioapic_write(volatile ioapic_t *apic, int reg, u_int val);
 static const char *ioapic_bus_string(int bus_type);
-static void	ioapic_print_irq(struct ioapic_intsrc *intpin);
-static void	ioapic_register_sources(struct pic *pic);
-static void	ioapic_enable_source(struct intsrc *isrc);
-static void	ioapic_disable_source(struct intsrc *isrc, int eoi);
-static void	ioapic_eoi_source(struct intsrc *isrc);
-static void	ioapic_enable_intr(struct intsrc *isrc);
-static void	ioapic_disable_intr(struct intsrc *isrc);
-static int	ioapic_vector(struct intsrc *isrc);
-static int	ioapic_source_pending(struct intsrc *isrc);
-static int	ioapic_config_intr(struct intsrc *isrc, enum intr_trigger trig,
-		    enum intr_polarity pol);
-static void	ioapic_resume(struct pic *pic, bool suspend_cancelled);
-static int	ioapic_assign_cpu(struct intsrc *isrc, u_int apic_id);
-static void	ioapic_program_intpin(struct ioapic_intsrc *intpin);
-static void	ioapic_reprogram_intpin(struct intsrc *isrc);
+static void ioapic_print_irq(struct ioapic_intsrc *intpin);
+static void ioapic_register_sources(struct pic *pic);
+static void ioapic_enable_source(struct intsrc *isrc);
+static void ioapic_disable_source(struct intsrc *isrc, int eoi);
+static void ioapic_eoi_source(struct intsrc *isrc);
+static void ioapic_enable_intr(struct intsrc *isrc);
+static void ioapic_disable_intr(struct intsrc *isrc);
+static int ioapic_vector(struct intsrc *isrc);
+static int ioapic_source_pending(struct intsrc *isrc);
+static int ioapic_config_intr(struct intsrc *isrc, enum intr_trigger trig,
+    enum intr_polarity pol);
+static void ioapic_resume(struct pic *pic, bool suspend_cancelled);
+static int ioapic_assign_cpu(struct intsrc *isrc, u_int apic_id);
+static void ioapic_program_intpin(struct ioapic_intsrc *intpin);
+static void ioapic_reprogram_intpin(struct intsrc *isrc);
 
-static STAILQ_HEAD(,ioapic) ioapic_list = STAILQ_HEAD_INITIALIZER(ioapic_list);
+static STAILQ_HEAD(, ioapic) ioapic_list = STAILQ_HEAD_INITIALIZER(ioapic_list);
 struct pic ioapic_template = {
 	.pic_register_sources = ioapic_register_sources,
 	.pic_enable_source = ioapic_enable_source,
@@ -175,8 +176,8 @@ _ioapic_eoi_source(struct intsrc *isrc, int locked)
 		 * If IOAPIC has EOI Register, simply write vector
 		 * number into the reg.
 		 */
-		apic_eoi = (volatile uint32_t *)((volatile char *)
-		    io->io_addr + IOAPIC_EOIR);
+		apic_eoi = (volatile uint32_t *)((volatile char *)io->io_addr +
+		    IOAPIC_EOIR);
 		*apic_eoi = src->io_vector;
 	} else {
 		/*
@@ -322,8 +323,8 @@ ioapic_program_intpin(struct ioapic_intsrc *intpin)
 	 * been enabled yet, just ensure that the pin is masked.
 	 */
 	mtx_assert(&icu_lock, MA_OWNED);
-	if (intpin->io_irq == IRQ_DISABLED || (intpin->io_irq >= 0 &&
-	    intpin->io_vector == 0)) {
+	if (intpin->io_irq == IRQ_DISABLED ||
+	    (intpin->io_irq >= 0 && intpin->io_vector == 0)) {
 		low = ioapic_read(io->io_addr,
 		    IOAPIC_REDTBL_LO(intpin->io_intpin));
 		if ((low & IOART_INTMASK) == IOART_INTMCLR)
@@ -341,10 +342,9 @@ ioapic_program_intpin(struct ioapic_intsrc *intpin)
 
 #ifdef IOMMU
 	mtx_unlock_spin(&icu_lock);
-	error = iommu_map_ioapic_intr(io->io_apic_id,
-	    intpin->io_cpu, intpin->io_vector, intpin->io_edgetrigger,
-	    intpin->io_activehi, intpin->io_irq, &intpin->io_remap_cookie,
-	    &high, &low);
+	error = iommu_map_ioapic_intr(io->io_apic_id, intpin->io_cpu,
+	    intpin->io_vector, intpin->io_edgetrigger, intpin->io_activehi,
+	    intpin->io_irq, &intpin->io_remap_cookie, &high, &low);
 	mtx_lock_spin(&icu_lock);
 	if (error == 0) {
 		ioapic_write(io->io_addr, IOAPIC_REDTBL_HI(intpin->io_intpin),
@@ -379,23 +379,20 @@ ioapic_program_intpin(struct ioapic_intsrc *intpin)
 		low |= IOART_INTMSET;
 	switch (intpin->io_irq) {
 	case IRQ_EXTINT:
-		KASSERT(intpin->io_edgetrigger,
-		    ("ExtINT not edge triggered"));
+		KASSERT(intpin->io_edgetrigger, ("ExtINT not edge triggered"));
 		low |= IOART_DELEXINT;
 		break;
 	case IRQ_NMI:
-		KASSERT(intpin->io_edgetrigger,
-		    ("NMI not edge triggered"));
+		KASSERT(intpin->io_edgetrigger, ("NMI not edge triggered"));
 		low |= IOART_DELNMI;
 		break;
 	case IRQ_SMI:
-		KASSERT(intpin->io_edgetrigger,
-		    ("SMI not edge triggered"));
+		KASSERT(intpin->io_edgetrigger, ("SMI not edge triggered"));
 		low |= IOART_DELSMI;
 		break;
 	default:
-		KASSERT(intpin->io_vector != 0, ("No vector for IRQ %u",
-		    intpin->io_irq));
+		KASSERT(intpin->io_vector != 0,
+		    ("No vector for IRQ %u", intpin->io_irq));
 		low |= IOART_DELFIXED | intpin->io_vector;
 	}
 
@@ -503,7 +500,8 @@ ioapic_enable_intr(struct intsrc *isrc)
 	struct ioapic_intsrc *intpin = (struct ioapic_intsrc *)isrc;
 
 	if (intpin->io_vector == 0)
-		if (ioapic_assign_cpu(isrc, intr_next_cpu(isrc->is_domain)) != 0)
+		if (ioapic_assign_cpu(isrc, intr_next_cpu(isrc->is_domain)) !=
+		    0)
 			panic("Couldn't find an APIC vector for IRQ %d",
 			    intpin->io_irq);
 	apic_enable_vector(intpin->io_cpu, intpin->io_vector);
@@ -630,7 +628,8 @@ ioapic_create(vm_paddr_t addr, int32_t apic_id, int intbase)
 	/* Determine the number of vectors and set the APIC ID. */
 	numintr = ((value & IOART_VER_MAXREDIR) >> MAXREDIRSHIFT) + 1;
 	io = malloc(sizeof(struct ioapic) +
-	    numintr * sizeof(struct ioapic_intsrc), M_IOAPIC, M_WAITOK);
+		numintr * sizeof(struct ioapic_intsrc),
+	    M_IOAPIC, M_WAITOK);
 	io->io_pic = ioapic_template;
 	io->pci_dev = NULL;
 	io->pci_wnd = NULL;
@@ -659,8 +658,8 @@ ioapic_create(vm_paddr_t addr, int32_t apic_id, int intbase)
 
 	if (bootverbose) {
 		printf("ioapic%u: ver 0x%02x maxredir 0x%02x\n", io->io_id,
-		    (value & IOART_VER_VERSION), (value & IOART_VER_MAXREDIR)
-		    >> MAXREDIRSHIFT);
+		    (value & IOART_VER_VERSION),
+		    (value & IOART_VER_MAXREDIR) >> MAXREDIRSHIFT);
 	}
 	/*
 	 * The  summary information about IO-APIC versions is taken from
@@ -714,8 +713,8 @@ ioapic_create(vm_paddr_t addr, int32_t apic_id, int intbase)
 #ifdef IOMMU
 		/* dummy, but sets cookie */
 		mtx_unlock_spin(&icu_lock);
-		iommu_map_ioapic_intr(io->io_apic_id,
-		    intpin->io_cpu, intpin->io_vector, intpin->io_edgetrigger,
+		iommu_map_ioapic_intr(io->io_apic_id, intpin->io_cpu,
+		    intpin->io_vector, intpin->io_edgetrigger,
 		    intpin->io_activehi, intpin->io_irq,
 		    &intpin->io_remap_cookie, NULL, NULL);
 		mtx_lock_spin(&icu_lock);
@@ -809,8 +808,7 @@ ioapic_set_nmi(void *cookie, u_int pin)
 	io->io_pins[pin].io_edgetrigger = 1;
 	io->io_pins[pin].io_activehi = 1;
 	if (bootverbose)
-		printf("ioapic%u: Routing NMI -> intpin %d\n",
-		    io->io_id, pin);
+		printf("ioapic%u: Routing NMI -> intpin %d\n", io->io_id, pin);
 	return (0);
 }
 
@@ -832,8 +830,7 @@ ioapic_set_smi(void *cookie, u_int pin)
 	io->io_pins[pin].io_edgetrigger = 1;
 	io->io_pins[pin].io_activehi = 1;
 	if (bootverbose)
-		printf("ioapic%u: Routing SMI -> intpin %d\n",
-		    io->io_id, pin);
+		printf("ioapic%u: Routing SMI -> intpin %d\n", io->io_id, pin);
 	return (0);
 }
 
@@ -923,9 +920,8 @@ ioapic_register(void *cookie)
 	flags = ioapic_read(apic, IOAPIC_VER) & IOART_VER_VERSION;
 	STAILQ_INSERT_TAIL(&ioapic_list, io, io_next);
 	mtx_unlock_spin(&icu_lock);
-	printf("ioapic%u <Version %u.%u> irqs %u-%u\n",
-	    io->io_id, flags >> 4, flags & 0xf, io->io_intbase,
-	    io->io_intbase + io->io_numintr - 1);
+	printf("ioapic%u <Version %u.%u> irqs %u-%u\n", io->io_id, flags >> 4,
+	    flags & 0xf, io->io_intbase, io->io_intbase + io->io_numintr - 1);
 
 	/*
 	 * Reprogram pins to handle special case pins (such as NMI and
@@ -1010,12 +1006,12 @@ ioapic_pci_attach(device_t dev)
 	mtx_lock_spin(&icu_lock);
 	apic_id = ioapic_read(apic, IOAPIC_ID) >> APIC_ID_SHIFT;
 	/* First match by io window address */
-	STAILQ_FOREACH(io, &ioapic_list, io_next) {
+	STAILQ_FOREACH (io, &ioapic_list, io_next) {
 		if (io->io_paddr == (vm_paddr_t)rman_get_start(res))
 			goto found;
 	}
 	/* Then by apic id */
-	STAILQ_FOREACH(io, &ioapic_list, io_next) {
+	STAILQ_FOREACH (io, &ioapic_list, io_next) {
 		if (io->io_hw_apic_id == apic_id)
 			goto found;
 	}
@@ -1028,21 +1024,21 @@ fail:
 	bus_release_resource(dev, SYS_RES_MEMORY, rid, res);
 	return (ENXIO);
 found:
-	KASSERT(io->pci_dev == NULL,
-	    ("ioapic %d pci_dev not NULL", io->io_id));
-	KASSERT(io->pci_wnd == NULL,
-	    ("ioapic %d pci_wnd not NULL", io->io_id));
+	KASSERT(io->pci_dev == NULL, ("ioapic %d pci_dev not NULL", io->io_id));
+	KASSERT(io->pci_wnd == NULL, ("ioapic %d pci_wnd not NULL", io->io_id));
 
 	io->pci_dev = dev;
 	io->pci_wnd = res;
-	if (bootverbose && (io->io_paddr != (vm_paddr_t)rman_get_start(res) ||
-	    io->io_hw_apic_id != apic_id)) {
-		device_printf(dev, "pci%d:%d:%d:%d pci BAR0@%jx id %d "
+	if (bootverbose &&
+	    (io->io_paddr != (vm_paddr_t)rman_get_start(res) ||
+		io->io_hw_apic_id != apic_id)) {
+		device_printf(dev,
+		    "pci%d:%d:%d:%d pci BAR0@%jx id %d "
 		    "MADT id %d hw id %d paddr@%jx\n",
-		    pci_get_domain(dev), pci_get_bus(dev),
-		    pci_get_slot(dev), pci_get_function(dev),
-		    (uintmax_t)rman_get_start(res), apic_id,
-		    io->io_apic_id, io->io_hw_apic_id, (uintmax_t)io->io_paddr);
+		    pci_get_domain(dev), pci_get_bus(dev), pci_get_slot(dev),
+		    pci_get_function(dev), (uintmax_t)rman_get_start(res),
+		    apic_id, io->io_apic_id, io->io_hw_apic_id,
+		    (uintmax_t)io->io_paddr);
 	}
 	mtx_unlock_spin(&icu_lock);
 	return (0);
@@ -1050,9 +1046,8 @@ found:
 
 static device_method_t ioapic_pci_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		ioapic_pci_probe),
-	DEVMETHOD(device_attach,	ioapic_pci_attach),
-	{ 0, 0 }
+	DEVMETHOD(device_probe, ioapic_pci_probe),
+	DEVMETHOD(device_attach, ioapic_pci_attach), { 0, 0 }
 };
 
 DEFINE_CLASS_0(ioapic, ioapic_pci_driver, ioapic_pci_methods, 0);
@@ -1067,7 +1062,7 @@ ioapic_get_rid(u_int apic_id, uint16_t *ridp)
 	int error;
 
 	mtx_lock_spin(&icu_lock);
-	STAILQ_FOREACH(io, &ioapic_list, io_next) {
+	STAILQ_FOREACH (io, &ioapic_list, io_next) {
 		if (io->io_apic_id == apic_id)
 			break;
 	}
@@ -1130,7 +1125,7 @@ apic_attach(device_t dev)
 	/* Reserve the local APIC. */
 	apic_add_resource(dev, 0, lapic_paddr, LAPIC_MEM_REGION);
 	i = 1;
-	STAILQ_FOREACH(io, &ioapic_list, io_next) {
+	STAILQ_FOREACH (io, &ioapic_list, io_next) {
 		apic_add_resource(dev, i, io->io_paddr, IOAPIC_MEM_REGION);
 		i++;
 	}
@@ -1139,10 +1134,9 @@ apic_attach(device_t dev)
 
 static device_method_t apic_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,	apic_identify),
-	DEVMETHOD(device_probe,		apic_probe),
-	DEVMETHOD(device_attach,	apic_attach),
-	{ 0, 0 }
+	DEVMETHOD(device_identify, apic_identify),
+	DEVMETHOD(device_probe, apic_probe),
+	DEVMETHOD(device_attach, apic_attach), { 0, 0 }
 };
 
 DEFINE_CLASS_0(apic, apic_driver, apic_methods, 0);
@@ -1202,8 +1196,8 @@ db_show_ioapic_one(volatile ioapic_t *io_addr)
 		lo = db_ioapic_read(io_addr, IOAPIC_REDTBL_LO(i));
 		hi = db_ioapic_read(io_addr, IOAPIC_REDTBL_HI(i));
 		db_printf("  pin %d Dest %s/%x %smasked Trig %s RemoteIRR %d "
-		    "Polarity %s Status %s DeliveryMode %s Vec %d\n", i,
-		    (lo & IOART_DESTMOD) == IOART_DESTLOG ? "log" : "phy",
+			  "Polarity %s Status %s DeliveryMode %s Vec %d\n",
+		    i, (lo & IOART_DESTMOD) == IOART_DESTLOG ? "log" : "phy",
 		    (hi & IOART_DEST) >> 24,
 		    (lo & IOART_INTMASK) == IOART_INTMSET ? "" : "not",
 		    (lo & IOART_TRGRMOD) == IOART_TRGRLVL ? "lvl" : "edge",
@@ -1212,7 +1206,7 @@ db_show_ioapic_one(volatile ioapic_t *io_addr)
 		    (lo & IOART_DELIVS) == IOART_DELIVS ? "pend" : "idle",
 		    ioapic_delivery_mode(lo & IOART_DELMOD),
 		    (lo & IOART_INTVEC));
-	  }
+	}
 }
 
 DB_SHOW_COMMAND(ioapic, db_show_ioapic)
@@ -1227,7 +1221,7 @@ DB_SHOW_COMMAND(ioapic, db_show_ioapic)
 
 	idx = (int)addr;
 	i = 0;
-	STAILQ_FOREACH(ioapic, &ioapic_list, io_next) {
+	STAILQ_FOREACH (ioapic, &ioapic_list, io_next) {
 		if (idx == i) {
 			db_show_ioapic_one(ioapic->io_addr);
 			break;
@@ -1240,7 +1234,7 @@ DB_SHOW_ALL_COMMAND(ioapics, db_show_all_ioapics)
 {
 	struct ioapic *ioapic;
 
-	STAILQ_FOREACH(ioapic, &ioapic_list, io_next)
+	STAILQ_FOREACH (ioapic, &ioapic_list, io_next)
 		db_show_ioapic_one(ioapic->io_addr);
 }
 #endif

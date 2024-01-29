@@ -14,9 +14,9 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/types.h>
 #include <sys/file.h>
 #include <sys/ioctl.h>
-#include <sys/types.h>
 #include <sys/sysctl.h>
 
 #include <machine/apm_bios.h>
@@ -28,12 +28,12 @@
 #include <time.h>
 #include <unistd.h>
 
-#define APMDEV	"/dev/apm"
+#define APMDEV "/dev/apm"
 
-#define APM_UNKNOWN	255
+#define APM_UNKNOWN 255
 
-#define xh(a)	(((a) & 0xff00) >> 8)
-#define xl(a)	((a) & 0xff)
+#define xh(a) (((a) & 0xff00) >> 8)
+#define xl(a) ((a) & 0xff)
 #define APMERR(a) xh(a)
 
 static int cmos_wall = 0; /* True when wall time is in cmos clock, else UTC */
@@ -42,8 +42,8 @@ static void
 usage(void)
 {
 	fprintf(stderr,
-		"usage: apm [-ablstzZ] [-d enable ] [ -e enable ] "
-		"[ -h enable ] [-r delta]\n");
+	    "usage: apm [-ablstzZ] [-d enable ] [ -e enable ] "
+	    "[ -h enable ] [-r delta]\n");
 	exit(1);
 }
 
@@ -84,7 +84,7 @@ int2bcd(int i)
 
 	if (i >= 10000)
 		return -1;
-    
+
 	while (i) {
 		retval |= (i % 10) << base;
 		i /= 10;
@@ -110,29 +110,29 @@ bcd2int(int bcd)
 	return retval;
 }
 
-static void 
+static void
 apm_suspend(int fd)
 {
 	if (ioctl(fd, APMIO_SUSPEND, NULL) == -1)
 		err(1, "ioctl(APMIO_SUSPEND)");
 }
 
-static void 
+static void
 apm_standby(int fd)
 {
 	if (ioctl(fd, APMIO_STANDBY, NULL) == -1)
 		err(1, "ioctl(APMIO_STANDBY)");
 }
 
-static void 
+static void
 apm_getinfo(int fd, apm_info_t aip)
 {
 	if (ioctl(fd, APMIO_GETINFO, aip) == -1)
 		err(1, "ioctl(APMIO_GETINFO)");
 }
 
-static void 
-apm_enable(int fd, int enable) 
+static void
+apm_enable(int fd, int enable)
 {
 	if (enable) {
 		if (ioctl(fd, APMIO_ENABLE) == -1)
@@ -187,12 +187,12 @@ print_batt_stat(u_int batt_stat)
 		printf("%s\n", batt_msg[batt_stat]);
 }
 
-static void 
+static void
 print_all_info(int fd, apm_info_t aip, int bioscall_available)
 {
 	struct apm_bios_arg args;
 	int apmerr;
-	const char *line_msg[] = { "off-line", "on-line" , "backup power"};
+	const char *line_msg[] = { "off-line", "on-line", "backup power" };
 
 	printf("APM version: %d.%d\n", aip->ai_major, aip->ai_minor);
 	printf("APM Management: %s\n", aip->ai_status ? "Enabled" : "Disabled");
@@ -253,7 +253,8 @@ print_all_info(int fd, apm_info_t aip, int bioscall_available)
 				printf("Resume timer: disabled\n");
 			else if (apmerr)
 				warnx(
-		"failed to get the resume timer: APM error0x%x", apmerr);
+				    "failed to get the resume timer: APM error0x%x",
+				    apmerr);
 			else {
 				/*
 				 * OK.  We have the time (all bcd).
@@ -291,7 +292,7 @@ print_all_info(int fd, apm_info_t aip, int bioscall_available)
 		 * Get the ring indicator resume state
 		 */
 		bzero(&args, sizeof(args));
-		args.eax  = (APM_BIOS) << 8 | APM_RESUMEONRING;
+		args.eax = (APM_BIOS) << 8 | APM_RESUMEONRING;
 		args.ebx = PMDV_APMBIOS;
 		args.ecx = 0x0002;
 		if (ioctl(fd, APMIO_BIOS, &args) == 0) {
@@ -302,7 +303,7 @@ print_all_info(int fd, apm_info_t aip, int bioscall_available)
 
 	if (aip->ai_infoversion >= 1) {
 		if (aip->ai_capabilities == 0xff00)
-		    return;
+			return;
 		printf("APM Capabilities:\n");
 		if (aip->ai_capabilities & 0x01)
 			printf("\tglobal standby state\n");
@@ -321,14 +322,13 @@ print_all_info(int fd, apm_info_t aip, int bioscall_available)
 		if (aip->ai_capabilities & 0x80)
 			printf("\tPCMCIA RI resume from suspend\n");
 	}
-
 }
 
 /*
  * currently, it can turn off the display, but the display never comes
  * back until the machine suspend/resumes :-).
  */
-static void 
+static void
 apm_display(int fd, int newstate)
 {
 	if (ioctl(fd, APMIO_DISPLAY, &newstate) == -1)
@@ -365,28 +365,29 @@ apm_set_timer(int fd, int delta)
 	if (delta > 0) {
 		args.ecx = (int2bcd(tm->tm_sec) << 8) | 0x02;
 		args.edx = (int2bcd(tm->tm_hour) << 8) | int2bcd(tm->tm_min);
-		args.esi = (int2bcd(tm->tm_mon + 1) << 8) | int2bcd(tm->tm_mday);
+		args.esi = (int2bcd(tm->tm_mon + 1) << 8) |
+		    int2bcd(tm->tm_mday);
 		args.edi = int2bcd(tm->tm_year + 1900);
 	} else {
 		args.ecx = 0x0000;
 	}
 	if (ioctl(fd, APMIO_BIOS, &args)) {
-		err(1,"set resume timer");
+		err(1, "set resume timer");
 	}
 }
 
-int 
+int
 main(int argc, char *argv[])
 {
-	int	c, fd;
-	int     dosleep = 0, all_info = 1, apm_status = 0, batt_status = 0;
-	int     display = -1, batt_life = 0, ac_status = 0, standby = 0;
-	int	batt_time = 0, delta = 0, enable = -1, haltcpu = -1;
-	int	bioscall_available = 0;
-	size_t	cmos_wall_len = sizeof(cmos_wall);
+	int c, fd;
+	int dosleep = 0, all_info = 1, apm_status = 0, batt_status = 0;
+	int display = -1, batt_life = 0, ac_status = 0, standby = 0;
+	int batt_time = 0, delta = 0, enable = -1, haltcpu = -1;
+	int bioscall_available = 0;
+	size_t cmos_wall_len = sizeof(cmos_wall);
 
 	if (sysctlbyname("machdep.wall_cmos_clock", &cmos_wall, &cmos_wall_len,
-	    NULL, 0) == -1)
+		NULL, 0) == -1)
 		err(1, "sysctlbyname(machdep.wall_cmos_clock)");
 
 	while ((c = getopt(argc, argv, "abe:h:lRr:stzd:Z")) != -1) {
@@ -444,8 +445,8 @@ main(int argc, char *argv[])
 		argc -= optind;
 		argv += optind;
 	}
-	if (haltcpu != -1 || enable != -1 || display != -1 || delta || dosleep
-	    || standby) {
+	if (haltcpu != -1 || enable != -1 || display != -1 || delta ||
+	    dosleep || standby) {
 		fd = open(APMDEV, O_RDWR);
 		bioscall_available = 1;
 	} else if ((fd = open(APMDEV, O_RDWR)) >= 0)

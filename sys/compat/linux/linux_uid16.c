@@ -64,7 +64,7 @@ DUMMY(setfsgid16);
 DUMMY(getresuid16);
 DUMMY(getresgid16);
 
-#define	CAST_NOCHG(x)	((x == 0xFFFF) ? -1 : x)
+#define CAST_NOCHG(x) ((x == 0xFFFF) ? -1 : x)
 
 int
 linux_chown16(struct thread *td, struct linux_chown16_args *args)
@@ -130,8 +130,7 @@ linux_setgroups16(struct thread *td, struct linux_setgroups16_args *args)
 			bsd_gidset[ngrp + 1] = linux_gidset[ngrp];
 			ngrp--;
 		}
-	}
-	else
+	} else
 		newcred->cr_ngroups = 1;
 
 	setsugid(td->td_proc);
@@ -172,8 +171,8 @@ linux_getgroups16(struct thread *td, struct linux_getgroups16_args *args)
 		return (EINVAL);
 
 	ngrp = 0;
-	linux_gidset = malloc(bsd_gidsetsz * sizeof(*linux_gidset),
-	    M_LINUX, M_WAITOK);
+	linux_gidset = malloc(bsd_gidsetsz * sizeof(*linux_gidset), M_LINUX,
+	    M_WAITOK);
 	while (ngrp < bsd_gidsetsz) {
 		linux_gidset[ngrp] = bsd_gidset[ngrp + 1];
 		ngrp++;

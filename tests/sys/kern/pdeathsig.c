@@ -25,6 +25,11 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/types.h>
+#include <sys/procctl.h>
+#include <sys/ptrace.h>
+#include <sys/signal.h>
+
 #include <assert.h>
 #include <atf-c.h>
 #include <errno.h>
@@ -33,10 +38,6 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
-#include <sys/procctl.h>
-#include <sys/ptrace.h>
-#include <sys/signal.h>
-#include <sys/types.h>
 
 static void
 dummy_signal_handler(int signum)
@@ -63,8 +64,8 @@ ATF_TC_BODY(arg_validation, tc)
 
 	/* bad id (pid that doesn't match mine or zero) */
 	signum = SIGINFO;
-	rc = procctl(P_PID, (((getpid() + 1) % 10) + 100),
-	    PROC_PDEATHSIG_CTL, &signum);
+	rc = procctl(P_PID, (((getpid() + 1) % 10) + 100), PROC_PDEATHSIG_CTL,
+	    &signum);
 	ATF_CHECK_EQ(-1, rc);
 	ATF_CHECK_EQ(EINVAL, errno);
 
@@ -132,7 +133,7 @@ ATF_TC_BODY(exec_inherit, tc)
 
 		/* compute the path of the helper executable */
 		snprintf(exec_path, sizeof(exec_path), "%s/pdeathsig_helper",
-			 atf_tc_get_config_var(tc, "srcdir"));
+		    atf_tc_get_config_var(tc, "srcdir"));
 
 		/* request a signal on parent death and register a handler */
 		signum = SIGINFO;
@@ -180,7 +181,8 @@ ATF_TC_BODY(signal_delivered, tc)
 			rc = sigprocmask(SIG_SETMASK, &sigset, NULL);
 			assert(rc == 0);
 
-			/* register a dummy handler or the kernel will not queue it */
+			/* register a dummy handler or the kernel will not queue
+			 * it */
 			signal(signum, dummy_signal_handler);
 
 			/* request a signal on death of our parent B */
@@ -257,10 +259,12 @@ ATF_TC_BODY(signal_delivered_ptrace, tc)
 			rc = sigprocmask(SIG_SETMASK, &sigset, NULL);
 			assert(rc == 0);
 
-			/* register a dummy handler or the kernel will not queue it */
+			/* register a dummy handler or the kernel will not queue
+			 * it */
 			signal(signum, dummy_signal_handler);
 
-			/* request a signal on parent death and register a handler */
+			/* request a signal on parent death and register a
+			 * handler */
 			rc = procctl(P_PID, 0, PROC_PDEATHSIG_CTL, &signum);
 			assert(rc == 0);
 
@@ -280,7 +284,6 @@ ATF_TC_BODY(signal_delivered_ptrace, tc)
 		}
 		c_pid = rc;
 
-
 		/* fork another process to ptrace C */
 		rc = fork();
 		assert(rc >= 0);
@@ -294,7 +297,7 @@ ATF_TC_BODY(signal_delivered_ptrace, tc)
 			assert(WIFSTOPPED(status));
 			assert(WSTOPSIG(status) == SIGSTOP);
 
-			rc = ptrace(PT_CONTINUE, c_pid, (caddr_t) 1, 0);
+			rc = ptrace(PT_CONTINUE, c_pid, (caddr_t)1, 0);
 			assert(rc == 0);
 
 			rc = read(pipe_cd[0], &buffer, 1);
@@ -308,8 +311,8 @@ ATF_TC_BODY(signal_delivered_ptrace, tc)
 			assert(WIFSTOPPED(status));
 			assert(WSTOPSIG(status) == SIGINFO);
 
-			rc = ptrace(PT_CONTINUE, c_pid, (caddr_t) 1,
-				    WSTOPSIG(status));
+			rc = ptrace(PT_CONTINUE, c_pid, (caddr_t)1,
+			    WSTOPSIG(status));
 			assert(rc == 0);
 
 			waitpid(c_pid, &status, 0);

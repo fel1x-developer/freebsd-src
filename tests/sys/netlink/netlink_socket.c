@@ -27,26 +27,25 @@
 
 #include <sys/param.h>
 #include <sys/ioctl.h>
-#include <sys/time.h>
-#include <sys/socket.h>
 #include <sys/module.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+
+#include <netinet/in.h>
+#include <netlink/netlink.h>
+#include <netlink/netlink_route.h>
+
+#include <arpa/inet.h>
+#include <atf-c.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <netlink/netlink.h>
-#include <netlink/netlink_route.h>
-
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
-#include <atf-c.h>
-
 static struct itimerval itv = {
 	.it_interval = { 0, 0 },
-	.it_value = { 1, 0 },	/* one second */
+	.it_value = { 1, 0 }, /* one second */
 };
 static sig_atomic_t timer_done = 0;
 static void
@@ -66,7 +65,7 @@ static struct nlmsghdr hdr = (struct nlmsghdr) {
 	.nlmsg_len = sizeof(struct nlmsghdr),
 };
 
-#define	BUFLEN	1000
+#define BUFLEN 1000
 
 static int
 fullsocket(void)
@@ -77,17 +76,16 @@ fullsocket(void)
 	u_int cnt = 0;
 
 	ATF_REQUIRE((fd = socket(PF_NETLINK, SOCK_RAW, NETLINK_ROUTE)) != -1);
-	ATF_REQUIRE(getsockopt(fd, SOL_SOCKET, SO_SNDBUF, &sendspace,
-	    &slen) == 0);
-	ATF_REQUIRE(getsockopt(fd, SOL_SOCKET, SO_RCVBUF, &recvspace,
-	    &slen) == 0);
+	ATF_REQUIRE(
+	    getsockopt(fd, SOL_SOCKET, SO_SNDBUF, &sendspace, &slen) == 0);
+	ATF_REQUIRE(
+	    getsockopt(fd, SOL_SOCKET, SO_RCVBUF, &recvspace, &slen) == 0);
 
 	/* Check the expected size of reply on a single RTM_GETLINK. */
 	ATF_REQUIRE(send(fd, &hdr, sizeof(hdr), 0) == sizeof(hdr));
-	ATF_REQUIRE(recv(fd, buf, sizeof(hdr), MSG_WAITALL | MSG_PEEK) ==
-	    sizeof(hdr));
+	ATF_REQUIRE(
+	    recv(fd, buf, sizeof(hdr), MSG_WAITALL | MSG_PEEK) == sizeof(hdr));
 	ATF_REQUIRE(ioctl(fd, FIONREAD, &rsize) != -1);
-
 
 	/*
 	 * Flood the socket with requests, without reading out the replies.
@@ -111,7 +109,7 @@ fullsocket(void)
 		ATF_REQUIRE(ioctl(fd, FIONREAD, &recvavail) != -1);
 		ATF_REQUIRE(ioctl(fd, FIONWRITE, &sendavail) != -1);
 	} while (recvavail <= recvspace - rsize ||
-		 sendavail <= sendspace - sizeof(hdr));
+	    sendavail <= sendspace - sizeof(hdr));
 
 	return (fd);
 }
@@ -188,7 +186,7 @@ cmsg_check(struct msghdr *msg)
 ATF_TC_WITHOUT_HEAD(sizes);
 ATF_TC_BODY(sizes, tc)
 {
-#define	NLMSG_LARGE 2048		/* XXX: match kernel nl_buf */
+#define NLMSG_LARGE 2048 /* XXX: match kernel nl_buf */
 	char buf[NLMSG_LARGE * 10];
 	char cbuf[CMSG_SPACE(sizeof(struct nl_control) * 2)];
 	struct iovec iov;
@@ -207,10 +205,10 @@ ATF_TC_BODY(sizes, tc)
 	 * Set NETLINK_MSG_INFO, so that later cmsg_check will check that any
 	 * read is accompanied with control data.
 	 */
-	ATF_REQUIRE(setsockopt(fd, SOL_NETLINK, NETLINK_MSG_INFO,
-	    &(int){1}, sizeof(int)) == 0);
+	ATF_REQUIRE(setsockopt(fd, SOL_NETLINK, NETLINK_MSG_INFO, &(int) { 1 },
+			sizeof(int)) == 0);
 
-	iov = (struct iovec ){
+	iov = (struct iovec) {
 		.iov_base = &hdr,
 		.iov_len = sizeof(hdr),
 	};
@@ -232,7 +230,7 @@ ATF_TC_BODY(sizes, tc)
 	 * socket is an analog of the BSD routing socket, and this is how
 	 * a route(4) socket deals with undersized read.
 	 */
-	iov = (struct iovec ){
+	iov = (struct iovec) {
 		.iov_base = buf,
 		.iov_len = sizeof(hdr),
 	};
@@ -247,7 +245,7 @@ ATF_TC_BODY(sizes, tc)
 	/*
 	 * Large read should span several nl_bufs, seeing no boundaries.
 	 */
-	iov = (struct iovec ){
+	iov = (struct iovec) {
 		.iov_base = buf,
 		.iov_len = sizeof(buf) < rsize ? sizeof(buf) : rsize,
 	};
@@ -262,7 +260,7 @@ nla_RTA_DST(struct nlattr *start, ssize_t len)
 	struct nlattr *nla;
 
 	for (nla = start; (char *)nla < (char *)start + len;
-	    nla = (struct nlattr *)((char *)nla + NLA_ALIGN(nla->nla_len))) {
+	     nla = (struct nlattr *)((char *)nla + NLA_ALIGN(nla->nla_len))) {
 		if (nla->nla_type == RTA_DST)
 			return (nla);
 	}
@@ -283,28 +281,30 @@ ATF_TC_BODY(membership, tc)
 		struct in_addr dst;
 		struct nlattr rta_oif;
 		uint32_t oif;
-	} reply, msg = {
-		.hdr.nlmsg_type = RTM_NEWROUTE,
-		.hdr.nlmsg_flags = NLM_F_REQUEST | NLM_F_CREATE | NLM_F_EXCL,
-		.hdr.nlmsg_len = sizeof(msg),
-		.rtm.rtm_family = AF_INET,
-		.rtm.rtm_protocol = RTPROT_STATIC,
-		.rtm.rtm_type = RTN_UNICAST,
-		.rtm.rtm_dst_len = 32,
-		.rta_dst.nla_type = RTA_DST,
-		.rta_dst.nla_len = sizeof(struct in_addr) +
-		    sizeof(struct nlattr),
-		.dst.s_addr = inet_addr("127.0.0.127"),
-		.rta_oif.nla_type = RTA_OIF,
-		.rta_oif.nla_len = sizeof(uint32_t) + sizeof(struct nlattr),
-		.oif = 1,
-	};
+	} reply,
+	    msg = {
+		    .hdr.nlmsg_type = RTM_NEWROUTE,
+		    .hdr.nlmsg_flags = NLM_F_REQUEST | NLM_F_CREATE |
+			NLM_F_EXCL,
+		    .hdr.nlmsg_len = sizeof(msg),
+		    .rtm.rtm_family = AF_INET,
+		    .rtm.rtm_protocol = RTPROT_STATIC,
+		    .rtm.rtm_type = RTN_UNICAST,
+		    .rtm.rtm_dst_len = 32,
+		    .rta_dst.nla_type = RTA_DST,
+		    .rta_dst.nla_len = sizeof(struct in_addr) +
+			sizeof(struct nlattr),
+		    .dst.s_addr = inet_addr("127.0.0.127"),
+		    .rta_oif.nla_type = RTA_OIF,
+		    .rta_oif.nla_len = sizeof(uint32_t) + sizeof(struct nlattr),
+		    .oif = 1,
+	    };
 	struct nlattr *nla;
 	int fd;
 
 	ATF_REQUIRE((fd = socket(PF_NETLINK, SOCK_RAW, NETLINK_ROUTE)) != -1);
 	ATF_REQUIRE(setsockopt(fd, SOL_NETLINK, NETLINK_ADD_MEMBERSHIP,
-	    &(int){RTNLGRP_IPV4_ROUTE}, sizeof(int)) == 0);
+			&(int) { RTNLGRP_IPV4_ROUTE }, sizeof(int)) == 0);
 
 	ATF_REQUIRE(send(fd, &msg, sizeof(msg), 0) == sizeof(msg));
 	ATF_REQUIRE(recv(fd, &reply, sizeof(reply), 0) == sizeof(reply));
@@ -313,7 +313,7 @@ ATF_TC_BODY(membership, tc)
 	ATF_REQUIRE(reply.rtm.rtm_dst_len == msg.rtm.rtm_dst_len);
 	ATF_REQUIRE(nla = nla_RTA_DST(&reply.rta_dst, sizeof(reply)));
 	ATF_REQUIRE(memcmp(&msg.dst, (char *)nla + sizeof(struct nlattr),
-	    sizeof(struct in_addr)) == 0);
+			sizeof(struct in_addr)) == 0);
 
 	msg.hdr.nlmsg_type = RTM_DELROUTE;
 	msg.hdr.nlmsg_len -= sizeof(struct nlattr) + sizeof(uint32_t);
@@ -324,7 +324,7 @@ ATF_TC_BODY(membership, tc)
 	ATF_REQUIRE(reply.rtm.rtm_dst_len == msg.rtm.rtm_dst_len);
 	ATF_REQUIRE(nla = nla_RTA_DST(&reply.rta_dst, sizeof(reply)));
 	ATF_REQUIRE(memcmp(&msg.dst, (char *)nla + sizeof(struct nlattr),
-	    sizeof(struct in_addr)) == 0);
+			sizeof(struct in_addr)) == 0);
 }
 
 ATF_TP_ADD_TCS(tp)

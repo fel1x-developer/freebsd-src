@@ -34,9 +34,10 @@
 #include <wchar.h>
 
 wchar_t *
-wcpcpy(wchar_t * __restrict to, const wchar_t * __restrict from)
+wcpcpy(wchar_t *__restrict to, const wchar_t *__restrict from)
 {
 
-	for (; (*to = *from); ++from, ++to);
-	return(to);
+	for (; (*to = *from); ++from, ++to)
+		;
+	return (to);
 }

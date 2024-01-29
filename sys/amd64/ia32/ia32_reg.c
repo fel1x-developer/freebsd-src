@@ -27,6 +27,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/elf.h>
 #include <sys/exec.h>
 #include <sys/fcntl.h>
@@ -34,14 +35,13 @@
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
-#include <sys/mutex.h>
 #include <sys/mman.h>
+#include <sys/mutex.h>
 #include <sys/namei.h>
 #include <sys/proc.h>
 #include <sys/procfs.h>
 #include <sys/reg.h>
 #include <sys/resourcevar.h>
-#include <sys/systm.h>
 #include <sys/signalvar.h>
 #include <sys/stat.h>
 #include <sys/sx.h>
@@ -51,23 +51,24 @@
 #include <sys/vnode.h>
 
 #include <vm/vm.h>
-#include <vm/vm_kern.h>
-#include <vm/vm_param.h>
 #include <vm/pmap.h>
+#include <vm/vm_extern.h>
+#include <vm/vm_kern.h>
 #include <vm/vm_map.h>
 #include <vm/vm_object.h>
-#include <vm/vm_extern.h>
+#include <vm/vm_param.h>
 
-#include <compat/freebsd32/freebsd32_util.h>
-#include <compat/freebsd32/freebsd32_proto.h>
+#include <machine/cpufunc.h>
 #include <machine/fpu.h>
-#include <machine/psl.h>
-#include <machine/segments.h>
-#include <machine/specialreg.h>
 #include <machine/frame.h>
 #include <machine/md_var.h>
 #include <machine/pcb.h>
-#include <machine/cpufunc.h>
+#include <machine/psl.h>
+#include <machine/segments.h>
+#include <machine/specialreg.h>
+
+#include <compat/freebsd32/freebsd32_proto.h>
+#include <compat/freebsd32/freebsd32_util.h>
 
 int
 fill_regs32(struct thread *td, struct reg32 *regs)
@@ -109,7 +110,8 @@ set_regs32(struct thread *td, struct reg32 *regs)
 	struct trapframe *tp;
 
 	tp = td->td_frame;
-	if (!EFL_SECURE(regs->r_eflags, tp->tf_rflags) || !CS_SECURE(regs->r_cs))
+	if (!EFL_SECURE(regs->r_eflags, tp->tf_rflags) ||
+	    !CS_SECURE(regs->r_cs))
 		return (EINVAL);
 	tp->tf_gs = regs->r_gs;
 	tp->tf_fs = regs->r_fs;
@@ -185,9 +187,9 @@ fill_fpregs32(struct thread *td, struct fpreg32 *regs)
 			/* The first 64 bits contain the mantissa. */
 			mantissa = *((uint64_t *)fx_reg->fp_bytes);
 			/*
-			 * The final 16 bits contain the sign bit and the exponent.
-			 * Mask the sign bit since it is of no consequence to these
-			 * tests.
+			 * The final 16 bits contain the sign bit and the
+			 * exponent. Mask the sign bit since it is of no
+			 * consequence to these tests.
 			 */
 			exp = *((uint16_t *)&fx_reg->fp_bytes[8]) & 0x7fff;
 			if (exp == 0) {
@@ -232,7 +234,8 @@ set_fpregs32(struct thread *td, struct fpreg32 *regs)
 	}
 
 	for (i = 8; i < 16; ++i)
-		bzero(&sv_fpu->sv_fp[i].fp_acc, sizeof(sv_fpu->sv_fp[i].fp_acc));
+		bzero(&sv_fpu->sv_fp[i].fp_acc,
+		    sizeof(sv_fpu->sv_fp[i].fp_acc));
 	fpuuserinited(td);
 
 	return (0);
@@ -285,8 +288,7 @@ get_i386_segbases(struct regset *rs, struct thread *td, void *buf,
 }
 
 static bool
-set_i386_segbases(struct regset *rs, struct thread *td, void *buf,
-    size_t size)
+set_i386_segbases(struct regset *rs, struct thread *td, void *buf, size_t size)
 {
 	struct segbasereg32 *reg;
 	struct pcb *pcb;

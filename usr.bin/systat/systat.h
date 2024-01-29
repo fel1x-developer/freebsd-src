@@ -30,19 +30,21 @@
  */
 
 #include <sys/stdint.h>
+
 #include <curses.h>
 
-struct  cmdtab {
-	const char *c_name;		/* command name */
-	void	(*c_refresh)(void);	/* display refresh */
-	void	(*c_fetch)(void);	/* sets up data structures */
-	void	(*c_label)(void);	/* label display */
-	int	(*c_init)(void);	/* initialize namelist, etc. */
-	WINDOW	*(*c_open)(void);	/* open display */
-	void	(*c_close)(WINDOW *);	/* close display */
-	int	(*c_cmd)(const char *, const char *); /* display command interpreter */
-	void	(*c_reset)(void);	/* reset ``mode since'' display */
-	char	c_flags;		/* see below */
+struct cmdtab {
+	const char *c_name;	   /* command name */
+	void (*c_refresh)(void);   /* display refresh */
+	void (*c_fetch)(void);	   /* sets up data structures */
+	void (*c_label)(void);	   /* label display */
+	int (*c_init)(void);	   /* initialize namelist, etc. */
+	WINDOW *(*c_open)(void);   /* open display */
+	void (*c_close)(WINDOW *); /* close display */
+	int (*c_cmd)(const char *,
+	    const char *);     /* display command interpreter */
+	void (*c_reset)(void); /* reset ``mode since'' display */
+	char c_flags;	       /* see below */
 };
 
 /*
@@ -52,19 +54,19 @@ struct  cmdtab {
  */
 extern int use_kvm;
 
-#define	CF_INIT		0x1		/* been initialized */
-#define	CF_LOADAV	0x2		/* display w/ load average */
-#define	CF_ZFSARC	0x4		/* display w/ ZFS cache usage */
+#define CF_INIT 0x1   /* been initialized */
+#define CF_LOADAV 0x2 /* display w/ load average */
+#define CF_ZFSARC 0x4 /* display w/ ZFS cache usage */
 
-#define	TCP	0x1
-#define	UDP	0x2
+#define TCP 0x1
+#define UDP 0x2
 
-#define	MAINWIN_ROW	3		/* top row for the main/lower window */
+#define MAINWIN_ROW 3 /* top row for the main/lower window */
 
 #define GETSYSCTL(name, var) getsysctl(name, &(var), sizeof(var))
-#define KREAD(addr, buf, len)  kvm_ckread((addr), (buf), (len))
-#define NVAL(indx)  namelist[(indx)].n_value
-#define NPTR(indx)  (void *)NVAL((indx))
+#define KREAD(addr, buf, len) kvm_ckread((addr), (buf), (len))
+#define NVAL(indx) namelist[(indx)].n_value
+#define NPTR(indx) (void *)NVAL((indx))
 #define NREAD(indx, buf, len) kvm_ckread(NPTR((indx)), (buf), (len))
 
 extern void putint(int, int, int, int);

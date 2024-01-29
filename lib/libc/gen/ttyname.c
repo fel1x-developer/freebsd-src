@@ -29,28 +29,29 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/types.h>
-#include <sys/ioctl.h>
 #include <sys/filio.h>
-#include <fcntl.h>
+#include <sys/ioctl.h>
+
 #include <dirent.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <paths.h>
 #include <stdlib.h>
+#include <string.h>
 #include <termios.h>
 #include <unistd.h>
-#include <string.h>
-#include <paths.h>
-#include <errno.h>
+
+#include "libc_private.h"
+#include "namespace.h"
 #include "reentrant.h"
 #include "un-namespace.h"
 
-#include "libc_private.h"
-
 static char ttyname_buf[sizeof(_PATH_DEV) + MAXNAMLEN];
 
-static once_t		ttyname_init_once = ONCE_INITIALIZER;
-static thread_key_t	ttyname_key;
-static int		ttyname_keycreated = 0;
+static once_t ttyname_init_once = ONCE_INITIALIZER;
+static thread_key_t ttyname_key;
+static int ttyname_keycreated = 0;
 
 int
 ttyname_r(int fd, char *buf, size_t len)
@@ -86,7 +87,7 @@ ttyname_keycreate(void)
 char *
 ttyname(int fd)
 {
-	char	*buf;
+	char *buf;
 
 	if (thr_main() != 0)
 		buf = ttyname_buf;

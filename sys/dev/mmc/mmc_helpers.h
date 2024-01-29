@@ -29,38 +29,36 @@
 #define _MMC_HELPERS_H_
 
 #include <dev/gpio/gpiobusvar.h>
-
 #include <dev/regulator/regulator.h>
 
 struct mmc_helper {
-	device_t		dev;
-	gpio_pin_t		wp_pin;
-	gpio_pin_t		cd_pin;
-	void *			cd_ihandler;
-	struct resource *	cd_ires;
-	int			cd_irid;
-	void			(*cd_handler)(device_t, bool);
-	struct timeout_task	cd_delayed_task;
-	bool			cd_disabled;
-	bool			wp_disabled;
-	bool			cd_present;
-	uint32_t		props;
-#define	MMC_PROP_BROKEN_CD	(1 << 0)
-#define	MMC_PROP_NON_REMOVABLE	(1 << 1)
-#define	MMC_PROP_WP_INVERTED	(1 << 2)
-#define	MMC_PROP_CD_INVERTED	(1 << 3)
-#define	MMC_PROP_DISABLE_WP	(1 << 4)
-#define	MMC_PROP_NO_SDIO	(1 << 5)
-#define	MMC_PROP_NO_SD		(1 << 6)
-#define	MMC_PROP_NO_MMC		(1 << 7)
+	device_t dev;
+	gpio_pin_t wp_pin;
+	gpio_pin_t cd_pin;
+	void *cd_ihandler;
+	struct resource *cd_ires;
+	int cd_irid;
+	void (*cd_handler)(device_t, bool);
+	struct timeout_task cd_delayed_task;
+	bool cd_disabled;
+	bool wp_disabled;
+	bool cd_present;
+	uint32_t props;
+#define MMC_PROP_BROKEN_CD (1 << 0)
+#define MMC_PROP_NON_REMOVABLE (1 << 1)
+#define MMC_PROP_WP_INVERTED (1 << 2)
+#define MMC_PROP_CD_INVERTED (1 << 3)
+#define MMC_PROP_DISABLE_WP (1 << 4)
+#define MMC_PROP_NO_SDIO (1 << 5)
+#define MMC_PROP_NO_SD (1 << 6)
+#define MMC_PROP_NO_MMC (1 << 7)
 
-	regulator_t	vmmc_supply;
-	regulator_t	vqmmc_supply;
+	regulator_t vmmc_supply;
+	regulator_t vqmmc_supply;
 
-	device_t	mmc_pwrseq;
+	device_t mmc_pwrseq;
 };
 
-int mmc_parse(device_t dev, struct mmc_helper *helper,
-    struct mmc_host *host);
+int mmc_parse(device_t dev, struct mmc_helper *helper, struct mmc_host *host);
 
 #endif

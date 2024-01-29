@@ -27,16 +27,17 @@
  */
 
 #ifndef RTLD_MACHDEP_H
-#define RTLD_MACHDEP_H	1
+#define RTLD_MACHDEP_H 1
 
 #include <sys/types.h>
+
 #include <machine/atomic.h>
 #include <machine/tls.h>
 
 struct Struct_Obj_Entry;
 
 /* Return the address of the .dynamic section in the dynamic linker. */
-#define rtld_dynamic(obj)    (&_DYNAMIC)
+#define rtld_dynamic(obj) (&_DYNAMIC)
 
 Elf_Addr reloc_jmpslot(Elf_Addr *where, Elf_Addr target,
     const struct Struct_Obj_Entry *defobj, const struct Struct_Obj_Entry *obj,
@@ -46,18 +47,17 @@ void reloc_non_plt_self(Elf_Dyn *dynp, Elf_Addr relocbase);
 #define make_function_pointer(def, defobj) \
 	((defobj)->relocbase + (def)->st_value)
 
-#define call_initfini_pointer(obj, target) \
-	(((InitFunc)(target))())
+#define call_initfini_pointer(obj, target) (((InitFunc)(target))())
 
 #define call_init_pointer(obj, target) \
 	(((InitArrFunc)(target))(main_argc, main_argv, environ))
 
-extern u_long cpu_features; /* r3 */
+extern u_long cpu_features;  /* r3 */
 extern u_long cpu_features2; /* r4 */
 /* r5-10: ifunc resolver parameters reserved for future assignment. */
-#define	call_ifunc_resolver(ptr) \
-	(((Elf_Addr (*)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, \
-	    uint32_t, uint32_t, uint32_t))ptr)((uint32_t)cpu_features, \
+#define call_ifunc_resolver(ptr)                                         \
+	(((Elf_Addr(*)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, \
+	    uint32_t, uint32_t, uint32_t))ptr)((uint32_t)cpu_features,   \
 	    (uint32_t)cpu_features2, 0, 0, 0, 0, 0, 0))
 
 /*
@@ -72,20 +72,18 @@ void _rtld_powerpc_pltcall(void);
  * TLS
  */
 
-#define round(size, align) \
-    (((size) + (align) - 1) & ~((align) - 1))
-#define calculate_first_tls_offset(size, align, offset)	\
-    TLS_TCB_SIZE
+#define round(size, align) (((size) + (align)-1) & ~((align)-1))
+#define calculate_first_tls_offset(size, align, offset) TLS_TCB_SIZE
 #define calculate_tls_offset(prev_offset, prev_size, size, align, offset) \
-    round(prev_offset + prev_size, align)
-#define calculate_tls_post_size(align)  0
- 
+	round(prev_offset + prev_size, align)
+#define calculate_tls_post_size(align) 0
+
 typedef struct {
 	unsigned long ti_module;
 	unsigned long ti_offset;
 } tls_index;
 
-extern void *__tls_get_addr(tls_index* ti);
+extern void *__tls_get_addr(tls_index *ti);
 
 extern void powerpc_abi_variant_hook(Elf_Auxinfo **);
 #define md_abi_variant_hook(x) powerpc_abi_variant_hook(x)

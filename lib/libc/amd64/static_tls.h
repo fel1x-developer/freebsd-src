@@ -29,14 +29,14 @@
  */
 
 #ifndef _LIBC_AMD64_STATIC_TLS_H
-#define	_LIBC_AMD64_STATIC_TLS_H
+#define _LIBC_AMD64_STATIC_TLS_H
 
 static __inline uintptr_t
 _libc_get_static_tls_base(size_t offset)
 {
 	uintptr_t tlsbase;
 
-	__asm __volatile("movq %%fs:0, %0" : "=r" (tlsbase));
+	__asm __volatile("movq %%fs:0, %0" : "=r"(tlsbase));
 	tlsbase -= offset;
 	return (tlsbase);
 }

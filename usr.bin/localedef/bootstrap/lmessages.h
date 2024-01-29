@@ -34,6 +34,6 @@
  * SUCH DAMAGE.
  */
 #include "namespace.h"
-#define	lc_messages_T	localedef_bootstrap_lc_messages_T
+#define lc_messages_T localedef_bootstrap_lc_messages_T
 #include "../../../lib/libc/locale/lmessages.h"
 #include "un-namespace.h"

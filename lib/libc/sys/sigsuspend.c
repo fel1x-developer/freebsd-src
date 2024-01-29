@@ -30,7 +30,9 @@
  */
 
 #include <sys/types.h>
+
 #include <signal.h>
+
 #include "libc_private.h"
 
 __weak_reference(__sys_sigsuspend, __sigsuspend);
@@ -41,6 +43,6 @@ int
 sigsuspend(const sigset_t *set)
 {
 
-	return (((int (*)(const sigset_t *))
-	    __libc_interposing[INTERPOS_sigsuspend])(set));
+	return (((int (*)(
+	    const sigset_t *))__libc_interposing[INTERPOS_sigsuspend])(set));
 }

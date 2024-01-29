@@ -25,13 +25,13 @@
  */
 
 #include <sys/param.h>
-#include <sys/uio.h>
+#include <sys/ktrace.h>
 #include <sys/ptrace.h>
-#include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/syscall.h>
+#include <sys/time.h>
+#include <sys/uio.h>
 #include <sys/wait.h>
-#include <sys/ktrace.h>
 
 #include <assert.h>
 #include <errno.h>
@@ -44,95 +44,122 @@
  * Relevant parts of a process credential.
  */
 struct cred {
-	uid_t	cr_euid, cr_ruid, cr_svuid;
-	int	cr_issetugid;
+	uid_t cr_euid, cr_ruid, cr_svuid;
+	int cr_issetugid;
 };
 
 /*
  * Description of a scenario.
  */
 struct scenario {
-	struct cred	*sc_cred1, *sc_cred2;	/* credentials of p1 and p2 */
-	int		sc_canptrace_errno;	/* desired ptrace failure */
-	int		sc_canktrace_errno;	/* desired ktrace failure */
-	int		sc_cansighup_errno;	/* desired SIGHUP failure */
-	int		sc_cansigsegv_errno;	/* desired SIGSEGV failure */
-	int		sc_cansee_errno;	/* desired getprio failure */
-	int		sc_cansched_errno;	/* desired setprio failure */
-	char		*sc_name;		/* test name */
+	struct cred *sc_cred1, *sc_cred2; /* credentials of p1 and p2 */
+	int sc_canptrace_errno;		  /* desired ptrace failure */
+	int sc_canktrace_errno;		  /* desired ktrace failure */
+	int sc_cansighup_errno;		  /* desired SIGHUP failure */
+	int sc_cansigsegv_errno;	  /* desired SIGSEGV failure */
+	int sc_cansee_errno;		  /* desired getprio failure */
+	int sc_cansched_errno;		  /* desired setprio failure */
+	char *sc_name;			  /* test name */
 };
 
 /*
  * Table of relevant credential combinations.
  */
 static struct cred creds[] = {
-/*		euid	ruid	svuid	issetugid	*/
-/* 0 */ {	0,	0,	0,	0 },	/* privileged */
-/* 1 */ {	0,	0,	0,	1 },	/* privileged + issetugid */
-/* 2 */ {	1000,	1000,	1000,	0 },	/* unprivileged1 */
-/* 3 */ {	1000,	1000,	1000,	1 },	/* unprivileged1 + issetugid */
-/* 4 */ {	1001,	1001,	1001,	0 },	/* unprivileged2 */
-/* 5 */ {	1001,	1001,	1001,	1 },	/* unprivileged2 + issetugid */
-/* 6 */ {	1000,	0,	0,	0 },	/* daemon1 */
-/* 7 */ {	1000,	0,	0,	1 },	/* daemon1 + issetugid */
-/* 8 */ {	1001,	0,	0,	0 },	/* daemon2 */
-/* 9 */ {	1001,	0,	0,	1 },	/* daemon2 + issetugid */
-/* 10 */{	0,	1000,	1000,	0 },	/* setuid1 */
-/* 11 */{	0, 	1000,	1000,	1 },	/* setuid1 + issetugid */
-/* 12 */{	0,	1001,	1001,	0 },	/* setuid2 */
-/* 13 */{	0,	1001,	1001,	1 },	/* setuid2 + issetugid */
+	/*		euid	ruid	svuid	issetugid	*/
+	/* 0 */ { 0, 0, 0, 0 },		 /* privileged */
+	/* 1 */ { 0, 0, 0, 1 },		 /* privileged + issetugid */
+	/* 2 */ { 1000, 1000, 1000, 0 }, /* unprivileged1 */
+	/* 3 */ { 1000, 1000, 1000, 1 }, /* unprivileged1 + issetugid */
+	/* 4 */ { 1001, 1001, 1001, 0 }, /* unprivileged2 */
+	/* 5 */ { 1001, 1001, 1001, 1 }, /* unprivileged2 + issetugid */
+	/* 6 */ { 1000, 0, 0, 0 },	 /* daemon1 */
+	/* 7 */ { 1000, 0, 0, 1 },	 /* daemon1 + issetugid */
+	/* 8 */ { 1001, 0, 0, 0 },	 /* daemon2 */
+	/* 9 */ { 1001, 0, 0, 1 },	 /* daemon2 + issetugid */
+	/* 10 */ { 0, 1000, 1000, 0 },	 /* setuid1 */
+	/* 11 */ { 0, 1000, 1000, 1 },	 /* setuid1 + issetugid */
+	/* 12 */ { 0, 1001, 1001, 0 },	 /* setuid2 */
+	/* 13 */ { 0, 1001, 1001, 1 },	 /* setuid2 + issetugid */
 };
 
 /*
  * Table of scenarios.
  */
 static const struct scenario scenarios[] = {
-/*	cred1		cred2		ptrace	ktrace, sighup	sigsegv	see	sched	name */
-/* privileged on privileged */
-{	&creds[0],	&creds[0],	0,	0,	0,	0,	0,	0,	"0. priv on priv"},
-{	&creds[0],	&creds[1],	0,	0,	0,	0,	0,	0,	"1. priv on priv"},
-{	&creds[1],	&creds[0],	0,	0,	0,	0,	0,	0,	"2. priv on priv"},
-{	&creds[1],	&creds[1],	0,	0,	0,	0,	0,	0,	"3. priv on priv"},
-/* privileged on unprivileged */
-{	&creds[0],	&creds[2],	0,	0,	0,	0,	0,	0,	"4. priv on unpriv1"},
-{	&creds[0],	&creds[3],	0,	0,	0,	0,	0,	0,	"5. priv on unpriv1"},
-{	&creds[1],	&creds[2],	0,	0,	0,	0,	0,	0,	"6. priv on unpriv1"},
-{	&creds[1],	&creds[3],	0,	0,	0,	0,	0,	0,	"7. priv on unpriv1"},
-/* unprivileged on privileged */
-{	&creds[2],	&creds[0],	EPERM,	EPERM,	EPERM,	EPERM,	0,	EPERM,	"8. unpriv1 on priv"},
-{	&creds[2],	&creds[1],	EPERM,	EPERM,	EPERM,	EPERM,	0,	EPERM,	"9. unpriv1 on priv"},
-{	&creds[3],	&creds[0],	EPERM,	EPERM,	EPERM,	EPERM,	0,	EPERM,	"10. unpriv1 on priv"},
-{	&creds[3],	&creds[1],	EPERM,	EPERM,	EPERM,	EPERM,	0,	EPERM,	"11. unpriv1 on priv"},
-/* unprivileged on same unprivileged */
-{	&creds[2],	&creds[2],	0,	0,	0,	0,	0,	0,	"12. unpriv1 on unpriv1"},
-{	&creds[2],	&creds[3],	EPERM,	EPERM,	0,	EPERM,	0,	0,	"13. unpriv1 on unpriv1"},
-{	&creds[3],	&creds[2],	0,	0,	0,	0,	0,	0,	"14. unpriv1 on unpriv1"},
-{	&creds[3],	&creds[3],	EPERM,	EPERM,	0,	EPERM,	0,	0,	"15. unpriv1 on unpriv1"},
-/* unprivileged on different unprivileged */
-{	&creds[2],	&creds[4],	EPERM,	EPERM,	EPERM,	EPERM,	0,	EPERM,	"16. unpriv1 on unpriv2"},
-{	&creds[2],	&creds[5],	EPERM,	EPERM,	EPERM,	EPERM,	0,	EPERM,	"17. unpriv1 on unpriv2"},
-{	&creds[3],	&creds[4],	EPERM,	EPERM,	EPERM,	EPERM,	0,	EPERM,	"18. unpriv1 on unpriv2"},
-{	&creds[3],	&creds[5],	EPERM,	EPERM,	EPERM,	EPERM,	0,	EPERM,	"19. unpriv1 on unpriv2"},
-/* unprivileged on daemon, same */
-{	&creds[2],	&creds[6],	EPERM,	EPERM,	EPERM,	EPERM,	0,	EPERM,	"20. unpriv1 on daemon1"},
-{	&creds[2],	&creds[7],	EPERM,	EPERM,	EPERM,	EPERM,	0, 	EPERM,	"21. unpriv1 on daemon1"},
-{	&creds[3],	&creds[6],	EPERM,	EPERM,	EPERM,	EPERM,	0,	EPERM,	"22. unpriv1 on daemon1"},
-{	&creds[3],	&creds[7],	EPERM,	EPERM,	EPERM,	EPERM,	0,	EPERM,	"23. unpriv1 on daemon1"},
-/* unprivileged on daemon, different */
-{	&creds[2],	&creds[8],	EPERM,	EPERM,	EPERM,	EPERM,	0,	EPERM,	"24. unpriv1 on daemon2"},
-{	&creds[2],	&creds[9],	EPERM,	EPERM,	EPERM,	EPERM,	0,	EPERM,	"25. unpriv1 on daemon2"},
-{	&creds[3],	&creds[8],	EPERM,	EPERM,	EPERM,	EPERM,	0,	EPERM,	"26. unpriv1 on daemon2"},
-{	&creds[3],	&creds[9],	EPERM,	EPERM,	EPERM,	EPERM,	0,	EPERM,	"27. unpriv1 on daemon2"},
-/* unprivileged on setuid, same */
-{	&creds[2],	&creds[10],	EPERM,	EPERM,	0,	0,	0,	0,	"28. unpriv1 on setuid1"},
-{	&creds[2],	&creds[11],	EPERM,	EPERM,	0,	EPERM,	0,	0,	"29. unpriv1 on setuid1"},
-{	&creds[3],	&creds[10],	EPERM,	EPERM,	0,	0,	0,	0,	"30. unpriv1 on setuid1"},
-{	&creds[3],	&creds[11],	EPERM,	EPERM,	0,	EPERM,	0,	0,	"31. unpriv1 on setuid1"},
-/* unprivileged on setuid, different */
-{	&creds[2],	&creds[12],	EPERM,	EPERM,	EPERM,	EPERM,	0,	EPERM,	"32. unpriv1 on setuid2"},
-{	&creds[2],	&creds[13],	EPERM,	EPERM,	EPERM,	EPERM,	0,	EPERM,	"33. unpriv1 on setuid2"},
-{	&creds[3],	&creds[12],	EPERM,	EPERM,	EPERM,	EPERM,	0,	EPERM,	"34. unpriv1 on setuid2"},
-{	&creds[3],	&creds[13],	EPERM,	EPERM,	EPERM,	EPERM,	0,	EPERM,	"35. unpriv1 on setuid2"},
+	/*	cred1		cred2		ptrace	ktrace, sighup	sigsegv
+	   see	sched	name */
+	/* privileged on privileged */
+	{ &creds[0], &creds[0], 0, 0, 0, 0, 0, 0, "0. priv on priv" },
+	{ &creds[0], &creds[1], 0, 0, 0, 0, 0, 0, "1. priv on priv" },
+	{ &creds[1], &creds[0], 0, 0, 0, 0, 0, 0, "2. priv on priv" },
+	{ &creds[1], &creds[1], 0, 0, 0, 0, 0, 0, "3. priv on priv" },
+	/* privileged on unprivileged */
+	{ &creds[0], &creds[2], 0, 0, 0, 0, 0, 0, "4. priv on unpriv1" },
+	{ &creds[0], &creds[3], 0, 0, 0, 0, 0, 0, "5. priv on unpriv1" },
+	{ &creds[1], &creds[2], 0, 0, 0, 0, 0, 0, "6. priv on unpriv1" },
+	{ &creds[1], &creds[3], 0, 0, 0, 0, 0, 0, "7. priv on unpriv1" },
+	/* unprivileged on privileged */
+	{ &creds[2], &creds[0], EPERM, EPERM, EPERM, EPERM, 0, EPERM,
+	    "8. unpriv1 on priv" },
+	{ &creds[2], &creds[1], EPERM, EPERM, EPERM, EPERM, 0, EPERM,
+	    "9. unpriv1 on priv" },
+	{ &creds[3], &creds[0], EPERM, EPERM, EPERM, EPERM, 0, EPERM,
+	    "10. unpriv1 on priv" },
+	{ &creds[3], &creds[1], EPERM, EPERM, EPERM, EPERM, 0, EPERM,
+	    "11. unpriv1 on priv" },
+	/* unprivileged on same unprivileged */
+	{ &creds[2], &creds[2], 0, 0, 0, 0, 0, 0, "12. unpriv1 on unpriv1" },
+	{ &creds[2], &creds[3], EPERM, EPERM, 0, EPERM, 0, 0,
+	    "13. unpriv1 on unpriv1" },
+	{ &creds[3], &creds[2], 0, 0, 0, 0, 0, 0, "14. unpriv1 on unpriv1" },
+	{ &creds[3], &creds[3], EPERM, EPERM, 0, EPERM, 0, 0,
+	    "15. unpriv1 on unpriv1" },
+	/* unprivileged on different unprivileged */
+	{ &creds[2], &creds[4], EPERM, EPERM, EPERM, EPERM, 0, EPERM,
+	    "16. unpriv1 on unpriv2" },
+	{ &creds[2], &creds[5], EPERM, EPERM, EPERM, EPERM, 0, EPERM,
+	    "17. unpriv1 on unpriv2" },
+	{ &creds[3], &creds[4], EPERM, EPERM, EPERM, EPERM, 0, EPERM,
+	    "18. unpriv1 on unpriv2" },
+	{ &creds[3], &creds[5], EPERM, EPERM, EPERM, EPERM, 0, EPERM,
+	    "19. unpriv1 on unpriv2" },
+	/* unprivileged on daemon, same */
+	{ &creds[2], &creds[6], EPERM, EPERM, EPERM, EPERM, 0, EPERM,
+	    "20. unpriv1 on daemon1" },
+	{ &creds[2], &creds[7], EPERM, EPERM, EPERM, EPERM, 0, EPERM,
+	    "21. unpriv1 on daemon1" },
+	{ &creds[3], &creds[6], EPERM, EPERM, EPERM, EPERM, 0, EPERM,
+	    "22. unpriv1 on daemon1" },
+	{ &creds[3], &creds[7], EPERM, EPERM, EPERM, EPERM, 0, EPERM,
+	    "23. unpriv1 on daemon1" },
+	/* unprivileged on daemon, different */
+	{ &creds[2], &creds[8], EPERM, EPERM, EPERM, EPERM, 0, EPERM,
+	    "24. unpriv1 on daemon2" },
+	{ &creds[2], &creds[9], EPERM, EPERM, EPERM, EPERM, 0, EPERM,
+	    "25. unpriv1 on daemon2" },
+	{ &creds[3], &creds[8], EPERM, EPERM, EPERM, EPERM, 0, EPERM,
+	    "26. unpriv1 on daemon2" },
+	{ &creds[3], &creds[9], EPERM, EPERM, EPERM, EPERM, 0, EPERM,
+	    "27. unpriv1 on daemon2" },
+	/* unprivileged on setuid, same */
+	{ &creds[2], &creds[10], EPERM, EPERM, 0, 0, 0, 0,
+	    "28. unpriv1 on setuid1" },
+	{ &creds[2], &creds[11], EPERM, EPERM, 0, EPERM, 0, 0,
+	    "29. unpriv1 on setuid1" },
+	{ &creds[3], &creds[10], EPERM, EPERM, 0, 0, 0, 0,
+	    "30. unpriv1 on setuid1" },
+	{ &creds[3], &creds[11], EPERM, EPERM, 0, EPERM, 0, 0,
+	    "31. unpriv1 on setuid1" },
+	/* unprivileged on setuid, different */
+	{ &creds[2], &creds[12], EPERM, EPERM, EPERM, EPERM, 0, EPERM,
+	    "32. unpriv1 on setuid2" },
+	{ &creds[2], &creds[13], EPERM, EPERM, EPERM, EPERM, 0, EPERM,
+	    "33. unpriv1 on setuid2" },
+	{ &creds[3], &creds[12], EPERM, EPERM, EPERM, EPERM, 0, EPERM,
+	    "34. unpriv1 on setuid2" },
+	{ &creds[3], &creds[13], EPERM, EPERM, EPERM, EPERM, 0, EPERM,
+	    "35. unpriv1 on setuid2" },
 };
 int scenarios_count = sizeof(scenarios) / sizeof(struct scenario);
 
@@ -248,13 +275,13 @@ cred_print(FILE *output, struct cred *cred)
 	    cred->cr_ruid, cred->cr_svuid, cred->cr_issetugid);
 }
 
-#define	LOOP_PTRACE	0
-#define	LOOP_KTRACE	1
-#define	LOOP_SIGHUP	2
-#define	LOOP_SIGSEGV	3
-#define	LOOP_SEE	4
-#define	LOOP_SCHED	5
-#define	LOOP_MAX	LOOP_SCHED
+#define LOOP_PTRACE 0
+#define LOOP_KTRACE 1
+#define LOOP_SIGHUP 2
+#define LOOP_SIGSEGV 3
+#define LOOP_SEE 4
+#define LOOP_SCHED 5
+#define LOOP_MAX LOOP_SCHED
 
 /*
  * Enact a scenario by looping through the four test cases for the scenario,
@@ -268,7 +295,7 @@ enact_scenario(int scenario)
 	char *name, *tracefile;
 	int error, desirederror, loop;
 
-	for (loop = 0; loop < LOOP_MAX+1; loop++) {
+	for (loop = 0; loop < LOOP_MAX + 1; loop++) {
 		/*
 		 * Spawn the first child, target of the operation.
 		 */
@@ -308,7 +335,7 @@ enact_scenario(int scenario)
 		switch (pid2) {
 		case -1:
 			return (-1);
-	
+
 		case 0:
 			/* child */
 			error = cred_set(scenarios[scenario].sc_cred1);
@@ -316,7 +343,7 @@ enact_scenario(int scenario)
 				perror("cred_set");
 				return (error);
 			}
-	
+
 			/*
 			 * Initialize errno to zero so as to catch any
 			 * generated errors.  In each case, perform the
@@ -337,7 +364,8 @@ enact_scenario(int scenario)
 				    scenarios[scenario].sc_canptrace_errno;
 				break;
 			case LOOP_KTRACE:
-				tracefile = mktemp("/tmp/testuid_ktrace.XXXXXX");
+				tracefile = mktemp(
+				    "/tmp/testuid_ktrace.XXXXXX");
 				if (tracefile == NULL) {
 					error = errno;
 					perror("mktemp");
@@ -373,8 +401,7 @@ enact_scenario(int scenario)
 				    scenarios[scenario].sc_cansee_errno;
 				break;
 			case LOOP_SCHED:
-				error = setpriority(PRIO_PROCESS, pid1,
-				   0);
+				error = setpriority(PRIO_PROCESS, pid1, 0);
 				error = errno;
 				name = "sched";
 				desirederror =
@@ -414,7 +441,7 @@ enact_scenario(int scenario)
 		kill(pid1, SIGKILL);
 		error = waitpid(pid2, NULL, 0);
 	}
-	
+
 	return (0);
 }
 

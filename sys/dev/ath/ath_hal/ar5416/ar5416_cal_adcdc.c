@@ -19,18 +19,17 @@
 #include "opt_ah.h"
 
 #include "ah.h"
-#include "ah_internal.h"
 #include "ah_devid.h"
-
+#include "ah_internal.h"
 #include "ar5416/ar5416.h"
-#include "ar5416/ar5416reg.h"
 #include "ar5416/ar5416phy.h"
+#include "ar5416/ar5416reg.h"
 
 /* Adc DC Offset Cal aliases */
-#define	totalAdcDcOffsetIOddPhase(i)	caldata[0][i].s
-#define	totalAdcDcOffsetIEvenPhase(i)	caldata[1][i].s
-#define	totalAdcDcOffsetQOddPhase(i)	caldata[2][i].s
-#define	totalAdcDcOffsetQEvenPhase(i)	caldata[3][i].s
+#define totalAdcDcOffsetIOddPhase(i) caldata[0][i].s
+#define totalAdcDcOffsetIEvenPhase(i) caldata[1][i].s
+#define totalAdcDcOffsetQOddPhase(i) caldata[2][i].s
+#define totalAdcDcOffsetQEvenPhase(i) caldata[3][i].s
 
 void
 ar5416AdcDcCalCollect(struct ath_hal *ah)
@@ -39,22 +38,21 @@ ar5416AdcDcCalCollect(struct ath_hal *ah)
 	int i;
 
 	for (i = 0; i < AR5416_MAX_CHAINS; i++) {
-		cal->totalAdcDcOffsetIOddPhase(i) += (int32_t)
-		    OS_REG_READ(ah, AR_PHY_CAL_MEAS_0(i));
-		cal->totalAdcDcOffsetIEvenPhase(i) += (int32_t)
-		    OS_REG_READ(ah, AR_PHY_CAL_MEAS_1(i));
-		cal->totalAdcDcOffsetQOddPhase(i) += (int32_t)
-		    OS_REG_READ(ah, AR_PHY_CAL_MEAS_2(i));
-		cal->totalAdcDcOffsetQEvenPhase(i) += (int32_t)
-		    OS_REG_READ(ah, AR_PHY_CAL_MEAS_3(i));
+		cal->totalAdcDcOffsetIOddPhase(
+		    i) += (int32_t)OS_REG_READ(ah, AR_PHY_CAL_MEAS_0(i));
+		cal->totalAdcDcOffsetIEvenPhase(
+		    i) += (int32_t)OS_REG_READ(ah, AR_PHY_CAL_MEAS_1(i));
+		cal->totalAdcDcOffsetQOddPhase(
+		    i) += (int32_t)OS_REG_READ(ah, AR_PHY_CAL_MEAS_2(i));
+		cal->totalAdcDcOffsetQEvenPhase(
+		    i) += (int32_t)OS_REG_READ(ah, AR_PHY_CAL_MEAS_3(i));
 
 		HALDEBUG(ah, HAL_DEBUG_PERCAL,
 		    "%d: Chn %d oddi=0x%08x; eveni=0x%08x; oddq=0x%08x; evenq=0x%08x;\n",
-		   cal->calSamples, i,
-		   cal->totalAdcDcOffsetIOddPhase(i),
-		   cal->totalAdcDcOffsetIEvenPhase(i),
-		   cal->totalAdcDcOffsetQOddPhase(i),
-		   cal->totalAdcDcOffsetQEvenPhase(i));
+		    cal->calSamples, i, cal->totalAdcDcOffsetIOddPhase(i),
+		    cal->totalAdcDcOffsetIEvenPhase(i),
+		    cal->totalAdcDcOffsetQOddPhase(i),
+		    cal->totalAdcDcOffsetQEvenPhase(i));
 	}
 }
 
@@ -90,9 +88,11 @@ ar5416AdcDcCalibration(struct ath_hal *ah, uint8_t numChains)
 		HALASSERT(numSamples);
 
 		iDcMismatch = (((iEvenMeasOffset - iOddMeasOffset) * 2) /
-		    numSamples) & 0x1ff;
+				  numSamples) &
+		    0x1ff;
 		qDcMismatch = (((qOddMeasOffset - qEvenMeasOffset) * 2) /
-		    numSamples) & 0x1ff;
+				  numSamples) &
+		    0x1ff;
 		HALDEBUG(ah, HAL_DEBUG_PERCAL,
 		    " dc_offset_mismatch_i = 0x%08x\n", iDcMismatch);
 		HALDEBUG(ah, HAL_DEBUG_PERCAL,
@@ -101,7 +101,7 @@ ar5416AdcDcCalibration(struct ath_hal *ah, uint8_t numChains)
 		val = OS_REG_READ(ah, AR_PHY_NEW_ADC_DC_GAIN_CORR(i));
 		val &= 0xc0000fff;
 		val |= (qDcMismatch << 12) | (iDcMismatch << 21);
-		OS_REG_WRITE(ah, AR_PHY_NEW_ADC_DC_GAIN_CORR(i), val); 
+		OS_REG_WRITE(ah, AR_PHY_NEW_ADC_DC_GAIN_CORR(i), val);
 
 		HALDEBUG(ah, HAL_DEBUG_PERCAL,
 		    "ADC DC Offset Cal done for Chain %d\n", i);

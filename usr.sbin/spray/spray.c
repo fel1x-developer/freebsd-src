@@ -31,15 +31,14 @@
  */
 
 #include <err.h>
+#include <rpc/rpc.h>
+#include <rpcsvc/spray.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <rpc/rpc.h>
-#include <rpcsvc/spray.h>
-
 #ifndef SPRAYOVERHEAD
-#define SPRAYOVERHEAD	86
+#define SPRAYOVERHEAD 86
 #endif
 
 static void usage(void) __dead2;
@@ -56,15 +55,15 @@ static struct timeval TIMEOUT = { 25, 0 };
 int
 main(int argc, char *argv[])
 {
-	spraycumul	host_stats;
-	sprayarr	host_array;
+	spraycumul host_stats;
+	sprayarr host_array;
 	CLIENT *cl;
 	int c;
 	u_int i;
 	u_int count = 0;
 	int delay = 0;
 	int length = 0;
-	double xmit_time;			/* time to receive data */
+	double xmit_time; /* time to receive data */
 
 	while ((c = getopt(argc, argv, "c:d:l:")) != -1) {
 		switch (c) {
@@ -90,7 +89,6 @@ main(int argc, char *argv[])
 		/* NOTREACHED */
 	}
 
-
 	/* Correct packet length. */
 	if (length > SPRAYMAX) {
 		length = SPRAYMAX;
@@ -103,7 +101,6 @@ main(int argc, char *argv[])
 		length += SPRAYOVERHEAD;
 	}
 
-
 	/*
 	 * The default value of count is the number of packets required
 	 * to make the total stream size 100000 bytes.
@@ -115,34 +112,30 @@ main(int argc, char *argv[])
 	/* Initialize spray argument */
 	host_array.sprayarr_len = length - SPRAYOVERHEAD;
 	host_array.sprayarr_val = spray_buffer;
-	
 
 	/* create connection with server */
 	cl = clnt_create(*argv, SPRAYPROG, SPRAYVERS, "udp");
 	if (cl == NULL)
 		errx(1, "%s", clnt_spcreateerror(""));
 
-
 	/*
-	 * For some strange reason, RPC 4.0 sets the default timeout, 
-	 * thus timeouts specified in clnt_call() are always ignored.  
+	 * For some strange reason, RPC 4.0 sets the default timeout,
+	 * thus timeouts specified in clnt_call() are always ignored.
 	 *
 	 * The following (undocumented) hack resets the internal state
 	 * of the client handle.
 	 */
 	clnt_control(cl, CLSET_TIMEOUT, &NO_DEFAULT);
 
-
 	/* Clear server statistics */
 	if (clnt_call(cl, SPRAYPROC_CLEAR, (xdrproc_t)xdr_void, NULL,
 		(xdrproc_t)xdr_void, NULL, TIMEOUT) != RPC_SUCCESS)
 		errx(1, "%s", clnt_sperror(cl, ""));
 
-
 	/* Spray server with packets */
-	printf ("sending %u packets of length %d to %s ...", count, length,
+	printf("sending %u packets of length %d to %s ...", count, length,
 	    *argv);
-	fflush (stdout);
+	fflush(stdout);
 
 	for (i = 0; i < count; i++) {
 		clnt_call(cl, SPRAYPROC_SPRAY, (xdrproc_t)xdr_sprayarr,
@@ -153,25 +146,21 @@ main(int argc, char *argv[])
 		}
 	}
 
-
 	/* Collect statistics from server */
 	if (clnt_call(cl, SPRAYPROC_GET, (xdrproc_t)xdr_void, NULL,
 		(xdrproc_t)xdr_spraycumul, &host_stats, TIMEOUT) != RPC_SUCCESS)
 		errx(1, "%s", clnt_sperror(cl, ""));
 
-	xmit_time = host_stats.clock.sec +
-			(host_stats.clock.usec / 1000000.0);
+	xmit_time = host_stats.clock.sec + (host_stats.clock.usec / 1000000.0);
 
-	printf ("\n\tin %.2f seconds elapsed time\n", xmit_time);
-
+	printf("\n\tin %.2f seconds elapsed time\n", xmit_time);
 
 	/* report dropped packets */
 	if (host_stats.counter != count) {
 		int packets_dropped = count - host_stats.counter;
 
-		printf("\t%d packets (%.2f%%) dropped\n",
-			packets_dropped,
-			100.0 * packets_dropped / count );
+		printf("\t%d packets (%.2f%%) dropped\n", packets_dropped,
+		    100.0 * packets_dropped / count);
 	} else {
 		printf("\tno packets dropped\n");
 	}
@@ -181,17 +170,16 @@ main(int argc, char *argv[])
 
 	printf("Rcvd:");
 	print_xferstats(host_stats.counter, length, xmit_time);
-	
-	exit (0);
-}
 
+	exit(0);
+}
 
 static void
 print_xferstats(u_int packets, int packetlen, double xfertime)
 {
 	int datalen;
-	double pps;		/* packets per second */
-	double bps;		/* bytes per second */
+	double pps; /* packets per second */
+	double bps; /* bytes per second */
 
 	datalen = packets * packetlen;
 	pps = packets / xfertime;
@@ -199,19 +187,18 @@ print_xferstats(u_int packets, int packetlen, double xfertime)
 
 	printf("\t%.0f packets/sec, ", pps);
 
-	if (bps >= 1024) 
-		printf ("%.1fK ", bps / 1024);
+	if (bps >= 1024)
+		printf("%.1fK ", bps / 1024);
 	else
-		printf ("%.0f ", bps);
-	
+		printf("%.0f ", bps);
+
 	printf("bytes/sec\n");
 }
-
 
 static void
 usage(void)
 {
 	fprintf(stderr,
-		"usage: spray [-c count] [-l length] [-d delay] host\n");
+	    "usage: spray [-c count] [-l length] [-d delay] host\n");
 	exit(1);
 }

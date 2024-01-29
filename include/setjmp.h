@@ -44,17 +44,17 @@
 
 __BEGIN_DECLS
 #if __XSI_VISIBLE >= 600
-void	_longjmp(jmp_buf, int) __dead2;
-int	_setjmp(jmp_buf) __returns_twice;
+void _longjmp(jmp_buf, int) __dead2;
+int _setjmp(jmp_buf) __returns_twice;
 #endif
-void	longjmp(jmp_buf, int) __dead2;
+void longjmp(jmp_buf, int) __dead2;
 #if __BSD_VISIBLE
-void	longjmperror(void);
+void longjmperror(void);
 #endif
-int	setjmp(jmp_buf) __returns_twice;
+int setjmp(jmp_buf) __returns_twice;
 #if __POSIX_VISIBLE || __XSI_VISIBLE
-void	siglongjmp(sigjmp_buf, int) __dead2;
-int	sigsetjmp(sigjmp_buf, int) __returns_twice;
+void siglongjmp(sigjmp_buf, int) __dead2;
+int sigsetjmp(sigjmp_buf, int) __returns_twice;
 #endif
 __END_DECLS
 

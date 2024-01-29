@@ -5,7 +5,6 @@
  * $OpenBSD: pathnames.h,v 1.1 2003/07/29 20:10:17 millert Exp $
  */
 
-
 #include <paths.h>
 
-#define	_PATH_RED		"/bin/red"
+#define _PATH_RED "/bin/red"

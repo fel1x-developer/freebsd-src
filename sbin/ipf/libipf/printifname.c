@@ -9,7 +9,6 @@
 
 #include "ipf.h"
 
-
 void
 printifname(char *format, char *name, void *ifp)
 {

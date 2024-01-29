@@ -29,26 +29,26 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/errno.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/errno.h>
-#include <sys/bus.h>
 
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
 #include <dev/iicbus/iicbus.h>
 #include <dev/iicbus/iiconf.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 /*
  * Driver that attaches I2C devices.
  */
 static struct {
-	uint32_t	pci_id;
-	const char	*name;
-	uint8_t		addr;
+	uint32_t pci_id;
+	const char *name;
+	uint8_t addr;
 } slaves[] = {
-	{ 0x9c628086,	"isl",		0x88 },
-	{ 0x9c618086,	"cyapa",	0xce },
+	{ 0x9c628086, "isl", 0x88 },
+	{ 0x9c618086, "cyapa", 0xce },
 };
 
 static void
@@ -63,7 +63,8 @@ chromebook_i2c_identify(driver_t *driver, device_t bus)
 	 * A more intelligent approach is required to correctly
 	 * identify a machine model and hardware available on it.
 	 * For instance, DMI could be used.
-	 * See http://lxr.free-electrons.com/source/drivers/platform/chrome/chromeos_laptop.c
+	 * See
+	 * http://lxr.free-electrons.com/source/drivers/platform/chrome/chromeos_laptop.c
 	 */
 	controller = device_get_parent(bus);
 	if (strcmp(device_get_name(controller), "ig4iic") != 0)
@@ -81,16 +82,12 @@ chromebook_i2c_identify(driver_t *driver, device_t bus)
 }
 
 static device_method_t chromebook_i2c_methods[] = {
-	DEVMETHOD(device_identify,	chromebook_i2c_identify),
-	{ 0, 0 }
+	DEVMETHOD(device_identify, chromebook_i2c_identify), { 0, 0 }
 };
 
 static driver_t chromebook_i2c_driver = {
-	"chromebook_i2c",
-	chromebook_i2c_methods,
-	0	/* no softc */
+	"chromebook_i2c", chromebook_i2c_methods, 0 /* no softc */
 };
 
 DRIVER_MODULE(chromebook_i2c, iicbus, chromebook_i2c_driver, 0, 0);
 MODULE_VERSION(chromebook_i2c, 1);
-

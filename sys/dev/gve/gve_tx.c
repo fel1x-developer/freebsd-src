@@ -3,30 +3,31 @@
  *
  * Copyright (c) 2023 Google LLC
  *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
- * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer.
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
  *
  * 3. Neither the name of the copyright holder nor the names of its contributors
- *    may be used to endorse or promote products derived from this software without
- *    specific prior written permission.
+ *    may be used to endorse or promote products derived from this software
+ * without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
  */
 #include "gve.h"
 #include "gve_adminq.h"
@@ -101,30 +102,33 @@ gve_tx_alloc_ring(struct gve_priv *priv, int i)
 	if (err != 0)
 		goto abort;
 
-	tx->info = malloc(sizeof(struct gve_tx_buffer_state) * priv->tx_desc_cnt,
+	tx->info = malloc(sizeof(struct gve_tx_buffer_state) *
+		priv->tx_desc_cnt,
 	    M_GVE, M_WAITOK | M_ZERO);
 
 	sprintf(mtx_name, "gvetx%d", i);
 	mtx_init(&tx->ring_mtx, mtx_name, NULL, MTX_DEF);
 
-	tx->br = buf_ring_alloc(GVE_TX_BUFRING_ENTRIES, M_DEVBUF,
-	    M_WAITOK, &tx->ring_mtx);
+	tx->br = buf_ring_alloc(GVE_TX_BUFRING_ENTRIES, M_DEVBUF, M_WAITOK,
+	    &tx->ring_mtx);
 
 	gve_alloc_counters((counter_u64_t *)&tx->stats, NUM_TX_STATS);
 
 	err = gve_dma_alloc_coherent(priv, sizeof(struct gve_queue_resources),
 	    PAGE_SIZE, &com->q_resources_mem);
 	if (err != 0) {
-		device_printf(priv->dev, "Failed to alloc queue resources for tx ring %d", i);
+		device_printf(priv->dev,
+		    "Failed to alloc queue resources for tx ring %d", i);
 		goto abort;
 	}
 	com->q_resources = com->q_resources_mem.cpu_addr;
 
 	err = gve_dma_alloc_coherent(priv,
-	    sizeof(union gve_tx_desc) * priv->tx_desc_cnt,
-	    CACHE_LINE_SIZE, &tx->desc_ring_mem);
+	    sizeof(union gve_tx_desc) * priv->tx_desc_cnt, CACHE_LINE_SIZE,
+	    &tx->desc_ring_mem);
 	if (err != 0) {
-		device_printf(priv->dev, "Failed to alloc desc ring for tx ring %d", i);
+		device_printf(priv->dev,
+		    "Failed to alloc desc ring for tx ring %d", i);
 		goto abort;
 	}
 	tx->desc_ring = tx->desc_ring_mem.cpu_addr;
@@ -149,7 +153,6 @@ gve_alloc_tx_rings(struct gve_priv *priv)
 		err = gve_tx_alloc_ring(priv, i);
 		if (err != 0)
 			goto free_rings;
-
 	}
 
 	return (0);
@@ -179,8 +182,8 @@ gve_tx_clear_desc_ring(struct gve_tx_ring *tx)
 	int i;
 
 	for (i = 0; i < com->priv->tx_desc_cnt; i++) {
-		tx->desc_ring[i] = (union gve_tx_desc){};
-		tx->info[i] = (struct gve_tx_buffer_state){};
+		tx->desc_ring[i] = (union gve_tx_desc) {};
+		tx->info[i] = (struct gve_tx_buffer_state) {};
 	}
 
 	bus_dmamap_sync(tx->desc_ring_mem.tag, tx->desc_ring_mem.map,
@@ -216,8 +219,8 @@ gve_start_tx_ring(struct gve_priv *priv, int i)
 	    device_get_nameunit(priv->dev), i);
 
 	TASK_INIT(&tx->xmit_task, 0, gve_xmit_tq, tx);
-	tx->xmit_tq = taskqueue_create_fast("gve tx xmit",
-	    M_WAITOK, taskqueue_thread_enqueue, &tx->xmit_tq);
+	tx->xmit_tq = taskqueue_create_fast("gve tx xmit", M_WAITOK,
+	    taskqueue_thread_enqueue, &tx->xmit_tq);
 	taskqueue_start_threads(&tx->xmit_tq, 1, PI_NET, "%s txq %d xmit",
 	    device_get_nameunit(priv->dev), i);
 }
@@ -247,10 +250,11 @@ gve_create_tx_rings(struct gve_priv *priv)
 		tx = &priv->tx[i];
 		com = &tx->com;
 
-		com->irq_db_offset = 4 * be32toh(priv->irq_db_indices[com->ntfy_id].index);
+		com->irq_db_offset = 4 *
+		    be32toh(priv->irq_db_indices[com->ntfy_id].index);
 
-		bus_dmamap_sync(com->q_resources_mem.tag, com->q_resources_mem.map,
-		    BUS_DMASYNC_POSTREAD);
+		bus_dmamap_sync(com->q_resources_mem.tag,
+		    com->q_resources_mem.map, BUS_DMASYNC_POSTREAD);
 		com->db_offset = 4 * be32toh(com->q_resources->db_index);
 		com->counter_idx = be32toh(com->q_resources->counter_index);
 
@@ -290,7 +294,8 @@ gve_destroy_tx_rings(struct gve_priv *priv)
 		gve_stop_tx_ring(priv, i);
 
 	if (gve_get_state_flag(priv, GVE_STATE_FLAG_TX_RINGS_OK)) {
-		err = gve_adminq_destroy_tx_queues(priv, priv->tx_cfg.num_queues);
+		err = gve_adminq_destroy_tx_queues(priv,
+		    priv->tx_cfg.num_queues);
 		if (err != 0)
 			return (err);
 		gve_clear_state_flag(priv, GVE_STATE_FLAG_TX_RINGS_OK);
@@ -317,8 +322,8 @@ gve_tx_intr(void *arg)
 static uint32_t
 gve_tx_load_event_counter(struct gve_priv *priv, struct gve_tx_ring *tx)
 {
-	bus_dmamap_sync(priv->counter_array_mem.tag, priv->counter_array_mem.map,
-	    BUS_DMASYNC_POSTREAD);
+	bus_dmamap_sync(priv->counter_array_mem.tag,
+	    priv->counter_array_mem.map, BUS_DMASYNC_POSTREAD);
 	uint32_t counter = priv->counters[tx->com.counter_idx];
 	return (be32toh(counter));
 }
@@ -359,7 +364,8 @@ gve_tx_cleanup_tq(void *arg, int pending)
 		m_freem(mbuf);
 
 		for (i = 0; i < GVE_TX_MAX_DESCS; i++) {
-			space_freed += info->iov[i].iov_len + info->iov[i].iov_padding;
+			space_freed += info->iov[i].iov_len +
+			    info->iov[i].iov_padding;
 			info->iov[i].iov_len = 0;
 			info->iov[i].iov_padding = 0;
 		}
@@ -386,8 +392,8 @@ gve_tx_cleanup_tq(void *arg, int pending)
 }
 
 static void
-gve_dma_sync_for_device(struct gve_queue_page_list *qpl,
-			uint64_t iov_offset, uint64_t iov_len)
+gve_dma_sync_for_device(struct gve_queue_page_list *qpl, uint64_t iov_offset,
+    uint64_t iov_len)
 {
 	uint64_t last_page = (iov_offset + iov_len - 1) / PAGE_SIZE;
 	uint64_t first_page = iov_offset / PAGE_SIZE;
@@ -404,7 +410,8 @@ static void
 gve_tx_fill_mtd_desc(struct gve_tx_mtd_desc *mtd_desc, struct mbuf *mbuf)
 {
 	mtd_desc->type_flags = GVE_TXD_MTD | GVE_MTD_SUBTYPE_PATH;
-	mtd_desc->path_state = GVE_MTD_PATH_STATE_DEFAULT | GVE_MTD_PATH_HASH_L4;
+	mtd_desc->path_state = GVE_MTD_PATH_STATE_DEFAULT |
+	    GVE_MTD_PATH_HASH_L4;
 	mtd_desc->path_hash = htobe32(mbuf->m_pkthdr.flowid);
 	mtd_desc->reserved0 = 0;
 	mtd_desc->reserved1 = 0;
@@ -412,9 +419,8 @@ gve_tx_fill_mtd_desc(struct gve_tx_mtd_desc *mtd_desc, struct mbuf *mbuf)
 
 static void
 gve_tx_fill_pkt_desc(struct gve_tx_pkt_desc *pkt_desc, bool is_tso,
-    uint16_t l4_hdr_offset, uint32_t desc_cnt,
-    uint16_t first_seg_len, uint64_t addr, bool has_csum_flag,
-    int csum_offset, uint16_t pkt_len)
+    uint16_t l4_hdr_offset, uint32_t desc_cnt, uint16_t first_seg_len,
+    uint64_t addr, bool has_csum_flag, int csum_offset, uint16_t pkt_len)
 {
 	if (is_tso) {
 		pkt_desc->type_flags = GVE_TXD_TSO | GVE_TXF_L4CSUM;
@@ -436,9 +442,8 @@ gve_tx_fill_pkt_desc(struct gve_tx_pkt_desc *pkt_desc, bool is_tso,
 }
 
 static void
-gve_tx_fill_seg_desc(struct gve_tx_seg_desc *seg_desc,
-    bool is_tso, uint16_t len, uint64_t addr,
-    bool is_ipv6, uint8_t l3_off, uint16_t tso_mss)
+gve_tx_fill_seg_desc(struct gve_tx_seg_desc *seg_desc, bool is_tso,
+    uint16_t len, uint64_t addr, bool is_ipv6, uint8_t l3_off, uint16_t tso_mss)
 {
 	seg_desc->type_flags = GVE_TXD_SEG;
 	if (is_tso) {
@@ -485,7 +490,8 @@ gve_fifo_bytes_required(struct gve_tx_ring *tx, uint16_t first_seg_len,
 
 	pad_bytes = gve_tx_fifo_pad_alloc_one_frag(&tx->fifo, first_seg_len);
 	/* We need to take into account the header alignment padding. */
-	align_hdr_pad = roundup2(first_seg_len, CACHE_LINE_SIZE) - first_seg_len;
+	align_hdr_pad = roundup2(first_seg_len, CACHE_LINE_SIZE) -
+	    first_seg_len;
 	bytes = align_hdr_pad + pad_bytes + pkt_len;
 
 	return (bytes);
@@ -526,7 +532,7 @@ gve_tx_alloc_fifo(struct gve_tx_fifo *fifo, size_t bytes,
 		nfrags++;
 		overflow = fifo->head - fifo->size;
 		iov[0].iov_len -= overflow;
-		iov[1].iov_offset = 0;	/* Start of fifo*/
+		iov[1].iov_offset = 0; /* Start of fifo*/
 		iov[1].iov_len = overflow;
 
 		fifo->head = overflow;
@@ -549,7 +555,8 @@ gve_tx_alloc_fifo(struct gve_tx_fifo *fifo, size_t bytes,
 static int
 gve_xmit(struct gve_tx_ring *tx, struct mbuf *mbuf)
 {
-	bool is_tso, has_csum_flag, is_ipv6 = false, is_tcp = false, is_udp = false;
+	bool is_tso, has_csum_flag, is_ipv6 = false, is_tcp = false,
+				    is_udp = false;
 	int csum_flags, csum_offset, mtd_desc_nr, offset, copy_offset;
 	uint16_t tso_mss, l4_off, l4_data_off, pkt_len, first_seg_len;
 	int pad_bytes, hdr_nfrags, payload_nfrags;
@@ -573,8 +580,8 @@ gve_xmit(struct gve_tx_ring *tx, struct mbuf *mbuf)
 	csum_flags = mbuf->m_pkthdr.csum_flags;
 	pkt_len = mbuf->m_pkthdr.len;
 	is_tso = csum_flags & CSUM_TSO;
-	has_csum_flag = csum_flags & (CSUM_TCP | CSUM_UDP |
-	    CSUM_IP6_TCP | CSUM_IP6_UDP | CSUM_TSO);
+	has_csum_flag = csum_flags &
+	    (CSUM_TCP | CSUM_UDP | CSUM_IP6_TCP | CSUM_IP6_UDP | CSUM_TSO);
 	mtd_desc_nr = M_HASHTYPE_GET(mbuf) != M_HASHTYPE_NONE ? 1 : 0;
 	tso_mss = is_tso ? mbuf->m_pkthdr.tso_segsz : 0;
 
@@ -627,7 +634,8 @@ gve_xmit(struct gve_tx_ring *tx, struct mbuf *mbuf)
 	bytes_required = gve_fifo_bytes_required(tx, first_seg_len, pkt_len);
 	if (__predict_false(!gve_can_tx(tx, bytes_required))) {
 		counter_enter();
-		counter_u64_add_protected(tx->stats.tx_dropped_pkt_nospace_device, 1);
+		counter_u64_add_protected(
+		    tx->stats.tx_dropped_pkt_nospace_device, 1);
 		counter_u64_add_protected(tx->stats.tx_dropped_pkt, 1);
 		counter_exit();
 		return (ENOBUFS);
@@ -667,7 +675,8 @@ gve_xmit(struct gve_tx_ring *tx, struct mbuf *mbuf)
 	}
 
 	for (i = payload_iov; i < payload_nfrags + payload_iov; i++) {
-		next_idx = (tx->req + 1 + mtd_desc_nr + i - payload_iov) & tx->mask;
+		next_idx = (tx->req + 1 + mtd_desc_nr + i - payload_iov) &
+		    tx->mask;
 		seg_desc = &tx->desc_ring[next_idx].seg;
 
 		gve_tx_fill_seg_desc(seg_desc, is_tso, info->iov[i].iov_len,
@@ -675,8 +684,8 @@ gve_xmit(struct gve_tx_ring *tx, struct mbuf *mbuf)
 
 		m_copydata(mbuf, copy_offset, info->iov[i].iov_len,
 		    (char *)tx->fifo.base + info->iov[i].iov_offset);
-		gve_dma_sync_for_device(tx->com.qpl,
-		    info->iov[i].iov_offset, info->iov[i].iov_len);
+		gve_dma_sync_for_device(tx->com.qpl, info->iov[i].iov_offset,
+		    info->iov[i].iov_len);
 		copy_offset += info->iov[i].iov_len;
 	}
 
@@ -765,7 +774,8 @@ gve_xmit_ifp(if_t ifp, struct mbuf *mbuf)
 	if (__predict_false(err != 0)) {
 		taskqueue_enqueue(tx->xmit_tq, &tx->xmit_task);
 		counter_enter();
-		counter_u64_add_protected(tx->stats.tx_dropped_pkt_nospace_bufring, 1);
+		counter_u64_add_protected(
+		    tx->stats.tx_dropped_pkt_nospace_bufring, 1);
 		counter_u64_add_protected(tx->stats.tx_dropped_pkt, 1);
 		counter_exit();
 		return (err);

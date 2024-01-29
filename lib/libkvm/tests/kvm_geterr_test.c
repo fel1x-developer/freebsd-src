@@ -24,6 +24,8 @@
  */
 
 #include <sys/param.h>
+
+#include <atf-c.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <kvm.h>
@@ -32,10 +34,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <atf-c.h>
-
 #include "kvm_private.h"
-
 #include "kvm_test_common.h"
 
 ATF_TC(kvm_geterr_negative_test_NULL);
@@ -91,12 +90,12 @@ ATF_TC_HEAD(kvm_geterr_positive_test_no_error, tc)
 
 ATF_TC_BODY(kvm_geterr_positive_test_no_error, tc)
 {
-#define	ALL_IS_WELL	"that ends well"
+#define ALL_IS_WELL "that ends well"
 	kvm_t *kd;
 	char *error_msg;
 	struct nlist nl[] = {
-#define	SYMNAME	"_mp_maxcpus"
-#define	X_MAXCPUS	0
+#define SYMNAME "_mp_maxcpus"
+#define X_MAXCPUS 0
 		{ SYMNAME, 0, 0, 0, 0 },
 		{ NULL, 0, 0, 0, 0 },
 	};
@@ -108,8 +107,8 @@ ATF_TC_BODY(kvm_geterr_positive_test_no_error, tc)
 	ATF_CHECK(!errbuf_has_error(errbuf));
 	ATF_REQUIRE_MSG(kd != NULL, "kvm_open2 failed: %s", errbuf);
 	retcode = kvm_nlist(kd, nl);
-	ATF_REQUIRE_MSG(retcode != -1,
-	    "kvm_nlist failed (returned %d): %s", retcode, kvm_geterr(kd));
+	ATF_REQUIRE_MSG(retcode != -1, "kvm_nlist failed (returned %d): %s",
+	    retcode, kvm_geterr(kd));
 	if (nl[X_MAXCPUS].n_type == 0)
 		atf_tc_skip("symbol (\"%s\") couldn't be found", SYMNAME);
 	_kvm_err(kd, NULL, "%s", ALL_IS_WELL); /* XXX: internal API */

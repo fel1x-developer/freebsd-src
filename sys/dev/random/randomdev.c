@@ -35,26 +35,25 @@
 #include <sys/kernel.h>
 #include <sys/kthread.h>
 #include <sys/lock.h>
-#include <sys/module.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/poll.h>
 #include <sys/proc.h>
 #include <sys/random.h>
 #include <sys/sbuf.h>
 #include <sys/selinfo.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 #include <sys/uio.h>
 #include <sys/unistd.h>
+
+#include <dev/random/hash.h>
+#include <dev/random/random_harvestq.h>
+#include <dev/random/randomdev.h>
 
 #include <crypto/rijndael/rijndael-api-fst.h>
 #include <crypto/sha2/sha256.h>
 
-#include <dev/random/hash.h>
-#include <dev/random/randomdev.h>
-#include <dev/random/random_harvestq.h>
-
-#define	RANDOM_UNIT	0
+#define RANDOM_UNIT 0
 
 /*
  * In loadable random, the core randomdev.c / random(9) routines have static
@@ -64,9 +63,9 @@
  * function pointers at SI_SUB_RANDOM:SI_ORDER_SECOND.
  */
 #if defined(RANDOM_LOADABLE)
-static int (read_random_uio)(struct uio *, bool);
-static void (read_random)(void *, u_int);
-static bool (is_random_seeded)(void);
+static int(read_random_uio)(struct uio *, bool);
+static void(read_random)(void *, u_int);
+static bool(is_random_seeded)(void);
 #endif
 
 static d_read_t randomdev_read;
@@ -120,8 +119,8 @@ randomdev_read(struct cdev *dev __unused, struct uio *uio, int flags)
  * routine may be interrupted.  If interrupted, it will return either ERESTART
  * or EINTR.
  */
-#define SEEDWAIT_INTERRUPTIBLE		true
-#define SEEDWAIT_UNINTERRUPTIBLE	false
+#define SEEDWAIT_INTERRUPTIBLE true
+#define SEEDWAIT_UNINTERRUPTIBLE false
 static int
 randomdev_wait_until_seeded(bool interruptible)
 {
@@ -153,8 +152,7 @@ randomdev_wait_until_seeded(bool interruptible)
 	return (error);
 }
 
-int
-(read_random_uio)(struct uio *uio, bool nonblock)
+int(read_random_uio)(struct uio *uio, bool nonblock)
 {
 	/* 16 MiB takes about 0.08 s CPU time on my 2017 AMD Zen CPU */
 #define SIGCHK_PERIOD (16 * 1024 * 1024)
@@ -166,7 +164,6 @@ int
 	size_t total_read, read_len;
 	ssize_t bufsize;
 	int error;
-
 
 	KASSERT(uio->uio_rw == UIO_READ, ("%s: bogus write", __func__));
 	KASSERT(uio->uio_resid >= 0, ("%s: bogus negative resid", __func__));
@@ -252,11 +249,11 @@ int
  * of this tunable, the condition is reported in the read-only sysctl
  * 'kern.random.initial_seeding.read_random_bypassed_before_seeding'.
  */
-void
-(read_random)(void *random_buf, u_int len)
+void(read_random)(void *random_buf, u_int len)
 {
 
-	KASSERT(random_buf != NULL, ("No suitable random buffer in %s", __func__));
+	KASSERT(random_buf != NULL,
+	    ("No suitable random buffer in %s", __func__));
 	p_random_alg_context->ra_pre_read();
 
 	if (len == 0)
@@ -267,7 +264,8 @@ void
 		if (random_bypass_before_seeding) {
 			if (!read_random_bypassed_before_seeding) {
 				if (!random_bypass_disable_warnings)
-					printf("read_random: WARNING: bypassing"
+					printf(
+					    "read_random: WARNING: bypassing"
 					    " request for random data because "
 					    "the random device is not yet "
 					    "seeded and the knob "
@@ -285,8 +283,7 @@ void
 	p_random_alg_context->ra_read(random_buf, len);
 }
 
-bool
-(is_random_seeded)(void)
+bool(is_random_seeded)(void)
 {
 	return (p_random_alg_context->ra_seeded());
 }
@@ -309,12 +306,14 @@ randomdev_accumulate(uint8_t *buf, u_int count)
 	timestamp = (uint32_t)get_cyclecount();
 	randomdev_hash_iterate(&hash, &timestamp, sizeof(timestamp));
 	randomdev_hash_finish(&hash, entropy_data);
-	for (i = 0; i < RANDOM_KEYSIZE_WORDS; i += sizeof(event.he_entropy)/sizeof(event.he_entropy[0])) {
+	for (i = 0; i < RANDOM_KEYSIZE_WORDS;
+	     i += sizeof(event.he_entropy) / sizeof(event.he_entropy[0])) {
 		event.he_somecounter = (uint32_t)get_cyclecount();
 		event.he_size = sizeof(event.he_entropy);
 		event.he_source = RANDOM_CACHED;
 		event.he_destination = destination++; /* Harmless cheating */
-		memcpy(event.he_entropy, entropy_data + i, sizeof(event.he_entropy));
+		memcpy(event.he_entropy, entropy_data + i,
+		    sizeof(event.he_entropy));
 		p_random_alg_context->ra_event_processor(&event);
 	}
 	explicit_bzero(&event, sizeof(event));
@@ -347,7 +346,8 @@ randomdev_write(struct cdev *dev __unused, struct uio *uio, int flags __unused)
 
 /* ARGSUSED */
 static int
-randomdev_poll(struct cdev *dev __unused, int events, struct thread *td __unused)
+randomdev_poll(struct cdev *dev __unused, int events,
+    struct thread *td __unused)
 {
 
 	if (events & (POLLIN | POLLRDNORM)) {
@@ -359,7 +359,8 @@ randomdev_poll(struct cdev *dev __unused, int events, struct thread *td __unused
 	return (events);
 }
 
-/* This will be called by the entropy processor when it seeds itself and becomes secure */
+/* This will be called by the entropy processor when it seeds itself and becomes
+ * secure */
 void
 randomdev_unblock(void)
 {
@@ -369,7 +370,8 @@ randomdev_unblock(void)
 	printf("random: unblocking device.\n");
 #ifndef RANDOM_FENESTRASX
 	/* Do random(9) a favour while we are about it. */
-	(void)atomic_cmpset_int(&arc4rand_iniseed_state, ARC4_ENTR_NONE, ARC4_ENTR_HAVE);
+	(void)atomic_cmpset_int(&arc4rand_iniseed_state, ARC4_ENTR_NONE,
+	    ARC4_ENTR_HAVE);
 #endif
 }
 
@@ -417,11 +419,7 @@ randomdev_modevent(module_t mod __unused, int type, void *data __unused)
 	return (error);
 }
 
-static moduledata_t randomdev_mod = {
-	"random_device",
-	randomdev_modevent,
-	0
-};
+static moduledata_t randomdev_mod = { "random_device", randomdev_modevent, 0 };
 
 DECLARE_MODULE(random_device, randomdev_mod, SI_SUB_DRIVERS, SI_ORDER_FIRST);
 MODULE_VERSION(random_device, 1);

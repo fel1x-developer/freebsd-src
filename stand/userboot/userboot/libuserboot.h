@@ -24,15 +24,16 @@
  * SUCH DAMAGE.
  */
 
-#include "userboot.h"
 #include <readin.h>
+
+#include "userboot.h"
 
 extern struct loader_callbacks *callbacks;
 extern void *callbacks_arg;
 
-#define	CALLBACK(fn, args...) (callbacks->fn(callbacks_arg , ##args))
+#define CALLBACK(fn, args...) (callbacks->fn(callbacks_arg, ##args))
 
-#define	MAXDEV	31	/* maximum number of distinct devices */
+#define MAXDEV 31 /* maximum number of distinct devices */
 
 typedef unsigned long physaddr_t;
 
@@ -46,7 +47,7 @@ extern struct fs_ops host_fsops;
 
 struct bootinfo;
 struct preloaded_file;
-extern int		bi_load(struct bootinfo *, struct preloaded_file *);
+extern int bi_load(struct bootinfo *, struct preloaded_file *);
 
 extern void delay(int);
 
@@ -56,9 +57,9 @@ extern ssize_t userboot_copyout(vm_offset_t, void *, size_t);
 extern ssize_t userboot_readin(readin_handle_t, vm_offset_t, size_t);
 extern int userboot_getdev(void **, const char *, const char **);
 
-int	bi_getboothowto(char *kargs);
-void	bi_setboothowto(int howto);
-int	bi_load32(char *args, int *howtop, int *bootdevp, vm_offset_t *bip,
+int bi_getboothowto(char *kargs);
+void bi_setboothowto(int howto);
+int bi_load32(char *args, int *howtop, int *bootdevp, vm_offset_t *bip,
     vm_offset_t *modulep, vm_offset_t *kernend);
-int	bi_load64(char *args, vm_offset_t *modulep, vm_offset_t *kernend);
-void	bios_addsmapdata(struct preloaded_file *kfp);
+int bi_load64(char *args, vm_offset_t *modulep, vm_offset_t *kernend);
+void bios_addsmapdata(struct preloaded_file *kfp);

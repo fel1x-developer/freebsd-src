@@ -25,53 +25,48 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-#include "opt_hwpmc_hooks.h"
 #include "opt_acpi.h"
+#include "opt_hwpmc_hooks.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/module.h>
-#include <sys/rman.h>
 #include <sys/pmc.h>
 #include <sys/pmckern.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 #include <machine/cpu.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
 #include <dev/acpica/acpivar.h>
-
 #include <dev/hwpmc/pmu_dmc620_reg.h>
 
-static char *pmu_dmc620_ids[] = {
-	"ARMHD620",
-	NULL
-};
+#include <contrib/dev/acpica/include/acpi.h>
 
-static struct resource_spec pmu_dmc620_res_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ SYS_RES_IRQ,		0,	RF_ACTIVE | RF_SHAREABLE },
-	{ -1, 0 }
-};
+static char *pmu_dmc620_ids[] = { "ARMHD620", NULL };
+
+static struct resource_spec pmu_dmc620_res_spec[] = { { SYS_RES_MEMORY, 0,
+							  RF_ACTIVE },
+	{ SYS_RES_IRQ, 0, RF_ACTIVE | RF_SHAREABLE }, { -1, 0 } };
 
 struct pmu_dmc620_softc {
-	device_t	sc_dev;
-	int		sc_unit;
-	int		sc_domain;
+	device_t sc_dev;
+	int sc_unit;
+	int sc_domain;
 	struct resource *sc_res[2];
-	void		*sc_ih;
-	uint32_t	sc_clkdiv2_conters_hi[DMC620_CLKDIV2_COUNTERS_N];
-	uint32_t	sc_clk_conters_hi[DMC620_CLK_COUNTERS_N];
-	uint32_t	sc_saved_control[DMC620_COUNTERS_N];
+	void *sc_ih;
+	uint32_t sc_clkdiv2_conters_hi[DMC620_CLKDIV2_COUNTERS_N];
+	uint32_t sc_clk_conters_hi[DMC620_CLK_COUNTERS_N];
+	uint32_t sc_saved_control[DMC620_COUNTERS_N];
 };
 
-#define	RD4(sc, r)		bus_read_4((sc)->sc_res[0], (r))
-#define	WR4(sc, r, v)		bus_write_4((sc)->sc_res[0], (r), (v))
-#define	MD4(sc, r, c, s)	WR4((sc), (r), RD4((sc), (r)) & ~(c) | (s))
+#define RD4(sc, r) bus_read_4((sc)->sc_res[0], (r))
+#define WR4(sc, r, v) bus_write_4((sc)->sc_res[0], (r), (v))
+#define MD4(sc, r, c, s) WR4((sc), (r), RD4((sc), (r)) & ~(c) | (s))
 
-#define	CD2MD4(sc, u, r, c, s)	MD4((sc), DMC620_CLKDIV2_REG((u), (r)), (c), (s))
-#define	CMD4(sc, u, r, c, s)	MD4((sc), DMC620_CLK_REG((u), (r)), (c), (s))
+#define CD2MD4(sc, u, r, c, s) MD4((sc), DMC620_CLKDIV2_REG((u), (r)), (c), (s))
+#define CMD4(sc, u, r, c, s) MD4((sc), DMC620_CLK_REG((u), (r)), (c), (s))
 
 static int pmu_dmc620_counter_overflow_intr(void *arg);
 
@@ -130,15 +125,16 @@ pmu_dmc620_acpi_attach(device_t dev)
 	 * Format "hint.pmu_dmc620.3.domain=1".
 	 */
 	if ((resource_int_value(dname, u, "domain", &domain) == 0 ||
-	    bus_get_domain(dev, &domain) == 0) && domain < MAXMEMDOM) {
+		bus_get_domain(dev, &domain) == 0) &&
+	    domain < MAXMEMDOM) {
 		sc->sc_domain = domain;
 	}
 	device_printf(dev, "domain=%d\n", domain);
 
 	i = bus_alloc_resources(dev, pmu_dmc620_res_spec, sc->sc_res);
 	if (i != 0) {
-		device_printf(dev, "cannot allocate resources for device (%d)\n",
-		    i);
+		device_printf(dev,
+		    "cannot allocate resources for device (%d)\n", i);
 		return (i);
 	}
 	/* Disable counter before enable interrupt. */
@@ -155,9 +151,9 @@ pmu_dmc620_acpi_attach(device_t dev)
 	WR4(sc, DMC620_OVERFLOW_STATUS_CLKDIV2, 0);
 	WR4(sc, DMC620_OVERFLOW_STATUS_CLK, 0);
 
-	if (sc->sc_res[1] != NULL && bus_setup_intr(dev, sc->sc_res[1],
-	    INTR_TYPE_MISC | INTR_MPSAFE, pmu_dmc620_counter_overflow_intr,
-	    NULL, sc, &sc->sc_ih)) {
+	if (sc->sc_res[1] != NULL &&
+	    bus_setup_intr(dev, sc->sc_res[1], INTR_TYPE_MISC | INTR_MPSAFE,
+		pmu_dmc620_counter_overflow_intr, NULL, sc, &sc->sc_ih)) {
 		bus_release_resources(dev, pmu_dmc620_res_spec, sc->sc_res);
 		device_printf(dev, "cannot setup interrupt handler\n");
 		return (ENXIO);
@@ -199,7 +195,6 @@ pmu_dmc620_clk_overflow(struct trapframe *tf, struct pmu_dmc620_softc *sc,
 	atomic_add_32(&sc->sc_clk_conters_hi[i], 1);
 	/* Call dmc620 handler directly, because hook busy by arm64_intr. */
 	dmc620_intr(tf, PMC_CLASS_DMC620_PMU_C, sc->sc_unit, i);
-
 }
 
 static int
@@ -211,7 +206,7 @@ pmu_dmc620_counter_overflow_intr(void *arg)
 	u_int i;
 
 	tf = PCPU_GET(curthread)->td_intr_frame;
-	sc = (struct pmu_dmc620_softc *) arg;
+	sc = (struct pmu_dmc620_softc *)arg;
 	clkdiv2_stat = RD4(sc, DMC620_OVERFLOW_STATUS_CLKDIV2);
 	clk_stat = RD4(sc, DMC620_OVERFLOW_STATUS_CLK);
 
@@ -219,8 +214,8 @@ pmu_dmc620_counter_overflow_intr(void *arg)
 		return (FILTER_STRAY);
 	/* Stop and save states of all counters. */
 	for (i = 0; i < DMC620_COUNTERS_N; i++) {
-		sc->sc_saved_control[i] = RD4(sc, DMC620_REG(i,
-		    DMC620_COUNTER_CONTROL));
+		sc->sc_saved_control[i] = RD4(sc,
+		    DMC620_REG(i, DMC620_COUNTER_CONTROL));
 		WR4(sc, DMC620_REG(i, DMC620_COUNTER_CONTROL),
 		    sc->sc_saved_control[i] & ~DMC620_COUNTER_CONTROL_ENABLE);
 	}
@@ -253,9 +248,9 @@ pmu_dmc620_counter_overflow_intr(void *arg)
 
 static device_method_t pmu_dmc620_acpi_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,			pmu_dmc620_acpi_probe),
-	DEVMETHOD(device_attach,		pmu_dmc620_acpi_attach),
-	DEVMETHOD(device_detach,		pmu_dmc620_acpi_detach),
+	DEVMETHOD(device_probe, pmu_dmc620_acpi_probe),
+	DEVMETHOD(device_attach, pmu_dmc620_acpi_attach),
+	DEVMETHOD(device_detach, pmu_dmc620_acpi_detach),
 
 	/* End */
 	DEVMETHOD_END

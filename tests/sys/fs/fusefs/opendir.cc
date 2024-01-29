@@ -30,7 +30,6 @@
 
 extern "C" {
 #include <dirent.h>
-
 #include <fcntl.h>
 #include <semaphore.h>
 }
@@ -40,46 +39,52 @@ extern "C" {
 
 using namespace testing;
 
-class Opendir: public FuseTest {
-public:
-void expect_lookup(const char *relpath, uint64_t ino)
-{
-	FuseTest::expect_lookup(relpath, ino, S_IFDIR | 0755, 0, 1);
-}
+class Opendir : public FuseTest {
+    public:
+	void expect_lookup(const char *relpath, uint64_t ino)
+	{
+		FuseTest::expect_lookup(relpath, ino, S_IFDIR | 0755, 0, 1);
+	}
 
-void expect_opendir(uint64_t ino, uint32_t flags, ProcessMockerT r)
-{
-	/* opendir(3) calls fstatfs */
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([](auto in) {
-			return (in.header.opcode == FUSE_STATFS);
-		}, Eq(true)),
-		_)
-	).WillRepeatedly(Invoke(ReturnImmediate([=](auto i __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, statfs);
-	})));
+	void expect_opendir(uint64_t ino, uint32_t flags, ProcessMockerT r)
+	{
+		/* opendir(3) calls fstatfs */
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[](auto in) {
+					return (
+					    in.header.opcode == FUSE_STATFS);
+				},
+				Eq(true)),
+			_))
+		    .WillRepeatedly(
+			Invoke(ReturnImmediate([=](auto i __unused, auto &out) {
+				SET_OUT_HEADER_LEN(out, statfs);
+			})));
 
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_OPENDIR &&
-				in.header.nodeid == ino &&
-				in.body.opendir.flags == flags);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(r));
-}
-
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					return (
+					    in.header.opcode == FUSE_OPENDIR &&
+					    in.header.nodeid == ino &&
+					    in.body.opendir.flags == flags);
+				},
+				Eq(true)),
+			_))
+		    .WillOnce(Invoke(r));
+	}
 };
 
-class OpendirNoOpendirSupport: public Opendir {
-	virtual void SetUp() {
+class OpendirNoOpendirSupport : public Opendir {
+	virtual void SetUp()
+	{
 		m_init_flags = FUSE_NO_OPENDIR_SUPPORT;
 		FuseTest::SetUp();
 	}
 };
 
-
-/* 
+/*
  * The fuse daemon fails the request with enoent.  This usually indicates a
  * race condition: some other FUSE client removed the file in between when the
  * kernel checked for it with lookup and tried to open it
@@ -106,7 +111,7 @@ TEST_F(Opendir, enoent)
 	sem_destroy(&sem);
 }
 
-/* 
+/*
  * The daemon is responsible for checking file permissions (unless the
  * default_permissions mount option was used)
  */
@@ -132,9 +137,9 @@ TEST_F(Opendir, open)
 
 	expect_lookup(RELPATH, ino);
 	expect_opendir(ino, O_RDONLY,
-	ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, open);
-	}));
+	    ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, open);
+	    }));
 
 	fd = open(FULLPATH, O_DIRECTORY);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -152,9 +157,9 @@ TEST_F(Opendir, open_exec)
 
 	expect_lookup(RELPATH, ino);
 	expect_opendir(ino, O_EXEC,
-	ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, open);
-	}));
+	    ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, open);
+	    }));
 
 	fd = open(FULLPATH, O_EXEC | O_DIRECTORY);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -170,9 +175,9 @@ TEST_F(Opendir, opendir)
 
 	expect_lookup(RELPATH, ino);
 	expect_opendir(ino, O_RDONLY,
-	ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, open);
-	}));
+	    ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, open);
+	    }));
 
 	errno = 0;
 	EXPECT_NE(nullptr, opendir(FULLPATH)) << strerror(errno);

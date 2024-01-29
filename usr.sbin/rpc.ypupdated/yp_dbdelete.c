@@ -33,17 +33,19 @@
  */
 
 #include <sys/cdefs.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <string.h>
-#include <limits.h>
-#include <unistd.h>
-#include <db.h>
 #include <sys/stat.h>
+
+#include <db.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <limits.h>
 #include <paths.h>
 #include <rpcsvc/yp.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
 #include "ypxfr_extern.h"
 
 int
@@ -51,18 +53,18 @@ yp_del_record(DB *dbp, DBT *key)
 {
 	int rval;
 
-	if ((rval = (dbp->del)(dbp,key,0))) {
+	if ((rval = (dbp->del)(dbp, key, 0))) {
 		switch (rval) {
 		case 1:
-			return(YP_FALSE);
+			return (YP_FALSE);
 			break;
 		case -1:
 		default:
 			(void)(dbp->close)(dbp);
-			return(YP_BADDB);
+			return (YP_BADDB);
 			break;
 		}
 	}
 
-	return(YP_TRUE);
+	return (YP_TRUE);
 }

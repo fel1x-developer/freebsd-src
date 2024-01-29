@@ -30,39 +30,35 @@
  */
 
 #include <sys/cdefs.h>
-
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
+#include <sys/gpio.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/gpio.h>
+#include <sys/rman.h>
+
 #include <machine/bus.h>
 
-#include <dev/fdt/simplebus.h>
-
+#include <dev/clk/clk.h>
 #include <dev/fdt/fdt_common.h>
+#include <dev/fdt/simplebus.h>
+#include <dev/hwreset/hwreset.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 #include <dev/ofw/ofw_subr.h>
-
-#include <dev/clk/clk.h>
-#include <dev/hwreset/hwreset.h>
 #include <dev/phy/phy_usb.h>
 #include <dev/syscon/syscon.h>
 
-static struct ofw_compat_data compat_data[] = {
-	{ "xlnx,zynqmp-dwc3",	1 },
-	{ NULL,			0 }
-};
+static struct ofw_compat_data compat_data[] = { { "xlnx,zynqmp-dwc3", 1 },
+	{ NULL, 0 } };
 
 struct xlnx_dwc3_softc {
-	struct simplebus_softc	sc;
-	device_t		dev;
-	hwreset_t		rst_crst;
-	hwreset_t		rst_hibrst;
-	hwreset_t		rst_apbrst;
+	struct simplebus_softc sc;
+	device_t dev;
+	hwreset_t rst_crst;
+	hwreset_t rst_hibrst;
+	hwreset_t rst_apbrst;
 };
 
 static int
@@ -76,7 +72,8 @@ xlnx_dwc3_probe(device_t dev)
 	if (ofw_bus_search_compatible(dev, compat_data)->ocd_data == 0)
 		return (ENXIO);
 
-	/* Binding says that we need a child node for the actual dwc3 controller */
+	/* Binding says that we need a child node for the actual dwc3 controller
+	 */
 	node = ofw_bus_get_node(dev);
 	if (OF_child(node) <= 0)
 		return (ENXIO);
@@ -102,19 +99,22 @@ xlnx_dwc3_attach(device_t dev)
 	 * but reality shows that they aren't always there.
 	 * This is the case on the DTB in the AVnet Ultra96
 	 */
-	if (hwreset_get_by_ofw_name(dev, node, "usb_crst", &sc->rst_crst) == 0) {
+	if (hwreset_get_by_ofw_name(dev, node, "usb_crst", &sc->rst_crst) ==
+	    0) {
 		if (hwreset_deassert(sc->rst_crst) != 0) {
 			device_printf(dev, "Cannot deassert reset\n");
 			return (ENXIO);
 		}
 	}
-	if (hwreset_get_by_ofw_name(dev, node, "usb_hibrst", &sc->rst_hibrst) == 0) {
+	if (hwreset_get_by_ofw_name(dev, node, "usb_hibrst", &sc->rst_hibrst) ==
+	    0) {
 		if (hwreset_deassert(sc->rst_hibrst) != 0) {
 			device_printf(dev, "Cannot deassert reset\n");
 			return (ENXIO);
 		}
 	}
-	if (hwreset_get_by_ofw_name(dev, node, "usb_apbrst", &sc->rst_apbrst) == 0) {
+	if (hwreset_get_by_ofw_name(dev, node, "usb_apbrst", &sc->rst_apbrst) ==
+	    0) {
 		if (hwreset_deassert(sc->rst_apbrst) != 0) {
 			device_printf(dev, "Cannot deassert reset\n");
 			return (ENXIO);
@@ -138,8 +138,8 @@ xlnx_dwc3_attach(device_t dev)
 
 static device_method_t xlnx_dwc3_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		xlnx_dwc3_probe),
-	DEVMETHOD(device_attach,	xlnx_dwc3_attach),
+	DEVMETHOD(device_probe, xlnx_dwc3_probe),
+	DEVMETHOD(device_attach, xlnx_dwc3_attach),
 
 	DEVMETHOD_END
 };

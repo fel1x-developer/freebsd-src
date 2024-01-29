@@ -37,7 +37,7 @@ __RCSID("$NetBSD: exec_elf32.c,v 1.6 1999/09/20 04:12:16 christos Exp $");
 #endif
 #endif
 #ifndef ELFSIZE
-#define ELFSIZE         32
+#define ELFSIZE 32
 #endif
 
 #include <sys/types.h>
@@ -57,35 +57,35 @@ __RCSID("$NetBSD: exec_elf32.c,v 1.6 1999/09/20 04:12:16 christos Exp $");
 #if (defined(NLIST_ELF32) && (ELFSIZE == 32)) || \
     (defined(NLIST_ELF64) && (ELFSIZE == 64))
 
-#define	__ELF_WORD_SIZE ELFSIZE
+#define __ELF_WORD_SIZE ELFSIZE
 #if (ELFSIZE == 32)
 #include <sys/elf32.h>
-#define	xewtoh(x)	((data == ELFDATA2MSB) ? be32toh(x) : le32toh(x))
-#define	htoxew(x)	((data == ELFDATA2MSB) ? htobe32(x) : htole32(x))
-#define	wewtoh(x)	((data == ELFDATA2MSB) ? be32toh(x) : le32toh(x))
-#define	htowew(x)	((data == ELFDATA2MSB) ? htobe32(x) : htole32(x))
+#define xewtoh(x) ((data == ELFDATA2MSB) ? be32toh(x) : le32toh(x))
+#define htoxew(x) ((data == ELFDATA2MSB) ? htobe32(x) : htole32(x))
+#define wewtoh(x) ((data == ELFDATA2MSB) ? be32toh(x) : le32toh(x))
+#define htowew(x) ((data == ELFDATA2MSB) ? htobe32(x) : htole32(x))
 #elif (ELFSIZE == 64)
 #include <sys/elf64.h>
-#define	xewtoh(x)	((data == ELFDATA2MSB) ? be64toh(x) : le64toh(x))
-#define	htoxew(x)	((data == ELFDATA2MSB) ? htobe64(x) : htole64(x))
+#define xewtoh(x) ((data == ELFDATA2MSB) ? be64toh(x) : le64toh(x))
+#define htoxew(x) ((data == ELFDATA2MSB) ? htobe64(x) : htole64(x))
 /* elf64 Elf64_Word are 32 bits */
-#define	wewtoh(x)	((data == ELFDATA2MSB) ? be32toh(x) : le32toh(x))
-#define	htowew(x)	((data == ELFDATA2MSB) ? htobe32(x) : htole32(x))
+#define wewtoh(x) ((data == ELFDATA2MSB) ? be32toh(x) : le32toh(x))
+#define htowew(x) ((data == ELFDATA2MSB) ? htobe32(x) : htole32(x))
 #endif
 #include <sys/elf_generic.h>
 
-#define CONCAT(x,y)     __CONCAT(x,y)
-#define ELFNAME(x)      CONCAT(elf,CONCAT(ELFSIZE,CONCAT(_,x)))
-#define ELFNAME2(x,y)   CONCAT(x,CONCAT(_elf,CONCAT(ELFSIZE,CONCAT(_,y))))
-#define ELFNAMEEND(x)   CONCAT(x,CONCAT(_elf,ELFSIZE))
-#define ELFDEFNNAME(x)  CONCAT(ELF,CONCAT(ELFSIZE,CONCAT(_,x)))
+#define CONCAT(x, y) __CONCAT(x, y)
+#define ELFNAME(x) CONCAT(elf, CONCAT(ELFSIZE, CONCAT(_, x)))
+#define ELFNAME2(x, y) CONCAT(x, CONCAT(_elf, CONCAT(ELFSIZE, CONCAT(_, y))))
+#define ELFNAMEEND(x) CONCAT(x, CONCAT(_elf, ELFSIZE))
+#define ELFDEFNNAME(x) CONCAT(ELF, CONCAT(ELFSIZE, CONCAT(_, x)))
 #ifndef ELFCLASS
-#define ELFCLASS	CONCAT(ELFCLASS,ELFSIZE)
+#define ELFCLASS CONCAT(ELFCLASS, ELFSIZE)
 #endif
 
-#define	xe16toh(x)	((data == ELFDATA2MSB) ? be16toh(x) : le16toh(x))
-#define	xe32toh(x)	((data == ELFDATA2MSB) ? be32toh(x) : le32toh(x))
-#define	htoxe32(x)	((data == ELFDATA2MSB) ? htobe32(x) : htole32(x))
+#define xe16toh(x) ((data == ELFDATA2MSB) ? be16toh(x) : le16toh(x))
+#define xe32toh(x) ((data == ELFDATA2MSB) ? be32toh(x) : le32toh(x))
+#define htoxe32(x) ((data == ELFDATA2MSB) ? htobe32(x) : htole32(x))
 
 struct shlayout {
 	Elf_Shdr *shdr;
@@ -133,8 +133,8 @@ xmalloc(size_t size, const char *fn, const char *use)
 
 	rv = malloc(size);
 	if (rv == NULL)
-		fprintf(stderr, "%s: out of memory (allocating for %s)\n",
-		    fn, use);
+		fprintf(stderr, "%s: out of memory (allocating for %s)\n", fn,
+		    use);
 	return (rv);
 }
 
@@ -146,8 +146,8 @@ xrealloc(void *ptr, size_t size, const char *fn, const char *use)
 	rv = realloc(ptr, size);
 	if (rv == NULL) {
 		free(ptr);
-		fprintf(stderr, "%s: out of memory (reallocating for %s)\n",
-		    fn, use);
+		fprintf(stderr, "%s: out of memory (reallocating for %s)\n", fn,
+		    use);
 	}
 	return (rv);
 }
@@ -171,34 +171,46 @@ ELFNAMEEND(check)(int fd, const char *fn __unused)
 		return 0;
 
 	if (IS_ELF(eh) == 0 || eh.e_ident[EI_CLASS] != ELFCLASS)
-                return 0;
+		return 0;
 
 	data = eh.e_ident[EI_DATA];
 
 	switch (xe16toh(eh.e_machine)) {
-	case EM_386: break;
-	case EM_ALPHA: break;
+	case EM_386:
+		break;
+	case EM_ALPHA:
+		break;
 #ifndef EM_AARCH64
-#define	EM_AARCH64	183
+#define EM_AARCH64 183
 #endif
-	case EM_AARCH64: break;
-	case EM_ARM: break;
-	case EM_MIPS: break;
-	case /* EM_MIPS_RS3_LE */ EM_MIPS_RS4_BE: break;
-	case EM_PPC: break;
-	case EM_PPC64: break;
+	case EM_AARCH64:
+		break;
+	case EM_ARM:
+		break;
+	case EM_MIPS:
+		break;
+	case /* EM_MIPS_RS3_LE */ EM_MIPS_RS4_BE:
+		break;
+	case EM_PPC:
+		break;
+	case EM_PPC64:
+		break;
 #ifndef EM_RISCV
-#define	EM_RISCV	243
+#define EM_RISCV 243
 #endif
-	case EM_RISCV: break;
-	case EM_S390: break;
-	case EM_SPARCV9: break;
-	case EM_X86_64: break;
-/*        ELFDEFNNAME(MACHDEP_ID_CASES) */
+	case EM_RISCV:
+		break;
+	case EM_S390:
+		break;
+	case EM_SPARCV9:
+		break;
+	case EM_X86_64:
+		break;
+		/*        ELFDEFNNAME(MACHDEP_ID_CASES) */
 
-        default:
-                return 0;
-        }
+	default:
+		return 0;
+	}
 
 	return 1;
 }
@@ -294,8 +306,8 @@ ELFNAMEEND(hide)(int fd, const char *fn)
 	/*
 	 * sort section layout table by offset
 	 */
-	layoutp = xmalloc((shnum + 1) * sizeof(struct shlayout),
-	    fn, "layout table");
+	layoutp = xmalloc((shnum + 1) * sizeof(struct shlayout), fn,
+	    "layout table");
 	if (layoutp == NULL)
 		goto bad;
 
@@ -310,7 +322,7 @@ ELFNAMEEND(hide)(int fd, const char *fn)
 		l = i + 1;
 		r = shnum;
 		while (l <= r) {
-			m = ( l + r) / 2;
+			m = (l + r) / 2;
 			if (xewtoh(shdrp[i].sh_offset) >
 			    xewtoh(layoutp[m].shdr->sh_offset))
 				l = m + 1;
@@ -338,7 +350,7 @@ ELFNAMEEND(hide)(int fd, const char *fn)
 	if ((shstrtabp = xmalloc(size, fn, "section string table")) == NULL)
 		goto bad;
 	if ((size_t)xreadatoff(fd, shstrtabp, xewtoh(shstrtabshdr->sh_offset),
-	    size, fn) != size)
+		size, fn) != size)
 		goto bad;
 	if (shstrtabp[size - 1] != '\0')
 		goto bad;
@@ -367,8 +379,8 @@ ELFNAMEEND(hide)(int fd, const char *fn)
 			    shstrtabp + xewtoh(layoutp[i].shdr->sh_name));
 			if (layoutp[i].bufp == NULL)
 				goto bad;
-			if ((size_t)xreadatoff(fd, layoutp[i].bufp, off, size, fn) !=
-			    size)
+			if ((size_t)xreadatoff(fd, layoutp[i].bufp, off, size,
+				fn) != size)
 				goto bad;
 
 			/* set symbol table and string table */
@@ -419,11 +431,13 @@ ELFNAMEEND(hide)(int fd, const char *fn)
 		/* if it's a keeper or is undefined, don't rename it. */
 		if (in_keep_list(symname) ||
 		    (xe16toh(sp->st_shndx) == SHN_UNDEF)) {
-			newent_len = sprintf(nstrtabp + nstrtab_nextoff,
-			    "%s", symname) + 1;
+			newent_len = sprintf(nstrtabp + nstrtab_nextoff, "%s",
+					 symname) +
+			    1;
 		} else {
 			newent_len = sprintf(nstrtabp + nstrtab_nextoff,
-			    "_$$hide$$ %s %s", fn, symname) + 1;
+					 "_$$hide$$ %s %s", fn, symname) +
+			    1;
 		}
 		nstrtab_nextoff += newent_len;
 	}
@@ -465,8 +479,8 @@ ELFNAMEEND(hide)(int fd, const char *fn)
 				ehdr.e_shoff = shdrshdr.sh_offset;
 				off = offsetof(Elf_Ehdr, e_shoff);
 				size = sizeof(Elf_Off);
-				if ((size_t)xwriteatoff(fd, &ehdr.e_shoff, off, size,
-				    fn) != size)
+				if ((size_t)xwriteatoff(fd, &ehdr.e_shoff, off,
+					size, fn) != size)
 					goto bad;
 			}
 

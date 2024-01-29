@@ -35,13 +35,15 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+
 #include <regex.h>
-#include "pax.h"
-#include "pat_rep.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "extern.h"
+#include "pat_rep.h"
+#include "pax.h"
 
 /*
  * routines to handle pattern matching, name modification (regular expression
@@ -50,17 +52,17 @@
  * routines.
  */
 
-#define MAXSUBEXP	10		/* max subexpressions, DO NOT CHANGE */
-static PATTERN *pathead = NULL;		/* file pattern match list head */
-static PATTERN *pattail = NULL;		/* file pattern match list tail */
-static REPLACE *rephead = NULL;		/* replacement string list head */
-static REPLACE *reptail = NULL;		/* replacement string list tail */
+#define MAXSUBEXP 10		/* max subexpressions, DO NOT CHANGE */
+static PATTERN *pathead = NULL; /* file pattern match list head */
+static PATTERN *pattail = NULL; /* file pattern match list tail */
+static REPLACE *rephead = NULL; /* replacement string list head */
+static REPLACE *reptail = NULL; /* replacement string list tail */
 
 static int rep_name(char *, int *, int);
 static int tty_rename(ARCHD *);
 static int fix_path(char *, int *, char *, int);
 static int fn_match(char *, char *, char **);
-static char * range_match(char *, int);
+static char *range_match(char *, int);
 static int resub(regex_t *, regmatch_t *, char *, char *, char *, char *);
 
 /*
@@ -93,16 +95,16 @@ rep_add(char *str)
 	 */
 	if ((str == NULL) || (*str == '\0')) {
 		paxwarn(1, "Empty replacement string");
-		return(-1);
+		return (-1);
 	}
 
 	/*
 	 * first character in the string specifies what the delimiter is for
 	 * this expression
 	 */
-	if ((pt1 = strchr(str+1, *str)) == NULL) {
+	if ((pt1 = strchr(str + 1, *str)) == NULL) {
 		paxwarn(1, "Invalid replacement string %s", str);
-		return(-1);
+		return (-1);
 	}
 
 	/*
@@ -111,15 +113,16 @@ rep_add(char *str)
 	 */
 	if ((rep = (REPLACE *)malloc(sizeof(REPLACE))) == NULL) {
 		paxwarn(1, "Unable to allocate memory for replacement string");
-		return(-1);
+		return (-1);
 	}
 
 	*pt1 = '\0';
-	if ((res = regcomp(&(rep->rcmp), str+1, 0)) != 0) {
+	if ((res = regcomp(&(rep->rcmp), str + 1, 0)) != 0) {
 		regerror(res, &(rep->rcmp), rebuf, sizeof(rebuf));
-		paxwarn(1, "%s while compiling regular expression %s", rebuf, str);
+		paxwarn(1, "%s while compiling regular expression %s", rebuf,
+		    str);
 		free(rep);
-		return(-1);
+		return (-1);
 	}
 
 	/*
@@ -132,7 +135,7 @@ rep_add(char *str)
 		regfree(&rep->rcmp);
 		free(rep);
 		paxwarn(1, "Invalid replacement string %s", str);
-		return(-1);
+		return (-1);
 	}
 
 	*pt2 = '\0';
@@ -144,21 +147,21 @@ rep_add(char *str)
 	 * set the options if any
 	 */
 	while (*pt2 != '\0') {
-		switch(*pt2) {
+		switch (*pt2) {
 		case 'g':
 		case 'G':
-			rep->flgs  |= GLOB;
+			rep->flgs |= GLOB;
 			break;
 		case 'p':
 		case 'P':
-			rep->flgs  |= PRNT;
+			rep->flgs |= PRNT;
 			break;
 		default:
 			regfree(&rep->rcmp);
 			free(rep);
 			*pt1 = *str;
 			paxwarn(1, "Invalid replacement string option %s", str);
-			return(-1);
+			return (-1);
 		}
 		++pt2;
 	}
@@ -169,11 +172,11 @@ rep_add(char *str)
 	rep->fow = NULL;
 	if (rephead == NULL) {
 		reptail = rephead = rep;
-		return(0);
+		return (0);
 	}
 	reptail->fow = rep;
 	reptail = rep;
-	return(0);
+	return (0);
 }
 
 /*
@@ -197,7 +200,7 @@ pat_add(char *str, char *chdnam)
 	 */
 	if ((str == NULL) || (*str == '\0')) {
 		paxwarn(1, "Empty pattern string");
-		return(-1);
+		return (-1);
 	}
 
 	/*
@@ -207,7 +210,7 @@ pat_add(char *str, char *chdnam)
 	 */
 	if ((pt = (PATTERN *)malloc(sizeof(PATTERN))) == NULL) {
 		paxwarn(1, "Unable to allocate memory for pattern string");
-		return(-1);
+		return (-1);
 	}
 
 	pt->pstr = str;
@@ -219,11 +222,11 @@ pat_add(char *str, char *chdnam)
 
 	if (pathead == NULL) {
 		pattail = pathead = pt;
-		return(0);
+		return (0);
 	}
 	pattail->fow = pt;
 	pattail = pt;
-	return(0);
+	return (0);
 }
 
 /*
@@ -280,7 +283,7 @@ pat_sel(ARCHD *arcn)
 	 * if no patterns just return
 	 */
 	if ((pathead == NULL) || ((pt = arcn->pat) == NULL))
-		return(0);
+		return (0);
 
 	/*
 	 * when we are NOT limited to a single match per pattern mark the
@@ -288,7 +291,7 @@ pat_sel(ARCHD *arcn)
 	 */
 	if (!nflag) {
 		pt->flgs |= MTCH;
-		return(0);
+		return (0);
 	}
 
 	/*
@@ -299,7 +302,7 @@ pat_sel(ARCHD *arcn)
 	 * with -d, this pattern was already selected and we are done
 	 */
 	if (pt->flgs & DIR_MTCH)
-		return(0);
+		return (0);
 
 	if (!dflag && ((pt->pend != NULL) || (arcn->type == PAX_DIR))) {
 		/*
@@ -323,7 +326,7 @@ pat_sel(ARCHD *arcn)
 			if (pt->pend != NULL)
 				*pt->pend = '/';
 			pt->pend = NULL;
-			return(-1);
+			return (-1);
 		}
 
 		/*
@@ -345,7 +348,7 @@ pat_sel(ARCHD *arcn)
 		}
 		pt->flgs = DIR_MTCH | MTCH;
 		arcn->pat = pt;
-		return(0);
+		return (0);
 	}
 
 	/*
@@ -368,12 +371,12 @@ pat_sel(ARCHD *arcn)
 		 * should never happen....
 		 */
 		paxwarn(1, "Pattern list inconsistent");
-		return(-1);
+		return (-1);
 	}
 	*ppt = pt->fow;
 	free(pt);
 	arcn->pat = NULL;
-	return(0);
+	return (0);
 }
 
 /*
@@ -401,8 +404,8 @@ pat_match(ARCHD *arcn)
 	 */
 	if (pathead == NULL) {
 		if (nflag && !cflag)
-			return(-1);
-		return(0);
+			return (-1);
+		return (0);
 	}
 
 	/*
@@ -434,7 +437,7 @@ pat_match(ARCHD *arcn)
 	 * match
 	 */
 	if (pt == NULL)
-		return(cflag ? 0 : 1);
+		return (cflag ? 0 : 1);
 
 	/*
 	 * We had a match, now when we invert the sense (-c) we reject this
@@ -443,12 +446,12 @@ pat_match(ARCHD *arcn)
 	 */
 	arcn->pat = pt;
 	if (!cflag)
-		return(0);
+		return (0);
 
 	if (pat_sel(arcn) < 0)
-		return(-1);
+		return (-1);
 	arcn->pat = NULL;
-	return(1);
+	return (1);
 }
 
 /*
@@ -474,20 +477,20 @@ fn_match(char *pattern, char *string, char **pend)
 			 * Ok we found an exact match
 			 */
 			if (*string == '\0')
-				return(0);
+				return (0);
 
 			/*
 			 * Check if it is a prefix match
 			 */
 			if ((dflag == 1) || (*string != '/'))
-				return(-1);
+				return (-1);
 
 			/*
 			 * It is a prefix match, remember where the trailing
 			 * / is located
 			 */
 			*pend = string;
-			return(0);
+			return (0);
 		case '?':
 			if ((test = *string++) == '\0')
 				return (-1);
@@ -595,7 +598,8 @@ mod_name(ARCHD *arcn)
 		}
 		if (rmleadslash < 2) {
 			rmleadslash = 2;
-			paxwarn(0, "Removing leading / from absolute path names in the archive");
+			paxwarn(0,
+			    "Removing leading / from absolute path names in the archive");
 		}
 	}
 	if (rmleadslash && arcn->ln_name[0] == '/' &&
@@ -609,7 +613,8 @@ mod_name(ARCHD *arcn)
 		}
 		if (rmleadslash < 2) {
 			rmleadslash = 2;
-			paxwarn(0, "Removing leading / from absolute path names in the archive");
+			paxwarn(0,
+			    "Removing leading / from absolute path names in the archive");
 		}
 	}
 
@@ -638,12 +643,12 @@ mod_name(ARCHD *arcn)
 		 * name if any.
 		 */
 		if ((res = rep_name(arcn->name, &(arcn->nlen), 1)) != 0)
-			return(res);
+			return (res);
 
 		if (((arcn->type == PAX_SLK) || (arcn->type == PAX_HLK) ||
-		    (arcn->type == PAX_HRG)) &&
+			(arcn->type == PAX_HRG)) &&
 		    ((res = rep_name(arcn->ln_name, &(arcn->ln_nlen), 0)) != 0))
-			return(res);
+			return (res);
 	}
 
 	if (iflag) {
@@ -651,12 +656,13 @@ mod_name(ARCHD *arcn)
 		 * perform interactive file rename, then map the link if any
 		 */
 		if ((res = tty_rename(arcn)) != 0)
-			return(res);
+			return (res);
 		if ((arcn->type == PAX_SLK) || (arcn->type == PAX_HLK) ||
 		    (arcn->type == PAX_HRG))
-			sub_name(arcn->ln_name, &(arcn->ln_nlen), sizeof(arcn->ln_name));
+			sub_name(arcn->ln_name, &(arcn->ln_nlen),
+			    sizeof(arcn->ln_name));
 	}
-	return(res);
+	return (res);
 }
 
 /*
@@ -672,7 +678,7 @@ mod_name(ARCHD *arcn)
 static int
 tty_rename(ARCHD *arcn)
 {
-	char tmpname[PAXPATHLEN+2];
+	char tmpname[PAXPATHLEN + 2];
 	int res;
 
 	/*
@@ -689,7 +695,7 @@ tty_rename(ARCHD *arcn)
 		tty_prnt("or a \"return\" to skip this file.\n");
 		tty_prnt("Input > ");
 		if (tty_read(tmpname, sizeof(tmpname)) < 0)
-			return(-1);
+			return (-1);
 		if (strcmp(tmpname, "..") == 0) {
 			tty_prnt("Try again, illegal file name: ..\n");
 			continue;
@@ -706,11 +712,11 @@ tty_rename(ARCHD *arcn)
 	 */
 	if (tmpname[0] == '\0') {
 		tty_prnt("Skipping file.\n");
-		return(1);
+		return (1);
 	}
 	if ((tmpname[0] == '.') && (tmpname[1] == '\0')) {
 		tty_prnt("Processing continues, name unchanged.\n");
-		return(0);
+		return (0);
 	}
 
 	/*
@@ -723,8 +729,8 @@ tty_rename(ARCHD *arcn)
 	arcn->nlen = l_strncpy(arcn->name, tmpname, sizeof(arcn->name) - 1);
 	arcn->name[arcn->nlen] = '\0';
 	if (res < 0)
-		return(-1);
-	return(0);
+		return (-1);
+	return (0);
 }
 
 /*
@@ -739,7 +745,7 @@ int
 set_dest(ARCHD *arcn, char *dest_dir, int dir_len)
 {
 	if (fix_path(arcn->name, &(arcn->nlen), dest_dir, dir_len) < 0)
-		return(-1);
+		return (-1);
 
 	/*
 	 * It is really hard to deal with symlinks here, we cannot be sure
@@ -747,11 +753,11 @@ set_dest(ARCHD *arcn, char *dest_dir, int dir_len)
 	 * leave them alone.
 	 */
 	if ((arcn->type != PAX_HLK) && (arcn->type != PAX_HRG))
-		return(0);
+		return (0);
 
 	if (fix_path(arcn->ln_name, &(arcn->ln_nlen), dest_dir, dir_len) < 0)
-		return(-1);
-	return(0);
+		return (-1);
+	return (0);
 }
 
 /*
@@ -763,7 +769,7 @@ set_dest(ARCHD *arcn, char *dest_dir, int dir_len)
  */
 
 static int
-fix_path( char *or_name, int *or_len, char *dir_name, int dir_len)
+fix_path(char *or_name, int *or_len, char *dir_name, int dir_len)
 {
 	char *src;
 	char *dest;
@@ -785,7 +791,7 @@ fix_path( char *or_name, int *or_len, char *dir_name, int dir_len)
 	}
 	if ((len = dest - or_name) > PAXPATHLEN) {
 		paxwarn(1, "File name %s/%s, too long", dir_name, start);
-		return(-1);
+		return (-1);
 	}
 	*or_len = len;
 
@@ -803,7 +809,7 @@ fix_path( char *or_name, int *or_len, char *dir_name, int dir_len)
 		*dest-- = *src--;
 
 	*(or_name + len) = '\0';
-	return(0);
+	return (0);
 }
 
 /*
@@ -836,8 +842,8 @@ rep_name(char *name, int *nlen, int prnt)
 	int found = 0;
 	int res;
 	regmatch_t pm[MAXSUBEXP];
-	char nname[PAXPATHLEN+1];	/* final result of all replacements */
-	char buf1[PAXPATHLEN+1];	/* where we work on the name */
+	char nname[PAXPATHLEN + 1]; /* final result of all replacements */
+	char buf1[PAXPATHLEN + 1];  /* where we work on the name */
 
 	/*
 	 * copy the name into buf1, where we will work on it. We need to keep
@@ -886,12 +892,12 @@ rep_name(char *name, int *nlen, int prnt)
 			 * replacement string and place it the prefix in the
 			 * final output. If we have problems, skip it.
 			 */
-			if ((res = resub(&(pt->rcmp),pm,inpt,pt->nstr,outpt,endpt))
-			    < 0) {
+			if ((res = resub(&(pt->rcmp), pm, inpt, pt->nstr, outpt,
+				 endpt)) < 0) {
 				if (prnt)
 					paxwarn(1, "Replacement name error %s",
 					    name);
-				return(1);
+				return (1);
 			}
 			outpt += res;
 
@@ -936,9 +942,9 @@ rep_name(char *name, int *nlen, int prnt)
 		*outpt = '\0';
 		if ((outpt == endpt) && (*inpt != '\0')) {
 			if (prnt)
-				paxwarn(1,"Replacement name too long %s >> %s",
+				paxwarn(1, "Replacement name too long %s >> %s",
 				    name, nname);
-			return(1);
+			return (1);
 		}
 
 		/*
@@ -946,10 +952,11 @@ rep_name(char *name, int *nlen, int prnt)
 		 */
 		if (prnt && (pt->flgs & PRNT)) {
 			if (*nname == '\0')
-				(void)fprintf(stderr,"%s >> <empty string>\n",
+				(void)fprintf(stderr, "%s >> <empty string>\n",
 				    name);
 			else
-				(void)fprintf(stderr,"%s >> %s\n", name, nname);
+				(void)fprintf(stderr, "%s >> %s\n", name,
+				    nname);
 		}
 
 		/*
@@ -957,13 +964,12 @@ rep_name(char *name, int *nlen, int prnt)
 		 * otherwise copy the new name over the orig name and return
 		 */
 		if (*nname == '\0')
-			return(1);
+			return (1);
 		*nlen = l_strncpy(name, nname, PAXPATHLEN + 1);
 		name[PAXPATHLEN] = '\0';
 	}
-	return(0);
+	return (0);
 }
-
 
 /*
  * resub()
@@ -975,7 +981,7 @@ rep_name(char *name, int *nlen, int prnt)
 
 static int
 resub(regex_t *rp, regmatch_t *pm, char *orig, char *src, char *dest,
-	char *destend)
+    char *destend)
 {
 	char *spt;
 	char *dpt;
@@ -984,7 +990,7 @@ resub(regex_t *rp, regmatch_t *pm, char *orig, char *src, char *dest,
 	int len;
 	int subexcnt;
 
-	spt =  src;
+	spt = src;
 	dpt = dest;
 	subexcnt = rp->re_nsub;
 	while ((dpt < destend) && ((c = *spt++) != '\0')) {
@@ -999,15 +1005,15 @@ resub(regex_t *rp, regmatch_t *pm, char *orig, char *src, char *dest,
 			 * make sure there is a subexpression as specified
 			 */
 			if ((len = *spt++ - '0') > subexcnt)
-				return(-1);
+				return (-1);
 			pmpt = pm + len;
 		} else {
- 			/*
+			/*
 			 * Ordinary character, just copy it
 			 */
- 			if ((c == '\\') && ((*spt == '\\') || (*spt == '&')))
- 				c = *spt++;
- 			*dpt++ = c;
+			if ((c == '\\') && ((*spt == '\\') || (*spt == '&')))
+				c = *spt++;
+			*dpt++ = c;
 			continue;
 		}
 
@@ -1025,8 +1031,8 @@ resub(regex_t *rp, regmatch_t *pm, char *orig, char *src, char *dest,
 		if (len > (destend - dpt))
 			len = destend - dpt;
 		if (l_strncpy(dpt, orig + pmpt->rm_so, len) != len)
-			return(-1);
+			return (-1);
 		dpt += len;
 	}
-	return(dpt - dest);
+	return (dpt - dest);
 }

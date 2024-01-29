@@ -75,11 +75,11 @@ ef_ppc_reloc(struct elf_file *ef, const void *reldata, Elf_Type reltype,
 		} else
 			be32enc(where, addr);
 		break;
-	case R_PPC_ADDR32:	/* word32 S + A */
+	case R_PPC_ADDR32: /* word32 S + A */
 		addr = EF_SYMADDR(ef, symidx) + addend;
 		be32enc(where, addr);
 		break;
-	case R_PPC64_ADDR64:	/* doubleword64 S + A */
+	case R_PPC64_ADDR64: /* doubleword64 S + A */
 		addr = EF_SYMADDR(ef, symidx) + addend;
 		if (elf_encoding(ef) == ELFDATA2LSB)
 			le64enc(where, addr);

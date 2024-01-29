@@ -33,26 +33,24 @@
 struct stat;
 
 typedef struct {
-	unsigned char	*data;
-	size_t		hash_size;
+	unsigned char *data;
+	size_t hash_size;
 } hash_data;
 
-int ve_check_hash(br_hash_compat_context *, const br_hash_class *,
-    const char *, const char *, size_t);
+int ve_check_hash(br_hash_compat_context *, const br_hash_class *, const char *,
+    const char *, size_t);
 
 size_t ve_trust_anchors_add(br_x509_certificate *, size_t);
 size_t ve_forbidden_anchors_add(br_x509_certificate *, size_t);
-void   ve_forbidden_digest_add(hash_data *digest, size_t);
-char   *fingerprint_info_lookup(int, const char *);
+void ve_forbidden_digest_add(hash_data *digest, size_t);
+char *fingerprint_info_lookup(int, const char *);
 
-br_x509_certificate * parse_certificates(unsigned char *, size_t, size_t *);
-int  certificate_to_trust_anchor_inner(br_x509_trust_anchor *,
+br_x509_certificate *parse_certificates(unsigned char *, size_t, size_t *);
+int certificate_to_trust_anchor_inner(br_x509_trust_anchor *,
     br_x509_certificate *);
 
-int verify_rsa_digest(br_rsa_public_key *pkey,
-    const unsigned char *hash_oid,
-    unsigned char *mdata, size_t mlen,
-    unsigned char *sdata, size_t slen);
+int verify_rsa_digest(br_rsa_public_key *pkey, const unsigned char *hash_oid,
+    unsigned char *mdata, size_t mlen, unsigned char *sdata, size_t slen);
 
 int is_verified(struct stat *stp);
 void add_verify_status(struct stat *stp, int status);
@@ -62,9 +60,9 @@ int openpgp_trust_add_buf(unsigned char *, size_t);
 int openpgp_trust_revoke(const char *);
 int openpgp_self_tests(void);
 
-int                     efi_secure_boot_enabled(void);
-br_x509_certificate*    efi_get_trusted_certs(size_t *count);
-br_x509_certificate*    efi_get_forbidden_certs(size_t *count);
-hash_data*              efi_get_forbidden_digests(size_t *count);
+int efi_secure_boot_enabled(void);
+br_x509_certificate *efi_get_trusted_certs(size_t *count);
+br_x509_certificate *efi_get_forbidden_certs(size_t *count);
+hash_data *efi_get_forbidden_digests(size_t *count);
 
-#endif	/* _LIBSECUREBOOT_PRIV_H_ */
+#endif /* _LIBSECUREBOOT_PRIV_H_ */

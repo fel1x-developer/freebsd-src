@@ -23,8 +23,8 @@
  * SUCH DAMAGE.
  */
 
-#include "opt_rss.h"
 #include "opt_ratelimit.h"
+#include "opt_rss.h"
 
 #include <dev/mlx5/mlx5_ib/mlx5_ib.h>
 
@@ -32,7 +32,7 @@ struct mlx5_ib_gsi_wr {
 	struct ib_cqe cqe;
 	struct ib_wc wc;
 	int send_flags;
-	bool completed:1;
+	bool completed : 1;
 };
 
 struct mlx5_ib_gsi_qp {
@@ -55,18 +55,21 @@ struct mlx5_ib_gsi_qp {
 	struct ib_qp **tx_qps;
 };
 
-static struct mlx5_ib_gsi_qp *gsi_qp(struct ib_qp *qp)
+static struct mlx5_ib_gsi_qp *
+gsi_qp(struct ib_qp *qp)
 {
 	return container_of(qp, struct mlx5_ib_gsi_qp, ibqp);
 }
 
-static bool mlx5_ib_deth_sqpn_cap(struct mlx5_ib_dev *dev)
+static bool
+mlx5_ib_deth_sqpn_cap(struct mlx5_ib_dev *dev)
 {
 	return MLX5_CAP_GEN(dev->mdev, set_deth_sqpn);
 }
 
 /* Call with gsi->lock locked */
-static void generate_completions(struct mlx5_ib_gsi_qp *gsi)
+static void
+generate_completions(struct mlx5_ib_gsi_qp *gsi)
 {
 	struct ib_cq *gsi_cq = gsi->ibqp.send_cq;
 	struct mlx5_ib_gsi_wr *wr;
@@ -89,11 +92,12 @@ static void generate_completions(struct mlx5_ib_gsi_qp *gsi)
 	gsi->outstanding_ci = index;
 }
 
-static void handle_single_completion(struct ib_cq *cq, struct ib_wc *wc)
+static void
+handle_single_completion(struct ib_cq *cq, struct ib_wc *wc)
 {
 	struct mlx5_ib_gsi_qp *gsi = cq->cq_context;
-	struct mlx5_ib_gsi_wr *wr =
-		container_of(wc->wr_cqe, struct mlx5_ib_gsi_wr, cqe);
+	struct mlx5_ib_gsi_wr *wr = container_of(wc->wr_cqe,
+	    struct mlx5_ib_gsi_wr, cqe);
 	u64 wr_id;
 	unsigned long flags;
 
@@ -108,8 +112,8 @@ static void handle_single_completion(struct ib_cq *cq, struct ib_wc *wc)
 	spin_unlock_irqrestore(&gsi->lock, flags);
 }
 
-struct ib_qp *mlx5_ib_gsi_create_qp(struct ib_pd *pd,
-				    struct ib_qp_init_attr *init_attr)
+struct ib_qp *
+mlx5_ib_gsi_create_qp(struct ib_pd *pd, struct ib_qp_init_attr *init_attr)
 {
 	struct mlx5_ib_dev *dev = to_mdev(pd->device);
 	struct mlx5_ib_gsi_qp *gsi;
@@ -123,8 +127,8 @@ struct ib_qp *mlx5_ib_gsi_create_qp(struct ib_pd *pd,
 
 	if (port_num > ARRAY_SIZE(dev->devr.ports) || port_num < 1) {
 		mlx5_ib_warn(dev,
-			     "invalid port number %d during GSI QP creation\n",
-			     port_num);
+		    "invalid port number %d during GSI QP creation\n",
+		    port_num);
 		return ERR_PTR(-EINVAL);
 	}
 
@@ -139,8 +143,7 @@ struct ib_qp *mlx5_ib_gsi_create_qp(struct ib_pd *pd,
 	}
 
 	gsi->outstanding_wrs = kcalloc(init_attr->cap.max_send_wr,
-				       sizeof(*gsi->outstanding_wrs),
-				       GFP_KERNEL);
+	    sizeof(*gsi->outstanding_wrs), GFP_KERNEL);
 	if (!gsi->outstanding_wrs) {
 		ret = -ENOMEM;
 		goto err_free_tx;
@@ -152,7 +155,7 @@ struct ib_qp *mlx5_ib_gsi_create_qp(struct ib_pd *pd,
 
 	if (dev->devr.ports[port_num - 1].gsi) {
 		mlx5_ib_warn(dev, "GSI QP already exists on port %d\n",
-			     port_num);
+		    port_num);
 		ret = -EBUSY;
 		goto err_free_wrs;
 	}
@@ -165,10 +168,11 @@ struct ib_qp *mlx5_ib_gsi_create_qp(struct ib_pd *pd,
 	gsi->port_num = port_num;
 
 	gsi->cq = ib_alloc_cq(pd->device, gsi, init_attr->cap.max_send_wr, 0,
-			      IB_POLL_SOFTIRQ);
+	    IB_POLL_SOFTIRQ);
 	if (IS_ERR(gsi->cq)) {
-		mlx5_ib_warn(dev, "unable to create send CQ for GSI QP. error %ld\n",
-			     PTR_ERR(gsi->cq));
+		mlx5_ib_warn(dev,
+		    "unable to create send CQ for GSI QP. error %ld\n",
+		    PTR_ERR(gsi->cq));
 		ret = PTR_ERR(gsi->cq);
 		goto err_free_wrs;
 	}
@@ -182,8 +186,9 @@ struct ib_qp *mlx5_ib_gsi_create_qp(struct ib_pd *pd,
 	}
 	gsi->rx_qp = ib_create_qp(pd, &hw_init_attr);
 	if (IS_ERR(gsi->rx_qp)) {
-		mlx5_ib_warn(dev, "unable to create hardware GSI QP. error %ld\n",
-			     PTR_ERR(gsi->rx_qp));
+		mlx5_ib_warn(dev,
+		    "unable to create hardware GSI QP. error %ld\n",
+		    PTR_ERR(gsi->rx_qp));
 		ret = PTR_ERR(gsi->rx_qp);
 		goto err_destroy_cq;
 	}
@@ -206,7 +211,8 @@ err_free:
 	return ERR_PTR(ret);
 }
 
-int mlx5_ib_gsi_destroy_qp(struct ib_qp *qp)
+int
+mlx5_ib_gsi_destroy_qp(struct ib_qp *qp)
 {
 	struct mlx5_ib_dev *dev = to_mdev(qp->device);
 	struct mlx5_ib_gsi_qp *gsi = gsi_qp(qp);
@@ -219,8 +225,8 @@ int mlx5_ib_gsi_destroy_qp(struct ib_qp *qp)
 	mutex_lock(&dev->devr.mutex);
 	ret = ib_destroy_qp(gsi->rx_qp);
 	if (ret) {
-		mlx5_ib_warn(dev, "unable to destroy hardware GSI QP. error %d\n",
-			     ret);
+		mlx5_ib_warn(dev,
+		    "unable to destroy hardware GSI QP. error %d\n", ret);
 		mutex_unlock(&dev->devr.mutex);
 		return ret;
 	}
@@ -244,7 +250,8 @@ int mlx5_ib_gsi_destroy_qp(struct ib_qp *qp)
 	return 0;
 }
 
-static struct ib_qp *create_gsi_ud_qp(struct mlx5_ib_gsi_qp *gsi)
+static struct ib_qp *
+create_gsi_ud_qp(struct mlx5_ib_gsi_qp *gsi)
 {
 	struct ib_pd *pd = gsi->rx_qp->pd;
 	struct ib_qp_init_attr init_attr = {
@@ -265,8 +272,8 @@ static struct ib_qp *create_gsi_ud_qp(struct mlx5_ib_gsi_qp *gsi)
 	return ib_create_qp(pd, &init_attr);
 }
 
-static int modify_to_rts(struct mlx5_ib_gsi_qp *gsi, struct ib_qp *qp,
-			 u16 qp_index)
+static int
+modify_to_rts(struct mlx5_ib_gsi_qp *gsi, struct ib_qp *qp, u16 qp_index)
 {
 	struct mlx5_ib_dev *dev = to_mdev(qp->device);
 	struct ib_qp_attr attr;
@@ -281,7 +288,7 @@ static int modify_to_rts(struct mlx5_ib_gsi_qp *gsi, struct ib_qp *qp,
 	ret = ib_modify_qp(qp, &attr, mask);
 	if (ret) {
 		mlx5_ib_err(dev, "could not change QP%d state to INIT: %d\n",
-			    qp->qp_num, ret);
+		    qp->qp_num, ret);
 		return ret;
 	}
 
@@ -289,7 +296,7 @@ static int modify_to_rts(struct mlx5_ib_gsi_qp *gsi, struct ib_qp *qp,
 	ret = ib_modify_qp(qp, &attr, IB_QP_STATE);
 	if (ret) {
 		mlx5_ib_err(dev, "could not change QP%d state to RTR: %d\n",
-			    qp->qp_num, ret);
+		    qp->qp_num, ret);
 		return ret;
 	}
 
@@ -298,14 +305,15 @@ static int modify_to_rts(struct mlx5_ib_gsi_qp *gsi, struct ib_qp *qp,
 	ret = ib_modify_qp(qp, &attr, IB_QP_STATE | IB_QP_SQ_PSN);
 	if (ret) {
 		mlx5_ib_err(dev, "could not change QP%d state to RTS: %d\n",
-			    qp->qp_num, ret);
+		    qp->qp_num, ret);
 		return ret;
 	}
 
 	return 0;
 }
 
-static void setup_qp(struct mlx5_ib_gsi_qp *gsi, u16 qp_index)
+static void
+setup_qp(struct mlx5_ib_gsi_qp *gsi, u16 qp_index)
 {
 	struct ib_device *device = gsi->rx_qp->device;
 	struct mlx5_ib_dev *dev = to_mdev(device);
@@ -317,13 +325,14 @@ static void setup_qp(struct mlx5_ib_gsi_qp *gsi, u16 qp_index)
 	ret = ib_query_pkey(device, gsi->port_num, qp_index, &pkey);
 	if (ret) {
 		mlx5_ib_warn(dev, "unable to read P_Key at port %d, index %d\n",
-			     gsi->port_num, qp_index);
+		    gsi->port_num, qp_index);
 		return;
 	}
 
 	if (!pkey) {
-		mlx5_ib_dbg(dev, "invalid P_Key at port %d, index %d.  Skipping.\n",
-			    gsi->port_num, qp_index);
+		mlx5_ib_dbg(dev,
+		    "invalid P_Key at port %d, index %d.  Skipping.\n",
+		    gsi->port_num, qp_index);
 		return;
 	}
 
@@ -331,15 +340,17 @@ static void setup_qp(struct mlx5_ib_gsi_qp *gsi, u16 qp_index)
 	qp = gsi->tx_qps[qp_index];
 	spin_unlock_irqrestore(&gsi->lock, flags);
 	if (qp) {
-		mlx5_ib_dbg(dev, "already existing GSI TX QP at port %d, index %d. Skipping\n",
-			    gsi->port_num, qp_index);
+		mlx5_ib_dbg(dev,
+		    "already existing GSI TX QP at port %d, index %d. Skipping\n",
+		    gsi->port_num, qp_index);
 		return;
 	}
 
 	qp = create_gsi_ud_qp(gsi);
 	if (IS_ERR(qp)) {
-		mlx5_ib_warn(dev, "unable to create hardware UD QP for GSI: %ld\n",
-			     PTR_ERR(qp));
+		mlx5_ib_warn(dev,
+		    "unable to create hardware UD QP for GSI: %ld\n",
+		    PTR_ERR(qp));
 		return;
 	}
 
@@ -358,7 +369,8 @@ err_destroy_qp:
 	WARN_ON_ONCE(qp);
 }
 
-static void setup_qps(struct mlx5_ib_gsi_qp *gsi)
+static void
+setup_qps(struct mlx5_ib_gsi_qp *gsi)
 {
 	u16 qp_index;
 
@@ -366,8 +378,8 @@ static void setup_qps(struct mlx5_ib_gsi_qp *gsi)
 		setup_qp(gsi, qp_index);
 }
 
-int mlx5_ib_gsi_modify_qp(struct ib_qp *qp, struct ib_qp_attr *attr,
-			  int attr_mask)
+int
+mlx5_ib_gsi_modify_qp(struct ib_qp *qp, struct ib_qp_attr *attr, int attr_mask)
 {
 	struct mlx5_ib_dev *dev = to_mdev(qp->device);
 	struct mlx5_ib_gsi_qp *gsi = gsi_qp(qp);
@@ -391,9 +403,9 @@ unlock:
 	return ret;
 }
 
-int mlx5_ib_gsi_query_qp(struct ib_qp *qp, struct ib_qp_attr *qp_attr,
-			 int qp_attr_mask,
-			 struct ib_qp_init_attr *qp_init_attr)
+int
+mlx5_ib_gsi_query_qp(struct ib_qp *qp, struct ib_qp_attr *qp_attr,
+    int qp_attr_mask, struct ib_qp_init_attr *qp_init_attr)
 {
 	struct mlx5_ib_gsi_qp *gsi = gsi_qp(qp);
 	int ret;
@@ -407,8 +419,9 @@ int mlx5_ib_gsi_query_qp(struct ib_qp *qp, struct ib_qp_attr *qp_attr,
 }
 
 /* Call with gsi->lock locked */
-static int mlx5_ib_add_outstanding_wr(struct mlx5_ib_gsi_qp *gsi,
-				      struct ib_ud_wr *wr, struct ib_wc *wc)
+static int
+mlx5_ib_add_outstanding_wr(struct mlx5_ib_gsi_qp *gsi, struct ib_ud_wr *wr,
+    struct ib_wc *wc)
 {
 	struct mlx5_ib_dev *dev = to_mdev(gsi->rx_qp->device);
 	struct mlx5_ib_gsi_wr *gsi_wr;
@@ -418,8 +431,8 @@ static int mlx5_ib_add_outstanding_wr(struct mlx5_ib_gsi_qp *gsi,
 		return -ENOMEM;
 	}
 
-	gsi_wr = &gsi->outstanding_wrs[gsi->outstanding_pi %
-				       gsi->cap.max_send_wr];
+	gsi_wr =
+	    &gsi->outstanding_wrs[gsi->outstanding_pi % gsi->cap.max_send_wr];
 	gsi->outstanding_pi++;
 
 	if (!wc) {
@@ -438,8 +451,8 @@ static int mlx5_ib_add_outstanding_wr(struct mlx5_ib_gsi_qp *gsi,
 }
 
 /* Call with gsi->lock locked */
-static int mlx5_ib_gsi_silent_drop(struct mlx5_ib_gsi_qp *gsi,
-				    struct ib_ud_wr *wr)
+static int
+mlx5_ib_gsi_silent_drop(struct mlx5_ib_gsi_qp *gsi, struct ib_ud_wr *wr)
 {
 	struct ib_wc wc = {
 		{ .wr_id = wr->wr.wr_id },
@@ -459,7 +472,8 @@ static int mlx5_ib_gsi_silent_drop(struct mlx5_ib_gsi_qp *gsi,
 }
 
 /* Call with gsi->lock locked */
-static struct ib_qp *get_tx_qp(struct mlx5_ib_gsi_qp *gsi, struct ib_ud_wr *wr)
+static struct ib_qp *
+get_tx_qp(struct mlx5_ib_gsi_qp *gsi, struct ib_ud_wr *wr)
 {
 	struct mlx5_ib_dev *dev = to_mdev(gsi->rx_qp->device);
 	int qp_index = wr->pkey_index;
@@ -473,8 +487,9 @@ static struct ib_qp *get_tx_qp(struct mlx5_ib_gsi_qp *gsi, struct ib_ud_wr *wr)
 	return gsi->tx_qps[qp_index];
 }
 
-int mlx5_ib_gsi_post_send(struct ib_qp *qp, const struct ib_send_wr *wr,
-			  const struct ib_send_wr **bad_wr)
+int
+mlx5_ib_gsi_post_send(struct ib_qp *qp, const struct ib_send_wr *wr,
+    const struct ib_send_wr **bad_wr)
 {
 	struct mlx5_ib_gsi_qp *gsi = gsi_qp(qp);
 	struct ib_qp *tx_qp;
@@ -504,7 +519,7 @@ int mlx5_ib_gsi_post_send(struct ib_qp *qp, const struct ib_send_wr *wr,
 		if (ret) {
 			/* Undo the effect of adding the outstanding wr */
 			gsi->outstanding_pi = (gsi->outstanding_pi - 1) %
-					      gsi->cap.max_send_wr;
+			    gsi->cap.max_send_wr;
 			goto err;
 		}
 		spin_unlock_irqrestore(&gsi->lock, flags);
@@ -518,15 +533,17 @@ err:
 	return ret;
 }
 
-int mlx5_ib_gsi_post_recv(struct ib_qp *qp, const struct ib_recv_wr *wr,
-			  const struct ib_recv_wr **bad_wr)
+int
+mlx5_ib_gsi_post_recv(struct ib_qp *qp, const struct ib_recv_wr *wr,
+    const struct ib_recv_wr **bad_wr)
 {
 	struct mlx5_ib_gsi_qp *gsi = gsi_qp(qp);
 
 	return ib_post_recv(gsi->rx_qp, wr, bad_wr);
 }
 
-void mlx5_ib_gsi_pkey_change(struct mlx5_ib_gsi_qp *gsi)
+void
+mlx5_ib_gsi_pkey_change(struct mlx5_ib_gsi_qp *gsi)
 {
 	if (!gsi)
 		return;

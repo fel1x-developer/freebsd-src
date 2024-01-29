@@ -25,12 +25,11 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-
 #include <sys/bus.h>
 #include <sys/errno.h>
-#include <sys/libkern.h>
+#include <sys/kernel.h>
 #include <sys/kthread.h>
+#include <sys/libkern.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
@@ -40,33 +39,32 @@
 #include <dev/ow/ow.h>
 #include <dev/ow/own.h>
 
-#define OWT_DS1820	0x10		/* Also 18S20 */
-#define OWT_DS1822	0x22		/* Very close to 18B20 */
-#define OWT_DS18B20	0x28		/* Also MAX31820 */
-#define	OWT_DS1825	0x3B		/* Just like 18B20 with address bits */
+#define OWT_DS1820 0x10	 /* Also 18S20 */
+#define OWT_DS1822 0x22	 /* Very close to 18B20 */
+#define OWT_DS18B20 0x28 /* Also MAX31820 */
+#define OWT_DS1825 0x3B	 /* Just like 18B20 with address bits */
 
-#define	CONVERT_T		0x44
-#define COPY_SCRATCHPAD		0x48
-#define WRITE_SCRATCHPAD	0x4e
-#define READ_POWER_SUPPLY	0xb4
-#define	RECALL_EE		0xb8
-#define	READ_SCRATCHPAD		0xbe
+#define CONVERT_T 0x44
+#define COPY_SCRATCHPAD 0x48
+#define WRITE_SCRATCHPAD 0x4e
+#define READ_POWER_SUPPLY 0xb4
+#define RECALL_EE 0xb8
+#define READ_SCRATCHPAD 0xbe
 
-#define	OW_TEMP_DONE		0x01
-#define	OW_TEMP_RUNNING		0x02
+#define OW_TEMP_DONE 0x01
+#define OW_TEMP_RUNNING 0x02
 
-struct ow_temp_softc
-{
-	device_t	dev;
-	int		type;
-	int		temp;
-	int		flags;
-	int		bad_crc;
-	int		bad_reads;
-	int		reading_interval;
-	int		parasite;
-	struct mtx	temp_lock;
-	struct proc	*event_thread;
+struct ow_temp_softc {
+	device_t dev;
+	int type;
+	int temp;
+	int flags;
+	int bad_crc;
+	int bad_reads;
+	int reading_interval;
+	int parasite;
+	struct mtx temp_lock;
+	struct proc *event_thread;
 };
 
 static int
@@ -120,7 +118,7 @@ ow_temp_read_power_supply(device_t dev, int *parasite)
 	cmd.flags |= OW_FLAG_READ_BIT;
 	cmd.xpt_read_len = 1;
 	own_command_wait(dev, &cmd);
-	*parasite = !cmd.xpt_read[0];	/* parasites pull bus low */
+	*parasite = !cmd.xpt_read[0]; /* parasites pull bus low */
 
 	return 0;
 }
@@ -134,13 +132,14 @@ ow_temp_event_thread(void *arg)
 	int retries, rv, tmp;
 
 	sc = arg;
-	pause("owtstart", device_get_unit(sc->dev) * hz / 100);	// 10ms stagger
+	pause("owtstart", device_get_unit(sc->dev) * hz / 100); // 10ms stagger
 	mtx_lock(&sc->temp_lock);
 	sc->flags |= OW_TEMP_RUNNING;
 	mtx_unlock(&sc->temp_lock);
 	ow_temp_read_power_supply(sc->dev, &sc->parasite);
 	if (sc->parasite)
-		device_printf(sc->dev, "Running in parasitic mode unsupported\n");
+		device_printf(sc->dev,
+		    "Running in parasitic mode unsupported\n");
 	mtx_lock(&sc->temp_lock);
 	while ((sc->flags & OW_TEMP_DONE) == 0) {
 		mtx_unlock(&sc->temp_lock);
@@ -151,23 +150,40 @@ ow_temp_event_thread(void *arg)
 			break;
 		mtx_unlock(&sc->temp_lock);
 		for (retries = 5; retries > 0; retries--) {
-			rv = ow_temp_read_scratchpad(sc->dev, scratch, sizeof(scratch));
+			rv = ow_temp_read_scratchpad(sc->dev, scratch,
+			    sizeof(scratch));
 			if (rv == 0) {
-				crc = own_crc(sc->dev, scratch, sizeof(scratch) - 1);
+				crc = own_crc(sc->dev, scratch,
+				    sizeof(scratch) - 1);
 				if (crc == scratch[8]) {
 					if (sc->type == OWT_DS1820) {
 						if (scratch[7]) {
 							/*
-							 * Formula from DS18S20 datasheet, page 6
-							 * DS18S20 datasheet says count_per_c is 16, DS1820 does not
+							 * Formula from DS18S20
+							 * datasheet, page 6
+							 * DS18S20 datasheet
+							 * says count_per_c is
+							 * 16, DS1820 does not
 							 */
-							tmp = (int16_t)((scratch[0] & 0xfe) |
-							    (scratch[1] << 8)) << 3;
-							tmp += 16 - scratch[6] - 4; /* count_per_c == 16 */
+							tmp =
+							    (int16_t)((scratch[0] &
+									  0xfe) |
+								(scratch[1]
+								    << 8))
+							    << 3;
+							tmp += 16 - scratch[6] -
+							    4; /* count_per_c ==
+								  16 */
 						} else
-							tmp = (int16_t)(scratch[0] | (scratch[1] << 8)) << 3;
+							tmp =
+							    (int16_t)(scratch
+									  [0] |
+								(scratch[1]
+								    << 8))
+							    << 3;
 					} else
-						tmp = (int16_t)(scratch[0] | (scratch[1] << 8));
+						tmp = (int16_t)(scratch[0] |
+						    (scratch[1] << 8));
 					sc->temp = tmp * 1000 / 16 + 273150;
 					break;
 				}
@@ -192,31 +208,24 @@ ow_temp_attach(device_t dev)
 	sc->dev = dev;
 	sc->type = ow_get_family(dev);
 	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev),
-	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)),
-	    OID_AUTO, "temperature",
-	    CTLFLAG_RD | CTLTYPE_INT | CTLFLAG_NEEDGIANT,
-	    &sc->temp, 0, sysctl_handle_int,
-	    "IK3", "Current Temperature");
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO,
+	    "temperature", CTLFLAG_RD | CTLTYPE_INT | CTLFLAG_NEEDGIANT,
+	    &sc->temp, 0, sysctl_handle_int, "IK3", "Current Temperature");
 	SYSCTL_ADD_INT(device_get_sysctl_ctx(dev),
-	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)),
-	    OID_AUTO, "badcrc", CTLFLAG_RD,
-	    &sc->bad_crc, 0,
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO, "badcrc",
+	    CTLFLAG_RD, &sc->bad_crc, 0,
 	    "Number of Bad CRC on reading scratchpad");
 	SYSCTL_ADD_INT(device_get_sysctl_ctx(dev),
-	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)),
-	    OID_AUTO, "badread", CTLFLAG_RD,
-	    &sc->bad_reads, 0,
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO, "badread",
+	    CTLFLAG_RD, &sc->bad_reads, 0,
 	    "Number of errors on reading scratchpad");
 	SYSCTL_ADD_INT(device_get_sysctl_ctx(dev),
-	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)),
-	    OID_AUTO, "reading_interval", CTLFLAG_RW,
-	    &sc->reading_interval, 0,
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO,
+	    "reading_interval", CTLFLAG_RW, &sc->reading_interval, 0,
 	    "ticks between reads");
 	SYSCTL_ADD_INT(device_get_sysctl_ctx(dev),
-	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)),
-	    OID_AUTO, "parasite", CTLFLAG_RW,
-	    &sc->parasite, 0,
-	    "In Parasite mode");
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO, "parasite",
+	    CTLFLAG_RW, &sc->parasite, 0, "In Parasite mode");
 	/*
 	 * Just do this for unit 0 to avoid locking
 	 * the ow bus until that code can be put
@@ -227,7 +236,7 @@ ow_temp_attach(device_t dev)
 	mtx_init(&sc->temp_lock, "lock for doing temperature", NULL, MTX_DEF);
 	/* Start the thread */
 	if (kproc_create(ow_temp_event_thread, sc, &sc->event_thread, 0, 0,
-	    "%s event thread", device_get_nameunit(dev))) {
+		"%s event thread", device_get_nameunit(dev))) {
 		device_printf(dev, "unable to create event thread.\n");
 		panic("ow_temp_attach, can't create thread");
 	}
@@ -263,10 +272,9 @@ ow_temp_detach(device_t dev)
 
 static device_method_t ow_temp_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		ow_temp_probe),
-	DEVMETHOD(device_attach,	ow_temp_attach),
-	DEVMETHOD(device_detach,	ow_temp_detach),
-	{ 0, 0 }
+	DEVMETHOD(device_probe, ow_temp_probe),
+	DEVMETHOD(device_attach, ow_temp_attach),
+	DEVMETHOD(device_detach, ow_temp_detach), { 0, 0 }
 };
 
 static driver_t ow_temp_driver = {

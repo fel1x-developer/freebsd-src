@@ -34,22 +34,32 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
-#include <sys/eventhandler.h>
-#include <sys/kdb.h>
-#include <gdb/gdb.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/systm.h>
+#include "opt_dcons.h"
+#include "opt_ddb.h"
+#include "opt_gdb.h"
+#include "opt_kdb.h"
+
 #include <sys/types.h>
+#include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/conf.h>
 #include <sys/cons.h>
 #include <sys/consio.h>
-#include <sys/tty.h>
+#include <sys/eventhandler.h>
+#include <sys/kdb.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/priv.h>
 #include <sys/proc.h>
+#include <sys/reboot.h>
+#include <sys/sysctl.h>
+#include <sys/tty.h>
 #include <sys/ucred.h>
+
+#include <vm/vm.h>
+#include <vm/pmap.h>
+#include <vm/vm_param.h>
 
 #include <machine/atomic.h>
 #include <machine/bus.h>
@@ -58,38 +68,26 @@
 #include <dev/dcons/dcons_os.h>
 
 #include <ddb/ddb.h>
-#include <sys/reboot.h>
-
-#include <sys/sysctl.h>
-
-#include <vm/vm.h>
-#include <vm/vm_param.h>
-#include <vm/pmap.h>
-
-#include "opt_dcons.h"
-#include "opt_kdb.h"
-#include "opt_gdb.h"
-#include "opt_ddb.h"
-
+#include <gdb/gdb.h>
 
 #ifndef DCONS_POLL_HZ
-#define DCONS_POLL_HZ	25
+#define DCONS_POLL_HZ 25
 #endif
 
 #ifndef DCONS_POLL_IDLE
-#define DCONS_POLL_IDLE	256
+#define DCONS_POLL_IDLE 256
 #endif
 
 #ifndef DCONS_BUF_SIZE
-#define DCONS_BUF_SIZE (16*1024)
+#define DCONS_BUF_SIZE (16 * 1024)
 #endif
 
 #ifndef DCONS_FORCE_CONSOLE
-#define DCONS_FORCE_CONSOLE	0	/* Mostly for FreeBSD-4/DragonFly */
+#define DCONS_FORCE_CONSOLE 0 /* Mostly for FreeBSD-4/DragonFly */
 #endif
 
 #ifndef KLD_MODULE
-static char bssbuf[DCONS_BUF_SIZE];	/* buf in bss */
+static char bssbuf[DCONS_BUF_SIZE]; /* buf in bss */
 #endif
 
 /* global data */
@@ -103,31 +101,31 @@ static struct dcons_softc sc[DCONS_NPORT];
 static SYSCTL_NODE(_kern, OID_AUTO, dcons, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
     "Dumb Console");
 SYSCTL_INT(_kern_dcons, OID_AUTO, poll_hz, CTLFLAG_RW, &poll_hz, 0,
-				"dcons polling rate");
+    "dcons polling rate");
 
 static int drv_init = 0;
 static struct callout dcons_callout;
-struct dcons_buf *dcons_buf;		/* for local dconschat */
+struct dcons_buf *dcons_buf; /* for local dconschat */
 
-static void	dcons_timeout(void *);
-static int	dcons_drv_init(int);
+static void dcons_timeout(void *);
+static int dcons_drv_init(int);
 
-static cn_probe_t	dcons_cnprobe;
-static cn_init_t	dcons_cninit;
-static cn_term_t	dcons_cnterm;
-static cn_getc_t	dcons_cngetc;
-static cn_putc_t	dcons_cnputc;
-static cn_grab_t	dcons_cngrab;
-static cn_ungrab_t	dcons_cnungrab;
+static cn_probe_t dcons_cnprobe;
+static cn_init_t dcons_cninit;
+static cn_term_t dcons_cnterm;
+static cn_getc_t dcons_cngetc;
+static cn_putc_t dcons_cnputc;
+static cn_grab_t dcons_cngrab;
+static cn_ungrab_t dcons_cnungrab;
 
 CONSOLE_DRIVER(dcons);
 
 #if defined(GDB)
-static gdb_probe_f	dcons_dbg_probe;
-static gdb_init_f	dcons_dbg_init;
-static gdb_term_f	dcons_dbg_term;
-static gdb_getc_f	dcons_dbg_getc;
-static gdb_putc_f	dcons_dbg_putc;
+static gdb_probe_f dcons_dbg_probe;
+static gdb_init_f dcons_dbg_init;
+static gdb_term_f dcons_dbg_term;
+static gdb_getc_f dcons_dbg_getc;
+static gdb_putc_f dcons_dbg_putc;
 
 GDB_DBGPORT(dcons, dcons_dbg_probe, dcons_dbg_init, dcons_dbg_term,
     dcons_dbg_getc, dcons_dbg_putc);
@@ -136,12 +134,12 @@ extern struct gdb_dbgport *gdb_cur;
 #endif
 
 static tsw_outwakeup_t dcons_outwakeup;
-static tsw_free_t      dcons_free;
+static tsw_free_t dcons_free;
 
 static struct ttydevsw dcons_ttydevsw = {
-	.tsw_flags      = TF_NOPREFIX,
-	.tsw_outwakeup  = dcons_outwakeup,
-	.tsw_free       = dcons_free,
+	.tsw_flags = TF_NOPREFIX,
+	.tsw_outwakeup = dcons_outwakeup,
+	.tsw_free = dcons_free,
 };
 
 static int dcons_close_refs;
@@ -164,7 +162,7 @@ dcons_check_break(struct dcons_softc *dc, int c)
 	return (c);
 }
 #else
-#define	dcons_check_break(dc, c)	(c)
+#define dcons_check_break(dc, c) (c)
 #endif
 
 static int
@@ -225,11 +223,11 @@ dcons_outwakeup(struct tty *tp)
 static void
 dcons_timeout(void *v)
 {
-	struct	tty *tp;
+	struct tty *tp;
 	struct dcons_softc *dc;
 	int i, c, polltime;
 
-	for (i = 0; i < DCONS_NPORT; i ++) {
+	for (i = 0; i < DCONS_NPORT; i++) {
 		dc = &sc[i];
 		tp = dc->tty;
 
@@ -303,7 +301,7 @@ dcons_drv_init(int stage)
 #endif
 
 	if (drv_init)
-		return(drv_init);
+		return (drv_init);
 
 	drv_init = -1;
 
@@ -329,8 +327,7 @@ dcons_drv_init(int stage)
 #ifdef __amd64__
 		dg.buf = (struct dcons_buf *)(vm_offset_t)(KERNBASE + addr);
 #else /* __i386__ */
-		dg.buf = (struct dcons_buf *)(vm_offset_t)(PMAP_MAP_LOW +
-		    addr);
+		dg.buf = (struct dcons_buf *)(vm_offset_t)(PMAP_MAP_LOW + addr);
 #endif
 		dg.size = size;
 		if (dcons_load_buffer(dg.buf, dg.size, sc) < 0)
@@ -346,7 +343,7 @@ dcons_drv_init(int stage)
 		 * DCONS_FORCE_CONSOLE == 1 and statically linked.
 		 * called from cninit(). can't use contigmalloc yet .
 		 */
-		dg.buf = (struct dcons_buf *) bssbuf;
+		dg.buf = (struct dcons_buf *)bssbuf;
 		dcons_init(dg.buf, dg.size, sc);
 	} else
 #endif
@@ -355,9 +352,9 @@ dcons_drv_init(int stage)
 		 * DCONS_FORCE_CONSOLE == 0 or kernel module case.
 		 * if the module is loaded after boot,
 		 * bssbuf could be non-continuous.
-		 */ 
-		dg.buf = (struct dcons_buf *) contigmalloc(dg.size,
-			M_DEVBUF, 0, 0x10000, 0xffffffff, PAGE_SIZE, 0ul);
+		 */
+		dg.buf = (struct dcons_buf *)contigmalloc(dg.size, M_DEVBUF, 0,
+		    0x10000, 0xffffffff, PAGE_SIZE, 0ul);
 		if (dg.buf == NULL)
 			return (-1);
 		dcons_init(dg.buf, dg.size, sc);
@@ -371,7 +368,6 @@ ok:
 	return 0;
 }
 
-
 static int
 dcons_attach_port(int port, char *name, int flags)
 {
@@ -381,10 +377,10 @@ dcons_attach_port(int port, char *name, int flags)
 	dc = &sc[port];
 	tp = tty_alloc(&dcons_ttydevsw, dc);
 	dc->flags = flags;
-	dc->tty   = tp;
+	dc->tty = tp;
 	tty_init_console(tp, 0);
 	tty_makedev(tp, NULL, "%s", name);
-	return(0);
+	return (0);
 }
 
 static int
@@ -397,13 +393,13 @@ dcons_attach(void)
 	callout_init(&dcons_callout, 1);
 	polltime = hz / poll_hz;
 	callout_reset(&dcons_callout, polltime, dcons_timeout, NULL);
-	return(0);
+	return (0);
 }
 
 static int
 dcons_detach(int port)
 {
-	struct	tty *tp;
+	struct tty *tp;
 	struct dcons_softc *dc;
 
 	dc = &sc[port];
@@ -414,7 +410,7 @@ dcons_detach(int port)
 	tty_lock(tp);
 	tty_rel_gone(tp);
 
-	return(0);
+	return (0);
 }
 
 static int
@@ -447,10 +443,10 @@ dcons_modevent(module_t mode, int type, void *data)
 
 		/* Wait for tty deferred free callbacks to complete. */
 		while (atomic_load_acq_int(&dcons_close_refs) > 0)
-                        pause_sbt("dcunld", mstosbt(50), mstosbt(10), 0);
+			pause_sbt("dcunld", mstosbt(50), mstosbt(10), 0);
 		break;
 	case MOD_SHUTDOWN:
-#if 0		/* Keep connection after halt */
+#if 0 /* Keep connection after halt */
 		dg.buf->magic = 0;
 #endif
 		break;
@@ -458,7 +454,7 @@ dcons_modevent(module_t mode, int type, void *data)
 		err = EOPNOTSUPP;
 		break;
 	}
-	return(err);
+	return (err);
 }
 
 #if defined(GDB)
@@ -469,7 +465,8 @@ dcons_os_getc(struct dcons_softc *dc)
 {
 	int c;
 
-	while ((c = dcons_os_checkc(dc)) == -1);
+	while ((c = dcons_os_checkc(dc)) == -1)
+		;
 
 	return (c & 0xff);
 }

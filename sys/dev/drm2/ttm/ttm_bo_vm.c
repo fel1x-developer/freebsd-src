@@ -35,17 +35,18 @@
  * <kib@FreeBSD.org> under sponsorship from the FreeBSD Foundation.
  */
 
-#include <sys/cdefs.h>
 #include "opt_vm.h"
 
-#include <dev/drm2/drmP.h>
-#include <dev/drm2/ttm/ttm_module.h>
-#include <dev/drm2/ttm/ttm_bo_driver.h>
-#include <dev/drm2/ttm/ttm_placement.h>
+#include <sys/cdefs.h>
 
 #include <vm/vm.h>
 #include <vm/vm_page.h>
 #include <vm/vm_pageout.h>
+
+#include <dev/drm2/drmP.h>
+#include <dev/drm2/ttm/ttm_bo_driver.h>
+#include <dev/drm2/ttm/ttm_module.h>
+#include <dev/drm2/ttm/ttm_placement.h>
 
 #define TTM_BO_VM_NUM_PREFAULT 16
 
@@ -66,9 +67,9 @@ ttm_bo_cmp_rb_tree_items(struct ttm_buffer_object *a,
 	}
 }
 
-static struct ttm_buffer_object *ttm_bo_vm_lookup_rb(struct ttm_bo_device *bdev,
-						     unsigned long page_start,
-						     unsigned long num_pages)
+static struct ttm_buffer_object *
+ttm_bo_vm_lookup_rb(struct ttm_bo_device *bdev, unsigned long page_start,
+    unsigned long num_pages)
 {
 	unsigned long cur_offset;
 	struct ttm_buffer_object *bo;
@@ -90,15 +91,15 @@ static struct ttm_buffer_object *ttm_bo_vm_lookup_rb(struct ttm_bo_device *bdev,
 		return NULL;
 
 	if (unlikely((best_bo->vm_node->start + best_bo->num_pages) <
-		     (page_start + num_pages)))
+		(page_start + num_pages)))
 		return NULL;
 
 	return best_bo;
 }
 
 static int
-ttm_bo_vm_fault(vm_object_t vm_obj, vm_ooffset_t offset,
-    int prot, vm_page_t *mres)
+ttm_bo_vm_fault(vm_object_t vm_obj, vm_ooffset_t offset, int prot,
+    vm_page_t *mres)
 {
 
 	struct ttm_buffer_object *bo = vm_obj->handle;
@@ -107,8 +108,7 @@ ttm_bo_vm_fault(vm_object_t vm_obj, vm_ooffset_t offset,
 	vm_page_t m, m1;
 	int ret;
 	int retval = VM_PAGER_OK;
-	struct ttm_mem_type_manager *man =
-		&bdev->man[bo->mem.mem_type];
+	struct ttm_mem_type_manager *man = &bdev->man[bo->mem.mem_type];
 
 	vm_object_pip_add(vm_obj, 1);
 	if (*mres != NULL) {
@@ -209,12 +209,12 @@ reserve:
 	}
 
 	if (bo->mem.bus.is_iomem) {
-		m = PHYS_TO_VM_PAGE(bo->mem.bus.base + bo->mem.bus.offset +
-		    offset);
+		m = PHYS_TO_VM_PAGE(
+		    bo->mem.bus.base + bo->mem.bus.offset + offset);
 		KASSERT((m->flags & PG_FICTITIOUS) != 0,
 		    ("physical address %#jx not fictitious",
-		    (uintmax_t)(bo->mem.bus.base + bo->mem.bus.offset
-		    + offset)));
+			(uintmax_t)(bo->mem.bus.base + bo->mem.bus.offset +
+			    offset)));
 		pmap_page_set_memattr(m, ttm_io_prot(bo->mem.placement));
 	} else {
 		ttm = bo->ttm;
@@ -225,7 +225,8 @@ reserve:
 		}
 		pmap_page_set_memattr(m,
 		    (bo->mem.placement & TTM_PL_FLAG_CACHED) ?
-		    VM_MEMATTR_WRITE_BACK : ttm_io_prot(bo->mem.placement));
+			VM_MEMATTR_WRITE_BACK :
+			ttm_io_prot(bo->mem.placement));
 	}
 
 	VM_OBJECT_WLOCK(vm_obj);
@@ -248,8 +249,8 @@ reserve:
 		}
 	} else {
 		KASSERT(m == m1,
-		    ("inconsistent insert bo %p m %p m1 %p offset %jx",
-		    bo, m, m1, (uintmax_t)offset));
+		    ("inconsistent insert bo %p m %p m1 %p offset %jx", bo, m,
+			m1, (uintmax_t)offset));
 	}
 	vm_page_valid(m);
 	if (*mres != NULL) {
@@ -305,15 +306,13 @@ ttm_bo_vm_dtor(void *handle)
 	ttm_bo_unref(&bo);
 }
 
-static struct cdev_pager_ops ttm_pager_ops = {
-	.cdev_pg_fault = ttm_bo_vm_fault,
+static struct cdev_pager_ops ttm_pager_ops = { .cdev_pg_fault = ttm_bo_vm_fault,
 	.cdev_pg_ctor = ttm_bo_vm_ctor,
-	.cdev_pg_dtor = ttm_bo_vm_dtor
-};
+	.cdev_pg_dtor = ttm_bo_vm_dtor };
 
 int
-ttm_bo_mmap_single(struct ttm_bo_device *bdev, vm_ooffset_t *offset, vm_size_t size,
-    struct vm_object **obj_res, int nprot)
+ttm_bo_mmap_single(struct ttm_bo_device *bdev, vm_ooffset_t *offset,
+    vm_size_t size, struct vm_object **obj_res, int nprot)
 {
 	struct ttm_bo_driver *driver;
 	struct ttm_buffer_object *bo;
@@ -340,8 +339,8 @@ ttm_bo_mmap_single(struct ttm_bo_device *bdev, vm_ooffset_t *offset, vm_size_t s
 	if (unlikely(ret != 0))
 		goto out_unref;
 
-	vm_obj = cdev_pager_allocate(bo, OBJT_MGTDEVICE, &ttm_pager_ops,
-	    size, nprot, 0, curthread->td_ucred);
+	vm_obj = cdev_pager_allocate(bo, OBJT_MGTDEVICE, &ttm_pager_ops, size,
+	    nprot, 0, curthread->td_ucred);
 	if (vm_obj == NULL) {
 		ret = -EINVAL;
 		goto out_unref;

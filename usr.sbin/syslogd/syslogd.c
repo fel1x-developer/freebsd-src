@@ -82,13 +82,13 @@
  * Priority comparison code by Harlan Stenn.
  */
 
-#define	MAXLINE		8192		/* maximum line length */
-#define	MAXSVLINE	MAXLINE		/* maximum saved line length */
-#define	DEFUPRI		(LOG_USER|LOG_NOTICE)
-#define	DEFSPRI		(LOG_KERN|LOG_CRIT)
-#define	TIMERINTVL	30		/* interval for checking flush, mark */
-#define	TTYMSGTIME	1		/* timeout passed to ttymsg */
-#define	RCVBUF_MINSIZE	(80 * 1024)	/* minimum size of dgram rcv buffer */
+#define MAXLINE 8192	  /* maximum line length */
+#define MAXSVLINE MAXLINE /* maximum saved line length */
+#define DEFUPRI (LOG_USER | LOG_NOTICE)
+#define DEFSPRI (LOG_KERN | LOG_CRIT)
+#define TIMERINTVL 30		   /* interval for checking flush, mark */
+#define TTYMSGTIME 1		   /* timeout passed to ttymsg */
+#define RCVBUF_MINSIZE (80 * 1024) /* minimum size of dgram rcv buffer */
 
 #include <sys/param.h>
 #include <sys/event.h>
@@ -107,6 +107,7 @@
 
 #if defined(INET) || defined(INET6)
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
 #endif
 
@@ -145,24 +146,29 @@ static const char *PidFile = _PATH_LOGPID;
 static const char include_str[] = "include";
 static const char include_ext[] = ".conf";
 
-#define	dprintf		if (Debug) printf
+#define dprintf    \
+	if (Debug) \
+	printf
 
-#define	MAXUNAMES	20	/* maximum number of user names */
+#define MAXUNAMES 20 /* maximum number of user names */
 
-#define	sstosa(ss)	((struct sockaddr *)(ss))
+#define sstosa(ss) ((struct sockaddr *)(ss))
 #ifdef INET
-#define	sstosin(ss)	((struct sockaddr_in *)(void *)(ss))
-#define	satosin(sa)	((struct sockaddr_in *)(void *)(sa))
+#define sstosin(ss) ((struct sockaddr_in *)(void *)(ss))
+#define satosin(sa) ((struct sockaddr_in *)(void *)(sa))
 #endif
 #ifdef INET6
-#define	sstosin6(ss)	((struct sockaddr_in6 *)(void *)(ss))
-#define	satosin6(sa)	((struct sockaddr_in6 *)(void *)(sa))
-#define	s6_addr32	__u6_addr.__u6_addr32
-#define	IN6_ARE_MASKED_ADDR_EQUAL(d, a, m)	(	\
-	(((d)->s6_addr32[0] ^ (a)->s6_addr32[0]) & (m)->s6_addr32[0]) == 0 && \
-	(((d)->s6_addr32[1] ^ (a)->s6_addr32[1]) & (m)->s6_addr32[1]) == 0 && \
-	(((d)->s6_addr32[2] ^ (a)->s6_addr32[2]) & (m)->s6_addr32[2]) == 0 && \
-	(((d)->s6_addr32[3] ^ (a)->s6_addr32[3]) & (m)->s6_addr32[3]) == 0 )
+#define sstosin6(ss) ((struct sockaddr_in6 *)(void *)(ss))
+#define satosin6(sa) ((struct sockaddr_in6 *)(void *)(sa))
+#define s6_addr32 __u6_addr.__u6_addr32
+#define IN6_ARE_MASKED_ADDR_EQUAL(d, a, m)                                     \
+	((((d)->s6_addr32[0] ^ (a)->s6_addr32[0]) & (m)->s6_addr32[0]) == 0 && \
+	    (((d)->s6_addr32[1] ^ (a)->s6_addr32[1]) & (m)->s6_addr32[1]) ==   \
+		0 &&                                                           \
+	    (((d)->s6_addr32[2] ^ (a)->s6_addr32[2]) & (m)->s6_addr32[2]) ==   \
+		0 &&                                                           \
+	    (((d)->s6_addr32[3] ^ (a)->s6_addr32[3]) & (m)->s6_addr32[3]) ==   \
+		0)
 #endif
 
 /*
@@ -170,10 +176,10 @@ static const char include_ext[] = ".conf";
  * flags have been parsed.
  */
 struct peer {
-	const char	*pe_name;
-	const char	*pe_serv;
-	mode_t		pe_mode;
-	STAILQ_ENTRY(peer)	next;
+	const char *pe_name;
+	const char *pe_serv;
+	mode_t pe_mode;
+	STAILQ_ENTRY(peer) next;
 };
 static STAILQ_HEAD(, peer) pqueue = STAILQ_HEAD_INITIALIZER(pqueue);
 
@@ -181,15 +187,15 @@ static STAILQ_HEAD(, peer) pqueue = STAILQ_HEAD_INITIALIZER(pqueue);
  * Sockets used for logging; monitored by kevent().
  */
 struct socklist {
-	struct addrinfo		sl_ai;
-#define	sl_sa		sl_ai.ai_addr
-#define	sl_salen	sl_ai.ai_addrlen
-#define	sl_family	sl_ai.ai_family
-	int			sl_socket;
-	char			*sl_name;
-	int			sl_dirfd;
-	int			(*sl_recv)(struct socklist *);
-	STAILQ_ENTRY(socklist)	next;
+	struct addrinfo sl_ai;
+#define sl_sa sl_ai.ai_addr
+#define sl_salen sl_ai.ai_addrlen
+#define sl_family sl_ai.ai_family
+	int sl_socket;
+	char *sl_name;
+	int sl_dirfd;
+	int (*sl_recv)(struct socklist *);
+	STAILQ_ENTRY(socklist) next;
 };
 static STAILQ_HEAD(, socklist) shead = STAILQ_HEAD_INITIALIZER(shead);
 
@@ -197,20 +203,20 @@ static STAILQ_HEAD(, socklist) shead = STAILQ_HEAD_INITIALIZER(shead);
  * Flags to logmsg().
  */
 
-#define	IGN_CONS	0x001	/* don't print on console */
-#define	SYNC_FILE	0x002	/* do fsync on file after printing */
-#define	MARK		0x008	/* this message is a mark */
-#define	ISKERNEL	0x010	/* kernel generated message */
+#define IGN_CONS 0x001	/* don't print on console */
+#define SYNC_FILE 0x002 /* do fsync on file after printing */
+#define MARK 0x008	/* this message is a mark */
+#define ISKERNEL 0x010	/* kernel generated message */
 
 /* Timestamps of log entries. */
 struct logtime {
-	struct tm	tm;
-	suseconds_t	usec;
+	struct tm tm;
+	suseconds_t usec;
 };
 
 /* Traditional syslog timestamp format. */
-#define	RFC3164_DATELEN	15
-#define	RFC3164_DATEFMT	"%b %e %H:%M:%S"
+#define RFC3164_DATELEN 15
+#define RFC3164_DATEFMT "%b %e %H:%M:%S"
 
 enum filt_proptype {
 	FILT_PROP_NOOP,
@@ -233,26 +239,26 @@ struct prop_filter {
 	enum filt_proptype prop_type;
 	enum filt_cmptype cmp_type;
 	uint8_t cmp_flags;
-#define	FILT_FLAG_EXCLUDE	(1 << 0)
-#define	FILT_FLAG_ICASE		(1 << 1)
+#define FILT_FLAG_EXCLUDE (1 << 0)
+#define FILT_FLAG_ICASE (1 << 1)
 	union {
 		char *p_strval;
 		regex_t *p_re;
 	} pflt_uniptr;
-#define	pflt_strval	pflt_uniptr.p_strval
-#define	pflt_re		pflt_uniptr.p_re
-	size_t	pflt_strlen;
+#define pflt_strval pflt_uniptr.p_strval
+#define pflt_re pflt_uniptr.p_re
+	size_t pflt_strlen;
 };
 
 enum f_type {
-	F_UNUSED,	/* unused entry */
-	F_FILE,		/* regular file */
-	F_TTY,		/* terminal */
-	F_CONSOLE,	/* console terminal */
-	F_FORW,		/* remote machine */
-	F_USERS,	/* list of users */
-	F_WALL,		/* everyone logged on */
-	F_PIPE,		/* pipe to program */
+	F_UNUSED,  /* unused entry */
+	F_FILE,	   /* regular file */
+	F_TTY,	   /* terminal */
+	F_CONSOLE, /* console terminal */
+	F_FORW,	   /* remote machine */
+	F_USERS,   /* list of users */
+	F_WALL,	   /* everyone logged on */
+	F_PIPE,	   /* pipe to program */
 };
 
 /*
@@ -265,64 +271,63 @@ struct filed {
 	enum f_type f_type;
 
 	/* Used for filtering. */
-	char	*f_host;			/* host from which to recd. */
-	char	*f_program;			/* program this applies to */
-	struct prop_filter *f_prop_filter;	/* property-based filter */
-	u_char	f_pmask[LOG_NFACILITIES+1];	/* priority mask */
-	u_char	f_pcmp[LOG_NFACILITIES+1];	/* compare priority */
-#define PRI_LT	0x1
-#define PRI_EQ	0x2
-#define PRI_GT	0x4
+	char *f_host;			     /* host from which to recd. */
+	char *f_program;		     /* program this applies to */
+	struct prop_filter *f_prop_filter;   /* property-based filter */
+	u_char f_pmask[LOG_NFACILITIES + 1]; /* priority mask */
+	u_char f_pcmp[LOG_NFACILITIES + 1];  /* compare priority */
+#define PRI_LT 0x1
+#define PRI_EQ 0x2
+#define PRI_GT 0x4
 
 	/* Logging destinations. */
-	int	f_file;				/* file descriptor */
-	int	f_flags;			/* file-specific flags */
-#define	FFLAG_SYNC	0x01
-#define	FFLAG_NEEDSYNC	0x02
+	int f_file;  /* file descriptor */
+	int f_flags; /* file-specific flags */
+#define FFLAG_SYNC 0x01
+#define FFLAG_NEEDSYNC 0x02
 	union {
-		char	f_uname[MAXUNAMES][MAXLOGNAME];	/* F_WALL, F_USERS */
-		char	f_fname[MAXPATHLEN];	/* F_FILE, F_CONSOLE, F_TTY */
+		char f_uname[MAXUNAMES][MAXLOGNAME]; /* F_WALL, F_USERS */
+		char f_fname[MAXPATHLEN]; /* F_FILE, F_CONSOLE, F_TTY */
 		struct {
-			char	f_hname[MAXHOSTNAMELEN];
+			char f_hname[MAXHOSTNAMELEN];
 			struct addrinfo *f_addr;
-		} f_forw;			/* F_FORW */
+		} f_forw; /* F_FORW */
 		struct {
-			char	f_pname[MAXPATHLEN];
-			int	f_procdesc;
-		} f_pipe;			/* F_PIPE */
+			char f_pname[MAXPATHLEN];
+			int f_procdesc;
+		} f_pipe; /* F_PIPE */
 	} f_un;
-#define	fu_uname	f_un.f_uname
-#define	fu_fname	f_un.f_fname
-#define	fu_forw_hname	f_un.f_forw.f_hname
-#define	fu_forw_addr	f_un.f_forw.f_addr
-#define	fu_pipe_pname	f_un.f_pipe.f_pname
-#define	fu_pipe_pd	f_un.f_pipe.f_procdesc
+#define fu_uname f_un.f_uname
+#define fu_fname f_un.f_fname
+#define fu_forw_hname f_un.f_forw.f_hname
+#define fu_forw_addr f_un.f_forw.f_addr
+#define fu_pipe_pname f_un.f_pipe.f_pname
+#define fu_pipe_pd f_un.f_pipe.f_procdesc
 
 	/* Book-keeping. */
-	char	f_prevline[MAXSVLINE];		/* last message logged */
-	time_t	f_time;				/* time this was last written */
-	struct logtime f_lasttime;		/* time of last occurrence */
-	int	f_prevpri;			/* pri of f_prevline */
-	size_t	f_prevlen;			/* length of f_prevline */
-	int	f_prevcount;			/* repetition cnt of prevline */
-	u_int	f_repeatcount;			/* number of "repeated" msgs */
-	STAILQ_ENTRY(filed) next;		/* next in linked list */
+	char f_prevline[MAXSVLINE]; /* last message logged */
+	time_t f_time;		    /* time this was last written */
+	struct logtime f_lasttime;  /* time of last occurrence */
+	int f_prevpri;		    /* pri of f_prevline */
+	size_t f_prevlen;	    /* length of f_prevline */
+	int f_prevcount;	    /* repetition cnt of prevline */
+	u_int f_repeatcount;	    /* number of "repeated" msgs */
+	STAILQ_ENTRY(filed) next;   /* next in linked list */
 };
-static STAILQ_HEAD(, filed) fhead =
-    STAILQ_HEAD_INITIALIZER(fhead);	/* Log files that we write to */
-static struct filed consfile;		/* Console */
-
+static STAILQ_HEAD(, filed) fhead = STAILQ_HEAD_INITIALIZER(
+    fhead);		      /* Log files that we write to */
+static struct filed consfile; /* Console */
 
 /*
  * Queue of about-to-be dead processes we should watch out for.
  */
 struct deadq_entry {
-	int				dq_procdesc;
-	int				dq_timeout;
-	TAILQ_ENTRY(deadq_entry)	dq_entries;
+	int dq_procdesc;
+	int dq_timeout;
+	TAILQ_ENTRY(deadq_entry) dq_entries;
 };
-static TAILQ_HEAD(, deadq_entry) deadq_head =
-    TAILQ_HEAD_INITIALIZER(deadq_head);
+static TAILQ_HEAD(, deadq_entry) deadq_head = TAILQ_HEAD_INITIALIZER(
+    deadq_head);
 
 /*
  * The timeout to apply to processes waiting on the dead queue.  Unit
@@ -330,7 +335,7 @@ static TAILQ_HEAD(, deadq_entry) deadq_head =
  * Processes on the dead queue will be terminated after that time.
  */
 
-#define	 DQ_TIMO_INIT	2
+#define DQ_TIMO_INIT 2
 
 /*
  * Network addresses that are allowed to log to us.
@@ -348,7 +353,7 @@ struct allowedpeer {
 #define a_addr u.numeric.addr
 #define a_mask u.numeric.mask
 #define a_name u.name
-	STAILQ_ENTRY(allowedpeer)	next;
+	STAILQ_ENTRY(allowedpeer) next;
 };
 static STAILQ_HEAD(, allowedpeer) aphead = STAILQ_HEAD_INITIALIZER(aphead);
 
@@ -357,13 +362,14 @@ static STAILQ_HEAD(, allowedpeer) aphead = STAILQ_HEAD_INITIALIZER(aphead);
  * in seconds after previous message is logged.  After each flush,
  * we move to the next interval until we reach the largest.
  */
-static int repeatinterval[] = { 30, 120, 600 };	/* # of secs before flush */
-#define	MAXREPEAT	(nitems(repeatinterval) - 1)
-#define	REPEATTIME(f)	((f)->f_time + repeatinterval[(f)->f_repeatcount])
-#define	BACKOFF(f)	do {						\
-				if (++(f)->f_repeatcount > MAXREPEAT)	\
-					(f)->f_repeatcount = MAXREPEAT;	\
-			} while (0)
+static int repeatinterval[] = { 30, 120, 600 }; /* # of secs before flush */
+#define MAXREPEAT (nitems(repeatinterval) - 1)
+#define REPEATTIME(f) ((f)->f_time + repeatinterval[(f)->f_repeatcount])
+#define BACKOFF(f)                                      \
+	do {                                            \
+		if (++(f)->f_repeatcount > MAXREPEAT)   \
+			(f)->f_repeatcount = MAXREPEAT; \
+	} while (0)
 
 static const char *TypeNames[] = {
 	"UNUSED",
@@ -386,80 +392,80 @@ static const int sigcatch[] = {
 	SIGCHLD,
 };
 
-static int	nulldesc;	/* /dev/null descriptor */
-static bool	Debug;		/* debug flag */
-static bool	Foreground = false; /* Run in foreground, instead of daemonizing */
-static bool	resolve = true;	/* resolve hostname */
-static char	LocalHostName[MAXHOSTNAMELEN];	/* our hostname */
-static const char *LocalDomain;	/* our local domain name */
-static bool	Initialized;	/* set when we have initialized ourselves */
-static int	MarkInterval = 20 * 60;	/* interval between marks in seconds */
-static int	MarkSeq;	/* mark sequence number */
-static bool	NoBind;		/* don't bind() as suggested by RFC 3164 */
-static int	SecureMode;	/* when true, receive only unix domain socks */
-static int	MaxForwardLen = 1024;	/* max length of forwared message */
+static int nulldesc;		/* /dev/null descriptor */
+static bool Debug;		/* debug flag */
+static bool Foreground = false; /* Run in foreground, instead of daemonizing */
+static bool resolve = true;	/* resolve hostname */
+static char LocalHostName[MAXHOSTNAMELEN]; /* our hostname */
+static const char *LocalDomain;		   /* our local domain name */
+static bool Initialized;	   /* set when we have initialized ourselves */
+static int MarkInterval = 20 * 60; /* interval between marks in seconds */
+static int MarkSeq;		   /* mark sequence number */
+static bool NoBind;		   /* don't bind() as suggested by RFC 3164 */
+static int SecureMode;		 /* when true, receive only unix domain socks */
+static int MaxForwardLen = 1024; /* max length of forwared message */
 #ifdef INET6
-static int	family = PF_UNSPEC; /* protocol family (IPv4, IPv6 or both) */
+static int family = PF_UNSPEC; /* protocol family (IPv4, IPv6 or both) */
 #else
-static int	family = PF_INET; /* protocol family (IPv4 only) */
+static int family = PF_INET; /* protocol family (IPv4 only) */
 #endif
-static int	mask_C1 = 1;	/* mask characters from 0x80 - 0x9F */
-static int	send_to_all;	/* send message to all IPv4/IPv6 addresses */
-static int	use_bootfile;	/* log entire bootfile for every kern msg */
-static int	no_compress;	/* don't compress messages (1=pipes, 2=all) */
-static int	logflags = O_WRONLY|O_APPEND; /* flags used to open log files */
+static int mask_C1 = 1;	 /* mask characters from 0x80 - 0x9F */
+static int send_to_all;	 /* send message to all IPv4/IPv6 addresses */
+static int use_bootfile; /* log entire bootfile for every kern msg */
+static int no_compress;	 /* don't compress messages (1=pipes, 2=all) */
+static int logflags = O_WRONLY | O_APPEND; /* flags used to open log files */
 
-static char	bootfile[MAXPATHLEN]; /* booted kernel file */
+static char bootfile[MAXPATHLEN]; /* booted kernel file */
 
-static bool	RemoteAddDate;	/* Always set the date on remote messages */
-static bool	RemoteHostname;	/* Log remote hostname from the message */
+static bool RemoteAddDate;  /* Always set the date on remote messages */
+static bool RemoteHostname; /* Log remote hostname from the message */
 
-static bool	UniquePriority;	/* Only log specified priority? */
-static int	LogFacPri;	/* Put facility and priority in log message: */
+static bool UniquePriority;	/* Only log specified priority? */
+static int LogFacPri;		/* Put facility and priority in log message: */
 				/* 0=no, 1=numeric, 2=names */
-static bool	KeepKernFac;	/* Keep remotely logged kernel facility */
-static bool	needdofsync = true; /* Are any file(s) waiting to be fsynced? */
+static bool KeepKernFac;	/* Keep remotely logged kernel facility */
+static bool needdofsync = true; /* Are any file(s) waiting to be fsynced? */
 static struct pidfh *pfh;
-static bool	RFC3164OutputFormat = true; /* Use legacy format by default. */
+static bool RFC3164OutputFormat = true; /* Use legacy format by default. */
 
 struct iovlist;
 
-static bool	allowaddr(char *);
-static void	addpeer(const char *, const char *, mode_t);
-static void	addsock(const char *, const char *, mode_t);
-static void	cfline(const char *, const char *, const char *, const char *);
+static bool allowaddr(char *);
+static void addpeer(const char *, const char *, mode_t);
+static void addsock(const char *, const char *, mode_t);
+static void cfline(const char *, const char *, const char *, const char *);
 static const char *cvthname(struct sockaddr *);
-static void	deadq_enter(int);
-static void	deadq_remove(struct deadq_entry *);
-static int	decode(const char *, const CODE *);
-static void	die(int) __dead2;
-static void	dofsync(void);
-static void	fprintlog_first(struct filed *, const char *, const char *,
+static void deadq_enter(int);
+static void deadq_remove(struct deadq_entry *);
+static int decode(const char *, const CODE *);
+static void die(int) __dead2;
+static void dofsync(void);
+static void fprintlog_first(struct filed *, const char *, const char *,
     const char *, const char *, const char *, const char *, int);
-static void	fprintlog_write(struct filed *, struct iovlist *, int);
-static void	fprintlog_successive(struct filed *, int);
-static void	init(bool);
-static void	logerror(const char *);
-static void	logmsg(int, const struct logtime *, const char *, const char *,
+static void fprintlog_write(struct filed *, struct iovlist *, int);
+static void fprintlog_successive(struct filed *, int);
+static void init(bool);
+static void logerror(const char *);
+static void logmsg(int, const struct logtime *, const char *, const char *,
     const char *, const char *, const char *, const char *, int);
-static void	markit(void);
+static void markit(void);
 static struct socklist *socksetup(struct addrinfo *, const char *, mode_t);
-static int	socklist_recv_file(struct socklist *);
-static int	socklist_recv_sock(struct socklist *);
-static int	skip_message(const char *, const char *, int);
-static int	evaluate_prop_filter(const struct prop_filter *filter,
+static int socklist_recv_file(struct socklist *);
+static int socklist_recv_sock(struct socklist *);
+static int skip_message(const char *, const char *, int);
+static int evaluate_prop_filter(const struct prop_filter *filter,
     const char *value);
 static struct prop_filter *prop_filter_compile(const char *);
-static void	parsemsg(const char *, char *);
-static void	printsys(char *);
-static int	p_open(const char *, pid_t *);
+static void parsemsg(const char *, char *);
+static void printsys(char *);
+static int p_open(const char *, pid_t *);
 static const char *ttymsg_check(struct iovec *, int, char *, int);
-static void	usage(void);
-static bool	validate(struct sockaddr *, const char *);
-static void	unmapped(struct sockaddr *);
-static void	wallmsg(struct filed *, struct iovec *, const int iovlen);
-static int	waitdaemon(int);
-static void	increase_rcvbuf(int);
+static void usage(void);
+static bool validate(struct sockaddr *, const char *);
+static void unmapped(struct sockaddr *);
+static void wallmsg(struct filed *, struct iovec *, const int iovlen);
+static int waitdaemon(int);
+static void increase_rcvbuf(int);
 
 static void
 close_filed(struct filed *f)
@@ -508,7 +514,7 @@ addpeer(const char *name, const char *serv, mode_t mode)
 static void
 addsock(const char *name, const char *serv, mode_t mode)
 {
-	struct addrinfo hints = { }, *res, *res0;
+	struct addrinfo hints = {}, *res, *res0;
 	struct socklist *sl;
 	int error;
 	char *cp, *msgbuf;
@@ -520,8 +526,7 @@ addsock(const char *name, const char *serv, mode_t mode)
 	 */
 	if (name != NULL) {
 #ifdef INET6
-		if (name[0] == '[' &&
-		    (cp = strchr(name + 1, ']')) != NULL) {
+		if (name[0] == '[' && (cp = strchr(name + 1, ']')) != NULL) {
 			name = &name[1];
 			*cp = '\0';
 			if (cp[1] == ':' && cp[2] != '\0')
@@ -550,8 +555,7 @@ addsock(const char *name, const char *serv, mode_t mode)
 	error = getaddrinfo(name, serv, &hints, &res0);
 	if (error) {
 		asprintf(&msgbuf, "getaddrinfo failed for %s%s: %s",
-		    name == NULL ? "" : name, serv,
-		    gai_strerror(error));
+		    name == NULL ? "" : name, serv, gai_strerror(error));
 		errno = 0;
 		if (msgbuf == NULL)
 			logerror(gai_strerror(error));
@@ -583,7 +587,7 @@ addfile(int fd)
 int
 main(int argc, char *argv[])
 {
-	struct sigaction act = { };
+	struct sigaction act = {};
 	struct kevent ev;
 	struct socklist *sl;
 	pid_t spid;
@@ -594,8 +598,8 @@ main(int argc, char *argv[])
 	if (madvise(NULL, 0, MADV_PROTECT) != 0)
 		dprintf("madvise() failed: %s\n", strerror(errno));
 
-	while ((ch = getopt(argc, argv, "468Aa:b:cCdf:FHkl:M:m:nNoO:p:P:sS:Tuv"))
-	    != -1)
+	while ((ch = getopt(argc, argv,
+		    "468Aa:b:cCdf:FHkl:M:m:nNoO:p:P:sS:Tuv")) != -1)
 		switch (ch) {
 #ifdef INET
 		case '4':
@@ -613,7 +617,7 @@ main(int argc, char *argv[])
 		case 'A':
 			send_to_all = true;
 			break;
-		case 'a':		/* allow specific network addresses only */
+		case 'a': /* allow specific network addresses only */
 			if (!allowaddr(optarg))
 				usage();
 			break;
@@ -633,8 +637,8 @@ main(int argc, char *argv[])
 			} else {
 				/* The case of "name:service". */
 				*p++ = '\0';
-				addpeer(strlen(optarg) == 0 ? NULL : optarg,
-				    p, 0);
+				addpeer(strlen(optarg) == 0 ? NULL : optarg, p,
+				    0);
 			}
 			break;
 		case 'c':
@@ -643,28 +647,27 @@ main(int argc, char *argv[])
 		case 'C':
 			logflags |= O_CREAT;
 			break;
-		case 'd':		/* debug */
+		case 'd': /* debug */
 			Debug = true;
 			break;
-		case 'f':		/* configuration file */
+		case 'f': /* configuration file */
 			ConfFile = optarg;
 			break;
-		case 'F':		/* run in foreground instead of daemon */
+		case 'F': /* run in foreground instead of daemon */
 			Foreground = true;
 			break;
 		case 'H':
 			RemoteHostname = true;
 			break;
-		case 'k':		/* keep remote kern fac */
+		case 'k': /* keep remote kern fac */
 			KeepKernFac = true;
 			break;
 		case 'l':
 		case 'p':
-		case 'S':
-		    {
-			long	perml;
-			mode_t	mode;
-			char	*name, *ep;
+		case 'S': {
+			long perml;
+			mode_t mode;
+			char *name, *ep;
 
 			if (ch == 'l')
 				mode = DEFFILEMODE;
@@ -680,31 +683,34 @@ main(int argc, char *argv[])
 			else if ((name = strchr(optarg, ':')) != NULL) {
 				*name++ = '\0';
 				if (name[0] != '/')
-					errx(1, "socket name must be absolute "
+					errx(1,
+					    "socket name must be absolute "
 					    "path");
 				if (isdigit(*optarg)) {
 					perml = strtol(optarg, &ep, 8);
-				    if (*ep || perml < 0 ||
-					perml & ~(S_IRWXU|S_IRWXG|S_IRWXO))
-					    errx(1, "invalid mode %s, exiting",
-						optarg);
-				    mode = (mode_t )perml;
+					if (*ep || perml < 0 ||
+					    perml &
+						~(S_IRWXU | S_IRWXG | S_IRWXO))
+						errx(1,
+						    "invalid mode %s, exiting",
+						    optarg);
+					mode = (mode_t)perml;
 				} else
 					errx(1, "invalid mode %s, exiting",
 					    optarg);
 			} else
-				errx(1, "invalid filename %s, exiting",
-				    optarg);
+				errx(1, "invalid filename %s, exiting", optarg);
 			addpeer(name, NULL, mode);
 			break;
-		   }
-		case 'M':		/* max length of forwarded message */
+		}
+		case 'M': /* max length of forwarded message */
 			MaxForwardLen = atoi(optarg);
 			if (MaxForwardLen < 480)
-				errx(1, "minimum length limit of forwarded "
-				        "messages is 480 bytes");
+				errx(1,
+				    "minimum length limit of forwarded "
+				    "messages is 480 bytes");
 			break;
-		case 'm':		/* mark interval */
+		case 'm': /* mark interval */
 			MarkInterval = atoi(optarg) * 60;
 			break;
 		case 'N':
@@ -728,20 +734,20 @@ main(int argc, char *argv[])
 		case 'o':
 			use_bootfile = true;
 			break;
-		case 'P':		/* path for alt. PID */
+		case 'P': /* path for alt. PID */
 			PidFile = optarg;
 			break;
-		case 's':		/* no network mode */
+		case 's': /* no network mode */
 			SecureMode++;
 			break;
 		case 'T':
 			RemoteAddDate = true;
 			break;
-		case 'u':		/* only log specified priority */
+		case 'u': /* only log specified priority */
 			UniquePriority = true;
 			break;
-		case 'v':		/* log facility and priority */
-		  	LogFacPri++;
+		case 'v': /* log facility and priority */
+			LogFacPri++;
 			break;
 		default:
 			usage();
@@ -811,7 +817,7 @@ main(int argc, char *argv[])
 		pidfile_remove(pfh);
 		exit(1);
 	}
-	STAILQ_FOREACH(sl, &shead, next) {
+	STAILQ_FOREACH (sl, &shead, next) {
 		if (sl->sl_recv == NULL)
 			continue;
 		EV_SET(&ev, sl->sl_socket, EVFILT_READ, EV_ADD, 0, 0, sl);
@@ -937,18 +943,15 @@ unmapped(struct sockaddr *sa)
 	struct sockaddr_in6 *sin6;
 	struct sockaddr_in sin;
 
-	if (sa == NULL ||
-	    sa->sa_family != AF_INET6 ||
+	if (sa == NULL || sa->sa_family != AF_INET6 ||
 	    sa->sa_len != sizeof(*sin6))
 		return;
 	sin6 = satosin6(sa);
 	if (!IN6_IS_ADDR_V4MAPPED(&sin6->sin6_addr))
 		return;
-	sin = (struct sockaddr_in){
-		.sin_family = AF_INET,
+	sin = (struct sockaddr_in) { .sin_family = AF_INET,
 		.sin_len = sizeof(sin),
-		.sin_port = sin6->sin6_port
-	};
+		.sin_port = sin6->sin6_port };
 	memcpy(&sin.sin_addr, &sin6->sin6_addr.s6_addr[12],
 	    sizeof(sin.sin_addr));
 	memcpy(sa, &sin, sizeof(sin));
@@ -963,11 +966,11 @@ usage(void)
 {
 
 	fprintf(stderr,
-		"usage: syslogd [-468ACcdFHknosTuv] [-a allowed_peer]\n"
-		"               [-b bind_address] [-f config_file]\n"
-		"               [-l [mode:]path] [-M fwd_length]\n"
-		"               [-m mark_interval] [-O format] [-P pid_file]\n"
-		"               [-p log_socket] [-S logpriv_socket]\n");
+	    "usage: syslogd [-468ACcdFHknosTuv] [-a allowed_peer]\n"
+	    "               [-b bind_address] [-f config_file]\n"
+	    "               [-l [mode:]path] [-M fwd_length]\n"
+	    "               [-m mark_interval] [-O format] [-P pid_file]\n"
+	    "               [-p log_socket] [-S logpriv_socket]\n");
 	exit(1);
 }
 
@@ -1018,40 +1021,44 @@ parsemsg_rfc5424(const char *from, int pri, char *msg)
 	    *structured_data;
 	char line[MAXLINE + 1];
 
-#define	FAIL_IF(field, expr) do {					\
-	if (expr) {							\
-		dprintf("Failed to parse " field " from %s: %s\n",	\
-		    from, omsg);					\
-		return;							\
-	}								\
-} while (0)
-#define	PARSE_CHAR(field, sep) do {					\
-	FAIL_IF(field, *msg != sep);					\
-	++msg;								\
-} while (0)
-#define	IF_NOT_NILVALUE(var)						\
-	if (msg[0] == '-' && msg[1] == ' ') {				\
-		msg += 2;						\
-		var = NULL;						\
-	} else if (msg[0] == '-' && msg[1] == '\0') {			\
-		++msg;							\
-		var = NULL;						\
+#define FAIL_IF(field, expr)                                               \
+	do {                                                               \
+		if (expr) {                                                \
+			dprintf("Failed to parse " field " from %s: %s\n", \
+			    from, omsg);                                   \
+			return;                                            \
+		}                                                          \
+	} while (0)
+#define PARSE_CHAR(field, sep)               \
+	do {                                 \
+		FAIL_IF(field, *msg != sep); \
+		++msg;                       \
+	} while (0)
+#define IF_NOT_NILVALUE(var)                          \
+	if (msg[0] == '-' && msg[1] == ' ') {         \
+		msg += 2;                             \
+		var = NULL;                           \
+	} else if (msg[0] == '-' && msg[1] == '\0') { \
+		++msg;                                \
+		var = NULL;                           \
 	} else
 
 	omsg = msg;
-	IF_NOT_NILVALUE(timestamp) {
+	IF_NOT_NILVALUE(timestamp)
+	{
 		/* Parse RFC 3339-like timestamp. */
-#define	PARSE_NUMBER(dest, length, min, max) do {			\
-	int i, v;							\
-									\
-	v = 0;								\
-	for (i = 0; i < length; ++i) {					\
-		FAIL_IF("TIMESTAMP", *msg < '0' || *msg > '9');		\
-		v = v * 10 + *msg++ - '0';				\
-	}								\
-	FAIL_IF("TIMESTAMP", v < min || v > max);			\
-	dest = v;							\
-} while (0)
+#define PARSE_NUMBER(dest, length, min, max)                            \
+	do {                                                            \
+		int i, v;                                               \
+                                                                        \
+		v = 0;                                                  \
+		for (i = 0; i < length; ++i) {                          \
+			FAIL_IF("TIMESTAMP", *msg < '0' || *msg > '9'); \
+			v = v * 10 + *msg++ - '0';                      \
+		}                                                       \
+		FAIL_IF("TIMESTAMP", v<min || v> max);                  \
+		dest = v;                                               \
+	} while (0)
 		/* Date and time. */
 		memset(&timestamp_remote, 0, sizeof(timestamp_remote));
 		PARSE_NUMBER(timestamp_remote.tm.tm_year, 4, 0, 9999);
@@ -1093,8 +1100,8 @@ parsemsg_rfc5424(const char *from, int pri, char *msg)
 			PARSE_NUMBER(tz_hour, 2, 0, 23);
 			PARSE_CHAR("TIMESTAMP", ':');
 			PARSE_NUMBER(tz_min, 2, 0, 59);
-			timestamp_remote.tm.tm_gmtoff =
-			    sign * (tz_hour * 3600 + tz_min * 60);
+			timestamp_remote.tm.tm_gmtoff = sign *
+			    (tz_hour * 3600 + tz_min * 60);
 		}
 #undef PARSE_NUMBER
 		PARSE_CHAR("TIMESTAMP", ' ');
@@ -1102,14 +1109,15 @@ parsemsg_rfc5424(const char *from, int pri, char *msg)
 	}
 
 	/* String fields part of the HEADER. */
-#define	PARSE_STRING(field, var)					\
-	IF_NOT_NILVALUE(var) {						\
-		var = msg;						\
-		while (*msg >= '!' && *msg <= '~')			\
-			++msg;						\
-		FAIL_IF(field, var == msg);				\
-		PARSE_CHAR(field, ' ');					\
-		msg[-1] = '\0';						\
+#define PARSE_STRING(field, var)                   \
+	IF_NOT_NILVALUE(var)                       \
+	{                                          \
+		var = msg;                         \
+		while (*msg >= '!' && *msg <= '~') \
+			++msg;                     \
+		FAIL_IF(field, var == msg);        \
+		PARSE_CHAR(field, ' ');            \
+		msg[-1] = '\0';                    \
 	}
 	PARSE_STRING("HOSTNAME", hostname);
 	if (hostname == NULL || !RemoteHostname)
@@ -1120,16 +1128,18 @@ parsemsg_rfc5424(const char *from, int pri, char *msg)
 #undef PARSE_STRING
 
 	/* Structured data. */
-#define	PARSE_SD_NAME() do {						\
-	const char *start;						\
-									\
-	start = msg;							\
-	while (*msg >= '!' && *msg <= '~' && *msg != '=' &&		\
-	    *msg != ']' && *msg != '"')					\
-		++msg;							\
-	FAIL_IF("STRUCTURED-NAME", start == msg);			\
-} while (0)
-	IF_NOT_NILVALUE(structured_data) {
+#define PARSE_SD_NAME()                                             \
+	do {                                                        \
+		const char *start;                                  \
+                                                                    \
+		start = msg;                                        \
+		while (*msg >= '!' && *msg <= '~' && *msg != '=' && \
+		    *msg != ']' && *msg != '"')                     \
+			++msg;                                      \
+		FAIL_IF("STRUCTURED-NAME", start == msg);           \
+	} while (0)
+	IF_NOT_NILVALUE(structured_data)
+	{
 		structured_data = msg;
 		/* SD-ELEMENT. */
 		while (*msg == '[') {
@@ -1213,8 +1223,9 @@ parsemsg_rfc3164_get_app_name_procid(const char *msg, size_t *app_name_length_p,
 
 	*app_name_length_p = app_name_length;
 	if (procid_begin_offset_p != NULL)
-		*procid_begin_offset_p =
-		    procid_begin == NULL ? 0 : procid_begin - msg;
+		*procid_begin_offset_p = procid_begin == NULL ?
+		    0 :
+		    procid_begin - msg;
 	if (procid_length_p != NULL)
 		*procid_length_p = procid_length;
 	return;
@@ -1245,7 +1256,8 @@ parsemsg_rfc3164_app_name_procid(char **msg, const char **app_name,
 	    &procid_begin_offset, &procid_length);
 	if (app_name_length == 0)
 		goto bad;
-	procid_begin = procid_begin_offset == 0 ? NULL :
+	procid_begin = procid_begin_offset == 0 ?
+	    NULL :
 	    app_name_begin + procid_begin_offset;
 
 	/* Split strings from input. */
@@ -1287,7 +1299,8 @@ parsemsg_rfc3164(const char *from, int pri, char *msg)
 	 */
 	timestamp = NULL;
 	if (strptime(msg, RFC3164_DATEFMT, &tm_parsed) ==
-	    msg + RFC3164_DATELEN && msg[RFC3164_DATELEN] == ' ') {
+		msg + RFC3164_DATELEN &&
+	    msg[RFC3164_DATELEN] == ' ') {
 		msg += RFC3164_DATELEN + 1;
 		if (!RemoteAddDate) {
 			struct tm tm_now;
@@ -1371,21 +1384,22 @@ parsemsg(const char *from, char *msg)
 
 	/* Parse PRI. */
 	if (msg[0] == '<' && isdigit(msg[1])) {
-	    for (i = 2; i <= 4; i++) {
-	        if (msg[i] == '>') {
-		    errno = 0;
-		    n = strtol(msg + 1, &q, 10);
-		    if (errno == 0 && *q == msg[i] && n >= 0 && n <= INT_MAX) {
-		        pri = n;
-		        msg += i + 1;
-		        i = 0;
-		    }
-		    break;
+		for (i = 2; i <= 4; i++) {
+			if (msg[i] == '>') {
+				errno = 0;
+				n = strtol(msg + 1, &q, 10);
+				if (errno == 0 && *q == msg[i] && n >= 0 &&
+				    n <= INT_MAX) {
+					pri = n;
+					msg += i + 1;
+					i = 0;
+				}
+				break;
+			}
 		}
-    	    }
 	}
 
-	if (pri &~ (LOG_FACMASK|LOG_PRIMASK))
+	if (pri & ~(LOG_FACMASK | LOG_PRIMASK))
 		pri = DEFUPRI;
 
 	/*
@@ -1454,7 +1468,7 @@ printsys(char *msg)
 	long n;
 	int flags, isprintf, pri;
 
-	flags = ISKERNEL | SYNC_FILE;	/* fsync after write */
+	flags = ISKERNEL | SYNC_FILE; /* fsync after write */
 	p = msg;
 	pri = DEFSPRI;
 	isprintf = 1;
@@ -1473,12 +1487,12 @@ printsys(char *msg)
 	 */
 	if (isprintf || (pri & LOG_FACMASK) == LOG_CONSOLE)
 		flags |= IGN_CONS;
-	if (pri &~ (LOG_FACMASK|LOG_PRIMASK))
+	if (pri & ~(LOG_FACMASK | LOG_PRIMASK))
 		pri = DEFSPRI;
 	logmsg(pri, NULL, LocalHostName, "kernel", NULL, NULL, NULL, p, flags);
 }
 
-static time_t	now;
+static time_t now;
 
 /*
  * Match a program or host name against a specification.
@@ -1506,13 +1520,13 @@ skip_message(const char *name, const char *spec, int checkcase)
 		break;
 	}
 	if (checkcase)
-		s = strstr (spec, name);
+		s = strstr(spec, name);
 	else
-		s = strcasestr (spec, name);
+		s = strcasestr(spec, name);
 
 	if (s != NULL) {
 		prev = (s == spec ? ',' : *(s - 1));
-		next = *(s + strlen (name));
+		next = *(s + strlen(name));
 
 		if (prev == ',' && (next == '\0' || next == ','))
 			/* Explicit match: skip iff the spec is an
@@ -1605,8 +1619,8 @@ logmsg(int pri, const struct logtime *timestamp, const char *hostname,
 	int fac, prilev;
 	char saved[MAXSVLINE], kernel_app_name[100];
 
-	dprintf("logmsg: pri %o, flags %x, from %s, msg %s\n",
-	    pri, flags, hostname, msg);
+	dprintf("logmsg: pri %o, flags %x, from %s, msg %s\n", pri, flags,
+	    hostname, msg);
 
 	(void)gettimeofday(&tv, NULL);
 	now = tv.tv_sec;
@@ -1640,7 +1654,7 @@ logmsg(int pri, const struct logtime *timestamp, const char *hostname,
 		if (kernel_app_name_length != 0) {
 			strlcpy(kernel_app_name, msg,
 			    MIN(sizeof(kernel_app_name),
-			    kernel_app_name_length + 1));
+				kernel_app_name_length + 1));
 		} else
 			kernel_app_name[0] = '\0';
 	}
@@ -1648,8 +1662,8 @@ logmsg(int pri, const struct logtime *timestamp, const char *hostname,
 	/* log the message to the particular outputs */
 	if (!Initialized) {
 		consfile.f_lasttime = *timestamp;
-		fprintlog_first(&consfile, hostname, app_name, procid,
-		    msgid, structured_data, msg, flags);
+		fprintlog_first(&consfile, hostname, app_name, procid, msgid,
+		    structured_data, msg, flags);
 		return;
 	}
 
@@ -1660,19 +1674,20 @@ logmsg(int pri, const struct logtime *timestamp, const char *hostname,
 	 */
 	assert(hostname != NULL);
 	assert(msg != NULL);
-	savedlen = snprintf(saved, sizeof(saved),
-	    "%d %s %s %s %s %s %s", pri, hostname,
-	    app_name == NULL ? "-" : app_name, procid == NULL ? "-" : procid,
-	    msgid == NULL ? "-" : msgid,
+	savedlen = snprintf(saved, sizeof(saved), "%d %s %s %s %s %s %s", pri,
+	    hostname, app_name == NULL ? "-" : app_name,
+	    procid == NULL ? "-" : procid, msgid == NULL ? "-" : msgid,
 	    structured_data == NULL ? "-" : structured_data, msg);
 
-	STAILQ_FOREACH(f, &fhead, next) {
+	STAILQ_FOREACH (f, &fhead, next) {
 		/* skip messages that are incorrect priority */
-		if (!(((f->f_pcmp[fac] & PRI_EQ) && (f->f_pmask[fac] == prilev))
-		     ||((f->f_pcmp[fac] & PRI_LT) && (f->f_pmask[fac] < prilev))
-		     ||((f->f_pcmp[fac] & PRI_GT) && (f->f_pmask[fac] > prilev))
-		     )
-		    || f->f_pmask[fac] == INTERNAL_NOPRI)
+		if (!(((f->f_pcmp[fac] & PRI_EQ) &&
+			  (f->f_pmask[fac] == prilev)) ||
+			((f->f_pcmp[fac] & PRI_LT) &&
+			    (f->f_pmask[fac] < prilev)) ||
+			((f->f_pcmp[fac] & PRI_GT) &&
+			    (f->f_pmask[fac] > prilev))) ||
+		    f->f_pmask[fac] == INTERNAL_NOPRI)
 			continue;
 
 		/* skip messages with the incorrect hostname */
@@ -1684,7 +1699,7 @@ logmsg(int pri, const struct logtime *timestamp, const char *hostname,
 			if (skip_message(kernel_app_name, f->f_program, 1))
 				continue;
 		} else if (skip_message(app_name == NULL ? "" : app_name,
-		    f->f_program, 1))
+			       f->f_program, 1))
 			continue;
 
 		/* skip messages if a property does not match filter */
@@ -1692,18 +1707,17 @@ logmsg(int pri, const struct logtime *timestamp, const char *hostname,
 		    f->f_prop_filter->prop_type != FILT_PROP_NOOP) {
 			switch (f->f_prop_filter->prop_type) {
 			case FILT_PROP_MSG:
-				if (evaluate_prop_filter(f->f_prop_filter,
-				    msg))
+				if (evaluate_prop_filter(f->f_prop_filter, msg))
 					continue;
 				break;
 			case FILT_PROP_HOSTNAME:
 				if (evaluate_prop_filter(f->f_prop_filter,
-				    hostname))
+					hostname))
 					continue;
 				break;
 			case FILT_PROP_PROGNAME:
 				if (evaluate_prop_filter(f->f_prop_filter,
-				    app_name == NULL ? "" : app_name))
+					app_name == NULL ? "" : app_name))
 					continue;
 				break;
 			default:
@@ -1762,9 +1776,8 @@ dofsync(void)
 {
 	struct filed *f;
 
-	STAILQ_FOREACH(f, &fhead, next) {
-		if (f->f_type == F_FILE &&
-		    (f->f_flags & FFLAG_NEEDSYNC) != 0) {
+	STAILQ_FOREACH (f, &fhead, next) {
+		if (f->f_type == F_FILE && (f->f_flags & FFLAG_NEEDSYNC) != 0) {
 			f->f_flags &= ~FFLAG_NEEDSYNC;
 			(void)fsync(f->f_file);
 		}
@@ -1777,9 +1790,9 @@ dofsync(void)
  * Used for constructing the message to be logged.
  */
 struct iovlist {
-	struct iovec	iov[TTYMSG_IOV_MAX];
-	size_t		iovcnt;
-	size_t		totalsize;
+	struct iovec iov[TTYMSG_IOV_MAX];
+	size_t iovcnt;
+	size_t totalsize;
 };
 
 static void
@@ -1798,9 +1811,9 @@ iovlist_append(struct iovlist *il, const char *str)
 	/* Discard components if we've run out of iovecs. */
 	if (il->iovcnt < nitems(il->iov)) {
 		size = strlen(str);
-		il->iov[il->iovcnt++] = (struct iovec){
-			.iov_base	= __DECONST(char *, str),
-			.iov_len	= size,
+		il->iov[il->iovcnt++] = (struct iovec) {
+			.iov_base = __DECONST(char *, str),
+			.iov_len = size,
 		};
 		il->totalsize += size;
 	}
@@ -1851,7 +1864,8 @@ fprintlog_write(struct filed *f, struct iovlist *il, int flags)
 #ifdef INET6
 		case AF_INET6:
 			dprintf(":%d\n",
-			    ntohs(satosin6(f->fu_forw_addr->ai_addr)->sin6_port));
+			    ntohs(
+				satosin6(f->fu_forw_addr->ai_addr)->sin6_port));
 			break;
 #endif
 		default:
@@ -1870,7 +1884,7 @@ fprintlog_write(struct filed *f, struct iovlist *il, int flags)
 			msghdr.msg_namelen = r->ai_addrlen;
 			msghdr.msg_iov = il->iov;
 			msghdr.msg_iovlen = il->iovcnt;
-			STAILQ_FOREACH(sl, &shead, next) {
+			STAILQ_FOREACH (sl, &shead, next) {
 				if (sl->sl_socket < 0)
 					continue;
 				if (sl->sl_sa == NULL ||
@@ -1939,7 +1953,7 @@ fprintlog_write(struct filed *f, struct iovlist *il, int flags)
 		iovlist_append(il, "\n");
 		if (f->fu_pipe_pd == -1) {
 			if ((f->f_file = p_open(f->fu_pipe_pname,
-			    &f->fu_pipe_pd)) < 0) {
+				 &f->fu_pipe_pd)) < 0) {
 				logerror(f->fu_pipe_pname);
 				break;
 			}
@@ -1960,7 +1974,7 @@ fprintlog_write(struct filed *f, struct iovlist *il, int flags)
 	case F_TTY:
 		dprintf(" %s%s\n", _PATH_DEV, f->fu_fname);
 		iovlist_append(il, "\r\n");
-		errno = 0;	/* ttymsg() only sometimes returns an errno */
+		errno = 0; /* ttymsg() only sometimes returns an errno */
 		if ((msgret = ttymsg(il->iov, il->iovcnt, f->fu_fname, 10))) {
 			f->f_type = F_UNUSED;
 			logerror(msgret);
@@ -1996,7 +2010,7 @@ fprintlog_rfc5424(struct filed *f, const char *hostname, const char *app_name,
 	iovlist_append(&il, priority_number);
 	iovlist_append(&il, ">1 ");
 	if (strftime(timebuf, sizeof(timebuf), "%FT%T.______%z",
-	    &f->f_lasttime.tm) == sizeof(timebuf) - 2) {
+		&f->f_lasttime.tm) == sizeof(timebuf) - 2) {
 		/* Add colon to the time zone offset, which %z doesn't do. */
 		timebuf[32] = '\0';
 		timebuf[31] = timebuf[30];
@@ -2040,7 +2054,7 @@ fprintlog_rfc3164(struct filed *f, const char *hostname, const char *app_name,
 	bool facility_found, priority_found;
 
 	if (strftime(timebuf, sizeof(timebuf), RFC3164_DATEFMT,
-	    &f->f_lasttime.tm) == 0)
+		&f->f_lasttime.tm) == 0)
 		timebuf[0] = '\0';
 
 	iovlist_init(&il);
@@ -2184,7 +2198,7 @@ fprintlog_successive(struct filed *f, int flags)
 static void
 wallmsg(struct filed *f, struct iovec *iov, const int iovlen)
 {
-	static int reenter;			/* avoid calling ourselves */
+	static int reenter; /* avoid calling ourselves */
 	struct utmpx *ut;
 	int i;
 	const char *p;
@@ -2198,8 +2212,8 @@ wallmsg(struct filed *f, struct iovec *iov, const int iovlen)
 			continue;
 		if (f->f_type == F_WALL) {
 			if ((p = ttymsg(iov, iovlen, ut->ut_line,
-			    TTYMSGTIME)) != NULL) {
-				errno = 0;	/* already in msg */
+				 TTYMSGTIME)) != NULL) {
+				errno = 0; /* already in msg */
 				logerror(p);
 			}
 			continue;
@@ -2210,8 +2224,8 @@ wallmsg(struct filed *f, struct iovec *iov, const int iovlen)
 				break;
 			if (!strcmp(f->fu_uname[i], ut->ut_user)) {
 				if ((p = ttymsg_check(iov, iovlen, ut->ut_line,
-				    TTYMSGTIME)) != NULL) {
-					errno = 0;	/* already in msg */
+					 TTYMSGTIME)) != NULL) {
+					errno = 0; /* already in msg */
 					logerror(p);
 				}
 				break;
@@ -2232,11 +2246,11 @@ ttymsg_check(struct iovec *iov, int iovcnt, char *line, int tmout)
 	static char errbuf[1024];
 	struct stat sb;
 
-	(void) snprintf(device, sizeof(device), "%s%s", _PATH_DEV, line);
+	(void)snprintf(device, sizeof(device), "%s%s", _PATH_DEV, line);
 
 	if (stat(device, &sb) < 0) {
-		(void) snprintf(errbuf, sizeof(errbuf),
-		    "%s: %s", device, strerror(errno));
+		(void)snprintf(errbuf, sizeof(errbuf), "%s: %s", device,
+		    strerror(errno));
 		return (errbuf);
 	}
 	if ((sb.st_mode & S_IWGRP) == 0)
@@ -2256,7 +2270,7 @@ cvthname(struct sockaddr *f)
 
 	dprintf("cvthname(%d) len = %d\n", f->sa_family, f->sa_len);
 	error = getnameinfo(f, f->sa_len, ip, sizeof(ip), NULL, 0,
-		    NI_NUMERICHOST);
+	    NI_NUMERICHOST);
 	if (error) {
 		dprintf("Malformed from address %s\n", gai_strerror(error));
 		return ("???");
@@ -2266,14 +2280,14 @@ cvthname(struct sockaddr *f)
 	if (!resolve)
 		return (ip);
 
-	error = getnameinfo(f, f->sa_len, hname, sizeof(hname),
-		    NULL, 0, NI_NAMEREQD);
+	error = getnameinfo(f, f->sa_len, hname, sizeof(hname), NULL, 0,
+	    NI_NAMEREQD);
 	if (error) {
 		dprintf("Host name for your address (%s) unknown\n", ip);
 		return (ip);
 	}
 	hl = strlen(hname);
-	if (hl > 0 && hname[hl-1] == '.')
+	if (hl > 0 && hname[hl - 1] == '.')
 		hname[--hl] = '\0';
 	/* RFC 5424 prefers logging FQDNs. */
 	if (RFC3164OutputFormat)
@@ -2301,7 +2315,7 @@ logerror(const char *msg)
 	}
 	errno = 0;
 	dprintf("%s\n", msg);
-	logmsg(LOG_SYSLOG|LOG_ERR, NULL, LocalHostName, "syslogd", NULL, NULL,
+	logmsg(LOG_SYSLOG | LOG_ERR, NULL, LocalHostName, "syslogd", NULL, NULL,
 	    NULL, msg, 0);
 	recursed--;
 }
@@ -2313,7 +2327,7 @@ die(int signo)
 	struct socklist *sl;
 	char buf[100];
 
-	STAILQ_FOREACH(f, &fhead, next) {
+	STAILQ_FOREACH (f, &fhead, next) {
 		/* flush any pending output */
 		if (f->f_prevcount)
 			fprintlog_successive(f, 0);
@@ -2327,7 +2341,7 @@ die(int signo)
 		errno = 0;
 		logerror(buf);
 	}
-	STAILQ_FOREACH(sl, &shead, next) {
+	STAILQ_FOREACH (sl, &shead, next) {
 		if (sl->sl_sa != NULL && sl->sl_family == AF_LOCAL) {
 			if (unlinkat(sl->sl_dirfd, sl->sl_name, 0) == -1) {
 				dprintf("Failed to unlink %s: %s", sl->sl_name,
@@ -2349,7 +2363,7 @@ configfiles(const struct dirent *dp)
 	if (dp->d_name[0] == '.')
 		return (0);
 
-	ext_len = sizeof(include_ext) -1;
+	ext_len = sizeof(include_ext) - 1;
 
 	if (dp->d_namlen <= ext_len)
 		return (0);
@@ -2411,9 +2425,10 @@ parseconfigfile(FILE *cf, bool allow_includes)
 			}
 			for (i = 0; i < nents; i++) {
 				if (snprintf(file, sizeof(file), "%s/%s", p,
-				    ent[i]->d_name) >= (int)sizeof(file)) {
+					ent[i]->d_name) >= (int)sizeof(file)) {
 					dprintf("ignoring path too long: "
-					    "'%s/%s'\n", p, ent[i]->d_name);
+						"'%s/%s'\n",
+					    p, ent[i]->d_name);
 					free(ent[i]);
 					continue;
 				}
@@ -2444,8 +2459,8 @@ parseconfigfile(FILE *cf, bool allow_includes)
 			if (*p == '@')
 				p = LocalHostName;
 			for (i = 1; i < MAXHOSTNAMELEN - 1; i++) {
-				if (!isalnum(*p) && *p != '.' && *p != '-'
-				    && *p != ',' && *p != ':' && *p != '%')
+				if (!isalnum(*p) && *p != '.' && *p != '-' &&
+				    *p != ',' && *p != ':' && *p != '%')
 					break;
 				host[i] = *p++;
 			}
@@ -2568,7 +2583,7 @@ init(bool reload)
 	int i;
 	char *p;
 	char oldLocalHostName[MAXHOSTNAMELEN];
-	char hostMsg[2*MAXHOSTNAMELEN+40];
+	char hostMsg[2 * MAXHOSTNAMELEN + 40];
 	char bootfileMsg[MAXLINE + 1];
 
 	dprintf("init\n");
@@ -2617,7 +2632,7 @@ init(bool reload)
 		struct filed *f;
 		int port;
 
-		STAILQ_FOREACH(f, &fhead, next) {
+		STAILQ_FOREACH (f, &fhead, next) {
 			for (i = 0; i <= LOG_NFACILITIES; i++)
 				if (f->f_pmask[i] == INTERNAL_NOPRI)
 					printf("X ");
@@ -2638,20 +2653,23 @@ init(bool reload)
 				switch (f->fu_forw_addr->ai_family) {
 #ifdef INET
 				case AF_INET:
-					port = ntohs(satosin(f->fu_forw_addr->ai_addr)->sin_port);
+					port = ntohs(
+					    satosin(f->fu_forw_addr->ai_addr)
+						->sin_port);
 					break;
 #endif
 #ifdef INET6
 				case AF_INET6:
-					port = ntohs(satosin6(f->fu_forw_addr->ai_addr)->sin6_port);
+					port = ntohs(
+					    satosin6(f->fu_forw_addr->ai_addr)
+						->sin6_port);
 					break;
 #endif
 				default:
 					port = 0;
 				}
 				if (port != 514) {
-					printf("%s:%d",
-						f->fu_forw_hname, port);
+					printf("%s:%d", f->fu_forw_hname, port);
 				} else {
 					printf("%s", f->fu_forw_hname);
 				}
@@ -2662,7 +2680,8 @@ init(bool reload)
 				break;
 
 			case F_USERS:
-				for (i = 0; i < MAXUNAMES && *f->fu_uname[i]; i++)
+				for (i = 0; i < MAXUNAMES && *f->fu_uname[i];
+				     i++)
 					printf("%s, ", f->fu_uname[i]);
 				break;
 			default:
@@ -2682,8 +2701,8 @@ init(bool reload)
 	 */
 	if (reload && strcmp(oldLocalHostName, LocalHostName) != 0) {
 		(void)snprintf(hostMsg, sizeof(hostMsg),
-		    "hostname changed, \"%s\" to \"%s\"",
-		    oldLocalHostName, LocalHostName);
+		    "hostname changed, \"%s\" to \"%s\"", oldLocalHostName,
+		    LocalHostName);
 		logmsg(LOG_SYSLOG | LOG_INFO, NULL, LocalHostName, "syslogd",
 		    NULL, NULL, NULL, hostMsg, 0);
 		dprintf("%s\n", hostMsg);
@@ -2709,7 +2728,7 @@ prop_filter_compile(const char *cfilter)
 {
 	struct prop_filter *pfilter;
 	char *filter, *filter_endpos, *filter_begpos, *p;
-	char **ap, *argv[2] = {NULL, NULL};
+	char **ap, *argv[2] = { NULL, NULL };
 	int re_flags = REG_NOSUB;
 	int escaped;
 
@@ -2881,26 +2900,26 @@ parse_selector(const char *p, struct filed *f)
 	}
 	while (!pri_done) {
 		switch (*q) {
-			case '<':
-				pri_cmp |= PRI_LT;
-				q++;
-				break;
-			case '=':
-				pri_cmp |= PRI_EQ;
-				q++;
-				break;
-			case '>':
-				pri_cmp |= PRI_GT;
-				q++;
-				break;
-			default:
-				pri_done++;
-				break;
+		case '<':
+			pri_cmp |= PRI_LT;
+			q++;
+			break;
+		case '=':
+			pri_cmp |= PRI_EQ;
+			q++;
+			break;
+		case '>':
+			pri_cmp |= PRI_GT;
+			q++;
+			break;
+		default:
+			pri_done++;
+			break;
 		}
 	}
 
 	/* collect priority name */
-	for (bp = buf; *q != '\0' && !strchr("\t,; ", *q); )
+	for (bp = buf; *q != '\0' && !strchr("\t,; ", *q);)
 		*bp++ = *q++;
 	*bp = '\0';
 
@@ -2934,7 +2953,7 @@ parse_selector(const char *p, struct filed *f)
 
 	/* scan facilities */
 	while (*p != '\0' && !strchr("\t.; ", *p)) {
-		for (bp = buf; *p != '\0' && !strchr("\t,;. ", *p); )
+		for (bp = buf; *p != '\0' && !strchr("\t,;. ", *p);)
 			*bp++ = *p++;
 		*bp = '\0';
 
@@ -2948,8 +2967,7 @@ parse_selector(const char *p, struct filed *f)
 			if (i < 0) {
 				errno = 0;
 				(void)snprintf(ebuf, sizeof(ebuf),
-				    "unknown facility name \"%s\"",
-				    buf);
+				    "unknown facility name \"%s\"", buf);
 				logerror(ebuf);
 				free(f);
 				return (NULL);
@@ -2978,45 +2996,42 @@ parse_action(const char *p, struct filed *f)
 		syncfile = true;
 
 	switch (*p) {
-	case '@':
-		{
-			char *tp;
-			char endkey = ':';
-			/*
-			 * scan forward to see if there is a port defined.
-			 * so we can't use strlcpy..
-			 */
-			i = sizeof(f->fu_forw_hname);
-			tp = f->fu_forw_hname;
-			p++;
+	case '@': {
+		char *tp;
+		char endkey = ':';
+		/*
+		 * scan forward to see if there is a port defined.
+		 * so we can't use strlcpy..
+		 */
+		i = sizeof(f->fu_forw_hname);
+		tp = f->fu_forw_hname;
+		p++;
 
-			/*
-			 * an ipv6 address should start with a '[' in that case
-			 * we should scan for a ']'
-			 */
-			if (*p == '[') {
-				p++;
-				endkey = ']';
-			}
-			while (*p && (*p != endkey) && (i-- > 0)) {
-				*tp++ = *p++;
-			}
-			if (endkey == ']' && *p == endkey)
-				p++;
-			*tp = '\0';
+		/*
+		 * an ipv6 address should start with a '[' in that case
+		 * we should scan for a ']'
+		 */
+		if (*p == '[') {
+			p++;
+			endkey = ']';
 		}
+		while (*p && (*p != endkey) && (i-- > 0)) {
+			*tp++ = *p++;
+		}
+		if (endkey == ']' && *p == endkey)
+			p++;
+		*tp = '\0';
+	}
 		/* See if we copied a domain and have a port */
 		if (*p == ':')
 			p++;
 		else
 			p = NULL;
 
-		hints = (struct addrinfo){
-			.ai_family = family,
-			.ai_socktype = SOCK_DGRAM
-		};
-		error = getaddrinfo(f->fu_forw_hname,
-				p ? p : "syslog", &hints, &res);
+		hints = (struct addrinfo) { .ai_family = family,
+			.ai_socktype = SOCK_DGRAM };
+		error = getaddrinfo(f->fu_forw_hname, p ? p : "syslog", &hints,
+		    &res);
 		if (error) {
 			logerror(gai_strerror(error));
 			break;
@@ -3059,7 +3074,7 @@ parse_action(const char *p, struct filed *f)
 
 	default:
 		for (i = 0; i < MAXUNAMES && *p; i++) {
-			for (q = p; *q && *q != ','; )
+			for (q = p; *q && *q != ',';)
 				q++;
 			(void)strncpy(f->fu_uname[i], p, MAXLOGNAME - 1);
 			if ((q - p) >= MAXLOGNAME)
@@ -3085,15 +3100,15 @@ cfline(const char *line, const char *prog, const char *host,
 	struct filed *f;
 	const char *p;
 
-	dprintf("cfline(\"%s\", f, \"%s\", \"%s\", \"%s\")\n", line, prog,
-	    host, pfilter);
+	dprintf("cfline(\"%s\", f, \"%s\", \"%s\", \"%s\")\n", line, prog, host,
+	    pfilter);
 
 	f = calloc(1, sizeof(*f));
 	if (f == NULL) {
 		logerror("malloc");
 		exit(1);
 	}
-	errno = 0;	/* keep strerror() stuff out of logerror messages */
+	errno = 0; /* keep strerror() stuff out of logerror messages */
 
 	for (int i = 0; i <= LOG_NFACILITIES; i++)
 		f->f_pmask[i] = INTERNAL_NOPRI;
@@ -3110,7 +3125,7 @@ cfline(const char *line, const char *prog, const char *host,
 			exit(1);
 		}
 		hl = strlen(f->f_host);
-		if (hl > 0 && f->f_host[hl-1] == '.')
+		if (hl > 0 && f->f_host[hl - 1] == '.')
 			f->f_host[--hl] = '\0';
 		/* RFC 5424 prefers logging FQDNs. */
 		if (RFC3164OutputFormat)
@@ -3188,7 +3203,7 @@ markit(void)
 		MarkSeq = 0;
 	}
 
-	STAILQ_FOREACH(f, &fhead, next) {
+	STAILQ_FOREACH (f, &fhead, next) {
 		if (f->f_prevcount && now >= REPEATTIME(f)) {
 			dprintf("flush %s: repeated %d times, %d sec.\n",
 			    TypeNames[f->f_type], f->f_prevcount,
@@ -3199,7 +3214,7 @@ markit(void)
 	}
 
 	/* Walk the dead queue, and see if we should signal somebody. */
-	TAILQ_FOREACH_SAFE(dq, &deadq_head, dq_entries, dq0) {
+	TAILQ_FOREACH_SAFE (dq, &deadq_head, dq_entries, dq0) {
 		switch (dq->dq_timeout) {
 		case 0:
 			/* Already signalled once, try harder now. */
@@ -3250,7 +3265,8 @@ waitdaemon(int maxwait)
 			errx(1, "timed out waiting for child");
 		if (waitpid(pid, &status, WNOHANG) > 0) {
 			if (WIFEXITED(status))
-				errx(1, "child pid %d exited with return code %d",
+				errx(1,
+				    "child pid %d exited with return code %d",
 				    pid, WEXITSTATUS(status));
 			if (WIFSIGNALED(status))
 				errx(1, "child pid %d exited on signal %d%s",
@@ -3355,15 +3371,13 @@ allowaddr(char *s __unused)
 		cp2 = NULL;
 	}
 #endif
-	hints = (struct addrinfo){
-		.ai_family = PF_UNSPEC,
+	hints = (struct addrinfo) { .ai_family = PF_UNSPEC,
 		.ai_socktype = SOCK_DGRAM,
-		.ai_flags = AI_PASSIVE | AI_NUMERICHOST
-	};
+		.ai_flags = AI_PASSIVE | AI_NUMERICHOST };
 	if (getaddrinfo(s, NULL, &hints, &res) == 0) {
 		ap->isnumeric = true;
 		memcpy(&ap->a_addr, res->ai_addr, res->ai_addrlen);
-		ap->a_mask = (struct sockaddr_storage){
+		ap->a_mask = (struct sockaddr_storage) {
 			.ss_family = res->ai_family,
 			.ss_len = res->ai_addrlen
 		};
@@ -3399,13 +3413,15 @@ allowaddr(char *s __unused)
 
 			if (masklen < 0)
 				masklen = 128;
-			mask6p = (uint32_t *)&sstosin6(&ap->a_mask)->sin6_addr.s6_addr32[0];
-			addr6p = (uint32_t *)&sstosin6(&ap->a_addr)->sin6_addr.s6_addr32[0];
+			mask6p = (uint32_t *)&sstosin6(&ap->a_mask)
+				     ->sin6_addr.s6_addr32[0];
+			addr6p = (uint32_t *)&sstosin6(&ap->a_addr)
+				     ->sin6_addr.s6_addr32[0];
 			/* convert masklen to netmask */
 			while (masklen > 0) {
 				if (masklen < 32) {
-					*mask6p =
-					    htonl(~(0xffffffff >> masklen));
+					*mask6p = htonl(
+					    ~(0xffffffff >> masklen));
 					*addr6p &= *mask6p;
 					break;
 				} else {
@@ -3440,12 +3456,12 @@ allowaddr(char *s __unused)
 		if (ap->isnumeric) {
 			printf("numeric, ");
 			getnameinfo(sstosa(&ap->a_addr),
-				    (sstosa(&ap->a_addr))->sa_len,
-				    ip, sizeof(ip), NULL, 0, NI_NUMERICHOST);
+			    (sstosa(&ap->a_addr))->sa_len, ip, sizeof(ip), NULL,
+			    0, NI_NUMERICHOST);
 			printf("addr = %s, ", ip);
 			getnameinfo(sstosa(&ap->a_mask),
-				    (sstosa(&ap->a_mask))->sa_len,
-				    ip, sizeof(ip), NULL, 0, NI_NUMERICHOST);
+			    (sstosa(&ap->a_mask))->sa_len, ip, sizeof(ip), NULL,
+			    0, NI_NUMERICHOST);
 			printf("mask = %s; ", ip);
 		} else {
 			printf("domainname = %s; ", ap->a_name);
@@ -3485,11 +3501,9 @@ validate(struct sockaddr *sa, const char *hname)
 		return (true);
 
 	(void)strlcpy(name, hname, sizeof(name));
-	hints = (struct addrinfo){
-		.ai_family = PF_UNSPEC,
+	hints = (struct addrinfo) { .ai_family = PF_UNSPEC,
 		.ai_socktype = SOCK_DGRAM,
-		.ai_flags = AI_PASSIVE | AI_NUMERICHOST
-	};
+		.ai_flags = AI_PASSIVE | AI_NUMERICHOST };
 	if (getaddrinfo(name, NULL, &hints, &res) == 0)
 		freeaddrinfo(res);
 	else if (strchr(name, '.') == NULL) {
@@ -3497,15 +3511,15 @@ validate(struct sockaddr *sa, const char *hname)
 		strlcat(name, LocalDomain, sizeof(name));
 	}
 	if (getnameinfo(sa, sa->sa_len, ip, sizeof(ip), port, sizeof(port),
-			NI_NUMERICHOST | NI_NUMERICSERV) != 0)
-		return (false);	/* for safety, should not occur */
-	dprintf("validate: dgram from IP %s, port %s, name %s;\n",
-		ip, port, name);
+		NI_NUMERICHOST | NI_NUMERICSERV) != 0)
+		return (false); /* for safety, should not occur */
+	dprintf("validate: dgram from IP %s, port %s, name %s;\n", ip, port,
+	    name);
 	sport = atoi(port);
 
 	/* now, walk down the list */
 	i = 0;
-	STAILQ_FOREACH(ap, &aphead, next) {
+	STAILQ_FOREACH (ap, &aphead, next) {
 		i++;
 		if (ap->port != 0 && ap->port != sport) {
 			dprintf("rejected in rule %d due to port mismatch.\n",
@@ -3515,7 +3529,9 @@ validate(struct sockaddr *sa, const char *hname)
 
 		if (ap->isnumeric) {
 			if (ap->a_addr.ss_family != sa->sa_family) {
-				dprintf("rejected in rule %d due to address family mismatch.\n", i);
+				dprintf(
+				    "rejected in rule %d due to address family mismatch.\n",
+				    i);
 				continue;
 			}
 #ifdef INET
@@ -3523,9 +3539,12 @@ validate(struct sockaddr *sa, const char *hname)
 				sin4 = satosin(sa);
 				a4p = satosin(&ap->a_addr);
 				m4p = satosin(&ap->a_mask);
-				if ((sin4->sin_addr.s_addr & m4p->sin_addr.s_addr)
-				    != a4p->sin_addr.s_addr) {
-					dprintf("rejected in rule %d due to IP mismatch.\n", i);
+				if ((sin4->sin_addr.s_addr &
+					m4p->sin_addr.s_addr) !=
+				    a4p->sin_addr.s_addr) {
+					dprintf(
+					    "rejected in rule %d due to IP mismatch.\n",
+					    i);
 					continue;
 				}
 			}
@@ -3537,12 +3556,16 @@ validate(struct sockaddr *sa, const char *hname)
 				m6p = satosin6(&ap->a_mask);
 				if (a6p->sin6_scope_id != 0 &&
 				    sin6->sin6_scope_id != a6p->sin6_scope_id) {
-					dprintf("rejected in rule %d due to scope mismatch.\n", i);
+					dprintf(
+					    "rejected in rule %d due to scope mismatch.\n",
+					    i);
 					continue;
 				}
 				if (!IN6_ARE_MASKED_ADDR_EQUAL(&sin6->sin6_addr,
-				    &a6p->sin6_addr, &m6p->sin6_addr)) {
-					dprintf("rejected in rule %d due to IP mismatch.\n", i);
+					&a6p->sin6_addr, &m6p->sin6_addr)) {
+					dprintf(
+					    "rejected in rule %d due to IP mismatch.\n",
+					    i);
 					continue;
 				}
 			}
@@ -3553,12 +3576,13 @@ validate(struct sockaddr *sa, const char *hname)
 			if (fnmatch(ap->a_name, name, FNM_NOESCAPE) ==
 			    FNM_NOMATCH) {
 				dprintf("rejected in rule %d due to name "
-				    "mismatch.\n", i);
+					"mismatch.\n",
+				    i);
 				continue;
 			}
 		}
 		dprintf("accepted in rule %d.\n", i);
-		return (true);	/* hooray! */
+		return (true); /* hooray! */
 	}
 	return (false);
 }
@@ -3570,7 +3594,7 @@ validate(struct sockaddr *sa, const char *hname)
 static int
 p_open(const char *prog, int *rpd)
 {
-	struct sigaction act = { };
+	struct sigaction act = {};
 	int pfd[2], pd;
 	pid_t pid;
 	char *argv[4]; /* sh -c cmd NULL */
@@ -3584,7 +3608,7 @@ p_open(const char *prog, int *rpd)
 		return (-1);
 
 	case 0:
-		(void)setsid();	/* Avoid catching SIGHUPs. */
+		(void)setsid(); /* Avoid catching SIGHUPs. */
 		argv[0] = strdup("sh");
 		argv[1] = strdup("-c");
 		argv[2] = strdup(prog);
@@ -3624,9 +3648,9 @@ p_open(const char *prog, int *rpd)
 	if (fcntl(pfd[1], F_SETFL, O_NONBLOCK) == -1) {
 		/* This is bad. */
 		(void)snprintf(errmsg, sizeof(errmsg),
-			       "Warning: cannot change pipe to PID %d to "
-			       "non-blocking behaviour.",
-			       (int)pid);
+		    "Warning: cannot change pipe to PID %d to "
+		    "non-blocking behaviour.",
+		    (int)pid);
 		logerror(errmsg);
 	}
 	*rpd = pd;
@@ -3683,15 +3707,14 @@ socksetup(struct addrinfo *ai, const char *name, mode_t mode)
 #ifdef INET6
 	if (ai->ai_family == AF_INET6) {
 		if (setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &optval,
-		    sizeof(int)) < 0) {
+			sizeof(int)) < 0) {
 			logerror("setsockopt(IPV6_V6ONLY)");
 			close(s);
 			return (NULL);
 		}
 	}
 #endif
-	if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &optval,
-	    sizeof(int)) < 0) {
+	if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int)) < 0) {
 		logerror("setsockopt(SO_REUSEADDR)");
 		close(s);
 		return (NULL);
@@ -3729,8 +3752,8 @@ socksetup(struct addrinfo *ai, const char *name, mode_t mode)
 	dprintf("new socket fd is %d\n", s);
 	sl_recv = socklist_recv_sock;
 #if defined(INET) || defined(INET6)
-	if (SecureMode && (ai->ai_family == AF_INET ||
-	    ai->ai_family == AF_INET6)) {
+	if (SecureMode &&
+	    (ai->ai_family == AF_INET || ai->ai_family == AF_INET6)) {
 		dprintf("shutdown\n");
 		/* Forbid communication in secure mode. */
 		if (shutdown(s, SHUT_RD) < 0 && errno != ENOTCONN) {
@@ -3775,10 +3798,11 @@ increase_rcvbuf(int fd)
 	socklen_t len;
 
 	if (getsockopt(fd, SOL_SOCKET, SO_RCVBUF, &len,
-	    &(socklen_t){sizeof(len)}) == 0) {
+		&(socklen_t) { sizeof(len) }) == 0) {
 		if (len < RCVBUF_MINSIZE) {
 			len = RCVBUF_MINSIZE;
-			setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &len, sizeof(len));
+			setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &len,
+			    sizeof(len));
 		}
 	}
 }

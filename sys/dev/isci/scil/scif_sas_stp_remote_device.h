@@ -75,45 +75,36 @@ extern "C" {
  * @brief The SCI SAS STP Framework remote device object abstracts the SAS
  *        SATA/STP remote device level behavior for the framework component.
  */
-typedef struct SCIF_SAS_STP_REMOTE_DEVICE
-{
-   /**
-    * This field contains all of the data utilized by the SCSI-to-ATA
-    * Translation Implementation (SATI).
-    */
-   SATI_DEVICE_T  sati_device;
+typedef struct SCIF_SAS_STP_REMOTE_DEVICE {
+	/**
+	 * This field contains all of the data utilized by the SCSI-to-ATA
+	 * Translation Implementation (SATI).
+	 */
+	SATI_DEVICE_T sati_device;
 
-   /**
-    * This field contains a list of free NCQ tags available for use in
-    * SATA Native Command Queuing (NCQ) requests.
-    */
-   U32 s_active;
+	/**
+	 * This field contains a list of free NCQ tags available for use in
+	 * SATA Native Command Queuing (NCQ) requests.
+	 */
+	U32 s_active;
 
 } SCIF_SAS_STP_REMOTE_DEVICE_T;
 
 struct SCIF_SAS_REMOTE_DEVICE;
 void scif_sas_stp_remote_device_construct(
-   struct SCIF_SAS_REMOTE_DEVICE * fw_device
-);
+    struct SCIF_SAS_REMOTE_DEVICE *fw_device);
 
 U8 scif_sas_stp_remote_device_allocate_ncq_tag(
-   struct SCIF_SAS_REMOTE_DEVICE * fw_device
-);
+    struct SCIF_SAS_REMOTE_DEVICE *fw_device);
 
 void scif_sas_stp_remote_device_free_ncq_tag(
-   struct SCIF_SAS_REMOTE_DEVICE * fw_device,
-   U8                              ncq_tag
-);
+    struct SCIF_SAS_REMOTE_DEVICE *fw_device, U8 ncq_tag);
 
-struct SCIF_SAS_REQUEST *
-scif_sas_stp_remote_device_get_request_by_ncq_tag(
-   struct SCIF_SAS_REMOTE_DEVICE * fw_device,
-   U8                              ncq_tag
-);
+struct SCIF_SAS_REQUEST *scif_sas_stp_remote_device_get_request_by_ncq_tag(
+    struct SCIF_SAS_REMOTE_DEVICE *fw_device, U8 ncq_tag);
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
 #endif // _SCIF_SAS_STP_REMOTE_DEVICE_H_
-

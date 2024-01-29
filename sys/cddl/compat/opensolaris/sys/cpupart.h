@@ -25,12 +25,12 @@
  */
 
 #ifndef _COMPAT_OPENSOLARIS_SYS_CPUPART_H
-#define	_COMPAT_OPENSOLARIS_SYS_CPUPART_H
+#define _COMPAT_OPENSOLARIS_SYS_CPUPART_H
 
-typedef int	cpupartid_t;
+typedef int cpupartid_t;
 
 typedef struct cpupart {
-	cpupartid_t	cp_id;		/* partition ID */
+	cpupartid_t cp_id; /* partition ID */
 } cpupart_t;
 
 #endif /* _COMPAT_OPENSOLARIS_SYS_CPUPART_H */

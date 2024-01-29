@@ -24,13 +24,15 @@
  */
 
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/efi.h>
 #include <sys/efiio.h>
-#include <sys/param.h>
 #include <sys/stat.h>
+
 #include <err.h>
 #include <fcntl.h>
 #include <getopt.h>
+#include <libxo/xo.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,7 +40,6 @@
 #include <sysexits.h>
 #include <unistd.h>
 #include <uuid.h>
-#include <libxo/xo.h>
 
 #define TABLE_MAX_LEN 30
 #define EFITABLE_XO_VERSION "1"
@@ -49,34 +50,32 @@ static void usage(void) __dead2;
 
 struct efi_table_op {
 	char name[TABLE_MAX_LEN];
-	void (*parse) (const void *);
+	void (*parse)(const void *);
 	struct uuid uuid;
 };
 
 static const struct efi_table_op efi_table_ops[] = {
-	{ .name = "esrt", .parse = efi_table_print_esrt,
+	{ .name = "esrt",
+	    .parse = efi_table_print_esrt,
 	    .uuid = EFI_TABLE_ESRT },
-	{ .name = "prop", .parse = efi_table_print_prop,
+	{ .name = "prop",
+	    .parse = efi_table_print_prop,
 	    .uuid = EFI_PROPERTIES_TABLE }
 };
 
 int
 main(int argc, char **argv)
 {
-	struct efi_get_table_ioc table = {
-		.buf = NULL,
+	struct efi_get_table_ioc table = { .buf = NULL,
 		.buf_len = 0,
-		.table_len = 0
-	};
+		.table_len = 0 };
 	int efi_fd, ch, rc = 1, efi_idx = -1;
 	bool got_table = false;
 	bool table_set = false;
 	bool uuid_set = false;
-	struct option longopts[] = {
-		{ "uuid",  required_argument, NULL, 'u' },
+	struct option longopts[] = { { "uuid", required_argument, NULL, 'u' },
 		{ "table", required_argument, NULL, 't' },
-		{ NULL,    0,                 NULL,  0  }
-	};
+		{ NULL, 0, NULL, 0 } };
 
 	argc = xo_parse_args(argc, argv);
 	if (argc < 0)
@@ -84,8 +83,7 @@ main(int argc, char **argv)
 
 	while ((ch = getopt_long(argc, argv, "u:t:", longopts, NULL)) != -1) {
 		switch (ch) {
-		case 'u':
-		{
+		case 'u': {
 			char *uuid_str = optarg;
 			struct uuid uuid;
 			uint32_t status;
@@ -98,7 +96,7 @@ main(int argc, char **argv)
 
 			for (size_t n = 0; n < nitems(efi_table_ops); n++) {
 				if (!memcmp(&uuid, &efi_table_ops[n].uuid,
-				    sizeof(uuid))) {
+					sizeof(uuid))) {
 					efi_idx = n;
 					got_table = true;
 					break;
@@ -106,15 +104,14 @@ main(int argc, char **argv)
 			}
 			break;
 		}
-		case 't':
-		{
+		case 't': {
 			char *table_name = optarg;
 
 			table_set = true;
 
 			for (size_t n = 0; n < nitems(efi_table_ops); n++) {
 				if (!strcmp(table_name,
-				    efi_table_ops[n].name)) {
+					efi_table_ops[n].name)) {
 					efi_idx = n;
 					got_table = true;
 					break;
@@ -176,7 +173,7 @@ efi_table_print_esrt(const void *data)
 	xo_open_list("entries");
 	xo_emit("\nEntries:\n");
 
-	entries_v1 = (const void *) esrt->entries;
+	entries_v1 = (const void *)esrt->entries;
 	for (uint32_t i = 0; i < esrt->fw_resource_count; i++) {
 		const struct efi_esrt_entry_v1 *e = &entries_v1[i];
 		uint32_t status;
@@ -194,14 +191,16 @@ efi_table_print_esrt(const void *data)
 		xo_emit("{P:  }{Lwc:FwVersion}{:fw_version/%u}\n",
 		    e->fw_version);
 		xo_emit("{P:  }{Lwc:LowestSupportedFwVersion}"
-		    "{:lowest_supported_fw_version/%u}\n",
+			"{:lowest_supported_fw_version/%u}\n",
 		    e->lowest_supported_fw_version);
 		xo_emit("{P:  }{Lwc:CapsuleFlags}{:capsule_flags/%#x}\n",
 		    e->capsule_flags);
 		xo_emit("{P:  }{Lwc:LastAttemptVersion"
-		    "}{:last_attempt_version/%u}\n", e->last_attempt_version);
+			"}{:last_attempt_version/%u}\n",
+		    e->last_attempt_version);
 		xo_emit("{P:  }{Lwc:LastAttemptStatus"
-		    "}{:last_attempt_status/%u}\n", e->last_attempt_status);
+			"}{:last_attempt_status/%u}\n",
+		    e->last_attempt_status);
 
 		xo_close_instance("entries");
 	}
@@ -223,13 +222,14 @@ efi_table_print_prop(const void *data)
 	xo_emit("{Lwc:Version}{:version/%#x}\n", prop->version);
 	xo_emit("{Lwc:Length}{:length/%u}\n", prop->length);
 	xo_emit("{Lwc:MemoryProtectionAttribute}"
-	    "{:memory_protection_attribute/%#lx}\n",
+		"{:memory_protection_attribute/%#lx}\n",
 	    prop->memory_protection_attribute);
 	xo_close_container("prop");
 	xo_finish();
 }
 
-static void usage(void)
+static void
+usage(void)
 {
 	xo_error("usage: efitable [-d uuid | -t name] [--libxo]\n");
 	exit(EX_USAGE);

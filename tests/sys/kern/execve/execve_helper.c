@@ -40,7 +40,7 @@
 #include <unistd.h>
 
 /* Passing -n == null_argv */
-static char * const null_argv[] = { NULL };
+static char *const null_argv[] = { NULL };
 
 int
 main(int argc, char **argv)

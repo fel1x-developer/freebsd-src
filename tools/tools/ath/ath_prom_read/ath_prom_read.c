@@ -26,25 +26,24 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
-#include "diag.h"
+#include <ctype.h>
+#include <err.h>
+#include <errno.h>
+#include <getopt.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "ah.h"
 #include "ah_diagcodes.h"
+#include "diag.h"
 
-#include <getopt.h>
-#include <errno.h>
-#include <err.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-
-struct	ath_diag atd;
-int	s;
+struct ath_diag atd;
+int s;
 const char *progname;
 
 /* XXX this should likely be defined somewhere in the HAL */
 /* XXX This is a lot larger than the v14 ROM */
-#define	MAX_EEPROM_SIZE		16384
+#define MAX_EEPROM_SIZE 16384
 
 uint16_t eep[MAX_EEPROM_SIZE];
 
@@ -55,7 +54,7 @@ usage()
 	exit(-1);
 }
 
-#define	NUM_PER_LINE	8
+#define NUM_PER_LINE 8
 
 static void
 do_eeprom_dump(const char *dumpfile, uint16_t *eebuf, int eelen)
@@ -72,7 +71,8 @@ do_eeprom_dump(const char *dumpfile, uint16_t *eebuf, int eelen)
 	for (i = 0; i < eelen / 2; i++) {
 		if (i % NUM_PER_LINE == 0)
 			fprintf(fp, "%.4x: ", i);
-		fprintf(fp, "%.4x%s", (int32_t)(eebuf[i]), i % NUM_PER_LINE == (NUM_PER_LINE - 1) ? "\n" : " ");
+		fprintf(fp, "%.4x%s", (int32_t)(eebuf[i]),
+		    i % NUM_PER_LINE == (NUM_PER_LINE - 1) ? "\n" : " ");
 	}
 	fprintf(fp, "\n");
 	fclose(fp);
@@ -114,19 +114,18 @@ main(int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
-	strncpy(atd.ad_name, ifname, sizeof (atd.ad_name));
+	strncpy(atd.ad_name, ifname, sizeof(atd.ad_name));
 
 	/* Read in the entire EEPROM */
 	atd.ad_id = HAL_DIAG_EEPROM;
-	atd.ad_out_data = (caddr_t) eep;
+	atd.ad_out_data = (caddr_t)eep;
 	atd.ad_out_size = sizeof(eep);
 	if (ioctl(s, SIOCGATHDIAG, &atd) < 0)
 		err(1, "ioctl: %s", atd.ad_name);
 
 	/* Dump file? Then just write to it */
 	if (dumpname != NULL) {
-		do_eeprom_dump(dumpname, (uint16_t *) &eep, sizeof(eep));
+		do_eeprom_dump(dumpname, (uint16_t *)&eep, sizeof(eep));
 	}
 	return 0;
 }
-

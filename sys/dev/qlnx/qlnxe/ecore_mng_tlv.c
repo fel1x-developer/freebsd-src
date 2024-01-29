@@ -26,16 +26,17 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "bcm_osal.h"
 #include "ecore.h"
-#include "ecore_status.h"
-#include "ecore_mcp.h"
 #include "ecore_hw.h"
+#include "ecore_mcp.h"
+#include "ecore_status.h"
 #include "reg_addr.h"
 
-#define TLV_TYPE(p)	(p[0])
-#define TLV_LENGTH(p)	(p[1])
-#define TLV_FLAGS(p)	(p[3])
+#define TLV_TYPE(p) (p[0])
+#define TLV_LENGTH(p) (p[1])
+#define TLV_FLAGS(p) (p[3])
 
 #define ECORE_TLV_DATA_MAX (14)
 struct ecore_tlv_parsed_buf {
@@ -49,7 +50,7 @@ struct ecore_tlv_parsed_buf {
 static enum _ecore_status_t
 ecore_mfw_get_tlv_group(u8 tlv_type, u8 *tlv_group)
 {
-	switch(tlv_type) {
+	switch (tlv_type) {
 	case DRV_TLV_FEATURE_FLAGS:
 	case DRV_TLV_LOCAL_ADMIN_ADDR:
 	case DRV_TLV_ADDITIONAL_MAC_ADDR_1:
@@ -66,7 +67,7 @@ ecore_mfw_get_tlv_group(u8 tlv_type, u8 *tlv_group)
 	case DRV_TLV_DEVICE_CPU_CORES_UTILIZATION:
 	case DRV_TLV_LAST_VALID_DCC_TLV_RECEIVED:
 	case DRV_TLV_NCSI_RX_BYTES_RECEIVED:
-    case DRV_TLV_NCSI_TX_BYTES_SENT:
+	case DRV_TLV_NCSI_TX_BYTES_SENT:
 		*tlv_group |= ECORE_MFW_TLV_GENERIC;
 		break;
 	case DRV_TLV_LSO_MAX_OFFLOAD_SIZE:
@@ -263,18 +264,18 @@ ecore_mfw_get_tlv_group(u8 tlv_type, u8 *tlv_group)
 
 static int
 ecore_mfw_get_gen_tlv_value(struct ecore_drv_tlv_hdr *p_tlv,
-			    struct ecore_mfw_tlv_generic *p_drv_buf,
-			    struct ecore_tlv_parsed_buf *p_buf)
+    struct ecore_mfw_tlv_generic *p_drv_buf, struct ecore_tlv_parsed_buf *p_buf)
 {
 	switch (p_tlv->tlv_type) {
 	case DRV_TLV_FEATURE_FLAGS:
 		if (p_drv_buf->flags.b_set) {
 			OSAL_MEM_ZERO(p_buf->data,
-				      sizeof(u8) * ECORE_TLV_DATA_MAX);
+			    sizeof(u8) * ECORE_TLV_DATA_MAX);
 			p_buf->data[0] = p_drv_buf->flags.ipv4_csum_offload ?
-					 1 : 0;
-			p_buf->data[0] |= (p_drv_buf->flags.lso_supported ?
-					   1 : 0) << 1;
+			    1 :
+			    0;
+			p_buf->data[0] |=
+			    (p_drv_buf->flags.lso_supported ? 1 : 0) << 1;
 			p_buf->p_val = p_buf->data;
 			return 2;
 		}
@@ -282,8 +283,7 @@ ecore_mfw_get_gen_tlv_value(struct ecore_drv_tlv_hdr *p_tlv,
 
 	case DRV_TLV_LOCAL_ADMIN_ADDR:
 	case DRV_TLV_ADDITIONAL_MAC_ADDR_1:
-	case DRV_TLV_ADDITIONAL_MAC_ADDR_2:
-	{
+	case DRV_TLV_ADDITIONAL_MAC_ADDR_2: {
 		int idx = p_tlv->tlv_type - DRV_TLV_LOCAL_ADMIN_ADDR;
 
 		if (p_drv_buf->mac_set[idx]) {
@@ -326,8 +326,7 @@ ecore_mfw_get_gen_tlv_value(struct ecore_drv_tlv_hdr *p_tlv,
 
 static int
 ecore_mfw_get_eth_tlv_value(struct ecore_drv_tlv_hdr *p_tlv,
-			    struct ecore_mfw_tlv_eth *p_drv_buf,
-			    struct ecore_tlv_parsed_buf *p_buf)
+    struct ecore_mfw_tlv_eth *p_drv_buf, struct ecore_tlv_parsed_buf *p_buf)
 {
 	switch (p_tlv->tlv_type) {
 	case DRV_TLV_LSO_MAX_OFFLOAD_SIZE:
@@ -429,7 +428,7 @@ ecore_mfw_get_eth_tlv_value(struct ecore_drv_tlv_hdr *p_tlv,
 
 static int
 ecore_mfw_get_tlv_time_value(struct ecore_mfw_tlv_time *p_time,
-			     struct ecore_tlv_parsed_buf *p_buf)
+    struct ecore_tlv_parsed_buf *p_buf)
 {
 	if (!p_time->b_set)
 		return -1;
@@ -449,10 +448,8 @@ ecore_mfw_get_tlv_time_value(struct ecore_mfw_tlv_time *p_time,
 		p_time->usec = 0;
 
 	OSAL_MEM_ZERO(p_buf->data, sizeof(u8) * ECORE_TLV_DATA_MAX);
-	OSAL_SNPRINTF(p_buf->data, 14, "%d%d%d%d%d%d",
-		      p_time->month, p_time->day,
-		      p_time->hour, p_time->min,
-		      p_time->msec, p_time->usec);
+	OSAL_SNPRINTF(p_buf->data, 14, "%d%d%d%d%d%d", p_time->month,
+	    p_time->day, p_time->hour, p_time->min, p_time->msec, p_time->usec);
 
 	p_buf->p_val = p_buf->data;
 	return 14;
@@ -460,8 +457,7 @@ ecore_mfw_get_tlv_time_value(struct ecore_mfw_tlv_time *p_time,
 
 static int
 ecore_mfw_get_fcoe_tlv_value(struct ecore_drv_tlv_hdr *p_tlv,
-			     struct ecore_mfw_tlv_fcoe *p_drv_buf,
-			     struct ecore_tlv_parsed_buf *p_buf)
+    struct ecore_mfw_tlv_fcoe *p_drv_buf, struct ecore_tlv_parsed_buf *p_buf)
 {
 	switch (p_tlv->tlv_type) {
 	case DRV_TLV_SCSI_TO:
@@ -648,10 +644,10 @@ ecore_mfw_get_fcoe_tlv_value(struct ecore_drv_tlv_hdr *p_tlv,
 	case DRV_TLV_CRC_ERROR_2_RECEIVED_SOURCE_FC_ID:
 	case DRV_TLV_CRC_ERROR_3_RECEIVED_SOURCE_FC_ID:
 	case DRV_TLV_CRC_ERROR_4_RECEIVED_SOURCE_FC_ID:
-	case DRV_TLV_CRC_ERROR_5_RECEIVED_SOURCE_FC_ID:
-	{
+	case DRV_TLV_CRC_ERROR_5_RECEIVED_SOURCE_FC_ID: {
 		u8 idx = (p_tlv->tlv_type -
-			  DRV_TLV_CRC_ERROR_1_RECEIVED_SOURCE_FC_ID) / 2;
+			     DRV_TLV_CRC_ERROR_1_RECEIVED_SOURCE_FC_ID) /
+		    2;
 
 		if (p_drv_buf->crc_err_src_fcid_set[idx]) {
 			p_buf->p_val = (u8 *)&p_drv_buf->crc_err_src_fcid[idx];
@@ -664,13 +660,11 @@ ecore_mfw_get_fcoe_tlv_value(struct ecore_drv_tlv_hdr *p_tlv,
 	case DRV_TLV_CRC_ERROR_2_TIMESTAMP:
 	case DRV_TLV_CRC_ERROR_3_TIMESTAMP:
 	case DRV_TLV_CRC_ERROR_4_TIMESTAMP:
-	case DRV_TLV_CRC_ERROR_5_TIMESTAMP:
-	{
-		u8 idx = (p_tlv->tlv_type -
-			  DRV_TLV_CRC_ERROR_1_TIMESTAMP) / 2;
+	case DRV_TLV_CRC_ERROR_5_TIMESTAMP: {
+		u8 idx = (p_tlv->tlv_type - DRV_TLV_CRC_ERROR_1_TIMESTAMP) / 2;
 
 		return ecore_mfw_get_tlv_time_value(&p_drv_buf->crc_err[idx],
-						    p_buf);
+		    p_buf);
 	}
 
 	case DRV_TLV_LOSS_OF_SYNC_ERROR_COUNT:
@@ -706,10 +700,9 @@ ecore_mfw_get_fcoe_tlv_value(struct ecore_drv_tlv_hdr *p_tlv,
 	case DRV_TLV_LAST_FLOGI_ISSUED_COMMON_PARAMETERS_WORD_1:
 	case DRV_TLV_LAST_FLOGI_ISSUED_COMMON_PARAMETERS_WORD_2:
 	case DRV_TLV_LAST_FLOGI_ISSUED_COMMON_PARAMETERS_WORD_3:
-	case DRV_TLV_LAST_FLOGI_ISSUED_COMMON_PARAMETERS_WORD_4:
-	{
+	case DRV_TLV_LAST_FLOGI_ISSUED_COMMON_PARAMETERS_WORD_4: {
 		u8 idx = p_tlv->tlv_type -
-			 DRV_TLV_LAST_FLOGI_ISSUED_COMMON_PARAMETERS_WORD_1;
+		    DRV_TLV_LAST_FLOGI_ISSUED_COMMON_PARAMETERS_WORD_1;
 		if (p_drv_buf->flogi_param_set[idx]) {
 			p_buf->p_val = (u8 *)&p_drv_buf->flogi_param[idx];
 			return sizeof(p_drv_buf->flogi_param[idx]);
@@ -718,14 +711,13 @@ ecore_mfw_get_fcoe_tlv_value(struct ecore_drv_tlv_hdr *p_tlv,
 	}
 	case DRV_TLV_LAST_FLOGI_TIMESTAMP:
 		return ecore_mfw_get_tlv_time_value(&p_drv_buf->flogi_tstamp,
-						    p_buf);
+		    p_buf);
 	case DRV_TLV_LAST_FLOGI_ACC_COMMON_PARAMETERS_WORD_1:
 	case DRV_TLV_LAST_FLOGI_ACC_COMMON_PARAMETERS_WORD_2:
 	case DRV_TLV_LAST_FLOGI_ACC_COMMON_PARAMETERS_WORD_3:
-	case DRV_TLV_LAST_FLOGI_ACC_COMMON_PARAMETERS_WORD_4:
-	{
+	case DRV_TLV_LAST_FLOGI_ACC_COMMON_PARAMETERS_WORD_4: {
 		u8 idx = p_tlv->tlv_type -
-			 DRV_TLV_LAST_FLOGI_ACC_COMMON_PARAMETERS_WORD_1;
+		    DRV_TLV_LAST_FLOGI_ACC_COMMON_PARAMETERS_WORD_1;
 
 		if (p_drv_buf->flogi_acc_param_set[idx]) {
 			p_buf->p_val = (u8 *)&p_drv_buf->flogi_acc_param[idx];
@@ -734,8 +726,8 @@ ecore_mfw_get_fcoe_tlv_value(struct ecore_drv_tlv_hdr *p_tlv,
 		break;
 	}
 	case DRV_TLV_LAST_FLOGI_ACC_TIMESTAMP:
-		return ecore_mfw_get_tlv_time_value(&p_drv_buf->flogi_acc_tstamp,
-						    p_buf);
+		return ecore_mfw_get_tlv_time_value(
+		    &p_drv_buf->flogi_acc_tstamp, p_buf);
 	case DRV_TLV_LAST_FLOGI_RJT:
 		if (p_drv_buf->flogi_rjt_set) {
 			p_buf->p_val = (u8 *)&p_drv_buf->flogi_rjt;
@@ -743,8 +735,8 @@ ecore_mfw_get_fcoe_tlv_value(struct ecore_drv_tlv_hdr *p_tlv,
 		}
 		break;
 	case DRV_TLV_LAST_FLOGI_RJT_TIMESTAMP:
-		return ecore_mfw_get_tlv_time_value(&p_drv_buf->flogi_rjt_tstamp,
-						    p_buf);
+		return ecore_mfw_get_tlv_time_value(
+		    &p_drv_buf->flogi_rjt_tstamp, p_buf);
 	case DRV_TLV_FDISCS_SENT_COUNT:
 		if (p_drv_buf->fdiscs_set) {
 			p_buf->p_val = (u8 *)&p_drv_buf->fdiscs;
@@ -785,10 +777,10 @@ ecore_mfw_get_fcoe_tlv_value(struct ecore_drv_tlv_hdr *p_tlv,
 	case DRV_TLV_PLOGI_2_SENT_DESTINATION_FC_ID:
 	case DRV_TLV_PLOGI_3_SENT_DESTINATION_FC_ID:
 	case DRV_TLV_PLOGI_4_SENT_DESTINATION_FC_ID:
-	case DRV_TLV_PLOGI_5_SENT_DESTINATION_FC_ID:
-	{
+	case DRV_TLV_PLOGI_5_SENT_DESTINATION_FC_ID: {
 		u8 idx = (p_tlv->tlv_type -
-			  DRV_TLV_PLOGI_1_SENT_DESTINATION_FC_ID) / 2;
+			     DRV_TLV_PLOGI_1_SENT_DESTINATION_FC_ID) /
+		    2;
 
 		if (p_drv_buf->plogi_dst_fcid_set[idx]) {
 			p_buf->p_val = (u8 *)&p_drv_buf->plogi_dst_fcid[idx];
@@ -800,26 +792,25 @@ ecore_mfw_get_fcoe_tlv_value(struct ecore_drv_tlv_hdr *p_tlv,
 	case DRV_TLV_PLOGI_2_TIMESTAMP:
 	case DRV_TLV_PLOGI_3_TIMESTAMP:
 	case DRV_TLV_PLOGI_4_TIMESTAMP:
-	case DRV_TLV_PLOGI_5_TIMESTAMP:
-	{
-		u8 idx = (p_tlv->tlv_type -
-			  DRV_TLV_PLOGI_1_TIMESTAMP) / 2;
+	case DRV_TLV_PLOGI_5_TIMESTAMP: {
+		u8 idx = (p_tlv->tlv_type - DRV_TLV_PLOGI_1_TIMESTAMP) / 2;
 
-		return ecore_mfw_get_tlv_time_value(&p_drv_buf->plogi_tstamp[idx],
-						    p_buf);
+		return ecore_mfw_get_tlv_time_value(
+		    &p_drv_buf->plogi_tstamp[idx], p_buf);
 	}
 
 	case DRV_TLV_PLOGI_1_ACC_RECEIVED_SOURCE_FC_ID:
 	case DRV_TLV_PLOGI_2_ACC_RECEIVED_SOURCE_FC_ID:
 	case DRV_TLV_PLOGI_3_ACC_RECEIVED_SOURCE_FC_ID:
 	case DRV_TLV_PLOGI_4_ACC_RECEIVED_SOURCE_FC_ID:
-	case DRV_TLV_PLOGI_5_ACC_RECEIVED_SOURCE_FC_ID:
-	{
+	case DRV_TLV_PLOGI_5_ACC_RECEIVED_SOURCE_FC_ID: {
 		u8 idx = (p_tlv->tlv_type -
-			  DRV_TLV_PLOGI_1_ACC_RECEIVED_SOURCE_FC_ID) / 2;
+			     DRV_TLV_PLOGI_1_ACC_RECEIVED_SOURCE_FC_ID) /
+		    2;
 
 		if (p_drv_buf->plogi_acc_src_fcid_set[idx]) {
-			p_buf->p_val = (u8 *)&p_drv_buf->plogi_acc_src_fcid[idx];
+			p_buf->p_val =
+			    (u8 *)&p_drv_buf->plogi_acc_src_fcid[idx];
 			return sizeof(p_drv_buf->plogi_acc_src_fcid[idx]);
 		}
 		break;
@@ -828,13 +819,11 @@ ecore_mfw_get_fcoe_tlv_value(struct ecore_drv_tlv_hdr *p_tlv,
 	case DRV_TLV_PLOGI_2_ACC_TIMESTAMP:
 	case DRV_TLV_PLOGI_3_ACC_TIMESTAMP:
 	case DRV_TLV_PLOGI_4_ACC_TIMESTAMP:
-	case DRV_TLV_PLOGI_5_ACC_TIMESTAMP:
-	{
-		u8 idx = (p_tlv->tlv_type -
-			  DRV_TLV_PLOGI_1_ACC_TIMESTAMP) / 2;
+	case DRV_TLV_PLOGI_5_ACC_TIMESTAMP: {
+		u8 idx = (p_tlv->tlv_type - DRV_TLV_PLOGI_1_ACC_TIMESTAMP) / 2;
 
-		return ecore_mfw_get_tlv_time_value(&p_drv_buf->plogi_acc_tstamp[idx],
-						    p_buf);
+		return ecore_mfw_get_tlv_time_value(
+		    &p_drv_buf->plogi_acc_tstamp[idx], p_buf);
 	}
 
 	case DRV_TLV_LOGOS_ISSUED:
@@ -859,10 +848,10 @@ ecore_mfw_get_fcoe_tlv_value(struct ecore_drv_tlv_hdr *p_tlv,
 	case DRV_TLV_LOGO_2_RECEIVED_SOURCE_FC_ID:
 	case DRV_TLV_LOGO_3_RECEIVED_SOURCE_FC_ID:
 	case DRV_TLV_LOGO_4_RECEIVED_SOURCE_FC_ID:
-	case DRV_TLV_LOGO_5_RECEIVED_SOURCE_FC_ID:
-	{
+	case DRV_TLV_LOGO_5_RECEIVED_SOURCE_FC_ID: {
 		u8 idx = (p_tlv->tlv_type -
-			  DRV_TLV_LOGO_1_RECEIVED_SOURCE_FC_ID) / 2;
+			     DRV_TLV_LOGO_1_RECEIVED_SOURCE_FC_ID) /
+		    2;
 
 		if (p_drv_buf->plogo_src_fcid_set[idx]) {
 			p_buf->p_val = (u8 *)&p_drv_buf->plogo_src_fcid[idx];
@@ -874,13 +863,11 @@ ecore_mfw_get_fcoe_tlv_value(struct ecore_drv_tlv_hdr *p_tlv,
 	case DRV_TLV_LOGO_2_TIMESTAMP:
 	case DRV_TLV_LOGO_3_TIMESTAMP:
 	case DRV_TLV_LOGO_4_TIMESTAMP:
-	case DRV_TLV_LOGO_5_TIMESTAMP:
-	{
-		u8 idx = (p_tlv->tlv_type -
-			  DRV_TLV_LOGO_1_TIMESTAMP) / 2;
+	case DRV_TLV_LOGO_5_TIMESTAMP: {
+		u8 idx = (p_tlv->tlv_type - DRV_TLV_LOGO_1_TIMESTAMP) / 2;
 
-		return ecore_mfw_get_tlv_time_value(&p_drv_buf->plogo_tstamp[idx],
-						    p_buf);
+		return ecore_mfw_get_tlv_time_value(
+		    &p_drv_buf->plogo_tstamp[idx], p_buf);
 	}
 	case DRV_TLV_LOGOS_RECEIVED:
 		if (p_drv_buf->rx_logos_set) {
@@ -928,10 +915,10 @@ ecore_mfw_get_fcoe_tlv_value(struct ecore_drv_tlv_hdr *p_tlv,
 	case DRV_TLV_ABTS_2_SENT_DESTINATION_FC_ID:
 	case DRV_TLV_ABTS_3_SENT_DESTINATION_FC_ID:
 	case DRV_TLV_ABTS_4_SENT_DESTINATION_FC_ID:
-	case DRV_TLV_ABTS_5_SENT_DESTINATION_FC_ID:
-	{
+	case DRV_TLV_ABTS_5_SENT_DESTINATION_FC_ID: {
 		u8 idx = (p_tlv->tlv_type -
-			  DRV_TLV_ABTS_1_SENT_DESTINATION_FC_ID) / 2;
+			     DRV_TLV_ABTS_1_SENT_DESTINATION_FC_ID) /
+		    2;
 
 		if (p_drv_buf->abts_dst_fcid_set[idx]) {
 			p_buf->p_val = (u8 *)&p_drv_buf->abts_dst_fcid[idx];
@@ -943,13 +930,11 @@ ecore_mfw_get_fcoe_tlv_value(struct ecore_drv_tlv_hdr *p_tlv,
 	case DRV_TLV_ABTS_2_TIMESTAMP:
 	case DRV_TLV_ABTS_3_TIMESTAMP:
 	case DRV_TLV_ABTS_4_TIMESTAMP:
-	case DRV_TLV_ABTS_5_TIMESTAMP:
-	{
-		u8 idx = (p_tlv->tlv_type -
-			  DRV_TLV_ABTS_1_TIMESTAMP) / 2;
+	case DRV_TLV_ABTS_5_TIMESTAMP: {
+		u8 idx = (p_tlv->tlv_type - DRV_TLV_ABTS_1_TIMESTAMP) / 2;
 
-		return ecore_mfw_get_tlv_time_value(&p_drv_buf->abts_tstamp[idx],
-						    p_buf);
+		return ecore_mfw_get_tlv_time_value(
+		    &p_drv_buf->abts_tstamp[idx], p_buf);
 	}
 
 	case DRV_TLV_RSCNS_RECEIVED:
@@ -961,8 +946,7 @@ ecore_mfw_get_fcoe_tlv_value(struct ecore_drv_tlv_hdr *p_tlv,
 	case DRV_TLV_LAST_RSCN_RECEIVED_N_PORT_1:
 	case DRV_TLV_LAST_RSCN_RECEIVED_N_PORT_2:
 	case DRV_TLV_LAST_RSCN_RECEIVED_N_PORT_3:
-	case DRV_TLV_LAST_RSCN_RECEIVED_N_PORT_4:
-	{
+	case DRV_TLV_LAST_RSCN_RECEIVED_N_PORT_4: {
 		u8 idx = p_tlv->tlv_type - DRV_TLV_LAST_RSCN_RECEIVED_N_PORT_1;
 
 		if (p_drv_buf->rx_rscn_nport_set[idx]) {
@@ -1101,10 +1085,11 @@ ecore_mfw_get_fcoe_tlv_value(struct ecore_drv_tlv_hdr *p_tlv,
 	case DRV_TLV_SCSI_CHECK_CONDITION_2_RECEIVED_SK_ASC_ASCQ:
 	case DRV_TLV_SCSI_CHECK_CONDITION_3_RECEIVED_SK_ASC_ASCQ:
 	case DRV_TLV_SCSI_CHECK_CONDITION_4_RECEIVED_SK_ASC_ASCQ:
-	case DRV_TLV_SCSI_CHECK_CONDITION_5_RECEIVED_SK_ASC_ASCQ:
-	{
-		u8 idx = (p_tlv->tlv_type -
-			  DRV_TLV_SCSI_CHECK_CONDITION_1_RECEIVED_SK_ASC_ASCQ) / 2;
+	case DRV_TLV_SCSI_CHECK_CONDITION_5_RECEIVED_SK_ASC_ASCQ: {
+		u8 idx =
+		    (p_tlv->tlv_type -
+			DRV_TLV_SCSI_CHECK_CONDITION_1_RECEIVED_SK_ASC_ASCQ) /
+		    2;
 
 		if (p_drv_buf->scsi_rx_chk_set[idx]) {
 			p_buf->p_val = (u8 *)&p_drv_buf->scsi_rx_chk[idx];
@@ -1116,13 +1101,11 @@ ecore_mfw_get_fcoe_tlv_value(struct ecore_drv_tlv_hdr *p_tlv,
 	case DRV_TLV_SCSI_CHECK_2_TIMESTAMP:
 	case DRV_TLV_SCSI_CHECK_3_TIMESTAMP:
 	case DRV_TLV_SCSI_CHECK_4_TIMESTAMP:
-	case DRV_TLV_SCSI_CHECK_5_TIMESTAMP:
-	{
-		u8 idx = (p_tlv->tlv_type -
-			  DRV_TLV_SCSI_CHECK_1_TIMESTAMP) / 2;
+	case DRV_TLV_SCSI_CHECK_5_TIMESTAMP: {
+		u8 idx = (p_tlv->tlv_type - DRV_TLV_SCSI_CHECK_1_TIMESTAMP) / 2;
 
-		return ecore_mfw_get_tlv_time_value(&p_drv_buf->scsi_chk_tstamp[idx],
-						    p_buf);
+		return ecore_mfw_get_tlv_time_value(
+		    &p_drv_buf->scsi_chk_tstamp[idx], p_buf);
 	}
 
 	default:
@@ -1134,8 +1117,7 @@ ecore_mfw_get_fcoe_tlv_value(struct ecore_drv_tlv_hdr *p_tlv,
 
 static int
 ecore_mfw_get_iscsi_tlv_value(struct ecore_drv_tlv_hdr *p_tlv,
-			      struct ecore_mfw_tlv_iscsi *p_drv_buf,
-			      struct ecore_tlv_parsed_buf *p_buf)
+    struct ecore_mfw_tlv_iscsi *p_drv_buf, struct ecore_tlv_parsed_buf *p_buf)
 {
 	switch (p_tlv->tlv_type) {
 	case DRV_TLV_TARGET_LLMNR_ENABLED:
@@ -1235,9 +1217,9 @@ ecore_mfw_get_iscsi_tlv_value(struct ecore_drv_tlv_hdr *p_tlv,
 	return -1;
 }
 
-static enum _ecore_status_t ecore_mfw_update_tlvs(struct ecore_hwfn *p_hwfn,
-						  u8 tlv_group, u8 *p_mfw_buf,
-						  u32 size)
+static enum _ecore_status_t
+ecore_mfw_update_tlvs(struct ecore_hwfn *p_hwfn, u8 tlv_group, u8 *p_mfw_buf,
+    u32 size)
 {
 	union ecore_mfw_tlv_data *p_tlv_data;
 	struct ecore_tlv_parsed_buf buffer;
@@ -1250,7 +1232,7 @@ static enum _ecore_status_t ecore_mfw_update_tlvs(struct ecore_hwfn *p_hwfn,
 	if (!p_tlv_data)
 		return ECORE_NOMEM;
 
-	if (OSAL_MFW_FILL_TLV_DATA(p_hwfn,tlv_group, p_tlv_data)) {
+	if (OSAL_MFW_FILL_TLV_DATA(p_hwfn, tlv_group, p_tlv_data)) {
 		OSAL_VFREE(p_hwfn->p_dev, p_tlv_data);
 		return ECORE_INVAL;
 	}
@@ -1264,27 +1246,31 @@ static enum _ecore_status_t ecore_mfw_update_tlvs(struct ecore_hwfn *p_hwfn,
 		tlv.tlv_flags = TLV_FLAGS(p_tlv);
 
 		DP_VERBOSE(p_hwfn, ECORE_MSG_SP,
-			   "Type %d length = %d flags = 0x%x\n", tlv.tlv_type,
-			   tlv.tlv_length, tlv.tlv_flags);
+		    "Type %d length = %d flags = 0x%x\n", tlv.tlv_type,
+		    tlv.tlv_length, tlv.tlv_flags);
 
 		if (tlv_group == ECORE_MFW_TLV_GENERIC)
-			len = ecore_mfw_get_gen_tlv_value(&tlv, &p_tlv_data->generic, &buffer);
+			len = ecore_mfw_get_gen_tlv_value(&tlv,
+			    &p_tlv_data->generic, &buffer);
 		else if (tlv_group == ECORE_MFW_TLV_ETH)
-			len = ecore_mfw_get_eth_tlv_value(&tlv, &p_tlv_data->eth, &buffer);
+			len = ecore_mfw_get_eth_tlv_value(&tlv,
+			    &p_tlv_data->eth, &buffer);
 		else if (tlv_group == ECORE_MFW_TLV_FCOE)
-			len = ecore_mfw_get_fcoe_tlv_value(&tlv, &p_tlv_data->fcoe, &buffer);
+			len = ecore_mfw_get_fcoe_tlv_value(&tlv,
+			    &p_tlv_data->fcoe, &buffer);
 		else
-			len = ecore_mfw_get_iscsi_tlv_value(&tlv, &p_tlv_data->iscsi, &buffer);
+			len = ecore_mfw_get_iscsi_tlv_value(&tlv,
+			    &p_tlv_data->iscsi, &buffer);
 
 		if (len > 0) {
 			OSAL_WARN(len > 4 * tlv.tlv_length,
-				  "Incorrect MFW TLV length %d, it shouldn't be greater than %d\n",
-				  len, 4 * tlv.tlv_length);
+			    "Incorrect MFW TLV length %d, it shouldn't be greater than %d\n",
+			    len, 4 * tlv.tlv_length);
 			len = OSAL_MIN_T(int, len, 4 * tlv.tlv_length);
 			tlv.tlv_flags |= ECORE_DRV_TLV_FLAGS_CHANGED;
 			TLV_FLAGS(p_tlv) = tlv.tlv_flags;
 			OSAL_MEMCPY(p_mfw_buf + offset + sizeof(tlv),
-				    buffer.p_val, len);
+			    buffer.p_val, len);
 		}
 	}
 
@@ -1303,13 +1289,13 @@ ecore_mfw_process_tlv_req(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt)
 	struct ecore_drv_tlv_hdr tlv;
 
 	addr = SECTION_OFFSIZE_ADDR(p_hwfn->mcp_info->public_base,
-				    PUBLIC_GLOBAL);
+	    PUBLIC_GLOBAL);
 	global_offsize = ecore_rd(p_hwfn, p_ptt, addr);
 	global_addr = SECTION_ADDR(global_offsize, 0);
-	addr = global_addr + OFFSETOF(struct public_global, data_ptr); 
+	addr = global_addr + OFFSETOF(struct public_global, data_ptr);
 	addr = ecore_rd(p_hwfn, p_ptt, addr);
-	size = ecore_rd(p_hwfn, p_ptt, global_addr +
-			OFFSETOF(struct public_global, data_size));
+	size = ecore_rd(p_hwfn, p_ptt,
+	    global_addr + OFFSETOF(struct public_global, data_size));
 
 	if (!size) {
 		DP_NOTICE(p_hwfn, false, "Invalid TLV req size = %d\n", size);
@@ -1318,7 +1304,8 @@ ecore_mfw_process_tlv_req(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt)
 
 	p_mfw_buf = (void *)OSAL_VZALLOC(p_hwfn->p_dev, size);
 	if (!p_mfw_buf) {
-		DP_NOTICE(p_hwfn, false, "Failed allocate memory for p_mfw_buf\n");
+		DP_NOTICE(p_hwfn, false,
+		    "Failed allocate memory for p_mfw_buf\n");
 		goto drv_done;
 	}
 
@@ -1335,35 +1322,35 @@ ecore_mfw_process_tlv_req(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt)
 	}
 
 	/* Parse the headers to enumerate the requested TLV groups */
-	for (offset = 0; offset < size; 
+	for (offset = 0; offset < size;
 	     offset += sizeof(tlv) + sizeof(u32) * tlv.tlv_length) {
 		p_temp = &p_mfw_buf[offset];
 		tlv.tlv_type = TLV_TYPE(p_temp);
 		tlv.tlv_length = TLV_LENGTH(p_temp);
 		if (ecore_mfw_get_tlv_group(tlv.tlv_type, &tlv_group))
 			DP_VERBOSE(p_hwfn, ECORE_MSG_DRV,
-				   "Un recognized TLV %d\n", tlv.tlv_type);
+			    "Un recognized TLV %d\n", tlv.tlv_type);
 	}
 
 	/* Sanitize the TLV groups according to personality */
-	if ((tlv_group & ECORE_MFW_TLV_FCOE)  &&
+	if ((tlv_group & ECORE_MFW_TLV_FCOE) &&
 	    p_hwfn->hw_info.personality != ECORE_PCI_FCOE) {
 		DP_VERBOSE(p_hwfn, ECORE_MSG_SP,
-			   "Skipping FCoE TLVs for non-FCoE function\n");
+		    "Skipping FCoE TLVs for non-FCoE function\n");
 		tlv_group &= ~ECORE_MFW_TLV_FCOE;
 	}
 
 	if ((tlv_group & ECORE_MFW_TLV_ISCSI) &&
 	    p_hwfn->hw_info.personality != ECORE_PCI_ISCSI) {
 		DP_VERBOSE(p_hwfn, ECORE_MSG_SP,
-			   "Skipping iSCSI TLVs for non-iSCSI function\n");
+		    "Skipping iSCSI TLVs for non-iSCSI function\n");
 		tlv_group &= ~ECORE_MFW_TLV_ISCSI;
 	}
 
 	if ((tlv_group & ECORE_MFW_TLV_ETH) &&
 	    !ECORE_IS_L2_PERSONALITY(p_hwfn)) {
 		DP_VERBOSE(p_hwfn, ECORE_MSG_SP,
-			   "Skipping L2 TLVs for non-L2 function\n");
+		    "Skipping L2 TLVs for non-L2 function\n");
 		tlv_group &= ~ECORE_MFW_TLV_ETH;
 	}
 
@@ -1387,7 +1374,7 @@ ecore_mfw_process_tlv_req(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt)
 
 drv_done:
 	rc = ecore_mcp_cmd(p_hwfn, p_ptt, DRV_MSG_CODE_GET_TLV_DONE, 0, &resp,
-			   &param);
+	    &param);
 
 	OSAL_VFREE(p_hwfn->p_dev, p_mfw_buf);
 

@@ -39,15 +39,16 @@
  */
 
 #include <sys/cdefs.h>
-#include <stdlib.h>
+
+#include <rpc/key_prot.h>
 #include <rpc/rpc.h>
 #include <rpcsvc/yp_prot.h>
 #include <rpcsvc/ypclnt.h>
 #include <rpcsvc/ypupdate_prot.h>
-#include <rpc/key_prot.h>
+#include <stdlib.h>
 
 #ifndef WINDOW
-#define WINDOW (60*60)
+#define WINDOW (60 * 60)
 #endif
 
 #ifndef TIMEOUT
@@ -64,21 +65,21 @@ yp_update(char *domain, char *map, unsigned int ypop, char *key, int keylen,
 	struct ypupdate_args upargs;
 	struct ypdelete_args delargs;
 	CLIENT *clnt;
-	char netname[MAXNETNAMELEN+1];
+	char netname[MAXNETNAMELEN + 1];
 	des_block des_key;
 	struct timeval timeout;
 
 	/* Get the master server name for 'domain.' */
 	if ((rval = yp_master(domain, map, &master)))
-		return(rval);
+		return (rval);
 
 	/* Check that ypupdated is running there. */
 	if (getrpcport(master, YPU_PROG, YPU_VERS, ypop))
-		return(YPERR_DOMAIN);
+		return (YPERR_DOMAIN);
 
 	/* Get a handle. */
 	if ((clnt = clnt_create(master, YPU_PROG, YPU_VERS, "tcp")) == NULL)
-		return(YPERR_RPC);
+		return (YPERR_RPC);
 
 	/*
 	 * Assemble netname of server.
@@ -92,7 +93,7 @@ yp_update(char *domain, char *map, unsigned int ypop, char *key, int keylen,
 	 */
 	if (!host2netname(netname, master, domain)) {
 		clnt_destroy(clnt);
-		return(YPERR_BADARGS);
+		return (YPERR_BADARGS);
 	}
 
 	/* Make up a DES session key. */
@@ -100,9 +101,9 @@ yp_update(char *domain, char *map, unsigned int ypop, char *key, int keylen,
 
 	/* Set up DES authentication. */
 	if ((clnt->cl_auth = (AUTH *)authdes_create(netname, WINDOW, NULL,
-			&des_key)) == NULL) {
+		 &des_key)) == NULL) {
 		clnt_destroy(clnt);
-		return(YPERR_RESRC);
+		return (YPERR_RESRC);
 	}
 
 	/* Set a timeout for clnt_call(). */
@@ -127,8 +128,8 @@ yp_update(char *domain, char *map, unsigned int ypop, char *key, int keylen,
 		upargs.datum.yp_buf_val = data;
 
 		if ((rval = clnt_call(clnt, YPU_CHANGE,
-			(xdrproc_t)xdr_ypupdate_args, &upargs,
-			(xdrproc_t)xdr_u_int, &res, timeout)) != RPC_SUCCESS) {
+			 (xdrproc_t)xdr_ypupdate_args, &upargs,
+			 (xdrproc_t)xdr_u_int, &res, timeout)) != RPC_SUCCESS) {
 			if (rval == RPC_AUTHERROR)
 				res = YPERR_ACCESS;
 			else
@@ -144,8 +145,8 @@ yp_update(char *domain, char *map, unsigned int ypop, char *key, int keylen,
 		upargs.datum.yp_buf_val = data;
 
 		if ((rval = clnt_call(clnt, YPU_INSERT,
-			(xdrproc_t)xdr_ypupdate_args, &upargs,
-			(xdrproc_t)xdr_u_int, &res, timeout)) != RPC_SUCCESS) {
+			 (xdrproc_t)xdr_ypupdate_args, &upargs,
+			 (xdrproc_t)xdr_u_int, &res, timeout)) != RPC_SUCCESS) {
 			if (rval == RPC_AUTHERROR)
 				res = YPERR_ACCESS;
 			else
@@ -159,8 +160,8 @@ yp_update(char *domain, char *map, unsigned int ypop, char *key, int keylen,
 		delargs.key.yp_buf_val = key;
 
 		if ((rval = clnt_call(clnt, YPU_DELETE,
-			(xdrproc_t)xdr_ypdelete_args, &delargs,
-			(xdrproc_t)xdr_u_int, &res, timeout)) != RPC_SUCCESS) {
+			 (xdrproc_t)xdr_ypdelete_args, &delargs,
+			 (xdrproc_t)xdr_u_int, &res, timeout)) != RPC_SUCCESS) {
 			if (rval == RPC_AUTHERROR)
 				res = YPERR_ACCESS;
 			else
@@ -176,8 +177,8 @@ yp_update(char *domain, char *map, unsigned int ypop, char *key, int keylen,
 		upargs.datum.yp_buf_val = data;
 
 		if ((rval = clnt_call(clnt, YPU_STORE,
-			(xdrproc_t)xdr_ypupdate_args, &upargs,
-			(xdrproc_t)xdr_u_int, &res, timeout)) != RPC_SUCCESS) {
+			 (xdrproc_t)xdr_ypupdate_args, &upargs,
+			 (xdrproc_t)xdr_u_int, &res, timeout)) != RPC_SUCCESS) {
 			if (rval == RPC_AUTHERROR)
 				res = YPERR_ACCESS;
 			else
@@ -195,5 +196,5 @@ yp_update(char *domain, char *map, unsigned int ypop, char *key, int keylen,
 	clnt_destroy(clnt);
 	free(master);
 
-	return(res);
+	return (res);
 }

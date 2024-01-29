@@ -29,34 +29,30 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "efx.h"
 #include "efx_impl.h"
 
 #if EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2
 
 #if EFSYS_OPT_QSTATS
-#define	EFX_TX_QSTAT_INCR(_etp, _stat)					\
-	do {								\
-		(_etp)->et_stat[_stat]++;				\
-	_NOTE(CONSTANTCONDITION)					\
+#define EFX_TX_QSTAT_INCR(_etp, _stat)    \
+	do {                              \
+		(_etp)->et_stat[_stat]++; \
+		_NOTE(CONSTANTCONDITION)  \
 	} while (B_FALSE)
 #else
-#define	EFX_TX_QSTAT_INCR(_etp, _stat)
+#define EFX_TX_QSTAT_INCR(_etp, _stat)
 #endif
 
-static	__checkReturn	efx_rc_t
-efx_mcdi_init_txq(
-	__in		efx_nic_t *enp,
-	__in		uint32_t ndescs,
-	__in		uint32_t target_evq,
-	__in		uint32_t label,
-	__in		uint32_t instance,
-	__in		uint16_t flags,
-	__in		efsys_mem_t *esmp)
+static __checkReturn efx_rc_t
+efx_mcdi_init_txq(__in efx_nic_t *enp, __in uint32_t ndescs,
+    __in uint32_t target_evq, __in uint32_t label, __in uint32_t instance,
+    __in uint16_t flags, __in efsys_mem_t *esmp)
 {
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload, MC_CMD_INIT_TXQ_IN_LEN(EFX_TXQ_MAX_BUFS),
-		MC_CMD_INIT_TXQ_OUT_LEN);
+	    MC_CMD_INIT_TXQ_OUT_LEN);
 	efx_qword_t *dma_addr;
 	uint64_t addr;
 	int npages;
@@ -72,7 +68,7 @@ efx_mcdi_init_txq(
 	}
 
 	npages = EFX_TXQ_NBUFS(ndescs);
-	if (MC_CMD_INIT_TXQ_IN_LEN(npages) > sizeof (payload)) {
+	if (MC_CMD_INIT_TXQ_IN_LEN(npages) > sizeof(payload)) {
 		rc = EINVAL;
 		goto fail2;
 	}
@@ -89,18 +85,15 @@ efx_mcdi_init_txq(
 	MCDI_IN_SET_DWORD(req, INIT_TXQ_IN_INSTANCE, instance);
 
 	MCDI_IN_POPULATE_DWORD_9(req, INIT_TXQ_IN_FLAGS,
-	    INIT_TXQ_IN_FLAG_BUFF_MODE, 0,
-	    INIT_TXQ_IN_FLAG_IP_CSUM_DIS,
-	    (flags & EFX_TXQ_CKSUM_IPV4) ? 0 : 1,
-	    INIT_TXQ_IN_FLAG_TCP_CSUM_DIS,
+	    INIT_TXQ_IN_FLAG_BUFF_MODE, 0, INIT_TXQ_IN_FLAG_IP_CSUM_DIS,
+	    (flags & EFX_TXQ_CKSUM_IPV4) ? 0 : 1, INIT_TXQ_IN_FLAG_TCP_CSUM_DIS,
 	    (flags & EFX_TXQ_CKSUM_TCPUDP) ? 0 : 1,
 	    INIT_TXQ_EXT_IN_FLAG_INNER_IP_CSUM_EN,
 	    (flags & EFX_TXQ_CKSUM_INNER_IPV4) ? 1 : 0,
 	    INIT_TXQ_EXT_IN_FLAG_INNER_TCP_CSUM_EN,
 	    (flags & EFX_TXQ_CKSUM_INNER_TCPUDP) ? 1 : 0,
 	    INIT_TXQ_EXT_IN_FLAG_TSOV2_EN, (flags & EFX_TXQ_FATSOV2) ? 1 : 0,
-	    INIT_TXQ_IN_FLAG_TCP_UDP_ONLY, 0,
-	    INIT_TXQ_IN_CRC_MODE, 0,
+	    INIT_TXQ_IN_FLAG_TCP_UDP_ONLY, 0, INIT_TXQ_IN_CRC_MODE, 0,
 	    INIT_TXQ_IN_FLAG_TIMESTAMP, 0);
 
 	MCDI_IN_SET_DWORD(req, INIT_TXQ_IN_OWNER_ID, 0);
@@ -110,9 +103,9 @@ efx_mcdi_init_txq(
 	addr = EFSYS_MEM_ADDR(esmp);
 
 	for (i = 0; i < npages; i++) {
-		EFX_POPULATE_QWORD_2(*dma_addr,
-		    EFX_DWORD_1, (uint32_t)(addr >> 32),
-		    EFX_DWORD_0, (uint32_t)(addr & 0xffffffff));
+		EFX_POPULATE_QWORD_2(*dma_addr, EFX_DWORD_1,
+		    (uint32_t)(addr >> 32), EFX_DWORD_0,
+		    (uint32_t)(addr & 0xffffffff));
 
 		dma_addr++;
 		addr += EFX_BUF_SIZE;
@@ -137,14 +130,12 @@ fail1:
 	return (rc);
 }
 
-static	__checkReturn	efx_rc_t
-efx_mcdi_fini_txq(
-	__in		efx_nic_t *enp,
-	__in		uint32_t instance)
+static __checkReturn efx_rc_t
+efx_mcdi_fini_txq(__in efx_nic_t *enp, __in uint32_t instance)
 {
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload, MC_CMD_FINI_TXQ_IN_LEN,
-		MC_CMD_FINI_TXQ_OUT_LEN);
+	    MC_CMD_FINI_TXQ_OUT_LEN);
 	efx_rc_t rc;
 
 	req.emr_cmd = MC_CMD_FINI_TXQ;
@@ -175,33 +166,20 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-ef10_tx_init(
-	__in		efx_nic_t *enp)
+__checkReturn efx_rc_t
+ef10_tx_init(__in efx_nic_t *enp)
 {
 	_NOTE(ARGUNUSED(enp))
 	return (0);
 }
 
-			void
-ef10_tx_fini(
-	__in		efx_nic_t *enp)
-{
-	_NOTE(ARGUNUSED(enp))
-}
+void
+ef10_tx_fini(__in efx_nic_t *enp) { _NOTE(ARGUNUSED(enp)) }
 
-	__checkReturn	efx_rc_t
-ef10_tx_qcreate(
-	__in		efx_nic_t *enp,
-	__in		unsigned int index,
-	__in		unsigned int label,
-	__in		efsys_mem_t *esmp,
-	__in		size_t ndescs,
-	__in		uint32_t id,
-	__in		uint16_t flags,
-	__in		efx_evq_t *eep,
-	__in		efx_txq_t *etp,
-	__out		unsigned int *addedp)
+__checkReturn efx_rc_t ef10_tx_qcreate(__in efx_nic_t *enp,
+    __in unsigned int index, __in unsigned int label, __in efsys_mem_t *esmp,
+    __in size_t ndescs, __in uint32_t id, __in uint16_t flags,
+    __in efx_evq_t *eep, __in efx_txq_t *etp, __out unsigned int *addedp)
 {
 	efx_nic_cfg_t *encp = &enp->en_nic_cfg;
 	uint16_t inner_csum;
@@ -218,7 +196,7 @@ ef10_tx_qcreate(
 	}
 
 	if ((rc = efx_mcdi_init_txq(enp, ndescs, eep->ee_index, label, index,
-	    flags, esmp)) != 0)
+		 flags, esmp)) != 0)
 		goto fail2;
 
 	/*
@@ -245,18 +223,14 @@ fail1:
 	return (rc);
 }
 
-		void
-ef10_tx_qdestroy(
-	__in	efx_txq_t *etp)
-{
+void
+ef10_tx_qdestroy(__in efx_txq_t *etp) {
 	/* FIXME */
 	_NOTE(ARGUNUSED(etp))
 	/* FIXME */
 }
 
-	__checkReturn	efx_rc_t
-ef10_tx_qpio_enable(
-	__in		efx_txq_t *etp)
+__checkReturn efx_rc_t ef10_tx_qpio_enable(__in efx_txq_t *etp)
 {
 	efx_nic_t *enp = etp->et_enp;
 	efx_piobuf_handle_t handle;
@@ -268,12 +242,9 @@ ef10_tx_qpio_enable(
 	}
 
 	/* Sub-allocate a PIO block from a piobuf */
-	if ((rc = ef10_nic_pio_alloc(enp,
-		    &etp->et_pio_bufnum,
-		    &handle,
-		    &etp->et_pio_blknum,
-		    &etp->et_pio_offset,
-		    &etp->et_pio_size)) != 0) {
+	if ((rc = ef10_nic_pio_alloc(enp, &etp->et_pio_bufnum, &handle,
+		 &etp->et_pio_blknum, &etp->et_pio_offset,
+		 &etp->et_pio_size)) != 0) {
 		goto fail2;
 	}
 	EFSYS_ASSERT3U(etp->et_pio_size, !=, 0);
@@ -292,15 +263,14 @@ ef10_tx_qpio_enable(
 	 * start of the write-combined memory mapping, and is used for writing
 	 * data into the PIO buffer.
 	 */
-	etp->et_pio_write_offset =
-	    (etp->et_pio_bufnum * ER_DZ_TX_PIOBUF_STEP) +
+	etp->et_pio_write_offset = (etp->et_pio_bufnum * ER_DZ_TX_PIOBUF_STEP) +
 	    ER_DZ_TX_PIOBUF_OFST + etp->et_pio_offset;
 
 	return (0);
 
 fail3:
 	EFSYS_PROBE(fail3);
-	(void) ef10_nic_pio_free(enp, etp->et_pio_bufnum, etp->et_pio_blknum);
+	(void)ef10_nic_pio_free(enp, etp->et_pio_bufnum, etp->et_pio_blknum);
 fail2:
 	EFSYS_PROBE(fail2);
 	etp->et_pio_size = 0;
@@ -310,9 +280,8 @@ fail1:
 	return (rc);
 }
 
-			void
-ef10_tx_qpio_disable(
-	__in		efx_txq_t *etp)
+void
+ef10_tx_qpio_disable(__in efx_txq_t *etp)
 {
 	efx_nic_t *enp = etp->et_enp;
 
@@ -322,19 +291,16 @@ ef10_tx_qpio_disable(
 			return;
 
 		/* Free the sub-allocated PIO block */
-		(void) ef10_nic_pio_free(enp, etp->et_pio_bufnum,
+		(void)ef10_nic_pio_free(enp, etp->et_pio_bufnum,
 		    etp->et_pio_blknum);
 		etp->et_pio_size = 0;
 		etp->et_pio_write_offset = 0;
 	}
 }
 
-	__checkReturn	efx_rc_t
-ef10_tx_qpio_write(
-	__in			efx_txq_t *etp,
-	__in_ecount(length)	uint8_t *buffer,
-	__in			size_t length,
-	__in			size_t offset)
+__checkReturn efx_rc_t
+ef10_tx_qpio_write(__in efx_txq_t *etp, __in_ecount(length) uint8_t *buffer,
+    __in size_t length, __in size_t offset)
 {
 	efx_nic_t *enp = etp->et_enp;
 	efsys_bar_t *esbp = enp->en_esbp;
@@ -343,13 +309,13 @@ ef10_tx_qpio_write(
 	efx_qword_t *eqp;
 	efx_rc_t rc;
 
-	EFSYS_ASSERT(length % sizeof (efx_qword_t) == 0);
+	EFSYS_ASSERT(length % sizeof(efx_qword_t) == 0);
 
 	if (etp->et_pio_size == 0) {
 		rc = ENOENT;
 		goto fail1;
 	}
-	if (offset + length > etp->et_pio_size)	{
+	if (offset + length > etp->et_pio_size) {
 		rc = ENOSPC;
 		goto fail2;
 	}
@@ -364,7 +330,7 @@ ef10_tx_qpio_write(
 	while (write_offset < write_offset_limit) {
 		EFSYS_BAR_WC_WRITEQ(esbp, write_offset, eqp);
 		eqp++;
-		write_offset += sizeof (efx_qword_t);
+		write_offset += sizeof(efx_qword_t);
 	}
 
 	return (0);
@@ -377,12 +343,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-ef10_tx_qpio_post(
-	__in			efx_txq_t *etp,
-	__in			size_t pkt_length,
-	__in			unsigned int completed,
-	__inout			unsigned int *addedp)
+__checkReturn efx_rc_t
+ef10_tx_qpio_post(__in efx_txq_t *etp, __in size_t pkt_length,
+    __in unsigned int completed, __inout unsigned int *addedp)
 {
 	efx_qword_t pio_desc;
 	unsigned int id;
@@ -401,18 +364,15 @@ ef10_tx_qpio_post(
 	}
 
 	id = added++ & etp->et_mask;
-	offset = id * sizeof (efx_qword_t);
+	offset = id * sizeof(efx_qword_t);
 
-	EFSYS_PROBE4(tx_pio_post, unsigned int, etp->et_index,
-		    unsigned int, id, uint32_t, etp->et_pio_offset,
-		    size_t, pkt_length);
+	EFSYS_PROBE4(tx_pio_post, unsigned int, etp->et_index, unsigned int, id,
+	    uint32_t, etp->et_pio_offset, size_t, pkt_length);
 
-	EFX_POPULATE_QWORD_5(pio_desc,
-			ESF_DZ_TX_DESC_IS_OPT, 1,
-			ESF_DZ_TX_OPTION_TYPE, 1,
-			ESF_DZ_TX_PIO_CONT, 0,
-			ESF_DZ_TX_PIO_BYTE_CNT, pkt_length,
-			ESF_DZ_TX_PIO_BUF_ADDR, etp->et_pio_offset);
+	EFX_POPULATE_QWORD_5(pio_desc, ESF_DZ_TX_DESC_IS_OPT, 1,
+	    ESF_DZ_TX_OPTION_TYPE, 1, ESF_DZ_TX_PIO_CONT, 0,
+	    ESF_DZ_TX_PIO_BYTE_CNT, pkt_length, ESF_DZ_TX_PIO_BUF_ADDR,
+	    etp->et_pio_offset);
 
 	EFSYS_MEM_WRITEQ(etp->et_esmp, offset, &pio_desc);
 
@@ -429,13 +389,10 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-ef10_tx_qpost(
-	__in			efx_txq_t *etp,
-	__in_ecount(ndescs)	efx_buffer_t *eb,
-	__in			unsigned int ndescs,
-	__in			unsigned int completed,
-	__inout			unsigned int *addedp)
+__checkReturn efx_rc_t
+ef10_tx_qpost(__in efx_txq_t *etp, __in_ecount(ndescs) efx_buffer_t *eb,
+    __in unsigned int ndescs, __in unsigned int completed,
+    __inout unsigned int *addedp)
 {
 	unsigned int added = *addedp;
 	unsigned int i;
@@ -456,22 +413,20 @@ ef10_tx_qpost(
 		efx_qword_t qword;
 
 		/* No limitations on boundary crossing */
-		EFSYS_ASSERT(size <=
-		    etp->et_enp->en_nic_cfg.enc_tx_dma_desc_size_max);
+		EFSYS_ASSERT(
+		    size <= etp->et_enp->en_nic_cfg.enc_tx_dma_desc_size_max);
 
 		id = added++ & etp->et_mask;
-		offset = id * sizeof (efx_qword_t);
+		offset = id * sizeof(efx_qword_t);
 
-		EFSYS_PROBE5(tx_post, unsigned int, etp->et_index,
-		    unsigned int, id, efsys_dma_addr_t, addr,
-		    size_t, size, boolean_t, eop);
+		EFSYS_PROBE5(tx_post, unsigned int, etp->et_index, unsigned int,
+		    id, efsys_dma_addr_t, addr, size_t, size, boolean_t, eop);
 
-		EFX_POPULATE_QWORD_5(qword,
-		    ESF_DZ_TX_KER_TYPE, 0,
-		    ESF_DZ_TX_KER_CONT, (eop) ? 0 : 1,
-		    ESF_DZ_TX_KER_BYTE_CNT, (uint32_t)(size),
-		    ESF_DZ_TX_KER_BUF_ADDR_DW0, (uint32_t)(addr & 0xffffffff),
-		    ESF_DZ_TX_KER_BUF_ADDR_DW1, (uint32_t)(addr >> 32));
+		EFX_POPULATE_QWORD_5(qword, ESF_DZ_TX_KER_TYPE, 0,
+		    ESF_DZ_TX_KER_CONT, (eop) ? 0 : 1, ESF_DZ_TX_KER_BYTE_CNT,
+		    (uint32_t)(size), ESF_DZ_TX_KER_BUF_ADDR_DW0,
+		    (uint32_t)(addr & 0xffffffff), ESF_DZ_TX_KER_BUF_ADDR_DW1,
+		    (uint32_t)(addr >> 32));
 
 		EFSYS_MEM_WRITEQ(etp->et_esmp, offset, &qword);
 	}
@@ -492,11 +447,9 @@ fail1:
  * same time as the doorbell. The descriptor must be added to the TXQ, so that
  * can be used if the hardware decides not to use the pushed descriptor.
  */
-			void
-ef10_tx_qpush(
-	__in		efx_txq_t *etp,
-	__in		unsigned int added,
-	__in		unsigned int pushed)
+void
+ef10_tx_qpush(__in efx_txq_t *etp, __in unsigned int added,
+    __in unsigned int pushed)
 {
 	efx_nic_t *enp = etp->et_enp;
 	unsigned int wptr;
@@ -507,7 +460,7 @@ ef10_tx_qpush(
 
 	wptr = added & etp->et_mask;
 	id = pushed & etp->et_mask;
-	offset = id * sizeof (efx_qword_t);
+	offset = id * sizeof(efx_qword_t);
 
 	EFSYS_MEM_READQ(etp->et_esmp, offset, &desc);
 
@@ -521,7 +474,7 @@ ef10_tx_qpush(
 	 */
 	if ((EFX_QWORD_FIELD(desc, ESF_DZ_TX_DESC_IS_OPT) != 1) ||
 	    (EFX_QWORD_FIELD(desc, ESF_DZ_TX_OPTION_TYPE) !=
-	    ESE_DZ_TX_OPTION_DESC_TSO)) {
+		ESE_DZ_TX_OPTION_DESC_TSO)) {
 		/* Push the descriptor and update the wptr. */
 		EFX_POPULATE_OWORD_3(oword, ERF_DZ_TX_DESC_WPTR, wptr,
 		    ERF_DZ_TX_DESC_HWORD, EFX_QWORD_FIELD(desc, EFX_DWORD_1),
@@ -529,7 +482,7 @@ ef10_tx_qpush(
 
 		/* Ensure ordering of memory (descriptors) and PIO (doorbell) */
 		EFX_DMA_SYNC_QUEUE_FOR_DEVICE(etp->et_esmp, etp->et_mask + 1,
-					    wptr, id);
+		    wptr, id);
 		EFSYS_PIO_WRITE_BARRIER();
 		EFX_BAR_VI_DOORBELL_WRITEO(enp, ER_DZ_TX_DESC_UPD_REG,
 		    etp->et_index, &oword);
@@ -545,20 +498,17 @@ ef10_tx_qpush(
 
 		/* Ensure ordering of memory (descriptors) and PIO (doorbell) */
 		EFX_DMA_SYNC_QUEUE_FOR_DEVICE(etp->et_esmp, etp->et_mask + 1,
-					    wptr, id);
+		    wptr, id);
 		EFSYS_PIO_WRITE_BARRIER();
-		EFX_BAR_VI_WRITED2(enp, ER_DZ_TX_DESC_UPD_REG,
-		    etp->et_index, &dword, B_FALSE);
+		EFX_BAR_VI_WRITED2(enp, ER_DZ_TX_DESC_UPD_REG, etp->et_index,
+		    &dword, B_FALSE);
 	}
 }
 
-	__checkReturn		efx_rc_t
-ef10_tx_qdesc_post(
-	__in			efx_txq_t *etp,
-	__in_ecount(ndescs)	efx_desc_t *ed,
-	__in			unsigned int ndescs,
-	__in			unsigned int completed,
-	__inout			unsigned int *addedp)
+__checkReturn efx_rc_t
+ef10_tx_qdesc_post(__in efx_txq_t *etp, __in_ecount(ndescs) efx_desc_t *ed,
+    __in unsigned int ndescs, __in unsigned int completed,
+    __inout unsigned int *addedp)
 {
 	unsigned int added = *addedp;
 	unsigned int i;
@@ -572,13 +522,13 @@ ef10_tx_qdesc_post(
 		size_t offset;
 
 		id = added++ & etp->et_mask;
-		offset = id * sizeof (efx_desc_t);
+		offset = id * sizeof(efx_desc_t);
 
 		EFSYS_MEM_WRITEQ(etp->et_esmp, offset, &edp->ed_eq);
 	}
 
-	EFSYS_PROBE3(tx_desc_post, unsigned int, etp->et_index,
-		    unsigned int, added, unsigned int, ndescs);
+	EFSYS_PROBE3(tx_desc_post, unsigned int, etp->et_index, unsigned int,
+	    added, unsigned int, ndescs);
 
 	EFX_TX_QSTAT_INCR(etp, TX_POST);
 
@@ -586,13 +536,9 @@ ef10_tx_qdesc_post(
 	return (0);
 }
 
-	void
-ef10_tx_qdesc_dma_create(
-	__in	efx_txq_t *etp,
-	__in	efsys_dma_addr_t addr,
-	__in	size_t size,
-	__in	boolean_t eop,
-	__out	efx_desc_t *edp)
+void
+ef10_tx_qdesc_dma_create(__in efx_txq_t *etp, __in efsys_dma_addr_t addr,
+    __in size_t size, __in boolean_t eop, __out efx_desc_t *edp)
 {
 	_NOTE(ARGUNUSED(etp))
 
@@ -600,112 +546,80 @@ ef10_tx_qdesc_dma_create(
 	EFSYS_ASSERT(size <= etp->et_enp->en_nic_cfg.enc_tx_dma_desc_size_max);
 
 	EFSYS_PROBE4(tx_desc_dma_create, unsigned int, etp->et_index,
-		    efsys_dma_addr_t, addr,
-		    size_t, size, boolean_t, eop);
+	    efsys_dma_addr_t, addr, size_t, size, boolean_t, eop);
 
-	EFX_POPULATE_QWORD_5(edp->ed_eq,
-		    ESF_DZ_TX_KER_TYPE, 0,
-		    ESF_DZ_TX_KER_CONT, (eop) ? 0 : 1,
-		    ESF_DZ_TX_KER_BYTE_CNT, (uint32_t)(size),
-		    ESF_DZ_TX_KER_BUF_ADDR_DW0, (uint32_t)(addr & 0xffffffff),
-		    ESF_DZ_TX_KER_BUF_ADDR_DW1, (uint32_t)(addr >> 32));
+	EFX_POPULATE_QWORD_5(edp->ed_eq, ESF_DZ_TX_KER_TYPE, 0,
+	    ESF_DZ_TX_KER_CONT, (eop) ? 0 : 1, ESF_DZ_TX_KER_BYTE_CNT,
+	    (uint32_t)(size), ESF_DZ_TX_KER_BUF_ADDR_DW0,
+	    (uint32_t)(addr & 0xffffffff), ESF_DZ_TX_KER_BUF_ADDR_DW1,
+	    (uint32_t)(addr >> 32));
 }
 
-	void
-ef10_tx_qdesc_tso_create(
-	__in	efx_txq_t *etp,
-	__in	uint16_t ipv4_id,
-	__in	uint32_t tcp_seq,
-	__in	uint8_t  tcp_flags,
-	__out	efx_desc_t *edp)
+void
+ef10_tx_qdesc_tso_create(__in efx_txq_t *etp, __in uint16_t ipv4_id,
+    __in uint32_t tcp_seq, __in uint8_t tcp_flags, __out efx_desc_t *edp)
 {
 	_NOTE(ARGUNUSED(etp))
 
-	EFSYS_PROBE4(tx_desc_tso_create, unsigned int, etp->et_index,
-		    uint16_t, ipv4_id, uint32_t, tcp_seq,
-		    uint8_t, tcp_flags);
+	EFSYS_PROBE4(tx_desc_tso_create, unsigned int, etp->et_index, uint16_t,
+	    ipv4_id, uint32_t, tcp_seq, uint8_t, tcp_flags);
 
-	EFX_POPULATE_QWORD_5(edp->ed_eq,
-			    ESF_DZ_TX_DESC_IS_OPT, 1,
-			    ESF_DZ_TX_OPTION_TYPE,
-			    ESE_DZ_TX_OPTION_DESC_TSO,
-			    ESF_DZ_TX_TSO_TCP_FLAGS, tcp_flags,
-			    ESF_DZ_TX_TSO_IP_ID, ipv4_id,
-			    ESF_DZ_TX_TSO_TCP_SEQNO, tcp_seq);
+	EFX_POPULATE_QWORD_5(edp->ed_eq, ESF_DZ_TX_DESC_IS_OPT, 1,
+	    ESF_DZ_TX_OPTION_TYPE, ESE_DZ_TX_OPTION_DESC_TSO,
+	    ESF_DZ_TX_TSO_TCP_FLAGS, tcp_flags, ESF_DZ_TX_TSO_IP_ID, ipv4_id,
+	    ESF_DZ_TX_TSO_TCP_SEQNO, tcp_seq);
 }
 
-	void
-ef10_tx_qdesc_tso2_create(
-	__in			efx_txq_t *etp,
-	__in			uint16_t ipv4_id,
-	__in			uint16_t outer_ipv4_id,
-	__in			uint32_t tcp_seq,
-	__in			uint16_t tcp_mss,
-	__out_ecount(count)	efx_desc_t *edp,
-	__in			int count)
+void
+ef10_tx_qdesc_tso2_create(__in efx_txq_t *etp, __in uint16_t ipv4_id,
+    __in uint16_t outer_ipv4_id, __in uint32_t tcp_seq, __in uint16_t tcp_mss,
+    __out_ecount(count) efx_desc_t *edp, __in int count)
 {
 	_NOTE(ARGUNUSED(etp, count))
 
-	EFSYS_PROBE4(tx_desc_tso2_create, unsigned int, etp->et_index,
-		    uint16_t, ipv4_id, uint32_t, tcp_seq,
-		    uint16_t, tcp_mss);
+	EFSYS_PROBE4(tx_desc_tso2_create, unsigned int, etp->et_index, uint16_t,
+	    ipv4_id, uint32_t, tcp_seq, uint16_t, tcp_mss);
 
 	EFSYS_ASSERT(count >= EFX_TX_FATSOV2_OPT_NDESCS);
 
-	EFX_POPULATE_QWORD_5(edp[0].ed_eq,
-			    ESF_DZ_TX_DESC_IS_OPT, 1,
-			    ESF_DZ_TX_OPTION_TYPE,
-			    ESE_DZ_TX_OPTION_DESC_TSO,
-			    ESF_DZ_TX_TSO_OPTION_TYPE,
-			    ESE_DZ_TX_TSO_OPTION_DESC_FATSO2A,
-			    ESF_DZ_TX_TSO_IP_ID, ipv4_id,
-			    ESF_DZ_TX_TSO_TCP_SEQNO, tcp_seq);
-	EFX_POPULATE_QWORD_5(edp[1].ed_eq,
-			    ESF_DZ_TX_DESC_IS_OPT, 1,
-			    ESF_DZ_TX_OPTION_TYPE,
-			    ESE_DZ_TX_OPTION_DESC_TSO,
-			    ESF_DZ_TX_TSO_OPTION_TYPE,
-			    ESE_DZ_TX_TSO_OPTION_DESC_FATSO2B,
-			    ESF_DZ_TX_TSO_TCP_MSS, tcp_mss,
-			    ESF_DZ_TX_TSO_OUTER_IPID, outer_ipv4_id);
+	EFX_POPULATE_QWORD_5(edp[0].ed_eq, ESF_DZ_TX_DESC_IS_OPT, 1,
+	    ESF_DZ_TX_OPTION_TYPE, ESE_DZ_TX_OPTION_DESC_TSO,
+	    ESF_DZ_TX_TSO_OPTION_TYPE, ESE_DZ_TX_TSO_OPTION_DESC_FATSO2A,
+	    ESF_DZ_TX_TSO_IP_ID, ipv4_id, ESF_DZ_TX_TSO_TCP_SEQNO, tcp_seq);
+	EFX_POPULATE_QWORD_5(edp[1].ed_eq, ESF_DZ_TX_DESC_IS_OPT, 1,
+	    ESF_DZ_TX_OPTION_TYPE, ESE_DZ_TX_OPTION_DESC_TSO,
+	    ESF_DZ_TX_TSO_OPTION_TYPE, ESE_DZ_TX_TSO_OPTION_DESC_FATSO2B,
+	    ESF_DZ_TX_TSO_TCP_MSS, tcp_mss, ESF_DZ_TX_TSO_OUTER_IPID,
+	    outer_ipv4_id);
 }
 
-	void
-ef10_tx_qdesc_vlantci_create(
-	__in	efx_txq_t *etp,
-	__in	uint16_t  tci,
-	__out	efx_desc_t *edp)
+void
+ef10_tx_qdesc_vlantci_create(__in efx_txq_t *etp, __in uint16_t tci,
+    __out efx_desc_t *edp)
 {
 	_NOTE(ARGUNUSED(etp))
 
 	EFSYS_PROBE2(tx_desc_vlantci_create, unsigned int, etp->et_index,
-		    uint16_t, tci);
+	    uint16_t, tci);
 
-	EFX_POPULATE_QWORD_4(edp->ed_eq,
-			    ESF_DZ_TX_DESC_IS_OPT, 1,
-			    ESF_DZ_TX_OPTION_TYPE,
-			    ESE_DZ_TX_OPTION_DESC_VLAN,
-			    ESF_DZ_TX_VLAN_OP, tci ? 1 : 0,
-			    ESF_DZ_TX_VLAN_TAG1, tci);
+	EFX_POPULATE_QWORD_4(edp->ed_eq, ESF_DZ_TX_DESC_IS_OPT, 1,
+	    ESF_DZ_TX_OPTION_TYPE, ESE_DZ_TX_OPTION_DESC_VLAN,
+	    ESF_DZ_TX_VLAN_OP, tci ? 1 : 0, ESF_DZ_TX_VLAN_TAG1, tci);
 }
 
-	void
-ef10_tx_qdesc_checksum_create(
-	__in	efx_txq_t *etp,
-	__in	uint16_t flags,
-	__out	efx_desc_t *edp)
+void
+ef10_tx_qdesc_checksum_create(__in efx_txq_t *etp, __in uint16_t flags,
+    __out efx_desc_t *edp)
 {
 	_NOTE(ARGUNUSED(etp));
 
 	EFSYS_PROBE2(tx_desc_checksum_create, unsigned int, etp->et_index,
-		    uint32_t, flags);
+	    uint32_t, flags);
 
-	EFX_POPULATE_QWORD_6(edp->ed_eq,
-	    ESF_DZ_TX_DESC_IS_OPT, 1,
+	EFX_POPULATE_QWORD_6(edp->ed_eq, ESF_DZ_TX_DESC_IS_OPT, 1,
 	    ESF_DZ_TX_OPTION_TYPE, ESE_DZ_TX_OPTION_DESC_CRC_CSUM,
 	    ESF_DZ_TX_OPTION_UDP_TCP_CSUM,
-	    (flags & EFX_TXQ_CKSUM_TCPUDP) ? 1 : 0,
-	    ESF_DZ_TX_OPTION_IP_CSUM,
+	    (flags & EFX_TXQ_CKSUM_TCPUDP) ? 1 : 0, ESF_DZ_TX_OPTION_IP_CSUM,
 	    (flags & EFX_TXQ_CKSUM_IPV4) ? 1 : 0,
 	    ESF_DZ_TX_OPTION_INNER_UDP_TCP_CSUM,
 	    (flags & EFX_TXQ_CKSUM_INNER_TCPUDP) ? 1 : 0,
@@ -713,10 +627,8 @@ ef10_tx_qdesc_checksum_create(
 	    (flags & EFX_TXQ_CKSUM_INNER_IPV4) ? 1 : 0);
 }
 
-	__checkReturn	efx_rc_t
-ef10_tx_qpace(
-	__in		efx_txq_t *etp,
-	__in		unsigned int ns)
+__checkReturn efx_rc_t
+ef10_tx_qpace(__in efx_txq_t *etp, __in unsigned int ns)
 {
 	efx_rc_t rc;
 
@@ -744,9 +656,8 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-ef10_tx_qflush(
-	__in		efx_txq_t *etp)
+__checkReturn efx_rc_t
+ef10_tx_qflush(__in efx_txq_t *etp)
 {
 	efx_nic_t *enp = etp->et_enp;
 	efx_rc_t rc;
@@ -762,9 +673,8 @@ fail1:
 	return (rc);
 }
 
-			void
-ef10_tx_qenable(
-	__in		efx_txq_t *etp)
+void
+ef10_tx_qenable(__in efx_txq_t *etp)
 {
 	/* FIXME */
 	_NOTE(ARGUNUSED(etp))
@@ -772,10 +682,9 @@ ef10_tx_qenable(
 }
 
 #if EFSYS_OPT_QSTATS
-			void
-ef10_tx_qstats_update(
-	__in				efx_txq_t *etp,
-	__inout_ecount(TX_NQSTATS)	efsys_stat_t *stat)
+void
+ef10_tx_qstats_update(__in efx_txq_t *etp,
+    __inout_ecount(TX_NQSTATS) efsys_stat_t *stat)
 {
 	unsigned int id;
 

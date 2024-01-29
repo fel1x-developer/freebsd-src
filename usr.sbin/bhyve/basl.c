@@ -55,8 +55,8 @@ struct basl_table {
 	STAILQ_HEAD(basl_table_length_list, basl_table_length) lengths;
 	STAILQ_HEAD(basl_table_pointer_list, basl_table_pointer) pointers;
 };
-static STAILQ_HEAD(basl_table_list, basl_table) basl_tables = STAILQ_HEAD_INITIALIZER(
-    basl_tables);
+static STAILQ_HEAD(basl_table_list,
+    basl_table) basl_tables = STAILQ_HEAD_INITIALIZER(basl_tables);
 
 static struct qemu_loader *basl_loader;
 static struct basl_table *rsdt;
@@ -121,7 +121,7 @@ basl_dump(const bool mem)
 {
 	struct basl_table *table;
 
-	STAILQ_FOREACH(table, &basl_tables, chain) {
+	STAILQ_FOREACH (table, &basl_tables, chain) {
 		BASL_EXEC(basl_dump_table(table, mem));
 	}
 
@@ -143,7 +143,8 @@ basl_fill_gas(ACPI_GENERIC_ADDRESS *const gas, const uint8_t space_id,
 }
 
 static int
-basl_finish_install_guest_tables(struct basl_table *const table, uint32_t *const off)
+basl_finish_install_guest_tables(struct basl_table *const table,
+    uint32_t *const off)
 {
 	void *gva;
 
@@ -188,12 +189,12 @@ basl_finish_patch_checksums(struct basl_table *const table)
 {
 	struct basl_table_checksum *checksum;
 
-	STAILQ_FOREACH(checksum, &table->checksums, chain) {
+	STAILQ_FOREACH (checksum, &table->checksums, chain) {
 		uint8_t *gva, *checksum_gva;
 		uint64_t gpa;
 		uint32_t len;
 		uint8_t sum;
-		
+
 		len = checksum->len;
 		if (len == BASL_TABLE_CHECKSUM_LEN_FULL_TABLE) {
 			len = table->len;
@@ -231,7 +232,7 @@ basl_finish_patch_checksums(struct basl_table *const table)
 			    __func__, gpa, gpa + len);
 			return (ENOMEM);
 		}
-	
+
 		checksum_gva = gva + checksum->off;
 		if (checksum_gva < gva) {
 			warnx("%s: invalid checksum offset 0x%8x", __func__,
@@ -254,7 +255,7 @@ basl_get_table_by_signature(const uint8_t signature[ACPI_NAMESEG_SIZE])
 {
 	struct basl_table *table;
 
-	STAILQ_FOREACH(table, &basl_tables, chain) {
+	STAILQ_FOREACH (table, &basl_tables, chain) {
 		const ACPI_TABLE_HEADER *const header =
 		    (const ACPI_TABLE_HEADER *)table->data;
 
@@ -273,7 +274,7 @@ basl_finish_patch_pointers(struct basl_table *const table)
 {
 	struct basl_table_pointer *pointer;
 
-	STAILQ_FOREACH(pointer, &table->pointers, chain) {
+	STAILQ_FOREACH (pointer, &table->pointers, chain) {
 		const struct basl_table *src_table;
 		uint8_t *gva;
 		uint64_t gpa, val;
@@ -330,7 +331,7 @@ basl_finish_set_length(struct basl_table *const table)
 {
 	struct basl_table_length *length;
 
-	STAILQ_FOREACH(length, &table->lengths, chain) {
+	STAILQ_FOREACH (length, &table->lengths, chain) {
 		assert(length->off < table->len);
 		assert(length->off + length->size <= table->len);
 
@@ -366,11 +367,11 @@ basl_finish(void)
 	 * use two loops. The first one installs all tables and the second one
 	 * patches them.
 	 */
-	STAILQ_FOREACH(table, &basl_tables, chain) {
+	STAILQ_FOREACH (table, &basl_tables, chain) {
 		BASL_EXEC(basl_finish_set_length(table));
 		BASL_EXEC(basl_finish_install_guest_tables(table, &off));
 	}
-	STAILQ_FOREACH(table, &basl_tables, chain) {
+	STAILQ_FOREACH (table, &basl_tables, chain) {
 		BASL_EXEC(basl_finish_patch_pointers(table));
 
 		/*
@@ -646,7 +647,8 @@ basl_table_append_pointer(struct basl_table *const table,
 	assert(table != NULL);
 	assert(size == 4 || size == 8);
 
-	BASL_EXEC(basl_table_add_pointer(table, src_signature, table->len, size));
+	BASL_EXEC(
+	    basl_table_add_pointer(table, src_signature, table->len, size));
 	BASL_EXEC(basl_table_append_int(table, 0, size));
 
 	return (0);

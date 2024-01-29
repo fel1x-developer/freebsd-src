@@ -12,13 +12,13 @@
 #include "vmci_call_defs.h"
 
 /* Datagram API for non-public use. */
-int	vmci_datagram_dispatch(vmci_id context_id, struct vmci_datagram *dg);
-int	vmci_datagram_invoke_guest_handler(struct vmci_datagram *dg);
-int	vmci_datagram_get_priv_flags(struct vmci_handle handle,
-	    vmci_privilege_flags *priv_flags);
+int vmci_datagram_dispatch(vmci_id context_id, struct vmci_datagram *dg);
+int vmci_datagram_invoke_guest_handler(struct vmci_datagram *dg);
+int vmci_datagram_get_priv_flags(struct vmci_handle handle,
+    vmci_privilege_flags *priv_flags);
 
 /* Misc. */
-void	vmci_datagram_sync(void);
-bool	vmci_datagram_check_host_capabilities(void);
+void vmci_datagram_sync(void);
+bool vmci_datagram_check_host_capabilities(void);
 
 #endif /* !_VMCI_DATAGRAM_H_ */

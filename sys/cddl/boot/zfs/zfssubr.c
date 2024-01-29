@@ -24,22 +24,25 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <lz4.h>
 
 static uint64_t zfs_crc64_table[256];
 
-#ifndef ASSERT3S	/* Proxy for all the assert defines */
-#define	ASSERT3S(x, y, z)	((void)0)
-#define	ASSERT3U(x, y, z)	((void)0)
-#define	ASSERT3P(x, y, z)	((void)0)
-#define	ASSERT0(x)		((void)0)
-#define	ASSERT(x)		((void)0)
+#ifndef ASSERT3S /* Proxy for all the assert defines */
+#define ASSERT3S(x, y, z) ((void)0)
+#define ASSERT3U(x, y, z) ((void)0)
+#define ASSERT3P(x, y, z) ((void)0)
+#define ASSERT0(x) ((void)0)
+#define ASSERT(x) ((void)0)
 #endif
 
-#define	panic(...)	do {						\
-	printf(__VA_ARGS__);						\
-	for (;;) ;							\
-} while (0)
+#define panic(...)                   \
+	do {                         \
+		printf(__VA_ARGS__); \
+		for (;;)             \
+			;            \
+	} while (0)
 
 static void
 zfs_init_crc(void)
@@ -54,14 +57,16 @@ zfs_init_crc(void)
 	if (zfs_crc64_table[128] != ZFS_CRC64_POLY) {
 		memset(zfs_crc64_table, 0, sizeof(zfs_crc64_table));
 		for (i = 0; i < 256; i++)
-			for (ct = zfs_crc64_table + i, *ct = i, j = 8; j > 0; j--)
-				*ct = (*ct >> 1) ^ (-(*ct & 1) & ZFS_CRC64_POLY);
+			for (ct = zfs_crc64_table + i, *ct = i, j = 8; j > 0;
+			     j--)
+				*ct = (*ct >> 1) ^
+				    (-(*ct & 1) & ZFS_CRC64_POLY);
 	}
 }
 
 static void
-zio_checksum_off(const void *buf, uint64_t size,
-    const void *ctx_template, zio_cksum_t *zcp)
+zio_checksum_off(const void *buf, uint64_t size, const void *ctx_template,
+    zio_cksum_t *zcp)
 {
 	ZIO_SET_CHECKSUM(zcp, 0, 0, 0, 0);
 }
@@ -92,17 +97,16 @@ typedef enum zio_checksum_flags {
  */
 typedef struct zio_checksum_info {
 	/* checksum function for each byteorder */
-	zio_checksum_t			*ci_func[2];
-	zio_checksum_tmpl_init_t	*ci_tmpl_init;
-	zio_checksum_tmpl_free_t	*ci_tmpl_free;
-	zio_checksum_flags_t		ci_flags;
-	const char			*ci_name;	/* descriptive name */
+	zio_checksum_t *ci_func[2];
+	zio_checksum_tmpl_init_t *ci_tmpl_init;
+	zio_checksum_tmpl_free_t *ci_tmpl_free;
+	zio_checksum_flags_t ci_flags;
+	const char *ci_name; /* descriptive name */
 } zio_checksum_info_t;
 
-#include "blkptr.c"
-
-#include "fletcher.c"
 #include "blake3_zfs.c"
+#include "blkptr.c"
+#include "fletcher.c"
 #include "sha256.c"
 #include "skein_zfs.c"
 
@@ -112,86 +116,88 @@ extern int zfs_zstd_decompress(void *s_start, void *d_start, size_t s_len,
 #endif
 
 static zio_checksum_info_t zio_checksum_table[ZIO_CHECKSUM_FUNCTIONS] = {
-	{{NULL, NULL}, NULL, NULL, 0, "inherit"},
-	{{NULL, NULL}, NULL, NULL, 0, "on"},
-	{{zio_checksum_off,	zio_checksum_off}, NULL, NULL, 0, "off"},
-	{{zio_checksum_SHA256,	zio_checksum_SHA256}, NULL, NULL,
-	    ZCHECKSUM_FLAG_METADATA | ZCHECKSUM_FLAG_EMBEDDED, "label"},
-	{{zio_checksum_SHA256,	zio_checksum_SHA256}, NULL, NULL,
-	    ZCHECKSUM_FLAG_METADATA | ZCHECKSUM_FLAG_EMBEDDED, "gang_header"},
-	{{fletcher_2_native,	fletcher_2_byteswap}, NULL, NULL,
-	    ZCHECKSUM_FLAG_EMBEDDED, "zilog"},
-	{{fletcher_2_native,	fletcher_2_byteswap}, NULL, NULL,
-	    0, "fletcher2"},
-	{{fletcher_4_native,	fletcher_4_byteswap}, NULL, NULL,
-	    ZCHECKSUM_FLAG_METADATA, "fletcher4"},
-	{{zio_checksum_SHA256,	zio_checksum_SHA256}, NULL, NULL,
+	{ { NULL, NULL }, NULL, NULL, 0, "inherit" },
+	{ { NULL, NULL }, NULL, NULL, 0, "on" },
+	{ { zio_checksum_off, zio_checksum_off }, NULL, NULL, 0, "off" },
+	{ { zio_checksum_SHA256, zio_checksum_SHA256 }, NULL, NULL,
+	    ZCHECKSUM_FLAG_METADATA | ZCHECKSUM_FLAG_EMBEDDED, "label" },
+	{ { zio_checksum_SHA256, zio_checksum_SHA256 }, NULL, NULL,
+	    ZCHECKSUM_FLAG_METADATA | ZCHECKSUM_FLAG_EMBEDDED, "gang_header" },
+	{ { fletcher_2_native, fletcher_2_byteswap }, NULL, NULL,
+	    ZCHECKSUM_FLAG_EMBEDDED, "zilog" },
+	{ { fletcher_2_native, fletcher_2_byteswap }, NULL, NULL, 0,
+	    "fletcher2" },
+	{ { fletcher_4_native, fletcher_4_byteswap }, NULL, NULL,
+	    ZCHECKSUM_FLAG_METADATA, "fletcher4" },
+	{ { zio_checksum_SHA256, zio_checksum_SHA256 }, NULL, NULL,
 	    ZCHECKSUM_FLAG_METADATA | ZCHECKSUM_FLAG_DEDUP |
-	    ZCHECKSUM_FLAG_NOPWRITE, "SHA256"},
-	{{fletcher_4_native,	fletcher_4_byteswap}, NULL, NULL,
-	    ZCHECKSUM_FLAG_EMBEDDED, "zillog2"},
-	{{zio_checksum_off,	zio_checksum_off}, NULL, NULL,
-	    0, "noparity"},
-	{{zio_checksum_SHA512_native,	zio_checksum_SHA512_byteswap},
-	    NULL, NULL, ZCHECKSUM_FLAG_METADATA | ZCHECKSUM_FLAG_DEDUP |
-	    ZCHECKSUM_FLAG_NOPWRITE, "SHA512"},
-	{{zio_checksum_skein_native, zio_checksum_skein_byteswap},
+		ZCHECKSUM_FLAG_NOPWRITE,
+	    "SHA256" },
+	{ { fletcher_4_native, fletcher_4_byteswap }, NULL, NULL,
+	    ZCHECKSUM_FLAG_EMBEDDED, "zillog2" },
+	{ { zio_checksum_off, zio_checksum_off }, NULL, NULL, 0, "noparity" },
+	{ { zio_checksum_SHA512_native, zio_checksum_SHA512_byteswap }, NULL,
+	    NULL,
+	    ZCHECKSUM_FLAG_METADATA | ZCHECKSUM_FLAG_DEDUP |
+		ZCHECKSUM_FLAG_NOPWRITE,
+	    "SHA512" },
+	{ { zio_checksum_skein_native, zio_checksum_skein_byteswap },
 	    zio_checksum_skein_tmpl_init, zio_checksum_skein_tmpl_free,
 	    ZCHECKSUM_FLAG_METADATA | ZCHECKSUM_FLAG_DEDUP |
-	    ZCHECKSUM_FLAG_SALTED | ZCHECKSUM_FLAG_NOPWRITE, "skein"},
+		ZCHECKSUM_FLAG_SALTED | ZCHECKSUM_FLAG_NOPWRITE,
+	    "skein" },
 	/* no edonr for now */
-	{{NULL, NULL}, NULL, NULL, ZCHECKSUM_FLAG_METADATA |
-	    ZCHECKSUM_FLAG_SALTED | ZCHECKSUM_FLAG_NOPWRITE, "edonr"},
-	{{zio_checksum_blake3_native,	zio_checksum_blake3_byteswap},
+	{ { NULL, NULL }, NULL, NULL,
+	    ZCHECKSUM_FLAG_METADATA | ZCHECKSUM_FLAG_SALTED |
+		ZCHECKSUM_FLAG_NOPWRITE,
+	    "edonr" },
+	{ { zio_checksum_blake3_native, zio_checksum_blake3_byteswap },
 	    zio_checksum_blake3_tmpl_init, zio_checksum_blake3_tmpl_free,
 	    ZCHECKSUM_FLAG_METADATA | ZCHECKSUM_FLAG_DEDUP |
-	    ZCHECKSUM_FLAG_SALTED | ZCHECKSUM_FLAG_NOPWRITE, "blake3"}
+		ZCHECKSUM_FLAG_SALTED | ZCHECKSUM_FLAG_NOPWRITE,
+	    "blake3" }
 };
 
 /*
  * Common signature for all zio compress/decompress functions.
  */
-typedef size_t zio_compress_func_t(void *src, void *dst,
-    size_t s_len, size_t d_len, int);
-typedef int zio_decompress_func_t(void *src, void *dst,
-    size_t s_len, size_t d_len, int);
+typedef size_t zio_compress_func_t(void *src, void *dst, size_t s_len,
+    size_t d_len, int);
+typedef int zio_decompress_func_t(void *src, void *dst, size_t s_len,
+    size_t d_len, int);
 
 /*
  * Information about each compression function.
  */
 typedef struct zio_compress_info {
-	zio_compress_func_t	*ci_compress;	/* compression function */
-	zio_decompress_func_t	*ci_decompress;	/* decompression function */
-	int			ci_level;	/* level parameter */
-	const char		*ci_name;	/* algorithm name */
+	zio_compress_func_t *ci_compress;     /* compression function */
+	zio_decompress_func_t *ci_decompress; /* decompression function */
+	int ci_level;			      /* level parameter */
+	const char *ci_name;		      /* algorithm name */
 } zio_compress_info_t;
 
+#include "gzip.c"
 #include "lzjb.c"
 #include "zle.c"
-#include "gzip.c"
 
 /*
  * Compression vectors.
  */
 static zio_compress_info_t zio_compress_table[ZIO_COMPRESS_FUNCTIONS] = {
-	{NULL,			NULL,			0,	"inherit"},
-	{NULL,			NULL,			0,	"on"},
-	{NULL,			NULL,			0,	"uncompressed"},
-	{NULL,			lzjb_decompress,	0,	"lzjb"},
-	{NULL,			NULL,			0,	"empty"},
-	{NULL,			gzip_decompress,	1,	"gzip-1"},
-	{NULL,			gzip_decompress,	2,	"gzip-2"},
-	{NULL,			gzip_decompress,	3,	"gzip-3"},
-	{NULL,			gzip_decompress,	4,	"gzip-4"},
-	{NULL,			gzip_decompress,	5,	"gzip-5"},
-	{NULL,			gzip_decompress,	6,	"gzip-6"},
-	{NULL,			gzip_decompress,	7,	"gzip-7"},
-	{NULL,			gzip_decompress,	8,	"gzip-8"},
-	{NULL,			gzip_decompress,	9,	"gzip-9"},
-	{NULL,			zle_decompress,		64,	"zle"},
-	{NULL,			lz4_decompress,		0,	"lz4"},
+	{ NULL, NULL, 0, "inherit" }, { NULL, NULL, 0, "on" },
+	{ NULL, NULL, 0, "uncompressed" }, { NULL, lzjb_decompress, 0, "lzjb" },
+	{ NULL, NULL, 0, "empty" }, { NULL, gzip_decompress, 1, "gzip-1" },
+	{ NULL, gzip_decompress, 2, "gzip-2" },
+	{ NULL, gzip_decompress, 3, "gzip-3" },
+	{ NULL, gzip_decompress, 4, "gzip-4" },
+	{ NULL, gzip_decompress, 5, "gzip-5" },
+	{ NULL, gzip_decompress, 6, "gzip-6" },
+	{ NULL, gzip_decompress, 7, "gzip-7" },
+	{ NULL, gzip_decompress, 8, "gzip-8" },
+	{ NULL, gzip_decompress, 9, "gzip-9" },
+	{ NULL, zle_decompress, 64, "zle" }, { NULL, lz4_decompress, 0, "lz4" },
 #ifdef HAS_ZSTD_ZFS
-	{NULL,			zfs_zstd_decompress, ZIO_ZSTD_LEVEL_DEFAULT, "zstd"}
+	{ NULL, zfs_zstd_decompress, ZIO_ZSTD_LEVEL_DEFAULT, "zstd" }
 #endif
 };
 
@@ -250,8 +256,8 @@ zio_checksum_template_init(enum zio_checksum checksum, spa_t *spa)
 		return;
 
 	if (spa->spa_cksum_tmpls[checksum] == NULL) {
-		spa->spa_cksum_tmpls[checksum] =
-		    ci->ci_tmpl_init(&spa->spa_cksum_salt);
+		spa->spa_cksum_tmpls[checksum] = ci->ci_tmpl_init(
+		    &spa->spa_cksum_salt);
 	}
 }
 
@@ -263,8 +269,8 @@ zio_checksum_template_init(enum zio_checksum checksum, spa_t *spa)
 static void __unused
 zio_checksum_templates_free(spa_t *spa)
 {
-	for (enum zio_checksum checksum = 0;
-	    checksum < ZIO_CHECKSUM_FUNCTIONS; checksum++) {
+	for (enum zio_checksum checksum = 0; checksum < ZIO_CHECKSUM_FUNCTIONS;
+	     checksum++) {
 		if (spa->spa_cksum_tmpls[checksum] != NULL) {
 			zio_checksum_info_t *ci = &zio_checksum_table[checksum];
 
@@ -294,7 +300,7 @@ zio_checksum_verify(const spa_t *spa, const blkptr_t *bp, void *data)
 		return (EINVAL);
 
 	if (spa != NULL) {
-		zio_checksum_template_init(checksum, __DECONST(spa_t *,spa));
+		zio_checksum_template_init(checksum, __DECONST(spa_t *, spa));
 		ctx = spa->spa_cksum_tmpls[checksum];
 	}
 
@@ -317,7 +323,7 @@ zio_checksum_verify(const spa_t *spa, const blkptr_t *bp, void *data)
 		byteswap = (eck->zec_magic == BSWAP_64(ZEC_MAGIC));
 
 		if (byteswap)
-			byteswap_uint64_array(&verifier, sizeof (zio_cksum_t));
+			byteswap_uint64_array(&verifier, sizeof(zio_cksum_t));
 
 		expected_cksum = eck->zec_cksum;
 		eck->zec_cksum = verifier;
@@ -326,7 +332,7 @@ zio_checksum_verify(const spa_t *spa, const blkptr_t *bp, void *data)
 
 		if (byteswap)
 			byteswap_uint64_array(&expected_cksum,
-			    sizeof (zio_cksum_t));
+			    sizeof(zio_cksum_t));
 	} else {
 		byteswap = BP_SHOULD_BYTESWAP(bp);
 		expected_cksum = bp->blk_cksum;
@@ -342,8 +348,8 @@ zio_checksum_verify(const spa_t *spa, const blkptr_t *bp, void *data)
 }
 
 static int
-zio_decompress_data(int cpfunc, void *src, uint64_t srcsize,
-	void *dest, uint64_t destsize)
+zio_decompress_data(int cpfunc, void *src, uint64_t srcsize, void *dest,
+    uint64_t destsize)
 {
 	zio_compress_info_t *ci;
 
@@ -386,37 +392,37 @@ zap_hash(uint64_t salt, const char *name)
 }
 
 typedef struct raidz_col {
-	uint64_t rc_devidx;		/* child device index for I/O */
-	uint64_t rc_offset;		/* device offset */
-	uint64_t rc_size;		/* I/O size */
-	void *rc_data;			/* I/O data */
-	int rc_error;			/* I/O error for this device */
-	uint8_t rc_tried;		/* Did we attempt this I/O column? */
-	uint8_t rc_skipped;		/* Did we skip this I/O column? */
+	uint64_t rc_devidx; /* child device index for I/O */
+	uint64_t rc_offset; /* device offset */
+	uint64_t rc_size;   /* I/O size */
+	void *rc_data;	    /* I/O data */
+	int rc_error;	    /* I/O error for this device */
+	uint8_t rc_tried;   /* Did we attempt this I/O column? */
+	uint8_t rc_skipped; /* Did we skip this I/O column? */
 } raidz_col_t;
 
 typedef struct raidz_map {
-	uint64_t rm_cols;		/* Regular column count */
-	uint64_t rm_scols;		/* Count including skipped columns */
-	uint64_t rm_bigcols;		/* Number of oversized columns */
-	uint64_t rm_asize;		/* Actual total I/O size */
-	uint64_t rm_missingdata;	/* Count of missing data devices */
-	uint64_t rm_missingparity;	/* Count of missing parity devices */
-	uint64_t rm_firstdatacol;	/* First data column/parity count */
-	uint64_t rm_nskip;		/* Skipped sectors for padding */
-	uint64_t rm_skipstart;		/* Column index of padding start */
-	uintptr_t rm_reports;		/* # of referencing checksum reports */
-	uint8_t	rm_freed;		/* map no longer has referencing ZIO */
-	uint8_t	rm_ecksuminjected;	/* checksum error was injected */
-	raidz_col_t rm_col[1];		/* Flexible array of I/O columns */
+	uint64_t rm_cols;	   /* Regular column count */
+	uint64_t rm_scols;	   /* Count including skipped columns */
+	uint64_t rm_bigcols;	   /* Number of oversized columns */
+	uint64_t rm_asize;	   /* Actual total I/O size */
+	uint64_t rm_missingdata;   /* Count of missing data devices */
+	uint64_t rm_missingparity; /* Count of missing parity devices */
+	uint64_t rm_firstdatacol;  /* First data column/parity count */
+	uint64_t rm_nskip;	   /* Skipped sectors for padding */
+	uint64_t rm_skipstart;	   /* Column index of padding start */
+	uintptr_t rm_reports;	   /* # of referencing checksum reports */
+	uint8_t rm_freed;	   /* map no longer has referencing ZIO */
+	uint8_t rm_ecksuminjected; /* checksum error was injected */
+	raidz_col_t rm_col[1];	   /* Flexible array of I/O columns */
 } raidz_map_t;
 
-#define	VDEV_RAIDZ_P		0
-#define	VDEV_RAIDZ_Q		1
-#define	VDEV_RAIDZ_R		2
+#define VDEV_RAIDZ_P 0
+#define VDEV_RAIDZ_Q 1
+#define VDEV_RAIDZ_R 2
 
-#define	VDEV_RAIDZ_MUL_2(x)	(((x) << 1) ^ (((x) & 0x80) ? 0x1d : 0))
-#define	VDEV_RAIDZ_MUL_4(x)	(VDEV_RAIDZ_MUL_2(VDEV_RAIDZ_MUL_2(x)))
+#define VDEV_RAIDZ_MUL_2(x) (((x) << 1) ^ (((x) & 0x80) ? 0x1d : 0))
+#define VDEV_RAIDZ_MUL_4(x) (VDEV_RAIDZ_MUL_2(VDEV_RAIDZ_MUL_2(x)))
 
 /*
  * We provide a mechanism to perform the field multiplication operation on a
@@ -424,91 +430,303 @@ typedef struct raidz_map {
  * creating a mask from the top bit in each byte and using that to
  * conditionally apply the XOR of 0x1d.
  */
-#define	VDEV_RAIDZ_64MUL_2(x, mask) \
-{ \
-	(mask) = (x) & 0x8080808080808080ULL; \
-	(mask) = ((mask) << 1) - ((mask) >> 7); \
-	(x) = (((x) << 1) & 0xfefefefefefefefeULL) ^ \
-	    ((mask) & 0x1d1d1d1d1d1d1d1dULL); \
-}
+#define VDEV_RAIDZ_64MUL_2(x, mask)                          \
+	{                                                    \
+		(mask) = (x) & 0x8080808080808080ULL;        \
+		(mask) = ((mask) << 1) - ((mask) >> 7);      \
+		(x) = (((x) << 1) & 0xfefefefefefefefeULL) ^ \
+		    ((mask) & 0x1d1d1d1d1d1d1d1dULL);        \
+	}
 
-#define	VDEV_RAIDZ_64MUL_4(x, mask) \
-{ \
-	VDEV_RAIDZ_64MUL_2((x), mask); \
-	VDEV_RAIDZ_64MUL_2((x), mask); \
-}
+#define VDEV_RAIDZ_64MUL_4(x, mask)            \
+	{                                      \
+		VDEV_RAIDZ_64MUL_2((x), mask); \
+		VDEV_RAIDZ_64MUL_2((x), mask); \
+	}
 
 /*
  * These two tables represent powers and logs of 2 in the Galois field defined
  * above. These values were computed by repeatedly multiplying by 2 as above.
  */
-static const uint8_t vdev_raidz_pow2[256] = {
-	0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80,
-	0x1d, 0x3a, 0x74, 0xe8, 0xcd, 0x87, 0x13, 0x26,
-	0x4c, 0x98, 0x2d, 0x5a, 0xb4, 0x75, 0xea, 0xc9,
-	0x8f, 0x03, 0x06, 0x0c, 0x18, 0x30, 0x60, 0xc0,
-	0x9d, 0x27, 0x4e, 0x9c, 0x25, 0x4a, 0x94, 0x35,
-	0x6a, 0xd4, 0xb5, 0x77, 0xee, 0xc1, 0x9f, 0x23,
-	0x46, 0x8c, 0x05, 0x0a, 0x14, 0x28, 0x50, 0xa0,
-	0x5d, 0xba, 0x69, 0xd2, 0xb9, 0x6f, 0xde, 0xa1,
-	0x5f, 0xbe, 0x61, 0xc2, 0x99, 0x2f, 0x5e, 0xbc,
-	0x65, 0xca, 0x89, 0x0f, 0x1e, 0x3c, 0x78, 0xf0,
-	0xfd, 0xe7, 0xd3, 0xbb, 0x6b, 0xd6, 0xb1, 0x7f,
-	0xfe, 0xe1, 0xdf, 0xa3, 0x5b, 0xb6, 0x71, 0xe2,
-	0xd9, 0xaf, 0x43, 0x86, 0x11, 0x22, 0x44, 0x88,
-	0x0d, 0x1a, 0x34, 0x68, 0xd0, 0xbd, 0x67, 0xce,
-	0x81, 0x1f, 0x3e, 0x7c, 0xf8, 0xed, 0xc7, 0x93,
-	0x3b, 0x76, 0xec, 0xc5, 0x97, 0x33, 0x66, 0xcc,
-	0x85, 0x17, 0x2e, 0x5c, 0xb8, 0x6d, 0xda, 0xa9,
-	0x4f, 0x9e, 0x21, 0x42, 0x84, 0x15, 0x2a, 0x54,
-	0xa8, 0x4d, 0x9a, 0x29, 0x52, 0xa4, 0x55, 0xaa,
-	0x49, 0x92, 0x39, 0x72, 0xe4, 0xd5, 0xb7, 0x73,
-	0xe6, 0xd1, 0xbf, 0x63, 0xc6, 0x91, 0x3f, 0x7e,
-	0xfc, 0xe5, 0xd7, 0xb3, 0x7b, 0xf6, 0xf1, 0xff,
-	0xe3, 0xdb, 0xab, 0x4b, 0x96, 0x31, 0x62, 0xc4,
-	0x95, 0x37, 0x6e, 0xdc, 0xa5, 0x57, 0xae, 0x41,
-	0x82, 0x19, 0x32, 0x64, 0xc8, 0x8d, 0x07, 0x0e,
-	0x1c, 0x38, 0x70, 0xe0, 0xdd, 0xa7, 0x53, 0xa6,
-	0x51, 0xa2, 0x59, 0xb2, 0x79, 0xf2, 0xf9, 0xef,
-	0xc3, 0x9b, 0x2b, 0x56, 0xac, 0x45, 0x8a, 0x09,
-	0x12, 0x24, 0x48, 0x90, 0x3d, 0x7a, 0xf4, 0xf5,
-	0xf7, 0xf3, 0xfb, 0xeb, 0xcb, 0x8b, 0x0b, 0x16,
-	0x2c, 0x58, 0xb0, 0x7d, 0xfa, 0xe9, 0xcf, 0x83,
-	0x1b, 0x36, 0x6c, 0xd8, 0xad, 0x47, 0x8e, 0x01
-};
+static const uint8_t vdev_raidz_pow2[256] = { 0x01, 0x02, 0x04, 0x08, 0x10,
+	0x20, 0x40, 0x80, 0x1d, 0x3a, 0x74, 0xe8, 0xcd, 0x87, 0x13, 0x26, 0x4c,
+	0x98, 0x2d, 0x5a, 0xb4, 0x75, 0xea, 0xc9, 0x8f, 0x03, 0x06, 0x0c, 0x18,
+	0x30, 0x60, 0xc0, 0x9d, 0x27, 0x4e, 0x9c, 0x25, 0x4a, 0x94, 0x35, 0x6a,
+	0xd4, 0xb5, 0x77, 0xee, 0xc1, 0x9f, 0x23, 0x46, 0x8c, 0x05, 0x0a, 0x14,
+	0x28, 0x50, 0xa0, 0x5d, 0xba, 0x69, 0xd2, 0xb9, 0x6f, 0xde, 0xa1, 0x5f,
+	0xbe, 0x61, 0xc2, 0x99, 0x2f, 0x5e, 0xbc, 0x65, 0xca, 0x89, 0x0f, 0x1e,
+	0x3c, 0x78, 0xf0, 0xfd, 0xe7, 0xd3, 0xbb, 0x6b, 0xd6, 0xb1, 0x7f, 0xfe,
+	0xe1, 0xdf, 0xa3, 0x5b, 0xb6, 0x71, 0xe2, 0xd9, 0xaf, 0x43, 0x86, 0x11,
+	0x22, 0x44, 0x88, 0x0d, 0x1a, 0x34, 0x68, 0xd0, 0xbd, 0x67, 0xce, 0x81,
+	0x1f, 0x3e, 0x7c, 0xf8, 0xed, 0xc7, 0x93, 0x3b, 0x76, 0xec, 0xc5, 0x97,
+	0x33, 0x66, 0xcc, 0x85, 0x17, 0x2e, 0x5c, 0xb8, 0x6d, 0xda, 0xa9, 0x4f,
+	0x9e, 0x21, 0x42, 0x84, 0x15, 0x2a, 0x54, 0xa8, 0x4d, 0x9a, 0x29, 0x52,
+	0xa4, 0x55, 0xaa, 0x49, 0x92, 0x39, 0x72, 0xe4, 0xd5, 0xb7, 0x73, 0xe6,
+	0xd1, 0xbf, 0x63, 0xc6, 0x91, 0x3f, 0x7e, 0xfc, 0xe5, 0xd7, 0xb3, 0x7b,
+	0xf6, 0xf1, 0xff, 0xe3, 0xdb, 0xab, 0x4b, 0x96, 0x31, 0x62, 0xc4, 0x95,
+	0x37, 0x6e, 0xdc, 0xa5, 0x57, 0xae, 0x41, 0x82, 0x19, 0x32, 0x64, 0xc8,
+	0x8d, 0x07, 0x0e, 0x1c, 0x38, 0x70, 0xe0, 0xdd, 0xa7, 0x53, 0xa6, 0x51,
+	0xa2, 0x59, 0xb2, 0x79, 0xf2, 0xf9, 0xef, 0xc3, 0x9b, 0x2b, 0x56, 0xac,
+	0x45, 0x8a, 0x09, 0x12, 0x24, 0x48, 0x90, 0x3d, 0x7a, 0xf4, 0xf5, 0xf7,
+	0xf3, 0xfb, 0xeb, 0xcb, 0x8b, 0x0b, 0x16, 0x2c, 0x58, 0xb0, 0x7d, 0xfa,
+	0xe9, 0xcf, 0x83, 0x1b, 0x36, 0x6c, 0xd8, 0xad, 0x47, 0x8e, 0x01 };
 static const uint8_t vdev_raidz_log2[256] = {
-	0x00, 0x00, 0x01, 0x19, 0x02, 0x32, 0x1a, 0xc6,
-	0x03, 0xdf, 0x33, 0xee, 0x1b, 0x68, 0xc7, 0x4b,
-	0x04, 0x64, 0xe0, 0x0e, 0x34, 0x8d, 0xef, 0x81,
-	0x1c, 0xc1, 0x69, 0xf8, 0xc8, 0x08, 0x4c, 0x71,
-	0x05, 0x8a, 0x65, 0x2f, 0xe1, 0x24, 0x0f, 0x21,
-	0x35, 0x93, 0x8e, 0xda, 0xf0, 0x12, 0x82, 0x45,
-	0x1d, 0xb5, 0xc2, 0x7d, 0x6a, 0x27, 0xf9, 0xb9,
-	0xc9, 0x9a, 0x09, 0x78, 0x4d, 0xe4, 0x72, 0xa6,
-	0x06, 0xbf, 0x8b, 0x62, 0x66, 0xdd, 0x30, 0xfd,
-	0xe2, 0x98, 0x25, 0xb3, 0x10, 0x91, 0x22, 0x88,
-	0x36, 0xd0, 0x94, 0xce, 0x8f, 0x96, 0xdb, 0xbd,
-	0xf1, 0xd2, 0x13, 0x5c, 0x83, 0x38, 0x46, 0x40,
-	0x1e, 0x42, 0xb6, 0xa3, 0xc3, 0x48, 0x7e, 0x6e,
-	0x6b, 0x3a, 0x28, 0x54, 0xfa, 0x85, 0xba, 0x3d,
-	0xca, 0x5e, 0x9b, 0x9f, 0x0a, 0x15, 0x79, 0x2b,
-	0x4e, 0xd4, 0xe5, 0xac, 0x73, 0xf3, 0xa7, 0x57,
-	0x07, 0x70, 0xc0, 0xf7, 0x8c, 0x80, 0x63, 0x0d,
-	0x67, 0x4a, 0xde, 0xed, 0x31, 0xc5, 0xfe, 0x18,
-	0xe3, 0xa5, 0x99, 0x77, 0x26, 0xb8, 0xb4, 0x7c,
-	0x11, 0x44, 0x92, 0xd9, 0x23, 0x20, 0x89, 0x2e,
-	0x37, 0x3f, 0xd1, 0x5b, 0x95, 0xbc, 0xcf, 0xcd,
-	0x90, 0x87, 0x97, 0xb2, 0xdc, 0xfc, 0xbe, 0x61,
-	0xf2, 0x56, 0xd3, 0xab, 0x14, 0x2a, 0x5d, 0x9e,
-	0x84, 0x3c, 0x39, 0x53, 0x47, 0x6d, 0x41, 0xa2,
-	0x1f, 0x2d, 0x43, 0xd8, 0xb7, 0x7b, 0xa4, 0x76,
-	0xc4, 0x17, 0x49, 0xec, 0x7f, 0x0c, 0x6f, 0xf6,
-	0x6c, 0xa1, 0x3b, 0x52, 0x29, 0x9d, 0x55, 0xaa,
-	0xfb, 0x60, 0x86, 0xb1, 0xbb, 0xcc, 0x3e, 0x5a,
-	0xcb, 0x59, 0x5f, 0xb0, 0x9c, 0xa9, 0xa0, 0x51,
-	0x0b, 0xf5, 0x16, 0xeb, 0x7a, 0x75, 0x2c, 0xd7,
-	0x4f, 0xae, 0xd5, 0xe9, 0xe6, 0xe7, 0xad, 0xe8,
-	0x74, 0xd6, 0xf4, 0xea, 0xa8, 0x50, 0x58, 0xaf,
+	0x00,
+	0x00,
+	0x01,
+	0x19,
+	0x02,
+	0x32,
+	0x1a,
+	0xc6,
+	0x03,
+	0xdf,
+	0x33,
+	0xee,
+	0x1b,
+	0x68,
+	0xc7,
+	0x4b,
+	0x04,
+	0x64,
+	0xe0,
+	0x0e,
+	0x34,
+	0x8d,
+	0xef,
+	0x81,
+	0x1c,
+	0xc1,
+	0x69,
+	0xf8,
+	0xc8,
+	0x08,
+	0x4c,
+	0x71,
+	0x05,
+	0x8a,
+	0x65,
+	0x2f,
+	0xe1,
+	0x24,
+	0x0f,
+	0x21,
+	0x35,
+	0x93,
+	0x8e,
+	0xda,
+	0xf0,
+	0x12,
+	0x82,
+	0x45,
+	0x1d,
+	0xb5,
+	0xc2,
+	0x7d,
+	0x6a,
+	0x27,
+	0xf9,
+	0xb9,
+	0xc9,
+	0x9a,
+	0x09,
+	0x78,
+	0x4d,
+	0xe4,
+	0x72,
+	0xa6,
+	0x06,
+	0xbf,
+	0x8b,
+	0x62,
+	0x66,
+	0xdd,
+	0x30,
+	0xfd,
+	0xe2,
+	0x98,
+	0x25,
+	0xb3,
+	0x10,
+	0x91,
+	0x22,
+	0x88,
+	0x36,
+	0xd0,
+	0x94,
+	0xce,
+	0x8f,
+	0x96,
+	0xdb,
+	0xbd,
+	0xf1,
+	0xd2,
+	0x13,
+	0x5c,
+	0x83,
+	0x38,
+	0x46,
+	0x40,
+	0x1e,
+	0x42,
+	0xb6,
+	0xa3,
+	0xc3,
+	0x48,
+	0x7e,
+	0x6e,
+	0x6b,
+	0x3a,
+	0x28,
+	0x54,
+	0xfa,
+	0x85,
+	0xba,
+	0x3d,
+	0xca,
+	0x5e,
+	0x9b,
+	0x9f,
+	0x0a,
+	0x15,
+	0x79,
+	0x2b,
+	0x4e,
+	0xd4,
+	0xe5,
+	0xac,
+	0x73,
+	0xf3,
+	0xa7,
+	0x57,
+	0x07,
+	0x70,
+	0xc0,
+	0xf7,
+	0x8c,
+	0x80,
+	0x63,
+	0x0d,
+	0x67,
+	0x4a,
+	0xde,
+	0xed,
+	0x31,
+	0xc5,
+	0xfe,
+	0x18,
+	0xe3,
+	0xa5,
+	0x99,
+	0x77,
+	0x26,
+	0xb8,
+	0xb4,
+	0x7c,
+	0x11,
+	0x44,
+	0x92,
+	0xd9,
+	0x23,
+	0x20,
+	0x89,
+	0x2e,
+	0x37,
+	0x3f,
+	0xd1,
+	0x5b,
+	0x95,
+	0xbc,
+	0xcf,
+	0xcd,
+	0x90,
+	0x87,
+	0x97,
+	0xb2,
+	0xdc,
+	0xfc,
+	0xbe,
+	0x61,
+	0xf2,
+	0x56,
+	0xd3,
+	0xab,
+	0x14,
+	0x2a,
+	0x5d,
+	0x9e,
+	0x84,
+	0x3c,
+	0x39,
+	0x53,
+	0x47,
+	0x6d,
+	0x41,
+	0xa2,
+	0x1f,
+	0x2d,
+	0x43,
+	0xd8,
+	0xb7,
+	0x7b,
+	0xa4,
+	0x76,
+	0xc4,
+	0x17,
+	0x49,
+	0xec,
+	0x7f,
+	0x0c,
+	0x6f,
+	0xf6,
+	0x6c,
+	0xa1,
+	0x3b,
+	0x52,
+	0x29,
+	0x9d,
+	0x55,
+	0xaa,
+	0xfb,
+	0x60,
+	0x86,
+	0xb1,
+	0xbb,
+	0xcc,
+	0x3e,
+	0x5a,
+	0xcb,
+	0x59,
+	0x5f,
+	0xb0,
+	0x9c,
+	0xa9,
+	0xa0,
+	0x51,
+	0x0b,
+	0xf5,
+	0x16,
+	0xeb,
+	0x7a,
+	0x75,
+	0x2c,
+	0xd7,
+	0x4f,
+	0xae,
+	0xd5,
+	0xe9,
+	0xe6,
+	0xe7,
+	0xad,
+	0xe8,
+	0x74,
+	0xd6,
+	0xf4,
+	0xea,
+	0xa8,
+	0x50,
+	0x58,
+	0xaf,
 };
 
 /*
@@ -537,12 +755,12 @@ vdev_raidz_generate_parity_p(raidz_map_t *rm)
 	uint64_t pcount __unused;
 	int c;
 
-	pcount = rm->rm_col[VDEV_RAIDZ_P].rc_size / sizeof (src[0]);
+	pcount = rm->rm_col[VDEV_RAIDZ_P].rc_size / sizeof(src[0]);
 
 	for (c = rm->rm_firstdatacol; c < rm->rm_cols; c++) {
 		src = rm->rm_col[c].rc_data;
 		p = rm->rm_col[VDEV_RAIDZ_P].rc_data;
-		ccount = rm->rm_col[c].rc_size / sizeof (src[0]);
+		ccount = rm->rm_col[c].rc_size / sizeof(src[0]);
 
 		if (c == rm->rm_firstdatacol) {
 			ASSERT(ccount == pcount);
@@ -564,7 +782,7 @@ vdev_raidz_generate_parity_pq(raidz_map_t *rm)
 	uint64_t *p, *q, *src, pcnt, ccnt, mask, i;
 	int c;
 
-	pcnt = rm->rm_col[VDEV_RAIDZ_P].rc_size / sizeof (src[0]);
+	pcnt = rm->rm_col[VDEV_RAIDZ_P].rc_size / sizeof(src[0]);
 	ASSERT(rm->rm_col[VDEV_RAIDZ_P].rc_size ==
 	    rm->rm_col[VDEV_RAIDZ_Q].rc_size);
 
@@ -573,7 +791,7 @@ vdev_raidz_generate_parity_pq(raidz_map_t *rm)
 		p = rm->rm_col[VDEV_RAIDZ_P].rc_data;
 		q = rm->rm_col[VDEV_RAIDZ_Q].rc_data;
 
-		ccnt = rm->rm_col[c].rc_size / sizeof (src[0]);
+		ccnt = rm->rm_col[c].rc_size / sizeof(src[0]);
 
 		if (c == rm->rm_firstdatacol) {
 			ASSERT(ccnt == pcnt || ccnt == 0);
@@ -616,7 +834,7 @@ vdev_raidz_generate_parity_pqr(raidz_map_t *rm)
 	uint64_t *p, *q, *r, *src, pcnt, ccnt, mask, i;
 	int c;
 
-	pcnt = rm->rm_col[VDEV_RAIDZ_P].rc_size / sizeof (src[0]);
+	pcnt = rm->rm_col[VDEV_RAIDZ_P].rc_size / sizeof(src[0]);
 	ASSERT(rm->rm_col[VDEV_RAIDZ_P].rc_size ==
 	    rm->rm_col[VDEV_RAIDZ_Q].rc_size);
 	ASSERT(rm->rm_col[VDEV_RAIDZ_P].rc_size ==
@@ -628,7 +846,7 @@ vdev_raidz_generate_parity_pqr(raidz_map_t *rm)
 		q = rm->rm_col[VDEV_RAIDZ_Q].rc_data;
 		r = rm->rm_col[VDEV_RAIDZ_R].rc_data;
 
-		ccnt = rm->rm_col[c].rc_size / sizeof (src[0]);
+		ccnt = rm->rm_col[c].rc_size / sizeof(src[0]);
 
 		if (c == rm->rm_firstdatacol) {
 			ASSERT(ccnt == pcnt || ccnt == 0);
@@ -948,10 +1166,9 @@ vdev_raidz_matrix_invert(raidz_map_t *rm, int n, int nmissing, int *missing,
 			log = vdev_raidz_log2[rows[ii][missing[i]]];
 
 			for (j = 0; j < n; j++) {
-				rows[ii][j] ^=
-				    vdev_raidz_exp2(rows[i][j], log);
-				invrows[ii][j] ^=
-				    vdev_raidz_exp2(invrows[i][j], log);
+				rows[ii][j] ^= vdev_raidz_exp2(rows[i][j], log);
+				invrows[ii][j] ^= vdev_raidz_exp2(invrows[i][j],
+				    log);
 			}
 		}
 	}
@@ -986,8 +1203,8 @@ vdev_raidz_matrix_reconstruct(raidz_map_t *rm, int n, int nmissing,
 	uint8_t *p, *pp;
 	size_t psize;
 
-	log = 0;	/* gcc */
-	psize = sizeof (invlog[0][0]) * n * nmissing;
+	log = 0; /* gcc */
+	psize = sizeof(invlog[0][0]) * n * nmissing;
 	p = malloc(psize);
 	if (p == NULL) {
 		printf("Out of memory\n");
@@ -1068,7 +1285,6 @@ vdev_raidz_reconstruct_general(raidz_map_t *rm, int *tgts, int ntgts)
 
 	int code = 0;
 
-
 	n = rm->rm_cols - rm->rm_firstdatacol;
 
 	/*
@@ -1077,8 +1293,8 @@ vdev_raidz_reconstruct_general(raidz_map_t *rm, int *tgts, int ntgts)
 	nmissing_rows = 0;
 	for (t = 0; t < ntgts; t++) {
 		if (tgts[t] >= rm->rm_firstdatacol) {
-			missing_rows[nmissing_rows++] =
-			    tgts[t] - rm->rm_firstdatacol;
+			missing_rows[nmissing_rows++] = tgts[t] -
+			    rm->rm_firstdatacol;
 		}
 	}
 
@@ -1107,8 +1323,9 @@ vdev_raidz_reconstruct_general(raidz_map_t *rm, int *tgts, int ntgts)
 	ASSERT(code != 0);
 	ASSERT3U(code, <, 1 << VDEV_RAIDZ_MAXPARITY);
 
-	psize = (sizeof (rows[0][0]) + sizeof (invrows[0][0])) *
-	    nmissing_rows * n + sizeof (used[0]) * n;
+	psize = (sizeof(rows[0][0]) + sizeof(invrows[0][0])) * nmissing_rows *
+		n +
+	    sizeof(used[0]) * n;
 	p = malloc(psize);
 	if (p == NULL) {
 		printf("Out of memory\n");
@@ -1347,7 +1564,7 @@ vdev_child(vdev_t *pvd, uint64_t devidx)
 {
 	vdev_t *cvd;
 
-	STAILQ_FOREACH(cvd, &pvd->v_children, v_childlink) {
+	STAILQ_FOREACH (cvd, &pvd->v_children, v_childlink) {
 		if (cvd->v_id == devidx)
 			break;
 	}
@@ -1528,8 +1745,9 @@ vdev_raidz_combrec(const spa_t *spa, raidz_map_t *rm, const blkptr_t *bp,
 				 * position..
 				 */
 				for (next = tgts[current] + 1;
-				    next < rm->rm_cols &&
-				    rm->rm_col[next].rc_error != 0; next++)
+				     next < rm->rm_cols &&
+				     rm->rm_col[next].rc_error != 0;
+				     next++)
 					continue;
 
 				ASSERT(next <= tgts[current + 1]);
@@ -1545,7 +1763,7 @@ vdev_raidz_combrec(const spa_t *spa, raidz_map_t *rm, const blkptr_t *bp,
 				 * the previous position.
 				 */
 				for (c = tgts[current - 1] + 1;
-				    rm->rm_col[c].rc_error != 0; c++)
+				     rm->rm_col[c].rc_error != 0; c++)
 					continue;
 
 				tgts[current] = c;
@@ -1564,8 +1782,8 @@ done:
 }
 
 static int
-vdev_raidz_read(vdev_t *vd, const blkptr_t *bp, void *data,
-    off_t offset, size_t bytes)
+vdev_raidz_read(vdev_t *vd, const blkptr_t *bp, void *data, off_t offset,
+    size_t bytes)
 {
 	vdev_t *tvd = vd->v_top;
 	vdev_t *cvd;
@@ -1581,7 +1799,7 @@ vdev_raidz_read(vdev_t *vd, const blkptr_t *bp, void *data,
 	int tgts[VDEV_RAIDZ_MAXPARITY];
 	int code;
 
-	rc = NULL;	/* gcc */
+	rc = NULL; /* gcc */
 	error = 0;
 
 	rm = vdev_raidz_map_alloc(data, offset, bytes, tvd->v_ashift,
@@ -1602,11 +1820,11 @@ vdev_raidz_read(vdev_t *vd, const blkptr_t *bp, void *data,
 			else
 				rm->rm_missingparity++;
 			rc->rc_error = ENXIO;
-			rc->rc_tried = 1;	/* don't even try */
+			rc->rc_tried = 1; /* don't even try */
 			rc->rc_skipped = 1;
 			continue;
 		}
-#if 0		/* XXX: Too hard for the boot code. */
+#if 0 /* XXX: Too hard for the boot code. */
 		if (vdev_dtl_contains(cvd, DTL_MISSING, zio->io_txg, 1)) {
 			if (c >= rm->rm_firstdatacol)
 				rm->rm_missingdata++;
@@ -1639,7 +1857,7 @@ reconstruct:
 		rc = &rm->rm_col[c];
 
 		if (rc->rc_error) {
-			ASSERT(rc->rc_error != ECKSUM);	/* child has no bp */
+			ASSERT(rc->rc_error != ECKSUM); /* child has no bp */
 
 			if (c < rm->rm_firstdatacol)
 				parity_errors++;
@@ -1770,8 +1988,8 @@ reconstruct:
 
 		cvd = vdev_child(vd, rc->rc_devidx);
 		ASSERT(cvd != NULL);
-		rc->rc_error = cvd->v_read(cvd, NULL,
-		    rc->rc_data, rc->rc_offset, rc->rc_size);
+		rc->rc_error = cvd->v_read(cvd, NULL, rc->rc_data,
+		    rc->rc_offset, rc->rc_size);
 		if (rc->rc_error == 0)
 			n++;
 		rc->rc_tried = 1;
@@ -1798,14 +2016,14 @@ reconstruct:
 		error = EIO;
 	} else if (total_errors < rm->rm_firstdatacol &&
 	    (code = vdev_raidz_combrec(vd->v_spa, rm, bp, data, offset, bytes,
-	     total_errors, data_errors)) != 0) {
+		 total_errors, data_errors)) != 0) {
 		/*
 		 * If we didn't use all the available parity for the
 		 * combinatorial reconstruction, verify that the remaining
 		 * parity is correct.
 		 */
 		if (code != (1 << rm->rm_firstdatacol) - 1)
-			(void) raidz_parity_verify(rm);
+			(void)raidz_parity_verify(rm);
 	} else {
 		/*
 		 * We're here because either:

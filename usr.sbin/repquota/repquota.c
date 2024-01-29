@@ -38,8 +38,6 @@
 #include <sys/param.h>
 #include <sys/mount.h>
 
-#include <ufs/ufs/quota.h>
-
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -52,39 +50,38 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <ufs/ufs/quota.h>
 #include <unistd.h>
 
 /* Let's be paranoid about block size */
 #if 10 > DEV_BSHIFT
-#define dbtokb(db) \
-	((off_t)(db) >> (10-DEV_BSHIFT))
+#define dbtokb(db) ((off_t)(db) >> (10 - DEV_BSHIFT))
 #elif 10 < DEV_BSHIFT
-#define dbtokb(db) \
-	((off_t)(db) << (DEV_BSHIFT-10))
+#define dbtokb(db) ((off_t)(db) << (DEV_BSHIFT - 10))
 #else
-#define dbtokb(db)	(db)
+#define dbtokb(db) (db)
 #endif
 
-#define max(a,b) ((a) >= (b) ? (a) : (b))
+#define max(a, b) ((a) >= (b) ? (a) : (b))
 
 static const char *qfextension[] = INITQFNAMES;
 
 struct fileusage {
-	struct	fileusage *fu_next;
-	u_long	fu_id;
-	char	fu_name[1];
+	struct fileusage *fu_next;
+	u_long fu_id;
+	char fu_name[1];
 	/* actually bigger */
 };
-#define FUHASH 1024	/* must be power of two */
+#define FUHASH 1024 /* must be power of two */
 static struct fileusage *fuhead[MAXQUOTAS][FUHASH];
 static struct fileusage *lookup(u_long, int);
 static struct fileusage *addid(u_long, int, char *);
 static u_long highid[MAXQUOTAS]; /* highest addid()'ed identifier per type */
 
-static int	vflag;		/* verbose */
-static int	aflag;		/* all filesystems */
-static int	nflag;		/* display user/group by id */
-static int	hflag;		/* display in human readable format */
+static int vflag; /* verbose */
+static int aflag; /* all filesystems */
+static int nflag; /* display user/group by id */
+static int hflag; /* display in human readable format */
 
 int oneof(char *, char *[], int);
 int repquota(struct fstab *, int);
@@ -102,7 +99,7 @@ main(int argc, char *argv[])
 	long i, argnum, done = 0;
 
 	while ((ch = getopt(argc, argv, "aghnuv")) != -1) {
-		switch(ch) {
+		switch (ch) {
 		case 'a':
 			aflag++;
 			break;
@@ -137,13 +134,13 @@ main(int argc, char *argv[])
 	if (gflag && !nflag) {
 		setgrent();
 		while ((gr = getgrent()) != 0)
-			(void) addid((u_long)gr->gr_gid, GRPQUOTA, gr->gr_name);
+			(void)addid((u_long)gr->gr_gid, GRPQUOTA, gr->gr_name);
 		endgrent();
 	}
 	if (uflag && !nflag) {
 		setpwent();
 		while ((pw = getpwent()) != 0)
-			(void) addid((u_long)pw->pw_uid, USRQUOTA, pw->pw_name);
+			(void)addid((u_long)pw->pw_uid, USRQUOTA, pw->pw_name);
 		endpwent();
 	}
 	setfsent();
@@ -177,8 +174,8 @@ static void
 usage(void)
 {
 	fprintf(stderr, "%s\n%s\n",
-		"usage: repquota [-h] [-v] [-g] [-n] [-u] -a",
-		"       repquota [-h] [-v] [-g] [-n] [-u] filesystem ...");
+	    "usage: repquota [-h] [-v] [-g] [-n] [-u] -a",
+	    "       repquota [-h] [-v] [-g] [-n] [-u] filesystem ...");
 	exit(1);
 }
 
@@ -197,9 +194,9 @@ repquota(struct fstab *fs, int type)
 				printf("\n");
 			fprintf(stdout, "*** No %s quotas on %s (%s)\n",
 			    qfextension[type], fs->fs_file, fs->fs_spec);
-			return(1);
+			return (1);
 		}
-		return(0);
+		return (0);
 	}
 	if (multiple++)
 		printf("\n");
@@ -207,9 +204,10 @@ repquota(struct fstab *fs, int type)
 		fprintf(stdout, "*** Report for %s quotas on %s (%s)\n",
 		    qfextension[type], fs->fs_file, fs->fs_spec);
 	printf("%*s           Block  limits                    File  limits\n",
-		max(MAXLOGNAME - 1, 10), " ");
-	printf("User%*s  used   soft   hard  grace     used    soft    hard  grace\n",
-		max(MAXLOGNAME - 1, 10), " ");
+	    max(MAXLOGNAME - 1, 10), " ");
+	printf(
+	    "User%*s  used   soft   hard  grace     used    soft    hard  grace\n",
+	    max(MAXLOGNAME - 1, 10), " ");
 	maxid = quota_maxid(qf);
 	for (id = 0; id <= maxid; id++) {
 		if (quota_read(qf, &dqbuf, id) != 0)
@@ -219,29 +217,30 @@ repquota(struct fstab *fs, int type)
 		if ((fup = lookup(id, type)) == 0)
 			fup = addid(id, type, (char *)0);
 		printf("%-*s ", max(MAXLOGNAME - 1, 10), fup->fu_name);
-		printf("%c%c", 
+		printf("%c%c",
 		    dqbuf.dqb_bsoftlimit &&
-		    dqbuf.dqb_curblocks >=
-		    dqbuf.dqb_bsoftlimit ? '+' : '-',
+			    dqbuf.dqb_curblocks >= dqbuf.dqb_bsoftlimit ?
+			'+' :
+			'-',
 		    dqbuf.dqb_isoftlimit &&
-		    dqbuf.dqb_curinodes >=
-		    dqbuf.dqb_isoftlimit ? '+' : '-');
+			    dqbuf.dqb_curinodes >= dqbuf.dqb_isoftlimit ?
+			'+' :
+			'-');
 		prthumanval(dqbuf.dqb_curblocks);
 		prthumanval(dqbuf.dqb_bsoftlimit);
 		prthumanval(dqbuf.dqb_bhardlimit);
 		printf(" %6s",
 		    dqbuf.dqb_bsoftlimit &&
-		    dqbuf.dqb_curblocks >=
-		    dqbuf.dqb_bsoftlimit ?
-		    timeprt(dqbuf.dqb_btime) : "-");
-		printf("  %7ju %7ju %7ju %6s\n",
-		    (uintmax_t)dqbuf.dqb_curinodes,
+			    dqbuf.dqb_curblocks >= dqbuf.dqb_bsoftlimit ?
+			timeprt(dqbuf.dqb_btime) :
+			"-");
+		printf("  %7ju %7ju %7ju %6s\n", (uintmax_t)dqbuf.dqb_curinodes,
 		    (uintmax_t)dqbuf.dqb_isoftlimit,
 		    (uintmax_t)dqbuf.dqb_ihardlimit,
 		    dqbuf.dqb_isoftlimit &&
-		    dqbuf.dqb_curinodes >=
-		    dqbuf.dqb_isoftlimit ?
-		    timeprt(dqbuf.dqb_itime) : "-");
+			    dqbuf.dqb_curinodes >= dqbuf.dqb_isoftlimit ?
+			timeprt(dqbuf.dqb_itime) :
+			"-");
 	}
 	quota_close(qf);
 	return (0);
@@ -260,8 +259,8 @@ prthumanval(int64_t blocks)
 	flags = HN_NOSPACE | HN_DECIMAL;
 	if (blocks != 0)
 		flags |= HN_B;
-	humanize_number(buf, sizeof(buf) - (blocks < 0 ? 0 : 1),
-	    dbtob(blocks), "", HN_AUTOSCALE, flags);
+	humanize_number(buf, sizeof(buf) - (blocks < 0 ? 0 : 1), dbtob(blocks),
+	    "", HN_AUTOSCALE, flags);
 	(void)printf("%7s", buf);
 }
 
@@ -289,7 +288,8 @@ lookup(u_long id, int type)
 {
 	struct fileusage *fup;
 
-	for (fup = fuhead[type][id & (FUHASH-1)]; fup != 0; fup = fup->fu_next)
+	for (fup = fuhead[type][id & (FUHASH - 1)]; fup != 0;
+	     fup = fup->fu_next)
 		if (fup->fu_id == id)
 			return (fup);
 	return ((struct fileusage *)0);
@@ -339,7 +339,7 @@ timeprt(time_t seconds)
 	if (now == 0)
 		time(&now);
 	if (now > seconds) {
-		strlcpy(buf, "none", sizeof (buf));
+		strlcpy(buf, "none", sizeof(buf));
 		return (buf);
 	}
 	seconds -= now;

@@ -26,14 +26,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef	_LINUXKPI_LINUX_KDEV_T_H_
-#define	_LINUXKPI_LINUX_KDEV_T_H_
+#ifndef _LINUXKPI_LINUX_KDEV_T_H_
+#define _LINUXKPI_LINUX_KDEV_T_H_
 
 #include <sys/types.h>
 
-#define MAJOR(dev)      major(dev)
-#define MINOR(dev)      minor(dev)
-#define MKDEV(ma, mi)   makedev(ma, mi)
+#define MAJOR(dev) major(dev)
+#define MINOR(dev) minor(dev)
+#define MKDEV(ma, mi) makedev(ma, mi)
 
 static inline uint16_t
 old_encode_dev(dev_t dev)
@@ -41,4 +41,4 @@ old_encode_dev(dev_t dev)
 	return ((MAJOR(dev) << 8) | MINOR(dev));
 }
 
-#endif	/* _LINUXKPI_LINUX_KDEV_T_H_ */
+#endif /* _LINUXKPI_LINUX_KDEV_T_H_ */

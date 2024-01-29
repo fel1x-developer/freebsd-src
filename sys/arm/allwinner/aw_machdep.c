@@ -45,9 +45,9 @@
 #include <machine/machdep.h>
 #include <machine/platformvar.h>
 
+#include <arm/allwinner/aw_machdep.h>
 #include <arm/allwinner/aw_mp.h>
 #include <arm/allwinner/aw_wdog.h>
-#include <arm/allwinner/aw_machdep.h>
 
 #include "platform_if.h"
 
@@ -158,14 +158,15 @@ allwinner_cpu_reset(platform_t plat)
 {
 	aw_wdog_watchdog_reset();
 	printf("Reset failed!\n");
-	while (1);
+	while (1)
+		;
 }
 
 #if defined(SOC_ALLWINNER_A10)
 static platform_method_t a10_methods[] = {
-	PLATFORMMETHOD(platform_attach,         a10_attach),
-	PLATFORMMETHOD(platform_devmap_init,    allwinner_devmap_init),
-	PLATFORMMETHOD(platform_cpu_reset,	allwinner_cpu_reset),
+	PLATFORMMETHOD(platform_attach, a10_attach),
+	PLATFORMMETHOD(platform_devmap_init, allwinner_devmap_init),
+	PLATFORMMETHOD(platform_cpu_reset, allwinner_cpu_reset),
 
 	PLATFORMMETHOD_END,
 };
@@ -174,9 +175,9 @@ FDT_PLATFORM_DEF(a10, "a10", 0, "allwinner,sun4i-a10", 200);
 
 #if defined(SOC_ALLWINNER_A13)
 static platform_method_t a13_methods[] = {
-	PLATFORMMETHOD(platform_attach,         a13_attach),
-	PLATFORMMETHOD(platform_devmap_init,    allwinner_devmap_init),
-	PLATFORMMETHOD(platform_cpu_reset,	allwinner_cpu_reset),
+	PLATFORMMETHOD(platform_attach, a13_attach),
+	PLATFORMMETHOD(platform_devmap_init, allwinner_devmap_init),
+	PLATFORMMETHOD(platform_cpu_reset, allwinner_cpu_reset),
 
 	PLATFORMMETHOD_END,
 };
@@ -185,13 +186,13 @@ FDT_PLATFORM_DEF(a13, "a13", 0, "allwinner,sun5i-a13", 200);
 
 #if defined(SOC_ALLWINNER_A20)
 static platform_method_t a20_methods[] = {
-	PLATFORMMETHOD(platform_attach,         a20_attach),
-	PLATFORMMETHOD(platform_devmap_init,    allwinner_devmap_init),
-	PLATFORMMETHOD(platform_cpu_reset,	allwinner_cpu_reset),
+	PLATFORMMETHOD(platform_attach, a20_attach),
+	PLATFORMMETHOD(platform_devmap_init, allwinner_devmap_init),
+	PLATFORMMETHOD(platform_cpu_reset, allwinner_cpu_reset),
 
 #ifdef SMP
-	PLATFORMMETHOD(platform_mp_start_ap,	aw_mp_start_ap),
-	PLATFORMMETHOD(platform_mp_setmaxid,	aw_mp_setmaxid),
+	PLATFORMMETHOD(platform_mp_start_ap, aw_mp_start_ap),
+	PLATFORMMETHOD(platform_mp_setmaxid, aw_mp_setmaxid),
 #endif
 	PLATFORMMETHOD_END,
 };
@@ -200,13 +201,13 @@ FDT_PLATFORM_DEF(a20, "a20", 0, "allwinner,sun7i-a20", 200);
 
 #if defined(SOC_ALLWINNER_A31)
 static platform_method_t a31_methods[] = {
-	PLATFORMMETHOD(platform_attach,         a31_attach),
-	PLATFORMMETHOD(platform_devmap_init,    allwinner_devmap_init),
-	PLATFORMMETHOD(platform_cpu_reset,	allwinner_cpu_reset),
+	PLATFORMMETHOD(platform_attach, a31_attach),
+	PLATFORMMETHOD(platform_devmap_init, allwinner_devmap_init),
+	PLATFORMMETHOD(platform_cpu_reset, allwinner_cpu_reset),
 
 #ifdef SMP
-	PLATFORMMETHOD(platform_mp_start_ap,	aw_mp_start_ap),
-	PLATFORMMETHOD(platform_mp_setmaxid,	aw_mp_setmaxid),
+	PLATFORMMETHOD(platform_mp_start_ap, aw_mp_start_ap),
+	PLATFORMMETHOD(platform_mp_setmaxid, aw_mp_setmaxid),
 #endif
 	PLATFORMMETHOD_END,
 };
@@ -215,13 +216,13 @@ FDT_PLATFORM_DEF(a31, "a31", 0, "allwinner,sun6i-a31", 200);
 
 #if defined(SOC_ALLWINNER_A31S)
 static platform_method_t a31s_methods[] = {
-	PLATFORMMETHOD(platform_attach,         a31s_attach),
-	PLATFORMMETHOD(platform_devmap_init,    allwinner_devmap_init),
-	PLATFORMMETHOD(platform_cpu_reset,	allwinner_cpu_reset),
+	PLATFORMMETHOD(platform_attach, a31s_attach),
+	PLATFORMMETHOD(platform_devmap_init, allwinner_devmap_init),
+	PLATFORMMETHOD(platform_cpu_reset, allwinner_cpu_reset),
 
 #ifdef SMP
-	PLATFORMMETHOD(platform_mp_start_ap,	aw_mp_start_ap),
-	PLATFORMMETHOD(platform_mp_setmaxid,	aw_mp_setmaxid),
+	PLATFORMMETHOD(platform_mp_start_ap, aw_mp_start_ap),
+	PLATFORMMETHOD(platform_mp_setmaxid, aw_mp_setmaxid),
 #endif
 	PLATFORMMETHOD_END,
 };
@@ -230,13 +231,13 @@ FDT_PLATFORM_DEF(a31s, "a31s", 0, "allwinner,sun6i-a31s", 200);
 
 #if defined(SOC_ALLWINNER_A33)
 static platform_method_t a33_methods[] = {
-	PLATFORMMETHOD(platform_attach,         a33_attach),
-	PLATFORMMETHOD(platform_devmap_init,    allwinner_devmap_init),
-	PLATFORMMETHOD(platform_cpu_reset,	allwinner_cpu_reset),
+	PLATFORMMETHOD(platform_attach, a33_attach),
+	PLATFORMMETHOD(platform_devmap_init, allwinner_devmap_init),
+	PLATFORMMETHOD(platform_cpu_reset, allwinner_cpu_reset),
 
 #ifdef SMP
-	PLATFORMMETHOD(platform_mp_start_ap,	aw_mp_start_ap),
-	PLATFORMMETHOD(platform_mp_setmaxid,	aw_mp_setmaxid),
+	PLATFORMMETHOD(platform_mp_start_ap, aw_mp_start_ap),
+	PLATFORMMETHOD(platform_mp_setmaxid, aw_mp_setmaxid),
 #endif
 	PLATFORMMETHOD_END,
 };
@@ -245,13 +246,13 @@ FDT_PLATFORM_DEF(a33, "a33", 0, "allwinner,sun8i-a33", 200);
 
 #if defined(SOC_ALLWINNER_A83T)
 static platform_method_t a83t_methods[] = {
-	PLATFORMMETHOD(platform_attach,         a83t_attach),
-	PLATFORMMETHOD(platform_devmap_init,    allwinner_devmap_init),
-	PLATFORMMETHOD(platform_cpu_reset,	allwinner_cpu_reset),
+	PLATFORMMETHOD(platform_attach, a83t_attach),
+	PLATFORMMETHOD(platform_devmap_init, allwinner_devmap_init),
+	PLATFORMMETHOD(platform_cpu_reset, allwinner_cpu_reset),
 
 #ifdef SMP
-	PLATFORMMETHOD(platform_mp_start_ap,	a83t_mp_start_ap),
-	PLATFORMMETHOD(platform_mp_setmaxid,	aw_mp_setmaxid),
+	PLATFORMMETHOD(platform_mp_start_ap, a83t_mp_start_ap),
+	PLATFORMMETHOD(platform_mp_setmaxid, aw_mp_setmaxid),
 #endif
 	PLATFORMMETHOD_END,
 };
@@ -260,13 +261,13 @@ FDT_PLATFORM_DEF(a83t, "a83t", 0, "allwinner,sun8i-a83t", 200);
 
 #if defined(SOC_ALLWINNER_H2PLUS)
 static platform_method_t h2_plus_methods[] = {
-	PLATFORMMETHOD(platform_attach,         h3_attach),
-	PLATFORMMETHOD(platform_devmap_init,    allwinner_devmap_init),
-	PLATFORMMETHOD(platform_cpu_reset,	allwinner_cpu_reset),
+	PLATFORMMETHOD(platform_attach, h3_attach),
+	PLATFORMMETHOD(platform_devmap_init, allwinner_devmap_init),
+	PLATFORMMETHOD(platform_cpu_reset, allwinner_cpu_reset),
 
 #ifdef SMP
-	PLATFORMMETHOD(platform_mp_start_ap,	aw_mp_start_ap),
-	PLATFORMMETHOD(platform_mp_setmaxid,	aw_mp_setmaxid),
+	PLATFORMMETHOD(platform_mp_start_ap, aw_mp_start_ap),
+	PLATFORMMETHOD(platform_mp_setmaxid, aw_mp_setmaxid),
 #endif
 	PLATFORMMETHOD_END,
 };
@@ -275,13 +276,13 @@ FDT_PLATFORM_DEF(h2_plus, "h2_plus", 0, "allwinner,sun8i-h2-plus", 200);
 
 #if defined(SOC_ALLWINNER_H3)
 static platform_method_t h3_methods[] = {
-	PLATFORMMETHOD(platform_attach,         h3_attach),
-	PLATFORMMETHOD(platform_devmap_init,    allwinner_devmap_init),
-	PLATFORMMETHOD(platform_cpu_reset,	allwinner_cpu_reset),
+	PLATFORMMETHOD(platform_attach, h3_attach),
+	PLATFORMMETHOD(platform_devmap_init, allwinner_devmap_init),
+	PLATFORMMETHOD(platform_cpu_reset, allwinner_cpu_reset),
 
 #ifdef SMP
-	PLATFORMMETHOD(platform_mp_start_ap,	aw_mp_start_ap),
-	PLATFORMMETHOD(platform_mp_setmaxid,	aw_mp_setmaxid),
+	PLATFORMMETHOD(platform_mp_start_ap, aw_mp_start_ap),
+	PLATFORMMETHOD(platform_mp_setmaxid, aw_mp_setmaxid),
 #endif
 	PLATFORMMETHOD_END,
 };

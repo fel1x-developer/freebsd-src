@@ -29,113 +29,99 @@
  *
  * $Id: util.c,v 1.2 2003/05/19 17:29:29 max Exp $
  */
- 
+
 #include <sys/param.h>
 #define L2CAP_SOCKET_CHECKED
 #include <bluetooth.h>
 #include <stdio.h>
 #include <string.h>
 
-#define SIZE(x) (sizeof((x))/sizeof((x)[0]))
+#define SIZE(x) (sizeof((x)) / sizeof((x)[0]))
 
 char const *
 hci_link2str(int link_type)
 {
-	static char const * const	t[] = {
-		/* NG_HCI_LINK_SCO */ "SCO",
-		/* NG_HCI_LINK_ACL */ "ACL"
-	};
+	static char const *const t[] = { /* NG_HCI_LINK_SCO */ "SCO",
+		/* NG_HCI_LINK_ACL */ "ACL" };
 
-	return (link_type >= SIZE(t)? "?" : t[link_type]);
+	return (link_type >= SIZE(t) ? "?" : t[link_type]);
 } /* hci_link2str */
 
 char const *
 hci_pin2str(int type)
 {
-	static char const * const	t[] = {
-		/* 0x00 */ "Variable PIN",
-		/* 0x01 */ "Fixed PIN"
-	};
+	static char const *const t[] = { /* 0x00 */ "Variable PIN",
+		/* 0x01 */ "Fixed PIN" };
 
-	return (type >= SIZE(t)? "?" : t[type]);
+	return (type >= SIZE(t) ? "?" : t[type]);
 } /* hci_pin2str */
 
 char const *
 hci_scan2str(int scan)
 {
-	static char const * const	t[] = {
-		/* 0x00 */ "No Scan enabled",
+	static char const *const t[] = { /* 0x00 */ "No Scan enabled",
 		/* 0x01 */ "Inquiry Scan enabled. Page Scan disabled",
 		/* 0x02 */ "Inquiry Scan disabled. Page Scan enabled",
-		/* 0x03 */ "Inquiry Scan enabled. Page Scan enabled"
-	};
+		/* 0x03 */ "Inquiry Scan enabled. Page Scan enabled" };
 
-	return (scan >= SIZE(t)? "?" : t[scan]);
+	return (scan >= SIZE(t) ? "?" : t[scan]);
 } /* hci_scan2str */
 
 char const *
 hci_encrypt2str(int encrypt, int brief)
 {
-	static char const * const	t[] = {
-		/* 0x00 */ "Disabled",
+	static char const *const t[] = { /* 0x00 */ "Disabled",
 		/* 0x01 */ "Only for point-to-point packets",
-		/* 0x02 */ "Both point-to-point and broadcast packets"
-	};
+		/* 0x02 */ "Both point-to-point and broadcast packets" };
 
-	static char const * const	t1[] = {
+	static char const *const t1[] = {
 		/* NG_HCI_ENCRYPTION_MODE_NONE */ "NONE",
-		/* NG_HCI_ENCRYPTION_MODE_P2P */  "P2P",
-		/* NG_HCI_ENCRYPTION_MODE_ALL */  "ALL",
+		/* NG_HCI_ENCRYPTION_MODE_P2P */ "P2P",
+		/* NG_HCI_ENCRYPTION_MODE_ALL */ "ALL",
 	};
 
 	if (brief)
-		return (encrypt >= SIZE(t1)? "?" : t1[encrypt]);
+		return (encrypt >= SIZE(t1) ? "?" : t1[encrypt]);
 
-	return (encrypt >= SIZE(t)? "?" : t[encrypt]);
+	return (encrypt >= SIZE(t) ? "?" : t[encrypt]);
 } /* hci_encrypt2str */
 
 char const *
 hci_coding2str(int coding)
 {
-	static char const * const	t[] = {
-		/* 0x00 */ "Linear",
+	static char const *const t[] = { /* 0x00 */ "Linear",
 		/* 0x01 */ "u-law",
 		/* 0x02 */ "A-law",
-		/* 0x03 */ "Reserved"
-	};
+		/* 0x03 */ "Reserved" };
 
-	return (coding >= SIZE(t)? "?" : t[coding]);
+	return (coding >= SIZE(t) ? "?" : t[coding]);
 } /* hci_coding2str */
 
 char const *
 hci_vdata2str(int data)
 {
-	static char const * const	t[] = {
-		/* 0x00 */ "1's complement",
+	static char const *const t[] = { /* 0x00 */ "1's complement",
 		/* 0x01 */ "2's complement",
 		/* 0x02 */ "Sign-Magnitude",
-		/* 0x03 */ "Reserved"
-	};
+		/* 0x03 */ "Reserved" };
 
-	return (data >= SIZE(t)? "?" : t[data]);
+	return (data >= SIZE(t) ? "?" : t[data]);
 } /* hci_vdata2str */
 
 char const *
 hci_hmode2str(int mode, char *buffer, int size)
 {
-	static char const * const	t[] = {
-		/* 0x01 */ "Suspend Page Scan ",
+	static char const *const t[] = { /* 0x01 */ "Suspend Page Scan ",
 		/* 0x02 */ "Suspend Inquiry Scan ",
-		/* 0x04 */ "Suspend Periodic Inquiries "
-        };
+		/* 0x04 */ "Suspend Periodic Inquiries " };
 
 	if (buffer != NULL && size > 0) {
-		int	n;
+		int n;
 
 		memset(buffer, 0, size);
 		size--;
 		for (n = 0; n < SIZE(t); n++) {
-			int	len = strlen(buffer);
+			int len = strlen(buffer);
 
 			if (len >= size)
 				break;
@@ -150,7 +136,7 @@ hci_hmode2str(int mode, char *buffer, int size)
 char const *
 hci_ver2str(int ver)
 {
-	static char const * const	t[] = {
+	static char const *const t[] = {
 		/* 0x00 */ "Bluetooth HCI Specification 1.0B",
 		/* 0x01 */ "Bluetooth HCI Specification 1.1",
 		/* 0x02 */ "Bluetooth HCI Specification 1.2",
@@ -165,14 +151,13 @@ hci_ver2str(int ver)
 		/* 0x0b */ "Bluetooth HCI Specification 5.2"
 	};
 
-	return (ver >= SIZE(t)? "?" : t[ver]);
+	return (ver >= SIZE(t) ? "?" : t[ver]);
 } /* hci_ver2str */
 
 char const *
 hci_lmpver2str(int ver)
 {
-	static char const * const	t[] = {
-		/* 0x00 */ "Bluetooth LMP 1.0",
+	static char const *const t[] = { /* 0x00 */ "Bluetooth LMP 1.0",
 		/* 0x01 */ "Bluetooth LMP 1.1",
 		/* 0x02 */ "Bluetooth LMP 1.2",
 		/* 0x03 */ "Bluetooth LMP 2.0",
@@ -183,16 +168,15 @@ hci_lmpver2str(int ver)
 		/* 0x08 */ "Bluetooth LMP 4.2",
 		/* 0x09 */ "Bluetooth LMP 5.0",
 		/* 0x0a */ "Bluetooth LMP 5.1",
-		/* 0x0b */ "Bluetooth LMP 5.2"
-	};
+		/* 0x0b */ "Bluetooth LMP 5.2" };
 
-	return (ver >= SIZE(t)? "?" : t[ver]);
+	return (ver >= SIZE(t) ? "?" : t[ver]);
 } /* hci_lmpver2str */
 
 char const *
 hci_manufacturer2str(int m)
 {
-	static char const * const	t[] = {
+	static char const *const t[] = {
 		/* 0000 */ "Ericsson Technology Licensing",
 		/* 0001 */ "Nokia Mobile Phones",
 		/* 0002 */ "Intel Corp.",
@@ -230,7 +214,8 @@ hci_manufacturer2str(int m)
 		/* 0034 */ "NEC Corporation",
 		/* 0035 */ "WavePlus Technology Co., Ltd.",
 		/* 0036 */ "Alcatel",
-		/* 0037 */ "NXP Semiconductors (formerly Philips Semiconductors)",
+		/* 0037 */
+		"NXP Semiconductors (formerly Philips Semiconductors)",
 		/* 0038 */ "C Technologies",
 		/* 0039 */ "Open Interface",
 		/* 0040 */ "R F Micro Devices",
@@ -251,7 +236,8 @@ hci_manufacturer2str(int m)
 		/* 0055 */ "Mobilian Corporation",
 		/* 0056 */ "Syntronix Corporation",
 		/* 0057 */ "Integrated System Solution Corp.",
-		/* 0058 */ "Panasonic Corporation (formerly Matsushita Electric Industrial Co., Ltd.)",
+		/* 0058 */
+		"Panasonic Corporation (formerly Matsushita Electric Industrial Co., Ltd.)",
 		/* 0059 */ "Gennum Corporation",
 		/* 0060 */ "BlackBerry Limited (formerly Research In Motion)",
 		/* 0061 */ "IPextreme, Inc.",
@@ -333,10 +319,12 @@ hci_manufacturer2str(int m)
 		/* 0137 */ "GN ReSound A/S",
 		/* 0138 */ "Jawbone",
 		/* 0139 */ "Topcon Positioning Systems, LLC",
-		/* 0140 */ "Gimbal Inc. (formerly Qualcomm Labs, Inc. and Qualcomm Retail Solutions, Inc.)",
+		/* 0140 */
+		"Gimbal Inc. (formerly Qualcomm Labs, Inc. and Qualcomm Retail Solutions, Inc.)",
 		/* 0141 */ "Zscan Software",
 		/* 0142 */ "Quintic Corp",
-		/* 0143 */ "Telit Wireless Solutions GmbH (formerly Stollmann E+V GmbH)",
+		/* 0143 */
+		"Telit Wireless Solutions GmbH (formerly Stollmann E+V GmbH)",
 		/* 0144 */ "Funai Electric Co., Ltd.",
 		/* 0145 */ "Advanced PANMOBIL systems GmbH & Co. KG",
 		/* 0146 */ "ThinkOptics, Inc.",
@@ -362,7 +350,8 @@ hci_manufacturer2str(int m)
 		/* 0166 */ "Panda Ocean Inc.",
 		/* 0167 */ "Visteon Corporation",
 		/* 0168 */ "ARP Devices Limited",
-		/* 0169 */ "MARELLI EUROPE S.P.A. (formerly Magneti Marelli S.p.A.)",
+		/* 0169 */
+		"MARELLI EUROPE S.P.A. (formerly Magneti Marelli S.p.A.)",
 		/* 0170 */ "CAEN RFID srl",
 		/* 0171 */ "Ingenieur-Systemgruppe Zahn GmbH",
 		/* 0172 */ "Green Throttle Games",
@@ -562,7 +551,8 @@ hci_manufacturer2str(int m)
 		/* 0366 */ "Volantic AB",
 		/* 0367 */ "Podo Labs, Inc",
 		/* 0368 */ "Roche Diabetes Care AG",
-		/* 0369 */ "Amazon.com Services, LLC (formerly Amazon Fulfillment Service)",
+		/* 0369 */
+		"Amazon.com Services, LLC (formerly Amazon Fulfillment Service)",
 		/* 0370 */ "Connovate Technology Private Limited",
 		/* 0371 */ "Kocomojo, LLC",
 		/* 0372 */ "Everykey Inc.",
@@ -697,7 +687,8 @@ hci_manufacturer2str(int m)
 		/* 0501 */ "Cool Webthings Limited",
 		/* 0502 */ "DJO Global",
 		/* 0503 */ "Gelliner Limited",
-		/* 0504 */ "Anyka (Guangzhou) Microelectronics Technology Co, LTD",
+		/* 0504 */
+		"Anyka (Guangzhou) Microelectronics Technology Co, LTD",
 		/* 0505 */ "Medtronic Inc.",
 		/* 0506 */ "Gozio Inc.",
 		/* 0507 */ "Form Lifting, LLC",
@@ -795,7 +786,8 @@ hci_manufacturer2str(int m)
 		/* 0599 */ "AdBabble Local Commerce Inc.",
 		/* 0600 */ "Devialet SA",
 		/* 0601 */ "ALTYOR",
-		/* 0602 */ "University of Applied Sciences Valais/Haute Ecole Valaisanne",
+		/* 0602 */
+		"University of Applied Sciences Valais/Haute Ecole Valaisanne",
 		/* 0603 */ "Five Interactive, LLC dba Zendo",
 		/* 0604 */ "NetEase (Hangzhou) Network co.Ltd.",
 		/* 0605 */ "Lexmark International Inc.",
@@ -1088,7 +1080,8 @@ hci_manufacturer2str(int m)
 		/* 0892 */ "Cronologics Corporation",
 		/* 0893 */ "MICRODIA Ltd.",
 		/* 0894 */ "lulabytes S.L.",
-		/* 0895 */ "Societe des Produits Nestle S.A. (formerly Nestec S.A.)",
+		/* 0895 */
+		"Societe des Produits Nestle S.A. (formerly Nestec S.A.)",
 		/* 0896 */ "LLC \"MEGA-F service\"",
 		/* 0897 */ "Sharp Corporation",
 		/* 0898 */ "Precision Outcomes Ltd",
@@ -1246,7 +1239,8 @@ hci_manufacturer2str(int m)
 		/* 1050 */ "Friday Labs Limited",
 		/* 1051 */ "OrthoAccel Technologies",
 		/* 1052 */ "WaterGuru, Inc.",
-		/* 1053 */ "Benning Elektrotechnik und Elektronik GmbH & Co. KG",
+		/* 1053 */
+		"Benning Elektrotechnik und Elektronik GmbH & Co. KG",
 		/* 1054 */ "Dell Computer Corporation",
 		/* 1055 */ "Kopin Corporation",
 		/* 1056 */ "TecBakery GmbH",
@@ -1351,7 +1345,8 @@ hci_manufacturer2str(int m)
 		/* 1155 */ "Multi Care Systems B.V.",
 		/* 1156 */ "Revol Technologies Inc",
 		/* 1157 */ "SKIDATA AG",
-		/* 1158 */ "DEV TECNOLOGIA INDUSTRIA, COMERCIO E MANUTENCAO DE EQUIPAMENTOS LTDA. - ME",
+		/* 1158 */
+		"DEV TECNOLOGIA INDUSTRIA, COMERCIO E MANUTENCAO DE EQUIPAMENTOS LTDA. - ME",
 		/* 1159 */ "Centrica Connected Home",
 		/* 1160 */ "Automotive Data Solutions Inc",
 		/* 1161 */ "Igarashi Engineering",
@@ -1856,7 +1851,8 @@ hci_manufacturer2str(int m)
 		/* 1660 */ "Tile, Inc.",
 		/* 1661 */ "Form Athletica Inc.",
 		/* 1662 */ "MbientLab Inc",
-		/* 1663 */ "NETGRID S.N.C. DI BISSOLI MATTEO, CAMPOREALE SIMONE, TOGNETTI FEDERICO",
+		/* 1663 */
+		"NETGRID S.N.C. DI BISSOLI MATTEO, CAMPOREALE SIMONE, TOGNETTI FEDERICO",
 		/* 1664 */ "Mannkind Corporation",
 		/* 1665 */ "Trade FIDES a.s.",
 		/* 1666 */ "Photron Limited",
@@ -1869,7 +1865,8 @@ hci_manufacturer2str(int m)
 		/* 1673 */ "Tacx b.v.",
 		/* 1674 */ "Raytac Corporation",
 		/* 1675 */ "Jiangsu Teranovo Tech Co., Ltd.",
-		/* 1676 */ "Changzhou Sound Dragon Electronics and Acoustics Co., Ltd",
+		/* 1676 */
+		"Changzhou Sound Dragon Electronics and Acoustics Co., Ltd",
 		/* 1677 */ "JetBeep Inc.",
 		/* 1678 */ "Razer Inc.",
 		/* 1679 */ "JRM Group Limited",
@@ -1931,7 +1928,8 @@ hci_manufacturer2str(int m)
 		/* 1735 */ "Somatix Inc",
 		/* 1736 */ "Storz & Bickel GmbH & Co. KG",
 		/* 1737 */ "MYLAPS B.V.",
-		/* 1738 */ "Shenzhen Zhongguang Infotech Technology Development Co., Ltd",
+		/* 1738 */
+		"Shenzhen Zhongguang Infotech Technology Development Co., Ltd",
 		/* 1739 */ "Dyeware, LLC",
 		/* 1740 */ "Dongguan SmartAction Technology Co.,Ltd.",
 		/* 1741 */ "DIG Corporation",
@@ -2021,7 +2019,8 @@ hci_manufacturer2str(int m)
 		/* 1825 */ "Clover Network, Inc.",
 		/* 1826 */ "Xiamen Eholder Electronics Co.Ltd",
 		/* 1827 */ "Ford Motor Company",
-		/* 1828 */ "Guangzhou SuperSound Information Technology Co.,Ltd",
+		/* 1828 */
+		"Guangzhou SuperSound Information Technology Co.,Ltd",
 		/* 1829 */ "Tedee Sp. z o.o.",
 		/* 1830 */ "PHC Corporation",
 		/* 1831 */ "STALKIT AS",
@@ -2065,7 +2064,8 @@ hci_manufacturer2str(int m)
 		/* 1869 */ "Amtech Systems, LLC",
 		/* 1870 */ "EAGLE DETECTION SA",
 		/* 1871 */ "MEDIATECH S.R.L.",
-		/* 1872 */ "Hamilton Professional Services of Canada Incorporated",
+		/* 1872 */
+		"Hamilton Professional Services of Canada Incorporated",
 		/* 1873 */ "Changsha JEMO IC Design Co.,Ltd",
 		/* 1874 */ "Elatec GmbH",
 		/* 1875 */ "JLG Industries, Inc.",
@@ -2138,7 +2138,8 @@ hci_manufacturer2str(int m)
 		/* 1943 */ "Water-i.d. GmbH",
 		/* 1944 */ "HoloKit, Inc.",
 		/* 1945 */ "PlantChoir Inc.",
-		/* 1946 */ "GuangDong Oppo Mobile Telecommunications Corp., Ltd.",
+		/* 1946 */
+		"GuangDong Oppo Mobile Telecommunications Corp., Ltd.",
 		/* 1947 */ "CST ELECTRONICS (PROPRIETARY) LIMITED",
 		/* 1948 */ "Sky UK Limited",
 		/* 1949 */ "Digibale Pty Ltd",
@@ -2228,9 +2229,11 @@ hci_manufacturer2str(int m)
 		/* 2033 */ "GSM Innovations Pty Ltd",
 		/* 2034 */ "SERENE GROUP, INC",
 		/* 2035 */ "DIGISINE ENERGYTECH CO. LTD.",
-		/* 2036 */ "MEDIRLAB Orvosbiologiai Fejleszto Korlatolt Felelossegu Tarsasag",
+		/* 2036 */
+		"MEDIRLAB Orvosbiologiai Fejleszto Korlatolt Felelossegu Tarsasag",
 		/* 2037 */ "Byton North America Corporation",
-		/* 2038 */ "Shenzhen TonliScience and Technology Development Co.,Ltd",
+		/* 2038 */
+		"Shenzhen TonliScience and Technology Development Co.,Ltd",
 		/* 2039 */ "Cesar Systems Ltd.",
 		/* 2040 */ "quip NYC Inc.",
 		/* 2041 */ "Direct Communication Solutions, Inc.",
@@ -2353,7 +2356,8 @@ hci_manufacturer2str(int m)
 		/* 2158 */ "Vorwerk Elektrowerke GmbH & Co. KG",
 		/* 2159 */ "Trackunit A/S",
 		/* 2160 */ "Wyze Labs, Inc",
-		/* 2161 */ "Dension Elektronikai Kft. (formerly: Dension Audio Systems Ltd.)",
+		/* 2161 */
+		"Dension Elektronikai Kft. (formerly: Dension Audio Systems Ltd.)",
 		/* 2162 */ "11 Health & Technologies Limited",
 		/* 2163 */ "Innophase Incorporated",
 		/* 2164 */ "Treegreen Limited",
@@ -2372,7 +2376,8 @@ hci_manufacturer2str(int m)
 		/* 2177 */ "Optalert",
 		/* 2178 */ "PSYONIC, Inc.",
 		/* 2179 */ "Wintersteiger AG",
-		/* 2180 */ "Controlid Industria, Comercio de Hardware e Servicos de Tecnologia Ltda",
+		/* 2180 */
+		"Controlid Industria, Comercio de Hardware e Servicos de Tecnologia Ltda",
 		/* 2181 */ "LEVOLOR, INC.",
 		/* 2182 */ "Xsens Technologies B.V.",
 		/* 2183 */ "Hydro-Gear Limited Partnership",
@@ -2404,7 +2409,8 @@ hci_manufacturer2str(int m)
 		/* 2209 */ "EXEO TECH CORPORATION",
 		/* 2210 */ "Epic Systems Co., Ltd.",
 		/* 2211 */ "Hoffmann SE",
-		/* 2212 */ "Realme Chongqing Mobile Telecommunications Corp., Ltd.",
+		/* 2212 */
+		"Realme Chongqing Mobile Telecommunications Corp., Ltd.",
 		/* 2213 */ "UMEHEAL Ltd",
 		/* 2214 */ "Intelligenceworks Inc.",
 		/* 2215 */ "TGR 1.618 Limited",
@@ -2423,482 +2429,445 @@ hci_manufacturer2str(int m)
 		/* 2228 */ "Sengled Co., Ltd.",
 		/* 2229 */ "TransferFi",
 		/* 2230 */ "Boehringer Ingelheim Vetmedica GmbH"
-        };
+	};
 
-	return (m >= SIZE(t)? "?" : t[m]);
+	return (m >= SIZE(t) ? "?" : t[m]);
 } /* hci_manufacturer2str */
 
 char const *
 hci_commands2str(uint8_t *commands, char *buffer, int size)
 {
-	static char const * const	t[][8] = {
-	{ /* byte 0 */
-		/* 0 */ "<HCI_Inquiry> ",
-		/* 1 */ "<HCI_Inquiry_Cancel> ",
-		/* 2 */ "<HCI_Periodic_Inquiry_Mode> ",
-		/* 3 */ "<HCI_Exit_Periodic_Inquiry_Mode> ",
-		/* 4 */ "<HCI_Create_Connection> ",
-		/* 5 */ "<HCI_Disconnect> ",
-		/* 6 */ "<HCI_Add_SCO_Connection (deprecated)> ",
-		/* 7 */ "<HCI_Create_Connection_Cancel> "
-	},
-	{ /* byte 1 */
-		/* 0 */ "<HCI_Accept_Connection_Request> ",
-		/* 1 */ "<HCI_Reject_Connection_Request> ",
-		/* 2 */ "<HCI_Link_Key_Request_Reply> ",
-		/* 3 */ "<HCI_Link_Key_Request_Negative_Reply> ",
-		/* 4 */ "<HCI_PIN_Code_Request_Reply> ",
-		/* 5 */ "<HCI_PIN_Code_Request_Negative_Reply> ",
-		/* 6 */ "<HCI_Change_Connection_Packet_Type> ",
-		/* 7 */ "<HCI_Authentication_Requested> "
-	},
-	{ /* byte 2 */
-		/* 0 */ "<HCI_Set_Connection_Encryption> ",
-		/* 1 */ "<HCI_Change_Connection_Link_Key> ",
-		/* 2 */ "<HCI_Master_Link_Key> ",
-		/* 3 */ "<HCI_Remote_Name_Request> ",
-		/* 4 */ "<HCI_Remote_Name_Request_Cancel> ",
-		/* 5 */ "<HCI_Read_Remote_Supported_Features> ",
-		/* 6 */ "<HCI_Read_Remote_Extended_Features> ",
-		/* 7 */ "<HCI_Read_Remote_Version_Information> "
-	},
-	{ /* byte 3 */
-		/* 0 */ "<HCI_Read_Clock_Offset> ",
-		/* 1 */ "<HCI_Read_LMP_Handle> ",
-		/* 2 */ "<Unknown 3.2> ",
-		/* 3 */ "<Unknown 3.3> ",
-		/* 4 */ "<Unknown 3.4> ",
-		/* 5 */ "<Unknown 3.5> ",
-		/* 6 */ "<Unknown 3.6> ",
-		/* 7 */ "<Unknown 3.7> "
-	},
-	{ /* byte 4 */
-		/* 0 */ "<Unknown 4.0> ",
-		/* 1 */ "<HCI_Hold_Mode> ",
-		/* 2 */ "<HCI_Sniff_Mode> ",
-		/* 3 */ "<HCI_Exit_Sniff_Mode> ",
-		/* 4 */ "<Previously used 4.4> ",
-		/* 5 */ "<Previously used 4.5> ",
-		/* 6 */ "<HCI_QoS_Setup> ",
-		/* 7 */ "<HCI_Role_Discovery> "
-	},
-	{ /* byte 5 */
-		/* 0 */ "<HCI_Switch_Role> ",
-		/* 1 */ "<HCI_Read_Link_Policy_Settings> ",
-		/* 2 */ "<HCI_Write_Link_Policy_Settings> ",
-		/* 3 */ "<HCI_Read_Default_Link_Policy_Settings> ",
-		/* 4 */ "<HCI_Write_Default_Link_Policy_Settings> ",
-		/* 5 */ "<HCI_Flow_Specification> ",
-		/* 6 */ "<HCI_Set_Event_Mask> ",
-		/* 7 */ "<HCI_Reset> "
-	},
-	{ /* byte 6 */
-		/* 0 */ "<HCI_Set_Event_Filter> ",
-		/* 1 */ "<HCI_Flush> ",
-		/* 2 */ "<HCI_Read_PIN_Type> ",
-		/* 3 */ "<HCI_Write_PIN_Type> ",
-		/* 4 */ "<Previously used 6.4> ",
-		/* 5 */ "<HCI_Read_Stored_Link_Key> ",
-		/* 6 */ "<HCI_Write_Stored_Link_Key> ",
-		/* 7 */ "<HCI_Delete_Stored_Link_Key> "
-	},
-	{ /* byte 7 */
-		/* 0 */ "<HCI_Write_Local_Name> ",
-		/* 1 */ "<HCI_Read_Local_Name> ",
-		/* 2 */ "<HCI_Read_Connection_Accept_Timeout> ",
-		/* 3 */ "<HCI_Write_Connection_Accept_Timeout> ",
-		/* 4 */ "<HCI_Read_Page_Timeout> ",
-		/* 5 */ "<HCI_Write_Page_Timeout> ",
-		/* 6 */ "<HCI_Read_Scan_Enable> ",
-		/* 7 */ "<HCI_Write_Scan_Enable> "
-	},
-	{ /* byte 8 */
-		/* 0 */ "<HCI_Read_Page_Scan_Activity> ",
-		/* 1 */ "<HCI_Write_Page_Scan_Activity> ",
-		/* 2 */ "<HCI_Read_Inquiry_Scan_Activity> ",
-		/* 3 */ "<HCI_Write_Inquiry_Scan_Activity> ",
-		/* 4 */ "<HCI_Read_Authentication_Enable> ",
-		/* 5 */ "<HCI_Write_Authentication_Enable> ",
-		/* 6 */ "<HCI_Read_Encryption_Mode (deprecated)> ",
-		/* 7 */ "<HCI_Write_Encryption_Mode (deprecated)> "
-	},
-	{ /* byte 9 */
-		/* 0 */ "<HCI_Read_Class_Of_Device> ",
-		/* 1 */ "<HCI_Write_Class_Of_Device> ",
-		/* 2 */ "<HCI_Read_Voice_Setting> ",
-		/* 3 */ "<HCI_Write_Voice_Setting> ",
-		/* 4 */ "<HCI_Read_Automatic_Flush_Timeout> ",
-		/* 5 */ "<HCI_Write_Automatic_Flush_Timeout> ",
-		/* 6 */ "<HCI_Read_Num_Broadcast_Retransmissions> ",
-		/* 7 */ "<HCI_Write_Num_Broadcast_Retransmissions> "
-	},
-	{ /* byte 10 */
-		/* 0 */ "<HCI_Read_Hold_Mode_Activity> ",
-		/* 1 */ "<HCI_Write_Hold_Mode_Activity> ",
-		/* 2 */ "<HCI_Read_Transmit_Power_Level> ",
-		/* 3 */ "<HCI_Read_Synchronous_Flow_Control_Enable> ",
-		/* 4 */ "<HCI_Write_Synchronous_Flow_Control_Enable> ",
-		/* 5 */ "<HCI_Set_Controller_To_Host_Flow_Control> ",
-		/* 6 */ "<HCI_Host_Buffer_Size> ",
-		/* 7 */ "<HCI_Host_Number_Of_Completed_Packets> "
-	},
-	{ /* byte 11 */
-		/* 0 */ "<HCI_Read_Link_Supervision_Timeout> ",
-		/* 1 */ "<HCI_Write_Link_Supervision_Timeout> ",
-		/* 2 */ "<HCI_Read_Number_Of_Supported_IAC> ",
-		/* 3 */ "<HCI_Read_Current_IAC_LAP> ",
-		/* 4 */ "<HCI_Write_Current_IAC_LAP> ",
-		/* 5 */ "<HCI_Read_Page_Scan_Mode_Period (deprecated)> ",
-		/* 6 */ "<HCI_Write_Page_Scan_Mode_Period (deprecated)> ",
-		/* 7 */ "<HCI_Read_Page_Scan_Mode (deprecated)> "
-	},
-	{ /* byte 12 */
-		/* 0 */ "<HCI_Write_Page_Scan_Mode (deprecated)> ",
-		/* 1 */ "<HCI_Set_AFH_Host_Channel_Classification> ",
-		/* 2 */ "<Unknown 12.2> ",
-		/* 3 */ "<Unknown 12.3> ",
-		/* 4 */ "<HCI_Read_Inquiry_Scan_Type> ",
-		/* 5 */ "<HCI_Write_Inquiry_Scan_Type> ",
-		/* 6 */ "<HCI_Read_Inquiry_Mode> ",
-		/* 7 */ "<HCI_Write_Inquiry_Mode> "
-	},
-	{ /* byte 13 */
-		/* 0 */ "<HCI_Read_Page_Scan_Type> ",
-		/* 1 */ "<HCI_Write_Page_Scan_Type> ",
-		/* 2 */ "<HCI_Read_AFH_Channel_Assessment_Mode> ",
-		/* 3 */ "<HCI_Write_AFH_Channel_Assessment_Mode> ",
-		/* 4 */ "<Unknown 13.4> ",
-		/* 5 */ "<Unknown 13.5> ",
-		/* 6 */ "<Unknown 13.6> ",
-		/* 7 */ "<Unknown 13.7> "
-	},
-	{ /* byte 14 */
-		/* 0 */ "<Unknown 14.0> ",
-		/* 1 */ "<Unknown 14.1>",
-		/* 2 */ "<Unknown 14.2> ",
-		/* 3 */ "<HCI_Read_Local_Version_Information> ",
-		/* 4 */ "<Unknown 14.4> ",
-		/* 5 */ "<HCI_Read_Local_Supported_Features> ",
-		/* 6 */ "<HCI_Read_Local_Extended_Features> ",
-		/* 7 */ "<HCI_Read_Buffer_Size> "
-	},
-	{ /* byte 15 */
-		/* 0 */ "<HCI_Read_Country_Code (deprecated)> ",
-		/* 1 */ "<HCI_Read_BD_ADDR> ",
-		/* 2 */ "<HCI_Read_Failed_Contact_Counter> ",
-		/* 3 */ "<HCI_Reset_Failed_Contact_Counter> ",
-		/* 4 */ "<HCI_Read_Link_Quality> ",
-		/* 5 */ "<HCI_Read_RSSI> ",
-		/* 6 */ "<HCI_Read_AFH_Channel_Map> ",
-		/* 7 */ "<HCI_Read_Clock> "
-	},
-	{ /* byte 16 */
-		/* 0 */ "<HCI_Read_Loopback_Mode> ",
-		/* 1 */ "<HCI_Write_Loopback_Mode> ",
-		/* 2 */ "<HCI_Enable_Device_Under_Test_Mode> ",
-		/* 3 */ "<HCI_Setup_Synchronous_Connection_Request> ",
-		/* 4 */ "<HCI_Accept_Synchronous_Connection_Request> ",
-		/* 5 */ "<HCI_Reject_Synchronous_Connection_Request> ",
-		/* 6 */ "<Unknown 16.6> ",
-		/* 7 */ "<Unknown 16,7> "
-	},
-	{ /* byte 17 */
-		/* 0 */ "<HCI_Read_Extended_Inquiry_Response> ",
-		/* 1 */ "<HCI_Write_Extended_Inquiry_Response> ",
-		/* 2 */ "<HCI_Refresh_Encryption_Key> ",
-		/* 3 */ "<Unknown 17.3> ",
-		/* 4 */ "<HCI_Sniff_Subrating> ",
-		/* 5 */ "<HCI_Read_Simple_Pairing_Mode> ",
-		/* 6 */ "<HCI_Write_Simple_Pairing_Mode> ",
-		/* 7 */ "<HCI_Read_Local_OOB_Data> "
-	},
-	{ /* byte 18 */
-		/* 0 */ "<HCI_Read_Inquiry_Response_Transmit_Power_Level> ",
-		/* 1 */ "<HCI_Write_Inquiry_Transmit_Power_Level> ",
-		/* 2 */ "<HCI_Read_Default_Erroneous_Data_Reporting> ",
-		/* 3 */ "<HCI_Write_Default_Erroneous_Data_Reporting> ",
-		/* 4 */ "<Unknown 18.4> ",
-		/* 5 */ "<Unknown 18.5> ",
-		/* 6 */ "<Unknown 18.6> ",
-		/* 7 */ "<HCI_IO_Capability_Request_Reply> "
-	},
-	{ /* byte 19 */
-		/* 0 */ "<HCI_User_Confirmation_Request_Reply> ",
-		/* 1 */ "<HCI_User_Confirmation_Request_Negative_Reply> ",
-		/* 2 */ "<HCI_User_Passkey_Request_Reply> ",
-		/* 3 */ "<HCI_User_Passkey_Request_Negative_Reply> ",
-		/* 4 */ "<HCI_Remote_OOB_Data_Request_Reply> ",
-		/* 5 */ "<HCI_Write_Simple_Pairing_Debug_Mode> ",
-		/* 6 */ "<HCI_Enhanced_Flush> ",
-		/* 7 */ "<HCI_Remote_OOB_Data_Request_Negative_Reply> "
-	},
-	{ /* byte 20 */
-		/* 0 */ "<Unknown 20.0> ",
-		/* 1 */ "<Unknown 20.1> ",
-		/* 2 */ "<HCI_Send_Keypress_Notification> ",
-		/* 3 */ "<HCI_IO_Capability_Request_Negative_Reply> ",
-		/* 4 */ "<HCI_Read_Encryption_Key_Size> ",
-		/* 5 */ "<Unknown 20.5> ",
-		/* 6 */ "<Unknown 20.6> ",
-		/* 7 */ "<Unknown 20.7> "
-	},
-	{ /* byte 21 */
-		/* 0 */ "<HCI_Create_Physical_Link> ",
-		/* 1 */ "<HCI_Accept_Physical_Link> ",
-		/* 2 */ "<HCI_Disconnect_Physical_Link> ",
-		/* 3 */ "<HCI_Create_Logical_Link> ",
-		/* 4 */ "<HCI_Accept_Logical_Link> ",
-		/* 5 */ "<HCI_Disconnect_Logical_Link> ",
-		/* 6 */ "<HCI_Logical_Link_Cancel> ",
-		/* 7 */ "<HCI_Flow_Spec_Modify> "
-	},
-	{ /* byte 22 */
-		/* 0 */ "<HCI_Read_Logical_Link_Accept_Timeout> ",
-		/* 1 */ "<HCI_Write_Logical_Link_Accept_Timeout> ",
-		/* 2 */ "<HCI_Set_Event_Mask_Page_2> ",
-		/* 3 */ "<HCI_Read_Location_Data> ",
-		/* 4 */ "<HCI_Write_Location_Data> ",
-		/* 5 */ "<HCI_Read_Local_AMP_Info> ",
-		/* 6 */ "<HCI_Read_Local_AMP_ASSOC> ",
-		/* 7 */ "<HCI_Write_Remote_AMP_ASSOC> "
-	},
-	{ /* byte 23 */
-		/* 0 */ "<HCI_Read_Flow_Control_Mode> ",
-		/* 1 */ "<HCI_Write_Flow_Control_Mode> ",
-		/* 2 */ "<HCI_Read_Data_Block_Size> ",
-		/* 3 */ "<Unknown 23.3> ",
-		/* 4 */ "<Unknown 23.4> ",
-		/* 5 */ "<HCI_Enable_AMP_Receiver_Reports> ",
-		/* 6 */ "<HCI_AMP_Test_End> ",
-		/* 7 */ "<HCI_AMP_Test> "
-	},
-	{ /* byte 24 */
-		/* 0 */ "<HCI_Read_Enhanced_Transmit_Power_Level> ",
-		/* 1 */ "<Unknown 24.1> ",
-		/* 2 */ "<HCI_Read_Best_Effort_Flush_Timeout> ",
-		/* 3 */ "<HCI_Write_Best_Effort_Flush_Timeout> ",
-		/* 4 */ "<HCI_Short_Range_Mode> ",
-		/* 5 */ "<HCI_Read_LE_Host_Support> ",
-		/* 6 */ "<HCI_Write_LE_Host_Support> ",
-		/* 7 */ "<Unknown 24.7> "
-	},
-	{ /* byte 25 */
-		/* 0 */ "<HCI_LE_Set_Event_Mask> ",
-		/* 1 */ "<HCI_LE_Read_Buffer_Size [v1]> ",
-		/* 2 */ "<HCI_LE_Read_Local_Supported_Features> ",
-		/* 3 */ "<Unknown 25.3> ",
-		/* 4 */ "<HCI_LE_Set_Random_Address> ",
-		/* 5 */ "<HCI_LE_Set_Advertising_Parameters> ",
-		/* 6 */ "<HCI_LE_Read_Advertising_Physical_Channel_Tx_Power> ",
-		/* 7 */ "<HCI_LE_Set_Advertising_Data> "
-	},
-	{ /* byte 26 */
-		/* 0 */ "<HCI_LE_Set_Scan_Response_Data> ",
-		/* 1 */ "<HCI_LE_Set_Advertising_Enable> ",
-		/* 2 */ "<HCI_LE_Set_Scan_Parameters> ",
-		/* 3 */ "<HCI_LE_Set_Scan_Enable> ",
-		/* 4 */ "<HCI_LE_Create_Connection> ",
-		/* 5 */ "<HCI_LE_Create_Connection_Cancel> ",
-		/* 6 */ "<HCI_LE_Read_White_List_Size> ",
-		/* 7 */ "<HCI_LE_Clear_White_List> "
-	},
-	{ /* byte 27 */
-		/* 0 */ "<HCI_LE_Add_Device_To_White_List> ",
-		/* 1 */ "<HCI_LE_Remove_Device_From_White_List> ",
-		/* 2 */ "<HCI_LE_Connection_Update> ",
-		/* 3 */ "<HCI_LE_Set_Host_Channel_Classification> ",
-		/* 4 */ "<HCI_LE_Read_Channel_Map> ",
-		/* 5 */ "<HCI_LE_Read_Remote_Features> ",
-		/* 6 */ "<HCI_LE_Encrypt> ",
-		/* 7 */ "<HCI_LE_Rand> "
-	},
-	{ /* byte 28 */
-		/* 0 */ "<HCI_LE_Enable_Encryption> ",
-		/* 1 */ "<HCI_LE_Long_Term_Key_Request_Reply> ",
-		/* 2 */ "<HCI_LE_Long_Term_Key_Request_Negative_Reply> ",
-		/* 3 */ "<HCI_LE_Read_Supported_States> ",
-		/* 4 */ "<HCI_LE_Receiver_Test [v1]> ",
-		/* 5 */ "<HCI_LE_Transmitter_Test [v1]> ",
-		/* 6 */ "<HCI_LE_Test_End> ",
-		/* 7 */ "<Unknown 28.7> "
-	},
-	{ /* byte 29 */
-		/* 0 */ "<Unknown 29.0> ",
-		/* 1 */ "<Unknown 29.1> ",
-		/* 2 */ "<Unknown 29.2> ",
-		/* 3 */ "<HCI_Enhanced_Setup_Synchronous_Connection> ",
-		/* 4 */ "<HCI_Enhanced_Accept_Synchronous_Connection> ",
-		/* 5 */ "<HCI_Read_Local_Supported_Codecs> ",
-		/* 6 */ "<HCI_Set_MWS_Channel_Parameters> ",
-		/* 7 */ "<HCI_Set_External_Frame_Configuration> "
-	},
-	{ /* byte 30 */
-		/* 0 */ "<HCI_Set_MWS_Signaling> ",
-		/* 1 */ "<HCI_Set_MWS_Transport_Layer> ",
-		/* 2 */ "<HCI_Set_MWS_Scan_Frequency_Table> ",
-		/* 3 */ "<HCI_Get_MWS_Transport_Layer_Configuration> ",
-		/* 4 */ "<HCI_Set_MWS_PATTERN_Configuration> ",
-		/* 5 */ "<HCI_Set_Triggered_Clock_Capture> ",
-		/* 6 */ "<HCI_Truncated_Page> ",
-		/* 7 */ "<HCI_Truncated_Page_Cancel> "
-	},
-	{ /* byte 31 */
-		/* 0 */ "<HCI_Set_Connectionless_Slave_Broadcast> ",
-		/* 1 */ "<HCI_Set_Connectionless_Slave_Broadcast_Receive> ",
-		/* 2 */ "<HCI_Start_Synchronization_Train> ",
-		/* 3 */ "<HCI_Receive_Synchronization_Train> ",
-		/* 4 */ "<HCI_Set_Reserved_LT_ADDR> ",
-		/* 5 */ "<HCI_Delete_Reserved_LT_ADDR> ",
-		/* 6 */ "<HCI_Set_Connectionless_Slave_Broadcast_Data> ",
-		/* 7 */ "<HCI_Read_Synchronization_Train_Parameters> "
-	},
-	{ /* byte 32 */
-		/* 0 */ "<HCI_Write_Synchronization_Train_Parameters> ",
-		/* 1 */ "<HCI_Remote_OOB_Extended_Data_Request_Reply> ",
-		/* 2 */ "<HCI_Read_Secure_Connections_Host_Support> ",
-		/* 3 */ "<HCI_Write_Secure_Connections_Host_Support> ",
-		/* 4 */ "<HCI_Read_Authenticated_Payload_Timeout> ",
-		/* 5 */ "<HCI_Write_Authenticated_Payload_Timeout> ",
-		/* 6 */ "<HCI_Read_Local_OOB_Extended_Data> ",
-		/* 7 */ "<HCI_Write_Secure_Connections_Test_Mode> "
-	},
-	{ /* byte 33 */
-		/* 0 */ "<HCI_Read_Extended_Page_Timeout> ",
-		/* 1 */ "<HCI_Write_Extended_Page_Timeout> ",
-		/* 2 */ "<HCI_Read_Extended_Inquiry_Length> ",
-		/* 3 */ "<HCI_Write_Extended_Inquiry_Length> ",
-		/* 4 */ "<HCI_LE_Remote_Connection_Parameter_Request_Reply> ",
-		/* 5 */ "<HCI_LE_Remote_Connection_Parameter_Request_Negative_Reply> ",
-		/* 6 */ "<HCI_LE_Set_Data_Length> ",
-		/* 7 */ "<HCI_LE_Read_Suggested_Default_Data_Length> "
-	},
-	{ /* byte 34 */
-		/* 0 */ "<HCI_LE_Write_Suggested_Default_Data_Length> ",
-		/* 1 */ "<HCI_LE_Read_Local_P-256_Public_Key> ",
-		/* 2 */ "<HCI_LE_Generate_DHKey [v1]> ",
-		/* 3 */ "<HCI_LE_Add_Device_To_Resolving_List> ",
-		/* 4 */ "<HCI_LE_Remove_Device_From_Resolving_List> ",
-		/* 5 */ "<HCI_LE_Clear_Resolving_List> ",
-		/* 6 */ "<HCI_LE_Read_Resolving_List_Size> ",
-		/* 7 */ "<HCI_LE_Read_Peer_Resolvable_Address> "
-	},
-	{ /* byte 35 */
-		/* 0 */ "<HCI_LE_Read_Local_Resolvable_Address> ",
-		/* 1 */ "<HCI_LE_Set_Address_Resolution_Enable> ",
-		/* 2 */ "<HCI_LE_Set_Resolvable_Private_Address_Timeout> ",
-		/* 3 */ "<HCI_LE_Read_Maximum_Data_Length> ",
-		/* 4 */ "<HCI_LE_Read_PHY> ",
-		/* 5 */ "<HCI_LE_Set_Default_PHY> ",
-		/* 6 */ "<HCI_LE_Set_PHY> ",
-		/* 7 */ "<HCI_LE_Receiver_Test [v2]> "
-	},
-	{ /* byte 36 */
-		/* 0 */ "<HCI_LE_Transmitter_Test [v2]> ",
-		/* 1 */ "<HCI_LE_Set_Advertising_Set_Random_Address> ",
-		/* 2 */ "<HCI_LE_Set_Extended_Advertising_Parameters> ",
-		/* 3 */ "<HCI_LE_Set_Extended_Advertising_Data> ",
-		/* 4 */ "<HCI_LE_Set_Extended_Scan_Response_Data> ",
-		/* 5 */ "<HCI_LE_Set_Extended_Advertising_Enable> ",
-		/* 6 */ "<HCI_LE_Read_Maximum_Advertising_Data_Length> ",
-		/* 7 */ "<HCI_LE_Read_Number_of_Supported_Advertising_Sets> "
-	},
-	{ /* byte 37 */
-		/* 0 */ "<HCI_LE_Remove_Advertising_Set> ",
-		/* 1 */ "<HCI_LE_Clear_Advertising_Sets> ",
-		/* 2 */ "<HCI_LE_Set_Periodic_Advertising_Parameters> ",
-		/* 3 */ "<HCI_LE_Set_Periodic_Advertising_Data> ",
-		/* 4 */ "<HCI_LE_Set_Periodic_Advertising_Enable> ",
-		/* 5 */ "<HCI_LE_Set_Extended_Scan_Parameters> ",
-		/* 6 */ "<HCI_LE_Set_Extended_Scan_Enable> ",
-		/* 7 */ "<HCI_LE_Extended_Create_Connection> "
-	},
-	{ /* byte 38 */
-		/* 0 */ "<HCI_LE_Periodic_Advertising_Create_Sync> ",
-		/* 1 */ "<HCI_LE_Periodic_Advertising_Create_Sync_Cancel> ",
-		/* 2 */ "<HCI_LE_Periodic_Advertising_Terminate_Sync> ",
-		/* 3 */ "<HCI_LE_Add_Device_To_Periodic_Advertiser_List> ",
-		/* 4 */ "<HCI_LE_Remove_Device_From_Periodic_Advertiser_List> ",
-		/* 5 */ "<HCI_LE_Clear_Periodic_Advertiser_List> ",
-		/* 6 */ "<HCI_LE_Read_Periodic_Advertiser_List_Size> ",
-		/* 7 */ "<HCI_LE_Read_Transmit_Power> "
-	},
-	{ /* byte 39 */
-		/* 0 */ "<HCI_LE_Read_RF_Path_Compensation> ",
-		/* 1 */ "<HCI_LE_Write_RF_Path_Compensation> ",
-		/* 2 */ "<HCI_LE_Set_Privacy_Mode> ",
-		/* 3 */ "<HCI_LE_Receiver_Test [v3]> ",
-		/* 4 */ "<HCI_LE_Transmitter_Test [v3]> ",
-		/* 5 */ "<HCI_LE_Set_Connectionless_CTE_Transmit_Parameters> ",
-		/* 6 */ "<HCI_LE_Set_Connectionless_CTE_Transmit_Enable> ",
-		/* 7 */ "<HCI_LE_Set_Connectionless_IQ_Sampling_Enable> "
-	},
-	{ /* byte 40 */
-		/* 0 */ "<HCI_LE_Set_Connection_CTE_Receive_Parameters> ",
-		/* 1 */ "<HCI_LE_Set_Connection_CTE_Transmit_Parameters> ",
-		/* 2 */ "<HCI_LE_Connection_CTE_Request_Enable> ",
-		/* 3 */ "<HCI_LE_Connection_CTE_Response_Enable> ",
-		/* 4 */ "<HCI_LE_Read_Antenna_Information> ",
-		/* 5 */ "<HCI_LE_Set_Periodic_Advertising_Receive_Enable> ",
-		/* 6 */ "<HCI_LE_Periodic_Advertising_Sync_Transfer> ",
-		/* 7 */ "<HCI_LE_Periodic_Advertising_Set_Info_Transfer> "
-	},
-	{ /* byte 41 */
-		/* 0 */ "<HCI_LE_Set_Periodic_Advertising_Sync_Transfer_Parameters> ",
-		/* 1 */ "<HCI_LE_Set_Default_Periodic_Advertising_Sync_Transfer_- Parameters> ",
-		/* 2 */ "<HCI_LE_Generate_DHKey [v2]> ",
-		/* 3 */ "<HCI_Read_Local_Simple_Pairing_Options> ",
-		/* 4 */ "<HCI_LE_Modify_Sleep_Clock_Accuracy> ",
-		/* 5 */ "<HCI_LE_Read_Buffer_Size [v2]> ",
-		/* 6 */ "<HCI_LE_Read_ISO_TX_Sync> ",
-		/* 7 */ "<HCI_LE_Set_CIG_Parameters> "
-	},
-	{ /* byte 42 */
-		/* 0 */ "<HCI_LE_Set_CIG_Parameters_Test> ",
-		/* 1 */ "<HCI_LE_Create_CIS> ",
-		/* 2 */ "<HCI_LE_Remove_CIG> ",
-		/* 3 */ "<HCI_LE_Accept_CIS_Request> ",
-		/* 4 */ "<HCI_LE_Reject_CIS_Request> ",
-		/* 5 */ "<HCI_LE_Create_BIG> ",
-		/* 6 */ "<HCI_LE_Create_BIG_Test> ",
-		/* 7 */ "<HCI_LE_Terminate_BIG> "
-	},
-	{ /* byte 43 */
-		/* 0 */ "<HCI_LE_BIG_Create_Sync> ",
-		/* 1 */ "<HCI_LE_BIG_Terminate_Sync> ",
-		/* 2 */ "<HCI_LE_Request_Peer_SCA> ",
-		/* 3 */ "<HCI_LE_Setup_ISO_Data_Path> ",
-		/* 4 */ "<HCI_LE_Remove_ISO_Data_Path> ",
-		/* 5 */ "<HCI_LE_ISO_Transmit_Test> ",
-		/* 6 */ "<HCI_LE_ISO_Receive_Test> ",
-		/* 7 */ "<HCI_LE_ISO_Read_Test_Counters> "
-	},
-	{ /* byte 44 */
-		/* 0 */ "<HCI_LE_ISO_Test_End> ",
-		/* 1 */ "<HCI_LE_Set_Host_Feature> ",
-		/* 2 */ "<HCI_LE_Read_ISO_Link_Quality> ",
-		/* 3 */ "<HCI_LE_Enhanced_Read_Transmit_Power_Level> ",
-		/* 4 */ "<HCI_LE_Read_Remote_Transmit_Power_Level> ",
-		/* 5 */ "<HCI_LE_Set_Path_Loss_Reporting_Parameters> ",
-		/* 6 */ "<HCI_LE_Set_Path_Loss_Reporting_Enable> ",
-		/* 7 */ "<HCI_LE_Set_Transmit_Power_Reporting_Enable> "
-	},
-	{ /* byte 45 */
-		/* 0 */ "<HCI_LE_Transmitter_Test [v4]> ",
-		/* 1 */ "<HCI_Set_Ecosystem_Base_Interval> ",
-		/* 2 */ "<HCI_Read_Local_Supported_Codecs [v2]> ",
-		/* 3 */ "<HCI_Read_Local_Supported_Codec_Capabilities> ",
-		/* 4 */ "<HCI_Read_Local_Supported_Controller_Delay> ",
-		/* 5 */ "<HCI_Configure_Data_Path> ",
-		/* 6 */ "<Unknown 45.6> ",
-		/* 7 */ "<Unknown 45.7> "
-	}};
+	static char const *const t[][8] = {
+		{ /* byte 0 */
+		    /* 0 */ "<HCI_Inquiry> ",
+		    /* 1 */ "<HCI_Inquiry_Cancel> ",
+		    /* 2 */ "<HCI_Periodic_Inquiry_Mode> ",
+		    /* 3 */ "<HCI_Exit_Periodic_Inquiry_Mode> ",
+		    /* 4 */ "<HCI_Create_Connection> ",
+		    /* 5 */ "<HCI_Disconnect> ",
+		    /* 6 */ "<HCI_Add_SCO_Connection (deprecated)> ",
+		    /* 7 */ "<HCI_Create_Connection_Cancel> " },
+		{ /* byte 1 */
+		    /* 0 */ "<HCI_Accept_Connection_Request> ",
+		    /* 1 */ "<HCI_Reject_Connection_Request> ",
+		    /* 2 */ "<HCI_Link_Key_Request_Reply> ",
+		    /* 3 */ "<HCI_Link_Key_Request_Negative_Reply> ",
+		    /* 4 */ "<HCI_PIN_Code_Request_Reply> ",
+		    /* 5 */ "<HCI_PIN_Code_Request_Negative_Reply> ",
+		    /* 6 */ "<HCI_Change_Connection_Packet_Type> ",
+		    /* 7 */ "<HCI_Authentication_Requested> " },
+		{ /* byte 2 */
+		    /* 0 */ "<HCI_Set_Connection_Encryption> ",
+		    /* 1 */ "<HCI_Change_Connection_Link_Key> ",
+		    /* 2 */ "<HCI_Master_Link_Key> ",
+		    /* 3 */ "<HCI_Remote_Name_Request> ",
+		    /* 4 */ "<HCI_Remote_Name_Request_Cancel> ",
+		    /* 5 */ "<HCI_Read_Remote_Supported_Features> ",
+		    /* 6 */ "<HCI_Read_Remote_Extended_Features> ",
+		    /* 7 */ "<HCI_Read_Remote_Version_Information> " },
+		{ /* byte 3 */
+		    /* 0 */ "<HCI_Read_Clock_Offset> ",
+		    /* 1 */ "<HCI_Read_LMP_Handle> ",
+		    /* 2 */ "<Unknown 3.2> ",
+		    /* 3 */ "<Unknown 3.3> ",
+		    /* 4 */ "<Unknown 3.4> ",
+		    /* 5 */ "<Unknown 3.5> ",
+		    /* 6 */ "<Unknown 3.6> ",
+		    /* 7 */ "<Unknown 3.7> " },
+		{ /* byte 4 */
+		    /* 0 */ "<Unknown 4.0> ",
+		    /* 1 */ "<HCI_Hold_Mode> ",
+		    /* 2 */ "<HCI_Sniff_Mode> ",
+		    /* 3 */ "<HCI_Exit_Sniff_Mode> ",
+		    /* 4 */ "<Previously used 4.4> ",
+		    /* 5 */ "<Previously used 4.5> ",
+		    /* 6 */ "<HCI_QoS_Setup> ",
+		    /* 7 */ "<HCI_Role_Discovery> " },
+		{ /* byte 5 */
+		    /* 0 */ "<HCI_Switch_Role> ",
+		    /* 1 */ "<HCI_Read_Link_Policy_Settings> ",
+		    /* 2 */ "<HCI_Write_Link_Policy_Settings> ",
+		    /* 3 */ "<HCI_Read_Default_Link_Policy_Settings> ",
+		    /* 4 */ "<HCI_Write_Default_Link_Policy_Settings> ",
+		    /* 5 */ "<HCI_Flow_Specification> ",
+		    /* 6 */ "<HCI_Set_Event_Mask> ",
+		    /* 7 */ "<HCI_Reset> " },
+		{ /* byte 6 */
+		    /* 0 */ "<HCI_Set_Event_Filter> ",
+		    /* 1 */ "<HCI_Flush> ",
+		    /* 2 */ "<HCI_Read_PIN_Type> ",
+		    /* 3 */ "<HCI_Write_PIN_Type> ",
+		    /* 4 */ "<Previously used 6.4> ",
+		    /* 5 */ "<HCI_Read_Stored_Link_Key> ",
+		    /* 6 */ "<HCI_Write_Stored_Link_Key> ",
+		    /* 7 */ "<HCI_Delete_Stored_Link_Key> " },
+		{ /* byte 7 */
+		    /* 0 */ "<HCI_Write_Local_Name> ",
+		    /* 1 */ "<HCI_Read_Local_Name> ",
+		    /* 2 */ "<HCI_Read_Connection_Accept_Timeout> ",
+		    /* 3 */ "<HCI_Write_Connection_Accept_Timeout> ",
+		    /* 4 */ "<HCI_Read_Page_Timeout> ",
+		    /* 5 */ "<HCI_Write_Page_Timeout> ",
+		    /* 6 */ "<HCI_Read_Scan_Enable> ",
+		    /* 7 */ "<HCI_Write_Scan_Enable> " },
+		{ /* byte 8 */
+		    /* 0 */ "<HCI_Read_Page_Scan_Activity> ",
+		    /* 1 */ "<HCI_Write_Page_Scan_Activity> ",
+		    /* 2 */ "<HCI_Read_Inquiry_Scan_Activity> ",
+		    /* 3 */ "<HCI_Write_Inquiry_Scan_Activity> ",
+		    /* 4 */ "<HCI_Read_Authentication_Enable> ",
+		    /* 5 */ "<HCI_Write_Authentication_Enable> ",
+		    /* 6 */ "<HCI_Read_Encryption_Mode (deprecated)> ",
+		    /* 7 */ "<HCI_Write_Encryption_Mode (deprecated)> " },
+		{ /* byte 9 */
+		    /* 0 */ "<HCI_Read_Class_Of_Device> ",
+		    /* 1 */ "<HCI_Write_Class_Of_Device> ",
+		    /* 2 */ "<HCI_Read_Voice_Setting> ",
+		    /* 3 */ "<HCI_Write_Voice_Setting> ",
+		    /* 4 */ "<HCI_Read_Automatic_Flush_Timeout> ",
+		    /* 5 */ "<HCI_Write_Automatic_Flush_Timeout> ",
+		    /* 6 */ "<HCI_Read_Num_Broadcast_Retransmissions> ",
+		    /* 7 */ "<HCI_Write_Num_Broadcast_Retransmissions> " },
+		{ /* byte 10 */
+		    /* 0 */ "<HCI_Read_Hold_Mode_Activity> ",
+		    /* 1 */ "<HCI_Write_Hold_Mode_Activity> ",
+		    /* 2 */ "<HCI_Read_Transmit_Power_Level> ",
+		    /* 3 */ "<HCI_Read_Synchronous_Flow_Control_Enable> ",
+		    /* 4 */ "<HCI_Write_Synchronous_Flow_Control_Enable> ",
+		    /* 5 */ "<HCI_Set_Controller_To_Host_Flow_Control> ",
+		    /* 6 */ "<HCI_Host_Buffer_Size> ",
+		    /* 7 */ "<HCI_Host_Number_Of_Completed_Packets> " },
+		{ /* byte 11 */
+		    /* 0 */ "<HCI_Read_Link_Supervision_Timeout> ",
+		    /* 1 */ "<HCI_Write_Link_Supervision_Timeout> ",
+		    /* 2 */ "<HCI_Read_Number_Of_Supported_IAC> ",
+		    /* 3 */ "<HCI_Read_Current_IAC_LAP> ",
+		    /* 4 */ "<HCI_Write_Current_IAC_LAP> ",
+		    /* 5 */ "<HCI_Read_Page_Scan_Mode_Period (deprecated)> ",
+		    /* 6 */ "<HCI_Write_Page_Scan_Mode_Period (deprecated)> ",
+		    /* 7 */ "<HCI_Read_Page_Scan_Mode (deprecated)> " },
+		{ /* byte 12 */
+		    /* 0 */ "<HCI_Write_Page_Scan_Mode (deprecated)> ",
+		    /* 1 */ "<HCI_Set_AFH_Host_Channel_Classification> ",
+		    /* 2 */ "<Unknown 12.2> ",
+		    /* 3 */ "<Unknown 12.3> ",
+		    /* 4 */ "<HCI_Read_Inquiry_Scan_Type> ",
+		    /* 5 */ "<HCI_Write_Inquiry_Scan_Type> ",
+		    /* 6 */ "<HCI_Read_Inquiry_Mode> ",
+		    /* 7 */ "<HCI_Write_Inquiry_Mode> " },
+		{ /* byte 13 */
+		    /* 0 */ "<HCI_Read_Page_Scan_Type> ",
+		    /* 1 */ "<HCI_Write_Page_Scan_Type> ",
+		    /* 2 */ "<HCI_Read_AFH_Channel_Assessment_Mode> ",
+		    /* 3 */ "<HCI_Write_AFH_Channel_Assessment_Mode> ",
+		    /* 4 */ "<Unknown 13.4> ",
+		    /* 5 */ "<Unknown 13.5> ",
+		    /* 6 */ "<Unknown 13.6> ",
+		    /* 7 */ "<Unknown 13.7> " },
+		{ /* byte 14 */
+		    /* 0 */ "<Unknown 14.0> ",
+		    /* 1 */ "<Unknown 14.1>",
+		    /* 2 */ "<Unknown 14.2> ",
+		    /* 3 */ "<HCI_Read_Local_Version_Information> ",
+		    /* 4 */ "<Unknown 14.4> ",
+		    /* 5 */ "<HCI_Read_Local_Supported_Features> ",
+		    /* 6 */ "<HCI_Read_Local_Extended_Features> ",
+		    /* 7 */ "<HCI_Read_Buffer_Size> " },
+		{ /* byte 15 */
+		    /* 0 */ "<HCI_Read_Country_Code (deprecated)> ",
+		    /* 1 */ "<HCI_Read_BD_ADDR> ",
+		    /* 2 */ "<HCI_Read_Failed_Contact_Counter> ",
+		    /* 3 */ "<HCI_Reset_Failed_Contact_Counter> ",
+		    /* 4 */ "<HCI_Read_Link_Quality> ",
+		    /* 5 */ "<HCI_Read_RSSI> ",
+		    /* 6 */ "<HCI_Read_AFH_Channel_Map> ",
+		    /* 7 */ "<HCI_Read_Clock> " },
+		{ /* byte 16 */
+		    /* 0 */ "<HCI_Read_Loopback_Mode> ",
+		    /* 1 */ "<HCI_Write_Loopback_Mode> ",
+		    /* 2 */ "<HCI_Enable_Device_Under_Test_Mode> ",
+		    /* 3 */ "<HCI_Setup_Synchronous_Connection_Request> ",
+		    /* 4 */ "<HCI_Accept_Synchronous_Connection_Request> ",
+		    /* 5 */ "<HCI_Reject_Synchronous_Connection_Request> ",
+		    /* 6 */ "<Unknown 16.6> ",
+		    /* 7 */ "<Unknown 16,7> " },
+		{ /* byte 17 */
+		    /* 0 */ "<HCI_Read_Extended_Inquiry_Response> ",
+		    /* 1 */ "<HCI_Write_Extended_Inquiry_Response> ",
+		    /* 2 */ "<HCI_Refresh_Encryption_Key> ",
+		    /* 3 */ "<Unknown 17.3> ",
+		    /* 4 */ "<HCI_Sniff_Subrating> ",
+		    /* 5 */ "<HCI_Read_Simple_Pairing_Mode> ",
+		    /* 6 */ "<HCI_Write_Simple_Pairing_Mode> ",
+		    /* 7 */ "<HCI_Read_Local_OOB_Data> " },
+		{ /* byte 18 */
+		    /* 0 */ "<HCI_Read_Inquiry_Response_Transmit_Power_Level> ",
+		    /* 1 */ "<HCI_Write_Inquiry_Transmit_Power_Level> ",
+		    /* 2 */ "<HCI_Read_Default_Erroneous_Data_Reporting> ",
+		    /* 3 */ "<HCI_Write_Default_Erroneous_Data_Reporting> ",
+		    /* 4 */ "<Unknown 18.4> ",
+		    /* 5 */ "<Unknown 18.5> ",
+		    /* 6 */ "<Unknown 18.6> ",
+		    /* 7 */ "<HCI_IO_Capability_Request_Reply> " },
+		{ /* byte 19 */
+		    /* 0 */ "<HCI_User_Confirmation_Request_Reply> ",
+		    /* 1 */ "<HCI_User_Confirmation_Request_Negative_Reply> ",
+		    /* 2 */ "<HCI_User_Passkey_Request_Reply> ",
+		    /* 3 */ "<HCI_User_Passkey_Request_Negative_Reply> ",
+		    /* 4 */ "<HCI_Remote_OOB_Data_Request_Reply> ",
+		    /* 5 */ "<HCI_Write_Simple_Pairing_Debug_Mode> ",
+		    /* 6 */ "<HCI_Enhanced_Flush> ",
+		    /* 7 */ "<HCI_Remote_OOB_Data_Request_Negative_Reply> " },
+		{ /* byte 20 */
+		    /* 0 */ "<Unknown 20.0> ",
+		    /* 1 */ "<Unknown 20.1> ",
+		    /* 2 */ "<HCI_Send_Keypress_Notification> ",
+		    /* 3 */ "<HCI_IO_Capability_Request_Negative_Reply> ",
+		    /* 4 */ "<HCI_Read_Encryption_Key_Size> ",
+		    /* 5 */ "<Unknown 20.5> ",
+		    /* 6 */ "<Unknown 20.6> ",
+		    /* 7 */ "<Unknown 20.7> " },
+		{ /* byte 21 */
+		    /* 0 */ "<HCI_Create_Physical_Link> ",
+		    /* 1 */ "<HCI_Accept_Physical_Link> ",
+		    /* 2 */ "<HCI_Disconnect_Physical_Link> ",
+		    /* 3 */ "<HCI_Create_Logical_Link> ",
+		    /* 4 */ "<HCI_Accept_Logical_Link> ",
+		    /* 5 */ "<HCI_Disconnect_Logical_Link> ",
+		    /* 6 */ "<HCI_Logical_Link_Cancel> ",
+		    /* 7 */ "<HCI_Flow_Spec_Modify> " },
+		{ /* byte 22 */
+		    /* 0 */ "<HCI_Read_Logical_Link_Accept_Timeout> ",
+		    /* 1 */ "<HCI_Write_Logical_Link_Accept_Timeout> ",
+		    /* 2 */ "<HCI_Set_Event_Mask_Page_2> ",
+		    /* 3 */ "<HCI_Read_Location_Data> ",
+		    /* 4 */ "<HCI_Write_Location_Data> ",
+		    /* 5 */ "<HCI_Read_Local_AMP_Info> ",
+		    /* 6 */ "<HCI_Read_Local_AMP_ASSOC> ",
+		    /* 7 */ "<HCI_Write_Remote_AMP_ASSOC> " },
+		{ /* byte 23 */
+		    /* 0 */ "<HCI_Read_Flow_Control_Mode> ",
+		    /* 1 */ "<HCI_Write_Flow_Control_Mode> ",
+		    /* 2 */ "<HCI_Read_Data_Block_Size> ",
+		    /* 3 */ "<Unknown 23.3> ",
+		    /* 4 */ "<Unknown 23.4> ",
+		    /* 5 */ "<HCI_Enable_AMP_Receiver_Reports> ",
+		    /* 6 */ "<HCI_AMP_Test_End> ",
+		    /* 7 */ "<HCI_AMP_Test> " },
+		{ /* byte 24 */
+		    /* 0 */ "<HCI_Read_Enhanced_Transmit_Power_Level> ",
+		    /* 1 */ "<Unknown 24.1> ",
+		    /* 2 */ "<HCI_Read_Best_Effort_Flush_Timeout> ",
+		    /* 3 */ "<HCI_Write_Best_Effort_Flush_Timeout> ",
+		    /* 4 */ "<HCI_Short_Range_Mode> ",
+		    /* 5 */ "<HCI_Read_LE_Host_Support> ",
+		    /* 6 */ "<HCI_Write_LE_Host_Support> ",
+		    /* 7 */ "<Unknown 24.7> " },
+		{ /* byte 25 */
+		    /* 0 */ "<HCI_LE_Set_Event_Mask> ",
+		    /* 1 */ "<HCI_LE_Read_Buffer_Size [v1]> ",
+		    /* 2 */ "<HCI_LE_Read_Local_Supported_Features> ",
+		    /* 3 */ "<Unknown 25.3> ",
+		    /* 4 */ "<HCI_LE_Set_Random_Address> ",
+		    /* 5 */ "<HCI_LE_Set_Advertising_Parameters> ",
+		    /* 6 */
+		    "<HCI_LE_Read_Advertising_Physical_Channel_Tx_Power> ",
+		    /* 7 */ "<HCI_LE_Set_Advertising_Data> " },
+		{ /* byte 26 */
+		    /* 0 */ "<HCI_LE_Set_Scan_Response_Data> ",
+		    /* 1 */ "<HCI_LE_Set_Advertising_Enable> ",
+		    /* 2 */ "<HCI_LE_Set_Scan_Parameters> ",
+		    /* 3 */ "<HCI_LE_Set_Scan_Enable> ",
+		    /* 4 */ "<HCI_LE_Create_Connection> ",
+		    /* 5 */ "<HCI_LE_Create_Connection_Cancel> ",
+		    /* 6 */ "<HCI_LE_Read_White_List_Size> ",
+		    /* 7 */ "<HCI_LE_Clear_White_List> " },
+		{ /* byte 27 */
+		    /* 0 */ "<HCI_LE_Add_Device_To_White_List> ",
+		    /* 1 */ "<HCI_LE_Remove_Device_From_White_List> ",
+		    /* 2 */ "<HCI_LE_Connection_Update> ",
+		    /* 3 */ "<HCI_LE_Set_Host_Channel_Classification> ",
+		    /* 4 */ "<HCI_LE_Read_Channel_Map> ",
+		    /* 5 */ "<HCI_LE_Read_Remote_Features> ",
+		    /* 6 */ "<HCI_LE_Encrypt> ",
+		    /* 7 */ "<HCI_LE_Rand> " },
+		{ /* byte 28 */
+		    /* 0 */ "<HCI_LE_Enable_Encryption> ",
+		    /* 1 */ "<HCI_LE_Long_Term_Key_Request_Reply> ",
+		    /* 2 */ "<HCI_LE_Long_Term_Key_Request_Negative_Reply> ",
+		    /* 3 */ "<HCI_LE_Read_Supported_States> ",
+		    /* 4 */ "<HCI_LE_Receiver_Test [v1]> ",
+		    /* 5 */ "<HCI_LE_Transmitter_Test [v1]> ",
+		    /* 6 */ "<HCI_LE_Test_End> ",
+		    /* 7 */ "<Unknown 28.7> " },
+		{ /* byte 29 */
+		    /* 0 */ "<Unknown 29.0> ",
+		    /* 1 */ "<Unknown 29.1> ",
+		    /* 2 */ "<Unknown 29.2> ",
+		    /* 3 */ "<HCI_Enhanced_Setup_Synchronous_Connection> ",
+		    /* 4 */ "<HCI_Enhanced_Accept_Synchronous_Connection> ",
+		    /* 5 */ "<HCI_Read_Local_Supported_Codecs> ",
+		    /* 6 */ "<HCI_Set_MWS_Channel_Parameters> ",
+		    /* 7 */ "<HCI_Set_External_Frame_Configuration> " },
+		{ /* byte 30 */
+		    /* 0 */ "<HCI_Set_MWS_Signaling> ",
+		    /* 1 */ "<HCI_Set_MWS_Transport_Layer> ",
+		    /* 2 */ "<HCI_Set_MWS_Scan_Frequency_Table> ",
+		    /* 3 */ "<HCI_Get_MWS_Transport_Layer_Configuration> ",
+		    /* 4 */ "<HCI_Set_MWS_PATTERN_Configuration> ",
+		    /* 5 */ "<HCI_Set_Triggered_Clock_Capture> ",
+		    /* 6 */ "<HCI_Truncated_Page> ",
+		    /* 7 */ "<HCI_Truncated_Page_Cancel> " },
+		{ /* byte 31 */
+		    /* 0 */ "<HCI_Set_Connectionless_Slave_Broadcast> ",
+		    /* 1 */ "<HCI_Set_Connectionless_Slave_Broadcast_Receive> ",
+		    /* 2 */ "<HCI_Start_Synchronization_Train> ",
+		    /* 3 */ "<HCI_Receive_Synchronization_Train> ",
+		    /* 4 */ "<HCI_Set_Reserved_LT_ADDR> ",
+		    /* 5 */ "<HCI_Delete_Reserved_LT_ADDR> ",
+		    /* 6 */ "<HCI_Set_Connectionless_Slave_Broadcast_Data> ",
+		    /* 7 */ "<HCI_Read_Synchronization_Train_Parameters> " },
+		{ /* byte 32 */
+		    /* 0 */ "<HCI_Write_Synchronization_Train_Parameters> ",
+		    /* 1 */ "<HCI_Remote_OOB_Extended_Data_Request_Reply> ",
+		    /* 2 */ "<HCI_Read_Secure_Connections_Host_Support> ",
+		    /* 3 */ "<HCI_Write_Secure_Connections_Host_Support> ",
+		    /* 4 */ "<HCI_Read_Authenticated_Payload_Timeout> ",
+		    /* 5 */ "<HCI_Write_Authenticated_Payload_Timeout> ",
+		    /* 6 */ "<HCI_Read_Local_OOB_Extended_Data> ",
+		    /* 7 */ "<HCI_Write_Secure_Connections_Test_Mode> " },
+		{ /* byte 33 */
+		    /* 0 */ "<HCI_Read_Extended_Page_Timeout> ",
+		    /* 1 */ "<HCI_Write_Extended_Page_Timeout> ",
+		    /* 2 */ "<HCI_Read_Extended_Inquiry_Length> ",
+		    /* 3 */ "<HCI_Write_Extended_Inquiry_Length> ",
+		    /* 4 */
+		    "<HCI_LE_Remote_Connection_Parameter_Request_Reply> ",
+		    /* 5 */
+		    "<HCI_LE_Remote_Connection_Parameter_Request_Negative_Reply> ",
+		    /* 6 */ "<HCI_LE_Set_Data_Length> ",
+		    /* 7 */ "<HCI_LE_Read_Suggested_Default_Data_Length> " },
+		{ /* byte 34 */
+		    /* 0 */ "<HCI_LE_Write_Suggested_Default_Data_Length> ",
+		    /* 1 */ "<HCI_LE_Read_Local_P-256_Public_Key> ",
+		    /* 2 */ "<HCI_LE_Generate_DHKey [v1]> ",
+		    /* 3 */ "<HCI_LE_Add_Device_To_Resolving_List> ",
+		    /* 4 */ "<HCI_LE_Remove_Device_From_Resolving_List> ",
+		    /* 5 */ "<HCI_LE_Clear_Resolving_List> ",
+		    /* 6 */ "<HCI_LE_Read_Resolving_List_Size> ",
+		    /* 7 */ "<HCI_LE_Read_Peer_Resolvable_Address> " },
+		{ /* byte 35 */
+		    /* 0 */ "<HCI_LE_Read_Local_Resolvable_Address> ",
+		    /* 1 */ "<HCI_LE_Set_Address_Resolution_Enable> ",
+		    /* 2 */ "<HCI_LE_Set_Resolvable_Private_Address_Timeout> ",
+		    /* 3 */ "<HCI_LE_Read_Maximum_Data_Length> ",
+		    /* 4 */ "<HCI_LE_Read_PHY> ",
+		    /* 5 */ "<HCI_LE_Set_Default_PHY> ",
+		    /* 6 */ "<HCI_LE_Set_PHY> ",
+		    /* 7 */ "<HCI_LE_Receiver_Test [v2]> " },
+		{ /* byte 36 */
+		    /* 0 */ "<HCI_LE_Transmitter_Test [v2]> ",
+		    /* 1 */ "<HCI_LE_Set_Advertising_Set_Random_Address> ",
+		    /* 2 */ "<HCI_LE_Set_Extended_Advertising_Parameters> ",
+		    /* 3 */ "<HCI_LE_Set_Extended_Advertising_Data> ",
+		    /* 4 */ "<HCI_LE_Set_Extended_Scan_Response_Data> ",
+		    /* 5 */ "<HCI_LE_Set_Extended_Advertising_Enable> ",
+		    /* 6 */ "<HCI_LE_Read_Maximum_Advertising_Data_Length> ",
+		    /* 7 */
+		    "<HCI_LE_Read_Number_of_Supported_Advertising_Sets> " },
+		{ /* byte 37 */
+		    /* 0 */ "<HCI_LE_Remove_Advertising_Set> ",
+		    /* 1 */ "<HCI_LE_Clear_Advertising_Sets> ",
+		    /* 2 */ "<HCI_LE_Set_Periodic_Advertising_Parameters> ",
+		    /* 3 */ "<HCI_LE_Set_Periodic_Advertising_Data> ",
+		    /* 4 */ "<HCI_LE_Set_Periodic_Advertising_Enable> ",
+		    /* 5 */ "<HCI_LE_Set_Extended_Scan_Parameters> ",
+		    /* 6 */ "<HCI_LE_Set_Extended_Scan_Enable> ",
+		    /* 7 */ "<HCI_LE_Extended_Create_Connection> " },
+		{ /* byte 38 */
+		    /* 0 */ "<HCI_LE_Periodic_Advertising_Create_Sync> ",
+		    /* 1 */ "<HCI_LE_Periodic_Advertising_Create_Sync_Cancel> ",
+		    /* 2 */ "<HCI_LE_Periodic_Advertising_Terminate_Sync> ",
+		    /* 3 */ "<HCI_LE_Add_Device_To_Periodic_Advertiser_List> ",
+		    /* 4 */
+		    "<HCI_LE_Remove_Device_From_Periodic_Advertiser_List> ",
+		    /* 5 */ "<HCI_LE_Clear_Periodic_Advertiser_List> ",
+		    /* 6 */ "<HCI_LE_Read_Periodic_Advertiser_List_Size> ",
+		    /* 7 */ "<HCI_LE_Read_Transmit_Power> " },
+		{ /* byte 39 */
+		    /* 0 */ "<HCI_LE_Read_RF_Path_Compensation> ",
+		    /* 1 */ "<HCI_LE_Write_RF_Path_Compensation> ",
+		    /* 2 */ "<HCI_LE_Set_Privacy_Mode> ",
+		    /* 3 */ "<HCI_LE_Receiver_Test [v3]> ",
+		    /* 4 */ "<HCI_LE_Transmitter_Test [v3]> ",
+		    /* 5 */
+		    "<HCI_LE_Set_Connectionless_CTE_Transmit_Parameters> ",
+		    /* 6 */ "<HCI_LE_Set_Connectionless_CTE_Transmit_Enable> ",
+		    /* 7 */ "<HCI_LE_Set_Connectionless_IQ_Sampling_Enable> " },
+		{ /* byte 40 */
+		    /* 0 */ "<HCI_LE_Set_Connection_CTE_Receive_Parameters> ",
+		    /* 1 */ "<HCI_LE_Set_Connection_CTE_Transmit_Parameters> ",
+		    /* 2 */ "<HCI_LE_Connection_CTE_Request_Enable> ",
+		    /* 3 */ "<HCI_LE_Connection_CTE_Response_Enable> ",
+		    /* 4 */ "<HCI_LE_Read_Antenna_Information> ",
+		    /* 5 */ "<HCI_LE_Set_Periodic_Advertising_Receive_Enable> ",
+		    /* 6 */ "<HCI_LE_Periodic_Advertising_Sync_Transfer> ",
+		    /* 7 */
+		    "<HCI_LE_Periodic_Advertising_Set_Info_Transfer> " },
+		{   /* byte 41 */
+		    /* 0 */
+		    "<HCI_LE_Set_Periodic_Advertising_Sync_Transfer_Parameters> ",
+		    /* 1 */
+		    "<HCI_LE_Set_Default_Periodic_Advertising_Sync_Transfer_- Parameters> ",
+		    /* 2 */ "<HCI_LE_Generate_DHKey [v2]> ",
+		    /* 3 */ "<HCI_Read_Local_Simple_Pairing_Options> ",
+		    /* 4 */ "<HCI_LE_Modify_Sleep_Clock_Accuracy> ",
+		    /* 5 */ "<HCI_LE_Read_Buffer_Size [v2]> ",
+		    /* 6 */ "<HCI_LE_Read_ISO_TX_Sync> ",
+		    /* 7 */ "<HCI_LE_Set_CIG_Parameters> " },
+		{ /* byte 42 */
+		    /* 0 */ "<HCI_LE_Set_CIG_Parameters_Test> ",
+		    /* 1 */ "<HCI_LE_Create_CIS> ",
+		    /* 2 */ "<HCI_LE_Remove_CIG> ",
+		    /* 3 */ "<HCI_LE_Accept_CIS_Request> ",
+		    /* 4 */ "<HCI_LE_Reject_CIS_Request> ",
+		    /* 5 */ "<HCI_LE_Create_BIG> ",
+		    /* 6 */ "<HCI_LE_Create_BIG_Test> ",
+		    /* 7 */ "<HCI_LE_Terminate_BIG> " },
+		{ /* byte 43 */
+		    /* 0 */ "<HCI_LE_BIG_Create_Sync> ",
+		    /* 1 */ "<HCI_LE_BIG_Terminate_Sync> ",
+		    /* 2 */ "<HCI_LE_Request_Peer_SCA> ",
+		    /* 3 */ "<HCI_LE_Setup_ISO_Data_Path> ",
+		    /* 4 */ "<HCI_LE_Remove_ISO_Data_Path> ",
+		    /* 5 */ "<HCI_LE_ISO_Transmit_Test> ",
+		    /* 6 */ "<HCI_LE_ISO_Receive_Test> ",
+		    /* 7 */ "<HCI_LE_ISO_Read_Test_Counters> " },
+		{ /* byte 44 */
+		    /* 0 */ "<HCI_LE_ISO_Test_End> ",
+		    /* 1 */ "<HCI_LE_Set_Host_Feature> ",
+		    /* 2 */ "<HCI_LE_Read_ISO_Link_Quality> ",
+		    /* 3 */ "<HCI_LE_Enhanced_Read_Transmit_Power_Level> ",
+		    /* 4 */ "<HCI_LE_Read_Remote_Transmit_Power_Level> ",
+		    /* 5 */ "<HCI_LE_Set_Path_Loss_Reporting_Parameters> ",
+		    /* 6 */ "<HCI_LE_Set_Path_Loss_Reporting_Enable> ",
+		    /* 7 */ "<HCI_LE_Set_Transmit_Power_Reporting_Enable> " },
+		{ /* byte 45 */
+		    /* 0 */ "<HCI_LE_Transmitter_Test [v4]> ",
+		    /* 1 */ "<HCI_Set_Ecosystem_Base_Interval> ",
+		    /* 2 */ "<HCI_Read_Local_Supported_Codecs [v2]> ",
+		    /* 3 */ "<HCI_Read_Local_Supported_Codec_Capabilities> ",
+		    /* 4 */ "<HCI_Read_Local_Supported_Controller_Delay> ",
+		    /* 5 */ "<HCI_Configure_Data_Path> ",
+		    /* 6 */ "<Unknown 45.6> ",
+		    /* 7 */ "<Unknown 45.7> " }
+	};
 
 	if (buffer != NULL && size > 0) {
-		int	n, i, len0, len1;
+		int n, i, len0, len1;
 
 		memset(buffer, 0, size);
 		size--;
-
 
 		for (n = 0; n < SIZE(t); n++) {
 			for (i = 0; i < SIZE(t[n]); i++) {
@@ -2915,7 +2884,6 @@ hci_commands2str(uint8_t *commands, char *buffer, int size)
 					len1 += strlen(t[n][i]);
 					strncat(buffer, t[n][i], size - len0);
 				}
-
 			}
 		}
 	}
@@ -2926,90 +2894,81 @@ done:
 char const *
 hci_features2str(uint8_t *features, char *buffer, int size)
 {
-	static char const * const	t[][8] = {
-	{ /* byte 0 */
-		/* 0 */ "<3-Slot> ",
-		/* 1 */ "<5-Slot> ",
-		/* 2 */ "<Encryption> ",
-		/* 3 */ "<Slot offset> ",
-		/* 4 */ "<Timing accuracy> ",
-		/* 5 */ "<Switch> ",
-		/* 6 */ "<Hold mode> ",
-		/* 7 */ "<Sniff mode> "
-	},
-	{ /* byte 1 */
-		/* 0 */ "<Park mode> ",
-		/* 1 */ "<RSSI> ",
-		/* 2 */ "<Channel quality> ",
-		/* 3 */ "<SCO link> ",
-		/* 4 */ "<HV2 packets> ",
-		/* 5 */ "<HV3 packets> ",
-		/* 6 */ "<u-law log> ",
-		/* 7 */ "<A-law log> "
-	},
-	{ /* byte 2 */
-		/* 0 */ "<CVSD> ",
-		/* 1 */ "<Paging scheme> ",
-		/* 2 */ "<Power control> ",
-		/* 3 */ "<Transparent SCO data> ",
-		/* 4 */ "<Flow control lag (bit0)> ",
-		/* 5 */ "<Flow control lag (bit1)> ",
-		/* 6 */ "<Flow control lag (bit2)> ",
-		/* 7 */ "<Broadcast Encryption> "
-	},
-	{ /* byte 3 */
-		/* 0 */ "<Unknown 3.0> ",
-		/* 1 */ "<EDR ACL 2 Mb/s> ",
-		/* 2 */ "<EDR ACL 3 Mb/s> ",
-		/* 3 */ "<Enhanced inquiry scan> ",
-		/* 4 */ "<Interlaced inquiry scan> ",
-		/* 5 */ "<Interlaced page scan> ",
-		/* 6 */ "<RSSI with inquiry results> ",
-		/* 7 */ "<Extended SCO link (EV3 packets)> "
-	},
-	{ /* byte 4 */
-		/* 0 */ "<EV4 packets> ",
-		/* 1 */ "<EV5 packets> ",
-		/* 2 */ "<Unknown 4.2> ",
-		/* 3 */ "<AFH capable slave> ",
-		/* 4 */ "<AFH classification slave> ",
-		/* 5 */ "<BR/EDR Not Supported> ",
-		/* 6 */ "<LE Supported (Controller)> ",
-		/* 7 */ "<3-Slot EDR ACL packets> "
-	},
-	{ /* byte 5 */
-		/* 0 */ "<5-Slot EDR ACL packets> ",
-		/* 1 */ "<Sniff subrating> ",
-		/* 2 */ "<Pause encryption> ",
-		/* 3 */ "<AFH capable master> ",
-		/* 4 */ "<AFH classification master> ",
-		/* 5 */ "<EDR eSCO 2 Mb/s mode> ",
-		/* 6 */ "<EDR eSCO 3 Mb/s mode> ",
-		/* 7 */ "<3-Slot EDR eSCO packets> "
-	},
-	{ /* byte 6 */
-		/* 0 */ "<Enhanced Inquiry Response> ",
-		/* 1 */ "<Simultaneous LE and BR/EDR (Controller)> ",
-		/* 2 */ "<Unknown 6.2> ",
-		/* 3 */ "<Secure Simple Pairing (Controller Support)> ",
-		/* 4 */ "<Encapsulated PDU> ",
-		/* 5 */ "<Erroneous Data Reporting> ",
-		/* 6 */ "<Non-flushable Packed Boundary Flag> ",
-		/* 7 */ "<Unknown 6.7> "
-	},
-	{ /* byte 7 */
-		/* 0 */ "<HCI_Link_Supervision_Timeout_Changed event> ",
-		/* 1 */ "<Variable Inquiry TX Power Level> ",
-		/* 2 */ "<Enhanced Power Control> ",
-		/* 3 */ "<Unknown 7.3> ",
-		/* 4 */ "<Unknown 7.4> ",
-		/* 5 */ "<Unknown 7.5> ",
-		/* 6 */ "<Unknown 7.6> ",
-		/* 7 */ "<Extended features> "
-	}};
+	static char const *const t[][8] = { { /* byte 0 */
+						/* 0 */ "<3-Slot> ",
+						/* 1 */ "<5-Slot> ",
+						/* 2 */ "<Encryption> ",
+						/* 3 */ "<Slot offset> ",
+						/* 4 */ "<Timing accuracy> ",
+						/* 5 */ "<Switch> ",
+						/* 6 */ "<Hold mode> ",
+						/* 7 */ "<Sniff mode> " },
+		{ /* byte 1 */
+		    /* 0 */ "<Park mode> ",
+		    /* 1 */ "<RSSI> ",
+		    /* 2 */ "<Channel quality> ",
+		    /* 3 */ "<SCO link> ",
+		    /* 4 */ "<HV2 packets> ",
+		    /* 5 */ "<HV3 packets> ",
+		    /* 6 */ "<u-law log> ",
+		    /* 7 */ "<A-law log> " },
+		{ /* byte 2 */
+		    /* 0 */ "<CVSD> ",
+		    /* 1 */ "<Paging scheme> ",
+		    /* 2 */ "<Power control> ",
+		    /* 3 */ "<Transparent SCO data> ",
+		    /* 4 */ "<Flow control lag (bit0)> ",
+		    /* 5 */ "<Flow control lag (bit1)> ",
+		    /* 6 */ "<Flow control lag (bit2)> ",
+		    /* 7 */ "<Broadcast Encryption> " },
+		{ /* byte 3 */
+		    /* 0 */ "<Unknown 3.0> ",
+		    /* 1 */ "<EDR ACL 2 Mb/s> ",
+		    /* 2 */ "<EDR ACL 3 Mb/s> ",
+		    /* 3 */ "<Enhanced inquiry scan> ",
+		    /* 4 */ "<Interlaced inquiry scan> ",
+		    /* 5 */ "<Interlaced page scan> ",
+		    /* 6 */ "<RSSI with inquiry results> ",
+		    /* 7 */ "<Extended SCO link (EV3 packets)> " },
+		{ /* byte 4 */
+		    /* 0 */ "<EV4 packets> ",
+		    /* 1 */ "<EV5 packets> ",
+		    /* 2 */ "<Unknown 4.2> ",
+		    /* 3 */ "<AFH capable slave> ",
+		    /* 4 */ "<AFH classification slave> ",
+		    /* 5 */ "<BR/EDR Not Supported> ",
+		    /* 6 */ "<LE Supported (Controller)> ",
+		    /* 7 */ "<3-Slot EDR ACL packets> " },
+		{ /* byte 5 */
+		    /* 0 */ "<5-Slot EDR ACL packets> ",
+		    /* 1 */ "<Sniff subrating> ",
+		    /* 2 */ "<Pause encryption> ",
+		    /* 3 */ "<AFH capable master> ",
+		    /* 4 */ "<AFH classification master> ",
+		    /* 5 */ "<EDR eSCO 2 Mb/s mode> ",
+		    /* 6 */ "<EDR eSCO 3 Mb/s mode> ",
+		    /* 7 */ "<3-Slot EDR eSCO packets> " },
+		{ /* byte 6 */
+		    /* 0 */ "<Enhanced Inquiry Response> ",
+		    /* 1 */ "<Simultaneous LE and BR/EDR (Controller)> ",
+		    /* 2 */ "<Unknown 6.2> ",
+		    /* 3 */ "<Secure Simple Pairing (Controller Support)> ",
+		    /* 4 */ "<Encapsulated PDU> ",
+		    /* 5 */ "<Erroneous Data Reporting> ",
+		    /* 6 */ "<Non-flushable Packed Boundary Flag> ",
+		    /* 7 */ "<Unknown 6.7> " },
+		{ /* byte 7 */
+		    /* 0 */ "<HCI_Link_Supervision_Timeout_Changed event> ",
+		    /* 1 */ "<Variable Inquiry TX Power Level> ",
+		    /* 2 */ "<Enhanced Power Control> ",
+		    /* 3 */ "<Unknown 7.3> ",
+		    /* 4 */ "<Unknown 7.4> ",
+		    /* 5 */ "<Unknown 7.5> ",
+		    /* 6 */ "<Unknown 7.6> ",
+		    /* 7 */ "<Extended features> " } };
 
 	if (buffer != NULL && size > 0) {
-		int	n, i, len0, len1;
+		int n, i, len0, len1;
 
 		memset(buffer, 0, size);
 		len1 = 0;
@@ -3040,87 +2999,81 @@ done:
 char const *
 hci_le_features2str(uint8_t *features, char *buffer, int size)
 {
-	static char const * const t[][8] = {
-	{ /* byte 0 */
-		/* 0 */ "<LE Encryption> ",
-		/* 1 */ "<Connection Parameters Request Procedure> ",
-		/* 2 */ "<Extended Reject Indication> ",
-		/* 3 */ "<Slave-initiated Features Exchange> ",
-		/* 4 */ "<LE Ping> ",
-		/* 5 */ "<LE Data Packet Length Extension> ",
-		/* 6 */ "<LL Privacy> ",
-		/* 7 */ "<Extended Scanner Filter Policies> "
-	},
-	{ /* byte 1 */
-		/* 0 */ "<LE 2M PHY> ",
-		/* 1 */ "<Stable Modulation Index - Transmitter> ",
-		/* 2 */ "<Stable Modulation Index - Receiver> ",
-		/* 3 */ "<LE Coded PHY> ",
-		/* 4 */ "<LE Extended Advertising> ",
-		/* 5 */ "<LE Periodic Advertising> ",
-		/* 6 */ "<Channel Selection Algorithm #2> ",
-		/* 7 */ "<LE Power Class 1> "
-	},
-	{ /* byte 2 */
-		/* 0 */ "<Minimum Number of Used Channels Procedure> ",
-		/* 1 */ "<Connection CTE Request> ",
-		/* 2 */ "<Connection CTE Response> ",
-		/* 3 */ "<Connectionless CTE Transmitter> ",
-		/* 4 */ "<Connectionless CTE Receiver> ",
-		/* 5 */ "<Antenna Switching During CTE Transmission (AoD)> ",
-		/* 6 */ "<Antenna Switching During CTE Reception (AoA)> ",
-		/* 7 */ "<Receiving Constant Tone Extensions> "
-	},
-	{ /* byte 3 */
-		/* 0 */ "<Periodic Advertising Sync Transfer - Sender> ",
-		/* 1 */ "<Periodic Advertising Sync Transfer - Recipient> ",
-		/* 2 */ "<Sleep Clock Accuracy Updates> ",
-		/* 3 */ "<Remote Public Key Validation> ",
-		/* 4 */ "<Connected Isochronous Stream - Master> ",
-		/* 5 */ "<Connected Isochronous Stream - Slave> ",
-		/* 6 */ "<Isochronous Broadcaster> ",
-		/* 7 */ "<Synchronized Receiver> "
-	},
-	{ /* byte 4 */
-		/* 0 */ "<Isochronous Channels (Host Support)> ",
-		/* 1 */ "<LE Power Control Request> ",
-		/* 2 */ "<LE Power Change Indication> ",
-		/* 3 */ "<LE Path Loss Monitoring> ",
-		/* 4 */ "<Reserved for future use> ",
-		/* 5 */ "<Unknown 4.5> ",
-		/* 6 */ "<Unknown 4.6> ",
-		/* 7 */ "<Unknown 4.7> "
-	},
-	{ /* byte 5 */
-		/* 0 */ "<Unknown 5.0> ",
-		/* 1 */ "<Unknown 5.1> ",
-		/* 2 */ "<Unknown 5.2> ",
-		/* 3 */ "<Unknown 5.3> ",
-		/* 4 */ "<Unknown 5.4> ",
-		/* 5 */ "<Unknown 5.5> ",
-		/* 6 */ "<Unknown 5.6> ",
-		/* 7 */ "<Unknown 5.7> "
-	},
-	{ /* byte 6 */
-		/* 0 */ "<Unknown 6.0> ",
-		/* 1 */ "<Unknown 6.1> ",
-		/* 2 */ "<Unknown 6.2> ",
-		/* 3 */ "<Unknown 6.3> ",
-		/* 4 */ "<Unknown 6.4> ",
-		/* 5 */ "<Unknown 6.5> ",
-		/* 6 */ "<Unknown 6.6> ",
-		/* 7 */ "<Unknown 6.7> "
-	},
-	{ /* byte 7 */
-		/* 0 */ "<Unknown 7.0> ",
-		/* 1 */ "<Unknown 7.1> ",
-		/* 2 */ "<Unknown 7.2> ",
-		/* 3 */ "<Unknown 7.3> ",
-		/* 4 */ "<Unknown 7.4> ",
-		/* 5 */ "<Unknown 7.5> ",
-		/* 6 */ "<Unknown 7.6> ",
-		/* 7 */ "<Unknown 7.7> "
-	}};
+	static char const *const t[][8] = {
+		{ /* byte 0 */
+		    /* 0 */ "<LE Encryption> ",
+		    /* 1 */ "<Connection Parameters Request Procedure> ",
+		    /* 2 */ "<Extended Reject Indication> ",
+		    /* 3 */ "<Slave-initiated Features Exchange> ",
+		    /* 4 */ "<LE Ping> ",
+		    /* 5 */ "<LE Data Packet Length Extension> ",
+		    /* 6 */ "<LL Privacy> ",
+		    /* 7 */ "<Extended Scanner Filter Policies> " },
+		{ /* byte 1 */
+		    /* 0 */ "<LE 2M PHY> ",
+		    /* 1 */ "<Stable Modulation Index - Transmitter> ",
+		    /* 2 */ "<Stable Modulation Index - Receiver> ",
+		    /* 3 */ "<LE Coded PHY> ",
+		    /* 4 */ "<LE Extended Advertising> ",
+		    /* 5 */ "<LE Periodic Advertising> ",
+		    /* 6 */ "<Channel Selection Algorithm #2> ",
+		    /* 7 */ "<LE Power Class 1> " },
+		{ /* byte 2 */
+		    /* 0 */ "<Minimum Number of Used Channels Procedure> ",
+		    /* 1 */ "<Connection CTE Request> ",
+		    /* 2 */ "<Connection CTE Response> ",
+		    /* 3 */ "<Connectionless CTE Transmitter> ",
+		    /* 4 */ "<Connectionless CTE Receiver> ",
+		    /* 5 */
+		    "<Antenna Switching During CTE Transmission (AoD)> ",
+		    /* 6 */ "<Antenna Switching During CTE Reception (AoA)> ",
+		    /* 7 */ "<Receiving Constant Tone Extensions> " },
+		{ /* byte 3 */
+		    /* 0 */ "<Periodic Advertising Sync Transfer - Sender> ",
+		    /* 1 */ "<Periodic Advertising Sync Transfer - Recipient> ",
+		    /* 2 */ "<Sleep Clock Accuracy Updates> ",
+		    /* 3 */ "<Remote Public Key Validation> ",
+		    /* 4 */ "<Connected Isochronous Stream - Master> ",
+		    /* 5 */ "<Connected Isochronous Stream - Slave> ",
+		    /* 6 */ "<Isochronous Broadcaster> ",
+		    /* 7 */ "<Synchronized Receiver> " },
+		{ /* byte 4 */
+		    /* 0 */ "<Isochronous Channels (Host Support)> ",
+		    /* 1 */ "<LE Power Control Request> ",
+		    /* 2 */ "<LE Power Change Indication> ",
+		    /* 3 */ "<LE Path Loss Monitoring> ",
+		    /* 4 */ "<Reserved for future use> ",
+		    /* 5 */ "<Unknown 4.5> ",
+		    /* 6 */ "<Unknown 4.6> ",
+		    /* 7 */ "<Unknown 4.7> " },
+		{ /* byte 5 */
+		    /* 0 */ "<Unknown 5.0> ",
+		    /* 1 */ "<Unknown 5.1> ",
+		    /* 2 */ "<Unknown 5.2> ",
+		    /* 3 */ "<Unknown 5.3> ",
+		    /* 4 */ "<Unknown 5.4> ",
+		    /* 5 */ "<Unknown 5.5> ",
+		    /* 6 */ "<Unknown 5.6> ",
+		    /* 7 */ "<Unknown 5.7> " },
+		{ /* byte 6 */
+		    /* 0 */ "<Unknown 6.0> ",
+		    /* 1 */ "<Unknown 6.1> ",
+		    /* 2 */ "<Unknown 6.2> ",
+		    /* 3 */ "<Unknown 6.3> ",
+		    /* 4 */ "<Unknown 6.4> ",
+		    /* 5 */ "<Unknown 6.5> ",
+		    /* 6 */ "<Unknown 6.6> ",
+		    /* 7 */ "<Unknown 6.7> " },
+		{ /* byte 7 */
+		    /* 0 */ "<Unknown 7.0> ",
+		    /* 1 */ "<Unknown 7.1> ",
+		    /* 2 */ "<Unknown 7.2> ",
+		    /* 3 */ "<Unknown 7.3> ",
+		    /* 4 */ "<Unknown 7.4> ",
+		    /* 5 */ "<Unknown 7.5> ",
+		    /* 6 */ "<Unknown 7.6> ",
+		    /* 7 */ "<Unknown 7.7> " }
+	};
 
 	if (buffer != NULL && size > 0) {
 		int n, i, len0, len1;
@@ -3154,32 +3107,29 @@ done:
 char const *
 hci_cc2str(int cc)
 {
-	static char const * const	t[] = {
+	static char const *const t[] = {
 		/* 0x00 */ "North America, Europe, Japan",
 		/* 0x01 */ "France"
 	};
 
-	return (cc >= SIZE(t)? "?" : t[cc]);
+	return (cc >= SIZE(t) ? "?" : t[cc]);
 } /* hci_cc2str */
 
 char const *
 hci_con_state2str(int state)
 {
-	static char const * const	t[] = {
-		/* NG_HCI_CON_CLOSED */           "CLOSED",
-		/* NG_HCI_CON_W4_LP_CON_RSP */    "W4_LP_CON_RSP",
+	static char const *const t[] = { /* NG_HCI_CON_CLOSED */ "CLOSED",
+		/* NG_HCI_CON_W4_LP_CON_RSP */ "W4_LP_CON_RSP",
 		/* NG_HCI_CON_W4_CONN_COMPLETE */ "W4_CONN_COMPLETE",
-		/* NG_HCI_CON_OPEN */             "OPEN"
-        };
+		/* NG_HCI_CON_OPEN */ "OPEN" };
 
-	return (state >= SIZE(t)? "UNKNOWN" : t[state]);
+	return (state >= SIZE(t) ? "UNKNOWN" : t[state]);
 } /* hci_con_state2str */
 
 char const *
 hci_status2str(int status)
 {
-	static char const * const       t[] = {
-		/* 0x00 */ "No error",
+	static char const *const t[] = { /* 0x00 */ "No error",
 		/* 0x01 */ "Unknown HCI command",
 		/* 0x02 */ "No connection",
 		/* 0x03 */ "Hardware failure",
@@ -3194,13 +3144,16 @@ hci_status2str(int status)
 		/* 0x0c */ "Command disallowed",
 		/* 0x0d */ "Host rejected due to limited resources",
 		/* 0x0e */ "Host rejected due to security reasons",
-		/* 0x0f */ "Host rejected due to remote unit is a personal unit",
+		/* 0x0f */
+		"Host rejected due to remote unit is a personal unit",
 		/* 0x10 */ "Host timeout",
 		/* 0x11 */ "Unsupported feature or parameter value",
 		/* 0x12 */ "Invalid HCI command parameter",
-		/* 0x13 */ "Other end terminated connection: User ended connection",
+		/* 0x13 */
+		"Other end terminated connection: User ended connection",
 		/* 0x14 */ "Other end terminated connection: Low resources",
-		/* 0x15 */ "Other end terminated connection: About to power off",
+		/* 0x15 */
+		"Other end terminated connection: About to power off",
 		/* 0x16 */ "Connection terminated by local host",
 		/* 0x17 */ "Repeated attempts",
 		/* 0x18 */ "Pairing not allowed",
@@ -3236,30 +3189,32 @@ hci_status2str(int status)
 		/* 0x36 */ "Extended Inquiry Response Too Large",
 		/* 0x37 */ "Secure Simple Pairing Not Supported By Host",
 		/* 0x38 */ "Host Busy - Pairing",
-		/* 0x39 */ "Connection Rejected due to No Suitable Channel Found",
+		/* 0x39 */
+		"Connection Rejected due to No Suitable Channel Found",
 		/* 0x3a */ "Controller Busy",
 		/* 0x3b */ "Unacceptable Connection Parameters",
 		/* 0x3c */ "Advertising Timeout",
 		/* 0x3d */ "Connection Terminated due to MIC Failure",
-		/* 0x3e */ "Connection Failed to be Established / Synchronization Timeout",
+		/* 0x3e */
+		"Connection Failed to be Established / Synchronization Timeout",
 		/* 0x3f */ "MAC Connection Failed",
-		/* 0x40 */ "Coarse Clock Adjustment Rejected but Will Try to Adjust Using Clock Dragging",
+		/* 0x40 */
+		"Coarse Clock Adjustment Rejected but Will Try to Adjust Using Clock Dragging",
 		/* 0x41 */ "Type0 Submap Not Defined",
 		/* 0x42 */ "Unknown Advertising Identifier",
 		/* 0x43 */ "Limit Reached",
 		/* 0x44 */ "Operation Cancelled by Host",
-		/* 0x45 */ "Packet Too Long"
-	};
+		/* 0x45 */ "Packet Too Long" };
 
-	return (status >= SIZE(t)? "Unknown error" : t[status]);
+	return (status >= SIZE(t) ? "Unknown error" : t[status]);
 } /* hci_status2str */
 
 char const *
 hci_bdaddr2str(bdaddr_t const *ba)
 {
-	extern int	 numeric_bdaddr;
-	static char	 buffer[MAXHOSTNAMELEN];
-	struct hostent	*he = NULL;
+	extern int numeric_bdaddr;
+	static char buffer[MAXHOSTNAMELEN];
+	struct hostent *he = NULL;
 
 	if (memcmp(ba, NG_HCI_BDADDR_ANY, sizeof(*ba)) == 0) {
 		buffer[0] = '*';
@@ -3269,7 +3224,8 @@ hci_bdaddr2str(bdaddr_t const *ba)
 	}
 
 	if (!numeric_bdaddr &&
-	    (he = bt_gethostbyaddr((char *)ba, sizeof(*ba), AF_BLUETOOTH)) != NULL) {
+	    (he = bt_gethostbyaddr((char *)ba, sizeof(*ba), AF_BLUETOOTH)) !=
+		NULL) {
 		strlcpy(buffer, he->h_name, sizeof(buffer));
 
 		return (buffer);
@@ -3280,35 +3236,32 @@ hci_bdaddr2str(bdaddr_t const *ba)
 	return (buffer);
 } /* hci_bdaddr2str */
 
-
 char const *
 hci_addrtype2str(int type)
 {
-	static char const * const	t[] = {
-		/* 0x00 */ "Public Device Address",
+	static char const *const t[] = { /* 0x00 */ "Public Device Address",
 		/* 0x01 */ "Random Device Address",
 		/* 0x02 */ "Public Identity Address",
-		/* 0x03 */ "Random (static) Identity Address"
-	};
+		/* 0x03 */ "Random (static) Identity Address" };
 
-	return (type >= SIZE(t)? "?" : t[type]);
+	return (type >= SIZE(t) ? "?" : t[type]);
 } /* hci_addrtype2str */
 
 char const *
 hci_role2str(int role)
 {
-	static char const * const	roles[] = {
+	static char const *const roles[] = {
 		/* 0x00 */ "Master",
 		/* 0x01 */ "Slave",
 	};
 
-	return (role >= SIZE(roles)? "Unknown role" : roles[role]);
+	return (role >= SIZE(roles) ? "Unknown role" : roles[role]);
 } /* hci_role2str */
 
 char const *
 hci_mc_accuracy2str(int accuracy)
 {
-	static char const * const	acc[] = {
+	static char const *const acc[] = {
 		/* 0x00 */ "500 ppm",
 		/* 0x01 */ "250 ppm",
 		/* 0x02 */ "150 ppm",
@@ -3319,13 +3272,13 @@ hci_mc_accuracy2str(int accuracy)
 		/* 0x07 */ "20 ppm",
 	};
 
-	return (accuracy >= SIZE(acc)? "Unknown accuracy" : acc[accuracy]);
+	return (accuracy >= SIZE(acc) ? "Unknown accuracy" : acc[accuracy]);
 } /* hci_mc_accuracy2str */
 
 char const *
 hci_le_chanmap2str(uint8_t *map, char *buffer, int size)
 {
-	char	chantxt[4];
+	char chantxt[4];
 	if (buffer != NULL && size > 0) {
 		int n, i, len0, len1;
 
@@ -3347,15 +3300,9 @@ hci_le_chanmap2str(uint8_t *map, char *buffer, int size)
 					}
 
 					len1 += 3;
-					snprintf(
-						chantxt,
-						sizeof(chantxt),
-						"%02d ",
-						(n * 8 + i));
-					strncat(
-						buffer,
-						chantxt,
-						size - len0);
+					snprintf(chantxt, sizeof(chantxt),
+					    "%02d ", (n * 8 + i));
+					strncat(buffer, chantxt, size - len0);
 				}
 			}
 		}

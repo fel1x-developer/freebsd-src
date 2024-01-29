@@ -43,7 +43,8 @@ extern int init_module_raid1(void);
 extern int init_module_raid5(void);
 extern int init_module_jbod(void);
 
-int init_config(void)
+int
+init_config(void)
 {
 	init_module_him_rr2720();
 	init_module_him_rr273x();
@@ -61,7 +62,6 @@ int init_config(void)
 const char driver_name[] = "hpt27xx";
 const char driver_name_long[] = "RocketRAID 27xx controller driver";
 const char driver_ver[] = "v1.2.8";
-int  osm_max_targets = 0xff;
-
+int osm_max_targets = 0xff;
 
 int os_max_cache_size = 0x1000000;

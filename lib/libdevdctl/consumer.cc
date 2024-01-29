@@ -45,25 +45,23 @@
 #include <syslog.h>
 #include <unistd.h>
 
+#include "consumer.h"
+#include "event.h"
+#include "event_factory.h"
+#include "exception.h"
+#include "guid.h"
+
 #include <cstdarg>
 #include <cstring>
 #include <list>
 #include <map>
 #include <string>
-
-#include "guid.h"
-#include "event.h"
-#include "event_factory.h"
-#include "exception.h"
-
-#include "consumer.h"
 /*================================== Macros ==================================*/
 #define NUM_ELEMENTS(x) (sizeof(x) / sizeof(*x))
 
 /*============================ Namespace Control =============================*/
 using std::string;
-namespace DevdCtl
-{
+namespace DevdCtl {
 
 /*============================= Class Definitions ============================*/
 /*----------------------------- DevdCtl::Consumer ----------------------------*/
@@ -72,11 +70,10 @@ const char Consumer::s_devdSockPath[] = "/var/run/devd.seqpacket.pipe";
 
 //- Consumer Public Methods ----------------------------------------------------
 Consumer::Consumer(Event::BuildMethod *defBuilder,
-		   EventFactory::Record *regEntries,
-		   size_t numEntries)
- : m_devdSockFD(-1),
-   m_eventFactory(defBuilder),
-   m_replayingEvents(false)
+    EventFactory::Record *regEntries, size_t numEntries)
+    : m_devdSockFD(-1)
+    , m_eventFactory(defBuilder)
+    , m_replayingEvents(false)
 {
 	m_eventFactory.UpdateRegistry(regEntries, numEntries);
 }
@@ -90,8 +87,8 @@ bool
 Consumer::ConnectToDevd()
 {
 	struct sockaddr_un devdAddr;
-	int		   sLen;
-	int		   result;
+	int sLen;
+	int result;
 
 	if (m_devdSockFD != -1) {
 		/* Already connected. */
@@ -101,16 +98,15 @@ Consumer::ConnectToDevd()
 	syslog(LOG_INFO, "%s: Connecting to devd.", __func__);
 
 	memset(&devdAddr, 0, sizeof(devdAddr));
-	devdAddr.sun_family= AF_UNIX;
+	devdAddr.sun_family = AF_UNIX;
 	strlcpy(devdAddr.sun_path, s_devdSockPath, sizeof(devdAddr.sun_path));
 	sLen = SUN_LEN(&devdAddr);
 
 	m_devdSockFD = socket(AF_UNIX, SOCK_SEQPACKET | SOCK_NONBLOCK, 0);
 	if (m_devdSockFD == -1)
 		err(1, "Unable to create socket");
-	result = connect(m_devdSockFD,
-			 reinterpret_cast<sockaddr *>(&devdAddr),
-			 sLen);
+	result = connect(m_devdSockFD, reinterpret_cast<sockaddr *>(&devdAddr),
+	    sLen);
 	if (result == -1) {
 		syslog(LOG_INFO, "Unable to connect to devd");
 		DisconnectFromDevd();
@@ -173,24 +169,24 @@ Consumer::ReplayUnconsumedEvents(bool discardUnconsumed)
 bool
 Consumer::SaveEvent(const Event &event)
 {
-        if (m_replayingEvents)
-                return (false);
-        m_unconsumedEvents.push_back(event.DeepCopy());
-        return (true);
+	if (m_replayingEvents)
+		return (false);
+	m_unconsumedEvents.push_back(event.DeepCopy());
+	return (true);
 }
 
 Event *
 Consumer::NextEvent()
 {
 	if (!Connected())
-		return(NULL);
+		return (NULL);
 
 	Event *event(NULL);
 	try {
 		string evString;
 
 		evString = ReadEvent();
-		if (! evString.empty()) {
+		if (!evString.empty()) {
 			Event::TimestampEventString(evString);
 			event = Event::CreateEvent(m_eventFactory, evString);
 		}
@@ -220,20 +216,20 @@ Consumer::FlushEvents()
 
 	do
 		s = ReadEvent();
-	while (! s.empty()) ;
+	while (!s.empty());
 }
 
 bool
 Consumer::EventsPending()
 {
 	struct pollfd fds[1];
-	int	      result;
+	int result;
 
 	do {
-		fds->fd      = m_devdSockFD;
-		fds->events  = POLLIN;
+		fds->fd = m_devdSockFD;
+		fds->events = POLLIN;
 		fds->revents = 0;
-		result = poll(fds, NUM_ELEMENTS(fds), /*timeout*/0);
+		result = poll(fds, NUM_ELEMENTS(fds), /*timeout*/ 0);
 	} while (result == -1 && errno == EINTR);
 
 	if (result == -1)

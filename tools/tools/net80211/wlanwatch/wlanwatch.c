@@ -31,50 +31,49 @@
  * Monitor 802.11 events using a routing socket.
  * Code liberaly swiped from route(8).
  */
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/file.h>
-#include <sys/socket.h>
 #include <sys/ioctl.h>
+#include <sys/socket.h>
 #include <sys/sysctl.h>
-#include <sys/types.h>
 
 #include <net/if.h>
-#include <net/route.h>
 #include <net/if_dl.h>
-#include <netinet/in.h>
+#include <net/route.h>
 #include <netinet/if_ether.h>
+#include <netinet/in.h>
 #ifdef __NetBSD__
 #include <net80211/ieee80211_netbsd.h>
 #elif __FreeBSD__
 #include <net80211/ieee80211_freebsd.h>
 #else
-#error	"No support for your operating system!"
+#error "No support for your operating system!"
 #endif
 #include <arpa/inet.h>
-#include <netdb.h>
-
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
+#include <ifaddrs.h>
+#include <netdb.h>
 #include <paths.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
-#include <ifaddrs.h>
 
 /* XXX */
 enum ieee80211_notify_cac_event {
-	IEEE80211_NOTIFY_CAC_START  = 0, /* CAC timer started */
-	IEEE80211_NOTIFY_CAC_STOP   = 1, /* CAC intentionally stopped */
-	IEEE80211_NOTIFY_CAC_RADAR  = 2, /* CAC stopped due to radar detectio */
+	IEEE80211_NOTIFY_CAC_START = 0,	 /* CAC timer started */
+	IEEE80211_NOTIFY_CAC_STOP = 1,	 /* CAC intentionally stopped */
+	IEEE80211_NOTIFY_CAC_RADAR = 2,	 /* CAC stopped due to radar detectio */
 	IEEE80211_NOTIFY_CAC_EXPIRE = 3, /* CAC expired w/o radar */
 };
 
-static	void print_rtmsg(struct rt_msghdr *rtm, int msglen);
+static void print_rtmsg(struct rt_msghdr *rtm, int msglen);
 
-int	nflag = 0;
+int nflag = 0;
 
 int
 main(int argc, char *argv[])
@@ -82,13 +81,13 @@ main(int argc, char *argv[])
 	int n, s;
 	char msg[2048];
 
-	(void) argc; /* UNUSED */
-	(void) argv; /* UNUSED */
+	(void)argc; /* UNUSED */
+	(void)argv; /* UNUSED */
 
 	s = socket(PF_ROUTE, SOCK_RAW, 0);
 	if (s < 0)
 		err(EX_OSERR, "socket");
-	for(;;) {
+	for (;;) {
 		n = read(s, msg, 2048);
 		print_rtmsg((struct rt_msghdr *)msg, n);
 	}
@@ -104,15 +103,15 @@ bprintf(FILE *fp, int b, char *s)
 	if (b == 0)
 		return;
 	while ((i = *s++) != 0) {
-		if (b & (1 << (i-1))) {
+		if (b & (1 << (i - 1))) {
 			if (gotsome == 0)
 				i = '<';
 			else
 				i = ',';
-			(void) putc(i, fp);
+			(void)putc(i, fp);
 			gotsome = 1;
 			for (; (i = *s) > 32; s++)
-				(void) putc(i, fp);
+				(void)putc(i, fp);
 		} else
 			while (*s > 32)
 				s++;
@@ -122,19 +121,18 @@ bprintf(FILE *fp, int b, char *s)
 }
 
 char metricnames[] =
-"\011pksent\010rttvar\7rtt\6ssthresh\5sendpipe\4recvpipe\3expire\2hopcount"
-"\1mtu";
+    "\011pksent\010rttvar\7rtt\6ssthresh\5sendpipe\4recvpipe\3expire\2hopcount"
+    "\1mtu";
 char routeflags[] =
-"\1UP\2GATEWAY\3HOST\4REJECT\5DYNAMIC\6MODIFIED\7DONE\010MASK_PRESENT"
-"\011CLONING\012XRESOLVE\013LLINFO\014STATIC\015BLACKHOLE\016b016"
-"\017PROTO2\020PROTO1\021PRCLONING\022WASCLONED\023PROTO3\024CHAINDELETE"
-"\025PINNED\026LOCAL\027BROADCAST\030MULTICAST";
+    "\1UP\2GATEWAY\3HOST\4REJECT\5DYNAMIC\6MODIFIED\7DONE\010MASK_PRESENT"
+    "\011CLONING\012XRESOLVE\013LLINFO\014STATIC\015BLACKHOLE\016b016"
+    "\017PROTO2\020PROTO1\021PRCLONING\022WASCLONED\023PROTO3\024CHAINDELETE"
+    "\025PINNED\026LOCAL\027BROADCAST\030MULTICAST";
 char ifnetflags[] =
-"\1UP\2BROADCAST\3DEBUG\4LOOPBACK\5PTP\6b6\7RUNNING\010NOARP"
-"\011PPROMISC\012ALLMULTI\013OACTIVE\014SIMPLEX\015LINK0\016LINK1"
-"\017LINK2\020MULTICAST";
-char addrnames[] =
-"\1DST\2GATEWAY\3NETMASK\4GENMASK\5IFP\6IFA\7AUTHOR\010BRD";
+    "\1UP\2BROADCAST\3DEBUG\4LOOPBACK\5PTP\6b6\7RUNNING\010NOARP"
+    "\011PPROMISC\012ALLMULTI\013OACTIVE\014SIMPLEX\015LINK0\016LINK1"
+    "\017LINK2\020MULTICAST";
+char addrnames[] = "\1DST\2GATEWAY\3NETMASK\4GENMASK\5IFP\6IFA\7AUTHOR\010BRD";
 
 char defaultname[] = "default";
 
@@ -152,93 +150,95 @@ routename(struct sockaddr *sa)
 		if (gethostname(domain, MAXHOSTNAMELEN) == 0 &&
 		    (cp = strchr(domain, '.'))) {
 			domain[MAXHOSTNAMELEN] = '\0';
-			(void) strcpy(domain, cp + 1);
+			(void)strcpy(domain, cp + 1);
 		} else
 			domain[0] = 0;
 	}
 
 	if (sa->sa_len == 0)
 		strcpy(line, "default");
-	else switch (sa->sa_family) {
+	else
+		switch (sa->sa_family) {
 
-	case AF_INET:
-	    {	struct in_addr in;
-		char *cp;
+		case AF_INET: {
+			struct in_addr in;
+			char *cp;
 
-		in = ((struct sockaddr_in *)sa)->sin_addr;
+			in = ((struct sockaddr_in *)sa)->sin_addr;
 
-		cp = NULL;
-		if (in.s_addr == INADDR_ANY || sa->sa_len < 4)
-			cp = defaultname;
-		if (cp == NULL && !nflag) {
-			hp = gethostbyaddr((char *)&in, sizeof (struct in_addr),
-				AF_INET);
-			if (hp) {
-				if ((cp = strchr(hp->h_name, '.')) &&
-				    !strcmp(cp + 1, domain))
-					*cp = 0;
-				cp = hp->h_name;
+			cp = NULL;
+			if (in.s_addr == INADDR_ANY || sa->sa_len < 4)
+				cp = defaultname;
+			if (cp == NULL && !nflag) {
+				hp = gethostbyaddr((char *)&in,
+				    sizeof(struct in_addr), AF_INET);
+				if (hp) {
+					if ((cp = strchr(hp->h_name, '.')) &&
+					    !strcmp(cp + 1, domain))
+						*cp = 0;
+					cp = hp->h_name;
+				}
 			}
+			if (cp) {
+				strncpy(line, cp, sizeof(line) - 1);
+				line[sizeof(line) - 1] = '\0';
+			} else
+				(void)sprintf(line, "%s", inet_ntoa(in));
+			break;
 		}
-		if (cp) {
-			strncpy(line, cp, sizeof(line) - 1);
-			line[sizeof(line) - 1] = '\0';
-		} else
-			(void) sprintf(line, "%s", inet_ntoa(in));
-		break;
-	    }
 
 #ifdef INET6
-	case AF_INET6:
-	{
-		struct sockaddr_in6 sin6; /* use static var for safety */
-		int niflags = 0;
+		case AF_INET6: {
+			struct sockaddr_in6
+			    sin6; /* use static var for safety */
+			int niflags = 0;
 #ifdef NI_WITHSCOPEID
-		niflags = NI_WITHSCOPEID;
+			niflags = NI_WITHSCOPEID;
 #endif
 
-		memset(&sin6, 0, sizeof(sin6));
-		memcpy(&sin6, sa, sa->sa_len);
-		sin6.sin6_len = sizeof(struct sockaddr_in6);
-		sin6.sin6_family = AF_INET6;
+			memset(&sin6, 0, sizeof(sin6));
+			memcpy(&sin6, sa, sa->sa_len);
+			sin6.sin6_len = sizeof(struct sockaddr_in6);
+			sin6.sin6_family = AF_INET6;
 #ifdef __KAME__
-		if (sa->sa_len == sizeof(struct sockaddr_in6) &&
-		    (IN6_IS_ADDR_LINKLOCAL(&sin6.sin6_addr) ||
-		     IN6_IS_ADDR_MC_LINKLOCAL(&sin6.sin6_addr)) &&
-		    sin6.sin6_scope_id == 0) {
-			sin6.sin6_scope_id =
-			    ntohs(*(u_int16_t *)&sin6.sin6_addr.s6_addr[2]);
-			sin6.sin6_addr.s6_addr[2] = 0;
-			sin6.sin6_addr.s6_addr[3] = 0;
+			if (sa->sa_len == sizeof(struct sockaddr_in6) &&
+			    (IN6_IS_ADDR_LINKLOCAL(&sin6.sin6_addr) ||
+				IN6_IS_ADDR_MC_LINKLOCAL(&sin6.sin6_addr)) &&
+			    sin6.sin6_scope_id == 0) {
+				sin6.sin6_scope_id = ntohs(
+				    *(u_int16_t *)&sin6.sin6_addr.s6_addr[2]);
+				sin6.sin6_addr.s6_addr[2] = 0;
+				sin6.sin6_addr.s6_addr[3] = 0;
+			}
+#endif
+			if (nflag)
+				niflags |= NI_NUMERICHOST;
+			if (getnameinfo((struct sockaddr *)&sin6, sin6.sin6_len,
+				line, sizeof(line), NULL, 0, niflags) != 0)
+				strncpy(line, "invalid", sizeof(line));
+
+			return (line);
 		}
 #endif
-		if (nflag)
-			niflags |= NI_NUMERICHOST;
-		if (getnameinfo((struct sockaddr *)&sin6, sin6.sin6_len,
-		    line, sizeof(line), NULL, 0, niflags) != 0)
-			strncpy(line, "invalid", sizeof(line));
 
-		return(line);
-	}
-#endif
+		case AF_LINK:
+			return (link_ntoa((struct sockaddr_dl *)sa));
 
-	case AF_LINK:
-		return (link_ntoa((struct sockaddr_dl *)sa));
+		default: {
+			u_short *s = (u_short *)sa;
+			u_short *slim = s + ((sa->sa_len + 1) >> 1);
+			char *cp = line + sprintf(line, "(%d)", sa->sa_family);
+			char *cpe = line + sizeof(line);
 
-	default:
-	    {	u_short *s = (u_short *)sa;
-		u_short *slim = s + ((sa->sa_len + 1) >> 1);
-		char *cp = line + sprintf(line, "(%d)", sa->sa_family);
-		char *cpe = line + sizeof(line);
-
-		while (++s < slim && cp < cpe) /* start with sa->sa_data */
-			if ((n = snprintf(cp, cpe - cp, " %x", *s)) > 0)
-				cp += n;
-			else
-				*cp = '\0';
-		break;
-	    }
-	}
+			while (
+			    ++s < slim && cp < cpe) /* start with sa->sa_data */
+				if ((n = snprintf(cp, cpe - cp, " %x", *s)) > 0)
+					cp += n;
+				else
+					*cp = '\0';
+			break;
+		}
+		}
 	return (line);
 }
 
@@ -250,10 +250,11 @@ routename(struct sockaddr *sa)
  * The check for a NULL pointer is just a convenience, probably never used.
  * The case sa_len == 0 should only apply to empty structures.
  */
-#define SA_SIZE(sa)						\
-    (  (!(sa) || ((struct sockaddr *)(sa))->sa_len == 0) ?	\
-	sizeof(long)		:				\
-	1 + ( (((struct sockaddr *)(sa))->sa_len - 1) | (sizeof(long) - 1) ) )
+#define SA_SIZE(sa)                                                         \
+	((!(sa) || ((struct sockaddr *)(sa))->sa_len == 0) ? sizeof(long) : \
+							     1 +            \
+		    ((((struct sockaddr *)(sa))->sa_len - 1) |              \
+			(sizeof(long) - 1)))
 #endif
 
 static void
@@ -263,7 +264,7 @@ pmsg_addrs(char *cp, int addrs)
 	int i;
 
 	if (addrs == 0) {
-		(void) putchar('\n');
+		(void)putchar('\n');
 		return;
 	}
 	printf("\nsockaddrs: ");
@@ -283,8 +284,8 @@ ether_sprintf(const uint8_t mac[6])
 {
 	static char buf[32];
 
-	snprintf(buf, sizeof(buf), "%02x:%02x:%02x:%02x:%02x:%02x",
-		mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+	snprintf(buf, sizeof(buf), "%02x:%02x:%02x:%02x:%02x:%02x", mac[0],
+	    mac[1], mac[2], mac[3], mac[4], mac[5]);
 	return buf;
 }
 
@@ -296,18 +297,17 @@ print_rtmsg(struct rt_msghdr *rtm, int msglen)
 	time_t now = time(NULL);
 	char *cnow = ctime(&now);
 
-	(void) msglen; /* UNUSED */
+	(void)msglen; /* UNUSED */
 
 	if (rtm->rtm_version != RTM_VERSION) {
-		(void) printf("routing message version %d not understood\n",
+		(void)printf("routing message version %d not understood\n",
 		    rtm->rtm_version);
 		return;
 	}
 	switch (rtm->rtm_type) {
 	case RTM_IFINFO:
 		ifm = (struct if_msghdr *)rtm;
-		printf("%.19s RTM_IFINFO: if# %d, ",
-			cnow, ifm->ifm_index);
+		printf("%.19s RTM_IFINFO: if# %d, ", cnow, ifm->ifm_index);
 		switch (ifm->ifm_data.ifi_link_state) {
 		case LINK_STATE_DOWN:
 			printf("link: down, flags:");
@@ -326,8 +326,8 @@ print_rtmsg(struct rt_msghdr *rtm, int msglen)
 		break;
 	case RTM_IFANNOUNCE:
 		ifan = (struct if_announcemsghdr *)rtm;
-		printf("%.19s RTM_IFANNOUNCE: if# %d, what: ",
-			cnow, ifan->ifan_index);
+		printf("%.19s RTM_IFANNOUNCE: if# %d, what: ", cnow,
+		    ifan->ifan_index);
 		switch (ifan->ifan_what) {
 		case IFAN_ARRIVAL:
 			printf("arrival");
@@ -343,7 +343,7 @@ print_rtmsg(struct rt_msghdr *rtm, int msglen)
 		fflush(stdout);
 		break;
 	case RTM_IEEE80211:
-#define	V(type)	((struct type *)(&ifan[1]))
+#define V(type) ((struct type *)(&ifan[1]))
 		ifan = (struct if_announcemsghdr *)rtm;
 		printf("%.19s RTM_IEEE80211: if# %d, ", cnow, ifan->ifan_index);
 		switch (ifan->ifan_what) {
@@ -362,8 +362,8 @@ print_rtmsg(struct rt_msghdr *rtm, int msglen)
 		case RTM_IEEE80211_REJOIN:
 			printf("%s station %sjoin",
 			    ether_sprintf(V(ieee80211_join_event)->iev_addr),
-			    ifan->ifan_what == RTM_IEEE80211_REJOIN ? "re" : ""
-			);
+			    ifan->ifan_what == RTM_IEEE80211_REJOIN ? "re" :
+								      "");
 			break;
 		case RTM_IEEE80211_LEAVE:
 			printf("%s station leave",
@@ -373,47 +373,42 @@ print_rtmsg(struct rt_msghdr *rtm, int msglen)
 			printf("scan complete");
 			break;
 		case RTM_IEEE80211_REPLAY:
-			printf("replay failure: src %s "
-			    , ether_sprintf(V(ieee80211_replay_event)->iev_src)
-			);
-			printf("dst %s cipher %u keyix %u keyrsc %llu rsc %llu"
-			    , ether_sprintf(V(ieee80211_replay_event)->iev_dst)
-			    , V(ieee80211_replay_event)->iev_cipher
-			    , V(ieee80211_replay_event)->iev_keyix
-			    , V(ieee80211_replay_event)->iev_keyrsc
-			    , V(ieee80211_replay_event)->iev_rsc
-			);
+			printf("replay failure: src %s ",
+			    ether_sprintf(V(ieee80211_replay_event)->iev_src));
+			printf("dst %s cipher %u keyix %u keyrsc %llu rsc %llu",
+			    ether_sprintf(V(ieee80211_replay_event)->iev_dst),
+			    V(ieee80211_replay_event)->iev_cipher,
+			    V(ieee80211_replay_event)->iev_keyix,
+			    V(ieee80211_replay_event)->iev_keyrsc,
+			    V(ieee80211_replay_event)->iev_rsc);
 			break;
 		case RTM_IEEE80211_MICHAEL:
-			printf("michael failure: src %s "
-			    , ether_sprintf(V(ieee80211_michael_event)->iev_src)
-			);
-			printf("dst %s cipher %u keyix %u"
-			    , ether_sprintf(V(ieee80211_michael_event)->iev_dst)
-			    , V(ieee80211_michael_event)->iev_cipher
-			    , V(ieee80211_michael_event)->iev_keyix
-			);
+			printf("michael failure: src %s ",
+			    ether_sprintf(V(ieee80211_michael_event)->iev_src));
+			printf("dst %s cipher %u keyix %u",
+			    ether_sprintf(V(ieee80211_michael_event)->iev_dst),
+			    V(ieee80211_michael_event)->iev_cipher,
+			    V(ieee80211_michael_event)->iev_keyix);
 			break;
 		case RTM_IEEE80211_WDS:
 			printf("%s wds discovery",
 			    ether_sprintf(V(ieee80211_wds_event)->iev_addr));
 			break;
 		case RTM_IEEE80211_CSA:
-			printf("channel switch announcement: channel %u (%u MHz flags 0x%x) mode %d count %d"
-			    , V(ieee80211_csa_event)->iev_ieee
-			    , V(ieee80211_csa_event)->iev_freq
-			    , V(ieee80211_csa_event)->iev_flags
-			    , V(ieee80211_csa_event)->iev_mode
-			    , V(ieee80211_csa_event)->iev_count
-			);
+			printf(
+			    "channel switch announcement: channel %u (%u MHz flags 0x%x) mode %d count %d",
+			    V(ieee80211_csa_event)->iev_ieee,
+			    V(ieee80211_csa_event)->iev_freq,
+			    V(ieee80211_csa_event)->iev_flags,
+			    V(ieee80211_csa_event)->iev_mode,
+			    V(ieee80211_csa_event)->iev_count);
 			break;
 		case RTM_IEEE80211_CAC:
 			printf("channel availability check "
-			    "(channel %u, %u MHz flags 0x%x) "
-			    , V(ieee80211_cac_event)->iev_ieee
-			    , V(ieee80211_cac_event)->iev_freq
-			    , V(ieee80211_cac_event)->iev_flags
-			);
+			       "(channel %u, %u MHz flags 0x%x) ",
+			    V(ieee80211_cac_event)->iev_ieee,
+			    V(ieee80211_cac_event)->iev_freq,
+			    V(ieee80211_cac_event)->iev_flags);
 			switch (V(ieee80211_cac_event)->iev_type) {
 			case IEEE80211_NOTIFY_CAC_START:
 				printf("start timer");
@@ -429,7 +424,7 @@ print_rtmsg(struct rt_msghdr *rtm, int msglen)
 				break;
 			default:
 				printf("unknown type %d",
-				   V(ieee80211_cac_event)->iev_type);
+				    V(ieee80211_cac_event)->iev_type);
 				break;
 			}
 			break;

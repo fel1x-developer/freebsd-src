@@ -26,28 +26,22 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-#define OPT_ALL		(CHAR_MAX + 1)
-#define OPT_IGNORE	(CHAR_MAX + 2)
-#define OPT_VERSION	(CHAR_MAX + 3)
-#define OPT_HELP	(CHAR_MAX + 4)
+#define OPT_ALL (CHAR_MAX + 1)
+#define OPT_IGNORE (CHAR_MAX + 2)
+#define OPT_VERSION (CHAR_MAX + 3)
+#define OPT_HELP (CHAR_MAX + 4)
 
-static struct option long_opts[] = {
-	{ "all", no_argument, NULL, OPT_ALL },
+static struct option long_opts[] = { { "all", no_argument, NULL, OPT_ALL },
 	{ "ignore", required_argument, NULL, OPT_IGNORE },
 	{ "version", no_argument, NULL, OPT_VERSION },
-	{ "help", no_argument, NULL, OPT_HELP },
-	{ NULL, 0, NULL, 0 }
-};
+	{ "help", no_argument, NULL, OPT_HELP }, { NULL, 0, NULL, 0 } };
 
 static void
 help(void)
 {
-	fprintf(stderr,
-    "usage: nproc [--all] [--ignore=count]\n");
-	fprintf(stderr,
-    "       nproc --help\n");
-	fprintf(stderr,
-    "       nproc --version\n");
+	fprintf(stderr, "usage: nproc [--all] [--ignore=count]\n");
+	fprintf(stderr, "       nproc --help\n");
+	fprintf(stderr, "       nproc --version\n");
 }
 
 static void
@@ -116,7 +110,7 @@ main(int argc, char *argv[])
 	} else {
 		CPU_ZERO(&mask);
 		if (cpuset_getaffinity(CPU_LEVEL_WHICH, CPU_WHICH_TID, -1,
-		    sizeof(mask), &mask) != 0)
+			sizeof(mask), &mask) != 0)
 			err(1, "cpuset_getaffinity");
 		cpus = CPU_COUNT(&mask);
 	}

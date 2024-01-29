@@ -17,27 +17,25 @@
 
 #include "cpa.h"
 #include "cpa_cy_sym.h"
-
 #include "icp_accel_devices.h"
-#include "icp_adf_init.h"
-#include "icp_qat_fw_la.h"
-#include "icp_adf_transport.h"
 #include "icp_adf_debug.h"
-
-#include "lac_sym.h"
-#include "lac_sym_cipher.h"
+#include "icp_adf_init.h"
+#include "icp_adf_transport.h"
+#include "icp_qat_fw_la.h"
 #include "lac_common.h"
 #include "lac_list.h"
-#include "lac_sal_types_crypto.h"
+#include "lac_log.h"
 #include "lac_sal.h"
 #include "lac_sal_ctrl.h"
+#include "lac_sal_types_crypto.h"
 #include "lac_session.h"
-#include "lac_sym_stats.h"
-#include "lac_log.h"
+#include "lac_sym.h"
 #include "lac_sym_cb.h"
+#include "lac_sym_cipher.h"
 #include "lac_sym_hash.h"
-#include "lac_sym_qat_cipher.h"
 #include "lac_sym_qat.h"
+#include "lac_sym_qat_cipher.h"
+#include "lac_sym_stats.h"
 
 #define DEQUEUE_MSGPUT_MAX_RETRIES 10000
 
@@ -64,9 +62,7 @@
  *****************************************************************************/
 static void
 LacSymCb_CleanUserData(const lac_session_desc_t *pSessionDesc,
-		       CpaBufferList *pBufferList,
-		       const CpaCySymOpData *pOpData,
-		       CpaBoolean isCCM)
+    CpaBufferList *pBufferList, const CpaCySymOpData *pOpData, CpaBoolean isCCM)
 {
 	Cpa32U authTagLen = 0;
 
@@ -76,14 +72,12 @@ LacSymCb_CleanUserData(const lac_session_desc_t *pSessionDesc,
 	/* Cleaning */
 	if (isCCM) {
 		/* for CCM the digest is inside the buffer list */
-		LacBuffDesc_BufferListZeroFromOffset(
-		    pBufferList,
+		LacBuffDesc_BufferListZeroFromOffset(pBufferList,
 		    pOpData->cryptoStartSrcOffsetInBytes,
 		    pOpData->messageLenToCipherInBytes + authTagLen);
 	} else {
 		/* clean buffer list */
-		LacBuffDesc_BufferListZeroFromOffset(
-		    pBufferList,
+		LacBuffDesc_BufferListZeroFromOffset(pBufferList,
 		    pOpData->cryptoStartSrcOffsetInBytes,
 		    pOpData->messageLenToCipherInBytes);
 	}
@@ -114,9 +108,8 @@ LacSymCb_CleanUserData(const lac_session_desc_t *pSessionDesc,
  *****************************************************************************/
 static void
 LacSymCb_ProcessCallbackInternal(lac_sym_bulk_cookie_t *pCookie,
-				 CpaBoolean qatRespStatusOkFlag,
-				 CpaStatus status,
-				 lac_session_desc_t *pSessionDesc)
+    CpaBoolean qatRespStatusOkFlag, CpaStatus status,
+    lac_session_desc_t *pSessionDesc)
 {
 	CpaCySymCbFunc pSymCb = NULL;
 	void *pCallbackTag = NULL;
@@ -141,13 +134,13 @@ LacSymCb_ProcessCallbackInternal(lac_sym_bulk_cookie_t *pCookie,
 	 * buffer needs to be cleared if digest verify operation fails */
 
 	if (((SPC == pSessionDesc->singlePassState) ||
-	     (CPA_CY_SYM_OP_CIPHER != operationType)) &&
+		(CPA_CY_SYM_OP_CIPHER != operationType)) &&
 	    (CPA_TRUE == pSessionDesc->digestVerify) &&
 	    ((CPA_CY_SYM_PACKET_TYPE_FULL == pOpData->packetType) ||
-	     (CPA_CY_SYM_PACKET_TYPE_LAST_PARTIAL == pOpData->packetType))) {
+		(CPA_CY_SYM_PACKET_TYPE_LAST_PARTIAL == pOpData->packetType))) {
 		if (CPA_FALSE == qatRespStatusOkFlag) {
 			LAC_SYM_STAT_INC(numSymOpVerifyFailures,
-					 instanceHandle);
+			    instanceHandle);
 
 			/* The comparison has failed at this point (status is
 			 * fail), need to clean any sensitive calculated data up
@@ -157,16 +150,12 @@ LacSymCb_ProcessCallbackInternal(lac_sym_bulk_cookie_t *pCookie,
 			 */
 			if (pSessionDesc->cipherAlgorithm ==
 			    CPA_CY_SYM_CIPHER_AES_CCM) {
-				LacSymCb_CleanUserData(pSessionDesc,
-						       pDstBuffer,
-						       pOpData,
-						       CPA_TRUE);
+				LacSymCb_CleanUserData(pSessionDesc, pDstBuffer,
+				    pOpData, CPA_TRUE);
 			} else if (pSessionDesc->cipherAlgorithm ==
-				   CPA_CY_SYM_CIPHER_AES_GCM) {
-				LacSymCb_CleanUserData(pSessionDesc,
-						       pDstBuffer,
-						       pOpData,
-						       CPA_FALSE);
+			    CPA_CY_SYM_CIPHER_AES_GCM) {
+				LacSymCb_CleanUserData(pSessionDesc, pDstBuffer,
+				    pOpData, CPA_FALSE);
 			}
 		}
 	} else {
@@ -198,8 +187,8 @@ LacSymCb_ProcessCallbackInternal(lac_sym_bulk_cookie_t *pCookie,
 				 * buffer may get overwritten
 				 */
 				memcpy(pCookie->pOpData->pIv,
-				       pSessionDesc->cipherPartialOpState,
-				       pCookie->pOpData->ivLenInBytes);
+				    pSessionDesc->cipherPartialOpState,
+				    pCookie->pOpData->ivLenInBytes);
 			}
 			if (CPA_TRUE == pCookie->updateKeySizeOnRecieve &&
 			    LAC_CIPHER_IS_XTS_MODE(
@@ -237,7 +226,7 @@ LacSymCb_ProcessCallbackInternal(lac_sym_bulk_cookie_t *pCookie,
 		dequeueStatus = LacSymCb_PendingReqsDequeue(pSessionDesc);
 		if (CPA_STATUS_SUCCESS != dequeueStatus) {
 			LAC_SYM_STAT_INC(numSymOpCompletedErrors,
-					 instanceHandle);
+			    instanceHandle);
 			qatRespStatusOkFlag = CPA_FALSE;
 			if (CPA_STATUS_SUCCESS == status) {
 				status = dequeueStatus;
@@ -251,7 +240,7 @@ LacSymCb_ProcessCallbackInternal(lac_sym_bulk_cookie_t *pCookie,
 			LAC_SYM_STAT_INC(numSymOpCompleted, instanceHandle);
 			if (CPA_STATUS_SUCCESS != status) {
 				LAC_SYM_STAT_INC(numSymOpCompletedErrors,
-						 instanceHandle);
+				    instanceHandle);
 			}
 		}
 	}
@@ -262,12 +251,8 @@ LacSymCb_ProcessCallbackInternal(lac_sym_bulk_cookie_t *pCookie,
 	Lac_MemPoolEntryFree(pCookie);
 
 	/* user callback function is the last thing to be called */
-	pSymCb(pCallbackTag,
-	       status,
-	       operationType,
-	       pOpData,
-	       pDstBuffer,
-	       qatRespStatusOkFlag);
+	pSymCb(pCallbackTag, status, operationType, pOpData, pDstBuffer,
+	    qatRespStatusOkFlag);
 }
 
 /**
@@ -288,9 +273,8 @@ LacSymCb_ProcessCallbackInternal(lac_sym_bulk_cookie_t *pCookie,
  ******************************************************************************/
 static void
 LacSymCb_ProcessDpCallback(CpaCySymDpOpData *pResponse,
-			   CpaBoolean qatRespStatusOkFlag,
-			   CpaStatus status,
-			   lac_session_desc_t *pSessionDesc)
+    CpaBoolean qatRespStatusOkFlag, CpaStatus status,
+    lac_session_desc_t *pSessionDesc)
 {
 	CpaCySymDpCbFunc pSymDpCb = NULL;
 
@@ -299,7 +283,7 @@ LacSymCb_ProcessDpCallback(CpaCySymDpOpData *pResponse,
 	 * responsability to do so */
 
 	if (((CPA_CY_SYM_OP_CIPHER == pSessionDesc->symOperation) &&
-	     SPC != pSessionDesc->singlePassState) ||
+		SPC != pSessionDesc->singlePassState) ||
 	    (CPA_FALSE == pSessionDesc->digestVerify)) {
 		/* If not doing digest compare and qatRespStatusOkFlag !=
 		   CPA_TRUE then there is something very wrong */
@@ -353,17 +337,16 @@ LacSymCb_ProcessDpCallback(CpaCySymDpOpData *pResponse,
  * @return  None
  ******************************************************************************/
 static void
-LacSymCb_ProcessCallback(icp_qat_fw_la_cmd_id_t lacCmdId,
-			 void *pOpaqueData,
-			 icp_qat_fw_comn_flags cmnRespFlags)
+LacSymCb_ProcessCallback(icp_qat_fw_la_cmd_id_t lacCmdId, void *pOpaqueData,
+    icp_qat_fw_comn_flags cmnRespFlags)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 	CpaCySymDpOpData *pDpOpData = (CpaCySymDpOpData *)pOpaqueData;
-	lac_session_desc_t *pSessionDesc =
-	    LAC_SYM_SESSION_DESC_FROM_CTX_GET(pDpOpData->sessionCtx);
+	lac_session_desc_t *pSessionDesc = LAC_SYM_SESSION_DESC_FROM_CTX_GET(
+	    pDpOpData->sessionCtx);
 	CpaBoolean qatRespStatusOkFlag =
 	    (CpaBoolean)(ICP_QAT_FW_COMN_STATUS_FLAG_OK ==
-			 ICP_QAT_FW_COMN_RESP_CRYPTO_STAT_GET(cmnRespFlags));
+		ICP_QAT_FW_COMN_RESP_CRYPTO_STAT_GET(cmnRespFlags));
 
 	if (CPA_TRUE == pSessionDesc->isDPSession) {
 		/* DP session */
@@ -371,17 +354,13 @@ LacSymCb_ProcessCallback(icp_qat_fw_la_cmd_id_t lacCmdId,
 			cmnRespFlags)) {
 			status = CPA_STATUS_UNSUPPORTED;
 		}
-		LacSymCb_ProcessDpCallback(pDpOpData,
-					   qatRespStatusOkFlag,
-					   status,
-					   pSessionDesc);
+		LacSymCb_ProcessDpCallback(pDpOpData, qatRespStatusOkFlag,
+		    status, pSessionDesc);
 	} else {
 		/* Trad session */
 		LacSymCb_ProcessCallbackInternal((lac_sym_bulk_cookie_t *)
 						     pOpaqueData,
-						 qatRespStatusOkFlag,
-						 CPA_STATUS_SUCCESS,
-						 pSessionDesc);
+		    qatRespStatusOkFlag, CPA_STATUS_SUCCESS, pSessionDesc);
 	}
 }
 
@@ -416,7 +395,7 @@ LacSymCb_PendingReqsDequeue(lac_session_desc_t *pSessionDesc)
 	pSessionDesc->nonBlockingOpsInProgress = CPA_TRUE;
 
 	while ((NULL != pSessionDesc->pRequestQueueHead) &&
-	       (CPA_TRUE == pSessionDesc->nonBlockingOpsInProgress)) {
+	    (CPA_TRUE == pSessionDesc->nonBlockingOpsInProgress)) {
 
 		/* If we send a partial packet request, set the
 		 * blockingOpsInProgress flag for the session to indicate that
@@ -438,14 +417,14 @@ LacSymCb_PendingReqsDequeue(lac_session_desc_t *pSessionDesc)
 		    pSessionDesc->pRequestQueueHead->updateSessionIvOnSend) {
 			if (LAC_CIPHER_IS_ARC4(pSessionDesc->cipherAlgorithm)) {
 				memcpy(pSessionDesc->cipherPartialOpState,
-				       pSessionDesc->cipherARC4InitialState,
-				       LAC_CIPHER_ARC4_STATE_LEN_BYTES);
+				    pSessionDesc->cipherARC4InitialState,
+				    LAC_CIPHER_ARC4_STATE_LEN_BYTES);
 			} else {
 				memcpy(pSessionDesc->cipherPartialOpState,
-				       pSessionDesc->pRequestQueueHead->pOpData
-					   ->pIv,
-				       pSessionDesc->pRequestQueueHead->pOpData
-					   ->ivLenInBytes);
+				    pSessionDesc->pRequestQueueHead->pOpData
+					->pIv,
+				    pSessionDesc->pRequestQueueHead->pOpData
+					->ivLenInBytes);
 			}
 		}
 
@@ -474,7 +453,7 @@ LacSymCb_PendingReqsDequeue(lac_session_desc_t *pSessionDesc)
 				qatUtilsYield();
 			}
 		} while ((CPA_STATUS_SUCCESS != status) &&
-			 (retries < DEQUEUE_MSGPUT_MAX_RETRIES));
+		    (retries < DEQUEUE_MSGPUT_MAX_RETRIES));
 
 		if ((CPA_STATUS_SUCCESS != status) ||
 		    (retries >= DEQUEUE_MSGPUT_MAX_RETRIES)) {
@@ -505,19 +484,19 @@ LacSymCb_CallbacksRegister(void)
 {
 	/*** HASH ***/
 	LacSymQat_RespHandlerRegister(ICP_QAT_FW_LA_CMD_AUTH,
-				      LacSymCb_ProcessCallback);
+	    LacSymCb_ProcessCallback);
 
 	/*** ALGORITHM-CHAINING CIPHER_HASH***/
 	LacSymQat_RespHandlerRegister(ICP_QAT_FW_LA_CMD_CIPHER_HASH,
-				      LacSymCb_ProcessCallback);
+	    LacSymCb_ProcessCallback);
 
 	/*** ALGORITHM-CHAINING HASH_CIPHER***/
 	LacSymQat_RespHandlerRegister(ICP_QAT_FW_LA_CMD_HASH_CIPHER,
-				      LacSymCb_ProcessCallback);
+	    LacSymCb_ProcessCallback);
 
 	/*** CIPHER ***/
 	LacSymQat_RespHandlerRegister(ICP_QAT_FW_LA_CMD_CIPHER,
-				      LacSymCb_ProcessCallback);
+	    LacSymCb_ProcessCallback);
 
 	/* Call compile time param check function to ensure it is included
 	   in the build by the compiler - this compile time check

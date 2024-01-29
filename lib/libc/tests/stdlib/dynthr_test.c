@@ -31,16 +31,15 @@
  * may be omitted in redistributions.
  */
 
+#include <atf-c.h>
+#include <dlfcn.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
-#include <dlfcn.h>
 
-#include <atf-c.h>
-
-typedef void (modfunc_t)(int op);
+typedef void(modfunc_t)(int op);
 
 /*
  * Minimal test case for PR 235158; mutual dependencies between jemalloc and

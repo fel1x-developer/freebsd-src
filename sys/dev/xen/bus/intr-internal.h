@@ -30,11 +30,11 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef	_XEN_INTR_INTERNAL_H_
-#define	_XEN_INTR_INTERNAL_H_
+#ifndef _XEN_INTR_INTERNAL_H_
+#define _XEN_INTR_INTERNAL_H_
 
-#ifndef	_MACHINE__XEN_ARCH_INTR_H_
-#error	"do not #include intr-internal.h, #include machine/arch-intr.h instead"
+#ifndef _MACHINE__XEN_ARCH_INTR_H_
+#error "do not #include intr-internal.h, #include machine/arch-intr.h instead"
 #endif
 
 /* Current implementation only supports 2L event channels. */
@@ -49,25 +49,25 @@ enum evtchn_type {
 };
 
 struct xenisrc {
-	xen_arch_isrc_t		xi_arch;	/* @TOP -> *xi_arch=*xenisrc */
-	enum evtchn_type	xi_type;
-	u_int			xi_cpu;		/* VCPU for delivery */
-	evtchn_port_t		xi_port;
-	u_int			xi_virq;
-	void			*xi_cookie;
-	bool			xi_close:1;	/* close on unbind? */
-	bool			xi_masked:1;
-	volatile u_int		xi_refcount;
+	xen_arch_isrc_t xi_arch; /* @TOP -> *xi_arch=*xenisrc */
+	enum evtchn_type xi_type;
+	u_int xi_cpu; /* VCPU for delivery */
+	evtchn_port_t xi_port;
+	u_int xi_virq;
+	void *xi_cookie;
+	bool xi_close : 1; /* close on unbind? */
+	bool xi_masked : 1;
+	volatile u_int xi_refcount;
 };
 
 /***************** Functions called by the architecture code *****************/
 
-extern void	xen_intr_resume(void);
-extern void	xen_intr_enable_source(struct xenisrc *isrc);
-extern void	xen_intr_disable_source(struct xenisrc *isrc);
-extern void	xen_intr_enable_intr(struct xenisrc *isrc);
-extern void	xen_intr_disable_intr(struct xenisrc *isrc);
-extern int	xen_intr_assign_cpu(struct xenisrc *isrc, u_int to_cpu);
+extern void xen_intr_resume(void);
+extern void xen_intr_enable_source(struct xenisrc *isrc);
+extern void xen_intr_disable_source(struct xenisrc *isrc);
+extern void xen_intr_enable_intr(struct xenisrc *isrc);
+extern void xen_intr_disable_intr(struct xenisrc *isrc);
+extern int xen_intr_assign_cpu(struct xenisrc *isrc, u_int to_cpu);
 
 /******************* Functions implemented by each architecture **************/
 
@@ -93,4 +93,4 @@ int	xen_arch_intr_remove_handler(struct xenisrc *isrc,
 int	xen_arch_intr_event_bind(struct xenisrc *isrc, u_int cpu);
 #endif
 
-#endif	/* _XEN_INTR_INTERNAL_H_ */
+#endif /* _XEN_INTR_INTERNAL_H_ */

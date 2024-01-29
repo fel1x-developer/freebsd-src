@@ -36,15 +36,14 @@
  */
 
 #include <sys/param.h>
-#include <sys/time.h>
 #include <sys/stdint.h>
-
-#include <ufs/ufs/dinode.h>
-#include <ufs/ufs/dir.h>
-#include <ufs/ffs/fs.h>
+#include <sys/time.h>
 
 #include <err.h>
 #include <string.h>
+#include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
+#include <ufs/ufs/dir.h>
 
 #include "fsck.h"
 
@@ -62,8 +61,8 @@ eascan(struct inodesc *idesc, struct ufs2_dinode *dp)
 	u_char *cp;
 	long blksiz;
 
-	printf("Inode %ju extsize %ju\n",
-	   (intmax_t)idesc->id_number, (uintmax_t)dp->di_extsize);
+	printf("Inode %ju extsize %ju\n", (intmax_t)idesc->id_number,
+	    (uintmax_t)dp->di_extsize);
 	if (dp->di_extsize == 0)
 		return 0;
 	if (dp->di_extsize <= sblock.fs_fsize)

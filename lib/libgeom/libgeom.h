@@ -32,7 +32,6 @@
 #define _LIBGEOM_H_
 
 #include <sys/cdefs.h>
-
 #include <sys/queue.h>
 #include <sys/time.h>
 
@@ -71,69 +70,66 @@ struct gprovider;
 LIST_HEAD(gconf, gconfig);
 
 struct gident {
-	void			*lg_id;
-	void			*lg_ptr;
-	enum {	ISCLASS,
-		ISGEOM,
-		ISPROVIDER,
-		ISCONSUMER }	lg_what;
+	void *lg_id;
+	void *lg_ptr;
+	enum { ISCLASS, ISGEOM, ISPROVIDER, ISCONSUMER } lg_what;
 };
 
 struct gmesh {
-	LIST_HEAD(, gclass)	lg_class;
-	struct gident		*lg_ident;
+	LIST_HEAD(, gclass) lg_class;
+	struct gident *lg_ident;
 };
 
 struct gconfig {
-	LIST_ENTRY(gconfig)	lg_config;
-	char			*lg_name;
-	char			*lg_val;
+	LIST_ENTRY(gconfig) lg_config;
+	char *lg_name;
+	char *lg_val;
 };
 
 struct gclass {
-	void			*lg_id;
-	char			*lg_name;
-	LIST_ENTRY(gclass)	lg_class;
-	LIST_HEAD(, ggeom)	lg_geom;
-	struct gconf		lg_config;
+	void *lg_id;
+	char *lg_name;
+	LIST_ENTRY(gclass) lg_class;
+	LIST_HEAD(, ggeom) lg_geom;
+	struct gconf lg_config;
 };
 
 struct ggeom {
-	void			*lg_id;
-	struct gclass		*lg_class;
-	char			*lg_name;
-	u_int			lg_rank;
-	LIST_ENTRY(ggeom)	lg_geom;
-	LIST_HEAD(, gconsumer)	lg_consumer;
-	LIST_HEAD(, gprovider)	lg_provider;
-	struct gconf		lg_config;
+	void *lg_id;
+	struct gclass *lg_class;
+	char *lg_name;
+	u_int lg_rank;
+	LIST_ENTRY(ggeom) lg_geom;
+	LIST_HEAD(, gconsumer) lg_consumer;
+	LIST_HEAD(, gprovider) lg_provider;
+	struct gconf lg_config;
 };
 
 struct gconsumer {
-	void			*lg_id;
-	struct ggeom		*lg_geom;
-	LIST_ENTRY(gconsumer)	lg_consumer;
-	struct gprovider	*lg_provider;
-	LIST_ENTRY(gconsumer)	lg_consumers;
-	char			*lg_mode;
-	struct gconf		lg_config;
+	void *lg_id;
+	struct ggeom *lg_geom;
+	LIST_ENTRY(gconsumer) lg_consumer;
+	struct gprovider *lg_provider;
+	LIST_ENTRY(gconsumer) lg_consumers;
+	char *lg_mode;
+	struct gconf lg_config;
 };
 
 struct gprovider {
-	void			*lg_id;
-	char			*lg_name;
-	struct ggeom		*lg_geom;
-	LIST_ENTRY(gprovider)	lg_provider;
-	LIST_HEAD(, gconsumer)	lg_consumers;
-	char			*lg_mode;
-	off_t			lg_mediasize;
-	u_int			lg_sectorsize;
-	off_t			lg_stripeoffset;
-	off_t			lg_stripesize;
-	struct gconf		lg_config;
+	void *lg_id;
+	char *lg_name;
+	struct ggeom *lg_geom;
+	LIST_ENTRY(gprovider) lg_provider;
+	LIST_HEAD(, gconsumer) lg_consumers;
+	char *lg_mode;
+	off_t lg_mediasize;
+	u_int lg_sectorsize;
+	off_t lg_stripeoffset;
+	off_t lg_stripesize;
+	struct gconf lg_config;
 };
 
-struct gident * geom_lookupid(struct gmesh *, const void *);
+struct gident *geom_lookupid(struct gmesh *, const void *);
 int geom_xml2tree(struct gmesh *, char *);
 int geom_gettree(struct gmesh *);
 int geom_gettree_geom(struct gmesh *, const char *, const char *, int);
@@ -143,7 +139,7 @@ void geom_deletetree(struct gmesh *);
 
 struct gctl_req;
 
-#ifdef _STDIO_H_			/* limit #include pollution */
+#ifdef _STDIO_H_ /* limit #include pollution */
 void gctl_dump(struct gctl_req *, FILE *);
 #endif
 void gctl_free(struct gctl_req *);

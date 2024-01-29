@@ -44,7 +44,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define	TCP_PORT	9005
+#define TCP_PORT 9005
 
 static int
 tcp_drop(struct sockaddr_in *sin_local, struct sockaddr_in *sin_remote)
@@ -59,10 +59,9 @@ tcp_drop(struct sockaddr_in *sin_local, struct sockaddr_in *sin_remote)
 	bcopy(sin_remote, &addrs[0], sizeof(*sin_remote));
 	bcopy(sin_local, &addrs[1], sizeof(*sin_local));
 
-	return (sysctlbyname("net.inet.tcp.drop", NULL, 0, addrs,
-	    sizeof(addrs)));
+	return (
+	    sysctlbyname("net.inet.tcp.drop", NULL, 0, addrs, sizeof(addrs)));
 }
-
 
 static void
 tcp_server(pid_t partner)

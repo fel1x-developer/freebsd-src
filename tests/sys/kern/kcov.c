@@ -36,15 +36,14 @@
 
 #include <machine/atomic.h>
 
+#include <atf-c.h>
 #include <fcntl.h>
 #include <pthread.h>
 #include <semaphore.h>
 
-#include <atf-c.h>
-
 static const char *modes[] = {
-    "PC tracing",
-    "comparison tracing",
+	"PC tracing",
+	"comparison tracing",
 };
 
 static size_t page_size;
@@ -100,20 +99,20 @@ ATF_TC_BODY(kcov_mmap, tc)
 
 	fd = open_kcov();
 
-	ATF_CHECK(mmap(NULL, page_size, PROT_READ | PROT_WRITE, MAP_SHARED,
-	    fd, 0) == MAP_FAILED);
+	ATF_CHECK(mmap(NULL, page_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd,
+		      0) == MAP_FAILED);
 
-	ATF_REQUIRE(ioctl(fd, KIOSETBUFSIZE,
-	    2 * page_size / KCOV_ENTRY_SIZE) == 0);
+	ATF_REQUIRE(
+	    ioctl(fd, KIOSETBUFSIZE, 2 * page_size / KCOV_ENTRY_SIZE) == 0);
 
-	ATF_CHECK(mmap(NULL, page_size, PROT_READ | PROT_WRITE, MAP_SHARED,
-	    fd, 0) == MAP_FAILED);
+	ATF_CHECK(mmap(NULL, page_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd,
+		      0) == MAP_FAILED);
 	ATF_CHECK(mmap(NULL, 3 * page_size, PROT_READ | PROT_WRITE, MAP_SHARED,
-	    fd, 0) == MAP_FAILED);
+		      fd, 0) == MAP_FAILED);
 	ATF_REQUIRE((data1 = mmap(NULL, 2 * page_size, PROT_READ | PROT_WRITE,
-	    MAP_SHARED, fd, 0)) != MAP_FAILED);
+			 MAP_SHARED, fd, 0)) != MAP_FAILED);
 	ATF_REQUIRE((data2 = mmap(NULL, 2 * page_size, PROT_READ | PROT_WRITE,
-	    MAP_SHARED, fd, 0)) != MAP_FAILED);
+			 MAP_SHARED, fd, 0)) != MAP_FAILED);
 
 	*(uint64_t *)data1 = 0x123456789abcdeful;
 	ATF_REQUIRE(*(uint64_t *)data2 == 0x123456789abcdefull);
@@ -141,8 +140,8 @@ ATF_TC_BODY(kcov_mmap_no_munmap, tc)
 
 	ATF_REQUIRE(ioctl(fd, KIOSETBUFSIZE, page_size / KCOV_ENTRY_SIZE) == 0);
 
-	ATF_CHECK(mmap(NULL, page_size, PROT_READ | PROT_WRITE, MAP_SHARED,
-	    fd, 0) != MAP_FAILED);
+	ATF_CHECK(mmap(NULL, page_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd,
+		      0) != MAP_FAILED);
 
 	close(fd);
 }
@@ -161,8 +160,8 @@ ATF_TC_BODY(kcov_mmap_no_munmap_no_close, tc)
 
 	ATF_REQUIRE(ioctl(fd, KIOSETBUFSIZE, page_size / KCOV_ENTRY_SIZE) == 0);
 
-	ATF_CHECK(mmap(NULL, page_size, PROT_READ | PROT_WRITE, MAP_SHARED,
-	    fd, 0) != MAP_FAILED);
+	ATF_CHECK(mmap(NULL, page_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd,
+		      0) != MAP_FAILED);
 }
 
 static sem_t sem1, sem2;
@@ -176,8 +175,8 @@ kcov_mmap_enable_thread(void *data)
 	*(int *)data = fd;
 
 	ATF_REQUIRE(ioctl(fd, KIOSETBUFSIZE, page_size / KCOV_ENTRY_SIZE) == 0);
-	ATF_CHECK(mmap(NULL, page_size, PROT_READ | PROT_WRITE, MAP_SHARED,
-	    fd, 0) != MAP_FAILED);
+	ATF_CHECK(mmap(NULL, page_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd,
+		      0) != MAP_FAILED);
 	ATF_CHECK(ioctl(fd, KIOENABLE, KCOV_MODE_TRACE_PC) == 0);
 
 	sem_post(&sem1);
@@ -199,8 +198,7 @@ ATF_TC_BODY(kcov_mmap_enable_thread_close, tc)
 
 	sem_init(&sem1, 0, 0);
 	sem_init(&sem2, 0, 0);
-	pthread_create(&thread, NULL,
-	    kcov_mmap_enable_thread, &fd);
+	pthread_create(&thread, NULL, kcov_mmap_enable_thread, &fd);
 	sem_wait(&sem1);
 	close(fd);
 	sem_post(&sem2);
@@ -282,8 +280,8 @@ common_head(int *fdp)
 
 	fd = open_kcov();
 
-	ATF_REQUIRE_MSG(ioctl(fd, KIOSETBUFSIZE,
-	    page_size / KCOV_ENTRY_SIZE) == 0,
+	ATF_REQUIRE_MSG(ioctl(fd, KIOSETBUFSIZE, page_size / KCOV_ENTRY_SIZE) ==
+		0,
 	    "Unable to set the kcov buffer size");
 
 	data = mmap(NULL, page_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);

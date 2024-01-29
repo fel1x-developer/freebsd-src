@@ -34,11 +34,14 @@
  */
 
 #include <sys/param.h>
+#include <sys/endian.h>
 #include <sys/errno.h>
 #include <sys/ioctl.h>
 #include <sys/sysctl.h>
 #include <sys/uio.h>
-#include <sys/endian.h>
+
+#include <dev/mpr/mpr_ioctl.h>
+#include <dev/mps/mps_ioctl.h>
 
 #include <err.h>
 #include <fcntl.h>
@@ -48,195 +51,76 @@
 #include <unistd.h>
 
 #include "mpsutil.h"
-#include <dev/mps/mps_ioctl.h>
-#include <dev/mpr/mpr_ioctl.h>
 
 #ifndef USE_MPT_IOCTLS
 #define USE_MPT_IOCTLS
 #endif
 
 static const char *mps_ioc_status_codes[] = {
-	"Success",				/* 0x0000 */
-	"Invalid function",
-	"Busy",
-	"Invalid scatter-gather list",
-	"Internal error",
-	"Reserved",
-	"Insufficient resources",
-	"Invalid field",
-	"Invalid state",			/* 0x0008 */
-	"Operation state not supported",
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,					/* 0x0010 */
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,					/* 0x0018 */
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	"Invalid configuration action",		/* 0x0020 */
-	"Invalid configuration type",
-	"Invalid configuration page",
-	"Invalid configuration data",
-	"No configuration defaults",
-	"Unable to commit configuration change",
-	NULL,
-	NULL,
-	NULL,					/* 0x0028 */
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,					/* 0x0030 */
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,					/* 0x0038 */
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	"Recovered SCSI error",			/* 0x0040 */
-	"Invalid SCSI bus",
-	"Invalid SCSI target ID",
-	"SCSI device not there",
-	"SCSI data overrun",
-	"SCSI data underrun",
-	"SCSI I/O error",
-	"SCSI protocol error",
-	"SCSI task terminated",			/* 0x0048 */
-	"SCSI residual mismatch",
-	"SCSI task management failed",
-	"SCSI I/O controller terminated",
-	"SCSI external controller terminated",
-	"EEDP guard error",
-	"EEDP reference tag error",
-	"EEDP application tag error",
-	NULL,					/* 0x0050 */
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,					/* 0x0058 */
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	"SCSI target priority I/O",		/* 0x0060 */
-	"Invalid SCSI target port",
-	"Invalid SCSI target I/O index",
-	"SCSI target aborted",
-	"No connection retryable",
-	"No connection",
-	"FC aborted",
-	"Invalid FC receive ID",
-	"FC did invalid",			/* 0x0068 */
-	"FC node logged out",
-	"Transfer count mismatch",
-	"STS data not set",
-	"FC exchange canceled",
-	"Data offset error",
-	"Too much write data",
-	"IU too short",
-	"ACK NAK timeout",			/* 0x0070 */
-	"NAK received",
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,					/* 0x0078 */
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	"LAN device not found",			/* 0x0080 */
-	"LAN device failure",
-	"LAN transmit error",
-	"LAN transmit aborted",
-	"LAN receive error",
-	"LAN receive aborted",
-	"LAN partial packet",
-	"LAN canceled",
-	NULL,					/* 0x0088 */
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	"SAS SMP request failed",		/* 0x0090 */
-	"SAS SMP data overrun",
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	"Inband aborted",			/* 0x0098 */
-	"No inband connection",
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	"Diagnostic released",			/* 0x00A0 */
+	"Success", /* 0x0000 */
+	"Invalid function", "Busy", "Invalid scatter-gather list",
+	"Internal error", "Reserved", "Insufficient resources", "Invalid field",
+	"Invalid state", /* 0x0008 */
+	"Operation state not supported", NULL, NULL, NULL, NULL, NULL, NULL,
+	NULL,						/* 0x0010 */
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, /* 0x0018 */
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	"Invalid configuration action", /* 0x0020 */
+	"Invalid configuration type", "Invalid configuration page",
+	"Invalid configuration data", "No configuration defaults",
+	"Unable to commit configuration change", NULL, NULL, NULL, /* 0x0028 */
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,		   /* 0x0030 */
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,		   /* 0x0038 */
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	"Recovered SCSI error", /* 0x0040 */
+	"Invalid SCSI bus", "Invalid SCSI target ID", "SCSI device not there",
+	"SCSI data overrun", "SCSI data underrun", "SCSI I/O error",
+	"SCSI protocol error", "SCSI task terminated", /* 0x0048 */
+	"SCSI residual mismatch", "SCSI task management failed",
+	"SCSI I/O controller terminated", "SCSI external controller terminated",
+	"EEDP guard error", "EEDP reference tag error",
+	"EEDP application tag error", NULL,		/* 0x0050 */
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, /* 0x0058 */
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	"SCSI target priority I/O", /* 0x0060 */
+	"Invalid SCSI target port", "Invalid SCSI target I/O index",
+	"SCSI target aborted", "No connection retryable", "No connection",
+	"FC aborted", "Invalid FC receive ID", "FC did invalid", /* 0x0068 */
+	"FC node logged out", "Transfer count mismatch", "STS data not set",
+	"FC exchange canceled", "Data offset error", "Too much write data",
+	"IU too short", "ACK NAK timeout",			  /* 0x0070 */
+	"NAK received", NULL, NULL, NULL, NULL, NULL, NULL, NULL, /* 0x0078 */
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	"LAN device not found", /* 0x0080 */
+	"LAN device failure", "LAN transmit error", "LAN transmit aborted",
+	"LAN receive error", "LAN receive aborted", "LAN partial packet",
+	"LAN canceled", NULL, /* 0x0088 */
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	"SAS SMP request failed", /* 0x0090 */
+	"SAS SMP data overrun", NULL, NULL, NULL, NULL, NULL, NULL,
+	"Inband aborted", /* 0x0098 */
+	"No inband connection", NULL, NULL, NULL, NULL, NULL, NULL,
+	"Diagnostic released", /* 0x00A0 */
 };
 
 struct mprs_pass_thru {
-        uint64_t        PtrRequest;
-        uint64_t        PtrReply;
-        uint64_t        PtrData;
-        uint32_t        RequestSize;
-        uint32_t        ReplySize;
-        uint32_t        DataSize;
-        uint32_t        DataDirection;
-        uint64_t        PtrDataOut;
-        uint32_t        DataOutSize;
-        uint32_t        Timeout;
+	uint64_t PtrRequest;
+	uint64_t PtrReply;
+	uint64_t PtrData;
+	uint32_t RequestSize;
+	uint32_t ReplySize;
+	uint32_t DataSize;
+	uint32_t DataDirection;
+	uint64_t PtrDataOut;
+	uint32_t DataOutSize;
+	uint32_t Timeout;
 };
 
 struct mprs_btdh_mapping {
-        uint16_t        TargetID;
-        uint16_t        Bus;
-        uint16_t        DevHandle;
-        uint16_t        Reserved;
+	uint16_t TargetID;
+	uint16_t Bus;
+	uint16_t DevHandle;
+	uint16_t Reserved;
 };
 
 static void adjust_iocfacts_endianness(MPI2_IOC_FACTS_REPLY *facts);
@@ -292,8 +176,8 @@ mps_set_slot_status(int fd, U16 handle, U16 slot, U32 status)
 	req.Slot = slot;
 	req.SlotStatus = status;
 
-	if (mps_pass_command(fd, &req, sizeof(req), &reply, sizeof(reply),
-	    NULL, 0, NULL, 0, 30) != 0)
+	if (mps_pass_command(fd, &req, sizeof(req), &reply, sizeof(reply), NULL,
+		0, NULL, 0, 30) != 0)
 		return (errno);
 
 	if (!IOC_STATUS_SUCCESS(le16toh(reply.IOCStatus)))
@@ -315,8 +199,8 @@ mps_read_config_page_header(int fd, U8 PageType, U8 PageNumber, U32 PageAddress,
 	req.Header.PageNumber = PageNumber;
 	req.PageAddress = PageAddress;
 
-	if (mps_pass_command(fd, &req, sizeof(req), &reply, sizeof(reply),
-	    NULL, 0, NULL, 0, 30))
+	if (mps_pass_command(fd, &req, sizeof(req), &reply, sizeof(reply), NULL,
+		0, NULL, 0, 30))
 		return (errno);
 
 	if (!IOC_STATUS_SUCCESS(le16toh(reply.IOCStatus))) {
@@ -331,7 +215,9 @@ mps_read_config_page_header(int fd, U8 PageType, U8 PageNumber, U32 PageAddress,
 }
 
 int
-mps_read_ext_config_page_header(int fd, U8 ExtPageType, U8 PageNumber, U32 PageAddress, MPI2_CONFIG_PAGE_HEADER *header, U16 *ExtPageLength, U16 *IOCStatus)
+mps_read_ext_config_page_header(int fd, U8 ExtPageType, U8 PageNumber,
+    U32 PageAddress, MPI2_CONFIG_PAGE_HEADER *header, U16 *ExtPageLength,
+    U16 *IOCStatus)
 {
 	MPI2_CONFIG_REQUEST req;
 	MPI2_CONFIG_REPLY reply;
@@ -344,8 +230,8 @@ mps_read_ext_config_page_header(int fd, U8 ExtPageType, U8 PageNumber, U32 PageA
 	req.Header.PageNumber = PageNumber;
 	req.PageAddress = htole32(PageAddress);
 
-	if (mps_pass_command(fd, &req, sizeof(req), &reply, sizeof(reply),
-	    NULL, 0, NULL, 0, 30))
+	if (mps_pass_command(fd, &req, sizeof(req), &reply, sizeof(reply), NULL,
+		0, NULL, 0, 30))
 		return (errno);
 
 	if (!IOC_STATUS_SUCCESS(le16toh(reply.IOCStatus))) {
@@ -388,8 +274,8 @@ mps_read_config_page(int fd, U8 PageType, U8 PageNumber, U32 PageAddress,
 
 	len = req.Header.PageLength * 4;
 	buf = malloc(len);
-	if (mps_pass_command(fd, &req, sizeof(req), &reply, sizeof(reply),
-	    buf, len, NULL, 0, 30)) {
+	if (mps_pass_command(fd, &req, sizeof(req), &reply, sizeof(reply), buf,
+		len, NULL, 0, 30)) {
 		error = errno;
 		free(buf);
 		errno = error;
@@ -442,8 +328,8 @@ mps_read_extended_config_page(int fd, U8 ExtPageType, U8 PageVersion,
 
 	len = le16toh(pagelen) * 4;
 	buf = malloc(len);
-	if (mps_pass_command(fd, &req, sizeof(req), &reply, sizeof(reply),
-	    buf, len, NULL, 0, 30)) {
+	if (mps_pass_command(fd, &req, sizeof(req), &reply, sizeof(reply), buf,
+		len, NULL, 0, 30)) {
 		error = errno;
 		free(buf);
 		errno = error;
@@ -472,12 +358,13 @@ mps_firmware_send(int fd, unsigned char *fw, uint32_t len, bool bios)
 	bzero(&req, sizeof(req));
 	bzero(&reply, sizeof(reply));
 	req.Function = MPI2_FUNCTION_FW_DOWNLOAD;
-	req.ImageType = bios ? MPI2_FW_DOWNLOAD_ITYPE_BIOS : MPI2_FW_DOWNLOAD_ITYPE_FW;
+	req.ImageType = bios ? MPI2_FW_DOWNLOAD_ITYPE_BIOS :
+			       MPI2_FW_DOWNLOAD_ITYPE_FW;
 	req.TotalImageSize = htole32(len);
 	req.MsgFlags = MPI2_FW_DOWNLOAD_MSGFLGS_LAST_SEGMENT;
 
-	if (mps_user_command(fd, &req, sizeof(req), &reply, sizeof(reply),
-	    fw, len, 0)) {
+	if (mps_user_command(fd, &req, sizeof(req), &reply, sizeof(reply), fw,
+		len, 0)) {
 		return (-1);
 	}
 	return (0);
@@ -494,10 +381,11 @@ mps_firmware_get(int fd, unsigned char **firmware, bool bios)
 	bzero(&req, sizeof(req));
 	bzero(&reply, sizeof(reply));
 	req.Function = MPI2_FUNCTION_FW_UPLOAD;
-	req.ImageType = bios ? MPI2_FW_DOWNLOAD_ITYPE_BIOS : MPI2_FW_DOWNLOAD_ITYPE_FW;
+	req.ImageType = bios ? MPI2_FW_DOWNLOAD_ITYPE_BIOS :
+			       MPI2_FW_DOWNLOAD_ITYPE_FW;
 
-	if (mps_user_command(fd, &req, sizeof(req), &reply, sizeof(reply),
-	    NULL, 0, 0)) {
+	if (mps_user_command(fd, &req, sizeof(req), &reply, sizeof(reply), NULL,
+		0, 0)) {
 		return (-1);
 	}
 	if (reply.ActualImageSize == 0) {
@@ -511,7 +399,7 @@ mps_firmware_get(int fd, unsigned char **firmware, bool bios)
 		return (-1);
 	}
 	if (mps_user_command(fd, &req, sizeof(req), &reply, sizeof(reply),
-	    *firmware, size, 0)) {
+		*firmware, size, 0)) {
 		free(*firmware);
 		return (-1);
 	}
@@ -644,13 +532,13 @@ mps_open(int unit)
 {
 	char path[MAXPATHLEN];
 
-	snprintf(path, sizeof(path), "/dev/mp%s%d", is_mps ? "s": "r", unit);
+	snprintf(path, sizeof(path), "/dev/mp%s%d", is_mps ? "s" : "r", unit);
 	return (open(path, O_RDWR));
 }
 
 int
 mps_user_command(int fd, void *req, uint32_t req_len, void *reply,
-        uint32_t reply_len, void *buffer, int len, uint32_t flags)
+    uint32_t reply_len, void *buffer, int len, uint32_t flags)
 {
 	struct mps_usr_command cmd;
 
@@ -670,8 +558,8 @@ mps_user_command(int fd, void *req, uint32_t req_len, void *reply,
 
 int
 mps_pass_command(int fd, void *req, uint32_t req_len, void *reply,
-	uint32_t reply_len, void *data_in, uint32_t datain_len, void *data_out,
-	uint32_t dataout_len, uint32_t timeout)
+    uint32_t reply_len, void *data_in, uint32_t datain_len, void *data_out,
+    uint32_t dataout_len, uint32_t timeout)
 {
 	struct mprs_pass_thru pass;
 
@@ -726,8 +614,8 @@ mps_get_ioc_factslen(int fd)
 {
 	MPI2_IOC_FACTS_REQUEST req;
 	const size_t factslen = 4;
-	char factsbuf[4] = {0};
-	MPI2_IOC_FACTS_REPLY *facts = (MPI2_IOC_FACTS_REPLY*)factsbuf;
+	char factsbuf[4] = { 0 };
+	MPI2_IOC_FACTS_REPLY *facts = (MPI2_IOC_FACTS_REPLY *)factsbuf;
 	int error;
 
 	bzero(&req, sizeof(req));
@@ -796,8 +684,7 @@ adjust_iocfacts_endianness(MPI2_IOC_FACTS_REPLY *facts)
 	facts->RequestCredit = le16toh(facts->RequestCredit);
 	facts->ProductID = le16toh(facts->ProductID);
 	facts->IOCCapabilities = le32toh(facts->IOCCapabilities);
-	facts->IOCRequestFrameSize =
-	    le16toh(facts->IOCRequestFrameSize);
+	facts->IOCRequestFrameSize = le16toh(facts->IOCRequestFrameSize);
 	facts->FWVersion.Word = le32toh(facts->FWVersion.Word);
 	facts->MaxInitiators = le16toh(facts->MaxInitiators);
 	facts->MaxTargets = le16toh(facts->MaxTargets);
@@ -805,10 +692,9 @@ adjust_iocfacts_endianness(MPI2_IOC_FACTS_REPLY *facts)
 	facts->MaxEnclosures = le16toh(facts->MaxEnclosures);
 	facts->ProtocolFlags = le16toh(facts->ProtocolFlags);
 	facts->HighPriorityCredit = le16toh(facts->HighPriorityCredit);
-	facts->MaxReplyDescriptorPostQueueDepth =
-	    le16toh(facts->MaxReplyDescriptorPostQueueDepth);
+	facts->MaxReplyDescriptorPostQueueDepth = le16toh(
+	    facts->MaxReplyDescriptorPostQueueDepth);
 	facts->MaxDevHandle = le16toh(facts->MaxDevHandle);
-	facts->MaxPersistentEntries =
-	    le16toh(facts->MaxPersistentEntries);
+	facts->MaxPersistentEntries = le16toh(facts->MaxPersistentEntries);
 	facts->MinDevHandle = le16toh(facts->MinDevHandle);
 }

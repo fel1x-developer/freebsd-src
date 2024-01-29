@@ -28,12 +28,12 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_LINUXKPI_LINUX_DEVCOREDUMP_H
-#define	_LINUXKPI_LINUX_DEVCOREDUMP_H
+#ifndef _LINUXKPI_LINUX_DEVCOREDUMP_H
+#define _LINUXKPI_LINUX_DEVCOREDUMP_H
 
-#include <linux/slab.h>
-#include <linux/scatterlist.h>
 #include <linux/device.h>
+#include <linux/scatterlist.h>
+#include <linux/slab.h>
 
 static inline void
 _lkpi_dev_coredumpsg_free(struct scatterlist *table)
@@ -43,7 +43,8 @@ _lkpi_dev_coredumpsg_free(struct scatterlist *table)
 	int i;
 
 	iter = table;
-	for_each_sg(table, iter, sg_nents(table), i) {
+	for_each_sg(table, iter, sg_nents(table), i)
+	{
 		p = sg_page(iter);
 		if (p)
 			__free_page(p);
@@ -71,4 +72,4 @@ dev_coredumpsg(struct device *dev __unused, struct scatterlist *table,
 	_lkpi_dev_coredumpsg_free(table);
 }
 
-#endif	/* _LINUXKPI_LINUX_DEVCOREDUMP_H */
+#endif /* _LINUXKPI_LINUX_DEVCOREDUMP_H */

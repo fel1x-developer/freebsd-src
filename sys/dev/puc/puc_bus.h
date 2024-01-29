@@ -27,16 +27,17 @@
  */
 
 #ifndef _DEV_PUC_BUS_H_
-#define	_DEV_PUC_BUS_H_
+#define _DEV_PUC_BUS_H_
 
 #include <sys/serial.h>
+
 #include <serdev_if.h>
 
-#define	PUC_IVAR_CLOCK		0
-#define	PUC_IVAR_TYPE		1
+#define PUC_IVAR_CLOCK 0
+#define PUC_IVAR_TYPE 1
 
 /* Port types. */
-#define	PUC_TYPE_SERIAL		1
-#define	PUC_TYPE_PARALLEL	2
+#define PUC_TYPE_SERIAL 1
+#define PUC_TYPE_PARALLEL 2
 
 #endif /* _DEV_PUC_BUS_H_ */

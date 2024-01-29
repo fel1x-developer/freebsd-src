@@ -4,17 +4,15 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
+#include <atf-c.h>
 #include <errno.h>
 #include <stdio.h>
 
-#include <atf-c.h>
-
 #define BUFSIZE 16
 
-static const char seq[] =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    "abcdefghijklmnopqrstuvwxyz"
-    "0123456789+/";
+static const char seq[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+			  "abcdefghijklmnopqrstuvwxyz"
+			  "0123456789+/";
 
 struct stream {
 	char buf[BUFSIZE];
@@ -22,7 +20,8 @@ struct stream {
 	unsigned int pos;
 };
 
-static int writefn(void *cookie, const char *buf, int len)
+static int
+writefn(void *cookie, const char *buf, int len)
 {
 	struct stream *s = cookie;
 	int written = 0;

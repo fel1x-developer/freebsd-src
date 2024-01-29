@@ -27,11 +27,11 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
- * 
+ *
  */
 
-#ifndef	_BCMA_BCMA_EROMVAR_H_
-#define	_BCMA_BCMA_EROMVAR_H_
+#ifndef _BCMA_BCMA_EROMVAR_H_
+#define _BCMA_BCMA_EROMVAR_H_
 
 #include <dev/bhnd/bhnd.h>
 #include <dev/bhnd/bhnd_erom.h>
@@ -40,36 +40,36 @@
 
 struct bcma_erom;
 
-int	bcma_erom_next_corecfg(struct bcma_erom *sc,
-	    struct bcma_corecfg **result);
+int bcma_erom_next_corecfg(struct bcma_erom *sc, struct bcma_corecfg **result);
 
 /** EROM core descriptor. */
 struct bcma_erom_core {
-	uint16_t	vendor;		/**< core's designer */
-	uint16_t	device;		/**< core's device identifier */
-	uint16_t	rev;		/**< core's hardware revision */
-	u_long		num_mport;	/**< number of master port descriptors */
-	u_long		num_dport;	/**< number of slave port descriptors */
-	u_long		num_mwrap;	/**< number of master wrapper slave port descriptors */
-	u_long		num_swrap;	/**< number of slave wrapper slave port descriptors */
+	uint16_t vendor;  /**< core's designer */
+	uint16_t device;  /**< core's device identifier */
+	uint16_t rev;	  /**< core's hardware revision */
+	u_long num_mport; /**< number of master port descriptors */
+	u_long num_dport; /**< number of slave port descriptors */
+	u_long
+	    num_mwrap; /**< number of master wrapper slave port descriptors */
+	u_long num_swrap; /**< number of slave wrapper slave port descriptors */
 };
 
 /** EROM master port descriptor. */
 struct bcma_erom_mport {
-	uint8_t		port_num;	/**< the port number (bus-unique) */
-	uint8_t		port_vid;	/**< the port VID. A single physical
-					     master port may have multiple VIDs;
-					     the canonical port address is
-					     composed of the port number + the
-					     port VID */
+	uint8_t port_num; /**< the port number (bus-unique) */
+	uint8_t port_vid; /**< the port VID. A single physical
+			       master port may have multiple VIDs;
+			       the canonical port address is
+			       composed of the port number + the
+			       port VID */
 };
 
 /** EROM slave port region descriptor. */
 struct bcma_erom_sport_region {
-	uint8_t		region_port;	/**< the slave port mapping this region */
-	uint8_t		region_type;	/**< the mapping port's type */
-	bhnd_addr_t	base_addr;	/**< region base address */
-	bhnd_addr_t	size;		/**< region size */
+	uint8_t region_port;   /**< the slave port mapping this region */
+	uint8_t region_type;   /**< the mapping port's type */
+	bhnd_addr_t base_addr; /**< region base address */
+	bhnd_addr_t size;      /**< region size */
 };
 
 #endif /* _BCMA_BCMA_EROMVAR_H_ */

@@ -33,20 +33,19 @@
 #include <sys/stat.h>
 #include <sys/sysctl.h>
 
-#include <ufs/ufs/dinode.h>
-#include <ufs/ufs/dir.h>
-#include <ufs/ffs/fs.h>
-
 #include <err.h>
 #include <limits.h>
 #include <stdint.h>
 #include <string.h>
+#include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
+#include <ufs/ufs/dir.h>
 
 #include "fsck.h"
 
 static ufs2_daddr_t badblk;
 static ufs2_daddr_t dupblk;
-static ino_t lastino;		/* last inode in use */
+static ino_t lastino; /* last inode in use */
 
 static int checkinode(ino_t inumber, struct inodesc *, int rebuiltcg);
 
@@ -108,7 +107,7 @@ pass1(void)
 			inosused = cgp->cg_initediblk;
 			if (inosused > sblock.fs_ipg) {
 				pfatal("Too many initialized inodes (%ju > %d) "
-				    "in cylinder group %d\nReset to %d\n",
+				       "in cylinder group %d\nReset to %d\n",
 				    (uintmax_t)inosused, sblock.fs_ipg, c,
 				    sblock.fs_ipg);
 				inosused = sblock.fs_ipg;
@@ -124,7 +123,7 @@ pass1(void)
 		}
 		if (got_sigalarm) {
 			setproctitle("%s p1 %d%%", cdevname,
-			     c * 100 / sblock.fs_ncg);
+			    c * 100 / sblock.fs_ncg);
 			got_sigalarm = 0;
 		}
 		/*
@@ -136,7 +135,7 @@ pass1(void)
 		 */
 		if ((preen || inoopt) && usedsoftdep && !rebuiltcg) {
 			cp = &cg_inosused(cgp)[(inosused - 1) / CHAR_BIT];
-			for ( ; inosused != 0; cp--) {
+			for (; inosused != 0; cp--) {
 				if (*cp == 0) {
 					if (inosused > CHAR_BIT)
 						inosused -= CHAR_BIT;
@@ -200,8 +199,8 @@ pass1(void)
 				cgp->cg_initediblk = 2 * INOPB(&sblock);
 			else
 				cgp->cg_initediblk = mininos;
-			pwarn("CYLINDER GROUP %d: RESET FROM %ju TO %d %s\n",
-			    c, i, cgp->cg_initediblk, "VALID INODES");
+			pwarn("CYLINDER GROUP %d: RESET FROM %ju TO %d %s\n", c,
+			    i, cgp->cg_initediblk, "VALID INODES");
 			cgdirty(cgbp);
 		}
 		if (inosused < sblock.fs_ipg)
@@ -260,17 +259,17 @@ checkinode(ino_t inumber, struct inodesc *idesc, int rebuiltcg)
 	mode = DIP(dp, di_mode) & IFMT;
 	if (mode == 0) {
 		if ((sblock.fs_magic == FS_UFS1_MAGIC &&
-		     (memcmp(dp->dp1.di_db, zino.dp1.di_db,
-			UFS_NDADDR * sizeof(ufs1_daddr_t)) ||
-		      memcmp(dp->dp1.di_ib, zino.dp1.di_ib,
-			UFS_NIADDR * sizeof(ufs1_daddr_t)) ||
-		      dp->dp1.di_mode || dp->dp1.di_size)) ||
+			(memcmp(dp->dp1.di_db, zino.dp1.di_db,
+			     UFS_NDADDR * sizeof(ufs1_daddr_t)) ||
+			    memcmp(dp->dp1.di_ib, zino.dp1.di_ib,
+				UFS_NIADDR * sizeof(ufs1_daddr_t)) ||
+			    dp->dp1.di_mode || dp->dp1.di_size)) ||
 		    (sblock.fs_magic == FS_UFS2_MAGIC &&
-		     (memcmp(dp->dp2.di_db, zino.dp2.di_db,
-			UFS_NDADDR * sizeof(ufs2_daddr_t)) ||
-		      memcmp(dp->dp2.di_ib, zino.dp2.di_ib,
-			UFS_NIADDR * sizeof(ufs2_daddr_t)) ||
-		      dp->dp2.di_mode || dp->dp2.di_size))) {
+			(memcmp(dp->dp2.di_db, zino.dp2.di_db,
+			     UFS_NDADDR * sizeof(ufs2_daddr_t)) ||
+			    memcmp(dp->dp2.di_ib, zino.dp2.di_ib,
+				UFS_NIADDR * sizeof(ufs2_daddr_t)) ||
+			    dp->dp2.di_mode || dp->dp2.di_size))) {
 			pfatal("PARTIALLY ALLOCATED INODE I=%lu",
 			    (u_long)inumber);
 			if (reply("CLEAR") == 1) {
@@ -292,12 +291,13 @@ checkinode(ino_t inumber, struct inodesc *idesc, int rebuiltcg)
 		ginode(inumber, &ip);
 		dp = ip.i_dp;
 		DIP_SET(dp, di_size, sblock.fs_fsize);
-		DIP_SET(dp, di_mode, IFREG|0600);
+		DIP_SET(dp, di_mode, IFREG | 0600);
 		inodirty(&ip);
 		irelse(&ip);
 	}
 	if ((mode == IFBLK || mode == IFCHR || mode == IFIFO ||
-	     mode == IFSOCK) && DIP(dp, di_size) != 0) {
+		mode == IFSOCK) &&
+	    DIP(dp, di_size) != 0) {
 		if (debug)
 			printf("bad special-file size %ju:",
 			    (uintmax_t)DIP(dp, di_size));
@@ -315,7 +315,7 @@ checkinode(ino_t inumber, struct inodesc *idesc, int rebuiltcg)
 	if (ndb < 0) {
 		if (debug)
 			printf("negative size %ju ndb %ju:",
-				(uintmax_t)DIP(dp, di_size), (uintmax_t)ndb);
+			    (uintmax_t)DIP(dp, di_size), (uintmax_t)ndb);
 		pfatal("NEGATIVE FILE SIZE");
 		goto unknown;
 	}
@@ -441,8 +441,8 @@ checkinode(ino_t inumber, struct inodesc *idesc, int rebuiltcg)
 			if (debug)
 				printf("adjblkcnt ino %ju amount %lld\n",
 				    (uintmax_t)cmd.value, (long long)cmd.size);
-			if (sysctl(adjblkcnt, MIBSIZE, 0, 0,
-			    &cmd, sizeof cmd) == -1)
+			if (sysctl(adjblkcnt, MIBSIZE, 0, 0, &cmd,
+				sizeof cmd) == -1)
 				rwerror("ADJUST INODE BLOCK COUNT", cmd.value);
 		}
 	}
@@ -453,7 +453,7 @@ checkinode(ino_t inumber, struct inodesc *idesc, int rebuiltcg)
 	 * past the last allocated block of the file and if that is found,
 	 * shorten the file to reference the last allocated block to avoid
 	 * having it reference a hole at its end.
-	 * 
+	 *
 	 * Soft updates will always ensure that the file size is correct
 	 * for files that contain only direct block pointers. However
 	 * soft updates does not roll back sizes for files with indirect
@@ -469,15 +469,15 @@ checkinode(ino_t inumber, struct inodesc *idesc, int rebuiltcg)
 	if (idesc->id_lballoc < lblkno(&sblock, size - 1) &&
 	    /* exclude embedded symbolic links */
 	    ((mode != IFLNK) || size >= sblock.fs_maxsymlinklen)) {
- 		fixsize = lblktosize(&sblock, idesc->id_lballoc + 1);
+		fixsize = lblktosize(&sblock, idesc->id_lballoc + 1);
 		if (size > UFS_NDADDR * sblock.fs_bsize)
 			pwarn("INODE %lu: FILE SIZE %ju BEYOND END OF "
 			      "ALLOCATED FILE, SIZE SHOULD BE %ju",
-			      (u_long)inumber, size, fixsize);
+			    (u_long)inumber, size, fixsize);
 		else
 			pfatal("INODE %lu: FILE SIZE %ju BEYOND END OF "
-			      "ALLOCATED FILE, SIZE SHOULD BE %ju",
-			      (u_long)inumber, size, fixsize);
+			       "ALLOCATED FILE, SIZE SHOULD BE %ju",
+			    (u_long)inumber, size, fixsize);
 		if (preen)
 			printf(" (ADJUSTED)\n");
 		else if (reply("ADJUST") == 0)
@@ -493,11 +493,10 @@ checkinode(ino_t inumber, struct inodesc *idesc, int rebuiltcg)
 			if (debug)
 				printf("setsize ino %ju size set to %ju\n",
 				    (uintmax_t)cmd.value, (uintmax_t)cmd.size);
-			if (sysctl(setsize, MIBSIZE, 0, 0,
-			    &cmd, sizeof cmd) == -1)
+			if (sysctl(setsize, MIBSIZE, 0, 0, &cmd, sizeof cmd) ==
+			    -1)
 				rwerror("SET INODE SIZE", cmd.value);
 		}
-
 	}
 	return (1);
 unknown:
@@ -561,7 +560,7 @@ pass1check(struct inodesc *idesc)
 			blkerror(idesc->id_number, "DUP", blkno);
 			if (dupblk++ >= MAXDUP) {
 				pwarn("EXCESSIVE DUP BLKS I=%lu",
-					(u_long)idesc->id_number);
+				    (u_long)idesc->id_number);
 				if (preen)
 					printf(" (SKIPPING)\n");
 				else if (reply("CONTINUE") == 0) {

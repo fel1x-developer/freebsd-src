@@ -49,6 +49,7 @@
 #include <ipmivars.h>
 #else
 #include <sys/ipmi.h>
+
 #include <dev/ipmi/ipmivars.h>
 #endif
 
@@ -63,15 +64,14 @@
  * be reused via IPMI_INIT_DRIVER_REQUEST(), but the caller should ensure
  * that there is adequate reply/request space in the original allocation.
  */
-#define	IPMI_INIT_DRIVER_REQUEST(req, addr, cmd, reqlen, replylen)	\
-	bzero((req), sizeof(struct ipmi_request));			\
+#define IPMI_INIT_DRIVER_REQUEST(req, addr, cmd, reqlen, replylen) \
+	bzero((req), sizeof(struct ipmi_request));                 \
 	ipmi_init_request((req), NULL, 0, (addr), (cmd), (reqlen), (replylen))
 
-#define	IPMI_ALLOC_DRIVER_REQUEST(req, addr, cmd, reqlen, replylen)	\
-	(req) = __builtin_alloca(sizeof(struct ipmi_request) +		\
-	    (reqlen) + (replylen));					\
-	IPMI_INIT_DRIVER_REQUEST((req), (addr), (cmd), (reqlen),	\
-	    (replylen))
+#define IPMI_ALLOC_DRIVER_REQUEST(req, addr, cmd, reqlen, replylen) \
+	(req) = __builtin_alloca(                                   \
+	    sizeof(struct ipmi_request) + (reqlen) + (replylen));   \
+	IPMI_INIT_DRIVER_REQUEST((req), (addr), (cmd), (reqlen), (replylen))
 
 static d_ioctl_t ipmi_ioctl;
 static d_poll_t ipmi_poll;
@@ -83,40 +83,38 @@ int ipmi_attached = 0;
 static int on = 1;
 static bool wd_in_shutdown = false;
 static int wd_timer_actions = IPMI_SET_WD_ACTION_POWER_CYCLE;
-static int wd_shutdown_countdown = 0; /* sec */
-static int wd_startup_countdown = 0; /* sec */
+static int wd_shutdown_countdown = 0;	  /* sec */
+static int wd_startup_countdown = 0;	  /* sec */
 static int wd_pretimeout_countdown = 120; /* sec */
-static int cycle_wait = 10; /* sec */
+static int cycle_wait = 10;		  /* sec */
 static int wd_init_enable = 1;
 
 static SYSCTL_NODE(_hw, OID_AUTO, ipmi, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
     "IPMI driver parameters");
-SYSCTL_INT(_hw_ipmi, OID_AUTO, on, CTLFLAG_RWTUN,
-	&on, 0, "");
-SYSCTL_INT(_hw_ipmi, OID_AUTO, wd_init_enable, CTLFLAG_RWTUN,
-	&wd_init_enable, 1, "Enable watchdog initialization");
+SYSCTL_INT(_hw_ipmi, OID_AUTO, on, CTLFLAG_RWTUN, &on, 0, "");
+SYSCTL_INT(_hw_ipmi, OID_AUTO, wd_init_enable, CTLFLAG_RWTUN, &wd_init_enable,
+    1, "Enable watchdog initialization");
 SYSCTL_INT(_hw_ipmi, OID_AUTO, wd_timer_actions, CTLFLAG_RWTUN,
-	&wd_timer_actions, 0,
-	"IPMI watchdog timer actions (including pre-timeout interrupt)");
+    &wd_timer_actions, 0,
+    "IPMI watchdog timer actions (including pre-timeout interrupt)");
 SYSCTL_INT(_hw_ipmi, OID_AUTO, wd_shutdown_countdown, CTLFLAG_RWTUN,
-	&wd_shutdown_countdown, 0,
-	"IPMI watchdog countdown for shutdown (seconds)");
+    &wd_shutdown_countdown, 0,
+    "IPMI watchdog countdown for shutdown (seconds)");
 SYSCTL_INT(_hw_ipmi, OID_AUTO, wd_startup_countdown, CTLFLAG_RDTUN,
-	&wd_startup_countdown, 0,
-	"IPMI watchdog countdown initialized during startup (seconds)");
+    &wd_startup_countdown, 0,
+    "IPMI watchdog countdown initialized during startup (seconds)");
 SYSCTL_INT(_hw_ipmi, OID_AUTO, wd_pretimeout_countdown, CTLFLAG_RWTUN,
-	&wd_pretimeout_countdown, 0,
-	"IPMI watchdog pre-timeout countdown (seconds)");
-SYSCTL_INT(_hw_ipmi, OID_AUTO, cycle_wait, CTLFLAG_RWTUN,
-	&cycle_wait, 0,
-	"IPMI power cycle on reboot delay time (seconds)");
+    &wd_pretimeout_countdown, 0,
+    "IPMI watchdog pre-timeout countdown (seconds)");
+SYSCTL_INT(_hw_ipmi, OID_AUTO, cycle_wait, CTLFLAG_RWTUN, &cycle_wait, 0,
+    "IPMI power cycle on reboot delay time (seconds)");
 
 static struct cdevsw ipmi_cdevsw = {
-	.d_version =    D_VERSION,
-	.d_open =	ipmi_open,
-	.d_ioctl =	ipmi_ioctl,
-	.d_poll =	ipmi_poll,
-	.d_name =	"ipmi",
+	.d_version = D_VERSION,
+	.d_open = ipmi_open,
+	.d_ioctl = ipmi_ioctl,
+	.d_poll = ipmi_poll,
+	.d_name = "ipmi",
 };
 
 static MALLOC_DEFINE(M_IPMI, "ipmi", "ipmi");
@@ -165,9 +163,9 @@ ipmi_poll(struct cdev *cdev, int poll_events, struct thread *td)
 	IPMI_LOCK(sc);
 	if (poll_events & (POLLIN | POLLRDNORM)) {
 		if (!TAILQ_EMPTY(&dev->ipmi_completed_requests))
-		    revents |= poll_events & (POLLIN | POLLRDNORM);
+			revents |= poll_events & (POLLIN | POLLRDNORM);
 		if (dev->ipmi_requests == 0)
-		    revents |= POLLERR;
+			revents |= POLLERR;
 	}
 
 	if (revents == 0) {
@@ -205,16 +203,16 @@ ipmi_dtor(void *arg)
 	IPMI_LOCK(sc);
 	if (dev->ipmi_requests) {
 		/* Throw away any pending requests for this device. */
-		TAILQ_FOREACH_SAFE(req, &sc->ipmi_pending_requests_highpri, ir_link,
-		    nreq) {
+		TAILQ_FOREACH_SAFE (req, &sc->ipmi_pending_requests_highpri,
+		    ir_link, nreq) {
 			if (req->ir_owner == dev) {
-				TAILQ_REMOVE(&sc->ipmi_pending_requests_highpri, req,
-				    ir_link);
+				TAILQ_REMOVE(&sc->ipmi_pending_requests_highpri,
+				    req, ir_link);
 				dev->ipmi_requests--;
 				ipmi_free_request(req);
 			}
 		}
-		TAILQ_FOREACH_SAFE(req, &sc->ipmi_pending_requests, ir_link,
+		TAILQ_FOREACH_SAFE (req, &sc->ipmi_pending_requests, ir_link,
 		    nreq) {
 			if (req->ir_owner == dev) {
 				TAILQ_REMOVE(&sc->ipmi_pending_requests, req,
@@ -256,8 +254,8 @@ ipmi_ipmb_checksum(u_char *data, int len)
 }
 
 static int
-ipmi_ioctl(struct cdev *cdev, u_long cmd, caddr_t data,
-    int flags, struct thread *td)
+ipmi_ioctl(struct cdev *cdev, u_long cmd, caddr_t data, int flags,
+    struct thread *td)
 {
 	struct ipmi_softc *sc;
 	struct ipmi_device *dev;
@@ -345,8 +343,8 @@ ipmi_ioctl(struct cdev *cdev, u_long cmd, caddr_t data,
 		kreq->ir_request[0] = iaddr->channel;
 		kreq->ir_request[1] = iaddr->slave_addr;
 		kreq->ir_request[2] = IPMI_ADDR(req->msg.netfn, iaddr->lun);
-		kreq->ir_request[3] =
-		    ipmi_ipmb_checksum(&kreq->ir_request[1], 2);
+		kreq->ir_request[3] = ipmi_ipmb_checksum(&kreq->ir_request[1],
+		    2);
 		kreq->ir_request[4] = dev->ipmi_address;
 		kreq->ir_request[5] = IPMI_ADDR(0, dev->ipmi_lun);
 		kreq->ir_request[6] = req->msg.cmd;
@@ -357,16 +355,15 @@ ipmi_ioctl(struct cdev *cdev, u_long cmd, caddr_t data,
 			if (error != 0)
 				return (error);
 		}
-		kreq->ir_request[req->msg.data_len + 7] =
-		    ipmi_ipmb_checksum(&kreq->ir_request[4],
-		    req->msg.data_len + 3);
+		kreq->ir_request[req->msg.data_len + 7] = ipmi_ipmb_checksum(
+		    &kreq->ir_request[4], req->msg.data_len + 3);
 		error = ipmi_submit_driver_request(sc, kreq, MAX_TIMEOUT);
 		if (error != 0)
 			return (error);
 
 		kreq = ipmi_alloc_request(dev, req->msgid,
-		    IPMI_ADDR(IPMI_APP_REQUEST, 0), IPMI_GET_MSG,
-		    0, IPMI_MAX_RX);
+		    IPMI_ADDR(IPMI_APP_REQUEST, 0), IPMI_GET_MSG, 0,
+		    IPMI_MAX_RX);
 		kreq->ir_ipmb = true;
 		kreq->ir_ipmb_addr = IPMI_ADDR(req->msg.netfn, 0);
 		kreq->ir_ipmb_command = req->msg.cmd;
@@ -407,8 +404,8 @@ ipmi_ioctl(struct cdev *cdev, u_long cmd, caddr_t data,
 		recv->msgid = kreq->ir_msgid;
 		if (kreq->ir_ipmb) {
 			addr.channel = IPMI_IPMB_CHANNEL;
-			recv->msg.netfn =
-			    IPMI_REPLY_ADDR(kreq->ir_ipmb_addr) >> 2;
+			recv->msg.netfn = IPMI_REPLY_ADDR(kreq->ir_ipmb_addr) >>
+			    2;
 			recv->msg.cmd = kreq->ir_ipmb_command;
 			/* Get the compcode of response */
 			kreq->ir_compcode = kreq->ir_reply[6];
@@ -425,9 +422,9 @@ ipmi_ioctl(struct cdev *cdev, u_long cmd, caddr_t data,
 		if (recv->msg.data_len < len &&
 		    (cmd == IPMICTL_RECEIVE_MSG
 #ifdef IPMICTL_RECEIVE_MSG_32
-		    || cmd == IPMICTL_RECEIVE_MSG_32
+			|| cmd == IPMICTL_RECEIVE_MSG_32
 #endif
-		    )) {
+			)) {
 			IPMI_UNLOCK(sc);
 			return (EMSGSIZE);
 		}
@@ -436,7 +433,7 @@ ipmi_ioctl(struct cdev *cdev, u_long cmd, caddr_t data,
 		IPMI_UNLOCK(sc);
 		len = min(recv->msg.data_len, len);
 		recv->msg.data_len = len;
-		error = copyout(&addr, recv->addr,sizeof(addr));
+		error = copyout(&addr, recv->addr, sizeof(addr));
 		if (error == 0)
 			error = copyout(&kreq->ir_compcode, recv->msg.data, 1);
 		if (error == 0)
@@ -448,22 +445,22 @@ ipmi_ioctl(struct cdev *cdev, u_long cmd, caddr_t data,
 		break;
 	case IPMICTL_SET_MY_ADDRESS_CMD:
 		IPMI_LOCK(sc);
-		dev->ipmi_address = *(int*)data;
+		dev->ipmi_address = *(int *)data;
 		IPMI_UNLOCK(sc);
 		break;
 	case IPMICTL_GET_MY_ADDRESS_CMD:
 		IPMI_LOCK(sc);
-		*(int*)data = dev->ipmi_address;
+		*(int *)data = dev->ipmi_address;
 		IPMI_UNLOCK(sc);
 		break;
 	case IPMICTL_SET_MY_LUN_CMD:
 		IPMI_LOCK(sc);
-		dev->ipmi_lun = *(int*)data & 0x3;
+		dev->ipmi_lun = *(int *)data & 0x3;
 		IPMI_UNLOCK(sc);
 		break;
 	case IPMICTL_GET_MY_LUN_CMD:
 		IPMI_LOCK(sc);
-		*(int*)data = dev->ipmi_lun;
+		*(int *)data = dev->ipmi_lun;
 		IPMI_UNLOCK(sc);
 		break;
 	case IPMICTL_SET_GETS_EVENTS_CMD:
@@ -614,7 +611,8 @@ ipmi_polled_enqueue_request(struct ipmi_softc *sc, struct ipmi_request *req)
 }
 
 int
-ipmi_polled_enqueue_request_highpri(struct ipmi_softc *sc, struct ipmi_request *req)
+ipmi_polled_enqueue_request_highpri(struct ipmi_softc *sc,
+    struct ipmi_request *req)
 {
 
 	IPMI_LOCK_ASSERT(sc);
@@ -661,19 +659,19 @@ ipmi_set_watchdog(struct ipmi_softc *sc, unsigned int sec)
 	IPMI_ALLOC_DRIVER_REQUEST(req, IPMI_ADDR(IPMI_APP_REQUEST, 0),
 	    IPMI_SET_WDOG, 6, 0);
 	if (sec) {
-		req->ir_request[0] = IPMI_SET_WD_TIMER_DONT_STOP
-		    | IPMI_SET_WD_TIMER_SMS_OS;
+		req->ir_request[0] = IPMI_SET_WD_TIMER_DONT_STOP |
+		    IPMI_SET_WD_TIMER_SMS_OS;
 		req->ir_request[1] = (wd_timer_actions & 0xff);
 		req->ir_request[2] = min(0xff,
 		    min(wd_pretimeout_countdown, (sec + 2) / 4));
-		req->ir_request[3] = 0;	/* Timer use */
+		req->ir_request[3] = 0; /* Timer use */
 		req->ir_request[4] = (sec * 10) & 0xff;
 		req->ir_request[5] = (sec * 10) >> 8;
 	} else {
 		req->ir_request[0] = IPMI_SET_WD_TIMER_SMS_OS;
 		req->ir_request[1] = 0;
 		req->ir_request[2] = 0;
-		req->ir_request[3] = 0;	/* Timer use */
+		req->ir_request[3] = 0; /* Timer use */
 		req->ir_request[4] = 0;
 		req->ir_request[5] = 0;
 	}
@@ -723,7 +721,8 @@ ipmi_wd_event(void *arg, unsigned int cmd, int *error)
 			if (e == 0) {
 				sc->ipmi_watchdog_active = timeout;
 				sc->ipmi_watchdog_actions = wd_timer_actions;
-				sc->ipmi_watchdog_pretimeout = wd_pretimeout_countdown;
+				sc->ipmi_watchdog_pretimeout =
+				    wd_pretimeout_countdown;
 			} else {
 				(void)ipmi_set_watchdog(sc, 0);
 				sc->ipmi_watchdog_active = 0;
@@ -815,7 +814,8 @@ ipmi_power_cycle(void *arg, int howto)
 	ipmi_submit_driver_request(sc, req, MAX_TIMEOUT);
 
 	if (req->ir_error != 0 || req->ir_compcode != 0) {
-		device_printf(sc->ipmi_dev, "Power cycling via IPMI failed code %#x %#x\n",
+		device_printf(sc->ipmi_dev,
+		    "Power cycling via IPMI failed code %#x %#x\n",
 		    req->ir_error, req->ir_compcode);
 		return;
 	}
@@ -877,10 +877,11 @@ ipmi_startup(void *arg)
 		return;
 	}
 
-	device_printf(dev, "IPMI device rev. %d, firmware rev. %d.%d%d, "
+	device_printf(dev,
+	    "IPMI device rev. %d, firmware rev. %d.%d%d, "
 	    "version %d.%d, device support mask %#x\n",
-	    req->ir_reply[1] & 0x0f,
-	    req->ir_reply[2] & 0x7f, req->ir_reply[3] >> 4, req->ir_reply[3] & 0x0f,
+	    req->ir_reply[1] & 0x0f, req->ir_reply[2] & 0x7f,
+	    req->ir_reply[3] >> 4, req->ir_reply[3] & 0x0f,
 	    req->ir_reply[4] & 0x0f, req->ir_reply[4] >> 4, req->ir_reply[5]);
 
 	sc->ipmi_dev_support = req->ir_reply[5];
@@ -924,15 +925,14 @@ ipmi_startup(void *arg)
 			device_printf(dev, "Attached watchdog\n");
 			/* register the watchdog event handler */
 			sc->ipmi_watchdog_tag = EVENTHANDLER_REGISTER(
-				watchdog_list, ipmi_wd_event, sc, 0);
+			    watchdog_list, ipmi_wd_event, sc, 0);
 			sc->ipmi_shutdown_tag = EVENTHANDLER_REGISTER(
-				shutdown_pre_sync, ipmi_shutdown_event,
-				sc, 0);
+			    shutdown_pre_sync, ipmi_shutdown_event, sc, 0);
 		}
 	}
 
-	sc->ipmi_cdev = make_dev(&ipmi_cdevsw, device_get_unit(dev),
-	    UID_ROOT, GID_OPERATOR, 0660, "ipmi%d", device_get_unit(dev));
+	sc->ipmi_cdev = make_dev(&ipmi_cdevsw, device_get_unit(dev), UID_ROOT,
+	    GID_OPERATOR, 0660, "ipmi%d", device_get_unit(dev));
 	if (sc->ipmi_cdev == NULL) {
 		device_printf(dev, "Failed to create cdev\n");
 		return;
@@ -1014,7 +1014,7 @@ ipmi_detach(device_t dev)
 	/* Detach from watchdog handling and turn off watchdog. */
 	if (sc->ipmi_shutdown_tag)
 		EVENTHANDLER_DEREGISTER(shutdown_pre_sync,
-		sc->ipmi_shutdown_tag);
+		    sc->ipmi_shutdown_tag);
 	if (sc->ipmi_watchdog_tag) {
 		EVENTHANDLER_DEREGISTER(watchdog_list, sc->ipmi_watchdog_tag);
 		ipmi_set_watchdog(sc, 0);
@@ -1022,7 +1022,8 @@ ipmi_detach(device_t dev)
 
 	/* Detach from shutdown handling for power cycle reboot */
 	if (sc->ipmi_power_cycle_tag)
-		EVENTHANDLER_DEREGISTER(shutdown_final, sc->ipmi_power_cycle_tag);
+		EVENTHANDLER_DEREGISTER(shutdown_final,
+		    sc->ipmi_power_cycle_tag);
 
 	/* XXX: should use shutdown callout I think. */
 	/* If the backend uses a kthread, shut it down. */
@@ -1065,9 +1066,9 @@ ipmi_release_resources(device_t dev)
 static void
 ipmi_unload(void *arg)
 {
-	device_t *	devs;
-	int		count;
-	int		i;
+	device_t *devs;
+	int count;
+	int i;
 
 	if (devclass_get_devices(devclass_find("ipmi"), &devs, &count) != 0)
 		return;
@@ -1085,7 +1086,7 @@ dump_buf(u_char *data, int len)
 	char line[1024];
 	char temp[30];
 	int count = 0;
-	int i=0;
+	int i = 0;
 
 	printf("Address %p len %d\n", data, len);
 	if (len > 256)
@@ -1104,7 +1105,7 @@ dump_buf(u_char *data, int len)
 			buf[count] = '\000';
 			count = 0;
 			printf("  %3x  %s %s\n", i, line, buf);
-			i+=16;
+			i += 16;
 			line[0] = '\000';
 		}
 	}

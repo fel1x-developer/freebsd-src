@@ -32,83 +32,83 @@
 #ifndef _VIRTCHNL_INLINE_IPSEC_H_
 #define _VIRTCHNL_INLINE_IPSEC_H_
 
-#define VIRTCHNL_IPSEC_MAX_CRYPTO_CAP_NUM	3
-#define VIRTCHNL_IPSEC_MAX_ALGO_CAP_NUM		16
-#define VIRTCHNL_IPSEC_MAX_TX_DESC_NUM		128
-#define VIRTCHNL_IPSEC_MAX_CRYPTO_ITEM_NUMBER	2
-#define VIRTCHNL_IPSEC_MAX_KEY_LEN		128
-#define VIRTCHNL_IPSEC_MAX_SA_DESTROY_NUM	8
-#define VIRTCHNL_IPSEC_SA_DESTROY		0
-#define VIRTCHNL_IPSEC_BROADCAST_VFID		0xFFFFFFFF
-#define VIRTCHNL_IPSEC_INVALID_REQ_ID		0xFFFF
-#define VIRTCHNL_IPSEC_INVALID_SA_CFG_RESP	0xFFFFFFFF
-#define VIRTCHNL_IPSEC_INVALID_SP_CFG_RESP	0xFFFFFFFF
+#define VIRTCHNL_IPSEC_MAX_CRYPTO_CAP_NUM 3
+#define VIRTCHNL_IPSEC_MAX_ALGO_CAP_NUM 16
+#define VIRTCHNL_IPSEC_MAX_TX_DESC_NUM 128
+#define VIRTCHNL_IPSEC_MAX_CRYPTO_ITEM_NUMBER 2
+#define VIRTCHNL_IPSEC_MAX_KEY_LEN 128
+#define VIRTCHNL_IPSEC_MAX_SA_DESTROY_NUM 8
+#define VIRTCHNL_IPSEC_SA_DESTROY 0
+#define VIRTCHNL_IPSEC_BROADCAST_VFID 0xFFFFFFFF
+#define VIRTCHNL_IPSEC_INVALID_REQ_ID 0xFFFF
+#define VIRTCHNL_IPSEC_INVALID_SA_CFG_RESP 0xFFFFFFFF
+#define VIRTCHNL_IPSEC_INVALID_SP_CFG_RESP 0xFFFFFFFF
 
 /* crypto type */
-#define VIRTCHNL_AUTH		1
-#define VIRTCHNL_CIPHER		2
-#define VIRTCHNL_AEAD		3
+#define VIRTCHNL_AUTH 1
+#define VIRTCHNL_CIPHER 2
+#define VIRTCHNL_AEAD 3
 
 /* caps enabled */
-#define VIRTCHNL_IPSEC_ESN_ENA			BIT(0)
-#define VIRTCHNL_IPSEC_UDP_ENCAP_ENA		BIT(1)
-#define VIRTCHNL_IPSEC_SA_INDEX_SW_ENA		BIT(2)
-#define VIRTCHNL_IPSEC_AUDIT_ENA		BIT(3)
-#define VIRTCHNL_IPSEC_BYTE_LIMIT_ENA		BIT(4)
-#define VIRTCHNL_IPSEC_DROP_ON_AUTH_FAIL_ENA	BIT(5)
-#define VIRTCHNL_IPSEC_ARW_CHECK_ENA		BIT(6)
-#define VIRTCHNL_IPSEC_24BIT_SPI_ENA		BIT(7)
+#define VIRTCHNL_IPSEC_ESN_ENA BIT(0)
+#define VIRTCHNL_IPSEC_UDP_ENCAP_ENA BIT(1)
+#define VIRTCHNL_IPSEC_SA_INDEX_SW_ENA BIT(2)
+#define VIRTCHNL_IPSEC_AUDIT_ENA BIT(3)
+#define VIRTCHNL_IPSEC_BYTE_LIMIT_ENA BIT(4)
+#define VIRTCHNL_IPSEC_DROP_ON_AUTH_FAIL_ENA BIT(5)
+#define VIRTCHNL_IPSEC_ARW_CHECK_ENA BIT(6)
+#define VIRTCHNL_IPSEC_24BIT_SPI_ENA BIT(7)
 
 /* algorithm type */
 /* Hash Algorithm */
-#define VIRTCHNL_HASH_NO_ALG	0 /* NULL algorithm */
-#define VIRTCHNL_AES_CBC_MAC	1 /* AES-CBC-MAC algorithm */
-#define VIRTCHNL_AES_CMAC	2 /* AES CMAC algorithm */
-#define VIRTCHNL_AES_GMAC	3 /* AES GMAC algorithm */
-#define VIRTCHNL_AES_XCBC_MAC	4 /* AES XCBC algorithm */
-#define VIRTCHNL_MD5_HMAC	5 /* HMAC using MD5 algorithm */
-#define VIRTCHNL_SHA1_HMAC	6 /* HMAC using 128 bit SHA algorithm */
-#define VIRTCHNL_SHA224_HMAC	7 /* HMAC using 224 bit SHA algorithm */
-#define VIRTCHNL_SHA256_HMAC	8 /* HMAC using 256 bit SHA algorithm */
-#define VIRTCHNL_SHA384_HMAC	9 /* HMAC using 384 bit SHA algorithm */
-#define VIRTCHNL_SHA512_HMAC	10 /* HMAC using 512 bit SHA algorithm */
-#define VIRTCHNL_SHA3_224_HMAC	11 /* HMAC using 224 bit SHA3 algorithm */
-#define VIRTCHNL_SHA3_256_HMAC	12 /* HMAC using 256 bit SHA3 algorithm */
-#define VIRTCHNL_SHA3_384_HMAC	13 /* HMAC using 384 bit SHA3 algorithm */
-#define VIRTCHNL_SHA3_512_HMAC	14 /* HMAC using 512 bit SHA3 algorithm */
+#define VIRTCHNL_HASH_NO_ALG 0	  /* NULL algorithm */
+#define VIRTCHNL_AES_CBC_MAC 1	  /* AES-CBC-MAC algorithm */
+#define VIRTCHNL_AES_CMAC 2	  /* AES CMAC algorithm */
+#define VIRTCHNL_AES_GMAC 3	  /* AES GMAC algorithm */
+#define VIRTCHNL_AES_XCBC_MAC 4	  /* AES XCBC algorithm */
+#define VIRTCHNL_MD5_HMAC 5	  /* HMAC using MD5 algorithm */
+#define VIRTCHNL_SHA1_HMAC 6	  /* HMAC using 128 bit SHA algorithm */
+#define VIRTCHNL_SHA224_HMAC 7	  /* HMAC using 224 bit SHA algorithm */
+#define VIRTCHNL_SHA256_HMAC 8	  /* HMAC using 256 bit SHA algorithm */
+#define VIRTCHNL_SHA384_HMAC 9	  /* HMAC using 384 bit SHA algorithm */
+#define VIRTCHNL_SHA512_HMAC 10	  /* HMAC using 512 bit SHA algorithm */
+#define VIRTCHNL_SHA3_224_HMAC 11 /* HMAC using 224 bit SHA3 algorithm */
+#define VIRTCHNL_SHA3_256_HMAC 12 /* HMAC using 256 bit SHA3 algorithm */
+#define VIRTCHNL_SHA3_384_HMAC 13 /* HMAC using 384 bit SHA3 algorithm */
+#define VIRTCHNL_SHA3_512_HMAC 14 /* HMAC using 512 bit SHA3 algorithm */
 /* Cipher Algorithm */
-#define VIRTCHNL_CIPHER_NO_ALG	15 /* NULL algorithm */
-#define VIRTCHNL_3DES_CBC	16 /* Triple DES algorithm in CBC mode */
-#define VIRTCHNL_AES_CBC	17 /* AES algorithm in CBC mode */
-#define VIRTCHNL_AES_CTR	18 /* AES algorithm in Counter mode */
+#define VIRTCHNL_CIPHER_NO_ALG 15 /* NULL algorithm */
+#define VIRTCHNL_3DES_CBC 16	  /* Triple DES algorithm in CBC mode */
+#define VIRTCHNL_AES_CBC 17	  /* AES algorithm in CBC mode */
+#define VIRTCHNL_AES_CTR 18	  /* AES algorithm in Counter mode */
 /* AEAD Algorithm */
-#define VIRTCHNL_AES_CCM	19 /* AES algorithm in CCM mode */
-#define VIRTCHNL_AES_GCM	20 /* AES algorithm in GCM mode */
+#define VIRTCHNL_AES_CCM 19	      /* AES algorithm in CCM mode */
+#define VIRTCHNL_AES_GCM 20	      /* AES algorithm in GCM mode */
 #define VIRTCHNL_CHACHA20_POLY1305 21 /* algorithm of ChaCha20-Poly1305 */
 
 /* protocol type */
-#define VIRTCHNL_PROTO_ESP	1
-#define VIRTCHNL_PROTO_AH	2
-#define VIRTCHNL_PROTO_RSVD1	3
+#define VIRTCHNL_PROTO_ESP 1
+#define VIRTCHNL_PROTO_AH 2
+#define VIRTCHNL_PROTO_RSVD1 3
 
 /* sa mode */
-#define VIRTCHNL_SA_MODE_TRANSPORT	1
-#define VIRTCHNL_SA_MODE_TUNNEL		2
-#define VIRTCHNL_SA_MODE_TRAN_TUN	3
-#define VIRTCHNL_SA_MODE_UNKNOWN	4
+#define VIRTCHNL_SA_MODE_TRANSPORT 1
+#define VIRTCHNL_SA_MODE_TUNNEL 2
+#define VIRTCHNL_SA_MODE_TRAN_TUN 3
+#define VIRTCHNL_SA_MODE_UNKNOWN 4
 
 /* sa direction */
-#define VIRTCHNL_DIR_INGRESS		1
-#define VIRTCHNL_DIR_EGRESS		2
-#define VIRTCHNL_DIR_INGRESS_EGRESS	3
+#define VIRTCHNL_DIR_INGRESS 1
+#define VIRTCHNL_DIR_EGRESS 2
+#define VIRTCHNL_DIR_INGRESS_EGRESS 3
 
 /* sa termination */
-#define VIRTCHNL_TERM_SOFTWARE	1
-#define VIRTCHNL_TERM_HARDWARE	2
+#define VIRTCHNL_TERM_SOFTWARE 1
+#define VIRTCHNL_TERM_HARDWARE 2
 
 /* sa ip type */
-#define VIRTCHNL_IPV4	1
-#define VIRTCHNL_IPV6	2
+#define VIRTCHNL_IPV4 1
+#define VIRTCHNL_IPV6 2
 
 /* for virtchnl_ipsec_resp */
 enum inline_ipsec_resp {
@@ -137,7 +137,7 @@ enum inline_ipsec_ops {
 
 #pragma pack(1)
 /* Not all valid, if certain field is invalid, set 1 for all bits */
-struct virtchnl_algo_cap  {
+struct virtchnl_algo_cap {
 	u32 algo_type;
 
 	u16 block_size;
@@ -226,7 +226,7 @@ struct virtchnl_ipsec_crypto_cfg_item {
 
 struct virtchnl_ipsec_sym_crypto_cfg {
 	struct virtchnl_ipsec_crypto_cfg_item
-		items[VIRTCHNL_IPSEC_MAX_CRYPTO_ITEM_NUMBER];
+	    items[VIRTCHNL_IPSEC_MAX_CRYPTO_ITEM_NUMBER];
 };
 
 #pragma pack(1)
@@ -333,8 +333,8 @@ struct virtchnl_ipsec_sa_cfg {
  */
 struct virtchnl_ipsec_sa_update {
 	u32 sa_index; /* SA to update */
-	u32 esn_hi; /* high 32 bits of esn */
-	u32 esn_low; /* low 32 bits of esn */
+	u32 esn_hi;   /* high 32 bits of esn */
+	u32 esn_low;  /* low 32 bits of esn */
 };
 
 #pragma pack(1)
@@ -506,16 +506,16 @@ struct virtchnl_ipsec_sa_cfg_resp {
 	u32 sa_handle;
 };
 
-#define INLINE_IPSEC_EVENT_RESET	0x1
-#define INLINE_IPSEC_EVENT_CRYPTO_ON	0x2
-#define INLINE_IPSEC_EVENT_CRYPTO_OFF	0x4
+#define INLINE_IPSEC_EVENT_RESET 0x1
+#define INLINE_IPSEC_EVENT_CRYPTO_ON 0x2
+#define INLINE_IPSEC_EVENT_CRYPTO_OFF 0x4
 
 struct virtchnl_ipsec_event {
 	u32 ipsec_event_data;
 };
 
-#define INLINE_IPSEC_STATUS_AVAILABLE	0x1
-#define INLINE_IPSEC_STATUS_UNAVAILABLE	0x2
+#define INLINE_IPSEC_STATUS_AVAILABLE 0x1
+#define INLINE_IPSEC_STATUS_UNAVAILABLE 0x2
 
 struct virtchnl_ipsec_status {
 	u32 status;
@@ -554,7 +554,8 @@ struct inline_ipsec_msg {
 	} ipsec_data;
 };
 
-static inline u16 virtchnl_inline_ipsec_val_msg_len(u16 opcode)
+static inline u16
+virtchnl_inline_ipsec_val_msg_len(u16 opcode)
 {
 	u16 valid_len = sizeof(struct inline_ipsec_msg);
 

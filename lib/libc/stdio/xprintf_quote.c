@@ -26,19 +26,22 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/time.h>
+
+#include <assert.h>
+#include <ctype.h>
 #include <namespace.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
-#include <ctype.h>
-#include <wchar.h>
+#include <string.h>
 #include <vis.h>
-#include <assert.h>
-#include <sys/time.h>
+#include <wchar.h>
+
 #include "printf.h"
 
 int
-__printf_arginfo_quote(const struct printf_info *pi __unused, size_t n, int *argt)
+__printf_arginfo_quote(const struct printf_info *pi __unused, size_t n,
+    int *argt)
 {
 
 	assert(n >= 1);
@@ -47,7 +50,8 @@ __printf_arginfo_quote(const struct printf_info *pi __unused, size_t n, int *arg
 }
 
 int
-__printf_render_quote(struct __printf_io *io, const struct printf_info *pi __unused, const void *const *arg)
+__printf_render_quote(struct __printf_io *io,
+    const struct printf_info *pi __unused, const void *const *arg)
 {
 	const char *str, *p, *t, *o;
 	char r[5];
@@ -62,9 +66,9 @@ __printf_render_quote(struct __printf_io *io, const struct printf_info *pi __unu
 	for (i = 0, p = str; *p; p++)
 		if (isspace(*p) || *p == '\\' || *p == '"')
 			i++;
-	if (!i) 
+	if (!i)
 		return (__printf_out(io, pi, str, strlen(str)));
-	
+
 	ret = __printf_out(io, pi, "\"", 1);
 	for (t = p = str; *p; p++) {
 		o = NULL;
@@ -94,5 +98,5 @@ __printf_render_quote(struct __printf_io *io, const struct printf_info *pi __unu
 		ret += __printf_out(io, pi, t, p - t);
 	ret += __printf_out(io, pi, "\"", 1);
 	__printf_flush(io);
-	return(ret);
+	return (ret);
 }

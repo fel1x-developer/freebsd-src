@@ -34,16 +34,16 @@
 #include <netdb.h>
 #include <pthread.h>
 #include <resolv.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 /* Per-thread struct containing all important data. */
 struct worker {
-	pthread_t w_thread;			     /* self */
-	uintmax_t w_lookup_success, w_lookup_failure;   /* getaddrinfo stats */
+	pthread_t w_thread;			      /* self */
+	uintmax_t w_lookup_success, w_lookup_failure; /* getaddrinfo stats */
 	struct timespec w_max_lookup_time;
 };
 
@@ -114,11 +114,12 @@ work(void *arg)
 
 		randomsleep(max_random_sleep);
 		if (asprintf(&hostname, "%s%s%s.%s",
-		    (my_arc4random_r() % 2) == 0 ? "www." : "",
-		    randwords[my_arc4random_r() % nrandwords],
-		    (my_arc4random_r() % 3) == 0 ?
-		    randwords[my_arc4random_r() % nrandwords] : "",
-		    suffixes[my_arc4random_r() % nsuffixes]) == -1)
+			(my_arc4random_r() % 2) == 0 ? "www." : "",
+			randwords[my_arc4random_r() % nrandwords],
+			(my_arc4random_r() % 3) == 0 ?
+			    randwords[my_arc4random_r() % nrandwords] :
+			    "",
+			suffixes[my_arc4random_r() % nsuffixes]) == -1)
 			continue;
 		(void)clock_gettime(CLOCK_REALTIME, &ts_begintime);
 		error = getaddrinfo(hostname, NULL, hints, &res);
@@ -131,7 +132,7 @@ work(void *arg)
 		}
 		if (ts_total.tv_sec > w->w_max_lookup_time.tv_sec ||
 		    (ts_total.tv_sec == w->w_max_lookup_time.tv_sec &&
-		    ts_total.tv_nsec > w->w_max_lookup_time.tv_sec))
+			ts_total.tv_nsec > w->w_max_lookup_time.tv_sec))
 			w->w_max_lookup_time = ts_total;
 		free(hostname);
 		if (error == 0) {
@@ -182,7 +183,8 @@ fail:
 }
 
 int
-main(int argc, char **argv) {
+main(int argc, char **argv)
+{
 	unsigned long nworkers = 1;
 	struct worker *workers;
 	size_t i;
@@ -213,9 +215,11 @@ main(int argc, char **argv) {
 			wordfile = optarg;
 			break;
 		default:
-usage:
-			fprintf(stderr, "usage: %s [-4] [-s sleep] "
-			    "[-t threads] [-w wordfile]\n", getprogname());
+		usage:
+			fprintf(stderr,
+			    "usage: %s [-4] [-s sleep] "
+			    "[-t threads] [-w wordfile]\n",
+			    getprogname());
 			exit(2);
 		}
 	}
@@ -239,7 +243,7 @@ usage:
 	fflush(stdout);
 	for (i = 0; i < nworkers; i++) {
 		if (pthread_create(&workers[i].w_thread, NULL, work,
-		    &workers[i]) != 0)
+			&workers[i]) != 0)
 			err(1, "creating worker %zu", i);
 		printf("%zu%s", i, i == nworkers - 1 ? ".\n" : ", ");
 		fflush(stdout);
@@ -267,7 +271,7 @@ usage:
 		    workers[i].w_max_lookup_time.tv_sec / 60,
 		    workers[i].w_max_lookup_time.tv_sec % 60 < 10 ? "0" : "",
 		    (double)(workers[i].w_max_lookup_time.tv_sec % 60) +
-		    (double)workers[i].w_max_lookup_time.tv_nsec / 1e9);
+			(double)workers[i].w_max_lookup_time.tv_nsec / 1e9);
 	}
 
 	exit(0);

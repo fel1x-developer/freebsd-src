@@ -25,7 +25,8 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * From: FreeBSD: head/sys/dev/tsec/if_tsec_ocp.c 188712 2009-02-17 14:59:47Z raj
+ * From: FreeBSD: head/sys/dev/tsec/if_tsec_ocp.c 188712 2009-02-17 14:59:47Z
+ * raj
  */
 
 /*
@@ -34,23 +35,19 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/mbuf.h>
-#include <sys/mutex.h>
-#include <sys/kernel.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
 
-#include <sys/bus.h>
 #include <machine/bus.h>
-#include <sys/rman.h>
 #include <machine/resource.h>
-
-#include <net/ethernet.h>
-#include <net/if.h>
-#include <net/if_media.h>
 
 #include <dev/fdt/fdt_common.h>
 #include <dev/mii/mii.h>
@@ -58,15 +55,18 @@
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 #include <dev/ofw/openfirm.h>
-
 #include <dev/tsec/if_tsec.h>
 #include <dev/tsec/if_tsecreg.h>
 
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+
 #include "miibus_if.h"
 
-#define	TSEC_RID_TXIRQ	0
-#define	TSEC_RID_RXIRQ	1
-#define	TSEC_RID_ERRIRQ	2
+#define TSEC_RID_TXIRQ 0
+#define TSEC_RID_RXIRQ 1
+#define TSEC_RID_ERRIRQ 2
 
 static int tsec_fdt_probe(device_t dev);
 static int tsec_fdt_attach(device_t dev);
@@ -78,18 +78,18 @@ static void tsec_release_intr(struct tsec_softc *sc, struct resource *ires,
 
 static device_method_t tsec_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		tsec_fdt_probe),
-	DEVMETHOD(device_attach,	tsec_fdt_attach),
-	DEVMETHOD(device_detach,	tsec_fdt_detach),
+	DEVMETHOD(device_probe, tsec_fdt_probe),
+	DEVMETHOD(device_attach, tsec_fdt_attach),
+	DEVMETHOD(device_detach, tsec_fdt_detach),
 
-	DEVMETHOD(device_shutdown,	tsec_shutdown),
-	DEVMETHOD(device_suspend,	tsec_suspend),
-	DEVMETHOD(device_resume,	tsec_resume),
+	DEVMETHOD(device_shutdown, tsec_shutdown),
+	DEVMETHOD(device_suspend, tsec_suspend),
+	DEVMETHOD(device_resume, tsec_resume),
 
 	/* MII interface */
-	DEVMETHOD(miibus_readreg,	tsec_miibus_readreg),
-	DEVMETHOD(miibus_writereg,	tsec_miibus_writereg),
-	DEVMETHOD(miibus_statchg,	tsec_miibus_statchg),
+	DEVMETHOD(miibus_readreg, tsec_miibus_readreg),
+	DEVMETHOD(miibus_writereg, tsec_miibus_writereg),
+	DEVMETHOD(miibus_statchg, tsec_miibus_statchg),
 
 	DEVMETHOD_END
 };
@@ -129,8 +129,8 @@ tsec_fdt_probe(device_t dev)
 		sc->is_etsec = 1;
 	else {
 		sc->sc_rrid = 0;
-		sc->sc_rres = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &sc->sc_rrid,
-		    RF_ACTIVE);
+		sc->sc_rres = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
+		    &sc->sc_rrid, RF_ACTIVE);
 		if (sc->sc_rres == NULL)
 			return (ENXIO);
 
@@ -142,7 +142,8 @@ tsec_fdt_probe(device_t dev)
 		sc->is_etsec = ((id >> 16) == TSEC_ETSEC_ID) ? 1 : 0;
 		id |= TSEC_READ(sc, TSEC_REG_ID2);
 
-		bus_release_resource(dev, SYS_RES_MEMORY, sc->sc_rrid, sc->sc_rres);
+		bus_release_resource(dev, SYS_RES_MEMORY, sc->sc_rrid,
+		    sc->sc_rres);
 
 		if (id == 0) {
 			device_printf(dev, "could not identify TSEC type\n");
@@ -151,7 +152,8 @@ tsec_fdt_probe(device_t dev)
 	}
 
 	if (sc->is_etsec)
-		device_set_desc(dev, "Enhanced Three-Speed Ethernet Controller");
+		device_set_desc(dev,
+		    "Enhanced Three-Speed Ethernet Controller");
 	else
 		device_set_desc(dev, "Three-Speed Ethernet Controller");
 
@@ -236,22 +238,20 @@ tsec_fdt_attach(device_t dev)
 	/* Set up interrupts (TX/RX/ERR) */
 	sc->sc_transmit_irid = TSEC_RID_TXIRQ;
 	error = tsec_setup_intr(sc, &sc->sc_transmit_ires,
-	    &sc->sc_transmit_ihand, &sc->sc_transmit_irid,
-	    tsec_transmit_intr, "TX");
+	    &sc->sc_transmit_ihand, &sc->sc_transmit_irid, tsec_transmit_intr,
+	    "TX");
 	if (error)
 		goto fail2;
 
 	sc->sc_receive_irid = TSEC_RID_RXIRQ;
-	error = tsec_setup_intr(sc, &sc->sc_receive_ires,
-	    &sc->sc_receive_ihand, &sc->sc_receive_irid,
-	    tsec_receive_intr, "RX");
+	error = tsec_setup_intr(sc, &sc->sc_receive_ires, &sc->sc_receive_ihand,
+	    &sc->sc_receive_irid, tsec_receive_intr, "RX");
 	if (error)
 		goto fail3;
 
 	sc->sc_error_irid = TSEC_RID_ERRIRQ;
-	error = tsec_setup_intr(sc, &sc->sc_error_ires,
-	    &sc->sc_error_ihand, &sc->sc_error_irid,
-	    tsec_error_intr, "ERR");
+	error = tsec_setup_intr(sc, &sc->sc_error_ires, &sc->sc_error_ihand,
+	    &sc->sc_error_irid, tsec_error_intr, "ERR");
 	if (error)
 		goto fail4;
 
@@ -287,7 +287,8 @@ tsec_setup_intr(struct tsec_softc *sc, struct resource **ires, void **ihand,
 	if (error) {
 		device_printf(sc->dev, "failed to set up %s IRQ\n", iname);
 		if (bus_release_resource(sc->dev, SYS_RES_IRQ, *irid, *ires))
-			device_printf(sc->dev, "could not release %s IRQ\n", iname);
+			device_printf(sc->dev, "could not release %s IRQ\n",
+			    iname);
 		*ires = NULL;
 		return (error);
 	}
@@ -305,13 +306,17 @@ tsec_release_intr(struct tsec_softc *sc, struct resource *ires, void *ihand,
 
 	error = bus_teardown_intr(sc->dev, ires, ihand);
 	if (error)
-		device_printf(sc->dev, "bus_teardown_intr() failed for %s intr"
-		    ", error %d\n", iname, error);
+		device_printf(sc->dev,
+		    "bus_teardown_intr() failed for %s intr"
+		    ", error %d\n",
+		    iname, error);
 
 	error = bus_release_resource(sc->dev, SYS_RES_IRQ, irid, ires);
 	if (error)
-		device_printf(sc->dev, "bus_release_resource() failed for %s "
-		    "intr, error %d\n", iname, error);
+		device_printf(sc->dev,
+		    "bus_release_resource() failed for %s "
+		    "intr, error %d\n",
+		    iname, error);
 }
 
 static int
@@ -341,8 +346,10 @@ tsec_fdt_detach(device_t dev)
 		error = bus_release_resource(dev, SYS_RES_MEMORY, sc->sc_rrid,
 		    sc->sc_rres);
 		if (error)
-			device_printf(dev, "bus_release_resource() failed for"
-			    " IO memory, error %d\n", error);
+			device_printf(dev,
+			    "bus_release_resource() failed for"
+			    " IO memory, error %d\n",
+			    error);
 	}
 
 	/* Destroy locks */
@@ -384,5 +391,5 @@ tsec_get_hwaddr(struct tsec_softc *sc, uint8_t *addr)
 	hw.reg[0] = TSEC_READ(sc, TSEC_REG_MACSTNADDR1);
 	hw.reg[1] = TSEC_READ(sc, TSEC_REG_MACSTNADDR2);
 	for (i = 0; i < 6; i++)
-		addr[5-i] = hw.addr[i];
+		addr[5 - i] = hw.addr[i];
 }

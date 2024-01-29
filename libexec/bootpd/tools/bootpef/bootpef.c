@@ -1,7 +1,7 @@
 /************************************************************************
-          Copyright 1988, 1991 by Carnegie Mellon University
+	  Copyright 1988, 1991 by Carnegie Mellon University
 
-                          All Rights Reserved
+			  All Rights Reserved
 
 Permission to use, copy, modify, and distribute this software and its
 documentation for any purpose and without fee is hereby granted, provided
@@ -32,44 +32,40 @@ SOFTWARE.
  * BUGS
  *	See ./ToDo
  */
-
-
-
-#include <stdarg.h>
 
 #include <sys/types.h>
 #include <sys/time.h>
 
 #include <netinet/in.h>
-#include <arpa/inet.h>			/* inet_ntoa */
 
-#ifndef	NO_UNISTD
+#include <arpa/inet.h> /* inet_ntoa */
+#include <stdarg.h>
+
+#ifndef NO_UNISTD
 #include <unistd.h>
 #endif
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
 #include <ctype.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
 
 #include "bootp.h"
-#include "hash.h"
-#include "hwaddr.h"
 #include "bootpd.h"
 #include "dovend.h"
+#include "hash.h"
+#include "hwaddr.h"
+#include "patchlevel.h"
 #include "readfile.h"
 #include "report.h"
 #include "tzone.h"
-#include "patchlevel.h"
 
-#define	BUFFERSIZE   		0x4000
+#define BUFFERSIZE 0x4000
 
 #ifndef CONFIG_FILE
-#define CONFIG_FILE		"/etc/bootptab"
+#define CONFIG_FILE "/etc/bootptab"
 #endif
-
-
 
 /*
  * Externals, forward declarations, and global variables
@@ -84,7 +80,7 @@ static void usage(void) __dead2;
 
 char *progname;
 char *chdir_path;
-int debug = 0;					/* Debugging flag (level) */
+int debug = 0; /* Debugging flag (level) */
 byte *buffer;
 
 /*
@@ -92,7 +88,6 @@ byte *buffer;
  */
 
 char *bootptab = CONFIG_FILE;
-
 
 /*
  * Print "usage" message and exit
@@ -101,13 +96,12 @@ static void
 usage(void)
 {
 	fprintf(stderr,
-	   "usage:  $s [ -c chdir ] [-d level] [-f configfile] [host...]\n");
+	    "usage:  $s [ -c chdir ] [-d level] [-f configfile] [host...]\n");
 	fprintf(stderr, "\t -c n\tset current directory\n");
 	fprintf(stderr, "\t -d n\tset debug level\n");
 	fprintf(stderr, "\t -f n\tconfig file name\n");
 	exit(1);
 }
-
 
 /*
  * Initialization such as command-line processing is done and then the
@@ -121,11 +115,13 @@ main(int argc, char **argv)
 	int n;
 
 	progname = strrchr(argv[0], '/');
-	if (progname) progname++;
-	else progname = argv[0];
+	if (progname)
+		progname++;
+	else
+		progname = argv[0];
 
 	/* Get work space for making tag 18 files. */
-	buffer = (byte *) malloc(BUFFERSIZE);
+	buffer = (byte *)malloc(BUFFERSIZE);
 	if (!buffer) {
 		report(LOG_ERR, "malloc failed");
 		exit(1);
@@ -143,7 +139,7 @@ main(int argc, char **argv)
 			break;
 		switch (argv[0][1]) {
 
-		case 'c':				/* chdir_path */
+		case 'c': /* chdir_path */
 			if (argv[0][2]) {
 				stmp = &(argv[0][2]);
 			} else {
@@ -153,19 +149,20 @@ main(int argc, char **argv)
 			}
 			if (!stmp || (stmp[0] != '/')) {
 				fprintf(stderr,
-						"bootpd: invalid chdir specification\n");
+				    "bootpd: invalid chdir specification\n");
 				break;
 			}
 			chdir_path = stmp;
 			break;
 
-		case 'd':				/* debug */
+		case 'd': /* debug */
 			if (argv[0][2]) {
 				stmp = &(argv[0][2]);
 			} else if (argv[1] && argv[1][0] == '-') {
 				/*
 				 * Backwards-compatible behavior:
-				 * no parameter, so just increment the debug flag.
+				 * no parameter, so just increment the debug
+				 * flag.
 				 */
 				debug++;
 				break;
@@ -176,13 +173,13 @@ main(int argc, char **argv)
 			}
 			if (!stmp || (sscanf(stmp, "%d", &n) != 1) || (n < 0)) {
 				fprintf(stderr,
-						"bootpd: invalid debug level\n");
+				    "bootpd: invalid debug level\n");
 				break;
 			}
 			debug = n;
 			break;
 
-		case 'f':				/* config file */
+		case 'f': /* config file */
 			if (argv[0][2]) {
 				stmp = &(argv[0][2]);
 			} else {
@@ -195,7 +192,7 @@ main(int argc, char **argv)
 
 		default:
 			fprintf(stderr, "bootpd: unknown switch: -%c\n",
-					argv[0][1]);
+			    argv[0][1]);
 			usage();
 			break;
 		}
@@ -210,7 +207,7 @@ main(int argc, char **argv)
 	/*
 	 * Read the bootptab file.
 	 */
-	readtab(1);					/* force read */
+	readtab(1); /* force read */
 
 	/* Set the cwd (i.e. to /tftpboot) */
 	if (chdir_path) {
@@ -224,9 +221,8 @@ main(int argc, char **argv)
 		while (argc) {
 			tlen = strlen(argv[0]);
 			hashcode = hash_HashFunction((u_char *)argv[0], tlen);
-			hp = (struct host *) hash_Lookup(nmhashtable,
-											 hashcode,
-											 nmcmp, argv[0]);
+			hp = (struct host *)hash_Lookup(nmhashtable, hashcode,
+			    nmcmp, argv[0]);
 			if (!hp) {
 				printf("%s: no matching entry\n", argv[0]);
 				exit(1);
@@ -242,15 +238,13 @@ main(int argc, char **argv)
 		exit(0);
 	}
 	/* No host names specified.  Do them all. */
-	hp = (struct host *) hash_FirstEntry(nmhashtable);
+	hp = (struct host *)hash_FirstEntry(nmhashtable);
 	while (hp != NULL) {
 		mktagfile(hp);
-		hp = (struct host *) hash_NextEntry(nmhashtable);
+		hp = (struct host *)hash_NextEntry(nmhashtable);
 	}
 	return (0);
 }
-
-
 
 /*
  * Make a "TAG 18" file for this host.
@@ -269,7 +263,7 @@ mktagfile(struct host *hp)
 
 	vp = buffer;
 	bytesleft = BUFFERSIZE;
-	bcopy(vm_rfc1048, vp, 4);	/* Copy in the magic cookie */
+	bcopy(vm_rfc1048, vp, 4); /* Copy in the magic cookie */
 	vp += 4;
 	bytesleft -= 4;
 
@@ -283,7 +277,7 @@ mktagfile(struct host *hp)
 
 	if (bytesleft < 1) {
 		report(LOG_ERR, "%s: too much option data",
-			   hp->exten_file->string);
+		    hp->exten_file->string);
 		return;
 	}
 	*vp++ = TAG_END;
@@ -293,13 +287,13 @@ mktagfile(struct host *hp)
 	printf("Updating \"%s\"\n", hp->exten_file->string);
 	if ((fp = fopen(hp->exten_file->string, "w")) == NULL) {
 		report(LOG_ERR, "error opening \"%s\": %s",
-			   hp->exten_file->string, get_errmsg());
+		    hp->exten_file->string, get_errmsg());
 		return;
 	}
 	len = vp - buffer;
 	if (len != fwrite(buffer, 1, len, fp)) {
 		report(LOG_ERR, "write failed on \"%s\" : %s",
-			   hp->exten_file->string, get_errmsg());
+		    hp->exten_file->string, get_errmsg());
 	}
 	fclose(fp);
 

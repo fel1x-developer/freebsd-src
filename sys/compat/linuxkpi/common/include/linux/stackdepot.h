@@ -25,8 +25,8 @@
  */
 
 #ifndef _LINUXKPI_LINUX_STACKDEPOT_H_
-#define	_LINUXKPI_LINUX_STACKDEPOT_H_
+#define _LINUXKPI_LINUX_STACKDEPOT_H_
 
 typedef bool depot_stack_handle_t;
 
-#endif	/* _LINUXKPI_LINUX_STACKDEPOT_H_ */
+#endif /* _LINUXKPI_LINUX_STACKDEPOT_H_ */

@@ -31,6 +31,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "efx.h"
 #include "efx_impl.h"
 
@@ -40,48 +41,44 @@
  * Maximum size of BOOTCFG block across all nics as understood by SFCgPXE.
  * NOTE: This is larger than the Medford per-PF bootcfg sector.
  */
-#define	BOOTCFG_MAX_SIZE 0x1000
+#define BOOTCFG_MAX_SIZE 0x1000
 
 /* Medford per-PF bootcfg sector */
-#define	BOOTCFG_PER_PF   0x800
-#define	BOOTCFG_PF_COUNT 16
+#define BOOTCFG_PER_PF 0x800
+#define BOOTCFG_PF_COUNT 16
 
-#define	DHCP_OPT_HAS_VALUE(opt) \
+#define DHCP_OPT_HAS_VALUE(opt) \
 	(((opt) > EFX_DHCP_PAD) && ((opt) < EFX_DHCP_END))
 
-#define	DHCP_MAX_VALUE 255
+#define DHCP_MAX_VALUE 255
 
-#define	DHCP_ENCAPSULATOR(encap_opt) ((encap_opt) >> 8)
-#define	DHCP_ENCAPSULATED(encap_opt) ((encap_opt) & 0xff)
-#define	DHCP_IS_ENCAP_OPT(opt) DHCP_OPT_HAS_VALUE(DHCP_ENCAPSULATOR(opt))
+#define DHCP_ENCAPSULATOR(encap_opt) ((encap_opt) >> 8)
+#define DHCP_ENCAPSULATED(encap_opt) ((encap_opt) & 0xff)
+#define DHCP_IS_ENCAP_OPT(opt) DHCP_OPT_HAS_VALUE(DHCP_ENCAPSULATOR(opt))
 
 typedef struct efx_dhcp_tag_hdr_s {
-	uint8_t		tag;
-	uint8_t		length;
+	uint8_t tag;
+	uint8_t length;
 } efx_dhcp_tag_hdr_t;
 
 /*
  * Length calculations for tags with value field. PAD and END
  * have a fixed length of 1, with no length or value field.
  */
-#define	DHCP_FULL_TAG_LENGTH(hdr) \
-	(sizeof (efx_dhcp_tag_hdr_t) + (hdr)->length)
+#define DHCP_FULL_TAG_LENGTH(hdr) (sizeof(efx_dhcp_tag_hdr_t) + (hdr)->length)
 
-#define	DHCP_NEXT_TAG(hdr) \
+#define DHCP_NEXT_TAG(hdr)                           \
 	((efx_dhcp_tag_hdr_t *)(((uint8_t *)(hdr)) + \
-	DHCP_FULL_TAG_LENGTH((hdr))))
+	    DHCP_FULL_TAG_LENGTH((hdr))))
 
-#define	DHCP_CALC_TAG_LENGTH(payload_len) \
-	((payload_len) + sizeof (efx_dhcp_tag_hdr_t))
+#define DHCP_CALC_TAG_LENGTH(payload_len) \
+	((payload_len) + sizeof(efx_dhcp_tag_hdr_t))
 
 /* Report the layout of bootcfg sectors in NVRAM partition. */
-	__checkReturn		efx_rc_t
-efx_bootcfg_sector_info(
-	__in			efx_nic_t *enp,
-	__in			uint32_t pf,
-	__out_opt		uint32_t *sector_countp,
-	__out			size_t *offsetp,
-	__out			size_t *max_sizep)
+__checkReturn efx_rc_t
+efx_bootcfg_sector_info(__in efx_nic_t *enp, __in uint32_t pf,
+    __out_opt uint32_t *sector_countp, __out size_t *offsetp,
+    __out size_t *max_sizep)
 {
 	uint32_t count;
 	size_t max_size;
@@ -160,10 +157,8 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		uint8_t
-efx_dhcp_csum(
-	__in_bcount(size)	uint8_t const *data,
-	__in			size_t size)
+__checkReturn uint8_t
+efx_dhcp_csum(__in_bcount(size) uint8_t const *data, __in size_t size)
 {
 	unsigned int pos;
 	uint8_t checksum = 0;
@@ -173,18 +168,16 @@ efx_dhcp_csum(
 	return (checksum);
 }
 
-	__checkReturn		efx_rc_t
-efx_dhcp_verify(
-	__in_bcount(size)	uint8_t const *data,
-	__in			size_t size,
-	__out_opt		size_t *usedp)
+__checkReturn efx_rc_t
+efx_dhcp_verify(__in_bcount(size) uint8_t const *data, __in size_t size,
+    __out_opt size_t *usedp)
 {
 	size_t offset = 0;
 	size_t used = 0;
 	efx_rc_t rc;
 
 	/* Start parsing tags immediately after the checksum */
-	for (offset = 1; offset < size; ) {
+	for (offset = 1; offset < size;) {
 		uint8_t tag;
 		uint8_t length;
 
@@ -244,11 +237,9 @@ fail1:
  * option. If we run out of buffer during the walk the function will return
  * ENOSPC.
  */
-static	efx_rc_t
-efx_dhcp_walk_tags(
-	__deref_inout	uint8_t **tagpp,
-	__inout		size_t *buffer_sizep,
-	__in		uint16_t opt)
+static efx_rc_t
+efx_dhcp_walk_tags(__deref_inout uint8_t **tagpp, __inout size_t *buffer_sizep,
+    __in uint16_t opt)
 {
 	efx_rc_t rc = 0;
 	boolean_t is_encap = B_FALSE;
@@ -264,7 +255,7 @@ efx_dhcp_walk_tags(
 		    DHCP_ENCAPSULATOR(opt));
 		if (rc == 0) {
 			*buffer_sizep = ((efx_dhcp_tag_hdr_t *)*tagpp)->length;
-			(*tagpp) += sizeof (efx_dhcp_tag_hdr_t);
+			(*tagpp) += sizeof(efx_dhcp_tag_hdr_t);
 		}
 		opt = DHCP_ENCAPSULATED(opt);
 		is_encap = B_TRUE;
@@ -289,13 +280,13 @@ efx_dhcp_walk_tags(
 		} else if ((**tagpp) == EFX_DHCP_PAD) {
 			size = 1;
 		} else {
-			if (*buffer_sizep < sizeof (efx_dhcp_tag_hdr_t)) {
+			if (*buffer_sizep < sizeof(efx_dhcp_tag_hdr_t)) {
 				rc = ENOSPC;
 				goto fail2;
 			}
 
-			size =
-			    DHCP_FULL_TAG_LENGTH((efx_dhcp_tag_hdr_t *)*tagpp);
+			size = DHCP_FULL_TAG_LENGTH(
+			    (efx_dhcp_tag_hdr_t *)*tagpp);
 		}
 
 		if (size > *buffer_sizep) {
@@ -334,13 +325,10 @@ fail1:
  * Returns 0 if found, ENOENT indicating search finished
  * correctly, otherwise search failed before completion.
  */
-	__checkReturn	efx_rc_t
-efx_dhcp_find_tag(
-	__in_bcount(buffer_length)	uint8_t *bufferp,
-	__in				size_t buffer_length,
-	__in				uint16_t opt,
-	__deref_out			uint8_t **valuepp,
-	__out				size_t *value_lengthp)
+__checkReturn efx_rc_t
+efx_dhcp_find_tag(__in_bcount(buffer_length) uint8_t *bufferp,
+    __in size_t buffer_length, __in uint16_t opt, __deref_out uint8_t **valuepp,
+    __out size_t *value_lengthp)
 {
 	efx_rc_t rc;
 	uint8_t *tagp = bufferp;
@@ -371,11 +359,9 @@ fail1:
  * correctly but end tag was not found; otherwise search
  * failed before completion.
  */
-	__checkReturn	efx_rc_t
-efx_dhcp_find_end(
-	__in_bcount(buffer_length)	uint8_t *bufferp,
-	__in				size_t buffer_length,
-	__deref_out			uint8_t **endpp)
+__checkReturn efx_rc_t
+efx_dhcp_find_end(__in_bcount(buffer_length) uint8_t *bufferp,
+    __in size_t buffer_length, __deref_out uint8_t **endpp)
 {
 	efx_rc_t rc;
 	uint8_t *endp = bufferp;
@@ -400,11 +386,9 @@ fail1:
  * encapsulated tags, and updates or deletes the encapsulating opt as
  * necessary.
  */
-	__checkReturn	efx_rc_t
-efx_dhcp_delete_tag(
-	__inout_bcount(buffer_length)	uint8_t *bufferp,
-	__in				size_t buffer_length,
-	__in				uint16_t opt)
+__checkReturn efx_rc_t
+efx_dhcp_delete_tag(__inout_bcount(buffer_length) uint8_t *bufferp,
+    __in size_t buffer_length, __in uint16_t opt)
 {
 	efx_rc_t rc;
 	efx_dhcp_tag_hdr_t *hdrp;
@@ -432,15 +416,14 @@ efx_dhcp_delete_tag(
 		efx_dhcp_tag_hdr_t *encap_hdrp;
 
 		len = buffer_length;
-		rc = efx_dhcp_walk_tags(&encapp, &len,
-		    DHCP_ENCAPSULATOR(opt));
+		rc = efx_dhcp_walk_tags(&encapp, &len, DHCP_ENCAPSULATOR(opt));
 		if (rc != 0)
 			goto fail2;
 
 		encap_hdrp = (efx_dhcp_tag_hdr_t *)encapp;
 		if (encap_hdrp->length > tag_length) {
-			encap_hdrp->length = (uint8_t)(
-			    (size_t)encap_hdrp->length - tag_length);
+			encap_hdrp->length =
+			    (uint8_t)((size_t)encap_hdrp->length - tag_length);
 		} else {
 			/* delete the encapsulating tag */
 			hdrp = encap_hdrp;
@@ -460,8 +443,7 @@ efx_dhcp_delete_tag(
 		goto fail4;
 	}
 
-	memmove(startp, endp,
-		buffer_length - (endp - bufferp));
+	memmove(startp, endp, buffer_length - (endp - bufferp));
 
 	return (0);
 
@@ -481,13 +463,9 @@ fail1:
  * Write the tag header into write_pointp and optionally copies the payload
  * into the space following.
  */
-static	void
-efx_dhcp_write_tag(
-	__in		uint8_t *write_pointp,
-	__in		uint16_t opt,
-	__in_bcount_opt(value_length)
-			uint8_t *valuep,
-	__in		size_t value_length)
+static void
+efx_dhcp_write_tag(__in uint8_t *write_pointp, __in uint16_t opt,
+    __in_bcount_opt(value_length) uint8_t *valuep, __in size_t value_length)
 {
 	efx_dhcp_tag_hdr_t *hdrp = (efx_dhcp_tag_hdr_t *)write_pointp;
 	hdrp->tag = DHCP_ENCAPSULATED(opt);
@@ -501,13 +479,10 @@ efx_dhcp_write_tag(
  * encapsulated tag, and updates or creates the encapsulating opt as
  * necessary.
  */
-	__checkReturn	efx_rc_t
-efx_dhcp_add_tag(
-	__inout_bcount(buffer_length)	uint8_t *bufferp,
-	__in				size_t buffer_length,
-	__in				uint16_t opt,
-	__in_bcount_opt(value_length)	uint8_t *valuep,
-	__in				size_t value_length)
+__checkReturn efx_rc_t
+efx_dhcp_add_tag(__inout_bcount(buffer_length) uint8_t *bufferp,
+    __in size_t buffer_length, __in uint16_t opt,
+    __in_bcount_opt(value_length) uint8_t *valuep, __in size_t value_length)
 {
 	efx_rc_t rc;
 	efx_dhcp_tag_hdr_t *encap_hdrp = NULL;
@@ -549,8 +524,7 @@ efx_dhcp_add_tag(
 
 			/* Check encapsulated tag is not present */
 			search_size = encap_hdrp->length;
-			rc = efx_dhcp_walk_tags(&searchp, &search_size,
-			    opt);
+			rc = efx_dhcp_walk_tags(&searchp, &search_size, opt);
 			if (rc != ENOENT) {
 				rc = EINVAL;
 				goto fail5;
@@ -558,7 +532,7 @@ efx_dhcp_add_tag(
 
 			/* Check encapsulator will not overflow */
 			if (((size_t)encap_hdrp->length +
-			    DHCP_CALC_TAG_LENGTH(value_length)) >
+				DHCP_CALC_TAG_LENGTH(value_length)) >
 			    DHCP_MAX_VALUE) {
 				rc = E2BIG;
 				goto fail6;
@@ -574,8 +548,7 @@ efx_dhcp_add_tag(
 		}
 	} else {
 		/* Check unencapsulated tag is not present */
-		rc = efx_dhcp_walk_tags(&searchp, &search_size,
-		    opt);
+		rc = efx_dhcp_walk_tags(&searchp, &search_size, opt);
 		if (rc != ENOENT) {
 			rc = EINVAL;
 			goto fail8;
@@ -589,7 +562,7 @@ efx_dhcp_add_tag(
 
 	/* Includes the new encapsulator tag hdr if required */
 	added_length = DHCP_CALC_TAG_LENGTH(value_length) +
-	    (DHCP_IS_ENCAP_OPT(opt) ? sizeof (efx_dhcp_tag_hdr_t) : 0);
+	    (DHCP_IS_ENCAP_OPT(opt) ? sizeof(efx_dhcp_tag_hdr_t) : 0);
 
 	if (available_space <= added_length) {
 		rc = ENOMEM;
@@ -601,14 +574,14 @@ efx_dhcp_add_tag(
 
 	if (DHCP_IS_ENCAP_OPT(opt)) {
 		/* Create new encapsulator header */
-		added_length -= sizeof (efx_dhcp_tag_hdr_t);
-		efx_dhcp_write_tag(insert_pointp,
-		    DHCP_ENCAPSULATOR(opt), NULL, added_length);
-		insert_pointp += sizeof (efx_dhcp_tag_hdr_t);
+		added_length -= sizeof(efx_dhcp_tag_hdr_t);
+		efx_dhcp_write_tag(insert_pointp, DHCP_ENCAPSULATOR(opt), NULL,
+		    added_length);
+		insert_pointp += sizeof(efx_dhcp_tag_hdr_t);
 	} else if (encap_hdrp)
 		/* Modify existing encapsulator header */
-		encap_hdrp->length +=
-		    ((uint8_t)DHCP_CALC_TAG_LENGTH(value_length));
+		encap_hdrp->length += ((uint8_t)DHCP_CALC_TAG_LENGTH(
+		    value_length));
 
 	efx_dhcp_write_tag(insert_pointp, opt, valuep, value_length);
 
@@ -640,17 +613,13 @@ fail1:
  * Update an existing tag to the new value. Copes with encapsulated
  * tags, and updates the encapsulating opt as necessary.
  */
-	__checkReturn	efx_rc_t
-efx_dhcp_update_tag(
-	__inout_bcount(buffer_length)	uint8_t *bufferp,
-	__in				size_t buffer_length,
-	__in				uint16_t opt,
-	__in				uint8_t *value_locationp,
-	__in_bcount_opt(value_length)	uint8_t *valuep,
-	__in				size_t value_length)
+__checkReturn efx_rc_t
+efx_dhcp_update_tag(__inout_bcount(buffer_length) uint8_t *bufferp,
+    __in size_t buffer_length, __in uint16_t opt, __in uint8_t *value_locationp,
+    __in_bcount_opt(value_length) uint8_t *valuep, __in size_t value_length)
 {
 	efx_rc_t rc;
-	uint8_t *write_pointp = value_locationp - sizeof (efx_dhcp_tag_hdr_t);
+	uint8_t *write_pointp = value_locationp - sizeof(efx_dhcp_tag_hdr_t);
 	efx_dhcp_tag_hdr_t *hdrp = (efx_dhcp_tag_hdr_t *)write_pointp;
 	efx_dhcp_tag_hdr_t *encap_hdrp = NULL;
 	size_t old_length;
@@ -676,8 +645,7 @@ efx_dhcp_update_tag(
 		uint8_t *endp = bufferp;
 		size_t available_space = buffer_length;
 
-		rc = efx_dhcp_walk_tags(&endp, &available_space,
-		    EFX_DHCP_END);
+		rc = efx_dhcp_walk_tags(&endp, &available_space, EFX_DHCP_END);
 		if (rc != 0)
 			goto fail4;
 
@@ -699,8 +667,8 @@ efx_dhcp_update_tag(
 
 		encap_hdrp = (efx_dhcp_tag_hdr_t *)encapp;
 
-		new_length = ((size_t)encap_hdrp->length +
-		    value_length - old_length);
+		new_length = ((size_t)encap_hdrp->length + value_length -
+		    old_length);
 		/* Check encapsulator will not overflow */
 		if (new_length > DHCP_MAX_VALUE) {
 			rc = E2BIG;
@@ -715,8 +683,8 @@ efx_dhcp_update_tag(
 	 * length.
 	 */
 	if (old_length != value_length) {
-		uint8_t *destp = (uint8_t *)DHCP_NEXT_TAG(hdrp) +
-		    value_length - old_length;
+		uint8_t *destp = (uint8_t *)DHCP_NEXT_TAG(hdrp) + value_length -
+		    old_length;
 		size_t count = &bufferp[buffer_length] -
 		    (uint8_t *)DHCP_NEXT_TAG(hdrp);
 
@@ -750,15 +718,11 @@ fail1:
  * Copy bootcfg sector data to a target buffer which may differ in size.
  * Optionally corrects format errors in source buffer.
  */
-				efx_rc_t
-efx_bootcfg_copy_sector(
-	__in			efx_nic_t *enp,
-	__inout_bcount(sector_length)
-				uint8_t *sector,
-	__in			size_t sector_length,
-	__out_bcount(data_size)	uint8_t *data,
-	__in			size_t data_size,
-	__in			boolean_t handle_format_errors)
+efx_rc_t
+efx_bootcfg_copy_sector(__in efx_nic_t *enp,
+    __inout_bcount(sector_length) uint8_t *sector, __in size_t sector_length,
+    __out_bcount(data_size) uint8_t *data, __in size_t data_size,
+    __in boolean_t handle_format_errors)
 {
 	_NOTE(ARGUNUSED(enp))
 
@@ -772,8 +736,7 @@ efx_bootcfg_copy_sector(
 	}
 
 	/* Verify that the area is correctly formatted and checksummed */
-	rc = efx_dhcp_verify(sector, sector_length,
-				    &used_bytes);
+	rc = efx_dhcp_verify(sector, sector_length, &used_bytes);
 
 	if (!handle_format_errors) {
 		if (rc != 0)
@@ -793,7 +756,7 @@ efx_bootcfg_copy_sector(
 		sector[1] = EFX_DHCP_END;
 		used_bytes = 2;
 	}
-	EFSYS_ASSERT(used_bytes >= 2);	/* checksum and EFX_DHCP_END */
+	EFSYS_ASSERT(used_bytes >= 2); /* checksum and EFX_DHCP_END */
 	EFSYS_ASSERT(used_bytes <= sector_length);
 	EFSYS_ASSERT(sector_length >= 2);
 
@@ -827,7 +790,7 @@ efx_bootcfg_copy_sector(
 
 	/* Zero out the unused portion of the target buffer */
 	if (used_bytes < data_size)
-		(void) memset(data + used_bytes, 0, data_size - used_bytes);
+		(void)memset(data + used_bytes, 0, data_size - used_bytes);
 
 	/*
 	 * The checksum includes trailing data after any EFX_DHCP_END
@@ -850,11 +813,9 @@ fail1:
 	return (rc);
 }
 
-				efx_rc_t
-efx_bootcfg_read(
-	__in			efx_nic_t *enp,
-	__out_bcount(size)	uint8_t *data,
-	__in			size_t size)
+efx_rc_t
+efx_bootcfg_read(__in efx_nic_t *enp, __out_bcount(size) uint8_t *data,
+    __in size_t size)
 {
 	uint8_t *payload = NULL;
 	size_t used_bytes;
@@ -880,8 +841,8 @@ efx_bootcfg_read(
 		goto fail2;
 
 	/* The bootcfg sector may be stored in a (larger) shared partition */
-	rc = efx_bootcfg_sector_info(enp, sector_number,
-	    NULL, &sector_offset, &sector_length);
+	rc = efx_bootcfg_sector_info(enp, sector_number, NULL, &sector_offset,
+	    &sector_length);
 	if (rc != 0)
 		goto fail3;
 
@@ -918,8 +879,8 @@ efx_bootcfg_read(
 		goto fail7;
 
 	if ((rc = efx_nvram_read_chunk(enp, EFX_NVRAM_BOOTROM_CFG,
-	    sector_offset, (caddr_t)payload, sector_length)) != 0) {
-		(void) efx_nvram_rw_finish(enp, EFX_NVRAM_BOOTROM_CFG, NULL);
+		 sector_offset, (caddr_t)payload, sector_length)) != 0) {
+		(void)efx_nvram_rw_finish(enp, EFX_NVRAM_BOOTROM_CFG, NULL);
 		goto fail8;
 	}
 
@@ -927,15 +888,14 @@ efx_bootcfg_read(
 		goto fail9;
 
 	/* Verify that the area is correctly formatted and checksummed */
-	rc = efx_dhcp_verify(payload, sector_length,
-	    &used_bytes);
+	rc = efx_dhcp_verify(payload, sector_length, &used_bytes);
 	if (rc != 0 || used_bytes == 0) {
 		payload[0] = 0;
 		payload[1] = EFX_DHCP_END;
 		used_bytes = 2;
 	}
 
-	EFSYS_ASSERT(used_bytes >= 2);	/* checksum and EFX_DHCP_END */
+	EFSYS_ASSERT(used_bytes >= 2); /* checksum and EFX_DHCP_END */
 	EFSYS_ASSERT(used_bytes <= sector_length);
 
 	/*
@@ -972,7 +932,7 @@ efx_bootcfg_read(
 
 	/* Zero out the unused portion of the user buffer */
 	if (used_bytes < size)
-		(void) memset(data + used_bytes, 0, size - used_bytes);
+		(void)memset(data + used_bytes, 0, size - used_bytes);
 
 	/*
 	 * The checksum includes trailing data after any EFX_DHCP_END character,
@@ -1008,11 +968,9 @@ fail1:
 	return (rc);
 }
 
-				efx_rc_t
-efx_bootcfg_write(
-	__in			efx_nic_t *enp,
-	__in_bcount(size)	uint8_t *data,
-	__in			size_t size)
+efx_rc_t
+efx_bootcfg_write(__in efx_nic_t *enp, __in_bcount(size) uint8_t *data,
+    __in size_t size)
 {
 	uint8_t *partn_data;
 	uint8_t checksum;
@@ -1034,8 +992,8 @@ efx_bootcfg_write(
 		goto fail1;
 
 	/* The bootcfg sector may be stored in a (larger) shared partition */
-	rc = efx_bootcfg_sector_info(enp, sector_number,
-	    NULL, &sector_offset, &sector_length);
+	rc = efx_bootcfg_sector_info(enp, sector_number, NULL, &sector_offset,
+	    &sector_length);
 	if (rc != 0)
 		goto fail2;
 
@@ -1055,8 +1013,8 @@ efx_bootcfg_write(
 	 * The caller *must* terminate their block with a EFX_DHCP_END
 	 * character
 	 */
-	if ((used_bytes < 2) || ((uint8_t)data[used_bytes - 1] !=
-	    EFX_DHCP_END)) {
+	if ((used_bytes < 2) ||
+	    ((uint8_t)data[used_bytes - 1] != EFX_DHCP_END)) {
 		/* Block too short or EFX_DHCP_END missing */
 		rc = ENOENT;
 		goto fail5;
@@ -1085,7 +1043,7 @@ efx_bootcfg_write(
 
 	/* Read the entire partition */
 	rc = efx_nvram_read_chunk(enp, EFX_NVRAM_BOOTROM_CFG, 0,
-				    (caddr_t)partn_data, partn_length);
+	    (caddr_t)partn_data, partn_length);
 	if (rc != 0)
 		goto fail9;
 
@@ -1093,8 +1051,8 @@ efx_bootcfg_write(
 	 * Insert the BOOTCFG sector into the partition, Zero out all data
 	 * after the EFX_DHCP_END tag, and adjust the checksum.
 	 */
-	(void) memset(partn_data + sector_offset, 0x0, sector_length);
-	(void) memcpy(partn_data + sector_offset, data, used_bytes);
+	(void)memset(partn_data + sector_offset, 0x0, sector_length);
+	(void)memcpy(partn_data + sector_offset, data, used_bytes);
 
 	checksum = efx_dhcp_csum(data, used_bytes);
 	partn_data[sector_offset] -= checksum;
@@ -1102,8 +1060,8 @@ efx_bootcfg_write(
 	if ((rc = efx_nvram_erase(enp, EFX_NVRAM_BOOTROM_CFG)) != 0)
 		goto fail10;
 
-	if ((rc = efx_nvram_write_chunk(enp, EFX_NVRAM_BOOTROM_CFG,
-		    0, (caddr_t)partn_data, partn_length)) != 0)
+	if ((rc = efx_nvram_write_chunk(enp, EFX_NVRAM_BOOTROM_CFG, 0,
+		 (caddr_t)partn_data, partn_length)) != 0)
 		goto fail11;
 
 	if ((rc = efx_nvram_rw_finish(enp, EFX_NVRAM_BOOTROM_CFG, NULL)) != 0)
@@ -1122,7 +1080,7 @@ fail10:
 fail9:
 	EFSYS_PROBE(fail9);
 
-	(void) efx_nvram_rw_finish(enp, EFX_NVRAM_BOOTROM_CFG, NULL);
+	(void)efx_nvram_rw_finish(enp, EFX_NVRAM_BOOTROM_CFG, NULL);
 fail8:
 	EFSYS_PROBE(fail8);
 
@@ -1145,4 +1103,4 @@ fail1:
 	return (rc);
 }
 
-#endif	/* EFSYS_OPT_BOOTCFG */
+#endif /* EFSYS_OPT_BOOTCFG */

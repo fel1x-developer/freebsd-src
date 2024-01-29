@@ -40,79 +40,79 @@
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/lock.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/sysctl.h>
 #ifdef GLXIIC_DEBUG
 #include <sys/syslog.h>
 #endif
 
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
-#include <sys/rman.h>
 #include <machine/resource.h>
 
-#include <dev/iicbus/iiconf.h>
 #include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include "iicbus_if.h"
 
 /* CS5536 PCI-ISA ID. */
-#define	GLXIIC_CS5536_DEV_ID		0x20901022
+#define GLXIIC_CS5536_DEV_ID 0x20901022
 
 /* MSRs. */
-#define	GLXIIC_MSR_PIC_YSEL_HIGH	0x51400021
+#define GLXIIC_MSR_PIC_YSEL_HIGH 0x51400021
 
 /* Bus speeds. */
-#define	GLXIIC_SLOW	0x0258	/*  10 kHz. */
-#define	GLXIIC_FAST	0x0078	/*  50 kHz. */
-#define	GLXIIC_FASTEST	0x003c	/* 100 kHz. */
+#define GLXIIC_SLOW 0x0258    /*  10 kHz. */
+#define GLXIIC_FAST 0x0078    /*  50 kHz. */
+#define GLXIIC_FASTEST 0x003c /* 100 kHz. */
 
 /* Default bus activity timeout in milliseconds. */
-#define GLXIIC_DEFAULT_TIMEOUT	35
+#define GLXIIC_DEFAULT_TIMEOUT 35
 
 /* GPIO register offsets. */
-#define	GLXIIC_GPIOL_OUT_AUX1_SEL	0x10
-#define	GLXIIC_GPIOL_IN_AUX1_SEL	0x34
+#define GLXIIC_GPIOL_OUT_AUX1_SEL 0x10
+#define GLXIIC_GPIOL_IN_AUX1_SEL 0x34
 
 /* GPIO 14 (SMB_CLK) and 15 (SMB_DATA) bitmasks. */
-#define	GLXIIC_GPIO_14_15_ENABLE	0x0000c000
-#define	GLXIIC_GPIO_14_15_DISABLE	0xc0000000
+#define GLXIIC_GPIO_14_15_ENABLE 0x0000c000
+#define GLXIIC_GPIO_14_15_DISABLE 0xc0000000
 
 /* SMB register offsets. */
-#define	GLXIIC_SMB_SDA				0x00
-#define	GLXIIC_SMB_STS				0x01
-#define		GLXIIC_SMB_STS_SLVSTP_BIT	(1 << 7)
-#define		GLXIIC_SMB_STS_SDAST_BIT	(1 << 6)
-#define		GLXIIC_SMB_STS_BER_BIT		(1 << 5)
-#define		GLXIIC_SMB_STS_NEGACK_BIT	(1 << 4)
-#define		GLXIIC_SMB_STS_STASTR_BIT	(1 << 3)
-#define		GLXIIC_SMB_STS_NMATCH_BIT	(1 << 2)
-#define		GLXIIC_SMB_STS_MASTER_BIT	(1 << 1)
-#define		GLXIIC_SMB_STS_XMIT_BIT		(1 << 0)
-#define	GLXIIC_SMB_CTRL_STS			0x02
-#define		GLXIIC_SMB_CTRL_STS_TGSCL_BIT	(1 << 5)
-#define		GLXIIC_SMB_CTRL_STS_TSDA_BIT	(1 << 4)
-#define		GLXIIC_SMB_CTRL_STS_GCMTCH_BIT	(1 << 3)
-#define		GLXIIC_SMB_CTRL_STS_MATCH_BIT	(1 << 2)
-#define		GLXIIC_SMB_CTRL_STS_BB_BIT	(1 << 1)
-#define		GLXIIC_SMB_CTRL_STS_BUSY_BIT	(1 << 0)
-#define	GLXIIC_SMB_CTRL1			0x03
-#define		GLXIIC_SMB_CTRL1_STASTRE_BIT	(1 << 7)
-#define		GLXIIC_SMB_CTRL1_NMINTE_BIT	(1 << 6)
-#define		GLXIIC_SMB_CTRL1_GCMEN_BIT	(1 << 5)
-#define		GLXIIC_SMB_CTRL1_ACK_BIT	(1 << 4)
-#define		GLXIIC_SMB_CTRL1_INTEN_BIT	(1 << 2)
-#define		GLXIIC_SMB_CTRL1_STOP_BIT	(1 << 1)
-#define		GLXIIC_SMB_CTRL1_START_BIT	(1 << 0)
-#define	GLXIIC_SMB_ADDR				0x04
-#define		GLXIIC_SMB_ADDR_SAEN_BIT	(1 << 7)
-#define	GLXIIC_SMB_CTRL2			0x05
-#define		GLXIIC_SMB_CTRL2_EN_BIT		(1 << 0)
-#define	GLXIIC_SMB_CTRL3			0x06
+#define GLXIIC_SMB_SDA 0x00
+#define GLXIIC_SMB_STS 0x01
+#define GLXIIC_SMB_STS_SLVSTP_BIT (1 << 7)
+#define GLXIIC_SMB_STS_SDAST_BIT (1 << 6)
+#define GLXIIC_SMB_STS_BER_BIT (1 << 5)
+#define GLXIIC_SMB_STS_NEGACK_BIT (1 << 4)
+#define GLXIIC_SMB_STS_STASTR_BIT (1 << 3)
+#define GLXIIC_SMB_STS_NMATCH_BIT (1 << 2)
+#define GLXIIC_SMB_STS_MASTER_BIT (1 << 1)
+#define GLXIIC_SMB_STS_XMIT_BIT (1 << 0)
+#define GLXIIC_SMB_CTRL_STS 0x02
+#define GLXIIC_SMB_CTRL_STS_TGSCL_BIT (1 << 5)
+#define GLXIIC_SMB_CTRL_STS_TSDA_BIT (1 << 4)
+#define GLXIIC_SMB_CTRL_STS_GCMTCH_BIT (1 << 3)
+#define GLXIIC_SMB_CTRL_STS_MATCH_BIT (1 << 2)
+#define GLXIIC_SMB_CTRL_STS_BB_BIT (1 << 1)
+#define GLXIIC_SMB_CTRL_STS_BUSY_BIT (1 << 0)
+#define GLXIIC_SMB_CTRL1 0x03
+#define GLXIIC_SMB_CTRL1_STASTRE_BIT (1 << 7)
+#define GLXIIC_SMB_CTRL1_NMINTE_BIT (1 << 6)
+#define GLXIIC_SMB_CTRL1_GCMEN_BIT (1 << 5)
+#define GLXIIC_SMB_CTRL1_ACK_BIT (1 << 4)
+#define GLXIIC_SMB_CTRL1_INTEN_BIT (1 << 2)
+#define GLXIIC_SMB_CTRL1_STOP_BIT (1 << 1)
+#define GLXIIC_SMB_CTRL1_START_BIT (1 << 0)
+#define GLXIIC_SMB_ADDR 0x04
+#define GLXIIC_SMB_ADDR_SAEN_BIT (1 << 7)
+#define GLXIIC_SMB_CTRL2 0x05
+#define GLXIIC_SMB_CTRL2_EN_BIT (1 << 0)
+#define GLXIIC_SMB_CTRL3 0x06
 
 typedef enum {
 	GLXIIC_STATE_IDLE,
@@ -126,65 +126,63 @@ typedef enum {
 } glxiic_state_t;
 
 struct glxiic_softc {
-	device_t	 dev;		/* Myself. */
-	device_t	 iicbus;	/* IIC bus. */
-	struct mtx	 mtx;		/* Lock. */
-	glxiic_state_t	 state;		/* Driver state. */
-	struct callout	 callout;	/* Driver state timeout callout. */
-	int		 timeout;	/* Driver state timeout (ms). */
+	device_t dev;		/* Myself. */
+	device_t iicbus;	/* IIC bus. */
+	struct mtx mtx;		/* Lock. */
+	glxiic_state_t state;	/* Driver state. */
+	struct callout callout; /* Driver state timeout callout. */
+	int timeout;		/* Driver state timeout (ms). */
 
-	int		 smb_rid;	/* SMB controller resource ID. */
-	struct resource *smb_res;	/* SMB controller resource. */
-	int		 gpio_rid;	/* GPIO resource ID. */
-	struct resource *gpio_res;	/* GPIO resource. */
+	int smb_rid;		   /* SMB controller resource ID. */
+	struct resource *smb_res;  /* SMB controller resource. */
+	int gpio_rid;		   /* GPIO resource ID. */
+	struct resource *gpio_res; /* GPIO resource. */
 
-	int		 irq_rid;	/* IRQ resource ID. */
-	struct resource *irq_res;	/* IRQ resource. */
-	void		*irq_handler;	/* IRQ handler cookie. */
-	int		 old_irq;	/* IRQ mapped by board firmware. */
+	int irq_rid;		  /* IRQ resource ID. */
+	struct resource *irq_res; /* IRQ resource. */
+	void *irq_handler;	  /* IRQ handler cookie. */
+	int old_irq;		  /* IRQ mapped by board firmware. */
 
-	struct iic_msg	*msg;		/* Current master mode message. */
-	uint32_t	 nmsgs;		/* Number of messages remaining. */
-	uint8_t		*data;		/* Current master mode data byte. */
-	uint16_t	 ndata;		/* Number of data bytes remaining. */
-	int		 error;		/* Last master mode error. */
+	struct iic_msg *msg; /* Current master mode message. */
+	uint32_t nmsgs;	     /* Number of messages remaining. */
+	uint8_t *data;	     /* Current master mode data byte. */
+	uint16_t ndata;	     /* Number of data bytes remaining. */
+	int error;	     /* Last master mode error. */
 
-	uint8_t		 addr;		/* Own address. */
-	uint16_t	 sclfrq;	/* Bus frequency. */
+	uint8_t addr;	 /* Own address. */
+	uint16_t sclfrq; /* Bus frequency. */
 };
 
 #ifdef GLXIIC_DEBUG
-#define GLXIIC_DEBUG_LOG(fmt, args...)	\
-	log(LOG_DEBUG, "%s: " fmt "\n" , __func__ , ## args)
+#define GLXIIC_DEBUG_LOG(fmt, args...) \
+	log(LOG_DEBUG, "%s: " fmt "\n", __func__, ##args)
 #else
 #define GLXIIC_DEBUG_LOG(fmt, args...)
 #endif
 
-#define	GLXIIC_SCLFRQ(n)		((n << 1))
-#define	GLXIIC_SMBADDR(n)		((n >> 1))
-#define	GLXIIC_SMB_IRQ_TO_MAP(n)	((n << 16))
-#define	GLXIIC_MAP_TO_SMB_IRQ(n)	((n >> 16) & 0xf)
+#define GLXIIC_SCLFRQ(n) ((n << 1))
+#define GLXIIC_SMBADDR(n) ((n >> 1))
+#define GLXIIC_SMB_IRQ_TO_MAP(n) ((n << 16))
+#define GLXIIC_MAP_TO_SMB_IRQ(n) ((n >> 16) & 0xf)
 
-#define	GLXIIC_LOCK(_sc)		mtx_lock(&_sc->mtx)
-#define	GLXIIC_UNLOCK(_sc)		mtx_unlock(&_sc->mtx)
-#define	GLXIIC_LOCK_INIT(_sc)		\
+#define GLXIIC_LOCK(_sc) mtx_lock(&_sc->mtx)
+#define GLXIIC_UNLOCK(_sc) mtx_unlock(&_sc->mtx)
+#define GLXIIC_LOCK_INIT(_sc) \
 	mtx_init(&_sc->mtx, device_get_nameunit(_sc->dev), "glxiic", MTX_DEF)
-#define	GLXIIC_SLEEP(_sc)		\
-	mtx_sleep(_sc, &_sc->mtx, IICPRI, "glxiic", 0)
-#define	GLXIIC_WAKEUP(_sc)		wakeup(_sc);
-#define	GLXIIC_LOCK_DESTROY(_sc)	mtx_destroy(&_sc->mtx);
-#define	GLXIIC_ASSERT_LOCKED(_sc)	mtx_assert(&_sc->mtx, MA_OWNED);
+#define GLXIIC_SLEEP(_sc) mtx_sleep(_sc, &_sc->mtx, IICPRI, "glxiic", 0)
+#define GLXIIC_WAKEUP(_sc) wakeup(_sc);
+#define GLXIIC_LOCK_DESTROY(_sc) mtx_destroy(&_sc->mtx);
+#define GLXIIC_ASSERT_LOCKED(_sc) mtx_assert(&_sc->mtx, MA_OWNED);
 
-typedef	int (glxiic_state_callback_t)(struct glxiic_softc *sc,
-    uint8_t status);
+typedef int(glxiic_state_callback_t)(struct glxiic_softc *sc, uint8_t status);
 
-static glxiic_state_callback_t	glxiic_state_idle_callback;
-static glxiic_state_callback_t	glxiic_state_slave_tx_callback;
-static glxiic_state_callback_t	glxiic_state_slave_rx_callback;
-static glxiic_state_callback_t	glxiic_state_master_addr_callback;
-static glxiic_state_callback_t	glxiic_state_master_tx_callback;
-static glxiic_state_callback_t	glxiic_state_master_rx_callback;
-static glxiic_state_callback_t	glxiic_state_master_stop_callback;
+static glxiic_state_callback_t glxiic_state_idle_callback;
+static glxiic_state_callback_t glxiic_state_slave_tx_callback;
+static glxiic_state_callback_t glxiic_state_slave_rx_callback;
+static glxiic_state_callback_t glxiic_state_master_addr_callback;
+static glxiic_state_callback_t glxiic_state_master_tx_callback;
+static glxiic_state_callback_t glxiic_state_master_rx_callback;
+static glxiic_state_callback_t glxiic_state_master_stop_callback;
 
 struct glxiic_state_table_entry {
 	glxiic_state_callback_t *callback;
@@ -229,45 +227,43 @@ static glxiic_state_table_entry_t glxiic_state_table[GLXIIC_STATE_MAX] = {
 	},
 };
 
-static void	glxiic_identify(driver_t *driver, device_t parent);
-static int	glxiic_probe(device_t dev);
-static int	glxiic_attach(device_t dev);
-static int	glxiic_detach(device_t dev);
+static void glxiic_identify(driver_t *driver, device_t parent);
+static int glxiic_probe(device_t dev);
+static int glxiic_attach(device_t dev);
+static int glxiic_detach(device_t dev);
 
-static uint8_t	glxiic_read_status_locked(struct glxiic_softc *sc);
-static void	glxiic_stop_locked(struct glxiic_softc *sc);
-static void	glxiic_timeout(void *arg);
-static void	glxiic_start_timeout_locked(struct glxiic_softc *sc);
-static void	glxiic_set_state_locked(struct glxiic_softc *sc,
+static uint8_t glxiic_read_status_locked(struct glxiic_softc *sc);
+static void glxiic_stop_locked(struct glxiic_softc *sc);
+static void glxiic_timeout(void *arg);
+static void glxiic_start_timeout_locked(struct glxiic_softc *sc);
+static void glxiic_set_state_locked(struct glxiic_softc *sc,
     glxiic_state_t state);
-static int	glxiic_handle_slave_match_locked(struct glxiic_softc *sc,
+static int glxiic_handle_slave_match_locked(struct glxiic_softc *sc,
     uint8_t status);
-static void	glxiic_intr(void *arg);
+static void glxiic_intr(void *arg);
 
-static int	glxiic_reset(device_t dev, u_char speed, u_char addr,
+static int glxiic_reset(device_t dev, u_char speed, u_char addr,
     u_char *oldaddr);
-static int	glxiic_transfer(device_t dev, struct iic_msg *msgs,
-    uint32_t nmsgs);
+static int glxiic_transfer(device_t dev, struct iic_msg *msgs, uint32_t nmsgs);
 
-static void	glxiic_smb_map_interrupt(int irq);
-static void 	glxiic_gpio_enable(struct glxiic_softc *sc);
-static void 	glxiic_gpio_disable(struct glxiic_softc *sc);
-static void	glxiic_smb_enable(struct glxiic_softc *sc, uint8_t speed,
+static void glxiic_smb_map_interrupt(int irq);
+static void glxiic_gpio_enable(struct glxiic_softc *sc);
+static void glxiic_gpio_disable(struct glxiic_softc *sc);
+static void glxiic_smb_enable(struct glxiic_softc *sc, uint8_t speed,
     uint8_t addr);
-static void	glxiic_smb_disable(struct glxiic_softc *sc);
+static void glxiic_smb_disable(struct glxiic_softc *sc);
 
-static device_method_t glxiic_methods[] = {
-	DEVMETHOD(device_identify,	glxiic_identify),
-	DEVMETHOD(device_probe,		glxiic_probe),
-	DEVMETHOD(device_attach,	glxiic_attach),
-	DEVMETHOD(device_detach,	glxiic_detach),
+static device_method_t glxiic_methods[] = { DEVMETHOD(device_identify,
+						glxiic_identify),
+	DEVMETHOD(device_probe, glxiic_probe),
+	DEVMETHOD(device_attach, glxiic_attach),
+	DEVMETHOD(device_detach, glxiic_detach),
 
-	DEVMETHOD(iicbus_reset,		glxiic_reset),
-	DEVMETHOD(iicbus_transfer,	glxiic_transfer),
-	DEVMETHOD(iicbus_callback,	iicbus_null_callback),
+	DEVMETHOD(iicbus_reset, glxiic_reset),
+	DEVMETHOD(iicbus_transfer, glxiic_transfer),
+	DEVMETHOD(iicbus_callback, iicbus_null_callback),
 
-	{ 0, 0 }
-};
+	{ 0, 0 } };
 
 static driver_t glxiic_driver = {
 	"glxiic",
@@ -374,8 +370,8 @@ glxiic_attach(device_t dev)
 	glxiic_smb_map_interrupt(irq);
 
 	sc->irq_rid = 0;
-	sc->irq_res = bus_alloc_resource(dev, SYS_RES_IRQ, &sc->irq_rid,
-	    irq, irq, 1, RF_SHAREABLE | RF_ACTIVE);
+	sc->irq_res = bus_alloc_resource(dev, SYS_RES_IRQ, &sc->irq_rid, irq,
+	    irq, 1, RF_SHAREABLE | RF_ACTIVE);
 	if (sc->irq_res == NULL) {
 		device_printf(dev, "Could not allocate IRQ %d\n", irq);
 		error = ENXIO;
@@ -400,9 +396,8 @@ glxiic_attach(device_t dev)
 	tree = device_get_sysctl_tree(dev);
 
 	sc->timeout = GLXIIC_DEFAULT_TIMEOUT;
-	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "timeout", CTLFLAG_RWTUN, &sc->timeout, 0,
-	    "activity timeout in ms");
+	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "timeout",
+	    CTLFLAG_RWTUN, &sc->timeout, 0, "activity timeout in ms");
 
 	glxiic_gpio_enable(sc);
 	glxiic_smb_enable(sc, IIC_FASTEST, 0);
@@ -492,9 +487,9 @@ glxiic_read_status_locked(struct glxiic_softc *sc)
 	status = bus_read_1(sc->smb_res, GLXIIC_SMB_STS);
 
 	/* Clear all status flags except SDAST and STASTR after reading. */
-	bus_write_1(sc->smb_res, GLXIIC_SMB_STS, (GLXIIC_SMB_STS_SLVSTP_BIT |
-		GLXIIC_SMB_STS_BER_BIT | GLXIIC_SMB_STS_NEGACK_BIT |
-		GLXIIC_SMB_STS_NMATCH_BIT));
+	bus_write_1(sc->smb_res, GLXIIC_SMB_STS,
+	    (GLXIIC_SMB_STS_SLVSTP_BIT | GLXIIC_SMB_STS_BER_BIT |
+		GLXIIC_SMB_STS_NEGACK_BIT | GLXIIC_SMB_STS_NMATCH_BIT));
 
 	return (status);
 }
@@ -518,7 +513,7 @@ glxiic_stop_locked(struct glxiic_softc *sc)
 	 */
 	if ((status & GLXIIC_SMB_STS_XMIT_BIT) == 0 &&
 	    (status & GLXIIC_SMB_STS_SDAST_BIT) != 0)
-	 	bus_read_1(sc->smb_res, GLXIIC_SMB_SDA);
+		bus_read_1(sc->smb_res, GLXIIC_SMB_SDA);
 
 	/* Check stall after start bit and clear if needed */
 	if ((status & GLXIIC_SMB_STS_STASTR_BIT) != 0) {
@@ -586,12 +581,10 @@ glxiic_handle_slave_match_locked(struct glxiic_softc *sc, uint8_t status)
 	if ((ctrl_sts & GLXIIC_SMB_CTRL_STS_MATCH_BIT) != 0) {
 		if ((status & GLXIIC_SMB_STS_XMIT_BIT) != 0) {
 			addr = sc->addr | LSB;
-			glxiic_set_state_locked(sc,
-			    GLXIIC_STATE_SLAVE_TX);
+			glxiic_set_state_locked(sc, GLXIIC_STATE_SLAVE_TX);
 		} else {
 			addr = sc->addr & ~LSB;
-			glxiic_set_state_locked(sc,
-			    GLXIIC_STATE_SLAVE_RX);
+			glxiic_set_state_locked(sc, GLXIIC_STATE_SLAVE_RX);
 		}
 		iicbus_intr(sc->iicbus, INTR_START, &addr);
 	} else if ((ctrl_sts & GLXIIC_SMB_CTRL_STS_GCMTCH_BIT) != 0) {
@@ -903,8 +896,8 @@ glxiic_intr(void *arg)
 	status = glxiic_read_status_locked(sc);
 
 	/* Check if this interrupt originated from the SMBus. */
-	if ((status &
-		~(GLXIIC_SMB_STS_MASTER_BIT | GLXIIC_SMB_STS_XMIT_BIT)) != 0) {
+	if ((status & ~(GLXIIC_SMB_STS_MASTER_BIT | GLXIIC_SMB_STS_XMIT_BIT)) !=
+	    0) {
 
 		error = glxiic_state_table[sc->state].callback(sc, status);
 
@@ -1057,7 +1050,7 @@ glxiic_smb_enable(struct glxiic_softc *sc, uint8_t speed, uint8_t addr)
 	if (addr != 0) {
 		/* Enable new match and global call match interrupts. */
 		ctrl1 |= GLXIIC_SMB_CTRL1_NMINTE_BIT |
-			GLXIIC_SMB_CTRL1_GCMEN_BIT;
+		    GLXIIC_SMB_CTRL1_GCMEN_BIT;
 		bus_write_1(sc->smb_res, GLXIIC_SMB_ADDR,
 		    GLXIIC_SMB_ADDR_SAEN_BIT | GLXIIC_SMBADDR(addr));
 	} else {

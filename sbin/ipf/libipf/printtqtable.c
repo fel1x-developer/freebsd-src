@@ -4,10 +4,11 @@
  * See the IPFILTER.LICENCE file for details on licencing.
  */
 
-#include <fcntl.h>
 #include <sys/ioctl.h>
-#include "ipf.h"
 
+#include <fcntl.h>
+
+#include "ipf.h"
 
 void
 printtqtable(ipftq_t *table)

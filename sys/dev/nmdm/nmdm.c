@@ -38,38 +38,38 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/priv.h>
-#include <sys/proc.h>
-#include <sys/tty.h>
 #include <sys/conf.h>
 #include <sys/eventhandler.h>
 #include <sys/fcntl.h>
-#include <sys/poll.h>
 #include <sys/kernel.h>
 #include <sys/limits.h>
+#include <sys/malloc.h>
 #include <sys/module.h>
+#include <sys/poll.h>
+#include <sys/priv.h>
+#include <sys/proc.h>
 #include <sys/serial.h>
 #include <sys/signalvar.h>
-#include <sys/malloc.h>
 #include <sys/taskqueue.h>
+#include <sys/tty.h>
 
 static MALLOC_DEFINE(M_NMDM, "nullmodem", "nullmodem data structures");
 
-static tsw_inwakeup_t	nmdm_outwakeup;
-static tsw_outwakeup_t	nmdm_inwakeup;
-static tsw_param_t	nmdm_param;
-static tsw_modem_t	nmdm_modem;
-static tsw_close_t	nmdm_close;
-static tsw_free_t	nmdm_free;
+static tsw_inwakeup_t nmdm_outwakeup;
+static tsw_outwakeup_t nmdm_inwakeup;
+static tsw_param_t nmdm_param;
+static tsw_modem_t nmdm_modem;
+static tsw_close_t nmdm_close;
+static tsw_free_t nmdm_free;
 
 static struct ttydevsw nmdm_class = {
-	.tsw_flags	= TF_NOPREFIX,
-	.tsw_inwakeup	= nmdm_inwakeup,
-	.tsw_outwakeup	= nmdm_outwakeup,
-	.tsw_param	= nmdm_param,
-	.tsw_modem	= nmdm_modem,
-	.tsw_close	= nmdm_close,
-	.tsw_free	= nmdm_free,
+	.tsw_flags = TF_NOPREFIX,
+	.tsw_inwakeup = nmdm_inwakeup,
+	.tsw_outwakeup = nmdm_outwakeup,
+	.tsw_param = nmdm_param,
+	.tsw_modem = nmdm_modem,
+	.tsw_close = nmdm_close,
+	.tsw_free = nmdm_free,
 };
 
 static void nmdm_task_tty(void *, int);
@@ -77,24 +77,24 @@ static void nmdm_task_tty(void *, int);
 struct nmdmsoftc;
 
 struct nmdmpart {
-	struct tty		*np_tty;
-	int			 np_dcd;
-	struct task		 np_task;
-	struct nmdmpart		*np_other;
-	struct nmdmsoftc	*np_pair;
-	struct callout		 np_callout;
-	u_long			 np_quota;
-	u_long			 np_accumulator;
-	int			 np_rate;
-	int			 np_credits;
+	struct tty *np_tty;
+	int np_dcd;
+	struct task np_task;
+	struct nmdmpart *np_other;
+	struct nmdmsoftc *np_pair;
+	struct callout np_callout;
+	u_long np_quota;
+	u_long np_accumulator;
+	int np_rate;
+	int np_credits;
 
-#define QS 8	/* Quota shift */
+#define QS 8 /* Quota shift */
 };
 
 struct nmdmsoftc {
-	struct nmdmpart	ns_part1;
-	struct nmdmpart	ns_part2;
-	struct mtx	ns_mtx;
+	struct nmdmpart ns_part1;
+	struct nmdmpart ns_part2;
+	struct mtx ns_mtx;
 };
 
 static int nmdm_count = 0;
@@ -193,8 +193,8 @@ nmdm_clone(void *arg, struct ucred *cred, char *name, int nameen,
 	tp = ns->ns_part1.np_tty = tty_alloc_mutex(&nmdm_class, &ns->ns_part1,
 	    &ns->ns_mtx);
 	*end = 'A';
-	error = tty_makedevf(tp, cred, endc == 'A' ? TTYMK_CLONING : 0,
-	    "%s", name);
+	error = tty_makedevf(tp, cred, endc == 'A' ? TTYMK_CLONING : 0, "%s",
+	    name);
 	if (error) {
 		*end = endc;
 		mtx_destroy(&ns->ns_mtx);
@@ -205,8 +205,8 @@ nmdm_clone(void *arg, struct ucred *cred, char *name, int nameen,
 	tp = ns->ns_part2.np_tty = tty_alloc_mutex(&nmdm_class, &ns->ns_part2,
 	    &ns->ns_mtx);
 	*end = 'B';
-	error = tty_makedevf(tp, cred, endc == 'B' ? TTYMK_CLONING : 0,
-	    "%s", name);
+	error = tty_makedevf(tp, cred, endc == 'B' ? TTYMK_CLONING : 0, "%s",
+	    name);
 	if (error) {
 		*end = endc;
 		mtx_lock(&ns->ns_mtx);
@@ -300,14 +300,22 @@ bits_per_char(struct termios *t)
 {
 	int bits;
 
-	bits = 1;		/* start bit */
+	bits = 1; /* start bit */
 	switch (t->c_cflag & CSIZE) {
-	case CS5:	bits += 5;	break;
-	case CS6:	bits += 6;	break;
-	case CS7:	bits += 7;	break;
-	case CS8:	bits += 8;	break;
+	case CS5:
+		bits += 5;
+		break;
+	case CS6:
+		bits += 6;
+		break;
+	case CS7:
+		bits += 7;
+		break;
+	case CS8:
+		bits += 8;
+		break;
 	}
-	bits++;			/* stop bit */
+	bits++; /* stop bit */
 	if (t->c_cflag & PARENB)
 		bits++;
 	if (t->c_cflag & CSTOPB)
@@ -348,14 +356,14 @@ nmdm_param(struct tty *tp, struct termios *t)
 			return (0);
 		}
 
-		speed <<= QS;			/* [bit/sec, scaled] */
-		speed /= bpc;			/* [char/sec, scaled] */
-		rate = (hz << QS) / speed;	/* [hz per callout] */
+		speed <<= QS;		   /* [bit/sec, scaled] */
+		speed /= bpc;		   /* [char/sec, scaled] */
+		rate = (hz << QS) / speed; /* [hz per callout] */
 		if (rate == 0)
 			rate = 1;
 
 		speed *= rate;
-		speed /= hz;			/* [(char/sec)/tick, scaled */
+		speed /= hz; /* [(char/sec)/tick, scaled */
 
 		np->np_credits = speed;
 		np->np_rate = rate;
@@ -424,8 +432,8 @@ nmdm_modevent(module_t mod, int type, void *data)
 {
 	static eventhandler_tag tag;
 
-        switch(type) {
-        case MOD_LOAD: 
+	switch (type) {
+	case MOD_LOAD:
 		tag = EVENTHANDLER_REGISTER(dev_clone, nmdm_clone, 0, 1000);
 		if (tag == NULL)
 			return (ENOMEM);

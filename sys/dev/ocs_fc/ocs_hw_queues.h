@@ -37,7 +37,7 @@
 #ifndef __OCS_HW_QUEUES_H__
 #define __OCS_HW_QUEUES_H__
 
-#define OCS_HW_MQ_DEPTH	128
+#define OCS_HW_MQ_DEPTH 128
 
 typedef enum {
 	QTOP_EQ = 0,
@@ -68,8 +68,8 @@ typedef struct {
 	uint32_t num_pairs;
 } ocs_hw_mrq_t;
 
-#define MAX_TOKENS			256
-#define OCS_HW_MAX_QTOP_ENTRIES	200
+#define MAX_TOKENS 256
+#define OCS_HW_MAX_QTOP_ENTRIES 200
 
 typedef struct {
 	ocs_os_handle_t os;
@@ -87,8 +87,9 @@ extern const char *ocs_hw_qtop_entry_name(ocs_hw_qtop_entry_e entry);
 extern uint32_t ocs_hw_qtop_eq_count(ocs_hw_t *hw);
 
 extern ocs_hw_rtn_e ocs_hw_init_queues(ocs_hw_t *hw, ocs_hw_qtop_t *qtop);
-extern void hw_thread_eq_handler(ocs_hw_t *hw, hw_eq_t *eq, uint32_t max_isr_time_msec);
+extern void hw_thread_eq_handler(ocs_hw_t *hw, hw_eq_t *eq,
+    uint32_t max_isr_time_msec);
 extern void hw_thread_cq_handler(ocs_hw_t *hw, hw_cq_t *cq);
-extern  hw_wq_t *ocs_hw_queue_next_wq(ocs_hw_t *hw, ocs_hw_io_t *io);
+extern hw_wq_t *ocs_hw_queue_next_wq(ocs_hw_t *hw, ocs_hw_io_t *io);
 
 #endif /* __OCS_HW_QUEUES_H__ */

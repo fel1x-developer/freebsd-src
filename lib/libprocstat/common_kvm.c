@@ -35,30 +35,30 @@
  */
 
 #include <sys/param.h>
-#include <sys/user.h>
-#include <sys/stat.h>
-#include <sys/vnode.h>
 #include <sys/conf.h>
 #include <sys/pipe.h>
-#define	_WANT_MOUNT
+#include <sys/stat.h>
+#include <sys/user.h>
+#include <sys/vnode.h>
+#define _WANT_MOUNT
 #include <sys/mount.h>
-#include <ufs/ufs/quota.h>
-#include <ufs/ufs/inode.h>
-#include <ufs/ufs/extattr.h>
-#include <ufs/ufs/ufsmount.h>
-#include <fs/devfs/devfs.h>
-#include <fs/devfs/devfs_int.h>
-#include <nfs/nfsproto.h>
-#include <nfsclient/nfs.h>
-#include <nfsclient/nfsnode.h>
 
 #include <assert.h>
 #include <err.h>
+#include <fs/devfs/devfs.h>
+#include <fs/devfs/devfs_int.h>
 #include <kvm.h>
+#include <libprocstat.h>
+#include <nfs/nfsproto.h>
+#include <nfsclient/nfs.h>
+#include <nfsclient/nfsnode.h>
 #include <stddef.h>
 #include <string.h>
+#include <ufs/ufs/extattr.h>
+#include <ufs/ufs/inode.h>
+#include <ufs/ufs/quota.h>
+#include <ufs/ufs/ufsmount.h>
 
-#include <libprocstat.h>
 #include "common_kvm.h"
 
 int
@@ -117,15 +117,13 @@ devfs_filestat(kvm_t *kd, struct vnode *vp, struct vnstat *vn)
 	struct mount mount;
 
 	if (!kvm_read_all(kd, (unsigned long)getvnodedata(vp), &devfs_dirent,
-	    sizeof(devfs_dirent))) {
-		warnx("can't read devfs_dirent at %p",
-		    (void *)vp->v_data);
+		sizeof(devfs_dirent))) {
+		warnx("can't read devfs_dirent at %p", (void *)vp->v_data);
 		return (1);
 	}
 	if (!kvm_read_all(kd, (unsigned long)getvnodemount(vp), &mount,
-	    sizeof(mount))) {
-		warnx("can't read mount at %p",
-		    (void *)getvnodemount(vp));
+		sizeof(mount))) {
+		warnx("can't read mount at %p", (void *)getvnodemount(vp));
 		return (1);
 	}
 	vn->vn_fsid = mount.mnt_stat.f_fsid.val[0];
@@ -142,9 +140,8 @@ nfs_filestat(kvm_t *kd, struct vnode *vp, struct vnstat *vn)
 	mode_t mode;
 
 	if (!kvm_read_all(kd, (unsigned long)VTONFS(vp), &nfsnode,
-	    sizeof(nfsnode))) {
-		warnx("can't read nfsnode at %p",
-		    (void *)VTONFS(vp));
+		sizeof(nfsnode))) {
+		warnx("can't read nfsnode at %p", (void *)VTONFS(vp));
 		return (1);
 	}
 	vn->vn_fsid = nfsnode.n_vattr.va_fsid;
@@ -191,7 +188,7 @@ dev2udev(kvm_t *kd, struct cdev *dev)
 
 	assert(kd);
 	if (kvm_read_all(kd, (unsigned long)cdev2priv(dev), &priv,
-	    sizeof(priv))) {
+		sizeof(priv))) {
 		return ((dev_t)priv.cdp_inode);
 	} else {
 		warnx("can't convert cdev *%p to a dev_t\n", dev);

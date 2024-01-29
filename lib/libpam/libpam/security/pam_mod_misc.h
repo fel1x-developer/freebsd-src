@@ -34,23 +34,21 @@
 /*
  * Common option names
  */
-#define	PAM_OPT_NULLOK		"nullok"
-#define	PAM_OPT_EMPTYOK		"emptyok"
-#define PAM_OPT_AUTH_AS_SELF	"auth_as_self"
-#define PAM_OPT_ECHO_PASS	"echo_pass"
-#define PAM_OPT_DEBUG		"debug"
+#define PAM_OPT_NULLOK "nullok"
+#define PAM_OPT_EMPTYOK "emptyok"
+#define PAM_OPT_AUTH_AS_SELF "auth_as_self"
+#define PAM_OPT_ECHO_PASS "echo_pass"
+#define PAM_OPT_DEBUG "debug"
 
-#define	PAM_LOG(...)							\
-	openpam_log(PAM_LOG_DEBUG, __VA_ARGS__)
+#define PAM_LOG(...) openpam_log(PAM_LOG_DEBUG, __VA_ARGS__)
 
-#define PAM_RETURN(arg)							\
-	return (arg)
+#define PAM_RETURN(arg) return (arg)
 
-#define PAM_VERBOSE_ERROR(...)						\
-	do {								\
-		if (!(flags & PAM_SILENT) &&				\
-		    !openpam_get_option(pamh, "no_warn"))		\
-			pam_error(pamh, __VA_ARGS__);			\
+#define PAM_VERBOSE_ERROR(...)                            \
+	do {                                              \
+		if (!(flags & PAM_SILENT) &&              \
+		    !openpam_get_option(pamh, "no_warn")) \
+			pam_error(pamh, __VA_ARGS__);     \
 	} while (0);
 
 #endif

@@ -47,10 +47,10 @@
 #include <unistd.h>
 
 #define ISMAGICNO(p) \
-	    (p)[0] == magic && isdigit((unsigned char)(p)[1]) && (p)[1] != '0'
+	(p)[0] == magic &&isdigit((unsigned char)(p)[1]) && (p)[1] != '0'
 
-static int	exec_shell(const char *, const char *, const char *);
-static void	usage(void);
+static int exec_shell(const char *, const char *, const char *);
+static void usage(void);
 
 int
 main(int argc, char *argv[])
@@ -63,7 +63,7 @@ main(int argc, char *argv[])
 	char *cmd, *name, *p, *shell, *slashp, *tmpshell;
 
 	debug = 0;
-	magic = '%';		/* Default magic char is `%'. */
+	magic = '%'; /* Default magic char is `%'. */
 	nargs = -1;
 	while ((ch = getopt(argc, argv, "a:d0123456789")) != -1)
 		switch (ch) {
@@ -76,8 +76,16 @@ main(int argc, char *argv[])
 		case 'd':
 			debug = 1;
 			break;
-		case '0': case '1': case '2': case '3': case '4':
-		case '5': case '6': case '7': case '8': case '9':
+		case '0':
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
 			if (nargs != -1)
 				errx(1,
 				    "only one -# argument may be specified");
@@ -189,9 +197,8 @@ main(int argc, char *argv[])
 		/* Run the command. */
 		if (debug)
 			(void)printf("%s\n", sbuf_data(cmdbuf));
-		else
-			if (exec_shell(sbuf_data(cmdbuf), shell, name))
-				rval = 1;
+		else if (exec_shell(sbuf_data(cmdbuf), shell, name))
+			rval = 1;
 	}
 
 	if (argc != 1)
@@ -215,14 +222,14 @@ exec_shell(const char *command, const char *use_shell, const char *use_name)
 	int omask, pstat;
 	sig_t intsave, quitsave;
 
-	if (!command)		/* just checking... */
-		return(1);
+	if (!command) /* just checking... */
+		return (1);
 
 	omask = sigblock(sigmask(SIGCHLD));
-	switch(pid = vfork()) {
-	case -1:			/* error */
+	switch (pid = vfork()) {
+	case -1: /* error */
 		err(1, "vfork");
-	case 0:				/* child */
+	case 0: /* child */
 		(void)sigsetmask(omask);
 		execl(use_shell, use_name, "-c", command, (char *)NULL);
 		warn("%s", use_shell);
@@ -234,7 +241,7 @@ exec_shell(const char *command, const char *use_shell, const char *use_name)
 	(void)sigsetmask(omask);
 	(void)signal(SIGINT, intsave);
 	(void)signal(SIGQUIT, quitsave);
-	return(pid == -1 ? -1 : pstat);
+	return (pid == -1 ? -1 : pstat);
 }
 
 static void
@@ -242,6 +249,6 @@ usage(void)
 {
 
 	(void)fprintf(stderr,
-	"usage: apply [-a magic] [-d] [-0123456789] command arguments ...\n");
+	    "usage: apply [-a magic] [-d] [-0123456789] command arguments ...\n");
 	exit(1);
 }

@@ -39,11 +39,11 @@
 
 #include <sys/param.h>
 
+#include <errno.h>
+#include <ndbm.h>
 #include <stdio.h>
 #include <string.h>
-#include <errno.h>
 
-#include <ndbm.h>
 #include "hash.h"
 
 /*
@@ -64,9 +64,9 @@ dbm_open(const char *file, int flags, mode_t mode)
 	info.hash = NULL;
 	info.lorder = 0;
 
-	if( strlen(file) >= sizeof(path) - strlen(DBM_SUFFIX)) {
+	if (strlen(file) >= sizeof(path) - strlen(DBM_SUFFIX)) {
 		errno = ENAMETOOLONG;
-		return(NULL);
+		return (NULL);
 	}
 	(void)strcpy(path, file);
 	(void)strcat(path, DBM_SUFFIX);
@@ -204,5 +204,5 @@ dbm_clearerr(DBM *db)
 extern int
 dbm_dirfno(DBM *db)
 {
-	return(((HTAB *)db->internal)->fp);
+	return (((HTAB *)db->internal)->fp);
 }

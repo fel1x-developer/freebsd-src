@@ -27,24 +27,24 @@
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#include <err.h>
-#include <fcntl.h>
-#include <sys/endian.h>
 #include <sys/types.h>
+#include <sys/endian.h>
 #include <sys/stat.h>
 
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <libusb.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
+#include "ath3k_dbg.h"
 #include "ath3k_fw.h"
 #include "ath3k_hw.h"
-#include "ath3k_dbg.h"
 
-#define	XMIN(x, y)	((x) < (y) ? (x) : (y))
+#define XMIN(x, y) ((x) < (y) ? (x) : (y))
 
 int
 ath3k_load_fwfile(struct libusb_device_handle *hdl,
@@ -57,24 +57,17 @@ ath3k_load_fwfile(struct libusb_device_handle *hdl,
 
 	size = XMIN(count, FW_HDR_SIZE);
 
-	ath3k_debug("%s: file=%s, size=%d\n",
-	    __func__, fw->fwname, count);
+	ath3k_debug("%s: file=%s, size=%d\n", __func__, fw->fwname, count);
 
 	/*
 	 * Flip the device over to configuration mode.
 	 */
 	ret = libusb_control_transfer(hdl,
-	    LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_OUT,
-	    ATH3K_DNLOAD,
-	    0,
-	    0,
-	    fw->buf + sent,
-	    size,
-	    1000);	/* XXX timeout */
+	    LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_OUT, ATH3K_DNLOAD, 0,
+	    0, fw->buf + sent, size, 1000); /* XXX timeout */
 
 	if (ret != size) {
-		fprintf(stderr, "Can't switch to config mode; ret=%d\n",
-		    ret);
+		fprintf(stderr, "Can't switch to config mode; ret=%d\n", ret);
 		return (-1);
 	}
 
@@ -84,25 +77,19 @@ ath3k_load_fwfile(struct libusb_device_handle *hdl,
 	/* Load in the rest of the data */
 	while (count) {
 		size = XMIN(count, BULK_SIZE);
-		ath3k_debug("%s: transferring %d bytes, offset %d\n",
-		    __func__,
-		    sent,
-		    size);
+		ath3k_debug("%s: transferring %d bytes, offset %d\n", __func__,
+		    sent, size);
 
-		ret = libusb_bulk_transfer(hdl,
-		    0x2,
-		    fw->buf + sent,
-		    size,
-		    &r,
+		ret = libusb_bulk_transfer(hdl, 0x2, fw->buf + sent, size, &r,
 		    1000);
 
 		if (ret < 0 || r != size) {
-			fprintf(stderr, "Can't load firmware: err=%s, size=%d\n",
-			    libusb_strerror(ret),
-			    size);
+			fprintf(stderr,
+			    "Can't load firmware: err=%s, size=%d\n",
+			    libusb_strerror(ret), size);
 			return (-1);
 		}
-		sent  += size;
+		sent += size;
 		count -= size;
 	}
 	return (0);
@@ -114,18 +101,12 @@ ath3k_get_state(struct libusb_device_handle *hdl, unsigned char *state)
 	int ret;
 
 	ret = libusb_control_transfer(hdl,
-	    LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_IN,
-	    ATH3K_GETSTATE,
-	    0,
-	    0,
-	    state,
-	    1,
-	    1000);	/* XXX timeout */
+	    LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_IN, ATH3K_GETSTATE, 0,
+	    0, state, 1, 1000); /* XXX timeout */
 
 	if (ret < 0) {
 		fprintf(stderr,
-		    "%s: libusb_control_transfer() failed: code=%d\n",
-		    __func__,
+		    "%s: libusb_control_transfer() failed: code=%d\n", __func__,
 		    ret);
 		return (0);
 	}
@@ -140,18 +121,13 @@ ath3k_get_version(struct libusb_device_handle *hdl,
 	int ret;
 
 	ret = libusb_control_transfer(hdl,
-	    LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_IN,
-	    ATH3K_GETVERSION,
-	    0,
-	    0,
-	    (unsigned char *) version,
-	    sizeof(struct ath3k_version),
-	    1000);	/* XXX timeout */
+	    LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_IN, ATH3K_GETVERSION,
+	    0, 0, (unsigned char *)version, sizeof(struct ath3k_version),
+	    1000); /* XXX timeout */
 
 	if (ret < 0) {
 		fprintf(stderr,
-		    "%s: libusb_control_transfer() failed: code=%d\n",
-		    __func__,
+		    "%s: libusb_control_transfer() failed: code=%d\n", __func__,
 		    ret);
 		return (0);
 	}
@@ -178,8 +154,7 @@ ath3k_load_patch(libusb_device_handle *hdl, const char *fw_path)
 	}
 
 	if (fw_state & ATH3K_PATCH_UPDATE) {
-		ath3k_info("%s: Patch already downloaded\n",
-		    __func__);
+		ath3k_info("%s: Patch already downloaded\n", __func__);
 		return (0);
 	}
 
@@ -190,14 +165,12 @@ ath3k_load_patch(libusb_device_handle *hdl, const char *fw_path)
 	}
 
 	/* XXX path info? */
-	snprintf(fwname, FILENAME_MAX, "%s/ar3k/AthrBT_0x%08x.dfu",
-	    fw_path,
+	snprintf(fwname, FILENAME_MAX, "%s/ar3k/AthrBT_0x%08x.dfu", fw_path,
 	    fw_ver.rom_version);
 
 	/* Read in the firmware */
 	if (ath3k_fw_read(&fw, fwname) <= 0) {
-		ath3k_debug("%s: ath3k_fw_read() failed\n",
-		    __func__);
+		ath3k_debug("%s: ath3k_fw_read() failed\n", __func__);
 		return (-1);
 	}
 
@@ -209,11 +182,8 @@ ath3k_load_patch(libusb_device_handle *hdl, const char *fw_path)
 	memcpy(&tmp, fw.buf + fw.len - 4, sizeof(tmp));
 	pt_ver.build_version = le32toh(tmp);
 
-	ath3k_info("%s: file %s: rom_ver=%d, build_ver=%d\n",
-	    __func__,
-	    fwname,
-	    (int) pt_ver.rom_version,
-	    (int) pt_ver.build_version);
+	ath3k_info("%s: file %s: rom_ver=%d, build_ver=%d\n", __func__, fwname,
+	    (int)pt_ver.rom_version, (int)pt_ver.build_version);
 
 	/* Check the ROM/build version against the firmware */
 	if ((pt_ver.rom_version != fw_ver.rom_version) ||
@@ -243,7 +213,8 @@ ath3k_load_syscfg(libusb_device_handle *hdl, const char *fw_path)
 
 	ret = ath3k_get_state(hdl, &fw_state);
 	if (ret < 0) {
-		ath3k_err("Can't get state to change to load configuration err");
+		ath3k_err(
+		    "Can't get state to change to load configuration err");
 		return (-EBUSY);
 	}
 
@@ -266,22 +237,16 @@ ath3k_load_syscfg(libusb_device_handle *hdl, const char *fw_path)
 	default:
 		clk_value = 0;
 		break;
-}
+	}
 
-	snprintf(filename, FILENAME_MAX, "%s/ar3k/ramps_0x%08x_%d%s",
-	    fw_path,
-	    fw_ver.rom_version,
-	    clk_value,
-	    ".dfu");
+	snprintf(filename, FILENAME_MAX, "%s/ar3k/ramps_0x%08x_%d%s", fw_path,
+	    fw_ver.rom_version, clk_value, ".dfu");
 
-	ath3k_info("%s: syscfg file = %s\n",
-	    __func__,
-	    filename);
+	ath3k_info("%s: syscfg file = %s\n", __func__, filename);
 
 	/* Read in the firmware */
 	if (ath3k_fw_read(&fw, filename) <= 0) {
-		ath3k_err("%s: ath3k_fw_read() failed\n",
-		    __func__);
+		ath3k_err("%s: ath3k_fw_read() failed\n", __func__);
 		return (-1);
 	}
 
@@ -314,18 +279,12 @@ ath3k_set_normal_mode(libusb_device_handle *hdl)
 	}
 
 	ret = libusb_control_transfer(hdl,
-	    LIBUSB_REQUEST_TYPE_VENDOR,		/* XXX out direction? */
-	    ATH3K_SET_NORMAL_MODE,
-	    0,
-	    0,
-	    NULL,
-	    0,
-	    1000);	/* XXX timeout */
+	    LIBUSB_REQUEST_TYPE_VENDOR, /* XXX out direction? */
+	    ATH3K_SET_NORMAL_MODE, 0, 0, NULL, 0, 1000); /* XXX timeout */
 
 	if (ret < 0) {
 		ath3k_err("%s: libusb_control_transfer() failed: code=%d\n",
-		    __func__,
-		    ret);
+		    __func__, ret);
 		return (0);
 	}
 
@@ -337,18 +296,12 @@ ath3k_switch_pid(libusb_device_handle *hdl)
 {
 	int ret;
 	ret = libusb_control_transfer(hdl,
-	    LIBUSB_REQUEST_TYPE_VENDOR,		/* XXX set an out flag? */
-	    USB_REG_SWITCH_VID_PID,
-	    0,
-	    0,
-	    NULL,
-	    0,
-	    1000);	/* XXX timeout */
+	    LIBUSB_REQUEST_TYPE_VENDOR, /* XXX set an out flag? */
+	    USB_REG_SWITCH_VID_PID, 0, 0, NULL, 0, 1000); /* XXX timeout */
 
 	if (ret < 0) {
 		ath3k_debug("%s: libusb_control_transfer() failed: code=%d\n",
-		    __func__,
-		    ret);
+		    __func__, ret);
 		return (0);
 	}
 

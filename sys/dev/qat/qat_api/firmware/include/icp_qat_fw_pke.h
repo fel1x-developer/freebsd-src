@@ -276,19 +276,23 @@ typedef struct icp_qat_fw_pke_resp_s {
 /**< @ingroup icp_qat_fw_pke
  * One bit mask used to determine PKE status mask */
 
-/*  
+/*
  *  < @ingroup icp_qat_fw_pke
- *  *** PKE Response Status Field Definition *** 
- *  The PKE response follows the CPM 1.5 message format. The status field is 16 bits 
- *  wide, where the status flags are contained within the most significant byte of the 
- *  icp_qat_fw_pke_resp_status_t structure. The lower 8 bits of this word now contain 
- *  the common error codes, which are defined in the common header file(*).  
+ *  *** PKE Response Status Field Definition ***
+ *  The PKE response follows the CPM 1.5 message format. The status field is 16
+ * bits wide, where the status flags are contained within the most significant
+ * byte of the icp_qat_fw_pke_resp_status_t structure. The lower 8 bits of this
+ * word now contain the common error codes, which are defined in the common
+ * header file(*).
  */
-/*  + ===== + ----- + ---- + ----- + ----- + ----- + ----- + ----- + ----- + ----------------------- +   
- *  |  Bit  |  15   |  14  |  13   |  12   |  11   |  10   |   9   |   8   |        [7....0]         |
- *  + ===== + ----- + ---- + ----- + ----- + ----- + ----- + ----- + ----- + ----------------------- +  
- *  | Flags | Rsrvd | Pke  | Rsrvd | Rsrvd | Rsrvd | Rsrvd | Rsrvd | Rsrvd |   Common error codes(*) |
- *  + ===== + ----- + ---- + ----- + ----- + ----- + ----- + ----- + ----- + ----------------------- +    
+/*  + ===== + ----- + ---- + ----- + ----- + ----- + ----- + ----- + ----- +
+ * ----------------------- + |  Bit  |  15   |  14  |  13   |  12   |  11   | 10
+ * |   9   |   8   |        [7....0]         |
+ *  + ===== + ----- + ---- + ----- + ----- + ----- + ----- + ----- + ----- +
+ * ----------------------- + | Flags | Rsrvd | Pke  | Rsrvd | Rsrvd | Rsrvd |
+ * Rsrvd | Rsrvd | Rsrvd |   Common error codes(*) |
+ *  + ===== + ----- + ---- + ----- + ----- + ----- + ----- + ----- + ----- +
+ * ----------------------- +
  */
 
 /**
@@ -309,10 +313,9 @@ typedef struct icp_qat_fw_pke_resp_s {
  *      Status to extract the PKE status bit
  *
  *****************************************************************************/
-#define ICP_QAT_FW_PKE_RESP_PKE_STAT_GET(flags)                                \
-	QAT_FIELD_GET((flags),                                                 \
-		      QAT_COMN_RESP_PKE_STATUS_BITPOS,                         \
-		      QAT_COMN_RESP_PKE_STATUS_MASK)
+#define ICP_QAT_FW_PKE_RESP_PKE_STAT_GET(flags)                 \
+	QAT_FIELD_GET((flags), QAT_COMN_RESP_PKE_STATUS_BITPOS, \
+	    QAT_COMN_RESP_PKE_STATUS_MASK)
 
 /**
  ******************************************************************************
@@ -327,7 +330,7 @@ typedef struct icp_qat_fw_pke_resp_s {
  *                                  from the 'hdr_flags' field.
  *
  *****************************************************************************/
-#define ICP_QAT_FW_PKE_RQ_VALID_FLAG_GET(icp_qat_fw_req_pke_hdr_t)             \
+#define ICP_QAT_FW_PKE_RQ_VALID_FLAG_GET(icp_qat_fw_req_pke_hdr_t) \
 	ICP_QAT_FW_PKE_HDR_VALID_FLAG_GET(icp_qat_fw_req_pke_hdr_t)
 
 /**
@@ -343,7 +346,7 @@ typedef struct icp_qat_fw_pke_resp_s {
  * @param val    Value of the valid bit flag.
  *
  *****************************************************************************/
-#define ICP_QAT_FW_PKE_RQ_VALID_FLAG_SET(icp_qat_fw_req_pke_hdr_t, val)        \
+#define ICP_QAT_FW_PKE_RQ_VALID_FLAG_SET(icp_qat_fw_req_pke_hdr_t, val) \
 	ICP_QAT_FW_PKE_HDR_VALID_FLAG_SET(icp_qat_fw_req_pke_hdr_t, val)
 
 /**
@@ -359,7 +362,7 @@ typedef struct icp_qat_fw_pke_resp_s {
  *                                    from the 'hdr_flags' field.
  *
  *****************************************************************************/
-#define ICP_QAT_FW_PKE_RESP_VALID_FLAG_GET(icp_qat_fw_resp_pke_hdr_t)          \
+#define ICP_QAT_FW_PKE_RESP_VALID_FLAG_GET(icp_qat_fw_resp_pke_hdr_t) \
 	ICP_QAT_FW_PKE_HDR_VALID_FLAG_GET(icp_qat_fw_resp_pke_hdr_t)
 
 /**
@@ -375,7 +378,7 @@ typedef struct icp_qat_fw_pke_resp_s {
  * @param val    Value of the valid bit flag.
  *
  *****************************************************************************/
-#define ICP_QAT_FW_PKE_RESP_VALID_FLAG_SET(icp_qat_fw_resp_pke_hdr_t, val)     \
+#define ICP_QAT_FW_PKE_RESP_VALID_FLAG_SET(icp_qat_fw_resp_pke_hdr_t, val) \
 	ICP_QAT_FW_PKE_HDR_VALID_FLAG_SET(icp_qat_fw_resp_pke_hdr_t, val)
 
 /**
@@ -390,10 +393,9 @@ typedef struct icp_qat_fw_pke_resp_s {
  *               valid bit from the 'hdr_flags' field.
  *
  *****************************************************************************/
-#define ICP_QAT_FW_PKE_HDR_VALID_FLAG_GET(hdr_t)                               \
-	QAT_FIELD_GET(hdr_t.hdr_flags,                                         \
-		      ICP_QAT_FW_PKE_HDR_VALID_FLAG_BITPOS,                    \
-		      ICP_QAT_FW_PKE_HDR_VALID_FLAG_MASK)
+#define ICP_QAT_FW_PKE_HDR_VALID_FLAG_GET(hdr_t)                             \
+	QAT_FIELD_GET(hdr_t.hdr_flags, ICP_QAT_FW_PKE_HDR_VALID_FLAG_BITPOS, \
+	    ICP_QAT_FW_PKE_HDR_VALID_FLAG_MASK)
 
 /**
  ******************************************************************************
@@ -408,10 +410,9 @@ typedef struct icp_qat_fw_pke_resp_s {
  * @param val    Value of the valid bit flag.
  *
  *****************************************************************************/
-#define ICP_QAT_FW_PKE_HDR_VALID_FLAG_SET(hdr_t, val)                          \
-	QAT_FIELD_SET((hdr_t.hdr_flags),                                       \
-		      (val),                                                   \
-		      ICP_QAT_FW_PKE_HDR_VALID_FLAG_BITPOS,                    \
-		      ICP_QAT_FW_PKE_HDR_VALID_FLAG_MASK)
+#define ICP_QAT_FW_PKE_HDR_VALID_FLAG_SET(hdr_t, val) \
+	QAT_FIELD_SET((hdr_t.hdr_flags), (val),       \
+	    ICP_QAT_FW_PKE_HDR_VALID_FLAG_BITPOS,     \
+	    ICP_QAT_FW_PKE_HDR_VALID_FLAG_MASK)
 
 #endif /* _ICP_QAT_FW_PKE_ */

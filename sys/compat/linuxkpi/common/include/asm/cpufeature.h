@@ -6,12 +6,13 @@
 #if defined(__amd64__) || defined(__i386__)
 
 #include <sys/types.h>
+
 #include <machine/md_var.h>
 
-#define	X86_FEATURE_CLFLUSH	1
-#define	X86_FEATURE_XMM4_1	2
-#define	X86_FEATURE_PAT		3
-#define	X86_FEATURE_HYPERVISOR	4
+#define X86_FEATURE_CLFLUSH 1
+#define X86_FEATURE_XMM4_1 2
+#define X86_FEATURE_PAT 3
+#define X86_FEATURE_HYPERVISOR 4
 
 static inline bool
 static_cpu_has(uint16_t f)
@@ -30,7 +31,7 @@ static_cpu_has(uint16_t f)
 	}
 }
 
-#define	boot_cpu_has(x)	static_cpu_has(x)
+#define boot_cpu_has(x) static_cpu_has(x)
 
 #endif
 

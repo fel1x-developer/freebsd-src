@@ -23,13 +23,14 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/ipmi.h>
+#include <sys/kernel.h>
+#include <sys/kthread.h>
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/bus.h>
-#include <sys/kthread.h>
 #include <sys/proc.h>
 #include <sys/selinfo.h>
 #include <sys/sysctl.h>
@@ -39,12 +40,10 @@
 
 #include <machine/bus.h>
 
-#include <dev/ofw/openfirm.h>
+#include <dev/ipmi/ipmivars.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <sys/ipmi.h>
-#include <dev/ipmi/ipmivars.h>
+#include <dev/ofw/openfirm.h>
 
 #include <powerpc/powernv/opal.h>
 
@@ -55,18 +54,18 @@
  * 1 - enable error messages (EPRINTF)
  * 2 - enable error and debug messages (DPRINTF)
  */
-#define	OPAL_IPMI_DEBUG		0
+#define OPAL_IPMI_DEBUG 0
 #if OPAL_IPMI_DEBUG >= 2
 /* debug printf */
-#define	DPRINTF(fmt, ...)	printf("ipmi: " fmt "\n", ## __VA_ARGS__)
+#define DPRINTF(fmt, ...) printf("ipmi: " fmt "\n", ##__VA_ARGS__)
 #else
-#define	DPRINTF(fmt, ...)	((void)0)
+#define DPRINTF(fmt, ...) ((void)0)
 #endif
 #if OPAL_IPMI_DEBUG >= 1
 /* error printf: to print messages only when something fails */
-#define	EPRINTF(fmt, ...)	printf("ipmi: " fmt "\n", ## __VA_ARGS__)
+#define EPRINTF(fmt, ...) printf("ipmi: " fmt "\n", ##__VA_ARGS__)
 #else
-#define	EPRINTF(fmt, ...)	((void)0)
+#define EPRINTF(fmt, ...) ((void)0)
 #endif
 
 struct opal_ipmi_softc {
@@ -108,8 +107,7 @@ opal_ipmi_recv(struct opal_ipmi_softc *sc, uint64_t *msg_len, int timo)
 
 	switch (err) {
 	case OPAL_SUCCESS:
-		DPRINTF("RECV: rv=%02x len=%ld",
-		    sc->sc_msg->data[0], *msg_len);
+		DPRINTF("RECV: rv=%02x len=%ld", sc->sc_msg->data[0], *msg_len);
 		return (0);
 	case OPAL_RESOURCE:
 		return (ENOMEM);
@@ -170,8 +168,8 @@ opal_ipmi_polled_request(struct opal_ipmi_softc *sc, struct ipmi_request *req,
 	err = opal_call(OPAL_IPMI_SEND, sc->sc_interface, vtophys(sc->sc_msg),
 	    msg_len);
 
-	DPRINTF("SEND: cmd=%02x netfn=%02x len=%ld -> %d",
-	    sc->sc_msg->cmd, sc->sc_msg->netfn, msg_len, err);
+	DPRINTF("SEND: cmd=%02x netfn=%02x len=%ld -> %d", sc->sc_msg->cmd,
+	    sc->sc_msg->netfn, msg_len, err);
 
 	if (err != OPAL_SUCCESS)
 		EPRINTF("SEND: error: %d", err);
@@ -275,8 +273,8 @@ opal_ipmi_attach(device_t dev)
 
 	sc = device_get_softc(dev);
 
-	if (OF_getencprop(ofw_bus_get_node(dev), "ibm,ipmi-interface-id",
-	    &ifid, sizeof(ifid)) < 0) {
+	if (OF_getencprop(ofw_bus_get_node(dev), "ibm,ipmi-interface-id", &ifid,
+		sizeof(ifid)) < 0) {
 		device_printf(dev, "Missing interface id\n");
 		return (ENXIO);
 	}
@@ -310,18 +308,14 @@ opal_ipmi_detach(device_t dev)
 	return (err);
 }
 
-static device_method_t	opal_ipmi_methods[] = {
+static device_method_t opal_ipmi_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		opal_ipmi_probe),
-	DEVMETHOD(device_attach,	opal_ipmi_attach),
-	DEVMETHOD(device_detach,	opal_ipmi_detach),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, opal_ipmi_probe),
+	DEVMETHOD(device_attach, opal_ipmi_attach),
+	DEVMETHOD(device_detach, opal_ipmi_detach), DEVMETHOD_END
 };
 
-static driver_t opal_ipmi_driver = {
-	"ipmi",
-	opal_ipmi_methods,
-	sizeof(struct opal_ipmi_softc)
-};
+static driver_t opal_ipmi_driver = { "ipmi", opal_ipmi_methods,
+	sizeof(struct opal_ipmi_softc) };
 
 DRIVER_MODULE(opal_ipmi, opal, opal_ipmi_driver, NULL, NULL);

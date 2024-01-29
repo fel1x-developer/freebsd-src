@@ -13,11 +13,11 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-#ifndef	__IF_IWI_IOCTL_H__
-#define	__IF_IWI_IOCTL_H__
+#ifndef __IF_IWI_IOCTL_H__
+#define __IF_IWI_IOCTL_H__
 
 /* XXX how should I pick appropriate ioctl numbers? */
-#define	SIOCGIWISTATS		_IOWR('i', 147, struct ifreq)
-#define	SIOCZIWISTATS		_IOWR('i', 148, struct ifreq)
+#define SIOCGIWISTATS _IOWR('i', 147, struct ifreq)
+#define SIOCZIWISTATS _IOWR('i', 148, struct ifreq)
 
-#endif	/* __IF_IWI_IOCTL_H__ */
+#endif /* __IF_IWI_IOCTL_H__ */

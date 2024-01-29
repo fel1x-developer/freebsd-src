@@ -31,6 +31,7 @@
 
 #include <sys/param.h>
 #include <sys/socket.h>
+
 #include <errno.h>
 #include <limits.h>
 #include <netdb.h>
@@ -38,19 +39,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "namespace.h"
+#include "netdb_private.h"
 #include "reentrant.h"
 #include "un-namespace.h"
-#include "netdb_private.h"
 #ifdef NS_CACHING
 #include "nscache.h"
 #endif
 #include "nss_tls.h"
 
-static const ns_src defaultsrc[] = {
-	{ NSSRC_FILES, NS_SUCCESS },
-	{ NULL, 0 }
-};
+static const ns_src defaultsrc[] = { { NSSRC_FILES, NS_SUCCESS }, { NULL, 0 } };
 
 NETDB_THREAD_ALLOC(protoent_data)
 NETDB_THREAD_ALLOC(protodata)
@@ -119,7 +118,7 @@ __proto_id_func(char *buffer, size_t *buffer_size, va_list ap,
 
 		memcpy(buffer, &lookup_type, sizeof(enum nss_lookup_type));
 		memcpy(buffer + sizeof(enum nss_lookup_type), &proto,
-			sizeof(int));
+		    sizeof(int));
 
 		res = NS_SUCCESS;
 		break;
@@ -132,7 +131,6 @@ fin:
 	*buffer_size = desired_size;
 	return (res);
 }
-
 
 int
 __proto_marshal_func(char *buffer, size_t *buffer_size, void *retval,
@@ -178,8 +176,8 @@ __proto_marshal_func(char *buffer, size_t *buffer_size, void *retval,
 			++aliases_size;
 		}
 
-		desired_size += _ALIGNBYTES + (aliases_size + 1) *
-		    sizeof(char *);
+		desired_size += _ALIGNBYTES +
+		    (aliases_size + 1) * sizeof(char *);
 	}
 
 	if (*buffer_size < desired_size) {
@@ -264,10 +262,11 @@ __proto_unmarshal_func(char *buffer, size_t buffer_size, void *retval,
 	memcpy(&p, buffer + sizeof(struct protoent), sizeof(char *));
 
 	orig_buf = (char *)_ALIGN(orig_buf);
-	memcpy(orig_buf, buffer + sizeof(struct protoent) + sizeof(char *) +
-	    _ALIGN(p) - (size_t)p,
-	    buffer_size - sizeof(struct protoent) - sizeof(char *) -
-	    _ALIGN(p) + (size_t)p);
+	memcpy(orig_buf,
+	    buffer + sizeof(struct protoent) + sizeof(char *) + _ALIGN(p) -
+		(size_t)p,
+	    buffer_size - sizeof(struct protoent) - sizeof(char *) - _ALIGN(p) +
+		(size_t)p);
 	p = (char *)_ALIGN(p);
 
 	NS_APPLY_OFFSET(proto->p_name, orig_buf, p, char *);
@@ -302,7 +301,7 @@ __copy_protoent(struct protoent *pe, struct protoent *pptr, char *buf,
 		len += strlen(pe->p_aliases[i]) + 1;
 	}
 	len += strlen(pe->p_name) + 1;
-	len += numptr * sizeof(char*);
+	len += numptr * sizeof(char *);
 
 	if (len > (int)buflen) {
 		errno = ERANGE;
@@ -322,7 +321,7 @@ __copy_protoent(struct protoent *pe, struct protoent *pptr, char *buf,
 
 	/* copy aliases */
 	pptr->p_aliases = (char **)ALIGN(buf);
-	for (i = 0 ; pe->p_aliases[i]; i++) {
+	for (i = 0; pe->p_aliases[i]; i++) {
 		n = strlen(pe->p_aliases[i]) + 1;
 		strcpy(cp, pe->p_aliases[i]);
 		pptr->p_aliases[i] = cp;
@@ -409,7 +408,7 @@ files_getprotoent_r(void *retval, void *mdata, va_list ap)
 	struct protoent pe;
 	struct protoent_data *ped;
 
-	struct protoent	*pptr;
+	struct protoent *pptr;
 	char *buffer;
 	size_t buflen;
 	int *errnop;
@@ -469,17 +468,16 @@ getprotoent_r(struct protoent *pptr, char *buffer, size_t buflen,
     struct protoent **result)
 {
 #ifdef NS_CACHING
-	static const nss_cache_info cache_info = NS_MP_CACHE_INFO_INITIALIZER(
-		protocols, (void *)nss_lt_all,
+	static const nss_cache_info cache_info =
+	    NS_MP_CACHE_INFO_INITIALIZER(protocols, (void *)nss_lt_all,
 		__proto_marshal_func, __proto_unmarshal_func);
 #endif
-	static const ns_dtab dtab[] = {
-		{ NSSRC_FILES, files_getprotoent_r, (void *)nss_lt_all },
+	static const ns_dtab dtab[] = { { NSSRC_FILES, files_getprotoent_r,
+					    (void *)nss_lt_all },
 #ifdef NS_CACHING
 		NS_CACHE_CB(&cache_info)
 #endif
-		{ NULL, NULL, NULL }
-	};
+		    { NULL, NULL, NULL } };
 	int rv, ret_errno;
 
 	ret_errno = 0;
@@ -499,20 +497,18 @@ setprotoent(int stayopen)
 {
 #ifdef NS_CACHING
 	static const nss_cache_info cache_info = NS_MP_CACHE_INFO_INITIALIZER(
-		protocols, (void *)nss_lt_all,
-		NULL, NULL);
+	    protocols, (void *)nss_lt_all, NULL, NULL);
 #endif
 
-	static const ns_dtab dtab[] = {
-		{ NSSRC_FILES, files_setprotoent, NULL },
+	static const ns_dtab dtab[] = { { NSSRC_FILES, files_setprotoent,
+					    NULL },
 #ifdef NS_CACHING
 		NS_CACHE_CB(&cache_info)
 #endif
-		{ NULL, NULL, NULL }
-	};
+		    { NULL, NULL, NULL } };
 
 	(void)nsdispatch(NULL, dtab, NSDB_PROTOCOLS, "setprotoent", defaultsrc,
-		stayopen);
+	    stayopen);
 }
 
 void
@@ -520,17 +516,15 @@ endprotoent(void)
 {
 #ifdef NS_CACHING
 	static const nss_cache_info cache_info = NS_MP_CACHE_INFO_INITIALIZER(
-		protocols, (void *)nss_lt_all,
-		NULL, NULL);
+	    protocols, (void *)nss_lt_all, NULL, NULL);
 #endif
 
-	static const ns_dtab dtab[] = {
-		{ NSSRC_FILES, files_endprotoent, NULL },
+	static const ns_dtab dtab[] = { { NSSRC_FILES, files_endprotoent,
+					    NULL },
 #ifdef NS_CACHING
 		NS_CACHE_CB(&cache_info)
 #endif
-		{ NULL, NULL, NULL }
-	};
+		    { NULL, NULL, NULL } };
 
 	(void)nsdispatch(NULL, dtab, NSDB_PROTOCOLS, "endprotoent", defaultsrc);
 }

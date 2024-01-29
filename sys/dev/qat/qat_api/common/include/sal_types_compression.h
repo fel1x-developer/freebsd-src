@@ -14,12 +14,11 @@
 
 #include "cpa_dc.h"
 #include "cpa_dc_dp.h"
-#include "lac_sal_types.h"
-#include "icp_qat_hw.h"
-#include "icp_buffer_desc.h"
-
-#include "lac_mem_pools.h"
 #include "icp_adf_transport.h"
+#include "icp_buffer_desc.h"
+#include "icp_qat_hw.h"
+#include "lac_mem_pools.h"
+#include "lac_sal_types.h"
 
 #define DC_NUM_RX_RINGS (1)
 #define DC_NUM_COMPRESSION_LEVELS (CPA_DC_L12)

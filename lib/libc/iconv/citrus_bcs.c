@@ -28,19 +28,17 @@
  * SUCH DAMAGE.
  */
 
-
 #include <assert.h>
 #include <stdlib.h>
 
-#include "citrus_namespace.h"
 #include "citrus_bcs.h"
+#include "citrus_namespace.h"
 
 /*
  * case insensitive comparison between two C strings.
  */
 int
-_citrus_bcs_strcasecmp(const char * __restrict str1,
-    const char * __restrict str2)
+_citrus_bcs_strcasecmp(const char *__restrict str1, const char *__restrict str2)
 {
 	int c1, c2;
 
@@ -58,8 +56,8 @@ _citrus_bcs_strcasecmp(const char * __restrict str1,
  * case insensitive comparison between two C strings with limitation of length.
  */
 int
-_citrus_bcs_strncasecmp(const char * __restrict str1,
-    const char * __restrict str2, size_t sz)
+_citrus_bcs_strncasecmp(const char *__restrict str1,
+    const char *__restrict str2, size_t sz)
 {
 	int c1, c2;
 
@@ -104,7 +102,7 @@ _citrus_bcs_skip_nonws(const char *p)
  * skip white space characters with limitation of length.
  */
 const char *
-_citrus_bcs_skip_ws_len(const char * __restrict p, size_t * __restrict len)
+_citrus_bcs_skip_ws_len(const char *__restrict p, size_t *__restrict len)
 {
 
 	while (*len > 0 && *p && _bcs_isspace(*p)) {
@@ -119,7 +117,7 @@ _citrus_bcs_skip_ws_len(const char * __restrict p, size_t * __restrict len)
  * skip non white space characters with limitation of length.
  */
 const char *
-_citrus_bcs_skip_nonws_len(const char * __restrict p, size_t * __restrict len)
+_citrus_bcs_skip_nonws_len(const char *__restrict p, size_t *__restrict len)
 {
 
 	while (*len > 0 && *p && !_bcs_isspace(*p)) {
@@ -134,7 +132,7 @@ _citrus_bcs_skip_nonws_len(const char * __restrict p, size_t * __restrict len)
  * truncate trailing white space characters.
  */
 void
-_citrus_bcs_trunc_rws_len(const char * __restrict p, size_t * __restrict len)
+_citrus_bcs_trunc_rws_len(const char *__restrict p, size_t *__restrict len)
 {
 
 	while (*len > 0 && _bcs_isspace(p[*len - 1]))

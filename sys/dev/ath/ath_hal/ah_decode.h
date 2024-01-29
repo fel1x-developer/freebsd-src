@@ -29,32 +29,31 @@
  * existing file.
  */
 struct athregrec {
-	uint32_t	threadid;
-	uint32_t	op	: 8,
-			reg	: 24;
-	uint32_t	val;
+	uint32_t threadid;
+	uint32_t op : 8, reg : 24;
+	uint32_t val;
 };
 
 enum {
-	OP_READ		= 0,		/* register read */
-	OP_WRITE	= 1,		/* register write */
-	OP_DEVICE	= 2,		/* device identification */
-	OP_MARK		= 3,		/* application marker */
+	OP_READ = 0,   /* register read */
+	OP_WRITE = 1,  /* register write */
+	OP_DEVICE = 2, /* device identification */
+	OP_MARK = 3,   /* application marker */
 };
 
 enum {
-	AH_MARK_RESET,			/* ar*Reset entry, bChannelChange */
-	AH_MARK_RESET_LINE,		/* ar*_reset.c, line %d */
-	AH_MARK_RESET_DONE,		/* ar*Reset exit, error code */
-	AH_MARK_CHIPRESET,		/* ar*ChipReset, channel num */
-	AH_MARK_PERCAL,			/* ar*PerCalibration, channel num */
-	AH_MARK_SETCHANNEL,		/* ar*SetChannel, channel num */
-	AH_MARK_ANI_RESET,		/* ar*AniReset, opmode */
-	AH_MARK_ANI_POLL,		/* ar*AniReset, listen time */
-	AH_MARK_ANI_CONTROL,		/* ar*AniReset, cmd */
-	AH_MARK_RX_CTL,			/* RX DMA control */
-	AH_MARK_CHIP_POWER,		/* chip power control, mode */
-	AH_MARK_CHIP_POWER_DONE,	/* chip power control done, status */
+	AH_MARK_RESET,		 /* ar*Reset entry, bChannelChange */
+	AH_MARK_RESET_LINE,	 /* ar*_reset.c, line %d */
+	AH_MARK_RESET_DONE,	 /* ar*Reset exit, error code */
+	AH_MARK_CHIPRESET,	 /* ar*ChipReset, channel num */
+	AH_MARK_PERCAL,		 /* ar*PerCalibration, channel num */
+	AH_MARK_SETCHANNEL,	 /* ar*SetChannel, channel num */
+	AH_MARK_ANI_RESET,	 /* ar*AniReset, opmode */
+	AH_MARK_ANI_POLL,	 /* ar*AniReset, listen time */
+	AH_MARK_ANI_CONTROL,	 /* ar*AniReset, cmd */
+	AH_MARK_RX_CTL,		 /* RX DMA control */
+	AH_MARK_CHIP_POWER,	 /* chip power control, mode */
+	AH_MARK_CHIP_POWER_DONE, /* chip power control done, status */
 };
 
 enum {

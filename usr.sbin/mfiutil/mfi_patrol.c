@@ -31,6 +31,7 @@
 
 #include <sys/types.h>
 #include <sys/errno.h>
+
 #include <err.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -38,6 +39,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+
 #include "mfiutil.h"
 
 static char *
@@ -54,7 +56,7 @@ mfi_get_time(int fd, uint32_t *at)
 {
 
 	if (mfi_dcmd_command(fd, MFI_DCMD_TIME_SECS_GET, at, sizeof(*at), NULL,
-	    0, NULL) < 0) {
+		0, NULL) < 0) {
 		warn("Couldn't fetch adapter time");
 		at = 0;
 	}
@@ -66,7 +68,7 @@ patrol_get_props(int fd, struct mfi_pr_properties *prop)
 	int error;
 
 	if (mfi_dcmd_command(fd, MFI_DCMD_PR_GET_PROPERTIES, prop,
-	    sizeof(*prop), NULL, 0, NULL) < 0) {
+		sizeof(*prop), NULL, 0, NULL) < 0) {
 		error = errno;
 		warn("Failed to get patrol read properties");
 		return (error);
@@ -118,8 +120,8 @@ show_patrol(int ac __unused, char **av __unused)
 	}
 	if (prop.op_mode == MFI_PR_OPMODE_AUTO) {
 		if (at != 0 && prop.next_exec)
-			printf("    Next Run Starts: %s", adapter_time(now, at,
-			    prop.next_exec));
+			printf("    Next Run Starts: %s",
+			    adapter_time(now, at, prop.next_exec));
 		if (prop.exec_freq == 0xffffffff)
 			printf("    Runs Execute Continuously\n");
 		else if (prop.exec_freq != 0)
@@ -128,7 +130,7 @@ show_patrol(int ac __unused, char **av __unused)
 	}
 
 	if (mfi_dcmd_command(fd, MFI_DCMD_PR_GET_STATUS, &status,
-	    sizeof(status), NULL, 0, NULL) < 0) {
+		sizeof(status), NULL, 0, NULL) < 0) {
 		error = errno;
 		warn("Failed to get patrol read properties");
 		close(fd);
@@ -166,7 +168,7 @@ show_patrol(int ac __unused, char **av __unused)
 				continue;
 
 			if (mfi_pd_get_info(fd, list->addr[i].device_id, &info,
-			    NULL) < 0) {
+				NULL) < 0) {
 				error = errno;
 				warn("Failed to fetch info for drive %u",
 				    list->addr[i].device_id);
@@ -177,8 +179,9 @@ show_patrol(int ac __unused, char **av __unused)
 			if (info.prog_info.active & MFI_PD_PROGRESS_PATROL) {
 				snprintf(label, sizeof(label), "    Drive %s",
 				    mfi_drive_name(NULL,
-				    list->addr[i].device_id,
-				    MFI_DNAME_DEVICE_ID|MFI_DNAME_HONOR_OPTS));
+					list->addr[i].device_id,
+					MFI_DNAME_DEVICE_ID |
+					    MFI_DNAME_HONOR_OPTS));
 				mfi_display_progress(label,
 				    &info.prog_info.patrol);
 			}
@@ -255,7 +258,7 @@ patrol_config(int ac, char **av)
 	char *cp;
 	uint8_t op_mode;
 
-	exec_freq = 0;	/* GCC too stupid */
+	exec_freq = 0; /* GCC too stupid */
 	next_exec = 0;
 	if (ac < 2) {
 		warnx("patrol: command required");
@@ -322,7 +325,7 @@ patrol_config(int ac, char **av)
 		}
 	}
 	if (mfi_dcmd_command(fd, MFI_DCMD_PR_SET_PROPERTIES, &prop,
-	    sizeof(prop), NULL, 0, NULL) < 0) {
+		sizeof(prop), NULL, 0, NULL) < 0) {
 		error = errno;
 		warn("Failed to set patrol read properties");
 		close(fd);

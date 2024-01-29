@@ -29,6 +29,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <complex.h>
 #include <fenv.h>
 #include <math.h>
@@ -36,7 +37,7 @@
 
 #include "test-utils.h"
 
-#pragma	STDC CX_LIMITED_RANGE	OFF
+#pragma STDC CX_LIMITED_RANGE OFF
 
 /* Make sure gcc doesn't use builtin versions of these or honor __pure2. */
 static float complex (*libconjf)(float complex) = conjf;
@@ -51,20 +52,34 @@ static long double (*libcimagl)(long double complex) = cimagl;
 
 static const double tests[] = {
 	/* a +  bI */
-	0.0,	0.0,
-	0.0,	1.0,
-	1.0,	0.0,
-	-1.0,	0.0,
-	1.0,	-0.0,
-	0.0,	-1.0,
-	2.0,	4.0,
-	0.0,	INFINITY,
-	0.0,	-INFINITY,
-	INFINITY, 0.0,
-	NAN,	1.0,
-	1.0,	NAN,
-	NAN,	NAN,
-	-INFINITY, INFINITY,
+	0.0,
+	0.0,
+	0.0,
+	1.0,
+	1.0,
+	0.0,
+	-1.0,
+	0.0,
+	1.0,
+	-0.0,
+	0.0,
+	-1.0,
+	2.0,
+	4.0,
+	0.0,
+	INFINITY,
+	0.0,
+	-INFINITY,
+	INFINITY,
+	0.0,
+	NAN,
+	1.0,
+	1.0,
+	NAN,
+	NAN,
+	NAN,
+	-INFINITY,
+	INFINITY,
 };
 
 ATF_TC_WITHOUT_HEAD(main);
@@ -88,10 +103,8 @@ ATF_TC_BODY(main, tc)
 		ATF_REQUIRE(fpequal_cs(libcimagl(in), __imag__ in, true));
 
 		ATF_REQUIRE_EQ(0, feclearexcept(FE_ALL_EXCEPT));
-		ATF_REQUIRE_MSG(
-		    cfpequal(libconjf(in), expected),
-		    "conjf(%#.2g + %#.2gI): wrong value", creal(in), cimag(in)
-		);
+		ATF_REQUIRE_MSG(cfpequal(libconjf(in), expected),
+		    "conjf(%#.2g + %#.2gI): wrong value", creal(in), cimag(in));
 		ATF_REQUIRE_EQ_MSG(0, fetestexcept(FE_ALL_EXCEPT),
 		    "conj(%#.2g + %#.2gI): threw an exception: %#x", creal(in),
 		    cimag(in), fetestexcept(FE_ALL_EXCEPT));

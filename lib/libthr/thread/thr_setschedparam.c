@@ -33,13 +33,14 @@
  */
 
 #include <sys/cdefs.h>
-#include "namespace.h"
 #include <sys/param.h>
+
 #include <errno.h>
 #include <pthread.h>
-#include "un-namespace.h"
 
+#include "namespace.h"
 #include "thr_private.h"
+#include "un-namespace.h"
 
 __weak_reference(_pthread_setschedparam, pthread_setschedparam);
 
@@ -48,20 +49,20 @@ __weak_reference(_pthread_setschedparam, pthread_setschedparam);
  * in kernel, doing it in userland is no-op.
  */
 int
-_pthread_setschedparam(pthread_t pthread, int policy, 
-	const struct sched_param *param)
+_pthread_setschedparam(pthread_t pthread, int policy,
+    const struct sched_param *param)
 {
-	struct pthread	*curthread = _get_curthread();
-	int	ret;
+	struct pthread *curthread = _get_curthread();
+	int ret;
 
 	if (pthread == curthread)
 		THR_LOCK(curthread);
 	else if ((ret = _thr_find_thread(curthread, pthread,
-		 /*include dead*/0)) != 0)
+		      /*include dead*/ 0)) != 0)
 		return (ret);
 	if (pthread->attr.sched_policy == policy &&
 	    (policy == SCHED_OTHER ||
-	     pthread->attr.prio == param->sched_priority)) {
+		pthread->attr.prio == param->sched_priority)) {
 		pthread->attr.prio = param->sched_priority;
 		THR_THREAD_UNLOCK(curthread, pthread);
 		return (0);

@@ -1,4 +1,5 @@
-/*	$NetBSD: newfs_extern.h,v 1.4 2015/12/21 00:58:08 christos Exp $	*/
+/*	$NetBSD: newfs_extern.h,v 1.4 2015/12/21 00:58:08 christos Exp $
+ */
 /* From: NetBSD: extern.h,v 1.3 2000/12/01 12:03:27 simonb Exp $ */
 
 /*-
@@ -28,9 +29,9 @@
  */
 
 /* prototypes */
-struct fs	*ffs_mkfs(const char *, const fsinfo_t *, time_t);
-void		ffs_write_superblock(struct fs *, const fsinfo_t *);
-void		ffs_rdfs(daddr_t, int, void *, const fsinfo_t *);
-void		ffs_wtfs(daddr_t, int, void *, const fsinfo_t *);
+struct fs *ffs_mkfs(const char *, const fsinfo_t *, time_t);
+void ffs_write_superblock(struct fs *, const fsinfo_t *);
+void ffs_rdfs(daddr_t, int, void *, const fsinfo_t *);
+void ffs_wtfs(daddr_t, int, void *, const fsinfo_t *);
 
-#define	FFS_MAXBSIZE	65536
+#define FFS_MAXBSIZE 65536

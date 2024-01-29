@@ -7,8 +7,9 @@
  * $Id$
  */
 
-#include "ipf.h"
 #include <ctype.h>
+
+#include "ipf.h"
 
 int
 getport(frentry_t *fr, char *name, u_short *port, char *proto)

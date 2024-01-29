@@ -29,4 +29,4 @@
  * SUCH DAMAGE.
  */
 
-#define	_PATH_VGRINDEFS	"/usr/share/misc/vgrindefs"
+#define _PATH_VGRINDEFS "/usr/share/misc/vgrindefs"

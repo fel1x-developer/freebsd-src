@@ -23,9 +23,8 @@
  * SUCH DAMAGE.
  */
 
-#include <iconv.h>
-
 #include <atf-c.h>
+#include <iconv.h>
 
 static void
 test_trivialp(const char *src, const char *dst, int expected)
@@ -49,11 +48,11 @@ ATF_TC_WITHOUT_HEAD(iconvctl_trivialp_test);
 ATF_TC_BODY(iconvctl_trivialp_test, tc)
 {
 
-	test_trivialp("ISO-8859-1",  "ISO-8859-1",  1);
-	test_trivialp("ISO-8859-1",  "ISO-8859-15", 0);
-	test_trivialp("ISO-8859-15", "ISO-8859-1",  0);
-	test_trivialp("ISO-8859-15", "UTF-8",       0);
-	test_trivialp("UTF-8",       "ASCII",       0);
+	test_trivialp("ISO-8859-1", "ISO-8859-1", 1);
+	test_trivialp("ISO-8859-1", "ISO-8859-15", 0);
+	test_trivialp("ISO-8859-15", "ISO-8859-1", 0);
+	test_trivialp("ISO-8859-15", "UTF-8", 0);
+	test_trivialp("UTF-8", "ASCII", 0);
 }
 
 ATF_TP_ADD_TCS(tp)

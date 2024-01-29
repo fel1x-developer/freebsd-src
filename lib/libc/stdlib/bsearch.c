@@ -32,11 +32,11 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-#ifdef	I_AM_BSEARCH_B
+#ifdef I_AM_BSEARCH_B
 #include "block_abi.h"
-#define	COMPAR(x,y)	CALL_BLOCK(compar, x, y)
+#define COMPAR(x, y) CALL_BLOCK(compar, x, y)
 #else
-#define	COMPAR(x,y)	compar(x, y)
+#define COMPAR(x, y) compar(x, y)
 #endif
 
 /*
@@ -75,10 +75,10 @@ bsearch(const void *key, const void *base0, size_t nmemb, size_t size,
 		cmp = COMPAR(key, p);
 		if (cmp == 0)
 			return ((void *)p);
-		if (cmp > 0) {	/* key > p: move right */
+		if (cmp > 0) { /* key > p: move right */
 			base = (char *)p + size;
 			lim--;
-		}		/* else move left */
+		} /* else move left */
 	}
 	return (NULL);
 }

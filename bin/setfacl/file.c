@@ -41,7 +41,7 @@ get_acl_from_file(const char *filename)
 {
 	FILE *file;
 	size_t len;
-	char buf[BUFSIZ+1];
+	char buf[BUFSIZ + 1];
 
 	if (filename == NULL)
 		err(1, "(null) filename in get_acl_from_file()");

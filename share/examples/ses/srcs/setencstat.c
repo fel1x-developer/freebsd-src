@@ -25,21 +25,22 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- * 
+ *
  * Matthew Jacob
  * Feral Software
  * mjacob@feral.com
  */
 
-#include <unistd.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <fcntl.h>
 #include <sys/ioctl.h>
+
 #include <cam/scsi/scsi_all.h>
 #include <cam/scsi/scsi_enc.h>
+#include <fcntl.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 int
 main(int a, char **v)
@@ -57,12 +58,12 @@ main(int a, char **v)
 		perror(v[1]);
 		return (1);
 	}
-	
-	val =  strtol(v[2], NULL, 0);
+
+	val = strtol(v[2], NULL, 0);
 	stat = (encioc_enc_status_t)val;
-	if (ioctl(fd, ENCIOC_SETENCSTAT, (caddr_t) &stat) < 0) {
+	if (ioctl(fd, ENCIOC_SETENCSTAT, (caddr_t)&stat) < 0) {
 		perror("ENCIOC_SETENCSTAT");
 	}
-	(void) close(fd);
+	(void)close(fd);
 	return (0);
 }

@@ -21,22 +21,22 @@
 #include <sys/sx.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
 #include <vm/pmap.h>
-#include <vm/vm_map.h>
 #include <vm/vm_kern.h>
+#include <vm/vm_map.h>
 #include <vm/vm_object.h>
+#include <vm/vm_param.h>
 
 #include <cddl/dev/dtrace/dtrace_cddl.h>
 
 #include "kinst.h"
 #include "kinst_isa.h"
 
-#define KINST_TRAMP_FILL_PATTERN	((kinst_patchval_t []){KINST_PATCHVAL})
-#define KINST_TRAMP_FILL_SIZE		sizeof(kinst_patchval_t)
+#define KINST_TRAMP_FILL_PATTERN ((kinst_patchval_t[]) { KINST_PATCHVAL })
+#define KINST_TRAMP_FILL_SIZE sizeof(kinst_patchval_t)
 
-#define KINST_TRAMPCHUNK_SIZE		PAGE_SIZE
-#define KINST_TRAMPS_PER_CHUNK		(KINST_TRAMPCHUNK_SIZE / KINST_TRAMP_SIZE)
+#define KINST_TRAMPCHUNK_SIZE PAGE_SIZE
+#define KINST_TRAMPS_PER_CHUNK (KINST_TRAMPCHUNK_SIZE / KINST_TRAMP_SIZE)
 
 struct trampchunk {
 	TAILQ_ENTRY(trampchunk) next;
@@ -45,13 +45,13 @@ struct trampchunk {
 	BITSET_DEFINE(, KINST_TRAMPS_PER_CHUNK) free;
 };
 
-static TAILQ_HEAD(, trampchunk)	kinst_trampchunks =
-    TAILQ_HEAD_INITIALIZER(kinst_trampchunks);
-static struct sx		kinst_tramp_sx;
+static TAILQ_HEAD(, trampchunk) kinst_trampchunks = TAILQ_HEAD_INITIALIZER(
+    kinst_trampchunks);
+static struct sx kinst_tramp_sx;
 SX_SYSINIT(kinst_tramp_sx, &kinst_tramp_sx, "kinst tramp");
 #ifdef __amd64__
-static eventhandler_tag		kinst_thread_ctor_handler;
-static eventhandler_tag		kinst_thread_dtor_handler;
+static eventhandler_tag kinst_thread_ctor_handler;
+static eventhandler_tag kinst_thread_dtor_handler;
 #endif
 
 /*
@@ -140,7 +140,7 @@ kinst_trampoline_alloc_locked(int how)
 
 	sx_assert(&kinst_tramp_sx, SX_XLOCKED);
 
-	TAILQ_FOREACH(chunk, &kinst_trampchunks, next) {
+	TAILQ_FOREACH (chunk, &kinst_trampchunks, next) {
 		/* All trampolines from this chunk are already allocated. */
 		if ((off = BIT_FFS(KINST_TRAMPS_PER_CHUNK, &chunk->free)) == 0)
 			continue;
@@ -200,7 +200,7 @@ kinst_trampoline_dealloc_locked(uint8_t *tramp, bool freechunks)
 	if (tramp == NULL)
 		return;
 
-	TAILQ_FOREACH(chunk, &kinst_trampchunks, next) {
+	TAILQ_FOREACH (chunk, &kinst_trampchunks, next) {
 		for (off = 0; off < KINST_TRAMPS_PER_CHUNK; off++) {
 			if (chunk->addr + off * KINST_TRAMP_SIZE == tramp) {
 				kinst_trampoline_fill(tramp, KINST_TRAMP_SIZE);
@@ -208,7 +208,7 @@ kinst_trampoline_dealloc_locked(uint8_t *tramp, bool freechunks)
 				    &chunk->free);
 				if (freechunks &&
 				    BIT_ISFULLSET(KINST_TRAMPS_PER_CHUNK,
-				    &chunk->free))
+					&chunk->free))
 					kinst_trampchunk_free(chunk);
 				return;
 			}
@@ -267,10 +267,10 @@ kinst_trampoline_init(void)
 
 	sx_slock(&allproc_lock);
 	sx_xlock(&kinst_tramp_sx);
-	FOREACH_PROC_IN_SYSTEM(p) {
-retry:
+	FOREACH_PROC_IN_SYSTEM (p) {
+	retry:
 		PROC_LOCK(p);
-		FOREACH_THREAD_IN_PROC(p, td) {
+		FOREACH_THREAD_IN_PROC (p, td) {
 			if (td->t_kinst_tramp != NULL)
 				continue;
 			if (tramp == NULL) {
@@ -328,9 +328,9 @@ kinst_trampoline_deinit(void)
 
 	sx_slock(&allproc_lock);
 	sx_xlock(&kinst_tramp_sx);
-	FOREACH_PROC_IN_SYSTEM(p) {
+	FOREACH_PROC_IN_SYSTEM (p) {
 		PROC_LOCK(p);
-		FOREACH_THREAD_IN_PROC(p, td) {
+		FOREACH_THREAD_IN_PROC (p, td) {
 			kinst_trampoline_dealloc_locked(td->t_kinst_tramp,
 			    false);
 			td->t_kinst_tramp = NULL;
@@ -338,14 +338,14 @@ kinst_trampoline_deinit(void)
 		PROC_UNLOCK(p);
 	}
 	sx_sunlock(&allproc_lock);
-	TAILQ_FOREACH_SAFE(chunk, &kinst_trampchunks, next, tmp)
+	TAILQ_FOREACH_SAFE (chunk, &kinst_trampchunks, next, tmp)
 		kinst_trampchunk_free(chunk);
 	sx_xunlock(&kinst_tramp_sx);
 #else
 	struct trampchunk *chunk, *tmp;
 
 	sx_xlock(&kinst_tramp_sx);
-	TAILQ_FOREACH_SAFE(chunk, &kinst_trampchunks, next, tmp)
+	TAILQ_FOREACH_SAFE (chunk, &kinst_trampchunks, next, tmp)
 		kinst_trampchunk_free(chunk);
 	sx_xunlock(&kinst_tramp_sx);
 #endif

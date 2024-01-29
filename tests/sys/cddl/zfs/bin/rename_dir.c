@@ -24,7 +24,6 @@
  * Use is subject to license terms.
  */
 
-
 /*
  * Assertion:
  * Create two directory trees in zfs filesystem, and rename
@@ -39,11 +38,10 @@
  * mkdir -p 1/2/3/4/5 a/b/c/d/e
  */
 
-
-#include <stdlib.h>
-#include <unistd.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 int
 main()
@@ -65,9 +63,9 @@ main()
 			if (rename("1/2/3/c", "a/b/c") == 0)
 				c_count++;
 			if (c_count) {
-				(void) strlcat(buf, "c_count: %d,", 256);
-				(void) strlcat(buf, msg, 256);
-				(void) fprintf(stderr, buf, c_count);
+				(void)strlcat(buf, "c_count: %d,", 256);
+				(void)strlcat(buf, msg, 256);
+				(void)fprintf(stderr, buf, c_count);
 			}
 		}
 		break;
@@ -79,9 +77,9 @@ main()
 			if (rename("a/b/c/d/e/1", "1") == 0)
 				p_count++;
 			if (p_count) {
-				(void) strlcat(buf, "p_count: %d,", 256);
-				(void) strlcat(buf, msg, 256);
-				(void) fprintf(stderr, buf, p_count);
+				(void)strlcat(buf, "p_count: %d,", 256);
+				(void)strlcat(buf, msg, 256);
+				(void)fprintf(stderr, buf, p_count);
 			}
 		}
 		break;

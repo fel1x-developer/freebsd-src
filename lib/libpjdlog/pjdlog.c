@@ -33,9 +33,10 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 
+#include <netinet/in.h>
+
+#include <arpa/inet.h>
 #include <assert.h>
 #include <errno.h>
 #include <libutil.h>
@@ -55,18 +56,18 @@
 
 #include "pjdlog.h"
 
-#ifndef	MAX
-#define	MAX(a, b)	((a) > (b) ? (a) : (b))
+#ifndef MAX
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
 #endif
 
-#define	PJDLOG_MAX_MSGSIZE	4096
+#define PJDLOG_MAX_MSGSIZE 4096
 
-#define	PJDLOG_PREFIX_STACK	4
-#define	PJDLOG_PREFIX_MAXSIZE	128
+#define PJDLOG_PREFIX_STACK 4
+#define PJDLOG_PREFIX_MAXSIZE 128
 
-#define	PJDLOG_NEVER_INITIALIZED	0
-#define	PJDLOG_NOT_INITIALIZED		1
-#define	PJDLOG_INITIALIZED		2
+#define PJDLOG_NEVER_INITIALIZED 0
+#define PJDLOG_NOT_INITIALIZED 1
+#define PJDLOG_INITIALIZED 2
 
 static int pjdlog_initialized = PJDLOG_NEVER_INITIALIZED;
 static int pjdlog_mode, pjdlog_debug_level, pjdlog_sock;
@@ -85,7 +86,7 @@ pjdlog_printf_arginfo_humanized_number(const struct printf_info *pi __unused,
 
 static int
 pjdlog_printf_render_humanized_number(struct __printf_io *io,
-    const struct printf_info *pi, const void * const *arg)
+    const struct printf_info *pi, const void *const *arg)
 {
 	char buf[5];
 	intmax_t num;
@@ -100,8 +101,8 @@ pjdlog_printf_render_humanized_number(struct __printf_io *io,
 }
 
 static int
-pjdlog_printf_arginfo_sockaddr(const struct printf_info *pi __unused,
-    size_t n, int *argt)
+pjdlog_printf_arginfo_sockaddr(const struct printf_info *pi __unused, size_t n,
+    int *argt)
 {
 
 	assert(n >= 1);
@@ -111,38 +112,36 @@ pjdlog_printf_arginfo_sockaddr(const struct printf_info *pi __unused,
 
 static int
 pjdlog_printf_render_sockaddr_ip(struct __printf_io *io,
-    const struct printf_info *pi, const void * const *arg)
+    const struct printf_info *pi, const void *const *arg)
 {
 	const struct sockaddr_storage *ss;
 	char addr[MAX(INET_ADDRSTRLEN, INET6_ADDRSTRLEN)];
 	int ret;
 
-	ss = *(const struct sockaddr_storage * const *)arg[0];
+	ss = *(const struct sockaddr_storage *const *)arg[0];
 	switch (ss->ss_family) {
-	case AF_INET:
-	    {
+	case AF_INET: {
 		const struct sockaddr_in *sin;
 
 		sin = (const struct sockaddr_in *)ss;
 		if (inet_ntop(ss->ss_family, &sin->sin_addr, addr,
-		    sizeof(addr)) == NULL) {
+			sizeof(addr)) == NULL) {
 			PJDLOG_ABORT("inet_ntop(AF_INET) failed: %s.",
 			    strerror(errno));
 		}
 		break;
-	    }
-	case AF_INET6:
-	    {
+	}
+	case AF_INET6: {
 		const struct sockaddr_in6 *sin;
 
 		sin = (const struct sockaddr_in6 *)ss;
 		if (inet_ntop(ss->ss_family, &sin->sin6_addr, addr,
-		    sizeof(addr)) == NULL) {
+			sizeof(addr)) == NULL) {
 			PJDLOG_ABORT("inet_ntop(AF_INET6) failed: %s.",
 			    strerror(errno));
 		}
 		break;
-	    }
+	}
 	default:
 		snprintf(addr, sizeof(addr), "[unsupported family %hhu]",
 		    ss->ss_family);
@@ -155,16 +154,15 @@ pjdlog_printf_render_sockaddr_ip(struct __printf_io *io,
 
 static int
 pjdlog_printf_render_sockaddr(struct __printf_io *io,
-    const struct printf_info *pi, const void * const *arg)
+    const struct printf_info *pi, const void *const *arg)
 {
 	const struct sockaddr_storage *ss;
 	char buf[PATH_MAX];
 	int ret;
 
-	ss = *(const struct sockaddr_storage * const *)arg[0];
+	ss = *(const struct sockaddr_storage *const *)arg[0];
 	switch (ss->ss_family) {
-	case AF_UNIX:
-	    {
+	case AF_UNIX: {
 		const struct sockaddr_un *sun;
 
 		sun = (const struct sockaddr_un *)ss;
@@ -173,9 +171,8 @@ pjdlog_printf_render_sockaddr(struct __printf_io *io,
 		else
 			snprintf(buf, sizeof(buf), "%s", sun->sun_path);
 		break;
-	    }
-	case AF_INET:
-	    {
+	}
+	case AF_INET: {
 		char addr[INET_ADDRSTRLEN];
 		const struct sockaddr_in *sin;
 		unsigned int port;
@@ -183,15 +180,14 @@ pjdlog_printf_render_sockaddr(struct __printf_io *io,
 		sin = (const struct sockaddr_in *)ss;
 		port = ntohs(sin->sin_port);
 		if (inet_ntop(ss->ss_family, &sin->sin_addr, addr,
-		    sizeof(addr)) == NULL) {
+			sizeof(addr)) == NULL) {
 			PJDLOG_ABORT("inet_ntop(AF_INET) failed: %s.",
 			    strerror(errno));
 		}
 		snprintf(buf, sizeof(buf), "%s:%u", addr, port);
 		break;
-	    }
-	case AF_INET6:
-	    {
+	}
+	case AF_INET6: {
 		char addr[INET6_ADDRSTRLEN];
 		const struct sockaddr_in6 *sin;
 		unsigned int port;
@@ -199,13 +195,13 @@ pjdlog_printf_render_sockaddr(struct __printf_io *io,
 		sin = (const struct sockaddr_in6 *)ss;
 		port = ntohs(sin->sin6_port);
 		if (inet_ntop(ss->ss_family, &sin->sin6_addr, addr,
-		    sizeof(addr)) == NULL) {
+			sizeof(addr)) == NULL) {
 			PJDLOG_ABORT("inet_ntop(AF_INET6) failed: %s.",
 			    strerror(errno));
 		}
 		snprintf(buf, sizeof(buf), "[%s]:%u", addr, port);
 		break;
-	    }
+	}
 	default:
 		snprintf(buf, sizeof(buf), "[unsupported family %hhu]",
 		    ss->ss_family);
@@ -238,11 +234,9 @@ pjdlog_init(int mode)
 		register_printf_render('N',
 		    pjdlog_printf_render_humanized_number,
 		    pjdlog_printf_arginfo_humanized_number);
-		register_printf_render('I',
-		    pjdlog_printf_render_sockaddr_ip,
+		register_printf_render('I', pjdlog_printf_render_sockaddr_ip,
 		    pjdlog_printf_arginfo_sockaddr);
-		register_printf_render('S',
-		    pjdlog_printf_render_sockaddr,
+		register_printf_render('S', pjdlog_printf_render_sockaddr,
 		    pjdlog_printf_arginfo_sockaddr);
 	}
 
@@ -313,7 +307,6 @@ pjdlog_mode_set(int mode)
 
 	errno = saved_errno;
 }
-
 
 /*
  * Return current mode.
@@ -501,7 +494,7 @@ pjdlog_level_to_string(int loglevel)
 		return ("DEBUG");
 	}
 	assert(!"Invalid log level.");
-	abort();	/* XXX: gcc */
+	abort(); /* XXX: gcc */
 }
 
 static int
@@ -613,21 +606,22 @@ pjdlogv_common_single_line(const char *func, const char *file, int line,
 		syslog(loglevel, "%s", logp);
 		break;
 #ifdef notyet
-	case PJDLOG_MODE_SOCK:
-	    {
+	case PJDLOG_MODE_SOCK: {
 		char ack[2];
 		uint16_t dlen;
 
 		log[2] = loglevel;
 		log[3] = debuglevel;
-		dlen = strlen(logp) + 3;	/* +3 = loglevel, debuglevel and terminating \0 */
+		dlen = strlen(logp) +
+		    3; /* +3 = loglevel, debuglevel and terminating \0 */
 		bcopy(&dlen, log, sizeof(dlen));
-		if (robust_send(pjdlog_sock, log, (size_t)dlen + 2) == -1)	/* +2 for size */
+		if (robust_send(pjdlog_sock, log, (size_t)dlen + 2) ==
+		    -1) /* +2 for size */
 			assert(!"Unable to send log.");
 		if (robust_recv(pjdlog_sock, ack, sizeof(ack)) == -1)
 			assert(!"Unable to send log.");
 		break;
-	    }
+	}
 #endif
 	default:
 		assert(!"Invalid mode.");
@@ -740,8 +734,8 @@ _pjdlog_exit(const char *func, const char *file, int line, int exitcode,
  * Log failure message and exit.
  */
 void
-_pjdlog_abort(const char *func, const char *file, int line,
-    int error, const char *failedexpr, const char *fmt, ...)
+_pjdlog_abort(const char *func, const char *file, int line, int error,
+    const char *failedexpr, const char *fmt, ...)
 {
 	va_list ap;
 

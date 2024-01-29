@@ -25,12 +25,12 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/proc.h>
 #include <sys/smp.h>
-#include <sys/systm.h>
 #include <sys/timeet.h>
 
 #include <dev/hyperv/include/hyperv.h>
@@ -39,46 +39,39 @@
 #else
 #include <dev/hyperv/vmbus/x86/hyperv_reg.h>
 #endif
+#include <dev/hyperv/vmbus/hyperv_common_reg.h>
 #include <dev/hyperv/vmbus/hyperv_var.h>
 #include <dev/hyperv/vmbus/vmbus_var.h>
-#include <dev/hyperv/vmbus/hyperv_common_reg.h>
 
-#define VMBUS_ET_NAME			"hvet"
+#define VMBUS_ET_NAME "hvet"
 
-#define MSR_HV_STIMER0_CFG_SINT		\
+#define MSR_HV_STIMER0_CFG_SINT                                           \
 	((((uint64_t)VMBUS_SINT_TIMER) << MSR_HV_STIMER_CFG_SINT_SHIFT) & \
-	 MSR_HV_STIMER_CFG_SINT_MASK)
+	    MSR_HV_STIMER_CFG_SINT_MASK)
 
 /*
  * Additionally required feature:
  * - SynIC is needed for interrupt generation.
  */
-#define CPUID_HV_ET_MASK		(CPUID_HV_MSR_SYNIC |		\
-					 CPUID_HV_MSR_SYNTIMER)
+#define CPUID_HV_ET_MASK (CPUID_HV_MSR_SYNIC | CPUID_HV_MSR_SYNTIMER)
 
-static void			vmbus_et_identify(driver_t *, device_t);
-static int			vmbus_et_probe(device_t);
-static int			vmbus_et_attach(device_t);
-static int			vmbus_et_detach(device_t);
-static int			vmbus_et_start(struct eventtimer *, sbintime_t,
-				    sbintime_t);
+static void vmbus_et_identify(driver_t *, device_t);
+static int vmbus_et_probe(device_t);
+static int vmbus_et_attach(device_t);
+static int vmbus_et_detach(device_t);
+static int vmbus_et_start(struct eventtimer *, sbintime_t, sbintime_t);
 
-static struct eventtimer	vmbus_et;
+static struct eventtimer vmbus_et;
 
-static device_method_t vmbus_et_methods[] = {
-	DEVMETHOD(device_identify,	vmbus_et_identify),
-	DEVMETHOD(device_probe,		vmbus_et_probe),
-	DEVMETHOD(device_attach,	vmbus_et_attach),
-	DEVMETHOD(device_detach,	vmbus_et_detach),
+static device_method_t vmbus_et_methods[] = { DEVMETHOD(device_identify,
+						  vmbus_et_identify),
+	DEVMETHOD(device_probe, vmbus_et_probe),
+	DEVMETHOD(device_attach, vmbus_et_attach),
+	DEVMETHOD(device_detach, vmbus_et_detach),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
-static driver_t vmbus_et_driver = {
-	VMBUS_ET_NAME,
-	vmbus_et_methods,
-	0
-};
+static driver_t vmbus_et_driver = { VMBUS_ET_NAME, vmbus_et_methods, 0 };
 
 DRIVER_MODULE(hv_et, vmbus, vmbus_et_driver, NULL, NULL);
 MODULE_VERSION(hv_et, 1);

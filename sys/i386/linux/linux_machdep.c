@@ -29,8 +29,8 @@
 #include "opt_posix.h"
 
 #include <sys/param.h>
-#include <sys/imgact_aout.h>
 #include <sys/fcntl.h>
+#include <sys/imgact_aout.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mman.h>
@@ -45,26 +45,23 @@
 #include <sys/sysproto.h>
 #include <sys/vnode.h>
 
-#include <security/audit/audit.h>
-#include <security/mac/mac_framework.h>
-
-#include <machine/frame.h>
-#include <machine/pcb.h>			/* needed for pcb definition in linux_set_thread_area */
-#include <machine/psl.h>
-#include <machine/segments.h>
-#include <machine/sysarch.h>
-
-#include <vm/pmap.h>
 #include <vm/vm.h>
+#include <vm/pmap.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_kern.h>
 #include <vm/vm_map.h>
 #include <vm/vm_param.h>
 
-#include <x86/reg.h>
+#include <machine/frame.h>
+#include <machine/pcb.h> /* needed for pcb definition in linux_set_thread_area */
+#include <machine/psl.h>
+#include <machine/segments.h>
+#include <machine/sysarch.h>
 
 #include <i386/linux/linux.h>
 #include <i386/linux/linux_proto.h>
+#include <x86/reg.h>
+
 #include <compat/linux/linux_emul.h>
 #include <compat/linux/linux_fork.h>
 #include <compat/linux/linux_ipc.h>
@@ -72,26 +69,27 @@
 #include <compat/linux/linux_mmap.h>
 #include <compat/linux/linux_signal.h>
 #include <compat/linux/linux_util.h>
-
+#include <security/audit/audit.h>
+#include <security/mac/mac_framework.h>
 
 struct l_descriptor {
-	l_uint		entry_number;
-	l_ulong		base_addr;
-	l_uint		limit;
-	l_uint		seg_32bit:1;
-	l_uint		contents:2;
-	l_uint		read_exec_only:1;
-	l_uint		limit_in_pages:1;
-	l_uint		seg_not_present:1;
-	l_uint		useable:1;
+	l_uint entry_number;
+	l_ulong base_addr;
+	l_uint limit;
+	l_uint seg_32bit : 1;
+	l_uint contents : 2;
+	l_uint read_exec_only : 1;
+	l_uint limit_in_pages : 1;
+	l_uint seg_not_present : 1;
+	l_uint useable : 1;
 };
 
 struct l_old_select_argv {
-	l_int		nfds;
-	l_fd_set	*readfds;
-	l_fd_set	*writefds;
-	l_fd_set	*exceptfds;
-	struct l_timeval	*timeout;
+	l_int nfds;
+	l_fd_set *readfds;
+	l_fd_set *writefds;
+	l_fd_set *exceptfds;
+	struct l_timeval *timeout;
 };
 
 struct l_ipc_kludge {
@@ -106,8 +104,8 @@ linux_ipc(struct thread *td, struct linux_ipc_args *args)
 	switch (args->what & 0xFFFF) {
 	case LINUX_SEMOP: {
 
-		return (kern_semop(td, args->arg1, PTRIN(args->ptr),
-		    args->arg2, NULL));
+		return (kern_semop(td, args->arg1, PTRIN(args->ptr), args->arg2,
+		    NULL));
 	}
 	case LINUX_SEMGET: {
 		struct linux_semget_args a;
@@ -276,7 +274,8 @@ linux_set_cloned_tls(struct thread *td, void *desc)
 		if (idx == 6) {
 			/* we might copy out the entry_number as 3 */
 			info.entry_number = 3;
-			error = copyout(&info, desc, sizeof(struct l_user_desc));
+			error = copyout(&info, desc,
+			    sizeof(struct l_user_desc));
 			if (error)
 				linux_msg(td, "set_cloned_tls copyout failed!");
 		}
@@ -370,10 +369,11 @@ linux_modify_ldt(struct thread *td, struct linux_modify_ldt_args *uap)
 		td->td_retval[0] *= sizeof(union descriptor);
 		break;
 	case 0x02: /* read_default_ldt = 0 */
-		size = 5*sizeof(struct l_desc_struct);
+		size = 5 * sizeof(struct l_desc_struct);
 		if (size > uap->bytecount)
 			size = uap->bytecount;
-		for (written = error = 0; written < size && error == 0; written++)
+		for (written = error = 0; written < size && error == 0;
+		     written++)
 			error = subyte((char *)uap->ptr + written, 0);
 		td->td_retval[0] = written;
 		break;
@@ -394,7 +394,7 @@ linux_modify_ldt(struct thread *td, struct linux_modify_ldt_args *uap)
 		desc.sd.sd_lobase = (ld.base_addr & 0x00ffffff);
 		desc.sd.sd_hibase = (ld.base_addr & 0xff000000) >> 24;
 		desc.sd.sd_type = SDT_MEMRO | ((ld.read_exec_only ^ 1) << 1) |
-			(ld.contents << 2);
+		    (ld.contents << 2);
 		desc.sd.sd_dpl = 3;
 		desc.sd.sd_p = (ld.seg_not_present ^ 1);
 		desc.sd.sd_xx = 0;
@@ -477,7 +477,8 @@ linux_pause(struct thread *td, struct linux_pause_args *args)
 }
 
 int
-linux_set_thread_area(struct thread *td, struct linux_set_thread_area_args *args)
+linux_set_thread_area(struct thread *td,
+    struct linux_set_thread_area_args *args)
 {
 	struct l_user_desc info;
 	int error;
@@ -549,7 +550,8 @@ linux_set_thread_area(struct thread *td, struct linux_set_thread_area_args *args
 }
 
 int
-linux_get_thread_area(struct thread *td, struct linux_get_thread_area_args *args)
+linux_get_thread_area(struct thread *td,
+    struct linux_get_thread_area_args *args)
 {
 
 	struct l_user_desc info;
@@ -624,7 +626,8 @@ linux_mq_timedsend(struct thread *td, struct linux_mq_timedsend_args *args)
 }
 
 int
-linux_mq_timedreceive(struct thread *td, struct linux_mq_timedreceive_args *args)
+linux_mq_timedreceive(struct thread *td,
+    struct linux_mq_timedreceive_args *args)
 {
 #ifdef P1003_1B_MQUEUE
 	return (sys_kmq_timedreceive(td, (struct kmq_timedreceive_args *)args));
@@ -654,8 +657,7 @@ linux_mq_getsetattr(struct thread *td, struct linux_mq_getsetattr_args *args)
 }
 
 void
-bsd_to_linux_regset(const struct reg *b_reg,
-    struct linux_pt_regset *l_regset)
+bsd_to_linux_regset(const struct reg *b_reg, struct linux_pt_regset *l_regset)
 {
 
 	l_regset->ebx = b_reg->r_ebx;
@@ -737,12 +739,13 @@ linux_uselib(struct thread *td, struct linux_uselib_args *args)
 	if (error)
 		goto cleanup;
 
-	/*
-	 * XXX: This should use vn_open() so that it is properly authorized,
-	 * and to reduce code redundancy all over the place here.
-	 * XXX: Not really, it duplicates far more of exec_check_permissions()
-	 * than vn_open().
-	 */
+		/*
+		 * XXX: This should use vn_open() so that it is properly
+		 * authorized, and to reduce code redundancy all over the place
+		 * here.
+		 * XXX: Not really, it duplicates far more of
+		 * exec_check_permissions() than vn_open().
+		 */
 #ifdef MAC
 	error = mac_vnode_check_open(td->td_ucred, vp, VREAD);
 	if (error)
@@ -771,10 +774,10 @@ linux_uselib(struct thread *td, struct linux_uselib_args *args)
 
 	/* Set file/virtual offset based on a.out variant. */
 	switch ((int)(a_out->a_magic & 0xffff)) {
-	case 0413:			/* ZMAGIC */
+	case 0413: /* ZMAGIC */
 		file_offset = 1024;
 		break;
-	case 0314:			/* QMAGIC */
+	case 0314: /* QMAGIC */
 		file_offset = 0;
 		break;
 	default:
@@ -804,8 +807,7 @@ linux_uselib(struct thread *td, struct linux_uselib_args *args)
 	PROC_LOCK(td->td_proc);
 	if (a_out->a_text > maxtsiz ||
 	    a_out->a_data + bss_size > lim_cur_proc(td->td_proc, RLIMIT_DATA) ||
-	    racct_set(td->td_proc, RACCT_DATA, a_out->a_data +
-	    bss_size) != 0) {
+	    racct_set(td->td_proc, RACCT_DATA, a_out->a_data + bss_size) != 0) {
 		PROC_UNLOCK(td->td_proc);
 		error = ENOMEM;
 		goto cleanup;
@@ -865,9 +867,9 @@ linux_uselib(struct thread *td, struct linux_uselib_args *args)
 		 * copy-on-write "data" segment.
 		 */
 		map = &td->td_proc->p_vmspace->vm_map;
-		error = vm_mmap(map, &vmaddr,
-		    a_out->a_text + a_out->a_data, VM_PROT_ALL, VM_PROT_ALL,
-		    MAP_PRIVATE | MAP_FIXED, OBJT_VNODE, vp, file_offset);
+		error = vm_mmap(map, &vmaddr, a_out->a_text + a_out->a_data,
+		    VM_PROT_ALL, VM_PROT_ALL, MAP_PRIVATE | MAP_FIXED,
+		    OBJT_VNODE, vp, file_offset);
 		if (error)
 			goto cleanup;
 		vm_map_lock(map);

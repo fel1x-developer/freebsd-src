@@ -17,8 +17,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 #include <sys/sysctl.h>
@@ -37,11 +37,11 @@
 #include <string.h>
 #include <unistd.h>
 
-#define	TCPDROP_FOREIGN		0
-#define	TCPDROP_LOCAL		1
+#define TCPDROP_FOREIGN 0
+#define TCPDROP_LOCAL 1
 
-#define	SW_TLS			0
-#define	IFNET_TLS		1
+#define SW_TLS 0
+#define IFNET_TLS 1
 
 struct host_service {
 	char hs_host[NI_MAXHOST];
@@ -201,15 +201,14 @@ tcpswitch(const struct sockaddr *lsa, const struct sockaddr *fsa, int mode)
 
 	if (tcpswitch_list_commands) {
 		printf("switch_tls %s %s %s %s %s\n",
-		    mode == SW_TLS ? "-s" : "-i",
-		    local.hs_host, local.hs_service,
-		    foreign.hs_host, foreign.hs_service);
+		    mode == SW_TLS ? "-s" : "-i", local.hs_host,
+		    local.hs_service, foreign.hs_host, foreign.hs_service);
 		return (true);
 	}
 
 	rv = sysctlbyname(mode == SW_TLS ? "net.inet.tcp.switch_to_sw_tls" :
-	    "net.inet.tcp.switch_to_ifnet_tls", NULL, NULL, &addrs,
-	    sizeof addrs);
+					   "net.inet.tcp.switch_to_ifnet_tls",
+	    NULL, NULL, &addrs, sizeof addrs);
 	if (rv == -1) {
 		warn("%s %s %s %s", local.hs_host, local.hs_service,
 		    foreign.hs_host, foreign.hs_service);
@@ -232,11 +231,11 @@ tcpswitchall(const char *stack, int mode)
 
 	head = getxpcblist("net.inet.tcp.pcblist");
 
-#define	XINP_NEXT(xinp)							\
+#define XINP_NEXT(xinp) \
 	((struct xinpgen *)(uintptr_t)((uintptr_t)(xinp) + (xinp)->xig_len))
 
 	for (xinp = XINP_NEXT(head); xinp->xig_len > sizeof *xinp;
-	    xinp = XINP_NEXT(xinp)) {
+	     xinp = XINP_NEXT(xinp)) {
 		xtp = (struct xtcpcb *)xinp;
 		xip = &xtp->xt_inp;
 
@@ -369,10 +368,10 @@ static void
 usage(void)
 {
 	fprintf(stderr,
-"usage: switch_tls [-i | -s] local-address local-port foreign-address foreign-port\n"
-"       switch_tls [-i | -s] local-address:local-port foreign-address:foreign-port\n"
-"       switch_tls [-i | -s] local-address.local-port foreign-address.foreign-port\n"
-"       switch_tls [-l | -i | -s] -a\n"
-"       switch_tls [-l | -i | -s] -S stack\n");
+	    "usage: switch_tls [-i | -s] local-address local-port foreign-address foreign-port\n"
+	    "       switch_tls [-i | -s] local-address:local-port foreign-address:foreign-port\n"
+	    "       switch_tls [-i | -s] local-address.local-port foreign-address.foreign-port\n"
+	    "       switch_tls [-l | -i | -s] -a\n"
+	    "       switch_tls [-l | -i | -s] -S stack\n");
 	exit(1);
 }

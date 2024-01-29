@@ -27,23 +27,25 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 
+#include <sys/cdefs.h>
+
 #ifdef TCP_OFFLOAD
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
+#include <sys/domain.h>
+#include <sys/fnv_hash.h>
 #include <sys/kernel.h>
 #include <sys/ktr.h>
 #include <sys/module.h>
 #include <sys/protosw.h>
 #include <sys/refcount.h>
-#include <sys/domain.h>
-#include <sys/fnv_hash.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 #include <sys/sysctl.h>
+
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_types.h>
@@ -55,21 +57,21 @@
 #include <netinet/in_pcb.h>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
+#include <netinet/tcp_timer.h>
 #include <netinet6/in6_fib.h>
 #include <netinet6/scope6_var.h>
-#include <netinet/tcp_timer.h>
 #define TCPSTATES
+#include <netinet/cc/cc.h>
 #include <netinet/tcp_fsm.h>
 #include <netinet/tcp_var.h>
 #include <netinet/toecore.h>
-#include <netinet/cc/cc.h>
 
 #include "common/common.h"
 #include "common/t4_msg.h"
 #include "common/t4_regs.h"
 #include "t4_clip.h"
-#include "tom/t4_tom_l2t.h"
 #include "tom/t4_tom.h"
+#include "tom/t4_tom_l2t.h"
 
 /* stid services */
 static int alloc_stid(struct adapter *, struct listen_ctx *, int);
@@ -103,8 +105,8 @@ alloc_stid(struct adapter *sc, struct listen_ctx *lctx, int isipv6)
 	n = isipv6 ? 2 : 1;
 	mask = n - 1;
 	KASSERT((t->stid_base & mask) == 0 && (t->nstids & mask) == 0,
-	    ("%s: stid region (%u, %u) not properly aligned.  n = %u",
-	    __func__, t->stid_base, t->nstids, n));
+	    ("%s: stid region (%u, %u) not properly aligned.  n = %u", __func__,
+		t->stid_base, t->nstids, n));
 
 	mtx_lock(&t->stid_lock);
 	if (n > t->nstids - t->stids_in_use) {
@@ -126,7 +128,7 @@ alloc_stid(struct adapter *sc, struct listen_ctx *lctx, int isipv6)
 		struct stid_region *s;
 
 		stid = t->nstids_free_head;
-		TAILQ_FOREACH(s, &t->stids, link) {
+		TAILQ_FOREACH (s, &t->stids, link) {
 			stid += s->used + s->free;
 			f = stid & mask;
 			if (s->free >= n + f) {
@@ -139,7 +141,7 @@ alloc_stid(struct adapter *sc, struct listen_ctx *lctx, int isipv6)
 
 		if (__predict_false(stid != t->nstids)) {
 			panic("%s: stids TAILQ (%p) corrupt."
-			    "  At %d instead of %d at the end of the queue.",
+			      "  At %d instead of %d at the end of the queue.",
 			    __func__, &t->stids, stid, t->nstids);
 		}
 
@@ -184,7 +186,7 @@ free_stid(struct adapter *sc, struct listen_ctx *lctx)
 		t->nstids_free_head += sr->used + sr->free;
 	KASSERT(t->stids_in_use >= sr->used,
 	    ("%s: stids_in_use (%u) < stids being freed (%u)", __func__,
-	    t->stids_in_use, sr->used));
+		t->stids_in_use, sr->used));
 	t->stids_in_use -= sr->used;
 	TAILQ_REMOVE(&t->stids, sr, link);
 	mtx_unlock(&t->stid_lock);
@@ -238,8 +240,8 @@ free_lctx(struct adapter *sc, struct listen_ctx *lctx)
 	    ("%s: refcount %d", __func__, lctx->refcount));
 	KASSERT(lctx->stid >= 0, ("%s: bad stid %d.", __func__, lctx->stid));
 
-	CTR4(KTR_CXGBE, "%s: stid %u, lctx %p, inp %p",
-	    __func__, lctx->stid, lctx, lctx->inp);
+	CTR4(KTR_CXGBE, "%s: stid %u, lctx %p, inp %p", __func__, lctx->stid,
+	    lctx, lctx->inp);
 
 	if (lctx->ce)
 		t4_release_clip_entry(sc, lctx->ce);
@@ -289,7 +291,7 @@ listen_hash_find(struct adapter *sc, struct inpcb *inp)
 	struct listen_ctx *lctx;
 
 	mtx_lock(&td->lctx_hash_lock);
-	LIST_FOREACH(lctx, &td->listen_hash[bucket], link) {
+	LIST_FOREACH (lctx, &td->listen_hash[bucket], link) {
 		if (lctx->inp == inp)
 			break;
 	}
@@ -309,7 +311,7 @@ listen_hash_del(struct adapter *sc, struct inpcb *inp)
 	struct listen_ctx *lctx, *l;
 
 	mtx_lock(&td->lctx_hash_lock);
-	LIST_FOREACH_SAFE(lctx, &td->listen_hash[bucket], link, l) {
+	LIST_FOREACH_SAFE (lctx, &td->listen_hash[bucket], link, l) {
 		if (lctx->inp == inp) {
 			LIST_REMOVE(lctx, link);
 			td->lctx_count--;
@@ -351,7 +353,8 @@ send_flowc_wr_synqe(struct adapter *sc, struct synq_entry *synqe)
 	struct sge_ofld_txq *ofld_txq;
 	struct sge_ofld_rxq *ofld_rxq;
 	const int nparams = 6;
-	const int flowclen = sizeof(*flowc) + nparams * sizeof(struct fw_flowc_mnemval);
+	const int flowclen = sizeof(*flowc) +
+	    nparams * sizeof(struct fw_flowc_mnemval);
 	const u_int pfvf = sc->pf << S_FW_VIID_PFN;
 
 	INP_WLOCK_ASSERT(synqe->lctx->inp);
@@ -367,10 +370,10 @@ send_flowc_wr_synqe(struct adapter *sc, struct synq_entry *synqe)
 	}
 	flowc = wrtod(wr);
 	memset(flowc, 0, wr->wr_len);
-	flowc->op_to_nparams = htobe32(V_FW_WR_OP(FW_FLOWC_WR) |
-	    V_FW_FLOWC_WR_NPARAMS(nparams));
-	flowc->flowid_len16 = htonl(V_FW_WR_LEN16(howmany(flowclen, 16)) |
-	    V_FW_WR_FLOWID(synqe->tid));
+	flowc->op_to_nparams = htobe32(
+	    V_FW_WR_OP(FW_FLOWC_WR) | V_FW_FLOWC_WR_NPARAMS(nparams));
+	flowc->flowid_len16 = htonl(
+	    V_FW_WR_LEN16(howmany(flowclen, 16)) | V_FW_WR_FLOWID(synqe->tid));
 	flowc->mnemval[0].mnemonic = FW_FLOWC_MNEM_PFNVFN;
 	flowc->mnemval[0].val = htobe32(pfvf);
 	flowc->mnemval[1].mnemonic = FW_FLOWC_MNEM_CH;
@@ -398,12 +401,12 @@ send_abort_rpl_synqe(struct toedev *tod, struct synq_entry *synqe,
 
 	INP_WLOCK_ASSERT(synqe->lctx->inp);
 
-	CTR5(KTR_CXGBE, "%s: synqe %p (0x%x), tid %d%s",
-	    __func__, synqe, synqe->flags, synqe->tid,
-	    synqe->flags & TPF_ABORT_SHUTDOWN ?
-	    " (abort already in progress)" : "");
+	CTR5(KTR_CXGBE, "%s: synqe %p (0x%x), tid %d%s", __func__, synqe,
+	    synqe->flags, synqe->tid,
+	    synqe->flags & TPF_ABORT_SHUTDOWN ? " (abort already in progress)" :
+						"");
 	if (synqe->flags & TPF_ABORT_SHUTDOWN)
-		return;	/* abort already in progress */
+		return; /* abort already in progress */
 	synqe->flags |= TPF_ABORT_SHUTDOWN;
 
 	if (!(synqe->flags & TPF_FLOWC_WR_SENT))
@@ -417,8 +420,8 @@ send_abort_rpl_synqe(struct toedev *tod, struct synq_entry *synqe,
 	}
 	req = wrtod(wr);
 	INIT_TP_WR_MIT_CPL(req, CPL_ABORT_REQ, synqe->tid);
-	req->rsvd0 = 0;	/* don't have a snd_nxt */
-	req->rsvd1 = 1;	/* no data sent yet */
+	req->rsvd0 = 0; /* don't have a snd_nxt */
+	req->rsvd1 = 1; /* no data sent yet */
 	req->cmd = rst_status;
 
 	t4_l2t_send(sc, wr, &sc->l2t->l2tab[synqe->params.l2t_idx]);
@@ -467,7 +470,8 @@ create_server6(struct adapter *sc, struct listen_ctx *lctx)
 	req = wrtod(wr);
 
 	INIT_TP_WR(req, 0);
-	OPCODE_TID(req) = htobe32(MK_OPCODE_TID(CPL_PASS_OPEN_REQ6, lctx->stid));
+	OPCODE_TID(req) = htobe32(
+	    MK_OPCODE_TID(CPL_PASS_OPEN_REQ6, lctx->stid));
 	req->local_port = inp->inp_lport;
 	req->peer_port = 0;
 	req->local_ip_hi = *(uint64_t *)&inp->in6p_laddr.s6_addr[0];
@@ -496,8 +500,8 @@ destroy_server(struct adapter *sc, struct listen_ctx *lctx)
 	req = wrtod(wr);
 
 	INIT_TP_WR(req, 0);
-	OPCODE_TID(req) = htonl(MK_OPCODE_TID(CPL_CLOSE_LISTSRV_REQ,
-	    lctx->stid));
+	OPCODE_TID(req) = htonl(
+	    MK_OPCODE_TID(CPL_CLOSE_LISTSRV_REQ, lctx->stid));
 	req->reply_ctrl = htobe16(lctx->ofld_rxq->iq.abs_id);
 	req->rsvd = htobe16(0);
 
@@ -560,19 +564,21 @@ t4_listen_start(struct toedev *tod, struct tcpcb *tp)
 	 * then reject any attempt to bring down such a port (and maybe reject
 	 * attempts to disable IFCAP_TOE on that port too?).
 	 */
-	for_each_port(sc, i) {
+	for_each_port(sc, i)
+	{
 		pi = sc->port[i];
-		for_each_vi(pi, v, vi) {
+		for_each_vi(pi, v, vi)
+		{
 			if (vi->flags & VI_INIT_DONE &&
 			    if_getcapenable(vi->ifp) & IFCAP_TOE)
 				goto found;
 		}
 	}
-	goto done;	/* no port that's UP with IFCAP_TOE enabled */
+	goto done; /* no port that's UP with IFCAP_TOE enabled */
 found:
 
 	if (listen_hash_find(sc, inp) != NULL)
-		goto done;	/* already setup */
+		goto done; /* already setup */
 
 	lctx = alloc_lctx(sc, inp, vi);
 	if (lctx == NULL) {
@@ -594,7 +600,7 @@ found:
 	if (rc != 0) {
 		log(LOG_ERR, "%s: %s failed to create hw listener: %d.\n",
 		    __func__, device_get_nameunit(sc->dev), rc);
-		(void) listen_hash_del(sc, inp);
+		(void)listen_hash_del(sc, inp);
 		inp = release_lctx(sc, lctx);
 		/* can't be freed, host stack has a reference */
 		KASSERT(inp != NULL, ("%s: inp freed", __func__));
@@ -619,7 +625,7 @@ t4_listen_stop(struct toedev *tod, struct tcpcb *tp)
 
 	lctx = listen_hash_del(sc, inp);
 	if (lctx == NULL)
-		return (ENOENT);	/* no hardware listener for this inp */
+		return (ENOENT); /* no hardware listener for this inp */
 
 	CTR4(KTR_CXGBE, "%s: stid %u, lctx %p, flags %x", __func__, lctx->stid,
 	    lctx, lctx->flags);
@@ -649,7 +655,7 @@ alloc_synqe(struct adapter *sc __unused, struct listen_ctx *lctx, int flags)
 		synqe->flags = TPF_SYNQE;
 		refcount_init(&synqe->refcnt, 1);
 		synqe->lctx = lctx;
-		hold_lctx(lctx);	/* Every synqe has a ref on its lctx. */
+		hold_lctx(lctx); /* Every synqe has a ref on its lctx. */
 		synqe->syn = NULL;
 	}
 
@@ -732,7 +738,7 @@ t4_syncache_respond(struct toedev *tod, void *arg, struct mbuf *m)
 		synqe->ts = to.to_tsval;
 	}
 
-	m_freem(m);	/* don't need this any more */
+	m_freem(m); /* don't need this any more */
 	return (0);
 }
 
@@ -757,8 +763,8 @@ do_pass_open_rpl(struct sge_iq *iq, const struct rss_header *rss,
 
 	INP_WLOCK(inp);
 
-	CTR4(KTR_CXGBE, "%s: stid %d, status %u, flags 0x%x",
-	    __func__, stid, status, lctx->flags);
+	CTR4(KTR_CXGBE, "%s: stid %d, status %u, flags 0x%x", __func__, stid,
+	    status, lctx->flags);
 
 	lctx->flags &= ~LCTX_RPL_PENDING;
 
@@ -898,7 +904,7 @@ do_abort_req_synqe(struct sge_iq *iq, const struct rss_header *rss,
 	    __func__, tid, synqe, synqe->flags, synqe->lctx, cpl->status);
 
 	if (negative_advice(cpl->status))
-		return (0);	/* Ignore negative advice */
+		return (0); /* Ignore negative advice */
 
 	INP_WLOCK(inp);
 
@@ -948,8 +954,8 @@ do_abort_rpl_synqe(struct sge_iq *iq, const struct rss_header *rss,
 
 	INP_WLOCK(inp);
 	KASSERT(synqe->flags & TPF_ABORT_SHUTDOWN,
-	    ("%s: wasn't expecting abort reply for synqe %p (0x%x)",
-	    __func__, synqe, synqe->flags));
+	    ("%s: wasn't expecting abort reply for synqe %p (0x%x)", __func__,
+		synqe, synqe->flags));
 
 	done_with_synqe(sc, synqe);
 	/* inp lock released by done_with_synqe */
@@ -965,7 +971,7 @@ t4_offload_socket(struct toedev *tod, void *arg, struct socket *so)
 	struct inpcb *inp = sotoinpcb(so);
 	struct toepcb *toep = synqe->toep;
 
-	NET_EPOCH_ASSERT();	/* prevents bad race with accept() */
+	NET_EPOCH_ASSERT(); /* prevents bad race with accept() */
 	INP_WLOCK_ASSERT(inp);
 	KASSERT(synqe->flags & TPF_SYNQE,
 	    ("%s: %p not a synq_entry?", __func__, arg));
@@ -977,7 +983,8 @@ t4_offload_socket(struct toedev *tod, void *arg, struct socket *so)
 	update_tid(sc, synqe->tid, toep);
 	synqe->flags |= TPF_SYNQE_EXPANDED;
 	inp->inp_flowtype = (inp->inp_vflag & INP_IPV6) ?
-	    M_HASHTYPE_RSS_TCP_IPV6 : M_HASHTYPE_RSS_TCP_IPV4;
+	    M_HASHTYPE_RSS_TCP_IPV6 :
+	    M_HASHTYPE_RSS_TCP_IPV4;
 	inp->inp_flowid = synqe->rss_hash;
 }
 
@@ -1009,7 +1016,8 @@ encapsulated_syn(struct adapter *sc, const struct cpl_pass_accept_req *cpl)
 	u_int hlen = be32toh(cpl->hdr_len);
 
 	if (chip_id(sc) >= CHELSIO_T6)
-		return (G_T6_ETH_HDR_LEN(hlen) > sizeof(struct ether_vlan_header));
+		return (
+		    G_T6_ETH_HDR_LEN(hlen) > sizeof(struct ether_vlan_header));
 	else
 		return (G_ETH_HDR_LEN(hlen) > sizeof(struct ether_vlan_header));
 }
@@ -1040,8 +1048,7 @@ pass_accept_req_to_protohdrs(struct adapter *sc, const struct mbuf *m,
 			*iptos = ip->ip_tos;
 		}
 #ifdef INET6
-		else
-		if (((struct ip *)l3hdr)->ip_v == (IPV6_VERSION >> 4)) {
+		else if (((struct ip *)l3hdr)->ip_v == (IPV6_VERSION >> 4)) {
 			const struct ip6_hdr *ip6 = (const void *)l3hdr;
 			*iptos = (ntohl(ip6->ip6_flow) >> 20) & 0xff;
 		}
@@ -1068,13 +1075,12 @@ pass_accept_req_to_protohdrs(struct adapter *sc, const struct mbuf *m,
 
 	if (th) {
 		bcopy(tcp, th, sizeof(*th));
-		tcp_fields_to_host(th);		/* just like tcp_input */
+		tcp_fields_to_host(th); /* just like tcp_input */
 	}
 }
 
 static struct l2t_entry *
-get_l2te_for_nexthop(struct port_info *pi, if_t ifp,
-    struct in_conninfo *inc)
+get_l2te_for_nexthop(struct port_info *pi, if_t ifp, struct in_conninfo *inc)
 {
 	struct l2t_entry *e;
 	struct sockaddr_in6 sin6;
@@ -1092,27 +1098,32 @@ get_l2te_for_nexthop(struct port_info *pi, if_t ifp,
 			return (e);
 		}
 
-		nh = fib6_lookup(RT_DEFAULT_FIB, &inc->inc6_faddr, 0, NHR_NONE, 0);
+		nh = fib6_lookup(RT_DEFAULT_FIB, &inc->inc6_faddr, 0, NHR_NONE,
+		    0);
 		if (nh == NULL)
 			return (NULL);
 		if (nh->nh_ifp != ifp)
 			return (NULL);
 		if (nh->nh_flags & NHF_GATEWAY)
-			((struct sockaddr_in6 *)dst)->sin6_addr = nh->gw6_sa.sin6_addr;
+			((struct sockaddr_in6 *)dst)->sin6_addr =
+			    nh->gw6_sa.sin6_addr;
 		else
-			((struct sockaddr_in6 *)dst)->sin6_addr = inc->inc6_faddr;
+			((struct sockaddr_in6 *)dst)->sin6_addr =
+			    inc->inc6_faddr;
 	} else {
 		dst->sa_len = sizeof(struct sockaddr_in);
 		dst->sa_family = AF_INET;
 
-		nh = fib4_lookup(RT_DEFAULT_FIB, inc->inc_faddr, 0, NHR_NONE, 0);
+		nh = fib4_lookup(RT_DEFAULT_FIB, inc->inc_faddr, 0, NHR_NONE,
+		    0);
 		if (nh == NULL)
 			return (NULL);
 		if (nh->nh_ifp != ifp)
 			return (NULL);
 		if (nh->nh_flags & NHF_GATEWAY)
 			if (nh->gw_sa.sa_family == AF_INET)
-				((struct sockaddr_in *)dst)->sin_addr = nh->gw4_sa.sin_addr;
+				((struct sockaddr_in *)dst)->sin_addr =
+				    nh->gw4_sa.sin_addr;
 			else
 				*((struct sockaddr_in6 *)dst) = nh->gw6_sa;
 		else
@@ -1132,7 +1143,8 @@ send_synack(struct adapter *sc, struct synq_entry *synqe, uint64_t opt0,
 	struct l2t_entry *e = &sc->l2t->l2tab[synqe->params.l2t_idx];
 
 	wr = alloc_wrqe(is_t4(sc) ? sizeof(struct cpl_pass_accept_rpl) :
-	    sizeof(struct cpl_t5_pass_accept_rpl), &sc->sge.ctrlq[0]);
+				    sizeof(struct cpl_t5_pass_accept_rpl),
+	    &sc->sge.ctrlq[0]);
 	if (wr == NULL)
 		return (ENOMEM);
 	rpl = wrtod(wr);
@@ -1151,14 +1163,15 @@ send_synack(struct adapter *sc, struct synq_entry *synqe, uint64_t opt0,
 	return (t4_l2t_send(sc, wr, e));
 }
 
-#define REJECT_PASS_ACCEPT_REQ(tunnel)	do { \
-	if (!tunnel) { \
-		m_freem(m); \
-		m = NULL; \
-	} \
-	reject_reason = __LINE__; \
-	goto reject; \
-} while (0)
+#define REJECT_PASS_ACCEPT_REQ(tunnel)    \
+	do {                              \
+		if (!tunnel) {            \
+			m_freem(m);       \
+			m = NULL;         \
+		}                         \
+		reject_reason = __LINE__; \
+		goto reject;              \
+	} while (0)
 
 /*
  * The context associated with a tid entry via insert_tid could be a synq_entry
@@ -1218,7 +1231,7 @@ do_pass_accept_req(struct sge_iq *iq, const struct rss_header *rss,
 	hw_ifp = pi->vi[0].ifp;
 	m->m_pkthdr.rcvif = hw_ifp;
 
-	CURVNET_SET(lctx->vnet);	/* before any potential REJECT */
+	CURVNET_SET(lctx->vnet); /* before any potential REJECT */
 
 	/*
 	 * If VXLAN/NVGRE parsing is enabled then SYNs in the inner traffic will
@@ -1235,13 +1248,14 @@ do_pass_accept_req(struct sge_iq *iq, const struct rss_header *rss,
 	if (!(l2info & F_SYN_XACT_MATCH)) {
 		REJECT_PASS_ACCEPT_REQ(true);
 	}
-	for_each_vi(pi, v, vi) {
+	for_each_vi(pi, v, vi)
+	{
 		if (vi->xact_addr_filt == G_SYN_MAC_IDX(l2info))
 			goto found;
 	}
 	REJECT_PASS_ACCEPT_REQ(true);
 found:
-	hw_ifp = vi->ifp;	/* the cxgbe ifnet */
+	hw_ifp = vi->ifp; /* the cxgbe ifnet */
 	m->m_pkthdr.rcvif = hw_ifp;
 	tod = TOEDEV(hw_ifp);
 
@@ -1323,7 +1337,7 @@ found:
 		REJECT_PASS_ACCEPT_REQ(false);
 	}
 
-	inp = lctx->inp;		/* listening socket, not owned by TOE */
+	inp = lctx->inp; /* listening socket, not owned by TOE */
 	INP_RLOCK(inp);
 
 	/* Don't offload if the listening socket has closed */
@@ -1340,7 +1354,7 @@ found:
 	if (!settings.offload) {
 		INP_RUNLOCK(inp);
 		NET_EPOCH_EXIT(et);
-		REJECT_PASS_ACCEPT_REQ(true);	/* Rejected by COP. */
+		REJECT_PASS_ACCEPT_REQ(true); /* Rejected by COP. */
 	}
 
 	synqe = alloc_synqe(sc, lctx, M_NOWAIT);
@@ -1481,11 +1495,10 @@ do_pass_establish(struct sge_iq *iq, const struct rss_header *rss,
 	    ("%s: tid %u (ctx %p) not a synqe", __func__, tid, synqe));
 
 	CURVNET_SET(lctx->vnet);
-	NET_EPOCH_ENTER(et);	/* for syncache_expand */
+	NET_EPOCH_ENTER(et); /* for syncache_expand */
 	INP_WLOCK(inp);
 
-	CTR6(KTR_CXGBE,
-	    "%s: stid %u, tid %u, synqe %p (0x%x), inp_flags 0x%x",
+	CTR6(KTR_CXGBE, "%s: stid %u, tid %u, synqe %p (0x%x), inp_flags 0x%x",
 	    __func__, stid, tid, synqe, synqe->flags, inp->inp_flags);
 
 	ifp = synqe->syn->m_pkthdr.rcvif;
@@ -1494,7 +1507,7 @@ do_pass_establish(struct sge_iq *iq, const struct rss_header *rss,
 	    ("%s: vi %p, sc %p mismatch", __func__, vi, sc));
 
 	if (__predict_false(inp->inp_flags & INP_DROPPED)) {
-reset:
+	reset:
 		send_abort_rpl_synqe(TOEDEV(ifp), synqe, CPL_ABORT_SEND_RST);
 		INP_WUNLOCK(inp);
 		NET_EPOCH_EXIT(et);
@@ -1502,10 +1515,11 @@ reset:
 		return (0);
 	}
 
-	KASSERT(synqe->params.rxq_idx == iq_to_ofld_rxq(iq) - &sc->sge.ofld_rxq[0],
+	KASSERT(synqe->params.rxq_idx ==
+		iq_to_ofld_rxq(iq) - &sc->sge.ofld_rxq[0],
 	    ("%s: CPL arrived on unexpected rxq.  %d %d", __func__,
-	    synqe->params.rxq_idx,
-	    (int)(iq_to_ofld_rxq(iq) - &sc->sge.ofld_rxq[0])));
+		synqe->params.rxq_idx,
+		(int)(iq_to_ofld_rxq(iq) - &sc->sge.ofld_rxq[0])));
 
 	toep = alloc_toepcb(vi, M_NOWAIT);
 	if (toep == NULL)
@@ -1528,7 +1542,7 @@ reset:
 			toep->ce = t4_get_clip_entry(sc, &inc.inc6_laddr, true);
 			if (toep->ce == NULL) {
 				free_toepcb(toep);
-				goto reset;	/* RST without a CLIP entry? */
+				goto reset; /* RST without a CLIP entry? */
 			}
 		} else {
 			t4_hold_clip_entry(sc, lctx->ce);

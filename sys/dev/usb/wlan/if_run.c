@@ -26,62 +26,60 @@
 #include "opt_wlan.h"
 
 #include <sys/param.h>
-#include <sys/eventhandler.h>
-#include <sys/sockio.h>
-#include <sys/sysctl.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/module.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
-#include <sys/linker.h>
+#include <sys/eventhandler.h>
 #include <sys/firmware.h>
 #include <sys/kdb.h>
+#include <sys/kernel.h>
+#include <sys/linker.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/socket.h>
+#include <sys/sockio.h>
+#include <sys/sysctl.h>
 
 #include <net/bpf.h>
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
 #include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
-
+#include <net/if_var.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_ratectl.h>
+#include <net80211/ieee80211_regdomain.h>
+#include <net80211/ieee80211_var.h>
+#include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/in_var.h>
-#include <netinet/if_ether.h>
 #include <netinet/ip.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_regdomain.h>
-#include <net80211/ieee80211_radiotap.h>
-#include <net80211/ieee80211_ratectl.h>
-#ifdef	IEEE80211_SUPPORT_SUPERG
+#ifdef IEEE80211_SUPPORT_SUPERG
 #include <net80211/ieee80211_superg.h>
 #endif
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
+
 #include "usbdevs.h"
 
-#define	USB_DEBUG_VAR	run_debug
+#define USB_DEBUG_VAR run_debug
 #include <dev/usb/usb_debug.h>
 #include <dev/usb/usb_msctest.h>
-
 #include <dev/usb/wlan/if_runreg.h>
 #include <dev/usb/wlan/if_runvar.h>
 
-#ifdef	USB_DEBUG
-#define	RUN_DEBUG
+#ifdef USB_DEBUG
+#define RUN_DEBUG
 #endif
 
-#ifdef	RUN_DEBUG
+#ifdef RUN_DEBUG
 int run_debug = 0;
 static SYSCTL_NODE(_hw_usb, OID_AUTO, run, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "USB run");
@@ -89,567 +87,540 @@ SYSCTL_INT(_hw_usb_run, OID_AUTO, debug, CTLFLAG_RWTUN, &run_debug, 0,
     "run debug level");
 
 enum {
-	RUN_DEBUG_XMIT		= 0x00000001,	/* basic xmit operation */
-	RUN_DEBUG_XMIT_DESC	= 0x00000002,	/* xmit descriptors */
-	RUN_DEBUG_RECV		= 0x00000004,	/* basic recv operation */
-	RUN_DEBUG_RECV_DESC	= 0x00000008,	/* recv descriptors */
-	RUN_DEBUG_STATE		= 0x00000010,	/* 802.11 state transitions */
-	RUN_DEBUG_RATE		= 0x00000020,	/* rate adaptation */
-	RUN_DEBUG_USB		= 0x00000040,	/* usb requests */
-	RUN_DEBUG_FIRMWARE	= 0x00000080,	/* firmware(9) loading debug */
-	RUN_DEBUG_BEACON	= 0x00000100,	/* beacon handling */
-	RUN_DEBUG_INTR		= 0x00000200,	/* ISR */
-	RUN_DEBUG_TEMP		= 0x00000400,	/* temperature calibration */
-	RUN_DEBUG_ROM		= 0x00000800,	/* various ROM info */
-	RUN_DEBUG_KEY		= 0x00001000,	/* crypto keys management */
-	RUN_DEBUG_TXPWR		= 0x00002000,	/* dump Tx power values */
-	RUN_DEBUG_RSSI		= 0x00004000,	/* dump RSSI lookups */
-	RUN_DEBUG_RESET		= 0x00008000,	/* initialization progress */
-	RUN_DEBUG_CALIB		= 0x00010000,	/* calibration progress */
-	RUN_DEBUG_CMD		= 0x00020000,	/* command queue */
-	RUN_DEBUG_ANY		= 0xffffffff
+	RUN_DEBUG_XMIT = 0x00000001,	  /* basic xmit operation */
+	RUN_DEBUG_XMIT_DESC = 0x00000002, /* xmit descriptors */
+	RUN_DEBUG_RECV = 0x00000004,	  /* basic recv operation */
+	RUN_DEBUG_RECV_DESC = 0x00000008, /* recv descriptors */
+	RUN_DEBUG_STATE = 0x00000010,	  /* 802.11 state transitions */
+	RUN_DEBUG_RATE = 0x00000020,	  /* rate adaptation */
+	RUN_DEBUG_USB = 0x00000040,	  /* usb requests */
+	RUN_DEBUG_FIRMWARE = 0x00000080,  /* firmware(9) loading debug */
+	RUN_DEBUG_BEACON = 0x00000100,	  /* beacon handling */
+	RUN_DEBUG_INTR = 0x00000200,	  /* ISR */
+	RUN_DEBUG_TEMP = 0x00000400,	  /* temperature calibration */
+	RUN_DEBUG_ROM = 0x00000800,	  /* various ROM info */
+	RUN_DEBUG_KEY = 0x00001000,	  /* crypto keys management */
+	RUN_DEBUG_TXPWR = 0x00002000,	  /* dump Tx power values */
+	RUN_DEBUG_RSSI = 0x00004000,	  /* dump RSSI lookups */
+	RUN_DEBUG_RESET = 0x00008000,	  /* initialization progress */
+	RUN_DEBUG_CALIB = 0x00010000,	  /* calibration progress */
+	RUN_DEBUG_CMD = 0x00020000,	  /* command queue */
+	RUN_DEBUG_ANY = 0xffffffff
 };
 
-#define RUN_DPRINTF(_sc, _m, ...) do {			\
-	if (run_debug & (_m))				\
-		device_printf((_sc)->sc_dev, __VA_ARGS__);	\
-} while(0)
+#define RUN_DPRINTF(_sc, _m, ...)                                  \
+	do {                                                       \
+		if (run_debug & (_m))                              \
+			device_printf((_sc)->sc_dev, __VA_ARGS__); \
+	} while (0)
 #else
-#define RUN_DPRINTF(_sc, _m, ...)	do { (void) _sc; } while (0)
+#define RUN_DPRINTF(_sc, _m, ...) \
+	do {                      \
+		(void)_sc;        \
+	} while (0)
 #endif
 
-#define	IEEE80211_HAS_ADDR4(wh)	IEEE80211_IS_DSTODS(wh)
+#define IEEE80211_HAS_ADDR4(wh) IEEE80211_IS_DSTODS(wh)
 
 /*
  * Because of LOR in run_key_delete(), use atomic instead.
  * '& RUN_CMDQ_MASQ' is to loop cmdq[].
  */
-#define	RUN_CMDQ_GET(c)	(atomic_fetchadd_32((c), 1) & RUN_CMDQ_MASQ)
+#define RUN_CMDQ_GET(c) (atomic_fetchadd_32((c), 1) & RUN_CMDQ_MASQ)
 
 static const STRUCT_USB_HOST_ID run_devs[] = {
-#define	RUN_DEV(v,p)	{ USB_VP(USB_VENDOR_##v, USB_PRODUCT_##v##_##p) }
-#define	RUN_DEV_EJECT(v,p)	\
-	{ USB_VPI(USB_VENDOR_##v, USB_PRODUCT_##v##_##p, RUN_EJECT) }
-#define	RUN_EJECT	1
-    RUN_DEV(ABOCOM,		RT2770),
-    RUN_DEV(ABOCOM,		RT2870),
-    RUN_DEV(ABOCOM,		RT3070),
-    RUN_DEV(ABOCOM,		RT3071),
-    RUN_DEV(ABOCOM,		RT3072),
-    RUN_DEV(ABOCOM2,		RT2870_1),
-    RUN_DEV(ACCTON,		RT2770),
-    RUN_DEV(ACCTON,		RT2870_1),
-    RUN_DEV(ACCTON,		RT2870_2),
-    RUN_DEV(ACCTON,		RT2870_3),
-    RUN_DEV(ACCTON,		RT2870_4),
-    RUN_DEV(ACCTON,		RT2870_5),
-    RUN_DEV(ACCTON,		RT3070),
-    RUN_DEV(ACCTON,		RT3070_1),
-    RUN_DEV(ACCTON,		RT3070_2),
-    RUN_DEV(ACCTON,		RT3070_3),
-    RUN_DEV(ACCTON,		RT3070_4),
-    RUN_DEV(ACCTON,		RT3070_5),
-    RUN_DEV(AIRTIES,		RT3070),
-    RUN_DEV(ALLWIN,		RT2070),
-    RUN_DEV(ALLWIN,		RT2770),
-    RUN_DEV(ALLWIN,		RT2870),
-    RUN_DEV(ALLWIN,		RT3070),
-    RUN_DEV(ALLWIN,		RT3071),
-    RUN_DEV(ALLWIN,		RT3072),
-    RUN_DEV(ALLWIN,		RT3572),
-    RUN_DEV(AMIGO,		RT2870_1),
-    RUN_DEV(AMIGO,		RT2870_2),
-    RUN_DEV(AMIT,		CGWLUSB2GNR),
-    RUN_DEV(AMIT,		RT2870_1),
-    RUN_DEV(AMIT2,		RT2870),
-    RUN_DEV(ASUS,		RT2870_1),
-    RUN_DEV(ASUS,		RT2870_2),
-    RUN_DEV(ASUS,		RT2870_3),
-    RUN_DEV(ASUS,		RT2870_4),
-    RUN_DEV(ASUS,		RT2870_5),
-    RUN_DEV(ASUS,		USBN13),
-    RUN_DEV(ASUS,		RT3070_1),
-    RUN_DEV(ASUS,		USBN66),
-    RUN_DEV(ASUS,		USB_N53),
-    RUN_DEV(ASUS,		USBN14),
-    RUN_DEV(ASUS2,		USBN11),
-    RUN_DEV(AZUREWAVE,		RT2870_1),
-    RUN_DEV(AZUREWAVE,		RT2870_2),
-    RUN_DEV(AZUREWAVE,		RT3070_1),
-    RUN_DEV(AZUREWAVE,		RT3070_2),
-    RUN_DEV(AZUREWAVE,		RT3070_3),
-    RUN_DEV(BELKIN,		F9L1103),
-    RUN_DEV(BELKIN,		F5D8053V3),
-    RUN_DEV(BELKIN,		F5D8055),
-    RUN_DEV(BELKIN,		F5D8055V2),
-    RUN_DEV(BELKIN,		F6D4050V1),
-    RUN_DEV(BELKIN,		F6D4050V2),
-    RUN_DEV(BELKIN,		RT2870_1),
-    RUN_DEV(BELKIN,		RT2870_2),
-    RUN_DEV(CISCOLINKSYS,	AE1000),
-    RUN_DEV(CISCOLINKSYS2,	RT3070),
-    RUN_DEV(CISCOLINKSYS3,	RT3070),
-    RUN_DEV(CONCEPTRONIC2,	RT2870_1),
-    RUN_DEV(CONCEPTRONIC2,	RT2870_2),
-    RUN_DEV(CONCEPTRONIC2,	RT2870_3),
-    RUN_DEV(CONCEPTRONIC2,	RT2870_4),
-    RUN_DEV(CONCEPTRONIC2,	RT2870_5),
-    RUN_DEV(CONCEPTRONIC2,	RT2870_6),
-    RUN_DEV(CONCEPTRONIC2,	RT2870_7),
-    RUN_DEV(CONCEPTRONIC2,	RT2870_8),
-    RUN_DEV(CONCEPTRONIC2,	RT3070_1),
-    RUN_DEV(CONCEPTRONIC2,	RT3070_2),
-    RUN_DEV(CONCEPTRONIC2,	VIGORN61),
-    RUN_DEV(COREGA,		CGWLUSB300GNM),
-    RUN_DEV(COREGA,		RT2870_1),
-    RUN_DEV(COREGA,		RT2870_2),
-    RUN_DEV(COREGA,		RT2870_3),
-    RUN_DEV(COREGA,		RT3070),
-    RUN_DEV(CYBERTAN,		RT2870),
-    RUN_DEV(DLINK,		RT2870),
-    RUN_DEV(DLINK,		RT3072),
-    RUN_DEV(DLINK,		DWA125A3),
-    RUN_DEV(DLINK,		DWA127),
-    RUN_DEV(DLINK,		DWA140B3),
-    RUN_DEV(DLINK,		DWA160B2),
-    RUN_DEV(DLINK,		DWA140D1),
-    RUN_DEV(DLINK,		DWA130F1),
-    RUN_DEV(DLINK,		DWA162),
-    RUN_DEV(DLINK2,		DWA130),
-    RUN_DEV(DLINK2,		RT2870_1),
-    RUN_DEV(DLINK2,		RT2870_2),
-    RUN_DEV(DLINK2,		RT3070_1),
-    RUN_DEV(DLINK2,		RT3070_2),
-    RUN_DEV(DLINK2,		RT3070_3),
-    RUN_DEV(DLINK2,		RT3070_4),
-    RUN_DEV(DLINK2,		RT3070_5),
-    RUN_DEV(DLINK2,		RT3072),
-    RUN_DEV(DLINK2,		RT3072_1),
-    RUN_DEV(EDIMAX,		EW7717),
-    RUN_DEV(EDIMAX,		EW7718),
-    RUN_DEV(EDIMAX,		EW7733UND),
-    RUN_DEV(EDIMAX,		RT2870_1),
-    RUN_DEV(ENCORE,		RT3070_1),
-    RUN_DEV(ENCORE,		RT3070_2),
-    RUN_DEV(ENCORE,		RT3070_3),
-    RUN_DEV(GIGABYTE,		GNWB31N),
-    RUN_DEV(GIGABYTE,		GNWB32L),
-    RUN_DEV(GIGABYTE,		RT2870_1),
-    RUN_DEV(GIGASET,		RT3070_1),
-    RUN_DEV(GIGASET,		RT3070_2),
-    RUN_DEV(GUILLEMOT,		HWNU300),
-    RUN_DEV(HAWKING,		HWUN2),
-    RUN_DEV(HAWKING,		RT2870_1),
-    RUN_DEV(HAWKING,		RT2870_2),
-    RUN_DEV(HAWKING,		RT3070),
-    RUN_DEV(IODATA,		RT3072_1),
-    RUN_DEV(IODATA,		RT3072_2),
-    RUN_DEV(IODATA,		RT3072_3),
-    RUN_DEV(IODATA,		RT3072_4),
-    RUN_DEV(LINKSYS4,		RT3070),
-    RUN_DEV(LINKSYS4,		WUSB100),
-    RUN_DEV(LINKSYS4,		WUSB54GCV3),
-    RUN_DEV(LINKSYS4,		WUSB600N),
-    RUN_DEV(LINKSYS4,		WUSB600NV2),
-    RUN_DEV(LOGITEC,		RT2870_1),
-    RUN_DEV(LOGITEC,		RT2870_2),
-    RUN_DEV(LOGITEC,		RT2870_3),
-    RUN_DEV(LOGITEC,		LANW300NU2),
-    RUN_DEV(LOGITEC,		LANW150NU2),
-    RUN_DEV(LOGITEC,		LANW300NU2S),
-    RUN_DEV(MELCO,		WLIUCG300HP),
-    RUN_DEV(MELCO,		RT2870_2),
-    RUN_DEV(MELCO,		WLIUCAG300N),
-    RUN_DEV(MELCO,		WLIUCG300N),
-    RUN_DEV(MELCO,		WLIUCG301N),
-    RUN_DEV(MELCO,		WLIUCGN),
-    RUN_DEV(MELCO,		WLIUCGNM),
-    RUN_DEV(MELCO,		WLIUCG300HPV1),
-    RUN_DEV(MELCO,		WLIUCGNM2),
-    RUN_DEV(MOTOROLA4,		RT2770),
-    RUN_DEV(MOTOROLA4,		RT3070),
-    RUN_DEV(MSI,		RT3070_1),
-    RUN_DEV(MSI,		RT3070_2),
-    RUN_DEV(MSI,		RT3070_3),
-    RUN_DEV(MSI,		RT3070_4),
-    RUN_DEV(MSI,		RT3070_5),
-    RUN_DEV(MSI,		RT3070_6),
-    RUN_DEV(MSI,		RT3070_7),
-    RUN_DEV(MSI,		RT3070_8),
-    RUN_DEV(MSI,		RT3070_9),
-    RUN_DEV(MSI,		RT3070_10),
-    RUN_DEV(MSI,		RT3070_11),
-    RUN_DEV(NETGEAR,		WNDA4100),
-    RUN_DEV(OVISLINK,		RT3072),
-    RUN_DEV(PARA,		RT3070),
-    RUN_DEV(PEGATRON,		RT2870),
-    RUN_DEV(PEGATRON,		RT3070),
-    RUN_DEV(PEGATRON,		RT3070_2),
-    RUN_DEV(PEGATRON,		RT3070_3),
-    RUN_DEV(PHILIPS,		RT2870),
-    RUN_DEV(PLANEX2,		GWUS300MINIS),
-    RUN_DEV(PLANEX2,		GWUSMICRON),
-    RUN_DEV(PLANEX2,		RT2870),
-    RUN_DEV(PLANEX2,		RT3070),
-    RUN_DEV(QCOM,		RT2870),
-    RUN_DEV(QUANTA,		RT3070),
-    RUN_DEV(RALINK,		RT2070),
-    RUN_DEV(RALINK,		RT2770),
-    RUN_DEV(RALINK,		RT2870),
-    RUN_DEV(RALINK,		RT3070),
-    RUN_DEV(RALINK,		RT3071),
-    RUN_DEV(RALINK,		RT3072),
-    RUN_DEV(RALINK,		RT3370),
-    RUN_DEV(RALINK,		RT3572),
-    RUN_DEV(RALINK,		RT3573),
-    RUN_DEV(RALINK,		RT5370),
-    RUN_DEV(RALINK,		RT5372),
-    RUN_DEV(RALINK,		RT5572),
-    RUN_DEV(RALINK,		RT8070),
-    RUN_DEV(SAMSUNG,		WIS09ABGN),
-    RUN_DEV(SAMSUNG2,		RT2870_1),
-    RUN_DEV(SENAO,		RT2870_1),
-    RUN_DEV(SENAO,		RT2870_2),
-    RUN_DEV(SENAO,		RT2870_3),
-    RUN_DEV(SENAO,		RT2870_4),
-    RUN_DEV(SENAO,		RT3070),
-    RUN_DEV(SENAO,		RT3071),
-    RUN_DEV(SENAO,		RT3072_1),
-    RUN_DEV(SENAO,		RT3072_2),
-    RUN_DEV(SENAO,		RT3072_3),
-    RUN_DEV(SENAO,		RT3072_4),
-    RUN_DEV(SENAO,		RT3072_5),
-    RUN_DEV(SITECOMEU,		RT2770),
-    RUN_DEV(SITECOMEU,		RT2870_1),
-    RUN_DEV(SITECOMEU,		RT2870_2),
-    RUN_DEV(SITECOMEU,		RT2870_3),
-    RUN_DEV(SITECOMEU,		RT2870_4),
-    RUN_DEV(SITECOMEU,		RT3070),
-    RUN_DEV(SITECOMEU,		RT3070_2),
-    RUN_DEV(SITECOMEU,		RT3070_3),
-    RUN_DEV(SITECOMEU,		RT3070_4),
-    RUN_DEV(SITECOMEU,		RT3071),
-    RUN_DEV(SITECOMEU,		RT3072_1),
-    RUN_DEV(SITECOMEU,		RT3072_2),
-    RUN_DEV(SITECOMEU,		RT3072_3),
-    RUN_DEV(SITECOMEU,		RT3072_4),
-    RUN_DEV(SITECOMEU,		RT3072_5),
-    RUN_DEV(SITECOMEU,		RT3072_6),
-    RUN_DEV(SITECOMEU,		WL608),
-    RUN_DEV(SPARKLAN,		RT2870_1),
-    RUN_DEV(SPARKLAN,		RT3070),
-    RUN_DEV(SWEEX2,		LW153),
-    RUN_DEV(SWEEX2,		LW303),
-    RUN_DEV(SWEEX2,		LW313),
-    RUN_DEV(TOSHIBA,		RT3070),
-    RUN_DEV(UMEDIA,		RT2870_1),
-    RUN_DEV(ZCOM,		RT2870_1),
-    RUN_DEV(ZCOM,		RT2870_2),
-    RUN_DEV(ZINWELL,		RT2870_1),
-    RUN_DEV(ZINWELL,		RT2870_2),
-    RUN_DEV(ZINWELL,		RT3070),
-    RUN_DEV(ZINWELL,		RT3072_1),
-    RUN_DEV(ZINWELL,		RT3072_2),
-    RUN_DEV(ZYXEL,		RT2870_1),
-    RUN_DEV(ZYXEL,		RT2870_2),
-    RUN_DEV(ZYXEL,		RT3070),
-    RUN_DEV_EJECT(ZYXEL,	NWD2705),
-    RUN_DEV_EJECT(RALINK,	RT_STOR),
+#define RUN_DEV(v, p)                                         \
+	{                                                     \
+		USB_VP(USB_VENDOR_##v, USB_PRODUCT_##v##_##p) \
+	}
+#define RUN_DEV_EJECT(v, p)                                               \
+	{                                                                 \
+		USB_VPI(USB_VENDOR_##v, USB_PRODUCT_##v##_##p, RUN_EJECT) \
+	}
+#define RUN_EJECT 1
+	RUN_DEV(ABOCOM, RT2770),
+	RUN_DEV(ABOCOM, RT2870),
+	RUN_DEV(ABOCOM, RT3070),
+	RUN_DEV(ABOCOM, RT3071),
+	RUN_DEV(ABOCOM, RT3072),
+	RUN_DEV(ABOCOM2, RT2870_1),
+	RUN_DEV(ACCTON, RT2770),
+	RUN_DEV(ACCTON, RT2870_1),
+	RUN_DEV(ACCTON, RT2870_2),
+	RUN_DEV(ACCTON, RT2870_3),
+	RUN_DEV(ACCTON, RT2870_4),
+	RUN_DEV(ACCTON, RT2870_5),
+	RUN_DEV(ACCTON, RT3070),
+	RUN_DEV(ACCTON, RT3070_1),
+	RUN_DEV(ACCTON, RT3070_2),
+	RUN_DEV(ACCTON, RT3070_3),
+	RUN_DEV(ACCTON, RT3070_4),
+	RUN_DEV(ACCTON, RT3070_5),
+	RUN_DEV(AIRTIES, RT3070),
+	RUN_DEV(ALLWIN, RT2070),
+	RUN_DEV(ALLWIN, RT2770),
+	RUN_DEV(ALLWIN, RT2870),
+	RUN_DEV(ALLWIN, RT3070),
+	RUN_DEV(ALLWIN, RT3071),
+	RUN_DEV(ALLWIN, RT3072),
+	RUN_DEV(ALLWIN, RT3572),
+	RUN_DEV(AMIGO, RT2870_1),
+	RUN_DEV(AMIGO, RT2870_2),
+	RUN_DEV(AMIT, CGWLUSB2GNR),
+	RUN_DEV(AMIT, RT2870_1),
+	RUN_DEV(AMIT2, RT2870),
+	RUN_DEV(ASUS, RT2870_1),
+	RUN_DEV(ASUS, RT2870_2),
+	RUN_DEV(ASUS, RT2870_3),
+	RUN_DEV(ASUS, RT2870_4),
+	RUN_DEV(ASUS, RT2870_5),
+	RUN_DEV(ASUS, USBN13),
+	RUN_DEV(ASUS, RT3070_1),
+	RUN_DEV(ASUS, USBN66),
+	RUN_DEV(ASUS, USB_N53),
+	RUN_DEV(ASUS, USBN14),
+	RUN_DEV(ASUS2, USBN11),
+	RUN_DEV(AZUREWAVE, RT2870_1),
+	RUN_DEV(AZUREWAVE, RT2870_2),
+	RUN_DEV(AZUREWAVE, RT3070_1),
+	RUN_DEV(AZUREWAVE, RT3070_2),
+	RUN_DEV(AZUREWAVE, RT3070_3),
+	RUN_DEV(BELKIN, F9L1103),
+	RUN_DEV(BELKIN, F5D8053V3),
+	RUN_DEV(BELKIN, F5D8055),
+	RUN_DEV(BELKIN, F5D8055V2),
+	RUN_DEV(BELKIN, F6D4050V1),
+	RUN_DEV(BELKIN, F6D4050V2),
+	RUN_DEV(BELKIN, RT2870_1),
+	RUN_DEV(BELKIN, RT2870_2),
+	RUN_DEV(CISCOLINKSYS, AE1000),
+	RUN_DEV(CISCOLINKSYS2, RT3070),
+	RUN_DEV(CISCOLINKSYS3, RT3070),
+	RUN_DEV(CONCEPTRONIC2, RT2870_1),
+	RUN_DEV(CONCEPTRONIC2, RT2870_2),
+	RUN_DEV(CONCEPTRONIC2, RT2870_3),
+	RUN_DEV(CONCEPTRONIC2, RT2870_4),
+	RUN_DEV(CONCEPTRONIC2, RT2870_5),
+	RUN_DEV(CONCEPTRONIC2, RT2870_6),
+	RUN_DEV(CONCEPTRONIC2, RT2870_7),
+	RUN_DEV(CONCEPTRONIC2, RT2870_8),
+	RUN_DEV(CONCEPTRONIC2, RT3070_1),
+	RUN_DEV(CONCEPTRONIC2, RT3070_2),
+	RUN_DEV(CONCEPTRONIC2, VIGORN61),
+	RUN_DEV(COREGA, CGWLUSB300GNM),
+	RUN_DEV(COREGA, RT2870_1),
+	RUN_DEV(COREGA, RT2870_2),
+	RUN_DEV(COREGA, RT2870_3),
+	RUN_DEV(COREGA, RT3070),
+	RUN_DEV(CYBERTAN, RT2870),
+	RUN_DEV(DLINK, RT2870),
+	RUN_DEV(DLINK, RT3072),
+	RUN_DEV(DLINK, DWA125A3),
+	RUN_DEV(DLINK, DWA127),
+	RUN_DEV(DLINK, DWA140B3),
+	RUN_DEV(DLINK, DWA160B2),
+	RUN_DEV(DLINK, DWA140D1),
+	RUN_DEV(DLINK, DWA130F1),
+	RUN_DEV(DLINK, DWA162),
+	RUN_DEV(DLINK2, DWA130),
+	RUN_DEV(DLINK2, RT2870_1),
+	RUN_DEV(DLINK2, RT2870_2),
+	RUN_DEV(DLINK2, RT3070_1),
+	RUN_DEV(DLINK2, RT3070_2),
+	RUN_DEV(DLINK2, RT3070_3),
+	RUN_DEV(DLINK2, RT3070_4),
+	RUN_DEV(DLINK2, RT3070_5),
+	RUN_DEV(DLINK2, RT3072),
+	RUN_DEV(DLINK2, RT3072_1),
+	RUN_DEV(EDIMAX, EW7717),
+	RUN_DEV(EDIMAX, EW7718),
+	RUN_DEV(EDIMAX, EW7733UND),
+	RUN_DEV(EDIMAX, RT2870_1),
+	RUN_DEV(ENCORE, RT3070_1),
+	RUN_DEV(ENCORE, RT3070_2),
+	RUN_DEV(ENCORE, RT3070_3),
+	RUN_DEV(GIGABYTE, GNWB31N),
+	RUN_DEV(GIGABYTE, GNWB32L),
+	RUN_DEV(GIGABYTE, RT2870_1),
+	RUN_DEV(GIGASET, RT3070_1),
+	RUN_DEV(GIGASET, RT3070_2),
+	RUN_DEV(GUILLEMOT, HWNU300),
+	RUN_DEV(HAWKING, HWUN2),
+	RUN_DEV(HAWKING, RT2870_1),
+	RUN_DEV(HAWKING, RT2870_2),
+	RUN_DEV(HAWKING, RT3070),
+	RUN_DEV(IODATA, RT3072_1),
+	RUN_DEV(IODATA, RT3072_2),
+	RUN_DEV(IODATA, RT3072_3),
+	RUN_DEV(IODATA, RT3072_4),
+	RUN_DEV(LINKSYS4, RT3070),
+	RUN_DEV(LINKSYS4, WUSB100),
+	RUN_DEV(LINKSYS4, WUSB54GCV3),
+	RUN_DEV(LINKSYS4, WUSB600N),
+	RUN_DEV(LINKSYS4, WUSB600NV2),
+	RUN_DEV(LOGITEC, RT2870_1),
+	RUN_DEV(LOGITEC, RT2870_2),
+	RUN_DEV(LOGITEC, RT2870_3),
+	RUN_DEV(LOGITEC, LANW300NU2),
+	RUN_DEV(LOGITEC, LANW150NU2),
+	RUN_DEV(LOGITEC, LANW300NU2S),
+	RUN_DEV(MELCO, WLIUCG300HP),
+	RUN_DEV(MELCO, RT2870_2),
+	RUN_DEV(MELCO, WLIUCAG300N),
+	RUN_DEV(MELCO, WLIUCG300N),
+	RUN_DEV(MELCO, WLIUCG301N),
+	RUN_DEV(MELCO, WLIUCGN),
+	RUN_DEV(MELCO, WLIUCGNM),
+	RUN_DEV(MELCO, WLIUCG300HPV1),
+	RUN_DEV(MELCO, WLIUCGNM2),
+	RUN_DEV(MOTOROLA4, RT2770),
+	RUN_DEV(MOTOROLA4, RT3070),
+	RUN_DEV(MSI, RT3070_1),
+	RUN_DEV(MSI, RT3070_2),
+	RUN_DEV(MSI, RT3070_3),
+	RUN_DEV(MSI, RT3070_4),
+	RUN_DEV(MSI, RT3070_5),
+	RUN_DEV(MSI, RT3070_6),
+	RUN_DEV(MSI, RT3070_7),
+	RUN_DEV(MSI, RT3070_8),
+	RUN_DEV(MSI, RT3070_9),
+	RUN_DEV(MSI, RT3070_10),
+	RUN_DEV(MSI, RT3070_11),
+	RUN_DEV(NETGEAR, WNDA4100),
+	RUN_DEV(OVISLINK, RT3072),
+	RUN_DEV(PARA, RT3070),
+	RUN_DEV(PEGATRON, RT2870),
+	RUN_DEV(PEGATRON, RT3070),
+	RUN_DEV(PEGATRON, RT3070_2),
+	RUN_DEV(PEGATRON, RT3070_3),
+	RUN_DEV(PHILIPS, RT2870),
+	RUN_DEV(PLANEX2, GWUS300MINIS),
+	RUN_DEV(PLANEX2, GWUSMICRON),
+	RUN_DEV(PLANEX2, RT2870),
+	RUN_DEV(PLANEX2, RT3070),
+	RUN_DEV(QCOM, RT2870),
+	RUN_DEV(QUANTA, RT3070),
+	RUN_DEV(RALINK, RT2070),
+	RUN_DEV(RALINK, RT2770),
+	RUN_DEV(RALINK, RT2870),
+	RUN_DEV(RALINK, RT3070),
+	RUN_DEV(RALINK, RT3071),
+	RUN_DEV(RALINK, RT3072),
+	RUN_DEV(RALINK, RT3370),
+	RUN_DEV(RALINK, RT3572),
+	RUN_DEV(RALINK, RT3573),
+	RUN_DEV(RALINK, RT5370),
+	RUN_DEV(RALINK, RT5372),
+	RUN_DEV(RALINK, RT5572),
+	RUN_DEV(RALINK, RT8070),
+	RUN_DEV(SAMSUNG, WIS09ABGN),
+	RUN_DEV(SAMSUNG2, RT2870_1),
+	RUN_DEV(SENAO, RT2870_1),
+	RUN_DEV(SENAO, RT2870_2),
+	RUN_DEV(SENAO, RT2870_3),
+	RUN_DEV(SENAO, RT2870_4),
+	RUN_DEV(SENAO, RT3070),
+	RUN_DEV(SENAO, RT3071),
+	RUN_DEV(SENAO, RT3072_1),
+	RUN_DEV(SENAO, RT3072_2),
+	RUN_DEV(SENAO, RT3072_3),
+	RUN_DEV(SENAO, RT3072_4),
+	RUN_DEV(SENAO, RT3072_5),
+	RUN_DEV(SITECOMEU, RT2770),
+	RUN_DEV(SITECOMEU, RT2870_1),
+	RUN_DEV(SITECOMEU, RT2870_2),
+	RUN_DEV(SITECOMEU, RT2870_3),
+	RUN_DEV(SITECOMEU, RT2870_4),
+	RUN_DEV(SITECOMEU, RT3070),
+	RUN_DEV(SITECOMEU, RT3070_2),
+	RUN_DEV(SITECOMEU, RT3070_3),
+	RUN_DEV(SITECOMEU, RT3070_4),
+	RUN_DEV(SITECOMEU, RT3071),
+	RUN_DEV(SITECOMEU, RT3072_1),
+	RUN_DEV(SITECOMEU, RT3072_2),
+	RUN_DEV(SITECOMEU, RT3072_3),
+	RUN_DEV(SITECOMEU, RT3072_4),
+	RUN_DEV(SITECOMEU, RT3072_5),
+	RUN_DEV(SITECOMEU, RT3072_6),
+	RUN_DEV(SITECOMEU, WL608),
+	RUN_DEV(SPARKLAN, RT2870_1),
+	RUN_DEV(SPARKLAN, RT3070),
+	RUN_DEV(SWEEX2, LW153),
+	RUN_DEV(SWEEX2, LW303),
+	RUN_DEV(SWEEX2, LW313),
+	RUN_DEV(TOSHIBA, RT3070),
+	RUN_DEV(UMEDIA, RT2870_1),
+	RUN_DEV(ZCOM, RT2870_1),
+	RUN_DEV(ZCOM, RT2870_2),
+	RUN_DEV(ZINWELL, RT2870_1),
+	RUN_DEV(ZINWELL, RT2870_2),
+	RUN_DEV(ZINWELL, RT3070),
+	RUN_DEV(ZINWELL, RT3072_1),
+	RUN_DEV(ZINWELL, RT3072_2),
+	RUN_DEV(ZYXEL, RT2870_1),
+	RUN_DEV(ZYXEL, RT2870_2),
+	RUN_DEV(ZYXEL, RT3070),
+	RUN_DEV_EJECT(ZYXEL, NWD2705),
+	RUN_DEV_EJECT(RALINK, RT_STOR),
 #undef RUN_DEV_EJECT
 #undef RUN_DEV
 };
 
-static device_probe_t	run_match;
-static device_attach_t	run_attach;
-static device_detach_t	run_detach;
+static device_probe_t run_match;
+static device_attach_t run_attach;
+static device_detach_t run_detach;
 
-static usb_callback_t	run_bulk_rx_callback;
-static usb_callback_t	run_bulk_tx_callback0;
-static usb_callback_t	run_bulk_tx_callback1;
-static usb_callback_t	run_bulk_tx_callback2;
-static usb_callback_t	run_bulk_tx_callback3;
-static usb_callback_t	run_bulk_tx_callback4;
-static usb_callback_t	run_bulk_tx_callback5;
+static usb_callback_t run_bulk_rx_callback;
+static usb_callback_t run_bulk_tx_callback0;
+static usb_callback_t run_bulk_tx_callback1;
+static usb_callback_t run_bulk_tx_callback2;
+static usb_callback_t run_bulk_tx_callback3;
+static usb_callback_t run_bulk_tx_callback4;
+static usb_callback_t run_bulk_tx_callback5;
 
-static void	run_autoinst(void *, struct usb_device *,
-		    struct usb_attach_arg *);
-static int	run_driver_loaded(struct module *, int, void *);
-static void	run_bulk_tx_callbackN(struct usb_xfer *xfer,
-		    usb_error_t error, u_int index);
+static void run_autoinst(void *, struct usb_device *, struct usb_attach_arg *);
+static int run_driver_loaded(struct module *, int, void *);
+static void run_bulk_tx_callbackN(struct usb_xfer *xfer, usb_error_t error,
+    u_int index);
 static struct ieee80211vap *run_vap_create(struct ieee80211com *,
-		    const char [IFNAMSIZ], int, enum ieee80211_opmode, int,
-		    const uint8_t [IEEE80211_ADDR_LEN],
-		    const uint8_t [IEEE80211_ADDR_LEN]);
-static void	run_vap_delete(struct ieee80211vap *);
-static void	run_cmdq_cb(void *, int);
-static void	run_setup_tx_list(struct run_softc *,
-		    struct run_endpoint_queue *);
-static void	run_unsetup_tx_list(struct run_softc *,
-		    struct run_endpoint_queue *);
-static int	run_load_microcode(struct run_softc *);
-static int	run_reset(struct run_softc *);
+    const char[IFNAMSIZ], int, enum ieee80211_opmode, int,
+    const uint8_t[IEEE80211_ADDR_LEN], const uint8_t[IEEE80211_ADDR_LEN]);
+static void run_vap_delete(struct ieee80211vap *);
+static void run_cmdq_cb(void *, int);
+static void run_setup_tx_list(struct run_softc *, struct run_endpoint_queue *);
+static void run_unsetup_tx_list(struct run_softc *,
+    struct run_endpoint_queue *);
+static int run_load_microcode(struct run_softc *);
+static int run_reset(struct run_softc *);
 static usb_error_t run_do_request(struct run_softc *,
-		    struct usb_device_request *, void *);
-static int	run_read(struct run_softc *, uint16_t, uint32_t *);
-static int	run_read_region_1(struct run_softc *, uint16_t, uint8_t *, int);
-static int	run_write_2(struct run_softc *, uint16_t, uint16_t);
-static int	run_write(struct run_softc *, uint16_t, uint32_t);
-static int	run_write_region_1(struct run_softc *, uint16_t,
-		    const uint8_t *, int);
-static int	run_set_region_4(struct run_softc *, uint16_t, uint32_t, int);
-static int	run_efuse_read(struct run_softc *, uint16_t, uint16_t *, int);
-static int	run_efuse_read_2(struct run_softc *, uint16_t, uint16_t *);
-static int	run_eeprom_read_2(struct run_softc *, uint16_t, uint16_t *);
-static int	run_rt2870_rf_write(struct run_softc *, uint32_t);
-static int	run_rt3070_rf_read(struct run_softc *, uint8_t, uint8_t *);
-static int	run_rt3070_rf_write(struct run_softc *, uint8_t, uint8_t);
-static int	run_bbp_read(struct run_softc *, uint8_t, uint8_t *);
-static int	run_bbp_write(struct run_softc *, uint8_t, uint8_t);
-static int	run_mcu_cmd(struct run_softc *, uint8_t, uint16_t);
+    struct usb_device_request *, void *);
+static int run_read(struct run_softc *, uint16_t, uint32_t *);
+static int run_read_region_1(struct run_softc *, uint16_t, uint8_t *, int);
+static int run_write_2(struct run_softc *, uint16_t, uint16_t);
+static int run_write(struct run_softc *, uint16_t, uint32_t);
+static int run_write_region_1(struct run_softc *, uint16_t, const uint8_t *,
+    int);
+static int run_set_region_4(struct run_softc *, uint16_t, uint32_t, int);
+static int run_efuse_read(struct run_softc *, uint16_t, uint16_t *, int);
+static int run_efuse_read_2(struct run_softc *, uint16_t, uint16_t *);
+static int run_eeprom_read_2(struct run_softc *, uint16_t, uint16_t *);
+static int run_rt2870_rf_write(struct run_softc *, uint32_t);
+static int run_rt3070_rf_read(struct run_softc *, uint8_t, uint8_t *);
+static int run_rt3070_rf_write(struct run_softc *, uint8_t, uint8_t);
+static int run_bbp_read(struct run_softc *, uint8_t, uint8_t *);
+static int run_bbp_write(struct run_softc *, uint8_t, uint8_t);
+static int run_mcu_cmd(struct run_softc *, uint8_t, uint16_t);
 static const char *run_get_rf(uint16_t);
-static void	run_rt3593_get_txpower(struct run_softc *);
-static void	run_get_txpower(struct run_softc *);
-static int	run_read_eeprom(struct run_softc *);
+static void run_rt3593_get_txpower(struct run_softc *);
+static void run_get_txpower(struct run_softc *);
+static int run_read_eeprom(struct run_softc *);
 static struct ieee80211_node *run_node_alloc(struct ieee80211vap *,
-			    const uint8_t mac[IEEE80211_ADDR_LEN]);
-static int	run_media_change(if_t);
-static int	run_newstate(struct ieee80211vap *, enum ieee80211_state, int);
-static int	run_wme_update(struct ieee80211com *);
-static void	run_key_set_cb(void *);
-static int	run_key_set(struct ieee80211vap *, struct ieee80211_key *);
-static void	run_key_delete_cb(void *);
-static int	run_key_delete(struct ieee80211vap *, struct ieee80211_key *);
-static void	run_ratectl_to(void *);
-static void	run_ratectl_cb(void *, int);
-static void	run_drain_fifo(void *);
-static void	run_iter_func(void *, struct ieee80211_node *);
-static void	run_newassoc_cb(void *);
-static void	run_newassoc(struct ieee80211_node *, int);
-static void	run_recv_mgmt(struct ieee80211_node *, struct mbuf *, int,
-		    const struct ieee80211_rx_stats *, int, int);
-static void	run_rx_frame(struct run_softc *, struct mbuf *, uint32_t);
-static void	run_tx_free(struct run_endpoint_queue *pq,
-		    struct run_tx_data *, int);
-static void	run_set_tx_desc(struct run_softc *, struct run_tx_data *);
-static int	run_tx(struct run_softc *, struct mbuf *,
-		    struct ieee80211_node *);
-static int	run_tx_mgt(struct run_softc *, struct mbuf *,
-		    struct ieee80211_node *);
-static int	run_sendprot(struct run_softc *, const struct mbuf *,
-		    struct ieee80211_node *, int, int);
-static int	run_tx_param(struct run_softc *, struct mbuf *,
-		    struct ieee80211_node *,
-		    const struct ieee80211_bpf_params *);
-static int	run_raw_xmit(struct ieee80211_node *, struct mbuf *,
-		    const struct ieee80211_bpf_params *);
-static int	run_transmit(struct ieee80211com *, struct mbuf *);
-static void	run_start(struct run_softc *);
-static void	run_parent(struct ieee80211com *);
-static void	run_iq_calib(struct run_softc *, u_int);
-static void	run_set_agc(struct run_softc *, uint8_t);
-static void	run_select_chan_group(struct run_softc *, int);
-static void	run_set_rx_antenna(struct run_softc *, int);
-static void	run_rt2870_set_chan(struct run_softc *, u_int);
-static void	run_rt3070_set_chan(struct run_softc *, u_int);
-static void	run_rt3572_set_chan(struct run_softc *, u_int);
-static void	run_rt3593_set_chan(struct run_softc *, u_int);
-static void	run_rt5390_set_chan(struct run_softc *, u_int);
-static void	run_rt5592_set_chan(struct run_softc *, u_int);
-static int	run_set_chan(struct run_softc *, struct ieee80211_channel *);
-static void	run_set_channel(struct ieee80211com *);
-static void	run_getradiocaps(struct ieee80211com *, int, int *,
-		    struct ieee80211_channel[]);
-static void	run_scan_start(struct ieee80211com *);
-static void	run_scan_end(struct ieee80211com *);
-static void	run_update_beacon(struct ieee80211vap *, int);
-static void	run_update_beacon_cb(void *);
-static void	run_updateprot(struct ieee80211com *);
-static void	run_updateprot_cb(void *);
-static void	run_usb_timeout_cb(void *);
-static void	run_reset_livelock(struct run_softc *);
-static void	run_enable_tsf_sync(struct run_softc *);
-static void	run_enable_tsf(struct run_softc *);
-static void	run_disable_tsf(struct run_softc *);
-static void	run_get_tsf(struct run_softc *, uint64_t *);
-static void	run_enable_mrr(struct run_softc *);
-static void	run_set_txpreamble(struct run_softc *);
-static void	run_set_basicrates(struct run_softc *);
-static void	run_set_leds(struct run_softc *, uint16_t);
-static void	run_set_bssid(struct run_softc *, const uint8_t *);
-static void	run_set_macaddr(struct run_softc *, const uint8_t *);
-static void	run_updateslot(struct ieee80211com *);
-static void	run_updateslot_cb(void *);
-static void	run_update_mcast(struct ieee80211com *);
-static int8_t	run_rssi2dbm(struct run_softc *, uint8_t, uint8_t);
-static void	run_update_promisc_locked(struct run_softc *);
-static void	run_update_promisc(struct ieee80211com *);
-static void	run_rt5390_bbp_init(struct run_softc *);
-static int	run_bbp_init(struct run_softc *);
-static int	run_rt3070_rf_init(struct run_softc *);
-static void	run_rt3593_rf_init(struct run_softc *);
-static void	run_rt5390_rf_init(struct run_softc *);
-static int	run_rt3070_filter_calib(struct run_softc *, uint8_t, uint8_t,
-		    uint8_t *);
-static void	run_rt3070_rf_setup(struct run_softc *);
-static void	run_rt3593_rf_setup(struct run_softc *);
-static void	run_rt5390_rf_setup(struct run_softc *);
-static int	run_txrx_enable(struct run_softc *);
-static void	run_adjust_freq_offset(struct run_softc *);
-static void	run_init_locked(struct run_softc *);
-static void	run_stop(void *);
-static void	run_delay(struct run_softc *, u_int);
-static void	run_update_chw(struct ieee80211com *ic);
-static int	run_ampdu_enable(struct ieee80211_node *ni,
-		    struct ieee80211_tx_ampdu *tap);
+    const uint8_t mac[IEEE80211_ADDR_LEN]);
+static int run_media_change(if_t);
+static int run_newstate(struct ieee80211vap *, enum ieee80211_state, int);
+static int run_wme_update(struct ieee80211com *);
+static void run_key_set_cb(void *);
+static int run_key_set(struct ieee80211vap *, struct ieee80211_key *);
+static void run_key_delete_cb(void *);
+static int run_key_delete(struct ieee80211vap *, struct ieee80211_key *);
+static void run_ratectl_to(void *);
+static void run_ratectl_cb(void *, int);
+static void run_drain_fifo(void *);
+static void run_iter_func(void *, struct ieee80211_node *);
+static void run_newassoc_cb(void *);
+static void run_newassoc(struct ieee80211_node *, int);
+static void run_recv_mgmt(struct ieee80211_node *, struct mbuf *, int,
+    const struct ieee80211_rx_stats *, int, int);
+static void run_rx_frame(struct run_softc *, struct mbuf *, uint32_t);
+static void run_tx_free(struct run_endpoint_queue *pq, struct run_tx_data *,
+    int);
+static void run_set_tx_desc(struct run_softc *, struct run_tx_data *);
+static int run_tx(struct run_softc *, struct mbuf *, struct ieee80211_node *);
+static int run_tx_mgt(struct run_softc *, struct mbuf *,
+    struct ieee80211_node *);
+static int run_sendprot(struct run_softc *, const struct mbuf *,
+    struct ieee80211_node *, int, int);
+static int run_tx_param(struct run_softc *, struct mbuf *,
+    struct ieee80211_node *, const struct ieee80211_bpf_params *);
+static int run_raw_xmit(struct ieee80211_node *, struct mbuf *,
+    const struct ieee80211_bpf_params *);
+static int run_transmit(struct ieee80211com *, struct mbuf *);
+static void run_start(struct run_softc *);
+static void run_parent(struct ieee80211com *);
+static void run_iq_calib(struct run_softc *, u_int);
+static void run_set_agc(struct run_softc *, uint8_t);
+static void run_select_chan_group(struct run_softc *, int);
+static void run_set_rx_antenna(struct run_softc *, int);
+static void run_rt2870_set_chan(struct run_softc *, u_int);
+static void run_rt3070_set_chan(struct run_softc *, u_int);
+static void run_rt3572_set_chan(struct run_softc *, u_int);
+static void run_rt3593_set_chan(struct run_softc *, u_int);
+static void run_rt5390_set_chan(struct run_softc *, u_int);
+static void run_rt5592_set_chan(struct run_softc *, u_int);
+static int run_set_chan(struct run_softc *, struct ieee80211_channel *);
+static void run_set_channel(struct ieee80211com *);
+static void run_getradiocaps(struct ieee80211com *, int, int *,
+    struct ieee80211_channel[]);
+static void run_scan_start(struct ieee80211com *);
+static void run_scan_end(struct ieee80211com *);
+static void run_update_beacon(struct ieee80211vap *, int);
+static void run_update_beacon_cb(void *);
+static void run_updateprot(struct ieee80211com *);
+static void run_updateprot_cb(void *);
+static void run_usb_timeout_cb(void *);
+static void run_reset_livelock(struct run_softc *);
+static void run_enable_tsf_sync(struct run_softc *);
+static void run_enable_tsf(struct run_softc *);
+static void run_disable_tsf(struct run_softc *);
+static void run_get_tsf(struct run_softc *, uint64_t *);
+static void run_enable_mrr(struct run_softc *);
+static void run_set_txpreamble(struct run_softc *);
+static void run_set_basicrates(struct run_softc *);
+static void run_set_leds(struct run_softc *, uint16_t);
+static void run_set_bssid(struct run_softc *, const uint8_t *);
+static void run_set_macaddr(struct run_softc *, const uint8_t *);
+static void run_updateslot(struct ieee80211com *);
+static void run_updateslot_cb(void *);
+static void run_update_mcast(struct ieee80211com *);
+static int8_t run_rssi2dbm(struct run_softc *, uint8_t, uint8_t);
+static void run_update_promisc_locked(struct run_softc *);
+static void run_update_promisc(struct ieee80211com *);
+static void run_rt5390_bbp_init(struct run_softc *);
+static int run_bbp_init(struct run_softc *);
+static int run_rt3070_rf_init(struct run_softc *);
+static void run_rt3593_rf_init(struct run_softc *);
+static void run_rt5390_rf_init(struct run_softc *);
+static int run_rt3070_filter_calib(struct run_softc *, uint8_t, uint8_t,
+    uint8_t *);
+static void run_rt3070_rf_setup(struct run_softc *);
+static void run_rt3593_rf_setup(struct run_softc *);
+static void run_rt5390_rf_setup(struct run_softc *);
+static int run_txrx_enable(struct run_softc *);
+static void run_adjust_freq_offset(struct run_softc *);
+static void run_init_locked(struct run_softc *);
+static void run_stop(void *);
+static void run_delay(struct run_softc *, u_int);
+static void run_update_chw(struct ieee80211com *ic);
+static int run_ampdu_enable(struct ieee80211_node *ni,
+    struct ieee80211_tx_ampdu *tap);
 
 static eventhandler_tag run_etag;
 
 static const struct rt2860_rate {
-	uint8_t		rate;
-	uint8_t		mcs;
-	enum		ieee80211_phytype phy;
-	uint8_t		ctl_ridx;
-	uint16_t	sp_ack_dur;
-	uint16_t	lp_ack_dur;
+	uint8_t rate;
+	uint8_t mcs;
+	enum ieee80211_phytype phy;
+	uint8_t ctl_ridx;
+	uint16_t sp_ack_dur;
+	uint16_t lp_ack_dur;
 } rt2860_rates[] = {
 	/* CCK rates (11b) */
-	{   2, 0, IEEE80211_T_DS,   0, 314, 314 },
-	{   4, 1, IEEE80211_T_DS,   1, 258, 162 },
-	{  11, 2, IEEE80211_T_DS,   2, 223, 127 },
-	{  22, 3, IEEE80211_T_DS,   3, 213, 117 },
+	{ 2, 0, IEEE80211_T_DS, 0, 314, 314 },
+	{ 4, 1, IEEE80211_T_DS, 1, 258, 162 },
+	{ 11, 2, IEEE80211_T_DS, 2, 223, 127 },
+	{ 22, 3, IEEE80211_T_DS, 3, 213, 117 },
 
 	/* OFDM rates (11a / 11g) */
-	{  12, 0, IEEE80211_T_OFDM, 4,  60,  60 },
-	{  18, 1, IEEE80211_T_OFDM, 4,  52,  52 },
-	{  24, 2, IEEE80211_T_OFDM, 6,  48,  48 },
-	{  36, 3, IEEE80211_T_OFDM, 6,  44,  44 },
-	{  48, 4, IEEE80211_T_OFDM, 8,  44,  44 },
-	{  72, 5, IEEE80211_T_OFDM, 8,  40,  40 },
-	{  96, 6, IEEE80211_T_OFDM, 8,  40,  40 },
-	{ 108, 7, IEEE80211_T_OFDM, 8,  40,  40 },
+	{ 12, 0, IEEE80211_T_OFDM, 4, 60, 60 },
+	{ 18, 1, IEEE80211_T_OFDM, 4, 52, 52 },
+	{ 24, 2, IEEE80211_T_OFDM, 6, 48, 48 },
+	{ 36, 3, IEEE80211_T_OFDM, 6, 44, 44 },
+	{ 48, 4, IEEE80211_T_OFDM, 8, 44, 44 },
+	{ 72, 5, IEEE80211_T_OFDM, 8, 40, 40 },
+	{ 96, 6, IEEE80211_T_OFDM, 8, 40, 40 },
+	{ 108, 7, IEEE80211_T_OFDM, 8, 40, 40 },
 
 	/* MCS - single stream */
-	{  0x80, 0, IEEE80211_T_HT, 4, 60, 60 },
-	{  0x81, 1, IEEE80211_T_HT, 4, 60, 60 },
-	{  0x82, 2, IEEE80211_T_HT, 4, 60, 60 },
-	{  0x83, 3, IEEE80211_T_HT, 4, 60, 60 },
-	{  0x84, 4, IEEE80211_T_HT, 4, 60, 60 },
-	{  0x85, 5, IEEE80211_T_HT, 4, 60, 60 },
-	{  0x86, 6, IEEE80211_T_HT, 4, 60, 60 },
-	{  0x87, 7, IEEE80211_T_HT, 4, 60, 60 },
+	{ 0x80, 0, IEEE80211_T_HT, 4, 60, 60 },
+	{ 0x81, 1, IEEE80211_T_HT, 4, 60, 60 },
+	{ 0x82, 2, IEEE80211_T_HT, 4, 60, 60 },
+	{ 0x83, 3, IEEE80211_T_HT, 4, 60, 60 },
+	{ 0x84, 4, IEEE80211_T_HT, 4, 60, 60 },
+	{ 0x85, 5, IEEE80211_T_HT, 4, 60, 60 },
+	{ 0x86, 6, IEEE80211_T_HT, 4, 60, 60 },
+	{ 0x87, 7, IEEE80211_T_HT, 4, 60, 60 },
 
 	/* MCS - 2 streams */
-	{  0x88, 8, IEEE80211_T_HT, 4, 60, 60 },
-	{  0x89, 9, IEEE80211_T_HT, 4, 60, 60 },
-	{  0x8a, 10, IEEE80211_T_HT, 4, 60, 60 },
-	{  0x8b, 11, IEEE80211_T_HT, 4, 60, 60 },
-	{  0x8c, 12, IEEE80211_T_HT, 4, 60, 60 },
-	{  0x8d, 13, IEEE80211_T_HT, 4, 60, 60 },
-	{  0x8e, 14, IEEE80211_T_HT, 4, 60, 60 },
-	{  0x8f, 15, IEEE80211_T_HT, 4, 60, 60 },
+	{ 0x88, 8, IEEE80211_T_HT, 4, 60, 60 },
+	{ 0x89, 9, IEEE80211_T_HT, 4, 60, 60 },
+	{ 0x8a, 10, IEEE80211_T_HT, 4, 60, 60 },
+	{ 0x8b, 11, IEEE80211_T_HT, 4, 60, 60 },
+	{ 0x8c, 12, IEEE80211_T_HT, 4, 60, 60 },
+	{ 0x8d, 13, IEEE80211_T_HT, 4, 60, 60 },
+	{ 0x8e, 14, IEEE80211_T_HT, 4, 60, 60 },
+	{ 0x8f, 15, IEEE80211_T_HT, 4, 60, 60 },
 
 	/* MCS - 3 streams */
-	{  0x90, 16, IEEE80211_T_HT, 4, 60, 60 },
-	{  0x91, 17, IEEE80211_T_HT, 4, 60, 60 },
-	{  0x92, 18, IEEE80211_T_HT, 4, 60, 60 },
-	{  0x93, 19, IEEE80211_T_HT, 4, 60, 60 },
-	{  0x94, 20, IEEE80211_T_HT, 4, 60, 60 },
-	{  0x95, 21, IEEE80211_T_HT, 4, 60, 60 },
-	{  0x96, 22, IEEE80211_T_HT, 4, 60, 60 },
-	{  0x97, 23, IEEE80211_T_HT, 4, 60, 60 },
+	{ 0x90, 16, IEEE80211_T_HT, 4, 60, 60 },
+	{ 0x91, 17, IEEE80211_T_HT, 4, 60, 60 },
+	{ 0x92, 18, IEEE80211_T_HT, 4, 60, 60 },
+	{ 0x93, 19, IEEE80211_T_HT, 4, 60, 60 },
+	{ 0x94, 20, IEEE80211_T_HT, 4, 60, 60 },
+	{ 0x95, 21, IEEE80211_T_HT, 4, 60, 60 },
+	{ 0x96, 22, IEEE80211_T_HT, 4, 60, 60 },
+	{ 0x97, 23, IEEE80211_T_HT, 4, 60, 60 },
 };
 
 /* These are indexes into the above rt2860_rates[] array */
-#define	RT2860_RIDX_CCK1		0
-#define	RT2860_RIDX_CCK11		3
-#define	RT2860_RIDX_OFDM6		4
-#define	RT2860_RIDX_MCS0		12
-#define	RT2860_RIDX_MAX			36
+#define RT2860_RIDX_CCK1 0
+#define RT2860_RIDX_CCK11 3
+#define RT2860_RIDX_OFDM6 4
+#define RT2860_RIDX_MCS0 12
+#define RT2860_RIDX_MAX 36
 
 static const struct {
-	uint16_t	reg;
-	uint32_t	val;
-} rt2870_def_mac[] = {
-	RT2870_DEF_MAC
-};
+	uint16_t reg;
+	uint32_t val;
+} rt2870_def_mac[] = { RT2870_DEF_MAC };
 
 static const struct {
-	uint8_t	reg;
-	uint8_t	val;
-} rt2860_def_bbp[] = {
-	RT2860_DEF_BBP
-},rt5390_def_bbp[] = {
-	RT5390_DEF_BBP
-},rt5592_def_bbp[] = {
-	RT5592_DEF_BBP
-};
+	uint8_t reg;
+	uint8_t val;
+} rt2860_def_bbp[] = { RT2860_DEF_BBP }, rt5390_def_bbp[] = { RT5390_DEF_BBP },
+  rt5592_def_bbp[] = { RT5592_DEF_BBP };
 
-/* 
+/*
  * Default values for BBP register R196 for RT5592.
  */
-static const uint8_t rt5592_bbp_r196[] = {
-	0xe0, 0x1f, 0x38, 0x32, 0x08, 0x28, 0x19, 0x0a, 0xff, 0x00,
-	0x16, 0x10, 0x10, 0x0b, 0x36, 0x2c, 0x26, 0x24, 0x42, 0x36,
-	0x30, 0x2d, 0x4c, 0x46, 0x3d, 0x40, 0x3e, 0x42, 0x3d, 0x40,
-	0x3c, 0x34, 0x2c, 0x2f, 0x3c, 0x35, 0x2e, 0x2a, 0x49, 0x41,
-	0x36, 0x31, 0x30, 0x30, 0x0e, 0x0d, 0x28, 0x21, 0x1c, 0x16,
-	0x50, 0x4a, 0x43, 0x40, 0x10, 0x10, 0x10, 0x10, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x7d, 0x14, 0x32, 0x2c, 0x36, 0x4c, 0x43, 0x2c,
-	0x2e, 0x36, 0x30, 0x6e
-};
+static const uint8_t rt5592_bbp_r196[] = { 0xe0, 0x1f, 0x38, 0x32, 0x08, 0x28,
+	0x19, 0x0a, 0xff, 0x00, 0x16, 0x10, 0x10, 0x0b, 0x36, 0x2c, 0x26, 0x24,
+	0x42, 0x36, 0x30, 0x2d, 0x4c, 0x46, 0x3d, 0x40, 0x3e, 0x42, 0x3d, 0x40,
+	0x3c, 0x34, 0x2c, 0x2f, 0x3c, 0x35, 0x2e, 0x2a, 0x49, 0x41, 0x36, 0x31,
+	0x30, 0x30, 0x0e, 0x0d, 0x28, 0x21, 0x1c, 0x16, 0x50, 0x4a, 0x43, 0x40,
+	0x10, 0x10, 0x10, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7d, 0x14, 0x32, 0x2c, 0x36, 0x4c,
+	0x43, 0x2c, 0x2e, 0x36, 0x30, 0x6e };
 
 static const struct rfprog {
-	uint8_t		chan;
-	uint32_t	r1, r2, r3, r4;
-} rt2860_rf2850[] = {
-	RT2860_RF2850
-};
+	uint8_t chan;
+	uint32_t r1, r2, r3, r4;
+} rt2860_rf2850[] = { RT2860_RF2850 };
 
 struct {
-	uint8_t	n, r, k;
-} rt3070_freqs[] = {
-	RT3070_RF3052
-};
+	uint8_t n, r, k;
+} rt3070_freqs[] = { RT3070_RF3052 };
 
 static const struct rt5592_freqs {
-	uint16_t	n;
-	uint8_t		k, m, r;
-} rt5592_freqs_20mhz[] = {
-	RT5592_RF5592_20MHZ
-},rt5592_freqs_40mhz[] = {
-	RT5592_RF5592_40MHZ
-};
+	uint16_t n;
+	uint8_t k, m, r;
+} rt5592_freqs_20mhz[] = { RT5592_RF5592_20MHZ },
+  rt5592_freqs_40mhz[] = { RT5592_RF5592_40MHZ };
 
 static const struct {
-	uint8_t	reg;
-	uint8_t	val;
-} rt3070_def_rf[] = {
-	RT3070_DEF_RF
-},rt3572_def_rf[] = {
-	RT3572_DEF_RF
-},rt3593_def_rf[] = {
-	RT3593_DEF_RF
-},rt5390_def_rf[] = {
-	RT5390_DEF_RF
-},rt5392_def_rf[] = {
-	RT5392_DEF_RF
-},rt5592_def_rf[] = {
-	RT5592_DEF_RF
-},rt5592_2ghz_def_rf[] = {
-	RT5592_2GHZ_DEF_RF
-},rt5592_5ghz_def_rf[] = {
-	RT5592_5GHZ_DEF_RF
-};
+	uint8_t reg;
+	uint8_t val;
+} rt3070_def_rf[] = { RT3070_DEF_RF }, rt3572_def_rf[] = { RT3572_DEF_RF },
+  rt3593_def_rf[] = { RT3593_DEF_RF }, rt5390_def_rf[] = { RT5390_DEF_RF },
+  rt5392_def_rf[] = { RT5392_DEF_RF }, rt5592_def_rf[] = { RT5592_DEF_RF },
+  rt5592_2ghz_def_rf[] = { RT5592_2GHZ_DEF_RF },
+  rt5592_5ghz_def_rf[] = { RT5592_5GHZ_DEF_RF };
 
 static const struct {
-	u_int	firstchan;
-	u_int	lastchan;
-	uint8_t	reg;
-	uint8_t	val;
-} rt5592_chan_5ghz[] = {
-	RT5592_CHAN_5GHZ
-};
+	u_int firstchan;
+	u_int lastchan;
+	uint8_t reg;
+	uint8_t val;
+} rt5592_chan_5ghz[] = { RT5592_CHAN_5GHZ };
 
 static const struct usb_config run_config[RUN_N_XFER] = {
     [RUN_BULK_TX_BE] = {
@@ -723,8 +694,7 @@ static const struct usb_config run_config[RUN_N_XFER] = {
 };
 
 static void
-run_autoinst(void *arg, struct usb_device *udev,
-    struct usb_attach_arg *uaa)
+run_autoinst(void *arg, struct usb_device *udev, struct usb_attach_arg *uaa)
 {
 	struct usb_interface *iface;
 	struct usb_interface_descriptor *id;
@@ -793,17 +763,19 @@ run_attach(device_t self)
 	if (USB_GET_DRIVER_INFO(uaa) != RUN_EJECT)
 		sc->sc_flags |= RUN_FLAG_FWLOAD_NEEDED;
 
-	mtx_init(&sc->sc_mtx, device_get_nameunit(sc->sc_dev),
-	    MTX_NETWORK_LOCK, MTX_DEF);
+	mtx_init(&sc->sc_mtx, device_get_nameunit(sc->sc_dev), MTX_NETWORK_LOCK,
+	    MTX_DEF);
 	mbufq_init(&sc->sc_snd, ifqmaxlen);
 
 	iface_index = RT2860_IFACE_INDEX;
 
-	error = usbd_transfer_setup(uaa->device, &iface_index,
-	    sc->sc_xfer, run_config, RUN_N_XFER, sc, &sc->sc_mtx);
+	error = usbd_transfer_setup(uaa->device, &iface_index, sc->sc_xfer,
+	    run_config, RUN_N_XFER, sc, &sc->sc_mtx);
 	if (error) {
-		device_printf(self, "could not allocate USB transfers, "
-		    "err=%s\n", usbd_errstr(error));
+		device_printf(self,
+		    "could not allocate USB transfers, "
+		    "err=%s\n",
+		    usbd_errstr(error));
 		goto detach;
 	}
 
@@ -833,52 +805,44 @@ run_attach(device_t self)
 
 	device_printf(sc->sc_dev,
 	    "MAC/BBP RT%04X (rev 0x%04X), RF %s (MIMO %dT%dR), address %s\n",
-	    sc->mac_ver, sc->mac_rev, run_get_rf(sc->rf_rev),
-	    sc->ntxchains, sc->nrxchains, ether_sprintf(ic->ic_macaddr));
+	    sc->mac_ver, sc->mac_rev, run_get_rf(sc->rf_rev), sc->ntxchains,
+	    sc->nrxchains, ether_sprintf(ic->ic_macaddr));
 
 	RUN_UNLOCK(sc);
 
 	ic->ic_softc = sc;
 	ic->ic_name = device_get_nameunit(self);
-	ic->ic_phytype = IEEE80211_T_OFDM;	/* not only, but not used */
-	ic->ic_opmode = IEEE80211_M_STA;	/* default to BSS mode */
+	ic->ic_phytype = IEEE80211_T_OFDM; /* not only, but not used */
+	ic->ic_opmode = IEEE80211_M_STA;   /* default to BSS mode */
 
 	/* set device capabilities */
-	ic->ic_caps =
-	    IEEE80211_C_STA |		/* station mode supported */
+	ic->ic_caps = IEEE80211_C_STA | /* station mode supported */
 	    IEEE80211_C_MONITOR |	/* monitor mode supported */
-	    IEEE80211_C_IBSS |
-	    IEEE80211_C_HOSTAP |
-	    IEEE80211_C_WDS |		/* 4-address traffic works */
+	    IEEE80211_C_IBSS | IEEE80211_C_HOSTAP |
+	    IEEE80211_C_WDS | /* 4-address traffic works */
 	    IEEE80211_C_MBSS |
-	    IEEE80211_C_SHPREAMBLE |	/* short preamble supported */
-	    IEEE80211_C_SHSLOT |	/* short slot time supported */
-	    IEEE80211_C_SWAMSDUTX |	/* Do software A-MSDU TX */
-	    IEEE80211_C_FF | 		/* Atheros fast-frames */
-	    IEEE80211_C_WME |		/* WME */
-	    IEEE80211_C_WPA;		/* WPA1|WPA2(RSN) */
+	    IEEE80211_C_SHPREAMBLE | /* short preamble supported */
+	    IEEE80211_C_SHSLOT |     /* short slot time supported */
+	    IEEE80211_C_SWAMSDUTX |  /* Do software A-MSDU TX */
+	    IEEE80211_C_FF |	     /* Atheros fast-frames */
+	    IEEE80211_C_WME |	     /* WME */
+	    IEEE80211_C_WPA;	     /* WPA1|WPA2(RSN) */
 
 	/*
 	 * RF2020 is not an 11n device.
 	 */
 	if (sc->rf_rev != RT3070_RF_2020) {
 		device_printf(sc->sc_dev, "[HT] Enabling 802.11n\n");
-		ic->ic_htcaps =
-			    IEEE80211_HTC_HT |
-			    IEEE80211_HTC_AMPDU |
-			    IEEE80211_HTC_AMSDU |
-			    IEEE80211_HTCAP_MAXAMSDU_3839 |
-			    IEEE80211_HTCAP_SMPS_OFF;
+		ic->ic_htcaps = IEEE80211_HTC_HT | IEEE80211_HTC_AMPDU |
+		    IEEE80211_HTC_AMSDU | IEEE80211_HTCAP_MAXAMSDU_3839 |
+		    IEEE80211_HTCAP_SMPS_OFF;
 
 		ic->ic_rxstream = sc->nrxchains;
 		ic->ic_txstream = sc->ntxchains;
 	}
 
-	ic->ic_cryptocaps =
-	    IEEE80211_CRYPTO_WEP |
-	    IEEE80211_CRYPTO_AES_CCM |
-	    IEEE80211_CRYPTO_TKIPMIC |
-	    IEEE80211_CRYPTO_TKIP;
+	ic->ic_cryptocaps = IEEE80211_CRYPTO_WEP | IEEE80211_CRYPTO_AES_CCM |
+	    IEEE80211_CRYPTO_TKIPMIC | IEEE80211_CRYPTO_TKIP;
 
 	ic->ic_flags |= IEEE80211_F_DATAPAD;
 	ic->ic_flags_ext |= IEEE80211_FEXT_SWBMISS;
@@ -906,11 +870,10 @@ run_attach(device_t self)
 	ic->ic_update_chw = run_update_chw;
 	ic->ic_ampdu_enable = run_ampdu_enable;
 
-	ieee80211_radiotap_attach(ic,
-	    &sc->sc_txtap.wt_ihdr, sizeof(sc->sc_txtap),
-		RUN_TX_RADIOTAP_PRESENT,
+	ieee80211_radiotap_attach(ic, &sc->sc_txtap.wt_ihdr,
+	    sizeof(sc->sc_txtap), RUN_TX_RADIOTAP_PRESENT,
 	    &sc->sc_rxtap.wr_ihdr, sizeof(sc->sc_rxtap),
-		RUN_RX_RADIOTAP_PRESENT);
+	    RUN_RX_RADIOTAP_PRESENT);
 
 	TASK_INIT(&sc->cmdq_task, 0, run_cmdq_cb, sc);
 	TASK_INIT(&sc->ratectl_task, 0, run_ratectl_cb, sc);
@@ -999,7 +962,7 @@ run_vap_create(struct ieee80211com *ic, const char name[IFNAMSIZ], int unit,
 	switch (opmode) {
 	case IEEE80211_M_STA:
 		/* enable s/w bmiss handling for sta mode */
-		flags |= IEEE80211_CLONE_NOBEACONS; 
+		flags |= IEEE80211_CLONE_NOBEACONS;
 		/* fall though */
 	case IEEE80211_M_IBSS:
 	case IEEE80211_M_MONITOR:
@@ -1010,8 +973,8 @@ run_vap_create(struct ieee80211com *ic, const char name[IFNAMSIZ], int unit,
 			return (NULL);
 		break;
 	case IEEE80211_M_WDS:
-		TAILQ_FOREACH(vap, &ic->ic_vaps, iv_next){
-			if(vap->iv_opmode != IEEE80211_M_HOSTAP)
+		TAILQ_FOREACH (vap, &ic->ic_vaps, iv_next) {
+			if (vap->iv_opmode != IEEE80211_M_HOSTAP)
 				continue;
 			/* WDS vap's always share the local mac address. */
 			flags &= ~IEEE80211_CLONE_BSSID;
@@ -1031,8 +994,8 @@ run_vap_create(struct ieee80211com *ic, const char name[IFNAMSIZ], int unit,
 	rvp = malloc(sizeof(struct run_vap), M_80211_VAP, M_WAITOK | M_ZERO);
 	vap = &rvp->vap;
 
-	if (ieee80211_vap_setup(ic, vap, name, unit, opmode, flags,
-	    bssid) != 0) {
+	if (ieee80211_vap_setup(ic, vap, name, unit, opmode, flags, bssid) !=
+	    0) {
 		/* out of memory */
 		free(rvp, M_80211_VAP);
 		return (NULL);
@@ -1077,7 +1040,7 @@ run_vap_create(struct ieee80211com *ic, const char name[IFNAMSIZ], int unit,
 
 	/* make sure id is always unique */
 	for (i = 0; i < RUN_VAP_MAX; i++) {
-		if((sc->rvp_bmap & 1 << i) == 0){
+		if ((sc->rvp_bmap & 1 << i) == 0) {
 			sc->rvp_bmap |= 1 << i;
 			rvp->rvp_id = i;
 			break;
@@ -1122,8 +1085,8 @@ run_vap_delete(struct ieee80211vap *vap)
 	--sc->rvp_cnt;
 
 	RUN_DPRINTF(sc, RUN_DEBUG_STATE,
-	    "vap=%p rvp_id=%d bmap=%x rvp_cnt=%d\n",
-	    vap, rvp_id, sc->rvp_bmap, sc->rvp_cnt);
+	    "vap=%p rvp_id=%d bmap=%x rvp_cnt=%d\n", vap, rvp_id, sc->rvp_bmap,
+	    sc->rvp_cnt);
 
 	RUN_UNLOCK(sc);
 
@@ -1149,9 +1112,9 @@ run_cmdq_cb(void *arg, int pending)
 	/* call cmdq[].func locked */
 	RUN_LOCK(sc);
 	for (i = sc->cmdq_exec; sc->cmdq[i].func && pending;
-	    i = sc->cmdq_exec, pending--) {
-		RUN_DPRINTF(sc, RUN_DEBUG_CMD, "cmdq_exec=%d pending=%d\n",
-		    i, pending);
+	     i = sc->cmdq_exec, pending--) {
+		RUN_DPRINTF(sc, RUN_DEBUG_CMD, "cmdq_exec=%d pending=%d\n", i,
+		    pending);
 		if (sc->cmdq_run == RUN_CMDQ_GO) {
 			/*
 			 * If arg0 is NULL, callback func needs more
@@ -1180,8 +1143,8 @@ run_setup_tx_list(struct run_softc *sc, struct run_endpoint_queue *pq)
 	STAILQ_INIT(&pq->tx_qh);
 	STAILQ_INIT(&pq->tx_fh);
 
-	for (data = &pq->tx_data[0];
-	    data < &pq->tx_data[RUN_TX_RING_COUNT]; data++) {
+	for (data = &pq->tx_data[0]; data < &pq->tx_data[RUN_TX_RING_COUNT];
+	     data++) {
 		data->sc = sc;
 		STAILQ_INSERT_TAIL(&pq->tx_fh, data, next);
 	}
@@ -1199,8 +1162,8 @@ run_unsetup_tx_list(struct run_softc *sc, struct run_endpoint_queue *pq)
 	STAILQ_INIT(&pq->tx_qh);
 
 	/* free up all node references and mbufs */
-	for (data = &pq->tx_data[0];
-	    data < &pq->tx_data[RUN_TX_RING_COUNT]; data++) {
+	for (data = &pq->tx_data[0]; data < &pq->tx_data[RUN_TX_RING_COUNT];
+	     data++) {
 		if (data->m != NULL) {
 			m_freem(data->m);
 			data->m = NULL;
@@ -1227,8 +1190,8 @@ run_load_microcode(struct run_softc *sc)
 	fw = firmware_get("runfw");
 	RUN_LOCK(sc);
 	if (fw == NULL) {
-		device_printf(sc->sc_dev,
-		    "failed loadfirmware of file %s\n", "runfw");
+		device_printf(sc->sc_dev, "failed loadfirmware of file %s\n",
+		    "runfw");
 		return ENOENT;
 	}
 
@@ -1246,9 +1209,8 @@ run_load_microcode(struct run_softc *sc)
 	 * last half is for rt3071.
 	 */
 	base = fw->data;
-	if ((sc->mac_ver) != 0x2860 &&
-	    (sc->mac_ver) != 0x2872 &&
-	    (sc->mac_ver) != 0x3070) { 
+	if ((sc->mac_ver) != 0x2860 && (sc->mac_ver) != 0x2872 &&
+	    (sc->mac_ver) != 0x3070) {
 		base += 4096;
 	}
 
@@ -1273,8 +1235,8 @@ run_load_microcode(struct run_softc *sc)
 	USETW(req.wValue, 8);
 	USETW(req.wIndex, 0);
 	USETW(req.wLength, 0);
-	if ((error = usbd_do_request(sc->sc_udev, &sc->sc_mtx, &req, NULL))
-	    != 0) {
+	if ((error = usbd_do_request(sc->sc_udev, &sc->sc_mtx, &req, NULL)) !=
+	    0) {
 		device_printf(sc->sc_dev, "firmware reset failed\n");
 		goto fail;
 	}
@@ -1302,8 +1264,8 @@ run_load_microcode(struct run_softc *sc)
 		goto fail;
 	}
 	device_printf(sc->sc_dev, "firmware %s ver. %u.%u loaded\n",
-	    (base == fw->data) ? "RT2870" : "RT3071",
-	    *(base + 4092), *(base + 4093));
+	    (base == fw->data) ? "RT2870" : "RT3071", *(base + 4092),
+	    *(base + 4093));
 
 fail:
 	firmware_put(fw, FIRMWARE_UNLOAD);
@@ -1324,8 +1286,7 @@ run_reset(struct run_softc *sc)
 }
 
 static usb_error_t
-run_do_request(struct run_softc *sc,
-    struct usb_device_request *req, void *data)
+run_do_request(struct run_softc *sc, struct usb_device_request *req, void *data)
 {
 	usb_error_t err;
 	int ntries = 10;
@@ -1333,8 +1294,8 @@ run_do_request(struct run_softc *sc,
 	RUN_LOCK_ASSERT(sc, MA_OWNED);
 
 	while (ntries--) {
-		err = usbd_do_request_flags(sc->sc_udev, &sc->sc_mtx,
-		    req, data, 0, NULL, 250 /* ms */);
+		err = usbd_do_request_flags(sc->sc_udev, &sc->sc_mtx, req, data,
+		    0, NULL, 250 /* ms */);
 		if (err == 0)
 			break;
 		RUN_DPRINTF(sc, RUN_DEBUG_USB,
@@ -1486,7 +1447,7 @@ run_efuse_read(struct run_softc *sc, uint16_t addr, uint16_t *val, int count)
 		return (ETIMEDOUT);
 
 	if ((tmp & RT3070_EFUSE_AOUT_MASK) == RT3070_EFUSE_AOUT_MASK) {
-		*val = 0xffff;	/* address not found */
+		*val = 0xffff; /* address not found */
 		return (0);
 	}
 	/* determine to which 32-bit register our 16-bit word belongs */
@@ -1705,19 +1666,32 @@ static const char *
 run_get_rf(uint16_t rev)
 {
 	switch (rev) {
-	case RT2860_RF_2820:	return "RT2820";
-	case RT2860_RF_2850:	return "RT2850";
-	case RT2860_RF_2720:	return "RT2720";
-	case RT2860_RF_2750:	return "RT2750";
-	case RT3070_RF_3020:	return "RT3020";
-	case RT3070_RF_2020:	return "RT2020";
-	case RT3070_RF_3021:	return "RT3021";
-	case RT3070_RF_3022:	return "RT3022";
-	case RT3070_RF_3052:	return "RT3052";
-	case RT3593_RF_3053:	return "RT3053";
-	case RT5592_RF_5592:	return "RT5592";
-	case RT5390_RF_5370:	return "RT5370";
-	case RT5390_RF_5372:	return "RT5372";
+	case RT2860_RF_2820:
+		return "RT2820";
+	case RT2860_RF_2850:
+		return "RT2850";
+	case RT2860_RF_2720:
+		return "RT2720";
+	case RT2860_RF_2750:
+		return "RT2750";
+	case RT3070_RF_3020:
+		return "RT3020";
+	case RT3070_RF_2020:
+		return "RT2020";
+	case RT3070_RF_3021:
+		return "RT3021";
+	case RT3070_RF_3022:
+		return "RT3022";
+	case RT3070_RF_3052:
+		return "RT3052";
+	case RT3593_RF_3053:
+		return "RT3053";
+	case RT5592_RF_5592:
+		return "RT5592";
+	case RT5390_RF_5370:
+		return "RT5370";
+	case RT5390_RF_5372:
+		return "RT5372";
 	}
 	return ("unknown");
 }
@@ -1731,13 +1705,13 @@ run_rt3593_get_txpower(struct run_softc *sc)
 	/* Read power settings for 2GHz channels. */
 	for (i = 0; i < 14; i += 2) {
 		addr = (sc->ntxchains == 3) ? RT3593_EEPROM_PWR2GHZ_BASE1 :
-		    RT2860_EEPROM_PWR2GHZ_BASE1;
+					      RT2860_EEPROM_PWR2GHZ_BASE1;
 		run_srom_read(sc, addr + i / 2, &val);
 		sc->txpow1[i + 0] = (int8_t)(val & 0xff);
 		sc->txpow1[i + 1] = (int8_t)(val >> 8);
 
 		addr = (sc->ntxchains == 3) ? RT3593_EEPROM_PWR2GHZ_BASE2 :
-		    RT2860_EEPROM_PWR2GHZ_BASE2;
+					      RT2860_EEPROM_PWR2GHZ_BASE2;
 		run_srom_read(sc, addr + i / 2, &val);
 		sc->txpow2[i + 0] = (int8_t)(val & 0xff);
 		sc->txpow2[i + 1] = (int8_t)(val >> 8);
@@ -1792,8 +1766,8 @@ run_get_txpower(struct run_softc *sc)
 		sc->txpow1[i + 1] = (int8_t)(val >> 8);
 
 		if (sc->mac_ver != 0x5390) {
-			run_srom_read(sc,
-			    RT2860_EEPROM_PWR2GHZ_BASE2 + i / 2, &val);
+			run_srom_read(sc, RT2860_EEPROM_PWR2GHZ_BASE2 + i / 2,
+			    &val);
 			sc->txpow2[i + 0] = (int8_t)(val & 0xff);
 			sc->txpow2[i + 1] = (int8_t)(val >> 8);
 		}
@@ -1815,8 +1789,8 @@ run_get_txpower(struct run_softc *sc)
 				sc->txpow2[i] = 5;
 		}
 		RUN_DPRINTF(sc, RUN_DEBUG_TXPWR,
-		    "chan %d: power1=%d, power2=%d\n",
-		    rt2860_rf2850[i].chan, sc->txpow1[i], sc->txpow2[i]);
+		    "chan %d: power1=%d, power2=%d\n", rt2860_rf2850[i].chan,
+		    sc->txpow1[i], sc->txpow2[i]);
 	}
 	/* Read power settings for 5GHz channels. */
 	for (i = 0; i < 40; i += 2) {
@@ -1829,7 +1803,7 @@ run_get_txpower(struct run_softc *sc)
 		sc->txpow2[i + 15] = (int8_t)(val >> 8);
 	}
 	/* Fix broken Tx power entries. */
-	for (i = 0; i < 40; i++ ) {
+	for (i = 0; i < 40; i++) {
 		if (sc->mac_ver != 0x5592) {
 			if (sc->txpow1[14 + i] < -7 || sc->txpow1[14 + i] > 15)
 				sc->txpow1[14 + i] = 5;
@@ -1863,8 +1837,8 @@ run_read_eeprom(struct run_softc *sc)
 
 	/* read ROM version */
 	run_srom_read(sc, RT2860_EEPROM_VERSION, &val);
-	RUN_DPRINTF(sc, RUN_DEBUG_ROM,
-	    "EEPROM rev=%d, FAE=%d\n", val >> 8, val & 0xff);
+	RUN_DPRINTF(sc, RUN_DEBUG_ROM, "EEPROM rev=%d, FAE=%d\n", val >> 8,
+	    val & 0xff);
 
 	/* read MAC address */
 	run_srom_read(sc, RT2860_EEPROM_MAC01, &val);
@@ -1883,14 +1857,14 @@ run_read_eeprom(struct run_softc *sc)
 			run_srom_read(sc, RT2860_EEPROM_BBP_BASE + i, &val);
 			sc->bbp[i].val = val & 0xff;
 			sc->bbp[i].reg = val >> 8;
-			RUN_DPRINTF(sc, RUN_DEBUG_ROM,
-			    "BBP%d=0x%02x\n", sc->bbp[i].reg, sc->bbp[i].val);
+			RUN_DPRINTF(sc, RUN_DEBUG_ROM, "BBP%d=0x%02x\n",
+			    sc->bbp[i].reg, sc->bbp[i].val);
 		}
 		if (sc->mac_ver >= 0x3071) {
 			/* read vendor RF settings */
 			for (i = 0; i < 10; i++) {
 				run_srom_read(sc, RT3071_EEPROM_RF_BASE + i,
-				   &val);
+				    &val);
 				sc->rf[i].val = val & 0xff;
 				sc->rf[i].reg = val >> 8;
 				RUN_DPRINTF(sc, RUN_DEBUG_ROM, "RF%d=0x%02x\n",
@@ -1900,36 +1874,46 @@ run_read_eeprom(struct run_softc *sc)
 	}
 
 	/* read RF frequency offset from EEPROM */
-	run_srom_read(sc, (sc->mac_ver != 0x3593) ? RT2860_EEPROM_FREQ_LEDS :
-	    RT3593_EEPROM_FREQ, &val);
+	run_srom_read(sc,
+	    (sc->mac_ver != 0x3593) ? RT2860_EEPROM_FREQ_LEDS :
+				      RT3593_EEPROM_FREQ,
+	    &val);
 	sc->freq = ((val & 0xff) != 0xff) ? val & 0xff : 0;
 	RUN_DPRINTF(sc, RUN_DEBUG_ROM, "EEPROM freq offset %d\n",
 	    sc->freq & 0xff);
 
-	run_srom_read(sc, (sc->mac_ver != 0x3593) ? RT2860_EEPROM_FREQ_LEDS :
-	    RT3593_EEPROM_FREQ_LEDS, &val);
+	run_srom_read(sc,
+	    (sc->mac_ver != 0x3593) ? RT2860_EEPROM_FREQ_LEDS :
+				      RT3593_EEPROM_FREQ_LEDS,
+	    &val);
 	if (val >> 8 != 0xff) {
 		/* read LEDs operating mode */
 		sc->leds = val >> 8;
-		run_srom_read(sc, (sc->mac_ver != 0x3593) ? RT2860_EEPROM_LED1 :
-		    RT3593_EEPROM_LED1, &sc->led[0]);
-		run_srom_read(sc, (sc->mac_ver != 0x3593) ? RT2860_EEPROM_LED2 :
-		    RT3593_EEPROM_LED2, &sc->led[1]);
-		run_srom_read(sc, (sc->mac_ver != 0x3593) ? RT2860_EEPROM_LED3 :
-		    RT3593_EEPROM_LED3, &sc->led[2]);
+		run_srom_read(sc,
+		    (sc->mac_ver != 0x3593) ? RT2860_EEPROM_LED1 :
+					      RT3593_EEPROM_LED1,
+		    &sc->led[0]);
+		run_srom_read(sc,
+		    (sc->mac_ver != 0x3593) ? RT2860_EEPROM_LED2 :
+					      RT3593_EEPROM_LED2,
+		    &sc->led[1]);
+		run_srom_read(sc,
+		    (sc->mac_ver != 0x3593) ? RT2860_EEPROM_LED3 :
+					      RT3593_EEPROM_LED3,
+		    &sc->led[2]);
 	} else {
 		/* broken EEPROM, use default settings */
 		sc->leds = 0x01;
 		sc->led[0] = 0x5555;
 		sc->led[1] = 0x2221;
-		sc->led[2] = 0x5627;	/* differs from RT2860 */
+		sc->led[2] = 0x5627; /* differs from RT2860 */
 	}
 	RUN_DPRINTF(sc, RUN_DEBUG_ROM,
-	    "EEPROM LED mode=0x%02x, LEDs=0x%04x/0x%04x/0x%04x\n",
-	    sc->leds, sc->led[0], sc->led[1], sc->led[2]);
+	    "EEPROM LED mode=0x%02x, LEDs=0x%04x/0x%04x/0x%04x\n", sc->leds,
+	    sc->led[0], sc->led[1], sc->led[2]);
 
 	/* read RF information */
-	if (sc->mac_ver == 0x5390 || sc->mac_ver ==0x5392)
+	if (sc->mac_ver == 0x5390 || sc->mac_ver == 0x5392)
 		run_srom_read(sc, 0x00, &val);
 	else
 		run_srom_read(sc, RT2860_EEPROM_ANTENNA, &val);
@@ -1954,7 +1938,7 @@ run_read_eeprom(struct run_softc *sc)
 			sc->nrxchains = 2;
 		}
 	} else {
-		if (sc->mac_ver == 0x5390 || sc->mac_ver ==0x5392) {
+		if (sc->mac_ver == 0x5390 || sc->mac_ver == 0x5392) {
 			sc->rf_rev = val;
 			run_srom_read(sc, RT2860_EEPROM_ANTENNA, &val);
 		} else
@@ -1991,17 +1975,18 @@ run_read_eeprom(struct run_softc *sc)
 	delta_2ghz = delta_5ghz = 0;
 	if ((val & 0xff) != 0xff && (val & 0x80)) {
 		delta_2ghz = val & 0xf;
-		if (!(val & 0x40))	/* negative number */
+		if (!(val & 0x40)) /* negative number */
 			delta_2ghz = -delta_2ghz;
 	}
 	val >>= 8;
 	if ((val & 0xff) != 0xff && (val & 0x80)) {
 		delta_5ghz = val & 0xf;
-		if (!(val & 0x40))	/* negative number */
+		if (!(val & 0x40)) /* negative number */
 			delta_5ghz = -delta_5ghz;
 	}
 	RUN_DPRINTF(sc, RUN_DEBUG_ROM | RUN_DEBUG_TXPWR,
-	    "power compensation=%d (2GHz), %d (5GHz)\n", delta_2ghz, delta_5ghz);
+	    "power compensation=%d (2GHz), %d (5GHz)\n", delta_2ghz,
+	    delta_5ghz);
 
 	for (ridx = 0; ridx < 5; ridx++) {
 		uint32_t reg;
@@ -2017,21 +2002,26 @@ run_read_eeprom(struct run_softc *sc)
 
 		RUN_DPRINTF(sc, RUN_DEBUG_ROM | RUN_DEBUG_TXPWR,
 		    "ridx %d: power 20MHz=0x%08x, 40MHz/2GHz=0x%08x, "
-		    "40MHz/5GHz=0x%08x\n", ridx, sc->txpow20mhz[ridx],
-		    sc->txpow40mhz_2ghz[ridx], sc->txpow40mhz_5ghz[ridx]);
+		    "40MHz/5GHz=0x%08x\n",
+		    ridx, sc->txpow20mhz[ridx], sc->txpow40mhz_2ghz[ridx],
+		    sc->txpow40mhz_5ghz[ridx]);
 	}
 
 	/* Read RSSI offsets and LNA gains from EEPROM. */
-	run_srom_read(sc, (sc->mac_ver != 0x3593) ? RT2860_EEPROM_RSSI1_2GHZ :
-	    RT3593_EEPROM_RSSI1_2GHZ, &val);
-	sc->rssi_2ghz[0] = val & 0xff;	/* Ant A */
-	sc->rssi_2ghz[1] = val >> 8;	/* Ant B */
-	run_srom_read(sc, (sc->mac_ver != 0x3593) ? RT2860_EEPROM_RSSI2_2GHZ :
-	    RT3593_EEPROM_RSSI2_2GHZ, &val);
+	run_srom_read(sc,
+	    (sc->mac_ver != 0x3593) ? RT2860_EEPROM_RSSI1_2GHZ :
+				      RT3593_EEPROM_RSSI1_2GHZ,
+	    &val);
+	sc->rssi_2ghz[0] = val & 0xff; /* Ant A */
+	sc->rssi_2ghz[1] = val >> 8;   /* Ant B */
+	run_srom_read(sc,
+	    (sc->mac_ver != 0x3593) ? RT2860_EEPROM_RSSI2_2GHZ :
+				      RT3593_EEPROM_RSSI2_2GHZ,
+	    &val);
 	if (sc->mac_ver >= 0x3070) {
 		if (sc->mac_ver == 0x3593) {
 			sc->txmixgain_2ghz = 0;
-			sc->rssi_2ghz[2] = val & 0xff;	/* Ant C */
+			sc->rssi_2ghz[2] = val & 0xff; /* Ant C */
 		} else {
 			/*
 			 * On RT3070 chips (limited to 2 Rx chains), this ROM
@@ -2043,17 +2033,21 @@ run_read_eeprom(struct run_softc *sc)
 		RUN_DPRINTF(sc, RUN_DEBUG_ROM, "tx mixer gain=%u (2GHz)\n",
 		    sc->txmixgain_2ghz);
 	} else
-		sc->rssi_2ghz[2] = val & 0xff;	/* Ant C */
+		sc->rssi_2ghz[2] = val & 0xff; /* Ant C */
 	if (sc->mac_ver == 0x3593)
 		run_srom_read(sc, RT3593_EEPROM_LNA_5GHZ, &val);
-	sc->lna[2] = val >> 8;		/* channel group 2 */
+	sc->lna[2] = val >> 8; /* channel group 2 */
 
-	run_srom_read(sc, (sc->mac_ver != 0x3593) ? RT2860_EEPROM_RSSI1_5GHZ :
-	    RT3593_EEPROM_RSSI1_5GHZ, &val);
-	sc->rssi_5ghz[0] = val & 0xff;	/* Ant A */
-	sc->rssi_5ghz[1] = val >> 8;	/* Ant B */
-	run_srom_read(sc, (sc->mac_ver != 0x3593) ? RT2860_EEPROM_RSSI2_5GHZ :
-	    RT3593_EEPROM_RSSI2_5GHZ, &val);
+	run_srom_read(sc,
+	    (sc->mac_ver != 0x3593) ? RT2860_EEPROM_RSSI1_5GHZ :
+				      RT3593_EEPROM_RSSI1_5GHZ,
+	    &val);
+	sc->rssi_5ghz[0] = val & 0xff; /* Ant A */
+	sc->rssi_5ghz[1] = val >> 8;   /* Ant B */
+	run_srom_read(sc,
+	    (sc->mac_ver != 0x3593) ? RT2860_EEPROM_RSSI2_5GHZ :
+				      RT3593_EEPROM_RSSI2_5GHZ,
+	    &val);
 	if (sc->mac_ver == 0x3572) {
 		/*
 		 * On RT3572 chips (limited to 2 Rx chains), this ROM
@@ -2064,17 +2058,18 @@ run_read_eeprom(struct run_softc *sc)
 		RUN_DPRINTF(sc, RUN_DEBUG_ROM, "tx mixer gain=%u (5GHz)\n",
 		    sc->txmixgain_5ghz);
 	} else
-		sc->rssi_5ghz[2] = val & 0xff;	/* Ant C */
+		sc->rssi_5ghz[2] = val & 0xff; /* Ant C */
 	if (sc->mac_ver == 0x3593) {
 		sc->txmixgain_5ghz = 0;
 		run_srom_read(sc, RT3593_EEPROM_LNA_5GHZ, &val);
 	}
-	sc->lna[3] = val >> 8;		/* channel group 3 */
+	sc->lna[3] = val >> 8; /* channel group 3 */
 
-	run_srom_read(sc, (sc->mac_ver != 0x3593) ? RT2860_EEPROM_LNA :
-	    RT3593_EEPROM_LNA, &val);
-	sc->lna[0] = val & 0xff;	/* channel group 0 */
-	sc->lna[1] = val >> 8;		/* channel group 1 */
+	run_srom_read(sc,
+	    (sc->mac_ver != 0x3593) ? RT2860_EEPROM_LNA : RT3593_EEPROM_LNA,
+	    &val);
+	sc->lna[0] = val & 0xff; /* channel group 0 */
+	sc->lna[1] = val >> 8;	 /* channel group 1 */
 
 	/* fix broken 5GHz LNA entries */
 	if (sc->lna[2] == 0 || sc->lna[2] == 0xff) {
@@ -2092,14 +2087,14 @@ run_read_eeprom(struct run_softc *sc)
 	for (ant = 0; ant < 3; ant++) {
 		if (sc->rssi_2ghz[ant] < -10 || sc->rssi_2ghz[ant] > 10) {
 			RUN_DPRINTF(sc, RUN_DEBUG_ROM | RUN_DEBUG_RSSI,
-			    "invalid RSSI%d offset: %d (2GHz)\n",
-			    ant + 1, sc->rssi_2ghz[ant]);
+			    "invalid RSSI%d offset: %d (2GHz)\n", ant + 1,
+			    sc->rssi_2ghz[ant]);
 			sc->rssi_2ghz[ant] = 0;
 		}
 		if (sc->rssi_5ghz[ant] < -10 || sc->rssi_5ghz[ant] > 10) {
 			RUN_DPRINTF(sc, RUN_DEBUG_ROM | RUN_DEBUG_RSSI,
-			    "invalid RSSI%d offset: %d (5GHz)\n",
-			    ant + 1, sc->rssi_5ghz[ant]);
+			    "invalid RSSI%d offset: %d (5GHz)\n", ant + 1,
+			    sc->rssi_5ghz[ant]);
 			sc->rssi_5ghz[ant] = 0;
 		}
 	}
@@ -2109,8 +2104,7 @@ run_read_eeprom(struct run_softc *sc)
 static struct ieee80211_node *
 run_node_alloc(struct ieee80211vap *vap, const uint8_t mac[IEEE80211_ADDR_LEN])
 {
-	return malloc(sizeof (struct run_node), M_80211_NODE,
-	    M_NOWAIT | M_ZERO);
+	return malloc(sizeof(struct run_node), M_80211_NODE, M_NOWAIT | M_ZERO);
 }
 
 static int
@@ -2134,11 +2128,12 @@ run_media_change(if_t ifp)
 	tp = &vap->iv_txparms[ieee80211_chan2mode(ic->ic_curchan)];
 	if (tp->ucastrate != IEEE80211_FIXED_RATE_NONE) {
 		struct ieee80211_node *ni;
-		struct run_node	*rn;
+		struct run_node *rn;
 
 		/* XXX TODO: methodize with MCS rates */
-		rate = ic->ic_sup_rates[ic->ic_curmode].
-		    rs_rates[tp->ucastrate] & IEEE80211_RATE_VAL;
+		rate =
+		    ic->ic_sup_rates[ic->ic_curmode].rs_rates[tp->ucastrate] &
+		    IEEE80211_RATE_VAL;
 		for (ridx = 0; ridx < RT2860_RIDX_MAX; ridx++)
 			if (rt2860_rates[ridx].rate == rate)
 				break;
@@ -2146,8 +2141,8 @@ run_media_change(if_t ifp)
 		ni = ieee80211_ref_node(vap->iv_bss);
 		rn = RUN_NODE(ni);
 		rn->fix_ridx = ridx;
-		RUN_DPRINTF(sc, RUN_DEBUG_RATE, "rate=%d, fix_ridx=%d\n",
-		    rate, rn->fix_ridx);
+		RUN_DPRINTF(sc, RUN_DEBUG_RATE, "rate=%d, fix_ridx=%d\n", rate,
+		    rn->fix_ridx);
 		ieee80211_free_node(ni);
 	}
 
@@ -2178,8 +2173,7 @@ run_newstate(struct ieee80211vap *vap, enum ieee80211_state nstate, int arg)
 
 	ostate = vap->iv_state;
 	RUN_DPRINTF(sc, RUN_DEBUG_STATE, "%s -> %s\n",
-		ieee80211_state_name[ostate],
-		ieee80211_state_name[nstate]);
+	    ieee80211_state_name[ostate], ieee80211_state_name[nstate]);
 
 	IEEE80211_UNLOCK(ic);
 	RUN_LOCK(sc);
@@ -2210,7 +2204,7 @@ run_newstate(struct ieee80211vap *vap, enum ieee80211_state nstate, int arg)
 
 	case IEEE80211_S_RUN:
 		if (!(sc->runbmap & bid)) {
-			if(sc->running++)
+			if (sc->running++)
 				restart_ratectl = 1;
 			sc->runbmap |= bid;
 		}
@@ -2265,16 +2259,19 @@ run_newstate(struct ieee80211vap *vap, enum ieee80211_state nstate, int arg)
 			run_enable_tsf_sync(sc);
 
 			/* enable automatic rate adaptation */
-			tp = &vap->iv_txparms[ieee80211_chan2mode(ic->ic_curchan)];
+			tp = &vap->iv_txparms[ieee80211_chan2mode(
+			    ic->ic_curchan)];
 			if (tp->ucastrate == IEEE80211_FIXED_RATE_NONE)
 				ratectl |= bid;
 		} else
 			run_enable_tsf(sc);
 
 		/* turn link LED on */
-		run_set_leds(sc, RT2860_LED_RADIO |
-		    (IEEE80211_IS_CHAN_2GHZ(ic->ic_curchan) ?
-		     RT2860_LED_LINK_2GHZ : RT2860_LED_LINK_5GHZ));
+		run_set_leds(sc,
+		    RT2860_LED_RADIO |
+			(IEEE80211_IS_CHAN_2GHZ(ic->ic_curchan) ?
+				RT2860_LED_LINK_2GHZ :
+				RT2860_LED_LINK_5GHZ));
 
 		break;
 	default:
@@ -2289,7 +2286,7 @@ run_newstate(struct ieee80211vap *vap, enum ieee80211_state nstate, int arg)
 	RUN_UNLOCK(sc);
 	IEEE80211_LOCK(ic);
 
-	return(rvp->newstate(vap, nstate, arg));
+	return (rvp->newstate(vap, nstate, arg));
 }
 
 static int
@@ -2307,39 +2304,36 @@ run_wme_update(struct ieee80211com *ic)
 	RUN_LOCK(sc);
 	for (aci = 0; aci < WME_NUM_AC; aci++) {
 		error = run_write(sc, RT2860_EDCA_AC_CFG(aci),
-		    ac[aci].wmep_logcwmax << 16 |
-		    ac[aci].wmep_logcwmin << 12 |
-		    ac[aci].wmep_aifsn    <<  8 |
-		    ac[aci].wmep_txopLimit);
-		if (error) goto err;
+		    ac[aci].wmep_logcwmax << 16 | ac[aci].wmep_logcwmin << 12 |
+			ac[aci].wmep_aifsn << 8 | ac[aci].wmep_txopLimit);
+		if (error)
+			goto err;
 	}
 
 	/* update SCH/DMA registers too */
 	error = run_write(sc, RT2860_WMM_AIFSN_CFG,
-	    ac[WME_AC_VO].wmep_aifsn  << 12 |
-	    ac[WME_AC_VI].wmep_aifsn  <<  8 |
-	    ac[WME_AC_BK].wmep_aifsn  <<  4 |
-	    ac[WME_AC_BE].wmep_aifsn);
-	if (error) goto err;
+	    ac[WME_AC_VO].wmep_aifsn << 12 | ac[WME_AC_VI].wmep_aifsn << 8 |
+		ac[WME_AC_BK].wmep_aifsn << 4 | ac[WME_AC_BE].wmep_aifsn);
+	if (error)
+		goto err;
 	error = run_write(sc, RT2860_WMM_CWMIN_CFG,
 	    ac[WME_AC_VO].wmep_logcwmin << 12 |
-	    ac[WME_AC_VI].wmep_logcwmin <<  8 |
-	    ac[WME_AC_BK].wmep_logcwmin <<  4 |
-	    ac[WME_AC_BE].wmep_logcwmin);
-	if (error) goto err;
+		ac[WME_AC_VI].wmep_logcwmin << 8 |
+		ac[WME_AC_BK].wmep_logcwmin << 4 | ac[WME_AC_BE].wmep_logcwmin);
+	if (error)
+		goto err;
 	error = run_write(sc, RT2860_WMM_CWMAX_CFG,
 	    ac[WME_AC_VO].wmep_logcwmax << 12 |
-	    ac[WME_AC_VI].wmep_logcwmax <<  8 |
-	    ac[WME_AC_BK].wmep_logcwmax <<  4 |
-	    ac[WME_AC_BE].wmep_logcwmax);
-	if (error) goto err;
+		ac[WME_AC_VI].wmep_logcwmax << 8 |
+		ac[WME_AC_BK].wmep_logcwmax << 4 | ac[WME_AC_BE].wmep_logcwmax);
+	if (error)
+		goto err;
 	error = run_write(sc, RT2860_WMM_TXOP0_CFG,
-	    ac[WME_AC_BK].wmep_txopLimit << 16 |
-	    ac[WME_AC_BE].wmep_txopLimit);
-	if (error) goto err;
+	    ac[WME_AC_BK].wmep_txopLimit << 16 | ac[WME_AC_BE].wmep_txopLimit);
+	if (error)
+		goto err;
 	error = run_write(sc, RT2860_WMM_TXOP1_CFG,
-	    ac[WME_AC_VO].wmep_txopLimit << 16 |
-	    ac[WME_AC_VI].wmep_txopLimit);
+	    ac[WME_AC_VO].wmep_txopLimit << 16 | ac[WME_AC_VI].wmep_txopLimit);
 
 err:
 	RUN_UNLOCK(sc);
@@ -2374,7 +2368,7 @@ run_key_set_cb(void *arg)
 	/* map net80211 cipher to RT2860 security mode */
 	switch (cipher) {
 	case IEEE80211_CIPHER_WEP:
-		if(k->wk_keylen < 8)
+		if (k->wk_keylen < 8)
 			mode = RT2860_MODE_WEP40;
 		else
 			mode = RT2860_MODE_WEP104;
@@ -2391,31 +2385,35 @@ run_key_set_cb(void *arg)
 	}
 
 	RUN_DPRINTF(sc, RUN_DEBUG_KEY,
-	    "associd=%x, keyix=%d, mode=%x, type=%s, tx=%s, rx=%s\n",
-	    associd, k->wk_keyix, mode,
+	    "associd=%x, keyix=%d, mode=%x, type=%s, tx=%s, rx=%s\n", associd,
+	    k->wk_keyix, mode,
 	    (k->wk_flags & IEEE80211_KEY_GROUP) ? "group" : "pairwise",
 	    (k->wk_flags & IEEE80211_KEY_XMIT) ? "on" : "off",
 	    (k->wk_flags & IEEE80211_KEY_RECV) ? "on" : "off");
 
 	if (k->wk_flags & IEEE80211_KEY_GROUP) {
-		wcid = 0;	/* NB: update WCID0 for group keys */
+		wcid = 0; /* NB: update WCID0 for group keys */
 		base = RT2860_SKEY(RUN_VAP(vap)->rvp_id, k->wk_keyix);
 	} else {
 		wcid = (vap->iv_opmode == IEEE80211_M_STA) ?
-		    1 : RUN_AID2WCID(associd);
+		    1 :
+		    RUN_AID2WCID(associd);
 		base = RT2860_PKEY(wcid);
 	}
 
 	if (cipher == IEEE80211_CIPHER_TKIP) {
-		if(run_write_region_1(sc, base, k->wk_key, 16))
+		if (run_write_region_1(sc, base, k->wk_key, 16))
 			return;
-		if(run_write_region_1(sc, base + 16, &k->wk_key[16], 8))	/* wk_txmic */
+		if (run_write_region_1(sc, base + 16, &k->wk_key[16],
+			8)) /* wk_txmic */
 			return;
-		if(run_write_region_1(sc, base + 24, &k->wk_key[24], 8))	/* wk_rxmic */
+		if (run_write_region_1(sc, base + 24, &k->wk_key[24],
+			8)) /* wk_rxmic */
 			return;
 	} else {
 		/* roundup len to 16-bit: XXX fix write_region_1() instead */
-		if(run_write_region_1(sc, base, k->wk_key, (k->wk_keylen + 1) & ~1))
+		if (run_write_region_1(sc, base, k->wk_key,
+			(k->wk_keylen + 1) & ~1))
 			return;
 	}
 
@@ -2528,8 +2526,8 @@ run_key_delete_cb(void *arg)
 		run_write(sc, RT2860_SKEY_MODE_0_7, attr);
 	} else {
 		/* remove pairwise key */
-		RUN_DPRINTF(sc, RUN_DEBUG_KEY,
-		    "removing key for wcid %x\n", k->wk_pad);
+		RUN_DPRINTF(sc, RUN_DEBUG_KEY, "removing key for wcid %x\n",
+		    k->wk_pad);
 		/* matching wcid was written to wk_pad in run_key_set() */
 		wcid = k->wk_pad;
 		run_read(sc, RT2860_WCID_ATTR(wcid), &attr);
@@ -2569,8 +2567,7 @@ run_key_delete(struct ieee80211vap *vap, struct ieee80211_key *k)
 	/* matching wcid was written to wk_pad in run_key_set() */
 	k0->wk_pad = k->wk_pad;
 	ieee80211_runtask(ic, &sc->cmdq_task);
-	return (1);	/* return fake success */
-
+	return (1); /* return fake success */
 }
 
 static void
@@ -2612,7 +2609,7 @@ run_ratectl_cb(void *arg, int pending)
 	ieee80211_iterate_nodes(&ic->ic_sta, run_iter_func, sc);
 
 	RUN_LOCK(sc);
-	if(sc->ratectl_run != RUN_RATECTL_OFF)
+	if (sc->ratectl_run != RUN_RATECTL_OFF)
 		usb_callout_reset(&sc->ratectl_ch, hz, run_ratectl_to, sc);
 	RUN_UNLOCK(sc);
 }
@@ -2622,7 +2619,7 @@ run_drain_fifo(void *arg)
 {
 	struct run_softc *sc = arg;
 	uint32_t stat;
-	uint16_t (*wstat)[3];
+	uint16_t(*wstat)[3];
 	uint8_t wcid, mcs, pid;
 	int8_t retry;
 
@@ -2650,7 +2647,8 @@ run_drain_fifo(void *arg)
 		 * have hard time not to refer already freed node.
 		 *
 		 * To eliminate such page faults, we poll stats in softc.
-		 * Then, update the rates later with ieee80211_ratectl_tx_update().
+		 * Then, update the rates later with
+		 * ieee80211_ratectl_tx_update().
 		 */
 		wstat = &(sc->wcid_stats[wcid]);
 		(*wstat)[RUN_TXCNT]++;
@@ -2665,7 +2663,7 @@ run_drain_fifo(void *arg)
 		 */
 		mcs = (stat >> RT2860_TXQ_MCS_SHIFT) & 0x7f;
 		pid = (stat >> RT2860_TXQ_PID_SHIFT) & 0xf;
-		if ((retry = pid -1 - mcs) > 0) {
+		if ((retry = pid - 1 - mcs) > 0) {
 			(*wstat)[RUN_TXCNT] += retry;
 			(*wstat)[RUN_RETRY] += retry;
 		}
@@ -2683,7 +2681,7 @@ run_iter_func(void *arg, struct ieee80211_node *ni)
 	struct ieee80211vap *vap = ni->ni_vap;
 	struct run_node *rn = RUN_NODE(ni);
 	union run_stats sta[2];
-	uint16_t (*wstat)[3];
+	uint16_t(*wstat)[3];
 	int error, ridx;
 
 	RUN_LOCK(sc);
@@ -2694,13 +2692,15 @@ run_iter_func(void *arg, struct ieee80211_node *ni)
 		goto fail;
 
 	txs->flags = IEEE80211_RATECTL_TX_STATS_NODE |
-		     IEEE80211_RATECTL_TX_STATS_RETRIES;
+	    IEEE80211_RATECTL_TX_STATS_RETRIES;
 	txs->ni = ni;
-	if (sc->rvp_cnt <= 1 && (vap->iv_opmode == IEEE80211_M_IBSS ||
-	    vap->iv_opmode == IEEE80211_M_STA)) {
-		/* read statistic counters (clear on read) and update AMRR state */
-		error = run_read_region_1(sc, RT2860_TX_STA_CNT0, (uint8_t *)sta,
-		    sizeof sta);
+	if (sc->rvp_cnt <= 1 &&
+	    (vap->iv_opmode == IEEE80211_M_IBSS ||
+		vap->iv_opmode == IEEE80211_M_STA)) {
+		/* read statistic counters (clear on read) and update AMRR state
+		 */
+		error = run_read_region_1(sc, RT2860_TX_STA_CNT0,
+		    (uint8_t *)sta, sizeof sta);
 		if (error != 0)
 			goto fail;
 
@@ -2715,8 +2715,8 @@ run_iter_func(void *arg, struct ieee80211_node *ni)
 		    le16toh(sta[0].error.fail);
 
 		RUN_DPRINTF(sc, RUN_DEBUG_RATE,
-		    "retrycnt=%d success=%d failcnt=%d\n",
-		    txs->nretries, txs->nsuccess, le16toh(sta[0].error.fail));
+		    "retrycnt=%d success=%d failcnt=%d\n", txs->nretries,
+		    txs->nsuccess, le16toh(sta[0].error.fail));
 	} else {
 		wstat = &(sc->wcid_stats[RUN_AID2WCID(ni->ni_associd)]);
 
@@ -2728,8 +2728,8 @@ run_iter_func(void *arg, struct ieee80211_node *ni)
 		txs->nsuccess = (*wstat)[RUN_SUCCESS];
 		txs->nframes = (*wstat)[RUN_TXCNT];
 		RUN_DPRINTF(sc, RUN_DEBUG_RATE,
-		    "retrycnt=%d txcnt=%d success=%d\n",
-		    txs->nretries, txs->nframes, txs->nsuccess);
+		    "retrycnt=%d txcnt=%d success=%d\n", txs->nretries,
+		    txs->nframes, txs->nsuccess);
 
 		memset(wstat, 0, sizeof(*wstat));
 	}
@@ -2745,7 +2745,8 @@ run_iter_func(void *arg, struct ieee80211_node *ni)
 fail:
 	RUN_UNLOCK(sc);
 
-	RUN_DPRINTF(sc, RUN_DEBUG_RATE, "rate=%d, ridx=%d\n", ni->ni_txrate, rn->amrr_ridx);
+	RUN_DPRINTF(sc, RUN_DEBUG_RATE, "rate=%d, ridx=%d\n", ni->ni_txrate,
+	    rn->amrr_ridx);
 }
 
 static void
@@ -2758,8 +2759,8 @@ run_newassoc_cb(void *arg)
 
 	RUN_LOCK_ASSERT(sc, MA_OWNED);
 
-	run_write_region_1(sc, RT2860_WCID_ENTRY(wcid),
-	    ni->ni_macaddr, IEEE80211_ADDR_LEN);
+	run_write_region_1(sc, RT2860_WCID_ENTRY(wcid), ni->ni_macaddr,
+	    IEEE80211_ADDR_LEN);
 
 	memset(&(sc->wcid_stats[wcid]), 0, sizeof(sc->wcid_stats[wcid]));
 }
@@ -2776,7 +2777,8 @@ run_newassoc(struct ieee80211_node *ni, int isnew)
 	uint8_t wcid;
 
 	wcid = (vap->iv_opmode == IEEE80211_M_STA) ?
-	    1 : RUN_AID2WCID(ni->ni_associd);
+	    1 :
+	    RUN_AID2WCID(ni->ni_associd);
 
 	if (wcid > RT2870_WCID_MAX) {
 		device_printf(sc->sc_dev, "wcid=%d out of range\n", wcid);
@@ -2799,8 +2801,8 @@ run_newassoc(struct ieee80211_node *ni, int isnew)
 	}
 
 	RUN_DPRINTF(sc, RUN_DEBUG_STATE,
-	    "new assoc isnew=%d associd=%x addr=%s\n",
-	    isnew, ni->ni_associd, ether_sprintf(ni->ni_macaddr));
+	    "new assoc isnew=%d associd=%x addr=%s\n", isnew, ni->ni_associd,
+	    ether_sprintf(ni->ni_macaddr));
 
 	rate = vap->iv_txparms[ieee80211_chan2mode(ic->ic_curchan)].mgmtrate;
 	/* XXX TODO: methodize with MCS rates */
@@ -2812,7 +2814,7 @@ run_newassoc(struct ieee80211_node *ni, int isnew)
 	    "rate=%d, mgmt_ridx=%d\n", rate, rn->mgt_ridx);
 
 	RUN_LOCK(sc);
-	if(sc->ratectl_run != RUN_RATECTL_OFF)
+	if (sc->ratectl_run != RUN_RATECTL_OFF)
 		usb_callout_reset(&sc->ratectl_ch, hz, run_ratectl_to, sc);
 	RUN_UNLOCK(sc);
 }
@@ -2848,7 +2850,7 @@ run_recv_mgmt(struct ieee80211_node *ni, struct mbuf *m, int subtype,
 
 	if (vap->iv_state == IEEE80211_S_RUN &&
 	    (subtype == IEEE80211_FC0_SUBTYPE_BEACON ||
-	    subtype == IEEE80211_FC0_SUBTYPE_PROBE_RESP)) {
+		subtype == IEEE80211_FC0_SUBTYPE_PROBE_RESP)) {
 		ni_tstamp = le64toh(ni->ni_tstamp.tsf);
 		RUN_LOCK(sc);
 		run_get_tsf(sc, &rx_tstamp);
@@ -2859,7 +2861,7 @@ run_recv_mgmt(struct ieee80211_node *ni, struct mbuf *m, int subtype,
 			RUN_DPRINTF(sc, RUN_DEBUG_RECV | RUN_DEBUG_BEACON,
 			    "ibss merge, tsf %ju tstamp %ju\n",
 			    (uintmax_t)rx_tstamp, (uintmax_t)ni_tstamp);
-			(void) ieee80211_ibss_merge(ni);
+			(void)ieee80211_ibss_merge(ni);
 		}
 	}
 }
@@ -2883,11 +2885,11 @@ run_rx_frame(struct run_softc *sc, struct mbuf *m, uint32_t dmalen)
 	else if (sc->mac_ver == 0x3593)
 		rxwisize += sizeof(uint32_t);
 
-	if (__predict_false(dmalen <
-	    rxwisize + sizeof(struct ieee80211_frame_ack))) {
+	if (__predict_false(
+		dmalen < rxwisize + sizeof(struct ieee80211_frame_ack))) {
 		RUN_DPRINTF(sc, RUN_DEBUG_RECV,
-		    "payload is too short: dma length %u < %zu\n",
-		    dmalen, rxwisize + sizeof(struct ieee80211_frame_ack));
+		    "payload is too short: dma length %u < %zu\n", dmalen,
+		    rxwisize + sizeof(struct ieee80211_frame_ack));
 		goto fail;
 	}
 
@@ -2895,8 +2897,8 @@ run_rx_frame(struct run_softc *sc, struct mbuf *m, uint32_t dmalen)
 	len = le16toh(rxwi->len) & 0xfff;
 
 	if (__predict_false(len > dmalen - rxwisize)) {
-		RUN_DPRINTF(sc, RUN_DEBUG_RECV,
-		    "bad RXWI length %u > %u\n", len, dmalen);
+		RUN_DPRINTF(sc, RUN_DEBUG_RECV, "bad RXWI length %u > %u\n",
+		    len, dmalen);
 		goto fail;
 	}
 
@@ -2906,7 +2908,7 @@ run_rx_frame(struct run_softc *sc, struct mbuf *m, uint32_t dmalen)
 
 	if (__predict_false(flags & (RT2860_RX_CRCERR | RT2860_RX_ICVERR))) {
 		RUN_DPRINTF(sc, RUN_DEBUG_RECV, "%s error.\n",
-		    (flags & RT2860_RX_CRCERR)?"CRC":"ICV");
+		    (flags & RT2860_RX_CRCERR) ? "CRC" : "ICV");
 		goto fail;
 	}
 
@@ -2933,7 +2935,7 @@ run_rx_frame(struct run_softc *sc, struct mbuf *m, uint32_t dmalen)
 	} else
 		ni = NULL;
 
-	if(ni && ni->ni_flags & IEEE80211_NODE_HT) {
+	if (ni && ni->ni_flags & IEEE80211_NODE_HT) {
 		m->m_flags |= M_AMPDU;
 	}
 
@@ -2961,7 +2963,7 @@ run_rx_frame(struct run_softc *sc, struct mbuf *m, uint32_t dmalen)
 		tap->wr_antsignal = rssi;
 		tap->wr_antenna = ant;
 		tap->wr_dbm_antsignal = run_rssi2dbm(sc, rssi, ant);
-		tap->wr_rate = 2;	/* in case it can't be found below */
+		tap->wr_rate = 2; /* in case it can't be found below */
 		RUN_LOCK(sc);
 		run_get_tsf(sc, &tap->wr_tsf);
 		RUN_UNLOCK(sc);
@@ -2969,24 +2971,48 @@ run_rx_frame(struct run_softc *sc, struct mbuf *m, uint32_t dmalen)
 		switch (phy & RT2860_PHY_MODE) {
 		case RT2860_PHY_CCK:
 			switch ((phy & RT2860_PHY_MCS) & ~RT2860_PHY_SHPRE) {
-			case 0:	tap->wr_rate =   2; break;
-			case 1:	tap->wr_rate =   4; break;
-			case 2:	tap->wr_rate =  11; break;
-			case 3:	tap->wr_rate =  22; break;
+			case 0:
+				tap->wr_rate = 2;
+				break;
+			case 1:
+				tap->wr_rate = 4;
+				break;
+			case 2:
+				tap->wr_rate = 11;
+				break;
+			case 3:
+				tap->wr_rate = 22;
+				break;
 			}
 			if (phy & RT2860_PHY_SHPRE)
 				tap->wr_flags |= IEEE80211_RADIOTAP_F_SHORTPRE;
 			break;
 		case RT2860_PHY_OFDM:
 			switch (phy & RT2860_PHY_MCS) {
-			case 0:	tap->wr_rate =  12; break;
-			case 1:	tap->wr_rate =  18; break;
-			case 2:	tap->wr_rate =  24; break;
-			case 3:	tap->wr_rate =  36; break;
-			case 4:	tap->wr_rate =  48; break;
-			case 5:	tap->wr_rate =  72; break;
-			case 6:	tap->wr_rate =  96; break;
-			case 7:	tap->wr_rate = 108; break;
+			case 0:
+				tap->wr_rate = 12;
+				break;
+			case 1:
+				tap->wr_rate = 18;
+				break;
+			case 2:
+				tap->wr_rate = 24;
+				break;
+			case 3:
+				tap->wr_rate = 36;
+				break;
+			case 4:
+				tap->wr_rate = 48;
+				break;
+			case 5:
+				tap->wr_rate = 72;
+				break;
+			case 6:
+				tap->wr_rate = 96;
+				break;
+			case 7:
+				tap->wr_rate = 108;
+				break;
 			}
 			break;
 		}
@@ -3028,11 +3054,11 @@ run_bulk_rx_callback(struct usb_xfer *xfer, usb_error_t error)
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_TRANSFERRED:
 
-		RUN_DPRINTF(sc, RUN_DEBUG_RECV,
-		    "rx done, actlen=%d\n", xferlen);
+		RUN_DPRINTF(sc, RUN_DEBUG_RECV, "rx done, actlen=%d\n",
+		    xferlen);
 
 		if (xferlen < (int)(sizeof(uint32_t) + rxwisize +
-		    sizeof(struct rt2870_rxd))) {
+				  sizeof(struct rt2870_rxd))) {
 			RUN_DPRINTF(sc, RUN_DEBUG_RECV_DESC | RUN_DEBUG_USB,
 			    "xfer too short %d\n", xferlen);
 			goto tr_setup;
@@ -3043,14 +3069,15 @@ run_bulk_rx_callback(struct usb_xfer *xfer, usb_error_t error)
 
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		if (sc->rx_m == NULL) {
 			sc->rx_m = m_getjcl(M_NOWAIT, MT_DATA, M_PKTHDR,
 			    RUN_MAX_RXSZ);
 		}
 		if (sc->rx_m == NULL) {
-			RUN_DPRINTF(sc, RUN_DEBUG_RECV |
-			    RUN_DEBUG_RECV_DESC | RUN_DEBUG_USB,
+			RUN_DPRINTF(sc,
+			    RUN_DEBUG_RECV | RUN_DEBUG_RECV_DESC |
+				RUN_DEBUG_USB,
 			    "could not allocate mbuf - idle with stall\n");
 			counter_u64_add(ic->ic_ierrors, 1);
 			usbd_xfer_set_stall(xfer);
@@ -3061,14 +3088,14 @@ tr_setup:
 			 * save some data copying. This works because
 			 * there is only one cluster.
 			 */
-			usbd_xfer_set_frame_data(xfer, 0, 
+			usbd_xfer_set_frame_data(xfer, 0,
 			    mtod(sc->rx_m, caddr_t), RUN_MAX_RXSZ);
 			usbd_xfer_set_frames(xfer, 1);
 		}
 		usbd_transfer_submit(xfer);
 		break;
 
-	default:	/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -3094,7 +3121,7 @@ tr_setup:
 	m->m_pkthdr.len = m->m_len = xferlen;
 
 	/* HW can aggregate multiple 802.11 frames in a single USB xfer */
-	for(;;) {
+	for (;;) {
 		dmalen = le32toh(*mtod(m, uint32_t *)) & 0xffff;
 
 		if ((dmalen >= (uint32_t)-8) || (dmalen == 0) ||
@@ -3105,8 +3132,7 @@ tr_setup:
 		}
 		if ((dmalen + 8) > (uint32_t)xferlen) {
 			RUN_DPRINTF(sc, RUN_DEBUG_RECV_DESC | RUN_DEBUG_USB,
-			    "bad DMA length %u > %d\n",
-			dmalen + 8, xferlen);
+			    "bad DMA length %u > %d\n", dmalen + 8, xferlen);
 			break;
 		}
 
@@ -3116,7 +3142,7 @@ tr_setup:
 			m->m_data += 4;
 			m->m_pkthdr.len = m->m_len -= 4;
 			run_rx_frame(sc, m, dmalen);
-			m = NULL;	/* don't free source buffer */
+			m = NULL; /* don't free source buffer */
 			break;
 		}
 
@@ -3136,8 +3162,8 @@ tr_setup:
 			counter_u64_add(ic->ic_ierrors, 1);
 			break;
 		}
-		m_copydata(m, 4 /* skip 32-bit DMA-len header */,
-		    mbuf_len, mtod(m0, caddr_t));
+		m_copydata(m, 4 /* skip 32-bit DMA-len header */, mbuf_len,
+		    mtod(m0, caddr_t));
 		m0->m_pkthdr.len = m0->m_len = mbuf_len;
 		run_rx_frame(sc, m0, dmalen);
 
@@ -3149,15 +3175,14 @@ tr_setup:
 	/* make sure we free the source buffer, if any */
 	m_freem(m);
 
-#ifdef	IEEE80211_SUPPORT_SUPERG
+#ifdef IEEE80211_SUPPORT_SUPERG
 	ieee80211_ff_age_all(ic, 100);
 #endif
 	RUN_LOCK(sc);
 }
 
 static void
-run_tx_free(struct run_endpoint_queue *pq,
-    struct run_tx_data *data, int txerr)
+run_tx_free(struct run_endpoint_queue *pq, struct run_tx_data *data, int txerr)
 {
 
 	ieee80211_tx_complete(data->ni, data->m, txerr);
@@ -3196,7 +3221,7 @@ run_bulk_tx_callbackN(struct usb_xfer *xfer, usb_error_t error, u_int index)
 
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		data = STAILQ_FIRST(&pq->tx_qh);
 		if (data == NULL)
 			break;
@@ -3205,9 +3230,9 @@ tr_setup:
 
 		m = data->m;
 		size = (sc->mac_ver == 0x5592) ?
-		    sizeof(data->desc) + sizeof(uint32_t) : sizeof(data->desc);
-		if ((m->m_pkthdr.len +
-		    size + 3 + 8) > RUN_MAX_TXSZ) {
+		    sizeof(data->desc) + sizeof(uint32_t) :
+		    sizeof(data->desc);
+		if ((m->m_pkthdr.len + size + 3 + 8) > RUN_MAX_TXSZ) {
 			RUN_DPRINTF(sc, RUN_DEBUG_XMIT_DESC | RUN_DEBUG_USB,
 			    "data overflow, %u bytes\n", m->m_pkthdr.len);
 			run_tx_free(pq, data, 1);
@@ -3230,8 +3255,9 @@ tr_setup:
 		if (ieee80211_radiotap_active_vap(vap)) {
 			const struct ieee80211_frame *wh;
 			struct run_tx_radiotap_header *tap = &sc->sc_txtap;
-			struct rt2860_txwi *txwi = 
-			    (struct rt2860_txwi *)(&data->desc + sizeof(struct rt2870_txd));
+			struct rt2860_txwi *txwi =
+			    (struct rt2860_txwi *)(&data->desc +
+				sizeof(struct rt2870_txd));
 			int has_l2pad;
 
 			wh = mtod(m, struct ieee80211_frame *);
@@ -3250,8 +3276,8 @@ tr_setup:
 		}
 
 		RUN_DPRINTF(sc, RUN_DEBUG_XMIT | RUN_DEBUG_USB,
-		    "sending frame len=%u/%u @ index %d\n",
-		    m->m_pkthdr.len, size, index);
+		    "sending frame len=%u/%u @ index %d\n", m->m_pkthdr.len,
+		    size, index);
 
 		usbd_xfer_set_frame_len(xfer, 0, size);
 		usbd_xfer_set_priv(xfer, data);
@@ -3267,7 +3293,7 @@ tr_setup:
 		data = usbd_xfer_get_priv(xfer);
 
 		if (data != NULL) {
-			if(data->ni != NULL)
+			if (data->ni != NULL)
 				vap = data->ni->ni_vap;
 			run_tx_free(pq, data, error);
 			usbd_xfer_set_priv(xfer, NULL);
@@ -3297,7 +3323,7 @@ tr_setup:
 		}
 		break;
 	}
-#ifdef	IEEE80211_SUPPORT_SUPERG
+#ifdef IEEE80211_SUPPORT_SUPERG
 	/* XXX TODO: make this deferred rather than unlock/relock */
 	/* XXX TODO: should only do the QoS AC this belongs to */
 	if (pq->tx_nfree >= RUN_TX_RING_COUNT) {
@@ -3361,8 +3387,8 @@ run_set_tx_desc(struct run_softc *sc, struct run_tx_data *data)
 	/* get MCS code from rate index */
 	mcs = rt2860_rates[ridx].mcs;
 
-	txwisize = (sc->mac_ver == 0x5592) ?
-	    sizeof(*txwi) + sizeof(uint32_t) : sizeof(*txwi);
+	txwisize = (sc->mac_ver == 0x5592) ? sizeof(*txwi) + sizeof(uint32_t) :
+					     sizeof(*txwi);
 	xferlen = txwisize + m->m_pkthdr.len;
 
 	/* roundup to 32-bit alignment */
@@ -3377,7 +3403,7 @@ run_set_tx_desc(struct run_softc *sc, struct run_tx_data *data)
 	 * Ether both are true or both are false, the header
 	 * are nicely aligned to 32-bit. So, no L2 padding.
 	 */
-	if(IEEE80211_HAS_ADDR4(wh) == IEEE80211_QOS_HAS_SEQ(wh))
+	if (IEEE80211_HAS_ADDR4(wh) == IEEE80211_QOS_HAS_SEQ(wh))
 		pad = 0;
 	else
 		pad = 2;
@@ -3401,10 +3427,10 @@ run_set_tx_desc(struct run_softc *sc, struct run_tx_data *data)
 	/* check if RTS/CTS or CTS-to-self protection is required */
 	if (!IEEE80211_IS_MULTICAST(wh->i_addr1) &&
 	    ((m->m_pkthdr.len + IEEE80211_CRC_LEN > vap->iv_rtsthreshold) ||
-	     ((ic->ic_flags & IEEE80211_F_USEPROT) &&
-	      rt2860_rates[ridx].phy == IEEE80211_T_OFDM) ||
-	     ((ic->ic_htprotmode == IEEE80211_PROT_RTSCTS) &&
-	      rt2860_rates[ridx].phy == IEEE80211_T_HT)))
+		((ic->ic_flags & IEEE80211_F_USEPROT) &&
+		    rt2860_rates[ridx].phy == IEEE80211_T_OFDM) ||
+		((ic->ic_htprotmode == IEEE80211_PROT_RTSCTS) &&
+		    rt2860_rates[ridx].phy == IEEE80211_T_HT)))
 		txwi->txop |= RT2860_TX_TXOP_HT;
 	else
 		txwi->txop |= RT2860_TX_TXOP_BACKOFF;
@@ -3469,8 +3495,10 @@ run_tx(struct run_softc *sc, struct mbuf *m, struct ieee80211_node *ni)
 	if (IEEE80211_IS_MULTICAST(wh->i_addr1) ||
 	    type != IEEE80211_FC0_TYPE_DATA || m->m_flags & M_EAPOL) {
 		/* XXX TODO: methodize for 11n; use MCS0 for 11NA/11NG */
-		ridx = (ic->ic_curmode == IEEE80211_MODE_11A || ic->ic_curmode == IEEE80211_MODE_11NA) ?
-		    RT2860_RIDX_OFDM6 : RT2860_RIDX_CCK1;
+		ridx = (ic->ic_curmode == IEEE80211_MODE_11A ||
+			   ic->ic_curmode == IEEE80211_MODE_11NA) ?
+		    RT2860_RIDX_OFDM6 :
+		    RT2860_RIDX_CCK1;
 		ctl_ridx = rt2860_rates[ridx].ctl_ridx;
 	} else {
 		if (tp->ucastrate != IEEE80211_FIXED_RATE_NONE)
@@ -3481,8 +3509,9 @@ run_tx(struct run_softc *sc, struct mbuf *m, struct ieee80211_node *ni)
 	}
 
 	if (!IEEE80211_IS_MULTICAST(wh->i_addr1) &&
-	    (!hasqos || (qos & IEEE80211_QOS_ACKPOLICY) !=
-	     IEEE80211_QOS_ACKPOLICY_NOACK)) {
+	    (!hasqos ||
+		(qos & IEEE80211_QOS_ACKPOLICY) !=
+		    IEEE80211_QOS_ACKPOLICY_NOACK)) {
 		xflags |= RT2860_TX_ACK;
 		if (ic->ic_flags & IEEE80211_F_SHPREAMBLE)
 			dur = rt2860_rates[ctl_ridx].sp_ack_dur;
@@ -3509,7 +3538,8 @@ run_tx(struct run_softc *sc, struct mbuf *m, struct ieee80211_node *ni)
 		txwi->wcid = 0;
 	else
 		txwi->wcid = (vap->iv_opmode == IEEE80211_M_STA) ?
-		    1 : RUN_AID2WCID(ni->ni_associd);
+		    1 :
+		    RUN_AID2WCID(ni->ni_associd);
 
 	/* clear leftover garbage bits */
 	txwi->flags = 0;
@@ -3527,13 +3557,15 @@ run_tx(struct run_softc *sc, struct mbuf *m, struct ieee80211_node *ni)
 	 *  * TX_STA_CNT0 for all-TX-in-one stats.
 	 *
 	 * To use FIFO stats, we need to store MCS into the driver-private
- 	 * PacketID field. So that, we can tell whose stats when we read them.
- 	 * We add 1 to the MCS because setting the PacketID field to 0 means
- 	 * that we don't want feedback in TX_STAT_FIFO.
- 	 * And, that's what we want for STA mode, since TX_STA_CNT0 does the job.
- 	 *
- 	 * FIFO stats doesn't count Tx with WCID 0xff, so we do this in run_tx().
- 	 */
+	 * PacketID field. So that, we can tell whose stats when we read them.
+	 * We add 1 to the MCS because setting the PacketID field to 0 means
+	 * that we don't want feedback in TX_STAT_FIFO.
+	 * And, that's what we want for STA mode, since TX_STA_CNT0 does the
+	 * job.
+	 *
+	 * FIFO stats doesn't count Tx with WCID 0xff, so we do this in
+	 * run_tx().
+	 */
 	if (sc->rvp_cnt > 1 || vap->iv_opmode == IEEE80211_M_HOSTAP ||
 	    vap->iv_opmode == IEEE80211_M_MBSS) {
 		uint16_t pid = (rt2860_rates[ridx].mcs + 1) & 0xf;
@@ -3542,14 +3574,13 @@ run_tx(struct run_softc *sc, struct mbuf *m, struct ieee80211_node *ni)
 		/*
 		 * Unlike PCI based devices, we don't get any interrupt from
 		 * USB devices, so we simulate FIFO-is-full interrupt here.
-		 * Ralink recommends to drain FIFO stats every 100 ms, but 16 slots
-		 * quickly get fulled. To prevent overflow, increment a counter on
-		 * every FIFO stat request, so we know how many slots are left.
-		 * We do this only in HOSTAP or multiple vap mode since FIFO stats
-		 * are used only in those modes.
-		 * We just drain stats. AMRR gets updated every 1 sec by
-		 * run_ratectl_cb() via callout.
-		 * Call it early. Otherwise overflow.
+		 * Ralink recommends to drain FIFO stats every 100 ms, but 16
+		 * slots quickly get fulled. To prevent overflow, increment a
+		 * counter on every FIFO stat request, so we know how many slots
+		 * are left. We do this only in HOSTAP or multiple vap mode
+		 * since FIFO stats are used only in those modes. We just drain
+		 * stats. AMRR gets updated every 1 sec by run_ratectl_cb() via
+		 * callout. Call it early. Otherwise overflow.
 		 */
 		if (sc->fifo_cnt++ == 10) {
 			/*
@@ -3564,14 +3595,15 @@ run_tx(struct run_softc *sc, struct mbuf *m, struct ieee80211_node *ni)
 		}
 	}
 
-        STAILQ_INSERT_TAIL(&sc->sc_epq[qid].tx_qh, data, next);
+	STAILQ_INSERT_TAIL(&sc->sc_epq[qid].tx_qh, data, next);
 
 	usbd_transfer_start(sc->sc_xfer[qid]);
 
 	RUN_DPRINTF(sc, RUN_DEBUG_XMIT,
 	    "sending data frame len=%d rate=%d qid=%d\n",
-	    m->m_pkthdr.len + (int)(sizeof(struct rt2870_txd) +
-	    sizeof(struct rt2860_txwi)), rt2860_rates[ridx].rate, qid);
+	    m->m_pkthdr.len +
+		(int)(sizeof(struct rt2870_txd) + sizeof(struct rt2860_txwi)),
+	    rt2860_rates[ridx].rate, qid);
 
 	return (0);
 }
@@ -3596,13 +3628,13 @@ run_tx_mgt(struct run_softc *sc, struct mbuf *m, struct ieee80211_node *ni)
 
 	/* tell hardware to add timestamp for probe responses */
 	if ((wh->i_fc[0] &
-	    (IEEE80211_FC0_TYPE_MASK | IEEE80211_FC0_SUBTYPE_MASK)) ==
+		(IEEE80211_FC0_TYPE_MASK | IEEE80211_FC0_SUBTYPE_MASK)) ==
 	    (IEEE80211_FC0_TYPE_MGT | IEEE80211_FC0_SUBTYPE_PROBE_RESP))
 		wflags |= RT2860_TX_TS;
 	else if (!IEEE80211_IS_MULTICAST(wh->i_addr1)) {
 		xflags |= RT2860_TX_ACK;
 
-		dur = ieee80211_ack_duration(ic->ic_rt, rt2860_rates[ridx].rate, 
+		dur = ieee80211_ack_duration(ic->ic_rt, rt2860_rates[ridx].rate,
 		    ic->ic_flags & IEEE80211_F_SHPREAMBLE);
 		USETW(wh->i_dur, dur);
 	}
@@ -3620,7 +3652,7 @@ run_tx_mgt(struct run_softc *sc, struct mbuf *m, struct ieee80211_node *ni)
 	txwi->wcid = 0xff;
 	txwi->flags = wflags;
 	txwi->xflags = xflags;
-	txwi->txop = 0;	/* clear leftover garbage bits */
+	txwi->txop = 0; /* clear leftover garbage bits */
 
 	data->m = m;
 	data->ni = ni;
@@ -3629,8 +3661,9 @@ run_tx_mgt(struct run_softc *sc, struct mbuf *m, struct ieee80211_node *ni)
 	run_set_tx_desc(sc, data);
 
 	RUN_DPRINTF(sc, RUN_DEBUG_XMIT, "sending mgt frame len=%d rate=%d\n",
-	    m->m_pkthdr.len + (int)(sizeof(struct rt2870_txd) +
-	    sizeof(struct rt2860_txwi)), rt2860_rates[ridx].rate);
+	    m->m_pkthdr.len +
+		(int)(sizeof(struct rt2870_txd) + sizeof(struct rt2860_txwi)),
+	    rt2860_rates[ridx].rate);
 
 	STAILQ_INSERT_TAIL(&sc->sc_epq[0].tx_qh, data, next);
 
@@ -3640,8 +3673,8 @@ run_tx_mgt(struct run_softc *sc, struct mbuf *m, struct ieee80211_node *ni)
 }
 
 static int
-run_sendprot(struct run_softc *sc,
-    const struct mbuf *m, struct ieee80211_node *ni, int prot, int rate)
+run_sendprot(struct run_softc *sc, const struct mbuf *m,
+    struct ieee80211_node *ni, int prot, int rate)
 {
 	struct ieee80211com *ic = ni->ni_ic;
 	struct run_tx_data *data;
@@ -3673,9 +3706,9 @@ run_sendprot(struct run_softc *sc,
 	if (prot == IEEE80211_PROT_RTSCTS)
 		xflags |= RT2860_TX_ACK;
 
-        data = STAILQ_FIRST(&sc->sc_epq[0].tx_fh);
-        STAILQ_REMOVE_HEAD(&sc->sc_epq[0].tx_fh, next);
-        sc->sc_epq[0].tx_nfree--;
+	data = STAILQ_FIRST(&sc->sc_epq[0].tx_fh);
+	STAILQ_REMOVE_HEAD(&sc->sc_epq[0].tx_fh, next);
+	sc->sc_epq[0].tx_nfree--;
 
 	txd = (struct rt2870_txd *)&data->desc;
 	txd->flags = RT2860_TX_QSEL_EDCA;
@@ -3683,7 +3716,7 @@ run_sendprot(struct run_softc *sc,
 	txwi->wcid = 0xff;
 	txwi->flags = wflags;
 	txwi->xflags = xflags;
-	txwi->txop = 0;	/* clear leftover garbage bits */
+	txwi->txop = 0; /* clear leftover garbage bits */
 
 	data->m = mprot;
 	data->ni = ieee80211_ref_node(ni);
@@ -3696,10 +3729,10 @@ run_sendprot(struct run_softc *sc,
 
 	run_set_tx_desc(sc, data);
 
-        RUN_DPRINTF(sc, RUN_DEBUG_XMIT, "sending prot len=%u rate=%u\n",
-            m->m_pkthdr.len, rate);
+	RUN_DPRINTF(sc, RUN_DEBUG_XMIT, "sending prot len=%u rate=%u\n",
+	    m->m_pkthdr.len, rate);
 
-        STAILQ_INSERT_TAIL(&sc->sc_epq[0].tx_qh, data, next);
+	STAILQ_INSERT_TAIL(&sc->sc_epq[0].tx_qh, data, next);
 
 	usbd_transfer_start(sc->sc_xfer[0]);
 
@@ -3732,10 +3765,11 @@ run_tx_param(struct run_softc *sc, struct mbuf *m, struct ieee80211_node *ni,
 
 	if ((params->ibp_flags & IEEE80211_BPF_NOACK) == 0)
 		xflags |= RT2860_TX_ACK;
-	if (params->ibp_flags & (IEEE80211_BPF_RTS|IEEE80211_BPF_CTS)) {
+	if (params->ibp_flags & (IEEE80211_BPF_RTS | IEEE80211_BPF_CTS)) {
 		error = run_sendprot(sc, m, ni,
 		    params->ibp_flags & IEEE80211_BPF_RTS ?
-			IEEE80211_PROT_RTSCTS : IEEE80211_PROT_CTSONLY,
+			IEEE80211_PROT_RTSCTS :
+			IEEE80211_PROT_CTSONLY,
 		    rate);
 		if (error) {
 			/* let caller free mbuf */
@@ -3750,9 +3784,9 @@ run_tx_param(struct run_softc *sc, struct mbuf *m, struct ieee80211_node *ni,
 		    "sending raw frame, but tx ring is full\n");
 		return (EIO);
 	}
-        data = STAILQ_FIRST(&sc->sc_epq[0].tx_fh);
-        STAILQ_REMOVE_HEAD(&sc->sc_epq[0].tx_fh, next);
-        sc->sc_epq[0].tx_nfree--;
+	data = STAILQ_FIRST(&sc->sc_epq[0].tx_fh);
+	STAILQ_REMOVE_HEAD(&sc->sc_epq[0].tx_fh, next);
+	sc->sc_epq[0].tx_nfree--;
 
 	txd = (struct rt2870_txd *)&data->desc;
 	txd->flags = RT2860_TX_QSEL_EDCA;
@@ -3760,26 +3794,26 @@ run_tx_param(struct run_softc *sc, struct mbuf *m, struct ieee80211_node *ni,
 	txwi->wcid = 0xff;
 	txwi->xflags = xflags;
 	txwi->txop = opflags;
-	txwi->flags = 0;	/* clear leftover garbage bits */
+	txwi->flags = 0; /* clear leftover garbage bits */
 
-        data->m = m;
-        data->ni = ni;
+	data->m = m;
+	data->ni = ni;
 	/* XXX TODO: methodize with MCS rates */
 	for (ridx = 0; ridx < RT2860_RIDX_MAX; ridx++)
 		if (rt2860_rates[ridx].rate == rate)
 			break;
 	data->ridx = ridx;
 
-        run_set_tx_desc(sc, data);
+	run_set_tx_desc(sc, data);
 
-        RUN_DPRINTF(sc, RUN_DEBUG_XMIT, "sending raw frame len=%u rate=%u\n",
-            m->m_pkthdr.len, rate);
+	RUN_DPRINTF(sc, RUN_DEBUG_XMIT, "sending raw frame len=%u rate=%u\n",
+	    m->m_pkthdr.len, rate);
 
-        STAILQ_INSERT_TAIL(&sc->sc_epq[0].tx_qh, data, next);
+	STAILQ_INSERT_TAIL(&sc->sc_epq[0].tx_qh, data, next);
 
 	usbd_transfer_start(sc->sc_xfer[0]);
 
-        return (0);
+	return (0);
 }
 
 static int
@@ -3806,7 +3840,8 @@ run_raw_xmit(struct ieee80211_node *ni, struct mbuf *m,
 	} else {
 		/* tx raw packet with param */
 		if ((error = run_tx_param(sc, m, ni, params)) != 0) {
-			RUN_DPRINTF(sc, RUN_DEBUG_XMIT, "tx with param failed\n");
+			RUN_DPRINTF(sc, RUN_DEBUG_XMIT,
+			    "tx with param failed\n");
 			goto done;
 		}
 	}
@@ -3815,7 +3850,7 @@ done:
 	RUN_UNLOCK(sc);
 
 	if (error != 0) {
-		if(m != NULL)
+		if (m != NULL)
 			m_freem(m);
 	}
 
@@ -3900,16 +3935,13 @@ run_iq_calib(struct run_softc *sc, u_int chan)
 		run_efuse_read(sc, RT5390_EEPROM_IQ_GAIN_CAL_TX0_2GHZ, &val, 1);
 	else if (chan <= 64) {
 		run_efuse_read(sc,
-		    RT5390_EEPROM_IQ_GAIN_CAL_TX0_CH36_TO_CH64_5GHZ,
-		    &val, 1);
+		    RT5390_EEPROM_IQ_GAIN_CAL_TX0_CH36_TO_CH64_5GHZ, &val, 1);
 	} else if (chan <= 138) {
 		run_efuse_read(sc,
-		    RT5390_EEPROM_IQ_GAIN_CAL_TX0_CH100_TO_CH138_5GHZ,
-		    &val, 1);
+		    RT5390_EEPROM_IQ_GAIN_CAL_TX0_CH100_TO_CH138_5GHZ, &val, 1);
 	} else if (chan <= 165) {
 		run_efuse_read(sc,
-	    RT5390_EEPROM_IQ_GAIN_CAL_TX0_CH140_TO_CH165_5GHZ,
-		    &val, 1);
+		    RT5390_EEPROM_IQ_GAIN_CAL_TX0_CH140_TO_CH165_5GHZ, &val, 1);
 	} else
 		val = 0;
 	run_bbp_write(sc, 159, val);
@@ -3917,20 +3949,19 @@ run_iq_calib(struct run_softc *sc, u_int chan)
 	/* Tx0 IQ phase. */
 	run_bbp_write(sc, 158, 0x2d);
 	if (chan <= 14) {
-		run_efuse_read(sc, RT5390_EEPROM_IQ_PHASE_CAL_TX0_2GHZ,
-		    &val, 1);
+		run_efuse_read(sc, RT5390_EEPROM_IQ_PHASE_CAL_TX0_2GHZ, &val,
+		    1);
 	} else if (chan <= 64) {
 		run_efuse_read(sc,
-		    RT5390_EEPROM_IQ_PHASE_CAL_TX0_CH36_TO_CH64_5GHZ,
-		    &val, 1);
+		    RT5390_EEPROM_IQ_PHASE_CAL_TX0_CH36_TO_CH64_5GHZ, &val, 1);
 	} else if (chan <= 138) {
 		run_efuse_read(sc,
-		    RT5390_EEPROM_IQ_PHASE_CAL_TX0_CH100_TO_CH138_5GHZ,
-		    &val, 1);
+		    RT5390_EEPROM_IQ_PHASE_CAL_TX0_CH100_TO_CH138_5GHZ, &val,
+		    1);
 	} else if (chan <= 165) {
 		run_efuse_read(sc,
-		    RT5390_EEPROM_IQ_PHASE_CAL_TX0_CH140_TO_CH165_5GHZ,
-		    &val, 1);
+		    RT5390_EEPROM_IQ_PHASE_CAL_TX0_CH140_TO_CH165_5GHZ, &val,
+		    1);
 	} else
 		val = 0;
 	run_bbp_write(sc, 159, val);
@@ -3938,20 +3969,16 @@ run_iq_calib(struct run_softc *sc, u_int chan)
 	/* Tx1 IQ gain. */
 	run_bbp_write(sc, 158, 0x4a);
 	if (chan <= 14) {
-		run_efuse_read(sc, RT5390_EEPROM_IQ_GAIN_CAL_TX1_2GHZ,
-		    &val, 1);
+		run_efuse_read(sc, RT5390_EEPROM_IQ_GAIN_CAL_TX1_2GHZ, &val, 1);
 	} else if (chan <= 64) {
 		run_efuse_read(sc,
-		    RT5390_EEPROM_IQ_GAIN_CAL_TX1_CH36_TO_CH64_5GHZ,
-		    &val, 1);
+		    RT5390_EEPROM_IQ_GAIN_CAL_TX1_CH36_TO_CH64_5GHZ, &val, 1);
 	} else if (chan <= 138) {
 		run_efuse_read(sc,
-		    RT5390_EEPROM_IQ_GAIN_CAL_TX1_CH100_TO_CH138_5GHZ,
-		    &val, 1);
+		    RT5390_EEPROM_IQ_GAIN_CAL_TX1_CH100_TO_CH138_5GHZ, &val, 1);
 	} else if (chan <= 165) {
 		run_efuse_read(sc,
-		    RT5390_EEPROM_IQ_GAIN_CAL_TX1_CH140_TO_CH165_5GHZ,
-		    &val, 1);
+		    RT5390_EEPROM_IQ_GAIN_CAL_TX1_CH140_TO_CH165_5GHZ, &val, 1);
 	} else
 		val = 0;
 	run_bbp_write(sc, 159, val);
@@ -3959,34 +3986,32 @@ run_iq_calib(struct run_softc *sc, u_int chan)
 	/* Tx1 IQ phase. */
 	run_bbp_write(sc, 158, 0x4b);
 	if (chan <= 14) {
-		run_efuse_read(sc, RT5390_EEPROM_IQ_PHASE_CAL_TX1_2GHZ,
-		    &val, 1);
+		run_efuse_read(sc, RT5390_EEPROM_IQ_PHASE_CAL_TX1_2GHZ, &val,
+		    1);
 	} else if (chan <= 64) {
 		run_efuse_read(sc,
-		    RT5390_EEPROM_IQ_PHASE_CAL_TX1_CH36_TO_CH64_5GHZ,
-		    &val, 1);
+		    RT5390_EEPROM_IQ_PHASE_CAL_TX1_CH36_TO_CH64_5GHZ, &val, 1);
 	} else if (chan <= 138) {
 		run_efuse_read(sc,
-		    RT5390_EEPROM_IQ_PHASE_CAL_TX1_CH100_TO_CH138_5GHZ,
-		    &val, 1);
+		    RT5390_EEPROM_IQ_PHASE_CAL_TX1_CH100_TO_CH138_5GHZ, &val,
+		    1);
 	} else if (chan <= 165) {
 		run_efuse_read(sc,
-		    RT5390_EEPROM_IQ_PHASE_CAL_TX1_CH140_TO_CH165_5GHZ,
-		    &val, 1);
+		    RT5390_EEPROM_IQ_PHASE_CAL_TX1_CH140_TO_CH165_5GHZ, &val,
+		    1);
 	} else
 		val = 0;
 	run_bbp_write(sc, 159, val);
 
 	/* RF IQ compensation control. */
 	run_bbp_write(sc, 158, 0x04);
-	run_efuse_read(sc, RT5390_EEPROM_RF_IQ_COMPENSATION_CTL,
-	    &val, 1);
+	run_efuse_read(sc, RT5390_EEPROM_RF_IQ_COMPENSATION_CTL, &val, 1);
 	run_bbp_write(sc, 159, val);
 
 	/* RF IQ imbalance compensation control. */
 	run_bbp_write(sc, 158, 0x03);
-	run_efuse_read(sc,
-	    RT5390_EEPROM_RF_IQ_IMBALANCE_COMPENSATION_CTL, &val, 1);
+	run_efuse_read(sc, RT5390_EEPROM_RF_IQ_IMBALANCE_COMPENSATION_CTL, &val,
+	    1);
 	run_bbp_write(sc, 159, val);
 }
 
@@ -3998,9 +4023,9 @@ run_set_agc(struct run_softc *sc, uint8_t agc)
 	if (sc->mac_ver == 0x3572) {
 		run_bbp_read(sc, 27, &bbp);
 		bbp &= ~(0x3 << 5);
-		run_bbp_write(sc, 27, bbp | 0 << 5);	/* select Rx0 */
+		run_bbp_write(sc, 27, bbp | 0 << 5); /* select Rx0 */
 		run_bbp_write(sc, 66, agc);
-		run_bbp_write(sc, 27, bbp | 1 << 5);	/* select Rx1 */
+		run_bbp_write(sc, 27, bbp | 1 << 5); /* select Rx1 */
 		run_bbp_write(sc, 66, agc);
 	} else
 		run_bbp_write(sc, 66, agc);
@@ -4084,7 +4109,7 @@ run_select_chan_group(struct run_softc *sc, int group)
 			    (sc->mac_ver == 0x3593) ? 0x82 : 0xf2);
 		if (sc->ext_5ghz_lna)
 			run_bbp_write(sc, 75, 0x46);
-		else 
+		else
 			run_bbp_write(sc, 75, 0x50);
 	}
 
@@ -4099,7 +4124,7 @@ run_select_chan_group(struct run_softc *sc, int group)
 		tmp |= 1 << 29 | 1 << 28;
 	if (sc->nrxchains > 1)
 		tmp |= RT2860_LNA_PE1_EN;
-	if (group == 0) {	/* 2GHz */
+	if (group == 0) { /* 2GHz */
 		tmp |= RT2860_PA_PE_G0_EN;
 		if (sc->ntxchains > 1)
 			tmp |= RT2860_PA_PE_G1_EN;
@@ -4107,7 +4132,7 @@ run_select_chan_group(struct run_softc *sc, int group)
 			if (sc->ntxchains > 2)
 				tmp |= 1 << 25;
 		}
-	} else {		/* 5GHz */
+	} else { /* 5GHz */
 		tmp |= RT2860_PA_PE_A0_EN;
 		if (sc->ntxchains > 1)
 			tmp |= RT2860_PA_PE_A1_EN;
@@ -4134,12 +4159,12 @@ run_select_chan_group(struct run_softc *sc, int group)
 	}
 
 	/* set initial AGC value */
-	if (group == 0) {	/* 2GHz band */
+	if (group == 0) { /* 2GHz band */
 		if (sc->mac_ver >= 0x3070)
 			agc = 0x1c + sc->lna[0] * 2;
 		else
 			agc = 0x2e + sc->lna[0];
-	} else {		/* 5GHz band */
+	} else { /* 5GHz band */
 		if (sc->mac_ver == 0x5592)
 			agc = 0x24 + sc->lna[group] * 2;
 		else if (sc->mac_ver == 0x3572 || sc->mac_ver == 0x3593)
@@ -4159,15 +4184,16 @@ run_rt2870_set_chan(struct run_softc *sc, u_int chan)
 	int i;
 
 	/* find the settings for this channel (we know it exists) */
-	for (i = 0; rfprog[i].chan != chan; i++);
+	for (i = 0; rfprog[i].chan != chan; i++)
+		;
 
 	r2 = rfprog[i].r2;
 	if (sc->ntxchains == 1)
-		r2 |= 1 << 14;		/* 1T: disable Tx chain 2 */
+		r2 |= 1 << 14; /* 1T: disable Tx chain 2 */
 	if (sc->nrxchains == 1)
-		r2 |= 1 << 17 | 1 << 6;	/* 1R: disable Rx chains 2 & 3 */
+		r2 |= 1 << 17 | 1 << 6; /* 1R: disable Rx chains 2 & 3 */
 	else if (sc->nrxchains == 2)
-		r2 |= 1 << 6;		/* 2R: disable Rx chain 3 */
+		r2 |= 1 << 6; /* 2R: disable Rx chain 3 */
 
 	/* use Tx power values from EEPROM */
 	txpow1 = sc->txpow1[i];
@@ -4229,7 +4255,8 @@ run_rt3070_set_chan(struct run_softc *sc, u_int chan)
 	int i;
 
 	/* find the settings for this channel (we know it exists) */
-	for (i = 0; rt2860_rf2850[i].chan != chan; i++);
+	for (i = 0; rt2860_rf2850[i].chan != chan; i++)
+		;
 
 	/* use Tx power values from EEPROM */
 	txpow1 = sc->txpow1[i];
@@ -4259,13 +4286,13 @@ run_rt3070_set_chan(struct run_softc *sc, u_int chan)
 	run_rt3070_rf_read(sc, 1, &rf);
 	rf &= ~0xfc;
 	if (sc->ntxchains == 1)
-		rf |= 1 << 7 | 1 << 5;	/* 1T: disable Tx chains 2 & 3 */
+		rf |= 1 << 7 | 1 << 5; /* 1T: disable Tx chains 2 & 3 */
 	else if (sc->ntxchains == 2)
-		rf |= 1 << 7;		/* 2T: disable Tx chain 3 */
+		rf |= 1 << 7; /* 2T: disable Tx chain 3 */
 	if (sc->nrxchains == 1)
-		rf |= 1 << 6 | 1 << 4;	/* 1R: disable Rx chains 2 & 3 */
+		rf |= 1 << 6 | 1 << 4; /* 1R: disable Rx chains 2 & 3 */
 	else if (sc->nrxchains == 2)
-		rf |= 1 << 6;		/* 2R: disable Rx chain 3 */
+		rf |= 1 << 6; /* 2R: disable Rx chain 3 */
 	run_rt3070_rf_write(sc, 1, rf);
 
 	/* set RF offset */
@@ -4274,10 +4301,10 @@ run_rt3070_set_chan(struct run_softc *sc, u_int chan)
 	run_rt3070_rf_write(sc, 23, rf);
 
 	/* program RF filter */
-	run_rt3070_rf_read(sc, 24, &rf);	/* Tx */
+	run_rt3070_rf_read(sc, 24, &rf); /* Tx */
 	rf = (rf & ~0x3f) | sc->rf24_20mhz;
 	run_rt3070_rf_write(sc, 24, rf);
-	run_rt3070_rf_read(sc, 31, &rf);	/* Rx */
+	run_rt3070_rf_read(sc, 31, &rf); /* Rx */
 	rf = (rf & ~0x3f) | sc->rf24_20mhz;
 	run_rt3070_rf_write(sc, 31, rf);
 
@@ -4295,7 +4322,8 @@ run_rt3572_set_chan(struct run_softc *sc, u_int chan)
 	int i;
 
 	/* find the settings for this channel (we know it exists) */
-	for (i = 0; rt2860_rf2850[i].chan != chan; i++);
+	for (i = 0; rt2860_rf2850[i].chan != chan; i++)
+		;
 
 	/* use Tx power values from EEPROM */
 	txpow1 = sc->txpow1[i];
@@ -4313,7 +4341,7 @@ run_rt3572_set_chan(struct run_softc *sc, u_int chan)
 	run_rt3070_rf_write(sc, 2, rt3070_freqs[i].n);
 	run_rt3070_rf_write(sc, 3, rt3070_freqs[i].k);
 	run_rt3070_rf_read(sc, 6, &rf);
-	rf  = (rf & ~0x0f) | rt3070_freqs[i].r;
+	rf = (rf & ~0x0f) | rt3070_freqs[i].r;
 	rf |= (chan <= 14) ? 0x08 : 0x04;
 	run_rt3070_rf_write(sc, 6, rf);
 
@@ -4341,13 +4369,13 @@ run_rt3572_set_chan(struct run_softc *sc, u_int chan)
 	run_rt3070_rf_read(sc, 1, &rf);
 	rf &= ~0xfc;
 	if (sc->ntxchains == 1)
-		rf |= 1 << 7 | 1 << 5;  /* 1T: disable Tx chains 2 & 3 */
+		rf |= 1 << 7 | 1 << 5; /* 1T: disable Tx chains 2 & 3 */
 	else if (sc->ntxchains == 2)
-		rf |= 1 << 7;           /* 2T: disable Tx chain 3 */
+		rf |= 1 << 7; /* 2T: disable Tx chain 3 */
 	if (sc->nrxchains == 1)
-		rf |= 1 << 6 | 1 << 4;  /* 1R: disable Rx chains 2 & 3 */
+		rf |= 1 << 6 | 1 << 4; /* 1R: disable Rx chains 2 & 3 */
 	else if (sc->nrxchains == 2)
-		rf |= 1 << 6;           /* 2R: disable Rx chain 3 */
+		rf |= 1 << 6; /* 2R: disable Rx chain 3 */
 	run_rt3070_rf_write(sc, 1, rf);
 
 	/* set RF offset */
@@ -4357,8 +4385,8 @@ run_rt3572_set_chan(struct run_softc *sc, u_int chan)
 
 	/* program RF filter */
 	rf = sc->rf24_20mhz;
-	run_rt3070_rf_write(sc, 24, rf);	/* Tx */
-	run_rt3070_rf_write(sc, 31, rf);	/* Rx */
+	run_rt3070_rf_write(sc, 24, rf); /* Tx */
+	run_rt3070_rf_write(sc, 31, rf); /* Rx */
 
 	/* enable RF tuning */
 	run_rt3070_rf_read(sc, 7, &rf);
@@ -4444,7 +4472,8 @@ run_rt3593_set_chan(struct run_softc *sc, u_int chan)
 	int i;
 
 	/* find the settings for this channel (we know it exists) */
-	for (i = 0; rt2860_rf2850[i].chan != chan; i++);
+	for (i = 0; rt2860_rf2850[i].chan != chan; i++)
+		;
 
 	/* use Tx power values from EEPROM */
 	txpow1 = sc->txpow1[i];
@@ -4502,7 +4531,7 @@ run_rt3593_set_chan(struct run_softc *sc, u_int chan)
 
 	run_rt3070_rf_write(sc, 31, (chan <= 14) ? 0xa0 : 0x80);
 
-	h20mhz = (sc->rf24_20mhz & 0x20) >> 5; 
+	h20mhz = (sc->rf24_20mhz & 0x20) >> 5;
 	run_rt3070_rf_read(sc, 30, &rf);
 	rf = (rf & ~0x06) | (h20mhz << 1) | (h20mhz << 2);
 	run_rt3070_rf_write(sc, 30, rf);
@@ -4529,7 +4558,7 @@ run_rt3593_set_chan(struct run_softc *sc, u_int chan)
 	else
 		rf |= 0x40;
 	run_rt3070_rf_write(sc, 6, rf);
-		
+
 	run_rt3070_rf_read(sc, 30, &rf);
 	rf = (rf & ~0x18) | 0x10;
 	run_rt3070_rf_write(sc, 30, rf);
@@ -4561,7 +4590,7 @@ run_rt3593_set_chan(struct run_softc *sc, u_int chan)
 	/* Set drv_cc. */
 	run_rt3070_rf_read(sc, 57, &rf);
 	rf &= ~0xfc;
-	rf |= (chan <= 14) ?  0x6c : 0x3c;
+	rf |= (chan <= 14) ? 0x6c : 0x3c;
 	run_rt3070_rf_write(sc, 57, rf);
 	/* Set rx_mix1_ic, rxa_lnactr, lna_vc, lna_inbias_en and lna_en. */
 	run_rt3070_rf_write(sc, 44, (chan <= 14) ? 0x93 : 0x9b);
@@ -4604,7 +4633,8 @@ run_rt5390_set_chan(struct run_softc *sc, u_int chan)
 	int i;
 
 	/* find the settings for this channel (we know it exists) */
-	for (i = 0; rt2860_rf2850[i].chan != chan; i++);
+	for (i = 0; rt2860_rf2850[i].chan != chan; i++)
+		;
 
 	/* use Tx power values from EEPROM */
 	txpow1 = sc->txpow1[i];
@@ -4716,11 +4746,12 @@ run_rt5592_set_chan(struct run_softc *sc, u_int chan)
 	int i;
 
 	run_read(sc, RT5592_DEBUG_INDEX, &tmp);
-	freqs = (tmp & RT5592_SEL_XTAL) ?
-	    rt5592_freqs_40mhz : rt5592_freqs_20mhz;
+	freqs = (tmp & RT5592_SEL_XTAL) ? rt5592_freqs_40mhz :
+					  rt5592_freqs_20mhz;
 
 	/* find the settings for this channel (we know it exists) */
-	for (i = 0; rt2860_rf2850[i].chan != chan; i++, freqs++);
+	for (i = 0; rt2860_rf2850[i].chan != chan; i++, freqs++)
+		;
 
 	/* use Tx power values from EEPROM */
 	txpow1 = sc->txpow1[i];
@@ -4774,7 +4805,7 @@ run_rt5592_set_chan(struct run_softc *sc, u_int chan)
 
 		run_rt3070_rf_write(sc, 55, 0x43);
 
-		/* 
+		/*
 		 * RF R49/R50 Tx power ALC code.
 		 * G-band bit<7:6>=1:0, bit<5:0> range from 0x0 ~ 0x27.
 		 */
@@ -4794,7 +4825,7 @@ run_rt5592_set_chan(struct run_softc *sc, u_int chan)
 			}
 		}
 
-		/* 
+		/*
 		 * RF R49/R50 Tx power ALC code.
 		 * A-band bit<7:6>=1:1, bit<5:0> range from 0x0 ~ 0x2b.
 		 */
@@ -4928,8 +4959,8 @@ run_set_channel(struct ieee80211com *ic)
 }
 
 static void
-run_getradiocaps(struct ieee80211com *ic,
-    int maxchans, int *nchans, struct ieee80211_channel chans[])
+run_getradiocaps(struct ieee80211com *ic, int maxchans, int *nchans,
+    struct ieee80211_channel chans[])
 {
 	struct run_softc *sc = ic->ic_softc;
 	uint8_t bands[IEEE80211_MODE_BYTES];
@@ -5009,7 +5040,7 @@ run_update_beacon(struct ieee80211vap *vap, int item)
 		run_updateprot(ic);
 		break;
 	case IEEE80211_BEACON_TIM:
-		mcast = 1;	/*TODO*/
+		mcast = 1; /*TODO*/
 		break;
 	default:
 		break;
@@ -5066,8 +5097,8 @@ run_update_beacon_cb(void *arg)
 	txwi.len = htole16(m->m_pkthdr.len);
 
 	/* send beacons at the lowest available rate */
-	ridx = (ic->ic_curmode == IEEE80211_MODE_11A) ?
-	    RT2860_RIDX_OFDM6 : RT2860_RIDX_CCK1;
+	ridx = (ic->ic_curmode == IEEE80211_MODE_11A) ? RT2860_RIDX_OFDM6 :
+							RT2860_RIDX_CCK1;
 	txwi.phy = htole16(rt2860_rates[ridx].mcs);
 	if (rt2860_rates[ridx].phy == IEEE80211_T_OFDM)
 		txwi.phy |= htole16(RT2860_PHY_OFDM);
@@ -5075,8 +5106,8 @@ run_update_beacon_cb(void *arg)
 	txwi.flags = RT2860_TX_TS;
 	txwi.xflags = RT2860_TX_NSEQ;
 
-	txwisize = (sc->mac_ver == 0x5592) ?
-	    sizeof(txwi) + sizeof(uint32_t) : sizeof(txwi);
+	txwisize = (sc->mac_ver == 0x5592) ? sizeof(txwi) + sizeof(uint32_t) :
+					     sizeof(txwi);
 	run_write_region_1(sc, RT2860_BCN_BASE(rvp->rvp_id), (uint8_t *)&txwi,
 	    txwisize);
 	run_write_region_1(sc, RT2860_BCN_BASE(rvp->rvp_id) + txwisize,
@@ -5128,7 +5159,7 @@ run_usb_timeout_cb(void *arg)
 
 	RUN_LOCK_ASSERT(sc, MA_OWNED);
 
-	if(vap->iv_state == IEEE80211_S_RUN &&
+	if (vap->iv_state == IEEE80211_S_RUN &&
 	    vap->iv_opmode != IEEE80211_M_STA)
 		run_reset_livelock(sc);
 	else if (vap->iv_state == IEEE80211_S_SCAN) {
@@ -5168,18 +5199,18 @@ run_reset_livelock(struct run_softc *sc)
 static void
 run_update_promisc_locked(struct run_softc *sc)
 {
-        uint32_t tmp;
+	uint32_t tmp;
 
 	run_read(sc, RT2860_RX_FILTR_CFG, &tmp);
 
 	tmp |= RT2860_DROP_UC_NOME;
-        if (sc->sc_ic.ic_promisc > 0)
+	if (sc->sc_ic.ic_promisc > 0)
 		tmp &= ~RT2860_DROP_UC_NOME;
 
 	run_write(sc, RT2860_RX_FILTR_CFG, tmp);
 
-        RUN_DPRINTF(sc, RUN_DEBUG_RECV, "%s promiscuous mode\n",
-	    (sc->sc_ic.ic_promisc > 0) ?  "entering" : "leaving");
+	RUN_DPRINTF(sc, RUN_DEBUG_RECV, "%s promiscuous mode\n",
+	    (sc->sc_ic.ic_promisc > 0) ? "entering" : "leaving");
 }
 
 static void
@@ -5217,17 +5248,17 @@ run_enable_tsf_sync(struct run_softc *sc)
 		 */
 		tmp |= 1 << RT2860_TSF_SYNC_MODE_SHIFT;
 	} else if (ic->ic_opmode == IEEE80211_M_IBSS) {
-	        tmp |= RT2860_BCN_TX_EN;
-	        /*
-	         * Local TSF is updated with remote TSF on beacon reception
-	         * only if the remote TSF is greater than local TSF.
-	         */
-	        tmp |= 2 << RT2860_TSF_SYNC_MODE_SHIFT;
+		tmp |= RT2860_BCN_TX_EN;
+		/*
+		 * Local TSF is updated with remote TSF on beacon reception
+		 * only if the remote TSF is greater than local TSF.
+		 */
+		tmp |= 2 << RT2860_TSF_SYNC_MODE_SHIFT;
 	} else if (ic->ic_opmode == IEEE80211_M_HOSTAP ||
-		    ic->ic_opmode == IEEE80211_M_MBSS) {
-	        tmp |= RT2860_BCN_TX_EN;
-	        /* SYNC with nobody */
-	        tmp |= 3 << RT2860_TSF_SYNC_MODE_SHIFT;
+	    ic->ic_opmode == IEEE80211_M_MBSS) {
+		tmp |= RT2860_BCN_TX_EN;
+		/* SYNC with nobody */
+		tmp |= 3 << RT2860_TSF_SYNC_MODE_SHIFT;
 	} else {
 		RUN_DPRINTF(sc, RUN_DEBUG_BEACON,
 		    "Enabling TSF failed. undefined opmode\n");
@@ -5271,23 +5302,23 @@ run_get_tsf(struct run_softc *sc, uint64_t *buf)
 static void
 run_enable_mrr(struct run_softc *sc)
 {
-#define	CCK(mcs)	(mcs)
-#define	OFDM(mcs)	(1 << 3 | (mcs))
+#define CCK(mcs) (mcs)
+#define OFDM(mcs) (1 << 3 | (mcs))
 	run_write(sc, RT2860_LG_FBK_CFG0,
 	    OFDM(6) << 28 |	/* 54->48 */
-	    OFDM(5) << 24 |	/* 48->36 */
-	    OFDM(4) << 20 |	/* 36->24 */
-	    OFDM(3) << 16 |	/* 24->18 */
-	    OFDM(2) << 12 |	/* 18->12 */
-	    OFDM(1) <<  8 |	/* 12-> 9 */
-	    OFDM(0) <<  4 |	/*  9-> 6 */
-	    OFDM(0));		/*  6-> 6 */
+		OFDM(5) << 24 | /* 48->36 */
+		OFDM(4) << 20 | /* 36->24 */
+		OFDM(3) << 16 | /* 24->18 */
+		OFDM(2) << 12 | /* 18->12 */
+		OFDM(1) << 8 |	/* 12-> 9 */
+		OFDM(0) << 4 |	/*  9-> 6 */
+		OFDM(0));	/*  6-> 6 */
 
 	run_write(sc, RT2860_LG_FBK_CFG1,
-	    CCK(2) << 12 |	/* 11->5.5 */
-	    CCK(1) <<  8 |	/* 5.5-> 2 */
-	    CCK(0) <<  4 |	/*   2-> 1 */
-	    CCK(0));		/*   1-> 1 */
+	    CCK(2) << 12 |    /* 11->5.5 */
+		CCK(1) << 8 | /* 5.5-> 2 */
+		CCK(0) << 4 | /*   2-> 1 */
+		CCK(0));      /*   1-> 1 */
 #undef OFDM
 #undef CCK
 }
@@ -5316,15 +5347,14 @@ run_set_basicrates(struct run_softc *sc)
 		run_write(sc, RT2860_LEGACY_BASIC_RATE, 0x003);
 	else if (ic->ic_curmode == IEEE80211_MODE_11A)
 		run_write(sc, RT2860_LEGACY_BASIC_RATE, 0x150);
-	else	/* 11g */
+	else /* 11g */
 		run_write(sc, RT2860_LEGACY_BASIC_RATE, 0x15f);
 }
 
 static void
 run_set_leds(struct run_softc *sc, uint16_t which)
 {
-	(void)run_mcu_cmd(sc, RT2860_MCU_CMD_LEDS,
-	    which | (sc->leds & 0x7f));
+	(void)run_mcu_cmd(sc, RT2860_MCU_CMD_LEDS, which | (sc->leds & 0x7f));
 }
 
 static void
@@ -5332,8 +5362,7 @@ run_set_bssid(struct run_softc *sc, const uint8_t *bssid)
 {
 	run_write(sc, RT2860_MAC_BSSID_DW0,
 	    bssid[0] | bssid[1] << 8 | bssid[2] << 16 | bssid[3] << 24);
-	run_write(sc, RT2860_MAC_BSSID_DW1,
-	    bssid[4] | bssid[5] << 8);
+	run_write(sc, RT2860_MAC_BSSID_DW1, bssid[4] | bssid[5] << 8);
 }
 
 static void
@@ -5341,8 +5370,7 @@ run_set_macaddr(struct run_softc *sc, const uint8_t *addr)
 {
 	run_write(sc, RT2860_MAC_ADDR_DW0,
 	    addr[0] | addr[1] << 8 | addr[2] << 16 | addr[3] << 24);
-	run_write(sc, RT2860_MAC_ADDR_DW1,
-	    addr[4] | addr[5] << 8 | 0xff << 16);
+	run_write(sc, RT2860_MAC_ADDR_DW1, addr[4] | addr[5] << 8 | 0xff << 16);
 }
 
 static void
@@ -5494,13 +5522,13 @@ run_bbp_init(struct run_softc *sc)
 		run_bbp_write(sc, 86, 0x46);
 		run_bbp_write(sc, 137, 0x0f);
 	}
-		
+
 	/* fix BBP84 for RT2860E */
 	if (sc->mac_ver == 0x2860 && sc->mac_rev != 0x0101)
 		run_bbp_write(sc, 84, 0x19);
 
-	if (sc->mac_ver >= 0x3070 && (sc->mac_ver != 0x3593 &&
-	    sc->mac_ver != 0x5592)) {
+	if (sc->mac_ver >= 0x3070 &&
+	    (sc->mac_ver != 0x3593 && sc->mac_ver != 0x5592)) {
 		run_bbp_write(sc, 79, 0x13);
 		run_bbp_write(sc, 80, 0x05);
 		run_bbp_write(sc, 81, 0x33);
@@ -5538,7 +5566,7 @@ run_rt3070_rf_init(struct run_softc *sc)
 	}
 
 	if (sc->mac_ver == 0x3070 && sc->mac_rev < 0x0201) {
-		/* 
+		/*
 		 * Change voltage from 1.2V to 1.35V for RT3070.
 		 * The DAC issue (RT3070_LDO_CFG0) has been fixed
 		 * in RT3070(F).
@@ -5555,9 +5583,9 @@ run_rt3070_rf_init(struct run_softc *sc)
 		run_read(sc, RT3070_LDO_CFG0, &tmp);
 		tmp &= ~0x1f000000;
 		if (sc->mac_rev < 0x0211)
-			tmp |= 0x0d000000;	/* 1.3V */
+			tmp |= 0x0d000000; /* 1.3V */
 		else
-			tmp |= 0x01000000;	/* 1.2V */
+			tmp |= 0x01000000; /* 1.2V */
 		run_write(sc, RT3070_LDO_CFG0, tmp);
 
 		/* patch LNA_PE_G1 */
@@ -5574,7 +5602,7 @@ run_rt3070_rf_init(struct run_softc *sc)
 		run_write(sc, RT3070_LDO_CFG0, tmp);
 
 		if (sc->mac_rev < 0x0211 || !sc->patch_dac) {
-			run_delay(sc, 1);	/* wait for 1msec */
+			run_delay(sc, 1); /* wait for 1msec */
 			/* decrease voltage back to 1.2V */
 			tmp = (tmp & ~0x1f000000) | 0x01000000;
 			run_write(sc, RT3070_LDO_CFG0, tmp);
@@ -5586,7 +5614,7 @@ run_rt3070_rf_init(struct run_softc *sc)
 	run_rt3070_rf_write(sc, 31, rf & ~0x20);
 
 	/* calibrate filter for 20MHz bandwidth */
-	sc->rf24_20mhz = 0x1f;	/* default value */
+	sc->rf24_20mhz = 0x1f; /* default value */
 	target = (sc->mac_ver < 0x3071) ? 0x16 : 0x13;
 	run_rt3070_filter_calib(sc, 0x07, target, &sc->rf24_20mhz);
 
@@ -5597,7 +5625,7 @@ run_rt3070_rf_init(struct run_softc *sc)
 	run_rt3070_rf_write(sc, 31, rf | 0x20);
 
 	/* calibrate filter for 40MHz bandwidth */
-	sc->rf24_40mhz = 0x2f;	/* default value */
+	sc->rf24_40mhz = 0x2f; /* default value */
 	target = (sc->mac_ver < 0x3071) ? 0x19 : 0x15;
 	run_rt3070_filter_calib(sc, 0x27, target, &sc->rf24_40mhz);
 
@@ -5619,9 +5647,9 @@ run_rt3070_rf_init(struct run_softc *sc)
 		run_rt3070_rf_read(sc, 17, &rf);
 		rf &= ~RT3070_TX_LO1;
 		if ((sc->mac_ver == 0x3070 ||
-		     (sc->mac_ver == 0x3071 && sc->mac_rev >= 0x0211)) &&
+			(sc->mac_ver == 0x3071 && sc->mac_rev >= 0x0211)) &&
 		    !sc->ext_2ghz_lna)
-			rf |= 0x20;	/* fix for long range Rx issue */
+			rf |= 0x20; /* fix for long range Rx issue */
 		mingain = (sc->mac_ver == 0x3070) ? 1 : 2;
 		if (sc->txmixgain_2ghz >= mingain)
 			rf = (rf & ~0x7) | sc->txmixgain_2ghz;
@@ -5758,7 +5786,7 @@ run_rt5390_rf_init(struct run_softc *sc)
 		}
 	}
 
-	sc->rf24_20mhz = 0x1f;	/* default value */
+	sc->rf24_20mhz = 0x1f; /* default value */
 	sc->rf24_40mhz = (sc->mac_ver == 0x5592) ? 0 : 0x2f;
 
 	if (sc->mac_rev < 0x0211)
@@ -5778,7 +5806,7 @@ run_rt3070_filter_calib(struct run_softc *sc, uint8_t init, uint8_t target,
 
 	/* program filter */
 	run_rt3070_rf_read(sc, 24, &rf24);
-	rf24 = (rf24 & 0xc0) | init;	/* initial filter value */
+	rf24 = (rf24 & 0xc0) | init; /* initial filter value */
 	run_rt3070_rf_write(sc, 24, rf24);
 
 	/* enable baseband loopback mode */
@@ -5818,7 +5846,7 @@ run_rt3070_filter_calib(struct run_softc *sc, uint8_t init, uint8_t target,
 	}
 	if (ntries < 100) {
 		if (rf24 != init)
-			rf24--;	/* backtrack */
+			rf24--; /* backtrack */
 		*val = rf24;
 		run_rt3070_rf_write(sc, 24, rf24);
 	}
@@ -5846,9 +5874,9 @@ run_rt3070_rf_setup(struct run_softc *sc)
 
 		run_bbp_read(sc, 138, &bbp);
 		if (sc->ntxchains == 1)
-			bbp |= 0x20;	/* turn off DAC1 */
+			bbp |= 0x20; /* turn off DAC1 */
 		if (sc->nrxchains == 1)
-			bbp &= ~0x02;	/* turn off ADC1 */
+			bbp &= ~0x02; /* turn off ADC1 */
 		run_bbp_write(sc, 138, bbp);
 
 		if (sc->mac_rev >= 0x0211) {
@@ -5873,9 +5901,9 @@ run_rt3070_rf_setup(struct run_softc *sc)
 
 		run_bbp_read(sc, 138, &bbp);
 		if (sc->ntxchains == 1)
-			bbp |= 0x20;	/* turn off DAC1 */
+			bbp |= 0x20; /* turn off DAC1 */
 		if (sc->nrxchains == 1)
-			bbp &= ~0x02;	/* turn off ADC1 */
+			bbp &= ~0x02; /* turn off ADC1 */
 		run_bbp_write(sc, 138, bbp);
 
 		run_write(sc, RT2860_TX_SW_CFG1, 0);
@@ -5923,8 +5951,7 @@ run_rt3593_rf_setup(struct run_softc *sc)
 	}
 	run_write(sc, RT2860_TX_SW_CFG1, 0);
 	if (sc->mac_rev < 0x0211) {
-		run_write(sc, RT2860_TX_SW_CFG2,
-		    sc->patch_dac ? 0x2c : 0x0f);
+		run_write(sc, RT2860_TX_SW_CFG2, sc->patch_dac ? 0x2c : 0x0f);
 	} else
 		run_write(sc, RT2860_TX_SW_CFG2, 0);
 
@@ -6000,9 +6027,9 @@ run_rt5390_rf_setup(struct run_softc *sc)
 
 	run_bbp_read(sc, 138, &bbp);
 	if (sc->ntxchains == 1)
-		bbp |= 0x20;	/* turn off DAC1 */
+		bbp |= 0x20; /* turn off DAC1 */
 	if (sc->nrxchains == 1)
-		bbp &= ~0x02;	/* turn off ADC1 */
+		bbp &= ~0x02; /* turn off ADC1 */
 	run_bbp_write(sc, 138, bbp);
 
 	run_rt3070_rf_read(sc, 38, &rf);
@@ -6069,8 +6096,7 @@ run_txrx_enable(struct run_softc *sc)
 	}
 	run_write(sc, RT2860_RX_FILTR_CFG, tmp);
 
-	run_write(sc, RT2860_MAC_SYS_CTRL,
-	    RT2860_MAC_RX_EN | RT2860_MAC_TX_EN);
+	run_write(sc, RT2860_MAC_SYS_CTRL, RT2860_MAC_RX_EN | RT2860_MAC_TX_EN);
 
 	return (0);
 }
@@ -6086,7 +6112,7 @@ run_adjust_freq_offset(struct run_softc *sc)
 	rf = MIN(rf, 0x5f);
 
 	if (tmp != rf)
-		run_mcu_cmd(sc, 0x74, (tmp << 8 ) | rf);
+		run_mcu_cmd(sc, 0x74, (tmp << 8) | rf);
 }
 
 static void
@@ -6144,8 +6170,7 @@ run_init_locked(struct run_softc *sc)
 	run_read(sc, RT2860_SYS_CTRL, &tmp);
 	run_write(sc, RT2860_SYS_CTRL, tmp & ~RT2860_PME_OEN);
 
-	run_write(sc, RT2860_MAC_SYS_CTRL,
-	    RT2860_BBP_HRST | RT2860_MAC_SRST);
+	run_write(sc, RT2860_MAC_SYS_CTRL, RT2860_BBP_HRST | RT2860_MAC_SRST);
 	run_write(sc, RT2860_USB_DMA_CFG, 0);
 
 	if (run_reset(sc) != 0) {
@@ -6186,8 +6211,7 @@ run_init_locked(struct run_softc *sc)
 		    4 << RT2860_DLY_PAPE_EN_SHIFT | 2);
 	} else if (sc->mac_ver >= 0x3070) {
 		/* set delay of PA_PE assertion to 1us (unit of 0.25us) */
-		run_write(sc, RT2860_TX_SW_CFG0,
-		    4 << RT2860_DLY_PAPE_EN_SHIFT);
+		run_write(sc, RT2860_TX_SW_CFG0, 4 << RT2860_DLY_PAPE_EN_SHIFT);
 	}
 
 	/* wait while MAC is busy */
@@ -6294,8 +6318,9 @@ run_init_locked(struct run_softc *sc)
 	run_set_leds(sc, RT2860_LED_RADIO);
 
 	/* Set up AUTO_RSP_CFG register for auto response */
-	run_write(sc, RT2860_AUTO_RSP_CFG, RT2860_AUTO_RSP_EN |
-	    RT2860_BAC_ACKPOLICY_EN | RT2860_CTS_40M_MODE_EN);
+	run_write(sc, RT2860_AUTO_RSP_CFG,
+	    RT2860_AUTO_RSP_EN | RT2860_BAC_ACKPOLICY_EN |
+		RT2860_CTS_40M_MODE_EN);
 
 	sc->sc_flags |= RUN_RUNNING;
 	sc->cmdq_run = RUN_CMDQ_GO;
@@ -6325,7 +6350,7 @@ run_stop(void *arg)
 	RUN_LOCK_ASSERT(sc, MA_OWNED);
 
 	if (sc->sc_flags & RUN_RUNNING)
-		run_set_leds(sc, 0);	/* turn all LEDs off */
+		run_set_leds(sc, 0); /* turn all LEDs off */
 
 	sc->sc_flags &= ~RUN_RUNNING;
 
@@ -6334,7 +6359,7 @@ run_stop(void *arg)
 
 	RUN_UNLOCK(sc);
 
-	for(i = 0; i < RUN_N_XFER; i++)
+	for (i = 0; i < RUN_N_XFER; i++)
 		usbd_transfer_drain(sc->sc_xfer[i]);
 
 	RUN_LOCK(sc);
@@ -6356,7 +6381,7 @@ run_stop(void *arg)
 		if (run_read(sc, RT2860_WPDMA_GLO_CFG, &tmp) != 0)
 			return;
 		if ((tmp & (RT2860_TX_DMA_BUSY | RT2860_RX_DMA_BUSY)) == 0)
-				break;
+			break;
 		run_delay(sc, 10);
 	}
 	if (ntries == 100) {
@@ -6399,8 +6424,8 @@ run_stop(void *arg)
 static void
 run_delay(struct run_softc *sc, u_int ms)
 {
-	usb_pause_mtx(mtx_owned(&sc->sc_mtx) ? 
-	    &sc->sc_mtx : NULL, USB_MS_TO_TICKS(ms));
+	usb_pause_mtx(mtx_owned(&sc->sc_mtx) ? &sc->sc_mtx : NULL,
+	    USB_MS_TO_TICKS(ms));
 }
 
 static void
@@ -6420,17 +6445,14 @@ run_ampdu_enable(struct ieee80211_node *ni, struct ieee80211_tx_ampdu *tap)
 
 static device_method_t run_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		run_match),
-	DEVMETHOD(device_attach,	run_attach),
-	DEVMETHOD(device_detach,	run_detach),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, run_match),
+	DEVMETHOD(device_attach, run_attach),
+	DEVMETHOD(device_detach, run_detach), DEVMETHOD_END
 };
 
-static driver_t run_driver = {
-	.name = "run",
+static driver_t run_driver = { .name = "run",
 	.methods = run_methods,
-	.size = sizeof(struct run_softc)
-};
+	.size = sizeof(struct run_softc) };
 
 DRIVER_MODULE(run, uhub, run_driver, run_driver_loaded, NULL);
 MODULE_DEPEND(run, wlan, 1, 1, 1);

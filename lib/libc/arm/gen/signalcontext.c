@@ -34,11 +34,11 @@
 #include <machine/sigframe.h>
 
 #include <errno.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <strings.h>
-#include <signal.h>
+#include <unistd.h>
 
 __weak_reference(__signalcontext, signalcontext);
 
@@ -54,7 +54,7 @@ __signalcontext(ucontext_t *ucp, int sig, __sighandler_t *func)
 	sp = (unsigned int *)gr[_REG_SP];
 
 	sfp = (struct sigframe *)sp - 1;
-	
+
 	bzero(sfp, sizeof(*sfp));
 	bcopy(ucp, &sfp->sf_uc, sizeof(*ucp));
 	sfp->sf_si.si_signo = sig;

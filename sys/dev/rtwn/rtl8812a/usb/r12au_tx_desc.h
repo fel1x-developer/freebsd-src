@@ -31,24 +31,24 @@
 
 /* Tx MAC descriptor (USB). */
 struct r12au_tx_desc {
-	uint16_t	pktlen;
-	uint8_t		offset;
-	uint8_t		flags0;
+	uint16_t pktlen;
+	uint8_t offset;
+	uint8_t flags0;
 
-	uint32_t	txdw1;
-	uint32_t	txdw2;
-	uint32_t	txdw3;
-	uint32_t	txdw4;
-	uint32_t	txdw5;
-	uint32_t	txdw6;
+	uint32_t txdw1;
+	uint32_t txdw2;
+	uint32_t txdw3;
+	uint32_t txdw4;
+	uint32_t txdw5;
+	uint32_t txdw6;
 
-	uint16_t	txdsum;
-	uint16_t	flags7;
-#define R12AU_FLAGS7_AGGNUM_M	0xff00
-#define R12AU_FLAGS7_AGGNUM_S	8
+	uint16_t txdsum;
+	uint16_t flags7;
+#define R12AU_FLAGS7_AGGNUM_M 0xff00
+#define R12AU_FLAGS7_AGGNUM_S 8
 
-	uint32_t	txdw8;
-	uint32_t	txdw9;
+	uint32_t txdw8;
+	uint32_t txdw9;
 } __packed __attribute__((aligned(4)));
 
-#endif	/* R12AU_TX_DESC_H */
+#endif /* R12AU_TX_DESC_H */

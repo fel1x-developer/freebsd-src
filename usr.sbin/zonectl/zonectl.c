@@ -31,76 +31,60 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/ioctl.h>
-#include <sys/stdint.h>
 #include <sys/types.h>
-#include <sys/endian.h>
-#include <sys/sbuf.h>
-#include <sys/queue.h>
 #include <sys/disk.h>
 #include <sys/disk_zone.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <inttypes.h>
-#include <unistd.h>
-#include <string.h>
-#include <strings.h>
-#include <fcntl.h>
-#include <ctype.h>
-#include <limits.h>
-#include <err.h>
-#include <locale.h>
+#include <sys/endian.h>
+#include <sys/ioctl.h>
+#include <sys/queue.h>
+#include <sys/sbuf.h>
+#include <sys/stdint.h>
 
 #include <cam/cam.h>
-#include <cam/cam_debug.h>
 #include <cam/cam_ccb.h>
+#include <cam/cam_debug.h>
 #include <cam/scsi/scsi_all.h>
+#include <ctype.h>
+#include <err.h>
+#include <fcntl.h>
+#include <inttypes.h>
+#include <limits.h>
+#include <locale.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+#include <unistd.h>
 
-static struct scsi_nv zone_cmd_map[] = {
-	{ "rz", DISK_ZONE_REPORT_ZONES },
-	{ "reportzones", DISK_ZONE_REPORT_ZONES },
-	{ "close", DISK_ZONE_CLOSE },
-	{ "finish", DISK_ZONE_FINISH },
-	{ "open", DISK_ZONE_OPEN },
-	{ "rwp", DISK_ZONE_RWP },
-	{ "params", DISK_ZONE_GET_PARAMS }
-};
+static struct scsi_nv zone_cmd_map[] = { { "rz", DISK_ZONE_REPORT_ZONES },
+	{ "reportzones", DISK_ZONE_REPORT_ZONES }, { "close", DISK_ZONE_CLOSE },
+	{ "finish", DISK_ZONE_FINISH }, { "open", DISK_ZONE_OPEN },
+	{ "rwp", DISK_ZONE_RWP }, { "params", DISK_ZONE_GET_PARAMS } };
 
-static struct scsi_nv zone_rep_opts[] = {
-	{ "all", DISK_ZONE_REP_ALL },
+static struct scsi_nv zone_rep_opts[] = { { "all", DISK_ZONE_REP_ALL },
 	{ "empty", DISK_ZONE_REP_EMPTY },
 	{ "imp_open", DISK_ZONE_REP_IMP_OPEN },
 	{ "exp_open", DISK_ZONE_REP_EXP_OPEN },
-	{ "closed", DISK_ZONE_REP_CLOSED },
-	{ "full", DISK_ZONE_REP_FULL },
+	{ "closed", DISK_ZONE_REP_CLOSED }, { "full", DISK_ZONE_REP_FULL },
 	{ "readonly", DISK_ZONE_REP_READONLY },
-	{ "ro", DISK_ZONE_REP_READONLY },
-	{ "offline", DISK_ZONE_REP_OFFLINE },
-	{ "reset", DISK_ZONE_REP_RWP },
-	{ "rwp", DISK_ZONE_REP_RWP },
+	{ "ro", DISK_ZONE_REP_READONLY }, { "offline", DISK_ZONE_REP_OFFLINE },
+	{ "reset", DISK_ZONE_REP_RWP }, { "rwp", DISK_ZONE_REP_RWP },
 	{ "nonseq", DISK_ZONE_REP_NON_SEQ },
-	{ "nonwp", DISK_ZONE_REP_NON_WP }
-};
-
+	{ "nonwp", DISK_ZONE_REP_NON_WP } };
 
 typedef enum {
-	ZONE_OF_NORMAL	= 0x00,
-	ZONE_OF_SUMMARY	= 0x01,
-	ZONE_OF_SCRIPT	= 0x02
+	ZONE_OF_NORMAL = 0x00,
+	ZONE_OF_SUMMARY = 0x01,
+	ZONE_OF_SCRIPT = 0x02
 } zone_output_flags;
 
-static struct scsi_nv zone_print_opts[] = {
-	{ "normal", ZONE_OF_NORMAL },
-	{ "summary", ZONE_OF_SUMMARY },
-	{ "script", ZONE_OF_SCRIPT }
-};
+static struct scsi_nv zone_print_opts[] = { { "normal", ZONE_OF_NORMAL },
+	{ "summary", ZONE_OF_SUMMARY }, { "script", ZONE_OF_SCRIPT } };
 
 static struct scsi_nv zone_cmd_desc_table[] = {
-	{"Report Zones", DISK_ZONE_RZ_SUP },
-	{"Open", DISK_ZONE_OPEN_SUP },
-	{"Close", DISK_ZONE_CLOSE_SUP },
-	{"Finish", DISK_ZONE_FINISH_SUP },
-	{"Reset Write Pointer", DISK_ZONE_RWP_SUP }
+	{ "Report Zones", DISK_ZONE_RZ_SUP }, { "Open", DISK_ZONE_OPEN_SUP },
+	{ "Close", DISK_ZONE_CLOSE_SUP }, { "Finish", DISK_ZONE_FINISH_SUP },
+	{ "Reset Write Pointer", DISK_ZONE_RWP_SUP }
 };
 
 typedef enum {
@@ -120,18 +104,16 @@ typedef enum {
 	ZONE_NUM_FIELDS
 } zone_field_widths;
 
-
 static void usage(int error);
 static void zonectl_print_params(struct disk_zone_disk_params *params);
 zone_print_status zonectl_print_rz(struct disk_zone_report *report,
-				   zone_output_flags out_flags, int first_pass);
+    zone_output_flags out_flags, int first_pass);
 
 static void
 usage(int error)
 {
 	fprintf(error ? stderr : stdout,
-"usage: zonectl <-d dev> <-c cmd> [-a][-o rep_opts] [-l lba][-P print_opts]\n"
-	);
+	    "usage: zonectl <-d dev> <-c cmd> [-a][-o rep_opts] [-l lba][-P print_opts]\n");
 }
 
 static void
@@ -162,8 +144,9 @@ zonectl_print_params(struct disk_zone_disk_params *params)
 
 	first = 1;
 	printf("Command support: ");
-	for (i = 0; i < sizeof(zone_cmd_desc_table) /
-	     sizeof(zone_cmd_desc_table[0]); i++) {
+	for (i = 0;
+	     i < sizeof(zone_cmd_desc_table) / sizeof(zone_cmd_desc_table[0]);
+	     i++) {
 		if (params->flags & zone_cmd_desc_table[i].value) {
 			if (first == 0)
 				printf(", ");
@@ -177,8 +160,8 @@ zonectl_print_params(struct disk_zone_disk_params *params)
 	printf("\n");
 
 	printf("Unrestricted Read in Sequential Write Required Zone "
-	    "(URSWRZ): %s\n", (params->flags & DISK_ZONE_DISK_URSWRZ) ?
-	    "Yes" : "No");
+	       "(URSWRZ): %s\n",
+	    (params->flags & DISK_ZONE_DISK_URSWRZ) ? "Yes" : "No");
 
 	printf("Optimal Number of Open Sequential Write Preferred Zones: ");
 	if (params->flags & DISK_ZONE_OPT_SEQ_SET)
@@ -190,14 +173,13 @@ zonectl_print_params(struct disk_zone_disk_params *params)
 		printf("Not Set");
 	printf("\n");
 
-
 	printf("Optimal Number of Non-Sequentially Written Sequential Write "
-	   "Preferred Zones: ");
+	       "Preferred Zones: ");
 	if (params->flags & DISK_ZONE_OPT_NONSEQ_SET)
 		if (params->optimal_nonseq_zones == SVPD_ZBDC_OPT_NONSEQ_NR)
 			printf("Not Reported");
 		else
-			printf("%ju",(uintmax_t)params->optimal_nonseq_zones);
+			printf("%ju", (uintmax_t)params->optimal_nonseq_zones);
 	else
 		printf("Not Set");
 	printf("\n");
@@ -215,7 +197,7 @@ zonectl_print_params(struct disk_zone_disk_params *params)
 
 zone_print_status
 zonectl_print_rz(struct disk_zone_report *report, zone_output_flags out_flags,
-		 int first_pass)
+    int first_pass)
 {
 	zone_print_status status = ZONE_PRINT_OK;
 	struct disk_zone_rep_header *header = &report->header;
@@ -242,11 +224,9 @@ zonectl_print_rz(struct disk_zone_report *report, zone_output_flags out_flags,
 	else
 		word_sep = ' ';
 
-	if ((out_flags != ZONE_OF_SCRIPT)
-	 && (first_pass != 0)) {
+	if ((out_flags != ZONE_OF_SCRIPT) && (first_pass != 0)) {
 		printf("%u zones, Maximum LBA %#jx (%ju)\n",
-		    report->entries_available,
-		    (uintmax_t)header->maximum_lba,
+		    report->entries_available, (uintmax_t)header->maximum_lba,
 		    (uintmax_t)header->maximum_lba);
 
 		switch (header->same) {
@@ -258,13 +238,13 @@ zonectl_print_rz(struct disk_zone_report *report, zone_output_flags out_flags,
 			break;
 		case DISK_ZONE_SAME_LAST_DIFFERENT:
 			printf("Zone types are the same, last zone length "
-			    "differs\n");
+			       "differs\n");
 			break;
 		case DISK_ZONE_SAME_TYPES_DIFFERENT:
 			printf("Zone lengths are the same, types vary\n");
 			break;
 		default:
-			printf("Unknown SAME field value %#x\n",header->same);
+			printf("Unknown SAME field value %#x\n", header->same);
 			break;
 		}
 	}
@@ -273,8 +253,7 @@ zonectl_print_rz(struct disk_zone_report *report, zone_output_flags out_flags,
 		goto bailout;
 	}
 
-	if ((out_flags == ZONE_OF_NORMAL)
-	 && (first_pass != 0)) {
+	if ((out_flags == ZONE_OF_NORMAL) && (first_pass != 0)) {
 		printf("%*s  %*s  %*s  %*s  %*s  %*s  %*s\n",
 		    field_widths[ZONE_FW_START], "Start LBA",
 		    field_widths[ZONE_FW_LEN], "Length",
@@ -289,8 +268,7 @@ zonectl_print_rz(struct disk_zone_report *report, zone_output_flags out_flags,
 		entry = &report->entries[i];
 
 		printf("%#*jx, %*ju, %#*jx, ", field_widths[ZONE_FW_START],
-		    (uintmax_t)entry->zone_start_lba,
-		    field_widths[ZONE_FW_LEN],
+		    (uintmax_t)entry->zone_start_lba, field_widths[ZONE_FW_LEN],
 		    (uintmax_t)entry->zone_length, field_widths[ZONE_FW_WP],
 		    (uintmax_t)entry->write_pointer_lba);
 
@@ -300,10 +278,10 @@ zonectl_print_rz(struct disk_zone_report *report, zone_output_flags out_flags,
 			break;
 		case DISK_ZONE_TYPE_SEQ_PREFERRED:
 		case DISK_ZONE_TYPE_SEQ_REQUIRED:
-			snprintf(tmpstr, sizeof(tmpstr), "Seq%c%s",
-			    word_sep, (entry->zone_type ==
-			    DISK_ZONE_TYPE_SEQ_PREFERRED) ? "Preferred" :
-			    "Required");
+			snprintf(tmpstr, sizeof(tmpstr), "Seq%c%s", word_sep,
+			    (entry->zone_type == DISK_ZONE_TYPE_SEQ_PREFERRED) ?
+				"Preferred" :
+				"Required");
 			break;
 		default:
 			snprintf(tmpstr, sizeof(tmpstr), "Zone%ctype%c%#x",
@@ -408,8 +386,9 @@ main(int argc, char **argv)
 			else {
 				warnx("%s: %s: %s option %s", __func__,
 				    (status == SCSI_NV_AMBIGUOUS) ?
-				    "ambiguous" : "invalid", "zone command",
-				    optarg);
+					"ambiguous" :
+					"invalid",
+				    "zone command", optarg);
 				error = 1;
 				goto bailout;
 			}
@@ -418,7 +397,8 @@ main(int argc, char **argv)
 		case 'd':
 			filename = strdup(optarg);
 			if (filename == NULL)
-				err(1, "Unable to allocate memory for "
+				err(1,
+				    "Unable to allocate memory for "
 				    "filename");
 			break;
 		case 'l': {
@@ -438,16 +418,16 @@ main(int argc, char **argv)
 			int entry_num;
 
 			status = scsi_get_nv(zone_rep_opts,
-			    (sizeof(zone_rep_opts) /
-			    sizeof(zone_rep_opts[0])),
+			    (sizeof(zone_rep_opts) / sizeof(zone_rep_opts[0])),
 			    optarg, &entry_num, SCSI_NV_FLAG_IG_CASE);
 			if (status == SCSI_NV_FOUND)
 				rep_option = zone_rep_opts[entry_num].value;
 			else {
 				warnx("%s: %s: %s option %s", __func__,
 				    (status == SCSI_NV_AMBIGUOUS) ?
-				    "ambiguous" : "invalid", "report zones",
-				    optarg);
+					"ambiguous" :
+					"invalid",
+				    "report zones", optarg);
 				error = 1;
 				goto bailout;
 			}
@@ -459,15 +439,16 @@ main(int argc, char **argv)
 
 			status = scsi_get_nv(zone_print_opts,
 			    (sizeof(zone_print_opts) /
-			    sizeof(zone_print_opts[0])), optarg, &entry_num,
-			    SCSI_NV_FLAG_IG_CASE);
+				sizeof(zone_print_opts[0])),
+			    optarg, &entry_num, SCSI_NV_FLAG_IG_CASE);
 			if (status == SCSI_NV_FOUND)
 				out_flags = zone_print_opts[entry_num].value;
 			else {
 				warnx("%s: %s: %s option %s", __func__,
 				    (status == SCSI_NV_AMBIGUOUS) ?
-				    "ambiguous" : "invalid", "print",
-				    optarg);
+					"ambiguous" :
+					"invalid",
+				    "print", optarg);
 				error = 1;
 				goto bailout;
 			}
@@ -516,8 +497,7 @@ main(int argc, char **argv)
 		    sizeof(struct disk_zone_rep_entry);
 		entries = malloc(entry_alloc_size);
 		if (entries == NULL) {
-			warn("Could not allocate %zu bytes",
-			    entry_alloc_size);
+			warn("Could not allocate %zu bytes", entry_alloc_size);
 			error = 1;
 			goto bailout;
 		}
@@ -582,5 +562,5 @@ bailout:
 
 	if (fd != -1)
 		close(fd);
-	exit (error);
+	exit(error);
 }

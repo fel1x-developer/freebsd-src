@@ -26,25 +26,18 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
+#include <sys/module.h>
+#include <sys/rman.h>
 #include <sys/socket.h>
-#include <sys/sysctl.h>
 #include <sys/sockio.h>
+#include <sys/sysctl.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-
-#include <net/ethernet.h>
-#include <net/if.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
-#include <net/if_arp.h>
 
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
@@ -52,24 +45,30 @@
 #include <dev/ofw/ofw_bus_subr.h>
 #include <dev/ofw/openfirm.h>
 
-#include "miibus_if.h"
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
 
-#include <contrib/ncsw/inc/integrations/dpaa_integration_ext.h>
 #include <contrib/ncsw/inc/Peripherals/fm_mac_ext.h>
 #include <contrib/ncsw/inc/Peripherals/fm_port_ext.h>
 #include <contrib/ncsw/inc/flib/fsl_fman_dtsec.h>
+#include <contrib/ncsw/inc/integrations/dpaa_integration_ext.h>
 #include <contrib/ncsw/inc/xx_ext.h>
 
 #include "fman.h"
 #include "if_dtsec.h"
 #include "if_dtsec_im.h"
 #include "if_dtsec_rm.h"
+#include "miibus_if.h"
 
-#define	DTSEC_MIN_FRAME_SIZE	64
-#define	DTSEC_MAX_FRAME_SIZE	9600
+#define DTSEC_MIN_FRAME_SIZE 64
+#define DTSEC_MAX_FRAME_SIZE 9600
 
-#define	DTSEC_REG_MAXFRM	0x110
-#define	DTSEC_REG_GADDR(i)	(0x0a0 + 4*(i))
+#define DTSEC_REG_MAXFRM 0x110
+#define DTSEC_REG_GADDR(i) (0x0a0 + 4 * (i))
 
 /**
  * @group dTSEC private defines.
@@ -84,12 +83,11 @@ struct dtsec_fm_mac_ex_str {
 };
 /** @} */
 
-
 /**
  * @group FMan MAC routines.
  * @{
  */
-#define	DTSEC_MAC_EXCEPTIONS_END	(-1)
+#define DTSEC_MAC_EXCEPTIONS_END (-1)
 
 /**
  * FMan MAC exceptions.
@@ -114,7 +112,8 @@ static const struct dtsec_fm_mac_ex_str dtsec_fm_mac_exceptions[] = {
 	{ e_FM_MAC_EX_10G_RX_ALIGN_ER, "Receive alignment error" },
 	{ e_FM_MAC_EX_1G_BAB_RX, "Babbling receive error" },
 	{ e_FM_MAC_EX_1G_RX_CTL, "Receive control (pause frame) interrupt" },
-	{ e_FM_MAC_EX_1G_GRATEFUL_TX_STP_COMPLET, "Graceful transmit stop "
+	{ e_FM_MAC_EX_1G_GRATEFUL_TX_STP_COMPLET,
+	    "Graceful transmit stop "
 	    "complete" },
 	{ e_FM_MAC_EX_1G_BAB_TX, "Babbling transmit error" },
 	{ e_FM_MAC_EX_1G_TX_CTL, "Transmit control (pause frame) interrupt" },
@@ -122,11 +121,14 @@ static const struct dtsec_fm_mac_ex_str dtsec_fm_mac_exceptions[] = {
 	{ e_FM_MAC_EX_1G_LATE_COL, "Late collision" },
 	{ e_FM_MAC_EX_1G_COL_RET_LMT, "Collision retry limit" },
 	{ e_FM_MAC_EX_1G_TX_FIFO_UNDRN, "Transmit FIFO underrun" },
-	{ e_FM_MAC_EX_1G_MAG_PCKT, "Magic Packet detected when dTSEC is in "
+	{ e_FM_MAC_EX_1G_MAG_PCKT,
+	    "Magic Packet detected when dTSEC is in "
 	    "Magic Packet detection mode" },
 	{ e_FM_MAC_EX_1G_MII_MNG_RD_COMPLET, "MII management read completion" },
-	{ e_FM_MAC_EX_1G_MII_MNG_WR_COMPLET, "MII management write completion" },
-	{ e_FM_MAC_EX_1G_GRATEFUL_RX_STP_COMPLET, "Graceful receive stop "
+	{ e_FM_MAC_EX_1G_MII_MNG_WR_COMPLET,
+	    "MII management write completion" },
+	{ e_FM_MAC_EX_1G_GRATEFUL_RX_STP_COMPLET,
+	    "Graceful receive stop "
 	    "complete" },
 	{ e_FM_MAC_EX_1G_TX_DATA_ERR, "Internal data error on transmit" },
 	{ e_FM_MAC_EX_1G_RX_DATA_ERR, "Internal data error on receive" },
@@ -141,7 +143,8 @@ dtsec_fm_mac_ex_to_str(e_FmMacExceptions exception)
 	int i;
 
 	for (i = 0; dtsec_fm_mac_exceptions[i].num != exception &&
-	    dtsec_fm_mac_exceptions[i].num != DTSEC_MAC_EXCEPTIONS_END; ++i)
+	     dtsec_fm_mac_exceptions[i].num != DTSEC_MAC_EXCEPTIONS_END;
+	     ++i)
 		;
 
 	if (dtsec_fm_mac_exceptions[i].num == DTSEC_MAC_EXCEPTIONS_END)
@@ -151,8 +154,7 @@ dtsec_fm_mac_ex_to_str(e_FmMacExceptions exception)
 }
 
 static void
-dtsec_fm_mac_mdio_event_callback(t_Handle h_App,
-    e_FmMacExceptions exception)
+dtsec_fm_mac_mdio_event_callback(t_Handle h_App, e_FmMacExceptions exception)
 {
 	struct dtsec_softc *sc;
 
@@ -202,14 +204,15 @@ dtsec_fm_mac_init(struct dtsec_softc *sc, uint8_t *mac)
 
 	sc->sc_mach = FM_MAC_Config(&params);
 	if (sc->sc_mach == NULL) {
-		device_printf(sc->sc_dev, "couldn't configure FM_MAC module.\n"
-		    );
+		device_printf(sc->sc_dev,
+		    "couldn't configure FM_MAC module.\n");
 		return (ENXIO);
 	}
 
 	error = FM_MAC_ConfigResetOnInit(sc->sc_mach, TRUE);
 	if (error != E_OK) {
-		device_printf(sc->sc_dev, "couldn't enable reset on init "
+		device_printf(sc->sc_dev,
+		    "couldn't enable reset on init "
 		    "feature.\n");
 		dtsec_fm_mac_free(sc);
 		return (ENXIO);
@@ -219,15 +222,17 @@ dtsec_fm_mac_init(struct dtsec_softc *sc, uint8_t *mac)
 	error = FM_MAC_ConfigException(sc->sc_mach, e_FM_MAC_EX_1G_RX_CTL,
 	    FALSE);
 	if (error != E_OK) {
-		device_printf(sc->sc_dev, "couldn't disable pause frames "
-			"exception.\n");
+		device_printf(sc->sc_dev,
+		    "couldn't disable pause frames "
+		    "exception.\n");
 		dtsec_fm_mac_free(sc);
 		return (ENXIO);
 	}
 
 	error = FM_MAC_Init(sc->sc_mach);
 	if (error != E_OK) {
-		device_printf(sc->sc_dev, "couldn't initialize FM_MAC module."
+		device_printf(sc->sc_dev,
+		    "couldn't initialize FM_MAC module."
 		    "\n");
 		dtsec_fm_mac_free(sc);
 		return (ENXIO);
@@ -236,7 +241,6 @@ dtsec_fm_mac_init(struct dtsec_softc *sc, uint8_t *mac)
 	return (0);
 }
 /** @} */
-
 
 /**
  * @group FMan PORT routines.
@@ -255,8 +259,7 @@ dtsec_fm_port_ex_to_str(e_FmPortExceptions exception)
 }
 
 void
-dtsec_fm_port_rx_exception_callback(t_Handle app,
-    e_FmPortExceptions exception)
+dtsec_fm_port_rx_exception_callback(t_Handle app, e_FmPortExceptions exception)
 {
 	struct dtsec_softc *sc;
 
@@ -266,8 +269,7 @@ dtsec_fm_port_rx_exception_callback(t_Handle app,
 }
 
 void
-dtsec_fm_port_tx_exception_callback(t_Handle app,
-    e_FmPortExceptions exception)
+dtsec_fm_port_tx_exception_callback(t_Handle app, e_FmPortExceptions exception)
 {
 	struct dtsec_softc *sc;
 
@@ -318,7 +320,6 @@ dtsec_fm_port_free_both(struct dtsec_softc *sc)
 }
 /** @} */
 
-
 /**
  * @group IFnet routines.
  * @{
@@ -361,8 +362,8 @@ dtsec_setup_multicast(struct dtsec_softc *sc)
 		return;
 	}
 
-	fman_dtsec_reset_filter_table(rman_get_virtual(sc->sc_mem),
-	    true, false);
+	fman_dtsec_reset_filter_table(rman_get_virtual(sc->sc_mem), true,
+	    false);
 	if_foreach_llmaddr(sc->sc_ifnet, dtsec_hash_maddr, sc);
 }
 
@@ -558,7 +559,6 @@ dtsec_if_watchdog(if_t ifp)
 }
 /** @} */
 
-
 /**
  * @group IFmedia routines.
  * @{
@@ -590,7 +590,6 @@ dtsec_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr)
 	DTSEC_UNLOCK(sc);
 }
 /** @} */
-
 
 /**
  * @group dTSEC bus interface.
@@ -640,11 +639,11 @@ dtsec_attach(device_t dev)
 		return (ENXIO);
 
 	/* Init locks */
-	mtx_init(&sc->sc_lock, device_get_nameunit(dev),
-	    "DTSEC Global Lock", MTX_DEF);
+	mtx_init(&sc->sc_lock, device_get_nameunit(dev), "DTSEC Global Lock",
+	    MTX_DEF);
 
-	mtx_init(&sc->sc_mii_lock, device_get_nameunit(dev),
-	    "DTSEC MII Lock", MTX_DEF);
+	mtx_init(&sc->sc_mii_lock, device_get_nameunit(dev), "DTSEC MII Lock",
+	    MTX_DEF);
 
 	/* Init callouts */
 	callout_init(&sc->sc_tick_callout, CALLOUT_MPSAFE);
@@ -728,7 +727,7 @@ dtsec_attach(device_t dev)
 	else
 		if_initname(ifp, "dtsec_phy", device_get_unit(sc->sc_dev));
 
-	/* TODO */
+		/* TODO */
 #if 0
 	if_setsendqlen(ifp, TSEC_TX_NUM_DESC - 1);
 	if_setsendqready(ifp);
@@ -739,8 +738,8 @@ dtsec_attach(device_t dev)
 
 	/* Attach PHY(s) */
 	error = mii_attach(sc->sc_dev, &sc->sc_mii_dev, ifp, dtsec_ifmedia_upd,
-	    dtsec_ifmedia_sts, BMSR_DEFCAPMASK, sc->sc_phy_addr,
-	    MII_OFFSET_ANY, 0);
+	    dtsec_ifmedia_sts, BMSR_DEFCAPMASK, sc->sc_phy_addr, MII_OFFSET_ANY,
+	    0);
 	if (error) {
 		device_printf(sc->sc_dev, "attaching PHYs failed: %d\n", error);
 		dtsec_detach(sc->sc_dev);
@@ -819,7 +818,6 @@ dtsec_shutdown(device_t dev)
 }
 /** @} */
 
-
 /**
  * @group MII bus interface.
  * @{
@@ -865,11 +863,11 @@ dtsec_miibus_statchg(device_t dev)
 		speed = e_ENET_SPEED_1000;
 		break;
 
-        case IFM_100_TX:
+	case IFM_100_TX:
 		speed = e_ENET_SPEED_100;
 		break;
 
-        case IFM_10_T:
+	case IFM_10_T:
 		speed = e_ENET_SPEED_10;
 		break;
 

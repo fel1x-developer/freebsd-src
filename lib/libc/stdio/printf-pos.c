@@ -37,7 +37,6 @@
  * (%m$ and %m$.n$) for vfprintf() and vfwprintf().
  */
 
-#include "namespace.h"
 #include <sys/types.h>
 
 #include <limits.h>
@@ -49,37 +48,59 @@
 #include <string.h>
 #include <wchar.h>
 
-#include "un-namespace.h"
+#include "namespace.h"
 #include "printflocal.h"
+#include "un-namespace.h"
 
-#ifdef	NL_ARGMAX
-#define	MAX_POSARG	NL_ARGMAX
+#ifdef NL_ARGMAX
+#define MAX_POSARG NL_ARGMAX
 #else
-#define	MAX_POSARG	65536
+#define MAX_POSARG 65536
 #endif
 
 /*
  * Type ids for argument type table.
  */
 enum typeid {
-	T_UNUSED, TP_SHORT, T_INT, T_U_INT, TP_INT,
-	T_LONG, T_U_LONG, TP_LONG, T_LLONG, T_U_LLONG, TP_LLONG,
-	T_PTRDIFFT, TP_PTRDIFFT, T_SSIZET, T_SIZET, TP_SSIZET,
-	T_INTMAXT, T_UINTMAXT, TP_INTMAXT, TP_VOID, TP_CHAR, TP_SCHAR,
-	T_DOUBLE, T_LONG_DOUBLE, T_WINT, TP_WCHAR
+	T_UNUSED,
+	TP_SHORT,
+	T_INT,
+	T_U_INT,
+	TP_INT,
+	T_LONG,
+	T_U_LONG,
+	TP_LONG,
+	T_LLONG,
+	T_U_LLONG,
+	TP_LLONG,
+	T_PTRDIFFT,
+	TP_PTRDIFFT,
+	T_SSIZET,
+	T_SIZET,
+	TP_SSIZET,
+	T_INTMAXT,
+	T_UINTMAXT,
+	TP_INTMAXT,
+	TP_VOID,
+	TP_CHAR,
+	TP_SCHAR,
+	T_DOUBLE,
+	T_LONG_DOUBLE,
+	T_WINT,
+	TP_WCHAR
 };
 
 /* An expandable array of types. */
 struct typetable {
 	enum typeid *table; /* table of types */
 	enum typeid stattable[STATIC_ARG_TBL_SIZE];
-	u_int tablesize;	/* current size of type table */
-	u_int tablemax;		/* largest used index in table */
-	u_int nextarg;		/* 1-based argument index */
+	u_int tablesize; /* current size of type table */
+	u_int tablemax;	 /* largest used index in table */
+	u_int nextarg;	 /* 1-based argument index */
 };
 
-static int	__grow_type_table(struct typetable *);
-static void	build_arg_table (struct typetable *, va_list, union arg **);
+static int __grow_type_table(struct typetable *);
+static void build_arg_table(struct typetable *, va_list, union arg **);
 
 /*
  * Initialize a struct typetable.
@@ -91,7 +112,7 @@ inittypes(struct typetable *types)
 
 	types->table = types->stattable;
 	types->tablesize = STATIC_ARG_TBL_SIZE;
-	types->tablemax = 0; 
+	types->tablemax = 0;
 	types->nextarg = 1;
 	for (n = 0; n < STATIC_ARG_TBL_SIZE; n++)
 		types->table[n] = T_UNUSED;
@@ -99,13 +120,13 @@ inittypes(struct typetable *types)
 
 /*
  * struct typetable destructor.
- */ 
+ */
 static inline void
 freetypes(struct typetable *types)
 {
 
 	if (types->table != types->stattable)
-		free (types->table);
+		free(types->table);
 }
 
 /*
@@ -242,16 +263,16 @@ addwaster(struct typetable *types, wchar_t **fmtp)
  * initial argument table should be an array of STATIC_ARG_TBL_SIZE entries.
  * It will be replaces with a malloc-ed one if it overflows.
  * Returns 0 on success. On failure, returns nonzero and sets errno.
- */ 
+ */
 int
-__find_arguments (const char *fmt0, va_list ap, union arg **argtable)
+__find_arguments(const char *fmt0, va_list ap, union arg **argtable)
 {
-	char *fmt;		/* format string */
-	int ch;			/* character from fmt */
-	u_int n;		/* handy integer (short term usage) */
+	char *fmt; /* format string */
+	int ch;	   /* character from fmt */
+	u_int n;   /* handy integer (short term usage) */
 	int error;
 	int flags;		/* flags as above */
-	struct typetable types;	/* table of types */
+	struct typetable types; /* table of types */
 
 	fmt = (char *)fmt0;
 	inittypes(&types);
@@ -265,12 +286,14 @@ __find_arguments (const char *fmt0, va_list ap, union arg **argtable)
 			fmt++;
 		if (ch == '\0')
 			goto done;
-		fmt++;		/* skip over '%' */
+		fmt++; /* skip over '%' */
 
 		flags = 0;
 
-rflag:		ch = *fmt++;
-reswitch:	switch (ch) {
+	rflag:
+		ch = *fmt++;
+	reswitch:
+		switch (ch) {
 		case ' ':
 		case '#':
 			goto rflag;
@@ -294,8 +317,15 @@ reswitch:	switch (ch) {
 			goto reswitch;
 		case '0':
 			goto rflag;
-		case '1': case '2': case '3': case '4':
-		case '5': case '6': case '7': case '8': case '9':
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
 			n = 0;
 			do {
 				n = 10 * n + to_digit(ch);
@@ -334,7 +364,7 @@ reswitch:	switch (ch) {
 				flags |= LONGINT;
 			goto rflag;
 		case 'q':
-			flags |= LLONGINT;	/* not necessarily */
+			flags |= LLONGINT; /* not necessarily */
 			goto rflag;
 		case 't':
 			flags |= PTRDIFFT;
@@ -347,7 +377,7 @@ reswitch:	switch (ch) {
 			/*FALLTHROUGH*/
 		case 'c':
 			error = addtype(&types,
-					(flags & LONGINT) ? T_WINT : T_INT);
+			    (flags & LONGINT) ? T_WINT : T_INT);
 			if (error)
 				goto error;
 			break;
@@ -392,200 +422,7 @@ reswitch:	switch (ch) {
 				error = addtype(&types, TP_INT);
 			if (error)
 				goto error;
-			continue;	/* no output */
-		case 'O':
-			flags |= LONGINT;
-			/*FALLTHROUGH*/
-		case 'o':
-			if ((error = adduarg(&types, flags)))
-				goto error;
-			break;
-		case 'p':
-			if ((error = addtype(&types, TP_VOID)))
-				goto error;
-			break;
-		case 'S':
-			flags |= LONGINT;
-			/*FALLTHROUGH*/
-		case 's':
-			error = addtype(&types,
-					(flags & LONGINT) ? TP_WCHAR : TP_CHAR);
-			if (error)
-				goto error;
-			break;
-		case 'U':
-			flags |= LONGINT;
-			/*FALLTHROUGH*/
-		case 'u':
-		case 'X':
-		case 'x':
-			if ((error = adduarg(&types, flags)))
-				goto error;
-			break;
-		default:	/* "%?" prints ?, unless ? is NUL */
-			if (ch == '\0')
-				goto done;
-			break;
-		}
-	}
-done:
-	build_arg_table(&types, ap, argtable);
-error:
-	freetypes(&types);
-	return (error || *argtable == NULL);
-}
-
-/* wchar version of __find_arguments. */
-int
-__find_warguments (const wchar_t *fmt0, va_list ap, union arg **argtable)
-{
-	wchar_t *fmt;		/* format string */
-	wchar_t ch;		/* character from fmt */
-	u_int n;		/* handy integer (short term usage) */
-	int error;
-	int flags;		/* flags as above */
-	struct typetable types;	/* table of types */
-
-	fmt = (wchar_t *)fmt0;
-	inittypes(&types);
-	error = 0;
-
-	/*
-	 * Scan the format for conversions (`%' character).
-	 */
-	for (;;) {
-		while ((ch = *fmt) != '\0' && ch != '%')
-			fmt++;
-		if (ch == '\0')
-			goto done;
-		fmt++;		/* skip over '%' */
-
-		flags = 0;
-
-rflag:		ch = *fmt++;
-reswitch:	switch (ch) {
-		case ' ':
-		case '#':
-			goto rflag;
-		case '*':
-			if ((error = addwaster(&types, &fmt)))
-				goto error;
-			goto rflag;
-		case '-':
-		case '+':
-		case '\'':
-			goto rflag;
-		case '.':
-			if ((ch = *fmt++) == '*') {
-				if ((error = addwaster(&types, &fmt)))
-					goto error;
-				goto rflag;
-			}
-			while (is_digit(ch)) {
-				ch = *fmt++;
-			}
-			goto reswitch;
-		case '0':
-			goto rflag;
-		case '1': case '2': case '3': case '4':
-		case '5': case '6': case '7': case '8': case '9':
-			n = 0;
-			do {
-				n = 10 * n + to_digit(ch);
-				/* Detect overflow */
-				if (n > MAX_POSARG) {
-					error = -1;
-					goto error;
-				}
-				ch = *fmt++;
-			} while (is_digit(ch));
-			if (ch == '$') {
-				types.nextarg = n;
-				goto rflag;
-			}
-			goto reswitch;
-#ifndef NO_FLOATING_POINT
-		case 'L':
-			flags |= LONGDBL;
-			goto rflag;
-#endif
-		case 'h':
-			if (flags & SHORTINT) {
-				flags &= ~SHORTINT;
-				flags |= CHARINT;
-			} else
-				flags |= SHORTINT;
-			goto rflag;
-		case 'j':
-			flags |= INTMAXT;
-			goto rflag;
-		case 'l':
-			if (flags & LONGINT) {
-				flags &= ~LONGINT;
-				flags |= LLONGINT;
-			} else
-				flags |= LONGINT;
-			goto rflag;
-		case 'q':
-			flags |= LLONGINT;	/* not necessarily */
-			goto rflag;
-		case 't':
-			flags |= PTRDIFFT;
-			goto rflag;
-		case 'z':
-			flags |= SIZET;
-			goto rflag;
-		case 'C':
-			flags |= LONGINT;
-			/*FALLTHROUGH*/
-		case 'c':
-			error = addtype(&types,
-					(flags & LONGINT) ? T_WINT : T_INT);
-			if (error)
-				goto error;
-			break;
-		case 'D':
-			flags |= LONGINT;
-			/*FALLTHROUGH*/
-		case 'd':
-		case 'i':
-			if ((error = addsarg(&types, flags)))
-				goto error;
-			break;
-#ifndef NO_FLOATING_POINT
-		case 'a':
-		case 'A':
-		case 'e':
-		case 'E':
-		case 'f':
-		case 'g':
-		case 'G':
-			error = addtype(&types,
-			    (flags & LONGDBL) ? T_LONG_DOUBLE : T_DOUBLE);
-			if (error)
-				goto error;
-			break;
-#endif /* !NO_FLOATING_POINT */
-		case 'n':
-			if (flags & INTMAXT)
-				error = addtype(&types, TP_INTMAXT);
-			else if (flags & PTRDIFFT)
-				error = addtype(&types, TP_PTRDIFFT);
-			else if (flags & SIZET)
-				error = addtype(&types, TP_SSIZET);
-			else if (flags & LLONGINT)
-				error = addtype(&types, TP_LLONG);
-			else if (flags & LONGINT)
-				error = addtype(&types, TP_LONG);
-			else if (flags & SHORTINT)
-				error = addtype(&types, TP_SHORT);
-			else if (flags & CHARINT)
-				error = addtype(&types, TP_SCHAR);
-			else
-				error = addtype(&types, TP_INT);
-			if (error)
-				goto error;
-			continue;	/* no output */
+			continue; /* no output */
 		case 'O':
 			flags |= LONGINT;
 			/*FALLTHROUGH*/
@@ -615,7 +452,209 @@ reswitch:	switch (ch) {
 			if ((error = adduarg(&types, flags)))
 				goto error;
 			break;
-		default:	/* "%?" prints ?, unless ? is NUL */
+		default: /* "%?" prints ?, unless ? is NUL */
+			if (ch == '\0')
+				goto done;
+			break;
+		}
+	}
+done:
+	build_arg_table(&types, ap, argtable);
+error:
+	freetypes(&types);
+	return (error || *argtable == NULL);
+}
+
+/* wchar version of __find_arguments. */
+int
+__find_warguments(const wchar_t *fmt0, va_list ap, union arg **argtable)
+{
+	wchar_t *fmt; /* format string */
+	wchar_t ch;   /* character from fmt */
+	u_int n;      /* handy integer (short term usage) */
+	int error;
+	int flags;		/* flags as above */
+	struct typetable types; /* table of types */
+
+	fmt = (wchar_t *)fmt0;
+	inittypes(&types);
+	error = 0;
+
+	/*
+	 * Scan the format for conversions (`%' character).
+	 */
+	for (;;) {
+		while ((ch = *fmt) != '\0' && ch != '%')
+			fmt++;
+		if (ch == '\0')
+			goto done;
+		fmt++; /* skip over '%' */
+
+		flags = 0;
+
+	rflag:
+		ch = *fmt++;
+	reswitch:
+		switch (ch) {
+		case ' ':
+		case '#':
+			goto rflag;
+		case '*':
+			if ((error = addwaster(&types, &fmt)))
+				goto error;
+			goto rflag;
+		case '-':
+		case '+':
+		case '\'':
+			goto rflag;
+		case '.':
+			if ((ch = *fmt++) == '*') {
+				if ((error = addwaster(&types, &fmt)))
+					goto error;
+				goto rflag;
+			}
+			while (is_digit(ch)) {
+				ch = *fmt++;
+			}
+			goto reswitch;
+		case '0':
+			goto rflag;
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
+			n = 0;
+			do {
+				n = 10 * n + to_digit(ch);
+				/* Detect overflow */
+				if (n > MAX_POSARG) {
+					error = -1;
+					goto error;
+				}
+				ch = *fmt++;
+			} while (is_digit(ch));
+			if (ch == '$') {
+				types.nextarg = n;
+				goto rflag;
+			}
+			goto reswitch;
+#ifndef NO_FLOATING_POINT
+		case 'L':
+			flags |= LONGDBL;
+			goto rflag;
+#endif
+		case 'h':
+			if (flags & SHORTINT) {
+				flags &= ~SHORTINT;
+				flags |= CHARINT;
+			} else
+				flags |= SHORTINT;
+			goto rflag;
+		case 'j':
+			flags |= INTMAXT;
+			goto rflag;
+		case 'l':
+			if (flags & LONGINT) {
+				flags &= ~LONGINT;
+				flags |= LLONGINT;
+			} else
+				flags |= LONGINT;
+			goto rflag;
+		case 'q':
+			flags |= LLONGINT; /* not necessarily */
+			goto rflag;
+		case 't':
+			flags |= PTRDIFFT;
+			goto rflag;
+		case 'z':
+			flags |= SIZET;
+			goto rflag;
+		case 'C':
+			flags |= LONGINT;
+			/*FALLTHROUGH*/
+		case 'c':
+			error = addtype(&types,
+			    (flags & LONGINT) ? T_WINT : T_INT);
+			if (error)
+				goto error;
+			break;
+		case 'D':
+			flags |= LONGINT;
+			/*FALLTHROUGH*/
+		case 'd':
+		case 'i':
+			if ((error = addsarg(&types, flags)))
+				goto error;
+			break;
+#ifndef NO_FLOATING_POINT
+		case 'a':
+		case 'A':
+		case 'e':
+		case 'E':
+		case 'f':
+		case 'g':
+		case 'G':
+			error = addtype(&types,
+			    (flags & LONGDBL) ? T_LONG_DOUBLE : T_DOUBLE);
+			if (error)
+				goto error;
+			break;
+#endif /* !NO_FLOATING_POINT */
+		case 'n':
+			if (flags & INTMAXT)
+				error = addtype(&types, TP_INTMAXT);
+			else if (flags & PTRDIFFT)
+				error = addtype(&types, TP_PTRDIFFT);
+			else if (flags & SIZET)
+				error = addtype(&types, TP_SSIZET);
+			else if (flags & LLONGINT)
+				error = addtype(&types, TP_LLONG);
+			else if (flags & LONGINT)
+				error = addtype(&types, TP_LONG);
+			else if (flags & SHORTINT)
+				error = addtype(&types, TP_SHORT);
+			else if (flags & CHARINT)
+				error = addtype(&types, TP_SCHAR);
+			else
+				error = addtype(&types, TP_INT);
+			if (error)
+				goto error;
+			continue; /* no output */
+		case 'O':
+			flags |= LONGINT;
+			/*FALLTHROUGH*/
+		case 'o':
+			if ((error = adduarg(&types, flags)))
+				goto error;
+			break;
+		case 'p':
+			if ((error = addtype(&types, TP_VOID)))
+				goto error;
+			break;
+		case 'S':
+			flags |= LONGINT;
+			/*FALLTHROUGH*/
+		case 's':
+			error = addtype(&types,
+			    (flags & LONGINT) ? TP_WCHAR : TP_CHAR);
+			if (error)
+				goto error;
+			break;
+		case 'U':
+			flags |= LONGINT;
+			/*FALLTHROUGH*/
+		case 'u':
+		case 'X':
+		case 'x':
+			if ((error = adduarg(&types, flags)))
+				goto error;
+			break;
+		default: /* "%?" prints ?, unless ? is NUL */
 			if (ch == '\0')
 				goto done;
 			break;
@@ -674,96 +713,97 @@ build_arg_table(struct typetable *types, va_list ap, union arg **argtable)
 	u_int n;
 
 	if (types->tablemax >= STATIC_ARG_TBL_SIZE) {
-		*argtable = (union arg *)
-		    malloc (sizeof (union arg) * (types->tablemax + 1));
+		*argtable = (union arg *)malloc(
+		    sizeof(union arg) * (types->tablemax + 1));
 		if (*argtable == NULL)
 			return;
 	}
 
-	(*argtable) [0].intarg = 0;
+	(*argtable)[0].intarg = 0;
 	for (n = 1; n <= types->tablemax; n++) {
 		switch (types->table[n]) {
-		    case T_UNUSED: /* whoops! */
-			(*argtable) [n].intarg = va_arg (ap, int);
+		case T_UNUSED: /* whoops! */
+			(*argtable)[n].intarg = va_arg(ap, int);
 			break;
-		    case TP_SCHAR:
-			(*argtable) [n].pschararg = va_arg (ap, signed char *);
+		case TP_SCHAR:
+			(*argtable)[n].pschararg = va_arg(ap, signed char *);
 			break;
-		    case TP_SHORT:
-			(*argtable) [n].pshortarg = va_arg (ap, short *);
+		case TP_SHORT:
+			(*argtable)[n].pshortarg = va_arg(ap, short *);
 			break;
-		    case T_INT:
-			(*argtable) [n].intarg = va_arg (ap, int);
+		case T_INT:
+			(*argtable)[n].intarg = va_arg(ap, int);
 			break;
-		    case T_U_INT:
-			(*argtable) [n].uintarg = va_arg (ap, unsigned int);
+		case T_U_INT:
+			(*argtable)[n].uintarg = va_arg(ap, unsigned int);
 			break;
-		    case TP_INT:
-			(*argtable) [n].pintarg = va_arg (ap, int *);
+		case TP_INT:
+			(*argtable)[n].pintarg = va_arg(ap, int *);
 			break;
-		    case T_LONG:
-			(*argtable) [n].longarg = va_arg (ap, long);
+		case T_LONG:
+			(*argtable)[n].longarg = va_arg(ap, long);
 			break;
-		    case T_U_LONG:
-			(*argtable) [n].ulongarg = va_arg (ap, unsigned long);
+		case T_U_LONG:
+			(*argtable)[n].ulongarg = va_arg(ap, unsigned long);
 			break;
-		    case TP_LONG:
-			(*argtable) [n].plongarg = va_arg (ap, long *);
+		case TP_LONG:
+			(*argtable)[n].plongarg = va_arg(ap, long *);
 			break;
-		    case T_LLONG:
-			(*argtable) [n].longlongarg = va_arg (ap, long long);
+		case T_LLONG:
+			(*argtable)[n].longlongarg = va_arg(ap, long long);
 			break;
-		    case T_U_LLONG:
-			(*argtable) [n].ulonglongarg = va_arg (ap, unsigned long long);
+		case T_U_LLONG:
+			(*argtable)[n].ulonglongarg = va_arg(ap,
+			    unsigned long long);
 			break;
-		    case TP_LLONG:
-			(*argtable) [n].plonglongarg = va_arg (ap, long long *);
+		case TP_LLONG:
+			(*argtable)[n].plonglongarg = va_arg(ap, long long *);
 			break;
-		    case T_PTRDIFFT:
-			(*argtable) [n].ptrdiffarg = va_arg (ap, ptrdiff_t);
+		case T_PTRDIFFT:
+			(*argtable)[n].ptrdiffarg = va_arg(ap, ptrdiff_t);
 			break;
-		    case TP_PTRDIFFT:
-			(*argtable) [n].pptrdiffarg = va_arg (ap, ptrdiff_t *);
+		case TP_PTRDIFFT:
+			(*argtable)[n].pptrdiffarg = va_arg(ap, ptrdiff_t *);
 			break;
-		    case T_SIZET:
-			(*argtable) [n].sizearg = va_arg (ap, size_t);
+		case T_SIZET:
+			(*argtable)[n].sizearg = va_arg(ap, size_t);
 			break;
-		    case T_SSIZET:
-			(*argtable) [n].sizearg = va_arg (ap, ssize_t);
+		case T_SSIZET:
+			(*argtable)[n].sizearg = va_arg(ap, ssize_t);
 			break;
-		    case TP_SSIZET:
-			(*argtable) [n].pssizearg = va_arg (ap, ssize_t *);
+		case TP_SSIZET:
+			(*argtable)[n].pssizearg = va_arg(ap, ssize_t *);
 			break;
-		    case T_INTMAXT:
-			(*argtable) [n].intmaxarg = va_arg (ap, intmax_t);
+		case T_INTMAXT:
+			(*argtable)[n].intmaxarg = va_arg(ap, intmax_t);
 			break;
-		    case T_UINTMAXT:
-			(*argtable) [n].uintmaxarg = va_arg (ap, uintmax_t);
+		case T_UINTMAXT:
+			(*argtable)[n].uintmaxarg = va_arg(ap, uintmax_t);
 			break;
-		    case TP_INTMAXT:
-			(*argtable) [n].pintmaxarg = va_arg (ap, intmax_t *);
+		case TP_INTMAXT:
+			(*argtable)[n].pintmaxarg = va_arg(ap, intmax_t *);
 			break;
-		    case T_DOUBLE:
+		case T_DOUBLE:
 #ifndef NO_FLOATING_POINT
-			(*argtable) [n].doublearg = va_arg (ap, double);
+			(*argtable)[n].doublearg = va_arg(ap, double);
 #endif
 			break;
-		    case T_LONG_DOUBLE:
+		case T_LONG_DOUBLE:
 #ifndef NO_FLOATING_POINT
-			(*argtable) [n].longdoublearg = va_arg (ap, long double);
+			(*argtable)[n].longdoublearg = va_arg(ap, long double);
 #endif
 			break;
-		    case TP_CHAR:
-			(*argtable) [n].pchararg = va_arg (ap, char *);
+		case TP_CHAR:
+			(*argtable)[n].pchararg = va_arg(ap, char *);
 			break;
-		    case TP_VOID:
-			(*argtable) [n].pvoidarg = va_arg (ap, void *);
+		case TP_VOID:
+			(*argtable)[n].pvoidarg = va_arg(ap, void *);
 			break;
-		    case T_WINT:
-			(*argtable) [n].wintarg = va_arg (ap, wint_t);
+		case T_WINT:
+			(*argtable)[n].wintarg = va_arg(ap, wint_t);
 			break;
-		    case TP_WCHAR:
-			(*argtable) [n].pwchararg = va_arg (ap, wchar_t *);
+		case TP_WCHAR:
+			(*argtable)[n].pwchararg = va_arg(ap, wchar_t *);
 			break;
 		}
 	}

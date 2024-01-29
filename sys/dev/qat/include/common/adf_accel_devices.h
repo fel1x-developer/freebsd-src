@@ -3,9 +3,9 @@
 #ifndef ADF_ACCEL_DEVICES_H_
 #define ADF_ACCEL_DEVICES_H_
 
-#include "qat_freebsd.h"
 #include "adf_cfg_common.h"
 #include "adf_pfvf_msg.h"
+#include "qat_freebsd.h"
 
 #define ADF_CFG_NUM_SERVICES 4
 
@@ -43,20 +43,20 @@ static inline bool
 IS_QAT_GEN4(const unsigned int id)
 {
 	return (id == ADF_4XXX_PCI_DEVICE_ID || id == ADF_401XX_PCI_DEVICE_ID ||
-		id == ADF_4XXXIOV_PCI_DEVICE_ID ||
-		id == ADF_401XXIOV_PCI_DEVICE_ID);
+	    id == ADF_4XXXIOV_PCI_DEVICE_ID ||
+	    id == ADF_401XXIOV_PCI_DEVICE_ID);
 }
 
 #define IS_QAT_GEN3_OR_GEN4(ID) (IS_QAT_GEN3(ID) || IS_QAT_GEN4(ID))
 #define ADF_VF2PF_SET_SIZE 32
 #define ADF_MAX_VF2PF_SET 4
-#define ADF_VF2PF_SET_OFFSET(set_nr) ((set_nr)*ADF_VF2PF_SET_SIZE)
+#define ADF_VF2PF_SET_OFFSET(set_nr) ((set_nr) * ADF_VF2PF_SET_SIZE)
 #define ADF_VF2PF_VFNR_TO_SET(vf_nr) ((vf_nr) / ADF_VF2PF_SET_SIZE)
-#define ADF_VF2PF_VFNR_TO_MASK(vf_nr)                                          \
-	({                                                                     \
-		u32 vf_nr_ = (vf_nr);                                          \
-		BIT((vf_nr_)-ADF_VF2PF_SET_SIZE *ADF_VF2PF_VFNR_TO_SET(        \
-		    vf_nr_));                                                  \
+#define ADF_VF2PF_VFNR_TO_MASK(vf_nr)                                   \
+	({                                                              \
+		u32 vf_nr_ = (vf_nr);                                   \
+		BIT((vf_nr_)-ADF_VF2PF_SET_SIZE *ADF_VF2PF_VFNR_TO_SET( \
+		    vf_nr_));                                           \
 	})
 
 #define ADF_DEVICE_FUSECTL_OFFSET 0x40
@@ -86,15 +86,15 @@ IS_QAT_GEN4(const unsigned int id)
 #define ADF_SRV_TYPE_BIT_LEN 3
 #define ADF_SRV_TYPE_MASK 0x7
 
-#define GET_SRV_TYPE(ena_srv_mask, srv)                                        \
+#define GET_SRV_TYPE(ena_srv_mask, srv) \
 	(((ena_srv_mask) >> (ADF_SRV_TYPE_BIT_LEN * (srv))) & ADF_SRV_TYPE_MASK)
 
 #define GET_CSR_OPS(accel_dev) (&(accel_dev)->hw_device->csr_info.csr_ops)
 #define GET_PFVF_OPS(accel_dev) (&(accel_dev)->hw_device->csr_info.pfvf_ops)
-#define ADF_DEFAULT_RING_TO_SRV_MAP                                            \
-	(CRYPTO | CRYPTO << ADF_CFG_SERV_RING_PAIR_1_SHIFT |                   \
-	 NA << ADF_CFG_SERV_RING_PAIR_2_SHIFT |                                \
-	 COMP << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
+#define ADF_DEFAULT_RING_TO_SRV_MAP                          \
+	(CRYPTO | CRYPTO << ADF_CFG_SERV_RING_PAIR_1_SHIFT | \
+	    NA << ADF_CFG_SERV_RING_PAIR_2_SHIFT |           \
+	    COMP << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
 
 enum adf_accel_capabilities {
 	ADF_ACCEL_CAPABILITIES_NULL = 0,
@@ -252,50 +252,34 @@ struct admin_info {
 
 struct adf_hw_csr_ops {
 	u64 (*build_csr_ring_base_addr)(bus_addr_t addr, u32 size);
-	u32 (*read_csr_ring_head)(struct resource *csr_base_addr,
-				  u32 bank,
-				  u32 ring);
-	void (*write_csr_ring_head)(struct resource *csr_base_addr,
-				    u32 bank,
-				    u32 ring,
-				    u32 value);
-	u32 (*read_csr_ring_tail)(struct resource *csr_base_addr,
-				  u32 bank,
-				  u32 ring);
-	void (*write_csr_ring_tail)(struct resource *csr_base_addr,
-				    u32 bank,
-				    u32 ring,
-				    u32 value);
+	u32 (*read_csr_ring_head)(struct resource *csr_base_addr, u32 bank,
+	    u32 ring);
+	void (*write_csr_ring_head)(struct resource *csr_base_addr, u32 bank,
+	    u32 ring, u32 value);
+	u32 (*read_csr_ring_tail)(struct resource *csr_base_addr, u32 bank,
+	    u32 ring);
+	void (*write_csr_ring_tail)(struct resource *csr_base_addr, u32 bank,
+	    u32 ring, u32 value);
 	u32 (*read_csr_e_stat)(struct resource *csr_base_addr, u32 bank);
-	void (*write_csr_ring_config)(struct resource *csr_base_addr,
-				      u32 bank,
-				      u32 ring,
-				      u32 value);
+	void (*write_csr_ring_config)(struct resource *csr_base_addr, u32 bank,
+	    u32 ring, u32 value);
 	bus_addr_t (*read_csr_ring_base)(struct resource *csr_base_addr,
-					 u32 bank,
-					 u32 ring);
-	void (*write_csr_ring_base)(struct resource *csr_base_addr,
-				    u32 bank,
-				    u32 ring,
-				    bus_addr_t addr);
-	void (*write_csr_int_flag)(struct resource *csr_base_addr,
-				   u32 bank,
-				   u32 value);
+	    u32 bank, u32 ring);
+	void (*write_csr_ring_base)(struct resource *csr_base_addr, u32 bank,
+	    u32 ring, bus_addr_t addr);
+	void (*write_csr_int_flag)(struct resource *csr_base_addr, u32 bank,
+	    u32 value);
 	void (*write_csr_int_srcsel)(struct resource *csr_base_addr, u32 bank);
-	void (*write_csr_int_col_en)(struct resource *csr_base_addr,
-				     u32 bank,
-				     u32 value);
-	void (*write_csr_int_col_ctl)(struct resource *csr_base_addr,
-				      u32 bank,
-				      u32 value);
+	void (*write_csr_int_col_en)(struct resource *csr_base_addr, u32 bank,
+	    u32 value);
+	void (*write_csr_int_col_ctl)(struct resource *csr_base_addr, u32 bank,
+	    u32 value);
 	void (*write_csr_int_flag_and_col)(struct resource *csr_base_addr,
-					   u32 bank,
-					   u32 value);
+	    u32 bank, u32 value);
 	u32 (*read_csr_ring_srv_arb_en)(struct resource *csr_base_addr,
-					u32 bank);
+	    u32 bank);
 	void (*write_csr_ring_srv_arb_en)(struct resource *csr_base_addr,
-					  u32 bank,
-					  u32 value);
+	    u32 bank, u32 value);
 	u32 (*get_src_sel_mask)(void);
 	u32 (*get_int_col_ctl_enable_mask)(void);
 	u32 (*get_bank_irq_mask)(u32 irq_mask);
@@ -310,17 +294,14 @@ struct adf_pfvf_ops {
 	int (*enable_comms)(struct adf_accel_dev *accel_dev);
 	u32 (*get_pf2vf_offset)(u32 i);
 	u32 (*get_vf2pf_offset)(u32 i);
-	void (*enable_vf2pf_interrupts)(struct resource *pmisc_addr,
-					u32 vf_mask);
+	void (
+	    *enable_vf2pf_interrupts)(struct resource *pmisc_addr, u32 vf_mask);
 	void (*disable_all_vf2pf_interrupts)(struct resource *pmisc_addr);
 	u32 (*disable_pending_vf2pf_interrupts)(struct resource *pmisc_addr);
 	int (*send_msg)(struct adf_accel_dev *accel_dev,
-			struct pfvf_message msg,
-			u32 pfvf_offset,
-			struct mutex *csr_lock);
+	    struct pfvf_message msg, u32 pfvf_offset, struct mutex *csr_lock);
 	struct pfvf_message (*recv_msg)(struct adf_accel_dev *accel_dev,
-					u32 pfvf_offset,
-					u8 compat_ver);
+	    u32 pfvf_offset, u8 compat_ver);
 };
 
 struct adf_hw_csr_info {
@@ -364,18 +345,18 @@ struct adf_hw_device_data {
 	void (*disable_arb)(struct adf_accel_dev *accel_dev);
 	void (*update_ras_errors)(struct adf_accel_dev *accel_dev, int error);
 	bool (*ras_interrupts)(struct adf_accel_dev *accel_dev,
-			       bool *reset_required);
+	    bool *reset_required);
 	int (*init_admin_comms)(struct adf_accel_dev *accel_dev);
 	void (*exit_admin_comms)(struct adf_accel_dev *accel_dev);
 	int (*send_admin_init)(struct adf_accel_dev *accel_dev);
 	void (*set_asym_rings_mask)(struct adf_accel_dev *accel_dev);
 	int (*get_ring_to_svc_map)(struct adf_accel_dev *accel_dev,
-				   u16 *ring_to_svc_map);
+	    u16 *ring_to_svc_map);
 	uint32_t (*get_accel_cap)(struct adf_accel_dev *accel_dev);
 	int (*init_arb)(struct adf_accel_dev *accel_dev);
 	void (*exit_arb)(struct adf_accel_dev *accel_dev);
 	void (*get_arb_mapping)(struct adf_accel_dev *accel_dev,
-				const uint32_t **cfg);
+	    const uint32_t **cfg);
 	int (*init_device)(struct adf_accel_dev *accel_dev);
 	int (*get_heartbeat_status)(struct adf_accel_dev *accel_dev);
 	int (*int_timer_init)(struct adf_accel_dev *accel_dev);
@@ -384,7 +365,7 @@ struct adf_hw_device_data {
 	uint32_t (*get_hb_clock)(struct adf_hw_device_data *self);
 	void (*disable_iov)(struct adf_accel_dev *accel_dev);
 	void (*configure_iov_threads)(struct adf_accel_dev *accel_dev,
-				      bool enable);
+	    bool enable);
 	void (*enable_ints)(struct adf_accel_dev *accel_dev);
 	bool (*check_slice_hang)(struct adf_accel_dev *accel_dev);
 	int (*set_ssm_wdtimer)(struct adf_accel_dev *accel_dev);
@@ -397,34 +378,29 @@ struct adf_hw_device_data {
 	int (*measure_clock)(struct adf_accel_dev *accel_dev);
 	void (*restore_device)(struct adf_accel_dev *accel_dev);
 	uint32_t (*get_obj_cfg_ae_mask)(struct adf_accel_dev *accel_dev,
-					enum adf_accel_unit_services services);
+	    enum adf_accel_unit_services services);
 	enum adf_accel_unit_services (
 	    *get_service_type)(struct adf_accel_dev *accel_dev, s32 obj_num);
 	int (*add_pke_stats)(struct adf_accel_dev *accel_dev);
 	void (*remove_pke_stats)(struct adf_accel_dev *accel_dev);
 	int (*add_misc_error)(struct adf_accel_dev *accel_dev);
-	int (*count_ras_event)(struct adf_accel_dev *accel_dev,
-			       u32 *ras_event,
-			       char *aeidstr);
+	int (*count_ras_event)(struct adf_accel_dev *accel_dev, u32 *ras_event,
+	    char *aeidstr);
 	void (*remove_misc_error)(struct adf_accel_dev *accel_dev);
 	int (*configure_accel_units)(struct adf_accel_dev *accel_dev);
-	int (*ring_pair_reset)(struct adf_accel_dev *accel_dev,
-			       u32 bank_number);
+	int (
+	    *ring_pair_reset)(struct adf_accel_dev *accel_dev, u32 bank_number);
 	void (*config_ring_irq)(struct adf_accel_dev *accel_dev,
-				u32 bank_number,
-				u16 ring_mask);
+	    u32 bank_number, u16 ring_mask);
 	uint32_t (*get_objs_num)(struct adf_accel_dev *accel_dev);
 	const char *(*get_obj_name)(struct adf_accel_dev *accel_dev,
-				    enum adf_accel_unit_services services);
+	    enum adf_accel_unit_services services);
 	void (*pre_reset)(struct adf_accel_dev *accel_dev);
 	void (*post_reset)(struct adf_accel_dev *accel_dev);
 	void (*set_msix_rttable)(struct adf_accel_dev *accel_dev);
-	void (*get_ring_svc_map_data)(int ring_pair_index,
-				      u16 ring_to_svc_map,
-				      u8 *serv_type,
-				      int *ring_index,
-				      int *num_rings_per_srv,
-				      int bundle_num);
+	void (*get_ring_svc_map_data)(int ring_pair_index, u16 ring_to_svc_map,
+	    u8 *serv_type, int *ring_index, int *num_rings_per_srv,
+	    int bundle_num);
 	struct adf_hw_csr_info csr_info;
 	const char *fw_name;
 	const char *fw_mmp_name;
@@ -447,7 +423,7 @@ struct adf_hw_device_data {
 	uint8_t num_logical_accel;
 	uint8_t num_engines;
 	int (*get_storage_enabled)(struct adf_accel_dev *accel_dev,
-				   uint32_t *storage_enabled);
+	    uint32_t *storage_enabled);
 	u8 query_storage_cap;
 	u32 clock_frequency;
 	u8 storage_enable;
@@ -456,7 +432,7 @@ struct adf_hw_device_data {
 	u32 asym_ae_active_thd_mask;
 	u16 asym_rings_mask;
 	int (*get_fw_image_type)(struct adf_accel_dev *accel_dev,
-				 enum adf_cfg_fw_image_type *fw_image_type);
+	    enum adf_cfg_fw_image_type *fw_image_type);
 	u16 ring_to_svc_map;
 } __packed;
 
@@ -467,12 +443,12 @@ enum operation {
 };
 
 /* 32-bit CSR write macro */
-#define ADF_CSR_WR(csr_base, csr_offset, val)                                  \
+#define ADF_CSR_WR(csr_base, csr_offset, val) \
 	bus_write_4(csr_base, csr_offset, val)
 
 /* 64-bit CSR write macro */
 #ifdef __x86_64__
-#define ADF_CSR_WR64(csr_base, csr_offset, val)                                \
+#define ADF_CSR_WR64(csr_base, csr_offset, val) \
 	bus_write_8(csr_base, csr_offset, val)
 #else
 static __inline void
@@ -481,7 +457,7 @@ adf_csr_wr64(struct resource *csr_base, bus_size_t offset, uint64_t value)
 	bus_write_4(csr_base, offset, (uint32_t)value);
 	bus_write_4(csr_base, offset + 4, (uint32_t)(value >> 32));
 }
-#define ADF_CSR_WR64(csr_base, csr_offset, val)                                \
+#define ADF_CSR_WR64(csr_base, csr_offset, val) \
 	adf_csr_wr64(csr_base, csr_offset, val)
 #endif
 
@@ -496,7 +472,7 @@ static __inline uint64_t
 adf_csr_rd64(struct resource *csr_base, bus_size_t offset)
 {
 	return (((uint64_t)bus_read_4(csr_base, offset)) |
-		(((uint64_t)bus_read_4(csr_base, offset + 4)) << 32));
+	    (((uint64_t)bus_read_4(csr_base, offset + 4)) << 32));
 }
 #define ADF_CSR_RD64(csr_base, csr_offset) adf_csr_rd64(csr_base, csr_offset)
 #endif
@@ -506,25 +482,25 @@ adf_csr_rd64(struct resource *csr_base, bus_size_t offset)
 #define GET_HW_DATA(accel_dev) (accel_dev->hw_device)
 #define GET_MAX_BANKS(accel_dev) (GET_HW_DATA(accel_dev)->num_banks)
 #define GET_DEV_SKU(accel_dev) (accel_dev->accel_pci_dev.sku)
-#define GET_NUM_RINGS_PER_BANK(accel_dev)                                      \
+#define GET_NUM_RINGS_PER_BANK(accel_dev) \
 	(GET_HW_DATA(accel_dev)->num_rings_per_bank)
 #define GET_MAX_ACCELENGINES(accel_dev) (GET_HW_DATA(accel_dev)->num_engines)
 #define accel_to_pci_dev(accel_ptr) accel_ptr->accel_pci_dev.pci_dev
-#define GET_SRV_TYPE(ena_srv_mask, srv)                                        \
+#define GET_SRV_TYPE(ena_srv_mask, srv) \
 	(((ena_srv_mask) >> (ADF_SRV_TYPE_BIT_LEN * (srv))) & ADF_SRV_TYPE_MASK)
-#define SET_ASYM_MASK(asym_mask, srv)                                          \
-	({                                                                     \
-		typeof(srv) srv_ = (srv);                                      \
-		(asym_mask) |= ((1 << (srv_)*ADF_RINGS_PER_SRV_TYPE) |         \
-				(1 << ((srv_)*ADF_RINGS_PER_SRV_TYPE + 1)));   \
+#define SET_ASYM_MASK(asym_mask, srv)                                    \
+	({                                                               \
+		typeof(srv) srv_ = (srv);                                \
+		(asym_mask) |= ((1 << (srv_) * ADF_RINGS_PER_SRV_TYPE) | \
+		    (1 << ((srv_) * ADF_RINGS_PER_SRV_TYPE + 1)));       \
 	})
 
-#define GET_NUM_RINGS_PER_BANK(accel_dev)                                      \
+#define GET_NUM_RINGS_PER_BANK(accel_dev) \
 	(GET_HW_DATA(accel_dev)->num_rings_per_bank)
-#define GET_MAX_PROCESSES(accel_dev)                                           \
-	({                                                                     \
-		typeof(accel_dev) dev = (accel_dev);                           \
-		(GET_MAX_BANKS(dev) * (GET_NUM_RINGS_PER_BANK(dev) / 2));      \
+#define GET_MAX_PROCESSES(accel_dev)                                      \
+	({                                                                \
+		typeof(accel_dev) dev = (accel_dev);                      \
+		(GET_MAX_BANKS(dev) * (GET_NUM_RINGS_PER_BANK(dev) / 2)); \
 	})
 #define GET_DU_TABLE(accel_dev) (accel_dev->du_table)
 
@@ -547,10 +523,8 @@ adf_csr_fetch_and_or(struct resource *csr, size_t offs, unsigned long mask)
 }
 
 static inline void
-adf_csr_fetch_and_update(enum operation op,
-			 struct resource *csr,
-			 size_t offs,
-			 unsigned long mask)
+adf_csr_fetch_and_update(enum operation op, struct resource *csr, size_t offs,
+    unsigned long mask)
 {
 	switch (op) {
 	case AND:
@@ -649,7 +623,7 @@ struct adf_int_timer {
 
 #define ADF_COMPAT_CHECKER_MAX 8
 typedef int (*adf_iov_compat_checker_t)(struct adf_accel_dev *accel_dev,
-					u8 vf_compat_ver);
+    u8 vf_compat_ver);
 struct adf_accel_compat_manager {
 	u8 num_chker;
 	adf_iov_compat_checker_t iov_compat_checkers[ADF_COMPAT_CHECKER_MAX];

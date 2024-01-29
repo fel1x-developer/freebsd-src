@@ -56,15 +56,14 @@
 
 #include <sys/types.h>
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 
 #include <dev/mmc/mmcreg.h>
-
-#include <dev/sdio/sdiob.h>
 #include <dev/sdio/sdio_subr.h>
+#include <dev/sdio/sdiob.h>
 
 #include "sdio_if.h"
 
@@ -98,16 +97,16 @@ int
 sdio_enable_func(struct sdio_func *f)
 {
 
-	return (sdio_set_bool_for_func(f->dev, SD_IO_CCCR_FN_ENABLE,
-	    f->fn, true));
+	return (
+	    sdio_set_bool_for_func(f->dev, SD_IO_CCCR_FN_ENABLE, f->fn, true));
 }
 
 int
 sdio_disable_func(struct sdio_func *f)
 {
 
-	return (sdio_set_bool_for_func(f->dev, SD_IO_CCCR_FN_ENABLE,
-	    f->fn, false));
+	return (
+	    sdio_set_bool_for_func(f->dev, SD_IO_CCCR_FN_ENABLE, f->fn, false));
 }
 
 int
@@ -130,8 +129,7 @@ sdio_set_block_size(struct sdio_func *f, uint16_t bs)
 	/* Always write through F0. */
 	error = SDIO_WRITE_DIRECT(pdev, 0, addr, v & 0xff);
 	if (error == 0)
-		error = SDIO_WRITE_DIRECT(pdev, 0, addr + 1,
-		    (v >> 8) & 0xff);
+		error = SDIO_WRITE_DIRECT(pdev, 0, addr + 1, (v >> 8) & 0xff);
 	if (error == 0)
 		f->cur_blksize = bs;
 

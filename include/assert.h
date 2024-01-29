@@ -45,13 +45,12 @@
 #undef _assert
 
 #ifdef NDEBUG
-#define	assert(e)	((void)0)
-#define	_assert(e)	((void)0)
+#define assert(e) ((void)0)
+#define _assert(e) ((void)0)
 #else
-#define	_assert(e)	assert(e)
+#define _assert(e) assert(e)
 
-#define	assert(e)	((e) ? (void)0 : __assert(__func__, __FILE__, \
-			    __LINE__, #e))
+#define assert(e) ((e) ? (void)0 : __assert(__func__, __FILE__, __LINE__, #e))
 #endif /* NDEBUG */
 
 #ifndef _ASSERT_H_
@@ -67,7 +66,7 @@
  * than two parameters.
  */
 #if __ISO_C_VISIBLE >= 2011 && !defined(__cplusplus)
-#define	static_assert	_Static_assert
+#define static_assert _Static_assert
 #endif
 
 __BEGIN_DECLS

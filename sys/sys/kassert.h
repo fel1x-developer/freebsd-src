@@ -29,13 +29,13 @@
  */
 
 #ifndef _SYS_KASSERT_H_
-#define	_SYS_KASSERT_H_
+#define _SYS_KASSERT_H_
 
 #include <sys/cdefs.h>
 
 #ifdef _KERNEL
-extern const char *panicstr;	/* panic message */
-#define	KERNEL_PANICKED()	__predict_false(panicstr != NULL)
+extern const char *panicstr; /* panic message */
+#define KERNEL_PANICKED() __predict_false(panicstr != NULL)
 
 /*
  * Trap accesses going through a pointer. Moreover if kasan is available trap
@@ -52,64 +52,77 @@ extern const char *panicstr;	/* panic message */
  * ....
  * if (obj->ptr->field) // traps with and without kasan
  */
-#ifdef	INVARIANTS
+#ifdef INVARIANTS
 
 #include <sys/asan.h>
 
 extern caddr_t poisoned_buf;
 #define DEBUG_POISON_POINTER_VALUE poisoned_buf
 
-#define DEBUG_POISON_POINTER(x) ({				\
-	x = (void *)(DEBUG_POISON_POINTER_VALUE);		\
-	kasan_mark(&x, 0, sizeof(x), KASAN_GENERIC_REDZONE);	\
-})
+#define DEBUG_POISON_POINTER(x)                                      \
+	({                                                           \
+		x = (void *)(DEBUG_POISON_POINTER_VALUE);            \
+		kasan_mark(&x, 0, sizeof(x), KASAN_GENERIC_REDZONE); \
+	})
 
 #else
 #define DEBUG_POISON_POINTER(x)
 #endif
 
-#ifdef	INVARIANTS		/* The option is always available */
-#define	VNASSERT(exp, vp, msg) do {					\
-	if (__predict_false(!(exp))) {					\
-		vn_printf(vp, "VNASSERT failed: %s not true at %s:%d (%s)\n",\
-		   #exp, __FILE__, __LINE__, __func__);	 		\
-		kassert_panic msg;					\
-	}								\
-} while (0)
-#define	MPASSERT(exp, mp, msg) do {					\
-	if (__predict_false(!(exp))) {					\
-		printf("MPASSERT mp %p failed: %s not true at %s:%d (%s)\n",\
-		    (mp), #exp, __FILE__, __LINE__, __func__);		\
-		kassert_panic msg;					\
-	}								\
-} while (0)
-#define	VNPASS(exp, vp)	do {						\
-	const char *_exp = #exp;					\
-	VNASSERT(exp, vp, ("condition %s not met at %s:%d (%s)",	\
-	    _exp, __FILE__, __LINE__, __func__));			\
-} while (0)
-#define	MPPASS(exp, mp)	do {						\
-	const char *_exp = #exp;					\
-	MPASSERT(exp, mp, ("condition %s not met at %s:%d (%s)",	\
-	    _exp, __FILE__, __LINE__, __func__));			\
-} while (0)
-#define	__assert_unreachable() \
+#ifdef INVARIANTS /* The option is always available */
+#define VNASSERT(exp, vp, msg)                                              \
+	do {                                                                \
+		if (__predict_false(!(exp))) {                              \
+			vn_printf(vp,                                       \
+			    "VNASSERT failed: %s not true at %s:%d (%s)\n", \
+			    #exp, __FILE__, __LINE__, __func__);            \
+			kassert_panic msg;                                  \
+		}                                                           \
+	} while (0)
+#define MPASSERT(exp, mp, msg)                                                    \
+	do {                                                                      \
+		if (__predict_false(!(exp))) {                                    \
+			printf(                                                   \
+			    "MPASSERT mp %p failed: %s not true at %s:%d (%s)\n", \
+			    (mp), #exp, __FILE__, __LINE__, __func__);            \
+			kassert_panic msg;                                        \
+		}                                                                 \
+	} while (0)
+#define VNPASS(exp, vp)                                                    \
+	do {                                                               \
+		const char *_exp = #exp;                                   \
+		VNASSERT(exp, vp,                                          \
+		    ("condition %s not met at %s:%d (%s)", _exp, __FILE__, \
+			__LINE__, __func__));                              \
+	} while (0)
+#define MPPASS(exp, mp)                                                    \
+	do {                                                               \
+		const char *_exp = #exp;                                   \
+		MPASSERT(exp, mp,                                          \
+		    ("condition %s not met at %s:%d (%s)", _exp, __FILE__, \
+			__LINE__, __func__));                              \
+	} while (0)
+#define __assert_unreachable()                                           \
 	panic("executing segment marked as unreachable at %s:%d (%s)\n", \
 	    __FILE__, __LINE__, __func__)
-#else	/* INVARIANTS */
-#define	VNASSERT(exp, vp, msg) do { \
-} while (0)
-#define	MPASSERT(exp, mp, msg) do { \
-} while (0)
-#define	VNPASS(exp, vp) do { \
-} while (0)
-#define	MPPASS(exp, mp) do { \
-} while (0)
-#define	__assert_unreachable()	__unreachable()
-#endif	/* INVARIANTS */
+#else /* INVARIANTS */
+#define VNASSERT(exp, vp, msg) \
+	do {                   \
+	} while (0)
+#define MPASSERT(exp, mp, msg) \
+	do {                   \
+	} while (0)
+#define VNPASS(exp, vp) \
+	do {            \
+	} while (0)
+#define MPPASS(exp, mp) \
+	do {            \
+	} while (0)
+#define __assert_unreachable() __unreachable()
+#endif /* INVARIANTS */
 
-#ifndef CTASSERT	/* Allow lint to override */
-#define	CTASSERT(x)	_Static_assert(x, "compile-time assertion failed")
+#ifndef CTASSERT /* Allow lint to override */
+#define CTASSERT(x) _Static_assert(x, "compile-time assertion failed")
 #endif
 
 /*
@@ -118,9 +131,9 @@ extern caddr_t poisoned_buf;
  * place compared to other function definitions in this header.  On the other
  * hand, this header is a bit disorganized anyway.
  */
-void	panic(const char *, ...) __dead2 __printflike(1, 2);
-void	vpanic(const char *, __va_list) __dead2 __printflike(1, 0);
-#endif	/* _KERNEL */
+void panic(const char *, ...) __dead2 __printflike(1, 2);
+void vpanic(const char *, __va_list) __dead2 __printflike(1, 0);
+#endif /* _KERNEL */
 
 #if defined(_STANDALONE)
 /*
@@ -130,26 +143,28 @@ void	vpanic(const char *, __va_list) __dead2 __printflike(1, 0);
  * we avoid most of the common functions in the boot loader, so
  * declare printf() here too.
  */
-int	printf(const char *, ...) __printflike(1, 2);
-#  define kassert_panic printf
+int printf(const char *, ...) __printflike(1, 2);
+#define kassert_panic printf
 #else /* !_STANDALONE */
-#  if defined(WITNESS) || defined(INVARIANT_SUPPORT)
-#    ifdef KASSERT_PANIC_OPTIONAL
-void	kassert_panic(const char *fmt, ...)  __printflike(1, 2);
-#    else
-#      define kassert_panic	panic
-#    endif /* KASSERT_PANIC_OPTIONAL */
-#  endif /* defined(WITNESS) || defined(INVARIANT_SUPPORT) */
+#if defined(WITNESS) || defined(INVARIANT_SUPPORT)
+#ifdef KASSERT_PANIC_OPTIONAL
+void kassert_panic(const char *fmt, ...) __printflike(1, 2);
+#else
+#define kassert_panic panic
+#endif /* KASSERT_PANIC_OPTIONAL */
+#endif /* defined(WITNESS) || defined(INVARIANT_SUPPORT) */
 #endif /* _STANDALONE */
 
 #if (defined(_KERNEL) && defined(INVARIANTS)) || defined(_STANDALONE)
-#define	KASSERT(exp,msg) do {						\
-	if (__predict_false(!(exp)))					\
-		kassert_panic msg;					\
-} while (0)
+#define KASSERT(exp, msg)                    \
+	do {                                 \
+		if (__predict_false(!(exp))) \
+			kassert_panic msg;   \
+	} while (0)
 #else /* !(KERNEL && INVARIANTS) && !_STANDALONE */
-#define	KASSERT(exp,msg) do { \
-} while (0)
+#define KASSERT(exp, msg) \
+	do {              \
+	} while (0)
 #endif /* (_KERNEL && INVARIANTS) || _STANDALONE */
 
 #ifdef _KERNEL
@@ -157,10 +172,10 @@ void	kassert_panic(const char *fmt, ...)  __printflike(1, 2);
  * Helpful macros for quickly coming up with assertions with informative
  * panic messages.
  */
-#define MPASS(ex)		MPASS4(ex, #ex, __FILE__, __LINE__)
-#define MPASS2(ex, what)	MPASS4(ex, what, __FILE__, __LINE__)
-#define MPASS3(ex, file, line)	MPASS4(ex, #ex, file, line)
-#define MPASS4(ex, what, file, line)					\
+#define MPASS(ex) MPASS4(ex, #ex, __FILE__, __LINE__)
+#define MPASS2(ex, what) MPASS4(ex, what, __FILE__, __LINE__)
+#define MPASS3(ex, file, line) MPASS4(ex, #ex, file, line)
+#define MPASS4(ex, what, file, line) \
 	KASSERT((ex), ("Assertion %s failed at %s:%d", what, file, line))
 
 /*
@@ -170,15 +185,16 @@ void	kassert_panic(const char *fmt, ...)  __printflike(1, 2);
  * on some architectures, atomicity for unaligned loads will depend on
  * whether or not the load spans multiple cache lines.
  */
-#define	ASSERT_ATOMIC_LOAD_PTR(var, msg)				\
-	KASSERT(sizeof(var) == sizeof(void *) &&			\
-	    ((uintptr_t)&(var) & (sizeof(void *) - 1)) == 0, msg)
+#define ASSERT_ATOMIC_LOAD_PTR(var, msg)                           \
+	KASSERT(sizeof(var) == sizeof(void *) &&                   \
+		((uintptr_t) & (var) & (sizeof(void *) - 1)) == 0, \
+	    msg)
 /*
  * Assert that a thread is in critical(9) section.
  */
-#define	CRITICAL_ASSERT(td)						\
+#define CRITICAL_ASSERT(td) \
 	KASSERT((td)->td_critnest >= 1, ("Not in critical section"))
 
 #endif /* _KERNEL */
 
-#endif	/* _SYS_KASSERT_H_ */
+#endif /* _SYS_KASSERT_H_ */

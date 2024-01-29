@@ -31,17 +31,17 @@
 
 #include <arm/arm/gic_common.h>
 
-#define	GIC_V3_DEVSTR	"ARM Generic Interrupt Controller v3.0"
+#define GIC_V3_DEVSTR "ARM Generic Interrupt Controller v3.0"
 
 DECLARE_CLASS(gic_v3_driver);
 
 struct gic_v3_irqsrc;
 
 struct redist_pcpu {
-	struct resource		*res;		/* mem resource for redist */
-	vm_offset_t		pend_base;
-	bus_size_t		offset;
-	bool			lpi_enabled;	/* redist LPI configured? */
+	struct resource *res; /* mem resource for redist */
+	vm_offset_t pend_base;
+	bus_size_t offset;
+	bool lpi_enabled; /* redist LPI configured? */
 };
 
 struct gic_redists {
@@ -50,42 +50,42 @@ struct gic_redists {
 	 * We will have few of those depending
 	 * on the #redistributor-regions property in FDT.
 	 */
-	struct resource **	regions;
+	struct resource **regions;
 	/* Number of Re-Distributor regions */
-	u_int			nregions;
+	u_int nregions;
 	/* Per-CPU Re-Distributor data */
-	struct redist_pcpu	*pcpu;
+	struct redist_pcpu *pcpu;
 };
 
 struct gic_v3_softc {
-	device_t		dev;
-	struct resource **	gic_res;
-	struct mtx		gic_mtx;
+	device_t dev;
+	struct resource **gic_res;
+	struct mtx gic_mtx;
 	/* Distributor */
-	struct resource *	gic_dist;
+	struct resource *gic_dist;
 	/* Re-Distributors */
-	struct gic_redists	gic_redists;
+	struct gic_redists gic_redists;
 
 	/* Message Based Interrupts */
-	u_int			gic_mbi_start;
-	u_int			gic_mbi_end;
-	struct mtx		gic_mbi_mtx;
+	u_int gic_mbi_start;
+	u_int gic_mbi_end;
+	struct mtx gic_mbi_mtx;
 
-	uint32_t		gic_pidr2;
-	u_int			gic_bus;
+	uint32_t gic_pidr2;
+	u_int gic_bus;
 
-	u_int			gic_nirqs;
-	u_int			gic_idbits;
+	u_int gic_nirqs;
+	u_int gic_idbits;
 
-	boolean_t		gic_registered;
+	boolean_t gic_registered;
 
-	int			gic_nchildren;
-	device_t		*gic_children;
-	struct intr_pic		*gic_pic;
-	struct gic_v3_irqsrc	*gic_irqs;
+	int gic_nchildren;
+	device_t *gic_children;
+	struct intr_pic *gic_pic;
+	struct gic_v3_irqsrc *gic_irqs;
 
-	int			nranges;
-	struct arm_gic_range *	ranges;
+	int nranges;
+	struct arm_gic_range *ranges;
 };
 
 struct gic_v3_devinfo {
@@ -94,14 +94,14 @@ struct gic_v3_devinfo {
 	int is_vgic;
 };
 
-#define GIC_INTR_ISRC(sc, irq)	(&sc->gic_irqs[irq].gi_isrc)
+#define GIC_INTR_ISRC(sc, irq) (&sc->gic_irqs[irq].gi_isrc)
 
 MALLOC_DECLARE(M_GIC_V3);
 
 /* ivars */
-#define	GICV3_IVAR_NIRQS	1000
+#define GICV3_IVAR_NIRQS 1000
 /* 1001 was GICV3_IVAR_REDIST_VADDR */
-#define	GICV3_IVAR_REDIST	1002
+#define GICV3_IVAR_REDIST 1002
 
 __BUS_ACCESSOR(gicv3, nirqs, GICV3, NIRQS, u_int);
 __BUS_ACCESSOR(gicv3, redist, GICV3, REDIST, void *);
@@ -120,34 +120,26 @@ void gic_r_write_8(device_t, bus_size_t, uint64_t var);
  * GIC Distributor accessors.
  * Notice that only GIC sofc can be passed.
  */
-#define	gic_d_read(sc, len, reg)		\
-({						\
-	bus_read_##len(sc->gic_dist, reg);	\
-})
+#define gic_d_read(sc, len, reg) ({ bus_read_##len(sc->gic_dist, reg); })
 
-#define	gic_d_write(sc, len, reg, val)		\
-({						\
-	bus_write_##len(sc->gic_dist, reg, val);\
-})
+#define gic_d_write(sc, len, reg, val) \
+	({ bus_write_##len(sc->gic_dist, reg, val); })
 
 /* GIC Re-Distributor accessors (per-CPU) */
-#define	gic_r_read(sc, len, reg)		\
-({						\
-	u_int cpu = PCPU_GET(cpuid);		\
-						\
-	bus_read_##len(				\
-	    (sc)->gic_redists.pcpu[cpu].res,	\
-	    (sc)->gic_redists.pcpu[cpu].offset + (reg)); \
-})
+#define gic_r_read(sc, len, reg)                                 \
+	({                                                       \
+		u_int cpu = PCPU_GET(cpuid);                     \
+                                                                 \
+		bus_read_##len((sc)->gic_redists.pcpu[cpu].res,  \
+		    (sc)->gic_redists.pcpu[cpu].offset + (reg)); \
+	})
 
-#define	gic_r_write(sc, len, reg, val)		\
-({						\
-	u_int cpu = PCPU_GET(cpuid);		\
-						\
-	bus_write_##len(			\
-	    (sc)->gic_redists.pcpu[cpu].res,	\
-	    (sc)->gic_redists.pcpu[cpu].offset + (reg), \
-	    (val));				\
-})
+#define gic_r_write(sc, len, reg, val)                                  \
+	({                                                              \
+		u_int cpu = PCPU_GET(cpuid);                            \
+                                                                        \
+		bus_write_##len((sc)->gic_redists.pcpu[cpu].res,        \
+		    (sc)->gic_redists.pcpu[cpu].offset + (reg), (val)); \
+	})
 
 #endif /* _GIC_V3_VAR_H_ */

@@ -1,25 +1,27 @@
 /*******************************************************************************
-*Copyright (c) 2014 PMC-Sierra, Inc.  All rights reserved. 
-*
-*Redistribution and use in source and binary forms, with or without modification, are permitted provided 
-*that the following conditions are met: 
-*1. Redistributions of source code must retain the above copyright notice, this list of conditions and the
-*following disclaimer. 
-*2. Redistributions in binary form must reproduce the above copyright notice, 
-*this list of conditions and the following disclaimer in the documentation and/or other materials provided
-*with the distribution. 
-*
-*THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND ANY EXPRESS OR IMPLIED 
-*WARRANTIES,INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-*FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
-*FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT 
-*NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR 
-*BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT 
-*LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
-*SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE
-*
-*
-********************************************************************************/
+ *Copyright (c) 2014 PMC-Sierra, Inc.  All rights reserved.
+ *
+ *Redistribution and use in source and binary forms, with or without
+ *modification, are permitted provided that the following conditions are met:
+ *1. Redistributions of source code must retain the above copyright notice, this
+ *list of conditions and the following disclaimer.
+ *2. Redistributions in binary form must reproduce the above copyright notice,
+ *this list of conditions and the following disclaimer in the documentation
+ *and/or other materials provided with the distribution.
+ *
+ *THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND ANY
+ *EXPRESS OR IMPLIED WARRANTIES,INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ *WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ *DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR ANY
+ *DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ *(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ *LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ *ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ *SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE
+ *
+ *
+ ********************************************************************************/
 /*******************************************************************************/
 /*! \file sallist.h
  *  \brief The file contains link list manipulation helper routines
@@ -29,7 +31,6 @@
 
 #ifndef __SALLIST_H__
 #define __SALLIST_H__
-
 
 /********************************************************************
 *********************************************************************
@@ -42,32 +43,29 @@
  *  of any structures that are to be stored in the link list
  *
  */
-typedef struct _SALINK
-{
-  struct _SALINK *pNext;
-  struct _SALINK *pPrev;
+typedef struct _SALINK {
+	struct _SALINK *pNext;
+	struct _SALINK *pPrev;
 
-  /*
-  ** for assertion purpose only
-  */
-  struct _SALINK * pHead;     /* track the link list the link is a member of */
+	/*
+	** for assertion purpose only
+	*/
+	struct _SALINK *pHead; /* track the link list the link is a member of */
 
-} SALINK, * PSALINK;
+} SALINK, *PSALINK;
 
 /** \brief Structure of Link List
  *
  * link list basic pointers
  *
  */
-typedef struct _SALINK_LIST
-{
-  PSALINK pHead;
-  bit32   Count;
+typedef struct _SALINK_LIST {
+	PSALINK pHead;
+	bit32 Count;
 
-  SALINK  Head; /* allways one link to speed up insert and delete */
+	SALINK Head; /* allways one link to speed up insert and delete */
 
-} SALINK_LIST, * PSALINK_LIST;
-
+} SALINK_LIST, *PSALINK_LIST;
 
 /********************************************************************
 *********************************************************************
@@ -75,10 +73,10 @@ typedef struct _SALINK_LIST
 ********************************************************************/
 
 /*! \def saLlistInitialize(pList)
-* \brief saLlistInitialize macro
-*
-* use to initialize a Link List
-*/
+ * \brief saLlistInitialize macro
+ *
+ * use to initialize a Link List
+ */
 /*******************************************************************************
 ********************************************************************************
 **
@@ -95,22 +93,26 @@ typedef struct _SALINK_LIST
 ********************************************************************************/
 /*lint -emacro(613,saLlistInitialize) */
 
-#define saLlistInitialize(pList) {(pList)->pHead        = &((pList)->Head); \
-                                  (pList)->pHead->pNext = (pList)->pHead;   \
-                                  (pList)->pHead->pPrev = (pList)->pHead;   \
-                                  (pList)->Count        = 0;                \
-                                 }
+#define saLlistInitialize(pList)                        \
+	{                                               \
+		(pList)->pHead = &((pList)->Head);      \
+		(pList)->pHead->pNext = (pList)->pHead; \
+		(pList)->pHead->pPrev = (pList)->pHead; \
+		(pList)->Count = 0;                     \
+	}
 
-#define saLlistIOInitialize(pList){(pList)->pHead        = &((pList)->Head); \
-                                  (pList)->pHead->pNext = (pList)->pHead;   \
-                                  (pList)->pHead->pPrev = (pList)->pHead;   \
-                                  (pList)->Count        = 0;                \
-                                 }
+#define saLlistIOInitialize(pList)                      \
+	{                                               \
+		(pList)->pHead = &((pList)->Head);      \
+		(pList)->pHead->pNext = (pList)->pHead; \
+		(pList)->pHead->pPrev = (pList)->pHead; \
+		(pList)->Count = 0;                     \
+	}
 /*! \def saLlinkInitialize(pLink)
-* \brief saLlinkInitialize macro
-*
-* use to initialize a Link
-*/
+ * \brief saLlinkInitialize macro
+ *
+ * use to initialize a Link
+ */
 /********************************************************************************
 ********************************************************************************
 **
@@ -132,20 +134,24 @@ typedef struct _SALINK_LIST
 
 /*lint -emacro(613,saLlinkInitialize) */
 
-#define saLlinkInitialize(pLink) { (pLink)->pHead = agNULL;    \
-                                   (pLink)->pNext = agNULL;    \
-                                   (pLink)->pPrev = agNULL;    \
-                                 }
+#define saLlinkInitialize(pLink)         \
+	{                                \
+		(pLink)->pHead = agNULL; \
+		(pLink)->pNext = agNULL; \
+		(pLink)->pPrev = agNULL; \
+	}
 
-#define saLlinkIOInitialize(pLink) { (pLink)->pHead = agNULL;    \
-                                   (pLink)->pNext = agNULL;    \
-                                   (pLink)->pPrev = agNULL;    \
-                                 }
+#define saLlinkIOInitialize(pLink)       \
+	{                                \
+		(pLink)->pHead = agNULL; \
+		(pLink)->pNext = agNULL; \
+		(pLink)->pPrev = agNULL; \
+	}
 /*! \def saLlistAdd(pList, pLink)
-* \brief saLlistAdd macro
-*
-* use to add a link to the tail of list
-*/
+ * \brief saLlistAdd macro
+ *
+ * use to add a link to the tail of list
+ */
 /********************************************************************************
 ********************************************************************************
 **
@@ -172,29 +178,31 @@ typedef struct _SALINK_LIST
 /*lint -emacro(666,saLlistAdd) */
 /*lint -emacro(720,saLlistAdd) */
 
-#define saLlistAdd(pList, pLink) {                                          \
-                             (pLink)->pNext        = (pList)->pHead;        \
-                             (pLink)->pPrev        = (pList)->pHead->pPrev; \
-                             (pLink)->pPrev->pNext = (pLink);               \
-                             (pList)->pHead->pPrev = (pLink);               \
-                             (pList)->Count ++;                             \
-                             (pLink)->pHead = (pList)->pHead;               \
-                             }
+#define saLlistAdd(pList, pLink)                        \
+	{                                               \
+		(pLink)->pNext = (pList)->pHead;        \
+		(pLink)->pPrev = (pList)->pHead->pPrev; \
+		(pLink)->pPrev->pNext = (pLink);        \
+		(pList)->pHead->pPrev = (pLink);        \
+		(pList)->Count++;                       \
+		(pLink)->pHead = (pList)->pHead;        \
+	}
 
-#define saLlistIOAdd(pList, pLink) {                                        \
-                             (pLink)->pNext        = (pList)->pHead;        \
-                             (pLink)->pPrev        = (pList)->pHead->pPrev; \
-                             (pLink)->pPrev->pNext = (pLink);               \
-                             (pList)->pHead->pPrev = (pLink);               \
-                             (pList)->Count ++;                             \
-                             (pLink)->pHead = (pList)->pHead;               \
-                             }
+#define saLlistIOAdd(pList, pLink)                      \
+	{                                               \
+		(pLink)->pNext = (pList)->pHead;        \
+		(pLink)->pPrev = (pList)->pHead->pPrev; \
+		(pLink)->pPrev->pNext = (pLink);        \
+		(pList)->pHead->pPrev = (pLink);        \
+		(pList)->Count++;                       \
+		(pLink)->pHead = (pList)->pHead;        \
+	}
 
 /*! \def saLlistInsert(pList, pLink, pNew)
-* \brief saLlistInsert macro
-*
-* use to insert a link preceding the given one
-*/
+ * \brief saLlistInsert macro
+ *
+ * use to insert a link preceding the given one
+ */
 /********************************************************************************
 ********************************************************************************
 **
@@ -222,20 +230,21 @@ typedef struct _SALINK_LIST
 /*lint -emacro(666,saLlistInsert) */
 /*lint -emacro(720,saLlistInsert) */
 
-#define saLlistInsert(pList, pLink, pNew) {                                 \
-                                 (pNew)->pNext        = (pLink);            \
-                                 (pNew)->pPrev        = (pLink)->pPrev;     \
-                                 (pNew)->pPrev->pNext = (pNew);             \
-                                 (pLink)->pPrev       = (pNew);             \
-                                 (pList)->Count ++;                         \
-                                 (pNew)->pHead = (pList)->pHead;            \
-                                 }
+#define saLlistInsert(pList, pLink, pNew)       \
+	{                                       \
+		(pNew)->pNext = (pLink);        \
+		(pNew)->pPrev = (pLink)->pPrev; \
+		(pNew)->pPrev->pNext = (pNew);  \
+		(pLink)->pPrev = (pNew);        \
+		(pList)->Count++;               \
+		(pNew)->pHead = (pList)->pHead; \
+	}
 
 /*! \def saLlistRemove(pList, pLink)
-* \brief saLlistRemove macro
-*
-* use to remove the link from the list
-*/
+ * \brief saLlistRemove macro
+ *
+ * use to remove the link from the list
+ */
 /********************************************************************************
 ********************************************************************************
 **
@@ -264,24 +273,26 @@ typedef struct _SALINK_LIST
 /*lint -emacro(666,saLlistRemove) */
 /*lint -emacro(720,saLlistRemove) */
 
-#define saLlistRemove(pList, pLink) {                                   \
-                           (pLink)->pPrev->pNext = (pLink)->pNext;      \
-                           (pLink)->pNext->pPrev = (pLink)->pPrev;      \
-                           (pLink)->pHead = agNULL;                     \
-                           (pList)->Count --;                           \
-                           }
+#define saLlistRemove(pList, pLink)                     \
+	{                                               \
+		(pLink)->pPrev->pNext = (pLink)->pNext; \
+		(pLink)->pNext->pPrev = (pLink)->pPrev; \
+		(pLink)->pHead = agNULL;                \
+		(pList)->Count--;                       \
+	}
 
-#define saLlistIORemove(pList, pLink) {                                 \
-                           (pLink)->pPrev->pNext = (pLink)->pNext;      \
-                           (pLink)->pNext->pPrev = (pLink)->pPrev;      \
-                           (pLink)->pHead = agNULL;                     \
-                           (pList)->Count --;                           \
-                           }
+#define saLlistIORemove(pList, pLink)                   \
+	{                                               \
+		(pLink)->pPrev->pNext = (pLink)->pNext; \
+		(pLink)->pNext->pPrev = (pLink)->pPrev; \
+		(pLink)->pHead = agNULL;                \
+		(pList)->Count--;                       \
+	}
 /*! \def saLlistGetHead(pList)
-* \brief saLlistGetHead macro
-*
-* use to get the link following the head link
-*/
+ * \brief saLlistGetHead macro
+ *
+ * use to get the link following the head link
+ */
 /********************************************************************************
 ********************************************************************************
 **
@@ -301,15 +312,15 @@ typedef struct _SALINK_LIST
 **
 ********************************************************************************
 *******************************************************************************/
-#define saLlistGetHead(pList) saLlistGetNext(pList,(pList)->pHead)
+#define saLlistGetHead(pList) saLlistGetNext(pList, (pList)->pHead)
 
-#define saLlistIOGetHead(pList) saLlistGetNext(pList,(pList)->pHead)
+#define saLlistIOGetHead(pList) saLlistGetNext(pList, (pList)->pHead)
 
 /*! \def saLlistGetTail(pList)
-* \brief saLlistGetTail macro
-*
-* use to get the link preceding the tail link
-*/
+ * \brief saLlistGetTail macro
+ *
+ * use to get the link preceding the tail link
+ */
 /********************************************************************************
 ********************************************************************************
 **
@@ -330,10 +341,10 @@ typedef struct _SALINK_LIST
 #define saLlistGetTail(pList) saLlistGetPrev((pList), (pList)->pHead)
 
 /*! \def saLlistGetCount(pList)
-* \brief saLlistGetCount macro
-*
-* use to get the number of links in the list excluding head and tail
-*/
+ * \brief saLlistGetCount macro
+ *
+ * use to get the number of links in the list excluding head and tail
+ */
 /********************************************************************************
 ********************************************************************************
 **
@@ -360,10 +371,10 @@ typedef struct _SALINK_LIST
 #define saLlistIOGetCount(pList) ((pList)->Count)
 
 /*! \def saLlistGetNext(pList, pLink)
-* \brief saLlistGetNext macro
-*
-* use to get the next link in the list
-*/
+ * \brief saLlistGetNext macro
+ *
+ * use to get the next link in the list
+ */
 /********************************************************************************
 ********************************************************************************
 **
@@ -391,17 +402,17 @@ typedef struct _SALINK_LIST
 
 /*lint -emacro(613,saLlistGetNext) */
 
-#define saLlistGetNext(pList, pLink) (((pLink)->pNext == (pList)->pHead) ?  \
-                                      agNULL : (pLink)->pNext)
+#define saLlistGetNext(pList, pLink) \
+	(((pLink)->pNext == (pList)->pHead) ? agNULL : (pLink)->pNext)
 
-#define saLlistIOGetNext(pList, pLink) (((pLink)->pNext == (pList)->pHead) ?  \
-                                        agNULL : (pLink)->pNext)
+#define saLlistIOGetNext(pList, pLink) \
+	(((pLink)->pNext == (pList)->pHead) ? agNULL : (pLink)->pNext)
 
 /*! \def saLlistGetPrev(pList, pLink)
-* \brief saLlistGetPrev macro
-*
-* use to get the previous link in the list
-*/
+ * \brief saLlistGetPrev macro
+ *
+ * use to get the previous link in the list
+ */
 /********************************************************************************
 ********************************************************************************
 **
@@ -429,14 +440,13 @@ typedef struct _SALINK_LIST
 
 /*lint -emacro(613,saLlistGetPrev) */
 
-#define saLlistGetPrev(pList, pLink) (((pLink)->pPrev == (pList)->pHead) ?  \
-                                      agNULL : (pLink)->pPrev)
+#define saLlistGetPrev(pList, pLink) \
+	(((pLink)->pPrev == (pList)->pHead) ? agNULL : (pLink)->pPrev)
 
-
-
-#define agObjectBase(baseType,fieldName,fieldPtr) \
-            (void * ) fieldPtr == (void *) 0 ? (baseType *) 0 : \
-            ((baseType *)((bit8 *)(fieldPtr) - ((bitptr)(&(((baseType *)0)->fieldName)))))
-
+#define agObjectBase(baseType, fieldName, fieldPtr) \
+	(void *)fieldPtr == (void *)0 ?             \
+	    (baseType *)0 :                         \
+	    ((baseType *)((bit8 *)(fieldPtr) -      \
+		((bitptr)(&(((baseType *)0)->fieldName)))))
 
 #endif /* #ifndef __SALLIST_H__*/

@@ -35,13 +35,14 @@
  * HID spec: http://www.usb.org/developers/devclass_docs/HID1_11.pdf
  */
 
-#include <sys/cdefs.h>
 #include "opt_hid.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #ifdef COMPAT_FREEBSD32
 #include <sys/abi_compat.h>
 #endif
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/fcntl.h>
@@ -57,11 +58,10 @@
 #include <sys/proc.h>
 #include <sys/selinfo.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 #include <sys/tty.h>
 #include <sys/uio.h>
 
-#define HID_DEBUG_VAR	hidraw_debug
+#define HID_DEBUG_VAR hidraw_debug
 #include <dev/hid/hid.h>
 #include <dev/hid/hidbus.h>
 #include <dev/hid/hidraw.h>
@@ -70,25 +70,26 @@
 static int hidraw_debug = 0;
 static SYSCTL_NODE(_hw_hid, OID_AUTO, hidraw, CTLFLAG_RW, 0,
     "HID raw interface");
-SYSCTL_INT(_hw_hid_hidraw, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &hidraw_debug, 0, "Debug level");
+SYSCTL_INT(_hw_hid_hidraw, OID_AUTO, debug, CTLFLAG_RWTUN, &hidraw_debug, 0,
+    "Debug level");
 #endif
 
-#define	HIDRAW_INDEX		0xFF	/* Arbitrary high value */
+#define HIDRAW_INDEX 0xFF /* Arbitrary high value */
 
-#define	HIDRAW_LOCAL_BUFSIZE	64	/* Size of on-stack buffer. */
-#define	HIDRAW_LOCAL_ALLOC(local_buf, size)		\
-	(sizeof(local_buf) > (size) ? (local_buf) :	\
-	    malloc((size), M_DEVBUF, M_ZERO | M_WAITOK))
-#define	HIDRAW_LOCAL_FREE(local_buf, buf)		\
-	if ((local_buf) != (buf)) {			\
-		free((buf), M_DEVBUF);			\
+#define HIDRAW_LOCAL_BUFSIZE 64 /* Size of on-stack buffer. */
+#define HIDRAW_LOCAL_ALLOC(local_buf, size) \
+	(sizeof(local_buf) > (size) ?       \
+		(local_buf) :               \
+		malloc((size), M_DEVBUF, M_ZERO | M_WAITOK))
+#define HIDRAW_LOCAL_FREE(local_buf, buf) \
+	if ((local_buf) != (buf)) {       \
+		free((buf), M_DEVBUF);    \
 	}
 
 struct hidraw_softc {
-	device_t sc_dev;		/* base device */
+	device_t sc_dev; /* base device */
 
-	struct mtx sc_mtx;		/* hidbus private mutex */
+	struct mtx sc_mtx; /* hidbus private mutex */
 
 	struct hid_rdesc_info *sc_rdesc;
 	const struct hid_device_info *sc_hw;
@@ -101,24 +102,24 @@ struct hidraw_softc {
 
 	struct selinfo sc_rsel;
 	struct proc *sc_async;	/* process that wants SIGIO */
-	struct {			/* driver state */
-		bool	open:1;		/* device is open */
-		bool	aslp:1;		/* waiting for device data in read() */
-		bool	sel:1;		/* waiting for device data in poll() */
-		bool	quiet:1;	/* Ignore input data */
-		bool	immed:1;	/* return read data immediately */
-		bool	uhid:1;		/* driver switched in to uhid mode */
-		bool	lock:1;		/* input queue sleepable lock */
-		bool	flush:1;	/* do not wait for data in read() */
+	struct {		/* driver state */
+		bool open : 1;	/* device is open */
+		bool aslp : 1;	/* waiting for device data in read() */
+		bool sel : 1;	/* waiting for device data in poll() */
+		bool quiet : 1; /* Ignore input data */
+		bool immed : 1; /* return read data immediately */
+		bool uhid : 1;	/* driver switched in to uhid mode */
+		bool lock : 1;	/* input queue sleepable lock */
+		bool flush : 1; /* do not wait for data in read() */
 	} sc_state;
-	int sc_fflags;			/* access mode for open lifetime */
+	int sc_fflags; /* access mode for open lifetime */
 
 	struct cdev *dev;
 };
 
 #ifdef COMPAT_FREEBSD32
 struct hidraw_gen_descriptor32 {
-	uint32_t hgd_data;	/* void * */
+	uint32_t hgd_data; /* void * */
 	uint16_t hgd_lang_id;
 	uint16_t hgd_maxlen;
 	uint16_t hgd_actlen;
@@ -131,51 +132,51 @@ struct hidraw_gen_descriptor32 {
 	uint8_t hgd_report_type;
 	uint8_t reserved[8];
 };
-#define	HIDRAW_GET_REPORT_DESC32 \
-    _IOC_NEWTYPE(HIDRAW_GET_REPORT_DESC, struct hidraw_gen_descriptor32)
-#define	HIDRAW_GET_REPORT32 \
-    _IOC_NEWTYPE(HIDRAW_GET_REPORT, struct hidraw_gen_descriptor32)
-#define	HIDRAW_SET_REPORT_DESC32 \
-    _IOC_NEWTYPE(HIDRAW_SET_REPORT_DESC, struct hidraw_gen_descriptor32)
-#define	HIDRAW_SET_REPORT32 \
-    _IOC_NEWTYPE(HIDRAW_SET_REPORT, struct hidraw_gen_descriptor32)
+#define HIDRAW_GET_REPORT_DESC32 \
+	_IOC_NEWTYPE(HIDRAW_GET_REPORT_DESC, struct hidraw_gen_descriptor32)
+#define HIDRAW_GET_REPORT32 \
+	_IOC_NEWTYPE(HIDRAW_GET_REPORT, struct hidraw_gen_descriptor32)
+#define HIDRAW_SET_REPORT_DESC32 \
+	_IOC_NEWTYPE(HIDRAW_SET_REPORT_DESC, struct hidraw_gen_descriptor32)
+#define HIDRAW_SET_REPORT32 \
+	_IOC_NEWTYPE(HIDRAW_SET_REPORT, struct hidraw_gen_descriptor32)
 #endif
 
-static d_open_t		hidraw_open;
-static d_read_t		hidraw_read;
-static d_write_t	hidraw_write;
-static d_ioctl_t	hidraw_ioctl;
-static d_poll_t		hidraw_poll;
-static d_kqfilter_t	hidraw_kqfilter;
+static d_open_t hidraw_open;
+static d_read_t hidraw_read;
+static d_write_t hidraw_write;
+static d_ioctl_t hidraw_ioctl;
+static d_poll_t hidraw_poll;
+static d_kqfilter_t hidraw_kqfilter;
 
-static d_priv_dtor_t	hidraw_dtor;
+static d_priv_dtor_t hidraw_dtor;
 
 static struct cdevsw hidraw_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_open =	hidraw_open,
-	.d_read =	hidraw_read,
-	.d_write =	hidraw_write,
-	.d_ioctl =	hidraw_ioctl,
-	.d_poll =	hidraw_poll,
-	.d_kqfilter =	hidraw_kqfilter,
-	.d_name =	"hidraw",
+	.d_version = D_VERSION,
+	.d_open = hidraw_open,
+	.d_read = hidraw_read,
+	.d_write = hidraw_write,
+	.d_ioctl = hidraw_ioctl,
+	.d_poll = hidraw_poll,
+	.d_kqfilter = hidraw_kqfilter,
+	.d_name = "hidraw",
 };
 
-static hid_intr_t	hidraw_intr;
+static hid_intr_t hidraw_intr;
 
 static device_identify_t hidraw_identify;
-static device_probe_t	hidraw_probe;
-static device_attach_t	hidraw_attach;
-static device_detach_t	hidraw_detach;
+static device_probe_t hidraw_probe;
+static device_attach_t hidraw_attach;
+static device_detach_t hidraw_detach;
 
-static int		hidraw_kqread(struct knote *, long);
-static void		hidraw_kqdetach(struct knote *);
-static void		hidraw_notify(struct hidraw_softc *);
+static int hidraw_kqread(struct knote *, long);
+static void hidraw_kqdetach(struct knote *);
+static void hidraw_notify(struct hidraw_softc *);
 
 static struct filterops hidraw_filterops_read = {
-	.f_isfd =	1,
-	.f_detach =	hidraw_kqdetach,
-	.f_event =	hidraw_kqread,
+	.f_isfd = 1,
+	.f_detach = hidraw_kqdetach,
+	.f_event = hidraw_kqread,
 };
 
 static void
@@ -312,8 +313,8 @@ hidraw_lock_queue(struct hidraw_softc *sc, bool flush)
 			DPRINTFN(5, "waking %p\n", &sc->sc_q);
 			wakeup(&sc->sc_q);
 		}
-		error = mtx_sleep(&sc->sc_sleepcnt, &sc->sc_mtx,
-		    PZERO | PCATCH, "hidrawio", 0);
+		error = mtx_sleep(&sc->sc_sleepcnt, &sc->sc_mtx, PZERO | PCATCH,
+		    "hidrawio", 0);
 	}
 	--sc->sc_sleepcnt;
 	if (flush)
@@ -372,7 +373,7 @@ hidraw_open(struct cdev *dev, int flag, int mode, struct thread *td)
 	/* Set up interrupt pipe. */
 	sc->sc_state.immed = false;
 	sc->sc_async = 0;
-	sc->sc_state.uhid = false;	/* hidraw mode is default */
+	sc->sc_state.uhid = false; /* hidraw mode is default */
 	sc->sc_state.quiet = false;
 	sc->sc_head = sc->sc_tail = 0;
 	sc->sc_fflags = flag;
@@ -455,8 +456,9 @@ hidraw_read(struct cdev *dev, struct uio *uio, int flag)
 	}
 
 	while (sc->sc_tail != sc->sc_head && uio->uio_resid > 0) {
-		length = min(uio->uio_resid, sc->sc_state.uhid ?
-		    sc->sc_rdesc->isize : sc->sc_qlen[sc->sc_head]);
+		length = min(uio->uio_resid,
+		    sc->sc_state.uhid ? sc->sc_rdesc->isize :
+					sc->sc_qlen[sc->sc_head]);
 		mtx_unlock(&sc->sc_mtx);
 
 		/* Copy the data to the user process. */
@@ -652,10 +654,9 @@ hidraw_ioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flag,
 			update_hgd32(hgd, hgd32);
 #endif
 		if (hgd->hgd_data == NULL)
-			return (0);		/* descriptor length only */
+			return (0); /* descriptor length only */
 
 		return (copyout(sc->sc_rdesc->data, hgd->hgd_data, size));
-
 
 	case HIDRAW_SET_REPORT_DESC:
 		if (!(sc->sc_fflags & FWRITE))
@@ -689,8 +690,8 @@ hidraw_ioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flag,
 		/* Realloc hidraw input queue */
 		if (error == 0)
 			sc->sc_q = realloc(sc->sc_q,
-			    sc->sc_rdesc->rdsize * HIDRAW_BUFFER_SIZE,
-			    M_DEVBUF, M_ZERO | M_WAITOK);
+			    sc->sc_rdesc->rdsize * HIDRAW_BUFFER_SIZE, M_DEVBUF,
+			    M_ZERO | M_WAITOK);
 
 		/* Start interrupts again */
 		mtx_lock(&sc->sc_mtx);
@@ -792,7 +793,7 @@ hidraw_ioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flag,
 		return (error);
 
 	case HIDRAW_GET_REPORT_ID:
-		*(int *)addr = 0;	/* XXX: we only support reportid 0? */
+		*(int *)addr = 0; /* XXX: we only support reportid 0? */
 		return (0);
 
 	case HIDRAW_GET_DEVICEINFO:
@@ -802,15 +803,14 @@ hidraw_ioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flag,
 		hdi->hdi_vendor = sc->sc_hw->idVendor;
 		hdi->hdi_version = sc->sc_hw->idVersion;
 		hdi->hdi_bustype = sc->sc_hw->idBus;
-		strlcpy(hdi->hdi_name, sc->sc_hw->name,
-		    sizeof(hdi->hdi_name));
+		strlcpy(hdi->hdi_name, sc->sc_hw->name, sizeof(hdi->hdi_name));
 		strlcpy(hdi->hdi_phys, device_get_nameunit(sc->sc_dev),
 		    sizeof(hdi->hdi_phys));
 		strlcpy(hdi->hdi_uniq, sc->sc_hw->serial,
 		    sizeof(hdi->hdi_uniq));
 		snprintf(hdi->hdi_release, sizeof(hdi->hdi_release), "%x.%02x",
 		    sc->sc_hw->idVersion >> 8, sc->sc_hw->idVersion & 0xff);
-		return(0);
+		return (0);
 
 	case HIDIOCGRDESCSIZE:
 		*(int *)addr = sc->sc_hw->rdescsize;
@@ -928,7 +928,7 @@ hidraw_kqfilter(struct cdev *dev, struct knote *kn)
 	if (sc == NULL)
 		return (ENXIO);
 
-	switch(kn->kn_filter) {
+	switch (kn->kn_filter) {
 	case EVFILT_READ:
 		if (sc->sc_fflags & FREAD) {
 			kn->kn_fop = &hidraw_filterops_read;
@@ -936,7 +936,7 @@ hidraw_kqfilter(struct cdev *dev, struct knote *kn)
 		}
 		/* FALLTHROUGH */
 	default:
-		return(EINVAL);
+		return (EINVAL);
 	}
 	kn->kn_hook = sc;
 
@@ -998,19 +998,16 @@ hidraw_notify(struct hidraw_softc *sc)
 
 static device_method_t hidraw_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,	hidraw_identify),
-	DEVMETHOD(device_probe,		hidraw_probe),
-	DEVMETHOD(device_attach,	hidraw_attach),
-	DEVMETHOD(device_detach,	hidraw_detach),
+	DEVMETHOD(device_identify, hidraw_identify),
+	DEVMETHOD(device_probe, hidraw_probe),
+	DEVMETHOD(device_attach, hidraw_attach),
+	DEVMETHOD(device_detach, hidraw_detach),
 
 	DEVMETHOD_END
 };
 
-static driver_t hidraw_driver = {
-	"hidraw",
-	hidraw_methods,
-	sizeof(struct hidraw_softc)
-};
+static driver_t hidraw_driver = { "hidraw", hidraw_methods,
+	sizeof(struct hidraw_softc) };
 
 DRIVER_MODULE(hidraw, hidbus, hidraw_driver, NULL, NULL);
 MODULE_DEPEND(hidraw, hidbus, 1, 1, 1);

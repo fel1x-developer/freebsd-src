@@ -32,29 +32,31 @@
 
 #include <sys/types.h>
 #include <sys/sysctl.h>
+
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "libgeom.h"
 
 /*
  * Amount of extra space we allocate to try and anticipate the size of
  * confxml.
  */
-#define	GEOM_GETXML_SLACK	4096
+#define GEOM_GETXML_SLACK 4096
 
 /*
  * Number of times to retry in the face of the size of confxml exceeding
  * that of our buffer.
  */
-#define	GEOM_GETXML_RETRIES	4
+#define GEOM_GETXML_RETRIES 4
 
 /*
  * Size of confxml buffer to request via getxml control request.  It is
  * expected to be sufficient for single geom and its parents.  In case of
  * overflow fall back to requesting full confxml via sysctl interface.
  */
-#define	GEOM_GETXML_BUFFER	65536
+#define GEOM_GETXML_BUFFER 65536
 
 char *
 geom_getxml(void)

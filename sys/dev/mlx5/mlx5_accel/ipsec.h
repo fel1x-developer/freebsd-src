@@ -44,12 +44,12 @@ enum {
 	MLX5_ACCEL_IPSEC_LSO = BIT(4),
 };
 
-#define MLX5_IPSEC_SADB_IP_AH       BIT(7)
-#define MLX5_IPSEC_SADB_IP_ESP      BIT(6)
-#define MLX5_IPSEC_SADB_SA_VALID    BIT(5)
-#define MLX5_IPSEC_SADB_SPI_EN      BIT(4)
-#define MLX5_IPSEC_SADB_DIR_SX      BIT(3)
-#define MLX5_IPSEC_SADB_IPV6        BIT(2)
+#define MLX5_IPSEC_SADB_IP_AH BIT(7)
+#define MLX5_IPSEC_SADB_IP_ESP BIT(6)
+#define MLX5_IPSEC_SADB_SA_VALID BIT(5)
+#define MLX5_IPSEC_SADB_SPI_EN BIT(4)
+#define MLX5_IPSEC_SADB_DIR_SX BIT(3)
+#define MLX5_IPSEC_SADB_IPV6 BIT(2)
 
 enum {
 	MLX5_IPSEC_CMD_ADD_SA = 0,
@@ -62,8 +62,8 @@ enum mlx5_accel_ipsec_enc_mode {
 	MLX5_IPSEC_SADB_MODE_AES_GCM_256_AUTH_128 = 3,
 };
 
-#define MLX5_IPSEC_DEV(mdev) (mlx5_accel_ipsec_device_caps(mdev) & \
-			      MLX5_ACCEL_IPSEC_DEVICE)
+#define MLX5_IPSEC_DEV(mdev) \
+	(mlx5_accel_ipsec_device_caps(mdev) & MLX5_ACCEL_IPSEC_DEVICE)
 
 struct mlx5_accel_ipsec_sa {
 	__be32 cmd;
@@ -100,7 +100,7 @@ struct mlx5_accel_ipsec_sa {
  * context, to cleanup the context pointer
  */
 void *mlx5_accel_ipsec_sa_cmd_exec(struct mlx5_core_dev *mdev,
-				   struct mlx5_accel_ipsec_sa *cmd);
+    struct mlx5_accel_ipsec_sa *cmd);
 
 /**
  * mlx5_accel_ipsec_sa_cmd_wait - Wait for command execution completion
@@ -114,7 +114,7 @@ u32 mlx5_accel_ipsec_device_caps(struct mlx5_core_dev *mdev);
 
 unsigned int mlx5_accel_ipsec_counters_count(struct mlx5_core_dev *mdev);
 int mlx5_accel_ipsec_counters_read(struct mlx5_core_dev *mdev, u64 *counters,
-				   unsigned int count);
+    unsigned int count);
 
 int mlx5_accel_ipsec_init(struct mlx5_core_dev *mdev);
 void mlx5_accel_ipsec_cleanup(struct mlx5_core_dev *mdev);
@@ -123,15 +123,17 @@ void mlx5_accel_ipsec_cleanup(struct mlx5_core_dev *mdev);
 
 #define MLX5_IPSEC_DEV(mdev) false
 
-static inline int mlx5_accel_ipsec_init(struct mlx5_core_dev *mdev)
+static inline int
+mlx5_accel_ipsec_init(struct mlx5_core_dev *mdev)
 {
 	return 0;
 }
 
-static inline void mlx5_accel_ipsec_cleanup(struct mlx5_core_dev *mdev)
+static inline void
+mlx5_accel_ipsec_cleanup(struct mlx5_core_dev *mdev)
 {
 }
 
 #endif
 
-#endif	/* __MLX5_ACCEL_IPSEC_H__ */
+#endif /* __MLX5_ACCEL_IPSEC_H__ */

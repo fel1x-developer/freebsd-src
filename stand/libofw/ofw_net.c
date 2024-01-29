@@ -24,58 +24,56 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/socket.h>
 
 #include <net/if.h>
+#include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
-#include <netinet/if_ether.h>
 #include <netinet/ip.h>
 
-#include <stand.h>
 #include <net.h>
 #include <netif.h>
+#include <stand.h>
 
 #include "libofw.h"
 #include "openfirm.h"
 
-static int	ofwn_probe(struct netif *, void *);
-static int	ofwn_match(struct netif *, void *);
-static void	ofwn_init(struct iodesc *, void *);
-static ssize_t	ofwn_get(struct iodesc *, void **, time_t);
-static ssize_t	ofwn_put(struct iodesc *, void *, size_t);
-static void	ofwn_end(struct netif *);
+static int ofwn_probe(struct netif *, void *);
+static int ofwn_match(struct netif *, void *);
+static void ofwn_init(struct iodesc *, void *);
+static ssize_t ofwn_get(struct iodesc *, void **, time_t);
+static ssize_t ofwn_put(struct iodesc *, void *, size_t);
+static void ofwn_end(struct netif *);
 
-extern struct netif_stats	ofwn_stats[];
+extern struct netif_stats ofwn_stats[];
 
 struct netif_dif ofwn_ifs[] = {
 	{
-		.dif_unit=0,
-		.dif_nsel=1,
-		.dif_stats=&ofwn_stats[0],
-		.dif_private=0,
+	    .dif_unit = 0,
+	    .dif_nsel = 1,
+	    .dif_stats = &ofwn_stats[0],
+	    .dif_private = 0,
 	},
 };
 
 struct netif_stats ofwn_stats[nitems(ofwn_ifs)];
 
-struct netif_driver ofwnet = {
-	.netif_bname="net",
-	.netif_match=ofwn_match,
-	.netif_probe=ofwn_probe,
-	.netif_init=ofwn_init,
-	.netif_get=ofwn_get,
-	.netif_put=ofwn_put,
-	.netif_end=ofwn_end,
-	.netif_ifs=ofwn_ifs,
-	.netif_nifs=nitems(ofwn_ifs)
-};
+struct netif_driver ofwnet = { .netif_bname = "net",
+	.netif_match = ofwn_match,
+	.netif_probe = ofwn_probe,
+	.netif_init = ofwn_init,
+	.netif_get = ofwn_get,
+	.netif_put = ofwn_put,
+	.netif_end = ofwn_end,
+	.netif_ifs = ofwn_ifs,
+	.netif_nifs = nitems(ofwn_ifs) };
 
-static ihandle_t	netinstance;
+static ihandle_t netinstance;
 
-static void		*dmabuf;
+static void *dmabuf;
 
 static int
 ofwn_match(struct netif *nif, void *machdep_hint)
@@ -92,11 +90,11 @@ ofwn_probe(struct netif *nif, void *machdep_hint)
 static ssize_t
 ofwn_put(struct iodesc *desc, void *pkt, size_t len)
 {
-	size_t			sendlen;
-	ssize_t			rv;
+	size_t sendlen;
+	ssize_t rv;
 
 #if defined(NETIF_DEBUG)
-	struct ether_header	*eh;
+	struct ether_header *eh;
 	printf("netif_put: desc=0x%x pkt=0x%x len=%d\n", desc, pkt, len);
 	eh = pkt;
 	printf("dst: %s ", ether_sprintf(eh->ether_dhost));
@@ -129,10 +127,10 @@ ofwn_put(struct iodesc *desc, void *pkt, size_t len)
 static ssize_t
 ofwn_get(struct iodesc *desc, void **pkt, time_t timeout)
 {
-	time_t	t;
-	ssize_t	length;
-	size_t	len;
-	char	*buf, *ptr;
+	time_t t;
+	ssize_t length;
+	size_t len;
+	char *buf, *ptr;
 
 #if defined(NETIF_DEBUG)
 	printf("netif_get: pkt=%p, timeout=%d\n", pkt, timeout);
@@ -152,8 +150,7 @@ ofwn_get(struct iodesc *desc, void **pkt, time_t timeout)
 	t = getsecs();
 	do {
 		length = OF_read(netinstance, ptr, len);
-	} while ((length == -2 || length == 0) &&
-		(getsecs() - t < timeout));
+	} while ((length == -2 || length == 0) && (getsecs() - t < timeout));
 
 #if defined(NETIF_DEBUG)
 	printf("netif_get: received length=%d (%x)\n", length, length);
@@ -169,9 +166,9 @@ ofwn_get(struct iodesc *desc, void **pkt, time_t timeout)
 		char *ch = ptr;
 		int i;
 
-		for(i = 0; i < 96; i += 4) {
-			printf("%02x%02x%02x%02x  ", ch[i], ch[i+1],
-			    ch[i+2], ch[i+3]);
+		for (i = 0; i < 96; i += 4) {
+			printf("%02x%02x%02x%02x  ", ch[i], ch[i + 1],
+			    ch[i + 2], ch[i + 3]);
 		}
 		printf("\n");
 	}
@@ -194,10 +191,10 @@ ofwn_get(struct iodesc *desc, void **pkt, time_t timeout)
 static void
 ofwn_init(struct iodesc *desc, void *machdep_hint)
 {
-	phandle_t	netdev;
-	char		path[64];
-	char		*ch;
-	int		pathlen;
+	phandle_t netdev;
+	char path[64];
+	char *ch;
+	int pathlen;
 
 	pathlen = OF_getprop(chosen, "bootpath", path, 64);
 	if ((ch = strchr(path, ':')) != NULL)
@@ -217,8 +214,8 @@ ofwn_init(struct iodesc *desc, void *machdep_hint)
 	printf("ofwn_init: Open Firmware instance handle: %08x\n", netinstance);
 #endif
 	dmabuf = NULL;
-	if (OF_call_method("dma-alloc", netinstance, 1, 1, (64 * 1024), &dmabuf)
-	    < 0) {
+	if (OF_call_method("dma-alloc", netinstance, 1, 1, (64 * 1024),
+		&dmabuf) < 0) {
 		printf("Failed to allocate DMA buffer (got %p).\n", dmabuf);
 		goto punt;
 	}
@@ -288,7 +285,8 @@ struct devsw ofw_netdev = {
 	.dv_parsedev = ofwnd_parsedev,
 };
 
-static int ofwnd_init(void)
+static int
+ofwnd_init(void)
 {
 	netdev.dv_init();
 	ofw_netdev.dv_strategy = netdev.dv_strategy;

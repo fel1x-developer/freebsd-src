@@ -31,30 +31,30 @@
 
 #include <sys/param.h>
 
-#define	UTRACE_DLOPEN_START		1
-#define	UTRACE_DLOPEN_STOP		2
-#define	UTRACE_DLCLOSE_START		3
-#define	UTRACE_DLCLOSE_STOP		4
-#define	UTRACE_LOAD_OBJECT		5
-#define	UTRACE_UNLOAD_OBJECT		6
-#define	UTRACE_ADD_RUNDEP		7
-#define	UTRACE_PRELOAD_FINISHED		8
-#define	UTRACE_INIT_CALL		9
-#define	UTRACE_FINI_CALL		10
-#define	UTRACE_DLSYM_START		11
-#define	UTRACE_DLSYM_STOP		12
-#define	UTRACE_RTLD_ERROR		13
+#define UTRACE_DLOPEN_START 1
+#define UTRACE_DLOPEN_STOP 2
+#define UTRACE_DLCLOSE_START 3
+#define UTRACE_DLCLOSE_STOP 4
+#define UTRACE_LOAD_OBJECT 5
+#define UTRACE_UNLOAD_OBJECT 6
+#define UTRACE_ADD_RUNDEP 7
+#define UTRACE_PRELOAD_FINISHED 8
+#define UTRACE_INIT_CALL 9
+#define UTRACE_FINI_CALL 10
+#define UTRACE_DLSYM_START 11
+#define UTRACE_DLSYM_STOP 12
+#define UTRACE_RTLD_ERROR 13
 
-#define	RTLD_UTRACE_SIG_SZ		4
-#define	RTLD_UTRACE_SIG			"RTLD"
+#define RTLD_UTRACE_SIG_SZ 4
+#define RTLD_UTRACE_SIG "RTLD"
 
 struct utrace_rtld {
 	char sig[RTLD_UTRACE_SIG_SZ];
 	int event;
 	void *handle;
-	void *mapbase;			/* Used for 'parent' and 'init/fini' */
+	void *mapbase; /* Used for 'parent' and 'init/fini' */
 	size_t mapsize;
-	int refcnt;			/* Used for 'mode' */
+	int refcnt; /* Used for 'mode' */
 	char name[MAXPATHLEN];
 };
 

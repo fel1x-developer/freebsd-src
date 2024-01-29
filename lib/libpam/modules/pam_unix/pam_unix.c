@@ -39,20 +39,20 @@
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/time.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 
+#include <netinet/in.h>
+
+#include <arpa/inet.h>
+#include <libutil.h>
 #include <login_cap.h>
 #include <netdb.h>
 #include <pwd.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 #include <syslog.h>
 #include <time.h>
 #include <unistd.h>
-
-#include <libutil.h>
 
 #ifdef YP
 #include <ypclnt.h>
@@ -60,32 +60,32 @@
 
 #define PAM_SM_AUTH
 #define PAM_SM_ACCOUNT
-#define	PAM_SM_PASSWORD
+#define PAM_SM_PASSWORD
 
 #include <security/pam_appl.h>
-#include <security/pam_modules.h>
 #include <security/pam_mod_misc.h>
+#include <security/pam_modules.h>
 
-#define PASSWORD_HASH		"md5"
-#define DEFAULT_WARN		(2L * 7L * 86400L)  /* Two weeks */
-#define	SALTSIZE		32
+#define PASSWORD_HASH "md5"
+#define DEFAULT_WARN (2L * 7L * 86400L) /* Two weeks */
+#define SALTSIZE 32
 
-#define	LOCKED_PREFIX		"*LOCKED*"
-#define	LOCKED_PREFIX_LEN	(sizeof(LOCKED_PREFIX) - 1)
+#define LOCKED_PREFIX "*LOCKED*"
+#define LOCKED_PREFIX_LEN (sizeof(LOCKED_PREFIX) - 1)
 
-static void makesalt(char [SALTSIZE + 1]);
+static void makesalt(char[SALTSIZE + 1]);
 
-static char password_hash[] =		PASSWORD_HASH;
+static char password_hash[] = PASSWORD_HASH;
 
-#define PAM_OPT_LOCAL_PASS	"local_pass"
-#define PAM_OPT_NIS_PASS	"nis_pass"
+#define PAM_OPT_LOCAL_PASS "local_pass"
+#define PAM_OPT_NIS_PASS "nis_pass"
 
 /*
  * authentication management
  */
 PAM_EXTERN int
-pam_sm_authenticate(pam_handle_t *pamh, int flags,
-    int argc __unused, const char *argv[] __unused)
+pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc __unused,
+    const char *argv[] __unused)
 {
 	login_cap_t *lc;
 	struct passwd *pwd;
@@ -158,8 +158,8 @@ pam_sm_setcred(pam_handle_t *pamh __unused, int flags __unused,
  * account management
  */
 PAM_EXTERN int
-pam_sm_acct_mgmt(pam_handle_t *pamh, int flags __unused,
-    int argc __unused, const char *argv[] __unused)
+pam_sm_acct_mgmt(pam_handle_t *pamh, int flags __unused, int argc __unused,
+    const char *argv[] __unused)
 {
 	struct addrinfo hints, *res;
 	struct passwd *pwd;
@@ -188,8 +188,7 @@ pam_sm_acct_mgmt(pam_handle_t *pamh, int flags __unused,
 	if (retval != PAM_SUCCESS)
 		return (retval);
 
-	if (*pwd->pw_passwd == '\0' &&
-	    (flags & PAM_DISALLOW_NULL_AUTHTOK) != 0)
+	if (*pwd->pw_passwd == '\0' && (flags & PAM_DISALLOW_NULL_AUTHTOK) != 0)
 		return (PAM_NEW_AUTHTOK_REQD);
 
 	if (strncmp(pwd->pw_passwd, LOCKED_PREFIX, LOCKED_PREFIX_LEN) == 0)
@@ -212,8 +211,8 @@ pam_sm_acct_mgmt(pam_handle_t *pamh, int flags __unused,
 	 */
 
 	if (pwd->pw_expire) {
-		warntime = login_getcaptime(lc, "warnexpire",
-		    DEFAULT_WARN, DEFAULT_WARN);
+		warntime = login_getcaptime(lc, "warnexpire", DEFAULT_WARN,
+		    DEFAULT_WARN);
 		if (tp.tv_sec >= pwd->pw_expire) {
 			login_close(lc);
 			return (PAM_ACCT_EXPIRED);
@@ -226,8 +225,8 @@ pam_sm_acct_mgmt(pam_handle_t *pamh, int flags __unused,
 
 	retval = PAM_SUCCESS;
 	if (pwd->pw_change) {
-		warntime = login_getcaptime(lc, "warnpassword",
-		    DEFAULT_WARN, DEFAULT_WARN);
+		warntime = login_getcaptime(lc, "warnpassword", DEFAULT_WARN,
+		    DEFAULT_WARN);
 		if (tp.tv_sec >= pwd->pw_change) {
 			retval = PAM_NEW_AUTHTOK_REQD;
 		} else if (pwd->pw_change - tp.tv_sec < warntime &&
@@ -248,9 +247,8 @@ pam_sm_acct_mgmt(pam_handle_t *pamh, int flags __unused,
 		memset(&hints, 0, sizeof(hints));
 		hints.ai_family = AF_UNSPEC;
 		if (getaddrinfo(rhost, NULL, &hints, &res) == 0) {
-			getnameinfo(res->ai_addr, res->ai_addrlen,
-			    rhostip, sizeof(rhostip), NULL, 0,
-			    NI_NUMERICHOST);
+			getnameinfo(res->ai_addr, res->ai_addrlen, rhostip,
+			    sizeof(rhostip), NULL, 0, NI_NUMERICHOST);
 		}
 		if (res != NULL)
 			freeaddrinfo(res);
@@ -260,8 +258,7 @@ pam_sm_acct_mgmt(pam_handle_t *pamh, int flags __unused,
 	 * Check host / tty / time-of-day restrictions
 	 */
 
-	if (!auth_hostok(lc, rhost, rhostip) ||
-	    !auth_ttyok(lc, tty) ||
+	if (!auth_hostok(lc, rhost, rhostip) || !auth_ttyok(lc, tty) ||
 	    !auth_timeok(lc, time(NULL)))
 		retval = PAM_AUTH_ERR;
 
@@ -276,8 +273,8 @@ pam_sm_acct_mgmt(pam_handle_t *pamh, int flags __unused,
  * standard Unix and NIS password changing
  */
 PAM_EXTERN int
-pam_sm_chauthtok(pam_handle_t *pamh, int flags,
-    int argc __unused, const char *argv[] __unused)
+pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc __unused,
+    const char *argv[] __unused)
 {
 #ifdef YP
 	struct ypclnt *ypclnt;
@@ -321,7 +318,8 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags,
 			(void)pam_get_data(pamh, "yp_domain", &yp_domain);
 			(void)pam_get_data(pamh, "yp_server", &yp_server);
 
-			ypclnt = ypclnt_new(yp_domain, "passwd.byname", yp_server);
+			ypclnt = ypclnt_new(yp_domain, "passwd.byname",
+			    yp_server);
 			if (ypclnt == NULL)
 				return (PAM_BUF_ERR);
 
@@ -338,8 +336,8 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags,
 				return (PAM_SERVICE_ERR);
 		}
 #endif
-		if (pwd->pw_passwd[0] == '\0'
-		    && openpam_get_option(pamh, PAM_OPT_NULLOK)) {
+		if (pwd->pw_passwd[0] == '\0' &&
+		    openpam_get_option(pamh, PAM_OPT_NULLOK)) {
 			/*
 			 * No password case. XXX Are we giving too much away
 			 * by not prompting for a password?
@@ -348,8 +346,8 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags,
 			old_pass = "";
 			retval = PAM_SUCCESS;
 		} else {
-			retval = pam_get_authtok(pamh,
-			    PAM_OLDAUTHTOK, &old_pass, NULL);
+			retval = pam_get_authtok(pamh, PAM_OLDAUTHTOK,
+			    &old_pass, NULL);
 			if (retval != PAM_SUCCESS)
 				return (retval);
 		}
@@ -361,20 +359,18 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags,
 			return (PAM_PERM_DENIED);
 		if (strcmp(encrypted, pwd->pw_passwd) != 0)
 			return (PAM_PERM_DENIED);
-	}
-	else if (flags & PAM_UPDATE_AUTHTOK) {
+	} else if (flags & PAM_UPDATE_AUTHTOK) {
 		PAM_LOG("UPDATE round");
 
-		retval = pam_get_authtok(pamh,
-		    PAM_OLDAUTHTOK, &old_pass, NULL);
+		retval = pam_get_authtok(pamh, PAM_OLDAUTHTOK, &old_pass, NULL);
 		if (retval != PAM_SUCCESS)
 			return (retval);
 		PAM_LOG("Got old password");
 
 		/* get new password */
 		for (;;) {
-			retval = pam_get_authtok(pamh,
-			    PAM_AUTHTOK, &new_pass, NULL);
+			retval = pam_get_authtok(pamh, PAM_AUTHTOK, &new_pass,
+			    NULL);
 			if (retval != PAM_TRY_AGAIN)
 				break;
 			pam_error(pamh, "Mismatch; try again, EOF to quit.");
@@ -396,13 +392,13 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags,
 		if (login_setcryptfmt(lc, password_hash, NULL) == NULL)
 			openpam_log(PAM_LOG_ERROR,
 			    "can't set password cipher, relying on default");
-		
+
 		/* set password expiry date */
 		pwd->pw_change = 0;
 		passwordtime = login_getcaptime(lc, "passwordtime", 0, 0);
 		if (passwordtime > 0)
 			pwd->pw_change = time(NULL) + passwordtime;
-		
+
 		login_close(lc);
 		makesalt(salt);
 		pwd->pw_passwd = crypt(new_pass, salt);
@@ -430,8 +426,8 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags,
 			yp_domain = yp_server = NULL;
 			(void)pam_get_data(pamh, "yp_domain", &yp_domain);
 			(void)pam_get_data(pamh, "yp_server", &yp_server);
-			ypclnt = ypclnt_new(yp_domain,
-			    "passwd.byname", yp_server);
+			ypclnt = ypclnt_new(yp_domain, "passwd.byname",
+			    yp_server);
 			if (ypclnt == NULL) {
 				retval = PAM_BUF_ERR;
 			} else if (ypclnt_connect(ypclnt) == -1 ||
@@ -450,8 +446,7 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags,
 		}
 #endif
 		free(old_pwd);
-	}
-	else {
+	} else {
 		/* Very bad juju */
 		retval = PAM_ABORT;
 		PAM_LOG("Illegal 'flags'");
@@ -462,14 +457,14 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags,
 
 /* Mostly stolen from passwd(1)'s local_passwd.c - markm */
 
-static unsigned char itoa64[] =		/* 0 ... 63 => ascii - 64 */
-	"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+static unsigned char itoa64[] = /* 0 ... 63 => ascii - 64 */
+    "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 static void
 to64(char *s, long v, int n)
 {
 	while (--n >= 0) {
-		*s++ = itoa64[v&0x3f];
+		*s++ = itoa64[v & 0x3f];
 		v >>= 6;
 	}
 }

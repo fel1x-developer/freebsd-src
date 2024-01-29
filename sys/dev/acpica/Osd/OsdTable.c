@@ -33,12 +33,12 @@
 #include <sys/kernel.h>
 #include <sys/linker.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
 #include <contrib/dev/acpica/include/aclocal.h>
+#include <contrib/dev/acpica/include/acpi.h>
 #include <contrib/dev/acpica/include/actables.h>
 
 #undef _COMPONENT
-#define	_COMPONENT      ACPI_TABLES
+#define _COMPONENT ACPI_TABLES
 
 static char acpi_osname[128];
 TUNABLE_STR("hw.acpi.osname", acpi_osname, sizeof(acpi_osname));

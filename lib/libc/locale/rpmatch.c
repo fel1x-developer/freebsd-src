@@ -36,9 +36,9 @@ rpmatch(const char *response)
 	regex_t yes, no;
 	int ret;
 
-	if (regcomp(&yes, nl_langinfo(YESEXPR), REG_EXTENDED|REG_NOSUB) != 0)
+	if (regcomp(&yes, nl_langinfo(YESEXPR), REG_EXTENDED | REG_NOSUB) != 0)
 		return (-1);
-	if (regcomp(&no, nl_langinfo(NOEXPR), REG_EXTENDED|REG_NOSUB) != 0) {
+	if (regcomp(&no, nl_langinfo(NOEXPR), REG_EXTENDED | REG_NOSUB) != 0) {
 		regfree(&yes);
 		return (-1);
 	}

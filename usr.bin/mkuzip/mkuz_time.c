@@ -25,6 +25,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <math.h>
 #include <stdint.h>
 #include <time.h>
@@ -34,10 +35,10 @@
 double
 getdtime(void)
 {
-    struct timespec tp;
+	struct timespec tp;
 
-    if (clock_gettime(CLOCK_MONOTONIC, &tp) == -1)
-        return (-1);
+	if (clock_gettime(CLOCK_MONOTONIC, &tp) == -1)
+		return (-1);
 
-    return timespec2dtime(&tp);
+	return timespec2dtime(&tp);
 }

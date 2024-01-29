@@ -30,7 +30,7 @@ void igc_config_collision_dist(struct igc_hw *hw);
 int igc_rar_set(struct igc_hw *hw, u8 *addr, u32 index);
 u32 igc_hash_mc_addr(struct igc_hw *hw, u8 *mc_addr);
 void igc_update_mc_addr_list(struct igc_hw *hw, u8 *mc_addr_list,
-			       u32 mc_addr_count);
+    u32 mc_addr_count);
 s32 igc_check_reset_block(struct igc_hw *hw);
 s32 igc_get_cable_length(struct igc_hw *hw);
 s32 igc_validate_mdi_setting(struct igc_hw *hw);

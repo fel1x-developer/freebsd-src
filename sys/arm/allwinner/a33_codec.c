@@ -26,133 +26,130 @@
  * SUCH DAMAGE.
  */
 
+#include "opt_snd.h"
+
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/gpio.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/rman.h>
 #include <sys/resource.h>
-#include <machine/bus.h>
-#include <sys/gpio.h>
+#include <sys/rman.h>
 
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
+#include <machine/bus.h>
 
 #include <dev/clk/clk.h>
-#include <dev/hwreset/hwreset.h>
-
 #include <dev/gpio/gpiobusvar.h>
-
-#include "opt_snd.h"
-#include <dev/sound/pcm/sound.h>
+#include <dev/hwreset/hwreset.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
 #include <dev/sound/fdt/audio_dai.h>
+#include <dev/sound/pcm/sound.h>
+
 #include "audio_dai_if.h"
 
-#define	SYSCLK_CTL		0x00c
-#define	 AIF1CLK_ENA			(1 << 11)
-#define	 AIF1CLK_SRC_MASK		(3 << 8)
-#define	 AIF1CLK_SRC_PLL		(2 << 8)
-#define	 SYSCLK_ENA			(1 << 3)
-#define	 SYSCLK_SRC			(1 << 0)
+#define SYSCLK_CTL 0x00c
+#define AIF1CLK_ENA (1 << 11)
+#define AIF1CLK_SRC_MASK (3 << 8)
+#define AIF1CLK_SRC_PLL (2 << 8)
+#define SYSCLK_ENA (1 << 3)
+#define SYSCLK_SRC (1 << 0)
 
-#define	MOD_CLK_ENA		0x010
-#define	MOD_RST_CTL		0x014
-#define	MOD_AIF1			(1 << 15)
-#define	MOD_ADC				(1 << 3)
-#define	MOD_DAC				(1 << 2)
+#define MOD_CLK_ENA 0x010
+#define MOD_RST_CTL 0x014
+#define MOD_AIF1 (1 << 15)
+#define MOD_ADC (1 << 3)
+#define MOD_DAC (1 << 2)
 
-#define	SYS_SR_CTRL		0x018
-#define	 AIF1_FS_MASK		(0xf << 12)
-#define	  AIF_FS_48KHZ		(8 << 12)
+#define SYS_SR_CTRL 0x018
+#define AIF1_FS_MASK (0xf << 12)
+#define AIF_FS_48KHZ (8 << 12)
 
-#define	AIF1CLK_CTRL		0x040
-#define	 AIF1_MSTR_MOD		(1 << 15)
-#define	 AIF1_BCLK_INV		(1 << 14)
-#define	 AIF1_LRCK_INV		(1 << 13)
-#define	 AIF1_BCLK_DIV_MASK	(0xf << 9)
-#define	  AIF1_BCLK_DIV_16	(6 << 9)
-#define	 AIF1_LRCK_DIV_MASK	(7 << 6)
-#define	  AIF1_LRCK_DIV_16	(0 << 6)
-#define	  AIF1_LRCK_DIV_64	(2 << 6)
-#define	 AIF1_WORD_SIZ_MASK	(3 << 4)
-#define	  AIF1_WORD_SIZ_16	(1 << 4)
-#define	 AIF1_DATA_FMT_MASK	(3 << 2)
-#define	  AIF1_DATA_FMT_I2S	(0 << 2)
-#define	  AIF1_DATA_FMT_LJ	(1 << 2)
-#define	  AIF1_DATA_FMT_RJ	(2 << 2)
-#define	  AIF1_DATA_FMT_DSP	(3 << 2)
+#define AIF1CLK_CTRL 0x040
+#define AIF1_MSTR_MOD (1 << 15)
+#define AIF1_BCLK_INV (1 << 14)
+#define AIF1_LRCK_INV (1 << 13)
+#define AIF1_BCLK_DIV_MASK (0xf << 9)
+#define AIF1_BCLK_DIV_16 (6 << 9)
+#define AIF1_LRCK_DIV_MASK (7 << 6)
+#define AIF1_LRCK_DIV_16 (0 << 6)
+#define AIF1_LRCK_DIV_64 (2 << 6)
+#define AIF1_WORD_SIZ_MASK (3 << 4)
+#define AIF1_WORD_SIZ_16 (1 << 4)
+#define AIF1_DATA_FMT_MASK (3 << 2)
+#define AIF1_DATA_FMT_I2S (0 << 2)
+#define AIF1_DATA_FMT_LJ (1 << 2)
+#define AIF1_DATA_FMT_RJ (2 << 2)
+#define AIF1_DATA_FMT_DSP (3 << 2)
 
-#define	AIF1_ADCDAT_CTRL	0x044
-#define		AIF1_ADC0L_ENA		(1 << 15)
-#define		AIF1_ADC0R_ENA		(1 << 14)
+#define AIF1_ADCDAT_CTRL 0x044
+#define AIF1_ADC0L_ENA (1 << 15)
+#define AIF1_ADC0R_ENA (1 << 14)
 
-#define	AIF1_DACDAT_CTRL	0x048
-#define	 AIF1_DAC0L_ENA		(1 << 15)
-#define	 AIF1_DAC0R_ENA		(1 << 14)
+#define AIF1_DACDAT_CTRL 0x048
+#define AIF1_DAC0L_ENA (1 << 15)
+#define AIF1_DAC0R_ENA (1 << 14)
 
-#define	AIF1_MXR_SRC		0x04c
-#define		AIF1L_MXR_SRC_MASK	(0xf << 12)
-#define		AIF1L_MXR_SRC_AIF1	(0x8 << 12)
-#define		AIF1L_MXR_SRC_ADC	(0x2 << 12)
-#define		AIF1R_MXR_SRC_MASK	(0xf << 8)
-#define		AIF1R_MXR_SRC_AIF1	(0x8 << 8)
-#define		AIF1R_MXR_SRC_ADC	(0x2 << 8)
+#define AIF1_MXR_SRC 0x04c
+#define AIF1L_MXR_SRC_MASK (0xf << 12)
+#define AIF1L_MXR_SRC_AIF1 (0x8 << 12)
+#define AIF1L_MXR_SRC_ADC (0x2 << 12)
+#define AIF1R_MXR_SRC_MASK (0xf << 8)
+#define AIF1R_MXR_SRC_AIF1 (0x8 << 8)
+#define AIF1R_MXR_SRC_ADC (0x2 << 8)
 
-#define	ADC_DIG_CTRL		0x100
-#define	 ADC_DIG_CTRL_ENAD	(1 << 15)
+#define ADC_DIG_CTRL 0x100
+#define ADC_DIG_CTRL_ENAD (1 << 15)
 
-#define	HMIC_CTRL1		0x110
-#define	 HMIC_CTRL1_N_MASK		(0xf << 8)
-#define	 HMIC_CTRL1_N(n)		(((n) & 0xf) << 8)
-#define	 HMIC_CTRL1_JACK_IN_IRQ_EN	(1 << 4)
-#define	 HMIC_CTRL1_JACK_OUT_IRQ_EN	(1 << 3)
-#define	 HMIC_CTRL1_MIC_DET_IRQ_EN	(1 << 0)
+#define HMIC_CTRL1 0x110
+#define HMIC_CTRL1_N_MASK (0xf << 8)
+#define HMIC_CTRL1_N(n) (((n) & 0xf) << 8)
+#define HMIC_CTRL1_JACK_IN_IRQ_EN (1 << 4)
+#define HMIC_CTRL1_JACK_OUT_IRQ_EN (1 << 3)
+#define HMIC_CTRL1_MIC_DET_IRQ_EN (1 << 0)
 
-#define	HMIC_CTRL2		0x114
-#define	 HMIC_CTRL2_MDATA_THRES	__BITS(12,8)
+#define HMIC_CTRL2 0x114
+#define HMIC_CTRL2_MDATA_THRES __BITS(12, 8)
 
-#define	HMIC_STS		0x118
-#define	 HMIC_STS_MIC_PRESENT	(1 << 6)
-#define	 HMIC_STS_JACK_DET_OIRQ	(1 << 4)
-#define	 HMIC_STS_JACK_DET_IIRQ	(1 << 3)
-#define	 HMIC_STS_MIC_DET_ST	(1 << 0)
+#define HMIC_STS 0x118
+#define HMIC_STS_MIC_PRESENT (1 << 6)
+#define HMIC_STS_JACK_DET_OIRQ (1 << 4)
+#define HMIC_STS_JACK_DET_IIRQ (1 << 3)
+#define HMIC_STS_MIC_DET_ST (1 << 0)
 
-#define	DAC_DIG_CTRL		0x120
-#define	 DAC_DIG_CTRL_ENDA	(1 << 15)
+#define DAC_DIG_CTRL 0x120
+#define DAC_DIG_CTRL_ENDA (1 << 15)
 
-#define	DAC_MXR_SRC		0x130
-#define	 DACL_MXR_SRC_MASK		(0xf << 12)
-#define	  DACL_MXR_SRC_AIF1_DAC0L (0x8 << 12)
-#define	 DACR_MXR_SRC_MASK		(0xf << 8)
-#define	  DACR_MXR_SRC_AIF1_DAC0R (0x8 << 8)
+#define DAC_MXR_SRC 0x130
+#define DACL_MXR_SRC_MASK (0xf << 12)
+#define DACL_MXR_SRC_AIF1_DAC0L (0x8 << 12)
+#define DACR_MXR_SRC_MASK (0xf << 8)
+#define DACR_MXR_SRC_AIF1_DAC0R (0x8 << 8)
 
 static struct ofw_compat_data compat_data[] = {
-	{ "allwinner,sun8i-a33-codec",	1},
-	{ NULL,				0 }
+	{ "allwinner,sun8i-a33-codec", 1 }, { NULL, 0 }
 };
 
-static struct resource_spec sun8i_codec_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ SYS_RES_IRQ,		0,	RF_ACTIVE | RF_SHAREABLE },
-	{ -1, 0 }
-};
+static struct resource_spec sun8i_codec_spec[] = { { SYS_RES_MEMORY, 0,
+						       RF_ACTIVE },
+	{ SYS_RES_IRQ, 0, RF_ACTIVE | RF_SHAREABLE }, { -1, 0 } };
 
 struct sun8i_codec_softc {
-	device_t	dev;
-	struct resource	*res[2];
-	struct mtx	mtx;
-	clk_t		clk_gate;
-	clk_t		clk_mod;
-	void *		intrhand;
+	device_t dev;
+	struct resource *res[2];
+	struct mtx mtx;
+	clk_t clk_gate;
+	clk_t clk_mod;
+	void *intrhand;
 };
 
-#define	CODEC_LOCK(sc)			mtx_lock(&(sc)->mtx)
-#define	CODEC_UNLOCK(sc)		mtx_unlock(&(sc)->mtx)
-#define	CODEC_READ(sc, reg)		bus_read_4((sc)->res[0], (reg))
-#define	CODEC_WRITE(sc, reg, val)	bus_write_4((sc)->res[0], (reg), (val))
+#define CODEC_LOCK(sc) mtx_lock(&(sc)->mtx)
+#define CODEC_UNLOCK(sc) mtx_unlock(&(sc)->mtx)
+#define CODEC_READ(sc, reg) bus_read_4((sc)->res[0], (reg))
+#define CODEC_WRITE(sc, reg, val) bus_write_4((sc)->res[0], (reg), (val))
 
 static int sun8i_codec_probe(device_t dev);
 static int sun8i_codec_attach(device_t dev);
@@ -268,7 +265,7 @@ sun8i_codec_attach(device_t dev)
 	/* Enable PA power */
 	/* Unmute PA */
 	if (gpio_pin_get_by_ofw_property(dev, node, "allwinner,pa-gpios",
-	    &pa_pin) == 0) {
+		&pa_pin) == 0) {
 		error = gpio_pin_set_active(pa_pin, 1);
 		if (error != 0)
 			device_printf(dev, "failed to unmute PA\n");
@@ -339,7 +336,7 @@ sun8i_codec_dai_init(device_t dev, uint32_t format)
 		return EINVAL;
 	}
 
-	val &= ~(AIF1_BCLK_INV|AIF1_LRCK_INV);
+	val &= ~(AIF1_BCLK_INV | AIF1_LRCK_INV);
 	/* Codec LRCK polarity is inverted (datasheet is wrong) */
 	if (!AUDIO_DAI_POLARITY_INVERTED_FRAME(pol))
 		val |= AIF1_LRCK_INV;
@@ -348,10 +345,10 @@ sun8i_codec_dai_init(device_t dev, uint32_t format)
 
 	switch (clk) {
 	case AUDIO_DAI_CLOCK_CBM_CFM:
-		val &= ~AIF1_MSTR_MOD;	/* codec is master */
+		val &= ~AIF1_MSTR_MOD; /* codec is master */
 		break;
 	case AUDIO_DAI_CLOCK_CBS_CFS:
-		val |= AIF1_MSTR_MOD;	/* codec is slave */
+		val |= AIF1_MSTR_MOD; /* codec is slave */
 		break;
 	default:
 		return EINVAL;
@@ -383,16 +380,15 @@ sun8i_codec_dai_setup_mixer(device_t dev, device_t pcmdev)
 	return (0);
 }
 
-
 static device_method_t sun8i_codec_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		sun8i_codec_probe),
-	DEVMETHOD(device_attach,	sun8i_codec_attach),
-	DEVMETHOD(device_detach,	sun8i_codec_detach),
+	DEVMETHOD(device_probe, sun8i_codec_probe),
+	DEVMETHOD(device_attach, sun8i_codec_attach),
+	DEVMETHOD(device_detach, sun8i_codec_detach),
 
-	DEVMETHOD(audio_dai_init,	sun8i_codec_dai_init),
-	DEVMETHOD(audio_dai_setup_mixer,	sun8i_codec_dai_setup_mixer),
-	DEVMETHOD(audio_dai_trigger,	sun8i_codec_dai_trigger),
+	DEVMETHOD(audio_dai_init, sun8i_codec_dai_init),
+	DEVMETHOD(audio_dai_setup_mixer, sun8i_codec_dai_setup_mixer),
+	DEVMETHOD(audio_dai_trigger, sun8i_codec_dai_trigger),
 
 	DEVMETHOD_END
 };

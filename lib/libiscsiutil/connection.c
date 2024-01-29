@@ -34,7 +34,7 @@
 
 void
 connection_init(struct connection *conn, const struct connection_ops *ops,
-	bool use_proxy)
+    bool use_proxy)
 {
 	memset(conn, 0, sizeof(*conn));
 	conn->conn_ops = ops;

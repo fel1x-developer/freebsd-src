@@ -24,7 +24,7 @@
  */
 
 #ifndef _LINUXKPI_LINUX_PWM_H_
-#define	_LINUXKPI_LINUX_PWM_H_
+#define _LINUXKPI_LINUX_PWM_H_
 
 #include <linux/device.h>
 #include <linux/err.h>
@@ -91,4 +91,4 @@ pwm_apply_state(struct pwm_device *pwm, const struct pwm_state *state)
 	return (-ENOTSUPP);
 }
 
-#endif	/* _LINUXKPI_LINUX_PWM_H_ */
+#endif /* _LINUXKPI_LINUX_PWM_H_ */

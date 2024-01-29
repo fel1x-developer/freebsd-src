@@ -51,8 +51,8 @@ int
 priv_vfs_fhstat_setup(int asroot, int injail, struct test *test)
 {
 
-	setup_file("priv_vfs_fhstat_setup: fpath", fpath, UID_ROOT,
-	    GID_WHEEL, 0644);
+	setup_file("priv_vfs_fhstat_setup: fpath", fpath, UID_ROOT, GID_WHEEL,
+	    0644);
 	fpath_initialized = 1;
 	if (getfh(fpath, &fh) < 0) {
 		warn("priv_vfs_fhstat_setup: getfh(%s)", fpath);

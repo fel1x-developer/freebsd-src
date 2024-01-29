@@ -30,9 +30,9 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 #include <unistd.h>
 
 static int
@@ -40,9 +40,9 @@ exec_shortargs(char *argv[])
 {
 	char *flag_arg = argv[2];
 	char *sentinel = argv[3];
-	char * nargv[] = { argv[0], __DECONST(char *, "--spin"), flag_arg,
-	    sentinel, NULL };
-	char * const nenvp[] = { NULL };
+	char *nargv[] = { argv[0], __DECONST(char *, "--spin"), flag_arg,
+		sentinel, NULL };
+	char *const nenvp[] = { NULL };
 
 	execve(argv[0], nargv, nenvp);
 	err(1, "execve");
@@ -59,11 +59,11 @@ exec_largeargs(char *argv[])
 	 */
 	size_t bufsz = ARG_MAX -
 	    ((strlen(argv[0]) + 1) + sizeof("--spin") + (strlen(flag_arg) + 1) +
-	    (strlen(sentinel) + 1) + 1);
+		(strlen(sentinel) + 1) + 1);
 	char *s = NULL;
-	char * nargv[] = { argv[0], __DECONST(char *, "--spin"), flag_arg, NULL,
-	    sentinel, NULL };
-	char * const nenvp[] = { NULL };
+	char *nargv[] = { argv[0], __DECONST(char *, "--spin"), flag_arg, NULL,
+		sentinel, NULL };
+	char *const nenvp[] = { NULL };
 
 	/*
 	 * Our heuristic may or may not be accurate, we'll keep trying with
@@ -94,7 +94,8 @@ main(int argc, char *argv[])
 		int fd;
 
 		if (argc < 4) {
-			fprintf(stderr, "usage: %s --spin flagfile ...\n", argv[0]);
+			fprintf(stderr, "usage: %s --spin flagfile ...\n",
+			    argv[0]);
 			return (1);
 		}
 
@@ -111,7 +112,8 @@ main(int argc, char *argv[])
 	}
 
 	if (argc != 4) {
-		fprintf(stderr, "usage: %s [--short | --long] flagfile sentinel\n",
+		fprintf(stderr,
+		    "usage: %s [--short | --long] flagfile sentinel\n",
 		    argv[0]);
 		return (1);
 	}

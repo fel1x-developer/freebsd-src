@@ -26,6 +26,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
@@ -34,43 +35,40 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
 
 #include <machine/bus.h>
-#include <dev/iicbus/iic.h>
-#include <dev/iicbus/iiconf.h>
-#include <dev/iicbus/iicbus.h>
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include <dev/mdio/mdio.h>
+
 #include <dev/clk/clk.h>
-#include <dev/hwreset/hwreset.h>
-
-#include <dev/fdt/fdt_common.h>
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/etherswitch/etherswitch.h>
-
-#include <dev/etherswitch/ar40xx/ar40xx_var.h>
-#include <dev/etherswitch/ar40xx/ar40xx_reg.h>
 #include <dev/etherswitch/ar40xx/ar40xx_hw.h>
-#include <dev/etherswitch/ar40xx/ar40xx_phy.h>
 #include <dev/etherswitch/ar40xx/ar40xx_hw_atu.h>
 #include <dev/etherswitch/ar40xx/ar40xx_hw_mdio.h>
 #include <dev/etherswitch/ar40xx/ar40xx_hw_psgmii.h>
+#include <dev/etherswitch/ar40xx/ar40xx_phy.h>
+#include <dev/etherswitch/ar40xx/ar40xx_reg.h>
+#include <dev/etherswitch/ar40xx/ar40xx_var.h>
+#include <dev/etherswitch/etherswitch.h>
+#include <dev/fdt/fdt_common.h>
+#include <dev/hwreset/hwreset.h>
+#include <dev/iicbus/iic.h>
+#include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
+#include <dev/mdio/mdio.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
 
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+
+#include "etherswitch_if.h"
 #include "mdio_if.h"
 #include "miibus_if.h"
-#include "etherswitch_if.h"
 
 /*
  * Routines that control the ess-psgmii block - the interconnect
@@ -79,13 +77,12 @@
  */
 
 static void
-ar40xx_hw_psgmii_reg_write(struct ar40xx_softc *sc, uint32_t reg,
-    uint32_t val)
+ar40xx_hw_psgmii_reg_write(struct ar40xx_softc *sc, uint32_t reg, uint32_t val)
 {
-	bus_space_write_4(sc->sc_psgmii_mem_tag, sc->sc_psgmii_mem_handle,
-	    reg, val);
-	bus_space_barrier(sc->sc_psgmii_mem_tag, sc->sc_psgmii_mem_handle,
-	    0, sc->sc_psgmii_mem_size, BUS_SPACE_BARRIER_WRITE);
+	bus_space_write_4(sc->sc_psgmii_mem_tag, sc->sc_psgmii_mem_handle, reg,
+	    val);
+	bus_space_barrier(sc->sc_psgmii_mem_tag, sc->sc_psgmii_mem_handle, 0,
+	    sc->sc_psgmii_mem_size, BUS_SPACE_BARRIER_WRITE);
 }
 
 static int
@@ -93,8 +90,8 @@ ar40xx_hw_psgmii_reg_read(struct ar40xx_softc *sc, uint32_t reg)
 {
 	int ret;
 
-	bus_space_barrier(sc->sc_psgmii_mem_tag, sc->sc_psgmii_mem_handle,
-	    0, sc->sc_psgmii_mem_size, BUS_SPACE_BARRIER_READ);
+	bus_space_barrier(sc->sc_psgmii_mem_tag, sc->sc_psgmii_mem_handle, 0,
+	    sc->sc_psgmii_mem_size, BUS_SPACE_BARRIER_READ);
 	ret = bus_space_read_4(sc->sc_psgmii_mem_tag, sc->sc_psgmii_mem_handle,
 	    reg);
 
@@ -133,17 +130,17 @@ ar40xx_hw_psgmii_single_phy_testing(struct ar40xx_softc *sc, int phy)
 	for (j = 0; j < AR40XX_PSGMII_CALB_NUM; j++) {
 		uint16_t status;
 
-	status = MDIO_READREG(sc->sc_mdio_dev, phy, 0x11);
+		status = MDIO_READREG(sc->sc_mdio_dev, phy, 0x11);
 		if (status & AR40XX_PHY_SPEC_STATUS_LINK)
 			break;
-			/*
-			 * the polling interval to check if the PHY link up
-			 * or not
-			 * maxwait_timer: 750 ms +/-10 ms
-			 * minwait_timer : 1 us +/- 0.1us
-			 * time resides in minwait_timer ~ maxwait_timer
-			 * see IEEE 802.3 section 40.4.5.2
-			 */
+		/*
+		 * the polling interval to check if the PHY link up
+		 * or not
+		 * maxwait_timer: 750 ms +/-10 ms
+		 * minwait_timer : 1 us +/- 0.1us
+		 * time resides in minwait_timer ~ maxwait_timer
+		 * see IEEE 802.3 section 40.4.5.2
+		 */
 		DELAY(8 * 1000);
 	}
 
@@ -173,7 +170,8 @@ ar40xx_hw_psgmii_single_phy_testing(struct ar40xx_softc *sc, int phy)
 		/* success */
 		sc->sc_psgmii.phy_t_status &= ~(1U << phy);
 	} else {
-		device_printf(sc->sc_dev, "TX_OK=%d, tx_error=%d RX_OK=%d"
+		device_printf(sc->sc_dev,
+		    "TX_OK=%d, tx_error=%d RX_OK=%d"
 		    " rx_error=%d\n",
 		    tx_all_ok, tx_error, rx_all_ok, rx_error);
 		device_printf(sc->sc_dev,
@@ -205,7 +203,7 @@ ar40xx_hw_psgmii_all_phy_testing(struct ar40xx_softc *sc)
 		if (phy >= (AR40XX_NUM_PORTS - 1))
 			break;
 		/* The polling interval to check if the PHY link up or not */
-		DELAY(8*1000);
+		DELAY(8 * 1000);
 	}
 
 	/* enable check */
@@ -218,7 +216,7 @@ ar40xx_hw_psgmii_all_phy_testing(struct ar40xx_softc *sc)
 	 * wait for all traffic end
 	 * 4096(pkt num)*1524(size)*8ns(125MHz)=49.9ms
 	 */
-	DELAY(60*1000); /* was 50ms */
+	DELAY(60 * 1000); /* was 50ms */
 
 	for (phy = 0; phy < AR40XX_NUM_PORTS - 1; phy++) {
 		uint32_t tx_ok, tx_error;
@@ -235,8 +233,8 @@ ar40xx_hw_psgmii_all_phy_testing(struct ar40xx_softc *sc)
 		rx_ok_high16 = ar40xx_hw_phy_mmd_read(sc, phy, 7, 0x802a);
 		rx_error = ar40xx_hw_phy_mmd_read(sc, phy, 7, 0x802c);
 
-		tx_all_ok = tx_ok + (tx_ok_high16<<16);
-		rx_all_ok = rx_ok + (rx_ok_high16<<16);
+		tx_all_ok = tx_ok + (tx_ok_high16 << 16);
+		rx_all_ok = rx_ok + (rx_ok_high16 << 16);
 		if (tx_all_ok == 0x1000 && tx_error == 0) {
 			/* success */
 			sc->sc_psgmii.phy_t_status &= ~(1U << (phy + 8));
@@ -350,8 +348,8 @@ ar40xx_hw_psgmii_self_test(struct ar40xx_softc *sc)
 			reg = AR40XX_REG_READ(sc,
 			    AR40XX_REG_PORT_LOOKUP(phy + 1));
 			reg |= AR40XX_PORT_LOOKUP_LOOPBACK;
-			AR40XX_REG_WRITE(sc,
-			    AR40XX_REG_PORT_LOOKUP(phy + 1), reg);
+			AR40XX_REG_WRITE(sc, AR40XX_REG_PORT_LOOKUP(phy + 1),
+			    reg);
 			AR40XX_REG_BARRIER_WRITE(sc);
 		}
 
@@ -395,7 +393,7 @@ ar40xx_hw_psgmii_self_test_clean(struct ar40xx_softc *sc)
 	MDIO_WRITEREG(sc->sc_mdio_dev, 0x1f, 0x10, 0x6860);
 	MDIO_WRITEREG(sc->sc_mdio_dev, 0x1f, 0x0, 0x9040);
 
-        for (phy = 0; phy < AR40XX_NUM_PORTS - 1; phy++) {
+	for (phy = 0; phy < AR40XX_NUM_PORTS - 1; phy++) {
 		/* disable mac loop back */
 		reg = AR40XX_REG_READ(sc, AR40XX_REG_PORT_LOOKUP(phy + 1));
 		reg &= ~AR40XX_PORT_LOOKUP_LOOPBACK;
@@ -426,12 +424,12 @@ ar40xx_hw_psgmii_init_config(struct ar40xx_softc *sc)
 	/* For now, just assume PSGMII and fix it in post. */
 	/* PSGMIIPHY_PLL_VCO_RELATED_CTRL */
 	reg = ar40xx_hw_psgmii_reg_read(sc, 0x78c);
-	device_printf(sc->sc_dev,
-	    "%s: PSGMIIPHY_PLL_VCO_RELATED_CTRL=0x%08x\n", __func__, reg);
+	device_printf(sc->sc_dev, "%s: PSGMIIPHY_PLL_VCO_RELATED_CTRL=0x%08x\n",
+	    __func__, reg);
 	/* PSGMIIPHY_VCO_CALIBRATION_CTRL */
 	reg = ar40xx_hw_psgmii_reg_read(sc, 0x09c);
-	device_printf(sc->sc_dev,
-	    "%s: PSGMIIPHY_VCO_CALIBRATION_CTRL=0x%08x\n", __func__, reg);
+	device_printf(sc->sc_dev, "%s: PSGMIIPHY_VCO_CALIBRATION_CTRL=0x%08x\n",
+	    __func__, reg);
 
 	return (0);
 }

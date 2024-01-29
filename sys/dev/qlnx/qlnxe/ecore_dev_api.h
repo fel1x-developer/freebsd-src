@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018 Cavium, Inc. 
+ * Copyright (c) 2017-2018 Cavium, Inc.
  * All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -29,9 +29,9 @@
 #ifndef __ECORE_DEV_API_H__
 #define __ECORE_DEV_API_H__
 
-#include "ecore_status.h"
 #include "ecore_chain.h"
 #include "ecore_int_api.h"
+#include "ecore_status.h"
 
 #define ECORE_DEFAULT_ILT_PAGE_SIZE 4
 
@@ -39,7 +39,7 @@ struct ecore_wake_info {
 	u32 wk_info;
 	u32 wk_details;
 	u32 wk_pkt_len;
-	u8  wk_buffer[256];
+	u8 wk_buffer[256];
 };
 
 /**
@@ -50,10 +50,8 @@ struct ecore_wake_info {
  * @param dp_level
  * @param dp_ctx
  */
-void ecore_init_dp(struct ecore_dev *p_dev,
-		   u32 dp_module,
-		   u8 dp_level,
-		   void *dp_ctx);
+void ecore_init_dp(struct ecore_dev *p_dev, u32 dp_module, u8 dp_level,
+    void *dp_ctx);
 
 /**
  * @brief ecore_init_struct - initialize the device structure to
@@ -111,8 +109,8 @@ struct ecore_drv_load_params {
 	 * A value of '0' means the default value, and '255' means no timeout.
 	 */
 	u8 mfw_timeout_val;
-#define ECORE_LOAD_REQ_LOCK_TO_DEFAULT	0
-#define ECORE_LOAD_REQ_LOCK_TO_NONE	255
+#define ECORE_LOAD_REQ_LOCK_TO_DEFAULT 0
+#define ECORE_LOAD_REQ_LOCK_TO_NONE 255
 
 	/* Action to take in case the MFW doesn't support timeout values other
 	 * then default and none.
@@ -135,7 +133,8 @@ struct ecore_hw_init_params {
 	/* Interrupt mode [msix, inta, etc.] to use */
 	enum ecore_int_mode int_mode;
 
-	/* NPAR tx switching to be used for vports configured for tx-switching */
+	/* NPAR tx switching to be used for vports configured for tx-switching
+	 */
 	bool allow_npar_tx_switch;
 
 	/* PCI relax ordering to be configured by MFW or ecore client */
@@ -160,7 +159,7 @@ struct ecore_hw_init_params {
  * @return enum _ecore_status_t
  */
 enum _ecore_status_t ecore_hw_init(struct ecore_dev *p_dev,
-				   struct ecore_hw_init_params *p_params);
+    struct ecore_hw_init_params *p_params);
 
 /**
  * @brief ecore_hw_timers_stop_all -
@@ -277,7 +276,7 @@ struct ecore_hw_prepare_params {
  * @return enum _ecore_status_t
  */
 enum _ecore_status_t ecore_hw_prepare(struct ecore_dev *p_dev,
-				      struct ecore_hw_prepare_params *p_params);
+    struct ecore_hw_prepare_params *p_params);
 
 /**
  * @brief ecore_hw_remove -
@@ -287,41 +286,39 @@ enum _ecore_status_t ecore_hw_prepare(struct ecore_dev *p_dev,
 void ecore_hw_remove(struct ecore_dev *p_dev);
 
 /**
-* @brief ecore_set_nwuf_reg -
-*
-* @param p_dev
-* @param reg_idx - Index of the pattern register
-* @param pattern_size - size of pattern
-* @param crc - CRC value of patter & mask
-*
-* @return enum _ecore_status_t
-*/
-enum _ecore_status_t ecore_set_nwuf_reg(struct ecore_dev *p_dev,
-					u32 reg_idx, u32 pattern_size, u32 crc);
+ * @brief ecore_set_nwuf_reg -
+ *
+ * @param p_dev
+ * @param reg_idx - Index of the pattern register
+ * @param pattern_size - size of pattern
+ * @param crc - CRC value of patter & mask
+ *
+ * @return enum _ecore_status_t
+ */
+enum _ecore_status_t ecore_set_nwuf_reg(struct ecore_dev *p_dev, u32 reg_idx,
+    u32 pattern_size, u32 crc);
 
 /**
-* @brief ecore_get_wake_info - get magic packet buffer
-*
-* @param p_hwfn
-* @param p_ppt
-* @param wake_info - pointer to ecore_wake_info buffer
-*
-* @return enum _ecore_status_t
-*/
+ * @brief ecore_get_wake_info - get magic packet buffer
+ *
+ * @param p_hwfn
+ * @param p_ppt
+ * @param wake_info - pointer to ecore_wake_info buffer
+ *
+ * @return enum _ecore_status_t
+ */
 enum _ecore_status_t ecore_get_wake_info(struct ecore_hwfn *p_hwfn,
-					 struct ecore_ptt *p_ptt,
-					 struct ecore_wake_info *wake_info);
+    struct ecore_ptt *p_ptt, struct ecore_wake_info *wake_info);
 
 /**
-* @brief ecore_wol_buffer_clear - Clear magic package buffer
-*
-* @param p_hwfn
-* @param p_ptt
-*
-* @return void
-*/
-void ecore_wol_buffer_clear(struct ecore_hwfn *p_hwfn,
-			    struct ecore_ptt *p_ptt);
+ * @brief ecore_wol_buffer_clear - Clear magic package buffer
+ *
+ * @param p_hwfn
+ * @param p_ptt
+ *
+ * @return void
+ */
+void ecore_wol_buffer_clear(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt);
 
 /**
  * @brief ecore_ptt_acquire - Allocate a PTT window
@@ -345,8 +342,7 @@ struct ecore_ptt *ecore_ptt_acquire(struct ecore_hwfn *p_hwfn);
  * @param p_hwfn
  * @param p_ptt
  */
-void ecore_ptt_release(struct ecore_hwfn *p_hwfn,
-		       struct ecore_ptt *p_ptt);
+void ecore_ptt_release(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt);
 
 /**
  * @brief ecore_get_dev_name - get device name, e.g., "BB B0"
@@ -355,9 +351,7 @@ void ecore_ptt_release(struct ecore_hwfn *p_hwfn,
  * @param name - this is where the name will be written to
  * @param max_chars - maximum chars that can be written to name including '\0'
  */
-void ecore_get_dev_name(struct ecore_dev *p_dev,
-			u8 *name,
-			u8 max_chars);
+void ecore_get_dev_name(struct ecore_dev *p_dev, u8 *name, u8 max_chars);
 
 #ifndef __EXTRACT__LINUX__IF__
 struct ecore_eth_stats_common {
@@ -466,13 +460,13 @@ enum ecore_dmae_address_type_t {
  * used mostly to write a zeroed buffer to destination address
  * using DMA
  */
-#define ECORE_DMAE_FLAG_RW_REPL_SRC	0x00000001
-#define ECORE_DMAE_FLAG_VF_SRC		0x00000002
-#define ECORE_DMAE_FLAG_VF_DST		0x00000004
-#define ECORE_DMAE_FLAG_COMPLETION_DST	0x00000008
-#define ECORE_DMAE_FLAG_PORT		0x00000010
-#define ECORE_DMAE_FLAG_PF_SRC		0x00000020
-#define ECORE_DMAE_FLAG_PF_DST		0x00000040
+#define ECORE_DMAE_FLAG_RW_REPL_SRC 0x00000001
+#define ECORE_DMAE_FLAG_VF_SRC 0x00000002
+#define ECORE_DMAE_FLAG_VF_DST 0x00000004
+#define ECORE_DMAE_FLAG_COMPLETION_DST 0x00000008
+#define ECORE_DMAE_FLAG_PORT 0x00000010
+#define ECORE_DMAE_FLAG_PF_SRC 0x00000020
+#define ECORE_DMAE_FLAG_PF_DST 0x00000040
 
 struct ecore_dmae_params {
 	u32 flags; /* consists of ECORE_DMAE_FLAG_* values */
@@ -496,13 +490,9 @@ struct ecore_dmae_params {
  *
  * @return enum _ecore_status_t
  */
-enum _ecore_status_t
-ecore_dmae_host2grc(struct ecore_hwfn *p_hwfn,
-		    struct ecore_ptt *p_ptt,
-		    u64 source_addr,
-		    u32 grc_addr,
-		    u32 size_in_dwords,
-		    struct ecore_dmae_params *p_params);
+enum _ecore_status_t ecore_dmae_host2grc(struct ecore_hwfn *p_hwfn,
+    struct ecore_ptt *p_ptt, u64 source_addr, u32 grc_addr, u32 size_in_dwords,
+    struct ecore_dmae_params *p_params);
 
 /**
  * @brief ecore_dmae_grc2host - Read data from dmae data offset
@@ -516,13 +506,9 @@ ecore_dmae_host2grc(struct ecore_hwfn *p_hwfn,
  *
  * @return enum _ecore_status_t
  */
-enum _ecore_status_t
-ecore_dmae_grc2host(struct ecore_hwfn *p_hwfn,
-		    struct ecore_ptt *p_ptt,
-		    u32 grc_addr,
-		    dma_addr_t dest_addr,
-		    u32 size_in_dwords,
-		    struct ecore_dmae_params *p_params);
+enum _ecore_status_t ecore_dmae_grc2host(struct ecore_hwfn *p_hwfn,
+    struct ecore_ptt *p_ptt, u32 grc_addr, dma_addr_t dest_addr,
+    u32 size_in_dwords, struct ecore_dmae_params *p_params);
 
 /**
  * @brief ecore_dmae_host2host - copy data from to source address
@@ -537,13 +523,9 @@ ecore_dmae_grc2host(struct ecore_hwfn *p_hwfn,
  *
  * @return enum _ecore_status_t
  */
-enum _ecore_status_t
-ecore_dmae_host2host(struct ecore_hwfn *p_hwfn,
-		     struct ecore_ptt *p_ptt,
-		     dma_addr_t source_addr,
-		     dma_addr_t dest_addr,
-		     u32 size_in_dwords,
-		     struct ecore_dmae_params *p_params);
+enum _ecore_status_t ecore_dmae_host2host(struct ecore_hwfn *p_hwfn,
+    struct ecore_ptt *p_ptt, dma_addr_t source_addr, dma_addr_t dest_addr,
+    u32 size_in_dwords, struct ecore_dmae_params *p_params);
 
 /**
  * @brief ecore_chain_alloc - Allocate and initialize a chain
@@ -557,15 +539,10 @@ ecore_dmae_host2host(struct ecore_hwfn *p_hwfn,
  *
  * @return enum _ecore_status_t
  */
-enum _ecore_status_t
-ecore_chain_alloc(struct ecore_dev *p_dev,
-		  enum ecore_chain_use_mode intended_use,
-		  enum ecore_chain_mode mode,
-		  enum ecore_chain_cnt_type cnt_type,
-		  u32 num_elems,
-		  osal_size_t elem_size,
-		  struct ecore_chain *p_chain,
-		  struct ecore_chain_ext_pbl *ext_pbl);
+enum _ecore_status_t ecore_chain_alloc(struct ecore_dev *p_dev,
+    enum ecore_chain_use_mode intended_use, enum ecore_chain_mode mode,
+    enum ecore_chain_cnt_type cnt_type, u32 num_elems, osal_size_t elem_size,
+    struct ecore_chain *p_chain, struct ecore_chain_ext_pbl *ext_pbl);
 
 /**
  * @brief ecore_chain_free - Free chain DMA memory
@@ -573,8 +550,7 @@ ecore_chain_alloc(struct ecore_dev *p_dev,
  * @param p_hwfn
  * @param p_chain
  */
-void ecore_chain_free(struct ecore_dev *p_dev,
-		      struct ecore_chain *p_chain);
+void ecore_chain_free(struct ecore_dev *p_dev, struct ecore_chain *p_chain);
 
 /**
  * @@brief ecore_fw_l2_queue - Get absolute L2 queue ID
@@ -585,9 +561,8 @@ void ecore_chain_free(struct ecore_dev *p_dev,
  *
  *  @return enum _ecore_status_t
  */
-enum _ecore_status_t ecore_fw_l2_queue(struct ecore_hwfn *p_hwfn,
-				       u16 src_id,
-				       u16 *dst_id);
+enum _ecore_status_t ecore_fw_l2_queue(struct ecore_hwfn *p_hwfn, u16 src_id,
+    u16 *dst_id);
 
 /**
  * @@brief ecore_fw_vport - Get absolute vport ID
@@ -598,9 +573,8 @@ enum _ecore_status_t ecore_fw_l2_queue(struct ecore_hwfn *p_hwfn,
  *
  *  @return enum _ecore_status_t
  */
-enum _ecore_status_t ecore_fw_vport(struct ecore_hwfn *p_hwfn,
-				    u8 src_id,
-				    u8 *dst_id);
+enum _ecore_status_t ecore_fw_vport(struct ecore_hwfn *p_hwfn, u8 src_id,
+    u8 *dst_id);
 
 /**
  * @@brief ecore_fw_rss_eng - Get absolute RSS engine ID
@@ -611,9 +585,8 @@ enum _ecore_status_t ecore_fw_vport(struct ecore_hwfn *p_hwfn,
  *
  *  @return enum _ecore_status_t
  */
-enum _ecore_status_t ecore_fw_rss_eng(struct ecore_hwfn *p_hwfn,
-				      u8 src_id,
-				      u8 *dst_id);
+enum _ecore_status_t ecore_fw_rss_eng(struct ecore_hwfn *p_hwfn, u8 src_id,
+    u8 *dst_id);
 
 /**
  * @brief ecore_llh_get_num_ppfid - Return the allocated number of LLH filter
@@ -651,7 +624,7 @@ enum ecore_eng ecore_llh_get_l2_affinity_hint(struct ecore_dev *p_dev);
  * @return enum _ecore_status_t
  */
 enum _ecore_status_t ecore_llh_set_ppfid_affinity(struct ecore_dev *p_dev,
-						  u8 ppfid, enum ecore_eng eng);
+    u8 ppfid, enum ecore_eng eng);
 
 /**
  * @brief ecore_llh_set_roce_affinity - Set the RoCE engine affinity
@@ -662,7 +635,7 @@ enum _ecore_status_t ecore_llh_set_ppfid_affinity(struct ecore_dev *p_dev,
  * @return enum _ecore_status_t
  */
 enum _ecore_status_t ecore_llh_set_roce_affinity(struct ecore_dev *p_dev,
-						 enum ecore_eng eng);
+    enum ecore_eng eng);
 
 /**
  * @brief ecore_llh_add_mac_filter - Add a LLH MAC filter into the given filter
@@ -675,7 +648,7 @@ enum _ecore_status_t ecore_llh_set_roce_affinity(struct ecore_dev *p_dev,
  * @return enum _ecore_status_t
  */
 enum _ecore_status_t ecore_llh_add_mac_filter(struct ecore_dev *p_dev, u8 ppfid,
-					      u8 mac_addr[ETH_ALEN]);
+    u8 mac_addr[ETH_ALEN]);
 
 /**
  * @brief ecore_llh_remove_mac_filter - Remove a LLH MAC filter from the given
@@ -686,7 +659,7 @@ enum _ecore_status_t ecore_llh_add_mac_filter(struct ecore_dev *p_dev, u8 ppfid,
  * @param mac_addr - MAC to remove
  */
 void ecore_llh_remove_mac_filter(struct ecore_dev *p_dev, u8 ppfid,
-				 u8 mac_addr[ETH_ALEN]);
+    u8 mac_addr[ETH_ALEN]);
 
 enum ecore_llh_prot_filter_type_t {
 	ECORE_LLH_FILTER_ETHERTYPE,
@@ -710,10 +683,9 @@ enum ecore_llh_prot_filter_type_t {
  *
  * @return enum _ecore_status_t
  */
-enum _ecore_status_t
-ecore_llh_add_protocol_filter(struct ecore_dev *p_dev, u8 ppfid,
-			      enum ecore_llh_prot_filter_type_t type,
-			      u16 source_port_or_eth_type, u16 dest_port);
+enum _ecore_status_t ecore_llh_add_protocol_filter(struct ecore_dev *p_dev,
+    u8 ppfid, enum ecore_llh_prot_filter_type_t type,
+    u16 source_port_or_eth_type, u16 dest_port);
 
 /**
  * @brief ecore_llh_remove_protocol_filter - Remove a LLH protocol filter from
@@ -726,9 +698,8 @@ ecore_llh_add_protocol_filter(struct ecore_dev *p_dev, u8 ppfid,
  * @param dest_port - destination port to add
  */
 void ecore_llh_remove_protocol_filter(struct ecore_dev *p_dev, u8 ppfid,
-				      enum ecore_llh_prot_filter_type_t type,
-				      u16 source_port_or_eth_type,
-				      u16 dest_port);
+    enum ecore_llh_prot_filter_type_t type, u16 source_port_or_eth_type,
+    u16 dest_port);
 
 /**
  * @brief ecore_llh_clear_ppfid_filters - Remove all LLH filters from the given
@@ -754,7 +725,7 @@ void ecore_llh_clear_all_filters(struct ecore_dev *p_dev);
  */
 enum _ecore_status_t
 ecore_llh_set_function_as_default(struct ecore_hwfn *p_hwfn,
-				  struct ecore_ptt *p_ptt);
+    struct ecore_ptt *p_ptt);
 
 /**
  *@brief Cleanup of previous driver remains prior to load
@@ -766,10 +737,8 @@ ecore_llh_set_function_as_default(struct ecore_hwfn *p_hwfn,
  *
  * @return enum _ecore_status_t
  */
-enum _ecore_status_t ecore_final_cleanup(struct ecore_hwfn	*p_hwfn,
-					 struct ecore_ptt	*p_ptt,
-					 u16			id,
-					 bool			is_vf);
+enum _ecore_status_t ecore_final_cleanup(struct ecore_hwfn *p_hwfn,
+    struct ecore_ptt *p_ptt, u16 id, bool is_vf);
 
 /**
  * @brief ecore_get_queue_coalesce - Retrieve coalesce value for a given queue.
@@ -780,9 +749,8 @@ enum _ecore_status_t ecore_final_cleanup(struct ecore_hwfn	*p_hwfn,
  *
  * @return enum _ecore_status_t
  **/
-enum _ecore_status_t
-ecore_get_queue_coalesce(struct ecore_hwfn *p_hwfn, u16 *coal,
-			 void *handle);
+enum _ecore_status_t ecore_get_queue_coalesce(struct ecore_hwfn *p_hwfn,
+    u16 *coal, void *handle);
 
 /**
  * @brief ecore_set_queue_coalesce - Configure coalesce parameters for Rx and
@@ -800,9 +768,8 @@ ecore_get_queue_coalesce(struct ecore_hwfn *p_hwfn, u16 *coal,
  *
  * @return enum _ecore_status_t
  **/
-enum _ecore_status_t
-ecore_set_queue_coalesce(struct ecore_hwfn *p_hwfn, u16 rx_coal,
-			 u16 tx_coal, void *p_handle);
+enum _ecore_status_t ecore_set_queue_coalesce(struct ecore_hwfn *p_hwfn,
+    u16 rx_coal, u16 tx_coal, void *p_handle);
 
 /**
  * @brief - Recalculate feature distributions based on HW resources and
@@ -824,8 +791,7 @@ void ecore_hw_set_feat(struct ecore_hwfn *p_hwfn);
  * @return enum _ecore_status_t
  */
 enum _ecore_status_t ecore_pglueb_set_pfid_enable(struct ecore_hwfn *p_hwfn,
-						  struct ecore_ptt *p_ptt,
-						  bool b_enable);
+    struct ecore_ptt *p_ptt, bool b_enable);
 
 #ifndef __EXTRACT__LINUX__IF__
 enum ecore_db_rec_width {
@@ -850,10 +816,8 @@ enum ecore_db_rec_space {
  * @param db_space - doorbell recovery addresses are user or kernel space
  */
 enum _ecore_status_t ecore_db_recovery_add(struct ecore_dev *p_dev,
-					   void OSAL_IOMEM *db_addr,
-					   void *db_data,
-					   enum ecore_db_rec_width db_width,
-					   enum ecore_db_rec_space db_space);
+    void OSAL_IOMEM *db_addr, void *db_data, enum ecore_db_rec_width db_width,
+    enum ecore_db_rec_space db_space);
 
 /**
  * @brief db_recovery_del - remove doorbell information from the doorbell
@@ -865,11 +829,11 @@ enum _ecore_status_t ecore_db_recovery_add(struct ecore_dev *p_dev,
  *                  entry to delete.
  */
 enum _ecore_status_t ecore_db_recovery_del(struct ecore_dev *p_dev,
-					   void OSAL_IOMEM *db_addr,
-					   void *db_data);
+    void OSAL_IOMEM *db_addr, void *db_data);
 
 #ifndef __EXTRACT__LINUX__THROW__
-static OSAL_INLINE bool ecore_is_mf_ufp(struct ecore_hwfn *p_hwfn)
+static OSAL_INLINE bool
+ecore_is_mf_ufp(struct ecore_hwfn *p_hwfn)
 {
 	return !!OSAL_TEST_BIT(ECORE_MF_UFP_SPECIFIC, &p_hwfn->p_dev->mf_bits);
 }

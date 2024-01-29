@@ -27,17 +27,17 @@
 
 /* Main program for all test programs */
 
-#include <sys/wait.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 
-#include <stdio.h>
+#include <err.h>
+#include <errno.h>
 #include <signal.h>
-#include <unistd.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <err.h>
-#include <errno.h>
+#include <unistd.h>
 
 #include "stress.h"
 
@@ -58,16 +58,18 @@ handler(int i __unused)
 			printf("handler: kill -HUP %d\n", r[j]);
 		if (r[j] != 0 && kill(r[j], SIGHUP) == -1)
 			if (errno != ESRCH)
-				warn("kill(%d, SIGHUP), %s:%d", r[j], __FILE__, __LINE__);
+				warn("kill(%d, SIGHUP), %s:%d", r[j], __FILE__,
+				    __LINE__);
 	}
 	if (op->kill == 1) {
 		sleep(5);
-		/* test programs may have blocked for the SIGHUP, so try harder */
+		/* test programs may have blocked for the SIGHUP, so try harder
+		 */
 		for (j = 0; j < op->incarnations; j++) {
 			if (op->verbose > 2)
 				printf("handler: kill -KILL %d\n", r[j]);
 			if (r[j] != 0)
-				(void) kill(r[j], SIGKILL);
+				(void)kill(r[j], SIGKILL);
 		}
 	}
 }
@@ -105,11 +107,11 @@ run_tests(int i)
 	atexit(callcleanup);
 	setup(i);
 	if ((strcmp(getprogname(), "run") != 0) && (op->nodelay == 0))
-		sleep(random_int(1,10));
+		sleep(random_int(1, 10));
 	e = 0;
 	start = time(NULL);
 	while (done_testing == 0 && e == 0 &&
-			(time(NULL) - start) < op->run_time) {
+	    (time(NULL) - start) < op->run_time) {
 		e = test();
 	}
 	callcleanup();
@@ -150,7 +152,7 @@ run_test(void)
 	time_t start;
 	int status = 0;
 
-	if (random_int(1,100) > op->load)
+	if (random_int(1, 100) > op->load)
 		return (status);
 
 	show_status();
@@ -164,8 +166,7 @@ run_test(void)
 		run_incarnations();
 	if (p < 0)
 		err(1, "fork() in %s:%d", __FILE__, __LINE__);
-	while (done_testing != 1 &&
-			(time(NULL) - start) < op->run_time) {
+	while (done_testing != 1 && (time(NULL) - start) < op->run_time) {
 		sleep(1);
 		if (waitpid(p, &status, WNOHANG) == p)
 			return (status != 0);
@@ -191,16 +192,18 @@ main(int argc, char **argv)
 	if (stat(op->wd, &sb) == -1) {
 		if (mkdir(op->wd, 0770) == -1)
 			if (errno != EEXIST)
-				err(1, "mkdir(%s) %s:%d", op->wd, __FILE__, __LINE__);
+				err(1, "mkdir(%s) %s:%d", op->wd, __FILE__,
+				    __LINE__);
 	} else if ((sb.st_mode & S_IRWXU) == 0)
 		errx(1, "No RWX access to %s", op->wd);
 	if (stat(op->cd, &sb) == -1) {
 		if (mkdir(op->cd, 0770) == -1)
 			if (errno != EEXIST)
-				err(1, "mkdir(%s) %s:%d", op->cd, __FILE__, __LINE__);
+				err(1, "mkdir(%s) %s:%d", op->cd, __FILE__,
+				    __LINE__);
 	}
 	if ((home = getcwd(NULL, 0)) == NULL)
-		err(1, "getcwd(), %s:%d",  __FILE__, __LINE__);
+		err(1, "getcwd(), %s:%d", __FILE__, __LINE__);
 	if (chdir(op->wd) == -1)
 		err(1, "chdir(%s) %s:%d", op->wd, __FILE__, __LINE__);
 

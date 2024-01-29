@@ -63,41 +63,39 @@
 #include <compat/linux/linux_time.h>
 #include <compat/linux/linux_util.h>
 
-typedef uint64_t	epoll_udata_t;
+typedef uint64_t epoll_udata_t;
 
 struct epoll_event {
-	uint32_t	events;
-	epoll_udata_t	data;
+	uint32_t events;
+	epoll_udata_t data;
 }
 #if defined(__amd64__)
 __attribute__((packed))
 #endif
 ;
 
-#define	LINUX_MAX_EVENTS	(INT_MAX / sizeof(struct epoll_event))
+#define LINUX_MAX_EVENTS (INT_MAX / sizeof(struct epoll_event))
 
-static int	epoll_to_kevent(struct thread *td, int fd,
-		    struct epoll_event *l_event, struct kevent *kevent,
-		    int *nkevents);
-static void	kevent_to_epoll(struct kevent *kevent, struct epoll_event *l_event);
-static int	epoll_kev_copyout(void *arg, struct kevent *kevp, int count);
-static int	epoll_kev_copyin(void *arg, struct kevent *kevp, int count);
-static int	epoll_register_kevent(struct thread *td, struct file *epfp,
-		    int fd, int filter, unsigned int flags);
-static int	epoll_fd_registered(struct thread *td, struct file *epfp,
-		    int fd);
-static int	epoll_delete_all_events(struct thread *td, struct file *epfp,
-		    int fd);
+static int epoll_to_kevent(struct thread *td, int fd,
+    struct epoll_event *l_event, struct kevent *kevent, int *nkevents);
+static void kevent_to_epoll(struct kevent *kevent, struct epoll_event *l_event);
+static int epoll_kev_copyout(void *arg, struct kevent *kevp, int count);
+static int epoll_kev_copyin(void *arg, struct kevent *kevp, int count);
+static int epoll_register_kevent(struct thread *td, struct file *epfp, int fd,
+    int filter, unsigned int flags);
+static int epoll_fd_registered(struct thread *td, struct file *epfp, int fd);
+static int epoll_delete_all_events(struct thread *td, struct file *epfp,
+    int fd);
 
 struct epoll_copyin_args {
-	struct kevent	*changelist;
+	struct kevent *changelist;
 };
 
 struct epoll_copyout_args {
-	struct epoll_event	*leventlist;
-	struct proc		*p;
-	uint32_t		count;
-	int			error;
+	struct epoll_event *leventlist;
+	struct proc *p;
+	uint32_t count;
+	int error;
 };
 
 static int
@@ -173,7 +171,7 @@ epoll_to_kevent(struct thread *td, int fd, struct epoll_event *l_event,
 	}
 	/* zero event mask is legal */
 	if ((levents & (LINUX_EPOLL_EVRD | LINUX_EPOLL_EVWR)) == 0) {
-		EV_SET(kevent++, fd, EVFILT_READ, EV_ADD|EV_DISABLE, 0, 0, 0);
+		EV_SET(kevent++, fd, EVFILT_READ, EV_ADD | EV_DISABLE, 0, 0, 0);
 		++(*nkevents);
 	}
 
@@ -219,10 +217,10 @@ kevent_to_epoll(struct kevent *kevent, struct epoll_event *l_event)
 		l_event->events = LINUX_EPOLLIN;
 		if ((kevent->flags & EV_EOF) != 0)
 			l_event->events |= LINUX_EPOLLRDHUP;
-	break;
+		break;
 	case EVFILT_WRITE:
 		l_event->events = LINUX_EPOLLOUT;
-	break;
+		break;
 	}
 }
 
@@ -239,7 +237,7 @@ epoll_kev_copyout(void *arg, struct kevent *kevp, int count)
 	struct epoll_event *eep;
 	int error, i;
 
-	args = (struct epoll_copyout_args*) arg;
+	args = (struct epoll_copyout_args *)arg;
 	eep = malloc(sizeof(*eep) * count, M_EPOLL, M_WAITOK | M_ZERO);
 
 	for (i = 0; i < count; i++)
@@ -267,7 +265,7 @@ epoll_kev_copyin(void *arg, struct kevent *kevp, int count)
 {
 	struct epoll_copyin_args *args;
 
-	args = (struct epoll_copyin_args*) arg;
+	args = (struct epoll_copyin_args *)arg;
 
 	memcpy(kevp, args->changelist, count * sizeof(*kevp));
 	args->changelist += count;
@@ -285,9 +283,7 @@ linux_epoll_ctl(struct thread *td, struct linux_epoll_ctl_args *args)
 	struct file *epfp, *fp;
 	struct epoll_copyin_args ciargs;
 	struct kevent kev[2];
-	struct kevent_copyops k_ops = { &ciargs,
-					NULL,
-					epoll_kev_copyin};
+	struct kevent_copyops k_ops = { &ciargs, NULL, epoll_kev_copyin };
 	struct epoll_event le;
 	cap_rights_t rights;
 	int nchanges = 0;
@@ -308,9 +304,9 @@ linux_epoll_ctl(struct thread *td, struct linux_epoll_ctl_args *args)
 		goto leave1;
 	}
 
-	 /* Protect user data vector from incorrectly supplied fd. */
-	error = fget(td, args->fd,
-		     cap_rights_init_one(&rights, CAP_POLL_EVENT), &fp);
+	/* Protect user data vector from incorrectly supplied fd. */
+	error = fget(td, args->fd, cap_rights_init_one(&rights, CAP_POLL_EVENT),
+	    &fp);
 	if (error != 0)
 		goto leave1;
 
@@ -371,9 +367,7 @@ linux_epoll_wait_ts(struct thread *td, int epfd, struct epoll_event *events,
     int maxevents, struct timespec *tsp, sigset_t *uset)
 {
 	struct epoll_copyout_args coargs;
-	struct kevent_copyops k_ops = { &coargs,
-					epoll_kev_copyout,
-					NULL};
+	struct kevent_copyops k_ops = { &coargs, epoll_kev_copyout, NULL };
 	cap_rights_t rights;
 	struct file *epfp;
 	sigset_t omask;
@@ -382,8 +376,8 @@ linux_epoll_wait_ts(struct thread *td, int epfd, struct epoll_event *events,
 	if (maxevents <= 0 || maxevents > LINUX_MAX_EVENTS)
 		return (EINVAL);
 
-	error = fget(td, epfd,
-	    cap_rights_init_one(&rights, CAP_KQUEUE_EVENT), &epfp);
+	error = fget(td, epfd, cap_rights_init_one(&rights, CAP_KQUEUE_EVENT),
+	    &epfp);
 	if (error != 0)
 		return (error);
 	if (epfp->f_type != DTYPE_KQUEUE) {
@@ -391,8 +385,7 @@ linux_epoll_wait_ts(struct thread *td, int epfd, struct epoll_event *events,
 		goto leave;
 	}
 	if (uset != NULL) {
-		error = kern_sigprocmask(td, SIG_SETMASK, uset,
-		    &omask, 0);
+		error = kern_sigprocmask(td, SIG_SETMASK, uset, &omask, 0);
 		if (error != 0)
 			goto leave;
 		td->td_pflags |= TDP_OLDMASK;
@@ -414,15 +407,15 @@ linux_epoll_wait_ts(struct thread *td, int epfd, struct epoll_event *events,
 		error = coargs.error;
 
 	/*
-	 * kern_kevent might return ENOMEM which is not expected from epoll_wait.
-	 * Maybe we should translate that but I don't think it matters at all.
+	 * kern_kevent might return ENOMEM which is not expected from
+	 * epoll_wait. Maybe we should translate that but I don't think it
+	 * matters at all.
 	 */
 	if (error == 0)
 		td->td_retval[0] = coargs.count;
 
 	if (uset != NULL)
-		error = kern_sigprocmask(td, SIG_SETMASK, &omask,
-		    NULL, 0);
+		error = kern_sigprocmask(td, SIG_SETMASK, &omask, NULL, 0);
 leave:
 	fdrop(epfp, td);
 	return (error);
@@ -448,7 +441,6 @@ linux_epoll_wait_common(struct thread *td, int epfd, struct epoll_event *events,
 		tsp = NULL;
 	}
 	return (linux_epoll_wait_ts(td, epfd, events, maxevents, tsp, uset));
-
 }
 
 #ifdef LINUX_LEGACY_SYSCALLS
@@ -467,8 +459,8 @@ linux_epoll_pwait(struct thread *td, struct linux_epoll_pwait_args *args)
 	sigset_t mask, *pmask;
 	int error;
 
-	error = linux_copyin_sigset(td, args->mask, sizeof(l_sigset_t),
-	    &mask, &pmask);
+	error = linux_copyin_sigset(td, args->mask, sizeof(l_sigset_t), &mask,
+	    &pmask);
 	if (error != 0)
 		return (error);
 
@@ -478,14 +470,15 @@ linux_epoll_pwait(struct thread *td, struct linux_epoll_pwait_args *args)
 
 #if defined(__i386__) || (defined(__amd64__) && defined(COMPAT_LINUX32))
 int
-linux_epoll_pwait2_64(struct thread *td, struct linux_epoll_pwait2_64_args *args)
+linux_epoll_pwait2_64(struct thread *td,
+    struct linux_epoll_pwait2_64_args *args)
 {
 	struct timespec ts, *tsa;
 	sigset_t mask, *pmask;
 	int error;
 
-	error = linux_copyin_sigset(td, args->mask, sizeof(l_sigset_t),
-	    &mask, &pmask);
+	error = linux_copyin_sigset(td, args->mask, sizeof(l_sigset_t), &mask,
+	    &pmask);
 	if (error != 0)
 		return (error);
 
@@ -508,8 +501,8 @@ linux_epoll_pwait2(struct thread *td, struct linux_epoll_pwait2_args *args)
 	sigset_t mask, *pmask;
 	int error;
 
-	error = linux_copyin_sigset(td, args->mask, sizeof(l_sigset_t),
-	    &mask, &pmask);
+	error = linux_copyin_sigset(td, args->mask, sizeof(l_sigset_t), &mask,
+	    &pmask);
 	if (error != 0)
 		return (error);
 
@@ -532,9 +525,7 @@ epoll_register_kevent(struct thread *td, struct file *epfp, int fd, int filter,
 {
 	struct epoll_copyin_args ciargs;
 	struct kevent kev;
-	struct kevent_copyops k_ops = { &ciargs,
-					NULL,
-					epoll_kev_copyin};
+	struct kevent_copyops k_ops = { &ciargs, NULL, epoll_kev_copyin };
 
 	ciargs.changelist = &kev;
 	EV_SET(&kev, fd, filter, flags, 0, 0, 0);
@@ -590,8 +581,9 @@ linux_eventfd2(struct thread *td, struct linux_eventfd2_args *args)
 	struct specialfd_eventfd ae;
 	int flags;
 
-	if ((args->flags & ~(LINUX_O_CLOEXEC | LINUX_O_NONBLOCK |
-	    LINUX_EFD_SEMAPHORE)) != 0)
+	if ((args->flags &
+		~(LINUX_O_CLOEXEC | LINUX_O_NONBLOCK | LINUX_EFD_SEMAPHORE)) !=
+	    0)
 		return (EINVAL);
 	flags = 0;
 	if ((args->flags & LINUX_O_CLOEXEC) != 0)
@@ -626,7 +618,8 @@ linux_timerfd_create(struct thread *td, struct linux_timerfd_create_args *args)
 }
 
 int
-linux_timerfd_gettime(struct thread *td, struct linux_timerfd_gettime_args *args)
+linux_timerfd_gettime(struct thread *td,
+    struct linux_timerfd_gettime_args *args)
 {
 	struct l_itimerspec lots;
 	struct itimerspec ots;
@@ -644,7 +637,8 @@ linux_timerfd_gettime(struct thread *td, struct linux_timerfd_gettime_args *args
 }
 
 int
-linux_timerfd_settime(struct thread *td, struct linux_timerfd_settime_args *args)
+linux_timerfd_settime(struct thread *td,
+    struct linux_timerfd_settime_args *args)
 {
 	struct l_itimerspec lots;
 	struct itimerspec nts, ots;
@@ -657,9 +651,11 @@ linux_timerfd_settime(struct thread *td, struct linux_timerfd_settime_args *args
 	if (error != 0)
 		return (error);
 	if (args->old_value == NULL)
-		error = kern_timerfd_settime(td, args->fd, args->flags, &nts, NULL);
+		error = kern_timerfd_settime(td, args->fd, args->flags, &nts,
+		    NULL);
 	else
-		error = kern_timerfd_settime(td, args->fd, args->flags, &nts, &ots);
+		error = kern_timerfd_settime(td, args->fd, args->flags, &nts,
+		    &ots);
 	if (error == 0 && args->old_value != NULL) {
 		error = native_to_linux_itimerspec(&lots, &ots);
 		if (error == 0)
@@ -671,7 +667,8 @@ linux_timerfd_settime(struct thread *td, struct linux_timerfd_settime_args *args
 
 #if defined(__i386__) || (defined(__amd64__) && defined(COMPAT_LINUX32))
 int
-linux_timerfd_gettime64(struct thread *td, struct linux_timerfd_gettime64_args *args)
+linux_timerfd_gettime64(struct thread *td,
+    struct linux_timerfd_gettime64_args *args)
 {
 	struct l_itimerspec64 lots;
 	struct itimerspec ots;
@@ -689,7 +686,8 @@ linux_timerfd_gettime64(struct thread *td, struct linux_timerfd_gettime64_args *
 }
 
 int
-linux_timerfd_settime64(struct thread *td, struct linux_timerfd_settime64_args *args)
+linux_timerfd_settime64(struct thread *td,
+    struct linux_timerfd_settime64_args *args)
 {
 	struct l_itimerspec64 lots;
 	struct itimerspec nts, ots;
@@ -702,9 +700,11 @@ linux_timerfd_settime64(struct thread *td, struct linux_timerfd_settime64_args *
 	if (error != 0)
 		return (error);
 	if (args->old_value == NULL)
-		error = kern_timerfd_settime(td, args->fd, args->flags, &nts, NULL);
+		error = kern_timerfd_settime(td, args->fd, args->flags, &nts,
+		    NULL);
 	else
-		error = kern_timerfd_settime(td, args->fd, args->flags, &nts, &ots);
+		error = kern_timerfd_settime(td, args->fd, args->flags, &nts,
+		    &ots);
 	if (error == 0 && args->old_value != NULL) {
 		error = native_to_linux_itimerspec64(&lots, &ots);
 		if (error == 0)

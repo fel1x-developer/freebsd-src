@@ -28,5 +28,5 @@ void adf_heartbeat_clean(struct adf_accel_dev *accel_dev);
 int adf_get_hb_timer(struct adf_accel_dev *accel_dev, unsigned int *value);
 int adf_get_heartbeat_status(struct adf_accel_dev *accel_dev);
 int adf_heartbeat_status(struct adf_accel_dev *accel_dev,
-			 enum adf_device_heartbeat_status *hb_status);
+    enum adf_device_heartbeat_status *hb_status);
 #endif /* ADF_HEARTBEAT_H_ */

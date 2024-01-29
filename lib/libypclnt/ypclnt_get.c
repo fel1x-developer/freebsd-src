@@ -42,8 +42,8 @@ ypclnt_get(ypclnt_t *ypc, const char *key)
 	char *value;
 	int len, r;
 
-	r = yp_match(ypc->domain, ypc->map,
-	    key, (int)strlen(key), &value, &len);
+	r = yp_match(ypc->domain, ypc->map, key, (int)strlen(key), &value,
+	    &len);
 	if (r != 0) {
 		ypclnt_error(ypc, __func__, "%s", yperr_string(r));
 		return (NULL);

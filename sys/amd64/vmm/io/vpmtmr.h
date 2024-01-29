@@ -27,9 +27,9 @@
  */
 
 #ifndef _VPMTMR_H_
-#define	_VPMTMR_H_
+#define _VPMTMR_H_
 
-#define	IO_PMTMR 0x408
+#define IO_PMTMR 0x408
 
 struct vpmtmr;
 struct vm_snapshot_meta;

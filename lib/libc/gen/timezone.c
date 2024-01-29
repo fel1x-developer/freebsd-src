@@ -31,6 +31,7 @@
 
 #include <sys/types.h>
 #include <sys/time.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -46,51 +47,48 @@ char *_tztab(int, int);
  *	application code, by a call to localtime.
  */
 
-static char	czone[TZ_MAX_CHARS];		/* space for zone name */
+static char czone[TZ_MAX_CHARS]; /* space for zone name */
 
 char *
 timezone(int zone, int dst)
 {
-	char	*beg,
-			*end;
+	char *beg, *end;
 
-	if ( (beg = getenv("TZNAME")) ) {	/* set in environment */
-		if ((end = strchr(beg, ','))) {	/* "PST,PDT" */
+	if ((beg = getenv("TZNAME"))) {		/* set in environment */
+		if ((end = strchr(beg, ','))) { /* "PST,PDT" */
 			if (dst)
-				return(++end);
+				return (++end);
 			*end = '\0';
-			(void)strncpy(czone,beg,sizeof(czone) - 1);
+			(void)strncpy(czone, beg, sizeof(czone) - 1);
 			czone[sizeof(czone) - 1] = '\0';
 			*end = ',';
-			return(czone);
+			return (czone);
 		}
-		return(beg);
+		return (beg);
 	}
-	return(_tztab(zone,dst));	/* default: table or created zone */
+	return (_tztab(zone, dst)); /* default: table or created zone */
 }
 
 static struct zone {
-	int	offset;
-	char	*stdzone;
-	char	*dlzone;
-} zonetab[] = {
-	{-1*60,	"MET",	"MET DST"},	/* Middle European */
-	{-2*60,	"EET",	"EET DST"},	/* Eastern European */
-	{4*60,	"AST",	"ADT"},		/* Atlantic */
-	{5*60,	"EST",	"EDT"},		/* Eastern */
-	{6*60,	"CST",	"CDT"},		/* Central */
-	{7*60,	"MST",	"MDT"},		/* Mountain */
-	{8*60,	"PST",	"PDT"},		/* Pacific */
+	int offset;
+	char *stdzone;
+	char *dlzone;
+} zonetab[] = { { -1 * 60, "MET", "MET DST" }, /* Middle European */
+	{ -2 * 60, "EET", "EET DST" },	       /* Eastern European */
+	{ 4 * 60, "AST", "ADT" },	       /* Atlantic */
+	{ 5 * 60, "EST", "EDT" },	       /* Eastern */
+	{ 6 * 60, "CST", "CDT" },	       /* Central */
+	{ 7 * 60, "MST", "MDT" },	       /* Mountain */
+	{ 8 * 60, "PST", "PDT" },	       /* Pacific */
 #ifdef notdef
 	/* there's no way to distinguish this from WET */
-	{0,	"GMT",	0},		/* Greenwich */
+	{ 0, "GMT", 0 }, /* Greenwich */
 #endif
-	{0*60,	"WET",	"WET DST"},	/* Western European */
-	{-10*60,"EST",	"EST"},		/* Aust: Eastern */
-     {-10*60+30,"CST",	"CST"},		/* Aust: Central */
-	{-8*60,	"WST",	0},		/* Aust: Western */
-	{-1}
-};
+	{ 0 * 60, "WET", "WET DST" },	 /* Western European */
+	{ -10 * 60, "EST", "EST" },	 /* Aust: Eastern */
+	{ -10 * 60 + 30, "CST", "CST" }, /* Aust: Central */
+	{ -8 * 60, "WST", 0 },		 /* Aust: Western */
+	{ -1 } };
 
 /*
  * _tztab --
@@ -102,24 +100,23 @@ static struct zone {
 char *
 _tztab(int zone, int dst)
 {
-	struct zone	*zp;
-	char	sign;
+	struct zone *zp;
+	char sign;
 
-	for (zp = zonetab; zp->offset != -1;++zp)	/* static tables */
+	for (zp = zonetab; zp->offset != -1; ++zp) /* static tables */
 		if (zp->offset == zone) {
 			if (dst && zp->dlzone)
-				return(zp->dlzone);
+				return (zp->dlzone);
 			if (!dst && zp->stdzone)
-				return(zp->stdzone);
+				return (zp->stdzone);
 		}
 
-	if (zone < 0) {					/* create one */
+	if (zone < 0) { /* create one */
 		zone = -zone;
 		sign = '+';
-	}
-	else
+	} else
 		sign = '-';
-	(void)snprintf(czone, sizeof(czone),
-	    "GMT%c%d:%02d",sign,zone / 60,zone % 60);
-	return(czone);
+	(void)snprintf(czone, sizeof(czone), "GMT%c%d:%02d", sign, zone / 60,
+	    zone % 60);
+	return (czone);
 }

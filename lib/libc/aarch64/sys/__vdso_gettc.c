@@ -30,8 +30,11 @@
 #include <sys/elf.h>
 #include <sys/time.h>
 #include <sys/vdso.h>
+
 #include <machine/cpufunc.h>
+
 #include <errno.h>
+
 #include "libc_private.h"
 
 static inline uint64_t
@@ -39,7 +42,7 @@ cp15_cntvct_get(void)
 {
 	uint64_t reg;
 
-	__asm __volatile("mrs %0, cntvct_el0" : "=r" (reg));
+	__asm __volatile("mrs %0, cntvct_el0" : "=r"(reg));
 	return (reg);
 }
 
@@ -48,7 +51,7 @@ cp15_cntpct_get(void)
 {
 	uint64_t reg;
 
-	__asm __volatile("mrs %0, cntpct_el0" : "=r" (reg));
+	__asm __volatile("mrs %0, cntpct_el0" : "=r"(reg));
 	return (reg);
 }
 

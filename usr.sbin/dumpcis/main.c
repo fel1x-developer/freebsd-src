@@ -25,15 +25,17 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <fcntl.h>
 #include <stdio.h>
 #include <unistd.h>
+
 #include "readcis.h"
 
 static void
 scanfile(char *name)
 {
-	int     fd;
+	int fd;
 	struct tuple_list *tl;
 
 	fd = open(name, O_RDONLY);
@@ -41,8 +43,7 @@ scanfile(char *name)
 		return;
 	tl = readcis(fd);
 	if (tl) {
-		printf("Configuration data for file %s\n",
-		    name);
+		printf("Configuration data for file %s\n", name);
 		dumpcis(tl);
 		freecis(tl);
 	}

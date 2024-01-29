@@ -38,147 +38,164 @@ LIST_HEAD(irdma_handlers);
 DEFINE_SPINLOCK(irdma_handler_lock);
 
 static const struct ae_desc ae_desc_list[] = {
-	{IRDMA_AE_AMP_UNALLOCATED_STAG, "Unallocated memory key (L-Key/R-Key)"},
-	{IRDMA_AE_AMP_INVALID_STAG, "Invalid memory key (L-Key/R-Key)"},
-	{IRDMA_AE_AMP_BAD_QP,
-	"Memory protection error: Accessing Memory Window (MW) which belongs to a different QP"},
-	{IRDMA_AE_AMP_BAD_PD,
-	"Memory protection error: Accessing Memory Window (MW)/Memory Region (MR) which belongs to a different PD"},
-	{IRDMA_AE_AMP_BAD_STAG_KEY, "Bad memory key (L-Key/R-Key)"},
-	{IRDMA_AE_AMP_BAD_STAG_INDEX, "Bad memory key (L-Key/R-Key): Too large memory key index"},
-	{IRDMA_AE_AMP_BOUNDS_VIOLATION, "Memory Window (MW)/Memory Region (MR) bounds violation"},
-	{IRDMA_AE_AMP_RIGHTS_VIOLATION, "Memory Window (MW)/Memory Region (MR) rights violation"},
-	{IRDMA_AE_AMP_TO_WRAP,
-	"Memory protection error: The address within Memory Window (MW)/Memory Region (MR) wraps"},
-	{IRDMA_AE_AMP_FASTREG_VALID_STAG,
-	"Fastreg error: Registration to a valid MR"},
-	{IRDMA_AE_AMP_FASTREG_MW_STAG,
-	"Fastreg error: Registration to a valid Memory Window (MW)"},
-	{IRDMA_AE_AMP_FASTREG_INVALID_RIGHTS, "Fastreg error: Invalid rights"},
-	{IRDMA_AE_AMP_FASTREG_INVALID_LENGTH, "Fastreg error: Invalid length"},
-	{IRDMA_AE_AMP_INVALIDATE_SHARED, "Attempt to invalidate a shared MR"},
-	{IRDMA_AE_AMP_INVALIDATE_NO_REMOTE_ACCESS_RIGHTS,
-	"Attempt to remotely invalidate Memory Window (MW)/Memory Region (MR) without rights"},
-	{IRDMA_AE_AMP_INVALIDATE_MR_WITH_BOUND_WINDOWS,
-	"Attempt to invalidate MR with a bound Memory Window (MW)"},
-	{IRDMA_AE_AMP_MWBIND_VALID_STAG,
-	"Attempt to bind an Memory Window (MW) with a valid MW memory key (L-Key/R-Key)"},
-	{IRDMA_AE_AMP_MWBIND_OF_MR_STAG,
-	"Attempt to bind an Memory Window (MW) with an MR memory key (L-Key/R-Key)"},
-	{IRDMA_AE_AMP_MWBIND_TO_ZERO_BASED_STAG,
-	"Attempt to bind an Memory Window (MW) to a zero based MR"},
-	{IRDMA_AE_AMP_MWBIND_TO_MW_STAG,
-	"Attempt to bind an Memory Window (MW) using MW memory key (L-Key/R-Key) instead of MR memory key (L-Key/R-Key)"},
-	{IRDMA_AE_AMP_MWBIND_INVALID_RIGHTS, "Memory Window (MW) bind error: Invalid rights"},
-	{IRDMA_AE_AMP_MWBIND_INVALID_BOUNDS, "Memory Window (MW) bind error: Invalid bounds"},
-	{IRDMA_AE_AMP_MWBIND_TO_INVALID_PARENT,
-	"Memory Window (MW) bind error: Invalid parent MR"},
-	{IRDMA_AE_AMP_MWBIND_BIND_DISABLED,
-	"Memory Window (MW) bind error: Disabled bind support"},
-	{IRDMA_AE_PRIV_OPERATION_DENIED,
-	"Denying a privileged operation on a non-privileged QP"},
-	{IRDMA_AE_AMP_INVALIDATE_TYPE1_MW, "Memory Window (MW) error: Invalidate type 1 MW"},
-	{IRDMA_AE_AMP_MWBIND_ZERO_BASED_TYPE1_MW,
-	"Memory Window (MW) bind error: Zero-based addressing for type 1 MW"},
-	{IRDMA_AE_AMP_FASTREG_INVALID_PBL_HPS_CFG,
-	"Fastreg error: Invalid host page size config"},
-	{IRDMA_AE_AMP_MWBIND_WRONG_TYPE, "MB bind error: Wrong Memory Window (MW) type"},
-	{IRDMA_AE_AMP_FASTREG_PBLE_MISMATCH,
-	"Fastreg error: Invalid request to change physical MR to virtual or vice versa"},
-	{IRDMA_AE_UDA_XMIT_DGRAM_TOO_LONG,
-	"Userspace Direct Access (UDA) QP xmit error: Packet length exceeds the QP MTU"},
-	{IRDMA_AE_UDA_XMIT_BAD_PD,
-	"Userspace Direct Access (UDA) QP xmit error: Attempt to access a different PD"},
-	{IRDMA_AE_UDA_XMIT_DGRAM_TOO_SHORT,
-	"Userspace Direct Access (UDA) QP xmit error: Too short packet length"},
-	{IRDMA_AE_UDA_L4LEN_INVALID,
-	"Userspace Direct Access (UDA) error: Invalid packet length field"},
-	{IRDMA_AE_BAD_CLOSE,
-	"iWARP error: Data is received when QP state is closing"},
-	{IRDMA_AE_RDMAP_ROE_BAD_LLP_CLOSE,
-	"iWARP error: FIN is received when xmit data is pending"},
-	{IRDMA_AE_CQ_OPERATION_ERROR, "CQ overflow"},
-	{IRDMA_AE_RDMA_READ_WHILE_ORD_ZERO,
-	"QP error: Attempted RDMA Read when the outbound RDMA Read queue depth is zero"},
-	{IRDMA_AE_STAG_ZERO_INVALID,
-	"Zero invalid memory key (L-Key/R-Key) on inbound RDMA R/W"},
-	{IRDMA_AE_IB_RREQ_AND_Q1_FULL,
-	"QP error: Received RDMA Read request when the inbound RDMA Read queue is full"},
-	{IRDMA_AE_IB_INVALID_REQUEST,
-	"QP error: Invalid operation detected by the remote peer"},
-	{IRDMA_AE_WQE_UNEXPECTED_OPCODE,
-	"QP error: Invalid opcode in SQ WQE"},
-	{IRDMA_AE_WQE_INVALID_PARAMETER,
-	"QP error: Invalid parameter in a WQE"},
-	{IRDMA_AE_WQE_INVALID_FRAG_DATA,
-	"QP error: Invalid fragment in a WQE"},
-	{IRDMA_AE_IB_REMOTE_ACCESS_ERROR,
-	"RoCEv2 error: Remote access error"},
-	{IRDMA_AE_IB_REMOTE_OP_ERROR,
-	"RoCEv2 error: Remote operation error"},
-	{IRDMA_AE_WQE_LSMM_TOO_LONG, "iWARP error: Connection error"},
-	{IRDMA_AE_DDP_INVALID_MSN_GAP_IN_MSN,
-	"iWARP error: Invalid message sequence number"},
-	{IRDMA_AE_DDP_UBE_DDP_MESSAGE_TOO_LONG_FOR_AVAILABLE_BUFFER,
-	"iWARP error: Inbound message is too long for the available buffer"},
-	{IRDMA_AE_DDP_UBE_INVALID_DDP_VERSION, "iWARP error: Invalid DDP protocol version"},
-	{IRDMA_AE_DDP_UBE_INVALID_MO, "Received message with too large offset"},
-	{IRDMA_AE_DDP_UBE_INVALID_MSN_NO_BUFFER_AVAILABLE,
-	"iWARP error: Inbound Send message when no receive buffer is available"},
-	{IRDMA_AE_DDP_UBE_INVALID_QN, "iWARP error: Invalid QP number in inbound packet"},
-	{IRDMA_AE_DDP_NO_L_BIT,
-	"iWARP error: Last bit not set in an inbound packet which completes RDMA Read"},
-	{IRDMA_AE_RDMAP_ROE_INVALID_RDMAP_VERSION, "iWARP error: Invalid RDMAP protocol version"},
-	{IRDMA_AE_RDMAP_ROE_UNEXPECTED_OPCODE, "QP error: Invalid opcode"},
-	{IRDMA_AE_ROE_INVALID_RDMA_READ_REQUEST, "Inbound Read request when QP isn't enabled for RDMA Read"},
-	{IRDMA_AE_ROE_INVALID_RDMA_WRITE_OR_READ_RESP,
-	"Inbound RDMA Read response or RDMA Write when QP isn't enabled for RDMA R/W"},
-	{IRDMA_AE_ROCE_RSP_LENGTH_ERROR, "RoCEv2 error: Received packet with incorrect length field"},
-	{IRDMA_AE_ROCE_EMPTY_MCG, "RoCEv2 error: Multicast group has no valid members"},
-	{IRDMA_AE_ROCE_BAD_MC_IP_ADDR, "RoCEv2 error: Multicast IP address doesn't match"},
-	{IRDMA_AE_ROCE_BAD_MC_QPID, "RoCEv2 error: Multicast packet QP number isn't 0xffffff"},
-	{IRDMA_AE_MCG_QP_PROTOCOL_MISMATCH, "RoCEv2 error: Multicast packet protocol mismatch"},
-	{IRDMA_AE_INVALID_ARP_ENTRY, "Invalid ARP entry"},
-	{IRDMA_AE_INVALID_TCP_OPTION_RCVD, "iWARP error: Invalid TCP option"},
-	{IRDMA_AE_STALE_ARP_ENTRY, "Stale ARP entry"},
-	{IRDMA_AE_INVALID_AH_ENTRY, "Invalid AH entry"},
-	{IRDMA_AE_LLP_CLOSE_COMPLETE,
-	"iWARP event: Graceful close complete"},
-	{IRDMA_AE_LLP_CONNECTION_RESET,
-	"iWARP event: Received a TCP packet with a RST bit set"},
-	{IRDMA_AE_LLP_FIN_RECEIVED,
-	"iWARP event: Received a TCP packet with a FIN bit set"},
-	{IRDMA_AE_LLP_RECEIVED_MARKER_AND_LENGTH_FIELDS_DONT_MATCH,
-	"iWARP error: Unable to close a gap in the TCP sequence"},
-	{IRDMA_AE_LLP_RECEIVED_MPA_CRC_ERROR, "Received an ICRC error"},
-	{IRDMA_AE_LLP_SEGMENT_TOO_SMALL,
-	"iWARP error: Received a packet with insufficient space for protocol headers"},
-	{IRDMA_AE_LLP_SYN_RECEIVED,
-	"iWARP event: Received a TCP packet with a SYN bit set"},
-	{IRDMA_AE_LLP_TERMINATE_RECEIVED,
-	"iWARP error: Received a terminate message"},
-	{IRDMA_AE_LLP_TOO_MANY_RETRIES, "Connection error: The max number of retries has been reached"},
-	{IRDMA_AE_LLP_TOO_MANY_KEEPALIVE_RETRIES,
-	"Connection error: The max number of keepalive retries has been reached"},
-	{IRDMA_AE_LLP_DOUBT_REACHABILITY,
-	"Connection error: Doubt reachability (usually occurs after the max number of retries has been reached)"},
-	{IRDMA_AE_LLP_CONNECTION_ESTABLISHED,
-	"iWARP event: Connection established"},
-	{IRDMA_AE_RESOURCE_EXHAUSTION,
-	"QP error: Resource exhaustion"},
-	{IRDMA_AE_RESET_SENT,
-	"Reset sent (as requested via Modify QP)"},
-	{IRDMA_AE_TERMINATE_SENT,
-	"Terminate sent (as requested via Modify QP)"},
-	{IRDMA_AE_RESET_NOT_SENT,
-	"Reset not sent (but requested via Modify QP)"},
-	{IRDMA_AE_LCE_QP_CATASTROPHIC,
-	"QP error: HW transaction resulted in catastrophic error"},
-	{IRDMA_AE_LCE_FUNCTION_CATASTROPHIC,
-	"PCIe function error: HW transaction resulted in catastrophic error"},
-	{IRDMA_AE_LCE_CQ_CATASTROPHIC,
-	"CQ error: HW transaction resulted in catastrophic error"},
-	{IRDMA_AE_QP_SUSPEND_COMPLETE, "QP event: Suspend complete"},
+	{ IRDMA_AE_AMP_UNALLOCATED_STAG,
+	    "Unallocated memory key (L-Key/R-Key)" },
+	{ IRDMA_AE_AMP_INVALID_STAG, "Invalid memory key (L-Key/R-Key)" },
+	{ IRDMA_AE_AMP_BAD_QP,
+	    "Memory protection error: Accessing Memory Window (MW) which belongs to a different QP" },
+	{ IRDMA_AE_AMP_BAD_PD,
+	    "Memory protection error: Accessing Memory Window (MW)/Memory Region (MR) which belongs to a different PD" },
+	{ IRDMA_AE_AMP_BAD_STAG_KEY, "Bad memory key (L-Key/R-Key)" },
+	{ IRDMA_AE_AMP_BAD_STAG_INDEX,
+	    "Bad memory key (L-Key/R-Key): Too large memory key index" },
+	{ IRDMA_AE_AMP_BOUNDS_VIOLATION,
+	    "Memory Window (MW)/Memory Region (MR) bounds violation" },
+	{ IRDMA_AE_AMP_RIGHTS_VIOLATION,
+	    "Memory Window (MW)/Memory Region (MR) rights violation" },
+	{ IRDMA_AE_AMP_TO_WRAP,
+	    "Memory protection error: The address within Memory Window (MW)/Memory Region (MR) wraps" },
+	{ IRDMA_AE_AMP_FASTREG_VALID_STAG,
+	    "Fastreg error: Registration to a valid MR" },
+	{ IRDMA_AE_AMP_FASTREG_MW_STAG,
+	    "Fastreg error: Registration to a valid Memory Window (MW)" },
+	{ IRDMA_AE_AMP_FASTREG_INVALID_RIGHTS,
+	    "Fastreg error: Invalid rights" },
+	{ IRDMA_AE_AMP_FASTREG_INVALID_LENGTH,
+	    "Fastreg error: Invalid length" },
+	{ IRDMA_AE_AMP_INVALIDATE_SHARED, "Attempt to invalidate a shared MR" },
+	{ IRDMA_AE_AMP_INVALIDATE_NO_REMOTE_ACCESS_RIGHTS,
+	    "Attempt to remotely invalidate Memory Window (MW)/Memory Region (MR) without rights" },
+	{ IRDMA_AE_AMP_INVALIDATE_MR_WITH_BOUND_WINDOWS,
+	    "Attempt to invalidate MR with a bound Memory Window (MW)" },
+	{ IRDMA_AE_AMP_MWBIND_VALID_STAG,
+	    "Attempt to bind an Memory Window (MW) with a valid MW memory key (L-Key/R-Key)" },
+	{ IRDMA_AE_AMP_MWBIND_OF_MR_STAG,
+	    "Attempt to bind an Memory Window (MW) with an MR memory key (L-Key/R-Key)" },
+	{ IRDMA_AE_AMP_MWBIND_TO_ZERO_BASED_STAG,
+	    "Attempt to bind an Memory Window (MW) to a zero based MR" },
+	{ IRDMA_AE_AMP_MWBIND_TO_MW_STAG,
+	    "Attempt to bind an Memory Window (MW) using MW memory key (L-Key/R-Key) instead of MR memory key (L-Key/R-Key)" },
+	{ IRDMA_AE_AMP_MWBIND_INVALID_RIGHTS,
+	    "Memory Window (MW) bind error: Invalid rights" },
+	{ IRDMA_AE_AMP_MWBIND_INVALID_BOUNDS,
+	    "Memory Window (MW) bind error: Invalid bounds" },
+	{ IRDMA_AE_AMP_MWBIND_TO_INVALID_PARENT,
+	    "Memory Window (MW) bind error: Invalid parent MR" },
+	{ IRDMA_AE_AMP_MWBIND_BIND_DISABLED,
+	    "Memory Window (MW) bind error: Disabled bind support" },
+	{ IRDMA_AE_PRIV_OPERATION_DENIED,
+	    "Denying a privileged operation on a non-privileged QP" },
+	{ IRDMA_AE_AMP_INVALIDATE_TYPE1_MW,
+	    "Memory Window (MW) error: Invalidate type 1 MW" },
+	{ IRDMA_AE_AMP_MWBIND_ZERO_BASED_TYPE1_MW,
+	    "Memory Window (MW) bind error: Zero-based addressing for type 1 MW" },
+	{ IRDMA_AE_AMP_FASTREG_INVALID_PBL_HPS_CFG,
+	    "Fastreg error: Invalid host page size config" },
+	{ IRDMA_AE_AMP_MWBIND_WRONG_TYPE,
+	    "MB bind error: Wrong Memory Window (MW) type" },
+	{ IRDMA_AE_AMP_FASTREG_PBLE_MISMATCH,
+	    "Fastreg error: Invalid request to change physical MR to virtual or vice versa" },
+	{ IRDMA_AE_UDA_XMIT_DGRAM_TOO_LONG,
+	    "Userspace Direct Access (UDA) QP xmit error: Packet length exceeds the QP MTU" },
+	{ IRDMA_AE_UDA_XMIT_BAD_PD,
+	    "Userspace Direct Access (UDA) QP xmit error: Attempt to access a different PD" },
+	{ IRDMA_AE_UDA_XMIT_DGRAM_TOO_SHORT,
+	    "Userspace Direct Access (UDA) QP xmit error: Too short packet length" },
+	{ IRDMA_AE_UDA_L4LEN_INVALID,
+	    "Userspace Direct Access (UDA) error: Invalid packet length field" },
+	{ IRDMA_AE_BAD_CLOSE,
+	    "iWARP error: Data is received when QP state is closing" },
+	{ IRDMA_AE_RDMAP_ROE_BAD_LLP_CLOSE,
+	    "iWARP error: FIN is received when xmit data is pending" },
+	{ IRDMA_AE_CQ_OPERATION_ERROR, "CQ overflow" },
+	{ IRDMA_AE_RDMA_READ_WHILE_ORD_ZERO,
+	    "QP error: Attempted RDMA Read when the outbound RDMA Read queue depth is zero" },
+	{ IRDMA_AE_STAG_ZERO_INVALID,
+	    "Zero invalid memory key (L-Key/R-Key) on inbound RDMA R/W" },
+	{ IRDMA_AE_IB_RREQ_AND_Q1_FULL,
+	    "QP error: Received RDMA Read request when the inbound RDMA Read queue is full" },
+	{ IRDMA_AE_IB_INVALID_REQUEST,
+	    "QP error: Invalid operation detected by the remote peer" },
+	{ IRDMA_AE_WQE_UNEXPECTED_OPCODE,
+	    "QP error: Invalid opcode in SQ WQE" },
+	{ IRDMA_AE_WQE_INVALID_PARAMETER,
+	    "QP error: Invalid parameter in a WQE" },
+	{ IRDMA_AE_WQE_INVALID_FRAG_DATA,
+	    "QP error: Invalid fragment in a WQE" },
+	{ IRDMA_AE_IB_REMOTE_ACCESS_ERROR,
+	    "RoCEv2 error: Remote access error" },
+	{ IRDMA_AE_IB_REMOTE_OP_ERROR, "RoCEv2 error: Remote operation error" },
+	{ IRDMA_AE_WQE_LSMM_TOO_LONG, "iWARP error: Connection error" },
+	{ IRDMA_AE_DDP_INVALID_MSN_GAP_IN_MSN,
+	    "iWARP error: Invalid message sequence number" },
+	{ IRDMA_AE_DDP_UBE_DDP_MESSAGE_TOO_LONG_FOR_AVAILABLE_BUFFER,
+	    "iWARP error: Inbound message is too long for the available buffer" },
+	{ IRDMA_AE_DDP_UBE_INVALID_DDP_VERSION,
+	    "iWARP error: Invalid DDP protocol version" },
+	{ IRDMA_AE_DDP_UBE_INVALID_MO,
+	    "Received message with too large offset" },
+	{ IRDMA_AE_DDP_UBE_INVALID_MSN_NO_BUFFER_AVAILABLE,
+	    "iWARP error: Inbound Send message when no receive buffer is available" },
+	{ IRDMA_AE_DDP_UBE_INVALID_QN,
+	    "iWARP error: Invalid QP number in inbound packet" },
+	{ IRDMA_AE_DDP_NO_L_BIT,
+	    "iWARP error: Last bit not set in an inbound packet which completes RDMA Read" },
+	{ IRDMA_AE_RDMAP_ROE_INVALID_RDMAP_VERSION,
+	    "iWARP error: Invalid RDMAP protocol version" },
+	{ IRDMA_AE_RDMAP_ROE_UNEXPECTED_OPCODE, "QP error: Invalid opcode" },
+	{ IRDMA_AE_ROE_INVALID_RDMA_READ_REQUEST,
+	    "Inbound Read request when QP isn't enabled for RDMA Read" },
+	{ IRDMA_AE_ROE_INVALID_RDMA_WRITE_OR_READ_RESP,
+	    "Inbound RDMA Read response or RDMA Write when QP isn't enabled for RDMA R/W" },
+	{ IRDMA_AE_ROCE_RSP_LENGTH_ERROR,
+	    "RoCEv2 error: Received packet with incorrect length field" },
+	{ IRDMA_AE_ROCE_EMPTY_MCG,
+	    "RoCEv2 error: Multicast group has no valid members" },
+	{ IRDMA_AE_ROCE_BAD_MC_IP_ADDR,
+	    "RoCEv2 error: Multicast IP address doesn't match" },
+	{ IRDMA_AE_ROCE_BAD_MC_QPID,
+	    "RoCEv2 error: Multicast packet QP number isn't 0xffffff" },
+	{ IRDMA_AE_MCG_QP_PROTOCOL_MISMATCH,
+	    "RoCEv2 error: Multicast packet protocol mismatch" },
+	{ IRDMA_AE_INVALID_ARP_ENTRY, "Invalid ARP entry" },
+	{ IRDMA_AE_INVALID_TCP_OPTION_RCVD, "iWARP error: Invalid TCP option" },
+	{ IRDMA_AE_STALE_ARP_ENTRY, "Stale ARP entry" },
+	{ IRDMA_AE_INVALID_AH_ENTRY, "Invalid AH entry" },
+	{ IRDMA_AE_LLP_CLOSE_COMPLETE, "iWARP event: Graceful close complete" },
+	{ IRDMA_AE_LLP_CONNECTION_RESET,
+	    "iWARP event: Received a TCP packet with a RST bit set" },
+	{ IRDMA_AE_LLP_FIN_RECEIVED,
+	    "iWARP event: Received a TCP packet with a FIN bit set" },
+	{ IRDMA_AE_LLP_RECEIVED_MARKER_AND_LENGTH_FIELDS_DONT_MATCH,
+	    "iWARP error: Unable to close a gap in the TCP sequence" },
+	{ IRDMA_AE_LLP_RECEIVED_MPA_CRC_ERROR, "Received an ICRC error" },
+	{ IRDMA_AE_LLP_SEGMENT_TOO_SMALL,
+	    "iWARP error: Received a packet with insufficient space for protocol headers" },
+	{ IRDMA_AE_LLP_SYN_RECEIVED,
+	    "iWARP event: Received a TCP packet with a SYN bit set" },
+	{ IRDMA_AE_LLP_TERMINATE_RECEIVED,
+	    "iWARP error: Received a terminate message" },
+	{ IRDMA_AE_LLP_TOO_MANY_RETRIES,
+	    "Connection error: The max number of retries has been reached" },
+	{ IRDMA_AE_LLP_TOO_MANY_KEEPALIVE_RETRIES,
+	    "Connection error: The max number of keepalive retries has been reached" },
+	{ IRDMA_AE_LLP_DOUBT_REACHABILITY,
+	    "Connection error: Doubt reachability (usually occurs after the max number of retries has been reached)" },
+	{ IRDMA_AE_LLP_CONNECTION_ESTABLISHED,
+	    "iWARP event: Connection established" },
+	{ IRDMA_AE_RESOURCE_EXHAUSTION, "QP error: Resource exhaustion" },
+	{ IRDMA_AE_RESET_SENT, "Reset sent (as requested via Modify QP)" },
+	{ IRDMA_AE_TERMINATE_SENT,
+	    "Terminate sent (as requested via Modify QP)" },
+	{ IRDMA_AE_RESET_NOT_SENT,
+	    "Reset not sent (but requested via Modify QP)" },
+	{ IRDMA_AE_LCE_QP_CATASTROPHIC,
+	    "QP error: HW transaction resulted in catastrophic error" },
+	{ IRDMA_AE_LCE_FUNCTION_CATASTROPHIC,
+	    "PCIe function error: HW transaction resulted in catastrophic error" },
+	{ IRDMA_AE_LCE_CQ_CATASTROPHIC,
+	    "CQ error: HW transaction resulted in catastrophic error" },
+	{ IRDMA_AE_QP_SUSPEND_COMPLETE, "QP event: Suspend complete" },
 };
 
 /**
@@ -209,7 +226,7 @@ irdma_get_ae_desc(u16 ae_id)
  */
 int
 irdma_arp_table(struct irdma_pci_f *rf, u32 *ip_addr, const u8 *mac_addr,
-		u32 action)
+    u32 action)
 {
 	unsigned long flags;
 	int arp_index;
@@ -232,13 +249,13 @@ irdma_arp_table(struct irdma_pci_f *rf, u32 *ip_addr, const u8 *mac_addr,
 
 		arp_index = 0;
 		if (irdma_alloc_rsrc(rf, rf->allocated_arps, rf->arp_table_size,
-				     (u32 *)&arp_index, &rf->next_arp_index)) {
+			(u32 *)&arp_index, &rf->next_arp_index)) {
 			arp_index = -1;
 			break;
 		}
 
 		memcpy(rf->arp_table[arp_index].ip_addr, ip,
-		       sizeof(rf->arp_table[arp_index].ip_addr));
+		    sizeof(rf->arp_table[arp_index].ip_addr));
 		ether_addr_copy(rf->arp_table[arp_index].mac_addr, mac_addr);
 		break;
 	case IRDMA_ARP_RESOLVE:
@@ -252,7 +269,7 @@ irdma_arp_table(struct irdma_pci_f *rf, u32 *ip_addr, const u8 *mac_addr,
 		}
 
 		memset(rf->arp_table[arp_index].ip_addr, 0,
-		       sizeof(rf->arp_table[arp_index].ip_addr));
+		    sizeof(rf->arp_table[arp_index].ip_addr));
 		eth_zero_addr(rf->arp_table[arp_index].mac_addr);
 		irdma_free_rsrc(rf, rf->allocated_arps, arp_index);
 		break;
@@ -282,7 +299,7 @@ irdma_add_arp(struct irdma_pci_f *rf, u32 *ip, const u8 *mac)
 			return arpidx;
 
 		irdma_manage_arp_cache(rf, rf->arp_table[arpidx].mac_addr, ip,
-				       IRDMA_ARP_DELETE);
+		    IRDMA_ARP_DELETE);
 	}
 
 	irdma_manage_arp_cache(rf, mac, ip, IRDMA_ARP_ADD);
@@ -298,7 +315,7 @@ irdma_add_arp(struct irdma_pci_f *rf, u32 *ip, const u8 *mac)
  */
 int
 irdma_netdevice_event(struct notifier_block *notifier, unsigned long event,
-		      void *ptr)
+    void *ptr)
 {
 	struct irdma_device *iwdev;
 	struct ifnet *netdev = netdev_notifier_info_to_ifp(ptr);
@@ -336,7 +353,8 @@ irdma_register_notifiers(struct irdma_device *iwdev)
 	iwdev->nb_netdevice_event.notifier_call = irdma_netdevice_event;
 	ret = register_netdevice_notifier(&iwdev->nb_netdevice_event);
 	if (ret) {
-		irdma_dev_err(&iwdev->ibdev, "register_netdevice_notifier failed\n");
+		irdma_dev_err(&iwdev->ibdev,
+		    "register_netdevice_notifier failed\n");
 		return ret;
 	}
 	return ret;
@@ -347,8 +365,7 @@ irdma_register_notifiers(struct irdma_device *iwdev)
  * @wait: cqp to be used in wait mode
  */
 struct irdma_cqp_request *
-irdma_alloc_and_get_cqp_request(struct irdma_cqp *cqp,
-				bool wait)
+irdma_alloc_and_get_cqp_request(struct irdma_cqp *cqp, bool wait)
 {
 	struct irdma_cqp_request *cqp_request = NULL;
 	unsigned long flags;
@@ -356,7 +373,7 @@ irdma_alloc_and_get_cqp_request(struct irdma_cqp *cqp,
 	spin_lock_irqsave(&cqp->req_lock, flags);
 	if (!list_empty(&cqp->cqp_avail_reqs)) {
 		cqp_request = list_entry(cqp->cqp_avail_reqs.next,
-					 struct irdma_cqp_request, list);
+		    struct irdma_cqp_request, list);
 		list_del_init(&cqp_request->list);
 	}
 	spin_unlock_irqrestore(&cqp->req_lock, flags);
@@ -369,7 +386,8 @@ irdma_alloc_and_get_cqp_request(struct irdma_cqp *cqp,
 		}
 	}
 	if (!cqp_request) {
-		irdma_debug(cqp->sc_cqp.dev, IRDMA_DEBUG_ERR, "CQP Request Fail: No Memory");
+		irdma_debug(cqp->sc_cqp.dev, IRDMA_DEBUG_ERR,
+		    "CQP Request Fail: No Memory");
 		return NULL;
 	}
 
@@ -397,7 +415,7 @@ irdma_get_cqp_request(struct irdma_cqp_request *cqp_request)
  */
 void
 irdma_free_cqp_request(struct irdma_cqp *cqp,
-		       struct irdma_cqp_request *cqp_request)
+    struct irdma_cqp_request *cqp_request)
 {
 	unsigned long flags;
 
@@ -422,7 +440,7 @@ irdma_free_cqp_request(struct irdma_cqp *cqp,
  */
 void
 irdma_put_cqp_request(struct irdma_cqp *cqp,
-		      struct irdma_cqp_request *cqp_request)
+    struct irdma_cqp_request *cqp_request)
 {
 	if (atomic_dec_and_test(&cqp_request->refcnt))
 		irdma_free_cqp_request(cqp, cqp_request);
@@ -435,7 +453,7 @@ irdma_put_cqp_request(struct irdma_cqp *cqp,
  */
 static void
 irdma_free_pending_cqp_request(struct irdma_cqp *cqp,
-			       struct irdma_cqp_request *cqp_request)
+    struct irdma_cqp_request *cqp_request)
 {
 	if (cqp_request->waiting) {
 		cqp_request->compl_info.error = true;
@@ -443,7 +461,7 @@ irdma_free_pending_cqp_request(struct irdma_cqp *cqp,
 		wake_up(&cqp_request->waitq);
 	}
 	wait_event_timeout(cqp->remove_wq,
-			   atomic_read(&cqp_request->refcnt) == 1, 1000);
+	    atomic_read(&cqp_request->refcnt) == 1, 1000);
 	irdma_put_cqp_request(cqp, cqp_request);
 }
 
@@ -465,7 +483,7 @@ irdma_cleanup_pending_cqp_op(struct irdma_pci_f *rf)
 	wqe_idx = IRDMA_RING_CURRENT_TAIL(cqp->sc_cqp.sq_ring);
 	for (i = 0; i < pending_work; i++) {
 		cqp_request = (struct irdma_cqp_request *)(uintptr_t)
-		    cqp->scratch_array[wqe_idx];
+				  cqp->scratch_array[wqe_idx];
 		if (cqp_request)
 			irdma_free_pending_cqp_request(cqp, cqp_request);
 		wqe_idx = (wqe_idx + 1) % IRDMA_RING_SIZE(cqp->sc_cqp.sq_ring);
@@ -473,8 +491,8 @@ irdma_cleanup_pending_cqp_op(struct irdma_pci_f *rf)
 
 	while (!list_empty(&dev->cqp_cmd_head)) {
 		pcmdinfo = irdma_remove_cqp_head(dev);
-		cqp_request =
-		    container_of(pcmdinfo, struct irdma_cqp_request, info);
+		cqp_request = container_of(pcmdinfo, struct irdma_cqp_request,
+		    info);
 		if (cqp_request)
 			irdma_free_pending_cqp_request(cqp, cqp_request);
 	}
@@ -486,21 +504,22 @@ irdma_cleanup_pending_cqp_op(struct irdma_pci_f *rf)
  * @cqp_request: cqp request to wait
  */
 static int
-irdma_wait_event(struct irdma_pci_f *rf,
-		 struct irdma_cqp_request *cqp_request)
+irdma_wait_event(struct irdma_pci_f *rf, struct irdma_cqp_request *cqp_request)
 {
-	struct irdma_cqp_timeout cqp_timeout = {0};
+	struct irdma_cqp_timeout cqp_timeout = { 0 };
 	bool cqp_error = false;
 	int err_code = 0;
 
-	cqp_timeout.compl_cqp_cmds = atomic64_read(&rf->sc_dev.cqp->completed_ops);
+	cqp_timeout.compl_cqp_cmds = atomic64_read(
+	    &rf->sc_dev.cqp->completed_ops);
 	do {
-		int wait_time_ms = rf->sc_dev.hw_attrs.max_cqp_compl_wait_time_ms;
+		int wait_time_ms =
+		    rf->sc_dev.hw_attrs.max_cqp_compl_wait_time_ms;
 
 		irdma_cqp_ce_handler(rf, &rf->ccq.sc_cq);
 		if (wait_event_timeout(cqp_request->waitq,
-				       READ_ONCE(cqp_request->request_done),
-				       msecs_to_jiffies(wait_time_ms)))
+			READ_ONCE(cqp_request->request_done),
+			msecs_to_jiffies(wait_time_ms)))
 			break;
 
 		irdma_check_cqp_progress(&cqp_timeout, &rf->sc_dev);
@@ -521,7 +540,8 @@ irdma_wait_event(struct irdma_pci_f *rf,
 		if (cqp_request->compl_info.maj_err_code == 0xFFFF) {
 			if (cqp_request->compl_info.min_err_code == 0x8002) {
 				err_code = -EBUSY;
-			} else if (cqp_request->compl_info.min_err_code == 0x8029) {
+			} else if (cqp_request->compl_info.min_err_code ==
+			    0x8029) {
 				if (!rf->reset) {
 					rf->reset = true;
 					rf->gen_ops.request_reset(rf);
@@ -540,7 +560,8 @@ static const char *const irdma_cqp_cmd_names[IRDMA_MAX_CQP_OPS] = {
 	[IRDMA_OP_MANAGE_APBVT_ENTRY] = "Manage APBV Table Entry Cmd",
 	[IRDMA_OP_CEQ_CREATE] = "CEQ Create Cmd",
 	[IRDMA_OP_AEQ_CREATE] = "AEQ Destroy Cmd",
-	[IRDMA_OP_MANAGE_QHASH_TABLE_ENTRY] = "Manage Quad Hash Table Entry Cmd",
+	[IRDMA_OP_MANAGE_QHASH_TABLE_ENTRY] =
+	    "Manage Quad Hash Table Entry Cmd",
 	[IRDMA_OP_QP_MODIFY] = "Modify QP Cmd",
 	[IRDMA_OP_QP_UPLOAD_CONTEXT] = "Upload Context Cmd",
 	[IRDMA_OP_CQ_CREATE] = "Create CQ Cmd",
@@ -555,11 +576,12 @@ static const char *const irdma_cqp_cmd_names[IRDMA_MAX_CQP_OPS] = {
 	[IRDMA_OP_ADD_ARP_CACHE_ENTRY] = "Add ARP Cache Cmd",
 	[IRDMA_OP_MANAGE_PUSH_PAGE] = "Manage Push Page Cmd",
 	[IRDMA_OP_UPDATE_PE_SDS] = "Update PE SDs Cmd",
-	[IRDMA_OP_MANAGE_HMC_PM_FUNC_TABLE] = "Manage HMC PM Function Table Cmd",
+	[IRDMA_OP_MANAGE_HMC_PM_FUNC_TABLE] =
+	    "Manage HMC PM Function Table Cmd",
 	[IRDMA_OP_SUSPEND] = "Suspend QP Cmd",
 	[IRDMA_OP_RESUME] = "Resume QP Cmd",
 	[IRDMA_OP_MANAGE_VCHNL_REQ_PBLE_BP] =
-	"Manage Virtual Channel Requester Function PBLE Backing Pages Cmd",
+	    "Manage Virtual Channel Requester Function PBLE Backing Pages Cmd",
 	[IRDMA_OP_QUERY_FPM_VAL] = "Query FPM Values Cmd",
 	[IRDMA_OP_COMMIT_FPM_VAL] = "Commit FPM Values Cmd",
 	[IRDMA_OP_AH_CREATE] = "Create Address Handle Cmd",
@@ -586,12 +608,11 @@ static const char *const irdma_cqp_cmd_names[IRDMA_MAX_CQP_OPS] = {
 };
 
 static const struct irdma_cqp_err_info irdma_noncrit_err_list[] = {
-	{0xffff, 0x8002, "Invalid State"},
-	{0xffff, 0x8006, "Flush No Wqe Pending"},
-	{0xffff, 0x8007, "Modify QP Bad Close"},
-	{0xffff, 0x8009, "LLP Closed"},
-	{0xffff, 0x800a, "Reset Not Sent"},
-	{0xffff, 0x200, "Failover Pending"}
+	{ 0xffff, 0x8002, "Invalid State" },
+	{ 0xffff, 0x8006, "Flush No Wqe Pending" },
+	{ 0xffff, 0x8007, "Modify QP Bad Close" },
+	{ 0xffff, 0x8009, "LLP Closed" }, { 0xffff, 0x800a, "Reset Not Sent" },
+	{ 0xffff, 0x200, "Failover Pending" }
 };
 
 /**
@@ -602,8 +623,8 @@ static const struct irdma_cqp_err_info irdma_noncrit_err_list[] = {
  * @min_err_code: minot error code
  */
 bool
-irdma_cqp_crit_err(struct irdma_sc_dev *dev, u8 cqp_cmd,
-		   u16 maj_err_code, u16 min_err_code)
+irdma_cqp_crit_err(struct irdma_sc_dev *dev, u8 cqp_cmd, u16 maj_err_code,
+    u16 min_err_code)
 {
 	int i;
 
@@ -611,10 +632,10 @@ irdma_cqp_crit_err(struct irdma_sc_dev *dev, u8 cqp_cmd,
 		if (maj_err_code == irdma_noncrit_err_list[i].maj &&
 		    min_err_code == irdma_noncrit_err_list[i].min) {
 			irdma_debug(dev, IRDMA_DEBUG_CQP,
-				    "[%s Error][%s] maj=0x%x min=0x%x\n",
-				    irdma_noncrit_err_list[i].desc,
-				    irdma_cqp_cmd_names[cqp_cmd], maj_err_code,
-				    min_err_code);
+			    "[%s Error][%s] maj=0x%x min=0x%x\n",
+			    irdma_noncrit_err_list[i].desc,
+			    irdma_cqp_cmd_names[cqp_cmd], maj_err_code,
+			    min_err_code);
 			return false;
 		}
 	}
@@ -628,7 +649,7 @@ irdma_cqp_crit_err(struct irdma_sc_dev *dev, u8 cqp_cmd,
  */
 int
 irdma_handle_cqp_op(struct irdma_pci_f *rf,
-		    struct irdma_cqp_request *cqp_request)
+    struct irdma_cqp_request *cqp_request)
 {
 	struct irdma_sc_dev *dev = &rf->sc_dev;
 	struct cqp_cmds_info *info = &cqp_request->info;
@@ -654,14 +675,14 @@ irdma_handle_cqp_op(struct irdma_pci_f *rf,
 
 err:
 	if (irdma_cqp_crit_err(dev, info->cqp_cmd,
-			       cqp_request->compl_info.maj_err_code,
-			       cqp_request->compl_info.min_err_code))
+		cqp_request->compl_info.maj_err_code,
+		cqp_request->compl_info.min_err_code))
 		irdma_dev_err(&rf->iwdev->ibdev,
-			      "[%s Error][op_code=%d] status=%d waiting=%d completion_err=%d maj=0x%x min=0x%x\n",
-			      irdma_cqp_cmd_names[info->cqp_cmd], info->cqp_cmd, status,
-			      cqp_request->waiting, cqp_request->compl_info.error,
-			      cqp_request->compl_info.maj_err_code,
-			      cqp_request->compl_info.min_err_code);
+		    "[%s Error][op_code=%d] status=%d waiting=%d completion_err=%d maj=0x%x min=0x%x\n",
+		    irdma_cqp_cmd_names[info->cqp_cmd], info->cqp_cmd, status,
+		    cqp_request->waiting, cqp_request->compl_info.error,
+		    cqp_request->compl_info.maj_err_code,
+		    cqp_request->compl_info.min_err_code);
 
 	if (put_cqp_request)
 		irdma_put_cqp_request(&rf->cqp, cqp_request);
@@ -707,7 +728,8 @@ void
 irdma_cq_rem_ref(struct ib_cq *ibcq)
 {
 	struct irdma_cq *iwcq = to_iwcq(ibcq);
-	struct irdma_pci_f *rf = container_of(iwcq->sc_cq.dev, struct irdma_pci_f, sc_dev);
+	struct irdma_pci_f *rf = container_of(iwcq->sc_cq.dev,
+	    struct irdma_pci_f, sc_dev);
 	unsigned long flags;
 
 	spin_lock_irqsave(&rf->cqtable_lock, flags);
@@ -770,7 +792,7 @@ irdma_remove_cqp_head(struct irdma_sc_dev *dev)
  */
 int
 irdma_cqp_sds_cmd(struct irdma_sc_dev *dev,
-		  struct irdma_update_sds_info *sdinfo)
+    struct irdma_update_sds_info *sdinfo)
 {
 	struct irdma_cqp_request *cqp_request;
 	struct cqp_cmds_info *cqp_info;
@@ -783,7 +805,7 @@ irdma_cqp_sds_cmd(struct irdma_sc_dev *dev,
 
 	cqp_info = &cqp_request->info;
 	memcpy(&cqp_info->in.u.update_pe_sds.info, sdinfo,
-	       sizeof(cqp_info->in.u.update_pe_sds.info));
+	    sizeof(cqp_info->in.u.update_pe_sds.info));
 	cqp_info->cqp_cmd = IRDMA_OP_UPDATE_PE_SDS;
 	cqp_info->post_sq = 1;
 	cqp_info->in.u.update_pe_sds.dev = dev;
@@ -835,7 +857,7 @@ irdma_cqp_qp_suspend_resume(struct irdma_sc_qp *qp, u8 op)
  */
 void
 irdma_term_modify_qp(struct irdma_sc_qp *qp, u8 next_state, u8 term,
-		     u8 term_len)
+    u8 term_len)
 {
 	struct irdma_qp *iwqp;
 
@@ -925,7 +947,7 @@ irdma_terminate_del_timer(struct irdma_sc_qp *qp)
  */
 int
 irdma_cqp_query_fpm_val_cmd(struct irdma_sc_dev *dev,
-			    struct irdma_dma_mem *val_mem, u16 hmc_fn_id)
+    struct irdma_dma_mem *val_mem, u16 hmc_fn_id)
 {
 	struct irdma_cqp_request *cqp_request;
 	struct cqp_cmds_info *cqp_info;
@@ -960,7 +982,7 @@ irdma_cqp_query_fpm_val_cmd(struct irdma_sc_dev *dev,
  */
 int
 irdma_cqp_commit_fpm_val_cmd(struct irdma_sc_dev *dev,
-			     struct irdma_dma_mem *val_mem, u16 hmc_fn_id)
+    struct irdma_dma_mem *val_mem, u16 hmc_fn_id)
 {
 	struct irdma_cqp_request *cqp_request;
 	struct cqp_cmds_info *cqp_info;
@@ -1058,8 +1080,7 @@ irdma_cqp_qp_create_cmd(struct irdma_sc_dev *dev, struct irdma_sc_qp *qp)
  * @qp: hardware control qp
  */
 void
-irdma_dealloc_push_page(struct irdma_pci_f *rf,
-			struct irdma_sc_qp *qp)
+irdma_dealloc_push_page(struct irdma_pci_f *rf, struct irdma_sc_qp *qp)
 {
 	struct irdma_cqp_request *cqp_request;
 	struct cqp_cmds_info *cqp_info;
@@ -1137,7 +1158,7 @@ irdma_hw_modify_qp_callback(struct irdma_cqp_request *cqp_request)
  */
 int
 irdma_hw_modify_qp(struct irdma_device *iwdev, struct irdma_qp *iwqp,
-		   struct irdma_modify_qp_info *info, bool wait)
+    struct irdma_modify_qp_info *info, bool wait)
 {
 	int status;
 	struct irdma_pci_f *rf = iwdev->rf;
@@ -1182,8 +1203,8 @@ irdma_hw_modify_qp(struct irdma_device *iwdev, struct irdma_qp *iwqp,
 				ae_info.ae_src = 0;
 				irdma_gen_ae(rf, &iwqp->sc_qp, &ae_info, false);
 			} else {
-				cqp_request = irdma_alloc_and_get_cqp_request(&rf->cqp,
-									      wait);
+				cqp_request = irdma_alloc_and_get_cqp_request(
+				    &rf->cqp, wait);
 				if (!cqp_request)
 					return -ENOMEM;
 
@@ -1193,7 +1214,8 @@ irdma_hw_modify_qp(struct irdma_device *iwdev, struct irdma_qp *iwqp,
 				cqp_info->cqp_cmd = IRDMA_OP_QP_MODIFY;
 				cqp_info->post_sq = 1;
 				cqp_info->in.u.qp_modify.qp = &iwqp->sc_qp;
-				cqp_info->in.u.qp_modify.scratch = (uintptr_t)cqp_request;
+				cqp_info->in.u.qp_modify.scratch = (uintptr_t)
+				    cqp_request;
 				m_info->next_iwarp_state = IRDMA_QP_STATE_ERROR;
 				m_info->reset_tcp_conn = true;
 				irdma_handle_cqp_op(rf, cqp_request);
@@ -1262,7 +1284,7 @@ irdma_cqp_qp_destroy_cmd(struct irdma_sc_dev *dev, struct irdma_sc_qp *qp)
 void
 irdma_ieq_mpa_crc_ae(struct irdma_sc_dev *dev, struct irdma_sc_qp *qp)
 {
-	struct irdma_gen_ae_info info = {0};
+	struct irdma_gen_ae_info info = { 0 };
 	struct irdma_pci_f *rf = dev_to_rf(dev);
 
 	irdma_debug(&rf->sc_dev, IRDMA_DEBUG_AEQ, "Generate MPA CRC AE\n");
@@ -1277,14 +1299,13 @@ irdma_ieq_mpa_crc_ae(struct irdma_sc_dev *dev, struct irdma_sc_qp *qp)
  * @buf: receive puda buffer on exception q
  */
 struct irdma_sc_qp *
-irdma_ieq_get_qp(struct irdma_sc_dev *dev,
-		 struct irdma_puda_buf *buf)
+irdma_ieq_get_qp(struct irdma_sc_dev *dev, struct irdma_puda_buf *buf)
 {
 	struct irdma_qp *iwqp;
 	struct irdma_cm_node *cm_node;
 	struct irdma_device *iwdev = buf->vsi->back_vsi;
-	u32 loc_addr[4] = {0};
-	u32 rem_addr[4] = {0};
+	u32 loc_addr[4] = { 0 };
+	u32 rem_addr[4] = { 0 };
 	u16 loc_port, rem_port;
 	struct ip6_hdr *ip6h;
 	struct ip *iph = (struct ip *)buf->iph;
@@ -1295,13 +1316,15 @@ irdma_ieq_get_qp(struct irdma_sc_dev *dev,
 		rem_addr[0] = ntohl(iph->ip_src.s_addr);
 	} else {
 		ip6h = (struct ip6_hdr *)buf->iph;
-		irdma_copy_ip_ntohl(loc_addr, ip6h->ip6_dst.__u6_addr.__u6_addr32);
-		irdma_copy_ip_ntohl(rem_addr, ip6h->ip6_src.__u6_addr.__u6_addr32);
+		irdma_copy_ip_ntohl(loc_addr,
+		    ip6h->ip6_dst.__u6_addr.__u6_addr32);
+		irdma_copy_ip_ntohl(rem_addr,
+		    ip6h->ip6_src.__u6_addr.__u6_addr32);
 	}
 	loc_port = ntohs(tcph->th_dport);
 	rem_port = ntohs(tcph->th_sport);
 	cm_node = irdma_find_node(&iwdev->cm_core, rem_port, rem_addr, loc_port,
-				  loc_addr, buf->vlan_valid ? buf->vlan_id : 0xFFFF);
+	    loc_addr, buf->vlan_valid ? buf->vlan_id : 0xFFFF);
 	if (!cm_node)
 		return NULL;
 
@@ -1318,7 +1341,8 @@ irdma_ieq_get_qp(struct irdma_sc_dev *dev,
 void
 irdma_send_ieq_ack(struct irdma_sc_qp *qp)
 {
-	struct irdma_cm_node *cm_node = ((struct irdma_qp *)qp->qp_uk.back_qp)->cm_node;
+	struct irdma_cm_node *cm_node =
+	    ((struct irdma_qp *)qp->qp_uk.back_qp)->cm_node;
 	struct irdma_puda_buf *buf = qp->pfpdu.lastrcv_buf;
 	struct tcphdr *tcph = (struct tcphdr *)buf->tcph;
 
@@ -1335,7 +1359,7 @@ irdma_send_ieq_ack(struct irdma_sc_qp *qp)
  */
 void
 irdma_puda_ieq_get_ah_info(struct irdma_sc_qp *qp,
-			   struct irdma_ah_info *ah_info)
+    struct irdma_ah_info *ah_info)
 {
 	struct irdma_puda_buf *buf = qp->pfpdu.ah_buf;
 	struct ip *iph;
@@ -1363,14 +1387,13 @@ irdma_puda_ieq_get_ah_info(struct irdma_sc_qp *qp,
 		ah_info->hop_ttl = ip6h->ip6_hops;
 		ah_info->tc_tos = ip6h->ip6_vfc;
 		irdma_copy_ip_ntohl(ah_info->dest_ip_addr,
-				    ip6h->ip6_dst.__u6_addr.__u6_addr32);
+		    ip6h->ip6_dst.__u6_addr.__u6_addr32);
 		irdma_copy_ip_ntohl(ah_info->src_ip_addr,
-				    ip6h->ip6_src.__u6_addr.__u6_addr32);
+		    ip6h->ip6_src.__u6_addr.__u6_addr32);
 	}
 
 	ah_info->dst_arpindex = irdma_arp_table(dev_to_rf(qp->dev),
-						ah_info->dest_ip_addr,
-						NULL, IRDMA_ARP_RESOLVE);
+	    ah_info->dest_ip_addr, NULL, IRDMA_ARP_RESOLVE);
 }
 
 /**
@@ -1380,8 +1403,8 @@ irdma_puda_ieq_get_ah_info(struct irdma_sc_qp *qp,
  * @seqnum: seq number for tcp
  */
 static void
-irdma_gen1_ieq_update_tcpip_info(struct irdma_puda_buf *buf,
-				 u16 len, u32 seqnum)
+irdma_gen1_ieq_update_tcpip_info(struct irdma_puda_buf *buf, u16 len,
+    u32 seqnum)
 {
 	struct tcphdr *tcph;
 	struct ip *iph;
@@ -1404,8 +1427,7 @@ irdma_gen1_ieq_update_tcpip_info(struct irdma_puda_buf *buf,
  * @seqnum: seq number for tcp
  */
 void
-irdma_ieq_update_tcpip_info(struct irdma_puda_buf *buf, u16 len,
-			    u32 seqnum)
+irdma_ieq_update_tcpip_info(struct irdma_puda_buf *buf, u16 len, u32 seqnum)
 {
 	struct tcphdr *tcph;
 	u8 *addr;
@@ -1426,7 +1448,7 @@ irdma_ieq_update_tcpip_info(struct irdma_puda_buf *buf, u16 len,
  */
 static int
 irdma_gen1_puda_get_tcpip_info(struct irdma_puda_cmpl_info *info,
-			       struct irdma_puda_buf *buf)
+    struct irdma_puda_buf *buf)
 {
 	struct ip *iph;
 	struct ip6_hdr *ip6h;
@@ -1438,7 +1460,8 @@ irdma_gen1_puda_get_tcpip_info(struct irdma_puda_cmpl_info *info,
 
 	if (ethh->ether_type == htons(0x8100)) {
 		info->vlan_valid = true;
-		buf->vlan_id = ntohs(((struct ether_vlan_header *)ethh)->evl_tag) &
+		buf->vlan_id =
+		    ntohs(((struct ether_vlan_header *)ethh)->evl_tag) &
 		    EVL_VLID_MASK;
 	}
 
@@ -1461,8 +1484,8 @@ irdma_gen1_puda_get_tcpip_info(struct irdma_puda_cmpl_info *info,
 
 	if (info->payload_len < buf->totallen) {
 		irdma_debug(buf->vsi->dev, IRDMA_DEBUG_ERR,
-			    "payload_len = 0x%x totallen expected0x%x\n",
-			    info->payload_len, buf->totallen);
+		    "payload_len = 0x%x totallen expected0x%x\n",
+		    info->payload_len, buf->totallen);
 		return -EINVAL;
 	}
 
@@ -1482,7 +1505,7 @@ irdma_gen1_puda_get_tcpip_info(struct irdma_puda_cmpl_info *info,
  */
 int
 irdma_puda_get_tcpip_info(struct irdma_puda_cmpl_info *info,
-			  struct irdma_puda_buf *buf)
+    struct irdma_puda_buf *buf)
 {
 	struct tcphdr *tcph;
 	u32 pkt_len;
@@ -1527,15 +1550,15 @@ irdma_puda_get_tcpip_info(struct irdma_puda_cmpl_info *info,
 static void
 irdma_hw_stats_timeout(struct timer_list *t)
 {
-	struct irdma_vsi_pestat *pf_devstat =
-	from_timer(pf_devstat, t, stats_timer);
+	struct irdma_vsi_pestat *pf_devstat = from_timer(pf_devstat, t,
+	    stats_timer);
 	struct irdma_sc_vsi *sc_vsi = pf_devstat->vsi;
 
 	if (sc_vsi->dev->hw_attrs.uk_attrs.hw_rev >= IRDMA_GEN_2)
 		irdma_cqp_gather_stats_cmd(sc_vsi->dev, sc_vsi->pestat, false);
 
 	mod_timer(&pf_devstat->stats_timer,
-		  jiffies + msecs_to_jiffies(STATS_TIMER_DELAY));
+	    jiffies + msecs_to_jiffies(STATS_TIMER_DELAY));
 }
 
 /**
@@ -1549,7 +1572,7 @@ irdma_hw_stats_start_timer(struct irdma_sc_vsi *vsi)
 
 	timer_setup(&devstat->stats_timer, irdma_hw_stats_timeout, 0);
 	mod_timer(&devstat->stats_timer,
-		  jiffies + msecs_to_jiffies(STATS_TIMER_DELAY));
+	    jiffies + msecs_to_jiffies(STATS_TIMER_DELAY));
 }
 
 /**
@@ -1594,7 +1617,7 @@ irdma_process_cqp_stats(struct irdma_cqp_request *cqp_request)
  */
 int
 irdma_cqp_gather_stats_cmd(struct irdma_sc_dev *dev,
-			   struct irdma_vsi_pestat *pestat, bool wait)
+    struct irdma_vsi_pestat *pestat, bool wait)
 {
 
 	struct irdma_pci_f *rf = dev_to_rf(dev);
@@ -1633,7 +1656,7 @@ irdma_cqp_gather_stats_cmd(struct irdma_sc_dev *dev,
  */
 int
 irdma_cqp_stats_inst_cmd(struct irdma_sc_vsi *vsi, u8 cmd,
-			 struct irdma_stats_inst_info *stats_info)
+    struct irdma_stats_inst_info *stats_info)
 {
 	struct irdma_pci_f *rf = dev_to_rf(vsi->dev);
 	struct irdma_cqp *iwcqp = &rf->cqp;
@@ -1670,8 +1693,7 @@ irdma_cqp_stats_inst_cmd(struct irdma_sc_vsi *vsi, u8 cmd,
  * @op: Create or Destroy
  */
 int
-irdma_cqp_ceq_cmd(struct irdma_sc_dev *dev, struct irdma_sc_ceq *sc_ceq,
-		  u8 op)
+irdma_cqp_ceq_cmd(struct irdma_sc_dev *dev, struct irdma_sc_ceq *sc_ceq, u8 op)
 {
 	struct irdma_cqp_request *cqp_request;
 	struct cqp_cmds_info *cqp_info;
@@ -1701,8 +1723,7 @@ irdma_cqp_ceq_cmd(struct irdma_sc_dev *dev, struct irdma_sc_ceq *sc_ceq,
  * @op: Create or Destroy
  */
 int
-irdma_cqp_aeq_cmd(struct irdma_sc_dev *dev, struct irdma_sc_aeq *sc_aeq,
-		  u8 op)
+irdma_cqp_aeq_cmd(struct irdma_sc_dev *dev, struct irdma_sc_aeq *sc_aeq, u8 op)
 {
 	struct irdma_cqp_request *cqp_request;
 	struct cqp_cmds_info *cqp_info;
@@ -1733,7 +1754,7 @@ irdma_cqp_aeq_cmd(struct irdma_sc_dev *dev, struct irdma_sc_aeq *sc_aeq,
  */
 int
 irdma_cqp_ws_node_cmd(struct irdma_sc_dev *dev, u8 cmd,
-		      struct irdma_ws_node_info *node_info)
+    struct irdma_ws_node_info *node_info)
 {
 	struct irdma_pci_f *rf = dev_to_rf(dev);
 	struct irdma_cqp *iwcqp = &rf->cqp;
@@ -1766,12 +1787,12 @@ irdma_cqp_ws_node_cmd(struct irdma_sc_dev *dev, u8 cmd,
 	if (poll) {
 		struct irdma_ccq_cqe_info compl_info;
 
-		status = irdma_sc_poll_for_cqp_op_done(cqp, IRDMA_CQP_OP_WORK_SCHED_NODE,
-						       &compl_info);
+		status = irdma_sc_poll_for_cqp_op_done(cqp,
+		    IRDMA_CQP_OP_WORK_SCHED_NODE, &compl_info);
 		node_info->qs_handle = compl_info.op_ret_val;
 		irdma_debug(&rf->sc_dev, IRDMA_DEBUG_DCB,
-			    "opcode=%d, compl_info.retval=%d\n",
-			    compl_info.op_code, compl_info.op_ret_val);
+		    "opcode=%d, compl_info.retval=%d\n", compl_info.op_code,
+		    compl_info.op_ret_val);
 	} else {
 		node_info->qs_handle = cqp_request->compl_info.op_ret_val;
 	}
@@ -1795,9 +1816,7 @@ exit:
  */
 int
 irdma_ah_cqp_op(struct irdma_pci_f *rf, struct irdma_sc_ah *sc_ah, u8 cmd,
-		bool wait,
-		void (*callback_fcn) (struct irdma_cqp_request *),
-		void *cb_param)
+    bool wait, void (*callback_fcn)(struct irdma_cqp_request *), void *cb_param)
 {
 	struct irdma_cqp_request *cqp_request;
 	struct cqp_cmds_info *cqp_info;
@@ -1886,10 +1905,9 @@ irdma_ilq_ah_cb(struct irdma_cqp_request *cqp_request)
  *
  */
 int
-irdma_puda_create_ah(struct irdma_sc_dev *dev,
-		     struct irdma_ah_info *ah_info, bool wait,
-		     enum puda_rsrc_type type, void *cb_param,
-		     struct irdma_sc_ah **ah_ret)
+irdma_puda_create_ah(struct irdma_sc_dev *dev, struct irdma_ah_info *ah_info,
+    bool wait, enum puda_rsrc_type type, void *cb_param,
+    struct irdma_sc_ah **ah_ret)
 {
 	struct irdma_sc_ah *ah;
 	struct irdma_pci_f *rf = dev_to_rf(dev);
@@ -1901,7 +1919,7 @@ irdma_puda_create_ah(struct irdma_sc_dev *dev,
 		return -ENOMEM;
 
 	err = irdma_alloc_rsrc(rf, rf->allocated_ahs, rf->max_ah,
-			       &ah_info->ah_idx, &rf->next_ah);
+	    &ah_info->ah_idx, &rf->next_ah);
 	if (err)
 		goto err_free;
 
@@ -1910,10 +1928,10 @@ irdma_puda_create_ah(struct irdma_sc_dev *dev,
 
 	if (type == IRDMA_PUDA_RSRC_TYPE_ILQ)
 		err = irdma_ah_cqp_op(rf, ah, IRDMA_OP_AH_CREATE, wait,
-				      irdma_ilq_ah_cb, cb_param);
+		    irdma_ilq_ah_cb, cb_param);
 	else
 		err = irdma_ah_cqp_op(rf, ah, IRDMA_OP_AH_CREATE, wait,
-				      irdma_ieq_ah_cb, cb_param);
+		    irdma_ieq_ah_cb, cb_param);
 
 	if (err)
 		goto error;
@@ -1969,8 +1987,7 @@ irdma_gsi_ud_qp_ah_cb(struct irdma_cqp_request *cqp_request)
  * @pchunk: chunk of memory to add
  */
 int
-irdma_prm_add_pble_mem(struct irdma_pble_prm *pprm,
-		       struct irdma_chunk *pchunk)
+irdma_prm_add_pble_mem(struct irdma_pble_prm *pprm, struct irdma_chunk *pchunk)
 {
 	u64 sizeofbitmap;
 
@@ -2001,8 +2018,8 @@ irdma_prm_add_pble_mem(struct irdma_pble_prm *pprm,
  */
 int
 irdma_prm_get_pbles(struct irdma_pble_prm *pprm,
-		    struct irdma_pble_chunkinfo *chunkinfo, u64 mem_size,
-		    u64 **vaddr, u64 *fpm_addr)
+    struct irdma_pble_chunkinfo *chunkinfo, u64 mem_size, u64 **vaddr,
+    u64 *fpm_addr)
 {
 	u64 bits_needed;
 	u64 bit_idx = PBLE_INVALID_IDX;
@@ -2019,8 +2036,7 @@ irdma_prm_get_pbles(struct irdma_pble_prm *pprm,
 	while (chunk_entry != &pprm->clist) {
 		pchunk = (struct irdma_chunk *)chunk_entry;
 		bit_idx = bitmap_find_next_zero_area(pchunk->bitmapbuf,
-						     pchunk->sizeofbitmap, 0,
-						     bits_needed, 0);
+		    pchunk->sizeofbitmap, 0, bits_needed, 0);
 		if (bit_idx < pchunk->sizeofbitmap)
 			break;
 
@@ -2055,20 +2071,20 @@ irdma_prm_get_pbles(struct irdma_pble_prm *pprm,
  */
 void
 irdma_prm_return_pbles(struct irdma_pble_prm *pprm,
-		       struct irdma_pble_chunkinfo *chunkinfo)
+    struct irdma_pble_chunkinfo *chunkinfo)
 {
 	unsigned long flags;
 
 	spin_lock_irqsave(&pprm->prm_lock, flags);
 	pprm->free_pble_cnt += chunkinfo->bits_used << (pprm->pble_shift - 3);
 	bitmap_clear(chunkinfo->pchunk->bitmapbuf, chunkinfo->bit_idx,
-		     chunkinfo->bits_used);
+	    chunkinfo->bits_used);
 	spin_unlock_irqrestore(&pprm->prm_lock, flags);
 }
 
 int
-irdma_map_vm_page_list(struct irdma_hw *hw, void *va, dma_addr_t * pg_dma,
-		       u32 pg_cnt)
+irdma_map_vm_page_list(struct irdma_hw *hw, void *va, dma_addr_t *pg_dma,
+    u32 pg_cnt)
 {
 	struct page *vm_page;
 	int i;
@@ -2080,7 +2096,8 @@ irdma_map_vm_page_list(struct irdma_hw *hw, void *va, dma_addr_t * pg_dma,
 		if (!vm_page)
 			goto err;
 
-		pg_dma[i] = dma_map_page(hw_to_dev(hw), vm_page, 0, PAGE_SIZE, DMA_BIDIRECTIONAL);
+		pg_dma[i] = dma_map_page(hw_to_dev(hw), vm_page, 0, PAGE_SIZE,
+		    DMA_BIDIRECTIONAL);
 		if (dma_mapping_error(hw_to_dev(hw), pg_dma[i]))
 			goto err;
 
@@ -2095,12 +2112,13 @@ err:
 }
 
 void
-irdma_unmap_vm_page_list(struct irdma_hw *hw, dma_addr_t * pg_dma, u32 pg_cnt)
+irdma_unmap_vm_page_list(struct irdma_hw *hw, dma_addr_t *pg_dma, u32 pg_cnt)
 {
 	int i;
 
 	for (i = 0; i < pg_cnt; i++)
-		dma_unmap_page(hw_to_dev(hw), pg_dma[i], PAGE_SIZE, DMA_BIDIRECTIONAL);
+		dma_unmap_page(hw_to_dev(hw), pg_dma[i], PAGE_SIZE,
+		    DMA_BIDIRECTIONAL);
 }
 
 /**
@@ -2114,7 +2132,7 @@ irdma_pble_free_paged_mem(struct irdma_chunk *chunk)
 		goto done;
 
 	irdma_unmap_vm_page_list(chunk->dev->hw, chunk->dmainfo.dmaaddrs,
-				 chunk->pg_cnt);
+	    chunk->pg_cnt);
 
 done:
 	kfree(chunk->dmainfo.dmaaddrs);
@@ -2145,7 +2163,7 @@ irdma_pble_get_paged_mem(struct irdma_chunk *chunk, u32 pg_cnt)
 		goto err;
 
 	if (irdma_map_vm_page_list(chunk->dev->hw, va, chunk->dmainfo.dmaaddrs,
-				   pg_cnt)) {
+		pg_cnt)) {
 		vfree(va);
 		goto err;
 	}
@@ -2174,7 +2192,7 @@ irdma_alloc_ws_node_id(struct irdma_sc_dev *dev)
 	u32 node_id;
 
 	if (irdma_alloc_rsrc(rf, rf->allocated_ws_nodes, rf->max_ws_node_id,
-			     &node_id, &next))
+		&node_id, &next))
 		return IRDMA_WS_NODE_INVALID;
 
 	return (u16)node_id;
@@ -2238,7 +2256,7 @@ irdma_ib_qp_event(struct irdma_qp *iwqp, enum irdma_qp_event_type event)
 }
 
 static void
-clear_qp_ctx_addr(__le64 * ctx)
+clear_qp_ctx_addr(__le64 *ctx)
 {
 	u64 tmp;
 
@@ -2298,7 +2316,8 @@ irdma_upload_qp_context(struct irdma_qp *iwqp, bool freeze, bool raw)
 	cqp_info->in.u.qp_upload_context.scratch = (uintptr_t)cqp_request;
 
 	dma_mem.size = PAGE_SIZE;
-	dma_mem.va = irdma_allocate_dma_mem(dev->hw, &dma_mem, dma_mem.size, PAGE_SIZE);
+	dma_mem.va = irdma_allocate_dma_mem(dev->hw, &dma_mem, dma_mem.size,
+	    PAGE_SIZE);
 	if (!dma_mem.va) {
 		irdma_put_cqp_request(&rf->cqp, cqp_request);
 		return -ENOMEM;
@@ -2308,7 +2327,7 @@ irdma_upload_qp_context(struct irdma_qp *iwqp, bool freeze, bool raw)
 	info->buf_pa = dma_mem.pa;
 	info->raw_format = raw;
 	info->freeze_qp = freeze;
-	info->qp_type = qp->qp_uk.qp_type;	/* 1 is iWARP and 2 UDA */
+	info->qp_type = qp->qp_uk.qp_type; /* 1 is iWARP and 2 UDA */
 	info->qp_id = qp->qp_uk.qp_id;
 	ret = irdma_handle_cqp_op(rf, cqp_request);
 	if (ret)
@@ -2320,8 +2339,8 @@ irdma_upload_qp_context(struct irdma_qp *iwqp, bool freeze, bool raw)
 		clear_qp_ctx_addr(dma_mem.va);
 		for (i = 0, j = 0; i < 32; i++, j += 4)
 			irdma_debug(dev, IRDMA_DEBUG_QP,
-				    "%d:\t [%08X %08x %08X %08X]\n", (j * 4),
-				    ctx[j], ctx[j + 1], ctx[j + 2], ctx[j + 3]);
+			    "%d:\t [%08X %08x %08X %08X]\n", (j * 4), ctx[j],
+			    ctx[j + 1], ctx[j + 2], ctx[j + 3]);
 	}
 error:
 	irdma_put_cqp_request(iwcqp, cqp_request);
@@ -2352,7 +2371,8 @@ irdma_remove_cmpls_list(struct irdma_cq *iwcq)
 	struct irdma_cmpl_gen *cmpl_node;
 	struct list_head *tmp_node, *list_node;
 
-	list_for_each_safe(list_node, tmp_node, &iwcq->cmpl_generated) {
+	list_for_each_safe(list_node, tmp_node, &iwcq->cmpl_generated)
+	{
 		cmpl_node = list_entry(list_node, struct irdma_cmpl_gen, list);
 		list_del(&cmpl_node->list);
 		kfree(cmpl_node);
@@ -2360,21 +2380,23 @@ irdma_remove_cmpls_list(struct irdma_cq *iwcq)
 }
 
 int
-irdma_generated_cmpls(struct irdma_cq *iwcq, struct irdma_cq_poll_info *cq_poll_info)
+irdma_generated_cmpls(struct irdma_cq *iwcq,
+    struct irdma_cq_poll_info *cq_poll_info)
 {
 	struct irdma_cmpl_gen *cmpl;
 
 	if (list_empty(&iwcq->cmpl_generated))
 		return -ENOENT;
-	cmpl = list_first_entry_or_null(&iwcq->cmpl_generated, struct irdma_cmpl_gen, list);
+	cmpl = list_first_entry_or_null(&iwcq->cmpl_generated,
+	    struct irdma_cmpl_gen, list);
 	list_del(&cmpl->list);
 	memcpy(cq_poll_info, &cmpl->cpi, sizeof(*cq_poll_info));
 	kfree(cmpl);
 
 	irdma_debug(iwcq->sc_cq.dev, IRDMA_DEBUG_VERBS,
-		    "%s: Poll artificially generated completion for QP 0x%X, op %u, wr_id=0x%lx\n",
-		    __func__, cq_poll_info->qp_id, cq_poll_info->op_type,
-		    cq_poll_info->wr_id);
+	    "%s: Poll artificially generated completion for QP 0x%X, op %u, wr_id=0x%lx\n",
+	    __func__, cq_poll_info->qp_id, cq_poll_info->op_type,
+	    cq_poll_info->wr_id);
 
 	return 0;
 }
@@ -2387,13 +2409,13 @@ irdma_generated_cmpls(struct irdma_cq *iwcq, struct irdma_cq_poll_info *cq_poll_
  */
 static void
 irdma_set_cpi_common_values(struct irdma_cq_poll_info *cpi,
-			    struct irdma_qp_uk *qp, u32 qp_num)
+    struct irdma_qp_uk *qp, u32 qp_num)
 {
 	cpi->comp_status = IRDMA_COMPL_STATUS_FLUSHED;
 	cpi->error = 1;
 	cpi->major_err = IRDMA_FLUSH_MAJOR_ERR;
 	cpi->minor_err = FLUSH_GENERAL_ERR;
-	cpi->qp_handle = (irdma_qp_handle) (uintptr_t)qp;
+	cpi->qp_handle = (irdma_qp_handle)(uintptr_t)qp;
 	cpi->qp_id = qp_num;
 }
 
@@ -2433,7 +2455,8 @@ irdma_generate_flush_completions(struct irdma_qp *iwqp)
 			cmpl = kzalloc(sizeof(*cmpl), GFP_ATOMIC);
 			if (!cmpl) {
 				spin_unlock_irqrestore(&iwqp->lock, flags2);
-				spin_unlock_irqrestore(&iwqp->iwscq->lock, flags1);
+				spin_unlock_irqrestore(&iwqp->iwscq->lock,
+				    flags1);
 				return;
 			}
 
@@ -2441,23 +2464,27 @@ irdma_generate_flush_completions(struct irdma_qp *iwqp)
 			irdma_set_cpi_common_values(&cmpl->cpi, qp, qp->qp_id);
 
 			cmpl->cpi.wr_id = qp->sq_wrtrk_array[wqe_idx].wrid;
-			cmpl->cpi.signaled = qp->sq_wrtrk_array[wqe_idx].signaled;
+			cmpl->cpi.signaled =
+			    qp->sq_wrtrk_array[wqe_idx].signaled;
 			sw_wqe = qp->sq_base[wqe_idx].elem;
 			get_64bit_val(sw_wqe, IRDMA_BYTE_24, &wqe_qword);
-			cmpl->cpi.op_type = (u8)FIELD_GET(IRDMAQPSQ_OPCODE, wqe_qword);
+			cmpl->cpi.op_type = (u8)FIELD_GET(IRDMAQPSQ_OPCODE,
+			    wqe_qword);
 			cmpl->cpi.q_type = IRDMA_CQE_QTYPE_SQ;
 			/* remove the SQ WR by moving SQ tail */
 			IRDMA_RING_SET_TAIL(*sq_ring,
-					    sq_ring->tail + qp->sq_wrtrk_array[sq_ring->tail].quanta);
+			    sq_ring->tail +
+				qp->sq_wrtrk_array[sq_ring->tail].quanta);
 
 			if (cmpl->cpi.op_type == IRDMAQP_OP_NOP) {
 				kfree(cmpl);
 				continue;
 			}
 			irdma_debug(iwqp->sc_qp.dev, IRDMA_DEBUG_DEV,
-				    "%s: adding wr_id = 0x%lx SQ Completion to list qp_id=%d\n",
-				    __func__, cmpl->cpi.wr_id, qp->qp_id);
-			list_add_tail(&cmpl->list, &iwqp->iwscq->cmpl_generated);
+			    "%s: adding wr_id = 0x%lx SQ Completion to list qp_id=%d\n",
+			    __func__, cmpl->cpi.wr_id, qp->qp_id);
+			list_add_tail(&cmpl->list,
+			    &iwqp->iwscq->cmpl_generated);
 			compl_generated = true;
 		}
 		spin_unlock_irqrestore(&iwqp->lock, flags2);
@@ -2480,7 +2507,8 @@ irdma_generate_flush_completions(struct irdma_qp *iwqp)
 			cmpl = kzalloc(sizeof(*cmpl), GFP_ATOMIC);
 			if (!cmpl) {
 				spin_unlock_irqrestore(&iwqp->lock, flags2);
-				spin_unlock_irqrestore(&iwqp->iwrcq->lock, flags1);
+				spin_unlock_irqrestore(&iwqp->iwrcq->lock,
+				    flags1);
 				return;
 			}
 
@@ -2494,11 +2522,11 @@ irdma_generate_flush_completions(struct irdma_qp *iwqp)
 			/* remove the RQ WR by moving RQ tail */
 			IRDMA_RING_SET_TAIL(*rq_ring, rq_ring->tail + 1);
 			irdma_debug(iwqp->sc_qp.dev, IRDMA_DEBUG_DEV,
-				    "%s: adding wr_id = 0x%lx RQ Completion to list qp_id=%d, wqe_idx=%d\n",
-				    __func__, cmpl->cpi.wr_id, qp->qp_id,
-				    wqe_idx);
+			    "%s: adding wr_id = 0x%lx RQ Completion to list qp_id=%d, wqe_idx=%d\n",
+			    __func__, cmpl->cpi.wr_id, qp->qp_id, wqe_idx);
 
-			list_add_tail(&cmpl->list, &iwqp->iwrcq->cmpl_generated);
+			list_add_tail(&cmpl->list,
+			    &iwqp->iwrcq->cmpl_generated);
 
 			compl_generated = true;
 		}
@@ -2516,14 +2544,16 @@ irdma_generate_flush_completions(struct irdma_qp *iwqp)
  * irdma_udqp_qs_change - change qs for UD QP in a worker thread
  * @iwqp: QP pointer
  * @user_prio: new user priority value
- * @qs_change: when false, only user priority changes, QS handle do not need to change
+ * @qs_change: when false, only user priority changes, QS handle do not need to
+ * change
  */
 static void
 irdma_udqp_qs_change(struct irdma_qp *iwqp, u8 user_prio, bool qs_change)
 {
 	irdma_qp_rem_qos(&iwqp->sc_qp);
 	if (qs_change)
-		iwqp->sc_qp.dev->ws_remove(iwqp->sc_qp.vsi, iwqp->ctx_info.user_pri);
+		iwqp->sc_qp.dev->ws_remove(iwqp->sc_qp.vsi,
+		    iwqp->ctx_info.user_pri);
 
 	iwqp->ctx_info.user_pri = user_prio;
 	iwqp->sc_qp.user_pri = user_prio;
@@ -2531,19 +2561,22 @@ irdma_udqp_qs_change(struct irdma_qp *iwqp, u8 user_prio, bool qs_change)
 	if (qs_change)
 		if (iwqp->sc_qp.dev->ws_add(iwqp->sc_qp.vsi, user_prio))
 			irdma_dev_warn(&iwqp->iwdev->ibdev,
-				       "WS add failed during %s, qp_id: %x user_pri: %x",
-				       __func__, iwqp->ibqp.qp_num, user_prio);
+			    "WS add failed during %s, qp_id: %x user_pri: %x",
+			    __func__, iwqp->ibqp.qp_num, user_prio);
 	irdma_qp_add_qos(&iwqp->sc_qp);
 }
 
 void
 irdma_udqp_qs_worker(struct work_struct *work)
 {
-	struct irdma_udqs_work *udqs_work = container_of(work, struct irdma_udqs_work, work);
+	struct irdma_udqs_work *udqs_work = container_of(work,
+	    struct irdma_udqs_work, work);
 
-	irdma_udqp_qs_change(udqs_work->iwqp, udqs_work->user_prio, udqs_work->qs_change);
+	irdma_udqp_qs_change(udqs_work->iwqp, udqs_work->user_prio,
+	    udqs_work->qs_change);
 	if (udqs_work->qs_change)
-		irdma_cqp_qp_suspend_resume(&udqs_work->iwqp->sc_qp, IRDMA_OP_RESUME);
+		irdma_cqp_qp_suspend_resume(&udqs_work->iwqp->sc_qp,
+		    IRDMA_OP_RESUME);
 	irdma_qp_rem_ref(&udqs_work->iwqp->ibqp);
 	kfree(udqs_work);
 }

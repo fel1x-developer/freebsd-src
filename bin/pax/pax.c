@@ -34,9 +34,10 @@
  */
 
 #include <sys/types.h>
+#include <sys/resource.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <sys/resource.h>
+
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -46,8 +47,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "pax.h"
+
 #include "extern.h"
+#include "pax.h"
 static int gen_init(void);
 
 /*
@@ -57,40 +59,40 @@ static int gen_init(void);
 /*
  * Variables that can be accessed by any routine within pax
  */
-int	act = DEFOP;		/* read/write/append/copy */
-FSUB	*frmt = NULL;		/* archive format type */
-int	cflag;			/* match all EXCEPT pattern/file */
-int	cwdfd;			/* starting cwd */
-int	dflag;			/* directory member match only  */
-int	iflag;			/* interactive file/archive rename */
-int	kflag;			/* do not overwrite existing files */
-int	lflag;			/* use hard links when possible */
-int	nflag;			/* select first archive member match */
-int	tflag;			/* restore access time after read */
-int	uflag;			/* ignore older modification time files */
-int	vflag;			/* produce verbose output */
-int	Dflag;			/* same as uflag except for inode change time */
-int	Hflag;			/* follow command line symlinks (write only) */
-int	Lflag;			/* follow symlinks when writing */
-int	Oflag;			/* limit to single volume */
-int	Xflag;			/* archive files with same device id only */
-int	Yflag;			/* same as Dflg except after name mode */
-int	Zflag;			/* same as uflg except after name mode */
-int	vfpart;			/* is partial verbose output in progress */
-int	patime = 1;		/* preserve file access time */
-int	pmtime = 1;		/* preserve file modification times */
-int	nodirs;			/* do not create directories as needed */
-int	pmode;			/* preserve file mode bits */
-int	pids;			/* preserve file uid/gid */
-int	rmleadslash = 0;	/* remove leading '/' from pathnames */
-int	exit_val;		/* exit value */
-int	docrc;			/* check/create file crc */
-char	*dirptr;		/* destination dir in a copy */
-const	char *argv0;		/* root of argv[0] */
-sigset_t s_mask;		/* signal mask for cleanup critical sect */
-FILE	*listf;			/* file pointer to print file list to */
-char	*tempfile;		/* tempfile to use for mkstemp(3) */
-char	*tempbase;		/* basename of tempfile to use for mkstemp(3) */
+int act = DEFOP;     /* read/write/append/copy */
+FSUB *frmt = NULL;   /* archive format type */
+int cflag;	     /* match all EXCEPT pattern/file */
+int cwdfd;	     /* starting cwd */
+int dflag;	     /* directory member match only  */
+int iflag;	     /* interactive file/archive rename */
+int kflag;	     /* do not overwrite existing files */
+int lflag;	     /* use hard links when possible */
+int nflag;	     /* select first archive member match */
+int tflag;	     /* restore access time after read */
+int uflag;	     /* ignore older modification time files */
+int vflag;	     /* produce verbose output */
+int Dflag;	     /* same as uflag except for inode change time */
+int Hflag;	     /* follow command line symlinks (write only) */
+int Lflag;	     /* follow symlinks when writing */
+int Oflag;	     /* limit to single volume */
+int Xflag;	     /* archive files with same device id only */
+int Yflag;	     /* same as Dflg except after name mode */
+int Zflag;	     /* same as uflg except after name mode */
+int vfpart;	     /* is partial verbose output in progress */
+int patime = 1;	     /* preserve file access time */
+int pmtime = 1;	     /* preserve file modification times */
+int nodirs;	     /* do not create directories as needed */
+int pmode;	     /* preserve file mode bits */
+int pids;	     /* preserve file uid/gid */
+int rmleadslash = 0; /* remove leading '/' from pathnames */
+int exit_val;	     /* exit value */
+int docrc;	     /* check/create file crc */
+char *dirptr;	     /* destination dir in a copy */
+const char *argv0;   /* root of argv[0] */
+sigset_t s_mask;     /* signal mask for cleanup critical sect */
+FILE *listf;	     /* file pointer to print file list to */
+char *tempfile;	     /* tempfile to use for mkstemp(3) */
+char *tempbase;	     /* basename of tempfile to use for mkstemp(3) */
 
 /*
  *	PAX - Portable Archive Interchange
@@ -218,7 +220,7 @@ main(int argc, char *argv[])
 	const char *tmpdir;
 	size_t tdlen;
 
-	(void) setlocale(LC_ALL, "");
+	(void)setlocale(LC_ALL, "");
 	listf = stderr;
 	/*
 	 * Keep a reference to cwd, so we can always come back home.
@@ -226,7 +228,7 @@ main(int argc, char *argv[])
 	cwdfd = open(".", O_RDONLY | O_CLOEXEC);
 	if (cwdfd < 0) {
 		syswarn(0, errno, "Can't open current working directory.");
-		return(exit_val);
+		return (exit_val);
 	}
 
 	/*
@@ -240,7 +242,7 @@ main(int argc, char *argv[])
 	tempfile = malloc(tdlen + 1 + sizeof(_TFILE_BASE));
 	if (tempfile == NULL) {
 		paxwarn(1, "Cannot allocate memory for temp file name.");
-		return(exit_val);
+		return (exit_val);
 	}
 	if (tdlen)
 		memcpy(tempfile, tmpdir, tdlen);
@@ -252,7 +254,7 @@ main(int argc, char *argv[])
 	 */
 	options(argc, argv);
 	if ((gen_init() < 0) || (tty_init() < 0))
-		return(exit_val);
+		return (exit_val);
 
 	/*
 	 * select a primary operation mode
@@ -277,7 +279,7 @@ main(int argc, char *argv[])
 		list();
 		break;
 	}
-	return(exit_val);
+	return (exit_val);
 }
 
 /*
@@ -345,34 +347,34 @@ gen_init(void)
 	 * Really needed to handle large archives. We can run out of memory for
 	 * internal tables really fast when we have a whole lot of files...
 	 */
-	if (getrlimit(RLIMIT_DATA , &reslimit) == 0){
+	if (getrlimit(RLIMIT_DATA, &reslimit) == 0) {
 		reslimit.rlim_cur = reslimit.rlim_max;
-		(void)setrlimit(RLIMIT_DATA , &reslimit);
+		(void)setrlimit(RLIMIT_DATA, &reslimit);
 	}
 
 	/*
 	 * should file size limits be waived? if the os limits us, this is
 	 * needed if we want to write a large archive
 	 */
-	if (getrlimit(RLIMIT_FSIZE , &reslimit) == 0){
+	if (getrlimit(RLIMIT_FSIZE, &reslimit) == 0) {
 		reslimit.rlim_cur = reslimit.rlim_max;
-		(void)setrlimit(RLIMIT_FSIZE , &reslimit);
+		(void)setrlimit(RLIMIT_FSIZE, &reslimit);
 	}
 
 	/*
 	 * increase the size the stack can grow to
 	 */
-	if (getrlimit(RLIMIT_STACK , &reslimit) == 0){
+	if (getrlimit(RLIMIT_STACK, &reslimit) == 0) {
 		reslimit.rlim_cur = reslimit.rlim_max;
-		(void)setrlimit(RLIMIT_STACK , &reslimit);
+		(void)setrlimit(RLIMIT_STACK, &reslimit);
 	}
 
 	/*
 	 * not really needed, but doesn't hurt
 	 */
-	if (getrlimit(RLIMIT_RSS , &reslimit) == 0){
+	if (getrlimit(RLIMIT_RSS, &reslimit) == 0) {
 		reslimit.rlim_cur = reslimit.rlim_max;
-		(void)setrlimit(RLIMIT_RSS , &reslimit);
+		(void)setrlimit(RLIMIT_RSS, &reslimit);
 	}
 
 	/*
@@ -382,31 +384,32 @@ gen_init(void)
 	 * limits are caught and a cleanup is forced.
 	 */
 	if ((sigemptyset(&s_mask) < 0) || (sigaddset(&s_mask, SIGTERM) < 0) ||
-	    (sigaddset(&s_mask,SIGINT) < 0)||(sigaddset(&s_mask,SIGHUP) < 0) ||
-	    (sigaddset(&s_mask,SIGPIPE) < 0)||(sigaddset(&s_mask,SIGQUIT)<0) ||
-	    (sigaddset(&s_mask,SIGXCPU) < 0)||(sigaddset(&s_mask,SIGXFSZ)<0)) {
+	    (sigaddset(&s_mask, SIGINT) < 0) ||
+	    (sigaddset(&s_mask, SIGHUP) < 0) ||
+	    (sigaddset(&s_mask, SIGPIPE) < 0) ||
+	    (sigaddset(&s_mask, SIGQUIT) < 0) ||
+	    (sigaddset(&s_mask, SIGXCPU) < 0) ||
+	    (sigaddset(&s_mask, SIGXFSZ) < 0)) {
 		paxwarn(1, "Unable to set up signal mask");
-		return(-1);
+		return (-1);
 	}
 	memset(&n_hand, 0, sizeof n_hand);
 	n_hand.sa_mask = s_mask;
 	n_hand.sa_flags = 0;
 	n_hand.sa_handler = sig_cleanup;
 
-	if (setup_sig(SIGHUP,  &n_hand) ||
-	   setup_sig(SIGTERM, &n_hand) ||
-	   setup_sig(SIGINT,  &n_hand) ||
-	   setup_sig(SIGQUIT, &n_hand) ||
-	   setup_sig(SIGXCPU, &n_hand))
+	if (setup_sig(SIGHUP, &n_hand) || setup_sig(SIGTERM, &n_hand) ||
+	    setup_sig(SIGINT, &n_hand) || setup_sig(SIGQUIT, &n_hand) ||
+	    setup_sig(SIGXCPU, &n_hand))
 		goto out;
 
 	n_hand.sa_handler = SIG_IGN;
 	if ((sigaction(SIGPIPE, &n_hand, NULL) < 0) ||
 	    (sigaction(SIGXFSZ, &n_hand, NULL) < 0))
 		goto out;
-	return(0);
+	return (0);
 
-    out:
+out:
 	syswarn(1, errno, "Unable to set up signal handler");
-	return(-1);
+	return (-1);
 }

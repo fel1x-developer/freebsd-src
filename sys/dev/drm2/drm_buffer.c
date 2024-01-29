@@ -33,6 +33,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <dev/drm2/drm_buffer.h>
 
 /**
@@ -41,20 +42,21 @@
  *   buf: Pointer to a pointer where the object is stored.
  *   size: The number of bytes to allocate.
  */
-int drm_buffer_alloc(struct drm_buffer **buf, int size)
+int
+drm_buffer_alloc(struct drm_buffer **buf, int size)
 {
 	int nr_pages = size / PAGE_SIZE + 1;
 	int idx;
 
 	/* Allocating pointer table to end of structure makes drm_buffer
 	 * variable sized */
-	*buf = malloc(sizeof(struct drm_buffer) + nr_pages*sizeof(char *),
-			DRM_MEM_DRIVER, M_ZERO | M_WAITOK);
+	*buf = malloc(sizeof(struct drm_buffer) + nr_pages * sizeof(char *),
+	    DRM_MEM_DRIVER, M_ZERO | M_WAITOK);
 
 	if (*buf == NULL) {
 		DRM_ERROR("Failed to allocate drm buffer object to hold"
-				" %d bytes in %d pages.\n",
-				size, nr_pages);
+			  " %d bytes in %d pages.\n",
+		    size, nr_pages);
 		return -ENOMEM;
 	}
 
@@ -62,18 +64,16 @@ int drm_buffer_alloc(struct drm_buffer **buf, int size)
 
 	for (idx = 0; idx < nr_pages; ++idx) {
 
-		(*buf)->data[idx] =
-			malloc(min(PAGE_SIZE, size - idx * PAGE_SIZE),
-				DRM_MEM_DRIVER, M_WAITOK);
-
+		(*buf)->data[idx] = malloc(min(PAGE_SIZE,
+					       size - idx * PAGE_SIZE),
+		    DRM_MEM_DRIVER, M_WAITOK);
 
 		if ((*buf)->data[idx] == NULL) {
 			DRM_ERROR("Failed to allocate %dth page for drm"
-					" buffer with %d bytes and %d pages.\n",
-					idx + 1, size, nr_pages);
+				  " buffer with %d bytes and %d pages.\n",
+			    idx + 1, size, nr_pages);
 			goto error_out;
 		}
-
 	}
 
 	return 0;
@@ -99,16 +99,17 @@ EXPORT_SYMBOL(drm_buffer_alloc);
  *   user_data: A pointer the data that is copied to the buffer.
  *   size: The Number of bytes to copy.
  */
-int drm_buffer_copy_from_user(struct drm_buffer *buf,
-			      void __user *user_data, int size)
+int
+drm_buffer_copy_from_user(struct drm_buffer *buf, void __user *user_data,
+    int size)
 {
 	int nr_pages = size / PAGE_SIZE + 1;
 	int idx;
 
 	if (size > buf->size) {
 		DRM_ERROR("Requesting to copy %d bytes to a drm buffer with"
-				" %d bytes space\n",
-				size, buf->size);
+			  " %d bytes space\n",
+		    size, buf->size);
 		return -EFAULT;
 	}
 
@@ -118,10 +119,9 @@ int drm_buffer_copy_from_user(struct drm_buffer *buf,
 			(char *)user_data + idx * PAGE_SIZE,
 			min(PAGE_SIZE, size - idx * PAGE_SIZE))) {
 			DRM_ERROR("Failed to copy user data (%p) to drm buffer"
-					" (%p) %dth page.\n",
-					user_data, buf, idx);
+				  " (%p) %dth page.\n",
+			    user_data, buf, idx);
 			return -EFAULT;
-
 		}
 	}
 	buf->iterator = 0;
@@ -132,7 +132,8 @@ EXPORT_SYMBOL(drm_buffer_copy_from_user);
 /**
  * Free the drm buffer object
  */
-void drm_buffer_free(struct drm_buffer *buf)
+void
+drm_buffer_free(struct drm_buffer *buf)
 {
 
 	if (buf != NULL) {
@@ -159,8 +160,8 @@ EXPORT_SYMBOL(drm_buffer_free);
  *   objsize: The size of the objet in bytes.
  *   stack_obj: A pointer to a memory location where object can be copied.
  */
-void *drm_buffer_read_object(struct drm_buffer *buf,
-		int objsize, void *stack_obj)
+void *
+drm_buffer_read_object(struct drm_buffer *buf, int objsize, void *stack_obj)
 {
 	int idx = drm_buffer_index(buf);
 	int page = drm_buffer_page(buf);
@@ -174,7 +175,7 @@ void *drm_buffer_read_object(struct drm_buffer *buf,
 		memcpy(stack_obj, &buf->data[page][idx], beginsz);
 
 		memcpy((char *)stack_obj + beginsz, &buf->data[page + 1][0],
-				objsize - beginsz);
+		    objsize - beginsz);
 
 		obj = stack_obj;
 	}

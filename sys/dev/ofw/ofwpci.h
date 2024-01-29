@@ -25,7 +25,7 @@
  */
 
 #ifndef _DEV_OFW_OFWPCI_H_
-#define	_DEV_OFW_OFWPCI_H_
+#define _DEV_OFW_OFWPCI_H_
 
 /*
  * Export class definition for inheritance purposes
@@ -36,13 +36,13 @@ struct ofw_pci_cell_info {
 	pcell_t host_address_cells;
 	pcell_t pci_address_cell;
 	pcell_t size_cells;
- };
+};
 
 struct ofw_pci_range {
-	uint32_t	pci_hi;
-	uint64_t	pci;
-	uint64_t	host;
-	uint64_t	size;
+	uint32_t pci_hi;
+	uint64_t pci;
+	uint64_t host;
+	uint64_t size;
 };
 
 /*
@@ -53,26 +53,26 @@ enum {
 };
 
 struct ofw_pci_softc {
-	device_t	sc_dev;
-	phandle_t	sc_node;
-	int		sc_bus;
-	int		sc_initialized;
-	int		sc_quirks;
-	int		sc_have_pmem;
+	device_t sc_dev;
+	phandle_t sc_node;
+	int sc_bus;
+	int sc_initialized;
+	int sc_quirks;
+	int sc_have_pmem;
 
-	struct ofw_pci_range		*sc_range;
-	int				sc_nrange;
-	uint64_t			sc_range_mask;
-	struct ofw_pci_cell_info	*sc_cell_info;
+	struct ofw_pci_range *sc_range;
+	int sc_nrange;
+	uint64_t sc_range_mask;
+	struct ofw_pci_cell_info *sc_cell_info;
 
-	struct rman			sc_io_rman;
-	struct rman			sc_mem_rman;
-	struct rman			sc_pmem_rman;
-	bus_space_tag_t			sc_memt;
-	bus_dma_tag_t			sc_dmat;
-	int				sc_pci_domain;
+	struct rman sc_io_rman;
+	struct rman sc_mem_rman;
+	struct rman sc_pmem_rman;
+	bus_space_tag_t sc_memt;
+	bus_dma_tag_t sc_dmat;
+	int sc_pci_domain;
 
-	struct ofw_bus_iinfo		sc_pci_iinfo;
+	struct ofw_bus_iinfo sc_pci_iinfo;
 };
 
 int ofw_pcib_init(device_t);

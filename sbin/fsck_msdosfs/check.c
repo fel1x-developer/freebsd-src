@@ -25,7 +25,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #include <sys/cdefs.h>
 #ifndef lint
 __RCSID("$NetBSD: check.c,v 1.14 2006/06/05 16:51:18 christos Exp $");
@@ -34,11 +33,11 @@ __RCSID("$NetBSD: check.c,v 1.14 2006/06/05 16:51:18 christos Exp $");
 #ifdef HAVE_LIBUTIL_H
 #include <libutil.h>
 #endif
+#include <fcntl.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 #include <unistd.h>
-#include <fcntl.h>
 
 #include "ext.h"
 #include "fsutil.h"
@@ -49,7 +48,7 @@ checkfilesys(const char *fname)
 	int dosfs;
 	struct bootblock boot;
 	struct fat_descriptor *fat = NULL;
-	int finish_dosdirsection=0;
+	int finish_dosdirsection = 0;
 	int mod = 0;
 	int ret = 8;
 	int64_t freebytes;
@@ -89,7 +88,7 @@ checkfilesys(const char *fname)
 		goto out;
 	}
 
-	if (!preen)  {
+	if (!preen) {
 		printf("** Phase 1 - Read FAT and checking connectivity\n");
 	}
 
@@ -135,27 +134,28 @@ checkfilesys(const char *fname)
 #ifdef HAVE_LIBUTIL_H
 	char freestr[7], badstr[7];
 
-	humanize_number(freestr, sizeof(freestr), freebytes, "",
-	    HN_AUTOSCALE, HN_DECIMAL | HN_IEC_PREFIXES);
+	humanize_number(freestr, sizeof(freestr), freebytes, "", HN_AUTOSCALE,
+	    HN_DECIMAL | HN_IEC_PREFIXES);
 	if (boot.NumBad) {
 		humanize_number(badstr, sizeof(badstr), badbytes, "",
 		    HN_AUTOSCALE, HN_B | HN_DECIMAL | HN_IEC_PREFIXES);
 
-		pwarn("%d files, %sB free (%d clusters), %sB bad (%d clusters)\n",
-		      boot.NumFiles, freestr, boot.NumFree,
-		      badstr, boot.NumBad);
+		pwarn(
+		    "%d files, %sB free (%d clusters), %sB bad (%d clusters)\n",
+		    boot.NumFiles, freestr, boot.NumFree, badstr, boot.NumBad);
 	} else {
-		pwarn("%d files, %sB free (%d clusters)\n",
-		      boot.NumFiles, freestr, boot.NumFree);
+		pwarn("%d files, %sB free (%d clusters)\n", boot.NumFiles,
+		    freestr, boot.NumFree);
 	}
 #else
 	if (boot.NumBad)
-		pwarn("%d files, %jd KiB free (%d clusters), %jd KiB bad (%d clusters)\n",
-		      boot.NumFiles, (intmax_t)freebytes / 1024, boot.NumFree,
-		      (intmax_t)badbytes / 1024, boot.NumBad);
+		pwarn(
+		    "%d files, %jd KiB free (%d clusters), %jd KiB bad (%d clusters)\n",
+		    boot.NumFiles, (intmax_t)freebytes / 1024, boot.NumFree,
+		    (intmax_t)badbytes / 1024, boot.NumBad);
 	else
-		pwarn("%d files, %jd KiB free (%d clusters)\n",
-		      boot.NumFiles, (intmax_t)freebytes / 1024, boot.NumFree);
+		pwarn("%d files, %jd KiB free (%d clusters)\n", boot.NumFiles,
+		    (intmax_t)freebytes / 1024, boot.NumFree);
 #endif
 
 	if (mod && (mod & FSERROR) == 0) {
@@ -167,7 +167,8 @@ checkfilesys(const char *fname)
 				pwarn("MARKING FILE SYSTEM CLEAN\n");
 				mod |= cleardirty(fat);
 			} else {
-				pwarn("\n***** FILE SYSTEM IS LEFT MARKED AS DIRTY *****\n");
+				pwarn(
+				    "\n***** FILE SYSTEM IS LEFT MARKED AS DIRTY *****\n");
 				mod |= FSERROR; /* file system not clean */
 			}
 		}
@@ -178,13 +179,13 @@ checkfilesys(const char *fname)
 
 	ret = 0;
 
-    out:
+out:
 	if (finish_dosdirsection)
 		finishDosDirSection();
 	free(fat);
 	close(dosfs);
 
-	if (mod & (FSFATMOD|FSDIRMOD))
+	if (mod & (FSFATMOD | FSDIRMOD))
 		pwarn("\n***** FILE SYSTEM WAS MODIFIED *****\n");
 
 	return ret;

@@ -36,8 +36,8 @@
 #include <sys/ptrace.h>
 #include <sys/racct.h>
 #include <sys/sched.h>
-#include <sys/syscallsubr.h>
 #include <sys/sx.h>
+#include <sys/syscallsubr.h>
 #include <sys/umtxvar.h>
 #include <sys/unistd.h>
 
@@ -242,8 +242,8 @@ linux_clone_thread(struct thread *td, struct l_clone_args *args)
 	int error;
 
 	LINUX_CTR4(clone_thread, "thread(%d) flags %x ptid %p ctid %p",
-	    td->td_tid, (unsigned)args->flags,
-	    args->parent_tid, args->child_tid);
+	    td->td_tid, (unsigned)args->flags, args->parent_tid,
+	    args->child_tid);
 
 	if ((args->flags & LINUX_CLONE_PARENT) != 0)
 		return (EINVAL);
@@ -373,14 +373,14 @@ linux_clone(struct thread *td, struct linux_clone_args *args)
 		return (linux_clone_proc(td, &ca));
 }
 
-
 static int
 linux_clone3_args_valid(struct l_user_clone_args *uca)
 {
 
 	/* Verify that no unknown flags are passed along. */
-	if ((uca->flags & ~(LINUX_CLONE_LEGACY_FLAGS |
-	    LINUX_CLONE_CLEAR_SIGHAND | LINUX_CLONE_INTO_CGROUP)) != 0)
+	if ((uca->flags &
+		~(LINUX_CLONE_LEGACY_FLAGS | LINUX_CLONE_CLEAR_SIGHAND |
+		    LINUX_CLONE_INTO_CGROUP)) != 0)
 		return (EINVAL);
 	if ((uca->flags & (LINUX_CLONE_DETACHED | LINUX_CSIGNAL)) != 0)
 		return (EINVAL);
@@ -415,7 +415,8 @@ linux_clone3_args_valid(struct l_user_clone_args *uca)
 		return (ENOSYS);
 	}
 	if ((uca->flags & LINUX_CLONE_INTO_CGROUP) != 0) {
-		LINUX_RATELIMIT_MSG("unsupported clone3 option CLONE_INTO_CGROUP");
+		LINUX_RATELIMIT_MSG(
+		    "unsupported clone3 option CLONE_INTO_CGROUP");
 		return (ENOSYS);
 	}
 	if (uca->set_tid != 0 || uca->set_tid_size != 0) {
@@ -489,11 +490,12 @@ linux_exit(struct thread *td, struct linux_exit_args *args)
 	 */
 	kern_thr_exit(td);
 	exit1(td, args->rval, 0);
-		/* NOTREACHED */
+	/* NOTREACHED */
 }
 
 int
-linux_set_tid_address(struct thread *td, struct linux_set_tid_address_args *args)
+linux_set_tid_address(struct thread *td,
+    struct linux_set_tid_address_args *args)
 {
 	struct linux_emuldata *em;
 
@@ -504,8 +506,8 @@ linux_set_tid_address(struct thread *td, struct linux_set_tid_address_args *args
 
 	td->td_retval[0] = em->em_tid;
 
-	LINUX_CTR3(set_tid_address, "tidptr(%d) %p, returns %d",
-	    em->em_tid, args->tidptr, td->td_retval[0]);
+	LINUX_CTR3(set_tid_address, "tidptr(%d) %p, returns %d", em->em_tid,
+	    args->tidptr, td->td_retval[0]);
 
 	return (0);
 }
@@ -527,8 +529,8 @@ linux_thread_detach(struct thread *td)
 	child_clear_tid = em->child_clear_tid;
 
 	if (child_clear_tid != NULL) {
-		LINUX_CTR2(thread_detach, "thread(%d) %p",
-		    em->em_tid, child_clear_tid);
+		LINUX_CTR2(thread_detach, "thread(%d) %p", em->em_tid,
+		    child_clear_tid);
 
 		error = suword32(child_clear_tid, 0);
 		if (error != 0)

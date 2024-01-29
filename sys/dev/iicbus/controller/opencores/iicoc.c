@@ -53,7 +53,7 @@ iicoc_dev_write(device_t dev, int reg, int value)
 	struct iicoc_softc *sc;
 
 	sc = device_get_softc(dev);
-	bus_write_1(sc->mem_res, reg<<sc->reg_shift, value);
+	bus_write_1(sc->mem_res, reg << sc->reg_shift, value);
 }
 
 static int
@@ -63,7 +63,7 @@ iicoc_dev_read(device_t dev, int reg)
 	struct iicoc_softc *sc;
 
 	sc = device_get_softc(dev);
-	val = bus_read_1(sc->mem_res, reg<<sc->reg_shift);
+	val = bus_read_1(sc->mem_res, reg << sc->reg_shift);
 	return (val);
 }
 
@@ -77,7 +77,7 @@ iicoc_wait_on_status(device_t dev, uint8_t bit)
 		status = iicoc_dev_read(dev, OC_I2C_STATUS_REG);
 	} while ((status & bit) != 0 && --tries > 0);
 
-	return (tries == 0 ? -1: 0);
+	return (tries == 0 ? -1 : 0);
 }
 
 static int
@@ -131,7 +131,7 @@ iicoc_init(device_t dev)
 	value = iicoc_dev_read(dev, OC_I2C_CTRL_REG);
 	iicoc_dev_write(dev, OC_I2C_CTRL_REG,
 	    value & ~(OC_CONTROL_EN | OC_CONTROL_IEN));
-	value = (sc->clockfreq/(5 * sc->i2cfreq)) - 1;
+	value = (sc->clockfreq / (5 * sc->i2cfreq)) - 1;
 	iicoc_dev_write(dev, OC_I2C_PRESCALE_LO_REG, value & 0xff);
 	iicoc_dev_write(dev, OC_I2C_PRESCALE_HI_REG, value >> 8);
 	value = iicoc_dev_read(dev, OC_I2C_CTRL_REG);
@@ -158,8 +158,8 @@ iicoc_iicbus_start_common(device_t dev, u_char slave, int timeout, bool repeat)
 
 	/* Write Slave Address */
 	if (iicoc_wr_ack_cmd(dev, slave, OC_COMMAND_START)) {
-		device_printf(dev,
-		    "I2C write slave address [0x%x] failed.\n", slave);
+		device_printf(dev, "I2C write slave address [0x%x] failed.\n",
+		    slave);
 		error = IIC_ENOACK;
 		goto i2c_stx_error;
 	}
@@ -176,7 +176,7 @@ iicoc_iicbus_start_common(device_t dev, u_char slave, int timeout, bool repeat)
 
 i2c_stx_error:
 	iicoc_dev_write(dev, OC_I2C_CMD_REG, OC_COMMAND_STOP);
-	iicoc_wait_on_status(dev, OC_STATUS_BUSY);  /* wait for idle */
+	iicoc_wait_on_status(dev, OC_STATUS_BUSY); /* wait for idle */
 	mtx_unlock(&sc->sc_mtx);
 	return (error);
 }
@@ -204,7 +204,7 @@ iicoc_iicbus_stop(device_t dev)
 	sc = device_get_softc(dev);
 	mtx_lock(&sc->sc_mtx);
 	iicoc_dev_write(dev, OC_I2C_CMD_REG, OC_COMMAND_STOP);
-	iicoc_wait_on_status(dev, OC_STATUS_BUSY);  /* wait for idle */
+	iicoc_wait_on_status(dev, OC_STATUS_BUSY); /* wait for idle */
 	mtx_unlock(&sc->sc_mtx);
 	return (error);
 }
@@ -251,8 +251,8 @@ iicoc_iicbus_read(device_t dev, char *buf, int len, int *read, int last,
 		cmd = (i == len - 1) ? OC_COMMAND_RDNACK : OC_COMMAND_READ;
 		data = iicoc_rd_cmd(dev, cmd);
 		if (data < 0) {
-			device_printf(dev,
-			    "I2C read data byte %d failed.\n", i);
+			device_printf(dev, "I2C read data byte %d failed.\n",
+			    i);
 			goto i2c_rx_error;
 		}
 		buf[i] = (uint8_t)data;

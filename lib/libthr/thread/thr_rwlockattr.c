@@ -27,13 +27,14 @@
  */
 
 #include <sys/cdefs.h>
-#include "namespace.h"
-#include <errno.h>
-#include <stdlib.h>
-#include <pthread.h>
-#include "un-namespace.h"
 
+#include <errno.h>
+#include <pthread.h>
+#include <stdlib.h>
+
+#include "namespace.h"
 #include "thr_private.h"
+#include "un-namespace.h"
 
 __weak_reference(_pthread_rwlockattr_destroy, pthread_rwlockattr_destroy);
 __weak_reference(_pthread_rwlockattr_getpshared, pthread_rwlockattr_getpshared);
@@ -56,8 +57,7 @@ _pthread_rwlockattr_destroy(pthread_rwlockattr_t *rwlockattr)
 
 int
 _pthread_rwlockattr_getpshared(
-    const pthread_rwlockattr_t * __restrict rwlockattr,
-    int * __restrict pshared)
+    const pthread_rwlockattr_t *__restrict rwlockattr, int *__restrict pshared)
 {
 
 	*pshared = (*rwlockattr)->pshared;

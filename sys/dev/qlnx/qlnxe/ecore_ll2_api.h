@@ -45,21 +45,19 @@ enum ecore_ll2_conn_type {
 };
 
 enum ecore_ll2_roce_flavor_type {
-	ECORE_LL2_ROCE,		/* use this as default or d/c */
+	ECORE_LL2_ROCE, /* use this as default or d/c */
 	ECORE_LL2_RROCE,
 	MAX_ECORE_LL2_ROCE_FLAVOR_TYPE
 };
 
-enum ecore_ll2_tx_dest
-{
+enum ecore_ll2_tx_dest {
 	ECORE_LL2_TX_DEST_NW /* Light L2 TX Destination to the Network */,
 	ECORE_LL2_TX_DEST_LB /* Light L2 TX Destination to the Loopback */,
 	ECORE_LL2_TX_DEST_DROP /* Light L2 Drop the TX packet */,
 	ECORE_LL2_TX_DEST_MAX
 };
 
-enum ecore_ll2_error_handle
-{
+enum ecore_ll2_error_handle {
 	ECORE_LL2_DROP_PACKET /* If error occurs drop packet */,
 	ECORE_LL2_DO_NOTHING /* If error occurs do nothing */,
 	ECORE_LL2_ASSERT /* If error occurs assert */,
@@ -115,38 +113,22 @@ struct ecore_ll2_comp_rx_data {
 	u16 qp_id;
 };
 
-typedef
-void (*ecore_ll2_complete_rx_packet_cb)(void *cxt,
-					struct ecore_ll2_comp_rx_data *data);
+typedef void (*ecore_ll2_complete_rx_packet_cb)(void *cxt,
+    struct ecore_ll2_comp_rx_data *data);
 
-typedef
-void (*ecore_ll2_release_rx_packet_cb)(void *cxt,
-				       u8 connection_handle,
-				       void *cookie,
-				       dma_addr_t rx_buf_addr,
-				       bool b_last_packet);
+typedef void (*ecore_ll2_release_rx_packet_cb)(void *cxt, u8 connection_handle,
+    void *cookie, dma_addr_t rx_buf_addr, bool b_last_packet);
 
-typedef
-void (*ecore_ll2_complete_tx_packet_cb)(void *cxt,
-					u8 connection_handle,
-					void *cookie,
-					dma_addr_t first_frag_addr,
-					bool b_last_fragment,
-					bool b_last_packet);
+typedef void (*ecore_ll2_complete_tx_packet_cb)(void *cxt, u8 connection_handle,
+    void *cookie, dma_addr_t first_frag_addr, bool b_last_fragment,
+    bool b_last_packet);
 
-typedef
-void (*ecore_ll2_release_tx_packet_cb)(void *cxt,
-				       u8 connection_handle,
-				       void *cookie,
-				       dma_addr_t first_frag_addr,
-				       bool b_last_fragment,
-				       bool b_last_packet);
+typedef void (*ecore_ll2_release_tx_packet_cb)(void *cxt, u8 connection_handle,
+    void *cookie, dma_addr_t first_frag_addr, bool b_last_fragment,
+    bool b_last_packet);
 
-typedef
-void (*ecore_ll2_slowpath_cb)(void *cxt,
-			      u8 connection_handle,
-			      u32 opaque_data_0,
-			      u32 opaque_data_1);
+typedef void (*ecore_ll2_slowpath_cb)(void *cxt, u8 connection_handle,
+    u32 opaque_data_0, u32 opaque_data_1);
 
 struct ecore_ll2_cbs {
 	ecore_ll2_complete_rx_packet_cb rx_comp_cb;
@@ -197,9 +179,8 @@ struct ecore_ll2_acquire_data {
  * @param data - describes connection parameters
  * @return enum _ecore_status_t
  */
-enum _ecore_status_t
-ecore_ll2_acquire_connection(void *cxt,
-			     struct ecore_ll2_acquire_data *data);
+enum _ecore_status_t ecore_ll2_acquire_connection(void *cxt,
+    struct ecore_ll2_acquire_data *data);
 
 /**
  * @brief ecore_ll2_establish_connection - start previously
@@ -214,7 +195,7 @@ ecore_ll2_acquire_connection(void *cxt,
  * @return enum _ecore_status_t
  */
 enum _ecore_status_t ecore_ll2_establish_connection(void *cxt,
-						    u8 connection_handle);
+    u8 connection_handle);
 
 /**
  * @brief ecore_ll2_post_rx_buffers - submit buffers to LL2 RxQ.
@@ -231,12 +212,8 @@ enum _ecore_status_t ecore_ll2_establish_connection(void *cxt,
  *
  * @return enum _ecore_status_t
  */
-enum _ecore_status_t ecore_ll2_post_rx_buffer(void *cxt,
-					      u8 connection_handle,
-					      dma_addr_t addr,
-					      u16 buf_len,
-					      void *cookie,
-					      u8 notify_fw);
+enum _ecore_status_t ecore_ll2_post_rx_buffer(void *cxt, u8 connection_handle,
+    dma_addr_t addr, u16 buf_len, void *cookie, u8 notify_fw);
 
 #ifndef __EXTRACT__LINUX__
 struct ecore_ll2_tx_pkt_info {
@@ -267,11 +244,8 @@ struct ecore_ll2_tx_pkt_info {
  *
  * @return enum _ecore_status_t
  */
-enum _ecore_status_t ecore_ll2_prepare_tx_packet(
-		void *cxt,
-		u8 connection_handle,
-		struct ecore_ll2_tx_pkt_info *pkt,
-		bool notify_fw);
+enum _ecore_status_t ecore_ll2_prepare_tx_packet(void *cxt,
+    u8 connection_handle, struct ecore_ll2_tx_pkt_info *pkt, bool notify_fw);
 
 /**
  * @brief ecore_ll2_release_connection - releases resources
@@ -282,8 +256,7 @@ enum _ecore_status_t ecore_ll2_prepare_tx_packet(
  *                              obtained from
  *                              ecore_ll2_require_connection
  */
-void ecore_ll2_release_connection(void *cxt,
-				  u8 connection_handle);
+void ecore_ll2_release_connection(void *cxt, u8 connection_handle);
 
 /**
  * @brief ecore_ll2_set_fragment_of_tx_packet - provides
@@ -300,11 +273,8 @@ void ecore_ll2_release_connection(void *cxt,
  *
  * @return enum _ecore_status_t
  */
-enum _ecore_status_t
-ecore_ll2_set_fragment_of_tx_packet(void *cxt,
-				    u8 connection_handle,
-				    dma_addr_t addr,
-				    u16 nbytes);
+enum _ecore_status_t ecore_ll2_set_fragment_of_tx_packet(void *cxt,
+    u8 connection_handle, dma_addr_t addr, u16 nbytes);
 
 /**
  * @brief ecore_ll2_terminate_connection - stops Tx/Rx queues
@@ -318,11 +288,10 @@ ecore_ll2_set_fragment_of_tx_packet(void *cxt,
  * @return enum _ecore_status_t
  */
 enum _ecore_status_t ecore_ll2_terminate_connection(void *cxt,
-						    u8 connection_handle);
+    u8 connection_handle);
 
-enum _ecore_status_t __ecore_ll2_get_stats(void *cxt,
-					   u8 connection_handle,
-					   struct ecore_ll2_stats *p_stats);
+enum _ecore_status_t __ecore_ll2_get_stats(void *cxt, u8 connection_handle,
+    struct ecore_ll2_stats *p_stats);
 
 /**
  * @brief ecore_ll2_get_stats - get LL2 queue's statistics
@@ -336,8 +305,7 @@ enum _ecore_status_t __ecore_ll2_get_stats(void *cxt,
  *
  * @return enum _ecore_status_t
  */
-enum _ecore_status_t ecore_ll2_get_stats(void *cxt,
-					 u8 connection_handle,
-					 struct ecore_ll2_stats *p_stats);
+enum _ecore_status_t ecore_ll2_get_stats(void *cxt, u8 connection_handle,
+    struct ecore_ll2_stats *p_stats);
 
 #endif

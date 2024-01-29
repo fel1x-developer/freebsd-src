@@ -37,8 +37,8 @@
 #include <err.h>
 #include <fcntl.h>
 #include <paths.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -47,11 +47,8 @@
 
 int mpfd;
 
-static ctbl_t ctbl_main = {
-	{ "rule",		rule_main },
-	{ "ruleset",		ruleset_main },
-	{ NULL,			NULL }
-};
+static ctbl_t ctbl_main = { { "rule", rule_main }, { "ruleset", ruleset_main },
+	{ NULL, NULL } };
 
 int
 main(int ac, char **av)
@@ -169,8 +166,8 @@ efgetln(FILE *fp, char **line)
 }
 
 struct ptrstq {
-	STAILQ_ENTRY(ptrstq)	 tq;
-	void			*ptr;
+	STAILQ_ENTRY(ptrstq) tq;
+	void *ptr;
 };
 
 /*
@@ -193,8 +190,7 @@ tokenize(const char *line, int *acp, char ***avp)
 		errx(1, "cannot allocate memory");
 
 	STAILQ_INIT(&plist);
-	for (xcp = wline, *acp = 0;
-	     (cp = strsep(&xcp, delims)) != NULL;)
+	for (xcp = wline, *acp = 0; (cp = strsep(&xcp, delims)) != NULL;)
 		if (*cp != '\0') {
 			pt = calloc(1, sizeof(*pt));
 			if (pt == NULL)

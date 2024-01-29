@@ -29,14 +29,12 @@
  * SUCH DAMAGE.
  */
 
-
-
 /* From:
 	"Id: mbufs.c,v 1.5 1997/02/24 20:59:03 wollman Exp"
 */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
 
@@ -48,13 +46,13 @@
 #include <netinet/udp_var.h>
 
 #include <inttypes.h>
+#include <paths.h>
 #include <stdlib.h>
 #include <string.h>
-#include <paths.h>
 
-#include "systat.h"
 #include "extern.h"
 #include "mode.h"
+#include "systat.h"
 
 struct stat {
 	struct ipstat i;
@@ -92,7 +90,7 @@ static struct stat curstat, initstat, oldstat;
 WINDOW *
 openip(void)
 {
-	return (subwin(stdscr, LINES-3-1, 0, MAINWIN_ROW, 0));
+	return (subwin(stdscr, LINES - 3 - 1, 0, MAINWIN_ROW, 0));
 }
 
 void
@@ -108,28 +106,47 @@ closeip(WINDOW *w)
 void
 labelip(void)
 {
-	wmove(wnd, 0, 0); wclrtoeol(wnd);
+	wmove(wnd, 0, 0);
+	wclrtoeol(wnd);
 #define L(row, str) mvwprintw(wnd, row, 10, str)
 #define R(row, str) mvwprintw(wnd, row, 45, str);
-	L(0, "IP Input");		R(0, "IP Output");
-	L(1, "total packets received");	R(1, "total packets sent");
-	L(2, "- with bad checksums");	R(2, "- generated locally");
-	L(3, "- too short for header");	R(3, "- output drops");
-	L(4, "- too short for data");	R(4, "output fragments generated");
-	L(5, "- with invalid hlen");	R(5, "- fragmentation failed");
-	L(6, "- with invalid length");	R(6, "destinations unreachable");
-	L(7, "- with invalid version");	R(7, "packets output via raw IP");
+	L(0, "IP Input");
+	R(0, "IP Output");
+	L(1, "total packets received");
+	R(1, "total packets sent");
+	L(2, "- with bad checksums");
+	R(2, "- generated locally");
+	L(3, "- too short for header");
+	R(3, "- output drops");
+	L(4, "- too short for data");
+	R(4, "output fragments generated");
+	L(5, "- with invalid hlen");
+	R(5, "- fragmentation failed");
+	L(6, "- with invalid length");
+	R(6, "destinations unreachable");
+	L(7, "- with invalid version");
+	R(7, "packets output via raw IP");
 	L(8, "- jumbograms");
-	L(9, "total fragments received");	R(9, "UDP Statistics");
-	L(10, "- fragments dropped");	R(10, "total input packets");
-	L(11, "- fragments timed out");	R(11, "- too short for header");
-	L(12, "- packets reassembled ok");	R(12, "- invalid checksum");
-	L(13, "packets forwarded");	R(13, "- no checksum");
-	L(14, "- unreachable dests");	R(14, "- invalid length");
-	L(15, "- redirects generated");	R(15, "- no socket for dest port");
-	L(16, "option errors");		R(16, "- no socket for broadcast");
-	L(17, "unwanted multicasts");	R(17, "- socket buffer full");
-	L(18, "delivered to upper layer");	R(18, "total output packets");
+	L(9, "total fragments received");
+	R(9, "UDP Statistics");
+	L(10, "- fragments dropped");
+	R(10, "total input packets");
+	L(11, "- fragments timed out");
+	R(11, "- too short for header");
+	L(12, "- packets reassembled ok");
+	R(12, "- invalid checksum");
+	L(13, "packets forwarded");
+	R(13, "- no checksum");
+	L(14, "- unreachable dests");
+	R(14, "- invalid length");
+	L(15, "- redirects generated");
+	R(15, "- no socket for dest port");
+	L(16, "option errors");
+	R(16, "- no socket for broadcast");
+	L(17, "unwanted multicasts");
+	R(17, "- socket buffer full");
+	L(18, "delivered to upper layer");
+	R(18, "total output packets");
 #undef L
 #undef R
 }
@@ -140,7 +157,7 @@ domode(struct stat *ret)
 	const struct stat *sub;
 	int divisor = 1;
 
-	switch(currentmode) {
+	switch (currentmode) {
 	case display_RATE:
 		sub = &oldstat;
 		divisor = (delay > 1000000) ? delay / 1000000 : 1;
@@ -203,11 +220,10 @@ showip(void)
 	domode(&stats);
 	totalout = stats.i.ips_forward + stats.i.ips_localout;
 
-#define DO(stat, row, col) \
-	mvwprintw(wnd, row, col, "%9"PRIu64, stats.stat)
+#define DO(stat, row, col) mvwprintw(wnd, row, col, "%9" PRIu64, stats.stat)
 
 	DO(i.ips_total, 1, 0);
-	mvwprintw(wnd, 1, 35, "%9"PRIu64, totalout);
+	mvwprintw(wnd, 1, 35, "%9" PRIu64, totalout);
 	DO(i.ips_badsum, 2, 0);
 	DO(i.ips_localout, 2, 35);
 	DO(i.ips_tooshort, 3, 0);

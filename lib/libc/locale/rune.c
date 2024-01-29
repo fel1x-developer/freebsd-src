@@ -34,21 +34,22 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
+#include <sys/types.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+
 #include <arpa/inet.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <runetype.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
-#include <fcntl.h>
+#include <string.h>
 #include <unistd.h>
-#include "un-namespace.h"
 
+#include "namespace.h"
 #include "runefile.h"
+#include "un-namespace.h"
 
 _RuneLocale *
 _Read_RuneMagi(const char *fname)
@@ -74,20 +75,19 @@ _Read_RuneMagi(const char *fname)
 	}
 
 	if (_fstat(fd, &sb) < 0) {
-		(void) _close(fd);
+		(void)_close(fd);
 		errno = EINVAL;
 		return (NULL);
 	}
 
-	if ((size_t)sb.st_size < sizeof (_FileRuneLocale)) {
-		(void) _close(fd);
+	if ((size_t)sb.st_size < sizeof(_FileRuneLocale)) {
+		(void)_close(fd);
 		errno = EINVAL;
 		return (NULL);
 	}
-
 
 	fdata = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-	(void) _close(fd);
+	(void)_close(fd);
 	if (fdata == MAP_FAILED) {
 		errno = EINVAL;
 		return (NULL);
@@ -98,7 +98,7 @@ _Read_RuneMagi(const char *fname)
 
 	variable = frl + 1;
 
-	if (memcmp(frl->magic, _FILE_RUNE_MAGIC_1, sizeof (frl->magic))) {
+	if (memcmp(frl->magic, _FILE_RUNE_MAGIC_1, sizeof(frl->magic))) {
 		goto invalid;
 	}
 
@@ -144,7 +144,8 @@ _Read_RuneMagi(const char *fname)
 	 */
 	data = malloc(sizeof(_RuneLocale) +
 	    (frl->runetype_ext_nranges + frl->maplower_ext_nranges +
-	    frl->mapupper_ext_nranges) * sizeof(_RuneEntry) +
+		frl->mapupper_ext_nranges) *
+		sizeof(_RuneEntry) +
 	    runetype_ext_len * sizeof(*rr->__types) + frl->variable_len);
 	if (data == NULL) {
 		saverr = errno;

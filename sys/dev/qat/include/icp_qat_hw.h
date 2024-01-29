@@ -125,18 +125,18 @@ enum icp_qat_extended_dc_capabilities_mask {
 #define QAT_AUTH_SHA3_PADDING_MASK 0x1
 #define QAT_AUTH_ALGO_SHA3_BITPOS 22
 #define QAT_AUTH_ALGO_SHA3_MASK 0x3
-#define ICP_QAT_HW_AUTH_CONFIG_BUILD(mode, algo, cmp_len)                      \
-	(((mode & QAT_AUTH_MODE_MASK) << QAT_AUTH_MODE_BITPOS) |               \
-	 ((algo & QAT_AUTH_ALGO_MASK) << QAT_AUTH_ALGO_BITPOS) |               \
-	 (((algo >> 4) & QAT_AUTH_ALGO_SHA3_MASK)                              \
-	  << QAT_AUTH_ALGO_SHA3_BITPOS) |                                      \
-	 (((((algo == ICP_QAT_HW_AUTH_ALGO_SHA3_256) ||                        \
-	     (algo == ICP_QAT_HW_AUTH_ALGO_SHA3_512)) ?                        \
-		1 :                                                            \
-		0) &                                                           \
-	   QAT_AUTH_SHA3_PADDING_MASK)                                         \
-	  << QAT_AUTH_SHA3_PADDING_BITPOS) |                                   \
-	 ((cmp_len & QAT_AUTH_CMP_MASK) << QAT_AUTH_CMP_BITPOS))
+#define ICP_QAT_HW_AUTH_CONFIG_BUILD(mode, algo, cmp_len)           \
+	(((mode & QAT_AUTH_MODE_MASK) << QAT_AUTH_MODE_BITPOS) |    \
+	    ((algo & QAT_AUTH_ALGO_MASK) << QAT_AUTH_ALGO_BITPOS) | \
+	    (((algo >> 4) & QAT_AUTH_ALGO_SHA3_MASK)                \
+		<< QAT_AUTH_ALGO_SHA3_BITPOS) |                     \
+	    (((((algo == ICP_QAT_HW_AUTH_ALGO_SHA3_256) ||          \
+		   (algo == ICP_QAT_HW_AUTH_ALGO_SHA3_512)) ?       \
+		      1 :                                           \
+		      0) &                                          \
+		 QAT_AUTH_SHA3_PADDING_MASK)                        \
+		<< QAT_AUTH_SHA3_PADDING_BITPOS) |                  \
+	    ((cmp_len & QAT_AUTH_CMP_MASK) << QAT_AUTH_CMP_BITPOS))
 
 struct icp_qat_hw_auth_counter {
 	__be32 counter;
@@ -145,8 +145,8 @@ struct icp_qat_hw_auth_counter {
 
 #define QAT_AUTH_COUNT_MASK 0xFFFFFFFF
 #define QAT_AUTH_COUNT_BITPOS 0
-#define ICP_QAT_HW_AUTH_COUNT_BUILD(val)                                       \
-	(((val)&QAT_AUTH_COUNT_MASK) << QAT_AUTH_COUNT_BITPOS)
+#define ICP_QAT_HW_AUTH_COUNT_BUILD(val) \
+	(((val) & QAT_AUTH_COUNT_MASK) << QAT_AUTH_COUNT_BITPOS)
 
 struct icp_qat_hw_auth_setup {
 	struct icp_qat_hw_auth_config auth_config;
@@ -189,7 +189,7 @@ struct icp_qat_hw_auth_setup {
 #define ICP_QAT_HW_AES_CCM_CBC_E_CTR0_SZ 16
 #define ICP_QAT_HW_F9_IK_SZ 16
 #define ICP_QAT_HW_F9_FK_SZ 16
-#define ICP_QAT_HW_KASUMI_F9_STATE2_SZ                                         \
+#define ICP_QAT_HW_KASUMI_F9_STATE2_SZ \
 	(ICP_QAT_HW_F9_IK_SZ + ICP_QAT_HW_F9_FK_SZ)
 #define ICP_QAT_HW_AES_F9_STATE2_SZ ICP_QAT_HW_KASUMI_F9_STATE2_SZ
 #define ICP_QAT_HW_SNOW_3G_UIA2_STATE2_SZ 24
@@ -271,11 +271,12 @@ enum icp_qat_hw_cipher_convert {
 #define QAT_CIPHER_AEAD_AAD_SIZE_BITPOS 16
 #define QAT_CIPHER_MODE_F8_KEY_SZ_MULT 2
 #define QAT_CIPHER_MODE_XTS_KEY_SZ_MULT 2
-#define ICP_QAT_HW_CIPHER_CONFIG_BUILD(mode, algo, convert, dir)               \
-	(((mode & QAT_CIPHER_MODE_MASK) << QAT_CIPHER_MODE_BITPOS) |           \
-	 ((algo & QAT_CIPHER_ALGO_MASK) << QAT_CIPHER_ALGO_BITPOS) |           \
-	 ((convert & QAT_CIPHER_CONVERT_MASK) << QAT_CIPHER_CONVERT_BITPOS) |  \
-	 ((dir & QAT_CIPHER_DIR_MASK) << QAT_CIPHER_DIR_BITPOS))
+#define ICP_QAT_HW_CIPHER_CONFIG_BUILD(mode, algo, convert, dir)        \
+	(((mode & QAT_CIPHER_MODE_MASK) << QAT_CIPHER_MODE_BITPOS) |    \
+	    ((algo & QAT_CIPHER_ALGO_MASK) << QAT_CIPHER_ALGO_BITPOS) | \
+	    ((convert & QAT_CIPHER_CONVERT_MASK)                        \
+		<< QAT_CIPHER_CONVERT_BITPOS) |                         \
+	    ((dir & QAT_CIPHER_DIR_MASK) << QAT_CIPHER_DIR_BITPOS))
 #define ICP_QAT_HW_DES_BLK_SZ 8
 #define ICP_QAT_HW_3DES_BLK_SZ 8
 #define ICP_QAT_HW_NULL_BLK_SZ 8
@@ -289,22 +290,22 @@ enum icp_qat_hw_cipher_convert {
 #define ICP_QAT_HW_AES_128_KEY_SZ 16
 #define ICP_QAT_HW_AES_192_KEY_SZ 24
 #define ICP_QAT_HW_AES_256_KEY_SZ 32
-#define ICP_QAT_HW_AES_128_F8_KEY_SZ                                           \
+#define ICP_QAT_HW_AES_128_F8_KEY_SZ \
 	(ICP_QAT_HW_AES_128_KEY_SZ * QAT_CIPHER_MODE_F8_KEY_SZ_MULT)
-#define ICP_QAT_HW_AES_192_F8_KEY_SZ                                           \
+#define ICP_QAT_HW_AES_192_F8_KEY_SZ \
 	(ICP_QAT_HW_AES_192_KEY_SZ * QAT_CIPHER_MODE_F8_KEY_SZ_MULT)
-#define ICP_QAT_HW_AES_256_F8_KEY_SZ                                           \
+#define ICP_QAT_HW_AES_256_F8_KEY_SZ \
 	(ICP_QAT_HW_AES_256_KEY_SZ * QAT_CIPHER_MODE_F8_KEY_SZ_MULT)
-#define ICP_QAT_HW_AES_128_XTS_KEY_SZ                                          \
+#define ICP_QAT_HW_AES_128_XTS_KEY_SZ \
 	(ICP_QAT_HW_AES_128_KEY_SZ * QAT_CIPHER_MODE_XTS_KEY_SZ_MULT)
-#define ICP_QAT_HW_AES_256_XTS_KEY_SZ                                          \
+#define ICP_QAT_HW_AES_256_XTS_KEY_SZ \
 	(ICP_QAT_HW_AES_256_KEY_SZ * QAT_CIPHER_MODE_XTS_KEY_SZ_MULT)
 #define ICP_QAT_HW_KASUMI_KEY_SZ 16
-#define ICP_QAT_HW_KASUMI_F8_KEY_SZ                                            \
+#define ICP_QAT_HW_KASUMI_F8_KEY_SZ \
 	(ICP_QAT_HW_KASUMI_KEY_SZ * QAT_CIPHER_MODE_F8_KEY_SZ_MULT)
-#define ICP_QAT_HW_AES_128_XTS_KEY_SZ                                          \
+#define ICP_QAT_HW_AES_128_XTS_KEY_SZ \
 	(ICP_QAT_HW_AES_128_KEY_SZ * QAT_CIPHER_MODE_XTS_KEY_SZ_MULT)
-#define ICP_QAT_HW_AES_256_XTS_KEY_SZ                                          \
+#define ICP_QAT_HW_AES_256_XTS_KEY_SZ \
 	(ICP_QAT_HW_AES_256_KEY_SZ * QAT_CIPHER_MODE_XTS_KEY_SZ_MULT)
 #define ICP_QAT_HW_ARC4_KEY_SZ 256
 #define ICP_QAT_HW_SNOW_3G_UEA2_KEY_SZ 16

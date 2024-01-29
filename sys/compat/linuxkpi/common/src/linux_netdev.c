@@ -27,8 +27,8 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/kernel.h>
 #include <sys/sysctl.h>
 
@@ -38,57 +38,73 @@
 
 MALLOC_DEFINE(M_NETDEV, "lkpindev", "Linux KPI netdevice compat");
 
-#define	NAPI_LOCK_INIT(_ndev)		\
-    mtx_init(&(_ndev)->napi_mtx, "napi_mtx", NULL, MTX_DEF)
-#define	NAPI_LOCK_DESTROY(_ndev)	mtx_destroy(&(_ndev)->napi_mtx)
-#define	NAPI_LOCK_ASSERT(_ndev)		mtx_assert(&(_ndev)->napi_mtx, MA_OWNED)
-#define	NAPI_LOCK(_ndev)		mtx_lock(&(_ndev)->napi_mtx)
-#define	NAPI_UNLOCK(_ndev)		mtx_unlock(&(_ndev)->napi_mtx)
+#define NAPI_LOCK_INIT(_ndev) \
+	mtx_init(&(_ndev)->napi_mtx, "napi_mtx", NULL, MTX_DEF)
+#define NAPI_LOCK_DESTROY(_ndev) mtx_destroy(&(_ndev)->napi_mtx)
+#define NAPI_LOCK_ASSERT(_ndev) mtx_assert(&(_ndev)->napi_mtx, MA_OWNED)
+#define NAPI_LOCK(_ndev) mtx_lock(&(_ndev)->napi_mtx)
+#define NAPI_UNLOCK(_ndev) mtx_unlock(&(_ndev)->napi_mtx)
 
 /* -------------------------------------------------------------------------- */
 
 #define LKPI_NAPI_FLAGS \
-        "\20\1DISABLE_PENDING\2IS_SCHEDULED\3LOST_RACE_TRY_AGAIN"
+	"\20\1DISABLE_PENDING\2IS_SCHEDULED\3LOST_RACE_TRY_AGAIN"
 
 /* #define	NAPI_DEBUG */
 #ifdef NAPI_DEBUG
 static int debug_napi;
-SYSCTL_INT(_compat_linuxkpi, OID_AUTO, debug_napi, CTLFLAG_RWTUN,
-    &debug_napi, 0, "NAPI debug level");
+SYSCTL_INT(_compat_linuxkpi, OID_AUTO, debug_napi, CTLFLAG_RWTUN, &debug_napi,
+    0, "NAPI debug level");
 
-#define	DNAPI_TODO		0x01
-#define	DNAPI_IMPROVE		0x02
-#define	DNAPI_TRACE		0x10
-#define	DNAPI_TRACE_TASK	0x20
-#define	DNAPI_DIRECT_DISPATCH	0x1000
+#define DNAPI_TODO 0x01
+#define DNAPI_IMPROVE 0x02
+#define DNAPI_TRACE 0x10
+#define DNAPI_TRACE_TASK 0x20
+#define DNAPI_DIRECT_DISPATCH 0x1000
 
-#define	NAPI_TRACE(_n)		if (debug_napi & DNAPI_TRACE)		\
-    printf("NAPI_TRACE %s:%d %u %p (%#jx %b)\n", __func__, __LINE__,	\
-	(unsigned int)ticks, _n, (uintmax_t)(_n)->state,		\
-	(int)(_n)->state, LKPI_NAPI_FLAGS)
-#define	NAPI_TRACE2D(_n, _d)	if (debug_napi & DNAPI_TRACE)		\
-    printf("NAPI_TRACE %s:%d %u %p (%#jx %b) %d\n", __func__, __LINE__, \
-	(unsigned int)ticks, _n, (uintmax_t)(_n)->state,		\
-	(int)(_n)->state, LKPI_NAPI_FLAGS, _d)
-#define	NAPI_TRACE_TASK(_n, _p, _c) if (debug_napi & DNAPI_TRACE_TASK)	\
-    printf("NAPI_TRACE %s:%d %u %p (%#jx %b) pending %d count %d "	\
-	"rx_count %d\n", __func__, __LINE__,				\
-	(unsigned int)ticks, _n, (uintmax_t)(_n)->state,		\
-	(int)(_n)->state, LKPI_NAPI_FLAGS, _p, _c, (_n)->rx_count)
-#define	NAPI_TODO()		if (debug_napi & DNAPI_TODO)		\
-    printf("NAPI_TODO %s:%d %d\n", __func__, __LINE__, ticks)
-#define	NAPI_IMPROVE()		if (debug_napi & DNAPI_IMPROVE)		\
-    printf("NAPI_IMPROVE %s:%d %d\n", __func__, __LINE__, ticks)
+#define NAPI_TRACE(_n)                                                         \
+	if (debug_napi & DNAPI_TRACE)                                          \
+	printf("NAPI_TRACE %s:%d %u %p (%#jx %b)\n", __func__, __LINE__,       \
+	    (unsigned int)ticks, _n, (uintmax_t)(_n)->state, (int)(_n)->state, \
+	    LKPI_NAPI_FLAGS)
+#define NAPI_TRACE2D(_n, _d)                                                   \
+	if (debug_napi & DNAPI_TRACE)                                          \
+	printf("NAPI_TRACE %s:%d %u %p (%#jx %b) %d\n", __func__, __LINE__,    \
+	    (unsigned int)ticks, _n, (uintmax_t)(_n)->state, (int)(_n)->state, \
+	    LKPI_NAPI_FLAGS, _d)
+#define NAPI_TRACE_TASK(_n, _p, _c)                                            \
+	if (debug_napi & DNAPI_TRACE_TASK)                                     \
+	printf("NAPI_TRACE %s:%d %u %p (%#jx %b) pending %d count %d "         \
+	       "rx_count %d\n",                                                \
+	    __func__, __LINE__, (unsigned int)ticks, _n,                       \
+	    (uintmax_t)(_n)->state, (int)(_n)->state, LKPI_NAPI_FLAGS, _p, _c, \
+	    (_n)->rx_count)
+#define NAPI_TODO()                  \
+	if (debug_napi & DNAPI_TODO) \
+	printf("NAPI_TODO %s:%d %d\n", __func__, __LINE__, ticks)
+#define NAPI_IMPROVE()                  \
+	if (debug_napi & DNAPI_IMPROVE) \
+	printf("NAPI_IMPROVE %s:%d %d\n", __func__, __LINE__, ticks)
 
-#define	NAPI_DIRECT_DISPATCH()	((debug_napi & DNAPI_DIRECT_DISPATCH) != 0)
+#define NAPI_DIRECT_DISPATCH() ((debug_napi & DNAPI_DIRECT_DISPATCH) != 0)
 #else
-#define	NAPI_TRACE(_n)			do { } while(0)
-#define	NAPI_TRACE2D(_n, _d)		do { } while(0)
-#define	NAPI_TRACE_TASK(_n, _p, _c)	do { } while(0)
-#define	NAPI_TODO()			do { } while(0)
-#define	NAPI_IMPROVE()			do { } while(0)
+#define NAPI_TRACE(_n) \
+	do {           \
+	} while (0)
+#define NAPI_TRACE2D(_n, _d) \
+	do {                 \
+	} while (0)
+#define NAPI_TRACE_TASK(_n, _p, _c) \
+	do {                        \
+	} while (0)
+#define NAPI_TODO() \
+	do {        \
+	} while (0)
+#define NAPI_IMPROVE() \
+	do {           \
+	} while (0)
 
-#define	NAPI_DIRECT_DISPATCH()		(0)
+#define NAPI_DIRECT_DISPATCH() (0)
 #endif
 
 /* -------------------------------------------------------------------------- */
@@ -125,7 +141,7 @@ linuxkpi_napi_schedule_prep(struct napi_struct *napi)
 	} while (atomic_cmpset_acq_long(&napi->state, old, new) == 0);
 
 	NAPI_TRACE(napi);
-        return ((old & BIT(LKPI_NAPI_FLAG_IS_SCHEDULED)) == 0);
+	return ((old & BIT(LKPI_NAPI_FLAG_IS_SCHEDULED)) == 0);
 }
 
 static void
@@ -292,11 +308,11 @@ lkpi_napi_task(void *ctx, int pending)
 	struct napi_struct *napi;
 	int count;
 
-	KASSERT(ctx != NULL, ("%s: napi %p, pending %d\n",
-	    __func__, ctx, pending));
+	KASSERT(ctx != NULL,
+	    ("%s: napi %p, pending %d\n", __func__, ctx, pending));
 	napi = ctx;
-	KASSERT(napi->poll != NULL, ("%s: napi %p poll is NULL\n",
-	    __func__, napi));
+	KASSERT(napi->poll != NULL,
+	    ("%s: napi %p poll is NULL\n", __func__, napi));
 
 	NAPI_TRACE_TASK(napi, pending, napi->budget);
 	count = napi->poll(napi, napi->budget);
@@ -323,7 +339,7 @@ lkpi_napi_task(void *ctx, int pending)
 
 void
 linuxkpi_netif_napi_add(struct net_device *ndev, struct napi_struct *napi,
-    int(*napi_poll)(struct napi_struct *, int))
+    int (*napi_poll)(struct napi_struct *, int))
 {
 
 	napi->dev = ndev;
@@ -384,13 +400,13 @@ linuxkpi_init_dummy_netdev(struct net_device *ndev)
 	ndev->napi_tq = taskqueue_create("tq_ndev_napi", M_WAITOK,
 	    taskqueue_thread_enqueue, &ndev->napi_tq);
 	/* One thread for now. */
-	(void) taskqueue_start_threads(&ndev->napi_tq, 1, PWAIT,
+	(void)taskqueue_start_threads(&ndev->napi_tq, 1, PWAIT,
 	    "ndev napi taskq");
 }
 
 struct net_device *
 linuxkpi_alloc_netdev(size_t len, const char *name, uint32_t flags,
-    void(*setup_func)(struct net_device *))
+    void (*setup_func)(struct net_device *))
 {
 	struct net_device *ndev;
 
@@ -416,7 +432,7 @@ linuxkpi_free_netdev(struct net_device *ndev)
 	struct napi_struct *napi, *temp;
 
 	NAPI_LOCK(ndev);
-	TAILQ_FOREACH_SAFE(napi, &ndev->napi_head, entry, temp) {
+	TAILQ_FOREACH_SAFE (napi, &ndev->napi_head, entry, temp) {
 		lkpi_netif_napi_del_locked(napi);
 	}
 	NAPI_UNLOCK(ndev);

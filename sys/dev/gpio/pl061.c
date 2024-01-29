@@ -29,14 +29,14 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/proc.h>
-#include <sys/rman.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
 #include <sys/gpio.h>
 #include <sys/interrupt.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/proc.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 #include <machine/intr.h>
@@ -44,40 +44,41 @@
 
 #include <dev/gpio/gpiobusvar.h>
 
-#include "pl061.h"
-
 #include "gpio_if.h"
 #include "pic_if.h"
+#include "pl061.h"
 
-#define	PL061_LOCK(_sc)			mtx_lock_spin(&(_sc)->sc_mtx)
-#define	PL061_UNLOCK(_sc)		mtx_unlock_spin(&(_sc)->sc_mtx)
-#define	PL061_LOCK_DESTROY(_sc)		mtx_destroy(&(_sc)->sc_mtx)
-#define	PL061_ASSERT_LOCKED(_sc)	mtx_assert(&(_sc)->sc_mtx, MA_OWNED)
-#define	PL061_ASSERT_UNLOCKED(_sc)	mtx_assert(&(_sc)->sc_mtx, MA_NOTOWNED)
+#define PL061_LOCK(_sc) mtx_lock_spin(&(_sc)->sc_mtx)
+#define PL061_UNLOCK(_sc) mtx_unlock_spin(&(_sc)->sc_mtx)
+#define PL061_LOCK_DESTROY(_sc) mtx_destroy(&(_sc)->sc_mtx)
+#define PL061_ASSERT_LOCKED(_sc) mtx_assert(&(_sc)->sc_mtx, MA_OWNED)
+#define PL061_ASSERT_UNLOCKED(_sc) mtx_assert(&(_sc)->sc_mtx, MA_NOTOWNED)
 
 #if 0
-#define dprintf(fmt, args...) do { 	\
-	printf(fmt, ##args);	  	\
-} while (0)
+#define dprintf(fmt, args...)        \
+	do {                         \
+		printf(fmt, ##args); \
+	} while (0)
 #else
 #define dprintf(fmt, args...)
 #endif
 
-#define PL061_PIN_TO_ADDR(pin)  (1 << (pin + 2))
-#define PL061_DATA		0x3FC
-#define PL061_DIR		0x400
-#define PL061_INTSENSE  	0x404
-#define PL061_INTBOTHEDGES	0x408
-#define PL061_INTEVENT		0x40C
-#define PL061_INTMASK		0x410
-#define PL061_RAWSTATUS		0x414
-#define PL061_STATUS		0x418
-#define PL061_INTCLR		0x41C
-#define PL061_MODECTRL		0x420
+#define PL061_PIN_TO_ADDR(pin) (1 << (pin + 2))
+#define PL061_DATA 0x3FC
+#define PL061_DIR 0x400
+#define PL061_INTSENSE 0x404
+#define PL061_INTBOTHEDGES 0x408
+#define PL061_INTEVENT 0x40C
+#define PL061_INTMASK 0x410
+#define PL061_RAWSTATUS 0x414
+#define PL061_STATUS 0x418
+#define PL061_INTCLR 0x41C
+#define PL061_MODECTRL 0x420
 
-#define PL061_ALLOWED_CAPS     (GPIO_PIN_INPUT | GPIO_PIN_OUTPUT | GPIO_INTR_EDGE_BOTH | \
-				GPIO_INTR_EDGE_RISING | GPIO_INTR_EDGE_FALLING | \
-				GPIO_INTR_LEVEL_HIGH | GPIO_INTR_LEVEL_LOW )
+#define PL061_ALLOWED_CAPS                                        \
+	(GPIO_PIN_INPUT | GPIO_PIN_OUTPUT | GPIO_INTR_EDGE_BOTH | \
+	    GPIO_INTR_EDGE_RISING | GPIO_INTR_EDGE_FALLING |      \
+	    GPIO_INTR_LEVEL_HIGH | GPIO_INTR_LEVEL_LOW)
 
 #define PIC_INTR_ISRC(sc, irq) (&(sc->sc_isrcs[irq].isrc))
 
@@ -172,7 +173,6 @@ pl061_pin_setflags(device_t dev, uint32_t pin, uint32_t flags)
 	if ((flags & in_out) == in_out)
 		return (EINVAL);
 
-
 	PL061_LOCK(sc);
 	mask_and_set(sc, PL061_DIR, mask, flags & GPIO_PIN_OUTPUT ? mask : 0);
 	PL061_UNLOCK(sc);
@@ -248,8 +248,6 @@ pl061_pic_disable_intr(device_t dev, struct intr_irqsrc *isrc)
 	PL061_UNLOCK(sc);
 }
 
-
-
 static void
 pl061_pic_enable_intr(device_t dev, struct intr_irqsrc *isrc)
 {
@@ -259,7 +257,6 @@ pl061_pic_enable_intr(device_t dev, struct intr_irqsrc *isrc)
 	sc = device_get_softc(dev);
 	mask = 1 << ((struct pl061_pin_irqsrc *)isrc)->irq;
 
-
 	dprintf("%s: calling enable interrupt %#x\n", __func__, mask);
 	PL061_LOCK(sc);
 	mask_and_set(sc, PL061_INTMASK, mask, mask);
@@ -268,7 +265,7 @@ pl061_pic_enable_intr(device_t dev, struct intr_irqsrc *isrc)
 
 static int
 pl061_pic_map_intr(device_t dev, struct intr_map_data *data,
-	struct intr_irqsrc **isrcp)
+    struct intr_irqsrc **isrcp)
 {
 	struct pl061_softc *sc;
 	struct intr_map_data_gpio *gdata;
@@ -293,7 +290,7 @@ pl061_pic_map_intr(device_t dev, struct intr_map_data *data,
 
 static int
 pl061_pic_setup_intr(device_t dev, struct intr_irqsrc *isrc,
-	struct resource *res, struct intr_map_data *data)
+    struct resource *res, struct intr_map_data *data)
 {
 	struct pl061_softc *sc;
 	struct intr_map_data_gpio *gdata;
@@ -352,7 +349,7 @@ pl061_pic_setup_intr(device_t dev, struct intr_irqsrc *isrc,
 
 static int
 pl061_pic_teardown_intr(device_t dev, struct intr_irqsrc *isrc,
-	struct resource *res, struct intr_map_data *data)
+    struct resource *res, struct intr_map_data *data)
 {
 	struct pl061_softc *sc;
 	struct pl061_pin_irqsrc *irqsrc;
@@ -427,7 +424,6 @@ pl061_intr(void *arg)
 			    pin);
 
 		dprintf("got IRQ on %d\n", pin);
-
 	}
 	return (FILTER_HANDLED);
 }
@@ -476,8 +472,8 @@ pl061_attach(device_t dev)
 		}
 		sc->sc_isrcs[irq].irq = irq;
 		sc->sc_isrcs[irq].mode = GPIO_INTR_CONFORM;
-		ret = intr_isrc_register(PIC_INTR_ISRC(sc, irq), dev, 0,
-		    "%s", name);
+		ret = intr_isrc_register(PIC_INTR_ISRC(sc, irq), dev, 0, "%s",
+		    name);
 		if (ret) {
 			device_printf(dev, "can't register isrc %d\n", ret);
 			goto free_isrc;
@@ -499,21 +495,19 @@ free_isrc:
 	 * XXX isrc_release_counters() not implemented
 	 * for (irq = 0; irq < PL061_NUM_GPIO; irq++)
 	 *	intr_isrc_deregister(PIC_INTR_ISRC(sc, irq));
-	*/
-	bus_release_resource(dev, SYS_RES_IRQ, sc->sc_irq_rid,
-	    sc->sc_irq_res);
+	 */
+	bus_release_resource(dev, SYS_RES_IRQ, sc->sc_irq_rid, sc->sc_irq_res);
 free_pic:
-        /*
+	/*
 	 * XXX intr_pic_deregister: not implemented
-         * intr_pic_deregister(dev, 0);
-         */
+	 * intr_pic_deregister(dev, 0);
+	 */
 
 free_mem:
 	bus_release_resource(dev, SYS_RES_MEMORY, sc->sc_mem_rid,
 	    sc->sc_mem_res);
 
 	return (ENXIO);
-
 }
 
 int
@@ -541,34 +535,34 @@ pl061_detach(device_t dev)
 
 static device_method_t pl061_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_attach,	pl061_attach),
-	DEVMETHOD(device_detach,	pl061_detach),
+	DEVMETHOD(device_attach, pl061_attach),
+	DEVMETHOD(device_detach, pl061_detach),
 
 	/* Bus interface */
-	DEVMETHOD(bus_setup_intr,	bus_generic_setup_intr),
-	DEVMETHOD(bus_activate_resource,	bus_generic_activate_resource),
-	DEVMETHOD(bus_deactivate_resource,	bus_generic_deactivate_resource),
+	DEVMETHOD(bus_setup_intr, bus_generic_setup_intr),
+	DEVMETHOD(bus_activate_resource, bus_generic_activate_resource),
+	DEVMETHOD(bus_deactivate_resource, bus_generic_deactivate_resource),
 
 	/* GPIO protocol */
-	DEVMETHOD(gpio_get_bus,		pl061_get_bus),
-	DEVMETHOD(gpio_pin_max,		pl061_pin_max),
-	DEVMETHOD(gpio_pin_getname,	pl061_pin_getname),
-	DEVMETHOD(gpio_pin_getflags,	pl061_pin_getflags),
-	DEVMETHOD(gpio_pin_getcaps,	pl061_pin_getcaps),
-	DEVMETHOD(gpio_pin_setflags,	pl061_pin_setflags),
-	DEVMETHOD(gpio_pin_get,		pl061_pin_get),
-	DEVMETHOD(gpio_pin_set,		pl061_pin_set),
-	DEVMETHOD(gpio_pin_toggle,	pl061_pin_toggle),
+	DEVMETHOD(gpio_get_bus, pl061_get_bus),
+	DEVMETHOD(gpio_pin_max, pl061_pin_max),
+	DEVMETHOD(gpio_pin_getname, pl061_pin_getname),
+	DEVMETHOD(gpio_pin_getflags, pl061_pin_getflags),
+	DEVMETHOD(gpio_pin_getcaps, pl061_pin_getcaps),
+	DEVMETHOD(gpio_pin_setflags, pl061_pin_setflags),
+	DEVMETHOD(gpio_pin_get, pl061_pin_get),
+	DEVMETHOD(gpio_pin_set, pl061_pin_set),
+	DEVMETHOD(gpio_pin_toggle, pl061_pin_toggle),
 
 	/* Interrupt controller interface */
-	DEVMETHOD(pic_disable_intr,	pl061_pic_disable_intr),
-	DEVMETHOD(pic_enable_intr,	pl061_pic_enable_intr),
-	DEVMETHOD(pic_map_intr,		pl061_pic_map_intr),
-	DEVMETHOD(pic_setup_intr,	pl061_pic_setup_intr),
-	DEVMETHOD(pic_teardown_intr,	pl061_pic_teardown_intr),
-	DEVMETHOD(pic_post_filter,	pl061_pic_post_filter),
-	DEVMETHOD(pic_post_ithread,	pl061_pic_post_ithread),
-	DEVMETHOD(pic_pre_ithread,	pl061_pic_pre_ithread),
+	DEVMETHOD(pic_disable_intr, pl061_pic_disable_intr),
+	DEVMETHOD(pic_enable_intr, pl061_pic_enable_intr),
+	DEVMETHOD(pic_map_intr, pl061_pic_map_intr),
+	DEVMETHOD(pic_setup_intr, pl061_pic_setup_intr),
+	DEVMETHOD(pic_teardown_intr, pl061_pic_teardown_intr),
+	DEVMETHOD(pic_post_filter, pl061_pic_post_filter),
+	DEVMETHOD(pic_post_ithread, pl061_pic_post_ithread),
+	DEVMETHOD(pic_pre_ithread, pl061_pic_pre_ithread),
 
 	DEVMETHOD_END
 };

@@ -68,84 +68,83 @@
  * DPAA2 QBMan software portal.
  */
 
-#include <sys/param.h>
-#include <sys/kernel.h>
-#include <sys/bus.h>
-#include <sys/rman.h>
-#include <sys/module.h>
-#include <sys/malloc.h>
-#include <sys/mutex.h>
-#include <sys/time.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/rman.h>
+#include <sys/time.h>
 
+#include <machine/atomic.h>
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <machine/atomic.h>
 
-#include "pcib_if.h"
-#include "pci_if.h"
-
-#include "dpaa2_swp.h"
-#include "dpaa2_mc.h"
 #include "dpaa2_bp.h"
+#include "dpaa2_mc.h"
+#include "dpaa2_swp.h"
+#include "pci_if.h"
+#include "pcib_if.h"
 
-#define CMD_SPIN_TIMEOUT		100u	/* us */
-#define CMD_SPIN_ATTEMPTS		2000u	/* 200 ms max. */
+#define CMD_SPIN_TIMEOUT 100u	/* us */
+#define CMD_SPIN_ATTEMPTS 2000u /* 200 ms max. */
 
-#define CMD_VERB_MASK			0x7Fu
+#define CMD_VERB_MASK 0x7Fu
 
 /* Shifts in the VERB byte of the enqueue command descriptor. */
-#define ENQ_CMD_ORP_ENABLE_SHIFT	2
-#define ENQ_CMD_IRQ_ON_DISPATCH_SHIFT	3
-#define ENQ_CMD_TARGET_TYPE_SHIFT	4
-#define ENQ_CMD_DCA_EN_SHIFT		7
+#define ENQ_CMD_ORP_ENABLE_SHIFT 2
+#define ENQ_CMD_IRQ_ON_DISPATCH_SHIFT 3
+#define ENQ_CMD_TARGET_TYPE_SHIFT 4
+#define ENQ_CMD_DCA_EN_SHIFT 7
 /* VERB byte options of the enqueue command descriptor. */
-#define ENQ_CMD_EMPTY			0u
-#define ENQ_CMD_RESPONSE_ALWAYS		1u
-#define ENQ_CMD_REJECTS_TO_FQ		2u
+#define ENQ_CMD_EMPTY 0u
+#define ENQ_CMD_RESPONSE_ALWAYS 1u
+#define ENQ_CMD_REJECTS_TO_FQ 2u
 
-#define ENQ_DESC_FD_OFFSET		32u
+#define ENQ_DESC_FD_OFFSET 32u
 
-#define ENQ_DCA_IDXMASK			0x0Fu
-#define ENQ_FLAG_DCA			(1ull << 31)
+#define ENQ_DCA_IDXMASK 0x0Fu
+#define ENQ_FLAG_DCA (1ull << 31)
 
 /* QBMan portal command codes. */
-#define CMDID_SWP_MC_ACQUIRE		0x30
-#define CMDID_SWP_BP_QUERY		0x32
-#define CMDID_SWP_WQCHAN_CONFIGURE	0x46
+#define CMDID_SWP_MC_ACQUIRE 0x30
+#define CMDID_SWP_BP_QUERY 0x32
+#define CMDID_SWP_WQCHAN_CONFIGURE 0x46
 
 /* QBMan portal command result codes. */
-#define QBMAN_CMD_RC_OK			0xF0
+#define QBMAN_CMD_RC_OK 0xF0
 
 /* SDQCR attribute codes */
-#define QB_SDQCR_FC_SHIFT 		29u
-#define QB_SDQCR_FC_MASK		0x1u
-#define QB_SDQCR_DCT_SHIFT		24u
-#define QB_SDQCR_DCT_MASK		0x3u
-#define QB_SDQCR_TOK_SHIFT		16u
-#define QB_SDQCR_TOK_MASK		0xFFu
-#define QB_SDQCR_SRC_SHIFT		0u
-#define QB_SDQCR_SRC_MASK		0xFFFFu
+#define QB_SDQCR_FC_SHIFT 29u
+#define QB_SDQCR_FC_MASK 0x1u
+#define QB_SDQCR_DCT_SHIFT 24u
+#define QB_SDQCR_DCT_MASK 0x3u
+#define QB_SDQCR_TOK_SHIFT 16u
+#define QB_SDQCR_TOK_MASK 0xFFu
+#define QB_SDQCR_SRC_SHIFT 0u
+#define QB_SDQCR_SRC_MASK 0xFFFFu
 
 /* Shifts in the VERB byte of the volatile dequeue command. */
-#define QB_VDQCR_VERB_DCT0_SHIFT	0
-#define QB_VDQCR_VERB_DCT1_SHIFT	1
-#define QB_VDQCR_VERB_DT0_SHIFT		2
-#define QB_VDQCR_VERB_DT1_SHIFT		3
-#define QB_VDQCR_VERB_RLS_SHIFT		4
-#define QB_VDQCR_VERB_WAE_SHIFT		5
-#define QB_VDQCR_VERB_RAD_SHIFT		6
+#define QB_VDQCR_VERB_DCT0_SHIFT 0
+#define QB_VDQCR_VERB_DCT1_SHIFT 1
+#define QB_VDQCR_VERB_DT0_SHIFT 2
+#define QB_VDQCR_VERB_DT1_SHIFT 3
+#define QB_VDQCR_VERB_RLS_SHIFT 4
+#define QB_VDQCR_VERB_WAE_SHIFT 5
+#define QB_VDQCR_VERB_RAD_SHIFT 6
 
 /* Maximum timeout period for the DQRR interrupt. */
-#define DQRR_MAX_ITP			4096u
-#define DQRR_PI_MASK			0x0Fu
+#define DQRR_MAX_ITP 4096u
+#define DQRR_PI_MASK 0x0Fu
 
 /* Release Array Allocation register helpers. */
-#define RAR_IDX(rar)			((rar) & 0x7u)
-#define RAR_VB(rar)			((rar) & 0x80u)
-#define RAR_SUCCESS(rar)		((rar) & 0x100u)
+#define RAR_IDX(rar) ((rar) & 0x7u)
+#define RAR_VB(rar) ((rar) & 0x80u)
+#define RAR_SUCCESS(rar) ((rar) & 0x100u)
 
 MALLOC_DEFINE(M_DPAA2_SWP, "dpaa2_swp", "DPAA2 QBMan Software Portal");
 
@@ -156,10 +155,7 @@ enum qbman_sdqcr_dct {
 	qbman_sdqcr_dct_active
 };
 
-enum qbman_sdqcr_fc {
-	qbman_sdqcr_fc_one = 0,
-	qbman_sdqcr_fc_up_to_3 = 1
-};
+enum qbman_sdqcr_fc { qbman_sdqcr_fc_one = 0, qbman_sdqcr_fc_up_to_3 = 1 };
 
 /* Routines to execute software portal commands. */
 static int dpaa2_swp_exec_mgmt_command(struct dpaa2_swp *,
@@ -189,9 +185,8 @@ dpaa2_swp_init_portal(struct dpaa2_swp **swp, struct dpaa2_swp_desc *desc,
 		return (DPAA2_SWP_STAT_EINVAL);
 
 	p = malloc(sizeof(struct dpaa2_swp), M_DPAA2_SWP,
-	    flags & DPAA2_SWP_NOWAIT_ALLOC
-	    ? (M_NOWAIT | M_ZERO)
-	    : (M_WAITOK | M_ZERO));
+	    flags & DPAA2_SWP_NOWAIT_ALLOC ? (M_NOWAIT | M_ZERO) :
+					     (M_WAITOK | M_ZERO));
 	if (!p)
 		return (DPAA2_SWP_STAT_NO_MEMORY);
 
@@ -284,7 +279,8 @@ dpaa2_swp_init_portal(struct dpaa2_swp **swp, struct dpaa2_swp_desc *desc,
 	dpaa2_swp_write_reg(p, DPAA2_SWP_CINH_SDQCR, 0);
 
 	p->eqcr.pi_ring_size = 8;
-	/* if ((desc->swp_version & DPAA2_SWP_REV_MASK) >= DPAA2_SWP_REV_5000) */
+	/* if ((desc->swp_version & DPAA2_SWP_REV_MASK) >= DPAA2_SWP_REV_5000)
+	 */
 	/* 	p->eqcr.pi_ring_size = 32; */
 
 	for (mask_size = p->eqcr.pi_ring_size; mask_size > 0; mask_size >>= 1)
@@ -293,8 +289,8 @@ dpaa2_swp_init_portal(struct dpaa2_swp **swp, struct dpaa2_swp_desc *desc,
 	eqcr_pi = dpaa2_swp_read_reg(p, DPAA2_SWP_CINH_EQCR_PI);
 	p->eqcr.pi = eqcr_pi & p->eqcr.pi_ci_mask;
 	p->eqcr.pi_vb = eqcr_pi & DPAA2_SWP_VALID_BIT;
-	p->eqcr.ci = dpaa2_swp_read_reg(p, DPAA2_SWP_CINH_EQCR_CI)
-	    & p->eqcr.pi_ci_mask;
+	p->eqcr.ci = dpaa2_swp_read_reg(p, DPAA2_SWP_CINH_EQCR_CI) &
+	    p->eqcr.pi_ci_mask;
 	p->eqcr.available = p->eqcr.pi_ring_size;
 
 	/* TODO: sysctl(9) for the IRQ timeout? */
@@ -328,20 +324,13 @@ uint32_t
 dpaa2_swp_set_cfg(uint8_t max_fill, uint8_t wn, uint8_t est, uint8_t rpm,
     uint8_t dcm, uint8_t epm, int sd, int sp, int se, int dp, int de, int ep)
 {
-	return (
-	    max_fill	<< DPAA2_SWP_CFG_DQRR_MF_SHIFT |
-	    est		<< DPAA2_SWP_CFG_EST_SHIFT |
-	    wn		<< DPAA2_SWP_CFG_WN_SHIFT |
-	    rpm		<< DPAA2_SWP_CFG_RPM_SHIFT |
-	    dcm		<< DPAA2_SWP_CFG_DCM_SHIFT |
-	    epm		<< DPAA2_SWP_CFG_EPM_SHIFT |
-	    sd		<< DPAA2_SWP_CFG_SD_SHIFT |
-	    sp		<< DPAA2_SWP_CFG_SP_SHIFT |
-	    se		<< DPAA2_SWP_CFG_SE_SHIFT |
-	    dp		<< DPAA2_SWP_CFG_DP_SHIFT |
-	    de		<< DPAA2_SWP_CFG_DE_SHIFT |
-	    ep		<< DPAA2_SWP_CFG_EP_SHIFT
-	);
+	return (max_fill << DPAA2_SWP_CFG_DQRR_MF_SHIFT |
+	    est << DPAA2_SWP_CFG_EST_SHIFT | wn << DPAA2_SWP_CFG_WN_SHIFT |
+	    rpm << DPAA2_SWP_CFG_RPM_SHIFT | dcm << DPAA2_SWP_CFG_DCM_SHIFT |
+	    epm << DPAA2_SWP_CFG_EPM_SHIFT | sd << DPAA2_SWP_CFG_SD_SHIFT |
+	    sp << DPAA2_SWP_CFG_SP_SHIFT | se << DPAA2_SWP_CFG_SE_SHIFT |
+	    dp << DPAA2_SWP_CFG_DP_SHIFT | de << DPAA2_SWP_CFG_DE_SHIFT |
+	    ep << DPAA2_SWP_CFG_EP_SHIFT);
 }
 
 /* Read/write registers of a software portal. */
@@ -443,8 +432,10 @@ dpaa2_swp_set_push_dequeue(struct dpaa2_swp *swp, uint8_t chan_idx, bool en)
 
 	if (swp != NULL) {
 		if (chan_idx > 15u) {
-			device_printf(swp->desc->dpio_dev, "channel index "
-			    "should be <= 15: chan_idx=%d\n", chan_idx);
+			device_printf(swp->desc->dpio_dev,
+			    "channel index "
+			    "should be <= 15: chan_idx=%d\n",
+			    chan_idx);
 			return;
 		}
 
@@ -458,8 +449,8 @@ dpaa2_swp_set_push_dequeue(struct dpaa2_swp *swp, uint8_t chan_idx, bool en)
 		 */
 		dqsrc = (swp->sdq >> DPAA2_SDQCR_SRC_SHIFT) &
 		    DPAA2_SDQCR_SRC_MASK;
-		dpaa2_swp_write_reg(swp, DPAA2_SWP_CINH_SDQCR, dqsrc != 0
-		    ? swp->sdq : 0);
+		dpaa2_swp_write_reg(swp, DPAA2_SWP_CINH_SDQCR,
+		    dqsrc != 0 ? swp->sdq : 0);
 	}
 }
 
@@ -471,14 +462,15 @@ dpaa2_swp_set_push_dequeue(struct dpaa2_swp *swp, uint8_t chan_idx, bool en)
  *		asserts when the ring contains greater than "threshold" entries.
  * holdoff:	DQRR interrupt holdoff (timeout) period in us.
  */
-int dpaa2_swp_set_irq_coalescing(struct dpaa2_swp *swp, uint32_t threshold,
+int
+dpaa2_swp_set_irq_coalescing(struct dpaa2_swp *swp, uint32_t threshold,
     uint32_t holdoff)
 {
 	uint32_t itp; /* Interrupt Timeout Period */
 
 	if (swp == NULL)
 		return (EINVAL);
-	
+
 	/*
 	 * Convert "holdoff" value from us to 256 QBMAN clock cycles
 	 * increments. This depends on the QBMAN internal frequency.
@@ -512,20 +504,20 @@ dpaa2_swp_conf_wq_channel(struct dpaa2_swp *swp, uint16_t chan_id,
 {
 	/* NOTE: 64 bytes command. */
 	struct __packed {
-		uint8_t		verb;
-		uint8_t		result; /* in response only! */
-		uint16_t	chan_id;
-		uint8_t		we;
-		uint8_t		ctrl;
-		uint16_t	_reserved2;
-		uint64_t	ctx;
-		uint8_t		_reserved3[48];
-	} cmd = {0};
+		uint8_t verb;
+		uint8_t result; /* in response only! */
+		uint16_t chan_id;
+		uint8_t we;
+		uint8_t ctrl;
+		uint16_t _reserved2;
+		uint64_t ctx;
+		uint8_t _reserved3[48];
+	} cmd = { 0 };
 	struct __packed {
-		uint8_t		verb;
-		uint8_t		result;
-		uint16_t	chan_id;
-		uint8_t		_reserved[60];
+		uint8_t verb;
+		uint8_t result;
+		uint16_t chan_id;
+		uint8_t _reserved[60];
 	} rsp;
 	int error;
 
@@ -535,17 +527,18 @@ dpaa2_swp_conf_wq_channel(struct dpaa2_swp *swp, uint16_t chan_id,
 	cmd.chan_id = chan_id;
 	cmd.we = we_mask;
 	cmd.ctrl = cdan_en ? 1u : 0u;
-	cmd.ctx = ctx;	
+	cmd.ctx = ctx;
 
-	error = dpaa2_swp_exec_mgmt_command(swp, (struct dpaa2_swp_cmd *) &cmd,
-	    (struct dpaa2_swp_rsp *) &rsp, CMDID_SWP_WQCHAN_CONFIGURE);
+	error = dpaa2_swp_exec_mgmt_command(swp, (struct dpaa2_swp_cmd *)&cmd,
+	    (struct dpaa2_swp_rsp *)&rsp, CMDID_SWP_WQCHAN_CONFIGURE);
 	if (error)
 		return (error);
 
 	if (rsp.result != QBMAN_CMD_RC_OK) {
-		device_printf(swp->desc->dpio_dev, "WQ channel configuration "
-		    "error: channel_id=%d, result=0x%02x\n", chan_id,
-		    rsp.result);
+		device_printf(swp->desc->dpio_dev,
+		    "WQ channel configuration "
+		    "error: channel_id=%d, result=0x%02x\n",
+		    chan_id, rsp.result);
 		return (EIO);
 	}
 
@@ -561,20 +554,20 @@ dpaa2_swp_query_bp(struct dpaa2_swp *swp, uint16_t bpid,
 {
 	/* NOTE: 64 bytes command. */
 	struct __packed {
-		uint8_t		verb;
-		uint8_t		_reserved1;
-		uint16_t	bpid;
-		uint8_t		_reserved2[60];
-	} cmd = {0};
+		uint8_t verb;
+		uint8_t _reserved1;
+		uint16_t bpid;
+		uint8_t _reserved2[60];
+	} cmd = { 0 };
 	struct __packed {
-		uint8_t		verb;
-		uint8_t		result;
-		uint32_t	_reserved1;
-		uint8_t		bdi;
-		uint8_t		state;
-		uint32_t	fill;
+		uint8_t verb;
+		uint8_t result;
+		uint32_t _reserved1;
+		uint8_t bdi;
+		uint8_t state;
+		uint32_t fill;
 		/* TODO: Support the other fields as well. */
-		uint8_t		_reserved2[52];
+		uint8_t _reserved2[52];
 	} rsp;
 	int error;
 
@@ -583,14 +576,16 @@ dpaa2_swp_query_bp(struct dpaa2_swp *swp, uint16_t bpid,
 
 	cmd.bpid = bpid;
 
-	error = dpaa2_swp_exec_mgmt_command(swp, (struct dpaa2_swp_cmd *) &cmd,
-	    (struct dpaa2_swp_rsp *) &rsp, CMDID_SWP_BP_QUERY);
+	error = dpaa2_swp_exec_mgmt_command(swp, (struct dpaa2_swp_cmd *)&cmd,
+	    (struct dpaa2_swp_rsp *)&rsp, CMDID_SWP_BP_QUERY);
 	if (error)
 		return (error);
 
 	if (rsp.result != QBMAN_CMD_RC_OK) {
-		device_printf(swp->desc->dpio_dev, "BP query error: bpid=%d, "
-		    "result=0x%02x\n", bpid, rsp.result);
+		device_printf(swp->desc->dpio_dev,
+		    "BP query error: bpid=%d, "
+		    "result=0x%02x\n",
+		    bpid, rsp.result);
 		return (EIO);
 	}
 
@@ -607,12 +602,12 @@ dpaa2_swp_release_bufs(struct dpaa2_swp *swp, uint16_t bpid, bus_addr_t *buf,
 {
 	/* NOTE: 64 bytes command. */
 	struct __packed {
-		uint8_t		verb;
-		uint8_t		_reserved1;
-		uint16_t	bpid;
-		uint32_t	_reserved2;
-		uint64_t	buf[DPAA2_SWP_BUFS_PER_CMD];
-	} cmd = {0};
+		uint8_t verb;
+		uint8_t _reserved1;
+		uint16_t bpid;
+		uint32_t _reserved2;
+		uint64_t buf[DPAA2_SWP_BUFS_PER_CMD];
+	} cmd = { 0 };
 	int error;
 
 	if (swp == NULL || buf == NULL || buf_num == 0u ||
@@ -624,10 +619,11 @@ dpaa2_swp_release_bufs(struct dpaa2_swp *swp, uint16_t bpid, bus_addr_t *buf,
 	cmd.bpid = bpid;
 	cmd.verb |= 1 << 5; /* Switch release buffer command to valid. */
 
-	error = dpaa2_swp_exec_br_command(swp, (struct dpaa2_swp_cmd *) &cmd,
+	error = dpaa2_swp_exec_br_command(swp, (struct dpaa2_swp_cmd *)&cmd,
 	    buf_num);
 	if (error) {
-		device_printf(swp->desc->dpio_dev, "buffers release command "
+		device_printf(swp->desc->dpio_dev,
+		    "buffers release command "
 		    "failed\n");
 		return (error);
 	}
@@ -640,11 +636,11 @@ dpaa2_swp_dqrr_next_locked(struct dpaa2_swp *swp, struct dpaa2_dq *dq,
     uint32_t *idx)
 {
 	struct resource_map *map = swp->cinh_map;
-	struct dpaa2_swp_rsp *rsp = (struct dpaa2_swp_rsp *) dq;
+	struct dpaa2_swp_rsp *rsp = (struct dpaa2_swp_rsp *)dq;
 	uint32_t verb, pi; /* producer index */
-	uint32_t offset = swp->cfg.mem_backed
-	    ? DPAA2_SWP_CENA_DQRR_MEM(swp->dqrr.next_idx)
-	    : DPAA2_SWP_CENA_DQRR(swp->dqrr.next_idx);
+	uint32_t offset = swp->cfg.mem_backed ?
+	    DPAA2_SWP_CENA_DQRR_MEM(swp->dqrr.next_idx) :
+	    DPAA2_SWP_CENA_DQRR(swp->dqrr.next_idx);
 
 	if (swp == NULL || dq == NULL)
 		return (EINVAL);
@@ -662,7 +658,8 @@ dpaa2_swp_dqrr_next_locked(struct dpaa2_swp *swp, struct dpaa2_dq *dq,
 		 * will be much less efficient than all subsequent trips around
 		 * it...
 		 */
-		pi = dpaa2_swp_read_reg(swp, DPAA2_SWP_CINH_DQPI) & DQRR_PI_MASK;
+		pi = dpaa2_swp_read_reg(swp, DPAA2_SWP_CINH_DQPI) &
+		    DQRR_PI_MASK;
 
 		/* There are new entries if pi != next_idx */
 		if (pi == swp->dqrr.next_idx)
@@ -712,14 +709,14 @@ dpaa2_swp_pull(struct dpaa2_swp *swp, uint16_t chan_id, struct dpaa2_buf *buf,
 {
 	/* NOTE: 64 bytes command. */
 	struct __packed {
-		uint8_t		verb;
-		uint8_t		numf;
-		uint8_t		tok;
-		uint8_t		_reserved;
-		uint32_t	dq_src;
-		uint64_t	rsp_addr;
-		uint64_t	_reserved1[6];
-	} cmd = {0};
+		uint8_t verb;
+		uint8_t numf;
+		uint8_t tok;
+		uint8_t _reserved;
+		uint32_t dq_src;
+		uint64_t rsp_addr;
+		uint64_t _reserved1[6];
+	} cmd = { 0 };
 	struct dpaa2_dq *msg;
 	uint16_t flags;
 	int i, error;
@@ -734,12 +731,12 @@ dpaa2_swp_pull(struct dpaa2_swp *swp, uint16_t chan_id, struct dpaa2_buf *buf,
 
 	/* Dequeue command type */
 	cmd.verb &= ~(1 << QB_VDQCR_VERB_DCT0_SHIFT);
-	cmd.verb |=  (1 << QB_VDQCR_VERB_DCT1_SHIFT);
+	cmd.verb |= (1 << QB_VDQCR_VERB_DCT1_SHIFT);
 	/* Dequeue from a specific software portal channel (ID's in DQ_SRC). */
 	cmd.verb &= ~(1 << QB_VDQCR_VERB_DT0_SHIFT);
 	cmd.verb &= ~(1 << QB_VDQCR_VERB_DT1_SHIFT);
 	/* Write the response to this command into memory (at the RSP_ADDR). */
-	cmd.verb |=  (1 << QB_VDQCR_VERB_RLS_SHIFT);
+	cmd.verb |= (1 << QB_VDQCR_VERB_RLS_SHIFT);
 	/* Response writes won't attempt to allocate into a cache. */
 	cmd.verb &= ~(1 << QB_VDQCR_VERB_WAE_SHIFT);
 	/* Allow the FQ to remain active in the portal after dequeue. */
@@ -753,7 +750,7 @@ dpaa2_swp_pull(struct dpaa2_swp *swp, uint16_t chan_id, struct dpaa2_buf *buf,
 	}
 
 	error = dpaa2_swp_exec_vdc_command_locked(swp,
-	    (struct dpaa2_swp_cmd *) &cmd);
+	    (struct dpaa2_swp_cmd *)&cmd);
 	if (error != 0) {
 		DPAA2_SWP_UNLOCK(swp);
 		return (error);
@@ -805,16 +802,17 @@ dpaa2_swp_enq(struct dpaa2_swp *swp, struct dpaa2_eq_desc *ed,
  * flags:	Table pointer of QBMAN_ENQUEUE_FLAG_DCA flags, not used if NULL.
  * frames_n:	Number of FDs to enqueue.
  *
- * NOTE: Enqueue command (64 bytes): 32 (eq. descriptor) + 32 (frame descriptor).
+ * NOTE: Enqueue command (64 bytes): 32 (eq. descriptor) + 32 (frame
+ * descriptor).
  */
 int
 dpaa2_swp_enq_mult(struct dpaa2_swp *swp, struct dpaa2_eq_desc *ed,
     struct dpaa2_fd *fd, uint32_t *flags, int frames_n)
 {
-	const uint8_t  *ed_pdat8 =  (const uint8_t *) ed;
-	const uint32_t *ed_pdat32 = (const uint32_t *) ed;
-	const uint64_t *ed_pdat64 = (const uint64_t *) ed;
-	const uint64_t *fd_pdat64 = (const uint64_t *) fd;
+	const uint8_t *ed_pdat8 = (const uint8_t *)ed;
+	const uint32_t *ed_pdat32 = (const uint32_t *)ed;
+	const uint64_t *ed_pdat64 = (const uint64_t *)ed;
+	const uint64_t *fd_pdat64 = (const uint64_t *)fd;
 	struct resource_map *map;
 	uint32_t eqcr_ci, eqcr_pi; /* EQCR consumer/producer index */
 	uint32_t half_mask, full_mask, val, ci_offset;
@@ -833,9 +831,8 @@ dpaa2_swp_enq_mult(struct dpaa2_swp *swp, struct dpaa2_eq_desc *ed,
 	}
 
 	map = swp->cfg.writes_cinh ? swp->cinh_map : swp->cena_map;
-	ci_offset = swp->cfg.mem_backed
-	    ? DPAA2_SWP_CENA_EQCR_CI_MEMBACK
-	    : DPAA2_SWP_CENA_EQCR_CI;
+	ci_offset = swp->cfg.mem_backed ? DPAA2_SWP_CENA_EQCR_CI_MEMBACK :
+					  DPAA2_SWP_CENA_EQCR_CI;
 
 	half_mask = swp->eqcr.pi_ci_mask >> 1;
 	full_mask = swp->eqcr.pi_ci_mask;
@@ -855,15 +852,16 @@ dpaa2_swp_enq_mult(struct dpaa2_swp *swp, struct dpaa2_eq_desc *ed,
 	}
 
 	eqcr_pi = swp->eqcr.pi;
-	num_enq = swp->eqcr.available < frames_n
-	    ? swp->eqcr.available : frames_n;
+	num_enq = swp->eqcr.available < frames_n ? swp->eqcr.available :
+						   frames_n;
 	swp->eqcr.available -= num_enq;
 
 	KASSERT(num_enq >= 0 && num_enq <= swp->eqcr.pi_ring_size,
 	    ("%s: unexpected num_enq=%d", __func__, num_enq));
 	KASSERT(swp->eqcr.available >= 0 &&
-	    swp->eqcr.available <= swp->eqcr.pi_ring_size,
-	    ("%s: unexpected eqcr.available=%d", __func__, swp->eqcr.available));
+		swp->eqcr.available <= swp->eqcr.pi_ring_size,
+	    ("%s: unexpected eqcr.available=%d", __func__,
+		swp->eqcr.available));
 
 	/* Fill in the EQCR ring. */
 	for (int i = 0; i < num_enq; i++) {
@@ -871,7 +869,8 @@ dpaa2_swp_enq_mult(struct dpaa2_swp *swp, struct dpaa2_eq_desc *ed,
 		for (int j = 1; j <= 3; j++)
 			bus_write_8(map,
 			    DPAA2_SWP_CENA_EQCR(eqcr_pi & half_mask) +
-			    sizeof(uint64_t) * j, ed_pdat64[j]);
+				sizeof(uint64_t) * j,
+			    ed_pdat64[j]);
 		/* Write OPRID. */
 		bus_write_4(map,
 		    DPAA2_SWP_CENA_EQCR(eqcr_pi & half_mask) + sizeof(uint32_t),
@@ -880,14 +879,15 @@ dpaa2_swp_enq_mult(struct dpaa2_swp *swp, struct dpaa2_eq_desc *ed,
 		for (int j = 1; j <= 3; j++)
 			bus_write_1(map,
 			    DPAA2_SWP_CENA_EQCR(eqcr_pi & half_mask) +
-			    sizeof(uint8_t) * j, ed_pdat8[j]);
+				sizeof(uint8_t) * j,
+			    ed_pdat8[j]);
 
 		/* Write frame descriptor. */
 		for (int j = 0; j <= 3; j++)
 			bus_write_8(map,
 			    DPAA2_SWP_CENA_EQCR(eqcr_pi & half_mask) +
-			    ENQ_DESC_FD_OFFSET +
-			    sizeof(uint64_t) * j, fd_pdat64[j]);
+				ENQ_DESC_FD_OFFSET + sizeof(uint64_t) * j,
+			    fd_pdat64[j]);
 		eqcr_pi++;
 	}
 
@@ -896,8 +896,7 @@ dpaa2_swp_enq_mult(struct dpaa2_swp *swp, struct dpaa2_eq_desc *ed,
 	/* Write the VERB byte of enqueue descriptor. */
 	eqcr_pi = swp->eqcr.pi;
 	for (int i = 0; i < num_enq; i++) {
-		bus_write_1(map,
-		    DPAA2_SWP_CENA_EQCR(eqcr_pi & half_mask),
+		bus_write_1(map, DPAA2_SWP_CENA_EQCR(eqcr_pi & half_mask),
 		    ed_pdat8[0] | swp->eqcr.pi_vb);
 
 		if (flags && (flags[i] & ENQ_FLAG_DCA)) {
@@ -905,7 +904,7 @@ dpaa2_swp_enq_mult(struct dpaa2_swp *swp, struct dpaa2_eq_desc *ed,
 			bus_write_1(map,
 			    DPAA2_SWP_CENA_EQCR(eqcr_pi & half_mask) + 1,
 			    (1 << ENQ_CMD_DCA_EN_SHIFT) |
-			    (flags[i] & ENQ_DCA_IDXMASK));
+				(flags[i] & ENQ_DCA_IDXMASK));
 		}
 		eqcr_pi++;
 		if (!(eqcr_pi & half_mask))
@@ -922,8 +921,8 @@ static int
 dpaa2_swp_cyc_diff(uint8_t ringsize, uint8_t first, uint8_t last)
 {
 	/* 'first' is included, 'last' is excluded */
-	return ((first <= last)
-	    ? (last - first) : ((2 * ringsize) - (first - last)));
+	return ((first <= last) ? (last - first) :
+				  ((2 * ringsize) - (first - last)));
 }
 
 /**
@@ -934,11 +933,11 @@ dpaa2_swp_exec_br_command(struct dpaa2_swp *swp, struct dpaa2_swp_cmd *cmd,
     uint32_t buf_num)
 {
 	struct __packed with_verb {
-		uint8_t	verb;
-		uint8_t	_reserved[63];
+		uint8_t verb;
+		uint8_t _reserved[63];
 	} *c;
-	const uint8_t *cmd_pdat8 = (const uint8_t *) cmd->params;
-	const uint32_t *cmd_pdat32 = (const uint32_t *) cmd->params;
+	const uint8_t *cmd_pdat8 = (const uint8_t *)cmd->params;
+	const uint32_t *cmd_pdat32 = (const uint32_t *)cmd->params;
 	struct resource_map *map;
 	uint32_t offset, rar; /* Release Array Allocation register */
 	uint16_t flags;
@@ -960,10 +959,9 @@ dpaa2_swp_exec_br_command(struct dpaa2_swp *swp, struct dpaa2_swp_cmd *cmd,
 	}
 
 	map = swp->cfg.writes_cinh ? swp->cinh_map : swp->cena_map;
-	offset = swp->cfg.mem_backed
-	    ? DPAA2_SWP_CENA_RCR_MEM(RAR_IDX(rar))
-	    : DPAA2_SWP_CENA_RCR(RAR_IDX(rar));
-	c = (struct with_verb *) cmd;
+	offset = swp->cfg.mem_backed ? DPAA2_SWP_CENA_RCR_MEM(RAR_IDX(rar)) :
+				       DPAA2_SWP_CENA_RCR(RAR_IDX(rar));
+	c = (struct with_verb *)cmd;
 
 	/* Write command bytes (without VERB byte). */
 	for (uint32_t i = 1; i < DPAA2_SWP_CMD_PARAMS_N; i++)
@@ -976,8 +974,9 @@ dpaa2_swp_exec_br_command(struct dpaa2_swp *swp, struct dpaa2_swp_cmd *cmd,
 	if (swp->cfg.mem_backed) {
 		bus_write_1(map, offset, c->verb | RAR_VB(rar) | buf_num);
 		wmb();
-		dpaa2_swp_write_reg(swp, DPAA2_SWP_CINH_RCR_AM_RT +
-		    RAR_IDX(rar) * 4, DPAA2_SWP_RT_MODE);
+		dpaa2_swp_write_reg(swp,
+		    DPAA2_SWP_CINH_RCR_AM_RT + RAR_IDX(rar) * 4,
+		    DPAA2_SWP_RT_MODE);
 	} else {
 		wmb();
 		bus_write_1(map, offset, c->verb | RAR_VB(rar) | buf_num);
@@ -991,9 +990,9 @@ dpaa2_swp_exec_br_command(struct dpaa2_swp *swp, struct dpaa2_swp_cmd *cmd,
 /**
  * @brief Execute Volatile Dequeue Command (VDC).
  *
- * This command will be executed by QBMan only once in order to deliver requested
- * number of frames (1-16 or 1-32 depending on QBMan version) to the driver via
- * DQRR or arbitrary DMA-mapped memory.
+ * This command will be executed by QBMan only once in order to deliver
+ *requested number of frames (1-16 or 1-32 depending on QBMan version) to the
+ *driver via DQRR or arbitrary DMA-mapped memory.
  *
  * NOTE: There is a counterpart to the volatile dequeue command called static
  *	 dequeue command (SDQC) which is executed periodically all the time the
@@ -1004,18 +1003,18 @@ dpaa2_swp_exec_vdc_command_locked(struct dpaa2_swp *swp,
     struct dpaa2_swp_cmd *cmd)
 {
 	struct __packed with_verb {
-		uint8_t	verb;
-		uint8_t	_reserved[63];
+		uint8_t verb;
+		uint8_t _reserved[63];
 	} *c;
-	const uint8_t *p8 = (const uint8_t *) cmd->params;
-	const uint32_t *p32 = (const uint32_t *) cmd->params;
+	const uint8_t *p8 = (const uint8_t *)cmd->params;
+	const uint32_t *p32 = (const uint32_t *)cmd->params;
 	struct resource_map *map;
 	uint32_t offset;
 
 	map = swp->cfg.writes_cinh ? swp->cinh_map : swp->cena_map;
-	offset = swp->cfg.mem_backed
-	    ? DPAA2_SWP_CENA_VDQCR_MEM : DPAA2_SWP_CENA_VDQCR;
-	c = (struct with_verb *) cmd;
+	offset = swp->cfg.mem_backed ? DPAA2_SWP_CENA_VDQCR_MEM :
+				       DPAA2_SWP_CENA_VDQCR;
+	c = (struct with_verb *)cmd;
 
 	/* Write command bytes (without VERB byte). */
 	for (uint32_t i = 1; i < DPAA2_SWP_CMD_PARAMS_N; i++)
@@ -1049,8 +1048,8 @@ dpaa2_swp_exec_mgmt_command(struct dpaa2_swp *swp, struct dpaa2_swp_cmd *cmd,
 {
 #if (defined(_KERNEL) && defined(INVARIANTS))
 	struct __packed with_verb {
-		uint8_t	verb;
-		uint8_t	_reserved[63];
+		uint8_t verb;
+		uint8_t _reserved[63];
 	} *r;
 #endif
 	uint16_t flags;
@@ -1079,10 +1078,10 @@ dpaa2_swp_exec_mgmt_command(struct dpaa2_swp *swp, struct dpaa2_swp_cmd *cmd,
 	DPAA2_SWP_UNLOCK(swp);
 
 #if (defined(_KERNEL) && defined(INVARIANTS))
-	r = (struct with_verb *) rsp;
+	r = (struct with_verb *)rsp;
 	KASSERT((r->verb & CMD_VERB_MASK) == cmdid,
 	    ("wrong VERB byte in response: resp=0x%02x, expected=0x%02x",
-	    r->verb, cmdid));
+		r->verb, cmdid));
 #endif
 
 	return (0);
@@ -1092,13 +1091,14 @@ static int
 dpaa2_swp_send_mgmt_command(struct dpaa2_swp *swp, struct dpaa2_swp_cmd *cmd,
     uint8_t cmdid)
 {
-	const uint8_t *cmd_pdat8 = (const uint8_t *) cmd->params;
-	const uint32_t *cmd_pdat32 = (const uint32_t *) cmd->params;
+	const uint8_t *cmd_pdat8 = (const uint8_t *)cmd->params;
+	const uint32_t *cmd_pdat32 = (const uint32_t *)cmd->params;
 	struct resource_map *map;
 	uint32_t offset;
 
 	map = swp->cfg.writes_cinh ? swp->cinh_map : swp->cena_map;
-	offset = swp->cfg.mem_backed ? DPAA2_SWP_CENA_CR_MEM : DPAA2_SWP_CENA_CR;
+	offset = swp->cfg.mem_backed ? DPAA2_SWP_CENA_CR_MEM :
+				       DPAA2_SWP_CENA_CR;
 
 	/* Write command bytes (without VERB byte). */
 	for (uint32_t i = 1; i < DPAA2_SWP_CMD_PARAMS_N; i++)
@@ -1122,21 +1122,23 @@ dpaa2_swp_send_mgmt_command(struct dpaa2_swp *swp, struct dpaa2_swp_cmd *cmd,
 }
 
 static int
-dpaa2_swp_wait_for_mgmt_response(struct dpaa2_swp *swp, struct dpaa2_swp_rsp *rsp)
+dpaa2_swp_wait_for_mgmt_response(struct dpaa2_swp *swp,
+    struct dpaa2_swp_rsp *rsp)
 {
-	struct resource_map *map = swp->cfg.mem_backed
-	    ? swp->cena_map : swp->cinh_map;
-	/* Management command response to be read from the only RR or RR0/RR1. */
-	const uint32_t offset = swp->cfg.mem_backed
-	    ? DPAA2_SWP_CENA_RR_MEM
-	    : DPAA2_SWP_CENA_RR(swp->mc.valid_bit);
+	struct resource_map *map = swp->cfg.mem_backed ? swp->cena_map :
+							 swp->cinh_map;
+	/* Management command response to be read from the only RR or RR0/RR1.
+	 */
+	const uint32_t offset = swp->cfg.mem_backed ?
+	    DPAA2_SWP_CENA_RR_MEM :
+	    DPAA2_SWP_CENA_RR(swp->mc.valid_bit);
 	uint32_t i, verb, ret;
 	int rc;
 
 	/* Wait for a command response from QBMan. */
 	for (i = 1; i <= CMD_SPIN_ATTEMPTS; i++) {
 		if (swp->cfg.mem_backed) {
-			verb = (uint32_t) (bus_read_4(map, offset) & 0xFFu);
+			verb = (uint32_t)(bus_read_4(map, offset) & 0xFFu);
 			if (swp->mr.valid_bit != (verb & DPAA2_SWP_VALID_BIT))
 				goto wait;
 			if (!(verb & ~DPAA2_SWP_VALID_BIT))
@@ -1144,13 +1146,14 @@ dpaa2_swp_wait_for_mgmt_response(struct dpaa2_swp *swp, struct dpaa2_swp_rsp *rs
 			swp->mr.valid_bit ^= DPAA2_SWP_VALID_BIT;
 		} else {
 			ret = bus_read_4(map, offset);
-			verb = ret & ~DPAA2_SWP_VALID_BIT; /* remove valid bit */
+			verb = ret &
+			    ~DPAA2_SWP_VALID_BIT; /* remove valid bit */
 			if (verb == 0u)
 				goto wait;
 			swp->mc.valid_bit ^= DPAA2_SWP_VALID_BIT;
 		}
 		break;
- wait:
+	wait:
 		DELAY(CMD_SPIN_TIMEOUT);
 	}
 	/* Return an error on expired timeout. */

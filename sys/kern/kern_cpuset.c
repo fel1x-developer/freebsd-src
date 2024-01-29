@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2008,  Jeffrey Roberson <jeff@freebsd.org>
  * All rights reserved.
- * 
+ *
  * Copyright (c) 2008 Nokia Corporation
  * All rights reserved.
  *
@@ -30,48 +30,48 @@
  *
  */
 
-#include <sys/cdefs.h>
 #include "opt_ddb.h"
 #include "opt_ktrace.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/sysctl.h>
+#include <sys/bus.h>
+#include <sys/capsicum.h>
+#include <sys/cpuset.h>
 #include <sys/ctype.h>
-#include <sys/sysproto.h>
+#include <sys/domainset.h>
+#include <sys/interrupt.h>
 #include <sys/jail.h>
 #include <sys/kernel.h>
+#include <sys/ktrace.h>
+#include <sys/libkern.h>
+#include <sys/limits.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
 #include <sys/priv.h>
 #include <sys/proc.h>
+#include <sys/queue.h>
 #include <sys/refcount.h>
 #include <sys/sched.h>
 #include <sys/smp.h>
-#include <sys/syscallsubr.h>
-#include <sys/sysent.h>
-#include <sys/capsicum.h>
-#include <sys/cpuset.h>
-#include <sys/domainset.h>
 #include <sys/sx.h>
-#include <sys/queue.h>
-#include <sys/libkern.h>
-#include <sys/limits.h>
-#include <sys/bus.h>
-#include <sys/interrupt.h>
+#include <sys/syscallsubr.h>
+#include <sys/sysctl.h>
+#include <sys/sysent.h>
+#include <sys/sysproto.h>
 #include <sys/vmmeter.h>
-#include <sys/ktrace.h>
 
-#include <vm/uma.h>
 #include <vm/vm.h>
+#include <vm/uma.h>
+#include <vm/vm_extern.h>
 #include <vm/vm_object.h>
 #include <vm/vm_page.h>
 #include <vm/vm_pageout.h>
-#include <vm/vm_extern.h>
+#include <vm/vm_pagequeue.h>
 #include <vm/vm_param.h>
 #include <vm/vm_phys.h>
-#include <vm/vm_pagequeue.h>
 
 #ifdef DDB
 #include <ddb/ddb.h>
@@ -141,9 +141,8 @@ SYSCTL_INT(_kern_sched, OID_AUTO, cpusetsize, CTLFLAG_RD | CTLFLAG_CAPRD,
     SYSCTL_NULL_INT_PTR, sizeof(cpuset_t), "sizeof(cpuset_t)");
 
 /* Return the minimum size of cpuset_t allowed by the kernel */
-SYSCTL_UINT(_kern_sched, OID_AUTO, cpusetsizemin,
-    CTLFLAG_RD | CTLFLAG_CAPRD, &cpusetsizemin, 0,
-    "The minimum size of cpuset_t allowed by the kernel");
+SYSCTL_UINT(_kern_sched, OID_AUTO, cpusetsizemin, CTLFLAG_RD | CTLFLAG_CAPRD,
+    &cpusetsizemin, 0, "The minimum size of cpuset_t allowed by the kernel");
 
 cpuset_t *cpuset_root;
 cpuset_t cpuset_domain[MAXMEMDOM];
@@ -201,7 +200,7 @@ cpuset_refroot(struct cpuset *set)
 /*
  * Find the first non-anonymous set starting from 'set'.  Returns this set
  * referenced.  May return the passed in set with an extra ref if it is
- * not anonymous. 
+ * not anonymous.
  */
 static struct cpuset *
 cpuset_refbase(struct cpuset *set)
@@ -286,7 +285,7 @@ cpuset_lookup(cpusetid_t setid, struct thread *td)
 	if (setid == CPUSET_INVALID)
 		return (NULL);
 	mtx_lock_spin(&cpuset_lock);
-	LIST_FOREACH(set, &cpuset_ids, cs_link)
+	LIST_FOREACH (set, &cpuset_ids, cs_link)
 		if (set->cs_id == setid)
 			break;
 	if (set)
@@ -316,8 +315,8 @@ cpuset_lookup(cpusetid_t setid, struct thread *td)
  * will have no valid cpu based on restrictions from the parent.
  */
 static int
-cpuset_init(struct cpuset *set, struct cpuset *parent,
-    const cpuset_t *mask, struct domainset *domain, cpusetid_t id)
+cpuset_init(struct cpuset *set, struct cpuset *parent, const cpuset_t *mask,
+    struct domainset *domain, cpusetid_t id)
 {
 
 	if (domain == NULL)
@@ -496,11 +495,11 @@ _domainset_create(struct domainset *domain, struct domainlist *freelist)
 	KASSERT(domain->ds_cnt <= vm_ndomains,
 	    ("invalid domain count in domainset %p", domain));
 	KASSERT(domain->ds_policy != DOMAINSET_POLICY_PREFER ||
-	    domain->ds_prefer < vm_ndomains,
+		domain->ds_prefer < vm_ndomains,
 	    ("invalid preferred domain in domains %p", domain));
 
 	mtx_lock_spin(&cpuset_lock);
-	LIST_FOREACH(ndomain, &cpuset_domains, ds_link)
+	LIST_FOREACH (ndomain, &cpuset_domains, ds_link)
 		if (domainset_equal(ndomain, domain))
 			break;
 	/*
@@ -522,7 +521,6 @@ _domainset_create(struct domainset *domain, struct domainlist *freelist)
 	else
 		uma_zfree(domainset_zone, domain);
 	return (ndomain);
-
 }
 
 /*
@@ -596,13 +594,13 @@ domainset_notify(void)
 	struct proc *p;
 
 	sx_slock(&allproc_lock);
-	FOREACH_PROC_IN_SYSTEM(p) {
+	FOREACH_PROC_IN_SYSTEM (p) {
 		PROC_LOCK(p);
 		if (p->p_state == PRS_NEW) {
 			PROC_UNLOCK(p);
 			continue;
 		}
-		FOREACH_THREAD_IN_PROC(p, td) {
+		FOREACH_THREAD_IN_PROC (p, td) {
 			thread_lock(td);
 			td->td_domain.dr_policy = td->td_cpuset->cs_domain;
 			thread_unlock(td);
@@ -661,7 +659,7 @@ cpuset_testupdate(struct cpuset *set, cpuset_t *mask, int augment_mask)
 	if (CPU_EMPTY(&newmask))
 		return (EDEADLK);
 	error = 0;
-	LIST_FOREACH(nset, &set->cs_children, cs_siblings) 
+	LIST_FOREACH (nset, &set->cs_children, cs_siblings)
 		if ((error = cpuset_testupdate(nset, &newmask, 1)) != 0)
 			break;
 	return (error);
@@ -677,7 +675,7 @@ cpuset_update(struct cpuset *set, cpuset_t *mask)
 
 	mtx_assert(&cpuset_lock, MA_OWNED);
 	CPU_AND(&set->cs_mask, &set->cs_mask, mask);
-	LIST_FOREACH(nset, &set->cs_children, cs_siblings) 
+	LIST_FOREACH (nset, &set->cs_children, cs_siblings)
 		cpuset_update(nset, &set->cs_mask);
 
 	return;
@@ -715,7 +713,7 @@ cpuset_modify(struct cpuset *set, cpuset_t *mask)
 	if ((set->cs_flags & (CPU_SET_ROOT | CPU_SET_RDONLY)) == CPU_SET_ROOT) {
 		KASSERT(set->cs_parent != NULL,
 		    ("jail.cpuset=%d is not a proper child of parent jail's root.",
-		    set->cs_id));
+			set->cs_id));
 
 		/*
 		 * cpuset_getroot() cannot work here due to how top-level jail
@@ -769,9 +767,9 @@ cpuset_testupdate_domain(struct cpuset *set, struct domainset *dset,
 		(*count)++;
 	}
 	error = 0;
-	LIST_FOREACH(nset, &set->cs_children, cs_siblings) 
+	LIST_FOREACH (nset, &set->cs_children, cs_siblings)
 		if ((error = cpuset_testupdate_domain(nset, &newset, domain,
-		    count, 1)) != 0)
+			 count, 1)) != 0)
 			break;
 	return (error);
 }
@@ -798,7 +796,7 @@ cpuset_update_domain(struct cpuset *set, struct domainset *domain,
 		set->cs_domain = domainset_shadow(domain, orig, domains);
 	} else
 		set->cs_domain = domain;
-	LIST_FOREACH(nset, &set->cs_children, cs_siblings) 
+	LIST_FOREACH (nset, &set->cs_children, cs_siblings)
 		cpuset_update_domain(nset, set->cs_domain, orig, domains);
 
 	return;
@@ -828,8 +826,7 @@ cpuset_modify_domain(struct cpuset *set, struct domainset *domain)
 	 * cpuset of the jail but may still allow to
 	 * change child sets.
 	 */
-	if (jailed(curthread->td_ucred) &&
-	    set->cs_flags & CPU_SET_ROOT)
+	if (jailed(curthread->td_ucred) && set->cs_flags & CPU_SET_ROOT)
 		return (EPERM);
 	domainset_freelist_init(&domains, 0);
 	domain = domainset_create(domain);
@@ -955,8 +952,7 @@ cpuset_which(cpuwhich_t which, id_t id, struct proc **pp, struct thread **tdp,
 			return (0);
 		}
 		return (ESRCH);
-	case CPU_WHICH_JAIL:
-	{
+	case CPU_WHICH_JAIL: {
 		/* Find `set' for prison with given id. */
 		struct prison *pr;
 
@@ -1034,9 +1030,9 @@ cpuset_testshadow(struct cpuset *set, const cpuset_t *mask,
  * the new set is a child of 'set'.
  */
 static int
-cpuset_shadow(struct cpuset *set, struct cpuset **nsetp,
-   const cpuset_t *mask, const struct domainset *domain,
-   struct setlist *cpusets, struct domainlist *domains)
+cpuset_shadow(struct cpuset *set, struct cpuset **nsetp, const cpuset_t *mask,
+    const struct domainset *domain, struct setlist *cpusets,
+    struct domainlist *domains)
 {
 	struct cpuset *parent;
 	struct cpuset *nset;
@@ -1094,8 +1090,8 @@ cpuset_setproc_test_maskthread(struct cpuset *tdset, cpuset_t *mask,
 
 static int
 cpuset_setproc_maskthread(struct cpuset *tdset, cpuset_t *mask,
-    struct domainset *domain, struct cpuset **nsetp,
-    struct setlist *freelist, struct domainlist *domainlist)
+    struct domainset *domain, struct cpuset **nsetp, struct setlist *freelist,
+    struct domainlist *domainlist)
 {
 	struct cpuset *parent;
 
@@ -1104,8 +1100,7 @@ cpuset_setproc_maskthread(struct cpuset *tdset, cpuset_t *mask,
 		mask = &tdset->cs_mask;
 	if (domain == NULL)
 		domain = tdset->cs_domain;
-	return cpuset_shadow(parent, nsetp, mask, domain, freelist,
-	    domainlist);
+	return cpuset_shadow(parent, nsetp, mask, domain, freelist, domainlist);
 }
 
 static int
@@ -1173,14 +1168,13 @@ cpuset_setproc_setthread(struct cpuset *tdset, struct cpuset *set,
 	if (error)
 		return (error);
 
-	return cpuset_shadow(set, nsetp, &mask, &domain, freelist,
-	    domainlist);
+	return cpuset_shadow(set, nsetp, &mask, &domain, freelist, domainlist);
 }
 
 static int
 cpuset_setproc_newbase(struct thread *td, struct cpuset *set,
-    struct cpuset *nroot, struct cpuset **nsetp,
-    struct setlist *cpusets, struct domainlist *domainlist)
+    struct cpuset *nroot, struct cpuset **nsetp, struct setlist *cpusets,
+    struct domainlist *domainlist)
 {
 	struct domainset ndomain;
 	cpuset_t nmask;
@@ -1235,7 +1229,7 @@ cpuset_setproc_newbase(struct thread *td, struct cpuset *set,
  * 4) domain is non-null.  This creates anonymous sets for every thread
  *    and replaces the domain set.
  *
- * This is overly complicated because we can't allocate while holding a 
+ * This is overly complicated because we can't allocate while holding a
  * spinlock and spinlocks must be held while changing and examining thread
  * state.
  */
@@ -1255,7 +1249,7 @@ cpuset_setproc(pid_t pid, struct cpuset *set, cpuset_t *mask,
 
 	/*
 	 * The algorithm requires two passes due to locking considerations.
-	 * 
+	 *
 	 * 1) Lookup the process and acquire the locks in the required order.
 	 * 2) If enough cpusets have not been allocated release the locks and
 	 *    allocate them.  Loop.
@@ -1322,7 +1316,7 @@ cpuset_setproc(pid_t pid, struct cpuset *set, cpuset_t *mask,
 	 * proc lock prevents td_cpuset from changing between calls.
 	 */
 	error = 0;
-	FOREACH_THREAD_IN_PROC(p, td) {
+	FOREACH_THREAD_IN_PROC (p, td) {
 		thread_lock(td);
 		if (set != NULL)
 			error = cpuset_setproc_test_setthread(td->td_cpuset,
@@ -1339,7 +1333,7 @@ cpuset_setproc(pid_t pid, struct cpuset *set, cpuset_t *mask,
 	 * must do this because the thread lock must be held while operating
 	 * on the thread and this limits the type of operations allowed.
 	 */
-	FOREACH_THREAD_IN_PROC(p, td) {
+	FOREACH_THREAD_IN_PROC (p, td) {
 		thread_lock(td);
 		if (set != NULL)
 			error = cpuset_setproc_setthread(td->td_cpuset, base,
@@ -1468,8 +1462,10 @@ sysctl_handle_domainset(SYSCTL_HANDLER_ARGS)
 	error = 0;
 
 	if (dset != NULL) {
-		p = buf + bitset_strprint(buf, DOMAINSETBUFSIZ,
-		    (const struct bitset *)&dset->ds_mask, DOMAINSET_SETSIZE);
+		p = buf +
+		    bitset_strprint(buf, DOMAINSETBUFSIZ,
+			(const struct bitset *)&dset->ds_mask,
+			DOMAINSET_SETSIZE);
 		sprintf(p, ":%d:%d", dset->ds_policy, dset->ds_prefer);
 	} else
 		sprintf(buf, "<NULL>");
@@ -1520,8 +1516,8 @@ _cpuset_setthread(lwpid_t id, cpuset_t *mask, struct domainset *domain)
 		goto out;
 	set = NULL;
 	thread_lock(td);
-	error = cpuset_shadow(td->td_cpuset, &nset, mask, domain,
-	    &cpusets, &domainlist);
+	error = cpuset_shadow(td->td_cpuset, &nset, mask, domain, &cpusets,
+	    &domainlist);
 	if (error == 0)
 		set = cpuset_update_thread(td, nset);
 	thread_unlock(td);
@@ -1620,7 +1616,7 @@ domainset_zero(void)
 	kernel_object->domain.dr_policy = domainset2;
 
 	/* Remove empty domains from the global policies. */
-	LIST_FOREACH_SAFE(dset, &cpuset_domains, ds_link, tmp)
+	LIST_FOREACH_SAFE (dset, &cpuset_domains, ds_link, tmp)
 		if (domainset_empty_vm(dset))
 			LIST_REMOVE(dset, ds_link);
 }
@@ -1628,7 +1624,7 @@ domainset_zero(void)
 /*
  * Creates system-wide cpusets and the cpuset for thread0 including three
  * sets:
- * 
+ *
  * 0 - The root set which should represent all valid processors in the
  *     system.  This set is immutable.
  * 1 - The default set which all processes are a member of until changed.
@@ -1732,8 +1728,9 @@ cpuset_create_root(struct prison *pr, struct cpuset **setp)
 	if (error)
 		return (error);
 
-	KASSERT(set != NULL, ("[%s:%d] cpuset_create returned invalid data",
-	    __func__, __LINE__));
+	KASSERT(set != NULL,
+	    ("[%s:%d] cpuset_create returned invalid data", __func__,
+		__LINE__));
 
 	/* Mark the set as root. */
 	set->cs_flags |= CPU_SET_ROOT;
@@ -1772,11 +1769,10 @@ cpuset_check_capabilities(struct thread *td, cpulevel_t level, cpuwhich_t which,
 		if (which != CPU_WHICH_TID && which != CPU_WHICH_PID &&
 		    which != CPU_WHICH_TIDPID)
 			return (ECAPMODE);
-		if (id != -1 && which == CPU_WHICH_TIDPID &&
-		    id != td->td_tid && id != td->td_proc->p_pid)
+		if (id != -1 && which == CPU_WHICH_TIDPID && id != td->td_tid &&
+		    id != td->td_proc->p_pid)
 			return (ECAPMODE);
-		if (id != -1 &&
-		    !(which == CPU_WHICH_TID && id == td->td_tid) &&
+		if (id != -1 && !(which == CPU_WHICH_TID && id == td->td_tid) &&
 		    !(which == CPU_WHICH_PID && id == td->td_proc->p_pid))
 			return (ECAPMODE);
 	}
@@ -1800,29 +1796,25 @@ cpuset_check_capabilities(struct thread *td, cpulevel_t level, cpuwhich_t which,
 static int
 cpuset_copyin(const void *uaddr, void *kaddr, size_t len)
 {
-	return(copyin(uaddr, kaddr, len));
+	return (copyin(uaddr, kaddr, len));
 }
 
 static int
 cpuset_copyout(const void *kaddr, void *uaddr, size_t len)
 {
-	return(copyout(kaddr, uaddr, len));
+	return (copyout(kaddr, uaddr, len));
 }
 
-static const struct cpuset_copy_cb copy_set = {
-	.cpuset_copyin = cpuset_copyin,
-	.cpuset_copyout = cpuset_copyout
-};
+static const struct cpuset_copy_cb copy_set = { .cpuset_copyin = cpuset_copyin,
+	.cpuset_copyout = cpuset_copyout };
 #else
-static const struct cpuset_copy_cb copy_set = {
-        .cpuset_copyin = copyin,
-        .cpuset_copyout = copyout
-};
+static const struct cpuset_copy_cb copy_set = { .cpuset_copyin = copyin,
+	.cpuset_copyout = copyout };
 #endif
 
 #ifndef _SYS_SYSPROTO_H_
 struct cpuset_args {
-	cpusetid_t	*setid;
+	cpusetid_t *setid;
 };
 #endif
 int
@@ -1849,9 +1841,9 @@ sys_cpuset(struct thread *td, struct cpuset_args *uap)
 
 #ifndef _SYS_SYSPROTO_H_
 struct cpuset_setid_args {
-	cpuwhich_t	which;
-	id_t		id;
-	cpusetid_t	setid;
+	cpuwhich_t which;
+	id_t id;
+	cpusetid_t setid;
 };
 #endif
 int
@@ -1862,8 +1854,8 @@ sys_cpuset_setid(struct thread *td, struct cpuset_setid_args *uap)
 }
 
 int
-kern_cpuset_setid(struct thread *td, cpuwhich_t which,
-    id_t id, cpusetid_t setid)
+kern_cpuset_setid(struct thread *td, cpuwhich_t which, id_t id,
+    cpusetid_t setid)
 {
 	struct cpuset *set;
 	int error;
@@ -1883,18 +1875,18 @@ kern_cpuset_setid(struct thread *td, cpuwhich_t which,
 
 #ifndef _SYS_SYSPROTO_H_
 struct cpuset_getid_args {
-	cpulevel_t	level;
-	cpuwhich_t	which;
-	id_t		id;
-	cpusetid_t	*setid;
+	cpulevel_t level;
+	cpuwhich_t which;
+	id_t id;
+	cpusetid_t *setid;
 };
 #endif
 int
 sys_cpuset_getid(struct thread *td, struct cpuset_getid_args *uap)
 {
 
-	return (kern_cpuset_getid(td, uap->level, uap->which, uap->id,
-	    uap->setid));
+	return (
+	    kern_cpuset_getid(td, uap->level, uap->which, uap->id, uap->setid));
 }
 
 int
@@ -1950,19 +1942,19 @@ kern_cpuset_getid(struct thread *td, cpulevel_t level, cpuwhich_t which,
 
 #ifndef _SYS_SYSPROTO_H_
 struct cpuset_getaffinity_args {
-	cpulevel_t	level;
-	cpuwhich_t	which;
-	id_t		id;
-	size_t		cpusetsize;
-	cpuset_t	*mask;
+	cpulevel_t level;
+	cpuwhich_t which;
+	id_t id;
+	size_t cpusetsize;
+	cpuset_t *mask;
 };
 #endif
 int
 sys_cpuset_getaffinity(struct thread *td, struct cpuset_getaffinity_args *uap)
 {
 
-	return (user_cpuset_getaffinity(td, uap->level, uap->which,
-	    uap->id, uap->cpusetsize, uap->mask, &copy_set));
+	return (user_cpuset_getaffinity(td, uap->level, uap->which, uap->id,
+	    uap->cpusetsize, uap->mask, &copy_set));
 }
 
 int
@@ -2015,7 +2007,7 @@ kern_cpuset_getaffinity(struct thread *td, cpulevel_t level, cpuwhich_t which,
 			thread_unlock(ttd);
 			break;
 		case CPU_WHICH_PID:
-			FOREACH_THREAD_IN_PROC(p, ttd) {
+			FOREACH_THREAD_IN_PROC (p, ttd) {
 				thread_lock(ttd);
 				CPU_OR(mask, mask, &ttd->td_cpuset->cs_mask);
 				thread_unlock(ttd);
@@ -2059,7 +2051,8 @@ kern_cpuset_getaffinity(struct thread *td, cpulevel_t level, cpuwhich_t which,
 
 int
 user_cpuset_getaffinity(struct thread *td, cpulevel_t level, cpuwhich_t which,
-    id_t id, size_t cpusetsize, cpuset_t *maskp, const struct cpuset_copy_cb *cb)
+    id_t id, size_t cpusetsize, cpuset_t *maskp,
+    const struct cpuset_copy_cb *cb)
 {
 	cpuset_t *mask;
 	size_t size;
@@ -2097,19 +2090,19 @@ out:
 
 #ifndef _SYS_SYSPROTO_H_
 struct cpuset_setaffinity_args {
-	cpulevel_t	level;
-	cpuwhich_t	which;
-	id_t		id;
-	size_t		cpusetsize;
-	const cpuset_t	*mask;
+	cpulevel_t level;
+	cpuwhich_t which;
+	id_t id;
+	size_t cpusetsize;
+	const cpuset_t *mask;
 };
 #endif
 int
 sys_cpuset_setaffinity(struct thread *td, struct cpuset_setaffinity_args *uap)
 {
 
-	return (user_cpuset_setaffinity(td, uap->level, uap->which,
-	    uap->id, uap->cpusetsize, uap->mask, &copy_set));
+	return (user_cpuset_setaffinity(td, uap->level, uap->which, uap->id,
+	    uap->cpusetsize, uap->mask, &copy_set));
 }
 
 int
@@ -2205,7 +2198,8 @@ kern_cpuset_setaffinity(struct thread *td, cpulevel_t level, cpuwhich_t which,
 
 int
 user_cpuset_setaffinity(struct thread *td, cpulevel_t level, cpuwhich_t which,
-    id_t id, size_t cpusetsize, const cpuset_t *maskp, const struct cpuset_copy_cb *cb)
+    id_t id, size_t cpusetsize, const cpuset_t *maskp,
+    const struct cpuset_copy_cb *cb)
 {
 	cpuset_t *mask;
 	int error;
@@ -2248,20 +2242,20 @@ out:
 
 #ifndef _SYS_SYSPROTO_H_
 struct cpuset_getdomain_args {
-	cpulevel_t	level;
-	cpuwhich_t	which;
-	id_t		id;
-	size_t		domainsetsize;
-	domainset_t	*mask;
-	int 		*policy;
+	cpulevel_t level;
+	cpuwhich_t which;
+	id_t id;
+	size_t domainsetsize;
+	domainset_t *mask;
+	int *policy;
 };
 #endif
 int
 sys_cpuset_getdomain(struct thread *td, struct cpuset_getdomain_args *uap)
 {
 
-	return (kern_cpuset_getdomain(td, uap->level, uap->which,
-	    uap->id, uap->domainsetsize, uap->mask, uap->policy, &copy_set));
+	return (kern_cpuset_getdomain(td, uap->level, uap->which, uap->id,
+	    uap->domainsetsize, uap->mask, uap->policy, &copy_set));
 }
 
 int
@@ -2324,7 +2318,7 @@ kern_cpuset_getdomain(struct thread *td, cpulevel_t level, cpuwhich_t which,
 			thread_unlock(ttd);
 			break;
 		case CPU_WHICH_PID:
-			FOREACH_THREAD_IN_PROC(p, ttd) {
+			FOREACH_THREAD_IN_PROC (p, ttd) {
 				thread_lock(ttd);
 				dset = ttd->td_cpuset->cs_domain;
 				/* Show all domains in the proc. */
@@ -2376,20 +2370,20 @@ out:
 
 #ifndef _SYS_SYSPROTO_H_
 struct cpuset_setdomain_args {
-	cpulevel_t	level;
-	cpuwhich_t	which;
-	id_t		id;
-	size_t		domainsetsize;
-	domainset_t	*mask;
-	int 		policy;
+	cpulevel_t level;
+	cpuwhich_t which;
+	id_t id;
+	size_t domainsetsize;
+	domainset_t *mask;
+	int policy;
 };
 #endif
 int
 sys_cpuset_setdomain(struct thread *td, struct cpuset_setdomain_args *uap)
 {
 
-	return (kern_cpuset_setdomain(td, uap->level, uap->which,
-	    uap->id, uap->domainsetsize, uap->mask, uap->policy, &copy_set));
+	return (kern_cpuset_setdomain(td, uap->level, uap->which, uap->id,
+	    uap->domainsetsize, uap->mask, uap->policy, &copy_set));
 }
 
 int
@@ -2408,8 +2402,7 @@ kern_cpuset_setdomain(struct thread *td, cpulevel_t level, cpuwhich_t which,
 	if (domainsetsize < sizeof(domainset_t) ||
 	    domainsetsize > DOMAINSET_MAXSIZE / NBBY)
 		return (ERANGE);
-	if (policy <= DOMAINSET_POLICY_INVALID ||
-	    policy > DOMAINSET_POLICY_MAX)
+	if (policy <= DOMAINSET_POLICY_INVALID || policy > DOMAINSET_POLICY_MAX)
 		return (EINVAL);
 	error = cpuset_check_capabilities(td, level, which, id);
 	if (error != 0)
@@ -2554,7 +2547,7 @@ ddb_display_bitset(const struct bitset *set, int size)
 			if (once == 0) {
 				db_printf("%d", bit);
 				once = 1;
-			} else  
+			} else
 				db_printf(",%d", bit);
 		}
 	}
@@ -2578,7 +2571,7 @@ DB_SHOW_COMMAND_FLAGS(cpusets, db_show_cpusets, DB_CMD_MEMSAFE)
 {
 	struct cpuset *set;
 
-	LIST_FOREACH(set, &cpuset_ids, cs_link) {
+	LIST_FOREACH (set, &cpuset_ids, cs_link) {
 		db_printf("set=%p id=%-6u ref=%-6d flags=0x%04x parent id=%d\n",
 		    set, set->cs_id, refcount_load(&set->cs_ref), set->cs_flags,
 		    (set->cs_parent != NULL) ? set->cs_parent->cs_id : 0);
@@ -2598,9 +2591,9 @@ DB_SHOW_COMMAND_FLAGS(domainsets, db_show_domainsets, DB_CMD_MEMSAFE)
 {
 	struct domainset *set;
 
-	LIST_FOREACH(set, &cpuset_domains, ds_link) {
-		db_printf("set=%p policy %d prefer %d cnt %d\n",
-		    set, set->ds_policy, set->ds_prefer, set->ds_cnt);
+	LIST_FOREACH (set, &cpuset_domains, ds_link) {
+		db_printf("set=%p policy %d prefer %d cnt %d\n", set,
+		    set->ds_policy, set->ds_prefer, set->ds_cnt);
 		db_printf("  mask =");
 		ddb_display_domainset(&set->ds_mask);
 		db_printf("\n");

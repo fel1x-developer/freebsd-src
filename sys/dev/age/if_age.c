@@ -36,45 +36,42 @@
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
-#include <sys/rman.h>
 #include <sys/module.h>
 #include <sys/queue.h>
+#include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
 #include <sys/taskqueue.h>
-
-#include <net/bpf.h>
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
-#include <net/if_vlan_var.h>
-
-#include <netinet/in.h>
-#include <netinet/in_systm.h>
-#include <netinet/ip.h>
-#include <netinet/tcp.h>
-
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
 
 #include <machine/bus.h>
 #include <machine/in_cksum.h>
 
 #include <dev/age/if_agereg.h>
 #include <dev/age/if_agevar.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
+#include <net/bpf.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+#include <net/if_vlan_var.h>
+#include <netinet/in.h>
+#include <netinet/in_systm.h>
+#include <netinet/ip.h>
+#include <netinet/tcp.h>
 
 /* "device miibus" required.  See GENERIC if you get errors here. */
 #include "miibus_if.h"
 
-#define	AGE_CSUM_FEATURES	(CSUM_TCP | CSUM_UDP)
+#define AGE_CSUM_FEATURES (CSUM_TCP | CSUM_UDP)
 
 MODULE_DEPEND(age, pci, 1, 1, 1);
 MODULE_DEPEND(age, ether, 1, 1, 1);
@@ -90,9 +87,9 @@ TUNABLE_INT("hw.age.msix_disable", &msix_disable);
  * Devices supported by this driver.
  */
 static struct age_dev {
-	uint16_t	age_vendorid;
-	uint16_t	age_deviceid;
-	const char	*age_name;
+	uint16_t age_vendorid;
+	uint16_t age_deviceid;
+	const char *age_name;
 } age_devs[] = {
 	{ VENDORID_ATTANSIC, DEVICEID_ATTANSIC_L1,
 	    "Attansic Technology Corp, L1 Gigabit Ethernet" },
@@ -155,25 +152,20 @@ static int sysctl_hw_age_int_mod(SYSCTL_HANDLER_ARGS);
 
 static device_method_t age_methods[] = {
 	/* Device interface. */
-	DEVMETHOD(device_probe,		age_probe),
-	DEVMETHOD(device_attach,	age_attach),
-	DEVMETHOD(device_detach,	age_detach),
-	DEVMETHOD(device_shutdown,	age_shutdown),
-	DEVMETHOD(device_suspend,	age_suspend),
-	DEVMETHOD(device_resume,	age_resume),
+	DEVMETHOD(device_probe, age_probe),
+	DEVMETHOD(device_attach, age_attach),
+	DEVMETHOD(device_detach, age_detach),
+	DEVMETHOD(device_shutdown, age_shutdown),
+	DEVMETHOD(device_suspend, age_suspend),
+	DEVMETHOD(device_resume, age_resume),
 
 	/* MII interface. */
-	DEVMETHOD(miibus_readreg,	age_miibus_readreg),
-	DEVMETHOD(miibus_writereg,	age_miibus_writereg),
-	DEVMETHOD(miibus_statchg,	age_miibus_statchg),
-	{ NULL, NULL }
+	DEVMETHOD(miibus_readreg, age_miibus_readreg),
+	DEVMETHOD(miibus_writereg, age_miibus_writereg),
+	DEVMETHOD(miibus_statchg, age_miibus_statchg), { NULL, NULL }
 };
 
-static driver_t age_driver = {
-	"age",
-	age_methods,
-	sizeof(struct age_softc)
-};
+static driver_t age_driver = { "age", age_methods, sizeof(struct age_softc) };
 
 DRIVER_MODULE(age, pci, age_driver, 0, 0);
 MODULE_PNP_INFO("U16:vendor;U16:device;D:#", pci, age, age_devs,
@@ -181,23 +173,19 @@ MODULE_PNP_INFO("U16:vendor;U16:device;D:#", pci, age, age_devs,
 DRIVER_MODULE(miibus, age, miibus_driver, 0, 0);
 
 static struct resource_spec age_res_spec_mem[] = {
-	{ SYS_RES_MEMORY,	PCIR_BAR(0),	RF_ACTIVE },
-	{ -1,			0,		0 }
+	{ SYS_RES_MEMORY, PCIR_BAR(0), RF_ACTIVE }, { -1, 0, 0 }
 };
 
 static struct resource_spec age_irq_spec_legacy[] = {
-	{ SYS_RES_IRQ,		0,		RF_ACTIVE | RF_SHAREABLE },
-	{ -1,			0,		0 }
+	{ SYS_RES_IRQ, 0, RF_ACTIVE | RF_SHAREABLE }, { -1, 0, 0 }
 };
 
 static struct resource_spec age_irq_spec_msi[] = {
-	{ SYS_RES_IRQ,		1,		RF_ACTIVE },
-	{ -1,			0,		0 }
+	{ SYS_RES_IRQ, 1, RF_ACTIVE }, { -1, 0, 0 }
 };
 
 static struct resource_spec age_irq_spec_msix[] = {
-	{ SYS_RES_IRQ,		1,		RF_ACTIVE },
-	{ -1,			0,		0 }
+	{ SYS_RES_IRQ, 1, RF_ACTIVE }, { -1, 0, 0 }
 };
 
 /*
@@ -212,8 +200,9 @@ age_miibus_readreg(device_t dev, int phy, int reg)
 
 	sc = device_get_softc(dev);
 
-	CSR_WRITE_4(sc, AGE_MDIO, MDIO_OP_EXECUTE | MDIO_OP_READ |
-	    MDIO_SUP_PREAMBLE | MDIO_CLK_25_4 | MDIO_REG_ADDR(reg));
+	CSR_WRITE_4(sc, AGE_MDIO,
+	    MDIO_OP_EXECUTE | MDIO_OP_READ | MDIO_SUP_PREAMBLE | MDIO_CLK_25_4 |
+		MDIO_REG_ADDR(reg));
 	for (i = AGE_PHY_TIMEOUT; i > 0; i--) {
 		DELAY(1);
 		v = CSR_READ_4(sc, AGE_MDIO);
@@ -241,9 +230,10 @@ age_miibus_writereg(device_t dev, int phy, int reg, int val)
 
 	sc = device_get_softc(dev);
 
-	CSR_WRITE_4(sc, AGE_MDIO, MDIO_OP_EXECUTE | MDIO_OP_WRITE |
-	    (val & MDIO_DATA_MASK) << MDIO_DATA_SHIFT |
-	    MDIO_SUP_PREAMBLE | MDIO_CLK_25_4 | MDIO_REG_ADDR(reg));
+	CSR_WRITE_4(sc, AGE_MDIO,
+	    MDIO_OP_EXECUTE | MDIO_OP_WRITE |
+		(val & MDIO_DATA_MASK) << MDIO_DATA_SHIFT | MDIO_SUP_PREAMBLE |
+		MDIO_CLK_25_4 | MDIO_REG_ADDR(reg));
 	for (i = AGE_PHY_TIMEOUT; i > 0; i--) {
 		DELAY(1);
 		v = CSR_READ_4(sc, AGE_MDIO);
@@ -302,7 +292,7 @@ age_mediachange(if_t ifp)
 	sc = if_getsoftc(ifp);
 	AGE_LOCK(sc);
 	mii = device_get_softc(sc->age_miibus);
-	LIST_FOREACH(miisc, &mii->mii_phys, mii_list)
+	LIST_FOREACH (miisc, &mii->mii_phys, mii_list)
 		PHY_RESET(miisc);
 	error = mii_mediachg(mii);
 	AGE_UNLOCK(sc);
@@ -321,8 +311,7 @@ age_probe(device_t dev)
 	devid = pci_get_device(dev);
 	sp = age_devs;
 	for (i = 0; i < nitems(age_devs); i++, sp++) {
-		if (vendor == sp->age_vendorid &&
-		    devid == sp->age_deviceid) {
+		if (vendor == sp->age_vendorid && devid == sp->age_deviceid) {
 			device_set_desc(dev, sp->age_name);
 			return (BUS_PROBE_DEFAULT);
 		}
@@ -349,8 +338,8 @@ age_get_macaddr(struct age_softc *sc)
 		 * PCI VPD capability found, let TWSI reload EEPROM.
 		 * This will set ethernet address of controller.
 		 */
-		CSR_WRITE_4(sc, AGE_TWSI_CTRL, CSR_READ_4(sc, AGE_TWSI_CTRL) |
-		    TWSI_CTRL_SW_LD_START);
+		CSR_WRITE_4(sc, AGE_TWSI_CTRL,
+		    CSR_READ_4(sc, AGE_TWSI_CTRL) | TWSI_CTRL_SW_LD_START);
 		for (i = 100; i > 0; i--) {
 			DELAY(1000);
 			reg = CSR_READ_4(sc, AGE_TWSI_CTRL);
@@ -388,17 +377,17 @@ age_phy_reset(struct age_softc *sc)
 	CSR_WRITE_4(sc, AGE_GPHY_CTRL, GPHY_CTRL_CLR);
 	DELAY(2000);
 
-#define	ATPHY_DBG_ADDR		0x1D
-#define	ATPHY_DBG_DATA		0x1E
-#define	ATPHY_CDTC		0x16
-#define	PHY_CDTC_ENB		0x0001
-#define	PHY_CDTC_POFF		8
-#define	ATPHY_CDTS		0x1C
-#define	PHY_CDTS_STAT_OK	0x0000
-#define	PHY_CDTS_STAT_SHORT	0x0100
-#define	PHY_CDTS_STAT_OPEN	0x0200
-#define	PHY_CDTS_STAT_INVAL	0x0300
-#define	PHY_CDTS_STAT_MASK	0x0300
+#define ATPHY_DBG_ADDR 0x1D
+#define ATPHY_DBG_DATA 0x1E
+#define ATPHY_CDTC 0x16
+#define PHY_CDTC_ENB 0x0001
+#define PHY_CDTC_POFF 8
+#define ATPHY_CDTS 0x1C
+#define PHY_CDTS_STAT_OK 0x0000
+#define PHY_CDTS_STAT_SHORT 0x0100
+#define PHY_CDTS_STAT_OPEN 0x0200
+#define PHY_CDTS_STAT_INVAL 0x0300
+#define PHY_CDTS_STAT_MASK 0x0300
 
 	/* Check power saving mode. Magic from Linux. */
 	age_miibus_writereg(sc->age_dev, sc->age_phyaddr, MII_BMCR, BMCR_RESET);
@@ -439,19 +428,19 @@ age_phy_reset(struct age_softc *sc)
 		    ATPHY_DBG_ADDR, 0);
 		age_miibus_writereg(sc->age_dev, sc->age_phyaddr,
 		    ATPHY_DBG_DATA, 0x024E);
-    }
+	}
 
-#undef	ATPHY_DBG_ADDR
-#undef	ATPHY_DBG_DATA
-#undef	ATPHY_CDTC
-#undef	PHY_CDTC_ENB
-#undef	PHY_CDTC_POFF
-#undef	ATPHY_CDTS
-#undef	PHY_CDTS_STAT_OK
-#undef	PHY_CDTS_STAT_SHORT
-#undef	PHY_CDTS_STAT_OPEN
-#undef	PHY_CDTS_STAT_INVAL
-#undef	PHY_CDTS_STAT_MASK
+#undef ATPHY_DBG_ADDR
+#undef ATPHY_DBG_DATA
+#undef ATPHY_CDTC
+#undef PHY_CDTC_ENB
+#undef PHY_CDTC_POFF
+#undef ATPHY_CDTS
+#undef PHY_CDTS_STAT_OK
+#undef PHY_CDTS_STAT_SHORT
+#undef PHY_CDTS_STAT_OPEN
+#undef PHY_CDTS_STAT_INVAL
+#undef PHY_CDTS_STAT_MASK
 }
 
 static int
@@ -510,8 +499,10 @@ age_attach(device_t dev)
 	 * power down mode which in turn returns invalld chip revision.
 	 */
 	if (sc->age_chip_rev == 0xFFFF) {
-		device_printf(dev,"invalid chip revision : 0x%04x -- "
-		    "not initialized?\n", sc->age_chip_rev);
+		device_printf(dev,
+		    "invalid chip revision : 0x%04x -- "
+		    "not initialized?\n",
+		    sc->age_chip_rev);
 		error = ENXIO;
 		goto fail;
 	}
@@ -564,11 +555,11 @@ age_attach(device_t dev)
 		sc->age_flags |= AGE_FLAG_PCIE;
 		burst = pci_read_config(dev, i + 0x08, 2);
 		/* Max read request size. */
-		sc->age_dma_rd_burst = ((burst >> 12) & 0x07) <<
-		    DMA_CFG_RD_BURST_SHIFT;
+		sc->age_dma_rd_burst = ((burst >> 12) & 0x07)
+		    << DMA_CFG_RD_BURST_SHIFT;
 		/* Max payload size. */
-		sc->age_dma_wr_burst = ((burst >> 5) & 0x07) <<
-		    DMA_CFG_WR_BURST_SHIFT;
+		sc->age_dma_wr_burst = ((burst >> 5) & 0x07)
+		    << DMA_CFG_WR_BURST_SHIFT;
 		if (bootverbose) {
 			device_printf(dev, "Read request size : %d bytes.\n",
 			    128 << ((burst >> 12) & 0x07));
@@ -608,7 +599,8 @@ age_attach(device_t dev)
 	if_sethwassist(ifp, AGE_CSUM_FEATURES | CSUM_TSO);
 	if (pci_find_cap(dev, PCIY_PMG, &pmc) == 0) {
 		sc->age_flags |= AGE_FLAG_PMCAP;
-		if_setcapabilitiesbit(ifp, IFCAP_WOL_MAGIC | IFCAP_WOL_MCAST, 0);
+		if_setcapabilitiesbit(ifp, IFCAP_WOL_MAGIC | IFCAP_WOL_MCAST,
+		    0);
 	}
 	if_setcapenable(ifp, if_getcapabilities(ifp));
 
@@ -624,8 +616,10 @@ age_attach(device_t dev)
 	ether_ifattach(ifp, sc->age_eaddr);
 
 	/* VLAN capability setup. */
-	if_setcapabilitiesbit(ifp, IFCAP_VLAN_MTU | IFCAP_VLAN_HWTAGGING |
-	    IFCAP_VLAN_HWCSUM | IFCAP_VLAN_HWTSO, 0);
+	if_setcapabilitiesbit(ifp,
+	    IFCAP_VLAN_MTU | IFCAP_VLAN_HWTAGGING | IFCAP_VLAN_HWCSUM |
+		IFCAP_VLAN_HWTSO,
+	    0);
 	if_setcapenable(ifp, if_getcapabilities(ifp));
 
 	/* Tell the upper layer(s) we support long frames. */
@@ -740,8 +734,8 @@ age_sysctl_node(struct age_softc *sc)
 
 	SYSCTL_ADD_PROC(device_get_sysctl_ctx(sc->age_dev),
 	    SYSCTL_CHILDREN(device_get_sysctl_tree(sc->age_dev)), OID_AUTO,
-	    "stats", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT,
-	    sc, 0, sysctl_age_stats, "I", "Statistics");
+	    "stats", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+	    sysctl_age_stats, "I", "Statistics");
 
 	SYSCTL_ADD_PROC(device_get_sysctl_ctx(sc->age_dev),
 	    SYSCTL_CHILDREN(device_get_sysctl_tree(sc->age_dev)), OID_AUTO,
@@ -779,14 +773,15 @@ age_sysctl_node(struct age_softc *sc)
 		    sc->age_process_limit > AGE_PROC_MAX) {
 			device_printf(sc->age_dev,
 			    "process_limit value out of range; "
-			    "using default: %d\n", AGE_PROC_DEFAULT);
+			    "using default: %d\n",
+			    AGE_PROC_DEFAULT);
 			sc->age_process_limit = AGE_PROC_DEFAULT;
 		}
 	}
 }
 
 struct age_dmamap_arg {
-	bus_addr_t	age_busaddr;
+	bus_addr_t age_busaddr;
 };
 
 static void
@@ -823,15 +818,15 @@ age_check_boundary(struct age_softc *sc)
 	smb_block_end = sc->age_rdata.age_smb_block_paddr + AGE_SMB_BLOCK_SZ;
 
 	if ((AGE_ADDR_HI(tx_ring_end) !=
-	    AGE_ADDR_HI(sc->age_rdata.age_tx_ring_paddr)) ||
+		AGE_ADDR_HI(sc->age_rdata.age_tx_ring_paddr)) ||
 	    (AGE_ADDR_HI(rx_ring_end) !=
-	    AGE_ADDR_HI(sc->age_rdata.age_rx_ring_paddr)) ||
+		AGE_ADDR_HI(sc->age_rdata.age_rx_ring_paddr)) ||
 	    (AGE_ADDR_HI(rr_ring_end) !=
-	    AGE_ADDR_HI(sc->age_rdata.age_rr_ring_paddr)) ||
+		AGE_ADDR_HI(sc->age_rdata.age_rr_ring_paddr)) ||
 	    (AGE_ADDR_HI(cmb_block_end) !=
-	    AGE_ADDR_HI(sc->age_rdata.age_cmb_block_paddr)) ||
+		AGE_ADDR_HI(sc->age_rdata.age_cmb_block_paddr)) ||
 	    (AGE_ADDR_HI(smb_block_end) !=
-	    AGE_ADDR_HI(sc->age_rdata.age_smb_block_paddr)))
+		AGE_ADDR_HI(sc->age_rdata.age_smb_block_paddr)))
 		return (EFBIG);
 
 	if ((AGE_ADDR_HI(tx_ring_end) != AGE_ADDR_HI(rx_ring_end)) ||
@@ -856,17 +851,16 @@ age_dma_alloc(struct age_softc *sc)
 
 again:
 	/* Create parent ring/DMA block tag. */
-	error = bus_dma_tag_create(
-	    bus_get_dma_tag(sc->age_dev), /* parent */
-	    1, 0,			/* alignment, boundary */
-	    lowaddr,			/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    BUS_SPACE_MAXSIZE_32BIT,	/* maxsize */
-	    0,				/* nsegments */
-	    BUS_SPACE_MAXSIZE_32BIT,	/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(bus_get_dma_tag(sc->age_dev), /* parent */
+	    1, 0,		     /* alignment, boundary */
+	    lowaddr,		     /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filter, filterarg */
+	    BUS_SPACE_MAXSIZE_32BIT, /* maxsize */
+	    0,			     /* nsegments */
+	    BUS_SPACE_MAXSIZE_32BIT, /* maxsegsize */
+	    0,			     /* flags */
+	    NULL, NULL,		     /* lockfunc, lockarg */
 	    &sc->age_cdata.age_parent_tag);
 	if (error != 0) {
 		device_printf(sc->age_dev,
@@ -875,17 +869,16 @@ again:
 	}
 
 	/* Create tag for Tx ring. */
-	error = bus_dma_tag_create(
-	    sc->age_cdata.age_parent_tag, /* parent */
-	    AGE_TX_RING_ALIGN, 0,	/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    AGE_TX_RING_SZ,		/* maxsize */
-	    1,				/* nsegments */
-	    AGE_TX_RING_SZ,		/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(sc->age_cdata.age_parent_tag, /* parent */
+	    AGE_TX_RING_ALIGN, 0, /* alignment, boundary */
+	    BUS_SPACE_MAXADDR,	  /* lowaddr */
+	    BUS_SPACE_MAXADDR,	  /* highaddr */
+	    NULL, NULL,		  /* filter, filterarg */
+	    AGE_TX_RING_SZ,	  /* maxsize */
+	    1,			  /* nsegments */
+	    AGE_TX_RING_SZ,	  /* maxsegsize */
+	    0,			  /* flags */
+	    NULL, NULL,		  /* lockfunc, lockarg */
 	    &sc->age_cdata.age_tx_ring_tag);
 	if (error != 0) {
 		device_printf(sc->age_dev,
@@ -894,17 +887,16 @@ again:
 	}
 
 	/* Create tag for Rx ring. */
-	error = bus_dma_tag_create(
-	    sc->age_cdata.age_parent_tag, /* parent */
-	    AGE_RX_RING_ALIGN, 0,	/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    AGE_RX_RING_SZ,		/* maxsize */
-	    1,				/* nsegments */
-	    AGE_RX_RING_SZ,		/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(sc->age_cdata.age_parent_tag, /* parent */
+	    AGE_RX_RING_ALIGN, 0, /* alignment, boundary */
+	    BUS_SPACE_MAXADDR,	  /* lowaddr */
+	    BUS_SPACE_MAXADDR,	  /* highaddr */
+	    NULL, NULL,		  /* filter, filterarg */
+	    AGE_RX_RING_SZ,	  /* maxsize */
+	    1,			  /* nsegments */
+	    AGE_RX_RING_SZ,	  /* maxsegsize */
+	    0,			  /* flags */
+	    NULL, NULL,		  /* lockfunc, lockarg */
 	    &sc->age_cdata.age_rx_ring_tag);
 	if (error != 0) {
 		device_printf(sc->age_dev,
@@ -913,17 +905,16 @@ again:
 	}
 
 	/* Create tag for Rx return ring. */
-	error = bus_dma_tag_create(
-	    sc->age_cdata.age_parent_tag, /* parent */
-	    AGE_RR_RING_ALIGN, 0,	/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    AGE_RR_RING_SZ,		/* maxsize */
-	    1,				/* nsegments */
-	    AGE_RR_RING_SZ,		/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(sc->age_cdata.age_parent_tag, /* parent */
+	    AGE_RR_RING_ALIGN, 0, /* alignment, boundary */
+	    BUS_SPACE_MAXADDR,	  /* lowaddr */
+	    BUS_SPACE_MAXADDR,	  /* highaddr */
+	    NULL, NULL,		  /* filter, filterarg */
+	    AGE_RR_RING_SZ,	  /* maxsize */
+	    1,			  /* nsegments */
+	    AGE_RR_RING_SZ,	  /* maxsegsize */
+	    0,			  /* flags */
+	    NULL, NULL,		  /* lockfunc, lockarg */
 	    &sc->age_cdata.age_rr_ring_tag);
 	if (error != 0) {
 		device_printf(sc->age_dev,
@@ -932,40 +923,36 @@ again:
 	}
 
 	/* Create tag for coalesing message block. */
-	error = bus_dma_tag_create(
-	    sc->age_cdata.age_parent_tag, /* parent */
-	    AGE_CMB_ALIGN, 0,		/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    AGE_CMB_BLOCK_SZ,		/* maxsize */
-	    1,				/* nsegments */
-	    AGE_CMB_BLOCK_SZ,		/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(sc->age_cdata.age_parent_tag, /* parent */
+	    AGE_CMB_ALIGN, 0,  /* alignment, boundary */
+	    BUS_SPACE_MAXADDR, /* lowaddr */
+	    BUS_SPACE_MAXADDR, /* highaddr */
+	    NULL, NULL,	       /* filter, filterarg */
+	    AGE_CMB_BLOCK_SZ,  /* maxsize */
+	    1,		       /* nsegments */
+	    AGE_CMB_BLOCK_SZ,  /* maxsegsize */
+	    0,		       /* flags */
+	    NULL, NULL,	       /* lockfunc, lockarg */
 	    &sc->age_cdata.age_cmb_block_tag);
 	if (error != 0) {
-		device_printf(sc->age_dev,
-		    "could not create CMB DMA tag.\n");
+		device_printf(sc->age_dev, "could not create CMB DMA tag.\n");
 		goto fail;
 	}
 
 	/* Create tag for statistics message block. */
-	error = bus_dma_tag_create(
-	    sc->age_cdata.age_parent_tag, /* parent */
-	    AGE_SMB_ALIGN, 0,		/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    AGE_SMB_BLOCK_SZ,		/* maxsize */
-	    1,				/* nsegments */
-	    AGE_SMB_BLOCK_SZ,		/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(sc->age_cdata.age_parent_tag, /* parent */
+	    AGE_SMB_ALIGN, 0,  /* alignment, boundary */
+	    BUS_SPACE_MAXADDR, /* lowaddr */
+	    BUS_SPACE_MAXADDR, /* highaddr */
+	    NULL, NULL,	       /* filter, filterarg */
+	    AGE_SMB_BLOCK_SZ,  /* maxsize */
+	    1,		       /* nsegments */
+	    AGE_SMB_BLOCK_SZ,  /* maxsegsize */
+	    0,		       /* flags */
+	    NULL, NULL,	       /* lockfunc, lockarg */
 	    &sc->age_cdata.age_smb_block_tag);
 	if (error != 0) {
-		device_printf(sc->age_dev,
-		    "could not create SMB DMA tag.\n");
+		device_printf(sc->age_dev, "could not create SMB DMA tag.\n");
 		goto fail;
 	}
 
@@ -1022,8 +1009,7 @@ again:
 	ctx.age_busaddr = 0;
 	error = bus_dmamap_load(sc->age_cdata.age_rr_ring_tag,
 	    sc->age_cdata.age_rr_ring_map, sc->age_rdata.age_rr_ring,
-	    AGE_RR_RING_SZ, age_dmamap_cb,
-	    &ctx, 0);
+	    AGE_RR_RING_SZ, age_dmamap_cb, &ctx, 0);
 	if (error != 0 || ctx.age_busaddr == 0) {
 		device_printf(sc->age_dev,
 		    "could not load DMA'able memory for Rx return ring.\n");
@@ -1077,7 +1063,8 @@ again:
 	 */
 	if (lowaddr != BUS_SPACE_MAXADDR_32BIT &&
 	    (error = age_check_boundary(sc)) != 0) {
-		device_printf(sc->age_dev, "4GB boundary crossed, "
+		device_printf(sc->age_dev,
+		    "4GB boundary crossed, "
 		    "switching to 32bit DMA addressing mode.\n");
 		age_dma_free(sc);
 		/* Limit DMA address space to 32bit and try again. */
@@ -1093,17 +1080,16 @@ again:
 	 * It seems enabling 64bit DMA causes data corruption. Limit
 	 * DMA address space to 32bit.
 	 */
-	error = bus_dma_tag_create(
-	    bus_get_dma_tag(sc->age_dev), /* parent */
-	    1, 0,			/* alignment, boundary */
-	    BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    BUS_SPACE_MAXSIZE_32BIT,	/* maxsize */
-	    0,				/* nsegments */
-	    BUS_SPACE_MAXSIZE_32BIT,	/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(bus_get_dma_tag(sc->age_dev), /* parent */
+	    1, 0,		     /* alignment, boundary */
+	    BUS_SPACE_MAXADDR_32BIT, /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filter, filterarg */
+	    BUS_SPACE_MAXSIZE_32BIT, /* maxsize */
+	    0,			     /* nsegments */
+	    BUS_SPACE_MAXSIZE_32BIT, /* maxsegsize */
+	    0,			     /* flags */
+	    NULL, NULL,		     /* lockfunc, lockarg */
 	    &sc->age_cdata.age_buffer_tag);
 	if (error != 0) {
 		device_printf(sc->age_dev,
@@ -1112,17 +1098,16 @@ again:
 	}
 
 	/* Create tag for Tx buffers. */
-	error = bus_dma_tag_create(
-	    sc->age_cdata.age_buffer_tag, /* parent */
-	    1, 0,			/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    AGE_TSO_MAXSIZE,		/* maxsize */
-	    AGE_MAXTXSEGS,		/* nsegments */
-	    AGE_TSO_MAXSEGSIZE,		/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(sc->age_cdata.age_buffer_tag, /* parent */
+	    1, 0,		/* alignment, boundary */
+	    BUS_SPACE_MAXADDR,	/* lowaddr */
+	    BUS_SPACE_MAXADDR,	/* highaddr */
+	    NULL, NULL,		/* filter, filterarg */
+	    AGE_TSO_MAXSIZE,	/* maxsize */
+	    AGE_MAXTXSEGS,	/* nsegments */
+	    AGE_TSO_MAXSEGSIZE, /* maxsegsize */
+	    0,			/* flags */
+	    NULL, NULL,		/* lockfunc, lockarg */
 	    &sc->age_cdata.age_tx_tag);
 	if (error != 0) {
 		device_printf(sc->age_dev, "could not create Tx DMA tag.\n");
@@ -1130,17 +1115,16 @@ again:
 	}
 
 	/* Create tag for Rx buffers. */
-	error = bus_dma_tag_create(
-	    sc->age_cdata.age_buffer_tag, /* parent */
-	    AGE_RX_BUF_ALIGN, 0,	/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    MCLBYTES,			/* maxsize */
-	    1,				/* nsegments */
-	    MCLBYTES,			/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(sc->age_cdata.age_buffer_tag, /* parent */
+	    AGE_RX_BUF_ALIGN, 0, /* alignment, boundary */
+	    BUS_SPACE_MAXADDR,	 /* lowaddr */
+	    BUS_SPACE_MAXADDR,	 /* highaddr */
+	    NULL, NULL,		 /* filter, filterarg */
+	    MCLBYTES,		 /* maxsize */
+	    1,			 /* nsegments */
+	    MCLBYTES,		 /* maxsegsize */
+	    0,			 /* flags */
+	    NULL, NULL,		 /* lockfunc, lockarg */
 	    &sc->age_cdata.age_rx_tag);
 	if (error != 0) {
 		device_printf(sc->age_dev, "could not create Rx DMA tag.\n");
@@ -1162,7 +1146,7 @@ again:
 	}
 	/* Create DMA maps for Rx buffers. */
 	if ((error = bus_dmamap_create(sc->age_cdata.age_rx_tag, 0,
-	    &sc->age_cdata.age_rx_sparemap)) != 0) {
+		 &sc->age_cdata.age_rx_sparemap)) != 0) {
 		device_printf(sc->age_dev,
 		    "could not create spare Rx dmamap.\n");
 		goto fail;
@@ -1336,8 +1320,8 @@ age_setwol(struct age_softc *sc)
 		 * Attansic/Atheros PHY hardwares.
 		 */
 #ifdef notyet
-		age_miibus_writereg(sc->age_dev, sc->age_phyaddr,
-		    MII_BMCR, BMCR_PDOWN);
+		age_miibus_writereg(sc->age_dev, sc->age_phyaddr, MII_BMCR,
+		    BMCR_PDOWN);
 #endif
 		return;
 	}
@@ -1363,23 +1347,24 @@ age_setwol(struct age_softc *sc)
 		mii_pollstat(mii);
 		aneg = 0;
 		if ((mii->mii_media_status & IFM_AVALID) != 0) {
-			switch IFM_SUBTYPE(mii->mii_media_active) {
-			case IFM_10_T:
-			case IFM_100_TX:
-				goto got_link;
-			case IFM_1000_T:
-				aneg++;
-			default:
-				break;
-			}
+			switch
+				IFM_SUBTYPE(mii->mii_media_active)
+				{
+				case IFM_10_T:
+				case IFM_100_TX:
+					goto got_link;
+				case IFM_1000_T:
+					aneg++;
+				default:
+					break;
+				}
 		}
-		age_miibus_writereg(sc->age_dev, sc->age_phyaddr,
-		    MII_100T2CR, 0);
-		age_miibus_writereg(sc->age_dev, sc->age_phyaddr,
-		    MII_ANAR, ANAR_TX_FD | ANAR_TX | ANAR_10_FD |
-		    ANAR_10 | ANAR_CSMA);
-		age_miibus_writereg(sc->age_dev, sc->age_phyaddr,
-		    MII_BMCR, BMCR_RESET | BMCR_AUTOEN | BMCR_STARTNEG);
+		age_miibus_writereg(sc->age_dev, sc->age_phyaddr, MII_100T2CR,
+		    0);
+		age_miibus_writereg(sc->age_dev, sc->age_phyaddr, MII_ANAR,
+		    ANAR_TX_FD | ANAR_TX | ANAR_10_FD | ANAR_10 | ANAR_CSMA);
+		age_miibus_writereg(sc->age_dev, sc->age_phyaddr, MII_BMCR,
+		    BMCR_RESET | BMCR_AUTOEN | BMCR_STARTNEG);
 		DELAY(1000);
 		if (aneg != 0) {
 			/* Poll link state until age(4) get a 10/100 link. */
@@ -1439,8 +1424,8 @@ got_link:
 	/* See above for powering down PHY issues. */
 	if ((if_getcapenable(ifp) & IFCAP_WOL) == 0) {
 		/* No WOL, PHY power down. */
-		age_miibus_writereg(sc->age_dev, sc->age_phyaddr,
-		    MII_BMCR, BMCR_PDOWN);
+		age_miibus_writereg(sc->age_dev, sc->age_phyaddr, MII_BMCR,
+		    BMCR_PDOWN);
 	}
 #endif
 }
@@ -1590,8 +1575,8 @@ age_encap(struct age_softc *sc, struct mbuf **m_head)
 	txd_last = txd;
 	map = txd->tx_dmamap;
 
-	error =  bus_dmamap_load_mbuf_sg(sc->age_cdata.age_tx_tag, map,
-	    *m_head, txsegs, &nsegs, 0);
+	error = bus_dmamap_load_mbuf_sg(sc->age_cdata.age_tx_tag, map, *m_head,
+	    txsegs, &nsegs, 0);
 	if (error == EFBIG) {
 		m = m_collapse(*m_head, M_NOWAIT, AGE_MAXTXSEGS);
 		if (m == NULL) {
@@ -1635,8 +1620,8 @@ age_encap(struct age_softc *sc, struct mbuf **m_head)
 		/* Request TSO and set MSS. */
 		cflags |= AGE_TD_TSO_IPV4;
 		cflags |= AGE_TD_IPCSUM | AGE_TD_TCPCSUM;
-		cflags |= ((uint32_t)m->m_pkthdr.tso_segsz <<
-		    AGE_TD_TSO_MSS_SHIFT);
+		cflags |= ((uint32_t)m->m_pkthdr.tso_segsz
+		    << AGE_TD_TSO_MSS_SHIFT);
 		/* Set IP/TCP header size. */
 		cflags |= ip->ip_hl << AGE_TD_IPHDR_LEN_SHIFT;
 		cflags |= tcp->th_off << AGE_TD_TSO_TCPHDR_LEN_SHIFT;
@@ -1656,8 +1641,8 @@ age_encap(struct age_softc *sc, struct mbuf **m_head)
 			/* Handle remaining payload of the 1st fragment. */
 			desc = &sc->age_rdata.age_tx_ring[prod];
 			desc->addr = htole64(txsegs[0].ds_addr + hdrlen);
-			desc->len = htole32(AGE_TX_BYTES(m->m_len - hdrlen) |
-			    vtag);
+			desc->len = htole32(
+			    AGE_TX_BYTES(m->m_len - hdrlen) | vtag);
 			desc->flags = htole32(cflags);
 			sc->age_cdata.age_tx_cnt++;
 			AGE_DESC_INC(prod, AGE_TX_RING_CNT);
@@ -1674,8 +1659,8 @@ age_encap(struct age_softc *sc, struct mbuf **m_head)
 		/* Set checksum start offset. */
 		cflags |= (poff << AGE_TD_CSUM_PLOADOFFSET_SHIFT);
 		/* Set checksum insertion position of TCP/UDP. */
-		cflags |= ((poff + m->m_pkthdr.csum_data) <<
-		    AGE_TD_CSUM_XSUMOFFSET_SHIFT);
+		cflags |= ((poff + m->m_pkthdr.csum_data)
+		    << AGE_TD_CSUM_XSUMOFFSET_SHIFT);
 	}
 	for (; i < nsegs; i++) {
 		desc = &sc->age_rdata.age_tx_ring[prod];
@@ -1718,7 +1703,7 @@ age_encap(struct age_softc *sc, struct mbuf **m_head)
 static void
 age_start(if_t ifp)
 {
-        struct age_softc *sc;
+	struct age_softc *sc;
 
 	sc = if_getsoftc(ifp);
 	AGE_LOCK(sc);
@@ -1729,8 +1714,8 @@ age_start(if_t ifp)
 static void
 age_start_locked(if_t ifp)
 {
-        struct age_softc *sc;
-        struct mbuf *m_head;
+	struct age_softc *sc;
+	struct mbuf *m_head;
 	int enq;
 
 	sc = if_getsoftc(ifp);
@@ -1738,10 +1723,11 @@ age_start_locked(if_t ifp)
 	AGE_LOCK_ASSERT(sc);
 
 	if ((if_getdrvflags(ifp) & (IFF_DRV_RUNNING | IFF_DRV_OACTIVE)) !=
-	    IFF_DRV_RUNNING || (sc->age_flags & AGE_FLAG_LINK) == 0)
+		IFF_DRV_RUNNING ||
+	    (sc->age_flags & AGE_FLAG_LINK) == 0)
 		return;
 
-	for (enq = 0; !if_sendq_empty(ifp); ) {
+	for (enq = 0; !if_sendq_empty(ifp);) {
 		m_head = if_dequeue(ifp);
 		if (m_head == NULL)
 			break;
@@ -1837,8 +1823,8 @@ age_ioctl(if_t ifp, u_long cmd, caddr_t data)
 		AGE_LOCK(sc);
 		if ((if_getflags(ifp) & IFF_UP) != 0) {
 			if ((if_getdrvflags(ifp) & IFF_DRV_RUNNING) != 0) {
-				if (((if_getflags(ifp) ^ sc->age_if_flags)
-				    & (IFF_PROMISC | IFF_ALLMULTI)) != 0)
+				if (((if_getflags(ifp) ^ sc->age_if_flags) &
+					(IFF_PROMISC | IFF_ALLMULTI)) != 0)
 					age_rxfilter(sc);
 			} else {
 				if ((sc->age_flags & AGE_FLAG_DETACH) == 0)
@@ -1999,8 +1985,9 @@ age_link_task(void *arg, int pending)
 		age_mac_config(sc);
 		reg = CSR_READ_4(sc, AGE_MAC_CFG);
 		/* Restart DMA engine and Tx/Rx MAC. */
-		CSR_WRITE_4(sc, AGE_DMA_CFG, CSR_READ_4(sc, AGE_DMA_CFG) |
-		    DMA_CFG_RD_ENB | DMA_CFG_WR_ENB);
+		CSR_WRITE_4(sc, AGE_DMA_CFG,
+		    CSR_READ_4(sc, AGE_DMA_CFG) | DMA_CFG_RD_ENB |
+			DMA_CFG_WR_ENB);
 		reg |= MAC_CFG_TX_ENB | MAC_CFG_RX_ENB;
 		CSR_WRITE_4(sc, AGE_MAC_CFG, reg);
 	}
@@ -2084,20 +2071,20 @@ age_stats_update(struct age_softc *sc)
 	/* Update counters in ifnet. */
 	if_inc_counter(ifp, IFCOUNTER_OPACKETS, smb->tx_frames);
 
-	if_inc_counter(ifp, IFCOUNTER_COLLISIONS, smb->tx_single_colls +
-	    smb->tx_multi_colls + smb->tx_late_colls +
-	    smb->tx_excess_colls * HDPX_CFG_RETRY_DEFAULT);
+	if_inc_counter(ifp, IFCOUNTER_COLLISIONS,
+	    smb->tx_single_colls + smb->tx_multi_colls + smb->tx_late_colls +
+		smb->tx_excess_colls * HDPX_CFG_RETRY_DEFAULT);
 
-	if_inc_counter(ifp, IFCOUNTER_OERRORS, smb->tx_excess_colls +
-	    smb->tx_late_colls + smb->tx_underrun +
-	    smb->tx_pkts_truncated);
+	if_inc_counter(ifp, IFCOUNTER_OERRORS,
+	    smb->tx_excess_colls + smb->tx_late_colls + smb->tx_underrun +
+		smb->tx_pkts_truncated);
 
 	if_inc_counter(ifp, IFCOUNTER_IPACKETS, smb->rx_frames);
 
-	if_inc_counter(ifp, IFCOUNTER_IERRORS, smb->rx_crcerrs +
-	    smb->rx_lenerrs + smb->rx_runts + smb->rx_pkts_truncated +
-	    smb->rx_fifo_oflows + smb->rx_desc_oflows +
-	    smb->rx_alignerrs);
+	if_inc_counter(ifp, IFCOUNTER_IERRORS,
+	    smb->rx_crcerrs + smb->rx_lenerrs + smb->rx_runts +
+		smb->rx_pkts_truncated + smb->rx_fifo_oflows +
+		smb->rx_desc_oflows + smb->rx_alignerrs);
 
 	/* Update done, clear. */
 	smb->updated = 0;
@@ -2262,8 +2249,8 @@ static struct mbuf *
 age_fixup_rx(if_t ifp, struct mbuf *m)
 {
 	struct mbuf *n;
-        int i;
-        uint16_t *src, *dst;
+	int i;
+	uint16_t *src, *dst;
 
 	src = mtod(m, uint16_t *);
 	dst = src - 3;
@@ -2326,13 +2313,14 @@ age_rxeof(struct age_softc *sc, struct rx_rdesc *rxrd)
 		 *     does not match.
 		 */
 		status |= AGE_RRD_IPCSUM_NOK | AGE_RRD_TCP_UDPCSUM_NOK;
-		if ((status & (AGE_RRD_CRC | AGE_RRD_CODE | AGE_RRD_DRIBBLE |
-		    AGE_RRD_RUNT | AGE_RRD_OFLOW | AGE_RRD_TRUNC)) != 0)
+		if ((status &
+			(AGE_RRD_CRC | AGE_RRD_CODE | AGE_RRD_DRIBBLE |
+			    AGE_RRD_RUNT | AGE_RRD_OFLOW | AGE_RRD_TRUNC)) != 0)
 			return;
 	}
 
-	for (count = 0; count < nsegs; count++,
-	    AGE_DESC_INC(rx_cons, AGE_RX_RING_CNT)) {
+	for (count = 0; count < nsegs;
+	     count++, AGE_DESC_INC(rx_cons, AGE_RX_RING_CNT)) {
 		rxd = &sc->age_cdata.age_rxdesc[rx_cons];
 		mp = rxd->rx_m;
 		/* Add a new receive buffer to the ring. */
@@ -2422,7 +2410,8 @@ age_rxeof(struct age_softc *sc, struct rx_rdesc *rxrd)
 			}
 
 			/* Check for VLAN tagged frames. */
-			if ((if_getcapenable(ifp) & IFCAP_VLAN_HWTAGGING) != 0 &&
+			if ((if_getcapenable(ifp) & IFCAP_VLAN_HWTAGGING) !=
+				0 &&
 			    (status & AGE_RRD_VLAN) != 0) {
 				vtag = AGE_RX_VLAN(le32toh(rxrd->vtags));
 				m->m_pkthdr.ether_vtag = AGE_RX_VLAN_TAG(vtag);
@@ -2433,10 +2422,10 @@ age_rxeof(struct age_softc *sc, struct rx_rdesc *rxrd)
 			if (m != NULL)
 #endif
 			{
-			/* Pass it on. */
-			AGE_UNLOCK(sc);
-			if_input(ifp, m);
-			AGE_LOCK(sc);
+				/* Pass it on. */
+				AGE_UNLOCK(sc);
+				if_input(ifp, m);
+				AGE_LOCK(sc);
 			}
 		}
 	}
@@ -2587,11 +2576,11 @@ age_init_locked(struct age_softc *sc)
 
 	/* Initialize descriptors. */
 	error = age_init_rx_ring(sc);
-        if (error != 0) {
-                device_printf(sc->age_dev, "no memory for Rx buffers.\n");
-                age_stop(sc);
+	if (error != 0) {
+		device_printf(sc->age_dev, "no memory for Rx buffers.\n");
+		age_stop(sc);
 		return;
-        }
+	}
 	age_init_rr_ring(sc);
 	age_init_tx_ring(sc);
 	age_init_cmb_block(sc);
@@ -2618,9 +2607,8 @@ age_init_locked(struct age_softc *sc)
 	CSR_WRITE_4(sc, AGE_DESC_SMB_ADDR_LO, AGE_ADDR_LO(paddr));
 	/* Set Rx/Rx return descriptor counter. */
 	CSR_WRITE_4(sc, AGE_DESC_RRD_RD_CNT,
-	    ((AGE_RR_RING_CNT << DESC_RRD_CNT_SHIFT) &
-	    DESC_RRD_CNT_MASK) |
-	    ((AGE_RX_RING_CNT << DESC_RD_CNT_SHIFT) & DESC_RD_CNT_MASK));
+	    ((AGE_RR_RING_CNT << DESC_RRD_CNT_SHIFT) & DESC_RRD_CNT_MASK) |
+		((AGE_RX_RING_CNT << DESC_RD_CNT_SHIFT) & DESC_RD_CNT_MASK));
 	/* Set Tx descriptor counter. */
 	CSR_WRITE_4(sc, AGE_DESC_TPD_CNT,
 	    (AGE_TX_RING_CNT << DESC_TPD_CNT_SHIFT) & DESC_TPD_CNT_MASK);
@@ -2644,20 +2632,24 @@ age_init_locked(struct age_softc *sc)
 	/* Configure IPG/IFG parameters. */
 	CSR_WRITE_4(sc, AGE_IPG_IFG_CFG,
 	    ((IPG_IFG_IPG2_DEFAULT << IPG_IFG_IPG2_SHIFT) & IPG_IFG_IPG2_MASK) |
-	    ((IPG_IFG_IPG1_DEFAULT << IPG_IFG_IPG1_SHIFT) & IPG_IFG_IPG1_MASK) |
-	    ((IPG_IFG_MIFG_DEFAULT << IPG_IFG_MIFG_SHIFT) & IPG_IFG_MIFG_MASK) |
-	    ((IPG_IFG_IPGT_DEFAULT << IPG_IFG_IPGT_SHIFT) & IPG_IFG_IPGT_MASK));
+		((IPG_IFG_IPG1_DEFAULT << IPG_IFG_IPG1_SHIFT) &
+		    IPG_IFG_IPG1_MASK) |
+		((IPG_IFG_MIFG_DEFAULT << IPG_IFG_MIFG_SHIFT) &
+		    IPG_IFG_MIFG_MASK) |
+		((IPG_IFG_IPGT_DEFAULT << IPG_IFG_IPGT_SHIFT) &
+		    IPG_IFG_IPGT_MASK));
 
 	/* Set parameters for half-duplex media. */
 	CSR_WRITE_4(sc, AGE_HDPX_CFG,
 	    ((HDPX_CFG_LCOL_DEFAULT << HDPX_CFG_LCOL_SHIFT) &
-	    HDPX_CFG_LCOL_MASK) |
-	    ((HDPX_CFG_RETRY_DEFAULT << HDPX_CFG_RETRY_SHIFT) &
-	    HDPX_CFG_RETRY_MASK) | HDPX_CFG_EXC_DEF_EN |
-	    ((HDPX_CFG_ABEBT_DEFAULT << HDPX_CFG_ABEBT_SHIFT) &
-	    HDPX_CFG_ABEBT_MASK) |
-	    ((HDPX_CFG_JAMIPG_DEFAULT << HDPX_CFG_JAMIPG_SHIFT) &
-	    HDPX_CFG_JAMIPG_MASK));
+		HDPX_CFG_LCOL_MASK) |
+		((HDPX_CFG_RETRY_DEFAULT << HDPX_CFG_RETRY_SHIFT) &
+		    HDPX_CFG_RETRY_MASK) |
+		HDPX_CFG_EXC_DEF_EN |
+		((HDPX_CFG_ABEBT_DEFAULT << HDPX_CFG_ABEBT_SHIFT) &
+		    HDPX_CFG_ABEBT_MASK) |
+		((HDPX_CFG_JAMIPG_DEFAULT << HDPX_CFG_JAMIPG_SHIFT) &
+		    HDPX_CFG_JAMIPG_MASK));
 
 	/* Configure interrupt moderation timer. */
 	CSR_WRITE_2(sc, AGE_IM_TIMER, AGE_USECS(sc->age_int_mod));
@@ -2684,12 +2676,12 @@ age_init_locked(struct age_softc *sc)
 	/* Configure jumbo frame. */
 	fsize = roundup(sc->age_max_frame_size, sizeof(uint64_t));
 	CSR_WRITE_4(sc, AGE_RXQ_JUMBO_CFG,
-	    (((fsize / sizeof(uint64_t)) <<
-	    RXQ_JUMBO_CFG_SZ_THRESH_SHIFT) & RXQ_JUMBO_CFG_SZ_THRESH_MASK) |
-	    ((RXQ_JUMBO_CFG_LKAH_DEFAULT <<
-	    RXQ_JUMBO_CFG_LKAH_SHIFT) & RXQ_JUMBO_CFG_LKAH_MASK) |
-	    ((AGE_USECS(8) << RXQ_JUMBO_CFG_RRD_TIMER_SHIFT) &
-	    RXQ_JUMBO_CFG_RRD_TIMER_MASK));
+	    (((fsize / sizeof(uint64_t)) << RXQ_JUMBO_CFG_SZ_THRESH_SHIFT) &
+		RXQ_JUMBO_CFG_SZ_THRESH_MASK) |
+		((RXQ_JUMBO_CFG_LKAH_DEFAULT << RXQ_JUMBO_CFG_LKAH_SHIFT) &
+		    RXQ_JUMBO_CFG_LKAH_MASK) |
+		((AGE_USECS(8) << RXQ_JUMBO_CFG_RRD_TIMER_SHIFT) &
+		    RXQ_JUMBO_CFG_RRD_TIMER_MASK));
 
 	/* Configure flow-control parameters. From Linux. */
 	if ((sc->age_flags & AGE_FLAG_PCIE) != 0) {
@@ -2740,57 +2732,60 @@ age_init_locked(struct age_softc *sc)
 	}
 	CSR_WRITE_4(sc, AGE_RXQ_FIFO_PAUSE_THRESH,
 	    ((rxf_lo << RXQ_FIFO_PAUSE_THRESH_LO_SHIFT) &
-	    RXQ_FIFO_PAUSE_THRESH_LO_MASK) |
-	    ((rxf_hi << RXQ_FIFO_PAUSE_THRESH_HI_SHIFT) &
-	    RXQ_FIFO_PAUSE_THRESH_HI_MASK));
+		RXQ_FIFO_PAUSE_THRESH_LO_MASK) |
+		((rxf_hi << RXQ_FIFO_PAUSE_THRESH_HI_SHIFT) &
+		    RXQ_FIFO_PAUSE_THRESH_HI_MASK));
 	CSR_WRITE_4(sc, AGE_RXQ_RRD_PAUSE_THRESH,
 	    ((rrd_lo << RXQ_RRD_PAUSE_THRESH_LO_SHIFT) &
-	    RXQ_RRD_PAUSE_THRESH_LO_MASK) |
-	    ((rrd_hi << RXQ_RRD_PAUSE_THRESH_HI_SHIFT) &
-	    RXQ_RRD_PAUSE_THRESH_HI_MASK));
+		RXQ_RRD_PAUSE_THRESH_LO_MASK) |
+		((rrd_hi << RXQ_RRD_PAUSE_THRESH_HI_SHIFT) &
+		    RXQ_RRD_PAUSE_THRESH_HI_MASK));
 
 	/* Configure RxQ. */
 	CSR_WRITE_4(sc, AGE_RXQ_CFG,
 	    ((RXQ_CFG_RD_BURST_DEFAULT << RXQ_CFG_RD_BURST_SHIFT) &
-	    RXQ_CFG_RD_BURST_MASK) |
-	    ((RXQ_CFG_RRD_BURST_THRESH_DEFAULT <<
-	    RXQ_CFG_RRD_BURST_THRESH_SHIFT) & RXQ_CFG_RRD_BURST_THRESH_MASK) |
-	    ((RXQ_CFG_RD_PREF_MIN_IPG_DEFAULT <<
-	    RXQ_CFG_RD_PREF_MIN_IPG_SHIFT) & RXQ_CFG_RD_PREF_MIN_IPG_MASK) |
-	    RXQ_CFG_CUT_THROUGH_ENB | RXQ_CFG_ENB);
+		RXQ_CFG_RD_BURST_MASK) |
+		((RXQ_CFG_RRD_BURST_THRESH_DEFAULT
+		     << RXQ_CFG_RRD_BURST_THRESH_SHIFT) &
+		    RXQ_CFG_RRD_BURST_THRESH_MASK) |
+		((RXQ_CFG_RD_PREF_MIN_IPG_DEFAULT
+		     << RXQ_CFG_RD_PREF_MIN_IPG_SHIFT) &
+		    RXQ_CFG_RD_PREF_MIN_IPG_MASK) |
+		RXQ_CFG_CUT_THROUGH_ENB | RXQ_CFG_ENB);
 
 	/* Configure TxQ. */
 	CSR_WRITE_4(sc, AGE_TXQ_CFG,
 	    ((TXQ_CFG_TPD_BURST_DEFAULT << TXQ_CFG_TPD_BURST_SHIFT) &
-	    TXQ_CFG_TPD_BURST_MASK) |
-	    ((TXQ_CFG_TX_FIFO_BURST_DEFAULT << TXQ_CFG_TX_FIFO_BURST_SHIFT) &
-	    TXQ_CFG_TX_FIFO_BURST_MASK) |
-	    ((TXQ_CFG_TPD_FETCH_DEFAULT <<
-	    TXQ_CFG_TPD_FETCH_THRESH_SHIFT) & TXQ_CFG_TPD_FETCH_THRESH_MASK) |
-	    TXQ_CFG_ENB);
+		TXQ_CFG_TPD_BURST_MASK) |
+		((TXQ_CFG_TX_FIFO_BURST_DEFAULT
+		     << TXQ_CFG_TX_FIFO_BURST_SHIFT) &
+		    TXQ_CFG_TX_FIFO_BURST_MASK) |
+		((TXQ_CFG_TPD_FETCH_DEFAULT << TXQ_CFG_TPD_FETCH_THRESH_SHIFT) &
+		    TXQ_CFG_TPD_FETCH_THRESH_MASK) |
+		TXQ_CFG_ENB);
 
 	CSR_WRITE_4(sc, AGE_TX_JUMBO_TPD_TH_IPG,
 	    (((fsize / sizeof(uint64_t) << TX_JUMBO_TPD_TH_SHIFT)) &
-	    TX_JUMBO_TPD_TH_MASK) |
-	    ((TX_JUMBO_TPD_IPG_DEFAULT << TX_JUMBO_TPD_IPG_SHIFT) &
-	    TX_JUMBO_TPD_IPG_MASK));
+		TX_JUMBO_TPD_TH_MASK) |
+		((TX_JUMBO_TPD_IPG_DEFAULT << TX_JUMBO_TPD_IPG_SHIFT) &
+		    TX_JUMBO_TPD_IPG_MASK));
 	/* Configure DMA parameters. */
 	CSR_WRITE_4(sc, AGE_DMA_CFG,
-	    DMA_CFG_ENH_ORDER | DMA_CFG_RCB_64 |
-	    sc->age_dma_rd_burst | DMA_CFG_RD_ENB |
-	    sc->age_dma_wr_burst | DMA_CFG_WR_ENB);
+	    DMA_CFG_ENH_ORDER | DMA_CFG_RCB_64 | sc->age_dma_rd_burst |
+		DMA_CFG_RD_ENB | sc->age_dma_wr_burst | DMA_CFG_WR_ENB);
 
 	/* Configure CMB DMA write threshold. */
 	CSR_WRITE_4(sc, AGE_CMB_WR_THRESH,
 	    ((CMB_WR_THRESH_RRD_DEFAULT << CMB_WR_THRESH_RRD_SHIFT) &
-	    CMB_WR_THRESH_RRD_MASK) |
-	    ((CMB_WR_THRESH_TPD_DEFAULT << CMB_WR_THRESH_TPD_SHIFT) &
-	    CMB_WR_THRESH_TPD_MASK));
+		CMB_WR_THRESH_RRD_MASK) |
+		((CMB_WR_THRESH_TPD_DEFAULT << CMB_WR_THRESH_TPD_SHIFT) &
+		    CMB_WR_THRESH_TPD_MASK));
 
 	/* Set CMB/SMB timer and enable them. */
 	CSR_WRITE_4(sc, AGE_CMB_WR_TIMER,
 	    ((AGE_USECS(2) << CMB_WR_TIMER_TX_SHIFT) & CMB_WR_TIMER_TX_MASK) |
-	    ((AGE_USECS(2) << CMB_WR_TIMER_RX_SHIFT) & CMB_WR_TIMER_RX_MASK));
+		((AGE_USECS(2) << CMB_WR_TIMER_RX_SHIFT) &
+		    CMB_WR_TIMER_RX_MASK));
 	/* Request SMB updates for every seconds. */
 	CSR_WRITE_4(sc, AGE_SMB_TIMER, AGE_USECS(1000 * 1000));
 	CSR_WRITE_4(sc, AGE_CSMB_CTRL, CSMB_CTRL_SMB_ENB | CSMB_CTRL_CMB_ENB);
@@ -2809,10 +2804,10 @@ age_init_locked(struct age_softc *sc)
 	 *  of MAC is followed after link establishment.
 	 */
 	CSR_WRITE_4(sc, AGE_MAC_CFG,
-	    MAC_CFG_TX_CRC_ENB | MAC_CFG_TX_AUTO_PAD |
-	    MAC_CFG_FULL_DUPLEX | MAC_CFG_SPEED_1000 |
-	    ((MAC_CFG_PREAMBLE_DEFAULT << MAC_CFG_PREAMBLE_SHIFT) &
-	    MAC_CFG_PREAMBLE_MASK));
+	    MAC_CFG_TX_CRC_ENB | MAC_CFG_TX_AUTO_PAD | MAC_CFG_FULL_DUPLEX |
+		MAC_CFG_SPEED_1000 |
+		((MAC_CFG_PREAMBLE_DEFAULT << MAC_CFG_PREAMBLE_SHIFT) &
+		    MAC_CFG_PREAMBLE_MASK));
 	/* Set up the receive filter. */
 	age_rxfilter(sc);
 	age_rxvlan(sc);
@@ -2884,7 +2879,7 @@ age_stop(struct age_softc *sc)
 		device_printf(sc->age_dev,
 		    "stopping Rx/Tx MACs timed out(0x%08x)!\n", reg);
 
-	 /* Reclaim Rx buffers that have been processed. */
+	/* Reclaim Rx buffers that have been processed. */
 	if (sc->age_cdata.age_rxhead != NULL)
 		m_freem(sc->age_cdata.age_rxhead);
 	AGE_RXCHAIN_RESET(sc);
@@ -2901,7 +2896,7 @@ age_stop(struct age_softc *sc)
 			m_freem(rxd->rx_m);
 			rxd->rx_m = NULL;
 		}
-        }
+	}
 	for (i = 0; i < AGE_TX_RING_CNT; i++) {
 		txd = &sc->age_cdata.age_txdesc[i];
 		if (txd->tx_m != NULL) {
@@ -2912,7 +2907,7 @@ age_stop(struct age_softc *sc)
 			m_freem(txd->tx_m);
 			txd->tx_m = NULL;
 		}
-        }
+	}
 }
 
 static void
@@ -2936,7 +2931,7 @@ age_stop_txmac(struct age_softc *sc)
 	}
 	for (i = AGE_RESET_TIMEOUT; i > 0; i--) {
 		if ((CSR_READ_4(sc, AGE_IDLE_STATUS) &
-		    (IDLE_STATUS_TXMAC | IDLE_STATUS_DMARD)) == 0)
+			(IDLE_STATUS_TXMAC | IDLE_STATUS_DMARD)) == 0)
 			break;
 		DELAY(10);
 	}
@@ -2965,7 +2960,7 @@ age_stop_rxmac(struct age_softc *sc)
 	}
 	for (i = AGE_RESET_TIMEOUT; i > 0; i--) {
 		if ((CSR_READ_4(sc, AGE_IDLE_STATUS) &
-		    (IDLE_STATUS_RXMAC | IDLE_STATUS_DMAWR)) == 0)
+			(IDLE_STATUS_RXMAC | IDLE_STATUS_DMAWR)) == 0)
 			break;
 		DELAY(10);
 	}
@@ -3091,7 +3086,7 @@ age_newbuf(struct age_softc *sc, struct age_rxdesc *rxd)
 #endif
 
 	if (bus_dmamap_load_mbuf_sg(sc->age_cdata.age_rx_tag,
-	    sc->age_cdata.age_rx_sparemap, m, segs, &nsegs, 0) != 0) {
+		sc->age_cdata.age_rx_sparemap, m, segs, &nsegs, 0) != 0) {
 		m_freem(m);
 		return (ENOBUFS);
 	}
@@ -3111,8 +3106,8 @@ age_newbuf(struct age_softc *sc, struct age_rxdesc *rxd)
 
 	desc = rxd->rx_desc;
 	desc->addr = htole64(segs[0].ds_addr);
-	desc->len = htole32((segs[0].ds_len & AGE_RD_LEN_MASK) <<
-	    AGE_RD_LEN_SHIFT);
+	desc->len = htole32(
+	    (segs[0].ds_len & AGE_RD_LEN_MASK) << AGE_RD_LEN_SHIFT);
 	return (0);
 }
 
@@ -3198,22 +3193,17 @@ sysctl_age_stats(SYSCTL_HANDLER_ARGS)
 	sc = (struct age_softc *)arg1;
 	stats = &sc->age_stat;
 	printf("%s statistics:\n", device_get_nameunit(sc->age_dev));
-	printf("Transmit good frames : %ju\n",
-	    (uintmax_t)stats->tx_frames);
+	printf("Transmit good frames : %ju\n", (uintmax_t)stats->tx_frames);
 	printf("Transmit good broadcast frames : %ju\n",
 	    (uintmax_t)stats->tx_bcast_frames);
 	printf("Transmit good multicast frames : %ju\n",
 	    (uintmax_t)stats->tx_mcast_frames);
-	printf("Transmit pause control frames : %u\n",
-	    stats->tx_pause_frames);
-	printf("Transmit control frames : %u\n",
-	    stats->tx_control_frames);
+	printf("Transmit pause control frames : %u\n", stats->tx_pause_frames);
+	printf("Transmit control frames : %u\n", stats->tx_control_frames);
 	printf("Transmit frames with excessive deferrals : %u\n",
 	    stats->tx_excess_defer);
-	printf("Transmit deferrals : %u\n",
-	    stats->tx_deferred);
-	printf("Transmit good octets : %ju\n",
-	    (uintmax_t)stats->tx_bytes);
+	printf("Transmit deferrals : %u\n", stats->tx_deferred);
+	printf("Transmit good octets : %ju\n", (uintmax_t)stats->tx_bytes);
 	printf("Transmit good broadcast octets : %ju\n",
 	    (uintmax_t)stats->tx_bcast_bytes);
 	printf("Transmit good multicast octets : %ju\n",
@@ -3232,12 +3222,9 @@ sysctl_age_stats(SYSCTL_HANDLER_ARGS)
 	    (uintmax_t)stats->tx_pkts_1024_1518);
 	printf("Transmit frames 1519 to MTU bytes : %ju\n",
 	    (uintmax_t)stats->tx_pkts_1519_max);
-	printf("Transmit single collisions : %u\n",
-	    stats->tx_single_colls);
-	printf("Transmit multiple collisions : %u\n",
-	    stats->tx_multi_colls);
-	printf("Transmit late collisions : %u\n",
-	    stats->tx_late_colls);
+	printf("Transmit single collisions : %u\n", stats->tx_single_colls);
+	printf("Transmit multiple collisions : %u\n", stats->tx_multi_colls);
+	printf("Transmit late collisions : %u\n", stats->tx_late_colls);
 	printf("Transmit abort due to excessive collisions : %u\n",
 	    stats->tx_excess_colls);
 	printf("Transmit underruns due to FIFO underruns : %u\n",
@@ -3249,32 +3236,24 @@ sysctl_age_stats(SYSCTL_HANDLER_ARGS)
 	printf("Transmit frames with truncated due to MTU size : %u\n",
 	    stats->tx_lenerrs);
 
-	printf("Receive good frames : %ju\n",
-	    (uintmax_t)stats->rx_frames);
+	printf("Receive good frames : %ju\n", (uintmax_t)stats->rx_frames);
 	printf("Receive good broadcast frames : %ju\n",
 	    (uintmax_t)stats->rx_bcast_frames);
 	printf("Receive good multicast frames : %ju\n",
 	    (uintmax_t)stats->rx_mcast_frames);
-	printf("Receive pause control frames : %u\n",
-	    stats->rx_pause_frames);
-	printf("Receive control frames : %u\n",
-	    stats->rx_control_frames);
-	printf("Receive CRC errors : %u\n",
-	    stats->rx_crcerrs);
-	printf("Receive frames with length errors : %u\n",
-	    stats->rx_lenerrs);
-	printf("Receive good octets : %ju\n",
-	    (uintmax_t)stats->rx_bytes);
+	printf("Receive pause control frames : %u\n", stats->rx_pause_frames);
+	printf("Receive control frames : %u\n", stats->rx_control_frames);
+	printf("Receive CRC errors : %u\n", stats->rx_crcerrs);
+	printf("Receive frames with length errors : %u\n", stats->rx_lenerrs);
+	printf("Receive good octets : %ju\n", (uintmax_t)stats->rx_bytes);
 	printf("Receive good broadcast octets : %ju\n",
 	    (uintmax_t)stats->rx_bcast_bytes);
 	printf("Receive good multicast octets : %ju\n",
 	    (uintmax_t)stats->rx_mcast_bytes);
-	printf("Receive frames too short : %u\n",
-	    stats->rx_runts);
+	printf("Receive frames too short : %u\n", stats->rx_runts);
 	printf("Receive fragmented frames : %ju\n",
 	    (uintmax_t)stats->rx_fragments);
-	printf("Receive frames 64 bytes : %ju\n",
-	    (uintmax_t)stats->rx_pkts_64);
+	printf("Receive frames 64 bytes : %ju\n", (uintmax_t)stats->rx_pkts_64);
 	printf("Receive frames 65 to 127 bytes : %ju\n",
 	    (uintmax_t)stats->rx_pkts_65_127);
 	printf("Receive frames 128 to 255 bytes : %ju\n",
@@ -3314,16 +3293,16 @@ sysctl_int_range(SYSCTL_HANDLER_ARGS, int low, int high)
 		return (error);
 	if (value < low || value > high)
 		return (EINVAL);
-        *(int *)arg1 = value;
+	*(int *)arg1 = value;
 
-        return (0);
+	return (0);
 }
 
 static int
 sysctl_hw_age_proc_limit(SYSCTL_HANDLER_ARGS)
 {
-	return (sysctl_int_range(oidp, arg1, arg2, req,
-	    AGE_PROC_MIN, AGE_PROC_MAX));
+	return (sysctl_int_range(oidp, arg1, arg2, req, AGE_PROC_MIN,
+	    AGE_PROC_MAX));
 }
 
 static int

@@ -43,7 +43,7 @@
 int
 iswalnum(wint_t wc)
 {
-	return (__istype(wc, _CTYPE_A|_CTYPE_N));
+	return (__istype(wc, _CTYPE_A | _CTYPE_N));
 }
 
 #undef iswalpha
@@ -88,7 +88,7 @@ iswgraph(wint_t wc)
 	return (__istype(wc, _CTYPE_G));
 }
 
-#undef iswhexnumber 
+#undef iswhexnumber
 int
 iswhexnumber(wint_t wc)
 {
@@ -116,7 +116,7 @@ iswnumber(wint_t wc)
 	return (__istype(wc, _CTYPE_N));
 }
 
-#undef iswphonogram	
+#undef iswphonogram
 int
 iswphonogram(wint_t wc)
 {
@@ -176,13 +176,12 @@ iswxdigit(wint_t wc)
 wint_t
 towlower(wint_t wc)
 {
-        return (__tolower(wc));
+	return (__tolower(wc));
 }
 
 #undef towupper
 wint_t
 towupper(wint_t wc)
 {
-        return (__toupper(wc));
+	return (__toupper(wc));
 }
-

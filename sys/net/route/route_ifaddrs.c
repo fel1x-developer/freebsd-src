@@ -33,24 +33,23 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/rmlock.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
 #include <sys/syslog.h>
-#include <sys/kernel.h>
-#include <sys/lock.h>
-#include <sys/rmlock.h>
 
 #include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_private.h>
 #include <net/if_dl.h>
+#include <net/if_private.h>
+#include <net/if_var.h>
 #include <net/route.h>
+#include <net/route/nhop.h>
 #include <net/route/route_ctl.h>
 #include <net/route/route_var.h>
-#include <net/route/nhop.h>
 #include <net/vnet.h>
-
 #include <netinet/in.h>
 
 /*
@@ -119,8 +118,8 @@ rib_handle_ifaddr_info(uint32_t fibnum, int cmd, struct rt_addrinfo *info)
 			error = 0;
 		} else {
 			/* we only give an error if it wasn't in any table */
-			error = ((info->rti_flags & RTF_HOST) ?
-			    EHOSTUNREACH : ENETUNREACH);
+			error = ((info->rti_flags & RTF_HOST) ? EHOSTUNREACH :
+								ENETUNREACH);
 		}
 	} else {
 		if (last_error != 0) {
@@ -151,7 +150,8 @@ ifa_maintain_loopback_route(int cmd, const char *otype, struct ifaddr *ifa,
 	if (cmd == RTM_ADD) {
 		/* explicitly specify (loopback) ifa */
 		if (info.rti_ifp != NULL)
-			info.rti_ifa = ifaof_ifpforaddr(ifa->ifa_addr, info.rti_ifp);
+			info.rti_ifa = ifaof_ifpforaddr(ifa->ifa_addr,
+			    info.rti_ifp);
 	}
 	info.rti_flags = ifa->ifa_flags | RTF_HOST | RTF_STATIC | RTF_PINNED;
 	info.rti_info[RTAX_DST] = ia;
@@ -161,13 +161,12 @@ ifa_maintain_loopback_route(int cmd, const char *otype, struct ifaddr *ifa,
 	error = rib_action(ifp->if_fib, cmd, &info, &rc);
 	NET_EPOCH_EXIT(et);
 
-	if (error == 0 ||
-	    (cmd == RTM_ADD && error == EEXIST) ||
+	if (error == 0 || (cmd == RTM_ADD && error == EEXIST) ||
 	    (cmd == RTM_DELETE && (error == ENOENT || error == ESRCH)))
 		return (error);
 
-	log(LOG_DEBUG, "%s: %s failed for interface %s: %u\n",
-		__func__, otype, if_name(ifp), error);
+	log(LOG_DEBUG, "%s: %s failed for interface %s: %u\n", __func__, otype,
+	    if_name(ifp), error);
 
 	return (error);
 }
@@ -238,4 +237,3 @@ rib_copy_kernel_routes(struct rib_head *rh_src, struct rib_head *rh_dst)
 	rib_walk_ext_internal(rh_src, false, pick_kernel_route, NULL, rh_dst);
 	NET_EPOCH_EXIT(et);
 }
-

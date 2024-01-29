@@ -67,8 +67,8 @@ extern "C" {
 
 #include <dev/isci/scil/sci_types.h>
 
-#define PATSBURG_SMU_BAR       0
-#define PATSBURG_SCU_BAR       1
+#define PATSBURG_SMU_BAR 0
+#define PATSBURG_SCU_BAR 1
 #define PATSBURG_IO_SPACE_BAR0 2
 #define PATSBURG_IO_SPACE_BAR1 3
 
@@ -78,26 +78,24 @@ extern "C" {
 #define SCIC_SDS_PCI_REVISION_C0 5
 #define SCIC_SDS_PCI_REVISION_C1 6
 
-enum SCU_CONTROLLER_PCI_REVISION_CODE
-{
-   SCU_PBG_HBA_REV_A0 = SCIC_SDS_PCI_REVISION_A0,
-   SCU_PBG_HBA_REV_A2 = SCIC_SDS_PCI_REVISION_A2,
-   SCU_PBG_HBA_REV_B0 = SCIC_SDS_PCI_REVISION_B0,
-   SCU_PBG_HBA_REV_C0 = SCIC_SDS_PCI_REVISION_C0,
-   SCU_PBG_HBA_REV_C1 = SCIC_SDS_PCI_REVISION_C1
+enum SCU_CONTROLLER_PCI_REVISION_CODE {
+	SCU_PBG_HBA_REV_A0 = SCIC_SDS_PCI_REVISION_A0,
+	SCU_PBG_HBA_REV_A2 = SCIC_SDS_PCI_REVISION_A2,
+	SCU_PBG_HBA_REV_B0 = SCIC_SDS_PCI_REVISION_B0,
+	SCU_PBG_HBA_REV_C0 = SCIC_SDS_PCI_REVISION_C0,
+	SCU_PBG_HBA_REV_C1 = SCIC_SDS_PCI_REVISION_C1
 };
 
 struct SCIC_SDS_CONTROLLER;
 
 void scic_sds_pci_bar_initialization(
-   struct SCIC_SDS_CONTROLLER * this_controller
-);
+    struct SCIC_SDS_CONTROLLER *this_controller);
 
 #if !defined(ENABLE_PCI_IO_SPACE_ACCESS) || defined(ARLINGTON_BUILD)
 
-#define scic_sds_pci_read_smu_dword  scic_cb_pci_read_dword
+#define scic_sds_pci_read_smu_dword scic_cb_pci_read_dword
 #define scic_sds_pci_write_smu_dword scic_cb_pci_write_dword
-#define scic_sds_pci_read_scu_dword  scic_cb_pci_read_dword
+#define scic_sds_pci_read_scu_dword scic_cb_pci_read_dword
 #define scic_sds_pci_write_scu_dword scic_cb_pci_write_dword
 
 #else // !defined(ENABLE_PCI_IO_SPACE_ACCESS)
@@ -105,29 +103,19 @@ void scic_sds_pci_bar_initialization(
 // These two registers form the Data/Index pair equivalent in the
 // SCU. They are only used for access registers in BAR 1, not BAR 0.
 #define SCU_MMR_ADDRESS_WINDOW_OFFSET 0xA0
-#define SCU_MMR_DATA_WINDOW_OFFSET    0xA4
+#define SCU_MMR_DATA_WINDOW_OFFSET 0xA4
 
-U32 scic_sds_pci_read_smu_dword(
-   SCI_CONTROLLER_HANDLE_T   controller,
-   void                    * address
-);
+U32 scic_sds_pci_read_smu_dword(SCI_CONTROLLER_HANDLE_T controller,
+    void *address);
 
-void scic_sds_pci_write_smu_dword(
-   SCI_CONTROLLER_HANDLE_T   controller,
-   void                    * address,
-   U32                       write_value
-);
+void scic_sds_pci_write_smu_dword(SCI_CONTROLLER_HANDLE_T controller,
+    void *address, U32 write_value);
 
-U32 scic_sds_pci_read_scu_dword(
-   SCI_CONTROLLER_HANDLE_T   controller,
-   void                    * address
-);
+U32 scic_sds_pci_read_scu_dword(SCI_CONTROLLER_HANDLE_T controller,
+    void *address);
 
-void scic_sds_pci_write_scu_dword(
-   SCI_CONTROLLER_HANDLE_T   controller,
-   void                    * address,
-   U32                       write_value
-);
+void scic_sds_pci_write_scu_dword(SCI_CONTROLLER_HANDLE_T controller,
+    void *address, U32 write_value);
 
 #endif // !defined(ENABLE_PCI_IO_SPACE_ACCESS)
 

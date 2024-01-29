@@ -27,35 +27,34 @@
 
 #include <sys/types.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
+#include <sys/kdb.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
+#include <sys/queue.h>
 #include <sys/sched.h>
 #include <sys/smp.h>
-#include <sys/queue.h>
 #include <sys/taskqueue.h>
-#include <sys/kdb.h>
 
 #include <ck_epoch.h>
-
-#include <linux/rcupdate.h>
-#include <linux/srcu.h>
-#include <linux/slab.h>
-#include <linux/kernel.h>
 #include <linux/compat.h>
-#include <linux/llist.h>
 #include <linux/irq_work.h>
+#include <linux/kernel.h>
+#include <linux/llist.h>
+#include <linux/rcupdate.h>
+#include <linux/slab.h>
+#include <linux/srcu.h>
 
 /*
  * By defining CONFIG_NO_RCU_SKIP LinuxKPI RCU locks and asserts will
  * not be skipped during panic().
  */
 #ifdef CONFIG_NO_RCU_SKIP
-#define	RCU_SKIP(void) 0
+#define RCU_SKIP(void) 0
 #else
-#define	RCU_SKIP(void)	unlikely(SCHEDULER_STOPPED() || kdb_active)
+#define RCU_SKIP(void) unlikely(SCHEDULER_STOPPED() || kdb_active)
 #endif
 
 struct callback_head {
@@ -92,8 +91,8 @@ CTASSERT(sizeof(struct rcu_head) == sizeof(struct callback_head));
  * special compile flags for including ck_epoch.h to all clients of
  * the LinuxKPI.
  */
-CTASSERT(sizeof(((struct task_struct *)0)->rcu_section[0] ==
-    sizeof(ck_epoch_section_t)));
+CTASSERT(sizeof(
+    ((struct task_struct *)0)->rcu_section[0] == sizeof(ck_epoch_section_t)));
 
 /*
  * Verify that "epoch_record" is at beginning of "struct
@@ -105,7 +104,8 @@ CTASSERT(TS_RCU_TYPE_MAX == RCU_TYPE_MAX);
 
 static ck_epoch_t linux_epoch[RCU_TYPE_MAX];
 static struct linux_epoch_head linux_epoch_head[RCU_TYPE_MAX];
-DPCPU_DEFINE_STATIC(struct linux_epoch_record, linux_epoch_record[RCU_TYPE_MAX]);
+DPCPU_DEFINE_STATIC(struct linux_epoch_record,
+    linux_epoch_record[RCU_TYPE_MAX]);
 
 static void linux_rcu_cleaner_func(void *, int);
 
@@ -124,7 +124,7 @@ linux_rcu_runtime_init(void *arg __unused)
 		TASK_INIT(&head->task, 0, linux_rcu_cleaner_func, head);
 		init_llist_head(&head->cb_head);
 
-		CPU_FOREACH(i) {
+		CPU_FOREACH (i) {
 			struct linux_epoch_record *record;
 
 			record = &DPCPU_ID_GET(i, linux_epoch_record[j]);
@@ -137,7 +137,8 @@ linux_rcu_runtime_init(void *arg __unused)
 		}
 	}
 }
-SYSINIT(linux_rcu_runtime, SI_SUB_CPU, SI_ORDER_ANY, linux_rcu_runtime_init, NULL);
+SYSINIT(linux_rcu_runtime, SI_SUB_CPU, SI_ORDER_ANY, linux_rcu_runtime_init,
+    NULL);
 
 static void
 linux_rcu_cleaner_func(void *context, int pending __unused)
@@ -150,7 +151,8 @@ linux_rcu_cleaner_func(void *context, int pending __unused)
 
 	/* move current callbacks into own queue */
 	STAILQ_INIT(&tmp_head);
-	llist_for_each_safe(node, next, llist_del_all(&head->cb_head)) {
+	llist_for_each_safe(node, next, llist_del_all(&head->cb_head))
+	{
 		rcu = container_of(node, struct callback_head, node);
 		/* re-reverse list to restore chronological order */
 		STAILQ_INSERT_HEAD(&tmp_head, rcu, entry);
@@ -225,7 +227,7 @@ linux_rcu_read_unlock(unsigned type)
 
 	/* assert valid refcount */
 	MPASS(ts->rcu_recurse[type] > 0);
-	
+
 	if (--(ts->rcu_recurse[type]) != 0)
 		return;
 
@@ -245,10 +247,11 @@ linux_rcu_read_unlock(unsigned type)
 }
 
 static void
-linux_synchronize_rcu_cb(ck_epoch_t *epoch __unused, ck_epoch_record_t *epoch_record, void *arg __unused)
+linux_synchronize_rcu_cb(ck_epoch_t *epoch __unused,
+    ck_epoch_record_t *epoch_record, void *arg __unused)
 {
-	struct linux_epoch_record *record =
-	    container_of(epoch_record, struct linux_epoch_record, epoch_record);
+	struct linux_epoch_record *record = container_of(epoch_record,
+	    struct linux_epoch_record, epoch_record);
 	struct thread *td = curthread;
 	struct task_struct *ts;
 
@@ -263,7 +266,7 @@ linux_synchronize_rcu_cb(ck_epoch_t *epoch __unused, ck_epoch_record_t *epoch_re
 		 * the threads in the queue are CPU-pinned and cannot
 		 * go anywhere while the current thread is locked.
 		 */
-		TAILQ_FOREACH(ts, &record->ts_head, rcu_entry[record->type]) {
+		TAILQ_FOREACH (ts, &record->ts_head, rcu_entry[record->type]) {
 			if (ts->task_thread->td_priority > prio)
 				prio = ts->task_thread->td_priority;
 			is_sleeping |= (ts->task_thread->td_inhibitors != 0);
@@ -335,8 +338,8 @@ linux_synchronize_rcu(unsigned type)
 	td->td_pinned = 0;
 	sched_bind(td, old_cpu);
 
-	ck_epoch_synchronize_wait(&linux_epoch[type],
-	    &linux_synchronize_rcu_cb, NULL);
+	ck_epoch_synchronize_wait(&linux_epoch[type], &linux_synchronize_rcu_cb,
+	    NULL);
 
 	/* restore CPU binding, if any */
 	if (was_bound != 0) {

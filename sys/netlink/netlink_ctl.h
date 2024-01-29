@@ -40,42 +40,44 @@ MALLOC_DECLARE(M_NETLINK);
 /*
  * Macro for handling attribute TLVs
  */
-#define _roundup2(x, y)         (((x)+((y)-1))&(~((y)-1)))
+#define _roundup2(x, y) (((x) + ((y)-1)) & (~((y)-1)))
 
-#define NETLINK_ALIGN_SIZE      sizeof(uint32_t)
-#define NETLINK_ALIGN(_len)     _roundup2(_len, NETLINK_ALIGN_SIZE)
+#define NETLINK_ALIGN_SIZE sizeof(uint32_t)
+#define NETLINK_ALIGN(_len) _roundup2(_len, NETLINK_ALIGN_SIZE)
 
-#define NLA_ALIGN_SIZE          sizeof(uint32_t)
-#define NLA_ALIGN(_len)         _roundup2(_len, NLA_ALIGN_SIZE)
-#define	NLA_HDRLEN		((int)sizeof(struct nlattr))
-#define	NLA_DATA_LEN(_nla)	((int)((_nla)->nla_len - NLA_HDRLEN))
-#define	NLA_DATA(_nla)		NL_ITEM_DATA(_nla, NLA_HDRLEN)
-#define	NLA_DATA_CONST(_nla)	NL_ITEM_DATA_CONST(_nla, NLA_HDRLEN)
-#define	NLA_TYPE(_nla)		((_nla)->nla_type & 0x3FFF)
+#define NLA_ALIGN_SIZE sizeof(uint32_t)
+#define NLA_ALIGN(_len) _roundup2(_len, NLA_ALIGN_SIZE)
+#define NLA_HDRLEN ((int)sizeof(struct nlattr))
+#define NLA_DATA_LEN(_nla) ((int)((_nla)->nla_len - NLA_HDRLEN))
+#define NLA_DATA(_nla) NL_ITEM_DATA(_nla, NLA_HDRLEN)
+#define NLA_DATA_CONST(_nla) NL_ITEM_DATA_CONST(_nla, NLA_HDRLEN)
+#define NLA_TYPE(_nla) ((_nla)->nla_type & 0x3FFF)
 
-#ifndef	typeof
-#define	typeof	__typeof
+#ifndef typeof
+#define typeof __typeof
 #endif
 
-#define NLA_NEXT(_attr) (struct nlattr *)((char *)_attr + NLA_ALIGN(_attr->nla_len))
-#define	_NLA_END(_start, _len)	((char *)(_start) + (_len))
-#define NLA_FOREACH(_attr, _start, _len)      \
-        for (typeof(_attr) _end = (typeof(_attr))_NLA_END(_start, _len), _attr = (_start);		\
-		((char *)_attr < (char *)_end) && \
-		((char *)NLA_NEXT(_attr) <= (char *)_end);	\
-		_attr = (_len -= NLA_ALIGN(_attr->nla_len), NLA_NEXT(_attr)))
+#define NLA_NEXT(_attr) \
+	(struct nlattr *)((char *)_attr + NLA_ALIGN(_attr->nla_len))
+#define _NLA_END(_start, _len) ((char *)(_start) + (_len))
+#define NLA_FOREACH(_attr, _start, _len)                                 \
+	for (typeof(_attr) _end = (typeof(_attr))_NLA_END(_start, _len), \
+			   _attr = (_start);                             \
+	     ((char *)_attr < (char *)_end) &&                           \
+	     ((char *)NLA_NEXT(_attr) <= (char *)_end);                  \
+	     _attr = (_len -= NLA_ALIGN(_attr->nla_len), NLA_NEXT(_attr)))
 
-#define	NL_ARRAY_LEN(_a)	(sizeof(_a) / sizeof((_a)[0]))
+#define NL_ARRAY_LEN(_a) (sizeof(_a) / sizeof((_a)[0]))
 
-#include <netlink/netlink_message_writer.h>
 #include <netlink/netlink_message_parser.h>
-
+#include <netlink/netlink_message_writer.h>
 
 /* Protocol handlers */
 struct nl_pstate;
 typedef int (*nl_handler_f)(struct nlmsghdr *hdr, struct nl_pstate *npt);
 
-bool netlink_register_proto(int proto, const char *proto_name, nl_handler_f handler);
+bool netlink_register_proto(int proto, const char *proto_name,
+    nl_handler_f handler);
 bool netlink_unregister_proto(int proto);
 
 /* Common helpers */
@@ -87,11 +89,11 @@ bool nlp_unconstrained_vnet(const struct nlpcb *nlp);
 
 /* netlink_generic.c */
 struct genl_cmd {
-	const char	*cmd_name;
-	nl_handler_f	cmd_cb;
-	uint32_t	cmd_flags;
-	uint32_t	cmd_priv;
-	uint32_t	cmd_num;
+	const char *cmd_name;
+	nl_handler_f cmd_cb;
+	uint32_t cmd_flags;
+	uint32_t cmd_priv;
+	uint32_t cmd_num;
 };
 
 uint32_t genl_register_family(const char *family_name, size_t hdrsize,
@@ -105,7 +107,8 @@ struct genl_family;
 const char *genl_get_family_name(const struct genl_family *gf);
 uint32_t genl_get_family_id(const struct genl_family *gf);
 
-typedef void (*genl_family_event_handler_t)(void *arg, const struct genl_family *gf, int action);
+typedef void (*genl_family_event_handler_t)(void *arg,
+    const struct genl_family *gf, int action);
 EVENTHANDLER_DECLARE(genl_family_event, genl_family_event_handler_t);
 
 struct thread;

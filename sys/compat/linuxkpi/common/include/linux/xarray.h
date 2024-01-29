@@ -23,40 +23,41 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef	_LINUXKPI_LINUX_XARRAY_H_
-#define	_LINUXKPI_LINUX_XARRAY_H_
-
-#include <linux/gfp.h>
-#include <linux/radix-tree.h>
-#include <linux/err.h>
-#include <linux/kconfig.h>
+#ifndef _LINUXKPI_LINUX_XARRAY_H_
+#define _LINUXKPI_LINUX_XARRAY_H_
 
 #include <sys/lock.h>
 #include <sys/mutex.h>
 
-#define	XA_LIMIT(min, max) \
-    ({ CTASSERT((min) == 0); (uint32_t)(max); })
+#include <linux/err.h>
+#include <linux/gfp.h>
+#include <linux/kconfig.h>
+#include <linux/radix-tree.h>
 
-#define	XA_FLAGS_ALLOC (1U << 0)
-#define	XA_FLAGS_LOCK_IRQ (1U << 1)
-#define	XA_FLAGS_ALLOC1 (1U << 2)
+#define XA_LIMIT(min, max)            \
+	({                            \
+		CTASSERT((min) == 0); \
+		(uint32_t)(max);      \
+	})
 
-#define	XA_ERROR(x) \
-	ERR_PTR(x)
+#define XA_FLAGS_ALLOC (1U << 0)
+#define XA_FLAGS_LOCK_IRQ (1U << 1)
+#define XA_FLAGS_ALLOC1 (1U << 2)
 
-#define	xa_is_err(x) \
-	IS_ERR(x)
+#define XA_ERROR(x) ERR_PTR(x)
 
-#define	xa_limit_32b XA_LIMIT(0, 0xFFFFFFFF)
+#define xa_is_err(x) IS_ERR(x)
 
-#define	XA_ASSERT_LOCKED(xa) mtx_assert(&(xa)->mtx, MA_OWNED)
-#define	xa_lock(xa) mtx_lock(&(xa)->mtx)
-#define	xa_unlock(xa) mtx_unlock(&(xa)->mtx)
+#define xa_limit_32b XA_LIMIT(0, 0xFFFFFFFF)
+
+#define XA_ASSERT_LOCKED(xa) mtx_assert(&(xa)->mtx, MA_OWNED)
+#define xa_lock(xa) mtx_lock(&(xa)->mtx)
+#define xa_unlock(xa) mtx_unlock(&(xa)->mtx)
 
 struct xarray {
 	struct radix_tree_root root;
-	struct mtx mtx;		/* internal mutex */
-	uint32_t flags;		/* see XA_FLAGS_XXX */
+	struct mtx mtx; /* internal mutex */
+	uint32_t flags; /* see XA_FLAGS_XXX */
 };
 
 /*
@@ -66,7 +67,8 @@ struct xarray {
 void *xa_erase(struct xarray *, uint32_t);
 void *xa_load(struct xarray *, uint32_t);
 int xa_alloc(struct xarray *, uint32_t *, void *, uint32_t, gfp_t);
-int xa_alloc_cyclic(struct xarray *, uint32_t *, void *, uint32_t, uint32_t *, gfp_t);
+int xa_alloc_cyclic(struct xarray *, uint32_t *, void *, uint32_t, uint32_t *,
+    gfp_t);
 int xa_insert(struct xarray *, uint32_t, void *, gfp_t);
 void *xa_store(struct xarray *, uint32_t, void *, gfp_t);
 void xa_init_flags(struct xarray *, uint32_t);
@@ -74,40 +76,39 @@ bool xa_empty(struct xarray *);
 void xa_destroy(struct xarray *);
 void *xa_next(struct xarray *, unsigned long *, bool);
 
-#define	xa_for_each(xa, index, entry) \
+#define xa_for_each(xa, index, entry)     \
 	for ((entry) = NULL, (index) = 0; \
-	     ((entry) = xa_next(xa, &index, (entry) != NULL)) != NULL; )
+	     ((entry) = xa_next(xa, &index, (entry) != NULL)) != NULL;)
 
 /*
  * Unlocked version of functions above.
  */
 void *__xa_erase(struct xarray *, uint32_t);
 int __xa_alloc(struct xarray *, uint32_t *, void *, uint32_t, gfp_t);
-int __xa_alloc_cyclic(struct xarray *, uint32_t *, void *, uint32_t, uint32_t *, gfp_t);
+int __xa_alloc_cyclic(struct xarray *, uint32_t *, void *, uint32_t, uint32_t *,
+    gfp_t);
 int __xa_insert(struct xarray *, uint32_t, void *, gfp_t);
 void *__xa_store(struct xarray *, uint32_t, void *, gfp_t);
 bool __xa_empty(struct xarray *);
 void *__xa_next(struct xarray *, unsigned long *, bool);
 
-#define	xa_store_irq(xa, index, ptr, gfp) \
-	xa_store((xa), (index), (ptr), (gfp))
+#define xa_store_irq(xa, index, ptr, gfp) xa_store((xa), (index), (ptr), (gfp))
 
-#define	xa_erase_irq(xa, index) \
-	xa_erase((xa), (index))
+#define xa_erase_irq(xa, index) xa_erase((xa), (index))
 
-#define	xa_lock_irq(xa)		xa_lock(xa)
-#define	xa_unlock_irq(xa)	xa_unlock(xa)
+#define xa_lock_irq(xa) xa_lock(xa)
+#define xa_unlock_irq(xa) xa_unlock(xa)
 
-#define	xa_lock_irqsave(xa, flags) \
-	do { \
-		xa_lock((xa)); \
-		flags = 0; \
+#define xa_lock_irqsave(xa, flags) \
+	do {                       \
+		xa_lock((xa));     \
+		flags = 0;         \
 	} while (0)
 
-#define	xa_unlock_irqrestore(xa, flags) \
-	do { \
-		xa_unlock((xa)); \
-		flags == 0; \
+#define xa_unlock_irqrestore(xa, flags) \
+	do {                            \
+		xa_unlock((xa));        \
+		flags == 0;             \
 	} while (0)
 
 static inline int
@@ -145,4 +146,4 @@ xa_to_value(const void *e)
 
 	return (v >> 1);
 }
-#endif		/* _LINUXKPI_LINUX_XARRAY_H_ */
+#endif /* _LINUXKPI_LINUX_XARRAY_H_ */

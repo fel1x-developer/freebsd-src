@@ -1,4 +1,5 @@
-/*	$NetBSD: citrus_iconv_none.c,v 1.3 2011/05/23 14:45:44 joerg Exp $	*/
+/*	$NetBSD: citrus_iconv_none.c,v 1.3 2011/05/23 14:45:44 joerg Exp $
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
@@ -37,17 +38,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "citrus_types.h"
-#include "citrus_module.h"
 #include "citrus_hash.h"
 #include "citrus_iconv.h"
 #include "citrus_iconv_none.h"
+#include "citrus_module.h"
+#include "citrus_types.h"
 
 /* ---------------------------------------------------------------------- */
 
 _CITRUS_ICONV_DECLS(iconv_none);
 _CITRUS_ICONV_DEF_OPS(iconv_none);
-
 
 /* ---------------------------------------------------------------------- */
 
@@ -56,16 +56,15 @@ _citrus_iconv_none_iconv_getops(struct _citrus_iconv_ops *ops)
 {
 
 	memcpy(ops, &_citrus_iconv_none_iconv_ops,
-	       sizeof(_citrus_iconv_none_iconv_ops));
+	    sizeof(_citrus_iconv_none_iconv_ops));
 
 	return (0);
 }
 
 static int
 /*ARGSUSED*/
-_citrus_iconv_none_iconv_init_shared(
-    struct _citrus_iconv_shared * __restrict ci,
-    const char * __restrict in __unused, const char * __restrict out __unused)
+_citrus_iconv_none_iconv_init_shared(struct _citrus_iconv_shared *__restrict ci,
+    const char *__restrict in __unused, const char *__restrict out __unused)
 {
 
 	ci->ci_closure = NULL;
@@ -76,7 +75,6 @@ static void
 /*ARGSUSED*/
 _citrus_iconv_none_iconv_uninit_shared(struct _citrus_iconv_shared *ci __unused)
 {
-
 }
 
 static int
@@ -92,26 +90,26 @@ static void
 /*ARGSUSED*/
 _citrus_iconv_none_iconv_uninit_context(struct _citrus_iconv *cv __unused)
 {
-
 }
 
 static int
 /*ARGSUSED*/
-_citrus_iconv_none_iconv_convert(struct _citrus_iconv * __restrict ci __unused,
-    char * __restrict * __restrict in, size_t * __restrict inbytes,
-    char * __restrict * __restrict out, size_t * __restrict outbytes,
-    uint32_t flags __unused, size_t * __restrict invalids)
+_citrus_iconv_none_iconv_convert(struct _citrus_iconv *__restrict ci __unused,
+    char *__restrict *__restrict in, size_t *__restrict inbytes,
+    char *__restrict *__restrict out, size_t *__restrict outbytes,
+    uint32_t flags __unused, size_t *__restrict invalids)
 {
 	size_t len;
 	int e2big;
 
 	if ((in == NULL) || (out == NULL) || (inbytes == NULL))
 		return (0);
-	if ((*in == NULL) || (*out == NULL) || (*inbytes == 0) || (*outbytes == 0))
+	if ((*in == NULL) || (*out == NULL) || (*inbytes == 0) ||
+	    (*outbytes == 0))
 		return (0);
 	len = *inbytes;
 	e2big = 0;
-	if (*outbytes<len) {
+	if (*outbytes < len) {
 		e2big = 1;
 		len = *outbytes;
 	}

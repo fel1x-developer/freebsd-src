@@ -40,9 +40,7 @@
 #include "gssd.h"
 
 OM_uint32
-gss_ip_to_dns(OM_uint32 *minor_status,
-    char *ip_addr,
-    char *dns_name)
+gss_ip_to_dns(OM_uint32 *minor_status, char *ip_addr, char *dns_name)
 {
 	struct ip_to_dns_res res;
 	struct ip_to_dns_args args;

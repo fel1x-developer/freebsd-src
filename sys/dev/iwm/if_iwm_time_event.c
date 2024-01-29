@@ -102,62 +102,58 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-#include <sys/cdefs.h>
-#include "opt_wlan.h"
 #include "opt_iwm.h"
+#include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/endian.h>
 #include <sys/firmware.h>
 #include <sys/kernel.h>
+#include <sys/linker.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
-#include <sys/mutex.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/linker.h>
 
 #include <machine/bus.h>
 #include <machine/endian.h>
 #include <machine/resource.h>
 
-#include <dev/pci/pcivar.h>
+#include <dev/iwm/if_iwm_debug.h>
+#include <dev/iwm/if_iwm_notif_wait.h>
+#include <dev/iwm/if_iwm_pcie_trans.h>
+#include <dev/iwm/if_iwm_time_event.h>
+#include <dev/iwm/if_iwm_util.h>
+#include <dev/iwm/if_iwmreg.h>
+#include <dev/iwm/if_iwmvar.h>
 #include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include <net/bpf.h>
-
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_arp.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
-
+#include <net/if_var.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_ratectl.h>
+#include <net80211/ieee80211_regdomain.h>
+#include <net80211/ieee80211_var.h>
+#include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
-#include <netinet/if_ether.h>
 #include <netinet/ip.h>
 
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_regdomain.h>
-#include <net80211/ieee80211_ratectl.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/iwm/if_iwmreg.h>
-#include <dev/iwm/if_iwmvar.h>
-#include <dev/iwm/if_iwm_debug.h>
-#include <dev/iwm/if_iwm_util.h>
-#include <dev/iwm/if_iwm_notif_wait.h>
-#include <dev/iwm/if_iwm_pcie_trans.h>
-#include <dev/iwm/if_iwm_time_event.h>
-
-#define TU_TO_HZ(tu)	(((uint64_t)(tu) * 1024 * hz) / 1000000)
+#define TU_TO_HZ(tu) (((uint64_t)(tu) * 1024 * hz) / 1000000)
 
 static void
 iwm_te_clear_data(struct iwm_softc *sc)
@@ -176,13 +172,11 @@ iwm_te_clear_data(struct iwm_softc *sc)
  * @notif: the notification data corresponding the time event data.
  */
 static void
-iwm_te_handle_notif(struct iwm_softc *sc,
-    struct iwm_time_event_notif *notif)
+iwm_te_handle_notif(struct iwm_softc *sc, struct iwm_time_event_notif *notif)
 {
 	IWM_DPRINTF(sc, IWM_DEBUG_TE,
 	    "Handle time event notif - UID = 0x%x action %d\n",
-	    le32toh(notif->unique_id),
-	    le32toh(notif->action));
+	    le32toh(notif->unique_id), le32toh(notif->action));
 
 	if (!le32toh(notif->status)) {
 #ifdef IWM_DEBUG
@@ -199,13 +193,13 @@ iwm_te_handle_notif(struct iwm_softc *sc,
 
 	if (le32toh(notif->action) & IWM_TE_V2_NOTIF_HOST_EVENT_END) {
 		IWM_DPRINTF(sc, IWM_DEBUG_TE,
-		    "TE ended - current time %d, estimated end %d\n",
-		    ticks, sc->sc_time_event_end_ticks);
+		    "TE ended - current time %d, estimated end %d\n", ticks,
+		    sc->sc_time_event_end_ticks);
 
 		iwm_te_clear_data(sc);
 	} else if (le32toh(notif->action) & IWM_TE_V2_NOTIF_HOST_EVENT_START) {
-		sc->sc_time_event_end_ticks =
-		    ticks + TU_TO_HZ(sc->sc_time_event_duration);
+		sc->sc_time_event_end_ticks = ticks +
+		    TU_TO_HZ(sc->sc_time_event_duration);
 	} else {
 		device_printf(sc->sc_dev, "Got TE with unknown action\n");
 	}
@@ -221,15 +215,13 @@ iwm_rx_time_event_notif(struct iwm_softc *sc, struct iwm_rx_packet *pkt)
 
 	IWM_DPRINTF(sc, IWM_DEBUG_TE,
 	    "Time event notification - UID = 0x%x action %d\n",
-	    le32toh(notif->unique_id),
-	    le32toh(notif->action));
+	    le32toh(notif->unique_id), le32toh(notif->action));
 
 	iwm_te_handle_notif(sc, notif);
 }
 
 static int
-iwm_te_notif(struct iwm_softc *sc, struct iwm_rx_packet *pkt,
-    void *data)
+iwm_te_notif(struct iwm_softc *sc, struct iwm_rx_packet *pkt, void *data)
 {
 	struct iwm_time_event_notif *resp;
 	int resp_len = iwm_rx_packet_payload_len(pkt);
@@ -265,8 +257,7 @@ iwm_time_event_response(struct iwm_softc *sc, struct iwm_rx_packet *pkt,
 	struct iwm_time_event_resp *resp;
 	int resp_len = iwm_rx_packet_payload_len(pkt);
 
-	if (pkt->hdr.code != IWM_TIME_EVENT_CMD ||
-	    resp_len != sizeof(*resp)) {
+	if (pkt->hdr.code != IWM_TIME_EVENT_CMD || resp_len != sizeof(*resp)) {
 		IWM_DPRINTF(sc, IWM_DEBUG_TE,
 		    "Invalid TIME_EVENT_CMD response\n");
 		return 1;
@@ -283,24 +274,23 @@ iwm_time_event_response(struct iwm_softc *sc, struct iwm_rx_packet *pkt,
 	}
 
 	sc->sc_time_event_uid = le32toh(resp->unique_id);
-	IWM_DPRINTF(sc, IWM_DEBUG_TE,
-	    "TIME_EVENT_CMD response - UID = 0x%x\n", sc->sc_time_event_uid);
+	IWM_DPRINTF(sc, IWM_DEBUG_TE, "TIME_EVENT_CMD response - UID = 0x%x\n",
+	    sc->sc_time_event_uid);
 	return 1;
 }
-
 
 /* XXX Use the te_data function argument properly, like in iwlwifi's code. */
 
 static int
 iwm_time_event_send_add(struct iwm_softc *sc, struct iwm_vap *ivp,
-	void *te_data, struct iwm_time_event_cmd *te_cmd)
+    void *te_data, struct iwm_time_event_cmd *te_cmd)
 {
 	static const uint16_t time_event_response[] = { IWM_TIME_EVENT_CMD };
 	struct iwm_notification_wait wait_time_event;
 	int ret;
 
-	IWM_DPRINTF(sc, IWM_DEBUG_TE,
-	    "Add new TE, duration %d TU\n", le32toh(te_cmd->duration));
+	IWM_DPRINTF(sc, IWM_DEBUG_TE, "Add new TE, duration %d TU\n",
+	    le32toh(te_cmd->duration));
 
 	sc->sc_time_event_duration = le32toh(te_cmd->duration);
 
@@ -314,16 +304,15 @@ iwm_time_event_send_add(struct iwm_softc *sc, struct iwm_vap *ivp,
 	 * might already be processed unsuccessfully.
 	 */
 	iwm_init_notification_wait(sc->sc_notif_wait, &wait_time_event,
-				   time_event_response,
-				   nitems(time_event_response),
-				   iwm_time_event_response, /*te_data*/NULL);
+	    time_event_response, nitems(time_event_response),
+	    iwm_time_event_response, /*te_data*/ NULL);
 
 	ret = iwm_send_cmd_pdu(sc, IWM_TIME_EVENT_CMD, 0, sizeof(*te_cmd),
 	    te_cmd);
 	if (ret) {
 		IWM_DPRINTF(sc, IWM_DEBUG_TE,
-		    "%s: Couldn't send IWM_TIME_EVENT_CMD: %d\n",
-		    __func__, ret);
+		    "%s: Couldn't send IWM_TIME_EVENT_CMD: %d\n", __func__,
+		    ret);
 		iwm_remove_notification(sc->sc_notif_wait, &wait_time_event);
 		return ret;
 	}
@@ -344,7 +333,7 @@ iwm_time_event_send_add(struct iwm_softc *sc, struct iwm_vap *ivp,
 
 void
 iwm_protect_session(struct iwm_softc *sc, struct iwm_vap *ivp,
-	uint32_t duration, uint32_t max_delay, boolean_t wait_for_notif)
+    uint32_t duration, uint32_t max_delay, boolean_t wait_for_notif)
 {
 	const uint16_t te_notif_response[] = { IWM_TIME_EVENT_NOTIFICATION };
 	struct iwm_notification_wait wait_te_notif;
@@ -355,8 +344,8 @@ iwm_protect_session(struct iwm_softc *sc, struct iwm_vap *ivp,
 		return;
 
 	time_cmd.action = htole32(IWM_FW_CTXT_ACTION_ADD);
-	time_cmd.id_and_color =
-	    htole32(IWM_FW_CMD_ID_AND_COLOR(ivp->id, ivp->color));
+	time_cmd.id_and_color = htole32(
+	    IWM_FW_CMD_ID_AND_COLOR(ivp->id, ivp->color));
 	time_cmd.id = htole32(IWM_TE_BSS_STA_AGGRESSIVE_ASSOC);
 
 	time_cmd.apply_time = htole32(0);
@@ -367,13 +356,11 @@ iwm_protect_session(struct iwm_softc *sc, struct iwm_vap *ivp,
 	time_cmd.interval = htole32(1);
 	time_cmd.duration = htole32(duration);
 	time_cmd.repeat = 1;
-	time_cmd.policy
-	    = htole16(IWM_TE_V2_NOTIF_HOST_EVENT_START |
-	        IWM_TE_V2_NOTIF_HOST_EVENT_END |
-		IWM_T2_V2_START_IMMEDIATELY);
+	time_cmd.policy = htole16(IWM_TE_V2_NOTIF_HOST_EVENT_START |
+	    IWM_TE_V2_NOTIF_HOST_EVENT_END | IWM_T2_V2_START_IMMEDIATELY);
 
 	if (!wait_for_notif) {
-		iwm_time_event_send_add(sc, ivp, /*te_data*/NULL, &time_cmd);
+		iwm_time_event_send_add(sc, ivp, /*te_data*/ NULL, &time_cmd);
 		DELAY(100);
 		sc->sc_flags |= IWM_FLAG_TE_ACTIVE;
 		return;
@@ -384,11 +371,11 @@ iwm_protect_session(struct iwm_softc *sc, struct iwm_vap *ivp,
 	 * right after we send the time event
 	 */
 	iwm_init_notification_wait(sc->sc_notif_wait, &wait_te_notif,
-	    te_notif_response, nitems(te_notif_response),
-	    iwm_te_notif, /*te_data*/NULL);
+	    te_notif_response, nitems(te_notif_response), iwm_te_notif,
+	    /*te_data*/ NULL);
 
 	/* If TE was sent OK - wait for the notification that started */
-	if (iwm_time_event_send_add(sc, ivp, /*te_data*/NULL, &time_cmd)) {
+	if (iwm_time_event_send_add(sc, ivp, /*te_data*/ NULL, &time_cmd)) {
 		IWM_DPRINTF(sc, IWM_DEBUG_TE,
 		    "%s: Failed to add TE to protect session\n", __func__);
 		iwm_remove_notification(sc->sc_notif_wait, &wait_te_notif);
@@ -396,7 +383,7 @@ iwm_protect_session(struct iwm_softc *sc, struct iwm_vap *ivp,
 		sc->sc_flags |= IWM_FLAG_TE_ACTIVE;
 		IWM_UNLOCK(sc);
 		if (iwm_wait_notification(sc->sc_notif_wait, &wait_te_notif,
-		    TU_TO_HZ(max_delay))) {
+			TU_TO_HZ(max_delay))) {
 			IWM_DPRINTF(sc, IWM_DEBUG_TE,
 			    "%s: Failed to protect session until TE\n",
 			    __func__);
@@ -416,13 +403,13 @@ iwm_stop_session_protection(struct iwm_softc *sc, struct iwm_vap *ivp)
 
 	time_cmd.id = htole32(sc->sc_time_event_uid);
 	time_cmd.action = htole32(IWM_FW_CTXT_ACTION_REMOVE);
-	time_cmd.id_and_color =
-	    htole32(IWM_FW_CMD_ID_AND_COLOR(ivp->id, ivp->color));
+	time_cmd.id_and_color = htole32(
+	    IWM_FW_CMD_ID_AND_COLOR(ivp->id, ivp->color));
 
-	IWM_DPRINTF(sc, IWM_DEBUG_TE,
-	    "%s: Removing TE 0x%x\n", __func__, le32toh(time_cmd.id));
+	IWM_DPRINTF(sc, IWM_DEBUG_TE, "%s: Removing TE 0x%x\n", __func__,
+	    le32toh(time_cmd.id));
 	if (iwm_send_cmd_pdu(sc, IWM_TIME_EVENT_CMD, 0, sizeof(time_cmd),
-	    &time_cmd) == 0)
+		&time_cmd) == 0)
 		iwm_te_clear_data(sc);
 
 	DELAY(100);

@@ -52,7 +52,7 @@ g_mirror_find_device(struct g_class *mp, const char *name)
 	struct g_geom *gp;
 
 	g_topology_lock();
-	LIST_FOREACH(gp, &mp->geom, geom) {
+	LIST_FOREACH (gp, &mp->geom, geom) {
 		sc = gp->softc;
 		if (sc == NULL)
 			continue;
@@ -62,7 +62,8 @@ g_mirror_find_device(struct g_class *mp, const char *name)
 		    strcmp(sc->sc_name, name) == 0) {
 			g_topology_unlock();
 			sx_xlock(&sc->sc_lock);
-			if ((sc->sc_flags & G_MIRROR_DEVICE_FLAG_DESTROY) != 0) {
+			if ((sc->sc_flags & G_MIRROR_DEVICE_FLAG_DESTROY) !=
+			    0) {
 				sx_xunlock(&sc->sc_lock);
 				return (NULL);
 			}
@@ -74,17 +75,17 @@ g_mirror_find_device(struct g_class *mp, const char *name)
 }
 
 /* Insert and Resize operations depend on a launched GEOM (sc_provider). */
-#define	GMFL_VALID_FLAGS	(M_WAITOK | M_NOWAIT)
+#define GMFL_VALID_FLAGS (M_WAITOK | M_NOWAIT)
 static struct g_mirror_softc *
 g_mirror_find_launched_device(struct g_class *mp, const char *name, int flags)
 {
 	struct g_mirror_softc *sc;
 	int error;
 
-	KASSERT((flags & ~GMFL_VALID_FLAGS) == 0 &&
-	    flags != GMFL_VALID_FLAGS && flags != 0,
+	KASSERT((flags & ~GMFL_VALID_FLAGS) == 0 && flags != GMFL_VALID_FLAGS &&
+		flags != 0,
 	    ("%s: Invalid flags %x\n", __func__, (unsigned)flags));
-#undef	GMFL_VALID_FLAGS
+#undef GMFL_VALID_FLAGS
 
 	while (true) {
 		sc = g_mirror_find_device(mp, name);
@@ -130,7 +131,7 @@ g_mirror_find_disk(struct g_mirror_softc *sc, const char *name)
 	sx_assert(&sc->sc_lock, SX_XLOCKED);
 	if (strncmp(name, _PATH_DEV, 5) == 0)
 		name += 5;
-	LIST_FOREACH(disk, &sc->sc_disks, d_next) {
+	LIST_FOREACH (disk, &sc->sc_disks, d_next) {
 		if (disk->d_consumer == NULL)
 			continue;
 		if (disk->d_consumer->provider == NULL)
@@ -212,7 +213,7 @@ g_mirror_ctl_configure(struct gctl_req *req, struct g_class *mp)
 		    *priority);
 		return;
 	}
-	/* 
+	/*
 	 * Since we have a priority, we also need a provider now.
 	 * Note: be WARNS safe, by always assigning prov and only throw an
 	 * error if *priority != -1.
@@ -266,9 +267,9 @@ g_mirror_ctl_configure(struct gctl_req *req, struct g_class *mp)
 	else
 		slice = *slicep;
 	/* Enforce usage() of -p not allowing any other options. */
-	if (do_priority && (*autosync || *noautosync || *failsync ||
-	    *nofailsync || *hardcode || *dynamic || *slicep != -1 ||
-	    *balancep != '\0')) {
+	if (do_priority &&
+	    (*autosync || *noautosync || *failsync || *nofailsync ||
+		*hardcode || *dynamic || *slicep != -1 || *balancep != '\0')) {
 		sx_xunlock(&sc->sc_lock);
 		gctl_error(req, "only -p accepted when setting priority");
 		return;
@@ -287,7 +288,8 @@ g_mirror_ctl_configure(struct gctl_req *req, struct g_class *mp)
 	}
 	if (g_mirror_ndisks(sc, -1) < sc->sc_ndisks) {
 		sx_xunlock(&sc->sc_lock);
-		gctl_error(req, "Not all disks connected. Try 'forget' command "
+		gctl_error(req,
+		    "Not all disks connected. Try 'forget' command "
 		    "first.");
 		return;
 	}
@@ -311,7 +313,7 @@ g_mirror_ctl_configure(struct gctl_req *req, struct g_class *mp)
 			dirty = 0;
 		}
 	}
-	LIST_FOREACH(disk, &sc->sc_disks, d_next) {
+	LIST_FOREACH (disk, &sc->sc_disks, d_next) {
 		/*
 		 * Handle priority first, since we only need one disk, do one
 		 * operation on it and then we're done. No need to check other
@@ -355,8 +357,8 @@ static void
 g_mirror_create_orphan(struct g_consumer *cp)
 {
 
-	KASSERT(1 == 0, ("%s called while creating %s.", __func__,
-	    cp->provider->name));
+	KASSERT(1 == 0,
+	    ("%s called while creating %s.", __func__, cp->provider->name));
 }
 
 static void
@@ -440,7 +442,7 @@ g_mirror_ctl_create(struct gctl_req *req, struct g_class *mp)
 		snprintf(param, sizeof(param), "arg%u", no);
 		pp = gctl_get_provider(req, param);
 		if (pp == NULL) {
-err:
+		err:
 			g_destroy_consumer(cp);
 			g_destroy_geom(gp);
 			g_topology_unlock();
@@ -454,7 +456,7 @@ err:
 		if (g_access(cp, 1, 0, 0) != 0) {
 			G_MIRROR_DEBUG(1, "Can't open disk %s.", pp->name);
 			gctl_error(req, "Can't open disk %s.", pp->name);
-err2:
+		err2:
 			g_detach(cp);
 			goto err;
 		}
@@ -618,8 +620,8 @@ g_mirror_ctl_insert(struct gctl_req *req, struct g_class *mp)
 	u_int i, n;
 	int error, *nargs, *hardcode, *inactive;
 	struct {
-		struct g_provider	*provider;
-		struct g_consumer	*consumer;
+		struct g_provider *provider;
+		struct g_consumer *consumer;
 	} *disks;
 	off_t mdsize;
 
@@ -671,27 +673,30 @@ g_mirror_ctl_insert(struct gctl_req *req, struct g_class *mp)
 		if (pp == NULL)
 			continue;
 		if (g_mirror_find_disk(sc, pp->name) != NULL) {
-			gctl_error(req, "Provider %s already inserted.", pp->name);
+			gctl_error(req, "Provider %s already inserted.",
+			    pp->name);
 			continue;
 		}
 		cp = g_new_consumer(sc->sc_geom);
 		if (g_attach(cp, pp) != 0) {
 			g_destroy_consumer(cp);
-			gctl_error(req, "Cannot attach to provider %s.", pp->name);
+			gctl_error(req, "Cannot attach to provider %s.",
+			    pp->name);
 			continue;
 		}
 		if (g_access(cp, 0, 1, 1) != 0) {
 			gctl_error(req, "Cannot access provider %s.", pp->name);
-err:
+		err:
 			g_detach(cp);
 			g_destroy_consumer(cp);
 			continue;
 		}
 		mdsize = (sc->sc_type == G_MIRROR_TYPE_AUTOMATIC) ?
-		    pp->sectorsize : 0;
+		    pp->sectorsize :
+		    0;
 		if (sc->sc_provider->mediasize > pp->mediasize - mdsize) {
 			gctl_error(req, "Provider %s too small.", pp->name);
-err2:
+		err2:
 			g_access(cp, 0, -1, -1);
 			goto err;
 		}
@@ -712,7 +717,8 @@ err2:
 				md.md_dflags |= G_MIRROR_DISK_FLAG_INACTIVE;
 			if (g_mirror_add_disk(sc, pp, &md) != 0) {
 				sc->sc_ndisks--;
-				gctl_error(req, "Disk %s not inserted.", pp->name);
+				gctl_error(req, "Disk %s not inserted.",
+				    pp->name);
 			}
 			g_topology_lock();
 			continue;
@@ -768,7 +774,7 @@ again:
 		g_free(disks);
 		return;
 	}
-	LIST_FOREACH(disk, &sc->sc_disks, d_next) {
+	LIST_FOREACH (disk, &sc->sc_disks, d_next) {
 		g_mirror_update_metadata(disk);
 	}
 	/*
@@ -818,7 +824,8 @@ g_mirror_ctl_remove(struct gctl_req *req, struct g_class *mp)
 	}
 	if (g_mirror_ndisks(sc, -1) < sc->sc_ndisks) {
 		sx_xunlock(&sc->sc_lock);
-		gctl_error(req, "Not all disks connected. Try 'forget' command "
+		gctl_error(req,
+		    "Not all disks connected. Try 'forget' command "
 		    "first.");
 		return;
 	}
@@ -839,9 +846,10 @@ g_mirror_ctl_remove(struct gctl_req *req, struct g_class *mp)
 			if (active > 1)
 				active--;
 			else {
-				gctl_error(req, "%s: Can't remove the last "
-				    "ACTIVE component %s.", sc->sc_geom->name,
-				    name);
+				gctl_error(req,
+				    "%s: Can't remove the last "
+				    "ACTIVE component %s.",
+				    sc->sc_geom->name, name);
 				continue;
 			}
 		}
@@ -891,7 +899,8 @@ g_mirror_ctl_resize(struct gctl_req *req, struct g_class *mp)
 		return;
 	}
 	/* Deny shrinking of an opened provider */
-	if ((g_debugflags & G_F_FOOTSHOOTING) == 0 && sc->sc_provider_open > 0) {
+	if ((g_debugflags & G_F_FOOTSHOOTING) == 0 &&
+	    sc->sc_provider_open > 0) {
 		if (sc->sc_mediasize > mediasize) {
 			gctl_error(req, "Device %s is busy.",
 			    sc->sc_provider->name);
@@ -899,9 +908,9 @@ g_mirror_ctl_resize(struct gctl_req *req, struct g_class *mp)
 			return;
 		}
 	}
-	LIST_FOREACH(disk, &sc->sc_disks, d_next) {
+	LIST_FOREACH (disk, &sc->sc_disks, d_next) {
 		if (mediasize > disk->d_consumer->provider->mediasize -
-		    disk->d_consumer->provider->sectorsize) {
+			disk->d_consumer->provider->sectorsize) {
 			gctl_error(req, "Provider %s is too small.",
 			    disk->d_name);
 			sx_xunlock(&sc->sc_lock);
@@ -910,7 +919,7 @@ g_mirror_ctl_resize(struct gctl_req *req, struct g_class *mp)
 	}
 	/* Update the size. */
 	sc->sc_mediasize = mediasize;
-	LIST_FOREACH(disk, &sc->sc_disks, d_next) {
+	LIST_FOREACH (disk, &sc->sc_disks, d_next) {
 		g_mirror_update_metadata(disk);
 	}
 	g_topology_lock();
@@ -965,7 +974,8 @@ g_mirror_ctl_deactivate(struct gctl_req *req, struct g_class *mp)
 			if (active > 1)
 				active--;
 			else {
-				gctl_error(req, "%s: Can't deactivate the "
+				gctl_error(req,
+				    "%s: Can't deactivate the "
 				    "last ACTIVE component %s.",
 				    sc->sc_geom->name, name);
 				continue;
@@ -1021,7 +1031,7 @@ g_mirror_ctl_forget(struct gctl_req *req, struct g_class *mp)
 			continue;
 		}
 		sc->sc_ndisks = g_mirror_ndisks(sc, -1);
-		LIST_FOREACH(disk, &sc->sc_disks, d_next) {
+		LIST_FOREACH (disk, &sc->sc_disks, d_next) {
 			g_mirror_update_metadata(disk);
 		}
 		sx_xunlock(&sc->sc_lock);

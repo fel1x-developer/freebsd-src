@@ -32,60 +32,60 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/proc.h>	/* for curthread */
+#include <sys/proc.h> /* for curthread */
 #include <sys/smp.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
-#include <machine/specialreg.h>
 #include <machine/cpufunc.h>
 #include <machine/cputypes.h>
 #include <machine/md_var.h>
+#include <machine/specialreg.h>
 
-#define	TZ_ZEROC			2731
+#define TZ_ZEROC 2731
 
-#define	THERM_CRITICAL_STATUS_LOG       0x20
-#define	THERM_CRITICAL_STATUS           0x10
-#define	THERM_STATUS_LOG		0x02
-#define	THERM_STATUS			0x01
-#define	THERM_STATUS_TEMP_SHIFT		16
-#define	THERM_STATUS_TEMP_MASK		0x7f
-#define	THERM_STATUS_RES_SHIFT		27
-#define	THERM_STATUS_RES_MASK		0x0f
-#define	THERM_STATUS_VALID_SHIFT	31
-#define	THERM_STATUS_VALID_MASK		0x01
+#define THERM_CRITICAL_STATUS_LOG 0x20
+#define THERM_CRITICAL_STATUS 0x10
+#define THERM_STATUS_LOG 0x02
+#define THERM_STATUS 0x01
+#define THERM_STATUS_TEMP_SHIFT 16
+#define THERM_STATUS_TEMP_MASK 0x7f
+#define THERM_STATUS_RES_SHIFT 27
+#define THERM_STATUS_RES_MASK 0x0f
+#define THERM_STATUS_VALID_SHIFT 31
+#define THERM_STATUS_VALID_MASK 0x01
 
 struct coretemp_softc {
-	device_t	sc_dev;
-	int		sc_tjmax;
-	unsigned int	sc_throttle_log;
+	device_t sc_dev;
+	int sc_tjmax;
+	unsigned int sc_throttle_log;
 };
 
 /*
  * Device methods.
  */
-static void	coretemp_identify(driver_t *driver, device_t parent);
-static int	coretemp_probe(device_t dev);
-static int	coretemp_attach(device_t dev);
-static int	coretemp_detach(device_t dev);
+static void coretemp_identify(driver_t *driver, device_t parent);
+static int coretemp_probe(device_t dev);
+static int coretemp_attach(device_t dev);
+static int coretemp_detach(device_t dev);
 
-static uint64_t	coretemp_get_thermal_msr(int cpu);
-static void	coretemp_clear_thermal_msr(int cpu);
-static int	coretemp_get_val_sysctl(SYSCTL_HANDLER_ARGS);
-static int	coretemp_throttle_log_sysctl(SYSCTL_HANDLER_ARGS);
+static uint64_t coretemp_get_thermal_msr(int cpu);
+static void coretemp_clear_thermal_msr(int cpu);
+static int coretemp_get_val_sysctl(SYSCTL_HANDLER_ARGS);
+static int coretemp_throttle_log_sysctl(SYSCTL_HANDLER_ARGS);
 
 static device_method_t coretemp_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,	coretemp_identify),
-	DEVMETHOD(device_probe,		coretemp_probe),
-	DEVMETHOD(device_attach,	coretemp_attach),
-	DEVMETHOD(device_detach,	coretemp_detach),
+	DEVMETHOD(device_identify, coretemp_identify),
+	DEVMETHOD(device_probe, coretemp_probe),
+	DEVMETHOD(device_attach, coretemp_attach),
+	DEVMETHOD(device_detach, coretemp_detach),
 
 	DEVMETHOD_END
 };
@@ -174,9 +174,9 @@ coretemp_attach(device_t dev)
 	if (cpu_model < 0xe)
 		return (ENXIO);
 
-#if 0 /*
-       * XXXrpaulo: I have this CPU model and when it returns from C3
-       * coretemp continues to function properly.
+#if 0 /*                                                              \
+       * XXXrpaulo: I have this CPU model and when it returns from C3 \
+       * coretemp continues to function properly.                     \
        */
 	 
 	/*
@@ -207,23 +207,23 @@ coretemp_attach(device_t dev)
 		 * On some Core 2 CPUs, there's an undocumented MSR that
 		 * can tell us if Tj(max) is 100 or 85.
 		 *
-		 * The if-clause for CPUs having the MSR_IA32_EXT_CONFIG was adapted
-		 * from the Linux coretemp driver.
+		 * The if-clause for CPUs having the MSR_IA32_EXT_CONFIG was
+		 * adapted from the Linux coretemp driver.
 		 */
 		msr = rdmsr(MSR_IA32_EXT_CONFIG);
 		if (msr & (1 << 30))
 			sc->sc_tjmax = 85;
 	} else if (cpu_model == 0x17) {
 		switch (cpu_stepping) {
-		case 0x6:	/* Mobile Core 2 Duo */
+		case 0x6: /* Mobile Core 2 Duo */
 			sc->sc_tjmax = 105;
 			break;
-		default:	/* Unknown stepping */
+		default: /* Unknown stepping */
 			break;
 		}
 	} else if (cpu_model == 0x1c) {
 		switch (cpu_stepping) {
-		case 0xa:	/* 45nm Atom D400, N400 and D500 series */
+		case 0xa: /* 45nm Atom D400, N400 and D500 series */
 			sc->sc_tjmax = 100;
 			break;
 		default:
@@ -257,10 +257,13 @@ coretemp_attach(device_t dev)
 			if (tjtarget >= 70 && tjtarget <= 110)
 				sc->sc_tjmax = tjtarget;
 			else
-				device_printf(dev, "Tj(target) value %d "
-				    "does not seem right.\n", tjtarget);
+				device_printf(dev,
+				    "Tj(target) value %d "
+				    "does not seem right.\n",
+				    tjtarget);
 		} else
-			device_printf(dev, "Can not get Tj(target) "
+			device_printf(dev,
+			    "Can not get Tj(target) "
 			    "from your CPU, using 100C.\n");
 	}
 
@@ -270,9 +273,8 @@ coretemp_attach(device_t dev)
 	ctx = device_get_sysctl_ctx(dev);
 
 	oid = SYSCTL_ADD_NODE(ctx,
-	    SYSCTL_CHILDREN(device_get_sysctl_tree(pdev)), OID_AUTO,
-	    "coretemp", CTLFLAG_RD | CTLFLAG_MPSAFE, NULL,
-	    "Per-CPU thermal information");
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(pdev)), OID_AUTO, "coretemp",
+	    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "Per-CPU thermal information");
 
 	/*
 	 * Add the MIBs to dev.cpu.N and dev.cpu.N.coretemp.
@@ -287,14 +289,12 @@ coretemp_attach(device_t dev)
 	    "Delta between TCC activation and current temperature");
 	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(oid), OID_AUTO, "resolution",
 	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, dev, CORETEMP_RESOLUTION,
-	    coretemp_get_val_sysctl, "I",
-	    "Resolution of CPU thermal sensor");
+	    coretemp_get_val_sysctl, "I", "Resolution of CPU thermal sensor");
 	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(oid), OID_AUTO, "tjmax",
 	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, dev, CORETEMP_TJMAX,
-	    coretemp_get_val_sysctl, "IK",
-	    "TCC activation temperature");
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(oid), OID_AUTO,
-	    "throttle_log", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, dev, 0,
+	    coretemp_get_val_sysctl, "IK", "TCC activation temperature");
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(oid), OID_AUTO, "throttle_log",
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, dev, 0,
 	    coretemp_throttle_log_sysctl, "I",
 	    "Set to 1 if the thermal sensor has tripped");
 
@@ -308,8 +308,8 @@ coretemp_detach(device_t dev)
 }
 
 struct coretemp_args {
-	u_int		msr;
-	uint64_t	val;
+	u_int msr;
+	uint64_t val;
 };
 
 /*
@@ -327,16 +327,16 @@ coretemp_get_thermal_msr(int cpu)
 {
 	uint64_t res;
 
-	x86_msr_op(MSR_THERM_STATUS, MSR_OP_RENDEZVOUS_ONE | MSR_OP_READ |
-	    MSR_OP_CPUID(cpu), 0, &res);
+	x86_msr_op(MSR_THERM_STATUS,
+	    MSR_OP_RENDEZVOUS_ONE | MSR_OP_READ | MSR_OP_CPUID(cpu), 0, &res);
 	return (res);
 }
 
 static void
 coretemp_clear_thermal_msr(int cpu)
 {
-	x86_msr_op(MSR_THERM_STATUS, MSR_OP_RENDEZVOUS_ONE | MSR_OP_WRITE |
-	    MSR_OP_CPUID(cpu), 0, NULL);
+	x86_msr_op(MSR_THERM_STATUS,
+	    MSR_OP_RENDEZVOUS_ONE | MSR_OP_WRITE | MSR_OP_CPUID(cpu), 0, NULL);
 }
 
 static int
@@ -349,12 +349,13 @@ coretemp_get_val_sysctl(SYSCTL_HANDLER_ARGS)
 	enum therm_info type;
 	char stemp[16];
 
-	dev = (device_t) arg1;
+	dev = (device_t)arg1;
 	msr = coretemp_get_thermal_msr(device_get_unit(dev));
 	sc = device_get_softc(dev);
 	type = arg2;
 
-	if (((msr >> THERM_STATUS_VALID_SHIFT) & THERM_STATUS_VALID_MASK) != 1) {
+	if (((msr >> THERM_STATUS_VALID_SHIFT) & THERM_STATUS_VALID_MASK) !=
+	    1) {
 		val = -1;
 	} else {
 		switch (type) {
@@ -396,7 +397,8 @@ coretemp_get_val_sysctl(SYSCTL_HANDLER_ARGS)
 			tmp = (msr >> THERM_STATUS_TEMP_SHIFT) &
 			    THERM_STATUS_TEMP_MASK;
 			tmp = (sc->sc_tjmax - tmp) * 10 + TZ_ZEROC;
-			device_printf(dev, "critical temperature detected, "
+			device_printf(dev,
+			    "critical temperature detected, "
 			    "suggest system shutdown\n");
 			snprintf(stemp, sizeof(stemp), "%d", tmp);
 			devctl_notify("coretemp", "Thermal", stemp,
@@ -415,7 +417,7 @@ coretemp_throttle_log_sysctl(SYSCTL_HANDLER_ARGS)
 	int error, val;
 	struct coretemp_softc *sc;
 
-	dev = (device_t) arg1;
+	dev = (device_t)arg1;
 	msr = coretemp_get_thermal_msr(device_get_unit(dev));
 	sc = device_get_softc(dev);
 

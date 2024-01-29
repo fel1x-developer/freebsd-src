@@ -30,18 +30,18 @@
  */
 
 #include <sys/param.h>
-#include <sys/socket.h>
-#include <sys/protosw.h>
+#include <sys/systm.h>
 #include <sys/domain.h>
-#include <sys/eventhandler.h>
 #include <sys/epoch.h>
-#include <sys/mbuf.h>
+#include <sys/eventhandler.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/mbuf.h>
 #include <sys/mutex.h>
+#include <sys/protosw.h>
 #include <sys/rmlock.h>
+#include <sys/socket.h>
 #include <sys/socketvar.h>
-#include <sys/systm.h>
 
 #include <machine/atomic.h>
 
@@ -49,7 +49,7 @@
 
 struct domainhead domains = SLIST_HEAD_INITIALIZER(&domains);
 int domain_init_status = 1;
-static struct mtx dom_mtx;		/* domain list lock */
+static struct mtx dom_mtx; /* domain list lock */
 MTX_SYSINIT(domain, &dom_mtx, "domain list", MTX_DEF);
 
 static int
@@ -97,8 +97,8 @@ pr_connect2_notsupp(struct socket *so1, struct socket *so2)
 }
 
 static int
-pr_control_notsupp(struct socket *so, u_long cmd, void *data,
-    struct ifnet *ifp, struct thread *td)
+pr_control_notsupp(struct socket *so, u_long cmd, void *data, struct ifnet *ifp,
+    struct thread *td)
 {
 	return (EOPNOTSUPP);
 }
@@ -192,13 +192,17 @@ pr_init(struct domain *dom, struct protosw *pr)
 
 	pr->pr_domain = dom;
 
-#define	DEFAULT(foo, bar)	if (pr->foo == NULL) pr->foo = bar
+#define DEFAULT(foo, bar)    \
+	if (pr->foo == NULL) \
+	pr->foo = bar
 	DEFAULT(pr_sosend, sosend_generic);
 	DEFAULT(pr_soreceive, soreceive_generic);
 	DEFAULT(pr_sopoll, sopoll_generic);
 	DEFAULT(pr_setsbopt, sbsetopt);
 
-#define NOTSUPP(foo)	if (pr->foo == NULL)  pr->foo = foo ## _notsupp
+#define NOTSUPP(foo)         \
+	if (pr->foo == NULL) \
+	pr->foo = foo##_notsupp
 	NOTSUPP(pr_accept);
 	NOTSUPP(pr_aio_queue);
 	NOTSUPP(pr_bind);
@@ -243,7 +247,7 @@ domain_add(struct domain *dp)
 	mtx_lock(&dom_mtx);
 #ifdef INVARIANTS
 	struct domain *tmp;
-	SLIST_FOREACH(tmp, &domains, dom_next)
+	SLIST_FOREACH (tmp, &domains, dom_next)
 		MPASS(tmp->dom_family != dp->dom_family);
 #endif
 	SLIST_INSERT_HEAD(&domains, dp, dom_next);
@@ -269,7 +273,7 @@ domainfinalize(void *dummy)
 	mtx_lock(&dom_mtx);
 	KASSERT(domain_init_status == 1, ("domainfinalize called too late!"));
 	domain_init_status = 2;
-	mtx_unlock(&dom_mtx);	
+	mtx_unlock(&dom_mtx);
 }
 SYSINIT(domainfin, SI_SUB_PROTO_IFATTACHDOMAIN, SI_ORDER_FIRST, domainfinalize,
     NULL);
@@ -279,7 +283,7 @@ pffinddomain(int family)
 {
 	struct domain *dp;
 
-	SLIST_FOREACH(dp, &domains, dom_next)
+	SLIST_FOREACH (dp, &domains, dom_next)
 		if (dp->dom_family == family)
 			return (dp);
 	return (NULL);
@@ -298,7 +302,7 @@ pffindproto(int family, int type, int proto)
 	for (int i = 0; i < dp->dom_nprotosw; i++)
 		if ((pr = dp->dom_protosw[i]) != NULL && pr->pr_type == type &&
 		    (pr->pr_protocol == 0 || proto == 0 ||
-		     pr->pr_protocol == proto))
+			pr->pr_protocol == proto))
 			return (pr);
 
 	return (NULL);
@@ -335,11 +339,10 @@ protosw_register(struct domain *dp, struct protosw *npr)
 			 */
 			if ((dp->dom_protosw[i]->pr_type == npr->pr_type) &&
 			    (dp->dom_protosw[i]->pr_protocol ==
-			    npr->pr_protocol)) {
+				npr->pr_protocol)) {
 				mtx_unlock(&dom_mtx);
 				return (EEXIST);
 			}
-
 		}
 	}
 
@@ -375,7 +378,7 @@ protosw_unregister(struct protosw *pr)
 		if (dp->dom_protosw[i] == pr) {
 			KASSERT(prp == NULL,
 			    ("%s: domain %p protocol %p registered twice\n",
-			    __func__, dp, pr));
+				__func__, dp, pr));
 			prp = &dp->dom_protosw[i];
 		}
 	}

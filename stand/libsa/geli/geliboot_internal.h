@@ -40,6 +40,7 @@
 
 /* Pull in the md5, sha256, and sha512 implementations */
 #include <sys/md5.h>
+
 #include <crypto/sha2/sha256.h>
 #include <crypto/sha2/sha512.h>
 
@@ -53,17 +54,17 @@
 
 #include "geliboot.h"
 
-#define GELIDEV_NAMELEN	32
+#define GELIDEV_NAMELEN 32
 
 struct geli_dev {
-	off_t			part_end;
-	struct g_eli_softc	sc;
-	struct g_eli_metadata	md;
-	int			keybuf_slot;
-	char                    *name; /* for prompting; it ends in ':' */
+	off_t part_end;
+	struct g_eli_softc sc;
+	struct g_eli_metadata md;
+	int keybuf_slot;
+	char *name; /* for prompting; it ends in ':' */
 };
 
-int geliboot_crypt(u_int algo, geli_op_t  enc, u_char *data, size_t datasize,
+int geliboot_crypt(u_int algo, geli_op_t enc, u_char *data, size_t datasize,
     const u_char *key, size_t keysize, u_char *iv);
 
 #endif /* _GELIBOOT_INTERNAL_H_ */

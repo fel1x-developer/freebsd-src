@@ -50,34 +50,35 @@
 #include <vm/vm_extern.h>
 
 #include <machine/pvclock.h>
+
 #include <x86/kvm.h>
 
 #include "clock_if.h"
 
-#define	KVM_CLOCK_DEVNAME		"kvmclock"
+#define KVM_CLOCK_DEVNAME "kvmclock"
 /*
  * Note: Chosen to be (1) above HPET's value (always 950), (2) above the TSC's
  * default value of 800, and (3) below the TSC's value when it supports the
  * "Invariant TSC" feature and is believed to be synchronized across all CPUs.
  */
-#define	KVM_CLOCK_TC_QUALITY		975
+#define KVM_CLOCK_TC_QUALITY 975
 
 struct kvm_clock_softc {
-	struct pvclock			 pvc;
-	struct pvclock_wall_clock	 wc;
-	struct pvclock_vcpu_time_info	*timeinfos;
-	u_int				 msr_tc;
-	u_int				 msr_wc;
+	struct pvclock pvc;
+	struct pvclock_wall_clock wc;
+	struct pvclock_vcpu_time_info *timeinfos;
+	u_int msr_tc;
+	u_int msr_wc;
 #ifndef EARLY_AP_STARTUP
-	int				 firstcpu;
+	int firstcpu;
 #endif
 };
 
 static struct pvclock_wall_clock *kvm_clock_get_wallclock(void *arg);
-static void	kvm_clock_system_time_enable(struct kvm_clock_softc *sc,
-		    const cpuset_t *cpus);
-static void	kvm_clock_system_time_enable_pcpu(void *arg);
-static void	kvm_clock_setup_sysctl(device_t);
+static void kvm_clock_system_time_enable(struct kvm_clock_softc *sc,
+    const cpuset_t *cpus);
+static void kvm_clock_system_time_enable_pcpu(void *arg);
+static void kvm_clock_setup_sysctl(device_t);
 
 static struct pvclock_wall_clock *
 kvm_clock_get_wallclock(void *arg)
@@ -138,8 +139,8 @@ kvm_clock_identify(driver_t *driver, device_t parent)
 	u_int regs[4];
 
 	kvm_cpuid_get_features(regs);
-	if ((regs[0] &
-	    (KVM_FEATURE_CLOCKSOURCE2 | KVM_FEATURE_CLOCKSOURCE)) == 0)
+	if ((regs[0] & (KVM_FEATURE_CLOCKSOURCE2 | KVM_FEATURE_CLOCKSOURCE)) ==
+	    0)
 		return;
 	if (device_find_child(parent, KVM_CLOCK_DEVNAME, -1))
 		return;
@@ -168,16 +169,18 @@ kvm_clock_attach(device_t dev)
 	} else {
 		KASSERT((regs[0] & KVM_FEATURE_CLOCKSOURCE) != 0,
 		    ("Clocksource feature flags disappeared since "
-		    "kvm_clock_identify: regs[0] %#0x.", regs[0]));
+		     "kvm_clock_identify: regs[0] %#0x.",
+			regs[0]));
 		sc->msr_tc = KVM_MSR_SYSTEM_TIME;
 		sc->msr_wc = KVM_MSR_WALL_CLOCK;
 	}
-	stable_flag_supported =
-	    (regs[0] & KVM_FEATURE_CLOCKSOURCE_STABLE_BIT) != 0;
+	stable_flag_supported = (regs[0] &
+				    KVM_FEATURE_CLOCKSOURCE_STABLE_BIT) != 0;
 
 	/* Set up 'struct pvclock_vcpu_time_info' page(s): */
 	sc->timeinfos = kmem_malloc(mp_ncpus *
-	    sizeof(struct pvclock_vcpu_time_info), M_WAITOK | M_ZERO);
+		sizeof(struct pvclock_vcpu_time_info),
+	    M_WAITOK | M_ZERO);
 #ifdef EARLY_AP_STARTUP
 	kvm_clock_system_time_enable(sc, &all_cpus);
 #else
@@ -255,38 +258,36 @@ static int
 kvm_clock_tsc_freq_sysctl(SYSCTL_HANDLER_ARGS)
 {
 	struct kvm_clock_softc *sc = oidp->oid_arg1;
-        uint64_t freq = pvclock_tsc_freq(sc->timeinfos);
+	uint64_t freq = pvclock_tsc_freq(sc->timeinfos);
 
-        return (sysctl_handle_64(oidp, &freq, 0, req));
+	return (sysctl_handle_64(oidp, &freq, 0, req));
 }
 
 static void
 kvm_clock_setup_sysctl(device_t dev)
 {
 	struct kvm_clock_softc *sc = device_get_softc(dev);
-        struct sysctl_ctx_list *ctx = device_get_sysctl_ctx(dev);
-        struct sysctl_oid *tree = device_get_sysctl_tree(dev);
-        struct sysctl_oid_list *child = SYSCTL_CHILDREN(tree);
+	struct sysctl_ctx_list *ctx = device_get_sysctl_ctx(dev);
+	struct sysctl_oid *tree = device_get_sysctl_tree(dev);
+	struct sysctl_oid_list *child = SYSCTL_CHILDREN(tree);
 
-        SYSCTL_ADD_PROC(ctx, child, OID_AUTO, "tsc_freq",
-            CTLTYPE_U64 | CTLFLAG_RD | CTLFLAG_MPSAFE, sc, 0,
-            kvm_clock_tsc_freq_sysctl, "QU",
-            "Time Stamp Counter frequency");
+	SYSCTL_ADD_PROC(ctx, child, OID_AUTO, "tsc_freq",
+	    CTLTYPE_U64 | CTLFLAG_RD | CTLFLAG_MPSAFE, sc, 0,
+	    kvm_clock_tsc_freq_sysctl, "QU", "Time Stamp Counter frequency");
 }
 
-static device_method_t kvm_clock_methods[] = {
-	DEVMETHOD(device_identify,	kvm_clock_identify),
-	DEVMETHOD(device_probe,		kvm_clock_probe),
-	DEVMETHOD(device_attach,	kvm_clock_attach),
-	DEVMETHOD(device_detach,	kvm_clock_detach),
-	DEVMETHOD(device_suspend,	kvm_clock_suspend),
-	DEVMETHOD(device_resume,	kvm_clock_resume),
+static device_method_t kvm_clock_methods[] = { DEVMETHOD(device_identify,
+						   kvm_clock_identify),
+	DEVMETHOD(device_probe, kvm_clock_probe),
+	DEVMETHOD(device_attach, kvm_clock_attach),
+	DEVMETHOD(device_detach, kvm_clock_detach),
+	DEVMETHOD(device_suspend, kvm_clock_suspend),
+	DEVMETHOD(device_resume, kvm_clock_resume),
 	/* clock interface */
-	DEVMETHOD(clock_gettime,	kvm_clock_gettime),
-	DEVMETHOD(clock_settime,	kvm_clock_settime),
+	DEVMETHOD(clock_gettime, kvm_clock_gettime),
+	DEVMETHOD(clock_settime, kvm_clock_settime),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 static driver_t kvm_clock_driver = {
 	KVM_CLOCK_DEVNAME,

@@ -27,69 +27,50 @@
  */
 
 #include <sys/param.h>
+
+#include <assert.h>
 #include <errno.h>
+#include <geom/stripe/g_stripe.h>
+#include <libgeom.h>
 #include <paths.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
 #include <strings.h>
-#include <assert.h>
-#include <libgeom.h>
-#include <geom/stripe/g_stripe.h>
 
 #include "core/geom.h"
 #include "misc/subr.h"
 
-
 uint32_t lib_version = G_LIB_VERSION;
 uint32_t version = G_STRIPE_VERSION;
 
-#define	GSTRIPE_STRIPESIZE	"65536"
+#define GSTRIPE_STRIPESIZE "65536"
 
 static void stripe_main(struct gctl_req *req, unsigned flags);
 static void stripe_clear(struct gctl_req *req);
 static void stripe_dump(struct gctl_req *req);
 static void stripe_label(struct gctl_req *req);
 
-struct g_command class_commands[] = {
-	{ "clear", G_FLAG_VERBOSE, stripe_main, G_NULL_OPTS,
-	    "[-v] prov ..."
-	},
+struct g_command class_commands[] = { { "clear", G_FLAG_VERBOSE, stripe_main,
+					  G_NULL_OPTS, "[-v] prov ..." },
 	{ "create", G_FLAG_VERBOSE | G_FLAG_LOADKLD, NULL,
-	    {
-		{ 's', "stripesize", GSTRIPE_STRIPESIZE, G_TYPE_NUMBER },
-		G_OPT_SENTINEL
-	    },
-	    "[-v] [-s stripesize] name prov prov ..."
-	},
+	    { { 's', "stripesize", GSTRIPE_STRIPESIZE, G_TYPE_NUMBER },
+		G_OPT_SENTINEL },
+	    "[-v] [-s stripesize] name prov prov ..." },
 	{ "destroy", G_FLAG_VERBOSE, NULL,
-	    {
-		{ 'f', "force", NULL, G_TYPE_BOOL },
-		G_OPT_SENTINEL
-	    },
-	    "[-fv] name ..."
-	},
-	{ "dump", 0, stripe_main, G_NULL_OPTS,
-	    "prov ..."
-	},
+	    { { 'f', "force", NULL, G_TYPE_BOOL }, G_OPT_SENTINEL },
+	    "[-fv] name ..." },
+	{ "dump", 0, stripe_main, G_NULL_OPTS, "prov ..." },
 	{ "label", G_FLAG_VERBOSE | G_FLAG_LOADKLD, stripe_main,
-	    {
-		{ 'h', "hardcode", NULL, G_TYPE_BOOL },
+	    { { 'h', "hardcode", NULL, G_TYPE_BOOL },
 		{ 's', "stripesize", GSTRIPE_STRIPESIZE, G_TYPE_NUMBER },
-		G_OPT_SENTINEL
-	    },
-	    "[-hv] [-s stripesize] name prov prov ..."
-	},
+		G_OPT_SENTINEL },
+	    "[-hv] [-s stripesize] name prov prov ..." },
 	{ "stop", G_FLAG_VERBOSE, NULL,
-	    {
-		{ 'f', "force", NULL, G_TYPE_BOOL },
-		G_OPT_SENTINEL
-	    },
-	    "[-fv] name ..."
-	},
-	G_CMD_SENTINEL
-};
+	    { { 'f', "force", NULL, G_TYPE_BOOL }, G_OPT_SENTINEL },
+	    "[-fv] name ..." },
+	G_CMD_SENTINEL };
 
 static int verbose = 0;
 
@@ -189,7 +170,8 @@ stripe_label(struct gctl_req *req)
 		if (compsize < msize - ssize) {
 			fprintf(stderr,
 			    "warning: %s: only %jd bytes from %jd bytes used.\n",
-			    name, (intmax_t)compsize, (intmax_t)(msize - ssize));
+			    name, (intmax_t)compsize,
+			    (intmax_t)(msize - ssize));
 		}
 
 		md.md_no = i - 1;
@@ -197,7 +179,8 @@ stripe_label(struct gctl_req *req)
 		if (!hardcode)
 			bzero(md.md_provider, sizeof(md.md_provider));
 		else {
-			if (strncmp(name, _PATH_DEV, sizeof(_PATH_DEV) - 1) == 0)
+			if (strncmp(name, _PATH_DEV, sizeof(_PATH_DEV) - 1) ==
+			    0)
 				name += sizeof(_PATH_DEV) - 1;
 			strlcpy(md.md_provider, name, sizeof(md.md_provider));
 		}

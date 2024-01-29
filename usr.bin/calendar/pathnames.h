@@ -31,5 +31,5 @@
 
 #include <paths.h>
 
-#define	_PATH_INCLUDE	"/usr/share/calendar"
-#define	_PATH_INCLUDE_LOCAL	"%s/share/calendar"
+#define _PATH_INCLUDE "/usr/share/calendar"
+#define _PATH_INCLUDE_LOCAL "%s/share/calendar"

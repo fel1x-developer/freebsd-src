@@ -27,7 +27,7 @@
  */
 
 #ifndef _VLAPIC_H_
-#define	_VLAPIC_H_
+#define _VLAPIC_H_
 
 struct vm;
 struct vm_snapshot_meta;
@@ -115,4 +115,4 @@ int vlapic_snapshot(struct vm *vm, struct vm_snapshot_meta *meta);
 
 int vm_handle_ipi(struct vcpu *vcpu, struct vm_exit *vme, bool *retu);
 
-#endif	/* _VLAPIC_H_ */
+#endif /* _VLAPIC_H_ */

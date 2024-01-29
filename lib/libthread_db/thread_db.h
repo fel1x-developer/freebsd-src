@@ -28,14 +28,15 @@
  */
 
 #ifndef _THREAD_DB_H_
-#define	_THREAD_DB_H_
+#define _THREAD_DB_H_
 
 #include <sys/procfs.h>
+
 #include <pthread.h>
 
 typedef enum {
-	TD_ERR = -1,		/* Unspecified error. */
-	TD_OK = 0,		/* No error. */
+	TD_ERR = -1, /* Unspecified error. */
+	TD_OK = 0,   /* No error. */
 	TD_BADKEY,
 	TD_BADPH,
 	TD_BADSH,
@@ -59,13 +60,13 @@ typedef enum {
 
 struct ps_prochandle;
 typedef struct td_thragent td_thragent_t;
-typedef long thread_t;			/* Must be an integral type. */
+typedef long thread_t; /* Must be an integral type. */
 
 typedef struct {
 	const td_thragent_t *th_ta;
-	psaddr_t	th_thread;
-	thread_t	th_tid;
-} td_thrhandle_t;			/* Used non-opaguely. */
+	psaddr_t th_thread;
+	thread_t th_tid;
+} td_thrhandle_t; /* Used non-opaguely. */
 
 /*
  * Events.
@@ -73,42 +74,42 @@ typedef struct {
 
 typedef enum {
 	TD_EVENT_NONE = 0,
-	TD_CATCHSIG =	0x0001,
-	TD_CONCURRENCY=	0x0002,
-	TD_CREATE =	0x0004,
-	TD_DEATH =	0x0008,
-	TD_IDLE =	0x0010,
-	TD_LOCK_TRY =	0x0020,
-	TD_PREEMPT =	0x0040,
-	TD_PRI_INHERIT=	0x0080,
-	TD_READY =	0x0100,
-	TD_REAP =	0x0200,
-	TD_SLEEP =	0x0400,
-	TD_SWITCHFROM =	0x0800,
-	TD_SWITCHTO =	0x1000,
-	TD_TIMEOUT =	0x2000,
+	TD_CATCHSIG = 0x0001,
+	TD_CONCURRENCY = 0x0002,
+	TD_CREATE = 0x0004,
+	TD_DEATH = 0x0008,
+	TD_IDLE = 0x0010,
+	TD_LOCK_TRY = 0x0020,
+	TD_PREEMPT = 0x0040,
+	TD_PRI_INHERIT = 0x0080,
+	TD_READY = 0x0100,
+	TD_REAP = 0x0200,
+	TD_SLEEP = 0x0400,
+	TD_SWITCHFROM = 0x0800,
+	TD_SWITCHTO = 0x1000,
+	TD_TIMEOUT = 0x2000,
 	TD_ALL_EVENTS = ~0
 } td_thr_events_e;
 
 /* Compatibility with Linux. */
-#define	td_event_e	td_thr_events_e
+#define td_event_e td_thr_events_e
 
 typedef struct {
-	td_thr_events_e	event;
-	psaddr_t	th_p;
-	uintptr_t	data;
+	td_thr_events_e event;
+	psaddr_t th_p;
+	uintptr_t data;
 } td_event_msg_t;
 
 typedef unsigned int td_thr_events_t;
 
 typedef enum {
-	NOTIFY_BPT,		/* User inserted breakpoint. */
-	NOTIFY_AUTOBPT,		/* Automatic breakpoint. */
-	NOTIFY_SYSCALL		/* Invocation of system call. */
+	NOTIFY_BPT,	/* User inserted breakpoint. */
+	NOTIFY_AUTOBPT, /* Automatic breakpoint. */
+	NOTIFY_SYSCALL	/* Invocation of system call. */
 } td_notify_e;
 
 typedef struct {
-	td_notify_e	type;
+	td_notify_e type;
 	union {
 		psaddr_t bptaddr;
 		int syscallno;
@@ -166,32 +167,28 @@ typedef enum {
 	TD_THR_ZOMBIE
 } td_thr_state_e;
 
-typedef enum
-{
-	TD_THR_SYSTEM = 1,
-	TD_THR_USER
-} td_thr_type_e;
+typedef enum { TD_THR_SYSTEM = 1, TD_THR_USER } td_thr_type_e;
 
 typedef pthread_key_t thread_key_t;
 
 typedef struct {
 	const td_thragent_t *ti_ta_p;
-	thread_t	ti_tid;
-	psaddr_t	ti_thread;
-	td_thr_state_e	ti_state;
-	td_thr_type_e	ti_type;
-	td_thr_events_t	ti_events;
-	int		ti_pri;
-	lwpid_t		ti_lid;
-	char		ti_db_suspended;
-	char		ti_traceme;
-	sigset_t	ti_sigmask;
-	sigset_t	ti_pending;
-	psaddr_t	ti_tls;
-	psaddr_t	ti_startfunc;
-	psaddr_t	ti_stkbase;
-	size_t		ti_stksize;
-	siginfo_t	ti_siginfo;
+	thread_t ti_tid;
+	psaddr_t ti_thread;
+	td_thr_state_e ti_state;
+	td_thr_type_e ti_type;
+	td_thr_events_t ti_events;
+	int ti_pri;
+	lwpid_t ti_lid;
+	char ti_db_suspended;
+	char ti_traceme;
+	sigset_t ti_sigmask;
+	sigset_t ti_pending;
+	psaddr_t ti_tls;
+	psaddr_t ti_startfunc;
+	psaddr_t ti_stkbase;
+	size_t ti_stksize;
+	siginfo_t ti_siginfo;
 } td_thrinfo_t;
 
 /*
@@ -202,9 +199,9 @@ typedef int td_key_iter_f(thread_key_t, void (*)(void *), void *);
 typedef int td_thr_iter_f(const td_thrhandle_t *, void *);
 
 /* Flags for `td_ta_thr_iter'. */
-#define	TD_THR_ANY_USER_FLAGS	0xffffffff
-#define	TD_THR_LOWEST_PRIORITY	-20
-#define	TD_SIGNO_MASK		NULL
+#define TD_THR_ANY_USER_FLAGS 0xffffffff
+#define TD_THR_LOWEST_PRIORITY -20
+#define TD_SIGNO_MASK NULL
 
 __BEGIN_DECLS
 td_err_e td_init(void);

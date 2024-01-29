@@ -35,21 +35,19 @@
 #include <machine/bus.h>
 #include <machine/resource.h>
 
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+#include <dev/ral/rt2560var.h>
+#include <dev/ral/rt2661var.h>
+#include <dev/ral/rt2860var.h>
+
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_media.h>
 #include <net/route.h>
-
-#include <net80211/ieee80211_var.h>
 #include <net80211/ieee80211_radiotap.h>
 #include <net80211/ieee80211_ratectl.h>
-
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
-
-#include <dev/ral/rt2560var.h>
-#include <dev/ral/rt2661var.h>
-#include <dev/ral/rt2860var.h>
+#include <net80211/ieee80211_var.h>
 
 MODULE_DEPEND(ral, pci, 1, 1, 1);
 MODULE_DEPEND(ral, firmware, 1, 1, 1);
@@ -60,13 +58,13 @@ static int ral_msi_disable;
 TUNABLE_INT("hw.ral.msi_disable", &ral_msi_disable);
 
 struct ral_pci_ident {
-	uint16_t	vendor;
-	uint16_t	device;
-	const char	*name;
+	uint16_t vendor;
+	uint16_t device;
+	const char *name;
 };
 
-static const struct ral_pci_ident ral_pci_ids[] = {
-	{ 0x1432, 0x7708, "Edimax RT2860" },
+static const struct ral_pci_ident ral_pci_ids[] = { { 0x1432, 0x7708,
+							"Edimax RT2860" },
 	{ 0x1432, 0x7711, "Edimax RT3591" },
 	{ 0x1432, 0x7722, "Edimax RT3591" },
 	{ 0x1432, 0x7727, "Edimax RT2860" },
@@ -74,8 +72,7 @@ static const struct ral_pci_ident ral_pci_ids[] = {
 	{ 0x1432, 0x7738, "Edimax RT2860" },
 	{ 0x1432, 0x7748, "Edimax RT2860" },
 	{ 0x1432, 0x7758, "Edimax RT2860" },
-	{ 0x1432, 0x7768, "Edimax RT2860" },
-	{ 0x1462, 0x891a, "MSI RT3090" },
+	{ 0x1432, 0x7768, "Edimax RT2860" }, { 0x1462, 0x891a, "MSI RT3090" },
 	{ 0x1814, 0x0201, "Ralink Technology RT2560" },
 	{ 0x1814, 0x0301, "Ralink Technology RT2561S" },
 	{ 0x1814, 0x0302, "Ralink Technology RT2561" },
@@ -100,41 +97,24 @@ static const struct ral_pci_ident ral_pci_ids[] = {
 	{ 0x1814, 0x539a, "Ralink Technology RT5390" },
 	{ 0x1814, 0x539b, "Ralink Technology RT5390" },
 	{ 0x1814, 0x539f, "Ralink Technology RT5390" },
-	{ 0x1a3b, 0x1059, "AWT RT2890" },
-	{ 0, 0, NULL }
-};
+	{ 0x1a3b, 0x1059, "AWT RT2890" }, { 0, 0, NULL } };
 
 static const struct ral_opns {
-	int	(*attach)(device_t, int);
-	int	(*detach)(void *);
-	void	(*shutdown)(void *);
-	void	(*suspend)(void *);
-	void	(*resume)(void *);
-	void	(*intr)(void *);
+	int (*attach)(device_t, int);
+	int (*detach)(void *);
+	void (*shutdown)(void *);
+	void (*suspend)(void *);
+	void (*resume)(void *);
+	void (*intr)(void *);
 
-}  ral_rt2560_opns = {
-	rt2560_attach,
-	rt2560_detach,
-	rt2560_stop,
-	rt2560_stop,
-	rt2560_resume,
-	rt2560_intr
+} ral_rt2560_opns = { rt2560_attach, rt2560_detach, rt2560_stop, rt2560_stop,
+	rt2560_resume, rt2560_intr
 
-}, ral_rt2661_opns = {
-	rt2661_attach,
-	rt2661_detach,
-	rt2661_shutdown,
-	rt2661_suspend,
-	rt2661_resume,
-	rt2661_intr
-}, ral_rt2860_opns = {
-	rt2860_attach,
-	rt2860_detach,
-	rt2860_shutdown,
-	rt2860_suspend,
-	rt2860_resume,
-	rt2860_intr
-};
+},
+  ral_rt2661_opns = { rt2661_attach, rt2661_detach, rt2661_shutdown,
+	  rt2661_suspend, rt2661_resume, rt2661_intr },
+  ral_rt2860_opns = { rt2860_attach, rt2860_detach, rt2860_shutdown,
+	  rt2860_suspend, rt2860_resume, rt2860_intr };
 
 struct ral_pci_softc {
 	union {
@@ -143,10 +123,10 @@ struct ral_pci_softc {
 		struct rt2860_softc sc_rt2860;
 	} u;
 
-	const struct ral_opns	*sc_opns;
-	struct resource		*irq;
-	struct resource		*mem;
-	void			*sc_ih;
+	const struct ral_opns *sc_opns;
+	struct resource *irq;
+	struct resource *mem;
+	void *sc_ih;
 };
 
 static int ral_pci_probe(device_t);
@@ -158,21 +138,18 @@ static int ral_pci_resume(device_t);
 
 static device_method_t ral_pci_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		ral_pci_probe),
-	DEVMETHOD(device_attach,	ral_pci_attach),
-	DEVMETHOD(device_detach,	ral_pci_detach),
-	DEVMETHOD(device_shutdown,	ral_pci_shutdown),
-	DEVMETHOD(device_suspend,	ral_pci_suspend),
-	DEVMETHOD(device_resume,	ral_pci_resume),
+	DEVMETHOD(device_probe, ral_pci_probe),
+	DEVMETHOD(device_attach, ral_pci_attach),
+	DEVMETHOD(device_detach, ral_pci_detach),
+	DEVMETHOD(device_shutdown, ral_pci_shutdown),
+	DEVMETHOD(device_suspend, ral_pci_suspend),
+	DEVMETHOD(device_resume, ral_pci_resume),
 
 	DEVMETHOD_END
 };
 
-static driver_t ral_pci_driver = {
-	"ral",
-	ral_pci_methods,
-	sizeof (struct ral_pci_softc)
-};
+static driver_t ral_pci_driver = { "ral", ral_pci_methods,
+	sizeof(struct ral_pci_softc) };
 
 DRIVER_MODULE(ral, pci, ral_pci_driver, NULL, NULL);
 MODULE_PNP_INFO("U16:vendor;U16:device;D:#", pci, ral, ral_pci_ids,
@@ -217,8 +194,7 @@ ral_pci_attach(device_t dev)
 	}
 
 	rid = PCIR_BAR(0);
-	psc->mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
-	    RF_ACTIVE);
+	psc->mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid, RF_ACTIVE);
 	if (psc->mem == NULL) {
 		device_printf(dev, "could not allocate memory resource\n");
 		return ENXIO;
@@ -234,8 +210,8 @@ ral_pci_attach(device_t dev)
 		if (pci_alloc_msi(dev, &count) == 0)
 			rid = 1;
 	}
-	psc->irq = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid, RF_ACTIVE |
-	    (rid != 0 ? 0 : RF_SHAREABLE));
+	psc->irq = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid,
+	    RF_ACTIVE | (rid != 0 ? 0 : RF_SHAREABLE));
 	if (psc->irq == NULL) {
 		device_printf(dev, "could not allocate interrupt resource\n");
 		pci_release_msi(dev);
@@ -253,8 +229,8 @@ ral_pci_attach(device_t dev)
 	/*
 	 * Hook our interrupt after all initialization is complete.
 	 */
-	error = bus_setup_intr(dev, psc->irq, INTR_TYPE_NET | INTR_MPSAFE,
-	    NULL, psc->sc_opns->intr, psc, &psc->sc_ih);
+	error = bus_setup_intr(dev, psc->irq, INTR_TYPE_NET | INTR_MPSAFE, NULL,
+	    psc->sc_opns->intr, psc, &psc->sc_ih);
 	if (error != 0) {
 		device_printf(dev, "could not set up interrupt\n");
 		(void)ral_pci_detach(dev);

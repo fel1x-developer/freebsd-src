@@ -34,14 +34,13 @@
 #include <machine/bus.h>
 
 #include <dev/pci/pcireg.h>
-
 #include <dev/uart/uart.h>
 #include <dev/uart/uart_bus.h>
 #include <dev/uart/uart_cpu.h>
 #include <dev/uart/uart_cpu_acpi.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
 #include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
 #include <contrib/dev/acpica/include/actables.h>
 
 static struct acpi_uart_compat_data *
@@ -50,7 +49,8 @@ uart_cpu_acpi_scan(uint8_t interface_type)
 	struct acpi_uart_compat_data **cd, *curcd;
 	int i;
 
-	SET_FOREACH(cd, uart_acpi_class_and_device_set) {
+	SET_FOREACH(cd, uart_acpi_class_and_device_set)
+	{
 		curcd = *cd;
 		for (i = 0; curcd[i].cd_hid != NULL; i++) {
 			if (curcd[i].cd_port_subtype == interface_type)
@@ -58,7 +58,8 @@ uart_cpu_acpi_scan(uint8_t interface_type)
 		}
 	}
 
-	SET_FOREACH(cd, uart_acpi_class_set) {
+	SET_FOREACH(cd, uart_acpi_class_set)
+	{
 		curcd = *cd;
 		for (i = 0; curcd[i].cd_hid != NULL; i++) {
 			if (curcd[i].cd_port_subtype == interface_type)

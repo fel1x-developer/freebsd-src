@@ -29,7 +29,7 @@
  */
 
 #ifndef _MACHINE_PCPU_AUX_H_
-#define	_MACHINE_PCPU_AUX_H_
+#define _MACHINE_PCPU_AUX_H_
 
 #ifndef _KERNEL
 #error "Not for userspace"
@@ -45,9 +45,10 @@
  */
 _Static_assert(PAGE_SIZE % sizeof(struct pcpu) == 0, "fix pcpu size");
 _Static_assert(offsetof(struct pcpu, __pad) +
-    sizeof(((struct pcpu *)0)->__pad) == sizeof(struct pcpu),
+	    sizeof(((struct pcpu *)0)->__pad) ==
+	sizeof(struct pcpu),
     "fix pcpu padding");
 
 extern struct pcpu __pcpu[];
 
-#endif	/* _MACHINE_PCPU_AUX_H_ */
+#endif /* _MACHINE_PCPU_AUX_H_ */

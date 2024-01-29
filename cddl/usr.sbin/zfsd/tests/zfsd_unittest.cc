@@ -32,38 +32,34 @@
 #include <sys/cdefs.h>
 #include <sys/byteorder.h>
 
-#include <stdarg.h>
-#include <syslog.h>
-
+#include <devdctl/consumer.h>
+#include <devdctl/event.h>
+#include <devdctl/event_factory.h>
+#include <devdctl/exception.h>
+#include <devdctl/guid.h>
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
 #include <libnvpair.h>
 #include <libzfs.h>
+#include <stdarg.h>
+#include <syslog.h>
+#include <zfsd/callout.h>
+#include <zfsd/case_file.h>
+#include <zfsd/vdev.h>
+#include <zfsd/vdev_iterator.h>
+#include <zfsd/zfsd.h>
+#include <zfsd/zfsd_event.h>
+#include <zfsd/zfsd_exception.h>
+#include <zfsd/zpool_list.h>
+
+#include "libmocks.h"
 
 #include <list>
 #include <map>
 #include <sstream>
 #include <string>
-
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
-
-#include <devdctl/guid.h>
-#include <devdctl/event.h>
-#include <devdctl/event_factory.h>
-#include <devdctl/exception.h>
-#include <devdctl/consumer.h>
-
-#include <zfsd/callout.h>
-#include <zfsd/vdev_iterator.h>
-#include <zfsd/zfsd_event.h>
-#include <zfsd/case_file.h>
-#include <zfsd/vdev.h>
-#include <zfsd/zfsd.h>
-#include <zfsd/zfsd_exception.h>
-#include <zfsd/zpool_list.h>
-
-#include "libmocks.h"
 /*================================== Macros ==================================*/
-#define	NUM_ELEMENTS(x) (sizeof(x) / sizeof(*x))
+#define NUM_ELEMENTS(x) (sizeof(x) / sizeof(*x))
 
 /*============================ Namespace Control =============================*/
 using std::string;
@@ -76,24 +72,22 @@ using DevdCtl::Guid;
 using DevdCtl::NVPairMap;
 
 /* redefine zpool_handle here because libzfs_impl.h is not includable */
-struct zpool_handle
-{
-        libzfs_handle_t *zpool_hdl;
-        zpool_handle_t *zpool_next;
-        char zpool_name[ZFS_MAX_DATASET_NAME_LEN];
-        int zpool_state;
-        size_t zpool_config_size;
-        nvlist_t *zpool_config;
-        nvlist_t *zpool_old_config;
-        nvlist_t *zpool_props;
-        diskaddr_t zpool_start_block;
+struct zpool_handle {
+	libzfs_handle_t *zpool_hdl;
+	zpool_handle_t *zpool_next;
+	char zpool_name[ZFS_MAX_DATASET_NAME_LEN];
+	int zpool_state;
+	size_t zpool_config_size;
+	nvlist_t *zpool_config;
+	nvlist_t *zpool_old_config;
+	nvlist_t *zpool_props;
+	diskaddr_t zpool_start_block;
 };
 
-class MockZfsEvent : public ZfsEvent
-{
-public:
-	MockZfsEvent(Event::Type, NVPairMap&, const string&);
-	virtual ~MockZfsEvent() {}
+class MockZfsEvent : public ZfsEvent {
+    public:
+	MockZfsEvent(Event::Type, NVPairMap &, const string &);
+	virtual ~MockZfsEvent() { }
 
 	static BuildMethod MockZfsEventBuilder;
 
@@ -102,21 +96,17 @@ public:
 	static EventFactory::Record s_buildRecords[];
 };
 
-EventFactory::Record MockZfsEvent::s_buildRecords[] =
-{
-        { Event::NOTIFY, "ZFS", &MockZfsEvent::MockZfsEventBuilder }
-};
+EventFactory::Record MockZfsEvent::s_buildRecords[] = { { Event::NOTIFY, "ZFS",
+    &MockZfsEvent::MockZfsEventBuilder } };
 
-MockZfsEvent::MockZfsEvent(Event::Type type, NVPairMap& map,
-			   const string& str)
- : ZfsEvent(type, map, str)
+MockZfsEvent::MockZfsEvent(Event::Type type, NVPairMap &map, const string &str)
+    : ZfsEvent(type, map, str)
 {
 }
 
 Event *
-MockZfsEvent::MockZfsEventBuilder(Event::Type type,
-				  NVPairMap &nvpairs,
-			  	  const string &eventString)
+MockZfsEvent::MockZfsEventBuilder(Event::Type type, NVPairMap &nvpairs,
+    const string &eventString)
 {
 	return (new MockZfsEvent(type, nvpairs, eventString));
 }
@@ -124,11 +114,10 @@ MockZfsEvent::MockZfsEventBuilder(Event::Type type,
 /*
  * A dummy Vdev class used for testing other classes
  */
-class MockVdev : public Vdev
-{
-public:
+class MockVdev : public Vdev {
+    public:
 	MockVdev(nvlist_t *vdevConfig);
-	virtual ~MockVdev() {}
+	virtual ~MockVdev() { }
 
 	MOCK_CONST_METHOD0(GUID, Guid());
 	MOCK_CONST_METHOD0(PoolGUID, Guid());
@@ -137,19 +126,18 @@ public:
 };
 
 MockVdev::MockVdev(nvlist_t *vdevConfig)
- : Vdev(vdevConfig)
+    : Vdev(vdevConfig)
 {
 }
 
 /*
  * A CaseFile class with side effects removed, for testing
  */
-class TestableCaseFile : public CaseFile
-{
-public:
+class TestableCaseFile : public CaseFile {
+    public:
 	static TestableCaseFile &Create(Vdev &vdev);
 	TestableCaseFile(Vdev &vdev);
-	virtual ~TestableCaseFile() {}
+	virtual ~TestableCaseFile() { }
 
 	MOCK_METHOD0(Close, void());
 	MOCK_METHOD1(RegisterCallout, void(const Event &event));
@@ -171,14 +159,11 @@ public:
 	/*
 	 * Used by some of our expectations.  CaseFile does not publicize this
 	 */
-	static int getActiveCases()
-	{
-		return (s_activeCases.size());
-	}
+	static int getActiveCases() { return (s_activeCases.size()); }
 };
 
 TestableCaseFile::TestableCaseFile(Vdev &vdev)
- : CaseFile(vdev)
+    : CaseFile(vdev)
 {
 }
 
@@ -196,24 +181,24 @@ TestableCaseFile::SpliceEvents()
 	m_events.splice(m_events.begin(), m_tentativeEvents);
 }
 
-
 /*
  * Test class ZfsdException
  */
-class ZfsdExceptionTest : public ::testing::Test
-{
-protected:
+class ZfsdExceptionTest : public ::testing::Test {
+    protected:
 	virtual void SetUp()
 	{
 		ASSERT_EQ(0, nvlist_alloc(&poolConfig, NV_UNIQUE_NAME, 0));
-		ASSERT_EQ(0, nvlist_add_string(poolConfig,
-				ZPOOL_CONFIG_POOL_NAME, "unit_test_pool"));
-		ASSERT_EQ(0, nvlist_add_uint64(poolConfig,
-				ZPOOL_CONFIG_POOL_GUID, 0x1234));
+		ASSERT_EQ(0,
+		    nvlist_add_string(poolConfig, ZPOOL_CONFIG_POOL_NAME,
+			"unit_test_pool"));
+		ASSERT_EQ(0,
+		    nvlist_add_uint64(poolConfig, ZPOOL_CONFIG_POOL_GUID,
+			0x1234));
 
 		ASSERT_EQ(0, nvlist_alloc(&vdevConfig, NV_UNIQUE_NAME, 0));
-		ASSERT_EQ(0, nvlist_add_uint64(vdevConfig,
-				ZPOOL_CONFIG_GUID, 0x5678));
+		ASSERT_EQ(0,
+		    nvlist_add_uint64(vdevConfig, ZPOOL_CONFIG_GUID, 0x5678));
 		bzero(&poolHandle, sizeof(poolHandle));
 		poolHandle.zpool_config = poolConfig;
 	}
@@ -224,9 +209,9 @@ protected:
 		nvlist_free(vdevConfig);
 	}
 
-	nvlist_t	*poolConfig;
-	nvlist_t	*vdevConfig;
-	zpool_handle_t   poolHandle;
+	nvlist_t *poolConfig;
+	nvlist_t *vdevConfig;
+	zpool_handle_t poolHandle;
 };
 
 TEST_F(ZfsdExceptionTest, StringConstructorNull)
@@ -272,19 +257,18 @@ TEST_F(ZfsdExceptionTest, PoolHandle)
 /*
  * Test class Vdev
  */
-class VdevTest : public ::testing::Test
-{
-protected:
+class VdevTest : public ::testing::Test {
+    protected:
 	virtual void SetUp()
 	{
 		ASSERT_EQ(0, nvlist_alloc(&m_poolConfig, NV_UNIQUE_NAME, 0));
-		ASSERT_EQ(0, nvlist_add_uint64(m_poolConfig,
-					       ZPOOL_CONFIG_POOL_GUID,
-					       0x1234));
+		ASSERT_EQ(0,
+		    nvlist_add_uint64(m_poolConfig, ZPOOL_CONFIG_POOL_GUID,
+			0x1234));
 
 		ASSERT_EQ(0, nvlist_alloc(&m_vdevConfig, NV_UNIQUE_NAME, 0));
-		ASSERT_EQ(0, nvlist_add_uint64(m_vdevConfig, ZPOOL_CONFIG_GUID,
-					       0x5678));
+		ASSERT_EQ(0,
+		    nvlist_add_uint64(m_vdevConfig, ZPOOL_CONFIG_GUID, 0x5678));
 	}
 
 	virtual void TearDown()
@@ -293,10 +277,9 @@ protected:
 		nvlist_free(m_vdevConfig);
 	}
 
-	nvlist_t	*m_poolConfig;
-	nvlist_t	*m_vdevConfig;
+	nvlist_t *m_poolConfig;
+	nvlist_t *m_vdevConfig;
 };
-
 
 TEST_F(VdevTest, StateFromConfig)
 {
@@ -304,10 +287,9 @@ TEST_F(VdevTest, StateFromConfig)
 
 	vs.vs_state = VDEV_STATE_OFFLINE;
 
-	ASSERT_EQ(0, nvlist_add_uint64_array(m_vdevConfig,
-					     ZPOOL_CONFIG_VDEV_STATS,
-					     (uint64_t*)&vs,
-					     sizeof(vs) / sizeof(uint64_t)));
+	ASSERT_EQ(0,
+	    nvlist_add_uint64_array(m_vdevConfig, ZPOOL_CONFIG_VDEV_STATS,
+		(uint64_t *)&vs, sizeof(vs) / sizeof(uint64_t)));
 
 	Vdev vdev(m_poolConfig, m_vdevConfig);
 
@@ -329,13 +311,15 @@ TEST_F(VdevTest, StateFaulted)
  */
 TEST_F(VdevTest, ConstructAvailSpare)
 {
-	nvlist_t	*labelConfig;
+	nvlist_t *labelConfig;
 
 	ASSERT_EQ(0, nvlist_alloc(&labelConfig, NV_UNIQUE_NAME, 0));
-	ASSERT_EQ(0, nvlist_add_uint64(labelConfig, ZPOOL_CONFIG_GUID,
-				       1948339428197961030));
-	ASSERT_EQ(0, nvlist_add_uint64(labelConfig, ZPOOL_CONFIG_POOL_STATE,
-				       POOL_STATE_SPARE));
+	ASSERT_EQ(0,
+	    nvlist_add_uint64(labelConfig, ZPOOL_CONFIG_GUID,
+		1948339428197961030));
+	ASSERT_EQ(0,
+	    nvlist_add_uint64(labelConfig, ZPOOL_CONFIG_POOL_STATE,
+		POOL_STATE_SPARE));
 
 	EXPECT_NO_THROW(Vdev vdev(labelConfig));
 
@@ -343,14 +327,17 @@ TEST_F(VdevTest, ConstructAvailSpare)
 }
 
 /* Available spares will always show the HEALTHY state */
-TEST_F(VdevTest, AvailSpareState) {
-	nvlist_t	*labelConfig;
+TEST_F(VdevTest, AvailSpareState)
+{
+	nvlist_t *labelConfig;
 
 	ASSERT_EQ(0, nvlist_alloc(&labelConfig, NV_UNIQUE_NAME, 0));
-	ASSERT_EQ(0, nvlist_add_uint64(labelConfig, ZPOOL_CONFIG_GUID,
-				       1948339428197961030));
-	ASSERT_EQ(0, nvlist_add_uint64(labelConfig, ZPOOL_CONFIG_POOL_STATE,
-				       POOL_STATE_SPARE));
+	ASSERT_EQ(0,
+	    nvlist_add_uint64(labelConfig, ZPOOL_CONFIG_GUID,
+		1948339428197961030));
+	ASSERT_EQ(0,
+	    nvlist_add_uint64(labelConfig, ZPOOL_CONFIG_POOL_STATE,
+		POOL_STATE_SPARE));
 
 	Vdev vdev(labelConfig);
 	EXPECT_EQ(VDEV_STATE_HEALTHY, vdev.State());
@@ -359,7 +346,8 @@ TEST_F(VdevTest, AvailSpareState) {
 }
 
 /* Test the Vdev::IsSpare method */
-TEST_F(VdevTest, IsSpare) {
+TEST_F(VdevTest, IsSpare)
+{
 	Vdev notSpare(m_poolConfig, m_vdevConfig);
 	EXPECT_EQ(false, notSpare.IsSpare());
 
@@ -371,9 +359,8 @@ TEST_F(VdevTest, IsSpare) {
 /*
  * Test class ZFSEvent
  */
-class ZfsEventTest : public ::testing::Test
-{
-protected:
+class ZfsEventTest : public ::testing::Test {
+    protected:
 	virtual void SetUp()
 	{
 		m_eventFactory = new EventFactory();
@@ -389,8 +376,8 @@ protected:
 		delete m_event;
 	}
 
-	EventFactory	*m_eventFactory;
-	Event		*m_event;
+	EventFactory *m_eventFactory;
+	Event *m_event;
 };
 
 TEST_F(ZfsEventTest, ProcessPoolEventGetsCalled)
@@ -404,7 +391,7 @@ TEST_F(ZfsEventTest, ProcessPoolEventGetsCalled)
 			"vdev_path=/dev/da1 "
 			"timestamp=1348871594");
 	m_event = Event::CreateEvent(*m_eventFactory, evString);
-	MockZfsEvent *mock_event = static_cast<MockZfsEvent*>(m_event);
+	MockZfsEvent *mock_event = static_cast<MockZfsEvent *>(m_event);
 
 	EXPECT_CALL(*mock_event, ProcessPoolEvent()).Times(1);
 	mock_event->Process();
@@ -414,9 +401,8 @@ TEST_F(ZfsEventTest, ProcessPoolEventGetsCalled)
  * Test class CaseFile
  */
 
-class CaseFileTest : public ::testing::Test
-{
-protected:
+class CaseFileTest : public ::testing::Test {
+    protected:
 	virtual void SetUp()
 	{
 		m_eventFactory = new EventFactory();
@@ -426,8 +412,8 @@ protected:
 		m_event = NULL;
 
 		nvlist_alloc(&m_vdevConfig, NV_UNIQUE_NAME, 0);
-		ASSERT_EQ(0, nvlist_add_uint64(m_vdevConfig,
-					       ZPOOL_CONFIG_GUID, 0xbeef));
+		ASSERT_EQ(0,
+		    nvlist_add_uint64(m_vdevConfig, ZPOOL_CONFIG_GUID, 0xbeef));
 		m_vdev = new MockVdev(m_vdevConfig);
 		ON_CALL(*m_vdev, GUID())
 		    .WillByDefault(::testing::Return(Guid(123)));
@@ -437,7 +423,8 @@ protected:
 		    .WillByDefault(::testing::Return(VDEV_STATE_HEALTHY));
 		m_caseFile = &TestableCaseFile::Create(*m_vdev);
 		ON_CALL(*m_caseFile, ReEvaluate(::testing::_))
-		    .WillByDefault(::testing::Invoke(m_caseFile, &TestableCaseFile::RealReEvaluate));
+		    .WillByDefault(::testing::Invoke(m_caseFile,
+			&TestableCaseFile::RealReEvaluate));
 		return;
 	}
 
@@ -450,11 +437,11 @@ protected:
 		delete m_eventFactory;
 	}
 
-	nvlist_t		*m_vdevConfig;
-	MockVdev		*m_vdev;
-	TestableCaseFile 	*m_caseFile;
-	Event			*m_event;
-	EventFactory		*m_eventFactory;
+	nvlist_t *m_vdevConfig;
+	MockVdev *m_vdev;
+	TestableCaseFile *m_caseFile;
+	Event *m_event;
+	EventFactory *m_eventFactory;
 };
 
 /*
@@ -495,7 +482,7 @@ TEST_F(CaseFileTest, HealthyishVdev)
 			"zio_offset=25598976 "
 			"zio_size=1024");
 	m_event = Event::CreateEvent(*m_eventFactory, evString);
-	ZfsEvent *zfs_event = static_cast<ZfsEvent*>(m_event);
+	ZfsEvent *zfs_event = static_cast<ZfsEvent *>(m_event);
 
 	EXPECT_CALL(*m_caseFile, RefreshVdevState())
 	    .Times(::testing::Exactly(0));
@@ -514,7 +501,7 @@ TEST_F(CaseFileTest, PoolDestroy)
 			"timestamp=1348867914 "
 			"type=sysevent.fs.zfs.pool_destroy ");
 	m_event = Event::CreateEvent(*m_eventFactory, evString);
-	ZfsEvent *zfs_event = static_cast<ZfsEvent*>(m_event);
+	ZfsEvent *zfs_event = static_cast<ZfsEvent *>(m_event);
 	EXPECT_CALL(*m_caseFile, Close());
 	EXPECT_TRUE(m_caseFile->ReEvaluate(*zfs_event));
 }
@@ -529,53 +516,51 @@ TEST_F(CaseFileTest, VeryManyDelayErrors)
 	    .Times(::testing::AtMost(1))
 	    .WillRepeatedly(::testing::Return(true));
 
-	for(int i=0; i<100; i++) {
+	for (int i = 0; i < 100; i++) {
 		stringstream evStringStream;
-		evStringStream <<
-			"!system=ZFS "
-			"class=ereport.fs.zfs.delay "
-			"ena=12091638756982918145 "
-			"parent_guid=13237004955564865395 "
-			"parent_type=raidz "
-			"pool=testpool.4415 "
-			"pool_context=0 "
-			"pool_failmode=wait "
-			"pool_guid=456 "
-			"pool_state= 0"
-			"subsystem=ZFS "
-			"time=";
+		evStringStream << "!system=ZFS "
+				  "class=ereport.fs.zfs.delay "
+				  "ena=12091638756982918145 "
+				  "parent_guid=13237004955564865395 "
+				  "parent_type=raidz "
+				  "pool=testpool.4415 "
+				  "pool_context=0 "
+				  "pool_failmode=wait "
+				  "pool_guid=456 "
+				  "pool_state= 0"
+				  "subsystem=ZFS "
+				  "time=";
 		evStringStream << i << "0000000000000000 ";
 		evStringStream << "timestamp=" << i << " ";
-		evStringStream <<
-			"type=ereport.fs.zfs.delay "
-			"vdev_ashift=12 "
-			"vdev_cksum_errors=0 "
-			"vdev_complete_ts=948336226469 "
-			"vdev_delays=77 "
-			"vdev_delta_ts=123998485899 "
-			"vdev_guid=123 "
-			"vdev_path=/dev/da400 "
-			"vdev_read_errors=0 "
-			"vdev_spare_guids= "
-			"vdev_type=disk "
-			"vdev_write_errors=0 "
-			"zio_blkid=622 "
-			"zio_delay=31000041101 "
-			"zio_delta=123998485899 "
-			"zio_err=0 "
-			"zio_flags=1572992 "
-			"zio_level=-2 "
-			"zio_object=0 "
-			"zio_objset=37 "
-			"zio_offset=25598976 "
-			"zio_pipeline=48234496 "
-			"zio_priority=3 "
-			"zio_size=1024"
-			"zio_stage=33554432 "
-			"zio_timestamp=824337740570 ";
-		Event *event(Event::CreateEvent(*m_eventFactory,
-						evStringStream.str()));
-		ZfsEvent *zfs_event = static_cast<ZfsEvent*>(event);
+		evStringStream << "type=ereport.fs.zfs.delay "
+				  "vdev_ashift=12 "
+				  "vdev_cksum_errors=0 "
+				  "vdev_complete_ts=948336226469 "
+				  "vdev_delays=77 "
+				  "vdev_delta_ts=123998485899 "
+				  "vdev_guid=123 "
+				  "vdev_path=/dev/da400 "
+				  "vdev_read_errors=0 "
+				  "vdev_spare_guids= "
+				  "vdev_type=disk "
+				  "vdev_write_errors=0 "
+				  "zio_blkid=622 "
+				  "zio_delay=31000041101 "
+				  "zio_delta=123998485899 "
+				  "zio_err=0 "
+				  "zio_flags=1572992 "
+				  "zio_level=-2 "
+				  "zio_object=0 "
+				  "zio_objset=37 "
+				  "zio_offset=25598976 "
+				  "zio_pipeline=48234496 "
+				  "zio_priority=3 "
+				  "zio_size=1024"
+				  "zio_stage=33554432 "
+				  "zio_timestamp=824337740570 ";
+		Event *event(
+		    Event::CreateEvent(*m_eventFactory, evStringStream.str()));
+		ZfsEvent *zfs_event = static_cast<ZfsEvent *>(event);
 		EXPECT_TRUE(m_caseFile->ReEvaluate(*zfs_event));
 		delete event;
 	}
@@ -595,36 +580,34 @@ TEST_F(CaseFileTest, VeryManyIOErrors)
 	    .Times(::testing::AtMost(1))
 	    .WillRepeatedly(::testing::Return(true));
 
-	for(int i=0; i<100; i++) {
+	for (int i = 0; i < 100; i++) {
 		stringstream evStringStream;
-		evStringStream <<
-			"!system=ZFS "
-			"class=ereport.fs.zfs.io "
-			"ena=12091638756982918145 "
-			"parent_guid=13237004955564865395 "
-			"parent_type=raidz "
-			"pool=testpool.4415 "
-			"pool_context=0 "
-			"pool_failmode=wait "
-			"pool_guid=456 "
-			"subsystem=ZFS "
-			"timestamp=";
+		evStringStream << "!system=ZFS "
+				  "class=ereport.fs.zfs.io "
+				  "ena=12091638756982918145 "
+				  "parent_guid=13237004955564865395 "
+				  "parent_type=raidz "
+				  "pool=testpool.4415 "
+				  "pool_context=0 "
+				  "pool_failmode=wait "
+				  "pool_guid=456 "
+				  "subsystem=ZFS "
+				  "timestamp=";
 		evStringStream << i << " ";
-		evStringStream <<
-			"type=ereport.fs.zfs.io "
-			"vdev_guid=123 "
-			"vdev_path=/dev/da400 "
-			"vdev_type=disk "
-			"zio_blkid=622 "
-			"zio_err=1 "
-			"zio_level=-2 "
-			"zio_object=0 "
-			"zio_objset=37 "
-			"zio_offset=25598976 "
-			"zio_size=1024";
-		Event *event(Event::CreateEvent(*m_eventFactory,
-						evStringStream.str()));
-		ZfsEvent *zfs_event = static_cast<ZfsEvent*>(event);
+		evStringStream << "type=ereport.fs.zfs.io "
+				  "vdev_guid=123 "
+				  "vdev_path=/dev/da400 "
+				  "vdev_type=disk "
+				  "zio_blkid=622 "
+				  "zio_err=1 "
+				  "zio_level=-2 "
+				  "zio_object=0 "
+				  "zio_objset=37 "
+				  "zio_offset=25598976 "
+				  "zio_size=1024";
+		Event *event(
+		    Event::CreateEvent(*m_eventFactory, evStringStream.str()));
+		ZfsEvent *zfs_event = static_cast<ZfsEvent *>(event);
 		EXPECT_TRUE(m_caseFile->ReEvaluate(*zfs_event));
 		delete event;
 	}
@@ -644,40 +627,39 @@ TEST_F(CaseFileTest, VeryManyChecksumErrors)
 	    .Times(::testing::AtMost(1))
 	    .WillRepeatedly(::testing::Return(true));
 
-	for(int i=0; i<100; i++) {
+	for (int i = 0; i < 100; i++) {
 		stringstream evStringStream;
-		evStringStream <<
-			"!system=ZFS "
-			"bad_cleared_bits=03000000000000803f50b00000000000 "
-			"bad_range_clears=0000000e "
-			"bad_range_sets=00000000 "
-			"bad_ranges=0000000000000010 "
-			"bad_ranges_min_gap=8 "
-			"bad_set_bits=00000000000000000000000000000000 "
-			"class=ereport.fs.zfs.checksum "
-			"ena=12272856582652437505 "
-			"parent_guid=5838204195352909894 "
-			"parent_type=raidz pool=testpool.7640 "
-			"pool_context=0 "
-			"pool_failmode=wait "
-			"pool_guid=456 "
-			"subsystem=ZFS timestamp=";
+		evStringStream
+		    << "!system=ZFS "
+		       "bad_cleared_bits=03000000000000803f50b00000000000 "
+		       "bad_range_clears=0000000e "
+		       "bad_range_sets=00000000 "
+		       "bad_ranges=0000000000000010 "
+		       "bad_ranges_min_gap=8 "
+		       "bad_set_bits=00000000000000000000000000000000 "
+		       "class=ereport.fs.zfs.checksum "
+		       "ena=12272856582652437505 "
+		       "parent_guid=5838204195352909894 "
+		       "parent_type=raidz pool=testpool.7640 "
+		       "pool_context=0 "
+		       "pool_failmode=wait "
+		       "pool_guid=456 "
+		       "subsystem=ZFS timestamp=";
 		evStringStream << i << " ";
-		evStringStream <<
-			"type=ereport.fs.zfs.checksum "
-			"vdev_guid=123 "
-			"vdev_path=/mnt/tmp/file1.7702 "
-			"vdev_type=file "
-			"zio_blkid=0 "
-			"zio_err=0 "
-			"zio_level=0 "
-			"zio_object=3 "
-			"zio_objset=0 "
-			"zio_offset=16896 "
-			"zio_size=512";
-		Event *event(Event::CreateEvent(*m_eventFactory,
-						evStringStream.str()));
-		ZfsEvent *zfs_event = static_cast<ZfsEvent*>(event);
+		evStringStream << "type=ereport.fs.zfs.checksum "
+				  "vdev_guid=123 "
+				  "vdev_path=/mnt/tmp/file1.7702 "
+				  "vdev_type=file "
+				  "zio_blkid=0 "
+				  "zio_err=0 "
+				  "zio_level=0 "
+				  "zio_object=3 "
+				  "zio_objset=0 "
+				  "zio_offset=16896 "
+				  "zio_size=512";
+		Event *event(
+		    Event::CreateEvent(*m_eventFactory, evStringStream.str()));
+		ZfsEvent *zfs_event = static_cast<ZfsEvent *>(event);
 		EXPECT_TRUE(m_caseFile->ReEvaluate(*zfs_event));
 		delete event;
 	}
@@ -690,9 +672,8 @@ TEST_F(CaseFileTest, VeryManyChecksumErrors)
 /*
  * Test CaseFile::ReEvaluateByGuid
  */
-class ReEvaluateByGuidTest : public ::testing::Test
-{
-protected:
+class ReEvaluateByGuidTest : public ::testing::Test {
+    protected:
 	virtual void SetUp()
 	{
 		m_eventFactory = new EventFactory();
@@ -700,8 +681,8 @@ protected:
 		    NUM_ELEMENTS(MockZfsEvent::s_buildRecords));
 		m_event = Event::CreateEvent(*m_eventFactory, s_evString);
 		nvlist_alloc(&m_vdevConfig, NV_UNIQUE_NAME, 0);
-		ASSERT_EQ(0, nvlist_add_uint64(m_vdevConfig,
-					       ZPOOL_CONFIG_GUID, 0xbeef));
+		ASSERT_EQ(0,
+		    nvlist_add_uint64(m_vdevConfig, ZPOOL_CONFIG_GUID, 0xbeef));
 		m_vdev456 = new ::testing::NiceMock<MockVdev>(m_vdevConfig);
 		m_vdev789 = new ::testing::NiceMock<MockVdev>(m_vdevConfig);
 		ON_CALL(*m_vdev456, GUID())
@@ -732,24 +713,22 @@ protected:
 		delete m_eventFactory;
 	}
 
-	static string			 s_evString;
-	nvlist_t			*m_vdevConfig;
-	::testing::NiceMock<MockVdev>	*m_vdev456;
-	::testing::NiceMock<MockVdev>	*m_vdev789;
-	TestableCaseFile 		*m_caseFile456;
-	TestableCaseFile 		*m_caseFile789;
-	Event				*m_event;
-	EventFactory			*m_eventFactory;
+	static string s_evString;
+	nvlist_t *m_vdevConfig;
+	::testing::NiceMock<MockVdev> *m_vdev456;
+	::testing::NiceMock<MockVdev> *m_vdev789;
+	TestableCaseFile *m_caseFile456;
+	TestableCaseFile *m_caseFile789;
+	Event *m_event;
+	EventFactory *m_eventFactory;
 };
 
-string ReEvaluateByGuidTest::s_evString(
-	"!system=ZFS "
-	"pool_guid=16271873792808333580 "
-	"pool_name=foo "
-	"subsystem=ZFS "
-	"timestamp=1360620391 "
-	"type=sysevent.fs.zfs.config_sync");
-
+string ReEvaluateByGuidTest::s_evString("!system=ZFS "
+					"pool_guid=16271873792808333580 "
+					"pool_name=foo "
+					"subsystem=ZFS "
+					"timestamp=1360620391 "
+					"type=sysevent.fs.zfs.config_sync");
 
 /*
  * Test the ReEvaluateByGuid method on an empty list of casefiles.
@@ -758,7 +737,7 @@ string ReEvaluateByGuidTest::s_evString(
  */
 TEST_F(ReEvaluateByGuidTest, ReEvaluateByGuid_empty)
 {
-	ZfsEvent *zfs_event = static_cast<ZfsEvent*>(m_event);
+	ZfsEvent *zfs_event = static_cast<ZfsEvent *>(m_event);
 
 	EXPECT_EQ(0, TestableCaseFile::getActiveCases());
 	CaseFile::ReEvaluateByGuid(Guid(456), *zfs_event);
@@ -772,7 +751,7 @@ TEST_F(ReEvaluateByGuidTest, ReEvaluateByGuid_empty)
 TEST_F(ReEvaluateByGuidTest, ReEvaluateByGuid_oneFalse)
 {
 	m_caseFile456 = &TestableCaseFile::Create(*m_vdev456);
-	ZfsEvent *zfs_event = static_cast<ZfsEvent*>(m_event);
+	ZfsEvent *zfs_event = static_cast<ZfsEvent *>(m_event);
 
 	EXPECT_EQ(1, TestableCaseFile::getActiveCases());
 	EXPECT_CALL(*m_caseFile456, ReEvaluate(::testing::_))
@@ -788,7 +767,7 @@ TEST_F(ReEvaluateByGuidTest, ReEvaluateByGuid_oneFalse)
 TEST_F(ReEvaluateByGuidTest, ReEvaluateByGuid_oneTrue)
 {
 	m_caseFile456 = &TestableCaseFile::Create(*m_vdev456);
-	ZfsEvent *zfs_event = static_cast<ZfsEvent*>(m_event);
+	ZfsEvent *zfs_event = static_cast<ZfsEvent *>(m_event);
 
 	EXPECT_EQ(1, TestableCaseFile::getActiveCases());
 	EXPECT_CALL(*m_caseFile456, ReEvaluate(::testing::_))
@@ -809,7 +788,7 @@ TEST_F(ReEvaluateByGuidTest, ReEvaluateByGuid_five)
 	TestableCaseFile *CaseFile3 = &TestableCaseFile::Create(*m_vdev456);
 	TestableCaseFile *CaseFile4 = &TestableCaseFile::Create(*m_vdev789);
 	TestableCaseFile *CaseFile5 = &TestableCaseFile::Create(*m_vdev789);
-	ZfsEvent *zfs_event = static_cast<ZfsEvent*>(m_event);
+	ZfsEvent *zfs_event = static_cast<ZfsEvent *>(m_event);
 
 	EXPECT_EQ(5, TestableCaseFile::getActiveCases());
 	EXPECT_CALL(*CaseFile1, ReEvaluate(::testing::_))
@@ -836,11 +815,11 @@ TEST_F(ReEvaluateByGuidTest, ReEvaluateByGuid_five)
 /*
  * Test VdevIterator
  */
-class VdevIteratorTest : public ::testing::Test
-{
-};
+class VdevIteratorTest : public ::testing::Test { };
 
-bool VdevIteratorTestCB(Vdev &vdev, void *cbArg) {
+bool
+VdevIteratorTestCB(Vdev &vdev, void *cbArg)
+{
 	return (false);
 }
 
@@ -851,7 +830,7 @@ bool VdevIteratorTestCB(Vdev &vdev, void *cbArg) {
  */
 TEST_F(VdevIteratorTest, VdevRemoval)
 {
-	nvlist_t* poolConfig, *rootVdev;
+	nvlist_t *poolConfig, *rootVdev;
 
 	ASSERT_EQ(0, nvlist_alloc(&rootVdev, NV_UNIQUE_NAME, 0));
 	ASSERT_EQ(0, nvlist_add_uint64(rootVdev, ZPOOL_CONFIG_GUID, 0x5678));
@@ -859,13 +838,13 @@ TEST_F(VdevIteratorTest, VdevRemoval)
 	 * Note: pools with previously-removed top-level VDEVs will contain a
 	 * TLV in their labels that has 0 children.
 	 */
-	ASSERT_EQ(0, nvlist_add_nvlist_array(rootVdev, ZPOOL_CONFIG_CHILDREN,
-				NULL, 0));
+	ASSERT_EQ(0,
+	    nvlist_add_nvlist_array(rootVdev, ZPOOL_CONFIG_CHILDREN, NULL, 0));
 	ASSERT_EQ(0, nvlist_alloc(&poolConfig, NV_UNIQUE_NAME, 0));
-	ASSERT_EQ(0, nvlist_add_uint64(poolConfig,
-			ZPOOL_CONFIG_POOL_GUID, 0x1234));
-	ASSERT_EQ(0, nvlist_add_nvlist(poolConfig, ZPOOL_CONFIG_VDEV_TREE,
-				rootVdev));
+	ASSERT_EQ(0,
+	    nvlist_add_uint64(poolConfig, ZPOOL_CONFIG_POOL_GUID, 0x1234));
+	ASSERT_EQ(0,
+	    nvlist_add_nvlist(poolConfig, ZPOOL_CONFIG_VDEV_TREE, rootVdev));
 
 	VdevIterator(poolConfig).Each(VdevIteratorTestCB, NULL);
 }

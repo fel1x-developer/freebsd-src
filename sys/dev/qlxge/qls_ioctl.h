@@ -37,14 +37,14 @@
 #include <sys/ioccom.h>
 
 struct qls_mpi_dump {
-	uint32_t	size;
-	void		*dbuf;
+	uint32_t size;
+	void *dbuf;
 };
 typedef struct qls_mpi_dump qls_mpi_dump_t;
 
 /*
  * Get MPI Dump
  */
-#define QLA_MPI_DUMP		_IOWR('q', 1, qls_mpi_dump_t)
+#define QLA_MPI_DUMP _IOWR('q', 1, qls_mpi_dump_t)
 
 #endif /* #ifndef _QLS_IOCTL_H_ */

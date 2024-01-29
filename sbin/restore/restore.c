@@ -35,11 +35,10 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-
 #include <ufs/ufs/dinode.h>
 
-#include "restore.h"
 #include "extern.h"
+#include "restore.h"
 
 static char *keyval(int);
 
@@ -77,10 +76,10 @@ addfile(char *name, ino_t ino, int type)
 	if (ino == UFS_WINO && command == 'i' && !vflag)
 		return (descend);
 	if (!mflag) {
-		(void) sprintf(buf, "./%ju", (uintmax_t)ino);
+		(void)sprintf(buf, "./%ju", (uintmax_t)ino);
 		name = buf;
 		if (type == NODE) {
-			(void) genliteraldir(name, ino);
+			(void)genliteraldir(name, ino);
 			return (descend);
 		}
 	}
@@ -151,7 +150,7 @@ removeoldleaves(void)
 	vprintf(stdout, "Mark entries to be removed.\n");
 	if ((ep = lookupino(UFS_WINO))) {
 		vprintf(stdout, "Delete whiteouts\n");
-		for ( ; ep != NULL; ep = nextep) {
+		for (; ep != NULL; ep = nextep) {
 			nextep = ep->e_links;
 			mydirino = ep->e_parent->e_ino;
 			/*
@@ -171,7 +170,7 @@ removeoldleaves(void)
 			continue;
 		if (TSTINO(i, usedinomap))
 			continue;
-		for ( ; ep != NULL; ep = ep->e_links) {
+		for (; ep != NULL; ep = ep->e_links) {
 			dprintf(stdout, "%s: REMOVE\n", myname(ep));
 			if (ep->e_type == LEAF) {
 				removeleaf(ep);
@@ -202,11 +201,11 @@ nodeupdates(char *name, ino_t ino, int type)
 	long descend = GOOD;
 	int lookuptype = 0;
 	int key = 0;
-		/* key values */
-#		define ONTAPE	0x1	/* inode is on the tape */
-#		define INOFND	0x2	/* inode already exists */
-#		define NAMEFND	0x4	/* name already exists */
-#		define MODECHG	0x8	/* mode of inode changed */
+	/* key values */
+#define ONTAPE 0x1  /* inode is on the tape */
+#define INOFND 0x2  /* inode already exists */
+#define NAMEFND 0x4 /* name already exists */
+#define MODECHG 0x8 /* mode of inode changed */
 
 	/*
 	 * This routine is called once for each element in the
@@ -257,21 +256,21 @@ nodeupdates(char *name, ino_t ino, int type)
 	 * temporary name in anticipation that it will be renamed
 	 * when it is later found by inode number.
 	 */
-	if (((key & (INOFND|NAMEFND)) == (INOFND|NAMEFND)) && ip != np) {
+	if (((key & (INOFND | NAMEFND)) == (INOFND | NAMEFND)) && ip != np) {
 		if (lookuptype == LINK) {
 			removeleaf(np);
 			freeentry(np);
 		} else {
 			dprintf(stdout, "name/inode conflict, mktempname %s\n",
-				myname(np));
+			    myname(np));
 			mktempname(np);
 		}
 		np = NULL;
 		key &= ~NAMEFND;
 	}
 	if ((key & ONTAPE) &&
-	  (((key & INOFND) && ip->e_type != type) ||
-	   ((key & NAMEFND) && np->e_type != type)))
+	    (((key & INOFND) && ip->e_type != type) ||
+		((key & NAMEFND) && np->e_type != type)))
 		key |= MODECHG;
 
 	/*
@@ -288,10 +287,10 @@ nodeupdates(char *name, ino_t ino, int type)
 	 * detected, and so that it will not be reclaimed by the search
 	 * for unreferenced names.
 	 */
-	case INOFND|NAMEFND:
+	case INOFND | NAMEFND:
 		ip->e_flags |= KEEP;
 		dprintf(stdout, "[%s] %s: %s\n", keyval(key), name,
-			flagvalues(ip));
+		    flagvalues(ip));
 		break;
 
 	/*
@@ -305,8 +304,8 @@ nodeupdates(char *name, ino_t ino, int type)
 	 * when it is later found by inode number (see INOFND case
 	 * below). The entry is then treated as a new file.
 	 */
-	case ONTAPE|NAMEFND:
-	case ONTAPE|NAMEFND|MODECHG:
+	case ONTAPE | NAMEFND:
+	case ONTAPE | NAMEFND | MODECHG:
 		if (lookuptype == LINK) {
 			removeleaf(np);
 			freeentry(np);
@@ -325,9 +324,9 @@ nodeupdates(char *name, ino_t ino, int type)
 		ep = addentry(name, ino, type);
 		if (type == NODE)
 			newnode(ep);
-		ep->e_flags |= NEW|KEEP;
+		ep->e_flags |= NEW | KEEP;
 		dprintf(stdout, "[%s] %s: %s\n", keyval(key), name,
-			flagvalues(ep));
+		    flagvalues(ep));
 		break;
 
 	/*
@@ -341,7 +340,7 @@ nodeupdates(char *name, ino_t ino, int type)
 	 * symbolic links. Finally, if the file is on the tape,
 	 * a request is made to extract it.
 	 */
-	case ONTAPE|INOFND:
+	case ONTAPE | INOFND:
 		if (type == LEAF && (ip->e_flags & KEEP) == 0)
 			ip->e_flags |= EXTRACT;
 		/* FALLTHROUGH */
@@ -351,20 +350,20 @@ nodeupdates(char *name, ino_t ino, int type)
 			moveentry(ip, name);
 			ip->e_flags |= KEEP;
 			dprintf(stdout, "[%s] %s: %s\n", keyval(key), name,
-				flagvalues(ip));
+			    flagvalues(ip));
 			break;
 		}
 		if (ip->e_type == NODE) {
 			descend = FAIL;
 			fprintf(stderr,
-				"deleted hard link %s to directory %s\n",
-				name, myname(ip));
+			    "deleted hard link %s to directory %s\n", name,
+			    myname(ip));
 			break;
 		}
-		ep = addentry(name, ino, type|LINK);
+		ep = addentry(name, ino, type | LINK);
 		ep->e_flags |= NEW;
 		dprintf(stdout, "[%s] %s: %s|LINK\n", keyval(key), name,
-			flagvalues(ep));
+		    flagvalues(ep));
 		break;
 
 	/*
@@ -372,23 +371,23 @@ nodeupdates(char *name, ino_t ino, int type)
 	 * then all names referring to the previous file must be removed
 	 * so that the subset of them that remain can be recreated.
 	 */
-	case ONTAPE|INOFND|NAMEFND:
+	case ONTAPE | INOFND | NAMEFND:
 		if (lookuptype == LINK) {
 			removeleaf(np);
 			freeentry(np);
-			ep = addentry(name, ino, type|LINK);
+			ep = addentry(name, ino, type | LINK);
 			if (type == NODE)
-			        newnode(ep);
-			ep->e_flags |= NEW|KEEP;
+				newnode(ep);
+			ep->e_flags |= NEW | KEEP;
 			dprintf(stdout, "[%s] %s: %s|LINK\n", keyval(key), name,
-				flagvalues(ep));
+			    flagvalues(ep));
 			break;
 		}
 		if (type == LEAF && lookuptype != LINK)
 			np->e_flags |= EXTRACT;
 		np->e_flags |= KEEP;
 		dprintf(stdout, "[%s] %s: %s\n", keyval(key), name,
-			flagvalues(np));
+		    flagvalues(np));
 		break;
 
 	/*
@@ -403,17 +402,19 @@ nodeupdates(char *name, ino_t ino, int type)
 	 * done immediately, rather than waiting until the
 	 * extraction phase.
 	 */
-	case ONTAPE|INOFND|MODECHG:
-	case ONTAPE|INOFND|NAMEFND|MODECHG:
+	case ONTAPE | INOFND | MODECHG:
+	case ONTAPE | INOFND | NAMEFND | MODECHG:
 		if (ip->e_flags & KEEP) {
 			badentry(ip, "cannot KEEP and change modes");
 			break;
 		}
 		if (ip->e_type == LEAF) {
 			/* changing from leaf to node */
-			for (ip = lookupino(ino); ip != NULL; ip = ip->e_links) {
+			for (ip = lookupino(ino); ip != NULL;
+			     ip = ip->e_links) {
 				if (ip->e_type != LEAF)
-					badentry(ip, "NODE and LEAF links to same inode");
+					badentry(ip,
+					    "NODE and LEAF links to same inode");
 				removeleaf(ip);
 				freeentry(ip);
 			}
@@ -428,9 +429,9 @@ nodeupdates(char *name, ino_t ino, int type)
 			removelist = ip;
 			ip = addentry(name, ino, type);
 		}
-		ip->e_flags |= NEW|KEEP;
+		ip->e_flags |= NEW | KEEP;
 		dprintf(stdout, "[%s] %s: %s\n", keyval(key), name,
-			flagvalues(ip));
+		    flagvalues(ip));
 		break;
 
 	/*
@@ -439,7 +440,7 @@ nodeupdates(char *name, ino_t ino, int type)
 	 */
 	case NAMEFND:
 		dprintf(stdout, "[%s] %s: Extraneous name\n", keyval(key),
-			name);
+		    name);
 		descend = FAIL;
 		break;
 
@@ -451,25 +452,25 @@ nodeupdates(char *name, ino_t ino, int type)
 	 * next incremental tape.
 	 */
 	case 0:
-		fprintf(stderr, "%s: (inode %ju) not found on tape\n",
-		    name, (uintmax_t)ino);
+		fprintf(stderr, "%s: (inode %ju) not found on tape\n", name,
+		    (uintmax_t)ino);
 		break;
 
 	/*
 	 * If any of these arise, something is grievously wrong with
 	 * the current state of the symbol table.
 	 */
-	case INOFND|NAMEFND|MODECHG:
-	case NAMEFND|MODECHG:
-	case INOFND|MODECHG:
+	case INOFND | NAMEFND | MODECHG:
+	case NAMEFND | MODECHG:
+	case INOFND | MODECHG:
 		fprintf(stderr, "[%s] %s: inconsistent state\n", keyval(key),
-			name);
+		    name);
 		break;
 
 	/*
 	 * These states "cannot" arise for any state of the symbol table.
 	 */
-	case ONTAPE|MODECHG:
+	case ONTAPE | MODECHG:
 	case MODECHG:
 	default:
 		panic("[%s] %s: impossible state\n", keyval(key), name);
@@ -486,16 +487,16 @@ keyval(int key)
 {
 	static char keybuf[32];
 
-	(void) strcpy(keybuf, "|NIL");
+	(void)strcpy(keybuf, "|NIL");
 	keybuf[0] = '\0';
 	if (key & ONTAPE)
-		(void) strcat(keybuf, "|ONTAPE");
+		(void)strcat(keybuf, "|ONTAPE");
 	if (key & INOFND)
-		(void) strcat(keybuf, "|INOFND");
+		(void)strcat(keybuf, "|INOFND");
 	if (key & NAMEFND)
-		(void) strcat(keybuf, "|NAMEFND");
+		(void)strcat(keybuf, "|NAMEFND");
 	if (key & MODECHG)
-		(void) strcat(keybuf, "|MODECHG");
+		(void)strcat(keybuf, "|MODECHG");
 	return (&keybuf[1]);
 }
 
@@ -557,7 +558,7 @@ removeoldnodes(void)
 	long change;
 
 	vprintf(stdout, "Remove old nodes (directories).\n");
-	do	{
+	do {
 		change = 0;
 		prev = &removelist;
 		for (ep = removelist; ep != NULL; ep = *prev) {
@@ -608,7 +609,7 @@ createleaves(char *symtabfile)
 			if (ep == NULL)
 				panic("%ju: bad first\n", (uintmax_t)first);
 			fprintf(stderr, "%s: not found on tape\n", myname(ep));
-			ep->e_flags &= ~(NEW|EXTRACT);
+			ep->e_flags &= ~(NEW | EXTRACT);
 			first = lowerbnd(first);
 		}
 		/*
@@ -627,7 +628,7 @@ createleaves(char *symtabfile)
 		ep = lookupino(curfile.ino);
 		if (ep == NULL)
 			panic("unknown file on tape\n");
-		if ((ep->e_flags & (NEW|EXTRACT)) == 0)
+		if ((ep->e_flags & (NEW | EXTRACT)) == 0)
 			badentry(ep, "unexpected file on tape");
 		/*
 		 * If the file is to be extracted, then the old file must
@@ -638,8 +639,8 @@ createleaves(char *symtabfile)
 			removeleaf(ep);
 			ep->e_flags &= ~REMOVED;
 		}
-		(void) extractfile(myname(ep));
-		ep->e_flags &= ~(NEW|EXTRACT);
+		(void)extractfile(myname(ep));
+		ep->e_flags &= ~(NEW | EXTRACT);
 		/*
 		 * We checkpoint the restore after every tape reel, so
 		 * as to simplify the amount of work required by the
@@ -684,8 +685,8 @@ createfiles(void)
 		if (Dflag) {
 			if (curfile.ino == maxino)
 				return;
-			if((ep = lookupino(curfile.ino)) != NULL &&
-			    (ep->e_flags & (NEW|EXTRACT))) {
+			if ((ep = lookupino(curfile.ino)) != NULL &&
+			    (ep->e_flags & (NEW | EXTRACT))) {
 				goto justgetit;
 			} else {
 				skipfile();
@@ -754,8 +755,8 @@ createfiles(void)
 			ep = lookupino(next);
 			if (ep == NULL)
 				panic("corrupted symbol table\n");
-justgetit:
-			(void) extractfile(myname(ep));
+		justgetit:
+			(void)extractfile(myname(ep));
 			ep->e_flags &= ~NEW;
 			if (volno != curvol)
 				skipmaps();
@@ -775,10 +776,10 @@ createlinks(void)
 
 	if ((ep = lookupino(UFS_WINO))) {
 		vprintf(stdout, "Add whiteouts\n");
-		for ( ; ep != NULL; ep = ep->e_links) {
+		for (; ep != NULL; ep = ep->e_links) {
 			if ((ep->e_flags & NEW) == 0)
 				continue;
-			(void) addwhiteout(myname(ep));
+			(void)addwhiteout(myname(ep));
 			ep->e_flags &= ~NEW;
 		}
 	}
@@ -790,11 +791,11 @@ createlinks(void)
 		for (np = ep->e_links; np != NULL; np = np->e_links) {
 			if ((np->e_flags & NEW) == 0)
 				continue;
-			(void) strcpy(name, myname(ep));
+			(void)strcpy(name, myname(ep));
 			if (ep->e_type == NODE) {
-				(void) linkit(name, myname(np), SYMLINK);
+				(void)linkit(name, myname(np), SYMLINK);
 			} else {
-				(void) linkit(name, myname(np), HARDLINK);
+				(void)linkit(name, myname(np), HARDLINK);
 			}
 			np->e_flags &= ~NEW;
 		}
@@ -817,7 +818,7 @@ checkrestore(void)
 		for (ep = lookupino(i); ep != NULL; ep = ep->e_links) {
 			ep->e_flags &= ~KEEP;
 			if (ep->e_type == NODE)
-				ep->e_flags &= ~(NEW|EXISTED);
+				ep->e_flags &= ~(NEW | EXISTED);
 			if (ep->e_flags != 0)
 				badentry(ep, "incomplete operations");
 		}
@@ -842,7 +843,7 @@ verifyfile(char *name, ino_t ino, int type)
 	np = lookupino(ino);
 	if (np != ep)
 		descend = FAIL;
-	for ( ; np != NULL; np = np->e_links)
+	for (; np != NULL; np = np->e_links)
 		if (np == ep)
 			break;
 	if (np == NULL)

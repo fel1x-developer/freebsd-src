@@ -20,10 +20,9 @@
 
 #include "ah.h"
 #include "ah_internal.h"
-
 #include "ar5211/ar5211.h"
-#include "ar5211/ar5211reg.h"
 #include "ar5211/ar5211desc.h"
+#include "ar5211/ar5211reg.h"
 
 /*
  * Routines used to initialize and generated beacons for the AR5211/AR5311.
@@ -35,7 +34,7 @@
 uint64_t
 ar5211GetNextTBTT(struct ath_hal *ah)
 {
-#define TU_TO_TSF(_tu)	(((uint64_t)(_tu)) << 10)
+#define TU_TO_TSF(_tu) (((uint64_t)(_tu)) << 10)
 	return TU_TO_TSF(OS_REG_READ(ah, AR_TIMER0));
 #undef TU_TO_TSF
 }
@@ -61,13 +60,13 @@ ar5211SetBeaconTimers(struct ath_hal *ah, const HAL_BEACON_TIMERS *bt)
  * Legacy api to initialize all of the beacon registers.
  */
 void
-ar5211BeaconInit(struct ath_hal *ah,
-	uint32_t next_beacon, uint32_t beacon_period)
+ar5211BeaconInit(struct ath_hal *ah, uint32_t next_beacon,
+    uint32_t beacon_period)
 {
 	HAL_BEACON_TIMERS bt;
 
 	bt.bt_nexttbtt = next_beacon;
-	/* 
+	/*
 	 * TIMER1: in AP/adhoc mode this controls the DMA beacon
 	 * alert timer; otherwise it controls the next wakeup time.
 	 * TIMER2: in AP mode, it controls the SBA beacon alert
@@ -81,21 +80,23 @@ ar5211BeaconInit(struct ath_hal *ah,
 		break;
 	case HAL_M_IBSS:
 	case HAL_M_HOSTAP:
-		bt.bt_nextdba = (next_beacon -
-			ah->ah_config.ah_dma_beacon_response_time) << 3;	/* 1/8 TU */
-		bt.bt_nextswba = (next_beacon -
-            ah->ah_config.ah_sw_beacon_response_time) << 3;	/* 1/8 TU */
+		bt.bt_nextdba =
+		    (next_beacon - ah->ah_config.ah_dma_beacon_response_time)
+		    << 3; /* 1/8 TU */
+		bt.bt_nextswba =
+		    (next_beacon - ah->ah_config.ah_sw_beacon_response_time)
+		    << 3; /* 1/8 TU */
 		break;
 	}
 	/*
-	 * Set the ATIM window 
+	 * Set the ATIM window
 	 * Our hardware does not support an ATIM window of 0
 	 * (beacons will not work).  If the ATIM windows is 0,
 	 * force it to 1.
 	 */
 	bt.bt_nextatim = next_beacon + 1;
 	bt.bt_intval = beacon_period &
-		(AR_BEACON_PERIOD | AR_BEACON_RESET_TSF | AR_BEACON_EN);
+	    (AR_BEACON_PERIOD | AR_BEACON_RESET_TSF | AR_BEACON_EN);
 	ar5211SetBeaconTimers(ah, &bt);
 }
 
@@ -104,12 +105,12 @@ ar5211ResetStaBeaconTimers(struct ath_hal *ah)
 {
 	uint32_t val;
 
-	OS_REG_WRITE(ah, AR_TIMER0, 0);		/* no beacons */
+	OS_REG_WRITE(ah, AR_TIMER0, 0); /* no beacons */
 	val = OS_REG_READ(ah, AR_STA_ID1);
-	val |= AR_STA_ID1_PWR_SAV;		/* XXX */
+	val |= AR_STA_ID1_PWR_SAV; /* XXX */
 	/* tell the h/w that the associated AP is not PCF capable */
 	OS_REG_WRITE(ah, AR_STA_ID1,
-		val & ~(AR_STA_ID1_DEFAULT_ANTENNA | AR_STA_ID1_PCF));
+	    val & ~(AR_STA_ID1_DEFAULT_ANTENNA | AR_STA_ID1_PCF));
 	OS_REG_WRITE(ah, AR_BEACON, AR_BEACON_PERIOD);
 }
 
@@ -130,7 +131,7 @@ ar5211SetStaBeaconTimers(struct ath_hal *ah, const HAL_BEACON_STATE *bs)
 	if (bs->bs_cfpmaxduration != 0) {
 		/* tell the h/w that the associated AP is PCF capable */
 		OS_REG_WRITE(ah, AR_STA_ID1,
-			OS_REG_READ(ah, AR_STA_ID1) | AR_STA_ID1_PCF);
+		    OS_REG_READ(ah, AR_STA_ID1) | AR_STA_ID1_PCF);
 
 		/* set CFP_PERIOD(1.024ms) register */
 		OS_REG_WRITE(ah, AR_CFP_PERIOD, bs->bs_cfpperiod);
@@ -143,7 +144,7 @@ ar5211SetStaBeaconTimers(struct ath_hal *ah, const HAL_BEACON_STATE *bs)
 	} else {
 		/* tell the h/w that the associated AP is not PCF capable */
 		OS_REG_WRITE(ah, AR_STA_ID1,
-			OS_REG_READ(ah, AR_STA_ID1) &~ AR_STA_ID1_PCF);
+		    OS_REG_READ(ah, AR_STA_ID1) & ~AR_STA_ID1_PCF);
 	}
 
 	/*
@@ -158,11 +159,10 @@ ar5211SetStaBeaconTimers(struct ath_hal *ah, const HAL_BEACON_STATE *bs)
 	 * also sets the tim offset once the AID is known which can
 	 * be left as such for now.
 	 */
-	OS_REG_WRITE(ah, AR_BEACON, 
-		(OS_REG_READ(ah, AR_BEACON) &~ (AR_BEACON_PERIOD|AR_BEACON_TIM))
-		| SM(bs->bs_intval, AR_BEACON_PERIOD)
-		| SM(bs->bs_timoffset ? bs->bs_timoffset + 4 : 0, AR_BEACON_TIM)
-	);
+	OS_REG_WRITE(ah, AR_BEACON,
+	    (OS_REG_READ(ah, AR_BEACON) & ~(AR_BEACON_PERIOD | AR_BEACON_TIM)) |
+		SM(bs->bs_intval, AR_BEACON_PERIOD) |
+		SM(bs->bs_timoffset ? bs->bs_timoffset + 4 : 0, AR_BEACON_TIM));
 
 	/*
 	 * Configure the BMISS interrupt.  Note that we
@@ -170,15 +170,15 @@ ar5211SetStaBeaconTimers(struct ath_hal *ah, const HAL_BEACON_STATE *bs)
 	 * the threshold.
 	 */
 	HALASSERT(bs->bs_bmissthreshold <= MS(0xffffffff, AR_RSSI_THR_BM_THR));
-	ahp->ah_rssiThr = (ahp->ah_rssiThr &~ AR_RSSI_THR_BM_THR)
-			| SM(bs->bs_bmissthreshold, AR_RSSI_THR_BM_THR);
+	ahp->ah_rssiThr = (ahp->ah_rssiThr & ~AR_RSSI_THR_BM_THR) |
+	    SM(bs->bs_bmissthreshold, AR_RSSI_THR_BM_THR);
 	OS_REG_WRITE(ah, AR_RSSI_THR, ahp->ah_rssiThr);
 
 	/*
 	 * Set the sleep duration in 1/8 TU's.
 	 */
-#define	SLEEP_SLOP	3
+#define SLEEP_SLOP 3
 	OS_REG_RMW_FIELD(ah, AR_SCR, AR_SCR_SLDUR,
-		(bs->bs_sleepduration - SLEEP_SLOP) << 3);
+	    (bs->bs_sleepduration - SLEEP_SLOP) << 3);
 #undef SLEEP_SLOP
 }

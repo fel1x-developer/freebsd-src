@@ -50,13 +50,13 @@
  */
 struct lio_droq_desc {
 	/* The buffer pointer */
-	uint64_t	buffer_ptr;
+	uint64_t buffer_ptr;
 
 	/* The Info pointer */
-	uint64_t	info_ptr;
+	uint64_t info_ptr;
 };
 
-#define LIO_DROQ_DESC_SIZE	(sizeof(struct lio_droq_desc))
+#define LIO_DROQ_DESC_SIZE (sizeof(struct lio_droq_desc))
 
 /*
  *  Information about packet DMA'ed by Octeon.
@@ -67,14 +67,13 @@ struct lio_droq_desc {
  */
 struct lio_droq_info {
 	/* The Length of the packet. */
-	uint64_t	length;
+	uint64_t length;
 
 	/* The Output Receive Header. */
-	union		octeon_rh rh;
-
+	union octeon_rh rh;
 };
 
-#define LIO_DROQ_INFO_SIZE	(sizeof(struct lio_droq_info))
+#define LIO_DROQ_INFO_SIZE (sizeof(struct lio_droq_info))
 
 /*
  *  Pointer to data buffer.
@@ -85,45 +84,44 @@ struct lio_droq_info {
  */
 struct lio_recv_buffer {
 	/* Packet buffer, including metadata. */
-	void	*buffer;
+	void *buffer;
 
 	/* Data in the packet buffer.  */
-	uint8_t	*data;
+	uint8_t *data;
 };
 
-#define LIO_DROQ_RECVBUF_SIZE	(sizeof(struct lio_recv_buffer))
+#define LIO_DROQ_RECVBUF_SIZE (sizeof(struct lio_recv_buffer))
 
 /* Output Queue statistics. Each output queue has four stats fields. */
 struct lio_droq_stats {
 	/* Number of packets received in this queue. */
-	uint64_t	pkts_received;
+	uint64_t pkts_received;
 
 	/* Bytes received by this queue. */
-	uint64_t	bytes_received;
+	uint64_t bytes_received;
 
 	/* Packets dropped due to no dispatch function. */
-	uint64_t	dropped_nodispatch;
+	uint64_t dropped_nodispatch;
 
 	/* Packets dropped due to no memory available. */
-	uint64_t	dropped_nomem;
+	uint64_t dropped_nomem;
 
 	/* Packets dropped due to large number of pkts to process. */
-	uint64_t	dropped_toomany;
+	uint64_t dropped_toomany;
 
 	/* Number of packets  sent to stack from this queue. */
-	uint64_t	rx_pkts_received;
+	uint64_t rx_pkts_received;
 
 	/* Number of Bytes sent to stack from this queue. */
-	uint64_t	rx_bytes_received;
+	uint64_t rx_bytes_received;
 
 	/* Num of Packets dropped due to receive path failures. */
-	uint64_t	rx_dropped;
+	uint64_t rx_dropped;
 
-	uint64_t	rx_vxlan;
+	uint64_t rx_vxlan;
 
 	/* Num of failures of lio_recv_buffer_alloc() */
-	uint64_t	rx_alloc_failure;
-
+	uint64_t rx_alloc_failure;
 };
 
 /*
@@ -131,7 +129,7 @@ struct lio_droq_stats {
  * output/dma queue. Set to 64 assuming 1K buffers in DROQ and the fact that
  * max packet size from DROQ is 64K.
  */
-#define LIO_MAX_RECV_BUFS	64
+#define LIO_MAX_RECV_BUFS 64
 
 /*
  *  Receive Packet format used when dispatching output queue packets
@@ -141,25 +139,25 @@ struct lio_droq_stats {
  */
 struct lio_recv_pkt {
 	/* Number of buffers in this received packet */
-	uint16_t	buffer_count;
+	uint16_t buffer_count;
 
 	/* Id of the device that is sending the packet up */
-	uint16_t	octeon_id;
+	uint16_t octeon_id;
 
 	/* Length of data in the packet buffer */
-	uint32_t	length;
+	uint32_t length;
 
 	/* The receive header */
-	union octeon_rh	rh;
+	union octeon_rh rh;
 
 	/* Pointer to the OS-specific packet buffer */
-	struct mbuf	*buffer_ptr[LIO_MAX_RECV_BUFS];
+	struct mbuf *buffer_ptr[LIO_MAX_RECV_BUFS];
 
 	/* Size of the buffers pointed to by ptr's in buffer_ptr */
-	uint32_t	buffer_size[LIO_MAX_RECV_BUFS];
+	uint32_t buffer_size[LIO_MAX_RECV_BUFS];
 };
 
-#define LIO_RECV_PKT_SIZE	(sizeof(struct lio_recv_pkt))
+#define LIO_RECV_PKT_SIZE (sizeof(struct lio_recv_pkt))
 
 /*
  *  The first parameter of a dispatch function.
@@ -178,11 +176,11 @@ struct lio_recv_pkt {
  *  |___________________|
  */
 struct lio_recv_info {
-	void			*rsvd;
-	struct lio_recv_pkt	*recv_pkt;
+	void *rsvd;
+	struct lio_recv_pkt *recv_pkt;
 };
 
-#define LIO_RECV_INFO_SIZE	(sizeof(struct lio_recv_info))
+#define LIO_RECV_INFO_SIZE (sizeof(struct lio_recv_info))
 
 /*
  *  Allocate a recv_info structure. The recv_pkt pointer in the recv_info
@@ -194,11 +192,11 @@ struct lio_recv_info {
 static inline struct lio_recv_info *
 lio_alloc_recv_info(int extra_bytes)
 {
-	struct lio_recv_info	*recv_info;
-	uint8_t			*buf;
+	struct lio_recv_info *recv_info;
+	uint8_t *buf;
 
-	buf = malloc(LIO_RECV_PKT_SIZE + LIO_RECV_INFO_SIZE +
-		     extra_bytes, M_DEVBUF, M_NOWAIT | M_ZERO);
+	buf = malloc(LIO_RECV_PKT_SIZE + LIO_RECV_INFO_SIZE + extra_bytes,
+	    M_DEVBUF, M_NOWAIT | M_ZERO);
 	if (buf == NULL)
 		return (NULL);
 
@@ -222,7 +220,7 @@ lio_free_recv_info(struct lio_recv_info *recv_info)
 	free(recv_info, M_DEVBUF);
 }
 
-typedef int	(*lio_dispatch_fn_t)(struct lio_recv_info *, void *);
+typedef int (*lio_dispatch_fn_t)(struct lio_recv_info *, void *);
 
 /*
  * Used by NIC module to register packet handler and to get device
@@ -235,15 +233,14 @@ struct lio_droq_ops {
 	 *  data in the buffer. The receive header gives the port
 	 *  number to the caller.  Function pointer is set by caller.
 	 */
-	void		(*fptr) (void *, uint32_t, union octeon_rh *, void  *,
-				 void *);
-	void		*farg;
+	void (*fptr)(void *, uint32_t, union octeon_rh *, void *, void *);
+	void *farg;
 
 	/*
 	 *  Flag indicating if the DROQ handler should drop packets that
 	 *  it cannot handle in one iteration. Set by caller.
 	 */
-	uint32_t	drop_on_max;
+	uint32_t drop_on_max;
 };
 
 /*
@@ -253,39 +250,39 @@ struct lio_droq_ops {
  */
 struct lio_droq {
 	/* A lock to protect access to this ring. */
-	struct mtx		lock;
+	struct mtx lock;
 
-	uint32_t		q_no;
+	uint32_t q_no;
 
-	uint32_t		pkt_count;
+	uint32_t pkt_count;
 
-	struct lio_droq_ops	ops;
+	struct lio_droq_ops ops;
 
-	struct octeon_device	*oct_dev;
+	struct octeon_device *oct_dev;
 
 	/* The 8B aligned descriptor ring starts at this address. */
-	struct lio_droq_desc	*desc_ring;
+	struct lio_droq_desc *desc_ring;
 
 	/* Index in the ring where the driver should read the next packet */
-	uint32_t		read_idx;
+	uint32_t read_idx;
 
 	/*
 	 * Index in the ring where the driver will refill the descriptor's
 	 * buffer
 	 */
-	uint32_t		refill_idx;
+	uint32_t refill_idx;
 
 	/* Packets pending to be processed */
-	volatile int		pkts_pending;
+	volatile int pkts_pending;
 
 	/* Number of  descriptors in this ring. */
-	uint32_t		max_count;
+	uint32_t max_count;
 
 	/* The number of descriptors pending refill. */
-	uint32_t		refill_count;
+	uint32_t refill_count;
 
-	uint32_t		pkts_per_intr;
-	uint32_t		refill_threshold;
+	uint32_t pkts_per_intr;
+	uint32_t refill_threshold;
 
 	/*
 	 * The max number of descriptors in DROQ without a buffer.
@@ -293,50 +290,50 @@ struct lio_droq {
 	 * refill_count reaches this value, the DROQ cannot accept a max-sized
 	 * (64K) packet.
 	 */
-	uint32_t		max_empty_descs;
+	uint32_t max_empty_descs;
 
 	/*
 	 * The receive buffer list. This list has the virtual addresses of
 	 * the buffers.
 	 */
-	struct lio_recv_buffer	*recv_buf_list;
+	struct lio_recv_buffer *recv_buf_list;
 
 	/* The size of each buffer pointed by the buffer pointer. */
-	uint32_t		buffer_size;
+	uint32_t buffer_size;
 
 	/*
 	 * Offset to packet credit register.
 	 * Host writes number of info/buffer ptrs available to this register
 	 */
-	uint32_t		pkts_credit_reg;
+	uint32_t pkts_credit_reg;
 
 	/*
 	 * Offset packet sent register.
 	 * Octeon writes the number of packets DMA'ed to host memory
 	 * in this register.
 	 */
-	uint32_t		pkts_sent_reg;
+	uint32_t pkts_sent_reg;
 
-	struct lio_stailq_head	dispatch_stq_head;
+	struct lio_stailq_head dispatch_stq_head;
 
 	/* Statistics for this DROQ. */
-	struct lio_droq_stats	stats;
+	struct lio_droq_stats stats;
 
 	/* DMA mapped address of the DROQ descriptor ring. */
-	vm_paddr_t		desc_ring_dma;
+	vm_paddr_t desc_ring_dma;
 
 	/* application context */
-	void			*app_ctx;
+	void *app_ctx;
 
-	uint32_t		cpu_id;
+	uint32_t cpu_id;
 
-	struct task		droq_task;
-	struct taskqueue	*droq_taskqueue;
+	struct task droq_task;
+	struct taskqueue *droq_taskqueue;
 
-	struct lro_ctrl		lro;
+	struct lro_ctrl lro;
 };
 
-#define LIO_DROQ_SIZE	(sizeof(struct lio_droq))
+#define LIO_DROQ_SIZE (sizeof(struct lio_droq))
 
 /*
  * Allocates space for the descriptor ring for the droq and sets the
@@ -347,9 +344,8 @@ struct lio_droq {
  * @param app_ctx     - pointer to application context
  * @return Success: 0    Failure: 1
  */
-int	lio_init_droq(struct octeon_device *oct_dev,
-		      uint32_t q_no, uint32_t num_descs, uint32_t desc_size,
-		      void *app_ctx);
+int lio_init_droq(struct octeon_device *oct_dev, uint32_t q_no,
+    uint32_t num_descs, uint32_t desc_size, void *app_ctx);
 
 /*
  *  Frees the space for descriptor ring for the droq.
@@ -358,7 +354,7 @@ int	lio_init_droq(struct octeon_device *oct_dev,
  *  @param q_no    - droq no.
  *  @return:    Success: 0    Failure: 1
  */
-int	lio_delete_droq(struct octeon_device *oct_dev, uint32_t q_no);
+int lio_delete_droq(struct octeon_device *oct_dev, uint32_t q_no);
 
 /*
  * Register a change in droq operations. The ops field has a pointer to a
@@ -372,8 +368,8 @@ int	lio_delete_droq(struct octeon_device *oct_dev, uint32_t q_no);
  * @param ops       - the droq_ops settings for this queue
  * @return          - 0 on success, -ENODEV or -EINVAL on error.
  */
-int	lio_register_droq_ops(struct octeon_device *oct, uint32_t q_no,
-			      struct lio_droq_ops *ops);
+int lio_register_droq_ops(struct octeon_device *oct, uint32_t q_no,
+    struct lio_droq_ops *ops);
 
 /*
  * Resets the function pointer and flag settings made by
@@ -384,7 +380,7 @@ int	lio_register_droq_ops(struct octeon_device *oct, uint32_t q_no,
  * @param q_no      - octeon output queue number (0 <= q_no <= MAX_OCTEON_DROQ-1
  * @return          - 0 on success, -ENODEV or -EINVAL on error.
  */
-int	lio_unregister_droq_ops(struct octeon_device *oct, uint32_t q_no);
+int lio_unregister_droq_ops(struct octeon_device *oct, uint32_t q_no);
 
 /*
  *    Register a dispatch function for a opcode/subcode. The driver will call
@@ -399,9 +395,8 @@ int	lio_unregister_droq_ops(struct octeon_device *oct, uint32_t q_no);
  *                         dispatch function by the driver.
  *    @return Success: 0; Failure: 1
  */
-int	lio_register_dispatch_fn(struct octeon_device *oct, uint16_t opcode,
-				 uint16_t subcode, lio_dispatch_fn_t fn,
-				 void *fn_arg);
+int lio_register_dispatch_fn(struct octeon_device *oct, uint16_t opcode,
+    uint16_t subcode, lio_dispatch_fn_t fn, void *fn_arg);
 
 /*
  *   Remove registration for an opcode/subcode. This will delete the mapping for
@@ -414,18 +409,18 @@ int	lio_register_dispatch_fn(struct octeon_device *oct, uint16_t opcode,
  *
  *   @return Success: 0; Failure: 1
  */
-int	lio_unregister_dispatch_fn(struct octeon_device *oct, uint16_t opcode,
-				   uint16_t subcode);
+int lio_unregister_dispatch_fn(struct octeon_device *oct, uint16_t opcode,
+    uint16_t subcode);
 
-uint32_t	lio_droq_check_hw_for_pkts(struct lio_droq *droq);
+uint32_t lio_droq_check_hw_for_pkts(struct lio_droq *droq);
 
-int	lio_create_droq(struct octeon_device *oct, uint32_t q_no,
-			uint32_t num_descs, uint32_t desc_size, void *app_ctx);
+int lio_create_droq(struct octeon_device *oct, uint32_t q_no,
+    uint32_t num_descs, uint32_t desc_size, void *app_ctx);
 
-int	lio_droq_process_packets(struct octeon_device *oct,
-				 struct lio_droq *droq, uint32_t budget);
+int lio_droq_process_packets(struct octeon_device *oct, struct lio_droq *droq,
+    uint32_t budget);
 
-uint32_t	lio_droq_refill(struct octeon_device *octeon_dev,
-				struct lio_droq *droq);
-void	lio_droq_bh(void *ptr, int pending __unused);
-#endif	/* __LIO_DROQ_H__ */
+uint32_t lio_droq_refill(struct octeon_device *octeon_dev,
+    struct lio_droq *droq);
+void lio_droq_bh(void *ptr, int pending __unused);
+#endif /* __LIO_DROQ_H__ */

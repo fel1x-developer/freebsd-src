@@ -32,8 +32,8 @@
 /**
  * @file
  * Defines and implements the Hardware Abstraction Layer (HW).
- * All interaction with the hardware is performed through the HW, which abstracts
- * the details of the underlying SLI-4 implementation.
+ * All interaction with the hardware is performed through the HW, which
+ * abstracts the details of the underlying SLI-4 implementation.
  */
 
 /**
@@ -47,24 +47,24 @@
  */
 
 #include "ocs.h"
-#include "ocs_os.h"
 #include "ocs_hw.h"
 #include "ocs_hw_queues.h"
+#include "ocs_os.h"
 
-#define OCS_HW_MQ_DEPTH	128
-#define OCS_HW_READ_FCF_SIZE	4096
-#define OCS_HW_DEFAULT_AUTO_XFER_RDY_IOS	256
-#define OCS_HW_WQ_TIMER_PERIOD_MS	500
+#define OCS_HW_MQ_DEPTH 128
+#define OCS_HW_READ_FCF_SIZE 4096
+#define OCS_HW_DEFAULT_AUTO_XFER_RDY_IOS 256
+#define OCS_HW_WQ_TIMER_PERIOD_MS 500
 
 /* values used for setting the auto xfer rdy parameters */
-#define OCS_HW_AUTO_XFER_RDY_BLK_SIZE_DEFAULT		0 /* 512 bytes */
-#define OCS_HW_AUTO_XFER_RDY_REF_TAG_IS_LBA_DEFAULT	TRUE
-#define OCS_HW_AUTO_XFER_RDY_APP_TAG_VALID_DEFAULT	FALSE
-#define OCS_HW_AUTO_XFER_RDY_APP_TAG_VALUE_DEFAULT	0
-#define OCS_HW_REQUE_XRI_REGTAG			65534
+#define OCS_HW_AUTO_XFER_RDY_BLK_SIZE_DEFAULT 0 /* 512 bytes */
+#define OCS_HW_AUTO_XFER_RDY_REF_TAG_IS_LBA_DEFAULT TRUE
+#define OCS_HW_AUTO_XFER_RDY_APP_TAG_VALID_DEFAULT FALSE
+#define OCS_HW_AUTO_XFER_RDY_APP_TAG_VALUE_DEFAULT 0
+#define OCS_HW_REQUE_XRI_REGTAG 65534
 /* max command and response buffer lengths -- arbitrary at the moment */
-#define OCS_HW_DMTF_CLP_CMD_MAX	256
-#define OCS_HW_DMTF_CLP_RSP_MAX	256
+#define OCS_HW_DMTF_CLP_CMD_MAX 256
+#define OCS_HW_DMTF_CLP_RSP_MAX 256
 
 /* HW global data */
 ocs_hw_global_t hw_global;
@@ -87,38 +87,55 @@ static int32_t ocs_hw_command_cancel(ocs_hw_t *);
 static int32_t ocs_hw_io_cancel(ocs_hw_t *);
 static void ocs_hw_io_quarantine(ocs_hw_t *hw, hw_wq_t *wq, ocs_hw_io_t *io);
 static void ocs_hw_io_restore_sgl(ocs_hw_t *, ocs_hw_io_t *);
-static int32_t ocs_hw_io_ini_sge(ocs_hw_t *, ocs_hw_io_t *, ocs_dma_t *, uint32_t, ocs_dma_t *);
-static ocs_hw_rtn_e ocs_hw_firmware_write_lancer(ocs_hw_t *hw, ocs_dma_t *dma, uint32_t size, uint32_t offset, int last, ocs_hw_fw_cb_t cb, void *arg);
-static int32_t ocs_hw_cb_fw_write(ocs_hw_t *, int32_t, uint8_t *, void  *);
-static int32_t ocs_hw_cb_sfp(ocs_hw_t *, int32_t, uint8_t *, void  *);
-static int32_t ocs_hw_cb_temp(ocs_hw_t *, int32_t, uint8_t *, void  *);
-static int32_t ocs_hw_cb_link_stat(ocs_hw_t *, int32_t, uint8_t *, void  *);
-static int32_t ocs_hw_cb_host_stat(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void  *arg);
-static void ocs_hw_dmtf_clp_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void  *arg);
-static int32_t ocs_hw_clp_resp_get_value(ocs_hw_t *hw, const char *keyword, char *value, uint32_t value_len, const char *resp, uint32_t resp_len);
-typedef void (*ocs_hw_dmtf_clp_cb_t)(ocs_hw_t *hw, int32_t status, uint32_t result_len, void *arg);
-static ocs_hw_rtn_e ocs_hw_exec_dmtf_clp_cmd(ocs_hw_t *hw, ocs_dma_t *dma_cmd, ocs_dma_t *dma_resp, uint32_t opts, ocs_hw_dmtf_clp_cb_t cb, void *arg);
-static void ocs_hw_linkcfg_dmtf_clp_cb(ocs_hw_t *hw, int32_t status, uint32_t result_len, void *arg);
+static int32_t ocs_hw_io_ini_sge(ocs_hw_t *, ocs_hw_io_t *, ocs_dma_t *,
+    uint32_t, ocs_dma_t *);
+static ocs_hw_rtn_e ocs_hw_firmware_write_lancer(ocs_hw_t *hw, ocs_dma_t *dma,
+    uint32_t size, uint32_t offset, int last, ocs_hw_fw_cb_t cb, void *arg);
+static int32_t ocs_hw_cb_fw_write(ocs_hw_t *, int32_t, uint8_t *, void *);
+static int32_t ocs_hw_cb_sfp(ocs_hw_t *, int32_t, uint8_t *, void *);
+static int32_t ocs_hw_cb_temp(ocs_hw_t *, int32_t, uint8_t *, void *);
+static int32_t ocs_hw_cb_link_stat(ocs_hw_t *, int32_t, uint8_t *, void *);
+static int32_t ocs_hw_cb_host_stat(ocs_hw_t *hw, int32_t status, uint8_t *mqe,
+    void *arg);
+static void ocs_hw_dmtf_clp_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe,
+    void *arg);
+static int32_t ocs_hw_clp_resp_get_value(ocs_hw_t *hw, const char *keyword,
+    char *value, uint32_t value_len, const char *resp, uint32_t resp_len);
+typedef void (*ocs_hw_dmtf_clp_cb_t)(ocs_hw_t *hw, int32_t status,
+    uint32_t result_len, void *arg);
+static ocs_hw_rtn_e ocs_hw_exec_dmtf_clp_cmd(ocs_hw_t *hw, ocs_dma_t *dma_cmd,
+    ocs_dma_t *dma_resp, uint32_t opts, ocs_hw_dmtf_clp_cb_t cb, void *arg);
+static void ocs_hw_linkcfg_dmtf_clp_cb(ocs_hw_t *hw, int32_t status,
+    uint32_t result_len, void *arg);
 
 static int32_t __ocs_read_topology_cb(ocs_hw_t *, int32_t, uint8_t *, void *);
-static ocs_hw_rtn_e ocs_hw_get_linkcfg(ocs_hw_t *, uint32_t, ocs_hw_port_control_cb_t, void *);
-static ocs_hw_rtn_e ocs_hw_get_linkcfg_lancer(ocs_hw_t *, uint32_t, ocs_hw_port_control_cb_t, void *);
-static ocs_hw_rtn_e ocs_hw_get_linkcfg_skyhawk(ocs_hw_t *, uint32_t, ocs_hw_port_control_cb_t, void *);
-static ocs_hw_rtn_e ocs_hw_set_linkcfg(ocs_hw_t *, ocs_hw_linkcfg_e, uint32_t, ocs_hw_port_control_cb_t, void *);
-static ocs_hw_rtn_e ocs_hw_set_linkcfg_lancer(ocs_hw_t *, ocs_hw_linkcfg_e, uint32_t, ocs_hw_port_control_cb_t, void *);
-static ocs_hw_rtn_e ocs_hw_set_linkcfg_skyhawk(ocs_hw_t *, ocs_hw_linkcfg_e, uint32_t, ocs_hw_port_control_cb_t, void *);
+static ocs_hw_rtn_e ocs_hw_get_linkcfg(ocs_hw_t *, uint32_t,
+    ocs_hw_port_control_cb_t, void *);
+static ocs_hw_rtn_e ocs_hw_get_linkcfg_lancer(ocs_hw_t *, uint32_t,
+    ocs_hw_port_control_cb_t, void *);
+static ocs_hw_rtn_e ocs_hw_get_linkcfg_skyhawk(ocs_hw_t *, uint32_t,
+    ocs_hw_port_control_cb_t, void *);
+static ocs_hw_rtn_e ocs_hw_set_linkcfg(ocs_hw_t *, ocs_hw_linkcfg_e, uint32_t,
+    ocs_hw_port_control_cb_t, void *);
+static ocs_hw_rtn_e ocs_hw_set_linkcfg_lancer(ocs_hw_t *, ocs_hw_linkcfg_e,
+    uint32_t, ocs_hw_port_control_cb_t, void *);
+static ocs_hw_rtn_e ocs_hw_set_linkcfg_skyhawk(ocs_hw_t *, ocs_hw_linkcfg_e,
+    uint32_t, ocs_hw_port_control_cb_t, void *);
 static void ocs_hw_init_linkcfg_cb(int32_t status, uintptr_t value, void *arg);
 static ocs_hw_rtn_e ocs_hw_set_eth_license(ocs_hw_t *hw, uint32_t license);
 static ocs_hw_rtn_e ocs_hw_set_dif_seed(ocs_hw_t *hw);
 static ocs_hw_rtn_e ocs_hw_set_dif_mode(ocs_hw_t *hw);
 static void ocs_hw_io_free_internal(void *arg);
 static void ocs_hw_io_free_port_owned(void *arg);
-static ocs_hw_rtn_e ocs_hw_config_auto_xfer_rdy_t10pi(ocs_hw_t *hw, uint8_t *buf);
-static ocs_hw_rtn_e ocs_hw_config_set_fdt_xfer_hint(ocs_hw_t *hw, uint32_t fdt_xfer_hint);
+static ocs_hw_rtn_e ocs_hw_config_auto_xfer_rdy_t10pi(ocs_hw_t *hw,
+    uint8_t *buf);
+static ocs_hw_rtn_e ocs_hw_config_set_fdt_xfer_hint(ocs_hw_t *hw,
+    uint32_t fdt_xfer_hint);
 static void ocs_hw_wq_process_abort(void *arg, uint8_t *cqe, int32_t status);
 static int32_t ocs_hw_config_mrq(ocs_hw_t *hw, uint8_t, uint16_t, uint16_t);
 static ocs_hw_rtn_e ocs_hw_config_watchdog_timer(ocs_hw_t *hw);
-static ocs_hw_rtn_e ocs_hw_config_sli_port_health_check(ocs_hw_t *hw, uint8_t query, uint8_t enable);
+static ocs_hw_rtn_e ocs_hw_config_sli_port_health_check(ocs_hw_t *hw,
+    uint8_t query, uint8_t enable);
 
 /* HW domain database operations */
 static int32_t ocs_hw_domain_add(ocs_hw_t *, ocs_domain_t *);
@@ -126,20 +143,28 @@ static int32_t ocs_hw_domain_del(ocs_hw_t *, ocs_domain_t *);
 
 /* Port state machine */
 static void *__ocs_hw_port_alloc_init(ocs_sm_ctx_t *, ocs_sm_event_t, void *);
-static void *__ocs_hw_port_alloc_read_sparm64(ocs_sm_ctx_t *, ocs_sm_event_t, void *);
-static void *__ocs_hw_port_alloc_init_vpi(ocs_sm_ctx_t *, ocs_sm_event_t, void *);
+static void *__ocs_hw_port_alloc_read_sparm64(ocs_sm_ctx_t *, ocs_sm_event_t,
+    void *);
+static void *__ocs_hw_port_alloc_init_vpi(ocs_sm_ctx_t *, ocs_sm_event_t,
+    void *);
 static void *__ocs_hw_port_done(ocs_sm_ctx_t *, ocs_sm_event_t, void *);
-static void *__ocs_hw_port_free_unreg_vpi(ocs_sm_ctx_t *, ocs_sm_event_t, void *);
+static void *__ocs_hw_port_free_unreg_vpi(ocs_sm_ctx_t *, ocs_sm_event_t,
+    void *);
 
 /* Domain state machine */
 static void *__ocs_hw_domain_init(ocs_sm_ctx_t *, ocs_sm_event_t, void *);
-static void *__ocs_hw_domain_alloc_reg_fcfi(ocs_sm_ctx_t *, ocs_sm_event_t, void *);
-static void * __ocs_hw_domain_alloc_init_vfi(ocs_sm_ctx_t *, ocs_sm_event_t, void *);
-static void *__ocs_hw_domain_free_unreg_vfi(ocs_sm_ctx_t *, ocs_sm_event_t, void *);
-static void *__ocs_hw_domain_free_unreg_fcfi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data);
+static void *__ocs_hw_domain_alloc_reg_fcfi(ocs_sm_ctx_t *, ocs_sm_event_t,
+    void *);
+static void *__ocs_hw_domain_alloc_init_vfi(ocs_sm_ctx_t *, ocs_sm_event_t,
+    void *);
+static void *__ocs_hw_domain_free_unreg_vfi(ocs_sm_ctx_t *, ocs_sm_event_t,
+    void *);
+static void *__ocs_hw_domain_free_unreg_fcfi(ocs_sm_ctx_t *ctx,
+    ocs_sm_event_t evt, void *data);
 static int32_t __ocs_hw_domain_cb(ocs_hw_t *, int32_t, uint8_t *, void *);
 static int32_t __ocs_hw_port_cb(ocs_hw_t *, int32_t, uint8_t *, void *);
-static int32_t __ocs_hw_port_realloc_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg);
+static int32_t __ocs_hw_port_realloc_cb(ocs_hw_t *hw, int32_t status,
+    uint8_t *mqe, void *arg);
 
 /* BZ 161832 */
 static void ocs_hw_check_sec_hio_list(ocs_hw_t *hw);
@@ -169,8 +194,8 @@ ocs_hw_add_io_timed_wqe(ocs_hw_t *hw, ocs_hw_io_t *io)
 		 * target WQE timeouts.
 		 */
 		ocs_lock(&hw->io_lock);
-			ocs_list_add_tail(&hw->io_timed_wqe, io);
-			getmicrouptime(&io->submit_time);
+		ocs_list_add_tail(&hw->io_timed_wqe, io);
+		getmicrouptime(&io->submit_time);
 		ocs_unlock(&hw->io_lock);
 	}
 }
@@ -184,14 +209,15 @@ ocs_hw_remove_io_timed_wqe(ocs_hw_t *hw, ocs_hw_io_t *io)
 		 * remove from active wqe list.
 		 */
 		ocs_lock(&hw->io_lock);
-			if (ocs_list_on_list(&io->wqe_link)) {
-				ocs_list_remove(&hw->io_timed_wqe, io);
-			}
+		if (ocs_list_on_list(&io->wqe_link)) {
+			ocs_list_remove(&hw->io_timed_wqe, io);
+		}
 		ocs_unlock(&hw->io_lock);
 	}
 }
 
-static uint8_t ocs_hw_iotype_is_originator(uint16_t io_type)
+static uint8_t
+ocs_hw_iotype_is_originator(uint16_t io_type)
 {
 	switch (io_type) {
 	case OCS_HW_IO_INITIATOR_READ:
@@ -205,7 +231,8 @@ static uint8_t ocs_hw_iotype_is_originator(uint16_t io_type)
 	}
 }
 
-static uint8_t ocs_hw_wcqe_abort_needed(uint16_t status, uint8_t ext, uint8_t xb)
+static uint8_t
+ocs_hw_wcqe_abort_needed(uint16_t status, uint8_t ext, uint8_t xb)
 {
 	/* if exchange not active, nothing to abort */
 	if (!xb) {
@@ -214,8 +241,10 @@ static uint8_t ocs_hw_wcqe_abort_needed(uint16_t status, uint8_t ext, uint8_t xb
 	if (status == SLI4_FC_WCQE_STATUS_LOCAL_REJECT) {
 		switch (ext) {
 		/* exceptions where abort is not needed */
-		case SLI4_FC_LOCAL_REJECT_INVALID_RPI: /* lancer returns this after unreg_rpi */
-		case SLI4_FC_LOCAL_REJECT_ABORT_REQUESTED: /* abort already in progress */
+		case SLI4_FC_LOCAL_REJECT_INVALID_RPI: /* lancer returns this
+							  after unreg_rpi */
+		case SLI4_FC_LOCAL_REJECT_ABORT_REQUESTED: /* abort already in
+							      progress */
 			return FALSE;
 		default:
 			break;
@@ -277,14 +306,15 @@ ocs_hw_link_event_init(ocs_hw_t *hw)
 static ocs_hw_rtn_e
 ocs_hw_read_max_dump_size(ocs_hw_t *hw)
 {
-	uint8_t	buf[SLI4_BMBX_SIZE];
+	uint8_t buf[SLI4_BMBX_SIZE];
 	uint8_t bus, dev, func;
-	int 	rc;
+	int rc;
 
 	/* lancer only */
 	if ((SLI4_IF_TYPE_LANCER_FC_ETH != sli_get_if_type(&hw->sli)) &&
 	    (SLI4_IF_TYPE_LANCER_G7 != sli_get_if_type(&hw->sli))) {
-		ocs_log_debug(hw->os, "Function only supported for I/F type 2\n");
+		ocs_log_debug(hw->os,
+		    "Function only supported for I/F type 2\n");
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -293,7 +323,8 @@ ocs_hw_read_max_dump_size(ocs_hw_t *hw)
 	 * is too old, the FW will UE.
 	 */
 	if (hw->workaround.disable_dump_loc) {
-		ocs_log_test(hw->os, "FW version is too old for this feature\n");
+		ocs_log_test(hw->os,
+		    "FW version is too old for this feature\n");
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -301,19 +332,20 @@ ocs_hw_read_max_dump_size(ocs_hw_t *hw)
 	ocs_get_bus_dev_func(hw->os, &bus, &dev, &func);
 	if (func == 0) {
 		if (sli_cmd_common_set_dump_location(&hw->sli, buf,
-							SLI4_BMBX_SIZE, 1, 0, NULL, 0)) {
+			SLI4_BMBX_SIZE, 1, 0, NULL, 0)) {
 			sli4_res_common_set_dump_location_t *rsp =
-				(sli4_res_common_set_dump_location_t *)
-				(buf + offsetof(sli4_cmd_sli_config_t,
-						payload.embed));
+			    (sli4_res_common_set_dump_location_t *)(buf +
+				offsetof(sli4_cmd_sli_config_t, payload.embed));
 
 			rc = ocs_hw_command(hw, buf, OCS_CMD_POLL, NULL, NULL);
 			if (rc != OCS_HW_RTN_SUCCESS) {
-				ocs_log_test(hw->os, "set dump location command failed\n");
+				ocs_log_test(hw->os,
+				    "set dump location command failed\n");
 				return rc;
 			} else {
 				hw->dump_size = rsp->buffer_length;
-				ocs_log_debug(hw->os, "Dump size %x\n", rsp->buffer_length);
+				ocs_log_debug(hw->os, "Dump size %x\n",
+				    rsp->buffer_length);
 			}
 		}
 	}
@@ -365,22 +397,29 @@ ocs_hw_setup(ocs_hw_t *hw, ocs_os_handle_t os, sli4_port_type_e port_type)
 
 	hw->os = os;
 
-	ocs_lock_init(hw->os, &hw->cmd_lock, "HW_cmd_lock[%d]", ocs_instance(hw->os));
+	ocs_lock_init(hw->os, &hw->cmd_lock, "HW_cmd_lock[%d]",
+	    ocs_instance(hw->os));
 	ocs_list_init(&hw->cmd_head, ocs_command_ctx_t, link);
 	ocs_list_init(&hw->cmd_pending, ocs_command_ctx_t, link);
 	hw->cmd_head_count = 0;
 
-	ocs_lock_init(hw->os, &hw->io_lock, "HW_io_lock[%d]", ocs_instance(hw->os));
-	ocs_lock_init(hw->os, &hw->io_abort_lock, "HW_io_abort_lock[%d]", ocs_instance(hw->os));
+	ocs_lock_init(hw->os, &hw->io_lock, "HW_io_lock[%d]",
+	    ocs_instance(hw->os));
+	ocs_lock_init(hw->os, &hw->io_abort_lock, "HW_io_abort_lock[%d]",
+	    ocs_instance(hw->os));
 
 	ocs_atomic_init(&hw->io_alloc_failed_count, 0);
 
 	hw->config.speed = FC_LINK_SPEED_AUTO_16_8_4;
 	hw->config.dif_seed = 0;
-	hw->config.auto_xfer_rdy_blk_size_chip = OCS_HW_AUTO_XFER_RDY_BLK_SIZE_DEFAULT;
-	hw->config.auto_xfer_rdy_ref_tag_is_lba = OCS_HW_AUTO_XFER_RDY_REF_TAG_IS_LBA_DEFAULT;
-	hw->config.auto_xfer_rdy_app_tag_valid =  OCS_HW_AUTO_XFER_RDY_APP_TAG_VALID_DEFAULT;
-	hw->config.auto_xfer_rdy_app_tag_value = OCS_HW_AUTO_XFER_RDY_APP_TAG_VALUE_DEFAULT;
+	hw->config.auto_xfer_rdy_blk_size_chip =
+	    OCS_HW_AUTO_XFER_RDY_BLK_SIZE_DEFAULT;
+	hw->config.auto_xfer_rdy_ref_tag_is_lba =
+	    OCS_HW_AUTO_XFER_RDY_REF_TAG_IS_LBA_DEFAULT;
+	hw->config.auto_xfer_rdy_app_tag_valid =
+	    OCS_HW_AUTO_XFER_RDY_APP_TAG_VALID_DEFAULT;
+	hw->config.auto_xfer_rdy_app_tag_value =
+	    OCS_HW_AUTO_XFER_RDY_APP_TAG_VALUE_DEFAULT;
 
 	if (sli_setup(&hw->sli, hw->os, port_type)) {
 		ocs_log_err(hw->os, "SLI setup failed\n");
@@ -409,7 +448,8 @@ ocs_hw_setup(ocs_hw_t *hw, ocs_os_handle_t os, sli4_port_type_e port_type)
 	 */
 	hw->config.rq_default_buffer_size = OCS_HW_RQ_SIZE_PAYLOAD;
 	hw->config.n_io = sli_get_max_rsrc(&hw->sli, SLI_RSRC_FCOE_XRI);
-	if (ocs_get_property("auto_xfer_rdy_xri_cnt", prop_buf, sizeof(prop_buf)) == 0) {
+	if (ocs_get_property("auto_xfer_rdy_xri_cnt", prop_buf,
+		sizeof(prop_buf)) == 0) {
 		hw->config.auto_xfer_rdy_xri_cnt = ocs_strtoul(prop_buf, 0, 0);
 	}
 
@@ -435,8 +475,9 @@ ocs_hw_setup(ocs_hw_t *hw, ocs_os_handle_t os, sli4_port_type_e port_type)
 	ocs_hw_adjust_wqs(hw);
 
 	/* Set the default dif mode */
-	if (! sli_is_dif_inline_capable(&hw->sli)) {
-		ocs_log_test(hw->os, "not inline capable, setting mode to separate\n");
+	if (!sli_is_dif_inline_capable(&hw->sli)) {
+		ocs_log_test(hw->os,
+		    "not inline capable, setting mode to separate\n");
 		hw->config.dif_mode = OCS_HW_DIF_MODE_SEPARATE;
 	}
 	/* Workaround: BZ 161832 */
@@ -452,25 +493,25 @@ ocs_hw_setup(ocs_hw_t *hw, ocs_os_handle_t os, sli4_port_type_e port_type)
 		if (sli_get_is_ulp_enabled(&hw->sli, 0) &&
 		    sli_get_is_ulp_enabled(&hw->sli, 1)) {
 			hw->ulp_start = 0;
-			hw->ulp_max   = 1;
+			hw->ulp_max = 1;
 		} else if (sli_get_is_ulp_enabled(&hw->sli, 0)) {
 			hw->ulp_start = 0;
-			hw->ulp_max   = 0;
+			hw->ulp_max = 0;
 		} else {
 			hw->ulp_start = 1;
-			hw->ulp_max   = 1;
+			hw->ulp_max = 1;
 		}
 	} else {
 		if (sli_get_is_ulp_enabled(&hw->sli, 0)) {
 			hw->ulp_start = 0;
-			hw->ulp_max   = 0;
+			hw->ulp_max = 0;
 		} else {
 			hw->ulp_start = 1;
-			hw->ulp_max   = 1;
+			hw->ulp_max = 1;
 		}
 	}
-	ocs_log_debug(hw->os, "ulp_start %d, ulp_max %d\n",
-		hw->ulp_start, hw->ulp_max);
+	ocs_log_debug(hw->os, "ulp_start %d, ulp_max %d\n", hw->ulp_start,
+	    hw->ulp_max);
 	hw->config.queue_topology = hw_global.queue_topology_string;
 
 	hw->qtop = ocs_hw_qtop_parse(hw, hw->config.queue_topology);
@@ -484,31 +525,31 @@ ocs_hw_setup(ocs_hw_t *hw, ocs_os_handle_t os, sli4_port_type_e port_type)
 	/* Verify qtop configuration against driver supported configuration */
 	if (hw->config.n_rq > OCE_HW_MAX_NUM_MRQ_PAIRS) {
 		ocs_log_crit(hw->os, "Max supported MRQ pairs = %d\n",
-				OCE_HW_MAX_NUM_MRQ_PAIRS);
+		    OCE_HW_MAX_NUM_MRQ_PAIRS);
 		return OCS_HW_RTN_ERROR;
 	}
 
 	if (hw->config.n_eq > OCS_HW_MAX_NUM_EQ) {
 		ocs_log_crit(hw->os, "Max supported EQs = %d\n",
-				OCS_HW_MAX_NUM_EQ);
+		    OCS_HW_MAX_NUM_EQ);
 		return OCS_HW_RTN_ERROR;
 	}
 
 	if (hw->config.n_cq > OCS_HW_MAX_NUM_CQ) {
 		ocs_log_crit(hw->os, "Max supported CQs = %d\n",
-				OCS_HW_MAX_NUM_CQ);
+		    OCS_HW_MAX_NUM_CQ);
 		return OCS_HW_RTN_ERROR;
 	}
 
 	if (hw->config.n_wq > OCS_HW_MAX_NUM_WQ) {
 		ocs_log_crit(hw->os, "Max supported WQs = %d\n",
-				OCS_HW_MAX_NUM_WQ);
+		    OCS_HW_MAX_NUM_WQ);
 		return OCS_HW_RTN_ERROR;
 	}
 
 	if (hw->config.n_mq > OCS_HW_MAX_NUM_MQ) {
 		ocs_log_crit(hw->os, "Max supported MQs = %d\n",
-				OCS_HW_MAX_NUM_MQ);
+		    OCS_HW_MAX_NUM_MQ);
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -523,8 +564,8 @@ ocs_hw_setup(ocs_hw_t *hw, ocs_os_handle_t os, sli4_port_type_e port_type)
  * Allocates memory structures needed by the device and prepares the device
  * for operation.
  * @n @n @b Note: This function may be called more than once (for example, at
- * initialization and then after a reset), but the size of the internal resources
- * may not be changed without tearing down the HW (ocs_hw_teardown()).
+ * initialization and then after a reset), but the size of the internal
+ * resources may not be changed without tearing down the HW (ocs_hw_teardown()).
  *
  * @param hw Hardware context allocated by the caller.
  *
@@ -533,33 +574,34 @@ ocs_hw_setup(ocs_hw_t *hw, ocs_os_handle_t os, sli4_port_type_e port_type)
 ocs_hw_rtn_e
 ocs_hw_init(ocs_hw_t *hw)
 {
-	ocs_hw_rtn_e	rc;
-	uint32_t	i = 0;
-	uint8_t		buf[SLI4_BMBX_SIZE];
-	uint32_t	max_rpi;
-	int		rem_count;
-	int	        written_size = 0;
-	uint32_t	count;
-	char		prop_buf[32];
+	ocs_hw_rtn_e rc;
+	uint32_t i = 0;
+	uint8_t buf[SLI4_BMBX_SIZE];
+	uint32_t max_rpi;
+	int rem_count;
+	int written_size = 0;
+	uint32_t count;
+	char prop_buf[32];
 	uint32_t ramdisc_blocksize = 512;
 	uint32_t q_count = 0;
 	/*
 	 * Make sure the command lists are empty. If this is start-of-day,
 	 * they'll be empty since they were just initialized in ocs_hw_setup.
 	 * If we've just gone through a reset, the command and command pending
-	 * lists should have been cleaned up as part of the reset (ocs_hw_reset()).
+	 * lists should have been cleaned up as part of the reset
+	 * (ocs_hw_reset()).
 	 */
 	ocs_lock(&hw->cmd_lock);
-		if (!ocs_list_empty(&hw->cmd_head)) {
-			ocs_log_test(hw->os, "command found on cmd list\n");
-			ocs_unlock(&hw->cmd_lock);
-			return OCS_HW_RTN_ERROR;
-		}
-		if (!ocs_list_empty(&hw->cmd_pending)) {
-			ocs_log_test(hw->os, "command found on pending list\n");
-			ocs_unlock(&hw->cmd_lock);
-			return OCS_HW_RTN_ERROR;
-		}
+	if (!ocs_list_empty(&hw->cmd_head)) {
+		ocs_log_test(hw->os, "command found on cmd list\n");
+		ocs_unlock(&hw->cmd_lock);
+		return OCS_HW_RTN_ERROR;
+	}
+	if (!ocs_list_empty(&hw->cmd_pending)) {
+		ocs_log_test(hw->os, "command found on pending list\n");
+		ocs_unlock(&hw->cmd_lock);
+		return OCS_HW_RTN_ERROR;
+	}
 	ocs_unlock(&hw->cmd_lock);
 
 	/* Free RQ buffers if prevously allocated */
@@ -575,34 +617,38 @@ ocs_hw_init(ocs_hw_t *hw)
 	/* If we are in this function due to a reset, there may be stale items
 	 * on lists that need to be removed.  Clean them up.
 	 */
-	rem_count=0;
+	rem_count = 0;
 	if (ocs_list_valid(&hw->io_wait_free)) {
 		while ((!ocs_list_empty(&hw->io_wait_free))) {
 			rem_count++;
 			ocs_list_remove_head(&hw->io_wait_free);
 		}
 		if (rem_count > 0) {
-			ocs_log_debug(hw->os, "removed %d items from io_wait_free list\n", rem_count);
+			ocs_log_debug(hw->os,
+			    "removed %d items from io_wait_free list\n",
+			    rem_count);
 		}
 	}
-	rem_count=0;
+	rem_count = 0;
 	if (ocs_list_valid(&hw->io_inuse)) {
 		while ((!ocs_list_empty(&hw->io_inuse))) {
 			rem_count++;
 			ocs_list_remove_head(&hw->io_inuse);
 		}
 		if (rem_count > 0) {
-			ocs_log_debug(hw->os, "removed %d items from io_inuse list\n", rem_count);
+			ocs_log_debug(hw->os,
+			    "removed %d items from io_inuse list\n", rem_count);
 		}
 	}
-	rem_count=0;
+	rem_count = 0;
 	if (ocs_list_valid(&hw->io_free)) {
 		while ((!ocs_list_empty(&hw->io_free))) {
 			rem_count++;
 			ocs_list_remove_head(&hw->io_free);
 		}
 		if (rem_count > 0) {
-			ocs_log_debug(hw->os, "removed %d items from io_free list\n", rem_count);
+			ocs_log_debug(hw->os,
+			    "removed %d items from io_free list\n", rem_count);
 		}
 	}
 	if (ocs_list_valid(&hw->io_port_owned)) {
@@ -633,18 +679,23 @@ ocs_hw_init(ocs_hw_t *hw)
 	hw->auto_xfer_rdy_enabled = FALSE;
 	if (sli_get_auto_xfer_rdy_capable(&hw->sli) &&
 	    hw->config.auto_xfer_rdy_size > 0) {
-		if (hw->config.esoc){
-			if (ocs_get_property("ramdisc_blocksize", prop_buf, sizeof(prop_buf)) == 0) {
+		if (hw->config.esoc) {
+			if (ocs_get_property("ramdisc_blocksize", prop_buf,
+				sizeof(prop_buf)) == 0) {
 				ramdisc_blocksize = ocs_strtoul(prop_buf, 0, 0);
 			}
-			written_size = sli_cmd_config_auto_xfer_rdy_hp(&hw->sli, buf, SLI4_BMBX_SIZE, hw->config.auto_xfer_rdy_size, 1, ramdisc_blocksize);
+			written_size = sli_cmd_config_auto_xfer_rdy_hp(&hw->sli,
+			    buf, SLI4_BMBX_SIZE, hw->config.auto_xfer_rdy_size,
+			    1, ramdisc_blocksize);
 		} else {
-			written_size = sli_cmd_config_auto_xfer_rdy(&hw->sli, buf, SLI4_BMBX_SIZE, hw->config.auto_xfer_rdy_size);
+			written_size = sli_cmd_config_auto_xfer_rdy(&hw->sli,
+			    buf, SLI4_BMBX_SIZE, hw->config.auto_xfer_rdy_size);
 		}
 		if (written_size) {
 			rc = ocs_hw_command(hw, buf, OCS_CMD_POLL, NULL, NULL);
 			if (rc != OCS_HW_RTN_SUCCESS) {
-				ocs_log_err(hw->os, "config auto xfer rdy failed\n");
+				ocs_log_err(hw->os,
+				    "config auto xfer rdy failed\n");
 				return rc;
 			}
 		}
@@ -653,16 +704,18 @@ ocs_hw_init(ocs_hw_t *hw)
 		if (hw->config.auto_xfer_rdy_t10_enable) {
 			rc = ocs_hw_config_auto_xfer_rdy_t10pi(hw, buf);
 			if (rc != OCS_HW_RTN_SUCCESS) {
-				ocs_log_err(hw->os, "set parameters auto xfer rdy T10 PI failed\n");
+				ocs_log_err(hw->os,
+				    "set parameters auto xfer rdy T10 PI failed\n");
 				return rc;
 			}
 		}
 	}
 
-	if(hw->sliport_healthcheck) {
+	if (hw->sliport_healthcheck) {
 		rc = ocs_hw_config_sli_port_health_check(hw, 0, 1);
 		if (rc != OCS_HW_RTN_SUCCESS) {
-			ocs_log_err(hw->os, "Enabling Sliport Health check failed \n");
+			ocs_log_err(hw->os,
+			    "Enabling Sliport Health check failed \n");
 			return rc;
 		}
 	}
@@ -670,10 +723,12 @@ ocs_hw_init(ocs_hw_t *hw)
 	/*
 	 * Set FDT transfer hint, only works on Lancer
 	 */
-	if ((hw->sli.if_type == SLI4_IF_TYPE_LANCER_FC_ETH) && (OCS_HW_FDT_XFER_HINT != 0)) {
+	if ((hw->sli.if_type == SLI4_IF_TYPE_LANCER_FC_ETH) &&
+	    (OCS_HW_FDT_XFER_HINT != 0)) {
 		/*
-		 * Non-fatal error. In particular, we can disregard failure to set OCS_HW_FDT_XFER_HINT on
-		 * devices with legacy firmware that do not support OCS_HW_FDT_XFER_HINT feature.
+		 * Non-fatal error. In particular, we can disregard failure to
+		 * set OCS_HW_FDT_XFER_HINT on devices with legacy firmware that
+		 * do not support OCS_HW_FDT_XFER_HINT feature.
 		 */
 		ocs_hw_config_set_fdt_xfer_hint(hw, OCS_HW_FDT_XFER_HINT);
 	}
@@ -682,57 +737,57 @@ ocs_hw_init(ocs_hw_t *hw)
 	 * Verify that we have not exceeded any queue sizes
 	 */
 	q_count = MIN(sli_get_max_queue(&hw->sli, SLI_QTYPE_EQ),
-					OCS_HW_MAX_NUM_EQ);
+	    OCS_HW_MAX_NUM_EQ);
 	if (hw->config.n_eq > q_count) {
 		ocs_log_err(hw->os, "requested %d EQ but %d allowed\n",
-			    hw->config.n_eq, q_count);
+		    hw->config.n_eq, q_count);
 		return OCS_HW_RTN_ERROR;
 	}
 
 	q_count = MIN(sli_get_max_queue(&hw->sli, SLI_QTYPE_CQ),
-					OCS_HW_MAX_NUM_CQ);
+	    OCS_HW_MAX_NUM_CQ);
 	if (hw->config.n_cq > q_count) {
 		ocs_log_err(hw->os, "requested %d CQ but %d allowed\n",
-			    hw->config.n_cq, q_count);
+		    hw->config.n_cq, q_count);
 		return OCS_HW_RTN_ERROR;
 	}
 
 	q_count = MIN(sli_get_max_queue(&hw->sli, SLI_QTYPE_MQ),
-					OCS_HW_MAX_NUM_MQ);
+	    OCS_HW_MAX_NUM_MQ);
 	if (hw->config.n_mq > q_count) {
 		ocs_log_err(hw->os, "requested %d MQ but %d allowed\n",
-			    hw->config.n_mq, q_count);
+		    hw->config.n_mq, q_count);
 		return OCS_HW_RTN_ERROR;
 	}
 
 	q_count = MIN(sli_get_max_queue(&hw->sli, SLI_QTYPE_RQ),
-					OCS_HW_MAX_NUM_RQ);
+	    OCS_HW_MAX_NUM_RQ);
 	if (hw->config.n_rq > q_count) {
 		ocs_log_err(hw->os, "requested %d RQ but %d allowed\n",
-			    hw->config.n_rq, q_count);
+		    hw->config.n_rq, q_count);
 		return OCS_HW_RTN_ERROR;
 	}
 
 	q_count = MIN(sli_get_max_queue(&hw->sli, SLI_QTYPE_WQ),
-					OCS_HW_MAX_NUM_WQ);
+	    OCS_HW_MAX_NUM_WQ);
 	if (hw->config.n_wq > q_count) {
 		ocs_log_err(hw->os, "requested %d WQ but %d allowed\n",
-			    hw->config.n_wq, q_count);
+		    hw->config.n_wq, q_count);
 		return OCS_HW_RTN_ERROR;
 	}
 
 	/* zero the hashes */
 	ocs_memset(hw->cq_hash, 0, sizeof(hw->cq_hash));
-	ocs_log_debug(hw->os, "Max CQs %d, hash size = %d\n",
-			OCS_HW_MAX_NUM_CQ, OCS_HW_Q_HASH_SIZE);
+	ocs_log_debug(hw->os, "Max CQs %d, hash size = %d\n", OCS_HW_MAX_NUM_CQ,
+	    OCS_HW_Q_HASH_SIZE);
 
 	ocs_memset(hw->rq_hash, 0, sizeof(hw->rq_hash));
-	ocs_log_debug(hw->os, "Max RQs %d, hash size = %d\n",
-			OCS_HW_MAX_NUM_RQ, OCS_HW_Q_HASH_SIZE);
+	ocs_log_debug(hw->os, "Max RQs %d, hash size = %d\n", OCS_HW_MAX_NUM_RQ,
+	    OCS_HW_Q_HASH_SIZE);
 
 	ocs_memset(hw->wq_hash, 0, sizeof(hw->wq_hash));
-	ocs_log_debug(hw->os, "Max WQs %d, hash size = %d\n",
-			OCS_HW_MAX_NUM_WQ, OCS_HW_Q_HASH_SIZE);
+	ocs_log_debug(hw->os, "Max WQs %d, hash size = %d\n", OCS_HW_MAX_NUM_WQ,
+	    OCS_HW_Q_HASH_SIZE);
 
 	rc = ocs_hw_init_queues(hw, hw->qtop);
 	if (rc != OCS_HW_RTN_SUCCESS) {
@@ -751,23 +806,27 @@ ocs_hw_init(ocs_hw_t *hw)
 		}
 
 		if (ocs_dma_alloc(hw->os, &hw->rnode_mem, i, 4096)) {
-			ocs_log_err(hw->os, "remote node memory allocation fail\n");
+			ocs_log_err(hw->os,
+			    "remote node memory allocation fail\n");
 			return OCS_HW_RTN_NO_MEMORY;
 		}
 
 		payload_memory.size = 0;
-		if (sli_cmd_fcoe_post_hdr_templates(&hw->sli, buf, SLI4_BMBX_SIZE,
-					&hw->rnode_mem, UINT16_MAX, &payload_memory)) {
+		if (sli_cmd_fcoe_post_hdr_templates(&hw->sli, buf,
+			SLI4_BMBX_SIZE, &hw->rnode_mem, UINT16_MAX,
+			&payload_memory)) {
 			rc = ocs_hw_command(hw, buf, OCS_CMD_POLL, NULL, NULL);
 
 			if (payload_memory.size != 0) {
-				/* The command was non-embedded - need to free the dma buffer */
+				/* The command was non-embedded - need to free
+				 * the dma buffer */
 				ocs_dma_free(hw->os, &payload_memory);
 			}
 		}
 
 		if (rc != OCS_HW_RTN_SUCCESS) {
-			ocs_log_err(hw->os, "header template registration failed\n");
+			ocs_log_err(hw->os,
+			    "header template registration failed\n");
 			return rc;
 		}
 	}
@@ -784,33 +843,36 @@ ocs_hw_init(ocs_hw_t *hw)
 		uint32_t count = 0;
 		uint32_t i;
 
-		/* Sum up the total number of RQ entries, to use to allocate the sequence object pool */
+		/* Sum up the total number of RQ entries, to use to allocate the
+		 * sequence object pool */
 		for (i = 0; i < hw->hw_rq_count; i++) {
 			count += hw->hw_rq[i]->entry_count;
 		}
 
-		hw->seq_pool = ocs_array_alloc(hw->os, sizeof(ocs_hw_sequence_t), count);
+		hw->seq_pool = ocs_array_alloc(hw->os,
+		    sizeof(ocs_hw_sequence_t), count);
 		if (hw->seq_pool == NULL) {
 			ocs_log_err(hw->os, "malloc seq_pool failed\n");
 			return OCS_HW_RTN_NO_MEMORY;
 		}
 	}
 
-	if(ocs_hw_rx_post(hw)) {
+	if (ocs_hw_rx_post(hw)) {
 		ocs_log_err(hw->os, "WARNING - error posting RQ buffers\n");
 	}
 
 	/* Allocate rpi_ref if not previously allocated */
 	if (hw->rpi_ref == NULL) {
 		hw->rpi_ref = ocs_malloc(hw->os, max_rpi * sizeof(*hw->rpi_ref),
-					  OCS_M_ZERO | OCS_M_NOWAIT);
+		    OCS_M_ZERO | OCS_M_NOWAIT);
 		if (hw->rpi_ref == NULL) {
-			ocs_log_err(hw->os, "rpi_ref allocation failure (%d)\n", i);
+			ocs_log_err(hw->os, "rpi_ref allocation failure (%d)\n",
+			    i);
 			return OCS_HW_RTN_NO_MEMORY;
 		}
 	}
 
-	for (i = 0; i < max_rpi; i ++) {
+	for (i = 0; i < max_rpi; i++) {
 		ocs_atomic_init(&hw->rpi_ref[i].rpi_count, 0);
 		ocs_atomic_init(&hw->rpi_ref[i].rpi_attached, 0);
 	}
@@ -824,20 +886,25 @@ ocs_hw_init(ocs_hw_t *hw)
 
 	ocs_memset(hw->fcf_index_fcfi, 0, sizeof(hw->fcf_index_fcfi));
 
-	/* Register a FCFI to allow unsolicited frames to be routed to the driver */
+	/* Register a FCFI to allow unsolicited frames to be routed to the
+	 * driver */
 	if (sli_get_medium(&hw->sli) == SLI_LINK_MEDIUM_FC) {
 		if (hw->hw_mrq_count) {
 			ocs_log_debug(hw->os, "using REG_FCFI MRQ\n");
 
-			rc = ocs_hw_config_mrq(hw, SLI4_CMD_REG_FCFI_SET_FCFI_MODE, 0, 0);
+			rc = ocs_hw_config_mrq(hw,
+			    SLI4_CMD_REG_FCFI_SET_FCFI_MODE, 0, 0);
 			if (rc != OCS_HW_RTN_SUCCESS) {
-				ocs_log_err(hw->os, "REG_FCFI_MRQ FCFI registration failed\n");
+				ocs_log_err(hw->os,
+				    "REG_FCFI_MRQ FCFI registration failed\n");
 				return rc;
 			}
 
-			rc = ocs_hw_config_mrq(hw, SLI4_CMD_REG_FCFI_SET_MRQ_MODE, 0, 0);
+			rc = ocs_hw_config_mrq(hw,
+			    SLI4_CMD_REG_FCFI_SET_MRQ_MODE, 0, 0);
 			if (rc != OCS_HW_RTN_SUCCESS) {
-				ocs_log_err(hw->os, "REG_FCFI_MRQ MRQ registration failed\n");
+				ocs_log_err(hw->os,
+				    "REG_FCFI_MRQ MRQ registration failed\n");
 				return rc;
 			}
 		} else {
@@ -845,40 +912,55 @@ ocs_hw_init(ocs_hw_t *hw)
 
 			ocs_log_debug(hw->os, "using REG_FCFI standard\n");
 
-			/* Set the filter match/mask values from hw's filter_def values */
+			/* Set the filter match/mask values from hw's filter_def
+			 * values */
 			for (i = 0; i < SLI4_CMD_REG_FCFI_NUM_RQ_CFG; i++) {
 				rq_cfg[i].rq_id = 0xffff;
-				rq_cfg[i].r_ctl_mask =	(uint8_t)  hw->config.filter_def[i];
-				rq_cfg[i].r_ctl_match = (uint8_t) (hw->config.filter_def[i] >> 8);
-				rq_cfg[i].type_mask =	(uint8_t) (hw->config.filter_def[i] >> 16);
-				rq_cfg[i].type_match =	(uint8_t) (hw->config.filter_def[i] >> 24);
+				rq_cfg[i].r_ctl_mask =
+				    (uint8_t)hw->config.filter_def[i];
+				rq_cfg[i].r_ctl_match =
+				    (uint8_t)(hw->config.filter_def[i] >> 8);
+				rq_cfg[i].type_mask =
+				    (uint8_t)(hw->config.filter_def[i] >> 16);
+				rq_cfg[i].type_match =
+				    (uint8_t)(hw->config.filter_def[i] >> 24);
 			}
 
 			/*
-			 * Update the rq_id's of the FCF configuration (don't update more than the number
-			 * of rq_cfg elements)
+			 * Update the rq_id's of the FCF configuration (don't
+			 * update more than the number of rq_cfg elements)
 			 */
-			for (i = 0; i < OCS_MIN(hw->hw_rq_count, SLI4_CMD_REG_FCFI_NUM_RQ_CFG); i++) {
+			for (i = 0; i < OCS_MIN(hw->hw_rq_count,
+					    SLI4_CMD_REG_FCFI_NUM_RQ_CFG);
+			     i++) {
 				hw_rq_t *rq = hw->hw_rq[i];
 				uint32_t j;
-				for (j = 0; j < SLI4_CMD_REG_FCFI_NUM_RQ_CFG; j++) {
-					uint32_t mask = (rq->filter_mask != 0) ? rq->filter_mask : 1;
+				for (j = 0; j < SLI4_CMD_REG_FCFI_NUM_RQ_CFG;
+				     j++) {
+					uint32_t mask = (rq->filter_mask != 0) ?
+					    rq->filter_mask :
+					    1;
 					if (mask & (1U << j)) {
 						rq_cfg[j].rq_id = rq->hdr->id;
-						ocs_log_debug(hw->os, "REG_FCFI: filter[%d] %08X -> RQ[%d] id=%d\n",
-							j, hw->config.filter_def[j], i, rq->hdr->id);
+						ocs_log_debug(hw->os,
+						    "REG_FCFI: filter[%d] %08X -> RQ[%d] id=%d\n",
+						    j, hw->config.filter_def[j],
+						    i, rq->hdr->id);
 					}
 				}
 			}
 
 			rc = OCS_HW_RTN_ERROR;
 
-			if (sli_cmd_reg_fcfi(&hw->sli, buf, SLI4_BMBX_SIZE, 0, rq_cfg, 0)) {
-				rc = ocs_hw_command(hw, buf, OCS_CMD_POLL, NULL, NULL);
+			if (sli_cmd_reg_fcfi(&hw->sli, buf, SLI4_BMBX_SIZE, 0,
+				rq_cfg, 0)) {
+				rc = ocs_hw_command(hw, buf, OCS_CMD_POLL, NULL,
+				    NULL);
 			}
 
 			if (rc != OCS_HW_RTN_SUCCESS) {
-				ocs_log_err(hw->os, "FCFI registration failed\n");
+				ocs_log_err(hw->os,
+				    "FCFI registration failed\n");
 				return rc;
 			}
 			hw->fcf_indicator = ((sli4_cmd_reg_fcfi_t *)buf)->fcfi;
@@ -886,12 +968,13 @@ ocs_hw_init(ocs_hw_t *hw)
 	}
 
 	/*
-	 * Allocate the WQ request tag pool, if not previously allocated (the request tag value is 16 bits,
-	 * thus the pool allocation size of 64k)
+	 * Allocate the WQ request tag pool, if not previously allocated (the
+	 * request tag value is 16 bits, thus the pool allocation size of 64k)
 	 */
 	rc = ocs_hw_reqtag_init(hw);
 	if (rc) {
-		ocs_log_err(hw->os, "ocs_pool_alloc hw_wq_callback_t failed: %d\n", rc);
+		ocs_log_err(hw->os,
+		    "ocs_pool_alloc hw_wq_callback_t failed: %d\n", rc);
 		return rc;
 	}
 
@@ -909,7 +992,8 @@ ocs_hw_init(ocs_hw_t *hw)
 
 	ocs_queue_history_init(hw->os, &hw->q_hist);
 
-	/* get hw link config; polling, so callback will be called immediately */
+	/* get hw link config; polling, so callback will be called immediately
+	 */
 	hw->linkcfg = OCS_HW_LINKCFG_NA;
 	ocs_hw_get_linkcfg(hw, OCS_CMD_POLL, ocs_hw_init_linkcfg_cb, hw);
 
@@ -940,7 +1024,8 @@ ocs_hw_init(ocs_hw_t *hw)
 	}
 
 	/*
-	 * Arming the EQ allows (e.g.) interrupts when CQ completions write EQ entries
+	 * Arming the EQ allows (e.g.) interrupts when CQ completions write EQ
+	 * entries
 	 */
 	for (i = 0; i < hw->eq_count; i++) {
 		sli_queue_arm(&hw->sli, &hw->eq[i], TRUE);
@@ -979,25 +1064,28 @@ ocs_hw_init(ocs_hw_t *hw)
 	/* finally kick off periodic timer to check for timed out target WQEs */
 	if (hw->config.emulate_wqe_timeout) {
 		ocs_setup_timer(hw->os, &hw->wqe_timer, target_wqe_timer_cb, hw,
-				OCS_HW_WQ_TIMER_PERIOD_MS);
+		    OCS_HW_WQ_TIMER_PERIOD_MS);
 	}
 
 	/*
-	 * Allocate a HW IOs for send frame.  Allocate one for each Class 1 WQ, or if there
-	 * are none of those, allocate one for WQ[0]
+	 * Allocate a HW IOs for send frame.  Allocate one for each Class 1 WQ,
+	 * or if there are none of those, allocate one for WQ[0]
 	 */
 	if ((count = ocs_varray_get_count(hw->wq_class_array[1])) > 0) {
 		for (i = 0; i < count; i++) {
-			hw_wq_t *wq = ocs_varray_iter_next(hw->wq_class_array[1]);
+			hw_wq_t *wq = ocs_varray_iter_next(
+			    hw->wq_class_array[1]);
 			wq->send_frame_io = ocs_hw_io_alloc(hw);
 			if (wq->send_frame_io == NULL) {
-				ocs_log_err(hw->os, "ocs_hw_io_alloc for send_frame_io failed\n");
+				ocs_log_err(hw->os,
+				    "ocs_hw_io_alloc for send_frame_io failed\n");
 			}
 		}
 	} else {
 		hw->hw_wq[0]->send_frame_io = ocs_hw_io_alloc(hw);
 		if (hw->hw_wq[0]->send_frame_io == NULL) {
-			ocs_log_err(hw->os, "ocs_hw_io_alloc for send_frame_io failed\n");
+			ocs_log_err(hw->os,
+			    "ocs_hw_io_alloc for send_frame_io failed\n");
 		}
 	}
 
@@ -1006,27 +1094,33 @@ ocs_hw_init(ocs_hw_t *hw)
 
 	/* Initialize watchdog timer if enabled by user */
 	hw->expiration_logged = 0;
-	if(hw->watchdog_timeout) {
-		if((hw->watchdog_timeout < 1) || (hw->watchdog_timeout > 65534)) {
-			ocs_log_err(hw->os, "watchdog_timeout out of range: Valid range is 1 - 65534\n");
-		}else if(!ocs_hw_config_watchdog_timer(hw)) {
-			ocs_log_info(hw->os, "watchdog timer configured with timeout = %d seconds \n", hw->watchdog_timeout); 
+	if (hw->watchdog_timeout) {
+		if ((hw->watchdog_timeout < 1) ||
+		    (hw->watchdog_timeout > 65534)) {
+			ocs_log_err(hw->os,
+			    "watchdog_timeout out of range: Valid range is 1 - 65534\n");
+		} else if (!ocs_hw_config_watchdog_timer(hw)) {
+			ocs_log_info(hw->os,
+			    "watchdog timer configured with timeout = %d seconds \n",
+			    hw->watchdog_timeout);
 		}
 	}
 
 	if (ocs_dma_alloc(hw->os, &hw->domain_dmem, 112, 4)) {
-	   ocs_log_err(hw->os, "domain node memory allocation fail\n");
-	   return OCS_HW_RTN_NO_MEMORY;
+		ocs_log_err(hw->os, "domain node memory allocation fail\n");
+		return OCS_HW_RTN_NO_MEMORY;
 	}
 
-	if (ocs_dma_alloc(hw->os, &hw->fcf_dmem, OCS_HW_READ_FCF_SIZE, OCS_HW_READ_FCF_SIZE)) {
-	   ocs_log_err(hw->os, "domain fcf memory allocation fail\n");
-	   return OCS_HW_RTN_NO_MEMORY;
+	if (ocs_dma_alloc(hw->os, &hw->fcf_dmem, OCS_HW_READ_FCF_SIZE,
+		OCS_HW_READ_FCF_SIZE)) {
+		ocs_log_err(hw->os, "domain fcf memory allocation fail\n");
+		return OCS_HW_RTN_NO_MEMORY;
 	}
 
-	if ((0 == hw->loop_map.size) &&	ocs_dma_alloc(hw->os, &hw->loop_map,
-				SLI4_MIN_LOOP_MAP_BYTES, 4)) {
-		ocs_log_err(hw->os, "Loop dma alloc failed size:%d \n", hw->loop_map.size);
+	if ((0 == hw->loop_map.size) &&
+	    ocs_dma_alloc(hw->os, &hw->loop_map, SLI4_MIN_LOOP_MAP_BYTES, 4)) {
+		ocs_log_err(hw->os, "Loop dma alloc failed size:%d \n",
+		    hw->loop_map.size);
 	}
 
 	return OCS_HW_RTN_SUCCESS;
@@ -1043,7 +1137,8 @@ ocs_hw_init(ocs_hw_t *hw)
  * @return Returns 0 on success, or a non-zero value on failure.
  */
 static int32_t
-ocs_hw_config_mrq(ocs_hw_t *hw, uint8_t mode, uint16_t vlanid, uint16_t fcf_index)
+ocs_hw_config_mrq(ocs_hw_t *hw, uint8_t mode, uint16_t vlanid,
+    uint16_t fcf_index)
 {
 	uint8_t buf[SLI4_BMBX_SIZE], mrq_bitmask = 0;
 	hw_rq_t *rq;
@@ -1059,10 +1154,13 @@ ocs_hw_config_mrq(ocs_hw_t *hw, uint8_t mode, uint16_t vlanid, uint16_t fcf_inde
 	/* Set the filter match/mask values from hw's filter_def values */
 	for (i = 0; i < SLI4_CMD_REG_FCFI_NUM_RQ_CFG; i++) {
 		rq_filter[i].rq_id = 0xffff;
-		rq_filter[i].r_ctl_mask  = (uint8_t)  hw->config.filter_def[i];
-		rq_filter[i].r_ctl_match = (uint8_t) (hw->config.filter_def[i] >> 8);
-		rq_filter[i].type_mask   = (uint8_t) (hw->config.filter_def[i] >> 16);
-		rq_filter[i].type_match  = (uint8_t) (hw->config.filter_def[i] >> 24);
+		rq_filter[i].r_ctl_mask = (uint8_t)hw->config.filter_def[i];
+		rq_filter[i].r_ctl_match = (uint8_t)(hw->config.filter_def[i] >>
+		    8);
+		rq_filter[i].type_mask = (uint8_t)(hw->config.filter_def[i] >>
+		    16);
+		rq_filter[i].type_match = (uint8_t)(hw->config.filter_def[i] >>
+		    24);
 	}
 
 	/* Accumulate counts for each filter type used, build rq_ids[] list */
@@ -1071,9 +1169,13 @@ ocs_hw_config_mrq(ocs_hw_t *hw, uint8_t mode, uint16_t vlanid, uint16_t fcf_inde
 		for (j = 0; j < SLI4_CMD_REG_FCFI_MRQ_NUM_RQ_CFG; j++) {
 			if (rq->filter_mask & (1U << j)) {
 				if (rq_filter[j].rq_id != 0xffff) {
-					/* Already used. Bailout ifts not RQset case */
-					if (!rq->is_mrq || (rq_filter[j].rq_id != rq->base_mrq_id)) {
-						ocs_log_err(hw->os, "Wrong queue topology.\n");
+					/* Already used. Bailout ifts not RQset
+					 * case */
+					if (!rq->is_mrq ||
+					    (rq_filter[j].rq_id !=
+						rq->base_mrq_id)) {
+						ocs_log_err(hw->os,
+						    "Wrong queue topology.\n");
 						return OCS_HW_RTN_ERROR;
 					}
 					continue;
@@ -1091,16 +1193,15 @@ ocs_hw_config_mrq(ocs_hw_t *hw, uint8_t mode, uint16_t vlanid, uint16_t fcf_inde
 
 issue_cmd:
 	/* Invoke REG_FCFI_MRQ */
-	rc = sli_cmd_reg_fcfi_mrq(&hw->sli,
-				 buf,					/* buf */
-				 SLI4_BMBX_SIZE,			/* size */
-				 mode,					/* mode 1 */
-				 fcf_index,				/* fcf_index */
-				 vlanid,				/* vlan_id */
-				 hw->config.rq_selection_policy,	/* RQ selection policy*/
-				 mrq_bitmask,				/* MRQ bitmask */
-				 hw->hw_mrq_count,			/* num_mrqs */
-				 rq_filter);				/* RQ filter */
+	rc = sli_cmd_reg_fcfi_mrq(&hw->sli, buf, /* buf */
+	    SLI4_BMBX_SIZE,			 /* size */
+	    mode,				 /* mode 1 */
+	    fcf_index,				 /* fcf_index */
+	    vlanid,				 /* vlan_id */
+	    hw->config.rq_selection_policy,	 /* RQ selection policy*/
+	    mrq_bitmask,			 /* MRQ bitmask */
+	    hw->hw_mrq_count,			 /* num_mrqs */
+	    rq_filter);				 /* RQ filter */
 	if (rc == 0) {
 		ocs_log_err(hw->os, "sli_cmd_reg_fcfi_mrq() failed: %d\n", rc);
 		return OCS_HW_RTN_ERROR;
@@ -1111,8 +1212,9 @@ issue_cmd:
 	rsp = (sli4_cmd_reg_fcfi_mrq_t *)buf;
 
 	if ((rc != OCS_HW_RTN_SUCCESS) || (rsp->hdr.status)) {
-		ocs_log_err(hw->os, "FCFI MRQ registration failed. cmd = %x status = %x\n",
-			    rsp->hdr.command, rsp->hdr.status);
+		ocs_log_err(hw->os,
+		    "FCFI MRQ registration failed. cmd = %x status = %x\n",
+		    rsp->hdr.command, rsp->hdr.status);
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -1158,9 +1260,9 @@ ocs_hw_init_linkcfg_cb(int32_t status, uintptr_t value, void *arg)
 ocs_hw_rtn_e
 ocs_hw_teardown(ocs_hw_t *hw)
 {
-	uint32_t	i = 0;
-	uint32_t	iters = 10;/*XXX*/
-	uint32_t	max_rpi;
+	uint32_t i = 0;
+	uint32_t iters = 10; /*XXX*/
+	uint32_t max_rpi;
 	uint32_t destroy_queues;
 	uint32_t free_memory;
 
@@ -1176,13 +1278,13 @@ ocs_hw_teardown(ocs_hw_t *hw)
 	shutdown_target_wqe_timer(hw);
 
 	/* Cancel watchdog timer if enabled */
-	if(hw->watchdog_timeout) {
+	if (hw->watchdog_timeout) {
 		hw->watchdog_timeout = 0;
 		ocs_hw_config_watchdog_timer(hw);
 	}
 
 	/* Cancel Sliport Healthcheck */
-	if(hw->sliport_healthcheck) {
+	if (hw->sliport_healthcheck) {
 		hw->sliport_healthcheck = 0;
 		ocs_hw_config_sli_port_health_check(hw, 0, 0);
 	}
@@ -1192,7 +1294,8 @@ ocs_hw_teardown(ocs_hw_t *hw)
 
 		ocs_hw_flush(hw);
 
-		/* If there are outstanding commands, wait for them to complete */
+		/* If there are outstanding commands, wait for them to complete
+		 */
 		while (!ocs_list_empty(&hw->cmd_head) && iters) {
 			ocs_udelay(10000);
 			ocs_hw_flush(hw);
@@ -1200,9 +1303,11 @@ ocs_hw_teardown(ocs_hw_t *hw)
 		}
 
 		if (ocs_list_empty(&hw->cmd_head)) {
-			ocs_log_debug(hw->os, "All commands completed on MQ queue\n");
+			ocs_log_debug(hw->os,
+			    "All commands completed on MQ queue\n");
 		} else {
-			ocs_log_debug(hw->os, "Some commands still pending on MQ queue\n");
+			ocs_log_debug(hw->os,
+			    "Some commands still pending on MQ queue\n");
 		}
 
 		/* Cancel any remaining commands */
@@ -1215,7 +1320,8 @@ ocs_hw_teardown(ocs_hw_t *hw)
 
 	/* Free unregistered RPI if workaround is in force */
 	if (hw->workaround.use_unregistered_rpi) {
-		sli_resource_free(&hw->sli, SLI_RSRC_FCOE_RPI, hw->workaround.unregistered_rid);
+		sli_resource_free(&hw->sli, SLI_RSRC_FCOE_RPI,
+		    hw->workaround.unregistered_rid);
 	}
 
 	max_rpi = sli_get_max_rsrc(&hw->sli, SLI_RSRC_FCOE_RPI);
@@ -1223,7 +1329,8 @@ ocs_hw_teardown(ocs_hw_t *hw)
 		for (i = 0; i < max_rpi; i++) {
 			if (ocs_atomic_read(&hw->rpi_ref[i].rpi_count)) {
 				ocs_log_debug(hw->os, "non-zero ref [%d]=%d\n",
-						i, ocs_atomic_read(&hw->rpi_ref[i].rpi_count));
+				    i,
+				    ocs_atomic_read(&hw->rpi_ref[i].rpi_count));
 			}
 		}
 		ocs_free(hw->os, hw->rpi_ref, max_rpi * sizeof(*hw->rpi_ref));
@@ -1236,7 +1343,7 @@ ocs_hw_teardown(ocs_hw_t *hw)
 		for (i = 0; i < hw->config.n_io; i++) {
 			if (hw->io[i] && (hw->io[i]->sgl != NULL) &&
 			    (hw->io[i]->sgl->virt != NULL)) {
-				if(hw->io[i]->is_port_owned) {
+				if (hw->io[i]->is_port_owned) {
 					ocs_lock_free(&hw->io[i]->axr_lock);
 				}
 				ocs_dma_free(hw->os, hw->io[i]->sgl);
@@ -1244,9 +1351,11 @@ ocs_hw_teardown(ocs_hw_t *hw)
 			ocs_free(hw->os, hw->io[i], sizeof(ocs_hw_io_t));
 			hw->io[i] = NULL;
 		}
-		ocs_free(hw->os, hw->wqe_buffs, hw->config.n_io * hw->sli.config.wqe_size);
+		ocs_free(hw->os, hw->wqe_buffs,
+		    hw->config.n_io * hw->sli.config.wqe_size);
 		hw->wqe_buffs = NULL;
-		ocs_free(hw->os, hw->io, hw->config.n_io * sizeof(ocs_hw_io_t *));
+		ocs_free(hw->os, hw->io,
+		    hw->config.n_io * sizeof(ocs_hw_io_t *));
 		hw->io = NULL;
 	}
 
@@ -1258,23 +1367,28 @@ ocs_hw_teardown(ocs_hw_t *hw)
 	ocs_lock_free(&hw->io_abort_lock);
 
 	for (i = 0; i < hw->wq_count; i++) {
-		sli_queue_free(&hw->sli, &hw->wq[i], destroy_queues, free_memory);
+		sli_queue_free(&hw->sli, &hw->wq[i], destroy_queues,
+		    free_memory);
 	}
 
 	for (i = 0; i < hw->rq_count; i++) {
-		sli_queue_free(&hw->sli, &hw->rq[i], destroy_queues, free_memory);
+		sli_queue_free(&hw->sli, &hw->rq[i], destroy_queues,
+		    free_memory);
 	}
 
 	for (i = 0; i < hw->mq_count; i++) {
-		sli_queue_free(&hw->sli, &hw->mq[i], destroy_queues, free_memory);
+		sli_queue_free(&hw->sli, &hw->mq[i], destroy_queues,
+		    free_memory);
 	}
 
 	for (i = 0; i < hw->cq_count; i++) {
-		sli_queue_free(&hw->sli, &hw->cq[i], destroy_queues, free_memory);
+		sli_queue_free(&hw->sli, &hw->cq[i], destroy_queues,
+		    free_memory);
 	}
 
 	for (i = 0; i < hw->eq_count; i++) {
-		sli_queue_free(&hw->sli, &hw->eq[i], destroy_queues, free_memory);
+		sli_queue_free(&hw->sli, &hw->eq[i], destroy_queues,
+		    free_memory);
 	}
 
 	ocs_hw_qtop_free(hw->qtop);
@@ -1313,9 +1427,9 @@ ocs_hw_teardown(ocs_hw_t *hw)
 ocs_hw_rtn_e
 ocs_hw_reset(ocs_hw_t *hw, ocs_hw_reset_e reset)
 {
-	uint32_t	i;
+	uint32_t i;
 	ocs_hw_rtn_e rc = OCS_HW_RTN_SUCCESS;
-	uint32_t	iters;
+	uint32_t iters;
 	ocs_hw_state_e prev_state = hw->state;
 
 	if (hw->state != OCS_HW_STATE_ACTIVE) {
@@ -1344,11 +1458,12 @@ ocs_hw_reset(ocs_hw_t *hw, ocs_hw_reset_e reset)
 	if (ocs_list_empty(&hw->cmd_head)) {
 		ocs_log_debug(hw->os, "All commands completed on MQ queue\n");
 	} else {
-		ocs_log_debug(hw->os, "Some commands still pending on MQ queue\n");
+		ocs_log_debug(hw->os,
+		    "Some commands still pending on MQ queue\n");
 	}
 
 	/* Reset the chip */
-	switch(reset) {
+	switch (reset) {
 	case OCS_HW_RESET_FUNCTION:
 		ocs_log_debug(hw->os, "issuing function level reset\n");
 		if (sli_reset(&hw->sli)) {
@@ -1373,7 +1488,8 @@ ocs_hw_reset(ocs_hw_t *hw, ocs_hw_reset_e reset)
 		}
 		break;
 	default:
-		ocs_log_test(hw->os, "unknown reset type - no reset performed\n");
+		ocs_log_test(hw->os,
+		    "unknown reset type - no reset performed\n");
 		hw->state = prev_state;
 		return OCS_HW_RTN_ERROR;
 	}
@@ -1382,7 +1498,8 @@ ocs_hw_reset(ocs_hw_t *hw, ocs_hw_reset_e reset)
 	if (prev_state != OCS_HW_STATE_UNINITIALIZED) {
 		ocs_hw_command_cancel(hw);
 
-		/* Clean up the inuse list, the free list and the wait free list */
+		/* Clean up the inuse list, the free list and the wait free list
+		 */
 		ocs_hw_io_cancel(hw);
 
 		ocs_memset(hw->domains, 0, sizeof(hw->domains));
@@ -1391,21 +1508,24 @@ ocs_hw_reset(ocs_hw_t *hw, ocs_hw_reset_e reset)
 		ocs_hw_link_event_init(hw);
 
 		ocs_lock(&hw->io_lock);
-			/* The io lists should be empty, but remove any that didn't get cleaned up. */
-			while (!ocs_list_empty(&hw->io_timed_wqe)) {
-				ocs_list_remove_head(&hw->io_timed_wqe);
-			}
-			/* Don't clean up the io_inuse list, the backend will do that when it finishes the IO */
+		/* The io lists should be empty, but remove any that didn't get
+		 * cleaned up. */
+		while (!ocs_list_empty(&hw->io_timed_wqe)) {
+			ocs_list_remove_head(&hw->io_timed_wqe);
+		}
+		/* Don't clean up the io_inuse list, the backend will do that
+		 * when it finishes the IO */
 
-			while (!ocs_list_empty(&hw->io_free)) {
-				ocs_list_remove_head(&hw->io_free);
-			}
-			while (!ocs_list_empty(&hw->io_wait_free)) {
-				ocs_list_remove_head(&hw->io_wait_free);
-			}
+		while (!ocs_list_empty(&hw->io_free)) {
+			ocs_list_remove_head(&hw->io_free);
+		}
+		while (!ocs_list_empty(&hw->io_wait_free)) {
+			ocs_list_remove_head(&hw->io_wait_free);
+		}
 
-			/* Reset the request tag pool, the HW IO request tags are reassigned in ocs_hw_setup_io() */
-			ocs_hw_reqtag_reset(hw);
+		/* Reset the request tag pool, the HW IO request tags are
+		 * reassigned in ocs_hw_setup_io() */
+		ocs_hw_reqtag_reset(hw);
 
 		ocs_unlock(&hw->io_lock);
 	}
@@ -1471,18 +1591,19 @@ ocs_hw_get_num_eq(ocs_hw_t *hw)
 static int32_t
 ocs_hw_get_fw_timed_out(ocs_hw_t *hw)
 {
-	/* The error values below are taken from LOWLEVEL_SET_WATCHDOG_TIMER_rev1.pdf
-	* No further explanation is given in the document.
-	* */
+	/* The error values below are taken from
+	 * LOWLEVEL_SET_WATCHDOG_TIMER_rev1.pdf No further explanation is given
+	 * in the document.
+	 * */
 	return (sli_reg_read(&hw->sli, SLI4_REG_SLIPORT_ERROR1) == 0x2 &&
-		sli_reg_read(&hw->sli, SLI4_REG_SLIPORT_ERROR2) == 0x10);
+	    sli_reg_read(&hw->sli, SLI4_REG_SLIPORT_ERROR2) == 0x10);
 }
 
 ocs_hw_rtn_e
 ocs_hw_get(ocs_hw_t *hw, ocs_hw_property_e prop, uint32_t *value)
 {
-	ocs_hw_rtn_e		rc = OCS_HW_RTN_SUCCESS;
-	int32_t			tmp;
+	ocs_hw_rtn_e rc = OCS_HW_RTN_SUCCESS;
+	int32_t tmp;
 
 	if (!value) {
 		return OCS_HW_RTN_ERROR;
@@ -1582,7 +1703,8 @@ ocs_hw_get(ocs_hw_t *hw, ocs_hw_property_e prop, uint32_t *value)
 			*value = OCS_HW_TOPOLOGY_NONE;
 			break;
 		default:
-			ocs_log_test(hw->os, "unsupported topology %#x\n", hw->link.topology);
+			ocs_log_test(hw->os, "unsupported topology %#x\n",
+			    hw->link.topology);
 			rc = OCS_HW_RTN_ERROR;
 			break;
 		}
@@ -1617,7 +1739,8 @@ ocs_hw_get(ocs_hw_t *hw, ocs_hw_property_e prop, uint32_t *value)
 			*value = 32000;
 			break;
 		default:
-			ocs_log_test(hw->os, "unsupported speed %#x\n", hw->config.speed);
+			ocs_log_test(hw->os, "unsupported speed %#x\n",
+			    hw->config.speed);
 			rc = OCS_HW_RTN_ERROR;
 			break;
 		}
@@ -1659,7 +1782,7 @@ ocs_hw_get(ocs_hw_t *hw, ocs_hw_property_e prop, uint32_t *value)
 		break;
 	case OCS_HW_RESET_REQUIRED:
 		tmp = sli_reset_required(&hw->sli);
-		if(tmp < 0) {
+		if (tmp < 0) {
 			rc = OCS_HW_RTN_ERROR;
 		} else {
 			*value = tmp;
@@ -1714,7 +1837,8 @@ ocs_hw_get(ocs_hw_t *hw, ocs_hw_property_e prop, uint32_t *value)
 		*value = sli_get_vpd_len(&hw->sli);
 		break;
 	case OCS_HW_SGL_CHAINING_CAPABLE:
-		*value = sli_get_is_sgl_chaining_capable(&hw->sli) || hw->workaround.sglc_misreported;
+		*value = sli_get_is_sgl_chaining_capable(&hw->sli) ||
+		    hw->workaround.sglc_misreported;
 		break;
 	case OCS_HW_SGL_CHAINING_ALLOWED:
 		/*
@@ -1723,30 +1847,35 @@ ocs_hw_get(ocs_hw_t *hw, ocs_hw_property_e prop, uint32_t *value)
 		 *   2. Skyhawk with pre-registered SGL Lists
 		 */
 		*value = FALSE;
-		if ((sli_get_is_sgl_chaining_capable(&hw->sli) || hw->workaround.sglc_misreported) &&
+		if ((sli_get_is_sgl_chaining_capable(&hw->sli) ||
+			hw->workaround.sglc_misreported) &&
 		    !sli_get_sgl_preregister(&hw->sli) &&
-		    SLI4_IF_TYPE_LANCER_FC_ETH  == sli_get_if_type(&hw->sli)) {
+		    SLI4_IF_TYPE_LANCER_FC_ETH == sli_get_if_type(&hw->sli)) {
 			*value = TRUE;
 		}
 
-		if ((sli_get_is_sgl_chaining_capable(&hw->sli) || hw->workaround.sglc_misreported) &&
+		if ((sli_get_is_sgl_chaining_capable(&hw->sli) ||
+			hw->workaround.sglc_misreported) &&
 		    sli_get_sgl_preregister(&hw->sli) &&
 		    ((SLI4_IF_TYPE_BE3_SKH_PF == sli_get_if_type(&hw->sli)) ||
-			(SLI4_IF_TYPE_BE3_SKH_VF == sli_get_if_type(&hw->sli)))) {
+			(SLI4_IF_TYPE_BE3_SKH_VF ==
+			    sli_get_if_type(&hw->sli)))) {
 			*value = TRUE;
 		}
 		break;
 	case OCS_HW_SGL_CHAINING_HOST_ALLOCATED:
 		/* Only lancer supports host allocated SGL Chaining buffers. */
-		*value = ((sli_get_is_sgl_chaining_capable(&hw->sli) || hw->workaround.sglc_misreported) &&
-			  (SLI4_IF_TYPE_LANCER_FC_ETH  == sli_get_if_type(&hw->sli)));
+		*value = ((sli_get_is_sgl_chaining_capable(&hw->sli) ||
+			      hw->workaround.sglc_misreported) &&
+		    (SLI4_IF_TYPE_LANCER_FC_ETH == sli_get_if_type(&hw->sli)));
 		break;
 	case OCS_HW_SEND_FRAME_CAPABLE:
 		if (hw->workaround.ignore_send_frame) {
 			*value = 0;
 		} else {
 			/* Only lancer is capable */
-			*value = sli_get_if_type(&hw->sli) == SLI4_IF_TYPE_LANCER_FC_ETH;
+			*value = sli_get_if_type(&hw->sli) ==
+			    SLI4_IF_TYPE_LANCER_FC_ETH;
 		}
 		break;
 	case OCS_HW_RQ_SELECTION_POLICY:
@@ -1769,7 +1898,7 @@ ocs_hw_get(ocs_hw_t *hw, ocs_hw_property_e prop, uint32_t *value)
 void *
 ocs_hw_get_ptr(ocs_hw_t *hw, ocs_hw_property_e prop)
 {
-	void	*rc = NULL;
+	void *rc = NULL;
 
 	switch (prop) {
 	case OCS_HW_WWN_NODE:
@@ -1809,14 +1938,15 @@ ocs_hw_get_ptr(ocs_hw_t *hw, ocs_hw_property_e prop)
 ocs_hw_rtn_e
 ocs_hw_set(ocs_hw_t *hw, ocs_hw_property_e prop, uint32_t value)
 {
-	ocs_hw_rtn_e		rc = OCS_HW_RTN_SUCCESS;
+	ocs_hw_rtn_e rc = OCS_HW_RTN_SUCCESS;
 
 	switch (prop) {
 	case OCS_HW_N_IO:
 		if (value > sli_get_max_rsrc(&hw->sli, SLI_RSRC_FCOE_XRI) ||
 		    value == 0) {
 			ocs_log_test(hw->os, "IO value out of range %d vs %d\n",
-					value, sli_get_max_rsrc(&hw->sli, SLI_RSRC_FCOE_XRI));
+			    value,
+			    sli_get_max_rsrc(&hw->sli, SLI_RSRC_FCOE_XRI));
 			rc = OCS_HW_RTN_ERROR;
 		} else {
 			hw->config.n_io = value;
@@ -1825,8 +1955,9 @@ ocs_hw_set(ocs_hw_t *hw, ocs_hw_property_e prop, uint32_t value)
 	case OCS_HW_N_SGL:
 		value += SLI4_SGE_MAX_RESERVED;
 		if (value > sli_get_max_sgl(&hw->sli)) {
-			ocs_log_test(hw->os, "SGL value out of range %d vs %d\n",
-					value, sli_get_max_sgl(&hw->sli));
+			ocs_log_test(hw->os,
+			    "SGL value out of range %d vs %d\n", value,
+			    sli_get_max_sgl(&hw->sli));
 			rc = OCS_HW_RTN_ERROR;
 		} else {
 			hw->config.n_sgl = value;
@@ -1834,9 +1965,10 @@ ocs_hw_set(ocs_hw_t *hw, ocs_hw_property_e prop, uint32_t value)
 		break;
 	case OCS_HW_TOPOLOGY:
 		if ((sli_get_medium(&hw->sli) != SLI_LINK_MEDIUM_FC) &&
-				(value != OCS_HW_TOPOLOGY_AUTO)) {
-			ocs_log_test(hw->os, "unsupported topology=%#x medium=%#x\n",
-					value, sli_get_medium(&hw->sli));
+		    (value != OCS_HW_TOPOLOGY_AUTO)) {
+			ocs_log_test(hw->os,
+			    "unsupported topology=%#x medium=%#x\n", value,
+			    sli_get_medium(&hw->sli));
 			rc = OCS_HW_RTN_ERROR;
 			break;
 		}
@@ -1844,9 +1976,11 @@ ocs_hw_set(ocs_hw_t *hw, ocs_hw_property_e prop, uint32_t value)
 		switch (value) {
 		case OCS_HW_TOPOLOGY_AUTO:
 			if (sli_get_medium(&hw->sli) == SLI_LINK_MEDIUM_FC) {
-				sli_set_topology(&hw->sli, SLI4_READ_CFG_TOPO_FC);
+				sli_set_topology(&hw->sli,
+				    SLI4_READ_CFG_TOPO_FC);
 			} else {
-				sli_set_topology(&hw->sli, SLI4_READ_CFG_TOPO_FCOE);
+				sli_set_topology(&hw->sli,
+				    SLI4_READ_CFG_TOPO_FCOE);
 			}
 			break;
 		case OCS_HW_TOPOLOGY_NPORT:
@@ -1856,7 +1990,8 @@ ocs_hw_set(ocs_hw_t *hw, ocs_hw_property_e prop, uint32_t value)
 			sli_set_topology(&hw->sli, SLI4_READ_CFG_TOPO_FC_AL);
 			break;
 		default:
-			ocs_log_test(hw->os, "unsupported topology %#x\n", value);
+			ocs_log_test(hw->os, "unsupported topology %#x\n",
+			    value);
 			rc = OCS_HW_RTN_ERROR;
 		}
 		hw->config.topology = value;
@@ -1864,23 +1999,24 @@ ocs_hw_set(ocs_hw_t *hw, ocs_hw_property_e prop, uint32_t value)
 	case OCS_HW_LINK_SPEED:
 		if (sli_get_medium(&hw->sli) != SLI_LINK_MEDIUM_FC) {
 			switch (value) {
-			case 0: 	/* Auto-speed negotiation */
-			case 10000:	/* FCoE speed */
+			case 0:	    /* Auto-speed negotiation */
+			case 10000: /* FCoE speed */
 				hw->config.speed = FC_LINK_SPEED_10G;
 				break;
 			default:
-				ocs_log_test(hw->os, "unsupported speed=%#x medium=%#x\n",
-						value, sli_get_medium(&hw->sli));
+				ocs_log_test(hw->os,
+				    "unsupported speed=%#x medium=%#x\n", value,
+				    sli_get_medium(&hw->sli));
 				rc = OCS_HW_RTN_ERROR;
 			}
 			break;
 		}
 
 		switch (value) {
-		case 0:		/* Auto-speed negotiation */
+		case 0: /* Auto-speed negotiation */
 			hw->config.speed = FC_LINK_SPEED_AUTO_16_8_4;
 			break;
-		case 2000:	/* FC speeds */
+		case 2000: /* FC speeds */
 			hw->config.speed = FC_LINK_SPEED_2G;
 			break;
 		case 4000:
@@ -1903,7 +2039,8 @@ ocs_hw_set(ocs_hw_t *hw, ocs_hw_property_e prop, uint32_t value)
 	case OCS_HW_DIF_SEED:
 		/* Set the DIF seed - only for lancer right now */
 		if (SLI4_IF_TYPE_LANCER_FC_ETH != sli_get_if_type(&hw->sli)) {
-			ocs_log_test(hw->os, "DIF seed not supported for this device\n");
+			ocs_log_test(hw->os,
+			    "DIF seed not supported for this device\n");
 			rc = OCS_HW_RTN_ERROR;
 		} else {
 			hw->config.dif_seed = value;
@@ -1921,7 +2058,8 @@ ocs_hw_set(ocs_hw_t *hw, ocs_hw_property_e prop, uint32_t value)
 			if (sli_is_dif_inline_capable(&hw->sli)) {
 				hw->config.dif_mode = value;
 			} else {
-				ocs_log_test(hw->os, "chip does not support DIF inline\n");
+				ocs_log_test(hw->os,
+				    "chip does not support DIF inline\n");
 				rc = OCS_HW_RTN_ERROR;
 			}
 			break;
@@ -1930,7 +2068,8 @@ ocs_hw_set(ocs_hw_t *hw, ocs_hw_property_e prop, uint32_t value)
 			if (sli_is_dif_separate_capable(&hw->sli)) {
 				hw->config.dif_mode = value;
 			} else {
-				ocs_log_test(hw->os, "chip does not support DIF separate\n");
+				ocs_log_test(hw->os,
+				    "chip does not support DIF separate\n");
 				rc = OCS_HW_RTN_ERROR;
 			}
 		}
@@ -1973,8 +2112,7 @@ ocs_hw_set(ocs_hw_t *hw, ocs_hw_property_e prop, uint32_t value)
 			hw->config.auto_xfer_rdy_blk_size_chip = 4;
 			break;
 		default:
-			ocs_log_err(hw->os, "Invalid block size %d\n",
-				    value);
+			ocs_log_err(hw->os, "Invalid block size %d\n", value);
 			rc = OCS_HW_RTN_ERROR;
 		}
 		break;
@@ -2045,7 +2183,8 @@ ocs_hw_set_ptr(ocs_hw_t *hw, ocs_hw_property_e prop, void *value)
 			hw->config.filter_def[idx] = 0;
 		}
 
-		for (idx = 0; (idx < ARRAY_SIZE(hw->config.filter_def)) && (p != NULL) && *p; ) {
+		for (idx = 0; (idx < ARRAY_SIZE(hw->config.filter_def)) &&
+		     (p != NULL) && *p;) {
 			hw->config.filter_def[idx++] = ocs_strtoul(p, 0, 0);
 			p = ocs_strchr(p, ',');
 			if (p != NULL) {
@@ -2082,8 +2221,8 @@ ocs_hw_event_check(ocs_hw_t *hw, uint32_t vector)
 	}
 
 	if (vector > hw->eq_count) {
-		ocs_log_err(hw->os, "vector %d. max %d\n",
-				vector, hw->eq_count);
+		ocs_log_err(hw->os, "vector %d. max %d\n", vector,
+		    hw->eq_count);
 		return -1;
 	}
 
@@ -2166,8 +2305,8 @@ ocs_hw_process(ocs_hw_t *hw, uint32_t vector, uint32_t max_isr_time_msec)
  * or kernel thread context hold a CPU without yielding).
  * @n @n The approach taken here is to periodically check how much time
  * we have been in this
- * processing loop, and if we exceed a predetermined time (multiple seconds), the
- * loop is terminated, and ocs_hw_process() returns.
+ * processing loop, and if we exceed a predetermined time (multiple seconds),
+ * the loop is terminated, and ocs_hw_process() returns.
  *
  * @param hw Hardware context.
  * @param eq Pointer to HW EQ object.
@@ -2178,11 +2317,11 @@ ocs_hw_process(ocs_hw_t *hw, uint32_t vector, uint32_t max_isr_time_msec)
 int32_t
 ocs_hw_eq_process(ocs_hw_t *hw, hw_eq_t *eq, uint32_t max_isr_time_msec)
 {
-	uint8_t		eqe[sizeof(sli4_eqe_t)] = { 0 };
-	uint32_t	done = FALSE;
-	uint32_t	tcheck_count;
-	time_t		tstart;
-	time_t		telapsed;
+	uint8_t eqe[sizeof(sli4_eqe_t)] = { 0 };
+	uint32_t done = FALSE;
+	uint32_t tcheck_count;
+	time_t tstart;
+	time_t telapsed;
 
 	tcheck_count = OCS_HW_TIMECHECK_ITERATIONS;
 	tstart = ocs_msectime();
@@ -2190,8 +2329,8 @@ ocs_hw_eq_process(ocs_hw_t *hw, hw_eq_t *eq, uint32_t max_isr_time_msec)
 	CPUTRACE("");
 
 	while (!done && !sli_queue_read(&hw->sli, eq->queue, eqe)) {
-		uint16_t	cq_id = 0;
-		int32_t		rc;
+		uint16_t cq_id = 0;
+		int32_t rc;
 
 		rc = sli_eq_parse(&hw->sli, eqe, &cq_id);
 		if (unlikely(rc)) {
@@ -2199,8 +2338,8 @@ ocs_hw_eq_process(ocs_hw_t *hw, hw_eq_t *eq, uint32_t max_isr_time_msec)
 				uint32_t i;
 
 				/*
-				 * Received a sentinel EQE indicating the EQ is full.
-				 * Process all CQs
+				 * Received a sentinel EQE indicating the EQ is
+				 * full. Process all CQs
 				 */
 				for (i = 0; i < hw->cq_count; i++) {
 					ocs_hw_cq_process(hw, hw->hw_cq[i]);
@@ -2210,7 +2349,8 @@ ocs_hw_eq_process(ocs_hw_t *hw, hw_eq_t *eq, uint32_t max_isr_time_msec)
 				return rc;
 			}
 		} else {
-			int32_t index = ocs_hw_queue_hash_find(hw->cq_hash, cq_id);
+			int32_t index = ocs_hw_queue_hash_find(hw->cq_hash,
+			    cq_id);
 			if (likely(index >= 0)) {
 				ocs_hw_cq_process(hw, hw->hw_cq[index]);
 			} else {
@@ -2263,7 +2403,8 @@ ocs_hw_cmd_submit_pending(ocs_hw_t *hw)
 		ocs_list_add_tail(&hw->cmd_head, ctx);
 		hw->cmd_head_count++;
 		if (sli_queue_write(&hw->sli, hw->mq, ctx->buf) < 0) {
-			ocs_log_test(hw->os, "sli_queue_write failed: %d\n", rc);
+			ocs_log_test(hw->os, "sli_queue_write failed: %d\n",
+			    rc);
 			rc = -1;
 			break;
 		}
@@ -2282,7 +2423,8 @@ ocs_hw_cmd_submit_pending(ocs_hw_t *hw)
  * @param hw Hardware context.
  * @param cmd Buffer containing a formatted command and results.
  * @param opts Command options:
- *  - OCS_CMD_POLL - Command executes synchronously and busy-waits for the completion.
+ *  - OCS_CMD_POLL - Command executes synchronously and busy-waits for the
+ * completion.
  *  - OCS_CMD_NOWAIT - Command executes asynchronously. Uses callback.
  * @param cb Function callback used for asynchronous mode. May be NULL.
  * @n Prototype is <tt>(*cb)(void *arg, uint8_t *cmd)</tt>.
@@ -2307,13 +2449,15 @@ ocs_hw_command(ocs_hw_t *hw, uint8_t *cmd, uint32_t opts, void *cb, void *arg)
 		uint32_t err2 = sli_reg_read(&hw->sli, SLI4_REG_SLIPORT_ERROR2);
 		if (hw->expiration_logged == 0 && err1 == 0x2 && err2 == 0x10) {
 			hw->expiration_logged = 1;
-			ocs_log_crit(hw->os,"Emulex: Heartbeat expired after %d seconds\n",
-					hw->watchdog_timeout);
+			ocs_log_crit(hw->os,
+			    "Emulex: Heartbeat expired after %d seconds\n",
+			    hw->watchdog_timeout);
 		}
-		ocs_log_crit(hw->os, "Chip is in an error state - reset needed\n");
+		ocs_log_crit(hw->os,
+		    "Chip is in an error state - reset needed\n");
 		ocs_log_crit(hw->os, "status=%#x error1=%#x error2=%#x\n",
-			sli_reg_read(&hw->sli, SLI4_REG_SLIPORT_STATUS),
-			err1, err2);
+		    sli_reg_read(&hw->sli, SLI4_REG_SLIPORT_STATUS), err1,
+		    err2);
 
 		return OCS_HW_RTN_ERROR;
 	}
@@ -2340,16 +2484,18 @@ ocs_hw_command(ocs_hw_t *hw, uint8_t *cmd, uint32_t opts, void *cb, void *arg)
 		}
 		ocs_unlock(&hw->cmd_lock);
 	} else if (OCS_CMD_NOWAIT == opts) {
-		ocs_command_ctx_t	*ctx = NULL;
+		ocs_command_ctx_t *ctx = NULL;
 
-		ctx = ocs_malloc(hw->os, sizeof(ocs_command_ctx_t), OCS_M_ZERO | OCS_M_NOWAIT);
+		ctx = ocs_malloc(hw->os, sizeof(ocs_command_ctx_t),
+		    OCS_M_ZERO | OCS_M_NOWAIT);
 		if (!ctx) {
 			ocs_log_err(hw->os, "can't allocate command context\n");
 			return OCS_HW_RTN_NO_RESOURCES;
 		}
 
 		if (hw->state != OCS_HW_STATE_ACTIVE) {
-			ocs_log_err(hw->os, "Can't send command, HW state=%d\n", hw->state);
+			ocs_log_err(hw->os, "Can't send command, HW state=%d\n",
+			    hw->state);
 			ocs_free(hw->os, ctx, sizeof(*ctx));
 			return OCS_HW_RTN_ERROR;
 		}
@@ -2363,13 +2509,13 @@ ocs_hw_command(ocs_hw_t *hw, uint8_t *cmd, uint32_t opts, void *cb, void *arg)
 
 		ocs_lock(&hw->cmd_lock);
 
-			/* Add to pending list */
-			ocs_list_add_tail(&hw->cmd_pending, ctx);
+		/* Add to pending list */
+		ocs_list_add_tail(&hw->cmd_pending, ctx);
 
-			/* Submit as much of the pending list as we can */
-			if (ocs_hw_cmd_submit_pending(hw) == 0) {
-				rc = OCS_HW_RTN_SUCCESS;
-			}
+		/* Submit as much of the pending list as we can */
+		if (ocs_hw_cmd_submit_pending(hw) == 0) {
+			rc = OCS_HW_RTN_SUCCESS;
+		}
 
 		ocs_unlock(&hw->cmd_lock);
 	}
@@ -2393,8 +2539,8 @@ ocs_hw_callback(ocs_hw_t *hw, ocs_hw_callback_e which, void *func, void *arg)
 {
 
 	if (!hw || !func || (which >= OCS_HW_CB_MAX)) {
-		ocs_log_err(NULL, "bad parameter hw=%p which=%#x func=%p\n",
-			    hw, which, func);
+		ocs_log_err(NULL, "bad parameter hw=%p which=%#x func=%p\n", hw,
+		    which, func);
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -2444,9 +2590,9 @@ ocs_hw_callback(ocs_hw_t *hw, ocs_hw_callback_e which, void *func, void *arg)
  */
 ocs_hw_rtn_e
 ocs_hw_port_alloc(ocs_hw_t *hw, ocs_sli_port_t *sport, ocs_domain_t *domain,
-		uint8_t *wwpn)
+    uint8_t *wwpn)
 {
-	uint8_t	*cmd = NULL;
+	uint8_t *cmd = NULL;
 	ocs_hw_rtn_e rc = OCS_HW_RTN_SUCCESS;
 	uint32_t index;
 
@@ -2459,7 +2605,8 @@ ocs_hw_port_alloc(ocs_hw_t *hw, ocs_sli_port_t *sport, ocs_domain_t *domain,
 	 * Check if the chip is in an error state (UE'd) before proceeding.
 	 */
 	if (sli_fw_error_status(&hw->sli) > 0) {
-		ocs_log_crit(hw->os, "Chip is in an error state - reset needed\n");
+		ocs_log_crit(hw->os,
+		    "Chip is in an error state - reset needed\n");
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -2467,17 +2614,20 @@ ocs_hw_port_alloc(ocs_hw_t *hw, ocs_sli_port_t *sport, ocs_domain_t *domain,
 		ocs_memcpy(&sport->sli_wwpn, wwpn, sizeof(sport->sli_wwpn));
 	}
 
-	if (sli_resource_alloc(&hw->sli, SLI_RSRC_FCOE_VPI, &sport->indicator, &index)) {
+	if (sli_resource_alloc(&hw->sli, SLI_RSRC_FCOE_VPI, &sport->indicator,
+		&index)) {
 		ocs_log_err(hw->os, "FCOE_VPI allocation failure\n");
 		return OCS_HW_RTN_ERROR;
 	}
 
 	if (domain != NULL) {
-		ocs_sm_function_t	next = NULL;
+		ocs_sm_function_t next = NULL;
 
-		cmd = ocs_malloc(hw->os, SLI4_BMBX_SIZE, OCS_M_ZERO | OCS_M_NOWAIT);
+		cmd = ocs_malloc(hw->os, SLI4_BMBX_SIZE,
+		    OCS_M_ZERO | OCS_M_NOWAIT);
 		if (!cmd) {
-			ocs_log_err(hw->os, "command memory allocation failed\n");
+			ocs_log_err(hw->os,
+			    "command memory allocation failed\n");
 			rc = OCS_HW_RTN_NO_MEMORY;
 			goto ocs_hw_port_alloc_out;
 		}
@@ -2505,7 +2655,8 @@ ocs_hw_port_alloc_out:
 	if (rc != OCS_HW_RTN_SUCCESS) {
 		ocs_free(hw->os, cmd, SLI4_BMBX_SIZE);
 
-		sli_resource_free(&hw->sli, SLI_RSRC_FCOE_VPI, sport->indicator);
+		sli_resource_free(&hw->sli, SLI_RSRC_FCOE_VPI,
+		    sport->indicator);
 	}
 
 	return rc;
@@ -2528,13 +2679,12 @@ ocs_hw_port_alloc_out:
 ocs_hw_rtn_e
 ocs_hw_port_attach(ocs_hw_t *hw, ocs_sli_port_t *sport, uint32_t fc_id)
 {
-	uint8_t	*buf = NULL;
+	uint8_t *buf = NULL;
 	ocs_hw_rtn_e rc = OCS_HW_RTN_SUCCESS;
 
 	if (!hw || !sport) {
 		ocs_log_err(hw ? hw->os : NULL,
-			"bad parameter(s) hw=%p sport=%p\n", hw,
-			sport);
+		    "bad parameter(s) hw=%p sport=%p\n", hw, sport);
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -2542,7 +2692,8 @@ ocs_hw_port_attach(ocs_hw_t *hw, ocs_sli_port_t *sport, uint32_t fc_id)
 	 * Check if the chip is in an error state (UE'd) before proceeding.
 	 */
 	if (sli_fw_error_status(&hw->sli) > 0) {
-		ocs_log_crit(hw->os, "Chip is in an error state - reset needed\n");
+		ocs_log_crit(hw->os,
+		    "Chip is in an error state - reset needed\n");
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -2566,12 +2717,13 @@ ocs_hw_port_attach(ocs_hw_t *hw, ocs_sli_port_t *sport, uint32_t fc_id)
  * @param hw Hardware context.
  * @param status Status field from the mbox completion.
  * @param mqe Mailbox response structure.
- * @param arg Pointer to a callback function that signals the caller that the command is done.
+ * @param arg Pointer to a callback function that signals the caller that the
+ * command is done.
  *
  * @return Returns 0.
  */
 static int32_t
-ocs_hw_cb_port_control(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void  *arg)
+ocs_hw_cb_port_control(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 {
 	ocs_free(hw->os, mqe, SLI4_BMBX_SIZE);
 	return 0;
@@ -2620,29 +2772,32 @@ ocs_hw_cb_port_control(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void  *arg)
  * @return Returns 0 on success, or a non-zero value on failure.
  */
 ocs_hw_rtn_e
-ocs_hw_port_control(ocs_hw_t *hw, ocs_hw_port_e ctrl, uintptr_t value, ocs_hw_port_control_cb_t cb, void *arg)
+ocs_hw_port_control(ocs_hw_t *hw, ocs_hw_port_e ctrl, uintptr_t value,
+    ocs_hw_port_control_cb_t cb, void *arg)
 {
 	ocs_hw_rtn_e rc = OCS_HW_RTN_ERROR;
 
 	switch (ctrl) {
-	case OCS_HW_PORT_INIT:
-	{
-		uint8_t	*init_link;
+	case OCS_HW_PORT_INIT: {
+		uint8_t *init_link;
 		uint32_t speed = 0;
 		uint8_t reset_alpa = 0;
 
 		if (SLI_LINK_MEDIUM_FC == sli_get_medium(&hw->sli)) {
-			uint8_t	*cfg_link;
+			uint8_t *cfg_link;
 
-			cfg_link = ocs_malloc(hw->os, SLI4_BMBX_SIZE, OCS_M_NOWAIT);
+			cfg_link = ocs_malloc(hw->os, SLI4_BMBX_SIZE,
+			    OCS_M_NOWAIT);
 			if (cfg_link == NULL) {
 				ocs_log_err(hw->os, "no buffer for command\n");
 				return OCS_HW_RTN_NO_MEMORY;
 			}
 
-			if (sli_cmd_config_link(&hw->sli, cfg_link, SLI4_BMBX_SIZE)) {
-				rc = ocs_hw_command(hw, cfg_link, OCS_CMD_NOWAIT,
-							ocs_hw_cb_port_control, NULL);
+			if (sli_cmd_config_link(&hw->sli, cfg_link,
+				SLI4_BMBX_SIZE)) {
+				rc = ocs_hw_command(hw, cfg_link,
+				    OCS_CMD_NOWAIT, ocs_hw_cb_port_control,
+				    NULL);
 			}
 
 			if (rc != OCS_HW_RTN_SUCCESS) {
@@ -2661,11 +2816,15 @@ ocs_hw_port_control(ocs_hw_t *hw, ocs_hw_port_e ctrl, uintptr_t value, ocs_hw_po
 		 */
 		if (hw->workaround.fw_version_too_low) {
 			if (SLI4_IF_TYPE_LANCER_FC_ETH == hw->sli.if_type) {
-				ocs_log_err(hw->os, "Cannot bring up link.  Please update firmware to %s or later (current version is %s)\n",
-					OCS_FW_VER_STR(OCS_MIN_FW_VER_LANCER), (char *) sli_get_fw_name(&hw->sli,0));
+				ocs_log_err(hw->os,
+				    "Cannot bring up link.  Please update firmware to %s or later (current version is %s)\n",
+				    OCS_FW_VER_STR(OCS_MIN_FW_VER_LANCER),
+				    (char *)sli_get_fw_name(&hw->sli, 0));
 			} else {
-				ocs_log_err(hw->os, "Cannot bring up link.  Please update firmware to %s or later (current version is %s)\n",
-					OCS_FW_VER_STR(OCS_MIN_FW_VER_SKYHAWK), (char *) sli_get_fw_name(&hw->sli, 0));
+				ocs_log_err(hw->os,
+				    "Cannot bring up link.  Please update firmware to %s or later (current version is %s)\n",
+				    OCS_FW_VER_STR(OCS_MIN_FW_VER_SKYHAWK),
+				    (char *)sli_get_fw_name(&hw->sli, 0));
 			}
 
 			return OCS_HW_RTN_ERROR;
@@ -2680,9 +2839,10 @@ ocs_hw_port_control(ocs_hw_t *hw, ocs_hw_port_e ctrl, uintptr_t value, ocs_hw_po
 			return OCS_HW_RTN_NO_MEMORY;
 		}
 
-		if (sli_cmd_init_link(&hw->sli, init_link, SLI4_BMBX_SIZE, speed, reset_alpa)) {
+		if (sli_cmd_init_link(&hw->sli, init_link, SLI4_BMBX_SIZE,
+			speed, reset_alpa)) {
 			rc = ocs_hw_command(hw, init_link, OCS_CMD_NOWAIT,
-						ocs_hw_cb_port_control, NULL);
+			    ocs_hw_cb_port_control, NULL);
 		}
 		/* Free buffer on error, since no callback is coming */
 		if (rc != OCS_HW_RTN_SUCCESS) {
@@ -2691,9 +2851,8 @@ ocs_hw_port_control(ocs_hw_t *hw, ocs_hw_port_e ctrl, uintptr_t value, ocs_hw_po
 		}
 		break;
 	}
-	case OCS_HW_PORT_SHUTDOWN:
-	{
-		uint8_t	*down_link;
+	case OCS_HW_PORT_SHUTDOWN: {
+		uint8_t *down_link;
 
 		down_link = ocs_malloc(hw->os, SLI4_BMBX_SIZE, OCS_M_NOWAIT);
 		if (down_link == NULL) {
@@ -2702,7 +2861,7 @@ ocs_hw_port_control(ocs_hw_t *hw, ocs_hw_port_e ctrl, uintptr_t value, ocs_hw_po
 		}
 		if (sli_cmd_down_link(&hw->sli, down_link, SLI4_BMBX_SIZE)) {
 			rc = ocs_hw_command(hw, down_link, OCS_CMD_NOWAIT,
-						ocs_hw_cb_port_control, NULL);
+			    ocs_hw_cb_port_control, NULL);
 		}
 		/* Free buffer on error, since no callback is coming */
 		if (rc != OCS_HW_RTN_SUCCESS) {
@@ -2712,7 +2871,8 @@ ocs_hw_port_control(ocs_hw_t *hw, ocs_hw_port_e ctrl, uintptr_t value, ocs_hw_po
 		break;
 	}
 	case OCS_HW_PORT_SET_LINK_CONFIG:
-		rc = ocs_hw_set_linkcfg(hw, (ocs_hw_linkcfg_e)value, OCS_CMD_NOWAIT, cb, arg);
+		rc = ocs_hw_set_linkcfg(hw, (ocs_hw_linkcfg_e)value,
+		    OCS_CMD_NOWAIT, cb, arg);
 		break;
 	default:
 		ocs_log_test(hw->os, "unhandled control %#x\n", ctrl);
@@ -2737,12 +2897,11 @@ ocs_hw_port_control(ocs_hw_t *hw, ocs_hw_port_e ctrl, uintptr_t value, ocs_hw_po
 ocs_hw_rtn_e
 ocs_hw_port_free(ocs_hw_t *hw, ocs_sli_port_t *sport)
 {
-	ocs_hw_rtn_e	rc = OCS_HW_RTN_SUCCESS;
+	ocs_hw_rtn_e rc = OCS_HW_RTN_SUCCESS;
 
 	if (!hw || !sport) {
 		ocs_log_err(hw ? hw->os : NULL,
-			"bad parameter(s) hw=%p sport=%p\n", hw,
-			sport);
+		    "bad parameter(s) hw=%p sport=%p\n", hw, sport);
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -2750,7 +2909,8 @@ ocs_hw_port_free(ocs_hw_t *hw, ocs_sli_port_t *sport)
 	 * Check if the chip is in an error state (UE'd) before proceeding.
 	 */
 	if (sli_fw_error_status(&hw->sli) > 0) {
-		ocs_log_crit(hw->os, "Chip is in an error state - reset needed\n");
+		ocs_log_crit(hw->os,
+		    "Chip is in an error state - reset needed\n");
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -2763,7 +2923,8 @@ ocs_hw_port_free(ocs_hw_t *hw, ocs_sli_port_t *sport)
  * @brief Allocate a fabric domain object.
  *
  * @par Description
- * This function starts a series of commands needed to connect to the domain, including
+ * This function starts a series of commands needed to connect to the domain,
+ * including
  *   - REG_FCFI
  *   - INIT_VFI
  *   - READ_SPARMS
@@ -2780,14 +2941,15 @@ ocs_hw_port_free(ocs_hw_t *hw, ocs_sli_port_t *sport)
  * @return Returns 0 on success, or a non-zero value on failure.
  */
 ocs_hw_rtn_e
-ocs_hw_domain_alloc(ocs_hw_t *hw, ocs_domain_t *domain, uint32_t fcf, uint32_t vlan)
+ocs_hw_domain_alloc(ocs_hw_t *hw, ocs_domain_t *domain, uint32_t fcf,
+    uint32_t vlan)
 {
-	uint8_t		*cmd = NULL;
-	uint32_t	index;
+	uint8_t *cmd = NULL;
+	uint32_t index;
 
 	if (!hw || !domain || !domain->sport) {
 		ocs_log_err(NULL, "bad parameter(s) hw=%p domain=%p sport=%p\n",
-				hw, domain, domain ? domain->sport : NULL);
+		    hw, domain, domain ? domain->sport : NULL);
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -2795,7 +2957,8 @@ ocs_hw_domain_alloc(ocs_hw_t *hw, ocs_domain_t *domain, uint32_t fcf, uint32_t v
 	 * Check if the chip is in an error state (UE'd) before proceeding.
 	 */
 	if (sli_fw_error_status(&hw->sli) > 0) {
-		ocs_log_crit(hw->os, "Chip is in an error state - reset needed\n");
+		ocs_log_crit(hw->os,
+		    "Chip is in an error state - reset needed\n");
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -2814,7 +2977,8 @@ ocs_hw_domain_alloc(ocs_hw_t *hw, ocs_domain_t *domain, uint32_t fcf, uint32_t v
 	domain->vlan_id = vlan;
 	domain->indicator = UINT32_MAX;
 
-	if (sli_resource_alloc(&hw->sli, SLI_RSRC_FCOE_VFI, &domain->indicator, &index)) {
+	if (sli_resource_alloc(&hw->sli, SLI_RSRC_FCOE_VFI, &domain->indicator,
+		&index)) {
 		ocs_log_err(hw->os, "FCOE_VFI allocation failure\n");
 
 		ocs_free(hw->os, cmd, SLI4_BMBX_SIZE);
@@ -2839,13 +3003,12 @@ ocs_hw_domain_alloc(ocs_hw_t *hw, ocs_domain_t *domain, uint32_t fcf, uint32_t v
 ocs_hw_rtn_e
 ocs_hw_domain_attach(ocs_hw_t *hw, ocs_domain_t *domain, uint32_t fc_id)
 {
-	uint8_t	*buf = NULL;
+	uint8_t *buf = NULL;
 	ocs_hw_rtn_e rc = OCS_HW_RTN_SUCCESS;
 
 	if (!hw || !domain) {
 		ocs_log_err(hw ? hw->os : NULL,
-			"bad parameter(s) hw=%p domain=%p\n",
-			hw, domain);
+		    "bad parameter(s) hw=%p domain=%p\n", hw, domain);
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -2853,7 +3016,8 @@ ocs_hw_domain_attach(ocs_hw_t *hw, ocs_domain_t *domain, uint32_t fc_id)
 	 * Check if the chip is in an error state (UE'd) before proceeding.
 	 */
 	if (sli_fw_error_status(&hw->sli) > 0) {
-		ocs_log_crit(hw->os, "Chip is in an error state - reset needed\n");
+		ocs_log_crit(hw->os,
+		    "Chip is in an error state - reset needed\n");
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -2883,12 +3047,11 @@ ocs_hw_domain_attach(ocs_hw_t *hw, ocs_domain_t *domain, uint32_t fc_id)
 ocs_hw_rtn_e
 ocs_hw_domain_free(ocs_hw_t *hw, ocs_domain_t *domain)
 {
-	ocs_hw_rtn_e	rc = OCS_HW_RTN_SUCCESS;
+	ocs_hw_rtn_e rc = OCS_HW_RTN_SUCCESS;
 
 	if (!hw || !domain) {
 		ocs_log_err(hw ? hw->os : NULL,
-			"bad parameter(s) hw=%p domain=%p\n",
-			hw, domain);
+		    "bad parameter(s) hw=%p domain=%p\n", hw, domain);
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -2896,7 +3059,8 @@ ocs_hw_domain_free(ocs_hw_t *hw, ocs_domain_t *domain)
 	 * Check if the chip is in an error state (UE'd) before proceeding.
 	 */
 	if (sli_fw_error_status(&hw->sli) > 0) {
-		ocs_log_crit(hw->os, "Chip is in an error state - reset needed\n");
+		ocs_log_crit(hw->os,
+		    "Chip is in an error state - reset needed\n");
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -2910,8 +3074,8 @@ ocs_hw_domain_free(ocs_hw_t *hw, ocs_domain_t *domain)
  *
  * @par Description
  * Free the driver resources associated with the domain. The difference between
- * this call and ocs_hw_domain_free() is that this call assumes resources no longer
- * exist on the SLI port, due to a reset or after some error conditions.
+ * this call and ocs_hw_domain_free() is that this call assumes resources no
+ * longer exist on the SLI port, due to a reset or after some error conditions.
  *
  * @param hw Hardware context.
  * @param domain Pointer to the domain object.
@@ -2922,7 +3086,8 @@ ocs_hw_rtn_e
 ocs_hw_domain_force_free(ocs_hw_t *hw, ocs_domain_t *domain)
 {
 	if (!hw || !domain) {
-		ocs_log_err(NULL, "bad parameter(s) hw=%p domain=%p\n", hw, domain);
+		ocs_log_err(NULL, "bad parameter(s) hw=%p domain=%p\n", hw,
+		    domain);
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -2944,12 +3109,13 @@ ocs_hw_domain_force_free(ocs_hw_t *hw, ocs_domain_t *domain)
  */
 ocs_hw_rtn_e
 ocs_hw_node_alloc(ocs_hw_t *hw, ocs_remote_node_t *rnode, uint32_t fc_addr,
-		ocs_sli_port_t *sport)
+    ocs_sli_port_t *sport)
 {
 	/* Check for invalid indicator */
 	if (UINT32_MAX != rnode->indicator) {
-		ocs_log_err(hw->os, "FCOE_RPI allocation failure addr=%#x rpi=%#x\n",
-				fc_addr, rnode->indicator);
+		ocs_log_err(hw->os,
+		    "FCOE_RPI allocation failure addr=%#x rpi=%#x\n", fc_addr,
+		    rnode->indicator);
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -2957,16 +3123,18 @@ ocs_hw_node_alloc(ocs_hw_t *hw, ocs_remote_node_t *rnode, uint32_t fc_addr,
 	 * Check if the chip is in an error state (UE'd) before proceeding.
 	 */
 	if (sli_fw_error_status(&hw->sli) > 0) {
-		ocs_log_crit(hw->os, "Chip is in an error state - reset needed\n");
+		ocs_log_crit(hw->os,
+		    "Chip is in an error state - reset needed\n");
 		return OCS_HW_RTN_ERROR;
 	}
 
 	/* NULL SLI port indicates an unallocated remote node */
 	rnode->sport = NULL;
 
-	if (sli_resource_alloc(&hw->sli, SLI_RSRC_FCOE_RPI, &rnode->indicator, &rnode->index)) {
+	if (sli_resource_alloc(&hw->sli, SLI_RSRC_FCOE_RPI, &rnode->indicator,
+		&rnode->index)) {
 		ocs_log_err(hw->os, "FCOE_RPI allocation failure addr=%#x\n",
-				fc_addr);
+		    fc_addr);
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -2989,13 +3157,13 @@ ocs_hw_node_alloc(ocs_hw_t *hw, ocs_remote_node_t *rnode, uint32_t fc_addr,
 ocs_hw_rtn_e
 ocs_hw_node_attach(ocs_hw_t *hw, ocs_remote_node_t *rnode, ocs_dma_t *sparms)
 {
-	ocs_hw_rtn_e	rc = OCS_HW_RTN_ERROR;
-	uint8_t		*buf = NULL;
-	uint32_t	count = 0;
+	ocs_hw_rtn_e rc = OCS_HW_RTN_ERROR;
+	uint8_t *buf = NULL;
+	uint32_t count = 0;
 
 	if (!hw || !rnode || !sparms) {
 		ocs_log_err(NULL, "bad parameter(s) hw=%p rnode=%p sparms=%p\n",
-			    hw, rnode, sparms);
+		    hw, rnode, sparms);
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -3003,7 +3171,8 @@ ocs_hw_node_attach(ocs_hw_t *hw, ocs_remote_node_t *rnode, ocs_dma_t *sparms)
 	 * Check if the chip is in an error state (UE'd) before proceeding.
 	 */
 	if (sli_fw_error_status(&hw->sli) > 0) {
-		ocs_log_crit(hw->os, "Chip is in an error state - reset needed\n");
+		ocs_log_crit(hw->os,
+		    "Chip is in an error state - reset needed\n");
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -3014,8 +3183,8 @@ ocs_hw_node_attach(ocs_hw_t *hw, ocs_remote_node_t *rnode, ocs_dma_t *sparms)
 	}
 
 	/*
-	 * If the attach count is non-zero, this RPI has already been registered.
-	 * Otherwise, register the RPI
+	 * If the attach count is non-zero, this RPI has already been
+	 * registered. Otherwise, register the RPI
 	 */
 	if (rnode->index == UINT32_MAX) {
 		ocs_log_err(NULL, "bad parameter rnode->index invalid\n");
@@ -3029,30 +3198,36 @@ ocs_hw_node_attach(ocs_hw_t *hw, ocs_remote_node_t *rnode, ocs_dma_t *sparms)
 		 * Mode is enabled
 		 */
 		if (sli_get_hlm(&hw->sli) == FALSE) {
-			ocs_log_test(hw->os, "attach to already attached node HLM=%d count=%d\n",
-					sli_get_hlm(&hw->sli), count);
+			ocs_log_test(hw->os,
+			    "attach to already attached node HLM=%d count=%d\n",
+			    sli_get_hlm(&hw->sli), count);
 			rc = OCS_HW_RTN_SUCCESS;
 		} else {
 			rnode->node_group = TRUE;
-			rnode->attached = ocs_atomic_read(&hw->rpi_ref[rnode->index].rpi_attached);
-			rc = rnode->attached  ? OCS_HW_RTN_SUCCESS_SYNC : OCS_HW_RTN_SUCCESS;
+			rnode->attached = ocs_atomic_read(
+			    &hw->rpi_ref[rnode->index].rpi_attached);
+			rc = rnode->attached ? OCS_HW_RTN_SUCCESS_SYNC :
+					       OCS_HW_RTN_SUCCESS;
 		}
 	} else {
 		rnode->node_group = FALSE;
 
 		ocs_display_sparams("", "reg rpi", 0, NULL, sparms->virt);
 		if (sli_cmd_reg_rpi(&hw->sli, buf, SLI4_BMBX_SIZE, rnode->fc_id,
-					rnode->indicator, rnode->sport->indicator,
-					sparms, 0, (hw->auto_xfer_rdy_enabled && hw->config.auto_xfer_rdy_t10_enable))) {
+			rnode->indicator, rnode->sport->indicator, sparms, 0,
+			(hw->auto_xfer_rdy_enabled &&
+			    hw->config.auto_xfer_rdy_t10_enable))) {
 			rc = ocs_hw_command(hw, buf, OCS_CMD_NOWAIT,
-					ocs_hw_cb_node_attach, rnode);
+			    ocs_hw_cb_node_attach, rnode);
 		}
 	}
 
 	if (count || rc) {
 		if (rc < OCS_HW_RTN_SUCCESS) {
-			ocs_atomic_sub_return(&hw->rpi_ref[rnode->index].rpi_count, 1);
-			ocs_log_err(hw->os, "%s error\n", count ? "HLM" : "REG_RPI");
+			ocs_atomic_sub_return(
+			    &hw->rpi_ref[rnode->index].rpi_count, 1);
+			ocs_log_err(hw->os, "%s error\n",
+			    count ? "HLM" : "REG_RPI");
 		}
 		ocs_free(hw->os, buf, SLI4_BMBX_SIZE);
 	}
@@ -3072,20 +3247,22 @@ ocs_hw_node_attach(ocs_hw_t *hw, ocs_remote_node_t *rnode, ocs_dma_t *sparms)
 ocs_hw_rtn_e
 ocs_hw_node_free_resources(ocs_hw_t *hw, ocs_remote_node_t *rnode)
 {
-	ocs_hw_rtn_e	rc = OCS_HW_RTN_SUCCESS;
+	ocs_hw_rtn_e rc = OCS_HW_RTN_SUCCESS;
 
 	if (!hw || !rnode) {
-		ocs_log_err(NULL, "bad parameter(s) hw=%p rnode=%p\n",
-			    hw, rnode);
+		ocs_log_err(NULL, "bad parameter(s) hw=%p rnode=%p\n", hw,
+		    rnode);
 		return OCS_HW_RTN_ERROR;
 	}
 
 	if (rnode->sport) {
 		if (!rnode->attached) {
 			if (rnode->indicator != UINT32_MAX) {
-				if (sli_resource_free(&hw->sli, SLI_RSRC_FCOE_RPI, rnode->indicator)) {
-					ocs_log_err(hw->os, "FCOE_RPI free failure RPI %d addr=%#x\n",
-						    rnode->indicator, rnode->fc_id);
+				if (sli_resource_free(&hw->sli,
+					SLI_RSRC_FCOE_RPI, rnode->indicator)) {
+					ocs_log_err(hw->os,
+					    "FCOE_RPI free failure RPI %d addr=%#x\n",
+					    rnode->indicator, rnode->fc_id);
 					rc = OCS_HW_RTN_ERROR;
 				} else {
 					rnode->node_group = FALSE;
@@ -3115,13 +3292,13 @@ ocs_hw_node_free_resources(ocs_hw_t *hw, ocs_remote_node_t *rnode)
 ocs_hw_rtn_e
 ocs_hw_node_detach(ocs_hw_t *hw, ocs_remote_node_t *rnode)
 {
-	uint8_t	*buf = NULL;
-	ocs_hw_rtn_e	rc = OCS_HW_RTN_SUCCESS_SYNC;
-	uint32_t	index = UINT32_MAX;
+	uint8_t *buf = NULL;
+	ocs_hw_rtn_e rc = OCS_HW_RTN_SUCCESS_SYNC;
+	uint32_t index = UINT32_MAX;
 
 	if (!hw || !rnode) {
-		ocs_log_err(NULL, "bad parameter(s) hw=%p rnode=%p\n",
-			    hw, rnode);
+		ocs_log_err(NULL, "bad parameter(s) hw=%p rnode=%p\n", hw,
+		    rnode);
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -3129,15 +3306,16 @@ ocs_hw_node_detach(ocs_hw_t *hw, ocs_remote_node_t *rnode)
 	 * Check if the chip is in an error state (UE'd) before proceeding.
 	 */
 	if (sli_fw_error_status(&hw->sli) > 0) {
-		ocs_log_crit(hw->os, "Chip is in an error state - reset needed\n");
+		ocs_log_crit(hw->os,
+		    "Chip is in an error state - reset needed\n");
 		return OCS_HW_RTN_ERROR;
 	}
 
 	index = rnode->index;
 
 	if (rnode->sport) {
-		uint32_t	count = 0;
-		uint32_t	fc_id;
+		uint32_t count = 0;
+		uint32_t fc_id;
 
 		if (!rnode->attached) {
 			return OCS_HW_RTN_SUCCESS_SYNC;
@@ -3159,17 +3337,19 @@ ocs_hw_node_detach(ocs_hw_t *hw, ocs_remote_node_t *rnode)
 			rnode->free_group = TRUE;
 		} else {
 			if (sli_get_hlm(&hw->sli) == FALSE) {
-				ocs_log_test(hw->os, "Invalid count with HLM disabled, count=%d\n",
-						count);
+				ocs_log_test(hw->os,
+				    "Invalid count with HLM disabled, count=%d\n",
+				    count);
 			}
 			fc_id = rnode->fc_id & 0x00ffffff;
 		}
 
 		rc = OCS_HW_RTN_ERROR;
 
-		if (sli_cmd_unreg_rpi(&hw->sli, buf, SLI4_BMBX_SIZE, rnode->indicator,
-					SLI_RSRC_FCOE_RPI, fc_id)) {
-			rc = ocs_hw_command(hw, buf, OCS_CMD_NOWAIT, ocs_hw_cb_node_free, rnode);
+		if (sli_cmd_unreg_rpi(&hw->sli, buf, SLI4_BMBX_SIZE,
+			rnode->indicator, SLI_RSRC_FCOE_RPI, fc_id)) {
+			rc = ocs_hw_command(hw, buf, OCS_CMD_NOWAIT,
+			    ocs_hw_cb_node_free, rnode);
 		}
 
 		if (rc != OCS_HW_RTN_SUCCESS) {
@@ -3193,8 +3373,8 @@ ocs_hw_node_detach(ocs_hw_t *hw, ocs_remote_node_t *rnode)
 ocs_hw_rtn_e
 ocs_hw_node_free_all(ocs_hw_t *hw)
 {
-	uint8_t	*buf = NULL;
-	ocs_hw_rtn_e	rc = OCS_HW_RTN_ERROR;
+	uint8_t *buf = NULL;
+	ocs_hw_rtn_e rc = OCS_HW_RTN_ERROR;
 
 	if (!hw) {
 		ocs_log_err(NULL, "bad parameter hw=%p\n", hw);
@@ -3205,7 +3385,8 @@ ocs_hw_node_free_all(ocs_hw_t *hw)
 	 * Check if the chip is in an error state (UE'd) before proceeding.
 	 */
 	if (sli_fw_error_status(&hw->sli) > 0) {
-		ocs_log_crit(hw->os, "Chip is in an error state - reset needed\n");
+		ocs_log_crit(hw->os,
+		    "Chip is in an error state - reset needed\n");
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -3216,9 +3397,9 @@ ocs_hw_node_free_all(ocs_hw_t *hw)
 	}
 
 	if (sli_cmd_unreg_rpi(&hw->sli, buf, SLI4_BMBX_SIZE, 0xffff,
-				SLI_RSRC_FCOE_FCFI, UINT32_MAX)) {
-		rc = ocs_hw_command(hw, buf, OCS_CMD_NOWAIT, ocs_hw_cb_node_free_all,
-				NULL);
+		SLI_RSRC_FCOE_FCFI, UINT32_MAX)) {
+		rc = ocs_hw_command(hw, buf, OCS_CMD_NOWAIT,
+		    ocs_hw_cb_node_free_all, NULL);
 	}
 
 	if (rc != OCS_HW_RTN_SUCCESS) {
@@ -3235,15 +3416,15 @@ ocs_hw_node_group_alloc(ocs_hw_t *hw, ocs_remote_node_group_t *ngroup)
 {
 
 	if (!hw || !ngroup) {
-		ocs_log_err(NULL, "bad parameter hw=%p ngroup=%p\n",
-				hw, ngroup);
+		ocs_log_err(NULL, "bad parameter hw=%p ngroup=%p\n", hw,
+		    ngroup);
 		return OCS_HW_RTN_ERROR;
 	}
 
 	if (sli_resource_alloc(&hw->sli, SLI_RSRC_FCOE_RPI, &ngroup->indicator,
-				&ngroup->index)) {
+		&ngroup->index)) {
 		ocs_log_err(hw->os, "FCOE_RPI allocation failure addr=%#x\n",
-				ngroup->indicator);
+		    ngroup->indicator);
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -3251,24 +3432,25 @@ ocs_hw_node_group_alloc(ocs_hw_t *hw, ocs_remote_node_group_t *ngroup)
 }
 
 ocs_hw_rtn_e
-ocs_hw_node_group_attach(ocs_hw_t *hw, ocs_remote_node_group_t *ngroup, ocs_remote_node_t *rnode)
+ocs_hw_node_group_attach(ocs_hw_t *hw, ocs_remote_node_group_t *ngroup,
+    ocs_remote_node_t *rnode)
 {
 
 	if (!hw || !ngroup || !rnode) {
 		ocs_log_err(NULL, "bad parameter hw=%p ngroup=%p rnode=%p\n",
-			    hw, ngroup, rnode);
+		    hw, ngroup, rnode);
 		return OCS_HW_RTN_ERROR;
 	}
 
 	if (rnode->attached) {
 		ocs_log_err(hw->os, "node already attached RPI=%#x addr=%#x\n",
-			    rnode->indicator, rnode->fc_id);
+		    rnode->indicator, rnode->fc_id);
 		return OCS_HW_RTN_ERROR;
 	}
 
 	if (sli_resource_free(&hw->sli, SLI_RSRC_FCOE_RPI, rnode->indicator)) {
 		ocs_log_err(hw->os, "FCOE_RPI free failure RPI=%#x\n",
-				rnode->indicator);
+		    rnode->indicator);
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -3281,11 +3463,11 @@ ocs_hw_node_group_attach(ocs_hw_t *hw, ocs_remote_node_group_t *ngroup, ocs_remo
 ocs_hw_rtn_e
 ocs_hw_node_group_free(ocs_hw_t *hw, ocs_remote_node_group_t *ngroup)
 {
-	int	ref;
+	int ref;
 
 	if (!hw || !ngroup) {
-		ocs_log_err(NULL, "bad parameter hw=%p ngroup=%p\n",
-				hw, ngroup);
+		ocs_log_err(NULL, "bad parameter hw=%p ngroup=%p\n", hw,
+		    ngroup);
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -3293,11 +3475,12 @@ ocs_hw_node_group_free(ocs_hw_t *hw, ocs_remote_node_group_t *ngroup)
 	if (ref) {
 		/* Hmmm, the reference count is non-zero */
 		ocs_log_debug(hw->os, "node group reference=%d (RPI=%#x)\n",
-				ref, ngroup->indicator);
+		    ref, ngroup->indicator);
 
-		if (sli_resource_free(&hw->sli, SLI_RSRC_FCOE_RPI, ngroup->indicator)) {
+		if (sli_resource_free(&hw->sli, SLI_RSRC_FCOE_RPI,
+			ngroup->indicator)) {
 			ocs_log_err(hw->os, "FCOE_RPI free failure RPI=%#x\n",
-				    ngroup->indicator);
+			    ngroup->indicator);
 			return OCS_HW_RTN_ERROR;
 		}
 
@@ -3354,7 +3537,7 @@ ocs_hw_init_free_io(ocs_hw_io_t *io)
 static inline ocs_hw_io_t *
 _ocs_hw_io_alloc(ocs_hw_t *hw)
 {
-	ocs_hw_io_t	*io = NULL;
+	ocs_hw_io_t *io = NULL;
 
 	if (NULL != (io = ocs_list_remove_head(&hw->io_free))) {
 		ocs_list_add_tail(&hw->io_inuse, io);
@@ -3384,10 +3567,10 @@ _ocs_hw_io_alloc(ocs_hw_t *hw)
 ocs_hw_io_t *
 ocs_hw_io_alloc(ocs_hw_t *hw)
 {
-	ocs_hw_io_t	*io = NULL;
+	ocs_hw_io_t *io = NULL;
 
 	ocs_lock(&hw->io_lock);
-		io = _ocs_hw_io_alloc(hw);
+	io = _ocs_hw_io_alloc(hw);
 	ocs_unlock(&hw->io_lock);
 
 	return io;
@@ -3434,8 +3617,8 @@ ocs_hw_io_activate_port_owned(ocs_hw_t *hw, ocs_hw_io_t *io)
  * workarounds, move it to the correct list.
  *
  * @par Description
- * @n @b Note: Assumes that the hw->io_lock is held and the item has been removed
- * from the busy or wait_free list.
+ * @n @b Note: Assumes that the hw->io_lock is held and the item has been
+ * removed from the busy or wait_free list.
  *
  * @param hw Hardware context.
  * @param io Pointer to the IO object to move.
@@ -3444,7 +3627,8 @@ static void
 ocs_hw_io_free_move_correct_list(ocs_hw_t *hw, ocs_hw_io_t *io)
 {
 	if (io->xbusy) {
-		/* add to wait_free list and wait for XRI_ABORTED CQEs to clean up */
+		/* add to wait_free list and wait for XRI_ABORTED CQEs to clean
+		 * up */
 		ocs_list_add_tail(&hw->io_wait_free, io);
 		io->state = OCS_HW_IO_STATE_WAIT_FREE;
 	} else {
@@ -3490,14 +3674,15 @@ ocs_hw_io_free_port_owned(void *arg)
 	ocs_hw_t *hw = io->hw;
 
 	/*
-	 * For auto xfer rdy, if the dnrx bit is set, then add it to the list of XRIs
-	 * waiting for buffers.
+	 * For auto xfer rdy, if the dnrx bit is set, then add it to the list of
+	 * XRIs waiting for buffers.
 	 */
 	if (io->auto_xfer_rdy_dnrx) {
 		ocs_lock(&hw->io_lock);
-			/* take a reference count because we still own the IO until the buffer is posted */
-			ocs_ref_init(&io->ref, ocs_hw_io_free_port_owned, io);
-			ocs_list_add_tail(&hw->io_port_dnrx, io);
+		/* take a reference count because we still own the IO until the
+		 * buffer is posted */
+		ocs_ref_init(&io->ref, ocs_hw_io_free_port_owned, io);
+		ocs_list_add_tail(&hw->io_port_dnrx, io);
 		ocs_unlock(&hw->io_lock);
 	}
 
@@ -3522,9 +3707,9 @@ ocs_hw_io_free_internal(void *arg)
 	ocs_hw_io_free_common(hw, io);
 
 	ocs_lock(&hw->io_lock);
-		/* remove from in-use list */
-		ocs_list_remove(&hw->io_inuse, io);
-		ocs_hw_io_free_move_correct_list(hw, io);
+	/* remove from in-use list */
+	ocs_list_remove(&hw->io_inuse, io);
+	ocs_hw_io_free_move_correct_list(hw, io);
 	ocs_unlock(&hw->io_lock);
 }
 
@@ -3546,8 +3731,9 @@ ocs_hw_io_free(ocs_hw_t *hw, ocs_hw_io_t *io)
 {
 	/* just put refcount */
 	if (ocs_ref_read_count(&io->ref) <= 0) {
-		ocs_log_err(hw->os, "Bad parameter: refcount <= 0 xri=%x tag=%x\n",
-			    io->indicator, io->reqtag);
+		ocs_log_err(hw->os,
+		    "Bad parameter: refcount <= 0 xri=%x tag=%x\n",
+		    io->indicator, io->reqtag);
 		return -1;
 	}
 
@@ -3598,7 +3784,7 @@ _hw_wq_write(hw_wq_t *wq, ocs_hw_wqe_t *wqe)
 		wq->wqec_count--;
 	}
 	if (wq->wqec_count == 0) {
-		sli4_generic_wqe_t *genwqe = (void*)wqe->wqebuf;
+		sli4_generic_wqe_t *genwqe = (void *)wqe->wqebuf;
 		genwqe->wqec = 1;
 		wq->wqec_count = wq->wqec_set_count;
 	}
@@ -3612,7 +3798,8 @@ _hw_wq_write(hw_wq_t *wq, ocs_hw_wqe_t *wqe)
 		rc = -1;
 	} else {
 		rc = 0;
-		ocs_queue_history_wq(&wq->hw->q_hist, (void *) wqe->wqebuf, wq->queue->id, queue_rc);
+		ocs_queue_history_wq(&wq->hw->q_hist, (void *)wqe->wqebuf,
+		    wq->queue->id, queue_rc);
 	}
 
 	return rc;
@@ -3637,35 +3824,37 @@ hw_wq_write(hw_wq_t *wq, ocs_hw_wqe_t *wqe)
 	int32_t rc = 0;
 
 	sli_queue_lock(wq->queue);
-		if ( ! ocs_list_empty(&wq->pending_list)) {
-			ocs_list_add_tail(&wq->pending_list, wqe);
-			OCS_STAT(wq->wq_pending_count++;)
-			while ((wq->free_count > 0) && ((wqe = ocs_list_remove_head(&wq->pending_list)) != NULL)) {
-				rc = _hw_wq_write(wq, wqe);
-				if (rc < 0) {
-					break;
-				}
-				if (wqe->abort_wqe_submit_needed) {
-					wqe->abort_wqe_submit_needed = 0;
-					sli_abort_wqe(&wq->hw->sli, wqe->wqebuf, wq->hw->sli.config.wqe_size, SLI_ABORT_XRI, 
-							wqe->send_abts, wqe->id, 0, wqe->abort_reqtag, SLI4_CQ_DEFAULT );
-					ocs_list_add_tail(&wq->pending_list, wqe);
-					OCS_STAT(wq->wq_pending_count++;)
-				}
+	if (!ocs_list_empty(&wq->pending_list)) {
+		ocs_list_add_tail(&wq->pending_list, wqe);
+		OCS_STAT(wq->wq_pending_count++;)
+		while ((wq->free_count > 0) &&
+		    ((wqe = ocs_list_remove_head(&wq->pending_list)) != NULL)) {
+			rc = _hw_wq_write(wq, wqe);
+			if (rc < 0) {
+				break;
 			}
-		} else {
-			if (wq->free_count > 0) {
-				rc = _hw_wq_write(wq, wqe);
-			} else {
+			if (wqe->abort_wqe_submit_needed) {
+				wqe->abort_wqe_submit_needed = 0;
+				sli_abort_wqe(&wq->hw->sli, wqe->wqebuf,
+				    wq->hw->sli.config.wqe_size, SLI_ABORT_XRI,
+				    wqe->send_abts, wqe->id, 0,
+				    wqe->abort_reqtag, SLI4_CQ_DEFAULT);
 				ocs_list_add_tail(&wq->pending_list, wqe);
 				OCS_STAT(wq->wq_pending_count++;)
 			}
 		}
+	} else {
+		if (wq->free_count > 0) {
+			rc = _hw_wq_write(wq, wqe);
+		} else {
+			ocs_list_add_tail(&wq->pending_list, wqe);
+			OCS_STAT(wq->wq_pending_count++;)
+		}
+	}
 
 	sli_queue_unlock(wq->queue);
 
 	return rc;
-
 }
 
 /**
@@ -3687,20 +3876,23 @@ hw_wq_submit_pending(hw_wq_t *wq, uint32_t update_free_count)
 
 	sli_queue_lock(wq->queue);
 
-		/* Update free count with value passed in */
-		wq->free_count += update_free_count;
+	/* Update free count with value passed in */
+	wq->free_count += update_free_count;
 
-		while ((wq->free_count > 0) && ((wqe = ocs_list_remove_head(&wq->pending_list)) != NULL)) {
-			_hw_wq_write(wq, wqe);
+	while ((wq->free_count > 0) &&
+	    ((wqe = ocs_list_remove_head(&wq->pending_list)) != NULL)) {
+		_hw_wq_write(wq, wqe);
 
-			if (wqe->abort_wqe_submit_needed) {
-				wqe->abort_wqe_submit_needed = 0;
-				sli_abort_wqe(&wq->hw->sli, wqe->wqebuf, wq->hw->sli.config.wqe_size, SLI_ABORT_XRI, 
-						wqe->send_abts, wqe->id, 0, wqe->abort_reqtag, SLI4_CQ_DEFAULT);
-				ocs_list_add_tail(&wq->pending_list, wqe);
-				OCS_STAT(wq->wq_pending_count++;)
-			}
+		if (wqe->abort_wqe_submit_needed) {
+			wqe->abort_wqe_submit_needed = 0;
+			sli_abort_wqe(&wq->hw->sli, wqe->wqebuf,
+			    wq->hw->sli.config.wqe_size, SLI_ABORT_XRI,
+			    wqe->send_abts, wqe->id, 0, wqe->abort_reqtag,
+			    SLI4_CQ_DEFAULT);
+			ocs_list_add_tail(&wq->pending_list, wqe);
+			OCS_STAT(wq->wq_pending_count++;)
 		}
+	}
 
 	sli_queue_unlock(wq->queue);
 }
@@ -3738,7 +3930,8 @@ ocs_hw_check_sec_hio_list(ocs_hw_t *hw)
 		io->state = OCS_HW_IO_STATE_INUSE;
 		io->sec_hio = sec_io;
 
-		/* mark secondary XRI for second and subsequent data phase as quarantine */
+		/* mark secondary XRI for second and subsequent data phase as
+		 * quarantine */
 		if (io->xbusy) {
 			sec_io->quarantine = TRUE;
 		}
@@ -3754,27 +3947,35 @@ ocs_hw_check_sec_hio_list(ocs_hw_t *hw)
 
 		/* Complete (continue) TRECV IO */
 		if (io->xbusy) {
-			if (sli_fcp_cont_treceive64_wqe(&hw->sli, io->wqe.wqebuf, hw->sli.config.wqe_size, &io->def_sgl,
-				io->first_data_sge,
-				io->sec_iparam.fcp_tgt.offset, io->sec_len, io->indicator, io->sec_hio->indicator,
+			if (sli_fcp_cont_treceive64_wqe(&hw->sli,
+				io->wqe.wqebuf, hw->sli.config.wqe_size,
+				&io->def_sgl, io->first_data_sge,
+				io->sec_iparam.fcp_tgt.offset, io->sec_len,
+				io->indicator, io->sec_hio->indicator,
 				io->reqtag, SLI4_CQ_DEFAULT,
-				io->sec_iparam.fcp_tgt.ox_id, io->rnode->indicator, io->rnode,
-				flags,
-				io->sec_iparam.fcp_tgt.dif_oper, io->sec_iparam.fcp_tgt.blk_size, io->sec_iparam.fcp_tgt.cs_ctl, io->sec_iparam.fcp_tgt.app_id)) {
-					ocs_log_test(hw->os, "TRECEIVE WQE error\n");
-					break;
+				io->sec_iparam.fcp_tgt.ox_id,
+				io->rnode->indicator, io->rnode, flags,
+				io->sec_iparam.fcp_tgt.dif_oper,
+				io->sec_iparam.fcp_tgt.blk_size,
+				io->sec_iparam.fcp_tgt.cs_ctl,
+				io->sec_iparam.fcp_tgt.app_id)) {
+				ocs_log_test(hw->os, "TRECEIVE WQE error\n");
+				break;
 			}
 		} else {
-			if (sli_fcp_treceive64_wqe(&hw->sli, io->wqe.wqebuf, hw->sli.config.wqe_size, &io->def_sgl,
+			if (sli_fcp_treceive64_wqe(&hw->sli, io->wqe.wqebuf,
+				hw->sli.config.wqe_size, &io->def_sgl,
 				io->first_data_sge,
-				io->sec_iparam.fcp_tgt.offset, io->sec_len, io->indicator,
-				io->reqtag, SLI4_CQ_DEFAULT,
-				io->sec_iparam.fcp_tgt.ox_id, io->rnode->indicator, io->rnode,
-				flags,
-				io->sec_iparam.fcp_tgt.dif_oper, io->sec_iparam.fcp_tgt.blk_size,
-				io->sec_iparam.fcp_tgt.cs_ctl, io->sec_iparam.fcp_tgt.app_id)) {
-					ocs_log_test(hw->os, "TRECEIVE WQE error\n");
-					break;
+				io->sec_iparam.fcp_tgt.offset, io->sec_len,
+				io->indicator, io->reqtag, SLI4_CQ_DEFAULT,
+				io->sec_iparam.fcp_tgt.ox_id,
+				io->rnode->indicator, io->rnode, flags,
+				io->sec_iparam.fcp_tgt.dif_oper,
+				io->sec_iparam.fcp_tgt.blk_size,
+				io->sec_iparam.fcp_tgt.cs_ctl,
+				io->sec_iparam.fcp_tgt.app_id)) {
+				ocs_log_test(hw->os, "TRECEIVE WQE error\n");
+				break;
 			}
 		}
 
@@ -3823,7 +4024,8 @@ ocs_hw_check_sec_hio_list(ocs_hw_t *hw)
  * @param hw Hardware context.
  * @param type Type of sequence (ELS request/response, FC-CT).
  * @param io Previously-allocated HW IO object.
- * @param send DMA memory holding data to send (for example, ELS request, BLS response).
+ * @param send DMA memory holding data to send (for example, ELS request, BLS
+ * response).
  * @param len Length, in bytes, of data to send.
  * @param receive Optional DMA memory to hold a response.
  * @param rnode Destination of data (that is, a remote node).
@@ -3835,22 +4037,23 @@ ocs_hw_check_sec_hio_list(ocs_hw_t *hw)
  */
 ocs_hw_rtn_e
 ocs_hw_srrs_send(ocs_hw_t *hw, ocs_hw_io_type_e type, ocs_hw_io_t *io,
-		  ocs_dma_t *send, uint32_t len, ocs_dma_t *receive,
-		  ocs_remote_node_t *rnode, ocs_hw_io_param_t *iparam,
-		  ocs_hw_srrs_cb_t cb, void *arg)
+    ocs_dma_t *send, uint32_t len, ocs_dma_t *receive, ocs_remote_node_t *rnode,
+    ocs_hw_io_param_t *iparam, ocs_hw_srrs_cb_t cb, void *arg)
 {
-	sli4_sge_t	*sge = NULL;
-	ocs_hw_rtn_e	rc = OCS_HW_RTN_SUCCESS;
-	uint16_t	local_flags = 0;
+	sli4_sge_t *sge = NULL;
+	ocs_hw_rtn_e rc = OCS_HW_RTN_SUCCESS;
+	uint16_t local_flags = 0;
 
 	if (!hw || !io || !rnode || !iparam) {
-		ocs_log_err(NULL, "bad parm hw=%p io=%p send=%p receive=%p rnode=%p iparam=%p\n",
-			    hw, io, send, receive, rnode, iparam);
+		ocs_log_err(NULL,
+		    "bad parm hw=%p io=%p send=%p receive=%p rnode=%p iparam=%p\n",
+		    hw, io, send, receive, rnode, iparam);
 		return OCS_HW_RTN_ERROR;
 	}
 
 	if (hw->state != OCS_HW_STATE_ACTIVE) {
-		ocs_log_test(hw->os, "cannot send SRRS, HW state=%d\n", hw->state);
+		ocs_log_test(hw->os, "cannot send SRRS, HW state=%d\n",
+		    hw->state);
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -3859,9 +4062,9 @@ ocs_hw_srrs_send(ocs_hw_t *hw, ocs_hw_io_type_e type, ocs_hw_io_t *io,
 		local_flags |= SLI4_IO_CONTINUATION;
 	}
 	io->rnode = rnode;
-	io->type  = type;
+	io->type = type;
 	io->done = cb;
-	io->arg  = arg;
+	io->arg = arg;
 
 	sge = io->sgl->virt;
 
@@ -3870,14 +4073,14 @@ ocs_hw_srrs_send(ocs_hw_t *hw, ocs_hw_io_type_e type, ocs_hw_io_t *io,
 
 	if (send) {
 		sge[0].buffer_address_high = ocs_addr32_hi(send->phys);
-		sge[0].buffer_address_low  = ocs_addr32_lo(send->phys);
+		sge[0].buffer_address_low = ocs_addr32_lo(send->phys);
 		sge[0].sge_type = SLI4_SGE_TYPE_DATA;
 		sge[0].buffer_length = len;
 	}
 
 	if ((OCS_HW_ELS_REQ == type) || (OCS_HW_FC_CT == type)) {
 		sge[1].buffer_address_high = ocs_addr32_hi(receive->phys);
-		sge[1].buffer_address_low  = ocs_addr32_lo(receive->phys);
+		sge[1].buffer_address_low = ocs_addr32_lo(receive->phys);
 		sge[1].sge_type = SLI4_SGE_TYPE_DATA;
 		sge[1].buffer_length = receive->size;
 		sge[1].last = TRUE;
@@ -3887,99 +4090,110 @@ ocs_hw_srrs_send(ocs_hw_t *hw, ocs_hw_io_type_e type, ocs_hw_io_t *io,
 
 	switch (type) {
 	case OCS_HW_ELS_REQ:
-		if ( (!send) || sli_els_request64_wqe(&hw->sli, io->wqe.wqebuf, hw->sli.config.wqe_size, io->sgl,
-							*((uint8_t *)(send->virt)), /* req_type */
-							len, receive->size,
-							iparam->els.timeout, io->indicator, io->reqtag, SLI4_CQ_DEFAULT, rnode)) {
+		if ((!send) ||
+		    sli_els_request64_wqe(&hw->sli, io->wqe.wqebuf,
+			hw->sli.config.wqe_size, io->sgl,
+			*((uint8_t *)(send->virt)), /* req_type */
+			len, receive->size, iparam->els.timeout, io->indicator,
+			io->reqtag, SLI4_CQ_DEFAULT, rnode)) {
 			ocs_log_err(hw->os, "REQ WQE error\n");
 			rc = OCS_HW_RTN_ERROR;
 		}
 		break;
 	case OCS_HW_ELS_RSP:
-		if ( (!send) || sli_xmit_els_rsp64_wqe(&hw->sli, io->wqe.wqebuf, hw->sli.config.wqe_size, send, len,
-					   io->indicator, io->reqtag, SLI4_CQ_DEFAULT,
-					   iparam->els.ox_id,
-							rnode, local_flags, UINT32_MAX)) {
+		if ((!send) ||
+		    sli_xmit_els_rsp64_wqe(&hw->sli, io->wqe.wqebuf,
+			hw->sli.config.wqe_size, send, len, io->indicator,
+			io->reqtag, SLI4_CQ_DEFAULT, iparam->els.ox_id, rnode,
+			local_flags, UINT32_MAX)) {
 			ocs_log_err(hw->os, "RSP WQE error\n");
 			rc = OCS_HW_RTN_ERROR;
 		}
 		break;
 	case OCS_HW_ELS_RSP_SID:
-		if ( (!send) || sli_xmit_els_rsp64_wqe(&hw->sli, io->wqe.wqebuf, hw->sli.config.wqe_size, send, len,
-					   io->indicator, io->reqtag, SLI4_CQ_DEFAULT,
-					   iparam->els_sid.ox_id,
-							rnode, local_flags, iparam->els_sid.s_id)) {
+		if ((!send) ||
+		    sli_xmit_els_rsp64_wqe(&hw->sli, io->wqe.wqebuf,
+			hw->sli.config.wqe_size, send, len, io->indicator,
+			io->reqtag, SLI4_CQ_DEFAULT, iparam->els_sid.ox_id,
+			rnode, local_flags, iparam->els_sid.s_id)) {
 			ocs_log_err(hw->os, "RSP (SID) WQE error\n");
 			rc = OCS_HW_RTN_ERROR;
 		}
 		break;
 	case OCS_HW_FC_CT:
-		if ( (!send) || sli_gen_request64_wqe(&hw->sli, io->wqe.wqebuf, hw->sli.config.wqe_size, io->sgl, len,
-					  receive->size, iparam->fc_ct.timeout, io->indicator,
-					  io->reqtag, SLI4_CQ_DEFAULT, rnode, iparam->fc_ct.r_ctl,
-					  iparam->fc_ct.type, iparam->fc_ct.df_ctl)) {
+		if ((!send) ||
+		    sli_gen_request64_wqe(&hw->sli, io->wqe.wqebuf,
+			hw->sli.config.wqe_size, io->sgl, len, receive->size,
+			iparam->fc_ct.timeout, io->indicator, io->reqtag,
+			SLI4_CQ_DEFAULT, rnode, iparam->fc_ct.r_ctl,
+			iparam->fc_ct.type, iparam->fc_ct.df_ctl)) {
 			ocs_log_err(hw->os, "GEN WQE error\n");
 			rc = OCS_HW_RTN_ERROR;
 		}
 		break;
 	case OCS_HW_FC_CT_RSP:
-		if ( (!send) || sli_xmit_sequence64_wqe(&hw->sli, io->wqe.wqebuf, hw->sli.config.wqe_size, io->sgl, len,
-					  iparam->fc_ct_rsp.timeout, iparam->fc_ct_rsp.ox_id, io->indicator,
-					  io->reqtag, rnode, iparam->fc_ct_rsp.r_ctl,
-					  iparam->fc_ct_rsp.type, iparam->fc_ct_rsp.df_ctl)) {
+		if ((!send) ||
+		    sli_xmit_sequence64_wqe(&hw->sli, io->wqe.wqebuf,
+			hw->sli.config.wqe_size, io->sgl, len,
+			iparam->fc_ct_rsp.timeout, iparam->fc_ct_rsp.ox_id,
+			io->indicator, io->reqtag, rnode,
+			iparam->fc_ct_rsp.r_ctl, iparam->fc_ct_rsp.type,
+			iparam->fc_ct_rsp.df_ctl)) {
 			ocs_log_err(hw->os, "XMIT SEQ WQE error\n");
 			rc = OCS_HW_RTN_ERROR;
 		}
 		break;
 	case OCS_HW_BLS_ACC:
-	case OCS_HW_BLS_RJT:
-	{
-		sli_bls_payload_t	bls;
+	case OCS_HW_BLS_RJT: {
+		sli_bls_payload_t bls;
 
 		if (OCS_HW_BLS_ACC == type) {
 			bls.type = SLI_BLS_ACC;
-			ocs_memcpy(&bls.u.acc, iparam->bls.payload, sizeof(bls.u.acc));
+			ocs_memcpy(&bls.u.acc, iparam->bls.payload,
+			    sizeof(bls.u.acc));
 		} else {
 			bls.type = SLI_BLS_RJT;
-			ocs_memcpy(&bls.u.rjt, iparam->bls.payload, sizeof(bls.u.rjt));
+			ocs_memcpy(&bls.u.rjt, iparam->bls.payload,
+			    sizeof(bls.u.rjt));
 		}
 
 		bls.ox_id = iparam->bls.ox_id;
 		bls.rx_id = iparam->bls.rx_id;
 
-		if (sli_xmit_bls_rsp64_wqe(&hw->sli, io->wqe.wqebuf, hw->sli.config.wqe_size, &bls,
-					   io->indicator, io->reqtag,
-					   SLI4_CQ_DEFAULT,
-					   rnode, UINT32_MAX)) {
+		if (sli_xmit_bls_rsp64_wqe(&hw->sli, io->wqe.wqebuf,
+			hw->sli.config.wqe_size, &bls, io->indicator,
+			io->reqtag, SLI4_CQ_DEFAULT, rnode, UINT32_MAX)) {
 			ocs_log_err(hw->os, "XMIT_BLS_RSP64 WQE error\n");
 			rc = OCS_HW_RTN_ERROR;
 		}
 		break;
 	}
-	case OCS_HW_BLS_ACC_SID:
-	{
-		sli_bls_payload_t	bls;
+	case OCS_HW_BLS_ACC_SID: {
+		sli_bls_payload_t bls;
 
 		bls.type = SLI_BLS_ACC;
-		ocs_memcpy(&bls.u.acc, iparam->bls_sid.payload, sizeof(bls.u.acc));
+		ocs_memcpy(&bls.u.acc, iparam->bls_sid.payload,
+		    sizeof(bls.u.acc));
 
 		bls.ox_id = iparam->bls_sid.ox_id;
 		bls.rx_id = iparam->bls_sid.rx_id;
 
-		if (sli_xmit_bls_rsp64_wqe(&hw->sli, io->wqe.wqebuf, hw->sli.config.wqe_size, &bls,
-					   io->indicator, io->reqtag,
-					   SLI4_CQ_DEFAULT,
-					   rnode, iparam->bls_sid.s_id)) {
+		if (sli_xmit_bls_rsp64_wqe(&hw->sli, io->wqe.wqebuf,
+			hw->sli.config.wqe_size, &bls, io->indicator,
+			io->reqtag, SLI4_CQ_DEFAULT, rnode,
+			iparam->bls_sid.s_id)) {
 			ocs_log_err(hw->os, "XMIT_BLS_RSP64 WQE SID error\n");
 			rc = OCS_HW_RTN_ERROR;
 		}
 		break;
 	}
 	case OCS_HW_BCAST:
-		if ( (!send) || sli_xmit_bcast64_wqe(&hw->sli, io->wqe.wqebuf, hw->sli.config.wqe_size, send, len,
-					iparam->bcast.timeout, io->indicator, io->reqtag,
-					SLI4_CQ_DEFAULT, rnode,
-					iparam->bcast.r_ctl, iparam->bcast.type, iparam->bcast.df_ctl)) {
+		if ((!send) ||
+		    sli_xmit_bcast64_wqe(&hw->sli, io->wqe.wqebuf,
+			hw->sli.config.wqe_size, send, len,
+			iparam->bcast.timeout, io->indicator, io->reqtag,
+			SLI4_CQ_DEFAULT, rnode, iparam->bcast.r_ctl,
+			iparam->bcast.type, iparam->bcast.df_ctl)) {
 			ocs_log_err(hw->os, "XMIT_BCAST64 WQE error\n");
 			rc = OCS_HW_RTN_ERROR;
 		}
@@ -4022,8 +4236,8 @@ ocs_hw_srrs_send(ocs_hw_t *hw, ocs_hw_io_type_e type, ocs_hw_io_t *io,
  * @brief Send a read, write, or response IO.
  *
  * @par Description
- * This routine supports sending a higher-level IO (for example, FCP) between two endpoints
- * as a target or initiator. Examples include:
+ * This routine supports sending a higher-level IO (for example, FCP) between
+ * two endpoints as a target or initiator. Examples include:
  *  - Sending read data and good response (target).
  *  - Sending a response (target with no data or after receiving write data).
  *  .
@@ -4047,19 +4261,19 @@ ocs_hw_srrs_send(ocs_hw_t *hw, ocs_hw_io_type_e type, ocs_hw_io_t *io,
  */
 ocs_hw_rtn_e
 ocs_hw_io_send(ocs_hw_t *hw, ocs_hw_io_type_e type, ocs_hw_io_t *io,
-		uint32_t len, ocs_hw_io_param_t *iparam, ocs_remote_node_t *rnode,
-		void *cb, void *arg)
+    uint32_t len, ocs_hw_io_param_t *iparam, ocs_remote_node_t *rnode, void *cb,
+    void *arg)
 {
-	ocs_hw_rtn_e	rc = OCS_HW_RTN_SUCCESS;
-	uint32_t	rpi;
-	uint8_t		send_wqe = TRUE;
-	uint8_t		timeout = 0;
+	ocs_hw_rtn_e rc = OCS_HW_RTN_SUCCESS;
+	uint32_t rpi;
+	uint8_t send_wqe = TRUE;
+	uint8_t timeout = 0;
 
 	CPUTRACE("");
 
 	if (!hw || !io || !rnode || !iparam) {
 		ocs_log_err(NULL, "bad parm hw=%p io=%p iparam=%p rnode=%p\n",
-			    hw, io, iparam, rnode);
+		    hw, io, iparam, rnode);
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -4079,62 +4293,67 @@ ocs_hw_io_send(ocs_hw_t *hw, ocs_hw_io_type_e type, ocs_hw_io_t *io,
 	 * Save state needed during later stages
 	 */
 	io->rnode = rnode;
-	io->type  = type;
-	io->done  = cb;
-	io->arg   = arg;
+	io->type = type;
+	io->done = cb;
+	io->arg = arg;
 
 	/*
 	 * Format the work queue entry used to send the IO
 	 */
 	switch (type) {
 	case OCS_HW_IO_INITIATOR_READ:
-		timeout = ocs_hw_set_io_wqe_timeout(io, iparam->fcp_ini.timeout);
+		timeout = ocs_hw_set_io_wqe_timeout(io,
+		    iparam->fcp_ini.timeout);
 
 		/*
-		 * If use_dif_quarantine workaround is in effect, and dif_separates then mark the
-		 * initiator read IO for quarantine
+		 * If use_dif_quarantine workaround is in effect, and
+		 * dif_separates then mark the initiator read IO for quarantine
 		 */
-		if (hw->workaround.use_dif_quarantine && (hw->config.dif_mode == OCS_HW_DIF_MODE_SEPARATE) &&
+		if (hw->workaround.use_dif_quarantine &&
+		    (hw->config.dif_mode == OCS_HW_DIF_MODE_SEPARATE) &&
 		    (iparam->fcp_tgt.dif_oper != OCS_HW_DIF_OPER_DISABLED)) {
 			io->quarantine = TRUE;
 		}
 
-		ocs_hw_io_ini_sge(hw, io, iparam->fcp_ini.cmnd, iparam->fcp_ini.cmnd_size,
-				iparam->fcp_ini.rsp);
+		ocs_hw_io_ini_sge(hw, io, iparam->fcp_ini.cmnd,
+		    iparam->fcp_ini.cmnd_size, iparam->fcp_ini.rsp);
 
-		if (sli_fcp_iread64_wqe(&hw->sli, io->wqe.wqebuf, hw->sli.config.wqe_size, &io->def_sgl, io->first_data_sge, len,
-					io->indicator, io->reqtag, SLI4_CQ_DEFAULT, rpi, rnode,
-					iparam->fcp_ini.dif_oper, iparam->fcp_ini.blk_size,
-					timeout)) {
+		if (sli_fcp_iread64_wqe(&hw->sli, io->wqe.wqebuf,
+			hw->sli.config.wqe_size, &io->def_sgl,
+			io->first_data_sge, len, io->indicator, io->reqtag,
+			SLI4_CQ_DEFAULT, rpi, rnode, iparam->fcp_ini.dif_oper,
+			iparam->fcp_ini.blk_size, timeout)) {
 			ocs_log_err(hw->os, "IREAD WQE error\n");
 			rc = OCS_HW_RTN_ERROR;
 		}
 		break;
 	case OCS_HW_IO_INITIATOR_WRITE:
-		timeout = ocs_hw_set_io_wqe_timeout(io, iparam->fcp_ini.timeout);
+		timeout = ocs_hw_set_io_wqe_timeout(io,
+		    iparam->fcp_ini.timeout);
 
-		ocs_hw_io_ini_sge(hw, io, iparam->fcp_ini.cmnd, iparam->fcp_ini.cmnd_size,
-				iparam->fcp_ini.rsp);
+		ocs_hw_io_ini_sge(hw, io, iparam->fcp_ini.cmnd,
+		    iparam->fcp_ini.cmnd_size, iparam->fcp_ini.rsp);
 
-		if (sli_fcp_iwrite64_wqe(&hw->sli, io->wqe.wqebuf, hw->sli.config.wqe_size, &io->def_sgl, io->first_data_sge,
-					 len, iparam->fcp_ini.first_burst,
-					 io->indicator, io->reqtag,
-					SLI4_CQ_DEFAULT, rpi, rnode,
-					iparam->fcp_ini.dif_oper, iparam->fcp_ini.blk_size,
-					timeout)) {
+		if (sli_fcp_iwrite64_wqe(&hw->sli, io->wqe.wqebuf,
+			hw->sli.config.wqe_size, &io->def_sgl,
+			io->first_data_sge, len, iparam->fcp_ini.first_burst,
+			io->indicator, io->reqtag, SLI4_CQ_DEFAULT, rpi, rnode,
+			iparam->fcp_ini.dif_oper, iparam->fcp_ini.blk_size,
+			timeout)) {
 			ocs_log_err(hw->os, "IWRITE WQE error\n");
 			rc = OCS_HW_RTN_ERROR;
 		}
 		break;
 	case OCS_HW_IO_INITIATOR_NODATA:
-		timeout = ocs_hw_set_io_wqe_timeout(io, iparam->fcp_ini.timeout);
+		timeout = ocs_hw_set_io_wqe_timeout(io,
+		    iparam->fcp_ini.timeout);
 
-		ocs_hw_io_ini_sge(hw, io, iparam->fcp_ini.cmnd, iparam->fcp_ini.cmnd_size,
-				iparam->fcp_ini.rsp);
+		ocs_hw_io_ini_sge(hw, io, iparam->fcp_ini.cmnd,
+		    iparam->fcp_ini.cmnd_size, iparam->fcp_ini.rsp);
 
-		if (sli_fcp_icmnd64_wqe(&hw->sli, io->wqe.wqebuf, hw->sli.config.wqe_size, &io->def_sgl,
-					io->indicator, io->reqtag, SLI4_CQ_DEFAULT,
-					rpi, rnode, timeout)) {
+		if (sli_fcp_icmnd64_wqe(&hw->sli, io->wqe.wqebuf,
+			hw->sli.config.wqe_size, &io->def_sgl, io->indicator,
+			io->reqtag, SLI4_CQ_DEFAULT, rpi, rnode, timeout)) {
 			ocs_log_err(hw->os, "ICMND WQE error\n");
 			rc = OCS_HW_RTN_ERROR;
 		}
@@ -4146,7 +4365,8 @@ ocs_hw_io_send(ocs_hw_t *hw, ocs_hw_io_type_e type, ocs_hw_io_t *io,
 		/*
 		 * Fill in the XFER_RDY for IF_TYPE 0 devices
 		 */
-		*((uint32_t *)xfer->fcp_data_ro) = ocs_htobe32(iparam->fcp_tgt.offset);
+		*((uint32_t *)xfer->fcp_data_ro) = ocs_htobe32(
+		    iparam->fcp_tgt.offset);
 		*((uint32_t *)xfer->fcp_burst_len) = ocs_htobe32(len);
 		*((uint32_t *)xfer->rsvd) = 0;
 
@@ -4159,23 +4379,26 @@ ocs_hw_io_send(ocs_hw_t *hw, ocs_hw_io_type_e type, ocs_hw_io_t *io,
 		io->wqe_timeout = iparam->fcp_tgt.timeout;
 
 		/*
-		 * If use_dif_quarantine workaround is in effect, and this is a DIF enabled IO
-		 * then mark the target write IO for quarantine
+		 * If use_dif_quarantine workaround is in effect, and this is a
+		 * DIF enabled IO then mark the target write IO for quarantine
 		 */
-		if (hw->workaround.use_dif_quarantine && (hw->config.dif_mode == OCS_HW_DIF_MODE_SEPARATE) &&
+		if (hw->workaround.use_dif_quarantine &&
+		    (hw->config.dif_mode == OCS_HW_DIF_MODE_SEPARATE) &&
 		    (iparam->fcp_tgt.dif_oper != OCS_HW_DIF_OPER_DISABLED)) {
 			io->quarantine = TRUE;
 		}
 
 		/*
 		 * BZ 161832 Workaround:
-		 * Check for use_dif_sec_xri workaround.  Note, even though the first dataphase
-		 * doesn't really need a secondary XRI, we allocate one anyway, as this avoids the
-		 * potential for deadlock where all XRI's are allocated as primaries to IOs that
-		 * are on hw->sec_hio_wait_list.   If this secondary XRI is not for the first
-		 * data phase, it is marked for quarantine.
+		 * Check for use_dif_sec_xri workaround.  Note, even though the
+		 * first dataphase doesn't really need a secondary XRI, we
+		 * allocate one anyway, as this avoids the potential for
+		 * deadlock where all XRI's are allocated as primaries to IOs
+		 * that are on hw->sec_hio_wait_list.   If this secondary XRI is
+		 * not for the first data phase, it is marked for quarantine.
 		 */
-		if (hw->workaround.use_dif_sec_xri && (iparam->fcp_tgt.dif_oper != OCS_HW_DIF_OPER_DISABLED)) {
+		if (hw->workaround.use_dif_sec_xri &&
+		    (iparam->fcp_tgt.dif_oper != OCS_HW_DIF_OPER_DISABLED)) {
 			/*
 			 * If we have allocated a chained SGL for skyhawk, then
 			 * we can re-use this for the sec_hio.
@@ -4187,50 +4410,57 @@ ocs_hw_io_send(ocs_hw_t *hw, ocs_hw_io_type_e type, ocs_hw_io_t *io,
 				io->sec_hio = ocs_hw_io_alloc(hw);
 			}
 			if (io->sec_hio == NULL) {
-				/* Failed to allocate, so save full request context and put
-				 * this IO on the wait list
+				/* Failed to allocate, so save full request
+				 * context and put this IO on the wait list
 				 */
 				io->sec_iparam = *iparam;
 				io->sec_len = len;
 				ocs_lock(&hw->io_lock);
-					ocs_list_remove(&hw->io_inuse,  io);
-					ocs_list_add_tail(&hw->sec_hio_wait_list, io);
-					io->state = OCS_HW_IO_STATE_WAIT_SEC_HIO;
-					hw->sec_hio_wait_count++;
+				ocs_list_remove(&hw->io_inuse, io);
+				ocs_list_add_tail(&hw->sec_hio_wait_list, io);
+				io->state = OCS_HW_IO_STATE_WAIT_SEC_HIO;
+				hw->sec_hio_wait_count++;
 				ocs_unlock(&hw->io_lock);
 				send_wqe = FALSE;
 				/* Done */
 				break;
 			}
-			/* We quarantine the secondary IO if this is the second or subsequent data phase */
+			/* We quarantine the secondary IO if this is the second
+			 * or subsequent data phase */
 			if (io->xbusy) {
 				io->sec_hio->quarantine = TRUE;
 			}
 		}
 
 		/*
-		 * If not the first data phase, and io->sec_hio has been allocated, then issue
-		 * FCP_CONT_TRECEIVE64 WQE, otherwise use the usual FCP_TRECEIVE64 WQE
+		 * If not the first data phase, and io->sec_hio has been
+		 * allocated, then issue FCP_CONT_TRECEIVE64 WQE, otherwise use
+		 * the usual FCP_TRECEIVE64 WQE
 		 */
 		if (io->xbusy && (io->sec_hio != NULL)) {
-			if (sli_fcp_cont_treceive64_wqe(&hw->sli, io->wqe.wqebuf, hw->sli.config.wqe_size, &io->def_sgl, io->first_data_sge,
-						   iparam->fcp_tgt.offset, len, io->indicator, io->sec_hio->indicator,
-						   io->reqtag, SLI4_CQ_DEFAULT,
-						   iparam->fcp_tgt.ox_id, rpi, rnode,
-						   flags,
-						   iparam->fcp_tgt.dif_oper, iparam->fcp_tgt.blk_size,
-						   iparam->fcp_tgt.cs_ctl, iparam->fcp_tgt.app_id)) {
+			if (sli_fcp_cont_treceive64_wqe(&hw->sli,
+				io->wqe.wqebuf, hw->sli.config.wqe_size,
+				&io->def_sgl, io->first_data_sge,
+				iparam->fcp_tgt.offset, len, io->indicator,
+				io->sec_hio->indicator, io->reqtag,
+				SLI4_CQ_DEFAULT, iparam->fcp_tgt.ox_id, rpi,
+				rnode, flags, iparam->fcp_tgt.dif_oper,
+				iparam->fcp_tgt.blk_size,
+				iparam->fcp_tgt.cs_ctl,
+				iparam->fcp_tgt.app_id)) {
 				ocs_log_err(hw->os, "TRECEIVE WQE error\n");
 				rc = OCS_HW_RTN_ERROR;
 			}
 		} else {
-			if (sli_fcp_treceive64_wqe(&hw->sli, io->wqe.wqebuf, hw->sli.config.wqe_size, &io->def_sgl, io->first_data_sge,
-						   iparam->fcp_tgt.offset, len, io->indicator, io->reqtag,
-						   SLI4_CQ_DEFAULT,
-						   iparam->fcp_tgt.ox_id, rpi, rnode,
-						   flags,
-						   iparam->fcp_tgt.dif_oper, iparam->fcp_tgt.blk_size,
-						   iparam->fcp_tgt.cs_ctl, iparam->fcp_tgt.app_id)) {
+			if (sli_fcp_treceive64_wqe(&hw->sli, io->wqe.wqebuf,
+				hw->sli.config.wqe_size, &io->def_sgl,
+				io->first_data_sge, iparam->fcp_tgt.offset, len,
+				io->indicator, io->reqtag, SLI4_CQ_DEFAULT,
+				iparam->fcp_tgt.ox_id, rpi, rnode, flags,
+				iparam->fcp_tgt.dif_oper,
+				iparam->fcp_tgt.blk_size,
+				iparam->fcp_tgt.cs_ctl,
+				iparam->fcp_tgt.app_id)) {
 				ocs_log_err(hw->os, "TRECEIVE WQE error\n");
 				rc = OCS_HW_RTN_ERROR;
 			}
@@ -4247,15 +4477,13 @@ ocs_hw_io_send(ocs_hw_t *hw, ocs_hw_io_type_e type, ocs_hw_io_t *io,
 		}
 
 		io->wqe_timeout = iparam->fcp_tgt.timeout;
-		if (sli_fcp_tsend64_wqe(&hw->sli, io->wqe.wqebuf, hw->sli.config.wqe_size, &io->def_sgl, io->first_data_sge,
-					iparam->fcp_tgt.offset, len, io->indicator, io->reqtag,
-					SLI4_CQ_DEFAULT,
-					iparam->fcp_tgt.ox_id, rpi, rnode,
-					flags,
-					iparam->fcp_tgt.dif_oper,
-					iparam->fcp_tgt.blk_size,
-					iparam->fcp_tgt.cs_ctl,
-					iparam->fcp_tgt.app_id)) {
+		if (sli_fcp_tsend64_wqe(&hw->sli, io->wqe.wqebuf,
+			hw->sli.config.wqe_size, &io->def_sgl,
+			io->first_data_sge, iparam->fcp_tgt.offset, len,
+			io->indicator, io->reqtag, SLI4_CQ_DEFAULT,
+			iparam->fcp_tgt.ox_id, rpi, rnode, flags,
+			iparam->fcp_tgt.dif_oper, iparam->fcp_tgt.blk_size,
+			iparam->fcp_tgt.cs_ctl, iparam->fcp_tgt.app_id)) {
 			ocs_log_err(hw->os, "TSEND WQE error\n");
 			rc = OCS_HW_RTN_ERROR;
 		} else if (hw->workaround.retain_tsend_io_length) {
@@ -4274,22 +4502,20 @@ ocs_hw_io_send(ocs_hw_t *hw, ocs_hw_io_type_e type, ocs_hw_io_t *io,
 
 		/* post a new auto xfer ready buffer */
 		if (hw->auto_xfer_rdy_enabled && io->is_port_owned) {
-			if ((io->auto_xfer_rdy_dnrx = ocs_hw_rqpair_auto_xfer_rdy_buffer_post(hw, io, 1))) {
+			if ((io->auto_xfer_rdy_dnrx =
+				    ocs_hw_rqpair_auto_xfer_rdy_buffer_post(hw,
+					io, 1))) {
 				flags |= SLI4_IO_DNRX;
 			}
 		}
 
 		io->wqe_timeout = iparam->fcp_tgt.timeout;
-		if (sli_fcp_trsp64_wqe(&hw->sli, io->wqe.wqebuf, hw->sli.config.wqe_size,
-					&io->def_sgl,
-					len,
-					io->indicator, io->reqtag,
-					SLI4_CQ_DEFAULT,
-					iparam->fcp_tgt.ox_id,
-					rpi, rnode,
-					flags, iparam->fcp_tgt.cs_ctl,
-					io->is_port_owned,
-					iparam->fcp_tgt.app_id)) {
+		if (sli_fcp_trsp64_wqe(&hw->sli, io->wqe.wqebuf,
+			hw->sli.config.wqe_size, &io->def_sgl, len,
+			io->indicator, io->reqtag, SLI4_CQ_DEFAULT,
+			iparam->fcp_tgt.ox_id, rpi, rnode, flags,
+			iparam->fcp_tgt.cs_ctl, io->is_port_owned,
+			iparam->fcp_tgt.app_id)) {
 			ocs_log_err(hw->os, "TRSP WQE error\n");
 			rc = OCS_HW_RTN_ERROR;
 		}
@@ -4349,8 +4575,9 @@ ocs_hw_io_send(ocs_hw_t *hw, ocs_hw_io_type_e type, ocs_hw_io_t *io,
  * @return Returns 0 on success, or a negative error code value on failure.
  */
 ocs_hw_rtn_e
-ocs_hw_send_frame(ocs_hw_t *hw, fc_header_le_t *hdr, uint8_t sof, uint8_t eof, ocs_dma_t *payload,
-		   ocs_hw_send_frame_context_t *ctx, void (*callback)(void *arg, uint8_t *cqe, int32_t status), void *arg)
+ocs_hw_send_frame(ocs_hw_t *hw, fc_header_le_t *hdr, uint8_t sof, uint8_t eof,
+    ocs_dma_t *payload, ocs_hw_send_frame_context_t *ctx,
+    void (*callback)(void *arg, uint8_t *cqe, int32_t status), void *arg)
 {
 	int32_t rc;
 	ocs_hw_wqe_t *wqe;
@@ -4369,18 +4596,21 @@ ocs_hw_send_frame(ocs_hw_t *hw, fc_header_le_t *hdr, uint8_t sof, uint8_t eof, o
 		return OCS_HW_RTN_NO_RESOURCES;
 	}
 
-	/* Choose a work queue, first look for a class[1] wq, otherwise just use wq[0] */
+	/* Choose a work queue, first look for a class[1] wq, otherwise just use
+	 * wq[0] */
 	wq = ocs_varray_iter_next(hw->wq_class_array[1]);
 	if (wq == NULL) {
 		wq = hw->hw_wq[0];
 	}
 
-	/* Set XRI and RX_ID in the header based on which WQ, and which send_frame_io we are using */
+	/* Set XRI and RX_ID in the header based on which WQ, and which
+	 * send_frame_io we are using */
 	xri = wq->send_frame_io->indicator;
 
 	/* Build the send frame WQE */
-	rc = sli_send_frame_wqe(&hw->sli, wqe->wqebuf, hw->sli.config.wqe_size, sof, eof, (uint32_t*) hdr, payload,
-				payload->len, OCS_HW_SEND_FRAME_TIMEOUT, xri, ctx->wqcb->instance_index);
+	rc = sli_send_frame_wqe(&hw->sli, wqe->wqebuf, hw->sli.config.wqe_size,
+	    sof, eof, (uint32_t *)hdr, payload, payload->len,
+	    OCS_HW_SEND_FRAME_TIMEOUT, xri, ctx->wqcb->instance_index);
 	if (rc) {
 		ocs_log_err(hw->os, "sli_send_frame_wqe failed: %d\n", rc);
 		return OCS_HW_RTN_ERROR;
@@ -4399,10 +4629,12 @@ ocs_hw_send_frame(ocs_hw_t *hw, fc_header_le_t *hdr, uint8_t sof, uint8_t eof, o
 }
 
 ocs_hw_rtn_e
-ocs_hw_io_register_sgl(ocs_hw_t *hw, ocs_hw_io_t *io, ocs_dma_t *sgl, uint32_t sgl_count)
+ocs_hw_io_register_sgl(ocs_hw_t *hw, ocs_hw_io_t *io, ocs_dma_t *sgl,
+    uint32_t sgl_count)
 {
 	if (sli_get_sgl_preregister(&hw->sli)) {
-		ocs_log_err(hw->os, "can't use temporary SGL with pre-registered SGLs\n");
+		ocs_log_err(hw->os,
+		    "can't use temporary SGL with pre-registered SGLs\n");
 		return OCS_HW_RTN_ERROR;
 	}
 	io->ovfl_sgl = sgl;
@@ -4451,13 +4683,13 @@ ocs_hw_io_restore_sgl(ocs_hw_t *hw, ocs_hw_io_t *io)
 ocs_hw_rtn_e
 ocs_hw_io_init_sges(ocs_hw_t *hw, ocs_hw_io_t *io, ocs_hw_io_type_e type)
 {
-	sli4_sge_t	*data = NULL;
-	uint32_t	i = 0;
-	uint32_t	skips = 0;
+	sli4_sge_t *data = NULL;
+	uint32_t i = 0;
+	uint32_t skips = 0;
 
 	if (!hw || !io) {
 		ocs_log_err(hw ? hw->os : NULL, "bad parameter hw=%p io=%p\n",
-			    hw, io);
+		    hw, io);
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -4501,13 +4733,13 @@ ocs_hw_io_init_sges(ocs_hw_t *hw, ocs_hw_io_t *io, ocs_hw_io_type_e type)
 		io->n_sge = 2;
 		break;
 	case OCS_HW_IO_TARGET_WRITE:
-#define OCS_TARGET_WRITE_SKIPS	2
+#define OCS_TARGET_WRITE_SKIPS 2
 		skips = OCS_TARGET_WRITE_SKIPS;
 
 		/* populate host resident XFER_RDY buffer */
 		data->sge_type = SLI4_SGE_TYPE_DATA;
 		data->buffer_address_high = ocs_addr32_hi(io->xfer_rdy.phys);
-		data->buffer_address_low  = ocs_addr32_lo(io->xfer_rdy.phys);
+		data->buffer_address_low = ocs_addr32_lo(io->xfer_rdy.phys);
 		data->buffer_length = io->xfer_rdy.size;
 		data++;
 
@@ -4519,7 +4751,7 @@ ocs_hw_io_init_sges(ocs_hw_t *hw, ocs_hw_io_t *io, ocs_hw_io_type_e type)
 		/*
 		 * For FCP_TSEND64, the first 2 entries are SKIP SGE's
 		 */
-#define OCS_TARGET_READ_SKIPS	2
+#define OCS_TARGET_READ_SKIPS 2
 		skips = OCS_TARGET_READ_SKIPS;
 		break;
 	case OCS_HW_IO_TARGET_RSP:
@@ -4561,19 +4793,22 @@ ocs_hw_io_init_sges(ocs_hw_t *hw, ocs_hw_io_t *io, ocs_hw_io_type_e type)
  * @return Returns 0 on success, or a non-zero value on failure.
  */
 ocs_hw_rtn_e
-ocs_hw_io_add_seed_sge(ocs_hw_t *hw, ocs_hw_io_t *io, ocs_hw_dif_info_t *dif_info)
+ocs_hw_io_add_seed_sge(ocs_hw_t *hw, ocs_hw_io_t *io,
+    ocs_hw_dif_info_t *dif_info)
 {
-	sli4_sge_t	*data = NULL;
+	sli4_sge_t *data = NULL;
 	sli4_diseed_sge_t *dif_seed;
 
 	/* If no dif_info, or dif_oper is disabled, then just return success */
-	if ((dif_info == NULL) || (dif_info->dif_oper == OCS_HW_DIF_OPER_DISABLED)) {
+	if ((dif_info == NULL) ||
+	    (dif_info->dif_oper == OCS_HW_DIF_OPER_DISABLED)) {
 		return OCS_HW_RTN_SUCCESS;
 	}
 
 	if (!hw || !io) {
-		ocs_log_err(hw ? hw->os : NULL, "bad parameter hw=%p io=%p dif_info=%p\n",
-			    hw, io, dif_info);
+		ocs_log_err(hw ? hw->os : NULL,
+		    "bad parameter hw=%p io=%p dif_info=%p\n", hw, io,
+		    dif_info);
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -4593,8 +4828,10 @@ ocs_hw_io_add_seed_sge(ocs_hw_t *hw, ocs_hw_io_t *io, ocs_hw_dif_info_t *dif_inf
 	}
 	dif_seed->sge_type = SLI4_SGE_TYPE_DISEED;
 	/* Workaround for SKH (BZ157233) */
-	if (((io->type == OCS_HW_IO_TARGET_WRITE) || (io->type == OCS_HW_IO_INITIATOR_READ)) &&
-		(SLI4_IF_TYPE_LANCER_FC_ETH != hw->sli.if_type) && dif_info->dif_separate) {
+	if (((io->type == OCS_HW_IO_TARGET_WRITE) ||
+		(io->type == OCS_HW_IO_INITIATOR_READ)) &&
+	    (SLI4_IF_TYPE_LANCER_FC_ETH != hw->sli.if_type) &&
+	    dif_info->dif_separate) {
 		dif_seed->sge_type = SLI4_SGE_TYPE_SKIP;
 	}
 
@@ -4606,7 +4843,7 @@ ocs_hw_io_add_seed_sge(ocs_hw_t *hw, ocs_hw_io_t *io, ocs_hw_dif_info_t *dif_inf
 	dif_seed->check_crc = dif_info->check_guard;
 	dif_seed->new_ref_tag = dif_info->repl_ref_tag;
 
-	switch(dif_info->dif_oper) {
+	switch (dif_info->dif_oper) {
 	case OCS_HW_SGE_DIF_OP_IN_NODIF_OUT_CRC:
 		dif_seed->dif_op_rx = SLI4_SGE_DIF_OP_IN_NODIF_OUT_CRC;
 		dif_seed->dif_op_tx = SLI4_SGE_DIF_OP_IN_NODIF_OUT_CRC;
@@ -4645,7 +4882,7 @@ ocs_hw_io_add_seed_sge(ocs_hw_t *hw, ocs_hw_io_t *io, ocs_hw_dif_info_t *dif_inf
 		break;
 	default:
 		ocs_log_err(hw->os, "unsupported DIF operation %#x\n",
-			    dif_info->dif_oper);
+		    dif_info->dif_oper);
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -4678,8 +4915,7 @@ ocs_hw_io_overflow_sgl(ocs_hw_t *hw, ocs_hw_io_t *io)
 	 *
 	 * Note: For DIF enabled IOs, we will use the ovfl_io for the sec_hio.
 	 */
-	if (sli_get_sgl_preregister(&hw->sli) &&
-	    io->def_sgl_count > 4 &&
+	if (sli_get_sgl_preregister(&hw->sli) && io->def_sgl_count > 4 &&
 	    io->ovfl_io == NULL &&
 	    ((SLI4_IF_TYPE_BE3_SKH_PF == sli_get_if_type(&hw->sli)) ||
 		(SLI4_IF_TYPE_BE3_SKH_VF == sli_get_if_type(&hw->sli)))) {
@@ -4701,25 +4937,24 @@ ocs_hw_io_overflow_sgl(ocs_hw_t *hw, ocs_hw_io_t *io)
 	}
 
 	/*
-	 * Overflow, we need to put a link SGE in the last location of the current SGL, after
-	 * copying the the last SGE to the overflow SGL
+	 * Overflow, we need to put a link SGE in the last location of the
+	 * current SGL, after copying the the last SGE to the overflow SGL
 	 */
 
-	((sli4_sge_t*)io->ovfl_sgl->virt)[0] = ((sli4_sge_t*)io->sgl->virt)[io->n_sge - 1];
+	((sli4_sge_t *)io->ovfl_sgl->virt)[0] = ((
+	    sli4_sge_t *)io->sgl->virt)[io->n_sge - 1];
 
-	lsp = &((sli4_lsp_sge_t*)io->sgl->virt)[io->n_sge - 1];
+	lsp = &((sli4_lsp_sge_t *)io->sgl->virt)[io->n_sge - 1];
 	ocs_memset(lsp, 0, sizeof(*lsp));
 
 	if ((SLI4_IF_TYPE_BE3_SKH_PF == sli_get_if_type(&hw->sli)) ||
 	    (SLI4_IF_TYPE_BE3_SKH_VF == sli_get_if_type(&hw->sli))) {
-		sli_skh_chain_sge_build(&hw->sli,
-					(sli4_sge_t*)lsp,
-					io->ovfl_io->indicator,
-					0, /* frag_num */
-					0); /* offset */
+		sli_skh_chain_sge_build(&hw->sli, (sli4_sge_t *)lsp,
+		    io->ovfl_io->indicator, 0, /* frag_num */
+		    0);			       /* offset */
 	} else {
 		lsp->buffer_address_high = ocs_addr32_hi(io->ovfl_sgl->phys);
-		lsp->buffer_address_low  = ocs_addr32_lo(io->ovfl_sgl->phys);
+		lsp->buffer_address_low = ocs_addr32_lo(io->ovfl_sgl->phys);
 		lsp->sge_type = SLI4_SGE_TYPE_LSP;
 		lsp->last = 0;
 		io->ovfl_lsp = lsp;
@@ -4746,14 +4981,15 @@ ocs_hw_io_overflow_sgl(ocs_hw_t *hw, ocs_hw_io_t *io)
  * @return Returns 0 on success, or a non-zero value on failure.
  */
 ocs_hw_rtn_e
-ocs_hw_io_add_sge(ocs_hw_t *hw, ocs_hw_io_t *io, uintptr_t addr, uint32_t length)
+ocs_hw_io_add_sge(ocs_hw_t *hw, ocs_hw_io_t *io, uintptr_t addr,
+    uint32_t length)
 {
-	sli4_sge_t	*data = NULL;
+	sli4_sge_t *data = NULL;
 
 	if (!hw || !io || !addr || !length) {
 		ocs_log_err(hw ? hw->os : NULL,
-			    "bad parameter hw=%p io=%p addr=%lx length=%u\n",
-			    hw, io, addr, length);
+		    "bad parameter hw=%p io=%p addr=%lx length=%u\n", hw, io,
+		    addr, length);
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -4766,7 +5002,7 @@ ocs_hw_io_add_sge(ocs_hw_t *hw, ocs_hw_io_t *io, uintptr_t addr, uint32_t length
 
 	if (length > sli_get_max_sge(&hw->sli)) {
 		ocs_log_err(hw->os, "length of SGE %d bigger than allowed %d\n",
-			    length, sli_get_max_sge(&hw->sli));
+		    length, sli_get_max_sge(&hw->sli));
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -4775,7 +5011,7 @@ ocs_hw_io_add_sge(ocs_hw_t *hw, ocs_hw_io_t *io, uintptr_t addr, uint32_t length
 
 	data->sge_type = SLI4_SGE_TYPE_DATA;
 	data->buffer_address_high = ocs_addr32_hi(addr);
-	data->buffer_address_low  = ocs_addr32_lo(addr);
+	data->buffer_address_low = ocs_addr32_lo(addr);
 	data->buffer_length = length;
 	data->data_offset = io->sge_offset;
 	/*
@@ -4796,7 +5032,8 @@ ocs_hw_io_add_sge(ocs_hw_t *hw, ocs_hw_io_t *io, uintptr_t addr, uint32_t length
 	io->sge_offset += length;
 	io->n_sge++;
 
-	/* Update the linked segment length (only executed after overflow has begun) */
+	/* Update the linked segment length (only executed after overflow has
+	 * begun) */
 	if (io->ovfl_lsp != NULL) {
 		io->ovfl_lsp->segment_length = io->n_sge * sizeof(sli4_sge_t);
 	}
@@ -4817,12 +5054,11 @@ ocs_hw_io_add_sge(ocs_hw_t *hw, ocs_hw_io_t *io, uintptr_t addr, uint32_t length
 ocs_hw_rtn_e
 ocs_hw_io_add_dif_sge(ocs_hw_t *hw, ocs_hw_io_t *io, uintptr_t addr)
 {
-	sli4_dif_sge_t	*data = NULL;
+	sli4_dif_sge_t *data = NULL;
 
 	if (!hw || !io || !addr) {
 		ocs_log_err(hw ? hw->os : NULL,
-			    "bad parameter hw=%p io=%p addr=%lx\n",
-			    hw, io, addr);
+		    "bad parameter hw=%p io=%p addr=%lx\n", hw, io, addr);
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -4838,13 +5074,14 @@ ocs_hw_io_add_dif_sge(ocs_hw_t *hw, ocs_hw_io_t *io, uintptr_t addr)
 
 	data->sge_type = SLI4_SGE_TYPE_DIF;
 	/* Workaround for SKH (BZ157233) */
-	if (((io->type == OCS_HW_IO_TARGET_WRITE) || (io->type == OCS_HW_IO_INITIATOR_READ)) &&
-		(SLI4_IF_TYPE_LANCER_FC_ETH != hw->sli.if_type)) {
+	if (((io->type == OCS_HW_IO_TARGET_WRITE) ||
+		(io->type == OCS_HW_IO_INITIATOR_READ)) &&
+	    (SLI4_IF_TYPE_LANCER_FC_ETH != hw->sli.if_type)) {
 		data->sge_type = SLI4_SGE_TYPE_SKIP;
 	}
 
 	data->buffer_address_high = ocs_addr32_hi(addr);
-	data->buffer_address_low  = ocs_addr32_lo(addr);
+	data->buffer_address_low = ocs_addr32_lo(addr);
 
 	/*
 	 * Always assume this is the last entry and mark as such.
@@ -4875,23 +5112,23 @@ ocs_hw_io_add_dif_sge(ocs_hw_t *hw, ocs_hw_io_t *io, uintptr_t addr)
  * @return Returns 0 on success, or a non-zero value on failure.
  */
 ocs_hw_rtn_e
-ocs_hw_io_abort(ocs_hw_t *hw, ocs_hw_io_t *io_to_abort, uint32_t send_abts, void *cb, void *arg)
+ocs_hw_io_abort(ocs_hw_t *hw, ocs_hw_io_t *io_to_abort, uint32_t send_abts,
+    void *cb, void *arg)
 {
 	sli4_abort_type_e atype = SLI_ABORT_MAX;
-	uint32_t	id = 0, mask = 0;
-	ocs_hw_rtn_e	rc = OCS_HW_RTN_SUCCESS;
+	uint32_t id = 0, mask = 0;
+	ocs_hw_rtn_e rc = OCS_HW_RTN_SUCCESS;
 	hw_wq_callback_t *wqcb;
 
 	if (!hw || !io_to_abort) {
-		ocs_log_err(hw ? hw->os : NULL,
-			    "bad parameter hw=%p io=%p\n",
-			    hw, io_to_abort);
+		ocs_log_err(hw ? hw->os : NULL, "bad parameter hw=%p io=%p\n",
+		    hw, io_to_abort);
 		return OCS_HW_RTN_ERROR;
 	}
 
 	if (hw->state != OCS_HW_STATE_ACTIVE) {
 		ocs_log_err(hw->os, "cannot send IO abort, HW state=%d\n",
-			    hw->state);
+		    hw->state);
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -4899,8 +5136,8 @@ ocs_hw_io_abort(ocs_hw_t *hw, ocs_hw_io_t *io_to_abort, uint32_t send_abts, void
 	if (ocs_ref_get_unless_zero(&io_to_abort->ref) == 0) {
 		/* command no longer active */
 		ocs_log_test(hw ? hw->os : NULL,
-				"io not active xri=0x%x tag=0x%x\n",
-				io_to_abort->indicator, io_to_abort->reqtag);
+		    "io not active xri=0x%x tag=0x%x\n", io_to_abort->indicator,
+		    io_to_abort->reqtag);
 		return OCS_HW_RTN_IO_NOT_ACTIVE;
 	}
 
@@ -4908,27 +5145,30 @@ ocs_hw_io_abort(ocs_hw_t *hw, ocs_hw_io_t *io_to_abort, uint32_t send_abts, void
 	/* Must have a valid WQ reference */
 	if (io_to_abort->wq == NULL) {
 		ocs_log_test(hw->os, "io_to_abort xri=0x%x not active on WQ\n",
-				io_to_abort->indicator);
-		ocs_ref_put(&io_to_abort->ref); /* ocs_ref_get(): same function */
+		    io_to_abort->indicator);
+		ocs_ref_put(
+		    &io_to_abort->ref); /* ocs_ref_get(): same function */
 		return OCS_HW_RTN_IO_NOT_ACTIVE;
 	}
 
-	/* Validation checks complete; now check to see if already being aborted */
+	/* Validation checks complete; now check to see if already being aborted
+	 */
 	ocs_lock(&hw->io_abort_lock);
-		if (io_to_abort->abort_in_progress) {
-			ocs_unlock(&hw->io_abort_lock);
-			ocs_ref_put(&io_to_abort->ref); /* ocs_ref_get(): same function */
-			ocs_log_debug(hw ? hw->os : NULL,
-				"io already being aborted xri=0x%x tag=0x%x\n",
-				io_to_abort->indicator, io_to_abort->reqtag);
-			return OCS_HW_RTN_IO_ABORT_IN_PROGRESS;
-		}
+	if (io_to_abort->abort_in_progress) {
+		ocs_unlock(&hw->io_abort_lock);
+		ocs_ref_put(
+		    &io_to_abort->ref); /* ocs_ref_get(): same function */
+		ocs_log_debug(hw ? hw->os : NULL,
+		    "io already being aborted xri=0x%x tag=0x%x\n",
+		    io_to_abort->indicator, io_to_abort->reqtag);
+		return OCS_HW_RTN_IO_ABORT_IN_PROGRESS;
+	}
 
-		/*
-		 * This IO is not already being aborted. Set flag so we won't try to
-		 * abort it again. After all, we only have one abort_done callback.
-		 */
-		io_to_abort->abort_in_progress = 1;
+	/*
+	 * This IO is not already being aborted. Set flag so we won't try to
+	 * abort it again. After all, we only have one abort_done callback.
+	 */
+	io_to_abort->abort_in_progress = 1;
 	ocs_unlock(&hw->io_abort_lock);
 
 	/*
@@ -4946,7 +5186,7 @@ ocs_hw_io_abort(ocs_hw_t *hw, ocs_hw_io_t *io_to_abort, uint32_t send_abts, void
 	 *			- submit ABORT_WQE to any WQ
 	 */
 	io_to_abort->abort_done = cb;
-	io_to_abort->abort_arg  = arg;
+	io_to_abort->abort_arg = arg;
 
 	atype = SLI_ABORT_XRI;
 	id = io_to_abort->indicator;
@@ -4965,19 +5205,21 @@ ocs_hw_io_abort(ocs_hw_t *hw, ocs_hw_io_t *io_to_abort, uint32_t send_abts, void
 	 */
 	if (io_to_abort->wq != NULL) {
 		sli_queue_lock(io_to_abort->wq->queue);
-			if (ocs_list_on_list(&io_to_abort->wqe.link)) {
-				io_to_abort->wqe.abort_wqe_submit_needed = 1;
-				io_to_abort->wqe.send_abts = send_abts;
-				io_to_abort->wqe.id = id;
-				io_to_abort->wqe.abort_reqtag = io_to_abort->abort_reqtag;
-				sli_queue_unlock(io_to_abort->wq->queue);
-				return 0;
+		if (ocs_list_on_list(&io_to_abort->wqe.link)) {
+			io_to_abort->wqe.abort_wqe_submit_needed = 1;
+			io_to_abort->wqe.send_abts = send_abts;
+			io_to_abort->wqe.id = id;
+			io_to_abort->wqe.abort_reqtag =
+			    io_to_abort->abort_reqtag;
+			sli_queue_unlock(io_to_abort->wq->queue);
+			return 0;
 		}
 		sli_queue_unlock(io_to_abort->wq->queue);
 	}
 
-	if (sli_abort_wqe(&hw->sli, io_to_abort->wqe.wqebuf, hw->sli.config.wqe_size, atype, send_abts, id, mask,
-			  io_to_abort->abort_reqtag, SLI4_CQ_DEFAULT)) {
+	if (sli_abort_wqe(&hw->sli, io_to_abort->wqe.wqebuf,
+		hw->sli.config.wqe_size, atype, send_abts, id, mask,
+		io_to_abort->abort_reqtag, SLI4_CQ_DEFAULT)) {
 		ocs_log_err(hw->os, "ABORT WQE error\n");
 		io_to_abort->abort_reqtag = UINT32_MAX;
 		ocs_hw_reqtag_free(hw, wqcb);
@@ -4997,15 +5239,17 @@ ocs_hw_io_abort(ocs_hw_t *hw, ocs_hw_io_t *io_to_abort, uint32_t send_abts, void
 		if (rc > 0) {
 			/* non-negative return is success */
 			rc = 0;
-			/* can't abort an abort so skip adding to timed wqe list */
+			/* can't abort an abort so skip adding to timed wqe list
+			 */
 		}
 	}
 
 	if (OCS_HW_RTN_SUCCESS != rc) {
 		ocs_lock(&hw->io_abort_lock);
-			io_to_abort->abort_in_progress = 0;
+		io_to_abort->abort_in_progress = 0;
 		ocs_unlock(&hw->io_abort_lock);
-		ocs_ref_put(&io_to_abort->ref); /* ocs_ref_get(): same function */
+		ocs_ref_put(
+		    &io_to_abort->ref); /* ocs_ref_get(): same function */
 	}
 	return rc;
 }
@@ -5023,8 +5267,8 @@ int32_t
 ocs_hw_io_get_xid(ocs_hw_t *hw, ocs_hw_io_t *io)
 {
 	if (!hw || !io) {
-		ocs_log_err(hw ? hw->os : NULL,
-			    "bad parameter hw=%p io=%p\n", hw, io);
+		ocs_log_err(hw ? hw->os : NULL, "bad parameter hw=%p io=%p\n",
+		    hw, io);
 		return -1;
 	}
 
@@ -5081,18 +5325,20 @@ typedef struct ocs_hw_dump_clear_cb_arg {
  * @param offset Offset, in bytes, from the beginning of the firmware image.
  * @param last True if this is the last chunk of the image.
  * Causes the image to be committed to flash.
- * @param cb Pointer to a callback function that is called when the command completes.
- * The callback function prototype is
- * <tt>void cb(int32_t status, uint32_t bytes_written, void *arg)</tt>.
+ * @param cb Pointer to a callback function that is called when the command
+ * completes. The callback function prototype is <tt>void cb(int32_t status,
+ * uint32_t bytes_written, void *arg)</tt>.
  * @param arg Pointer to be passed to the callback function.
  *
  * @return Returns 0 on success, or a non-zero value on failure.
  */
 ocs_hw_rtn_e
-ocs_hw_firmware_write(ocs_hw_t *hw, ocs_dma_t *dma, uint32_t size, uint32_t offset, int last, ocs_hw_fw_cb_t cb, void *arg)
+ocs_hw_firmware_write(ocs_hw_t *hw, ocs_dma_t *dma, uint32_t size,
+    uint32_t offset, int last, ocs_hw_fw_cb_t cb, void *arg)
 {
 	if (hw->sli.if_type == SLI4_IF_TYPE_LANCER_FC_ETH) {
-		return ocs_hw_firmware_write_lancer(hw, dma, size, offset, last, cb, arg);
+		return ocs_hw_firmware_write_lancer(hw, dma, size, offset, last,
+		    cb, arg);
 	} else {
 		/* Write firmware_write for BE3/Skyhawk not supported */
 		return -1;
@@ -5103,33 +5349,37 @@ ocs_hw_firmware_write(ocs_hw_t *hw, ocs_dma_t *dma, uint32_t size, uint32_t offs
  * @brief Write a portion of a firmware image to the Emulex XE201 ASIC (Lancer).
  *
  * @par Description
- * Creates a SLI_CONFIG mailbox command, fills it with the correct values to write a
- * firmware image chunk, and then sends the command with ocs_hw_command(). On completion,
- * the callback function ocs_hw_fw_write_cb() gets called to free the mailbox
- * and to signal the caller that the write has completed.
+ * Creates a SLI_CONFIG mailbox command, fills it with the correct values to
+ * write a firmware image chunk, and then sends the command with
+ * ocs_hw_command(). On completion, the callback function ocs_hw_fw_write_cb()
+ * gets called to free the mailbox and to signal the caller that the write has
+ * completed.
  *
  * @param hw Hardware context.
  * @param dma DMA structure containing the firmware image chunk.
  * @param size Size of the firmware image chunk.
  * @param offset Offset, in bytes, from the beginning of the firmware image.
- * @param last True if this is the last chunk of the image. Causes the image to be committed to flash.
- * @param cb Pointer to a callback function that is called when the command completes.
- * The callback function prototype is
- * <tt>void cb(int32_t status, uint32_t bytes_written, void *arg)</tt>.
+ * @param last True if this is the last chunk of the image. Causes the image to
+ * be committed to flash.
+ * @param cb Pointer to a callback function that is called when the command
+ * completes. The callback function prototype is <tt>void cb(int32_t status,
+ * uint32_t bytes_written, void *arg)</tt>.
  * @param arg Pointer to be passed to the callback function.
  *
  * @return Returns 0 on success, or a non-zero value on failure.
  */
 ocs_hw_rtn_e
-ocs_hw_firmware_write_lancer(ocs_hw_t *hw, ocs_dma_t *dma, uint32_t size, uint32_t offset, int last, ocs_hw_fw_cb_t cb, void *arg)
+ocs_hw_firmware_write_lancer(ocs_hw_t *hw, ocs_dma_t *dma, uint32_t size,
+    uint32_t offset, int last, ocs_hw_fw_cb_t cb, void *arg)
 {
 	ocs_hw_rtn_e rc = OCS_HW_RTN_ERROR;
 	uint8_t *mbxdata;
 	ocs_hw_fw_write_cb_arg_t *cb_arg;
-	int noc=0;	/* No Commit bit - set to 1 for testing */
+	int noc = 0; /* No Commit bit - set to 1 for testing */
 
 	if (SLI4_IF_TYPE_LANCER_FC_ETH != sli_get_if_type(&hw->sli)) {
-		ocs_log_test(hw->os, "Function only supported for I/F type 2\n");
+		ocs_log_test(hw->os,
+		    "Function only supported for I/F type 2\n");
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -5139,7 +5389,8 @@ ocs_hw_firmware_write_lancer(ocs_hw_t *hw, ocs_dma_t *dma, uint32_t size, uint32
 		return OCS_HW_RTN_NO_MEMORY;
 	}
 
-	cb_arg = ocs_malloc(hw->os, sizeof(ocs_hw_fw_write_cb_arg_t), OCS_M_NOWAIT);
+	cb_arg = ocs_malloc(hw->os, sizeof(ocs_hw_fw_write_cb_arg_t),
+	    OCS_M_NOWAIT);
 	if (cb_arg == NULL) {
 		ocs_log_err(hw->os, "failed to malloc cb_arg\n");
 		ocs_free(hw->os, mbxdata, SLI4_BMBX_SIZE);
@@ -5149,9 +5400,10 @@ ocs_hw_firmware_write_lancer(ocs_hw_t *hw, ocs_dma_t *dma, uint32_t size, uint32
 	cb_arg->cb = cb;
 	cb_arg->arg = arg;
 
-	if (sli_cmd_common_write_object(&hw->sli, mbxdata, SLI4_BMBX_SIZE, noc, last,
-			size, offset, "/prg/", dma)) {
-		rc = ocs_hw_command(hw, mbxdata, OCS_CMD_NOWAIT, ocs_hw_cb_fw_write, cb_arg);
+	if (sli_cmd_common_write_object(&hw->sli, mbxdata, SLI4_BMBX_SIZE, noc,
+		last, size, offset, "/prg/", dma)) {
+		rc = ocs_hw_command(hw, mbxdata, OCS_CMD_NOWAIT,
+		    ocs_hw_cb_fw_write, cb_arg);
 	}
 
 	if (rc != OCS_HW_RTN_SUCCESS) {
@@ -5161,31 +5413,32 @@ ocs_hw_firmware_write_lancer(ocs_hw_t *hw, ocs_dma_t *dma, uint32_t size, uint32
 	}
 
 	return rc;
-
 }
 
 /**
  * @brief Called when the WRITE OBJECT command completes.
  *
  * @par Description
- * Get the number of bytes actually written out of the response, free the mailbox
- * that was malloc'd by ocs_hw_firmware_write(),
- * then call the callback and pass the status and bytes written.
+ * Get the number of bytes actually written out of the response, free the
+ * mailbox that was malloc'd by ocs_hw_firmware_write(), then call the callback
+ * and pass the status and bytes written.
  *
  * @param hw Hardware context.
  * @param status Status field from the mbox completion.
  * @param mqe Mailbox response structure.
- * @param arg Pointer to a callback function that signals the caller that the command is done.
- * The callback function prototype is <tt>void cb(int32_t status, uint32_t bytes_written)</tt>.
+ * @param arg Pointer to a callback function that signals the caller that the
+ * command is done. The callback function prototype is <tt>void cb(int32_t
+ * status, uint32_t bytes_written)</tt>.
  *
  * @return Returns 0.
  */
 static int32_t
-ocs_hw_cb_fw_write(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void  *arg)
+ocs_hw_cb_fw_write(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 {
 
-	sli4_cmd_sli_config_t* mbox_rsp = (sli4_cmd_sli_config_t*) mqe;
-	sli4_res_common_write_object_t* wr_obj_rsp = (sli4_res_common_write_object_t*) &(mbox_rsp->payload.embed);
+	sli4_cmd_sli_config_t *mbox_rsp = (sli4_cmd_sli_config_t *)mqe;
+	sli4_res_common_write_object_t *wr_obj_rsp =
+	    (sli4_res_common_write_object_t *)&(mbox_rsp->payload.embed);
 	ocs_hw_fw_write_cb_arg_t *cb_arg = arg;
 	uint32_t bytes_written;
 	uint16_t mbox_status;
@@ -5202,50 +5455,53 @@ ocs_hw_cb_fw_write(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void  *arg)
 			if ((status == 0) && mbox_status) {
 				status = mbox_status;
 			}
-			cb_arg->cb(status, bytes_written, change_status, cb_arg->arg);
+			cb_arg->cb(status, bytes_written, change_status,
+			    cb_arg->arg);
 		}
 
 		ocs_free(hw->os, cb_arg, sizeof(ocs_hw_fw_write_cb_arg_t));
 	}
 
 	return 0;
-
 }
 
 /**
  * @brief Called when the READ_TRANSCEIVER_DATA command completes.
  *
  * @par Description
- * Get the number of bytes read out of the response, free the mailbox that was malloc'd
- * by ocs_hw_get_sfp(), then call the callback and pass the status and bytes written.
+ * Get the number of bytes read out of the response, free the mailbox that was
+ * malloc'd by ocs_hw_get_sfp(), then call the callback and pass the status and
+ * bytes written.
  *
  * @param hw Hardware context.
  * @param status Status field from the mbox completion.
  * @param mqe Mailbox response structure.
- * @param arg Pointer to a callback function that signals the caller that the command is done.
- * The callback function prototype is
- * <tt>void cb(int32_t status, uint32_t bytes_written, uint32_t *data, void *arg)</tt>.
+ * @param arg Pointer to a callback function that signals the caller that the
+ * command is done. The callback function prototype is <tt>void cb(int32_t
+ * status, uint32_t bytes_written, uint32_t *data, void *arg)</tt>.
  *
  * @return Returns 0.
  */
 static int32_t
-ocs_hw_cb_sfp(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void  *arg)
+ocs_hw_cb_sfp(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 {
 
 	ocs_hw_sfp_cb_arg_t *cb_arg = arg;
 	ocs_dma_t *payload = NULL;
-	sli4_res_common_read_transceiver_data_t* mbox_rsp = NULL;
+	sli4_res_common_read_transceiver_data_t *mbox_rsp = NULL;
 	uint32_t bytes_written;
 
 	if (cb_arg) {
 		payload = &(cb_arg->payload);
 		if (cb_arg->cb) {
-			mbox_rsp = (sli4_res_common_read_transceiver_data_t*) payload->virt;
+			mbox_rsp = (sli4_res_common_read_transceiver_data_t *)
+				       payload->virt;
 			bytes_written = mbox_rsp->hdr.response_length;
 			if ((status == 0) && mbox_rsp->hdr.status) {
 				status = mbox_rsp->hdr.status;
 			}
-			cb_arg->cb(hw->os, status, bytes_written, mbox_rsp->page_data, cb_arg->arg);
+			cb_arg->cb(hw->os, status, bytes_written,
+			    mbox_rsp->page_data, cb_arg->arg);
 		}
 
 		ocs_dma_free(hw->os, &cb_arg->payload);
@@ -5265,7 +5521,8 @@ ocs_hw_cb_sfp(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void  *arg)
  * @param cb Function call upon completion of sending the data (may be NULL).
  * @param arg Argument to pass to IO completion function.
  *
- * @return Returns OCS_HW_RTN_SUCCESS, OCS_HW_RTN_ERROR, or OCS_HW_RTN_NO_MEMORY.
+ * @return Returns OCS_HW_RTN_SUCCESS, OCS_HW_RTN_ERROR, or
+ * OCS_HW_RTN_NO_MEMORY.
  */
 ocs_hw_rtn_e
 ocs_hw_get_sfp(ocs_hw_t *hw, uint16_t page, ocs_hw_sfp_cb_t cb, void *arg)
@@ -5281,7 +5538,8 @@ ocs_hw_get_sfp(ocs_hw_t *hw, uint16_t page, ocs_hw_sfp_cb_t cb, void *arg)
 		return OCS_HW_RTN_NO_MEMORY;
 	}
 
-	/* cb_arg holds the data that will be passed to the callback on completion */
+	/* cb_arg holds the data that will be passed to the callback on
+	 * completion */
 	cb_arg = ocs_malloc(hw->os, sizeof(ocs_hw_sfp_cb_arg_t), OCS_M_NOWAIT);
 	if (cb_arg == NULL) {
 		ocs_log_err(hw->os, "failed to malloc cb_arg\n");
@@ -5293,8 +5551,9 @@ ocs_hw_get_sfp(ocs_hw_t *hw, uint16_t page, ocs_hw_sfp_cb_t cb, void *arg)
 	cb_arg->arg = arg;
 
 	/* payload holds the non-embedded portion */
-	if (ocs_dma_alloc(hw->os, &cb_arg->payload, sizeof(sli4_res_common_read_transceiver_data_t),
-			  OCS_MIN_DMA_ALIGNMENT)) {
+	if (ocs_dma_alloc(hw->os, &cb_arg->payload,
+		sizeof(sli4_res_common_read_transceiver_data_t),
+		OCS_MIN_DMA_ALIGNMENT)) {
 		ocs_log_err(hw->os, "Failed to allocate DMA buffer\n");
 		ocs_free(hw->os, cb_arg, sizeof(ocs_hw_sfp_cb_arg_t));
 		ocs_free(hw->os, mbxdata, SLI4_BMBX_SIZE);
@@ -5302,14 +5561,15 @@ ocs_hw_get_sfp(ocs_hw_t *hw, uint16_t page, ocs_hw_sfp_cb_t cb, void *arg)
 	}
 
 	/* Send the HW command */
-	if (sli_cmd_common_read_transceiver_data(&hw->sli, mbxdata, SLI4_BMBX_SIZE, page,
-	    &cb_arg->payload)) {
-		rc = ocs_hw_command(hw, mbxdata, OCS_CMD_NOWAIT, ocs_hw_cb_sfp, cb_arg);
+	if (sli_cmd_common_read_transceiver_data(&hw->sli, mbxdata,
+		SLI4_BMBX_SIZE, page, &cb_arg->payload)) {
+		rc = ocs_hw_command(hw, mbxdata, OCS_CMD_NOWAIT, ocs_hw_cb_sfp,
+		    cb_arg);
 	}
 
 	if (rc != OCS_HW_RTN_SUCCESS) {
-		ocs_log_test(hw->os, "READ_TRANSCEIVER_DATA failed with status %d\n",
-				rc);
+		ocs_log_test(hw->os,
+		    "READ_TRANSCEIVER_DATA failed with status %d\n", rc);
 		ocs_dma_free(hw->os, &cb_arg->payload);
 		ocs_free(hw->os, cb_arg, sizeof(ocs_hw_sfp_cb_arg_t));
 		ocs_free(hw->os, mbxdata, SLI4_BMBX_SIZE);
@@ -5325,7 +5585,8 @@ ocs_hw_get_sfp(ocs_hw_t *hw, uint16_t page, ocs_hw_sfp_cb_t cb, void *arg)
  * @param cb Function call upon completion of sending the data (may be NULL).
  * @param arg Argument to pass to IO completion function.
  *
- * @return Returns OCS_HW_RTN_SUCCESS, OCS_HW_RTN_ERROR, or OCS_HW_RTN_NO_MEMORY.
+ * @return Returns OCS_HW_RTN_SUCCESS, OCS_HW_RTN_ERROR, or
+ * OCS_HW_RTN_NO_MEMORY.
  */
 ocs_hw_rtn_e
 ocs_hw_get_temperature(ocs_hw_t *hw, ocs_hw_temp_cb_t cb, void *arg)
@@ -5351,8 +5612,9 @@ ocs_hw_get_temperature(ocs_hw_t *hw, ocs_hw_temp_cb_t cb, void *arg)
 	cb_arg->arg = arg;
 
 	if (sli_cmd_dump_type4(&hw->sli, mbxdata, SLI4_BMBX_SIZE,
-				SLI4_WKI_TAG_SAT_TEM)) {
-		rc = ocs_hw_command(hw, mbxdata, OCS_CMD_NOWAIT, ocs_hw_cb_temp, cb_arg);
+		SLI4_WKI_TAG_SAT_TEM)) {
+		rc = ocs_hw_command(hw, mbxdata, OCS_CMD_NOWAIT, ocs_hw_cb_temp,
+		    cb_arg);
 	}
 
 	if (rc != OCS_HW_RTN_SUCCESS) {
@@ -5368,24 +5630,26 @@ ocs_hw_get_temperature(ocs_hw_t *hw, ocs_hw_temp_cb_t cb, void *arg)
  * @brief Called when the DUMP command completes.
  *
  * @par Description
- * Get the temperature data out of the response, free the mailbox that was malloc'd
- * by ocs_hw_get_temperature(), then call the callback and pass the status and data.
+ * Get the temperature data out of the response, free the mailbox that was
+ * malloc'd by ocs_hw_get_temperature(), then call the callback and pass the
+ * status and data.
  *
  * @param hw Hardware context.
  * @param status Status field from the mbox completion.
  * @param mqe Mailbox response structure.
- * @param arg Pointer to a callback function that signals the caller that the command is done.
- * The callback function prototype is defined by ocs_hw_temp_cb_t.
+ * @param arg Pointer to a callback function that signals the caller that the
+ * command is done. The callback function prototype is defined by
+ * ocs_hw_temp_cb_t.
  *
  * @return Returns 0.
  */
 static int32_t
-ocs_hw_cb_temp(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void  *arg)
+ocs_hw_cb_temp(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 {
 
-	sli4_cmd_dump4_t* mbox_rsp = (sli4_cmd_dump4_t*) mqe;
+	sli4_cmd_dump4_t *mbox_rsp = (sli4_cmd_dump4_t *)mqe;
 	ocs_hw_temp_cb_arg_t *cb_arg = arg;
-	uint32_t curr_temp = mbox_rsp->resp_data[0]; /* word 5 */
+	uint32_t curr_temp = mbox_rsp->resp_data[0];	     /* word 5 */
 	uint32_t crit_temp_thrshld = mbox_rsp->resp_data[1]; /* word 6*/
 	uint32_t warn_temp_thrshld = mbox_rsp->resp_data[2]; /* word 7 */
 	uint32_t norm_temp_thrshld = mbox_rsp->resp_data[3]; /* word 8 */
@@ -5397,14 +5661,9 @@ ocs_hw_cb_temp(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void  *arg)
 			if ((status == 0) && mbox_rsp->hdr.status) {
 				status = mbox_rsp->hdr.status;
 			}
-			cb_arg->cb(status,
-				   curr_temp,
-				   crit_temp_thrshld,
-				   warn_temp_thrshld,
-				   norm_temp_thrshld,
-				   fan_off_thrshld,
-				   fan_on_thrshld,
-				   cb_arg->arg);
+			cb_arg->cb(status, curr_temp, crit_temp_thrshld,
+			    warn_temp_thrshld, norm_temp_thrshld,
+			    fan_off_thrshld, fan_on_thrshld, cb_arg->arg);
 		}
 
 		ocs_free(hw->os, cb_arg, sizeof(ocs_hw_temp_cb_arg_t));
@@ -5418,21 +5677,20 @@ ocs_hw_cb_temp(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void  *arg)
  * @brief Function to retrieve the link statistics.
  *
  * @param hw Hardware context.
- * @param req_ext_counters If TRUE, then the extended counters will be requested.
+ * @param req_ext_counters If TRUE, then the extended counters will be
+ * requested.
  * @param clear_overflow_flags If TRUE, then overflow flags will be cleared.
  * @param clear_all_counters If TRUE, the counters will be cleared.
  * @param cb Function call upon completion of sending the data (may be NULL).
  * @param arg Argument to pass to IO completion function.
  *
- * @return Returns OCS_HW_RTN_SUCCESS, OCS_HW_RTN_ERROR, or OCS_HW_RTN_NO_MEMORY.
+ * @return Returns OCS_HW_RTN_SUCCESS, OCS_HW_RTN_ERROR, or
+ * OCS_HW_RTN_NO_MEMORY.
  */
 ocs_hw_rtn_e
-ocs_hw_get_link_stats(ocs_hw_t *hw,
-			uint8_t req_ext_counters,
-			uint8_t clear_overflow_flags,
-			uint8_t clear_all_counters,
-			ocs_hw_link_stat_cb_t cb,
-			void *arg)
+ocs_hw_get_link_stats(ocs_hw_t *hw, uint8_t req_ext_counters,
+    uint8_t clear_overflow_flags, uint8_t clear_all_counters,
+    ocs_hw_link_stat_cb_t cb, void *arg)
 {
 	ocs_hw_rtn_e rc = OCS_HW_RTN_ERROR;
 	ocs_hw_link_stat_cb_arg_t *cb_arg;
@@ -5444,7 +5702,8 @@ ocs_hw_get_link_stats(ocs_hw_t *hw,
 		return OCS_HW_RTN_NO_MEMORY;
 	}
 
-	cb_arg = ocs_malloc(hw->os, sizeof(ocs_hw_link_stat_cb_arg_t), OCS_M_NOWAIT);
+	cb_arg = ocs_malloc(hw->os, sizeof(ocs_hw_link_stat_cb_arg_t),
+	    OCS_M_NOWAIT);
 	if (cb_arg == NULL) {
 		ocs_log_err(hw->os, "failed to malloc cb_arg");
 		ocs_free(hw->os, mbxdata, SLI4_BMBX_SIZE);
@@ -5455,10 +5714,9 @@ ocs_hw_get_link_stats(ocs_hw_t *hw,
 	cb_arg->arg = arg;
 
 	if (sli_cmd_read_link_stats(&hw->sli, mbxdata, SLI4_BMBX_SIZE,
-				    req_ext_counters,
-				    clear_overflow_flags,
-				    clear_all_counters)) {
-		rc = ocs_hw_command(hw, mbxdata, OCS_CMD_NOWAIT, ocs_hw_cb_link_stat, cb_arg);
+		req_ext_counters, clear_overflow_flags, clear_all_counters)) {
+		rc = ocs_hw_command(hw, mbxdata, OCS_CMD_NOWAIT,
+		    ocs_hw_cb_link_stat, cb_arg);
 	}
 
 	if (rc != OCS_HW_RTN_SUCCESS) {
@@ -5475,79 +5733,108 @@ ocs_hw_get_link_stats(ocs_hw_t *hw,
  *
  * @par Description
  * Get the counters out of the response, free the mailbox that was malloc'd
- * by ocs_hw_get_link_stats(), then call the callback and pass the status and data.
+ * by ocs_hw_get_link_stats(), then call the callback and pass the status and
+ * data.
  *
  * @param hw Hardware context.
  * @param status Status field from the mbox completion.
  * @param mqe Mailbox response structure.
- * @param arg Pointer to a callback function that signals the caller that the command is done.
- * The callback function prototype is defined by ocs_hw_link_stat_cb_t.
+ * @param arg Pointer to a callback function that signals the caller that the
+ * command is done. The callback function prototype is defined by
+ * ocs_hw_link_stat_cb_t.
  *
  * @return Returns 0.
  */
 static int32_t
-ocs_hw_cb_link_stat(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void  *arg)
+ocs_hw_cb_link_stat(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 {
 
-	sli4_cmd_read_link_stats_t* mbox_rsp = (sli4_cmd_read_link_stats_t*) mqe;
+	sli4_cmd_read_link_stats_t *mbox_rsp = (sli4_cmd_read_link_stats_t *)
+	    mqe;
 	ocs_hw_link_stat_cb_arg_t *cb_arg = arg;
 	ocs_hw_link_stat_counts_t counts[OCS_HW_LINK_STAT_MAX];
 	uint32_t num_counters = (mbox_rsp->gec ? 20 : 13);
 
-	ocs_memset(counts, 0, sizeof(ocs_hw_link_stat_counts_t) *
-		   OCS_HW_LINK_STAT_MAX);
+	ocs_memset(counts, 0,
+	    sizeof(ocs_hw_link_stat_counts_t) * OCS_HW_LINK_STAT_MAX);
 
 	counts[OCS_HW_LINK_STAT_LINK_FAILURE_COUNT].overflow = mbox_rsp->w02of;
 	counts[OCS_HW_LINK_STAT_LOSS_OF_SYNC_COUNT].overflow = mbox_rsp->w03of;
-	counts[OCS_HW_LINK_STAT_LOSS_OF_SIGNAL_COUNT].overflow = mbox_rsp->w04of;
+	counts[OCS_HW_LINK_STAT_LOSS_OF_SIGNAL_COUNT].overflow =
+	    mbox_rsp->w04of;
 	counts[OCS_HW_LINK_STAT_PRIMITIVE_SEQ_COUNT].overflow = mbox_rsp->w05of;
-	counts[OCS_HW_LINK_STAT_INVALID_XMIT_WORD_COUNT].overflow = mbox_rsp->w06of;
+	counts[OCS_HW_LINK_STAT_INVALID_XMIT_WORD_COUNT].overflow =
+	    mbox_rsp->w06of;
 	counts[OCS_HW_LINK_STAT_CRC_COUNT].overflow = mbox_rsp->w07of;
-	counts[OCS_HW_LINK_STAT_PRIMITIVE_SEQ_TIMEOUT_COUNT].overflow = mbox_rsp->w08of;
-	counts[OCS_HW_LINK_STAT_ELASTIC_BUFFER_OVERRUN_COUNT].overflow = mbox_rsp->w09of;
+	counts[OCS_HW_LINK_STAT_PRIMITIVE_SEQ_TIMEOUT_COUNT].overflow =
+	    mbox_rsp->w08of;
+	counts[OCS_HW_LINK_STAT_ELASTIC_BUFFER_OVERRUN_COUNT].overflow =
+	    mbox_rsp->w09of;
 	counts[OCS_HW_LINK_STAT_ARB_TIMEOUT_COUNT].overflow = mbox_rsp->w10of;
-	counts[OCS_HW_LINK_STAT_ADVERTISED_RCV_B2B_CREDIT].overflow = mbox_rsp->w11of;
+	counts[OCS_HW_LINK_STAT_ADVERTISED_RCV_B2B_CREDIT].overflow =
+	    mbox_rsp->w11of;
 	counts[OCS_HW_LINK_STAT_CURR_RCV_B2B_CREDIT].overflow = mbox_rsp->w12of;
-	counts[OCS_HW_LINK_STAT_ADVERTISED_XMIT_B2B_CREDIT].overflow = mbox_rsp->w13of;
-	counts[OCS_HW_LINK_STAT_CURR_XMIT_B2B_CREDIT].overflow = mbox_rsp->w14of;
+	counts[OCS_HW_LINK_STAT_ADVERTISED_XMIT_B2B_CREDIT].overflow =
+	    mbox_rsp->w13of;
+	counts[OCS_HW_LINK_STAT_CURR_XMIT_B2B_CREDIT].overflow =
+	    mbox_rsp->w14of;
 	counts[OCS_HW_LINK_STAT_RCV_EOFA_COUNT].overflow = mbox_rsp->w15of;
 	counts[OCS_HW_LINK_STAT_RCV_EOFDTI_COUNT].overflow = mbox_rsp->w16of;
 	counts[OCS_HW_LINK_STAT_RCV_EOFNI_COUNT].overflow = mbox_rsp->w17of;
 	counts[OCS_HW_LINK_STAT_RCV_SOFF_COUNT].overflow = mbox_rsp->w18of;
-	counts[OCS_HW_LINK_STAT_RCV_DROPPED_NO_AER_COUNT].overflow = mbox_rsp->w19of;
-	counts[OCS_HW_LINK_STAT_RCV_DROPPED_NO_RPI_COUNT].overflow = mbox_rsp->w20of;
-	counts[OCS_HW_LINK_STAT_RCV_DROPPED_NO_XRI_COUNT].overflow = mbox_rsp->w21of;
+	counts[OCS_HW_LINK_STAT_RCV_DROPPED_NO_AER_COUNT].overflow =
+	    mbox_rsp->w19of;
+	counts[OCS_HW_LINK_STAT_RCV_DROPPED_NO_RPI_COUNT].overflow =
+	    mbox_rsp->w20of;
+	counts[OCS_HW_LINK_STAT_RCV_DROPPED_NO_XRI_COUNT].overflow =
+	    mbox_rsp->w21of;
 
-	counts[OCS_HW_LINK_STAT_LINK_FAILURE_COUNT].counter = mbox_rsp->link_failure_error_count;
-	counts[OCS_HW_LINK_STAT_LOSS_OF_SYNC_COUNT].counter = mbox_rsp->loss_of_sync_error_count;
-	counts[OCS_HW_LINK_STAT_LOSS_OF_SIGNAL_COUNT].counter = mbox_rsp->loss_of_signal_error_count;
-	counts[OCS_HW_LINK_STAT_PRIMITIVE_SEQ_COUNT].counter = mbox_rsp->primitive_sequence_error_count;
-	counts[OCS_HW_LINK_STAT_INVALID_XMIT_WORD_COUNT].counter = mbox_rsp->invalid_transmission_word_error_count;
+	counts[OCS_HW_LINK_STAT_LINK_FAILURE_COUNT].counter =
+	    mbox_rsp->link_failure_error_count;
+	counts[OCS_HW_LINK_STAT_LOSS_OF_SYNC_COUNT].counter =
+	    mbox_rsp->loss_of_sync_error_count;
+	counts[OCS_HW_LINK_STAT_LOSS_OF_SIGNAL_COUNT].counter =
+	    mbox_rsp->loss_of_signal_error_count;
+	counts[OCS_HW_LINK_STAT_PRIMITIVE_SEQ_COUNT].counter =
+	    mbox_rsp->primitive_sequence_error_count;
+	counts[OCS_HW_LINK_STAT_INVALID_XMIT_WORD_COUNT].counter =
+	    mbox_rsp->invalid_transmission_word_error_count;
 	counts[OCS_HW_LINK_STAT_CRC_COUNT].counter = mbox_rsp->crc_error_count;
-	counts[OCS_HW_LINK_STAT_PRIMITIVE_SEQ_TIMEOUT_COUNT].counter = mbox_rsp->primitive_sequence_event_timeout_count;
-	counts[OCS_HW_LINK_STAT_ELASTIC_BUFFER_OVERRUN_COUNT].counter = mbox_rsp->elastic_buffer_overrun_error_count;
-	counts[OCS_HW_LINK_STAT_ARB_TIMEOUT_COUNT].counter = mbox_rsp->arbitration_fc_al_timout_count;
-	counts[OCS_HW_LINK_STAT_ADVERTISED_RCV_B2B_CREDIT].counter = mbox_rsp->advertised_receive_bufftor_to_buffer_credit;
-	counts[OCS_HW_LINK_STAT_CURR_RCV_B2B_CREDIT].counter = mbox_rsp->current_receive_buffer_to_buffer_credit;
-	counts[OCS_HW_LINK_STAT_ADVERTISED_XMIT_B2B_CREDIT].counter = mbox_rsp->advertised_transmit_buffer_to_buffer_credit;
-	counts[OCS_HW_LINK_STAT_CURR_XMIT_B2B_CREDIT].counter = mbox_rsp->current_transmit_buffer_to_buffer_credit;
-	counts[OCS_HW_LINK_STAT_RCV_EOFA_COUNT].counter = mbox_rsp->received_eofa_count;
-	counts[OCS_HW_LINK_STAT_RCV_EOFDTI_COUNT].counter = mbox_rsp->received_eofdti_count;
-	counts[OCS_HW_LINK_STAT_RCV_EOFNI_COUNT].counter = mbox_rsp->received_eofni_count;
-	counts[OCS_HW_LINK_STAT_RCV_SOFF_COUNT].counter = mbox_rsp->received_soff_count;
-	counts[OCS_HW_LINK_STAT_RCV_DROPPED_NO_AER_COUNT].counter = mbox_rsp->received_dropped_no_aer_count;
-	counts[OCS_HW_LINK_STAT_RCV_DROPPED_NO_RPI_COUNT].counter = mbox_rsp->received_dropped_no_available_rpi_resources_count;
-	counts[OCS_HW_LINK_STAT_RCV_DROPPED_NO_XRI_COUNT].counter = mbox_rsp->received_dropped_no_available_xri_resources_count;
+	counts[OCS_HW_LINK_STAT_PRIMITIVE_SEQ_TIMEOUT_COUNT].counter =
+	    mbox_rsp->primitive_sequence_event_timeout_count;
+	counts[OCS_HW_LINK_STAT_ELASTIC_BUFFER_OVERRUN_COUNT].counter =
+	    mbox_rsp->elastic_buffer_overrun_error_count;
+	counts[OCS_HW_LINK_STAT_ARB_TIMEOUT_COUNT].counter =
+	    mbox_rsp->arbitration_fc_al_timout_count;
+	counts[OCS_HW_LINK_STAT_ADVERTISED_RCV_B2B_CREDIT].counter =
+	    mbox_rsp->advertised_receive_bufftor_to_buffer_credit;
+	counts[OCS_HW_LINK_STAT_CURR_RCV_B2B_CREDIT].counter =
+	    mbox_rsp->current_receive_buffer_to_buffer_credit;
+	counts[OCS_HW_LINK_STAT_ADVERTISED_XMIT_B2B_CREDIT].counter =
+	    mbox_rsp->advertised_transmit_buffer_to_buffer_credit;
+	counts[OCS_HW_LINK_STAT_CURR_XMIT_B2B_CREDIT].counter =
+	    mbox_rsp->current_transmit_buffer_to_buffer_credit;
+	counts[OCS_HW_LINK_STAT_RCV_EOFA_COUNT].counter =
+	    mbox_rsp->received_eofa_count;
+	counts[OCS_HW_LINK_STAT_RCV_EOFDTI_COUNT].counter =
+	    mbox_rsp->received_eofdti_count;
+	counts[OCS_HW_LINK_STAT_RCV_EOFNI_COUNT].counter =
+	    mbox_rsp->received_eofni_count;
+	counts[OCS_HW_LINK_STAT_RCV_SOFF_COUNT].counter =
+	    mbox_rsp->received_soff_count;
+	counts[OCS_HW_LINK_STAT_RCV_DROPPED_NO_AER_COUNT].counter =
+	    mbox_rsp->received_dropped_no_aer_count;
+	counts[OCS_HW_LINK_STAT_RCV_DROPPED_NO_RPI_COUNT].counter =
+	    mbox_rsp->received_dropped_no_available_rpi_resources_count;
+	counts[OCS_HW_LINK_STAT_RCV_DROPPED_NO_XRI_COUNT].counter =
+	    mbox_rsp->received_dropped_no_available_xri_resources_count;
 
 	if (cb_arg) {
 		if (cb_arg->cb) {
 			if ((status == 0) && mbox_rsp->hdr.status) {
 				status = mbox_rsp->hdr.status;
 			}
-			cb_arg->cb(status,
-				   num_counters,
-				   counts,
-				   cb_arg->arg);
+			cb_arg->cb(status, num_counters, counts, cb_arg->arg);
 		}
 
 		ocs_free(hw->os, cb_arg, sizeof(ocs_hw_link_stat_cb_arg_t));
@@ -5565,10 +5852,12 @@ ocs_hw_cb_link_stat(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void  *arg)
  * @param cb Function call upon completion of receiving the data.
  * @param arg Argument to pass to pointer fc hosts statistics structure.
  *
- * @return Returns OCS_HW_RTN_SUCCESS, OCS_HW_RTN_ERROR, or OCS_HW_RTN_NO_MEMORY.
+ * @return Returns OCS_HW_RTN_SUCCESS, OCS_HW_RTN_ERROR, or
+ * OCS_HW_RTN_NO_MEMORY.
  */
 ocs_hw_rtn_e
-ocs_hw_get_host_stats(ocs_hw_t *hw, uint8_t cc, ocs_hw_host_stat_cb_t cb, void *arg)
+ocs_hw_get_host_stats(ocs_hw_t *hw, uint8_t cc, ocs_hw_host_stat_cb_t cb,
+    void *arg)
 {
 	ocs_hw_rtn_e rc = OCS_HW_RTN_ERROR;
 	ocs_hw_host_stat_cb_arg_t *cb_arg;
@@ -5585,14 +5874,15 @@ ocs_hw_get_host_stats(ocs_hw_t *hw, uint8_t cc, ocs_hw_host_stat_cb_t cb, void *
 		ocs_log_err(hw->os, "failed to malloc cb_arg");
 		ocs_free(hw->os, mbxdata, SLI4_BMBX_SIZE);
 		return OCS_HW_RTN_NO_MEMORY;
-	 }
+	}
 
-	 cb_arg->cb = cb;
-	 cb_arg->arg = arg;
+	cb_arg->cb = cb;
+	cb_arg->arg = arg;
 
-	 /* Send the HW command to get the host stats */
+	/* Send the HW command to get the host stats */
 	if (sli_cmd_read_status(&hw->sli, mbxdata, SLI4_BMBX_SIZE, cc)) {
-		 rc = ocs_hw_command(hw, mbxdata, OCS_CMD_NOWAIT, ocs_hw_cb_host_stat, cb_arg);
+		rc = ocs_hw_command(hw, mbxdata, OCS_CMD_NOWAIT,
+		    ocs_hw_cb_host_stat, cb_arg);
 	}
 
 	if (rc != OCS_HW_RTN_SUCCESS) {
@@ -5615,48 +5905,59 @@ ocs_hw_get_host_stats(ocs_hw_t *hw, uint8_t cc, ocs_hw_host_stat_cb_t cb, void *
  * @param hw Hardware context.
  * @param status Status field from the mbox completion.
  * @param mqe Mailbox response structure.
- * @param arg Pointer to a callback function that signals the caller that the command is done.
- * The callback function prototype is defined by
+ * @param arg Pointer to a callback function that signals the caller that the
+ * command is done. The callback function prototype is defined by
  * ocs_hw_host_stat_cb_t.
  *
  * @return Returns 0.
  */
 static int32_t
-ocs_hw_cb_host_stat(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void  *arg)
+ocs_hw_cb_host_stat(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 {
 
-	sli4_cmd_read_status_t* mbox_rsp = (sli4_cmd_read_status_t*) mqe;
+	sli4_cmd_read_status_t *mbox_rsp = (sli4_cmd_read_status_t *)mqe;
 	ocs_hw_host_stat_cb_arg_t *cb_arg = arg;
 	ocs_hw_host_stat_counts_t counts[OCS_HW_HOST_STAT_MAX];
 	uint32_t num_counters = OCS_HW_HOST_STAT_MAX;
 
-	ocs_memset(counts, 0, sizeof(ocs_hw_host_stat_counts_t) *
-		   OCS_HW_HOST_STAT_MAX);
+	ocs_memset(counts, 0,
+	    sizeof(ocs_hw_host_stat_counts_t) * OCS_HW_HOST_STAT_MAX);
 
-	counts[OCS_HW_HOST_STAT_TX_KBYTE_COUNT].counter = mbox_rsp->transmit_kbyte_count;
-	counts[OCS_HW_HOST_STAT_RX_KBYTE_COUNT].counter = mbox_rsp->receive_kbyte_count;
-	counts[OCS_HW_HOST_STAT_TX_FRAME_COUNT].counter = mbox_rsp->transmit_frame_count;
-	counts[OCS_HW_HOST_STAT_RX_FRAME_COUNT].counter = mbox_rsp->receive_frame_count;
-	counts[OCS_HW_HOST_STAT_TX_SEQ_COUNT].counter = mbox_rsp->transmit_sequence_count;
-	counts[OCS_HW_HOST_STAT_RX_SEQ_COUNT].counter = mbox_rsp->receive_sequence_count;
-	counts[OCS_HW_HOST_STAT_TOTAL_EXCH_ORIG].counter = mbox_rsp->total_exchanges_originator;
-	counts[OCS_HW_HOST_STAT_TOTAL_EXCH_RESP].counter = mbox_rsp->total_exchanges_responder;
-	counts[OCS_HW_HOSY_STAT_RX_P_BSY_COUNT].counter = mbox_rsp->receive_p_bsy_count;
-	counts[OCS_HW_HOST_STAT_RX_F_BSY_COUNT].counter = mbox_rsp->receive_f_bsy_count;
-	counts[OCS_HW_HOST_STAT_DROP_FRM_DUE_TO_NO_RQ_BUF_COUNT].counter = mbox_rsp->dropped_frames_due_to_no_rq_buffer_count;
-	counts[OCS_HW_HOST_STAT_EMPTY_RQ_TIMEOUT_COUNT].counter = mbox_rsp->empty_rq_timeout_count;
-	counts[OCS_HW_HOST_STAT_DROP_FRM_DUE_TO_NO_XRI_COUNT].counter = mbox_rsp->dropped_frames_due_to_no_xri_count;
-	counts[OCS_HW_HOST_STAT_EMPTY_XRI_POOL_COUNT].counter = mbox_rsp->empty_xri_pool_count;
+	counts[OCS_HW_HOST_STAT_TX_KBYTE_COUNT].counter =
+	    mbox_rsp->transmit_kbyte_count;
+	counts[OCS_HW_HOST_STAT_RX_KBYTE_COUNT].counter =
+	    mbox_rsp->receive_kbyte_count;
+	counts[OCS_HW_HOST_STAT_TX_FRAME_COUNT].counter =
+	    mbox_rsp->transmit_frame_count;
+	counts[OCS_HW_HOST_STAT_RX_FRAME_COUNT].counter =
+	    mbox_rsp->receive_frame_count;
+	counts[OCS_HW_HOST_STAT_TX_SEQ_COUNT].counter =
+	    mbox_rsp->transmit_sequence_count;
+	counts[OCS_HW_HOST_STAT_RX_SEQ_COUNT].counter =
+	    mbox_rsp->receive_sequence_count;
+	counts[OCS_HW_HOST_STAT_TOTAL_EXCH_ORIG].counter =
+	    mbox_rsp->total_exchanges_originator;
+	counts[OCS_HW_HOST_STAT_TOTAL_EXCH_RESP].counter =
+	    mbox_rsp->total_exchanges_responder;
+	counts[OCS_HW_HOSY_STAT_RX_P_BSY_COUNT].counter =
+	    mbox_rsp->receive_p_bsy_count;
+	counts[OCS_HW_HOST_STAT_RX_F_BSY_COUNT].counter =
+	    mbox_rsp->receive_f_bsy_count;
+	counts[OCS_HW_HOST_STAT_DROP_FRM_DUE_TO_NO_RQ_BUF_COUNT].counter =
+	    mbox_rsp->dropped_frames_due_to_no_rq_buffer_count;
+	counts[OCS_HW_HOST_STAT_EMPTY_RQ_TIMEOUT_COUNT].counter =
+	    mbox_rsp->empty_rq_timeout_count;
+	counts[OCS_HW_HOST_STAT_DROP_FRM_DUE_TO_NO_XRI_COUNT].counter =
+	    mbox_rsp->dropped_frames_due_to_no_xri_count;
+	counts[OCS_HW_HOST_STAT_EMPTY_XRI_POOL_COUNT].counter =
+	    mbox_rsp->empty_xri_pool_count;
 
 	if (cb_arg) {
 		if (cb_arg->cb) {
 			if ((status == 0) && mbox_rsp->hdr.status) {
 				status = mbox_rsp->hdr.status;
 			}
-			cb_arg->cb(status,
-				   num_counters,
-				   counts,
-				   cb_arg->arg);
+			cb_arg->cb(status, num_counters, counts, cb_arg->arg);
 		}
 
 		ocs_free(hw->os, cb_arg, sizeof(ocs_hw_host_stat_cb_arg_t));
@@ -5683,14 +5984,14 @@ typedef struct ocs_hw_linkcfg_map_s {
  * @brief Mapping from the HW linkcfg enum to the CLP command value
  * string.
  */
-static ocs_hw_linkcfg_map_t linkcfg_map[] = {
-	{OCS_HW_LINKCFG_4X10G, "ELX_4x10G"},
-	{OCS_HW_LINKCFG_1X40G, "ELX_1x40G"},
-	{OCS_HW_LINKCFG_2X16G, "ELX_2x16G"},
-	{OCS_HW_LINKCFG_4X8G, "ELX_4x8G"},
-	{OCS_HW_LINKCFG_4X1G, "ELX_4x1G"},
-	{OCS_HW_LINKCFG_2X10G, "ELX_2x10G"},
-	{OCS_HW_LINKCFG_2X10G_2X8G, "ELX_2x10G_2x8G"}};
+static ocs_hw_linkcfg_map_t linkcfg_map[] = { { OCS_HW_LINKCFG_4X10G,
+						  "ELX_4x10G" },
+	{ OCS_HW_LINKCFG_1X40G, "ELX_1x40G" },
+	{ OCS_HW_LINKCFG_2X16G, "ELX_2x16G" },
+	{ OCS_HW_LINKCFG_4X8G, "ELX_4x8G" },
+	{ OCS_HW_LINKCFG_4X1G, "ELX_4x1G" },
+	{ OCS_HW_LINKCFG_2X10G, "ELX_2x10G" },
+	{ OCS_HW_LINKCFG_2X10G_2X8G, "ELX_2x10G_2x8G" } };
 
 /**
  * @brief HW link configuration enum to Skyhawk link config ID mapping.
@@ -5701,15 +6002,15 @@ static ocs_hw_linkcfg_map_t linkcfg_map[] = {
  */
 typedef struct ocs_hw_skyhawk_linkcfg_map_s {
 	ocs_hw_linkcfg_e linkcfg;
-	uint32_t	config_id;
+	uint32_t config_id;
 } ocs_hw_skyhawk_linkcfg_map_t;
 
 /**
  * @brief Mapping from the HW linkcfg enum to the Skyhawk link config IDs
  */
 static ocs_hw_skyhawk_linkcfg_map_t skyhawk_linkcfg_map[] = {
-	{OCS_HW_LINKCFG_4X10G, 0x0a},
-	{OCS_HW_LINKCFG_1X40G, 0x09},
+	{ OCS_HW_LINKCFG_4X10G, 0x0a },
+	{ OCS_HW_LINKCFG_1X40G, 0x09 },
 };
 
 /**
@@ -5725,7 +6026,8 @@ ocs_hw_linkcfg_from_clp(const char *clp_str)
 {
 	uint32_t i;
 	for (i = 0; i < ARRAY_SIZE(linkcfg_map); i++) {
-		if (ocs_strncmp(linkcfg_map[i].clp_str, clp_str, ocs_strlen(clp_str)) == 0) {
+		if (ocs_strncmp(linkcfg_map[i].clp_str, clp_str,
+			ocs_strlen(clp_str)) == 0) {
 			return linkcfg_map[i].linkcfg;
 		}
 	}
@@ -5820,7 +6122,8 @@ typedef struct ocs_hw_linkcfg_cb_arg_s {
  * @return Returns OCS_HW_RTN_SUCCESS on success.
  */
 static ocs_hw_rtn_e
-ocs_hw_set_linkcfg(ocs_hw_t *hw, ocs_hw_linkcfg_e value, uint32_t opts, ocs_hw_port_control_cb_t cb, void *arg)
+ocs_hw_set_linkcfg(ocs_hw_t *hw, ocs_hw_linkcfg_e value, uint32_t opts,
+    ocs_hw_port_control_cb_t cb, void *arg)
 {
 	if (!sli_link_is_configurable(&hw->sli)) {
 		ocs_log_debug(hw->os, "Function not supported\n");
@@ -5830,10 +6133,11 @@ ocs_hw_set_linkcfg(ocs_hw_t *hw, ocs_hw_linkcfg_e value, uint32_t opts, ocs_hw_p
 	if (SLI4_IF_TYPE_LANCER_FC_ETH == sli_get_if_type(&hw->sli)) {
 		return ocs_hw_set_linkcfg_lancer(hw, value, opts, cb, arg);
 	} else if ((SLI4_IF_TYPE_BE3_SKH_PF == sli_get_if_type(&hw->sli)) ||
-		   (SLI4_IF_TYPE_BE3_SKH_VF == sli_get_if_type(&hw->sli))) {
+	    (SLI4_IF_TYPE_BE3_SKH_VF == sli_get_if_type(&hw->sli))) {
 		return ocs_hw_set_linkcfg_skyhawk(hw, value, opts, cb, arg);
 	} else {
-		ocs_log_test(hw->os, "Function not supported for this IF_TYPE\n");
+		ocs_log_test(hw->os,
+		    "Function not supported for this IF_TYPE\n");
 		return OCS_HW_RTN_ERROR;
 	}
 }
@@ -5851,7 +6155,8 @@ ocs_hw_set_linkcfg(ocs_hw_t *hw, ocs_hw_linkcfg_e value, uint32_t opts, ocs_hw_p
  * @return Returns OCS_HW_RTN_SUCCESS on success.
  */
 static ocs_hw_rtn_e
-ocs_hw_set_linkcfg_lancer(ocs_hw_t *hw, ocs_hw_linkcfg_e value, uint32_t opts, ocs_hw_port_control_cb_t cb, void *arg)
+ocs_hw_set_linkcfg_lancer(ocs_hw_t *hw, ocs_hw_linkcfg_e value, uint32_t opts,
+    ocs_hw_port_control_cb_t cb, void *arg)
 {
 	char cmd[OCS_HW_DMTF_CLP_CMD_MAX];
 	ocs_hw_linkcfg_cb_arg_t *cb_arg;
@@ -5868,18 +6173,21 @@ ocs_hw_set_linkcfg_lancer(ocs_hw_t *hw, ocs_hw_linkcfg_e value, uint32_t opts, o
 		return OCS_HW_RTN_NO_MEMORY;
 	}
 
-	ocs_snprintf(cmd, OCS_HW_DMTF_CLP_CMD_MAX, "set / OEMELX_LinkConfig=%s", value_str);
+	ocs_snprintf(cmd, OCS_HW_DMTF_CLP_CMD_MAX, "set / OEMELX_LinkConfig=%s",
+	    value_str);
 	/* allocate DMA for command  */
-	if (ocs_dma_alloc(hw->os, &cb_arg->dma_cmd, ocs_strlen(cmd)+1, 4096)) {
+	if (ocs_dma_alloc(hw->os, &cb_arg->dma_cmd, ocs_strlen(cmd) + 1,
+		4096)) {
 		ocs_log_err(hw->os, "malloc failed\n");
 		ocs_free(hw->os, cb_arg, sizeof(*cb_arg));
 		return OCS_HW_RTN_NO_MEMORY;
 	}
-	ocs_memset(cb_arg->dma_cmd.virt, 0, ocs_strlen(cmd)+1);
+	ocs_memset(cb_arg->dma_cmd.virt, 0, ocs_strlen(cmd) + 1);
 	ocs_memcpy(cb_arg->dma_cmd.virt, cmd, ocs_strlen(cmd));
 
 	/* allocate DMA for response */
-	if (ocs_dma_alloc(hw->os, &cb_arg->dma_resp, OCS_HW_DMTF_CLP_RSP_MAX, 4096)) {
+	if (ocs_dma_alloc(hw->os, &cb_arg->dma_resp, OCS_HW_DMTF_CLP_RSP_MAX,
+		4096)) {
 		ocs_log_err(hw->os, "malloc failed\n");
 		ocs_dma_free(hw->os, &cb_arg->dma_cmd);
 		ocs_free(hw->os, cb_arg, sizeof(*cb_arg));
@@ -5890,7 +6198,7 @@ ocs_hw_set_linkcfg_lancer(ocs_hw_t *hw, ocs_hw_linkcfg_e value, uint32_t opts, o
 	cb_arg->opts = opts;
 
 	rc = ocs_hw_exec_dmtf_clp_cmd(hw, &cb_arg->dma_cmd, &cb_arg->dma_resp,
-					opts, ocs_hw_linkcfg_dmtf_clp_cb, cb_arg);
+	    opts, ocs_hw_linkcfg_dmtf_clp_cb, cb_arg);
 
 	if (opts == OCS_CMD_POLL || rc != OCS_HW_RTN_SUCCESS) {
 		/* if failed, or polling, free memory here; if success and not
@@ -5898,7 +6206,7 @@ ocs_hw_set_linkcfg_lancer(ocs_hw_t *hw, ocs_hw_linkcfg_e value, uint32_t opts, o
 		 */
 		if (rc) {
 			ocs_log_test(hw->os, "CLP cmd=\"%s\" failed\n",
-					(char *)cb_arg->dma_cmd.virt);
+			    (char *)cb_arg->dma_cmd.virt);
 		}
 		ocs_dma_free(hw->os, &cb_arg->dma_cmd);
 		ocs_dma_free(hw->os, &cb_arg->dma_resp);
@@ -5918,12 +6226,14 @@ ocs_hw_set_linkcfg_lancer(ocs_hw_t *hw, ocs_hw_linkcfg_e value, uint32_t opts, o
  * @return none
  */
 static void
-ocs_hw_set_active_link_config_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void  *arg)
+ocs_hw_set_active_link_config_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe,
+    void *arg)
 {
 	ocs_hw_linkcfg_cb_arg_t *cb_arg = (ocs_hw_linkcfg_cb_arg_t *)arg;
 
 	if (status) {
-		ocs_log_test(hw->os, "SET_RECONFIG_LINK_ID failed, status=%d\n", status);
+		ocs_log_test(hw->os, "SET_RECONFIG_LINK_ID failed, status=%d\n",
+		    status);
 	}
 
 	/* invoke callback */
@@ -5950,7 +6260,8 @@ ocs_hw_set_active_link_config_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, voi
  * @return Returns OCS_HW_RTN_SUCCESS on success.
  */
 static ocs_hw_rtn_e
-ocs_hw_set_linkcfg_skyhawk(ocs_hw_t *hw, ocs_hw_linkcfg_e value, uint32_t opts, ocs_hw_port_control_cb_t cb, void *arg)
+ocs_hw_set_linkcfg_skyhawk(ocs_hw_t *hw, ocs_hw_linkcfg_e value, uint32_t opts,
+    ocs_hw_port_control_cb_t cb, void *arg)
 {
 	uint8_t *mbxdata;
 	ocs_hw_linkcfg_cb_arg_t *cb_arg;
@@ -5960,7 +6271,8 @@ ocs_hw_set_linkcfg_skyhawk(ocs_hw_t *hw, ocs_hw_linkcfg_e value, uint32_t opts, 
 	config_id = ocs_hw_config_id_from_linkcfg(value);
 
 	if (config_id == 0) {
-		ocs_log_test(hw->os, "Link config %d not supported by Skyhawk\n", value);
+		ocs_log_test(hw->os,
+		    "Link config %d not supported by Skyhawk\n", value);
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -5971,8 +6283,10 @@ ocs_hw_set_linkcfg_skyhawk(ocs_hw_t *hw, ocs_hw_linkcfg_e value, uint32_t opts, 
 		return OCS_HW_RTN_NO_MEMORY;
 	}
 
-	/* cb_arg holds the data that will be passed to the callback on completion */
-	cb_arg = ocs_malloc(hw->os, sizeof(ocs_hw_linkcfg_cb_arg_t), OCS_M_NOWAIT);
+	/* cb_arg holds the data that will be passed to the callback on
+	 * completion */
+	cb_arg = ocs_malloc(hw->os, sizeof(ocs_hw_linkcfg_cb_arg_t),
+	    OCS_M_NOWAIT);
 	if (cb_arg == NULL) {
 		ocs_log_err(hw->os, "failed to malloc cb_arg\n");
 		ocs_free(hw->os, mbxdata, SLI4_BMBX_SIZE);
@@ -5982,8 +6296,10 @@ ocs_hw_set_linkcfg_skyhawk(ocs_hw_t *hw, ocs_hw_linkcfg_e value, uint32_t opts, 
 	cb_arg->cb = cb;
 	cb_arg->arg = arg;
 
-	if (sli_cmd_common_set_reconfig_link_id(&hw->sli, mbxdata, SLI4_BMBX_SIZE, NULL, 0, config_id)) {
-		rc = ocs_hw_command(hw, mbxdata, opts, ocs_hw_set_active_link_config_cb, cb_arg);
+	if (sli_cmd_common_set_reconfig_link_id(&hw->sli, mbxdata,
+		SLI4_BMBX_SIZE, NULL, 0, config_id)) {
+		rc = ocs_hw_command(hw, mbxdata, opts,
+		    ocs_hw_set_active_link_config_cb, cb_arg);
 	}
 
 	if (rc != OCS_HW_RTN_SUCCESS) {
@@ -6014,7 +6330,8 @@ ocs_hw_set_linkcfg_skyhawk(ocs_hw_t *hw, ocs_hw_linkcfg_e value, uint32_t opts, 
  * @return Returns OCS_HW_RTN_SUCCESS on success.
  */
 static ocs_hw_rtn_e
-ocs_hw_get_linkcfg(ocs_hw_t *hw, uint32_t opts, ocs_hw_port_control_cb_t cb, void *arg)
+ocs_hw_get_linkcfg(ocs_hw_t *hw, uint32_t opts, ocs_hw_port_control_cb_t cb,
+    void *arg)
 {
 	if (!sli_link_is_configurable(&hw->sli)) {
 		ocs_log_debug(hw->os, "Function not supported\n");
@@ -6022,13 +6339,14 @@ ocs_hw_get_linkcfg(ocs_hw_t *hw, uint32_t opts, ocs_hw_port_control_cb_t cb, voi
 	}
 
 	if ((SLI4_IF_TYPE_LANCER_FC_ETH == sli_get_if_type(&hw->sli)) ||
-	    (SLI4_IF_TYPE_LANCER_G7 == sli_get_if_type(&hw->sli))){
+	    (SLI4_IF_TYPE_LANCER_G7 == sli_get_if_type(&hw->sli))) {
 		return ocs_hw_get_linkcfg_lancer(hw, opts, cb, arg);
 	} else if ((SLI4_IF_TYPE_BE3_SKH_PF == sli_get_if_type(&hw->sli)) ||
-		   (SLI4_IF_TYPE_BE3_SKH_VF == sli_get_if_type(&hw->sli))) {
+	    (SLI4_IF_TYPE_BE3_SKH_VF == sli_get_if_type(&hw->sli))) {
 		return ocs_hw_get_linkcfg_skyhawk(hw, opts, cb, arg);
 	} else {
-		ocs_log_test(hw->os, "Function not supported for this IF_TYPE\n");
+		ocs_log_test(hw->os,
+		    "Function not supported for this IF_TYPE\n");
 		return OCS_HW_RTN_ERROR;
 	}
 }
@@ -6044,7 +6362,8 @@ ocs_hw_get_linkcfg(ocs_hw_t *hw, uint32_t opts, ocs_hw_port_control_cb_t cb, voi
  * @return Returns OCS_HW_RTN_SUCCESS on success.
  */
 static ocs_hw_rtn_e
-ocs_hw_get_linkcfg_lancer(ocs_hw_t *hw, uint32_t opts, ocs_hw_port_control_cb_t cb, void *arg)
+ocs_hw_get_linkcfg_lancer(ocs_hw_t *hw, uint32_t opts,
+    ocs_hw_port_control_cb_t cb, void *arg)
 {
 	char cmd[OCS_HW_DMTF_CLP_CMD_MAX];
 	ocs_hw_linkcfg_cb_arg_t *cb_arg;
@@ -6060,18 +6379,20 @@ ocs_hw_get_linkcfg_lancer(ocs_hw_t *hw, uint32_t opts, ocs_hw_port_control_cb_t 
 	ocs_snprintf(cmd, OCS_HW_DMTF_CLP_CMD_MAX, "show / OEMELX_LinkConfig");
 
 	/* allocate DMA for command  */
-	if (ocs_dma_alloc(hw->os, &cb_arg->dma_cmd, ocs_strlen(cmd)+1, 4096)) {
+	if (ocs_dma_alloc(hw->os, &cb_arg->dma_cmd, ocs_strlen(cmd) + 1,
+		4096)) {
 		ocs_log_err(hw->os, "malloc failed\n");
 		ocs_free(hw->os, cb_arg, sizeof(*cb_arg));
 		return OCS_HW_RTN_NO_MEMORY;
 	}
 
 	/* copy CLP command to DMA command */
-	ocs_memset(cb_arg->dma_cmd.virt, 0, ocs_strlen(cmd)+1);
+	ocs_memset(cb_arg->dma_cmd.virt, 0, ocs_strlen(cmd) + 1);
 	ocs_memcpy(cb_arg->dma_cmd.virt, cmd, ocs_strlen(cmd));
 
 	/* allocate DMA for response */
-	if (ocs_dma_alloc(hw->os, &cb_arg->dma_resp, OCS_HW_DMTF_CLP_RSP_MAX, 4096)) {
+	if (ocs_dma_alloc(hw->os, &cb_arg->dma_resp, OCS_HW_DMTF_CLP_RSP_MAX,
+		4096)) {
 		ocs_log_err(hw->os, "malloc failed\n");
 		ocs_dma_free(hw->os, &cb_arg->dma_cmd);
 		ocs_free(hw->os, cb_arg, sizeof(*cb_arg));
@@ -6082,15 +6403,15 @@ ocs_hw_get_linkcfg_lancer(ocs_hw_t *hw, uint32_t opts, ocs_hw_port_control_cb_t 
 	cb_arg->opts = opts;
 
 	rc = ocs_hw_exec_dmtf_clp_cmd(hw, &cb_arg->dma_cmd, &cb_arg->dma_resp,
-					opts, ocs_hw_linkcfg_dmtf_clp_cb, cb_arg);
+	    opts, ocs_hw_linkcfg_dmtf_clp_cb, cb_arg);
 
 	if (opts == OCS_CMD_POLL || rc != OCS_HW_RTN_SUCCESS) {
-		/* if failed or polling, free memory here; if not polling and success,
-		 * will free in callback function
+		/* if failed or polling, free memory here; if not polling and
+		 * success, will free in callback function
 		 */
 		if (rc) {
 			ocs_log_test(hw->os, "CLP cmd=\"%s\" failed\n",
-					(char *)cb_arg->dma_cmd.virt);
+			    (char *)cb_arg->dma_cmd.virt);
 		}
 		ocs_dma_free(hw->os, &cb_arg->dma_cmd);
 		ocs_dma_free(hw->os, &cb_arg->dma_resp);
@@ -6110,17 +6431,20 @@ ocs_hw_get_linkcfg_lancer(ocs_hw_t *hw, uint32_t opts, ocs_hw_port_control_cb_t 
  * @return none
  */
 static void
-ocs_hw_get_active_link_config_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void  *arg)
+ocs_hw_get_active_link_config_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe,
+    void *arg)
 {
 	ocs_hw_linkcfg_cb_arg_t *cb_arg = (ocs_hw_linkcfg_cb_arg_t *)arg;
 	sli4_res_common_get_reconfig_link_info_t *rsp = cb_arg->dma_cmd.virt;
 	ocs_hw_linkcfg_e value = OCS_HW_LINKCFG_NA;
 
 	if (status) {
-		ocs_log_test(hw->os, "GET_RECONFIG_LINK_INFO failed, status=%d\n", status);
+		ocs_log_test(hw->os,
+		    "GET_RECONFIG_LINK_INFO failed, status=%d\n", status);
 	} else {
 		/* Call was successful */
-		value = ocs_hw_linkcfg_from_config_id(rsp->active_link_config_id);
+		value = ocs_hw_linkcfg_from_config_id(
+		    rsp->active_link_config_id);
 	}
 
 	/* invoke callback */
@@ -6146,7 +6470,8 @@ ocs_hw_get_active_link_config_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, voi
  * @return Returns OCS_HW_RTN_SUCCESS on success.
  */
 static ocs_hw_rtn_e
-ocs_hw_get_linkcfg_skyhawk(ocs_hw_t *hw, uint32_t opts, ocs_hw_port_control_cb_t cb, void *arg)
+ocs_hw_get_linkcfg_skyhawk(ocs_hw_t *hw, uint32_t opts,
+    ocs_hw_port_control_cb_t cb, void *arg)
 {
 	uint8_t *mbxdata;
 	ocs_hw_linkcfg_cb_arg_t *cb_arg;
@@ -6159,8 +6484,10 @@ ocs_hw_get_linkcfg_skyhawk(ocs_hw_t *hw, uint32_t opts, ocs_hw_port_control_cb_t
 		return OCS_HW_RTN_NO_MEMORY;
 	}
 
-	/* cb_arg holds the data that will be passed to the callback on completion */
-	cb_arg = ocs_malloc(hw->os, sizeof(ocs_hw_linkcfg_cb_arg_t), OCS_M_NOWAIT);
+	/* cb_arg holds the data that will be passed to the callback on
+	 * completion */
+	cb_arg = ocs_malloc(hw->os, sizeof(ocs_hw_linkcfg_cb_arg_t),
+	    OCS_M_NOWAIT);
 	if (cb_arg == NULL) {
 		ocs_log_err(hw->os, "failed to malloc cb_arg\n");
 		ocs_free(hw->os, mbxdata, SLI4_BMBX_SIZE);
@@ -6172,15 +6499,18 @@ ocs_hw_get_linkcfg_skyhawk(ocs_hw_t *hw, uint32_t opts, ocs_hw_port_control_cb_t
 	cb_arg->opts = opts;
 
 	/* dma_mem holds the non-embedded portion */
-	if (ocs_dma_alloc(hw->os, &cb_arg->dma_cmd, sizeof(sli4_res_common_get_reconfig_link_info_t), 4)) {
+	if (ocs_dma_alloc(hw->os, &cb_arg->dma_cmd,
+		sizeof(sli4_res_common_get_reconfig_link_info_t), 4)) {
 		ocs_log_err(hw->os, "Failed to allocate DMA buffer\n");
 		ocs_free(hw->os, mbxdata, SLI4_BMBX_SIZE);
 		ocs_free(hw->os, cb_arg, sizeof(ocs_hw_linkcfg_cb_arg_t));
 		return OCS_HW_RTN_NO_MEMORY;
 	}
 
-	if (sli_cmd_common_get_reconfig_link_info(&hw->sli, mbxdata, SLI4_BMBX_SIZE, &cb_arg->dma_cmd)) {
-		rc = ocs_hw_command(hw, mbxdata, opts, ocs_hw_get_active_link_config_cb, cb_arg);
+	if (sli_cmd_common_get_reconfig_link_info(&hw->sli, mbxdata,
+		SLI4_BMBX_SIZE, &cb_arg->dma_cmd)) {
+		rc = ocs_hw_command(hw, mbxdata, opts,
+		    ocs_hw_get_active_link_config_cb, cb_arg);
 	}
 
 	if (rc != OCS_HW_RTN_SUCCESS) {
@@ -6221,15 +6551,13 @@ ocs_hw_set_dif_seed(ocs_hw_t *hw)
 
 	/* send set_features command */
 	if (sli_cmd_common_set_features(&hw->sli, buf, SLI4_BMBX_SIZE,
-					SLI4_SET_FEATURES_DIF_SEED,
-					4,
-					(uint32_t*)&seed_param)) {
+		SLI4_SET_FEATURES_DIF_SEED, 4, (uint32_t *)&seed_param)) {
 		rc = ocs_hw_command(hw, buf, OCS_CMD_POLL, NULL, NULL);
 		if (rc) {
 			ocs_log_err(hw->os, "ocs_hw_command returns %d\n", rc);
 		} else {
 			ocs_log_debug(hw->os, "DIF seed set to 0x%x\n",
-					hw->config.dif_seed);
+			    hw->config.dif_seed);
 		}
 	} else {
 		ocs_log_err(hw->os, "sli_cmd_common_set_features failed\n");
@@ -6253,19 +6581,21 @@ ocs_hw_set_dif_mode(ocs_hw_t *hw)
 	sli4_req_common_set_features_t10_pi_mem_model_t mode_param;
 
 	ocs_memset(&mode_param, 0, sizeof(mode_param));
-	mode_param.tmm = (hw->config.dif_mode == OCS_HW_DIF_MODE_INLINE ? 0 : 1);
+	mode_param.tmm = (hw->config.dif_mode == OCS_HW_DIF_MODE_INLINE ? 0 :
+									  1);
 
 	/* send set_features command */
 	if (sli_cmd_common_set_features(&hw->sli, buf, SLI4_BMBX_SIZE,
-					SLI4_SET_FEATURES_DIF_MEMORY_MODE,
-					sizeof(mode_param),
-					(uint32_t*)&mode_param)) {
+		SLI4_SET_FEATURES_DIF_MEMORY_MODE, sizeof(mode_param),
+		(uint32_t *)&mode_param)) {
 		rc = ocs_hw_command(hw, buf, OCS_CMD_POLL, NULL, NULL);
 		if (rc) {
 			ocs_log_err(hw->os, "ocs_hw_command returns %d\n", rc);
 		} else {
 			ocs_log_test(hw->os, "DIF mode set to %s\n",
-				(hw->config.dif_mode == OCS_HW_DIF_MODE_INLINE ? "inline" : "separate"));
+			    (hw->config.dif_mode == OCS_HW_DIF_MODE_INLINE ?
+				    "inline" :
+				    "separate"));
 		}
 	} else {
 		ocs_log_err(hw->os, "sli_cmd_common_set_features failed\n");
@@ -6274,7 +6604,7 @@ ocs_hw_set_dif_mode(ocs_hw_t *hw)
 	return rc;
 }
 
-static void 
+static void
 ocs_hw_watchdog_timer_cb(void *arg)
 {
 	ocs_hw_t *hw = (ocs_hw_t *)arg;
@@ -6284,17 +6614,21 @@ ocs_hw_watchdog_timer_cb(void *arg)
 }
 
 static void
-ocs_hw_cb_cfg_watchdog(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void  *arg)
+ocs_hw_cb_cfg_watchdog(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 {
 	uint16_t timeout = hw->watchdog_timeout;
 
 	if (status != 0) {
-		ocs_log_err(hw->os, "config watchdog timer failed, rc = %d\n", status);
+		ocs_log_err(hw->os, "config watchdog timer failed, rc = %d\n",
+		    status);
 	} else {
-		if(timeout != 0) {
-			/* keeping callback 500ms before timeout to keep heartbeat alive */
-			ocs_setup_timer(hw->os, &hw->watchdog_timer, ocs_hw_watchdog_timer_cb, hw, (timeout*1000 - 500) );
-		}else {
+		if (timeout != 0) {
+			/* keeping callback 500ms before timeout to keep
+			 * heartbeat alive */
+			ocs_setup_timer(hw->os, &hw->watchdog_timer,
+			    ocs_hw_watchdog_timer_cb, hw,
+			    (timeout * 1000 - 500));
+		} else {
 			ocs_del_timer(&hw->watchdog_timer);
 		}
 	}
@@ -6322,17 +6656,21 @@ ocs_hw_config_watchdog_timer(ocs_hw_t *hw)
 		return OCS_HW_RTN_NO_MEMORY;
 	}
 
-	sli4_cmd_lowlevel_set_watchdog(&hw->sli, buf, SLI4_BMBX_SIZE, hw->watchdog_timeout);
-	rc = ocs_hw_command(hw, buf, OCS_CMD_NOWAIT, ocs_hw_cb_cfg_watchdog, NULL);
+	sli4_cmd_lowlevel_set_watchdog(&hw->sli, buf, SLI4_BMBX_SIZE,
+	    hw->watchdog_timeout);
+	rc = ocs_hw_command(hw, buf, OCS_CMD_NOWAIT, ocs_hw_cb_cfg_watchdog,
+	    NULL);
 	if (rc) {
 		ocs_free(hw->os, buf, SLI4_BMBX_SIZE);
-		ocs_log_err(hw->os, "config watchdog timer failed, rc = %d\n", rc);
+		ocs_log_err(hw->os, "config watchdog timer failed, rc = %d\n",
+		    rc);
 	}
 	return rc;
 }
 
 /**
- * @brief Set configuration parameters for auto-generate xfer_rdy T10 PI feature.
+ * @brief Set configuration parameters for auto-generate xfer_rdy T10 PI
+ * feature.
  *
  * @param hw Hardware context.
  * @param buf Pointer to a mailbox buffer area.
@@ -6361,23 +6699,23 @@ ocs_hw_config_auto_xfer_rdy_t10pi(ocs_hw_t *hw, uint8_t *buf)
 		break;
 	default:
 		ocs_log_err(hw->os, "unsupported p_type %d\n",
-			hw->config.auto_xfer_rdy_p_type);
+		    hw->config.auto_xfer_rdy_p_type);
 		return OCS_HW_RTN_ERROR;
 	}
 
 	/* build the set_features command */
 	sli_cmd_common_set_features(&hw->sli, buf, SLI4_BMBX_SIZE,
-				    SLI4_SET_FEATURES_SET_CONFIG_AUTO_XFER_RDY_T10PI,
-				    sizeof(param),
-				    &param);
+	    SLI4_SET_FEATURES_SET_CONFIG_AUTO_XFER_RDY_T10PI, sizeof(param),
+	    &param);
 
 	rc = ocs_hw_command(hw, buf, OCS_CMD_POLL, NULL, NULL);
 	if (rc) {
 		ocs_log_err(hw->os, "ocs_hw_command returns %d\n", rc);
 	} else {
-		ocs_log_test(hw->os, "Auto XFER RDY T10 PI configured rtc:%d atv:%d p_type:%d app_tag:%x blk_size:%d\n",
-				param.rtc, param.atv, param.p_type,
-				param.app_tag, param.blk_size);
+		ocs_log_test(hw->os,
+		    "Auto XFER RDY T10 PI configured rtc:%d atv:%d p_type:%d app_tag:%x blk_size:%d\n",
+		    param.rtc, param.atv, param.p_type, param.app_tag,
+		    param.blk_size);
 	}
 
 	return rc;
@@ -6407,9 +6745,7 @@ ocs_hw_config_sli_port_health_check(ocs_hw_t *hw, uint8_t query, uint8_t enable)
 
 	/* build the set_features command */
 	sli_cmd_common_set_features(&hw->sli, buf, SLI4_BMBX_SIZE,
-				    SLI4_SET_FEATURES_SLI_PORT_HEALTH_CHECK,
-				    sizeof(param),
-				    &param);
+	    SLI4_SET_FEATURES_SLI_PORT_HEALTH_CHECK, sizeof(param), &param);
 
 	rc = ocs_hw_command(hw, buf, OCS_CMD_POLL, NULL, NULL);
 	if (rc) {
@@ -6440,15 +6776,15 @@ ocs_hw_config_set_fdt_xfer_hint(ocs_hw_t *hw, uint32_t fdt_xfer_hint)
 	param.fdt_xfer_hint = fdt_xfer_hint;
 	/* build the set_features command */
 	sli_cmd_common_set_features(&hw->sli, buf, SLI4_BMBX_SIZE,
-				    SLI4_SET_FEATURES_SET_FTD_XFER_HINT,
-				    sizeof(param),
-				    &param);
+	    SLI4_SET_FEATURES_SET_FTD_XFER_HINT, sizeof(param), &param);
 
 	rc = ocs_hw_command(hw, buf, OCS_CMD_POLL, NULL, NULL);
 	if (rc) {
-		ocs_log_warn(hw->os, "set FDT hint %d failed: %d\n", fdt_xfer_hint, rc);
+		ocs_log_warn(hw->os, "set FDT hint %d failed: %d\n",
+		    fdt_xfer_hint, rc);
 	} else {
-		ocs_log_debug(hw->os, "Set FTD transfer hint to %d\n", param.fdt_xfer_hint);
+		ocs_log_debug(hw->os, "Set FTD transfer hint to %d\n",
+		    param.fdt_xfer_hint);
 	}
 
 	return rc;
@@ -6465,7 +6801,8 @@ ocs_hw_config_set_fdt_xfer_hint(ocs_hw_t *hw, uint32_t fdt_xfer_hint)
  * @return Returns OCS_HW_RTN_SUCCESS on success.
  */
 static void
-ocs_hw_linkcfg_dmtf_clp_cb(ocs_hw_t *hw, int32_t status, uint32_t result_len, void *arg)
+ocs_hw_linkcfg_dmtf_clp_cb(ocs_hw_t *hw, int32_t status, uint32_t result_len,
+    void *arg)
 {
 	int32_t rval;
 	char retdata_str[64];
@@ -6477,12 +6814,11 @@ ocs_hw_linkcfg_dmtf_clp_cb(ocs_hw_t *hw, int32_t status, uint32_t result_len, vo
 	} else {
 		/* parse CLP response to get return data */
 		rval = ocs_hw_clp_resp_get_value(hw, "retdata", retdata_str,
-						  sizeof(retdata_str),
-						  cb_arg->dma_resp.virt,
-						  result_len);
+		    sizeof(retdata_str), cb_arg->dma_resp.virt, result_len);
 
 		if (rval <= 0) {
-			ocs_log_err(hw->os, "failed to get retdata %d\n", result_len);
+			ocs_log_err(hw->os, "failed to get retdata %d\n",
+			    result_len);
 		} else {
 			/* translate string into hw enum */
 			linkcfg = ocs_hw_linkcfg_from_clp(retdata_str);
@@ -6515,32 +6851,36 @@ ocs_hw_linkcfg_dmtf_clp_cb(ocs_hw_t *hw, int32_t status, uint32_t result_len, vo
  * @return Returns OCS_HW_RTN_SUCCESS on success.
  */
 ocs_hw_rtn_e
-ocs_hw_set_dump_location(ocs_hw_t *hw, uint32_t num_buffers, ocs_dma_t *dump_buffers, uint8_t fdb)
+ocs_hw_set_dump_location(ocs_hw_t *hw, uint32_t num_buffers,
+    ocs_dma_t *dump_buffers, uint8_t fdb)
 {
 	uint8_t bus, dev, func;
 	ocs_hw_rtn_e rc = OCS_HW_RTN_SUCCESS;
-	uint8_t	buf[SLI4_BMBX_SIZE];
+	uint8_t buf[SLI4_BMBX_SIZE];
 
 	/*
 	 * Make sure the FW is new enough to support this command. If the FW
 	 * is too old, the FW will UE.
 	 */
 	if (hw->workaround.disable_dump_loc) {
-		ocs_log_test(hw->os, "FW version is too old for this feature\n");
+		ocs_log_test(hw->os,
+		    "FW version is too old for this feature\n");
 		return OCS_HW_RTN_ERROR;
 	}
 
 	/* This command is only valid for physical port 0 */
 	ocs_get_bus_dev_func(hw->os, &bus, &dev, &func);
 	if (fdb == 0 && func != 0) {
-		ocs_log_test(hw->os, "function only valid for pci function 0, %d passed\n",
-			     func);
+		ocs_log_test(hw->os,
+		    "function only valid for pci function 0, %d passed\n",
+		    func);
 		return OCS_HW_RTN_ERROR;
 	}
 
 	/*
-	 * If a single buffer is used, then it may be passed as is to the chip. For multiple buffers,
-	 * We must allocate a SGL list and then pass the address of the list to the chip.
+	 * If a single buffer is used, then it may be passed as is to the chip.
+	 * For multiple buffers, We must allocate a SGL list and then pass the
+	 * address of the list to the chip.
 	 */
 	if (num_buffers > 1) {
 		uint32_t sge_size = num_buffers * sizeof(sli4_sge_t);
@@ -6549,8 +6889,10 @@ ocs_hw_set_dump_location(ocs_hw_t *hw, uint32_t num_buffers, ocs_dma_t *dump_buf
 
 		if (hw->dump_sges.size < sge_size) {
 			ocs_dma_free(hw->os, &hw->dump_sges);
-			if (ocs_dma_alloc(hw->os, &hw->dump_sges, sge_size, OCS_MIN_DMA_ALIGNMENT)) {
-				ocs_log_err(hw->os, "SGE DMA allocation failed\n");
+			if (ocs_dma_alloc(hw->os, &hw->dump_sges, sge_size,
+				OCS_MIN_DMA_ALIGNMENT)) {
+				ocs_log_err(hw->os,
+				    "SGE DMA allocation failed\n");
 				return OCS_HW_RTN_NO_MEMORY;
 			}
 		}
@@ -6559,31 +6901,29 @@ ocs_hw_set_dump_location(ocs_hw_t *hw, uint32_t num_buffers, ocs_dma_t *dump_buf
 		hw->dump_sges.len = sge_size;
 		sge = hw->dump_sges.virt;
 		for (i = 0; i < num_buffers; i++) {
-			sge[i].buffer_address_high = ocs_addr32_hi(dump_buffers[i].phys);
-			sge[i].buffer_address_low = ocs_addr32_lo(dump_buffers[i].phys);
+			sge[i].buffer_address_high = ocs_addr32_hi(
+			    dump_buffers[i].phys);
+			sge[i].buffer_address_low = ocs_addr32_lo(
+			    dump_buffers[i].phys);
 			sge[i].last = (i == num_buffers - 1 ? 1 : 0);
 			sge[i].buffer_length = dump_buffers[i].size;
 		}
 		rc = sli_cmd_common_set_dump_location(&hw->sli, (void *)buf,
-						      SLI4_BMBX_SIZE, FALSE, TRUE,
-						      &hw->dump_sges, fdb);
+		    SLI4_BMBX_SIZE, FALSE, TRUE, &hw->dump_sges, fdb);
 	} else {
 		dump_buffers->len = dump_buffers->size;
 		rc = sli_cmd_common_set_dump_location(&hw->sli, (void *)buf,
-						      SLI4_BMBX_SIZE, FALSE, FALSE,
-						      dump_buffers, fdb);
+		    SLI4_BMBX_SIZE, FALSE, FALSE, dump_buffers, fdb);
 	}
 
 	if (rc) {
-		rc = ocs_hw_command(hw, buf, OCS_CMD_POLL,
-				     NULL, NULL);
+		rc = ocs_hw_command(hw, buf, OCS_CMD_POLL, NULL, NULL);
 		if (rc) {
-			ocs_log_err(hw->os, "ocs_hw_command returns %d\n",
-				rc);
+			ocs_log_err(hw->os, "ocs_hw_command returns %d\n", rc);
 		}
 	} else {
 		ocs_log_err(hw->os,
-			"sli_cmd_common_set_dump_location failed\n");
+		    "sli_cmd_common_set_dump_location failed\n");
 		rc = OCS_HW_RTN_ERROR;
 	}
 
@@ -6614,17 +6954,19 @@ ocs_hw_set_eth_license(ocs_hw_t *hw, uint32_t license)
 
 	/* only for lancer right now */
 	if (SLI4_IF_TYPE_LANCER_FC_ETH != sli_get_if_type(&hw->sli)) {
-		ocs_log_test(hw->os, "Function only supported for I/F type 2\n");
+		ocs_log_test(hw->os,
+		    "Function only supported for I/F type 2\n");
 		return OCS_HW_RTN_ERROR;
 	}
 
-	ocs_snprintf(cmd, OCS_HW_DMTF_CLP_CMD_MAX, "set / OEMELX_Ethernet_License=%X", license);
+	ocs_snprintf(cmd, OCS_HW_DMTF_CLP_CMD_MAX,
+	    "set / OEMELX_Ethernet_License=%X", license);
 	/* allocate DMA for command  */
-	if (ocs_dma_alloc(hw->os, &dma_cmd, ocs_strlen(cmd)+1, 4096)) {
+	if (ocs_dma_alloc(hw->os, &dma_cmd, ocs_strlen(cmd) + 1, 4096)) {
 		ocs_log_err(hw->os, "malloc failed\n");
 		return OCS_HW_RTN_NO_MEMORY;
 	}
-	ocs_memset(dma_cmd.virt, 0, ocs_strlen(cmd)+1);
+	ocs_memset(dma_cmd.virt, 0, ocs_strlen(cmd) + 1);
 	ocs_memcpy(dma_cmd.virt, cmd, ocs_strlen(cmd));
 
 	/* allocate DMA for response */
@@ -6635,8 +6977,10 @@ ocs_hw_set_eth_license(ocs_hw_t *hw, uint32_t license)
 	}
 
 	/* send DMTF CLP command mbx and poll */
-	if (ocs_hw_exec_dmtf_clp_cmd(hw, &dma_cmd, &dma_resp, OCS_CMD_POLL, NULL, NULL)) {
-		ocs_log_err(hw->os, "CLP cmd=\"%s\" failed\n", (char *)dma_cmd.virt);
+	if (ocs_hw_exec_dmtf_clp_cmd(hw, &dma_cmd, &dma_resp, OCS_CMD_POLL,
+		NULL, NULL)) {
+		ocs_log_err(hw->os, "CLP cmd=\"%s\" failed\n",
+		    (char *)dma_cmd.virt);
 		rc = OCS_HW_RTN_ERROR;
 	}
 
@@ -6670,7 +7014,8 @@ typedef struct ocs_hw_clp_cb_arg_s {
  * buffer on success, or a negative value if failed.
  */
 static ocs_hw_rtn_e
-ocs_hw_exec_dmtf_clp_cmd(ocs_hw_t *hw, ocs_dma_t *dma_cmd, ocs_dma_t *dma_resp, uint32_t opts, ocs_hw_dmtf_clp_cb_t cb, void *arg)
+ocs_hw_exec_dmtf_clp_cmd(ocs_hw_t *hw, ocs_dma_t *dma_cmd, ocs_dma_t *dma_resp,
+    uint32_t opts, ocs_hw_dmtf_clp_cb_t cb, void *arg)
 {
 	ocs_hw_rtn_e rc = OCS_HW_RTN_ERROR;
 	ocs_hw_clp_cb_arg_t *cb_arg;
@@ -6698,12 +7043,13 @@ ocs_hw_exec_dmtf_clp_cmd(ocs_hw_t *hw, ocs_dma_t *dma_cmd, ocs_dma_t *dma_resp, 
 
 	/* Send the HW command */
 	if (sli_cmd_dmtf_exec_clp_cmd(&hw->sli, mbxdata, SLI4_BMBX_SIZE,
-				      dma_cmd, dma_resp)) {
-		rc = ocs_hw_command(hw, mbxdata, opts, ocs_hw_dmtf_clp_cb, cb_arg);
+		dma_cmd, dma_resp)) {
+		rc = ocs_hw_command(hw, mbxdata, opts, ocs_hw_dmtf_clp_cb,
+		    cb_arg);
 
 		if (opts == OCS_CMD_POLL && rc == OCS_HW_RTN_SUCCESS) {
-			/* if we're polling, copy response and invoke callback to
-			 * parse result */
+			/* if we're polling, copy response and invoke callback
+			 * to parse result */
 			ocs_memcpy(mbxdata, hw->sli.bmbx.virt, SLI4_BMBX_SIZE);
 			ocs_hw_dmtf_clp_cb(hw, 0, mbxdata, cb_arg);
 
@@ -6741,11 +7087,12 @@ ocs_hw_exec_dmtf_clp_cmd(ocs_hw_t *hw, ocs_dma_t *dma_cmd, ocs_dma_t *dma_resp, 
  *
  */
 static void
-ocs_hw_dmtf_clp_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void  *arg)
+ocs_hw_dmtf_clp_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 {
 	int32_t cb_status = 0;
-	sli4_cmd_sli_config_t* mbox_rsp = (sli4_cmd_sli_config_t*) mqe;
-	sli4_res_dmtf_exec_clp_cmd_t *clp_rsp = (sli4_res_dmtf_exec_clp_cmd_t *) mbox_rsp->payload.embed;
+	sli4_cmd_sli_config_t *mbox_rsp = (sli4_cmd_sli_config_t *)mqe;
+	sli4_res_dmtf_exec_clp_cmd_t *clp_rsp = (sli4_res_dmtf_exec_clp_cmd_t *)
+						    mbox_rsp->payload.embed;
 	ocs_hw_clp_cb_arg_t *cb_arg = arg;
 	uint32_t result_len = 0;
 	int32_t stat_len;
@@ -6755,13 +7102,11 @@ ocs_hw_dmtf_clp_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void  *arg)
 	 * into a single callback status
 	 */
 	if (status || mbox_rsp->hdr.status || clp_rsp->clp_status) {
-		ocs_log_debug(hw->os, "status=x%x/x%x/x%x  addl=x%x clp=x%x detail=x%x\n",
-			status,
-			mbox_rsp->hdr.status,
-			clp_rsp->hdr.status,
-			clp_rsp->hdr.additional_status,
-			clp_rsp->clp_status,
-			clp_rsp->clp_detailed_status);
+		ocs_log_debug(hw->os,
+		    "status=x%x/x%x/x%x  addl=x%x clp=x%x detail=x%x\n", status,
+		    mbox_rsp->hdr.status, clp_rsp->hdr.status,
+		    clp_rsp->hdr.additional_status, clp_rsp->clp_status,
+		    clp_rsp->clp_detailed_status);
 		if (status) {
 			cb_status = status;
 		} else if (mbox_rsp->hdr.status) {
@@ -6778,17 +7123,16 @@ ocs_hw_dmtf_clp_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void  *arg)
 	}
 
 	if ((result_len == 0) || (cb_arg->dma_resp->size < result_len)) {
-		ocs_log_test(hw->os, "Invalid response length: resp_len=%zu result len=%d\n",
-			     cb_arg->dma_resp->size, result_len);
+		ocs_log_test(hw->os,
+		    "Invalid response length: resp_len=%zu result len=%d\n",
+		    cb_arg->dma_resp->size, result_len);
 		cb_status = -1;
 		goto ocs_hw_cb_dmtf_clp_done;
 	}
 
 	/* parse CLP response to get status */
 	stat_len = ocs_hw_clp_resp_get_value(hw, "status", stat_str,
-					      sizeof(stat_str),
-					      cb_arg->dma_resp->virt,
-					      result_len);
+	    sizeof(stat_str), cb_arg->dma_resp->virt, result_len);
 
 	if (stat_len <= 0) {
 		ocs_log_test(hw->os, "failed to get status %d\n", stat_len);
@@ -6797,7 +7141,8 @@ ocs_hw_dmtf_clp_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void  *arg)
 	}
 
 	if (ocs_strcmp(stat_str, "0") != 0) {
-		ocs_log_test(hw->os, "CLP status indicates failure=%s\n", stat_str);
+		ocs_log_test(hw->os, "CLP status indicates failure=%s\n",
+		    stat_str);
 		cb_status = -1;
 		goto ocs_hw_cb_dmtf_clp_done;
 	}
@@ -6832,7 +7177,8 @@ ocs_hw_cb_dmtf_clp_done:
  * buffer on success, or a negative vaue on failure.
  */
 static int32_t
-ocs_hw_clp_resp_get_value(ocs_hw_t *hw, const char *keyword, char *value, uint32_t value_len, const char *resp, uint32_t resp_len)
+ocs_hw_clp_resp_get_value(ocs_hw_t *hw, const char *keyword, char *value,
+    uint32_t value_len, const char *resp, uint32_t resp_len)
 {
 	char *start = NULL;
 	char *end = NULL;
@@ -6840,16 +7186,17 @@ ocs_hw_clp_resp_get_value(ocs_hw_t *hw, const char *keyword, char *value, uint32
 	/* look for specified keyword in string */
 	start = ocs_strstr(resp, keyword);
 	if (start == NULL) {
-		ocs_log_test(hw->os, "could not find keyword=%s in CLP response\n",
-			     keyword);
+		ocs_log_test(hw->os,
+		    "could not find keyword=%s in CLP response\n", keyword);
 		return -1;
 	}
 
 	/* now look for '=' and go one past */
 	start = ocs_strchr(start, '=');
 	if (start == NULL) {
-		ocs_log_test(hw->os, "could not find \'=\' in CLP response for keyword=%s\n",
-			     keyword);
+		ocs_log_test(hw->os,
+		    "could not find \'=\' in CLP response for keyword=%s\n",
+		    keyword);
 		return -1;
 	}
 	start++;
@@ -6857,21 +7204,23 @@ ocs_hw_clp_resp_get_value(ocs_hw_t *hw, const char *keyword, char *value, uint32
 	/* \r\n terminates value */
 	end = ocs_strstr(start, "\r\n");
 	if (end == NULL) {
-		ocs_log_test(hw->os, "could not find \\r\\n for keyword=%s in CLP response\n",
-			     keyword);
+		ocs_log_test(hw->os,
+		    "could not find \\r\\n for keyword=%s in CLP response\n",
+		    keyword);
 		return -1;
 	}
 
 	/* make sure given result array is big enough */
 	if ((end - start + 1) > value_len) {
-		ocs_log_test(hw->os, "value len=%d not large enough for actual=%ld\n",
-			     value_len, (end-start));
+		ocs_log_test(hw->os,
+		    "value len=%d not large enough for actual=%ld\n", value_len,
+		    (end - start));
 		return -1;
 	}
 
 	ocs_strncpy(value, start, (end - start));
-	value[end-start] = '\0';
-	return (end-start+1);
+	value[end - start] = '\0';
+	return (end - start + 1);
 }
 
 /**
@@ -6908,23 +7257,25 @@ ocs_hw_raise_ue(ocs_hw_t *hw, uint8_t dump)
  * @brief Called when the OBJECT_GET command completes.
  *
  * @par Description
- * Get the number of bytes actually written out of the response, free the mailbox
- * that was malloc'd by ocs_hw_dump_get(), then call the callback
- * and pass the status and bytes read.
+ * Get the number of bytes actually written out of the response, free the
+ * mailbox that was malloc'd by ocs_hw_dump_get(), then call the callback and
+ * pass the status and bytes read.
  *
  * @param hw Hardware context.
  * @param status Status field from the mbox completion.
  * @param mqe Mailbox response structure.
- * @param arg Pointer to a callback function that signals the caller that the command is done.
- * The callback function prototype is <tt>void cb(int32_t status, uint32_t bytes_read)</tt>.
+ * @param arg Pointer to a callback function that signals the caller that the
+ * command is done. The callback function prototype is <tt>void cb(int32_t
+ * status, uint32_t bytes_read)</tt>.
  *
  * @return Returns 0.
  */
 static int32_t
-ocs_hw_cb_dump_get(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void  *arg)
+ocs_hw_cb_dump_get(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 {
-	sli4_cmd_sli_config_t* mbox_rsp = (sli4_cmd_sli_config_t*) mqe;
-	sli4_res_common_read_object_t* rd_obj_rsp = (sli4_res_common_read_object_t*) mbox_rsp->payload.embed;
+	sli4_cmd_sli_config_t *mbox_rsp = (sli4_cmd_sli_config_t *)mqe;
+	sli4_res_common_read_object_t *rd_obj_rsp =
+	    (sli4_res_common_read_object_t *)mbox_rsp->payload.embed;
 	ocs_hw_dump_get_cb_arg_t *cb_arg = arg;
 	uint32_t bytes_read;
 	uint8_t eof;
@@ -6952,31 +7303,34 @@ ocs_hw_cb_dump_get(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void  *arg)
  *
  * @par Description
  * Creates a SLI_CONFIG mailbox command, fills in the correct values to read a
- * dump image chunk, then sends the command with the ocs_hw_command(). On completion,
- * the callback function ocs_hw_cb_dump_get() gets called to free the mailbox
- * and signal the caller that the read has completed.
+ * dump image chunk, then sends the command with the ocs_hw_command(). On
+ * completion, the callback function ocs_hw_cb_dump_get() gets called to free
+ * the mailbox and signal the caller that the read has completed.
  *
  * @param hw Hardware context.
  * @param dma DMA structure to transfer the dump chunk into.
  * @param size Size of the dump chunk.
  * @param offset Offset, in bytes, from the beginning of the dump.
- * @param cb Pointer to a callback function that is called when the command completes.
- * The callback function prototype is
- * <tt>void cb(int32_t status, uint32_t bytes_read, uint8_t eof, void *arg)</tt>.
+ * @param cb Pointer to a callback function that is called when the command
+ * completes. The callback function prototype is <tt>void cb(int32_t status,
+ * uint32_t bytes_read, uint8_t eof, void *arg)</tt>.
  * @param arg Pointer to be passed to the callback function.
  *
  * @return Returns 0 on success, or a non-zero value on failure.
  */
 ocs_hw_rtn_e
-ocs_hw_dump_get(ocs_hw_t *hw, ocs_dma_t *dma, uint32_t size, uint32_t offset, ocs_hw_dump_get_cb_t cb, void *arg)
+ocs_hw_dump_get(ocs_hw_t *hw, ocs_dma_t *dma, uint32_t size, uint32_t offset,
+    ocs_hw_dump_get_cb_t cb, void *arg)
 {
 	ocs_hw_rtn_e rc = OCS_HW_RTN_ERROR;
 	uint8_t *mbxdata;
 	ocs_hw_dump_get_cb_arg_t *cb_arg;
-	uint32_t opts = (hw->state == OCS_HW_STATE_ACTIVE ? OCS_CMD_NOWAIT : OCS_CMD_POLL);
+	uint32_t opts = (hw->state == OCS_HW_STATE_ACTIVE ? OCS_CMD_NOWAIT :
+							    OCS_CMD_POLL);
 
 	if (SLI4_IF_TYPE_LANCER_FC_ETH != sli_get_if_type(&hw->sli)) {
-		ocs_log_test(hw->os, "Function only supported for I/F type 2\n");
+		ocs_log_test(hw->os,
+		    "Function only supported for I/F type 2\n");
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -6996,7 +7350,8 @@ ocs_hw_dump_get(ocs_hw_t *hw, ocs_dma_t *dma, uint32_t size, uint32_t offset, oc
 		return OCS_HW_RTN_NO_MEMORY;
 	}
 
-	cb_arg = ocs_malloc(hw->os, sizeof(ocs_hw_dump_get_cb_arg_t), OCS_M_NOWAIT);
+	cb_arg = ocs_malloc(hw->os, sizeof(ocs_hw_dump_get_cb_arg_t),
+	    OCS_M_NOWAIT);
 	if (cb_arg == NULL) {
 		ocs_log_err(hw->os, "failed to malloc cb_arg\n");
 		ocs_free(hw->os, mbxdata, SLI4_BMBX_SIZE);
@@ -7007,9 +7362,10 @@ ocs_hw_dump_get(ocs_hw_t *hw, ocs_dma_t *dma, uint32_t size, uint32_t offset, oc
 	cb_arg->arg = arg;
 	cb_arg->mbox_cmd = mbxdata;
 
-	if (sli_cmd_common_read_object(&hw->sli, mbxdata, SLI4_BMBX_SIZE,
-			size, offset, "/dbg/dump.bin", dma)) {
-		rc = ocs_hw_command(hw, mbxdata, opts, ocs_hw_cb_dump_get, cb_arg);
+	if (sli_cmd_common_read_object(&hw->sli, mbxdata, SLI4_BMBX_SIZE, size,
+		offset, "/dbg/dump.bin", dma)) {
+		rc = ocs_hw_command(hw, mbxdata, opts, ocs_hw_cb_dump_get,
+		    cb_arg);
 		if (rc == 0 && opts == OCS_CMD_POLL) {
 			ocs_memcpy(mbxdata, hw->sli.bmbx.virt, SLI4_BMBX_SIZE);
 			rc = ocs_hw_cb_dump_get(hw, 0, mbxdata, cb_arg);
@@ -7035,16 +7391,17 @@ ocs_hw_dump_get(ocs_hw_t *hw, ocs_dma_t *dma, uint32_t size, uint32_t offset, oc
  * @param hw Hardware context.
  * @param status Status field from the mbox completion.
  * @param mqe Mailbox response structure.
- * @param arg Pointer to a callback function that signals the caller that the command is done.
- * The callback function prototype is <tt>void cb(int32_t status, void *arg)</tt>.
+ * @param arg Pointer to a callback function that signals the caller that the
+ * command is done. The callback function prototype is <tt>void cb(int32_t
+ * status, void *arg)</tt>.
  *
  * @return Returns 0.
  */
 static int32_t
-ocs_hw_cb_dump_clear(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void  *arg)
+ocs_hw_cb_dump_clear(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 {
 	ocs_hw_dump_clear_cb_arg_t *cb_arg = arg;
-	sli4_cmd_sli_config_t* mbox_rsp = (sli4_cmd_sli_config_t*) mqe;
+	sli4_cmd_sli_config_t *mbox_rsp = (sli4_cmd_sli_config_t *)mqe;
 
 	if (cb_arg) {
 		if (cb_arg->cb) {
@@ -7065,15 +7422,15 @@ ocs_hw_cb_dump_clear(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void  *arg)
  * @brief Clear a dump image from the device.
  *
  * @par Description
- * Creates a SLI_CONFIG mailbox command, fills it with the correct values to clear
- * the dump, then sends the command with ocs_hw_command(). On completion,
+ * Creates a SLI_CONFIG mailbox command, fills it with the correct values to
+ * clear the dump, then sends the command with ocs_hw_command(). On completion,
  * the callback function ocs_hw_cb_dump_clear() gets called to free the mailbox
  * and to signal the caller that the write has completed.
  *
  * @param hw Hardware context.
- * @param cb Pointer to a callback function that is called when the command completes.
- * The callback function prototype is
- * <tt>void cb(int32_t status, uint32_t bytes_written, void *arg)</tt>.
+ * @param cb Pointer to a callback function that is called when the command
+ * completes. The callback function prototype is <tt>void cb(int32_t status,
+ * uint32_t bytes_written, void *arg)</tt>.
  * @param arg Pointer to be passed to the callback function.
  *
  * @return Returns 0 on success, or a non-zero value on failure.
@@ -7084,10 +7441,12 @@ ocs_hw_dump_clear(ocs_hw_t *hw, ocs_hw_dump_clear_cb_t cb, void *arg)
 	ocs_hw_rtn_e rc = OCS_HW_RTN_ERROR;
 	uint8_t *mbxdata;
 	ocs_hw_dump_clear_cb_arg_t *cb_arg;
-	uint32_t opts = (hw->state == OCS_HW_STATE_ACTIVE ? OCS_CMD_NOWAIT : OCS_CMD_POLL);
+	uint32_t opts = (hw->state == OCS_HW_STATE_ACTIVE ? OCS_CMD_NOWAIT :
+							    OCS_CMD_POLL);
 
 	if (SLI4_IF_TYPE_LANCER_FC_ETH != sli_get_if_type(&hw->sli)) {
-		ocs_log_test(hw->os, "Function only supported for I/F type 2\n");
+		ocs_log_test(hw->os,
+		    "Function only supported for I/F type 2\n");
 		return OCS_HW_RTN_ERROR;
 	}
 
@@ -7097,7 +7456,8 @@ ocs_hw_dump_clear(ocs_hw_t *hw, ocs_hw_dump_clear_cb_t cb, void *arg)
 		return OCS_HW_RTN_NO_MEMORY;
 	}
 
-	cb_arg = ocs_malloc(hw->os, sizeof(ocs_hw_dump_clear_cb_arg_t), OCS_M_NOWAIT);
+	cb_arg = ocs_malloc(hw->os, sizeof(ocs_hw_dump_clear_cb_arg_t),
+	    OCS_M_NOWAIT);
 	if (cb_arg == NULL) {
 		ocs_log_err(hw->os, "failed to malloc cb_arg\n");
 		ocs_free(hw->os, mbxdata, SLI4_BMBX_SIZE);
@@ -7109,8 +7469,9 @@ ocs_hw_dump_clear(ocs_hw_t *hw, ocs_hw_dump_clear_cb_t cb, void *arg)
 	cb_arg->mbox_cmd = mbxdata;
 
 	if (sli_cmd_common_delete_object(&hw->sli, mbxdata, SLI4_BMBX_SIZE,
-			"/dbg/dump.bin")) {
-		rc = ocs_hw_command(hw, mbxdata, opts, ocs_hw_cb_dump_clear, cb_arg);
+		"/dbg/dump.bin")) {
+		rc = ocs_hw_command(hw, mbxdata, opts, ocs_hw_cb_dump_clear,
+		    cb_arg);
 		if (rc == 0 && opts == OCS_CMD_POLL) {
 			ocs_memcpy(mbxdata, hw->sli.bmbx.virt, SLI4_BMBX_SIZE);
 			rc = ocs_hw_cb_dump_clear(hw, 0, mbxdata, cb_arg);
@@ -7145,12 +7506,13 @@ typedef struct ocs_hw_get_port_protocol_cb_arg_s {
  * @return Returns 0 on success, or a non-zero value on failure.
  */
 static int32_t
-ocs_hw_get_port_protocol_cb(ocs_hw_t *hw, int32_t status,
-			    uint8_t *mqe, void *arg)
+ocs_hw_get_port_protocol_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe,
+    void *arg)
 {
 	ocs_hw_get_port_protocol_cb_arg_t *cb_arg = arg;
 	ocs_dma_t *payload = &(cb_arg->payload);
-	sli4_res_common_get_profile_config_t* response = (sli4_res_common_get_profile_config_t*) payload->virt;
+	sli4_res_common_get_profile_config_t *response =
+	    (sli4_res_common_get_profile_config_t *)payload->virt;
 	ocs_hw_port_protocol_e port_protocol;
 	int num_descriptors;
 	sli4_resource_descriptor_v1_t *desc_p;
@@ -7161,28 +7523,34 @@ ocs_hw_get_port_protocol_cb(ocs_hw_t *hw, int32_t status,
 
 	num_descriptors = response->desc_count;
 	desc_p = (sli4_resource_descriptor_v1_t *)response->desc;
-	for (i=0; i<num_descriptors; i++) {
-		if (desc_p->descriptor_type == SLI4_RESOURCE_DESCRIPTOR_TYPE_PCIE) {
-			pcie_desc_p = (sli4_pcie_resource_descriptor_v1_t*) desc_p;
+	for (i = 0; i < num_descriptors; i++) {
+		if (desc_p->descriptor_type ==
+		    SLI4_RESOURCE_DESCRIPTOR_TYPE_PCIE) {
+			pcie_desc_p = (sli4_pcie_resource_descriptor_v1_t *)
+			    desc_p;
 			if (pcie_desc_p->pf_number == cb_arg->pci_func) {
-				switch(pcie_desc_p->pf_type) {
+				switch (pcie_desc_p->pf_type) {
 				case 0x02:
-					port_protocol = OCS_HW_PORT_PROTOCOL_ISCSI;
+					port_protocol =
+					    OCS_HW_PORT_PROTOCOL_ISCSI;
 					break;
 				case 0x04:
-					port_protocol = OCS_HW_PORT_PROTOCOL_FCOE;
+					port_protocol =
+					    OCS_HW_PORT_PROTOCOL_FCOE;
 					break;
 				case 0x10:
 					port_protocol = OCS_HW_PORT_PROTOCOL_FC;
 					break;
 				default:
-					port_protocol = OCS_HW_PORT_PROTOCOL_OTHER;
+					port_protocol =
+					    OCS_HW_PORT_PROTOCOL_OTHER;
 					break;
 				}
 			}
 		}
 
-		desc_p = (sli4_resource_descriptor_v1_t *) ((uint8_t *)desc_p + desc_p->descriptor_length);
+		desc_p = (sli4_resource_descriptor_v1_t *)((uint8_t *)desc_p +
+		    desc_p->descriptor_length);
 	}
 
 	if (cb_arg->cb) {
@@ -7218,7 +7586,7 @@ ocs_hw_get_port_protocol_cb(ocs_hw_t *hw, int32_t status,
  */
 ocs_hw_rtn_e
 ocs_hw_get_port_protocol(ocs_hw_t *hw, uint32_t pci_func,
-	ocs_get_port_protocol_cb_t cb, void* ul_arg)
+    ocs_get_port_protocol_cb_t cb, void *ul_arg)
 {
 	uint8_t *mbxdata;
 	ocs_hw_get_port_protocol_cb_arg_t *cb_arg;
@@ -7236,8 +7604,10 @@ ocs_hw_get_port_protocol(ocs_hw_t *hw, uint32_t pci_func,
 		return OCS_HW_RTN_NO_MEMORY;
 	}
 
-	/* cb_arg holds the data that will be passed to the callback on completion */
-	cb_arg = ocs_malloc(hw->os, sizeof(ocs_hw_get_port_protocol_cb_arg_t), OCS_M_NOWAIT);
+	/* cb_arg holds the data that will be passed to the callback on
+	 * completion */
+	cb_arg = ocs_malloc(hw->os, sizeof(ocs_hw_get_port_protocol_cb_arg_t),
+	    OCS_M_NOWAIT);
 	if (cb_arg == NULL) {
 		ocs_log_err(hw->os, "failed to malloc cb_arg\n");
 		ocs_free(hw->os, mbxdata, SLI4_BMBX_SIZE);
@@ -7252,12 +7622,15 @@ ocs_hw_get_port_protocol(ocs_hw_t *hw, uint32_t pci_func,
 	if (ocs_dma_alloc(hw->os, &cb_arg->payload, 4096, 4)) {
 		ocs_log_err(hw->os, "Failed to allocate DMA buffer\n");
 		ocs_free(hw->os, mbxdata, SLI4_BMBX_SIZE);
-		ocs_free(hw->os, cb_arg, sizeof(ocs_hw_get_port_protocol_cb_arg_t));
+		ocs_free(hw->os, cb_arg,
+		    sizeof(ocs_hw_get_port_protocol_cb_arg_t));
 		return OCS_HW_RTN_NO_MEMORY;
 	}
 
-	if (sli_cmd_common_get_profile_config(&hw->sli, mbxdata, SLI4_BMBX_SIZE, &cb_arg->payload)) {
-		rc = ocs_hw_command(hw, mbxdata, OCS_CMD_NOWAIT, ocs_hw_get_port_protocol_cb, cb_arg);
+	if (sli_cmd_common_get_profile_config(&hw->sli, mbxdata, SLI4_BMBX_SIZE,
+		&cb_arg->payload)) {
+		rc = ocs_hw_command(hw, mbxdata, OCS_CMD_NOWAIT,
+		    ocs_hw_get_port_protocol_cb, cb_arg);
 	}
 
 	if (rc != OCS_HW_RTN_SUCCESS) {
@@ -7268,7 +7641,6 @@ ocs_hw_get_port_protocol(ocs_hw_t *hw, uint32_t pci_func,
 	}
 
 	return rc;
-
 }
 
 typedef struct ocs_hw_set_port_protocol_cb_arg_s {
@@ -7297,12 +7669,13 @@ typedef struct ocs_hw_set_port_protocol_cb_arg_s {
  * @return 0 on success, non-zero otherwise
  */
 static int32_t
-ocs_hw_set_port_protocol_cb2(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
+ocs_hw_set_port_protocol_cb2(ocs_hw_t *hw, int32_t status, uint8_t *mqe,
+    void *arg)
 {
 	ocs_hw_set_port_protocol_cb_arg_t *cb_arg = arg;
 
 	if (cb_arg->cb) {
-		cb_arg->cb( status, cb_arg->arg);
+		cb_arg->cb(status, cb_arg->arg);
 	}
 
 	ocs_dma_free(hw->os, &(cb_arg->payload));
@@ -7336,11 +7709,13 @@ ocs_hw_set_port_protocol_cb2(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *a
  * @return Returns 0 on success, or a non-zero value otherwise.
  */
 static int32_t
-ocs_hw_set_port_protocol_cb1(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
+ocs_hw_set_port_protocol_cb1(ocs_hw_t *hw, int32_t status, uint8_t *mqe,
+    void *arg)
 {
 	ocs_hw_set_port_protocol_cb_arg_t *cb_arg = arg;
 	ocs_dma_t *payload = &(cb_arg->payload);
-	sli4_res_common_get_profile_config_t* response = (sli4_res_common_get_profile_config_t*) payload->virt;
+	sli4_res_common_get_profile_config_t *response =
+	    (sli4_res_common_get_profile_config_t *)payload->virt;
 	int num_descriptors;
 	sli4_resource_descriptor_v1_t *desc_p;
 	sli4_pcie_resource_descriptor_v1_t *pcie_desc_p;
@@ -7362,11 +7737,13 @@ ocs_hw_set_port_protocol_cb1(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *a
 	/* Count PCI descriptors */
 	pci_descriptor_count = 0;
 	desc_p = (sli4_resource_descriptor_v1_t *)response->desc;
-	for (i=0; i<num_descriptors; i++) {
-		if (desc_p->descriptor_type == SLI4_RESOURCE_DESCRIPTOR_TYPE_PCIE) {
+	for (i = 0; i < num_descriptors; i++) {
+		if (desc_p->descriptor_type ==
+		    SLI4_RESOURCE_DESCRIPTOR_TYPE_PCIE) {
 			++pci_descriptor_count;
 		}
-		desc_p = (sli4_resource_descriptor_v1_t *) ((uint8_t *)desc_p + desc_p->descriptor_length);
+		desc_p = (sli4_resource_descriptor_v1_t *)((uint8_t *)desc_p +
+		    desc_p->descriptor_length);
 	}
 
 	/* mbxdata holds the header of the command */
@@ -7376,8 +7753,10 @@ ocs_hw_set_port_protocol_cb1(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *a
 		return OCS_HW_RTN_NO_MEMORY;
 	}
 
-	/* cb_arg holds the data that will be passed to the callback on completion */
-	new_cb_arg = ocs_malloc(hw->os, sizeof(ocs_hw_set_port_protocol_cb_arg_t), OCS_M_NOWAIT);
+	/* cb_arg holds the data that will be passed to the callback on
+	 * completion */
+	new_cb_arg = ocs_malloc(hw->os,
+	    sizeof(ocs_hw_set_port_protocol_cb_arg_t), OCS_M_NOWAIT);
 	if (new_cb_arg == NULL) {
 		ocs_log_err(hw->os, "failed to malloc cb_arg\n");
 		ocs_free(hw->os, mbxdata, SLI4_BMBX_SIZE);
@@ -7389,45 +7768,56 @@ ocs_hw_set_port_protocol_cb1(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *a
 
 	/* Allocate memory for the descriptors we're going to send.  This is
 	 * one for each PCI descriptor plus one ISAP descriptor. */
-	if (ocs_dma_alloc(hw->os, &new_cb_arg->payload, sizeof(sli4_req_common_set_profile_config_t) +
-			  (pci_descriptor_count * sizeof(sli4_pcie_resource_descriptor_v1_t)) +
-			  sizeof(sli4_isap_resouce_descriptor_v1_t), 4)) {
+	if (ocs_dma_alloc(hw->os, &new_cb_arg->payload,
+		sizeof(sli4_req_common_set_profile_config_t) +
+		    (pci_descriptor_count *
+			sizeof(sli4_pcie_resource_descriptor_v1_t)) +
+		    sizeof(sli4_isap_resouce_descriptor_v1_t),
+		4)) {
 		ocs_log_err(hw->os, "Failed to allocate DMA buffer\n");
 		ocs_free(hw->os, mbxdata, SLI4_BMBX_SIZE);
-		ocs_free(hw->os, new_cb_arg, sizeof(ocs_hw_set_port_protocol_cb_arg_t));
+		ocs_free(hw->os, new_cb_arg,
+		    sizeof(ocs_hw_set_port_protocol_cb_arg_t));
 		return OCS_HW_RTN_NO_MEMORY;
 	}
 
 	sli_cmd_common_set_profile_config(&hw->sli, mbxdata, SLI4_BMBX_SIZE,
-						   &new_cb_arg->payload,
-						   0, pci_descriptor_count+1, 1);
+	    &new_cb_arg->payload, 0, pci_descriptor_count + 1, 1);
 
-	/* Point dst to the first descriptor entry in the SET_PROFILE_CONFIG command */
-	dst = (uint8_t *)&(((sli4_req_common_set_profile_config_t *) new_cb_arg->payload.virt)->desc);
+	/* Point dst to the first descriptor entry in the SET_PROFILE_CONFIG
+	 * command */
+	dst = (uint8_t *)&(
+	    ((sli4_req_common_set_profile_config_t *)new_cb_arg->payload.virt)
+		->desc);
 
-	/* Loop over all descriptors.  If the descriptor is a PCIe descriptor, copy it
-	 * to the SET_PROFILE_CONFIG command to be written back.  If it's the descriptor
-	 * that we're trying to change also set its pf_type.
+	/* Loop over all descriptors.  If the descriptor is a PCIe descriptor,
+	 * copy it to the SET_PROFILE_CONFIG command to be written back.  If
+	 * it's the descriptor that we're trying to change also set its pf_type.
 	 */
 	desc_p = (sli4_resource_descriptor_v1_t *)response->desc;
-	for (i=0; i<num_descriptors; i++) {
-		if (desc_p->descriptor_type == SLI4_RESOURCE_DESCRIPTOR_TYPE_PCIE) {
-			pcie_desc_p = (sli4_pcie_resource_descriptor_v1_t*) desc_p;
+	for (i = 0; i < num_descriptors; i++) {
+		if (desc_p->descriptor_type ==
+		    SLI4_RESOURCE_DESCRIPTOR_TYPE_PCIE) {
+			pcie_desc_p = (sli4_pcie_resource_descriptor_v1_t *)
+			    desc_p;
 			if (pcie_desc_p->pf_number == cb_arg->pci_func) {
-				/* This is the PCIe descriptor for this OCS instance.
-				 * Update it with the new pf_type */
-				switch(new_protocol) {
+				/* This is the PCIe descriptor for this OCS
+				 * instance. Update it with the new pf_type */
+				switch (new_protocol) {
 				case OCS_HW_PORT_PROTOCOL_FC:
 					pcie_desc_p->pf_type = SLI4_PROTOCOL_FC;
 					break;
 				case OCS_HW_PORT_PROTOCOL_FCOE:
-					pcie_desc_p->pf_type = SLI4_PROTOCOL_FCOE;
+					pcie_desc_p->pf_type =
+					    SLI4_PROTOCOL_FCOE;
 					break;
 				case OCS_HW_PORT_PROTOCOL_ISCSI:
-					pcie_desc_p->pf_type = SLI4_PROTOCOL_ISCSI;
+					pcie_desc_p->pf_type =
+					    SLI4_PROTOCOL_ISCSI;
 					break;
 				default:
-					pcie_desc_p->pf_type = SLI4_PROTOCOL_DEFAULT;
+					pcie_desc_p->pf_type =
+					    SLI4_PROTOCOL_DEFAULT;
 					break;
 				}
 			}
@@ -7438,17 +7828,20 @@ ocs_hw_set_port_protocol_cb1(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *a
 			if (pcie_desc_p->pf_type == SLI4_PROTOCOL_ISCSI) {
 				++num_iscsi_ports;
 			}
-			ocs_memcpy(dst, pcie_desc_p, sizeof(sli4_pcie_resource_descriptor_v1_t));
+			ocs_memcpy(dst, pcie_desc_p,
+			    sizeof(sli4_pcie_resource_descriptor_v1_t));
 			dst += sizeof(sli4_pcie_resource_descriptor_v1_t);
 		}
 
-		desc_p = (sli4_resource_descriptor_v1_t *) ((uint8_t *)desc_p + desc_p->descriptor_length);
+		desc_p = (sli4_resource_descriptor_v1_t *)((uint8_t *)desc_p +
+		    desc_p->descriptor_length);
 	}
 
 	/* Create an ISAP resource descriptor */
-	isap_desc_p = (sli4_isap_resouce_descriptor_v1_t*)dst;
+	isap_desc_p = (sli4_isap_resouce_descriptor_v1_t *)dst;
 	isap_desc_p->descriptor_type = SLI4_RESOURCE_DESCRIPTOR_TYPE_ISAP;
-	isap_desc_p->descriptor_length = sizeof(sli4_isap_resouce_descriptor_v1_t);
+	isap_desc_p->descriptor_length = sizeof(
+	    sli4_isap_resouce_descriptor_v1_t);
 	if (num_iscsi_ports > 0) {
 		isap_desc_p->iscsi_tgt = 1;
 		isap_desc_p->iscsi_ini = 1;
@@ -7460,24 +7853,28 @@ ocs_hw_set_port_protocol_cb1(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *a
 		isap_desc_p->fcoe_dif = 1;
 	}
 
-	/* At this point we're done with the memory allocated by ocs_port_set_protocol */
+	/* At this point we're done with the memory allocated by
+	 * ocs_port_set_protocol */
 	ocs_dma_free(hw->os, &cb_arg->payload);
 	ocs_free(hw->os, mqe, SLI4_BMBX_SIZE);
 	ocs_free(hw->os, cb_arg, sizeof(ocs_hw_set_port_protocol_cb_arg_t));
 
 	/* Send a SET_PROFILE_CONFIG mailbox command with the new descriptors */
-	rc = ocs_hw_command(hw, mbxdata, OCS_CMD_NOWAIT, ocs_hw_set_port_protocol_cb2, new_cb_arg);
+	rc = ocs_hw_command(hw, mbxdata, OCS_CMD_NOWAIT,
+	    ocs_hw_set_port_protocol_cb2, new_cb_arg);
 	if (rc) {
-		ocs_log_err(hw->os, "Error posting COMMON_SET_PROFILE_CONFIG\n");
+		ocs_log_err(hw->os,
+		    "Error posting COMMON_SET_PROFILE_CONFIG\n");
 		/* Call the upper level callback to report a failure */
 		if (new_cb_arg->cb) {
-			new_cb_arg->cb( rc, new_cb_arg->arg);
+			new_cb_arg->cb(rc, new_cb_arg->arg);
 		}
 
 		/* Free the memory allocated by this function */
 		ocs_dma_free(hw->os, &new_cb_arg->payload);
 		ocs_free(hw->os, mbxdata, SLI4_BMBX_SIZE);
-		ocs_free(hw->os, new_cb_arg, sizeof(ocs_hw_set_port_protocol_cb_arg_t));
+		ocs_free(hw->os, new_cb_arg,
+		    sizeof(ocs_hw_set_port_protocol_cb_arg_t));
 	}
 
 	return rc;
@@ -7511,7 +7908,7 @@ ocs_hw_set_port_protocol_cb1(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *a
  */
 ocs_hw_rtn_e
 ocs_hw_set_port_protocol(ocs_hw_t *hw, ocs_hw_port_protocol_e new_protocol,
-		uint32_t pci_func, ocs_set_port_protocol_cb_t cb, void *ul_arg)
+    uint32_t pci_func, ocs_set_port_protocol_cb_t cb, void *ul_arg)
 {
 	uint8_t *mbxdata;
 	ocs_hw_set_port_protocol_cb_arg_t *cb_arg;
@@ -7529,8 +7926,10 @@ ocs_hw_set_port_protocol(ocs_hw_t *hw, ocs_hw_port_protocol_e new_protocol,
 		return OCS_HW_RTN_NO_MEMORY;
 	}
 
-	/* cb_arg holds the data that will be passed to the callback on completion */
-	cb_arg = ocs_malloc(hw->os, sizeof(ocs_hw_set_port_protocol_cb_arg_t), OCS_M_NOWAIT);
+	/* cb_arg holds the data that will be passed to the callback on
+	 * completion */
+	cb_arg = ocs_malloc(hw->os, sizeof(ocs_hw_set_port_protocol_cb_arg_t),
+	    OCS_M_NOWAIT);
 	if (cb_arg == NULL) {
 		ocs_log_err(hw->os, "failed to malloc cb_arg\n");
 		ocs_free(hw->os, mbxdata, SLI4_BMBX_SIZE);
@@ -7546,12 +7945,15 @@ ocs_hw_set_port_protocol(ocs_hw_t *hw, ocs_hw_port_protocol_e new_protocol,
 	if (ocs_dma_alloc(hw->os, &cb_arg->payload, 4096, 4)) {
 		ocs_log_err(hw->os, "Failed to allocate DMA buffer\n");
 		ocs_free(hw->os, mbxdata, SLI4_BMBX_SIZE);
-		ocs_free(hw->os, cb_arg, sizeof(ocs_hw_get_port_protocol_cb_arg_t));
+		ocs_free(hw->os, cb_arg,
+		    sizeof(ocs_hw_get_port_protocol_cb_arg_t));
 		return OCS_HW_RTN_NO_MEMORY;
 	}
 
-	if (sli_cmd_common_get_profile_config(&hw->sli, mbxdata, SLI4_BMBX_SIZE, &cb_arg->payload)) {
-		rc = ocs_hw_command(hw, mbxdata, OCS_CMD_NOWAIT, ocs_hw_set_port_protocol_cb1, cb_arg);
+	if (sli_cmd_common_get_profile_config(&hw->sli, mbxdata, SLI4_BMBX_SIZE,
+		&cb_arg->payload)) {
+		rc = ocs_hw_command(hw, mbxdata, OCS_CMD_NOWAIT,
+		    ocs_hw_set_port_protocol_cb1, cb_arg);
 	}
 
 	if (rc != OCS_HW_RTN_SUCCESS) {
@@ -7588,12 +7990,14 @@ typedef struct ocs_hw_get_profile_list_cb_arg_s {
  * @return Returns 0 on success, or a non-zero value on failure.
  */
 static int32_t
-ocs_hw_get_profile_list_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
+ocs_hw_get_profile_list_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe,
+    void *arg)
 {
 	ocs_hw_profile_list_t *list;
 	ocs_hw_get_profile_list_cb_arg_t *cb_arg = arg;
 	ocs_dma_t *payload = &(cb_arg->payload);
-	sli4_res_common_get_profile_list_t *response = (sli4_res_common_get_profile_list_t *)payload->virt;
+	sli4_res_common_get_profile_list_t *response =
+	    (sli4_res_common_get_profile_list_t *)payload->virt;
 	int i;
 	int num_descriptors;
 
@@ -7610,10 +8014,14 @@ ocs_hw_get_profile_list_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg
 		num_descriptors = OCS_HW_MAX_PROFILES;
 	}
 
-	for (i=0; i<num_descriptors; i++) {
-		list->descriptors[i].profile_id = response->profile_descriptor[i].profile_id;
-		list->descriptors[i].profile_index = response->profile_descriptor[i].profile_index;
-		ocs_strcpy(list->descriptors[i].profile_description, (char *)response->profile_descriptor[i].profile_description);
+	for (i = 0; i < num_descriptors; i++) {
+		list->descriptors[i].profile_id =
+		    response->profile_descriptor[i].profile_id;
+		list->descriptors[i].profile_index =
+		    response->profile_descriptor[i].profile_index;
+		ocs_strcpy(list->descriptors[i].profile_description,
+		    (char *)response->profile_descriptor[i]
+			.profile_description);
 	}
 
 	if (cb_arg->cb) {
@@ -7651,7 +8059,8 @@ ocs_hw_get_profile_list_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg
  * - OCS_HW_RTN_ERROR on any other error.
  */
 ocs_hw_rtn_e
-ocs_hw_get_profile_list(ocs_hw_t *hw, ocs_get_profile_list_cb_t cb, void* ul_arg)
+ocs_hw_get_profile_list(ocs_hw_t *hw, ocs_get_profile_list_cb_t cb,
+    void *ul_arg)
 {
 	uint8_t *mbxdata;
 	ocs_hw_get_profile_list_cb_arg_t *cb_arg;
@@ -7669,8 +8078,10 @@ ocs_hw_get_profile_list(ocs_hw_t *hw, ocs_get_profile_list_cb_t cb, void* ul_arg
 		return OCS_HW_RTN_NO_MEMORY;
 	}
 
-	/* cb_arg holds the data that will be passed to the callback on completion */
-	cb_arg = ocs_malloc(hw->os, sizeof(ocs_hw_get_profile_list_cb_arg_t), OCS_M_NOWAIT);
+	/* cb_arg holds the data that will be passed to the callback on
+	 * completion */
+	cb_arg = ocs_malloc(hw->os, sizeof(ocs_hw_get_profile_list_cb_arg_t),
+	    OCS_M_NOWAIT);
 	if (cb_arg == NULL) {
 		ocs_log_err(hw->os, "failed to malloc cb_arg\n");
 		ocs_free(hw->os, mbxdata, SLI4_BMBX_SIZE);
@@ -7681,22 +8092,27 @@ ocs_hw_get_profile_list(ocs_hw_t *hw, ocs_get_profile_list_cb_t cb, void* ul_arg
 	cb_arg->arg = ul_arg;
 
 	/* dma_mem holds the non-embedded portion */
-	if (ocs_dma_alloc(hw->os, &cb_arg->payload, sizeof(sli4_res_common_get_profile_list_t), 4)) {
+	if (ocs_dma_alloc(hw->os, &cb_arg->payload,
+		sizeof(sli4_res_common_get_profile_list_t), 4)) {
 		ocs_log_err(hw->os, "Failed to allocate DMA buffer\n");
 		ocs_free(hw->os, mbxdata, SLI4_BMBX_SIZE);
-		ocs_free(hw->os, cb_arg, sizeof(ocs_hw_get_profile_list_cb_arg_t));
+		ocs_free(hw->os, cb_arg,
+		    sizeof(ocs_hw_get_profile_list_cb_arg_t));
 		return OCS_HW_RTN_NO_MEMORY;
 	}
 
-	if (sli_cmd_common_get_profile_list(&hw->sli, mbxdata, SLI4_BMBX_SIZE, 0, &cb_arg->payload)) {
-		rc = ocs_hw_command(hw, mbxdata, OCS_CMD_NOWAIT, ocs_hw_get_profile_list_cb, cb_arg);
+	if (sli_cmd_common_get_profile_list(&hw->sli, mbxdata, SLI4_BMBX_SIZE,
+		0, &cb_arg->payload)) {
+		rc = ocs_hw_command(hw, mbxdata, OCS_CMD_NOWAIT,
+		    ocs_hw_get_profile_list_cb, cb_arg);
 	}
 
 	if (rc != OCS_HW_RTN_SUCCESS) {
 		ocs_log_test(hw->os, "GET_PROFILE_LIST failed\n");
 		ocs_free(hw->os, mbxdata, SLI4_BMBX_SIZE);
 		ocs_dma_free(hw->os, &cb_arg->payload);
-		ocs_free(hw->os, cb_arg, sizeof(ocs_hw_get_profile_list_cb_arg_t));
+		ocs_free(hw->os, cb_arg,
+		    sizeof(ocs_hw_get_profile_list_cb_arg_t));
 	}
 
 	return rc;
@@ -7719,11 +8135,13 @@ typedef struct ocs_hw_get_active_profile_cb_arg_s {
  * @return Returns 0 on success, or a non-zero value on failure.
  */
 static int32_t
-ocs_hw_get_active_profile_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
+ocs_hw_get_active_profile_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe,
+    void *arg)
 {
 	ocs_hw_get_active_profile_cb_arg_t *cb_arg = arg;
-	sli4_cmd_sli_config_t* mbox_rsp = (sli4_cmd_sli_config_t*) mqe;
-	sli4_res_common_get_active_profile_t* response = (sli4_res_common_get_active_profile_t*) mbox_rsp->payload.embed;
+	sli4_cmd_sli_config_t *mbox_rsp = (sli4_cmd_sli_config_t *)mqe;
+	sli4_res_common_get_active_profile_t *response =
+	    (sli4_res_common_get_active_profile_t *)mbox_rsp->payload.embed;
 	uint32_t active_profile;
 
 	active_profile = response->active_profile_id;
@@ -7760,7 +8178,8 @@ ocs_hw_get_active_profile_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *a
  * - OCS_HW_RTN_ERROR on any other error.
  */
 ocs_hw_rtn_e
-ocs_hw_get_active_profile(ocs_hw_t *hw, ocs_get_active_profile_cb_t cb, void* ul_arg)
+ocs_hw_get_active_profile(ocs_hw_t *hw, ocs_get_active_profile_cb_t cb,
+    void *ul_arg)
 {
 	uint8_t *mbxdata;
 	ocs_hw_get_active_profile_cb_arg_t *cb_arg;
@@ -7778,8 +8197,10 @@ ocs_hw_get_active_profile(ocs_hw_t *hw, ocs_get_active_profile_cb_t cb, void* ul
 		return OCS_HW_RTN_NO_MEMORY;
 	}
 
-	/* cb_arg holds the data that will be passed to the callback on completion */
-	cb_arg = ocs_malloc(hw->os, sizeof(ocs_hw_get_active_profile_cb_arg_t), OCS_M_NOWAIT);
+	/* cb_arg holds the data that will be passed to the callback on
+	 * completion */
+	cb_arg = ocs_malloc(hw->os, sizeof(ocs_hw_get_active_profile_cb_arg_t),
+	    OCS_M_NOWAIT);
 	if (cb_arg == NULL) {
 		ocs_log_err(hw->os, "failed to malloc cb_arg\n");
 		ocs_free(hw->os, mbxdata, SLI4_BMBX_SIZE);
@@ -7789,14 +8210,17 @@ ocs_hw_get_active_profile(ocs_hw_t *hw, ocs_get_active_profile_cb_t cb, void* ul
 	cb_arg->cb = cb;
 	cb_arg->arg = ul_arg;
 
-	if (sli_cmd_common_get_active_profile(&hw->sli, mbxdata, SLI4_BMBX_SIZE)) {
-		rc = ocs_hw_command(hw, mbxdata, OCS_CMD_NOWAIT, ocs_hw_get_active_profile_cb, cb_arg);
+	if (sli_cmd_common_get_active_profile(&hw->sli, mbxdata,
+		SLI4_BMBX_SIZE)) {
+		rc = ocs_hw_command(hw, mbxdata, OCS_CMD_NOWAIT,
+		    ocs_hw_get_active_profile_cb, cb_arg);
 	}
 
 	if (rc != OCS_HW_RTN_SUCCESS) {
 		ocs_log_test(hw->os, "GET_ACTIVE_PROFILE failed\n");
 		ocs_free(hw->os, mbxdata, SLI4_BMBX_SIZE);
-		ocs_free(hw->os, cb_arg, sizeof(ocs_hw_get_active_profile_cb_arg_t));
+		ocs_free(hw->os, cb_arg,
+		    sizeof(ocs_hw_get_active_profile_cb_arg_t));
 	}
 
 	return rc;
@@ -7822,11 +8246,11 @@ static int32_t
 ocs_hw_get_nvparms_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 {
 	ocs_hw_get_nvparms_cb_arg_t *cb_arg = arg;
-	sli4_cmd_read_nvparms_t* mbox_rsp = (sli4_cmd_read_nvparms_t*) mqe;
+	sli4_cmd_read_nvparms_t *mbox_rsp = (sli4_cmd_read_nvparms_t *)mqe;
 
 	if (cb_arg->cb) {
-		cb_arg->cb(status, mbox_rsp->wwpn, mbox_rsp->wwnn, mbox_rsp->hard_alpa,
-				mbox_rsp->preferred_d_id, cb_arg->arg);
+		cb_arg->cb(status, mbox_rsp->wwpn, mbox_rsp->wwnn,
+		    mbox_rsp->hard_alpa, mbox_rsp->preferred_d_id, cb_arg->arg);
 	}
 
 	ocs_free(hw->os, mqe, SLI4_BMBX_SIZE);
@@ -7857,7 +8281,7 @@ ocs_hw_get_nvparms_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
  * - OCS_HW_RTN_ERROR on any other error.
  */
 ocs_hw_rtn_e
-ocs_hw_get_nvparms(ocs_hw_t *hw, ocs_get_nvparms_cb_t cb, void* ul_arg)
+ocs_hw_get_nvparms(ocs_hw_t *hw, ocs_get_nvparms_cb_t cb, void *ul_arg)
 {
 	uint8_t *mbxdata;
 	ocs_hw_get_nvparms_cb_arg_t *cb_arg;
@@ -7870,8 +8294,10 @@ ocs_hw_get_nvparms(ocs_hw_t *hw, ocs_get_nvparms_cb_t cb, void* ul_arg)
 		return OCS_HW_RTN_NO_MEMORY;
 	}
 
-	/* cb_arg holds the data that will be passed to the callback on completion */
-	cb_arg = ocs_malloc(hw->os, sizeof(ocs_hw_get_nvparms_cb_arg_t), OCS_M_NOWAIT);
+	/* cb_arg holds the data that will be passed to the callback on
+	 * completion */
+	cb_arg = ocs_malloc(hw->os, sizeof(ocs_hw_get_nvparms_cb_arg_t),
+	    OCS_M_NOWAIT);
 	if (cb_arg == NULL) {
 		ocs_log_err(hw->os, "failed to malloc cb_arg\n");
 		ocs_free(hw->os, mbxdata, SLI4_BMBX_SIZE);
@@ -7882,7 +8308,8 @@ ocs_hw_get_nvparms(ocs_hw_t *hw, ocs_get_nvparms_cb_t cb, void* ul_arg)
 	cb_arg->arg = ul_arg;
 
 	if (sli_cmd_read_nvparms(&hw->sli, mbxdata, SLI4_BMBX_SIZE)) {
-		rc = ocs_hw_command(hw, mbxdata, OCS_CMD_NOWAIT, ocs_hw_get_nvparms_cb, cb_arg);
+		rc = ocs_hw_command(hw, mbxdata, OCS_CMD_NOWAIT,
+		    ocs_hw_get_nvparms_cb, cb_arg);
 	}
 
 	if (rc != OCS_HW_RTN_SUCCESS) {
@@ -7955,7 +8382,7 @@ ocs_hw_set_nvparms_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
  */
 ocs_hw_rtn_e
 ocs_hw_set_nvparms(ocs_hw_t *hw, ocs_set_nvparms_cb_t cb, uint8_t *wwpn,
-		uint8_t *wwnn, uint8_t hard_alpa, uint32_t preferred_d_id, void* ul_arg)
+    uint8_t *wwnn, uint8_t hard_alpa, uint32_t preferred_d_id, void *ul_arg)
 {
 	uint8_t *mbxdata;
 	ocs_hw_set_nvparms_cb_arg_t *cb_arg;
@@ -7968,8 +8395,10 @@ ocs_hw_set_nvparms(ocs_hw_t *hw, ocs_set_nvparms_cb_t cb, uint8_t *wwpn,
 		return OCS_HW_RTN_NO_MEMORY;
 	}
 
-	/* cb_arg holds the data that will be passed to the callback on completion */
-	cb_arg = ocs_malloc(hw->os, sizeof(ocs_hw_set_nvparms_cb_arg_t), OCS_M_NOWAIT);
+	/* cb_arg holds the data that will be passed to the callback on
+	 * completion */
+	cb_arg = ocs_malloc(hw->os, sizeof(ocs_hw_set_nvparms_cb_arg_t),
+	    OCS_M_NOWAIT);
 	if (cb_arg == NULL) {
 		ocs_log_err(hw->os, "failed to malloc cb_arg\n");
 		ocs_free(hw->os, mbxdata, SLI4_BMBX_SIZE);
@@ -7979,8 +8408,10 @@ ocs_hw_set_nvparms(ocs_hw_t *hw, ocs_set_nvparms_cb_t cb, uint8_t *wwpn,
 	cb_arg->cb = cb;
 	cb_arg->arg = ul_arg;
 
-	if (sli_cmd_write_nvparms(&hw->sli, mbxdata, SLI4_BMBX_SIZE, wwpn, wwnn, hard_alpa, preferred_d_id)) {
-		rc = ocs_hw_command(hw, mbxdata, OCS_CMD_NOWAIT, ocs_hw_set_nvparms_cb, cb_arg);
+	if (sli_cmd_write_nvparms(&hw->sli, mbxdata, SLI4_BMBX_SIZE, wwpn, wwnn,
+		hard_alpa, preferred_d_id)) {
+		rc = ocs_hw_command(hw, mbxdata, OCS_CMD_NOWAIT,
+		    ocs_hw_set_nvparms_cb, cb_arg);
 	}
 
 	if (rc != OCS_HW_RTN_SUCCESS) {
@@ -8009,27 +8440,31 @@ ocs_hw_io_get_count(ocs_hw_t *hw, ocs_hw_io_count_type_e io_count_type)
 	ocs_lock(&hw->io_lock);
 
 	switch (io_count_type) {
-	case OCS_HW_IO_INUSE_COUNT :
-		ocs_list_foreach(&hw->io_inuse, io) {
+	case OCS_HW_IO_INUSE_COUNT:
+		ocs_list_foreach(&hw->io_inuse, io)
+		{
 			count++;
 		}
 		break;
-	case OCS_HW_IO_FREE_COUNT :
-		 ocs_list_foreach(&hw->io_free, io) {
-			 count++;
-		 }
-		 break;
-	case OCS_HW_IO_WAIT_FREE_COUNT :
-		 ocs_list_foreach(&hw->io_wait_free, io) {
-			 count++;
-		 }
-		 break;
+	case OCS_HW_IO_FREE_COUNT:
+		ocs_list_foreach(&hw->io_free, io)
+		{
+			count++;
+		}
+		break;
+	case OCS_HW_IO_WAIT_FREE_COUNT:
+		ocs_list_foreach(&hw->io_wait_free, io)
+		{
+			count++;
+		}
+		break;
 	case OCS_HW_IO_PORT_OWNED_COUNT:
-		 ocs_list_foreach(&hw->io_port_owned, io) {
-			 count++;
-		 }
-		 break;
-	case OCS_HW_IO_N_TOTAL_IO_COUNT :
+		ocs_list_foreach(&hw->io_port_owned, io)
+		{
+			count++;
+		}
+		break;
+	case OCS_HW_IO_N_TOTAL_IO_COUNT:
 		count = hw->config.n_io;
 		break;
 	}
@@ -8084,7 +8519,8 @@ typedef struct ocs_hw_set_active_profile_cb_arg_s {
  * @return Returns 0 on success, or a non-zero value on failure.
  */
 static int32_t
-ocs_hw_set_active_profile_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
+ocs_hw_set_active_profile_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe,
+    void *arg)
 {
 	ocs_hw_set_active_profile_cb_arg_t *cb_arg = arg;
 
@@ -8119,7 +8555,8 @@ ocs_hw_set_active_profile_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *a
  * - OCS_HW_RTN_ERROR on any other error.
  */
 ocs_hw_rtn_e
-ocs_hw_set_active_profile(ocs_hw_t *hw, ocs_set_active_profile_cb_t cb, uint32_t profile_id, void* ul_arg)
+ocs_hw_set_active_profile(ocs_hw_t *hw, ocs_set_active_profile_cb_t cb,
+    uint32_t profile_id, void *ul_arg)
 {
 	uint8_t *mbxdata;
 	ocs_hw_set_active_profile_cb_arg_t *cb_arg;
@@ -8137,8 +8574,10 @@ ocs_hw_set_active_profile(ocs_hw_t *hw, ocs_set_active_profile_cb_t cb, uint32_t
 		return OCS_HW_RTN_NO_MEMORY;
 	}
 
-	/* cb_arg holds the data that will be passed to the callback on completion */
-	cb_arg = ocs_malloc(hw->os, sizeof(ocs_hw_set_active_profile_cb_arg_t), OCS_M_NOWAIT);
+	/* cb_arg holds the data that will be passed to the callback on
+	 * completion */
+	cb_arg = ocs_malloc(hw->os, sizeof(ocs_hw_set_active_profile_cb_arg_t),
+	    OCS_M_NOWAIT);
 	if (cb_arg == NULL) {
 		ocs_log_err(hw->os, "failed to malloc cb_arg\n");
 		ocs_free(hw->os, mbxdata, SLI4_BMBX_SIZE);
@@ -8148,14 +8587,17 @@ ocs_hw_set_active_profile(ocs_hw_t *hw, ocs_set_active_profile_cb_t cb, uint32_t
 	cb_arg->cb = cb;
 	cb_arg->arg = ul_arg;
 
-	if (sli_cmd_common_set_active_profile(&hw->sli, mbxdata, SLI4_BMBX_SIZE, 0, profile_id)) {
-		rc = ocs_hw_command(hw, mbxdata, OCS_CMD_NOWAIT, ocs_hw_set_active_profile_cb, cb_arg);
+	if (sli_cmd_common_set_active_profile(&hw->sli, mbxdata, SLI4_BMBX_SIZE,
+		0, profile_id)) {
+		rc = ocs_hw_command(hw, mbxdata, OCS_CMD_NOWAIT,
+		    ocs_hw_set_active_profile_cb, cb_arg);
 	}
 
 	if (rc != OCS_HW_RTN_SUCCESS) {
 		ocs_log_test(hw->os, "SET_ACTIVE_PROFILE failed\n");
 		ocs_free(hw->os, mbxdata, SLI4_BMBX_SIZE);
-		ocs_free(hw->os, cb_arg, sizeof(ocs_hw_set_active_profile_cb_arg_t));
+		ocs_free(hw->os, cb_arg,
+		    sizeof(ocs_hw_set_active_profile_cb_arg_t));
 	}
 
 	return rc;
@@ -8175,13 +8617,13 @@ ocs_hw_set_active_profile(ocs_hw_t *hw, ocs_set_active_profile_cb_t cb, uint32_t
 static void
 ocs_hw_queue_hash_add(ocs_queue_hash_t *hash, uint16_t id, uint16_t index)
 {
-	uint32_t	hash_index = id & (OCS_HW_Q_HASH_SIZE - 1);
+	uint32_t hash_index = id & (OCS_HW_Q_HASH_SIZE - 1);
 
 	/*
 	 * Since the hash is always bigger than the number of queues, then we
 	 * never have to worry about an infinite loop.
 	 */
-	while(hash[hash_index].in_use) {
+	while (hash[hash_index].in_use) {
 		hash_index = (hash_index + 1) & (OCS_HW_Q_HASH_SIZE - 1);
 	}
 
@@ -8202,22 +8644,21 @@ ocs_hw_queue_hash_add(ocs_queue_hash_t *hash, uint16_t id, uint16_t index)
 int32_t
 ocs_hw_queue_hash_find(ocs_queue_hash_t *hash, uint16_t id)
 {
-	int32_t	rc = -1;
-	int32_t	index = id & (OCS_HW_Q_HASH_SIZE - 1);
+	int32_t rc = -1;
+	int32_t index = id & (OCS_HW_Q_HASH_SIZE - 1);
 
 	/*
-	 * Since the hash is always bigger than the maximum number of Qs, then we
-	 * never have to worry about an infinite loop. We will always find an
+	 * Since the hash is always bigger than the maximum number of Qs, then
+	 * we never have to worry about an infinite loop. We will always find an
 	 * unused entry.
 	 */
 	do {
-		if (hash[index].in_use &&
-		    hash[index].id == id) {
+		if (hash[index].in_use && hash[index].id == id) {
 			rc = hash[index].index;
 		} else {
 			index = (index + 1) & (OCS_HW_Q_HASH_SIZE - 1);
 		}
-	} while(rc == -1 && hash[index].in_use);
+	} while (rc == -1 && hash[index].in_use);
 
 	return rc;
 }
@@ -8225,22 +8666,21 @@ ocs_hw_queue_hash_find(ocs_queue_hash_t *hash, uint16_t id)
 static int32_t
 ocs_hw_domain_add(ocs_hw_t *hw, ocs_domain_t *domain)
 {
-	int32_t		rc = OCS_HW_RTN_ERROR;
-	uint16_t	fcfi = UINT16_MAX;
+	int32_t rc = OCS_HW_RTN_ERROR;
+	uint16_t fcfi = UINT16_MAX;
 
 	if ((hw == NULL) || (domain == NULL)) {
-		ocs_log_err(NULL, "bad parameter hw=%p domain=%p\n",
-				hw, domain);
+		ocs_log_err(NULL, "bad parameter hw=%p domain=%p\n", hw,
+		    domain);
 		return OCS_HW_RTN_ERROR;
 	}
 
 	fcfi = domain->fcf_indicator;
 
 	if (fcfi < SLI4_MAX_FCFI) {
-		uint16_t	fcf_index = UINT16_MAX;
+		uint16_t fcf_index = UINT16_MAX;
 
-		ocs_log_debug(hw->os, "adding domain %p @ %#x\n",
-				domain, fcfi);
+		ocs_log_debug(hw->os, "adding domain %p @ %#x\n", domain, fcfi);
 		hw->domains[fcfi] = domain;
 
 		/* HW_WORKAROUND_OVERRIDE_FCFI_IN_SRB */
@@ -8253,18 +8693,20 @@ ocs_hw_domain_add(ocs_hw_t *hw, ocs_domain_t *domain)
 		fcf_index = domain->fcf;
 
 		if (fcf_index < SLI4_MAX_FCF_INDEX) {
-			ocs_log_debug(hw->os, "adding map of FCF index %d to FCFI %d\n",
-				      fcf_index, fcfi);
+			ocs_log_debug(hw->os,
+			    "adding map of FCF index %d to FCFI %d\n",
+			    fcf_index, fcfi);
 			hw->fcf_index_fcfi[fcf_index] = fcfi;
 			rc = OCS_HW_RTN_SUCCESS;
 		} else {
-			ocs_log_test(hw->os, "FCF index %d out of range (max %d)\n",
-				     fcf_index, SLI4_MAX_FCF_INDEX);
+			ocs_log_test(hw->os,
+			    "FCF index %d out of range (max %d)\n", fcf_index,
+			    SLI4_MAX_FCF_INDEX);
 			hw->domains[fcfi] = NULL;
 		}
 	} else {
-		ocs_log_test(hw->os, "FCFI %#x out of range (max %#x)\n",
-				fcfi, SLI4_MAX_FCFI);
+		ocs_log_test(hw->os, "FCFI %#x out of range (max %#x)\n", fcfi,
+		    SLI4_MAX_FCFI);
 	}
 
 	return rc;
@@ -8273,26 +8715,27 @@ ocs_hw_domain_add(ocs_hw_t *hw, ocs_domain_t *domain)
 static int32_t
 ocs_hw_domain_del(ocs_hw_t *hw, ocs_domain_t *domain)
 {
-	int32_t		rc = OCS_HW_RTN_ERROR;
-	uint16_t	fcfi = UINT16_MAX;
+	int32_t rc = OCS_HW_RTN_ERROR;
+	uint16_t fcfi = UINT16_MAX;
 
 	if ((hw == NULL) || (domain == NULL)) {
-		ocs_log_err(NULL, "bad parameter hw=%p domain=%p\n",
-				hw, domain);
+		ocs_log_err(NULL, "bad parameter hw=%p domain=%p\n", hw,
+		    domain);
 		return OCS_HW_RTN_ERROR;
 	}
 
 	fcfi = domain->fcf_indicator;
 
 	if (fcfi < SLI4_MAX_FCFI) {
-		uint16_t	fcf_index = UINT16_MAX;
+		uint16_t fcf_index = UINT16_MAX;
 
-		ocs_log_debug(hw->os, "deleting domain %p @ %#x\n",
-				domain, fcfi);
+		ocs_log_debug(hw->os, "deleting domain %p @ %#x\n", domain,
+		    fcfi);
 
 		if (domain != hw->domains[fcfi]) {
-			ocs_log_test(hw->os, "provided domain %p does not match stored domain %p\n",
-				     domain, hw->domains[fcfi]);
+			ocs_log_test(hw->os,
+			    "provided domain %p does not match stored domain %p\n",
+			    domain, hw->domains[fcfi]);
 			return OCS_HW_RTN_ERROR;
 		}
 
@@ -8312,16 +8755,19 @@ ocs_hw_domain_del(ocs_hw_t *hw, ocs_domain_t *domain)
 				hw->fcf_index_fcfi[fcf_index] = 0;
 				rc = OCS_HW_RTN_SUCCESS;
 			} else {
-				ocs_log_test(hw->os, "indexed FCFI %#x doesn't match provided %#x @ %d\n",
-					     hw->fcf_index_fcfi[fcf_index], fcfi, fcf_index);
+				ocs_log_test(hw->os,
+				    "indexed FCFI %#x doesn't match provided %#x @ %d\n",
+				    hw->fcf_index_fcfi[fcf_index], fcfi,
+				    fcf_index);
 			}
 		} else {
-			ocs_log_test(hw->os, "FCF index %d out of range (max %d)\n",
-				     fcf_index, SLI4_MAX_FCF_INDEX);
+			ocs_log_test(hw->os,
+			    "FCF index %d out of range (max %d)\n", fcf_index,
+			    SLI4_MAX_FCF_INDEX);
 		}
 	} else {
-		ocs_log_test(hw->os, "FCFI %#x out of range (max %#x)\n",
-				fcfi, SLI4_MAX_FCFI);
+		ocs_log_test(hw->os, "FCFI %#x out of range (max %#x)\n", fcfi,
+		    SLI4_MAX_FCFI);
 	}
 
 	return rc;
@@ -8339,8 +8785,8 @@ ocs_hw_domain_get(ocs_hw_t *hw, uint16_t fcfi)
 	if (fcfi < SLI4_MAX_FCFI) {
 		return hw->domains[fcfi];
 	} else {
-		ocs_log_test(hw->os, "FCFI %#x out of range (max %#x)\n",
-				fcfi, SLI4_MAX_FCFI);
+		ocs_log_test(hw->os, "FCFI %#x out of range (max %#x)\n", fcfi,
+		    SLI4_MAX_FCFI);
 		return NULL;
 	}
 }
@@ -8358,7 +8804,7 @@ ocs_hw_domain_get_indexed(ocs_hw_t *hw, uint16_t fcf_index)
 		return ocs_hw_domain_get(hw, hw->fcf_index_fcfi[fcf_index]);
 	} else {
 		ocs_log_test(hw->os, "FCF index %d out of range (max %d)\n",
-			     fcf_index, SLI4_MAX_FCF_INDEX);
+		    fcf_index, SLI4_MAX_FCF_INDEX);
 		return NULL;
 	}
 }
@@ -8369,9 +8815,9 @@ ocs_hw_domain_get_indexed(ocs_hw_t *hw, uint16_t fcf_index)
  *        count is released and the IO MAY be freed depending on whether
  *        it is still referenced by the IO.
  *
- *        @n @b Note: BZ 160124 - If this is a target write or an initiator read using
- *        DIF, then we must add the XRI to a quarantine list until we receive
- *        4 more completions of this same type.
+ *        @n @b Note: BZ 160124 - If this is a target write or an initiator read
+ * using DIF, then we must add the XRI to a quarantine list until we receive 4
+ * more completions of this same type.
  *
  * @param hw Hardware context.
  * @param wq Pointer to the WQ associated with the IO object to quarantine.
@@ -8381,28 +8827,29 @@ static void
 ocs_hw_io_quarantine(ocs_hw_t *hw, hw_wq_t *wq, ocs_hw_io_t *io)
 {
 	ocs_quarantine_info_t *q_info = &wq->quarantine_info;
-	uint32_t	index;
-	ocs_hw_io_t	*free_io = NULL;
+	uint32_t index;
+	ocs_hw_io_t *free_io = NULL;
 
 	/* return if the QX bit was clear */
 	if (!io->quarantine) {
 		return;
 	}
 
-	/* increment the IO refcount to prevent it from being freed before the quarantine is over */
+	/* increment the IO refcount to prevent it from being freed before the
+	 * quarantine is over */
 	if (ocs_ref_get_unless_zero(&io->ref) == 0) {
 		/* command no longer active */
 		ocs_log_debug(hw ? hw->os : NULL,
-			      "io not active xri=0x%x tag=0x%x\n",
-			      io->indicator, io->reqtag);
+		    "io not active xri=0x%x tag=0x%x\n", io->indicator,
+		    io->reqtag);
 		return;
 	}
 
 	sli_queue_lock(wq->queue);
-		index = q_info->quarantine_index;
-		free_io = q_info->quarantine_ios[index];
-		q_info->quarantine_ios[index] = io;
-		q_info->quarantine_index = (index + 1) % OCS_HW_QUARANTINE_QUEUE_DEPTH;
+	index = q_info->quarantine_index;
+	free_io = q_info->quarantine_ios[index];
+	q_info->quarantine_ios[index] = io;
+	q_info->quarantine_index = (index + 1) % OCS_HW_QUARANTINE_QUEUE_DEPTH;
 	sli_queue_unlock(wq->queue);
 
 	if (free_io != NULL) {
@@ -8421,13 +8868,13 @@ ocs_hw_io_quarantine(ocs_hw_t *hw, hw_wq_t *wq, ocs_hw_io_t *io)
 void
 ocs_hw_cq_process(ocs_hw_t *hw, hw_cq_t *cq)
 {
-	uint8_t		cqe[sizeof(sli4_mcqe_t)];
-	uint16_t	rid = UINT16_MAX;
-	sli4_qentry_e	ctype;		/* completion type */
-	int32_t		status;
-	uint32_t	n_processed = 0;
-	time_t		tstart;
-	time_t		telapsed;
+	uint8_t cqe[sizeof(sli4_mcqe_t)];
+	uint16_t rid = UINT16_MAX;
+	sli4_qentry_e ctype; /* completion type */
+	int32_t status;
+	uint32_t n_processed = 0;
+	time_t tstart;
+	time_t telapsed;
 
 	tstart = ocs_msectime();
 
@@ -8436,12 +8883,14 @@ ocs_hw_cq_process(ocs_hw_t *hw, hw_cq_t *cq)
 		/*
 		 * The sign of status is significant. If status is:
 		 * == 0 : call completed correctly and the CQE indicated success
-		 *  > 0 : call completed correctly and the CQE indicated an error
-		 *  < 0 : call failed and no information is available about the CQE
+		 *  > 0 : call completed correctly and the CQE indicated an
+		 * error < 0 : call failed and no information is available about
+		 * the CQE
 		 */
 		if (status < 0) {
 			if (status == -2) {
-				/* Notification that an entry was consumed, but not completed */
+				/* Notification that an entry was consumed, but
+				 * not completed */
 				continue;
 			}
 
@@ -8473,11 +8922,12 @@ ocs_hw_cq_process(ocs_hw_t *hw, hw_cq_t *cq)
 			break;
 		case SLI_QENTRY_WQ_RELEASE: {
 			uint32_t wq_id = rid;
-			int32_t index = ocs_hw_queue_hash_find(hw->wq_hash, wq_id);
+			int32_t index = ocs_hw_queue_hash_find(hw->wq_hash,
+			    wq_id);
 
 			if (unlikely(index < 0)) {
 				ocs_log_err(hw->os, "unknown idx=%#x rid=%#x\n",
-					    index, rid);
+				    index, rid);
 				break;
 			}
 
@@ -8499,7 +8949,8 @@ ocs_hw_cq_process(ocs_hw_t *hw, hw_cq_t *cq)
 			break;
 		}
 		default:
-			ocs_log_test(hw->os, "unhandled ctype=%#x rid=%#x\n", ctype, rid);
+			ocs_log_test(hw->os, "unhandled ctype=%#x rid=%#x\n",
+			    ctype, rid);
 			break;
 		}
 
@@ -8536,16 +8987,19 @@ ocs_hw_cq_process(ocs_hw_t *hw, hw_cq_t *cq)
  * @return none
  */
 void
-ocs_hw_wq_process(ocs_hw_t *hw, hw_cq_t *cq, uint8_t *cqe, int32_t status, uint16_t rid)
+ocs_hw_wq_process(ocs_hw_t *hw, hw_cq_t *cq, uint8_t *cqe, int32_t status,
+    uint16_t rid)
 {
 	hw_wq_callback_t *wqcb;
 
-	ocs_queue_history_cqe(&hw->q_hist, SLI_QENTRY_WQ, (void *)cqe, ((sli4_fc_wcqe_t *)cqe)->status, cq->queue->id,
-			      ((cq->queue->index - 1) & (cq->queue->length - 1)));
+	ocs_queue_history_cqe(&hw->q_hist, SLI_QENTRY_WQ, (void *)cqe,
+	    ((sli4_fc_wcqe_t *)cqe)->status, cq->queue->id,
+	    ((cq->queue->index - 1) & (cq->queue->length - 1)));
 
-	if(rid == OCS_HW_REQUE_XRI_REGTAG) {
-		if(status) {
-			ocs_log_err(hw->os, "reque xri failed, status = %d \n", status);
+	if (rid == OCS_HW_REQUE_XRI_REGTAG) {
+		if (status) {
+			ocs_log_err(hw->os, "reque xri failed, status = %d \n",
+			    status);
 		}
 		return;
 	}
@@ -8572,8 +9026,9 @@ ocs_hw_wq_process(ocs_hw_t *hw, hw_cq_t *cq, uint8_t *cqe, int32_t status, uint1
  * @param status Completion status
  *
  * @par Description
- * @n @b Note:  Regarding io->reqtag, the reqtag is assigned once when HW IOs are initialized
- * in ocs_hw_setup_io(), and don't need to be returned to the hw->wq_reqtag_pool.
+ * @n @b Note:  Regarding io->reqtag, the reqtag is assigned once when HW IOs
+ * are initialized in ocs_hw_setup_io(), and don't need to be returned to the
+ * hw->wq_reqtag_pool.
  *
  * @return None.
  */
@@ -8583,7 +9038,7 @@ ocs_hw_wq_process_io(void *arg, uint8_t *cqe, int32_t status)
 	ocs_hw_io_t *io = arg;
 	ocs_hw_t *hw = io->hw;
 	sli4_fc_wcqe_t *wcqe = (void *)cqe;
-	uint32_t	len = 0;
+	uint32_t len = 0;
 	uint32_t ext = 0;
 	uint8_t out_of_order_axr_cmd = 0;
 	uint8_t out_of_order_axr_data = 0;
@@ -8606,8 +9061,7 @@ ocs_hw_wq_process_io(void *arg, uint8_t *cqe, int32_t status)
 	io->quarantine_first_phase = FALSE;
 
 	/* BZ 161832 - free secondary HW IO */
-	if (io->sec_hio != NULL &&
-	    io->sec_hio->quarantine) {
+	if (io->sec_hio != NULL && io->sec_hio->quarantine) {
 		/*
 		 * If the quarantine flag is set on the
 		 * IO, then set it on the secondary IO
@@ -8615,7 +9069,8 @@ ocs_hw_wq_process_io(void *arg, uint8_t *cqe, int32_t status)
 		 * sent by the FW.
 		 */
 		io->sec_hio->quarantine = (wcqe->qx == 1);
-		/* use the primary io->wq because it is not set on the secondary IO. */
+		/* use the primary io->wq because it is not set on the secondary
+		 * IO. */
 		ocs_hw_io_quarantine(hw, io->wq, io->sec_hio);
 	}
 
@@ -8645,7 +9100,8 @@ ocs_hw_wq_process_io(void *arg, uint8_t *cqe, int32_t status)
 	case OCS_HW_IO_TARGET_WRITE:
 		len = sli_fc_io_length(&hw->sli, cqe);
 #if defined(OCS_DISC_SPIN_DELAY)
-		if (ocs_get_property("disk_spin_delay", prop_buf, sizeof(prop_buf)) == 0) {
+		if (ocs_get_property("disk_spin_delay", prop_buf,
+			sizeof(prop_buf)) == 0) {
 			delay = ocs_strtoul(prop_buf, 0, 0);
 			ocs_udelay(delay);
 		}
@@ -8664,13 +9120,13 @@ ocs_hw_wq_process_io(void *arg, uint8_t *cqe, int32_t status)
 
 		break;
 	case OCS_HW_IO_TARGET_RSP:
-		if(io->is_port_owned) {
+		if (io->is_port_owned) {
 			ocs_lock(&io->axr_lock);
 			lock_taken = 1;
-			if(io->axr_buf->call_axr_cmd) {
+			if (io->axr_buf->call_axr_cmd) {
 				out_of_order_axr_cmd = 1;
 			}
-			if(io->axr_buf->call_axr_data) {
+			if (io->axr_buf->call_axr_data) {
 				out_of_order_axr_data = 1;
 			}
 		}
@@ -8685,17 +9141,18 @@ ocs_hw_wq_process_io(void *arg, uint8_t *cqe, int32_t status)
 		break;
 	case OCS_HW_IO_DNRX_REQUEUE:
 		/* release the count for re-posting the buffer */
-		//ocs_hw_io_free(hw, io);
+		// ocs_hw_io_free(hw, io);
 		break;
 	default:
 		ocs_log_test(hw->os, "XXX unhandled io type %#x for XRI 0x%x\n",
-			     io->type, io->indicator);
+		    io->type, io->indicator);
 		break;
 	}
 	if (status) {
 		ext = sli_fc_ext_status(&hw->sli, cqe);
 		/* Emulate IAAB=0 for initiator WQEs only; i.e. automatically
-		 * abort exchange if an error occurred and exchange is still busy.
+		 * abort exchange if an error occurred and exchange is still
+		 * busy.
 		 */
 		if (hw->config.i_only_aab &&
 		    (ocs_hw_iotype_is_originator(io->type)) &&
@@ -8703,16 +9160,19 @@ ocs_hw_wq_process_io(void *arg, uint8_t *cqe, int32_t status)
 			ocs_hw_rtn_e rc;
 
 			ocs_log_debug(hw->os, "aborting xri=%#x tag=%#x\n",
-				      io->indicator, io->reqtag);
+			    io->indicator, io->reqtag);
 			/*
-			 * Because the initiator will not issue another IO phase, then it is OK to issue the
-			 * callback on the abort completion, but for consistency with the target, wait for the
-			 * XRI_ABORTED CQE to issue the IO callback.
+			 * Because the initiator will not issue another IO
+			 * phase, then it is OK to issue the callback on the
+			 * abort completion, but for consistency with the
+			 * target, wait for the XRI_ABORTED CQE to issue the IO
+			 * callback.
 			 */
 			rc = ocs_hw_io_abort(hw, io, TRUE, NULL, NULL);
 
 			if (rc == OCS_HW_RTN_SUCCESS) {
-				/* latch status to return after abort is complete */
+				/* latch status to return after abort is
+				 * complete */
 				io->status_saved = 1;
 				io->saved_status = status;
 				io->saved_ext = ext;
@@ -8721,34 +9181,41 @@ ocs_hw_wq_process_io(void *arg, uint8_t *cqe, int32_t status)
 			} else if (rc == OCS_HW_RTN_IO_ABORT_IN_PROGRESS) {
 				/*
 				 * Already being aborted by someone else (ABTS
-				 * perhaps). Just fall through and return original
-				 * error.
+				 * perhaps). Just fall through and return
+				 * original error.
 				 */
-				ocs_log_debug(hw->os, "abort in progress xri=%#x tag=%#x\n",
-					      io->indicator, io->reqtag);
+				ocs_log_debug(hw->os,
+				    "abort in progress xri=%#x tag=%#x\n",
+				    io->indicator, io->reqtag);
 
 			} else {
-				/* Failed to abort for some other reason, log error */
-				ocs_log_test(hw->os, "Failed to abort xri=%#x tag=%#x rc=%d\n",
-					     io->indicator, io->reqtag, rc);
+				/* Failed to abort for some other reason, log
+				 * error */
+				ocs_log_test(hw->os,
+				    "Failed to abort xri=%#x tag=%#x rc=%d\n",
+				    io->indicator, io->reqtag, rc);
 			}
 		}
 
 		/*
-		 * If we're not an originator IO, and XB is set, then issue abort for the IO from within the HW
+		 * If we're not an originator IO, and XB is set, then issue
+		 * abort for the IO from within the HW
 		 */
-		if ( (! ocs_hw_iotype_is_originator(io->type)) && wcqe->xb) {
+		if ((!ocs_hw_iotype_is_originator(io->type)) && wcqe->xb) {
 			ocs_hw_rtn_e rc;
 
-			ocs_log_debug(hw->os, "aborting xri=%#x tag=%#x\n", io->indicator, io->reqtag);
+			ocs_log_debug(hw->os, "aborting xri=%#x tag=%#x\n",
+			    io->indicator, io->reqtag);
 
 			/*
-			 * Because targets may send a response when the IO completes using the same XRI, we must
-			 * wait for the XRI_ABORTED CQE to issue the IO callback
+			 * Because targets may send a response when the IO
+			 * completes using the same XRI, we must wait for the
+			 * XRI_ABORTED CQE to issue the IO callback
 			 */
 			rc = ocs_hw_io_abort(hw, io, FALSE, NULL, NULL);
 			if (rc == OCS_HW_RTN_SUCCESS) {
-				/* latch status to return after abort is complete */
+				/* latch status to return after abort is
+				 * complete */
 				io->status_saved = 1;
 				io->saved_status = status;
 				io->saved_ext = ext;
@@ -8757,16 +9224,19 @@ ocs_hw_wq_process_io(void *arg, uint8_t *cqe, int32_t status)
 			} else if (rc == OCS_HW_RTN_IO_ABORT_IN_PROGRESS) {
 				/*
 				 * Already being aborted by someone else (ABTS
-				 * perhaps). Just fall through and return original
-				 * error.
+				 * perhaps). Just fall through and return
+				 * original error.
 				 */
-				ocs_log_debug(hw->os, "abort in progress xri=%#x tag=%#x\n",
-					      io->indicator, io->reqtag);
+				ocs_log_debug(hw->os,
+				    "abort in progress xri=%#x tag=%#x\n",
+				    io->indicator, io->reqtag);
 
 			} else {
-				/* Failed to abort for some other reason, log error */
-				ocs_log_test(hw->os, "Failed to abort xri=%#x tag=%#x rc=%d\n",
-					     io->indicator, io->reqtag, rc);
+				/* Failed to abort for some other reason, log
+				 * error */
+				ocs_log_test(hw->os,
+				    "Failed to abort xri=%#x tag=%#x rc=%d\n",
+				    io->indicator, io->reqtag, rc);
 			}
 		}
 	}
@@ -8777,8 +9247,8 @@ ocs_hw_wq_process_io(void *arg, uint8_t *cqe, int32_t status)
 	}
 
 	if (io->done != NULL) {
-		ocs_hw_done_t  done = io->done;
-		void		*arg = io->arg;
+		ocs_hw_done_t done = io->done;
+		void *arg = io->arg;
 
 		io->done = NULL;
 
@@ -8795,40 +9265,51 @@ ocs_hw_wq_process_io(void *arg, uint8_t *cqe, int32_t status)
 		done(io, io->rnode, len, status, ext, arg);
 	}
 
-	if(out_of_order_axr_cmd) {
-		/* bounce enabled, single RQ, we snoop the ox_id to choose the cpuidx */
+	if (out_of_order_axr_cmd) {
+		/* bounce enabled, single RQ, we snoop the ox_id to choose the
+		 * cpuidx */
 		if (hw->config.bounce) {
-			fc_header_t *hdr = io->axr_buf->cmd_seq->header->dma.virt;
+			fc_header_t *hdr =
+			    io->axr_buf->cmd_seq->header->dma.virt;
 			uint32_t s_id = fc_be24toh(hdr->s_id);
 			uint32_t d_id = fc_be24toh(hdr->d_id);
-			uint32_t ox_id =  ocs_be16toh(hdr->ox_id);
+			uint32_t ox_id = ocs_be16toh(hdr->ox_id);
 			if (hw->callback.bounce != NULL) {
-				(*hw->callback.bounce)(ocs_hw_unsol_process_bounce, io->axr_buf->cmd_seq, s_id, d_id, ox_id);
+				(*hw->callback.bounce)(
+				    ocs_hw_unsol_process_bounce,
+				    io->axr_buf->cmd_seq, s_id, d_id, ox_id);
 			}
-		}else {
-			hw->callback.unsolicited(hw->args.unsolicited, io->axr_buf->cmd_seq);
+		} else {
+			hw->callback.unsolicited(hw->args.unsolicited,
+			    io->axr_buf->cmd_seq);
 		}
 
-		if(out_of_order_axr_data) {
-			/* bounce enabled, single RQ, we snoop the ox_id to choose the cpuidx */
+		if (out_of_order_axr_data) {
+			/* bounce enabled, single RQ, we snoop the ox_id to
+			 * choose the cpuidx */
 			if (hw->config.bounce) {
-				fc_header_t *hdr = io->axr_buf->seq.header->dma.virt;
+				fc_header_t *hdr =
+				    io->axr_buf->seq.header->dma.virt;
 				uint32_t s_id = fc_be24toh(hdr->s_id);
 				uint32_t d_id = fc_be24toh(hdr->d_id);
-				uint32_t ox_id =  ocs_be16toh(hdr->ox_id);
+				uint32_t ox_id = ocs_be16toh(hdr->ox_id);
 				if (hw->callback.bounce != NULL) {
-					(*hw->callback.bounce)(ocs_hw_unsol_process_bounce, &io->axr_buf->seq, s_id, d_id, ox_id);
+					(*hw->callback.bounce)(
+					    ocs_hw_unsol_process_bounce,
+					    &io->axr_buf->seq, s_id, d_id,
+					    ox_id);
 				}
-			}else {
-				hw->callback.unsolicited(hw->args.unsolicited, &io->axr_buf->seq);
+			} else {
+				hw->callback.unsolicited(hw->args.unsolicited,
+				    &io->axr_buf->seq);
 			}
 		}
 	}
 
 exit_ocs_hw_wq_process_io:
-	if(lock_taken) {
+	if (lock_taken) {
 		ocs_unlock(&io->axr_lock);
-	}	
+	}
 }
 
 /**
@@ -8850,24 +9331,25 @@ ocs_hw_wq_process_abort(void *arg, uint8_t *cqe, int32_t status)
 	hw_wq_callback_t *wqcb;
 
 	/*
-	 * For IOs that were aborted internally, we may need to issue the callback here depending
-	 * on whether a XRI_ABORTED CQE is expected ot not. If the status is Local Reject/No XRI, then
-	 * issue the callback now.
-	*/
+	 * For IOs that were aborted internally, we may need to issue the
+	 * callback here depending on whether a XRI_ABORTED CQE is expected ot
+	 * not. If the status is Local Reject/No XRI, then issue the callback
+	 * now.
+	 */
 	ext = sli_fc_ext_status(&hw->sli, cqe);
 	if (status == SLI4_FC_WCQE_STATUS_LOCAL_REJECT &&
-	    ext == SLI4_FC_LOCAL_REJECT_NO_XRI &&
-		io->done != NULL) {
-		ocs_hw_done_t  done = io->done;
-		void		*arg = io->arg;
+	    ext == SLI4_FC_LOCAL_REJECT_NO_XRI && io->done != NULL) {
+		ocs_hw_done_t done = io->done;
+		void *arg = io->arg;
 
 		io->done = NULL;
 
 		/*
-		 * Use latched status as this is always saved for an internal abort
+		 * Use latched status as this is always saved for an internal
+		 * abort
 		 *
-		 * Note: We wont have both a done and abort_done function, so don't worry about
-		 *       clobbering the len, status and ext fields.
+		 * Note: We wont have both a done and abort_done function, so
+		 * don't worry about clobbering the len, status and ext fields.
 		 */
 		status = io->saved_status;
 		len = io->saved_len;
@@ -8877,16 +9359,16 @@ ocs_hw_wq_process_abort(void *arg, uint8_t *cqe, int32_t status)
 	}
 
 	if (io->abort_done != NULL) {
-		ocs_hw_done_t  done = io->abort_done;
-		void		*arg = io->abort_arg;
+		ocs_hw_done_t done = io->abort_done;
+		void *arg = io->abort_arg;
 
 		io->abort_done = NULL;
 
 		done(io, io->rnode, len, status, ext, arg);
 	}
 	ocs_lock(&hw->io_abort_lock);
-		/* clear abort bit to indicate abort is complete */
-		io->abort_in_progress = 0;
+	/* clear abort bit to indicate abort is complete */
+	io->abort_in_progress = 0;
 	ocs_unlock(&hw->io_abort_lock);
 
 	/* Free the WQ callback */
@@ -8920,11 +9402,12 @@ ocs_hw_xabt_process(ocs_hw_t *hw, hw_cq_t *cq, uint8_t *cqe, uint16_t rid)
 
 	io = ocs_hw_io_lookup(hw, rid);
 
-	ocs_queue_history_cqe(&hw->q_hist, SLI_QENTRY_XABT, (void *)cqe, 0, cq->queue->id,
-			      ((cq->queue->index - 1) & (cq->queue->length - 1)));
+	ocs_queue_history_cqe(&hw->q_hist, SLI_QENTRY_XABT, (void *)cqe, 0,
+	    cq->queue->id, ((cq->queue->index - 1) & (cq->queue->length - 1)));
 	if (io == NULL) {
 		/* IO lookup failure should never happen */
-		ocs_log_err(hw->os, "Error: xabt io lookup failed rid=%#x\n", rid);
+		ocs_log_err(hw->os, "Error: xabt io lookup failed rid=%#x\n",
+		    rid);
 		return;
 	}
 
@@ -8935,19 +9418,22 @@ ocs_hw_xabt_process(ocs_hw_t *hw, hw_cq_t *cq, uint8_t *cqe, uint16_t rid)
 		io->xbusy = FALSE;
 	}
 
-       if (io->is_port_owned) {
-               ocs_lock(&hw->io_lock);
-               /* Take reference so that below callback will not free io before reque */
-               ocs_ref_get(&io->ref);
-               ocs_unlock(&hw->io_lock);
-       }
+	if (io->is_port_owned) {
+		ocs_lock(&hw->io_lock);
+		/* Take reference so that below callback will not free io before
+		 * reque */
+		ocs_ref_get(&io->ref);
+		ocs_unlock(&hw->io_lock);
+	}
 
-	/* For IOs that were aborted internally, we need to issue any pending callback here. */
+	/* For IOs that were aborted internally, we need to issue any pending
+	 * callback here. */
 	if (io->done != NULL) {
-		ocs_hw_done_t  done = io->done;
-		void		*arg = io->arg;
+		ocs_hw_done_t done = io->done;
+		void *arg = io->arg;
 
-		/* Use latched status as this is always saved for an internal abort */
+		/* Use latched status as this is always saved for an internal
+		 * abort */
 		int32_t status = io->saved_status;
 		uint32_t len = io->saved_len;
 		uint32_t ext = io->saved_ext;
@@ -8969,18 +9455,19 @@ ocs_hw_xabt_process(ocs_hw_t *hw, hw_cq_t *cq, uint8_t *cqe, uint16_t rid)
 	}
 
 	ocs_lock(&hw->io_lock);
-		if ((io->state == OCS_HW_IO_STATE_INUSE) || (io->state == OCS_HW_IO_STATE_WAIT_FREE)) {
-			/* if on wait_free list, caller has already freed IO;
-			 * remove from wait_free list and add to free list.
-			 * if on in-use list, already marked as no longer busy;
-			 * just leave there and wait for caller to free.
-			 */
-			if (io->state == OCS_HW_IO_STATE_WAIT_FREE) {
-				io->state = OCS_HW_IO_STATE_FREE;
-				ocs_list_remove(&hw->io_wait_free, io);
-				ocs_hw_io_free_move_correct_list(hw, io);
-			}
+	if ((io->state == OCS_HW_IO_STATE_INUSE) ||
+	    (io->state == OCS_HW_IO_STATE_WAIT_FREE)) {
+		/* if on wait_free list, caller has already freed IO;
+		 * remove from wait_free list and add to free list.
+		 * if on in-use list, already marked as no longer busy;
+		 * just leave there and wait for caller to free.
+		 */
+		if (io->state == OCS_HW_IO_STATE_WAIT_FREE) {
+			io->state = OCS_HW_IO_STATE_FREE;
+			ocs_list_remove(&hw->io_wait_free, io);
+			ocs_hw_io_free_move_correct_list(hw, io);
 		}
+	}
 	ocs_unlock(&hw->io_lock);
 }
 
@@ -9007,7 +9494,8 @@ ocs_hw_adjust_wqs(ocs_hw_t *hw)
 	 * handle multi-phase as well as aborts.
 	 */
 	if (max_cq_entries < max_wq_entries * 2) {
-		max_wq_entries = hw->num_qentries[SLI_QTYPE_WQ] = max_cq_entries / 2;
+		max_wq_entries = hw->num_qentries[SLI_QTYPE_WQ] =
+		    max_cq_entries / 2;
 	}
 
 	/*
@@ -9018,7 +9506,8 @@ ocs_hw_adjust_wqs(ocs_hw_t *hw)
 	 *       handle 2 times the number of IOs. Half of the space will be
 	 *       used for normal IOs and the other hwf is reserved for aborts.
 	 */
-	hw->config.n_wq = ((hw->config.n_io * 2) + (max_wq_entries - 1)) / max_wq_entries;
+	hw->config.n_wq = ((hw->config.n_io * 2) + (max_wq_entries - 1)) /
+	    max_wq_entries;
 
 	/*
 	 * For performance reasons, it is best to use use a minimum of 4 WQs
@@ -9032,8 +9521,7 @@ ocs_hw_adjust_wqs(ocs_hw_t *hw)
 	/*
 	 * For dual-chute support, we need to have at least one WQ per chute.
 	 */
-	if (hw->config.n_wq < 2 &&
-	    ocs_hw_get_num_chutes(hw) > 1) {
+	if (hw->config.n_wq < 2 && ocs_hw_get_num_chutes(hw) > 1) {
 		hw->config.n_wq = 2;
 	}
 
@@ -9059,16 +9547,16 @@ ocs_hw_command_process(ocs_hw_t *hw, int32_t status, uint8_t *mqe, size_t size)
 	ocs_command_ctx_t *ctx = NULL;
 
 	ocs_lock(&hw->cmd_lock);
-		if (NULL == (ctx = ocs_list_remove_head(&hw->cmd_head))) {
-			ocs_log_err(hw->os, "XXX no command context?!?\n");
-			ocs_unlock(&hw->cmd_lock);
-			return -1;
-		}
+	if (NULL == (ctx = ocs_list_remove_head(&hw->cmd_head))) {
+		ocs_log_err(hw->os, "XXX no command context?!?\n");
+		ocs_unlock(&hw->cmd_lock);
+		return -1;
+	}
 
-		hw->cmd_head_count--;
+	hw->cmd_head_count--;
 
-		/* Post any pending requests */
-		ocs_hw_cmd_submit_pending(hw);
+	/* Post any pending requests */
+	ocs_hw_cmd_submit_pending(hw);
 
 	ocs_unlock(&hw->cmd_lock);
 
@@ -9097,7 +9585,7 @@ ocs_hw_command_process(ocs_hw_t *hw, int32_t status, uint8_t *mqe, size_t size)
 static int32_t
 ocs_hw_mq_process(ocs_hw_t *hw, int32_t status, sli4_queue_t *mq)
 {
-	uint8_t		mqe[SLI4_BMBX_SIZE];
+	uint8_t mqe[SLI4_BMBX_SIZE];
 
 	if (!sli_queue_read(&hw->sli, mq, mqe)) {
 		ocs_hw_command_process(hw, status, mqe, mq->size);
@@ -9119,8 +9607,8 @@ ocs_hw_mq_process(ocs_hw_t *hw, int32_t status, sli4_queue_t *mq)
 static ocs_hw_rtn_e
 ocs_hw_read_fcf(ocs_hw_t *hw, uint32_t index)
 {
-	uint8_t		*buf = NULL;
-	int32_t		rc = OCS_HW_RTN_ERROR;
+	uint8_t *buf = NULL;
+	int32_t rc = OCS_HW_RTN_ERROR;
 
 	buf = ocs_malloc(hw->os, SLI4_BMBX_SIZE, OCS_M_NOWAIT);
 	if (!buf) {
@@ -9128,9 +9616,10 @@ ocs_hw_read_fcf(ocs_hw_t *hw, uint32_t index)
 		return OCS_HW_RTN_NO_MEMORY;
 	}
 
-	if (sli_cmd_fcoe_read_fcf_table(&hw->sli, buf, SLI4_BMBX_SIZE, &hw->fcf_dmem,
-			index)) {
-		rc = ocs_hw_command(hw, buf, OCS_CMD_NOWAIT, ocs_hw_cb_read_fcf, &hw->fcf_dmem);
+	if (sli_cmd_fcoe_read_fcf_table(&hw->sli, buf, SLI4_BMBX_SIZE,
+		&hw->fcf_dmem, index)) {
+		rc = ocs_hw_command(hw, buf, OCS_CMD_NOWAIT, ocs_hw_cb_read_fcf,
+		    &hw->fcf_dmem);
 	}
 
 	if (rc != OCS_HW_RTN_SUCCESS) {
@@ -9162,55 +9651,63 @@ ocs_hw_read_fcf(ocs_hw_t *hw, uint32_t index)
 static int32_t
 ocs_hw_cb_read_fcf(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 {
-	ocs_dma_t	*dma = arg;
-	sli4_mbox_command_header_t	*hdr = (sli4_mbox_command_header_t *)mqe;
+	ocs_dma_t *dma = arg;
+	sli4_mbox_command_header_t *hdr = (sli4_mbox_command_header_t *)mqe;
 
 	if (status || hdr->status) {
-		ocs_log_test(hw->os, "bad status cqe=%#x mqe=%#x\n",
-				status, hdr->status);
+		ocs_log_test(hw->os, "bad status cqe=%#x mqe=%#x\n", status,
+		    hdr->status);
 	} else if (dma->virt) {
 		sli4_res_fcoe_read_fcf_table_t *read_fcf = dma->virt;
 
 		/* if FC or FCOE and FCF entry valid, process it */
 		if (read_fcf->fcf_entry.fc ||
-				(read_fcf->fcf_entry.val && !read_fcf->fcf_entry.sol)) {
+		    (read_fcf->fcf_entry.val && !read_fcf->fcf_entry.sol)) {
 			if (hw->callback.domain != NULL) {
-				ocs_domain_record_t drec = {0};
+				ocs_domain_record_t drec = { 0 };
 
 				if (read_fcf->fcf_entry.fc) {
 					/*
-					 * This is a pseudo FCF entry. Create a domain
-					 * record based on the read topology information
+					 * This is a pseudo FCF entry. Create a
+					 * domain record based on the read
+					 * topology information
 					 */
 					drec.speed = hw->link.speed;
 					drec.fc_id = hw->link.fc_id;
 					drec.is_fc = TRUE;
-					if (SLI_LINK_TOPO_LOOP == hw->link.topology) {
+					if (SLI_LINK_TOPO_LOOP ==
+					    hw->link.topology) {
 						drec.is_loop = TRUE;
-						ocs_memcpy(drec.map.loop, hw->link.loop_map,
-							   sizeof(drec.map.loop));
-					} else if (SLI_LINK_TOPO_NPORT == hw->link.topology) {
+						ocs_memcpy(drec.map.loop,
+						    hw->link.loop_map,
+						    sizeof(drec.map.loop));
+					} else if (SLI_LINK_TOPO_NPORT ==
+					    hw->link.topology) {
 						drec.is_nport = TRUE;
 					}
 				} else {
-					drec.index = read_fcf->fcf_entry.fcf_index;
-					drec.priority = read_fcf->fcf_entry.fip_priority;
+					drec.index =
+					    read_fcf->fcf_entry.fcf_index;
+					drec.priority =
+					    read_fcf->fcf_entry.fip_priority;
 
 					/* copy address, wwn and vlan_bitmap */
-					ocs_memcpy(drec.address, read_fcf->fcf_entry.fcf_mac_address,
-						   sizeof(drec.address));
-					ocs_memcpy(drec.wwn, read_fcf->fcf_entry.fabric_name_id,
-						   sizeof(drec.wwn));
-					ocs_memcpy(drec.map.vlan, read_fcf->fcf_entry.vlan_bitmap,
-						   sizeof(drec.map.vlan));
+					ocs_memcpy(drec.address,
+					    read_fcf->fcf_entry.fcf_mac_address,
+					    sizeof(drec.address));
+					ocs_memcpy(drec.wwn,
+					    read_fcf->fcf_entry.fabric_name_id,
+					    sizeof(drec.wwn));
+					ocs_memcpy(drec.map.vlan,
+					    read_fcf->fcf_entry.vlan_bitmap,
+					    sizeof(drec.map.vlan));
 
 					drec.is_ethernet = TRUE;
 					drec.is_nport = TRUE;
 				}
 
 				hw->callback.domain(hw->args.domain,
-						OCS_HW_DOMAIN_FOUND,
-						&drec);
+				    OCS_HW_DOMAIN_FOUND, &drec);
 			}
 		} else {
 			/* if FCOE and FCF is not valid, ignore it */
@@ -9223,8 +9720,8 @@ ocs_hw_cb_read_fcf(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 	}
 
 	ocs_free(hw->os, mqe, SLI4_BMBX_SIZE);
-	//ocs_dma_free(hw->os, dma);
-	//ocs_free(hw->os, dma, sizeof(ocs_dma_t));
+	// ocs_dma_free(hw->os, dma);
+	// ocs_free(hw->os, dma, sizeof(ocs_dma_t));
 
 	return 0;
 }
@@ -9243,12 +9740,12 @@ ocs_hw_cb_read_fcf(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 static int32_t
 ocs_hw_cb_link(void *ctx, void *e)
 {
-	ocs_hw_t	*hw = ctx;
+	ocs_hw_t *hw = ctx;
 	sli4_link_event_t *event = e;
-	ocs_domain_t	*d = NULL;
-	uint32_t	i = 0;
-	int32_t		rc = OCS_HW_RTN_ERROR;
-	ocs_t 		*ocs = hw->os;
+	ocs_domain_t *d = NULL;
+	uint32_t i = 0;
+	int32_t rc = OCS_HW_RTN_ERROR;
+	ocs_t *ocs = hw->os;
 
 	ocs_hw_link_event_init(hw);
 
@@ -9258,11 +9755,13 @@ ocs_hw_cb_link(void *ctx, void *e)
 		hw->link = *event;
 
 		if (SLI_LINK_TOPO_NPORT == event->topology) {
-			device_printf(ocs->dev, "Link Up, NPORT, speed is %d\n", event->speed);
+			device_printf(ocs->dev, "Link Up, NPORT, speed is %d\n",
+			    event->speed);
 			ocs_hw_read_fcf(hw, SLI4_FCOE_FCF_TABLE_FIRST);
 		} else if (SLI_LINK_TOPO_LOOP == event->topology) {
-			uint8_t	*buf = NULL;
-			device_printf(ocs->dev, "Link Up, LOOP, speed is %d\n", event->speed);
+			uint8_t *buf = NULL;
+			device_printf(ocs->dev, "Link Up, LOOP, speed is %d\n",
+			    event->speed);
 
 			buf = ocs_malloc(hw->os, SLI4_BMBX_SIZE, OCS_M_NOWAIT);
 			if (!buf) {
@@ -9270,8 +9769,10 @@ ocs_hw_cb_link(void *ctx, void *e)
 				break;
 			}
 
-			if (sli_cmd_read_topology(&hw->sli, buf, SLI4_BMBX_SIZE, &hw->loop_map)) {
-				rc = ocs_hw_command(hw, buf, OCS_CMD_NOWAIT, __ocs_read_topology_cb, NULL);
+			if (sli_cmd_read_topology(&hw->sli, buf, SLI4_BMBX_SIZE,
+				&hw->loop_map)) {
+				rc = ocs_hw_command(hw, buf, OCS_CMD_NOWAIT,
+				    __ocs_read_topology_cb, NULL);
 			}
 
 			if (rc != OCS_HW_RTN_SUCCESS) {
@@ -9279,8 +9780,9 @@ ocs_hw_cb_link(void *ctx, void *e)
 				ocs_free(hw->os, buf, SLI4_BMBX_SIZE);
 			}
 		} else {
-			device_printf(ocs->dev, "Link Up, unsupported topology (%#x), speed is %d\n",
-					event->topology, event->speed);
+			device_printf(ocs->dev,
+			    "Link Up, unsupported topology (%#x), speed is %d\n",
+			    event->topology, event->speed);
 		}
 		break;
 	case SLI_LINK_STATUS_DOWN:
@@ -9290,14 +9792,15 @@ ocs_hw_cb_link(void *ctx, void *e)
 
 		for (i = 0; i < SLI4_MAX_FCFI; i++) {
 			d = hw->domains[i];
-			if (d != NULL &&
-			    hw->callback.domain != NULL) {
-				hw->callback.domain(hw->args.domain, OCS_HW_DOMAIN_LOST, d);
+			if (d != NULL && hw->callback.domain != NULL) {
+				hw->callback.domain(hw->args.domain,
+				    OCS_HW_DOMAIN_LOST, d);
 			}
 		}
 		break;
 	default:
-		ocs_log_test(hw->os, "unhandled link status %#x\n", event->status);
+		ocs_log_test(hw->os, "unhandled link status %#x\n",
+		    event->status);
 		break;
 	}
 
@@ -9307,8 +9810,8 @@ ocs_hw_cb_link(void *ctx, void *e)
 static int32_t
 ocs_hw_cb_fip(void *ctx, void *e)
 {
-	ocs_hw_t	*hw = ctx;
-	ocs_domain_t	*domain = NULL;
+	ocs_hw_t *hw = ctx;
+	ocs_domain_t *domain = NULL;
 	sli4_fip_event_t *event = e;
 
 	ocs_hw_assert(event);
@@ -9317,17 +9820,18 @@ ocs_hw_cb_fip(void *ctx, void *e)
 	/* Find the associated domain object */
 	if (event->type == SLI4_FCOE_FIP_FCF_CLEAR_VLINK) {
 		ocs_domain_t *d = NULL;
-		uint32_t	i = 0;
+		uint32_t i = 0;
 
-		/* Clear VLINK is different from the other FIP events as it passes back
-		 * a VPI instead of a FCF index. Check all attached SLI ports for a
-		 * matching VPI */
+		/* Clear VLINK is different from the other FIP events as it
+		 * passes back a VPI instead of a FCF index. Check all attached
+		 * SLI ports for a matching VPI */
 		for (i = 0; i < SLI4_MAX_FCFI; i++) {
 			d = hw->domains[i];
 			if (d != NULL) {
-				ocs_sport_t	*sport = NULL;
+				ocs_sport_t *sport = NULL;
 
-				ocs_list_foreach(&d->sport_list, sport) {
+				ocs_list_foreach(&d->sport_list, sport)
+				{
 					if (sport->indicator == event->index) {
 						domain = d;
 						break;
@@ -9348,26 +9852,26 @@ ocs_hw_cb_fip(void *ctx, void *e)
 		ocs_hw_read_fcf(hw, event->index);
 		break;
 	case SLI4_FCOE_FIP_FCF_DEAD:
-		if (domain != NULL &&
-		    hw->callback.domain != NULL) {
-			hw->callback.domain(hw->args.domain, OCS_HW_DOMAIN_LOST, domain);
+		if (domain != NULL && hw->callback.domain != NULL) {
+			hw->callback.domain(hw->args.domain, OCS_HW_DOMAIN_LOST,
+			    domain);
 		}
 		break;
 	case SLI4_FCOE_FIP_FCF_CLEAR_VLINK:
-		if (domain != NULL &&
-		    hw->callback.domain != NULL) {
+		if (domain != NULL && hw->callback.domain != NULL) {
 			/*
-			 * We will want to issue rediscover FCF when this domain is free'd  in order
-			 * to invalidate the FCF table
+			 * We will want to issue rediscover FCF when this domain
+			 * is free'd  in order to invalidate the FCF table
 			 */
 			domain->req_rediscover_fcf = TRUE;
-			hw->callback.domain(hw->args.domain, OCS_HW_DOMAIN_LOST, domain);
+			hw->callback.domain(hw->args.domain, OCS_HW_DOMAIN_LOST,
+			    domain);
 		}
 		break;
 	case SLI4_FCOE_FIP_FCF_MODIFIED:
-		if (domain != NULL &&
-		    hw->callback.domain != NULL) {
-			hw->callback.domain(hw->args.domain, OCS_HW_DOMAIN_LOST, domain);
+		if (domain != NULL && hw->callback.domain != NULL) {
+			hw->callback.domain(hw->args.domain, OCS_HW_DOMAIN_LOST,
+			    domain);
 		}
 
 		ocs_hw_read_fcf(hw, event->index);
@@ -9383,12 +9887,12 @@ static int32_t
 ocs_hw_cb_node_attach(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 {
 	ocs_remote_node_t *rnode = arg;
-	sli4_mbox_command_header_t	*hdr = (sli4_mbox_command_header_t *)mqe;
-	ocs_hw_remote_node_event_e	evt = 0;
+	sli4_mbox_command_header_t *hdr = (sli4_mbox_command_header_t *)mqe;
+	ocs_hw_remote_node_event_e evt = 0;
 
 	if (status || hdr->status) {
 		ocs_log_debug(hw->os, "bad status cqe=%#x mqe=%#x\n", status,
-				hdr->status);
+		    hdr->status);
 		ocs_atomic_sub_return(&hw->rpi_ref[rnode->index].rpi_count, 1);
 		rnode->attached = FALSE;
 		ocs_atomic_set(&hw->rpi_ref[rnode->index].rpi_attached, 0);
@@ -9411,22 +9915,25 @@ static int32_t
 ocs_hw_cb_node_free(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 {
 	ocs_remote_node_t *rnode = arg;
-	sli4_mbox_command_header_t	*hdr = (sli4_mbox_command_header_t *)mqe;
-	ocs_hw_remote_node_event_e	evt = OCS_HW_NODE_FREE_FAIL;
-	int32_t		rc = 0;
+	sli4_mbox_command_header_t *hdr = (sli4_mbox_command_header_t *)mqe;
+	ocs_hw_remote_node_event_e evt = OCS_HW_NODE_FREE_FAIL;
+	int32_t rc = 0;
 
 	if (status || hdr->status) {
 		ocs_log_debug(hw->os, "bad status cqe=%#x mqe=%#x\n", status,
-				hdr->status);
+		    hdr->status);
 
 		/*
-		 * In certain cases, a non-zero MQE status is OK (all must be true):
+		 * In certain cases, a non-zero MQE status is OK (all must be
+		 * true):
 		 *   - node is attached
-		 *   - if High Login Mode is enabled, node is part of a node group
+		 *   - if High Login Mode is enabled, node is part of a node
+		 * group
 		 *   - status is 0x1400
 		 */
-		if (!rnode->attached || ((sli_get_hlm(&hw->sli) == TRUE) && !rnode->node_group) ||
-				(hdr->status != SLI4_MBOX_STATUS_RPI_NOT_REG)) {
+		if (!rnode->attached ||
+		    ((sli_get_hlm(&hw->sli) == TRUE) && !rnode->node_group) ||
+		    (hdr->status != SLI4_MBOX_STATUS_RPI_NOT_REG)) {
 			rc = -1;
 		}
 	}
@@ -9435,8 +9942,10 @@ ocs_hw_cb_node_free(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 		rnode->node_group = FALSE;
 		rnode->attached = FALSE;
 
-		if (ocs_atomic_read(&hw->rpi_ref[rnode->index].rpi_count) == 0) {
-			ocs_atomic_set(&hw->rpi_ref[rnode->index].rpi_attached, 0);
+		if (ocs_atomic_read(&hw->rpi_ref[rnode->index].rpi_count) ==
+		    0) {
+			ocs_atomic_set(&hw->rpi_ref[rnode->index].rpi_attached,
+			    0);
 		}
 
 		evt = OCS_HW_NODE_FREE_OK;
@@ -9454,20 +9963,21 @@ ocs_hw_cb_node_free(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 static int32_t
 ocs_hw_cb_node_free_all(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 {
-	sli4_mbox_command_header_t	*hdr = (sli4_mbox_command_header_t *)mqe;
-	ocs_hw_remote_node_event_e	evt = OCS_HW_NODE_FREE_FAIL;
-	int32_t		rc = 0;
-	uint32_t	i;
+	sli4_mbox_command_header_t *hdr = (sli4_mbox_command_header_t *)mqe;
+	ocs_hw_remote_node_event_e evt = OCS_HW_NODE_FREE_FAIL;
+	int32_t rc = 0;
+	uint32_t i;
 
 	if (status || hdr->status) {
 		ocs_log_debug(hw->os, "bad status cqe=%#x mqe=%#x\n", status,
-				hdr->status);
+		    hdr->status);
 	} else {
 		evt = OCS_HW_NODE_FREE_ALL_OK;
 	}
 
 	if (evt == OCS_HW_NODE_FREE_ALL_OK) {
-		for (i = 0; i < sli_get_max_rsrc(&hw->sli, SLI_RSRC_FCOE_RPI); i++) {
+		for (i = 0; i < sli_get_max_rsrc(&hw->sli, SLI_RSRC_FCOE_RPI);
+		     i++) {
 			ocs_atomic_set(&hw->rpi_ref[i].rpi_count, 0);
 		}
 
@@ -9496,38 +10006,44 @@ ocs_hw_cb_node_free_all(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 static ocs_hw_rtn_e
 ocs_hw_setup_io(ocs_hw_t *hw)
 {
-	uint32_t	i = 0;
-	ocs_hw_io_t	*io = NULL;
-	uintptr_t	xfer_virt = 0;
-	uintptr_t	xfer_phys = 0;
-	uint32_t	index;
-	uint8_t		new_alloc = TRUE;
+	uint32_t i = 0;
+	ocs_hw_io_t *io = NULL;
+	uintptr_t xfer_virt = 0;
+	uintptr_t xfer_phys = 0;
+	uint32_t index;
+	uint8_t new_alloc = TRUE;
 
 	if (NULL == hw->io) {
-		hw->io = ocs_malloc(hw->os, hw->config.n_io * sizeof(ocs_hw_io_t *), OCS_M_ZERO | OCS_M_NOWAIT);
+		hw->io = ocs_malloc(hw->os,
+		    hw->config.n_io * sizeof(ocs_hw_io_t *),
+		    OCS_M_ZERO | OCS_M_NOWAIT);
 
 		if (NULL == hw->io) {
-			ocs_log_err(hw->os, "IO pointer memory allocation failed, %d Ios at size %zu\n",
-				    hw->config.n_io,
-				    sizeof(ocs_hw_io_t *));
+			ocs_log_err(hw->os,
+			    "IO pointer memory allocation failed, %d Ios at size %zu\n",
+			    hw->config.n_io, sizeof(ocs_hw_io_t *));
 			return OCS_HW_RTN_NO_MEMORY;
 		}
 		for (i = 0; i < hw->config.n_io; i++) {
 			hw->io[i] = ocs_malloc(hw->os, sizeof(ocs_hw_io_t),
-						OCS_M_ZERO | OCS_M_NOWAIT);
+			    OCS_M_ZERO | OCS_M_NOWAIT);
 			if (hw->io[i] == NULL) {
-				ocs_log_err(hw->os, "IO(%d) memory allocation failed\n", i);
+				ocs_log_err(hw->os,
+				    "IO(%d) memory allocation failed\n", i);
 				goto error;
 			}
 		}
 
 		/* Create WQE buffs for IO */
-		hw->wqe_buffs = ocs_malloc(hw->os, hw->config.n_io * hw->sli.config.wqe_size,
-				OCS_M_ZERO | OCS_M_NOWAIT);
+		hw->wqe_buffs = ocs_malloc(hw->os,
+		    hw->config.n_io * hw->sli.config.wqe_size,
+		    OCS_M_ZERO | OCS_M_NOWAIT);
 		if (NULL == hw->wqe_buffs) {
-			ocs_free(hw->os, hw->io, hw->config.n_io * sizeof(ocs_hw_io_t));
-			ocs_log_err(hw->os, "%s: IO WQE buff allocation failed, %d Ios at size %zu\n",
-					__func__, hw->config.n_io, hw->sli.config.wqe_size);
+			ocs_free(hw->os, hw->io,
+			    hw->config.n_io * sizeof(ocs_hw_io_t));
+			ocs_log_err(hw->os,
+			    "%s: IO WQE buff allocation failed, %d Ios at size %zu\n",
+			    __func__, hw->config.n_io, hw->sli.config.wqe_size);
 			return OCS_HW_RTN_NO_MEMORY;
 		}
 
@@ -9538,9 +10054,10 @@ ocs_hw_setup_io(ocs_hw_t *hw)
 
 	if (new_alloc) {
 		if (ocs_dma_alloc(hw->os, &hw->xfer_rdy,
-					sizeof(fcp_xfer_rdy_iu_t) * hw->config.n_io,
-					4/*XXX what does this need to be? */)) {
-			ocs_log_err(hw->os, "XFER_RDY buffer allocation failed\n");
+			sizeof(fcp_xfer_rdy_iu_t) * hw->config.n_io,
+			4 /*XXX what does this need to be? */)) {
+			ocs_log_err(hw->os,
+			    "XFER_RDY buffer allocation failed\n");
 			return OCS_HW_RTN_NO_MEMORY;
 		}
 	}
@@ -9555,8 +10072,8 @@ ocs_hw_setup_io(ocs_hw_t *hw)
 		/* initialize IO fields */
 		io->hw = hw;
 
-		/* Assign a WQE buff */	
-		io->wqe.wqebuf = &hw->wqe_buffs[i * hw->sli.config.wqe_size]; 
+		/* Assign a WQE buff */
+		io->wqe.wqebuf = &hw->wqe_buffs[i * hw->sli.config.wqe_size];
 
 		/* Allocate the request tag for this IO */
 		wqcb = ocs_hw_reqtag_alloc(hw, ocs_hw_wq_process_io, io);
@@ -9569,15 +10086,20 @@ ocs_hw_setup_io(ocs_hw_t *hw)
 		/* Now for the fields that are initialized on each free */
 		ocs_hw_init_free_io(io);
 
-		/* The XB flag isn't cleared on IO free, so initialize it to zero here */
+		/* The XB flag isn't cleared on IO free, so initialize it to
+		 * zero here */
 		io->xbusy = 0;
 
-		if (sli_resource_alloc(&hw->sli, SLI_RSRC_FCOE_XRI, &io->indicator, &index)) {
-			ocs_log_err(hw->os, "sli_resource_alloc failed @ %d\n", i);
+		if (sli_resource_alloc(&hw->sli, SLI_RSRC_FCOE_XRI,
+			&io->indicator, &index)) {
+			ocs_log_err(hw->os, "sli_resource_alloc failed @ %d\n",
+			    i);
 			return OCS_HW_RTN_NO_MEMORY;
 		}
 
-		if (new_alloc && ocs_dma_alloc(hw->os, &io->def_sgl, hw->config.n_sgl * sizeof(sli4_sge_t), 64)) {
+		if (new_alloc &&
+		    ocs_dma_alloc(hw->os, &io->def_sgl,
+			hw->config.n_sgl * sizeof(sli4_sge_t), 64)) {
 			ocs_log_err(hw->os, "ocs_dma_alloc failed @ %d\n", i);
 			ocs_memset(&io->def_sgl, 0, sizeof(ocs_dma_t));
 			return OCS_HW_RTN_NO_MEMORY;
@@ -9609,30 +10131,33 @@ error:
 static ocs_hw_rtn_e
 ocs_hw_init_io(ocs_hw_t *hw)
 {
-	uint32_t        i = 0, io_index = 0;
-	uint32_t        prereg = 0;
-	ocs_hw_io_t	*io = NULL;
-	uint8_t		cmd[SLI4_BMBX_SIZE];
+	uint32_t i = 0, io_index = 0;
+	uint32_t prereg = 0;
+	ocs_hw_io_t *io = NULL;
+	uint8_t cmd[SLI4_BMBX_SIZE];
 	ocs_hw_rtn_e rc = OCS_HW_RTN_SUCCESS;
-	uint32_t	nremaining;
-	uint32_t	n = 0;
-	uint32_t	sgls_per_request = 256;
-	ocs_dma_t	**sgls = NULL;
-	ocs_dma_t	reqbuf = { 0 };
+	uint32_t nremaining;
+	uint32_t n = 0;
+	uint32_t sgls_per_request = 256;
+	ocs_dma_t **sgls = NULL;
+	ocs_dma_t reqbuf = { 0 };
 
 	prereg = sli_get_sgl_preregister(&hw->sli);
 
 	if (prereg) {
-		sgls = ocs_malloc(hw->os, sizeof(*sgls) * sgls_per_request, OCS_M_NOWAIT);
+		sgls = ocs_malloc(hw->os, sizeof(*sgls) * sgls_per_request,
+		    OCS_M_NOWAIT);
 		if (sgls == NULL) {
 			ocs_log_err(hw->os, "ocs_malloc sgls failed\n");
 			return OCS_HW_RTN_NO_MEMORY;
 		}
 
-		rc = ocs_dma_alloc(hw->os, &reqbuf, 32 + sgls_per_request*16, OCS_MIN_DMA_ALIGNMENT);
+		rc = ocs_dma_alloc(hw->os, &reqbuf, 32 + sgls_per_request * 16,
+		    OCS_MIN_DMA_ALIGNMENT);
 		if (rc) {
 			ocs_log_err(hw->os, "ocs_dma_alloc reqbuf failed\n");
-			ocs_free(hw->os, sgls, sizeof(*sgls) * sgls_per_request);
+			ocs_free(hw->os, sgls,
+			    sizeof(*sgls) * sgls_per_request);
 			return OCS_HW_RTN_NO_MEMORY;
 		}
 	}
@@ -9640,24 +10165,31 @@ ocs_hw_init_io(ocs_hw_t *hw)
 	io = hw->io[io_index];
 	for (nremaining = hw->config.n_io; nremaining; nremaining -= n) {
 		if (prereg) {
-			/* Copy address of SGL's into local sgls[] array, break out if the xri
-			 * is not contiguous.
+			/* Copy address of SGL's into local sgls[] array, break
+			 * out if the xri is not contiguous.
 			 */
-			for (n = 0; n < MIN(sgls_per_request, nremaining); n++) {
+			for (n = 0; n < MIN(sgls_per_request, nremaining);
+			     n++) {
 				/* Check that we have contiguous xri values */
 				if (n > 0) {
-					if (hw->io[io_index + n]->indicator != (hw->io[io_index + n-1]->indicator+1)) {
+					if (hw->io[io_index + n]->indicator !=
+					    (hw->io[io_index + n - 1]
+						    ->indicator +
+						1)) {
 						break;
 					}
 				}
 				sgls[n] = hw->io[io_index + n]->sgl;
 			}
 
-			if (sli_cmd_fcoe_post_sgl_pages(&hw->sli, cmd, sizeof(cmd),
-						io->indicator, n, sgls, NULL, &reqbuf)) {
-				if (ocs_hw_command(hw, cmd, OCS_CMD_POLL, NULL, NULL)) {
+			if (sli_cmd_fcoe_post_sgl_pages(&hw->sli, cmd,
+				sizeof(cmd), io->indicator, n, sgls, NULL,
+				&reqbuf)) {
+				if (ocs_hw_command(hw, cmd, OCS_CMD_POLL, NULL,
+					NULL)) {
 					rc = OCS_HW_RTN_ERROR;
-					ocs_log_err(hw->os, "SGL post failed\n");
+					ocs_log_err(hw->os,
+					    "SGL post failed\n");
 					break;
 				}
 			}
@@ -9666,11 +10198,11 @@ ocs_hw_init_io(ocs_hw_t *hw)
 		}
 
 		/* Add to tail if successful */
-		for (i = 0; i < n; i ++) {
+		for (i = 0; i < n; i++) {
 			io->is_port_owned = 0;
 			io->state = OCS_HW_IO_STATE_FREE;
 			ocs_list_add_tail(&hw->io_free, io);
-			io = hw->io[io_index+1];
+			io = hw->io[io_index + 1];
 			io_index++;
 		}
 	}
@@ -9686,7 +10218,7 @@ ocs_hw_init_io(ocs_hw_t *hw)
 static int32_t
 ocs_hw_flush(ocs_hw_t *hw)
 {
-	uint32_t	i = 0;
+	uint32_t i = 0;
 
 	/* Process any remaining completions */
 	for (i = 0; i < hw->eq_count; i++) {
@@ -9708,14 +10240,16 @@ ocs_hw_command_cancel(ocs_hw_t *hw)
 	 * list, so no need to manually clean that out.
 	 */
 	while (!ocs_list_empty(&hw->cmd_head)) {
-		uint8_t		mqe[SLI4_BMBX_SIZE] = { 0 };
+		uint8_t mqe[SLI4_BMBX_SIZE] = { 0 };
 		ocs_command_ctx_t *ctx = ocs_list_get_head(&hw->cmd_head);
 
 		ocs_log_test(hw->os, "hung command %08x\n",
-				NULL == ctx ? UINT32_MAX :
-				(NULL == ctx->buf ? UINT32_MAX : *((uint32_t *)ctx->buf)));
+		    NULL == ctx ? UINT32_MAX :
+				  (NULL == ctx->buf ? UINT32_MAX :
+						      *((uint32_t *)ctx->buf)));
 		ocs_unlock(&hw->cmd_lock);
-		ocs_hw_command_process(hw, -1/*Bad status*/, mqe, SLI4_BMBX_SIZE);
+		ocs_hw_command_process(hw, -1 /*Bad status*/, mqe,
+		    SLI4_BMBX_SIZE);
 		ocs_lock(&hw->cmd_lock);
 	}
 
@@ -9741,7 +10275,8 @@ ocs_hw_io_lookup(ocs_hw_t *hw, uint32_t xri)
 }
 
 /**
- * @brief Issue any pending callbacks for an IO and remove off the timer and pending lists.
+ * @brief Issue any pending callbacks for an IO and remove off the timer and
+ * pending lists.
  *
  * @param hw Hal context.
  * @param io Pointer to the IO to cleanup.
@@ -9749,8 +10284,8 @@ ocs_hw_io_lookup(ocs_hw_t *hw, uint32_t xri)
 static void
 ocs_hw_io_cancel_cleanup(ocs_hw_t *hw, ocs_hw_io_t *io)
 {
-	ocs_hw_done_t  done = io->done;
-	ocs_hw_done_t  abort_done = io->abort_done;
+	ocs_hw_done_t done = io->done;
+	ocs_hw_done_t abort_done = io->abort_done;
 
 	/* first check active_wqe list and remove if there */
 	if (ocs_list_on_list(&io->wqe_link)) {
@@ -9763,7 +10298,7 @@ ocs_hw_io_cancel_cleanup(ocs_hw_t *hw, ocs_hw_io_t *io)
 	}
 
 	if (io->done) {
-		void		*arg = io->arg;
+		void *arg = io->arg;
 
 		io->done = NULL;
 		ocs_unlock(&hw->io_lock);
@@ -9772,11 +10307,12 @@ ocs_hw_io_cancel_cleanup(ocs_hw_t *hw, ocs_hw_io_t *io)
 	}
 
 	if (io->abort_done != NULL) {
-		void		*abort_arg = io->abort_arg;
+		void *abort_arg = io->abort_arg;
 
 		io->abort_done = NULL;
 		ocs_unlock(&hw->io_lock);
-		abort_done(io, io->rnode, 0, SLI4_FC_WCQE_STATUS_SHUTDOWN, 0, abort_arg);
+		abort_done(io, io->rnode, 0, SLI4_FC_WCQE_STATUS_SHUTDOWN, 0,
+		    abort_arg);
 		ocs_lock(&hw->io_lock);
 	}
 }
@@ -9784,18 +10320,20 @@ ocs_hw_io_cancel_cleanup(ocs_hw_t *hw, ocs_hw_io_t *io)
 static int32_t
 ocs_hw_io_cancel(ocs_hw_t *hw)
 {
-	ocs_hw_io_t	*io = NULL;
-	ocs_hw_io_t	*tmp_io = NULL;
-	uint32_t	iters = 100; /* One second limit */
+	ocs_hw_io_t *io = NULL;
+	ocs_hw_io_t *tmp_io = NULL;
+	uint32_t iters = 100; /* One second limit */
 
 	/*
 	 * Manually clean up outstanding IO.
-	 * Only walk through list once: the backend will cleanup any IOs when done/abort_done is called.
+	 * Only walk through list once: the backend will cleanup any IOs when
+	 * done/abort_done is called.
 	 */
 	ocs_lock(&hw->io_lock);
-	ocs_list_foreach_safe(&hw->io_inuse, io, tmp_io) {
-		ocs_hw_done_t  done = io->done;
-		ocs_hw_done_t  abort_done = io->abort_done;
+	ocs_list_foreach_safe(&hw->io_inuse, io, tmp_io)
+	{
+		ocs_hw_done_t done = io->done;
+		ocs_hw_done_t abort_done = io->abort_done;
 
 		ocs_hw_io_cancel_cleanup(hw, io);
 
@@ -9809,8 +10347,7 @@ ocs_hw_io_cancel(ocs_hw_t *hw)
 		 *       ocs_hw_io_free() because we already
 		 *       hold the io_lock.
 		 */
-		if (done == NULL &&
-		    abort_done == NULL) {
+		if (done == NULL && abort_done == NULL) {
 			/*
 			 * Since this is called in a reset/shutdown
 			 * case, If there is no callback, then just
@@ -9826,11 +10363,13 @@ ocs_hw_io_cancel(ocs_hw_t *hw)
 	 * For port owned XRIs, they are not on the in use list, so
 	 * walk though XRIs and issue any callbacks.
 	 */
-	ocs_list_foreach_safe(&hw->io_port_owned, io, tmp_io) {
+	ocs_list_foreach_safe(&hw->io_port_owned, io, tmp_io)
+	{
 		/* check  list and remove if there */
 		if (ocs_list_on_list(&io->dnrx_link)) {
 			ocs_list_remove(&hw->io_port_dnrx, io);
-			ocs_ref_put(&io->ref); /* ocs_ref_get(): same function */
+			ocs_ref_put(
+			    &io->ref); /* ocs_ref_get(): same function */
 		}
 		ocs_hw_io_cancel_cleanup(hw, io);
 		ocs_list_remove(&hw->io_port_owned, io);
@@ -9853,10 +10392,10 @@ ocs_hw_io_cancel(ocs_hw_t *hw)
 }
 
 static int32_t
-ocs_hw_io_ini_sge(ocs_hw_t *hw, ocs_hw_io_t *io, ocs_dma_t *cmnd, uint32_t cmnd_size,
-		ocs_dma_t *rsp)
+ocs_hw_io_ini_sge(ocs_hw_t *hw, ocs_hw_io_t *io, ocs_dma_t *cmnd,
+    uint32_t cmnd_size, ocs_dma_t *rsp)
 {
-	sli4_sge_t	*data = NULL;
+	sli4_sge_t *data = NULL;
 
 	if (!hw || !io) {
 		ocs_log_err(NULL, "bad parm hw=%p io=%p\n", hw, io);
@@ -9867,13 +10406,13 @@ ocs_hw_io_ini_sge(ocs_hw_t *hw, ocs_hw_io_t *io, ocs_dma_t *cmnd, uint32_t cmnd_
 
 	/* setup command pointer */
 	data->buffer_address_high = ocs_addr32_hi(cmnd->phys);
-	data->buffer_address_low  = ocs_addr32_lo(cmnd->phys);
+	data->buffer_address_low = ocs_addr32_lo(cmnd->phys);
 	data->buffer_length = cmnd_size;
 	data++;
 
 	/* setup response pointer */
 	data->buffer_address_high = ocs_addr32_hi(rsp->phys);
-	data->buffer_address_low  = ocs_addr32_lo(rsp->phys);
+	data->buffer_address_low = ocs_addr32_lo(rsp->phys);
 	data->buffer_length = rsp->size;
 
 	return 0;
@@ -9885,8 +10424,8 @@ __ocs_read_topology_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 	sli4_cmd_read_topology_t *read_topo = (sli4_cmd_read_topology_t *)mqe;
 
 	if (status || read_topo->hdr.status) {
-		ocs_log_debug(hw->os, "bad status cqe=%#x mqe=%#x\n",
-				status, read_topo->hdr.status);
+		ocs_log_debug(hw->os, "bad status cqe=%#x mqe=%#x\n", status,
+		    read_topo->hdr.status);
 		ocs_free(hw->os, mqe, SLI4_BMBX_SIZE);
 		return -1;
 	}
@@ -9926,16 +10465,16 @@ __ocs_read_topology_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 
 	switch (read_topo->link_current.link_speed) {
 	case SLI4_READ_TOPOLOGY_SPEED_1G:
-		hw->link.speed =  1 * 1000;
+		hw->link.speed = 1 * 1000;
 		break;
 	case SLI4_READ_TOPOLOGY_SPEED_2G:
-		hw->link.speed =  2 * 1000;
+		hw->link.speed = 2 * 1000;
 		break;
 	case SLI4_READ_TOPOLOGY_SPEED_4G:
-		hw->link.speed =  4 * 1000;
+		hw->link.speed = 4 * 1000;
 		break;
 	case SLI4_READ_TOPOLOGY_SPEED_8G:
-		hw->link.speed =  8 * 1000;
+		hw->link.speed = 8 * 1000;
 		break;
 	case SLI4_READ_TOPOLOGY_SPEED_16G:
 		hw->link.speed = 16 * 1000;
@@ -9955,10 +10494,11 @@ __ocs_read_topology_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 }
 
 static int32_t
-__ocs_hw_port_common(const char *funcname, ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
+__ocs_hw_port_common(const char *funcname, ocs_sm_ctx_t *ctx,
+    ocs_sm_event_t evt, void *data)
 {
-	ocs_sli_port_t	*sport = ctx->app;
-	ocs_hw_t	*hw = sport->hw;
+	ocs_sli_port_t *sport = ctx->app;
+	ocs_hw_t *hw = sport->hw;
 
 	smtrace("port");
 
@@ -9974,7 +10514,8 @@ __ocs_hw_port_common(const char *funcname, ocs_sm_ctx_t *ctx, ocs_sm_event_t evt
 		}
 		/* fall through */
 	default:
-		ocs_log_test(hw->os, "%s %-20s not handled\n", funcname, ocs_sm_event_name(evt));
+		ocs_log_test(hw->os, "%s %-20s not handled\n", funcname,
+		    ocs_sm_event_name(evt));
 		break;
 	}
 
@@ -9982,10 +10523,11 @@ __ocs_hw_port_common(const char *funcname, ocs_sm_ctx_t *ctx, ocs_sm_event_t evt
 }
 
 static void *
-__ocs_hw_port_free_report_fail(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
+__ocs_hw_port_free_report_fail(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt,
+    void *data)
 {
-	ocs_sli_port_t	*sport = ctx->app;
-	ocs_hw_t	*hw = sport->hw;
+	ocs_sli_port_t *sport = ctx->app;
+	ocs_hw_t *hw = sport->hw;
 
 	smtrace("port");
 
@@ -9995,8 +10537,8 @@ __ocs_hw_port_free_report_fail(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data
 			ocs_free(hw->os, data, SLI4_BMBX_SIZE);
 		}
 		if (hw->callback.port != NULL) {
-			hw->callback.port(hw->args.port,
-					OCS_HW_PORT_FREE_FAIL, sport);
+			hw->callback.port(hw->args.port, OCS_HW_PORT_FREE_FAIL,
+			    sport);
 		}
 		break;
 	default:
@@ -10009,16 +10551,18 @@ __ocs_hw_port_free_report_fail(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data
 static void *
 __ocs_hw_port_freed(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 {
-	ocs_sli_port_t	*sport = ctx->app;
-	ocs_hw_t	*hw = sport->hw;
+	ocs_sli_port_t *sport = ctx->app;
+	ocs_hw_t *hw = sport->hw;
 
 	smtrace("port");
 
 	switch (evt) {
 	case OCS_EVT_ENTER:
 		/* free SLI resource */
-		if (sli_resource_free(&hw->sli, SLI_RSRC_FCOE_VPI, sport->indicator)) {
-			ocs_log_err(hw->os, "FCOE_VPI free failure addr=%#x\n", sport->fc_id);
+		if (sli_resource_free(&hw->sli, SLI_RSRC_FCOE_VPI,
+			sport->indicator)) {
+			ocs_log_err(hw->os, "FCOE_VPI free failure addr=%#x\n",
+			    sport->fc_id);
 		}
 
 		/* free mailbox buffer */
@@ -10026,8 +10570,8 @@ __ocs_hw_port_freed(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 			ocs_free(hw->os, data, SLI4_BMBX_SIZE);
 		}
 		if (hw->callback.port != NULL) {
-			hw->callback.port(hw->args.port,
-					OCS_HW_PORT_FREE_OK, sport);
+			hw->callback.port(hw->args.port, OCS_HW_PORT_FREE_OK,
+			    sport);
 		}
 		break;
 	default:
@@ -10038,17 +10582,19 @@ __ocs_hw_port_freed(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 }
 
 static void *
-__ocs_hw_port_attach_report_fail(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
+__ocs_hw_port_attach_report_fail(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt,
+    void *data)
 {
-	ocs_sli_port_t	*sport = ctx->app;
-	ocs_hw_t	*hw = sport->hw;
+	ocs_sli_port_t *sport = ctx->app;
+	ocs_hw_t *hw = sport->hw;
 
 	smtrace("port");
 
 	switch (evt) {
 	case OCS_EVT_ENTER:
 		/* free SLI resource */
-		sli_resource_free(&hw->sli, SLI_RSRC_FCOE_VPI, sport->indicator);
+		sli_resource_free(&hw->sli, SLI_RSRC_FCOE_VPI,
+		    sport->indicator);
 
 		/* free mailbox buffer */
 		if (data != NULL) {
@@ -10057,10 +10603,11 @@ __ocs_hw_port_attach_report_fail(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *da
 
 		if (hw->callback.port != NULL) {
 			hw->callback.port(hw->args.port,
-					OCS_HW_PORT_ATTACH_FAIL, sport);
+			    OCS_HW_PORT_ATTACH_FAIL, sport);
 		}
 		if (sport->sm_free_req_pending) {
-			ocs_sm_transition(ctx, __ocs_hw_port_free_unreg_vpi, NULL);
+			ocs_sm_transition(ctx, __ocs_hw_port_free_unreg_vpi,
+			    NULL);
 		}
 		break;
 	default:
@@ -10074,30 +10621,33 @@ __ocs_hw_port_attach_report_fail(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *da
 static void *
 __ocs_hw_port_free_unreg_vpi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 {
-	ocs_sli_port_t	*sport = ctx->app;
-	ocs_hw_t	*hw = sport->hw;
-	uint8_t		*cmd = NULL;
+	ocs_sli_port_t *sport = ctx->app;
+	ocs_hw_t *hw = sport->hw;
+	uint8_t *cmd = NULL;
 
 	smtrace("port");
 
 	switch (evt) {
 	case OCS_EVT_ENTER:
 		/* allocate memory and send unreg_vpi */
-		cmd = ocs_malloc(hw->os, SLI4_BMBX_SIZE, OCS_M_ZERO | OCS_M_NOWAIT);
+		cmd = ocs_malloc(hw->os, SLI4_BMBX_SIZE,
+		    OCS_M_ZERO | OCS_M_NOWAIT);
 		if (!cmd) {
 			ocs_sm_post_event(ctx, OCS_EVT_ERROR, NULL);
 			break;
 		}
 
-		if (0 == sli_cmd_unreg_vpi(&hw->sli, cmd, SLI4_BMBX_SIZE, sport->indicator,
-					   SLI4_UNREG_TYPE_PORT)) {
+		if (0 ==
+		    sli_cmd_unreg_vpi(&hw->sli, cmd, SLI4_BMBX_SIZE,
+			sport->indicator, SLI4_UNREG_TYPE_PORT)) {
 			ocs_log_err(hw->os, "UNREG_VPI format failure\n");
 			ocs_free(hw->os, cmd, SLI4_BMBX_SIZE);
 			ocs_sm_post_event(ctx, OCS_EVT_ERROR, NULL);
 			break;
 		}
 
-		if (ocs_hw_command(hw, cmd, OCS_CMD_NOWAIT, __ocs_hw_port_cb, sport)) {
+		if (ocs_hw_command(hw, cmd, OCS_CMD_NOWAIT, __ocs_hw_port_cb,
+			sport)) {
 			ocs_log_err(hw->os, "UNREG_VPI command failure\n");
 			ocs_free(hw->os, cmd, SLI4_BMBX_SIZE);
 			ocs_sm_post_event(ctx, OCS_EVT_ERROR, NULL);
@@ -10121,14 +10671,15 @@ __ocs_hw_port_free_unreg_vpi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 static void *
 __ocs_hw_port_free_nop(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 {
-	ocs_sli_port_t	*sport = ctx->app;
-	ocs_hw_t	*hw = sport->hw;
+	ocs_sli_port_t *sport = ctx->app;
+	ocs_hw_t *hw = sport->hw;
 
 	smtrace("port");
 
 	switch (evt) {
 	case OCS_EVT_ENTER:
-		/* Forward to execute in mailbox completion processing context */
+		/* Forward to execute in mailbox completion processing context
+		 */
 		if (ocs_hw_async_call(hw, __ocs_hw_port_realloc_cb, sport)) {
 			ocs_log_err(hw->os, "ocs_hw_async_call failed\n");
 		}
@@ -10149,8 +10700,8 @@ __ocs_hw_port_free_nop(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 static void *
 __ocs_hw_port_attached(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 {
-	ocs_sli_port_t	*sport = ctx->app;
-	ocs_hw_t	*hw = sport->hw;
+	ocs_sli_port_t *sport = ctx->app;
+	ocs_hw_t *hw = sport->hw;
 
 	smtrace("port");
 
@@ -10160,11 +10711,12 @@ __ocs_hw_port_attached(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 			ocs_free(hw->os, data, SLI4_BMBX_SIZE);
 		}
 		if (hw->callback.port != NULL) {
-			hw->callback.port(hw->args.port,
-					OCS_HW_PORT_ATTACH_OK, sport);
+			hw->callback.port(hw->args.port, OCS_HW_PORT_ATTACH_OK,
+			    sport);
 		}
 		if (sport->sm_free_req_pending) {
-			ocs_sm_transition(ctx, __ocs_hw_port_free_unreg_vpi, NULL);
+			ocs_sm_transition(ctx, __ocs_hw_port_free_unreg_vpi,
+			    NULL);
 		}
 		break;
 	case OCS_EVT_HW_PORT_REQ_FREE:
@@ -10182,20 +10734,23 @@ __ocs_hw_port_attached(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 static void *
 __ocs_hw_port_attach_reg_vpi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 {
-	ocs_sli_port_t	*sport = ctx->app;
-	ocs_hw_t	*hw = sport->hw;
+	ocs_sli_port_t *sport = ctx->app;
+	ocs_hw_t *hw = sport->hw;
 
 	smtrace("port");
 
 	switch (evt) {
 	case OCS_EVT_ENTER:
-		if (0 == sli_cmd_reg_vpi(&hw->sli, data, SLI4_BMBX_SIZE, sport, FALSE)) {
+		if (0 ==
+		    sli_cmd_reg_vpi(&hw->sli, data, SLI4_BMBX_SIZE, sport,
+			FALSE)) {
 			ocs_log_err(hw->os, "REG_VPI format failure\n");
 			ocs_sm_post_event(ctx, OCS_EVT_ERROR, NULL);
 			break;
 		}
 
-		if (ocs_hw_command(hw, data, OCS_CMD_NOWAIT, __ocs_hw_port_cb, sport)) {
+		if (ocs_hw_command(hw, data, OCS_CMD_NOWAIT, __ocs_hw_port_cb,
+			sport)) {
 			ocs_log_err(hw->os, "REG_VPI command failure\n");
 			ocs_sm_post_event(ctx, OCS_EVT_ERROR, NULL);
 			break;
@@ -10222,15 +10777,16 @@ __ocs_hw_port_attach_reg_vpi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 static void *
 __ocs_hw_port_done(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 {
-	ocs_sli_port_t	*sport = ctx->app;
-	ocs_hw_t	*hw = sport->hw;
+	ocs_sli_port_t *sport = ctx->app;
+	ocs_hw_t *hw = sport->hw;
 
 	smtrace("port");
 
 	switch (evt) {
 	case OCS_EVT_ENTER:
 		/* free SLI resource */
-		sli_resource_free(&hw->sli, SLI_RSRC_FCOE_VPI, sport->indicator);
+		sli_resource_free(&hw->sli, SLI_RSRC_FCOE_VPI,
+		    sport->indicator);
 
 		/* free mailbox buffer */
 		if (data != NULL) {
@@ -10248,8 +10804,8 @@ __ocs_hw_port_done(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 static void *
 __ocs_hw_port_allocated(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 {
-	ocs_sli_port_t	*sport = ctx->app;
-	ocs_hw_t	*hw = sport->hw;
+	ocs_sli_port_t *sport = ctx->app;
+	ocs_hw_t *hw = sport->hw;
 
 	smtrace("port");
 
@@ -10259,12 +10815,13 @@ __ocs_hw_port_allocated(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 			ocs_free(hw->os, data, SLI4_BMBX_SIZE);
 		}
 		if (hw->callback.port != NULL) {
-			hw->callback.port(hw->args.port,
-					OCS_HW_PORT_ALLOC_OK, sport);
+			hw->callback.port(hw->args.port, OCS_HW_PORT_ALLOC_OK,
+			    sport);
 		}
 		/* If there is a pending free request, then handle it now */
 		if (sport->sm_free_req_pending) {
-			ocs_sm_transition(ctx, __ocs_hw_port_free_unreg_vpi, NULL);
+			ocs_sm_transition(ctx, __ocs_hw_port_free_unreg_vpi,
+			    NULL);
 		}
 		break;
 	case OCS_EVT_HW_PORT_REQ_ATTACH:
@@ -10278,7 +10835,8 @@ __ocs_hw_port_allocated(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 	case OCS_EVT_HW_PORT_REQ_FREE:
 		/* virtual port request free */
 		if (SLI4_IF_TYPE_LANCER_FC_ETH == sli_get_if_type(&hw->sli)) {
-			ocs_sm_transition(ctx, __ocs_hw_port_free_unreg_vpi, NULL);
+			ocs_sm_transition(ctx, __ocs_hw_port_free_unreg_vpi,
+			    NULL);
 		} else {
 			/*
 			 * Note: BE3/Skyhawk will respond with a status of 0x20
@@ -10300,17 +10858,19 @@ __ocs_hw_port_allocated(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 }
 
 static void *
-__ocs_hw_port_alloc_report_fail(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
+__ocs_hw_port_alloc_report_fail(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt,
+    void *data)
 {
-	ocs_sli_port_t	*sport = ctx->app;
-	ocs_hw_t	*hw = sport->hw;
+	ocs_sli_port_t *sport = ctx->app;
+	ocs_hw_t *hw = sport->hw;
 
 	smtrace("port");
 
 	switch (evt) {
 	case OCS_EVT_ENTER:
 		/* free SLI resource */
-		sli_resource_free(&hw->sli, SLI_RSRC_FCOE_VPI, sport->indicator);
+		sli_resource_free(&hw->sli, SLI_RSRC_FCOE_VPI,
+		    sport->indicator);
 
 		/* free mailbox buffer */
 		if (data != NULL) {
@@ -10318,13 +10878,14 @@ __ocs_hw_port_alloc_report_fail(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *dat
 		}
 
 		if (hw->callback.port != NULL) {
-			hw->callback.port(hw->args.port,
-					OCS_HW_PORT_ALLOC_FAIL, sport);
+			hw->callback.port(hw->args.port, OCS_HW_PORT_ALLOC_FAIL,
+			    sport);
 		}
 
 		/* If there is a pending free request, then handle it now */
 		if (sport->sm_free_req_pending) {
-			ocs_sm_transition(ctx, __ocs_hw_port_free_unreg_vpi, NULL);
+			ocs_sm_transition(ctx, __ocs_hw_port_free_unreg_vpi,
+			    NULL);
 		}
 		break;
 	default:
@@ -10336,11 +10897,12 @@ __ocs_hw_port_alloc_report_fail(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *dat
 }
 
 static void *
-__ocs_hw_port_alloc_read_sparm64(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
+__ocs_hw_port_alloc_read_sparm64(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt,
+    void *data)
 {
-	ocs_sli_port_t	*sport = ctx->app;
-	ocs_hw_t	*hw = sport->hw;
-	uint8_t		*payload = NULL;
+	ocs_sli_port_t *sport = ctx->app;
+	ocs_hw_t *hw = sport->hw;
+	uint8_t *payload = NULL;
 
 	smtrace("port");
 
@@ -10353,15 +10915,18 @@ __ocs_hw_port_alloc_read_sparm64(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *da
 			break;
 		}
 
-		if (0 == sli_cmd_read_sparm64(&hw->sli, data, SLI4_BMBX_SIZE,
-					&sport->dma, sport->indicator)) {
-			ocs_log_err(hw->os, "READ_SPARM64 allocation failure\n");
+		if (0 ==
+		    sli_cmd_read_sparm64(&hw->sli, data, SLI4_BMBX_SIZE,
+			&sport->dma, sport->indicator)) {
+			ocs_log_err(hw->os,
+			    "READ_SPARM64 allocation failure\n");
 			ocs_dma_free(hw->os, &sport->dma);
 			ocs_sm_transition(ctx, __ocs_hw_port_done, data);
 			break;
 		}
 
-		if (ocs_hw_command(hw, data, OCS_CMD_NOWAIT, __ocs_hw_port_cb, sport)) {
+		if (ocs_hw_command(hw, data, OCS_CMD_NOWAIT, __ocs_hw_port_cb,
+			sport)) {
 			ocs_log_err(hw->os, "READ_SPARM64 command failure\n");
 			ocs_dma_free(hw->os, &sport->dma);
 			ocs_sm_transition(ctx, __ocs_hw_port_done, data);
@@ -10371,12 +10936,15 @@ __ocs_hw_port_alloc_read_sparm64(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *da
 	case OCS_EVT_RESPONSE:
 		payload = sport->dma.virt;
 
-		ocs_display_sparams(sport->display_name, "sport sparm64", 0, NULL, payload);
+		ocs_display_sparams(sport->display_name, "sport sparm64", 0,
+		    NULL, payload);
 
-		ocs_memcpy(&sport->sli_wwpn, payload + SLI4_READ_SPARM64_WWPN_OFFSET,
-				sizeof(sport->sli_wwpn));
-		ocs_memcpy(&sport->sli_wwnn, payload + SLI4_READ_SPARM64_WWNN_OFFSET,
-				sizeof(sport->sli_wwnn));
+		ocs_memcpy(&sport->sli_wwpn,
+		    payload + SLI4_READ_SPARM64_WWPN_OFFSET,
+		    sizeof(sport->sli_wwpn));
+		ocs_memcpy(&sport->sli_wwnn,
+		    payload + SLI4_READ_SPARM64_WWNN_OFFSET,
+		    sizeof(sport->sli_wwnn));
 
 		ocs_dma_free(hw->os, &sport->dma);
 		ocs_sm_transition(ctx, __ocs_hw_port_alloc_init_vpi, data);
@@ -10402,7 +10970,7 @@ __ocs_hw_port_alloc_read_sparm64(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *da
 static void *
 __ocs_hw_port_alloc_init(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 {
-	ocs_sli_port_t	*sport = ctx->app;
+	ocs_sli_port_t *sport = ctx->app;
 
 	smtrace("port");
 
@@ -10431,8 +10999,8 @@ __ocs_hw_port_alloc_init(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 static void *
 __ocs_hw_port_alloc_init_vpi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 {
-	ocs_sli_port_t	*sport = ctx->app;
-	ocs_hw_t	*hw = sport->hw;
+	ocs_sli_port_t *sport = ctx->app;
+	ocs_hw_t *hw = sport->hw;
 
 	smtrace("port");
 
@@ -10449,14 +11017,16 @@ __ocs_hw_port_alloc_init_vpi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 		 * read_sparm64. In the later case, we actually want to go
 		 * through report_ok/fail
 		 */
-		if (0 == sli_cmd_init_vpi(&hw->sli, data, SLI4_BMBX_SIZE,
-					sport->indicator, sport->domain->indicator)) {
+		if (0 ==
+		    sli_cmd_init_vpi(&hw->sli, data, SLI4_BMBX_SIZE,
+			sport->indicator, sport->domain->indicator)) {
 			ocs_log_err(hw->os, "INIT_VPI allocation failure\n");
 			ocs_sm_transition(ctx, __ocs_hw_port_done, data);
 			break;
 		}
 
-		if (ocs_hw_command(hw, data, OCS_CMD_NOWAIT, __ocs_hw_port_cb, sport)) {
+		if (ocs_hw_command(hw, data, OCS_CMD_NOWAIT, __ocs_hw_port_cb,
+			sport)) {
 			ocs_log_err(hw->os, "INIT_VPI command failure\n");
 			ocs_sm_transition(ctx, __ocs_hw_port_done, data);
 			break;
@@ -10486,12 +11056,12 @@ static int32_t
 __ocs_hw_port_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 {
 	ocs_sli_port_t *sport = arg;
-	sli4_mbox_command_header_t	*hdr = (sli4_mbox_command_header_t *)mqe;
-	ocs_sm_event_t	evt;
+	sli4_mbox_command_header_t *hdr = (sli4_mbox_command_header_t *)mqe;
+	ocs_sm_event_t evt;
 
 	if (status || hdr->status) {
 		ocs_log_debug(hw->os, "bad status vpi=%#x st=%x hdr=%x\n",
-			      sport->indicator, status, hdr->status);
+		    sport->indicator, status, hdr->status);
 		evt = OCS_EVT_ERROR;
 	} else {
 		evt = OCS_EVT_RESPONSE;
@@ -10506,21 +11076,21 @@ static int32_t
 __ocs_hw_port_realloc_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 {
 	ocs_sli_port_t *sport = arg;
-	sli4_mbox_command_header_t	*hdr = (sli4_mbox_command_header_t *)mqe;
-	ocs_sm_event_t	evt;
+	sli4_mbox_command_header_t *hdr = (sli4_mbox_command_header_t *)mqe;
+	ocs_sm_event_t evt;
 	uint8_t *mqecpy;
 
 	if (status || hdr->status) {
 		ocs_log_debug(hw->os, "bad status vpi=%#x st=%x hdr=%x\n",
-			      sport->indicator, status, hdr->status);
+		    sport->indicator, status, hdr->status);
 		evt = OCS_EVT_ERROR;
 	} else {
 		evt = OCS_EVT_RESPONSE;
 	}
 
 	/*
-	 * In this case we have to malloc a mailbox command buffer, as it is reused
-	 * in the state machine post event call, and eventually freed
+	 * In this case we have to malloc a mailbox command buffer, as it is
+	 * reused in the state machine post event call, and eventually freed
 	 */
 	mqecpy = ocs_malloc(hw->os, SLI4_BMBX_SIZE, OCS_M_ZERO | OCS_M_NOWAIT);
 	if (mqecpy == NULL) {
@@ -10539,10 +11109,11 @@ __ocs_hw_port_realloc_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
  */
 
 static int32_t
-__ocs_hw_domain_common(const char *funcname, ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
+__ocs_hw_domain_common(const char *funcname, ocs_sm_ctx_t *ctx,
+    ocs_sm_event_t evt, void *data)
 {
-	ocs_domain_t	*domain = ctx->app;
-	ocs_hw_t	*hw = domain->hw;
+	ocs_domain_t *domain = ctx->app;
+	ocs_hw_t *hw = domain->hw;
 
 	smtrace("domain");
 
@@ -10552,7 +11123,8 @@ __ocs_hw_domain_common(const char *funcname, ocs_sm_ctx_t *ctx, ocs_sm_event_t e
 		break;
 
 	default:
-		ocs_log_test(hw->os, "%s %-20s not handled\n", funcname, ocs_sm_event_name(evt));
+		ocs_log_test(hw->os, "%s %-20s not handled\n", funcname,
+		    ocs_sm_event_name(evt));
 		break;
 	}
 
@@ -10560,10 +11132,11 @@ __ocs_hw_domain_common(const char *funcname, ocs_sm_ctx_t *ctx, ocs_sm_event_t e
 }
 
 static void *
-__ocs_hw_domain_alloc_report_fail(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
+__ocs_hw_domain_alloc_report_fail(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt,
+    void *data)
 {
-	ocs_domain_t	*domain = ctx->app;
-	ocs_hw_t	*hw = domain->hw;
+	ocs_domain_t *domain = ctx->app;
+	ocs_hw_t *hw = domain->hw;
 
 	smtrace("domain");
 
@@ -10574,13 +11147,13 @@ __ocs_hw_domain_alloc_report_fail(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *d
 			ocs_free(hw->os, data, SLI4_BMBX_SIZE);
 		}
 		/* free SLI resources */
-		sli_resource_free(&hw->sli, SLI_RSRC_FCOE_VFI, domain->indicator);
+		sli_resource_free(&hw->sli, SLI_RSRC_FCOE_VFI,
+		    domain->indicator);
 		/* TODO how to free FCFI (or do we at all)? */
 
 		if (hw->callback.domain != NULL) {
 			hw->callback.domain(hw->args.domain,
-					OCS_HW_DOMAIN_ALLOC_FAIL,
-					domain);
+			    OCS_HW_DOMAIN_ALLOC_FAIL, domain);
 		}
 		break;
 	default:
@@ -10594,8 +11167,8 @@ __ocs_hw_domain_alloc_report_fail(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *d
 static void *
 __ocs_hw_domain_attached(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 {
-	ocs_domain_t	*domain = ctx->app;
-	ocs_hw_t	*hw = domain->hw;
+	ocs_domain_t *domain = ctx->app;
+	ocs_hw_t *hw = domain->hw;
 
 	smtrace("domain");
 
@@ -10603,13 +11176,13 @@ __ocs_hw_domain_attached(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 	case OCS_EVT_ENTER:
 		/* free mailbox buffer and send alloc ok to physical sport */
 		ocs_free(hw->os, data, SLI4_BMBX_SIZE);
-		ocs_sm_post_event(&domain->sport->ctx, OCS_EVT_HW_PORT_ATTACH_OK, NULL);
+		ocs_sm_post_event(&domain->sport->ctx,
+		    OCS_EVT_HW_PORT_ATTACH_OK, NULL);
 
 		/* now inform registered callbacks */
 		if (hw->callback.domain != NULL) {
 			hw->callback.domain(hw->args.domain,
-					OCS_HW_DOMAIN_ATTACH_OK,
-					domain);
+			    OCS_HW_DOMAIN_ATTACH_OK, domain);
 		}
 		break;
 	case OCS_EVT_HW_DOMAIN_REQ_FREE:
@@ -10624,10 +11197,11 @@ __ocs_hw_domain_attached(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 }
 
 static void *
-__ocs_hw_domain_attach_report_fail(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
+__ocs_hw_domain_attach_report_fail(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt,
+    void *data)
 {
-	ocs_domain_t	*domain = ctx->app;
-	ocs_hw_t	*hw = domain->hw;
+	ocs_domain_t *domain = ctx->app;
+	ocs_hw_t *hw = domain->hw;
 
 	smtrace("domain");
 
@@ -10637,13 +11211,13 @@ __ocs_hw_domain_attach_report_fail(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *
 			ocs_free(hw->os, data, SLI4_BMBX_SIZE);
 		}
 		/* free SLI resources */
-		sli_resource_free(&hw->sli, SLI_RSRC_FCOE_VFI, domain->indicator);
+		sli_resource_free(&hw->sli, SLI_RSRC_FCOE_VFI,
+		    domain->indicator);
 		/* TODO how to free FCFI (or do we at all)? */
 
 		if (hw->callback.domain != NULL) {
 			hw->callback.domain(hw->args.domain,
-					OCS_HW_DOMAIN_ATTACH_FAIL,
-					domain);
+			    OCS_HW_DOMAIN_ATTACH_FAIL, domain);
 		}
 		break;
 	case OCS_EVT_EXIT:
@@ -10657,10 +11231,11 @@ __ocs_hw_domain_attach_report_fail(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *
 }
 
 static void *
-__ocs_hw_domain_attach_reg_vfi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
+__ocs_hw_domain_attach_reg_vfi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt,
+    void *data)
 {
-	ocs_domain_t	*domain = ctx->app;
-	ocs_hw_t	*hw = domain->hw;
+	ocs_domain_t *domain = ctx->app;
+	ocs_hw_t *hw = domain->hw;
 
 	smtrace("domain");
 
@@ -10669,13 +11244,15 @@ __ocs_hw_domain_attach_reg_vfi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data
 
 		ocs_display_sparams("", "reg vpi", 0, NULL, domain->dma.virt);
 
-		if (0 == sli_cmd_reg_vfi(&hw->sli, data, SLI4_BMBX_SIZE, domain)) {
+		if (0 ==
+		    sli_cmd_reg_vfi(&hw->sli, data, SLI4_BMBX_SIZE, domain)) {
 			ocs_log_err(hw->os, "REG_VFI format failure\n");
 			ocs_sm_post_event(ctx, OCS_EVT_ERROR, NULL);
 			break;
 		}
 
-		if (ocs_hw_command(hw, data, OCS_CMD_NOWAIT, __ocs_hw_domain_cb, domain)) {
+		if (ocs_hw_command(hw, data, OCS_CMD_NOWAIT, __ocs_hw_domain_cb,
+			domain)) {
 			ocs_log_err(hw->os, "REG_VFI command failure\n");
 			ocs_sm_post_event(ctx, OCS_EVT_ERROR, NULL);
 			break;
@@ -10685,7 +11262,8 @@ __ocs_hw_domain_attach_reg_vfi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data
 		ocs_sm_transition(ctx, __ocs_hw_domain_attached, data);
 		break;
 	case OCS_EVT_ERROR:
-		ocs_sm_transition(ctx, __ocs_hw_domain_attach_report_fail, data);
+		ocs_sm_transition(ctx, __ocs_hw_domain_attach_report_fail,
+		    data);
 		break;
 	default:
 		__ocs_hw_domain_common(__func__, ctx, evt, data);
@@ -10698,8 +11276,8 @@ __ocs_hw_domain_attach_reg_vfi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data
 static void *
 __ocs_hw_domain_allocated(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 {
-	ocs_domain_t	*domain = ctx->app;
-	ocs_hw_t	*hw = domain->hw;
+	ocs_domain_t *domain = ctx->app;
+	ocs_hw_t *hw = domain->hw;
 
 	smtrace("domain");
 
@@ -10707,15 +11285,15 @@ __ocs_hw_domain_allocated(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 	case OCS_EVT_ENTER:
 		/* free mailbox buffer and send alloc ok to physical sport */
 		ocs_free(hw->os, data, SLI4_BMBX_SIZE);
-		ocs_sm_post_event(&domain->sport->ctx, OCS_EVT_HW_PORT_ALLOC_OK, NULL);
+		ocs_sm_post_event(&domain->sport->ctx, OCS_EVT_HW_PORT_ALLOC_OK,
+		    NULL);
 
 		ocs_hw_domain_add(hw, domain);
 
 		/* now inform registered callbacks */
 		if (hw->callback.domain != NULL) {
 			hw->callback.domain(hw->args.domain,
-					OCS_HW_DOMAIN_ALLOC_OK,
-					domain);
+			    OCS_HW_DOMAIN_ALLOC_OK, domain);
 		}
 		break;
 	case OCS_EVT_HW_DOMAIN_REQ_ATTACH:
@@ -10724,9 +11302,11 @@ __ocs_hw_domain_allocated(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 	case OCS_EVT_HW_DOMAIN_REQ_FREE:
 		/* unreg_fcfi/vfi */
 		if (SLI4_IF_TYPE_BE3_SKH_PF == sli_get_if_type(&hw->sli)) {
-			ocs_sm_transition(ctx, __ocs_hw_domain_free_unreg_fcfi, NULL);
+			ocs_sm_transition(ctx, __ocs_hw_domain_free_unreg_fcfi,
+			    NULL);
 		} else {
-			ocs_sm_transition(ctx, __ocs_hw_domain_free_unreg_vfi, NULL);
+			ocs_sm_transition(ctx, __ocs_hw_domain_free_unreg_vfi,
+			    NULL);
 		}
 		break;
 	default:
@@ -10738,23 +11318,26 @@ __ocs_hw_domain_allocated(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 }
 
 static void *
-__ocs_hw_domain_alloc_read_sparm64(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
+__ocs_hw_domain_alloc_read_sparm64(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt,
+    void *data)
 {
-	ocs_domain_t	*domain = ctx->app;
-	ocs_hw_t	*hw = domain->hw;
+	ocs_domain_t *domain = ctx->app;
+	ocs_hw_t *hw = domain->hw;
 
 	smtrace("domain");
 
 	switch (evt) {
 	case OCS_EVT_ENTER:
-		if (0 == sli_cmd_read_sparm64(&hw->sli, data, SLI4_BMBX_SIZE,
-					&domain->dma, SLI4_READ_SPARM64_VPI_DEFAULT)) {
+		if (0 ==
+		    sli_cmd_read_sparm64(&hw->sli, data, SLI4_BMBX_SIZE,
+			&domain->dma, SLI4_READ_SPARM64_VPI_DEFAULT)) {
 			ocs_log_err(hw->os, "READ_SPARM64 format failure\n");
 			ocs_sm_post_event(ctx, OCS_EVT_ERROR, NULL);
 			break;
 		}
 
-		if (ocs_hw_command(hw, data, OCS_CMD_NOWAIT, __ocs_hw_domain_cb, domain)) {
+		if (ocs_hw_command(hw, data, OCS_CMD_NOWAIT, __ocs_hw_domain_cb,
+			domain)) {
 			ocs_log_err(hw->os, "READ_SPARM64 command failure\n");
 			ocs_sm_post_event(ctx, OCS_EVT_ERROR, NULL);
 			break;
@@ -10763,7 +11346,8 @@ __ocs_hw_domain_alloc_read_sparm64(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *
 	case OCS_EVT_EXIT:
 		break;
 	case OCS_EVT_RESPONSE:
-		ocs_display_sparams(domain->display_name, "domain sparm64", 0, NULL, domain->dma.virt);
+		ocs_display_sparams(domain->display_name, "domain sparm64", 0,
+		    NULL, domain->dma.virt);
 
 		ocs_sm_transition(ctx, __ocs_hw_domain_allocated, data);
 		break;
@@ -10779,23 +11363,27 @@ __ocs_hw_domain_alloc_read_sparm64(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *
 }
 
 static void *
-__ocs_hw_domain_alloc_init_vfi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
+__ocs_hw_domain_alloc_init_vfi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt,
+    void *data)
 {
-	ocs_domain_t	*domain = ctx->app;
-	ocs_sli_port_t	*sport = domain->sport;
-	ocs_hw_t	*hw = domain->hw;
+	ocs_domain_t *domain = ctx->app;
+	ocs_sli_port_t *sport = domain->sport;
+	ocs_hw_t *hw = domain->hw;
 
 	smtrace("domain");
 
 	switch (evt) {
 	case OCS_EVT_ENTER:
-		if (0 == sli_cmd_init_vfi(&hw->sli, data, SLI4_BMBX_SIZE, domain->indicator,
-					domain->fcf_indicator, sport->indicator)) {
+		if (0 ==
+		    sli_cmd_init_vfi(&hw->sli, data, SLI4_BMBX_SIZE,
+			domain->indicator, domain->fcf_indicator,
+			sport->indicator)) {
 			ocs_log_err(hw->os, "INIT_VFI format failure\n");
 			ocs_sm_post_event(ctx, OCS_EVT_ERROR, NULL);
 			break;
 		}
-		if (ocs_hw_command(hw, data, OCS_CMD_NOWAIT, __ocs_hw_domain_cb, domain)) {
+		if (ocs_hw_command(hw, data, OCS_CMD_NOWAIT, __ocs_hw_domain_cb,
+			domain)) {
 			ocs_log_err(hw->os, "INIT_VFI command failure\n");
 			ocs_sm_post_event(ctx, OCS_EVT_ERROR, NULL);
 			break;
@@ -10804,7 +11392,8 @@ __ocs_hw_domain_alloc_init_vfi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data
 	case OCS_EVT_EXIT:
 		break;
 	case OCS_EVT_RESPONSE:
-		ocs_sm_transition(ctx, __ocs_hw_domain_alloc_read_sparm64, data);
+		ocs_sm_transition(ctx, __ocs_hw_domain_alloc_read_sparm64,
+		    data);
 		break;
 	case OCS_EVT_ERROR:
 		ocs_sm_transition(ctx, __ocs_hw_domain_alloc_report_fail, data);
@@ -10818,10 +11407,11 @@ __ocs_hw_domain_alloc_init_vfi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data
 }
 
 static void *
-__ocs_hw_domain_alloc_reg_fcfi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
+__ocs_hw_domain_alloc_reg_fcfi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt,
+    void *data)
 {
-	ocs_domain_t	*domain = ctx->app;
-	ocs_hw_t	*hw = domain->hw;
+	ocs_domain_t *domain = ctx->app;
+	ocs_hw_t *hw = domain->hw;
 
 	smtrace("domain");
 
@@ -10830,19 +11420,25 @@ __ocs_hw_domain_alloc_reg_fcfi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data
 		sli4_cmd_rq_cfg_t rq_cfg[SLI4_CMD_REG_FCFI_NUM_RQ_CFG];
 		uint32_t i;
 
-		/* Set the filter match/mask values from hw's filter_def values */
+		/* Set the filter match/mask values from hw's filter_def values
+		 */
 		for (i = 0; i < SLI4_CMD_REG_FCFI_NUM_RQ_CFG; i++) {
 			rq_cfg[i].rq_id = 0xffff;
-			rq_cfg[i].r_ctl_mask = (uint8_t) hw->config.filter_def[i];
-			rq_cfg[i].r_ctl_match = (uint8_t) (hw->config.filter_def[i] >> 8);
-			rq_cfg[i].type_mask = (uint8_t) (hw->config.filter_def[i] >> 16);
-			rq_cfg[i].type_match = (uint8_t) (hw->config.filter_def[i] >> 24);
+			rq_cfg[i].r_ctl_mask = (uint8_t)
+						   hw->config.filter_def[i];
+			rq_cfg[i].r_ctl_match =
+			    (uint8_t)(hw->config.filter_def[i] >> 8);
+			rq_cfg[i].type_mask =
+			    (uint8_t)(hw->config.filter_def[i] >> 16);
+			rq_cfg[i].type_match =
+			    (uint8_t)(hw->config.filter_def[i] >> 24);
 		}
 
 		/* Set the rq_id for each, in order of RQ definition */
 		for (i = 0; i < hw->hw_rq_count; i++) {
 			if (i >= ARRAY_SIZE(rq_cfg)) {
-				ocs_log_warn(hw->os, "more RQs than REG_FCFI filter entries\n");
+				ocs_log_warn(hw->os,
+				    "more RQs than REG_FCFI filter entries\n");
 				break;
 			}
 			rq_cfg[i].rq_id = hw->hw_rq[i]->hdr->id;
@@ -10854,23 +11450,29 @@ __ocs_hw_domain_alloc_reg_fcfi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data
 		}
 
 		if (hw->hw_mrq_count) {
-			if (OCS_HW_RTN_SUCCESS != ocs_hw_config_mrq(hw, SLI4_CMD_REG_FCFI_SET_FCFI_MODE,
-				 domain->vlan_id, domain->fcf)) {
-				ocs_log_err(hw->os, "REG_FCFI_MRQ format failure\n");
+			if (OCS_HW_RTN_SUCCESS !=
+			    ocs_hw_config_mrq(hw,
+				SLI4_CMD_REG_FCFI_SET_FCFI_MODE,
+				domain->vlan_id, domain->fcf)) {
+				ocs_log_err(hw->os,
+				    "REG_FCFI_MRQ format failure\n");
 				ocs_sm_post_event(ctx, OCS_EVT_ERROR, NULL);
 				break;
 			}
 
 		} else {
-			if (0 == sli_cmd_reg_fcfi(&hw->sli, data, SLI4_BMBX_SIZE, domain->fcf,
-						rq_cfg, domain->vlan_id)) {
-				ocs_log_err(hw->os, "REG_FCFI format failure\n");
+			if (0 ==
+			    sli_cmd_reg_fcfi(&hw->sli, data, SLI4_BMBX_SIZE,
+				domain->fcf, rq_cfg, domain->vlan_id)) {
+				ocs_log_err(hw->os,
+				    "REG_FCFI format failure\n");
 				ocs_sm_post_event(ctx, OCS_EVT_ERROR, NULL);
 				break;
 			}
 		}
 
-		if (ocs_hw_command(hw, data, OCS_CMD_NOWAIT, __ocs_hw_domain_cb, domain)) {
+		if (ocs_hw_command(hw, data, OCS_CMD_NOWAIT, __ocs_hw_domain_cb,
+			domain)) {
 			ocs_log_err(hw->os, "REG_FCFI command failure\n");
 			ocs_sm_post_event(ctx, OCS_EVT_ERROR, NULL);
 			break;
@@ -10888,14 +11490,17 @@ __ocs_hw_domain_alloc_reg_fcfi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data
 		domain->fcf_indicator = ((sli4_cmd_reg_fcfi_t *)data)->fcfi;
 
 		/*
-		 * IF_TYPE 0 devices do not support explicit VFI and VPI initialization
-		 * and instead rely on implicit initialization during VFI registration.
-		 * Short circuit normal processing here for those devices.
+		 * IF_TYPE 0 devices do not support explicit VFI and VPI
+		 * initialization and instead rely on implicit initialization
+		 * during VFI registration. Short circuit normal processing here
+		 * for those devices.
 		 */
 		if (SLI4_IF_TYPE_BE3_SKH_PF == sli_get_if_type(&hw->sli)) {
-			ocs_sm_transition(ctx, __ocs_hw_domain_alloc_read_sparm64, data);
+			ocs_sm_transition(ctx,
+			    __ocs_hw_domain_alloc_read_sparm64, data);
 		} else {
-			ocs_sm_transition(ctx, __ocs_hw_domain_alloc_init_vfi, data);
+			ocs_sm_transition(ctx, __ocs_hw_domain_alloc_init_vfi,
+			    data);
 		}
 		break;
 	case OCS_EVT_ERROR:
@@ -10912,8 +11517,8 @@ __ocs_hw_domain_alloc_reg_fcfi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data
 static void *
 __ocs_hw_domain_init(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 {
-	ocs_domain_t	*domain = ctx->app;
-	ocs_hw_t	*hw = domain->hw;
+	ocs_domain_t *domain = ctx->app;
+	ocs_hw_t *hw = domain->hw;
 
 	smtrace("domain");
 
@@ -10922,12 +11527,15 @@ __ocs_hw_domain_init(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 		if (sli_get_medium(&hw->sli) == SLI_LINK_MEDIUM_FC) {
 			/*
 			 * For FC, the HW alread registered a FCFI
-			 * Copy FCF information into the domain and jump to INIT_VFI
+			 * Copy FCF information into the domain and jump to
+			 * INIT_VFI
 			 */
 			domain->fcf_indicator = hw->fcf_indicator;
-			ocs_sm_transition(&domain->sm, __ocs_hw_domain_alloc_init_vfi, data);
+			ocs_sm_transition(&domain->sm,
+			    __ocs_hw_domain_alloc_init_vfi, data);
 		} else {
-			ocs_sm_transition(&domain->sm, __ocs_hw_domain_alloc_reg_fcfi, data);
+			ocs_sm_transition(&domain->sm,
+			    __ocs_hw_domain_alloc_reg_fcfi, data);
 		}
 		break;
 	default:
@@ -10939,29 +11547,30 @@ __ocs_hw_domain_init(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 }
 
 static void *
-__ocs_hw_domain_free_report_fail(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
+__ocs_hw_domain_free_report_fail(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt,
+    void *data)
 {
-	ocs_domain_t	*domain = ctx->app;
+	ocs_domain_t *domain = ctx->app;
 
 	smtrace("domain");
 
 	switch (evt) {
 	case OCS_EVT_ENTER:
 		if (domain != NULL) {
-			ocs_hw_t	*hw = domain->hw;
+			ocs_hw_t *hw = domain->hw;
 
 			ocs_hw_domain_del(hw, domain);
 
 			if (hw->callback.domain != NULL) {
 				hw->callback.domain(hw->args.domain,
-						     OCS_HW_DOMAIN_FREE_FAIL,
-						     domain);
+				    OCS_HW_DOMAIN_FREE_FAIL, domain);
 			}
 		}
 
 		/* free command buffer */
 		if (data != NULL) {
-			ocs_free(domain != NULL ? domain->hw->os : NULL, data, SLI4_BMBX_SIZE);
+			ocs_free(domain != NULL ? domain->hw->os : NULL, data,
+			    SLI4_BMBX_SIZE);
 		}
 		break;
 	case OCS_EVT_EXIT:
@@ -10977,7 +11586,7 @@ __ocs_hw_domain_free_report_fail(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *da
 static void *
 __ocs_hw_domain_freed(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 {
-	ocs_domain_t	*domain = ctx->app;
+	ocs_domain_t *domain = ctx->app;
 
 	smtrace("domain");
 
@@ -10989,15 +11598,14 @@ __ocs_hw_domain_freed(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 
 			/* free VFI resource */
 			sli_resource_free(&hw->sli, SLI_RSRC_FCOE_VFI,
-					  domain->indicator);
+			    domain->indicator);
 
 			ocs_hw_domain_del(hw, domain);
 
 			/* inform registered callbacks */
 			if (hw->callback.domain != NULL) {
 				hw->callback.domain(hw->args.domain,
-						     OCS_HW_DOMAIN_FREE_OK,
-						     domain);
+				    OCS_HW_DOMAIN_FREE_OK, domain);
 			}
 		}
 		if (data != NULL) {
@@ -11015,27 +11623,32 @@ __ocs_hw_domain_freed(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
 }
 
 static void *
-__ocs_hw_domain_free_redisc_fcf(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
+__ocs_hw_domain_free_redisc_fcf(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt,
+    void *data)
 {
-	ocs_domain_t	*domain = ctx->app;
-	ocs_hw_t	*hw = domain->hw;
+	ocs_domain_t *domain = ctx->app;
+	ocs_hw_t *hw = domain->hw;
 
 	smtrace("domain");
 
 	switch (evt) {
 	case OCS_EVT_ENTER:
-		/* if we're in the middle of a teardown, skip sending rediscover */
+		/* if we're in the middle of a teardown, skip sending rediscover
+		 */
 		if (hw->state == OCS_HW_STATE_TEARDOWN_IN_PROGRESS) {
 			ocs_sm_transition(ctx, __ocs_hw_domain_freed, data);
 			break;
 		}
-		if (0 == sli_cmd_fcoe_rediscover_fcf(&hw->sli, data, SLI4_BMBX_SIZE, domain->fcf)) {
+		if (0 ==
+		    sli_cmd_fcoe_rediscover_fcf(&hw->sli, data, SLI4_BMBX_SIZE,
+			domain->fcf)) {
 			ocs_log_err(hw->os, "REDISCOVER_FCF format failure\n");
 			ocs_sm_post_event(ctx, OCS_EVT_ERROR, NULL);
 			break;
 		}
 
-		if (ocs_hw_command(hw, data, OCS_CMD_NOWAIT, __ocs_hw_domain_cb, domain)) {
+		if (ocs_hw_command(hw, data, OCS_CMD_NOWAIT, __ocs_hw_domain_cb,
+			domain)) {
 			ocs_log_err(hw->os, "REDISCOVER_FCF command failure\n");
 			ocs_sm_post_event(ctx, OCS_EVT_ERROR, NULL);
 		}
@@ -11056,31 +11669,36 @@ __ocs_hw_domain_free_redisc_fcf(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *dat
 }
 
 static void *
-__ocs_hw_domain_free_unreg_fcfi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
+__ocs_hw_domain_free_unreg_fcfi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt,
+    void *data)
 {
-	ocs_domain_t	*domain = ctx->app;
-	ocs_hw_t	*hw = domain->hw;
+	ocs_domain_t *domain = ctx->app;
+	ocs_hw_t *hw = domain->hw;
 
 	smtrace("domain");
 
 	switch (evt) {
 	case OCS_EVT_ENTER:
 		if (data == NULL) {
-			data = ocs_malloc(hw->os, SLI4_BMBX_SIZE, OCS_M_ZERO | OCS_M_NOWAIT);
+			data = ocs_malloc(hw->os, SLI4_BMBX_SIZE,
+			    OCS_M_ZERO | OCS_M_NOWAIT);
 			if (!data) {
 				ocs_sm_post_event(ctx, OCS_EVT_ERROR, NULL);
 				break;
 			}
 		}
 
-		if (0 == sli_cmd_unreg_fcfi(&hw->sli, data, SLI4_BMBX_SIZE, domain->fcf_indicator)) {
+		if (0 ==
+		    sli_cmd_unreg_fcfi(&hw->sli, data, SLI4_BMBX_SIZE,
+			domain->fcf_indicator)) {
 			ocs_log_err(hw->os, "UNREG_FCFI format failure\n");
 			ocs_free(hw->os, data, SLI4_BMBX_SIZE);
 			ocs_sm_post_event(ctx, OCS_EVT_ERROR, NULL);
 			break;
 		}
 
-		if (ocs_hw_command(hw, data, OCS_CMD_NOWAIT, __ocs_hw_domain_cb, domain)) {
+		if (ocs_hw_command(hw, data, OCS_CMD_NOWAIT, __ocs_hw_domain_cb,
+			domain)) {
 			ocs_log_err(hw->os, "UNREG_FCFI command failure\n");
 			ocs_free(hw->os, data, SLI4_BMBX_SIZE);
 			ocs_sm_post_event(ctx, OCS_EVT_ERROR, NULL);
@@ -11090,7 +11708,8 @@ __ocs_hw_domain_free_unreg_fcfi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *dat
 	case OCS_EVT_RESPONSE:
 		if (domain->req_rediscover_fcf) {
 			domain->req_rediscover_fcf = FALSE;
-			ocs_sm_transition(ctx, __ocs_hw_domain_free_redisc_fcf, data);
+			ocs_sm_transition(ctx, __ocs_hw_domain_free_redisc_fcf,
+			    data);
 		} else {
 			ocs_sm_transition(ctx, __ocs_hw_domain_freed, data);
 		}
@@ -11109,11 +11728,12 @@ __ocs_hw_domain_free_unreg_fcfi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *dat
 }
 
 static void *
-__ocs_hw_domain_free_unreg_vfi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data)
+__ocs_hw_domain_free_unreg_vfi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt,
+    void *data)
 {
-	ocs_domain_t	*domain = ctx->app;
-	ocs_hw_t	*hw = domain->hw;
-	uint8_t		is_fc = FALSE;
+	ocs_domain_t *domain = ctx->app;
+	ocs_hw_t *hw = domain->hw;
+	uint8_t is_fc = FALSE;
 
 	smtrace("domain");
 
@@ -11122,22 +11742,25 @@ __ocs_hw_domain_free_unreg_vfi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data
 	switch (evt) {
 	case OCS_EVT_ENTER:
 		if (data == NULL) {
-			data = ocs_malloc(hw->os, SLI4_BMBX_SIZE, OCS_M_ZERO | OCS_M_NOWAIT);
+			data = ocs_malloc(hw->os, SLI4_BMBX_SIZE,
+			    OCS_M_ZERO | OCS_M_NOWAIT);
 			if (!data) {
 				ocs_sm_post_event(ctx, OCS_EVT_ERROR, NULL);
 				break;
 			}
 		}
 
-		if (0 == sli_cmd_unreg_vfi(&hw->sli, data, SLI4_BMBX_SIZE, domain,
-					SLI4_UNREG_TYPE_DOMAIN)) {
+		if (0 ==
+		    sli_cmd_unreg_vfi(&hw->sli, data, SLI4_BMBX_SIZE, domain,
+			SLI4_UNREG_TYPE_DOMAIN)) {
 			ocs_log_err(hw->os, "UNREG_VFI format failure\n");
 			ocs_free(hw->os, data, SLI4_BMBX_SIZE);
 			ocs_sm_post_event(ctx, OCS_EVT_ERROR, NULL);
 			break;
 		}
 
-		if (ocs_hw_command(hw, data, OCS_CMD_NOWAIT, __ocs_hw_domain_cb, domain)) {
+		if (ocs_hw_command(hw, data, OCS_CMD_NOWAIT, __ocs_hw_domain_cb,
+			domain)) {
 			ocs_log_err(hw->os, "UNREG_VFI command failure\n");
 			ocs_free(hw->os, data, SLI4_BMBX_SIZE);
 			ocs_sm_post_event(ctx, OCS_EVT_ERROR, NULL);
@@ -11146,16 +11769,19 @@ __ocs_hw_domain_free_unreg_vfi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data
 		break;
 	case OCS_EVT_ERROR:
 		if (is_fc) {
-			ocs_sm_transition(ctx, __ocs_hw_domain_free_report_fail, data);
+			ocs_sm_transition(ctx, __ocs_hw_domain_free_report_fail,
+			    data);
 		} else {
-			ocs_sm_transition(ctx, __ocs_hw_domain_free_unreg_fcfi, data);
+			ocs_sm_transition(ctx, __ocs_hw_domain_free_unreg_fcfi,
+			    data);
 		}
 		break;
 	case OCS_EVT_RESPONSE:
 		if (is_fc) {
 			ocs_sm_transition(ctx, __ocs_hw_domain_freed, data);
 		} else {
-			ocs_sm_transition(ctx, __ocs_hw_domain_free_unreg_fcfi, data);
+			ocs_sm_transition(ctx, __ocs_hw_domain_free_unreg_fcfi,
+			    data);
 		}
 		break;
 	default:
@@ -11170,13 +11796,13 @@ __ocs_hw_domain_free_unreg_vfi(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *data
 static int32_t
 __ocs_hw_domain_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 {
-	ocs_domain_t	*domain = arg;
-	sli4_mbox_command_header_t	*hdr = (sli4_mbox_command_header_t *)mqe;
-	ocs_sm_event_t	evt;
+	ocs_domain_t *domain = arg;
+	sli4_mbox_command_header_t *hdr = (sli4_mbox_command_header_t *)mqe;
+	ocs_sm_event_t evt;
 
 	if (status || hdr->status) {
 		ocs_log_debug(hw->os, "bad status vfi=%#x st=%x hdr=%x\n",
-			      domain->indicator, status, hdr->status);
+		    domain->indicator, status, hdr->status);
 		evt = OCS_EVT_ERROR;
 	} else {
 		evt = OCS_EVT_RESPONSE;
@@ -11195,32 +11821,37 @@ target_wqe_timer_nop_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 	ocs_hw_rtn_e rc;
 	struct timeval cur_time;
 
-	sli4_mbox_command_header_t	*hdr = (sli4_mbox_command_header_t *)mqe;
+	sli4_mbox_command_header_t *hdr = (sli4_mbox_command_header_t *)mqe;
 
 	if (status || hdr->status) {
-		ocs_log_debug(hw->os, "bad status st=%x hdr=%x\n",
-			      status, hdr->status);
+		ocs_log_debug(hw->os, "bad status st=%x hdr=%x\n", status,
+		    hdr->status);
 		/* go ahead and proceed with wqe timer checks... */
 	}
 
 	/* loop through active WQE list and check for timeouts */
 	ocs_lock(&hw->io_lock);
-	ocs_list_foreach_safe(&hw->io_timed_wqe, io, io_next) {
+	ocs_list_foreach_safe(&hw->io_timed_wqe, io, io_next)
+	{
 
 		/*
-		 * If elapsed time > timeout, abort it. No need to check type since
-		 * it wouldn't be on this list unless it was a target WQE
+		 * If elapsed time > timeout, abort it. No need to check type
+		 * since it wouldn't be on this list unless it was a target WQE
 		 */
 		getmicrouptime(&cur_time);
 		timevalsub(&cur_time, &io->submit_time);
 		if (cur_time.tv_sec > io->wqe_timeout) {
-			ocs_log_info(hw->os, "IO timeout xri=0x%x tag=0x%x type=%d elasped time:%u\n",
-				     io->indicator, io->reqtag, io->type, cur_time.tv_sec);
+			ocs_log_info(hw->os,
+			    "IO timeout xri=0x%x tag=0x%x type=%d elasped time:%u\n",
+			    io->indicator, io->reqtag, io->type,
+			    cur_time.tv_sec);
 
-			/* remove from active_wqe list so won't try to abort again */
+			/* remove from active_wqe list so won't try to abort
+			 * again */
 			ocs_list_remove(&hw->io_timed_wqe, io);
 
-			/* save status of "timed out" for when abort completes */
+			/* save status of "timed out" for when abort completes
+			 */
 			io->status_saved = 1;
 			io->saved_status = SLI4_FC_WCQE_STATUS_WQE_TIMEOUT;
 			io->saved_ext = 0;
@@ -11230,8 +11861,8 @@ target_wqe_timer_nop_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 			rc = ocs_hw_io_abort(hw, io, TRUE, NULL, NULL);
 			if (rc) {
 				ocs_log_test(hw->os,
-					"abort failed xri=%#x tag=%#x rc=%d\n",
-					io->indicator, io->reqtag, rc);
+				    "abort failed xri=%#x tag=%#x rc=%d\n",
+				    io->indicator, io->reqtag, rc);
 			}
 		}
 		/*
@@ -11243,7 +11874,8 @@ target_wqe_timer_nop_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 
 	/* if we're not in the middle of shutting down, schedule next timer */
 	if (!hw->active_wqe_timer_shutdown) {
-		ocs_setup_timer(hw->os, &hw->wqe_timer, target_wqe_timer_cb, hw, OCS_HW_WQ_TIMER_PERIOD_MS);
+		ocs_setup_timer(hw->os, &hw->wqe_timer, target_wqe_timer_cb, hw,
+		    OCS_HW_WQ_TIMER_PERIOD_MS);
 	}
 	hw->in_active_wqe_timer = FALSE;
 	return 0;
@@ -11254,10 +11886,12 @@ target_wqe_timer_cb(void *arg)
 {
 	ocs_hw_t *hw = (ocs_hw_t *)arg;
 
-	/* delete existing timer; will kick off new timer after checking wqe timeouts */
+	/* delete existing timer; will kick off new timer after checking wqe
+	 * timeouts */
 	hw->in_active_wqe_timer = TRUE;
 
-	/* Forward timer callback to execute in the mailbox completion processing context */
+	/* Forward timer callback to execute in the mailbox completion
+	 * processing context */
 	if (ocs_hw_async_call(hw, target_wqe_timer_nop_cb, hw)) {
 		ocs_log_test(hw->os, "ocs_hw_async_call failed\n");
 	}
@@ -11266,27 +11900,30 @@ target_wqe_timer_cb(void *arg)
 static void
 shutdown_target_wqe_timer(ocs_hw_t *hw)
 {
-	uint32_t	iters = 100;
+	uint32_t iters = 100;
 
 	if (hw->config.emulate_wqe_timeout) {
-		/* request active wqe timer shutdown, then wait for it to complete */
+		/* request active wqe timer shutdown, then wait for it to
+		 * complete */
 		hw->active_wqe_timer_shutdown = TRUE;
 
-		/* delete WQE timer and wait for timer handler to complete (if necessary) */
+		/* delete WQE timer and wait for timer handler to complete (if
+		 * necessary) */
 		ocs_del_timer(&hw->wqe_timer);
 
 		/* now wait for timer handler to complete (if necessary) */
 		while (hw->in_active_wqe_timer && iters) {
 			/*
-			 * if we happen to have just sent NOP mailbox command, make sure
-			 * completions are being processed
+			 * if we happen to have just sent NOP mailbox command,
+			 * make sure completions are being processed
 			 */
 			ocs_hw_flush(hw);
 			iters--;
 		}
 
 		if (iters == 0) {
-			ocs_log_test(hw->os, "Failed to shutdown active wqe timer\n");
+			ocs_log_test(hw->os,
+			    "Failed to shutdown active wqe timer\n");
 		}
 	}
 }
@@ -11332,7 +11969,8 @@ ocs_hw_is_xri_port_owned(ocs_hw_t *hw, uint32_t xri)
  * @brief Returns an XRI from the port owned list to the host.
  *
  * @par Description
- * Used when the POST_XRI command fails as well as when the RELEASE_XRI completes.
+ * Used when the POST_XRI command fails as well as when the RELEASE_XRI
+ * completes.
  *
  * @param hw Hardware context.
  * @param xri_base The starting XRI number.
@@ -11341,7 +11979,7 @@ ocs_hw_is_xri_port_owned(ocs_hw_t *hw, uint32_t xri)
 static void
 ocs_hw_reclaim_xri(ocs_hw_t *hw, uint16_t xri_base, uint16_t xri_count)
 {
-	ocs_hw_io_t	*io;
+	ocs_hw_io_t *io;
 	uint32_t i;
 
 	for (i = 0; i < xri_count; i++) {
@@ -11349,16 +11987,17 @@ ocs_hw_reclaim_xri(ocs_hw_t *hw, uint16_t xri_base, uint16_t xri_count)
 
 		/*
 		 * if this is an auto xfer rdy XRI, then we need to release any
-		 * buffer attached to the XRI before moving the XRI back to the free pool.
+		 * buffer attached to the XRI before moving the XRI back to the
+		 * free pool.
 		 */
 		if (hw->auto_xfer_rdy_enabled) {
 			ocs_hw_rqpair_auto_xfer_rdy_move_to_host(hw, io);
 		}
 
 		ocs_lock(&hw->io_lock);
-			ocs_list_remove(&hw->io_port_owned, io);
-			io->is_port_owned = 0;
-			ocs_list_add_tail(&hw->io_free, io);
+		ocs_list_remove(&hw->io_port_owned, io);
+		io->is_port_owned = 0;
+		ocs_list_add_tail(&hw->io_free, io);
 		ocs_unlock(&hw->io_lock);
 	}
 }
@@ -11372,19 +12011,21 @@ ocs_hw_reclaim_xri(ocs_hw_t *hw, uint16_t xri_base, uint16_t xri_count)
  * @param hw Hardware context.
  * @param status Status field from the mbox completion.
  * @param mqe Mailbox response structure.
- * @param arg Pointer to a callback function that signals the caller that the command is done.
+ * @param arg Pointer to a callback function that signals the caller that the
+ * command is done.
  *
  * @return Returns 0.
  */
 static int32_t
-ocs_hw_cb_post_xri(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void  *arg)
+ocs_hw_cb_post_xri(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 {
-	sli4_cmd_post_xri_t	*post_xri = (sli4_cmd_post_xri_t*)mqe;
+	sli4_cmd_post_xri_t *post_xri = (sli4_cmd_post_xri_t *)mqe;
 
 	/* Reclaim the XRIs as host owned if the command fails */
 	if (status != 0) {
-		ocs_log_debug(hw->os, "Status 0x%x for XRI base 0x%x, cnt =x%x\n",
-			      status, post_xri->xri_base, post_xri->xri_count);
+		ocs_log_debug(hw->os,
+		    "Status 0x%x for XRI base 0x%x, cnt =x%x\n", status,
+		    post_xri->xri_base, post_xri->xri_count);
 		ocs_hw_reclaim_xri(hw, post_xri->xri_base, post_xri->xri_count);
 	}
 
@@ -11393,19 +12034,21 @@ ocs_hw_cb_post_xri(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void  *arg)
 }
 
 /**
- * @brief Issues a mailbox command to move XRIs from the host-controlled pool to the port.
+ * @brief Issues a mailbox command to move XRIs from the host-controlled pool to
+ * the port.
  *
  * @param hw Hardware context.
  * @param xri_start The starting XRI to post.
  * @param num_to_post The number of XRIs to post.
  *
- * @return Returns OCS_HW_RTN_NO_MEMORY, OCS_HW_RTN_ERROR, or OCS_HW_RTN_SUCCESS.
+ * @return Returns OCS_HW_RTN_NO_MEMORY, OCS_HW_RTN_ERROR, or
+ * OCS_HW_RTN_SUCCESS.
  */
 
 static ocs_hw_rtn_e
 ocs_hw_post_xri(ocs_hw_t *hw, uint32_t xri_start, uint32_t num_to_post)
 {
-	uint8_t	*post_xri;
+	uint8_t *post_xri;
 	ocs_hw_rtn_e rc = OCS_HW_RTN_ERROR;
 
 	/* Since we need to allocate for mailbox queue, just always allocate */
@@ -11416,9 +12059,10 @@ ocs_hw_post_xri(ocs_hw_t *hw, uint32_t xri_start, uint32_t num_to_post)
 	}
 
 	/* Register the XRIs */
-	if (sli_cmd_post_xri(&hw->sli, post_xri, SLI4_BMBX_SIZE,
-			     xri_start, num_to_post)) {
-		rc = ocs_hw_command(hw, post_xri, OCS_CMD_NOWAIT, ocs_hw_cb_post_xri, NULL);
+	if (sli_cmd_post_xri(&hw->sli, post_xri, SLI4_BMBX_SIZE, xri_start,
+		num_to_post)) {
+		rc = ocs_hw_command(hw, post_xri, OCS_CMD_NOWAIT,
+		    ocs_hw_cb_post_xri, NULL);
 		if (rc != OCS_HW_RTN_SUCCESS) {
 			ocs_free(hw->os, post_xri, SLI4_BMBX_SIZE);
 			ocs_log_err(hw->os, "post_xri failed\n");
@@ -11442,7 +12086,7 @@ ocs_hw_post_xri(ocs_hw_t *hw, uint32_t xri_start, uint32_t num_to_post)
 uint32_t
 ocs_hw_xri_move_to_port_owned(ocs_hw_t *hw, uint32_t num_xri)
 {
-	ocs_hw_io_t	*io;
+	ocs_hw_io_t *io;
 	uint32_t i;
 	uint32_t num_posted = 0;
 
@@ -11458,27 +12102,31 @@ ocs_hw_xri_move_to_port_owned(ocs_hw_t *hw, uint32_t num_xri)
 			ocs_hw_rtn_e rc;
 
 			/*
-			 * if this is an auto xfer rdy XRI, then we need to attach a
-			 * buffer to the XRI before submitting it to the chip. If a
-			 * buffer is unavailable, then we cannot post it, so return it
-			 * to the free pool.
+			 * if this is an auto xfer rdy XRI, then we need to
+			 * attach a buffer to the XRI before submitting it to
+			 * the chip. If a buffer is unavailable, then we cannot
+			 * post it, so return it to the free pool.
 			 */
 			if (hw->auto_xfer_rdy_enabled) {
-				/* Note: uses the IO lock to get the auto xfer rdy buffer */
+				/* Note: uses the IO lock to get the auto xfer
+				 * rdy buffer */
 				ocs_unlock(&hw->io_lock);
-				rc = ocs_hw_rqpair_auto_xfer_rdy_move_to_port(hw, io);
+				rc = ocs_hw_rqpair_auto_xfer_rdy_move_to_port(
+				    hw, io);
 				ocs_lock(&hw->io_lock);
 				if (rc != OCS_HW_RTN_SUCCESS) {
 					ocs_list_add_head(&hw->io_free, io);
 					break;
 				}
 			}
-			ocs_lock_init(hw->os, &io->axr_lock, "HW_axr_lock[%d]", io->indicator);
+			ocs_lock_init(hw->os, &io->axr_lock, "HW_axr_lock[%d]",
+			    io->indicator);
 			io->is_port_owned = 1;
 			ocs_list_add_tail(&hw->io_port_owned, io);
 
 			/* Post XRI */
-			if (ocs_hw_post_xri(hw, io->indicator, 1) != OCS_HW_RTN_SUCCESS ) {
+			if (ocs_hw_post_xri(hw, io->indicator, 1) !=
+			    OCS_HW_RTN_SUCCESS) {
 				ocs_hw_reclaim_xri(hw, io->indicator, i);
 				break;
 			}
@@ -11502,14 +12150,15 @@ ocs_hw_xri_move_to_port_owned(ocs_hw_t *hw, uint32_t num_xri)
  * @param hw Hardware context.
  * @param status Status field from the mbox completion.
  * @param mqe Mailbox response structure.
- * @param arg Pointer to a callback function that signals the caller that the command is done.
+ * @param arg Pointer to a callback function that signals the caller that the
+ * command is done.
  *
  * @return Returns 0.
  */
 static int32_t
-ocs_hw_cb_release_xri(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void  *arg)
+ocs_hw_cb_release_xri(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
 {
-	sli4_cmd_release_xri_t	*release_xri = (sli4_cmd_release_xri_t*)mqe;
+	sli4_cmd_release_xri_t *release_xri = (sli4_cmd_release_xri_t *)mqe;
 	uint8_t i;
 
 	/* Reclaim the XRIs as host owned if the command fails */
@@ -11517,8 +12166,9 @@ ocs_hw_cb_release_xri(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void  *arg)
 		ocs_log_err(hw->os, "Status 0x%x\n", status);
 	} else {
 		for (i = 0; i < release_xri->released_xri_count; i++) {
-			uint16_t xri = ((i & 1) == 0 ? release_xri->xri_tbl[i/2].xri_tag0 :
-					release_xri->xri_tbl[i/2].xri_tag1);
+			uint16_t xri = ((i & 1) == 0 ?
+				release_xri->xri_tbl[i / 2].xri_tag0 :
+				release_xri->xri_tbl[i / 2].xri_tag1);
 			ocs_hw_reclaim_xri(hw, xri, 1);
 		}
 	}
@@ -11541,7 +12191,7 @@ ocs_hw_cb_release_xri(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void  *arg)
 ocs_hw_rtn_e
 ocs_hw_xri_move_to_host_owned(ocs_hw_t *hw, uint8_t num_xri)
 {
-	uint8_t	*release_xri;
+	uint8_t *release_xri;
 	ocs_hw_rtn_e rc = OCS_HW_RTN_ERROR;
 
 	/* non-local buffer required for mailbox queue */
@@ -11552,13 +12202,16 @@ ocs_hw_xri_move_to_host_owned(ocs_hw_t *hw, uint8_t num_xri)
 	}
 
 	/* release the XRIs */
-	if (sli_cmd_release_xri(&hw->sli, release_xri, SLI4_BMBX_SIZE, num_xri)) {
-		rc = ocs_hw_command(hw, release_xri, OCS_CMD_NOWAIT, ocs_hw_cb_release_xri, NULL);
+	if (sli_cmd_release_xri(&hw->sli, release_xri, SLI4_BMBX_SIZE,
+		num_xri)) {
+		rc = ocs_hw_command(hw, release_xri, OCS_CMD_NOWAIT,
+		    ocs_hw_cb_release_xri, NULL);
 		if (rc != OCS_HW_RTN_SUCCESS) {
 			ocs_log_err(hw->os, "release_xri failed\n");
 		}
 	}
-	/* If we are polling or an error occurred, then free the mailbox buffer */
+	/* If we are polling or an error occurred, then free the mailbox buffer
+	 */
 	if (release_xri != NULL && rc != OCS_HW_RTN_SUCCESS) {
 		ocs_free(hw->os, release_xri, SLI4_BMBX_SIZE);
 	}
@@ -11579,7 +12232,8 @@ ocs_hw_xri_move_to_host_owned(ocs_hw_t *hw, uint8_t num_xri)
  * @return Returns the pointer to the allocated ocs_hw_rq_buffer_t array.
  */
 static ocs_hw_rq_buffer_t *
-ocs_hw_rx_buffer_alloc(ocs_hw_t *hw, uint32_t rqindex, uint32_t count, uint32_t size)
+ocs_hw_rx_buffer_alloc(ocs_hw_t *hw, uint32_t rqindex, uint32_t count,
+    uint32_t size)
 {
 	ocs_t *ocs = hw->os;
 	ocs_hw_rq_buffer_t *rq_buf = NULL;
@@ -11587,17 +12241,21 @@ ocs_hw_rx_buffer_alloc(ocs_hw_t *hw, uint32_t rqindex, uint32_t count, uint32_t 
 	uint32_t i;
 
 	if (count != 0) {
-		rq_buf = ocs_malloc(hw->os, sizeof(*rq_buf) * count, OCS_M_NOWAIT | OCS_M_ZERO);
+		rq_buf = ocs_malloc(hw->os, sizeof(*rq_buf) * count,
+		    OCS_M_NOWAIT | OCS_M_ZERO);
 		if (rq_buf == NULL) {
-			ocs_log_err(hw->os, "Failure to allocate unsolicited DMA trackers\n");
+			ocs_log_err(hw->os,
+			    "Failure to allocate unsolicited DMA trackers\n");
 			return NULL;
 		}
 
-		for (i = 0, prq = rq_buf; i < count; i ++, prq++) {
+		for (i = 0, prq = rq_buf; i < count; i++, prq++) {
 			prq->rqindex = rqindex;
-			if (ocs_dma_alloc(ocs, &prq->dma, size, OCS_MIN_DMA_ALIGNMENT)) {
+			if (ocs_dma_alloc(ocs, &prq->dma, size,
+				OCS_MIN_DMA_ALIGNMENT)) {
 				ocs_log_err(hw->os, "DMA allocation failed\n");
-				ocs_free(hw->os, rq_buf, sizeof(*rq_buf) * count);
+				ocs_free(hw->os, rq_buf,
+				    sizeof(*rq_buf) * count);
 				rq_buf = NULL;
 				break;
 			}
@@ -11657,27 +12315,33 @@ ocs_hw_rx_allocate(ocs_hw_t *hw)
 		rq = hw->hw_rq[i];
 
 		/* Allocate header buffers */
-		rq->hdr_buf = ocs_hw_rx_buffer_alloc(hw, rqindex, rq->entry_count, hdr_size);
+		rq->hdr_buf = ocs_hw_rx_buffer_alloc(hw, rqindex,
+		    rq->entry_count, hdr_size);
 		if (rq->hdr_buf == NULL) {
-			ocs_log_err(ocs, "ocs_hw_rx_buffer_alloc hdr_buf failed\n");
+			ocs_log_err(ocs,
+			    "ocs_hw_rx_buffer_alloc hdr_buf failed\n");
 			rc = OCS_HW_RTN_ERROR;
 			break;
 		}
 
-		ocs_log_debug(hw->os, "rq[%2d] rq_id %02d header  %4d by %4d bytes\n", i, rq->hdr->id,
-			      rq->entry_count, hdr_size);
+		ocs_log_debug(hw->os,
+		    "rq[%2d] rq_id %02d header  %4d by %4d bytes\n", i,
+		    rq->hdr->id, rq->entry_count, hdr_size);
 
 		rqindex++;
 
 		/* Allocate payload buffers */
-		rq->payload_buf = ocs_hw_rx_buffer_alloc(hw, rqindex, rq->entry_count, payload_size);
+		rq->payload_buf = ocs_hw_rx_buffer_alloc(hw, rqindex,
+		    rq->entry_count, payload_size);
 		if (rq->payload_buf == NULL) {
-			ocs_log_err(ocs, "ocs_hw_rx_buffer_alloc fb_buf failed\n");
+			ocs_log_err(ocs,
+			    "ocs_hw_rx_buffer_alloc fb_buf failed\n");
 			rc = OCS_HW_RTN_ERROR;
 			break;
 		}
-		ocs_log_debug(hw->os, "rq[%2d] rq_id %02d default %4d by %4d bytes\n", i, rq->data->id,
-			      rq->entry_count, payload_size);
+		ocs_log_debug(hw->os,
+		    "rq[%2d] rq_id %02d default %4d by %4d bytes\n", i,
+		    rq->data->id, rq->entry_count, payload_size);
 		rqindex++;
 	}
 
@@ -11706,8 +12370,9 @@ ocs_hw_rx_post(ocs_hw_t *hw)
 	for (rq_idx = 0, idx = 0; rq_idx < hw->hw_rq_count; rq_idx++) {
 		hw_rq_t *rq = hw->hw_rq[rq_idx];
 
-		for (i = 0; i < rq->entry_count-1; i++) {
-			ocs_hw_sequence_t *seq = ocs_array_get(hw->seq_pool, idx++);
+		for (i = 0; i < rq->entry_count - 1; i++) {
+			ocs_hw_sequence_t *seq = ocs_array_get(hw->seq_pool,
+			    idx++);
 			ocs_hw_assert(seq != NULL);
 
 			seq->header = &rq->hdr_buf[i];
@@ -11745,7 +12410,8 @@ ocs_hw_rx_free(ocs_hw_t *hw)
 		if (rq != NULL) {
 			ocs_hw_rx_buffer_free(hw, rq->hdr_buf, rq->entry_count);
 			rq->hdr_buf = NULL;
-			ocs_hw_rx_buffer_free(hw, rq->payload_buf, rq->entry_count);
+			ocs_hw_rx_buffer_free(hw, rq->payload_buf,
+			    rq->entry_count);
 			rq->payload_buf = NULL;
 		}
 	}
@@ -11764,8 +12430,8 @@ typedef struct {
  * @brief HW async callback handler
  *
  * @par Description
- * This function is called when the NOP mailbox command completes.  The callback stored
- * in the requesting context is invoked.
+ * This function is called when the NOP mailbox command completes.  The callback
+ * stored in the requesting context is invoked.
  *
  * @param hw Pointer to HW object.
  * @param status Completion status.
@@ -11791,8 +12457,8 @@ ocs_hw_async_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
  * @brief Make an async callback using NOP mailbox command
  *
  * @par Description
- * Post a NOP mailbox command; the callback with argument is invoked upon completion
- * while in the event processing context.
+ * Post a NOP mailbox command; the callback with argument is invoked upon
+ * completion while in the event processing context.
  *
  * @param hw Pointer to HW object.
  * @param callback Pointer to callback function.
@@ -11806,9 +12472,9 @@ ocs_hw_async_call(ocs_hw_t *hw, ocs_hw_async_cb_t callback, void *arg)
 	ocs_hw_async_call_ctx_t *ctx;
 
 	/*
-	 * Allocate a callback context (which includes the mailbox command buffer), we need
-	 * this to be persistent as the mailbox command submission may be queued and executed later
-	 * execution.
+	 * Allocate a callback context (which includes the mailbox command
+	 * buffer), we need this to be persistent as the mailbox command
+	 * submission may be queued and executed later execution.
 	 */
 	ctx = ocs_malloc(hw->os, sizeof(*ctx), OCS_M_ZERO | OCS_M_NOWAIT);
 	if (ctx == NULL) {
@@ -11825,7 +12491,8 @@ ocs_hw_async_call(ocs_hw_t *hw, ocs_hw_async_cb_t callback, void *arg)
 		return OCS_HW_RTN_ERROR;
 	}
 
-	if (ocs_hw_command(hw, ctx->cmd, OCS_CMD_NOWAIT, ocs_hw_async_cb, ctx)) {
+	if (ocs_hw_command(hw, ctx->cmd, OCS_CMD_NOWAIT, ocs_hw_async_cb,
+		ctx)) {
 		ocs_log_err(hw->os, "COMMON_NOP command failure\n");
 		ocs_free(hw->os, ctx, sizeof(*ctx));
 		return OCS_HW_RTN_ERROR;
@@ -11847,9 +12514,11 @@ ocs_hw_rtn_e
 ocs_hw_reqtag_init(ocs_hw_t *hw)
 {
 	if (hw->wq_reqtag_pool == NULL) {
-		hw->wq_reqtag_pool = ocs_pool_alloc(hw->os, sizeof(hw_wq_callback_t), 65536, TRUE);
+		hw->wq_reqtag_pool = ocs_pool_alloc(hw->os,
+		    sizeof(hw_wq_callback_t), 65536, TRUE);
 		if (hw->wq_reqtag_pool == NULL) {
-			ocs_log_err(hw->os, "ocs_pool_alloc hw_wq_callback_t failed\n");
+			ocs_log_err(hw->os,
+			    "ocs_pool_alloc hw_wq_callback_t failed\n");
 			return OCS_HW_RTN_NO_MEMORY;
 		}
 	}
@@ -11866,10 +12535,12 @@ ocs_hw_reqtag_init(ocs_hw_t *hw)
  * @param callback Callback function.
  * @param arg Pointer to callback argument.
  *
- * @return Returns pointer to allocated WQ request tag, or NULL if object cannot be allocated.
+ * @return Returns pointer to allocated WQ request tag, or NULL if object cannot
+ * be allocated.
  */
 hw_wq_callback_t *
-ocs_hw_reqtag_alloc(ocs_hw_t *hw, void (*callback)(void *arg, uint8_t *cqe, int32_t status), void *arg)
+ocs_hw_reqtag_alloc(ocs_hw_t *hw,
+    void (*callback)(void *arg, uint8_t *cqe, int32_t status), void *arg)
 {
 	hw_wq_callback_t *wqcb;
 
@@ -11921,7 +12592,8 @@ ocs_hw_reqtag_get_instance(ocs_hw_t *hw, uint32_t instance_index)
 
 	wqcb = ocs_pool_get_instance(hw->wq_reqtag_pool, instance_index);
 	if (wqcb == NULL) {
-		ocs_log_err(hw->os, "wqcb for instance %d is null\n", instance_index);
+		ocs_log_err(hw->os, "wqcb for instance %d is null\n",
+		    instance_index);
 	}
 	return wqcb;
 }
@@ -11943,12 +12615,14 @@ ocs_hw_reqtag_reset(ocs_hw_t *hw)
 	uint32_t i;
 
 	/* Remove all from freelist */
-	while(ocs_pool_get(hw->wq_reqtag_pool) != NULL) {
+	while (ocs_pool_get(hw->wq_reqtag_pool) != NULL) {
 		;
 	}
 
 	/* Put them all back */
-	for (i = 0; ((wqcb = ocs_pool_get_instance(hw->wq_reqtag_pool, i)) != NULL); i++) {
+	for (i = 0;
+	     ((wqcb = ocs_pool_get_instance(hw->wq_reqtag_pool, i)) != NULL);
+	     i++) {
 		wqcb->instance_index = i;
 		wqcb->callback = NULL;
 		wqcb->arg = NULL;
@@ -11970,9 +12644,10 @@ ocs_hw_reqtag_reset(ocs_hw_t *hw)
 void
 _ocs_hw_assert(const char *cond, const char *filename, int linenum)
 {
-	ocs_printf("%s(%d): HW assertion (%s) failed\n", filename, linenum, cond);
+	ocs_printf("%s(%d): HW assertion (%s) failed\n", filename, linenum,
+	    cond);
 	ocs_abort();
-		/* no return */
+	/* no return */
 }
 
 /**
@@ -12004,8 +12679,8 @@ _ocs_hw_verify(const char *cond, const char *filename, int linenum)
  *
  * @return Return 0 if successful else returns -1
  */
-int32_t 
-ocs_hw_reque_xri( ocs_hw_t *hw, ocs_hw_io_t *io )
+int32_t
+ocs_hw_reque_xri(ocs_hw_t *hw, ocs_hw_io_t *io)
 {
 	int32_t rc = 0;
 
@@ -12018,7 +12693,9 @@ ocs_hw_reque_xri( ocs_hw_t *hw, ocs_hw_io_t *io )
 
 	io->auto_xfer_rdy_dnrx = 0;
 	io->type = OCS_HW_IO_DNRX_REQUEUE;
-	if (sli_requeue_xri_wqe(&hw->sli, io->wqe.wqebuf, hw->sli.config.wqe_size, io->indicator, OCS_HW_REQUE_XRI_REGTAG, SLI4_CQ_DEFAULT)) {
+	if (sli_requeue_xri_wqe(&hw->sli, io->wqe.wqebuf,
+		hw->sli.config.wqe_size, io->indicator, OCS_HW_REQUE_XRI_REGTAG,
+		SLI4_CQ_DEFAULT)) {
 		/* Clear buffer from XRI */
 		ocs_pool_put(hw->auto_xfer_rdy_buf_pool, io->axr_buf);
 		io->axr_buf = NULL;
@@ -12044,7 +12721,8 @@ ocs_hw_reque_xri( ocs_hw_t *hw, ocs_hw_io_t *io )
 
 	rc = hw_wq_write(io->wq, &io->wqe);
 	if (rc < 0) {
-		ocs_log_err(hw->os, "sli_queue_write reque xri failed: %d\n", rc);
+		ocs_log_err(hw->os, "sli_queue_write reque xri failed: %d\n",
+		    rc);
 		rc = -1;
 	}
 
@@ -12056,8 +12734,8 @@ uint32_t
 ocs_hw_get_def_wwn(ocs_t *ocs, uint32_t chan, uint64_t *wwpn, uint64_t *wwnn)
 {
 	sli4_t *sli4 = &ocs->hw.sli;
-	ocs_dma_t       dma;
-	uint8_t		*payload = NULL;
+	ocs_dma_t dma;
+	uint8_t *payload = NULL;
 
 	int indicator = sli4->config.extent[SLI_RSRC_FCOE_VPI].base[0] + chan;
 
@@ -12067,8 +12745,9 @@ ocs_hw_get_def_wwn(ocs_t *ocs, uint32_t chan, uint64_t *wwpn, uint64_t *wwnn)
 		return 1;
 	}
 
-	if (0 == sli_cmd_read_sparm64(sli4, sli4->bmbx.virt, SLI4_BMBX_SIZE,
-				&dma, indicator)) {
+	if (0 ==
+	    sli_cmd_read_sparm64(sli4, sli4->bmbx.virt, SLI4_BMBX_SIZE, &dma,
+		indicator)) {
 		ocs_log_err(ocs, "READ_SPARM64 allocation failure\n");
 		ocs_dma_free(ocs, &dma);
 		return 1;
@@ -12081,8 +12760,10 @@ ocs_hw_get_def_wwn(ocs_t *ocs, uint32_t chan, uint64_t *wwpn, uint64_t *wwnn)
 	}
 
 	payload = dma.virt;
-	ocs_memcpy(wwpn, payload + SLI4_READ_SPARM64_WWPN_OFFSET, sizeof(*wwpn));
-	ocs_memcpy(wwnn, payload + SLI4_READ_SPARM64_WWNN_OFFSET, sizeof(*wwnn));
+	ocs_memcpy(wwpn, payload + SLI4_READ_SPARM64_WWPN_OFFSET,
+	    sizeof(*wwpn));
+	ocs_memcpy(wwnn, payload + SLI4_READ_SPARM64_WWNN_OFFSET,
+	    sizeof(*wwnn));
 	ocs_dma_free(ocs, &dma);
 	return 0;
 }
@@ -12090,24 +12771,24 @@ ocs_hw_get_def_wwn(ocs_t *ocs, uint32_t chan, uint64_t *wwpn, uint64_t *wwnn)
 uint32_t
 ocs_hw_get_config_persistent_topology(ocs_hw_t *hw)
 {
-        uint32_t topology = OCS_HW_TOPOLOGY_AUTO;
+	uint32_t topology = OCS_HW_TOPOLOGY_AUTO;
 	sli4_t *sli = &hw->sli;
 
-        if (!sli_persist_topology_enabled(sli))
-                return topology;
+	if (!sli_persist_topology_enabled(sli))
+		return topology;
 
-        switch (sli->config.pt) {
-                case SLI4_INIT_LINK_F_P2P_ONLY:
-                        topology = OCS_HW_TOPOLOGY_NPORT;
-                        break;
-                case SLI4_INIT_LINK_F_FCAL_ONLY:
-                        topology = OCS_HW_TOPOLOGY_LOOP;
-                        break;
-                default:
-                        break;
-        }
+	switch (sli->config.pt) {
+	case SLI4_INIT_LINK_F_P2P_ONLY:
+		topology = OCS_HW_TOPOLOGY_NPORT;
+		break;
+	case SLI4_INIT_LINK_F_FCAL_ONLY:
+		topology = OCS_HW_TOPOLOGY_LOOP;
+		break;
+	default:
+		break;
+	}
 
-        return topology;
+	return topology;
 }
 
 /*
@@ -12134,9 +12815,11 @@ typedef struct ocs_hw_persistent_topo_cb_arg {
  * @return 0 on success, non-zero otherwise
  */
 static int32_t
-ocs_hw_set_persistent_topolgy_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
+ocs_hw_set_persistent_topolgy_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe,
+    void *arg)
 {
-	ocs_hw_persistent_topo_cb_arg_t *req = (ocs_hw_persistent_topo_cb_arg_t *)arg;
+	ocs_hw_persistent_topo_cb_arg_t *req =
+	    (ocs_hw_persistent_topo_cb_arg_t *)arg;
 
 	req->status = status;
 
@@ -12156,18 +12839,16 @@ ocs_hw_set_persistent_topolgy_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, voi
  * SLI specs defines following for PT:
  *     When TF is set to 0:
  *       0 Reserved
- *       1 Attempt point-to-point initialization (direct attach or Fabric topology).
- *       2 Attempt FC-AL loop initialization.
- *       3 Reserved
+ *       1 Attempt point-to-point initialization (direct attach or Fabric
+ * topology). 2 Attempt FC-AL loop initialization. 3 Reserved
  *
  *      When TF is set to 1:
- *       0 Attempt FC-AL loop initialization; if it fails, attempt point-to-point initialization.
- *       1 Attempt point-to-point initialization; if it fails, attempt FC-AL loop initialization.
- *       2 Reserved
- *      3 Reserved
+ *       0 Attempt FC-AL loop initialization; if it fails, attempt
+ * point-to-point initialization. 1 Attempt point-to-point initialization; if it
+ * fails, attempt FC-AL loop initialization. 2 Reserved 3 Reserved
  *
- *     Note: Topology failover is only available on Lancer G5. This command will fail
- *     if TF is set to 1 on any other ASICs
+ *     Note: Topology failover is only available on Lancer G5. This command will
+ * fail if TF is set to 1 on any other ASICs
  *
  * @param hw Pointer to hw
  * @param topology topology value to be set, provided through
@@ -12192,7 +12873,8 @@ ocs_hw_set_persistent_topology(ocs_hw_t *hw, uint32_t topology, uint32_t opts)
 			param.persistent_topo = SLI4_INIT_LINK_F_P2P_FAIL_OVER;
 			param.topo_failover = 1;
 		} else {
-			param.persistent_topo = SLI4_INIT_LINK_F_P2P_ONLY;;
+			param.persistent_topo = SLI4_INIT_LINK_F_P2P_ONLY;
+			;
 			param.topo_failover = 0;
 		}
 		break;
@@ -12216,20 +12898,23 @@ ocs_hw_set_persistent_topology(ocs_hw_t *hw, uint32_t topology, uint32_t opts)
 
 	/* build the set_features command */
 	sli_cmd_common_set_features(&hw->sli, buf, SLI4_BMBX_SIZE,
-		SLI4_SET_FEATURES_PERSISTENT_TOPOLOGY, sizeof(param), &param);
+	    SLI4_SET_FEATURES_PERSISTENT_TOPOLOGY, sizeof(param), &param);
 
 	if (opts == OCS_CMD_POLL) {
 		rc = ocs_hw_command(hw, buf, OCS_CMD_POLL, NULL, NULL);
 		if (rc) {
-			ocs_log_err(hw->os, "Failed to set persistent topology, rc: %#x\n", rc);
+			ocs_log_err(hw->os,
+			    "Failed to set persistent topology, rc: %#x\n", rc);
 			return rc;
 		}
 	} else {
 
 		// there's no response for this feature command
-		rc = ocs_hw_command(hw, buf, OCS_CMD_NOWAIT, ocs_hw_set_persistent_topolgy_cb, &request);
+		rc = ocs_hw_command(hw, buf, OCS_CMD_NOWAIT,
+		    ocs_hw_set_persistent_topolgy_cb, &request);
 		if (rc) {
-			ocs_log_err(hw->os, "Failed to set persistent topology, rc: %#x\n", rc);
+			ocs_log_err(hw->os,
+			    "Failed to set persistent topology, rc: %#x\n", rc);
 			return rc;
 		}
 
@@ -12239,7 +12924,9 @@ ocs_hw_set_persistent_topology(ocs_hw_t *hw, uint32_t topology, uint32_t opts)
 		}
 
 		if (request.status) {
-			ocs_log_err(hw->os, "set persistent topology failed; status: %d\n", request.status);
+			ocs_log_err(hw->os,
+			    "set persistent topology failed; status: %d\n",
+			    request.status);
 			return -EFAULT;
 		}
 	}
@@ -12259,10 +12946,10 @@ ocs_hw_set_persistent_topology(ocs_hw_t *hw, uint32_t topology, uint32_t opts)
  * - @ref interrupt
  *
  * <div class="overview">
- * The Hardware Abstraction Layer (HW) insulates the higher-level code from the SLI-4
- * message details, but the higher level code must still manage domains, ports,
- * IT nexuses, and IOs. The HW API is designed to help the higher level manage
- * these objects.<br><br>
+ * The Hardware Abstraction Layer (HW) insulates the higher-level code from the
+ * SLI-4 message details, but the higher level code must still manage domains,
+ * ports, IT nexuses, and IOs. The HW API is designed to help the higher level
+ * manage these objects.<br><br>
  *
  * The HW uses function callbacks to notify the higher-level code of events
  * that are received from the chip. There are currently three types of
@@ -12273,21 +12960,23 @@ ocs_hw_set_persistent_topology(ocs_hw_t *hw, uint32_t topology, uint32_t opts)
  * to a domain is disrupted, and allocation callbacks.</li>
  * <li>unsolicited – This function is called whenever new data is received in
  * the SLI-4 receive queue.</li>
- * <li>rnode – This function is called for remote node events, such as attach status
- * and  allocation callbacks.</li></ul>
+ * <li>rnode – This function is called for remote node events, such as attach
+ * status and  allocation callbacks.</li></ul>
  *
- * Upper layer functions may be registered by using the ocs_hw_callback() function.
+ * Upper layer functions may be registered by using the ocs_hw_callback()
+ * function.
  *
  * <img src="elx_fc_hw.jpg" alt="FC/FCoE HW" title="FC/FCoE HW" align="right"/>
  * <h2>FC/FCoE HW API</h2>
- * The FC/FCoE HW component builds upon the SLI-4 component to establish a flexible
- * interface for creating the necessary common objects and sending I/Os. It may be used
- * “as is” in customer implementations or it can serve as an example of typical interactions
- * between a driver and the SLI-4 hardware. The broad categories of functionality include:
+ * The FC/FCoE HW component builds upon the SLI-4 component to establish a
+ * flexible interface for creating the necessary common objects and sending
+ * I/Os. It may be used “as is” in customer implementations or it can serve as
+ * an example of typical interactions between a driver and the SLI-4 hardware.
+ * The broad categories of functionality include:
  *
  * <ul><li>Setting-up and tearing-down of the HW.</li>
- * <li>Allocating and using the common objects (SLI Port, domain, remote node).</li>
- * <li>Sending and receiving I/Os.</li></ul>
+ * <li>Allocating and using the common objects (SLI Port, domain, remote
+ * node).</li> <li>Sending and receiving I/Os.</li></ul>
  *
  * <h3>HW Setup</h3>
  * To set up the HW:
@@ -12295,79 +12984,84 @@ ocs_hw_set_persistent_topology(ocs_hw_t *hw, uint32_t topology, uint32_t opts)
  * <ol>
  * <li>Set up the HW object using ocs_hw_setup().<br>
  * This step performs a basic configuration of the SLI-4 component and the HW to
- * enable querying the hardware for its capabilities. At this stage, the HW is not
- * capable of general operations (such as, receiving events or sending I/Os).</li><br><br>
- * <li>Configure the HW according to the driver requirements.<br>
- * The HW provides functions to discover hardware capabilities (ocs_hw_get()), as
- * well as configures the amount of resources required (ocs_hw_set()). The driver
- * must also register callback functions (ocs_hw_callback()) to receive notification of
- * various asynchronous events.<br><br>
- * @b Note: Once configured, the driver must initialize the HW (ocs_hw_init()). This
- * step creates the underlying queues, commits resources to the hardware, and
- * prepares the hardware for operation. While the hardware is operational, the
- * port is not online, and cannot send or receive data.</li><br><br>
+ * enable querying the hardware for its capabilities. At this stage, the HW is
+ * not capable of general operations (such as, receiving events or sending
+ * I/Os).</li><br><br> <li>Configure the HW according to the driver
+ * requirements.<br> The HW provides functions to discover hardware capabilities
+ * (ocs_hw_get()), as well as configures the amount of resources required
+ * (ocs_hw_set()). The driver must also register callback functions
+ * (ocs_hw_callback()) to receive notification of various asynchronous
+ * events.<br><br>
+ * @b Note: Once configured, the driver must initialize the HW (ocs_hw_init()).
+ * This step creates the underlying queues, commits resources to the hardware,
+ * and prepares the hardware for operation. While the hardware is operational,
+ * the port is not online, and cannot send or receive data.</li><br><br>
  * <br><br>
- * <li>Finally, the driver can bring the port online (ocs_hw_port_control()).<br>
- * When the link comes up, the HW determines if a domain is present and notifies the
- * driver using the domain callback function. This is the starting point of the driver's
- * interaction with the common objects.<br><br>
- * @b Note: For FCoE, there may be more than one domain available and, therefore,
- * more than one callback.</li>
+ * <li>Finally, the driver can bring the port online
+ * (ocs_hw_port_control()).<br> When the link comes up, the HW determines if a
+ * domain is present and notifies the driver using the domain callback function.
+ * This is the starting point of the driver's interaction with the common
+ * objects.<br><br>
+ * @b Note: For FCoE, there may be more than one domain available and,
+ * therefore, more than one callback.</li>
  * </ol>
  *
  * <h3>Allocating and Using Common Objects</h3>
  * Common objects provide a mechanism through which the various OneCore Storage
- * driver components share and track information. These data structures are primarily
- * used to track SLI component information but can be extended by other components, if
- * needed. The main objects are:
+ * driver components share and track information. These data structures are
+ * primarily used to track SLI component information but can be extended by
+ * other components, if needed. The main objects are:
  *
- * <ul><li>DMA – the ocs_dma_t object describes a memory region suitable for direct
- * memory access (DMA) transactions.</li>
- * <li>SCSI domain – the ocs_domain_t object represents the SCSI domain, including
- * any infrastructure devices such as FC switches and FC forwarders. The domain
- * object contains both an FCFI and a VFI.</li>
- * <li>SLI Port (sport) – the ocs_sli_port_t object represents the connection between
- * the driver and the SCSI domain. The SLI Port object contains a VPI.</li>
- * <li>Remote node – the ocs_remote_node_t represents a connection between the SLI
- * Port and another device in the SCSI domain. The node object contains an RPI.</li></ul>
+ * <ul><li>DMA – the ocs_dma_t object describes a memory region suitable for
+ * direct memory access (DMA) transactions.</li> <li>SCSI domain – the
+ * ocs_domain_t object represents the SCSI domain, including any infrastructure
+ * devices such as FC switches and FC forwarders. The domain object contains
+ * both an FCFI and a VFI.</li> <li>SLI Port (sport) – the ocs_sli_port_t object
+ * represents the connection between the driver and the SCSI domain. The SLI
+ * Port object contains a VPI.</li> <li>Remote node – the ocs_remote_node_t
+ * represents a connection between the SLI Port and another device in the SCSI
+ * domain. The node object contains an RPI.</li></ul>
  *
- * Before the driver can send I/Os, it must allocate the SCSI domain, SLI Port, and remote
- * node common objects and establish the connections between them. The goal is to
- * connect the driver to the SCSI domain to exchange I/Os with other devices. These
- * common object connections are shown in the following figure, FC Driver Common Objects:
- * <img src="elx_fc_common_objects.jpg"
- * alt="FC Driver Common Objects" title="FC Driver Common Objects" align="center"/>
+ * Before the driver can send I/Os, it must allocate the SCSI domain, SLI Port,
+ * and remote node common objects and establish the connections between them.
+ * The goal is to connect the driver to the SCSI domain to exchange I/Os with
+ * other devices. These common object connections are shown in the following
+ * figure, FC Driver Common Objects: <img src="elx_fc_common_objects.jpg"
+ * alt="FC Driver Common Objects" title="FC Driver Common Objects"
+ * align="center"/>
  *
- * The first step is to create a connection to the domain by allocating an SLI Port object.
- * The SLI Port object represents a particular FC ID and must be initialized with one. With
- * the SLI Port object, the driver can discover the available SCSI domain(s). On identifying
- * a domain, the driver allocates a domain object and attaches to it using the previous SLI
- * port object.<br><br>
+ * The first step is to create a connection to the domain by allocating an SLI
+ * Port object. The SLI Port object represents a particular FC ID and must be
+ * initialized with one. With the SLI Port object, the driver can discover the
+ * available SCSI domain(s). On identifying a domain, the driver allocates a
+ * domain object and attaches to it using the previous SLI port object.<br><br>
  *
- * @b Note: In some cases, the driver may need to negotiate service parameters (that is,
- * FLOGI) with the domain before attaching.<br><br>
+ * @b Note: In some cases, the driver may need to negotiate service parameters
+ * (that is, FLOGI) with the domain before attaching.<br><br>
  *
- * Once attached to the domain, the driver can discover and attach to other devices
- * (remote nodes). The exact discovery method depends on the driver, but it typically
- * includes using a position map, querying the fabric name server, or an out-of-band
- * method. In most cases, it is necessary to log in with devices before performing I/Os.
- * Prior to sending login-related ELS commands (ocs_hw_srrs_send()), the driver must
- * allocate a remote node object (ocs_hw_node_alloc()). If the login negotiation is
- * successful, the driver must attach the nodes (ocs_hw_node_attach()) to the SLI Port
- * before exchanging FCP I/O.<br><br>
+ * Once attached to the domain, the driver can discover and attach to other
+ * devices (remote nodes). The exact discovery method depends on the driver, but
+ * it typically includes using a position map, querying the fabric name server,
+ * or an out-of-band method. In most cases, it is necessary to log in with
+ * devices before performing I/Os. Prior to sending login-related ELS commands
+ * (ocs_hw_srrs_send()), the driver must allocate a remote node object
+ * (ocs_hw_node_alloc()). If the login negotiation is successful, the driver
+ * must attach the nodes (ocs_hw_node_attach()) to the SLI Port before
+ * exchanging FCP I/O.<br><br>
  *
- * @b Note: The HW manages both the well known fabric address and the name server as
- * nodes in the domain. Therefore, the driver must allocate node objects prior to
- * communicating with either of these entities.
+ * @b Note: The HW manages both the well known fabric address and the name
+ * server as nodes in the domain. Therefore, the driver must allocate node
+ * objects prior to communicating with either of these entities.
  *
  * <h3>Sending and Receiving I/Os</h3>
- * The HW provides separate interfaces for sending BLS/ ELS/ FC-CT and FCP, but the
- * commands are conceptually similar. Since the commands complete asynchronously,
- * the caller must provide a HW I/O object that maintains the I/O state, as well as
- * provide a callback function. The driver may use the same callback function for all I/O
- * operations, but each operation must use a unique HW I/O object. In the SLI-4
- * architecture, there is a direct association between the HW I/O object and the SGL used
- * to describe the data. Therefore, a driver typically performs the following operations:
+ * The HW provides separate interfaces for sending BLS/ ELS/ FC-CT and FCP, but
+ * the commands are conceptually similar. Since the commands complete
+ * asynchronously, the caller must provide a HW I/O object that maintains the
+ * I/O state, as well as provide a callback function. The driver may use the
+ * same callback function for all I/O operations, but each operation must use a
+ * unique HW I/O object. In the SLI-4 architecture, there is a direct
+ * association between the HW I/O object and the SGL used to describe the data.
+ * Therefore, a driver typically performs the following operations:
  *
  * <ul><li>Allocates a HW I/O object (ocs_hw_io_alloc()).</li>
  * <li>Formats the SGL, specifying both the HW I/O object and the SGL.
@@ -12377,35 +13071,37 @@ ocs_hw_set_persistent_topology(ocs_hw_t *hw, uint32_t topology, uint32_t opts)
  * <h3>HW Tear Down</h3>
  * To tear-down the HW:
  *
- * <ol><li>Take the port offline (ocs_hw_port_control()) to prevent receiving further
- * data andevents.</li>
- * <li>Destroy the HW object (ocs_hw_teardown()).</li>
- * <li>Free any memory used by the HW, such as buffers for unsolicited data.</li></ol>
- * <br>
+ * <ol><li>Take the port offline (ocs_hw_port_control()) to prevent receiving
+ * further data andevents.</li> <li>Destroy the HW object
+ * (ocs_hw_teardown()).</li> <li>Free any memory used by the HW, such as buffers
+ * for unsolicited data.</li></ol> <br>
  * </div><!-- overview -->
  *
  */
 
 /**
  * This contains all hw runtime workaround code.  Based on the asic type,
- * asic revision, and range of fw revisions, a particular workaround may be enabled.
+ * asic revision, and range of fw revisions, a particular workaround may be
+ * enabled.
  *
- * A workaround may consist of overriding a particular HW/SLI4 value that was initialized
- * during ocs_hw_setup() (for example the MAX_QUEUE overrides for mis-reported queue
- * sizes). Or if required, elements of the ocs_hw_workaround_t structure may be set to
- * control specific runtime behavior.
+ * A workaround may consist of overriding a particular HW/SLI4 value that was
+ * initialized during ocs_hw_setup() (for example the MAX_QUEUE overrides for
+ * mis-reported queue sizes). Or if required, elements of the
+ * ocs_hw_workaround_t structure may be set to control specific runtime
+ * behavior.
  *
- * It is intended that the controls in ocs_hw_workaround_t be defined functionally.  So we
- * would have the driver look like:  "if (hw->workaround.enable_xxx) then ...", rather than
- * what we might previously see as "if this is a BE3, then do xxx"
+ * It is intended that the controls in ocs_hw_workaround_t be defined
+ * functionally.  So we would have the driver look like:  "if
+ * (hw->workaround.enable_xxx) then ...", rather than what we might previously
+ * see as "if this is a BE3, then do xxx"
  *
  */
 
-#define HW_FWREV_ZERO		(0ull)
-#define HW_FWREV_MAX		(~0ull)
+#define HW_FWREV_ZERO (0ull)
+#define HW_FWREV_MAX (~0ull)
 
-#define SLI4_ASIC_TYPE_ANY	0
-#define SLI4_ASIC_REV_ANY	0
+#define SLI4_ASIC_TYPE_ANY 0
+#define SLI4_ASIC_REV_ANY 0
 
 /**
  * @brief Internal definition of workarounds
@@ -12413,20 +13109,28 @@ ocs_hw_set_persistent_topology(ocs_hw_t *hw, uint32_t topology, uint32_t opts)
 
 typedef enum {
 	HW_WORKAROUND_TEST = 1,
-	HW_WORKAROUND_MAX_QUEUE,	/**< Limits all queues */
-	HW_WORKAROUND_MAX_RQ,		/**< Limits only the RQ */
+	HW_WORKAROUND_MAX_QUEUE, /**< Limits all queues */
+	HW_WORKAROUND_MAX_RQ,	 /**< Limits only the RQ */
 	HW_WORKAROUND_RETAIN_TSEND_IO_LENGTH,
 	HW_WORKAROUND_WQE_COUNT_METHOD,
 	HW_WORKAROUND_RQE_COUNT_METHOD,
 	HW_WORKAROUND_USE_UNREGISTERD_RPI,
-	HW_WORKAROUND_DISABLE_AR_TGT_DIF, /**< Disable of auto-response target DIF */
+	HW_WORKAROUND_DISABLE_AR_TGT_DIF, /**< Disable of auto-response target
+					     DIF */
 	HW_WORKAROUND_DISABLE_SET_DUMP_LOC,
 	HW_WORKAROUND_USE_DIF_QUARANTINE,
-	HW_WORKAROUND_USE_DIF_SEC_XRI,		/**< Use secondary xri for multiple data phases */
-	HW_WORKAROUND_OVERRIDE_FCFI_IN_SRB,	/**< FCFI reported in SRB not correct, use "first" registered domain */
-	HW_WORKAROUND_FW_VERSION_TOO_LOW,	/**< The FW version is not the min version supported by this driver */
-	HW_WORKAROUND_SGLC_MISREPORTED,	/**< Chip supports SGL Chaining but SGLC is not set in SLI4_PARAMS */
-	HW_WORKAROUND_IGNORE_SEND_FRAME_CAPABLE,	/**< Don't use SEND_FRAME capable if FW version is too old */
+	HW_WORKAROUND_USE_DIF_SEC_XRI, /**< Use secondary xri for multiple data
+					  phases */
+	HW_WORKAROUND_OVERRIDE_FCFI_IN_SRB, /**< FCFI reported in SRB not
+					       correct, use "first" registered
+					       domain */
+	HW_WORKAROUND_FW_VERSION_TOO_LOW,   /**< The FW version is not the min
+					       version supported by this driver */
+	HW_WORKAROUND_SGLC_MISREPORTED, /**< Chip supports SGL Chaining but SGLC
+					   is not set in SLI4_PARAMS */
+	HW_WORKAROUND_IGNORE_SEND_FRAME_CAPABLE, /**< Don't use SEND_FRAME
+						    capable if FW version is too
+						    old */
 } hw_workaround_e;
 
 /**
@@ -12444,73 +13148,77 @@ typedef struct {
 } hw_workaround_t;
 
 static hw_workaround_t hw_workarounds[] = {
-	{SLI4_ASIC_TYPE_ANY,	SLI4_ASIC_REV_ANY, HW_FWREV_ZERO, HW_FWREV_MAX,
-		HW_WORKAROUND_TEST, 999},
+	{ SLI4_ASIC_TYPE_ANY, SLI4_ASIC_REV_ANY, HW_FWREV_ZERO, HW_FWREV_MAX,
+	    HW_WORKAROUND_TEST, 999 },
 
 	/* Bug: 127585: if_type == 2 returns 0 for total length placed on
-	 * FCP_TSEND64_WQE completions.   Note, original driver code enables this
-	 * workaround for all asic types
+	 * FCP_TSEND64_WQE completions.   Note, original driver code enables
+	 * this workaround for all asic types
 	 */
-	{SLI4_ASIC_TYPE_ANY,	SLI4_ASIC_REV_ANY, HW_FWREV_ZERO, HW_FWREV_MAX,
-		HW_WORKAROUND_RETAIN_TSEND_IO_LENGTH, 0},
+	{ SLI4_ASIC_TYPE_ANY, SLI4_ASIC_REV_ANY, HW_FWREV_ZERO, HW_FWREV_MAX,
+	    HW_WORKAROUND_RETAIN_TSEND_IO_LENGTH, 0 },
 
 	/* Bug: unknown, Lancer A0 has mis-reported max queue depth */
-	{SLI4_ASIC_TYPE_LANCER,	SLI4_ASIC_REV_A0, HW_FWREV_ZERO, HW_FWREV_MAX,
-		HW_WORKAROUND_MAX_QUEUE, 2048},
+	{ SLI4_ASIC_TYPE_LANCER, SLI4_ASIC_REV_A0, HW_FWREV_ZERO, HW_FWREV_MAX,
+	    HW_WORKAROUND_MAX_QUEUE, 2048 },
 
 	/* Bug: 143399, BE3 has mis-reported max RQ queue depth */
-	{SLI4_ASIC_TYPE_BE3,	SLI4_ASIC_REV_ANY, HW_FWREV_ZERO, HW_FWREV(4,6,293,0),
-		HW_WORKAROUND_MAX_RQ, 2048},
+	{ SLI4_ASIC_TYPE_BE3, SLI4_ASIC_REV_ANY, HW_FWREV_ZERO,
+	    HW_FWREV(4, 6, 293, 0), HW_WORKAROUND_MAX_RQ, 2048 },
 
 	/* Bug: 143399, skyhawk has mis-reported max RQ queue depth */
-	{SLI4_ASIC_TYPE_SKYHAWK, SLI4_ASIC_REV_ANY, HW_FWREV_ZERO, HW_FWREV(10,0,594,0),
-		HW_WORKAROUND_MAX_RQ, 2048},
+	{ SLI4_ASIC_TYPE_SKYHAWK, SLI4_ASIC_REV_ANY, HW_FWREV_ZERO,
+	    HW_FWREV(10, 0, 594, 0), HW_WORKAROUND_MAX_RQ, 2048 },
 
-	/* Bug: 103487, BE3 before f/w 4.2.314.0 has mis-reported WQE count method */
-	{SLI4_ASIC_TYPE_BE3,	SLI4_ASIC_REV_ANY, HW_FWREV_ZERO, HW_FWREV(4,2,314,0),
-		HW_WORKAROUND_WQE_COUNT_METHOD, 1},
+	/* Bug: 103487, BE3 before f/w 4.2.314.0 has mis-reported WQE count
+	   method */
+	{ SLI4_ASIC_TYPE_BE3, SLI4_ASIC_REV_ANY, HW_FWREV_ZERO,
+	    HW_FWREV(4, 2, 314, 0), HW_WORKAROUND_WQE_COUNT_METHOD, 1 },
 
-	/* Bug: 103487, BE3 before f/w 4.2.314.0 has mis-reported RQE count method */
-	{SLI4_ASIC_TYPE_BE3,	SLI4_ASIC_REV_ANY, HW_FWREV_ZERO, HW_FWREV(4,2,314,0),
-		HW_WORKAROUND_RQE_COUNT_METHOD, 1},
+	/* Bug: 103487, BE3 before f/w 4.2.314.0 has mis-reported RQE count
+	   method */
+	{ SLI4_ASIC_TYPE_BE3, SLI4_ASIC_REV_ANY, HW_FWREV_ZERO,
+	    HW_FWREV(4, 2, 314, 0), HW_WORKAROUND_RQE_COUNT_METHOD, 1 },
 
 	/* Bug: 142968, BE3 UE with RPI == 0xffff */
-	{SLI4_ASIC_TYPE_BE3,	SLI4_ASIC_REV_ANY, HW_FWREV_ZERO, HW_FWREV_MAX,
-		HW_WORKAROUND_USE_UNREGISTERD_RPI, 0},
+	{ SLI4_ASIC_TYPE_BE3, SLI4_ASIC_REV_ANY, HW_FWREV_ZERO, HW_FWREV_MAX,
+	    HW_WORKAROUND_USE_UNREGISTERD_RPI, 0 },
 
-	/* Bug: unknown, Skyhawk won't support auto-response on target T10-PI  */
-	{SLI4_ASIC_TYPE_SKYHAWK, SLI4_ASIC_REV_ANY, HW_FWREV_ZERO, HW_FWREV_MAX,
-		HW_WORKAROUND_DISABLE_AR_TGT_DIF, 0},
+	/* Bug: unknown, Skyhawk won't support auto-response on target T10-PI */
+	{ SLI4_ASIC_TYPE_SKYHAWK, SLI4_ASIC_REV_ANY, HW_FWREV_ZERO,
+	    HW_FWREV_MAX, HW_WORKAROUND_DISABLE_AR_TGT_DIF, 0 },
 
-	{SLI4_ASIC_TYPE_LANCER,	SLI4_ASIC_REV_ANY, HW_FWREV_ZERO, HW_FWREV(1,1,65,0),
-		HW_WORKAROUND_DISABLE_SET_DUMP_LOC, 0},
+	{ SLI4_ASIC_TYPE_LANCER, SLI4_ASIC_REV_ANY, HW_FWREV_ZERO,
+	    HW_FWREV(1, 1, 65, 0), HW_WORKAROUND_DISABLE_SET_DUMP_LOC, 0 },
 
 	/* Bug: 160124, Skyhawk quarantine DIF XRIs  */
-	{SLI4_ASIC_TYPE_SKYHAWK, SLI4_ASIC_REV_ANY, HW_FWREV_ZERO, HW_FWREV_MAX,
-		HW_WORKAROUND_USE_DIF_QUARANTINE, 0},
+	{ SLI4_ASIC_TYPE_SKYHAWK, SLI4_ASIC_REV_ANY, HW_FWREV_ZERO,
+	    HW_FWREV_MAX, HW_WORKAROUND_USE_DIF_QUARANTINE, 0 },
 
-	/* Bug: 161832, Skyhawk use secondary XRI for multiple data phase TRECV */
-	{SLI4_ASIC_TYPE_SKYHAWK, SLI4_ASIC_REV_ANY, HW_FWREV_ZERO, HW_FWREV_MAX,
-		HW_WORKAROUND_USE_DIF_SEC_XRI, 0},
+	/* Bug: 161832, Skyhawk use secondary XRI for multiple data phase TRECV
+	 */
+	{ SLI4_ASIC_TYPE_SKYHAWK, SLI4_ASIC_REV_ANY, HW_FWREV_ZERO,
+	    HW_FWREV_MAX, HW_WORKAROUND_USE_DIF_SEC_XRI, 0 },
 
 	/* Bug: xxxxxx, FCFI reported in SRB not corrrect */
-	{SLI4_ASIC_TYPE_LANCER, SLI4_ASIC_REV_ANY, HW_FWREV_ZERO, HW_FWREV_MAX,
-		HW_WORKAROUND_OVERRIDE_FCFI_IN_SRB, 0},
+	{ SLI4_ASIC_TYPE_LANCER, SLI4_ASIC_REV_ANY, HW_FWREV_ZERO, HW_FWREV_MAX,
+	    HW_WORKAROUND_OVERRIDE_FCFI_IN_SRB, 0 },
 #if 0
 	/* Bug: 165642, FW version check for driver */
 	{SLI4_ASIC_TYPE_LANCER, SLI4_ASIC_REV_ANY, HW_FWREV_ZERO, HW_FWREV_1(OCS_MIN_FW_VER_LANCER),
 		HW_WORKAROUND_FW_VERSION_TOO_LOW, 0},
 #endif
-	{SLI4_ASIC_TYPE_SKYHAWK, SLI4_ASIC_REV_ANY, HW_FWREV_ZERO, HW_FWREV_1(OCS_MIN_FW_VER_SKYHAWK),
-		HW_WORKAROUND_FW_VERSION_TOO_LOW, 0},
+	{ SLI4_ASIC_TYPE_SKYHAWK, SLI4_ASIC_REV_ANY, HW_FWREV_ZERO,
+	    HW_FWREV_1(OCS_MIN_FW_VER_SKYHAWK),
+	    HW_WORKAROUND_FW_VERSION_TOO_LOW, 0 },
 
 	/* Bug 177061, Lancer FW does not set the SGLC bit */
-	{SLI4_ASIC_TYPE_LANCER, SLI4_ASIC_REV_ANY, HW_FWREV_ZERO, HW_FWREV_MAX,
-		HW_WORKAROUND_SGLC_MISREPORTED, 0},
+	{ SLI4_ASIC_TYPE_LANCER, SLI4_ASIC_REV_ANY, HW_FWREV_ZERO, HW_FWREV_MAX,
+	    HW_WORKAROUND_SGLC_MISREPORTED, 0 },
 
 	/* BZ 181208/183914, enable this workaround for ALL revisions */
-	{SLI4_ASIC_TYPE_ANY, SLI4_ASIC_REV_ANY, HW_FWREV_ZERO, HW_FWREV_MAX,
-		HW_WORKAROUND_IGNORE_SEND_FRAME_CAPABLE, 0},
+	{ SLI4_ASIC_TYPE_ANY, SLI4_ASIC_REV_ANY, HW_FWREV_ZERO, HW_FWREV_MAX,
+	    HW_WORKAROUND_IGNORE_SEND_FRAME_CAPABLE, 0 },
 };
 
 /**
@@ -12533,21 +13241,22 @@ static int32_t ocs_hw_workaround_match(ocs_hw_t *hw, hw_workaround_t *w);
 static uint64_t
 parse_fw_version(const char *fwrev_string)
 {
-	int v[4] = {0};
+	int v[4] = { 0 };
 	const char *p;
 	int i;
 
-	for (p = fwrev_string, i = 0; *p && (i < 4); i ++) {
+	for (p = fwrev_string, i = 0; *p && (i < 4); i++) {
 		v[i] = ocs_strtoul(p, 0, 0);
-		while(*p && *p != '.') {
-			p ++;
+		while (*p && *p != '.') {
+			p++;
 		}
 		if (*p) {
-			p ++;
+			p++;
 		}
 	}
 
-	/* Special case for bootleg releases with f/w rev 0.0.9999.0, set to max value */
+	/* Special case for bootleg releases with f/w rev 0.0.9999.0, set to max
+	 * value */
 	if (v[2] == 9999) {
 		return HW_FWREV_MAX;
 	} else {
@@ -12558,7 +13267,8 @@ parse_fw_version(const char *fwrev_string)
 /**
  * @brief Test for a workaround match
  *
- * Looks at the asic type, asic revision, and fw revision, and returns TRUE if match.
+ * Looks at the asic type, asic revision, and fw revision, and returns TRUE if
+ * match.
  *
  * @param hw Pointer to the HW structure
  * @param w Pointer to a workaround structure entry
@@ -12569,17 +13279,20 @@ parse_fw_version(const char *fwrev_string)
 static int32_t
 ocs_hw_workaround_match(ocs_hw_t *hw, hw_workaround_t *w)
 {
-	return (((w->asic_type == SLI4_ASIC_TYPE_ANY) || (w->asic_type == hw->sli.asic_type)) &&
-		    ((w->asic_rev == SLI4_ASIC_REV_ANY) || (w->asic_rev == hw->sli.asic_rev)) &&
-		    (w->fwrev_low <= hw->workaround.fwrev) &&
-		    ((w->fwrev_high == HW_FWREV_MAX) || (hw->workaround.fwrev < w->fwrev_high)));
+	return (((w->asic_type == SLI4_ASIC_TYPE_ANY) ||
+		    (w->asic_type == hw->sli.asic_type)) &&
+	    ((w->asic_rev == SLI4_ASIC_REV_ANY) ||
+		(w->asic_rev == hw->sli.asic_rev)) &&
+	    (w->fwrev_low <= hw->workaround.fwrev) &&
+	    ((w->fwrev_high == HW_FWREV_MAX) ||
+		(hw->workaround.fwrev < w->fwrev_high)));
 }
 
 /**
  * @brief Setup HW runtime workarounds
  *
- * The function is called at the end of ocs_hw_setup() to setup any runtime workarounds
- * based on the HW/SLI setup.
+ * The function is called at the end of ocs_hw_setup() to setup any runtime
+ * workarounds based on the HW/SLI setup.
  *
  * @param hw Pointer to HW structure
  *
@@ -12596,34 +13309,41 @@ ocs_hw_workaround_setup(struct ocs_hw_s *hw)
 	/* Initialize the workaround settings */
 	ocs_memset(&hw->workaround, 0, sizeof(hw->workaround));
 
-	/* If hw_war_version is non-null, then its a value that was set by a module parameter
-	 * (sorry for the break in abstraction, but workarounds are ... well, workarounds)
+	/* If hw_war_version is non-null, then its a value that was set by a
+	 * module parameter (sorry for the break in abstraction, but workarounds
+	 * are ... well, workarounds)
 	 */
 
 	if (hw->hw_war_version) {
 		hw->workaround.fwrev = parse_fw_version(hw->hw_war_version);
 	} else {
-		hw->workaround.fwrev = parse_fw_version((char*) sli4->config.fw_name[0]);
+		hw->workaround.fwrev = parse_fw_version(
+		    (char *)sli4->config.fw_name[0]);
 	}
 
 	/* Walk the workaround list, if a match is found, then handle it */
-	for (i = 0, w = hw_workarounds; i < ARRAY_SIZE(hw_workarounds); i++, w++) {
+	for (i = 0, w = hw_workarounds; i < ARRAY_SIZE(hw_workarounds);
+	     i++, w++) {
 		if (ocs_hw_workaround_match(hw, w)) {
-			switch(w->workaround) {
+			switch (w->workaround) {
 			case HW_WORKAROUND_TEST: {
-				ocs_log_debug(hw->os, "Override: test: %d\n", w->value);
+				ocs_log_debug(hw->os, "Override: test: %d\n",
+				    w->value);
 				break;
 			}
 
 			case HW_WORKAROUND_RETAIN_TSEND_IO_LENGTH: {
-				ocs_log_debug(hw->os, "HW Workaround: retain TSEND IO length\n");
+				ocs_log_debug(hw->os,
+				    "HW Workaround: retain TSEND IO length\n");
 				hw->workaround.retain_tsend_io_length = 1;
 				break;
 			}
 			case HW_WORKAROUND_MAX_QUEUE: {
 				sli4_qtype_e q;
 
-				ocs_log_debug(hw->os, "HW Workaround: override max_qentries: %d\n", w->value);
+				ocs_log_debug(hw->os,
+				    "HW Workaround: override max_qentries: %d\n",
+				    w->value);
 				for (q = SLI_QTYPE_EQ; q < SLI_QTYPE_MAX; q++) {
 					if (hw->num_qentries[q] > w->value) {
 						hw->num_qentries[q] = w->value;
@@ -12632,68 +13352,92 @@ ocs_hw_workaround_setup(struct ocs_hw_s *hw)
 				break;
 			}
 			case HW_WORKAROUND_MAX_RQ: {
-				ocs_log_debug(hw->os, "HW Workaround: override RQ max_qentries: %d\n", w->value);
+				ocs_log_debug(hw->os,
+				    "HW Workaround: override RQ max_qentries: %d\n",
+				    w->value);
 				if (hw->num_qentries[SLI_QTYPE_RQ] > w->value) {
-					hw->num_qentries[SLI_QTYPE_RQ] = w->value;
+					hw->num_qentries[SLI_QTYPE_RQ] =
+					    w->value;
 				}
 				break;
 			}
 			case HW_WORKAROUND_WQE_COUNT_METHOD: {
-				ocs_log_debug(hw->os, "HW Workaround: set WQE count method=%d\n", w->value);
-				sli4->config.count_method[SLI_QTYPE_WQ] = w->value;
+				ocs_log_debug(hw->os,
+				    "HW Workaround: set WQE count method=%d\n",
+				    w->value);
+				sli4->config.count_method[SLI_QTYPE_WQ] =
+				    w->value;
 				sli_calc_max_qentries(sli4);
 				break;
 			}
 			case HW_WORKAROUND_RQE_COUNT_METHOD: {
-				ocs_log_debug(hw->os, "HW Workaround: set RQE count method=%d\n", w->value);
-				sli4->config.count_method[SLI_QTYPE_RQ] = w->value;
+				ocs_log_debug(hw->os,
+				    "HW Workaround: set RQE count method=%d\n",
+				    w->value);
+				sli4->config.count_method[SLI_QTYPE_RQ] =
+				    w->value;
 				sli_calc_max_qentries(sli4);
 				break;
 			}
 			case HW_WORKAROUND_USE_UNREGISTERD_RPI:
-				ocs_log_debug(hw->os, "HW Workaround: use unreg'd RPI if rnode->indicator == 0xFFFF\n");
+				ocs_log_debug(hw->os,
+				    "HW Workaround: use unreg'd RPI if rnode->indicator == 0xFFFF\n");
 				hw->workaround.use_unregistered_rpi = TRUE;
 				/*
-				 * Allocate an RPI that is never registered, to be used in the case where
-				 * a node has been unregistered, and its indicator (RPI) value is set to 0xFFFF
+				 * Allocate an RPI that is never registered, to
+				 * be used in the case where a node has been
+				 * unregistered, and its indicator (RPI) value
+				 * is set to 0xFFFF
 				 */
-				if (sli_resource_alloc(&hw->sli, SLI_RSRC_FCOE_RPI, &hw->workaround.unregistered_rid,
+				if (sli_resource_alloc(&hw->sli,
+					SLI_RSRC_FCOE_RPI,
+					&hw->workaround.unregistered_rid,
 					&hw->workaround.unregistered_index)) {
-					ocs_log_err(hw->os, "sli_resource_alloc unregistered RPI failed\n");
-					hw->workaround.use_unregistered_rpi = FALSE;
+					ocs_log_err(hw->os,
+					    "sli_resource_alloc unregistered RPI failed\n");
+					hw->workaround.use_unregistered_rpi =
+					    FALSE;
 				}
 				break;
 			case HW_WORKAROUND_DISABLE_AR_TGT_DIF:
-				ocs_log_debug(hw->os, "HW Workaround: disable AR on T10-PI TSEND\n");
+				ocs_log_debug(hw->os,
+				    "HW Workaround: disable AR on T10-PI TSEND\n");
 				hw->workaround.disable_ar_tgt_dif = TRUE;
 				break;
 			case HW_WORKAROUND_DISABLE_SET_DUMP_LOC:
-				ocs_log_debug(hw->os, "HW Workaround: disable set_dump_loc\n");
+				ocs_log_debug(hw->os,
+				    "HW Workaround: disable set_dump_loc\n");
 				hw->workaround.disable_dump_loc = TRUE;
 				break;
 			case HW_WORKAROUND_USE_DIF_QUARANTINE:
-				ocs_log_debug(hw->os, "HW Workaround: use DIF quarantine\n");
+				ocs_log_debug(hw->os,
+				    "HW Workaround: use DIF quarantine\n");
 				hw->workaround.use_dif_quarantine = TRUE;
 				break;
 			case HW_WORKAROUND_USE_DIF_SEC_XRI:
-				ocs_log_debug(hw->os, "HW Workaround: use DIF secondary xri\n");
+				ocs_log_debug(hw->os,
+				    "HW Workaround: use DIF secondary xri\n");
 				hw->workaround.use_dif_sec_xri = TRUE;
 				break;
 			case HW_WORKAROUND_OVERRIDE_FCFI_IN_SRB:
-				ocs_log_debug(hw->os, "HW Workaround: override FCFI in SRB\n");
+				ocs_log_debug(hw->os,
+				    "HW Workaround: override FCFI in SRB\n");
 				hw->workaround.override_fcfi = TRUE;
 				break;
 
 			case HW_WORKAROUND_FW_VERSION_TOO_LOW:
-				ocs_log_debug(hw->os, "HW Workaround: fw version is below the minimum for this driver\n");
+				ocs_log_debug(hw->os,
+				    "HW Workaround: fw version is below the minimum for this driver\n");
 				hw->workaround.fw_version_too_low = TRUE;
 				break;
 			case HW_WORKAROUND_SGLC_MISREPORTED:
-				ocs_log_debug(hw->os, "HW Workaround: SGLC misreported - chaining is enabled\n");
+				ocs_log_debug(hw->os,
+				    "HW Workaround: SGLC misreported - chaining is enabled\n");
 				hw->workaround.sglc_misreported = TRUE;
 				break;
 			case HW_WORKAROUND_IGNORE_SEND_FRAME_CAPABLE:
-				ocs_log_debug(hw->os, "HW Workaround: not SEND_FRAME capable - disabled\n");
+				ocs_log_debug(hw->os,
+				    "HW Workaround: not SEND_FRAME capable - disabled\n");
 				hw->workaround.ignore_send_frame = TRUE;
 				break;
 			} /* switch(w->workaround) */

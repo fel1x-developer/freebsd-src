@@ -26,17 +26,16 @@
  * SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <gssapi/gssapi.h>
 #include <stdlib.h>
-#include <errno.h>
 
-#include "mech_switch.h"
 #include "context.h"
+#include "mech_switch.h"
 
 OM_uint32
 gss_import_sec_context(OM_uint32 *minor_status,
-    const gss_buffer_t interprocess_token,
-    gss_ctx_id_t *context_handle)
+    const gss_buffer_t interprocess_token, gss_ctx_id_t *context_handle)
 {
 	OM_uint32 major_status;
 	struct _gss_mech_switch *m;
@@ -74,13 +73,13 @@ gss_import_sec_context(OM_uint32 *minor_status,
 		return (GSS_S_FAILURE);
 	}
 	ctx->gc_mech = m;
-	major_status = m->gm_import_sec_context(minor_status,
-	    &buf, &ctx->gc_ctx);
+	major_status = m->gm_import_sec_context(minor_status, &buf,
+	    &ctx->gc_ctx);
 	if (major_status != GSS_S_COMPLETE) {
 		_gss_mg_error(m, major_status, *minor_status);
 		free(ctx);
 	} else {
-		*context_handle = (gss_ctx_id_t) ctx;
+		*context_handle = (gss_ctx_id_t)ctx;
 	}
 
 	return (major_status);

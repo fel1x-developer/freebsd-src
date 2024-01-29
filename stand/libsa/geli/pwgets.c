@@ -30,6 +30,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "stand.h"
 
 /* gets() with constrained input length, for passwords */
@@ -37,39 +38,39 @@
 void
 pwgets(char *buf, int n, int hide)
 {
-    int c;
-    char *lp;
+	int c;
+	char *lp;
 
-    for (lp = buf;;)
-	switch (c = getchar() & 0177) {
-	case '\n':
-	case '\r':
-	    *lp = '\0';
-	    putchar('\n');
-	    return;
-	case '\b':
-	case '\177':
-	    if (lp > buf) {
-		lp--;
-		if (hide == 0) {
-			putchar('\b');
-			putchar(' ');
-			putchar('\b');
+	for (lp = buf;;)
+		switch (c = getchar() & 0177) {
+		case '\n':
+		case '\r':
+			*lp = '\0';
+			putchar('\n');
+			return;
+		case '\b':
+		case '\177':
+			if (lp > buf) {
+				lp--;
+				if (hide == 0) {
+					putchar('\b');
+					putchar(' ');
+					putchar('\b');
+				}
+			}
+			break;
+		case 'u' & 037:
+		case 'w' & 037:
+			lp = buf;
+			putchar('\n');
+			break;
+		default:
+			if ((n < 1) || ((lp - buf) < n - 1)) {
+				*lp++ = c;
+				if (hide == 0) {
+					putchar('*');
+				}
+			}
 		}
-	    }
-	    break;
-	case 'u'&037:
-	case 'w'&037:
-	    lp = buf;
-	    putchar('\n');
-	    break;
-	default:
-	    if ((n < 1) || ((lp - buf) < n - 1)) {
-		*lp++ = c;
-		if (hide == 0) {
-			putchar('*');
-		}
-	    }
-	}
-    /*NOTREACHED*/
+	/*NOTREACHED*/
 }

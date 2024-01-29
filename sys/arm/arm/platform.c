@@ -32,17 +32,17 @@
  * through a previously registered kernel object.
  */
 
+#include <sys/types.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
-#include <sys/lock.h>
 #include <sys/ktr.h>
+#include <sys/lock.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
-#include <sys/systm.h>
 #include <sys/smp.h>
 #include <sys/sysctl.h>
-#include <sys/types.h>
 
 #include <vm/vm.h>
 #include <vm/vm_page.h>
@@ -58,14 +58,14 @@
 
 #include "platform_if.h"
 
-static platform_def_t	*plat_def_impl;
-static platform_t	plat_obj;
-static struct kobj_ops	plat_kernel_kops;
-static struct platform_kobj	plat_kernel_obj;
+static platform_def_t *plat_def_impl;
+static platform_t plat_obj;
+static struct kobj_ops plat_kernel_kops;
+static struct platform_kobj plat_kernel_obj;
 
 static char plat_name[64];
-SYSCTL_STRING(_hw, OID_AUTO, platform, CTLFLAG_RDTUN | CTLFLAG_NOFETCH, plat_name, 0,
-    "Platform currently in use");
+SYSCTL_STRING(_hw, OID_AUTO, platform, CTLFLAG_RDTUN | CTLFLAG_NOFETCH,
+    plat_name, 0, "Platform currently in use");
 
 /*
  * Platform install routines. Highest priority wins, using the same
@@ -85,8 +85,8 @@ platform_obj(void)
 void
 platform_probe_and_attach(void)
 {
-	platform_def_t	**platpp, *platp;
-	int		prio, best_prio;
+	platform_def_t **platpp, *platp;
+	int prio, best_prio;
 
 	plat_obj = &plat_kernel_obj;
 	best_prio = 0;
@@ -100,7 +100,8 @@ platform_probe_and_attach(void)
 	/*
 	 * Try to locate the best platform kobj
 	 */
-	SET_FOREACH(platpp, platform_set) {
+	SET_FOREACH(platpp, platform_set)
+	{
 		platp = *platpp;
 
 		/*
@@ -123,7 +124,7 @@ platform_probe_and_attach(void)
 		 * Check if this module was specifically requested through
 		 * the loader tunable we provide.
 		 */
-		if (strcmp(platp->name,plat_name) == 0) {
+		if (strcmp(platp->name, plat_name) == 0) {
 			plat_def_impl = platp;
 			break;
 		}
@@ -198,7 +199,7 @@ cpu_reset(void)
 	printf("cpu_reset failed");
 
 	intr_disable();
-	while(1) {
+	while (1) {
 		cpu_sleep(0);
 	}
 }

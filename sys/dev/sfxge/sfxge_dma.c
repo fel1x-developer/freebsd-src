@@ -43,7 +43,6 @@
 #include <machine/bus.h>
 
 #include "common/efx.h"
-
 #include "sfxge.h"
 
 static void
@@ -62,9 +61,8 @@ sfxge_dma_cb(void *arg, bus_dma_segment_t *segs, int nseg, int error)
 }
 
 int
-sfxge_dma_map_sg_collapse(bus_dma_tag_t tag, bus_dmamap_t map,
-			  struct mbuf **mp, bus_dma_segment_t *segs,
-			  int *nsegs, int maxsegs)
+sfxge_dma_map_sg_collapse(bus_dma_tag_t tag, bus_dmamap_t map, struct mbuf **mp,
+    bus_dma_segment_t *segs, int *nsegs, int maxsegs)
 {
 	bus_dma_segment_t *psegs;
 	struct mbuf *m;
@@ -143,23 +141,23 @@ sfxge_dma_alloc(struct sfxge_softc *sc, bus_size_t len, efsys_mem_t *esmp)
 
 	/* Create the child DMA tag. */
 	if (bus_dma_tag_create(sc->parent_dma_tag, PAGE_SIZE, 0,
-	    MIN(0x3FFFFFFFFFFFUL, BUS_SPACE_MAXADDR), BUS_SPACE_MAXADDR, NULL,
-	    NULL, len, 1, len, 0, NULL, NULL, &esmp->esm_tag) != 0) {
+		MIN(0x3FFFFFFFFFFFUL, BUS_SPACE_MAXADDR), BUS_SPACE_MAXADDR,
+		NULL, NULL, len, 1, len, 0, NULL, NULL, &esmp->esm_tag) != 0) {
 		device_printf(sc->dev, "Couldn't allocate txq DMA tag\n");
 		goto fail_tag_create;
 	}
 
 	/* Allocate kernel memory. */
 	if (bus_dmamem_alloc(esmp->esm_tag, (void **)&vaddr,
-	    BUS_DMA_WAITOK | BUS_DMA_COHERENT | BUS_DMA_ZERO,
-	    &esmp->esm_map) != 0) {
+		BUS_DMA_WAITOK | BUS_DMA_COHERENT | BUS_DMA_ZERO,
+		&esmp->esm_map) != 0) {
 		device_printf(sc->dev, "Couldn't allocate DMA memory\n");
 		goto fail_alloc;
 	}
 
 	/* Load map into device memory. */
 	if (bus_dmamap_load(esmp->esm_tag, esmp->esm_map, vaddr, len,
-	    sfxge_dma_cb, &esmp->esm_addr, 0) != 0) {
+		sfxge_dma_cb, &esmp->esm_addr, 0) != 0) {
 		device_printf(sc->dev, "Couldn't load DMA mapping\n");
 		goto fail_load;
 	}
@@ -198,17 +196,17 @@ sfxge_dma_init(struct sfxge_softc *sc)
 {
 
 	/* Create the parent dma tag. */
-	if (bus_dma_tag_create(bus_get_dma_tag(sc->dev),	/* parent */
-	    1, 0,			/* algnmnt, boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    BUS_SPACE_MAXSIZE_32BIT,	/* maxsize */
-	    BUS_SPACE_UNRESTRICTED,	/* nsegments */
-	    BUS_SPACE_MAXSIZE_32BIT,	/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lock, lockarg */
-	    &sc->parent_dma_tag) != 0) {
+	if (bus_dma_tag_create(bus_get_dma_tag(sc->dev), /* parent */
+		1, 0,					 /* algnmnt, boundary */
+		BUS_SPACE_MAXADDR,			 /* lowaddr */
+		BUS_SPACE_MAXADDR,			 /* highaddr */
+		NULL, NULL,				 /* filter, filterarg */
+		BUS_SPACE_MAXSIZE_32BIT,		 /* maxsize */
+		BUS_SPACE_UNRESTRICTED,			 /* nsegments */
+		BUS_SPACE_MAXSIZE_32BIT,		 /* maxsegsize */
+		0,					 /* flags */
+		NULL, NULL,				 /* lock, lockarg */
+		&sc->parent_dma_tag) != 0) {
 		device_printf(sc->dev, "Cannot allocate parent DMA tag\n");
 		return (ENOMEM);
 	}

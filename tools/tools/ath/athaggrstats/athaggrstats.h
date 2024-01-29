@@ -28,7 +28,7 @@
  */
 
 #ifndef _ATHAGGRSTATS_H_
-#define	_ATHAGGRSTATS_H_
+#define _ATHAGGRSTATS_H_
 
 #include "bsdstat.h"
 

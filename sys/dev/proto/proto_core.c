@@ -38,30 +38,24 @@
 #include <sys/proc.h>
 #include <sys/queue.h>
 #include <sys/reboot.h>
-#include <machine/bus.h>
 #include <sys/rman.h>
 #include <sys/uio.h>
+
+#include <machine/bus.h>
 #include <machine/resource.h>
 #include <machine/stdarg.h>
 
 #include <dev/pci/pcivar.h>
-
 #include <dev/proto/proto.h>
-#include <dev/proto/proto_dev.h>
 #include <dev/proto/proto_busdma.h>
+#include <dev/proto/proto_dev.h>
 
-CTASSERT(SYS_RES_IRQ != PROTO_RES_UNUSED &&
-    SYS_RES_DRQ != PROTO_RES_UNUSED &&
-    SYS_RES_MEMORY != PROTO_RES_UNUSED &&
-    SYS_RES_IOPORT != PROTO_RES_UNUSED);
-CTASSERT(SYS_RES_IRQ != PROTO_RES_PCICFG &&
-    SYS_RES_DRQ != PROTO_RES_PCICFG &&
-    SYS_RES_MEMORY != PROTO_RES_PCICFG &&
-    SYS_RES_IOPORT != PROTO_RES_PCICFG);
-CTASSERT(SYS_RES_IRQ != PROTO_RES_BUSDMA &&
-    SYS_RES_DRQ != PROTO_RES_BUSDMA &&
-    SYS_RES_MEMORY != PROTO_RES_BUSDMA &&
-    SYS_RES_IOPORT != PROTO_RES_BUSDMA);
+CTASSERT(SYS_RES_IRQ != PROTO_RES_UNUSED && SYS_RES_DRQ != PROTO_RES_UNUSED &&
+    SYS_RES_MEMORY != PROTO_RES_UNUSED && SYS_RES_IOPORT != PROTO_RES_UNUSED);
+CTASSERT(SYS_RES_IRQ != PROTO_RES_PCICFG && SYS_RES_DRQ != PROTO_RES_PCICFG &&
+    SYS_RES_MEMORY != PROTO_RES_PCICFG && SYS_RES_IOPORT != PROTO_RES_PCICFG);
+CTASSERT(SYS_RES_IRQ != PROTO_RES_BUSDMA && SYS_RES_DRQ != PROTO_RES_BUSDMA &&
+    SYS_RES_MEMORY != PROTO_RES_BUSDMA && SYS_RES_IOPORT != PROTO_RES_BUSDMA);
 
 char proto_driver_name[] = "proto";
 
@@ -125,7 +119,7 @@ proto_probe(device_t dev, const char *prefix, char ***devnamesp)
 
 	if (devnames == NULL) {
 		pfxlen = strlen(prefix);
-		names = 1;	/* NULL pointer */
+		names = 1; /* NULL pointer */
 		ev = kern_getenv("hw.proto.attach");
 		if (ev != NULL) {
 			dn = ev;
@@ -208,7 +202,7 @@ proto_attach(device_t dev)
 			break;
 		case PROTO_RES_BUSDMA:
 			r->r_d.busdma = proto_busdma_attach(sc);
-			r->r_size = 0;	/* no read(2) nor write(2) */
+			r->r_size = 0; /* no read(2) nor write(2) */
 			r->r_u.cdev = make_dev(&proto_devsw, res, 0, 0, 0600,
 			    "proto/%s/busdma", device_get_desc(dev));
 			r->r_u.cdev->si_drv1 = sc;
@@ -328,7 +322,7 @@ static int
 proto_read(struct cdev *cdev, struct uio *uio, int ioflag)
 {
 	union {
-		uint8_t	x1[8];
+		uint8_t x1[8];
 		uint16_t x2[4];
 		uint32_t x4[2];
 		uint64_t x8[1];
@@ -354,15 +348,18 @@ proto_read(struct cdev *cdev, struct uio *uio, int ioflag)
 	switch (width) {
 	case 1:
 		buf.x1[0] = (r->r_type == PROTO_RES_PCICFG) ?
-		    pci_read_config(dev, ofs, 1) : bus_read_1(r->r_d.res, ofs);
+		    pci_read_config(dev, ofs, 1) :
+		    bus_read_1(r->r_d.res, ofs);
 		break;
 	case 2:
 		buf.x2[0] = (r->r_type == PROTO_RES_PCICFG) ?
-		    pci_read_config(dev, ofs, 2) : bus_read_2(r->r_d.res, ofs);
+		    pci_read_config(dev, ofs, 2) :
+		    bus_read_2(r->r_d.res, ofs);
 		break;
 	case 4:
 		buf.x4[0] = (r->r_type == PROTO_RES_PCICFG) ?
-		    pci_read_config(dev, ofs, 4) : bus_read_4(r->r_d.res, ofs);
+		    pci_read_config(dev, ofs, 4) :
+		    bus_read_4(r->r_d.res, ofs);
 		break;
 #ifndef __i386__
 	case 8:
@@ -383,7 +380,7 @@ static int
 proto_write(struct cdev *cdev, struct uio *uio, int ioflag)
 {
 	union {
-		uint8_t	x1[8];
+		uint8_t x1[8];
 		uint16_t x2[4];
 		uint32_t x4[2];
 		uint64_t x8[1];
@@ -486,8 +483,8 @@ proto_ioctl(struct cdev *cdev, u_long cmd, caddr_t data, int fflag,
 }
 
 static int
-proto_mmap(struct cdev *cdev, vm_ooffset_t offset, vm_paddr_t *paddr,
-    int prot, vm_memattr_t *memattr)
+proto_mmap(struct cdev *cdev, vm_ooffset_t offset, vm_paddr_t *paddr, int prot,
+    vm_memattr_t *memattr)
 {
 	struct proto_res *r;
 

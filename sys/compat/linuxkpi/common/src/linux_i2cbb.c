@@ -33,26 +33,27 @@
 #include <dev/iicbus/iiconf.h>
 
 #include <linux/device.h>
-#include <linux/i2c.h>
 #include <linux/i2c-algo-bit.h>
+#include <linux/i2c.h>
 #include <linux/list.h>
 #include <linux/pci.h>
 
-#include "iicbus_if.h"
 #include "iicbb_if.h"
+#include "iicbus_if.h"
 #include "lkpi_iic_if.h"
 
 static void lkpi_iicbb_setsda(device_t dev, int val);
 static void lkpi_iicbb_setscl(device_t dev, int val);
 static int lkpi_iicbb_getscl(device_t dev);
 static int lkpi_iicbb_getsda(device_t dev);
-static int lkpi_iicbb_reset(device_t dev, u_char speed, u_char addr, u_char *oldaddr);
+static int lkpi_iicbb_reset(device_t dev, u_char speed, u_char addr,
+    u_char *oldaddr);
 static int lkpi_iicbb_pre_xfer(device_t dev);
 static void lkpi_iicbb_post_xfer(device_t dev);
 
 struct lkpi_iicbb_softc {
-	device_t		iicbb;
-	struct i2c_adapter	*adapter;
+	device_t iicbb;
+	struct i2c_adapter *adapter;
 };
 
 static struct sx lkpi_sx_i2cbb;
@@ -71,10 +72,8 @@ lkpi_sysuninit_i2cbb(void *arg __unused)
 	sx_destroy(&lkpi_sx_i2cbb);
 }
 
-SYSINIT(lkpi_i2cbb, SI_SUB_DRIVERS, SI_ORDER_ANY,
-    lkpi_sysinit_i2cbb, NULL);
-SYSUNINIT(lkpi_i2cbb, SI_SUB_DRIVERS, SI_ORDER_ANY,
-    lkpi_sysuninit_i2cbb, NULL);
+SYSINIT(lkpi_i2cbb, SI_SUB_DRIVERS, SI_ORDER_ANY, lkpi_sysinit_i2cbb, NULL);
+SYSUNINIT(lkpi_i2cbb, SI_SUB_DRIVERS, SI_ORDER_ANY, lkpi_sysuninit_i2cbb, NULL);
 
 static int
 lkpi_iicbb_probe(device_t dev)
@@ -139,24 +138,24 @@ lkpi_iicbb_get_adapter(device_t dev)
 
 static device_method_t lkpi_iicbb_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		lkpi_iicbb_probe),
-	DEVMETHOD(device_attach,	lkpi_iicbb_attach),
-	DEVMETHOD(device_detach,	lkpi_iicbb_detach),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	bus_generic_resume),
+	DEVMETHOD(device_probe, lkpi_iicbb_probe),
+	DEVMETHOD(device_attach, lkpi_iicbb_attach),
+	DEVMETHOD(device_detach, lkpi_iicbb_detach),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
 
 	/* iicbb interface */
-	DEVMETHOD(iicbb_setsda,		lkpi_iicbb_setsda),
-	DEVMETHOD(iicbb_setscl,		lkpi_iicbb_setscl),
-	DEVMETHOD(iicbb_getsda,		lkpi_iicbb_getsda),
-	DEVMETHOD(iicbb_getscl,		lkpi_iicbb_getscl),
-	DEVMETHOD(iicbb_reset,		lkpi_iicbb_reset),
-	DEVMETHOD(iicbb_pre_xfer,	lkpi_iicbb_pre_xfer),
-	DEVMETHOD(iicbb_post_xfer,	lkpi_iicbb_post_xfer),
+	DEVMETHOD(iicbb_setsda, lkpi_iicbb_setsda),
+	DEVMETHOD(iicbb_setscl, lkpi_iicbb_setscl),
+	DEVMETHOD(iicbb_getsda, lkpi_iicbb_getsda),
+	DEVMETHOD(iicbb_getscl, lkpi_iicbb_getscl),
+	DEVMETHOD(iicbb_reset, lkpi_iicbb_reset),
+	DEVMETHOD(iicbb_pre_xfer, lkpi_iicbb_pre_xfer),
+	DEVMETHOD(iicbb_post_xfer, lkpi_iicbb_post_xfer),
 
 	/* lkpi_iicbb interface */
-	DEVMETHOD(lkpi_iic_add_adapter,	lkpi_iicbb_add_adapter),
-	DEVMETHOD(lkpi_iic_get_adapter,	lkpi_iicbb_get_adapter),
+	DEVMETHOD(lkpi_iic_add_adapter, lkpi_iicbb_add_adapter),
+	DEVMETHOD(lkpi_iic_get_adapter, lkpi_iicbb_get_adapter),
 
 	DEVMETHOD_END
 };
@@ -263,8 +262,8 @@ lkpi_i2cbb_transfer(struct i2c_adapter *adapter, struct i2c_msg *msgs,
 
 	linux_set_current(curthread);
 
-	bsd_msgs = malloc(sizeof(struct iic_msg) * nmsgs,
-	    M_DEVBUF, M_WAITOK | M_ZERO);
+	bsd_msgs = malloc(sizeof(struct iic_msg) * nmsgs, M_DEVBUF,
+	    M_WAITOK | M_ZERO);
 
 	for (int i = 0; i < nmsgs; i++) {
 		bsd_msgs[i].slave = msgs[i].addr << 1;
@@ -276,7 +275,7 @@ lkpi_i2cbb_transfer(struct i2c_adapter *adapter, struct i2c_msg *msgs,
 			bsd_msgs[i].flags |= IIC_M_NOSTART;
 	}
 
-	for (int unit = 0; ; unit++) {
+	for (int unit = 0;; unit++) {
 		device_t child;
 		struct lkpi_iicbb_softc *sc;
 
@@ -309,9 +308,11 @@ lkpi_i2c_bit_add_bus(struct i2c_adapter *adapter)
 		device_printf(adapter->dev.parent->bsddev,
 		    "Adding i2c adapter %s\n", adapter->name);
 	sx_xlock(&lkpi_sx_i2cbb);
-	lkpi_iicbb = device_add_child(adapter->dev.parent->bsddev, "lkpi_iicbb", -1);
+	lkpi_iicbb = device_add_child(adapter->dev.parent->bsddev, "lkpi_iicbb",
+	    -1);
 	if (lkpi_iicbb == NULL) {
-		device_printf(adapter->dev.parent->bsddev, "Couldn't add lkpi_iicbb\n");
+		device_printf(adapter->dev.parent->bsddev,
+		    "Couldn't add lkpi_iicbb\n");
 		sx_xunlock(&lkpi_sx_i2cbb);
 		return (ENXIO);
 	}
@@ -321,7 +322,7 @@ lkpi_i2c_bit_add_bus(struct i2c_adapter *adapter)
 	bus_topo_unlock();
 	if (error) {
 		device_printf(adapter->dev.parent->bsddev,
-		  "failed to attach child: error %d\n", error);
+		    "failed to attach child: error %d\n", error);
 		sx_xunlock(&lkpi_sx_i2cbb);
 		return (ENXIO);
 	}

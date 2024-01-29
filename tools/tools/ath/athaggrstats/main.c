@@ -55,9 +55,8 @@ static struct {
 	const char *tag;
 	const char *fmt;
 } tags[] = {
-  { "default",
-    "singlepkt,nonbawpkt,aggrpkt,bawclosedpkt,lhsinglepkt,schednopkt,rtsaggrlimit"
-  },
+	{ "default",
+	    "singlepkt,nonbawpkt,aggrpkt,bawclosedpkt,lhsinglepkt,schednopkt,rtsaggrlimit" },
 };
 
 static const char *
@@ -107,7 +106,9 @@ main(int argc, char *argv[])
 			wf->zerostats(wf);
 			break;
 		default:
-			errx(-1, "usage: %s [-a] [-i ifname] [-l] [-o fmt] [-z] [interval]\n", argv[0]);
+			errx(-1,
+			    "usage: %s [-a] [-i ifname] [-l] [-o fmt] [-z] [interval]\n",
+			    argv[0]);
 			/*NOTREACHED*/
 		}
 	}
@@ -144,7 +145,7 @@ main(int argc, char *argv[])
 		signalled = 0;
 		alarm(interval);
 		line++;
-		if (line == 21)		/* XXX tty line count */
+		if (line == 21) /* XXX tty line count */
 			goto banner;
 		else
 			goto loop;

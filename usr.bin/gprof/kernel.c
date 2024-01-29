@@ -1,8 +1,8 @@
 #include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/errno.h>
 #include <sys/linker.h>
 #include <sys/sysctl.h>
-#include <sys/errno.h>
 
 #include <err.h>
 #include <stdlib.h>
@@ -11,7 +11,7 @@
 #include "gprof.h"
 
 /* Things which get -E excluded by default. */
-static char	*excludes[] = { ".mcount", "_mcleanup", NULL };
+static char *excludes[] = { ".mcount", "_mcleanup", NULL };
 
 int
 kernel_getnfile(const char *unused __unused, char ***defaultEs)
@@ -27,7 +27,7 @@ kernel_getnfile(const char *unused __unused, char ***defaultEs)
 		if (namelist == NULL)
 			err(1, "malloc");
 		if (sysctlbyname("kern.function_list", namelist, &len, NULL,
-		   0) == 0)
+			0) == 0)
 			break;
 		if (errno == ENOMEM)
 			free(namelist);

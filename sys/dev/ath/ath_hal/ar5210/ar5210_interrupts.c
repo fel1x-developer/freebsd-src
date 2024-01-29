@@ -20,7 +20,6 @@
 
 #include "ah.h"
 #include "ah_internal.h"
-
 #include "ar5210/ar5210.h"
 #include "ar5210/ar5210reg.h"
 
@@ -41,8 +40,9 @@ ar5210IsInterruptPending(struct ath_hal *ah)
 HAL_BOOL
 ar5210GetPendingInterrupts(struct ath_hal *ah, HAL_INT *masked)
 {
-#define	AR_FATAL_INT \
-    (AR_ISR_MCABT_INT | AR_ISR_SSERR_INT | AR_ISR_DPERR_INT | AR_ISR_RXORN_INT)
+#define AR_FATAL_INT                                              \
+	(AR_ISR_MCABT_INT | AR_ISR_SSERR_INT | AR_ISR_DPERR_INT | \
+	    AR_ISR_RXORN_INT)
 	struct ath_hal_5210 *ahp = AH5210(ah);
 	uint32_t isr;
 
@@ -65,7 +65,9 @@ ar5210GetPendingInterrupts(struct ath_hal *ah, HAL_INT *masked)
 		*masked |= HAL_INT_FATAL;
 	if (isr & (AR_ISR_RXOK_INT | AR_ISR_RXERR_INT))
 		*masked |= HAL_INT_RX;
-	if (isr & (AR_ISR_TXOK_INT | AR_ISR_TXDESC_INT | AR_ISR_TXERR_INT | AR_ISR_TXEOL_INT))
+	if (isr &
+	    (AR_ISR_TXOK_INT | AR_ISR_TXDESC_INT | AR_ISR_TXERR_INT |
+		AR_ISR_TXEOL_INT))
 		*masked |= HAL_INT_TX;
 
 	/*
@@ -92,8 +94,8 @@ ar5210SetInterrupts(struct ath_hal *ah, HAL_INT ints)
 	uint32_t omask = ahp->ah_maskReg;
 	uint32_t mask;
 
-	HALDEBUG(ah, HAL_DEBUG_INTERRUPT, "%s: 0x%x => 0x%x\n",
-	    __func__, omask, ints);
+	HALDEBUG(ah, HAL_DEBUG_INTERRUPT, "%s: 0x%x => 0x%x\n", __func__, omask,
+	    ints);
 
 	/*
 	 * Disable interrupts here before reading & modifying
@@ -101,7 +103,8 @@ ar5210SetInterrupts(struct ath_hal *ah, HAL_INT ints)
 	 * out from under us.
 	 */
 	if (omask & HAL_INT_GLOBAL) {
-		HALDEBUG(ah, HAL_DEBUG_INTERRUPT, "%s: disable IER\n", __func__);
+		HALDEBUG(ah, HAL_DEBUG_INTERRUPT, "%s: disable IER\n",
+		    __func__);
 		OS_REG_WRITE(ah, AR_IER, AR_IER_DISABLE);
 	}
 

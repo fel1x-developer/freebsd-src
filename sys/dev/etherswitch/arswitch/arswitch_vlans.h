@@ -26,8 +26,8 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#ifndef	__ARSWITCH_VLANS_H__
-#define	__ARSWITCH_VLANS_H__
+#ifndef __ARSWITCH_VLANS_H__
+#define __ARSWITCH_VLANS_H__
 
 void ar8xxx_reset_vlans(struct arswitch_softc *);
 int ar8xxx_getvgroup(struct arswitch_softc *, etherswitch_vlangroup_t *);
@@ -44,4 +44,4 @@ int ar8xxx_set_dot1q_vlan(struct arswitch_softc *sc, uint32_t ports,
 int ar8xxx_get_port_vlan(struct arswitch_softc *sc, uint32_t *ports, int vid);
 int ar8xxx_set_port_vlan(struct arswitch_softc *sc, uint32_t ports, int vid);
 
-#endif	/* __ARSWITCH_VLANS_H__ */
+#endif /* __ARSWITCH_VLANS_H__ */

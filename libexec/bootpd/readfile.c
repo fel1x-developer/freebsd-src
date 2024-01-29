@@ -1,7 +1,7 @@
 /************************************************************************
-          Copyright 1988, 1991 by Carnegie Mellon University
+	  Copyright 1988, 1991 by Carnegie Mellon University
 
-                          All Rights Reserved
+			  All Rights Reserved
 
 Permission to use, copy, modify, and distribute this software and its
 documentation for any purpose and without fee is hereby granted, provided
@@ -29,94 +29,92 @@ SOFTWARE.
  * /etc/bootptab).
  */
 
-
-#include <sys/errno.h>
 #include <sys/types.h>
-#include <sys/stat.h>
+#include <sys/errno.h>
 #include <sys/file.h>
+#include <sys/stat.h>
 #include <sys/time.h>
+
 #include <netinet/in.h>
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
 #include <assert.h>
+#include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
 
 #include "bootp.h"
+#include "bootpd.h"
 #include "hash.h"
 #include "hwaddr.h"
 #include "lookup.h"
 #include "readfile.h"
 #include "report.h"
 #include "tzone.h"
-#include "bootpd.h"
 
-#define HASHTABLESIZE		257	/* Hash table size (prime) */
+#define HASHTABLESIZE 257 /* Hash table size (prime) */
 
 /* Non-standard hardware address type (see bootp.h) */
-#define HTYPE_DIRECT	0
+#define HTYPE_DIRECT 0
 
 /* Error codes returned by eval_symbol: */
-#define SUCCESS			  0
-#define E_END_OF_ENTRY		(-1)
-#define E_SYNTAX_ERROR		(-2)
-#define E_UNKNOWN_SYMBOL	(-3)
-#define E_BAD_IPADDR		(-4)
-#define E_BAD_HWADDR		(-5)
-#define E_BAD_LONGWORD		(-6)
-#define E_BAD_HWATYPE		(-7)
-#define E_BAD_PATHNAME		(-8)
-#define E_BAD_VALUE 		(-9)
+#define SUCCESS 0
+#define E_END_OF_ENTRY (-1)
+#define E_SYNTAX_ERROR (-2)
+#define E_UNKNOWN_SYMBOL (-3)
+#define E_BAD_IPADDR (-4)
+#define E_BAD_HWADDR (-5)
+#define E_BAD_LONGWORD (-6)
+#define E_BAD_HWATYPE (-7)
+#define E_BAD_PATHNAME (-8)
+#define E_BAD_VALUE (-9)
 
 /* Tag idendities. */
-#define SYM_NULL		  0
-#define SYM_BOOTFILE		  1
-#define SYM_COOKIE_SERVER	  2
-#define SYM_DOMAIN_SERVER	  3
-#define SYM_GATEWAY		  4
-#define SYM_HWADDR		  5
-#define SYM_HOMEDIR		  6
-#define SYM_HTYPE		  7
-#define SYM_IMPRESS_SERVER	  8
-#define SYM_IPADDR		  9
-#define SYM_LOG_SERVER		 10
-#define SYM_LPR_SERVER		 11
-#define SYM_NAME_SERVER		 12
-#define SYM_RLP_SERVER		 13
-#define SYM_SUBNET_MASK		 14
-#define SYM_TIME_OFFSET		 15
-#define SYM_TIME_SERVER		 16
-#define SYM_VENDOR_MAGIC	 17
-#define SYM_SIMILAR_ENTRY	 18
-#define SYM_NAME_SWITCH		 19
-#define SYM_BOOTSIZE		 20
-#define SYM_BOOT_SERVER		 22
-#define SYM_TFTPDIR		 23
-#define SYM_DUMP_FILE		 24
-#define SYM_DOMAIN_NAME          25
-#define SYM_SWAP_SERVER          26
-#define SYM_ROOT_PATH            27
-#define SYM_EXTEN_FILE           28
-#define SYM_REPLY_ADDR           29
-#define SYM_NIS_DOMAIN           30	/* RFC 1533 */
-#define SYM_NIS_SERVER           31	/* RFC 1533 */
-#define SYM_NTP_SERVER           32	/* RFC 1533 */
-#define SYM_EXEC_FILE		 33	/* YORK_EX_OPTION */
-#define SYM_MSG_SIZE 		 34
-#define SYM_MIN_WAIT		 35
+#define SYM_NULL 0
+#define SYM_BOOTFILE 1
+#define SYM_COOKIE_SERVER 2
+#define SYM_DOMAIN_SERVER 3
+#define SYM_GATEWAY 4
+#define SYM_HWADDR 5
+#define SYM_HOMEDIR 6
+#define SYM_HTYPE 7
+#define SYM_IMPRESS_SERVER 8
+#define SYM_IPADDR 9
+#define SYM_LOG_SERVER 10
+#define SYM_LPR_SERVER 11
+#define SYM_NAME_SERVER 12
+#define SYM_RLP_SERVER 13
+#define SYM_SUBNET_MASK 14
+#define SYM_TIME_OFFSET 15
+#define SYM_TIME_SERVER 16
+#define SYM_VENDOR_MAGIC 17
+#define SYM_SIMILAR_ENTRY 18
+#define SYM_NAME_SWITCH 19
+#define SYM_BOOTSIZE 20
+#define SYM_BOOT_SERVER 22
+#define SYM_TFTPDIR 23
+#define SYM_DUMP_FILE 24
+#define SYM_DOMAIN_NAME 25
+#define SYM_SWAP_SERVER 26
+#define SYM_ROOT_PATH 27
+#define SYM_EXTEN_FILE 28
+#define SYM_REPLY_ADDR 29
+#define SYM_NIS_DOMAIN 30 /* RFC 1533 */
+#define SYM_NIS_SERVER 31 /* RFC 1533 */
+#define SYM_NTP_SERVER 32 /* RFC 1533 */
+#define SYM_EXEC_FILE 33  /* YORK_EX_OPTION */
+#define SYM_MSG_SIZE 34
+#define SYM_MIN_WAIT 35
 /* XXX - Add new tags here */
 
-#define OP_ADDITION		  1	/* Operations on tags */
-#define OP_DELETION		  2
-#define OP_BOOLEAN		  3
+#define OP_ADDITION 1 /* Operations on tags */
+#define OP_DELETION 2
+#define OP_BOOLEAN 3
 
-#define MAXINADDRS		 16	/* Max size of an IP address list */
-#define MAXBUFLEN		256	/* Max temp buffer space */
-#define MAXENTRYLEN	       2048	/* Max size of an entire entry */
-
-
+#define MAXINADDRS 16	 /* Max size of an IP address list */
+#define MAXBUFLEN 256	 /* Max temp buffer space */
+#define MAXENTRYLEN 2048 /* Max size of an entire entry */
 
 /*
  * Structure used to map a configuration-file symbol (such as "ds") to a
@@ -128,17 +126,15 @@ struct symbolmap {
 	int symbolcode;
 };
 
-
 struct htypename {
 	char *name;
 	byte htype;
 };
 
-
-PRIVATE int nhosts;				/* Number of hosts (/w hw or IP address) */
-PRIVATE int nentries;			/* Total number of entries */
-PRIVATE int32 modtime = 0;		/* Last modification time of bootptab */
-PRIVATE char *current_hostname;	/* Name of the current entry. */
+PRIVATE int nhosts;		/* Number of hosts (/w hw or IP address) */
+PRIVATE int nentries;		/* Total number of entries */
+PRIVATE int32 modtime = 0;	/* Last modification time of bootptab */
+PRIVATE char *current_hostname; /* Name of the current entry. */
 PRIVATE char current_tagname[8];
 
 /*
@@ -148,43 +144,25 @@ PRIVATE char current_tagname[8];
  */
 
 PRIVATE struct symbolmap symbol_list[] = {
-	{"bf", SYM_BOOTFILE},
-	{"bs", SYM_BOOTSIZE},
-	{"cs", SYM_COOKIE_SERVER},
-	{"df", SYM_DUMP_FILE},
-	{"dn", SYM_DOMAIN_NAME},
-	{"ds", SYM_DOMAIN_SERVER},
-	{"ef", SYM_EXTEN_FILE},
-	{"ex", SYM_EXEC_FILE},		/* YORK_EX_OPTION */
-	{"gw", SYM_GATEWAY},
-	{"ha", SYM_HWADDR},
-	{"hd", SYM_HOMEDIR},
-	{"hn", SYM_NAME_SWITCH},
-	{"ht", SYM_HTYPE},
-	{"im", SYM_IMPRESS_SERVER},
-	{"ip", SYM_IPADDR},
-	{"lg", SYM_LOG_SERVER},
-	{"lp", SYM_LPR_SERVER},
-	{"ms", SYM_MSG_SIZE},
-	{"mw", SYM_MIN_WAIT},
-	{"ns", SYM_NAME_SERVER},
-	{"nt", SYM_NTP_SERVER},
-	{"ra", SYM_REPLY_ADDR},
-	{"rl", SYM_RLP_SERVER},
-	{"rp", SYM_ROOT_PATH},
-	{"sa", SYM_BOOT_SERVER},
-	{"sm", SYM_SUBNET_MASK},
-	{"sw", SYM_SWAP_SERVER},
-	{"tc", SYM_SIMILAR_ENTRY},
-	{"td", SYM_TFTPDIR},
-	{"to", SYM_TIME_OFFSET},
-	{"ts", SYM_TIME_SERVER},
-	{"vm", SYM_VENDOR_MAGIC},
-	{"yd", SYM_NIS_DOMAIN},
-	{"ys", SYM_NIS_SERVER},
+	{ "bf", SYM_BOOTFILE }, { "bs", SYM_BOOTSIZE },
+	{ "cs", SYM_COOKIE_SERVER }, { "df", SYM_DUMP_FILE },
+	{ "dn", SYM_DOMAIN_NAME }, { "ds", SYM_DOMAIN_SERVER },
+	{ "ef", SYM_EXTEN_FILE }, { "ex", SYM_EXEC_FILE }, /* YORK_EX_OPTION */
+	{ "gw", SYM_GATEWAY }, { "ha", SYM_HWADDR }, { "hd", SYM_HOMEDIR },
+	{ "hn", SYM_NAME_SWITCH }, { "ht", SYM_HTYPE },
+	{ "im", SYM_IMPRESS_SERVER }, { "ip", SYM_IPADDR },
+	{ "lg", SYM_LOG_SERVER }, { "lp", SYM_LPR_SERVER },
+	{ "ms", SYM_MSG_SIZE }, { "mw", SYM_MIN_WAIT },
+	{ "ns", SYM_NAME_SERVER }, { "nt", SYM_NTP_SERVER },
+	{ "ra", SYM_REPLY_ADDR }, { "rl", SYM_RLP_SERVER },
+	{ "rp", SYM_ROOT_PATH }, { "sa", SYM_BOOT_SERVER },
+	{ "sm", SYM_SUBNET_MASK }, { "sw", SYM_SWAP_SERVER },
+	{ "tc", SYM_SIMILAR_ENTRY }, { "td", SYM_TFTPDIR },
+	{ "to", SYM_TIME_OFFSET }, { "ts", SYM_TIME_SERVER },
+	{ "vm", SYM_VENDOR_MAGIC }, { "yd", SYM_NIS_DOMAIN },
+	{ "ys", SYM_NIS_SERVER },
 	/* XXX - Add new tags here */
 };
-
 
 /*
  * List of symbolic names for hardware types.  Name translates into
@@ -193,25 +171,14 @@ PRIVATE struct symbolmap symbol_list[] = {
  * commonly-used entries near the beginning.
  */
 
-PRIVATE struct htypename htnamemap[] = {
-	{"ethernet", HTYPE_ETHERNET},
-	{"ethernet3", HTYPE_EXP_ETHERNET},
-	{"ether", HTYPE_ETHERNET},
-	{"ether3", HTYPE_EXP_ETHERNET},
-	{"ieee802", HTYPE_IEEE802},
-	{"tr", HTYPE_IEEE802},
-	{"token-ring", HTYPE_IEEE802},
-	{"pronet", HTYPE_PRONET},
-	{"chaos", HTYPE_CHAOS},
-	{"arcnet", HTYPE_ARCNET},
-	{"ax.25", HTYPE_AX25},
-	{"direct", HTYPE_DIRECT},
-	{"serial", HTYPE_DIRECT},
-	{"slip", HTYPE_DIRECT},
-	{"ppp", HTYPE_DIRECT}
-};
-
-
+PRIVATE struct htypename htnamemap[] = { { "ethernet", HTYPE_ETHERNET },
+	{ "ethernet3", HTYPE_EXP_ETHERNET }, { "ether", HTYPE_ETHERNET },
+	{ "ether3", HTYPE_EXP_ETHERNET }, { "ieee802", HTYPE_IEEE802 },
+	{ "tr", HTYPE_IEEE802 }, { "token-ring", HTYPE_IEEE802 },
+	{ "pronet", HTYPE_PRONET }, { "chaos", HTYPE_CHAOS },
+	{ "arcnet", HTYPE_ARCNET }, { "ax.25", HTYPE_AX25 },
+	{ "direct", HTYPE_DIRECT }, { "serial", HTYPE_DIRECT },
+	{ "slip", HTYPE_DIRECT }, { "ppp", HTYPE_DIRECT } };
 
 /*
  * Externals and forward declarations.
@@ -219,53 +186,29 @@ PRIVATE struct htypename htnamemap[] = {
 
 boolean nmcmp(hash_datum *, hash_datum *);
 
-PRIVATE void
-	adjust(char **);
-PRIVATE void
-	del_string(struct shared_string *);
-PRIVATE void
-	del_bindata(struct shared_bindata *);
-PRIVATE void
-	del_iplist(struct in_addr_list *);
-PRIVATE void
-	eat_whitespace(char **);
-PRIVATE int
-	eval_symbol(char **, struct host *);
-PRIVATE void
-	fill_defaults(struct host *, char **);
-PRIVATE void
-	free_host(hash_datum *);
-PRIVATE struct in_addr_list *
-	get_addresses(char **);
-PRIVATE struct shared_string *
-	get_shared_string(char **);
-PRIVATE char *
-	get_string(char **, char *, u_int *);
-PRIVATE u_int32
-	get_u_long(char **);
-PRIVATE boolean
-	goodname(char *);
-PRIVATE boolean
-	hwinscmp(hash_datum *, hash_datum *);
-PRIVATE int
-	interp_byte(char **, byte *);
-PRIVATE void
-	makelower(char *);
-PRIVATE boolean
-        nullcmp(hash_datum *, hash_datum *);
-PRIVATE int
-	process_entry(struct host *, char *);
-PRIVATE int
-	process_generic(char **, struct shared_bindata **, u_int);
-PRIVATE byte *
-	prs_haddr(char **, u_int);
-PRIVATE int
-	prs_inetaddr(char **, u_int32 *);
-PRIVATE void
-	read_entry(FILE *, char *, u_int *);
-PRIVATE char *
-	smalloc(u_int);
-
+PRIVATE void adjust(char **);
+PRIVATE void del_string(struct shared_string *);
+PRIVATE void del_bindata(struct shared_bindata *);
+PRIVATE void del_iplist(struct in_addr_list *);
+PRIVATE void eat_whitespace(char **);
+PRIVATE int eval_symbol(char **, struct host *);
+PRIVATE void fill_defaults(struct host *, char **);
+PRIVATE void free_host(hash_datum *);
+PRIVATE struct in_addr_list *get_addresses(char **);
+PRIVATE struct shared_string *get_shared_string(char **);
+PRIVATE char *get_string(char **, char *, u_int *);
+PRIVATE u_int32 get_u_long(char **);
+PRIVATE boolean goodname(char *);
+PRIVATE boolean hwinscmp(hash_datum *, hash_datum *);
+PRIVATE int interp_byte(char **, byte *);
+PRIVATE void makelower(char *);
+PRIVATE boolean nullcmp(hash_datum *, hash_datum *);
+PRIVATE int process_entry(struct host *, char *);
+PRIVATE int process_generic(char **, struct shared_bindata **, u_int);
+PRIVATE byte *prs_haddr(char **, u_int);
+PRIVATE int prs_inetaddr(char **, u_int32 *);
+PRIVATE void read_entry(FILE *, char *, u_int *);
+PRIVATE char *smalloc(u_int);
 
 /*
  * Vendor magic cookies for CMU and RFC1048
@@ -295,7 +238,6 @@ rdtab_init(void)
 		exit(1);
 	}
 }
-
 
 /*
  * Read bootptab database file.  Avoid rereading the file if the
@@ -315,8 +257,7 @@ readtab(int force)
 	 * Check the last modification time.
 	 */
 	if (stat(bootptab, &st) < 0) {
-		report(LOG_ERR, "stat on \"%s\": %s",
-			   bootptab, get_errmsg());
+		report(LOG_ERR, "stat on \"%s\": %s", bootptab, get_errmsg());
 		return;
 	}
 #ifdef DEBUG
@@ -325,13 +266,10 @@ readtab(int force)
 		strcpy(timestr, ctime(&(st.st_mtime)));
 		/* zap the newline */
 		timestr[24] = '\0';
-		report(LOG_INFO, "bootptab mtime: %s",
-			   timestr);
+		report(LOG_INFO, "bootptab mtime: %s", timestr);
 	}
 #endif
-	if ((force == 0) &&
-		(st.st_mtime == modtime) &&
-		st.st_nlink) {
+	if ((force == 0) && (st.st_mtime == modtime) && st.st_nlink) {
 		/*
 		 * hasn't been modified or deleted yet.
 		 */
@@ -339,14 +277,14 @@ readtab(int force)
 	}
 	if (debug)
 		report(LOG_INFO, "reading %s\"%s\"",
-			   (modtime != 0L) ? "new " : "",
-			   bootptab);
+		    (modtime != 0L) ? "new " : "", bootptab);
 
 	/*
 	 * Open bootptab file.
 	 */
 	if ((fp = fopen(bootptab, "r")) == NULL) {
-		report(LOG_ERR, "error opening \"%s\": %s", bootptab, get_errmsg());
+		report(LOG_ERR, "error opening \"%s\": %s", bootptab,
+		    get_errmsg());
 		return;
 	}
 	/*
@@ -371,11 +309,11 @@ readtab(int force)
 	while (TRUE) {
 		buflen = sizeof(buffer);
 		read_entry(fp, buffer, &buflen);
-		if (buflen == 0) {		/* More entries? */
+		if (buflen == 0) { /* More entries? */
 			break;
 		}
-		hp = (struct host *) smalloc(sizeof(struct host));
-		bzero((char *) hp, sizeof(*hp));
+		hp = (struct host *)smalloc(sizeof(struct host));
+		bzero((char *)hp, sizeof(*hp));
 		/* the link count it zero */
 
 		/*
@@ -383,7 +321,7 @@ readtab(int force)
 		 */
 		if (process_entry(hp, buffer) < 0) {
 			hp->linkcount = 1;
-			free_host((hash_datum *) hp);
+			free_host((hash_datum *)hp);
 			continue;
 		}
 		/*
@@ -396,8 +334,10 @@ readtab(int force)
 			u_int32 value;
 			if (hp->flags.iaddr == 0) {
 				if (lookup_ipa(hn, &value)) {
-					report(LOG_ERR, "can not get IP addr for %s", hn);
-					report(LOG_ERR, "(dummy names should start with '.')");
+					report(LOG_ERR,
+					    "can not get IP addr for %s", hn);
+					report(LOG_ERR,
+					    "(dummy names should start with '.')");
 				} else {
 					hp->iaddr.s_addr = value;
 					hp->flags.iaddr = TRUE;
@@ -406,7 +346,8 @@ readtab(int force)
 			/* Set default subnet mask. */
 			if (hp->flags.subnet_mask == 0) {
 				if (lookup_netmask(hp->iaddr.s_addr, &value)) {
-					report(LOG_ERR, "can not get netmask for %s", hn);
+					report(LOG_ERR,
+					    "can not get netmask for %s", hn);
 				} else {
 					hp->subnet_mask.s_addr = value;
 					hp->flags.subnet_mask = TRUE;
@@ -420,34 +361,41 @@ readtab(int force)
 		if (hp->flags.htype && hp->flags.haddr) {
 			/* We will either insert it or free it. */
 			hp->linkcount++;
-			hashcode = hash_HashFunction(hp->haddr, haddrlength(hp->htype));
-			if (hash_Insert(hwhashtable, hashcode, hwinscmp, hp, hp) < 0) {
+			hashcode = hash_HashFunction(hp->haddr,
+			    haddrlength(hp->htype));
+			if (hash_Insert(hwhashtable, hashcode, hwinscmp, hp,
+				hp) < 0) {
 				report(LOG_NOTICE, "duplicate %s address: %s",
-					   netname(hp->htype),
-					   haddrtoa(hp->haddr, haddrlength(hp->htype)));
-				free_host((hash_datum *) hp);
+				    netname(hp->htype),
+				    haddrtoa(hp->haddr,
+					haddrlength(hp->htype)));
+				free_host((hash_datum *)hp);
 				continue;
 			}
 		}
 		/* Register by IP addr if known. */
 		if (hp->flags.iaddr) {
-			hashcode = hash_HashFunction((u_char *) & (hp->iaddr.s_addr), 4);
-			if (hash_Insert(iphashtable, hashcode, nullcmp, hp, hp) < 0) {
+			hashcode = hash_HashFunction((u_char *)&(
+							 hp->iaddr.s_addr),
+			    4);
+			if (hash_Insert(iphashtable, hashcode, nullcmp, hp,
+				hp) < 0) {
 				report(LOG_ERR,
-					   "hash_Insert() failed on IP address insertion");
+				    "hash_Insert() failed on IP address insertion");
 			} else {
-				/* Just inserted the host struct in a new hash list. */
+				/* Just inserted the host struct in a new hash
+				 * list. */
 				hp->linkcount++;
 			}
 		}
 		/* Register by Name (always known) */
-		hashcode = hash_HashFunction((u_char *) hp->hostname->string,
-									 strlen(hp->hostname->string));
+		hashcode = hash_HashFunction((u_char *)hp->hostname->string,
+		    strlen(hp->hostname->string));
 		if (hash_Insert(nmhashtable, hashcode, nullcmp,
-						hp->hostname->string, hp) < 0) {
+			hp->hostname->string, hp) < 0) {
 			report(LOG_ERR,
-				 "hash_Insert() failed on insertion of hostname: \"%s\"",
-				   hp->hostname->string);
+			    "hash_Insert() failed on insertion of hostname: \"%s\"",
+			    hp->hostname->string);
 		} else {
 			/* Just inserted the host struct in a new hash list. */
 			hp->linkcount++;
@@ -459,11 +407,9 @@ readtab(int force)
 	fclose(fp);
 	if (debug)
 		report(LOG_INFO, "read %d entries (%d hosts) from \"%s\"",
-			   nentries, nhosts, bootptab);
+		    nentries, nhosts, bootptab);
 	return;
 }
-
-
 
 /*
  * Read an entire host entry from the file pointed to by "fp" and insert it
@@ -494,27 +440,26 @@ read_entry(FILE *fp, char *buffer, unsigned *bufsiz)
 	/*
 	 * Eat whitespace, blank lines, and comment lines.
 	 */
-  top:
+top:
 	c = fgetc(fp);
 	if (c < 0) {
-		goto done;				/* Exit if end-of-file */
+		goto done; /* Exit if end-of-file */
 	}
 	if (isspace(c)) {
-		goto top;				/* Skip over whitespace */
+		goto top; /* Skip over whitespace */
 	}
 	if (c == '#') {
-		while (TRUE) {			/* Eat comments after # */
+		while (TRUE) { /* Eat comments after # */
 			c = fgetc(fp);
 			if (c < 0) {
-				goto done;		/* Exit if end-of-file */
+				goto done; /* Exit if end-of-file */
 			}
 			if (c == '\n') {
-				goto top;		/* Try to read the next line */
+				goto top; /* Try to read the next line */
 			}
 		}
 	}
-	ungetc(c, fp);				/* Other character, push it back to reprocess it */
-
+	ungetc(c, fp); /* Other character, push it back to reprocess it */
 
 	/*
 	 * Now we're actually reading a data entry.  Get each character and
@@ -522,18 +467,18 @@ read_entry(FILE *fp, char *buffer, unsigned *bufsiz)
 	 * double quotes (") and backslashes (\).
 	 */
 
-  mainloop:
+mainloop:
 	c = fgetc(fp);
 	switch (c) {
 	case EOF:
 	case '\n':
-		goto done;				/* Exit on EOF or newline */
+		goto done; /* Exit on EOF or newline */
 	case '\\':
-		c = fgetc(fp);			/* Backslash, read a new character */
+		c = fgetc(fp); /* Backslash, read a new character */
 		if (c < 0) {
-			goto done;			/* Exit on EOF */
+			goto done; /* Exit on EOF */
 		}
-		*buffer++ = c;			/* Store the literal character */
+		*buffer++ = c; /* Store the literal character */
 		length++;
 		if (length < *bufsiz - 1) {
 			goto mainloop;
@@ -541,31 +486,32 @@ read_entry(FILE *fp, char *buffer, unsigned *bufsiz)
 			goto done;
 		}
 	case '"':
-		*buffer++ = '"';		/* Store double-quote */
+		*buffer++ = '"'; /* Store double-quote */
 		length++;
 		if (length >= *bufsiz - 1) {
 			goto done;
 		}
-		while (TRUE) {			/* Special quote processing loop */
+		while (TRUE) { /* Special quote processing loop */
 			c = fgetc(fp);
 			switch (c) {
 			case EOF:
-				goto done;		/* Exit on EOF . . . */
+				goto done; /* Exit on EOF . . . */
 			case '"':
-				*buffer++ = '"';/* Store matching quote */
+				*buffer++ = '"'; /* Store matching quote */
 				length++;
 				if (length < *bufsiz - 1) {
-					goto mainloop;	/* And continue main loop */
+					goto mainloop; /* And continue main loop
+							*/
 				} else {
 					goto done;
 				}
 			case '\\':
-				if ((c = fgetc(fp)) < 0) {	/* Backslash */
-					goto done;	/* EOF. . . .*/
+				if ((c = fgetc(fp)) < 0) { /* Backslash */
+					goto done;	   /* EOF. . . .*/
 				}
 				/* FALLTHROUGH */
 			default:
-				*buffer++ = c;	/* Other character, store it */
+				*buffer++ = c; /* Other character, store it */
 				length++;
 				if (length >= *bufsiz - 1) {
 					goto done;
@@ -573,43 +519,41 @@ read_entry(FILE *fp, char *buffer, unsigned *bufsiz)
 			}
 		}
 	case ':':
-		*buffer++ = c;			/* Store colons */
+		*buffer++ = c; /* Store colons */
 		length++;
 		if (length >= *bufsiz - 1) {
 			goto done;
 		}
-		do {					/* But remove whitespace after them */
+		do { /* But remove whitespace after them */
 			c = fgetc(fp);
 			if ((c < 0) || (c == '\n')) {
 				goto done;
 			}
-		} while (isspace(c));	/* Skip whitespace */
+		} while (isspace(c)); /* Skip whitespace */
 
-		if (c == '\\') {		/* Backslash quotes next character */
+		if (c == '\\') { /* Backslash quotes next character */
 			c = fgetc(fp);
 			if (c < 0) {
 				goto done;
 			}
 			if (c == '\n') {
-				goto top;		/* Backslash-newline continuation */
+				goto top; /* Backslash-newline continuation */
 			}
 		}
 		/* FALLTHROUGH if "other" character */
 	default:
-		*buffer++ = c;			/* Store other characters */
+		*buffer++ = c; /* Store other characters */
 		length++;
 		if (length >= *bufsiz - 1) {
 			goto done;
 		}
 	}
-	goto mainloop;				/* Keep going */
+	goto mainloop; /* Keep going */
 
-  done:
-	*buffer = '\0';				/* Terminate string */
-	*bufsiz = length;			/* Tell the caller its length */
+done:
+	*buffer = '\0';	  /* Terminate string */
+	*bufsiz = length; /* Tell the caller its length */
 }
-
-
 
 /*
  * Parse out all the various tags and parameters in the host entry pointed
@@ -680,82 +624,81 @@ process_entry(struct host *host, char *src)
 		default:
 			msg = "unknown error";
 			break;
-		}						/* switch */
+		} /* switch */
 		report(LOG_ERR, "in entry named \"%s\", symbol \"%s\": %s",
-			   current_hostname, current_tagname, msg);
+		    current_hostname, current_tagname, msg);
 		return -1;
 	}
 }
-
 
 /*
  * Macros for use in the function below:
  */
 
 /* Parse one INET address stored directly in MEMBER. */
-#define PARSE_IA1(MEMBER) do \
-{ \
-	if (optype == OP_BOOLEAN) \
-		return E_SYNTAX_ERROR; \
-	hp->flags.MEMBER = FALSE; \
-	if (optype == OP_ADDITION) { \
-		if (prs_inetaddr(symbol, &value) < 0) \
-			return E_BAD_IPADDR; \
-		hp->MEMBER.s_addr = value; \
-		hp->flags.MEMBER = TRUE; \
-	} \
-} while (0)
+#define PARSE_IA1(MEMBER)                                     \
+	do {                                                  \
+		if (optype == OP_BOOLEAN)                     \
+			return E_SYNTAX_ERROR;                \
+		hp->flags.MEMBER = FALSE;                     \
+		if (optype == OP_ADDITION) {                  \
+			if (prs_inetaddr(symbol, &value) < 0) \
+				return E_BAD_IPADDR;          \
+			hp->MEMBER.s_addr = value;            \
+			hp->flags.MEMBER = TRUE;              \
+		}                                             \
+	} while (0)
 
 /* Parse a list of INET addresses pointed to by MEMBER */
-#define PARSE_IAL(MEMBER) do \
-{ \
-	if (optype == OP_BOOLEAN) \
-		return E_SYNTAX_ERROR; \
-	if (hp->flags.MEMBER) { \
-		hp->flags.MEMBER = FALSE; \
-		assert(hp->MEMBER); \
-		del_iplist(hp->MEMBER); \
-		hp->MEMBER = NULL; \
-	} \
-	if (optype == OP_ADDITION) { \
-		hp->MEMBER = get_addresses(symbol); \
-		if (hp->MEMBER == NULL) \
-			return E_SYNTAX_ERROR; \
-		hp->flags.MEMBER = TRUE; \
-	} \
-} while (0)
+#define PARSE_IAL(MEMBER)                                   \
+	do {                                                \
+		if (optype == OP_BOOLEAN)                   \
+			return E_SYNTAX_ERROR;              \
+		if (hp->flags.MEMBER) {                     \
+			hp->flags.MEMBER = FALSE;           \
+			assert(hp->MEMBER);                 \
+			del_iplist(hp->MEMBER);             \
+			hp->MEMBER = NULL;                  \
+		}                                           \
+		if (optype == OP_ADDITION) {                \
+			hp->MEMBER = get_addresses(symbol); \
+			if (hp->MEMBER == NULL)             \
+				return E_SYNTAX_ERROR;      \
+			hp->flags.MEMBER = TRUE;            \
+		}                                           \
+	} while (0)
 
 /* Parse a shared string pointed to by MEMBER */
-#define PARSE_STR(MEMBER) do \
-{ \
-	if (optype == OP_BOOLEAN) \
-		return E_SYNTAX_ERROR; \
-	if (hp->flags.MEMBER) { \
-		hp->flags.MEMBER = FALSE; \
-		assert(hp->MEMBER); \
-		del_string(hp->MEMBER); \
-		hp->MEMBER = NULL; \
-	} \
-	if (optype == OP_ADDITION) { \
-		hp->MEMBER = get_shared_string(symbol); \
-		if (hp->MEMBER == NULL) \
-			return E_SYNTAX_ERROR; \
-		hp->flags.MEMBER = TRUE; \
-	} \
-} while (0)
+#define PARSE_STR(MEMBER)                                       \
+	do {                                                    \
+		if (optype == OP_BOOLEAN)                       \
+			return E_SYNTAX_ERROR;                  \
+		if (hp->flags.MEMBER) {                         \
+			hp->flags.MEMBER = FALSE;               \
+			assert(hp->MEMBER);                     \
+			del_string(hp->MEMBER);                 \
+			hp->MEMBER = NULL;                      \
+		}                                               \
+		if (optype == OP_ADDITION) {                    \
+			hp->MEMBER = get_shared_string(symbol); \
+			if (hp->MEMBER == NULL)                 \
+				return E_SYNTAX_ERROR;          \
+			hp->flags.MEMBER = TRUE;                \
+		}                                               \
+	} while (0)
 
 /* Parse an unsigned integer value for MEMBER */
-#define PARSE_UINT(MEMBER) do \
-{ \
-	if (optype == OP_BOOLEAN) \
-		return E_SYNTAX_ERROR; \
-	hp->flags.MEMBER = FALSE; \
-	if (optype == OP_ADDITION) { \
-		value = get_u_long(symbol); \
-		hp->MEMBER = value; \
-		hp->flags.MEMBER = TRUE; \
-	} \
-} while (0)
+#define PARSE_UINT(MEMBER)                          \
+	do {                                        \
+		if (optype == OP_BOOLEAN)           \
+			return E_SYNTAX_ERROR;      \
+		hp->flags.MEMBER = FALSE;           \
+		if (optype == OP_ADDITION) {        \
+			value = get_u_long(symbol); \
+			hp->MEMBER = value;         \
+			hp->flags.MEMBER = TRUE;    \
+		}                                   \
+	} while (0)
 
 /*
  * Evaluate the two-character tag symbol pointed to by "symbol" and place
@@ -775,7 +718,7 @@ eval_symbol(char **symbol, struct host *hp)
 	int32 timeoff;
 	int i, numsymbols;
 	unsigned len;
-	int optype;					/* Indicates boolean, addition, or deletion */
+	int optype; /* Indicates boolean, addition, or deletion */
 
 	eat_whitespace(symbol);
 
@@ -790,21 +733,22 @@ eval_symbol(char **symbol, struct host *hp)
 	if ((*symbol)[0] == ':') {
 		return SUCCESS;
 	}
-	if ((*symbol)[0] == 'T') {	/* generic symbol */
+	if ((*symbol)[0] == 'T') { /* generic symbol */
 		(*symbol)++;
 		value = get_u_long(symbol);
-		snprintf(current_tagname, sizeof(current_tagname),
-			"T%d", (int)value);
+		snprintf(current_tagname, sizeof(current_tagname), "T%d",
+		    (int)value);
 		eat_whitespace(symbol);
 		if ((*symbol)[0] != '=') {
 			return E_SYNTAX_ERROR;
 		}
 		(*symbol)++;
 		if (!(hp->generic)) {
-			hp->generic = (struct shared_bindata *)
-				smalloc(sizeof(struct shared_bindata));
+			hp->generic = (struct shared_bindata *)smalloc(
+			    sizeof(struct shared_bindata));
 		}
-		if (process_generic(symbol, &(hp->generic), (byte) (value & 0xFF)))
+		if (process_generic(symbol, &(hp->generic),
+			(byte)(value & 0xFF)))
 			return E_SYNTAX_ERROR;
 		hp->flags.generic = TRUE;
 		return SUCCESS;
@@ -831,7 +775,7 @@ eval_symbol(char **symbol, struct host *hp)
 	numsymbols = sizeof(symbol_list) / sizeof(struct symbolmap);
 	for (i = 0; i < numsymbols; i++) {
 		if (((symbolptr->symbol)[0] == (*symbol)[0]) &&
-			((symbolptr->symbol)[1] == (*symbol)[1])) {
+		    ((symbolptr->symbol)[1] == (*symbol)[1])) {
 			break;
 		}
 		symbolptr++;
@@ -894,18 +838,19 @@ eval_symbol(char **symbol, struct host *hp)
 			return E_SYNTAX_ERROR;
 		hp->flags.htype = FALSE;
 		if (optype == OP_ADDITION) {
-			value = 0L;			/* Assume an illegal value */
+			value = 0L; /* Assume an illegal value */
 			eat_whitespace(symbol);
 			if (isdigit(**symbol)) {
 				value = get_u_long(symbol);
 			} else {
 				len = sizeof(tmpstr);
-				(void) get_string(symbol, tmpstr, &len);
+				(void)get_string(symbol, tmpstr, &len);
 				makelower(tmpstr);
 				numsymbols = sizeof(htnamemap) /
-					sizeof(struct htypename);
+				    sizeof(struct htypename);
 				for (i = 0; i < numsymbols; i++) {
-					if (!strcmp(htnamemap[i].name, tmpstr)) {
+					if (!strcmp(htnamemap[i].name,
+						tmpstr)) {
 						break;
 					}
 				}
@@ -916,7 +861,7 @@ eval_symbol(char **symbol, struct host *hp)
 			if (value >= hwinfocnt) {
 				return E_BAD_HWATYPE;
 			}
-			hp->htype = (byte) (value & 0xFF);
+			hp->htype = (byte)(value & 0xFF);
 			hp->flags.htype = TRUE;
 		}
 		break;
@@ -955,11 +900,11 @@ eval_symbol(char **symbol, struct host *hp)
 		hp->flags.time_offset = FALSE;
 		if (optype == OP_ADDITION) {
 			len = sizeof(tmpstr);
-			(void) get_string(symbol, tmpstr, &len);
+			(void)get_string(symbol, tmpstr, &len);
 			if (!strncmp(tmpstr, "auto", 4)) {
 				hp->time_offset = secondswest;
 			} else {
-				if (sscanf(tmpstr, "%d", (int*)&timeoff) != 1)
+				if (sscanf(tmpstr, "%d", (int *)&timeoff) != 1)
 					return E_BAD_LONGWORD;
 				hp->time_offset = timeoff;
 			}
@@ -1026,7 +971,7 @@ eval_symbol(char **symbol, struct host *hp)
 				hp->flags.bootsize = TRUE;
 				hp->flags.bootsize_auto = TRUE;
 			} else {
-				hp->bootsize = (unsigned int) get_u_long(symbol);
+				hp->bootsize = (unsigned int)get_u_long(symbol);
 				hp->flags.bootsize = TRUE;
 				hp->flags.bootsize_auto = FALSE;
 			}
@@ -1047,8 +992,7 @@ eval_symbol(char **symbol, struct host *hp)
 
 	case SYM_TFTPDIR:
 		PARSE_STR(tftpdir);
-		if ((hp->tftpdir != NULL) &&
-			(hp->tftpdir->string[0] != '/'))
+		if ((hp->tftpdir != NULL) && (hp->tftpdir->string[0] != '/'))
 			return E_BAD_PATHNAME;
 		break;
 
@@ -1088,7 +1032,7 @@ eval_symbol(char **symbol, struct host *hp)
 		PARSE_IAL(ntp_server);
 		break;
 
-#ifdef	YORK_EX_OPTION
+#ifdef YORK_EX_OPTION
 	case SYM_EXEC_FILE:
 		PARSE_STR(exec_file);
 		break;
@@ -1096,8 +1040,7 @@ eval_symbol(char **symbol, struct host *hp)
 
 	case SYM_MSG_SIZE:
 		PARSE_UINT(msg_size);
-		if (hp->msg_size < BP_MINPKTSZ ||
-			hp->msg_size > MAX_MSG_SIZE)
+		if (hp->msg_size < BP_MINPKTSZ || hp->msg_size > MAX_MSG_SIZE)
 			return E_BAD_VALUE;
 		break;
 
@@ -1110,16 +1053,13 @@ eval_symbol(char **symbol, struct host *hp)
 	default:
 		return E_UNKNOWN_SYMBOL;
 
-	}							/* switch symbolcode */
+	} /* switch symbolcode */
 
 	return SUCCESS;
 }
-#undef	PARSE_IA1
-#undef	PARSE_IAL
-#undef	PARSE_STR
-
-
-
+#undef PARSE_IA1
+#undef PARSE_IAL
+#undef PARSE_STR
 
 /*
  * Read a string from the buffer indirectly pointed to through "src" and
@@ -1176,8 +1116,6 @@ get_string(char **src, char *dest, unsigned *length)
 	*length = n;
 	return dest;
 }
-
-
 
 /*
  * Read the string indirectly pointed to by "src", update the caller's
@@ -1195,17 +1133,15 @@ get_shared_string(char **src)
 	unsigned length;
 
 	length = sizeof(retstring);
-	(void) get_string(src, retstring, &length);
+	(void)get_string(src, retstring, &length);
 
-	s = (struct shared_string *) smalloc(sizeof(struct shared_string)
-										 + length);
+	s = (struct shared_string *)smalloc(
+	    sizeof(struct shared_string) + length);
 	s->linkcount = 1;
 	strcpy(s->string, retstring);
 
 	return s;
 }
-
-
 
 /*
  * Load RFC1048 generic information directly into a memory buffer.
@@ -1232,13 +1168,13 @@ process_generic(char **src, struct shared_bindata **dest, u_int tagvalue)
 	u_int newlength, oldlength;
 
 	str = tmpbuf;
-	*str++ = (tagvalue & 0xFF);	/* Store tag value */
-	str++;						/* Skip over length field */
-	if ((*src)[0] == '"') {		/* ASCII data */
-		newlength = sizeof(tmpbuf) - 2;	/* Set maximum allowed length */
-		(void) get_string(src, (char *) str, &newlength);
-		newlength++;			/* null terminator */
-	} else {					/* Numeric data */
+	*str++ = (tagvalue & 0xFF);		/* Store tag value */
+	str++;					/* Skip over length field */
+	if ((*src)[0] == '"') {			/* ASCII data */
+		newlength = sizeof(tmpbuf) - 2; /* Set maximum allowed length */
+		(void)get_string(src, (char *)str, &newlength);
+		newlength++; /* null terminator */
+	} else {	     /* Numeric data */
 		newlength = 0;
 		while (newlength < sizeof(tmpbuf) - 2) {
 			if (interp_byte(src, str++) < 0)
@@ -1254,8 +1190,8 @@ process_generic(char **src, struct shared_bindata **dest, u_int tagvalue)
 
 	tmpbuf[1] = (newlength & 0xFF);
 	oldlength = ((*dest)->length);
-	bdata = (struct shared_bindata *) smalloc(sizeof(struct shared_bindata)
-											+ oldlength + newlength + 1);
+	bdata = (struct shared_bindata *)smalloc(
+	    sizeof(struct shared_bindata) + oldlength + newlength + 1);
 	if (oldlength > 0) {
 		bcopy((*dest)->data, bdata->data, oldlength);
 	}
@@ -1268,8 +1204,6 @@ process_generic(char **src, struct shared_bindata **dest, u_int tagvalue)
 	*dest = bdata;
 	return 0;
 }
-
-
 
 /*
  * Verify that the given string makes sense as a hostname (according to
@@ -1282,27 +1216,24 @@ PRIVATE boolean
 goodname(char *hostname)
 {
 	do {
-		if (!isalpha(*hostname++)) {	/* First character must be a letter */
+		if (!isalpha(
+			*hostname++)) { /* First character must be a letter */
 			return FALSE;
 		}
-		while (isalnum(*hostname) ||
-			   (*hostname == '-') ||
-			   (*hostname == '_') )
-		{
-			hostname++;			/* Alphanumeric or a hyphen */
+		while (isalnum(*hostname) || (*hostname == '-') ||
+		    (*hostname == '_')) {
+			hostname++; /* Alphanumeric or a hyphen */
 		}
-		if (!isalnum(hostname[-1])) {	/* Last must be alphanumeric */
+		if (!isalnum(hostname[-1])) { /* Last must be alphanumeric */
 			return FALSE;
 		}
-		if (*hostname == '\0') {/* Done? */
+		if (*hostname == '\0') { /* Done? */
 			return TRUE;
 		}
-	} while (*hostname++ == '.');	/* Dot, loop for next label */
+	} while (*hostname++ == '.'); /* Dot, loop for next label */
 
-	return FALSE;				/* If it's not a dot, lose */
+	return FALSE; /* If it's not a dot, lose */
 }
-
-
 
 /*
  * Null compare function -- always returns FALSE so an element is always
@@ -1316,7 +1247,6 @@ nullcmp(hash_datum *d1, hash_datum *d2)
 	return FALSE;
 }
 
-
 /*
  * Function for comparing a string with the hostname field of a host
  * structure.
@@ -1325,12 +1255,11 @@ nullcmp(hash_datum *d1, hash_datum *d2)
 boolean
 nmcmp(hash_datum *d1, hash_datum *d2)
 {
-	char *name = (char *) d1;	/* XXX - OK? */
-	struct host *hp = (struct host *) d2;
+	char *name = (char *)d1; /* XXX - OK? */
+	struct host *hp = (struct host *)d2;
 
 	return !strcmp(name, hp->hostname->string);
 }
-
 
 /*
  * Compare function to determine whether two hardware addresses are
@@ -1347,8 +1276,8 @@ nmcmp(hash_datum *d1, hash_datum *d2)
 PRIVATE boolean
 hwinscmp(hash_datum *d1, hash_datum *d2)
 {
-	struct host *host1 = (struct host *) d1;
-	struct host *host2 = (struct host *) d2;
+	struct host *host1 = (struct host *)d1;
+	struct host *host2 = (struct host *)d2;
 
 	if (host1->htype != host2->htype) {
 		return FALSE;
@@ -1359,38 +1288,36 @@ hwinscmp(hash_datum *d1, hash_datum *d2)
 	/* XXX - Is the subnet_mask field set yet? */
 	if ((host1->subnet_mask.s_addr) == (host2->subnet_mask.s_addr)) {
 		if (((host1->iaddr.s_addr) & (host1->subnet_mask.s_addr)) !=
-			((host2->iaddr.s_addr) & (host2->subnet_mask.s_addr)))
-		{
+		    ((host2->iaddr.s_addr) & (host2->subnet_mask.s_addr))) {
 			return FALSE;
 		}
 	}
 	return TRUE;
 }
-
 
 /*
  * Macros for use in the function below:
  */
 
-#define DUP_COPY(MEMBER) do \
-{ \
-	if (!hp->flags.MEMBER) { \
-		if ((hp->flags.MEMBER = hp2->flags.MEMBER) != 0) { \
-			hp->MEMBER = hp2->MEMBER; \
-		} \
-	} \
-} while (0)
+#define DUP_COPY(MEMBER)                                                   \
+	do {                                                               \
+		if (!hp->flags.MEMBER) {                                   \
+			if ((hp->flags.MEMBER = hp2->flags.MEMBER) != 0) { \
+				hp->MEMBER = hp2->MEMBER;                  \
+			}                                                  \
+		}                                                          \
+	} while (0)
 
-#define DUP_LINK(MEMBER) do \
-{ \
-	if (!hp->flags.MEMBER) { \
-		if ((hp->flags.MEMBER = hp2->flags.MEMBER) != 0) { \
-			assert(hp2->MEMBER); \
-			hp->MEMBER = hp2->MEMBER; \
-			(hp->MEMBER->linkcount)++; \
-		} \
-	} \
-} while (0)
+#define DUP_LINK(MEMBER)                                                   \
+	do {                                                               \
+		if (!hp->flags.MEMBER) {                                   \
+			if ((hp->flags.MEMBER = hp2->flags.MEMBER) != 0) { \
+				assert(hp2->MEMBER);                       \
+				hp->MEMBER = hp2->MEMBER;                  \
+				(hp->MEMBER->linkcount)++;                 \
+			}                                                  \
+		}                                                          \
+	} while (0)
 
 /*
  * Process the "similar entry" symbol.
@@ -1407,9 +1334,9 @@ fill_defaults(struct host *hp, char **src)
 	char tstring[MAXSTRINGLEN];
 
 	tlen = sizeof(tstring);
-	(void) get_string(src, tstring, &tlen);
-	hashcode = hash_HashFunction((u_char *) tstring, tlen);
-	hp2 = (struct host *) hash_Lookup(nmhashtable, hashcode, nmcmp, tstring);
+	(void)get_string(src, tstring, &tlen);
+	hashcode = hash_HashFunction((u_char *)tstring, tlen);
+	hp2 = (struct host *)hash_Lookup(nmhashtable, hashcode, nmcmp, tstring);
 
 	if (hp2 == NULL) {
 		report(LOG_ERR, "can't find tc=\"%s\"", tstring);
@@ -1466,7 +1393,7 @@ fill_defaults(struct host *hp, char **src)
 	DUP_LINK(nis_server);
 	DUP_LINK(ntp_server);
 
-#ifdef	YORK_EX_OPTION
+#ifdef YORK_EX_OPTION
 	DUP_LINK(exec_file);
 #endif
 
@@ -1476,12 +1403,9 @@ fill_defaults(struct host *hp, char **src)
 	/* XXX - Add new tags here */
 
 	DUP_LINK(generic);
-
 }
-#undef	DUP_COPY
-#undef	DUP_LINK
-
-
+#undef DUP_COPY
+#undef DUP_LINK
 
 /*
  * This function adjusts the caller's pointer to point just past the
@@ -1504,9 +1428,6 @@ adjust(char **s)
 	*s = t;
 }
 
-
-
-
 /*
  * This function adjusts the caller's pointer to point to the first
  * non-whitespace character.  If it runs into a null character, it leaves
@@ -1525,8 +1446,6 @@ eat_whitespace(char **s)
 	*s = t;
 }
 
-
-
 /*
  * This function converts the given string to all lowercase.
  */
@@ -1541,8 +1460,6 @@ makelower(char *s)
 		s++;
 	}
 }
-
-
 
 /*
  *
@@ -1560,8 +1477,6 @@ makelower(char *s)
  *  (Yea, because it usually makes code slower... -gwr)
  *
  */
-
-
 
 /*
  * "src" points to a character pointer which points to an ASCII string of
@@ -1584,20 +1499,20 @@ get_addresses(char **src)
 		while (isspace(**src) || (**src == ',')) {
 			(*src)++;
 		}
-		if (!**src) {			/* Quit if nothing more */
+		if (!**src) { /* Quit if nothing more */
 			break;
 		}
 		if (prs_inetaddr(src, &(address1->s_addr)) < 0) {
 			break;
 		}
-		address1++;				/* Point to next address slot */
+		address1++; /* Point to next address slot */
 	}
 	if (addrcount < 1) {
 		result = NULL;
 	} else {
-		totalsize = sizeof(struct in_addr_list)
-		+			(addrcount - 1) * sizeof(struct in_addr);
-		result = (struct in_addr_list *) smalloc(totalsize);
+		totalsize = sizeof(struct in_addr_list) +
+		    (addrcount - 1) * sizeof(struct in_addr);
+		result = (struct in_addr_list *)smalloc(totalsize);
 		result->linkcount = 1;
 		result->addrcount = addrcount;
 		address1 = tmpaddrlist;
@@ -1610,8 +1525,6 @@ get_addresses(char **src)
 	}
 	return result;
 }
-
-
 
 /*
  * prs_inetaddr(src, result)
@@ -1641,9 +1554,9 @@ prs_inetaddr(char **src, u_int32 *result)
 		/* Lookup IP address. */
 		s = *src;
 		t = tmpstr;
-		while ((isalnum(*s) || (*s == '.') ||
-				(*s == '-') || (*s == '_') ) &&
-			   (t < &tmpstr[MAXSTRINGLEN - 1]) )
+		while ((isalnum(*s) || (*s == '.') || (*s == '-') ||
+			   (*s == '_')) &&
+		    (t < &tmpstr[MAXSTRINGLEN - 1]))
 			*t++ = *s++;
 		*t = '\0';
 		*src = s;
@@ -1661,7 +1574,7 @@ prs_inetaddr(char **src, u_int32 *result)
 	 *	a.b	(with b treated as 24 bits)
 	 */
 	pp = parts;
-  loop:
+loop:
 	/* If it's not a digit, return error. */
 	if (!isdigit(**src))
 		return -1;
@@ -1686,19 +1599,19 @@ prs_inetaddr(char **src, u_int32 *result)
 	 */
 	n = pp - parts;
 	switch (n) {
-	case 1:					/* a -- 32 bits */
+	case 1: /* a -- 32 bits */
 		value = parts[0];
 		break;
-	case 2:					/* a.b -- 8.24 bits */
+	case 2: /* a.b -- 8.24 bits */
 		value = (parts[0] << 24) | (parts[1] & 0xFFFFFF);
 		break;
-	case 3:					/* a.b.c -- 8.8.16 bits */
+	case 3: /* a.b.c -- 8.8.16 bits */
 		value = (parts[0] << 24) | ((parts[1] & 0xFF) << 16) |
-			(parts[2] & 0xFFFF);
+		    (parts[2] & 0xFFFF);
 		break;
-	case 4:					/* a.b.c.d -- 8.8.8.8 bits */
+	case 4: /* a.b.c.d -- 8.8.8.8 bits */
 		value = (parts[0] << 24) | ((parts[1] & 0xFF) << 16) |
-			((parts[2] & 0xFF) << 8) | (parts[3] & 0xFF);
+		    ((parts[2] & 0xFF) << 8) | (parts[3] & 0xFF);
 		break;
 	default:
 		return (-1);
@@ -1706,8 +1619,6 @@ prs_inetaddr(char **src, u_int32 *result)
 	*result = htonl(value);
 	return (0);
 }
-
-
 
 /*
  * "src" points to a pointer which in turn points to a hexadecimal ASCII
@@ -1735,7 +1646,7 @@ prs_haddr(char **src, u_int htype)
 	unsigned hal;
 	char *p;
 
-	hal = haddrlength(htype);	/* Get length of this address type */
+	hal = haddrlength(htype); /* Get length of this address type */
 	if (hal <= 0) {
 		report(LOG_ERR, "Invalid addr type for HW addr parse");
 		return NULL;
@@ -1763,8 +1674,6 @@ prs_haddr(char **src, u_int htype)
 	}
 	return haddr;
 }
-
-
 
 /*
  * "src" is a pointer to a character pointer which in turn points to a
@@ -1783,10 +1692,8 @@ interp_byte(char **src, byte *retbyte)
 {
 	int v;
 
-	if ((*src)[0] == '0' &&
-		((*src)[1] == 'x' ||
-		 (*src)[1] == 'X')) {
-		(*src) += 2;			/* allow 0x for hex, but don't require it */
+	if ((*src)[0] == '0' && ((*src)[1] == 'x' || (*src)[1] == 'X')) {
+		(*src) += 2; /* allow 0x for hex, but don't require it */
 	}
 	if (!isxdigit((*src)[0]) || !isxdigit((*src)[1])) {
 		return -1;
@@ -1795,11 +1702,9 @@ interp_byte(char **src, byte *retbyte)
 		return -1;
 	}
 	(*src) += 2;
-	*retbyte = (byte) (v & 0xFF);
+	*retbyte = (byte)(v & 0xFF);
 	return 0;
 }
-
-
 
 /*
  * The parameter "src" points to a character pointer which points to an
@@ -1843,13 +1748,10 @@ get_u_long(char **src)
 	}
 	return value;
 }
-
-
 
 /*
  * Routines for deletion of data associated with the main data structure.
  */
-
 
 /*
  * Frees the entire host data structure given.  Does nothing if the passed
@@ -1859,12 +1761,12 @@ get_u_long(char **src)
 PRIVATE void
 free_host(hash_datum *hmp)
 {
-	struct host *hostptr = (struct host *) hmp;
+	struct host *hostptr = (struct host *)hmp;
 	if (hostptr == NULL)
 		return;
 	assert(hostptr->linkcount > 0);
 	if (--(hostptr->linkcount))
-		return;					/* Still has references */
+		return; /* Still has references */
 	del_iplist(hostptr->cookie_server);
 	del_iplist(hostptr->domain_server);
 	del_iplist(hostptr->gateway);
@@ -1892,7 +1794,7 @@ free_host(hash_datum *hmp)
 	del_string(hostptr->exten_file);
 	del_string(hostptr->nis_domain);
 
-#ifdef	YORK_EX_OPTION
+#ifdef YORK_EX_OPTION
 	del_string(hostptr->exec_file);
 #endif
 
@@ -1902,10 +1804,8 @@ free_host(hash_datum *hmp)
 	 */
 
 	del_bindata(hostptr->generic);
-	free((char *) hostptr);
+	free((char *)hostptr);
 }
-
-
 
 /*
  * Decrements the linkcount on the given IP address data structure.  If the
@@ -1917,12 +1817,10 @@ del_iplist(struct in_addr_list *iplist)
 {
 	if (iplist) {
 		if (!(--(iplist->linkcount))) {
-			free((char *) iplist);
+			free((char *)iplist);
 		}
 	}
 }
-
-
 
 /*
  * Decrements the linkcount on a string data structure.  If the count
@@ -1935,12 +1833,10 @@ del_string(struct shared_string *stringptr)
 {
 	if (stringptr) {
 		if (!(--(stringptr->linkcount))) {
-			free((char *) stringptr);
+			free((char *)stringptr);
 		}
 	}
 }
-
-
 
 /*
  * Decrements the linkcount on a shared_bindata data structure.  If the
@@ -1953,13 +1849,10 @@ del_bindata(struct shared_bindata *dataptr)
 {
 	if (dataptr) {
 		if (!(--(dataptr->linkcount))) {
-			free((char *) dataptr);
+			free((char *)dataptr);
 		}
 	}
 }
-
-
-
 
 /* smalloc()  --  safe malloc()
  *
@@ -1982,7 +1875,6 @@ smalloc(unsigned nbytes)
 	bzero(retvalue, nbytes);
 	return retvalue;
 }
-
 
 /*
  * Compare function to determine whether two hardware addresses are
@@ -1996,8 +1888,8 @@ smalloc(unsigned nbytes)
 boolean
 hwlookcmp(hash_datum *d1, hash_datum *d2)
 {
-	struct host *host1 = (struct host *) d1;
-	struct host *host2 = (struct host *) d2;
+	struct host *host1 = (struct host *)d1;
+	struct host *host2 = (struct host *)d2;
 
 	if (host1->htype != host2->htype) {
 		return FALSE;
@@ -2008,7 +1900,6 @@ hwlookcmp(hash_datum *d1, hash_datum *d2)
 	return TRUE;
 }
 
-
 /*
  * Compare function for doing IP address hash table lookup.
  */
@@ -2016,8 +1907,8 @@ hwlookcmp(hash_datum *d1, hash_datum *d2)
 boolean
 iplookcmp(hash_datum *d1, hash_datum *d2)
 {
-	struct host *host1 = (struct host *) d1;
-	struct host *host2 = (struct host *) d2;
+	struct host *host1 = (struct host *)d1;
+	struct host *host2 = (struct host *)d2;
 
 	return (host1->iaddr.s_addr == host2->iaddr.s_addr);
 }

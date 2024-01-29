@@ -35,6 +35,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/event.h>
@@ -48,26 +49,24 @@
 #include <sys/poll.h>
 #include <sys/sx.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
-#include <sys/systm.h>
 
-#include <dev/iicbus/iiconf.h>
 #include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
 #include <dev/isl/isl.h>
 
-#include "iicbus_if.h"
 #include "bus_if.h"
 #include "device_if.h"
+#include "iicbus_if.h"
 
-#define ISL_METHOD_ALS		0x10
-#define ISL_METHOD_IR		0x11
-#define ISL_METHOD_PROX		0x12
-#define ISL_METHOD_RESOLUTION	0x13
-#define ISL_METHOD_RANGE	0x14
+#define ISL_METHOD_ALS 0x10
+#define ISL_METHOD_IR 0x11
+#define ISL_METHOD_PROX 0x12
+#define ISL_METHOD_RESOLUTION 0x13
+#define ISL_METHOD_RANGE 0x14
 
 struct isl_softc {
-	device_t	dev;
-	struct sx	isl_sx;
+	device_t dev;
+	struct sx isl_sx;
 };
 
 /* Returns < 0 on problem. */
@@ -78,8 +77,8 @@ isl_read_byte(device_t dev, uint8_t reg, uint8_t *val)
 {
 	uint16_t addr = iicbus_get_addr(dev);
 	struct iic_msg msgs[] = {
-	     { addr, IIC_M_WR | IIC_M_NOSTOP, 1, &reg },
-	     { addr, IIC_M_RD, 1, val },
+		{ addr, IIC_M_WR | IIC_M_NOSTOP, 1, &reg },
+		{ addr, IIC_M_RD, 1, val },
 	};
 
 	return (iicbus_transfer(dev, msgs, nitems(msgs)));
@@ -91,7 +90,7 @@ isl_write_byte(device_t dev, uint8_t reg, uint8_t val)
 	uint16_t addr = iicbus_get_addr(dev);
 	uint8_t bytes[] = { reg, val };
 	struct iic_msg msgs[] = {
-	     { addr, IIC_M_WR, nitems(bytes), bytes },
+		{ addr, IIC_M_WR, nitems(bytes), bytes },
 	};
 
 	return (iicbus_transfer(dev, msgs, nitems(msgs)));
@@ -115,7 +114,7 @@ init_device(device_t dev, int probe)
 	if (error)
 		goto done;
 
-	pause("islinit", hz/100);
+	pause("islinit", hz / 100);
 
 done:
 	if (error && !probe)
@@ -131,9 +130,9 @@ static int isl_sysctl(SYSCTL_HANDLER_ARGS);
 
 static device_method_t isl_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		isl_probe),
-	DEVMETHOD(device_attach,	isl_attach),
-	DEVMETHOD(device_detach,	isl_detach),
+	DEVMETHOD(device_probe, isl_probe),
+	DEVMETHOD(device_attach, isl_attach),
+	DEVMETHOD(device_detach, isl_detach),
 
 	DEVMETHOD_END
 };
@@ -200,38 +199,36 @@ isl_attach(device_t dev)
 	use_prox = isl_read_sensor(dev, CMD1_MASK_PROX_ONCE) >= 0;
 
 	if (use_als) {
-		SYSCTL_ADD_PROC(sysctl_ctx,
-		    SYSCTL_CHILDREN(sysctl_tree), OID_AUTO, "als",
+		SYSCTL_ADD_PROC(sysctl_ctx, SYSCTL_CHILDREN(sysctl_tree),
+		    OID_AUTO, "als",
 		    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_NEEDGIANT, sc,
 		    ISL_METHOD_ALS, isl_sysctl, "I",
 		    "Current ALS sensor read-out");
 	}
 
 	if (use_ir) {
-		SYSCTL_ADD_PROC(sysctl_ctx,
-		    SYSCTL_CHILDREN(sysctl_tree), OID_AUTO, "ir",
+		SYSCTL_ADD_PROC(sysctl_ctx, SYSCTL_CHILDREN(sysctl_tree),
+		    OID_AUTO, "ir",
 		    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_NEEDGIANT, sc,
 		    ISL_METHOD_IR, isl_sysctl, "I",
 		    "Current IR sensor read-out");
 	}
 
 	if (use_prox) {
-		SYSCTL_ADD_PROC(sysctl_ctx,
-		    SYSCTL_CHILDREN(sysctl_tree), OID_AUTO, "prox",
+		SYSCTL_ADD_PROC(sysctl_ctx, SYSCTL_CHILDREN(sysctl_tree),
+		    OID_AUTO, "prox",
 		    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_NEEDGIANT, sc,
 		    ISL_METHOD_PROX, isl_sysctl, "I",
 		    "Current proximity sensor read-out");
 	}
 
-	SYSCTL_ADD_PROC(sysctl_ctx,
-	    SYSCTL_CHILDREN(sysctl_tree), OID_AUTO, "resolution",
-	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_NEEDGIANT, sc,
+	SYSCTL_ADD_PROC(sysctl_ctx, SYSCTL_CHILDREN(sysctl_tree), OID_AUTO,
+	    "resolution", CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_NEEDGIANT, sc,
 	    ISL_METHOD_RESOLUTION, isl_sysctl, "I",
 	    "Current proximity sensor resolution");
 
-	SYSCTL_ADD_PROC(sysctl_ctx,
-	    SYSCTL_CHILDREN(sysctl_tree), OID_AUTO, "range",
-	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_NEEDGIANT, sc,
+	SYSCTL_ADD_PROC(sysctl_ctx, SYSCTL_CHILDREN(sysctl_tree), OID_AUTO,
+	    "range", CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_NEEDGIANT, sc,
 	    ISL_METHOD_RANGE, isl_sysctl, "I",
 	    "Current proximity sensor range");
 
@@ -252,8 +249,8 @@ isl_detach(device_t dev)
 static int
 isl_sysctl(SYSCTL_HANDLER_ARGS)
 {
-	static int resolutions[] = { 16, 12, 8, 4};
-	static int ranges[] = { 1000, 4000, 16000, 64000};
+	static int resolutions[] = { 16, 12, 8, 4 };
+	static int ranges[] = { 1000, 4000, 16000, 64000 };
 
 	struct isl_softc *sc;
 	uint8_t rbyte;
@@ -269,14 +266,14 @@ isl_sysctl(SYSCTL_HANDLER_ARGS)
 		sx_xunlock(&sc->isl_sx);
 		return (-1);
 	}
-	resolution = resolutions[(rbyte & CMD2_MASK_RESOLUTION)
-			    >> CMD2_SHIFT_RESOLUTION];
+	resolution = resolutions[(rbyte & CMD2_MASK_RESOLUTION) >>
+	    CMD2_SHIFT_RESOLUTION];
 	range = ranges[(rbyte & CMD2_MASK_RANGE) >> CMD2_SHIFT_RANGE];
 
 	switch (oidp->oid_arg2) {
 	case ISL_METHOD_ALS:
-		arg = (isl_read_sensor(sc->dev,
-		    CMD1_MASK_ALS_ONCE) * range) >> resolution;
+		arg = (isl_read_sensor(sc->dev, CMD1_MASK_ALS_ONCE) * range) >>
+		    resolution;
 		break;
 	case ISL_METHOD_IR:
 		arg = isl_read_sensor(sc->dev, CMD1_MASK_IR_ONCE);
@@ -317,7 +314,7 @@ isl_read_sensor(device_t dev, uint8_t cmd_mask)
 		return (-1);
 	}
 
-	pause("islconv", hz/10);
+	pause("islconv", hz / 10);
 
 	if (isl_read_byte(dev, REG_DATA1, &rbyte) != 0) {
 		device_printf(dev,
@@ -327,7 +324,8 @@ isl_read_sensor(device_t dev, uint8_t cmd_mask)
 
 	ret = rbyte;
 	if (isl_read_byte(dev, REG_DATA2, &rbyte) != 0) {
-		device_printf(dev, "Couldn't read second byte after command %d\n", cmd_mask);
+		device_printf(dev,
+		    "Couldn't read second byte after command %d\n", cmd_mask);
 		return (-1);
 	}
 	ret += rbyte << 8;

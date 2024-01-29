@@ -25,47 +25,44 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 #include "opt_ipsec.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
+#include <sys/conf.h>
+#include <sys/errno.h>
 #include <sys/fnv_hash.h>
 #include <sys/jail.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
 #include <sys/module.h>
+#include <sys/priv.h>
+#include <sys/proc.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sx.h>
-#include <sys/errno.h>
 #include <sys/sysctl.h>
-#include <sys/priv.h>
-#include <sys/proc.h>
-#include <sys/conf.h>
 
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_private.h>
-#include <net/if_clone.h>
-#include <net/if_types.h>
 #include <net/bpf.h>
+#include <net/if.h>
+#include <net/if_clone.h>
+#include <net/if_private.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
 #include <net/route.h>
 #include <net/vnet.h>
-
 #include <netinet/in.h>
 #include <netinet/in_var.h>
 #include <netinet/ip.h>
-#include <netinet/ip_encap.h>
-
 #include <netinet/ip6.h>
+#include <netinet/ip_encap.h>
 #include <netinet6/in6_var.h>
 #include <netinet6/scope6_var.h>
-
 #include <netipsec/ipsec.h>
 #ifdef INET6
 #include <netipsec/ipsec6.h>
@@ -80,44 +77,44 @@ static MALLOC_DEFINE(M_IPSEC, "ipsec", "IPsec Virtual Tunnel Interface");
 static const char ipsecname[] = "ipsec";
 
 #if defined(INET) && defined(INET6)
-#define	IPSEC_SPCOUNT		4
+#define IPSEC_SPCOUNT 4
 #else
-#define	IPSEC_SPCOUNT		2
+#define IPSEC_SPCOUNT 2
 #endif
 
 struct ipsec_softc {
-	struct ifnet		*ifp;
-	struct secpolicy	*sp[IPSEC_SPCOUNT];
-	uint32_t		reqid;
-	u_int			family;
-	u_int			fibnum;
+	struct ifnet *ifp;
+	struct secpolicy *sp[IPSEC_SPCOUNT];
+	uint32_t reqid;
+	u_int family;
+	u_int fibnum;
 
 	CK_LIST_ENTRY(ipsec_softc) idhash;
 	CK_LIST_ENTRY(ipsec_softc) srchash;
 };
 
-#define	IPSEC_RLOCK_TRACKER	struct epoch_tracker ipsec_et
-#define	IPSEC_RLOCK()	epoch_enter_preempt(net_epoch_preempt, &ipsec_et)
-#define	IPSEC_RUNLOCK()	epoch_exit_preempt(net_epoch_preempt, &ipsec_et)
-#define	IPSEC_WAIT()	epoch_wait_preempt(net_epoch_preempt)
+#define IPSEC_RLOCK_TRACKER struct epoch_tracker ipsec_et
+#define IPSEC_RLOCK() epoch_enter_preempt(net_epoch_preempt, &ipsec_et)
+#define IPSEC_RUNLOCK() epoch_exit_preempt(net_epoch_preempt, &ipsec_et)
+#define IPSEC_WAIT() epoch_wait_preempt(net_epoch_preempt)
 
 #ifndef IPSEC_HASH_SIZE
-#define	IPSEC_HASH_SIZE	(1 << 5)
+#define IPSEC_HASH_SIZE (1 << 5)
 #endif
 
 CK_LIST_HEAD(ipsec_iflist, ipsec_softc);
 VNET_DEFINE_STATIC(struct ipsec_iflist *, ipsec_idhtbl) = NULL;
-#define	V_ipsec_idhtbl		VNET(ipsec_idhtbl)
+#define V_ipsec_idhtbl VNET(ipsec_idhtbl)
 
 #ifdef INET
 VNET_DEFINE_STATIC(struct ipsec_iflist *, ipsec4_srchtbl) = NULL;
-#define	V_ipsec4_srchtbl	VNET(ipsec4_srchtbl)
+#define V_ipsec4_srchtbl VNET(ipsec4_srchtbl)
 static const struct srcaddrtab *ipsec4_srctab = NULL;
 #endif
 
 #ifdef INET6
 VNET_DEFINE_STATIC(struct ipsec_iflist *, ipsec6_srchtbl) = NULL;
-#define	V_ipsec6_srchtbl	VNET(ipsec6_srchtbl)
+#define V_ipsec6_srchtbl VNET(ipsec6_srchtbl)
 static const struct srcaddrtab *ipsec6_srctab = NULL;
 #endif
 
@@ -125,8 +122,8 @@ static struct ipsec_iflist *
 ipsec_idhash(uint32_t id)
 {
 
-	return (&V_ipsec_idhtbl[fnv_32_buf(&id, sizeof(id),
-	    FNV1_32_INIT) & (IPSEC_HASH_SIZE - 1)]);
+	return (&V_ipsec_idhtbl[fnv_32_buf(&id, sizeof(id), FNV1_32_INIT) &
+	    (IPSEC_HASH_SIZE - 1)]);
 }
 
 static struct ipsec_iflist *
@@ -144,8 +141,7 @@ ipsec_srchash(const struct sockaddr *sa)
 #endif
 #ifdef INET6
 	case AF_INET6:
-		hval = fnv_32_buf(
-		    &((const struct sockaddr_in6 *)sa)->sin6_addr,
+		hval = fnv_32_buf(&((const struct sockaddr_in6 *)sa)->sin6_addr,
 		    sizeof(struct in6_addr), FNV1_32_INIT);
 		return (&V_ipsec6_srchtbl[hval & (IPSEC_HASH_SIZE - 1)]);
 #endif
@@ -159,30 +155,30 @@ ipsec_srchash(const struct sockaddr *sa)
 static struct sx ipsec_ioctl_sx;
 SX_SYSINIT(ipsec_ioctl_sx, &ipsec_ioctl_sx, "ipsec_ioctl");
 
-static int	ipsec_init_reqid(struct ipsec_softc *);
-static int	ipsec_set_tunnel(struct ipsec_softc *, struct sockaddr *,
+static int ipsec_init_reqid(struct ipsec_softc *);
+static int ipsec_set_tunnel(struct ipsec_softc *, struct sockaddr *,
     struct sockaddr *, uint32_t);
-static void	ipsec_delete_tunnel(struct ipsec_softc *);
+static void ipsec_delete_tunnel(struct ipsec_softc *);
 
-static int	ipsec_set_addresses(struct ifnet *, struct sockaddr *,
+static int ipsec_set_addresses(struct ifnet *, struct sockaddr *,
     struct sockaddr *);
-static int	ipsec_set_reqid(struct ipsec_softc *, uint32_t);
-static void	ipsec_set_running(struct ipsec_softc *);
+static int ipsec_set_reqid(struct ipsec_softc *, uint32_t);
+static void ipsec_set_running(struct ipsec_softc *);
 
 #ifdef VIMAGE
-static void	ipsec_reassign(struct ifnet *, struct vnet *, char *);
+static void ipsec_reassign(struct ifnet *, struct vnet *, char *);
 #endif
-static void	ipsec_srcaddr(void *, const struct sockaddr *, int);
-static int	ipsec_ioctl(struct ifnet *, u_long, caddr_t);
-static int	ipsec_transmit(struct ifnet *, struct mbuf *);
-static int	ipsec_output(struct ifnet *, struct mbuf *,
-    const struct sockaddr *, struct route *);
-static void	ipsec_qflush(struct ifnet *);
-static int	ipsec_clone_create(struct if_clone *, int, caddr_t);
-static void	ipsec_clone_destroy(struct ifnet *);
+static void ipsec_srcaddr(void *, const struct sockaddr *, int);
+static int ipsec_ioctl(struct ifnet *, u_long, caddr_t);
+static int ipsec_transmit(struct ifnet *, struct mbuf *);
+static int ipsec_output(struct ifnet *, struct mbuf *, const struct sockaddr *,
+    struct route *);
+static void ipsec_qflush(struct ifnet *);
+static int ipsec_clone_create(struct if_clone *, int, caddr_t);
+static void ipsec_clone_destroy(struct ifnet *);
 
 VNET_DEFINE_STATIC(struct if_clone *, ipsec_cloner);
-#define	V_ipsec_cloner		VNET(ipsec_cloner)
+#define V_ipsec_cloner VNET(ipsec_cloner)
 
 static int
 ipsec_clone_create(struct if_clone *ifc, int unit, caddr_t params)
@@ -198,10 +194,10 @@ ipsec_clone_create(struct if_clone *ifc, int unit, caddr_t params)
 
 	ifp->if_addrlen = 0;
 	ifp->if_mtu = IPSEC_MTU;
-	ifp->if_flags  = IFF_POINTOPOINT | IFF_MULTICAST;
-	ifp->if_ioctl  = ipsec_ioctl;
-	ifp->if_transmit  = ipsec_transmit;
-	ifp->if_qflush  = ipsec_qflush;
+	ifp->if_flags = IFF_POINTOPOINT | IFF_MULTICAST;
+	ifp->if_ioctl = ipsec_ioctl;
+	ifp->if_transmit = ipsec_transmit;
+	ifp->if_qflush = ipsec_qflush;
 	ifp->if_output = ipsec_output;
 #ifdef VIMAGE
 	ifp->if_reassign = ipsec_reassign;
@@ -257,8 +253,8 @@ ipsec_hashinit(void)
 	struct ipsec_iflist *hash;
 	int i;
 
-	hash = malloc(sizeof(struct ipsec_iflist) * IPSEC_HASH_SIZE,
-	    M_IPSEC, M_WAITOK);
+	hash = malloc(sizeof(struct ipsec_iflist) * IPSEC_HASH_SIZE, M_IPSEC,
+	    M_WAITOK);
 	for (i = 0; i < IPSEC_HASH_SIZE; i++)
 		CK_LIST_INIT(&hash[i]);
 
@@ -273,14 +269,14 @@ vnet_ipsec_init(const void *unused __unused)
 #ifdef INET
 	V_ipsec4_srchtbl = ipsec_hashinit();
 	if (IS_DEFAULT_VNET(curvnet))
-		ipsec4_srctab = ip_encap_register_srcaddr(ipsec_srcaddr,
-		    NULL, M_WAITOK);
+		ipsec4_srctab = ip_encap_register_srcaddr(ipsec_srcaddr, NULL,
+		    M_WAITOK);
 #endif
 #ifdef INET6
 	V_ipsec6_srchtbl = ipsec_hashinit();
 	if (IS_DEFAULT_VNET(curvnet))
-		ipsec6_srctab = ip6_encap_register_srcaddr(ipsec_srcaddr,
-		    NULL, M_WAITOK);
+		ipsec6_srctab = ip6_encap_register_srcaddr(ipsec_srcaddr, NULL,
+		    M_WAITOK);
 #endif
 	V_ipsec_cloner = if_clone_simple(ipsecname, ipsec_clone_create,
 	    ipsec_clone_destroy, 0);
@@ -322,13 +318,13 @@ ipsec_getpolicy(struct ipsec_softc *sc, int dir, sa_family_t af)
 	switch (af) {
 #ifdef INET
 	case AF_INET:
-		return (sc->sp[(dir == IPSEC_DIR_INBOUND ? 0: 1)]);
+		return (sc->sp[(dir == IPSEC_DIR_INBOUND ? 0 : 1)]);
 #endif
 #ifdef INET6
 	case AF_INET6:
-		return (sc->sp[(dir == IPSEC_DIR_INBOUND ? 0: 1)
+		return (sc->sp[(dir == IPSEC_DIR_INBOUND ? 0 : 1)
 #ifdef INET
-			+ 2
+		    + 2
 #endif
 		]);
 #endif
@@ -436,12 +432,11 @@ err:
 static void
 ipsec_qflush(struct ifnet *ifp __unused)
 {
-
 }
 
 static int
 ipsec_output(struct ifnet *ifp, struct mbuf *m, const struct sockaddr *dst,
-	struct route *ro)
+    struct route *ro)
 {
 
 	return (ifp->if_transmit(ifp, m));
@@ -466,21 +461,21 @@ ipsec_if_input(struct mbuf *m, struct secasvar *sav, uint32_t af)
 		return (0);
 
 	IPSEC_RLOCK();
-	CK_LIST_FOREACH(sc, ipsec_idhash(sav->sah->saidx.reqid), idhash) {
+	CK_LIST_FOREACH(sc, ipsec_idhash(sav->sah->saidx.reqid), idhash)
+	{
 		if (sc->family == 0)
 			continue;
 		saidx = ipsec_getsaidx(sc, IPSEC_DIR_INBOUND,
 		    sav->sah->saidx.src.sa.sa_family);
 		/* SA's reqid should match reqid in SP */
-		if (saidx == NULL ||
-		    sav->sah->saidx.reqid != saidx->reqid)
+		if (saidx == NULL || sav->sah->saidx.reqid != saidx->reqid)
 			continue;
 		/* SAH's addresses should match tunnel endpoints. */
-		if (key_sockaddrcmp(&sav->sah->saidx.dst.sa,
-		    &saidx->dst.sa, 0) != 0)
+		if (key_sockaddrcmp(&sav->sah->saidx.dst.sa, &saidx->dst.sa,
+			0) != 0)
 			continue;
-		if (key_sockaddrcmp(&sav->sah->saidx.src.sa,
-		    &saidx->src.sa, 0) == 0)
+		if (key_sockaddrcmp(&sav->sah->saidx.src.sa, &saidx->src.sa,
+			0) == 0)
 			break;
 	}
 	if (sc == NULL) {
@@ -518,7 +513,7 @@ ipsec_if_input(struct mbuf *m, struct secasvar *sav, uint32_t af)
 static int
 ipsec_ioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 {
-	struct ifreq *ifr = (struct ifreq*)data;
+	struct ifreq *ifr = (struct ifreq *)data;
 	struct sockaddr *dst, *src;
 	struct ipsec_softc *sc;
 	struct secasindex *saidx;
@@ -564,18 +559,18 @@ ipsec_ioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 		switch (cmd) {
 #ifdef INET
 		case SIOCSIFPHYADDR:
-			src = (struct sockaddr *)
-				&(((struct in_aliasreq *)data)->ifra_addr);
-			dst = (struct sockaddr *)
-				&(((struct in_aliasreq *)data)->ifra_dstaddr);
+			src = (struct sockaddr *)&(
+			    ((struct in_aliasreq *)data)->ifra_addr);
+			dst = (struct sockaddr *)&(
+			    ((struct in_aliasreq *)data)->ifra_dstaddr);
 			break;
 #endif
 #ifdef INET6
 		case SIOCSIFPHYADDR_IN6:
-			src = (struct sockaddr *)
-				&(((struct in6_aliasreq *)data)->ifra_addr);
-			dst = (struct sockaddr *)
-				&(((struct in6_aliasreq *)data)->ifra_dstaddr);
+			src = (struct sockaddr *)&(
+			    ((struct in6_aliasreq *)data)->ifra_addr);
+			dst = (struct sockaddr *)&(
+			    ((struct in6_aliasreq *)data)->ifra_dstaddr);
 			break;
 #endif
 		default:
@@ -632,9 +627,8 @@ ipsec_ioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 #ifdef INET6
 		case AF_INET6:
 			if (IN6_IS_ADDR_UNSPECIFIED(
-			    &satosin6(src)->sin6_addr) ||
-			    IN6_IS_ADDR_UNSPECIFIED(
-			    &satosin6(dst)->sin6_addr))
+				&satosin6(src)->sin6_addr) ||
+			    IN6_IS_ADDR_UNSPECIFIED(&satosin6(dst)->sin6_addr))
 				goto bad;
 			/*
 			 * Check validity of the scope zone ID of the
@@ -690,8 +684,8 @@ ipsec_ioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 				error = EADDRNOTAVAIL;
 				break;
 			}
-			sin6 = (struct sockaddr_in6 *)
-				&(((struct in6_ifreq *)data)->ifr_addr);
+			sin6 = (struct sockaddr_in6 *)&(
+			    ((struct in6_ifreq *)data)->ifr_addr);
 			memset(sin6, 0, sizeof(*sin6));
 			sin6->sin6_family = AF_INET6;
 			sin6->sin6_len = sizeof(*sin6);
@@ -813,8 +807,7 @@ ipsec_set_running(struct ipsec_softc *sc)
  * source address spoofing.
  */
 static void
-ipsec_srcaddr(void *arg __unused, const struct sockaddr *sa,
-    int event __unused)
+ipsec_srcaddr(void *arg __unused, const struct sockaddr *sa, int event __unused)
 {
 	struct ipsec_softc *sc;
 	struct secasindex *saidx;
@@ -828,7 +821,8 @@ ipsec_srcaddr(void *arg __unused, const struct sockaddr *sa,
 	iflist = ipsec_srchash(sa);
 	if (iflist == NULL)
 		return;
-	CK_LIST_FOREACH(sc, iflist, srchash) {
+	CK_LIST_FOREACH(sc, iflist, srchash)
+	{
 		if (sc->family == 0)
 			continue;
 		saidx = ipsec_getsaidx(sc, IPSEC_DIR_OUTBOUND, sa->sa_family);
@@ -887,16 +881,16 @@ ipsec_newpolicies(struct ipsec_softc *sc, struct secpolicy *sp[IPSEC_SPCOUNT],
 			sp[i]->spidx.src.sa.sa_family =
 			    sp[i]->spidx.dst.sa.sa_family = AF_INET;
 			sp[i]->spidx.src.sa.sa_len =
-			    sp[i]->spidx.dst.sa.sa_len =
-			    sizeof(struct sockaddr_in);
+			    sp[i]->spidx.dst.sa.sa_len = sizeof(
+				struct sockaddr_in);
 			continue;
 		}
 #endif
 #ifdef INET6
-		sp[i]->spidx.src.sa.sa_family =
-		    sp[i]->spidx.dst.sa.sa_family = AF_INET6;
-		sp[i]->spidx.src.sa.sa_len =
-		    sp[i]->spidx.dst.sa.sa_len = sizeof(struct sockaddr_in6);
+		sp[i]->spidx.src.sa.sa_family = sp[i]->spidx.dst.sa.sa_family =
+		    AF_INET6;
+		sp[i]->spidx.src.sa.sa_len = sp[i]->spidx.dst.sa.sa_len =
+		    sizeof(struct sockaddr_in6);
 #endif
 	}
 	return (0);
@@ -912,7 +906,8 @@ ipsec_check_reqid(uint32_t reqid)
 	struct ipsec_softc *sc;
 
 	sx_assert(&ipsec_ioctl_sx, SA_XLOCKED);
-	CK_LIST_FOREACH(sc, ipsec_idhash(reqid), idhash) {
+	CK_LIST_FOREACH(sc, ipsec_idhash(reqid), idhash)
+	{
 		if (sc->reqid == reqid)
 			return (EEXIST);
 	}
@@ -925,7 +920,7 @@ ipsec_check_reqid(uint32_t reqid)
  * another if_ipsec(4) interface. This macro limits the number of
  * tries to get unique id.
  */
-#define	IPSEC_REQID_TRYCNT	64
+#define IPSEC_REQID_TRYCNT 64
 static int
 ipsec_init_reqid(struct ipsec_softc *sc)
 {
@@ -986,10 +981,9 @@ ipsec_set_reqid(struct ipsec_softc *sc, uint32_t reqid)
 		return (0);
 
 	saidx = ipsec_getsaidx(sc, IPSEC_DIR_OUTBOUND, sc->family);
-	KASSERT(saidx != NULL,
-	    ("saidx is NULL, but family is %d", sc->family));
-	return (ipsec_set_tunnel(sc, &saidx->src.sa, &saidx->dst.sa,
-	    sc->reqid));
+	KASSERT(saidx != NULL, ("saidx is NULL, but family is %d", sc->family));
+	return (
+	    ipsec_set_tunnel(sc, &saidx->src.sa, &saidx->dst.sa, sc->reqid));
 }
 
 /*
@@ -1006,8 +1000,7 @@ ipsec_set_addresses(struct ifnet *ifp, struct sockaddr *src,
 
 	sc = ifp->if_softc;
 	if (sc->family != 0) {
-		saidx = ipsec_getsaidx(sc, IPSEC_DIR_OUTBOUND,
-		    src->sa_family);
+		saidx = ipsec_getsaidx(sc, IPSEC_DIR_OUTBOUND, src->sa_family);
 		if (saidx != NULL && saidx->reqid == sc->reqid &&
 		    key_sockaddrcmp(&saidx->src.sa, src, 0) == 0 &&
 		    key_sockaddrcmp(&saidx->dst.sa, dst, 0) == 0)

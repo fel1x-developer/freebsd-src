@@ -46,12 +46,12 @@ static const char *path = "fileforaudit";
 static const char *errpath = "dirdoesnotexist/fileforaudit";
 static const char *failurereg = "fileforaudit.*return,failure";
 
-
 ATF_TC_WITH_CLEANUP(munmap_success);
 ATF_TC_HEAD(munmap_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"munmap(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "munmap(2) call");
 }
 
 ATF_TC_BODY(munmap_success, tc)
@@ -60,7 +60,7 @@ ATF_TC_BODY(munmap_success, tc)
 	snprintf(extregex, sizeof(extregex), "munmap.*%d.*return,success", pid);
 
 	/* Allocate sample memory, to be removed by munmap(2) */
-	char *addr = mmap(NULL, sizeof(char), PROT_READ , MAP_ANONYMOUS, -1, 0);
+	char *addr = mmap(NULL, sizeof(char), PROT_READ, MAP_ANONYMOUS, -1, 0);
 	FILE *pipefd = setup(fds, auclass);
 	ATF_REQUIRE_EQ(0, munmap(addr, sizeof(char)));
 	check_audit(fds, extregex, pipefd);
@@ -71,12 +71,12 @@ ATF_TC_CLEANUP(munmap_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(munmap_failure);
 ATF_TC_HEAD(munmap_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"munmap(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "munmap(2) call");
 }
 
 ATF_TC_BODY(munmap_failure, tc)
@@ -92,12 +92,12 @@ ATF_TC_CLEANUP(munmap_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(close_success);
 ATF_TC_HEAD(close_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"close(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "close(2) call");
 }
 
 ATF_TC_BODY(close_success, tc)
@@ -111,7 +111,7 @@ ATF_TC_BODY(close_success, tc)
 
 	/* intmax_t to support all architectures */
 	snprintf(extregex, sizeof(extregex), "close.*%jd.*return,succes",
-			(intmax_t)statbuff.st_ino);
+	    (intmax_t)statbuff.st_ino);
 	check_audit(fds, extregex, pipefd);
 }
 
@@ -120,12 +120,12 @@ ATF_TC_CLEANUP(close_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(close_failure);
 ATF_TC_HEAD(close_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"close(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "close(2) call");
 }
 
 ATF_TC_BODY(close_failure, tc)
@@ -142,18 +142,18 @@ ATF_TC_CLEANUP(close_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(closefrom_success);
 ATF_TC_HEAD(closefrom_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"closefrom(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "closefrom(2) call");
 }
 
 ATF_TC_BODY(closefrom_success, tc)
 {
 	const char *regex = "close_range\\(2\\),.*,0x7fffffff,lowfd,.*"
-	    "0xffffffff,highfd,.*return,success";
+			    "0xffffffff,highfd,.*return,success";
 	FILE *pipefd = setup(fds, auclass);
 
 	/* closefrom(2) returns 'void' */
@@ -166,12 +166,12 @@ ATF_TC_CLEANUP(closefrom_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(revoke_success);
 ATF_TC_HEAD(revoke_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"revoke(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "revoke(2) call");
 }
 
 ATF_TC_BODY(revoke_success, tc)
@@ -195,12 +195,12 @@ ATF_TC_CLEANUP(revoke_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(revoke_failure);
 ATF_TC_HEAD(revoke_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"revoke(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "revoke(2) call");
 }
 
 ATF_TC_BODY(revoke_failure, tc)
@@ -215,7 +215,6 @@ ATF_TC_CLEANUP(revoke_failure, tc)
 {
 	cleanup();
 }
-
 
 ATF_TP_ADD_TCS(tp)
 {

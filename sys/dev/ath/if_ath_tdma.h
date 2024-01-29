@@ -28,28 +28,29 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
-#ifndef	__IF_ATH_TDMA_H__
-#define	__IF_ATH_TDMA_H__
+#ifndef __IF_ATH_TDMA_H__
+#define __IF_ATH_TDMA_H__
 
-#define	TDMA_EP_MULTIPLIER	(1<<10) /* pow2 to optimize out * and / */
-#define	TDMA_LPF_LEN		6
-#define	TDMA_DUMMY_MARKER	0x127
-#define	TDMA_EP_MUL(x, mul)	((x) * (mul))
-#define	TDMA_IN(x)		(TDMA_EP_MUL((x), TDMA_EP_MULTIPLIER))
-#define	TDMA_LPF(x, y, len)					\
-    ((x != TDMA_DUMMY_MARKER) ? (((x) * ((len)-1) + (y)) / (len)) : (y))
-#define	TDMA_SAMPLE(x, y)	do {				\
-        x = TDMA_LPF((x), TDMA_IN(y), TDMA_LPF_LEN);		\
-} while (0)
-#define	TDMA_EP_RND(x,mul) \
-	    ((((x)%(mul)) >= ((mul)/2)) ?			\
-	     ((x) + ((mul) - 1)) / (mul) : (x)/(mul))
-#define	TDMA_AVG(x)		TDMA_EP_RND(x, TDMA_EP_MULTIPLIER)
+#define TDMA_EP_MULTIPLIER (1 << 10) /* pow2 to optimize out * and / */
+#define TDMA_LPF_LEN 6
+#define TDMA_DUMMY_MARKER 0x127
+#define TDMA_EP_MUL(x, mul) ((x) * (mul))
+#define TDMA_IN(x) (TDMA_EP_MUL((x), TDMA_EP_MULTIPLIER))
+#define TDMA_LPF(x, y, len) \
+	((x != TDMA_DUMMY_MARKER) ? (((x) * ((len)-1) + (y)) / (len)) : (y))
+#define TDMA_SAMPLE(x, y)                                    \
+	do {                                                 \
+		x = TDMA_LPF((x), TDMA_IN(y), TDMA_LPF_LEN); \
+	} while (0)
+#define TDMA_EP_RND(x, mul)                                           \
+	((((x) % (mul)) >= ((mul) / 2)) ? ((x) + ((mul)-1)) / (mul) : \
+					  (x) / (mul))
+#define TDMA_AVG(x) TDMA_EP_RND(x, TDMA_EP_MULTIPLIER)
 
-extern	void ath_tdma_config(struct ath_softc *sc, struct ieee80211vap *vap);
-extern	void ath_tdma_update(struct ieee80211_node *ni,
-	    const struct ieee80211_tdma_param *tdma, int changed);
-extern	void ath_tdma_beacon_send(struct ath_softc *sc,
-	    struct ieee80211vap *vap);
+extern void ath_tdma_config(struct ath_softc *sc, struct ieee80211vap *vap);
+extern void ath_tdma_update(struct ieee80211_node *ni,
+    const struct ieee80211_tdma_param *tdma, int changed);
+extern void ath_tdma_beacon_send(struct ath_softc *sc,
+    struct ieee80211vap *vap);
 
 #endif

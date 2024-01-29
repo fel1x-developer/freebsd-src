@@ -45,4 +45,3 @@ getgrouplist(const char *uname, gid_t agroup, gid_t *groups, int *grpcnt)
 {
 	return __getgroupmembership(uname, agroup, groups, *grpcnt, grpcnt);
 }
-

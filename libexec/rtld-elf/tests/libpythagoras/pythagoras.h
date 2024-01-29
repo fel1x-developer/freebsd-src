@@ -23,4 +23,4 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-double	pythagorean_theorem(double, double);
+double pythagorean_theorem(double, double);

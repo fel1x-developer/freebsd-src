@@ -42,71 +42,69 @@
  * newfs: friendly front end to mkfs
  */
 #include <sys/param.h>
-#include <sys/stat.h>
 #include <sys/disk.h>
 #include <sys/disklabel.h>
 #include <sys/file.h>
 #include <sys/mount.h>
-
-#include <ufs/ufs/dir.h>
-#include <ufs/ufs/dinode.h>
-#include <ufs/ffs/fs.h>
-#include <ufs/ufs/extattr.h>
-#include <ufs/ufs/quota.h>
-#include <ufs/ufs/ufsmount.h>
+#include <sys/stat.h>
 
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <libutil.h>
 #include <paths.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
+#include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
+#include <ufs/ufs/dir.h>
+#include <ufs/ufs/extattr.h>
+#include <ufs/ufs/quota.h>
+#include <ufs/ufs/ufsmount.h>
 #include <unistd.h>
-
-#include <libutil.h>
 
 #include "newfs.h"
 
-int	Eflag;			/* Erase previous disk contents */
-int	Lflag;			/* add a volume label */
-int	Nflag;			/* run without writing file system */
-int	Oflag = 2;		/* file system format (1 => UFS1, 2 => UFS2) */
-int	Rflag;			/* regression test */
-int	Uflag;			/* enable soft updates for file system */
-int	jflag;			/* enable soft updates journaling for filesys */
-int	Xflag = 0;		/* exit in middle of newfs for testing */
-int	Jflag;			/* enable gjournal for file system */
-int	lflag;			/* enable multilabel for file system */
-int	nflag;			/* do not create .snap directory */
-int	tflag;			/* enable TRIM */
-intmax_t fssize;		/* file system size */
-off_t	mediasize;		/* device size */
-int	sectorsize;		/* bytes/sector */
-int	realsectorsize;		/* bytes/sector in hardware */
-int	fsize = 0;		/* fragment size */
-int	bsize = 0;		/* block size */
-int	maxbsize = 0;		/* maximum clustering */
-int	maxblkspercg = MAXBLKSPERCG; /* maximum blocks per cylinder group */
-int	minfree = MINFREE;	/* free space threshold */
-int	metaspace;		/* space held for metadata blocks */
-int	opt = DEFAULTOPT;	/* optimization preference (space or time) */
-int	density;		/* number of bytes per inode */
-int	maxcontig = 0;		/* max contiguous blocks to allocate */
-int	maxbpg;			/* maximum blocks per file in a cyl group */
-int	avgfilesize = AVFILESIZ;/* expected average file size */
-int	avgfilesperdir = AFPDIR;/* expected number of files per directory */
-u_char	*volumelabel = NULL;	/* volume label for filesystem */
-struct uufsd disk;		/* libufs disk structure */
+int Eflag;	    /* Erase previous disk contents */
+int Lflag;	    /* add a volume label */
+int Nflag;	    /* run without writing file system */
+int Oflag = 2;	    /* file system format (1 => UFS1, 2 => UFS2) */
+int Rflag;	    /* regression test */
+int Uflag;	    /* enable soft updates for file system */
+int jflag;	    /* enable soft updates journaling for filesys */
+int Xflag = 0;	    /* exit in middle of newfs for testing */
+int Jflag;	    /* enable gjournal for file system */
+int lflag;	    /* enable multilabel for file system */
+int nflag;	    /* do not create .snap directory */
+int tflag;	    /* enable TRIM */
+intmax_t fssize;    /* file system size */
+off_t mediasize;    /* device size */
+int sectorsize;	    /* bytes/sector */
+int realsectorsize; /* bytes/sector in hardware */
+int fsize = 0;	    /* fragment size */
+int bsize = 0;	    /* block size */
+int maxbsize = 0;   /* maximum clustering */
+int maxblkspercg = MAXBLKSPERCG; /* maximum blocks per cylinder group */
+int minfree = MINFREE;		 /* free space threshold */
+int metaspace;			 /* space held for metadata blocks */
+int opt = DEFAULTOPT;		 /* optimization preference (space or time) */
+int density;			 /* number of bytes per inode */
+int maxcontig = 0;		 /* max contiguous blocks to allocate */
+int maxbpg;			 /* maximum blocks per file in a cyl group */
+int avgfilesize = AVFILESIZ;	 /* expected average file size */
+int avgfilesperdir = AFPDIR;	 /* expected number of files per directory */
+u_char *volumelabel = NULL;	 /* volume label for filesystem */
+struct uufsd disk;		 /* libufs disk structure */
 
-static char	device[MAXPATHLEN];
-static u_char   bootarea[BBSIZE];
-static int	is_file;		/* work on a file, not a device */
-static char	*dkname;
-static char	*disktype;
+static char device[MAXPATHLEN];
+static u_char bootarea[BBSIZE];
+static int is_file; /* work on a file, not a device */
+static char *dkname;
+static char *disktype;
 
 static void getfssize(intmax_t *, const char *p, intmax_t, intmax_t);
 static struct disklabel *getdisklabel(void);
@@ -125,12 +123,12 @@ main(int argc, char *argv[])
 	intmax_t reserved;
 	int ch, rval;
 	size_t i;
-	char part_name;		/* partition name, default to full disk */
+	char part_name; /* partition name, default to full disk */
 
 	part_name = 'c';
 	reserved = 0;
 	while ((ch = getopt(argc, argv,
-	    "EJL:NO:RS:T:UXa:b:c:d:e:f:g:h:i:jk:lm:no:p:r:s:t")) != -1)
+		    "EJL:NO:RS:T:UXa:b:c:d:e:f:g:h:i:jk:lm:no:p:r:s:t")) != -1)
 		switch (ch) {
 		case 'E':
 			Eflag = 1;
@@ -141,15 +139,17 @@ main(int argc, char *argv[])
 		case 'L':
 			volumelabel = optarg;
 			for (i = 0; isalnum(volumelabel[i]) ||
-			    volumelabel[i] == '_' || volumelabel[i] == '-';
-			    i++)
+			     volumelabel[i] == '_' || volumelabel[i] == '-';
+			     i++)
 				continue;
 			if (volumelabel[i] != '\0') {
-				errx(1, "bad volume label. Valid characters "
+				errx(1,
+				    "bad volume label. Valid characters "
 				    "are alphanumerics, dashes, and underscores.");
 			}
 			if (strlen(volumelabel) >= MAXVOLLEN) {
-				errx(1, "bad volume label. Length is longer than %d.",
+				errx(1,
+				    "bad volume label. Length is longer than %d.",
 				    MAXVOLLEN);
 			}
 			Lflag = 1;
@@ -192,8 +192,7 @@ main(int argc, char *argv[])
 		case 'b':
 			rval = expand_number_int(optarg, &bsize);
 			if (rval < 0)
-				 errx(1, "%s: bad block size",
-                                    optarg);
+				errx(1, "%s: bad block size", optarg);
 			if (bsize < MINBSIZE)
 				errx(1, "%s: block size too small, min is %d",
 				    optarg, MINBSIZE);
@@ -215,7 +214,8 @@ main(int argc, char *argv[])
 		case 'e':
 			rval = expand_number_int(optarg, &maxbpg);
 			if (rval < 0 || maxbpg <= 0)
-			  errx(1, "%s: bad blocks per file in a cylinder group",
+				errx(1,
+				    "%s: bad blocks per file in a cylinder group",
 				    optarg);
 			break;
 		case 'f':
@@ -231,7 +231,8 @@ main(int argc, char *argv[])
 		case 'h':
 			rval = expand_number_int(optarg, &avgfilesperdir);
 			if (rval < 0 || avgfilesperdir <= 0)
-			       errx(1, "%s: bad average files per dir", optarg);
+				errx(1, "%s: bad average files per dir",
+				    optarg);
 			break;
 		case 'i':
 			rval = expand_number_int(optarg, &density);
@@ -261,15 +262,15 @@ main(int argc, char *argv[])
 			else if (strcmp(optarg, "time") == 0)
 				opt = FS_OPTTIME;
 			else
-				errx(1, 
-		"%s: unknown optimization preference: use `space' or `time'",
+				errx(1,
+				    "%s: unknown optimization preference: use `space' or `time'",
 				    optarg);
 			break;
 		case 'r':
 			errno = 0;
 			reserved = strtoimax(optarg, &cp, 0);
-			if (errno != 0 || cp == optarg ||
-			    *cp != '\0' || reserved < 0)
+			if (errno != 0 || cp == optarg || *cp != '\0' ||
+			    reserved < 0)
 				errx(1, "%s: bad reserved size", optarg);
 			break;
 		case 'p':
@@ -280,8 +281,8 @@ main(int argc, char *argv[])
 		case 's':
 			errno = 0;
 			fssize = strtoimax(optarg, &cp, 0);
-			if (errno != 0 || cp == optarg ||
-			    *cp != '\0' || fssize < 0)
+			if (errno != 0 || cp == optarg || *cp != '\0' ||
+			    fssize < 0)
 				errx(1, "%s: bad file system size", optarg);
 			break;
 		case 't':
@@ -311,12 +312,11 @@ main(int argc, char *argv[])
 
 	if (is_file) {
 		/* bypass ufs_disk_fillout_blank */
-		bzero( &disk, sizeof(disk));
+		bzero(&disk, sizeof(disk));
 		disk.d_bsize = 1;
 		disk.d_name = special;
 		disk.d_fd = open(special, O_RDONLY);
-		if (disk.d_fd < 0 ||
-		    (!Nflag && ufs_disk_write(&disk) == -1))
+		if (disk.d_fd < 0 || (!Nflag && ufs_disk_write(&disk) == -1))
 			errx(1, "%s: ", special);
 	} else if (ufs_disk_fillout_blank(&disk, special) == -1 ||
 	    (!Nflag && ufs_disk_write(&disk) == -1)) {
@@ -329,18 +329,22 @@ main(int argc, char *argv[])
 		err(1, "%s", special);
 	if ((st.st_mode & S_IFMT) != S_IFCHR) {
 		warn("%s: not a character-special device", special);
-		is_file = 1;	/* assume it is a file */
+		is_file = 1; /* assume it is a file */
 		dkname = special;
 		if (sectorsize == 0)
 			sectorsize = 512;
 		mediasize = st.st_size;
 		/* set fssize from the partition */
 	} else {
-	    if (sectorsize == 0)
-		if (ioctl(disk.d_fd, DIOCGSECTORSIZE, &sectorsize) == -1)
-		    sectorsize = 0;	/* back out on error for safety */
-	    if (sectorsize && ioctl(disk.d_fd, DIOCGMEDIASIZE, &mediasize) != -1)
-		getfssize(&fssize, special, mediasize / sectorsize, reserved);
+		if (sectorsize == 0)
+			if (ioctl(disk.d_fd, DIOCGSECTORSIZE, &sectorsize) ==
+			    -1)
+				sectorsize =
+				    0; /* back out on error for safety */
+		if (sectorsize &&
+		    ioctl(disk.d_fd, DIOCGMEDIASIZE, &mediasize) != -1)
+			getfssize(&fssize, special, mediasize / sectorsize,
+			    reserved);
 	}
 	pp = NULL;
 	lp = getdisklabel();
@@ -348,17 +352,17 @@ main(int argc, char *argv[])
 		if (!is_file) /* already set for files */
 			part_name = special[strlen(special) - 1];
 		if ((part_name < 'a' || part_name - 'a' >= MAXPARTITIONS) &&
-				!isdigit(part_name))
+		    !isdigit(part_name))
 			errx(1, "%s: can't figure out file system partition",
-					special);
+			    special);
 		cp = &part_name;
 		if (isdigit(*cp))
 			pp = &lp->d_partitions[RAW_PART];
 		else
 			pp = &lp->d_partitions[*cp - 'a'];
 		if (pp->p_size == 0)
-			errx(1, "%s: `%c' partition is unavailable",
-			    special, *cp);
+			errx(1, "%s: `%c' partition is unavailable", special,
+			    *cp);
 		if (pp->p_fstype == FS_BOOT)
 			errx(1, "%s: `%c' partition overlaps boot program",
 			    special, *cp);
@@ -384,7 +388,7 @@ main(int argc, char *argv[])
 		opt = FS_OPTSPACE;
 	}
 	realsectorsize = sectorsize;
-	if (sectorsize != DEV_BSIZE) {		/* XXX */
+	if (sectorsize != DEV_BSIZE) { /* XXX */
 		int secperblk = sectorsize / DEV_BSIZE;
 
 		sectorsize = DEV_BSIZE;
@@ -408,13 +412,12 @@ getfssize(intmax_t *fsz, const char *s, intmax_t disksize, intmax_t reserved)
 
 	available = disksize - reserved;
 	if (available <= 0)
-		errx(1, "%s: reserved not less than device size %jd",
-		    s, disksize);
+		errx(1, "%s: reserved not less than device size %jd", s,
+		    disksize);
 	if (*fsz == 0)
 		*fsz = available;
 	else if (*fsz > available)
-		errx(1, "%s: maximum file system size is %jd",
-		    s, available);
+		errx(1, "%s: maximum file system size is %jd", s, available);
 }
 
 struct disklabel *
@@ -426,10 +429,10 @@ getdisklabel(void)
 	if (is_file) {
 		if (read(disk.d_fd, bootarea, BBSIZE) != BBSIZE)
 			err(4, "cannot read bootarea");
-		if (bsd_disklabel_le_dec(
-		    bootarea + (0 /* labeloffset */ +
+		if (bsd_disklabel_le_dec(bootarea +
+			    (0 /* labeloffset */ +
 				1 /* labelsoffset */ * sectorsize),
-		    &lab, MAXPARTITIONS))
+			&lab, MAXPARTITIONS))
 			errx(1, "no valid label found");
 
 		lp = &lab;
@@ -447,10 +450,8 @@ getdisklabel(void)
 static void
 usage(void)
 {
-	fprintf(stderr,
-	    "usage: %s [ -fsoptions ] special-device%s\n",
-	    getprogname(),
-	    " [device-type]");
+	fprintf(stderr, "usage: %s [ -fsoptions ] special-device%s\n",
+	    getprogname(), " [device-type]");
 	fprintf(stderr, "where fsoptions are:\n");
 	fprintf(stderr, "\t-E Erase previous disk content\n");
 	fprintf(stderr, "\t-J Enable journaling via gjournal\n");

@@ -33,12 +33,11 @@
  * SUCH DAMAGE.
  */
 
-
 #ifndef _LOCATE_STATISTIC_
 #define _LOCATE_STATISTIC_
 
-void 
-statistic (FILE *fp, char *path_fcodes)
+void
+statistic(FILE *fp, char *path_fcodes)
 {
 	long lines, chars, size, size_nbg, big, zwerg, umlaut;
 	u_char *p, *s;
@@ -62,7 +61,7 @@ statistic (FILE *fp, char *path_fcodes)
 			zwerg++;
 		} else
 			count += c - OFFSET;
-		
+
 		if (count < 0 || count >= LOCATE_PATH_MAX) {
 			/* stop on error and display the statstics anyway */
 			warnx("corrupted database: %s %d", path_fcodes, count);
@@ -92,13 +91,16 @@ statistic (FILE *fp, char *path_fcodes)
 	}
 
 	/* size without bigram db */
-	size_nbg = size - (2 * NBG); 
+	size_nbg = size - (2 * NBG);
 
 	(void)printf("\nDatabase: %s\n", path_fcodes);
-	(void)printf("Compression: Front: %2.2f%%, ", chars > 0 ?  (size_nbg + big) / (chars / (float)100) : 0);
-	(void)printf("Bigram: %2.2f%%, ", big > 0 ? (size_nbg - big) / (size_nbg / (float)100) : 0);
+	(void)printf("Compression: Front: %2.2f%%, ",
+	    chars > 0 ? (size_nbg + big) / (chars / (float)100) : 0);
+	(void)printf("Bigram: %2.2f%%, ",
+	    big > 0 ? (size_nbg - big) / (size_nbg / (float)100) : 0);
 	/* incl. bigram db overhead */
-	(void)printf("Total: %2.2f%%\n", chars > 0 ?  size / (chars / (float)100) : 0);
+	(void)printf("Total: %2.2f%%\n",
+	    chars > 0 ? size / (chars / (float)100) : 0);
 	(void)printf("Filenames: %ld, ", lines);
 	(void)printf("Characters: %ld, ", chars);
 	(void)printf("Database size: %ld\n", size);
@@ -113,22 +115,19 @@ statistic (FILE *fp, char *path_fcodes)
 }
 #endif /* _LOCATE_STATISTIC_ */
 
-extern	char	separator;
+extern char separator;
 
 void
 #ifdef FF_MMAP
-
 
 #ifdef FF_ICASE
 fastfind_mmap_icase
 #else
 fastfind_mmap
 #endif /* FF_ICASE */
-(char *pathpart, caddr_t paddr, off_t len, char *database)
-
+    (char *pathpart, caddr_t paddr, off_t len, char *database)
 
 #else /* MMAP */
-
 
 #ifdef FF_ICASE
 fastfind_icase
@@ -136,8 +135,7 @@ fastfind_icase
 fastfind
 #endif /* FF_ICASE */
 
-(FILE *fp, char *pathpart, char *database)
-
+    (FILE *fp, char *pathpart, char *database)
 
 #endif /* MMAP */
 
@@ -157,7 +155,7 @@ fastfind
 
 	/* init bigram table */
 #ifdef FF_MMAP
-	for (c = 0, p = bigram1, s = bigram2; c < NBG; c++, len-= 2) {
+	for (c = 0, p = bigram1, s = bigram2; c < NBG; c++, len -= 2) {
 		p[c] = check_bigram_char(*paddr++);
 		s[c] = check_bigram_char(*paddr++);
 	}
@@ -184,13 +182,12 @@ fastfind
 
 #ifdef FF_ICASE
 	/* set patend char to true */
-        for (c = 0; c < UCHAR_MAX + 1; c++)
-                table[c] = 0;
+	for (c = 0; c < UCHAR_MAX + 1; c++)
+		table[c] = 0;
 
 	table[TOLOWER(*patend)] = 1;
 	table[toupper(*patend)] = 1;
 #endif /* FF_ICASE */
-
 
 	/* main loop */
 	found = count = 0;
@@ -200,10 +197,10 @@ fastfind
 	c = (u_char)*paddr++;
 	len--;
 
-	for (; len > 0; ) {
+	for (; len > 0;) {
 #else
 	c = getc(fp);
-	for (; c != EOF; ) {
+	for (; c != EOF;) {
 #endif /* FF_MMAP */
 
 		/* go forward or backward */
@@ -216,9 +213,9 @@ fastfind
 			len -= INTSIZE;
 			paddr += INTSIZE;
 #else
-			count +=  getwf(fp) - OFFSET;
-#endif /* FF_MMAP */
-		} else {	   /* slow step, =< 14 chars */
+			count += getwf(fp) - OFFSET;
+#endif			 /* FF_MMAP */
+		} else { /* slow step, =< 14 chars */
 			count += c - OFFSET;
 		}
 
@@ -231,8 +228,8 @@ fastfind
 
 #ifdef FF_MMAP
 		for (; len > 0;) {
-			c = (u_char)*paddr++; 
-		        len--;
+			c = (u_char)*paddr++;
+			len--;
 #else
 		for (;;) {
 			c = getc(fp);
@@ -254,7 +251,7 @@ fastfind
 #else
 						c = getc(fp);
 #endif /* FF_MMAP */
-						
+
 					} else
 						break; /* SWITCH */
 				}
@@ -265,38 +262,35 @@ fastfind
 #endif /* FF_ICASE */
 					foundchar = p;
 				*p++ = c;
-			}
-			else {		
+			} else {
 				/* bigrams are parity-marked */
 				TO7BIT(c);
 
 #ifndef FF_ICASE
-				if (bigram1[c] == cc ||
-				    bigram2[c] == cc)
+				if (bigram1[c] == cc || bigram2[c] == cc)
 #else
 
-					if (table[bigram1[c]] ||
-					    table[bigram2[c]])
+				if (table[bigram1[c]] || table[bigram2[c]])
 #endif /* FF_ICASE */
-						foundchar = p + 1;
+					foundchar = p + 1;
 
 				*p++ = bigram1[c];
 				*p++ = bigram2[c];
 			}
 
-			if (p - path >= LOCATE_PATH_MAX) 
-				errx(1, "corrupted database: %s %td", database, p - path);
-
+			if (p - path >= LOCATE_PATH_MAX)
+				errx(1, "corrupted database: %s %td", database,
+				    p - path);
 		}
-		
-		if (found) {                     /* previous line matched */
+
+		if (found) { /* previous line matched */
 			cutoff = path;
 			*p-- = '\0';
 			foundchar = p;
 		} else if (foundchar >= path + count) { /* a char matched */
 			*p-- = '\0';
 			cutoff = path + count;
-		} else                           /* nothing to do */
+		} else /* nothing to do */
 			continue;
 
 		found = 0;
@@ -304,36 +298,43 @@ fastfind
 			if (*s == cc
 #ifdef FF_ICASE
 			    || TOLOWER(*s) == cc
-#endif /* FF_ICASE */
-			    ) {	/* fast first char check */
+#endif			    /* FF_ICASE */
+			) { /* fast first char check */
 				for (p = patend - 1, q = s - 1; *p != '\0';
 				     p--, q--)
 					if (*q != *p
 #ifdef FF_ICASE
 					    && TOLOWER(*q) != *p
 #endif /* FF_ICASE */
-					    )
+					)
 						break;
-				if (*p == '\0') {   /* fast match success */
+				if (*p == '\0') { /* fast match success */
 					found = 1;
-					if (!globflag || 
+					if (!globflag ||
 #ifndef FF_ICASE
-					    !fnmatch(pathpart, path, 0)) 
-#else 
-					    !fnmatch(pathpart, path, 
-						     FNM_CASEFOLD))
-#endif /* !FF_ICASE */						
+					    !fnmatch(pathpart, path, 0))
+#else
+					    !fnmatch(pathpart, path,
+						FNM_CASEFOLD))
+#endif /* !FF_ICASE */
 					{
 						if (f_silent)
 							counter++;
 						else if (f_limit) {
 							counter++;
 							if (f_limit >= counter)
-								(void)printf("%s%c",path,separator);
-							else 
-								errx(0, "[show only %ld lines]", counter - 1);
+								(void)printf(
+								    "%s%c",
+								    path,
+								    separator);
+							else
+								errx(0,
+								    "[show only %ld lines]",
+								    counter -
+									1);
 						} else
-							(void)printf("%s%c",path,separator);
+							(void)printf("%s%c",
+							    path, separator);
 					}
 					break;
 				}

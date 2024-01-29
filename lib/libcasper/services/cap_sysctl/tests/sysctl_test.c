@@ -34,44 +34,42 @@
 
 #include <sys/types.h>
 #include <sys/capsicum.h>
-#include <sys/sysctl.h>
 #include <sys/nv.h>
+#include <sys/sysctl.h>
 
 #include <assert.h>
+#include <atf-c.h>
+#include <casper/cap_sysctl.h>
 #include <err.h>
 #include <errno.h>
+#include <libcasper.h>
 #include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <libcasper.h>
-#include <casper/cap_sysctl.h>
-
-#include <atf-c.h>
-
 /*
  * We need some sysctls to perform the tests on.
  * We remember their values and restore them afer the test is done.
  */
-#define	SYSCTL0_PARENT	"kern"
-#define	SYSCTL0_NAME	"kern.sync_on_panic"
-#define	SYSCTL0_FILE	"./sysctl0"
-#define	SYSCTL1_PARENT	"debug"
-#define	SYSCTL1_NAME	"debug.minidump"
-#define	SYSCTL1_FILE	"./sysctl1"
+#define SYSCTL0_PARENT "kern"
+#define SYSCTL0_NAME "kern.sync_on_panic"
+#define SYSCTL0_FILE "./sysctl0"
+#define SYSCTL1_PARENT "debug"
+#define SYSCTL1_NAME "debug.minidump"
+#define SYSCTL1_FILE "./sysctl1"
 
-#define	SYSCTL0_READ0		0x0001
-#define	SYSCTL0_READ1		0x0002
-#define	SYSCTL0_READ2		0x0004
-#define	SYSCTL0_WRITE		0x0008
-#define	SYSCTL0_READ_WRITE	0x0010
-#define	SYSCTL1_READ0		0x0020
-#define	SYSCTL1_READ1		0x0040
-#define	SYSCTL1_READ2		0x0080
-#define	SYSCTL1_WRITE		0x0100
-#define	SYSCTL1_READ_WRITE	0x0200
+#define SYSCTL0_READ0 0x0001
+#define SYSCTL0_READ1 0x0002
+#define SYSCTL0_READ2 0x0004
+#define SYSCTL0_WRITE 0x0008
+#define SYSCTL0_READ_WRITE 0x0010
+#define SYSCTL1_READ0 0x0020
+#define SYSCTL1_READ1 0x0040
+#define SYSCTL1_READ2 0x0080
+#define SYSCTL1_WRITE 0x0100
+#define SYSCTL1_READ_WRITE 0x0200
 
 static void
 save_int_sysctl(const char *name, const char *file)
@@ -82,8 +80,8 @@ save_int_sysctl(const char *name, const char *file)
 
 	sz = sizeof(val);
 	error = sysctlbyname(name, &val, &sz, NULL, 0);
-	ATF_REQUIRE_MSG(error == 0,
-	    "sysctlbyname(%s): %s", name, strerror(errno));
+	ATF_REQUIRE_MSG(error == 0, "sysctlbyname(%s): %s", name,
+	    strerror(errno));
 
 	fd = open(file, O_CREAT | O_WRONLY, 0600);
 	ATF_REQUIRE_MSG(fd >= 0, "open(%s): %s", file, strerror(errno));
@@ -111,8 +109,8 @@ restore_int_sysctl(const char *name, const char *file)
 	ATF_REQUIRE(error == 0);
 
 	error = sysctlbyname(name, NULL, NULL, &val, sz);
-	ATF_REQUIRE_MSG(error == 0,
-	    "sysctlbyname(%s): %s", name, strerror(errno));
+	ATF_REQUIRE_MSG(error == 0, "sysctlbyname(%s): %s", name,
+	    strerror(errno));
 }
 
 static cap_channel_t *
@@ -157,8 +155,8 @@ checkcaps(cap_channel_t *capsysctl)
 	ATF_REQUIRE(sysctlnametomib(SYSCTL1_NAME, mib1, &len1) == 0);
 
 	oldsize = sizeof(oldvalue);
-	if (cap_sysctlbyname(capsysctl, SYSCTL0_NAME, &oldvalue, &oldsize,
-	    NULL, 0) == 0) {
+	if (cap_sysctlbyname(capsysctl, SYSCTL0_NAME, &oldvalue, &oldsize, NULL,
+		0) == 0) {
 		if (oldsize == sizeof(oldvalue))
 			result |= SYSCTL0_READ0;
 	}
@@ -170,21 +168,21 @@ checkcaps(cap_channel_t *capsysctl)
 
 	newvalue = 123;
 	if (cap_sysctlbyname(capsysctl, SYSCTL0_NAME, NULL, NULL, &newvalue,
-	    sizeof(newvalue)) == 0) {
+		sizeof(newvalue)) == 0) {
 		result |= SYSCTL0_WRITE;
 	}
 
 	if ((result & SYSCTL0_WRITE) != 0) {
 		oldsize = sizeof(oldvalue);
 		if (cap_sysctlbyname(capsysctl, SYSCTL0_NAME, &oldvalue,
-		    &oldsize, NULL, 0) == 0) {
+			&oldsize, NULL, 0) == 0) {
 			if (oldsize == sizeof(oldvalue) && oldvalue == 123)
 				result |= SYSCTL0_READ1;
 		}
 	}
 	newvalue = 123;
-	error = cap_sysctl(capsysctl, mib0, len0, NULL, NULL,
-	    &newvalue, sizeof(newvalue));
+	error = cap_sysctl(capsysctl, mib0, len0, NULL, NULL, &newvalue,
+	    sizeof(newvalue));
 	if ((result & SYSCTL0_WRITE) != 0)
 		ATF_REQUIRE(error == 0);
 	else
@@ -193,7 +191,7 @@ checkcaps(cap_channel_t *capsysctl)
 	oldsize = sizeof(oldvalue);
 	newvalue = 4567;
 	if (cap_sysctlbyname(capsysctl, SYSCTL0_NAME, &oldvalue, &oldsize,
-	    &newvalue, sizeof(newvalue)) == 0) {
+		&newvalue, sizeof(newvalue)) == 0) {
 		if (oldsize == sizeof(oldvalue) && oldvalue == 123)
 			result |= SYSCTL0_READ_WRITE;
 	}
@@ -201,15 +199,15 @@ checkcaps(cap_channel_t *capsysctl)
 	if ((result & SYSCTL0_READ_WRITE) != 0) {
 		oldsize = sizeof(oldvalue);
 		if (cap_sysctlbyname(capsysctl, SYSCTL0_NAME, &oldvalue,
-		    &oldsize, NULL, 0) == 0) {
+			&oldsize, NULL, 0) == 0) {
 			if (oldsize == sizeof(oldvalue) && oldvalue == 4567)
 				result |= SYSCTL0_READ2;
 		}
 	}
 
 	oldsize = sizeof(oldvalue);
-	if (cap_sysctlbyname(capsysctl, SYSCTL1_NAME, &oldvalue, &oldsize,
-	    NULL, 0) == 0) {
+	if (cap_sysctlbyname(capsysctl, SYSCTL1_NAME, &oldvalue, &oldsize, NULL,
+		0) == 0) {
 		if (oldsize == sizeof(oldvalue))
 			result |= SYSCTL1_READ0;
 	}
@@ -221,25 +219,25 @@ checkcaps(cap_channel_t *capsysctl)
 
 	newvalue = 506;
 	if (cap_sysctlbyname(capsysctl, SYSCTL1_NAME, NULL, NULL, &newvalue,
-	    sizeof(newvalue)) == 0) {
+		sizeof(newvalue)) == 0) {
 		result |= SYSCTL1_WRITE;
 	}
 
 	if ((result & SYSCTL1_WRITE) != 0) {
 		newvalue = 506;
 		ATF_REQUIRE(cap_sysctl(capsysctl, mib1, len1, NULL, NULL,
-		    &newvalue, sizeof(newvalue)) == 0);
+				&newvalue, sizeof(newvalue)) == 0);
 
 		oldsize = sizeof(oldvalue);
 		if (cap_sysctlbyname(capsysctl, SYSCTL1_NAME, &oldvalue,
-		    &oldsize, NULL, 0) == 0) {
+			&oldsize, NULL, 0) == 0) {
 			if (oldsize == sizeof(oldvalue) && oldvalue == 506)
 				result |= SYSCTL1_READ1;
 		}
 	}
 	newvalue = 506;
-	error = cap_sysctl(capsysctl, mib1, len1, NULL, NULL,
-	    &newvalue, sizeof(newvalue));
+	error = cap_sysctl(capsysctl, mib1, len1, NULL, NULL, &newvalue,
+	    sizeof(newvalue));
 	if ((result & SYSCTL1_WRITE) != 0)
 		ATF_REQUIRE(error == 0);
 	else
@@ -248,7 +246,7 @@ checkcaps(cap_channel_t *capsysctl)
 	oldsize = sizeof(oldvalue);
 	newvalue = 7008;
 	if (cap_sysctlbyname(capsysctl, SYSCTL1_NAME, &oldvalue, &oldsize,
-	    &newvalue, sizeof(newvalue)) == 0) {
+		&newvalue, sizeof(newvalue)) == 0) {
 		if (oldsize == sizeof(oldvalue) && oldvalue == 506)
 			result |= SYSCTL1_READ_WRITE;
 	}
@@ -256,7 +254,7 @@ checkcaps(cap_channel_t *capsysctl)
 	if ((result & SYSCTL1_READ_WRITE) != 0) {
 		oldsize = sizeof(oldvalue);
 		if (cap_sysctlbyname(capsysctl, SYSCTL1_NAME, &oldvalue,
-		    &oldsize, NULL, 0) == 0) {
+			&oldsize, NULL, 0) == 0) {
 			if (oldsize == sizeof(oldvalue) && oldvalue == 7008)
 				result |= SYSCTL1_READ2;
 		}
@@ -306,10 +304,10 @@ ATF_TC_BODY(cap_sysctl__operation, tc)
 	    CAP_SYSCTL_RDWR | CAP_SYSCTL_RECURSIVE);
 	ATF_REQUIRE(cap_sysctl_limit(limit) == -1 && errno == ENOTCAPABLE);
 
-	ATF_REQUIRE(checkcaps(capsysctl) == (SYSCTL0_READ0 | SYSCTL0_READ1 |
-	    SYSCTL0_READ2 | SYSCTL0_WRITE | SYSCTL0_READ_WRITE |
-	    SYSCTL1_READ0 | SYSCTL1_READ1 | SYSCTL1_READ2 | SYSCTL1_WRITE |
-	    SYSCTL1_READ_WRITE));
+	ATF_REQUIRE(checkcaps(capsysctl) ==
+	    (SYSCTL0_READ0 | SYSCTL0_READ1 | SYSCTL0_READ2 | SYSCTL0_WRITE |
+		SYSCTL0_READ_WRITE | SYSCTL1_READ0 | SYSCTL1_READ1 |
+		SYSCTL1_READ2 | SYSCTL1_WRITE | SYSCTL1_READ_WRITE));
 
 	limit = cap_sysctl_limit_init(capsysctl);
 	(void)cap_sysctl_limit_name(limit, SYSCTL0_NAME,
@@ -318,10 +316,10 @@ ATF_TC_BODY(cap_sysctl__operation, tc)
 	    CAP_SYSCTL_RDWR | CAP_SYSCTL_RECURSIVE);
 	ATF_REQUIRE(cap_sysctl_limit(limit) == 0);
 
-	ATF_REQUIRE(checkcaps(capsysctl) == (SYSCTL0_READ0 | SYSCTL0_READ1 |
-	    SYSCTL0_READ2 | SYSCTL0_WRITE | SYSCTL0_READ_WRITE |
-	    SYSCTL1_READ0 | SYSCTL1_READ1 | SYSCTL1_READ2 | SYSCTL1_WRITE |
-	    SYSCTL1_READ_WRITE));
+	ATF_REQUIRE(checkcaps(capsysctl) ==
+	    (SYSCTL0_READ0 | SYSCTL0_READ1 | SYSCTL0_READ2 | SYSCTL0_WRITE |
+		SYSCTL0_READ_WRITE | SYSCTL1_READ0 | SYSCTL1_READ1 |
+		SYSCTL1_READ2 | SYSCTL1_WRITE | SYSCTL1_READ_WRITE));
 
 	limit = cap_sysctl_limit_init(capsysctl);
 	(void)cap_sysctl_limit_name(limit, SYSCTL0_NAME,
@@ -381,10 +379,10 @@ ATF_TC_BODY(cap_sysctl__operation, tc)
 	(void)cap_sysctl_limit_name(limit, SYSCTL0_PARENT, CAP_SYSCTL_READ);
 	ATF_REQUIRE(cap_sysctl_limit(limit) == -1 && errno == ENOTCAPABLE);
 
-	ATF_REQUIRE(checkcaps(capsysctl) == (SYSCTL0_READ0 | SYSCTL0_READ1 |
-	    SYSCTL0_READ2 | SYSCTL0_WRITE | SYSCTL0_READ_WRITE |
-	    SYSCTL1_READ0 | SYSCTL1_READ1 | SYSCTL1_READ2 | SYSCTL1_WRITE |
-	    SYSCTL1_READ_WRITE));
+	ATF_REQUIRE(checkcaps(capsysctl) ==
+	    (SYSCTL0_READ0 | SYSCTL0_READ1 | SYSCTL0_READ2 | SYSCTL0_WRITE |
+		SYSCTL0_READ_WRITE | SYSCTL1_READ0 | SYSCTL1_READ1 |
+		SYSCTL1_READ2 | SYSCTL1_WRITE | SYSCTL1_READ_WRITE));
 
 	cap_close(capsysctl);
 
@@ -452,10 +450,10 @@ ATF_TC_BODY(cap_sysctl__operation, tc)
 	    CAP_SYSCTL_WRITE | CAP_SYSCTL_RECURSIVE);
 	ATF_REQUIRE(cap_sysctl_limit(limit) == -1 && errno == ENOTCAPABLE);
 
-	ATF_REQUIRE(checkcaps(capsysctl) == (SYSCTL0_READ0 | SYSCTL0_READ1 |
-	    SYSCTL0_READ2 | SYSCTL0_WRITE | SYSCTL0_READ_WRITE |
-	    SYSCTL1_READ0 | SYSCTL1_READ1 | SYSCTL1_READ2 | SYSCTL1_WRITE |
-	    SYSCTL1_READ_WRITE));
+	ATF_REQUIRE(checkcaps(capsysctl) ==
+	    (SYSCTL0_READ0 | SYSCTL0_READ1 | SYSCTL0_READ2 | SYSCTL0_WRITE |
+		SYSCTL0_READ_WRITE | SYSCTL1_READ0 | SYSCTL1_READ1 |
+		SYSCTL1_READ2 | SYSCTL1_WRITE | SYSCTL1_READ_WRITE));
 
 	cap_close(capsysctl);
 
@@ -492,8 +490,9 @@ ATF_TC_BODY(cap_sysctl__operation, tc)
 	    CAP_SYSCTL_READ | CAP_SYSCTL_RECURSIVE);
 	ATF_REQUIRE(cap_sysctl_limit(limit) == -1 && errno == ENOTCAPABLE);
 
-	ATF_REQUIRE(checkcaps(capsysctl) == (SYSCTL1_READ0 | SYSCTL1_READ1 |
-	    SYSCTL1_READ2 | SYSCTL1_WRITE | SYSCTL1_READ_WRITE));
+	ATF_REQUIRE(checkcaps(capsysctl) ==
+	    (SYSCTL1_READ0 | SYSCTL1_READ1 | SYSCTL1_READ2 | SYSCTL1_WRITE |
+		SYSCTL1_READ_WRITE));
 
 	cap_close(capsysctl);
 
@@ -526,10 +525,10 @@ ATF_TC_BODY(cap_sysctl__operation, tc)
 	    CAP_SYSCTL_WRITE | CAP_SYSCTL_RECURSIVE);
 	ATF_REQUIRE(cap_sysctl_limit(limit) == -1 && errno == ENOTCAPABLE);
 
-	ATF_REQUIRE(checkcaps(capsysctl) == (SYSCTL0_READ0 | SYSCTL0_READ1 |
-	    SYSCTL0_READ2 | SYSCTL0_WRITE | SYSCTL0_READ_WRITE |
-	    SYSCTL1_READ0 | SYSCTL1_READ1 | SYSCTL1_READ2 | SYSCTL1_WRITE |
-	    SYSCTL1_READ_WRITE));
+	ATF_REQUIRE(checkcaps(capsysctl) ==
+	    (SYSCTL0_READ0 | SYSCTL0_READ1 | SYSCTL0_READ2 | SYSCTL0_WRITE |
+		SYSCTL0_READ_WRITE | SYSCTL1_READ0 | SYSCTL1_READ1 |
+		SYSCTL1_READ2 | SYSCTL1_WRITE | SYSCTL1_READ_WRITE));
 
 	cap_close(capsysctl);
 
@@ -1389,8 +1388,9 @@ ATF_TC_BODY(cap_sysctl__names, tc)
 	(void)cap_sysctl_limit_name(limit, SYSCTL1_PARENT, CAP_SYSCTL_READ);
 	ATF_REQUIRE(cap_sysctl_limit(limit) == -1 && errno == ENOTCAPABLE);
 
-	ATF_REQUIRE(checkcaps(capsysctl) == (SYSCTL0_READ0 | SYSCTL0_READ1 |
-	    SYSCTL0_READ2 | SYSCTL0_WRITE | SYSCTL0_READ_WRITE));
+	ATF_REQUIRE(checkcaps(capsysctl) ==
+	    (SYSCTL0_READ0 | SYSCTL0_READ1 | SYSCTL0_READ2 | SYSCTL0_WRITE |
+		SYSCTL0_READ_WRITE));
 
 	cap_close(capsysctl);
 
@@ -1424,8 +1424,9 @@ ATF_TC_BODY(cap_sysctl__names, tc)
 	(void)cap_sysctl_limit_name(limit, SYSCTL0_NAME, CAP_SYSCTL_READ);
 	ATF_REQUIRE(cap_sysctl_limit(limit) == -1 && errno == ENOTCAPABLE);
 
-	ATF_REQUIRE(checkcaps(capsysctl) == (SYSCTL1_READ0 | SYSCTL1_READ1 |
-	    SYSCTL1_READ2 | SYSCTL1_WRITE | SYSCTL1_READ_WRITE));
+	ATF_REQUIRE(checkcaps(capsysctl) ==
+	    (SYSCTL1_READ0 | SYSCTL1_READ1 | SYSCTL1_READ2 | SYSCTL1_WRITE |
+		SYSCTL1_READ_WRITE));
 
 	cap_close(capsysctl);
 
@@ -1563,8 +1564,9 @@ ATF_TC_BODY(cap_sysctl__names, tc)
 	(void)cap_sysctl_limit_name(limit, SYSCTL0_NAME, CAP_SYSCTL_RDWR);
 	ATF_REQUIRE(cap_sysctl_limit(limit) == -1 && errno == ENOTCAPABLE);
 
-	ATF_REQUIRE(checkcaps(capsysctl) == (SYSCTL1_READ0 | SYSCTL1_READ1 |
-	    SYSCTL1_READ2 | SYSCTL1_WRITE | SYSCTL1_READ_WRITE));
+	ATF_REQUIRE(checkcaps(capsysctl) ==
+	    (SYSCTL1_READ0 | SYSCTL1_READ1 | SYSCTL1_READ2 | SYSCTL1_WRITE |
+		SYSCTL1_READ_WRITE));
 
 	cap_close(capsysctl);
 }
@@ -1583,10 +1585,10 @@ ATF_TC_BODY(cap_sysctl__no_limits, tc)
 
 	capsysctl = initcap();
 
-	ATF_REQUIRE_EQ(checkcaps(capsysctl), (SYSCTL0_READ0 | SYSCTL0_READ1 |
-	    SYSCTL0_READ2 | SYSCTL0_WRITE | SYSCTL0_READ_WRITE |
-	    SYSCTL1_READ0 | SYSCTL1_READ1 | SYSCTL1_READ2 | SYSCTL1_WRITE |
-	    SYSCTL1_READ_WRITE));
+	ATF_REQUIRE_EQ(checkcaps(capsysctl),
+	    (SYSCTL0_READ0 | SYSCTL0_READ1 | SYSCTL0_READ2 | SYSCTL0_WRITE |
+		SYSCTL0_READ_WRITE | SYSCTL1_READ0 | SYSCTL1_READ1 |
+		SYSCTL1_READ2 | SYSCTL1_WRITE | SYSCTL1_READ_WRITE));
 }
 ATF_TC_CLEANUP(cap_sysctl__no_limits, tc)
 {
@@ -1620,10 +1622,11 @@ ATF_TC_BODY(cap_sysctl__recursive_limits, tc)
 	    CAP_SYSCTL_RDWR | CAP_SYSCTL_RECURSIVE);
 	ATF_REQUIRE(cap_sysctl_limit(limit) == 0);
 
-	ATF_REQUIRE_ERRNO(ENOTCAPABLE, cap_sysctlbyname(capsysctl, SYSCTL0_NAME,
-	    NULL, NULL, &val, sizeof(val)));
-	ATF_REQUIRE_ERRNO(ENOTCAPABLE, cap_sysctl(capsysctl, mib, len,
-	    NULL, NULL, &val, sizeof(val)));
+	ATF_REQUIRE_ERRNO(ENOTCAPABLE,
+	    cap_sysctlbyname(capsysctl, SYSCTL0_NAME, NULL, NULL, &val,
+		sizeof(val)));
+	ATF_REQUIRE_ERRNO(ENOTCAPABLE,
+	    cap_sysctl(capsysctl, mib, len, NULL, NULL, &val, sizeof(val)));
 
 	cap_close(capsysctl);
 
@@ -1637,10 +1640,11 @@ ATF_TC_BODY(cap_sysctl__recursive_limits, tc)
 	(void)cap_sysctl_limit_name(limit, "kern", CAP_SYSCTL_RDWR);
 	ATF_REQUIRE(cap_sysctl_limit(limit) == 0);
 
-	ATF_REQUIRE_ERRNO(ENOTCAPABLE, cap_sysctlbyname(capsysctl, SYSCTL0_NAME,
-	    NULL, NULL, &val, sizeof(val)));
-	ATF_REQUIRE_ERRNO(ENOTCAPABLE, cap_sysctl(capsysctl, mib, len,
-	    NULL, NULL, &val, sizeof(val)));
+	ATF_REQUIRE_ERRNO(ENOTCAPABLE,
+	    cap_sysctlbyname(capsysctl, SYSCTL0_NAME, NULL, NULL, &val,
+		sizeof(val)));
+	ATF_REQUIRE_ERRNO(ENOTCAPABLE,
+	    cap_sysctl(capsysctl, mib, len, NULL, NULL, &val, sizeof(val)));
 
 	cap_close(capsysctl);
 }
@@ -1664,11 +1668,11 @@ ATF_TC_BODY(cap_sysctl__just_size, tc)
 	len = nitems(mib0);
 	ATF_REQUIRE(sysctlnametomib(SYSCTL0_NAME, mib0, &len) == 0);
 
-	ATF_REQUIRE(cap_sysctlbyname(capsysctl, SYSCTL0_NAME,
-	    NULL, &len, NULL, 0) == 0);
+	ATF_REQUIRE(cap_sysctlbyname(capsysctl, SYSCTL0_NAME, NULL, &len, NULL,
+			0) == 0);
 	ATF_REQUIRE(len == sizeof(int));
-	ATF_REQUIRE(cap_sysctl(capsysctl, mib0, nitems(mib0),
-	    NULL, &len, NULL, 0) == 0);
+	ATF_REQUIRE(cap_sysctl(capsysctl, mib0, nitems(mib0), NULL, &len, NULL,
+			0) == 0);
 	ATF_REQUIRE(len == sizeof(int));
 
 	cap_close(capsysctl);

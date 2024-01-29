@@ -32,10 +32,11 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <stdio.h>
-#include "un-namespace.h"
+
 #include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 #undef feof
 #undef feof_unlocked
@@ -43,10 +44,10 @@
 int
 feof(FILE *fp)
 {
-	int	ret;
+	int ret;
 
 	FLOCKFILE(fp);
-	ret= __sfeof(fp);
+	ret = __sfeof(fp);
 	FUNLOCKFILE(fp);
 	return (ret);
 }

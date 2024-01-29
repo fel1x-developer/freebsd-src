@@ -31,12 +31,14 @@
  */
 
 #include <sys/param.h>
+#include <sys/queue.h>
 #include <sys/select.h>
 #include <sys/stat.h>
-#include <sys/queue.h>
 #include <sys/ucred.h>
 #include <sys/un.h>
+
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
 #include <assert.h>
 #define L2CAP_SOCKET_CHECKED
@@ -48,16 +50,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "log.h"
 #include "profile.h"
 #include "provider.h"
 #include "server.h"
 
-static void	server_accept_client		(server_p srv, int32_t fd);
-static int32_t	server_process_request		(server_p srv, int32_t fd);
-static int32_t	server_send_error_response	(server_p srv, int32_t fd,
-						 uint16_t error);
-static void	server_close_fd			(server_p srv, int32_t fd);
+static void server_accept_client(server_p srv, int32_t fd);
+static int32_t server_process_request(server_p srv, int32_t fd);
+static int32_t server_send_error_response(server_p srv, int32_t fd,
+    uint16_t error);
+static void server_close_fd(server_p srv, int32_t fd);
 
 /*
  * Initialize server
@@ -66,11 +69,11 @@ static void	server_close_fd			(server_p srv, int32_t fd);
 int32_t
 server_init(server_p srv, char const *control)
 {
-	struct sockaddr_un	un;
-	struct sockaddr_l2cap	l2;
-	int32_t			unsock, l2sock;
-	socklen_t		size;
-	uint16_t		imtu;
+	struct sockaddr_un un;
+	struct sockaddr_l2cap l2;
+	int32_t unsock, l2sock;
+	socklen_t size;
+	uint16_t imtu;
 
 	assert(srv != NULL);
 	assert(control != NULL);
@@ -79,15 +82,15 @@ server_init(server_p srv, char const *control)
 
 	/* Open control socket */
 	if (unlink(control) < 0 && errno != ENOENT) {
-		log_crit("Could not unlink(%s). %s (%d)",
-			control, strerror(errno), errno);
+		log_crit("Could not unlink(%s). %s (%d)", control,
+		    strerror(errno), errno);
 		return (-1);
 	}
 
 	unsock = socket(PF_LOCAL, SOCK_STREAM, 0);
 	if (unsock < 0) {
 		log_crit("Could not create control socket. %s (%d)",
-			strerror(errno), errno);
+		    strerror(errno), errno);
 		return (-1);
 	}
 
@@ -96,23 +99,26 @@ server_init(server_p srv, char const *control)
 	un.sun_family = AF_LOCAL;
 	strlcpy(un.sun_path, control, sizeof(un.sun_path));
 
-	if (bind(unsock, (struct sockaddr *) &un, sizeof(un)) < 0) {
+	if (bind(unsock, (struct sockaddr *)&un, sizeof(un)) < 0) {
 		log_crit("Could not bind control socket. %s (%d)",
-			strerror(errno), errno);
+		    strerror(errno), errno);
 		close(unsock);
 		return (-1);
 	}
 
-	if (chmod(control, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH) < 0) {
-		log_crit("Could not change permissions on control socket. " \
-			"%s (%d)", strerror(errno), errno);
+	if (chmod(control,
+		S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) <
+	    0) {
+		log_crit("Could not change permissions on control socket. "
+			 "%s (%d)",
+		    strerror(errno), errno);
 		close(unsock);
 		return (-1);
 	}
 
 	if (listen(unsock, 10) < 0) {
 		log_crit("Could not listen on control socket. %s (%d)",
-			strerror(errno), errno);
+		    strerror(errno), errno);
 		close(unsock);
 		return (-1);
 	}
@@ -121,19 +127,19 @@ server_init(server_p srv, char const *control)
 	l2sock = socket(PF_BLUETOOTH, SOCK_SEQPACKET, BLUETOOTH_PROTO_L2CAP);
 	if (l2sock < 0) {
 		log_crit("Could not create L2CAP socket. %s (%d)",
-			strerror(errno), errno);
+		    strerror(errno), errno);
 		close(unsock);
 		return (-1);
 	}
 
 	size = sizeof(imtu);
-        if (getsockopt(l2sock, SOL_L2CAP, SO_L2CAP_IMTU, &imtu, &size) < 0) {
-		log_crit("Could not get L2CAP IMTU. %s (%d)",
-			strerror(errno), errno);
+	if (getsockopt(l2sock, SOL_L2CAP, SO_L2CAP_IMTU, &imtu, &size) < 0) {
+		log_crit("Could not get L2CAP IMTU. %s (%d)", strerror(errno),
+		    errno);
 		close(unsock);
 		close(l2sock);
 		return (-1);
-        }
+	}
 
 	memset(&l2, 0, sizeof(l2));
 	l2.l2cap_len = sizeof(l2);
@@ -141,9 +147,9 @@ server_init(server_p srv, char const *control)
 	memcpy(&l2.l2cap_bdaddr, NG_HCI_BDADDR_ANY, sizeof(l2.l2cap_bdaddr));
 	l2.l2cap_psm = htole16(NG_L2CAP_PSM_SDP);
 
-	if (bind(l2sock, (struct sockaddr *) &l2, sizeof(l2)) < 0) {
+	if (bind(l2sock, (struct sockaddr *)&l2, sizeof(l2)) < 0) {
 		log_crit("Could not bind L2CAP socket. %s (%d)",
-			strerror(errno), errno);
+		    strerror(errno), errno);
 		close(unsock);
 		close(l2sock);
 		return (-1);
@@ -151,15 +157,15 @@ server_init(server_p srv, char const *control)
 
 	if (listen(l2sock, 10) < 0) {
 		log_crit("Could not listen on L2CAP socket. %s (%d)",
-			strerror(errno), errno);
+		    strerror(errno), errno);
 		close(unsock);
 		close(l2sock);
 		return (-1);
 	}
 
 	/* Allocate incoming buffer */
-	srv->imtu = (imtu > SDP_LOCAL_MTU)? imtu : SDP_LOCAL_MTU;
-	srv->req = (uint8_t *) calloc(srv->imtu, sizeof(srv->req[0]));
+	srv->imtu = (imtu > SDP_LOCAL_MTU) ? imtu : SDP_LOCAL_MTU;
+	srv->req = (uint8_t *)calloc(srv->imtu, sizeof(srv->req[0]));
 	if (srv->req == NULL) {
 		log_crit("Could not allocate request buffer");
 		close(unsock);
@@ -168,7 +174,7 @@ server_init(server_p srv, char const *control)
 	}
 
 	/* Allocate memory for descriptor index */
-	srv->fdidx = (fd_idx_p) calloc(FD_SETSIZE, sizeof(srv->fdidx[0]));
+	srv->fdidx = (fd_idx_p)calloc(FD_SETSIZE, sizeof(srv->fdidx[0]));
 	if (srv->fdidx == NULL) {
 		log_crit("Could not allocate fd index");
 		free(srv->req);
@@ -193,8 +199,8 @@ server_init(server_p srv, char const *control)
 	 */
 
 	FD_ZERO(&srv->fdset);
-	srv->maxfd = (unsock > l2sock)? unsock : l2sock;
-	
+	srv->maxfd = (unsock > l2sock) ? unsock : l2sock;
+
 	FD_SET(unsock, &srv->fdset);
 	srv->fdidx[unsock].valid = 1;
 	srv->fdidx[unsock].server = 1;
@@ -227,11 +233,11 @@ server_init(server_p srv, char const *control)
 void
 server_shutdown(server_p srv)
 {
-	int	fd;
+	int fd;
 
 	assert(srv != NULL);
 
-	for (fd = 0; fd < srv->maxfd + 1; fd ++)
+	for (fd = 0; fd < srv->maxfd + 1; fd++)
 		if (srv->fdidx[fd].valid)
 			server_close_fd(srv, fd);
 
@@ -248,8 +254,8 @@ server_shutdown(server_p srv)
 int32_t
 server_do(server_p srv)
 {
-	fd_set	fdset;
-	int32_t	n, fd;
+	fd_set fdset;
+	int32_t n, fd;
 
 	assert(srv != NULL);
 
@@ -260,19 +266,19 @@ server_do(server_p srv)
 		if (errno == EINTR)
 			return (0);
 
-		log_err("Could not select(%d, %p). %s (%d)",
-			srv->maxfd + 1, &fdset, strerror(errno), errno);
+		log_err("Could not select(%d, %p). %s (%d)", srv->maxfd + 1,
+		    &fdset, strerror(errno), errno);
 
 		return (-1);
 	}
 
 	/* Process  descriptors */
-	for (fd = 0; fd < srv->maxfd + 1 && n > 0; fd ++) {
+	for (fd = 0; fd < srv->maxfd + 1 && n > 0; fd++) {
 		if (!FD_ISSET(fd, &fdset))
 			continue;
 
 		assert(srv->fdidx[fd].valid);
-		n --;
+		n--;
 
 		if (srv->fdidx[fd].server)
 			server_accept_client(srv, fd);
@@ -281,7 +287,6 @@ server_do(server_p srv)
 	}
 
 	return (0);
-	
 }
 
 /*
@@ -291,10 +296,10 @@ server_do(server_p srv)
 static void
 server_accept_client(server_p srv, int32_t fd)
 {
-	uint8_t		*rsp = NULL;
-	int32_t		 cfd, priv;
-	uint16_t	 omtu;
-	socklen_t	 size;
+	uint8_t *rsp = NULL;
+	int32_t cfd, priv;
+	uint16_t omtu;
+	socklen_t size;
 
 	do {
 		cfd = accept(fd, NULL, NULL);
@@ -302,8 +307,8 @@ server_accept_client(server_p srv, int32_t fd)
 
 	if (cfd < 0) {
 		log_err("Could not accept connection on %s socket. %s (%d)",
-			srv->fdidx[fd].control? "control" : "L2CAP",
-			strerror(errno), errno);
+		    srv->fdidx[fd].control ? "control" : "L2CAP",
+		    strerror(errno), errno);
 		return;
 	}
 
@@ -315,18 +320,20 @@ server_accept_client(server_p srv, int32_t fd)
 	if (!srv->fdidx[fd].control) {
 		/* Get local BD_ADDR */
 		size = sizeof(srv->req_sa);
-		if (getsockname(cfd,(struct sockaddr*)&srv->req_sa,&size) < 0) {
+		if (getsockname(cfd, (struct sockaddr *)&srv->req_sa, &size) <
+		    0) {
 			log_err("Could not get local BD_ADDR. %s (%d)",
-				strerror(errno), errno);
+			    strerror(errno), errno);
 			close(cfd);
 			return;
 		}
 
 		/* Get outgoing MTU */
 		size = sizeof(omtu);
-	        if (getsockopt(cfd,SOL_L2CAP,SO_L2CAP_OMTU,&omtu,&size) < 0) {
+		if (getsockopt(cfd, SOL_L2CAP, SO_L2CAP_OMTU, &omtu, &size) <
+		    0) {
 			log_err("Could not get L2CAP OMTU. %s (%d)",
-				strerror(errno), errno);
+			    strerror(errno), errno);
 			close(cfd);
 			return;
 		}
@@ -345,8 +352,8 @@ server_accept_client(server_p srv, int32_t fd)
 			return;
 		}
 	} else {
-		struct xucred	 cr;
-		struct passwd	*pw;
+		struct xucred cr;
+		struct passwd *pw;
 
 		/* Get peer's credentials */
 		memset(&cr, 0, sizeof(cr));
@@ -354,7 +361,7 @@ server_accept_client(server_p srv, int32_t fd)
 
 		if (getsockopt(cfd, 0, LOCAL_PEERCRED, &cr, &size) < 0) {
 			log_err("Could not get peer's credentials. %s (%d)",
-				strerror(errno), errno);
+			    strerror(errno), errno);
 			close(cfd);
 			return;
 		}
@@ -365,20 +372,20 @@ server_accept_client(server_p srv, int32_t fd)
 			priv = (strcmp(pw->pw_name, "root") == 0);
 		else
 			log_warning("Could not verify credentials for uid %d",
-				cr.cr_uid);
+			    cr.cr_uid);
 
 		memcpy(&srv->req_sa.l2cap_bdaddr, NG_HCI_BDADDR_ANY,
-			sizeof(srv->req_sa.l2cap_bdaddr));
+		    sizeof(srv->req_sa.l2cap_bdaddr));
 
 		omtu = srv->fdidx[fd].omtu;
 	}
 
 	/*
-	 * Allocate buffer. This is an overkill, but we can not know how 
+	 * Allocate buffer. This is an overkill, but we can not know how
 	 * big our reply is going to be.
 	 */
 
-	rsp = (uint8_t *) calloc(NG_L2CAP_MTU_MAXIMUM, sizeof(rsp[0]));
+	rsp = (uint8_t *)calloc(NG_L2CAP_MTU_MAXIMUM, sizeof(rsp[0]));
 	if (rsp == NULL) {
 		log_crit("Could not allocate response buffer");
 		close(cfd);
@@ -407,8 +414,8 @@ server_accept_client(server_p srv, int32_t fd)
 static int32_t
 server_process_request(server_p srv, int32_t fd)
 {
-	sdp_pdu_p	pdu = (sdp_pdu_p) srv->req;
-	int32_t		len, error;
+	sdp_pdu_p pdu = (sdp_pdu_p)srv->req;
+	int32_t len, error;
 
 	assert(srv->imtu > 0);
 	assert(srv->req != NULL);
@@ -424,13 +431,13 @@ server_process_request(server_p srv, int32_t fd)
 
 	if (len < 0) {
 		log_err("Could not receive SDP request from %s socket. %s (%d)",
-			srv->fdidx[fd].control? "control" : "L2CAP",
-			strerror(errno), errno);
+		    srv->fdidx[fd].control ? "control" : "L2CAP",
+		    strerror(errno), errno);
 		return (-1);
 	}
 	if (len == 0) {
 		log_info("Client on %s socket has disconnected",
-			srv->fdidx[fd].control? "control" : "L2CAP");
+		    srv->fdidx[fd].control ? "control" : "L2CAP");
 		return (-1);
 	}
 
@@ -442,19 +449,24 @@ server_process_request(server_p srv, int32_t fd)
 			break;
 
 		case SDP_PDU_SERVICE_ATTRIBUTE_REQUEST:
-			error = server_prepare_service_attribute_response(srv, fd);
+			error = server_prepare_service_attribute_response(srv,
+			    fd);
 			break;
 
 		case SDP_PDU_SERVICE_SEARCH_ATTRIBUTE_REQUEST:
-			error = server_prepare_service_search_attribute_response(srv, fd);
+			error =
+			    server_prepare_service_search_attribute_response(
+				srv, fd);
 			break;
 
 		case SDP_PDU_SERVICE_REGISTER_REQUEST:
-			error = server_prepare_service_register_response(srv, fd);
+			error = server_prepare_service_register_response(srv,
+			    fd);
 			break;
 
 		case SDP_PDU_SERVICE_UNREGISTER_REQUEST:
-			error = server_prepare_service_unregister_response(srv, fd);
+			error = server_prepare_service_unregister_response(srv,
+			    fd);
 			break;
 
 		case SDP_PDU_SERVICE_CHANGE_REQUEST:
@@ -479,7 +491,8 @@ server_process_request(server_p srv, int32_t fd)
 			break;
 
 		case SDP_PDU_SERVICE_SEARCH_ATTRIBUTE_REQUEST:
-			error = server_send_service_search_attribute_response(srv, fd);
+			error = server_send_service_search_attribute_response(
+			    srv, fd);
 			break;
 
 		case SDP_PDU_SERVICE_REGISTER_REQUEST:
@@ -487,7 +500,8 @@ server_process_request(server_p srv, int32_t fd)
 			break;
 
 		case SDP_PDU_SERVICE_UNREGISTER_REQUEST:
-			error = server_send_service_unregister_response(srv, fd);
+			error = server_send_service_unregister_response(srv,
+			    fd);
 			break;
 
 		case SDP_PDU_SERVICE_CHANGE_REQUEST:
@@ -500,26 +514,26 @@ server_process_request(server_p srv, int32_t fd)
 		}
 
 		if (error != 0)
-			log_err("Could not send SDP response to %s socket, " \
+			log_err("Could not send SDP response to %s socket, "
 				"pdu->pid=%d, pdu->tid=%d, error=%d",
-				srv->fdidx[fd].control? "control" : "L2CAP", 
-				pdu->pid, ntohs(pdu->tid), error);
+			    srv->fdidx[fd].control ? "control" : "L2CAP",
+			    pdu->pid, ntohs(pdu->tid), error);
 	} else {
-		log_err("Could not process SDP request from %s socket, " \
-			"pdu->pid=%d, pdu->tid=%d, pdu->len=%d, len=%d, " \
+		log_err("Could not process SDP request from %s socket, "
+			"pdu->pid=%d, pdu->tid=%d, pdu->len=%d, len=%d, "
 			"error=%d",
-			srv->fdidx[fd].control? "control" : "L2CAP", 
-			pdu->pid, ntohs(pdu->tid), pdu->len, len, error);
+		    srv->fdidx[fd].control ? "control" : "L2CAP", pdu->pid,
+		    ntohs(pdu->tid), pdu->len, len, error);
 
 		error = server_send_error_response(srv, fd, error);
 		if (error != 0)
-			log_err("Could not send SDP error response to %s " \
+			log_err("Could not send SDP error response to %s "
 				"socket, pdu->pid=%d, pdu->tid=%d, error=%d",
-				srv->fdidx[fd].control? "control" : "L2CAP",
-				pdu->pid, ntohs(pdu->tid), error);
+			    srv->fdidx[fd].control ? "control" : "L2CAP",
+			    pdu->pid, ntohs(pdu->tid), error);
 	}
 
-	/* On error forget response (if any) */ 
+	/* On error forget response (if any) */
 	if (error != 0) {
 		srv->fdidx[fd].rsp_cs = 0;
 		srv->fdidx[fd].rsp_size = 0;
@@ -536,24 +550,24 @@ server_process_request(server_p srv, int32_t fd)
 static int32_t
 server_send_error_response(server_p srv, int32_t fd, uint16_t error)
 {
-	int32_t	size;
+	int32_t size;
 
 	struct {
-		sdp_pdu_t		pdu;
-		uint16_t		error;
-	} __attribute__ ((packed))	rsp;
+		sdp_pdu_t pdu;
+		uint16_t error;
+	} __attribute__((packed)) rsp;
 
 	/* Prepare and send SDP error response */
 	rsp.pdu.pid = SDP_PDU_ERROR_RESPONSE;
 	rsp.pdu.tid = ((sdp_pdu_p)(srv->req))->tid;
 	rsp.pdu.len = htons(sizeof(rsp.error));
-	rsp.error   = htons(error);
+	rsp.error = htons(error);
 
 	do {
 		size = write(fd, &rsp, sizeof(rsp));
 	} while (size < 0 && errno == EINTR);
 
-	return ((size < 0)? errno : 0);
+	return ((size < 0) ? errno : 0);
 }
 
 /*
@@ -563,7 +577,7 @@ server_send_error_response(server_p srv, int32_t fd, uint16_t error)
 static void
 server_close_fd(server_p srv, int32_t fd)
 {
-	provider_p	provider = NULL, provider_next = NULL;
+	provider_p provider = NULL, provider_next = NULL;
 
 	assert(FD_ISSET(fd, &srv->fdset));
 	assert(srv->fdidx[fd].valid);
@@ -572,15 +586,14 @@ server_close_fd(server_p srv, int32_t fd)
 
 	FD_CLR(fd, &srv->fdset);
 	if (fd == srv->maxfd)
-		srv->maxfd --;
+		srv->maxfd--;
 
 	if (srv->fdidx[fd].rsp != NULL)
 		free(srv->fdidx[fd].rsp);
 
 	memset(&srv->fdidx[fd], 0, sizeof(srv->fdidx[fd]));
 
-	for (provider = provider_get_first();
-	     provider != NULL;
+	for (provider = provider_get_first(); provider != NULL;
 	     provider = provider_next) {
 		provider_next = provider_get_next(provider);
 
@@ -588,4 +601,3 @@ server_close_fd(server_p srv, int32_t fd)
 			provider_unregister(provider);
 	}
 }
-

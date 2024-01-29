@@ -27,27 +27,27 @@
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
+#include <sys/param.h>
+#include <sys/stat.h>
+
 #include <err.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <libgen.h>
-#include <sys/stat.h>
-#include <sys/param.h>
-
 #include <libusb.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
+#include "ath3k_dbg.h"
 #include "ath3k_fw.h"
 #include "ath3k_hw.h"
-#include "ath3k_dbg.h"
 
-#define	_DEFAULT_ATH3K_FIRMWARE_PATH	"/usr/share/firmware/ath3k/"
+#define _DEFAULT_ATH3K_FIRMWARE_PATH "/usr/share/firmware/ath3k/"
 
-int	ath3k_do_debug = 0;
-int	ath3k_do_info = 0;
+int ath3k_do_debug = 0;
+int ath3k_do_info = 0;
 
 struct ath3k_devid {
 	uint16_t product_id;
@@ -100,7 +100,7 @@ ath3k_is_3012(struct libusb_device_descriptor *d)
 	int i;
 
 	/* Search looking for whether it's an AR3012 */
-	for (i = 0; i < (int) nitems(ath3k_list); i++) {
+	for (i = 0; i < (int)nitems(ath3k_list); i++) {
 		if ((ath3k_list[i].product_id == d->idProduct) &&
 		    (ath3k_list[i].vendor_id == d->idVendor)) {
 			fprintf(stderr, "%s: found AR3012\n", __func__);
@@ -121,8 +121,7 @@ ath3k_find_device(libusb_context *ctx, int bus_id, int dev_id)
 	cnt = libusb_get_device_list(ctx, &list);
 	if (cnt < 0) {
 		ath3k_err("%s: libusb_get_device_list() failed: code %lld\n",
-		    __func__,
-		    (long long int) cnt);
+		    __func__, (long long int)cnt);
 		return (NULL);
 	}
 
@@ -186,8 +185,7 @@ ath3k_init_firmware(libusb_device_handle *hdl, const char *file_prefix)
 
 	/* Read in the firmware */
 	if (ath3k_fw_read(&fw, fwname) <= 0) {
-		fprintf(stderr, "%s: ath3k_fw_read() failed\n",
-		    __func__);
+		fprintf(stderr, "%s: ath3k_fw_read() failed\n", __func__);
 		return (-1);
 	}
 
@@ -212,11 +210,11 @@ parse_ugen_name(char const *ugen, uint8_t *bus, uint8_t *addr)
 	if (strncmp(ugen, "ugen", 4) != 0)
 		return (-1);
 
-	*bus = (uint8_t) strtoul(ugen + 4, &ep, 10);
+	*bus = (uint8_t)strtoul(ugen + 4, &ep, 10);
 	if (*ep != '.')
 		return (-1);
 
-	*addr = (uint8_t) strtoul(ep + 1, &ep, 10);
+	*addr = (uint8_t)strtoul(ep + 1, &ep, 10);
 	if (*ep != '\0')
 		return (-1);
 
@@ -254,9 +252,7 @@ main(int argc, char *argv[])
 	/* libusb setup */
 	r = libusb_init(&ctx);
 	if (r != 0) {
-		ath3k_err("%s: libusb_init failed: code %d\n",
-		    argv[0],
-		    r);
+		ath3k_err("%s: libusb_init failed: code %d\n", argv[0], r);
 		exit(127);
 	}
 
@@ -296,10 +292,8 @@ main(int argc, char *argv[])
 		/* NOTREACHED */
 	}
 
-	ath3k_debug("%s: opening dev %d.%d\n",
-	    basename(argv[0]),
-	    (int) bus_id,
-	    (int) dev_id);
+	ath3k_debug("%s: opening dev %d.%d\n", basename(argv[0]), (int)bus_id,
+	    (int)dev_id);
 
 	/* Find a device based on the bus/dev id */
 	dev = ath3k_find_device(ctx, bus_id, dev_id);
@@ -312,8 +306,7 @@ main(int argc, char *argv[])
 	/* Get the device descriptor for this device entry */
 	r = libusb_get_device_descriptor(dev, &d);
 	if (r != 0) {
-		warn("%s: libusb_get_device_descriptor: %s\n",
-		    __func__,
+		warn("%s: libusb_get_device_descriptor: %s\n", __func__,
 		    libusb_strerror(r));
 		exit(1);
 	}
@@ -325,8 +318,7 @@ main(int argc, char *argv[])
 		/* If it's bcdDevice > 1, don't attach */
 		if (d.bcdDevice > 0x0001) {
 			ath3k_debug("%s: AR3012; bcdDevice=%d, exiting\n",
-			    __func__,
-			    d.bcdDevice);
+			    __func__, d.bcdDevice);
 			exit(0);
 		}
 	}
@@ -352,9 +344,7 @@ main(int argc, char *argv[])
 		/* XXX cleanup? */
 		exit(1);
 	}
-	ath3k_debug("%s: state=0x%02x\n",
-	    __func__,
-	    (int) state);
+	ath3k_debug("%s: state=0x%02x\n", __func__, (int)state);
 
 	/* And the version */
 	r = ath3k_get_version(hdl, &ver);
@@ -364,20 +354,17 @@ main(int argc, char *argv[])
 		exit(1);
 	}
 	ath3k_info("ROM version: %d, build version: %d, ram version: %d, "
-	    "ref clock=%d\n",
-	    ver.rom_version,
-	    ver.build_version,
-	    ver.ram_version,
-	    ver.ref_clock);
+		   "ref clock=%d\n",
+	    ver.rom_version, ver.build_version, ver.ram_version, ver.ref_clock);
 
 	/* Default the firmware path */
 	if (firmware_path == NULL)
 		firmware_path = strdup(_DEFAULT_ATH3K_FIRMWARE_PATH);
 
 	if (is_3012) {
-		(void) ath3k_init_ar3012(hdl, firmware_path);
+		(void)ath3k_init_ar3012(hdl, firmware_path);
 	} else {
-		(void) ath3k_init_firmware(hdl, firmware_path);
+		(void)ath3k_init_firmware(hdl, firmware_path);
 	}
 
 	/* Shutdown */

@@ -40,10 +40,6 @@
 #include <sys/mount.h>
 #include <sys/stat.h>
 
-#include <ufs/ufs/dinode.h>
-#include <ufs/ufs/quota.h>
-#include <ufs/ffs/fs.h>
-
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -56,6 +52,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
+#include <ufs/ufs/quota.h>
 #include <unistd.h>
 
 #include "quotacheck.h"
@@ -65,15 +64,15 @@ const char *qfextension[] = INITQFNAMES;
 const char *quotagroup = QUOTAGROUP;
 
 union {
-	struct	fs	sblk;
-	char	dummy[MAXBSIZE];
+	struct fs sblk;
+	char dummy[MAXBSIZE];
 } sb_un;
-#define	sblock	sb_un.sblk
+#define sblock sb_un.sblk
 union {
-	struct	cg	cgblk;
-	char	dummy[MAXBSIZE];
+	struct cg cgblk;
+	char dummy[MAXBSIZE];
 } cg_un;
-#define	cgblk	cg_un.cgblk
+#define cgblk cg_un.cgblk
 long dev_bsize = 1;
 ino_t maxino;
 
@@ -81,46 +80,42 @@ union dinode {
 	struct ufs1_dinode dp1;
 	struct ufs2_dinode dp2;
 };
-#define	DIP(dp, field) \
-	((sblock.fs_magic == FS_UFS1_MAGIC) ? \
-	(dp)->dp1.field : (dp)->dp2.field)
+#define DIP(dp, field) \
+	((sblock.fs_magic == FS_UFS1_MAGIC) ? (dp)->dp1.field : (dp)->dp2.field)
 
-#define	HASUSR	1
-#define	HASGRP	2
+#define HASUSR 1
+#define HASGRP 2
 
 struct fileusage {
-	struct	fileusage *fu_next;
-	u_long	fu_curinodes;
-	u_long	fu_curblocks;
-	u_long	fu_id;
-	char	fu_name[1];
+	struct fileusage *fu_next;
+	u_long fu_curinodes;
+	u_long fu_curblocks;
+	u_long fu_id;
+	char fu_name[1];
 	/* actually bigger */
 };
-#define FUHASH 1024	/* must be power of two */
+#define FUHASH 1024 /* must be power of two */
 struct fileusage *fuhead[MAXQUOTAS][FUHASH];
 
-int	aflag;			/* all file systems */
-int	cflag;			/* convert format to 32 or 64 bit size */
-int	gflag;			/* check group quotas */
-int	uflag;			/* check user quotas */
-int	vflag;			/* verbose */
-int	fi;			/* open disk file descriptor */
+int aflag; /* all file systems */
+int cflag; /* convert format to 32 or 64 bit size */
+int gflag; /* check group quotas */
+int uflag; /* check user quotas */
+int vflag; /* verbose */
+int fi;	   /* open disk file descriptor */
 
-struct fileusage *
-	 addid(u_long, int, char *, const char *);
-void	 blkread(ufs2_daddr_t, char *, long);
-void	 freeinodebuf(void);
-union dinode *
-	 getnextinode(ino_t);
-int	 getquotagid(void);
-struct fileusage *
-	 lookup(u_long, int);
-int	 oneof(char *, char*[], int);
-void	 printchanges(const char *, int, struct dqblk *, struct fileusage *,
-	    u_long);
-void	 setinodebuf(ino_t);
-int	 update(const char *, struct quotafile *, int);
-void	 usage(void);
+struct fileusage *addid(u_long, int, char *, const char *);
+void blkread(ufs2_daddr_t, char *, long);
+void freeinodebuf(void);
+union dinode *getnextinode(ino_t);
+int getquotagid(void);
+struct fileusage *lookup(u_long, int);
+int oneof(char *, char *[], int);
+void printchanges(const char *, int, struct dqblk *, struct fileusage *,
+    u_long);
+void setinodebuf(ino_t);
+int update(const char *, struct quotafile *, int);
+void usage(void);
 
 int
 main(int argc, char *argv[])
@@ -135,7 +130,7 @@ main(int argc, char *argv[])
 
 	errs = maxrun = 0;
 	while ((ch = getopt(argc, argv, "ac:guvl:")) != -1) {
-		switch(ch) {
+		switch (ch) {
 		case 'a':
 			aflag++;
 			break;
@@ -173,14 +168,14 @@ main(int argc, char *argv[])
 	if (gflag) {
 		setgrent();
 		while ((gr = getgrent()) != NULL)
-			(void) addid((u_long)gr->gr_gid, GRPQUOTA, gr->gr_name,
+			(void)addid((u_long)gr->gr_gid, GRPQUOTA, gr->gr_name,
 			    NULL);
 		endgrent();
 	}
 	if (uflag) {
 		setpwent();
 		while ((pw = getpwent()) != NULL)
-			(void) addid((u_long)pw->pw_uid, USRQUOTA, pw->pw_name,
+			(void)addid((u_long)pw->pw_uid, USRQUOTA, pw->pw_name,
 			    NULL);
 		endpwent();
 	}
@@ -195,15 +190,17 @@ main(int argc, char *argv[])
 		errx(1, "%s: can't open", FSTAB);
 	while ((fs = getfsent()) != NULL) {
 		if (((argnum = oneof(fs->fs_file, argv, argc)) >= 0 ||
-		     (argnum = oneof(fs->fs_spec, argv, argc)) >= 0) &&
+			(argnum = oneof(fs->fs_spec, argv, argc)) >= 0) &&
 		    (name = blockcheck(fs->fs_spec))) {
 			done |= 1 << argnum;
 			qfu = NULL;
 			if (uflag)
-				qfu = quota_open(fs, USRQUOTA, O_CREAT|O_RDWR);
+				qfu = quota_open(fs, USRQUOTA,
+				    O_CREAT | O_RDWR);
 			qfg = NULL;
 			if (gflag)
-				qfg = quota_open(fs, GRPQUOTA, O_CREAT|O_RDWR);
+				qfg = quota_open(fs, GRPQUOTA,
+				    O_CREAT | O_RDWR);
 			if (qfu == NULL && qfg == NULL)
 				continue;
 			errs += chkquota(name, qfu, qfg);
@@ -216,8 +213,7 @@ main(int argc, char *argv[])
 	endfsent();
 	for (i = 0; i < argc; i++)
 		if ((done & (1 << i)) == 0)
-			fprintf(stderr, "%s not found in %s\n",
-				argv[i], FSTAB);
+			fprintf(stderr, "%s not found in %s\n", argv[i], FSTAB);
 	exit(errs);
 }
 
@@ -225,8 +221,8 @@ void
 usage(void)
 {
 	(void)fprintf(stderr, "%s\n%s\n",
-		"usage: quotacheck [-guv] [-c 32 | 64] [-l maxrun] -a",
-		"       quotacheck [-guv] [-c 32 | 64] filesystem ...");
+	    "usage: quotacheck [-guv] [-c 32 | 64] [-l maxrun] -a",
+	    "       quotacheck [-guv] [-c 32 | 64] filesystem ...");
 	exit(1);
 }
 
@@ -255,8 +251,8 @@ chkquota(char *specname, struct quotafile *qfu, struct quotafile *qfg)
 		errx(1, "null quotafile information passed to chkquota()\n");
 	if (cflag) {
 		if (vflag && qfu != NULL)
-			printf("%s: convert user quota to %d bits\n",
-			    mntpt, cflag);
+			printf("%s: convert user quota to %d bits\n", mntpt,
+			    cflag);
 		if (qfu != NULL && quota_convert(qfu, cflag) < 0) {
 			if (errno == EBADF)
 				errx(1,
@@ -266,8 +262,8 @@ chkquota(char *specname, struct quotafile *qfu, struct quotafile *qfg)
 			    cflag);
 		}
 		if (vflag && qfg != NULL)
-			printf("%s: convert group quota to %d bits\n",
-			    mntpt, cflag);
+			printf("%s: convert group quota to %d bits\n", mntpt,
+			    cflag);
 		if (qfg != NULL && quota_convert(qfg, cflag) < 0) {
 			if (errno == EBADF)
 				errx(1,
@@ -341,7 +337,7 @@ chkquota(char *specname, struct quotafile *qfu, struct quotafile *qfg)
 			if (!cg_chkmagic(&cgblk))
 				errx(1, "CG %d: BAD MAGIC NUMBER\n", cg);
 			cp = &cg_inosused(&cgblk)[(inosused - 1) / CHAR_BIT];
-			for ( ; inosused > 0; inosused -= CHAR_BIT, cp--) {
+			for (; inosused > 0; inosused -= CHAR_BIT, cp--) {
 				if (*cp == 0)
 					continue;
 				for (i = 1 << (CHAR_BIT - 1); i > 0; i >>= 1) {
@@ -369,8 +365,9 @@ chkquota(char *specname, struct quotafile *qfu, struct quotafile *qfg)
 				if (vflag) {
 					if (aflag)
 						(void)printf("%s: ", mntpt);
-			(void)printf("out of range UID/GID (%u/%u) ino=%ju\n",
-					    DIP(dp, di_uid), DIP(dp,di_gid),
+					(void)printf(
+					    "out of range UID/GID (%u/%u) ino=%ju\n",
+					    DIP(dp, di_uid), DIP(dp, di_gid),
 					    (uintmax_t)ino);
 				}
 				continue;
@@ -381,7 +378,7 @@ chkquota(char *specname, struct quotafile *qfu, struct quotafile *qfg)
 			 * or the actual quota data files to be consistent
 			 * with how they are handled inside the kernel.
 			 */
-#ifdef	SF_SNAPSHOT
+#ifdef SF_SNAPSHOT
 			if (DIP(dp, di_flags) & SF_SNAPSHOT)
 				continue;
 #endif
@@ -451,7 +448,7 @@ update(const char *fsname, struct quotafile *qf, int type)
 		printchanges(fsname, type, &dqbuf, fup, id);
 		dqbuf.dqb_curinodes = fup->fu_curinodes;
 		dqbuf.dqb_curblocks = fup->fu_curblocks;
-		(void) quota_write_usage(qf, &dqbuf, id);
+		(void)quota_write_usage(qf, &dqbuf, id);
 		fup->fu_curinodes = 0;
 		fup->fu_curblocks = 0;
 	}
@@ -473,7 +470,7 @@ update(const char *fsname, struct quotafile *qf, int type)
 			printchanges(fsname, type, &dqbuf, fup, fup->fu_id);
 			dqbuf.dqb_curinodes = fup->fu_curinodes;
 			dqbuf.dqb_curblocks = fup->fu_curblocks;
-			(void) quota_write_usage(qf, &dqbuf, fup->fu_id);
+			(void)quota_write_usage(qf, &dqbuf, fup->fu_id);
 			fup->fu_curinodes = 0;
 			fup->fu_curblocks = 0;
 		}
@@ -483,8 +480,7 @@ update(const char *fsname, struct quotafile *qf, int type)
 	 * so ensure that we only truncate when it will make things
 	 * smaller, and not if it will grow an old format file.
 	 */
-	if (highid < lastid &&
-	    stat(quota_qfname(qf), &sb) == 0 &&
+	if (highid < lastid && stat(quota_qfname(qf), &sb) == 0 &&
 	    sb.st_size > (off_t)((highid + 2) * sizeof(struct dqblk)))
 		truncate(quota_qfname(qf),
 		    (((off_t)highid + 2) * sizeof(struct dqblk)));
@@ -528,7 +524,8 @@ lookup(u_long id, int type)
 {
 	struct fileusage *fup;
 
-	for (fup = fuhead[type][id & (FUHASH-1)]; fup != NULL; fup = fup->fu_next)
+	for (fup = fuhead[type][id & (FUHASH - 1)]; fup != NULL;
+	     fup = fup->fu_next)
 		if (fup->fu_id == id)
 			return (fup);
 	return (NULL);
@@ -576,7 +573,7 @@ addid(u_long id, int type, char *name, const char *fsname)
 static ino_t nextino, lastinum, lastvalidinum;
 static long readcnt, readpercg, fullcnt, inobufsize, partialcnt, partialsize;
 static caddr_t inodebuf;
-#define INOBUFSIZE	56*1024		/* size of buffer to read inodes */
+#define INOBUFSIZE 56 * 1024 /* size of buffer to read inodes */
 
 union dinode *
 getnextinode(ino_t inumber)
@@ -630,12 +627,14 @@ setinodebuf(ino_t inum)
 	if (inodebuf != NULL)
 		return;
 	inobufsize = blkroundup(&sblock, INOBUFSIZE);
-	fullcnt = inobufsize / ((sblock.fs_magic == FS_UFS1_MAGIC) ?
-	    sizeof(struct ufs1_dinode) : sizeof(struct ufs2_dinode));
+	fullcnt = inobufsize /
+	    ((sblock.fs_magic == FS_UFS1_MAGIC) ? sizeof(struct ufs1_dinode) :
+						  sizeof(struct ufs2_dinode));
 	readpercg = sblock.fs_ipg / fullcnt;
 	partialcnt = sblock.fs_ipg % fullcnt;
-	partialsize = partialcnt * ((sblock.fs_magic == FS_UFS1_MAGIC) ?
-	    sizeof(struct ufs1_dinode) : sizeof(struct ufs2_dinode));
+	partialsize = partialcnt *
+	    ((sblock.fs_magic == FS_UFS1_MAGIC) ? sizeof(struct ufs1_dinode) :
+						  sizeof(struct ufs2_dinode));
 	if (partialcnt != 0) {
 		readpercg++;
 	} else {
@@ -703,8 +702,7 @@ printchanges(const char *fsname, int type, struct dqblk *dp,
 		(void)printf("\tinodes %lu -> %lu", (u_long)dp->dqb_curinodes,
 		    (u_long)fup->fu_curinodes);
 	if (dp->dqb_curblocks != fup->fu_curblocks)
-		(void)printf("\tblocks %lu -> %lu",
-		    (u_long)dp->dqb_curblocks,
+		(void)printf("\tblocks %lu -> %lu", (u_long)dp->dqb_curblocks,
 		    (u_long)fup->fu_curblocks);
 	(void)printf("\n");
 }

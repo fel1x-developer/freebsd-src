@@ -31,14 +31,14 @@
 
 #include <sys/param.h>
 #include <sys/wait.h>
+
+#include <atf-c.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <atf-c.h>
 
 static volatile sig_atomic_t got_sigpipe;
 
@@ -102,7 +102,8 @@ ATF_TC_BODY(popen_rmodes_test, tc)
 		if (fp == NULL)
 			continue;
 		check_cloexec(fp, mode);
-		bool input_error_1 = !(fgetc(fp) != EOF || !feof(fp) || !ferror(fp));
+		bool input_error_1 = !(
+		    fgetc(fp) != EOF || !feof(fp) || !ferror(fp));
 		ATF_CHECK_MSG(!input_error_1, "input error 1");
 		if (input_error_1)
 			continue;
@@ -146,8 +147,7 @@ ATF_TC_BODY(popen_wmodes_test, tc)
 		if (fp == NULL)
 			continue;
 		check_cloexec(fp, mode);
-		ATF_CHECK_MSG(fputs("abcd\n", fp) != EOF,
-		    "Output error 1");
+		ATF_CHECK_MSG(fputs("abcd\n", fp) != EOF, "Output error 1");
 		status = pclose(fp);
 		ATF_CHECK_MSG(WIFEXITED(status) && WEXITSTATUS(status) == 0,
 		    "Bad exit status (output)");
@@ -181,24 +181,26 @@ ATF_TC_BODY(popen_wmodes_test, tc)
 		for (j = 0; j < nitems(wmodes); j++) {
 			mode = wmodes[i];
 			fp = popen("read x", mode);
-			ATF_CHECK_MSG(fp != NULL,
-			    "popen(, \"%s\") failed", mode);
+			ATF_CHECK_MSG(fp != NULL, "popen(, \"%s\") failed",
+			    mode);
 			if (fp == NULL)
 				continue;
 			mode = wmodes[j];
 			fp2 = popen("read x", mode);
-			ATF_CHECK_MSG(fp2 != NULL,
-			    "popen(, \"%s\") failed", mode);
+			ATF_CHECK_MSG(fp2 != NULL, "popen(, \"%s\") failed",
+			    mode);
 			if (fp2 == NULL) {
 				pclose(fp);
 				continue;
 			}
 			/* If fp2 inherits fp's pipe, we will deadlock here. */
 			status = pclose(fp);
-			ATF_CHECK_MSG(WIFEXITED(status) && WEXITSTATUS(status) == 1,
+			ATF_CHECK_MSG(WIFEXITED(status) &&
+				WEXITSTATUS(status) == 1,
 			    "bad exit status (2 pipes)");
 			status = pclose(fp2);
-			ATF_CHECK_MSG(WIFEXITED(status) && WEXITSTATUS(status) == 1,
+			ATF_CHECK_MSG(WIFEXITED(status) &&
+				WEXITSTATUS(status) == 1,
 			    "bad exit status (2 pipes)");
 		}
 	}

@@ -27,21 +27,21 @@
  */
 
 #ifndef _SYS_TLS_VARIANT_I_H_
-#define	_SYS_TLS_VARIANT_I_H_
+#define _SYS_TLS_VARIANT_I_H_
 
 /*
  * Variant I TLS uses the same TCB layout across architectures.
  */
 
-#define	TLS_VARIANT_I
+#define TLS_VARIANT_I
 
 struct pthread;
 
 struct tcb {
-	uintptr_t		*tcb_dtv;	/* required by rtld */
-	struct pthread		*tcb_thread;
+	uintptr_t *tcb_dtv; /* required by rtld */
+	struct pthread *tcb_thread;
 };
 
-#define	TLS_TCB_SIZE	sizeof(struct tcb)
+#define TLS_TCB_SIZE sizeof(struct tcb)
 
 #endif /* !_SYS_TLS_VARIANT_I_H_ */

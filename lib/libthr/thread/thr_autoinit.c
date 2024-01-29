@@ -34,6 +34,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <pthread.h>
 
 #include "thr_private.h"
@@ -43,7 +44,7 @@
  * threads package at program start-up time.
  */
 
-void	_thread_init_hack(void) __attribute__ ((constructor));
+void _thread_init_hack(void) __attribute__((constructor));
 
 void
 _thread_init_hack(void)

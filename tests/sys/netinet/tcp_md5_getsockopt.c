@@ -34,11 +34,10 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 
+#include <atf-c.h>
+#include <err.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <err.h>
-
-#include <atf-c.h>
 
 void test_tcp_md5_getsockopt(int);
 
@@ -46,13 +45,14 @@ void
 test_tcp_md5_getsockopt(int v6)
 {
 	if (kldfind("tcpmd5.ko") == -1)
-		atf_tc_skip("Test requires the tcpmd5 kernel module to be loaded");
+		atf_tc_skip(
+		    "Test requires the tcpmd5 kernel module to be loaded");
 
-        struct sockaddr_in *s;
-        struct sockaddr_in6 s6 = { 0 };
-        struct sockaddr_in s4 = { 0 };
-        socklen_t len;
-        int csock, ssock, opt;
+	struct sockaddr_in *s;
+	struct sockaddr_in6 s6 = { 0 };
+	struct sockaddr_in s4 = { 0 };
+	socklen_t len;
+	int csock, ssock, opt;
 	int pf;
 
 	if (v6) {
@@ -77,8 +77,8 @@ test_tcp_md5_getsockopt(int v6)
 		s = &s4;
 	}
 
-        if ((ssock = socket(pf, SOCK_STREAM, 0)) == -1)
-                atf_tc_fail("creating server socket");
+	if ((ssock = socket(pf, SOCK_STREAM, 0)) == -1)
+		atf_tc_fail("creating server socket");
 
 	fcntl(ssock, F_SETFL, O_NONBLOCK);
 
@@ -89,14 +89,14 @@ test_tcp_md5_getsockopt(int v6)
 
 	listen(ssock, 1);
 
-        if ((csock = socket(pf, SOCK_STREAM, 0)) == -1)
-                atf_tc_fail("creating client socket");
+	if ((csock = socket(pf, SOCK_STREAM, 0)) == -1)
+		atf_tc_fail("creating client socket");
 
-        if (connect(csock, (struct sockaddr *)s, len) == -1)
-                atf_tc_fail("connecting to server instance");
+	if (connect(csock, (struct sockaddr *)s, len) == -1)
+		atf_tc_fail("connecting to server instance");
 
-        if (getsockopt(csock, IPPROTO_TCP, TCP_MD5SIG, &opt, &len) == -1)
-                atf_tc_fail("getsockopt");
+	if (getsockopt(csock, IPPROTO_TCP, TCP_MD5SIG, &opt, &len) == -1)
+		atf_tc_fail("getsockopt");
 
 	close(csock);
 	close(ssock);
@@ -107,7 +107,8 @@ test_tcp_md5_getsockopt(int v6)
 ATF_TC(tcp_md5_getsockopt_v4);
 ATF_TC_HEAD(tcp_md5_getsockopt_v4, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Test getsockopt for TCP MD5 SIG (IPv4)");
+	atf_tc_set_md_var(tc, "descr",
+	    "Test getsockopt for TCP MD5 SIG (IPv4)");
 }
 
 ATF_TC_BODY(tcp_md5_getsockopt_v4, tc)
@@ -118,7 +119,8 @@ ATF_TC_BODY(tcp_md5_getsockopt_v4, tc)
 ATF_TC(tcp_md5_getsockopt_v6);
 ATF_TC_HEAD(tcp_md5_getsockopt_v6, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Test getsockopt for TCP MD5 SIG (IPv6)");
+	atf_tc_set_md_var(tc, "descr",
+	    "Test getsockopt for TCP MD5 SIG (IPv6)");
 }
 
 ATF_TC_BODY(tcp_md5_getsockopt_v6, tc)

@@ -16,14 +16,13 @@
 */
 
 #include "cpa.h"
-#include "cpa_cy_sym.h"
 #include "cpa_cy_im.h"
-
+#include "cpa_cy_sym.h"
+#include "icp_accel_devices.h"
+#include "icp_adf_debug.h"
 #include "icp_adf_init.h"
 #include "icp_adf_transport.h"
 #include "icp_adf_transport_dp.h"
-#include "icp_accel_devices.h"
-#include "icp_adf_debug.h"
 #include "icp_qat_fw_la.h"
 
 /*
@@ -31,58 +30,57 @@
  * Include private header files
  ******************************************************************************
  */
+#include "lac_buffer_desc.h"
 #include "lac_common.h"
+#include "lac_hooks.h"
+#include "lac_list.h"
 #include "lac_log.h"
 #include "lac_mem.h"
 #include "lac_mem_pools.h"
-#include "lac_list.h"
-#include "lac_sym.h"
-#include "lac_sym_qat.h"
 #include "lac_sal.h"
 #include "lac_sal_ctrl.h"
+#include "lac_sal_types_crypto.h"
 #include "lac_session.h"
+#include "lac_sym.h"
+#include "lac_sym_alg_chain.h"
+#include "lac_sym_cb.h"
 #include "lac_sym_cipher.h"
 #include "lac_sym_hash.h"
-#include "lac_sym_alg_chain.h"
-#include "lac_sym_stats.h"
 #include "lac_sym_partial.h"
+#include "lac_sym_qat.h"
 #include "lac_sym_qat_hash_defs_lookup.h"
-#include "lac_sym_cb.h"
-#include "lac_buffer_desc.h"
+#include "lac_sym_stats.h"
 #include "lac_sync.h"
-#include "lac_hooks.h"
-#include "lac_sal_types_crypto.h"
 #include "sal_service_state.h"
 
-#define IS_EXT_ALG_CHAIN_UNSUPPORTED(cipherAlgorithm,                          \
-				     hashAlgorithm,                            \
-				     extAlgchainSupported)                     \
-	((((CPA_CY_SYM_CIPHER_ZUC_EEA3 == cipherAlgorithm ||                   \
-	    CPA_CY_SYM_CIPHER_SNOW3G_UEA2 == cipherAlgorithm) &&               \
-	   CPA_CY_SYM_HASH_AES_CMAC == hashAlgorithm) ||                       \
-	  ((CPA_CY_SYM_CIPHER_NULL == cipherAlgorithm ||                       \
-	    CPA_CY_SYM_CIPHER_AES_CTR == cipherAlgorithm ||                    \
-	    CPA_CY_SYM_CIPHER_ZUC_EEA3 == cipherAlgorithm) &&                  \
-	   CPA_CY_SYM_HASH_SNOW3G_UIA2 == hashAlgorithm) ||                    \
-	  ((CPA_CY_SYM_CIPHER_NULL == cipherAlgorithm ||                       \
-	    CPA_CY_SYM_CIPHER_AES_CTR == cipherAlgorithm ||                    \
-	    CPA_CY_SYM_CIPHER_SNOW3G_UEA2 == cipherAlgorithm) &&               \
-	   CPA_CY_SYM_HASH_ZUC_EIA3 == hashAlgorithm)) &&                      \
-	 !extAlgchainSupported)
+#define IS_EXT_ALG_CHAIN_UNSUPPORTED(cipherAlgorithm, hashAlgorithm,   \
+    extAlgchainSupported)                                              \
+	((((CPA_CY_SYM_CIPHER_ZUC_EEA3 == cipherAlgorithm ||           \
+	       CPA_CY_SYM_CIPHER_SNOW3G_UEA2 == cipherAlgorithm) &&    \
+	      CPA_CY_SYM_HASH_AES_CMAC == hashAlgorithm) ||            \
+	     ((CPA_CY_SYM_CIPHER_NULL == cipherAlgorithm ||            \
+		  CPA_CY_SYM_CIPHER_AES_CTR == cipherAlgorithm ||      \
+		  CPA_CY_SYM_CIPHER_ZUC_EEA3 == cipherAlgorithm) &&    \
+		 CPA_CY_SYM_HASH_SNOW3G_UIA2 == hashAlgorithm) ||      \
+	     ((CPA_CY_SYM_CIPHER_NULL == cipherAlgorithm ||            \
+		  CPA_CY_SYM_CIPHER_AES_CTR == cipherAlgorithm ||      \
+		  CPA_CY_SYM_CIPHER_SNOW3G_UEA2 == cipherAlgorithm) && \
+		 CPA_CY_SYM_HASH_ZUC_EIA3 == hashAlgorithm)) &&        \
+	    !extAlgchainSupported)
 
 /*** Local functions definitions ***/
 static CpaStatus
 LacSymPerform_BufferParamCheck(const CpaBufferList *const pSrcBuffer,
-			       const CpaBufferList *const pDstBuffer,
-			       const lac_session_desc_t *const pSessionDesc,
-			       const CpaCySymOpData *const pOpData);
+    const CpaBufferList *const pDstBuffer,
+    const lac_session_desc_t *const pSessionDesc,
+    const CpaCySymOpData *const pOpData);
 
 void LacDp_WriteRingMsgFull(CpaCySymDpOpData *pRequest,
-			    icp_qat_fw_la_bulk_req_t *pCurrentQatMsg);
+    icp_qat_fw_la_bulk_req_t *pCurrentQatMsg);
 void LacDp_WriteRingMsgOpt(CpaCySymDpOpData *pRequest,
-			   icp_qat_fw_la_bulk_req_t *pCurrentQatMsg);
+    icp_qat_fw_la_bulk_req_t *pCurrentQatMsg);
 void getCtxSize(const CpaCySymSessionSetupData *pSessionSetupData,
-		Cpa32U *pSessionCtxSizeInBytes);
+    Cpa32U *pSessionCtxSizeInBytes);
 
 /**
  *****************************************************************************
@@ -107,12 +105,9 @@ void getCtxSize(const CpaCySymSessionSetupData *pSessionSetupData,
  *
  *****************************************************************************/
 void
-LacSync_GenBufListVerifyCb(void *pCallbackTag,
-			   CpaStatus status,
-			   CpaCySymOp operationType,
-			   void *pOpData,
-			   CpaBufferList *pDstBuffer,
-			   CpaBoolean opResult)
+LacSync_GenBufListVerifyCb(void *pCallbackTag, CpaStatus status,
+    CpaCySymOp operationType, void *pOpData, CpaBufferList *pDstBuffer,
+    CpaBoolean opResult)
 {
 	LacSync_GenVerifyWakeupSyncCaller(pCallbackTag, status, opResult);
 }
@@ -134,7 +129,7 @@ LacSync_GenBufListVerifyCb(void *pCallbackTag,
  */
 static CpaStatus
 LacSymSession_ParamCheck(const CpaInstanceHandle instanceHandle,
-			 const CpaCySymSessionSetupData *pSessionSetupData)
+    const CpaCySymSessionSetupData *pSessionSetupData)
 {
 	/* initialize convenient pointers to cipher and hash contexts */
 	const CpaCySymCipherSetupData *const pCipherSetupData =
@@ -150,7 +145,7 @@ LacSymSession_ParamCheck(const CpaInstanceHandle instanceHandle,
 
 	/* Ensure cipher algorithm is correct and supported */
 	if ((CPA_CY_SYM_OP_ALGORITHM_CHAINING ==
-	     pSessionSetupData->symOperation) ||
+		pSessionSetupData->symOperation) ||
 	    (CPA_CY_SYM_OP_CIPHER == pSessionSetupData->symOperation)) {
 		/* Protect against value of cipher outside the bitmap
 		 * and check if cipher algorithm is correct
@@ -161,7 +156,7 @@ LacSymSession_ParamCheck(const CpaInstanceHandle instanceHandle,
 			return CPA_STATUS_INVALID_PARAM;
 		}
 		if (!CPA_BITMAP_BIT_TEST(capInfo.ciphers,
-					 pCipherSetupData->cipherAlgorithm)) {
+			pCipherSetupData->cipherAlgorithm)) {
 			LAC_UNSUPPORTED_PARAM_LOG(
 			    "UnSupported cipherAlgorithm");
 			return CPA_STATUS_UNSUPPORTED;
@@ -170,7 +165,7 @@ LacSymSession_ParamCheck(const CpaInstanceHandle instanceHandle,
 
 	/* Ensure hash algorithm is correct and supported */
 	if ((CPA_CY_SYM_OP_ALGORITHM_CHAINING ==
-	     pSessionSetupData->symOperation) ||
+		pSessionSetupData->symOperation) ||
 	    (CPA_CY_SYM_OP_HASH == pSessionSetupData->symOperation)) {
 		/* Protect against value of hash outside the bitmap
 		 * and check if hash algorithm is correct
@@ -181,7 +176,7 @@ LacSymSession_ParamCheck(const CpaInstanceHandle instanceHandle,
 			return CPA_STATUS_INVALID_PARAM;
 		}
 		if (!CPA_BITMAP_BIT_TEST(capInfo.hashes,
-					 pHashSetupData->hashAlgorithm)) {
+			pHashSetupData->hashAlgorithm)) {
 			LAC_UNSUPPORTED_PARAM_LOG("UnSupported hashAlgorithm");
 			return CPA_STATUS_UNSUPPORTED;
 		}
@@ -193,11 +188,12 @@ LacSymSession_ParamCheck(const CpaInstanceHandle instanceHandle,
 	    pSessionSetupData->symOperation) {
 		/* ensure both hash and cipher algorithms are POLY and CHACHA */
 		if (((CPA_CY_SYM_CIPHER_CHACHA ==
-		      pCipherSetupData->cipherAlgorithm) &&
-		     (CPA_CY_SYM_HASH_POLY != pHashSetupData->hashAlgorithm)) ||
+			 pCipherSetupData->cipherAlgorithm) &&
+			(CPA_CY_SYM_HASH_POLY !=
+			    pHashSetupData->hashAlgorithm)) ||
 		    ((CPA_CY_SYM_HASH_POLY == pHashSetupData->hashAlgorithm) &&
-		     (CPA_CY_SYM_CIPHER_CHACHA !=
-		      pCipherSetupData->cipherAlgorithm))) {
+			(CPA_CY_SYM_CIPHER_CHACHA !=
+			    pCipherSetupData->cipherAlgorithm))) {
 			LAC_INVALID_PARAM_LOG(
 			    "Invalid combination of Cipher/Hash "
 			    "Algorithms for CHACHA/POLY");
@@ -206,13 +202,13 @@ LacSymSession_ParamCheck(const CpaInstanceHandle instanceHandle,
 
 		/* ensure both hash and cipher algorithms are CCM */
 		if (((CPA_CY_SYM_CIPHER_AES_CCM ==
-		      pCipherSetupData->cipherAlgorithm) &&
-		     (CPA_CY_SYM_HASH_AES_CCM !=
-		      pHashSetupData->hashAlgorithm)) ||
+			 pCipherSetupData->cipherAlgorithm) &&
+			(CPA_CY_SYM_HASH_AES_CCM !=
+			    pHashSetupData->hashAlgorithm)) ||
 		    ((CPA_CY_SYM_HASH_AES_CCM ==
-		      pHashSetupData->hashAlgorithm) &&
-		     (CPA_CY_SYM_CIPHER_AES_CCM !=
-		      pCipherSetupData->cipherAlgorithm))) {
+			 pHashSetupData->hashAlgorithm) &&
+			(CPA_CY_SYM_CIPHER_AES_CCM !=
+			    pCipherSetupData->cipherAlgorithm))) {
 			LAC_INVALID_PARAM_LOG(
 			    "Invalid combination of Cipher/Hash Algorithms for CCM");
 			return CPA_STATUS_INVALID_PARAM;
@@ -220,17 +216,17 @@ LacSymSession_ParamCheck(const CpaInstanceHandle instanceHandle,
 
 		/* ensure both hash and cipher algorithms are GCM/GMAC */
 		if ((CPA_CY_SYM_CIPHER_AES_GCM ==
-			 pCipherSetupData->cipherAlgorithm &&
-		     (CPA_CY_SYM_HASH_AES_GCM !=
-			  pHashSetupData->hashAlgorithm &&
-		      CPA_CY_SYM_HASH_AES_GMAC !=
-			  pHashSetupData->hashAlgorithm)) ||
+			    pCipherSetupData->cipherAlgorithm &&
+			(CPA_CY_SYM_HASH_AES_GCM !=
+				pHashSetupData->hashAlgorithm &&
+			    CPA_CY_SYM_HASH_AES_GMAC !=
+				pHashSetupData->hashAlgorithm)) ||
 		    ((CPA_CY_SYM_HASH_AES_GCM ==
-			  pHashSetupData->hashAlgorithm ||
-		      CPA_CY_SYM_HASH_AES_GMAC ==
-			  pHashSetupData->hashAlgorithm) &&
-		     CPA_CY_SYM_CIPHER_AES_GCM !=
-			 pCipherSetupData->cipherAlgorithm)) {
+			     pHashSetupData->hashAlgorithm ||
+			 CPA_CY_SYM_HASH_AES_GMAC ==
+			     pHashSetupData->hashAlgorithm) &&
+			CPA_CY_SYM_CIPHER_AES_GCM !=
+			    pCipherSetupData->cipherAlgorithm)) {
 			LAC_INVALID_PARAM_LOG(
 			    "Invalid combination of Cipher/Hash Algorithms for GCM");
 			return CPA_STATUS_INVALID_PARAM;
@@ -238,13 +234,13 @@ LacSymSession_ParamCheck(const CpaInstanceHandle instanceHandle,
 
 		/* ensure both hash and cipher algorithms are Kasumi */
 		if (((CPA_CY_SYM_CIPHER_KASUMI_F8 ==
-		      pCipherSetupData->cipherAlgorithm) &&
-		     (CPA_CY_SYM_HASH_KASUMI_F9 !=
-		      pHashSetupData->hashAlgorithm)) ||
+			 pCipherSetupData->cipherAlgorithm) &&
+			(CPA_CY_SYM_HASH_KASUMI_F9 !=
+			    pHashSetupData->hashAlgorithm)) ||
 		    ((CPA_CY_SYM_HASH_KASUMI_F9 ==
-		      pHashSetupData->hashAlgorithm) &&
-		     (CPA_CY_SYM_CIPHER_KASUMI_F8 !=
-		      pCipherSetupData->cipherAlgorithm))) {
+			 pHashSetupData->hashAlgorithm) &&
+			(CPA_CY_SYM_CIPHER_KASUMI_F8 !=
+			    pCipherSetupData->cipherAlgorithm))) {
 			LAC_INVALID_PARAM_LOG(
 			    "Invalid combination of Cipher/Hash Algorithms for Kasumi");
 			return CPA_STATUS_INVALID_PARAM;
@@ -261,13 +257,13 @@ LacSymSession_ParamCheck(const CpaInstanceHandle instanceHandle,
 
 		/* ensure both hash and cipher algorithms are Snow3G */
 		if (((CPA_CY_SYM_CIPHER_SNOW3G_UEA2 ==
-		      pCipherSetupData->cipherAlgorithm) &&
-		     (CPA_CY_SYM_HASH_SNOW3G_UIA2 !=
-		      pHashSetupData->hashAlgorithm)) ||
+			 pCipherSetupData->cipherAlgorithm) &&
+			(CPA_CY_SYM_HASH_SNOW3G_UIA2 !=
+			    pHashSetupData->hashAlgorithm)) ||
 		    ((CPA_CY_SYM_HASH_SNOW3G_UIA2 ==
-		      pHashSetupData->hashAlgorithm) &&
-		     (CPA_CY_SYM_CIPHER_SNOW3G_UEA2 !=
-		      pCipherSetupData->cipherAlgorithm))) {
+			 pHashSetupData->hashAlgorithm) &&
+			(CPA_CY_SYM_CIPHER_SNOW3G_UEA2 !=
+			    pCipherSetupData->cipherAlgorithm))) {
 			LAC_INVALID_PARAM_LOG(
 			    "Invalid combination of Cipher/Hash Algorithms for Snow3G");
 			return CPA_STATUS_INVALID_PARAM;
@@ -275,13 +271,13 @@ LacSymSession_ParamCheck(const CpaInstanceHandle instanceHandle,
 
 		/* ensure both hash and cipher algorithms are ZUC */
 		if (((CPA_CY_SYM_CIPHER_ZUC_EEA3 ==
-		      pCipherSetupData->cipherAlgorithm) &&
-		     (CPA_CY_SYM_HASH_ZUC_EIA3 !=
-		      pHashSetupData->hashAlgorithm)) ||
+			 pCipherSetupData->cipherAlgorithm) &&
+			(CPA_CY_SYM_HASH_ZUC_EIA3 !=
+			    pHashSetupData->hashAlgorithm)) ||
 		    ((CPA_CY_SYM_HASH_ZUC_EIA3 ==
-		      pHashSetupData->hashAlgorithm) &&
-		     (CPA_CY_SYM_CIPHER_ZUC_EEA3 !=
-		      pCipherSetupData->cipherAlgorithm))) {
+			 pHashSetupData->hashAlgorithm) &&
+			(CPA_CY_SYM_CIPHER_ZUC_EEA3 !=
+			    pCipherSetupData->cipherAlgorithm))) {
 			LAC_INVALID_PARAM_LOG(
 			    "Invalid combination of Cipher/Hash Algorithms for ZUC");
 			return CPA_STATUS_INVALID_PARAM;
@@ -291,11 +287,11 @@ LacSymSession_ParamCheck(const CpaInstanceHandle instanceHandle,
 	else if (CPA_CY_SYM_OP_CIPHER == pSessionSetupData->symOperation) {
 		/* ensure cipher algorithm is not CCM or GCM */
 		if ((CPA_CY_SYM_CIPHER_AES_CCM ==
-		     pCipherSetupData->cipherAlgorithm) ||
+			pCipherSetupData->cipherAlgorithm) ||
 		    (CPA_CY_SYM_CIPHER_AES_GCM ==
-		     pCipherSetupData->cipherAlgorithm) ||
+			pCipherSetupData->cipherAlgorithm) ||
 		    (CPA_CY_SYM_CIPHER_CHACHA ==
-		     pCipherSetupData->cipherAlgorithm)) {
+			pCipherSetupData->cipherAlgorithm)) {
 			LAC_INVALID_PARAM_LOG(
 			    "Invalid Cipher Algorithm for non-Algorithm "
 			    "Chaining operation");
@@ -304,11 +300,11 @@ LacSymSession_ParamCheck(const CpaInstanceHandle instanceHandle,
 	} else if (CPA_CY_SYM_OP_HASH == pSessionSetupData->symOperation) {
 		/* ensure hash algorithm is not CCM or GCM/GMAC */
 		if ((CPA_CY_SYM_HASH_AES_CCM ==
-		     pHashSetupData->hashAlgorithm) ||
+			pHashSetupData->hashAlgorithm) ||
 		    (CPA_CY_SYM_HASH_AES_GCM ==
-		     pHashSetupData->hashAlgorithm) ||
+			pHashSetupData->hashAlgorithm) ||
 		    (CPA_CY_SYM_HASH_AES_GMAC ==
-		     pHashSetupData->hashAlgorithm) ||
+			pHashSetupData->hashAlgorithm) ||
 		    (CPA_CY_SYM_HASH_POLY == pHashSetupData->hashAlgorithm)) {
 			LAC_INVALID_PARAM_LOG(
 			    "Invalid Hash Algorithm for non-Algorithm Chaining operation");
@@ -325,9 +321,9 @@ LacSymSession_ParamCheck(const CpaInstanceHandle instanceHandle,
 	 * valid for cipher and algchain ops */
 	if (CPA_CY_SYM_OP_HASH != pSessionSetupData->symOperation) {
 		if ((pCipherSetupData->cipherDirection !=
-		     CPA_CY_SYM_CIPHER_DIRECTION_ENCRYPT) &&
+			CPA_CY_SYM_CIPHER_DIRECTION_ENCRYPT) &&
 		    (pCipherSetupData->cipherDirection !=
-		     CPA_CY_SYM_CIPHER_DIRECTION_DECRYPT)) {
+			CPA_CY_SYM_CIPHER_DIRECTION_DECRYPT)) {
 			LAC_INVALID_PARAM_LOG("Invalid Cipher Direction");
 			return CPA_STATUS_INVALID_PARAM;
 		}
@@ -335,7 +331,6 @@ LacSymSession_ParamCheck(const CpaInstanceHandle instanceHandle,
 
 	return CPA_STATUS_SUCCESS;
 }
-
 
 /**
  * @ingroup LacSym
@@ -353,9 +348,9 @@ LacSymSession_ParamCheck(const CpaInstanceHandle instanceHandle,
 
 static CpaStatus
 LacSymPerform_BufferParamCheck(const CpaBufferList *const pSrcBuffer,
-			       const CpaBufferList *const pDstBuffer,
-			       const lac_session_desc_t *const pSessionDesc,
-			       const CpaCySymOpData *const pOpData)
+    const CpaBufferList *const pDstBuffer,
+    const lac_session_desc_t *const pSessionDesc,
+    const CpaCySymOpData *const pOpData)
 {
 	Cpa64U srcBufferLen = 0, dstBufferLen = 0;
 	CpaStatus status = CPA_STATUS_SUCCESS;
@@ -373,16 +368,16 @@ LacSymPerform_BufferParamCheck(const CpaBufferList *const pSrcBuffer,
 	}
 
 	if (!((CPA_CY_SYM_OP_CIPHER != pSessionDesc->symOperation &&
-	       CPA_CY_SYM_HASH_MODE_PLAIN == pSessionDesc->hashMode) &&
-	      (0 == pOpData->messageLenToHashInBytes))) {
+		  CPA_CY_SYM_HASH_MODE_PLAIN == pSessionDesc->hashMode) &&
+		(0 == pOpData->messageLenToHashInBytes))) {
 		if (IS_ZERO_LENGTH_BUFFER_SUPPORTED(
 			pSessionDesc->cipherAlgorithm,
 			pSessionDesc->hashAlgorithm)) {
-			status = LacBuffDesc_BufferListVerifyNull(
-			    pSrcBuffer, &srcBufferLen, LAC_NO_ALIGNMENT_SHIFT);
+			status = LacBuffDesc_BufferListVerifyNull(pSrcBuffer,
+			    &srcBufferLen, LAC_NO_ALIGNMENT_SHIFT);
 		} else {
-			status = LacBuffDesc_BufferListVerify(
-			    pSrcBuffer, &srcBufferLen, LAC_NO_ALIGNMENT_SHIFT);
+			status = LacBuffDesc_BufferListVerify(pSrcBuffer,
+			    &srcBufferLen, LAC_NO_ALIGNMENT_SHIFT);
 		}
 		if (CPA_STATUS_SUCCESS != status) {
 			LAC_INVALID_PARAM_LOG("Source buffer invalid");
@@ -403,22 +398,21 @@ LacSymPerform_BufferParamCheck(const CpaBufferList *const pSrcBuffer,
 		 * allow */
 		/* for srcBufflen=DstBufferLen=0 */
 		if (!((CPA_CY_SYM_OP_CIPHER != pSessionDesc->symOperation &&
-		       CPA_CY_SYM_HASH_MODE_PLAIN == pSessionDesc->hashMode) &&
-		      (0 == pOpData->messageLenToHashInBytes))) {
+			  CPA_CY_SYM_HASH_MODE_PLAIN ==
+			      pSessionDesc->hashMode) &&
+			(0 == pOpData->messageLenToHashInBytes))) {
 			/* Verify buffer(s) for dest packet & return packet
 			 * length */
 			if (IS_ZERO_LENGTH_BUFFER_SUPPORTED(
 				pSessionDesc->cipherAlgorithm,
 				pSessionDesc->hashAlgorithm)) {
-				status = LacBuffDesc_BufferListVerifyNull(
-				    pDstBuffer,
-				    &dstBufferLen,
-				    LAC_NO_ALIGNMENT_SHIFT);
+				status =
+				    LacBuffDesc_BufferListVerifyNull(pDstBuffer,
+					&dstBufferLen, LAC_NO_ALIGNMENT_SHIFT);
 			} else {
-				status = LacBuffDesc_BufferListVerify(
-				    pDstBuffer,
-				    &dstBufferLen,
-				    LAC_NO_ALIGNMENT_SHIFT);
+				status =
+				    LacBuffDesc_BufferListVerify(pDstBuffer,
+					&dstBufferLen, LAC_NO_ALIGNMENT_SHIFT);
 			}
 			if (CPA_STATUS_SUCCESS != status) {
 				LAC_INVALID_PARAM_LOG(
@@ -456,8 +450,7 @@ LacSymPerform_BufferParamCheck(const CpaBufferList *const pSrcBuffer,
 			/* This function checks to see if the partial packet
 			 * sequence is correct */
 			if (CPA_STATUS_SUCCESS !=
-			    LacSym_PartialPacketStateCheck(
-				pOpData->packetType,
+			    LacSym_PartialPacketStateCheck(pOpData->packetType,
 				pSessionDesc->partialState)) {
 				LAC_INVALID_PARAM_LOG("Partial packet Type");
 				return CPA_STATUS_INVALID_PARAM;
@@ -470,36 +463,33 @@ LacSymPerform_BufferParamCheck(const CpaBufferList *const pSrcBuffer,
 /** @ingroup LacSym */
 CpaStatus
 cpaCySymInitSession(const CpaInstanceHandle instanceHandle_in,
-		    const CpaCySymCbFunc pSymCb,
-		    const CpaCySymSessionSetupData *pSessionSetupData,
-		    CpaCySymSessionCtx pSessionCtx)
+    const CpaCySymCbFunc pSymCb,
+    const CpaCySymSessionSetupData *pSessionSetupData,
+    CpaCySymSessionCtx pSessionCtx)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 	CpaInstanceHandle instanceHandle = NULL;
 	sal_service_t *pService = NULL;
 
 	if (CPA_INSTANCE_HANDLE_SINGLE == instanceHandle_in) {
-		instanceHandle =
-		    Lac_GetFirstHandle(SAL_SERVICE_TYPE_CRYPTO_SYM);
+		instanceHandle = Lac_GetFirstHandle(
+		    SAL_SERVICE_TYPE_CRYPTO_SYM);
 	} else {
 		instanceHandle = instanceHandle_in;
 	}
 
 	LAC_CHECK_INSTANCE_HANDLE(instanceHandle);
 	SAL_CHECK_INSTANCE_TYPE(instanceHandle,
-				(SAL_SERVICE_TYPE_CRYPTO |
-				 SAL_SERVICE_TYPE_CRYPTO_SYM));
+	    (SAL_SERVICE_TYPE_CRYPTO | SAL_SERVICE_TYPE_CRYPTO_SYM));
 
 	pService = (sal_service_t *)instanceHandle;
 
 	/* check crypto service is running otherwise return an error */
 	SAL_RUNNING_CHECK(pService);
 
-	status = LacSym_InitSession(instanceHandle,
-				    pSymCb,
-				    pSessionSetupData,
-				    CPA_FALSE, /* isDPSession */
-				    pSessionCtx);
+	status = LacSym_InitSession(instanceHandle, pSymCb, pSessionSetupData,
+	    CPA_FALSE, /* isDPSession */
+	    pSessionCtx);
 
 	if (CPA_STATUS_SUCCESS == status) {
 		/* Increment the stats for a session registered successfully */
@@ -539,10 +529,9 @@ cpaCySymSessionInUse(CpaCySymSessionCtx pSessionCtx, CpaBoolean *pSessionInUse)
 
 CpaStatus
 LacSym_InitSession(const CpaInstanceHandle instanceHandle,
-		   const CpaCySymCbFunc pSymCb,
-		   const CpaCySymSessionSetupData *pSessionSetupData,
-		   const CpaBoolean isDPSession,
-		   CpaCySymSessionCtx pSessionCtx)
+    const CpaCySymCbFunc pSymCb,
+    const CpaCySymSessionSetupData *pSessionSetupData,
+    const CpaBoolean isDPSession, CpaCySymSessionCtx pSessionCtx)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 	lac_session_desc_t *pSessionDesc = NULL;
@@ -569,16 +558,14 @@ LacSym_InitSession(const CpaInstanceHandle instanceHandle,
 		return CPA_STATUS_INVALID_PARAM;
 	}
 
-
 	pCipherSetupData = &pSessionSetupData->cipherSetupData;
 	pHashSetupData = &pSessionSetupData->hashSetupData;
 
 	pService = (sal_service_t *)instanceHandle;
 
 	/* Re-align the session structure to 64 byte alignment */
-	physAddress =
-	    LAC_OS_VIRT_TO_PHYS_EXTERNAL((*pService),
-					 (Cpa8U *)pSessionCtx + sizeof(void *));
+	physAddress = LAC_OS_VIRT_TO_PHYS_EXTERNAL((*pService),
+	    (Cpa8U *)pSessionCtx + sizeof(void *));
 
 	if (0 == physAddress) {
 		LAC_LOG_ERROR(
@@ -586,14 +573,14 @@ LacSym_InitSession(const CpaInstanceHandle instanceHandle,
 		return CPA_STATUS_FAIL;
 	}
 
-	physAddressAligned =
-	    LAC_ALIGN_POW2_ROUNDUP(physAddress, LAC_64BYTE_ALIGNMENT);
+	physAddressAligned = LAC_ALIGN_POW2_ROUNDUP(physAddress,
+	    LAC_64BYTE_ALIGNMENT);
 
 	pSessionDesc = (lac_session_desc_t *)
 	    /* Move the session pointer by the physical offset
 	    between aligned and unaligned memory */
 	    ((Cpa8U *)pSessionCtx + sizeof(void *) +
-	     (physAddressAligned - physAddress));
+		(physAddressAligned - physAddress));
 
 	/* save the aligned pointer in the first bytes (size of unsigned long)
 	 * of the session memory */
@@ -621,8 +608,8 @@ LacSym_InitSession(const CpaInstanceHandle instanceHandle,
 	pSessionDesc->contentDescInfo.hardwareSetupBlockPhys =
 	    physAddressAligned;
 
-	pSessionDesc->contentDescOptimisedInfo.pData =
-	    ((Cpa8U *)pSessionDesc + LAC_SYM_QAT_CONTENT_DESC_MAX_SIZE);
+	pSessionDesc->contentDescOptimisedInfo.pData = ((Cpa8U *)pSessionDesc +
+	    LAC_SYM_QAT_CONTENT_DESC_MAX_SIZE);
 	pSessionDesc->contentDescOptimisedInfo.hardwareSetupBlockPhys =
 	    (physAddressAligned + LAC_SYM_QAT_CONTENT_DESC_MAX_SIZE);
 
@@ -633,8 +620,8 @@ LacSym_InitSession(const CpaInstanceHandle instanceHandle,
 		/* For asynchronous - use the user supplied callback
 		 * for synchronous - use the internal synchronous callback */
 		pSessionDesc->pSymCb = ((void *)NULL != (void *)pSymCb) ?
-			  pSymCb :
-			  LacSync_GenBufListVerifyCb;
+		    pSymCb :
+		    LacSync_GenBufListVerifyCb;
 	}
 
 	pSessionDesc->isDPSession = isDPSession;
@@ -657,8 +644,7 @@ LacSym_InitSession(const CpaInstanceHandle instanceHandle,
 		pSessionDesc->internalSession = CPA_FALSE;
 
 		status = LacAlgChain_SessionInit(instanceHandle,
-						 pSessionSetupData,
-						 pSessionDesc);
+		    pSessionSetupData, pSessionDesc);
 	}
 	return status;
 }
@@ -666,25 +652,23 @@ LacSym_InitSession(const CpaInstanceHandle instanceHandle,
 /** @ingroup LacSym */
 CpaStatus
 cpaCySymRemoveSession(const CpaInstanceHandle instanceHandle_in,
-		      CpaCySymSessionCtx pSessionCtx)
+    CpaCySymSessionCtx pSessionCtx)
 {
 	lac_session_desc_t *pSessionDesc = NULL;
 	CpaStatus status = CPA_STATUS_SUCCESS;
 	CpaInstanceHandle instanceHandle = NULL;
 	Cpa64U numPendingRequests = 0;
 
-
 	if (CPA_INSTANCE_HANDLE_SINGLE == instanceHandle_in) {
-		instanceHandle =
-		    Lac_GetFirstHandle(SAL_SERVICE_TYPE_CRYPTO_SYM);
+		instanceHandle = Lac_GetFirstHandle(
+		    SAL_SERVICE_TYPE_CRYPTO_SYM);
 	} else {
 		instanceHandle = instanceHandle_in;
 	}
 
 	LAC_CHECK_INSTANCE_HANDLE(instanceHandle);
 	SAL_CHECK_INSTANCE_TYPE(instanceHandle,
-				(SAL_SERVICE_TYPE_CRYPTO |
-				 SAL_SERVICE_TYPE_CRYPTO_SYM));
+	    (SAL_SERVICE_TYPE_CRYPTO | SAL_SERVICE_TYPE_CRYPTO_SYM));
 	LAC_CHECK_NULL_PARAM(pSessionCtx);
 
 	/* check crypto service is running otherwise return an error */
@@ -715,17 +699,17 @@ cpaCySymRemoveSession(const CpaInstanceHandle instanceHandle_in,
 		 * (icp_adf_queueDataToSend() returns true), but the request
 		 * does not belong to "X", it belongs to session "Y".
 		 */
-		numPendingRequests =
-		    qatUtilsAtomicGet(&(pSessionDesc->u.pendingDpCbCount));
+		numPendingRequests = qatUtilsAtomicGet(
+		    &(pSessionDesc->u.pendingDpCbCount));
 	} else {
-		numPendingRequests =
-		    qatUtilsAtomicGet(&(pSessionDesc->u.pendingCbCount));
+		numPendingRequests = qatUtilsAtomicGet(
+		    &(pSessionDesc->u.pendingCbCount));
 	}
 
 	/* If there are pending requests */
 	if (0 != numPendingRequests) {
 		QAT_UTILS_LOG("There are %llu requests pending\n",
-			      (unsigned long long)numPendingRequests);
+		    (unsigned long long)numPendingRequests);
 		status = CPA_STATUS_RETRY;
 		if (CPA_TRUE == pSessionDesc->isDPSession) {
 			/* Need to update tail if messages queue on tx hi ring
@@ -758,21 +742,17 @@ cpaCySymRemoveSession(const CpaInstanceHandle instanceHandle_in,
 
 /** @ingroup LacSym */
 static CpaStatus
-LacSym_Perform(const CpaInstanceHandle instanceHandle,
-	       void *callbackTag,
-	       const CpaCySymOpData *pOpData,
-	       const CpaBufferList *pSrcBuffer,
-	       CpaBufferList *pDstBuffer,
-	       CpaBoolean *pVerifyResult,
-	       CpaBoolean isAsyncMode)
+LacSym_Perform(const CpaInstanceHandle instanceHandle, void *callbackTag,
+    const CpaCySymOpData *pOpData, const CpaBufferList *pSrcBuffer,
+    CpaBufferList *pDstBuffer, CpaBoolean *pVerifyResult,
+    CpaBoolean isAsyncMode)
 {
 	lac_session_desc_t *pSessionDesc = NULL;
 	CpaStatus status = CPA_STATUS_SUCCESS;
 
 	LAC_CHECK_INSTANCE_HANDLE(instanceHandle);
 	SAL_CHECK_INSTANCE_TYPE(instanceHandle,
-				(SAL_SERVICE_TYPE_CRYPTO |
-				 SAL_SERVICE_TYPE_CRYPTO_SYM));
+	    (SAL_SERVICE_TYPE_CRYPTO | SAL_SERVICE_TYPE_CRYPTO_SYM));
 	/* check crypto service is running otherwise return an error */
 	SAL_RUNNING_CHECK(instanceHandle);
 	LAC_CHECK_NULL_PARAM(pOpData);
@@ -794,7 +774,6 @@ LacSym_Perform(const CpaInstanceHandle instanceHandle,
 		}
 	}
 
-
 	/* If synchronous Operation - Callback function stored in the session
 	 * descriptor so a flag is set in the perform to indicate that
 	 * the perform is being re-called for the synchronous operation */
@@ -807,12 +786,8 @@ LacSym_Perform(const CpaInstanceHandle instanceHandle,
 
 		if (CPA_STATUS_SUCCESS == status) {
 			status = LacSym_Perform(instanceHandle,
-						pSyncCallbackData,
-						pOpData,
-						pSrcBuffer,
-						pDstBuffer,
-						pVerifyResult,
-						CPA_FALSE);
+			    pSyncCallbackData, pOpData, pSrcBuffer, pDstBuffer,
+			    pVerifyResult, CPA_FALSE);
 		} else {
 			/* Failure allocating sync cookie */
 			LAC_SYM_STAT_INC(numSymOpRequestErrors, instanceHandle);
@@ -821,15 +796,12 @@ LacSym_Perform(const CpaInstanceHandle instanceHandle,
 
 		if (CPA_STATUS_SUCCESS == status) {
 			CpaStatus syncStatus = CPA_STATUS_SUCCESS;
-			syncStatus = LacSync_WaitForCallback(
-			    pSyncCallbackData,
-			    LAC_SYM_SYNC_CALLBACK_TIMEOUT,
-			    &status,
-			    &opResult);
+			syncStatus = LacSync_WaitForCallback(pSyncCallbackData,
+			    LAC_SYM_SYNC_CALLBACK_TIMEOUT, &status, &opResult);
 			/* If callback doesn't come back */
 			if (CPA_STATUS_SUCCESS != syncStatus) {
 				LAC_SYM_STAT_INC(numSymOpCompletedErrors,
-						 instanceHandle);
+				    instanceHandle);
 				LAC_LOG_ERROR("Callback timed out");
 				status = syncStatus;
 			}
@@ -852,9 +824,7 @@ LacSym_Perform(const CpaInstanceHandle instanceHandle,
 
 	status =
 	    LacSymPerform_BufferParamCheck((const CpaBufferList *)pSrcBuffer,
-					   pDstBuffer,
-					   pSessionDesc,
-					   pOpData);
+		pDstBuffer, pSessionDesc, pOpData);
 	LAC_CHECK_STATUS(status);
 
 	if ((!pSessionDesc->digestIsAppended) &&
@@ -863,19 +833,14 @@ LacSym_Perform(const CpaInstanceHandle instanceHandle,
 		LAC_CHECK_NULL_PARAM(pOpData->pDigestResult);
 	}
 
-	status = LacAlgChain_Perform(instanceHandle,
-				     pSessionDesc,
-				     callbackTag,
-				     pOpData,
-				     pSrcBuffer,
-				     pDstBuffer,
-				     pVerifyResult);
+	status = LacAlgChain_Perform(instanceHandle, pSessionDesc, callbackTag,
+	    pOpData, pSrcBuffer, pDstBuffer, pVerifyResult);
 
 	if (CPA_STATUS_SUCCESS == status) {
 		/* check for partial packet suport for the session operation */
 		if (CPA_CY_SYM_PACKET_TYPE_FULL != pOpData->packetType) {
-			LacSym_PartialPacketStateUpdate(
-			    pOpData->packetType, &pSessionDesc->partialState);
+			LacSym_PartialPacketStateUpdate(pOpData->packetType,
+			    &pSessionDesc->partialState);
 		}
 		/* increment #requests stat */
 		LAC_SYM_STAT_INC(numSymOpRequests, instanceHandle);
@@ -890,51 +855,41 @@ LacSym_Perform(const CpaInstanceHandle instanceHandle,
 
 /** @ingroup LacSym */
 CpaStatus
-cpaCySymPerformOp(const CpaInstanceHandle instanceHandle_in,
-		  void *callbackTag,
-		  const CpaCySymOpData *pOpData,
-		  const CpaBufferList *pSrcBuffer,
-		  CpaBufferList *pDstBuffer,
-		  CpaBoolean *pVerifyResult)
+cpaCySymPerformOp(const CpaInstanceHandle instanceHandle_in, void *callbackTag,
+    const CpaCySymOpData *pOpData, const CpaBufferList *pSrcBuffer,
+    CpaBufferList *pDstBuffer, CpaBoolean *pVerifyResult)
 {
 	CpaInstanceHandle instanceHandle = NULL;
 
 	if (CPA_INSTANCE_HANDLE_SINGLE == instanceHandle_in) {
-		instanceHandle =
-		    Lac_GetFirstHandle(SAL_SERVICE_TYPE_CRYPTO_SYM);
+		instanceHandle = Lac_GetFirstHandle(
+		    SAL_SERVICE_TYPE_CRYPTO_SYM);
 	} else {
 		instanceHandle = instanceHandle_in;
 	}
 
-	return LacSym_Perform(instanceHandle,
-			      callbackTag,
-			      pOpData,
-			      pSrcBuffer,
-			      pDstBuffer,
-			      pVerifyResult,
-			      CPA_TRUE);
+	return LacSym_Perform(instanceHandle, callbackTag, pOpData, pSrcBuffer,
+	    pDstBuffer, pVerifyResult, CPA_TRUE);
 }
 
 /** @ingroup LacSym */
 CpaStatus
 cpaCySymQueryStats(const CpaInstanceHandle instanceHandle_in,
-		   struct _CpaCySymStats *pSymStats)
+    struct _CpaCySymStats *pSymStats)
 {
 
 	CpaInstanceHandle instanceHandle = NULL;
 
-
 	if (CPA_INSTANCE_HANDLE_SINGLE == instanceHandle_in) {
-		instanceHandle =
-		    Lac_GetFirstHandle(SAL_SERVICE_TYPE_CRYPTO_SYM);
+		instanceHandle = Lac_GetFirstHandle(
+		    SAL_SERVICE_TYPE_CRYPTO_SYM);
 	} else {
 		instanceHandle = instanceHandle_in;
 	}
 
 	LAC_CHECK_INSTANCE_HANDLE(instanceHandle);
 	SAL_CHECK_INSTANCE_TYPE(instanceHandle,
-				(SAL_SERVICE_TYPE_CRYPTO |
-				 SAL_SERVICE_TYPE_CRYPTO_SYM));
+	    (SAL_SERVICE_TYPE_CRYPTO | SAL_SERVICE_TYPE_CRYPTO_SYM));
 	LAC_CHECK_NULL_PARAM(pSymStats);
 
 	/* check if crypto service is running
@@ -950,23 +905,21 @@ cpaCySymQueryStats(const CpaInstanceHandle instanceHandle_in,
 /** @ingroup LacSym */
 CpaStatus
 cpaCySymQueryStats64(const CpaInstanceHandle instanceHandle_in,
-		     CpaCySymStats64 *pSymStats)
+    CpaCySymStats64 *pSymStats)
 {
 
 	CpaInstanceHandle instanceHandle = NULL;
 
-
 	if (CPA_INSTANCE_HANDLE_SINGLE == instanceHandle_in) {
-		instanceHandle =
-		    Lac_GetFirstHandle(SAL_SERVICE_TYPE_CRYPTO_SYM);
+		instanceHandle = Lac_GetFirstHandle(
+		    SAL_SERVICE_TYPE_CRYPTO_SYM);
 	} else {
 		instanceHandle = instanceHandle_in;
 	}
 
 	LAC_CHECK_INSTANCE_HANDLE(instanceHandle);
 	SAL_CHECK_INSTANCE_TYPE(instanceHandle,
-				(SAL_SERVICE_TYPE_CRYPTO |
-				 SAL_SERVICE_TYPE_CRYPTO_SYM));
+	    (SAL_SERVICE_TYPE_CRYPTO | SAL_SERVICE_TYPE_CRYPTO_SYM));
 	LAC_CHECK_NULL_PARAM(pSymStats);
 
 	/* check if crypto service is running
@@ -983,22 +936,21 @@ cpaCySymQueryStats64(const CpaInstanceHandle instanceHandle_in,
 /** @ingroup LacSym */
 CpaStatus
 cpaCySymSessionCtxGetSize(const CpaInstanceHandle instanceHandle_in,
-			  const CpaCySymSessionSetupData *pSessionSetupData,
-			  Cpa32U *pSessionCtxSizeInBytes)
+    const CpaCySymSessionSetupData *pSessionSetupData,
+    Cpa32U *pSessionCtxSizeInBytes)
 {
 	CpaInstanceHandle instanceHandle = NULL;
 
 	if (CPA_INSTANCE_HANDLE_SINGLE == instanceHandle_in) {
-		instanceHandle =
-		    Lac_GetFirstHandle(SAL_SERVICE_TYPE_CRYPTO_SYM);
+		instanceHandle = Lac_GetFirstHandle(
+		    SAL_SERVICE_TYPE_CRYPTO_SYM);
 	} else {
 		instanceHandle = instanceHandle_in;
 	}
 
 	LAC_CHECK_INSTANCE_HANDLE(instanceHandle);
 	SAL_CHECK_INSTANCE_TYPE(instanceHandle,
-				(SAL_SERVICE_TYPE_CRYPTO |
-				 SAL_SERVICE_TYPE_CRYPTO_SYM));
+	    (SAL_SERVICE_TYPE_CRYPTO | SAL_SERVICE_TYPE_CRYPTO_SYM));
 	LAC_CHECK_NULL_PARAM(pSessionSetupData);
 	LAC_CHECK_NULL_PARAM(pSessionCtxSizeInBytes);
 
@@ -1011,24 +963,22 @@ cpaCySymSessionCtxGetSize(const CpaInstanceHandle instanceHandle_in,
 
 /** @ingroup LacSym */
 CpaStatus
-cpaCySymSessionCtxGetDynamicSize(
-    const CpaInstanceHandle instanceHandle_in,
+cpaCySymSessionCtxGetDynamicSize(const CpaInstanceHandle instanceHandle_in,
     const CpaCySymSessionSetupData *pSessionSetupData,
     Cpa32U *pSessionCtxSizeInBytes)
 {
 	CpaInstanceHandle instanceHandle = NULL;
 
 	if (CPA_INSTANCE_HANDLE_SINGLE == instanceHandle_in) {
-		instanceHandle =
-		    Lac_GetFirstHandle(SAL_SERVICE_TYPE_CRYPTO_SYM);
+		instanceHandle = Lac_GetFirstHandle(
+		    SAL_SERVICE_TYPE_CRYPTO_SYM);
 	} else {
 		instanceHandle = instanceHandle_in;
 	}
 
 	LAC_CHECK_INSTANCE_HANDLE(instanceHandle);
 	SAL_CHECK_INSTANCE_TYPE(instanceHandle,
-				(SAL_SERVICE_TYPE_CRYPTO |
-				 SAL_SERVICE_TYPE_CRYPTO_SYM));
+	    (SAL_SERVICE_TYPE_CRYPTO | SAL_SERVICE_TYPE_CRYPTO_SYM));
 	LAC_CHECK_NULL_PARAM(pSessionSetupData);
 	LAC_CHECK_NULL_PARAM(pSessionCtxSizeInBytes);
 
@@ -1037,38 +987,37 @@ cpaCySymSessionCtxGetDynamicSize(
 	/* Choose Session Context size */
 	getCtxSize(pSessionSetupData, pSessionCtxSizeInBytes);
 
-
 	return CPA_STATUS_SUCCESS;
 }
 
 void
 getCtxSize(const CpaCySymSessionSetupData *pSessionSetupData,
-	   Cpa32U *pSessionCtxSizeInBytes)
+    Cpa32U *pSessionCtxSizeInBytes)
 {
 	/* using lac_session_desc_d1_t */
 	if ((pSessionSetupData->cipherSetupData.cipherAlgorithm !=
-	     CPA_CY_SYM_CIPHER_ARC4) &&
+		CPA_CY_SYM_CIPHER_ARC4) &&
 	    (pSessionSetupData->cipherSetupData.cipherAlgorithm !=
-	     CPA_CY_SYM_CIPHER_SNOW3G_UEA2) &&
+		CPA_CY_SYM_CIPHER_SNOW3G_UEA2) &&
 	    (pSessionSetupData->hashSetupData.hashAlgorithm !=
-	     CPA_CY_SYM_HASH_SNOW3G_UIA2) &&
+		CPA_CY_SYM_HASH_SNOW3G_UIA2) &&
 	    (pSessionSetupData->cipherSetupData.cipherAlgorithm !=
-	     CPA_CY_SYM_CIPHER_AES_CCM) &&
+		CPA_CY_SYM_CIPHER_AES_CCM) &&
 	    (pSessionSetupData->cipherSetupData.cipherAlgorithm !=
-	     CPA_CY_SYM_CIPHER_AES_GCM) &&
+		CPA_CY_SYM_CIPHER_AES_GCM) &&
 	    (pSessionSetupData->hashSetupData.hashMode !=
-	     CPA_CY_SYM_HASH_MODE_AUTH) &&
+		CPA_CY_SYM_HASH_MODE_AUTH) &&
 	    (pSessionSetupData->hashSetupData.hashMode !=
-	     CPA_CY_SYM_HASH_MODE_NESTED) &&
+		CPA_CY_SYM_HASH_MODE_NESTED) &&
 	    (pSessionSetupData->partialsNotRequired == CPA_TRUE)) {
 		*pSessionCtxSizeInBytes = LAC_SYM_SESSION_D1_SIZE;
 	}
 	/* using lac_session_desc_d2_t */
 	else if (((pSessionSetupData->cipherSetupData.cipherAlgorithm ==
-		   CPA_CY_SYM_CIPHER_AES_CCM) ||
-		  (pSessionSetupData->cipherSetupData.cipherAlgorithm ==
-		   CPA_CY_SYM_CIPHER_AES_GCM)) &&
-		 (pSessionSetupData->partialsNotRequired == CPA_TRUE)) {
+		      CPA_CY_SYM_CIPHER_AES_CCM) ||
+		     (pSessionSetupData->cipherSetupData.cipherAlgorithm ==
+			 CPA_CY_SYM_CIPHER_AES_GCM)) &&
+	    (pSessionSetupData->partialsNotRequired == CPA_TRUE)) {
 		*pSessionCtxSizeInBytes = LAC_SYM_SESSION_D2_SIZE;
 	}
 	/* using lac_session_desc_t */
@@ -1083,22 +1032,20 @@ getCtxSize(const CpaCySymSessionSetupData *pSessionSetupData,
  *****************************************************************************/
 CpaStatus
 cpaCyBufferListGetMetaSize(const CpaInstanceHandle instanceHandle_in,
-			   Cpa32U numBuffers,
-			   Cpa32U *pSizeInBytes)
+    Cpa32U numBuffers, Cpa32U *pSizeInBytes)
 {
 
 	CpaInstanceHandle instanceHandle = NULL;
 
 	if (CPA_INSTANCE_HANDLE_SINGLE == instanceHandle_in) {
-		instanceHandle =
-		    Lac_GetFirstHandle(SAL_SERVICE_TYPE_CRYPTO_SYM);
+		instanceHandle = Lac_GetFirstHandle(
+		    SAL_SERVICE_TYPE_CRYPTO_SYM);
 	} else {
 		instanceHandle = instanceHandle_in;
 	}
 	LAC_CHECK_INSTANCE_HANDLE(instanceHandle);
 	SAL_CHECK_INSTANCE_TYPE(instanceHandle,
-				(SAL_SERVICE_TYPE_CRYPTO |
-				 SAL_SERVICE_TYPE_CRYPTO_SYM));
+	    (SAL_SERVICE_TYPE_CRYPTO | SAL_SERVICE_TYPE_CRYPTO_SYM));
 	LAC_CHECK_NULL_PARAM(pSizeInBytes);
 
 	/* In the case of zero buffers we still need to allocate one
@@ -1115,7 +1062,6 @@ cpaCyBufferListGetMetaSize(const CpaInstanceHandle instanceHandle_in,
 	*pSizeInBytes = sizeof(icp_buffer_list_desc_t) +
 	    (sizeof(icp_flat_buffer_desc_t) * numBuffers) +
 	    ICP_DESCRIPTOR_ALIGNMENT_BYTES;
-
 
 	return CPA_STATUS_SUCCESS;
 }

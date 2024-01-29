@@ -27,11 +27,10 @@
  *
  */
 
-#include "softfloat-for-gcc.h"
-#include "milieu.h"
-#include "softfloat.h"
-
 #include "aeabi_vfp.h"
+#include "milieu.h"
+#include "softfloat-for-gcc.h"
+#include "softfloat.h"
 
 extern int _libc_arm_fpu_present;
 
@@ -57,21 +56,34 @@ float64 __aeabi_dsub_vfp(float64, float64);
  *  On armv6 with a vfp call the above function, or
  *  Call the softfloat function in the 3rd argument.
  */
-int AEABI_FUNC2(dcmpeq, float64, float64_eq)
-int AEABI_FUNC2(dcmplt, float64, float64_lt)
-int AEABI_FUNC2(dcmple, float64, float64_le)
-int AEABI_FUNC2_REV(dcmpge, float64, float64_le)
-int AEABI_FUNC2_REV(dcmpgt, float64, float64_lt)
-int AEABI_FUNC2(dcmpun, float64, __unorddf2)
+int
+AEABI_FUNC2(dcmpeq, float64, float64_eq)
+int
+AEABI_FUNC2(dcmplt, float64, float64_lt)
+int
+AEABI_FUNC2(dcmple, float64, float64_le)
+int
+AEABI_FUNC2_REV(dcmpge, float64, float64_le)
+int
+AEABI_FUNC2_REV(dcmpgt, float64, float64_lt)
+int
+AEABI_FUNC2(dcmpun, float64, __unorddf2)
 
-int AEABI_FUNC(d2iz, float64, float64_to_int32_round_to_zero)
-float32 AEABI_FUNC(d2f, float64, float64_to_float32)
-float64 AEABI_FUNC(i2d, int, int32_to_float64)
+int
+AEABI_FUNC(d2iz, float64, float64_to_int32_round_to_zero)
+float32
+AEABI_FUNC(d2f, float64, float64_to_float32)
+float64
+AEABI_FUNC(i2d, int, int32_to_float64)
 
-float64 AEABI_FUNC2(dadd, float64, float64_add)
-float64 AEABI_FUNC2(ddiv, float64, float64_div)
-float64 AEABI_FUNC2(dmul, float64, float64_mul)
-float64 AEABI_FUNC2(dsub, float64, float64_sub)
+float64
+AEABI_FUNC2(dadd, float64, float64_add)
+float64
+AEABI_FUNC2(ddiv, float64, float64_div)
+float64
+AEABI_FUNC2(dmul, float64, float64_mul)
+float64
+AEABI_FUNC2(dsub, float64, float64_sub)
 
 int
 __aeabi_cdcmpeq_helper(float64 a, float64 b)

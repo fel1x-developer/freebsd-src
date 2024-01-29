@@ -68,10 +68,10 @@
  * Memory strategy threshold, in pages: if physmem is larger then this, use a
  * large buffer.
  */
-#define PHYSPAGES_THRESHOLD (32*1024)
+#define PHYSPAGES_THRESHOLD (32 * 1024)
 
 /* Maximum buffer size in bytes - do not allow it to grow larger than this. */
-#define BUFSIZE_MAX (2*1024*1024)
+#define BUFSIZE_MAX (2 * 1024 * 1024)
 
 /*
  * Small (default) buffer size in bytes. It's inefficient for this to be
@@ -90,30 +90,30 @@
 #define HAVE_STRUCT_STAT_ST_FLAGS 0
 #endif
 
-#define MAX_CMP_SIZE	(16 * 1024 * 1024)
+#define MAX_CMP_SIZE (16 * 1024 * 1024)
 
-#define	LN_ABSOLUTE	0x01
-#define	LN_RELATIVE	0x02
-#define	LN_HARD		0x04
-#define	LN_SYMBOLIC	0x08
-#define	LN_MIXED	0x10
+#define LN_ABSOLUTE 0x01
+#define LN_RELATIVE 0x02
+#define LN_HARD 0x04
+#define LN_SYMBOLIC 0x08
+#define LN_MIXED 0x10
 
-#define	DIRECTORY	0x01		/* Tell install it's a directory. */
-#define	SETFLAGS	0x02		/* Tell install to set flags. */
-#define	NOCHANGEBITS	(UF_IMMUTABLE | UF_APPEND | SF_IMMUTABLE | SF_APPEND)
-#define	BACKUP_SUFFIX	".old"
+#define DIRECTORY 0x01 /* Tell install it's a directory. */
+#define SETFLAGS 0x02  /* Tell install to set flags. */
+#define NOCHANGEBITS (UF_IMMUTABLE | UF_APPEND | SF_IMMUTABLE | SF_APPEND)
+#define BACKUP_SUFFIX ".old"
 
 typedef union {
 #ifdef WITH_MD5
-	MD5_CTX		MD5;
+	MD5_CTX MD5;
 #endif
 #ifdef WITH_RIPEMD160
-	RIPEMD160_CTX	RIPEMD160;
+	RIPEMD160_CTX RIPEMD160;
 #endif
-	SHA1_CTX	SHA1;
-	SHA256_CTX	SHA256;
-	SHA512_CTX	SHA512;
-}	DIGEST_CTX;
+	SHA1_CTX SHA1;
+	SHA256_CTX SHA256;
+	SHA512_CTX SHA512;
+} DIGEST_CTX;
 
 static enum {
 	DIGEST_NONE = 0,
@@ -141,27 +141,27 @@ static const char *group, *owner;
 static const char *suffix = BACKUP_SUFFIX;
 static char *destdir, *digest, *fflags, *metafile, *tags;
 
-static int	compare(int, const char *, size_t, int, const char *, size_t,
-		    char **);
-static char	*copy(int, const char *, int, const char *, off_t);
-static int	create_newfile(const char *, int, struct stat *);
-static int	create_tempfile(const char *, char *, size_t);
-static char	*quiet_mktemp(char *template);
-static char	*digest_file(const char *);
-static void	digest_init(DIGEST_CTX *);
-static void	digest_update(DIGEST_CTX *, const char *, size_t);
-static char	*digest_end(DIGEST_CTX *, char *);
-static int	do_link(const char *, const char *, const struct stat *);
-static void	do_symlink(const char *, const char *, const struct stat *);
-static void	makelink(const char *, const char *, const struct stat *);
-static void	install(const char *, const char *, u_long, u_int);
-static void	install_dir(char *);
-static void	metadata_log(const char *, const char *, struct timespec *,
-		    const char *, const char *, off_t);
-static int	parseid(const char *, id_t *);
-static int	strip(const char *, int, const char *, char **);
-static int	trymmap(size_t);
-static void	usage(void);
+static int compare(int, const char *, size_t, int, const char *, size_t,
+    char **);
+static char *copy(int, const char *, int, const char *, off_t);
+static int create_newfile(const char *, int, struct stat *);
+static int create_tempfile(const char *, char *, size_t);
+static char *quiet_mktemp(char *template);
+static char *digest_file(const char *);
+static void digest_init(DIGEST_CTX *);
+static void digest_update(DIGEST_CTX *, const char *, size_t);
+static char *digest_end(DIGEST_CTX *, char *);
+static int do_link(const char *, const char *, const struct stat *);
+static void do_symlink(const char *, const char *, const struct stat *);
+static void makelink(const char *, const char *, const struct stat *);
+static void install(const char *, const char *, u_long, u_int);
+static void install_dir(char *);
+static void metadata_log(const char *, const char *, struct timespec *,
+    const char *, const char *, off_t);
+static int parseid(const char *, id_t *);
+static int strip(const char *, int, const char *, char **);
+static int trymmap(size_t);
+static void usage(void);
 
 int
 main(int argc, char *argv[])
@@ -178,9 +178,9 @@ main(int argc, char *argv[])
 	iflags = 0;
 	set = NULL;
 	group = owner = NULL;
-	while ((ch = getopt(argc, argv, "B:bCcD:df:g:h:l:M:m:N:o:pSsT:Uv")) !=
-	     -1)
-		switch((char)ch) {
+	while (
+	    (ch = getopt(argc, argv, "B:bCcD:df:g:h:l:M:m:N:o:pSsT:Uv")) != -1)
+		switch ((char)ch) {
 		case 'B':
 			suffix = optarg;
 			/* FALLTHROUGH */
@@ -214,15 +214,15 @@ main(int argc, char *argv[])
 			for (p = optarg; *p != '\0'; p++)
 				switch (*p) {
 				case 's':
-					dolink &= ~(LN_HARD|LN_MIXED);
+					dolink &= ~(LN_HARD | LN_MIXED);
 					dolink |= LN_SYMBOLIC;
 					break;
 				case 'h':
-					dolink &= ~(LN_SYMBOLIC|LN_MIXED);
+					dolink &= ~(LN_SYMBOLIC | LN_MIXED);
 					dolink |= LN_HARD;
 					break;
 				case 'm':
-					dolink &= ~(LN_SYMBOLIC|LN_HARD);
+					dolink &= ~(LN_SYMBOLIC | LN_HARD);
 					dolink |= LN_MIXED;
 					break;
 				case 'a':
@@ -245,13 +245,14 @@ main(int argc, char *argv[])
 			haveopt_m = 1;
 			free(set);
 			if (!(set = setmode(optarg)))
-				errx(EX_USAGE, "invalid file mode: %s",
-				     optarg);
+				errx(EX_USAGE, "invalid file mode: %s", optarg);
 			break;
 		case 'N':
 			if (!setup_getid(optarg))
-				err(EX_OSERR, "Unable to use user and group "
-				    "databases in `%s'", optarg);
+				err(EX_OSERR,
+				    "Unable to use user and group "
+				    "databases in `%s'",
+				    optarg);
 			break;
 		case 'o':
 			haveopt_o = 1;
@@ -310,7 +311,7 @@ main(int argc, char *argv[])
 			digesttype = DIGEST_NONE;
 #ifdef WITH_MD5
 		} else if (strcmp(digest, "md5") == 0) {
-		       digesttype = DIGEST_MD5;
+			digesttype = DIGEST_MD5;
 #endif
 #ifdef WITH_RIPEMD160
 		} else if (strcmp(digest, "rmd160") == 0) {
@@ -396,11 +397,10 @@ main(int argc, char *argv[])
 	/* can't do file1 file2 directory/file */
 	if (argc != 2) {
 		if (no_target)
-			warnx("target directory `%s' does not exist", 
+			warnx("target directory `%s' does not exist",
 			    argv[argc - 1]);
 		else
-			warnx("target `%s' is not a directory",
-			    argv[argc - 1]);
+			warnx("target `%s' is not a directory", argv[argc - 1]);
 		usage();
 	}
 
@@ -413,8 +413,8 @@ main(int argc, char *argv[])
 		}
 		if (to_sb.st_dev == from_sb.st_dev &&
 		    to_sb.st_ino == from_sb.st_ino)
-			errx(EX_USAGE, 
-			    "%s and %s are the same file", *argv, to_name);
+			errx(EX_USAGE, "%s and %s are the same file", *argv,
+			    to_name);
 	}
 	install(*argv, to_name, fset, iflags);
 	exit(EX_OK);
@@ -534,7 +534,7 @@ digest_end(DIGEST_CTX *c, char *buf)
 static int
 parseid(const char *name, id_t *id)
 {
-	char	*ep;
+	char *ep;
 	errno = 0;
 	*id = (id_t)strtoul(name, &ep, 10);
 	if (errno || *ep != '\0')
@@ -554,7 +554,7 @@ quiet_mktemp(char *template)
 
 	if ((fd = mkstemp(template)) == -1)
 		return (NULL);
-	close (fd);
+	close(fd);
 	if (unlink(template) == -1)
 		err(EX_OSERR, "unlink %s", template);
 	return (template);
@@ -579,19 +579,19 @@ do_link(const char *from_name, const char *to_name,
 			err(EX_OSERR, "%s: mktemp", tmpl);
 		ret = link(from_name, tmpl);
 		if (ret == 0) {
-			if (target_sb->st_mode & S_IFDIR && rmdir(to_name) ==
-			    -1) {
+			if (target_sb->st_mode & S_IFDIR &&
+			    rmdir(to_name) == -1) {
 				unlink(tmpl);
 				err(EX_OSERR, "%s", to_name);
 			}
 #if HAVE_STRUCT_STAT_ST_FLAGS
 			if (target_sb->st_flags & NOCHANGEBITS)
-				(void)chflags(to_name, target_sb->st_flags &
-				     ~NOCHANGEBITS);
+				(void)chflags(to_name,
+				    target_sb->st_flags & ~NOCHANGEBITS);
 #endif
 			if (verbose)
-				printf("install: link %s -> %s\n",
-				    from_name, to_name);
+				printf("install: link %s -> %s\n", from_name,
+				    to_name);
 			ret = rename(tmpl, to_name);
 			/*
 			 * If rename has posix semantics, then the temporary
@@ -603,8 +603,7 @@ do_link(const char *from_name, const char *to_name,
 		return (ret);
 	} else {
 		if (verbose)
-			printf("install: link %s -> %s\n",
-			    from_name, to_name);
+			printf("install: link %s -> %s\n", from_name, to_name);
 		return (link(from_name, to_name));
 	}
 }
@@ -634,12 +633,12 @@ do_symlink(const char *from_name, const char *to_name,
 		}
 #if HAVE_STRUCT_STAT_ST_FLAGS
 		if (target_sb->st_flags & NOCHANGEBITS)
-			(void)chflags(to_name, target_sb->st_flags &
-			     ~NOCHANGEBITS);
+			(void)chflags(to_name,
+			    target_sb->st_flags & ~NOCHANGEBITS);
 #endif
 		if (verbose)
-			printf("install: symlink %s -> %s\n",
-			    from_name, to_name);
+			printf("install: symlink %s -> %s\n", from_name,
+			    to_name);
 		if (rename(tmpl, to_name) == -1) {
 			/* Remove temporary link before exiting. */
 			(void)unlink(tmpl);
@@ -647,8 +646,8 @@ do_symlink(const char *from_name, const char *to_name,
 		}
 	} else {
 		if (verbose)
-			printf("install: symlink %s -> %s\n",
-			    from_name, to_name);
+			printf("install: symlink %s -> %s\n", from_name,
+			    to_name);
 		if (symlink(from_name, to_name) == -1)
 			err(EX_OSERR, "symlink %s -> %s", from_name, to_name);
 	}
@@ -662,14 +661,15 @@ static void
 makelink(const char *from_name, const char *to_name,
     const struct stat *target_sb)
 {
-	char	src[MAXPATHLEN], dst[MAXPATHLEN], lnk[MAXPATHLEN];
-	struct stat	to_sb;
+	char src[MAXPATHLEN], dst[MAXPATHLEN], lnk[MAXPATHLEN];
+	struct stat to_sb;
 
 	/* Try hard links first. */
-	if (dolink & (LN_HARD|LN_MIXED)) {
+	if (dolink & (LN_HARD | LN_MIXED)) {
 		if (do_link(from_name, to_name, target_sb) == -1) {
 			if ((dolink & LN_HARD) || errno != EXDEV)
-				err(EX_OSERR, "link %s -> %s", from_name, to_name);
+				err(EX_OSERR, "link %s -> %s", from_name,
+				    to_name);
 		} else {
 			if (stat(to_name, &to_sb))
 				err(EX_OSERR, "%s: stat", to_name);
@@ -700,8 +700,8 @@ makelink(const char *from_name, const char *to_name,
 				if (!haveopt_f)
 					fflags = NULL;
 				dres = digest_file(from_name);
-				metadata_log(to_name, "file", NULL, NULL,
-				    dres, to_sb.st_size);
+				metadata_log(to_name, "file", NULL, NULL, dres,
+				    to_sb.st_size);
 				free(dres);
 				mode = omode;
 				owner = oowner;
@@ -877,8 +877,8 @@ install(const char *from_name, const char *to_name, u_long fset, u_int flags)
 			files_match = to_sb.st_size == 0;
 		else
 			files_match = !(compare(from_fd, from_name,
-			    (size_t)from_sb.st_size, to_fd,
-			    to_name, (size_t)to_sb.st_size, &digestresult));
+			    (size_t)from_sb.st_size, to_fd, to_name,
+			    (size_t)to_sb.st_size, &digestresult));
 
 		/* Close "to" file unless we match. */
 		if (!files_match)
@@ -892,27 +892,28 @@ install(const char *from_name, const char *to_name, u_long fset, u_int flags)
 			if (to_fd < 0)
 				err(EX_OSERR, "%s", tempfile);
 		} else {
-			if ((to_fd = create_newfile(to_name, target,
-			    &to_sb)) < 0)
+			if ((to_fd = create_newfile(to_name, target, &to_sb)) <
+			    0)
 				err(EX_OSERR, "%s", to_name);
 			if (verbose)
-				(void)printf("install: %s -> %s\n",
-				    from_name, to_name);
+				(void)printf("install: %s -> %s\n", from_name,
+				    to_name);
 		}
 		if (!devnull) {
 			if (dostrip)
-			    stripped = strip(tempcopy ? tempfile : to_name,
-				to_fd, from_name, &digestresult);
+				stripped = strip(tempcopy ? tempfile : to_name,
+				    to_fd, from_name, &digestresult);
 			if (!stripped)
-			    digestresult = copy(from_fd, from_name, to_fd,
-				tempcopy ? tempfile : to_name, from_sb.st_size);
+				digestresult = copy(from_fd, from_name, to_fd,
+				    tempcopy ? tempfile : to_name,
+				    from_sb.st_size);
 		}
 	}
 
 	if (dostrip) {
 		if (!stripped)
-			(void)strip(tempcopy ? tempfile : to_name, to_fd,
-			    NULL, &digestresult);
+			(void)strip(tempcopy ? tempfile : to_name, to_fd, NULL,
+			    &digestresult);
 
 		/*
 		 * Re-open our fd on the target, in case
@@ -942,8 +943,7 @@ install(const char *from_name, const char *to_name, u_long fset, u_int flags)
 		}
 
 		if (compare(temp_fd, tempfile, (size_t)temp_sb.st_size, to_fd,
-			    to_name, (size_t)to_sb.st_size, &digestresult)
-			    == 0) {
+			to_name, (size_t)to_sb.st_size, &digestresult) == 0) {
 			/*
 			 * If target has more than one link we need to
 			 * replace it in order to snap the extra links.
@@ -957,7 +957,7 @@ install(const char *from_name, const char *to_name, u_long fset, u_int flags)
 				files_match = 1;
 				(void)unlink(tempfile);
 			}
-			(void) close(temp_fd);
+			(void)close(temp_fd);
 		}
 	} else if (dostrip)
 		digestresult = digest_file(tempfile);
@@ -973,14 +973,16 @@ install(const char *from_name, const char *to_name, u_long fset, u_int flags)
 			(void)chflags(to_name, to_sb.st_flags & ~NOCHANGEBITS);
 #endif
 		if (dobackup) {
-			if ((size_t)snprintf(backup, MAXPATHLEN, "%s%s", to_name,
-			    suffix) != strlen(to_name) + strlen(suffix)) {
+			if ((size_t)snprintf(backup, MAXPATHLEN, "%s%s",
+				to_name,
+				suffix) != strlen(to_name) + strlen(suffix)) {
 				unlink(tempfile);
 				errx(EX_OSERR, "%s: backup filename too long",
 				    to_name);
 			}
 			if (verbose)
-				(void)printf("install: %s -> %s\n", to_name, backup);
+				(void)printf("install: %s -> %s\n", to_name,
+				    backup);
 			if (unlink(backup) < 0 && errno != ENOENT) {
 				serrno = errno;
 #if HAVE_STRUCT_STAT_ST_FLAGS
@@ -1000,7 +1002,7 @@ install(const char *from_name, const char *to_name, u_long fset, u_int flags)
 #endif
 				errno = serrno;
 				err(EX_OSERR, "link: %s to %s", to_name,
-				     backup);
+				    backup);
 			}
 		}
 		if (verbose)
@@ -1009,12 +1011,11 @@ install(const char *from_name, const char *to_name, u_long fset, u_int flags)
 			serrno = errno;
 			unlink(tempfile);
 			errno = serrno;
-			err(EX_OSERR, "rename: %s to %s",
-			    tempfile, to_name);
+			err(EX_OSERR, "rename: %s to %s", tempfile, to_name);
 		}
 
 		/* Re-open to_fd so we aren't hosed by the rename(2). */
-		(void) close(to_fd);
+		(void)close(to_fd);
 		if ((to_fd = open(to_name, O_RDONLY, 0)) < 0)
 			err(EX_OSERR, "%s", to_name);
 	}
@@ -1039,9 +1040,10 @@ install(const char *from_name, const char *to_name, u_long fset, u_int flags)
 	 * Set owner, group, mode for target; do the chown first,
 	 * chown may lose the setuid bits.
 	 */
-	if (!dounpriv && ((gid != (gid_t)-1 && gid != to_sb.st_gid) ||
-	    (uid != (uid_t)-1 && uid != to_sb.st_uid) ||
-	    (mode != (to_sb.st_mode & ALLPERMS)))) {
+	if (!dounpriv &&
+	    ((gid != (gid_t)-1 && gid != to_sb.st_gid) ||
+		(uid != (uid_t)-1 && uid != to_sb.st_uid) ||
+		(mode != (to_sb.st_mode & ALLPERMS)))) {
 #if HAVE_STRUCT_STAT_ST_FLAGS
 		/* Try to turn off the immutable bits. */
 		if (to_sb.st_flags & NOCHANGEBITS)
@@ -1049,18 +1051,20 @@ install(const char *from_name, const char *to_name, u_long fset, u_int flags)
 #endif
 	}
 
-	if (!dounpriv && ((gid != (gid_t)-1 && gid != to_sb.st_gid) ||
-	    (uid != (uid_t)-1 && uid != to_sb.st_uid))) {
+	if (!dounpriv &&
+	    ((gid != (gid_t)-1 && gid != to_sb.st_gid) ||
+		(uid != (uid_t)-1 && uid != to_sb.st_uid))) {
 		if (fchown(to_fd, uid, gid) == -1) {
 			serrno = errno;
 			(void)unlink(to_name);
 			errno = serrno;
-			err(EX_OSERR,"%s: chown/chgrp", to_name);
+			err(EX_OSERR, "%s: chown/chgrp", to_name);
 		}
 	}
 	if (mode != (to_sb.st_mode & ALLPERMS)) {
 		if (fchmod(to_fd,
-		    dounpriv ? mode & (S_IRWXU|S_IRWXG|S_IRWXO) : mode)) {
+			dounpriv ? mode & (S_IRWXU | S_IRWXG | S_IRWXO) :
+				   mode)) {
 			serrno = errno;
 			(void)unlink(to_name);
 			errno = serrno;
@@ -1075,10 +1079,11 @@ install(const char *from_name, const char *to_name, u_long fset, u_int flags)
 	 * trying to turn off UF_NODUMP.  If we're trying to set real flags,
 	 * then warn if the fs doesn't support it, otherwise fail.
 	 */
-	if (!dounpriv && !devnull && (flags & SETFLAGS ||
-	    (from_sb.st_flags & ~UF_NODUMP) != to_sb.st_flags) &&
+	if (!dounpriv && !devnull &&
+	    (flags & SETFLAGS ||
+		(from_sb.st_flags & ~UF_NODUMP) != to_sb.st_flags) &&
 	    fchflags(to_fd,
-	    flags & SETFLAGS ? fset : from_sb.st_flags & ~UF_NODUMP)) {
+		flags & SETFLAGS ? fset : from_sb.st_flags & ~UF_NODUMP)) {
 		if (flags & SETFLAGS) {
 			if (errno == EOPNOTSUPP)
 				warn("%s: chflags", to_name);
@@ -1107,9 +1112,8 @@ install(const char *from_name, const char *to_name, u_long fset, u_int flags)
  *	unless it points to pre-computed digest.
  */
 static int
-compare(int from_fd, const char *from_name __unused, size_t from_len,
-	int to_fd, const char *to_name __unused, size_t to_len,
-	char **dresp)
+compare(int from_fd, const char *from_name __unused, size_t from_len, int to_fd,
+    const char *to_name __unused, size_t to_len, char **dresp)
 {
 	char *p, *q;
 	int rv;
@@ -1127,12 +1131,12 @@ compare(int from_fd, const char *from_name __unused, size_t from_len,
 			digest_init(&ctx);
 		done_compare = 0;
 		if (trymmap(from_len) && trymmap(to_len)) {
-			p = mmap(NULL, from_len, PROT_READ, MAP_SHARED,
-			    from_fd, (off_t)0);
+			p = mmap(NULL, from_len, PROT_READ, MAP_SHARED, from_fd,
+			    (off_t)0);
 			if (p == MAP_FAILED)
 				goto out;
-			q = mmap(NULL, from_len, PROT_READ, MAP_SHARED,
-			    to_fd, (off_t)0);
+			q = mmap(NULL, from_len, PROT_READ, MAP_SHARED, to_fd,
+			    (off_t)0);
 			if (q == MAP_FAILED) {
 				munmap(p, from_len);
 				goto out;
@@ -1174,15 +1178,15 @@ compare(int from_fd, const char *from_name __unused, size_t from_len,
 			while (rv == 0) {
 				n1 = read(from_fd, buf1, bufsize);
 				if (n1 == 0)
-					break;		/* EOF */
+					break; /* EOF */
 				else if (n1 > 0) {
 					n2 = read(to_fd, buf2, n1);
 					if (n2 == n1)
 						rv = memcmp(buf1, buf2, n1);
 					else
-						rv = 1;	/* out of sync */
+						rv = 1; /* out of sync */
 				} else
-					rv = 1;		/* read failure */
+					rv = 1; /* read failure */
 				if (do_digest)
 					digest_update(&ctx, buf1, n1);
 			}
@@ -1190,7 +1194,7 @@ compare(int from_fd, const char *from_name __unused, size_t from_len,
 			lseek(to_fd, 0, SEEK_SET);
 		}
 	} else
-		rv = 1;	/* don't bother in this case */
+		rv = 1; /* don't bother in this case */
 
 	if (do_digest) {
 		if (rv == 0)
@@ -1245,8 +1249,8 @@ create_newfile(const char *path, int target, struct stat *sbp)
 #endif
 
 		if (dobackup) {
-			if ((size_t)snprintf(backup, MAXPATHLEN, "%s%s",
-			    path, suffix) != strlen(path) + strlen(suffix)) {
+			if ((size_t)snprintf(backup, MAXPATHLEN, "%s%s", path,
+				suffix) != strlen(path) + strlen(suffix)) {
 				saved_errno = errno;
 #if HAVE_STRUCT_STAT_ST_FLAGS
 				if (sbp->st_flags & NOCHANGEBITS)
@@ -1256,11 +1260,11 @@ create_newfile(const char *path, int target, struct stat *sbp)
 				errx(EX_OSERR, "%s: backup filename too long",
 				    path);
 			}
-			(void)snprintf(backup, MAXPATHLEN, "%s%s",
-			    path, suffix);
+			(void)snprintf(backup, MAXPATHLEN, "%s%s", path,
+			    suffix);
 			if (verbose)
-				(void)printf("install: %s -> %s\n",
-				    path, backup);
+				(void)printf("install: %s -> %s\n", path,
+				    backup);
 			if (rename(path, backup) < 0) {
 				saved_errno = errno;
 #if HAVE_STRUCT_STAT_ST_FLAGS
@@ -1270,9 +1274,8 @@ create_newfile(const char *path, int target, struct stat *sbp)
 				errno = saved_errno;
 				err(EX_OSERR, "rename: %s to %s", path, backup);
 			}
-		} else
-			if (unlink(path) < 0)
-				saved_errno = errno;
+		} else if (unlink(path) < 0)
+			saved_errno = errno;
 	}
 
 	newfd = open(path, O_CREAT | O_RDWR | O_TRUNC, S_IRUSR | S_IWUSR);
@@ -1332,15 +1335,15 @@ copy(int from_fd, const char *from_name, int to_fd, const char *to_name,
 
 	done_copy = 0;
 	if (trymmap((size_t)size) &&
-	    (p = mmap(NULL, (size_t)size, PROT_READ, MAP_SHARED,
-		    from_fd, (off_t)0)) != MAP_FAILED) {
+	    (p = mmap(NULL, (size_t)size, PROT_READ, MAP_SHARED, from_fd,
+		 (off_t)0)) != MAP_FAILED) {
 		nw = write(to_fd, p, size);
 		if (nw != size) {
 			serrno = errno;
 			(void)unlink(to_name);
 			if (nw >= 0) {
 				errx(EX_OSERR,
-     "short write to %s: %jd bytes written, %jd bytes asked to write",
+				    "short write to %s: %jd bytes written, %jd bytes asked to write",
 				    to_name, (uintmax_t)nw, (uintmax_t)size);
 			} else {
 				errno = serrno;
@@ -1358,8 +1361,7 @@ copy(int from_fd, const char *from_name, int to_fd, const char *to_name,
 			 * malloc() fails, it will fail at the start
 			 * and not copy only some files.
 			 */
-			if (sysconf(_SC_PHYS_PAGES) >
-			    PHYSPAGES_THRESHOLD)
+			if (sysconf(_SC_PHYS_PAGES) > PHYSPAGES_THRESHOLD)
 				bufsize = MIN(BUFSIZE_MAX, MAXPHYS * 8);
 			else
 				bufsize = BUFSIZE_SMALL;
@@ -1373,7 +1375,7 @@ copy(int from_fd, const char *from_name, int to_fd, const char *to_name,
 				(void)unlink(to_name);
 				if (nw >= 0) {
 					errx(EX_OSERR,
-     "short write to %s: %jd bytes written, %jd bytes asked to write",
+					    "short write to %s: %jd bytes written, %jd bytes asked to write",
 					    to_name, (uintmax_t)nw,
 					    (uintmax_t)size);
 				} else {
@@ -1430,7 +1432,8 @@ strip(const char *to_name, int to_fd, const char *from_name, char **dresp)
 
 		/* Prepend './' if from_name begins with '-' */
 		if (from_name[0] == '-') {
-			if (asprintf(&prefixed_from_name, "./%s", from_name) == -1)
+			if (asprintf(&prefixed_from_name, "./%s", from_name) ==
+			    -1)
 				return (0);
 			args[3] = prefixed_from_name;
 		} else {
@@ -1443,7 +1446,9 @@ strip(const char *to_name, int to_fd, const char *from_name, char **dresp)
 	if (error != 0) {
 		(void)unlink(to_name);
 		errc(error == EAGAIN || error == EPROCLIM || error == ENOMEM ?
-		    EX_TEMPFAIL : EX_OSERR, error, "spawn %s", stripbin);
+			EX_TEMPFAIL :
+			EX_OSERR,
+		    error, "spawn %s", stripbin);
 	}
 	free(prefixed_from_name);
 	if (waitpid(pid, &status, 0) == -1) {
@@ -1456,8 +1461,8 @@ strip(const char *to_name, int to_fd, const char *from_name, char **dresp)
 		if (from_name != NULL)
 			return (0);
 		(void)unlink(to_name);
-		errx(EX_SOFTWARE, "strip command %s failed on %s",
-		    stripbin, to_name);
+		errx(EX_SOFTWARE, "strip command %s failed on %s", stripbin,
+		    to_name);
 	}
 	if (from_name != NULL && safecopy && fsync(to_fd) == -1) {
 		serrno = errno;
@@ -1482,11 +1487,11 @@ install_dir(char *path)
 	int ch, tried_mkdir;
 
 	for (p = path;; ++p)
-		if (!*p || (p != path && *p  == '/')) {
+		if (!*p || (p != path && *p == '/')) {
 			tried_mkdir = 0;
 			ch = *p;
 			*p = '\0';
-again:
+		again:
 			if (stat(path, &sb) != 0) {
 				if (errno != ENOENT || tried_mkdir)
 					err(EX_OSERR, "stat %s", path);
@@ -1500,10 +1505,11 @@ again:
 					(void)printf("install: mkdir %s\n",
 					    path);
 			} else if (!S_ISDIR(sb.st_mode))
-				errx(EX_OSERR, "%s exists but is not a directory", path);
+				errx(EX_OSERR,
+				    "%s exists but is not a directory", path);
 			if (!(*p = ch))
 				break;
- 		}
+		}
 
 	if (!dounpriv) {
 		if ((gid != (gid_t)-1 || uid != (uid_t)-1) &&
@@ -1524,7 +1530,7 @@ again:
  */
 static void
 metadata_log(const char *path, const char *type, struct timespec *ts,
-	const char *slink, const char *digestresult, off_t size)
+    const char *slink, const char *digestresult, off_t size)
 {
 	static const char extra[] = { ' ', '\t', '\n', '\\', '#', '\0' };
 	const char *p;
@@ -1532,7 +1538,7 @@ metadata_log(const char *path, const char *type, struct timespec *ts,
 	size_t destlen;
 	struct flock metalog_lock;
 
-	if (!metafp)	
+	if (!metafp)
 		return;
 	/* Buffer for strsvis(3). */
 	buf = (char *)malloc(4 * strlen(path) + 1);
@@ -1572,14 +1578,14 @@ metadata_log(const char *path, const char *type, struct timespec *ts,
 		fprintf(metafp, " gname=%s", group);
 	fprintf(metafp, " mode=%#o", mode);
 	if (slink) {
-		strsvis(buf, slink, VIS_CSTYLE, extra);	/* encode link */
+		strsvis(buf, slink, VIS_CSTYLE, extra); /* encode link */
 		fprintf(metafp, " link=%s", buf);
 	}
 	if (*type == 'f') /* type=file */
 		fprintf(metafp, " size=%lld", (long long)size);
 	if (ts != NULL && dopreserve)
-		fprintf(metafp, " time=%lld.%09ld",
-			(long long)ts[1].tv_sec, ts[1].tv_nsec);
+		fprintf(metafp, " time=%lld.%09ld", (long long)ts[1].tv_sec,
+		    ts[1].tv_nsec);
 	if (digestresult && digest)
 		fprintf(metafp, " %s=%s", digest, digestresult);
 	if (fflags)
@@ -1605,17 +1611,17 @@ static void
 usage(void)
 {
 	(void)fprintf(stderr,
-"usage: install [-bCcpSsUv] [-f flags] [-g group] [-m mode] [-o owner]\n"
-"               [-M log] [-D dest] [-h hash] [-T tags]\n"
-"               [-B suffix] [-l linkflags] [-N dbdir]\n"
-"               file1 file2\n"
-"       install [-bCcpSsUv] [-f flags] [-g group] [-m mode] [-o owner]\n"
-"               [-M log] [-D dest] [-h hash] [-T tags]\n"
-"               [-B suffix] [-l linkflags] [-N dbdir]\n"
-"               file1 ... fileN directory\n"
-"       install -dU [-vU] [-g group] [-m mode] [-N dbdir] [-o owner]\n"
-"               [-M log] [-D dest] [-h hash] [-T tags]\n"
-"               directory ...\n");
+	    "usage: install [-bCcpSsUv] [-f flags] [-g group] [-m mode] [-o owner]\n"
+	    "               [-M log] [-D dest] [-h hash] [-T tags]\n"
+	    "               [-B suffix] [-l linkflags] [-N dbdir]\n"
+	    "               file1 file2\n"
+	    "       install [-bCcpSsUv] [-f flags] [-g group] [-m mode] [-o owner]\n"
+	    "               [-M log] [-D dest] [-h hash] [-T tags]\n"
+	    "               [-B suffix] [-l linkflags] [-N dbdir]\n"
+	    "               file1 ... fileN directory\n"
+	    "       install -dU [-vU] [-g group] [-m mode] [-N dbdir] [-o owner]\n"
+	    "               [-M log] [-D dest] [-h hash] [-T tags]\n"
+	    "               directory ...\n");
 	exit(EX_USAGE);
 	/* NOTREACHED */
 }

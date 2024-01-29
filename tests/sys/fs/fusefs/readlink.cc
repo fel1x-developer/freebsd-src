@@ -39,27 +39,30 @@ extern "C" {
 
 using namespace testing;
 
-class Readlink: public FuseTest {
-public:
-void expect_lookup(const char *relpath, uint64_t ino)
-{
-	FuseTest::expect_lookup(relpath, ino, S_IFLNK | 0777, 0, 1);
-}
-void expect_readlink(uint64_t ino, ProcessMockerT r)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_READLINK &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(r));
-}
-
+class Readlink : public FuseTest {
+    public:
+	void expect_lookup(const char *relpath, uint64_t ino)
+	{
+		FuseTest::expect_lookup(relpath, ino, S_IFLNK | 0777, 0, 1);
+	}
+	void expect_readlink(uint64_t ino, ProcessMockerT r)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					return (
+					    in.header.opcode == FUSE_READLINK &&
+					    in.header.nodeid == ino);
+				},
+				Eq(true)),
+			_))
+		    .WillOnce(Invoke(r));
+	}
 };
 
-class PushSymlinksIn: public Readlink {
-	virtual void SetUp() {
+class PushSymlinksIn : public Readlink {
+	virtual void SetUp()
+	{
 		m_push_symlinks_in = true;
 		Readlink::SetUp();
 	}
@@ -93,24 +96,27 @@ TEST_F(Readlink, embedded_nul)
 	const uint64_t ino = 42;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFLNK | 0777;
-		out.body.entry.nodeid = ino;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.entry_valid = UINT64_MAX;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = S_IFLNK | 0777;
+		    out.body.entry.nodeid = ino;
+		    out.body.entry.attr_valid = UINT64_MAX;
+		    out.body.entry.entry_valid = UINT64_MAX;
+	    })));
 
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_READLINK &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).WillRepeatedly(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		memcpy(out.body.str, dst, sizeof(dst));
-		out.header.len = sizeof(out.header) + sizeof(dst) + 1;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_READLINK &&
+				    in.header.nodeid == ino);
+			},
+			Eq(true)),
+		_))
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+			memcpy(out.body.str, dst, sizeof(dst));
+			out.header.len = sizeof(out.header) + sizeof(dst) + 1;
+		})));
 
 	EXPECT_EQ(-1, readlink(FULLPATH, buf, sizeof(buf)));
 	EXPECT_EQ(EIO, errno);
@@ -127,13 +133,13 @@ TEST_F(Readlink, ok)
 	char buf[80];
 
 	expect_lookup(RELPATH, ino);
-	expect_readlink(ino, ReturnImmediate([=](auto in __unused, auto& out) {
+	expect_readlink(ino, ReturnImmediate([=](auto in __unused, auto &out) {
 		strlcpy(out.body.str, dst, sizeof(out.body.str));
 		out.header.len = sizeof(out.header) + strlen(dst) + 1;
 	}));
 
 	EXPECT_EQ(static_cast<ssize_t>(strlen(dst)) + 1,
-		  readlink(FULLPATH, buf, sizeof(buf)));
+	    readlink(FULLPATH, buf, sizeof(buf)));
 	EXPECT_STREQ(dst, buf);
 }
 
@@ -147,7 +153,7 @@ TEST_F(PushSymlinksIn, readlink)
 	int len;
 
 	expect_lookup(RELPATH, ino);
-	expect_readlink(ino, ReturnImmediate([=](auto in __unused, auto& out) {
+	expect_readlink(ino, ReturnImmediate([=](auto in __unused, auto &out) {
 		strlcpy(out.body.str, dst, sizeof(out.body.str));
 		out.header.len = sizeof(out.header) + strlen(dst) + 1;
 	}));
@@ -157,6 +163,6 @@ TEST_F(PushSymlinksIn, readlink)
 	ASSERT_LE(0, len) << strerror(errno);
 
 	EXPECT_EQ(static_cast<ssize_t>(len) + 1,
-		readlink(FULLPATH, buf, sizeof(buf)));
+	    readlink(FULLPATH, buf, sizeof(buf)));
 	EXPECT_STREQ(want, buf);
 }

@@ -29,11 +29,11 @@
 
 typedef signed long long fp16_t;
 
-#define ItoFP16(n)	((signed long long)(n) << 16)
-#define FP16toI(n)	((signed long long)(n) >> 16)
+#define ItoFP16(n) ((signed long long)(n) << 16)
+#define FP16toI(n) ((signed long long)(n) >> 16)
 
 #ifndef _KERNEL
-#define FP16toF(n)	((n) / 65536.0)
+#define FP16toF(n) ((n) / 65536.0)
 #endif
 
 /* add a and b */
@@ -71,10 +71,10 @@ fp16_div(fp16_t a, fp16_t b)
 /* square root */
 fp16_t fp16_sqrt(fp16_t);
 
-#define FP16_2PI	 411774
-#define FP16_PI		 205887
-#define FP16_PI_2	 102943
-#define FP16_PI_4	  51471
+#define FP16_2PI 411774
+#define FP16_PI 205887
+#define FP16_PI_2 102943
+#define FP16_PI_4 51471
 
 /* sine and cosine */
 fp16_t fp16_sin(fp16_t);

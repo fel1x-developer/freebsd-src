@@ -23,15 +23,15 @@
  * SUCH DAMAGE.
  */
 
-#include "opt_rss.h"
 #include "opt_ratelimit.h"
+#include "opt_rss.h"
 
+#include <dev/mlx5/fs.h>
+#include <dev/mlx5/mlx5_core/fs_tcp.h>
 #include <dev/mlx5/mlx5_en/en.h>
+#include <dev/mlx5/mpfs.h>
 
 #include <linux/list.h>
-#include <dev/mlx5/fs.h>
-#include <dev/mlx5/mpfs.h>
-#include <dev/mlx5/mlx5_core/fs_tcp.h>
 
 /*
  * The flow tables with rules define the packet processing on receive.
@@ -100,15 +100,15 @@ enum {
 
 struct mlx5e_eth_addr_hash_node {
 	LIST_ENTRY(mlx5e_eth_addr_hash_node) hlist;
-	u8	action;
-	u32	mpfs_index;
+	u8 action;
+	u32 mpfs_index;
 	struct mlx5e_eth_addr_info ai;
 };
 
 static void mlx5e_del_all_vlan_rules(struct mlx5e_priv *);
 
 static inline int
-mlx5e_hash_eth_addr(const u8 * addr)
+mlx5e_hash_eth_addr(const u8 *addr)
 {
 	return (addr[5]);
 }
@@ -120,7 +120,7 @@ mlx5e_add_eth_addr_to_hash(struct mlx5e_eth_addr_hash_head *hash,
 	struct mlx5e_eth_addr_hash_node *hn;
 	u32 ix = mlx5e_hash_eth_addr(hn_new->ai.addr);
 
-	LIST_FOREACH(hn, &hash[ix], hlist) {
+	LIST_FOREACH (hn, &hash[ix], hlist) {
 		if (bcmp(hn->ai.addr, hn_new->ai.addr, ETHER_ADDR_LEN) == 0) {
 			if (hn->action == MLX5E_ACTION_DEL)
 				hn->action = MLX5E_ACTION_NONE;
@@ -157,25 +157,22 @@ mlx5e_del_eth_addr_from_flow_table(struct mlx5e_priv *priv,
 }
 
 static int
-mlx5e_get_eth_addr_type(const u8 * addr)
+mlx5e_get_eth_addr_type(const u8 *addr)
 {
 	if (ETHER_IS_MULTICAST(addr) == 0)
 		return (MLX5E_UC);
 
-	if ((addr[0] == 0x01) &&
-	    (addr[1] == 0x00) &&
-	    (addr[2] == 0x5e) &&
+	if ((addr[0] == 0x01) && (addr[1] == 0x00) && (addr[2] == 0x5e) &&
 	    !(addr[3] & 0x80))
 		return (MLX5E_MC_IPV4);
 
-	if ((addr[0] == 0x33) &&
-	    (addr[1] == 0x33))
+	if ((addr[0] == 0x33) && (addr[1] == 0x33))
 		return (MLX5E_MC_IPV6);
 
 	return (MLX5E_MC_OTHER);
 }
 
-static	u32
+static u32
 mlx5e_get_tt_vec(struct mlx5e_eth_addr_info *ai, int type)
 {
 	int eth_addr_type;
@@ -186,59 +183,40 @@ mlx5e_get_tt_vec(struct mlx5e_eth_addr_info *ai, int type)
 		eth_addr_type = mlx5e_get_eth_addr_type(ai->addr);
 		switch (eth_addr_type) {
 		case MLX5E_UC:
-			ret =
-			    (1 << MLX5E_TT_IPV4_TCP) |
+			ret = (1 << MLX5E_TT_IPV4_TCP) |
 			    (1 << MLX5E_TT_IPV6_TCP) |
 			    (1 << MLX5E_TT_IPV4_UDP) |
-			    (1 << MLX5E_TT_IPV6_UDP) |
-			    (1 << MLX5E_TT_IPV4) |
-			    (1 << MLX5E_TT_IPV6) |
-			    (1 << MLX5E_TT_ANY) |
-			    0;
+			    (1 << MLX5E_TT_IPV6_UDP) | (1 << MLX5E_TT_IPV4) |
+			    (1 << MLX5E_TT_IPV6) | (1 << MLX5E_TT_ANY) | 0;
 			break;
 
 		case MLX5E_MC_IPV4:
-			ret =
-			    (1 << MLX5E_TT_IPV4_UDP) |
-			    (1 << MLX5E_TT_IPV4) |
+			ret = (1 << MLX5E_TT_IPV4_UDP) | (1 << MLX5E_TT_IPV4) |
 			    0;
 			break;
 
 		case MLX5E_MC_IPV6:
-			ret =
-			    (1 << MLX5E_TT_IPV6_UDP) |
-			    (1 << MLX5E_TT_IPV6) |
+			ret = (1 << MLX5E_TT_IPV6_UDP) | (1 << MLX5E_TT_IPV6) |
 			    0;
 			break;
 
 		default:
-			ret =
-			    (1 << MLX5E_TT_ANY) |
-			    0;
+			ret = (1 << MLX5E_TT_ANY) | 0;
 			break;
 		}
 		break;
 
 	case MLX5E_ALLMULTI:
-		ret =
-		    (1 << MLX5E_TT_IPV4_UDP) |
-		    (1 << MLX5E_TT_IPV6_UDP) |
-		    (1 << MLX5E_TT_IPV4) |
-		    (1 << MLX5E_TT_IPV6) |
-		    (1 << MLX5E_TT_ANY) |
-		    0;
+		ret = (1 << MLX5E_TT_IPV4_UDP) | (1 << MLX5E_TT_IPV6_UDP) |
+		    (1 << MLX5E_TT_IPV4) | (1 << MLX5E_TT_IPV6) |
+		    (1 << MLX5E_TT_ANY) | 0;
 		break;
 
-	default:			/* MLX5E_PROMISC */
-		ret =
-		    (1 << MLX5E_TT_IPV4_TCP) |
-		    (1 << MLX5E_TT_IPV6_TCP) |
-		    (1 << MLX5E_TT_IPV4_UDP) |
-		    (1 << MLX5E_TT_IPV6_UDP) |
-		    (1 << MLX5E_TT_IPV4) |
-		    (1 << MLX5E_TT_IPV6) |
-		    (1 << MLX5E_TT_ANY) |
-		    0;
+	default: /* MLX5E_PROMISC */
+		ret = (1 << MLX5E_TT_IPV4_TCP) | (1 << MLX5E_TT_IPV6_TCP) |
+		    (1 << MLX5E_TT_IPV4_UDP) | (1 << MLX5E_TT_IPV6_UDP) |
+		    (1 << MLX5E_TT_IPV4) | (1 << MLX5E_TT_IPV6) |
+		    (1 << MLX5E_TT_ANY) | 0;
 		break;
 	}
 
@@ -247,17 +225,16 @@ mlx5e_get_tt_vec(struct mlx5e_eth_addr_info *ai, int type)
 
 static int
 mlx5e_add_eth_addr_rule_sub(struct mlx5e_priv *priv,
-    struct mlx5e_eth_addr_info *ai, int type,
-    u32 *mc, u32 *mv)
+    struct mlx5e_eth_addr_info *ai, int type, u32 *mc, u32 *mv)
 {
 	struct mlx5_flow_destination dest = {};
 	u8 mc_enable = 0;
 	struct mlx5_flow_rule **rule_p;
 	struct mlx5_flow_table *ft = priv->fts.main.t;
 	u8 *mc_dmac = MLX5_ADDR_OF(fte_match_param, mc,
-				   outer_headers.dmac_47_16);
+	    outer_headers.dmac_47_16);
 	u8 *mv_dmac = MLX5_ADDR_OF(fte_match_param, mv,
-				   outer_headers.dmac_47_16);
+	    outer_headers.dmac_47_16);
 	u32 *tirn = priv->tirn;
 	u32 tt_vec;
 	int err = 0;
@@ -293,8 +270,7 @@ mlx5e_add_eth_addr_rule_sub(struct mlx5e_priv *priv,
 		rule_p = &ai->ft_rule[MLX5E_TT_ANY];
 		dest.tir_num = tirn[MLX5E_TT_ANY];
 		*rule_p = mlx5_add_flow_rule(ft, mc_enable, mc, mv,
-					     MLX5_FLOW_RULE_FWD_ACTION_DEST,
-					     &flow_act, &dest);
+		    MLX5_FLOW_RULE_FWD_ACTION_DEST, &flow_act, &dest);
 		if (IS_ERR_OR_NULL(*rule_p))
 			goto err_del_ai;
 	}
@@ -306,10 +282,9 @@ mlx5e_add_eth_addr_rule_sub(struct mlx5e_priv *priv,
 		rule_p = &ai->ft_rule[MLX5E_TT_IPV4];
 		dest.tir_num = tirn[MLX5E_TT_IPV4];
 		MLX5_SET(fte_match_param, mv, outer_headers.ethertype,
-			 ETHERTYPE_IP);
+		    ETHERTYPE_IP);
 		*rule_p = mlx5_add_flow_rule(ft, mc_enable, mc, mv,
-					     MLX5_FLOW_RULE_FWD_ACTION_DEST,
-					     &flow_act, &dest);
+		    MLX5_FLOW_RULE_FWD_ACTION_DEST, &flow_act, &dest);
 		if (IS_ERR_OR_NULL(*rule_p))
 			goto err_del_ai;
 	}
@@ -318,10 +293,9 @@ mlx5e_add_eth_addr_rule_sub(struct mlx5e_priv *priv,
 		rule_p = &ai->ft_rule[MLX5E_TT_IPV6];
 		dest.tir_num = tirn[MLX5E_TT_IPV6];
 		MLX5_SET(fte_match_param, mv, outer_headers.ethertype,
-			 ETHERTYPE_IPV6);
+		    ETHERTYPE_IPV6);
 		*rule_p = mlx5_add_flow_rule(ft, mc_enable, mc, mv,
-					     MLX5_FLOW_RULE_FWD_ACTION_DEST,
-					     &flow_act, &dest);
+		    MLX5_FLOW_RULE_FWD_ACTION_DEST, &flow_act, &dest);
 		if (IS_ERR_OR_NULL(*rule_p))
 			goto err_del_ai;
 	}
@@ -333,10 +307,9 @@ mlx5e_add_eth_addr_rule_sub(struct mlx5e_priv *priv,
 		rule_p = &ai->ft_rule[MLX5E_TT_IPV4_UDP];
 		dest.tir_num = tirn[MLX5E_TT_IPV4_UDP];
 		MLX5_SET(fte_match_param, mv, outer_headers.ethertype,
-			 ETHERTYPE_IP);
+		    ETHERTYPE_IP);
 		*rule_p = mlx5_add_flow_rule(ft, mc_enable, mc, mv,
-					     MLX5_FLOW_RULE_FWD_ACTION_DEST,
-					     &flow_act, &dest);
+		    MLX5_FLOW_RULE_FWD_ACTION_DEST, &flow_act, &dest);
 		if (IS_ERR_OR_NULL(*rule_p))
 			goto err_del_ai;
 	}
@@ -345,10 +318,9 @@ mlx5e_add_eth_addr_rule_sub(struct mlx5e_priv *priv,
 		rule_p = &ai->ft_rule[MLX5E_TT_IPV6_UDP];
 		dest.tir_num = tirn[MLX5E_TT_IPV6_UDP];
 		MLX5_SET(fte_match_param, mv, outer_headers.ethertype,
-			 ETHERTYPE_IPV6);
+		    ETHERTYPE_IPV6);
 		*rule_p = mlx5_add_flow_rule(ft, mc_enable, mc, mv,
-					     MLX5_FLOW_RULE_FWD_ACTION_DEST,
-					     &flow_act, &dest);
+		    MLX5_FLOW_RULE_FWD_ACTION_DEST, &flow_act, &dest);
 		if (IS_ERR_OR_NULL(*rule_p))
 			goto err_del_ai;
 	}
@@ -359,10 +331,9 @@ mlx5e_add_eth_addr_rule_sub(struct mlx5e_priv *priv,
 		rule_p = &ai->ft_rule[MLX5E_TT_IPV4_TCP];
 		dest.tir_num = tirn[MLX5E_TT_IPV4_TCP];
 		MLX5_SET(fte_match_param, mv, outer_headers.ethertype,
-			 ETHERTYPE_IP);
+		    ETHERTYPE_IP);
 		*rule_p = mlx5_add_flow_rule(ft, mc_enable, mc, mv,
-					     MLX5_FLOW_RULE_FWD_ACTION_DEST,
-					     &flow_act, &dest);
+		    MLX5_FLOW_RULE_FWD_ACTION_DEST, &flow_act, &dest);
 		if (IS_ERR_OR_NULL(*rule_p))
 			goto err_del_ai;
 	}
@@ -371,10 +342,9 @@ mlx5e_add_eth_addr_rule_sub(struct mlx5e_priv *priv,
 		rule_p = &ai->ft_rule[MLX5E_TT_IPV6_TCP];
 		dest.tir_num = tirn[MLX5E_TT_IPV6_TCP];
 		MLX5_SET(fte_match_param, mv, outer_headers.ethertype,
-			 ETHERTYPE_IPV6);
+		    ETHERTYPE_IPV6);
 		*rule_p = mlx5_add_flow_rule(ft, mc_enable, mc, mv,
-					     MLX5_FLOW_RULE_FWD_ACTION_DEST,
-					     &flow_act, &dest);
+		    MLX5_FLOW_RULE_FWD_ACTION_DEST, &flow_act, &dest);
 		if (IS_ERR_OR_NULL(*rule_p))
 			goto err_del_ai;
 	}
@@ -385,10 +355,9 @@ mlx5e_add_eth_addr_rule_sub(struct mlx5e_priv *priv,
 		rule_p = &ai->ft_rule[MLX5E_TT_IPV4_IPSEC_AH];
 		dest.tir_num = tirn[MLX5E_TT_IPV4_IPSEC_AH];
 		MLX5_SET(fte_match_param, mv, outer_headers.ethertype,
-			 ETHERTYPE_IP);
+		    ETHERTYPE_IP);
 		*rule_p = mlx5_add_flow_rule(ft, mc_enable, mc, mv,
-					     MLX5_FLOW_RULE_FWD_ACTION_DEST,
-					     &flow_act, &dest);
+		    MLX5_FLOW_RULE_FWD_ACTION_DEST, &flow_act, &dest);
 		if (IS_ERR_OR_NULL(*rule_p))
 			goto err_del_ai;
 	}
@@ -397,10 +366,9 @@ mlx5e_add_eth_addr_rule_sub(struct mlx5e_priv *priv,
 		rule_p = &ai->ft_rule[MLX5E_TT_IPV6_IPSEC_AH];
 		dest.tir_num = tirn[MLX5E_TT_IPV6_IPSEC_AH];
 		MLX5_SET(fte_match_param, mv, outer_headers.ethertype,
-			 ETHERTYPE_IPV6);
+		    ETHERTYPE_IPV6);
 		*rule_p = mlx5_add_flow_rule(ft, mc_enable, mc, mv,
-					     MLX5_FLOW_RULE_FWD_ACTION_DEST,
-					     &flow_act, &dest);
+		    MLX5_FLOW_RULE_FWD_ACTION_DEST, &flow_act, &dest);
 		if (IS_ERR_OR_NULL(*rule_p))
 			goto err_del_ai;
 	}
@@ -411,10 +379,9 @@ mlx5e_add_eth_addr_rule_sub(struct mlx5e_priv *priv,
 		rule_p = &ai->ft_rule[MLX5E_TT_IPV4_IPSEC_ESP];
 		dest.tir_num = tirn[MLX5E_TT_IPV4_IPSEC_ESP];
 		MLX5_SET(fte_match_param, mv, outer_headers.ethertype,
-			 ETHERTYPE_IP);
+		    ETHERTYPE_IP);
 		*rule_p = mlx5_add_flow_rule(ft, mc_enable, mc, mv,
-					     MLX5_FLOW_RULE_FWD_ACTION_DEST,
-					     &flow_act, &dest);
+		    MLX5_FLOW_RULE_FWD_ACTION_DEST, &flow_act, &dest);
 		if (IS_ERR_OR_NULL(*rule_p))
 			goto err_del_ai;
 	}
@@ -423,10 +390,9 @@ mlx5e_add_eth_addr_rule_sub(struct mlx5e_priv *priv,
 		rule_p = &ai->ft_rule[MLX5E_TT_IPV6_IPSEC_ESP];
 		dest.tir_num = tirn[MLX5E_TT_IPV6_IPSEC_ESP];
 		MLX5_SET(fte_match_param, mv, outer_headers.ethertype,
-			 ETHERTYPE_IPV6);
+		    ETHERTYPE_IPV6);
 		*rule_p = mlx5_add_flow_rule(ft, mc_enable, mc, mv,
-					     MLX5_FLOW_RULE_FWD_ACTION_DEST,
-					     &flow_act, &dest);
+		    MLX5_FLOW_RULE_FWD_ACTION_DEST, &flow_act, &dest);
 		if (IS_ERR_OR_NULL(*rule_p))
 			goto err_del_ai;
 	}
@@ -442,15 +408,15 @@ err_del_ai:
 }
 
 static int
-mlx5e_add_eth_addr_rule(struct mlx5e_priv *priv,
-    struct mlx5e_eth_addr_info *ai, int type)
+mlx5e_add_eth_addr_rule(struct mlx5e_priv *priv, struct mlx5e_eth_addr_info *ai,
+    int type)
 {
 	u32 *match_criteria;
 	u32 *match_value;
 	int err = 0;
 
-	match_value	= mlx5_vzalloc(MLX5_ST_SZ_BYTES(fte_match_param));
-	match_criteria	= mlx5_vzalloc(MLX5_ST_SZ_BYTES(fte_match_param));
+	match_value = mlx5_vzalloc(MLX5_ST_SZ_BYTES(fte_match_param));
+	match_criteria = mlx5_vzalloc(MLX5_ST_SZ_BYTES(fte_match_param));
 	if (!match_value || !match_criteria) {
 		mlx5_en_err(priv->ifp, "alloc failed\n");
 		err = -ENOMEM;
@@ -513,7 +479,7 @@ mlx5e_add_main_vxlan_rules_sub(struct mlx5e_priv *priv, u32 *mc, u32 *mv)
 	dest.tir_num = tirn[MLX5E_TT_IPV6];
 	MLX5_SET(fte_match_param, mv, inner_headers.ethertype, ETHERTYPE_IPV6);
 	*rule_p = mlx5_add_flow_rule(ft, mc_enable, mc, mv,
-	     MLX5_FLOW_RULE_FWD_ACTION_DEST, &flow_act, &dest);
+	    MLX5_FLOW_RULE_FWD_ACTION_DEST, &flow_act, &dest);
 	if (IS_ERR_OR_NULL(*rule_p))
 		goto err_del_ai;
 
@@ -580,12 +546,11 @@ mlx5e_add_main_vxlan_rules_sub(struct mlx5e_priv *priv, u32 *mc, u32 *mv)
 	*rule_p = mlx5_add_flow_rule(ft, mc_enable, mc, mv,
 	    MLX5_FLOW_RULE_FWD_ACTION_DEST, &flow_act, &dest);
 	if (IS_ERR_OR_NULL(*rule_p))
-			goto err_del_ai;
+		goto err_del_ai;
 
 	rule_p = &priv->fts.main_vxlan_rule[MLX5E_TT_IPV6_IPSEC_ESP];
 	dest.tir_num = tirn[MLX5E_TT_IPV6_IPSEC_ESP];
-	MLX5_SET(fte_match_param, mv, inner_headers.ethertype,
-		 ETHERTYPE_IPV6);
+	MLX5_SET(fte_match_param, mv, inner_headers.ethertype, ETHERTYPE_IPV6);
 	*rule_p = mlx5_add_flow_rule(ft, mc_enable, mc, mv,
 	    MLX5_FLOW_RULE_FWD_ACTION_DEST, &flow_act, &dest);
 	if (IS_ERR_OR_NULL(*rule_p))
@@ -634,7 +599,8 @@ add_main_vxlan_rules_out:
 	return (err);
 }
 
-static int mlx5e_vport_context_update_vlans(struct mlx5e_priv *priv)
+static int
+mlx5e_vport_context_update_vlans(struct mlx5e_priv *priv)
 {
 	if_t ifp = priv->ifp;
 	int max_list_size;
@@ -645,15 +611,14 @@ static int mlx5e_vport_context_update_vlans(struct mlx5e_priv *priv)
 	int i;
 
 	list_size = 0;
-	for_each_set_bit(vlan, priv->vlan.active_vlans, VLAN_N_VID)
-		list_size++;
+	for_each_set_bit(vlan, priv->vlan.active_vlans, VLAN_N_VID) list_size++;
 
 	max_list_size = 1 << MLX5_CAP_GEN(priv->mdev, log_max_vlan_list);
 
 	if (list_size > max_list_size) {
 		mlx5_en_err(ifp,
-			    "ifnet vlans list size (%d) > (%d) max vport list size, some vlans will be dropped\n",
-			    list_size, max_list_size);
+		    "ifnet vlans list size (%d) > (%d) max vport list size, some vlans will be dropped\n",
+		    list_size, max_list_size);
 		list_size = max_list_size;
 	}
 
@@ -662,7 +627,8 @@ static int mlx5e_vport_context_update_vlans(struct mlx5e_priv *priv)
 		return -ENOMEM;
 
 	i = 0;
-	for_each_set_bit(vlan, priv->vlan.active_vlans, VLAN_N_VID) {
+	for_each_set_bit(vlan, priv->vlan.active_vlans, VLAN_N_VID)
+	{
 		if (i >= list_size)
 			break;
 		vlans[i++] = vlan;
@@ -671,7 +637,7 @@ static int mlx5e_vport_context_update_vlans(struct mlx5e_priv *priv)
 	err = mlx5_modify_nic_vport_vlans(priv->mdev, vlans, list_size);
 	if (err)
 		mlx5_en_err(ifp, "Failed to modify vport vlans list err(%d)\n",
-			   err);
+		    err);
 
 	kfree(vlans);
 	return err;
@@ -686,8 +652,7 @@ enum mlx5e_vlan_rule_type {
 
 static int
 mlx5e_add_vlan_rule_sub(struct mlx5e_priv *priv,
-    enum mlx5e_vlan_rule_type rule_type, u16 vid,
-    u32 *mc, u32 *mv)
+    enum mlx5e_vlan_rule_type rule_type, u16 vid, u32 *mc, u32 *mv)
 {
 	struct mlx5_flow_table *ft = priv->fts.vlan.t;
 	struct mlx5_flow_destination dest = {};
@@ -730,9 +695,7 @@ mlx5e_add_vlan_rule_sub(struct mlx5e_priv *priv,
 	}
 
 	*rule_p = mlx5_add_flow_rule(ft, mc_enable, mc, mv,
-				     MLX5_FLOW_RULE_FWD_ACTION_DEST,
-				     &flow_act,
-				     &dest);
+	    MLX5_FLOW_RULE_FWD_ACTION_DEST, &flow_act, &dest);
 
 	if (IS_ERR(*rule_p)) {
 		err = PTR_ERR(*rule_p);
@@ -751,8 +714,8 @@ mlx5e_add_vlan_rule(struct mlx5e_priv *priv,
 	u32 *match_value;
 	int err = 0;
 
-	match_value	= mlx5_vzalloc(MLX5_ST_SZ_BYTES(fte_match_param));
-	match_criteria	= mlx5_vzalloc(MLX5_ST_SZ_BYTES(fte_match_param));
+	match_value = mlx5_vzalloc(MLX5_ST_SZ_BYTES(fte_match_param));
+	match_criteria = mlx5_vzalloc(MLX5_ST_SZ_BYTES(fte_match_param));
 	if (!match_value || !match_criteria) {
 		mlx5_en_err(priv->ifp, "alloc failed\n");
 		err = -ENOMEM;
@@ -760,7 +723,7 @@ mlx5e_add_vlan_rule(struct mlx5e_priv *priv,
 	}
 
 	err = mlx5e_add_vlan_rule_sub(priv, rule_type, vid, match_criteria,
-				    match_value);
+	    match_value);
 
 add_vlan_rule_out:
 	kvfree(match_criteria);
@@ -876,9 +839,10 @@ mlx5e_add_all_vlan_rules(struct mlx5e_priv *priv)
 	int i;
 
 	set_bit(0, priv->vlan.active_vlans);
-	for_each_set_bit(i, priv->vlan.active_vlans, VLAN_N_VID) {
+	for_each_set_bit(i, priv->vlan.active_vlans, VLAN_N_VID)
+	{
 		err = mlx5e_add_vlan_rule(priv, MLX5E_VLAN_RULE_TYPE_MATCH_VID,
-					  i);
+		    i);
 		if (err)
 			goto error;
 	}
@@ -909,13 +873,13 @@ mlx5e_del_all_vlan_rules(struct mlx5e_priv *priv)
 	mlx5e_del_vlan_rule(priv, MLX5E_VLAN_RULE_TYPE_UNTAGGED, 0);
 
 	for_each_set_bit(i, priv->vlan.active_vlans, VLAN_N_VID)
-		mlx5e_del_vlan_rule(priv, MLX5E_VLAN_RULE_TYPE_MATCH_VID, i);
+	    mlx5e_del_vlan_rule(priv, MLX5E_VLAN_RULE_TYPE_MATCH_VID, i);
 	clear_bit(0, priv->vlan.active_vlans);
 }
 
-#define	mlx5e_for_each_hash_node(hn, tmp, hash, i) \
+#define mlx5e_for_each_hash_node(hn, tmp, hash, i)     \
 	for (i = 0; i < MLX5E_ETH_ADDR_HASH_SIZE; i++) \
-		LIST_FOREACH_SAFE(hn, &(hash)[i], hlist, tmp)
+		LIST_FOREACH_SAFE (hn, &(hash)[i], hlist, tmp)
 
 static void
 mlx5e_execute_action(struct mlx5e_priv *priv,
@@ -940,7 +904,8 @@ mlx5e_execute_action(struct mlx5e_priv *priv,
 }
 
 static struct mlx5e_eth_addr_hash_node *
-mlx5e_move_hn(struct mlx5e_eth_addr_hash_head *fh, struct mlx5e_eth_addr_hash_head *uh)
+mlx5e_move_hn(struct mlx5e_eth_addr_hash_head *fh,
+    struct mlx5e_eth_addr_hash_head *uh)
 {
 	struct mlx5e_eth_addr_hash_node *hn;
 
@@ -1059,8 +1024,9 @@ cleanup:
 		goto retry;
 }
 
-static void mlx5e_fill_addr_array(struct mlx5e_priv *priv, int list_type,
-				  u8 addr_array[][ETH_ALEN], int size)
+static void
+mlx5e_fill_addr_array(struct mlx5e_priv *priv, int list_type,
+    u8 addr_array[][ETH_ALEN], int size)
 {
 	bool is_uc = (list_type == MLX5_NIC_VPORT_LIST_TYPE_UC);
 	if_t ifp = priv->ifp;
@@ -1077,7 +1043,8 @@ static void mlx5e_fill_addr_array(struct mlx5e_priv *priv, int list_type,
 	else if (priv->eth_addr.broadcast_enabled)
 		ether_addr_copy(addr_array[i++], if_getbroadcastaddr(ifp));
 
-	mlx5e_for_each_hash_node(hn, tmp, addr_list, hi) {
+	mlx5e_for_each_hash_node(hn, tmp, addr_list, hi)
+	{
 		if (ether_addr_equal(if_getlladdr(ifp), hn->ai.addr))
 			continue;
 		if (i >= size)
@@ -1086,12 +1053,12 @@ static void mlx5e_fill_addr_array(struct mlx5e_priv *priv, int list_type,
 	}
 }
 
-static void mlx5e_vport_context_update_addr_list(struct mlx5e_priv *priv,
-						 int list_type)
+static void
+mlx5e_vport_context_update_addr_list(struct mlx5e_priv *priv, int list_type)
 {
 	bool is_uc = (list_type == MLX5_NIC_VPORT_LIST_TYPE_UC);
 	struct mlx5e_eth_addr_hash_node *hn;
-	u8 (*addr_array)[ETH_ALEN] = NULL;
+	u8(*addr_array)[ETH_ALEN] = NULL;
 	struct mlx5e_eth_addr_hash_head *addr_list;
 	struct mlx5e_eth_addr_hash_node *tmp;
 	int max_size;
@@ -1101,17 +1068,16 @@ static void mlx5e_vport_context_update_addr_list(struct mlx5e_priv *priv,
 
 	size = is_uc ? 0 : (priv->eth_addr.broadcast_enabled ? 1 : 0);
 	max_size = is_uc ?
-		1 << MLX5_CAP_GEN(priv->mdev, log_max_current_uc_list) :
-		1 << MLX5_CAP_GEN(priv->mdev, log_max_current_mc_list);
+	    1 << MLX5_CAP_GEN(priv->mdev, log_max_current_uc_list) :
+	    1 << MLX5_CAP_GEN(priv->mdev, log_max_current_mc_list);
 
 	addr_list = is_uc ? priv->eth_addr.if_uc : priv->eth_addr.if_mc;
-	mlx5e_for_each_hash_node(hn, tmp, addr_list, hi)
-		size++;
+	mlx5e_for_each_hash_node(hn, tmp, addr_list, hi) size++;
 
 	if (size > max_size) {
 		mlx5_en_err(priv->ifp,
-			    "ifp %s list size (%d) > (%d) max vport list size, some addresses will be dropped\n",
-			    is_uc ? "UC" : "MC", size, max_size);
+		    "ifp %s list size (%d) > (%d) max vport list size, some addresses will be dropped\n",
+		    is_uc ? "UC" : "MC", size, max_size);
 		size = max_size;
 	}
 
@@ -1124,24 +1090,25 @@ static void mlx5e_vport_context_update_addr_list(struct mlx5e_priv *priv,
 		mlx5e_fill_addr_array(priv, list_type, addr_array, size);
 	}
 
-	err = mlx5_modify_nic_vport_mac_list(priv->mdev, list_type, addr_array, size);
+	err = mlx5_modify_nic_vport_mac_list(priv->mdev, list_type, addr_array,
+	    size);
 out:
 	if (err)
 		mlx5_en_err(priv->ifp,
-			   "Failed to modify vport %s list err(%d)\n",
-			   is_uc ? "UC" : "MC", err);
+		    "Failed to modify vport %s list err(%d)\n",
+		    is_uc ? "UC" : "MC", err);
 	kfree(addr_array);
 }
 
-static void mlx5e_vport_context_update(struct mlx5e_priv *priv)
+static void
+mlx5e_vport_context_update(struct mlx5e_priv *priv)
 {
 	struct mlx5e_eth_addr_db *ea = &priv->eth_addr;
 
 	mlx5e_vport_context_update_addr_list(priv, MLX5_NIC_VPORT_LIST_TYPE_UC);
 	mlx5e_vport_context_update_addr_list(priv, MLX5_NIC_VPORT_LIST_TYPE_MC);
-	mlx5_modify_nic_vport_promisc(priv->mdev, 0,
-				      ea->allmulti_enabled,
-				      ea->promisc_enabled);
+	mlx5_modify_nic_vport_promisc(priv->mdev, 0, ea->allmulti_enabled,
+	    ea->promisc_enabled);
 }
 
 static void
@@ -1230,8 +1197,8 @@ mlx5e_set_rx_mode_core(struct mlx5e_priv *priv, bool rx_mode_enable)
 void
 mlx5e_set_rx_mode_work(struct work_struct *work)
 {
-	struct mlx5e_priv *priv =
-	    container_of(work, struct mlx5e_priv, set_rx_mode_work);
+	struct mlx5e_priv *priv = container_of(work, struct mlx5e_priv,
+	    set_rx_mode_work);
 
 	PRIV_LOCK(priv);
 	if (test_bit(MLX5E_STATE_FLOW_RULES_READY, &priv->state))
@@ -1261,36 +1228,30 @@ mlx5e_destroy_flow_table(struct mlx5e_flow_table *ft)
 	ft->t = NULL;
 }
 
-#define MLX5E_NUM_MAIN_GROUPS	10
-#define MLX5E_MAIN_GROUP0_SIZE	BIT(4)
-#define MLX5E_MAIN_GROUP1_SIZE	BIT(3)
-#define MLX5E_MAIN_GROUP2_SIZE	BIT(1)
-#define MLX5E_MAIN_GROUP3_SIZE	BIT(0)
-#define MLX5E_MAIN_GROUP4_SIZE	BIT(14)
-#define MLX5E_MAIN_GROUP5_SIZE	BIT(13)
-#define MLX5E_MAIN_GROUP6_SIZE	BIT(11)
-#define MLX5E_MAIN_GROUP7_SIZE	BIT(2)
-#define MLX5E_MAIN_GROUP8_SIZE	BIT(1)
-#define MLX5E_MAIN_GROUP9_SIZE	BIT(0)
-#define MLX5E_MAIN_TABLE_SIZE	(MLX5E_MAIN_GROUP0_SIZE +\
-				 MLX5E_MAIN_GROUP1_SIZE +\
-				 MLX5E_MAIN_GROUP2_SIZE +\
-				 MLX5E_MAIN_GROUP3_SIZE +\
-				 MLX5E_MAIN_GROUP4_SIZE +\
-				 MLX5E_MAIN_GROUP5_SIZE +\
-				 MLX5E_MAIN_GROUP6_SIZE +\
-				 MLX5E_MAIN_GROUP7_SIZE +\
-				 MLX5E_MAIN_GROUP8_SIZE +\
-				 MLX5E_MAIN_GROUP9_SIZE +\
-				 0)
+#define MLX5E_NUM_MAIN_GROUPS 10
+#define MLX5E_MAIN_GROUP0_SIZE BIT(4)
+#define MLX5E_MAIN_GROUP1_SIZE BIT(3)
+#define MLX5E_MAIN_GROUP2_SIZE BIT(1)
+#define MLX5E_MAIN_GROUP3_SIZE BIT(0)
+#define MLX5E_MAIN_GROUP4_SIZE BIT(14)
+#define MLX5E_MAIN_GROUP5_SIZE BIT(13)
+#define MLX5E_MAIN_GROUP6_SIZE BIT(11)
+#define MLX5E_MAIN_GROUP7_SIZE BIT(2)
+#define MLX5E_MAIN_GROUP8_SIZE BIT(1)
+#define MLX5E_MAIN_GROUP9_SIZE BIT(0)
+#define MLX5E_MAIN_TABLE_SIZE                                 \
+	(MLX5E_MAIN_GROUP0_SIZE + MLX5E_MAIN_GROUP1_SIZE +    \
+	    MLX5E_MAIN_GROUP2_SIZE + MLX5E_MAIN_GROUP3_SIZE + \
+	    MLX5E_MAIN_GROUP4_SIZE + MLX5E_MAIN_GROUP5_SIZE + \
+	    MLX5E_MAIN_GROUP6_SIZE + MLX5E_MAIN_GROUP7_SIZE + \
+	    MLX5E_MAIN_GROUP8_SIZE + MLX5E_MAIN_GROUP9_SIZE + 0)
 
 static int
-mlx5e_create_main_groups_sub(struct mlx5e_flow_table *ft, u32 *in,
-				      int inlen)
+mlx5e_create_main_groups_sub(struct mlx5e_flow_table *ft, u32 *in, int inlen)
 {
 	u8 *mc = MLX5_ADDR_OF(create_flow_group_in, in, match_criteria);
 	u8 *dmac = MLX5_ADDR_OF(create_flow_group_in, in,
-				match_criteria.outer_headers.dmac_47_16);
+	    match_criteria.outer_headers.dmac_47_16);
 	int err;
 	int ix = 0;
 
@@ -1442,9 +1403,9 @@ mlx5e_create_main_groups(struct mlx5e_flow_table *ft)
 	return (err);
 }
 
-#define MLX5E_MAIN_VXLAN_GROUP0_SIZE	BIT(3)
-#define MLX5E_MAIN_VXLAN_GROUP1_SIZE	BIT(3)
-#define MLX5E_MAIN_VXLAN_GROUP2_SIZE	BIT(0)
+#define MLX5E_MAIN_VXLAN_GROUP0_SIZE BIT(3)
+#define MLX5E_MAIN_VXLAN_GROUP1_SIZE BIT(3)
+#define MLX5E_MAIN_VXLAN_GROUP2_SIZE BIT(0)
 static int
 mlx5e_create_main_vxlan_groups_sub(struct mlx5e_flow_table *ft, u32 *in,
     int inlen)
@@ -1512,12 +1473,11 @@ mlx5e_create_main_vxlan_groups(struct mlx5e_flow_table *ft)
 	return (err);
 }
 
-
 static int
 mlx5e_create_main_flow_table(struct mlx5e_priv *priv, bool inner_vxlan)
 {
 	struct mlx5e_flow_table *ft = inner_vxlan ? &priv->fts.main_vxlan :
-	    &priv->fts.main;
+						    &priv->fts.main;
 	int err;
 
 	ft->num_groups = 0;
@@ -1536,7 +1496,7 @@ mlx5e_create_main_flow_table(struct mlx5e_priv *priv, bool inner_vxlan)
 	}
 
 	err = inner_vxlan ? mlx5e_create_main_vxlan_groups(ft) :
-	    mlx5e_create_main_groups(ft);
+			    mlx5e_create_main_groups(ft);
 	if (err)
 		goto err_free_g;
 	return (0);
@@ -1551,28 +1511,28 @@ err_destroy_main_flow_table:
 	return (err);
 }
 
-static void mlx5e_destroy_main_flow_table(struct mlx5e_priv *priv)
+static void
+mlx5e_destroy_main_flow_table(struct mlx5e_priv *priv)
 {
 	mlx5e_destroy_flow_table(&priv->fts.main);
 }
 
-static void mlx5e_destroy_main_vxlan_flow_table(struct mlx5e_priv *priv)
+static void
+mlx5e_destroy_main_vxlan_flow_table(struct mlx5e_priv *priv)
 {
 	mlx5e_destroy_flow_table(&priv->fts.main_vxlan);
 }
 
-#define MLX5E_NUM_VLAN_GROUPS	3
-#define MLX5E_VLAN_GROUP0_SIZE	BIT(12)
-#define MLX5E_VLAN_GROUP1_SIZE	BIT(1)
-#define MLX5E_VLAN_GROUP2_SIZE	BIT(0)
-#define MLX5E_VLAN_TABLE_SIZE	(MLX5E_VLAN_GROUP0_SIZE +\
-				 MLX5E_VLAN_GROUP1_SIZE +\
-				 MLX5E_VLAN_GROUP2_SIZE +\
-				 0)
+#define MLX5E_NUM_VLAN_GROUPS 3
+#define MLX5E_VLAN_GROUP0_SIZE BIT(12)
+#define MLX5E_VLAN_GROUP1_SIZE BIT(1)
+#define MLX5E_VLAN_GROUP2_SIZE BIT(0)
+#define MLX5E_VLAN_TABLE_SIZE                              \
+	(MLX5E_VLAN_GROUP0_SIZE + MLX5E_VLAN_GROUP1_SIZE + \
+	    MLX5E_VLAN_GROUP2_SIZE + 0)
 
 static int
-mlx5e_create_vlan_groups_sub(struct mlx5e_flow_table *ft, u32 *in,
-				      int inlen)
+mlx5e_create_vlan_groups_sub(struct mlx5e_flow_table *ft, u32 *in, int inlen)
 {
 	int err;
 	int ix = 0;
@@ -1647,7 +1607,7 @@ mlx5e_create_vlan_flow_table(struct mlx5e_priv *priv)
 
 	ft->num_groups = 0;
 	ft->t = mlx5_create_flow_table(priv->fts.ns, 0, "vlan",
-				       MLX5E_VLAN_TABLE_SIZE);
+	    MLX5E_VLAN_TABLE_SIZE);
 
 	if (IS_ERR(ft->t)) {
 		err = PTR_ERR(ft->t);
@@ -1725,7 +1685,7 @@ mlx5e_vxlan_find_db_el(struct mlx5e_priv *priv, u_int proto, u_int port)
 {
 	struct mlx5e_vxlan_db_el *el;
 
-	TAILQ_FOREACH(el, &priv->vxlan.head, link) {
+	TAILQ_FOREACH (el, &priv->vxlan.head, link) {
 		if (el->proto == proto && el->port == port)
 			return (el);
 	}
@@ -1846,7 +1806,6 @@ mlx5e_add_vxlan_catchall_rule_sub(struct mlx5e_priv *priv, u32 *mc, u32 *mv)
 	return (err);
 }
 
-
 static int
 mlx5e_add_vxlan_catchall_rule(struct mlx5e_priv *priv)
 {
@@ -1879,7 +1838,7 @@ mlx5e_add_all_vxlan_rules(struct mlx5e_priv *priv)
 	int err;
 
 	err = 0;
-	TAILQ_FOREACH(el, &priv->vxlan.head, link) {
+	TAILQ_FOREACH (el, &priv->vxlan.head, link) {
 		if (el->installed)
 			continue;
 		err = mlx5e_add_vxlan_rule_from_db(priv, el);
@@ -1922,7 +1881,7 @@ mlx5e_del_all_vxlan_rules(struct mlx5e_priv *priv)
 {
 	struct mlx5e_vxlan_db_el *el;
 
-	TAILQ_FOREACH(el, &priv->vxlan.head, link) {
+	TAILQ_FOREACH (el, &priv->vxlan.head, link) {
 		if (!el->installed)
 			continue;
 		mlx5_del_flow_rule(&el->vxlan_ft_rule);
@@ -1937,8 +1896,7 @@ mlx5e_del_vxlan_catchall_rule(struct mlx5e_priv *priv)
 }
 
 void
-mlx5e_vxlan_start(void *arg, if_t ifp __unused, sa_family_t family,
-    u_int port)
+mlx5e_vxlan_start(void *arg, if_t ifp __unused, sa_family_t family, u_int port)
 {
 	struct mlx5e_priv *priv = arg;
 	int err;
@@ -1951,8 +1909,7 @@ mlx5e_vxlan_start(void *arg, if_t ifp __unused, sa_family_t family,
 }
 
 void
-mlx5e_vxlan_stop(void *arg, if_t ifp __unused, sa_family_t family,
-    u_int port)
+mlx5e_vxlan_stop(void *arg, if_t ifp __unused, sa_family_t family, u_int port)
 {
 	struct mlx5e_priv *priv = arg;
 
@@ -1963,15 +1920,14 @@ mlx5e_vxlan_stop(void *arg, if_t ifp __unused, sa_family_t family,
 	PRIV_UNLOCK(priv);
 }
 
-#define	MLX5E_VXLAN_GROUP0_SIZE	BIT(3)	/* XXXKIB */
-#define	MLX5E_VXLAN_GROUP1_SIZE	BIT(0)
-#define	MLX5E_NUM_VXLAN_GROUPS	BIT(1)
-#define	MLX5E_VXLAN_TABLE_SIZE	\
-    (MLX5E_VXLAN_GROUP0_SIZE + MLX5E_VXLAN_GROUP1_SIZE)
+#define MLX5E_VXLAN_GROUP0_SIZE BIT(3) /* XXXKIB */
+#define MLX5E_VXLAN_GROUP1_SIZE BIT(0)
+#define MLX5E_NUM_VXLAN_GROUPS BIT(1)
+#define MLX5E_VXLAN_TABLE_SIZE \
+	(MLX5E_VXLAN_GROUP0_SIZE + MLX5E_VXLAN_GROUP1_SIZE)
 
 static int
-mlx5e_create_vxlan_groups_sub(struct mlx5e_flow_table *ft, u32 *in,
-				      int inlen)
+mlx5e_create_vxlan_groups_sub(struct mlx5e_flow_table *ft, u32 *in, int inlen)
 {
 	int err;
 	int ix = 0;
@@ -2034,7 +1990,7 @@ mlx5e_create_vxlan_flow_table(struct mlx5e_priv *priv)
 
 	ft->num_groups = 0;
 	ft->t = mlx5_create_flow_table(priv->fts.ns, 0, "vxlan",
-				       MLX5E_VXLAN_TABLE_SIZE);
+	    MLX5E_VXLAN_TABLE_SIZE);
 
 	if (IS_ERR(ft->t)) {
 		err = PTR_ERR(ft->t);
@@ -2064,18 +2020,17 @@ err_destroy_vxlan_flow_table:
 	return (err);
 }
 
-#define MLX5E_NUM_INNER_RSS_GROUPS	3
-#define MLX5E_INNER_RSS_GROUP0_SIZE	BIT(3)
-#define MLX5E_INNER_RSS_GROUP1_SIZE	BIT(1)
-#define MLX5E_INNER_RSS_GROUP2_SIZE	BIT(0)
-#define MLX5E_INNER_RSS_TABLE_SIZE	(MLX5E_INNER_RSS_GROUP0_SIZE +\
-					 MLX5E_INNER_RSS_GROUP1_SIZE +\
-					 MLX5E_INNER_RSS_GROUP2_SIZE +\
-					 0)
+#define MLX5E_NUM_INNER_RSS_GROUPS 3
+#define MLX5E_INNER_RSS_GROUP0_SIZE BIT(3)
+#define MLX5E_INNER_RSS_GROUP1_SIZE BIT(1)
+#define MLX5E_INNER_RSS_GROUP2_SIZE BIT(0)
+#define MLX5E_INNER_RSS_TABLE_SIZE                                   \
+	(MLX5E_INNER_RSS_GROUP0_SIZE + MLX5E_INNER_RSS_GROUP1_SIZE + \
+	    MLX5E_INNER_RSS_GROUP2_SIZE + 0)
 
 static int
 mlx5e_create_inner_rss_groups_sub(struct mlx5e_flow_table *ft, u32 *in,
-					   int inlen)
+    int inlen)
 {
 	u8 *mc = MLX5_ADDR_OF(create_flow_group_in, in, match_criteria);
 	int err;
@@ -2148,15 +2103,14 @@ mlx5e_create_inner_rss_flow_table(struct mlx5e_priv *priv)
 
 	ft->num_groups = 0;
 	ft->t = mlx5_create_flow_table(priv->fts.ns, 0, "inner_rss",
-				       MLX5E_INNER_RSS_TABLE_SIZE);
+	    MLX5E_INNER_RSS_TABLE_SIZE);
 
 	if (IS_ERR(ft->t)) {
 		err = PTR_ERR(ft->t);
 		ft->t = NULL;
 		return (err);
 	}
-	ft->g = kcalloc(MLX5E_NUM_INNER_RSS_GROUPS, sizeof(*ft->g),
-			GFP_KERNEL);
+	ft->g = kcalloc(MLX5E_NUM_INNER_RSS_GROUPS, sizeof(*ft->g), GFP_KERNEL);
 	if (!ft->g) {
 		err = -ENOMEM;
 		goto err_destroy_inner_rss_flow_table;
@@ -2178,7 +2132,8 @@ err_destroy_inner_rss_flow_table:
 	return (err);
 }
 
-static void mlx5e_destroy_inner_rss_flow_table(struct mlx5e_priv *priv)
+static void
+mlx5e_destroy_inner_rss_flow_table(struct mlx5e_priv *priv)
 {
 	mlx5e_destroy_flow_table(&priv->fts.inner_rss);
 }
@@ -2195,8 +2150,8 @@ mlx5e_open_flow_tables(struct mlx5e_priv *priv)
 	int err;
 
 	/* setup namespace pointer */
-	priv->fts.ns = mlx5_get_flow_namespace(
-	    priv->mdev, MLX5_FLOW_NAMESPACE_KERNEL);
+	priv->fts.ns = mlx5_get_flow_namespace(priv->mdev,
+	    MLX5_FLOW_NAMESPACE_KERNEL);
 
 	err = mlx5e_create_vlan_flow_table(priv);
 	if (err)

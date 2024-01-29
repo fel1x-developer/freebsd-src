@@ -12,7 +12,7 @@
  * no representations about the suitability of this software for any
  * purpose.  It is provided "as is" without express or implied
  * warranty.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY M.I.T. ``AS IS''.  M.I.T. DISCLAIMS
  * ALL EXPRESS OR IMPLIED WARRANTIES WITH REGARD TO THIS SOFTWARE,
  * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
@@ -40,16 +40,18 @@
  */
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <unistd.h>
+
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <netdb.h>
 #include <err.h>
 #include <errno.h>
+#include <netdb.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
+#include <unistd.h>
 
 int
 main(int argc, char **argv)
@@ -86,7 +88,7 @@ main(int argc, char **argv)
 	do {
 		rv = bind(s, (struct sockaddr *)&local, sizeof local);
 		local.sin_port = htons(ntohs(local.sin_port) + 1);
-	} while(rv < 0 && errno == EADDRINUSE);
+	} while (rv < 0 && errno == EADDRINUSE);
 
 	if (rv < 0)
 		err(EX_OSERR, "bind");
@@ -94,7 +96,7 @@ main(int argc, char **argv)
 	do {
 		rv = connect(s, (struct sockaddr *)&remote, sizeof remote);
 		remote.sin_port = htons(ntohs(remote.sin_port) + 1);
-	} while(rv < 0 && errno == EADDRINUSE);
+	} while (rv < 0 && errno == EADDRINUSE);
 
 	if (rv < 0)
 		err(EX_OSERR, "connect");

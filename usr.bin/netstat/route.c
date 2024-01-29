@@ -41,51 +41,43 @@
 #include <net/if_dl.h>
 #include <net/if_types.h>
 #include <net/route.h>
-
-#include <netinet/in.h>
 #include <netgraph/ng_socket.h>
+#include <netinet/in.h>
 
 #include <arpa/inet.h>
+#include <err.h>
 #include <ifaddrs.h>
 #include <libutil.h>
+#include <libxo/xo.h>
 #include <netdb.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
-#include <err.h>
-#include <libxo/xo.h>
-#include "netstat.h"
+
 #include "common.h"
+#include "netstat.h"
 #include "nl_defs.h"
 
 /*
  * Definitions for showing gateway flags.
  */
-struct bits rt_bits[] = {
-	{ RTF_UP,	'U', "up" },
-	{ RTF_GATEWAY,	'G', "gateway" },
-	{ RTF_HOST,	'H', "host" },
-	{ RTF_REJECT,	'R', "reject" },
-	{ RTF_DYNAMIC,	'D', "dynamic" },
-	{ RTF_MODIFIED,	'M', "modified" },
-	{ RTF_DONE,	'd', "done" }, /* Completed -- for routing msgs only */
-	{ RTF_XRESOLVE,	'X', "xresolve" },
-	{ RTF_STATIC,	'S', "static" },
-	{ RTF_PROTO1,	'1', "proto1" },
-	{ RTF_PROTO2,	'2', "proto2" },
-	{ RTF_PROTO3,	'3', "proto3" },
-	{ RTF_BLACKHOLE,'B', "blackhole" },
-	{ RTF_BROADCAST,'b', "broadcast" },
+struct bits rt_bits[] = { { RTF_UP, 'U', "up" },
+	{ RTF_GATEWAY, 'G', "gateway" }, { RTF_HOST, 'H', "host" },
+	{ RTF_REJECT, 'R', "reject" }, { RTF_DYNAMIC, 'D', "dynamic" },
+	{ RTF_MODIFIED, 'M', "modified" },
+	{ RTF_DONE, 'd', "done" }, /* Completed -- for routing msgs only */
+	{ RTF_XRESOLVE, 'X', "xresolve" }, { RTF_STATIC, 'S', "static" },
+	{ RTF_PROTO1, '1', "proto1" }, { RTF_PROTO2, '2', "proto2" },
+	{ RTF_PROTO3, '3', "proto3" }, { RTF_BLACKHOLE, 'B', "blackhole" },
+	{ RTF_BROADCAST, 'b', "broadcast" },
 #ifdef RTF_LLINFO
-	{ RTF_LLINFO,	'L', "llinfo" },
+	{ RTF_LLINFO, 'L', "llinfo" },
 #endif
-	{ 0 , 0, NULL }
-};
+	{ 0, 0, NULL } };
 
 #ifdef WITHOUT_NETLINK
 static struct ifmap_entry *ifmap;
@@ -146,7 +138,6 @@ routepr(int fibnum, int af)
 	xo_close_container("route-information");
 }
 
-
 /*
  * Print address family header before a section of the routing table.
  */
@@ -185,15 +176,13 @@ pr_family(int af1)
 
 /* column widths; each followed by one space */
 #ifndef INET6
-#define	WID_DST_DEFAULT(af) 	18	/* width of destination column */
-#define	WID_GW_DEFAULT(af)	18	/* width of gateway column */
-#define	WID_IF_DEFAULT(af)	(Wflag ? 10 : 8) /* width of netif column */
+#define WID_DST_DEFAULT(af) 18		    /* width of destination column */
+#define WID_GW_DEFAULT(af) 18		    /* width of gateway column */
+#define WID_IF_DEFAULT(af) (Wflag ? 10 : 8) /* width of netif column */
 #else
-#define	WID_DST_DEFAULT(af) \
-	((af) == AF_INET6 ? (numeric_addr ? 33: 18) : 18)
-#define	WID_GW_DEFAULT(af) \
-	((af) == AF_INET6 ? (numeric_addr ? 29 : 18) : 18)
-#define	WID_IF_DEFAULT(af)	((af) == AF_INET6 ? 8 : (Wflag ? 10 : 8))
+#define WID_DST_DEFAULT(af) ((af) == AF_INET6 ? (numeric_addr ? 33 : 18) : 18)
+#define WID_GW_DEFAULT(af) ((af) == AF_INET6 ? (numeric_addr ? 29 : 18) : 18)
+#define WID_IF_DEFAULT(af) ((af) == AF_INET6 ? 8 : (Wflag ? 10 : 8))
 #endif /*INET6*/
 
 struct _wid wid;
@@ -207,22 +196,17 @@ pr_rthdr(int af1 __unused)
 
 	if (Wflag) {
 		xo_emit("{T:/%-*.*s} {T:/%-*.*s} {T:/%-*.*s} {T:/%*.*s} "
-		    "{T:/%*.*s} {T:/%*.*s} {T:/%*s}\n",
-			wid.dst,	wid.dst,	"Destination",
-			wid.gw,		wid.gw,		"Gateway",
-			wid.flags,	wid.flags,	"Flags",
-			wid.mtu,	wid.mtu,	"Nhop#",
-			wid.mtu,	wid.mtu,	"Mtu",
-			wid.iface,	wid.iface,	"Netif",
-			wid.expire,			"Expire");
+			"{T:/%*.*s} {T:/%*.*s} {T:/%*s}\n",
+		    wid.dst, wid.dst, "Destination", wid.gw, wid.gw, "Gateway",
+		    wid.flags, wid.flags, "Flags", wid.mtu, wid.mtu, "Nhop#",
+		    wid.mtu, wid.mtu, "Mtu", wid.iface, wid.iface, "Netif",
+		    wid.expire, "Expire");
 	} else {
 		xo_emit("{T:/%-*.*s} {T:/%-*.*s} {T:/%-*.*s} {T:/%*.*s} "
-		    "{T:/%*s}\n",
-			wid.dst,	wid.dst,	"Destination",
-			wid.gw,		wid.gw,		"Gateway",
-			wid.flags,	wid.flags,	"Flags",
-			wid.iface,	wid.iface,	"Netif",
-			wid.expire,			"Expire");
+			"{T:/%*s}\n",
+		    wid.dst, wid.dst, "Destination", wid.gw, wid.gw, "Gateway",
+		    wid.flags, wid.flags, "Flags", wid.iface, wid.iface,
+		    "Netif", wid.expire, "Expire");
 	}
 }
 
@@ -266,7 +250,7 @@ p_rtable_sysctl(int fibnum, int af)
 		errx(2, "malloc(%lu)", (unsigned long)needed);
 	if (sysctl(mib, nitems(mib), buf, &needed, NULL, 0) < 0)
 		err(1, "sysctl: net.route.0.%d.dump.%d", af, fibnum);
-	lim  = buf + needed;
+	lim = buf + needed;
 	xo_open_container("route-table");
 	xo_open_list("rt-family");
 	for (next = buf; next < lim; next += rtm->rtm_msglen) {
@@ -321,8 +305,7 @@ p_rtentry_sysctl(const char *name, struct rt_msghdr *rtm)
 	}
 
 	protrusion = p_sockaddr("destination", addr[RTAX_DST],
-	    addr[RTAX_NETMASK],
-	    rtm->rtm_flags, wid.dst);
+	    addr[RTAX_NETMASK], rtm->rtm_flags, wid.dst);
 	protrusion = p_sockaddr("gateway", addr[RTAX_GATEWAY], NULL, RTF_HOST,
 	    wid.gw - protrusion);
 	snprintf(buffer, sizeof(buffer), "{[:-%d}{:flags/%%s}{]:} ",
@@ -407,7 +390,7 @@ fmt_sockaddr(struct sockaddr *sa, struct sockaddr *mask, int flags)
 	if (sa == NULL)
 		return ("null");
 
-	switch(sa->sa_family) {
+	switch (sa->sa_family) {
 #ifdef INET6
 	case AF_INET6:
 		/*
@@ -427,15 +410,12 @@ fmt_sockaddr(struct sockaddr *sa, struct sockaddr *mask, int flags)
 		else
 			cp = netname(sa, NULL);
 		break;
-	case AF_NETGRAPH:
-	    {
-		strlcpy(buf, ((struct sockaddr_ng *)sa)->sg_data,
-		    sizeof(buf));
+	case AF_NETGRAPH: {
+		strlcpy(buf, ((struct sockaddr_ng *)sa)->sg_data, sizeof(buf));
 		cp = buf;
 		break;
-	    }
-	case AF_LINK:
-	    {
+	}
+	case AF_LINK: {
 #if 0
 		struct sockaddr_dl *sdl = (struct sockaddr_dl *)sa;
 
@@ -444,16 +424,15 @@ fmt_sockaddr(struct sockaddr *sa, struct sockaddr *mask, int flags)
 			cp = sdl->sdl_data;
 		else
 #endif
-			cp = routename(sa, 1);
+		cp = routename(sa, 1);
 		break;
-	    }
-	default:
-	    {
+	}
+	default: {
 		u_char *s = (u_char *)sa->sa_data, *slim;
 		char *cq, *cqlim;
 
 		cq = buf;
-		slim =  sa->sa_len + (u_char *) sa;
+		slim = sa->sa_len + (u_char *)sa;
 		cqlim = cq + sizeof(buf) - sizeof(" ffff");
 		snprintf(cq, sizeof(buf), "(%d)", sa->sa_family);
 		cq += strlen(cq);
@@ -461,12 +440,12 @@ fmt_sockaddr(struct sockaddr *sa, struct sockaddr *mask, int flags)
 			snprintf(cq, sizeof(" ff"), " %02x", *s++);
 			cq += strlen(cq);
 			if (s < slim) {
-			    snprintf(cq, sizeof("ff"), "%02x", *s++);
-			    cq += strlen(cq);
+				snprintf(cq, sizeof("ff"), "%02x", *s++);
+				cq += strlen(cq);
 			}
 		}
 		cp = buf;
-	    }
+	}
 	}
 
 	return (cp);
@@ -479,7 +458,6 @@ p_flags(int f, const char *format)
 	print_flags_generic(f, rt_bits, format, "flags_pretty");
 }
 
-
 char *
 routename(struct sockaddr *sa, int flags)
 {
@@ -487,8 +465,7 @@ routename(struct sockaddr *sa, int flags)
 	int error, f;
 
 	f = (flags) ? NI_NUMERICHOST : 0;
-	error = getnameinfo(sa, sa->sa_len, line, sizeof(line),
-	    NULL, 0, f);
+	error = getnameinfo(sa, sa->sa_len, line, sizeof(line), NULL, 0, f);
 	if (error) {
 		const void *src;
 		switch (sa->sa_family) {
@@ -503,7 +480,7 @@ routename(struct sockaddr *sa, int flags)
 			break;
 #endif /* INET6 */
 		default:
-			return(line);
+			return (line);
 		}
 		inet_ntop(sa->sa_family, src, line, sizeof(line) - 1);
 		return (line);
@@ -513,11 +490,11 @@ routename(struct sockaddr *sa, int flags)
 	return (line);
 }
 
-#define	NSHIFT(m) (							\
-	(m) == IN_CLASSA_NET ? IN_CLASSA_NSHIFT :			\
-	(m) == IN_CLASSB_NET ? IN_CLASSB_NSHIFT :			\
-	(m) == IN_CLASSC_NET ? IN_CLASSC_NSHIFT :			\
-	0)
+#define NSHIFT(m)                                         \
+	((m) == IN_CLASSA_NET	     ? IN_CLASSA_NSHIFT : \
+		(m) == IN_CLASSB_NET ? IN_CLASSB_NSHIFT : \
+		(m) == IN_CLASSC_NET ? IN_CLASSC_NSHIFT : \
+				       0)
 
 static void
 domask(char *dst, size_t buflen, u_long mask)
@@ -534,9 +511,9 @@ domask(char *dst, size_t buflen, u_long mask)
 			int bb;
 
 			i = b;
-			for (bb = b+1; bb < 32; bb++)
+			for (bb = b + 1; bb < 32; bb++)
 				if (!(mask & (1 << bb))) {
-					i = -1;	/* noncontig */
+					i = -1; /* noncontig */
 					break;
 				}
 			break;
@@ -544,7 +521,7 @@ domask(char *dst, size_t buflen, u_long mask)
 	if (i == -1)
 		snprintf(dst, buflen, "&0x%lx", mask);
 	else
-		snprintf(dst, buflen, "/%d", 32-i);
+		snprintf(dst, buflen, "/%d", 32 - i);
 }
 
 /*
@@ -559,8 +536,8 @@ netname(struct sockaddr *sa, struct sockaddr *mask)
 			return (netname4(satosin(sa)->sin_addr.s_addr,
 			    satosin(mask)->sin_addr.s_addr));
 		else
-			return (netname4(satosin(sa)->sin_addr.s_addr,
-			    INADDR_ANY));
+			return (
+			    netname4(satosin(sa)->sin_addr.s_addr, INADDR_ANY));
 		break;
 #ifdef INET6
 	case AF_INET6:
@@ -601,7 +578,8 @@ netname4(in_addr_t in, in_addr_t mask)
 	else {
 		inet_ntop(AF_INET, &in, nline, sizeof(nline));
 		strlcpy(line, nline, sizeof(line));
-		domask(line + strlen(line), sizeof(line) - strlen(line), ntohl(mask));
+		domask(line + strlen(line), sizeof(line) - strlen(line),
+		    ntohl(mask));
 	}
 
 	return (line);
@@ -622,8 +600,8 @@ in6_fillscopeid(struct sockaddr_in6 *sa6)
 	    IN6_IS_ADDR_MC_NODELOCAL(&sa6->sin6_addr) ||
 	    IN6_IS_ADDR_MC_LINKLOCAL(&sa6->sin6_addr)) {
 		if (sa6->sin6_scope_id == 0)
-			sa6->sin6_scope_id =
-			    ntohs(*(u_int16_t *)&sa6->sin6_addr.s6_addr[2]);
+			sa6->sin6_scope_id = ntohs(
+			    *(u_int16_t *)&sa6->sin6_addr.s6_addr[2]);
 		sa6->sin6_addr.s6_addr[2] = sa6->sin6_addr.s6_addr[3] = 0;
 	}
 #endif
@@ -668,15 +646,13 @@ netname6(struct sockaddr_in6 *sa6, struct sockaddr_in6 *mask)
 
 		memcpy(&addr, sa6, sizeof(addr));
 		for (i = 0; i < 16; ++i)
-			addr.sin6_addr.s6_addr[i] &=
-			    mask->sin6_addr.s6_addr[i];
+			addr.sin6_addr.s6_addr[i] &= mask->sin6_addr.s6_addr[i];
 		sa6 = &addr;
-	}
-	else
+	} else
 		masklen = 128;
 
 	if (masklen == 0 && IN6_IS_ADDR_UNSPECIFIED(&sa6->sin6_addr))
-		return("default");
+		return ("default");
 
 	getnameinfo((struct sockaddr *)sa6, sa6->sin6_len, nline, sizeof(nline),
 	    NULL, 0, NI_NUMERICHOST);
@@ -707,21 +683,27 @@ rt_stats(void)
 		xo_emit("{W:rtstat: symbol not in namelist}\n");
 		return;
 	}
-	kread_counters(rtsaddr, (char *)&rtstat, sizeof (rtstat));
+	kread_counters(rtsaddr, (char *)&rtstat, sizeof(rtstat));
 	xo_emit("{T:routing}:\n");
 
-#define	p(f, m) if (rtstat.f || sflag <= 1) \
+#define p(f, m)                     \
+	if (rtstat.f || sflag <= 1) \
 	xo_emit(m, rtstat.f, plural(rtstat.f))
 
-	p(rts_badredirect, "\t{:bad-redirects/%ju} "
+	p(rts_badredirect,
+	    "\t{:bad-redirects/%ju} "
 	    "{N:/bad routing redirect%s}\n");
-	p(rts_dynamic, "\t{:dynamically-created/%ju} "
+	p(rts_dynamic,
+	    "\t{:dynamically-created/%ju} "
 	    "{N:/dynamically created route%s}\n");
-	p(rts_newgateway, "\t{:new-gateways/%ju} "
+	p(rts_newgateway,
+	    "\t{:new-gateways/%ju} "
 	    "{N:/new gateway%s due to redirects}\n");
-	p(rts_unreach, "\t{:unreachable-destination/%ju} "
+	p(rts_unreach,
+	    "\t{:unreachable-destination/%ju} "
 	    "{N:/destination%s found unreachable}\n");
-	p(rts_wildcard, "\t{:wildcard-uses/%ju} "
+	p(rts_wildcard,
+	    "\t{:wildcard-uses/%ju} "
 	    "{N:/use%s of a wildcard route}\n");
 #undef p
 }

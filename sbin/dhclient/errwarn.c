@@ -43,6 +43,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <errno.h>
 
 #include "dhcpd.h"
@@ -220,8 +221,8 @@ parse_warn(const char *fmt, ...)
 	cap_syslog(capsyslog, log_priority | LOG_ERR, "%s", mbuf);
 	cap_syslog(capsyslog, log_priority | LOG_ERR, "%s", token_line);
 	if (lexline < 81)
-		cap_syslog(capsyslog, log_priority | LOG_ERR,
-		    "%s^", &spaces[sizeof(spaces) - lexchar]);
+		cap_syslog(capsyslog, log_priority | LOG_ERR, "%s^",
+		    &spaces[sizeof(spaces) - lexchar]);
 #endif
 
 	if (log_perror) {

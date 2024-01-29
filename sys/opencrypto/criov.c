@@ -29,21 +29,21 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/proc.h>
 #include <sys/errno.h>
-#include <sys/malloc.h>
 #include <sys/kernel.h>
-#include <sys/mbuf.h>
-#include <sys/uio.h>
 #include <sys/limits.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/proc.h>
 #include <sys/sdt.h>
-
-#include <machine/vmparam.h>
+#include <sys/uio.h>
 
 #include <vm/vm.h>
-#include <vm/vm_page.h>
 #include <vm/pmap.h>
+#include <vm/vm_page.h>
+
+#include <machine/vmparam.h>
 
 #include <opencrypto/cryptodev.h>
 
@@ -53,33 +53,35 @@ SDT_PROVIDER_DECLARE(opencrypto);
  * These macros are only for avoiding code duplication, as we need to skip
  * given number of bytes in the same way in several functions below.
  */
-#define	CUIO_SKIP()	do {						\
-	KASSERT(off >= 0, ("%s: off %d < 0", __func__, off));		\
-	KASSERT(len >= 0, ("%s: len %d < 0", __func__, len));		\
-	while (off > 0) {						\
-		KASSERT(iol >= 0, ("%s: empty in skip", __func__));	\
-		if (off < iov->iov_len)					\
-			break;						\
-		off -= iov->iov_len;					\
-		iol--;							\
-		iov++;							\
-	}								\
-} while (0)
+#define CUIO_SKIP()                                                         \
+	do {                                                                \
+		KASSERT(off >= 0, ("%s: off %d < 0", __func__, off));       \
+		KASSERT(len >= 0, ("%s: len %d < 0", __func__, len));       \
+		while (off > 0) {                                           \
+			KASSERT(iol >= 0, ("%s: empty in skip", __func__)); \
+			if (off < iov->iov_len)                             \
+				break;                                      \
+			off -= iov->iov_len;                                \
+			iol--;                                              \
+			iov++;                                              \
+		}                                                           \
+	} while (0)
 
-#define CVM_PAGE_SKIP()	do {					\
-	KASSERT(off >= 0, ("%s: off %d < 0", __func__, off));		\
-	KASSERT(len >= 0, ("%s: len %d < 0", __func__, len));		\
-	while (off > 0) {						\
-		if (off < PAGE_SIZE)					\
-			break;						\
-		processed += PAGE_SIZE - off;				\
-		off -= PAGE_SIZE - off;					\
-		pages++;						\
-	}								\
-} while (0)
+#define CVM_PAGE_SKIP()                                               \
+	do {                                                          \
+		KASSERT(off >= 0, ("%s: off %d < 0", __func__, off)); \
+		KASSERT(len >= 0, ("%s: len %d < 0", __func__, len)); \
+		while (off > 0) {                                     \
+			if (off < PAGE_SIZE)                          \
+				break;                                \
+			processed += PAGE_SIZE - off;                 \
+			off -= PAGE_SIZE - off;                       \
+			pages++;                                      \
+		}                                                     \
+	} while (0)
 
 static void
-cuio_copydata(struct uio* uio, int off, int len, caddr_t cp)
+cuio_copydata(struct uio *uio, int off, int len, caddr_t cp)
 {
 	struct iovec *iov = uio->uio_iov;
 	int iol __diagused = uio->uio_iovcnt;
@@ -99,7 +101,7 @@ cuio_copydata(struct uio* uio, int off, int len, caddr_t cp)
 }
 
 static void
-cuio_copyback(struct uio* uio, int off, int len, c_caddr_t cp)
+cuio_copyback(struct uio *uio, int off, int len, c_caddr_t cp)
 {
 	struct iovec *iov = uio->uio_iov;
 	int iol __diagused = uio->uio_iovcnt;
@@ -130,8 +132,8 @@ cuio_getptr(struct uio *uio, int loc, int *off)
 	while (loc >= 0 && ind < uio->uio_iovcnt) {
 		len = uio->uio_iov[ind].iov_len;
 		if (len > loc) {
-	    		*off = loc;
-	    		return (ind);
+			*off = loc;
+			return (ind);
 		}
 		loc -= len;
 		ind++;
@@ -272,14 +274,14 @@ m_epg_segment(struct mbuf *m, size_t offset, size_t *len)
 		pglen = m_epg_pagelen(m, i, pgoff);
 		if (offset < pglen) {
 			*len = m_epg_pages_extent(m, i, pglen) - offset;
-			return ((void *)PHYS_TO_DMAP(m->m_epg_pa[i] + pgoff +
-			    offset));
+			return ((void *)PHYS_TO_DMAP(
+			    m->m_epg_pa[i] + pgoff + offset));
 		}
 		offset -= pglen;
 		pgoff = 0;
 	}
-	KASSERT(offset <= m->m_epg_trllen, ("%s: offset beyond trailer",
-	    __func__));
+	KASSERT(offset <= m->m_epg_trllen,
+	    ("%s: offset beyond trailer", __func__));
 	*len = m->m_epg_trllen - offset;
 	return (m->m_epg_trail + offset);
 }
@@ -328,7 +330,8 @@ crypto_cursor_init(struct crypto_buffer_cursor *cc,
 	}
 }
 
-SDT_PROBE_DEFINE2(opencrypto, criov, cursor_advance, vmpage, "struct crypto_buffer_cursor*", "size_t");
+SDT_PROBE_DEFINE2(opencrypto, criov, cursor_advance, vmpage,
+    "struct crypto_buffer_cursor*", "size_t");
 
 void
 crypto_cursor_advance(struct crypto_buffer_cursor *cc, size_t amount)
@@ -439,8 +442,8 @@ crypto_cursor_segment(struct crypto_buffer_cursor *cc, size_t *len)
 		return (mtod(cc->cc_mbuf, char *) + cc->cc_offset);
 	case CRYPTO_BUF_VMPAGE:
 		*len = PAGE_SIZE - cc->cc_offset;
-		return ((char *)PHYS_TO_DMAP(VM_PAGE_TO_PHYS(
-		    *cc->cc_vmpage)) + cc->cc_offset);
+		return ((char *)PHYS_TO_DMAP(VM_PAGE_TO_PHYS(*cc->cc_vmpage)) +
+		    cc->cc_offset);
 	case CRYPTO_BUF_UIO:
 		*len = cc->cc_iov->iov_len - cc->cc_offset;
 		return ((char *)cc->cc_iov->iov_base + cc->cc_offset);
@@ -480,7 +483,7 @@ crypto_cursor_copyback(struct crypto_buffer_cursor *cc, int size,
 				cc->cc_offset += todo;
 				break;
 			}
-			size -= todo;	
+			size -= todo;
 			cc->cc_mbuf = cc->cc_mbuf->m_next;
 			cc->cc_offset = 0;
 			if (size == 0)
@@ -494,8 +497,9 @@ crypto_cursor_copyback(struct crypto_buffer_cursor *cc, int size,
 		break;
 	case CRYPTO_BUF_VMPAGE:
 		for (;;) {
-			dst = (char *)PHYS_TO_DMAP(VM_PAGE_TO_PHYS(
-			    *cc->cc_vmpage)) + cc->cc_offset;
+			dst = (char *)PHYS_TO_DMAP(
+				  VM_PAGE_TO_PHYS(*cc->cc_vmpage)) +
+			    cc->cc_offset;
 			remain = MIN(PAGE_SIZE - cc->cc_offset, cc->cc_buf_len);
 			todo = MIN(remain, size);
 			memcpy(dst, src, todo);
@@ -524,7 +528,7 @@ crypto_cursor_copyback(struct crypto_buffer_cursor *cc, int size,
 				cc->cc_offset += todo;
 				break;
 			}
-			size -= todo;	
+			size -= todo;
 			cc->cc_iov++;
 			cc->cc_offset = 0;
 			if (size == 0)
@@ -583,8 +587,9 @@ crypto_cursor_copydata(struct crypto_buffer_cursor *cc, int size, void *vdst)
 		break;
 	case CRYPTO_BUF_VMPAGE:
 		for (;;) {
-			src = (char *)PHYS_TO_DMAP(VM_PAGE_TO_PHYS(
-			    *cc->cc_vmpage)) + cc->cc_offset;
+			src = (char *)PHYS_TO_DMAP(
+				  VM_PAGE_TO_PHYS(*cc->cc_vmpage)) +
+			    cc->cc_offset;
 			remain = MIN(PAGE_SIZE - cc->cc_offset, cc->cc_buf_len);
 			todo = MIN(remain, size);
 			memcpy(dst, src, todo);
@@ -688,10 +693,9 @@ crypto_copyback(struct cryptop *crp, int off, int size, const void *src)
 #if CRYPTO_MAY_HAVE_VMPAGE
 	case CRYPTO_BUF_VMPAGE:
 		MPASS(size <= cb->cb_vm_page_len);
-		MPASS(size + off <=
-		    cb->cb_vm_page_len + cb->cb_vm_page_offset);
-		cvm_page_copyback(cb->cb_vm_page,
-		    off + cb->cb_vm_page_offset, size, src);
+		MPASS(size + off <= cb->cb_vm_page_len + cb->cb_vm_page_offset);
+		cvm_page_copyback(cb->cb_vm_page, off + cb->cb_vm_page_offset,
+		    size, src);
 		break;
 #endif /* CRYPTO_MAY_HAVE_VMPAGE */
 	case CRYPTO_BUF_UIO:
@@ -722,7 +726,7 @@ crypto_copydata(struct cryptop *crp, int off, int size, void *dst)
 	case CRYPTO_BUF_VMPAGE:
 		MPASS(size <= crp->crp_buf.cb_vm_page_len);
 		MPASS(size + off <= crp->crp_buf.cb_vm_page_len +
-		    crp->crp_buf.cb_vm_page_offset);
+			crp->crp_buf.cb_vm_page_offset);
 		cvm_page_copydata(crp->crp_buf.cb_vm_page,
 		    off + crp->crp_buf.cb_vm_page_offset, size, dst);
 		break;
@@ -802,7 +806,7 @@ m_contiguous_subsegment(struct mbuf *m, size_t skip, size_t len)
 
 	if (m->m_flags & M_EXTPG)
 		return (m_epg_contiguous_subsegment(m, skip, len));
-	return (mtod(m, char*) + skip);
+	return (mtod(m, char *) + skip);
 }
 
 static inline void *

@@ -30,8 +30,9 @@
  */
 
 #include <sys/types.h>
-#include <sys/syscall.h>
 #include <sys/socket.h>
+#include <sys/syscall.h>
+
 #include "libc_private.h"
 
 __weak_reference(__sys_sendmsg, __sendmsg);
@@ -41,6 +42,6 @@ ssize_t
 sendmsg(int s, const struct msghdr *msg, int flags)
 {
 
-	return (((int (*)(int, const struct msghdr *, int))
-	    __libc_interposing[INTERPOS_sendmsg])(s, msg, flags));
+	return (((int (*)(int, const struct msghdr *,
+	    int))__libc_interposing[INTERPOS_sendmsg])(s, msg, flags));
 }

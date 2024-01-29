@@ -34,13 +34,10 @@
 #include <errno.h>
 #include <string.h>
 #include <wctype.h>
+
 #include "xlocale_private.h"
 
-enum {
-	_WCT_ERROR	= 0,
-	_WCT_TOLOWER	= 1,
-	_WCT_TOUPPER	= 2
-};
+enum { _WCT_ERROR = 0, _WCT_TOLOWER = 1, _WCT_TOUPPER = 2 };
 
 wint_t
 towctrans_l(wint_t wc, wctrans_t desc, locale_t locale)
@@ -74,12 +71,11 @@ wctrans_t
 wctrans_l(const char *charclass, locale_t locale)
 {
 	struct {
-		const char	*name;
-		wctrans_t	 trans;
+		const char *name;
+		wctrans_t trans;
 	} ccls[] = {
-		{ "tolower",	_WCT_TOLOWER },
-		{ "toupper",	_WCT_TOUPPER },
-		{ NULL,		_WCT_ERROR },		/* Default */
+		{ "tolower", _WCT_TOLOWER }, { "toupper", _WCT_TOUPPER },
+		{ NULL, _WCT_ERROR }, /* Default */
 	};
 	int i;
 
@@ -97,4 +93,3 @@ wctrans(const char *charclass)
 {
 	return wctrans_l(charclass, 0);
 }
-

@@ -25,24 +25,27 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "common.h"
 #include "t4_regs.h"
 #include "t4_regs_values.h"
 
 #undef msleep
-#define msleep(x) do { \
-	if (cold) \
-		DELAY((x) * 1000); \
-	else \
-		pause("t4hw", (x) * hz / 1000); \
-} while (0)
+#define msleep(x)                                       \
+	do {                                            \
+		if (cold)                               \
+			DELAY((x) * 1000);              \
+		else                                    \
+			pause("t4hw", (x) * hz / 1000); \
+	} while (0)
 
 /*
  * Wait for the device to become ready (signified by our "who am I" register
  * returning a value other than all 1's).  Return an error if it doesn't
  * become ready ...
  */
-int t4vf_wait_dev_ready(struct adapter *adapter)
+int
+t4vf_wait_dev_ready(struct adapter *adapter)
 {
 	const u32 whoami = VF_PL_REG(A_PL_VF_WHOAMI);
 	const u32 notready1 = 0xffffffff;
@@ -60,7 +63,6 @@ int t4vf_wait_dev_ready(struct adapter *adapter)
 		return -EIO;
 }
 
-
 /**
  *      t4vf_fw_reset - issue a reset to FW
  *      @adapter: the adapter
@@ -69,13 +71,14 @@ int t4vf_wait_dev_ready(struct adapter *adapter)
  *	result in the Firmware reseting all of its state.  For a Virtual
  *	Function this just resets the state associated with the VF.
  */
-int t4vf_fw_reset(struct adapter *adapter)
+int
+t4vf_fw_reset(struct adapter *adapter)
 {
 	struct fw_reset_cmd cmd;
 
 	memset(&cmd, 0, sizeof(cmd));
-	cmd.op_to_write = cpu_to_be32(V_FW_CMD_OP(FW_RESET_CMD) |
-				      F_FW_CMD_WRITE);
+	cmd.op_to_write = cpu_to_be32(
+	    V_FW_CMD_OP(FW_RESET_CMD) | F_FW_CMD_WRITE);
 	cmd.retval_len16 = cpu_to_be32(V_FW_CMD_LEN16(FW_LEN16(cmd)));
 	return t4vf_wr_mbox(adapter, &cmd, sizeof(cmd), NULL);
 }
@@ -88,7 +91,8 @@ int t4vf_fw_reset(struct adapter *adapter)
  *	register values.  The caller is responsible for decoding these as
  *	needed.  The SGE parameters are stored in @adapter->params.sge.
  */
-int t4vf_get_sge_params(struct adapter *adapter)
+int
+t4vf_get_sge_params(struct adapter *adapter)
 {
 	struct sge_params *sp = &adapter->params.sge;
 	u32 params[7], vals[7];
@@ -97,19 +101,19 @@ int t4vf_get_sge_params(struct adapter *adapter)
 	int i, v;
 
 	params[0] = (V_FW_PARAMS_MNEM(FW_PARAMS_MNEM_REG) |
-		     V_FW_PARAMS_PARAM_XYZ(A_SGE_CONTROL));
+	    V_FW_PARAMS_PARAM_XYZ(A_SGE_CONTROL));
 	params[1] = (V_FW_PARAMS_MNEM(FW_PARAMS_MNEM_REG) |
-		     V_FW_PARAMS_PARAM_XYZ(A_SGE_HOST_PAGE_SIZE));
+	    V_FW_PARAMS_PARAM_XYZ(A_SGE_HOST_PAGE_SIZE));
 	params[2] = (V_FW_PARAMS_MNEM(FW_PARAMS_MNEM_REG) |
-		     V_FW_PARAMS_PARAM_XYZ(A_SGE_TIMER_VALUE_0_AND_1));
+	    V_FW_PARAMS_PARAM_XYZ(A_SGE_TIMER_VALUE_0_AND_1));
 	params[3] = (V_FW_PARAMS_MNEM(FW_PARAMS_MNEM_REG) |
-		     V_FW_PARAMS_PARAM_XYZ(A_SGE_TIMER_VALUE_2_AND_3));
+	    V_FW_PARAMS_PARAM_XYZ(A_SGE_TIMER_VALUE_2_AND_3));
 	params[4] = (V_FW_PARAMS_MNEM(FW_PARAMS_MNEM_REG) |
-		     V_FW_PARAMS_PARAM_XYZ(A_SGE_TIMER_VALUE_4_AND_5));
+	    V_FW_PARAMS_PARAM_XYZ(A_SGE_TIMER_VALUE_4_AND_5));
 	params[5] = (V_FW_PARAMS_MNEM(FW_PARAMS_MNEM_REG) |
-		     V_FW_PARAMS_PARAM_XYZ(A_SGE_CONM_CTRL));
+	    V_FW_PARAMS_PARAM_XYZ(A_SGE_CONM_CTRL));
 	params[6] = (V_FW_PARAMS_MNEM(FW_PARAMS_MNEM_REG) |
-		     V_FW_PARAMS_PARAM_XYZ(A_SGE_INGRESS_RX_THRESHOLD));
+	    V_FW_PARAMS_PARAM_XYZ(A_SGE_INGRESS_RX_THRESHOLD));
 	v = t4vf_query_params(adapter, 7, params, vals);
 	if (v != FW_SUCCESS)
 		return v;
@@ -130,9 +134,12 @@ int t4vf_get_sge_params(struct adapter *adapter)
 	if (is_t4(adapter))
 		sp->fl_starve_threshold2 = sp->fl_starve_threshold;
 	else if (is_t5(adapter))
-		sp->fl_starve_threshold2 = G_EGRTHRESHOLDPACKING(vals[5]) * 2 + 1;
+		sp->fl_starve_threshold2 = G_EGRTHRESHOLDPACKING(vals[5]) * 2 +
+		    1;
 	else
-		sp->fl_starve_threshold2 = G_T6_EGRTHRESHOLDPACKING(vals[5]) * 2 + 1;
+		sp->fl_starve_threshold2 = G_T6_EGRTHRESHOLDPACKING(vals[5]) *
+			2 +
+		    1;
 
 	/*
 	 * We need the Queues/Page and Host Page Size for our VF.
@@ -170,27 +177,28 @@ int t4vf_get_sge_params(struct adapter *adapter)
 	sp->fl_pktshift = G_PKTSHIFT(sp->sge_control);
 	if (chip_id(adapter) <= CHELSIO_T5) {
 		sp->pad_boundary = 1 << (G_INGPADBOUNDARY(sp->sge_control) +
-		    X_INGPADBOUNDARY_SHIFT);
+				       X_INGPADBOUNDARY_SHIFT);
 	} else {
 		sp->pad_boundary = 1 << (G_INGPADBOUNDARY(sp->sge_control) +
-		    X_T6_INGPADBOUNDARY_SHIFT);
+				       X_T6_INGPADBOUNDARY_SHIFT);
 	}
 	if (is_t4(adapter))
 		sp->pack_boundary = sp->pad_boundary;
 	else {
 		params[0] = (V_FW_PARAMS_MNEM(FW_PARAMS_MNEM_REG) |
-			     V_FW_PARAMS_PARAM_XYZ(A_SGE_CONTROL2));
+		    V_FW_PARAMS_PARAM_XYZ(A_SGE_CONTROL2));
 		v = t4vf_query_params(adapter, 1, params, vals);
 		if (v != FW_SUCCESS) {
-			CH_ERR(adapter, "Unable to get SGE Control2; "
-			       "probably old firmware.\n");
+			CH_ERR(adapter,
+			    "Unable to get SGE Control2; "
+			    "probably old firmware.\n");
 			return v;
 		}
 		if (G_INGPACKBOUNDARY(vals[0]) == 0)
 			sp->pack_boundary = 16;
 		else
-			sp->pack_boundary = 1 << (G_INGPACKBOUNDARY(vals[0]) +
-			    5);
+			sp->pack_boundary = 1
+			    << (G_INGPACKBOUNDARY(vals[0]) + 5);
 	}
 
 	/*
@@ -202,18 +210,19 @@ int t4vf_get_sge_params(struct adapter *adapter)
 		unsigned int s_qpp;
 
 		params[0] = (V_FW_PARAMS_MNEM(FW_PARAMS_MNEM_REG) |
-			     V_FW_PARAMS_PARAM_XYZ(A_SGE_EGRESS_QUEUES_PER_PAGE_VF));
+		    V_FW_PARAMS_PARAM_XYZ(A_SGE_EGRESS_QUEUES_PER_PAGE_VF));
 		params[1] = (V_FW_PARAMS_MNEM(FW_PARAMS_MNEM_REG) |
-			     V_FW_PARAMS_PARAM_XYZ(A_SGE_INGRESS_QUEUES_PER_PAGE_VF));
+		    V_FW_PARAMS_PARAM_XYZ(A_SGE_INGRESS_QUEUES_PER_PAGE_VF));
 		v = t4vf_query_params(adapter, 2, params, vals);
 		if (v != FW_SUCCESS) {
-			CH_WARN(adapter, "Unable to get VF SGE Queues/Page; "
-				"probably old firmware.\n");
+			CH_WARN(adapter,
+			    "Unable to get VF SGE Queues/Page; "
+			    "probably old firmware.\n");
 			return v;
 		}
 
 		s_qpp = (S_QUEUESPERPAGEPF0 +
-			 (S_QUEUESPERPAGEPF1 - S_QUEUESPERPAGEPF0) * pf);
+		    (S_QUEUESPERPAGEPF1 - S_QUEUESPERPAGEPF0) * pf);
 		sp->eq_s_qpp = ((vals[0] >> s_qpp) & M_QUEUESPERPAGEPF0);
 		sp->iq_s_qpp = ((vals[1] >> s_qpp) & M_QUEUESPERPAGEPF0);
 	}
@@ -228,7 +237,8 @@ int t4vf_get_sge_params(struct adapter *adapter)
  *	Retrieves global RSS mode and parameters with which we have to live
  *	and stores them in the @adapter's RSS parameters.
  */
-int t4vf_get_rss_glb_config(struct adapter *adapter)
+int
+t4vf_get_rss_glb_config(struct adapter *adapter)
 {
 	struct rss_params *rss = &adapter->params.rss;
 	struct fw_rss_glb_config_cmd cmd, rpl;
@@ -240,8 +250,7 @@ int t4vf_get_rss_glb_config(struct adapter *adapter)
 	 */
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.op_to_write = cpu_to_be32(V_FW_CMD_OP(FW_RSS_GLB_CONFIG_CMD) |
-				      F_FW_CMD_REQUEST |
-				      F_FW_CMD_READ);
+	    F_FW_CMD_REQUEST | F_FW_CMD_READ);
 	cmd.retval_len16 = cpu_to_be32(FW_LEN16(cmd));
 	v = t4vf_wr_mbox(adapter, &cmd, sizeof(cmd), &rpl);
 	if (v != FW_SUCCESS)
@@ -254,33 +263,33 @@ int t4vf_get_rss_glb_config(struct adapter *adapter)
 	 * VF Drivers ...
 	 */
 	rss->mode = G_FW_RSS_GLB_CONFIG_CMD_MODE(
-			be32_to_cpu(rpl.u.manual.mode_pkd));
+	    be32_to_cpu(rpl.u.manual.mode_pkd));
 	switch (rss->mode) {
 	case FW_RSS_GLB_CONFIG_CMD_MODE_BASICVIRTUAL: {
 		u32 word = be32_to_cpu(
-				rpl.u.basicvirtual.synmapen_to_hashtoeplitz);
+		    rpl.u.basicvirtual.synmapen_to_hashtoeplitz);
 
 		rss->u.basicvirtual.synmapen =
-			((word & F_FW_RSS_GLB_CONFIG_CMD_SYNMAPEN) != 0);
+		    ((word & F_FW_RSS_GLB_CONFIG_CMD_SYNMAPEN) != 0);
 		rss->u.basicvirtual.syn4tupenipv6 =
-			((word & F_FW_RSS_GLB_CONFIG_CMD_SYN4TUPENIPV6) != 0);
+		    ((word & F_FW_RSS_GLB_CONFIG_CMD_SYN4TUPENIPV6) != 0);
 		rss->u.basicvirtual.syn2tupenipv6 =
-			((word & F_FW_RSS_GLB_CONFIG_CMD_SYN2TUPENIPV6) != 0);
+		    ((word & F_FW_RSS_GLB_CONFIG_CMD_SYN2TUPENIPV6) != 0);
 		rss->u.basicvirtual.syn4tupenipv4 =
-			((word & F_FW_RSS_GLB_CONFIG_CMD_SYN4TUPENIPV4) != 0);
+		    ((word & F_FW_RSS_GLB_CONFIG_CMD_SYN4TUPENIPV4) != 0);
 		rss->u.basicvirtual.syn2tupenipv4 =
-			((word & F_FW_RSS_GLB_CONFIG_CMD_SYN2TUPENIPV4) != 0);
+		    ((word & F_FW_RSS_GLB_CONFIG_CMD_SYN2TUPENIPV4) != 0);
 
 		rss->u.basicvirtual.ofdmapen =
-			((word & F_FW_RSS_GLB_CONFIG_CMD_OFDMAPEN) != 0);
+		    ((word & F_FW_RSS_GLB_CONFIG_CMD_OFDMAPEN) != 0);
 
 		rss->u.basicvirtual.tnlmapen =
-			((word & F_FW_RSS_GLB_CONFIG_CMD_TNLMAPEN) != 0);
+		    ((word & F_FW_RSS_GLB_CONFIG_CMD_TNLMAPEN) != 0);
 		rss->u.basicvirtual.tnlalllookup =
-			((word  & F_FW_RSS_GLB_CONFIG_CMD_TNLALLLKP) != 0);
+		    ((word & F_FW_RSS_GLB_CONFIG_CMD_TNLALLLKP) != 0);
 
 		rss->u.basicvirtual.hashtoeplitz =
-			((word & F_FW_RSS_GLB_CONFIG_CMD_HASHTOEPLITZ) != 0);
+		    ((word & F_FW_RSS_GLB_CONFIG_CMD_HASHTOEPLITZ) != 0);
 
 		/* we need at least Tunnel Map Enable to be set */
 		if (!rss->u.basicvirtual.tnlmapen)
@@ -303,7 +312,8 @@ int t4vf_get_rss_glb_config(struct adapter *adapter)
  *	Retrieves configured resource limits and capabilities for a virtual
  *	function.  The results are stored in @adapter->vfres.
  */
-int t4vf_get_vfres(struct adapter *adapter)
+int
+t4vf_get_vfres(struct adapter *adapter)
 {
 	struct vf_resources *vfres = &adapter->params.vfres;
 	struct fw_pfvf_cmd cmd, rpl;
@@ -315,9 +325,8 @@ int t4vf_get_vfres(struct adapter *adapter)
 	 * with error on command failure.
 	 */
 	memset(&cmd, 0, sizeof(cmd));
-	cmd.op_to_vfn = cpu_to_be32(V_FW_CMD_OP(FW_PFVF_CMD) |
-				    F_FW_CMD_REQUEST |
-				    F_FW_CMD_READ);
+	cmd.op_to_vfn = cpu_to_be32(
+	    V_FW_CMD_OP(FW_PFVF_CMD) | F_FW_CMD_REQUEST | F_FW_CMD_READ);
 	cmd.retval_len16 = cpu_to_be32(FW_LEN16(cmd));
 	v = t4vf_wr_mbox(adapter, &cmd, sizeof(cmd), &rpl);
 	if (v != FW_SUCCESS)
@@ -349,7 +358,8 @@ int t4vf_get_vfres(struct adapter *adapter)
 
 /**
  */
-int t4vf_prep_adapter(struct adapter *adapter)
+int
+t4vf_prep_adapter(struct adapter *adapter)
 {
 	int err;
 
@@ -365,7 +375,7 @@ int t4vf_prep_adapter(struct adapter *adapter)
 		adapter->params.chipid -= (0xa - 0x4);
 		adapter->params.fpga = 1;
 	}
-	
+
 	/*
 	 * Default port and clock for debugging in case we can't reach
 	 * firmware.
@@ -391,16 +401,16 @@ int t4vf_prep_adapter(struct adapter *adapter)
  *	Find the MAC address to be set to the VF's VI. The requested MAC address
  *	is from the host OS via callback in the PF driver.
  */
-int t4vf_get_vf_mac(struct adapter *adapter, unsigned int port,
-		    unsigned int *naddr, u8 *addr)
+int
+t4vf_get_vf_mac(struct adapter *adapter, unsigned int port, unsigned int *naddr,
+    u8 *addr)
 {
 	struct fw_acl_mac_cmd cmd;
 	int ret;
 
 	memset(&cmd, 0, sizeof(cmd));
-	cmd.op_to_vfn = cpu_to_be32(V_FW_CMD_OP(FW_ACL_MAC_CMD) |
-			      F_FW_CMD_REQUEST |
-			      F_FW_CMD_READ);
+	cmd.op_to_vfn = cpu_to_be32(
+	    V_FW_CMD_OP(FW_ACL_MAC_CMD) | F_FW_CMD_REQUEST | F_FW_CMD_READ);
 	cmd.en_to_len16 = cpu_to_be32((unsigned int)FW_LEN16(cmd));
 	ret = t4vf_wr_mbox(adapter, &cmd, sizeof(cmd), &cmd);
 	if (ret)

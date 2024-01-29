@@ -27,12 +27,12 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/capsicum.h>
 #include <sys/file.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/proc.h>
-#include <sys/systm.h>
 
 #include <dev/tdfx/tdfx_linux.h>
 
@@ -42,27 +42,28 @@ LINUX_IOCTL_SET(tdfx, LINUX_IOCTL_TDFX_MIN, LINUX_IOCTL_TDFX_MAX);
  * Linux emulation IOCTL for /dev/tdfx
  */
 static int
-linux_ioctl_tdfx(struct thread *td, struct linux_ioctl_args* args)
+linux_ioctl_tdfx(struct thread *td, struct linux_ioctl_args *args)
 {
-   cap_rights_t rights;
-   int error = 0;
-   u_long cmd = args->cmd & 0xffff;
+	cap_rights_t rights;
+	int error = 0;
+	u_long cmd = args->cmd & 0xffff;
 
-   /* The structure passed to ioctl has two shorts, one int
-      and one void*. */
-   char d_pio[2*sizeof(short) + sizeof(int) + sizeof(void*)];
+	/* The structure passed to ioctl has two shorts, one int
+	   and one void*. */
+	char d_pio[2 * sizeof(short) + sizeof(int) + sizeof(void *)];
 
-   struct file *fp;
+	struct file *fp;
 
-   error = fget(td, args->fd, cap_rights_init_one(&rights, CAP_IOCTL), &fp);
-   if (error != 0)
-	   return (error);
-   /* We simply copy the data and send it right to ioctl */
-   error = copyin((caddr_t)args->arg, &d_pio, sizeof(d_pio));
-   if (error == 0)
-	error = fo_ioctl(fp, cmd, (caddr_t)&d_pio, td->td_ucred, td);
-   fdrop(fp, td);
-   return error;
+	error = fget(td, args->fd, cap_rights_init_one(&rights, CAP_IOCTL),
+	    &fp);
+	if (error != 0)
+		return (error);
+	/* We simply copy the data and send it right to ioctl */
+	error = copyin((caddr_t)args->arg, &d_pio, sizeof(d_pio));
+	if (error == 0)
+		error = fo_ioctl(fp, cmd, (caddr_t)&d_pio, td->td_ucred, td);
+	fdrop(fp, td);
+	return error;
 }
 
 static int
@@ -77,11 +78,7 @@ tdfx_linux_modevent(struct module *mod __unused, int what, void *arg __unused)
 	return (EOPNOTSUPP);
 }
 
-static moduledata_t tdfx_linux_mod = {
-	"tdfx_linux",
-	tdfx_linux_modevent,
-	0
-};
+static moduledata_t tdfx_linux_mod = { "tdfx_linux", tdfx_linux_modevent, 0 };
 
 /* As in SYSCALL_MODULE */
 DECLARE_MODULE(tdfx_linux, tdfx_linux_mod, SI_SUB_DRIVERS, SI_ORDER_MIDDLE);

@@ -45,13 +45,13 @@ static void passwd_mp_destroy_func(void *mdata);
 static int
 passwd_marshal_func(struct passwd *pwd, char *buffer, size_t *buffer_size)
 {
-	char		*p;
-	struct passwd	new_pwd;
-	size_t		desired_size, size;
+	char *p;
+	struct passwd new_pwd;
+	size_t desired_size, size;
 
 	TRACE_IN(passwd_marshal_func);
 	desired_size = sizeof(struct passwd) + sizeof(char *) +
-		strlen(pwd->pw_name) + 1;
+	    strlen(pwd->pw_name) + 1;
 	if (pwd->pw_passwd != NULL)
 		desired_size += strlen(pwd->pw_passwd) + 1;
 	if (pwd->pw_class != NULL)
@@ -125,12 +125,12 @@ passwd_marshal_func(struct passwd *pwd, char *buffer, size_t *buffer_size)
 
 static int
 passwd_lookup_func(const char *key, size_t key_size, char **buffer,
-	size_t *buffer_size)
+    size_t *buffer_size)
 {
 	enum nss_lookup_type lookup_type;
-	char	*login;
-	size_t	size;
-	uid_t	uid;
+	char *login;
+	size_t size;
+	uid_t uid;
 
 	struct passwd *result;
 
@@ -146,14 +146,13 @@ passwd_lookup_func(const char *key, size_t key_size, char **buffer,
 
 	switch (lookup_type) {
 	case nss_lt_name:
-		size = key_size - sizeof(enum nss_lookup_type)	+ 1;
+		size = key_size - sizeof(enum nss_lookup_type) + 1;
 		login = calloc(1, size);
 		assert(login != NULL);
 		memcpy(login, key + sizeof(enum nss_lookup_type), size - 1);
 		break;
 	case nss_lt_id:
-		if (key_size < sizeof(enum nss_lookup_type) +
-			sizeof(uid_t)) {
+		if (key_size < sizeof(enum nss_lookup_type) + sizeof(uid_t)) {
 			TRACE_OUT(passwd_lookup_func);
 			return (NS_UNAVAIL);
 		}
@@ -202,7 +201,7 @@ passwd_mp_init_func(void)
 static int
 passwd_mp_lookup_func(char **buffer, size_t *buffer_size, void *mdata)
 {
-	struct passwd	*result;
+	struct passwd *result;
 
 	TRACE_IN(passwd_mp_lookup_func);
 	result = getpwent();
@@ -227,7 +226,7 @@ passwd_mp_destroy_func(void *mdata)
 struct agent *
 init_passwd_agent(void)
 {
-	struct common_agent	*retval;
+	struct common_agent *retval;
 
 	TRACE_IN(init_passwd_agent);
 	retval = calloc(1, sizeof(*retval));
@@ -246,11 +245,10 @@ init_passwd_agent(void)
 struct agent *
 init_passwd_mp_agent(void)
 {
-	struct multipart_agent	*retval;
+	struct multipart_agent *retval;
 
 	TRACE_IN(init_passwd_mp_agent);
-	retval = calloc(1,
-		sizeof(*retval));
+	retval = calloc(1, sizeof(*retval));
 	assert(retval != NULL);
 
 	retval->parent.name = strdup("passwd");

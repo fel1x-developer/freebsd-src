@@ -34,39 +34,38 @@
 /* $NetBSD: preen.c,v 1.18 1998/07/26 20:02:36 mycroft Exp $ */
 
 #include <sys/param.h>
+#include <sys/queue.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
-#include <sys/queue.h>
 
-#include <ufs/ufs/quota.h>
-
-#include <err.h>
 #include <ctype.h>
+#include <err.h>
 #include <fcntl.h>
 #include <fstab.h>
 #include <libutil.h>
-#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <ufs/ufs/quota.h>
 #include <unistd.h>
 
 #include "quotacheck.h"
 
 struct partentry {
-	TAILQ_ENTRY(partentry)	 p_entries;
-	char			*p_devname;	/* device name */
-	const char		*p_mntpt;	/* mount point */
-	struct quotafile	*p_qfu;		/* user quota file info ptr */
-	struct quotafile	*p_qfg;		/* group quota file info */
+	TAILQ_ENTRY(partentry) p_entries;
+	char *p_devname;	 /* device name */
+	const char *p_mntpt;	 /* mount point */
+	struct quotafile *p_qfu; /* user quota file info ptr */
+	struct quotafile *p_qfg; /* group quota file info */
 };
 
 TAILQ_HEAD(part, partentry) badh;
 
 struct diskentry {
-	TAILQ_ENTRY(diskentry)	    d_entries;
-	char			   *d_name;	/* disk base name */
-	TAILQ_HEAD(prt, partentry)  d_part;	/* list of partitions on disk */
-	int			    d_pid;	/* 0 or pid of fsck proc */
+	TAILQ_ENTRY(diskentry) d_entries;
+	char *d_name;			   /* disk base name */
+	TAILQ_HEAD(prt, partentry) d_part; /* list of partitions on disk */
+	int d_pid;			   /* 0 or pid of fsck proc */
 };
 
 TAILQ_HEAD(disk, diskentry) diskh;
@@ -107,10 +106,12 @@ checkfstab(int uflag, int gflag)
 
 			qfu = NULL;
 			if (uflag)
-				qfu = quota_open(fs, USRQUOTA, O_CREAT|O_RDWR);
+				qfu = quota_open(fs, USRQUOTA,
+				    O_CREAT | O_RDWR);
 			qfg = NULL;
 			if (gflag)
-				qfg = quota_open(fs, GRPQUOTA, O_CREAT|O_RDWR);
+				qfg = quota_open(fs, GRPQUOTA,
+				    O_CREAT | O_RDWR);
 			if (qfu == NULL && qfg == NULL)
 				continue;
 
@@ -130,13 +131,13 @@ checkfstab(int uflag, int gflag)
 		if (passno == 1)
 			continue;
 
-		TAILQ_FOREACH(nextdisk, &diskh, d_entries) {
+		TAILQ_FOREACH (nextdisk, &diskh, d_entries) {
 			if ((ret = startdisk(nextdisk)) != 0)
 				return ret;
 		}
 
 		while ((pid = wait(&status)) != -1) {
-			TAILQ_FOREACH(d, &diskh, d_entries)
+			TAILQ_FOREACH (d, &diskh, d_entries)
 				if (d->d_pid == pid)
 					break;
 
@@ -153,10 +154,9 @@ checkfstab(int uflag, int gflag)
 			p = TAILQ_FIRST(&d->d_part);
 
 			if (WIFSIGNALED(status)) {
-				(void) fprintf(stderr,
+				(void)fprintf(stderr,
 				    "%s: (%s): EXITED WITH SIGNAL %d\n",
-				    p->p_devname, p->p_mntpt,
-				    WTERMSIG(status));
+				    p->p_devname, p->p_mntpt, WTERMSIG(status));
 				retcode = 8;
 			}
 
@@ -189,22 +189,20 @@ checkfstab(int uflag, int gflag)
 		if (p == NULL)
 			return (sumstatus);
 
-		(void) fprintf(stderr,
-			"THE FOLLOWING FILE SYSTEM%s HAD AN %s\n\t",
-			TAILQ_NEXT(p, p_entries) ? "S" : "",
-			"UNEXPECTED INCONSISTENCY:");
+		(void)fprintf(stderr,
+		    "THE FOLLOWING FILE SYSTEM%s HAD AN %s\n\t",
+		    TAILQ_NEXT(p, p_entries) ? "S" : "",
+		    "UNEXPECTED INCONSISTENCY:");
 
 		for (; p; p = TAILQ_NEXT(p, p_entries))
-			(void) fprintf(stderr,
-			    "%s: (%s)%s", p->p_devname, p->p_mntpt,
-			    TAILQ_NEXT(p, p_entries) ? ", " : "\n");
+			(void)fprintf(stderr, "%s: (%s)%s", p->p_devname,
+			    p->p_mntpt, TAILQ_NEXT(p, p_entries) ? ", " : "\n");
 
 		return sumstatus;
 	}
-	(void) endfsent();
+	(void)endfsent();
 	return (0);
 }
-
 
 static struct diskentry *
 finddisk(const char *name)
@@ -226,7 +224,7 @@ finddisk(const char *name)
 	if (len == 0)
 		len = strlen(name);
 
-	TAILQ_FOREACH(d, &diskh, d_entries)
+	TAILQ_FOREACH (d, &diskh, d_entries)
 		if (strncmp(d->d_name, name, len) == 0 && d->d_name[len] == 0)
 			return d;
 
@@ -247,7 +245,7 @@ addpart(struct fstab *fs, struct quotafile *qfu, struct quotafile *qfg)
 	struct diskentry *d = finddisk(fs->fs_spec);
 	struct partentry *p;
 
-	TAILQ_FOREACH(p, &d->d_part, p_entries)
+	TAILQ_FOREACH (p, &d->d_part, p_entries)
 		if (strcmp(p->p_devname, fs->fs_spec) == 0) {
 			warnx("%s in fstab more than once!\n", fs->fs_spec);
 			return;
@@ -264,7 +262,6 @@ addpart(struct fstab *fs, struct quotafile *qfu, struct quotafile *qfg)
 
 	TAILQ_INSERT_TAIL(&d->d_part, p, p_entries);
 }
-
 
 static int
 startdisk(struct diskentry *d)

@@ -28,9 +28,10 @@
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
 
-#include <sys/cdefs.h>
 #include "opt_bwn.h"
 #include "opt_wlan.h"
+
+#include <sys/cdefs.h>
 
 /*
  * The Broadcom Wireless LAN controller driver.
@@ -38,51 +39,47 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/malloc.h>
-#include <sys/module.h>
+#include <sys/bus.h>
 #include <sys/endian.h>
 #include <sys/errno.h>
 #include <sys/firmware.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
-#include <machine/bus.h>
-#include <machine/resource.h>
-#include <sys/bus.h>
 #include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 
+#include <machine/bus.h>
+#include <machine/resource.h>
+
+#include <dev/bhnd/bhnd.h>
+#include <dev/bhnd/bhnd_ids.h>
+#include <dev/bhnd/cores/chipc/chipc.h>
+#include <dev/bhnd/cores/pmu/bhnd_pmu.h>
+#include <dev/bwn/if_bwn_debug.h>
+#include <dev/bwn/if_bwn_misc.h>
+#include <dev/bwn/if_bwn_phy_common.h>
+#include <dev/bwn/if_bwnreg.h>
+#include <dev/bwn/if_bwnvar.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
 #include <net/ethernet.h>
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_arp.h>
 #include <net/if_dl.h>
 #include <net/if_llc.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
-
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-#include <net80211/ieee80211_regdomain.h>
+#include <net/if_var.h>
 #include <net80211/ieee80211_phy.h>
+#include <net80211/ieee80211_radiotap.h>
 #include <net80211/ieee80211_ratectl.h>
-
-#include <dev/bhnd/bhnd.h>
-#include <dev/bhnd/bhnd_ids.h>
-
-#include <dev/bhnd/cores/chipc/chipc.h>
-#include <dev/bhnd/cores/pmu/bhnd_pmu.h>
-
-#include <dev/bwn/if_bwnreg.h>
-#include <dev/bwn/if_bwnvar.h>
-
-#include <dev/bwn/if_bwn_debug.h>
-#include <dev/bwn/if_bwn_misc.h>
-#include <dev/bwn/if_bwn_phy_common.h>
+#include <net80211/ieee80211_regdomain.h>
+#include <net80211/ieee80211_var.h>
 
 void
 bwn_mac_switch_freq(struct bwn_mac *mac, bhnd_pmu_spuravoid spurmode)
@@ -129,8 +126,10 @@ bwn_mac_switch_freq(struct bwn_mac *mac, bhnd_pmu_spuravoid spurmode)
 	} else if (mac->mac_phy.type == BWN_PHYTYPE_LCN) {
 		switch (spurmode) {
 		case BHND_PMU_SPURAVOID_M2:
-			device_printf(sc->sc_dev, "invalid spuravoid mode: "
-			    "%d\n", spurmode);
+			device_printf(sc->sc_dev,
+			    "invalid spuravoid mode: "
+			    "%d\n",
+			    spurmode);
 			break;
 		case BHND_PMU_SPURAVOID_M1: /* 82 Mhz */
 			BWN_WRITE_2(mac, BWN_TSF_CLK_FRAC_LOW, 0x7CE0);
@@ -148,9 +147,9 @@ bwn_mac_switch_freq(struct bwn_mac *mac, bhnd_pmu_spuravoid spurmode)
 int
 bwn_phy_force_clock(struct bwn_mac *mac, int force)
 {
-	struct bwn_softc	*sc;
-	uint32_t		 val, mask;
-	int			 error;
+	struct bwn_softc *sc;
+	uint32_t val, mask;
+	int error;
 
 	sc = mac->mac_sc;
 
@@ -163,8 +162,10 @@ bwn_phy_force_clock(struct bwn_mac *mac, int force)
 	}
 
 	if ((error = bhnd_write_ioctl(sc->sc_dev, val, mask))) {
-		device_printf(sc->sc_dev, "failed to set CLK_FORCE ioctl flag: "
-		    "%d\n", error);
+		device_printf(sc->sc_dev,
+		    "failed to set CLK_FORCE ioctl flag: "
+		    "%d\n",
+		    error);
 		return (error);
 	}
 
@@ -190,9 +191,9 @@ bwn_radio_wait_value(struct bwn_mac *mac, uint16_t offset, uint16_t mask,
 int
 bwn_mac_phy_clock_set(struct bwn_mac *mac, int enabled)
 {
-	struct bwn_softc	*sc;
-	uint32_t		 val, mask;
-	int			 error;
+	struct bwn_softc *sc;
+	uint32_t val, mask;
+	int error;
 
 	sc = mac->mac_sc;
 
@@ -204,8 +205,10 @@ bwn_mac_phy_clock_set(struct bwn_mac *mac, int enabled)
 	}
 
 	if ((error = bhnd_write_ioctl(sc->sc_dev, val, mask))) {
-		device_printf(sc->sc_dev, "failed to set MACPHYCLKEN ioctl "
-		    "flag: %d\n", error);
+		device_printf(sc->sc_dev,
+		    "failed to set MACPHYCLKEN ioctl "
+		    "flag: %d\n",
+		    error);
 		return (error);
 	}
 
@@ -216,8 +219,8 @@ bwn_mac_phy_clock_set(struct bwn_mac *mac, int enabled)
 int
 bwn_wireless_core_phy_pll_reset(struct bwn_mac *mac)
 {
-	struct bwn_softc	*sc;
-	uint32_t		 pll_flag;
+	struct bwn_softc *sc;
+	uint32_t pll_flag;
 
 	sc = mac->mac_sc;
 
@@ -228,7 +231,7 @@ bwn_wireless_core_phy_pll_reset(struct bwn_mac *mac)
 
 	pll_flag = 0x4;
 	bhnd_pmu_write_chipctrl(sc->sc_pmu, 0x0, 0x0, pll_flag);
-	bhnd_pmu_write_chipctrl(sc->sc_pmu, 0x0, pll_flag, pll_flag);	
+	bhnd_pmu_write_chipctrl(sc->sc_pmu, 0x0, pll_flag, pll_flag);
 	bhnd_pmu_write_chipctrl(sc->sc_pmu, 0x0, 0x0, pll_flag);
 
 	return (0);

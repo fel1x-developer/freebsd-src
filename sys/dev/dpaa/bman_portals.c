@@ -28,13 +28,13 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/proc.h>
 #include <sys/pcpu.h>
+#include <sys/proc.h>
 #include <sys/sched.h>
 
 #include <machine/bus.h>
@@ -58,7 +58,7 @@ bman_portals_attach(device_t dev)
 	struct dpaa_portals_softc *sc;
 
 	sc = bp_sc = device_get_softc(dev);
-	
+
 	/* Map bman portal to physical address space */
 	if (law_enable(OCP85XX_TGTIF_BMAN, sc->sc_dp_pa, sc->sc_dp_size)) {
 		bman_portals_detach(dev);
@@ -101,8 +101,7 @@ bman_portals_detach(device_t dev)
 	for (i = 0; i < ARRAY_SIZE(sc->sc_rres); i++) {
 		if (sc->sc_rres[i] != NULL)
 			bus_release_resource(dev, SYS_RES_MEMORY,
-			    sc->sc_rrid[i],
-			    sc->sc_rres[i]);
+			    sc->sc_rrid[i], sc->sc_rres[i]);
 	}
 
 	return (0);
@@ -128,8 +127,8 @@ bman_portal_setup(struct bman_softc *bsc)
 	cpu = PCPU_GET(cpuid);
 
 	/* Check if portal is ready */
-	while (atomic_cmpset_acq_ptr((uintptr_t *)&sc->sc_dp[cpu].dp_ph,
-	    0, -1) == 0) {
+	while (atomic_cmpset_acq_ptr((uintptr_t *)&sc->sc_dp[cpu].dp_ph, 0,
+		   -1) == 0) {
 		p = atomic_load_acq_ptr((uintptr_t *)&sc->sc_dp[cpu].dp_ph);
 
 		/* Return if portal is already initialized */
@@ -159,8 +158,9 @@ bman_portal_setup(struct bman_softc *bsc)
 	if (BM_PORTAL_Init(portal) != E_OK)
 		goto err;
 
-	atomic_store_rel_ptr((uintptr_t *)&sc->sc_dp[cpu].dp_ph, (uintptr_t)portal);
-	
+	atomic_store_rel_ptr((uintptr_t *)&sc->sc_dp[cpu].dp_ph,
+	    (uintptr_t)portal);
+
 	sched_unpin();
 
 	return (portal);

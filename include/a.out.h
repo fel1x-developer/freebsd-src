@@ -29,13 +29,14 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_AOUT_H_
-#define	_AOUT_H_
+#ifndef _AOUT_H_
+#define _AOUT_H_
 
 #include <sys/types.h>
-#include <machine/exec.h>
 #include <sys/endian.h>
 #include <sys/imgact_aout.h>
+
+#include <machine/exec.h>
 #include <machine/reloc.h>
 
 #define _AOUT_INCLUDE_

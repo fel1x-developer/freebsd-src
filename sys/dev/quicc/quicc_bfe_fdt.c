@@ -37,6 +37,7 @@
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/rman.h>
+
 #include <machine/bus.h>
 
 #include <dev/ofw/ofw_bus.h>
@@ -47,16 +48,16 @@ static int quicc_fdt_probe(device_t dev);
 
 static device_method_t quicc_fdt_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		quicc_fdt_probe),
-	DEVMETHOD(device_attach,	quicc_bfe_attach),
-	DEVMETHOD(device_detach,	quicc_bfe_detach),
+	DEVMETHOD(device_probe, quicc_fdt_probe),
+	DEVMETHOD(device_attach, quicc_bfe_attach),
+	DEVMETHOD(device_detach, quicc_bfe_detach),
 
-	DEVMETHOD(bus_alloc_resource,	quicc_bus_alloc_resource),
-	DEVMETHOD(bus_release_resource,	quicc_bus_release_resource),
-	DEVMETHOD(bus_get_resource,	quicc_bus_get_resource),
-	DEVMETHOD(bus_read_ivar,	quicc_bus_read_ivar),
-	DEVMETHOD(bus_setup_intr,	quicc_bus_setup_intr),
-	DEVMETHOD(bus_teardown_intr,	quicc_bus_teardown_intr),
+	DEVMETHOD(bus_alloc_resource, quicc_bus_alloc_resource),
+	DEVMETHOD(bus_release_resource, quicc_bus_release_resource),
+	DEVMETHOD(bus_get_resource, quicc_bus_get_resource),
+	DEVMETHOD(bus_read_ivar, quicc_bus_read_ivar),
+	DEVMETHOD(bus_setup_intr, quicc_bus_setup_intr),
+	DEVMETHOD(bus_teardown_intr, quicc_bus_teardown_intr),
 
 	DEVMETHOD_END
 };

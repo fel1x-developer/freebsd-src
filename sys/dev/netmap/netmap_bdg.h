@@ -29,16 +29,15 @@
 #define _NET_NETMAP_BDG_H_
 
 #if defined(__FreeBSD__)
-#define BDG_RWLOCK_T		struct rwlock // struct rwlock
+#define BDG_RWLOCK_T struct rwlock // struct rwlock
 
-#define	BDG_RWINIT(b)		\
-	rw_init_flags(&(b)->bdg_lock, "bdg lock", RW_NOWITNESS)
-#define BDG_WLOCK(b)		rw_wlock(&(b)->bdg_lock)
-#define BDG_WUNLOCK(b)		rw_wunlock(&(b)->bdg_lock)
-#define BDG_RLOCK(b)		rw_rlock(&(b)->bdg_lock)
-#define BDG_RTRYLOCK(b)		rw_try_rlock(&(b)->bdg_lock)
-#define BDG_RUNLOCK(b)		rw_runlock(&(b)->bdg_lock)
-#define BDG_RWDESTROY(b)	rw_destroy(&(b)->bdg_lock)
+#define BDG_RWINIT(b) rw_init_flags(&(b)->bdg_lock, "bdg lock", RW_NOWITNESS)
+#define BDG_WLOCK(b) rw_wlock(&(b)->bdg_lock)
+#define BDG_WUNLOCK(b) rw_wunlock(&(b)->bdg_lock)
+#define BDG_RLOCK(b) rw_rlock(&(b)->bdg_lock)
+#define BDG_RTRYLOCK(b) rw_try_rlock(&(b)->bdg_lock)
+#define BDG_RUNLOCK(b) rw_runlock(&(b)->bdg_lock)
+#define BDG_RWDESTROY(b) rw_destroy(&(b)->bdg_lock)
 
 #endif /* __FreeBSD__ */
 
@@ -52,41 +51,44 @@
  * drop.
  */
 typedef uint32_t (*bdg_lookup_fn_t)(struct nm_bdg_fwd *ft, uint8_t *ring_nr,
-		struct netmap_vp_adapter *, void *private_data);
+    struct netmap_vp_adapter *, void *private_data);
 typedef int (*bdg_config_fn_t)(struct nm_ifreq *);
 typedef void (*bdg_dtor_fn_t)(const struct netmap_vp_adapter *);
-typedef void *(*bdg_update_private_data_fn_t)(void *private_data, void *callback_data, int *error);
-typedef int (*bdg_vp_create_fn_t)(struct nmreq_header *hdr,
-		if_t ifp, struct netmap_mem_d *nmd,
-		struct netmap_vp_adapter **ret);
-typedef int (*bdg_bwrap_attach_fn_t)(const char *nr_name, struct netmap_adapter *hwna);
+typedef void *(*bdg_update_private_data_fn_t)(void *private_data,
+    void *callback_data, int *error);
+typedef int (*bdg_vp_create_fn_t)(struct nmreq_header *hdr, if_t ifp,
+    struct netmap_mem_d *nmd, struct netmap_vp_adapter **ret);
+typedef int (
+    *bdg_bwrap_attach_fn_t)(const char *nr_name, struct netmap_adapter *hwna);
 struct netmap_bdg_ops {
 	bdg_lookup_fn_t lookup;
 	bdg_config_fn_t config;
-	bdg_dtor_fn_t	dtor;
-	bdg_vp_create_fn_t	vp_create;
-	bdg_bwrap_attach_fn_t	bwrap_attach;
+	bdg_dtor_fn_t dtor;
+	bdg_vp_create_fn_t vp_create;
+	bdg_bwrap_attach_fn_t bwrap_attach;
 	char name[IFNAMSIZ];
 };
-int netmap_bwrap_attach(const char *name, struct netmap_adapter *, struct netmap_bdg_ops *);
-int netmap_bdg_regops(const char *name, struct netmap_bdg_ops *bdg_ops, void *private_data, void *auth_token);
+int netmap_bwrap_attach(const char *name, struct netmap_adapter *,
+    struct netmap_bdg_ops *);
+int netmap_bdg_regops(const char *name, struct netmap_bdg_ops *bdg_ops,
+    void *private_data, void *auth_token);
 
-#define	NM_BRIDGES		8	/* number of bridges */
-#define	NM_BDG_MAXPORTS		254	/* up to 254 */
-#define	NM_BDG_BROADCAST	NM_BDG_MAXPORTS
-#define	NM_BDG_NOPORT		(NM_BDG_MAXPORTS+1)
+#define NM_BRIDGES 8	    /* number of bridges */
+#define NM_BDG_MAXPORTS 254 /* up to 254 */
+#define NM_BDG_BROADCAST NM_BDG_MAXPORTS
+#define NM_BDG_NOPORT (NM_BDG_MAXPORTS + 1)
 
 /* XXX Should go away after fixing find_bridge() - Michio */
-#define NM_BDG_HASH		1024	/* forwarding table entries */
+#define NM_BDG_HASH 1024 /* forwarding table entries */
 
 /* XXX revise this */
 struct nm_hash_ent {
-	uint64_t	mac;	/* the top 2 bytes are the epoch */
-	uint64_t	ports;
+	uint64_t mac; /* the top 2 bytes are the epoch */
+	uint64_t ports;
 };
 
 /* Default size for the Maximum Frame Size. */
-#define NM_BDG_MFS_DEFAULT	1514
+#define NM_BDG_MFS_DEFAULT 1514
 
 /*
  * nm_bridge is a descriptor for a VALE switch.
@@ -104,17 +106,17 @@ struct nm_hash_ent {
 #define NM_BDG_IFNAMSIZ IFNAMSIZ
 struct nm_bridge {
 	/* XXX what is the proper alignment/layout ? */
-	BDG_RWLOCK_T	bdg_lock;	/* protects bdg_ports */
-	int		bdg_namelen;
-	uint32_t	bdg_active_ports;
-	char		bdg_basename[NM_BDG_IFNAMSIZ];
+	BDG_RWLOCK_T bdg_lock; /* protects bdg_ports */
+	int bdg_namelen;
+	uint32_t bdg_active_ports;
+	char bdg_basename[NM_BDG_IFNAMSIZ];
 
 	/* Indexes of active ports (up to active_ports)
 	 * and all other remaining ports.
 	 */
-	uint32_t	bdg_port_index[NM_BDG_MAXPORTS];
+	uint32_t bdg_port_index[NM_BDG_MAXPORTS];
 	/* used by netmap_bdg_detach_common() */
-	uint32_t	tmp_bdg_port_index[NM_BDG_MAXPORTS];
+	uint32_t tmp_bdg_port_index[NM_BDG_MAXPORTS];
 
 	struct netmap_vp_adapter *bdg_ports[NM_BDG_MAXPORTS];
 
@@ -132,21 +134,21 @@ struct nm_bridge {
 
 	/*
 	 * Contains the data structure used by the bdg_ops.lookup function.
-	 * By default points to *ht which is allocated on attach and used by the default lookup
-	 * otherwise will point to the data structure received by netmap_bdg_regops().
+	 * By default points to *ht which is allocated on attach and used by the
+	 * default lookup otherwise will point to the data structure received by
+	 * netmap_bdg_regops().
 	 */
 	void *private_data;
 	struct nm_hash_ent *ht;
 
-	/* Currently used to specify if the bridge is still in use while empty and
-	 * if it has been put in exclusive mode by an external module, see netmap_bdg_regops()
-	 * and netmap_bdg_create().
+	/* Currently used to specify if the bridge is still in use while empty
+	 * and if it has been put in exclusive mode by an external module, see
+	 * netmap_bdg_regops() and netmap_bdg_create().
 	 */
-#define NM_BDG_ACTIVE		1
-#define NM_BDG_EXCLUSIVE	2
-#define NM_BDG_NEED_BWRAP	4
-	uint8_t			bdg_flags;
-
+#define NM_BDG_ACTIVE 1
+#define NM_BDG_EXCLUSIVE 2
+#define NM_BDG_NEED_BWRAP 4
+	uint8_t bdg_flags;
 
 #ifdef CONFIG_NET_NS
 	struct net *ns;
@@ -160,7 +162,8 @@ nm_bdg_get_auth_token(struct nm_bridge *b)
 }
 
 /* bridge not in exclusive mode ==> always valid
- * bridge in exclusive mode (created through netmap_bdg_create()) ==> check authentication token
+ * bridge in exclusive mode (created through netmap_bdg_create()) ==> check
+ * authentication token
  */
 static inline int
 nm_bdg_valid_auth_token(struct nm_bridge *b, void *auth_token)
@@ -169,9 +172,10 @@ nm_bdg_valid_auth_token(struct nm_bridge *b, void *auth_token)
 }
 
 int netmap_get_bdg_na(struct nmreq_header *hdr, struct netmap_adapter **na,
-	struct netmap_mem_d *nmd, int create, struct netmap_bdg_ops *ops);
+    struct netmap_mem_d *nmd, int create, struct netmap_bdg_ops *ops);
 
-struct nm_bridge *nm_find_bridge(const char *name, int create, struct netmap_bdg_ops *ops);
+struct nm_bridge *nm_find_bridge(const char *name, int create,
+    struct netmap_bdg_ops *ops);
 int netmap_bdg_free(struct nm_bridge *b);
 void netmap_bdg_detach_common(struct nm_bridge *b, int hw, int sw);
 int netmap_vp_bdg_ctl(struct nmreq_header *hdr, struct netmap_adapter *na);
@@ -182,15 +186,15 @@ int netmap_vp_rxsync(struct netmap_kring *kring, int flags);
 int netmap_bwrap_intr_notify(struct netmap_kring *kring, int flags);
 int netmap_bwrap_notify(struct netmap_kring *kring, int flags);
 int netmap_bwrap_attach_common(struct netmap_adapter *na,
-		struct netmap_adapter *hwna);
+    struct netmap_adapter *hwna);
 int netmap_bwrap_krings_create_common(struct netmap_adapter *na);
 void netmap_bwrap_krings_delete_common(struct netmap_adapter *na);
 struct nm_bridge *netmap_init_bridges2(u_int);
 void netmap_uninit_bridges2(struct nm_bridge *, u_int);
-int netmap_bdg_update_private_data(const char *name, bdg_update_private_data_fn_t callback,
-	void *callback_data, void *auth_token);
+int netmap_bdg_update_private_data(const char *name,
+    bdg_update_private_data_fn_t callback, void *callback_data,
+    void *auth_token);
 int netmap_bdg_config(struct nm_ifreq *nifr);
 
 #define NM_NEED_BWRAP (-2)
 #endif /* _NET_NETMAP_BDG_H_ */
-

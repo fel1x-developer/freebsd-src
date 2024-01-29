@@ -27,21 +27,23 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  *
-*/
+ */
 
-#include <stdlib.h>
-#include <string.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+
+#include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include <errno.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
+
 #include "jsmn.h"
 #include "json.h"
 
-
-static char *mapfile(const char *fn, size_t *size)
+static char *
+mapfile(const char *fn, size_t *size)
 {
 	unsigned ps = sysconf(_SC_PAGESIZE);
 	struct stat st;
@@ -51,7 +53,7 @@ static char *mapfile(const char *fn, size_t *size)
 
 	if (fd < 0 && verbose > 0 && fn) {
 		pr_err("Error opening events file '%s': %s\n", fn,
-				strerror(errno));
+		    strerror(errno));
 	}
 
 	if (fd < 0)
@@ -60,9 +62,8 @@ static char *mapfile(const char *fn, size_t *size)
 	if (err < 0)
 		goto out;
 	*size = st.st_size;
-	map = mmap(NULL,
-		   (st.st_size + ps - 1) & ~(ps - 1),
-		   PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, 0);
+	map = mmap(NULL, (st.st_size + ps - 1) & ~(ps - 1),
+	    PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
 	if (map == MAP_FAILED)
 		map = NULL;
 out:
@@ -70,7 +71,8 @@ out:
 	return map;
 }
 
-static void unmapfile(char *map, size_t size)
+static void
+unmapfile(char *map, size_t size)
 {
 	unsigned ps = sysconf(_SC_PAGESIZE);
 	munmap(map, roundup(size, ps));
@@ -80,7 +82,8 @@ static void unmapfile(char *map, size_t size)
  * Parse json file using jsmn. Return array of tokens,
  * and mapped file. Caller needs to free array.
  */
-jsmntok_t *parse_json(const char *fn, char **map, size_t *size, int *len)
+jsmntok_t *
+parse_json(const char *fn, char **map, size_t *size, int *len)
 {
 	jsmn_parser parser;
 	jsmntok_t *tokens;
@@ -96,8 +99,7 @@ jsmntok_t *parse_json(const char *fn, char **map, size_t *size, int *len)
 	if (!tokens)
 		goto error;
 	jsmn_init(&parser);
-	res = jsmn_parse(&parser, *map, *size, tokens,
-			 sz / sizeof(jsmntok_t));
+	res = jsmn_parse(&parser, *map, *size, tokens, sz / sizeof(jsmntok_t));
 	if (res != JSMN_SUCCESS) {
 		pr_err("%s: json error %s\n", fn, jsmn_strerror(res));
 		goto error_free;
@@ -112,13 +114,15 @@ error:
 	return NULL;
 }
 
-void free_json(char *map, size_t size, jsmntok_t *tokens)
+void
+free_json(char *map, size_t size, jsmntok_t *tokens)
 {
 	free(tokens);
 	unmapfile(map, size);
 }
 
-static int countchar(char *map, char c, int end)
+static int
+countchar(char *map, char c, int end)
 {
 	int i;
 	int count = 0;
@@ -129,33 +133,35 @@ static int countchar(char *map, char c, int end)
 }
 
 /* Return line number of a jsmn token */
-int json_line(char *map, jsmntok_t *t)
+int
+json_line(char *map, jsmntok_t *t)
 {
 	return countchar(map, '\n', t->start) + 1;
 }
 
-static const char * const jsmn_types[] = {
-	[JSMN_PRIMITIVE] = "primitive",
+static const char *const jsmn_types[] = { [JSMN_PRIMITIVE] = "primitive",
 	[JSMN_ARRAY] = "array",
 	[JSMN_OBJECT] = "object",
-	[JSMN_STRING] = "string"
-};
+	[JSMN_STRING] = "string" };
 
-#define LOOKUP(a, i) ((i) < (sizeof(a)/sizeof(*(a))) ? ((a)[i]) : "?")
+#define LOOKUP(a, i) ((i) < (sizeof(a) / sizeof(*(a))) ? ((a)[i]) : "?")
 
 /* Return type name of a jsmn token */
-const char *json_name(jsmntok_t *t)
+const char *
+json_name(jsmntok_t *t)
 {
 	return LOOKUP(jsmn_types, t->type);
 }
 
-int json_len(jsmntok_t *t)
+int
+json_len(jsmntok_t *t)
 {
 	return t->end - t->start;
 }
 
 /* Is string t equal to s? */
-int json_streq(char *map, jsmntok_t *t, const char *s)
+int
+json_streq(char *map, jsmntok_t *t, const char *s)
 {
 	unsigned len = json_len(t);
 	return len == strlen(s) && !strncasecmp(map + t->start, s, len);

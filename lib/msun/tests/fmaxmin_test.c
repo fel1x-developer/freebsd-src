@@ -29,6 +29,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <fenv.h>
 #include <float.h>
 #include <math.h>
@@ -42,17 +43,19 @@
  * Test whether func(x, y) has the expected result, and make sure no
  * exceptions are raised.
  */
-#define	TEST(func, type, x, y, expected, rmode) do {			      \
-	type __x = (x);	/* convert before we clear exceptions */	      \
-	type __y = (y);							      \
-	ATF_REQUIRE_EQ(0, feclearexcept(ALL_STD_EXCEPT));		      \
-	long double __result = func((__x), (__y));			      \
-	CHECK_FP_EXCEPTIONS_MSG(0, ALL_STD_EXCEPT,			      \
-	    #func "(%.20Lg, %.20Lg) rmode%d", (x), (y), rmode);		      \
-	ATF_CHECK_MSG(fpequal_cs(__result, (expected), true),		      \
-	    #func "(%.20Lg, %.20Lg) rmode%d = %.20Lg, expected %.20Lg\n",     \
-	    (x), (y), rmode, __result, (expected));			      \
-} while (0)
+#define TEST(func, type, x, y, expected, rmode)                             \
+	do {                                                                \
+		type __x = (x); /* convert before we clear exceptions */    \
+		type __y = (y);                                             \
+		ATF_REQUIRE_EQ(0, feclearexcept(ALL_STD_EXCEPT));           \
+		long double __result = func((__x), (__y));                  \
+		CHECK_FP_EXCEPTIONS_MSG(0, ALL_STD_EXCEPT,                  \
+		    #func "(%.20Lg, %.20Lg) rmode%d", (x), (y), rmode);     \
+		ATF_CHECK_MSG(fpequal_cs(__result, (expected), true),       \
+		    #func                                                   \
+		    "(%.20Lg, %.20Lg) rmode%d = %.20Lg, expected %.20Lg\n", \
+		    (x), (y), rmode, __result, (expected));                 \
+	} while (0)
 
 static void
 testall_r(long double big, long double small, int rmode)
@@ -81,9 +84,8 @@ testall_r(long double big, long double small, int rmode)
 static void
 testall(long double big, long double small)
 {
-	static const int rmodes[] = {
-		FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO
-	};
+	static const int rmodes[] = { FE_TONEAREST, FE_UPWARD, FE_DOWNWARD,
+		FE_TOWARDZERO };
 	int i;
 
 	for (i = 0; i < 4; i++) {
@@ -162,7 +164,6 @@ ATF_TC_BODY(test12, tc)
 	/* This test isn't strictly required to work by C99. */
 	testall(0.0, -0.0);
 }
-
 
 ATF_TP_ADD_TCS(tp)
 {

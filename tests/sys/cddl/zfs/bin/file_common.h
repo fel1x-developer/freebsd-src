@@ -25,8 +25,7 @@
  */
 
 #ifndef FILE_COMMON_H
-#define	FILE_COMMON_H
-
+#define FILE_COMMON_H
 
 /*
  * header file for file_* utilities. These utilities
@@ -40,18 +39,19 @@ extern "C" {
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
-#define	BLOCKSZ		8192
-#define	DATA		0xa5
-#define	DATA_RANGE	120
-#define	BIGBUFFERSIZE	0x800000
-#define	BIGFILESIZE	20
+#define BLOCKSZ 8192
+#define DATA 0xa5
+#define DATA_RANGE 120
+#define BIGBUFFERSIZE 0x800000
+#define BIGFILESIZE 20
 
 extern char *optarg;
 extern int optind, opterr, optopt;

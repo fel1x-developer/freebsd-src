@@ -27,9 +27,9 @@
  */
 
 struct probe {
-  unsigned select_changes_time : 1;
+	unsigned select_changes_time : 1;
 #ifndef NOINET6
-  unsigned ipv6_available : 1;
+	unsigned ipv6_available : 1;
 #endif
 };
 

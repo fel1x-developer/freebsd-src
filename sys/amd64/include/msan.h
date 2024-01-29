@@ -29,13 +29,14 @@
  */
 
 #ifndef _MACHINE_MSAN_H_
-#define	_MACHINE_MSAN_H_
+#define _MACHINE_MSAN_H_
 
 #ifdef KMSAN
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
 #include <vm/vm_page.h>
+
 #include <machine/vmparam.h>
 
 typedef uint32_t msan_orig_t;
@@ -45,14 +46,14 @@ typedef uint32_t msan_orig_t;
  * instruction.  The pointer is compressed by making it a positive offset
  * relative to KERNBASE.
  */
-#define	KMSAN_ORIG_TYPE_SHIFT	30u
-#define	KMSAN_ORIG_PTR_MASK	((1u << KMSAN_ORIG_TYPE_SHIFT) - 1)
+#define KMSAN_ORIG_TYPE_SHIFT 30u
+#define KMSAN_ORIG_PTR_MASK ((1u << KMSAN_ORIG_TYPE_SHIFT) - 1)
 
 static inline msan_orig_t
 kmsan_md_orig_encode(int type, uintptr_t ptr)
 {
-	return ((type << KMSAN_ORIG_TYPE_SHIFT) |
-	    ((ptr & KMSAN_ORIG_PTR_MASK)));
+	return (
+	    (type << KMSAN_ORIG_TYPE_SHIFT) | ((ptr & KMSAN_ORIG_PTR_MASK)));
 }
 
 static inline void

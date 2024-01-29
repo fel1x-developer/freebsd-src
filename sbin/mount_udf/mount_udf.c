@@ -40,35 +40,30 @@
  * because UDF doesn't take any options at this time.
  */
 
+#include <sys/param.h>
 #include <sys/cdio.h>
 #include <sys/file.h>
 #include <sys/iconv.h>
-#include <sys/param.h>
 #include <sys/linker.h>
 #include <sys/module.h>
 #include <sys/mount.h>
 #include <sys/uio.h>
 
-#include <fs/udf/udf_mount.h>
-
 #include <err.h>
 #include <errno.h>
-#include <stdlib.h>
+#include <fs/udf/udf_mount.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
 
 #include "mntopts.h"
 
-static struct mntopt mopts[] = {
-	MOPT_STDOPTS,
-	MOPT_UPDATE,
-	MOPT_END
-};
+static struct mntopt mopts[] = { MOPT_STDOPTS, MOPT_UPDATE, MOPT_END };
 
-int	set_charset(char **, char **, const char *);
-void	usage(void);
+int set_charset(char **, char **, const char *);
+void usage(void);
 
 int
 main(int argc, char **argv)
@@ -141,7 +136,8 @@ set_charset(char **cs_disk, char **cs_local, const char *localcs)
 
 	if (modfind("udf_iconv") < 0)
 		if (kldload("udf_iconv") < 0 || modfind("udf_iconv") < 0) {
-			warnx( "cannot find or load \"udf_iconv\" kernel module");
+			warnx(
+			    "cannot find or load \"udf_iconv\" kernel module");
 			return (-1);
 		}
 
@@ -162,6 +158,6 @@ void
 usage(void)
 {
 	(void)fprintf(stderr,
-		"usage: mount_udf [-v] [-o options] [-C charset] special node\n");
+	    "usage: mount_udf [-v] [-o options] [-C charset] special node\n");
 	exit(EX_USAGE);
 }

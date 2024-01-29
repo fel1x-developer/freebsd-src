@@ -1,11 +1,11 @@
-/* 
+/*
  * hwaddr.h
  */
 
-#ifndef	HWADDR_H
+#ifndef HWADDR_H
 #define HWADDR_H
 
-#define MAXHADDRLEN		8	/* Max hw address length in bytes */
+#define MAXHADDRLEN 8 /* Max hw address length in bytes */
 
 /*
  * This structure holds information about a specific network type.  The
@@ -13,8 +13,8 @@
  * The string pointed to by "name" is the cononical name of the network.
  */
 struct hwinfo {
-    unsigned int hlen;
-    char *name;
+	unsigned int hlen;
+	char *name;
 };
 
 extern struct hwinfo hwinfolist[];
@@ -28,7 +28,7 @@ extern void haddr_conv802(u_char *, u_char *, int);
  * Return the length in bytes of a hardware address of the given type.
  * Return the canonical name of the network of the given type.
  */
-#define haddrlength(type)	((hwinfolist[(int) (type)]).hlen)
-#define netname(type)		((hwinfolist[(int) (type)]).name)
+#define haddrlength(type) ((hwinfolist[(int)(type)]).hlen)
+#define netname(type) ((hwinfolist[(int)(type)]).name)
 
-#endif	/* HWADDR_H */
+#endif /* HWADDR_H */

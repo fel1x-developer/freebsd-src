@@ -185,24 +185,24 @@ enum vf2pf_blkmsg_req_type {
 	ADF_VF2PF_BLKMSG_REQ_RING_SVC_MAP = 0x03,
 };
 
-#define ADF_VF2PF_SMALL_BLOCK_TYPE_MAX                                         \
+#define ADF_VF2PF_SMALL_BLOCK_TYPE_MAX \
 	(FIELD_MAX(ADF_VF2PF_SMALL_BLOCK_TYPE_MASK))
 
-#define ADF_VF2PF_MEDIUM_BLOCK_TYPE_MAX                                        \
-	(FIELD_MAX(ADF_VF2PF_MEDIUM_BLOCK_TYPE_MASK) +                         \
-	 ADF_VF2PF_SMALL_BLOCK_TYPE_MAX + 1)
+#define ADF_VF2PF_MEDIUM_BLOCK_TYPE_MAX                \
+	(FIELD_MAX(ADF_VF2PF_MEDIUM_BLOCK_TYPE_MASK) + \
+	    ADF_VF2PF_SMALL_BLOCK_TYPE_MAX + 1)
 
-#define ADF_VF2PF_LARGE_BLOCK_TYPE_MAX                                         \
-	(FIELD_MAX(ADF_VF2PF_LARGE_BLOCK_TYPE_MASK) +                          \
-	 ADF_VF2PF_MEDIUM_BLOCK_TYPE_MAX)
+#define ADF_VF2PF_LARGE_BLOCK_TYPE_MAX                \
+	(FIELD_MAX(ADF_VF2PF_LARGE_BLOCK_TYPE_MASK) + \
+	    ADF_VF2PF_MEDIUM_BLOCK_TYPE_MAX)
 
-#define ADF_VF2PF_SMALL_BLOCK_BYTE_MAX                                         \
+#define ADF_VF2PF_SMALL_BLOCK_BYTE_MAX \
 	FIELD_MAX(ADF_VF2PF_SMALL_BLOCK_BYTE_MASK)
 
-#define ADF_VF2PF_MEDIUM_BLOCK_BYTE_MAX                                        \
+#define ADF_VF2PF_MEDIUM_BLOCK_BYTE_MAX \
 	FIELD_MAX(ADF_VF2PF_MEDIUM_BLOCK_BYTE_MASK)
 
-#define ADF_VF2PF_LARGE_BLOCK_BYTE_MAX                                         \
+#define ADF_VF2PF_LARGE_BLOCK_BYTE_MAX \
 	FIELD_MAX(ADF_VF2PF_LARGE_BLOCK_BYTE_MASK)
 
 struct pfvf_blkmsg_header {
@@ -211,9 +211,9 @@ struct pfvf_blkmsg_header {
 } __packed;
 
 #define ADF_PFVF_BLKMSG_HEADER_SIZE (sizeof(struct pfvf_blkmsg_header))
-#define ADF_PFVF_BLKMSG_PAYLOAD_SIZE(blkmsg)                                   \
+#define ADF_PFVF_BLKMSG_PAYLOAD_SIZE(blkmsg) \
 	(sizeof(blkmsg) - ADF_PFVF_BLKMSG_HEADER_SIZE)
-#define ADF_PFVF_BLKMSG_MSG_SIZE(blkmsg)                                       \
+#define ADF_PFVF_BLKMSG_MSG_SIZE(blkmsg) \
 	(ADF_PFVF_BLKMSG_HEADER_SIZE + (blkmsg)->hdr.payload_size)
 #define ADF_PFVF_BLKMSG_MSG_MAX_SIZE 128
 

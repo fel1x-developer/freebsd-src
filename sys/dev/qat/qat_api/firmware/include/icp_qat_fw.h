@@ -17,34 +17,34 @@
 #define _ICP_QAT_FW_H_
 
 /*
-* ==============================
-* General Notes on the Interface
-*/
+ * ==============================
+ * General Notes on the Interface
+ */
 
 /*
-*
-* ==============================
-*
-* Introduction
-*
-* Data movement and slice chaining
-*
-* Endianness
-*      - Unless otherwise stated, all structures are defined in LITTLE ENDIAN
-*        MODE
-*
-* Alignment
-*      - In general all data structures provided to a request should be aligned
-*      on the 64 byte boundary so as to allow optimal memory transfers. At the
-*      minimum they must be aligned to the 8 byte boundary
-*
-* Sizes
-*   Quad words = 8 bytes
-*
-* Terminology
-*
-* ==============================
-*/
+ *
+ * ==============================
+ *
+ * Introduction
+ *
+ * Data movement and slice chaining
+ *
+ * Endianness
+ *      - Unless otherwise stated, all structures are defined in LITTLE ENDIAN
+ *        MODE
+ *
+ * Alignment
+ *      - In general all data structures provided to a request should be aligned
+ *      on the 64 byte boundary so as to allow optimal memory transfers. At the
+ *      minimum they must be aligned to the 8 byte boundary
+ *
+ * Sizes
+ *   Quad words = 8 bytes
+ *
+ * Terminology
+ *
+ * ==============================
+ */
 
 /*
 ******************************************************************************
@@ -55,13 +55,13 @@
 #include "icp_qat_hw.h"
 
 /* Big assumptions that both bitpos and mask are constants */
-#define QAT_FIELD_SET(flags, val, bitpos, mask)                                \
-	(flags) = (((flags) & (~((mask) << (bitpos)))) |                       \
-		   (((val) & (mask)) << (bitpos)))
+#define QAT_FIELD_SET(flags, val, bitpos, mask)          \
+	(flags) = (((flags) & (~((mask) << (bitpos)))) | \
+	    (((val) & (mask)) << (bitpos)))
 
 #define QAT_FIELD_GET(flags, bitpos, mask) (((flags) >> (bitpos)) & (mask))
-#define QAT_FLAG_SET(flags, val, bitpos)                                       \
-	((flags) = (((flags) & (~(1 << (bitpos)))) | (((val)&1) << (bitpos))))
+#define QAT_FLAG_SET(flags, val, bitpos) \
+	((flags) = (((flags) & (~(1 << (bitpos)))) | (((val) & 1) << (bitpos))))
 
 #define QAT_FLAG_CLEAR(flags, bitpos) (flags) = ((flags) & (~(1 << (bitpos))))
 
@@ -105,7 +105,7 @@
  *****************************************************************************/
 
 typedef enum {
-	ICP_QAT_FW_COMN_RESP_SERV_NULL,     /**< NULL service id type */
+	ICP_QAT_FW_COMN_RESP_SERV_NULL,	    /**< NULL service id type */
 	ICP_QAT_FW_COMN_RESP_SERV_CPM_FW,   /**< CPM FW Service ID */
 	ICP_QAT_FW_COMN_RESP_SERV_DELIMITER /**< Delimiter service id type */
 } icp_qat_fw_comn_resp_serv_id_t;
@@ -121,12 +121,12 @@ typedef enum {
  *****************************************************************************/
 
 typedef enum {
-	ICP_QAT_FW_COMN_REQ_NULL = 0,	/**< NULL request type */
+	ICP_QAT_FW_COMN_REQ_NULL = 0,	     /**< NULL request type */
 	ICP_QAT_FW_COMN_REQ_CPM_FW_PKE = 3,  /**< CPM FW PKE Request */
 	ICP_QAT_FW_COMN_REQ_CPM_FW_LA = 4,   /**< CPM FW Lookaside Request */
 	ICP_QAT_FW_COMN_REQ_CPM_FW_DMA = 7,  /**< CPM FW DMA Request */
 	ICP_QAT_FW_COMN_REQ_CPM_FW_COMP = 9, /**< CPM FW Compression Request */
-	ICP_QAT_FW_COMN_REQ_DELIMITER	/**< End delimiter */
+	ICP_QAT_FW_COMN_REQ_DELIMITER	     /**< End delimiter */
 
 } icp_qat_fw_comn_request_id_t;
 
@@ -556,7 +556,7 @@ typedef struct icp_qat_fw_comn_resp_s {
  *                                   to extract the Service Type Field
  *
  *****************************************************************************/
-#define ICP_QAT_FW_COMN_OV_SRV_TYPE_GET(icp_qat_fw_comn_req_hdr_t)             \
+#define ICP_QAT_FW_COMN_OV_SRV_TYPE_GET(icp_qat_fw_comn_req_hdr_t) \
 	icp_qat_fw_comn_req_hdr_t.service_type
 
 /**
@@ -571,7 +571,7 @@ typedef struct icp_qat_fw_comn_resp_s {
  * @param val    Value of the Service Type Field
  *
  *****************************************************************************/
-#define ICP_QAT_FW_COMN_OV_SRV_TYPE_SET(icp_qat_fw_comn_req_hdr_t, val)        \
+#define ICP_QAT_FW_COMN_OV_SRV_TYPE_SET(icp_qat_fw_comn_req_hdr_t, val) \
 	icp_qat_fw_comn_req_hdr_t.service_type = val
 
 /**
@@ -585,7 +585,7 @@ typedef struct icp_qat_fw_comn_resp_s {
  *                                   to extract the Service Command Id Field
  *
  *****************************************************************************/
-#define ICP_QAT_FW_COMN_OV_SRV_CMD_ID_GET(icp_qat_fw_comn_req_hdr_t)           \
+#define ICP_QAT_FW_COMN_OV_SRV_CMD_ID_GET(icp_qat_fw_comn_req_hdr_t) \
 	icp_qat_fw_comn_req_hdr_t.service_cmd_id
 
 /**
@@ -600,7 +600,7 @@ typedef struct icp_qat_fw_comn_resp_s {
  * @param val    Value of the Service Command Id Field
  *
  *****************************************************************************/
-#define ICP_QAT_FW_COMN_OV_SRV_CMD_ID_SET(icp_qat_fw_comn_req_hdr_t, val)      \
+#define ICP_QAT_FW_COMN_OV_SRV_CMD_ID_SET(icp_qat_fw_comn_req_hdr_t, val) \
 	icp_qat_fw_comn_req_hdr_t.service_cmd_id = val
 
 /**
@@ -614,7 +614,7 @@ typedef struct icp_qat_fw_comn_resp_s {
  *               from the  'hdr_flags' field.
  *
  *****************************************************************************/
-#define ICP_QAT_FW_COMN_HDR_VALID_FLAG_GET(hdr_t)                              \
+#define ICP_QAT_FW_COMN_HDR_VALID_FLAG_GET(hdr_t) \
 	ICP_QAT_FW_COMN_VALID_FLAG_GET(hdr_t.hdr_flags)
 
 /**
@@ -628,10 +628,9 @@ typedef struct icp_qat_fw_comn_resp_s {
  *               from the  'hdr_flags' field.
  *
  *****************************************************************************/
-#define ICP_QAT_FW_COMN_HDR_CNVNR_FLAG_GET(hdr_flags)                          \
-	QAT_FIELD_GET(hdr_flags,                                               \
-		      ICP_QAT_FW_COMN_CNVNR_FLAG_BITPOS,                       \
-		      ICP_QAT_FW_COMN_CNVNR_FLAG_MASK)
+#define ICP_QAT_FW_COMN_HDR_CNVNR_FLAG_GET(hdr_flags)               \
+	QAT_FIELD_GET(hdr_flags, ICP_QAT_FW_COMN_CNVNR_FLAG_BITPOS, \
+	    ICP_QAT_FW_COMN_CNVNR_FLAG_MASK)
 
 /**
  ******************************************************************************
@@ -644,10 +643,9 @@ typedef struct icp_qat_fw_comn_resp_s {
  *               from the  'hdr_flags' field.
  *
  *****************************************************************************/
-#define ICP_QAT_FW_COMN_HDR_CNV_FLAG_GET(hdr_flags)                            \
-	QAT_FIELD_GET(hdr_flags,                                               \
-		      ICP_QAT_FW_COMN_CNV_FLAG_BITPOS,                         \
-		      ICP_QAT_FW_COMN_CNV_FLAG_MASK)
+#define ICP_QAT_FW_COMN_HDR_CNV_FLAG_GET(hdr_flags)               \
+	QAT_FIELD_GET(hdr_flags, ICP_QAT_FW_COMN_CNV_FLAG_BITPOS, \
+	    ICP_QAT_FW_COMN_CNV_FLAG_MASK)
 
 /**
  ******************************************************************************
@@ -660,7 +658,7 @@ typedef struct icp_qat_fw_comn_resp_s {
  * @param val    Value of the valid bit flag.
  *
  *****************************************************************************/
-#define ICP_QAT_FW_COMN_HDR_VALID_FLAG_SET(hdr_t, val)                         \
+#define ICP_QAT_FW_COMN_HDR_VALID_FLAG_SET(hdr_t, val) \
 	ICP_QAT_FW_COMN_VALID_FLAG_SET(hdr_t, val)
 
 /**
@@ -675,10 +673,9 @@ typedef struct icp_qat_fw_comn_resp_s {
  *               valid bit from the 'hdr_flags' field.
  *
  *****************************************************************************/
-#define ICP_QAT_FW_COMN_VALID_FLAG_GET(hdr_flags)                              \
-	QAT_FIELD_GET(hdr_flags,                                               \
-		      ICP_QAT_FW_COMN_VALID_FLAG_BITPOS,                       \
-		      ICP_QAT_FW_COMN_VALID_FLAG_MASK)
+#define ICP_QAT_FW_COMN_VALID_FLAG_GET(hdr_flags)                   \
+	QAT_FIELD_GET(hdr_flags, ICP_QAT_FW_COMN_VALID_FLAG_BITPOS, \
+	    ICP_QAT_FW_COMN_VALID_FLAG_MASK)
 
 /**
  ******************************************************************************
@@ -692,10 +689,9 @@ typedef struct icp_qat_fw_comn_resp_s {
  *                   Stored Block bit from the 'hdr_flags' field.
  *
  *****************************************************************************/
-#define ICP_QAT_FW_COMN_HDR_ST_BLK_FLAG_GET(hdr_flags)                         \
-	QAT_FIELD_GET(hdr_flags,                                               \
-		      ICP_QAT_FW_COMN_ST_BLK_FLAG_BITPOS,                      \
-		      ICP_QAT_FW_COMN_ST_BLK_FLAG_MASK)
+#define ICP_QAT_FW_COMN_HDR_ST_BLK_FLAG_GET(hdr_flags)               \
+	QAT_FIELD_GET(hdr_flags, ICP_QAT_FW_COMN_ST_BLK_FLAG_BITPOS, \
+	    ICP_QAT_FW_COMN_ST_BLK_FLAG_MASK)
 
 /**
  ******************************************************************************
@@ -708,11 +704,10 @@ typedef struct icp_qat_fw_comn_resp_s {
  * @param val    Value of the ST_BLK bit flag.
  *
  *****************************************************************************/
-#define ICP_QAT_FW_COMN_HDR_ST_BLK_FLAG_SET(hdr_t, val)                        \
-	QAT_FIELD_SET((hdr_t.hdr_flags),                                       \
-		      (val),                                                   \
-		      ICP_QAT_FW_COMN_ST_BLK_FLAG_BITPOS,                      \
-		      ICP_QAT_FW_COMN_ST_BLK_FLAG_MASK)
+#define ICP_QAT_FW_COMN_HDR_ST_BLK_FLAG_SET(hdr_t, val) \
+	QAT_FIELD_SET((hdr_t.hdr_flags), (val),         \
+	    ICP_QAT_FW_COMN_ST_BLK_FLAG_BITPOS,         \
+	    ICP_QAT_FW_COMN_ST_BLK_FLAG_MASK)
 
 /**
  ******************************************************************************
@@ -725,7 +720,7 @@ typedef struct icp_qat_fw_comn_resp_s {
  * @param val    Value of the generation bit flag.
  *
  *****************************************************************************/
-#define ICP_QAT_FW_COMN_HDR_GENERATION_FLAG_SET(hdr_t, val)                    \
+#define ICP_QAT_FW_COMN_HDR_GENERATION_FLAG_SET(hdr_t, val) \
 	ICP_QAT_FW_COMN_GENERATION_FLAG_SET(hdr_t, val)
 
 /**
@@ -740,11 +735,9 @@ typedef struct icp_qat_fw_comn_resp_s {
 * @param val    Value of the generation bit flag.
 *
 *****************************************************************************/
-#define ICP_QAT_FW_COMN_GENERATION_FLAG_SET(hdr_t, val)                        \
-	QAT_FIELD_SET((hdr_t.hdr_flags),                                       \
-		      (val),                                                   \
-		      ICP_QAT_FW_COMN_GEN_FLAG_BITPOS,                         \
-		      ICP_QAT_FW_COMN_GEN_FLAG_MASK)
+#define ICP_QAT_FW_COMN_GENERATION_FLAG_SET(hdr_t, val) \
+	QAT_FIELD_SET((hdr_t.hdr_flags), (val),         \
+	    ICP_QAT_FW_COMN_GEN_FLAG_BITPOS, ICP_QAT_FW_COMN_GEN_FLAG_MASK)
 
 /**
 ******************************************************************************
@@ -759,10 +752,9 @@ typedef struct icp_qat_fw_comn_resp_s {
 *
 *****************************************************************************/
 
-#define ICP_QAT_FW_COMN_HDR_GENERATION_FLAG_GET(hdr_flags)                     \
-	QAT_FIELD_GET(hdr_flags,                                               \
-		      ICP_QAT_FW_COMN_GEN_FLAG_BITPOS,                         \
-		      ICP_QAT_FW_COMN_GEN_FLAG_MASK)
+#define ICP_QAT_FW_COMN_HDR_GENERATION_FLAG_GET(hdr_flags)        \
+	QAT_FIELD_GET(hdr_flags, ICP_QAT_FW_COMN_GEN_FLAG_BITPOS, \
+	    ICP_QAT_FW_COMN_GEN_FLAG_MASK)
 /**
  ******************************************************************************
  * @ingroup icp_qat_fw_comn
@@ -776,7 +768,7 @@ typedef struct icp_qat_fw_comn_resp_s {
  *               valid flag).
  *
  *****************************************************************************/
-#define ICP_QAT_FW_COMN_HDR_RESRVD_FLD_GET(hdr_flags)                          \
+#define ICP_QAT_FW_COMN_HDR_RESRVD_FLD_GET(hdr_flags) \
 	(hdr_flags & ICP_QAT_FW_COMN_HDR_RESRVD_FLD_MASK)
 
 /**
@@ -792,11 +784,10 @@ typedef struct icp_qat_fw_comn_resp_s {
  * @param val    Value of the valid bit flag.
  *
  *****************************************************************************/
-#define ICP_QAT_FW_COMN_VALID_FLAG_SET(hdr_t, val)                             \
-	QAT_FIELD_SET((hdr_t.hdr_flags),                                       \
-		      (val),                                                   \
-		      ICP_QAT_FW_COMN_VALID_FLAG_BITPOS,                       \
-		      ICP_QAT_FW_COMN_VALID_FLAG_MASK)
+#define ICP_QAT_FW_COMN_VALID_FLAG_SET(hdr_t, val) \
+	QAT_FIELD_SET((hdr_t.hdr_flags), (val),    \
+	    ICP_QAT_FW_COMN_VALID_FLAG_BITPOS,     \
+	    ICP_QAT_FW_COMN_VALID_FLAG_MASK)
 
 /**
 ******************************************************************************
@@ -809,9 +800,9 @@ typedef struct icp_qat_fw_comn_resp_s {
 * @param ptr   Value of the valid flag
 *****************************************************************************/
 
-#define ICP_QAT_FW_COMN_HDR_FLAGS_BUILD(valid)                                 \
-	(((valid)&ICP_QAT_FW_COMN_VALID_FLAG_MASK)                             \
-	 << ICP_QAT_FW_COMN_VALID_FLAG_BITPOS)
+#define ICP_QAT_FW_COMN_HDR_FLAGS_BUILD(valid)       \
+	(((valid) & ICP_QAT_FW_COMN_VALID_FLAG_MASK) \
+	    << ICP_QAT_FW_COMN_VALID_FLAG_BITPOS)
 
 /*
  *  < @ingroup icp_qat_fw_comn
@@ -916,9 +907,10 @@ typedef struct icp_qat_fw_comn_resp_s {
 * @param ptr   Value of the pointer type flag
 * @param cdt   Value of the cd field type flag
 *****************************************************************************/
-#define ICP_QAT_FW_COMN_FLAGS_BUILD(cdt, ptr)                                  \
-	((((cdt)&QAT_COMN_CD_FLD_TYPE_MASK) << QAT_COMN_CD_FLD_TYPE_BITPOS) |  \
-	 (((ptr)&QAT_COMN_PTR_TYPE_MASK) << QAT_COMN_PTR_TYPE_BITPOS))
+#define ICP_QAT_FW_COMN_FLAGS_BUILD(cdt, ptr)  \
+	((((cdt) & QAT_COMN_CD_FLD_TYPE_MASK)  \
+	     << QAT_COMN_CD_FLD_TYPE_BITPOS) | \
+	    (((ptr) & QAT_COMN_PTR_TYPE_MASK) << QAT_COMN_PTR_TYPE_BITPOS))
 
 /**
 ******************************************************************************
@@ -933,10 +925,12 @@ typedef struct icp_qat_fw_comn_resp_s {
 * @param cdt   Value of the cd field type flag
 * @param bnp   Value of the bnp enabled flag
 *****************************************************************************/
-#define ICP_QAT_FW_COMN_FLAGS_BUILD_BNP(cdt, ptr, bnp)                         \
-	((((cdt)&QAT_COMN_CD_FLD_TYPE_MASK) << QAT_COMN_CD_FLD_TYPE_BITPOS) |  \
-	 (((ptr)&QAT_COMN_PTR_TYPE_MASK) << QAT_COMN_PTR_TYPE_BITPOS) |        \
-	 (((bnp)&QAT_COMN_BNP_ENABLED_MASK) << QAT_COMN_BNP_ENABLED_BITPOS))
+#define ICP_QAT_FW_COMN_FLAGS_BUILD_BNP(cdt, ptr, bnp)                       \
+	((((cdt) & QAT_COMN_CD_FLD_TYPE_MASK)                                \
+	     << QAT_COMN_CD_FLD_TYPE_BITPOS) |                               \
+	    (((ptr) & QAT_COMN_PTR_TYPE_MASK) << QAT_COMN_PTR_TYPE_BITPOS) | \
+	    (((bnp) & QAT_COMN_BNP_ENABLED_MASK)                             \
+		<< QAT_COMN_BNP_ENABLED_BITPOS))
 
 /**
  ******************************************************************************
@@ -948,7 +942,7 @@ typedef struct icp_qat_fw_comn_resp_s {
  * @param flags      Flags to extract the pointer type bit from
  *
  *****************************************************************************/
-#define ICP_QAT_FW_COMN_PTR_TYPE_GET(flags)                                    \
+#define ICP_QAT_FW_COMN_PTR_TYPE_GET(flags) \
 	QAT_FIELD_GET(flags, QAT_COMN_PTR_TYPE_BITPOS, QAT_COMN_PTR_TYPE_MASK)
 
 /**
@@ -961,10 +955,9 @@ typedef struct icp_qat_fw_comn_resp_s {
  * @param flags      Flags to extract the cd field type type bit from
  *
  *****************************************************************************/
-#define ICP_QAT_FW_COMN_CD_FLD_TYPE_GET(flags)                                 \
-	QAT_FIELD_GET(flags,                                                   \
-		      QAT_COMN_CD_FLD_TYPE_BITPOS,                             \
-		      QAT_COMN_CD_FLD_TYPE_MASK)
+#define ICP_QAT_FW_COMN_CD_FLD_TYPE_GET(flags)            \
+	QAT_FIELD_GET(flags, QAT_COMN_CD_FLD_TYPE_BITPOS, \
+	    QAT_COMN_CD_FLD_TYPE_MASK)
 
 /**
  ******************************************************************************
@@ -976,10 +969,9 @@ typedef struct icp_qat_fw_comn_resp_s {
  * @param flags      Flags to extract the bnp field type type bit from
  *
  *****************************************************************************/
-#define ICP_QAT_FW_COMN_BNP_ENABLED_GET(flags)                                 \
-	QAT_FIELD_GET(flags,                                                   \
-		      QAT_COMN_BNP_ENABLED_BITPOS,                             \
-		      QAT_COMN_BNP_ENABLED_MASK)
+#define ICP_QAT_FW_COMN_BNP_ENABLED_GET(flags)            \
+	QAT_FIELD_GET(flags, QAT_COMN_BNP_ENABLED_BITPOS, \
+	    QAT_COMN_BNP_ENABLED_MASK)
 
 /**
  ******************************************************************************
@@ -992,11 +984,9 @@ typedef struct icp_qat_fw_comn_resp_s {
  * @param val        Value of the bit to be set in flags
  *
  *****************************************************************************/
-#define ICP_QAT_FW_COMN_PTR_TYPE_SET(flags, val)                               \
-	QAT_FIELD_SET(flags,                                                   \
-		      val,                                                     \
-		      QAT_COMN_PTR_TYPE_BITPOS,                                \
-		      QAT_COMN_PTR_TYPE_MASK)
+#define ICP_QAT_FW_COMN_PTR_TYPE_SET(flags, val)            \
+	QAT_FIELD_SET(flags, val, QAT_COMN_PTR_TYPE_BITPOS, \
+	    QAT_COMN_PTR_TYPE_MASK)
 
 /**
  ******************************************************************************
@@ -1009,11 +999,9 @@ typedef struct icp_qat_fw_comn_resp_s {
  * @param val        Value of the bit to be set in flags
  *
  *****************************************************************************/
-#define ICP_QAT_FW_COMN_CD_FLD_TYPE_SET(flags, val)                            \
-	QAT_FIELD_SET(flags,                                                   \
-		      val,                                                     \
-		      QAT_COMN_CD_FLD_TYPE_BITPOS,                             \
-		      QAT_COMN_CD_FLD_TYPE_MASK)
+#define ICP_QAT_FW_COMN_CD_FLD_TYPE_SET(flags, val)            \
+	QAT_FIELD_SET(flags, val, QAT_COMN_CD_FLD_TYPE_BITPOS, \
+	    QAT_COMN_CD_FLD_TYPE_MASK)
 
 /**
  ******************************************************************************
@@ -1026,11 +1014,9 @@ typedef struct icp_qat_fw_comn_resp_s {
  * @param val        Value of the bit to be set in flags
  *
  *****************************************************************************/
-#define ICP_QAT_FW_COMN_BNP_ENABLE_SET(flags, val)                             \
-	QAT_FIELD_SET(flags,                                                   \
-		      val,                                                     \
-		      QAT_COMN_BNP_ENABLED_BITPOS,                             \
-		      QAT_COMN_BNP_ENABLED_MASK)
+#define ICP_QAT_FW_COMN_BNP_ENABLE_SET(flags, val)             \
+	QAT_FIELD_SET(flags, val, QAT_COMN_BNP_ENABLED_BITPOS, \
+	    QAT_COMN_BNP_ENABLED_MASK)
 
 /**
  ******************************************************************************
@@ -1052,25 +1038,23 @@ typedef struct icp_qat_fw_comn_resp_s {
 #define ICP_QAT_FW_COMN_CURR_ID_BITPOS 0
 #define ICP_QAT_FW_COMN_CURR_ID_MASK 0x0F
 
-#define ICP_QAT_FW_COMN_NEXT_ID_GET(cd_ctrl_hdr_t)                             \
-	((((cd_ctrl_hdr_t)->next_curr_id) & ICP_QAT_FW_COMN_NEXT_ID_MASK) >>   \
-	 (ICP_QAT_FW_COMN_NEXT_ID_BITPOS))
+#define ICP_QAT_FW_COMN_NEXT_ID_GET(cd_ctrl_hdr_t)                           \
+	((((cd_ctrl_hdr_t)->next_curr_id) & ICP_QAT_FW_COMN_NEXT_ID_MASK) >> \
+	    (ICP_QAT_FW_COMN_NEXT_ID_BITPOS))
 
 #define ICP_QAT_FW_COMN_NEXT_ID_SET(cd_ctrl_hdr_t, val)                        \
-	((cd_ctrl_hdr_t)->next_curr_id) =                                      \
-	    ((((cd_ctrl_hdr_t)->next_curr_id) &                                \
-	      ICP_QAT_FW_COMN_CURR_ID_MASK) |                                  \
-	     ((val << ICP_QAT_FW_COMN_NEXT_ID_BITPOS) &                        \
-	      ICP_QAT_FW_COMN_NEXT_ID_MASK))
+	((cd_ctrl_hdr_t)->next_curr_id) = ((((cd_ctrl_hdr_t)->next_curr_id) &  \
+					       ICP_QAT_FW_COMN_CURR_ID_MASK) | \
+	    ((val << ICP_QAT_FW_COMN_NEXT_ID_BITPOS) &                         \
+		ICP_QAT_FW_COMN_NEXT_ID_MASK))
 
-#define ICP_QAT_FW_COMN_CURR_ID_GET(cd_ctrl_hdr_t)                             \
+#define ICP_QAT_FW_COMN_CURR_ID_GET(cd_ctrl_hdr_t) \
 	(((cd_ctrl_hdr_t)->next_curr_id) & ICP_QAT_FW_COMN_CURR_ID_MASK)
 
 #define ICP_QAT_FW_COMN_CURR_ID_SET(cd_ctrl_hdr_t, val)                        \
-	((cd_ctrl_hdr_t)->next_curr_id) =                                      \
-	    ((((cd_ctrl_hdr_t)->next_curr_id) &                                \
-	      ICP_QAT_FW_COMN_NEXT_ID_MASK) |                                  \
-	     ((val)&ICP_QAT_FW_COMN_CURR_ID_MASK))
+	((cd_ctrl_hdr_t)->next_curr_id) = ((((cd_ctrl_hdr_t)->next_curr_id) &  \
+					       ICP_QAT_FW_COMN_NEXT_ID_MASK) | \
+	    ((val) & ICP_QAT_FW_COMN_CURR_ID_MASK))
 
 /*
  *  < @ingroup icp_qat_fw_comn
@@ -1169,22 +1153,22 @@ typedef struct icp_qat_fw_comn_resp_s {
  * @param unsupp   Value of the Unsupported Request flag
  * @param xlt_inv  Value of the Invalid Translation flag
  *****************************************************************************/
-#define ICP_QAT_FW_COMN_RESP_STATUS_BUILD(                                     \
-    crypto, pke, comp, xlat, eolb, unsupp, xlt_inv)                            \
-	((((crypto)&QAT_COMN_RESP_CRYPTO_STATUS_MASK)                          \
-	  << QAT_COMN_RESP_CRYPTO_STATUS_BITPOS) |                             \
-	 (((pke)&QAT_COMN_RESP_PKE_STATUS_MASK)                                \
-	  << QAT_COMN_RESP_PKE_STATUS_BITPOS) |                                \
-	 (((xlt_inv)&QAT_COMN_RESP_XLT_INV_APPLIED_MASK)                       \
-	  << QAT_COMN_RESP_XLT_INV_APPLIED_BITPOS) |                           \
-	 (((comp)&QAT_COMN_RESP_CMP_STATUS_MASK)                               \
-	  << QAT_COMN_RESP_CMP_STATUS_BITPOS) |                                \
-	 (((xlat)&QAT_COMN_RESP_XLAT_STATUS_MASK)                              \
-	  << QAT_COMN_RESP_XLAT_STATUS_BITPOS) |                               \
-	 (((eolb)&QAT_COMN_RESP_CMP_END_OF_LAST_BLK_MASK)                      \
-	  << QAT_COMN_RESP_CMP_END_OF_LAST_BLK_BITPOS) |                       \
-	 (((unsupp)&QAT_COMN_RESP_UNSUPPORTED_REQUEST_BITPOS)                  \
-	  << QAT_COMN_RESP_UNSUPPORTED_REQUEST_MASK))
+#define ICP_QAT_FW_COMN_RESP_STATUS_BUILD(crypto, pke, comp, xlat, eolb, \
+    unsupp, xlt_inv)                                                     \
+	((((crypto) & QAT_COMN_RESP_CRYPTO_STATUS_MASK)                  \
+	     << QAT_COMN_RESP_CRYPTO_STATUS_BITPOS) |                    \
+	    (((pke) & QAT_COMN_RESP_PKE_STATUS_MASK)                     \
+		<< QAT_COMN_RESP_PKE_STATUS_BITPOS) |                    \
+	    (((xlt_inv) & QAT_COMN_RESP_XLT_INV_APPLIED_MASK)            \
+		<< QAT_COMN_RESP_XLT_INV_APPLIED_BITPOS) |               \
+	    (((comp) & QAT_COMN_RESP_CMP_STATUS_MASK)                    \
+		<< QAT_COMN_RESP_CMP_STATUS_BITPOS) |                    \
+	    (((xlat) & QAT_COMN_RESP_XLAT_STATUS_MASK)                   \
+		<< QAT_COMN_RESP_XLAT_STATUS_BITPOS) |                   \
+	    (((eolb) & QAT_COMN_RESP_CMP_END_OF_LAST_BLK_MASK)           \
+		<< QAT_COMN_RESP_CMP_END_OF_LAST_BLK_BITPOS) |           \
+	    (((unsupp) & QAT_COMN_RESP_UNSUPPORTED_REQUEST_BITPOS)       \
+		<< QAT_COMN_RESP_UNSUPPORTED_REQUEST_MASK))
 
 /* ========================================================================= */
 /*                                                                   GETTERS */
@@ -1200,10 +1184,9 @@ typedef struct icp_qat_fw_comn_resp_s {
  *      Status to extract the status bit from
  *
  *****************************************************************************/
-#define ICP_QAT_FW_COMN_RESP_CRYPTO_STAT_GET(status)                           \
-	QAT_FIELD_GET(status,                                                  \
-		      QAT_COMN_RESP_CRYPTO_STATUS_BITPOS,                      \
-		      QAT_COMN_RESP_CRYPTO_STATUS_MASK)
+#define ICP_QAT_FW_COMN_RESP_CRYPTO_STAT_GET(status)              \
+	QAT_FIELD_GET(status, QAT_COMN_RESP_CRYPTO_STATUS_BITPOS, \
+	    QAT_COMN_RESP_CRYPTO_STATUS_MASK)
 
 /**
  ******************************************************************************
@@ -1216,10 +1199,9 @@ typedef struct icp_qat_fw_comn_resp_s {
  *      Status to extract the status bit from
  *
  *****************************************************************************/
-#define ICP_QAT_FW_COMN_RESP_PKE_STAT_GET(status)                              \
-	QAT_FIELD_GET(status,                                                  \
-		      QAT_COMN_RESP_PKE_STATUS_BITPOS,                         \
-		      QAT_COMN_RESP_PKE_STATUS_MASK)
+#define ICP_QAT_FW_COMN_RESP_PKE_STAT_GET(status)              \
+	QAT_FIELD_GET(status, QAT_COMN_RESP_PKE_STATUS_BITPOS, \
+	    QAT_COMN_RESP_PKE_STATUS_MASK)
 
 /**
  ******************************************************************************
@@ -1232,10 +1214,9 @@ typedef struct icp_qat_fw_comn_resp_s {
  *      Status to extract the status bit from
  *
  *****************************************************************************/
-#define ICP_QAT_FW_COMN_RESP_CMP_STAT_GET(status)                              \
-	QAT_FIELD_GET(status,                                                  \
-		      QAT_COMN_RESP_CMP_STATUS_BITPOS,                         \
-		      QAT_COMN_RESP_CMP_STATUS_MASK)
+#define ICP_QAT_FW_COMN_RESP_CMP_STAT_GET(status)              \
+	QAT_FIELD_GET(status, QAT_COMN_RESP_CMP_STATUS_BITPOS, \
+	    QAT_COMN_RESP_CMP_STATUS_MASK)
 
 /**
  ******************************************************************************
@@ -1248,10 +1229,9 @@ typedef struct icp_qat_fw_comn_resp_s {
  *      Status to extract the status bit from
  *
  *****************************************************************************/
-#define ICP_QAT_FW_COMN_RESP_XLAT_STAT_GET(status)                             \
-	QAT_FIELD_GET(status,                                                  \
-		      QAT_COMN_RESP_XLAT_STATUS_BITPOS,                        \
-		      QAT_COMN_RESP_XLAT_STATUS_MASK)
+#define ICP_QAT_FW_COMN_RESP_XLAT_STAT_GET(status)              \
+	QAT_FIELD_GET(status, QAT_COMN_RESP_XLAT_STATUS_BITPOS, \
+	    QAT_COMN_RESP_XLAT_STATUS_MASK)
 
 /**
  ******************************************************************************
@@ -1265,10 +1245,9 @@ typedef struct icp_qat_fw_comn_resp_s {
  *      Status to extract the status bit from
  *
  *****************************************************************************/
-#define ICP_QAT_FW_COMN_RESP_XLT_INV_APPLIED_GET(status)                       \
-	QAT_FIELD_GET(status,                                                  \
-		      QAT_COMN_RESP_XLT_INV_APPLIED_BITPOS,                    \
-		      QAT_COMN_RESP_XLT_INV_APPLIED_MASK)
+#define ICP_QAT_FW_COMN_RESP_XLT_INV_APPLIED_GET(status)            \
+	QAT_FIELD_GET(status, QAT_COMN_RESP_XLT_INV_APPLIED_BITPOS, \
+	    QAT_COMN_RESP_XLT_INV_APPLIED_MASK)
 
 /**
  ******************************************************************************
@@ -1282,10 +1261,9 @@ typedef struct icp_qat_fw_comn_resp_s {
  *      Status to extract the status bit from
  *
  *****************************************************************************/
-#define ICP_QAT_FW_COMN_RESP_CMP_END_OF_LAST_BLK_FLAG_GET(status)              \
-	QAT_FIELD_GET(status,                                                  \
-		      QAT_COMN_RESP_CMP_END_OF_LAST_BLK_BITPOS,                \
-		      QAT_COMN_RESP_CMP_END_OF_LAST_BLK_MASK)
+#define ICP_QAT_FW_COMN_RESP_CMP_END_OF_LAST_BLK_FLAG_GET(status)       \
+	QAT_FIELD_GET(status, QAT_COMN_RESP_CMP_END_OF_LAST_BLK_BITPOS, \
+	    QAT_COMN_RESP_CMP_END_OF_LAST_BLK_MASK)
 
 /**
  ******************************************************************************
@@ -1298,10 +1276,9 @@ typedef struct icp_qat_fw_comn_resp_s {
  *      Status to extract the status bit from
  *
  *****************************************************************************/
-#define ICP_QAT_FW_COMN_RESP_UNSUPPORTED_REQUEST_STAT_GET(status)              \
-	QAT_FIELD_GET(status,                                                  \
-		      QAT_COMN_RESP_UNSUPPORTED_REQUEST_BITPOS,                \
-		      QAT_COMN_RESP_UNSUPPORTED_REQUEST_MASK)
+#define ICP_QAT_FW_COMN_RESP_UNSUPPORTED_REQUEST_STAT_GET(status)       \
+	QAT_FIELD_GET(status, QAT_COMN_RESP_UNSUPPORTED_REQUEST_BITPOS, \
+	    QAT_COMN_RESP_UNSUPPORTED_REQUEST_MASK)
 
 /* ========================================================================= */
 /*                                        Status Flag definitions */

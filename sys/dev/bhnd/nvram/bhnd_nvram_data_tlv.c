@@ -30,10 +30,10 @@
 #include <sys/cdefs.h>
 #ifdef _KERNEL
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/ctype.h>
 #include <sys/limits.h>
 #include <sys/malloc.h>
-#include <sys/systm.h>
 #else /* !_KERNEL */
 #include <ctype.h>
 #include <errno.h>
@@ -43,22 +43,20 @@
 #include <string.h>
 #endif /* _KERNEL */
 
-#include "bhnd_nvram_private.h"
-
-#include "bhnd_nvram_datavar.h"
-
 #include "bhnd_nvram_data_tlvreg.h"
+#include "bhnd_nvram_datavar.h"
+#include "bhnd_nvram_private.h"
 
 /*
  * CFE TLV NVRAM data class.
- * 
+ *
  * The CFE-defined TLV NVRAM format is used on the WGT634U.
  */
 
 struct bhnd_nvram_tlv {
-	struct bhnd_nvram_data	 nv;	/**< common instance state */
-	struct bhnd_nvram_io	*data;	/**< backing buffer */
-	size_t			 count;	/**< variable count */
+	struct bhnd_nvram_data nv;  /**< common instance state */
+	struct bhnd_nvram_io *data; /**< backing buffer */
+	size_t count;		    /**< variable count */
 };
 
 BHND_NVRAM_DATA_CLASS_DEFN(tlv, "WGT634U", BHND_NVRAM_DATA_CAP_DEVPATHS,
@@ -66,56 +64,49 @@ BHND_NVRAM_DATA_CLASS_DEFN(tlv, "WGT634U", BHND_NVRAM_DATA_CAP_DEVPATHS,
 
 /** Minimal TLV_ENV record header */
 struct bhnd_nvram_tlv_env_hdr {
-	uint8_t		tag;
-	uint8_t		size;
+	uint8_t tag;
+	uint8_t size;
 } __packed;
 
 /** Minimal TLV_ENV record */
 struct bhnd_nvram_tlv_env {
-	struct bhnd_nvram_tlv_env_hdr	hdr;
-	uint8_t				flags;
-	char				envp[];
+	struct bhnd_nvram_tlv_env_hdr hdr;
+	uint8_t flags;
+	char envp[];
 } __packed;
 
 /* Return the length in bytes of an TLV_ENV's envp data */
-#define	NVRAM_TLV_ENVP_DATA_LEN(_env)	\
-	(((_env)->hdr.size < sizeof((_env)->flags)) ? 0 :	\
-	    ((_env)->hdr.size - sizeof((_env)->flags)))
+#define NVRAM_TLV_ENVP_DATA_LEN(_env)                 \
+	(((_env)->hdr.size < sizeof((_env)->flags)) ? \
+		0 :                                   \
+		((_env)->hdr.size - sizeof((_env)->flags)))
 
 /* Maximum supported length of the envp data field, in bytes */
-#define	NVRAM_TLV_ENVP_DATA_MAX_LEN	\
-	(UINT8_MAX - sizeof(uint8_t) /* flags */)
+#define NVRAM_TLV_ENVP_DATA_MAX_LEN (UINT8_MAX - sizeof(uint8_t) /* flags */)
 
-static int				 bhnd_nvram_tlv_parse_size(
-					     struct bhnd_nvram_io *io,
-					     size_t *size);
+static int bhnd_nvram_tlv_parse_size(struct bhnd_nvram_io *io, size_t *size);
 
-static int				 bhnd_nvram_tlv_next_record(
-					     struct bhnd_nvram_io *io,
-					     size_t *next, size_t *offset,
-					     uint8_t *tag);
+static int bhnd_nvram_tlv_next_record(struct bhnd_nvram_io *io, size_t *next,
+    size_t *offset, uint8_t *tag);
 
-static struct bhnd_nvram_tlv_env	*bhnd_nvram_tlv_next_env(
-					     struct bhnd_nvram_tlv *tlv,
-					     size_t *next, void **cookiep);
+static struct bhnd_nvram_tlv_env *
+bhnd_nvram_tlv_next_env(struct bhnd_nvram_tlv *tlv, size_t *next,
+    void **cookiep);
 
-static struct bhnd_nvram_tlv_env	*bhnd_nvram_tlv_get_env(
-					     struct bhnd_nvram_tlv *tlv,
-					     void *cookiep);
+static struct bhnd_nvram_tlv_env *
+bhnd_nvram_tlv_get_env(struct bhnd_nvram_tlv *tlv, void *cookiep);
 
-static void				*bhnd_nvram_tlv_to_cookie(
-					     struct bhnd_nvram_tlv *tlv,
-					     size_t io_offset);
-static size_t				 bhnd_nvram_tlv_to_offset(
-					     struct bhnd_nvram_tlv *tlv,
-					     void *cookiep);
+static void *bhnd_nvram_tlv_to_cookie(struct bhnd_nvram_tlv *tlv,
+    size_t io_offset);
+static size_t bhnd_nvram_tlv_to_offset(struct bhnd_nvram_tlv *tlv,
+    void *cookiep);
 
 static int
 bhnd_nvram_tlv_probe(struct bhnd_nvram_io *io)
 {
-	struct bhnd_nvram_tlv_env	ident;
-	size_t				nbytes;
-	int				error;
+	struct bhnd_nvram_tlv_env ident;
+	size_t nbytes;
+	int error;
 
 	nbytes = bhnd_nvram_io_getsize(io);
 
@@ -166,15 +157,15 @@ static int
 bhnd_nvram_tlv_getvar_direct(struct bhnd_nvram_io *io, const char *name,
     void *buf, size_t *len, bhnd_nvram_type type)
 {
-	struct bhnd_nvram_tlv_env	 env;
-	char				 data[NVRAM_TLV_ENVP_DATA_MAX_LEN];
-	size_t				 data_len;
-	const char			*key, *value;
-	size_t				 keylen, vlen;
-	size_t				 namelen;
-	size_t				 next, off;
-	uint8_t				 tag;
-	int				 error;
+	struct bhnd_nvram_tlv_env env;
+	char data[NVRAM_TLV_ENVP_DATA_MAX_LEN];
+	size_t data_len;
+	const char *key, *value;
+	size_t keylen, vlen;
+	size_t namelen;
+	size_t next, off;
+	uint8_t tag;
+	int error;
 
 	namelen = strlen(name);
 
@@ -191,7 +182,8 @@ bhnd_nvram_tlv_getvar_direct(struct bhnd_nvram_io *io, const char *name,
 			error = bhnd_nvram_io_read(io, off, &env, sizeof(env));
 			if (error) {
 				BHND_NV_LOG("error reading TLV_ENV record "
-				    "header: %d\n", error);
+					    "header: %d\n",
+				    error);
 				return (error);
 			}
 
@@ -201,7 +193,8 @@ bhnd_nvram_tlv_getvar_direct(struct bhnd_nvram_io *io, const char *name,
 			    data_len);
 			if (error) {
 				BHND_NV_LOG("error reading TLV_ENV record "
-				    "data: %d\n", error);
+					    "data: %d\n",
+				    error);
 				return (error);
 			}
 
@@ -215,9 +208,8 @@ bhnd_nvram_tlv_getvar_direct(struct bhnd_nvram_io *io, const char *name,
 			}
 
 			/* Match against requested variable name */
-			if (keylen == namelen && 
-			    strncmp(key, name, namelen) == 0)
-			{
+			if (keylen == namelen &&
+			    strncmp(key, name, namelen) == 0) {
 				return (bhnd_nvram_value_coerce(value, vlen,
 				    BHND_NVRAM_TYPE_STRING, buf, len, type));
 			}
@@ -238,9 +230,9 @@ static int
 bhnd_nvram_tlv_serialize(bhnd_nvram_data_class *cls, bhnd_nvram_plist *props,
     bhnd_nvram_plist *options, void *outp, size_t *olen)
 {
-	bhnd_nvram_prop	*prop;
-	size_t		 limit, nbytes;
-	int		 error;
+	bhnd_nvram_prop *prop;
+	size_t limit, nbytes;
+	int error;
 
 	/* Determine output byte limit */
 	if (outp != NULL)
@@ -253,11 +245,11 @@ bhnd_nvram_tlv_serialize(bhnd_nvram_data_class *cls, bhnd_nvram_plist *props,
 	/* Write all properties */
 	prop = NULL;
 	while ((prop = bhnd_nvram_plist_next(props, prop)) != NULL) {
-		struct bhnd_nvram_tlv_env	 env;
-		const char			*name;
-		uint8_t				*p;
-		size_t				 name_len, value_len;
-		size_t				 rec_size;
+		struct bhnd_nvram_tlv_env env;
+		const char *name;
+		uint8_t *p;
+		size_t name_len, value_len;
+		size_t rec_size;
 
 		env.hdr.tag = NVRAM_TLV_TYPE_ENV;
 		env.hdr.size = sizeof(env.flags);
@@ -269,7 +261,8 @@ bhnd_nvram_tlv_serialize(bhnd_nvram_data_class *cls, bhnd_nvram_plist *props,
 
 		if (UINT8_MAX - env.hdr.size < name_len) {
 			BHND_NV_LOG("%s name exceeds maximum TLV record "
-			    "length\n", name);
+				    "length\n",
+			    name);
 			return (EFTYPE); /* would overflow TLV size */
 		}
 
@@ -280,15 +273,16 @@ bhnd_nvram_tlv_serialize(bhnd_nvram_data_class *cls, bhnd_nvram_plist *props,
 		    BHND_NVRAM_TYPE_STRING);
 		if (error) {
 			BHND_NV_LOG("error serializing %s to required type "
-			    "%s: %d\n", name,
-			    bhnd_nvram_type_name(BHND_NVRAM_TYPE_STRING),
+				    "%s: %d\n",
+			    name, bhnd_nvram_type_name(BHND_NVRAM_TYPE_STRING),
 			    error);
 			return (error);
 		}
 
 		if (UINT8_MAX - env.hdr.size < value_len) {
 			BHND_NV_LOG("%s value exceeds maximum TLV record "
-			    "length\n", name);
+				    "length\n",
+			    name);
 			return (EFTYPE); /* would overflow TLV size */
 		}
 
@@ -320,7 +314,8 @@ bhnd_nvram_tlv_serialize(bhnd_nvram_data_class *cls, bhnd_nvram_plist *props,
 			    BHND_NVRAM_TYPE_STRING);
 			if (error) {
 				BHND_NV_LOG("error serializing %s to required "
-				    "type %s: %d\n", name,
+					    "type %s: %d\n",
+				    name,
 				    bhnd_nvram_type_name(
 					BHND_NVRAM_TYPE_STRING),
 				    error);
@@ -353,16 +348,16 @@ bhnd_nvram_tlv_serialize(bhnd_nvram_data_class *cls, bhnd_nvram_plist *props,
 
 /**
  * Initialize @p tlv with the provided NVRAM TLV data mapped by @p src.
- * 
+ *
  * @param tlv A newly allocated data instance.
  */
 static int
 bhnd_nvram_tlv_init(struct bhnd_nvram_tlv *tlv, struct bhnd_nvram_io *src)
 {
-	struct bhnd_nvram_tlv_env	*env;
-	size_t				 size;
-	size_t				 next;
-	int				 error;
+	struct bhnd_nvram_tlv_env *env;
+	size_t size;
+	size_t next;
+	int error;
 
 	BHND_NV_ASSERT(tlv->data == NULL, ("tlv data already initialized"));
 
@@ -385,12 +380,12 @@ bhnd_nvram_tlv_init(struct bhnd_nvram_tlv *tlv, struct bhnd_nvram_io *src)
 		env_len = NVRAM_TLV_ENVP_DATA_LEN(env);
 		if (env_len == 0) {
 			BHND_NV_LOG("cannot parse zero-length TLV_ENV record "
-			    "data\n");
+				    "data\n");
 			return (EINVAL);
 		}
 
 		/* Parse the key=value string, and then replace the '='
-		 * delimiter with '\0' to allow us to provide direct 
+		 * delimiter with '\0' to allow us to provide direct
 		 * name pointers from our backing buffer */
 		error = bhnd_nvram_parse_env(env->envp, env_len, '=', NULL,
 		    &name_len, NULL, NULL);
@@ -413,8 +408,8 @@ static int
 bhnd_nvram_tlv_new(struct bhnd_nvram_data *nv, struct bhnd_nvram_io *io)
 {
 
-	struct bhnd_nvram_tlv	*tlv;
-	int			 error;
+	struct bhnd_nvram_tlv *tlv;
+	int error;
 
 	/* Allocate and initialize the TLV data instance */
 	tlv = (struct bhnd_nvram_tlv *)nv;
@@ -453,15 +448,15 @@ bhnd_nvram_tlv_options(struct bhnd_nvram_data *nv)
 static uint32_t
 bhnd_nvram_tlv_caps(struct bhnd_nvram_data *nv)
 {
-	return (BHND_NVRAM_DATA_CAP_READ_PTR|BHND_NVRAM_DATA_CAP_DEVPATHS);
+	return (BHND_NVRAM_DATA_CAP_READ_PTR | BHND_NVRAM_DATA_CAP_DEVPATHS);
 }
 
 static const char *
 bhnd_nvram_tlv_next(struct bhnd_nvram_data *nv, void **cookiep)
 {
-	struct bhnd_nvram_tlv		*tlv;
-	struct bhnd_nvram_tlv_env	*env;
-	size_t				 io_offset;
+	struct bhnd_nvram_tlv *tlv;
+	struct bhnd_nvram_tlv_env *env;
+	size_t io_offset;
 
 	tlv = (struct bhnd_nvram_tlv *)nv;
 
@@ -526,10 +521,10 @@ static const void *
 bhnd_nvram_tlv_getvar_ptr(struct bhnd_nvram_data *nv, void *cookiep,
     size_t *len, bhnd_nvram_type *type)
 {
-	struct bhnd_nvram_tlv		*tlv;
-	struct bhnd_nvram_tlv_env	*env;
-	const char			*val;
-	int				 error;
+	struct bhnd_nvram_tlv *tlv;
+	struct bhnd_nvram_tlv_env *env;
+	const char *val;
+	int error;
 
 	tlv = (struct bhnd_nvram_tlv *)nv;
 
@@ -552,8 +547,8 @@ bhnd_nvram_tlv_getvar_ptr(struct bhnd_nvram_data *nv, void *cookiep,
 static const char *
 bhnd_nvram_tlv_getvar_name(struct bhnd_nvram_data *nv, void *cookiep)
 {
-	struct bhnd_nvram_tlv		*tlv;
-	const struct bhnd_nvram_tlv_env	*env;
+	struct bhnd_nvram_tlv *tlv;
+	const struct bhnd_nvram_tlv_env *env;
 
 	tlv = (struct bhnd_nvram_tlv *)nv;
 
@@ -569,12 +564,12 @@ static int
 bhnd_nvram_tlv_filter_setvar(struct bhnd_nvram_data *nv, const char *name,
     bhnd_nvram_val *value, bhnd_nvram_val **result)
 {
-	bhnd_nvram_val	*str;
-	const char	*inp;
-	bhnd_nvram_type	 itype;
-	size_t		 ilen;
-	size_t		 name_len, tlv_nremain;
-	int		 error;
+	bhnd_nvram_val *str;
+	const char *inp;
+	bhnd_nvram_type itype;
+	size_t ilen;
+	size_t name_len, tlv_nremain;
+	int error;
 
 	tlv_nremain = NVRAM_TLV_ENVP_DATA_MAX_LEN;
 
@@ -623,7 +618,7 @@ bhnd_nvram_tlv_filter_unsetvar(struct bhnd_nvram_data *nv, const char *name)
 /**
  * Iterate over the records starting at @p next, returning the parsed
  * record's @p tag, @p size, and @p offset.
- * 
+ *
  * @param		io		The I/O context to parse.
  * @param[in,out]	next		The next offset to be parsed, or 0x0
  *					to begin parsing. Upon successful
@@ -632,20 +627,20 @@ bhnd_nvram_tlv_filter_unsetvar(struct bhnd_nvram_data *nv, const char *name)
  *					NVRAM_TLV_TYPE_END was parsed).
  * @param[out]		offset		The record's value offset.
  * @param[out]		tag		The record's tag.
- * 
+ *
  * @retval 0		success
  * @retval EINVAL	if parsing @p io as TLV fails.
  * @retval non-zero	if reading @p io otherwise fails, a regular unix error
  *			code will be returned.
  */
 static int
-bhnd_nvram_tlv_next_record(struct bhnd_nvram_io *io, size_t *next, size_t
-    *offset, uint8_t *tag)
+bhnd_nvram_tlv_next_record(struct bhnd_nvram_io *io, size_t *next,
+    size_t *offset, uint8_t *tag)
 {
-	size_t		io_offset, io_size;
-	uint16_t	parsed_len;
-	uint8_t		len_hdr[2];
-	int		error;
+	size_t io_offset, io_size;
+	uint16_t parsed_len;
+	uint8_t len_hdr[2];
+	int error;
 
 	io_offset = *next;
 	io_size = bhnd_nvram_io_getsize(io);
@@ -683,7 +678,8 @@ bhnd_nvram_tlv_next_record(struct bhnd_nvram_io *io, size_t *next, size_t
 		    sizeof(len_hdr));
 		if (error) {
 			BHND_NV_LOG("error reading 16-bit TLV record "
-			    "size: %d\n", error);
+				    "size: %d\n",
+			    error);
 			return (error);
 		}
 
@@ -695,7 +691,8 @@ bhnd_nvram_tlv_next_record(struct bhnd_nvram_io *io, size_t *next, size_t
 	if (parsed_len > io_size || io_size - parsed_len < io_offset) {
 		/* Hit early EOF */
 		BHND_NV_LOG("TLV record length %hu truncated by input "
-		    "size of %zu\n", parsed_len, io_size);
+			    "size of %zu\n",
+		    parsed_len, io_size);
 		return (EINVAL);
 	}
 
@@ -712,9 +709,9 @@ bhnd_nvram_tlv_next_record(struct bhnd_nvram_io *io, size_t *next, size_t
 static int
 bhnd_nvram_tlv_parse_size(struct bhnd_nvram_io *io, size_t *size)
 {
-	size_t		next;
-	uint8_t		tag;
-	int		error;
+	size_t next;
+	uint8_t tag;
+	int error;
 
 	/* We have to perform a minimal parse to determine the actual length */
 	next = 0x0;
@@ -738,7 +735,7 @@ bhnd_nvram_tlv_parse_size(struct bhnd_nvram_io *io, size_t *size)
 /**
  * Iterate over the records in @p tlv, returning a pointer to the next
  * NVRAM_TLV_TYPE_ENV record, or NULL if EOF is reached.
- * 
+ *
  * @param		tlv		The TLV instance.
  * @param[in,out]	next		The next offset to be parsed, or 0x0
  *					to begin parsing. Upon successful
@@ -749,13 +746,13 @@ static struct bhnd_nvram_tlv_env *
 bhnd_nvram_tlv_next_env(struct bhnd_nvram_tlv *tlv, size_t *next,
     void **cookiep)
 {
-	uint8_t	tag;
-	int	error;
+	uint8_t tag;
+	int error;
 
 	/* Find the next TLV_ENV record, starting at @p next */
 	do {
-		void	*c;
-		size_t	 offset;
+		void *c;
+		size_t offset;
 
 		/* Fetch the next TLV record */
 		error = bhnd_nvram_tlv_next_record(tlv->data, next, &offset,
@@ -791,11 +788,11 @@ bhnd_nvram_tlv_next_env(struct bhnd_nvram_tlv *tlv, size_t *next,
 static struct bhnd_nvram_tlv_env *
 bhnd_nvram_tlv_get_env(struct bhnd_nvram_tlv *tlv, void *cookiep)
 {
-	struct bhnd_nvram_tlv_env	*env;
-	void				*ptr;
-	size_t				 navail;
-	size_t				 io_offset, io_size;
-	int				 error;
+	struct bhnd_nvram_tlv_env *env;
+	void *ptr;
+	size_t navail;
+	size_t io_offset, io_size;
+	int error;
 
 	io_size = bhnd_nvram_io_getsize(tlv->data);
 	io_offset = bhnd_nvram_tlv_to_offset(tlv, cookiep);
@@ -823,8 +820,7 @@ bhnd_nvram_tlv_get_env(struct bhnd_nvram_tlv *tlv, void *cookiep)
 
 	/* Is the required variable name data is mapped? */
 	if (navail < sizeof(struct bhnd_nvram_tlv_env_hdr) + env->hdr.size ||
-	    env->hdr.size == sizeof(env->flags))
-	{
+	    env->hdr.size == sizeof(env->flags)) {
 		/* Should never occur with a valid cookiep */
 		BHND_NV_LOG("TLV_ENV variable data not mapped for %p\n",
 		    cookiep);
@@ -840,8 +836,8 @@ bhnd_nvram_tlv_get_env(struct bhnd_nvram_tlv *tlv, void *cookiep)
 static void *
 bhnd_nvram_tlv_to_cookie(struct bhnd_nvram_tlv *tlv, size_t io_offset)
 {
-	const void	*ptr;
-	int		 error;
+	const void *ptr;
+	int error;
 
 	BHND_NV_ASSERT(io_offset < bhnd_nvram_io_getsize(tlv->data),
 	    ("io_offset %zu out-of-range", io_offset));
@@ -860,10 +856,10 @@ bhnd_nvram_tlv_to_cookie(struct bhnd_nvram_tlv *tlv, size_t io_offset)
 static size_t
 bhnd_nvram_tlv_to_offset(struct bhnd_nvram_tlv *tlv, void *cookiep)
 {
-	const void	*ptr;
-	intptr_t	 offset;
-	size_t		 io_size;
-	int		 error;
+	const void *ptr;
+	intptr_t offset;
+	size_t io_size;
+	int error;
 
 	BHND_NV_ASSERT(cookiep != NULL, ("null cookiep"));
 

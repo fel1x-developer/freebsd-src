@@ -41,6 +41,7 @@
 #include <sys/param.h>
 #include <sys/pcpu.h>
 #include <sys/sysctl.h>
+
 #include <kvm.h>
 #include <limits.h>
 #include <stdlib.h>
@@ -48,7 +49,7 @@
 #include "kvm_private.h"
 
 #ifdef __amd64__
-#define	__OFFSET_BY_PCPU
+#define __OFFSET_BY_PCPU
 #endif
 
 static struct nlist kvm_pcpu_nl[] = {
@@ -60,10 +61,10 @@ static struct nlist kvm_pcpu_nl[] = {
 #endif
 	{ .n_name = NULL },
 };
-#define	NL_CPUID_TO_PCPU	0
-#define	NL_MP_MAXCPUS		1
-#define	NL_MP_NCPUS		2
-#define	NL___PCPU		3
+#define NL_CPUID_TO_PCPU 0
+#define NL_MP_MAXCPUS 1
+#define NL_MP_NCPUS 2
+#define NL___PCPU 3
 
 /*
  * Kernel per-CPU data state.  We cache this stuff on the first
@@ -98,7 +99,7 @@ _kvm_pcpu_init(kvm_t *kd)
 		return (-1);
 	}
 	if (kvm_read(kd, kvm_pcpu_nl[NL_MP_MAXCPUS].n_value, &max,
-	    sizeof(max)) != sizeof(max)) {
+		sizeof(max)) != sizeof(max)) {
 		_kvm_err(kd, kd->program, "cannot read mp_maxcpus");
 		return (-1);
 	}
@@ -107,7 +108,7 @@ _kvm_pcpu_init(kvm_t *kd)
 		return (-1);
 	}
 	if (kvm_read(kd, kvm_pcpu_nl[NL_MP_NCPUS].n_value, &mp_ncpus,
-	    sizeof(mp_ncpus)) != sizeof(mp_ncpus)) {
+		sizeof(mp_ncpus)) != sizeof(mp_ncpus)) {
 		_kvm_err(kd, kd->program, "cannot read mp_ncpus");
 		return (-1);
 	}
@@ -117,7 +118,7 @@ _kvm_pcpu_init(kvm_t *kd)
 		return (-1);
 	}
 	if (kvm_read(kd, kvm_pcpu_nl[NL___PCPU].n_value, &__pcpu,
-	    sizeof(__pcpu)) != sizeof(__pcpu)) {
+		sizeof(__pcpu)) != sizeof(__pcpu)) {
 		_kvm_err(kd, kd->program, "cannot read __pcpu");
 		return (-1);
 	}
@@ -129,7 +130,7 @@ _kvm_pcpu_init(kvm_t *kd)
 		return (-1);
 	}
 	if (kvm_read(kd, kvm_pcpu_nl[NL_CPUID_TO_PCPU].n_value, data, len) !=
-	   (ssize_t)len) {
+	    (ssize_t)len) {
 		_kvm_err(kd, kd->program, "cannot read cpuid_to_pcpu array");
 		free(data);
 		return (-1);
@@ -170,8 +171,8 @@ kvm_getpcpu(kvm_t *kd, int cpu)
 		_kvm_err(kd, kd->program, "out of memory");
 		return ((void *)-1);
 	}
-	if (kvm_read(kd, (uintptr_t)pcpu_data[cpu], buf,
-	    sizeof(struct pcpu)) != sizeof(struct pcpu)) {
+	if (kvm_read(kd, (uintptr_t)pcpu_data[cpu], buf, sizeof(struct pcpu)) !=
+	    sizeof(struct pcpu)) {
 		_kvm_err(kd, kd->program, "unable to read per-CPU data");
 		free(buf);
 		return ((void *)-1);
@@ -238,13 +239,13 @@ static int
 _kvm_dpcpu_init(kvm_t *kd)
 {
 	struct kvm_nlist nl[] = {
-#define	NLIST_START_SET_PCPU	0
+#define NLIST_START_SET_PCPU 0
 		{ .n_name = "___start_" DPCPU_SETNAME },
-#define	NLIST_STOP_SET_PCPU	1
+#define NLIST_STOP_SET_PCPU 1
 		{ .n_name = "___stop_" DPCPU_SETNAME },
-#define	NLIST_DPCPU_OFF		2
+#define NLIST_DPCPU_OFF 2
 		{ .n_name = "_dpcpu_off" },
-#define	NLIST_MP_MAXCPUS	3
+#define NLIST_MP_MAXCPUS 3
 		{ .n_name = "_mp_maxcpus" },
 		{ .n_name = NULL },
 	};
@@ -266,7 +267,7 @@ _kvm_dpcpu_init(kvm_t *kd)
 	if (_kvm_nlist(kd, nl, 0) != 0)
 		return (-1);
 	if (kvm_read(kd, nl[NLIST_MP_MAXCPUS].n_value, &dpcpu_maxcpus,
-	    sizeof(dpcpu_maxcpus)) != sizeof(dpcpu_maxcpus))
+		sizeof(dpcpu_maxcpus)) != sizeof(dpcpu_maxcpus))
 		return (-1);
 	len = dpcpu_maxcpus * sizeof(*dpcpu_off_buf);
 	dpcpu_off_buf = malloc(len);
@@ -330,8 +331,7 @@ kvm_dpcpu_setcpu(kvm_t *kd, u_int cpu)
 	if (!kd->dpcpu_initialized) {
 		ret = _kvm_dpcpu_init(kd);
 		if (ret != 0) {
-			_kvm_err(kd, kd->program, "%s: init failed",
-			    __func__);
+			_kvm_err(kd, kd->program, "%s: init failed", __func__);
 			return (ret);
 		}
 	}
@@ -355,8 +355,8 @@ kvm_read_zpcpu(kvm_t *kd, u_long base, void *buf, size_t size, int cpu)
 #ifdef __OFFSET_BY_PCPU
 	base += __pcpu;
 #endif
-	return (kvm_read(kd, (uintptr_t)(base + sizeof(struct pcpu) * cpu),
-	    buf, size));
+	return (kvm_read(kd, (uintptr_t)(base + sizeof(struct pcpu) * cpu), buf,
+	    size));
 }
 
 /*

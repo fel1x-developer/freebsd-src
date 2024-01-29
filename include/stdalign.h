@@ -27,21 +27,21 @@
  */
 
 #ifndef __alignas_is_defined
-#define	__alignas_is_defined	1
+#define __alignas_is_defined 1
 
 #if !defined(__cplusplus) || __cplusplus < 201103L
 #include <sys/cdefs.h>
-#define	alignas			_Alignas
+#define alignas _Alignas
 #endif
 
 #endif /* !__alignas_is_defined */
 
 #ifndef __alignof_is_defined
-#define	__alignof_is_defined	1
+#define __alignof_is_defined 1
 
 #if !defined(__cplusplus) || __cplusplus < 201103L
 #include <sys/cdefs.h>
-#define	alignof			_Alignof
+#define alignof _Alignof
 #endif
 
 #endif /* !__alignof_is_defined */

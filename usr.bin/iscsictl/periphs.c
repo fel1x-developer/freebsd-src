@@ -33,31 +33,30 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/ioctl.h>
-#include <sys/stdint.h>
 #include <sys/types.h>
 #include <sys/endian.h>
+#include <sys/ioctl.h>
 #include <sys/sbuf.h>
+#include <sys/stdint.h>
 
+#include <cam/ata/ata_all.h>
+#include <cam/cam.h>
+#include <cam/cam_ccb.h>
+#include <cam/cam_debug.h>
+#include <cam/scsi/scsi_all.h>
+#include <cam/scsi/scsi_da.h>
+#include <cam/scsi/scsi_message.h>
+#include <cam/scsi/scsi_pass.h>
+#include <cam/scsi/smp_all.h>
+#include <camlib.h>
+#include <fcntl.h>
+#include <inttypes.h>
+#include <libxo/xo.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <inttypes.h>
-#include <limits.h>
-#include <fcntl.h>
-
-#include <cam/cam.h>
-#include <cam/cam_debug.h>
-#include <cam/cam_ccb.h>
-#include <cam/scsi/scsi_all.h>
-#include <cam/scsi/scsi_da.h>
-#include <cam/scsi/scsi_pass.h>
-#include <cam/scsi/scsi_message.h>
-#include <cam/scsi/smp_all.h>
-#include <cam/ata/ata_all.h>
-#include <camlib.h>
-#include <libxo/xo.h>
 
 #include "iscsictl.h"
 
@@ -120,11 +119,11 @@ print_periphs(int session_id)
 			break;
 		}
 
-		if ((ccb.ccb_h.status != CAM_REQ_CMP)
-		 || ((ccb.cdm.status != CAM_DEV_MATCH_LAST)
-		    && (ccb.cdm.status != CAM_DEV_MATCH_MORE))) {
+		if ((ccb.ccb_h.status != CAM_REQ_CMP) ||
+		    ((ccb.cdm.status != CAM_DEV_MATCH_LAST) &&
+			(ccb.cdm.status != CAM_DEV_MATCH_MORE))) {
 			xo_warnx("got CAM error %#x, CDM error %d\n",
-			      ccb.ccb_h.status, ccb.cdm.status);
+			    ccb.ccb_h.status, ccb.cdm.status);
 			break;
 		}
 
@@ -133,17 +132,21 @@ print_periphs(int session_id)
 			case DEV_MATCH_BUS: {
 				struct bus_match_result *bus_result;
 
-				bus_result = &ccb.cdm.matches[i].result.bus_result;
+				bus_result =
+				    &ccb.cdm.matches[i].result.bus_result;
 
 				skip_bus = 1;
 
-				if (strcmp(bus_result->dev_name, "iscsi") != 0) {
-					//printf("not iscsi\n");
+				if (strcmp(bus_result->dev_name, "iscsi") !=
+				    0) {
+					// printf("not iscsi\n");
 					continue;
 				}
 
-				if ((int)bus_result->unit_number != session_id) {
-					//printf("wrong unit, %d != %d\n", bus_result->unit_number, session_id);
+				if ((int)bus_result->unit_number !=
+				    session_id) {
+					// printf("wrong unit, %d != %d\n",
+					// bus_result->unit_number, session_id);
 					continue;
 				}
 				skip_bus = 0;
@@ -161,16 +164,18 @@ print_periphs(int session_id)
 				struct periph_match_result *periph_result;
 
 				periph_result =
-				      &ccb.cdm.matches[i].result.periph_result;
+				    &ccb.cdm.matches[i].result.periph_result;
 
 				if (skip_device != 0)
 					continue;
 
-				if (strcmp(periph_result->periph_name, "pass") == 0)
+				if (strcmp(periph_result->periph_name,
+					"pass") == 0)
 					continue;
 
 				xo_open_instance("lun");
-				xo_emit("{e:lun/%d}", periph_result->target_lun);
+				xo_emit("{e:lun/%d}",
+				    periph_result->target_lun);
 				xo_emit("{Vq:device/%s%d} ",
 				    periph_result->periph_name,
 				    periph_result->unit_number);
@@ -189,14 +194,13 @@ print_periphs(int session_id)
 			}
 		}
 
-	} while ((ccb.ccb_h.status == CAM_REQ_CMP)
-		&& (ccb.cdm.status == CAM_DEV_MATCH_MORE));
+	} while ((ccb.ccb_h.status == CAM_REQ_CMP) &&
+	    (ccb.cdm.status == CAM_DEV_MATCH_MORE));
 	xo_close_list("lun");
 
 	xo_emit("{e:scbus/%d}{e:bus/%d}{e:target/%d}",
-		have_path_id ? (int)path_id : -1, 0, have_path_id ? 0 : -1);
+	    have_path_id ? (int)path_id : -1, 0, have_path_id ? 0 : -1);
 	xo_close_container("devices");
 
 	close(fd);
 }
-

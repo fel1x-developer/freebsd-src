@@ -25,14 +25,14 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/systm.h>
 
 #include <dev/iicbus/iicbus.h>
 #include <dev/iicbus/iiconf.h>
@@ -43,18 +43,15 @@
 #include "iicbus_if.h"
 #include "iicmux_if.h"
 
-
-static struct ofw_compat_data compat_data[] = {
-	{"nxp,pca9547",		1},
-	{NULL,			0}
-};
+static struct ofw_compat_data compat_data[] = { { "nxp,pca9547", 1 },
+	{ NULL, 0 } };
 IICBUS_FDT_PNP_INFO(compat_data);
 
 #include <dev/iicbus/mux/iicmux.h>
 
 struct pca9547_softc {
 	struct iicmux_softc mux;
-	device_t	dev;
+	device_t dev;
 	bool idle_disconnect;
 };
 
@@ -87,8 +84,8 @@ pca9547_bus_select(device_t dev, int busidx, struct iic_reqbus_data *rd)
 	 * to reserve it again, which is allowed with the recursive flag.
 	 */
 
-	return (iicdev_writeto(dev, busbits, NULL, 0,
-	    rd->flags | IIC_RECURSIVE));
+	return (
+	    iicdev_writeto(dev, busbits, NULL, 0, rd->flags | IIC_RECURSIVE));
 }
 
 static int
@@ -112,7 +109,7 @@ pca9547_attach(device_t dev)
 	int rv;
 
 	sc = device_get_softc(dev);
-	sc ->dev = dev;
+	sc->dev = dev;
 
 	node = ofw_bus_get_node(dev);
 	sc->idle_disconnect = OF_hasprop(node, "i2c-mux-idle-disconnect");
@@ -139,12 +136,12 @@ pca9547_detach(device_t dev)
 
 static device_method_t pca9547_methods[] = {
 	/* device methods */
-	DEVMETHOD(device_probe,			pca9547_probe),
-	DEVMETHOD(device_attach,		pca9547_attach),
-	DEVMETHOD(device_detach,		pca9547_detach),
+	DEVMETHOD(device_probe, pca9547_probe),
+	DEVMETHOD(device_attach, pca9547_attach),
+	DEVMETHOD(device_detach, pca9547_detach),
 
 	/* iicmux methods */
-	DEVMETHOD(iicmux_bus_select,		pca9547_bus_select),
+	DEVMETHOD(iicmux_bus_select, pca9547_bus_select),
 
 	DEVMETHOD_END
 };

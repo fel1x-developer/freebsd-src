@@ -37,6 +37,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
@@ -47,75 +48,70 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
 
 #include <machine/bus.h>
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include <dev/mdio/mdio.h>
 
 #include <dev/etherswitch/etherswitch.h>
+#include <dev/mdio/mdio.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
 
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+
+#include "etherswitch_if.h"
 #include "mdio_if.h"
 #include "miibus_if.h"
-#include "etherswitch_if.h"
 
-#define	ADM6996FC_PRODUCT_CODE	0x7102
+#define ADM6996FC_PRODUCT_CODE 0x7102
 
-#define	ADM6996FC_SC3		0x11
-#define	ADM6996FC_VF0L		0x40
-#define	ADM6996FC_VF0H		0x41
-#define	ADM6996FC_CI0		0xa0
-#define	ADM6996FC_CI1		0xa1
-#define	ADM6996FC_PHY_C0	0x200
+#define ADM6996FC_SC3 0x11
+#define ADM6996FC_VF0L 0x40
+#define ADM6996FC_VF0H 0x41
+#define ADM6996FC_CI0 0xa0
+#define ADM6996FC_CI1 0xa1
+#define ADM6996FC_PHY_C0 0x200
 
-#define	ADM6996FC_PC_SHIFT	4
-#define	ADM6996FC_TBV_SHIFT	5
-#define	ADM6996FC_PVID_SHIFT	10
-#define	ADM6996FC_OPTE_SHIFT	4
-#define	ADM6996FC_VV_SHIFT	15
+#define ADM6996FC_PC_SHIFT 4
+#define ADM6996FC_TBV_SHIFT 5
+#define ADM6996FC_PVID_SHIFT 10
+#define ADM6996FC_OPTE_SHIFT 4
+#define ADM6996FC_VV_SHIFT 15
 
-#define	ADM6996FC_PHY_SIZE	0x20
+#define ADM6996FC_PHY_SIZE 0x20
 
 MALLOC_DECLARE(M_ADM6996FC);
 MALLOC_DEFINE(M_ADM6996FC, "adm6996fc", "adm6996fc data structures");
 
 struct adm6996fc_softc {
-	struct mtx	sc_mtx;		/* serialize access to softc */
-	device_t	sc_dev;
-	int		vlan_mode;
-	int		media;		/* cpu port media */
-	int		cpuport;	/* which PHY is connected to the CPU */
-	int		phymask;	/* PHYs we manage */
-	int		numports;	/* number of ports */
-	int		ifpport[MII_NPHY];
-	int		*portphy;
-	char		**ifname;
-	device_t	**miibus;
+	struct mtx sc_mtx; /* serialize access to softc */
+	device_t sc_dev;
+	int vlan_mode;
+	int media;    /* cpu port media */
+	int cpuport;  /* which PHY is connected to the CPU */
+	int phymask;  /* PHYs we manage */
+	int numports; /* number of ports */
+	int ifpport[MII_NPHY];
+	int *portphy;
+	char **ifname;
+	device_t **miibus;
 	if_t *ifp;
-	struct callout	callout_tick;
-	etherswitch_info_t	info;
+	struct callout callout_tick;
+	etherswitch_info_t info;
 };
 
-#define	ADM6996FC_LOCK(_sc)			\
-	    mtx_lock(&(_sc)->sc_mtx)
-#define	ADM6996FC_UNLOCK(_sc)			\
-	    mtx_unlock(&(_sc)->sc_mtx)
-#define	ADM6996FC_LOCK_ASSERT(_sc, _what)	\
-	    mtx_assert(&(_sc)->sc_mtx, (_what))
-#define	ADM6996FC_TRYLOCK(_sc)			\
-	    mtx_trylock(&(_sc)->sc_mtx)
+#define ADM6996FC_LOCK(_sc) mtx_lock(&(_sc)->sc_mtx)
+#define ADM6996FC_UNLOCK(_sc) mtx_unlock(&(_sc)->sc_mtx)
+#define ADM6996FC_LOCK_ASSERT(_sc, _what) mtx_assert(&(_sc)->sc_mtx, (_what))
+#define ADM6996FC_TRYLOCK(_sc) mtx_trylock(&(_sc)->sc_mtx)
 
 #if defined(DEBUG)
-#define	DPRINTF(dev, args...) device_printf(dev, args)
+#define DPRINTF(dev, args...) device_printf(dev, args)
 #else
-#define	DPRINTF(dev, args...)
+#define DPRINTF(dev, args...)
 #endif
 
 static inline int adm6996fc_portforphy(struct adm6996fc_softc *, int);
@@ -123,12 +119,11 @@ static void adm6996fc_tick(void *);
 static int adm6996fc_ifmedia_upd(if_t);
 static void adm6996fc_ifmedia_sts(if_t, struct ifmediareq *);
 
-#define	ADM6996FC_READREG(dev, x)					\
-	MDIO_READREG(dev, ((x) >> 5), ((x) & 0x1f));
-#define	ADM6996FC_WRITEREG(dev, x, v)					\
+#define ADM6996FC_READREG(dev, x) MDIO_READREG(dev, ((x) >> 5), ((x) & 0x1f));
+#define ADM6996FC_WRITEREG(dev, x, v) \
 	MDIO_WRITEREG(dev, ((x) >> 5), ((x) & 0x1f), v);
 
-#define	ADM6996FC_PVIDBYDATA(data1, data2)				\
+#define ADM6996FC_PVIDBYDATA(data1, data2) \
 	((((data1) >> ADM6996FC_PVID_SHIFT) & 0x0f) | ((data2) << 4))
 
 static int
@@ -145,7 +140,7 @@ adm6996fc_probe(device_t dev)
 	data2 = ADM6996FC_READREG(device_get_parent(dev), ADM6996FC_CI1);
 	pc = ((data2 << 16) | data1) >> ADM6996FC_PC_SHIFT;
 	if (bootverbose)
-		device_printf(dev,"Chip Identifier Register %x %x\n", data1,
+		device_printf(dev, "Chip Identifier Register %x %x\n", data1,
 		    data2);
 
 	/* check Product Code */
@@ -174,7 +169,8 @@ adm6996fc_attach_phys(struct adm6996fc_softc *sc)
 		sc->portphy[port] = phy;
 		sc->ifp[port] = if_alloc(IFT_ETHER);
 		if (sc->ifp[port] == NULL) {
-			device_printf(sc->sc_dev, "couldn't allocate ifnet structure\n");
+			device_printf(sc->sc_dev,
+			    "couldn't allocate ifnet structure\n");
 			err = ENOMEM;
 			break;
 		}
@@ -190,14 +186,13 @@ adm6996fc_attach_phys(struct adm6996fc_softc *sc)
 			goto failed;
 		}
 		err = mii_attach(sc->sc_dev, sc->miibus[port], sc->ifp[port],
-		    adm6996fc_ifmedia_upd, adm6996fc_ifmedia_sts, \
+		    adm6996fc_ifmedia_upd, adm6996fc_ifmedia_sts,
 		    BMSR_DEFCAPMASK, phy, MII_OFFSET_ANY, 0);
 		DPRINTF(sc->sc_dev, "%s attached to pseudo interface %s\n",
 		    device_get_nameunit(*sc->miibus[port]),
 		    sc->ifp[port]->if_xname);
 		if (err != 0) {
-			device_printf(sc->sc_dev,
-			    "attaching PHY %d failed\n",
+			device_printf(sc->sc_dev, "attaching PHY %d failed\n",
 			    phy);
 			goto failed;
 		}
@@ -232,8 +227,8 @@ failed:
 static int
 adm6996fc_attach(device_t dev)
 {
-	struct adm6996fc_softc	*sc;
-	int			 err;
+	struct adm6996fc_softc *sc;
+	int err;
 
 	err = 0;
 	sc = device_get_softc(dev);
@@ -279,11 +274,11 @@ adm6996fc_attach(device_t dev)
 	err = bus_generic_attach(dev);
 	if (err != 0)
 		goto failed;
-	
+
 	callout_init(&sc->callout_tick, 0);
 
 	adm6996fc_tick(sc);
-	
+
 	return (0);
 
 failed:
@@ -302,8 +297,8 @@ failed:
 static int
 adm6996fc_detach(device_t dev)
 {
-	struct adm6996fc_softc	*sc;
-	int			 i, port;
+	struct adm6996fc_softc *sc;
+	int i, port;
 
 	sc = device_get_softc(dev);
 
@@ -353,7 +348,7 @@ adm6996fc_miiforport(struct adm6996fc_softc *sc, int port)
 	return (device_get_softc(*sc->miibus[port]));
 }
 
-static inline if_t 
+static inline if_t
 adm6996fc_ifpforport(struct adm6996fc_softc *sc, int port)
 {
 
@@ -381,7 +376,7 @@ adm6996fc_miipollstat(struct adm6996fc_softc *sc)
 		if ((*sc->miibus[port]) == NULL)
 			continue;
 		mii = device_get_softc(*sc->miibus[port]);
-		LIST_FOREACH(miisc, &mii->mii_phys, mii_list) {
+		LIST_FOREACH (miisc, &mii->mii_phys, mii_list) {
 			if (IFM_INST(mii->mii_media.ifm_cur->ifm_media) !=
 			    miisc->mii_inst)
 				continue;
@@ -430,22 +425,22 @@ adm6996fc_getinfo(device_t dev)
 	struct adm6996fc_softc *sc;
 
 	sc = device_get_softc(dev);
-	
+
 	return (&sc->info);
 }
 
 static int
 adm6996fc_getport(device_t dev, etherswitch_port_t *p)
 {
-	struct adm6996fc_softc	*sc;
-	struct mii_data		*mii;
-	struct ifmediareq	*ifmr;
-	device_t		 parent;
-	int 			 err, phy;
-	int			 data1, data2;
+	struct adm6996fc_softc *sc;
+	struct mii_data *mii;
+	struct ifmediareq *ifmr;
+	device_t parent;
+	int err, phy;
+	int data1, data2;
 
-	int	bcaddr[6] = {0x01, 0x03, 0x05, 0x07, 0x08, 0x09};
-	int	vidaddr[6] = {0x28, 0x29, 0x2a, 0x2b, 0x2b, 0x2c};
+	int bcaddr[6] = { 0x01, 0x03, 0x05, 0x07, 0x08, 0x09 };
+	int vidaddr[6] = { 0x28, 0x29, 0x2a, 0x2b, 0x2b, 0x2c };
 
 	sc = device_get_softc(dev);
 	ifmr = &p->es_ifmr;
@@ -478,16 +473,16 @@ adm6996fc_getport(device_t dev, etherswitch_port_t *p)
 		p->es_flags |= ETHERSWITCH_PORT_CPU;
 		ifmr->ifm_count = 0;
 		if (sc->media == 100)
-			ifmr->ifm_current = ifmr->ifm_active =
-			    IFM_ETHER | IFM_100_TX | IFM_FDX;
+			ifmr->ifm_current = ifmr->ifm_active = IFM_ETHER |
+			    IFM_100_TX | IFM_FDX;
 		else
-			ifmr->ifm_current = ifmr->ifm_active =
-			    IFM_ETHER | IFM_1000_T | IFM_FDX;
+			ifmr->ifm_current = ifmr->ifm_active = IFM_ETHER |
+			    IFM_1000_T | IFM_FDX;
 		ifmr->ifm_mask = 0;
 		ifmr->ifm_status = IFM_ACTIVE | IFM_AVALID;
 	} else if (mii != NULL) {
-		err = ifmedia_ioctl(mii->mii_ifp, &p->es_ifr,
-		    &mii->mii_media, SIOCGIFMEDIA);
+		err = ifmedia_ioctl(mii->mii_ifp, &p->es_ifr, &mii->mii_media,
+		    SIOCGIFMEDIA);
 		if (err)
 			return (err);
 	} else {
@@ -499,16 +494,16 @@ adm6996fc_getport(device_t dev, etherswitch_port_t *p)
 static int
 adm6996fc_setport(device_t dev, etherswitch_port_t *p)
 {
-	struct adm6996fc_softc	*sc;
-	struct ifmedia		*ifm;
-	struct mii_data		*mii;
+	struct adm6996fc_softc *sc;
+	struct ifmedia *ifm;
+	struct mii_data *mii;
 	if_t ifp;
-	device_t		 parent;
-	int 			 err;
-	int			 data;
+	device_t parent;
+	int err;
+	int data;
 
-	int	bcaddr[6] = {0x01, 0x03, 0x05, 0x07, 0x08, 0x09};
-	int	vidaddr[6] = {0x28, 0x29, 0x2a, 0x2b, 0x2b, 0x2c};
+	int bcaddr[6] = { 0x01, 0x03, 0x05, 0x07, 0x08, 0x09 };
+	int vidaddr[6] = { 0x28, 0x29, 0x2a, 0x2b, 0x2b, 0x2c };
 
 	sc = device_get_softc(dev);
 	parent = device_get_parent(dev);
@@ -539,7 +534,7 @@ adm6996fc_setport(device_t dev, etherswitch_port_t *p)
 	} else {
 		if (sc->portphy[p->es_port] == sc->cpuport)
 			return (ENXIO);
-	} 
+	}
 
 	if (sc->portphy[p->es_port] != sc->cpuport) {
 		mii = adm6996fc_miiforport(sc, p->es_port);
@@ -557,9 +552,9 @@ adm6996fc_setport(device_t dev, etherswitch_port_t *p)
 static int
 adm6996fc_getvgroup(device_t dev, etherswitch_vlangroup_t *vg)
 {
-	struct adm6996fc_softc	*sc;
-	device_t		 parent;
-	int			 datahi, datalo;
+	struct adm6996fc_softc *sc;
+	device_t parent;
+	int datahi, datalo;
 
 	sc = device_get_softc(dev);
 	parent = device_get_parent(dev);
@@ -584,7 +579,7 @@ adm6996fc_getvgroup(device_t dev, etherswitch_vlangroup_t *vg)
 		    ADM6996FC_VF0L + 2 * vg->es_vlangroup);
 		datahi = ADM6996FC_READREG(parent,
 		    ADM6996FC_VF0H + 2 * vg->es_vlangroup);
-		
+
 		if (datahi & (1 << ADM6996FC_VV_SHIFT)) {
 			vg->es_vid = ETHERSWITCH_VID_VALID;
 			vg->es_vid |= datahi & 0xfff;
@@ -604,19 +599,22 @@ adm6996fc_getvgroup(device_t dev, etherswitch_vlangroup_t *vg)
 static int
 adm6996fc_setvgroup(device_t dev, etherswitch_vlangroup_t *vg)
 {
-	struct adm6996fc_softc	*sc;
-	device_t		 parent;
+	struct adm6996fc_softc *sc;
+	device_t parent;
 
 	sc = device_get_softc(dev);
 	parent = device_get_parent(dev);
 
 	if (sc->vlan_mode == ETHERSWITCH_VLAN_PORT) {
-		ADM6996FC_WRITEREG(parent, ADM6996FC_VF0L + 2 * vg->es_vlangroup,
-		    vg->es_member_ports);
+		ADM6996FC_WRITEREG(parent,
+		    ADM6996FC_VF0L + 2 * vg->es_vlangroup, vg->es_member_ports);
 	} else if (sc->vlan_mode == ETHERSWITCH_VLAN_DOT1Q) {
-		ADM6996FC_WRITEREG(parent, ADM6996FC_VF0L + 2 * vg->es_vlangroup,
-		    vg->es_member_ports | ((~vg->es_untagged_ports & 0x3f)<< 6));
-		ADM6996FC_WRITEREG(parent, ADM6996FC_VF0H + 2 * vg->es_vlangroup,
+		ADM6996FC_WRITEREG(parent,
+		    ADM6996FC_VF0L + 2 * vg->es_vlangroup,
+		    vg->es_member_ports |
+			((~vg->es_untagged_ports & 0x3f) << 6));
+		ADM6996FC_WRITEREG(parent,
+		    ADM6996FC_VF0H + 2 * vg->es_vlangroup,
 		    (1 << ADM6996FC_VV_SHIFT) | vg->es_vid);
 	}
 
@@ -640,11 +638,11 @@ adm6996fc_getconf(device_t dev, etherswitch_conf_t *conf)
 static int
 adm6996fc_setconf(device_t dev, etherswitch_conf_t *conf)
 {
-	struct adm6996fc_softc	*sc;
-	device_t		 parent;
-	int 			 i;
-	int 			 data;
-	int	bcaddr[6] = {0x01, 0x03, 0x05, 0x07, 0x08, 0x09};
+	struct adm6996fc_softc *sc;
+	device_t parent;
+	int i;
+	int data;
+	int bcaddr[6] = { 0x01, 0x03, 0x05, 0x07, 0x08, 0x09 };
 
 	sc = device_get_softc(dev);
 	parent = device_get_parent(dev);
@@ -657,7 +655,7 @@ adm6996fc_setconf(device_t dev, etherswitch_conf_t *conf)
 		data = ADM6996FC_READREG(parent, ADM6996FC_SC3);
 		data &= ~(1 << ADM6996FC_TBV_SHIFT);
 		ADM6996FC_WRITEREG(parent, ADM6996FC_SC3, data);
-		for (i = 0;i <= 5; ++i) {
+		for (i = 0; i <= 5; ++i) {
 			data = ADM6996FC_READREG(parent, bcaddr[i]);
 			data &= ~(0xf << 10);
 			data |= (i << 10);
@@ -672,14 +670,14 @@ adm6996fc_setconf(device_t dev, etherswitch_conf_t *conf)
 		data = ADM6996FC_READREG(parent, ADM6996FC_SC3);
 		data |= (1 << ADM6996FC_TBV_SHIFT);
 		ADM6996FC_WRITEREG(parent, ADM6996FC_SC3, data);
-		for (i = 0;i <= 5; ++i) {
+		for (i = 0; i <= 5; ++i) {
 			data = ADM6996FC_READREG(parent, bcaddr[i]);
 			/* Private VID set 1 */
 			data &= ~(0xf << 10);
 			data |= (1 << 10);
 			ADM6996FC_WRITEREG(parent, bcaddr[i], data);
 		}
-		for (i = 2;i <= 15; ++i) {
+		for (i = 2; i <= 15; ++i) {
 			ADM6996FC_WRITEREG(parent, ADM6996FC_VF0H + 2 * i,
 			    0x0000);
 		}
@@ -693,7 +691,7 @@ adm6996fc_setconf(device_t dev, etherswitch_conf_t *conf)
 		data = ADM6996FC_READREG(parent, ADM6996FC_SC3);
 		data &= ~(1 << ADM6996FC_TBV_SHIFT);
 		ADM6996FC_WRITEREG(parent, ADM6996FC_SC3, data);
-		for (i = 0;i <= 5; ++i) {
+		for (i = 0; i <= 5; ++i) {
 			data = ADM6996FC_READREG(parent, bcaddr[i]);
 			data &= ~(0xf << 10);
 			data |= (1 << 10);
@@ -706,7 +704,6 @@ adm6996fc_setconf(device_t dev, etherswitch_conf_t *conf)
 		ADM6996FC_WRITEREG(parent, ADM6996FC_VF0H + 2,
 		    (1 << ADM6996FC_VV_SHIFT) | 1);
 	}
-
 
 	return (0);
 }
@@ -755,8 +752,8 @@ adm6996fc_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr)
 static int
 adm6996fc_readphy(device_t dev, int phy, int reg)
 {
-	struct adm6996fc_softc	*sc;
-	int			 data;
+	struct adm6996fc_softc *sc;
+	int data;
 
 	sc = device_get_softc(dev);
 	ADM6996FC_LOCK_ASSERT(sc, MA_NOTOWNED);
@@ -800,7 +797,7 @@ static int
 adm6996fc_readreg(device_t dev, int addr)
 {
 
-	return ADM6996FC_READREG(device_get_parent(dev),  addr);
+	return ADM6996FC_READREG(device_get_parent(dev), addr);
 }
 
 static int
@@ -814,36 +811,36 @@ adm6996fc_writereg(device_t dev, int addr, int value)
 
 static device_method_t adm6996fc_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		adm6996fc_probe),
-	DEVMETHOD(device_attach,	adm6996fc_attach),
-	DEVMETHOD(device_detach,	adm6996fc_detach),
-	
+	DEVMETHOD(device_probe, adm6996fc_probe),
+	DEVMETHOD(device_attach, adm6996fc_attach),
+	DEVMETHOD(device_detach, adm6996fc_detach),
+
 	/* bus interface */
-	DEVMETHOD(bus_add_child,	device_add_child_ordered),
-	
+	DEVMETHOD(bus_add_child, device_add_child_ordered),
+
 	/* MII interface */
-	DEVMETHOD(miibus_readreg,	adm6996fc_readphy),
-	DEVMETHOD(miibus_writereg,	adm6996fc_writephy),
-	DEVMETHOD(miibus_statchg,	adm6996fc_statchg),
+	DEVMETHOD(miibus_readreg, adm6996fc_readphy),
+	DEVMETHOD(miibus_writereg, adm6996fc_writephy),
+	DEVMETHOD(miibus_statchg, adm6996fc_statchg),
 
 	/* MDIO interface */
-	DEVMETHOD(mdio_readreg,		adm6996fc_readphy),
-	DEVMETHOD(mdio_writereg,	adm6996fc_writephy),
+	DEVMETHOD(mdio_readreg, adm6996fc_readphy),
+	DEVMETHOD(mdio_writereg, adm6996fc_writephy),
 
 	/* etherswitch interface */
-	DEVMETHOD(etherswitch_lock,	adm6996fc_lock),
-	DEVMETHOD(etherswitch_unlock,	adm6996fc_unlock),
-	DEVMETHOD(etherswitch_getinfo,	adm6996fc_getinfo),
-	DEVMETHOD(etherswitch_readreg,	adm6996fc_readreg),
-	DEVMETHOD(etherswitch_writereg,	adm6996fc_writereg),
-	DEVMETHOD(etherswitch_readphyreg,	adm6996fc_readphy),
-	DEVMETHOD(etherswitch_writephyreg,	adm6996fc_writephy),
-	DEVMETHOD(etherswitch_getport,	adm6996fc_getport),
-	DEVMETHOD(etherswitch_setport,	adm6996fc_setport),
-	DEVMETHOD(etherswitch_getvgroup,	adm6996fc_getvgroup),
-	DEVMETHOD(etherswitch_setvgroup,	adm6996fc_setvgroup),
-	DEVMETHOD(etherswitch_setconf,	adm6996fc_setconf),
-	DEVMETHOD(etherswitch_getconf,	adm6996fc_getconf),
+	DEVMETHOD(etherswitch_lock, adm6996fc_lock),
+	DEVMETHOD(etherswitch_unlock, adm6996fc_unlock),
+	DEVMETHOD(etherswitch_getinfo, adm6996fc_getinfo),
+	DEVMETHOD(etherswitch_readreg, adm6996fc_readreg),
+	DEVMETHOD(etherswitch_writereg, adm6996fc_writereg),
+	DEVMETHOD(etherswitch_readphyreg, adm6996fc_readphy),
+	DEVMETHOD(etherswitch_writephyreg, adm6996fc_writephy),
+	DEVMETHOD(etherswitch_getport, adm6996fc_getport),
+	DEVMETHOD(etherswitch_setport, adm6996fc_setport),
+	DEVMETHOD(etherswitch_getvgroup, adm6996fc_getvgroup),
+	DEVMETHOD(etherswitch_setvgroup, adm6996fc_setvgroup),
+	DEVMETHOD(etherswitch_setconf, adm6996fc_setconf),
+	DEVMETHOD(etherswitch_getconf, adm6996fc_getconf),
 
 	DEVMETHOD_END
 };
@@ -856,5 +853,5 @@ DRIVER_MODULE(miibus, adm6996fc, miibus_driver, 0, 0);
 DRIVER_MODULE(mdio, adm6996fc, mdio_driver, 0, 0);
 DRIVER_MODULE(etherswitch, adm6996fc, etherswitch_driver, 0, 0);
 MODULE_VERSION(adm6996fc, 1);
-MODULE_DEPEND(adm6996fc, miibus, 1, 1, 1); /* XXX which versions? */
+MODULE_DEPEND(adm6996fc, miibus, 1, 1, 1);	/* XXX which versions? */
 MODULE_DEPEND(adm6996fc, etherswitch, 1, 1, 1); /* XXX which versions? */

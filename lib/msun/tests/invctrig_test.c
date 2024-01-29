@@ -29,6 +29,7 @@
  */
 
 #include <sys/param.h>
+
 #include <complex.h>
 #include <fenv.h>
 #include <float.h>
@@ -37,8 +38,8 @@
 
 #include "test-utils.h"
 
-#pragma	STDC FENV_ACCESS	ON
-#pragma	STDC CX_LIMITED_RANGE	OFF
+#pragma STDC FENV_ACCESS ON
+#pragma STDC CX_LIMITED_RANGE OFF
 
 /*
  * Test that a function returns the correct value and sets the
@@ -53,71 +54,80 @@
  * XXX The volatile here is to avoid gcc's bogus constant folding and work
  *     around the lack of support for the FENV_ACCESS pragma.
  */
-#define	test_p(func, z, result, exceptmask, excepts, checksign)	do {	\
-	volatile long double complex _d = z;				\
-	debug("  testing %s(%Lg + %Lg I) == %Lg + %Lg I\n", #func,	\
-	    creall(_d), cimagl(_d), creall(result), cimagl(result));	\
-	ATF_REQUIRE_EQ(0, feclearexcept(FE_ALL_EXCEPT));		\
-	CHECK_CFPEQUAL_CS((func)(_d), (result), (checksign));		\
-	CHECK_FP_EXCEPTIONS_MSG(excepts, exceptmask, "for %s(%s)",	\
-	    #func, #z);							\
-} while (0)
+#define test_p(func, z, result, exceptmask, excepts, checksign)              \
+	do {                                                                 \
+		volatile long double complex _d = z;                         \
+		debug("  testing %s(%Lg + %Lg I) == %Lg + %Lg I\n", #func,   \
+		    creall(_d), cimagl(_d), creall(result), cimagl(result)); \
+		ATF_REQUIRE_EQ(0, feclearexcept(FE_ALL_EXCEPT));             \
+		CHECK_CFPEQUAL_CS((func)(_d), (result), (checksign));        \
+		CHECK_FP_EXCEPTIONS_MSG(excepts, exceptmask, "for %s(%s)",   \
+		    #func, #z);                                              \
+	} while (0)
 
 /*
  * Test within a given tolerance.  The tolerance indicates relative error
  * in ulps.
  */
-#define	test_p_tol(func, z, result, tol)			do {	\
-	debug("  testing %s(%Lg + %Lg I) ~= %Lg + %Lg I\n", #func,	\
-	    creall(z), cimagl(z), creall(result), cimagl(result));	\
-	CHECK_CFPEQUAL_TOL((func)(z), (result), (tol), CS_BOTH);	\
-} while (0)
+#define test_p_tol(func, z, result, tol)                                   \
+	do {                                                               \
+		debug("  testing %s(%Lg + %Lg I) ~= %Lg + %Lg I\n", #func, \
+		    creall(z), cimagl(z), creall(result), cimagl(result)); \
+		CHECK_CFPEQUAL_TOL((func)(z), (result), (tol), CS_BOTH);   \
+	} while (0)
 
 /* These wrappers apply the identities f(conj(z)) = conj(f(z)). */
-#define	test(func, z, result, exceptmask, excepts, checksign)	do {	\
-	test_p(func, z, result, exceptmask, excepts, checksign);	\
-	test_p(func, conjl(z), conjl(result), exceptmask, excepts, checksign); \
-} while (0)
-#define	test_tol(func, z, result, tol)				do {	\
-	test_p_tol(func, z, result, tol);				\
-	test_p_tol(func, conjl(z), conjl(result), tol);			\
-} while (0)
+#define test(func, z, result, exceptmask, excepts, checksign)              \
+	do {                                                               \
+		test_p(func, z, result, exceptmask, excepts, checksign);   \
+		test_p(func, conjl(z), conjl(result), exceptmask, excepts, \
+		    checksign);                                            \
+	} while (0)
+#define test_tol(func, z, result, tol)                          \
+	do {                                                    \
+		test_p_tol(func, z, result, tol);               \
+		test_p_tol(func, conjl(z), conjl(result), tol); \
+	} while (0)
 
 /* Test the given function in all precisions. */
-#define	testall(func, x, result, exceptmask, excepts, checksign) do {	\
-	test(func, x, result, exceptmask, excepts, checksign);		\
-	test(func##f, x, result, exceptmask, excepts, checksign);	\
-} while (0)
-#define	testall_odd(func, x, result, exceptmask, excepts, checksign) do { \
-	testall(func, x, result, exceptmask, excepts, checksign);	\
-	testall(func, -(x), -result, exceptmask, excepts, checksign);	\
-} while (0)
-#define	testall_even(func, x, result, exceptmask, excepts, checksign) do { \
-	testall(func, x, result, exceptmask, excepts, checksign);	\
-	testall(func, -(x), result, exceptmask, excepts, checksign);	\
-} while (0)
+#define testall(func, x, result, exceptmask, excepts, checksign)          \
+	do {                                                              \
+		test(func, x, result, exceptmask, excepts, checksign);    \
+		test(func##f, x, result, exceptmask, excepts, checksign); \
+	} while (0)
+#define testall_odd(func, x, result, exceptmask, excepts, checksign)          \
+	do {                                                                  \
+		testall(func, x, result, exceptmask, excepts, checksign);     \
+		testall(func, -(x), -result, exceptmask, excepts, checksign); \
+	} while (0)
+#define testall_even(func, x, result, exceptmask, excepts, checksign)        \
+	do {                                                                 \
+		testall(func, x, result, exceptmask, excepts, checksign);    \
+		testall(func, -(x), result, exceptmask, excepts, checksign); \
+	} while (0)
 
 /*
  * Test the given function in all precisions, within a given tolerance.
  * The tolerance is specified in ulps.
  */
-#define	testall_tol(func, x, result, tol)	       		   do { \
-	test_tol(func, x, result, (tol) * DBL_ULP());			\
-	test_tol(func##f, x, result, (tol) * FLT_ULP());		\
-} while (0)
-#define	testall_odd_tol(func, x, result, tol)	       		   do { \
-	testall_tol(func, x, result, tol);				\
-	testall_tol(func, -(x), -result, tol);				\
-} while (0)
-#define	testall_even_tol(func, x, result, tol)	       		   do { \
-	testall_tol(func, x, result, tol);				\
-	testall_tol(func, -(x), result, tol);				\
-} while (0)
+#define testall_tol(func, x, result, tol)                        \
+	do {                                                     \
+		test_tol(func, x, result, (tol) * DBL_ULP());    \
+		test_tol(func##f, x, result, (tol) * FLT_ULP()); \
+	} while (0)
+#define testall_odd_tol(func, x, result, tol)          \
+	do {                                           \
+		testall_tol(func, x, result, tol);     \
+		testall_tol(func, -(x), -result, tol); \
+	} while (0)
+#define testall_even_tol(func, x, result, tol)        \
+	do {                                          \
+		testall_tol(func, x, result, tol);    \
+		testall_tol(func, -(x), result, tol); \
+	} while (0)
 
-static const long double
-pi = 3.14159265358979323846264338327950280L,
-c3pi = 9.42477796076937971538793014983850839L;
-
+static const long double pi = 3.14159265358979323846264338327950280L,
+			 c3pi = 9.42477796076937971538793014983850839L;
 
 /* Tests for 0 */
 ATF_TC_WITHOUT_HEAD(zero);
@@ -193,16 +203,16 @@ ATF_TC_BODY(nan, tc)
 
 	z = CMPLXL(INFINITY, NAN);
 	testall_even(cacosh, z, CMPLXL(INFINITY, NAN), ALL_STD_EXCEPT, 0,
-		     CS_REAL);
+	    CS_REAL);
 	testall_even(cacos, z, CMPLXL(NAN, INFINITY), ALL_STD_EXCEPT, 0, 0);
 	testall_odd(casinh, z, CMPLXL(INFINITY, NAN), ALL_STD_EXCEPT, 0,
-		    CS_REAL);
+	    CS_REAL);
 	testall_odd(casin, z, CMPLXL(NAN, INFINITY), ALL_STD_EXCEPT, 0, 0);
 	testall_odd(catanh, z, CMPLXL(0.0, NAN), ALL_STD_EXCEPT, 0, CS_REAL);
 	testall_odd_tol(catan, z, CMPLXL(pi / 2, 0.0), 1);
 
 	z = CMPLXL(0.0, NAN);
-        /* XXX We allow a spurious inexact exception here. */
+	/* XXX We allow a spurious inexact exception here. */
 	testall_even(cacosh, z, nan_nan, OPT_INVALID & ~FE_INEXACT, 0, 0);
 	testall_even_tol(cacos, z, CMPLXL(pi / 2, NAN), 1);
 	testall_odd(casinh, z, nan_nan, OPT_INVALID, 0, 0);
@@ -269,9 +279,7 @@ ATF_TC_BODY(inf, tc)
 ATF_TC_WITHOUT_HEAD(axes);
 ATF_TC_BODY(axes, tc)
 {
-	static const long double nums[] = {
-		-2, -1, -0.5, 0.5, 1, 2
-	};
+	static const long double nums[] = { -2, -1, -0.5, 0.5, 1, 2 };
 	long double complex z;
 	unsigned i;
 
@@ -285,16 +293,19 @@ ATF_TC_BODY(axes, tc)
 			testall_tol(catanh, z, CMPLXL(atanh(nums[i]), 0.0), 1);
 		} else {
 			testall_tol(cacosh, z,
-				    CMPLXL(acosh(fabsl(nums[i])),
-					   (nums[i] < 0) ? pi : 0), 1);
+			    CMPLXL(acosh(fabsl(nums[i])),
+				(nums[i] < 0) ? pi : 0),
+			    1);
 			testall_tol(cacos, z,
-				    CMPLXL((nums[i] < 0) ? pi : 0,
-					   -acosh(fabsl(nums[i]))), 1);
+			    CMPLXL((nums[i] < 0) ? pi : 0,
+				-acosh(fabsl(nums[i]))),
+			    1);
 			testall_tol(casin, z,
-				    CMPLXL(copysign(pi / 2, nums[i]),
-					   acosh(fabsl(nums[i]))), 1);
+			    CMPLXL(copysign(pi / 2, nums[i]),
+				acosh(fabsl(nums[i]))),
+			    1);
 			testall_tol(catanh, z,
-				    CMPLXL(atanh(1 / nums[i]), pi / 2), 1);
+			    CMPLXL(atanh(1 / nums[i]), pi / 2), 1);
 		}
 		testall_tol(casinh, z, CMPLXL(asinh(nums[i]), 0.0), 1);
 		testall_tol(catan, z, CMPLXL(atan(nums[i]), 0), 1);
@@ -321,7 +332,7 @@ ATF_TC_BODY(small, tc)
 	acos_z = CMPLXL(pi / 4, -0.34657359027997265470861606072908828L);
 	asin_z = CMPLXL(pi / 4, 0.34657359027997265470861606072908828L);
 	atan_z = CMPLXL(0.66290883183401623252961960521423782L,
-			 0.15899719167999917436476103600701878L);
+	    0.15899719167999917436476103600701878L);
 
 	testall_tol(cacos, z, acos_z, 2);
 	testall_odd_tol(casin, z, asin_z, 2);

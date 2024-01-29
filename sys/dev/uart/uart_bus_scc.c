@@ -32,13 +32,12 @@
 #include <sys/conf.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
-#include <sys/rman.h>
 #include <machine/resource.h>
 
 #include <dev/scc/scc_bus.h>
-
 #include <dev/uart/uart.h>
 #include <dev/uart/uart_bus.h>
 
@@ -47,13 +46,12 @@ static int uart_scc_probe(device_t dev);
 
 static device_method_t uart_scc_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		uart_scc_probe),
-	DEVMETHOD(device_attach,	uart_scc_attach),
-	DEVMETHOD(device_detach,	uart_bus_detach),
+	DEVMETHOD(device_probe, uart_scc_probe),
+	DEVMETHOD(device_attach, uart_scc_attach),
+	DEVMETHOD(device_detach, uart_bus_detach),
 	/* Serdev interface */
-	DEVMETHOD(serdev_ihand,		uart_bus_ihand),
-	DEVMETHOD(serdev_sysdev,	uart_bus_sysdev),
-	{ 0, 0 }
+	DEVMETHOD(serdev_ihand, uart_bus_ihand),
+	DEVMETHOD(serdev_sysdev, uart_bus_sysdev), { 0, 0 }
 };
 
 static driver_t uart_scc_driver = {

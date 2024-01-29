@@ -39,13 +39,13 @@
 #include <net/if.h>
 #include <net/pfvar.h>
 
-#include <errno.h>
-#include <string.h>
 #include <ctype.h>
+#include <err.h>
+#include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <limits.h>
-#include <err.h>
+#include <string.h>
 
 #include "pfctl.h"
 
@@ -53,22 +53,22 @@
 
 extern int dev;
 
-static int	 pfr_next_token(char buf[BUF_SIZE], FILE *);
+static int pfr_next_token(char buf[BUF_SIZE], FILE *);
 
 static void
-pfr_report_error(struct pfr_table *tbl, struct pfioc_table *io,
-    const char *err)
+pfr_report_error(struct pfr_table *tbl, struct pfioc_table *io, const char *err)
 {
 	unsigned long maxcount;
 	size_t s;
 
 	s = sizeof(maxcount);
-	if (sysctlbyname("net.pf.request_maxcount", &maxcount, &s, NULL,
-	    0) == -1)
+	if (sysctlbyname("net.pf.request_maxcount", &maxcount, &s, NULL, 0) ==
+	    -1)
 		return;
 
 	if (io->pfrio_size > maxcount || io->pfrio_size2 > maxcount)
-		fprintf(stderr, "cannot %s %s: too many elements.\n"
+		fprintf(stderr,
+		    "cannot %s %s: too many elements.\n"
 		    "Consider increasing net.pf.request_maxcount.",
 		    err, tbl->pfrt_name);
 }
@@ -137,7 +137,7 @@ pfr_del_tables(struct pfr_table *tbl, int size, int *ndel, int flags)
 
 int
 pfr_get_tables(struct pfr_table *filter, struct pfr_table *tbl, int *size,
-	int flags)
+    int flags)
 {
 	struct pfioc_table io;
 
@@ -162,7 +162,7 @@ pfr_get_tables(struct pfr_table *filter, struct pfr_table *tbl, int *size,
 
 int
 pfr_get_tstats(struct pfr_table *filter, struct pfr_tstats *tbl, int *size,
-	int flags)
+    int flags)
 {
 	struct pfioc_table io;
 
@@ -205,8 +205,8 @@ pfr_clr_addrs(struct pfr_table *tbl, int *ndel, int flags)
 }
 
 int
-pfr_add_addrs(struct pfr_table *tbl, struct pfr_addr *addr, int size,
-    int *nadd, int flags)
+pfr_add_addrs(struct pfr_table *tbl, struct pfr_addr *addr, int size, int *nadd,
+    int flags)
 {
 	int ret;
 
@@ -219,8 +219,8 @@ pfr_add_addrs(struct pfr_table *tbl, struct pfr_addr *addr, int size,
 }
 
 int
-pfr_del_addrs(struct pfr_table *tbl, struct pfr_addr *addr, int size,
-    int *ndel, int flags)
+pfr_del_addrs(struct pfr_table *tbl, struct pfr_addr *addr, int size, int *ndel,
+    int flags)
 {
 	int ret;
 
@@ -391,11 +391,10 @@ pfi_get_ifaces(const char *filter, struct pfi_kif *buf, int *size)
 
 /* buffer management code */
 
-const size_t buf_esize[PFRB_MAX] = { 0,
-	sizeof(struct pfr_table), sizeof(struct pfr_tstats),
-	sizeof(struct pfr_addr), sizeof(struct pfr_astats),
-	sizeof(struct pfi_kif), sizeof(struct pfioc_trans_e)
-};
+const size_t buf_esize[PFRB_MAX] = { 0, sizeof(struct pfr_table),
+	sizeof(struct pfr_tstats), sizeof(struct pfr_addr),
+	sizeof(struct pfr_astats), sizeof(struct pfi_kif),
+	sizeof(struct pfioc_trans_e) };
 
 /*
  * add one element to the buffer
@@ -435,7 +434,8 @@ pfr_buf_next(struct pfr_buffer *b, const void *prev)
 	if (prev == NULL)
 		return (b->pfrb_caddr);
 	bs = buf_esize[b->pfrb_type];
-	if ((((caddr_t)prev)-((caddr_t)b->pfrb_caddr)) / bs >= b->pfrb_size-1)
+	if ((((caddr_t)prev) - ((caddr_t)b->pfrb_caddr)) / bs >=
+	    b->pfrb_size - 1)
 		return (NULL);
 	return (((caddr_t)prev) + bs);
 }
@@ -501,9 +501,9 @@ int
 pfr_buf_load(struct pfr_buffer *b, char *file, int nonetwork,
     int (*append_addr)(struct pfr_buffer *, char *, int))
 {
-	FILE	*fp;
-	char	 buf[BUF_SIZE];
-	int	 rv;
+	FILE *fp;
+	char buf[BUF_SIZE];
+	int rv;
 
 	if (file == NULL)
 		return (0);
@@ -527,8 +527,8 @@ pfr_buf_load(struct pfr_buffer *b, char *file, int nonetwork,
 int
 pfr_next_token(char buf[BUF_SIZE], FILE *fp)
 {
-	static char	next_ch = ' ';
-	int		i = 0;
+	static char next_ch = ' ';
+	int i = 0;
 
 	for (;;) {
 		/* skip spaces */

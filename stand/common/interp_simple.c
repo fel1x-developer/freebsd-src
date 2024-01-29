@@ -31,6 +31,7 @@
 
 #include <stand.h>
 #include <string.h>
+
 #include "bootstrap.h"
 
 INTERP_DEFINE("simp");
@@ -47,8 +48,8 @@ interp_init(void)
 int
 interp_run(const char *input)
 {
-	int			argc;
-	char			**argv;
+	int argc;
+	char **argv;
 
 	if (parse(&argc, &argv, input)) {
 		printf("parse error\n");
@@ -69,36 +70,35 @@ interp_run(const char *input)
  * We try to make this short in order to save memory -- the loader has
  * limited memory available, and some of the forth files are very long.
  */
-struct includeline
-{
-	struct includeline	*next;
-	int			flags;
-	int			line;
-#define SL_QUIET	(1<<0)
-#define SL_IGNOREERR	(1<<1)
-	char			text[0];
+struct includeline {
+	struct includeline *next;
+	int flags;
+	int line;
+#define SL_QUIET (1 << 0)
+#define SL_IGNOREERR (1 << 1)
+	char text[0];
 };
 
 int
 interp_include(const char *filename)
 {
-	struct includeline	*script, *se, *sp;
-	char			input[256];			/* big enough? */
-	int			argc,res;
-	char			**argv, *cp;
-	int			fd, flags, line;
+	struct includeline *script, *se, *sp;
+	char input[256]; /* big enough? */
+	int argc, res;
+	char **argv, *cp;
+	int fd, flags, line;
 
 	if (((fd = open(filename, O_RDONLY)) == -1)) {
 		snprintf(command_errbuf, sizeof(command_errbuf),
 		    "can't open '%s': %s", filename, strerror(errno));
-		return(CMD_ERROR);
+		return (CMD_ERROR);
 	}
 
 #ifdef LOADER_VERIEXEC
 	if (verify_file(fd, filename, 0, VE_GUESS, __func__) < 0) {
 		close(fd);
-		sprintf(command_errbuf,"can't verify '%s'", filename);
-		return(CMD_ERROR);
+		sprintf(command_errbuf, "can't verify '%s'", filename);
+		return (CMD_ERROR);
 	}
 #endif
 
@@ -107,12 +107,12 @@ interp_include(const char *filename)
 	 */
 	script = se = NULL;
 	line = 0;
-	
+
 	while (fgetstr(input, sizeof(input), fd) >= 0) {
 		line++;
 		flags = 0;
 		/* Discard comments */
-		if (strncmp(input+strspn(input, " "), "\\", 1) == 0)
+		if (strncmp(input + strspn(input, " "), "\\", 1) == 0)
 			continue;
 		cp = input;
 		/* Echo? */
@@ -128,9 +128,10 @@ interp_include(const char *filename)
 
 		/* Allocate script line structure and copy line, flags */
 		if (*cp == '\0')
-			continue;	/* ignore empty line, save memory */
+			continue; /* ignore empty line, save memory */
 		sp = malloc(sizeof(struct includeline) + strlen(cp) + 1);
-		/* On malloc failure (it happens!), free as much as possible and exit */
+		/* On malloc failure (it happens!), free as much as possible and
+		 * exit */
 		if (sp == NULL) {
 			while (script != NULL) {
 				se = script;
@@ -163,7 +164,7 @@ interp_include(const char *filename)
 	argv = NULL;
 	res = CMD_OK;
 	for (sp = script; sp != NULL; sp = sp->next) {
-	
+
 		/* print if not being quiet */
 		if (!(sp->flags & SL_QUIET)) {
 			interp_emit_prompt();
@@ -172,11 +173,12 @@ interp_include(const char *filename)
 
 		/* Parse the command */
 		if (!parse(&argc, &argv, sp->text)) {
-			if ((argc > 0) && (interp_builtin_cmd(argc, argv) != 0)) {
+			if ((argc > 0) &&
+			    (interp_builtin_cmd(argc, argv) != 0)) {
 				/* normal command */
 				printf("%s: %s\n", argv[0], command_errmsg);
 				if (!(sp->flags & SL_IGNOREERR)) {
-					res=CMD_ERROR;
+					res = CMD_ERROR;
 					break;
 				}
 			}
@@ -184,7 +186,7 @@ interp_include(const char *filename)
 			argv = NULL;
 		} else {
 			printf("%s line %d: parse error\n", filename, sp->line);
-			res=CMD_ERROR;
+			res = CMD_ERROR;
 			break;
 		}
 	}
@@ -196,5 +198,5 @@ interp_include(const char *filename)
 		script = script->next;
 		free(se);
 	}
-	return(res);
+	return (res);
 }

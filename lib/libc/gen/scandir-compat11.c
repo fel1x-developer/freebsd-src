@@ -36,13 +36,13 @@
  */
 
 #include "namespace.h"
-#define	_WANT_FREEBSD11_DIRENT
+#define _WANT_FREEBSD11_DIRENT
 #include <dirent.h>
 #include <stdlib.h>
 #include <string.h>
-#include "un-namespace.h"
 
 #include "gen-compat.h"
+#include "un-namespace.h"
 
 /*
  * scandir_b@FBSD_1.4 was never exported from libc.so.7 due to a
@@ -51,7 +51,7 @@
  * function freebsd11_scandir_b().
  */
 
-#define	SELECT(x)	select(x)
+#define SELECT(x) select(x)
 
 static int freebsd11_scandir_thunk_cmp(const void *p1, const void *p2,
     void *thunk);
@@ -67,10 +67,10 @@ freebsd11_scandir(const char *dirname, struct freebsd11_dirent ***namelist,
 	DIR *dirp;
 
 	if ((dirp = opendir(dirname)) == NULL)
-		return(-1);
+		return (-1);
 
 	numitems = 0;
-	arraysz = 32;	/* initial estimate of the array size */
+	arraysz = 32; /* initial estimate of the array size */
 	names = (struct freebsd11_dirent **)malloc(
 	    arraysz * sizeof(struct freebsd11_dirent *));
 	if (names == NULL)
@@ -78,7 +78,7 @@ freebsd11_scandir(const char *dirname, struct freebsd11_dirent ***namelist,
 
 	while ((d = freebsd11_readdir(dirp)) != NULL) {
 		if (select != NULL && !SELECT(d))
-			continue;	/* just selected names */
+			continue; /* just selected names */
 		/*
 		 * Make a minimum size copy of the data
 		 */
@@ -138,8 +138,8 @@ freebsd11_alphasort(const struct freebsd11_dirent **d1,
 static int
 freebsd11_scandir_thunk_cmp(const void *p1, const void *p2, void *thunk)
 {
-	int (*dc)(const struct freebsd11_dirent **, const struct
-	    freebsd11_dirent **);
+	int (*dc)(const struct freebsd11_dirent **,
+	    const struct freebsd11_dirent **);
 
 	dc = *(int (**)(const struct freebsd11_dirent **,
 	    const struct freebsd11_dirent **))thunk;
@@ -147,5 +147,5 @@ freebsd11_scandir_thunk_cmp(const void *p1, const void *p2, void *thunk)
 	    (const struct freebsd11_dirent **)p2));
 }
 
-__sym_compat(alphasort, freebsd11_alphasort, FBSD_1.0);
-__sym_compat(scandir, freebsd11_scandir, FBSD_1.0);
+__sym_compat(alphasort, freebsd11_alphasort, FBSD_1 .0);
+__sym_compat(scandir, freebsd11_scandir, FBSD_1 .0);

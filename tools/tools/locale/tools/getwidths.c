@@ -25,7 +25,6 @@
 
 #include <locale.h>
 #include <stdio.h>
-
 #include <utf8proc.h>
 
 int

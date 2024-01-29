@@ -112,8 +112,9 @@
  */
 
 #include <sys/cdefs.h>
-#include "xgbe.h"
+
 #include "xgbe-common.h"
+#include "xgbe.h"
 
 int
 xgbe_calc_rx_buf_size(if_t netdev, unsigned int mtu)
@@ -125,7 +126,7 @@ xgbe_calc_rx_buf_size(if_t netdev, unsigned int mtu)
 
 	rx_buf_size = mtu + ETH_HLEN + ETH_FCS_LEN + VLAN_HLEN;
 	rx_buf_size = min(max(rx_buf_size, XGBE_RX_MIN_BUF_SIZE), PAGE_SIZE);
-	rx_buf_size = (rx_buf_size + XGBE_RX_BUF_ALIGN - 1) & 
+	rx_buf_size = (rx_buf_size + XGBE_RX_BUF_ALIGN - 1) &
 	    ~(XGBE_RX_BUF_ALIGN - 1);
 
 	return (rx_buf_size);
@@ -148,47 +149,44 @@ xgbe_get_all_hw_features(struct xgbe_prv_data *pdata)
 	hw_feat->version = XGMAC_IOREAD(pdata, MAC_VR);
 
 	/* Hardware feature register 0 */
-	hw_feat->gmii	= XGMAC_GET_BITS(mac_hfr0, MAC_HWF0R, GMIISEL);
-	hw_feat->vlhash	= XGMAC_GET_BITS(mac_hfr0, MAC_HWF0R, VLHASH);
-	hw_feat->sma	= XGMAC_GET_BITS(mac_hfr0, MAC_HWF0R, SMASEL);
-	hw_feat->rwk	= XGMAC_GET_BITS(mac_hfr0, MAC_HWF0R, RWKSEL);
-	hw_feat->mgk	= XGMAC_GET_BITS(mac_hfr0, MAC_HWF0R, MGKSEL);
-	hw_feat->mmc	= XGMAC_GET_BITS(mac_hfr0, MAC_HWF0R, MMCSEL);
-	hw_feat->aoe	= XGMAC_GET_BITS(mac_hfr0, MAC_HWF0R, ARPOFFSEL);
-	hw_feat->ts	= XGMAC_GET_BITS(mac_hfr0, MAC_HWF0R, TSSEL);
-	hw_feat->eee	= XGMAC_GET_BITS(mac_hfr0, MAC_HWF0R, EEESEL);
-	hw_feat->tx_coe	= XGMAC_GET_BITS(mac_hfr0, MAC_HWF0R, TXCOESEL);
-	hw_feat->rx_coe	= XGMAC_GET_BITS(mac_hfr0, MAC_HWF0R, RXCOESEL);
-	hw_feat->addn_mac = XGMAC_GET_BITS(mac_hfr0, MAC_HWF0R,
-					      ADDMACADRSEL);
-	hw_feat->ts_src	= XGMAC_GET_BITS(mac_hfr0, MAC_HWF0R, TSSTSSEL);
+	hw_feat->gmii = XGMAC_GET_BITS(mac_hfr0, MAC_HWF0R, GMIISEL);
+	hw_feat->vlhash = XGMAC_GET_BITS(mac_hfr0, MAC_HWF0R, VLHASH);
+	hw_feat->sma = XGMAC_GET_BITS(mac_hfr0, MAC_HWF0R, SMASEL);
+	hw_feat->rwk = XGMAC_GET_BITS(mac_hfr0, MAC_HWF0R, RWKSEL);
+	hw_feat->mgk = XGMAC_GET_BITS(mac_hfr0, MAC_HWF0R, MGKSEL);
+	hw_feat->mmc = XGMAC_GET_BITS(mac_hfr0, MAC_HWF0R, MMCSEL);
+	hw_feat->aoe = XGMAC_GET_BITS(mac_hfr0, MAC_HWF0R, ARPOFFSEL);
+	hw_feat->ts = XGMAC_GET_BITS(mac_hfr0, MAC_HWF0R, TSSEL);
+	hw_feat->eee = XGMAC_GET_BITS(mac_hfr0, MAC_HWF0R, EEESEL);
+	hw_feat->tx_coe = XGMAC_GET_BITS(mac_hfr0, MAC_HWF0R, TXCOESEL);
+	hw_feat->rx_coe = XGMAC_GET_BITS(mac_hfr0, MAC_HWF0R, RXCOESEL);
+	hw_feat->addn_mac = XGMAC_GET_BITS(mac_hfr0, MAC_HWF0R, ADDMACADRSEL);
+	hw_feat->ts_src = XGMAC_GET_BITS(mac_hfr0, MAC_HWF0R, TSSTSSEL);
 	hw_feat->sa_vlan_ins = XGMAC_GET_BITS(mac_hfr0, MAC_HWF0R, SAVLANINS);
-	hw_feat->vxn	= XGMAC_GET_BITS(mac_hfr0, MAC_HWF0R, VXN);
+	hw_feat->vxn = XGMAC_GET_BITS(mac_hfr0, MAC_HWF0R, VXN);
 
 	/* Hardware feature register 1 */
-	hw_feat->rx_fifo_size	= XGMAC_GET_BITS(mac_hfr1, MAC_HWF1R,
-						RXFIFOSIZE);
-	hw_feat->tx_fifo_size	= XGMAC_GET_BITS(mac_hfr1, MAC_HWF1R,
-						TXFIFOSIZE);
-	hw_feat->adv_ts_hi	= XGMAC_GET_BITS(mac_hfr1, MAC_HWF1R, ADVTHWORD);
-	hw_feat->dma_width	= XGMAC_GET_BITS(mac_hfr1, MAC_HWF1R, ADDR64);
-	hw_feat->dcb		= XGMAC_GET_BITS(mac_hfr1, MAC_HWF1R, DCBEN);
-	hw_feat->sph		= XGMAC_GET_BITS(mac_hfr1, MAC_HWF1R, SPHEN);
-	hw_feat->tso		= XGMAC_GET_BITS(mac_hfr1, MAC_HWF1R, TSOEN);
-	hw_feat->dma_debug	= XGMAC_GET_BITS(mac_hfr1, MAC_HWF1R, DBGMEMA);
-	hw_feat->rss		= XGMAC_GET_BITS(mac_hfr1, MAC_HWF1R, RSSEN);
-	hw_feat->tc_cnt		= XGMAC_GET_BITS(mac_hfr1, MAC_HWF1R, NUMTC);
+	hw_feat->rx_fifo_size = XGMAC_GET_BITS(mac_hfr1, MAC_HWF1R, RXFIFOSIZE);
+	hw_feat->tx_fifo_size = XGMAC_GET_BITS(mac_hfr1, MAC_HWF1R, TXFIFOSIZE);
+	hw_feat->adv_ts_hi = XGMAC_GET_BITS(mac_hfr1, MAC_HWF1R, ADVTHWORD);
+	hw_feat->dma_width = XGMAC_GET_BITS(mac_hfr1, MAC_HWF1R, ADDR64);
+	hw_feat->dcb = XGMAC_GET_BITS(mac_hfr1, MAC_HWF1R, DCBEN);
+	hw_feat->sph = XGMAC_GET_BITS(mac_hfr1, MAC_HWF1R, SPHEN);
+	hw_feat->tso = XGMAC_GET_BITS(mac_hfr1, MAC_HWF1R, TSOEN);
+	hw_feat->dma_debug = XGMAC_GET_BITS(mac_hfr1, MAC_HWF1R, DBGMEMA);
+	hw_feat->rss = XGMAC_GET_BITS(mac_hfr1, MAC_HWF1R, RSSEN);
+	hw_feat->tc_cnt = XGMAC_GET_BITS(mac_hfr1, MAC_HWF1R, NUMTC);
 	hw_feat->hash_table_size = XGMAC_GET_BITS(mac_hfr1, MAC_HWF1R,
-						  HASHTBLSZ);
+	    HASHTBLSZ);
 	hw_feat->l3l4_filter_num = XGMAC_GET_BITS(mac_hfr1, MAC_HWF1R,
-						  L3L4FNUM);
+	    L3L4FNUM);
 
 	/* Hardware feature register 2 */
-	hw_feat->rx_q_cnt     = XGMAC_GET_BITS(mac_hfr2, MAC_HWF2R, RXQCNT);
-	hw_feat->tx_q_cnt     = XGMAC_GET_BITS(mac_hfr2, MAC_HWF2R, TXQCNT);
-	hw_feat->rx_ch_cnt    = XGMAC_GET_BITS(mac_hfr2, MAC_HWF2R, RXCHCNT);
-	hw_feat->tx_ch_cnt    = XGMAC_GET_BITS(mac_hfr2, MAC_HWF2R, TXCHCNT);
-	hw_feat->pps_out_num  = XGMAC_GET_BITS(mac_hfr2, MAC_HWF2R, PPSOUTNUM);
+	hw_feat->rx_q_cnt = XGMAC_GET_BITS(mac_hfr2, MAC_HWF2R, RXQCNT);
+	hw_feat->tx_q_cnt = XGMAC_GET_BITS(mac_hfr2, MAC_HWF2R, TXQCNT);
+	hw_feat->rx_ch_cnt = XGMAC_GET_BITS(mac_hfr2, MAC_HWF2R, RXCHCNT);
+	hw_feat->tx_ch_cnt = XGMAC_GET_BITS(mac_hfr2, MAC_HWF2R, TXCHCNT);
+	hw_feat->pps_out_num = XGMAC_GET_BITS(mac_hfr2, MAC_HWF2R, PPSOUTNUM);
 	hw_feat->aux_snap_num = XGMAC_GET_BITS(mac_hfr2, MAC_HWF2R, AUXSNAPNUM);
 
 	/* Translate the Hash Table size into actual number */
@@ -253,32 +251,28 @@ xgbe_get_all_hw_features(struct xgbe_prv_data *pdata)
 	    hw_feat->mmc ? "yes" : "no");
 	DBGPR("  ARP offload		   : %s\n",
 	    hw_feat->aoe ? "yes" : "no");
-	DBGPR("  IEEE 1588-2008 Timestamp  : %s\n",
-	    hw_feat->ts ? "yes" : "no");
+	DBGPR("  IEEE 1588-2008 Timestamp  : %s\n", hw_feat->ts ? "yes" : "no");
 	DBGPR("  Energy Efficient Ethernet : %s\n",
 	    hw_feat->eee ? "yes" : "no");
 	DBGPR("  TX checksum offload       : %s\n",
 	    hw_feat->tx_coe ? "yes" : "no");
 	DBGPR("  RX checksum offload       : %s\n",
 	    hw_feat->rx_coe ? "yes" : "no");
-	DBGPR("  Additional MAC addresses  : %u\n",
-	    hw_feat->addn_mac);
+	DBGPR("  Additional MAC addresses  : %u\n", hw_feat->addn_mac);
 	DBGPR("  Timestamp source	   : %s\n",
-	    (hw_feat->ts_src == 1) ? "internal" :
-	    (hw_feat->ts_src == 2) ? "external" :
-	    (hw_feat->ts_src == 3) ? "internal/external" : "n/a");
+	    (hw_feat->ts_src == 1)     ? "internal" :
+		(hw_feat->ts_src == 2) ? "external" :
+		(hw_feat->ts_src == 3) ? "internal/external" :
+					 "n/a");
 	DBGPR("  SA/VLAN insertion	   : %s\n",
 	    hw_feat->sa_vlan_ins ? "yes" : "no");
 
 	/* Hardware feature register 1 */
-	DBGPR("  RX fifo size		   : %u\n",
-	    hw_feat->rx_fifo_size);
-	DBGPR("  TX fifo size		   : %u\n",
-	    hw_feat->tx_fifo_size);
+	DBGPR("  RX fifo size		   : %u\n", hw_feat->rx_fifo_size);
+	DBGPR("  TX fifo size		   : %u\n", hw_feat->tx_fifo_size);
 	DBGPR("  IEEE 1588 high word       : %s\n",
 	    hw_feat->adv_ts_hi ? "yes" : "no");
-	DBGPR("  DMA width		   : %u\n",
-	    hw_feat->dma_width);
+	DBGPR("  DMA width		   : %u\n", hw_feat->dma_width);
 	DBGPR("  Data Center Bridging      : %s\n",
 	    hw_feat->dcb ? "yes" : "no");
 	DBGPR("  Split header		   : %s\n",
@@ -289,27 +283,18 @@ xgbe_get_all_hw_features(struct xgbe_prv_data *pdata)
 	    hw_feat->dma_debug ? "yes" : "no");
 	DBGPR("  Receive Side Scaling      : %s\n",
 	    hw_feat->rss ? "yes" : "no");
-	DBGPR("  Traffic Class count       : %u\n",
-	    hw_feat->tc_cnt);
-	DBGPR("  Hash table size	   : %u\n",
-	    hw_feat->hash_table_size);
-	DBGPR("  L3/L4 Filters		   : %u\n",
-	    hw_feat->l3l4_filter_num);
+	DBGPR("  Traffic Class count       : %u\n", hw_feat->tc_cnt);
+	DBGPR("  Hash table size	   : %u\n", hw_feat->hash_table_size);
+	DBGPR("  L3/L4 Filters		   : %u\n", hw_feat->l3l4_filter_num);
 
 	/* Hardware feature register 2 */
-	DBGPR("  RX queue count		   : %u\n",
-	    hw_feat->rx_q_cnt);
-	DBGPR("  TX queue count		   : %u\n",
-	    hw_feat->tx_q_cnt);
-	DBGPR("  RX DMA channel count      : %u\n",
-	    hw_feat->rx_ch_cnt);
-	DBGPR("  TX DMA channel count      : %u\n",
-	    hw_feat->rx_ch_cnt);
-	DBGPR("  PPS outputs		   : %u\n",
-	    hw_feat->pps_out_num);
-	DBGPR("  Auxiliary snapshot inputs : %u\n",
-	    hw_feat->aux_snap_num);
-	
+	DBGPR("  RX queue count		   : %u\n", hw_feat->rx_q_cnt);
+	DBGPR("  TX queue count		   : %u\n", hw_feat->tx_q_cnt);
+	DBGPR("  RX DMA channel count      : %u\n", hw_feat->rx_ch_cnt);
+	DBGPR("  TX DMA channel count      : %u\n", hw_feat->rx_ch_cnt);
+	DBGPR("  PPS outputs		   : %u\n", hw_feat->pps_out_num);
+	DBGPR("  Auxiliary snapshot inputs : %u\n", hw_feat->aux_snap_num);
+
 	DBGPR("<--xgbe_get_all_hw_features\n");
 }
 

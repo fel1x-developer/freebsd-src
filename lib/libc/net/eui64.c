@@ -67,12 +67,13 @@
  * Columbia University, New York City
  */
 
-#include <stdio.h>
-#include <paths.h>
 #include <sys/param.h>
 #include <sys/eui64.h>
-#include <string.h>
+
+#include <paths.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #ifdef YP
 #include <rpc/rpc.h>
 #include <rpcsvc/yp_prot.h>
@@ -146,31 +147,29 @@ eui64_aton(const char *a, struct eui64 *e)
 	unsigned int o0, o1, o2, o3, o4, o5, o6, o7;
 
 	/* canonical form */
-	i = sscanf(a, "%x-%x-%x-%x-%x-%x-%x-%x",
-	    &o0, &o1, &o2, &o3, &o4, &o5, &o6, &o7);
+	i = sscanf(a, "%x-%x-%x-%x-%x-%x-%x-%x", &o0, &o1, &o2, &o3, &o4, &o5,
+	    &o6, &o7);
 	if (i == EUI64_LEN)
 		goto good;
 	/* ethernet form */
-	i = sscanf(a, "%x:%x:%x:%x:%x:%x:%x:%x",
-	    &o0, &o1, &o2, &o3, &o4, &o5, &o6, &o7);
+	i = sscanf(a, "%x:%x:%x:%x:%x:%x:%x:%x", &o0, &o1, &o2, &o3, &o4, &o5,
+	    &o6, &o7);
 	if (i == EUI64_LEN)
 		goto good;
 	/* classic fwcontrol/dconschat form */
-	i = sscanf(a, "0x%2x%2x%2x%2x%2x%2x%2x%2x",
-	    &o0, &o1, &o2, &o3, &o4, &o5, &o6, &o7);
+	i = sscanf(a, "0x%2x%2x%2x%2x%2x%2x%2x%2x", &o0, &o1, &o2, &o3, &o4,
+	    &o5, &o6, &o7);
 	if (i == EUI64_LEN)
 		goto good;
 	/* MAC format (-) */
-	i = sscanf(a, "%x-%x-%x-%x-%x-%x",
-	    &o0, &o1, &o2, &o5, &o6, &o7);
+	i = sscanf(a, "%x-%x-%x-%x-%x-%x", &o0, &o1, &o2, &o5, &o6, &o7);
 	if (i == 6) {
 		o3 = 0xff;
 		o4 = 0xfe;
 		goto good;
 	}
 	/* MAC format (:) */
-	i = sscanf(a, "%x:%x:%x:%x:%x:%x",
-	    &o0, &o1, &o2, &o5, &o6, &o7);
+	i = sscanf(a, "%x:%x:%x:%x:%x:%x", &o0, &o1, &o2, &o5, &o6, &o7);
 	if (i == 6) {
 		o3 = 0xff;
 		o4 = 0xfe;
@@ -180,16 +179,16 @@ eui64_aton(const char *a, struct eui64 *e)
 	return (-1);
 
 good:
-        e->octet[0]=o0;
-	e->octet[1]=o1;
-	e->octet[2]=o2;
-	e->octet[3]=o3;
-	e->octet[4]=o4;
-	e->octet[5]=o5;
-	e->octet[6]=o6;
-	e->octet[7]=o7;
+	e->octet[0] = o0;
+	e->octet[1] = o1;
+	e->octet[2] = o2;
+	e->octet[3] = o3;
+	e->octet[4] = o4;
+	e->octet[5] = o5;
+	e->octet[6] = o6;
+	e->octet[7] = o7;
 
-        return (0);
+	return (0);
 }
 
 /*
@@ -198,14 +197,14 @@ good:
 int
 eui64_ntoa(const struct eui64 *id, char *a, size_t len)
 {
-        int i;
+	int i;
 
-        i = snprintf(a, len, "%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x",
+	i = snprintf(a, len, "%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x",
 	    id->octet[0], id->octet[1], id->octet[2], id->octet[3],
 	    id->octet[4], id->octet[5], id->octet[6], id->octet[7]);
-        if (i < 23 || i >= len)
-                return (-1);
-        return (0);
+	if (i < 23 || i >= len)
+		return (-1);
+	return (0);
 }
 
 /*
@@ -227,7 +226,7 @@ eui64_ntohost(char *hostname, size_t len, const struct eui64 *id)
 	if ((fp = fopen(_PATH_EUI64, "re")) == NULL)
 		return (1);
 
-	while (fgets(buf,BUFSIZ,fp)) {
+	while (fgets(buf, BUFSIZ, fp)) {
 		if (buf[0] == '#')
 			continue;
 #ifdef YP
@@ -245,13 +244,13 @@ eui64_ntohost(char *hostname, size_t len, const struct eui64 *id)
 		}
 #endif
 		if (eui64_line(buf, &local_eui64, local_host,
-		    sizeof(local_host)) == 0) {
-			if (bcmp(&local_eui64.octet[0],
-				&id->octet[0], EUI64_LEN) == 0) {
-			/* We have a match */
+			sizeof(local_host)) == 0) {
+			if (bcmp(&local_eui64.octet[0], &id->octet[0],
+				EUI64_LEN) == 0) {
+				/* We have a match */
 				strcpy(hostname, local_host);
 				fclose(fp);
-				return(0);
+				return (0);
 			}
 		}
 	}
@@ -277,7 +276,7 @@ eui64_hostton(const char *hostname, struct eui64 *id)
 	if ((fp = fopen(_PATH_EUI64, "re")) == NULL)
 		return (1);
 
-	while (fgets(buf,BUFSIZ,fp)) {
+	while (fgets(buf, BUFSIZ, fp)) {
 		if (buf[0] == '#')
 			continue;
 #ifdef YP
@@ -294,12 +293,12 @@ eui64_hostton(const char *hostname, struct eui64 *id)
 		}
 #endif
 		if (eui64_line(buf, &local_eui64, local_host,
-		    sizeof(local_host)) == 0) {
+			sizeof(local_host)) == 0) {
 			if (strcmp(hostname, local_host) == 0) {
 				/* We have a match */
 				bcopy(&local_eui64, id, sizeof(struct eui64));
 				fclose(fp);
-				return(0);
+				return (0);
 			}
 		}
 	}

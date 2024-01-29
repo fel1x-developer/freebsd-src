@@ -60,24 +60,22 @@
  *        SCIF_SAS_INTERNAL_IO_REQUEST object.
  */
 
-
+#include <dev/isci/scil/sci_util.h>
+#include <dev/isci/scil/scic_controller.h>
 #include <dev/isci/scil/scic_io_request.h>
 #include <dev/isci/scil/scic_remote_device.h>
-#include <dev/isci/scil/scic_user_callback.h>
-#include <dev/isci/scil/scic_controller.h>
 #include <dev/isci/scil/scic_task_request.h>
-#include <dev/isci/scil/scif_user_callback.h>
-
+#include <dev/isci/scil/scic_user_callback.h>
 #include <dev/isci/scil/scif_sas_controller.h>
 #include <dev/isci/scil/scif_sas_domain.h>
-#include <dev/isci/scil/scif_sas_remote_device.h>
-#include <dev/isci/scil/scif_sas_io_request.h>
 #include <dev/isci/scil/scif_sas_internal_io_request.h>
-#include <dev/isci/scil/scif_sas_task_request.h>
-#include <dev/isci/scil/scif_sas_stp_io_request.h>
+#include <dev/isci/scil/scif_sas_io_request.h>
 #include <dev/isci/scil/scif_sas_logger.h>
+#include <dev/isci/scil/scif_sas_remote_device.h>
 #include <dev/isci/scil/scif_sas_smp_io_request.h>
-#include <dev/isci/scil/sci_util.h>
+#include <dev/isci/scil/scif_sas_stp_io_request.h>
+#include <dev/isci/scil/scif_sas_task_request.h>
+#include <dev/isci/scil/scif_user_callback.h>
 
 //******************************************************************************
 //* P U B L I C   M E T H O D S
@@ -89,16 +87,14 @@
  *
  * @return U32 size of all memory needed for an internal request
  */
-U32 scif_sas_internal_request_get_object_size(
-   void
-)
+U32
+scif_sas_internal_request_get_object_size(void)
 {
-   return MAX(
-            (sizeof(SCIF_SAS_INTERNAL_IO_REQUEST_T) + scic_io_request_get_object_size()),
-            (sizeof(SCIF_SAS_TASK_REQUEST_T) + scic_task_request_get_object_size())
-             );
+	return MAX((sizeof(SCIF_SAS_INTERNAL_IO_REQUEST_T) +
+		       scic_io_request_get_object_size()),
+	    (sizeof(SCIF_SAS_TASK_REQUEST_T) +
+		scic_task_request_get_object_size()));
 }
-
 
 /**
  * @brief This method constructs an internal smp request.
@@ -116,79 +112,64 @@ U32 scif_sas_internal_request_get_object_size(
  * @retval SCI_FAILURE This value is returned if the internal io was failed to
  *         be constructed.
  */
-SCI_STATUS scif_sas_internal_io_request_construct_smp(
-   SCIF_SAS_CONTROLLER_T       * fw_controller,
-   SCIF_SAS_REMOTE_DEVICE_T    * fw_device,
-   void                        * internal_io_memory,
-   U16                           io_tag,
-   SMP_REQUEST_T               * smp_command
-)
+SCI_STATUS
+scif_sas_internal_io_request_construct_smp(SCIF_SAS_CONTROLLER_T *fw_controller,
+    SCIF_SAS_REMOTE_DEVICE_T *fw_device, void *internal_io_memory, U16 io_tag,
+    SMP_REQUEST_T *smp_command)
 {
-   SCIF_SAS_INTERNAL_IO_REQUEST_T * fw_internal_io  =
-     (SCIF_SAS_INTERNAL_IO_REQUEST_T*)internal_io_memory;
+	SCIF_SAS_INTERNAL_IO_REQUEST_T *fw_internal_io =
+	    (SCIF_SAS_INTERNAL_IO_REQUEST_T *)internal_io_memory;
 
-   SCIF_SAS_IO_REQUEST_T * fw_io =
-     (SCIF_SAS_IO_REQUEST_T*)internal_io_memory;
+	SCIF_SAS_IO_REQUEST_T *fw_io = (SCIF_SAS_IO_REQUEST_T *)
+	    internal_io_memory;
 
-   SCI_STATUS status;
+	SCI_STATUS status;
 
-   //call common smp request construct routine.
-   status = scif_sas_io_request_construct_smp(
-               fw_controller,
-               fw_device,
-               internal_io_memory,
-               (char *)internal_io_memory + sizeof(SCIF_SAS_INTERNAL_IO_REQUEST_T),
-               SCI_CONTROLLER_INVALID_IO_TAG,
-               smp_command,
-               NULL //there is no associated user io object.
-            );
+	// call common smp request construct routine.
+	status = scif_sas_io_request_construct_smp(fw_controller, fw_device,
+	    internal_io_memory,
+	    (char *)internal_io_memory + sizeof(SCIF_SAS_INTERNAL_IO_REQUEST_T),
+	    SCI_CONTROLLER_INVALID_IO_TAG, smp_command,
+	    NULL // there is no associated user io object.
+	);
 
-   //Codes below are all internal io related.
-   if (status == SCI_SUCCESS)
-   {
-      //set the is_internal flag
-      fw_io->parent.is_internal = TRUE;
+	// Codes below are all internal io related.
+	if (status == SCI_SUCCESS) {
+		// set the is_internal flag
+		fw_io->parent.is_internal = TRUE;
 
-      if (fw_internal_io->internal_io_timer == NULL)
-      {
-         //create the timer for this internal request.
-         fw_internal_io->internal_io_timer =
-            scif_cb_timer_create(
-               (SCI_CONTROLLER_HANDLE_T *)fw_controller,
-               scif_sas_internal_io_request_timeout_handler,
-               (void*)fw_io
-            );
-      }
-      else
-      {
-         ASSERT (0);
-      }
+		if (fw_internal_io->internal_io_timer == NULL) {
+			// create the timer for this internal request.
+			fw_internal_io->internal_io_timer =
+			    scif_cb_timer_create((SCI_CONTROLLER_HANDLE_T *)
+						     fw_controller,
+				scif_sas_internal_io_request_timeout_handler,
+				(void *)fw_io);
+		} else {
+			ASSERT(0);
+		}
 
-      //insert into high priority queue
-      if ( !sci_pool_full(fw_controller->hprq.pool) )
-      {
-         sci_pool_put(
-            fw_controller->hprq.pool, (POINTER_UINT) internal_io_memory
-         );
-      }
-      else
-      {
-         SCIF_LOG_ERROR((
-            sci_base_object_get_logger(fw_controller),
-            SCIF_LOG_OBJECT_CONTROLLER | SCIF_LOG_OBJECT_REMOTE_DEVICE,
-            "scif_sas_internal_io_request_construct_smp, high priority queue full!\n"
-         ));
+		// insert into high priority queue
+		if (!sci_pool_full(fw_controller->hprq.pool)) {
+			sci_pool_put(fw_controller->hprq.pool,
+			    (POINTER_UINT)internal_io_memory);
+		} else {
+			SCIF_LOG_ERROR((sci_base_object_get_logger(
+					    fw_controller),
+			    SCIF_LOG_OBJECT_CONTROLLER |
+				SCIF_LOG_OBJECT_REMOTE_DEVICE,
+			    "scif_sas_internal_io_request_construct_smp, high priority queue full!\n"));
 
-         scif_sas_internal_io_request_destruct(fw_controller, fw_internal_io);
+			scif_sas_internal_io_request_destruct(fw_controller,
+			    fw_internal_io);
 
-         //return failure status.
-         return SCI_FAILURE_INSUFFICIENT_RESOURCES;
-      }
-   }
+			// return failure status.
+			return SCI_FAILURE_INSUFFICIENT_RESOURCES;
+		}
+	}
 
-   return status;
+	return status;
 }
-
 
 /**
  * @brief This method constructs an internal smp request.
@@ -196,14 +177,13 @@ SCI_STATUS scif_sas_internal_io_request_construct_smp(
  *
  * @return SCI_STATUS
  */
-SCI_STATUS scif_sas_internal_io_request_construct_stp(
-   SCIF_SAS_INTERNAL_IO_REQUEST_T * fw_io
-)
+SCI_STATUS
+scif_sas_internal_io_request_construct_stp(
+    SCIF_SAS_INTERNAL_IO_REQUEST_T *fw_io)
 {
-   //TBD
-   return SCI_SUCCESS;
+	// TBD
+	return SCI_SUCCESS;
 }
-
 
 /**
  * @brief This method handles the timeout situation for an internal io.
@@ -212,22 +192,18 @@ SCI_STATUS scif_sas_internal_io_request_construct_stp(
  *
  * @return none
  */
-void scif_sas_internal_io_request_timeout_handler(
-   void * fw_internal_io
-)
+void
+scif_sas_internal_io_request_timeout_handler(void *fw_internal_io)
 {
-   SCIF_SAS_REQUEST_T * fw_request = (SCIF_SAS_REQUEST_T *)fw_internal_io;
+	SCIF_SAS_REQUEST_T *fw_request = (SCIF_SAS_REQUEST_T *)fw_internal_io;
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(fw_request),
-      SCIF_LOG_OBJECT_IO_REQUEST,
-      "scif_sas_internal_io_request_timeout_handler(0x%x) enter\n",
-      fw_internal_io
-   ));
+	SCIF_LOG_TRACE(
+	    (sci_base_object_get_logger(fw_request), SCIF_LOG_OBJECT_IO_REQUEST,
+		"scif_sas_internal_io_request_timeout_handler(0x%x) enter\n",
+		fw_internal_io));
 
-   fw_request->state_handlers->abort_handler(&fw_request->parent);
+	fw_request->state_handlers->abort_handler(&fw_request->parent);
 }
-
 
 /**
  * @brief This methods takes care of completion of an internal request about its
@@ -240,43 +216,38 @@ void scif_sas_internal_io_request_timeout_handler(
  *
  * @return none
  */
-void scif_sas_internal_io_request_complete(
-   SCIF_SAS_CONTROLLER_T          * fw_controller,
-   SCIF_SAS_INTERNAL_IO_REQUEST_T * fw_internal_io,
-   SCI_STATUS                       completion_status
-)
+void
+scif_sas_internal_io_request_complete(SCIF_SAS_CONTROLLER_T *fw_controller,
+    SCIF_SAS_INTERNAL_IO_REQUEST_T *fw_internal_io,
+    SCI_STATUS completion_status)
 {
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(fw_controller),
-      SCIF_LOG_OBJECT_IO_REQUEST,
-      "scif_sas_internal_io_request_complete(0x%x, 0x%x, 0x%x) enter\n",
-       fw_controller, fw_internal_io, completion_status
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(fw_controller),
+	    SCIF_LOG_OBJECT_IO_REQUEST,
+	    "scif_sas_internal_io_request_complete(0x%x, 0x%x, 0x%x) enter\n",
+	    fw_controller, fw_internal_io, completion_status));
 
-   scif_cb_timer_stop(fw_controller, fw_internal_io->internal_io_timer);
-   scif_sas_internal_io_request_destruct(fw_controller, fw_internal_io);
+	scif_cb_timer_stop(fw_controller, fw_internal_io->internal_io_timer);
+	scif_sas_internal_io_request_destruct(fw_controller, fw_internal_io);
 }
 
-
 /**
- * @brief This methods takes care of destruction of an internal request about its
- *        "internal" related feature, including the memory recycling and timer.
+ * @brief This methods takes care of destruction of an internal request about
+ * its "internal" related feature, including the memory recycling and timer.
  *
  * @param[in] fw_controller The framework controller object.
  * @param[in] fw_internal_io The internal io to be completed.
  *
  * @return none
  */
-void scif_sas_internal_io_request_destruct(
-   SCIF_SAS_CONTROLLER_T          * fw_controller,
-   SCIF_SAS_INTERNAL_IO_REQUEST_T * fw_internal_io
-)
+void
+scif_sas_internal_io_request_destruct(SCIF_SAS_CONTROLLER_T *fw_controller,
+    SCIF_SAS_INTERNAL_IO_REQUEST_T *fw_internal_io)
 {
-   if (fw_internal_io->internal_io_timer != NULL)
-   {
-      scif_cb_timer_destroy(fw_controller, fw_internal_io->internal_io_timer);
-      fw_internal_io->internal_io_timer = NULL;
-   }
-   scif_sas_controller_free_internal_request(fw_controller, fw_internal_io);
+	if (fw_internal_io->internal_io_timer != NULL) {
+		scif_cb_timer_destroy(fw_controller,
+		    fw_internal_io->internal_io_timer);
+		fw_internal_io->internal_io_timer = NULL;
+	}
+	scif_sas_controller_free_internal_request(fw_controller,
+	    fw_internal_io);
 }
-

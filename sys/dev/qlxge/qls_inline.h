@@ -36,7 +36,7 @@
 static __inline int
 qls_get_ifq_snd_maxlen(qla_host_t *ha)
 {
-	return((NUM_TX_DESCRIPTORS - 1));
+	return ((NUM_TX_DESCRIPTORS - 1));
 }
 
 static __inline uint32_t
@@ -68,7 +68,7 @@ qls_get_optics(qla_host_t *ha)
 		}
 	}
 
-	return(link_speed);
+	return (link_speed);
 }
 
 static __inline uint8_t *

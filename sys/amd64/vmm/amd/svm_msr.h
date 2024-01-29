@@ -27,7 +27,7 @@
  */
 
 #ifndef _SVM_MSR_H_
-#define	_SVM_MSR_H_
+#define _SVM_MSR_H_
 
 struct svm_softc;
 struct svm_vcpu;
@@ -40,4 +40,4 @@ void svm_msr_guest_exit(struct svm_vcpu *vcpu);
 int svm_wrmsr(struct svm_vcpu *vcpu, u_int num, uint64_t val, bool *retu);
 int svm_rdmsr(struct svm_vcpu *vcpu, u_int num, uint64_t *result, bool *retu);
 
-#endif	/* _SVM_MSR_H_ */
+#endif /* _SVM_MSR_H_ */

@@ -45,9 +45,8 @@ main(int argc, char *argv[])
 	int ch;
 	char *name;
 
-
 	while ((ch = getopt(argc, argv, "")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case '?':
 		default:
 			usage();
@@ -65,10 +64,10 @@ main(int argc, char *argv[])
 
 	if (*argv == NULL) {
 		(void)printf("is %s\n",
-		    sb.st_mode & S_IXUSR ? "y" :
-		    sb.st_mode & S_IXGRP ? "b" : "n");
+		    sb.st_mode & S_IXUSR     ? "y" :
+			sb.st_mode & S_IXGRP ? "b" :
+					       "n");
 		return (sb.st_mode & (S_IXUSR | S_IXGRP) ? 0 : 1);
-
 	}
 
 	switch (argv[0][0]) {
@@ -77,13 +76,13 @@ main(int argc, char *argv[])
 			err(2, "%s", name);
 		break;
 	case 'y':
-		if (chmod(name, (sb.st_mode & ~(S_IXUSR | S_IXGRP)) | S_IXUSR)
-		    < 0)
+		if (chmod(name, (sb.st_mode & ~(S_IXUSR | S_IXGRP)) | S_IXUSR) <
+		    0)
 			err(2, "%s", name);
 		break;
 	case 'b':
-		if (chmod(name, (sb.st_mode & ~(S_IXUSR | S_IXGRP)) | S_IXGRP)
-		    < 0)
+		if (chmod(name, (sb.st_mode & ~(S_IXUSR | S_IXGRP)) | S_IXGRP) <
+		    0)
 			err(2, "%s", name);
 		break;
 	default:

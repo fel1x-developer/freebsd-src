@@ -34,13 +34,14 @@
 #include <sys/limits.h>
 
 #ifndef _KERNEL
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <time.h>
 #include <sys/errno.h>
-#include <ufs/ufs/dinode.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 #include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
 
 uint32_t calculate_crc32c(uint32_t, const void *, size_t);
 uint32_t ffs_calc_sbhash(struct fs *);
@@ -51,22 +52,22 @@ struct malloc_type;
 
 #else /* _KERNEL */
 #include <sys/systm.h>
+#include <sys/bio.h>
+#include <sys/buf.h>
 #include <sys/gsb_crc32.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mount.h>
-#include <sys/vnode.h>
-#include <sys/bio.h>
-#include <sys/buf.h>
 #include <sys/ucred.h>
+#include <sys/vnode.h>
 
-#include <ufs/ufs/quota.h>
-#include <ufs/ufs/inode.h>
-#include <ufs/ufs/extattr.h>
-#include <ufs/ufs/ufsmount.h>
-#include <ufs/ufs/ufs_extern.h>
 #include <ufs/ffs/ffs_extern.h>
 #include <ufs/ffs/fs.h>
+#include <ufs/ufs/extattr.h>
+#include <ufs/ufs/inode.h>
+#include <ufs/ufs/quota.h>
+#include <ufs/ufs/ufs_extern.h>
+#include <ufs/ufs/ufsmount.h>
 
 #define UFS_MALLOC(size, type, flags) malloc(size, type, flags)
 #define UFS_FREE(ptr, type) free(ptr, type)
@@ -122,7 +123,7 @@ ffs_update_dinode_ckhash(struct fs *fs, struct ufs2_dinode *dip)
  */
 static off_t sblock_try[] = SBLOCKSEARCH;
 static int readsuper(void *, struct fs **, off_t, int,
-	int (*)(void *, off_t, void **, int));
+    int (*)(void *, off_t, void **, int));
 static int validate_sblock(struct fs *, int);
 
 /*
@@ -161,16 +162,16 @@ ffs_sbget(void *devfd, struct fs **fsp, off_t sblock, int flags,
 	fs = NULL;
 	*fsp = NULL;
 	if (sblock != UFS_STDSB) {
-		if ((error = readsuper(devfd, &fs, sblock,
-		    flags | UFS_ALTSBLK, readfunc)) != 0) {
+		if ((error = readsuper(devfd, &fs, sblock, flags | UFS_ALTSBLK,
+			 readfunc)) != 0) {
 			if (fs != NULL)
 				UFS_FREE(fs, filltype);
 			return (error);
 		}
 	} else {
 		for (i = 0; sblock_try[i] != -1; i++) {
-			if ((error = readsuper(devfd, &fs, sblock_try[i],
-			     flags, readfunc)) == 0) {
+			if ((error = readsuper(devfd, &fs, sblock_try[i], flags,
+				 readfunc)) == 0) {
 				if ((flags & UFS_NOCSUM) != 0) {
 					*fsp = fs;
 					return (0);
@@ -290,7 +291,7 @@ readsuper(void *devfd, struct fs **fsp, off_t sblockloc, int flags,
 			return (EINTEGRITY);
 #ifdef _KERNEL
 		res = uprintf("Superblock check-hash failed: recorded "
-		    "check-hash 0x%x != computed check-hash 0x%x%s\n",
+			      "check-hash 0x%x != computed check-hash 0x%x%s\n",
 		    fs->fs_ckhash, ckhash,
 		    (flags & UFS_NOHASHFAIL) != 0 ? " (Ignored)" : "");
 #else
@@ -302,8 +303,9 @@ readsuper(void *devfd, struct fs **fsp, off_t sblockloc, int flags,
 		 */
 		if (res == 0)
 			printf("Superblock check-hash failed: recorded "
-			    "check-hash 0x%x != computed check-hash "
-			    "0x%x%s\n", fs->fs_ckhash, ckhash,
+			       "check-hash 0x%x != computed check-hash "
+			       "0x%x%s\n",
+			    fs->fs_ckhash, ckhash,
 			    (flags & UFS_NOHASHFAIL) ? " (Ignored)" : "");
 		if ((flags & UFS_NOHASHFAIL) != 0)
 			return (0);
@@ -319,43 +321,49 @@ readsuper(void *devfd, struct fs **fsp, off_t sblockloc, int flags,
 /*
  * Verify the filesystem values.
  */
-#define ILOG2(num)	(fls(num) - 1)
+#define ILOG2(num) (fls(num) - 1)
 #ifdef STANDALONE_SMALL
-#define MPRINT(...)	do { } while (0)
+#define MPRINT(...) \
+	do {        \
+	} while (0)
 #else
-#define MPRINT(...)	if (prtmsg) printf(__VA_ARGS__)
+#define MPRINT(...) \
+	if (prtmsg) \
+	printf(__VA_ARGS__)
 #endif
-#define FCHK(lhs, op, rhs, fmt)						\
-	if (lhs op rhs) {						\
-		MPRINT("UFS%d superblock failed: %s (" #fmt ") %s %s ("	\
-		    #fmt ")\n", fs->fs_magic == FS_UFS1_MAGIC ? 1 : 2,	\
-		    #lhs, (intmax_t)lhs, #op, #rhs, (intmax_t)rhs);	\
-		if (error < 0)						\
-			return (ENOENT);				\
-		if (error == 0)						\
-			error = ENOENT;					\
+#define FCHK(lhs, op, rhs, fmt)                                              \
+	if (lhs op rhs) {                                                    \
+		MPRINT("UFS%d superblock failed: %s (" #fmt ") %s %s (" #fmt \
+		       ")\n",                                                \
+		    fs->fs_magic == FS_UFS1_MAGIC ? 1 : 2, #lhs,             \
+		    (intmax_t)lhs, #op, #rhs, (intmax_t)rhs);                \
+		if (error < 0)                                               \
+			return (ENOENT);                                     \
+		if (error == 0)                                              \
+			error = ENOENT;                                      \
 	}
-#define WCHK(lhs, op, rhs, fmt)						\
-	if (lhs op rhs) {						\
-		MPRINT("UFS%d superblock failed: %s (" #fmt ") %s %s ("	\
-		    #fmt ")%s\n", fs->fs_magic == FS_UFS1_MAGIC ? 1 : 2,\
-		    #lhs, (intmax_t)lhs, #op, #rhs, (intmax_t)rhs, wmsg);\
-		if (error == 0)						\
-			error = warnerr;				\
-		if (warnerr == 0)					\
-			lhs = rhs;					\
+#define WCHK(lhs, op, rhs, fmt)                                              \
+	if (lhs op rhs) {                                                    \
+		MPRINT("UFS%d superblock failed: %s (" #fmt ") %s %s (" #fmt \
+		       ")%s\n",                                              \
+		    fs->fs_magic == FS_UFS1_MAGIC ? 1 : 2, #lhs,             \
+		    (intmax_t)lhs, #op, #rhs, (intmax_t)rhs, wmsg);          \
+		if (error == 0)                                              \
+			error = warnerr;                                     \
+		if (warnerr == 0)                                            \
+			lhs = rhs;                                           \
 	}
-#define FCHK2(lhs1, op1, rhs1, lhs2, op2, rhs2, fmt)			\
-	if (lhs1 op1 rhs1 && lhs2 op2 rhs2) {				\
-		MPRINT("UFS%d superblock failed: %s (" #fmt ") %s %s ("	\
-		    #fmt ") && %s (" #fmt ") %s %s (" #fmt ")\n",	\
-		    fs->fs_magic == FS_UFS1_MAGIC ? 1 : 2, #lhs1,	\
-		    (intmax_t)lhs1, #op1, #rhs1, (intmax_t)rhs1, #lhs2,	\
-		    (intmax_t)lhs2, #op2, #rhs2, (intmax_t)rhs2);	\
-		if (error < 0)						\
-			return (ENOENT);				\
-		if (error == 0)						\
-			error = ENOENT;					\
+#define FCHK2(lhs1, op1, rhs1, lhs2, op2, rhs2, fmt)                         \
+	if (lhs1 op1 rhs1 && lhs2 op2 rhs2) {                                \
+		MPRINT("UFS%d superblock failed: %s (" #fmt ") %s %s (" #fmt \
+		       ") && %s (" #fmt ") %s %s (" #fmt ")\n",              \
+		    fs->fs_magic == FS_UFS1_MAGIC ? 1 : 2, #lhs1,            \
+		    (intmax_t)lhs1, #op1, #rhs1, (intmax_t)rhs1, #lhs2,      \
+		    (intmax_t)lhs2, #op2, #rhs2, (intmax_t)rhs2);            \
+		if (error < 0)                                               \
+			return (ENOENT);                                     \
+		if (error == 0)                                              \
+			error = ENOENT;                                      \
 	}
 
 static int
@@ -375,12 +383,12 @@ validate_sblock(struct fs *fs, int flags)
 	 * Check for endian mismatch between machine and filesystem.
 	 */
 	if (((fs->fs_magic != FS_UFS2_MAGIC) &&
-	    (bswap32(fs->fs_magic) == FS_UFS2_MAGIC)) ||
+		(bswap32(fs->fs_magic) == FS_UFS2_MAGIC)) ||
 	    ((fs->fs_magic != FS_UFS1_MAGIC) &&
-	    (bswap32(fs->fs_magic) == FS_UFS1_MAGIC))) {
+		(bswap32(fs->fs_magic) == FS_UFS1_MAGIC))) {
 		MPRINT("UFS superblock failed due to endian mismatch "
-		    "between machine and filesystem\n");
-		return(EILSEQ);
+		       "between machine and filesystem\n");
+		return (EILSEQ);
 	}
 	/*
 	 * If just validating for recovery, then do just the minimal
@@ -391,143 +399,149 @@ validate_sblock(struct fs *fs, int flags)
 	    (fs->fs_magic == FS_UFS1_MAGIC || fs->fs_magic == FS_UFS2_MAGIC)) {
 		error = -1; /* fail on first error */
 		if (fs->fs_magic == FS_UFS2_MAGIC) {
-			FCHK(fs->fs_sblockloc, !=, SBLOCK_UFS2, %#jx);
+			FCHK(fs->fs_sblockloc, !=, SBLOCK_UFS2, % #jx);
 		} else if (fs->fs_magic == FS_UFS1_MAGIC) {
-			FCHK(fs->fs_sblockloc, <, 0, %jd);
-			FCHK(fs->fs_sblockloc, >, SBLOCK_UFS1, %jd);
-			FCHK(fs->fs_old_ncyl, !=, fs->fs_ncg, %jd);
+			FCHK(fs->fs_sblockloc, <, 0, % jd);
+			FCHK(fs->fs_sblockloc, >, SBLOCK_UFS1, % jd);
+			FCHK(fs->fs_old_ncyl, !=, fs->fs_ncg, % jd);
 		}
-		FCHK(fs->fs_frag, <, 1, %jd);
-		FCHK(fs->fs_frag, >, MAXFRAG, %jd);
-		FCHK(fs->fs_bsize, <, MINBSIZE, %jd);
-		FCHK(fs->fs_bsize, >, MAXBSIZE, %jd);
+		FCHK(fs->fs_frag, <, 1, % jd);
+		FCHK(fs->fs_frag, >, MAXFRAG, % jd);
+		FCHK(fs->fs_bsize, <, MINBSIZE, % jd);
+		FCHK(fs->fs_bsize, >, MAXBSIZE, % jd);
 		FCHK(fs->fs_bsize, <, roundup(sizeof(struct fs), DEV_BSIZE),
-		    %jd);
-		FCHK(fs->fs_fsize, <, sectorsize, %jd);
-		FCHK(fs->fs_fsize * fs->fs_frag, !=, fs->fs_bsize, %jd);
-		FCHK(powerof2(fs->fs_fsize), ==, 0, %jd);
-		FCHK(fs->fs_sbsize, >, SBLOCKSIZE, %jd);
-		FCHK(fs->fs_sbsize, <, (signed)sizeof(struct fs), %jd);
-		FCHK(fs->fs_sbsize % sectorsize, !=, 0, %jd);
-		FCHK(fs->fs_fpg, <, 3 * fs->fs_frag, %jd);
-		FCHK(fs->fs_ncg, <, 1, %jd);
-		FCHK(fs->fs_fsbtodb, !=, ILOG2(fs->fs_fsize / sectorsize), %jd);
-		FCHK(fs->fs_old_cgoffset, <, 0, %jd);
-		FCHK2(fs->fs_old_cgoffset, >, 0, ~fs->fs_old_cgmask, <, 0, %jd);
+		    % jd);
+		FCHK(fs->fs_fsize, <, sectorsize, % jd);
+		FCHK(fs->fs_fsize * fs->fs_frag, !=, fs->fs_bsize, % jd);
+		FCHK(powerof2(fs->fs_fsize), ==, 0, % jd);
+		FCHK(fs->fs_sbsize, >, SBLOCKSIZE, % jd);
+		FCHK(fs->fs_sbsize, <, (signed)sizeof(struct fs), % jd);
+		FCHK(fs->fs_sbsize % sectorsize, !=, 0, % jd);
+		FCHK(fs->fs_fpg, <, 3 * fs->fs_frag, % jd);
+		FCHK(fs->fs_ncg, <, 1, % jd);
+		FCHK(fs->fs_fsbtodb, !=, ILOG2(fs->fs_fsize / sectorsize),
+		    % jd);
+		FCHK(fs->fs_old_cgoffset, <, 0, % jd);
+		FCHK2(fs->fs_old_cgoffset, >, 0, ~fs->fs_old_cgmask, <, 0,
+		    % jd);
 		FCHK(fs->fs_old_cgoffset * (~fs->fs_old_cgmask), >, fs->fs_fpg,
-		    %jd);
-		FCHK(fs->fs_sblkno, !=, roundup(
-		    howmany(fs->fs_sblockloc + SBLOCKSIZE, fs->fs_fsize),
-		    fs->fs_frag), %jd);
-		FCHK(CGSIZE(fs), >, fs->fs_bsize, %jd);
+		    % jd);
+		FCHK(fs->fs_sblkno, !=,
+		    roundup(howmany(fs->fs_sblockloc + SBLOCKSIZE,
+				fs->fs_fsize),
+			fs->fs_frag),
+		    % jd);
+		FCHK(CGSIZE(fs), >, fs->fs_bsize, % jd);
 		/* Only need to validate these if reading in csum data */
 		if ((flags & UFS_NOCSUM) != 0)
 			return (error);
 		FCHK((uint64_t)fs->fs_ipg * fs->fs_ncg, >,
-		    (((int64_t)(1)) << 32) - INOPB(fs), %jd);
-		FCHK(fs->fs_cstotal.cs_nifree, <, 0, %jd);
+		    (((int64_t)(1)) << 32) - INOPB(fs), % jd);
+		FCHK(fs->fs_cstotal.cs_nifree, <, 0, % jd);
 		FCHK(fs->fs_cstotal.cs_nifree, >,
-		    (uint64_t)fs->fs_ipg * fs->fs_ncg, %jd);
+		    (uint64_t)fs->fs_ipg * fs->fs_ncg, % jd);
 		FCHK(fs->fs_cstotal.cs_ndir, >,
 		    ((uint64_t)fs->fs_ipg * fs->fs_ncg) -
-		    fs->fs_cstotal.cs_nifree, %jd);
-		FCHK(fs->fs_size, <, 8 * fs->fs_frag, %jd);
+			fs->fs_cstotal.cs_nifree,
+		    % jd);
+		FCHK(fs->fs_size, <, 8 * fs->fs_frag, % jd);
 		FCHK(fs->fs_size, <=, ((int64_t)fs->fs_ncg - 1) * fs->fs_fpg,
-		    %jd);
-		FCHK(fs->fs_size, >, (int64_t)fs->fs_ncg * fs->fs_fpg, %jd);
-		FCHK(fs->fs_csaddr, <, 0, %jd);
+		    % jd);
+		FCHK(fs->fs_size, >, (int64_t)fs->fs_ncg * fs->fs_fpg, % jd);
+		FCHK(fs->fs_csaddr, <, 0, % jd);
 		FCHK(fs->fs_cssize, !=,
-		    fragroundup(fs, fs->fs_ncg * sizeof(struct csum)), %jd);
+		    fragroundup(fs, fs->fs_ncg * sizeof(struct csum)), % jd);
 		FCHK(fs->fs_csaddr + howmany(fs->fs_cssize, fs->fs_fsize), >,
-		    fs->fs_size, %jd);
+		    fs->fs_size, % jd);
 		FCHK(fs->fs_csaddr, <, cgdmin(fs, dtog(fs, fs->fs_csaddr)),
-		    %jd);
-		FCHK(dtog(fs, fs->fs_csaddr + howmany(fs->fs_cssize,
-		    fs->fs_fsize)), >, dtog(fs, fs->fs_csaddr), %jd);
+		    % jd);
+		FCHK(dtog(fs,
+			 fs->fs_csaddr + howmany(fs->fs_cssize, fs->fs_fsize)),
+		    >, dtog(fs, fs->fs_csaddr), % jd);
 		return (error);
 	}
 	if (fs->fs_magic == FS_UFS2_MAGIC) {
 		if ((flags & UFS_ALTSBLK) == 0)
 			FCHK2(fs->fs_sblockactualloc, !=, SBLOCK_UFS2,
-			    fs->fs_sblockactualloc, !=, 0, %jd);
-		FCHK(fs->fs_sblockloc, !=, SBLOCK_UFS2, %#jx);
-		FCHK(fs->fs_maxsymlinklen, !=, ((UFS_NDADDR + UFS_NIADDR) *
-			sizeof(ufs2_daddr_t)), %jd);
+			    fs->fs_sblockactualloc, !=, 0, % jd);
+		FCHK(fs->fs_sblockloc, !=, SBLOCK_UFS2, % #jx);
+		FCHK(fs->fs_maxsymlinklen, !=,
+		    ((UFS_NDADDR + UFS_NIADDR) * sizeof(ufs2_daddr_t)), % jd);
 		FCHK(fs->fs_nindir, !=, fs->fs_bsize / sizeof(ufs2_daddr_t),
-		    %jd);
+		    % jd);
 		FCHK(fs->fs_inopb, !=,
-		    fs->fs_bsize / sizeof(struct ufs2_dinode), %jd);
+		    fs->fs_bsize / sizeof(struct ufs2_dinode), % jd);
 	} else if (fs->fs_magic == FS_UFS1_MAGIC) {
 		if ((flags & UFS_ALTSBLK) == 0)
-			FCHK(fs->fs_sblockactualloc, >, SBLOCK_UFS1, %jd);
-		FCHK(fs->fs_sblockloc, <, 0, %jd);
-		FCHK(fs->fs_sblockloc, >, SBLOCK_UFS1, %jd);
+			FCHK(fs->fs_sblockactualloc, >, SBLOCK_UFS1, % jd);
+		FCHK(fs->fs_sblockloc, <, 0, % jd);
+		FCHK(fs->fs_sblockloc, >, SBLOCK_UFS1, % jd);
 		FCHK(fs->fs_nindir, !=, fs->fs_bsize / sizeof(ufs1_daddr_t),
-		    %jd);
+		    % jd);
 		FCHK(fs->fs_inopb, !=,
-		    fs->fs_bsize / sizeof(struct ufs1_dinode), %jd);
-		FCHK(fs->fs_maxsymlinklen, !=, ((UFS_NDADDR + UFS_NIADDR) *
-			sizeof(ufs1_daddr_t)), %jd);
-		WCHK(fs->fs_old_inodefmt, !=, FS_44INODEFMT, %jd);
-		WCHK(fs->fs_old_rotdelay, !=, 0, %jd);
-		WCHK(fs->fs_old_rps, !=, 60, %jd);
-		WCHK(fs->fs_old_nspf, !=, fs->fs_fsize / sectorsize, %jd);
-		FCHK(fs->fs_old_cpg, !=, 1, %jd);
-		WCHK(fs->fs_old_interleave, !=, 1, %jd);
-		WCHK(fs->fs_old_trackskew, !=, 0, %jd);
-		WCHK(fs->fs_old_cpc, !=, 0, %jd);
-		WCHK(fs->fs_old_postblformat, !=, 1, %jd);
-		FCHK(fs->fs_old_nrpos, !=, 1, %jd);
-		WCHK(fs->fs_old_spc, !=, fs->fs_fpg * fs->fs_old_nspf, %jd);
-		WCHK(fs->fs_old_nsect, !=, fs->fs_old_spc, %jd);
-		WCHK(fs->fs_old_npsect, !=, fs->fs_old_spc, %jd);
-		FCHK(fs->fs_old_ncyl, !=, fs->fs_ncg, %jd);
+		    fs->fs_bsize / sizeof(struct ufs1_dinode), % jd);
+		FCHK(fs->fs_maxsymlinklen, !=,
+		    ((UFS_NDADDR + UFS_NIADDR) * sizeof(ufs1_daddr_t)), % jd);
+		WCHK(fs->fs_old_inodefmt, !=, FS_44INODEFMT, % jd);
+		WCHK(fs->fs_old_rotdelay, !=, 0, % jd);
+		WCHK(fs->fs_old_rps, !=, 60, % jd);
+		WCHK(fs->fs_old_nspf, !=, fs->fs_fsize / sectorsize, % jd);
+		FCHK(fs->fs_old_cpg, !=, 1, % jd);
+		WCHK(fs->fs_old_interleave, !=, 1, % jd);
+		WCHK(fs->fs_old_trackskew, !=, 0, % jd);
+		WCHK(fs->fs_old_cpc, !=, 0, % jd);
+		WCHK(fs->fs_old_postblformat, !=, 1, % jd);
+		FCHK(fs->fs_old_nrpos, !=, 1, % jd);
+		WCHK(fs->fs_old_spc, !=, fs->fs_fpg * fs->fs_old_nspf, % jd);
+		WCHK(fs->fs_old_nsect, !=, fs->fs_old_spc, % jd);
+		WCHK(fs->fs_old_npsect, !=, fs->fs_old_spc, % jd);
+		FCHK(fs->fs_old_ncyl, !=, fs->fs_ncg, % jd);
 	} else {
 		/* Bad magic number, so assume not a superblock */
 		return (ENOENT);
 	}
-	FCHK(fs->fs_bsize, <, MINBSIZE, %jd);
-	FCHK(fs->fs_bsize, >, MAXBSIZE, %jd);
-	FCHK(fs->fs_bsize, <, roundup(sizeof(struct fs), DEV_BSIZE), %jd);
-	FCHK(powerof2(fs->fs_bsize), ==, 0, %jd);
-	FCHK(fs->fs_frag, <, 1, %jd);
-	FCHK(fs->fs_frag, >, MAXFRAG, %jd);
-	FCHK(fs->fs_frag, !=, numfrags(fs, fs->fs_bsize), %jd);
-	FCHK(fs->fs_fsize, <, sectorsize, %jd);
-	FCHK(fs->fs_fsize * fs->fs_frag, !=, fs->fs_bsize, %jd);
-	FCHK(powerof2(fs->fs_fsize), ==, 0, %jd);
-	FCHK(fs->fs_fpg, <, 3 * fs->fs_frag, %jd);
-	FCHK(fs->fs_ncg, <, 1, %jd);
-	FCHK(fs->fs_ipg, <, fs->fs_inopb, %jd);
+	FCHK(fs->fs_bsize, <, MINBSIZE, % jd);
+	FCHK(fs->fs_bsize, >, MAXBSIZE, % jd);
+	FCHK(fs->fs_bsize, <, roundup(sizeof(struct fs), DEV_BSIZE), % jd);
+	FCHK(powerof2(fs->fs_bsize), ==, 0, % jd);
+	FCHK(fs->fs_frag, <, 1, % jd);
+	FCHK(fs->fs_frag, >, MAXFRAG, % jd);
+	FCHK(fs->fs_frag, !=, numfrags(fs, fs->fs_bsize), % jd);
+	FCHK(fs->fs_fsize, <, sectorsize, % jd);
+	FCHK(fs->fs_fsize * fs->fs_frag, !=, fs->fs_bsize, % jd);
+	FCHK(powerof2(fs->fs_fsize), ==, 0, % jd);
+	FCHK(fs->fs_fpg, <, 3 * fs->fs_frag, % jd);
+	FCHK(fs->fs_ncg, <, 1, % jd);
+	FCHK(fs->fs_ipg, <, fs->fs_inopb, % jd);
 	FCHK((uint64_t)fs->fs_ipg * fs->fs_ncg, >,
-	    (((int64_t)(1)) << 32) - INOPB(fs), %jd);
-	FCHK(fs->fs_cstotal.cs_nifree, <, 0, %jd);
+	    (((int64_t)(1)) << 32) - INOPB(fs), % jd);
+	FCHK(fs->fs_cstotal.cs_nifree, <, 0, % jd);
 	FCHK(fs->fs_cstotal.cs_nifree, >, (uint64_t)fs->fs_ipg * fs->fs_ncg,
-	    %jd);
-	FCHK(fs->fs_cstotal.cs_ndir, <, 0, %jd);
+	    % jd);
+	FCHK(fs->fs_cstotal.cs_ndir, <, 0, % jd);
 	FCHK(fs->fs_cstotal.cs_ndir, >,
 	    ((uint64_t)fs->fs_ipg * fs->fs_ncg) - fs->fs_cstotal.cs_nifree,
-	    %jd);
-	FCHK(fs->fs_sbsize, >, SBLOCKSIZE, %jd);
-	FCHK(fs->fs_sbsize, <, (signed)sizeof(struct fs), %jd);
+	    % jd);
+	FCHK(fs->fs_sbsize, >, SBLOCKSIZE, % jd);
+	FCHK(fs->fs_sbsize, <, (signed)sizeof(struct fs), % jd);
 	/* fix for misconfigured filesystems */
 	if (fs->fs_maxbsize == 0)
 		fs->fs_maxbsize = fs->fs_bsize;
-	FCHK(fs->fs_maxbsize, <, fs->fs_bsize, %jd);
-	FCHK(powerof2(fs->fs_maxbsize), ==, 0, %jd);
-	FCHK(fs->fs_maxbsize, >, FS_MAXCONTIG * fs->fs_bsize, %jd);
-	FCHK(fs->fs_bmask, !=, ~(fs->fs_bsize - 1), %#jx);
-	FCHK(fs->fs_fmask, !=, ~(fs->fs_fsize - 1), %#jx);
-	FCHK(fs->fs_qbmask, !=, ~fs->fs_bmask, %#jx);
-	FCHK(fs->fs_qfmask, !=, ~fs->fs_fmask, %#jx);
-	FCHK(fs->fs_bshift, !=, ILOG2(fs->fs_bsize), %jd);
-	FCHK(fs->fs_fshift, !=, ILOG2(fs->fs_fsize), %jd);
-	FCHK(fs->fs_fragshift, !=, ILOG2(fs->fs_frag), %jd);
-	FCHK(fs->fs_fsbtodb, !=, ILOG2(fs->fs_fsize / sectorsize), %jd);
-	FCHK(fs->fs_old_cgoffset, <, 0, %jd);
-	FCHK2(fs->fs_old_cgoffset, >, 0, ~fs->fs_old_cgmask, <, 0, %jd);
-	FCHK(fs->fs_old_cgoffset * (~fs->fs_old_cgmask), >, fs->fs_fpg, %jd);
-	FCHK(CGSIZE(fs), >, fs->fs_bsize, %jd);
+	FCHK(fs->fs_maxbsize, <, fs->fs_bsize, % jd);
+	FCHK(powerof2(fs->fs_maxbsize), ==, 0, % jd);
+	FCHK(fs->fs_maxbsize, >, FS_MAXCONTIG * fs->fs_bsize, % jd);
+	FCHK(fs->fs_bmask, !=, ~(fs->fs_bsize - 1), % #jx);
+	FCHK(fs->fs_fmask, !=, ~(fs->fs_fsize - 1), % #jx);
+	FCHK(fs->fs_qbmask, !=, ~fs->fs_bmask, % #jx);
+	FCHK(fs->fs_qfmask, !=, ~fs->fs_fmask, % #jx);
+	FCHK(fs->fs_bshift, !=, ILOG2(fs->fs_bsize), % jd);
+	FCHK(fs->fs_fshift, !=, ILOG2(fs->fs_fsize), % jd);
+	FCHK(fs->fs_fragshift, !=, ILOG2(fs->fs_frag), % jd);
+	FCHK(fs->fs_fsbtodb, !=, ILOG2(fs->fs_fsize / sectorsize), % jd);
+	FCHK(fs->fs_old_cgoffset, <, 0, % jd);
+	FCHK2(fs->fs_old_cgoffset, >, 0, ~fs->fs_old_cgmask, <, 0, % jd);
+	FCHK(fs->fs_old_cgoffset * (~fs->fs_old_cgmask), >, fs->fs_fpg, % jd);
+	FCHK(CGSIZE(fs), >, fs->fs_bsize, % jd);
 	/*
 	 * If anything has failed up to this point, it is usafe to proceed
 	 * as checks below may divide by zero or make other fatal calculations.
@@ -535,37 +549,42 @@ validate_sblock(struct fs *fs, int flags)
 	 */
 	if (error)
 		return (error);
-	FCHK(fs->fs_sbsize % sectorsize, !=, 0, %jd);
-	FCHK(fs->fs_ipg % fs->fs_inopb, !=, 0, %jd);
-	FCHK(fs->fs_sblkno, !=, roundup(
-	    howmany(fs->fs_sblockloc + SBLOCKSIZE, fs->fs_fsize),
-	    fs->fs_frag), %jd);
-	FCHK(fs->fs_cblkno, !=, fs->fs_sblkno +
-	    roundup(howmany(SBLOCKSIZE, fs->fs_fsize), fs->fs_frag), %jd);
-	FCHK(fs->fs_iblkno, !=, fs->fs_cblkno + fs->fs_frag, %jd);
-	FCHK(fs->fs_dblkno, !=, fs->fs_iblkno + fs->fs_ipg / INOPF(fs), %jd);
-	FCHK(fs->fs_cgsize, >, fs->fs_bsize, %jd);
-	FCHK(fs->fs_cgsize, <, fs->fs_fsize, %jd);
-	FCHK(fs->fs_cgsize % fs->fs_fsize, !=, 0, %jd);
+	FCHK(fs->fs_sbsize % sectorsize, !=, 0, % jd);
+	FCHK(fs->fs_ipg % fs->fs_inopb, !=, 0, % jd);
+	FCHK(fs->fs_sblkno, !=,
+	    roundup(howmany(fs->fs_sblockloc + SBLOCKSIZE, fs->fs_fsize),
+		fs->fs_frag),
+	    % jd);
+	FCHK(fs->fs_cblkno, !=,
+	    fs->fs_sblkno +
+		roundup(howmany(SBLOCKSIZE, fs->fs_fsize), fs->fs_frag),
+	    % jd);
+	FCHK(fs->fs_iblkno, !=, fs->fs_cblkno + fs->fs_frag, % jd);
+	FCHK(fs->fs_dblkno, !=, fs->fs_iblkno + fs->fs_ipg / INOPF(fs), % jd);
+	FCHK(fs->fs_cgsize, >, fs->fs_bsize, % jd);
+	FCHK(fs->fs_cgsize, <, fs->fs_fsize, % jd);
+	FCHK(fs->fs_cgsize % fs->fs_fsize, !=, 0, % jd);
 	/*
 	 * This test is valid, however older versions of growfs failed
 	 * to correctly update fs_dsize so will fail this test. Thus we
 	 * exclude it from the requirements.
 	 */
 #ifdef notdef
-	WCHK(fs->fs_dsize, !=, fs->fs_size - fs->fs_sblkno -
+	WCHK(fs->fs_dsize, !=,
+	    fs->fs_size - fs->fs_sblkno -
 		fs->fs_ncg * (fs->fs_dblkno - fs->fs_sblkno) -
-		howmany(fs->fs_cssize, fs->fs_fsize), %jd);
+		howmany(fs->fs_cssize, fs->fs_fsize),
+	    % jd);
 #endif
-	WCHK(fs->fs_metaspace, <, 0, %jd);
-	WCHK(fs->fs_metaspace, >, fs->fs_fpg / 2, %jd);
-	WCHK(fs->fs_minfree, >, 99, %jd%%);
+	WCHK(fs->fs_metaspace, <, 0, % jd);
+	WCHK(fs->fs_metaspace, >, fs->fs_fpg / 2, % jd);
+	WCHK(fs->fs_minfree, >, 99, % jd % %);
 	maxfilesize = fs->fs_bsize * UFS_NDADDR - 1;
 	for (sizepb = fs->fs_bsize, i = 0; i < UFS_NIADDR; i++) {
 		sizepb *= NINDIR(fs);
 		maxfilesize += sizepb;
 	}
-	WCHK(fs->fs_maxfilesize, !=, maxfilesize, %jd);
+	WCHK(fs->fs_maxfilesize, !=, maxfilesize, % jd);
 	/*
 	 * These values have a tight interaction with each other that
 	 * makes it hard to tightly bound them. So we can only check
@@ -577,9 +596,9 @@ validate_sblock(struct fs *fs, int flags)
 	 * that the summary information size is correct and that it starts
 	 * and ends in the data area of the same cylinder group.
 	 */
-	FCHK(fs->fs_size, <, 8 * fs->fs_frag, %jd);
-	FCHK(fs->fs_size, <=, ((int64_t)fs->fs_ncg - 1) * fs->fs_fpg, %jd);
-	FCHK(fs->fs_size, >, (int64_t)fs->fs_ncg * fs->fs_fpg, %jd);
+	FCHK(fs->fs_size, <, 8 * fs->fs_frag, % jd);
+	FCHK(fs->fs_size, <=, ((int64_t)fs->fs_ncg - 1) * fs->fs_fpg, % jd);
+	FCHK(fs->fs_size, >, (int64_t)fs->fs_ncg * fs->fs_fpg, % jd);
 	/*
 	 * If we are not requested to read in the csum data stop here
 	 * as the correctness of the remaining values is only important
@@ -587,14 +606,14 @@ validate_sblock(struct fs *fs, int flags)
 	 */
 	if ((flags & UFS_NOCSUM) != 0)
 		return (error);
-	FCHK(fs->fs_csaddr, <, 0, %jd);
+	FCHK(fs->fs_csaddr, <, 0, % jd);
 	FCHK(fs->fs_cssize, !=,
-	    fragroundup(fs, fs->fs_ncg * sizeof(struct csum)), %jd);
+	    fragroundup(fs, fs->fs_ncg * sizeof(struct csum)), % jd);
 	FCHK(fs->fs_csaddr + howmany(fs->fs_cssize, fs->fs_fsize), >,
-	    fs->fs_size, %jd);
-	FCHK(fs->fs_csaddr, <, cgdmin(fs, dtog(fs, fs->fs_csaddr)), %jd);
+	    fs->fs_size, % jd);
+	FCHK(fs->fs_csaddr, <, cgdmin(fs, dtog(fs, fs->fs_csaddr)), % jd);
 	FCHK(dtog(fs, fs->fs_csaddr + howmany(fs->fs_cssize, fs->fs_fsize)), >,
-	    dtog(fs, fs->fs_csaddr), %jd);
+	    dtog(fs, fs->fs_csaddr), % jd);
 	/*
 	 * With file system clustering it is possible to allocate
 	 * many contiguous blocks. The kernel variable maxphys defines
@@ -607,18 +626,18 @@ validate_sblock(struct fs *fs, int flags)
 	 * values. If the filesystem was built on a system that supports
 	 * a larger maxphys (1M is typical) it will have configured
 	 * fs_maxcontig for that larger system. So we bound the upper
-	 * allowable limit for fs_maxconfig to be able to at least 
+	 * allowable limit for fs_maxconfig to be able to at least
 	 * work with a 1M maxphys on the smallest block size filesystem:
 	 * 1M / 4096 == 256. There is no harm in allowing the mounting of
 	 * filesystems that make larger than maxphys I/O requests because
 	 * those (mostly 32-bit machines) can (very slowly) handle I/O
 	 * requests that exceed maxphys.
 	 */
-	WCHK(fs->fs_maxcontig, <, 0, %jd);
-	WCHK(fs->fs_maxcontig, >, MAX(256, maxphys / fs->fs_bsize), %jd);
-	FCHK2(fs->fs_maxcontig, ==, 0, fs->fs_contigsumsize, !=, 0, %jd);
+	WCHK(fs->fs_maxcontig, <, 0, % jd);
+	WCHK(fs->fs_maxcontig, >, MAX(256, maxphys / fs->fs_bsize), % jd);
+	FCHK2(fs->fs_maxcontig, ==, 0, fs->fs_contigsumsize, !=, 0, % jd);
 	FCHK2(fs->fs_maxcontig, >, 1, fs->fs_contigsumsize, !=,
-	    MIN(fs->fs_maxcontig, FS_MAXCONTIG), %jd);
+	    MIN(fs->fs_maxcontig, FS_MAXCONTIG), % jd);
 	return (error);
 }
 
@@ -665,7 +684,7 @@ ffs_sbsearch(void *devfd, struct fs **fsp, int reqflags,
 	if (error == 0 || error == EILSEQ) {
 		if (msg && error == EILSEQ)
 			printf("UFS superblock failed due to endian mismatch "
-			    "between machine and filesystem\n");
+			       "between machine and filesystem\n");
 		return (error);
 	}
 	/*
@@ -683,11 +702,11 @@ ffs_sbsearch(void *devfd, struct fs **fsp, int reqflags,
 	if (msg)
 		printf("Attempted recovery for standard superblock: failed\n");
 	flags = UFS_FSRONLY | UFS_NOHASHFAIL | UFS_NOCSUM | UFS_NOMSG;
-	if (ffs_sbget(devfd, &protofs, UFS_STDSB, flags, filltype,
-	    readfunc) == 0) {
+	if (ffs_sbget(devfd, &protofs, UFS_STDSB, flags, filltype, readfunc) ==
+	    0) {
 		if (msg)
 			printf("Attempt extraction of recovery data from "
-			    "standard superblock.\n");
+			       "standard superblock.\n");
 	} else {
 		/*
 		 * Final desperation is to see if alternate superblock
@@ -695,8 +714,8 @@ ffs_sbsearch(void *devfd, struct fs **fsp, int reqflags,
 		 */
 		if (msg)
 			printf("Attempted extraction of recovery data from "
-			    "standard superblock: failed\nAttempt to find "
-			    "boot zone recovery data.\n");
+			       "standard superblock: failed\nAttempt to find "
+			       "boot zone recovery data.\n");
 		/*
 		 * Look to see if recovery information has been saved.
 		 * If so we can generate a prototype superblock based
@@ -719,15 +738,15 @@ ffs_sbsearch(void *devfd, struct fs **fsp, int reqflags,
 		fsrbuf = NULL;
 		for (secsize = dbtob(1); secsize <= SBLOCKSIZE; secsize *= 2)
 			if ((error = (*readfunc)(devfd, (SBLOCK_UFS2 - secsize),
-			    &fsrbuf, secsize)) == 0)
+				 &fsrbuf, secsize)) == 0)
 				break;
 		if (error != 0)
 			goto trynowarn;
 		cp = fsrbuf; /* type change to keep compiler happy */
 		fsr = (struct fsrecovery *)&cp[secsize - sizeof *fsr];
 		if (fsr->fsr_magic != FS_UFS2_MAGIC ||
-		    (protofs = UFS_MALLOC(SBLOCKSIZE, filltype, M_NOWAIT))
-		    == NULL) {
+		    (protofs = UFS_MALLOC(SBLOCKSIZE, filltype, M_NOWAIT)) ==
+			NULL) {
 			UFS_FREE(fsrbuf, filltype);
 			goto trynowarn;
 		}
@@ -751,10 +770,11 @@ ffs_sbsearch(void *devfd, struct fs **fsp, int reqflags,
 			printf("Try cg %ld at sblock loc %jd\n", cg,
 			    (intmax_t)sblk);
 		if (ffs_sbget(devfd, fsp, dbtob(sblk), flags, filltype,
-		    readfunc) == 0) {
+			readfunc) == 0) {
 			if (msg)
 				printf("Succeeded with alternate superblock "
-				    "at %jd\n", (intmax_t)sblk);
+				       "at %jd\n",
+				    (intmax_t)sblk);
 			UFS_FREE(protofs, filltype);
 			return (0);
 		}
@@ -768,7 +788,7 @@ trynowarn:
 	flags = UFS_NOWARNFAIL | UFS_NOMSG | nocsum;
 	if (msg) {
 		printf("Finding an alternate superblock failed.\nCheck for "
-		    "only non-critical errors in standard superblock\n");
+		       "only non-critical errors in standard superblock\n");
 		flags &= ~UFS_NOMSG;
 	}
 	if (ffs_sbget(devfd, fsp, UFS_STDSB, flags, filltype, readfunc) != 0) {
@@ -778,7 +798,7 @@ trynowarn:
 	}
 	if (msg)
 		printf("Success, using standard superblock with "
-		    "non-critical errors.\n");
+		       "non-critical errors.\n");
 	return (0);
 }
 
@@ -810,8 +830,8 @@ ffs_sbput(void *devfd, struct fs *fs, off_t loc,
 			if (i + fs->fs_frag > blks)
 				size = (blks - i) * fs->fs_fsize;
 			if ((error = (*writefunc)(devfd,
-			     dbtob(fsbtodb(fs, fs->fs_csaddr + i)),
-			     space, size)) != 0)
+				 dbtob(fsbtodb(fs, fs->fs_csaddr + i)), space,
+				 size)) != 0)
 				return (error);
 			space += size;
 		}
@@ -829,7 +849,7 @@ ffs_sbput(void *devfd, struct fs *fs, off_t loc,
 		error = (*writefunc)(devfd, loc, fs, fs->fs_sbsize);
 		fs->fs_si = fs_si;
 	}
-#else /* _KERNEL */
+#else  /* _KERNEL */
 	fs->fs_time = time_second;
 	fs->fs_ckhash = ffs_calc_sbhash(fs);
 	error = (*writefunc)(devfd, loc, fs, fs->fs_sbsize);

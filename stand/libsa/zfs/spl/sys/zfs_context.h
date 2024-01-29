@@ -17,16 +17,16 @@
  * wrong order, so we include it here to fix that.
  */
 #include <sys/sysmacros.h>
-
 #include_next <sys/zfs_context.h>
 
-#define	ZFS_MODULE_PARAM_ARGS void
+#define ZFS_MODULE_PARAM_ARGS void
 
 /*
  * Not sure why I need these, but including the canonical stand.h fails because
- * the normal string.h doesn't like all the other shenanigans in this environment.
+ * the normal string.h doesn't like all the other shenanigans in this
+ * environment.
  */
 void *memcpy(void *dst, const void *src, size_t len);
 void *memset(void *dest, int c, size_t len);
 void *memmem(const void *big, size_t big_len, const void *little,
-         size_t little_len);
+    size_t little_len);

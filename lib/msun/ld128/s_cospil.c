@@ -35,9 +35,8 @@
 /*
  * pi_hi contains the leading 56 bits of a 169 bit approximation for pi.
  */
-static const long double
-pi_hi = 3.14159265358979322702026593105983920e+00L,
-pi_lo = 1.14423774522196636802434264184180742e-17L;
+static const long double pi_hi = 3.14159265358979322702026593105983920e+00L,
+			 pi_lo = 1.14423774522196636802434264184180742e-17L;
 
 #include "k_cospil.h"
 #include "k_sinpil.h"

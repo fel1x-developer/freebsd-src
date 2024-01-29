@@ -27,11 +27,12 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
 #include <sys/param.h>
-#include <sys/linker.h>
 #include <sys/boot.h>
+#include <sys/linker.h>
 #include <sys/reboot.h>
+
+#include <stand.h>
 #if defined(LOADER_FDT_SUPPORT)
 #include <fdt_platform.h>
 #endif
@@ -51,16 +52,16 @@
 static int
 md_getboothowto(char *kargs)
 {
-    int		howto;
+	int howto;
 
-    /* Parse kargs */
-    howto = boot_parse_cmdline(kargs);
-    howto |= boot_env_to_howto();
-    if (!strcmp(getenv("console"), "comconsole"))
-	howto |= RB_SERIAL;
-    if (!strcmp(getenv("console"), "nullconsole"))
-	howto |= RB_MUTE;
-    return(howto);
+	/* Parse kargs */
+	howto = boot_parse_cmdline(kargs);
+	howto |= boot_env_to_howto();
+	if (!strcmp(getenv("console"), "comconsole"))
+		howto |= RB_SERIAL;
+	if (!strcmp(getenv("console"), "nullconsole"))
+		howto |= RB_MUTE;
+	return (howto);
 }
 
 /*
@@ -74,157 +75,163 @@ md_getboothowto(char *kargs)
 static int
 md_load_dual(char *args, vm_offset_t *modulep, vm_offset_t *dtb, int kern64)
 {
-    struct preloaded_file	*kfp;
-    struct preloaded_file	*xp;
-    struct file_metadata	*md;
-    vm_offset_t			kernend;
-    vm_offset_t			addr;
-    vm_offset_t			envp;
+	struct preloaded_file *kfp;
+	struct preloaded_file *xp;
+	struct file_metadata *md;
+	vm_offset_t kernend;
+	vm_offset_t addr;
+	vm_offset_t envp;
 #if defined(LOADER_FDT_SUPPORT)
-    vm_offset_t			fdtp;
+	vm_offset_t fdtp;
 #endif
-    vm_offset_t			size;
-    uint64_t			scratch64;
-    char			*rootdevname;
-    int				howto;
+	vm_offset_t size;
+	uint64_t scratch64;
+	char *rootdevname;
+	int howto;
 #ifdef __arm__
-    vm_offset_t			vaddr;
-    int				i;
+	vm_offset_t vaddr;
+	int i;
 
 	/*
 	 * These metadata addreses must be converted for kernel after
 	 * relocation.
 	 */
-    uint32_t			mdt[] = {
-	    MODINFOMD_SSYM, MODINFOMD_ESYM, MODINFOMD_KERNEND,
-	    MODINFOMD_ENVP,
+	uint32_t mdt[] = {
+		MODINFOMD_SSYM,
+		MODINFOMD_ESYM,
+		MODINFOMD_KERNEND,
+		MODINFOMD_ENVP,
 #if defined(LOADER_FDT_SUPPORT)
-	    MODINFOMD_DTBP
+		MODINFOMD_DTBP
 #endif
-    };
+	};
 #endif
 
-    howto = md_getboothowto(args);
+	howto = md_getboothowto(args);
 
-    /*
-     * Allow the environment variable 'rootdev' to override the supplied
-     * device. This should perhaps go to MI code and/or have $rootdev
-     * tested/set by MI code before launching the kernel.
-     */
-    rootdevname = getenv("rootdev");
-    if (rootdevname == NULL)
-	rootdevname = getenv("currdev");
-    /* Try reading the /etc/fstab file to select the root device */
-    getrootmount(rootdevname);
+	/*
+	 * Allow the environment variable 'rootdev' to override the supplied
+	 * device. This should perhaps go to MI code and/or have $rootdev
+	 * tested/set by MI code before launching the kernel.
+	 */
+	rootdevname = getenv("rootdev");
+	if (rootdevname == NULL)
+		rootdevname = getenv("currdev");
+	/* Try reading the /etc/fstab file to select the root device */
+	getrootmount(rootdevname);
 
-    /* Find the last module in the chain */
-    addr = 0;
-    for (xp = file_findfile(NULL, NULL); xp != NULL; xp = xp->f_next) {
-	if (addr < (xp->f_addr + xp->f_size))
-	    addr = xp->f_addr + xp->f_size;
-    }
-    /* Pad to a page boundary */
-    addr = roundup(addr, PAGE_SIZE);
+	/* Find the last module in the chain */
+	addr = 0;
+	for (xp = file_findfile(NULL, NULL); xp != NULL; xp = xp->f_next) {
+		if (addr < (xp->f_addr + xp->f_size))
+			addr = xp->f_addr + xp->f_size;
+	}
+	/* Pad to a page boundary */
+	addr = roundup(addr, PAGE_SIZE);
 
-    /* Copy our environment */
-    envp = addr;
-    addr = md_copyenv(addr);
+	/* Copy our environment */
+	envp = addr;
+	addr = md_copyenv(addr);
 
-    /* Pad to a page boundary */
-    addr = roundup(addr, PAGE_SIZE);
+	/* Pad to a page boundary */
+	addr = roundup(addr, PAGE_SIZE);
 
 #if defined(LOADER_FDT_SUPPORT)
-    /* Copy out FDT */
-    fdtp = 0;
+	/* Copy out FDT */
+	fdtp = 0;
 #if defined(__powerpc__)
-    if (getenv("usefdt") != NULL)
+	if (getenv("usefdt") != NULL)
 #endif
-    {
-	size = fdt_copy(addr);
-	fdtp = addr;
-	addr = roundup(addr + size, PAGE_SIZE);
-    }
-#endif
-
-    kernend = 0;
-    kfp = file_findfile(NULL, kern64 ? "elf64 kernel" : "elf32 kernel");
-    if (kfp == NULL)
-	kfp = file_findfile(NULL, "elf kernel");
-    if (kfp == NULL)
-	panic("can't find kernel file");
-    file_addmetadata(kfp, MODINFOMD_HOWTO, sizeof howto, &howto);
-    if (kern64) {
-	scratch64 = envp;
-	file_addmetadata(kfp, MODINFOMD_ENVP, sizeof scratch64, &scratch64);
-#if defined(LOADER_FDT_SUPPORT)
-	if (fdtp != 0) {
-	    scratch64 = fdtp;
-	    file_addmetadata(kfp, MODINFOMD_DTBP, sizeof scratch64, &scratch64);
+	{
+		size = fdt_copy(addr);
+		fdtp = addr;
+		addr = roundup(addr + size, PAGE_SIZE);
 	}
 #endif
-	scratch64 = kernend;
-	file_addmetadata(kfp, MODINFOMD_KERNEND,
-		sizeof scratch64, &scratch64);
-    } else {
-	file_addmetadata(kfp, MODINFOMD_ENVP, sizeof envp, &envp);
+
+	kernend = 0;
+	kfp = file_findfile(NULL, kern64 ? "elf64 kernel" : "elf32 kernel");
+	if (kfp == NULL)
+		kfp = file_findfile(NULL, "elf kernel");
+	if (kfp == NULL)
+		panic("can't find kernel file");
+	file_addmetadata(kfp, MODINFOMD_HOWTO, sizeof howto, &howto);
+	if (kern64) {
+		scratch64 = envp;
+		file_addmetadata(kfp, MODINFOMD_ENVP, sizeof scratch64,
+		    &scratch64);
 #if defined(LOADER_FDT_SUPPORT)
-	if (fdtp != 0)
-	    file_addmetadata(kfp, MODINFOMD_DTBP, sizeof fdtp, &fdtp);
+		if (fdtp != 0) {
+			scratch64 = fdtp;
+			file_addmetadata(kfp, MODINFOMD_DTBP, sizeof scratch64,
+			    &scratch64);
+		}
 #endif
-	file_addmetadata(kfp, MODINFOMD_KERNEND, sizeof kernend, &kernend);
-    }
+		scratch64 = kernend;
+		file_addmetadata(kfp, MODINFOMD_KERNEND, sizeof scratch64,
+		    &scratch64);
+	} else {
+		file_addmetadata(kfp, MODINFOMD_ENVP, sizeof envp, &envp);
+#if defined(LOADER_FDT_SUPPORT)
+		if (fdtp != 0)
+			file_addmetadata(kfp, MODINFOMD_DTBP, sizeof fdtp,
+			    &fdtp);
+#endif
+		file_addmetadata(kfp, MODINFOMD_KERNEND, sizeof kernend,
+		    &kernend);
+	}
 #ifdef LOADER_GELI_SUPPORT
-    geli_export_key_metadata(kfp);
+	geli_export_key_metadata(kfp);
 #endif
 
-    *modulep = addr;
-    size = md_copymodules(0, kern64);
-    kernend = roundup(addr + size, PAGE_SIZE);
+	*modulep = addr;
+	size = md_copymodules(0, kern64);
+	kernend = roundup(addr + size, PAGE_SIZE);
 
-    md = file_findmetadata(kfp, MODINFOMD_KERNEND);
-    if (kern64) {
-	scratch64 = kernend;
-	bcopy(&scratch64, md->md_data, sizeof scratch64);
-    } else {
-	bcopy(&kernend, md->md_data, sizeof kernend);
-    }
+	md = file_findmetadata(kfp, MODINFOMD_KERNEND);
+	if (kern64) {
+		scratch64 = kernend;
+		bcopy(&scratch64, md->md_data, sizeof scratch64);
+	} else {
+		bcopy(&kernend, md->md_data, sizeof kernend);
+	}
 
 #ifdef __arm__
-    /* Convert addresses to the final VA */
-    *modulep -= __elfN(relocation_offset);
+	/* Convert addresses to the final VA */
+	*modulep -= __elfN(relocation_offset);
 
-    /* Do relocation fixup on metadata of each module. */
-    for (xp = file_findfile(NULL, NULL); xp != NULL; xp = xp->f_next) {
-        for (i = 0; i < nitems(mdt); i++) {
-            md = file_findmetadata(xp, mdt[i]);
-                if (md) {
-                    bcopy(md->md_data, &vaddr, sizeof vaddr);
-                    vaddr -= __elfN(relocation_offset);
-                    bcopy(&vaddr, md->md_data, sizeof vaddr);
-                }
-            }
-    }
+	/* Do relocation fixup on metadata of each module. */
+	for (xp = file_findfile(NULL, NULL); xp != NULL; xp = xp->f_next) {
+		for (i = 0; i < nitems(mdt); i++) {
+			md = file_findmetadata(xp, mdt[i]);
+			if (md) {
+				bcopy(md->md_data, &vaddr, sizeof vaddr);
+				vaddr -= __elfN(relocation_offset);
+				bcopy(&vaddr, md->md_data, sizeof vaddr);
+			}
+		}
+	}
 #endif
 
-    (void)md_copymodules(addr, kern64);
+	(void)md_copymodules(addr, kern64);
 #if defined(LOADER_FDT_SUPPORT)
-    if (dtb != NULL)
-	*dtb = fdtp;
+	if (dtb != NULL)
+		*dtb = fdtp;
 #endif
 
-    return(0);
+	return (0);
 }
 
 int
 md_load(char *args, vm_offset_t *modulep, vm_offset_t *dtb)
 {
-    return (md_load_dual(args, modulep, dtb, 0));
+	return (md_load_dual(args, modulep, dtb, 0));
 }
 
 #if defined(__powerpc__)
 int
 md_load64(char *args, vm_offset_t *modulep, vm_offset_t *dtb)
 {
-    return (md_load_dual(args, modulep, dtb, 1));
+	return (md_load_dual(args, modulep, dtb, 1));
 }
 #endif

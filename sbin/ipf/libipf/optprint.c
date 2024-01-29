@@ -8,7 +8,6 @@
  */
 #include "ipf.h"
 
-
 void
 optprint(u_short *sec, u_long optmsk, u_long optbits)
 {
@@ -33,7 +32,6 @@ optprint(u_short *sec, u_long optmsk, u_long optbits)
 			}
 		}
 
-
 	if (secmsk & secbits) {
 		printf("%ssec-class", s);
 		s = " ";
@@ -53,7 +51,7 @@ optprint(u_short *sec, u_long optmsk, u_long optbits)
 			for (io = ionames; io->on_name; io++)
 				if ((io->on_bit & optmsk) &&
 				    ((io->on_bit & optmsk) !=
-				     (io->on_bit & optbits))) {
+					(io->on_bit & optbits))) {
 					if ((io->on_value != IPOPT_SECURITY) ||
 					    (!secmsk && !secbits)) {
 						printf("%s%s", s, io->on_name);
@@ -72,7 +70,7 @@ optprint(u_short *sec, u_long optmsk, u_long optbits)
 			for (so = secclass; so->on_name; so++)
 				if ((so->on_bit & secmsk) &&
 				    ((so->on_bit & secmsk) !=
-				     (so->on_bit & secbits))) {
+					(so->on_bit & secbits))) {
 					printf("%s%s", s, so->on_name);
 					s = ",";
 				}

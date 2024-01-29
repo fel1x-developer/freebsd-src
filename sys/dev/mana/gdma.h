@@ -32,56 +32,56 @@
 #ifndef _GDMA_H
 #define _GDMA_H
 
+#include <sys/types.h>
 #include <sys/bus.h>
 #include <sys/bus_dma.h>
-#include <sys/types.h>
 #include <sys/limits.h>
 #include <sys/sx.h>
 
 #include "gdma_util.h"
 #include "shm_channel.h"
 
-#define GDMA_STATUS_MORE_ENTRIES	0x00000105
+#define GDMA_STATUS_MORE_ENTRIES 0x00000105
 
 /* Structures labeled with "HW DATA" are exchanged with the hardware. All of
  * them are naturally aligned and hence don't need __packed.
  */
 
-#define GDMA_BAR0		0
+#define GDMA_BAR0 0
 
-#define GDMA_IRQNAME_SZ		40
+#define GDMA_IRQNAME_SZ 40
 
 struct gdma_bus {
-	bus_space_handle_t	bar0_h;
-	bus_space_tag_t		bar0_t;
+	bus_space_handle_t bar0_h;
+	bus_space_tag_t bar0_t;
 };
 
 struct gdma_msix_entry {
-	int			entry;
-	int			vector;
+	int entry;
+	int vector;
 };
 
 enum gdma_request_type {
-	GDMA_VERIFY_VF_DRIVER_VERSION	= 1,
-	GDMA_QUERY_MAX_RESOURCES	= 2,
-	GDMA_LIST_DEVICES		= 3,
-	GDMA_REGISTER_DEVICE		= 4,
-	GDMA_DEREGISTER_DEVICE		= 5,
-	GDMA_GENERATE_TEST_EQE		= 10,
-	GDMA_CREATE_QUEUE		= 12,
-	GDMA_DISABLE_QUEUE		= 13,
-	GDMA_ALLOCATE_RESOURCE_RANGE	= 22,
-	GDMA_DESTROY_RESOURCE_RANGE	= 24,
-	GDMA_CREATE_DMA_REGION		= 25,
-	GDMA_DMA_REGION_ADD_PAGES	= 26,
-	GDMA_DESTROY_DMA_REGION		= 27,
-	GDMA_CREATE_PD			= 29,
-	GDMA_DESTROY_PD			= 30,
-	GDMA_CREATE_MR			= 31,
-	GDMA_DESTROY_MR			= 32,
+	GDMA_VERIFY_VF_DRIVER_VERSION = 1,
+	GDMA_QUERY_MAX_RESOURCES = 2,
+	GDMA_LIST_DEVICES = 3,
+	GDMA_REGISTER_DEVICE = 4,
+	GDMA_DEREGISTER_DEVICE = 5,
+	GDMA_GENERATE_TEST_EQE = 10,
+	GDMA_CREATE_QUEUE = 12,
+	GDMA_DISABLE_QUEUE = 13,
+	GDMA_ALLOCATE_RESOURCE_RANGE = 22,
+	GDMA_DESTROY_RESOURCE_RANGE = 24,
+	GDMA_CREATE_DMA_REGION = 25,
+	GDMA_DMA_REGION_ADD_PAGES = 26,
+	GDMA_DESTROY_DMA_REGION = 27,
+	GDMA_CREATE_PD = 29,
+	GDMA_DESTROY_PD = 30,
+	GDMA_CREATE_MR = 31,
+	GDMA_DESTROY_MR = 32,
 };
 
-#define GDMA_RESOURCE_DOORBELL_PAGE	27
+#define GDMA_RESOURCE_DOORBELL_PAGE 27
 
 enum gdma_queue_type {
 	GDMA_INVALID_QUEUE,
@@ -92,74 +92,74 @@ enum gdma_queue_type {
 };
 
 enum gdma_work_request_flags {
-	GDMA_WR_NONE			= 0,
-	GDMA_WR_OOB_IN_SGL		= BIT(0),
-	GDMA_WR_PAD_BY_SGE0		= BIT(1),
+	GDMA_WR_NONE = 0,
+	GDMA_WR_OOB_IN_SGL = BIT(0),
+	GDMA_WR_PAD_BY_SGE0 = BIT(1),
 };
 
 enum gdma_eqe_type {
-	GDMA_EQE_COMPLETION		= 3,
-	GDMA_EQE_TEST_EVENT		= 64,
-	GDMA_EQE_HWC_INIT_EQ_ID_DB	= 129,
-	GDMA_EQE_HWC_INIT_DATA		= 130,
-	GDMA_EQE_HWC_INIT_DONE		= 131,
+	GDMA_EQE_COMPLETION = 3,
+	GDMA_EQE_TEST_EVENT = 64,
+	GDMA_EQE_HWC_INIT_EQ_ID_DB = 129,
+	GDMA_EQE_HWC_INIT_DATA = 130,
+	GDMA_EQE_HWC_INIT_DONE = 131,
 };
 
 enum {
-	GDMA_DEVICE_NONE	= 0,
-	GDMA_DEVICE_HWC		= 1,
-	GDMA_DEVICE_MANA	= 2,
+	GDMA_DEVICE_NONE = 0,
+	GDMA_DEVICE_HWC = 1,
+	GDMA_DEVICE_MANA = 2,
 };
 
 typedef uint64_t gdma_obj_handle_t;
 
 struct gdma_resource {
 	/* Protect the bitmap */
-	struct mtx		lock_spin;
+	struct mtx lock_spin;
 
 	/* The bitmap size in bits. */
-	uint32_t		size;
+	uint32_t size;
 
 	/* The bitmap tracks the resources. */
-	unsigned long		*map;
+	unsigned long *map;
 };
 
 union gdma_doorbell_entry {
-	uint64_t		as_uint64;
+	uint64_t as_uint64;
 
 	struct {
-		uint64_t id		: 24;
-		uint64_t reserved	: 8;
-		uint64_t tail_ptr	: 31;
-		uint64_t arm		: 1;
+		uint64_t id : 24;
+		uint64_t reserved : 8;
+		uint64_t tail_ptr : 31;
+		uint64_t arm : 1;
 	} cq;
 
 	struct {
-		uint64_t id		: 24;
-		uint64_t wqe_cnt	: 8;
-		uint64_t tail_ptr	: 32;
+		uint64_t id : 24;
+		uint64_t wqe_cnt : 8;
+		uint64_t tail_ptr : 32;
 	} rq;
 
 	struct {
-		uint64_t id		: 24;
-		uint64_t reserved	: 8;
-		uint64_t tail_ptr	: 32;
+		uint64_t id : 24;
+		uint64_t reserved : 8;
+		uint64_t tail_ptr : 32;
 	} sq;
 
 	struct {
-		uint64_t id		: 16;
-		uint64_t reserved	: 16;
-		uint64_t tail_ptr	: 31;
-		uint64_t arm		: 1;
+		uint64_t id : 16;
+		uint64_t reserved : 16;
+		uint64_t tail_ptr : 31;
+		uint64_t arm : 1;
 	} eq;
 }; /* HW DATA */
 
 struct gdma_msg_hdr {
-	uint32_t	hdr_type;
-	uint32_t	msg_type;
-	uint16_t	msg_version;
-	uint16_t	hwc_msg_id;
-	uint32_t	msg_size;
+	uint32_t hdr_type;
+	uint32_t msg_type;
+	uint16_t msg_version;
+	uint16_t hwc_msg_id;
+	uint32_t msg_size;
 }; /* HW DATA */
 
 struct gdma_dev_id {
@@ -174,35 +174,35 @@ struct gdma_dev_id {
 }; /* HW DATA */
 
 struct gdma_req_hdr {
-	struct gdma_msg_hdr	req;
-	struct gdma_msg_hdr	resp; /* The expected response */
-	struct gdma_dev_id	dev_id;
-	uint32_t		activity_id;
+	struct gdma_msg_hdr req;
+	struct gdma_msg_hdr resp; /* The expected response */
+	struct gdma_dev_id dev_id;
+	uint32_t activity_id;
 }; /* HW DATA */
 
 struct gdma_resp_hdr {
-	struct gdma_msg_hdr	response;
-	struct gdma_dev_id	dev_id;
-	uint32_t		activity_id;
-	uint32_t		status;
-	uint32_t		reserved;
+	struct gdma_msg_hdr response;
+	struct gdma_dev_id dev_id;
+	uint32_t activity_id;
+	uint32_t status;
+	uint32_t reserved;
 }; /* HW DATA */
 
 struct gdma_general_req {
-	struct gdma_req_hdr	hdr;
+	struct gdma_req_hdr hdr;
 }; /* HW DATA */
 
 #define GDMA_MESSAGE_V1 1
 
 struct gdma_general_resp {
-	struct gdma_resp_hdr	hdr;
+	struct gdma_resp_hdr hdr;
 }; /* HW DATA */
 
-#define GDMA_STANDARD_HEADER_TYPE	0
+#define GDMA_STANDARD_HEADER_TYPE 0
 
 static inline void
-mana_gd_init_req_hdr(struct gdma_req_hdr *hdr, uint32_t code,
-    uint32_t req_size, uint32_t resp_size)
+mana_gd_init_req_hdr(struct gdma_req_hdr *hdr, uint32_t code, uint32_t req_size,
+    uint32_t resp_size)
 {
 	hdr->req.hdr_type = GDMA_STANDARD_HEADER_TYPE;
 	hdr->req.msg_type = code;
@@ -217,85 +217,85 @@ mana_gd_init_req_hdr(struct gdma_req_hdr *hdr, uint32_t code,
 
 /* The 16-byte struct is part of the GDMA work queue entry (WQE). */
 struct gdma_sge {
-	uint64_t		address;
-	uint32_t		mem_key;
-	uint32_t		size;
+	uint64_t address;
+	uint32_t mem_key;
+	uint32_t size;
 }; /* HW DATA */
 
 struct gdma_wqe_request {
-	struct gdma_sge		*sgl;
-	uint32_t		num_sge;
+	struct gdma_sge *sgl;
+	uint32_t num_sge;
 
-	uint32_t		inline_oob_size;
-	const void		*inline_oob_data;
+	uint32_t inline_oob_size;
+	const void *inline_oob_data;
 
-	uint32_t		flags;
-	uint32_t		client_data_unit;
+	uint32_t flags;
+	uint32_t client_data_unit;
 };
 
 enum gdma_page_type {
 	GDMA_PAGE_TYPE_4K,
 };
 
-#define GDMA_INVALID_DMA_REGION		0
+#define GDMA_INVALID_DMA_REGION 0
 
 struct gdma_mem_info {
-	device_t		dev;
+	device_t dev;
 
-	bus_dma_tag_t		dma_tag;
-	bus_dmamap_t		dma_map;
-	bus_addr_t		dma_handle;	/* Physical address	*/
-	void			*virt_addr;	/* Virtual address	*/
-	uint64_t		length;
+	bus_dma_tag_t dma_tag;
+	bus_dmamap_t dma_map;
+	bus_addr_t dma_handle; /* Physical address	*/
+	void *virt_addr;       /* Virtual address	*/
+	uint64_t length;
 
 	/* Allocated by the PF driver */
-	gdma_obj_handle_t	dma_region_handle;
+	gdma_obj_handle_t dma_region_handle;
 };
 
 #define REGISTER_ATB_MST_MKEY_LOWER_SIZE 8
 
 struct gdma_dev {
-	struct gdma_context	*gdma_context;
+	struct gdma_context *gdma_context;
 
-	struct gdma_dev_id	dev_id;
+	struct gdma_dev_id dev_id;
 
-	uint32_t		pdid;
-	uint32_t		doorbell;
-	uint32_t		gpa_mkey;
+	uint32_t pdid;
+	uint32_t doorbell;
+	uint32_t gpa_mkey;
 
 	/* GDMA driver specific pointer */
-	void			*driver_data;
+	void *driver_data;
 };
 
 #define MINIMUM_SUPPORTED_PAGE_SIZE PAGE_SIZE
 
-#define GDMA_CQE_SIZE		64
-#define GDMA_EQE_SIZE		16
-#define GDMA_MAX_SQE_SIZE	512
-#define GDMA_MAX_RQE_SIZE	256
+#define GDMA_CQE_SIZE 64
+#define GDMA_EQE_SIZE 16
+#define GDMA_MAX_SQE_SIZE 512
+#define GDMA_MAX_RQE_SIZE 256
 
-#define GDMA_COMP_DATA_SIZE	0x3C
+#define GDMA_COMP_DATA_SIZE 0x3C
 
-#define GDMA_EVENT_DATA_SIZE	0xC
+#define GDMA_EVENT_DATA_SIZE 0xC
 
 /* The WQE size must be a multiple of the Basic Unit, which is 32 bytes. */
-#define GDMA_WQE_BU_SIZE	32
+#define GDMA_WQE_BU_SIZE 32
 
-#define INVALID_PDID		UINT_MAX
-#define INVALID_DOORBELL	UINT_MAX
-#define INVALID_MEM_KEY		UINT_MAX
-#define INVALID_QUEUE_ID	UINT_MAX
-#define INVALID_PCI_MSIX_INDEX  UINT_MAX
+#define INVALID_PDID UINT_MAX
+#define INVALID_DOORBELL UINT_MAX
+#define INVALID_MEM_KEY UINT_MAX
+#define INVALID_QUEUE_ID UINT_MAX
+#define INVALID_PCI_MSIX_INDEX UINT_MAX
 
 struct gdma_comp {
-	uint32_t		cqe_data[GDMA_COMP_DATA_SIZE / 4];
-	uint32_t		wq_num;
-	bool			is_sq;
+	uint32_t cqe_data[GDMA_COMP_DATA_SIZE / 4];
+	uint32_t wq_num;
+	bool is_sq;
 };
 
 struct gdma_event {
-	uint32_t		details[GDMA_EVENT_DATA_SIZE / 4];
-	uint8_t			type;
+	uint32_t details[GDMA_EVENT_DATA_SIZE / 4];
+	uint8_t type;
 };
 
 struct gdma_queue;
@@ -320,130 +320,132 @@ typedef void gdma_cq_callback(void *context, struct gdma_queue *q);
  * the owner bits mechanism to detect if the queue has become empty.
  */
 struct gdma_queue {
-	struct gdma_dev		*gdma_dev;
+	struct gdma_dev *gdma_dev;
 
-	enum gdma_queue_type	type;
-	uint32_t		id;
+	enum gdma_queue_type type;
+	uint32_t id;
 
-	struct gdma_mem_info	mem_info;
+	struct gdma_mem_info mem_info;
 
-	void			*queue_mem_ptr;
-	uint32_t		queue_size;
+	void *queue_mem_ptr;
+	uint32_t queue_size;
 
-	bool			monitor_avl_buf;
+	bool monitor_avl_buf;
 
-	uint32_t		head;
-	uint32_t		tail;
+	uint32_t head;
+	uint32_t tail;
 
 	/* Extra fields specific to EQ/CQ. */
 	union {
 		struct {
-			bool			disable_needed;
+			bool disable_needed;
 
-			gdma_eq_callback	*callback;
-			void			*context;
+			gdma_eq_callback *callback;
+			void *context;
 
-			unsigned int		msix_index;
+			unsigned int msix_index;
 
-			uint32_t		log2_throttle_limit;
+			uint32_t log2_throttle_limit;
 		} eq;
 
 		struct {
-			gdma_cq_callback	*callback;
-			void			*context;
+			gdma_cq_callback *callback;
+			void *context;
 
 			/* For CQ/EQ relationship */
-			struct gdma_queue	*parent;
+			struct gdma_queue *parent;
 		} cq;
 	};
 };
 
 struct gdma_queue_spec {
-	enum gdma_queue_type	type;
-	bool			monitor_avl_buf;
-	unsigned int		queue_size;
+	enum gdma_queue_type type;
+	bool monitor_avl_buf;
+	unsigned int queue_size;
 
 	/* Extra fields specific to EQ/CQ. */
 	union {
 		struct {
-			gdma_eq_callback	*callback;
-			void			*context;
+			gdma_eq_callback *callback;
+			void *context;
 
-			unsigned long		log2_throttle_limit;
+			unsigned long log2_throttle_limit;
 		} eq;
 
 		struct {
-			gdma_cq_callback	*callback;
-			void			*context;
+			gdma_cq_callback *callback;
+			void *context;
 
-			struct			gdma_queue *parent_eq;
+			struct gdma_queue *parent_eq;
 
 		} cq;
 	};
 };
 
 struct mana_eq {
-	struct gdma_queue	*eq;
+	struct gdma_queue *eq;
 };
 
 struct gdma_irq_context {
-	struct gdma_msix_entry	msix_e;
-	struct resource		*res;
-	driver_intr_t		*handler;
-	void			*arg;
-	void			*cookie;
-	bool			requested;
-	int			cpu;
-	char			name[GDMA_IRQNAME_SZ];
+	struct gdma_msix_entry msix_e;
+	struct resource *res;
+	driver_intr_t *handler;
+	void *arg;
+	void *cookie;
+	bool requested;
+	int cpu;
+	char name[GDMA_IRQNAME_SZ];
 };
 
 struct gdma_context {
-	device_t		dev;
+	device_t dev;
 
-	struct gdma_bus		gd_bus;
+	struct gdma_bus gd_bus;
 
 	/* Per-vPort max number of queues */
-	unsigned int		max_num_queues;
-	unsigned int		max_num_msix;
-	unsigned int		num_msix_usable;
-	struct gdma_resource	msix_resource;
-	struct gdma_irq_context	*irq_contexts;
+	unsigned int max_num_queues;
+	unsigned int max_num_msix;
+	unsigned int num_msix_usable;
+	struct gdma_resource msix_resource;
+	struct gdma_irq_context *irq_contexts;
 
 	/* This maps a CQ index to the queue structure. */
-	unsigned int		max_num_cqs;
-	struct gdma_queue	**cq_table;
+	unsigned int max_num_cqs;
+	struct gdma_queue **cq_table;
 
 	/* Protect eq_test_event and test_event_eq_id  */
-	struct sx		eq_test_event_sx;
-	struct completion	eq_test_event;
-	uint32_t		test_event_eq_id;
+	struct sx eq_test_event_sx;
+	struct completion eq_test_event;
+	uint32_t test_event_eq_id;
 
-	struct resource		*bar0;
-	struct resource		*msix;
-	int			msix_rid;
-	void __iomem		*shm_base;
-	void __iomem		*db_page_base;
-	vm_paddr_t		phys_db_page_base;
-	uint32_t		db_page_size;
+	struct resource *bar0;
+	struct resource *msix;
+	int msix_rid;
+	void __iomem *shm_base;
+	void __iomem *db_page_base;
+	vm_paddr_t phys_db_page_base;
+	uint32_t db_page_size;
 
 	/* Shared memory chanenl (used to bootstrap HWC) */
-	struct shm_channel	shm_channel;
+	struct shm_channel shm_channel;
 
 	/* Hardware communication channel (HWC) */
-	struct gdma_dev		hwc;
+	struct gdma_dev hwc;
 
 	/* Azure network adapter */
-	struct gdma_dev		mana;
+	struct gdma_dev mana;
 };
 
-#define MAX_NUM_GDMA_DEVICES	4
+#define MAX_NUM_GDMA_DEVICES 4
 
-static inline bool mana_gd_is_mana(struct gdma_dev *gd)
+static inline bool
+mana_gd_is_mana(struct gdma_dev *gd)
 {
 	return gd->dev_id.type == GDMA_DEVICE_MANA;
 }
 
-static inline bool mana_gd_is_hwc(struct gdma_dev *gd)
+static inline bool
+mana_gd_is_hwc(struct gdma_dev *gd)
 {
 	return gd->dev_id.type == GDMA_DEVICE_HWC;
 }
@@ -454,16 +456,13 @@ uint32_t mana_gd_wq_avail_space(struct gdma_queue *wq);
 int mana_gd_test_eq(struct gdma_context *gc, struct gdma_queue *eq);
 
 int mana_gd_create_hwc_queue(struct gdma_dev *gd,
-    const struct gdma_queue_spec *spec,
-    struct gdma_queue **queue_ptr);
+    const struct gdma_queue_spec *spec, struct gdma_queue **queue_ptr);
 
 int mana_gd_create_mana_eq(struct gdma_dev *gd,
-    const struct gdma_queue_spec *spec,
-    struct gdma_queue **queue_ptr);
+    const struct gdma_queue_spec *spec, struct gdma_queue **queue_ptr);
 
 int mana_gd_create_mana_wq_cq(struct gdma_dev *gd,
-    const struct gdma_queue_spec *spec,
-    struct gdma_queue **queue_ptr);
+    const struct gdma_queue_spec *spec, struct gdma_queue **queue_ptr);
 
 void mana_gd_destroy_queue(struct gdma_context *gc, struct gdma_queue *queue);
 
@@ -472,35 +471,37 @@ int mana_gd_poll_cq(struct gdma_queue *cq, struct gdma_comp *comp, int num_cqe);
 void mana_gd_ring_cq(struct gdma_queue *cq, uint8_t arm_bit);
 
 struct gdma_wqe {
-	uint32_t reserved	:24;
-	uint32_t last_vbytes	:8;
+	uint32_t reserved : 24;
+	uint32_t last_vbytes : 8;
 
 	union {
 		uint32_t flags;
 
 		struct {
-			uint32_t num_sge		:8;
-			uint32_t inline_oob_size_div4	:3;
-			uint32_t client_oob_in_sgl	:1;
-			uint32_t reserved1		:4;
-			uint32_t client_data_unit	:14;
-			uint32_t reserved2		:2;
+			uint32_t num_sge : 8;
+			uint32_t inline_oob_size_div4 : 3;
+			uint32_t client_oob_in_sgl : 1;
+			uint32_t reserved1 : 4;
+			uint32_t client_data_unit : 14;
+			uint32_t reserved2 : 2;
 		};
 	};
 }; /* HW DATA */
 
-#define INLINE_OOB_SMALL_SIZE	8
-#define INLINE_OOB_LARGE_SIZE	24
+#define INLINE_OOB_SMALL_SIZE 8
+#define INLINE_OOB_LARGE_SIZE 24
 
-#define MAX_TX_WQE_SIZE		512
-#define MAX_RX_WQE_SIZE		256
+#define MAX_TX_WQE_SIZE 512
+#define MAX_RX_WQE_SIZE 256
 
-#define MAX_TX_WQE_SGL_ENTRIES	((GDMA_MAX_SQE_SIZE -			   \
-			sizeof(struct gdma_sge) - INLINE_OOB_SMALL_SIZE) / \
-			sizeof(struct gdma_sge))
+#define MAX_TX_WQE_SGL_ENTRIES                          \
+	((GDMA_MAX_SQE_SIZE - sizeof(struct gdma_sge) - \
+	     INLINE_OOB_SMALL_SIZE) /                   \
+	    sizeof(struct gdma_sge))
 
-#define MAX_RX_WQE_SGL_ENTRIES	((GDMA_MAX_RQE_SIZE -			   \
-			sizeof(struct gdma_sge)) / sizeof(struct gdma_sge))
+#define MAX_RX_WQE_SGL_ENTRIES                           \
+	((GDMA_MAX_RQE_SIZE - sizeof(struct gdma_sge)) / \
+	    sizeof(struct gdma_sge))
 
 struct gdma_cqe {
 	uint32_t cqe_data[GDMA_COMP_DATA_SIZE / 4];
@@ -509,45 +510,45 @@ struct gdma_cqe {
 		uint32_t as_uint32;
 
 		struct {
-			uint32_t wq_num		:24;
-			uint32_t is_sq		:1;
-			uint32_t reserved	:4;
-			uint32_t owner_bits	:3;
+			uint32_t wq_num : 24;
+			uint32_t is_sq : 1;
+			uint32_t reserved : 4;
+			uint32_t owner_bits : 3;
 		};
 	} cqe_info;
 }; /* HW DATA */
 
-#define GDMA_CQE_OWNER_BITS	3
+#define GDMA_CQE_OWNER_BITS 3
 
-#define GDMA_CQE_OWNER_MASK	((1 << GDMA_CQE_OWNER_BITS) - 1)
+#define GDMA_CQE_OWNER_MASK ((1 << GDMA_CQE_OWNER_BITS) - 1)
 
-#define SET_ARM_BIT		1
+#define SET_ARM_BIT 1
 
-#define GDMA_EQE_OWNER_BITS	3
+#define GDMA_EQE_OWNER_BITS 3
 
 union gdma_eqe_info {
 	uint32_t as_uint32;
 
 	struct {
-		uint32_t type		: 8;
-		uint32_t reserved1	: 8;
-		uint32_t client_id	: 2;
-		uint32_t reserved2	: 11;
-		uint32_t owner_bits	: 3;
+		uint32_t type : 8;
+		uint32_t reserved1 : 8;
+		uint32_t client_id : 2;
+		uint32_t reserved2 : 11;
+		uint32_t owner_bits : 3;
 	};
 }; /* HW DATA */
 
-#define GDMA_EQE_OWNER_MASK	((1 << GDMA_EQE_OWNER_BITS) - 1)
-#define INITIALIZED_OWNER_BIT(log2_num_entries)	(1UL << (log2_num_entries))
+#define GDMA_EQE_OWNER_MASK ((1 << GDMA_EQE_OWNER_BITS) - 1)
+#define INITIALIZED_OWNER_BIT(log2_num_entries) (1UL << (log2_num_entries))
 
 struct gdma_eqe {
 	uint32_t details[GDMA_EVENT_DATA_SIZE / 4];
 	uint32_t eqe_info;
 }; /* HW DATA */
 
-#define GDMA_REG_DB_PAGE_OFFSET	8
-#define GDMA_REG_DB_PAGE_SIZE	0x10
-#define GDMA_REG_SHM_OFFSET	0x18
+#define GDMA_REG_DB_PAGE_OFFSET 8
+#define GDMA_REG_DB_PAGE_SIZE 0x10
+#define GDMA_REG_SHM_OFFSET 0x18
 
 struct gdma_posted_wqe_info {
 	uint32_t wqe_size_in_bu;
@@ -561,9 +562,9 @@ struct gdma_generate_test_event_req {
 
 /* GDMA_VERIFY_VF_DRIVER_VERSION */
 enum {
-	GDMA_PROTOCOL_V1	= 1,
-	GDMA_PROTOCOL_FIRST	= GDMA_PROTOCOL_V1,
-	GDMA_PROTOCOL_LAST	= GDMA_PROTOCOL_V1,
+	GDMA_PROTOCOL_V1 = 1,
+	GDMA_PROTOCOL_FIRST = GDMA_PROTOCOL_V1,
+	GDMA_PROTOCOL_LAST = GDMA_PROTOCOL_V1,
 };
 
 struct gdma_verify_ver_req {
@@ -666,10 +667,10 @@ struct gdma_create_queue_req {
 	uint32_t eq_pci_msix_index;
 	uint32_t cq_mod_ctx_id;
 	uint32_t cq_parent_eq_id;
-	uint8_t  rq_drop_on_overrun;
-	uint8_t  rq_err_on_wqe_overflow;
-	uint8_t  rq_chain_rec_wqes;
-	uint8_t  sq_hw_db;
+	uint8_t rq_drop_on_overrun;
+	uint8_t rq_err_on_wqe_overflow;
+	uint8_t rq_chain_rec_wqes;
+	uint8_t sq_hw_db;
 	uint32_t reserved3;
 }; /* HW DATA */
 
@@ -764,23 +765,23 @@ struct gdma_create_pd_req {
 	struct gdma_req_hdr hdr;
 	enum gdma_pd_flags flags;
 	uint32_t reserved;
-};/* HW DATA */
+}; /* HW DATA */
 
 struct gdma_create_pd_resp {
 	struct gdma_resp_hdr hdr;
 	gdma_obj_handle_t pd_handle;
 	uint32_t pd_id;
 	uint32_t reserved;
-};/* HW DATA */
+}; /* HW DATA */
 
 struct gdma_destroy_pd_req {
 	struct gdma_req_hdr hdr;
 	gdma_obj_handle_t pd_handle;
-};/* HW DATA */
+}; /* HW DATA */
 
 struct gdma_destory_pd_resp {
 	struct gdma_resp_hdr hdr;
-};/* HW DATA */
+}; /* HW DATA */
 
 enum gdma_mr_type {
 	/* Guest Virtual Address - MRs of this type allow access
@@ -814,26 +815,25 @@ struct gdma_create_mr_request {
 			uint64_t virtual_address;
 			enum gdma_mr_access_flags access_flags;
 		} gva;
-
 	};
 	uint32_t reserved_2;
-};/* HW DATA */
+}; /* HW DATA */
 
 struct gdma_create_mr_response {
 	struct gdma_resp_hdr hdr;
 	gdma_obj_handle_t mr_handle;
 	uint32_t lkey;
 	uint32_t rkey;
-};/* HW DATA */
+}; /* HW DATA */
 
 struct gdma_destroy_mr_request {
 	struct gdma_req_hdr hdr;
 	gdma_obj_handle_t mr_handle;
-};/* HW DATA */
+}; /* HW DATA */
 
 struct gdma_destroy_mr_response {
 	struct gdma_resp_hdr hdr;
-};/* HW DATA */
+}; /* HW DATA */
 
 int mana_gd_verify_vf_version(device_t dev);
 
@@ -845,8 +845,7 @@ int mana_gd_post_work_request(struct gdma_queue *wq,
     struct gdma_posted_wqe_info *wqe_info);
 
 int mana_gd_post_and_ring(struct gdma_queue *queue,
-    const struct gdma_wqe_request *wqe,
-    struct gdma_posted_wqe_info *wqe_info);
+    const struct gdma_wqe_request *wqe, struct gdma_posted_wqe_info *wqe_info);
 
 int mana_gd_alloc_res_map(uint32_t res_avil, struct gdma_resource *r,
     const char *lock_name);
@@ -860,17 +859,15 @@ int mana_gd_alloc_memory(struct gdma_context *gc, unsigned int length,
 
 void mana_gd_free_memory(struct gdma_mem_info *gmi);
 
-void mana_gd_dma_map_paddr(void *arg, bus_dma_segment_t *segs,
-    int nseg, int error);
+void mana_gd_dma_map_paddr(void *arg, bus_dma_segment_t *segs, int nseg,
+    int error);
 
 int mana_gd_send_request(struct gdma_context *gc, uint32_t req_len,
     const void *req, uint32_t resp_len, void *resp);
 
-int mana_gd_allocate_doorbell_page(struct gdma_context *gc,
-    int *doorbell_page);
+int mana_gd_allocate_doorbell_page(struct gdma_context *gc, int *doorbell_page);
 
-int mana_gd_destroy_doorbell_page(struct gdma_context *gc,
-    int doorbell_page);
+int mana_gd_destroy_doorbell_page(struct gdma_context *gc, int doorbell_page);
 
 int mana_gd_destroy_dma_region(struct gdma_context *gc,
     gdma_obj_handle_t dma_region_handle);

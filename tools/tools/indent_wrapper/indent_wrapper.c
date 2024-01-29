@@ -23,26 +23,27 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <stdint.h>
 #include <sys/queue.h>
-#include <sysexits.h>
+
+#include <ctype.h>
 #include <err.h>
 #include <fcntl.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <ctype.h>
 #include <signal.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sysexits.h>
+#include <unistd.h>
 
 extern char **environ;
 
 static int opt_verbose;
 static char *opt_diff_tool;
 
-#define	BLOCK_SIZE	4096
-#define	BLOCK_MASK	0x100
-#define	BLOCK_ADD	0x200
+#define BLOCK_SIZE 4096
+#define BLOCK_MASK 0x100
+#define BLOCK_ADD 0x200
 
 struct block {
 	TAILQ_ENTRY(block) entry;
@@ -83,7 +84,7 @@ write_block(int fd, block_head_t *ph)
 	if (fd < 0)
 		return (-1);
 
-	TAILQ_FOREACH(ptr, ph, entry) {
+	TAILQ_FOREACH (ptr, ph, entry) {
 		if (write(fd, ptr->data, ptr->length) != ptr->length)
 			return (-1);
 	}
@@ -95,7 +96,7 @@ peek_block(block_head_t *pbh, uint64_t off)
 {
 	struct block *ptr;
 
-	TAILQ_FOREACH(ptr, pbh, entry) {
+	TAILQ_FOREACH (ptr, pbh, entry) {
 		if (off < ptr->length)
 			break;
 		off -= ptr->length;
@@ -110,7 +111,7 @@ set_block(block_head_t *pbh, uint64_t off, uint16_t ch)
 {
 	struct block *ptr;
 
-	TAILQ_FOREACH(ptr, pbh, entry) {
+	TAILQ_FOREACH (ptr, pbh, entry) {
 		if (off < ptr->length)
 			break;
 		off -= ptr->length;
@@ -127,16 +128,16 @@ size_block(block_head_t *pbh)
 	struct block *ptr;
 	uint64_t off = 0;
 
-	TAILQ_FOREACH(ptr, pbh, entry)
-	    off += ptr->length;
+	TAILQ_FOREACH (ptr, pbh, entry)
+		off += ptr->length;
 	return (off);
 }
 
 static int
 diff_tool(block_head_t *pa, block_head_t *pb)
 {
-	char ca[] = {"/tmp/diff.orig.XXXXXX"};
-	char cb[] = {"/tmp/diff.styled.XXXXXX"};
+	char ca[] = { "/tmp/diff.orig.XXXXXX" };
+	char cb[] = { "/tmp/diff.styled.XXXXXX" };
 	char cc[256];
 	uint64_t sa;
 	uint64_t sb;
@@ -161,7 +162,7 @@ diff_tool(block_head_t *pa, block_head_t *pb)
 		}
 	}
 	if (x == s)
-		return (0);		/* identical */
+		return (0); /* identical */
 
 	fa = mkstemp(ca);
 	fb = mkstemp(cb);
@@ -240,7 +241,8 @@ diff_block(block_head_t *pa, block_head_t *pb)
 			}
 			printf("^ %sdifference%s\n",
 			    (isspace(cha) || isspace(chb)) ? "whitespace " : "",
-			    (x >= sa || x >= sb) ? " in the end of a block" : "");
+			    (x >= sa || x >= sb) ? " in the end of a block" :
+						   "");
 			return (1);
 		} else if (cha == '\n') {
 			y = x + 1;
@@ -281,13 +283,13 @@ cmd_popen(char *command, FILE **iop)
 	argv[3] = NULL;
 
 	switch ((pid = vfork())) {
-	case -1:			/* Error. */
+	case -1: /* Error. */
 		close(pdes[0]);
 		close(pdes[1]);
 		close(pdes[2]);
 		close(pdes[3]);
 		goto error;
-	case 0:			/* Child. */
+	case 0: /* Child. */
 		dup2(pdes[1], STDOUT_FILENO);
 		dup2(pdes[2], STDIN_FILENO);
 		close(pdes[0]);
@@ -320,9 +322,12 @@ cmd_block_process(block_head_t *pbh_in, block_head_t *pbh_out, char *cmd_str)
 		errx(EX_SOFTWARE, "Cannot invoke command '%s'", cmd_str);
 
 	if (pbh_in != NULL) {
-		TAILQ_FOREACH(ptr, pbh_in, entry) {
-			if (fwrite(ptr->data, 1, ptr->length, pfd[0]) != ptr->length)
-				err(EX_SOFTWARE, "Cannot write all data to command '%s'", cmd_str);
+		TAILQ_FOREACH (ptr, pbh_in, entry) {
+			if (fwrite(ptr->data, 1, ptr->length, pfd[0]) !=
+			    ptr->length)
+				err(EX_SOFTWARE,
+				    "Cannot write all data to command '%s'",
+				    cmd_str);
 		}
 		fflush(pfd[0]);
 	}
@@ -348,19 +353,30 @@ usage(void)
 {
 	fprintf(stderr,
 	    "indent_wrapper [-v] [-d] [-D] [-g <githash>]\n"
-	    "\t" "[-s <svnrevision> ] [ -t <tool> ] [ -c <command> ]\n"
-	    "\t" "-v        Increase verbosity\n"
-	    "\t" "-d        Check output from git diff\n"
-	    "\t" "-D        Check output from svn diff\n"
-	    "\t" "-c <cmd>  Set custom command to produce diff\n"
-	    "\t" "-g <hash> Check output from git hash\n"
-	    "\t" "-s <rev>  Check output from svn revision\n"
-	    "\t" "-t <tool> Launch external diff tool\n"
+	    "\t"
+	    "[-s <svnrevision> ] [ -t <tool> ] [ -c <command> ]\n"
+	    "\t"
+	    "-v        Increase verbosity\n"
+	    "\t"
+	    "-d        Check output from git diff\n"
+	    "\t"
+	    "-D        Check output from svn diff\n"
+	    "\t"
+	    "-c <cmd>  Set custom command to produce diff\n"
+	    "\t"
+	    "-g <hash> Check output from git hash\n"
+	    "\t"
+	    "-s <rev>  Check output from svn revision\n"
+	    "\t"
+	    "-t <tool> Launch external diff tool\n"
 	    "\n"
 	    "Examples:\n"
-	    "\t" "indent_wrapper -D\n"
-	    "\t" "indent_wrapper -D -t meld\n"
-	    "\t" "indent_wrapper -D -t \"diff -u\"\n");
+	    "\t"
+	    "indent_wrapper -D\n"
+	    "\t"
+	    "indent_wrapper -D -t meld\n"
+	    "\t"
+	    "indent_wrapper -D -t \"diff -u\"\n");
 	exit(EX_SOFTWARE);
 }
 
@@ -401,16 +417,20 @@ main(int argc, char **argv)
 			opt_diff_tool = optarg;
 			break;
 		case 'g':
-			snprintf(cmdbuf, sizeof(cmdbuf), "git show -U1000000 %s", optarg);
+			snprintf(cmdbuf, sizeof(cmdbuf),
+			    "git show -U1000000 %s", optarg);
 			break;
 		case 'd':
 			snprintf(cmdbuf, sizeof(cmdbuf), "git diff -U1000000");
 			break;
 		case 'D':
-			snprintf(cmdbuf, sizeof(cmdbuf), "svn diff --diff-cmd=diff -x -U1000000");
+			snprintf(cmdbuf, sizeof(cmdbuf),
+			    "svn diff --diff-cmd=diff -x -U1000000");
 			break;
 		case 's':
-			snprintf(cmdbuf, sizeof(cmdbuf), "svn diff --diff-cmd=diff -x -U1000000 -r %s", optarg);
+			snprintf(cmdbuf, sizeof(cmdbuf),
+			    "svn diff --diff-cmd=diff -x -U1000000 -r %s",
+			    optarg);
 			break;
 		case 'c':
 			snprintf(cmdbuf, sizeof(cmdbuf), "%s", optarg);
@@ -448,7 +468,8 @@ main(int argc, char **argv)
 				p1->mask[y1] = BLOCK_ADD >> 8;
 				p1->data[y1++] = ch;
 				if (y1 == BLOCK_SIZE) {
-					TAILQ_INSERT_TAIL(&diff_a_head, p1, entry);
+					TAILQ_INSERT_TAIL(&diff_a_head, p1,
+					    entry);
 					p1 = alloc_block();
 					y1 = 0;
 				}
@@ -467,7 +488,8 @@ main(int argc, char **argv)
 				ch = peek_block(&diff_head, x);
 				p2->data[y2++] = ch;
 				if (y2 == BLOCK_SIZE) {
-					TAILQ_INSERT_TAIL(&diff_b_head, p2, entry);
+					TAILQ_INSERT_TAIL(&diff_b_head, p2,
+					    entry);
 					p2 = alloc_block();
 					y2 = 0;
 				}
@@ -482,13 +504,15 @@ main(int argc, char **argv)
 				ch = peek_block(&diff_head, x);
 				p1->data[y1++] = ch;
 				if (y1 == BLOCK_SIZE) {
-					TAILQ_INSERT_TAIL(&diff_a_head, p1, entry);
+					TAILQ_INSERT_TAIL(&diff_a_head, p1,
+					    entry);
 					p1 = alloc_block();
 					y1 = 0;
 				}
 				p2->data[y2++] = ch;
 				if (y2 == BLOCK_SIZE) {
-					TAILQ_INSERT_TAIL(&diff_b_head, p2, entry);
+					TAILQ_INSERT_TAIL(&diff_b_head, p2,
+					    entry);
 					p2 = alloc_block();
 					y2 = 0;
 				}
@@ -496,13 +520,14 @@ main(int argc, char **argv)
 					break;
 			}
 			break;
-	parse_filename:
+		parse_filename:
 			for (x += 3; x != size; x++) {
 				ch = peek_block(&diff_head, x);
 				chn = peek_block(&diff_head, x + 1);
 				if ((ch & 0xFF) == '.') {
 					/* only accept .c and .h files */
-					do_parse = ((chn & 0xFF) == 'c' || (chn & 0xFF) == 'h');
+					do_parse = ((chn & 0xFF) == 'c' ||
+					    (chn & 0xFF) == 'h');
 				}
 				if ((ch & 0xFF) == '\n')
 					break;
@@ -530,7 +555,9 @@ main(int argc, char **argv)
 		ch = peek_block(&diff_a_head, x) & 0xFF;
 		if (!(ch & 0x80) && ch != '\t' && ch != '\r' && ch != '\n' &&
 		    ch != ' ' && !isprint(ch))
-			errx(EX_SOFTWARE, "Non printable characters are not allowed: '%c'", ch);
+			errx(EX_SOFTWARE,
+			    "Non printable characters are not allowed: '%c'",
+			    ch);
 		else if (ch & 0x80) {
 			set_block(&diff_a_head, x, ch | BLOCK_MASK);
 		}
@@ -556,8 +583,10 @@ main(int argc, char **argv)
 				ch = peek_block(&diff_a_head, x);
 				chn = peek_block(&diff_a_head, x + 1);
 				if ((ch & 0xFF) == '*' && (chn & 0xFF) == '/') {
-					set_block(&diff_a_head, x, ch | BLOCK_MASK);
-					set_block(&diff_a_head, x + 1, chn | BLOCK_MASK);
+					set_block(&diff_a_head, x,
+					    ch | BLOCK_MASK);
+					set_block(&diff_a_head, x + 1,
+					    chn | BLOCK_MASK);
 					x++;
 					break;
 				}
@@ -593,7 +622,8 @@ main(int argc, char **argv)
 			if (inside_string == 0) {
 				inside_string = (ch & 0xFF);
 			} else {
-				if (escape_char == 0 && inside_string == (ch & 0xFF))
+				if (escape_char == 0 &&
+				    inside_string == (ch & 0xFF))
 					inside_string = 0;
 			}
 			escape_char = 0;
@@ -610,8 +640,7 @@ main(int argc, char **argv)
 	/* fourth pass - identify function blocks */
 	if (opt_verbose > 0) {
 		chn = peek_block(&diff_a_head, x);
-		printf("L%02d%c|", recurse,
-		    (chn & BLOCK_ADD) ? '+' : ' ');
+		printf("L%02d%c|", recurse, (chn & BLOCK_ADD) ? '+' : ' ');
 	}
 	for (x = 0; x < size; x++) {
 		ch = peek_block(&diff_a_head, x);
@@ -679,7 +708,8 @@ main(int argc, char **argv)
 					break;
 				p2->data[y2++] = ch & 0xFF;
 				if (y2 == BLOCK_SIZE) {
-					TAILQ_INSERT_TAIL(&indent_in_head, p2, entry);
+					TAILQ_INSERT_TAIL(&indent_in_head, p2,
+					    entry);
 					p2 = alloc_block();
 					y2 = 0;
 				}
@@ -727,10 +757,12 @@ main(int argc, char **argv)
 			    "-e 's/^#define /#define\t/g'");
 
 			if (opt_diff_tool != NULL) {
-				if (diff_tool(&indent_in_head, &indent_out_head))
+				if (diff_tool(&indent_in_head,
+					&indent_out_head))
 					retval = 1;
 			} else {
-				if (diff_block(&indent_in_head, &indent_out_head))
+				if (diff_block(&indent_in_head,
+					&indent_out_head))
 					retval = 1;
 			}
 			free_block(&indent_in_head);

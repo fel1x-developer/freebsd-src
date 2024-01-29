@@ -30,9 +30,9 @@
  */
 
 #ifndef _GEN_PRIVATE_H_
-#define	_GEN_PRIVATE_H_
+#define _GEN_PRIVATE_H_
 
-struct _telldir;		/* see telldir.h */
+struct _telldir; /* see telldir.h */
 struct pthread_mutex;
 
 /*
@@ -42,23 +42,23 @@ struct pthread_mutex;
  * remain unchanged to guarantee backward compatibility.
  */
 struct _dirdesc {
-	int	dd_fd;		/* file descriptor associated with directory */
-	long	dd_loc;		/* offset in current buffer */
-	long	dd_size;	/* amount of data returned by getdirentries */
-	char	*dd_buf;	/* data buffer */
-	int	dd_len;		/* size of data buffer */
-	off_t	dd_seek;	/* magic cookie returned by getdirentries */
-	int	dd_flags;	/* flags for readdir */
+	int dd_fd;     /* file descriptor associated with directory */
+	long dd_loc;   /* offset in current buffer */
+	long dd_size;  /* amount of data returned by getdirentries */
+	char *dd_buf;  /* data buffer */
+	int dd_len;    /* size of data buffer */
+	off_t dd_seek; /* magic cookie returned by getdirentries */
+	int dd_flags;  /* flags for readdir */
 #ifndef IN_RTLD
-	struct pthread_mutex	*dd_lock;	/* lock */
+	struct pthread_mutex *dd_lock; /* lock */
 #else
-	struct _donotuse	*dd_lock; /* unused in rtld, keep same layout */
+	struct _donotuse *dd_lock; /* unused in rtld, keep same layout */
 #endif
-	struct _telldir *dd_td;	/* telldir position recording */
-	void	*dd_compat_de;	/* compat dirent */
+	struct _telldir *dd_td; /* telldir position recording */
+	void *dd_compat_de;	/* compat dirent */
 };
 
-#define	_dirfd(dirp)	((dirp)->dd_fd)
+#define _dirfd(dirp) ((dirp)->dd_fd)
 
 struct dirent;
 int __readdir_r(DIR *dirp, struct dirent *entry, struct dirent **result);

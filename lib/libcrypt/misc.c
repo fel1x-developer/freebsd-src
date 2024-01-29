@@ -33,14 +33,14 @@
 
 #include "crypt.h"
 
-static char itoa64[] =		/* 0 ... 63 => ascii - 64 */
-	"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+static char itoa64[] = /* 0 ... 63 => ascii - 64 */
+    "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 void
 _crypt_to64(char *s, u_long v, int n)
 {
 	while (--n >= 0) {
-		*s++ = itoa64[v&0x3f];
+		*s++ = itoa64[v & 0x3f];
 		v >>= 6;
 	}
 }
@@ -53,7 +53,7 @@ b64_from_24bit(uint8_t B2, uint8_t B1, uint8_t B0, int n, char **cp)
 
 	w = (B2 << 16) | (B1 << 8) | B0;
 	for (i = 0; i < n; i++) {
-		**cp = itoa64[w&0x3f];
+		**cp = itoa64[w & 0x3f];
 		(*cp)++;
 		w >>= 6;
 	}

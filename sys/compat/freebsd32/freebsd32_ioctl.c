@@ -30,11 +30,12 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/capsicum.h>
 #include <sys/cdio.h>
 #include <sys/fcntl.h>
-#include <sys/filio.h>
 #include <sys/file.h>
+#include <sys/filio.h>
 #include <sys/ioccom.h>
 #include <sys/malloc.h>
 #include <sys/memrange.h>
@@ -44,7 +45,6 @@
 #include <sys/syscallsubr.h>
 #include <sys/sysctl.h>
 #include <sys/sysproto.h>
-#include <sys/systm.h>
 #include <sys/uio.h>
 
 #include <compat/freebsd32/freebsd32.h>
@@ -55,8 +55,8 @@
 CTASSERT(sizeof(struct mem_range_op32) == 12);
 
 static int
-freebsd32_ioctl_memrange(struct thread *td,
-    struct freebsd32_ioctl_args *uap, struct file *fp)
+freebsd32_ioctl_memrange(struct thread *td, struct freebsd32_ioctl_args *uap,
+    struct file *fp)
 {
 	struct mem_range_op mro;
 	struct mem_range_op32 mro32;
@@ -75,7 +75,7 @@ freebsd32_ioctl_memrange(struct thread *td,
 	if ((error = fo_ioctl(fp, com, (caddr_t)&mro, td->td_ucred, td)) != 0)
 		return (error);
 
-	if ( (com & IOC_OUT) ) {
+	if ((com & IOC_OUT)) {
 		CP(mro, mro32, mo_arg[0]);
 		CP(mro, mro32, mo_arg[1]);
 
@@ -86,8 +86,8 @@ freebsd32_ioctl_memrange(struct thread *td,
 }
 
 static int
-freebsd32_ioctl_barmmap(struct thread *td,
-    struct freebsd32_ioctl_args *uap, struct file *fp)
+freebsd32_ioctl_barmmap(struct thread *td, struct freebsd32_ioctl_args *uap,
+    struct file *fp)
 {
 	struct pci_bar_mmap32 pbm32;
 	struct pci_bar_mmap pbm;
@@ -120,8 +120,8 @@ freebsd32_ioctl_barmmap(struct thread *td,
 }
 
 static int
-freebsd32_ioctl_sg(struct thread *td,
-    struct freebsd32_ioctl_args *uap, struct file *fp)
+freebsd32_ioctl_sg(struct thread *td, struct freebsd32_ioctl_args *uap,
+    struct file *fp)
 {
 	struct sg_io_hdr io;
 	struct sg_io_hdr32 io32;
@@ -191,7 +191,7 @@ freebsd32_ioctl(struct thread *td, struct freebsd32_ioctl_args *uap)
 		int	fd;
 		u_long	com;
 		caddr_t	data;
-	}*/ ;
+	}*/;
 	struct file *fp;
 	cap_rights_t rights;
 	int error;
@@ -205,7 +205,7 @@ freebsd32_ioctl(struct thread *td, struct freebsd32_ioctl_args *uap)
 	}
 
 	switch (uap->com) {
-	case MEMRANGE_GET32:	/* FALLTHROUGH */
+	case MEMRANGE_GET32: /* FALLTHROUGH */
 	case MEMRANGE_SET32:
 		error = freebsd32_ioctl_memrange(td, uap, fp);
 		break;

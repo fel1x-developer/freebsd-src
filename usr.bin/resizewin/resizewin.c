@@ -30,6 +30,7 @@
 #include <sys/cdefs.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
+
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -39,13 +40,13 @@
 #include <termios.h>
 #include <unistd.h>
 
-/* screen doesn't support ESC[18t (return terminal size) so do it the hard way */
-static const char query[] =
-    "\0337"		/* Save cursor position */
-    "\033[r"		/* Scroll whole screen */
-    "\033[999;999H"	/* Move cursor */
-    "\033[6n"		/* Get cursor position */
-    "\0338";		/* Restore cursor position */
+/* screen doesn't support ESC[18t (return terminal size) so do it the hard way
+ */
+static const char query[] = "\0337"	    /* Save cursor position */
+			    "\033[r"	    /* Scroll whole screen */
+			    "\033[999;999H" /* Move cursor */
+			    "\033[6n"	    /* Get cursor position */
+			    "\0338";	    /* Restore cursor position */
 
 static void
 usage(void)
@@ -149,7 +150,7 @@ main(int argc, char **argv)
 	/* Finally, what we want */
 	if (ioctl(fd, TIOCSWINSZ, &w) == -1)
 		error = 1;
- out:
+out:
 	/* Restore echo */
 	tcsetattr(fd, TCSANOW, &old);
 

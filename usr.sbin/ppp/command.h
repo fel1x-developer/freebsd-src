@@ -34,24 +34,24 @@ struct datalink;
 struct prompt;
 
 struct cmdargs {
-  struct cmdtab const *cmdtab;		/* The entire command table */
-  struct cmdtab const *cmd;		/* This command entry */
-  int argc;				/* Number of arguments (excluding cmd */
-  int argn;				/* Argument to start processing from */
-  char const *const *argv;		/* Arguments */
-  struct bundle *bundle;		/* Our bundle */
-  struct datalink *cx;			/* Our context */
-  struct prompt *prompt;		/* Who executed us */
+	struct cmdtab const *cmdtab; /* The entire command table */
+	struct cmdtab const *cmd;    /* This command entry */
+	int argc;		     /* Number of arguments (excluding cmd */
+	int argn;		     /* Argument to start processing from */
+	char const *const *argv;     /* Arguments */
+	struct bundle *bundle;	     /* Our bundle */
+	struct datalink *cx;	     /* Our context */
+	struct prompt *prompt;	     /* Who executed us */
 };
 
 struct cmdtab {
-  const char *name;
-  const char *alias;
-  int (*func) (struct cmdargs const *);
-  u_char lauth;
-  const char *helpmes;
-  const char *syntax;
-  const void *args;
+	const char *name;
+	const char *alias;
+	int (*func)(struct cmdargs const *);
+	u_char lauth;
+	const char *helpmes;
+	const char *syntax;
+	const void *args;
 };
 
 #define NEG_ACCEPTED (1)
@@ -62,14 +62,13 @@ struct cmdtab {
 extern const char Version[];
 
 extern void command_Expand(char **, int, char const *const *, struct bundle *,
-                           int, pid_t);
+    int, pid_t);
 extern void command_Free(int, char **);
 extern int command_Expand_Interpret(char *, int, char *vector[MAXARGS], int);
 extern int command_Interpret(char *, int, char *vector[MAXARGS]);
 extern void command_Run(struct bundle *, int, char const *const *,
-                        struct prompt *, const char *, struct datalink *);
+    struct prompt *, const char *, struct datalink *);
 extern int command_Decode(struct bundle *, char *, int, struct prompt *,
-                           const char *);
+    const char *);
 extern struct link *command_ChooseLink(struct cmdargs const *);
 extern const char *command_ShowNegval(unsigned);
-

@@ -30,10 +30,10 @@
 #include <sys/types.h>
 #include <sys/cpuset.h>
 
+#include <ctype.h>
+#include <libutil.h>
 #include <stdlib.h>
 #include <string.h>
-#include <libutil.h>
-#include <ctype.h>
 
 int
 cpuset_parselist(const char *list, cpuset_t *mask)
@@ -45,7 +45,7 @@ cpuset_parselist(const char *list, cpuset_t *mask)
 
 	if (strcasecmp(list, "all") == 0) {
 		if (cpuset_getaffinity(CPU_LEVEL_ROOT, CPU_WHICH_PID, -1,
-		    sizeof(*mask), mask) != 0)
+			sizeof(*mask), mask) != 0)
 			return (CPUSET_PARSE_GETAFFINITY);
 		return (CPUSET_PARSE_OK);
 	}
@@ -99,13 +99,13 @@ cpuset_parselist(const char *list, cpuset_t *mask)
 		l++;
 	}
 	switch (state) {
-		case NONE:
-			break;
-		case NUM:
-			CPU_SET(curnum, mask);
-			break;
-		case DASH:
-			goto parserr;
+	case NONE:
+		break;
+	case NUM:
+		CPU_SET(curnum, mask);
+		break;
+	case DASH:
+		goto parserr;
 	}
 	return (CPUSET_PARSE_OK);
 parserr:

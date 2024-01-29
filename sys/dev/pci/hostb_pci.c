@@ -30,8 +30,8 @@
 #include <sys/kernel.h>
 #include <sys/module.h>
 
-#include <dev/pci/pcivar.h>
 #include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 /*
  * Provide a device to "eat" the host->pci bridge devices that show up
@@ -123,8 +123,8 @@ pci_hostb_read_config(device_t dev, device_t child, int reg, int width)
 }
 
 static void
-pci_hostb_write_config(device_t dev, device_t child, int reg, 
-    uint32_t val, int width)
+pci_hostb_write_config(device_t dev, device_t child, int reg, uint32_t val,
+    int width)
 {
 
 	pci_write_config(dev, reg, val, width);
@@ -194,24 +194,22 @@ pci_hostb_assign_interrupt(device_t dev, device_t child)
 }
 
 static int
-pci_hostb_find_cap(device_t dev, device_t child, int capability,
-    int *capreg)
+pci_hostb_find_cap(device_t dev, device_t child, int capability, int *capreg)
 {
 
 	return (pci_find_cap(dev, capability, capreg));
 }
 
 static int
-pci_hostb_find_next_cap(device_t dev, device_t child, int capability,
-    int start, int *capreg)
+pci_hostb_find_next_cap(device_t dev, device_t child, int capability, int start,
+    int *capreg)
 {
 
 	return (pci_find_next_cap(dev, capability, start, capreg));
 }
 
 static int
-pci_hostb_find_extcap(device_t dev, device_t child, int capability,
-    int *capreg)
+pci_hostb_find_extcap(device_t dev, device_t child, int capability, int *capreg)
 {
 
 	return (pci_find_extcap(dev, capability, capreg));
@@ -226,8 +224,7 @@ pci_hostb_find_next_extcap(device_t dev, device_t child, int capability,
 }
 
 static int
-pci_hostb_find_htcap(device_t dev, device_t child, int capability,
-    int *capreg)
+pci_hostb_find_htcap(device_t dev, device_t child, int capability, int *capreg)
 {
 
 	return (pci_find_htcap(dev, capability, capreg));
@@ -243,40 +240,39 @@ pci_hostb_find_next_htcap(device_t dev, device_t child, int capability,
 
 static device_method_t pci_hostb_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		pci_hostb_probe),
-	DEVMETHOD(device_attach,	pci_hostb_attach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	bus_generic_resume),
+	DEVMETHOD(device_probe, pci_hostb_probe),
+	DEVMETHOD(device_attach, pci_hostb_attach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
 
 	/* Bus interface */
-	DEVMETHOD(bus_read_ivar,	pci_hostb_read_ivar),
-	DEVMETHOD(bus_write_ivar,	pci_hostb_write_ivar),
-	DEVMETHOD(bus_setup_intr,	bus_generic_setup_intr),
-	DEVMETHOD(bus_teardown_intr,	bus_generic_teardown_intr),
+	DEVMETHOD(bus_read_ivar, pci_hostb_read_ivar),
+	DEVMETHOD(bus_write_ivar, pci_hostb_write_ivar),
+	DEVMETHOD(bus_setup_intr, bus_generic_setup_intr),
+	DEVMETHOD(bus_teardown_intr, bus_generic_teardown_intr),
 
-	DEVMETHOD(bus_alloc_resource,	pci_hostb_alloc_resource),
-	DEVMETHOD(bus_release_resource,	pci_hostb_release_resource),
+	DEVMETHOD(bus_alloc_resource, pci_hostb_alloc_resource),
+	DEVMETHOD(bus_release_resource, pci_hostb_release_resource),
 	DEVMETHOD(bus_activate_resource, bus_generic_activate_resource),
 	DEVMETHOD(bus_deactivate_resource, bus_generic_deactivate_resource),
 
 	/* PCI interface */
-	DEVMETHOD(pci_read_config,	pci_hostb_read_config),
-	DEVMETHOD(pci_write_config,	pci_hostb_write_config),
-	DEVMETHOD(pci_enable_busmaster,	pci_hostb_enable_busmaster),
+	DEVMETHOD(pci_read_config, pci_hostb_read_config),
+	DEVMETHOD(pci_write_config, pci_hostb_write_config),
+	DEVMETHOD(pci_enable_busmaster, pci_hostb_enable_busmaster),
 	DEVMETHOD(pci_disable_busmaster, pci_hostb_disable_busmaster),
-	DEVMETHOD(pci_enable_io,	pci_hostb_enable_io),
-	DEVMETHOD(pci_disable_io,	pci_hostb_disable_io),
-	DEVMETHOD(pci_get_powerstate,	pci_hostb_get_powerstate),
-	DEVMETHOD(pci_set_powerstate,	pci_hostb_set_powerstate),
-	DEVMETHOD(pci_assign_interrupt,	pci_hostb_assign_interrupt),
-	DEVMETHOD(pci_find_cap,		pci_hostb_find_cap),
-	DEVMETHOD(pci_find_next_cap,	pci_hostb_find_next_cap),
-	DEVMETHOD(pci_find_extcap,	pci_hostb_find_extcap),
-	DEVMETHOD(pci_find_next_extcap,	pci_hostb_find_next_extcap),
-	DEVMETHOD(pci_find_htcap,	pci_hostb_find_htcap),
-	DEVMETHOD(pci_find_next_htcap,	pci_hostb_find_next_htcap),
-	{ 0, 0 }
+	DEVMETHOD(pci_enable_io, pci_hostb_enable_io),
+	DEVMETHOD(pci_disable_io, pci_hostb_disable_io),
+	DEVMETHOD(pci_get_powerstate, pci_hostb_get_powerstate),
+	DEVMETHOD(pci_set_powerstate, pci_hostb_set_powerstate),
+	DEVMETHOD(pci_assign_interrupt, pci_hostb_assign_interrupt),
+	DEVMETHOD(pci_find_cap, pci_hostb_find_cap),
+	DEVMETHOD(pci_find_next_cap, pci_hostb_find_next_cap),
+	DEVMETHOD(pci_find_extcap, pci_hostb_find_extcap),
+	DEVMETHOD(pci_find_next_extcap, pci_hostb_find_next_extcap),
+	DEVMETHOD(pci_find_htcap, pci_hostb_find_htcap),
+	DEVMETHOD(pci_find_next_htcap, pci_hostb_find_next_htcap), { 0, 0 }
 };
 
 static driver_t pci_hostb_driver = {

@@ -27,43 +27,41 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_bhyve_snapshot.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/kernel.h>
-#include <sys/malloc.h>
 #include <sys/systm.h>
-
-#include <dev/acpica/acpi_hpet.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mutex.h>
 
 #include <machine/vmm.h>
 #include <machine/vmm_dev.h>
 #include <machine/vmm_snapshot.h>
 
-#include "vmm_lapic.h"
-#include "vatpic.h"
-#include "vioapic.h"
-#include "vhpet.h"
+#include <dev/acpica/acpi_hpet.h>
 
+#include "vatpic.h"
+#include "vhpet.h"
+#include "vioapic.h"
 #include "vmm_ktr.h"
+#include "vmm_lapic.h"
 
 static MALLOC_DEFINE(M_VHPET, "vhpet", "bhyve virtual hpet");
 
-#define	HPET_FREQ	16777216		/* 16.7 (2^24) Mhz */
-#define	FS_PER_S	1000000000000000ul
+#define HPET_FREQ 16777216 /* 16.7 (2^24) Mhz */
+#define FS_PER_S 1000000000000000ul
 
 /* Timer N Configuration and Capabilities Register */
-#define	HPET_TCAP_RO_MASK	(HPET_TCAP_INT_ROUTE 	|		\
-				 HPET_TCAP_FSB_INT_DEL	|		\
-				 HPET_TCAP_SIZE		|		\
-				 HPET_TCAP_PER_INT)
+#define HPET_TCAP_RO_MASK                                               \
+	(HPET_TCAP_INT_ROUTE | HPET_TCAP_FSB_INT_DEL | HPET_TCAP_SIZE | \
+	    HPET_TCAP_PER_INT)
 /*
  * HPET requires at least 3 timers and up to 32 timers per block.
  */
-#define	VHPET_NUM_TIMERS	8
+#define VHPET_NUM_TIMERS 8
 CTASSERT(VHPET_NUM_TIMERS >= 3 && VHPET_NUM_TIMERS <= 32);
 
 struct vhpet_callout_arg {
@@ -72,28 +70,28 @@ struct vhpet_callout_arg {
 };
 
 struct vhpet {
-	struct vm	*vm;
-	struct mtx	mtx;
-	sbintime_t	freq_sbt;
+	struct vm *vm;
+	struct mtx mtx;
+	sbintime_t freq_sbt;
 
-	uint64_t	config;		/* Configuration */
-	uint64_t	isr;		/* Interrupt Status */
-	uint32_t	countbase;	/* HPET counter base value */
-	sbintime_t	countbase_sbt;	/* uptime corresponding to base value */
+	uint64_t config;	  /* Configuration */
+	uint64_t isr;		  /* Interrupt Status */
+	uint32_t countbase;	  /* HPET counter base value */
+	sbintime_t countbase_sbt; /* uptime corresponding to base value */
 
 	struct {
-		uint64_t	cap_config;	/* Configuration */
-		uint64_t	msireg;		/* FSB interrupt routing */
-		uint32_t	compval;	/* Comparator */
-		uint32_t	comprate;
-		struct callout	callout;
-		sbintime_t	callout_sbt;	/* time when counter==compval */
+		uint64_t cap_config; /* Configuration */
+		uint64_t msireg;     /* FSB interrupt routing */
+		uint32_t compval;    /* Comparator */
+		uint32_t comprate;
+		struct callout callout;
+		sbintime_t callout_sbt; /* time when counter==compval */
 		struct vhpet_callout_arg arg;
 	} timer[VHPET_NUM_TIMERS];
 };
 
-#define	VHPET_LOCK(vhp)		mtx_lock(&((vhp)->mtx))
-#define	VHPET_UNLOCK(vhp)	mtx_unlock(&((vhp)->mtx))
+#define VHPET_LOCK(vhp) mtx_lock(&((vhp)->mtx))
+#define VHPET_UNLOCK(vhp) mtx_unlock(&((vhp)->mtx))
 
 static void vhpet_start_timer(struct vhpet *vhpet, int n, uint32_t counter,
     sbintime_t now);
@@ -103,13 +101,13 @@ vhpet_capabilities(void)
 {
 	uint64_t cap = 0;
 
-	cap |= 0x8086 << 16;			/* vendor id */
-	cap |= (VHPET_NUM_TIMERS - 1) << 8;	/* number of timers */
-	cap |= 1;				/* revision */
-	cap &= ~HPET_CAP_COUNT_SIZE;		/* 32-bit timer */
+	cap |= 0x8086 << 16;		    /* vendor id */
+	cap |= (VHPET_NUM_TIMERS - 1) << 8; /* number of timers */
+	cap |= 1;			    /* revision */
+	cap &= ~HPET_CAP_COUNT_SIZE;	    /* 32-bit timer */
 
 	cap &= 0xffffffff;
-	cap |= (FS_PER_S / HPET_FREQ) << 32;	/* tick period in fs */
+	cap |= (FS_PER_S / HPET_FREQ) << 32; /* tick period in fs */
 
 	return (cap);
 }
@@ -155,8 +153,10 @@ vhpet_counter(struct vhpet *vhpet, sbintime_t *nowptr)
 	if (vhpet_counter_enabled(vhpet)) {
 		now = sbinuptime();
 		delta = now - vhpet->countbase_sbt;
-		KASSERT(delta >= 0, ("vhpet_counter: uptime went backwards: "
-		    "%#lx to %#lx", vhpet->countbase_sbt, now));
+		KASSERT(delta >= 0,
+		    ("vhpet_counter: uptime went backwards: "
+		     "%#lx to %#lx",
+			vhpet->countbase_sbt, now));
 		val += delta / vhpet->freq_sbt;
 		if (nowptr != NULL)
 			*nowptr = now;
@@ -202,8 +202,10 @@ static __inline bool
 vhpet_timer_edge_trig(struct vhpet *vhpet, int n)
 {
 
-	KASSERT(!vhpet_timer_msi_enabled(vhpet, n), ("vhpet_timer_edge_trig: "
-	    "timer %d is using MSI", n));
+	KASSERT(!vhpet_timer_msi_enabled(vhpet, n),
+	    ("vhpet_timer_edge_trig: "
+	     "timer %d is using MSI",
+		n));
 
 	if ((vhpet->timer[n].cap_config & HPET_TCNF_INT_TYPE) == 0)
 		return (true);
@@ -232,7 +234,7 @@ vhpet_timer_interrupt(struct vhpet *vhpet, int n)
 		lapic_intr_msi(vhpet->vm, vhpet->timer[n].msireg >> 32,
 		    vhpet->timer[n].msireg & 0xffffffff);
 		return;
-	}	
+	}
 
 	pin = vhpet_timer_ioapic_pin(vhpet, n);
 	if (pin == 0) {
@@ -293,10 +295,10 @@ vhpet_handler(void *a)
 
 	VHPET_LOCK(vhpet);
 
-	if (callout_pending(callout))		/* callout was reset */
+	if (callout_pending(callout)) /* callout was reset */
 		goto done;
 
-	if (!callout_active(callout))		/* callout was stopped */
+	if (!callout_active(callout)) /* callout was stopped */
 		goto done;
 
 	callout_deactivate(callout);
@@ -327,8 +329,10 @@ vhpet_stop_timer(struct vhpet *vhpet, int n, sbintime_t now)
 	 * the next interrupt has to wait for the counter to wrap around.
 	 */
 	if (vhpet->timer[n].callout_sbt < now) {
-		VM_CTR1(vhpet->vm, "hpet t%d interrupt triggered after "
-		    "stopping timer", n);
+		VM_CTR1(vhpet->vm,
+		    "hpet t%d interrupt triggered after "
+		    "stopping timer",
+		    n);
 		vhpet_timer_interrupt(vhpet, n);
 	}
 }
@@ -426,8 +430,10 @@ vhpet_timer_update_config(struct vhpet *vhpet, int n, uint64_t data,
 	allowed_irqs = vhpet->timer[n].cap_config >> 32;
 	new_pin = vhpet_timer_ioapic_pin(vhpet, n);
 	if (new_pin != 0 && (allowed_irqs & (1 << new_pin)) == 0) {
-		VM_CTR3(vhpet->vm, "hpet t%d configured invalid irq %d, "
-		    "allowed_irqs 0x%08x", n, new_pin, allowed_irqs);
+		VM_CTR3(vhpet->vm,
+		    "hpet t%d configured invalid irq %d, "
+		    "allowed_irqs 0x%08x",
+		    n, new_pin, allowed_irqs);
 		new_pin = 0;
 		vhpet->timer[n].cap_config &= ~HPET_TCNF_INT_ROUTE;
 	}
@@ -445,8 +451,8 @@ vhpet_timer_update_config(struct vhpet *vhpet, int n, uint64_t data,
 	 * not remain asserted forever.
 	 */
 	if (vhpet->isr & (1 << n)) {
-		KASSERT(old_pin != 0, ("timer %d isr asserted to ioapic pin %d",
-		    n, old_pin));
+		KASSERT(old_pin != 0,
+		    ("timer %d isr asserted to ioapic pin %d", n, old_pin));
 		if (!vhpet_timer_interrupt_enabled(vhpet, n))
 			clear_isr = true;
 		else if (vhpet_timer_msi_enabled(vhpet, n))
@@ -459,8 +465,10 @@ vhpet_timer_update_config(struct vhpet *vhpet, int n, uint64_t data,
 			clear_isr = false;
 
 		if (clear_isr) {
-			VM_CTR1(vhpet->vm, "hpet t%d isr cleared due to "
-			    "configuration change", n);
+			VM_CTR1(vhpet->vm,
+			    "hpet t%d isr cleared due to "
+			    "configuration change",
+			    n);
 			vioapic_deassert_irq(vhpet->vm, old_pin);
 			vhpet->isr &= ~(1 << n);
 		}
@@ -494,18 +502,22 @@ vhpet_mmio_write(struct vcpu *vcpu, uint64_t gpa, uint64_t val, int size,
 		if ((offset & 0x4) != 0) {
 			mask <<= 32;
 			data <<= 32;
-		} 
+		}
 		break;
 	default:
-		VM_CTR2(vhpet->vm, "hpet invalid mmio write: "
-		    "offset 0x%08x, size %d", offset, size);
+		VM_CTR2(vhpet->vm,
+		    "hpet invalid mmio write: "
+		    "offset 0x%08x, size %d",
+		    offset, size);
 		goto done;
 	}
 
 	/* Access to the HPET should be naturally aligned to its width */
 	if (offset & (size - 1)) {
-		VM_CTR2(vhpet->vm, "hpet invalid mmio write: "
-		    "offset 0x%08x, size %d", offset, size);
+		VM_CTR2(vhpet->vm,
+		    "hpet invalid mmio write: "
+		    "offset 0x%08x, size %d",
+		    offset, size);
 		goto done;
 	}
 
@@ -582,13 +594,14 @@ vhpet_mmio_write(struct vcpu *vcpu, uint64_t gpa, uint64_t val, int size,
 				update_register(&val64, data, mask);
 				vhpet->timer[i].comprate = val64;
 				if ((vhpet->timer[i].cap_config &
-				    HPET_TCNF_VAL_SET) != 0) {
+					HPET_TCNF_VAL_SET) != 0) {
 					vhpet->timer[i].compval = val64;
 				}
 			} else {
 				KASSERT(vhpet->timer[i].comprate == 0,
 				    ("vhpet one-shot timer %d has invalid "
-				    "rate %u", i, vhpet->timer[i].comprate));
+				     "rate %u",
+					i, vhpet->timer[i].comprate));
 				val64 = vhpet->timer[i].compval;
 				update_register(&val64, data, mask);
 				vhpet->timer[i].compval = val64;
@@ -632,23 +645,27 @@ vhpet_mmio_read(struct vcpu *vcpu, uint64_t gpa, uint64_t *rval, int size,
 
 	/* Accesses to the HPET should be 4 or 8 bytes wide */
 	if (size != 4 && size != 8) {
-		VM_CTR2(vhpet->vm, "hpet invalid mmio read: "
-		    "offset 0x%08x, size %d", offset, size);
+		VM_CTR2(vhpet->vm,
+		    "hpet invalid mmio read: "
+		    "offset 0x%08x, size %d",
+		    offset, size);
 		data = 0;
 		goto done;
 	}
 
 	/* Access to the HPET should be naturally aligned to its width */
 	if (offset & (size - 1)) {
-		VM_CTR2(vhpet->vm, "hpet invalid mmio read: "
-		    "offset 0x%08x, size %d", offset, size);
+		VM_CTR2(vhpet->vm,
+		    "hpet invalid mmio read: "
+		    "offset 0x%08x, size %d",
+		    offset, size);
 		data = 0;
 		goto done;
 	}
 
 	if (offset == HPET_CAPABILITIES || offset == HPET_CAPABILITIES + 4) {
 		data = vhpet_capabilities();
-		goto done;	
+		goto done;
 	}
 
 	if (offset == HPET_CONFIG || offset == HPET_CONFIG + 4) {
@@ -709,7 +726,7 @@ vhpet_init(struct vm *vm)
 	struct bintime bt;
 
 	vhpet = malloc(sizeof(struct vhpet), M_VHPET, M_WAITOK | M_ZERO);
-        vhpet->vm = vm;
+	vhpet->vm = vm;
 	mtx_init(&vhpet->mtx, "vhpet lock", NULL, MTX_DEF);
 
 	FREQ2BT(HPET_FREQ, &bt);
@@ -717,9 +734,9 @@ vhpet_init(struct vm *vm)
 
 	pincount = vioapic_pincount(vm);
 	if (pincount >= 32)
-		allowed_irqs = 0xff000000;	/* irqs 24-31 */
+		allowed_irqs = 0xff000000; /* irqs 24-31 */
 	else if (pincount >= 20)
-		allowed_irqs = 0xf << (pincount - 4);	/* 4 upper irqs */
+		allowed_irqs = 0xf << (pincount - 4); /* 4 upper irqs */
 	else
 		allowed_irqs = 0;
 
@@ -785,13 +802,14 @@ vhpet_snapshot(struct vhpet *vhpet, struct vm_snapshot_meta *meta)
 		vhpet->countbase = countbase;
 
 	for (i = 0; i < nitems(vhpet->timer); i++) {
-		SNAPSHOT_VAR_OR_LEAVE(vhpet->timer[i].cap_config,
-				      meta, ret, done);
+		SNAPSHOT_VAR_OR_LEAVE(vhpet->timer[i].cap_config, meta, ret,
+		    done);
 		SNAPSHOT_VAR_OR_LEAVE(vhpet->timer[i].msireg, meta, ret, done);
 		SNAPSHOT_VAR_OR_LEAVE(vhpet->timer[i].compval, meta, ret, done);
-		SNAPSHOT_VAR_OR_LEAVE(vhpet->timer[i].comprate, meta, ret, done);
-		SNAPSHOT_VAR_OR_LEAVE(vhpet->timer[i].callout_sbt,
-				      meta, ret, done);
+		SNAPSHOT_VAR_OR_LEAVE(vhpet->timer[i].comprate, meta, ret,
+		    done);
+		SNAPSHOT_VAR_OR_LEAVE(vhpet->timer[i].callout_sbt, meta, ret,
+		    done);
 	}
 
 done:

@@ -27,8 +27,9 @@
  * SUCH DAMAGE.
  */
 
-#define FILEMON_SET_FD		_IOWR('S', 1, int)
-#define FILEMON_SET_PID		_IOWR('S', 2, pid_t)
+#define FILEMON_SET_FD _IOWR('S', 1, int)
+#define FILEMON_SET_PID _IOWR('S', 2, pid_t)
 
-#define FILEMON_VERSION		5	/* output format
-					   (bump when adding record types) */
+#define FILEMON_VERSION    \
+	5 /* output format \
+	     (bump when adding record types) */

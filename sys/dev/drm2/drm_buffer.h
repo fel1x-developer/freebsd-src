@@ -44,25 +44,27 @@ struct drm_buffer {
 	char *data[];
 };
 
-
 /**
  * Return the index of page that buffer is currently pointing at.
  */
-static inline int drm_buffer_page(struct drm_buffer *buf)
+static inline int
+drm_buffer_page(struct drm_buffer *buf)
 {
 	return buf->iterator / PAGE_SIZE;
 }
 /**
  * Return the index of the current byte in the page
  */
-static inline int drm_buffer_index(struct drm_buffer *buf)
+static inline int
+drm_buffer_index(struct drm_buffer *buf)
 {
 	return buf->iterator & (PAGE_SIZE - 1);
 }
 /**
  * Return number of bytes that is left to process
  */
-static inline int drm_buffer_unprocessed(struct drm_buffer *buf)
+static inline int
+drm_buffer_unprocessed(struct drm_buffer *buf)
 {
 	return buf->size - buf->iterator;
 }
@@ -70,7 +72,8 @@ static inline int drm_buffer_unprocessed(struct drm_buffer *buf)
 /**
  * Advance the buffer iterator number of bytes that is given.
  */
-static inline void drm_buffer_advance(struct drm_buffer *buf, int bytes)
+static inline void
+drm_buffer_advance(struct drm_buffer *buf, int bytes)
 {
 	buf->iterator += bytes;
 }
@@ -91,7 +94,7 @@ extern int drm_buffer_alloc(struct drm_buffer **buf, int size);
  *   size: The Number of bytes to copy.
  */
 extern int drm_buffer_copy_from_user(struct drm_buffer *buf,
-		void __user *user_data, int size);
+    void __user *user_data, int size);
 
 /**
  * Free the drm buffer object
@@ -110,8 +113,8 @@ extern void drm_buffer_free(struct drm_buffer *buf);
  *   objsize: The size of the objet in bytes.
  *   stack_obj: A pointer to a memory location where object can be copied.
  */
-extern void *drm_buffer_read_object(struct drm_buffer *buf,
-		int objsize, void *stack_obj);
+extern void *drm_buffer_read_object(struct drm_buffer *buf, int objsize,
+    void *stack_obj);
 
 /**
  * Returns the pointer to the dword which is offset number of elements from the
@@ -125,8 +128,8 @@ extern void *drm_buffer_read_object(struct drm_buffer *buf,
  *
  *   offset: The index of the dword relative to the internat iterator.
  */
-static inline void *drm_buffer_pointer_to_dword(struct drm_buffer *buffer,
-		int offset)
+static inline void *
+drm_buffer_pointer_to_dword(struct drm_buffer *buffer, int offset)
 {
 	int iter = buffer->iterator + offset * 4;
 	return &buffer->data[iter / PAGE_SIZE][iter & (PAGE_SIZE - 1)];
@@ -139,8 +142,8 @@ static inline void *drm_buffer_pointer_to_dword(struct drm_buffer *buffer,
  *
  *   offset: The index of the byte relative to the internat iterator.
  */
-static inline void *drm_buffer_pointer_to_byte(struct drm_buffer *buffer,
-		int offset)
+static inline void *
+drm_buffer_pointer_to_byte(struct drm_buffer *buffer, int offset)
 {
 	int iter = buffer->iterator + offset;
 	return &buffer->data[iter / PAGE_SIZE][iter & (PAGE_SIZE - 1)];

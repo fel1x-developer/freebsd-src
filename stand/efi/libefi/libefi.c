@@ -25,15 +25,16 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <efi.h>
 #include <eficonsctl.h>
 #include <efilib.h>
 #include <stand.h>
 
-EFI_HANDLE		IH;
-EFI_SYSTEM_TABLE	*ST;
-EFI_BOOT_SERVICES	*BS;
-EFI_RUNTIME_SERVICES	*RS;
+EFI_HANDLE IH;
+EFI_SYSTEM_TABLE *ST;
+EFI_BOOT_SERVICES *BS;
+EFI_RUNTIME_SERVICES *RS;
 
 void *
 efi_get_table(EFI_GUID *tbl)

@@ -44,60 +44,60 @@
  * be called from within the config thread function !
  */
 
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
+
 #include "usbdevs.h"
 
-#define	USB_DEBUG_VAR usb_debug
+#define USB_DEBUG_VAR usb_debug
+#include <dev/usb/serial/usb_serial.h>
 #include <dev/usb/usb_debug.h>
 #include <dev/usb/usb_process.h>
 
-#include <dev/usb/serial/usb_serial.h>
-
 /* The UMCT advertises the standard 8250 UART registers */
-#define	UMCT_GET_MSR		2	/* Get Modem Status Register */
-#define	UMCT_GET_MSR_SIZE	1
-#define	UMCT_GET_LCR		6	/* Get Line Control Register */
-#define	UMCT_GET_LCR_SIZE	1
-#define	UMCT_SET_BAUD		5	/* Set the Baud Rate Divisor */
-#define	UMCT_SET_BAUD_SIZE	4
-#define	UMCT_SET_LCR		7	/* Set Line Control Register */
-#define	UMCT_SET_LCR_SIZE	1
-#define	UMCT_SET_MCR		10	/* Set Modem Control Register */
-#define	UMCT_SET_MCR_SIZE	1
+#define UMCT_GET_MSR 2 /* Get Modem Status Register */
+#define UMCT_GET_MSR_SIZE 1
+#define UMCT_GET_LCR 6 /* Get Line Control Register */
+#define UMCT_GET_LCR_SIZE 1
+#define UMCT_SET_BAUD 5 /* Set the Baud Rate Divisor */
+#define UMCT_SET_BAUD_SIZE 4
+#define UMCT_SET_LCR 7 /* Set Line Control Register */
+#define UMCT_SET_LCR_SIZE 1
+#define UMCT_SET_MCR 10 /* Set Modem Control Register */
+#define UMCT_SET_MCR_SIZE 1
 
-#define	UMCT_MSR_CTS_CHG	0x01
-#define	UMCT_MSR_DSR_CHG	0x02
-#define	UMCT_MSR_RI_CHG		0x04
-#define	UMCT_MSR_CD_CHG		0x08
-#define	UMCT_MSR_CTS		0x10
-#define	UMCT_MSR_RTS		0x20
-#define	UMCT_MSR_RI		0x40
-#define	UMCT_MSR_CD		0x80
+#define UMCT_MSR_CTS_CHG 0x01
+#define UMCT_MSR_DSR_CHG 0x02
+#define UMCT_MSR_RI_CHG 0x04
+#define UMCT_MSR_CD_CHG 0x08
+#define UMCT_MSR_CTS 0x10
+#define UMCT_MSR_RTS 0x20
+#define UMCT_MSR_RI 0x40
+#define UMCT_MSR_CD 0x80
 
-#define	UMCT_INTR_INTERVAL	100
-#define	UMCT_IFACE_INDEX	0
-#define	UMCT_CONFIG_INDEX	0
+#define UMCT_INTR_INTERVAL 100
+#define UMCT_IFACE_INDEX 0
+#define UMCT_CONFIG_INDEX 0
 
 enum {
 	UMCT_BULK_DT_WR,
@@ -118,11 +118,11 @@ struct umct_softc {
 
 	uint16_t sc_obufsize;
 
-	uint8_t	sc_lsr;
-	uint8_t	sc_msr;
-	uint8_t	sc_lcr;
-	uint8_t	sc_mcr;
-	uint8_t	sc_iface_no;
+	uint8_t sc_lsr;
+	uint8_t sc_msr;
+	uint8_t sc_lcr;
+	uint8_t sc_mcr;
+	uint8_t sc_iface_no;
 	uint8_t sc_swap_cb;
 };
 
@@ -139,22 +139,21 @@ static usb_callback_t umct_read_callback;
 static usb_callback_t umct_read_callback_sub;
 static usb_callback_t umct_write_callback;
 
-static void	umct_cfg_do_request(struct umct_softc *sc, uint8_t request,
-		    uint16_t len, uint32_t value);
-static void	umct_free(struct ucom_softc *);
-static void	umct_cfg_get_status(struct ucom_softc *, uint8_t *,
-		    uint8_t *);
-static void	umct_cfg_set_break(struct ucom_softc *, uint8_t);
-static void	umct_cfg_set_dtr(struct ucom_softc *, uint8_t);
-static void	umct_cfg_set_rts(struct ucom_softc *, uint8_t);
-static uint8_t	umct_calc_baud(uint32_t);
-static int	umct_pre_param(struct ucom_softc *, struct termios *);
-static void	umct_cfg_param(struct ucom_softc *, struct termios *);
-static void	umct_start_read(struct ucom_softc *);
-static void	umct_stop_read(struct ucom_softc *);
-static void	umct_start_write(struct ucom_softc *);
-static void	umct_stop_write(struct ucom_softc *);
-static void	umct_poll(struct ucom_softc *ucom);
+static void umct_cfg_do_request(struct umct_softc *sc, uint8_t request,
+    uint16_t len, uint32_t value);
+static void umct_free(struct ucom_softc *);
+static void umct_cfg_get_status(struct ucom_softc *, uint8_t *, uint8_t *);
+static void umct_cfg_set_break(struct ucom_softc *, uint8_t);
+static void umct_cfg_set_dtr(struct ucom_softc *, uint8_t);
+static void umct_cfg_set_rts(struct ucom_softc *, uint8_t);
+static uint8_t umct_calc_baud(uint32_t);
+static int umct_pre_param(struct ucom_softc *, struct termios *);
+static void umct_cfg_param(struct ucom_softc *, struct termios *);
+static void umct_start_read(struct ucom_softc *);
+static void umct_stop_read(struct ucom_softc *);
+static void umct_start_write(struct ucom_softc *);
+static void umct_stop_write(struct ucom_softc *);
+static void umct_poll(struct ucom_softc *ucom);
 
 static const struct usb_config umct_config[UMCT_N_TRANSFER] = {
 	[UMCT_BULK_DT_WR] = {
@@ -203,19 +202,16 @@ static const struct ucom_callback umct_callback = {
 };
 
 static const STRUCT_USB_HOST_ID umct_devs[] = {
-	{USB_VPI(USB_VENDOR_MCT, USB_PRODUCT_MCT_USB232, 0)},
-	{USB_VPI(USB_VENDOR_MCT, USB_PRODUCT_MCT_SITECOM_USB232, 0)},
-	{USB_VPI(USB_VENDOR_MCT, USB_PRODUCT_MCT_DU_H3SP_USB232, 0)},
-	{USB_VPI(USB_VENDOR_BELKIN, USB_PRODUCT_BELKIN_F5U109, 0)},
-	{USB_VPI(USB_VENDOR_BELKIN, USB_PRODUCT_BELKIN_F5U409, 0)},
+	{ USB_VPI(USB_VENDOR_MCT, USB_PRODUCT_MCT_USB232, 0) },
+	{ USB_VPI(USB_VENDOR_MCT, USB_PRODUCT_MCT_SITECOM_USB232, 0) },
+	{ USB_VPI(USB_VENDOR_MCT, USB_PRODUCT_MCT_DU_H3SP_USB232, 0) },
+	{ USB_VPI(USB_VENDOR_BELKIN, USB_PRODUCT_BELKIN_F5U109, 0) },
+	{ USB_VPI(USB_VENDOR_BELKIN, USB_PRODUCT_BELKIN_F5U409, 0) },
 };
 
-static device_method_t umct_methods[] = {
-	DEVMETHOD(device_probe, umct_probe),
+static device_method_t umct_methods[] = { DEVMETHOD(device_probe, umct_probe),
 	DEVMETHOD(device_attach, umct_attach),
-	DEVMETHOD(device_detach, umct_detach),
-	DEVMETHOD_END
-};
+	DEVMETHOD(device_detach, umct_detach), DEVMETHOD_END };
 
 static driver_t umct_driver = {
 	.name = "umct",
@@ -265,11 +261,12 @@ umct_attach(device_t dev)
 	sc->sc_iface_no = uaa->info.bIfaceNum;
 
 	iface_index = UMCT_IFACE_INDEX;
-	error = usbd_transfer_setup(uaa->device, &iface_index,
-	    sc->sc_xfer, umct_config, UMCT_N_TRANSFER, sc, &sc->sc_mtx);
+	error = usbd_transfer_setup(uaa->device, &iface_index, sc->sc_xfer,
+	    umct_config, UMCT_N_TRANSFER, sc, &sc->sc_mtx);
 
 	if (error) {
-		device_printf(dev, "allocating USB "
+		device_printf(dev,
+		    "allocating USB "
 		    "transfers failed\n");
 		goto detach;
 	}
@@ -304,11 +301,11 @@ umct_attach(device_t dev)
 	}
 	ucom_set_pnpinfo_usb(&sc->sc_super_ucom, dev);
 
-	return (0);			/* success */
+	return (0); /* success */
 
 detach:
 	umct_detach(dev);
-	return (ENXIO);			/* failure */
+	return (ENXIO); /* failure */
 }
 
 static int
@@ -344,8 +341,8 @@ umct_free(struct ucom_softc *ucom)
 }
 
 static void
-umct_cfg_do_request(struct umct_softc *sc, uint8_t request,
-    uint16_t len, uint32_t value)
+umct_cfg_do_request(struct umct_softc *sc, uint8_t request, uint16_t len,
+    uint32_t value)
 {
 	struct usb_device_request req;
 	usb_error_t err;
@@ -361,11 +358,13 @@ umct_cfg_do_request(struct umct_softc *sc, uint8_t request,
 	USETW(req.wLength, len);
 	USETDW(temp, value);
 
-	err = ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, 
-	    &req, temp, 0, 1000);
+	err = ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, temp, 0,
+	    1000);
 	if (err) {
-		DPRINTFN(0, "device request failed, err=%s "
-		    "(ignored)\n", usbd_errstr(err));
+		DPRINTFN(0,
+		    "device request failed, err=%s "
+		    "(ignored)\n",
+		    usbd_errstr(err));
 	}
 	return;
 }
@@ -407,12 +406,12 @@ umct_intr_callback_sub(struct usb_xfer *xfer, usb_error_t error)
 		ucom_status_change(&sc->sc_ucom);
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -504,7 +503,7 @@ umct_calc_baud(uint32_t baud)
 static int
 umct_pre_param(struct ucom_softc *ucom, struct termios *t)
 {
-	return (0);			/* we accept anything */
+	return (0); /* we accept anything */
 }
 
 static void
@@ -620,16 +619,16 @@ umct_write_callback(struct usb_xfer *xfer, usb_error_t error)
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_SETUP:
 	case USB_ST_TRANSFERRED:
-tr_setup:
+	tr_setup:
 		pc = usbd_xfer_get_frame(xfer, 0);
-		if (ucom_get_data(&sc->sc_ucom, pc, 0,
-		    sc->sc_obufsize, &actlen)) {
+		if (ucom_get_data(&sc->sc_ucom, pc, 0, sc->sc_obufsize,
+			&actlen)) {
 			usbd_xfer_set_frame_len(xfer, 0, actlen);
 			usbd_transfer_submit(xfer);
 		}
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -654,12 +653,12 @@ umct_read_callback_sub(struct usb_xfer *xfer, usb_error_t error)
 		ucom_put_data(&sc->sc_ucom, pc, 0, actlen);
 
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);

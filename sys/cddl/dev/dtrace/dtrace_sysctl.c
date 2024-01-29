@@ -24,11 +24,10 @@
 static int
 sysctl_dtrace_providers(SYSCTL_HANDLER_ARGS)
 {
-	char	*p_name	= NULL;
-	dtrace_provider_t
-		*prov	= dtrace_provider;
-	int	error	= 0;
-	size_t	len	= 0;
+	char *p_name = NULL;
+	dtrace_provider_t *prov = dtrace_provider;
+	int error = 0;
+	size_t len = 0;
 
 	mutex_enter(&dtrace_provider_lock);
 	mutex_enter(&dtrace_lock);
@@ -51,9 +50,9 @@ sysctl_dtrace_providers(SYSCTL_HANDLER_ARGS)
 		/* Loop through the providers, appending the names. */
 		while (prov != NULL) {
 			if (prov != dtrace_provider)
-				(void) strlcat(p_name, " ", len);
+				(void)strlcat(p_name, " ", len);
 
-			(void) strlcat(p_name, prov->dtpv_name, len);
+			(void)strlcat(p_name, prov->dtpv_name, len);
 
 			prov = prov->dtpv_next;
 		}
@@ -81,9 +80,8 @@ SYSCTL_PROC(_debug_dtrace, OID_AUTO, providers,
 SYSCTL_NODE(_kern, OID_AUTO, dtrace, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
     "DTrace parameters");
 
-SYSCTL_INT(_kern_dtrace, OID_AUTO, err_verbose, CTLFLAG_RW,
-    &dtrace_err_verbose, 0,
-    "print DIF and DOF validation errors to the message buffer");
+SYSCTL_INT(_kern_dtrace, OID_AUTO, err_verbose, CTLFLAG_RW, &dtrace_err_verbose,
+    0, "print DIF and DOF validation errors to the message buffer");
 
 SYSCTL_INT(_kern_dtrace, OID_AUTO, memstr_max, CTLFLAG_RW, &dtrace_memstr_max,
     0, "largest allowed argument to memstr(), 0 indicates no limit");

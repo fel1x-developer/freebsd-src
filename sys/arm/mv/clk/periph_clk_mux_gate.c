@@ -31,24 +31,23 @@
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
-#include <machine/bus.h>
 
-#include <dev/fdt/simplebus.h>
+#include <machine/bus.h>
 
 #include <dev/clk/clk.h>
 #include <dev/clk/clk_div.h>
 #include <dev/clk/clk_fixed.h>
 #include <dev/clk/clk_gate.h>
 #include <dev/clk/clk_mux.h>
-
+#include <dev/fdt/simplebus.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
 #include "clkdev_if.h"
 #include "periph.h"
 
-#define PARENT_CNT		2
-#define TBG_A_S_OFW_INDEX	0
+#define PARENT_CNT 2
+#define TBG_A_S_OFW_INDEX 0
 
 /*
  * Register chain: fixed (freq/2) -> mux (choose fixed or parent frequency) ->
@@ -92,8 +91,7 @@ a37x0_periph_register_mux_gate(struct clkdom *clkdom,
 		goto fail;
 
 	a37x0_periph_set_props(&gate->clkdef, &mux->clkdef.name, 1);
-	error = a37x0_periph_create_gate(clkdom, gate,
-	    dev_id);
+	error = a37x0_periph_create_gate(clkdom, gate, dev_id);
 	if (error)
 		goto fail;
 
@@ -108,7 +106,7 @@ fail:
  */
 
 int
-a37x0_periph_register_mux_gate_fixed(struct clkdom * clkdom,
+a37x0_periph_register_mux_gate_fixed(struct clkdom *clkdom,
     struct a37x0_periph_clknode_def *device_def)
 {
 	struct clk_fixed_def *fixed1, *fixed2;

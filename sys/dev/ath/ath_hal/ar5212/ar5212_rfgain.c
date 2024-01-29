@@ -19,41 +19,37 @@
 #include "opt_ah.h"
 
 #include "ah.h"
-#include "ah_internal.h"
 #include "ah_devid.h"
-
-#include "ar5212/ar5212.h"
-#include "ar5212/ar5212reg.h"
-#include "ar5212/ar5212phy.h"
-
 #include "ah_eeprom_v3.h"
+#include "ah_internal.h"
+#include "ar5212/ar5212.h"
+#include "ar5212/ar5212phy.h"
+#include "ar5212/ar5212reg.h"
 
-static const GAIN_OPTIMIZATION_LADDER gainLadder = {
-	9,					/* numStepsInLadder */
-	4,					/* defaultStepNum */
-	{ { {4, 1, 1, 1},  6, "FG8"},
-	  { {4, 0, 1, 1},  4, "FG7"},
-	  { {3, 1, 1, 1},  3, "FG6"},
-	  { {4, 0, 0, 1},  1, "FG5"},
-	  { {4, 1, 1, 0},  0, "FG4"},	/* noJack */
-	  { {4, 0, 1, 0}, -2, "FG3"},	/* halfJack */
-	  { {3, 1, 1, 0}, -3, "FG2"},	/* clip3 */
-	  { {4, 0, 0, 0}, -4, "FG1"},	/* noJack */
-	  { {2, 1, 1, 0}, -6, "FG0"} 	/* clip2 */
-	}
-};
+static const GAIN_OPTIMIZATION_LADDER gainLadder = { 9, /* numStepsInLadder */
+	4,						/* defaultStepNum */
+	{
+	    { { 4, 1, 1, 1 }, 6, "FG8" }, { { 4, 0, 1, 1 }, 4, "FG7" },
+	    { { 3, 1, 1, 1 }, 3, "FG6" }, { { 4, 0, 0, 1 }, 1, "FG5" },
+	    { { 4, 1, 1, 0 }, 0, "FG4" },  /* noJack */
+	    { { 4, 0, 1, 0 }, -2, "FG3" }, /* halfJack */
+	    { { 3, 1, 1, 0 }, -3, "FG2" }, /* clip3 */
+	    { { 4, 0, 0, 0 }, -4, "FG1" }, /* noJack */
+	    { { 2, 1, 1, 0 }, -6, "FG0" }  /* clip2 */
+	} };
 
 static const GAIN_OPTIMIZATION_LADDER gainLadder5112 = {
-	8,					/* numStepsInLadder */
-	1,					/* defaultStepNum */
-	{ { {3, 0,0,0, 0,0,0},   6, "FG7"},	/* most fixed gain */
-	  { {2, 0,0,0, 0,0,0},   0, "FG6"},
-	  { {1, 0,0,0, 0,0,0},  -3, "FG5"},
-	  { {0, 0,0,0, 0,0,0},  -6, "FG4"},
-	  { {0, 1,1,0, 0,0,0},  -8, "FG3"},
-	  { {0, 1,1,0, 1,1,0}, -10, "FG2"},
-	  { {0, 1,0,1, 1,1,0}, -13, "FG1"},
-	  { {0, 1,0,1, 1,0,1}, -16, "FG0"},	/* least fixed gain */
+	8, /* numStepsInLadder */
+	1, /* defaultStepNum */
+	{
+	    { { 3, 0, 0, 0, 0, 0, 0 }, 6, "FG7" }, /* most fixed gain */
+	    { { 2, 0, 0, 0, 0, 0, 0 }, 0, "FG6" },
+	    { { 1, 0, 0, 0, 0, 0, 0 }, -3, "FG5" },
+	    { { 0, 0, 0, 0, 0, 0, 0 }, -6, "FG4" },
+	    { { 0, 1, 1, 0, 0, 0, 0 }, -8, "FG3" },
+	    { { 0, 1, 1, 0, 1, 1, 0 }, -10, "FG2" },
+	    { { 0, 1, 0, 1, 1, 1, 0 }, -13, "FG1" },
+	    { { 0, 1, 0, 1, 1, 0, 1 }, -16, "FG0" }, /* least fixed gain */
 	}
 };
 
@@ -70,7 +66,7 @@ ar5212InitializeGainValues(struct ath_hal *ah)
 	if (IS_RAD5112_ANY(ah)) {
 		gv->currStepNum = gainLadder5112.defaultStepNum;
 		gv->currStep =
-			&gainLadder5112.optStep[gainLadder5112.defaultStepNum];
+		    &gainLadder5112.optStep[gainLadder5112.defaultStepNum];
 		gv->active = AH_TRUE;
 		gv->loTrig = 20;
 		gv->hiTrig = 85;
@@ -83,13 +79,14 @@ ar5212InitializeGainValues(struct ath_hal *ah)
 	}
 }
 
-#define	MAX_ANALOG_START	319		/* XXX */
+#define MAX_ANALOG_START 319 /* XXX */
 
 /*
  * Find analog bits of given parameter data and return a reversed value
  */
 static uint32_t
-ar5212GetRfField(uint32_t *rfBuf, uint32_t numBits, uint32_t firstBit, uint32_t column)
+ar5212GetRfField(uint32_t *rfBuf, uint32_t numBits, uint32_t firstBit,
+    uint32_t column)
 {
 	uint32_t reg32 = 0, mask, arrayEntry, lastBit;
 	uint32_t bitPosition, bitsShifted;
@@ -105,11 +102,13 @@ ar5212GetRfField(uint32_t *rfBuf, uint32_t numBits, uint32_t firstBit, uint32_t 
 	bitsShifted = 0;
 	while (bitsLeft > 0) {
 		lastBit = (bitPosition + bitsLeft > 8) ?
-			(8) : (bitPosition + bitsLeft);
-		mask = (((1 << lastBit) - 1) ^ ((1 << bitPosition) - 1)) <<
-			(column * 8);
+		    (8) :
+		    (bitPosition + bitsLeft);
+		mask = (((1 << lastBit) - 1) ^ ((1 << bitPosition) - 1))
+		    << (column * 8);
 		reg32 |= (((rfBuf[arrayEntry] & mask) >> (column * 8)) >>
-			bitPosition) << bitsShifted;
+			     bitPosition)
+		    << bitsShifted;
 		bitsShifted += lastBit - bitPosition;
 		bitsLeft -= (8 - bitPosition);
 		bitPosition = 0;
@@ -150,7 +149,7 @@ ar5212InvalidGainReadback(struct ath_hal *ah, GAIN_VALUES *gv)
 	}
 	g = gv->currGain;
 
-	return !((g >= L1 && g<= L2) || (g >= L3 && g <= L4));
+	return !((g >= L1 && g <= L2) || (g >= L3 && g <= L4));
 }
 
 /*
@@ -165,8 +164,8 @@ ar5212RequestRfgain(struct ath_hal *ah)
 	/* Enable the gain readback probe */
 	probePowerIndex = ahp->ah_ofdmTxPower + ahp->ah_txPowerIndexOffset;
 	OS_REG_WRITE(ah, AR_PHY_PAPD_PROBE,
-		  SM(probePowerIndex, AR_PHY_PAPD_PROBE_POWERTX)
-		| AR_PHY_PAPD_PROBE_NEXT_TX);
+	    SM(probePowerIndex, AR_PHY_PAPD_PROBE_POWERTX) |
+		AR_PHY_PAPD_PROBE_NEXT_TX);
 
 	ahp->ah_rfgainState = HAL_RFGAIN_READ_REQUESTED;
 }
@@ -184,7 +183,7 @@ ar5212IsGainAdjustNeeded(struct ath_hal *ah, const GAIN_VALUES *gv)
 /*
  * Move the rabbit ears in the correct direction.
  */
-static int32_t 
+static int32_t
 ar5212AdjustGain(struct ath_hal *ah, GAIN_VALUES *gv)
 {
 	const GAIN_OPTIMIZATION_LADDER *gl;
@@ -201,11 +200,12 @@ ar5212AdjustGain(struct ath_hal *ah, GAIN_VALUES *gv)
 			return -1;
 		}
 		HALDEBUG(ah, HAL_DEBUG_RFPARAM,
-		    "%s: Adding gain: currG=%d [%s] --> ",
-		    __func__, gv->currGain, gv->currStep->stepName);
+		    "%s: Adding gain: currG=%d [%s] --> ", __func__,
+		    gv->currGain, gv->currStep->stepName);
 		gv->targetGain = gv->currGain;
 		while (gv->targetGain >= gv->hiTrig && gv->currStepNum > 0) {
-			gv->targetGain -= 2 * (gl->optStep[--(gv->currStepNum)].stepGain -
+			gv->targetGain -= 2 *
+			    (gl->optStep[--(gv->currStepNum)].stepGain -
 				gv->currStep->stepGain);
 			gv->currStep = &gl->optStep[gv->currStepNum];
 		}
@@ -214,26 +214,27 @@ ar5212AdjustGain(struct ath_hal *ah, GAIN_VALUES *gv)
 		return 1;
 	}
 	if (gv->currGain <= gv->loTrig) {
-		if (gv->currStepNum == gl->numStepsInLadder-1) {
-			HALDEBUG(ah, HAL_DEBUG_RFPARAM,
-			    "%s: Min gain limit.\n", __func__);
+		if (gv->currStepNum == gl->numStepsInLadder - 1) {
+			HALDEBUG(ah, HAL_DEBUG_RFPARAM, "%s: Min gain limit.\n",
+			    __func__);
 			return -2;
 		}
 		HALDEBUG(ah, HAL_DEBUG_RFPARAM,
-		    "%s: Deducting gain: currG=%d [%s] --> ",
-		    __func__, gv->currGain, gv->currStep->stepName);
+		    "%s: Deducting gain: currG=%d [%s] --> ", __func__,
+		    gv->currGain, gv->currStep->stepName);
 		gv->targetGain = gv->currGain;
 		while (gv->targetGain <= gv->loTrig &&
-		      gv->currStepNum < (gl->numStepsInLadder - 1)) {
+		    gv->currStepNum < (gl->numStepsInLadder - 1)) {
 			gv->targetGain -= 2 *
-				(gl->optStep[++(gv->currStepNum)].stepGain - gv->currStep->stepGain);
+			    (gl->optStep[++(gv->currStepNum)].stepGain -
+				gv->currStep->stepGain);
 			gv->currStep = &gl->optStep[gv->currStepNum];
 		}
 		HALDEBUG(ah, HAL_DEBUG_RFPARAM, "targG=%d [%s]\n",
 		    gv->targetGain, gv->currStep->stepName);
 		return 2;
 	}
-	return 0;		/* caller didn't call needAdjGain first */
+	return 0; /* caller didn't call needAdjGain first */
 }
 
 /*
@@ -251,19 +252,19 @@ ar5212GetGainFCorrection(struct ath_hal *ah)
 	if (ar5212GetRfField(ar5212GetRfBank(ah, 7), 1, 36, 0) == 1) {
 		const GAIN_VALUES *gv = &ahp->ah_gainValues;
 		uint32_t mixGain = gv->currStep->paramVal[0];
-		uint32_t gainStep =
-			ar5212GetRfField(ar5212GetRfBank(ah, 7), 4, 32, 0);
+		uint32_t gainStep = ar5212GetRfField(ar5212GetRfBank(ah, 7), 4,
+		    32, 0);
 		switch (mixGain) {
-		case 0 :
+		case 0:
 			correction = 0;
 			break;
-		case 1 :
+		case 1:
 			correction = gainStep;
 			break;
-		case 2 :
+		case 2:
 			correction = 2 * gainStep - 5;
 			break;
-		case 3 :
+		case 3:
 			correction = 2 * gainStep;
 			break;
 		}
@@ -295,14 +296,17 @@ ar5212GetRfgain(struct ath_hal *ah)
 			gv->currGain = rddata >> AR_PHY_PAPD_PROBE_GAINF_S;
 			probeType = MS(rddata, AR_PHY_PAPD_PROBE_TYPE);
 			if (probeType == AR_PHY_PAPD_PROBE_TYPE_CCK) {
-				const HAL_EEPROM *ee = AH_PRIVATE(ah)->ah_eeprom;
+				const HAL_EEPROM *ee =
+				    AH_PRIVATE(ah)->ah_eeprom;
 
 				HALASSERT(IS_RAD5112_ANY(ah));
 				HALASSERT(ah->ah_magic == AR5212_MAGIC);
-				if (AH_PRIVATE(ah)->ah_phyRev >= AR_PHY_CHIP_ID_REV_2)
+				if (AH_PRIVATE(ah)->ah_phyRev >=
+				    AR_PHY_CHIP_ID_REV_2)
 					gv->currGain += ee->ee_cckOfdmGainDelta;
 				else
-					gv->currGain += PHY_PROBE_CCK_CORRECTION;
+					gv->currGain +=
+					    PHY_PROBE_CCK_CORRECTION;
 			}
 			if (IS_RADX112_REV2(ah)) {
 				uint32_t correct = ar5212GetGainFCorrection(ah);
@@ -324,7 +328,8 @@ ar5212GetRfgain(struct ath_hal *ah)
 				ahp->ah_rfgainState = HAL_RFGAIN_NEED_CHANGE;
 				/* for ap51 */
 				ahp->ah_cwCalRequire = AH_TRUE;
-				/* Request IQ recalibration for temperature chang */
+				/* Request IQ recalibration for temperature
+				 * chang */
 				ahp->ah_bIQCalibration = IQ_CAL_INACTIVE;
 			}
 		}

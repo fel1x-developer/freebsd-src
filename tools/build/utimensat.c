@@ -31,9 +31,9 @@
 #include <fcntl.h>
 #include <time.h>
 
-#ifndef	UTIME_NOW
-#define	UTIME_NOW	-1
-#define	UTIME_OMIT	-2
+#ifndef UTIME_NOW
+#define UTIME_NOW -1
+#define UTIME_OMIT -2
 #endif
 
 int
@@ -47,8 +47,8 @@ utimensat(int fd, const char *path, const struct timespec times[2], int flag)
 		errno = EINVAL;
 		return (-1);
 	}
-	if (times == NULL || (times[0].tv_nsec == UTIME_NOW &&
-	    times[1].tv_nsec == UTIME_NOW))
+	if (times == NULL ||
+	    (times[0].tv_nsec == UTIME_NOW && times[1].tv_nsec == UTIME_NOW))
 		tvp = NULL;
 	else if (times[0].tv_nsec == UTIME_OMIT &&
 	    times[1].tv_nsec == UTIME_OMIT)

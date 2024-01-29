@@ -28,9 +28,9 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/types.h>
 #include <sys/queue.h>
 #include <sys/socket.h>
-#include <sys/types.h>
 
 #include <net/if.h>
 #include <net/if_media.h>
@@ -39,20 +39,19 @@
 #include <net80211/ieee80211.h>
 #include <net80211/ieee80211_ioctl.h>
 
+#include <bsnmp/snmp_mibII.h>
+#include <bsnmp/snmpmod.h>
 #include <errno.h>
 #include <stdarg.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
 
-#include <bsnmp/snmpmod.h>
-#include <bsnmp/snmp_mibII.h>
-
-#define	SNMPTREE_TYPES
-#include "wlan_tree.h"
-#include "wlan_snmp.h"
+#define SNMPTREE_TYPES
 #include "wlan_oid.h"
+#include "wlan_snmp.h"
+#include "wlan_tree.h"
 
 static struct lmodule *wlan_module;
 
@@ -72,7 +71,7 @@ static void *wlan_data_timer;
 static int wlan_poll_ticks = (15 * 60) * 100;
 
 /* The age of each table. */
-#define	WLAN_LIST_MAXAGE	5
+#define WLAN_LIST_MAXAGE 5
 
 static time_t wlan_iflist_age;
 static time_t wlan_peerlist_age;
@@ -92,121 +91,119 @@ static struct wlan_ifaces wlan_ifaces = SLIST_HEAD_INITIALIZER(wlan_ifaces);
 static struct wlan_config wlan_config;
 
 /* Forward declarations */
-static int	bits_get(struct snmp_value *, const u_char *, ssize_t);
+static int bits_get(struct snmp_value *, const u_char *, ssize_t);
 
-static int	wlan_add_wif(struct wlan_iface *);
-static void	wlan_delete_wif(struct wlan_iface *);
-static int	wlan_attach_newif(struct mibif *);
-static int	wlan_iface_create(struct wlan_iface *);
-static int	wlan_iface_destroy(struct wlan_iface *);
-static struct wlan_iface *	wlan_new_wif(char *);
+static int wlan_add_wif(struct wlan_iface *);
+static void wlan_delete_wif(struct wlan_iface *);
+static int wlan_attach_newif(struct mibif *);
+static int wlan_iface_create(struct wlan_iface *);
+static int wlan_iface_destroy(struct wlan_iface *);
+static struct wlan_iface *wlan_new_wif(char *);
 
-static void	wlan_free_interface(struct wlan_iface *);
-static void	wlan_free_iflist(void);
-static void	wlan_free_peerlist(struct wlan_iface *);
-static void	wlan_scan_free_results(struct wlan_iface *);
-static void	wlan_mac_free_maclist(struct wlan_iface *);
-static void	wlan_mesh_free_routes(struct wlan_iface *);
+static void wlan_free_interface(struct wlan_iface *);
+static void wlan_free_iflist(void);
+static void wlan_free_peerlist(struct wlan_iface *);
+static void wlan_scan_free_results(struct wlan_iface *);
+static void wlan_mac_free_maclist(struct wlan_iface *);
+static void wlan_mesh_free_routes(struct wlan_iface *);
 
-static int	wlan_update_interface(struct wlan_iface *);
-static void	wlan_update_interface_list(void);
-static void	wlan_update_peers(void);
-static void	wlan_update_channels(void);
-static void	wlan_update_roam_params(void);
-static void	wlan_update_tx_params(void);
-static void	wlan_scan_update_results(void);
-static void	wlan_mac_update_aclmacs(void);
-static void	wlan_mesh_update_routes(void);
+static int wlan_update_interface(struct wlan_iface *);
+static void wlan_update_interface_list(void);
+static void wlan_update_peers(void);
+static void wlan_update_channels(void);
+static void wlan_update_roam_params(void);
+static void wlan_update_tx_params(void);
+static void wlan_scan_update_results(void);
+static void wlan_mac_update_aclmacs(void);
+static void wlan_mesh_update_routes(void);
 
-static struct wlan_iface *	wlan_find_interface(const char *);
-static struct wlan_peer *	wlan_find_peer(struct wlan_iface *, uint8_t *);
-static struct ieee80211_channel*	wlan_find_channel(struct wlan_iface *,
+static struct wlan_iface *wlan_find_interface(const char *);
+static struct wlan_peer *wlan_find_peer(struct wlan_iface *, uint8_t *);
+static struct ieee80211_channel *wlan_find_channel(struct wlan_iface *,
     uint32_t);
-static struct wlan_scan_result *	wlan_scan_find_result(struct wlan_iface *,
+static struct wlan_scan_result *wlan_scan_find_result(struct wlan_iface *,
     uint8_t *, uint8_t *);
-static struct wlan_mac_mac *		wlan_mac_find_mac(struct wlan_iface *,
-    uint8_t *);
-static struct wlan_mesh_route *		wlan_mesh_find_route(struct wlan_iface *,
+static struct wlan_mac_mac *wlan_mac_find_mac(struct wlan_iface *, uint8_t *);
+static struct wlan_mesh_route *wlan_mesh_find_route(struct wlan_iface *,
     uint8_t *);
 
-static struct wlan_iface *	wlan_first_interface(void);
-static struct wlan_iface *	wlan_next_interface(struct wlan_iface *);
-static struct wlan_iface *	wlan_mesh_first_interface(void);
-static struct wlan_iface *	wlan_mesh_next_interface(struct wlan_iface *);
+static struct wlan_iface *wlan_first_interface(void);
+static struct wlan_iface *wlan_next_interface(struct wlan_iface *);
+static struct wlan_iface *wlan_mesh_first_interface(void);
+static struct wlan_iface *wlan_mesh_next_interface(struct wlan_iface *);
 
-static struct wlan_iface *	wlan_get_interface(const struct asn_oid *, uint);
-static struct wlan_iface *	wlan_get_snmp_interface(const struct asn_oid *,
-    uint);
-static struct wlan_peer *	wlan_get_peer(const struct asn_oid *, uint,
+static struct wlan_iface *wlan_get_interface(const struct asn_oid *, uint);
+static struct wlan_iface *wlan_get_snmp_interface(const struct asn_oid *, uint);
+static struct wlan_peer *wlan_get_peer(const struct asn_oid *, uint,
     struct wlan_iface **);
 static struct ieee80211_channel *wlan_get_channel(const struct asn_oid *, uint,
     struct wlan_iface **);
 static struct ieee80211_roamparam *wlan_get_roam_param(const struct asn_oid *,
     uint, struct wlan_iface **);
-static struct ieee80211_txparam *wlan_get_tx_param(const struct asn_oid *,
-    uint, struct wlan_iface **, uint32_t *);
+static struct ieee80211_txparam *wlan_get_tx_param(const struct asn_oid *, uint,
+    struct wlan_iface **, uint32_t *);
 static struct wlan_scan_result *wlan_get_scanr(const struct asn_oid *, uint,
     struct wlan_iface **);
-static struct wlan_mac_mac *	wlan_get_acl_mac(const struct asn_oid *,
-    uint, struct wlan_iface **);
-static struct wlan_iface *	wlan_mesh_get_iface(const struct asn_oid *, uint);
-static struct wlan_peer *	wlan_mesh_get_peer(const struct asn_oid *, uint,
+static struct wlan_mac_mac *wlan_get_acl_mac(const struct asn_oid *, uint,
     struct wlan_iface **);
-static struct wlan_mesh_route *	wlan_mesh_get_route(const struct asn_oid *,
-    uint, struct wlan_iface **);
+static struct wlan_iface *wlan_mesh_get_iface(const struct asn_oid *, uint);
+static struct wlan_peer *wlan_mesh_get_peer(const struct asn_oid *, uint,
+    struct wlan_iface **);
+static struct wlan_mesh_route *wlan_mesh_get_route(const struct asn_oid *, uint,
+    struct wlan_iface **);
 
-static struct wlan_iface *	wlan_get_next_interface(const struct asn_oid *,
+static struct wlan_iface *wlan_get_next_interface(const struct asn_oid *, uint);
+static struct wlan_iface *wlan_get_next_snmp_interface(const struct asn_oid *,
     uint);
-static struct wlan_iface *	wlan_get_next_snmp_interface(const struct
-    asn_oid *, uint);
-static struct wlan_peer *	wlan_get_next_peer(const struct asn_oid *, uint,
+static struct wlan_peer *wlan_get_next_peer(const struct asn_oid *, uint,
     struct wlan_iface **);
 static struct ieee80211_channel *wlan_get_next_channel(const struct asn_oid *,
     uint, struct wlan_iface **);
-static struct ieee80211_roamparam *wlan_get_next_roam_param(const struct
-    asn_oid *, uint sub, struct wlan_iface **, uint32_t *);
+static struct ieee80211_roamparam *
+wlan_get_next_roam_param(const struct asn_oid *, uint sub, struct wlan_iface **,
+    uint32_t *);
 static struct ieee80211_txparam *wlan_get_next_tx_param(const struct asn_oid *,
     uint, struct wlan_iface **, uint32_t *);
 static struct wlan_scan_result *wlan_get_next_scanr(const struct asn_oid *,
-    uint , struct wlan_iface **);
-static struct wlan_mac_mac *	wlan_get_next_acl_mac(const struct asn_oid *,
     uint, struct wlan_iface **);
-static struct wlan_iface *	wlan_mesh_get_next_iface(const struct asn_oid *,
+static struct wlan_mac_mac *wlan_get_next_acl_mac(const struct asn_oid *, uint,
+    struct wlan_iface **);
+static struct wlan_iface *wlan_mesh_get_next_iface(const struct asn_oid *,
     uint);
-static struct wlan_peer *	wlan_mesh_get_next_peer(const struct asn_oid *,
-    uint, struct wlan_iface **);
-static struct wlan_mesh_route *	wlan_mesh_get_next_route(const struct asn_oid *,
+static struct wlan_peer *wlan_mesh_get_next_peer(const struct asn_oid *, uint,
+    struct wlan_iface **);
+static struct wlan_mesh_route *wlan_mesh_get_next_route(const struct asn_oid *,
     uint sub, struct wlan_iface **);
 
 static uint8_t *wlan_get_ifname(const struct asn_oid *, uint, uint8_t *);
-static int	wlan_mac_index_decode(const struct asn_oid *, uint, char *,
+static int wlan_mac_index_decode(const struct asn_oid *, uint, char *,
     uint8_t *);
-static int	wlan_channel_index_decode(const struct asn_oid *, uint,
-    char *, uint32_t *);
-static int	wlan_phy_index_decode(const struct asn_oid *, uint, char *,
+static int wlan_channel_index_decode(const struct asn_oid *, uint, char *,
+    uint32_t *);
+static int wlan_phy_index_decode(const struct asn_oid *, uint, char *,
     uint32_t *);
 static int wlan_scanr_index_decode(const struct asn_oid *oid, uint sub,
     char *wname, uint8_t *ssid, uint8_t *bssid);
 
-static void	wlan_append_ifindex(struct asn_oid *, uint,
+static void wlan_append_ifindex(struct asn_oid *, uint,
     const struct wlan_iface *);
-static void	wlan_append_mac_index(struct asn_oid *, uint, char *, uint8_t *);
-static void	wlan_append_channel_index(struct asn_oid *, uint,
+static void wlan_append_mac_index(struct asn_oid *, uint, char *, uint8_t *);
+static void wlan_append_channel_index(struct asn_oid *, uint,
     const struct wlan_iface *, const struct ieee80211_channel *);
-static void	wlan_append_phy_index(struct asn_oid *, uint, char *, uint32_t);
-static void	wlan_append_scanr_index(struct asn_oid *, uint, char *,
-    uint8_t *, uint8_t *);
+static void wlan_append_phy_index(struct asn_oid *, uint, char *, uint32_t);
+static void wlan_append_scanr_index(struct asn_oid *, uint, char *, uint8_t *,
+    uint8_t *);
 
-static int	wlan_acl_mac_set_status(struct snmp_context *,
-    struct snmp_value *, uint);
-static int	wlan_mesh_route_set_status(struct snmp_context *,
+static int wlan_acl_mac_set_status(struct snmp_context *, struct snmp_value *,
+    uint);
+static int wlan_mesh_route_set_status(struct snmp_context *,
     struct snmp_value *, uint);
 
-static int32_t	wlan_get_channel_type(struct ieee80211_channel *);
-static int	wlan_scan_compare_result(struct wlan_scan_result *,
+static int32_t wlan_get_channel_type(struct ieee80211_channel *);
+static int wlan_scan_compare_result(struct wlan_scan_result *,
     struct wlan_scan_result *);
-static int	wlan_mac_delete_mac(struct wlan_iface *, struct wlan_mac_mac *);
-static int	wlan_mesh_delete_route(struct wlan_iface *,
+static int wlan_mac_delete_mac(struct wlan_iface *, struct wlan_mac_mac *);
+static int wlan_mesh_delete_route(struct wlan_iface *,
     struct wlan_mesh_route *);
 
 /*
@@ -230,7 +227,8 @@ op_wlan_iface(struct snmp_context *ctx, struct snmp_value *val, uint32_t sub,
 		break;
 
 	case SNMP_OP_GETNEXT:
-		if ((wif = wlan_get_next_snmp_interface(&val->var, sub)) == NULL)
+		if ((wif = wlan_get_next_snmp_interface(&val->var, sub)) ==
+		    NULL)
 			return (SNMP_ERR_NOSUCHNAME);
 		wlan_append_ifindex(&val->var, sub, wif);
 		break;
@@ -289,8 +287,8 @@ op_wlan_iface(struct snmp_context *ctx, struct snmp_value *val, uint32_t sub,
 				return (SNMP_ERR_GENERR);
 			memcpy(ctx->scratch->ptr1, (uint8_t *)&wif->flags,
 			    sizeof(wif->flags));
-			memcpy((uint8_t *)&wif->flags, val->v.octetstring.octets,
-			    sizeof(wif->flags));
+			memcpy((uint8_t *)&wif->flags,
+			    val->v.octetstring.octets, sizeof(wif->flags));
 			return (SNMP_ERR_NOERROR);
 
 		case LEAF_wlanIfaceBssid:
@@ -423,8 +421,8 @@ op_wlan_iface(struct snmp_context *ctx, struct snmp_value *val, uint32_t sub,
 		val->v.integer = wif->mode;
 		return (SNMP_ERR_NOERROR);
 	case LEAF_wlanIfaceFlags:
-		return (bits_get(val, (uint8_t *)&wif->flags,
-		    sizeof(wif->flags)));
+		return (
+		    bits_get(val, (uint8_t *)&wif->flags, sizeof(wif->flags)));
 	case LEAF_wlanIfaceBssid:
 		return (string_get(val, wif->dbssid, IEEE80211_ADDR_LEN));
 	case LEAF_wlanIfaceLocalAddress:
@@ -716,8 +714,8 @@ get_config:
 		val->v.integer = wif->packet_burst;
 		break;
 	case LEAF_wlanIfaceCountryCode:
-		return (string_get(val, wif->country_code,
-		    WLAN_COUNTRY_CODE_SIZE));
+		return (
+		    string_get(val, wif->country_code, WLAN_COUNTRY_CODE_SIZE));
 	case LEAF_wlanIfaceRegDomain:
 		val->v.integer = wif->reg_domain;
 		break;
@@ -760,8 +758,8 @@ get_config:
 		val->v.integer = wif->beacons_missed;
 		break;
 	case LEAF_wlanIfaceDesiredBssid:
-		return (string_get(val, wif->desired_bssid,
-		    IEEE80211_ADDR_LEN));
+		return (
+		    string_get(val, wif->desired_bssid, IEEE80211_ADDR_LEN));
 	case LEAF_wlanIfaceRoamingMode:
 		val->v.integer = wif->roam_mode;
 		break;
@@ -851,8 +849,8 @@ get_config:
 	return (SNMP_ERR_NOERROR);
 
 set_config:
-	rc = wlan_config_set_ioctl(wif, val->var.subs[sub - 1], intval,
-	    strval, vlen);
+	rc = wlan_config_set_ioctl(wif, val->var.subs[sub - 1], intval, strval,
+	    vlen);
 
 	if (op == SNMP_OP_ROLLBACK) {
 		switch (val->var.subs[sub - 1]) {
@@ -949,8 +947,8 @@ op_wlan_if_peer(struct snmp_context *ctx, struct snmp_value *val, uint32_t sub,
 		return (bits_get(val, (uint8_t *)&wip->capinfo,
 		    sizeof(wip->capinfo)));
 	case LEAF_wlanIfacePeerFlags:
-		return (bits_get(val, (uint8_t *)&wip->state,
-		    sizeof(wip->state)));
+		return (
+		    bits_get(val, (uint8_t *)&wip->state, sizeof(wip->state)));
 	default:
 		abort();
 	}
@@ -1061,10 +1059,10 @@ op_wlan_roam_params(struct snmp_context *ctx __unused, struct snmp_value *val,
 
 	switch (val->var.subs[sub - 1]) {
 	case LEAF_wlanIfRoamRxSignalStrength:
-		val->v.integer = rparam->rssi/2;
+		val->v.integer = rparam->rssi / 2;
 		break;
 	case LEAF_wlanIfRoamTxRateThreshold:
-		val->v.integer = rparam->rate/2;
+		val->v.integer = rparam->rate / 2;
 		break;
 	default:
 		abort();
@@ -1200,8 +1198,8 @@ op_wlan_scan_config(struct snmp_context *ctx, struct snmp_value *val,
 	case SNMP_OP_SET:
 		if ((wif = wlan_get_interface(&val->var, sub)) == NULL)
 			return (SNMP_ERR_NOSUCHNAME);
-		if (wif->scan_status ==  wlanScanConfigStatus_running
-		    && val->var.subs[sub - 1] != LEAF_wlanScanConfigStatus)
+		if (wif->scan_status == wlanScanConfigStatus_running &&
+		    val->var.subs[sub - 1] != LEAF_wlanScanConfigStatus)
 			return (SNMP_ERR_INCONS_VALUE);
 		switch (val->var.subs[sub - 1]) {
 		case LEAF_wlanScanFlags:
@@ -1960,8 +1958,8 @@ op_wlan_mac_acl_mac(struct snmp_context *ctx, struct snmp_value *val,
 		break;
 
 	case SNMP_OP_GETNEXT:
-		if ((macl = wlan_get_next_acl_mac(&val->var, sub, &wif))
-		    == NULL)
+		if ((macl = wlan_get_next_acl_mac(&val->var, sub, &wif)) ==
+		    NULL)
 			return (SNMP_ERR_NOSUCHNAME);
 		wlan_append_mac_index(&val->var, sub, wif->wname, macl->mac);
 		break;
@@ -1971,7 +1969,7 @@ op_wlan_mac_acl_mac(struct snmp_context *ctx, struct snmp_value *val,
 		case LEAF_wlanMACAccessControlMAC:
 			return (SNMP_ERR_INCONS_NAME);
 		case LEAF_wlanMACAccessControlMACStatus:
-			return(wlan_acl_mac_set_status(ctx, val, sub));
+			return (wlan_acl_mac_set_status(ctx, val, sub));
 		default:
 			abort();
 		}
@@ -2043,7 +2041,7 @@ op_wlan_mesh_config(struct snmp_context *ctx, struct snmp_value *val,
 
 	case SNMP_OP_SET:
 		switch (val->var.subs[sub - 1]) {
-		case LEAF_wlanMeshRetryTimeout :
+		case LEAF_wlanMeshRetryTimeout:
 			ctx->scratch->int1 = wlan_config.mesh_retryto;
 			wlan_config.mesh_retryto = val->v.integer;
 			break;
@@ -2076,7 +2074,7 @@ op_wlan_mesh_config(struct snmp_context *ctx, struct snmp_value *val,
 			wlan_config.mesh_confirmto = ctx->scratch->int1;
 			break;
 		case LEAF_wlanMeshHoldingTimeout:
-			wlan_config.mesh_holdingto= ctx->scratch->int1;
+			wlan_config.mesh_holdingto = ctx->scratch->int1;
 			break;
 		case LEAF_wlanMeshMaxRetries:
 			wlan_config.mesh_maxretries = ctx->scratch->int1;
@@ -2288,8 +2286,7 @@ op_wlan_mesh_neighbor(struct snmp_context *ctx __unused, struct snmp_value *val,
 		wip = wlan_mesh_get_next_peer(&val->var, sub, &wif);
 		if (wip == NULL)
 			return (SNMP_ERR_NOSUCHNAME);
-		wlan_append_mac_index(&val->var, sub, wif->wname,
-		    wip->pmac);
+		wlan_append_mac_index(&val->var, sub, wif->wname, wip->pmac);
 		break;
 	case SNMP_OP_SET:
 		return (SNMP_ERR_NOT_WRITEABLE);
@@ -2314,8 +2311,8 @@ op_wlan_mesh_neighbor(struct snmp_context *ctx __unused, struct snmp_value *val,
 		val->v.integer = wip->peer_id;
 		break;
 	case LEAF_wlanMeshNeighborPeerState:
-		return (bits_get(val, (uint8_t *)&wip->state,
-		    sizeof(wip->state)));
+		return (
+		    bits_get(val, (uint8_t *)&wip->state, sizeof(wip->state)));
 	case LEAF_wlanMeshNeighborCurrentTXRate:
 		val->v.integer = wip->txrate;
 		break;
@@ -2367,7 +2364,7 @@ op_wlan_mesh_route(struct snmp_context *ctx, struct snmp_value *val,
 		case LEAF_wlanMeshRouteDestination:
 			return (SNMP_ERR_INCONS_NAME);
 		case LEAF_wlanMeshRouteStatus:
-			return(wlan_mesh_route_set_status(ctx, val, sub));
+			return (wlan_mesh_route_set_status(ctx, val, sub));
 		default:
 			return (SNMP_ERR_NOT_WRITEABLE);
 		}
@@ -2395,8 +2392,8 @@ op_wlan_mesh_route(struct snmp_context *ctx, struct snmp_value *val,
 
 	switch (val->var.subs[sub - 1]) {
 	case LEAF_wlanMeshRouteDestination:
-		return (string_get(val, wmr->imroute.imr_dest,
-		    IEEE80211_ADDR_LEN));
+		return (
+		    string_get(val, wmr->imroute.imr_dest, IEEE80211_ADDR_LEN));
 	case LEAF_wlanMeshRouteNextHop:
 		return (string_get(val, wmr->imroute.imr_nexthop,
 		    IEEE80211_ADDR_LEN));
@@ -2414,11 +2411,11 @@ op_wlan_mesh_route(struct snmp_context *ctx, struct snmp_value *val,
 		break;
 	case LEAF_wlanMeshRouteFlags:
 		val->v.integer = 0;
-		if ((wmr->imroute.imr_flags &
-		    IEEE80211_MESHRT_FLAGS_VALID) != 0)
+		if ((wmr->imroute.imr_flags & IEEE80211_MESHRT_FLAGS_VALID) !=
+		    0)
 			val->v.integer |= (0x1 << wlanMeshRouteFlags_valid);
-		if ((wmr->imroute.imr_flags &
-		    IEEE80211_MESHRT_FLAGS_PROXY) != 0)
+		if ((wmr->imroute.imr_flags & IEEE80211_MESHRT_FLAGS_PROXY) !=
+		    0)
 			val->v.integer |= (0x1 << wlanMeshRouteFlags_proxy);
 		return (bits_get(val, (uint8_t *)&val->v.integer,
 		    sizeof(val->v.integer)));
@@ -2829,7 +2826,7 @@ wlan_find_interface(const char *wname)
 {
 	struct wlan_iface *wif;
 
-	SLIST_FOREACH(wif, &wlan_ifaces, w_if)
+	SLIST_FOREACH (wif, &wlan_ifaces, w_if)
 		if (strcmp(wif->wname, wname) == 0) {
 			if (wif->status != RowStatus_active)
 				return (NULL);
@@ -2869,7 +2866,7 @@ wlan_add_wif(struct wlan_iface *wif)
 		return (0);
 	}
 
-	SLIST_FOREACH(temp, &wlan_ifaces, w_if) {
+	SLIST_FOREACH (temp, &wlan_ifaces, w_if) {
 		if ((cmp = strcmp(wif->wname, temp->wname)) <= 0)
 			break;
 		prev = temp;
@@ -2894,7 +2891,7 @@ wlan_new_wif(char *wname)
 
 	/* Make sure it's not in the list. */
 	for (wif = wlan_first_interface(); wif != NULL;
-	    wif = wlan_next_interface(wif))
+	     wif = wlan_next_interface(wif))
 		if (strcmp(wname, wif->wname) == 0) {
 			wif->internal = 0;
 			return (wif);
@@ -2984,7 +2981,7 @@ wlan_update_interface(struct wlan_iface *wif)
 	(void)wlan_config_state(wif, 0);
 	(void)wlan_get_driver_caps(wif);
 	for (i = LEAF_wlanIfacePacketBurst;
-	    i <= LEAF_wlanIfaceTdmaBeaconInterval; i++)
+	     i <= LEAF_wlanIfaceTdmaBeaconInterval; i++)
 		(void)wlan_config_get_ioctl(wif, i);
 	(void)wlan_get_stats(wif);
 	/*
@@ -3024,7 +3021,7 @@ wlan_update_interface_list(void)
 	 * The snmp_mibII module would have notified us for new interfaces,
 	 * so only check if any have been deleted.
 	 */
-	SLIST_FOREACH_SAFE(wif, &wlan_ifaces, w_if, twif)
+	SLIST_FOREACH_SAFE (wif, &wlan_ifaces, w_if, twif)
 		if (wif->status == RowStatus_active && wlan_get_opmode(wif) < 0)
 			wlan_delete_wif(wif);
 
@@ -3079,7 +3076,7 @@ wlan_get_next_interface(const struct asn_oid *oid, uint sub)
 
 	if (oid->len - sub == 0) {
 		for (wif = wlan_first_interface(); wif != NULL;
-		    wif = wlan_next_interface(wif))
+		     wif = wlan_next_interface(wif))
 			if (wif->status == RowStatus_active)
 				break;
 		return (wif);
@@ -3112,7 +3109,7 @@ wlan_get_snmp_interface(const struct asn_oid *oid, uint sub)
 		return (NULL);
 
 	for (wif = wlan_first_interface(); wif != NULL;
-	    wif = wlan_next_interface(wif))
+	     wif = wlan_next_interface(wif))
 		if (strcmp(wif->wname, wname) == 0)
 			break;
 
@@ -3138,7 +3135,7 @@ wlan_get_next_snmp_interface(const struct asn_oid *oid, uint sub)
 	wname[i] = '\0';
 
 	for (wif = wlan_first_interface(); wif != NULL;
-	    wif = wlan_next_interface(wif))
+	     wif = wlan_next_interface(wif))
 		if (strcmp(wif->wname, wname) == 0)
 			break;
 
@@ -3150,14 +3147,14 @@ wlan_get_next_snmp_interface(const struct asn_oid *oid, uint sub)
  * name and a MAC address - ACL MACs and Mesh Routes.
  */
 static int
-wlan_mac_index_decode(const struct asn_oid *oid, uint sub,
-    char *wname, uint8_t *mac)
+wlan_mac_index_decode(const struct asn_oid *oid, uint sub, char *wname,
+    uint8_t *mac)
 {
 	uint32_t i;
 	int mac_off;
 
-	if (oid->len - sub != oid->subs[sub] + 2 + IEEE80211_ADDR_LEN
-	    || oid->subs[sub] >= IFNAMSIZ)
+	if (oid->len - sub != oid->subs[sub] + 2 + IEEE80211_ADDR_LEN ||
+	    oid->subs[sub] >= IFNAMSIZ)
 		return (-1);
 
 	for (i = 0; i < oid->subs[sub]; i++)
@@ -3243,7 +3240,7 @@ wlan_find_peer(struct wlan_iface *wif, uint8_t *peermac)
 {
 	struct wlan_peer *wip;
 
-	SLIST_FOREACH(wip, &wif->peerlist, wp)
+	SLIST_FOREACH (wip, &wif->peerlist, wp)
 		if (memcmp(wip->pmac, peermac, IEEE80211_ADDR_LEN) == 0)
 			break;
 
@@ -3275,17 +3272,17 @@ wlan_add_peer(struct wlan_iface *wif, struct wlan_peer *wip)
 {
 	struct wlan_peer *temp, *prev;
 
-	SLIST_FOREACH(temp, &wif->peerlist, wp)
+	SLIST_FOREACH (temp, &wif->peerlist, wp)
 		if (memcmp(temp->pmac, wip->pmac, IEEE80211_ADDR_LEN) == 0)
 			return (-1);
 
 	if ((prev = SLIST_FIRST(&wif->peerlist)) == NULL ||
 	    memcmp(wip->pmac, prev->pmac, IEEE80211_ADDR_LEN) < 0) {
-	    	SLIST_INSERT_HEAD(&wif->peerlist, wip, wp);
-	    	return (0);
+		SLIST_INSERT_HEAD(&wif->peerlist, wip, wp);
+		return (0);
 	}
 
-	SLIST_FOREACH(temp, &wif->peerlist, wp) {
+	SLIST_FOREACH (temp, &wif->peerlist, wp) {
 		if (memcmp(wip->pmac, temp->pmac, IEEE80211_ADDR_LEN) < 0)
 			break;
 		prev = temp;
@@ -3304,7 +3301,7 @@ wlan_update_peers(void)
 		return;
 
 	for (wif = wlan_first_interface(); wif != NULL;
-	    wif = wlan_next_interface(wif)) {
+	     wif = wlan_next_interface(wif)) {
 		if (wif->status != RowStatus_active)
 			continue;
 		wlan_free_peerlist(wif);
@@ -3337,7 +3334,7 @@ wlan_get_next_peer(const struct asn_oid *oid, uint sub, struct wlan_iface **wif)
 
 	if (oid->len - sub == 0) {
 		for (*wif = wlan_first_interface(); *wif != NULL;
-		    *wif = wlan_next_interface(*wif)) {
+		     *wif = wlan_next_interface(*wif)) {
 			if ((*wif)->mode ==
 			    WlanIfaceOperatingModeType_meshPoint)
 				continue;
@@ -3378,7 +3375,7 @@ wlan_update_channels(void)
 		return;
 
 	for (wif = wlan_first_interface(); wif != NULL;
-	    wif = wlan_next_interface(wif)) {
+	     wif = wlan_next_interface(wif)) {
 		if (wif->status != RowStatus_active)
 			continue;
 		(void)wlan_get_channel_list(wif);
@@ -3472,7 +3469,7 @@ wlan_get_next_channel(const struct asn_oid *oid, uint sub,
 
 	if (oid->len - sub == 0) {
 		for (*wif = wlan_first_interface(); *wif != NULL;
-		    *wif = wlan_next_interface(*wif)) {
+		     *wif = wlan_next_interface(*wif)) {
 			if ((*wif)->status != RowStatus_active)
 				continue;
 			if ((*wif)->nchannels != 0 && (*wif)->chanlist != NULL)
@@ -3510,7 +3507,7 @@ wlan_update_roam_params(void)
 		return;
 
 	for (wif = wlan_first_interface(); wif != NULL;
-	    wif = wlan_next_interface(wif)) {
+	     wif = wlan_next_interface(wif)) {
 		if (wif->status != RowStatus_active)
 			continue;
 		(void)wlan_get_roam_params(wif);
@@ -3519,7 +3516,8 @@ wlan_update_roam_params(void)
 }
 
 static struct ieee80211_roamparam *
-wlan_get_roam_param(const struct asn_oid *oid, uint sub, struct wlan_iface **wif)
+wlan_get_roam_param(const struct asn_oid *oid, uint sub,
+    struct wlan_iface **wif)
 {
 	uint32_t phy;
 	char wname[IFNAMSIZ];
@@ -3544,7 +3542,7 @@ wlan_get_next_roam_param(const struct asn_oid *oid, uint sub,
 
 	if (oid->len - sub == 0) {
 		for (*wif = wlan_first_interface(); *wif != NULL;
-		    *wif = wlan_next_interface(*wif)) {
+		     *wif = wlan_next_interface(*wif)) {
 			if ((*wif)->status != RowStatus_active)
 				continue;
 			*phy = 1;
@@ -3556,7 +3554,7 @@ wlan_get_next_roam_param(const struct asn_oid *oid, uint sub,
 	if (wlan_phy_index_decode(oid, sub, wname, phy) < 0)
 		return (NULL);
 
-	if (*phy == 0  || (*wif = wlan_find_interface(wname)) == NULL)
+	if (*phy == 0 || (*wif = wlan_find_interface(wname)) == NULL)
 		return (NULL);
 
 	if (++(*phy) <= IEEE80211_MODE_MAX)
@@ -3582,7 +3580,7 @@ wlan_update_tx_params(void)
 		return;
 
 	for (wif = wlan_first_interface(); wif != NULL;
-	    wif = wlan_next_interface(wif)) {
+	     wif = wlan_next_interface(wif)) {
 		if (wif->status != RowStatus_active)
 			continue;
 		(void)wlan_get_tx_params(wif);
@@ -3617,7 +3615,7 @@ wlan_get_next_tx_param(const struct asn_oid *oid, uint sub,
 
 	if (oid->len - sub == 0) {
 		for (*wif = wlan_first_interface(); *wif != NULL;
-		    *wif = wlan_next_interface(*wif)) {
+		     *wif = wlan_next_interface(*wif)) {
 			if ((*wif)->status != RowStatus_active)
 				continue;
 			*phy = 1;
@@ -3664,7 +3662,7 @@ wlan_scan_find_result(struct wlan_iface *wif, uint8_t *ssid, uint8_t *bssid)
 {
 	struct wlan_scan_result *sr;
 
-	SLIST_FOREACH(sr, &wif->scanlist, wsr)
+	SLIST_FOREACH (sr, &wif->scanlist, wsr)
 		if (strlen(ssid) == strlen(sr->ssid) &&
 		    strcmp(sr->ssid, ssid) == 0 &&
 		    memcmp(sr->bssid, bssid, IEEE80211_ADDR_LEN) == 0)
@@ -3729,7 +3727,7 @@ wlan_scan_add_result(struct wlan_iface *wif, struct wlan_scan_result *sr)
 {
 	struct wlan_scan_result *prev, *temp;
 
-	SLIST_FOREACH(temp, &wif->scanlist, wsr)
+	SLIST_FOREACH (temp, &wif->scanlist, wsr)
 		if (strlen(temp->ssid) == strlen(sr->ssid) &&
 		    strcmp(sr->ssid, temp->ssid) == 0 &&
 		    memcmp(sr->bssid, temp->bssid, IEEE80211_ADDR_LEN) == 0)
@@ -3737,11 +3735,11 @@ wlan_scan_add_result(struct wlan_iface *wif, struct wlan_scan_result *sr)
 
 	if ((prev = SLIST_FIRST(&wif->scanlist)) == NULL ||
 	    wlan_scan_compare_result(sr, prev) < 0) {
-	    	SLIST_INSERT_HEAD(&wif->scanlist, sr, wsr);
-	    	return (0);
+		SLIST_INSERT_HEAD(&wif->scanlist, sr, wsr);
+		return (0);
 	}
 
-	SLIST_FOREACH(temp, &wif->scanlist, wsr) {
+	SLIST_FOREACH (temp, &wif->scanlist, wsr) {
 		if (wlan_scan_compare_result(sr, temp) < 0)
 			break;
 		prev = temp;
@@ -3760,7 +3758,7 @@ wlan_scan_update_results(void)
 		return;
 
 	for (wif = wlan_first_interface(); wif != NULL;
-	    wif = wlan_next_interface(wif)) {
+	     wif = wlan_next_interface(wif)) {
 		if (wif->status != RowStatus_active)
 			continue;
 		wlan_scan_free_results(wif);
@@ -3770,8 +3768,8 @@ wlan_scan_update_results(void)
 }
 
 static int
-wlan_scanr_index_decode(const struct asn_oid *oid, uint sub,
-    char *wname, uint8_t *ssid, uint8_t *bssid)
+wlan_scanr_index_decode(const struct asn_oid *oid, uint sub, char *wname,
+    uint8_t *ssid, uint8_t *bssid)
 {
 	uint32_t i;
 	int offset;
@@ -3847,7 +3845,7 @@ wlan_get_next_scanr(const struct asn_oid *oid, uint sub,
 
 	if (oid->len - sub == 0) {
 		for (*wif = wlan_first_interface(); *wif != NULL;
-		    *wif = wlan_next_interface(*wif)) {
+		     *wif = wlan_next_interface(*wif)) {
 			sr = SLIST_FIRST(&(*wif)->scanlist);
 			if (sr != NULL)
 				return (sr);
@@ -3891,7 +3889,7 @@ wlan_mac_find_mac(struct wlan_iface *wif, uint8_t *mac)
 {
 	struct wlan_mac_mac *wmm;
 
-	SLIST_FOREACH(wmm, &wif->mac_maclist, wm)
+	SLIST_FOREACH (wmm, &wif->mac_maclist, wm)
 		if (memcmp(wmm->mac, mac, IEEE80211_ADDR_LEN) == 0)
 			break;
 
@@ -3924,17 +3922,17 @@ wlan_mac_add_mac(struct wlan_iface *wif, struct wlan_mac_mac *wmm)
 {
 	struct wlan_mac_mac *temp, *prev;
 
-	SLIST_FOREACH(temp, &wif->mac_maclist, wm)
+	SLIST_FOREACH (temp, &wif->mac_maclist, wm)
 		if (memcmp(temp->mac, wmm->mac, IEEE80211_ADDR_LEN) == 0)
 			return (-1);
 
 	if ((prev = SLIST_FIRST(&wif->mac_maclist)) == NULL ||
-	    memcmp(wmm->mac, prev->mac,IEEE80211_ADDR_LEN) < 0) {
-	    	SLIST_INSERT_HEAD(&wif->mac_maclist, wmm, wm);
-	    	return (0);
+	    memcmp(wmm->mac, prev->mac, IEEE80211_ADDR_LEN) < 0) {
+		SLIST_INSERT_HEAD(&wif->mac_maclist, wmm, wm);
+		return (0);
 	}
 
-	SLIST_FOREACH(temp, &wif->mac_maclist, wm) {
+	SLIST_FOREACH (temp, &wif->mac_maclist, wm) {
 		if (memcmp(wmm->mac, temp->mac, IEEE80211_ADDR_LEN) < 0)
 			break;
 		prev = temp;
@@ -3967,14 +3965,14 @@ wlan_mac_update_aclmacs(void)
 		return;
 
 	for (wif = wlan_first_interface(); wif != NULL;
-	    wif = wlan_next_interface(wif)) {
+	     wif = wlan_next_interface(wif)) {
 		if (wif->status != RowStatus_active)
 			continue;
 		/*
 		 * Nuke old entries - XXX - they are likely not to
 		 * change often - reconsider.
 		 */
-		SLIST_FOREACH_SAFE(wmm, &wif->mac_maclist, wm, twmm)
+		SLIST_FOREACH_SAFE (wmm, &wif->mac_maclist, wm, twmm)
 			if (wmm->mac_status == RowStatus_active) {
 				SLIST_REMOVE(&wif->mac_maclist, wmm,
 				    wlan_mac_mac, wm);
@@ -4010,7 +4008,7 @@ wlan_get_next_acl_mac(const struct asn_oid *oid, uint sub,
 
 	if (oid->len - sub == 0) {
 		for (*wif = wlan_first_interface(); *wif != NULL;
-		    *wif = wlan_next_interface(*wif)) {
+		     *wif = wlan_next_interface(*wif)) {
 			wmm = SLIST_FIRST(&(*wif)->mac_maclist);
 			if (wmm != NULL)
 				return (wmm);
@@ -4060,7 +4058,6 @@ wlan_acl_mac_set_status(struct snmp_context *ctx, struct snmp_value *val,
 		return (SNMP_ERR_INCONS_VALUE);
 	}
 
-
 	if (wif == NULL || !wif->macsupported)
 		return (SNMP_ERR_INCONS_VALUE);
 
@@ -4091,7 +4088,7 @@ wlan_mesh_first_interface(void)
 {
 	struct wlan_iface *wif;
 
-	SLIST_FOREACH(wif, &wlan_ifaces, w_if)
+	SLIST_FOREACH (wif, &wlan_ifaces, w_if)
 		if (wif->mode == WlanIfaceOperatingModeType_meshPoint &&
 		    wif->status == RowStatus_active)
 			break;
@@ -4172,7 +4169,8 @@ wlan_mesh_get_peer(const struct asn_oid *oid, uint sub, struct wlan_iface **wif)
 }
 
 static struct wlan_peer *
-wlan_mesh_get_next_peer(const struct asn_oid *oid, uint sub, struct wlan_iface **wif)
+wlan_mesh_get_next_peer(const struct asn_oid *oid, uint sub,
+    struct wlan_iface **wif)
 {
 	char wname[IFNAMSIZ];
 	char pmac[IEEE80211_ADDR_LEN];
@@ -4180,7 +4178,7 @@ wlan_mesh_get_next_peer(const struct asn_oid *oid, uint sub, struct wlan_iface *
 
 	if (oid->len - sub == 0) {
 		for (*wif = wlan_mesh_first_interface(); *wif != NULL;
-		    *wif = wlan_mesh_next_interface(*wif)) {
+		     *wif = wlan_mesh_next_interface(*wif)) {
 			wip = SLIST_FIRST(&(*wif)->peerlist);
 			if (wip != NULL)
 				return (wip);
@@ -4228,9 +4226,9 @@ wlan_mesh_find_route(struct wlan_iface *wif, uint8_t *dstmac)
 	if (wif->mode != WlanIfaceOperatingModeType_meshPoint)
 		return (NULL);
 
-	SLIST_FOREACH(wmr, &wif->mesh_routelist, wr)
-		if (memcmp(wmr->imroute.imr_dest, dstmac,
-		    IEEE80211_ADDR_LEN) == 0)
+	SLIST_FOREACH (wmr, &wif->mesh_routelist, wr)
+		if (memcmp(wmr->imroute.imr_dest, dstmac, IEEE80211_ADDR_LEN) ==
+		    0)
 			break;
 
 	return (wmr);
@@ -4262,21 +4260,21 @@ wlan_mesh_add_rtentry(struct wlan_iface *wif, struct wlan_mesh_route *wmr)
 {
 	struct wlan_mesh_route *temp, *prev;
 
-	SLIST_FOREACH(temp, &wif->mesh_routelist, wr)
+	SLIST_FOREACH (temp, &wif->mesh_routelist, wr)
 		if (memcmp(temp->imroute.imr_dest, wmr->imroute.imr_dest,
-		    IEEE80211_ADDR_LEN) == 0)
+			IEEE80211_ADDR_LEN) == 0)
 			return (-1);
 
 	if ((prev = SLIST_FIRST(&wif->mesh_routelist)) == NULL ||
 	    memcmp(wmr->imroute.imr_dest, prev->imroute.imr_dest,
-	    IEEE80211_ADDR_LEN) < 0) {
-	    	SLIST_INSERT_HEAD(&wif->mesh_routelist, wmr, wr);
-	    	return (0);
+		IEEE80211_ADDR_LEN) < 0) {
+		SLIST_INSERT_HEAD(&wif->mesh_routelist, wmr, wr);
+		return (0);
 	}
 
-	SLIST_FOREACH(temp, &wif->mesh_routelist, wr) {
+	SLIST_FOREACH (temp, &wif->mesh_routelist, wr) {
 		if (memcmp(wmr->imroute.imr_dest, temp->imroute.imr_dest,
-		    IEEE80211_ADDR_LEN) < 0)
+			IEEE80211_ADDR_LEN) < 0)
 			break;
 		prev = temp;
 	}
@@ -4308,12 +4306,12 @@ wlan_mesh_update_routes(void)
 		return;
 
 	for (wif = wlan_mesh_first_interface(); wif != NULL;
-	    wif = wlan_mesh_next_interface(wif)) {
+	     wif = wlan_mesh_next_interface(wif)) {
 		/*
 		 * Nuke old entries - XXX - they are likely not to
 		 * change often - reconsider.
 		 */
-		SLIST_FOREACH_SAFE(wmr, &wif->mesh_routelist, wr, twmr)
+		SLIST_FOREACH_SAFE (wmr, &wif->mesh_routelist, wr, twmr)
 			if (wmr->mroute_status == RowStatus_active) {
 				SLIST_REMOVE(&wif->mesh_routelist, wmr,
 				    wlan_mesh_route, wr);
@@ -4325,7 +4323,8 @@ wlan_mesh_update_routes(void)
 }
 
 static struct wlan_mesh_route *
-wlan_mesh_get_route(const struct asn_oid *oid, uint sub, struct wlan_iface **wif)
+wlan_mesh_get_route(const struct asn_oid *oid, uint sub,
+    struct wlan_iface **wif)
 {
 	char wname[IFNAMSIZ];
 	char dstmac[IEEE80211_ADDR_LEN];
@@ -4349,7 +4348,7 @@ wlan_mesh_get_next_route(const struct asn_oid *oid, uint sub,
 
 	if (oid->len - sub == 0) {
 		for (*wif = wlan_mesh_first_interface(); *wif != NULL;
-		    *wif = wlan_mesh_next_interface(*wif)) {
+		     *wif = wlan_mesh_next_interface(*wif)) {
 			wmr = SLIST_FIRST(&(*wif)->mesh_routelist);
 			if (wmr != NULL)
 				return (wmr);
@@ -4424,8 +4423,8 @@ wlan_mesh_route_set_status(struct snmp_context *ctx, struct snmp_value *val,
  * Returns 0 on success, < 0 on error.
  */
 static int
-wlan_init(struct lmodule * mod __unused, int argc __unused,
-     char *argv[] __unused)
+wlan_init(struct lmodule *mod __unused, int argc __unused,
+    char *argv[] __unused)
 {
 	if (wlan_kmodules_load() < 0)
 		return (-1);
@@ -4477,12 +4476,12 @@ wlan_start(void)
 	reg_wlan = or_register(&oid_wlan,
 	    "The MIB module for managing wireless networking.", wlan_module);
 
-	 /* Add the existing wlan interfaces. */
-	 for (ifp = mib_first_if(); ifp != NULL; ifp = mib_next_if(ifp))
+	/* Add the existing wlan interfaces. */
+	for (ifp = mib_first_if(); ifp != NULL; ifp = mib_next_if(ifp))
 		wlan_attach_newif(ifp);
 
-	wlan_data_timer = timer_start_repeat(wlan_poll_ticks,
-	    wlan_poll_ticks, wlan_update_data, NULL, wlan_module);
+	wlan_data_timer = timer_start_repeat(wlan_poll_ticks, wlan_poll_ticks,
+	    wlan_update_data, NULL, wlan_module);
 }
 
 /*
@@ -4495,19 +4494,19 @@ wlan_dump(void)
 	struct wlan_iface *wif;
 
 	for (wif = wlan_first_interface(); wif != NULL;
-	    wif = wlan_next_interface(wif))
+	     wif = wlan_next_interface(wif))
 		syslog(LOG_ERR, "wlan iface %s", wif->wname);
 }
 
-const char wlan_comment[] = \
-"This module implements the BEGEMOT MIB for wireless networking.";
+const char wlan_comment[] =
+    "This module implements the BEGEMOT MIB for wireless networking.";
 
 const struct snmp_module config = {
-	.comment =	wlan_comment,
-	.init =		wlan_init,
-	.fini =		wlan_fini,
-	.start =	wlan_start,
-	.tree =		wlan_ctree,
-	.dump =		wlan_dump,
-	.tree_size =	wlan_CTREE_SIZE,
+	.comment = wlan_comment,
+	.init = wlan_init,
+	.fini = wlan_fini,
+	.start = wlan_start,
+	.tree = wlan_ctree,
+	.dump = wlan_dump,
+	.tree_size = wlan_CTREE_SIZE,
 };

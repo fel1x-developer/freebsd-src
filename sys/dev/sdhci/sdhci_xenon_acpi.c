@@ -24,39 +24,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "opt_mmccam.h"
+#include "opt_soc.h"
+
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/taskqueue.h>
 
+#include <dev/acpica/acpivar.h>
 #include <dev/mmc/bridge.h>
+#include <dev/mmc/mmc_helpers.h>
 #include <dev/mmc/mmcbrvar.h>
 #include <dev/mmc/mmcreg.h>
-
-#include <dev/mmc/mmc_helpers.h>
-
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
-#include <dev/acpica/acpivar.h>
-
 #include <dev/regulator/regulator.h>
-
 #include <dev/sdhci/sdhci.h>
 #include <dev/sdhci/sdhci_xenon.h>
+
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
 
 #include "mmcbr_if.h"
 #include "sdhci_if.h"
 
-#include "opt_mmccam.h"
-#include "opt_soc.h"
-
-static char *sdhci_xenon_hids[] = {
-	"MRVL0002",
-	"MRVL0003",
-	"MRVL0004",
-	NULL
-};
+static char *sdhci_xenon_hids[] = { "MRVL0002", "MRVL0003", "MRVL0004", NULL };
 
 static int
 sdhci_xenon_acpi_probe(device_t dev)
@@ -112,17 +104,17 @@ sdhci_xenon_acpi_attach(device_t dev)
 
 static device_method_t sdhci_xenon_acpi_methods[] = {
 	/* device_if */
-	DEVMETHOD(device_probe,		sdhci_xenon_acpi_probe),
-	DEVMETHOD(device_attach,	sdhci_xenon_acpi_attach),
-	DEVMETHOD(device_detach,	sdhci_xenon_detach),
+	DEVMETHOD(device_probe, sdhci_xenon_acpi_probe),
+	DEVMETHOD(device_attach, sdhci_xenon_acpi_attach),
+	DEVMETHOD(device_detach, sdhci_xenon_detach),
 
-	DEVMETHOD(sdhci_get_card_present,	sdhci_generic_get_card_present),
+	DEVMETHOD(sdhci_get_card_present, sdhci_generic_get_card_present),
 
 	DEVMETHOD_END
 };
 
 DEFINE_CLASS_1(sdhci_xenon, sdhci_xenon_acpi_driver, sdhci_xenon_acpi_methods,
-	sizeof(struct sdhci_xenon_softc), sdhci_xenon_driver);
+    sizeof(struct sdhci_xenon_softc), sdhci_xenon_driver);
 
 DRIVER_MODULE(sdhci_xenon, acpi, sdhci_xenon_acpi_driver, NULL, NULL);
 

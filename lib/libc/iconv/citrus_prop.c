@@ -29,22 +29,21 @@
  *
  */
 
-
 #include <assert.h>
 #include <errno.h>
 #include <limits.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "citrus_namespace.h"
 #include "citrus_bcs.h"
-#include "citrus_region.h"
 #include "citrus_memstream.h"
+#include "citrus_namespace.h"
 #include "citrus_prop.h"
+#include "citrus_region.h"
 
 typedef struct {
 	_citrus_prop_type_t type;
@@ -74,78 +73,78 @@ _citrus_prop_object_uninit(_citrus_prop_object_t *obj)
 
 static const char *xdigit = "0123456789ABCDEF";
 
-#define _CITRUS_PROP_READ_UINT_COMMON(_func_, _type_, _max_)		\
-static int								\
-_citrus_prop_read_##_func_##_common(struct _memstream * __restrict ms,	\
-    _type_ * __restrict result, int base, int neg)			\
-{									\
-	_type_ acc, cutoff;						\
-	int ch, cutlim, n;						\
-	char *p;							\
-									\
-	acc = (_type_)0;						\
-	cutoff = _max_ / base;						\
-	cutlim = _max_ % base;						\
-	for (;;) {							\
-		ch = _memstream_getc(ms);				\
-		p = strchr(xdigit, _bcs_toupper(ch));			\
-		if (p == NULL || (n = (p - xdigit)) >= base)		\
-			break;						\
-		if (acc > cutoff || (acc == cutoff && n > cutlim))	\
-			break;						\
-		acc *= base;						\
-		acc += n;						\
-	}								\
-	_memstream_ungetc(ms, ch);					\
-	*result = neg ? -acc : acc;					\
-	return (0);							\
-}
+#define _CITRUS_PROP_READ_UINT_COMMON(_func_, _type_, _max_)               \
+	static int _citrus_prop_read_##_func_##_common(                    \
+	    struct _memstream *__restrict ms, _type_ *__restrict result,   \
+	    int base, int neg)                                             \
+	{                                                                  \
+		_type_ acc, cutoff;                                        \
+		int ch, cutlim, n;                                         \
+		char *p;                                                   \
+                                                                           \
+		acc = (_type_)0;                                           \
+		cutoff = _max_ / base;                                     \
+		cutlim = _max_ % base;                                     \
+		for (;;) {                                                 \
+			ch = _memstream_getc(ms);                          \
+			p = strchr(xdigit, _bcs_toupper(ch));              \
+			if (p == NULL || (n = (p - xdigit)) >= base)       \
+				break;                                     \
+			if (acc > cutoff || (acc == cutoff && n > cutlim)) \
+				break;                                     \
+			acc *= base;                                       \
+			acc += n;                                          \
+		}                                                          \
+		_memstream_ungetc(ms, ch);                                 \
+		*result = neg ? -acc : acc;                                \
+		return (0);                                                \
+	}
 _CITRUS_PROP_READ_UINT_COMMON(chr, int, UCHAR_MAX)
 _CITRUS_PROP_READ_UINT_COMMON(num, uint64_t, UINT64_MAX)
 #undef _CITRUS_PROP_READ_UINT_COMMON
 
-#define _CITRUS_PROP_READ_INT(_func_, _type_)			\
-static int							\
-_citrus_prop_read_##_func_(struct _memstream * __restrict ms,	\
-    _citrus_prop_object_t * __restrict obj)			\
-{								\
-	int base, ch, neg;					\
-								\
-	_memstream_skip_ws(ms);					\
-	ch = _memstream_getc(ms);				\
-	neg = 0;						\
-	switch (ch) {						\
-	case '-':						\
-		neg = 1;					\
-	case '+':						\
-		ch = _memstream_getc(ms);			\
-	}							\
-	base = 10;						\
-	if (ch == '0') {					\
-		base -= 2;					\
-		ch = _memstream_getc(ms);			\
-		if (ch == 'x' || ch == 'X') {			\
-			ch = _memstream_getc(ms);		\
-			if (_bcs_isxdigit(ch) == 0) {		\
-				_memstream_ungetc(ms, ch);	\
-				obj->u._func_ = 0;		\
-				return (0);			\
-			}					\
-			base += 8;				\
-		}						\
-	} else if (_bcs_isdigit(ch) == 0)			\
-		return (EINVAL);				\
-	_memstream_ungetc(ms, ch);				\
-	return (_citrus_prop_read_##_func_##_common		\
-	    (ms, &obj->u._func_, base, neg));			\
-}
+#define _CITRUS_PROP_READ_INT(_func_, _type_)                      \
+	static int _citrus_prop_read_##_func_(                     \
+	    struct _memstream *__restrict ms,                      \
+	    _citrus_prop_object_t *__restrict obj)                 \
+	{                                                          \
+		int base, ch, neg;                                 \
+                                                                   \
+		_memstream_skip_ws(ms);                            \
+		ch = _memstream_getc(ms);                          \
+		neg = 0;                                           \
+		switch (ch) {                                      \
+		case '-':                                          \
+			neg = 1;                                   \
+		case '+':                                          \
+			ch = _memstream_getc(ms);                  \
+		}                                                  \
+		base = 10;                                         \
+		if (ch == '0') {                                   \
+			base -= 2;                                 \
+			ch = _memstream_getc(ms);                  \
+			if (ch == 'x' || ch == 'X') {              \
+				ch = _memstream_getc(ms);          \
+				if (_bcs_isxdigit(ch) == 0) {      \
+					_memstream_ungetc(ms, ch); \
+					obj->u._func_ = 0;         \
+					return (0);                \
+				}                                  \
+				base += 8;                         \
+			}                                          \
+		} else if (_bcs_isdigit(ch) == 0)                  \
+			return (EINVAL);                           \
+		_memstream_ungetc(ms, ch);                         \
+		return (_citrus_prop_read_##_func_##_common(ms,    \
+		    &obj->u._func_, base, neg));                   \
+	}
 _CITRUS_PROP_READ_INT(chr, int)
 _CITRUS_PROP_READ_INT(num, uint64_t)
 #undef _CITRUS_PROP_READ_INT
 
 static int
-_citrus_prop_read_character_common(struct _memstream * __restrict ms,
-    int * __restrict result)
+_citrus_prop_read_character_common(struct _memstream *__restrict ms,
+    int *__restrict result)
 {
 	int base, ch;
 
@@ -177,14 +176,20 @@ _citrus_prop_read_character_common(struct _memstream * __restrict ms,
 		case 'v':
 			*result = '\v';
 			break;
-		case '0': case '1': case '2': case '3':
-		case '4': case '5': case '6': case '7':
+		case '0':
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
 			_memstream_ungetc(ms, ch);
 			base -= 8;
 			/*FALLTHROUGH*/
 		case 'x':
-			return (_citrus_prop_read_chr_common(ms, result,
-			    base, 0));
+			return (
+			    _citrus_prop_read_chr_common(ms, result, base, 0));
 			/*NOTREACHED*/
 		default:
 			/* unknown escape */
@@ -195,8 +200,8 @@ _citrus_prop_read_character_common(struct _memstream * __restrict ms,
 }
 
 static int
-_citrus_prop_read_character(struct _memstream * __restrict ms,
-    _citrus_prop_object_t * __restrict obj)
+_citrus_prop_read_character(struct _memstream *__restrict ms,
+    _citrus_prop_object_t *__restrict obj)
 {
 	int ch, errnum;
 
@@ -217,8 +222,8 @@ _citrus_prop_read_character(struct _memstream * __restrict ms,
 }
 
 static int
-_citrus_prop_read_bool(struct _memstream * __restrict ms,
-    _citrus_prop_object_t * __restrict obj)
+_citrus_prop_read_bool(struct _memstream *__restrict ms,
+    _citrus_prop_object_t *__restrict obj)
 {
 
 	_memstream_skip_ws(ms);
@@ -244,12 +249,12 @@ _citrus_prop_read_bool(struct _memstream * __restrict ms,
 }
 
 static int
-_citrus_prop_read_str(struct _memstream * __restrict ms,
-    _citrus_prop_object_t * __restrict obj)
+_citrus_prop_read_str(struct _memstream *__restrict ms,
+    _citrus_prop_object_t *__restrict obj)
 {
 	int ch, errnum, quot;
 	char *s, *t;
-#define _CITRUS_PROP_STR_BUFSIZ	512
+#define _CITRUS_PROP_STR_BUFSIZ 512
 	size_t m, n;
 
 	m = _CITRUS_PROP_STR_BUFSIZ;
@@ -267,7 +272,8 @@ _citrus_prop_read_str(struct _memstream * __restrict ms,
 		_memstream_ungetc(ms, quot);
 		quot = EOF;
 		/*FALLTHROUGH*/
-	case '\"': case '\'':
+	case '\"':
+	case '\'':
 		break;
 	default:
 		s[n] = quot;
@@ -285,9 +291,9 @@ _citrus_prop_read_str(struct _memstream * __restrict ms,
 			s = t;
 		}
 		ch = _memstream_getc(ms);
-		if (quot == ch || (quot == EOF &&
-		    (ch == ';' || _bcs_isspace(ch)))) {
-done:
+		if (quot == ch ||
+		    (quot == EOF && (ch == ';' || _bcs_isspace(ch)))) {
+		done:
 			s[n] = '\0';
 			obj->u.str = (const char *)s;
 			return (0);
@@ -306,8 +312,8 @@ done:
 #undef _CITRUS_PROP_STR_BUFSIZ
 }
 
-typedef int (*_citrus_prop_read_type_t)(struct _memstream * __restrict,
-    _citrus_prop_object_t * __restrict);
+typedef int (*_citrus_prop_read_type_t)(struct _memstream *__restrict,
+    _citrus_prop_object_t *__restrict);
 
 static const _citrus_prop_read_type_t readers[] = {
 	_citrus_prop_read_bool,
@@ -317,8 +323,8 @@ static const _citrus_prop_read_type_t readers[] = {
 };
 
 static __inline int
-_citrus_prop_read_symbol(struct _memstream * __restrict ms,
-    char * __restrict s, size_t n)
+_citrus_prop_read_symbol(struct _memstream *__restrict ms, char *__restrict s,
+    size_t n)
 {
 	int ch;
 	size_t m;
@@ -341,11 +347,11 @@ name_found:
 }
 
 static int
-_citrus_prop_parse_element(struct _memstream * __restrict ms,
-    const _citrus_prop_hint_t * __restrict hints, void * __restrict context)
+_citrus_prop_parse_element(struct _memstream *__restrict ms,
+    const _citrus_prop_hint_t *__restrict hints, void *__restrict context)
 {
 	int ch, errnum;
-#define _CITRUS_PROP_HINT_NAME_LEN_MAX	255
+#define _CITRUS_PROP_HINT_NAME_LEN_MAX 255
 	char name[_CITRUS_PROP_HINT_NAME_LEN_MAX + 1];
 	const _citrus_prop_hint_t *hint;
 	_citrus_prop_object_t ostart, oend;
@@ -385,16 +391,16 @@ hint_found:
 			_memstream_skip_ws(ms);
 			ch = _memstream_getc(ms);
 		}
-#define CALL0(_func_)					\
-do {							\
-	errnum = (*hint->cb._func_.func)(context,	\
-	    hint->name,	ostart.u._func_);		\
-} while (0)
-#define CALL1(_func_)					\
-do {							\
-	errnum = (*hint->cb._func_.func)(context,	\
-	    hint->name,	ostart.u._func_, oend.u._func_);\
-} while (0)
+#define CALL0(_func_)                                                 \
+	do {                                                          \
+		errnum = (*hint->cb._func_.func)(context, hint->name, \
+		    ostart.u._func_);                                 \
+	} while (0)
+#define CALL1(_func_)                                                 \
+	do {                                                          \
+		errnum = (*hint->cb._func_.func)(context, hint->name, \
+		    ostart.u._func_, oend.u._func_);                  \
+	} while (0)
 		switch (hint->type) {
 		case _CITRUS_PROP_BOOL:
 			CALL0(boolean);
@@ -425,8 +431,8 @@ do {							\
 }
 
 int
-_citrus_prop_parse_variable(const _citrus_prop_hint_t * __restrict hints,
-    void * __restrict context, const void *var, size_t lenvar)
+_citrus_prop_parse_variable(const _citrus_prop_hint_t *__restrict hints,
+    void *__restrict context, const void *var, size_t lenvar)
 {
 	struct _memstream ms;
 	int ch, errnum;

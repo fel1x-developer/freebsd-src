@@ -28,21 +28,22 @@
  */
 
 #include <sys/types.h>
-#include <sys/signalvar.h>
-#include <sys/rtprio.h>
 #include <sys/mman.h>
+#include <sys/rtprio.h>
+#include <sys/signalvar.h>
+
 #include <pthread.h>
 
 #include "thr_private.h"
 
 /*#define DEBUG_THREAD_KERN */
 #ifdef DEBUG_THREAD_KERN
-#define DBG_MSG		stdout_debug
+#define DBG_MSG stdout_debug
 #else
 #define DBG_MSG(x...)
 #endif
 
-static struct umutex	addr_lock;
+static struct umutex addr_lock;
 static struct wake_addr *wake_addr_head;
 static struct wake_addr default_wake_addr;
 
@@ -64,9 +65,9 @@ _thr_assert_lock_level(void)
 
 int
 _rtp_to_schedparam(const struct rtprio *rtp, int *policy,
-	struct sched_param *param)
+    struct sched_param *param)
 {
-	switch(rtp->type) {
+	switch (rtp->type) {
 	case RTP_PRIO_REALTIME:
 		*policy = SCHED_RR;
 		param->sched_priority = RTP_PRIO_MAX - rtp->prio;
@@ -85,9 +86,9 @@ _rtp_to_schedparam(const struct rtprio *rtp, int *policy,
 
 int
 _schedparam_to_rtp(int policy, const struct sched_param *param,
-	struct rtprio *rtp)
+    struct rtprio *rtp)
 {
-	switch(policy) {
+	switch (policy) {
 	case SCHED_RR:
 		rtp->type = RTP_PRIO_REALTIME;
 		rtp->prio = RTP_PRIO_MAX - param->sched_priority;
@@ -154,12 +155,11 @@ _thr_alloc_wake_addr(void)
 	if (wake_addr_head == NULL) {
 		unsigned i;
 		unsigned pagesize = getpagesize();
-		struct wake_addr *pp = (struct wake_addr *)
-			mmap(NULL, pagesize, PROT_READ|PROT_WRITE,
-			MAP_ANON|MAP_PRIVATE, -1, 0);
-		for (i = 1; i < pagesize/sizeof(struct wake_addr); ++i)
-			pp[i].link = &pp[i+1];
-		pp[i-1].link = NULL;	
+		struct wake_addr *pp = (struct wake_addr *)mmap(NULL, pagesize,
+		    PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
+		for (i = 1; i < pagesize / sizeof(struct wake_addr); ++i)
+			pp[i].link = &pp[i + 1];
+		pp[i - 1].link = NULL;
 		wake_addr_head = &pp[1];
 		p = &pp[0];
 	} else {
@@ -187,14 +187,14 @@ _thr_release_wake_addr(struct wake_addr *wa)
 /* Sleep on thread wakeup address */
 int
 _thr_sleep(struct pthread *curthread, int clockid,
-	const struct timespec *abstime)
+    const struct timespec *abstime)
 {
 
 	if (curthread->wake_addr->value != 0)
 		return (0);
 
 	return _thr_umtx_timedwait_uint(&curthread->wake_addr->value, 0,
-                 clockid, abstime, 0);
+	    clockid, abstime, 0);
 }
 
 void

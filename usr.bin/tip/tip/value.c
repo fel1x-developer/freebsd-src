@@ -34,7 +34,7 @@
 
 #include "tip.h"
 
-#define MIDDLE	35
+#define MIDDLE 35
 
 static value_t *vlookup(char *);
 static void vassign(value_t *, char *);
@@ -56,11 +56,11 @@ vinit(void)
 	FILE *fp;
 
 	for (p = vtable; p->v_name != NULL; p++) {
-		if (p->v_type&ENVIRON)
+		if (p->v_type & ENVIRON)
 			if ((cp = getenv(p->v_name)))
 				p->v_value = cp;
-		if (p->v_type&IREMOTE) {
-			switch (p->v_type&TMASK) {
+		if (p->v_type & IREMOTE) {
+			switch (p->v_type & TMASK) {
 			case STRING:
 				p->v_value = *(char **)p->v_value;
 				break;
@@ -82,7 +82,7 @@ vinit(void)
 	 */
 	cp = value(HOME);
 	if (cp == NULL) {
-		(void)fprintf(stderr, 
+		(void)fprintf(stderr,
 		    "$HOME not set. Skipping check for ~/.tiprc\n");
 	} else if (strlen(cp) + sizeof("/.tiprc") > sizeof(file)) {
 		(void)fprintf(stderr, "Home directory path too long: %s\n",
@@ -92,7 +92,7 @@ vinit(void)
 		if ((fp = fopen(file, "r")) != NULL) {
 			char *tp;
 
-			while (fgets(file, sizeof(file)-1, fp) != NULL) {
+			while (fgets(file, sizeof(file) - 1, fp) != NULL) {
 				if (vflag)
 					printf("set %s", file);
 				if ((tp = strrchr(file, '\n')))
@@ -105,7 +105,7 @@ vinit(void)
 	/*
 	 * To allow definition of exception prior to fork
 	 */
-	vtable[EXCEPTIONS].v_access &= ~(WRITE<<PUBLIC);
+	vtable[EXCEPTIONS].v_access &= ~(WRITE << PUBLIC);
 }
 
 /*VARARGS1*/
@@ -117,17 +117,17 @@ vassign(value_t *p, char *v)
 		return;
 	}
 
-	switch (p->v_type&TMASK) {
+	switch (p->v_type & TMASK) {
 	case STRING:
 		if (p->v_value && equal(p->v_value, v))
 			return;
-		if (!(p->v_type&(ENVIRON|INIT)))
+		if (!(p->v_type & (ENVIRON | INIT)))
 			free(p->v_value);
 		if ((p->v_value = strdup(v)) == NOSTR) {
 			printf("out of core\r\n");
 			return;
 		}
-		p->v_type &= ~(ENVIRON|INIT);
+		p->v_type &= ~(ENVIRON | INIT);
 		break;
 	case NUMBER:
 		if (number(p->v_value) == number(v))
@@ -181,7 +181,7 @@ vtoken(char *s)
 		*cp = '\0';
 		if ((p = vlookup(s))) {
 			cp++;
-			if (p->v_type&NUMBER)
+			if (p->v_type & NUMBER)
 				vassign(p, (char *)(intptr_t)atoi(cp));
 			else {
 				if (strcmp(s, "record") == 0)
@@ -200,7 +200,7 @@ vtoken(char *s)
 		if (*s != '!')
 			p = vlookup(s);
 		else
-			p = vlookup(s+1);
+			p = vlookup(s + 1);
 		if (p != NOVAL) {
 			vassign(p, s);
 			return;
@@ -218,7 +218,7 @@ vprint(value_t *p)
 		while (col++ < MIDDLE)
 			putchar(' ');
 	col += size(p->v_name);
-	switch (p->v_type&TMASK) {
+	switch (p->v_type & TMASK) {
 
 	case BOOL:
 		if (boolean(p->v_value) == FALSE) {
@@ -263,11 +263,11 @@ vprint(value_t *p)
 static int
 vaccess(unsigned int mode, unsigned int rw)
 {
-	if (mode & (rw<<PUBLIC))
+	if (mode & (rw << PUBLIC))
 		return (1);
-	if (mode & (rw<<PRIVATE))
+	if (mode & (rw << PRIVATE))
 		return (1);
-	return ((mode & (rw<<ROOT)) && getuid() == 0);
+	return ((mode & (rw << ROOT)) && getuid() == 0);
 }
 
 static value_t *
@@ -301,7 +301,7 @@ vinterp(char *s, int stop)
 			num = 0;
 			c = *s++;
 			if (c >= '0' && c <= '7')
-				num = (num<<3)+(c-'0');
+				num = (num << 3) + (c - '0');
 			else {
 				char *q = "n\nr\rt\tb\bf\f";
 
@@ -315,9 +315,9 @@ vinterp(char *s, int stop)
 				break;
 			}
 			if ((c = *s++) >= '0' && c <= '7') {
-				num = (num<<3)+(c-'0');
+				num = (num << 3) + (c - '0');
 				if ((c = *s++) >= '0' && c <= '7')
-					num = (num<<3)+(c-'0');
+					num = (num << 3) + (c - '0');
 				else
 					s--;
 			} else
@@ -330,7 +330,7 @@ vinterp(char *s, int stop)
 		}
 	}
 	*p = '\0';
-	return (c == stop ? s-1 : NULL);
+	return (c == stop ? s - 1 : NULL);
 }
 
 /*
@@ -344,7 +344,7 @@ vstring(char *s, char *v)
 	p = vlookup(s);
 	if (p == 0)
 		return (1);
-	if (p->v_type&NUMBER)
+	if (p->v_type & NUMBER)
 		vassign(p, (char *)(intptr_t)atoi(v));
 	else {
 		if (strcmp(s, "record") == 0)

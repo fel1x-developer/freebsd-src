@@ -32,6 +32,7 @@
  * https://android.googlesource.com/platform/external/qemu/+/master/docs/GOLDFISH-VIRTUAL-HARDWARE.TXT
  */
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -40,24 +41,23 @@
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/types.h>
+#include <sys/rman.h>
+
+#include <machine/bus.h>
+#include <machine/resource.h>
 
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include <machine/bus.h>
-#include <machine/resource.h>
-#include <sys/rman.h>
-
 #include "clock_if.h"
 
-#define	GOLDFISH_RTC_TIME_LOW	0x00
-#define	GOLDFISH_RTC_TIME_HIGH	0x04
+#define GOLDFISH_RTC_TIME_LOW 0x00
+#define GOLDFISH_RTC_TIME_HIGH 0x04
 
 struct goldfish_rtc_softc {
-	struct resource	*res;
-	int		rid;
-	struct mtx	mtx;
+	struct resource *res;
+	int rid;
+	struct mtx mtx;
 };
 
 static int
@@ -165,13 +165,13 @@ goldfish_rtc_settime(device_t dev, struct timespec *ts)
 
 static device_method_t goldfish_rtc_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		goldfish_rtc_probe),
-	DEVMETHOD(device_attach,	goldfish_rtc_attach),
-	DEVMETHOD(device_detach,	goldfish_rtc_detach),
+	DEVMETHOD(device_probe, goldfish_rtc_probe),
+	DEVMETHOD(device_attach, goldfish_rtc_attach),
+	DEVMETHOD(device_detach, goldfish_rtc_detach),
 
 	/* Clock interface */
-	DEVMETHOD(clock_gettime,	goldfish_rtc_gettime),
-	DEVMETHOD(clock_settime,	goldfish_rtc_settime),
+	DEVMETHOD(clock_gettime, goldfish_rtc_gettime),
+	DEVMETHOD(clock_settime, goldfish_rtc_settime),
 
 	DEVMETHOD_END,
 };

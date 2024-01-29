@@ -34,43 +34,42 @@
 #include <sys/sysctl.h>
 #include <sys/watchdog.h>
 
-#include <dev/superio/superio.h>
-
 #include <machine/bus.h>
 #include <machine/resource.h>
 
-#define NCTHWM_FAN_MAX                 5
+#include <dev/superio/superio.h>
+
+#define NCTHWM_FAN_MAX 5
 
 #define NCTHWM_BANK_SELECT 0x4e
-#define NCTHWM_VENDOR_ID   0x4f
+#define NCTHWM_VENDOR_ID 0x4f
 
-#define NCTHWM_VERBOSE_PRINTF(dev, ...)         \
-	do {                                        \
-		if (__predict_false(bootverbose))       \
-			device_printf(dev, __VA_ARGS__);    \
+#define NCTHWM_VERBOSE_PRINTF(dev, ...)                  \
+	do {                                             \
+		if (__predict_false(bootverbose))        \
+			device_printf(dev, __VA_ARGS__); \
 	} while (0)
 
 struct ncthwm_softc {
-	device_t              dev;
+	device_t dev;
 	struct ncthwm_device *nctdevp;
-	struct resource      *iores;
-	int                   iorid;
+	struct resource *iores;
+	int iorid;
 };
 
-struct ncthwm_fan_info
-{
+struct ncthwm_fan_info {
 	const char *name;
-	uint8_t     low_byte_offset;
-	uint8_t     high_byte_offset;
+	uint8_t low_byte_offset;
+	uint8_t high_byte_offset;
 };
 
 struct ncthwm_device {
-	uint16_t                 devid;
-	const char              *descr;
-	uint8_t                  base_offset;
-	uint8_t                  fan_bank;
-	uint8_t                  fan_count;
-	struct ncthwm_fan_info   fan_info[NCTHWM_FAN_MAX];
+	uint16_t devid;
+	const char *descr;
+	uint8_t base_offset;
+	uint8_t fan_bank;
+	uint8_t fan_count;
+	struct ncthwm_fan_info fan_info[NCTHWM_FAN_MAX];
 } ncthwm_devices[] = {
 	{
 		.devid       = 0xc562,
@@ -104,7 +103,7 @@ struct ncthwm_device {
 static struct ncthwm_device *
 ncthwm_lookup_device(device_t dev)
 {
-	int      i;
+	int i;
 	uint16_t devid;
 
 	devid = superio_devid(dev);
@@ -132,9 +131,9 @@ ncthwm_read(struct ncthwm_softc *sc, uint8_t reg)
 static int
 ncthwm_query_fan_speed(SYSCTL_HANDLER_ARGS)
 {
-	struct ncthwm_softc    *sc;
+	struct ncthwm_softc *sc;
 	struct ncthwm_fan_info *fan;
-	uint16_t                val;
+	uint16_t val;
 
 	sc = arg1;
 	if (sc == NULL)
@@ -149,11 +148,12 @@ ncthwm_query_fan_speed(SYSCTL_HANDLER_ARGS)
 	KASSERT(sc->iores != NULL, ("Unreachable"));
 
 	ncthwm_write(sc, NCTHWM_BANK_SELECT, sc->nctdevp->fan_bank);
-	val  = ncthwm_read(sc, fan->high_byte_offset) << 8;
+	val = ncthwm_read(sc, fan->high_byte_offset) << 8;
 	val |= ncthwm_read(sc, fan->low_byte_offset);
 
-	NCTHWM_VERBOSE_PRINTF(sc->dev, "%s: read %u from bank %u offset 0x%x-0x%x\n",
-		fan->name, val, sc->nctdevp->fan_bank, fan->high_byte_offset, fan->low_byte_offset);
+	NCTHWM_VERBOSE_PRINTF(sc->dev,
+	    "%s: read %u from bank %u offset 0x%x-0x%x\n", fan->name, val,
+	    sc->nctdevp->fan_bank, fan->high_byte_offset, fan->low_byte_offset);
 
 	return (sysctl_handle_16(oidp, &val, 0, req));
 }
@@ -162,12 +162,13 @@ static int
 ncthwm_probe(device_t dev)
 {
 	struct ncthwm_device *nctdevp;
-	uint8_t               ldn;
+	uint8_t ldn;
 
 	ldn = superio_get_ldn(dev);
 
 	if (superio_vendor(dev) != SUPERIO_VENDOR_NUVOTON) {
-		NCTHWM_VERBOSE_PRINTF(dev, "ldn 0x%x not a Nuvoton device\n", ldn);
+		NCTHWM_VERBOSE_PRINTF(dev, "ldn 0x%x not a Nuvoton device\n",
+		    ldn);
 		return (ENXIO);
 	}
 	if (superio_get_type(dev) != SUPERIO_DEV_HWM) {
@@ -188,10 +189,10 @@ static int
 ncthwm_attach(device_t dev)
 {
 	struct ncthwm_softc *sc;
-	int                  i;
-	uint16_t             iobase;
+	int i;
+	uint16_t iobase;
 
-	sc      = device_get_softc(dev);
+	sc = device_get_softc(dev);
 	sc->dev = dev;
 
 	sc->nctdevp = ncthwm_lookup_device(dev);
@@ -200,14 +201,15 @@ ncthwm_attach(device_t dev)
 		return (ENXIO);
 	}
 
-	iobase    = superio_get_iobase(dev) + sc->nctdevp->base_offset;
+	iobase = superio_get_iobase(dev) + sc->nctdevp->base_offset;
 	sc->iorid = 0;
 	if (bus_set_resource(dev, SYS_RES_IOPORT, sc->iorid, iobase, 2) != 0) {
-		device_printf(dev, "failed to set I/O port resource at 0x%x\n", iobase);
+		device_printf(dev, "failed to set I/O port resource at 0x%x\n",
+		    iobase);
 		return (ENXIO);
 	}
-	sc->iores = bus_alloc_resource_any(dev, SYS_RES_IOPORT,
-		&sc->iorid, RF_ACTIVE);
+	sc->iores = bus_alloc_resource_any(dev, SYS_RES_IOPORT, &sc->iorid,
+	    RF_ACTIVE);
 	if (sc->iores == NULL) {
 		device_printf(dev, "can't map I/O space at 0x%x\n", iobase);
 		return (ENXIO);
@@ -217,10 +219,9 @@ ncthwm_attach(device_t dev)
 	/* Register FAN sysctl */
 	for (i = 0; i < sc->nctdevp->fan_count; i++) {
 		SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev),
-			SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO,
-			sc->nctdevp->fan_info[i].name,
-			CTLTYPE_U16 | CTLFLAG_RD, sc, i,
-			ncthwm_query_fan_speed, "SU", "Fan speed in RPM");
+		    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO,
+		    sc->nctdevp->fan_info[i].name, CTLTYPE_U16 | CTLFLAG_RD, sc,
+		    i, ncthwm_query_fan_speed, "SU", "Fan speed in RPM");
 	}
 
 	return (0);
@@ -239,19 +240,16 @@ ncthwm_detach(device_t dev)
 
 static device_method_t ncthwm_methods[] = {
 	/* Methods from the device interface */
-	DEVMETHOD(device_probe,		ncthwm_probe),
-	DEVMETHOD(device_attach,	ncthwm_attach),
-	DEVMETHOD(device_detach,	ncthwm_detach),
+	DEVMETHOD(device_probe, ncthwm_probe),
+	DEVMETHOD(device_attach, ncthwm_attach),
+	DEVMETHOD(device_detach, ncthwm_detach),
 
 	/* Terminate method list */
 	{ 0, 0 }
 };
 
-static driver_t ncthwm_driver = {
-	"ncthwm",
-	ncthwm_methods,
-	sizeof (struct ncthwm_softc)
-};
+static driver_t ncthwm_driver = { "ncthwm", ncthwm_methods,
+	sizeof(struct ncthwm_softc) };
 
 DRIVER_MODULE(ncthwm, superio, ncthwm_driver, NULL, NULL);
 MODULE_DEPEND(ncthwm, superio, 1, 1, 1);

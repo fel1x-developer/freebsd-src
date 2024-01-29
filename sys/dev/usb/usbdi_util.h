@@ -32,55 +32,50 @@ struct cv;
 
 struct usb_idesc_parse_state {
 	struct usb_descriptor *desc;
-	uint8_t iface_index;		/* current interface index */
+	uint8_t iface_index; /* current interface index */
 	uint8_t iface_no_last;
-	uint8_t iface_index_alt;	/* current alternate setting */
+	uint8_t iface_index_alt; /* current alternate setting */
 };
 
 /* prototypes */
 
-usb_error_t usbd_do_request_proc(struct usb_device *udev, struct usb_process *pproc,
-		    struct usb_device_request *req, void *data, uint16_t flags,
-		    uint16_t *actlen, usb_timeout_t timeout);
+usb_error_t usbd_do_request_proc(struct usb_device *udev,
+    struct usb_process *pproc, struct usb_device_request *req, void *data,
+    uint16_t flags, uint16_t *actlen, usb_timeout_t timeout);
 
 struct usb_descriptor *usb_desc_foreach(struct usb_config_descriptor *cd,
-	    struct usb_descriptor *desc);
-struct usb_interface_descriptor *usb_idesc_foreach(
-	    struct usb_config_descriptor *cd,
-	    struct usb_idesc_parse_state *ps);
-struct usb_endpoint_descriptor *usb_edesc_foreach(
-	    struct usb_config_descriptor *cd,
-	    struct usb_endpoint_descriptor *ped);
-struct usb_endpoint_ss_comp_descriptor *usb_ed_comp_foreach(
-	    struct usb_config_descriptor *cd,
-	    struct usb_endpoint_ss_comp_descriptor *ped);
-uint8_t usbd_get_no_descriptors(struct usb_config_descriptor *cd,
-	    uint8_t type);
+    struct usb_descriptor *desc);
+struct usb_interface_descriptor *
+usb_idesc_foreach(struct usb_config_descriptor *cd,
+    struct usb_idesc_parse_state *ps);
+struct usb_endpoint_descriptor *
+usb_edesc_foreach(struct usb_config_descriptor *cd,
+    struct usb_endpoint_descriptor *ped);
+struct usb_endpoint_ss_comp_descriptor *
+usb_ed_comp_foreach(struct usb_config_descriptor *cd,
+    struct usb_endpoint_ss_comp_descriptor *ped);
+uint8_t usbd_get_no_descriptors(struct usb_config_descriptor *cd, uint8_t type);
 uint8_t usbd_get_no_alts(struct usb_config_descriptor *cd,
-	    struct usb_interface_descriptor *id);
+    struct usb_interface_descriptor *id);
 
 usb_error_t usbd_req_get_report(struct usb_device *udev, struct mtx *mtx,
-		    void *data, uint16_t len, uint8_t iface_index, uint8_t type,
-		    uint8_t id);
+    void *data, uint16_t len, uint8_t iface_index, uint8_t type, uint8_t id);
 usb_error_t usbd_req_get_report_descriptor(struct usb_device *udev,
-		    struct mtx *mtx, void *d, uint16_t size,
-		    uint8_t iface_index);
+    struct mtx *mtx, void *d, uint16_t size, uint8_t iface_index);
 usb_error_t usbd_req_get_string_any(struct usb_device *udev, struct mtx *mtx,
-		    char *buf, uint16_t len, uint8_t string_index);
+    char *buf, uint16_t len, uint8_t string_index);
 usb_error_t usbd_req_get_string_desc(struct usb_device *udev, struct mtx *mtx,
-		    void *sdesc, uint16_t max_len, uint16_t lang_id,
-		    uint8_t string_index);
+    void *sdesc, uint16_t max_len, uint16_t lang_id, uint8_t string_index);
 usb_error_t usbd_req_set_config(struct usb_device *udev, struct mtx *mtx,
-		    uint8_t conf);
+    uint8_t conf);
 usb_error_t usbd_req_set_alt_interface_no(struct usb_device *udev,
-		    struct mtx *mtx, uint8_t iface_index, uint8_t alt_no);
+    struct mtx *mtx, uint8_t iface_index, uint8_t alt_no);
 usb_error_t usbd_req_set_idle(struct usb_device *udev, struct mtx *mtx,
-		    uint8_t iface_index, uint8_t duration, uint8_t id);
+    uint8_t iface_index, uint8_t duration, uint8_t id);
 usb_error_t usbd_req_set_protocol(struct usb_device *udev, struct mtx *mtx,
-		    uint8_t iface_index, uint16_t report);
+    uint8_t iface_index, uint16_t report);
 usb_error_t usbd_req_set_report(struct usb_device *udev, struct mtx *mtx,
-		    void *data, uint16_t len, uint8_t iface_index,
-		    uint8_t type, uint8_t id);
+    void *data, uint16_t len, uint8_t iface_index, uint8_t type, uint8_t id);
 
 /* The following functions will not return NULL strings. */
 

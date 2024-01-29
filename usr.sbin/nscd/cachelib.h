@@ -27,48 +27,42 @@
 #ifndef __NSCD_CACHELIB_H__
 #define __NSCD_CACHELIB_H__
 
-#include "hashtable.h"
 #include "cacheplcs.h"
+#include "hashtable.h"
 
-enum cache_entry_t	{
-	CET_COMMON = 0,	/* cache item is atomic */
+enum cache_entry_t {
+	CET_COMMON = 0, /* cache item is atomic */
 	CET_MULTIPART	/* cache item is formed part by part */
 };
 
 enum cache_transformation_t {
-	CTT_FLUSH = 0,	/* flush the cache - delete all obsolete items */
-	CTT_CLEAR = 1	/* delete all items in the cache */
+	CTT_FLUSH = 0, /* flush the cache - delete all obsolete items */
+	CTT_CLEAR = 1  /* delete all items in the cache */
 };
 
 /* cache deletion policy type enum */
 enum cache_policy_t {
-	CPT_FIFO = 0, 	/* first-in first-out */
-	CPT_LRU = 1,	/* least recently used */
-	CPT_LFU = 2 	/* least frequently used */
+	CPT_FIFO = 0, /* first-in first-out */
+	CPT_LRU = 1,  /* least recently used */
+	CPT_LFU = 2   /* least frequently used */
 };
 
 /* multipart sessions can be used for reading and writing */
-enum cache_mp_session_t {
-	CMPT_READ_SESSION,
-	CMPT_WRITE_SESSION
-};
+enum cache_mp_session_t { CMPT_READ_SESSION, CMPT_WRITE_SESSION };
 
 /*
  * When doing partial transformations of entries (which are applied for
  * elements with keys, that contain specified buffer in its left or
  * right part), this enum will show the needed position of the key part.
  */
-enum part_position_t {
-	KPPT_LEFT,
-	KPPT_RIGHT
-};
+enum part_position_t { KPPT_LEFT, KPPT_RIGHT };
 
 /* num_levels attribute is obsolete, i think - user can always emulate it
  * by using one entry.
  * get_time_func is needed to have the clocks-independent counter
  */
 struct cache_params {
-	void	(*get_time_func)(struct timeval *);
+	void (*get_time_func)(struct timeval *);
 };
 
 /*
@@ -77,45 +71,45 @@ struct cache_params {
  */
 struct cache_entry_params {
 	enum cache_entry_t entry_type;
-	char	*entry_name;
+	char *entry_name;
 };
 
 /* params, used for most entries */
 struct common_cache_entry_params {
 	struct cache_entry_params cep;
 
-	size_t	cache_entries_size;
+	size_t cache_entries_size;
 
-	size_t	max_elemsize;		/* if 0 then no check is made */
-	size_t	satisf_elemsize;	/* if entry size is exceeded,
-					 * this number of elements will be left,
-					 * others will be deleted */
-	int	confidence_threshold;	/* number matching replies required */
-	struct timeval	max_lifetime;	/* if 0 then no check is made */
-	enum cache_policy_t policy;	/* policy used for transformations */
+	size_t max_elemsize;	     /* if 0 then no check is made */
+	size_t satisf_elemsize;	     /* if entry size is exceeded,
+				      * this number of elements will be left,
+				      * others will be deleted */
+	int confidence_threshold;    /* number matching replies required */
+	struct timeval max_lifetime; /* if 0 then no check is made */
+	enum cache_policy_t policy;  /* policy used for transformations */
 };
 
 /* params, used for multipart entries */
-struct	mp_cache_entry_params {
+struct mp_cache_entry_params {
 	struct cache_entry_params cep;
 
 	/* unique fields */
-	size_t	max_elemsize;	/* if 0 then no check is made */
-	size_t	max_sessions;	/* maximum number of active sessions */
+	size_t max_elemsize; /* if 0 then no check is made */
+	size_t max_sessions; /* maximum number of active sessions */
 
-	struct timeval	max_lifetime;	/* maximum elements lifetime */
+	struct timeval max_lifetime; /* maximum elements lifetime */
 };
 
 struct cache_ht_item_data_ {
-    	/* key is the bytes sequence only - not the null-terminated string */
-	char	*key;
-    	size_t	key_size;
+	/* key is the bytes sequence only - not the null-terminated string */
+	char *key;
+	size_t key_size;
 
-	char	*value;
-	size_t	value_size;
+	char *value;
+	size_t value_size;
 
 	struct cache_policy_item_ *fifo_policy_item;
-	int	confidence;	/* incremented for each verification */
+	int confidence; /* incremented for each verification */
 };
 
 struct cache_ht_item_ {
@@ -123,12 +117,12 @@ struct cache_ht_item_ {
 };
 
 struct cache_entry_ {
-	char	*name;
+	char *name;
 	struct cache_entry_params *params;
 };
 
 struct cache_common_entry_ {
-	char	*name;
+	char *name;
 	struct cache_entry_params *params;
 
 	struct common_cache_entry_params common_params;
@@ -145,25 +139,25 @@ struct cache_common_entry_ {
 	struct cache_policy_ **policies;
 	size_t policies_size;
 
-	void	(*get_time_func)(struct timeval *);
+	void (*get_time_func)(struct timeval *);
 };
 
 struct cache_mp_data_item_ {
-	char	*value;
-	size_t	value_size;
+	char *value;
+	size_t value_size;
 
 	TAILQ_ENTRY(cache_mp_data_item_) entries;
 };
 
 struct cache_mp_write_session_ {
-	struct cache_mp_entry_	*parent_entry;
+	struct cache_mp_entry_ *parent_entry;
 
 	/*
 	 * All items are accumulated in this queue. When the session is
 	 * committed, they all will be copied to the multipart entry.
 	 */
 	TAILQ_HEAD(cache_mp_data_item_head, cache_mp_data_item_) items;
-	size_t	items_size;
+	size_t items_size;
 
 	TAILQ_ENTRY(cache_mp_write_session_) entries;
 };
@@ -176,18 +170,18 @@ struct cache_mp_read_session_ {
 };
 
 struct cache_mp_entry_ {
-	char	*name;
+	char *name;
 	struct cache_entry_params *params;
 
 	struct mp_cache_entry_params mp_params;
 
 	/* All opened write sessions */
 	TAILQ_HEAD(write_sessions_head, cache_mp_write_session_) ws_head;
-	size_t	ws_size;
+	size_t ws_size;
 
 	/* All opened read sessions */
 	TAILQ_HEAD(read_sessions_head, cache_mp_read_session_) rs_head;
-	size_t	rs_size;
+	size_t rs_size;
 
 	/*
 	 * completed_write_session is the committed write sessions. All read
@@ -198,32 +192,32 @@ struct cache_mp_entry_ {
 	 * pending_write_session as soon as it won't be used by any of
 	 * the read sessions.
 	 */
-	struct cache_mp_write_session_	*completed_write_session;
-	struct cache_mp_write_session_	*pending_write_session;
-	struct timeval	creation_time;
-	struct timeval	last_request_time;
+	struct cache_mp_write_session_ *completed_write_session;
+	struct cache_mp_write_session_ *pending_write_session;
+	struct timeval creation_time;
+	struct timeval last_request_time;
 
-	void	(*get_time_func)(struct timeval *);
+	void (*get_time_func)(struct timeval *);
 };
 
 struct cache_ {
 	struct cache_params params;
 
 	struct cache_entry_ **entries;
-	size_t	entries_capacity;
-	size_t	entries_size;
+	size_t entries_capacity;
+	size_t entries_size;
 };
 
 /* simple abstractions - for not to write "struct" every time */
-typedef struct cache_		*cache;
-typedef struct cache_entry_	*cache_entry;
-typedef struct cache_mp_write_session_	*cache_mp_write_session;
-typedef struct cache_mp_read_session_	*cache_mp_read_session;
+typedef struct cache_ *cache;
+typedef struct cache_entry_ *cache_entry;
+typedef struct cache_mp_write_session_ *cache_mp_write_session;
+typedef struct cache_mp_read_session_ *cache_mp_read_session;
 
-#define INVALID_CACHE		(NULL)
-#define INVALID_CACHE_ENTRY	(NULL)
-#define INVALID_CACHE_MP_WRITE_SESSION	(NULL)
-#define INVALID_CACHE_MP_READ_SESSION	(NULL)
+#define INVALID_CACHE (NULL)
+#define INVALID_CACHE_ENTRY (NULL)
+#define INVALID_CACHE_MP_WRITE_SESSION (NULL)
+#define INVALID_CACHE_MP_READ_SESSION (NULL)
 
 /*
  * NOTE: all cache operations are thread-unsafe. You must ensure thread-safety
@@ -256,6 +250,6 @@ void close_cache_mp_read_session(cache_mp_read_session);
 /* transformation routines */
 int transform_cache_entry(cache_entry, enum cache_transformation_t);
 int transform_cache_entry_part(cache_entry, enum cache_transformation_t,
-	const char *, size_t, enum part_position_t);
+    const char *, size_t, enum part_position_t);
 
 #endif

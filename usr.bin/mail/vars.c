@@ -29,8 +29,8 @@
  * SUCH DAMAGE.
  */
 
-#include "rcv.h"
 #include "extern.h"
+#include "rcv.h"
 
 /*
  * Mail -- a mail program
@@ -55,8 +55,7 @@ assign(const char *name, const char *value)
 		vp->v_name = vcopy(name);
 		vp->v_link = variables[h];
 		variables[h] = vp;
-	}
-	else
+	} else
 		vfree(vp->v_value);
 	vp->v_value = vcopy(value);
 }

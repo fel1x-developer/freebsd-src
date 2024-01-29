@@ -4,7 +4,7 @@
  *
  * Copyright (c) 1999 Whistle Communications, Inc.
  * All rights reserved.
- * 
+ *
  * Subject to the following obligations and disclaimer of warranty, use and
  * redistribution of this software, in source or object code forms, with or
  * without modifications are expressly permitted by Whistle Communications;
@@ -15,7 +15,7 @@
  *    Communications, Inc. trademarks, including the mark "WHISTLE
  *    COMMUNICATIONS" on advertising, endorsements, or otherwise except as
  *    such appears in the above copyright notice or in the software.
- * 
+ *
  * THIS SOFTWARE IS BEING PROVIDED BY WHISTLE COMMUNICATIONS "AS IS", AND
  * TO THE MAXIMUM EXTENT PERMITTED BY LAW, WHISTLE COMMUNICATIONS MAKES NO
  * REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED, REGARDING THIS SOFTWARE,
@@ -38,6 +38,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <err.h>
 #include <netgraph.h>
 #include <stdio.h>
@@ -50,16 +51,13 @@
 
 static int MsgCmd(int ac, char **av);
 
-const struct ngcmd msg_cmd = {
-	MsgCmd,
-	"msg path command [args ... ]",
+const struct ngcmd msg_cmd = { MsgCmd, "msg path command [args ... ]",
 	"Send a netgraph control message to the node at \"path\"",
 	"The msg command constructs a netgraph control message from the"
 	" command name and ASCII arguments (if any) and sends that message"
 	" to the node.  It does this by first asking the node to convert"
 	" the ASCII message into binary format, and resending the result.",
-	{ "cmd" }
-};
+	{ "cmd" } };
 
 static int
 MsgCmd(int ac, char **av)
@@ -82,8 +80,7 @@ MsgCmd(int ac, char **av)
 		return (CMDRTN_ERROR);
 	}
 	for (*buf = '\0', i = 3; i < ac; i++) {
-		snprintf(buf + strlen(buf),
-		    len - strlen(buf), " %s", av[i]);
+		snprintf(buf + strlen(buf), len - strlen(buf), " %s", av[i]);
 	}
 
 	/* Send it */
@@ -134,9 +131,9 @@ MsgRead(void)
 	}
 
 	/* Ask originating node to convert message to ASCII */
-	if (NgSendMsg(csock, path, NGM_GENERIC_COOKIE,
-	      NGM_BINARY2ASCII, m, sizeof(*m) + m->header.arglen) < 0
-	    || NgAllocRecvMsg(csock, &m2, NULL) < 0) {
+	if (NgSendMsg(csock, path, NGM_GENERIC_COOKIE, NGM_BINARY2ASCII, m,
+		sizeof(*m) + m->header.arglen) < 0 ||
+	    NgAllocRecvMsg(csock, &m2, NULL) < 0) {
 		printf("Rec'd %s %d from \"%s\":\n",
 		    (m->header.flags & NGF_RESP) != 0 ? "response" : "command",
 		    m->header.cmd, path);
@@ -160,4 +157,3 @@ MsgRead(void)
 		printf("No arguments\n");
 	free(m2);
 }
-

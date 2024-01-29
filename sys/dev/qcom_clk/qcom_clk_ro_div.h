@@ -25,8 +25,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	__QCOM_CLK_RO_DIV_H__
-#define	__QCOM_CLK_RO_DIV_H__
+#ifndef __QCOM_CLK_RO_DIV_H__
+#define __QCOM_CLK_RO_DIV_H__
 
 struct qcom_clk_ro_div_tbl {
 	uint32_t val;
@@ -35,13 +35,13 @@ struct qcom_clk_ro_div_tbl {
 
 struct qcom_clk_ro_div_def {
 	struct clknode_init_def clkdef;
-	uint32_t offset;		/* register offset */
-	uint32_t shift;			/* field shift */
-	uint32_t width;			/* field width */
+	uint32_t offset; /* register offset */
+	uint32_t shift;	 /* field shift */
+	uint32_t width;	 /* field width */
 	struct qcom_clk_ro_div_tbl *div_tbl;
 };
 
-extern	int qcom_clk_ro_div_register(struct clkdom *clkdom,
-	    struct qcom_clk_ro_div_def *clkdef);
+extern int qcom_clk_ro_div_register(struct clkdom *clkdom,
+    struct qcom_clk_ro_div_def *clkdef);
 
-#endif	/* __QCOM_CLK_RO_DIV_H__ */
+#endif /* __QCOM_CLK_RO_DIV_H__ */

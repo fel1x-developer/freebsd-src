@@ -35,38 +35,38 @@
 /*	The copyright notice above does not evidence any   	*/
 /*	actual or intended publication of such source code.	*/
 
-
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-*	PROPRIETARY NOTICE (Combined)
-*
-* This source code is unpublished proprietary information
-* constituting, or derived under license from AT&T's UNIX(r) System V.
-* In addition, portions of such source code were derived from Berkeley
-* 4.3 BSD under license from the Regents of the University of
-* California.
-*
-*
-*
-*	Copyright Notice
-*
-* Notice of copyright on this source code product does not indicate
-*  publication.
-*
-*	(c) 1986,1987,1988.1989  Sun Microsystems, Inc
-*	(c) 1983,1984,1985,1986,1987,1988,1989  AT&T.
-*          All rights reserved.
-*/
+ *	PROPRIETARY NOTICE (Combined)
+ *
+ * This source code is unpublished proprietary information
+ * constituting, or derived under license from AT&T's UNIX(r) System V.
+ * In addition, portions of such source code were derived from Berkeley
+ * 4.3 BSD under license from the Regents of the University of
+ * California.
+ *
+ *
+ *
+ *	Copyright Notice
+ *
+ * Notice of copyright on this source code product does not indicate
+ *  publication.
+ *
+ *	(c) 1986,1987,1988.1989  Sun Microsystems, Inc
+ *	(c) 1983,1984,1985,1986,1987,1988,1989  AT&T.
+ *          All rights reserved.
+ */
 
 /*
  * rpc_util.h, Useful definitions for the RPC protocol compiler
  */
 #include <sys/types.h>
+
 #include <stdlib.h>
 
-#define	XALLOC(object)   (object *) xmalloc(sizeof(object))
+#define XALLOC(object) (object *)xmalloc(sizeof(object))
 
-#define	s_print	(void) sprintf
-#define	f_print (void) fprintf
+#define s_print (void)sprintf
+#define f_print (void)fprintf
 
 struct list {
 	definition *val;
@@ -82,27 +82,27 @@ struct xdrfunc {
 typedef struct xdrfunc xdrfunc;
 
 struct commandline {
-	int cflag;		/* xdr C routines */
-	int hflag;		/* header file */
-	int lflag;		/* client side stubs */
-	int mflag;		/* server side stubs */
-	int nflag;		/* netid flag */
-	int sflag;		/* server stubs for the given transport */
-	int tflag;		/* dispatch Table file */
-	int Ssflag;		/* produce server sample code */
-	int Scflag;		/* produce client sample code */
-	int makefileflag;       /* Generate a template Makefile */
-	const char *infile;	/* input module name */
-	const char *outfile;	/* output module name */
+	int cflag;	     /* xdr C routines */
+	int hflag;	     /* header file */
+	int lflag;	     /* client side stubs */
+	int mflag;	     /* server side stubs */
+	int nflag;	     /* netid flag */
+	int sflag;	     /* server stubs for the given transport */
+	int tflag;	     /* dispatch Table file */
+	int Ssflag;	     /* produce server sample code */
+	int Scflag;	     /* produce client sample code */
+	int makefileflag;    /* Generate a template Makefile */
+	const char *infile;  /* input module name */
+	const char *outfile; /* output module name */
 };
 
-#define	PUT 1
-#define	GET 2
+#define PUT 1
+#define GET 2
 
 /*
  * Global variables
  */
-#define	MAXLINESIZE 1024
+#define MAXLINESIZE 1024
 extern char curline[MAXLINESIZE];
 extern char *where;
 extern int linenum;
@@ -113,7 +113,6 @@ extern FILE *fout;
 extern FILE *fin;
 
 extern list *defined;
-
 
 extern bas_type *typ_list_h;
 extern bas_type *typ_list_t;
@@ -127,8 +126,8 @@ extern int pmflag;
 extern int tblflag;
 extern int logflag;
 extern int newstyle;
-extern int CCflag;     /* C++ flag */
-extern int tirpcflag; /* flag for generating tirpc code */
+extern int CCflag;	/* C++ flag */
+extern int tirpcflag;	/* flag for generating tirpc code */
 extern int inline_size; /* if this is 0, then do not generate inline code */
 extern int mtflag;
 
@@ -155,13 +154,12 @@ void *xrealloc(void *ptr, size_t size);
 char *xstrdup(const char *);
 char *make_argname(const char *pname, const char *vname);
 
-#define	STOREVAL(list,item)	\
-	storeval(list,item)
+#define STOREVAL(list, item) storeval(list, item)
 
-definition *findval(list *lst, const char *val, int (*cmp)(definition *, const char *));
+definition *findval(list *lst, const char *val,
+    int (*cmp)(definition *, const char *));
 
-#define	FINDVAL(list,item,finder) \
-	findval(list, item, finder)
+#define FINDVAL(list, item, finder) findval(list, item, finder)
 
 const char *fixtype(const char *type);
 const char *stringfix(const char *type);
@@ -187,10 +185,11 @@ void emit(definition *def);
 /*
  * rpc_hout routines
  */
-void pdeclaration(const char *name, declaration *dec, int tab, const char *separator);
+void pdeclaration(const char *name, declaration *dec, int tab,
+    const char *separator);
 void print_datadef(definition *def, int headeronly);
 void print_funcdef(definition *def, int headeronly);
-void print_xdr_func_def(const char* name, int pointerp);
+void print_xdr_func_def(const char *name, int pointerp);
 
 /*
  * rpc_svcout routines

@@ -28,61 +28,61 @@
  */
 
 #include <sys/param.h>
-#include <sys/bus.h>
 #include <sys/systm.h>
-#include <sys/module.h>
+#include <sys/bus.h>
 #include <sys/callout.h>
 #include <sys/conf.h>
 #include <sys/cpu.h>
 #include <sys/ctype.h>
 #include <sys/kernel.h>
+#include <sys/limits.h>
+#include <sys/module.h>
 #include <sys/reboot.h>
 #include <sys/rman.h>
 #include <sys/sysctl.h>
-#include <sys/limits.h>
 
 #include <machine/bus.h>
 #include <machine/md_var.h>
 
 #include <dev/iicbus/iicbus.h>
 #include <dev/iicbus/iiconf.h>
-
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/openfirm.h>
+
 #include <powerpc/powermac/powermac_thermal.h>
 
 /* ADT746X registers. */
-#define ADT746X_TACH1LOW          0x28
-#define ADT746X_TACH1HIGH         0x29
-#define ADT746X_TACH2LOW          0x2a
-#define ADT746X_TACH2HIGH         0x2b
-#define ADT746X_PWM1              0x30
-#define ADT746X_PWM2              0x31
-#define ADT746X_DEVICE_ID         0x3d
-#define ADT746X_COMPANY_ID        0x3e
-#define ADT746X_REV_ID            0x3f
-#define ADT746X_CONFIG            0x40
-#define ADT746X_PWM1_CONF         0x5c
-#define ADT746X_PWM2_CONF         0x5d
-#define ADT746X_MANUAL_MASK       0xe0
+#define ADT746X_TACH1LOW 0x28
+#define ADT746X_TACH1HIGH 0x29
+#define ADT746X_TACH2LOW 0x2a
+#define ADT746X_TACH2HIGH 0x2b
+#define ADT746X_PWM1 0x30
+#define ADT746X_PWM2 0x31
+#define ADT746X_DEVICE_ID 0x3d
+#define ADT746X_COMPANY_ID 0x3e
+#define ADT746X_REV_ID 0x3f
+#define ADT746X_CONFIG 0x40
+#define ADT746X_PWM1_CONF 0x5c
+#define ADT746X_PWM2_CONF 0x5d
+#define ADT746X_MANUAL_MASK 0xe0
 
-#define ADT7460_DEV_ID            0x27
-#define ADT7467_DEV_ID            0x68
+#define ADT7460_DEV_ID 0x27
+#define ADT7467_DEV_ID 0x68
 
 struct adt746x_fan {
 	struct pmac_fan fan;
-	device_t        dev;
-	int             id;
-	int             setpoint;
-	int		pwm_reg;
-	int		conf_reg;
+	device_t dev;
+	int id;
+	int setpoint;
+	int pwm_reg;
+	int conf_reg;
 };
 
 struct adt746x_sensor {
 	struct pmac_therm therm;
-	device_t          dev;
-	int               id;
-	cell_t	          reg;
+	device_t dev;
+	int id;
+	cell_t reg;
 	enum {
 		ADT746X_SENSOR_TEMP,
 		ADT746X_SENSOR_VOLT,
@@ -91,58 +91,52 @@ struct adt746x_sensor {
 };
 
 struct adt746x_softc {
-	device_t		sc_dev;
+	device_t sc_dev;
 	struct intr_config_hook enum_hook;
-	uint32_t                sc_addr;
-	/* The 7467 supports up to 4 fans, 2 voltage and 3 temperature sensors. */
-	struct adt746x_fan	sc_fans[4];
-	int			sc_nfans;
-	struct adt746x_sensor   sc_sensors[9];
-	int			sc_nsensors;
-	int                     device_id;
-    
+	uint32_t sc_addr;
+	/* The 7467 supports up to 4 fans, 2 voltage and 3 temperature sensors.
+	 */
+	struct adt746x_fan sc_fans[4];
+	int sc_nfans;
+	struct adt746x_sensor sc_sensors[9];
+	int sc_nsensors;
+	int device_id;
 };
-
 
 /* Regular bus attachment functions */
 
-static int  adt746x_probe(device_t);
-static int  adt746x_attach(device_t);
-
+static int adt746x_probe(device_t);
+static int adt746x_attach(device_t);
 
 /* Utility functions */
 static void adt746x_attach_fans(device_t dev);
 static void adt746x_attach_sensors(device_t dev);
-static int  adt746x_fill_fan_prop(device_t dev);
-static int  adt746x_fill_sensor_prop(device_t dev);
+static int adt746x_fill_fan_prop(device_t dev);
+static int adt746x_fill_sensor_prop(device_t dev);
 
-static int  adt746x_fan_set_pwm(struct adt746x_fan *fan, int pwm);
-static int  adt746x_fan_get_pwm(struct adt746x_fan *fan);
-static int  adt746x_sensor_read(struct adt746x_sensor *sens);
+static int adt746x_fan_set_pwm(struct adt746x_fan *fan, int pwm);
+static int adt746x_fan_get_pwm(struct adt746x_fan *fan);
+static int adt746x_sensor_read(struct adt746x_sensor *sens);
 static void adt746x_start(void *xdev);
 
 /* i2c read/write functions. */
-static int  adt746x_write(device_t dev, uint32_t addr, uint8_t reg,
-			  uint8_t *buf);
-static int  adt746x_read(device_t dev, uint32_t addr, uint8_t reg,
-			 uint8_t *data);
+static int adt746x_write(device_t dev, uint32_t addr, uint8_t reg,
+    uint8_t *buf);
+static int adt746x_read(device_t dev, uint32_t addr, uint8_t reg,
+    uint8_t *data);
 
-static device_method_t  adt746x_methods[] = {
+static device_method_t adt746x_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,	 adt746x_probe),
+	DEVMETHOD(device_probe, adt746x_probe),
 	DEVMETHOD(device_attach, adt746x_attach),
 	{ 0, 0 },
 };
 
-static driver_t adt746x_driver = {
-	"adt746x",
-	adt746x_methods,
-	sizeof(struct adt746x_softc)
-};
+static driver_t adt746x_driver = { "adt746x", adt746x_methods,
+	sizeof(struct adt746x_softc) };
 
 DRIVER_MODULE(adt746x, iicbus, adt746x_driver, 0, 0);
 static MALLOC_DEFINE(M_ADT746X, "adt746x", "ADT Sensor Information");
-
 
 /* i2c read/write functions. */
 
@@ -152,16 +146,13 @@ adt746x_write(device_t dev, uint32_t addr, uint8_t reg, uint8_t *buff)
 	uint8_t buf[4];
 	int try = 0;
 
-	struct iic_msg msg[] = {
-		{addr, IIC_M_WR, 2, buf }
-	};
+	struct iic_msg msg[] = { { addr, IIC_M_WR, 2, buf } };
 
 	/* Prepare the write msg. */
 	buf[0] = reg;
 	memcpy(buf + 1, buff, 1);
 
-	for (;;)
-	{
+	for (;;) {
 		if (iicbus_transfer(dev, msg, 1) == 0)
 			return (0);
 		if (++try > 5) {
@@ -180,17 +171,16 @@ adt746x_read(device_t dev, uint32_t addr, uint8_t reg, uint8_t *data)
 	int err, try = 0;
 
 	struct iic_msg msg[2] = {
-		{addr, IIC_M_WR | IIC_M_NOSTOP, 1, &reg},
-		{addr, IIC_M_RD, 1, buf},
+		{ addr, IIC_M_WR | IIC_M_NOSTOP, 1, &reg },
+		{ addr, IIC_M_RD, 1, buf },
 	};
 
-	for (;;)
-	{
+	for (;;) {
 		err = iicbus_transfer(dev, msg, 2);
 		if (err != 0)
 			goto retry;
 
-		*data = *((uint8_t*)buf);
+		*data = *((uint8_t *)buf);
 		return (0);
 	retry:
 		if (++try > 5) {
@@ -204,7 +194,7 @@ adt746x_read(device_t dev, uint32_t addr, uint8_t reg, uint8_t *data)
 static int
 adt746x_probe(device_t dev)
 {
-	const char  *name, *compatible;
+	const char *name, *compatible;
 	struct adt746x_softc *sc;
 
 	name = ofw_bus_get_name(dev);
@@ -215,7 +205,7 @@ adt746x_probe(device_t dev)
 
 	if (strcmp(name, "fan") != 0 ||
 	    (strcmp(compatible, "adt7460") != 0 &&
-	     strcmp(compatible, "adt7467") != 0))
+		strcmp(compatible, "adt7467") != 0))
 		return (ENXIO);
 
 	sc = device_get_softc(dev);
@@ -268,7 +258,7 @@ adt746x_start(void *xdev)
 	adt746x_read(sc->sc_dev, sc->sc_addr, ADT746X_CONFIG, &conf);
 
 	device_printf(dev, "Dev ID %#x, Company ID %#x, Rev ID %#x CNF: %#x\n",
-		      did, cid, rev, conf);
+	    did, cid, rev, conf);
 
 	/* We can get the device id either from 'of' properties or from the chip
 	   itself. This method makes sure we can read the chip, otherwise
@@ -355,8 +345,10 @@ adt746x_fill_fan_prop(device_t dev)
 	child = ofw_bus_get_node(dev);
 
 	/* Fill the fan location property. */
-	location_len = OF_getprop_alloc(child, "hwctrl-location", (void **)&location);
-	id_len = OF_getprop_alloc_multi(child, "hwctrl-id", sizeof(cell_t), (void **)&id);
+	location_len = OF_getprop_alloc(child, "hwctrl-location",
+	    (void **)&location);
+	id_len = OF_getprop_alloc_multi(child, "hwctrl-id", sizeof(cell_t),
+	    (void **)&id);
 	if (location_len == -1 || id_len == -1) {
 		OF_prop_free(location);
 		OF_prop_free(id);
@@ -380,11 +372,11 @@ adt746x_fill_fan_prop(device_t dev)
 			sc->sc_fans[i].conf_reg = ADT746X_PWM1_CONF + i;
 		}
 		sc->sc_fans[i].dev = sc->sc_dev;
-		sc->sc_fans[i].fan.min_rpm = 5;	/* Percent */
+		sc->sc_fans[i].fan.min_rpm = 5; /* Percent */
 		sc->sc_fans[i].fan.max_rpm = 100;
 		sc->sc_fans[i].fan.read = NULL;
-		sc->sc_fans[i].fan.set =
-			(int (*)(struct pmac_fan *, int))(adt746x_fan_set_pwm);
+		sc->sc_fans[i].fan.set = (int (*)(struct pmac_fan *, int))(
+		    adt746x_fan_set_pwm);
 		sc->sc_fans[i].fan.default_rpm = sc->sc_fans[i].fan.max_rpm;
 	}
 	OF_prop_free(location);
@@ -407,8 +399,9 @@ adt746x_fill_sensor_prop(device_t dev)
 
 	/* Fill in the sensor properties for each child. */
 	for (node = OF_child(child); node != 0; node = OF_peer(node)) {
-		if (OF_getprop(node, "sensor-id", &sensid, sizeof(sensid)) == -1)
-		    continue;
+		if (OF_getprop(node, "sensor-id", &sensid, sizeof(sensid)) ==
+		    -1)
+			continue;
 		OF_getprop(node, "location", sc->sc_sensors[i].therm.name, 32);
 		OF_getprop(node, "device_type", sens_type, sizeof(sens_type));
 		if (strcmp(sens_type, "temperature") == 0)
@@ -418,22 +411,21 @@ adt746x_fill_sensor_prop(device_t dev)
 		else
 			sc->sc_sensors[i].type = ADT746X_SENSOR_SPEED;
 		OF_getprop(node, "reg", &reg, sizeof(reg));
-		OF_getprop(node, "sensor-id", &sensid,
-			sizeof(sensid));
+		OF_getprop(node, "sensor-id", &sensid, sizeof(sensid));
 		/* This is the i2c register of the sensor.  */
 		sc->sc_sensors[i].reg = reg;
 		sc->sc_sensors[i].id = sensid;
 		OF_getprop(node, "zone", &sc->sc_sensors[i].therm.zone,
-			sizeof(sc->sc_sensors[i].therm.zone));
+		    sizeof(sc->sc_sensors[i].therm.zone));
 		sc->sc_sensors[i].dev = dev;
-		sc->sc_sensors[i].therm.read =
-		    (int (*)(struct pmac_therm *))adt746x_sensor_read;
+		sc->sc_sensors[i].therm.read = (int (*)(
+		    struct pmac_therm *))adt746x_sensor_read;
 		if (sc->sc_sensors[i].type == ADT746X_SENSOR_TEMP) {
-		    /* Make up some ranges */
-		    sc->sc_sensors[i].therm.target_temp = 500 + ZERO_C_TO_K;
-		    sc->sc_sensors[i].therm.max_temp = 800 + ZERO_C_TO_K;
+			/* Make up some ranges */
+			sc->sc_sensors[i].therm.target_temp = 500 + ZERO_C_TO_K;
+			sc->sc_sensors[i].therm.max_temp = 800 + ZERO_C_TO_K;
 
-		    pmac_thermal_sensor_register(&sc->sc_sensors[i].therm);
+			pmac_thermal_sensor_register(&sc->sc_sensors[i].therm);
 		}
 		i++;
 	}
@@ -505,27 +497,25 @@ adt746x_attach_fans(device_t dev)
 		}
 		sysctl_name[j] = 0;
 
-		sc->sc_fans[i].setpoint =
-			adt746x_fan_get_pwm(&sc->sc_fans[i]);
+		sc->sc_fans[i].setpoint = adt746x_fan_get_pwm(&sc->sc_fans[i]);
 
 		oid = SYSCTL_ADD_NODE(ctx, SYSCTL_CHILDREN(fanroot_oid),
 		    OID_AUTO, sysctl_name, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
 		    "Fan Information");
 
 		/* I use i to pass the fan id. */
-		SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(oid), OID_AUTO,
-		    "pwm", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, dev,
-		    i, adt746x_fanrpm_sysctl, "I", "Fan PWM in %");
+		SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(oid), OID_AUTO, "pwm",
+		    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, dev, i,
+		    adt746x_fanrpm_sysctl, "I", "Fan PWM in %");
 	}
 
 	/* Dump fan location & type. */
 	if (bootverbose) {
 		for (i = 0; i < sc->sc_nfans; i++) {
 			device_printf(dev, "Fan location: %s",
-				      sc->sc_fans[i].fan.name);
+			    sc->sc_fans[i].fan.name);
 			device_printf(dev, " id: %d RPM: %d\n",
-				      sc->sc_fans[i].id,
-				      sc->sc_fans[i].setpoint);
+			    sc->sc_fans[i].id, sc->sc_fans[i].setpoint);
 		}
 	}
 }
@@ -541,19 +531,17 @@ adt746x_sensor_read(struct adt746x_sensor *sens)
 
 	sc = device_get_softc(sens->dev);
 	if (sens->type != ADT746X_SENSOR_SPEED) {
-		if (adt746x_read(sc->sc_dev, sc->sc_addr, sens->reg,
-				 &temp) < 0)
+		if (adt746x_read(sc->sc_dev, sc->sc_addr, sens->reg, &temp) < 0)
 			return (-1);
 		if (sens->type == ADT746X_SENSOR_TEMP)
 			tmp = 10 * temp + ZERO_C_TO_K;
 		else
 			tmp = temp;
 	} else {
-		if (adt746x_read(sc->sc_dev, sc->sc_addr, sens->reg,
-				 data) < 0)
+		if (adt746x_read(sc->sc_dev, sc->sc_addr, sens->reg, data) < 0)
 			return (-1);
 		if (adt746x_read(sc->sc_dev, sc->sc_addr, sens->reg + 1,
-				 data1) < 0)
+			data1) < 0)
 			return (-1);
 		val = data[0] + (data1[0] << 8);
 		/* A value of 0xffff means the fan is stopped.  */
@@ -597,7 +585,6 @@ adt746x_attach_sensors(device_t dev)
 	const char *desc;
 	int i, j;
 
-
 	sc = device_get_softc(dev);
 	sc->sc_nsensors = 0;
 
@@ -617,13 +604,14 @@ adt746x_attach_sensors(device_t dev)
 	/* Add the sysctl for the sensors. */
 	for (i = 0; i < sc->sc_nsensors; i++) {
 		for (j = 0; j < strlen(sc->sc_sensors[i].therm.name); j++) {
-			sysctl_name[j] = tolower(sc->sc_sensors[i].therm.name[j]);
+			sysctl_name[j] = tolower(
+			    sc->sc_sensors[i].therm.name[j]);
 			if (isspace(sysctl_name[j]))
 				sysctl_name[j] = '_';
 		}
 		sysctl_name[j] = 0;
 		oid = SYSCTL_ADD_NODE(ctx, SYSCTL_CHILDREN(sensroot_oid),
-		    OID_AUTO, sysctl_name, CTLFLAG_RD | CTLFLAG_MPSAFE, 0, 
+		    OID_AUTO, sysctl_name, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
 		    "Sensor Information");
 		if (sc->sc_sensors[i].type == ADT746X_SENSOR_TEMP) {
 			unit = "temp";
@@ -636,22 +624,21 @@ adt746x_attach_sensors(device_t dev)
 			desc = "sensor unit (RPM)";
 		}
 		/* I use i to pass the sensor id. */
-		SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(oid), OID_AUTO,
-		    unit, CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_NEEDGIANT, dev, i,
+		SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(oid), OID_AUTO, unit,
+		    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_NEEDGIANT, dev, i,
 		    adt746x_sensor_sysctl,
-		    sc->sc_sensors[i].type == ADT746X_SENSOR_TEMP ?
-		    "IK" : "I", desc);
+		    sc->sc_sensors[i].type == ADT746X_SENSOR_TEMP ? "IK" : "I",
+		    desc);
 	}
 
 	/* Dump sensor location & type. */
 	if (bootverbose) {
 		for (i = 0; i < sc->sc_nsensors; i++) {
 			device_printf(dev, "Sensor location: %s",
-				      sc->sc_sensors[i].therm.name);
+			    sc->sc_sensors[i].therm.name);
 			device_printf(dev, " type: %d id: %d reg: 0x%x\n",
-				      sc->sc_sensors[i].type,
-				      sc->sc_sensors[i].id,
-				      sc->sc_sensors[i].reg);
+			    sc->sc_sensors[i].type, sc->sc_sensors[i].id,
+			    sc->sc_sensors[i].reg);
 		}
 	}
 }

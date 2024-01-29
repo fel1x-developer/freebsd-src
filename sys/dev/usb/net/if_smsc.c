@@ -29,7 +29,7 @@
 #include <sys/cdefs.h>
 /*
  * SMSC LAN9xxx devices (http://www.smsc.com/)
- * 
+ *
  * The LAN9500 & LAN9500A devices are stand-alone USB to Ethernet chips that
  * support USB 2.0 and 10/100 Mbps Ethernet.
  *
@@ -46,7 +46,7 @@
  * H/W TCP & UDP Checksum Offloading
  * ---------------------------------
  * The chip supports both tx and rx offloading of UDP & TCP checksums, this
- * feature can be dynamically enabled/disabled.  
+ * feature can be dynamically enabled/disabled.
  *
  * RX checksuming is performed across bytes after the IPv4 header to the end of
  * the Ethernet frame, this means if the frame is padded with non-zero values
@@ -62,38 +62,37 @@
  * implemented.
  *
  */
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
-#include <sys/types.h>
-#include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/socket.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
-#include <sys/callout.h>
-#include <sys/malloc.h>
-#include <sys/priv.h>
-#include <sys/random.h>
+#include "opt_platform.h"
 
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_media.h>
+#include <sys/types.h>
+#include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/random.h>
+#include <sys/socket.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
 
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_var.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
-
-#include "opt_platform.h"
 
 #ifdef FDT
 #include <dev/fdt/fdt_common.h>
@@ -105,15 +104,14 @@
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
+
 #include "usbdevs.h"
 
-#define	USB_DEBUG_VAR smsc_debug
+#define USB_DEBUG_VAR smsc_debug
+#include <dev/usb/net/if_smscreg.h>
+#include <dev/usb/net/usb_ethernet.h>
 #include <dev/usb/usb_debug.h>
 #include <dev/usb/usb_process.h>
-
-#include <dev/usb/net/usb_ethernet.h>
-
-#include <dev/usb/net/if_smscreg.h>
 
 #include "miibus_if.h"
 
@@ -138,7 +136,10 @@ SYSCTL_INT(_hw_usb_smsc, OID_AUTO, debug, CTLFLAG_RWTUN, &smsc_debug, 0,
  * Various supported device vendors/products.
  */
 static const struct usb_device_id smsc_devs[] = {
-#define	SMSC_DEV(p,i) { USB_VPI(USB_VENDOR_SMC2, USB_PRODUCT_SMC2_##p, i) }
+#define SMSC_DEV(p, i)                                            \
+	{                                                         \
+		USB_VPI(USB_VENDOR_SMC2, USB_PRODUCT_SMC2_##p, i) \
+	}
 	SMSC_DEV(LAN89530_ETH, 0),
 	SMSC_DEV(LAN9500_ETH, 0),
 	SMSC_DEV(LAN9500_ETH_2, 0),
@@ -161,13 +162,16 @@ static const struct usb_device_id smsc_devs[] = {
 };
 
 #ifdef USB_DEBUG
-#define smsc_dbg_printf(sc, fmt, args...) \
-	do { \
-		if (smsc_debug > 0) \
-			device_printf((sc)->sc_ue.ue_dev, "debug: " fmt, ##args); \
-	} while(0)
+#define smsc_dbg_printf(sc, fmt, args...)                                \
+	do {                                                             \
+		if (smsc_debug > 0)                                      \
+			device_printf((sc)->sc_ue.ue_dev, "debug: " fmt, \
+			    ##args);                                     \
+	} while (0)
 #else
-#define smsc_dbg_printf(sc, fmt, args...) do { } while (0)
+#define smsc_dbg_printf(sc, fmt, args...) \
+	do {                              \
+	} while (0)
 #endif
 
 #define smsc_warn_printf(sc, fmt, args...) \
@@ -176,10 +180,9 @@ static const struct usb_device_id smsc_devs[] = {
 #define smsc_err_printf(sc, fmt, args...) \
 	device_printf((sc)->sc_ue.ue_dev, "error: " fmt, ##args)
 
-#define ETHER_IS_VALID(addr) \
-	(!ETHER_IS_MULTICAST(addr) && !ETHER_IS_ZERO(addr))
+#define ETHER_IS_VALID(addr) (!ETHER_IS_MULTICAST(addr) && !ETHER_IS_ZERO(addr))
 
-#define BOOTARGS_SMSC95XX	"smsc95xx.macaddr"
+#define BOOTARGS_SMSC95XX "smsc95xx.macaddr"
 
 static device_probe_t smsc_probe;
 static device_attach_t smsc_attach;
@@ -201,8 +204,8 @@ static uether_fn_t smsc_tick;
 static uether_fn_t smsc_setmulti;
 static uether_fn_t smsc_setpromisc;
 
-static int	smsc_ifmedia_upd(if_t);
-static void	smsc_ifmedia_sts(if_t, struct ifmediareq *);
+static int smsc_ifmedia_upd(if_t);
+static void smsc_ifmedia_sts(if_t, struct ifmediareq *);
 
 static int smsc_chip_init(struct smsc_softc *sc);
 static int smsc_ioctl(if_t ifp, u_long cmd, caddr_t data);
@@ -253,7 +256,7 @@ static const struct usb_ether_methods smsc_ue_methods = {
  *	@sc: driver soft context
  *	@off: offset of the register
  *	@data: pointer a value that will be populated with the register value
- *	
+ *
  *	LOCKING:
  *	The device lock must be held before calling this function.
  *
@@ -289,7 +292,7 @@ smsc_read_reg(struct smsc_softc *sc, uint32_t off, uint32_t *data)
  *	@sc: driver soft context
  *	@off: offset of the register
  *	@data: the 32-bit value to write into the register
- *	
+ *
  *	LOCKING:
  *	The device lock must be held before calling this function.
  *
@@ -348,7 +351,7 @@ smsc_wait_for_bits(struct smsc_softc *sc, uint32_t reg, uint32_t bits)
 			return (err);
 		if (!(val & bits))
 			return (0);
-		
+
 		uether_pause(&sc->sc_ue, hz / 100);
 	} while (((usb_ticks_t)(ticks - start_ticks)) < max_ticks);
 
@@ -365,13 +368,15 @@ smsc_wait_for_bits(struct smsc_softc *sc, uint32_t reg, uint32_t bits)
  *	Simply reads bytes from an attached eeprom.
  *
  *	LOCKING:
- *	The function takes and releases the device lock if it is not already held.
+ *	The function takes and releases the device lock if it is not already
+ *held.
  *
  *	RETURNS:
  *	0 on success, or a USB_ERR_?? error code on failure.
  */
 static int
-smsc_eeprom_read(struct smsc_softc *sc, uint16_t off, uint8_t *buf, uint16_t buflen)
+smsc_eeprom_read(struct smsc_softc *sc, uint16_t off, uint8_t *buf,
+    uint16_t buflen)
 {
 	usb_ticks_t start_ticks;
 	const usb_ticks_t max_ticks = USB_MS_TO_TICKS(1000);
@@ -392,15 +397,18 @@ smsc_eeprom_read(struct smsc_softc *sc, uint16_t off, uint8_t *buf, uint16_t buf
 
 	/* start reading the bytes, one at a time */
 	for (i = 0; i < buflen; i++) {
-		val = SMSC_EEPROM_CMD_BUSY | (SMSC_EEPROM_CMD_ADDR_MASK & (off + i));
+		val = SMSC_EEPROM_CMD_BUSY |
+		    (SMSC_EEPROM_CMD_ADDR_MASK & (off + i));
 		if ((err = smsc_write_reg(sc, SMSC_EEPROM_CMD, val)) != 0)
 			goto done;
-		
+
 		start_ticks = (usb_ticks_t)ticks;
 		do {
-			if ((err = smsc_read_reg(sc, SMSC_EEPROM_CMD, &val)) != 0)
+			if ((err = smsc_read_reg(sc, SMSC_EEPROM_CMD, &val)) !=
+			    0)
 				goto done;
-			if (!(val & SMSC_EEPROM_CMD_BUSY) || (val & SMSC_EEPROM_CMD_TIMEOUT))
+			if (!(val & SMSC_EEPROM_CMD_BUSY) ||
+			    (val & SMSC_EEPROM_CMD_TIMEOUT))
 				break;
 
 			uether_pause(&sc->sc_ue, hz / 100);
@@ -411,7 +419,7 @@ smsc_eeprom_read(struct smsc_softc *sc, uint16_t off, uint8_t *buf, uint16_t buf
 			err = USB_ERR_IOERROR;
 			break;
 		}
-			
+
 		if ((err = smsc_read_reg(sc, SMSC_EEPROM_DATA, &val)) != 0)
 			goto done;
 
@@ -557,15 +565,15 @@ smsc_miibus_statchg(device_t dev)
 	if ((mii->mii_media_status & (IFM_ACTIVE | IFM_AVALID)) ==
 	    (IFM_ACTIVE | IFM_AVALID)) {
 		switch (IFM_SUBTYPE(mii->mii_media_active)) {
-			case IFM_10_T:
-			case IFM_100_TX:
-				sc->sc_flags |= SMSC_FLAG_LINK;
-				break;
-			case IFM_1000_T:
-				/* Gigabit ethernet not supported by chipset */
-				break;
-			default:
-				break;
+		case IFM_10_T:
+		case IFM_100_TX:
+			sc->sc_flags |= SMSC_FLAG_LINK;
+			break;
+		case IFM_1000_T:
+			/* Gigabit ethernet not supported by chipset */
+			break;
+		default:
+			break;
 		}
 	}
 
@@ -577,7 +585,8 @@ smsc_miibus_statchg(device_t dev)
 
 	err = smsc_read_reg(sc, SMSC_AFC_CFG, &afc_cfg);
 	if (err) {
-		smsc_warn_printf(sc, "failed to read initial AFC_CFG, error %d\n", err);
+		smsc_warn_printf(sc,
+		    "failed to read initial AFC_CFG, error %d\n", err);
 		goto done;
 	}
 
@@ -591,17 +600,17 @@ smsc_miibus_statchg(device_t dev)
 			flow = 0xffff0002;
 		else
 			flow = 0;
-			
+
 		if ((IFM_OPTIONS(mii->mii_media_active) & IFM_ETH_TXPAUSE) != 0)
 			afc_cfg |= 0xf;
 		else
 			afc_cfg &= ~0xf;
-		
+
 	} else {
 		smsc_dbg_printf(sc, "half duplex operation\n");
 		sc->sc_mac_csr &= ~SMSC_MAC_CSR_FDPX;
 		sc->sc_mac_csr |= SMSC_MAC_CSR_RCVOWN;
-		
+
 		flow = 0;
 		afc_cfg |= 0xf;
 	}
@@ -621,8 +630,8 @@ done:
  *	smsc_ifmedia_upd - Set media options
  *	@ifp: interface pointer
  *
- *	Basically boilerplate code that simply calls the mii functions to set the
- *	media options.
+ *	Basically boilerplate code that simply calls the mii functions to set
+ *the media options.
  *
  *	LOCKING:
  *	The device lock must be held before this function is called.
@@ -640,7 +649,7 @@ smsc_ifmedia_upd(if_t ifp)
 
 	SMSC_LOCK_ASSERT(sc, MA_OWNED);
 
-	LIST_FOREACH(miisc, &mii->mii_phys, mii_list)
+	LIST_FOREACH (miisc, &mii->mii_phys, mii_list)
 		PHY_RESET(miisc);
 	err = mii_mediachg(mii);
 	return (err);
@@ -651,8 +660,8 @@ smsc_ifmedia_upd(if_t ifp)
  *	@ifp: inet interface pointer
  *	@ifmr: interface media request
  *
- *	Basically boilerplate code that simply calls the mii functions to get the
- *	media status.
+ *	Basically boilerplate code that simply calls the mii functions to get
+ *the media status.
  *
  *	LOCKING:
  *	Internally takes and releases the device lock.
@@ -674,8 +683,8 @@ smsc_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr)
  *	smsc_hash - Calculate the hash of a mac address
  *	@addr: The mac address to calculate the hash on
  *
- *	This function is used when configuring a range of m'cast mac addresses to
- *	filter on.  The hash of the mac address is put in the device's mac hash
+ *	This function is used when configuring a range of m'cast mac addresses
+ *to filter on.  The hash of the mac address is put in the device's mac hash
  *	table.
  *
  *	RETURNS:
@@ -721,7 +730,7 @@ smsc_setmulti(struct usb_ether *ue)
 		smsc_dbg_printf(sc, "receive all multicast enabled\n");
 		sc->sc_mac_csr |= SMSC_MAC_CSR_MCPAS;
 		sc->sc_mac_csr &= ~SMSC_MAC_CSR_HPFILT;
-		
+
 	} else {
 		if (if_foreach_llmaddr(ifp, smsc_hash_maddr, &hashtbl) > 0) {
 			/* We are filtering on a set of address so calculate
@@ -729,14 +738,16 @@ smsc_setmulti(struct usb_ether *ue)
 			 * corresponding bits in the register.
 			 */
 			sc->sc_mac_csr |= SMSC_MAC_CSR_HPFILT;
-			sc->sc_mac_csr &= ~(SMSC_MAC_CSR_PRMS | SMSC_MAC_CSR_MCPAS);
+			sc->sc_mac_csr &= ~(
+			    SMSC_MAC_CSR_PRMS | SMSC_MAC_CSR_MCPAS);
 		} else {
 			/* Only receive packets with destination set to
 			 * our mac address
 			 */
-			sc->sc_mac_csr &= ~(SMSC_MAC_CSR_MCPAS | SMSC_MAC_CSR_HPFILT);
+			sc->sc_mac_csr &= ~(
+			    SMSC_MAC_CSR_MCPAS | SMSC_MAC_CSR_HPFILT);
 		}
-		
+
 		/* Debug */
 		if (sc->sc_mac_csr & SMSC_MAC_CSR_HPFILT)
 			smsc_dbg_printf(sc, "receive select group of macs\n");
@@ -764,7 +775,7 @@ smsc_setpromisc(struct usb_ether *ue)
 	if_t ifp = uether_getifp(ue);
 
 	smsc_dbg_printf(sc, "promiscuous mode %sabled\n",
-	                (if_getflags(ifp) & IFF_PROMISC) ? "en" : "dis");
+	    (if_getflags(ifp) & IFF_PROMISC) ? "en" : "dis");
 
 	SMSC_LOCK_ASSERT(sc, MA_OWNED);
 
@@ -786,7 +797,8 @@ smsc_setpromisc(struct usb_ether *ue)
  *	RETURNS:
  *	Returns 0 on success or a negative error code.
  */
-static int smsc_sethwcsum(struct smsc_softc *sc)
+static int
+smsc_sethwcsum(struct smsc_softc *sc)
 {
 	if_t ifp = uether_getifp(&sc->sc_ue);
 	uint32_t val;
@@ -799,7 +811,8 @@ static int smsc_sethwcsum(struct smsc_softc *sc)
 
 	err = smsc_read_reg(sc, SMSC_COE_CTRL, &val);
 	if (err != 0) {
-		smsc_warn_printf(sc, "failed to read SMSC_COE_CTRL (err=%d)\n", err);
+		smsc_warn_printf(sc, "failed to read SMSC_COE_CTRL (err=%d)\n",
+		    err);
 		return (err);
 	}
 
@@ -817,7 +830,8 @@ static int smsc_sethwcsum(struct smsc_softc *sc)
 
 	err = smsc_write_reg(sc, SMSC_COE_CTRL, val);
 	if (err != 0) {
-		smsc_warn_printf(sc, "failed to write SMSC_COE_CTRL (err=%d)\n", err);
+		smsc_warn_printf(sc, "failed to write SMSC_COE_CTRL (err=%d)\n",
+		    err);
 		return (err);
 	}
 
@@ -829,8 +843,8 @@ static int smsc_sethwcsum(struct smsc_softc *sc)
  *	@sc: driver soft context
  *	@addr: pointer to array contain at least 6 bytes of the mac
  *
- *	Writes the MAC address into the device, usually the MAC is programmed with
- *	values from the EEPROM.
+ *	Writes the MAC address into the device, usually the MAC is programmed
+ *with values from the EEPROM.
  *
  *	LOCKING:
  *	Should be called with the SMSC lock held.
@@ -844,15 +858,16 @@ smsc_setmacaddress(struct smsc_softc *sc, const uint8_t *addr)
 	int err;
 	uint32_t val;
 
-	smsc_dbg_printf(sc, "setting mac address to %02x:%02x:%02x:%02x:%02x:%02x\n",
-	                addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
+	smsc_dbg_printf(sc,
+	    "setting mac address to %02x:%02x:%02x:%02x:%02x:%02x\n", addr[0],
+	    addr[1], addr[2], addr[3], addr[4], addr[5]);
 
 	SMSC_LOCK_ASSERT(sc, MA_OWNED);
 
 	val = (addr[3] << 24) | (addr[2] << 16) | (addr[1] << 8) | addr[0];
 	if ((err = smsc_write_reg(sc, SMSC_MAC_ADDRL, val)) != 0)
 		goto done;
-		
+
 	val = (addr[5] << 8) | addr[4];
 	err = smsc_write_reg(sc, SMSC_MAC_ADDRH, val);
 
@@ -876,7 +891,7 @@ smsc_reset(struct smsc_softc *sc)
 	cd = usbd_get_config_descriptor(sc->sc_ue.ue_udev);
 
 	err = usbd_req_set_config(sc->sc_ue.ue_udev, &sc->sc_mtx,
-	                          cd->bConfigurationValue);
+	    cd->bConfigurationValue);
 	if (err)
 		smsc_warn_printf(sc, "reset failed (ignored)\n");
 
@@ -936,7 +951,7 @@ smsc_init(struct usb_ether *ue)
 /**
  *	smsc_bulk_read_callback - Read callback used to process the USB URB
  *	@xfer: the USB transfer
- *	@error: 
+ *	@error:
  *
  *	Reads the URB data which can contain one or more ethernet frames, the
  *	frames are copyed into a mbuf and given to the system.
@@ -963,20 +978,22 @@ smsc_bulk_read_callback(struct usb_xfer *xfer, usb_error_t error)
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_TRANSFERRED:
 
-		/* There is always a zero length frame after bringing the IF up */
+		/* There is always a zero length frame after bringing the IF up
+		 */
 		if (actlen < (sizeof(rxhdr) + ETHER_CRC_LEN))
 			goto tr_setup;
 
-		/* There maybe multiple packets in the USB frame, each will have a 
-		 * header and each needs to have it's own mbuf allocated and populated
-		 * for it.
+		/* There maybe multiple packets in the USB frame, each will have
+		 * a header and each needs to have it's own mbuf allocated and
+		 * populated for it.
 		 */
 		pc = usbd_xfer_get_frame(xfer, 0);
 		off = 0;
-		
+
 		while (off < actlen) {
-		
-			/* The frame header is always aligned on a 4 byte boundary */
+
+			/* The frame header is always aligned on a 4 byte
+			 * boundary */
 			off = ((off + 0x3) & ~0x3);
 
 			if ((off + sizeof(rxhdr)) > actlen)
@@ -985,94 +1002,132 @@ smsc_bulk_read_callback(struct usb_xfer *xfer, usb_error_t error)
 			usbd_copy_out(pc, off, &rxhdr, sizeof(rxhdr));
 			off += (sizeof(rxhdr) + ETHER_ALIGN);
 			rxhdr = le32toh(rxhdr);
-		
-			pktlen = (uint16_t)SMSC_RX_STAT_FRM_LENGTH(rxhdr);
-			
-			smsc_dbg_printf(sc, "rx : rxhdr 0x%08x : pktlen %d : actlen %d : "
-			                "off %d\n", rxhdr, pktlen, actlen, off);
 
-			
+			pktlen = (uint16_t)SMSC_RX_STAT_FRM_LENGTH(rxhdr);
+
+			smsc_dbg_printf(sc,
+			    "rx : rxhdr 0x%08x : pktlen %d : actlen %d : "
+			    "off %d\n",
+			    rxhdr, pktlen, actlen, off);
+
 			if (rxhdr & SMSC_RX_STAT_ERROR) {
-				smsc_dbg_printf(sc, "rx error (hdr 0x%08x)\n", rxhdr);
+				smsc_dbg_printf(sc, "rx error (hdr 0x%08x)\n",
+				    rxhdr);
 				if_inc_counter(ifp, IFCOUNTER_IERRORS, 1);
 				if (rxhdr & SMSC_RX_STAT_COLLISION)
-					if_inc_counter(ifp, IFCOUNTER_COLLISIONS, 1);
+					if_inc_counter(ifp,
+					    IFCOUNTER_COLLISIONS, 1);
 			} else {
-				/* Check if the ethernet frame is too big or too small */
-				if ((pktlen < ETHER_HDR_LEN) || (pktlen > (actlen - off)))
+				/* Check if the ethernet frame is too big or too
+				 * small */
+				if ((pktlen < ETHER_HDR_LEN) ||
+				    (pktlen > (actlen - off)))
 					goto tr_setup;
-			
+
 				/* Create a new mbuf to store the packet in */
 				m = uether_newbuf();
 				if (m == NULL) {
-					smsc_warn_printf(sc, "failed to create new mbuf\n");
-					if_inc_counter(ifp, IFCOUNTER_IQDROPS, 1);
+					smsc_warn_printf(sc,
+					    "failed to create new mbuf\n");
+					if_inc_counter(ifp, IFCOUNTER_IQDROPS,
+					    1);
 					goto tr_setup;
 				}
 				if (pktlen > m->m_len) {
-					smsc_dbg_printf(sc, "buffer too small %d vs %d bytes",
+					smsc_dbg_printf(sc,
+					    "buffer too small %d vs %d bytes",
 					    pktlen, m->m_len);
-					if_inc_counter(ifp, IFCOUNTER_IQDROPS, 1);
+					if_inc_counter(ifp, IFCOUNTER_IQDROPS,
+					    1);
 					m_freem(m);
 					goto tr_setup;
 				}
-				usbd_copy_out(pc, off, mtod(m, uint8_t *), pktlen);
+				usbd_copy_out(pc, off, mtod(m, uint8_t *),
+				    pktlen);
 
-				/* Check if RX TCP/UDP checksumming is being offloaded */
-				if ((if_getcapenable(ifp) & IFCAP_RXCSUM) != 0) {
+				/* Check if RX TCP/UDP checksumming is being
+				 * offloaded */
+				if ((if_getcapenable(ifp) & IFCAP_RXCSUM) !=
+				    0) {
 					struct ether_header *eh;
 
 					eh = mtod(m, struct ether_header *);
-				
-					/* Remove the extra 2 bytes of the csum */
+
+					/* Remove the extra 2 bytes of the csum
+					 */
 					pktlen -= 2;
 
-					/* The checksum appears to be simplistically calculated
-					 * over the udp/tcp header and data up to the end of the
-					 * eth frame.  Which means if the eth frame is padded
-					 * the csum calculation is incorrectly performed over
-					 * the padding bytes as well. Therefore to be safe we
-					 * ignore the H/W csum on frames less than or equal to
-					 * 64 bytes.
+					/* The checksum appears to be
+					 * simplistically calculated over the
+					 * udp/tcp header and data up to the end
+					 * of the eth frame.  Which means if the
+					 * eth frame is padded the csum
+					 * calculation is incorrectly performed
+					 * over the padding bytes as well.
+					 * Therefore to be safe we ignore the
+					 * H/W csum on frames less than or equal
+					 * to 64 bytes.
 					 *
 					 * Ignore H/W csum for non-IPv4 packets.
 					 */
-					if ((be16toh(eh->ether_type) == ETHERTYPE_IP) &&
+					if ((be16toh(eh->ether_type) ==
+						ETHERTYPE_IP) &&
 					    (pktlen > ETHER_MIN_LEN)) {
 						struct ip *ip;
 
 						ip = (struct ip *)(eh + 1);
 						if ((ip->ip_v == IPVERSION) &&
-						    ((ip->ip_p == IPPROTO_TCP) ||
-						     (ip->ip_p == IPPROTO_UDP))) {
-							/* Indicate the UDP/TCP csum has been calculated */
-							m->m_pkthdr.csum_flags |= CSUM_DATA_VALID;
+						    ((ip->ip_p ==
+							 IPPROTO_TCP) ||
+							(ip->ip_p ==
+							    IPPROTO_UDP))) {
+							/* Indicate the UDP/TCP
+							 * csum has been
+							 * calculated */
+							m->m_pkthdr
+							    .csum_flags |=
+							    CSUM_DATA_VALID;
 
-							/* Copy the TCP/UDP checksum from the last 2 bytes
-							 * of the transfer and put in the csum_data field.
+							/* Copy the TCP/UDP
+							 * checksum from the
+							 * last 2 bytes of the
+							 * transfer and put in
+							 * the csum_data field.
 							 */
-							usbd_copy_out(pc, (off + pktlen),
-							              &m->m_pkthdr.csum_data, 2);
+							usbd_copy_out(pc,
+							    (off + pktlen),
+							    &m->m_pkthdr
+								 .csum_data,
+							    2);
 
-							/* The data is copied in network order, but the
-							 * csum algorithm in the kernel expects it to be
-							 * in host network order.
+							/* The data is copied in
+							 * network order, but
+							 * the csum algorithm in
+							 * the kernel expects it
+							 * to be in host network
+							 * order.
 							 */
-							m->m_pkthdr.csum_data = ntohs(m->m_pkthdr.csum_data);
+							m->m_pkthdr.csum_data =
+							    ntohs(
+								m->m_pkthdr
+								    .csum_data);
 
-							smsc_dbg_printf(sc, "RX checksum offloaded (0x%04x)\n",
-							                m->m_pkthdr.csum_data);
+							smsc_dbg_printf(sc,
+							    "RX checksum offloaded (0x%04x)\n",
+							    m->m_pkthdr
+								.csum_data);
 						}
 					}
-					
-					/* Need to adjust the offset as well or we'll be off
-					 * by 2 because the csum is removed from the packet
-					 * length.
+
+					/* Need to adjust the offset as well or
+					 * we'll be off by 2 because the csum is
+					 * removed from the packet length.
 					 */
 					off += 2;
 				}
-			
-				/* Finally enqueue the mbuf on the receive queue */
+
+				/* Finally enqueue the mbuf on the receive queue
+				 */
 				/* Remove 4 trailing bytes */
 				if (pktlen < (4 + ETHER_HDR_LEN)) {
 					m_freem(m);
@@ -1081,14 +1136,15 @@ smsc_bulk_read_callback(struct usb_xfer *xfer, usb_error_t error)
 				uether_rxmbuf(ue, m, pktlen - 4);
 			}
 
-			/* Update the offset to move to the next potential packet */
+			/* Update the offset to move to the next potential
+			 * packet */
 			off += pktlen;
 		}
 
 		/* FALLTHROUGH */
-		
+
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		uether_rxflush(ue);
@@ -1096,7 +1152,8 @@ tr_setup:
 
 	default:
 		if (error != USB_ERR_CANCELLED) {
-			smsc_warn_printf(sc, "bulk read error, %s\n", usbd_errstr(error));
+			smsc_warn_printf(sc, "bulk read error, %s\n",
+			    usbd_errstr(error));
 			usbd_xfer_set_stall(xfer);
 			goto tr_setup;
 		}
@@ -1109,11 +1166,11 @@ tr_setup:
  *	@xfer: the USB transfer
  *	@error: error code if the transfers is in an errored state
  *
- *	The main write function that pulls ethernet frames off the queue and sends
- *	them out.
+ *	The main write function that pulls ethernet frames off the queue and
+ *sends them out.
  *
  *	LOCKING:
- *	
+ *
  */
 static void
 smsc_bulk_write_callback(struct usb_xfer *xfer, usb_error_t error)
@@ -1132,15 +1189,16 @@ smsc_bulk_write_callback(struct usb_xfer *xfer, usb_error_t error)
 		/* FALLTHROUGH */
 
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		if ((sc->sc_flags & SMSC_FLAG_LINK) == 0 ||
-			(if_getdrvflags(ifp) & IFF_DRV_OACTIVE) != 0) {
-			/* Don't send anything if there is no link or controller is busy. */
+		    (if_getdrvflags(ifp) & IFF_DRV_OACTIVE) != 0) {
+			/* Don't send anything if there is no link or controller
+			 * is busy. */
 			return;
 		}
 
-		for (nframes = 0; nframes < 16 &&
-		    !if_sendq_empty(ifp); nframes++) {
+		for (nframes = 0; nframes < 16 && !if_sendq_empty(ifp);
+		     nframes++) {
 			m = if_dequeue(ifp);
 			if (m == NULL)
 				break;
@@ -1149,18 +1207,18 @@ tr_setup:
 			frm_len = 0;
 			pc = usbd_xfer_get_frame(xfer, nframes);
 
-			/* Each frame is prefixed with two 32-bit values describing the
-			 * length of the packet and buffer.
+			/* Each frame is prefixed with two 32-bit values
+			 * describing the length of the packet and buffer.
 			 */
-			txhdr = SMSC_TX_CTRL_0_BUF_SIZE(m->m_pkthdr.len) | 
-					SMSC_TX_CTRL_0_FIRST_SEG | SMSC_TX_CTRL_0_LAST_SEG;
+			txhdr = SMSC_TX_CTRL_0_BUF_SIZE(m->m_pkthdr.len) |
+			    SMSC_TX_CTRL_0_FIRST_SEG | SMSC_TX_CTRL_0_LAST_SEG;
 			txhdr = htole32(txhdr);
 			usbd_copy_in(pc, 0, &txhdr, sizeof(txhdr));
-			
+
 			txhdr = SMSC_TX_CTRL_1_PKT_LENGTH(m->m_pkthdr.len);
 			txhdr = htole32(txhdr);
 			usbd_copy_in(pc, 4, &txhdr, sizeof(txhdr));
-			
+
 			frm_len += 8;
 
 			/* Next copy in the actual packet */
@@ -1169,7 +1227,8 @@ tr_setup:
 
 			if_inc_counter(ifp, IFCOUNTER_OPACKETS, 1);
 
-			/* If there's a BPF listener, bounce a copy of this frame to him */
+			/* If there's a BPF listener, bounce a copy of this
+			 * frame to him */
 			BPF_MTAP(ifp, m);
 
 			m_freem(m);
@@ -1187,9 +1246,10 @@ tr_setup:
 	default:
 		if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
 		if_setdrvflagbits(ifp, 0, IFF_DRV_OACTIVE);
-		
+
 		if (error != USB_ERR_CANCELLED) {
-			smsc_err_printf(sc, "usb error on tx: %s\n", usbd_errstr(error));
+			smsc_err_printf(sc, "usb error on tx: %s\n",
+			    usbd_errstr(error));
 			usbd_xfer_set_stall(xfer);
 			goto tr_setup;
 		}
@@ -1226,7 +1286,7 @@ smsc_tick(struct usb_ether *ue)
  *	smsc_start - Starts communication with the LAN95xx chip
  *	@ue: USB ether interface
  *
- *	
+ *
  *
  */
 static void
@@ -1245,7 +1305,7 @@ smsc_start(struct usb_ether *ue)
  *	smsc_stop - Stops communication with the LAN95xx chip
  *	@ue: USB ether interface
  *
- *	
+ *
  *
  */
 static void
@@ -1288,12 +1348,14 @@ smsc_phy_init(struct smsc_softc *sc)
 	SMSC_LOCK_ASSERT(sc, MA_OWNED);
 
 	/* Reset phy and wait for reset to complete */
-	smsc_miibus_writereg(sc->sc_ue.ue_dev, sc->sc_phyno, MII_BMCR, BMCR_RESET);
+	smsc_miibus_writereg(sc->sc_ue.ue_dev, sc->sc_phyno, MII_BMCR,
+	    BMCR_RESET);
 
 	start_ticks = ticks;
 	do {
 		uether_pause(&sc->sc_ue, hz / 100);
-		bmcr = smsc_miibus_readreg(sc->sc_ue.ue_dev, sc->sc_phyno, MII_BMCR);
+		bmcr = smsc_miibus_readreg(sc->sc_ue.ue_dev, sc->sc_phyno,
+		    MII_BMCR);
 	} while ((bmcr & BMCR_RESET) && ((ticks - start_ticks) < max_ticks));
 
 	if (((usb_ticks_t)(ticks - start_ticks)) >= max_ticks) {
@@ -1302,15 +1364,14 @@ smsc_phy_init(struct smsc_softc *sc)
 	}
 
 	smsc_miibus_writereg(sc->sc_ue.ue_dev, sc->sc_phyno, MII_ANAR,
-	                     ANAR_10 | ANAR_10_FD | ANAR_TX | ANAR_TX_FD |  /* all modes */
-	                     ANAR_CSMA | 
-	                     ANAR_FC |
-	                     ANAR_PAUSE_ASYM);
+	    ANAR_10 | ANAR_10_FD | ANAR_TX | ANAR_TX_FD | /* all modes */
+		ANAR_CSMA | ANAR_FC | ANAR_PAUSE_ASYM);
 
-	/* Setup the phy to interrupt when the link goes down or autoneg completes */
+	/* Setup the phy to interrupt when the link goes down or autoneg
+	 * completes */
 	smsc_miibus_readreg(sc->sc_ue.ue_dev, sc->sc_phyno, SMSC_PHY_INTR_STAT);
 	smsc_miibus_writereg(sc->sc_ue.ue_dev, sc->sc_phyno, SMSC_PHY_INTR_MASK,
-	                     (SMSC_PHY_INTR_ANEG_COMP | SMSC_PHY_INTR_LINK_DOWN));
+	    (SMSC_PHY_INTR_ANEG_COMP | SMSC_PHY_INTR_LINK_DOWN));
 
 	/* Restart auto-negotiation */
 	bmcr = smsc_miibus_readreg(sc->sc_ue.ue_dev, sc->sc_phyno, MII_BMCR);
@@ -1345,16 +1406,20 @@ smsc_chip_init(struct smsc_softc *sc)
 	/* Enter H/W config mode */
 	smsc_write_reg(sc, SMSC_HW_CFG, SMSC_HW_CFG_LRST);
 
-	if ((err = smsc_wait_for_bits(sc, SMSC_HW_CFG, SMSC_HW_CFG_LRST)) != 0) {
-		smsc_warn_printf(sc, "timed-out waiting for reset to complete\n");
+	if ((err = smsc_wait_for_bits(sc, SMSC_HW_CFG, SMSC_HW_CFG_LRST)) !=
+	    0) {
+		smsc_warn_printf(sc,
+		    "timed-out waiting for reset to complete\n");
 		goto init_failed;
 	}
 
 	/* Reset the PHY */
 	smsc_write_reg(sc, SMSC_PM_CTRL, SMSC_PM_CTRL_PHY_RST);
 
-	if ((err = smsc_wait_for_bits(sc, SMSC_PM_CTRL, SMSC_PM_CTRL_PHY_RST)) != 0) {
-		smsc_warn_printf(sc, "timed-out waiting for phy reset to complete\n");
+	if ((err = smsc_wait_for_bits(sc, SMSC_PM_CTRL,
+		 SMSC_PM_CTRL_PHY_RST)) != 0) {
+		smsc_warn_printf(sc,
+		    "timed-out waiting for phy reset to complete\n");
 		goto init_failed;
 	}
 
@@ -1364,8 +1429,8 @@ smsc_chip_init(struct smsc_softc *sc)
 		goto init_failed;
 	}
 
-	/* Don't know what the HW_CFG_BIR bit is, but following the reset sequence
-	 * as used in the Linux driver.
+	/* Don't know what the HW_CFG_BIR bit is, but following the reset
+	 * sequence as used in the Linux driver.
 	 */
 	if ((err = smsc_read_reg(sc, SMSC_HW_CFG, &reg_val)) != 0) {
 		smsc_warn_printf(sc, "failed to read HW_CFG: %d\n", err);
@@ -1375,15 +1440,16 @@ smsc_chip_init(struct smsc_softc *sc)
 	smsc_write_reg(sc, SMSC_HW_CFG, reg_val);
 
 	/* There is a so called 'turbo mode' that the linux driver supports, it
-	 * seems to allow you to jam multiple frames per Rx transaction.  By default
-	 * this driver supports that and therefore allows multiple frames per URB.
+	 * seems to allow you to jam multiple frames per Rx transaction.  By
+	 * default this driver supports that and therefore allows multiple
+	 * frames per URB.
 	 *
-	 * The xfer buffer size needs to reflect this as well, therefore based on
-	 * the calculations in the Linux driver the RX bufsize is set to 18944,
-	 *     bufsz = (16 * 1024 + 5 * 512)
+	 * The xfer buffer size needs to reflect this as well, therefore based
+	 * on the calculations in the Linux driver the RX bufsize is set to
+	 * 18944, bufsz = (16 * 1024 + 5 * 512)
 	 *
-	 * Burst capability is the number of URBs that can be in a burst of data/
-	 * ethernet frames.
+	 * Burst capability is the number of URBs that can be in a burst of
+	 * data/ ethernet frames.
 	 */
 	if (!smsc_rx_packet_batching)
 		burst_cap = 0;
@@ -1401,7 +1467,8 @@ smsc_chip_init(struct smsc_softc *sc)
 	 * Initialise the RX interface
 	 */
 	if ((err = smsc_read_reg(sc, SMSC_HW_CFG, &reg_val)) < 0) {
-		smsc_warn_printf(sc, "failed to read HW_CFG: (err = %d)\n", err);
+		smsc_warn_printf(sc, "failed to read HW_CFG: (err = %d)\n",
+		    err);
 		goto init_failed;
 	}
 
@@ -1411,8 +1478,8 @@ smsc_chip_init(struct smsc_softc *sc)
 	reg_val &= ~SMSC_HW_CFG_RXDOFF;
 	reg_val |= (ETHER_ALIGN << 9) & SMSC_HW_CFG_RXDOFF;
 
-	/* The following settings are used for 'turbo mode', a.k.a multiple frames
-	 * per Rx transaction (again info taken form Linux driver).
+	/* The following settings are used for 'turbo mode', a.k.a multiple
+	 * frames per Rx transaction (again info taken form Linux driver).
 	 */
 	if (smsc_rx_packet_batching)
 		reg_val |= (SMSC_HW_CFG_MEF | SMSC_HW_CFG_BCE);
@@ -1428,13 +1495,13 @@ smsc_chip_init(struct smsc_softc *sc)
 		goto init_failed;
 	}
 
-	device_printf(sc->sc_ue.ue_dev, "chip 0x%04lx, rev. %04lx\n", 
-	    (sc->sc_rev_id & SMSC_ID_REV_CHIP_ID_MASK) >> 16, 
+	device_printf(sc->sc_ue.ue_dev, "chip 0x%04lx, rev. %04lx\n",
+	    (sc->sc_rev_id & SMSC_ID_REV_CHIP_ID_MASK) >> 16,
 	    (sc->sc_rev_id & SMSC_ID_REV_CHIP_REV_MASK));
 
 	/* GPIO/LED setup */
-	reg_val = SMSC_LED_GPIO_CFG_SPD_LED | SMSC_LED_GPIO_CFG_LNK_LED | 
-	          SMSC_LED_GPIO_CFG_FDX_LED;
+	reg_val = SMSC_LED_GPIO_CFG_SPD_LED | SMSC_LED_GPIO_CFG_LNK_LED |
+	    SMSC_LED_GPIO_CFG_FDX_LED;
 	smsc_write_reg(sc, SMSC_LED_GPIO_CFG, reg_val);
 
 	/*
@@ -1489,8 +1556,9 @@ init_failed:
  *	smsc_ioctl - ioctl function for the device
  *	@ifp: interface pointer
  *	@cmd: the ioctl command
- *	@data: data passed in the ioctl call, typically a pointer to struct ifreq.
- *	
+ *	@data: data passed in the ioctl call, typically a pointer to struct
+ *ifreq.
+ *
  *	The ioctl routine is overridden to detect change requests for the H/W
  *	checksum capabilities.
  *
@@ -1522,13 +1590,13 @@ smsc_ioctl(if_t ifp, u_long cmd, caddr_t data)
 		if ((mask & IFCAP_RXCSUM) != 0 &&
 		    (if_getcapabilities(ifp) & IFCAP_RXCSUM) != 0) {
 			if_togglecapenable(ifp, IFCAP_RXCSUM);
-			
+
 			if (if_getdrvflags(ifp) & IFF_DRV_RUNNING) {
 				if_setdrvflagbits(ifp, 0, IFF_DRV_RUNNING);
 				reinit = 1;
 			}
 		}
-		
+
 		SMSC_UNLOCK(sc);
 		if (reinit)
 			uether_init(ue);
@@ -1542,29 +1610,29 @@ smsc_ioctl(if_t ifp, u_long cmd, caddr_t data)
 
 #ifdef FDT
 static bool
-smsc_get_smsc95xx_macaddr(char* bootargs, size_t len, struct usb_ether *ue)
+smsc_get_smsc95xx_macaddr(char *bootargs, size_t len, struct usb_ether *ue)
 {
 	int values[6];
 	int i;
-	char* p;
+	char *p;
 
 	p = strnstr(bootargs, BOOTARGS_SMSC95XX, len);
 	if (p == NULL)
 		return (false);
 
-	if (sscanf(p, BOOTARGS_SMSC95XX "=%x:%x:%x:%x:%x:%x%*c",
-			&values[0], &values[1], &values[2],
-			&values[3], &values[4], &values[5]) != 6) {
+	if (sscanf(p, BOOTARGS_SMSC95XX "=%x:%x:%x:%x:%x:%x%*c", &values[0],
+		&values[1], &values[2], &values[3], &values[4],
+		&values[5]) != 6) {
 		smsc_warn_printf((struct smsc_softc *)ue->ue_sc,
-				"invalid mac from bootargs '%s'.\n", p);
+		    "invalid mac from bootargs '%s'.\n", p);
 		return (false);
 	}
 
 	for (i = 0; i < ETHER_ADDR_LEN; ++i)
 		ue->ue_eaddr[i] = values[i];
 
-	smsc_dbg_printf((struct smsc_softc *)ue->ue_sc,
-			"bootargs mac=%6D.\n", ue->ue_eaddr, ":");
+	smsc_dbg_printf((struct smsc_softc *)ue->ue_sc, "bootargs mac=%6D.\n",
+	    ue->ue_eaddr, ":");
 	return (true);
 }
 
@@ -1588,24 +1656,24 @@ smsc_bootargs_get_mac_addr(device_t dev, struct usb_ether *ue)
 		return (false);
 	if (OF_hasprop(node, "bootargs") == 0) {
 		smsc_dbg_printf((struct smsc_softc *)ue->ue_sc,
-				"bootargs not found");
+		    "bootargs not found");
 		return (false);
 	}
 	len = OF_getprop_alloc(node, "bootargs", (void **)&bootargs);
 	if (len == -1 || bootargs == NULL) {
 		smsc_warn_printf((struct smsc_softc *)ue->ue_sc,
-				"failed alloc for bootargs (%zd)", len);
+		    "failed alloc for bootargs (%zd)", len);
 		return (false);
 	}
 	smsc_dbg_printf((struct smsc_softc *)ue->ue_sc, "bootargs: %s.\n",
-			bootargs);
+	    bootargs);
 	if (!smsc_get_smsc95xx_macaddr(bootargs, len, ue)) {
 		OF_prop_free(bootargs);
 		return (false);
 	}
 	OF_prop_free(bootargs);
-	device_printf(dev, "MAC address found in bootargs %6D.\n",
-			ue->ue_eaddr, ":");
+	device_printf(dev, "MAC address found in bootargs %6D.\n", ue->ue_eaddr,
+	    ":");
 	return (true);
 }
 #endif
@@ -1614,9 +1682,9 @@ smsc_bootargs_get_mac_addr(device_t dev, struct usb_ether *ue)
  *	smsc_attach_post - Called after the driver attached to the USB interface
  *	@ue: the USB ethernet device
  *
- *	This is where the chip is intialised for the first time.  This is different
- *	from the smsc_init() function in that that one is designed to setup the
- *	H/W to match the UE settings and can be called after a reset.
+ *	This is where the chip is intialised for the first time.  This is
+ *different from the smsc_init() function in that that one is designed to setup
+ *the H/W to match the UE settings and can be called after a reset.
  *
  *
  */
@@ -1651,23 +1719,28 @@ smsc_attach_post(struct usb_ether *ue)
 		sc->sc_ue.ue_eaddr[0] = (uint8_t)((mac_l) & 0xff);
 	}
 
-	/* MAC address is not set so try to read from EEPROM, if that fails generate
-	 * a random MAC address.
+	/* MAC address is not set so try to read from EEPROM, if that fails
+	 * generate a random MAC address.
 	 */
 	if (!ETHER_IS_VALID(sc->sc_ue.ue_eaddr)) {
-		err = smsc_eeprom_read(sc, 0x01, sc->sc_ue.ue_eaddr, ETHER_ADDR_LEN);
+		err = smsc_eeprom_read(sc, 0x01, sc->sc_ue.ue_eaddr,
+		    ETHER_ADDR_LEN);
 #ifdef FDT
 		if ((err != 0) || (!ETHER_IS_VALID(sc->sc_ue.ue_eaddr)))
-			err = usb_fdt_get_mac_addr(sc->sc_ue.ue_dev, &sc->sc_ue);
+			err = usb_fdt_get_mac_addr(sc->sc_ue.ue_dev,
+			    &sc->sc_ue);
 		if ((err != 0) || (!ETHER_IS_VALID(sc->sc_ue.ue_eaddr)))
 			err = smsc_bootargs_get_mac_addr(sc->sc_ue.ue_dev,
-					&sc->sc_ue) ? (0) : (1);
+				  &sc->sc_ue) ?
+			    (0) :
+			    (1);
 #endif
 		if ((err != 0) || (!ETHER_IS_VALID(sc->sc_ue.ue_eaddr))) {
-			smsc_dbg_printf(sc, "No MAC address found."
-					" Using ether_gen_addr().\n");
+			smsc_dbg_printf(sc,
+			    "No MAC address found."
+			    " Using ether_gen_addr().\n");
 			ether_gen_addr_byname(device_get_nameunit(ue->ue_dev),
-					&eaddr);
+			    &eaddr);
 			for (i = 0; i < ETHER_ADDR_LEN; i++)
 				sc->sc_ue.ue_eaddr[i] = eaddr.octet[i];
 		}
@@ -1678,12 +1751,13 @@ smsc_attach_post(struct usb_ether *ue)
 }
 
 /**
- *	smsc_attach_post_sub - Called after the driver attached to the USB interface
+ *	smsc_attach_post_sub - Called after the driver attached to the USB
+ *interface
  *	@ue: the USB ethernet device
  *
  *	Most of this is boilerplate code and copied from the base USB ethernet
- *	driver.  It has been overridden so that we can indicate to the system that
- *	the chip supports H/W checksumming.
+ *	driver.  It has been overridden so that we can indicate to the system
+ *that the chip supports H/W checksumming.
  *
  *	RETURNS:
  *	Returns 0 on success or a negative error code.
@@ -1704,8 +1778,9 @@ smsc_attach_post_sub(struct usb_ether *ue)
 	if_setsendqlen(ifp, ifqmaxlen);
 	if_setsendqready(ifp);
 
-	/* The chip supports TCP/UDP checksum offloading on TX and RX paths, however
-	 * currently only RX checksum is supported in the driver (see top of file).
+	/* The chip supports TCP/UDP checksum offloading on TX and RX paths,
+	 * however currently only RX checksum is supported in the driver (see
+	 * top of file).
 	 */
 	if_setcapabilitiesbit(ifp, IFCAP_RXCSUM | IFCAP_VLAN_MTU, 0);
 	if_sethwassist(ifp, 0);
@@ -1719,16 +1794,16 @@ smsc_attach_post_sub(struct usb_ether *ue)
 	if_setcapenable(ifp, if_getcapabilities(ifp));
 
 	bus_topo_lock();
-	error = mii_attach(ue->ue_dev, &ue->ue_miibus, ifp,
-	    uether_ifmedia_upd, ue->ue_methods->ue_mii_sts,
-	    BMSR_DEFCAPMASK, sc->sc_phyno, MII_OFFSET_ANY, 0);
+	error = mii_attach(ue->ue_dev, &ue->ue_miibus, ifp, uether_ifmedia_upd,
+	    ue->ue_methods->ue_mii_sts, BMSR_DEFCAPMASK, sc->sc_phyno,
+	    MII_OFFSET_ANY, 0);
 	bus_topo_unlock();
 
 	return (error);
 }
 
 /**
- *	smsc_probe - Probe the interface. 
+ *	smsc_probe - Probe the interface.
  *	@dev: smsc device handle
  *
  *	Checks if the device is a match for this driver.
@@ -1752,7 +1827,7 @@ smsc_probe(device_t dev)
 }
 
 /**
- *	smsc_attach - Attach the interface. 
+ *	smsc_attach - Attach the interface.
  *	@dev: smsc device handle
  *
  *	Allocate softc structures, do ifmedia setup and ethernet/BPF attach.
@@ -1778,7 +1853,7 @@ smsc_attach(device_t dev)
 	/* Setup the endpoints for the SMSC LAN95xx device(s) */
 	iface_index = SMSC_IFACE_IDX;
 	err = usbd_transfer_setup(uaa->device, &iface_index, sc->sc_xfer,
-	                          smsc_config, SMSC_N_TRANSFER, sc, &sc->sc_mtx);
+	    smsc_config, SMSC_N_TRANSFER, sc, &sc->sc_mtx);
 	if (err) {
 		device_printf(dev, "error: allocating USB transfers failed\n");
 		goto detach;
@@ -1795,15 +1870,15 @@ smsc_attach(device_t dev)
 		device_printf(dev, "error: could not attach interface\n");
 		goto detach;
 	}
-	return (0);			/* success */
+	return (0); /* success */
 
 detach:
 	smsc_detach(dev);
-	return (ENXIO);		/* failure */
+	return (ENXIO); /* failure */
 }
 
 /**
- *	smsc_detach - Detach the interface. 
+ *	smsc_detach - Detach the interface.
  *	@dev: smsc device handle
  *
  *	RETURNS:

@@ -43,34 +43,30 @@
  * Attributes to be gleened from remote host description
  *   data base.
  */
-static char **caps[] = {
-	&AT, &DV, &CM, &CU, &EL, &IE, &OE, &PN, &PR, &DI,
-	&ES, &EX, &FO, &RC, &RE, &PA
-};
+static char **caps[] = { &AT, &DV, &CM, &CU, &EL, &IE, &OE, &PN, &PR, &DI, &ES,
+	&EX, &FO, &RC, &RE, &PA };
 
-static char *capstrings[] = {
-	"at", "dv", "cm", "cu", "el", "ie", "oe", "pn", "pr",
-	"di", "es", "ex", "fo", "rc", "re", "pa", 0
-};
+static char *capstrings[] = { "at", "dv", "cm", "cu", "el", "ie", "oe", "pn",
+	"pr", "di", "es", "ex", "fo", "rc", "re", "pa", 0 };
 
-static char	*db_array[3] = { _PATH_REMOTE, 0, 0 };
+static char *db_array[3] = { _PATH_REMOTE, 0, 0 };
 
-#define cgetflag(f)	(cgetcap(bp, f, ':') != NULL)
+#define cgetflag(f) (cgetcap(bp, f, ':') != NULL)
 
-static void	getremcap(char *);
+static void getremcap(char *);
 
 static void
 getremcap(char *host)
 {
 	char **p, ***q, *bp, *rempath;
-	int   stat;
+	int stat;
 
 	rempath = getenv("REMOTE");
 	if (rempath != NULL) {
 		if (*rempath != '/')
 			/* we have an entry */
 			cgetset(rempath);
-		else {	/* we have a path */
+		else { /* we have a path */
 			db_array[1] = rempath;
 			db_array[2] = _PATH_REMOTE;
 		}
@@ -100,7 +96,8 @@ getremcap(char *host)
 			break;
 		case -3:
 			fprintf(stderr,
-			    "%s: possible reference loop in host description file\n", __progname);
+			    "%s: possible reference loop in host description file\n",
+			    __progname);
 			break;
 		}
 		exit(3);

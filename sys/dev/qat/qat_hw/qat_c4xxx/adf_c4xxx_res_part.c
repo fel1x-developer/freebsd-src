@@ -1,15 +1,15 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
 #include "adf_accel_devices.h"
-#include "adf_common_drv.h"
+#include "adf_c4xxx_hw_data.h"
 #include "adf_cfg_common.h"
+#include "adf_common_drv.h"
 #include "adf_transport_internal.h"
 #include "icp_qat_hw.h"
-#include "adf_c4xxx_hw_data.h"
 
 #define ADF_C4XXX_PARTTITION_SHIFT 8
-#define ADF_C4XXX_PARTITION(svc, ring)                                         \
-	((svc) << ((ring)*ADF_C4XXX_PARTTITION_SHIFT))
+#define ADF_C4XXX_PARTITION(svc, ring) \
+	((svc) << ((ring) * ADF_C4XXX_PARTTITION_SHIFT))
 
 static void
 adf_get_partitions_mask(struct adf_accel_dev *accel_dev, u32 *partitions_mask)
@@ -24,16 +24,14 @@ adf_get_partitions_mask(struct adf_accel_dev *accel_dev, u32 *partitions_mask)
 		serv_type = GET_SRV_TYPE(ring_to_svc_map, ring_pair);
 		switch (serv_type) {
 		case CRYPTO: {
-			enabled_partitions_msk |=
-			    ADF_C4XXX_PARTITION(ADF_C4XXX_PART_ASYM,
-						ring_pair++);
+			enabled_partitions_msk |= ADF_C4XXX_PARTITION(
+			    ADF_C4XXX_PART_ASYM, ring_pair++);
 			if (ring_pair < ADF_CFG_NUM_SERVICES)
-				enabled_partitions_msk |=
-				    ADF_C4XXX_PARTITION(ADF_C4XXX_PART_SYM,
-							ring_pair);
+				enabled_partitions_msk |= ADF_C4XXX_PARTITION(
+				    ADF_C4XXX_PART_SYM, ring_pair);
 			else
-				device_printf(
-				    dev, "Failed to enable SYM partition.\n");
+				device_printf(dev,
+				    "Failed to enable SYM partition.\n");
 			break;
 		}
 		case COMP:
@@ -49,9 +47,8 @@ adf_get_partitions_mask(struct adf_accel_dev *accel_dev, u32 *partitions_mask)
 			    ADF_C4XXX_PARTITION(ADF_C4XXX_PART_ASYM, ring_pair);
 			break;
 		default:
-			enabled_partitions_msk |=
-			    ADF_C4XXX_PARTITION(ADF_C4XXX_PART_UNUSED,
-						ring_pair);
+			enabled_partitions_msk |= ADF_C4XXX_PARTITION(
+			    ADF_C4XXX_PART_UNUSED, ring_pair);
 			break;
 		}
 	}
@@ -70,10 +67,8 @@ adf_enable_sym_threads(struct adf_accel_dev *accel_dev, u32 ae, u32 partition)
 	    (BIT(partition % ADF_C4XXX_PARTS_PER_GRP));
 
 	for (i = 0; i < num_sym_thds; i++)
-		WRITE_CSR_WQM(csr,
-			      ADF_C4XXX_WRKTHD2PARTMAP,
-			      (ae * ADF_NUM_THREADS_PER_AE + i),
-			      wkrthd2_partmap);
+		WRITE_CSR_WQM(csr, ADF_C4XXX_WRKTHD2PARTMAP,
+		    (ae * ADF_NUM_THREADS_PER_AE + i), wkrthd2_partmap);
 }
 
 static void
@@ -90,10 +85,8 @@ adf_enable_asym_threads(struct adf_accel_dev *accel_dev, u32 ae, u32 partition)
 	u32 num_all_thds = ADF_NUM_THREADS_PER_AE - 2;
 
 	for (i = num_all_thds; i > (num_all_thds - num_asym_thds); i--)
-		WRITE_CSR_WQM(csr,
-			      ADF_C4XXX_WRKTHD2PARTMAP,
-			      (ae * ADF_NUM_THREADS_PER_AE + i),
-			      wkrthd2_partmap);
+		WRITE_CSR_WQM(csr, ADF_C4XXX_WRKTHD2PARTMAP,
+		    (ae * ADF_NUM_THREADS_PER_AE + i), wkrthd2_partmap);
 }
 
 static void
@@ -108,10 +101,8 @@ adf_enable_dc_threads(struct adf_accel_dev *accel_dev, u32 ae, u32 partition)
 	    (BIT(partition % ADF_C4XXX_PARTS_PER_GRP));
 
 	for (i = 0; i < num_dc_thds; i++)
-		WRITE_CSR_WQM(csr,
-			      ADF_C4XXX_WRKTHD2PARTMAP,
-			      (ae * ADF_NUM_THREADS_PER_AE + i),
-			      wkrthd2_partmap);
+		WRITE_CSR_WQM(csr, ADF_C4XXX_WRKTHD2PARTMAP,
+		    (ae * ADF_NUM_THREADS_PER_AE + i), wkrthd2_partmap);
 }
 
 /* Initialise Resource partitioning.
@@ -133,10 +124,8 @@ adf_init_arb_c4xxx(struct adf_accel_dev *accel_dev)
 
 	adf_get_partitions_mask(accel_dev, &partitions_mask);
 	for (i = 0; i < hw_data->num_banks; i++)
-		WRITE_CSR_WQM(csr,
-			      ADF_C4XXX_PARTITION_LUT_OFFSET,
-			      i,
-			      partitions_mask);
+		WRITE_CSR_WQM(csr, ADF_C4XXX_PARTITION_LUT_OFFSET, i,
+		    partitions_mask);
 
 	ae_mask = hw_data->ae_mask;
 
@@ -146,13 +135,11 @@ adf_init_arb_c4xxx(struct adf_accel_dev *accel_dev)
 	for_each_set_bit(i, &ae_mask, ADF_C4XXX_MAX_ACCELENGINES)
 	{
 		if (BIT(i) & au_info->sym_ae_msk)
-			adf_enable_sym_threads(accel_dev,
-					       i,
-					       ADF_C4XXX_PART_SYM);
+			adf_enable_sym_threads(accel_dev, i,
+			    ADF_C4XXX_PART_SYM);
 		if (BIT(i) & au_info->asym_ae_msk)
-			adf_enable_asym_threads(accel_dev,
-						i,
-						ADF_C4XXX_PART_ASYM);
+			adf_enable_asym_threads(accel_dev, i,
+			    ADF_C4XXX_PART_ASYM);
 		if (BIT(i) & au_info->dc_ae_msk)
 			adf_enable_dc_threads(accel_dev, i, ADF_C4XXX_PART_DC);
 	}
@@ -177,10 +164,8 @@ adf_exit_arb_c4xxx(struct adf_accel_dev *accel_dev)
 
 	/* Restore the default partitionLUT registers */
 	for (i = 0; i < hw_data->num_banks; i++)
-		WRITE_CSR_WQM(csr,
-			      ADF_C4XXX_PARTITION_LUT_OFFSET,
-			      i,
-			      ADF_C4XXX_DEFAULT_PARTITIONS);
+		WRITE_CSR_WQM(csr, ADF_C4XXX_PARTITION_LUT_OFFSET, i,
+		    ADF_C4XXX_DEFAULT_PARTITIONS);
 
 	ae_mask = hw_data->ae_mask;
 

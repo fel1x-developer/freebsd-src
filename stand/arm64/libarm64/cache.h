@@ -26,7 +26,7 @@
  */
 
 #ifndef _CACHE_H_
-#define	_CACHE_H_
+#define _CACHE_H_
 
 /* cache.c */
 void cpu_flush_dcache(const void *, size_t);

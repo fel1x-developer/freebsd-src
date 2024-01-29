@@ -28,42 +28,43 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/sockio.h>
+#include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
 #include <sys/mbuf.h>
 #include <sys/module.h>
-#include <sys/malloc.h>
 #include <sys/mutex.h>
-#include <sys/kernel.h>
+#include <sys/rman.h>
 #include <sys/socket.h>
+#include <sys/sockio.h>
+
+#include <machine/bus.h>
+#include <machine/resource.h>
+
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
 
 #include <net/bpf.h>
-#include <net/if.h>
-#include <net/if_var.h>
 #include <net/ethernet.h>
+#include <net/if.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
-
-#include <dev/ofw/openfirm.h>
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-#include <machine/bus.h>
-#include <machine/resource.h>
-#include <sys/bus.h>
-#include <sys/rman.h>
+#include <net/if_var.h>
 
 #include <powerpc/pseries/phyp-hvcall.h>
 
-#define LLAN_MAX_RX_PACKETS	100
-#define LLAN_MAX_TX_PACKETS	100
-#define LLAN_RX_BUF_LEN		8*PAGE_SIZE
+#define LLAN_MAX_RX_PACKETS 100
+#define LLAN_MAX_TX_PACKETS 100
+#define LLAN_RX_BUF_LEN 8 * PAGE_SIZE
 
-#define LLAN_BUFDESC_VALID	(1ULL << 63)
-#define LLAN_ADD_MULTICAST	0x1
-#define LLAN_DEL_MULTICAST	0x2
-#define LLAN_CLEAR_MULTICAST	0x3
+#define LLAN_BUFDESC_VALID (1ULL << 63)
+#define LLAN_ADD_MULTICAST 0x1
+#define LLAN_DEL_MULTICAST 0x2
+#define LLAN_CLEAR_MULTICAST 0x3
 
 struct llan_xfer {
 	struct mbuf *rx_mbuf;
@@ -80,69 +81,64 @@ struct llan_receive_queue_entry { /* PAPR page 539 */
 } __packed;
 
 struct llan_softc {
-	device_t	dev;
-	struct mtx	io_lock;
+	device_t dev;
+	struct mtx io_lock;
 
-	cell_t		unit;
-	uint8_t		mac_address[8];
+	cell_t unit;
+	uint8_t mac_address[8];
 
-	struct ifmedia	media;
+	struct ifmedia media;
 
-	int		irqid;
-	struct resource	*irq;
-	void		*irq_cookie;
+	int irqid;
+	struct resource *irq;
+	void *irq_cookie;
 
-	bus_dma_tag_t	rx_dma_tag;
-	bus_dma_tag_t	rxbuf_dma_tag;
-	bus_dma_tag_t	tx_dma_tag;
+	bus_dma_tag_t rx_dma_tag;
+	bus_dma_tag_t rxbuf_dma_tag;
+	bus_dma_tag_t tx_dma_tag;
 
-	bus_dmamap_t	tx_dma_map;
+	bus_dmamap_t tx_dma_map;
 
 	struct llan_receive_queue_entry *rx_buf;
-	int		rx_dma_slot;
-	int		rx_valid_val;
-	bus_dmamap_t	rx_buf_map;
-	bus_addr_t	rx_buf_phys;
-	bus_size_t	rx_buf_len;
-	bus_addr_t	input_buf_phys;
-	bus_addr_t	filter_buf_phys;
+	int rx_dma_slot;
+	int rx_valid_val;
+	bus_dmamap_t rx_buf_map;
+	bus_addr_t rx_buf_phys;
+	bus_size_t rx_buf_len;
+	bus_addr_t input_buf_phys;
+	bus_addr_t filter_buf_phys;
 	struct llan_xfer rx_xfer[LLAN_MAX_RX_PACKETS];
 
-	struct ifnet	*ifp;
+	struct ifnet *ifp;
 };
 
-static int	llan_probe(device_t);
-static int	llan_attach(device_t);
-static void	llan_intr(void *xsc);
-static void	llan_init(void *xsc);
-static void	llan_start(struct ifnet *ifp);
-static int	llan_ioctl(struct ifnet *ifp, u_long cmd, caddr_t data);
-static void	llan_media_status(struct ifnet *ifp, struct ifmediareq *ifmr);
-static int	llan_media_change(struct ifnet *ifp);
-static void	llan_rx_load_cb(void *xsc, bus_dma_segment_t *segs, int nsegs,
-		    int err);
-static int	llan_add_rxbuf(struct llan_softc *sc, struct llan_xfer *rx);
-static int	llan_set_multicast(struct llan_softc *sc);
+static int llan_probe(device_t);
+static int llan_attach(device_t);
+static void llan_intr(void *xsc);
+static void llan_init(void *xsc);
+static void llan_start(struct ifnet *ifp);
+static int llan_ioctl(struct ifnet *ifp, u_long cmd, caddr_t data);
+static void llan_media_status(struct ifnet *ifp, struct ifmediareq *ifmr);
+static int llan_media_change(struct ifnet *ifp);
+static void llan_rx_load_cb(void *xsc, bus_dma_segment_t *segs, int nsegs,
+    int err);
+static int llan_add_rxbuf(struct llan_softc *sc, struct llan_xfer *rx);
+static int llan_set_multicast(struct llan_softc *sc);
 
-static device_method_t  llan_methods[] = {
-        DEVMETHOD(device_probe,         llan_probe),
-        DEVMETHOD(device_attach,        llan_attach),
-        
-        DEVMETHOD_END
-};
+static device_method_t llan_methods[] = { DEVMETHOD(device_probe, llan_probe),
+	DEVMETHOD(device_attach, llan_attach),
 
-static driver_t llan_driver = {
-        "llan",
-        llan_methods,
-        sizeof(struct llan_softc)
-};
+	DEVMETHOD_END };
+
+static driver_t llan_driver = { "llan", llan_methods,
+	sizeof(struct llan_softc) };
 
 DRIVER_MODULE(llan, vdevice, llan_driver, 0, 0);
 
 static int
 llan_probe(device_t dev)
 {
-	if (!ofw_bus_is_compatible(dev,"IBM,l-lan"))
+	if (!ofw_bus_is_compatible(dev, "IBM,l-lan"))
 		return (ENXIO);
 
 	device_set_desc(dev, "POWER Hypervisor Virtual Ethernet");
@@ -176,7 +172,7 @@ llan_attach(device_t dev)
 
 	mtx_init(&sc->io_lock, "llan", NULL, MTX_DEF);
 
-        /* Setup interrupt */
+	/* Setup interrupt */
 	sc->irqid = 0;
 	sc->irq = bus_alloc_resource_any(dev, SYS_RES_IRQ, &sc->irqid,
 	    RF_ACTIVE);
@@ -187,22 +183,20 @@ llan_attach(device_t dev)
 		return (ENXIO);
 	}
 
-	bus_setup_intr(dev, sc->irq, INTR_TYPE_NET | INTR_MPSAFE |
-	    INTR_ENTROPY, NULL, llan_intr, sc, &sc->irq_cookie);
+	bus_setup_intr(dev, sc->irq, INTR_TYPE_NET | INTR_MPSAFE | INTR_ENTROPY,
+	    NULL, llan_intr, sc, &sc->irq_cookie);
 
 	/* Setup DMA */
-	bus_dma_tag_create(bus_get_dma_tag(dev), 16, 0,
-            BUS_SPACE_MAXADDR, BUS_SPACE_MAXADDR, NULL, NULL,
-	    LLAN_RX_BUF_LEN, 1, BUS_SPACE_MAXSIZE_32BIT,
-	    0, NULL, NULL, &sc->rx_dma_tag);
-	bus_dma_tag_create(bus_get_dma_tag(dev), 4, 0,
-            BUS_SPACE_MAXADDR, BUS_SPACE_MAXADDR, NULL, NULL,
-	    BUS_SPACE_MAXSIZE, 1, BUS_SPACE_MAXSIZE_32BIT,
-	    0, NULL, NULL, &sc->rxbuf_dma_tag);
-	bus_dma_tag_create(bus_get_dma_tag(dev), 1, 0,
-            BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR, NULL, NULL,
-	    BUS_SPACE_MAXSIZE, 6, BUS_SPACE_MAXSIZE_32BIT, 0,
-	    busdma_lock_mutex, &sc->io_lock, &sc->tx_dma_tag);
+	bus_dma_tag_create(bus_get_dma_tag(dev), 16, 0, BUS_SPACE_MAXADDR,
+	    BUS_SPACE_MAXADDR, NULL, NULL, LLAN_RX_BUF_LEN, 1,
+	    BUS_SPACE_MAXSIZE_32BIT, 0, NULL, NULL, &sc->rx_dma_tag);
+	bus_dma_tag_create(bus_get_dma_tag(dev), 4, 0, BUS_SPACE_MAXADDR,
+	    BUS_SPACE_MAXADDR, NULL, NULL, BUS_SPACE_MAXSIZE, 1,
+	    BUS_SPACE_MAXSIZE_32BIT, 0, NULL, NULL, &sc->rxbuf_dma_tag);
+	bus_dma_tag_create(bus_get_dma_tag(dev), 1, 0, BUS_SPACE_MAXADDR_32BIT,
+	    BUS_SPACE_MAXADDR, NULL, NULL, BUS_SPACE_MAXSIZE, 6,
+	    BUS_SPACE_MAXSIZE_32BIT, 0, busdma_lock_mutex, &sc->io_lock,
+	    &sc->tx_dma_tag);
 
 	bus_dmamem_alloc(sc->rx_dma_tag, (void **)&sc->rx_buf,
 	    BUS_DMA_WAITOK | BUS_DMA_ZERO, &sc->rx_buf_map);
@@ -277,9 +271,9 @@ llan_rx_load_cb(void *xsc, bus_dma_segment_t *segs, int nsegs, int err)
 	struct llan_softc *sc = xsc;
 
 	sc->rx_buf_phys = segs[0].ds_addr;
-	sc->rx_buf_len = segs[0].ds_len - 2*PAGE_SIZE;
+	sc->rx_buf_len = segs[0].ds_len - 2 * PAGE_SIZE;
 	sc->input_buf_phys = segs[0].ds_addr + segs[0].ds_len - PAGE_SIZE;
-	sc->filter_buf_phys = segs[0].ds_addr + segs[0].ds_len - 2*PAGE_SIZE;
+	sc->filter_buf_phys = segs[0].ds_addr + segs[0].ds_len - 2 * PAGE_SIZE;
 }
 
 static void
@@ -368,7 +362,7 @@ llan_add_rxbuf(struct llan_softc *sc, struct llan_xfer *rx)
 		return (ENOBUFS);
 	}
 
-        return (0);
+	return (0);
 }
 
 static void
@@ -401,7 +395,7 @@ restart:
 		m->m_pkthdr.len = m->m_len;
 		sc->rx_dma_slot++;
 
-		if (sc->rx_dma_slot >= sc->rx_buf_len/sizeof(sc->rx_buf[0])) {
+		if (sc->rx_dma_slot >= sc->rx_buf_len / sizeof(sc->rx_buf[0])) {
 			sc->rx_dma_slot = 0;
 			sc->rx_valid_val = !sc->rx_valid_val;
 		}
@@ -440,8 +434,8 @@ llan_send_packet(void *xsc, bus_dma_segment_t *segs, int nsegs,
 		bufdescs[i] |= segs[i].ds_addr;
 	}
 
-	err = phyp_hcall(H_SEND_LOGICAL_LAN, sc->unit, bufdescs[0],
-	    bufdescs[1], bufdescs[2], bufdescs[3], bufdescs[4], bufdescs[5], 0);
+	err = phyp_hcall(H_SEND_LOGICAL_LAN, sc->unit, bufdescs[0], bufdescs[1],
+	    bufdescs[2], bufdescs[3], bufdescs[4], bufdescs[5], 0);
 	/*
 	 * The hypercall returning implies completion -- or that the call will
 	 * not complete. In principle, we should try a few times if we get back
@@ -485,8 +479,8 @@ llan_start_locked(struct ifnet *ifp)
 			}
 		}
 
-		bus_dmamap_load_mbuf(sc->tx_dma_tag, sc->tx_dma_map,
-			mb_head, llan_send_packet, sc, 0);
+		bus_dmamap_load_mbuf(sc->tx_dma_tag, sc->tx_dma_map, mb_head,
+		    llan_send_packet, sc, 0);
 		bus_dmamap_unload(sc->tx_dma_tag, sc->tx_dma_map);
 		m_freem(mb_head);
 	}

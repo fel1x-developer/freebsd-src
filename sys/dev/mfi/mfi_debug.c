@@ -26,32 +26,34 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_mfi.h"
+
+#include <sys/cdefs.h>
 
 #ifdef MFI_DEBUG
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/conf.h>
-#include <sys/bus.h>
 #include <sys/bio.h>
+#include <sys/bus.h>
+#include <sys/conf.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
-#include <sys/mutex.h>
 #include <sys/malloc.h>
+#include <sys/mutex.h>
 #include <sys/selinfo.h>
 #include <sys/sysctl.h>
 #include <sys/taskqueue.h>
 #include <sys/uio.h>
-#include <machine/resource.h>
-#include <machine/bus.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
 
-#include <dev/mfi/mfireg.h>
+#include <machine/bus.h>
+#include <machine/resource.h>
+
 #include <dev/mfi/mfi_ioctl.h>
+#include <dev/mfi/mfireg.h>
 #include <dev/mfi/mfivar.h>
 
 static void
@@ -95,7 +97,6 @@ mfi_print_sgl(struct mfi_frame_header *hdr, union mfi_sgl *sgl, int count)
 	}
 	if (columns != 0)
 		printf("\n");
-
 }
 
 static void
@@ -107,12 +108,13 @@ mfi_print_ldio(struct mfi_softc *sc, device_t dev, struct mfi_command *cm)
 	io = &cm->cm_frame->io;
 	hdr = &io->header;
 
-	device_printf(dev, "cmd=%s target_id=%d sg_count=%d data_len=%d "
-	    "lba=%d\n", (hdr->cmd == MFI_CMD_LD_READ) ? "LD_READ":"LD_WRITE",
-	     hdr->target_id, hdr->sg_count, hdr->data_len, io->lba_lo);
+	device_printf(dev,
+	    "cmd=%s target_id=%d sg_count=%d data_len=%d "
+	    "lba=%d\n",
+	    (hdr->cmd == MFI_CMD_LD_READ) ? "LD_READ" : "LD_WRITE",
+	    hdr->target_id, hdr->sg_count, hdr->data_len, io->lba_lo);
 	mfi_print_frame_flags(dev, hdr->flags);
 	mfi_print_sgl(hdr, &io->sgl, hdr->sg_count);
-
 }
 
 static void
@@ -182,11 +184,10 @@ mfi_print_dcmd(struct mfi_softc *sc, device_t dev, struct mfi_command *cm)
 		break;
 	}
 
-	device_printf(dev, "cmd=MFI_CMD_DCMD opcode=%s data_len=%d\n",
-	    opcode, hdr->data_len);
+	device_printf(dev, "cmd=MFI_CMD_DCMD opcode=%s data_len=%d\n", opcode,
+	    hdr->data_len);
 	mfi_print_frame_flags(dev, hdr->flags);
 	mfi_print_sgl(hdr, &dcmd->sgl, hdr->sg_count);
-
 }
 
 static void
@@ -204,9 +205,10 @@ mfi_print_cmd(struct mfi_command *cm)
 	sc = cm->cm_sc;
 	dev = sc->mfi_dev;
 
-	device_printf(dev, "cm=%p index=%d total_frame_size=%d "
-	    "extra_frames=%d\n", cm, cm->cm_index, cm->cm_total_frame_size,
-	    cm->cm_extra_frames);
+	device_printf(dev,
+	    "cm=%p index=%d total_frame_size=%d "
+	    "extra_frames=%d\n",
+	    cm, cm->cm_index, cm->cm_total_frame_size, cm->cm_extra_frames);
 	device_printf(dev, "flags=%b\n", cm->cm_flags, MFI_CMD_FLAGS_FMT);
 
 	switch (cm->cm_frame->header.cmd) {
@@ -236,7 +238,7 @@ mfi_dump_cmds(struct mfi_softc *sc)
 
 void
 mfi_validate_sg(struct mfi_softc *sc, struct mfi_command *cm,
-	const char *function, int line)
+    const char *function, int line)
 {
 	struct mfi_frame_header *hdr;
 	int i;

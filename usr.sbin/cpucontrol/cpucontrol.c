@@ -31,53 +31,53 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/types.h>
+#include <sys/param.h>
+#include <sys/cpuctl.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
+#include <sys/queue.h>
+#include <sys/stat.h>
+
 #include <assert.h>
+#include <dirent.h>
 #include <err.h>
 #include <errno.h>
-#include <dirent.h>
 #include <fcntl.h>
 #include <paths.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <sysexits.h>
+#include <unistd.h>
 
-#include <sys/queue.h>
-#include <sys/param.h>
-#include <sys/types.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
-#include <sys/cpuctl.h>
-
-#include "cpucontrol.h"
 #include "amd.h"
+#include "cpucontrol.h"
 #include "intel.h"
 #include "via.h"
 
-int	verbosity_level = 0;
+int verbosity_level = 0;
 
-#define	DEFAULT_DATADIR	_PATH_LOCALBASE "/share/cpucontrol"
+#define DEFAULT_DATADIR _PATH_LOCALBASE "/share/cpucontrol"
 
-#define	FLAG_I	0x01
-#define	FLAG_M	0x02
-#define	FLAG_U	0x04
-#define	FLAG_N	0x08
-#define	FLAG_E	0x10
+#define FLAG_I 0x01
+#define FLAG_M 0x02
+#define FLAG_U 0x04
+#define FLAG_N 0x08
+#define FLAG_E 0x10
 
-#define	OP_INVAL	0x00
-#define	OP_READ		0x01
-#define	OP_WRITE	0x02
-#define	OP_OR		0x04
-#define	OP_AND		0x08
+#define OP_INVAL 0x00
+#define OP_READ 0x01
+#define OP_WRITE 0x02
+#define OP_OR 0x04
+#define OP_AND 0x08
 
-#define	HIGH(val)	(uint32_t)(((val) >> 32) & 0xffffffff)
-#define	LOW(val)	(uint32_t)((val) & 0xffffffff)
+#define HIGH(val) (uint32_t)(((val) >> 32) & 0xffffffff)
+#define LOW(val) (uint32_t)((val) & 0xffffffff)
 
 struct datadir {
-	const char		*path;
-	SLIST_ENTRY(datadir)	next;
+	const char *path;
+	SLIST_ENTRY(datadir) next;
 };
 static SLIST_HEAD(, datadir) datadirs = SLIST_HEAD_INITIALIZER(datadirs);
 
@@ -92,12 +92,12 @@ static struct ucode_handler {
 };
 #define NHANDLERS (sizeof(handlers) / sizeof(*handlers))
 
-static void	usage(void);
-static int	do_cpuid(const char *cmdarg, const char *dev);
-static int	do_cpuid_count(const char *cmdarg, const char *dev);
-static int	do_msr(const char *cmdarg, const char *dev);
-static int	do_update(const char *dev);
-static void	datadir_add(const char *path);
+static void usage(void);
+static int do_cpuid(const char *cmdarg, const char *dev);
+static int do_cpuid_count(const char *cmdarg, const char *dev);
+static int do_msr(const char *cmdarg, const char *dev);
+static int do_update(const char *dev);
+static void datadir_add(const char *path);
 
 static void __dead2
 usage(void)
@@ -107,8 +107,10 @@ usage(void)
 	name = getprogname();
 	if (name == NULL)
 		name = "cpuctl";
-	fprintf(stderr, "Usage: %s [-vh] [-d datadir] [-m msr[=value] | "
-	    "-i level | -i level,level_type | -e | -u] device\n", name);
+	fprintf(stderr,
+	    "Usage: %s [-vh] [-d datadir] [-m msr[=value] | "
+	    "-i level | -i level,level_type | -e | -u] device\n",
+	    name);
 	exit(EX_USAGE);
 }
 
@@ -195,9 +197,11 @@ do_cpuid_count(const char *cmdarg, const char *dev)
 		close(fd);
 		return (error);
 	}
-	fprintf(stdout, "cpuid level 0x%x, level_type 0x%x: 0x%.8x 0x%.8x "
-	    "0x%.8x 0x%.8x\n", level, level_type, args.data[0], args.data[1],
-	    args.data[2], args.data[3]);
+	fprintf(stdout,
+	    "cpuid level 0x%x, level_type 0x%x: 0x%.8x 0x%.8x "
+	    "0x%.8x 0x%.8x\n",
+	    level, level_type, args.data[0], args.data[1], args.data[2],
+	    args.data[3]);
 	close(fd);
 	return (0);
 }
@@ -247,7 +251,7 @@ do_msr(const char *cmdarg, const char *dev)
 	default:
 		op = OP_INVAL;
 	}
-	if (op != OP_READ) {	/* Complex operation. */
+	if (op != OP_READ) { /* Complex operation. */
 		if (*endptr != '=')
 			op = OP_INVAL;
 		else {
@@ -381,7 +385,6 @@ try_a_fw_image(const char *dev_path, int devfd, int fwdfd, const char *dpath,
 		goto out;
 	}
 
-
 	memset(&parm, 0, sizeof(parm));
 	parm.devfd = devfd;
 	parm.fwimage = fw_map;
@@ -441,10 +444,11 @@ do_update(const char *dev)
 	/*
 	 * Process every image in specified data directories.
 	 */
-	SLIST_FOREACH(dir, &datadirs, next) {
+	SLIST_FOREACH (dir, &datadirs, next) {
 		fwdfd = open(dir->path, O_RDONLY);
 		if (fwdfd < 0) {
-			WARN(1, "skipping directory %s: not accessible", dir->path);
+			WARN(1, "skipping directory %s: not accessible",
+			    dir->path);
 			continue;
 		}
 		dirp = fdopendir(fwdfd);
@@ -503,7 +507,7 @@ main(int argc, char *argv[])
 
 	flags = 0;
 	error = 0;
-	cmdarg = "";	/* To keep gcc3 happy. */
+	cmdarg = ""; /* To keep gcc3 happy. */
 
 	while ((c = getopt(argc, argv, "d:ehi:m:nuv")) != -1) {
 		switch (c) {
@@ -564,7 +568,7 @@ main(int argc, char *argv[])
 		error = do_eval_cpu_features(dev);
 		break;
 	default:
-		usage();	/* Only one command can be selected. */
+		usage(); /* Only one command can be selected. */
 	}
 	while ((elm = SLIST_FIRST(&datadirs)) != NULL) {
 		SLIST_REMOVE_HEAD(&datadirs, next);

@@ -4,10 +4,10 @@
  * Copyright (c) 2000 Christoph Herrmann, Thomas-Henning von Kamptz
  * Copyright (c) 1980, 1989, 1993 The Regents of the University of California.
  * All rights reserved.
- * 
+ *
  * This code is derived from software contributed to Berkeley by
  * Christoph Herrmann and Thomas-Henning von Kamptz, Munich and Frankfurt.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -24,7 +24,7 @@
  * 4. Neither the name of the University nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -47,12 +47,6 @@
 #include <sys/mount.h>
 #include <sys/stat.h>
 
-#include <ufs/ufs/extattr.h>
-#include <ufs/ufs/quota.h>
-#include <ufs/ufs/ufsmount.h>
-#include <ufs/ufs/dinode.h>
-#include <ufs/ffs/fs.h>
-
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
@@ -63,19 +57,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
+#include <ufs/ufs/extattr.h>
+#include <ufs/ufs/quota.h>
+#include <ufs/ufs/ufsmount.h>
 #include <unistd.h>
 
 #include "debug.h"
 
 /* *********************************************************** GLOBALS ***** */
 #ifdef FS_DEBUG
-int	_dbg_lvl_ = (DL_INFO); /* DL_TRC */
-#endif /* FS_DEBUG */
+int _dbg_lvl_ = (DL_INFO); /* DL_TRC */
+#endif			   /* FS_DEBUG */
 
 static struct uufsd disk;
 
 #define sblock disk.d_fs
-#define acg    disk.d_cg
+#define acg disk.d_cg
 
 static union {
 	struct fs fs;
@@ -84,20 +83,20 @@ static union {
 
 #define osblock fsun.fs
 
-static char	i1blk[MAXBSIZE];
-static char	i2blk[MAXBSIZE];
-static char	i3blk[MAXBSIZE];
+static char i1blk[MAXBSIZE];
+static char i2blk[MAXBSIZE];
+static char i3blk[MAXBSIZE];
 
-static struct csum	*fscs;
+static struct csum *fscs;
 
 /* ******************************************************** PROTOTYPES ***** */
-static void	usage(void);
-static void	dump_whole_ufs1_inode(ino_t, int);
-static void	dump_whole_ufs2_inode(ino_t, int);
+static void usage(void);
+static void dump_whole_ufs1_inode(ino_t, int);
+static void dump_whole_ufs2_inode(ino_t, int);
 
-#define DUMP_WHOLE_INODE(A,B) \
-	( disk.d_ufs == 1 \
-		? dump_whole_ufs1_inode((A),(B)) : dump_whole_ufs2_inode((A),(B)) )
+#define DUMP_WHOLE_INODE(A, B)                               \
+	(disk.d_ufs == 1 ? dump_whole_ufs1_inode((A), (B)) : \
+			   dump_whole_ufs2_inode((A), (B)))
 
 /* ************************************************************** main ***** */
 /*
@@ -116,18 +115,18 @@ int
 main(int argc, char **argv)
 {
 	DBG_FUNC("main")
-	char	*device, *special;
-	int	ch;
-	size_t	len;
-	struct stat	st;
-	struct csum	*dbg_csp;
-	int	dbg_csc;
-	char	dbg_line[80];
-	int	cylno,i;
-	int	cfg_cg, cfg_in, cfg_lv;
-	int	cg_start, cg_stop;
-	ino_t	in;
-	char	*out_file;
+	char *device, *special;
+	int ch;
+	size_t len;
+	struct stat st;
+	struct csum *dbg_csp;
+	int dbg_csc;
+	char dbg_line[80];
+	int cylno, i;
+	int cfg_cg, cfg_in, cfg_lv;
+	int cg_start, cg_stop;
+	ino_t in;
+	char *out_file;
 
 	DBG_ENTER;
 
@@ -151,10 +150,10 @@ main(int argc, char **argv)
 				err(1, "%s", optarg);
 			if (cfg_in < 0)
 				usage();
-			break; 
+			break;
 		case 'l':
 			cfg_lv = strtol(optarg, NULL, 0);
-			if (errno == EINVAL||errno == ERANGE)
+			if (errno == EINVAL || errno == ERANGE)
 				err(1, "%s", optarg);
 			if (cfg_lv < 0x1 || cfg_lv > 0x3ff)
 				usage();
@@ -188,7 +187,7 @@ main(int argc, char **argv)
 		 *     /dev/%s
 		 *     /dev/vinum/r%s
 		 *     /dev/vinum/%s.
-		 * 
+		 *
 		 * FreeBSD now doesn't distinguish between raw and  block
 		 * devices any longer, but it should still work this way.
 		 */
@@ -200,8 +199,8 @@ main(int argc, char **argv)
 		if (stat(special, &st) == -1) {
 			snprintf(special, len, "%s%s", _PATH_DEV, device);
 			if (stat(special, &st) == -1) {
-				snprintf(special, len, "%svinum/r%s",
-				    _PATH_DEV, device);
+				snprintf(special, len, "%svinum/r%s", _PATH_DEV,
+				    device);
 				if (stat(special, &st) == -1)
 					/* For now this is the 'last resort' */
 					snprintf(special, len, "%svinum/%s",
@@ -215,13 +214,13 @@ main(int argc, char **argv)
 	    sbfind(&disk, 0) == -1)
 		err(1, "superblock fetch(%s) failed: %s", device, disk.d_error);
 
-	DBG_OPEN(out_file);	/* already here we need a superblock */
+	DBG_OPEN(out_file); /* already here we need a superblock */
 
 	if (cfg_lv & 0x001)
 		DBG_DUMP_FS(&sblock, "primary sblock");
 
 	/* Determine here what cylinder groups to dump */
-	if (cfg_cg==-2) {
+	if (cfg_cg == -2) {
 		cg_start = 0;
 		cg_stop = sblock.fs_ncg;
 	} else if (cfg_cg == -1) {
@@ -243,22 +242,23 @@ main(int argc, char **argv)
 
 		/* get the cylinder summary into the memory ... */
 		for (i = 0; i < sblock.fs_cssize; i += sblock.fs_bsize) {
-			if (bread(&disk, fsbtodb(&sblock,
-			    sblock.fs_csaddr + numfrags(&sblock, i)), 
-			    (void *)(((char *)fscs)+i), 
-			    (size_t)(sblock.fs_cssize-i < sblock.fs_bsize ?
-			    sblock.fs_cssize - i : sblock.fs_bsize)) == -1)
+			if (bread(&disk,
+				fsbtodb(&sblock,
+				    sblock.fs_csaddr + numfrags(&sblock, i)),
+				(void *)(((char *)fscs) + i),
+				(size_t)(sblock.fs_cssize - i <
+					    sblock.fs_bsize ?
+					sblock.fs_cssize - i :
+					sblock.fs_bsize)) == -1)
 				err(1, "bread: %s", disk.d_error);
 		}
 
 		dbg_csp = fscs;
 		/* ... and dump it */
 		for (dbg_csc = 0; dbg_csc < sblock.fs_ncg; dbg_csc++) {
-			snprintf(dbg_line, sizeof(dbg_line),
-			    "%d. csum in fscs", dbg_csc);
-			DBG_DUMP_CSUM(&sblock,
-			    dbg_line,
-			    dbg_csp++);
+			snprintf(dbg_line, sizeof(dbg_line), "%d. csum in fscs",
+			    dbg_csc);
+			DBG_DUMP_CSUM(&sblock, dbg_line, dbg_csp++);
 		}
 	}
 
@@ -268,9 +268,10 @@ main(int argc, char **argv)
 			snprintf(dbg_line, sizeof(dbg_line), "cgr %d", cylno);
 			if (cfg_lv & 0x002) {
 				/* dump the superblock copies */
-				if (bread(&disk, fsbtodb(&sblock,
-				    cgsblock(&sblock, cylno)), 
-				    (void *)&osblock, SBLOCKSIZE) == -1)
+				if (bread(&disk,
+					fsbtodb(&sblock,
+					    cgsblock(&sblock, cylno)),
+					(void *)&osblock, SBLOCKSIZE) == -1)
 					err(1, "bread: %s", disk.d_error);
 				DBG_DUMP_FS(&osblock, dbg_line);
 			}
@@ -279,9 +280,9 @@ main(int argc, char **argv)
 			 * Read the cylinder group and dump whatever was
 			 * requested.
 			 */
-			if (bread(&disk, fsbtodb(&sblock,
-			    cgtod(&sblock, cylno)), (void *)&acg,
-			    (size_t)sblock.fs_cgsize) == -1)
+			if (bread(&disk,
+				fsbtodb(&sblock, cgtod(&sblock, cylno)),
+				(void *)&acg, (size_t)sblock.fs_cgsize) == -1)
 				err(1, "bread: %s", disk.d_error);
 
 			if (cfg_lv & 0x008)
@@ -294,7 +295,7 @@ main(int argc, char **argv)
 				DBG_DUMP_CLMAP(&sblock, dbg_line, &acg);
 				DBG_DUMP_CLSUM(&sblock, dbg_line, &acg);
 			}
-	#ifdef NOT_CURRENTLY
+#ifdef NOT_CURRENTLY
 			/*
 			 * See the comment in sbin/growfs/debug.c for why this
 			 * is currently disabled, and what needs to be done to
@@ -302,7 +303,7 @@ main(int argc, char **argv)
 			 */
 			if (disk.d_ufs == 1 && cfg_lv & 0x080)
 				DBG_DUMP_SPTBL(&sblock, dbg_line, &acg);
-	#endif
+#endif
 		}
 	}
 
@@ -312,8 +313,7 @@ main(int argc, char **argv)
 			DUMP_WHOLE_INODE((ino_t)cfg_in, cfg_lv);
 		else {
 			for (in = cg_start * sblock.fs_ipg;
-			    in < (ino_t)cg_stop * sblock.fs_ipg; 
-			    in++)
+			     in < (ino_t)cg_stop * sblock.fs_ipg; in++)
 				DUMP_WHOLE_INODE(in, cfg_lv);
 		}
 	}
@@ -334,11 +334,11 @@ dump_whole_ufs1_inode(ino_t inode, int level)
 {
 	DBG_FUNC("dump_whole_ufs1_inode")
 	union dinodep dp;
-	int	rb;
-	unsigned int	ind2ctr, ind3ctr;
-	ufs1_daddr_t	*ind2ptr, *ind3ptr;
-	char	comment[80];
-	
+	int rb;
+	unsigned int ind2ctr, ind3ctr;
+	ufs1_daddr_t *ind2ptr, *ind3ptr;
+	char comment[80];
+
 	DBG_ENTER;
 
 	/*
@@ -349,7 +349,7 @@ dump_whole_ufs1_inode(ino_t inode, int level)
 
 	if (dp.dp1->di_nlink == 0) {
 		DBG_LEAVE;
-		return;	/* inode not in use */
+		return; /* inode not in use */
 	}
 
 	/*
@@ -357,9 +357,7 @@ dump_whole_ufs1_inode(ino_t inode, int level)
 	 */
 	snprintf(comment, sizeof(comment), "Inode 0x%08jx", (uintmax_t)inode);
 	if (level & 0x100) {
-		DBG_DUMP_INO(&sblock,
-		    comment,
-		    dp.dp1);
+		DBG_DUMP_INO(&sblock, comment, dp.dp1);
 	}
 
 	if (!(level & 0x200)) {
@@ -376,15 +374,12 @@ dump_whole_ufs1_inode(ino_t inode, int level)
 		 * Dump single indirect block.
 		 */
 		if (bread(&disk, fsbtodb(&sblock, dp.dp1->di_ib[0]),
-		    (void *)&i1blk, (size_t)sblock.fs_bsize) == -1) {
+			(void *)&i1blk, (size_t)sblock.fs_bsize) == -1) {
 			err(1, "bread: %s", disk.d_error);
 		}
 		snprintf(comment, sizeof(comment), "Inode 0x%08jx: indirect 0",
 		    (uintmax_t)inode);
-		DBG_DUMP_IBLK(&sblock,
-		    comment,
-		    i1blk,
-		    (size_t)rb);
+		DBG_DUMP_IBLK(&sblock, comment, i1blk, (size_t)rb);
 		rb -= howmany(sblock.fs_bsize, sizeof(ufs1_daddr_t));
 	}
 	if (rb > 0) {
@@ -392,30 +387,29 @@ dump_whole_ufs1_inode(ino_t inode, int level)
 		 * Dump double indirect blocks.
 		 */
 		if (bread(&disk, fsbtodb(&sblock, dp.dp1->di_ib[1]),
-		    (void *)&i2blk, (size_t)sblock.fs_bsize) == -1) {
+			(void *)&i2blk, (size_t)sblock.fs_bsize) == -1) {
 			err(1, "bread: %s", disk.d_error);
 		}
 		snprintf(comment, sizeof(comment), "Inode 0x%08jx: indirect 1",
 		    (uintmax_t)inode);
-		DBG_DUMP_IBLK(&sblock,
-		    comment,
-		    i2blk,
-		    howmany(rb, howmany(sblock.fs_bsize, sizeof(ufs1_daddr_t))));
+		DBG_DUMP_IBLK(&sblock, comment, i2blk,
+		    howmany(rb,
+			howmany(sblock.fs_bsize, sizeof(ufs1_daddr_t))));
 		for (ind2ctr = 0; ((ind2ctr < howmany(sblock.fs_bsize,
-			sizeof(ufs1_daddr_t))) && (rb > 0)); ind2ctr++) {
+						  sizeof(ufs1_daddr_t))) &&
+			 (rb > 0));
+		     ind2ctr++) {
 			ind2ptr = &((ufs1_daddr_t *)(void *)&i2blk)[ind2ctr];
 
 			if (bread(&disk, fsbtodb(&sblock, *ind2ptr),
-			    (void *)&i1blk, (size_t)sblock.fs_bsize) == -1) {
+				(void *)&i1blk,
+				(size_t)sblock.fs_bsize) == -1) {
 				err(1, "bread: %s", disk.d_error);
 			}
 			snprintf(comment, sizeof(comment),
 			    "Inode 0x%08jx: indirect 1->%d", (uintmax_t)inode,
 			    ind2ctr);
-			DBG_DUMP_IBLK(&sblock,
-			    comment,
-			    i1blk,
-			    (size_t)rb);
+			DBG_DUMP_IBLK(&sblock, comment, i1blk, (size_t)rb);
 			rb -= howmany(sblock.fs_bsize, sizeof(ufs1_daddr_t));
 		}
 	}
@@ -424,49 +418,51 @@ dump_whole_ufs1_inode(ino_t inode, int level)
 		 * Dump triple indirect blocks.
 		 */
 		if (bread(&disk, fsbtodb(&sblock, dp.dp1->di_ib[2]),
-		    (void *)&i3blk, (size_t)sblock.fs_bsize) == -1) {
+			(void *)&i3blk, (size_t)sblock.fs_bsize) == -1) {
 			err(1, "bread: %s", disk.d_error);
 		}
 		snprintf(comment, sizeof(comment), "Inode 0x%08jx: indirect 2",
 		    (uintmax_t)inode);
-#define SQUARE(a) ((a)*(a))
-		DBG_DUMP_IBLK(&sblock,
-		    comment,
-		    i3blk,
+#define SQUARE(a) ((a) * (a))
+		DBG_DUMP_IBLK(&sblock, comment, i3blk,
 		    howmany(rb,
-		      SQUARE(howmany(sblock.fs_bsize, sizeof(ufs1_daddr_t)))));
+			SQUARE(
+			    howmany(sblock.fs_bsize, sizeof(ufs1_daddr_t)))));
 #undef SQUARE
 		for (ind3ctr = 0; ((ind3ctr < howmany(sblock.fs_bsize,
-			sizeof(ufs1_daddr_t))) && (rb > 0)); ind3ctr++) {
+						  sizeof(ufs1_daddr_t))) &&
+			 (rb > 0));
+		     ind3ctr++) {
 			ind3ptr = &((ufs1_daddr_t *)(void *)&i3blk)[ind3ctr];
 
 			if (bread(&disk, fsbtodb(&sblock, *ind3ptr),
-			    (void *)&i2blk, (size_t)sblock.fs_bsize) == -1) {
+				(void *)&i2blk,
+				(size_t)sblock.fs_bsize) == -1) {
 				err(1, "bread: %s", disk.d_error);
 			}
 			snprintf(comment, sizeof(comment),
 			    "Inode 0x%08jx: indirect 2->%d", (uintmax_t)inode,
 			    ind3ctr);
-			DBG_DUMP_IBLK(&sblock,
-			    comment,
-			    i2blk,
+			DBG_DUMP_IBLK(&sblock, comment, i2blk,
 			    howmany(rb,
-			      howmany(sblock.fs_bsize, sizeof(ufs1_daddr_t))));
-			for (ind2ctr = 0; ((ind2ctr < howmany(sblock.fs_bsize,
-			     sizeof(ufs1_daddr_t))) && (rb > 0)); ind2ctr++) {
-				ind2ptr=&((ufs1_daddr_t *)(void *)&i2blk)
-				    [ind2ctr];
+				howmany(sblock.fs_bsize,
+				    sizeof(ufs1_daddr_t))));
+			for (ind2ctr = 0;
+			     ((ind2ctr < howmany(sblock.fs_bsize,
+					     sizeof(ufs1_daddr_t))) &&
+				 (rb > 0));
+			     ind2ctr++) {
+				ind2ptr = &(
+				    (ufs1_daddr_t *)(void *)&i2blk)[ind2ctr];
 				if (bread(&disk, fsbtodb(&sblock, *ind2ptr),
-				    (void *)&i1blk, (size_t)sblock.fs_bsize)
-				    == -1) {
+					(void *)&i1blk,
+					(size_t)sblock.fs_bsize) == -1) {
 					err(1, "bread: %s", disk.d_error);
 				}
 				snprintf(comment, sizeof(comment),
 				    "Inode 0x%08jx: indirect 2->%d->%d",
 				    (uintmax_t)inode, ind3ctr, ind3ctr);
-				DBG_DUMP_IBLK(&sblock,
-				    comment,
-				    i1blk,
+				DBG_DUMP_IBLK(&sblock, comment, i1blk,
 				    (size_t)rb);
 				rb -= howmany(sblock.fs_bsize,
 				    sizeof(ufs1_daddr_t));
@@ -488,11 +484,11 @@ dump_whole_ufs2_inode(ino_t inode, int level)
 {
 	DBG_FUNC("dump_whole_ufs2_inode")
 	union dinodep dp;
-	int	rb;
-	unsigned int	ind2ctr, ind3ctr;
-	ufs2_daddr_t	*ind2ptr, *ind3ptr;
-	char	comment[80];
-	
+	int rb;
+	unsigned int ind2ctr, ind3ctr;
+	ufs2_daddr_t *ind2ptr, *ind3ptr;
+	char comment[80];
+
 	DBG_ENTER;
 
 	/*
@@ -503,7 +499,7 @@ dump_whole_ufs2_inode(ino_t inode, int level)
 
 	if (dp.dp2->di_nlink == 0) {
 		DBG_LEAVE;
-		return;	/* inode not in use */
+		return; /* inode not in use */
 	}
 
 	/*
@@ -528,7 +524,7 @@ dump_whole_ufs2_inode(ino_t inode, int level)
 		 * Dump single indirect block.
 		 */
 		if (bread(&disk, fsbtodb(&sblock, dp.dp2->di_ib[0]),
-		    (void *)&i1blk, (size_t)sblock.fs_bsize) == -1) {
+			(void *)&i1blk, (size_t)sblock.fs_bsize) == -1) {
 			err(1, "bread: %s", disk.d_error);
 		}
 		snprintf(comment, sizeof(comment), "Inode 0x%08jx: indirect 0",
@@ -541,26 +537,28 @@ dump_whole_ufs2_inode(ino_t inode, int level)
 		 * Dump double indirect blocks.
 		 */
 		if (bread(&disk, fsbtodb(&sblock, dp.dp2->di_ib[1]),
-		    (void *)&i2blk, (size_t)sblock.fs_bsize) == -1) {
+			(void *)&i2blk, (size_t)sblock.fs_bsize) == -1) {
 			err(1, "bread: %s", disk.d_error);
 		}
 		snprintf(comment, sizeof(comment), "Inode 0x%08jx: indirect 1",
 		    (uintmax_t)inode);
-		DBG_DUMP_IBLK(&sblock,
-			comment,
-			i2blk,
-			howmany(rb, howmany(sblock.fs_bsize, sizeof(ufs2_daddr_t))));
+		DBG_DUMP_IBLK(&sblock, comment, i2blk,
+		    howmany(rb,
+			howmany(sblock.fs_bsize, sizeof(ufs2_daddr_t))));
 		for (ind2ctr = 0; ((ind2ctr < howmany(sblock.fs_bsize,
-			sizeof(ufs2_daddr_t))) && (rb>0)); ind2ctr++) {
+						  sizeof(ufs2_daddr_t))) &&
+			 (rb > 0));
+		     ind2ctr++) {
 			ind2ptr = &((ufs2_daddr_t *)(void *)&i2blk)[ind2ctr];
 
 			if (bread(&disk, fsbtodb(&sblock, *ind2ptr),
-			    (void *)&i1blk, (size_t)sblock.fs_bsize) == -1) {
+				(void *)&i1blk,
+				(size_t)sblock.fs_bsize) == -1) {
 				err(1, "bread: %s", disk.d_error);
 			}
 			snprintf(comment, sizeof(comment),
-				"Inode 0x%08jx: indirect 1->%d",
-				(uintmax_t)inode, ind2ctr);
+			    "Inode 0x%08jx: indirect 1->%d", (uintmax_t)inode,
+			    ind2ctr);
 			DBG_DUMP_IBLK(&sblock, comment, i1blk, (size_t)rb);
 			rb -= howmany(sblock.fs_bsize, sizeof(ufs2_daddr_t));
 		}
@@ -570,47 +568,54 @@ dump_whole_ufs2_inode(ino_t inode, int level)
 		 * Dump triple indirect blocks.
 		 */
 		if (bread(&disk, fsbtodb(&sblock, dp.dp2->di_ib[2]),
-		    (void *)&i3blk, (size_t)sblock.fs_bsize) == -1) {
+			(void *)&i3blk, (size_t)sblock.fs_bsize) == -1) {
 			err(1, "bread: %s", disk.d_error);
 		}
 		snprintf(comment, sizeof(comment), "Inode 0x%08jx: indirect 2",
 		    (uintmax_t)inode);
-#define SQUARE(a) ((a)*(a))
-		DBG_DUMP_IBLK(&sblock,
-			comment,
-			i3blk,
-			howmany(rb,
-				SQUARE(howmany(sblock.fs_bsize, sizeof(ufs2_daddr_t)))));
+#define SQUARE(a) ((a) * (a))
+		DBG_DUMP_IBLK(&sblock, comment, i3blk,
+		    howmany(rb,
+			SQUARE(
+			    howmany(sblock.fs_bsize, sizeof(ufs2_daddr_t)))));
 #undef SQUARE
 		for (ind3ctr = 0; ((ind3ctr < howmany(sblock.fs_bsize,
-			sizeof(ufs2_daddr_t))) && (rb > 0)); ind3ctr++) {
+						  sizeof(ufs2_daddr_t))) &&
+			 (rb > 0));
+		     ind3ctr++) {
 			ind3ptr = &((ufs2_daddr_t *)(void *)&i3blk)[ind3ctr];
 
 			if (bread(&disk, fsbtodb(&sblock, *ind3ptr),
-			    (void *)&i2blk, (size_t)sblock.fs_bsize) == -1) {
+				(void *)&i2blk,
+				(size_t)sblock.fs_bsize) == -1) {
 				err(1, "bread: %s", disk.d_error);
 			}
 			snprintf(comment, sizeof(comment),
-				"Inode 0x%08jx: indirect 2->%d",
-				(uintmax_t)inode, ind3ctr);
-			DBG_DUMP_IBLK(&sblock,
-				comment,
-				i2blk,
-				howmany(rb,
-					howmany(sblock.fs_bsize, sizeof(ufs2_daddr_t))));
-			for (ind2ctr = 0; ((ind2ctr < howmany(sblock.fs_bsize,
-				sizeof(ufs2_daddr_t))) && (rb > 0)); ind2ctr++) {
-				ind2ptr = &((ufs2_daddr_t *)(void *)&i2blk) [ind2ctr];
+			    "Inode 0x%08jx: indirect 2->%d", (uintmax_t)inode,
+			    ind3ctr);
+			DBG_DUMP_IBLK(&sblock, comment, i2blk,
+			    howmany(rb,
+				howmany(sblock.fs_bsize,
+				    sizeof(ufs2_daddr_t))));
+			for (ind2ctr = 0;
+			     ((ind2ctr < howmany(sblock.fs_bsize,
+					     sizeof(ufs2_daddr_t))) &&
+				 (rb > 0));
+			     ind2ctr++) {
+				ind2ptr = &(
+				    (ufs2_daddr_t *)(void *)&i2blk)[ind2ctr];
 				if (bread(&disk, fsbtodb(&sblock, *ind2ptr),
-				    (void *)&i1blk, (size_t)sblock.fs_bsize)
-				    == -1) {
+					(void *)&i1blk,
+					(size_t)sblock.fs_bsize) == -1) {
 					err(1, "bread: %s", disk.d_error);
 				}
 				snprintf(comment, sizeof(comment),
-					"Inode 0x%08jx: indirect 2->%d->%d",
-					(uintmax_t)inode, ind3ctr, ind3ctr);
-				DBG_DUMP_IBLK(&sblock, comment, i1blk, (size_t)rb);
-				rb -= howmany(sblock.fs_bsize, sizeof(ufs2_daddr_t));
+				    "Inode 0x%08jx: indirect 2->%d->%d",
+				    (uintmax_t)inode, ind3ctr, ind3ctr);
+				DBG_DUMP_IBLK(&sblock, comment, i1blk,
+				    (size_t)rb);
+				rb -= howmany(sblock.fs_bsize,
+				    sizeof(ufs2_daddr_t));
 			}
 		}
 	}
@@ -626,7 +631,7 @@ dump_whole_ufs2_inode(ino_t inode, int level)
 void
 usage(void)
 {
-	DBG_FUNC("usage")	
+	DBG_FUNC("usage")
 
 	DBG_ENTER;
 

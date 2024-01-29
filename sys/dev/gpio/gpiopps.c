@@ -24,42 +24,40 @@
  * SUCH DAMAGE.
  */
 
+#include "opt_platform.h"
+
 #include <sys/param.h>
+#include <sys/bus.h>
+#include <sys/conf.h>
 #include <sys/gpio.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
-#include <sys/bus.h>
-#include <sys/conf.h>
 #include <sys/timepps.h>
 
 #include <dev/gpio/gpiobusvar.h>
 
-#include "opt_platform.h"
-
 #ifdef FDT
 #include <dev/ofw/ofw_bus.h>
 
-static struct ofw_compat_data compat_data[] = {
-	{"pps-gpio", 	1},
-	{NULL,          0}
-};
+static struct ofw_compat_data compat_data[] = { { "pps-gpio", 1 },
+	{ NULL, 0 } };
 SIMPLEBUS_PNP_INFO(compat_data);
 #endif /* FDT */
 
 struct pps_softc {
-	device_t         dev;
-	gpio_pin_t	 gpin;
-	void            *ihandler;
+	device_t dev;
+	gpio_pin_t gpin;
+	void *ihandler;
 	struct resource *ires;
-	int		 irid;
-	struct cdev     *pps_cdev;
+	int irid;
+	struct cdev *pps_cdev;
 	struct pps_state pps_state;
-	struct mtx       pps_mtx;
-	bool		 falling_edge;
+	struct mtx pps_mtx;
+	bool falling_edge;
 };
 
-#define PPS_CDEV_NAME   "gpiopps"
+#define PPS_CDEV_NAME "gpiopps"
 
 static int
 gpiopps_open(struct cdev *dev, int flags, int fmt, struct thread *td)
@@ -74,7 +72,7 @@ gpiopps_open(struct cdev *dev, int flags, int fmt, struct thread *td)
 	return 0;
 }
 
-static	int
+static int
 gpiopps_close(struct cdev *dev, int flags, int fmt, struct thread *td)
 {
 	struct pps_softc *sc = dev->si_drv1;
@@ -87,7 +85,8 @@ gpiopps_close(struct cdev *dev, int flags, int fmt, struct thread *td)
 }
 
 static int
-gpiopps_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int flags, struct thread *td)
+gpiopps_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int flags,
+    struct thread *td)
 {
 	struct pps_softc *sc = dev->si_drv1;
 	int err;
@@ -101,12 +100,12 @@ gpiopps_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int flags, struct thre
 }
 
 static struct cdevsw pps_cdevsw = {
-	.d_version =    D_VERSION,
-	.d_flags =	D_TRACKCLOSE,
-	.d_open =       gpiopps_open,
-	.d_close =      gpiopps_close,
-	.d_ioctl =      gpiopps_ioctl,
-	.d_name =       PPS_CDEV_NAME,
+	.d_version = D_VERSION,
+	.d_flags = D_TRACKCLOSE,
+	.d_open = gpiopps_open,
+	.d_close = gpiopps_close,
+	.d_ioctl = gpiopps_ioctl,
+	.d_name = PPS_CDEV_NAME,
 };
 
 static int
@@ -209,7 +208,8 @@ gpiopps_fdt_attach(device_t dev)
 		return (err);
 	}
 	if ((pincaps & edge) == 0) {
-		device_printf(dev, "Pin cannot be configured for the requested signal edge\n");
+		device_printf(dev,
+		    "Pin cannot be configured for the requested signal edge\n");
 		gpiopps_detach(dev);
 		return (ENOTSUP);
 	}
@@ -219,13 +219,13 @@ gpiopps_fdt_attach(device_t dev)
 	 * the interrupt.
 	 */
 	if ((sc->ires = gpio_alloc_intr_resource(dev, &sc->irid, RF_ACTIVE,
-	    sc->gpin, edge)) == NULL) {
+		 sc->gpin, edge)) == NULL) {
 		device_printf(dev, "Cannot allocate an IRQ for the GPIO\n");
 		gpiopps_detach(dev);
 		return (err);
 	}
 
-	err = bus_setup_intr(dev, sc->ires, INTR_TYPE_CLK | INTR_MPSAFE, 
+	err = bus_setup_intr(dev, sc->ires, INTR_TYPE_CLK | INTR_MPSAFE,
 	    gpiopps_ifltr, gpiopps_ithrd, sc, &sc->ihandler);
 	if (err != 0) {
 		device_printf(dev, "Unable to setup pps irq handler\n");
@@ -240,7 +240,7 @@ gpiopps_fdt_attach(device_t dev)
 	devargs.mda_gid = GID_WHEEL;
 	devargs.mda_mode = 0660;
 	devargs.mda_si_drv1 = sc;
-	err = make_dev_s(&devargs, &sc->pps_cdev, PPS_CDEV_NAME "%d", 
+	err = make_dev_s(&devargs, &sc->pps_cdev, PPS_CDEV_NAME "%d",
 	    device_get_unit(dev));
 	if (err != 0) {
 		device_printf(dev, "Unable to create pps cdev\n");
@@ -266,13 +266,12 @@ gpiopps_fdt_probe(device_t dev)
 	return (ENXIO);
 }
 
-static device_method_t pps_fdt_methods[] = {
-	DEVMETHOD(device_probe,		gpiopps_fdt_probe),
-	DEVMETHOD(device_attach,	gpiopps_fdt_attach),
-	DEVMETHOD(device_detach,	gpiopps_detach),
+static device_method_t pps_fdt_methods[] = { DEVMETHOD(device_probe,
+						 gpiopps_fdt_probe),
+	DEVMETHOD(device_attach, gpiopps_fdt_attach),
+	DEVMETHOD(device_detach, gpiopps_detach),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 static driver_t pps_fdt_driver = {
 	"gpiopps",

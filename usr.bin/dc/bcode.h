@@ -17,18 +17,15 @@
  */
 
 #include <sys/types.h>
+
 #include <openssl/bn.h>
 
 struct number {
-	BIGNUM	*number;
-	u_int	 scale;
+	BIGNUM *number;
+	u_int scale;
 };
 
-enum stacktype {
-	BCODE_NONE,
-	BCODE_NUMBER,
-	BCODE_STRING
-};
+enum stacktype { BCODE_NONE, BCODE_NUMBER, BCODE_STRING };
 
 enum bcode_compare {
 	BCODE_EQUAL,
@@ -43,58 +40,58 @@ struct array;
 
 struct value {
 	union {
-		struct number	*num;
-		char		*string;
+		struct number *num;
+		char *string;
 	} u;
-	struct array	*array;
-	enum stacktype	 type;
+	struct array *array;
+	enum stacktype type;
 };
 
 struct array {
-	struct value	*data;
-	size_t		 size;
+	struct value *data;
+	size_t size;
 };
 
 struct stack {
-	struct value	*stack;
-	ssize_t		 size;
-	ssize_t		 sp;
+	struct value *stack;
+	ssize_t size;
+	ssize_t sp;
 };
 
 struct source;
 
 struct vtable {
-	int	(*readchar)(struct source *);
-	void	(*unreadchar)(struct source *);
-	char	*(*readline)(struct source *);
-	void	(*free)(struct source *);
+	int (*readchar)(struct source *);
+	void (*unreadchar)(struct source *);
+	char *(*readline)(struct source *);
+	void (*free)(struct source *);
 };
 
 struct source {
 	union {
-			struct {
-				u_char	*buf;
-				size_t	 pos;
-			} string;
-			FILE	*stream;
+		struct {
+			u_char *buf;
+			size_t pos;
+		} string;
+		FILE *stream;
 	} u;
-	struct vtable	*vtable;
-	int		 lastchar;
+	struct vtable *vtable;
+	int lastchar;
 };
 
-void			init_bmachine(bool);
-void			reset_bmachine(struct source *);
-u_int			bmachine_scale(void);
-void			scale_number(BIGNUM *, int);
-void			normalize(struct number *, u_int);
-void			eval(void);
-void			pn(const char *, const struct number *);
-void			pbn(const char *, const BIGNUM *);
-void			negate(struct number *);
-void			split_number(const struct number *, BIGNUM *, BIGNUM *);
-void			bmul_number(struct number *, struct number *,
-			    struct number *, u_int scale);
-	
+void init_bmachine(bool);
+void reset_bmachine(struct source *);
+u_int bmachine_scale(void);
+void scale_number(BIGNUM *, int);
+void normalize(struct number *, u_int);
+void eval(void);
+void pn(const char *, const struct number *);
+void pbn(const char *, const BIGNUM *);
+void negate(struct number *);
+void split_number(const struct number *, BIGNUM *, BIGNUM *);
+void bmul_number(struct number *, struct number *, struct number *,
+    u_int scale);
+
 static __inline u_int
 max(u_int a, u_int b)
 {

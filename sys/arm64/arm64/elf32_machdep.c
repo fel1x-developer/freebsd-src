@@ -33,21 +33,21 @@
  */
 
 #include <sys/cdefs.h>
-#define	__ELF_WORD_SIZE 32
+#define __ELF_WORD_SIZE 32
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/systm.h>
 #include <sys/exec.h>
 #include <sys/imgact.h>
+#include <sys/imgact_elf.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
 #include <sys/proc.h>
 #include <sys/reg.h>
+#include <sys/signalvar.h>
+#include <sys/syscall.h>
 #include <sys/sysctl.h>
 #include <sys/sysent.h>
-#include <sys/imgact_elf.h>
-#include <sys/syscall.h>
-#include <sys/signalvar.h>
 #include <sys/vnode.h>
 
 #include <machine/elf.h>
@@ -58,13 +58,13 @@
 
 #include <compat/freebsd32/freebsd32_util.h>
 
-#define	FREEBSD32_MINUSER	0x00001000
-#define	FREEBSD32_MAXUSER	((1ul << 32) - PAGE_SIZE)
-#define	FREEBSD32_SHAREDPAGE	(FREEBSD32_MAXUSER - PAGE_SIZE)
-#define	FREEBSD32_USRSTACK	FREEBSD32_SHAREDPAGE
-#define	AARCH32_MAXDSIZ		(512 * 1024 * 1024)
-#define	AARCH32_MAXSSIZ		(64 * 1024 * 1024)
-#define	AARCH32_MAXVMEM		0
+#define FREEBSD32_MINUSER 0x00001000
+#define FREEBSD32_MAXUSER ((1ul << 32) - PAGE_SIZE)
+#define FREEBSD32_SHAREDPAGE (FREEBSD32_MAXUSER - PAGE_SIZE)
+#define FREEBSD32_USRSTACK FREEBSD32_SHAREDPAGE
+#define AARCH32_MAXDSIZ (512 * 1024 * 1024)
+#define AARCH32_MAXSSIZ (64 * 1024 * 1024)
+#define AARCH32_MAXVMEM 0
 
 extern const char *freebsd32_syscallnames[];
 
@@ -99,58 +99,58 @@ SYSCTL_ULONG(_compat_aarch32, OID_AUTO, maxvmem, CTLFLAG_RWTUN,
     &aarch32_maxvmem, 0, "");
 
 static struct sysentvec elf32_freebsd_sysvec = {
-	.sv_size	= SYS_MAXSYSCALL,
-	.sv_table	= freebsd32_sysent,
-	.sv_fixup	= elf32_freebsd_fixup,
-	.sv_sendsig	= freebsd32_sendsig,
-	.sv_sigcode	= aarch32_sigcode,
-	.sv_szsigcode	= &sz_aarch32_sigcode,
-	.sv_name	= "FreeBSD ELF32",
-	.sv_coredump	= elf32_coredump,
+	.sv_size = SYS_MAXSYSCALL,
+	.sv_table = freebsd32_sysent,
+	.sv_fixup = elf32_freebsd_fixup,
+	.sv_sendsig = freebsd32_sendsig,
+	.sv_sigcode = aarch32_sigcode,
+	.sv_szsigcode = &sz_aarch32_sigcode,
+	.sv_name = "FreeBSD ELF32",
+	.sv_coredump = elf32_coredump,
 	.sv_elf_core_osabi = ELFOSABI_FREEBSD,
 	.sv_elf_core_abi_vendor = FREEBSD_ABI_VENDOR,
 	.sv_elf_core_prepare_notes = elf32_prepare_notes,
-	.sv_minsigstksz	= MINSIGSTKSZ,
-	.sv_minuser	= FREEBSD32_MINUSER,
-	.sv_maxuser	= FREEBSD32_MAXUSER,
-	.sv_usrstack	= FREEBSD32_USRSTACK,
-	.sv_psstrings	= FREEBSD32_PS_STRINGS,
-	.sv_psstringssz	= sizeof(struct freebsd32_ps_strings),
-	.sv_stackprot	= VM_PROT_READ | VM_PROT_WRITE,
+	.sv_minsigstksz = MINSIGSTKSZ,
+	.sv_minuser = FREEBSD32_MINUSER,
+	.sv_maxuser = FREEBSD32_MAXUSER,
+	.sv_usrstack = FREEBSD32_USRSTACK,
+	.sv_psstrings = FREEBSD32_PS_STRINGS,
+	.sv_psstringssz = sizeof(struct freebsd32_ps_strings),
+	.sv_stackprot = VM_PROT_READ | VM_PROT_WRITE,
 	.sv_copyout_auxargs = elf32_freebsd_copyout_auxargs,
 	.sv_copyout_strings = freebsd32_copyout_strings,
-	.sv_setregs	= freebsd32_setregs,
-	.sv_fixlimit	= elf32_fixlimit,
-	.sv_maxssiz	= &aarch32_maxssiz,
-	.sv_flags	= SV_ABI_FREEBSD | SV_ILP32 | SV_SHP | SV_TIMEKEEP |
+	.sv_setregs = freebsd32_setregs,
+	.sv_fixlimit = elf32_fixlimit,
+	.sv_maxssiz = &aarch32_maxssiz,
+	.sv_flags = SV_ABI_FREEBSD | SV_ILP32 | SV_SHP | SV_TIMEKEEP |
 	    SV_RNG_SEED_VER | SV_SIGSYS,
 	.sv_set_syscall_retval = freebsd32_set_syscall_retval,
 	.sv_fetch_syscall_args = freebsd32_fetch_syscall_args,
 	.sv_syscallnames = freebsd32_syscallnames,
 	.sv_shared_page_base = FREEBSD32_SHAREDPAGE,
 	.sv_shared_page_len = PAGE_SIZE,
-	.sv_schedtail	= NULL,
+	.sv_schedtail = NULL,
 	.sv_thread_detach = NULL,
-	.sv_trap	= NULL,
-	.sv_hwcap	= &elf32_hwcap,
-	.sv_hwcap2	= &elf32_hwcap2,
-	.sv_onexec_old	= exec_onexec_old,
-	.sv_onexit	= exit_onexit,
+	.sv_trap = NULL,
+	.sv_hwcap = &elf32_hwcap,
+	.sv_hwcap2 = &elf32_hwcap2,
+	.sv_onexec_old = exec_onexec_old,
+	.sv_onexit = exit_onexit,
 	.sv_regset_begin = SET_BEGIN(__elfN(regset)),
-	.sv_regset_end	= SET_LIMIT(__elfN(regset)),
+	.sv_regset_end = SET_LIMIT(__elfN(regset)),
 };
 INIT_SYSENTVEC(elf32_sysvec, &elf32_freebsd_sysvec);
 
 static Elf32_Brandinfo freebsd32_brand_info = {
-	.brand		= ELFOSABI_FREEBSD,
-	.machine	= EM_ARM,
-	.compat_3_brand	= "FreeBSD",
-	.interp_path	= "/libexec/ld-elf.so.1",
-	.sysvec		= &elf32_freebsd_sysvec,
-	.interp_newpath	= "/libexec/ld-elf32.so.1",
-	.brand_note	= &elf32_freebsd_brandnote,
-	.flags		= BI_CAN_EXEC_DYN | BI_BRAND_NOTE,
-	.header_supported= elf32_arm_abi_supported,
+	.brand = ELFOSABI_FREEBSD,
+	.machine = EM_ARM,
+	.compat_3_brand = "FreeBSD",
+	.interp_path = "/libexec/ld-elf.so.1",
+	.sysvec = &elf32_freebsd_sysvec,
+	.interp_newpath = "/libexec/ld-elf32.so.1",
+	.brand_note = &elf32_freebsd_brandnote,
+	.flags = BI_CAN_EXEC_DYN | BI_BRAND_NOTE,
+	.header_supported = elf32_arm_abi_supported,
 };
 
 static void
@@ -172,16 +172,16 @@ elf32_arm_abi_supported(struct image_params *imgp, int32_t *osrel __unused,
 {
 	const Elf32_Ehdr *hdr;
 
-#define	EF_ARM_EABI_FREEBSD_MIN	EF_ARM_EABI_VER4
+#define EF_ARM_EABI_FREEBSD_MIN EF_ARM_EABI_VER4
 	hdr = (const Elf32_Ehdr *)imgp->image_header;
 	if (EF_ARM_EABI_VERSION(hdr->e_flags) < EF_ARM_EABI_FREEBSD_MIN) {
 		if (bootverbose)
 			uprintf("Attempting to execute non EABI binary "
-			    "(rev %d) image %s",
+				"(rev %d) image %s",
 			    EF_ARM_EABI_VERSION(hdr->e_flags),
 			    imgp->args->fname);
 		return (false);
-        }
+	}
 
 	return (true);
 }
@@ -255,9 +255,9 @@ freebsd32_set_syscall_retval(struct thread *td, int error)
 		 * Reconstruct the pc to point at the swi.
 		 */
 		if ((frame->tf_spsr & PSR_T) != 0)
-			frame->tf_elr -= 2; //THUMB_INSN_SIZE;
+			frame->tf_elr -= 2; // THUMB_INSN_SIZE;
 		else
-			frame->tf_elr -= 4; //INSN_SIZE;
+			frame->tf_elr -= 4; // INSN_SIZE;
 		break;
 	case EJUSTRETURN:
 		/* nothing to do */
@@ -270,8 +270,7 @@ freebsd32_set_syscall_retval(struct thread *td, int error)
 }
 
 static void
-freebsd32_setregs(struct thread *td, struct image_params *imgp,
-   uintptr_t stack)
+freebsd32_setregs(struct thread *td, struct image_params *imgp, uintptr_t stack)
 {
 	struct trapframe *tf = td->td_frame;
 	struct pcb *pcb = td->td_pcb;

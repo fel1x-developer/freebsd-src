@@ -17,12 +17,12 @@
 #ifndef RTWN_PCI_REG_H
 #define RTWN_PCI_REG_H
 
-int		rtwn_pci_write_1(struct rtwn_softc *, uint16_t, uint8_t);
-int		rtwn_pci_write_2(struct rtwn_softc *, uint16_t, uint16_t);
-int		rtwn_pci_write_4(struct rtwn_softc *, uint16_t, uint32_t);
-uint8_t		rtwn_pci_read_1(struct rtwn_softc *, uint16_t);
-uint16_t	rtwn_pci_read_2(struct rtwn_softc *, uint16_t);
-uint32_t	rtwn_pci_read_4(struct rtwn_softc *, uint16_t);
-void		rtwn_pci_delay(struct rtwn_softc *, int);
+int rtwn_pci_write_1(struct rtwn_softc *, uint16_t, uint8_t);
+int rtwn_pci_write_2(struct rtwn_softc *, uint16_t, uint16_t);
+int rtwn_pci_write_4(struct rtwn_softc *, uint16_t, uint32_t);
+uint8_t rtwn_pci_read_1(struct rtwn_softc *, uint16_t);
+uint16_t rtwn_pci_read_2(struct rtwn_softc *, uint16_t);
+uint32_t rtwn_pci_read_4(struct rtwn_softc *, uint16_t);
+void rtwn_pci_delay(struct rtwn_softc *, int);
 
-#endif	/* RTWN_PCI_REG_H */
+#endif /* RTWN_PCI_REG_H */

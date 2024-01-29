@@ -33,22 +33,23 @@
 /*	$NetBSD: cd9660.c,v 1.5 1997/06/26 19:11:33 drochner Exp $	*/
 
 #include <sys/param.h>
-#include <fs/cd9660/iso.h>
+
 #include <fs/cd9660/cd9660_rrip.h>
+#include <fs/cd9660/iso.h>
 
 static uint64_t cd9660_lookup(const char *);
 static ssize_t cd9660_fsread(uint64_t, void *, size_t);
 
-#define	SUSP_CONTINUATION	"CE"
-#define	SUSP_PRESENT		"SP"
-#define	SUSP_STOP		"ST"
-#define	SUSP_EXTREF		"ER"
-#define	RRIP_NAME		"NM"
+#define SUSP_CONTINUATION "CE"
+#define SUSP_PRESENT "SP"
+#define SUSP_STOP "ST"
+#define SUSP_EXTREF "ER"
+#define RRIP_NAME "NM"
 
 typedef struct {
-	ISO_SUSP_HEADER		h;
-	u_char signature	[ISODCL (  5,    6)];
-	u_char len_skp		[ISODCL (  7,    7)]; /* 711 */
+	ISO_SUSP_HEADER h;
+	u_char signature[ISODCL(5, 6)];
+	u_char len_skp[ISODCL(7, 7)]; /* 711 */
 } ISO_SUSP_PRESENT;
 
 static int
@@ -241,7 +242,8 @@ cd9660_lookup(const char *path)
 	}
 
 	bcopy(vd->root_directory_record, &rec, sizeof(rec));
-	if (*path == '/') path++; /* eat leading '/' */
+	if (*path == '/')
+		path++; /* eat leading '/' */
 
 	first = 1;
 	use_rrip = 0;
@@ -259,7 +261,7 @@ cd9660_lookup(const char *path)
 					return (0);
 				}
 				boff++;
-				dp = (struct iso_directory_record *) blkbuf;
+				dp = (struct iso_directory_record *)blkbuf;
 			}
 			if (isonum_711(dp->length) == 0) {
 				/* skip to next block, if any */
@@ -271,15 +273,14 @@ cd9660_lookup(const char *path)
 			if (first)
 				use_rrip = rrip_check(dp, &lenskip);
 
-			if (dirmatch(path, dp, use_rrip,
-			    first ? 0 : lenskip)) {
+			if (dirmatch(path, dp, use_rrip, first ? 0 : lenskip)) {
 				first = 0;
 				break;
 			} else
 				first = 0;
 
-			dp = (struct iso_directory_record *)
-			    ((char *) dp + isonum_711(dp->length));
+			dp = (struct iso_directory_record *)((char *)dp +
+			    isonum_711(dp->length));
 			/* If the new block has zero length, it is padding. */
 			if (isonum_711(dp->length) == 0) {
 				/* Skip to next block, if any. */
@@ -295,7 +296,8 @@ cd9660_lookup(const char *path)
 		rec = *dp;
 		while (*path && *path != '/') /* look for next component */
 			path++;
-		if (*path) path++; /* skip '/' */
+		if (*path)
+			path++; /* skip '/' */
 	}
 
 	if ((isonum_711(rec.flags) & 2) != 0) {

@@ -33,6 +33,6 @@
 #ifndef noreturn
 
 #include <sys/cdefs.h>
-#define	noreturn		_Noreturn
+#define noreturn _Noreturn
 
 #endif /* !noreturn */

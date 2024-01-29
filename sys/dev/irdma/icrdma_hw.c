@@ -32,9 +32,9 @@
  * SOFTWARE.
  */
 
-#include "osdep.h"
-#include "irdma_type.h"
 #include "icrdma_hw.h"
+#include "irdma_type.h"
+#include "osdep.h"
 
 void disable_prefetch(struct irdma_hw *hw);
 
@@ -44,50 +44,40 @@ void rdpu_ackreqpmthresh(struct irdma_hw *hw);
 
 static u32 icrdma_regs[IRDMA_MAX_REGS] = {
 	PFPE_CQPTAIL,
-	    PFPE_CQPDB,
-	    PFPE_CCQPSTATUS,
-	    PFPE_CCQPHIGH,
-	    PFPE_CCQPLOW,
-	    PFPE_CQARM,
-	    PFPE_CQACK,
-	    PFPE_AEQALLOC,
-	    PFPE_CQPERRCODES,
-	    PFPE_WQEALLOC,
-	    GLINT_DYN_CTL(0),
-	    ICRDMA_DB_ADDR_OFFSET,
+	PFPE_CQPDB,
+	PFPE_CCQPSTATUS,
+	PFPE_CCQPHIGH,
+	PFPE_CCQPLOW,
+	PFPE_CQARM,
+	PFPE_CQACK,
+	PFPE_AEQALLOC,
+	PFPE_CQPERRCODES,
+	PFPE_WQEALLOC,
+	GLINT_DYN_CTL(0),
+	ICRDMA_DB_ADDR_OFFSET,
 
-	    GLPCI_LBARCTRL,
-	    GLPE_CPUSTATUS0,
-	    GLPE_CPUSTATUS1,
-	    GLPE_CPUSTATUS2,
-	    PFINT_AEQCTL,
-	    GLINT_CEQCTL(0),
-	    VSIQF_PE_CTL1(0),
-	    PFHMC_PDINV,
-	    GLHMC_VFPDINV(0),
-	    GLPE_CRITERR,
-	    GLINT_RATE(0),
+	GLPCI_LBARCTRL,
+	GLPE_CPUSTATUS0,
+	GLPE_CPUSTATUS1,
+	GLPE_CPUSTATUS2,
+	PFINT_AEQCTL,
+	GLINT_CEQCTL(0),
+	VSIQF_PE_CTL1(0),
+	PFHMC_PDINV,
+	GLHMC_VFPDINV(0),
+	GLPE_CRITERR,
+	GLINT_RATE(0),
 };
 
-static u64 icrdma_masks[IRDMA_MAX_MASKS] = {
-	ICRDMA_CCQPSTATUS_CCQP_DONE,
-	    ICRDMA_CCQPSTATUS_CCQP_ERR,
-	    ICRDMA_CQPSQ_STAG_PDID,
-	    ICRDMA_CQPSQ_CQ_CEQID,
-	    ICRDMA_CQPSQ_CQ_CQID,
-	    ICRDMA_COMMIT_FPM_CQCNT,
-	    ICRDMA_CQPSQ_UPESD_HMCFNID
-};
+static u64 icrdma_masks[IRDMA_MAX_MASKS] = { ICRDMA_CCQPSTATUS_CCQP_DONE,
+	ICRDMA_CCQPSTATUS_CCQP_ERR, ICRDMA_CQPSQ_STAG_PDID,
+	ICRDMA_CQPSQ_CQ_CEQID, ICRDMA_CQPSQ_CQ_CQID, ICRDMA_COMMIT_FPM_CQCNT,
+	ICRDMA_CQPSQ_UPESD_HMCFNID };
 
-static u8 icrdma_shifts[IRDMA_MAX_SHIFTS] = {
-	ICRDMA_CCQPSTATUS_CCQP_DONE_S,
-	    ICRDMA_CCQPSTATUS_CCQP_ERR_S,
-	    ICRDMA_CQPSQ_STAG_PDID_S,
-	    ICRDMA_CQPSQ_CQ_CEQID_S,
-	    ICRDMA_CQPSQ_CQ_CQID_S,
-	    ICRDMA_COMMIT_FPM_CQCNT_S,
-	    ICRDMA_CQPSQ_UPESD_HMCFNID_S
-};
+static u8 icrdma_shifts[IRDMA_MAX_SHIFTS] = { ICRDMA_CCQPSTATUS_CCQP_DONE_S,
+	ICRDMA_CCQPSTATUS_CCQP_ERR_S, ICRDMA_CQPSQ_STAG_PDID_S,
+	ICRDMA_CQPSQ_CQ_CEQID_S, ICRDMA_CQPSQ_CQ_CQID_S,
+	ICRDMA_COMMIT_FPM_CQCNT_S, ICRDMA_CQPSQ_UPESD_HMCFNID_S };
 
 /**
  * icrdma_ena_irq - Enable interrupt
@@ -101,7 +91,7 @@ icrdma_ena_irq(struct irdma_sc_dev *dev, u32 idx)
 	u32 interval = 0;
 
 	if (dev->ceq_itr && dev->aeq->msix_idx != idx)
-		interval = dev->ceq_itr >> 1;	/* 2 usec units */
+		interval = dev->ceq_itr >> 1; /* 2 usec units */
 	val = FIELD_PREP(IRDMA_GLINT_DYN_CTL_ITR_INDX, IRDMA_IDX_ITR0) |
 	    FIELD_PREP(IRDMA_GLINT_DYN_CTL_INTERVAL, interval) |
 	    FIELD_PREP(IRDMA_GLINT_DYN_CTL_INTENA, true) |
@@ -128,8 +118,7 @@ icrdma_disable_irq(struct irdma_sc_dev *dev, u32 idx)
  * @enable: True to enable, False disables
  */
 static void
-icrdma_cfg_ceq(struct irdma_sc_dev *dev, u32 ceq_id, u32 idx,
-	       bool enable)
+icrdma_cfg_ceq(struct irdma_sc_dev *dev, u32 ceq_id, u32 idx, bool enable)
 {
 	u32 reg_val;
 
@@ -148,52 +137,53 @@ static const struct irdma_irq_ops icrdma_irq_ops = {
 };
 
 static const struct irdma_hw_stat_map icrdma_hw_stat_map[] = {
-	[IRDMA_HW_STAT_INDEX_RXVLANERR] = {0, 32, IRDMA_MAX_STATS_24},
-	[IRDMA_HW_STAT_INDEX_IP4RXOCTS] = {8, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_IP4RXPKTS] = {16, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_IP4RXDISCARD] = {24, 32, IRDMA_MAX_STATS_32},
-	[IRDMA_HW_STAT_INDEX_IP4RXTRUNC] = {24, 0, IRDMA_MAX_STATS_32},
-	[IRDMA_HW_STAT_INDEX_IP4RXFRAGS] = {32, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_IP4RXMCOCTS] = {40, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_IP4RXMCPKTS] = {48, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_IP6RXOCTS] = {56, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_IP6RXPKTS] = {64, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_IP6RXDISCARD] = {72, 32, IRDMA_MAX_STATS_32},
-	[IRDMA_HW_STAT_INDEX_IP6RXTRUNC] = {72, 0, IRDMA_MAX_STATS_32},
-	[IRDMA_HW_STAT_INDEX_IP6RXFRAGS] = {80, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_IP6RXMCOCTS] = {88, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_IP6RXMCPKTS] = {96, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_IP4TXOCTS] = {104, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_IP4TXPKTS] = {112, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_IP4TXFRAGS] = {120, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_IP4TXMCOCTS] = {128, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_IP4TXMCPKTS] = {136, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_IP6TXOCTS] = {144, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_IP6TXPKTS] = {152, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_IP6TXFRAGS] = {160, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_IP6TXMCOCTS] = {168, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_IP6TXMCPKTS] = {176, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_IP4TXNOROUTE] = {184, 32, IRDMA_MAX_STATS_24},
-	[IRDMA_HW_STAT_INDEX_IP6TXNOROUTE] = {184, 0, IRDMA_MAX_STATS_24},
-	[IRDMA_HW_STAT_INDEX_TCPRXSEGS] = {192, 32, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_TCPRXOPTERR] = {200, 32, IRDMA_MAX_STATS_24},
-	[IRDMA_HW_STAT_INDEX_TCPRXPROTOERR] = {200, 0, IRDMA_MAX_STATS_24},
-	[IRDMA_HW_STAT_INDEX_TCPTXSEG] = {208, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_TCPRTXSEG] = {216, 32, IRDMA_MAX_STATS_32},
-	[IRDMA_HW_STAT_INDEX_UDPRXPKTS] = {224, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_UDPTXPKTS] = {232, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_RDMARXWRS] = {240, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_RDMARXRDS] = {248, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_RDMARXSNDS] = {256, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_RDMATXWRS] = {264, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_RDMATXRDS] = {272, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_RDMATXSNDS] = {280, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_RDMAVBND] = {288, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_RDMAVINV] = {296, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_RXNPECNMARKEDPKTS] = {304, 0, IRDMA_MAX_STATS_48},
-	[IRDMA_HW_STAT_INDEX_RXRPCNPIGNORED] = {312, 32, IRDMA_MAX_STATS_16},
-	[IRDMA_HW_STAT_INDEX_RXRPCNPHANDLED] = {312, 0, IRDMA_MAX_STATS_32},
-	[IRDMA_HW_STAT_INDEX_TXNPCNPSENT] = {320, 0, IRDMA_MAX_STATS_32},
+	[IRDMA_HW_STAT_INDEX_RXVLANERR] = { 0, 32, IRDMA_MAX_STATS_24 },
+	[IRDMA_HW_STAT_INDEX_IP4RXOCTS] = { 8, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_IP4RXPKTS] = { 16, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_IP4RXDISCARD] = { 24, 32, IRDMA_MAX_STATS_32 },
+	[IRDMA_HW_STAT_INDEX_IP4RXTRUNC] = { 24, 0, IRDMA_MAX_STATS_32 },
+	[IRDMA_HW_STAT_INDEX_IP4RXFRAGS] = { 32, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_IP4RXMCOCTS] = { 40, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_IP4RXMCPKTS] = { 48, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_IP6RXOCTS] = { 56, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_IP6RXPKTS] = { 64, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_IP6RXDISCARD] = { 72, 32, IRDMA_MAX_STATS_32 },
+	[IRDMA_HW_STAT_INDEX_IP6RXTRUNC] = { 72, 0, IRDMA_MAX_STATS_32 },
+	[IRDMA_HW_STAT_INDEX_IP6RXFRAGS] = { 80, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_IP6RXMCOCTS] = { 88, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_IP6RXMCPKTS] = { 96, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_IP4TXOCTS] = { 104, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_IP4TXPKTS] = { 112, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_IP4TXFRAGS] = { 120, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_IP4TXMCOCTS] = { 128, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_IP4TXMCPKTS] = { 136, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_IP6TXOCTS] = { 144, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_IP6TXPKTS] = { 152, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_IP6TXFRAGS] = { 160, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_IP6TXMCOCTS] = { 168, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_IP6TXMCPKTS] = { 176, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_IP4TXNOROUTE] = { 184, 32, IRDMA_MAX_STATS_24 },
+	[IRDMA_HW_STAT_INDEX_IP6TXNOROUTE] = { 184, 0, IRDMA_MAX_STATS_24 },
+	[IRDMA_HW_STAT_INDEX_TCPRXSEGS] = { 192, 32, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_TCPRXOPTERR] = { 200, 32, IRDMA_MAX_STATS_24 },
+	[IRDMA_HW_STAT_INDEX_TCPRXPROTOERR] = { 200, 0, IRDMA_MAX_STATS_24 },
+	[IRDMA_HW_STAT_INDEX_TCPTXSEG] = { 208, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_TCPRTXSEG] = { 216, 32, IRDMA_MAX_STATS_32 },
+	[IRDMA_HW_STAT_INDEX_UDPRXPKTS] = { 224, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_UDPTXPKTS] = { 232, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_RDMARXWRS] = { 240, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_RDMARXRDS] = { 248, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_RDMARXSNDS] = { 256, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_RDMATXWRS] = { 264, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_RDMATXRDS] = { 272, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_RDMATXSNDS] = { 280, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_RDMAVBND] = { 288, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_RDMAVINV] = { 296, 0, IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_RXNPECNMARKEDPKTS] = { 304, 0,
+	    IRDMA_MAX_STATS_48 },
+	[IRDMA_HW_STAT_INDEX_RXRPCNPIGNORED] = { 312, 32, IRDMA_MAX_STATS_16 },
+	[IRDMA_HW_STAT_INDEX_RXRPCNPHANDLED] = { 312, 0, IRDMA_MAX_STATS_32 },
+	[IRDMA_HW_STAT_INDEX_TXNPCNPSENT] = { 320, 0, IRDMA_MAX_STATS_32 },
 };
 
 void
@@ -208,7 +198,7 @@ icrdma_init_hw(struct irdma_sc_dev *dev)
 		if (i == IRDMA_DB_ADDR_OFFSET)
 			hw_addr = NULL;
 
-		dev->hw_regs[i] = (u32 IOMEM *) (hw_addr + icrdma_regs[i]);
+		dev->hw_regs[i] = (u32 IOMEM *)(hw_addr + icrdma_regs[i]);
 	}
 	dev->hw_attrs.max_hw_vf_fpm_id = IRDMA_MAX_VF_FPM_ID;
 	dev->hw_attrs.first_hw_vf_fpm_id = IRDMA_FIRST_VF_FPM_ID;
@@ -245,7 +235,8 @@ icrdma_init_hw(struct irdma_sc_dev *dev)
 }
 
 void
-irdma_init_config_check(struct irdma_config_check *cc, u8 traffic_class, u16 qs_handle)
+irdma_init_config_check(struct irdma_config_check *cc, u8 traffic_class,
+    u16 qs_handle)
 {
 	cc->config_ok = false;
 	cc->traffic_class = traffic_class;
@@ -261,11 +252,13 @@ irdma_is_lfc_set(struct irdma_config_check *cc, struct irdma_sc_vsi *vsi)
 	u8 fn_id = vsi->dev->hmc_fn_id;
 
 	lfc &= (rd32(vsi->dev->hw,
-		     PRTMAC_HSEC_CTL_RX_PAUSE_ENABLE_0 + 4 * fn_id) >> 8);
+		    PRTMAC_HSEC_CTL_RX_PAUSE_ENABLE_0 + 4 * fn_id) >>
+	    8);
 	lfc &= (rd32(vsi->dev->hw,
-		     PRTMAC_HSEC_CTL_TX_PAUSE_ENABLE_0 + 4 * fn_id) >> 8);
+		    PRTMAC_HSEC_CTL_TX_PAUSE_ENABLE_0 + 4 * fn_id) >>
+	    8);
 	lfc &= rd32(vsi->dev->hw,
-		    PRTMAC_HSEC_CTL_RX_ENABLE_GPP_0 + 4 * vsi->dev->hmc_fn_id);
+	    PRTMAC_HSEC_CTL_RX_ENABLE_GPP_0 + 4 * vsi->dev->hmc_fn_id);
 
 	if (lfc)
 		return true;
@@ -273,7 +266,8 @@ irdma_is_lfc_set(struct irdma_config_check *cc, struct irdma_sc_vsi *vsi)
 }
 
 static bool
-irdma_check_tc_has_pfc(struct irdma_sc_vsi *vsi, u64 reg_offset, u16 traffic_class)
+irdma_check_tc_has_pfc(struct irdma_sc_vsi *vsi, u64 reg_offset,
+    u16 traffic_class)
 {
 	u32 value, pfc = 0;
 	u32 i;
@@ -294,11 +288,13 @@ irdma_is_pfc_set(struct irdma_config_check *cc, struct irdma_sc_vsi *vsi)
 	u8 fn_id = vsi->dev->hmc_fn_id;
 
 	pause = (rd32(vsi->dev->hw,
-		      PRTMAC_HSEC_CTL_RX_PAUSE_ENABLE_0 + 4 * fn_id) >>
-		 cc->traffic_class) & BIT(0);
+		     PRTMAC_HSEC_CTL_RX_PAUSE_ENABLE_0 + 4 * fn_id) >>
+		    cc->traffic_class) &
+	    BIT(0);
 	pause &= (rd32(vsi->dev->hw,
-		       PRTMAC_HSEC_CTL_TX_PAUSE_ENABLE_0 + 4 * fn_id) >>
-		  cc->traffic_class) & BIT(0);
+		      PRTMAC_HSEC_CTL_TX_PAUSE_ENABLE_0 + 4 * fn_id) >>
+		     cc->traffic_class) &
+	    BIT(0);
 
 	return irdma_check_tc_has_pfc(vsi, GLDCB_TC2PFC, cc->traffic_class) &&
 	    pause;
@@ -315,17 +311,17 @@ irdma_is_config_ok(struct irdma_config_check *cc, struct irdma_sc_vsi *vsi)
 	return cc->config_ok;
 }
 
-#define IRDMA_RCV_WND_NO_FC	65536
-#define IRDMA_RCV_WND_FC	65536
+#define IRDMA_RCV_WND_NO_FC 65536
+#define IRDMA_RCV_WND_FC 65536
 
-#define IRDMA_CWND_NO_FC	0x1
-#define IRDMA_CWND_FC		0x18
+#define IRDMA_CWND_NO_FC 0x1
+#define IRDMA_CWND_FC 0x18
 
-#define IRDMA_RTOMIN_NO_FC	0x5
-#define IRDMA_RTOMIN_FC		0x32
+#define IRDMA_RTOMIN_NO_FC 0x5
+#define IRDMA_RTOMIN_FC 0x32
 
-#define IRDMA_ACKCREDS_NO_FC	0x02
-#define IRDMA_ACKCREDS_FC	0x06
+#define IRDMA_ACKCREDS_NO_FC 0x02
+#define IRDMA_ACKCREDS_FC 0x06
 
 static void
 irdma_check_flow_ctrl(struct irdma_sc_vsi *vsi, u8 user_prio, u8 traffic_class)
@@ -334,12 +330,16 @@ irdma_check_flow_ctrl(struct irdma_sc_vsi *vsi, u8 user_prio, u8 traffic_class)
 
 	if (!irdma_is_config_ok(cfg_chk, vsi)) {
 		if (vsi->tc_print_warning[traffic_class]) {
-			irdma_pr_info("INFO: Flow control is disabled for this traffic class (%d) on this vsi.\n", traffic_class);
+			irdma_pr_info(
+			    "INFO: Flow control is disabled for this traffic class (%d) on this vsi.\n",
+			    traffic_class);
 			vsi->tc_print_warning[traffic_class] = false;
 		}
 	} else {
 		if (vsi->tc_print_warning[traffic_class]) {
-			irdma_pr_info("INFO: Flow control is enabled for this traffic class (%d) on this vsi.\n", traffic_class);
+			irdma_pr_info(
+			    "INFO: Flow control is enabled for this traffic class (%d) on this vsi.\n",
+			    traffic_class);
 			vsi->tc_print_warning[traffic_class] = false;
 		}
 	}
@@ -347,7 +347,7 @@ irdma_check_flow_ctrl(struct irdma_sc_vsi *vsi, u8 user_prio, u8 traffic_class)
 
 void
 irdma_check_fc_for_tc_update(struct irdma_sc_vsi *vsi,
-			     struct irdma_l2params *l2params)
+    struct irdma_l2params *l2params)
 {
 	u8 i;
 
@@ -372,16 +372,15 @@ irdma_check_fc_for_qp(struct irdma_sc_vsi *vsi, struct irdma_sc_qp *sc_qp)
 	for (i = 0; i < IRDMA_MAX_USER_PRIORITY; i++) {
 		struct irdma_config_check *cfg_chk = &vsi->cfg_check[i];
 
-		irdma_init_config_check(cfg_chk,
-					vsi->qos[i].traffic_class,
-					vsi->qos[i].qs_handle);
+		irdma_init_config_check(cfg_chk, vsi->qos[i].traffic_class,
+		    vsi->qos[i].qs_handle);
 		if (sc_qp->qs_handle == cfg_chk->qs_handle)
 			irdma_check_flow_ctrl(vsi, i, cfg_chk->traffic_class);
 	}
 }
 
-#define GLPE_WQMTXIDXADDR	0x50E000
-#define GLPE_WQMTXIDXDATA	0x50E004
+#define GLPE_WQMTXIDXADDR 0x50E000
+#define GLPE_WQMTXIDXDATA 0x50E004
 
 void
 disable_prefetch(struct irdma_hw *hw)
@@ -409,7 +408,7 @@ disable_tx_spad(struct irdma_hw *hw)
 	wr32(hw, GLPE_WQMTXIDXDATA, wqm_data);
 }
 
-#define GL_RDPU_CNTRL		0x52054
+#define GL_RDPU_CNTRL 0x52054
 void
 rdpu_ackreqpmthresh(struct irdma_hw *hw)
 {

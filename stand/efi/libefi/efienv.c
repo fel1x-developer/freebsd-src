@@ -24,10 +24,11 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
+
 #include <efi.h>
 #include <efichar.h>
 #include <efilib.h>
+#include <stand.h>
 
 static EFI_GUID FreeBSDBootVarGUID = FREEBSD_BOOT_VAR_GUID;
 static EFI_GUID GlobalBootVarGUID = EFI_GLOBAL_VARIABLE;
@@ -70,7 +71,8 @@ efi_freebsd_getenv(const char *v, void *data, size_t *len)
  * efi_setenv -- Sets an env variable.
  */
 EFI_STATUS
-efi_setenv(EFI_GUID *guid, const char *varname, UINT32 attr, void *data, __size_t len)
+efi_setenv(EFI_GUID *guid, const char *varname, UINT32 attr, void *data,
+    __size_t len)
 {
 	EFI_STATUS rv;
 	CHAR16 *uv;

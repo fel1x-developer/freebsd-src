@@ -33,75 +33,70 @@
  * policies, either expressed or implied, of the FreeBSD Project.
  */
 
-#include <sys/cdefs.h>
 #include "opt_rss.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/limits.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
 #include <sys/smp.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
 #include <sys/syslog.h>
-#include <sys/limits.h>
-#include <sys/syslog.h>
+
+#include <machine/in_cksum.h>
 
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_vlan_var.h>
-
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
 #include <netinet/tcp.h>
-
-#include <machine/in_cksum.h>
 
 #ifdef RSS
 #include <net/rss_config.h>
 #endif
 
 #include "common/efx.h"
-
 #include "sfxge.h"
 #include "sfxge_rx.h"
 
-#define	RX_REFILL_THRESHOLD(_entries)	(EFX_RXQ_LIMIT(_entries) * 9 / 10)
+#define RX_REFILL_THRESHOLD(_entries) (EFX_RXQ_LIMIT(_entries) * 9 / 10)
 
 #ifdef SFXGE_LRO
 
 SYSCTL_NODE(_hw_sfxge, OID_AUTO, lro, CTLFLAG_RD | CTLFLAG_MPSAFE, NULL,
     "Large receive offload (LRO) parameters");
 
-#define	SFXGE_LRO_PARAM(_param)	SFXGE_PARAM(lro._param)
+#define SFXGE_LRO_PARAM(_param) SFXGE_PARAM(lro._param)
 
 /* Size of the LRO hash table.  Must be a power of 2.  A larger table
  * means we can accelerate a larger number of streams.
  */
 static unsigned lro_table_size = 128;
 TUNABLE_INT(SFXGE_LRO_PARAM(table_size), &lro_table_size);
-SYSCTL_UINT(_hw_sfxge_lro, OID_AUTO, table_size, CTLFLAG_RDTUN,
-	    &lro_table_size, 0,
-	    "Size of the LRO hash table (must be a power of 2)");
+SYSCTL_UINT(_hw_sfxge_lro, OID_AUTO, table_size, CTLFLAG_RDTUN, &lro_table_size,
+    0, "Size of the LRO hash table (must be a power of 2)");
 
 /* Maximum length of a hash chain.  If chains get too long then the lookup
  * time increases and may exceed the benefit of LRO.
  */
 static unsigned lro_chain_max = 20;
 TUNABLE_INT(SFXGE_LRO_PARAM(chain_max), &lro_chain_max);
-SYSCTL_UINT(_hw_sfxge_lro, OID_AUTO, chain_max, CTLFLAG_RDTUN,
-	    &lro_chain_max, 0,
-	    "The maximum length of a hash chain");
+SYSCTL_UINT(_hw_sfxge_lro, OID_AUTO, chain_max, CTLFLAG_RDTUN, &lro_chain_max,
+    0, "The maximum length of a hash chain");
 
 /* Maximum time (in ticks) that a connection can be idle before it's LRO
  * state is discarded.
  */
 static unsigned lro_idle_ticks; /* initialised in sfxge_rx_init() */
 TUNABLE_INT(SFXGE_LRO_PARAM(idle_ticks), &lro_idle_ticks);
-SYSCTL_UINT(_hw_sfxge_lro, OID_AUTO, idle_ticks, CTLFLAG_RDTUN,
-	    &lro_idle_ticks, 0,
-	    "The maximum time (in ticks) that a connection can be idle "
-	    "before it's LRO state is discarded");
+SYSCTL_UINT(_hw_sfxge_lro, OID_AUTO, idle_ticks, CTLFLAG_RDTUN, &lro_idle_ticks,
+    0,
+    "The maximum time (in ticks) that a connection can be idle "
+    "before it's LRO state is discarded");
 
 /* Number of packets with payload that must arrive in-order before a
  * connection is eligible for LRO.  The idea is we should avoid coalescing
@@ -111,9 +106,9 @@ SYSCTL_UINT(_hw_sfxge_lro, OID_AUTO, idle_ticks, CTLFLAG_RDTUN,
 static int lro_slow_start_packets = 2000;
 TUNABLE_INT(SFXGE_LRO_PARAM(slow_start_packets), &lro_slow_start_packets);
 SYSCTL_UINT(_hw_sfxge_lro, OID_AUTO, slow_start_packets, CTLFLAG_RDTUN,
-	    &lro_slow_start_packets, 0,
-	    "Number of packets with payload that must arrive in-order before "
-	    "a connection is eligible for LRO");
+    &lro_slow_start_packets, 0,
+    "Number of packets with payload that must arrive in-order before "
+    "a connection is eligible for LRO");
 
 /* Number of packets with payload that must arrive in-order following loss
  * before a connection is eligible for LRO.  The idea is we should avoid
@@ -123,19 +118,19 @@ SYSCTL_UINT(_hw_sfxge_lro, OID_AUTO, slow_start_packets, CTLFLAG_RDTUN,
 static int lro_loss_packets = 20;
 TUNABLE_INT(SFXGE_LRO_PARAM(loss_packets), &lro_loss_packets);
 SYSCTL_UINT(_hw_sfxge_lro, OID_AUTO, loss_packets, CTLFLAG_RDTUN,
-	    &lro_loss_packets, 0,
-	    "Number of packets with payload that must arrive in-order "
-	    "following loss before a connection is eligible for LRO");
+    &lro_loss_packets, 0,
+    "Number of packets with payload that must arrive in-order "
+    "following loss before a connection is eligible for LRO");
 
 /* Flags for sfxge_lro_conn::l2_id; must not collide with EVL_VLID_MASK */
-#define	SFXGE_LRO_L2_ID_VLAN 0x4000
-#define	SFXGE_LRO_L2_ID_IPV6 0x8000
-#define	SFXGE_LRO_CONN_IS_VLAN_ENCAP(c) ((c)->l2_id & SFXGE_LRO_L2_ID_VLAN)
-#define	SFXGE_LRO_CONN_IS_TCPIPV4(c) (!((c)->l2_id & SFXGE_LRO_L2_ID_IPV6))
+#define SFXGE_LRO_L2_ID_VLAN 0x4000
+#define SFXGE_LRO_L2_ID_IPV6 0x8000
+#define SFXGE_LRO_CONN_IS_VLAN_ENCAP(c) ((c)->l2_id & SFXGE_LRO_L2_ID_VLAN)
+#define SFXGE_LRO_CONN_IS_TCPIPV4(c) (!((c)->l2_id & SFXGE_LRO_L2_ID_IPV6))
 
 /* Compare IPv6 addresses, avoiding conditional branches */
-static unsigned long ipv6_addr_cmp(const struct in6_addr *left,
-				   const struct in6_addr *right)
+static unsigned long
+ipv6_addr_cmp(const struct in6_addr *left, const struct in6_addr *right)
 {
 #if LONG_BIT == 64
 	const uint64_t *left64 = (const uint64_t *)left;
@@ -143,13 +138,13 @@ static unsigned long ipv6_addr_cmp(const struct in6_addr *left,
 	return (left64[0] - right64[0]) | (left64[1] - right64[1]);
 #else
 	return (left->s6_addr32[0] - right->s6_addr32[0]) |
-	       (left->s6_addr32[1] - right->s6_addr32[1]) |
-	       (left->s6_addr32[2] - right->s6_addr32[2]) |
-	       (left->s6_addr32[3] - right->s6_addr32[3]);
+	    (left->s6_addr32[1] - right->s6_addr32[1]) |
+	    (left->s6_addr32[2] - right->s6_addr32[2]) |
+	    (left->s6_addr32[3] - right->s6_addr32[3]);
 #endif
 }
 
-#endif	/* SFXGE_LRO */
+#endif /* SFXGE_LRO */
 
 void
 sfxge_rx_qflush_done(struct sfxge_rxq *rxq)
@@ -168,13 +163,10 @@ sfxge_rx_qflush_failed(struct sfxge_rxq *rxq)
 #ifdef RSS
 static uint8_t toep_key[RSS_KEYSIZE];
 #else
-static uint8_t toep_key[] = {
-	0x6d, 0x5a, 0x56, 0xda, 0x25, 0x5b, 0x0e, 0xc2,
-	0x41, 0x67, 0x25, 0x3d, 0x43, 0xa3, 0x8f, 0xb0,
-	0xd0, 0xca, 0x2b, 0xcb, 0xae, 0x7b, 0x30, 0xb4,
-	0x77, 0xcb, 0x2d, 0xa3, 0x80, 0x30, 0xf2, 0x0c,
-	0x6a, 0x42, 0xb7, 0x3b, 0xbe, 0xac, 0x01, 0xfa
-};
+static uint8_t toep_key[] = { 0x6d, 0x5a, 0x56, 0xda, 0x25, 0x5b, 0x0e, 0xc2,
+	0x41, 0x67, 0x25, 0x3d, 0x43, 0xa3, 0x8f, 0xb0, 0xd0, 0xca, 0x2b, 0xcb,
+	0xae, 0x7b, 0x30, 0xb4, 0x77, 0xcb, 0x2d, 0xa3, 0x80, 0x30, 0xf2, 0x0c,
+	0x6a, 0x42, 0xb7, 0x3b, 0xbe, 0xac, 0x01, 0xfa };
 #endif
 
 static void
@@ -192,10 +184,8 @@ sfxge_rx_post_refill(void *arg)
 	magic = sfxge_sw_ev_rxq_magic(SFXGE_SW_EV_RX_QREFILL, rxq);
 
 	/* This is guaranteed due to the start/stop order of rx and ev */
-	KASSERT(evq->init_state == SFXGE_EVQ_STARTED,
-	    ("evq not started"));
-	KASSERT(rxq->init_state == SFXGE_RXQ_STARTED,
-	    ("rxq not started"));
+	KASSERT(evq->init_state == SFXGE_EVQ_STARTED, ("evq not started"));
+	KASSERT(rxq->init_state == SFXGE_RXQ_STARTED, ("rxq not started"));
 	efx_ev_qpost(evq->common, magic);
 }
 
@@ -211,10 +201,10 @@ sfxge_rx_schedule_refill(struct sfxge_rxq *rxq, boolean_t retrying)
 		rxq->refill_delay = hz / 10;
 
 	callout_reset_curcpu(&rxq->refill_callout, rxq->refill_delay,
-			     sfxge_rx_post_refill, rxq);
+	    sfxge_rx_post_refill, rxq);
 }
 
-#define	SFXGE_REFILL_BATCH  64
+#define SFXGE_REFILL_BATCH 64
 
 static void
 sfxge_rx_qfill(struct sfxge_rxq *rxq, unsigned int target, boolean_t retrying)
@@ -269,12 +259,13 @@ sfxge_rx_qfill(struct sfxge_rxq *rxq, unsigned int target, boolean_t retrying)
 			break;
 
 		/* m_len specifies length of area to be mapped for DMA */
-		m->m_len  = mblksize;
+		m->m_len = mblksize;
 		m->m_data = (caddr_t)EFX_P2ROUNDUP(uintptr_t, m->m_data,
-						   CACHE_LINE_SIZE);
+		    CACHE_LINE_SIZE);
 		m->m_data += sc->rx_buffer_align;
 
-		sfxge_map_mbuf_fast(rxq->mem.esm_tag, rxq->mem.esm_map, m, &seg);
+		sfxge_map_mbuf_fast(rxq->mem.esm_tag, rxq->mem.esm_map, m,
+		    &seg);
 		addr[batch++] = seg.ds_addr;
 
 		if (batch == SFXGE_REFILL_BATCH) {
@@ -289,14 +280,14 @@ sfxge_rx_qfill(struct sfxge_rxq *rxq, unsigned int target, boolean_t retrying)
 		sfxge_rx_schedule_refill(rxq, retrying);
 
 	if (batch != 0) {
-		efx_rx_qpost(rxq->common, addr, mblksize, batch,
-		    rxq->completed, rxq->added);
+		efx_rx_qpost(rxq->common, addr, mblksize, batch, rxq->completed,
+		    rxq->added);
 		rxq->added += batch;
 	}
 
 	/* Make the descriptors visible to the hardware */
 	bus_dmamap_sync(rxq->mem.esm_tag, rxq->mem.esm_map,
-			BUS_DMASYNC_PREWRITE);
+	    BUS_DMASYNC_PREWRITE);
 
 	efx_rx_qpush(rxq->common, rxq->added, &rxq->pushed);
 
@@ -304,7 +295,7 @@ sfxge_rx_qfill(struct sfxge_rxq *rxq, unsigned int target, boolean_t retrying)
 	 * pushed, in which case there will be no event to cause the next
 	 * refill, so we must schedule a refill ourselves.
 	 */
-	if(rxq->pushed == rxq->completed) {
+	if (rxq->pushed == rxq->completed) {
 		sfxge_rx_schedule_refill(rxq, retrying);
 	}
 }
@@ -320,7 +311,8 @@ sfxge_rx_qrefill(struct sfxge_rxq *rxq)
 	sfxge_rx_qfill(rxq, EFX_RXQ_LIMIT(rxq->entries), B_TRUE);
 }
 
-static void __sfxge_rx_deliver(struct sfxge_softc *sc, struct mbuf *m)
+static void
+__sfxge_rx_deliver(struct sfxge_softc *sc, struct mbuf *m)
 {
 	if_t ifp = sc->ifnet;
 
@@ -339,22 +331,21 @@ sfxge_rx_deliver(struct sfxge_rxq *rxq, struct sfxge_rx_sw_desc *rx_desc)
 
 	/* Convert checksum flags */
 	csum_flags = (flags & EFX_CKSUM_IPV4) ?
-		(CSUM_IP_CHECKED | CSUM_IP_VALID) : 0;
+	    (CSUM_IP_CHECKED | CSUM_IP_VALID) :
+	    0;
 	if (flags & EFX_CKSUM_TCPUDP)
 		csum_flags |= CSUM_DATA_VALID | CSUM_PSEUDO_HDR;
 
 	if (flags & (EFX_PKT_IPV4 | EFX_PKT_IPV6)) {
-		m->m_pkthdr.flowid =
-			efx_pseudo_hdr_hash_get(rxq->common,
-						EFX_RX_HASHALG_TOEPLITZ,
-						mtod(m, uint8_t *));
+		m->m_pkthdr.flowid = efx_pseudo_hdr_hash_get(rxq->common,
+		    EFX_RX_HASHALG_TOEPLITZ, mtod(m, uint8_t *));
 		/* The hash covers a 4-tuple for TCP only */
 		M_HASHTYPE_SET(m,
 		    (flags & EFX_PKT_IPV4) ?
-			((flags & EFX_PKT_TCP) ?
-			    M_HASHTYPE_RSS_TCP_IPV4 : M_HASHTYPE_RSS_IPV4) :
-			((flags & EFX_PKT_TCP) ?
-			    M_HASHTYPE_RSS_TCP_IPV6 : M_HASHTYPE_RSS_IPV6));
+			((flags & EFX_PKT_TCP) ? M_HASHTYPE_RSS_TCP_IPV4 :
+						 M_HASHTYPE_RSS_IPV4) :
+			((flags & EFX_PKT_TCP) ? M_HASHTYPE_RSS_TCP_IPV6 :
+						 M_HASHTYPE_RSS_IPV6));
 	}
 	m->m_data += sc->rx_prefix_size;
 	m->m_len = rx_desc->size - sc->rx_prefix_size;
@@ -388,7 +379,7 @@ sfxge_lro_deliver(struct sfxge_lro_state *st, struct sfxge_lro_conn *c)
 		iph->ip_sum = in_cksum_hdr(iph);
 		c_th = (struct tcphdr *)(iph + 1);
 		csum_flags = (CSUM_DATA_VALID | CSUM_PSEUDO_HDR |
-			      CSUM_IP_CHECKED | CSUM_IP_VALID);
+		    CSUM_IP_CHECKED | CSUM_IP_VALID);
 	} else {
 		struct ip6_hdr *iph = c->nh;
 		iph->ip6_plen = htons(iph->ip6_plen);
@@ -406,8 +397,8 @@ sfxge_lro_deliver(struct sfxge_lro_state *st, struct sfxge_lro_conn *c)
 
 	m->m_pkthdr.flowid = c->conn_hash;
 	M_HASHTYPE_SET(m,
-	    SFXGE_LRO_CONN_IS_TCPIPV4(c) ?
-		M_HASHTYPE_RSS_TCP_IPV4 : M_HASHTYPE_RSS_TCP_IPV6);
+	    SFXGE_LRO_CONN_IS_TCPIPV4(c) ? M_HASHTYPE_RSS_TCP_IPV4 :
+					   M_HASHTYPE_RSS_TCP_IPV6);
 
 	m->m_pkthdr.csum_flags = csum_flags;
 	__sfxge_rx_deliver(sc, m);
@@ -417,7 +408,8 @@ sfxge_lro_deliver(struct sfxge_lro_state *st, struct sfxge_lro_conn *c)
 }
 
 /* Drop the given connection, and add it to the free list. */
-static void sfxge_lro_drop(struct sfxge_rxq *rxq, struct sfxge_lro_conn *c)
+static void
+sfxge_lro_drop(struct sfxge_rxq *rxq, struct sfxge_lro_conn *c)
 {
 	unsigned bucket;
 
@@ -438,13 +430,14 @@ static void sfxge_lro_drop(struct sfxge_rxq *rxq, struct sfxge_lro_conn *c)
 /* Stop tracking connections that have gone idle in order to keep hash
  * chains short.
  */
-static void sfxge_lro_purge_idle(struct sfxge_rxq *rxq, unsigned now)
+static void
+sfxge_lro_purge_idle(struct sfxge_rxq *rxq, unsigned now)
 {
 	struct sfxge_lro_conn *c;
 	unsigned i;
 
 	KASSERT(LIST_EMPTY(&rxq->lro.active_conns),
-		("found active connections"));
+	    ("found active connections"));
 
 	rxq->lro.last_purge_ticks = now;
 	for (i = 0; i <= rxq->lro.conns_mask; ++i) {
@@ -461,7 +454,7 @@ static void sfxge_lro_purge_idle(struct sfxge_rxq *rxq, unsigned now)
 
 static void
 sfxge_lro_merge(struct sfxge_lro_state *st, struct sfxge_lro_conn *c,
-		struct mbuf *mbuf, struct tcphdr *th)
+    struct mbuf *mbuf, struct tcphdr *th)
 {
 	struct tcphdr *c_th;
 
@@ -496,7 +489,7 @@ sfxge_lro_merge(struct sfxge_lro_state *st, struct sfxge_lro_conn *c,
 
 static void
 sfxge_lro_start(struct sfxge_lro_state *st, struct sfxge_lro_conn *c,
-		struct mbuf *mbuf, void *nh, struct tcphdr *th)
+    struct mbuf *mbuf, void *nh, struct tcphdr *th)
 {
 	/* Start the chain */
 	c->mbuf = mbuf;
@@ -533,28 +526,27 @@ sfxge_lro_try_merge(struct sfxge_rxq *rxq, struct sfxge_lro_conn *c)
 	if (SFXGE_LRO_CONN_IS_TCPIPV4(c)) {
 		struct ip *iph = c->next_nh;
 		th = (struct tcphdr *)(iph + 1);
-		pkt_length = ntohs(iph->ip_len) + (char *) iph - eh;
+		pkt_length = ntohs(iph->ip_len) + (char *)iph - eh;
 	} else {
 		struct ip6_hdr *iph = c->next_nh;
 		th = (struct tcphdr *)(iph + 1);
-		pkt_length = ntohs(iph->ip6_plen) + (char *) th - eh;
+		pkt_length = ntohs(iph->ip6_plen) + (char *)th - eh;
 	}
 
-	hdr_length = (char *) th + th->th_off * 4 - eh;
+	hdr_length = (char *)th + th->th_off * 4 - eh;
 	data_length = (min(pkt_length, rx_buf->size - rxq->sc->rx_prefix_size) -
-		       hdr_length);
+	    hdr_length);
 	th_seq = ntohl(th->th_seq);
-	dont_merge = ((data_length <= 0)
-		      | (th->th_flags & (TH_URG | TH_SYN | TH_RST | TH_FIN)));
+	dont_merge = ((data_length <= 0) |
+	    (th->th_flags & (TH_URG | TH_SYN | TH_RST | TH_FIN)));
 
 	/* Check for options other than aligned timestamp. */
 	if (th->th_off != 5) {
-		const uint32_t *opt_ptr = (const uint32_t *) (th + 1);
+		const uint32_t *opt_ptr = (const uint32_t *)(th + 1);
 		if (th->th_off == 8 &&
-		    opt_ptr[0] == ntohl((TCPOPT_NOP << 24) |
-					(TCPOPT_NOP << 16) |
-					(TCPOPT_TIMESTAMP << 8) |
-					TCPOLEN_TIMESTAMP)) {
+		    opt_ptr[0] ==
+			ntohl((TCPOPT_NOP << 24) | (TCPOPT_NOP << 16) |
+			    (TCPOPT_TIMESTAMP << 8) | TCPOLEN_TIMESTAMP)) {
 			/* timestamp option -- okay */
 		} else {
 			dont_merge = 1;
@@ -618,13 +610,14 @@ sfxge_lro_try_merge(struct sfxge_rxq *rxq, struct sfxge_lro_conn *c)
 	rx_buf->mbuf = NULL;
 	return (1);
 
- deliver_buf_out:
+deliver_buf_out:
 	sfxge_rx_deliver(rxq, rx_buf);
 	return (1);
 }
 
-static void sfxge_lro_new_conn(struct sfxge_lro_state *st, uint32_t conn_hash,
-			       uint16_t l2_id, void *nh, struct tcphdr *th)
+static void
+sfxge_lro_new_conn(struct sfxge_lro_state *st, uint32_t conn_hash,
+    uint16_t l2_id, void *nh, struct tcphdr *th)
 {
 	unsigned bucket = conn_hash & st->conns_mask;
 	struct sfxge_lro_conn *c;
@@ -681,14 +674,13 @@ sfxge_lro(struct sfxge_rxq *rxq, struct sfxge_rx_sw_desc *rx_buf)
 
 	/* Get the hardware hash */
 	conn_hash = efx_pseudo_hdr_hash_get(rxq->common,
-					    EFX_RX_HASHALG_TOEPLITZ,
-					    mtod(m, uint8_t *));
+	    EFX_RX_HASHALG_TOEPLITZ, mtod(m, uint8_t *));
 
 	eh = (struct ether_header *)(m->m_data + sc->rx_prefix_size);
 	if (eh->ether_type == htons(ETHERTYPE_VLAN)) {
 		struct ether_vlan_header *veh = (struct ether_vlan_header *)eh;
 		l2_id = EVL_VLANOFTAG(ntohs(veh->evl_tag)) |
-			SFXGE_LRO_L2_ID_VLAN;
+		    SFXGE_LRO_L2_ID_VLAN;
 		l3_proto = veh->evl_proto;
 		nh = veh + 1;
 	} else {
@@ -723,7 +715,7 @@ sfxge_lro(struct sfxge_rxq *rxq, struct sfxge_rx_sw_desc *rx_buf)
 
 	bucket = conn_hash & rxq->lro.conns_mask;
 
-	TAILQ_FOREACH(c, &rxq->lro.conns[bucket], link) {
+	TAILQ_FOREACH (c, &rxq->lro.conns[bucket], link) {
 		if ((c->l2_id - l2_id) | (c->conn_hash - conn_hash))
 			continue;
 		if ((c->source - th->th_sport) | (c->dest - th->th_dport))
@@ -732,14 +724,17 @@ sfxge_lro(struct sfxge_rxq *rxq, struct sfxge_rx_sw_desc *rx_buf)
 			if (SFXGE_LRO_CONN_IS_TCPIPV4(c)) {
 				struct ip *c_iph, *iph = nh;
 				c_iph = c->nh;
-				if ((c_iph->ip_src.s_addr - iph->ip_src.s_addr) |
+				if ((c_iph->ip_src.s_addr -
+					iph->ip_src.s_addr) |
 				    (c_iph->ip_dst.s_addr - iph->ip_dst.s_addr))
 					continue;
 			} else {
 				struct ip6_hdr *c_iph, *iph = nh;
 				c_iph = c->nh;
-				if (ipv6_addr_cmp(&c_iph->ip6_src, &iph->ip6_src) |
-				    ipv6_addr_cmp(&c_iph->ip6_dst, &iph->ip6_dst))
+				if (ipv6_addr_cmp(&c_iph->ip6_src,
+					&iph->ip6_src) |
+				    ipv6_addr_cmp(&c_iph->ip6_dst,
+					&iph->ip6_dst))
 					continue;
 			}
 		}
@@ -765,11 +760,12 @@ sfxge_lro(struct sfxge_rxq *rxq, struct sfxge_rx_sw_desc *rx_buf)
 	}
 
 	sfxge_lro_new_conn(&rxq->lro, conn_hash, l2_id, nh, th);
- deliver_now:
+deliver_now:
 	sfxge_rx_deliver(rxq, rx_buf);
 }
 
-static void sfxge_lro_end_of_burst(struct sfxge_rxq *rxq)
+static void
+sfxge_lro_end_of_burst(struct sfxge_rxq *rxq)
 {
 	struct sfxge_lro_state *st = &rxq->lro;
 	struct sfxge_lro_conn *c;
@@ -792,7 +788,7 @@ static void sfxge_lro_end_of_burst(struct sfxge_rxq *rxq)
 		sfxge_lro_purge_idle(rxq, t);
 }
 
-#else	/* !SFXGE_LRO */
+#else /* !SFXGE_LRO */
 
 static void
 sfxge_lro(struct sfxge_rxq *rxq, struct sfxge_rx_sw_desc *rx_buf)
@@ -804,7 +800,7 @@ sfxge_lro_end_of_burst(struct sfxge_rxq *rxq)
 {
 }
 
-#endif	/* SFXGE_LRO */
+#endif /* SFXGE_LRO */
 
 void
 sfxge_rx_qcomplete(struct sfxge_rxq *rxq, boolean_t eop)
@@ -845,8 +841,7 @@ sfxge_rx_qcomplete(struct sfxge_rxq *rxq, boolean_t eop)
 			int rc __diagused;
 
 			rc = efx_pseudo_hdr_pkt_length_get(rxq->common,
-							   mtod(m, uint8_t *),
-							   &tmp_size);
+			    mtod(m, uint8_t *), &tmp_size);
 			KASSERT(rc == 0, ("cannot get packet length: %d", rc));
 			rx_desc->size = (int)tmp_size + sc->rx_prefix_size;
 		}
@@ -856,8 +851,8 @@ sfxge_rx_qcomplete(struct sfxge_rxq *rxq, boolean_t eop)
 		switch (rx_desc->flags & (EFX_PKT_IPV4 | EFX_PKT_IPV6)) {
 		case EFX_PKT_IPV4:
 			if (~if_capenable & IFCAP_RXCSUM)
-				rx_desc->flags &=
-				    ~(EFX_CKSUM_IPV4 | EFX_CKSUM_TCPUDP);
+				rx_desc->flags &= ~(
+				    EFX_CKSUM_IPV4 | EFX_CKSUM_TCPUDP);
 			break;
 		case EFX_PKT_IPV6:
 			if (~if_capenable & IFCAP_RXCSUM_IPV6)
@@ -890,7 +885,7 @@ sfxge_rx_qcomplete(struct sfxge_rxq *rxq, boolean_t eop)
 		if (prev != NULL) {
 			if (lro_enabled &&
 			    ((prev->flags & (EFX_PKT_TCP | EFX_CKSUM_TCPUDP)) ==
-			     (EFX_PKT_TCP | EFX_CKSUM_TCPUDP)))
+				(EFX_PKT_TCP | EFX_CKSUM_TCPUDP)))
 				sfxge_lro(rxq, prev);
 			else
 				sfxge_rx_deliver(rxq, prev);
@@ -898,7 +893,7 @@ sfxge_rx_qcomplete(struct sfxge_rxq *rxq, boolean_t eop)
 		prev = rx_desc;
 		continue;
 
-discard:
+	discard:
 		/* Return the packet to the pool */
 		m_free(m);
 		rx_desc->mbuf = NULL;
@@ -911,7 +906,7 @@ discard:
 	if (prev != NULL) {
 		if (lro_enabled &&
 		    ((prev->flags & (EFX_PKT_TCP | EFX_CKSUM_TCPUDP)) ==
-		     (EFX_PKT_TCP | EFX_CKSUM_TCPUDP)))
+			(EFX_PKT_TCP | EFX_CKSUM_TCPUDP)))
 			sfxge_lro(rxq, prev);
 		else
 			sfxge_rx_deliver(rxq, prev);
@@ -944,8 +939,7 @@ sfxge_rx_qstop(struct sfxge_softc *sc, unsigned int index)
 
 	SFXGE_EVQ_LOCK(evq);
 
-	KASSERT(rxq->init_state == SFXGE_RXQ_STARTED,
-	    ("rxq not started"));
+	KASSERT(rxq->init_state == SFXGE_RXQ_STARTED, ("rxq not started"));
 
 	rxq->init_state = SFXGE_RXQ_INITIALIZED;
 
@@ -1031,13 +1025,13 @@ sfxge_rx_qstart(struct sfxge_softc *sc, unsigned int index)
 
 	/* Program the buffer table. */
 	if ((rc = efx_sram_buf_tbl_set(sc->enp, rxq->buf_base_id, esmp,
-	    EFX_RXQ_NBUFS(sc->rxq_entries))) != 0)
+		 EFX_RXQ_NBUFS(sc->rxq_entries))) != 0)
 		return (rc);
 
 	/* Create the common code receive queue. */
-	if ((rc = efx_rx_qcreate(sc->enp, index, 0, EFX_RXQ_TYPE_DEFAULT,
-	    esmp, sc->rxq_entries, rxq->buf_base_id, EFX_RXQ_FLAG_NONE,
-	    evq->common, &rxq->common)) != 0)
+	if ((rc = efx_rx_qcreate(sc->enp, index, 0, EFX_RXQ_TYPE_DEFAULT, esmp,
+		 sc->rxq_entries, rxq->buf_base_id, EFX_RXQ_FLAG_NONE,
+		 evq->common, &rxq->common)) != 0)
 		goto fail;
 
 	SFXGE_EVQ_LOCK(evq);
@@ -1098,7 +1092,7 @@ sfxge_rx_start(struct sfxge_softc *sc)
 	sc->rx_prefix_size = encp->enc_rx_prefix_size;
 
 	/* Ensure IP headers are 32bit aligned */
-	hdrlen = sc->rx_prefix_size + sizeof (struct ether_header);
+	hdrlen = sc->rx_prefix_size + sizeof(struct ether_header);
 	sc->rx_buffer_align = EFX_P2ROUNDUP(size_t, hdrlen, 4) - hdrlen;
 
 	sc->rx_buffer_size += sc->rx_buffer_align;
@@ -1129,26 +1123,26 @@ sfxge_rx_start(struct sfxge_softc *sc)
 	 */
 	for (index = 0; index < nitems(sc->rx_indir_table); index++)
 #ifdef RSS
-		sc->rx_indir_table[index] =
-			rss_get_indirection_to_bucket(index) % sc->rxq_count;
+		sc->rx_indir_table[index] = rss_get_indirection_to_bucket(
+						index) %
+		    sc->rxq_count;
 #else
 		sc->rx_indir_table[index] = index % sc->rxq_count;
 #endif
 	if ((rc = efx_rx_scale_tbl_set(sc->enp, EFX_RSS_CONTEXT_DEFAULT,
-				       sc->rx_indir_table,
-				       nitems(sc->rx_indir_table))) != 0)
+		 sc->rx_indir_table, nitems(sc->rx_indir_table))) != 0)
 		goto fail;
 	(void)efx_rx_scale_mode_set(sc->enp, EFX_RSS_CONTEXT_DEFAULT,
 	    EFX_RX_HASHALG_TOEPLITZ,
-	    EFX_RX_HASH_IPV4 | EFX_RX_HASH_TCPIPV4 |
-	    EFX_RX_HASH_IPV6 | EFX_RX_HASH_TCPIPV6, B_TRUE);
+	    EFX_RX_HASH_IPV4 | EFX_RX_HASH_TCPIPV4 | EFX_RX_HASH_IPV6 |
+		EFX_RX_HASH_TCPIPV6,
+	    B_TRUE);
 
 #ifdef RSS
 	rss_getkey(toep_key);
 #endif
 	if ((rc = efx_rx_scale_key_set(sc->enp, EFX_RSS_CONTEXT_DEFAULT,
-				       toep_key,
-				       sizeof(toep_key))) != 0)
+		 toep_key, sizeof(toep_key))) != 0)
 		goto fail;
 
 	/* Start the receive queue(s). */
@@ -1158,7 +1152,7 @@ sfxge_rx_start(struct sfxge_softc *sc)
 	}
 
 	rc = efx_mac_filter_default_rxq_set(sc->enp, sc->rxq[0]->common,
-					    sc->intr.n_alloc > 1);
+	    sc->intr.n_alloc > 1);
 	if (rc != 0)
 		goto fail3;
 
@@ -1177,19 +1171,20 @@ fail:
 
 #ifdef SFXGE_LRO
 
-static void sfxge_lro_init(struct sfxge_rxq *rxq)
+static void
+sfxge_lro_init(struct sfxge_rxq *rxq)
 {
 	struct sfxge_lro_state *st = &rxq->lro;
 	unsigned i;
 
 	st->conns_mask = lro_table_size - 1;
 	KASSERT(!((st->conns_mask + 1) & st->conns_mask),
-		("lro_table_size must be a power of 2"));
+	    ("lro_table_size must be a power of 2"));
 	st->sc = rxq->sc;
-	st->conns = malloc((st->conns_mask + 1) * sizeof(st->conns[0]),
-			   M_SFXGE, M_WAITOK);
+	st->conns = malloc((st->conns_mask + 1) * sizeof(st->conns[0]), M_SFXGE,
+	    M_WAITOK);
 	st->conns_n = malloc((st->conns_mask + 1) * sizeof(st->conns_n[0]),
-			     M_SFXGE, M_WAITOK);
+	    M_SFXGE, M_WAITOK);
 	for (i = 0; i <= st->conns_mask; ++i) {
 		TAILQ_INIT(&st->conns[i]);
 		st->conns_n[i] = 0;
@@ -1198,7 +1193,8 @@ static void sfxge_lro_init(struct sfxge_rxq *rxq)
 	TAILQ_INIT(&st->free_conns);
 }
 
-static void sfxge_lro_fini(struct sfxge_rxq *rxq)
+static void
+sfxge_lro_fini(struct sfxge_rxq *rxq)
 {
 	struct sfxge_lro_state *st = &rxq->lro;
 	struct sfxge_lro_conn *c;
@@ -1241,7 +1237,7 @@ sfxge_lro_fini(struct sfxge_rxq *rxq)
 {
 }
 
-#endif	/* SFXGE_LRO */
+#endif /* SFXGE_LRO */
 
 static void
 sfxge_rx_qfini(struct sfxge_softc *sc, unsigned int index)
@@ -1285,12 +1281,13 @@ sfxge_rx_qinit(struct sfxge_softc *sc, unsigned int index)
 	esmp = &rxq->mem;
 
 	/* Allocate and zero DMA space. */
-	if ((rc = sfxge_dma_alloc(sc, EFX_RXQ_SIZE(sc->rxq_entries), esmp)) != 0)
+	if ((rc = sfxge_dma_alloc(sc, EFX_RXQ_SIZE(sc->rxq_entries), esmp)) !=
+	    0)
 		return (rc);
 
 	/* Allocate buffer table entries. */
 	sfxge_sram_buf_tbl_alloc(sc, EFX_RXQ_NBUFS(sc->rxq_entries),
-				 &rxq->buf_base_id);
+	    &rxq->buf_base_id);
 
 	/* Allocate the context array and the flow table. */
 	rxq->queue = malloc(sizeof(struct sfxge_rx_sw_desc) * sc->rxq_entries,
@@ -1308,8 +1305,10 @@ static const struct {
 	const char *name;
 	size_t offset;
 } sfxge_rx_stats[] = {
-#define	SFXGE_RX_STAT(name, member) \
-	{ #name, offsetof(struct sfxge_rxq, member) }
+#define SFXGE_RX_STAT(name, member)                       \
+	{                                                 \
+		#name, offsetof(struct sfxge_rxq, member) \
+	}
 #ifdef SFXGE_LRO
 	SFXGE_RX_STAT(lro_merges, lro.n_merges),
 	SFXGE_RX_STAT(lro_bursts, lro.n_bursts),
@@ -1333,7 +1332,7 @@ sfxge_rx_stat_handler(SYSCTL_HANDLER_ARGS)
 	sum = 0;
 	for (index = 0; index < sc->rxq_count; index++)
 		sum += *(unsigned int *)((caddr_t)sc->rxq[index] +
-					 sfxge_rx_stats[id].offset);
+		    sfxge_rx_stats[id].offset);
 
 	return (SYSCTL_OUT(req, &sum, sizeof(sum)));
 }
@@ -1350,8 +1349,8 @@ sfxge_rx_stat_init(struct sfxge_softc *sc)
 	for (id = 0; id < nitems(sfxge_rx_stats); id++) {
 		SYSCTL_ADD_PROC(ctx, stat_list, OID_AUTO,
 		    sfxge_rx_stats[id].name,
-		    CTLTYPE_UINT | CTLFLAG_RD | CTLFLAG_NEEDGIANT,
-		    sc, id, sfxge_rx_stat_handler, "IU", "");
+		    CTLTYPE_UINT | CTLFLAG_RD | CTLFLAG_NEEDGIANT, sc, id,
+		    sfxge_rx_stat_handler, "IU", "");
 	}
 }
 

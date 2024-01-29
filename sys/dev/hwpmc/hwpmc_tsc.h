@@ -27,17 +27,17 @@
  */
 
 #ifndef _DEV_HWPMC_TSC_H_
-#define	_DEV_HWPMC_TSC_H_ 1
+#define _DEV_HWPMC_TSC_H_ 1
 
-#ifdef	_KERNEL
+#ifdef _KERNEL
 
-#define	TSC_NPMCS	1
+#define TSC_NPMCS 1
 
 /*
  * Prototypes.
  */
 
-int	pmc_tsc_initialize(struct pmc_mdep *_md, int _maxcpu);
-void	pmc_tsc_finalize(struct pmc_mdep *_md);
-#endif	/* _KERNEL */
-#endif	/* _DEV_HWPMC_TSC_H */
+int pmc_tsc_initialize(struct pmc_mdep *_md, int _maxcpu);
+void pmc_tsc_finalize(struct pmc_mdep *_md);
+#endif /* _KERNEL */
+#endif /* _DEV_HWPMC_TSC_H */

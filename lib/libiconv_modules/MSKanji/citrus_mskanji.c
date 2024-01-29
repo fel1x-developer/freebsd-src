@@ -1,4 +1,5 @@
-/*	$NetBSD: citrus_mskanji.c,v 1.13 2008/06/14 16:01:08 tnozaki Exp $	*/
+/*	$NetBSD: citrus_mskanji.c,v 1.13 2008/06/14 16:01:08 tnozaki Exp $
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
@@ -73,38 +74,36 @@
 #include <string.h>
 #include <wchar.h>
 
-#include "citrus_namespace.h"
-#include "citrus_types.h"
 #include "citrus_bcs.h"
 #include "citrus_module.h"
-#include "citrus_stdenc.h"
 #include "citrus_mskanji.h"
-
+#include "citrus_namespace.h"
+#include "citrus_stdenc.h"
+#include "citrus_types.h"
 
 /* ----------------------------------------------------------------------
  * private stuffs used by templates
  */
 
 typedef struct _MSKanjiState {
-	int	 chlen;
-	char	 ch[2];
+	int chlen;
+	char ch[2];
 } _MSKanjiState;
 
 typedef struct {
-	int	 mode;
-#define MODE_JIS2004	1
+	int mode;
+#define MODE_JIS2004 1
 } _MSKanjiEncodingInfo;
 
-#define _CEI_TO_EI(_cei_)		(&(_cei_)->ei)
-#define _CEI_TO_STATE(_cei_, _func_)	(_cei_)->states.s_##_func_
+#define _CEI_TO_EI(_cei_) (&(_cei_)->ei)
+#define _CEI_TO_STATE(_cei_, _func_) (_cei_)->states.s_##_func_
 
-#define _FUNCNAME(m)			_citrus_MSKanji_##m
-#define _ENCODING_INFO			_MSKanjiEncodingInfo
-#define _ENCODING_STATE			_MSKanjiState
-#define _ENCODING_MB_CUR_MAX(_ei_)	2
-#define _ENCODING_IS_STATE_DEPENDENT	0
-#define _STATE_NEEDS_EXPLICIT_INIT(_ps_)	0
-
+#define _FUNCNAME(m) _citrus_MSKanji_##m
+#define _ENCODING_INFO _MSKanjiEncodingInfo
+#define _ENCODING_STATE _MSKanjiState
+#define _ENCODING_MB_CUR_MAX(_ei_) 2
+#define _ENCODING_IS_STATE_DEPENDENT 0
+#define _STATE_NEEDS_EXPLICIT_INIT(_ps_) 0
 
 static bool
 _mskanji1(int c)
@@ -122,8 +121,8 @@ _mskanji2(int c)
 
 static __inline void
 /*ARGSUSED*/
-_citrus_MSKanji_init_state(_MSKanjiEncodingInfo * __restrict ei __unused,
-    _MSKanjiState * __restrict s)
+_citrus_MSKanji_init_state(_MSKanjiEncodingInfo *__restrict ei __unused,
+    _MSKanjiState *__restrict s)
 {
 
 	s->chlen = 0;
@@ -151,9 +150,9 @@ _citrus_MSKanji_unpack_state(_MSKanjiEncodingInfo * __restrict ei __unused,
 
 static int
 /*ARGSUSED*/
-_citrus_MSKanji_mbrtowc_priv(_MSKanjiEncodingInfo * __restrict ei,
-    wchar_t * __restrict pwc, char ** __restrict s, size_t n,
-    _MSKanjiState * __restrict psenc, size_t * __restrict nresult)
+_citrus_MSKanji_mbrtowc_priv(_MSKanjiEncodingInfo *__restrict ei,
+    wchar_t *__restrict pwc, char **__restrict s, size_t n,
+    _MSKanjiState *__restrict psenc, size_t *__restrict nresult)
 {
 	char *s0;
 	wchar_t wchar;
@@ -228,11 +227,10 @@ restart:
 	return (0);
 }
 
-
 static int
-_citrus_MSKanji_wcrtomb_priv(_MSKanjiEncodingInfo * __restrict ei __unused,
-    char * __restrict s, size_t n, wchar_t wc,
-    _MSKanjiState * __restrict psenc __unused, size_t * __restrict nresult)
+_citrus_MSKanji_wcrtomb_priv(_MSKanjiEncodingInfo *__restrict ei __unused,
+    char *__restrict s, size_t n, wchar_t wc,
+    _MSKanjiState *__restrict psenc __unused, size_t *__restrict nresult)
 {
 	int ret;
 
@@ -278,11 +276,10 @@ err:
 	return (ret);
 }
 
-
 static __inline int
 /*ARGSUSED*/
-_citrus_MSKanji_stdenc_wctocs(_MSKanjiEncodingInfo * __restrict ei,
-    _csid_t * __restrict csid, _index_t * __restrict idx, wchar_t wc)
+_citrus_MSKanji_stdenc_wctocs(_MSKanjiEncodingInfo *__restrict ei,
+    _csid_t *__restrict csid, _index_t *__restrict idx, wchar_t wc)
 {
 	_index_t col, row;
 	int offset;
@@ -340,8 +337,10 @@ _citrus_MSKanji_stdenc_wctocs(_MSKanjiEncodingInfo * __restrict ei,
 			*csid = 3;
 			if ((_wc_t)wc <= 0xF49E) {
 				offset = (_wc_t)wc >= 0xF29F ||
-				    ((_wc_t)wc >= 0xF09F &&
-				    (_wc_t)wc <= 0xF0FC) ? 0xED : 0xF0;
+					((_wc_t)wc >= 0xF09F &&
+					    (_wc_t)wc <= 0xF0FC) ?
+				    0xED :
+				    0xF0;
 			} else
 				offset = 0xCE;
 		}
@@ -364,8 +363,8 @@ _citrus_MSKanji_stdenc_wctocs(_MSKanjiEncodingInfo * __restrict ei,
 
 static __inline int
 /*ARGSUSED*/
-_citrus_MSKanji_stdenc_cstowc(_MSKanjiEncodingInfo * __restrict ei,
-    wchar_t * __restrict wc, _csid_t csid, _index_t idx)
+_citrus_MSKanji_stdenc_cstowc(_MSKanjiEncodingInfo *__restrict ei,
+    wchar_t *__restrict wc, _csid_t csid, _index_t idx)
 {
 	uint32_t col, row;
 	int offset;
@@ -394,8 +393,8 @@ _citrus_MSKanji_stdenc_cstowc(_MSKanjiEncodingInfo * __restrict ei,
 			return (EILSEQ);
 		if (csid == 3) {
 			if (row <= 0x2F)
-				offset = (row == 0x22 || row >= 0x26) ?
-				    0xED : 0xF0;
+				offset = (row == 0x22 || row >= 0x26) ? 0xED :
+									0xF0;
 			else if (row >= 0x4D && row <= 0x7E)
 				offset = 0xCE;
 			else
@@ -408,7 +407,8 @@ _citrus_MSKanji_stdenc_cstowc(_MSKanjiEncodingInfo * __restrict ei,
 		col = idx & 0xFF;
 		if (col < 0x21 || col > 0x7E)
 			return (EILSEQ);
-		row -= 0x21; col -= 0x21;
+		row -= 0x21;
+		col -= 0x21;
 		if ((row & 1) == 0) {
 			col += 0x40;
 			if (col >= 0x7F)
@@ -427,19 +427,20 @@ _citrus_MSKanji_stdenc_cstowc(_MSKanjiEncodingInfo * __restrict ei,
 
 static __inline int
 /*ARGSUSED*/
-_citrus_MSKanji_stdenc_get_state_desc_generic(_MSKanjiEncodingInfo * __restrict ei __unused,
-    _MSKanjiState * __restrict psenc, int * __restrict rstate)
+_citrus_MSKanji_stdenc_get_state_desc_generic(
+    _MSKanjiEncodingInfo *__restrict ei __unused,
+    _MSKanjiState *__restrict psenc, int *__restrict rstate)
 {
 
 	*rstate = (psenc->chlen == 0) ? _STDENC_SDGEN_INITIAL :
-	    _STDENC_SDGEN_INCOMPLETE_CHAR;
+					_STDENC_SDGEN_INCOMPLETE_CHAR;
 	return (0);
 }
 
 static int
 /*ARGSUSED*/
-_citrus_MSKanji_encoding_module_init(_MSKanjiEncodingInfo *  __restrict ei,
-    const void * __restrict var, size_t lenvar)
+_citrus_MSKanji_encoding_module_init(_MSKanjiEncodingInfo *__restrict ei,
+    const void *__restrict var, size_t lenvar)
 {
 	const char *p;
 
@@ -461,7 +462,6 @@ _citrus_MSKanji_encoding_module_init(_MSKanjiEncodingInfo *  __restrict ei,
 static void
 _citrus_MSKanji_encoding_module_uninit(_MSKanjiEncodingInfo *ei __unused)
 {
-
 }
 
 /* ----------------------------------------------------------------------

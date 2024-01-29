@@ -5,7 +5,7 @@
  *
  * Copyright (C) 1995, 1996, 1997, and 1998 WIDE Project.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -17,7 +17,7 @@
  * 3. Neither the name of the project nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE PROJECT AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -31,52 +31,52 @@
  * SUCH DAMAGE.
  */
 
-#define	ROUTE6D_DUMP	"/var/run/route6d_dump"
-#define	ROUTE6D_PID	"/var/run/route6d.pid"
+#define ROUTE6D_DUMP "/var/run/route6d_dump"
+#define ROUTE6D_PID "/var/run/route6d.pid"
 
-#define	RIP6_VERSION	1
+#define RIP6_VERSION 1
 
-#define	RIP6_REQUEST	1
-#define	RIP6_RESPONSE	2
+#define RIP6_REQUEST 1
+#define RIP6_RESPONSE 2
 
-#define	IFC_CHANGED	1
+#define IFC_CHANGED 1
 
 struct netinfo6 {
-	struct	in6_addr rip6_dest;
-	u_short	rip6_tag;
-	u_char	rip6_plen;
-	u_char	rip6_metric;
+	struct in6_addr rip6_dest;
+	u_short rip6_tag;
+	u_char rip6_plen;
+	u_char rip6_metric;
 };
 
-struct	rip6 {
-	u_char	rip6_cmd;
-	u_char	rip6_vers;
-	u_char	rip6_res1[2];
-	struct	netinfo6 rip6_nets[1];
+struct rip6 {
+	u_char rip6_cmd;
+	u_char rip6_vers;
+	u_char rip6_res1[2];
+	struct netinfo6 rip6_nets[1];
 };
 
-#define	HOPCNT_INFINITY6	16
-#define	NEXTHOP_METRIC		0xff
-#define	RIP6_MAXMTU		1500
+#define HOPCNT_INFINITY6 16
+#define NEXTHOP_METRIC 0xff
+#define RIP6_MAXMTU 1500
 
-#define	IFMINMTU		1280
+#define IFMINMTU 1280
 
-#ifndef	DEBUG
-#define	SUPPLY_INTERVAL6	30
-#define	RIP_LIFETIME		180
-#define	RIP_HOLDDOWN		120
-#define	RIP_TRIG_INT6_MAX	5
-#define	RIP_TRIG_INT6_MIN	1
+#ifndef DEBUG
+#define SUPPLY_INTERVAL6 30
+#define RIP_LIFETIME 180
+#define RIP_HOLDDOWN 120
+#define RIP_TRIG_INT6_MAX 5
+#define RIP_TRIG_INT6_MIN 1
 #else
 /* only for debugging; can not wait for 30sec to appear a bug */
-#define	SUPPLY_INTERVAL6	10
-#define	RIP_LIFETIME		60
-#define	RIP_HOLDDOWN		40
-#define	RIP_TRIG_INT6_MAX	5
-#define	RIP_TRIG_INT6_MIN	1
+#define SUPPLY_INTERVAL6 10
+#define RIP_LIFETIME 60
+#define RIP_HOLDDOWN 40
+#define RIP_TRIG_INT6_MAX 5
+#define RIP_TRIG_INT6_MIN 1
 #endif
 
-#define	RIP6_PORT		521
-#define	RIP6_DEST		"ff02::9"
+#define RIP6_PORT 521
+#define RIP6_DEST "ff02::9"
 
-#define	LOOPBACK_IF		"lo0"
+#define LOOPBACK_IF "lo0"

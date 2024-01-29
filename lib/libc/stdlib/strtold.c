@@ -29,10 +29,11 @@
  */
 
 #include <stdlib.h>
+
 #include "xlocale_private.h"
 
 long double
-strtold(const char * __restrict nptr, char ** __restrict endptr)
+strtold(const char *__restrict nptr, char **__restrict endptr)
 {
 
 	return strtold_l(nptr, endptr, __get_locale());

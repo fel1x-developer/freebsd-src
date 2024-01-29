@@ -22,32 +22,30 @@
  * NB: Merlin and later have a simpler RF backend.
  */
 #include "ah.h"
-#include "ah_internal.h"
-
 #include "ah_eeprom_v14.h"
-
-#include "ar9002/ar9287.h"
-#include "ar5416/ar5416reg.h"
+#include "ah_internal.h"
 #include "ar5416/ar5416phy.h"
+#include "ar5416/ar5416reg.h"
+#include "ar9002/ar9287.h"
 
-#define N(a)    (sizeof(a)/sizeof(a[0]))
+#define N(a) (sizeof(a) / sizeof(a[0]))
 
 struct ar9287State {
-	RF_HAL_FUNCS	base;		/* public state, must be first */
-	uint16_t	pcdacTable[1];	/* XXX */
+	RF_HAL_FUNCS base;	/* public state, must be first */
+	uint16_t pcdacTable[1]; /* XXX */
 };
-#define	AR9287(ah)	((struct ar9287State *) AH5212(ah)->ah_rfHal)
+#define AR9287(ah) ((struct ar9287State *)AH5212(ah)->ah_rfHal)
 
 static HAL_BOOL ar9287GetChannelMaxMinPower(struct ath_hal *,
-	const struct ieee80211_channel *, int16_t *maxPow,int16_t *minPow);
+    const struct ieee80211_channel *, int16_t *maxPow, int16_t *minPow);
 int16_t ar9287GetNfAdjust(struct ath_hal *ah, const HAL_CHANNEL_INTERNAL *c);
 
 static void
 ar9287WriteRegs(struct ath_hal *ah, u_int modesIndex, u_int freqIndex,
-	int writes)
+    int writes)
 {
-	(void) ath_hal_ini_write(ah, &AH5416(ah)->ah_ini_bb_rfgain,
-		freqIndex, writes);
+	(void)ath_hal_ini_write(ah, &AH5416(ah)->ah_ini_bb_rfgain, freqIndex,
+	    writes);
 }
 
 /*
@@ -57,8 +55,8 @@ ar9287WriteRegs(struct ath_hal *ah, u_int modesIndex, u_int freqIndex,
  *
  * Actual Expression,
  *
- * For 2GHz channel, 
- * Channel Frequency = (3/4) * freq_ref * (chansel[8:0] + chanfrac[16:0]/2^17) 
+ * For 2GHz channel,
+ * Channel Frequency = (3/4) * freq_ref * (chansel[8:0] + chanfrac[16:0]/2^17)
  * (freq_ref = 40MHz)
  *
  * For 5GHz channel,
@@ -85,14 +83,14 @@ ar9287SetChannel(struct ath_hal *ah, const struct ieee80211_channel *chan)
 	reg32 = OS_REG_READ(ah, AR_PHY_SYNTH_CONTROL);
 	reg32 &= 0xc0000000;
 
-	if (freq < 4800) {     /* 2 GHz, fractional mode */
+	if (freq < 4800) { /* 2 GHz, fractional mode */
 		uint32_t txctl;
 		int regWrites = 0;
 
 		bMode = 1;
 		fracMode = 1;
-		aModeRefSel = 0;       
-		channelSel = (freq * 0x10000)/15;
+		aModeRefSel = 0;
+		channelSel = (freq * 0x10000) / 15;
 
 		if (AR_SREV_KIWI_11_OR_LATER(ah)) {
 			if (freq == 2484) {
@@ -113,8 +111,8 @@ ar9287SetChannel(struct ath_hal *ah, const struct ieee80211_channel *chan)
 			    txctl | AR_PHY_CCK_TX_CTRL_JAPAN);
 		} else {
 			OS_REG_WRITE(ah, AR_PHY_CCK_TX_CTRL,
-			    txctl &~ AR_PHY_CCK_TX_CTRL_JAPAN);
-		}     
+			    txctl & ~AR_PHY_CCK_TX_CTRL_JAPAN);
+		}
 	} else {
 		bMode = 0;
 		fracMode = 0;
@@ -131,22 +129,22 @@ ar9287SetChannel(struct ath_hal *ah, const struct ieee80211_channel *chan)
 			 */
 			fracMode = 1;
 			refDivA = 1;
-			channelSel = (freq * 0x8000)/15;
+			channelSel = (freq * 0x8000) / 15;
 
 			/* RefDivA setting */
 			OS_A_REG_RMW_FIELD(ah, AR_AN_SYNTH9,
 			    AR_AN_SYNTH9_REFDIVA, refDivA);
 		}
 		if (!fracMode) {
-			ndiv = (freq * (refDivA >> aModeRefSel))/60;
-			channelSel =  ndiv & 0x1ff;         
+			ndiv = (freq * (refDivA >> aModeRefSel)) / 60;
+			channelSel = ndiv & 0x1ff;
 			channelFrac = (ndiv & 0xfffffe00) * 2;
 			channelSel = (channelSel << 17) | channelFrac;
 		}
 	}
 
-	reg32 = reg32 | (bMode << 29) | (fracMode << 28) |
-	    (aModeRefSel << 26) | (channelSel);
+	reg32 = reg32 | (bMode << 29) | (fracMode << 28) | (aModeRefSel << 26) |
+	    (channelSel);
 
 	OS_REG_WRITE(ah, AR_PHY_SYNTH_CONTROL, reg32);
 
@@ -172,9 +170,9 @@ ar9287GetRfBank(struct ath_hal *ah, int bank)
  */
 static HAL_BOOL
 ar9287SetRfRegs(struct ath_hal *ah, const struct ieee80211_channel *chan,
-                uint16_t modesIndex, uint16_t *rfXpdGain)
+    uint16_t modesIndex, uint16_t *rfXpdGain)
 {
-	return AH_TRUE;		/* nothing to do */
+	return AH_TRUE; /* nothing to do */
 }
 
 /*
@@ -184,8 +182,8 @@ ar9287SetRfRegs(struct ath_hal *ah, const struct ieee80211_channel *chan,
  */
 
 static HAL_BOOL
-ar9287SetPowerTable(struct ath_hal *ah, int16_t *pPowerMin, int16_t *pPowerMax, 
-	const struct ieee80211_channel *chan, uint16_t *rfXpdGain)
+ar9287SetPowerTable(struct ath_hal *ah, int16_t *pPowerMin, int16_t *pPowerMax,
+    const struct ieee80211_channel *chan, uint16_t *rfXpdGain)
 {
 	return AH_TRUE;
 }
@@ -220,8 +218,7 @@ ar9287GetMinPower(struct ath_hal *ah, EXPN_DATA_PER_CHANNEL_5112 *data)
 
 static HAL_BOOL
 ar9287GetChannelMaxMinPower(struct ath_hal *ah,
-	const struct ieee80211_channel *chan,
-	int16_t *maxPow, int16_t *minPow)
+    const struct ieee80211_channel *chan, int16_t *maxPow, int16_t *minPow)
 {
 #if 0
     struct ath_hal_5212 *ahp = AH5212(ah);
@@ -299,35 +296,35 @@ ar9287GetNoiseFloor(struct ath_hal *ah, int16_t nfarray[])
 	nf = MS(OS_REG_READ(ah, AR_PHY_CCA), AR9280_PHY_MINCCA_PWR);
 	if (nf & 0x100)
 		nf = 0 - ((nf ^ 0x1ff) + 1);
-	HALDEBUG(ah, HAL_DEBUG_NFCAL,
-	    "NF calibrated [ctl] [chain 0] is %d\n", nf);
+	HALDEBUG(ah, HAL_DEBUG_NFCAL, "NF calibrated [ctl] [chain 0] is %d\n",
+	    nf);
 	nfarray[0] = nf;
 
 	nf = MS(OS_REG_READ(ah, AR_PHY_CH1_CCA), AR9280_PHY_CH1_MINCCA_PWR);
 	if (nf & 0x100)
 		nf = 0 - ((nf ^ 0x1ff) + 1);
-	HALDEBUG(ah, HAL_DEBUG_NFCAL,
-	    "NF calibrated [ctl] [chain 1] is %d\n", nf);
+	HALDEBUG(ah, HAL_DEBUG_NFCAL, "NF calibrated [ctl] [chain 1] is %d\n",
+	    nf);
 	nfarray[1] = nf;
 
 	nf = MS(OS_REG_READ(ah, AR_PHY_EXT_CCA), AR9280_PHY_EXT_MINCCA_PWR);
 	if (nf & 0x100)
 		nf = 0 - ((nf ^ 0x1ff) + 1);
-	HALDEBUG(ah, HAL_DEBUG_NFCAL,
-	    "NF calibrated [ext] [chain 0] is %d\n", nf);
+	HALDEBUG(ah, HAL_DEBUG_NFCAL, "NF calibrated [ext] [chain 0] is %d\n",
+	    nf);
 	nfarray[3] = nf;
 
-	nf = MS(OS_REG_READ(ah, AR_PHY_CH1_EXT_CCA), AR9280_PHY_CH1_EXT_MINCCA_PWR);
+	nf = MS(OS_REG_READ(ah, AR_PHY_CH1_EXT_CCA),
+	    AR9280_PHY_CH1_EXT_MINCCA_PWR);
 	if (nf & 0x100)
 		nf = 0 - ((nf ^ 0x1ff) + 1);
-	HALDEBUG(ah, HAL_DEBUG_NFCAL,
-	    "NF calibrated [ext] [chain 1] is %d\n", nf);
+	HALDEBUG(ah, HAL_DEBUG_NFCAL, "NF calibrated [ext] [chain 1] is %d\n",
+	    nf);
 	nfarray[4] = nf;
 
-        /* Chain 2 - invalid */
-        nfarray[2] = 0;
-        nfarray[5] = 0;
-
+	/* Chain 2 - invalid */
+	nfarray[2] = 0;
+	nfarray[5] = 0;
 }
 
 /*
@@ -366,17 +363,17 @@ ar9287RfAttach(struct ath_hal *ah, HAL_STATUS *status)
 	if (priv == AH_NULL) {
 		HALDEBUG(ah, HAL_DEBUG_ANY,
 		    "%s: cannot allocate private state\n", __func__);
-		*status = HAL_ENOMEM;		/* XXX */
+		*status = HAL_ENOMEM; /* XXX */
 		return AH_FALSE;
 	}
-	priv->base.rfDetach		= ar9287RfDetach;
-	priv->base.writeRegs		= ar9287WriteRegs;
-	priv->base.getRfBank		= ar9287GetRfBank;
-	priv->base.setChannel		= ar9287SetChannel;
-	priv->base.setRfRegs		= ar9287SetRfRegs;
-	priv->base.setPowerTable	= ar9287SetPowerTable;
+	priv->base.rfDetach = ar9287RfDetach;
+	priv->base.writeRegs = ar9287WriteRegs;
+	priv->base.getRfBank = ar9287GetRfBank;
+	priv->base.setChannel = ar9287SetChannel;
+	priv->base.setRfRegs = ar9287SetRfRegs;
+	priv->base.setPowerTable = ar9287SetPowerTable;
 	priv->base.getChannelMaxMinPower = ar9287GetChannelMaxMinPower;
-	priv->base.getNfAdjust		= ar9287GetNfAdjust;
+	priv->base.getNfAdjust = ar9287GetNfAdjust;
 
 	ahp->ah_pcdacTable = priv->pcdacTable;
 	ahp->ah_pcdacTableSize = sizeof(priv->pcdacTable);

@@ -27,37 +27,35 @@
  */
 #include "opt_platform.h"
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/types.h>
-#include <sys/sysctl.h>
-#include <sys/kernel.h>
-#include <sys/rman.h>
-#include <sys/module.h>
 #include <sys/bus.h>
-#include <sys/endian.h>
 #include <sys/cpuset.h>
+#include <sys/endian.h>
+#include <sys/kernel.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/rman.h>
+#include <sys/sysctl.h>
 
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
+#include <dev/ofw/openfirm.h>
 #include <dev/pci/pci_host_generic.h>
 #include <dev/pci/pci_host_generic_fdt.h>
 #include <dev/pci/pcib_private.h>
-
-#include "thunder_pcie_common.h"
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include "pcib_if.h"
+#include "thunder_pcie_common.h"
 
 #ifdef THUNDERX_PASS_1_1_ERRATA
-static struct resource * thunder_pcie_fdt_alloc_resource(device_t, device_t,
-    int, int *, rman_res_t, rman_res_t, rman_res_t, u_int);
-static int thunder_pcie_fdt_release_resource(device_t, device_t,
-    int, int, struct resource*);
+static struct resource *thunder_pcie_fdt_alloc_resource(device_t, device_t, int,
+    int *, rman_res_t, rman_res_t, rman_res_t, u_int);
+static int thunder_pcie_fdt_release_resource(device_t, device_t, int, int,
+    struct resource *);
 #endif
 static int thunder_pcie_fdt_attach(device_t);
 static int thunder_pcie_fdt_probe(device_t);
@@ -69,29 +67,29 @@ static const struct ofw_bus_devinfo *thunder_pcie_ofw_get_devinfo(device_t,
 
 /* OFW bus interface */
 struct thunder_pcie_ofw_devinfo {
-	struct ofw_bus_devinfo	di_dinfo;
-	struct resource_list	di_rl;
+	struct ofw_bus_devinfo di_dinfo;
+	struct resource_list di_rl;
 };
 
 static device_method_t thunder_pcie_fdt_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		thunder_pcie_fdt_probe),
-	DEVMETHOD(device_attach,	thunder_pcie_fdt_attach),
+	DEVMETHOD(device_probe, thunder_pcie_fdt_probe),
+	DEVMETHOD(device_attach, thunder_pcie_fdt_attach),
 #ifdef THUNDERX_PASS_1_1_ERRATA
-	DEVMETHOD(bus_alloc_resource,	thunder_pcie_fdt_alloc_resource),
+	DEVMETHOD(bus_alloc_resource, thunder_pcie_fdt_alloc_resource),
 	DEVMETHOD(bus_release_resource, thunder_pcie_fdt_release_resource),
 #endif
 
 	/* pcib interface */
-	DEVMETHOD(pcib_get_id,		thunder_pcie_fdt_get_id),
+	DEVMETHOD(pcib_get_id, thunder_pcie_fdt_get_id),
 
 	/* ofw interface */
-	DEVMETHOD(ofw_bus_get_devinfo,	thunder_pcie_ofw_get_devinfo),
-	DEVMETHOD(ofw_bus_get_compat,	ofw_bus_gen_get_compat),
-	DEVMETHOD(ofw_bus_get_model,	ofw_bus_gen_get_model),
-	DEVMETHOD(ofw_bus_get_name,	ofw_bus_gen_get_name),
-	DEVMETHOD(ofw_bus_get_node,	ofw_bus_gen_get_node),
-	DEVMETHOD(ofw_bus_get_type,	ofw_bus_gen_get_type),
+	DEVMETHOD(ofw_bus_get_devinfo, thunder_pcie_ofw_get_devinfo),
+	DEVMETHOD(ofw_bus_get_compat, ofw_bus_gen_get_compat),
+	DEVMETHOD(ofw_bus_get_model, ofw_bus_gen_get_model),
+	DEVMETHOD(ofw_bus_get_name, ofw_bus_gen_get_name),
+	DEVMETHOD(ofw_bus_get_node, ofw_bus_gen_get_node),
+	DEVMETHOD(ofw_bus_get_type, ofw_bus_gen_get_type),
 
 	/* End */
 	DEVMETHOD_END
@@ -140,7 +138,8 @@ thunder_pcie_ofw_bus_attach(device_t dev)
 		for (node = OF_child(parent); node > 0; node = OF_peer(node)) {
 			/* Allocate and populate devinfo. */
 			di = malloc(sizeof(*di), M_DEVBUF, M_WAITOK | M_ZERO);
-			if (ofw_bus_gen_setup_devinfo(&di->di_dinfo, node) != 0) {
+			if (ofw_bus_gen_setup_devinfo(&di->di_dinfo, node) !=
+			    0) {
 				free(di, M_DEVBUF);
 				continue;
 			}
@@ -172,8 +171,8 @@ thunder_pcie_fdt_probe(device_t dev)
 {
 
 	/* Check if we're running on Cavium ThunderX */
-	if (!CPU_MATCH(CPU_IMPL_MASK | CPU_PART_MASK,
-	    CPU_IMPL_CAVIUM, CPU_PART_THUNDERX, 0, 0))
+	if (!CPU_MATCH(CPU_IMPL_MASK | CPU_PART_MASK, CPU_IMPL_CAVIUM,
+		CPU_PART_THUNDERX, 0, 0))
 		return (ENXIO);
 
 	if (!ofw_bus_status_okay(dev))
@@ -240,8 +239,8 @@ thunder_pcie_fdt_alloc_resource(device_t dev, device_t child, int type,
 	 * the request to the core driver.
 	 */
 	if ((int)ofw_bus_get_node(child) <= 0)
-		return (thunder_pcie_alloc_resource(dev, child, type,
-		    rid, start, end, count, flags));
+		return (thunder_pcie_alloc_resource(dev, child, type, rid,
+		    start, end, count, flags));
 
 	/* For other devices use OFW method */
 	sc = device_get_softc(dev);
@@ -250,7 +249,7 @@ thunder_pcie_fdt_alloc_resource(device_t dev, device_t child, int type,
 		if ((di = device_get_ivars(child)) == NULL)
 			return (NULL);
 		if (type == SYS_RES_IOPORT)
-		    type = SYS_RES_MEMORY;
+			type = SYS_RES_MEMORY;
 
 		/* Find defaults for this rid */
 		rle = resource_list_find(&di->di_rl, type, *rid);
@@ -267,7 +266,7 @@ thunder_pcie_fdt_alloc_resource(device_t dev, device_t child, int type,
 		for (i = 0; i < MAX_RANGES_TUPLES; i++) {
 			if (start >= sc->base.ranges[i].phys_base &&
 			    end < (sc->base.ranges[i].pci_base +
-			    sc->base.ranges[i].size)) {
+				      sc->base.ranges[i].size)) {
 				start -= sc->base.ranges[i].phys_base;
 				start += sc->base.ranges[i].pci_base;
 				end -= sc->base.ranges[i].phys_base;
@@ -277,14 +276,16 @@ thunder_pcie_fdt_alloc_resource(device_t dev, device_t child, int type,
 		}
 
 		if (i == MAX_RANGES_TUPLES) {
-			device_printf(dev, "Could not map resource "
-			    "%#jx-%#jx\n", start, end);
+			device_printf(dev,
+			    "Could not map resource "
+			    "%#jx-%#jx\n",
+			    start, end);
 			return (NULL);
 		}
 	}
 
-	return (bus_generic_alloc_resource(dev, child, type, rid, start,
-	    end, count, flags));
+	return (bus_generic_alloc_resource(dev, child, type, rid, start, end,
+	    count, flags));
 }
 
 static int

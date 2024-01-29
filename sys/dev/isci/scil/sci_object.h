@@ -66,8 +66,8 @@
 extern "C" {
 #endif // __cplusplus
 
-#include <dev/isci/scil/sci_types.h>
 #include <dev/isci/scil/sci_status.h>
+#include <dev/isci/scil/sci_types.h>
 
 /**
  * @brief This method returns the object to which a previous association was
@@ -87,9 +87,7 @@ extern "C" {
  *         association for the supplied base_object instance.
  */
 #if defined(SCI_OBJECT_USE_ASSOCIATION_FUNCTIONS)
-void * sci_object_get_association(
-   SCI_OBJECT_HANDLE_T  base_object
-);
+void *sci_object_get_association(SCI_OBJECT_HANDLE_T base_object);
 #else
 #define sci_object_get_association(object) (*((void **)object))
 #endif
@@ -110,13 +108,11 @@ void * sci_object_get_association(
  * @retval SCI_SUCCESS This value is currently always returned.
  */
 #if defined(SCI_OBJECT_USE_ASSOCIATION_FUNCTIONS)
-SCI_STATUS sci_object_set_association(
-   SCI_OBJECT_HANDLE_T   base_object,
-   void                * associated_object
-);
+SCI_STATUS sci_object_set_association(SCI_OBJECT_HANDLE_T base_object,
+    void *associated_object);
 #else
 #define sci_object_set_association(base_object, associated_object) \
-   ((*((void **)base_object)) = (associated_object))
+	((*((void **)base_object)) = (associated_object))
 #endif
 
 /**
@@ -127,13 +123,10 @@ SCI_STATUS sci_object_set_association(
  *
  * @return This method returns a SCI_LOGGER_HANDLE to SCI user.
  */
-SCI_LOGGER_HANDLE_T sci_object_get_logger(
-   SCI_OBJECT_HANDLE_T object
-);
+SCI_LOGGER_HANDLE_T sci_object_get_logger(SCI_OBJECT_HANDLE_T object);
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
 #endif // _SCI_OBJECT_H_
-

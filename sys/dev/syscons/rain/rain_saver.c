@@ -30,37 +30,38 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/consio.h>
+#include <sys/fbio.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/syslog.h>
-#include <sys/consio.h>
-#include <sys/fbio.h>
 
 #include <dev/fb/fbreg.h>
 #include <dev/fb/splashreg.h>
 #include <dev/syscons/syscons.h>
 
-#define SAVER_NAME	 "rain_saver"
+#define SAVER_NAME "rain_saver"
 #ifdef MAX
 #undef MAX
 #endif
-#define MAX		 63	/* number of colors (in addition to black) */
-#define INCREMENT	 4	/* increment between colors */
+#define MAX 63	    /* number of colors (in addition to black) */
+#define INCREMENT 4 /* increment between colors */
 
-#define RED(n)		 ((n) * 3 + 0)
-#define GREEN(n)	 ((n) * 3 + 1)
-#define BLUE(n)		 ((n) * 3 + 2)
+#define RED(n) ((n) * 3 + 0)
+#define GREEN(n) ((n) * 3 + 1)
+#define BLUE(n) ((n) * 3 + 2)
 
-#define SET_ORIGIN(adp, o) do {				\
-	int oo = o;					\
-	if (oo != last_origin)				\
-	    vidd_set_win_org(adp, last_origin = oo);	\
+#define SET_ORIGIN(adp, o)                                       \
+	do {                                                     \
+		int oo = o;                                      \
+		if (oo != last_origin)                           \
+			vidd_set_win_org(adp, last_origin = oo); \
 	} while (0)
 
-static u_char		*vid;
-static int		 banksize, scrmode, bpsl, scrw, scrh;
-static u_char		 rain_pal[768];
-static int		 blanked;
+static u_char *vid;
+static int banksize, scrmode, bpsl, scrw, scrh;
+static u_char rain_pal[768];
+static int blanked;
 
 static void
 rain_update(video_adapter_t *adp)
@@ -93,7 +94,7 @@ rain_saver(video_adapter_t *adp, int blank)
 			banksize = adp->va_window_size;
 			bpsl = adp->va_line_width;
 			splx(pl);
-			for (i = 0; i < bpsl*scrh; i += banksize) {
+			for (i = 0; i < bpsl * scrh; i += banksize) {
 				SET_ORIGIN(adp, i);
 				if ((bpsl * scrh - i) < banksize)
 					bzero(vid, bpsl * scrh - i);
@@ -109,24 +110,26 @@ rain_saver(video_adapter_t *adp, int blank)
 				}
 				vid[p] = 1 + (random() % MAX);
 			}
-			o = 0; p = 0;
+			o = 0;
+			p = 0;
 			for (j = 1; j < scrh; j++)
-			  for (i = 0, p = bpsl * (j - 1) - o; i < scrw; i += 2, p+= 2) {
-			  	while (p > banksize) {
-					p -= banksize;
-					o += banksize;
+				for (i = 0, p = bpsl * (j - 1) - o; i < scrw;
+				     i += 2, p += 2) {
+					while (p > banksize) {
+						p -= banksize;
+						o += banksize;
+					}
+					SET_ORIGIN(adp, o);
+					temp = (vid[p] < MAX) ? 1 + vid[p] : 1;
+					if (p + bpsl < banksize) {
+						vid[p + bpsl] = temp;
+					} else {
+						SET_ORIGIN(adp, o + banksize);
+						vid[p + bpsl - banksize] = temp;
+					}
 				}
-				SET_ORIGIN(adp, o);
-				temp = (vid[p] < MAX) ? 1 + vid[p] : 1;
-				if (p + bpsl < banksize) {
-					vid[p + bpsl] = temp;
-				} else {
-					SET_ORIGIN(adp, o + banksize);
-					vid[p + bpsl - banksize] = temp;
-				}
-			  }
 		}
-		
+
 		/* update display */
 		rain_update(adp);
 	} else {
@@ -166,12 +169,7 @@ rain_term(video_adapter_t *adp)
 	return (0);
 }
 
-static scrn_saver_t rain_module = {
-	SAVER_NAME,
-	rain_init,
-	rain_term,
-	rain_saver,
-	NULL
-};
+static scrn_saver_t rain_module = { SAVER_NAME, rain_init, rain_term,
+	rain_saver, NULL };
 
 SAVER_MODULE(rain_saver, rain_module);

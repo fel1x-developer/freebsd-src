@@ -66,9 +66,8 @@
 extern "C" {
 #endif // __cplusplus
 
-#include <dev/isci/scil/sci_types.h>
 #include <dev/isci/scil/sci_status.h>
-
+#include <dev/isci/scil/sci_types.h>
 
 /**
  * @brief This method simply returns the size required to construct an SCI
@@ -76,22 +75,18 @@ extern "C" {
  *
  * @return Return the size of the SCI IO request object.
  */
-U32 scif_io_request_get_object_size(
-   void
-);
+U32 scif_io_request_get_object_size(void);
 
 /**
-* @brief This method simply the number of data bytes transferred for a
-*        STP or SSP io request.
-*
-* @param[in] scif_io_request This parameter specifies the framework IO
-*            handle to retrieve the number of data bytes transferred.
-*
-* @return Return the number of data bytes transferred by the io request
-*/
-U32 scif_io_request_get_number_of_bytes_transferred(
-   void * scif_io_request
-);
+ * @brief This method simply the number of data bytes transferred for a
+ *        STP or SSP io request.
+ *
+ * @param[in] scif_io_request This parameter specifies the framework IO
+ *            handle to retrieve the number of data bytes transferred.
+ *
+ * @return Return the number of data bytes transferred by the io request
+ */
+U32 scif_io_request_get_number_of_bytes_transferred(void *scif_io_request);
 
 /**
  * @brief This method is called by the SCIF user to construct an IO request.
@@ -125,14 +120,10 @@ U32 scif_io_request_get_number_of_bytes_transferred(
  * @retval SCI_SUCCESS This value is returned if the IO request was
  *         successfully built.
  */
-SCI_STATUS scif_io_request_construct(
-   SCI_CONTROLLER_HANDLE_T      scif_controller,
-   SCI_REMOTE_DEVICE_HANDLE_T   scif_remote_device,
-   U16                          io_tag,
-   void                       * user_io_request_object,
-   void                       * io_request_memory,
-   SCI_IO_REQUEST_HANDLE_T    * scif_io_request
-);
+SCI_STATUS scif_io_request_construct(SCI_CONTROLLER_HANDLE_T scif_controller,
+    SCI_REMOTE_DEVICE_HANDLE_T scif_remote_device, U16 io_tag,
+    void *user_io_request_object, void *io_request_memory,
+    SCI_IO_REQUEST_HANDLE_T *scif_io_request);
 
 /**
  * @brief This method simply returns the SCI Core object handle that is
@@ -147,8 +138,7 @@ SCI_STATUS scif_io_request_construct(
  *         IO request handle for the supplied framework IO is invalid.
  */
 SCI_IO_REQUEST_HANDLE_T scif_io_request_get_scic_handle(
-   SCI_IO_REQUEST_HANDLE_T scif_io_request
-);
+    SCI_IO_REQUEST_HANDLE_T scif_io_request);
 
 /**
  * @brief This method returns the address of the response information unit.
@@ -160,45 +150,43 @@ SCI_IO_REQUEST_HANDLE_T scif_io_request_get_scic_handle(
  *
  * @return The address for the response information unit.
  */
-void * scif_io_request_get_response_iu_address(
-   SCI_IO_REQUEST_HANDLE_T scif_io_request
-);
+void *scif_io_request_get_response_iu_address(
+    SCI_IO_REQUEST_HANDLE_T scif_io_request);
 
 /**
  * @brief This method will build an Framework SSP Passthrough IO request based
- *        on the user information supplied in the pass-through IO request object.
- *        In case of pass through request construction, the driver creates the
+ *        on the user information supplied in the pass-through IO request
+ * object. In case of pass through request construction, the driver creates the
  *        sci core request object and pass that to the framework
  *
  * @pre
  *
- * @param[in]  scif_controller. Not used in the function but kept to maintain uniformity
- *             with other io construct functions
+ * @param[in]  scif_controller. Not used in the function but kept to maintain
+ * uniformity with other io construct functions
  * @param[in]  scif_remote_device. This parameter is the device.
- * @param[in]  scic_io_request. This parameter is the scic request already constructed
+ * @param[in]  scic_io_request. This parameter is the scic request already
+ * constructed
  * @param[in]  user_io_request_object, the user io request
  * @param[in]  io_request_memory, the scif offset in the user_io_request_object.
  *
- * @param[out]  the contructed scif request. This points to the same location as io_request_memory
+ * @param[out]  the contructed scif request. This points to the same location as
+ * io_request_memory
  *
  * @return Indicate if framework IO request is successfully built.
  * @retval SCI_SUCCESS This value is returned if the IO request was
  *         successfully built.
  */
-SCI_STATUS scif_io_request_construct_with_core (
-   SCI_CONTROLLER_HANDLE_T      scif_controller,
-   SCI_REMOTE_DEVICE_HANDLE_T   scif_remote_device,
-   void                       * scic_io_request,
-   void                       * user_io_request_object,
-   void                       * io_request_memory,
-   SCI_IO_REQUEST_HANDLE_T    * scif_io_request
-);
+SCI_STATUS
+scif_io_request_construct_with_core(SCI_CONTROLLER_HANDLE_T scif_controller,
+    SCI_REMOTE_DEVICE_HANDLE_T scif_remote_device, void *scic_io_request,
+    void *user_io_request_object, void *io_request_memory,
+    SCI_IO_REQUEST_HANDLE_T *scif_io_request);
 
 /**
  * @brief This method will build the basic scif and scic io request object based
- *        on the user information supplied in the pass-through IO request object.
- *        This function will not build the protocol specific part of the request
- *        but set up the memory areas of scif and scic set the association.
+ *        on the user information supplied in the pass-through IO request
+ * object. This function will not build the protocol specific part of the
+ * request but set up the memory areas of scif and scic set the association.
  *
  * @pre
  *
@@ -226,18 +214,13 @@ SCI_STATUS scif_io_request_construct_with_core (
  * @retval SCI_SUCCESS This value is returned if the IO request was
  *         successfully built.
  */
-SCI_STATUS scif_request_construct(
-   SCI_CONTROLLER_HANDLE_T      scif_controller,
-   SCI_REMOTE_DEVICE_HANDLE_T   scif_remote_device,
-   U16                          io_tag,
-   void                       * user_io_request_object,
-   void                       * io_request_memory,
-   SCI_IO_REQUEST_HANDLE_T    * scif_io_request
-);
+SCI_STATUS scif_request_construct(SCI_CONTROLLER_HANDLE_T scif_controller,
+    SCI_REMOTE_DEVICE_HANDLE_T scif_remote_device, U16 io_tag,
+    void *user_io_request_object, void *io_request_memory,
+    SCI_IO_REQUEST_HANDLE_T *scif_io_request);
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
 #endif // _SCIF_IO_REQUEST_H_
-

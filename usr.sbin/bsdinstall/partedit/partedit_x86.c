@@ -28,12 +28,13 @@
 
 #include <sys/types.h>
 #include <sys/sysctl.h>
+
 #include <string.h>
 
 #include "partedit.h"
 
 /* EFI partition size in bytes */
-#define	EFI_BOOTPART_SIZE	(260 * 1024 * 1024)
+#define EFI_BOOTPART_SIZE (260 * 1024 * 1024)
 
 static const char *
 x86_bootmethod(void)
@@ -41,7 +42,7 @@ x86_bootmethod(void)
 	static char fw[255] = "";
 	size_t len = sizeof(fw);
 	int error;
-	
+
 	if (strlen(fw) == 0) {
 		error = sysctlbyname("machdep.bootmethod", fw, &len, NULL, -1);
 		if (error != 0)
@@ -83,8 +84,7 @@ is_fs_bootable(const char *part_type, const char *fs)
 	if (strcmp(fs, "freebsd-ufs") == 0)
 		return (1);
 
-	if (strcmp(fs, "freebsd-zfs") == 0 &&
-	    strcmp(part_type, "GPT") == 0 &&
+	if (strcmp(fs, "freebsd-zfs") == 0 && strcmp(part_type, "GPT") == 0 &&
 	    strcmp(x86_bootmethod(), "BIOS") == 0)
 		return (1);
 
@@ -100,8 +100,8 @@ bootpart_size(const char *scheme)
 		return (0);
 
 	if (strcmp(x86_bootmethod(), "BIOS") == 0)
-		return (512*1024);
-	else 
+		return (512 * 1024);
+	else
 		return (EFI_BOOTPART_SIZE);
 
 	return (0);
@@ -135,19 +135,19 @@ bootcode_path(const char *part_type)
 
 	return (NULL);
 }
-	
+
 const char *
 partcode_path(const char *part_type, const char *fs_type)
 {
 
-	if (strcmp(part_type, "GPT") == 0 && strcmp(x86_bootmethod(), "UEFI") != 0) {
+	if (strcmp(part_type, "GPT") == 0 &&
+	    strcmp(x86_bootmethod(), "UEFI") != 0) {
 		if (strcmp(fs_type, "zfs") == 0)
 			return ("/boot/gptzfsboot");
 		else
 			return ("/boot/gptboot");
 	}
-	
+
 	/* No partcode except for non-UEFI GPT */
 	return (NULL);
 }
-

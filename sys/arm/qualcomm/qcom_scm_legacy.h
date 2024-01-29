@@ -25,15 +25,15 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	__QCOM_SCM_LEGACY_H__
-#define	__QCOM_SCM_LEGACY_H__
+#ifndef __QCOM_SCM_LEGACY_H__
+#define __QCOM_SCM_LEGACY_H__
 
 /*
  * These functions are specific to the 32 bit legacy SCM interface
  * used by the IPQ806x and IPQ401x SoCs.
  */
 
-extern	uint32_t qcom_scm_legacy_mp_set_cold_boot_address(
-	    vm_offset_t mp_entry_func);
+extern uint32_t qcom_scm_legacy_mp_set_cold_boot_address(
+    vm_offset_t mp_entry_func);
 
-#endif	/* __QCOM_SCM_LEGACY_H__ */
+#endif /* __QCOM_SCM_LEGACY_H__ */

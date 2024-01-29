@@ -26,40 +26,37 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/linker_set.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/linker_set.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
-
+#include <sys/queue.h>
 #include <sys/rman.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-
-#include <dev/usb/usb_core.h>
-#include <dev/usb/usb_busdma.h>
-#include <dev/usb/usb_process.h>
-#include <dev/usb/usb_util.h>
-
-#include <dev/usb/usb_controller.h>
-#include <dev/usb/usb_bus.h>
 #include <dev/usb/controller/ohci.h>
 #include <dev/usb/controller/ohcireg.h>
+#include <dev/usb/usb.h>
+#include <dev/usb/usb_bus.h>
+#include <dev/usb/usb_busdma.h>
+#include <dev/usb/usb_controller.h>
+#include <dev/usb/usb_core.h>
+#include <dev/usb/usb_process.h>
+#include <dev/usb/usb_util.h>
+#include <dev/usb/usbdi.h>
 
 #include "ps3bus.h"
 
@@ -86,13 +83,13 @@ ohci_ps3_attach(device_t dev)
 	sc->sc_bus.dma_bits = 32;
 
 	/* get all DMA memory */
-	if (usb_bus_mem_alloc_all(&sc->sc_bus,
-	    USB_GET_DMA_TAG(dev), &ohci_iterate_hw_softc))
+	if (usb_bus_mem_alloc_all(&sc->sc_bus, USB_GET_DMA_TAG(dev),
+		&ohci_iterate_hw_softc))
 		return (ENOMEM);
 
 	rid = 0;
-	sc->sc_io_res = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-	    &rid, RF_ACTIVE);
+	sc->sc_io_res = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
+	    RF_ACTIVE);
 
 	if (!sc->sc_io_res) {
 		device_printf(dev, "Could not map memory\n");
@@ -129,9 +126,8 @@ ohci_ps3_attach(device_t dev)
 		goto error;
 	}
 
-	//sc->sc_flags |= EHCI_SCFLG_BIGEMMIO;
-	bus_space_write_4(sc->sc_io_tag, sc->sc_io_hdl,
-	    OHCI_CONTROL, 0);
+	// sc->sc_flags |= EHCI_SCFLG_BIGEMMIO;
+	bus_space_write_4(sc->sc_io_tag, sc->sc_io_hdl, OHCI_CONTROL, 0);
 	err = ohci_init(sc);
 	if (err) {
 		device_printf(dev, "USB init failed err=%d\n", err);

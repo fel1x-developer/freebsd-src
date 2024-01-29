@@ -26,8 +26,8 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/queue.h>
 #include <sys/sysctl.h>
 
@@ -40,40 +40,40 @@
 #include <unistd.h>
 
 /* the default sysctl name */
-#define PATHCTL	"kern.module_path"
+#define PATHCTL "kern.module_path"
 
 /* queue structure for the module path broken down into components */
 TAILQ_HEAD(pathhead, pathentry);
 struct pathentry {
-	char			*path;
-	TAILQ_ENTRY(pathentry)	next;
+	char *path;
+	TAILQ_ENTRY(pathentry) next;
 };
 
 /* the Management Information Base entries for the search path sysctl */
-static int	 mib[5];
-static size_t	 miblen;
+static int mib[5];
+static size_t miblen;
 /* the sysctl name, defaults to PATHCTL */
-static char	*pathctl;
+static char *pathctl;
 /* the sysctl value - the current module search path */
-static char	*modpath;
+static char *modpath;
 /* flag whether user actions require changing the sysctl value */
-static int	 changed;
+static int changed;
 
 /* Top-level path management functions */
-static void	 addpath(struct pathhead *, char *, int, int);
-static void	 rempath(struct pathhead *, char *, int, int);
-static void	 showpath(struct pathhead *);
+static void addpath(struct pathhead *, char *, int, int);
+static void rempath(struct pathhead *, char *, int, int);
+static void showpath(struct pathhead *);
 
 /* Low-level path management functions */
-static char	*qstring(struct pathhead *);
+static char *qstring(struct pathhead *);
 
 /* sysctl-related functions */
-static void	 getmib(void);
-static void	 getpath(void);
-static void	 parsepath(struct pathhead *, char *, int);
-static void	 setpath(struct pathhead *);
+static void getmib(void);
+static void getpath(void);
+static void parsepath(struct pathhead *, char *, int);
+static void setpath(struct pathhead *);
 
-static void	 usage(void);
+static void usage(void);
 
 /* Get the MIB entry for our sysctl */
 static void
@@ -83,7 +83,7 @@ getmib(void)
 	/* have we already fetched it? */
 	if (miblen != 0)
 		return;
-	
+
 	miblen = nitems(mib);
 	if (sysctlnametomib(pathctl, mib, &miblen) != 0)
 		err(1, "sysctlnametomib(%s)", pathctl);
@@ -108,7 +108,7 @@ getpath(void)
 	if ((path = malloc(sz + 1)) == NULL) {
 		errno = ENOMEM;
 		err(1, "allocating %lu bytes for the path",
-		    (unsigned long)sz+1);
+		    (unsigned long)sz + 1);
 	}
 	if (sysctl(mib, miblen, path, &sz, NULL, 0) == -1)
 		err(1, "getting path: sysctl(%s)", pathctl);
@@ -127,7 +127,7 @@ setpath(struct pathhead *pathq)
 		errno = ENOMEM;
 		err(1, "building path string");
 	}
-	if (sysctl(mib, miblen, NULL, NULL, newpath, strlen(newpath)+1) == -1)
+	if (sysctl(mib, miblen, NULL, NULL, newpath, strlen(newpath) + 1) == -1)
 		err(1, "setting path: sysctl(%s)", pathctl);
 
 	if (modpath != NULL)
@@ -140,7 +140,7 @@ static void
 addpath(struct pathhead *pathq, char *path, int force, int insert)
 {
 	struct pathentry *pe, *pskip;
-	char pathbuf[MAXPATHLEN+1];
+	char pathbuf[MAXPATHLEN + 1];
 	size_t len;
 	static unsigned added = 0;
 	unsigned i;
@@ -154,11 +154,11 @@ addpath(struct pathhead *pathq, char *path, int force, int insert)
 
 	len = strlen(pathbuf);
 	/* remove a terminating slash if present */
-	if ((len > 0) && (pathbuf[len-1] == '/'))
+	if ((len > 0) && (pathbuf[len - 1] == '/'))
 		pathbuf[--len] = '\0';
 
 	/* is it already in there? */
-	TAILQ_FOREACH(pe, pathq, next)
+	TAILQ_FOREACH (pe, pathq, next)
 		if (!strcmp(pe->path, pathbuf))
 			break;
 	if (pe != NULL) {
@@ -166,7 +166,7 @@ addpath(struct pathhead *pathq, char *path, int force, int insert)
 			return;
 		errx(1, "already in the module search path: %s", pathbuf);
 	}
-	
+
 	/* OK, allocate and add it. */
 	if (((pe = malloc(sizeof(*pe))) == NULL) ||
 	    ((pe->path = strdup(pathbuf)) == NULL)) {
@@ -191,7 +191,7 @@ addpath(struct pathhead *pathq, char *path, int force, int insert)
 static void
 rempath(struct pathhead *pathq, char *path, int force, int insert __unused)
 {
-	char pathbuf[MAXPATHLEN+1];
+	char pathbuf[MAXPATHLEN + 1];
 	struct pathentry *pe;
 	size_t len;
 
@@ -201,11 +201,11 @@ rempath(struct pathhead *pathq, char *path, int force, int insert __unused)
 
 	len = strlen(pathbuf);
 	/* remove a terminating slash if present */
-	if ((len > 0) && (pathbuf[len-1] == '/'))
+	if ((len > 0) && (pathbuf[len - 1] == '/'))
 		pathbuf[--len] = '\0';
 
 	/* Is it in there? */
-	TAILQ_FOREACH(pe, pathq, next)
+	TAILQ_FOREACH (pe, pathq, next)
 		if (!strcmp(pe->path, pathbuf))
 			break;
 	if (pe == NULL) {
@@ -239,7 +239,7 @@ parsepath(struct pathhead *pathq, char *path, int uniq)
 {
 	char *p;
 	struct pathentry *pe;
-	
+
 	while ((p = strsep(&path, ";")) != NULL)
 		if (!uniq) {
 			if (((pe = malloc(sizeof(*pe))) == NULL) ||
@@ -259,11 +259,11 @@ qstring(struct pathhead *pathq)
 {
 	char *s, *p;
 	struct pathentry *pe;
-	
+
 	s = strdup("");
-	TAILQ_FOREACH(pe, pathq, next) {
-		asprintf(&p, "%s%s%s",
-		    s, pe->path, (TAILQ_NEXT(pe, next) != NULL? ";": ""));
+	TAILQ_FOREACH (pe, pathq, next) {
+		asprintf(&p, "%s%s%s", s, pe->path,
+		    (TAILQ_NEXT(pe, next) != NULL ? ";" : ""));
 		free(s);
 		if (p == NULL)
 			return (NULL);
@@ -329,45 +329,45 @@ main(int argc, char *argv[])
 
 	while ((c = getopt(argc, argv, "dfimnrS:Uv")) != -1)
 		switch (c) {
-			case 'd':
-				if (iflag || mflag)
-					usage();
-				act = rempath;
-				break;
-			case 'f':
-				fflag = 1;
-				break;
-			case 'i':
-				if (act != addpath)
-					usage();
-				iflag = 1;
-				break;
-			case 'm':
-				if (act != addpath)
-					usage();
-				mflag = 1;
-				break;
-			case 'n':
-				nflag = 1;
-				break;
-			case 'r':
-				rflag = 1;
-				break;
-			case 'S':
-				free(pathctl);
-				if ((pathctl = strdup(optarg)) == NULL) {
-					errno = ENOMEM;
-					err(1, "sysctl name %s", optarg);
-				}
-				break;
-			case 'U':
-				uniqflag = 1;
-				break;
-			case 'v':
-				vflag++;
-				break;
-			default:
+		case 'd':
+			if (iflag || mflag)
 				usage();
+			act = rempath;
+			break;
+		case 'f':
+			fflag = 1;
+			break;
+		case 'i':
+			if (act != addpath)
+				usage();
+			iflag = 1;
+			break;
+		case 'm':
+			if (act != addpath)
+				usage();
+			mflag = 1;
+			break;
+		case 'n':
+			nflag = 1;
+			break;
+		case 'r':
+			rflag = 1;
+			break;
+		case 'S':
+			free(pathctl);
+			if ((pathctl = strdup(optarg)) == NULL) {
+				errno = ENOMEM;
+				err(1, "sysctl name %s", optarg);
+			}
+			break;
+		case 'U':
+			uniqflag = 1;
+			break;
+		case 'v':
+			vflag++;
+			break;
+		default:
+			usage();
 		}
 
 	argc -= optind;

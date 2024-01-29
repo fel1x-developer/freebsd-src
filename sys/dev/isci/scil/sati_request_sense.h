@@ -60,27 +60,20 @@
 #ifndef _SATI_REQUEST_SENSE_H_
 #define _SATI_REQUEST_SENSE_H_
 
-#include <dev/isci/scil/sati_types.h>
 #include <dev/isci/scil/sati_translator_sequence.h>
+#include <dev/isci/scil/sati_types.h>
 
-SATI_STATUS sati_request_sense_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+SATI_STATUS
+sati_request_sense_translate_command(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io);
 
-SATI_STATUS sati_request_sense_translate_response(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+SATI_STATUS
+sati_request_sense_translate_response(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io);
 
-void sati_request_sense_data_response_construct(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   U8                           sense_key,
-   U8                           additional_sense_code,
-   U8                           additional_sense_code_qualifier
-);
+void
+sati_request_sense_data_response_construct(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, U8 sense_key, U8 additional_sense_code,
+    U8 additional_sense_code_qualifier);
 
 #endif // _SATI_REQUEST_SENSE_H_

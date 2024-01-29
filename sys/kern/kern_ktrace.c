@@ -31,33 +31,33 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_ktrace.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/capsicum.h>
 #include <sys/systm.h>
+#include <sys/capsicum.h>
 #include <sys/fcntl.h>
 #include <sys/kernel.h>
 #include <sys/kthread.h>
+#include <sys/ktrace.h>
 #include <sys/lock.h>
-#include <sys/mutex.h>
 #include <sys/malloc.h>
 #include <sys/mount.h>
+#include <sys/mutex.h>
 #include <sys/namei.h>
 #include <sys/priv.h>
 #include <sys/proc.h>
 #include <sys/resourcevar.h>
-#include <sys/unistd.h>
-#include <sys/vnode.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/ktrace.h>
 #include <sys/sx.h>
 #include <sys/sysctl.h>
 #include <sys/sysent.h>
 #include <sys/syslog.h>
 #include <sys/sysproto.h>
+#include <sys/unistd.h>
+#include <sys/vnode.h>
 
 #include <security/mac/mac_framework.h>
 
@@ -87,23 +87,23 @@ static MALLOC_DEFINE(M_KTRACE, "KTRACE", "KTRACE");
 FEATURE(ktrace, "Kernel support for system-call tracing");
 
 #ifndef KTRACE_REQUEST_POOL
-#define	KTRACE_REQUEST_POOL	100
+#define KTRACE_REQUEST_POOL 100
 #endif
 
 struct ktr_request {
-	struct	ktr_header ktr_header;
-	void	*ktr_buffer;
+	struct ktr_header ktr_header;
+	void *ktr_buffer;
 	union {
-		struct	ktr_proc_ctor ktr_proc_ctor;
-		struct	ktr_cap_fail ktr_cap_fail;
-		struct	ktr_syscall ktr_syscall;
-		struct	ktr_sysret ktr_sysret;
-		struct	ktr_genio ktr_genio;
-		struct	ktr_psig ktr_psig;
-		struct	ktr_csw ktr_csw;
-		struct	ktr_fault ktr_fault;
-		struct	ktr_faultend ktr_faultend;
-		struct  ktr_struct_array ktr_struct_array;
+		struct ktr_proc_ctor ktr_proc_ctor;
+		struct ktr_cap_fail ktr_cap_fail;
+		struct ktr_syscall ktr_syscall;
+		struct ktr_sysret ktr_sysret;
+		struct ktr_genio ktr_genio;
+		struct ktr_psig ktr_psig;
+		struct ktr_csw ktr_csw;
+		struct ktr_fault ktr_fault;
+		struct ktr_faultend ktr_faultend;
+		struct ktr_struct_array ktr_struct_array;
 	} ktr_data;
 	STAILQ_ENTRY(ktr_request) ktr_list;
 };
@@ -153,10 +153,10 @@ static struct mtx ktrace_mtx;
 static struct sx ktrace_sx;
 
 struct ktr_io_params {
-	struct vnode	*vp;
-	struct ucred	*cr;
-	off_t		lim;
-	u_int		refs;
+	struct vnode *vp;
+	struct ucred *cr;
+	off_t lim;
+	u_int refs;
 };
 
 static void ktrace_init(void *dummy);
@@ -169,7 +169,7 @@ static struct ktr_io_params *ktr_freeproc(struct proc *p);
 static void ktr_freerequest(struct ktr_request *req);
 static void ktr_freerequest_locked(struct ktr_request *req);
 static void ktr_writerequest(struct thread *td, struct ktr_request *req);
-static int ktrcanset(struct thread *,struct proc *);
+static int ktrcanset(struct thread *, struct proc *);
 static int ktrsetchildren(struct thread *, struct proc *, int, int,
     struct ktr_io_params *);
 static int ktrops(struct thread *, struct proc *, int, int,
@@ -221,8 +221,8 @@ ktrace_init(void *dummy)
 	sx_init(&ktrace_sx, "ktrace_sx");
 	STAILQ_INIT(&ktr_free);
 	for (i = 0; i < ktr_requestpool; i++) {
-		req = malloc(sizeof(struct ktr_request), M_KTRACE, M_WAITOK |
-		    M_ZERO);
+		req = malloc(sizeof(struct ktr_request), M_KTRACE,
+		    M_WAITOK | M_ZERO);
 		STAILQ_INSERT_HEAD(&ktr_free, req, ktr_list);
 	}
 	ast_register(TDA_KTRACE, ASTR_ASTF_REQUIRED, 0, ast_ktrace);
@@ -259,8 +259,7 @@ sysctl_kern_ktrace_request_pool(SYSCTL_HANDLER_ARGS)
 }
 SYSCTL_PROC(_kern_ktrace, OID_AUTO, request_pool,
     CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, &ktr_requestpool, 0,
-    sysctl_kern_ktrace_request_pool, "IU",
-    "Pool buffer size for ktrace(1)");
+    sysctl_kern_ktrace_request_pool, "IU", "Pool buffer size for ktrace(1)");
 
 static u_int
 ktrace_resize_pool(u_int oldsize, u_int newsize)
@@ -574,7 +573,7 @@ ktrsysret(int code, int error, register_t retval)
 	ktp = &req->ktr_data.ktr_sysret;
 	ktp->ktr_code = code;
 	ktp->ktr_error = error;
-	ktp->ktr_retval = ((error == 0) ? retval: 0);		/* what about val2 ? */
+	ktp->ktr_retval = ((error == 0) ? retval : 0); /* what about val2 ? */
 	ktr_submitrequest(curthread, req);
 }
 
@@ -736,7 +735,7 @@ ktrsysctl(int *name, u_int namelen)
 	size_t mibnamelen;
 	int error;
 
-	/* Lookup name of mib. */    
+	/* Lookup name of mib. */
 	KASSERT(namelen <= CTL_MAXNAME, ("sysctl MIB too long"));
 	mib[0] = 0;
 	mib[1] = 1;
@@ -799,7 +798,7 @@ ktrpsig(int sig, sig_t action, sigset_t *mask, int code)
 {
 	struct thread *td = curthread;
 	struct ktr_request *req;
-	struct ktr_psig	*kp;
+	struct ktr_psig *kp;
 
 	req = ktr_getrequest(KTR_PSIG);
 	if (req == NULL)
@@ -994,10 +993,10 @@ ktrfaultend(int result)
 
 #ifndef _SYS_SYSPROTO_H_
 struct ktrace_args {
-	char	*fname;
-	int	ops;
-	int	facs;
-	int	pid;
+	char *fname;
+	int ops;
+	int facs;
+	int pid;
 };
 #endif
 /* ARGSUSED */
@@ -1036,7 +1035,7 @@ sys_ktrace(struct thread *td, struct ktrace_args *uap)
 		vp = nd.ni_vp;
 		VOP_UNLOCK(vp);
 		if (vp->v_type != VREG) {
-			(void)vn_close(vp, FREAD|FWRITE, td->td_ucred, td);
+			(void)vn_close(vp, FREAD | FWRITE, td->td_ucred, td);
 			return (EACCES);
 		}
 		kiop = ktr_io_params_alloc(td, vp);
@@ -1047,9 +1046,9 @@ sys_ktrace(struct thread *td, struct ktrace_args *uap)
 	 */
 	ktrace_enter(td);
 	if (ops == KTROP_CLEARFILE) {
-restart:
+	restart:
 		sx_slock(&allproc_lock);
-		FOREACH_PROC_IN_SYSTEM(p) {
+		FOREACH_PROC_IN_SYSTEM (p) {
 			old_kiop = NULL;
 			PROC_LOCK(p);
 			if (p->p_ktrioparms != NULL &&
@@ -1096,7 +1095,7 @@ restart:
 			error = ESRCH;
 			goto done;
 		}
-		LIST_FOREACH(p, &pg->pg_members, p_pglist) {
+		LIST_FOREACH (p, &pg->pg_members, p_pglist) {
 			PROC_LOCK(p);
 			if (descend)
 				ret |= ktrsetchildren(td, p, ops, facs, kiop);
@@ -1130,7 +1129,7 @@ done:
 	}
 	ktrace_exit(td);
 	return (error);
-#else /* !KTRACE */
+#else  /* !KTRACE */
 	return (ENOSYS);
 #endif /* KTRACE */
 }
@@ -1164,7 +1163,7 @@ sys_utrace(struct thread *td, struct utrace_args *uap)
 	req->ktr_header.ktr_len = uap->len;
 	ktr_submitrequest(td, req);
 	return (0);
-#else /* !KTRACE */
+#else  /* !KTRACE */
 	return (ENOSYS);
 #endif /* KTRACE */
 }
@@ -1249,15 +1248,16 @@ ktrsetchildren(struct thread *td, struct proc *top, int ops, int facs,
 		 */
 		if (!LIST_EMPTY(&p->p_children))
 			p = LIST_FIRST(&p->p_children);
-		else for (;;) {
-			if (p == top)
-				return (ret);
-			if (LIST_NEXT(p, p_sibling)) {
-				p = LIST_NEXT(p, p_sibling);
-				break;
+		else
+			for (;;) {
+				if (p == top)
+					return (ret);
+				if (LIST_NEXT(p, p_sibling)) {
+					p = LIST_NEXT(p, p_sibling);
+					break;
+				}
+				p = p->p_pptr;
 			}
-			p = p->p_pptr;
-		}
 		PROC_LOCK(p);
 	}
 	/*NOTREACHED*/
@@ -1384,8 +1384,7 @@ ktrcanset(struct thread *td, struct proc *targetp)
 {
 
 	PROC_LOCK_ASSERT(targetp, MA_OWNED);
-	if (targetp->p_traceflag & KTRFAC_ROOT &&
-	    priv_check(td, PRIV_KTRACE))
+	if (targetp->p_traceflag & KTRFAC_ROOT && priv_check(td, PRIV_KTRACE))
 		return (0);
 
 	if (p_candebug(td, targetp) != 0)

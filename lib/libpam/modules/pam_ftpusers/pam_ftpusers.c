@@ -35,6 +35,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <ctype.h>
 #include <grp.h>
 #include <paths.h>
@@ -45,14 +46,14 @@
 
 #define PAM_SM_ACCOUNT
 
-#include <security/pam_appl.h>
-#include <security/pam_modules.h>
-#include <security/pam_mod_misc.h>
 #include <security/openpam.h>
+#include <security/pam_appl.h>
+#include <security/pam_mod_misc.h>
+#include <security/pam_modules.h>
 
 PAM_EXTERN int
-pam_sm_acct_mgmt(pam_handle_t *pamh, int flags __unused,
-    int argc __unused, const char *argv[] __unused)
+pam_sm_acct_mgmt(pam_handle_t *pamh, int flags __unused, int argc __unused,
+    const char *argv[] __unused)
 {
 	struct passwd *pwd;
 	struct group *grp;
@@ -101,7 +102,7 @@ pam_sm_acct_mgmt(pam_handle_t *pamh, int flags __unused,
 			if (strcmp(user, *mem) == 0)
 				found = 1;
 	}
- done:
+done:
 	allow = (openpam_get_option(pamh, "disallow") == NULL);
 	if (found)
 		pam_err = allow ? PAM_SUCCESS : PAM_AUTH_ERR;

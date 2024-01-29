@@ -6,41 +6,39 @@
 
 #include "ipf.h"
 
-
 void
 printunit(int unit)
 {
 
-	switch (unit)
-	{
-	case IPL_LOGIPF :
+	switch (unit) {
+	case IPL_LOGIPF:
 		PRINTF("ipf");
 		break;
-	case IPL_LOGNAT :
+	case IPL_LOGNAT:
 		PRINTF("nat");
 		break;
-	case IPL_LOGSTATE :
+	case IPL_LOGSTATE:
 		PRINTF("state");
 		break;
-	case IPL_LOGAUTH :
+	case IPL_LOGAUTH:
 		PRINTF("auth");
 		break;
-	case IPL_LOGSYNC :
+	case IPL_LOGSYNC:
 		PRINTF("sync");
 		break;
-	case IPL_LOGSCAN :
+	case IPL_LOGSCAN:
 		PRINTF("scan");
 		break;
-	case IPL_LOGLOOKUP :
+	case IPL_LOGLOOKUP:
 		PRINTF("lookup");
 		break;
-	case IPL_LOGCOUNT :
+	case IPL_LOGCOUNT:
 		PRINTF("count");
 		break;
-	case IPL_LOGALL :
+	case IPL_LOGALL:
 		PRINTF("all");
 		break;
-	default :
+	default:
 		PRINTF("unknown(%d)", unit);
 	}
 }

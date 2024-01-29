@@ -31,46 +31,41 @@
  */
 
 #include <sys/cdefs.h>
-
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-
+#include <sys/gpio.h>
 #include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/rman.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/gpio.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <dev/gpio/gpiobusvar.h>
 
 #include <dev/fdt/fdt_common.h>
+#include <dev/gpio/gpiobusvar.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/qcom_mdio/qcom_mdio_debug.h>
+#include <dev/qcom_mdio/qcom_mdio_ipq4018_reg.h>
+#include <dev/qcom_mdio/qcom_mdio_ipq4018_var.h>
 
 #include "mdio_if.h"
-
-#include <dev/qcom_mdio/qcom_mdio_ipq4018_var.h>
-#include <dev/qcom_mdio/qcom_mdio_ipq4018_reg.h>
-
-#include <dev/qcom_mdio/qcom_mdio_debug.h>
 
 static int
 qcom_mdio_ipq4018_probe(device_t dev)
 {
 
-	if (! ofw_bus_status_okay(dev))
+	if (!ofw_bus_status_okay(dev))
 		return (ENXIO);
 
 	if (ofw_bus_is_compatible(dev, "qcom,ipq4019-mdio") == 0)
 		return (ENXIO);
 
-	device_set_desc(dev,
-	    "Qualcomm Atheros IPQ4018/IPQ4019 MDIO driver");
+	device_set_desc(dev, "Qualcomm Atheros IPQ4018/IPQ4019 MDIO driver");
 	return (0);
 }
 
@@ -93,9 +88,8 @@ qcom_mdio_sysctl_attach(struct qcom_mdio_ipq4018_softc *sc)
 	struct sysctl_ctx_list *ctx = device_get_sysctl_ctx(sc->sc_dev);
 	struct sysctl_oid *tree = device_get_sysctl_tree(sc->sc_dev);
 
-	SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "debug", CTLFLAG_RW, &sc->sc_debug, 0,
-	    "control debugging printfs");
+	SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "debug",
+	    CTLFLAG_RW, &sc->sc_debug, 0, "control debugging printfs");
 }
 
 static int
@@ -123,14 +117,13 @@ qcom_mdio_ipq4018_attach(device_t dev)
 		    __func__);
 		goto error;
 	}
-	sc->sc_mem_res_size = (size_t) bus_get_resource_count(dev,
+	sc->sc_mem_res_size = (size_t)bus_get_resource_count(dev,
 	    SYS_RES_MEMORY, sc->sc_mem_rid);
 	if (sc->sc_mem_res_size == 0) {
 		error = ENXIO;
 		device_printf(dev, "%s: failed to get device memory size\n",
 		    __func__);
 		goto error;
-
 	}
 
 	qcom_mdio_sysctl_attach(sc);
@@ -176,8 +169,8 @@ qcom_mdio_ipq4018_wait(struct qcom_mdio_ipq4018_softc *sc)
 }
 
 static void
-qcom_mdio_ipq4018_set_phy_reg_addr(struct qcom_mdio_ipq4018_softc *sc,
-  int phy, int reg)
+qcom_mdio_ipq4018_set_phy_reg_addr(struct qcom_mdio_ipq4018_softc *sc, int phy,
+    int reg)
 {
 
 	MDIO_LOCK_ASSERT(sc);
@@ -194,8 +187,7 @@ qcom_mdio_ipq4018_readreg(device_t dev, int phy, int reg)
 	uint32_t ret;
 
 	QCOM_MDIO_DPRINTF(sc, QCOM_MDIO_DEBUG_REG_READ,
-	    "%s: called; phy=0x%x reg=0x%x\n",
-	    __func__, phy, reg);
+	    "%s: called; phy=0x%x reg=0x%x\n", __func__, phy, reg);
 
 	MDIO_LOCK(sc);
 	if (qcom_mdio_ipq4018_wait(sc) != 0) {
@@ -209,7 +201,7 @@ qcom_mdio_ipq4018_readreg(device_t dev, int phy, int reg)
 	/* Issue read command */
 	MDIO_WRITE(sc, QCOM_IPQ4018_MDIO_REG_CMD,
 	    QCOM_IPQ4018_MDIO_REG_CMD_ACCESS_START |
-	    QCOM_IPQ4018_MDIO_REG_CMD_ACCESS_CODE_READ);
+		QCOM_IPQ4018_MDIO_REG_CMD_ACCESS_CODE_READ);
 	MDIO_BARRIER_WRITE(sc);
 
 	/* Wait for completion */
@@ -223,8 +215,8 @@ qcom_mdio_ipq4018_readreg(device_t dev, int phy, int reg)
 	ret = MDIO_READ(sc, QCOM_IPQ4018_MDIO_REG_READ);
 	MDIO_UNLOCK(sc);
 
-	QCOM_MDIO_DPRINTF(sc, QCOM_MDIO_DEBUG_REG_READ,
-	    "%s: -> 0x%x\n", __func__, ret);
+	QCOM_MDIO_DPRINTF(sc, QCOM_MDIO_DEBUG_REG_READ, "%s: -> 0x%x\n",
+	    __func__, ret);
 
 	return (ret);
 }
@@ -235,8 +227,8 @@ qcom_mdio_ipq4018_writereg(device_t dev, int phy, int reg, int value)
 	struct qcom_mdio_ipq4018_softc *sc = device_get_softc(dev);
 
 	QCOM_MDIO_DPRINTF(sc, QCOM_MDIO_DEBUG_REG_WRITE,
-	    "%s: called; phy=0x%x reg=0x%x val=0x%x\n",
-	    __func__, phy, reg, value);
+	    "%s: called; phy=0x%x reg=0x%x val=0x%x\n", __func__, phy, reg,
+	    value);
 
 	MDIO_LOCK(sc);
 	if (qcom_mdio_ipq4018_wait(sc) != 0) {
@@ -254,7 +246,7 @@ qcom_mdio_ipq4018_writereg(device_t dev, int phy, int reg, int value)
 	/* Issue write command */
 	MDIO_WRITE(sc, QCOM_IPQ4018_MDIO_REG_CMD,
 	    QCOM_IPQ4018_MDIO_REG_CMD_ACCESS_START |
-	    QCOM_IPQ4018_MDIO_REG_CMD_ACCESS_CODE_WRITE);
+		QCOM_IPQ4018_MDIO_REG_CMD_ACCESS_CODE_WRITE);
 	MDIO_BARRIER_WRITE(sc);
 
 	/* Wait for completion */
@@ -280,7 +272,7 @@ static device_method_t qcom_mdio_ipq4018_methods[] = {
 	DEVMETHOD(mdio_readreg, qcom_mdio_ipq4018_readreg),
 	DEVMETHOD(mdio_writereg, qcom_mdio_ipq4018_writereg),
 
-	{0, 0},
+	{ 0, 0 },
 };
 
 static driver_t qcom_mdio_ipq4018_driver = {

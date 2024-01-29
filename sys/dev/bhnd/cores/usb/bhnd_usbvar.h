@@ -32,29 +32,28 @@
 #define _BHND_USBVAR_H_
 
 struct bhnd_usb_softc {
-	bus_space_tag_t		 sc_bt;
-	bus_space_handle_t	 sc_bh;
-	bus_addr_t		 sc_maddr;
-	bus_size_t		 sc_msize;
-	bus_addr_t		 sc_irqn;
-	struct intr_event	*sc_events; /* IRQ events structs */
+	bus_space_tag_t sc_bt;
+	bus_space_handle_t sc_bh;
+	bus_addr_t sc_maddr;
+	bus_size_t sc_msize;
+	bus_addr_t sc_irqn;
+	struct intr_event *sc_events; /* IRQ events structs */
 
 	struct resource *sc_mem;
 	struct resource *sc_irq;
-	struct rman 		 mem_rman;
-	struct rman 		 irq_rman;
-	int 			devid;
-
+	struct rman mem_rman;
+	struct rman irq_rman;
+	int devid;
 };
 
 struct bhnd_usb_devinfo {
-	struct resource_list	sdi_rl;
-	uint8_t			sdi_unit;	/* core index on bus */
-	rman_res_t		sdi_irq;	/**< child IRQ, if mapped */
-	bool			sdi_irq_mapped;	/**< true if IRQ mapped, false otherwise */
-	char 			sdi_name[8];
-	rman_res_t 		sdi_maddr;
-	rman_res_t 		sdi_msize;
+	struct resource_list sdi_rl;
+	uint8_t sdi_unit;    /* core index on bus */
+	rman_res_t sdi_irq;  /**< child IRQ, if mapped */
+	bool sdi_irq_mapped; /**< true if IRQ mapped, false otherwise */
+	char sdi_name[8];
+	rman_res_t sdi_maddr;
+	rman_res_t sdi_msize;
 };
 
 #endif /* _BHND_USBVAR_H_ */

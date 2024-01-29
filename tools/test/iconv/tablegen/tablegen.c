@@ -25,8 +25,8 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/endian.h>
 #include <sys/types.h>
+#include <sys/endian.h>
 
 #include <err.h>
 #include <errno.h>
@@ -36,57 +36,53 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define	UC_TO_MB_FLAG	1
-#define MB_TO_WC_FLAG	2
-#define MB_TO_UC_FLAG	4
-#define WC_TO_MB_FLAG	8
+#define UC_TO_MB_FLAG 1
+#define MB_TO_WC_FLAG 2
+#define MB_TO_UC_FLAG 4
+#define WC_TO_MB_FLAG 8
 
-#define MAX(a,b)	((a) < (b) ? (b) : (a))
+#define MAX(a, b) ((a) < (b) ? (b) : (a))
 
-extern char	*__progname;
+extern char *__progname;
 
-static const char	*optstr = "cdilrt";
-static const char	*citrus_common = "SRC_ZONE\t0x0000-0xFFFF\n"
-					"OOB_MODE\tILSEQ\n"
-					"DST_ILSEQ\t0xFFFE\n"
-					"DST_UNIT_BITS\t32\n\n"
-					"BEGIN_MAP\n"
-					"#\n# Generated with Citrus iconv (FreeBSD)\n#\n";
-bool			 cflag;
-bool			 dflag;
-bool			 iflag;
-bool			 lflag;
-bool			 tflag;
-bool			 rflag;
-int			 fb_flags;
+static const char *optstr = "cdilrt";
+static const char *citrus_common =
+    "SRC_ZONE\t0x0000-0xFFFF\n"
+    "OOB_MODE\tILSEQ\n"
+    "DST_ILSEQ\t0xFFFE\n"
+    "DST_UNIT_BITS\t32\n\n"
+    "BEGIN_MAP\n"
+    "#\n# Generated with Citrus iconv (FreeBSD)\n#\n";
+bool cflag;
+bool dflag;
+bool iflag;
+bool lflag;
+bool tflag;
+bool rflag;
+int fb_flags;
 
-static void		 do_conv(iconv_t, bool);
-void			 mb_to_uc_fb(const char*, size_t,
-			     void (*write_replacement)(const unsigned int *,
-			     size_t, void *), void *, void *);
-void			 mb_to_wc_fb(const char*, size_t,
-			     void (*write_replacement) (const wchar_t *, size_t, void *),
-			     void *, void *);
-void			 uc_to_mb_fb(unsigned int,
-			     void (*write_replacement) (const char *, size_t, void *), void *,
-			     void *);
-void			 wc_to_mb_fb(wchar_t,
-			     void (*write_replacement)(const char *,
-			     size_t, void *), void *, void *);
+static void do_conv(iconv_t, bool);
+void mb_to_uc_fb(const char *, size_t,
+    void (*write_replacement)(const unsigned int *, size_t, void *), void *,
+    void *);
+void mb_to_wc_fb(const char *, size_t,
+    void (*write_replacement)(const wchar_t *, size_t, void *), void *, void *);
+void uc_to_mb_fb(unsigned int,
+    void (*write_replacement)(const char *, size_t, void *), void *, void *);
+void wc_to_mb_fb(wchar_t,
+    void (*write_replacement)(const char *, size_t, void *), void *, void *);
 
-struct option long_options[] =
-{
-	{"citrus",	no_argument,	NULL,	'c'},
-	{"diagnostic",	no_argument,	NULL,	'd'},
-	{"ignore",	no_argument,	NULL,	'i'},
-	{"long",	no_argument,	NULL,	'l'},
-	{"reverse",	no_argument,	NULL,	'r'},
-	{"translit",	no_argument,	NULL,	't'},
-	{NULL,		no_argument,	NULL,	0}
-};
- 
+struct option long_options[] = { { "citrus", no_argument, NULL, 'c' },
+	{ "diagnostic", no_argument, NULL, 'd' },
+	{ "ignore", no_argument, NULL, 'i' },
+	{ "long", no_argument, NULL, 'l' },
+	{ "reverse", no_argument, NULL, 'r' },
+	{ "translit", no_argument, NULL, 't' },
+	{ NULL, no_argument, NULL, 0 } };
+
 static void
-usage(void) {
+usage(void)
+{
 
 	fprintf(stderr, "Usage: %s [-cdilrt] ENCODING\n", __progname);
 	exit(EXIT_FAILURE);
@@ -112,7 +108,7 @@ format_diag(int errcode)
 		errstr = "UNKNOWN ";
 		break;
 	}
-	
+
 	u2m = (fb_flags & UC_TO_MB_FLAG) ? "U2M " : "";
 	m2w = (fb_flags & MB_TO_WC_FLAG) ? "M2W " : "";
 	m2u = (fb_flags & MB_TO_UC_FLAG) ? "M2U " : "";
@@ -137,10 +133,10 @@ static void
 format(const uint32_t data)
 {
 
-  /* XXX: could be simpler, something like this but with leading 0s?
+	/* XXX: could be simpler, something like this but with leading 0s?
 
-	printf("0x%.*X", magnitude(data), data);
-  */
+	      printf("0x%.*X", magnitude(data), data);
+	*/
 
 	switch (magnitude(data)) {
 	default:
@@ -153,31 +149,34 @@ format(const uint32_t data)
 	case 4:
 		printf("0x%08X", data);
 		break;
-        }
+	}
 }
 
 void
 uc_to_mb_fb(unsigned int code,
-    void (*write_replacement)(const char *buf, size_t buflen,
-       void* callback_arg), void* callback_arg, void* data)
+    void (
+	*write_replacement)(const char *buf, size_t buflen, void *callback_arg),
+    void *callback_arg, void *data)
 {
 
 	fb_flags |= UC_TO_MB_FLAG;
 }
 
 void
-mb_to_wc_fb(const char* inbuf, size_t inbufsize,
+mb_to_wc_fb(const char *inbuf, size_t inbufsize,
     void (*write_replacement)(const wchar_t *buf, size_t buflen,
-       void* callback_arg), void* callback_arg, void* data)
+	void *callback_arg),
+    void *callback_arg, void *data)
 {
 
 	fb_flags |= MB_TO_WC_FLAG;
 }
 
-void            
-mb_to_uc_fb(const char* inbuf, size_t inbufsize,
+void
+mb_to_uc_fb(const char *inbuf, size_t inbufsize,
     void (*write_replacement)(const unsigned int *buf, size_t buflen,
-       void* callback_arg), void* callback_arg, void* data)
+	void *callback_arg),
+    void *callback_arg, void *data)
 {
 
 	fb_flags |= MB_TO_UC_FLAG;
@@ -185,22 +184,24 @@ mb_to_uc_fb(const char* inbuf, size_t inbufsize,
 
 void
 wc_to_mb_fb(wchar_t wc,
-    void (*write_replacement)(const char *buf, size_t buflen,
-       void* callback_arg), void* callback_arg, void* data)
+    void (
+	*write_replacement)(const char *buf, size_t buflen, void *callback_arg),
+    void *callback_arg, void *data)
 {
 
 	fb_flags |= WC_TO_MB_FLAG;
 }
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
 	struct iconv_fallbacks fbs;
 	iconv_t cd;
 	char *tocode;
 	int c;
 
-	while (((c = getopt_long(argc, argv, optstr, long_options, NULL)) != -1)) {
+	while (
+	    ((c = getopt_long(argc, argv, optstr, long_options, NULL)) != -1)) {
 		switch (c) {
 		case 'c':
 			cflag = true;
@@ -260,7 +261,8 @@ main (int argc, char *argv[])
 		}
 		do_conv(cd, true);
 	} else {
-		if ((cd = iconv_open("UTF-32LE//TRANSLIT", argv[0])) == (iconv_t)-1)
+		if ((cd = iconv_open("UTF-32LE//TRANSLIT", argv[0])) ==
+		    (iconv_t)-1)
 			err(1, NULL);
 		if (dflag && (iconvctl(cd, ICONV_SET_FALLBACKS, &fbs) != 0))
 			err(1, NULL);
@@ -268,7 +270,7 @@ main (int argc, char *argv[])
 			printf("TYPE\t\tROWCOL\n");
 			printf("NAME\t\t%s/UCS\n", argv[0]);
 			printf("%s", citrus_common);
-                }
+		}
 		do_conv(cd, false);
 	}
 
@@ -279,7 +281,8 @@ main (int argc, char *argv[])
 }
 
 static void
-do_conv(iconv_t cd, bool uniinput) {
+do_conv(iconv_t cd, bool uniinput)
+{
 	size_t inbytesleft, outbytesleft, ret;
 	uint32_t outbuf;
 	uint32_t inbuf;

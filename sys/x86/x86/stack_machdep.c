@@ -25,9 +25,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_stack.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/kernel.h>
@@ -36,27 +36,26 @@
 #include <sys/proc.h>
 #include <sys/stack.h>
 
+#include <vm/vm.h>
+#include <vm/pmap.h>
+#include <vm/vm_param.h>
+
 #include <machine/pcb.h>
 #include <machine/smp.h>
-
-#include <vm/vm.h>
-#include <vm/vm_param.h>
-#include <vm/pmap.h>
-
 #include <machine/stack.h>
 
 #ifdef __i386__
-#define	PCB_FP(pcb)	((pcb)->pcb_ebp)
-#define	TF_FLAGS(tf)	((tf)->tf_eflags)
-#define	TF_FP(tf)	((tf)->tf_ebp)
-#define	TF_PC(tf)	((tf)->tf_eip)
+#define PCB_FP(pcb) ((pcb)->pcb_ebp)
+#define TF_FLAGS(tf) ((tf)->tf_eflags)
+#define TF_FP(tf) ((tf)->tf_ebp)
+#define TF_PC(tf) ((tf)->tf_eip)
 
 typedef struct i386_frame *x86_frame_t;
 #else
-#define	PCB_FP(pcb)	((pcb)->pcb_rbp)
-#define	TF_FLAGS(tf)	((tf)->tf_rflags)
-#define	TF_FP(tf)	((tf)->tf_rbp)
-#define	TF_PC(tf)	((tf)->tf_rip)
+#define PCB_FP(pcb) ((pcb)->pcb_rbp)
+#define TF_FLAGS(tf) ((tf)->tf_rflags)
+#define TF_FP(tf) ((tf)->tf_rbp)
+#define TF_PC(tf) ((tf)->tf_rip)
 
 typedef struct amd64_frame *x86_frame_t;
 #endif
@@ -166,9 +165,9 @@ stack_save(struct stack *st)
 	register_t fp;
 
 #ifdef __i386__
-	__asm __volatile("movl %%ebp,%0" : "=g" (fp));
+	__asm __volatile("movl %%ebp,%0" : "=g"(fp));
 #else
-	__asm __volatile("movq %%rbp,%0" : "=g" (fp));
+	__asm __volatile("movq %%rbp,%0" : "=g"(fp));
 #endif
 	stack_capture(curthread, st, fp);
 }

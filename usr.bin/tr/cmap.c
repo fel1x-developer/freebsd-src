@@ -32,11 +32,13 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <assert.h>
 #include <limits.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <wchar.h>
+
 #include "cmap.h"
 
 static struct cmapnode *cmap_splay(struct cmapnode *, wint_t);
@@ -108,7 +110,7 @@ cmap_add(struct cmap *cm, wint_t from, wint_t to)
 		cm->cm_min = from;
 	if (from > cm->cm_max)
 		cm->cm_max = from;
-        cm->cm_root = ncmn;
+	cm->cm_root = ncmn;
 
 	return (true);
 }
@@ -176,8 +178,7 @@ cmap_splay(struct cmapnode *t, wint_t ch)
 	l = r = &N;
 	for (;;) {
 		if (ch < t->cmn_from) {
-			if (t->cmn_left != NULL &&
-			    ch < t->cmn_left->cmn_from) {
+			if (t->cmn_left != NULL && ch < t->cmn_left->cmn_from) {
 				y = t->cmn_left;
 				t->cmn_left = y->cmn_right;
 				y->cmn_right = t;

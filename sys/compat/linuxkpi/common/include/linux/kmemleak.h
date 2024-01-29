@@ -5,4 +5,4 @@
 
 #define kmemleak_update_trace(x)
 
-#endif	/* _LINUXKPI_LINUX_KMEMLEAK_H_ */
+#endif /* _LINUXKPI_LINUX_KMEMLEAK_H_ */

@@ -21,20 +21,20 @@
 #define POSIXJOBS
 
 /*
- * VFORK	This machine has a vfork().  
+ * VFORK	This machine has a vfork().
  *		It used to be that for job control to work, this define
  *		was mandatory. This is not the case any more.
- *		If you think you still need it, but you don't have vfork, 
- *		define this anyway and then do #define vfork fork.  
+ *		If you think you still need it, but you don't have vfork,
+ *		define this anyway and then do #define vfork fork.
  *		I do this anyway on a Sun because of yellow pages brain damage,
  *		[should not be needed under 4.1]
- *		and on the iris4d cause	SGI's fork is sufficiently "virtual" 
+ *		and on the iris4d cause	SGI's fork is sufficiently "virtual"
  *		that vfork isn't necessary.  (Besides, SGI's vfork is weird).
  *		Note that some machines eg. rs6000 have a vfork, but not
  *		with the berkeley semantics, so we cannot use it there either.
  */
 /* #define VFORK */
-#define	vfork fork
+#define vfork fork
 
 /*
  * BSDJOBS	You have BSD-style job control (both process groups and
@@ -69,7 +69,7 @@
  *		Set SYSVREL to 1, 2, 3, or 4, depending the version of System V
  *		you are running. Or set it to 0 if you are not SYSV based
  */
-#define SYSVREL	0
+#define SYSVREL 0
 
 /*
  * YPBUGS	Work around Sun YP bugs that cause expansion of ~username
@@ -93,19 +93,19 @@
  * _PATH_TCSHELL      if you've change the installation location (vix)
  */
 #include <sys/param.h>
-# ifdef _BSDI_VERSION >= 199701
-#  define _PATH_TCSHELL "/bin/tcsh"
-#  undef SYSMALLOC
-#  define SYSMALLOC
-# else
-#  define _PATH_TCSHELL "/usr/contrib/bin/tcsh"
-# endif
+#ifdef _BSDI_VERSION >= 199701
+#define _PATH_TCSHELL "/bin/tcsh"
+#undef SYSMALLOC
+#define SYSMALLOC
+#else
+#define _PATH_TCSHELL "/usr/contrib/bin/tcsh"
+#endif
 
-# undef NLS
-# undef NLS_CATALOGS
+#undef NLS
+#undef NLS_CATALOGS
 
 #elif defined(__APPLE__)
-# define SYSMALLOC
+#define SYSMALLOC
 #endif
 
 #endif /* _h_config */

@@ -26,44 +26,42 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/module.h>
 
 #include <dev/fdt/simplebus.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include <contrib/ncsw/inc/ncsw_ext.h>
 #include <contrib/ncsw/inc/enet_ext.h>
+#include <contrib/ncsw/inc/ncsw_ext.h>
 
 #include "fman.h"
 
-#define	FFMAN_DEVSTR	"Freescale Frame Manager"
+#define FFMAN_DEVSTR "Freescale Frame Manager"
 
-static int	fman_fdt_probe(device_t dev);
+static int fman_fdt_probe(device_t dev);
 
 static device_method_t fman_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		fman_fdt_probe),
-	DEVMETHOD(device_attach,	fman_attach),
-	DEVMETHOD(device_detach,	fman_detach),
+	DEVMETHOD(device_probe, fman_fdt_probe),
+	DEVMETHOD(device_attach, fman_attach),
+	DEVMETHOD(device_detach, fman_detach),
 
-	DEVMETHOD(device_shutdown,	fman_shutdown),
-	DEVMETHOD(device_suspend,	fman_suspend),
-	DEVMETHOD(device_resume,	fman_resume_dev),
+	DEVMETHOD(device_shutdown, fman_shutdown),
+	DEVMETHOD(device_suspend, fman_suspend),
+	DEVMETHOD(device_resume, fman_resume_dev),
 
-	DEVMETHOD(bus_alloc_resource,	fman_alloc_resource),
-	DEVMETHOD(bus_activate_resource,	fman_activate_resource),
-	DEVMETHOD(bus_release_resource,	fman_release_resource),
-	{ 0, 0 }
+	DEVMETHOD(bus_alloc_resource, fman_alloc_resource),
+	DEVMETHOD(bus_activate_resource, fman_activate_resource),
+	DEVMETHOD(bus_release_resource, fman_release_resource), { 0, 0 }
 };
 
-DEFINE_CLASS_1(fman, fman_driver, fman_methods,
-    sizeof(struct fman_softc), simplebus_driver);
+DEFINE_CLASS_1(fman, fman_driver, fman_methods, sizeof(struct fman_softc),
+    simplebus_driver);
 EARLY_DRIVER_MODULE(fman, simplebus, fman_driver, 0, 0,
     BUS_PASS_BUS + BUS_PASS_ORDER_MIDDLE);
-
 
 static int
 fman_fdt_probe(device_t dev)
@@ -91,8 +89,10 @@ fman_get_clock(struct fman_softc *sc)
 	node = ofw_bus_get_node(dev);
 
 	if ((OF_getprop(node, "clock-frequency", &fman_clock,
-	    sizeof(fman_clock)) <= 0) || (fman_clock == 0)) {
-		device_printf(dev, "could not acquire correct frequency "
+		 sizeof(fman_clock)) <= 0) ||
+	    (fman_clock == 0)) {
+		device_printf(dev,
+		    "could not acquire correct frequency "
 		    "from DTS\n");
 
 		return (0);
@@ -100,4 +100,3 @@ fman_get_clock(struct fman_softc *sc)
 
 	return ((uint32_t)fman_clock);
 }
-

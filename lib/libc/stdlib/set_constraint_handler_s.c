@@ -23,17 +23,20 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/types.h>
+
 #include <machine/atomic.h>
+
 #include <errno.h>
 #include <pthread.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "un-namespace.h"
+
 #include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 /*
  * Rationale recommends allocating new memory each time.
@@ -66,7 +69,7 @@ set_constraint_handler_s(constraint_handler_t handler)
 }
 
 void
-__throw_constraint_handler_s(const char * restrict msg, errno_t error)
+__throw_constraint_handler_s(const char *restrict msg, errno_t error)
 {
 	constraint_handler_t ch;
 
@@ -80,19 +83,19 @@ __throw_constraint_handler_s(const char * restrict msg, errno_t error)
 }
 
 void
-abort_handler_s(const char * restrict msg, void * restrict ptr __unused,
+abort_handler_s(const char *restrict msg, void *restrict ptr __unused,
     errno_t error __unused)
 {
 	static const char ahs[] = "abort_handler_s : ";
 
-	(void) _write(STDERR_FILENO, ahs, sizeof(ahs) - 1);
-	(void) _write(STDERR_FILENO, msg, strlen(msg));
-	(void) _write(STDERR_FILENO, "\n", 1);
+	(void)_write(STDERR_FILENO, ahs, sizeof(ahs) - 1);
+	(void)_write(STDERR_FILENO, msg, strlen(msg));
+	(void)_write(STDERR_FILENO, "\n", 1);
 	abort();
 }
 
 void
-ignore_handler_s(const char * restrict msg __unused,
-    void * restrict ptr __unused, errno_t error __unused)
+ignore_handler_s(const char *restrict msg __unused, void *restrict ptr __unused,
+    errno_t error __unused)
 {
 }

@@ -30,8 +30,9 @@
  */
 
 #include <sys/types.h>
-#include <sys/syscall.h>
 #include <sys/socket.h>
+#include <sys/syscall.h>
+
 #include "libc_private.h"
 
 __weak_reference(__sys_connect, __connect);
@@ -41,6 +42,6 @@ int
 connect(int s, const struct sockaddr *addr, socklen_t addrlen)
 {
 
-	return (((int (*)(int, const struct sockaddr *, socklen_t))
-	    __libc_interposing[INTERPOS_connect])(s, addr, addrlen));
+	return (((int (*)(int, const struct sockaddr *,
+	    socklen_t))__libc_interposing[INTERPOS_connect])(s, addr, addrlen));
 }

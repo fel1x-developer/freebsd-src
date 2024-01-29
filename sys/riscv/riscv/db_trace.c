@@ -41,18 +41,17 @@
 #include <sys/kdb.h>
 #include <sys/proc.h>
 
-#include <ddb/ddb.h>
-#include <ddb/db_sym.h>
-
 #include <machine/pcb.h>
 #include <machine/riscvreg.h>
 #include <machine/stack.h>
 #include <machine/vmparam.h>
 
+#include <ddb/db_sym.h>
+#include <ddb/ddb.h>
+
 void
 db_md_list_watchpoints(void)
 {
-
 }
 
 static void
@@ -85,7 +84,7 @@ db_stack_trace_cmd(struct thread *td, struct unwind_state *frame)
 			tf = (struct trapframe *)(uintptr_t)frame->sp;
 			if (!__is_aligned(tf, _Alignof(struct trapframe)) ||
 			    !kstack_contains(td, (vm_offset_t)tf,
-			    sizeof(*tf))) {
+				sizeof(*tf))) {
 				db_printf("--- invalid trapframe %p\n", tf);
 				break;
 			}
@@ -99,8 +98,7 @@ db_stack_trace_cmd(struct thread *td, struct unwind_state *frame)
 				db_printf("\n");
 			} else {
 				db_printf("--- exception %ld, tval = %#lx\n",
-				    tf->tf_scause & SCAUSE_CODE,
-				    tf->tf_stval);
+				    tf->tf_scause & SCAUSE_CODE, tf->tf_stval);
 			}
 			frame->sp = tf->tf_sp;
 			frame->fp = tf->tf_s[0];
@@ -139,7 +137,7 @@ db_trace_self(void)
 	struct unwind_state frame;
 	uintptr_t sp;
 
-	__asm __volatile("mv %0, sp" : "=&r" (sp));
+	__asm __volatile("mv %0, sp" : "=&r"(sp));
 
 	frame.sp = sp;
 	frame.fp = (uintptr_t)__builtin_frame_address(0);

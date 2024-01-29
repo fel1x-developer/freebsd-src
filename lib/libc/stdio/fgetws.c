@@ -31,18 +31,19 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
 #include <wchar.h>
-#include "un-namespace.h"
+
 #include "libc_private.h"
 #include "local.h"
 #include "mblocal.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 wchar_t *
-fgetws_l(wchar_t * __restrict ws, int n, FILE * __restrict fp, locale_t locale)
+fgetws_l(wchar_t *__restrict ws, int n, FILE *__restrict fp, locale_t locale)
 {
 	int sret;
 	wchar_t *wsp, *ret;
@@ -74,8 +75,8 @@ fgetws_l(wchar_t * __restrict ws, int n, FILE * __restrict fp, locale_t locale)
 		src = fp->_p;
 		nl = memchr(fp->_p, '\n', fp->_r);
 		nconv = l->__mbsnrtowcs(wsp, &src,
-		    nl != NULL ? (nl - fp->_p + 1) : fp->_r,
-		    n - 1, &fp->_mbstate);
+		    nl != NULL ? (nl - fp->_p + 1) : fp->_r, n - 1,
+		    &fp->_mbstate);
 		if (nconv == (size_t)-1) {
 			/* Conversion error */
 			fp->_flags |= __SERR;
@@ -96,8 +97,8 @@ fgetws_l(wchar_t * __restrict ws, int n, FILE * __restrict fp, locale_t locale)
 		fp->_p = (unsigned char *)src;
 		n -= nconv;
 		wsp += nconv;
-	} while ((wsp == ws || wsp[-1] != L'\n') && n > 1 && (fp->_r > 0 ||
-	    (sret = __srefill(fp)) == 0));
+	} while ((wsp == ws || wsp[-1] != L'\n') && n > 1 &&
+	    (fp->_r > 0 || (sret = __srefill(fp)) == 0));
 	if (sret && !__sfeof(fp))
 		/* ferror */
 		goto error;
@@ -123,7 +124,7 @@ error:
 }
 
 wchar_t *
-fgetws(wchar_t * __restrict ws, int n, FILE * __restrict fp)
+fgetws(wchar_t *__restrict ws, int n, FILE *__restrict fp)
 {
 	return fgetws_l(ws, n, fp, __get_locale());
 }

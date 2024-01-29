@@ -30,6 +30,6 @@
  */
 
 /* must be at least 32 to guarantee ANSI conformance */
-#define	ATEXIT_SIZE	32
+#define ATEXIT_SIZE 32
 
 void __cxa_finalize(void *dso);

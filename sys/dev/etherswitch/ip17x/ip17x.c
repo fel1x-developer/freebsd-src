@@ -30,7 +30,9 @@
 
 #include "opt_platform.h"
 
+#include <sys/types.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
@@ -41,27 +43,25 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
-#include <sys/types.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
-#include <net/if_var.h>
 
 #include <machine/bus.h>
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include <dev/mdio/mdio.h>
 
 #include <dev/etherswitch/etherswitch.h>
+#include <dev/etherswitch/ip17x/ip175c.h>
+#include <dev/etherswitch/ip17x/ip175d.h>
 #include <dev/etherswitch/ip17x/ip17x_phy.h>
 #include <dev/etherswitch/ip17x/ip17x_reg.h>
 #include <dev/etherswitch/ip17x/ip17x_var.h>
 #include <dev/etherswitch/ip17x/ip17x_vlans.h>
-#include <dev/etherswitch/ip17x/ip175c.h>
-#include <dev/etherswitch/ip17x/ip175d.h>
+#include <dev/mdio/mdio.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
 
 #ifdef FDT
 #include <dev/fdt/fdt_common.h>
@@ -69,9 +69,9 @@
 #include <dev/ofw/ofw_bus_subr.h>
 #endif
 
+#include "etherswitch_if.h"
 #include "mdio_if.h"
 #include "miibus_if.h"
-#include "etherswitch_if.h"
 
 MALLOC_DECLARE(M_IP17X);
 MALLOC_DEFINE(M_IP17X, "ip17x", "ip17x data structures");
@@ -84,7 +84,7 @@ static void
 ip17x_identify(driver_t *driver, device_t parent)
 {
 	if (device_find_child(parent, "ip17x", -1) == NULL)
-	    BUS_ADD_CHILD(parent, 0, "ip17x", -1);
+		BUS_ADD_CHILD(parent, 0, "ip17x", -1);
 }
 
 static int
@@ -96,8 +96,7 @@ ip17x_probe(device_t dev)
 	phandle_t ip17x_node;
 	pcell_t cell;
 
-	ip17x_node = fdt_find_compatible(OF_finddevice("/"),
-	    "icplus,ip17x", 0);
+	ip17x_node = fdt_find_compatible(OF_finddevice("/"), "icplus,ip17x", 0);
 
 	if (ip17x_node == 0)
 		return (ENXIO);
@@ -113,8 +112,8 @@ ip17x_probe(device_t dev)
 	model = MII_MODEL(phy_id2);
 	/* We only care about IC+ devices. */
 	if (oui != IP17X_OUI) {
-		device_printf(dev,
-		    "Unsupported IC+ switch. Unknown OUI: %#x\n", oui);
+		device_printf(dev, "Unsupported IC+ switch. Unknown OUI: %#x\n",
+		    oui);
 		return (ENXIO);
 	}
 
@@ -145,11 +144,10 @@ ip17x_probe(device_t dev)
 
 	sc->miipoll = 1;
 #ifdef FDT
-	if ((OF_getencprop(ip17x_node, "mii-poll",
-	    &cell, sizeof(cell))) > 0)
+	if ((OF_getencprop(ip17x_node, "mii-poll", &cell, sizeof(cell))) > 0)
 		sc->miipoll = cell ? 1 : 0;
 #else
-	(void) resource_int_value(device_get_name(dev), device_get_unit(dev),
+	(void)resource_int_value(device_get_name(dev), device_get_unit(dev),
 	    "mii-poll", &sc->miipoll);
 #endif
 	device_set_desc_copy(dev, "IC+ IP17x switch driver");
@@ -173,26 +171,26 @@ ip17x_attach_phys(struct ip17x_softc *sc)
 		sc->portphy[port] = phy;
 		sc->ifp[port] = if_alloc(IFT_ETHER);
 		if (sc->ifp[port] == NULL) {
-			device_printf(sc->sc_dev, "couldn't allocate ifnet structure\n");
+			device_printf(sc->sc_dev,
+			    "couldn't allocate ifnet structure\n");
 			err = ENOMEM;
 			break;
 		}
 
 		if_setsoftc(sc->ifp[port], sc);
-		if_setflags(sc->ifp[port], IFF_UP | IFF_BROADCAST |
-		    IFF_DRV_RUNNING | IFF_SIMPLEX);
+		if_setflags(sc->ifp[port],
+		    IFF_UP | IFF_BROADCAST | IFF_DRV_RUNNING | IFF_SIMPLEX);
 		if_initname(sc->ifp[port], name, port);
 		sc->miibus[port] = malloc(sizeof(device_t), M_IP17X,
 		    M_WAITOK | M_ZERO);
 		err = mii_attach(sc->sc_dev, sc->miibus[port], sc->ifp[port],
-		    ip17x_ifmedia_upd, ip17x_ifmedia_sts, \
-		    BMSR_DEFCAPMASK, phy, MII_OFFSET_ANY, 0);
+		    ip17x_ifmedia_upd, ip17x_ifmedia_sts, BMSR_DEFCAPMASK, phy,
+		    MII_OFFSET_ANY, 0);
 		DPRINTF(sc->sc_dev, "%s attached to pseudo interface %s\n",
 		    device_get_nameunit(*sc->miibus[port]),
 		    if_name(sc->ifp[port]));
 		if (err != 0) {
-			device_printf(sc->sc_dev,
-			    "attaching PHY %d failed\n",
+			device_printf(sc->sc_dev, "attaching PHY %d failed\n",
 			    phy);
 			break;
 		}
@@ -220,7 +218,7 @@ ip17x_attach(device_t dev)
 	sc->phymask = 0x0f;
 	sc->media = 100;
 
-	(void) resource_int_value(device_get_name(dev), device_get_unit(dev),
+	(void)resource_int_value(device_get_name(dev), device_get_unit(dev),
 	    "phymask", &sc->phymask);
 
 	/* Number of vlans supported by the switch. */
@@ -268,13 +266,13 @@ ip17x_attach(device_t dev)
 	err = bus_generic_attach(dev);
 	if (err != 0)
 		return (err);
-	
+
 	if (sc->miipoll) {
 		callout_init(&sc->callout_tick, 0);
 
 		ip17x_tick(sc);
 	}
-	
+
 	return (0);
 }
 
@@ -288,7 +286,7 @@ ip17x_detach(device_t dev)
 	if (sc->miipoll)
 		callout_drain(&sc->callout_tick);
 
-	for (i=0; i < MII_NPHY; i++) {
+	for (i = 0; i < MII_NPHY; i++) {
 		if (((1 << i) & sc->phymask) == 0)
 			continue;
 		port = sc->phyport[i];
@@ -322,7 +320,7 @@ ip17x_miiforport(struct ip17x_softc *sc, int port)
 	return (device_get_softc(*sc->miibus[port]));
 }
 
-static inline if_t 
+static inline if_t
 ip17x_ifpforport(struct ip17x_softc *sc, int port)
 {
 
@@ -350,7 +348,7 @@ ip17x_miipollstat(struct ip17x_softc *sc)
 		if ((*sc->miibus[port]) == NULL)
 			continue;
 		mii = device_get_softc(*sc->miibus[port]);
-		LIST_FOREACH(miisc, &mii->mii_phys, mii_list) {
+		LIST_FOREACH (miisc, &mii->mii_phys, mii_list) {
 			if (IFM_INST(mii->mii_media.ifm_cur->ifm_media) !=
 			    miisc->mii_inst)
 				continue;
@@ -436,16 +434,16 @@ ip17x_getport(device_t dev, etherswitch_port_t *p)
 		p->es_flags |= ETHERSWITCH_PORT_CPU;
 		ifmr->ifm_count = 0;
 		if (sc->media == 100)
-			ifmr->ifm_current = ifmr->ifm_active =
-			    IFM_ETHER | IFM_100_TX | IFM_FDX;
+			ifmr->ifm_current = ifmr->ifm_active = IFM_ETHER |
+			    IFM_100_TX | IFM_FDX;
 		else
-			ifmr->ifm_current = ifmr->ifm_active =
-			    IFM_ETHER | IFM_1000_T | IFM_FDX;
+			ifmr->ifm_current = ifmr->ifm_active = IFM_ETHER |
+			    IFM_1000_T | IFM_FDX;
 		ifmr->ifm_mask = 0;
 		ifmr->ifm_status = IFM_ACTIVE | IFM_AVALID;
 	} else {
-		err = ifmedia_ioctl(mii->mii_ifp, &p->es_ifr,
-		    &mii->mii_media, SIOCGIFMEDIA);
+		err = ifmedia_ioctl(mii->mii_ifp, &p->es_ifr, &mii->mii_media,
+		    SIOCGIFMEDIA);
 		if (err)
 			return (err);
 	}
@@ -461,7 +459,7 @@ ip17x_setport(device_t dev, etherswitch_port_t *p)
 	struct mii_data *mii;
 	int phy;
 
- 	sc = device_get_softc(dev);
+	sc = device_get_softc(dev);
 	if (p->es_port < 0 || p->es_port >= sc->numports)
 		return (ENXIO);
 
@@ -527,9 +525,9 @@ ip17x_ifmedia_upd(if_t ifp)
 	struct ip17x_softc *sc;
 	struct mii_data *mii;
 
- 	sc = if_getsoftc(ifp);
+	sc = if_getsoftc(ifp);
 	DPRINTF(sc->sc_dev, "%s\n", __func__);
- 	mii = ip17x_miiforport(sc, if_getdunit(ifp));
+	mii = ip17x_miiforport(sc, if_getdunit(ifp));
 	if (mii == NULL)
 		return (ENXIO);
 	mii_mediachg(mii);
@@ -543,7 +541,7 @@ ip17x_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr)
 	struct ip17x_softc *sc;
 	struct mii_data *mii;
 
- 	sc = if_getsoftc(ifp);
+	sc = if_getsoftc(ifp);
 	DPRINTF(sc->sc_dev, "%s\n", __func__);
 	mii = ip17x_miiforport(sc, if_getdunit(ifp));
 	if (mii == NULL)
@@ -607,43 +605,42 @@ ip17x_setconf(device_t dev, etherswitch_conf_t *conf)
 
 static device_method_t ip17x_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,	ip17x_identify),
-	DEVMETHOD(device_probe,		ip17x_probe),
-	DEVMETHOD(device_attach,	ip17x_attach),
-	DEVMETHOD(device_detach,	ip17x_detach),
-	
+	DEVMETHOD(device_identify, ip17x_identify),
+	DEVMETHOD(device_probe, ip17x_probe),
+	DEVMETHOD(device_attach, ip17x_attach),
+	DEVMETHOD(device_detach, ip17x_detach),
+
 	/* bus interface */
-	DEVMETHOD(bus_add_child,	device_add_child_ordered),
-	
+	DEVMETHOD(bus_add_child, device_add_child_ordered),
+
 	/* MII interface */
-	DEVMETHOD(miibus_readreg,	ip17x_readphy),
-	DEVMETHOD(miibus_writereg,	ip17x_writephy),
-	DEVMETHOD(miibus_statchg,	ip17x_statchg),
+	DEVMETHOD(miibus_readreg, ip17x_readphy),
+	DEVMETHOD(miibus_writereg, ip17x_writephy),
+	DEVMETHOD(miibus_statchg, ip17x_statchg),
 
 	/* MDIO interface */
-	DEVMETHOD(mdio_readreg,		ip17x_readphy),
-	DEVMETHOD(mdio_writereg,	ip17x_writephy),
+	DEVMETHOD(mdio_readreg, ip17x_readphy),
+	DEVMETHOD(mdio_writereg, ip17x_writephy),
 
 	/* etherswitch interface */
-	DEVMETHOD(etherswitch_lock,	ip17x_lock),
-	DEVMETHOD(etherswitch_unlock,	ip17x_unlock),
-	DEVMETHOD(etherswitch_getinfo,	ip17x_getinfo),
-	DEVMETHOD(etherswitch_readreg,	ip17x_readreg),
-	DEVMETHOD(etherswitch_writereg,	ip17x_writereg),
-	DEVMETHOD(etherswitch_readphyreg,	ip17x_readphy),
-	DEVMETHOD(etherswitch_writephyreg,	ip17x_writephy),
-	DEVMETHOD(etherswitch_getport,	ip17x_getport),
-	DEVMETHOD(etherswitch_setport,	ip17x_setport),
-	DEVMETHOD(etherswitch_getvgroup,	ip17x_getvgroup),
-	DEVMETHOD(etherswitch_setvgroup,	ip17x_setvgroup),
-	DEVMETHOD(etherswitch_getconf,	ip17x_getconf),
-	DEVMETHOD(etherswitch_setconf,	ip17x_setconf),
+	DEVMETHOD(etherswitch_lock, ip17x_lock),
+	DEVMETHOD(etherswitch_unlock, ip17x_unlock),
+	DEVMETHOD(etherswitch_getinfo, ip17x_getinfo),
+	DEVMETHOD(etherswitch_readreg, ip17x_readreg),
+	DEVMETHOD(etherswitch_writereg, ip17x_writereg),
+	DEVMETHOD(etherswitch_readphyreg, ip17x_readphy),
+	DEVMETHOD(etherswitch_writephyreg, ip17x_writephy),
+	DEVMETHOD(etherswitch_getport, ip17x_getport),
+	DEVMETHOD(etherswitch_setport, ip17x_setport),
+	DEVMETHOD(etherswitch_getvgroup, ip17x_getvgroup),
+	DEVMETHOD(etherswitch_setvgroup, ip17x_setvgroup),
+	DEVMETHOD(etherswitch_getconf, ip17x_getconf),
+	DEVMETHOD(etherswitch_setconf, ip17x_setconf),
 
 	DEVMETHOD_END
 };
 
-DEFINE_CLASS_0(ip17x, ip17x_driver, ip17x_methods,
-    sizeof(struct ip17x_softc));
+DEFINE_CLASS_0(ip17x, ip17x_driver, ip17x_methods, sizeof(struct ip17x_softc));
 
 DRIVER_MODULE(ip17x, mdio, ip17x_driver, 0, 0);
 DRIVER_MODULE(miibus, ip17x, miibus_driver, 0, 0);
@@ -654,6 +651,6 @@ MODULE_VERSION(ip17x, 1);
 MODULE_DEPEND(ip17x, mdio, 1, 1, 1); /* XXX which versions? */
 #else
 DRIVER_MODULE(mdio, ip17x, mdio_driver, 0, 0);
-MODULE_DEPEND(ip17x, miibus, 1, 1, 1); /* XXX which versions? */
+MODULE_DEPEND(ip17x, miibus, 1, 1, 1);	    /* XXX which versions? */
 MODULE_DEPEND(ip17x, etherswitch, 1, 1, 1); /* XXX which versions? */
 #endif

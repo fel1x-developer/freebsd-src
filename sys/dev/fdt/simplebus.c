@@ -28,45 +28,44 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/module.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/kernel.h>
+#include <sys/module.h>
 #include <sys/rman.h>
 
-#include <dev/ofw/openfirm.h>
+#include <dev/fdt/simplebus.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/fdt/simplebus.h>
+#include <dev/ofw/openfirm.h>
 
 /*
  * Bus interface.
  */
-static int		simplebus_probe(device_t dev);
-static struct resource *simplebus_alloc_resource(device_t, device_t, int,
-    int *, rman_res_t, rman_res_t, rman_res_t, u_int);
-static int		simplebus_adjust_resource(device_t bus, device_t child,
-    int type, struct resource *r, rman_res_t start, rman_res_t end);
-static int		simplebus_release_resource(device_t bus, device_t child,
-    int type, int rid, struct resource *r);
-static int		simplebus_activate_resource(device_t bus,
-    device_t child, int type, int rid, struct resource *r);
-static int		simplebus_deactivate_resource(device_t bus,
-    device_t child, int type, int rid, struct resource *r);
-static int		simplebus_map_resource(device_t bus, device_t child,
-    int type, struct resource *r, struct resource_map_request *args,
+static int simplebus_probe(device_t dev);
+static struct resource *simplebus_alloc_resource(device_t, device_t, int, int *,
+    rman_res_t, rman_res_t, rman_res_t, u_int);
+static int simplebus_adjust_resource(device_t bus, device_t child, int type,
+    struct resource *r, rman_res_t start, rman_res_t end);
+static int simplebus_release_resource(device_t bus, device_t child, int type,
+    int rid, struct resource *r);
+static int simplebus_activate_resource(device_t bus, device_t child, int type,
+    int rid, struct resource *r);
+static int simplebus_deactivate_resource(device_t bus, device_t child, int type,
+    int rid, struct resource *r);
+static int simplebus_map_resource(device_t bus, device_t child, int type,
+    struct resource *r, struct resource_map_request *args,
     struct resource_map *map);
-static int		simplebus_unmap_resource(device_t bus, device_t child,
-    int type, struct resource *r, struct resource_map *map);
-static void		simplebus_probe_nomatch(device_t bus, device_t child);
-static int		simplebus_print_child(device_t bus, device_t child);
-static device_t		simplebus_add_child(device_t dev, u_int order,
-    const char *name, int unit);
+static int simplebus_unmap_resource(device_t bus, device_t child, int type,
+    struct resource *r, struct resource_map *map);
+static void simplebus_probe_nomatch(device_t bus, device_t child);
+static int simplebus_print_child(device_t bus, device_t child);
+static device_t simplebus_add_child(device_t dev, u_int order, const char *name,
+    int unit);
 static struct resource_list *simplebus_get_resource_list(device_t bus,
     device_t child);
 
-static ssize_t		simplebus_get_property(device_t bus, device_t child,
+static ssize_t simplebus_get_property(device_t bus, device_t child,
     const char *propname, void *propvalue, size_t size,
     device_property_type_t type);
 /*
@@ -78,44 +77,44 @@ static const struct ofw_bus_devinfo *simplebus_get_devinfo(device_t bus,
 /*
  * Driver methods.
  */
-static device_method_t	simplebus_methods[] = {
+static device_method_t simplebus_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		simplebus_probe),
-	DEVMETHOD(device_attach,	simplebus_attach),
-	DEVMETHOD(device_detach,	simplebus_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	bus_generic_resume),
+	DEVMETHOD(device_probe, simplebus_probe),
+	DEVMETHOD(device_attach, simplebus_attach),
+	DEVMETHOD(device_detach, simplebus_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
 
 	/* Bus interface */
-	DEVMETHOD(bus_add_child,	simplebus_add_child),
-	DEVMETHOD(bus_print_child,	simplebus_print_child),
-	DEVMETHOD(bus_probe_nomatch,	simplebus_probe_nomatch),
-	DEVMETHOD(bus_read_ivar,	bus_generic_read_ivar),
-	DEVMETHOD(bus_write_ivar,	bus_generic_write_ivar),
-	DEVMETHOD(bus_setup_intr,	bus_generic_setup_intr),
-	DEVMETHOD(bus_teardown_intr,	bus_generic_teardown_intr),
-	DEVMETHOD(bus_alloc_resource,	simplebus_alloc_resource),
-	DEVMETHOD(bus_release_resource,	simplebus_release_resource),
+	DEVMETHOD(bus_add_child, simplebus_add_child),
+	DEVMETHOD(bus_print_child, simplebus_print_child),
+	DEVMETHOD(bus_probe_nomatch, simplebus_probe_nomatch),
+	DEVMETHOD(bus_read_ivar, bus_generic_read_ivar),
+	DEVMETHOD(bus_write_ivar, bus_generic_write_ivar),
+	DEVMETHOD(bus_setup_intr, bus_generic_setup_intr),
+	DEVMETHOD(bus_teardown_intr, bus_generic_teardown_intr),
+	DEVMETHOD(bus_alloc_resource, simplebus_alloc_resource),
+	DEVMETHOD(bus_release_resource, simplebus_release_resource),
 	DEVMETHOD(bus_activate_resource, simplebus_activate_resource),
 	DEVMETHOD(bus_deactivate_resource, simplebus_deactivate_resource),
-	DEVMETHOD(bus_adjust_resource,	simplebus_adjust_resource),
-	DEVMETHOD(bus_map_resource,	simplebus_map_resource),
-	DEVMETHOD(bus_unmap_resource,	simplebus_unmap_resource),
-	DEVMETHOD(bus_set_resource,	bus_generic_rl_set_resource),
-	DEVMETHOD(bus_get_resource,	bus_generic_rl_get_resource),
-	DEVMETHOD(bus_child_pnpinfo,	ofw_bus_gen_child_pnpinfo),
+	DEVMETHOD(bus_adjust_resource, simplebus_adjust_resource),
+	DEVMETHOD(bus_map_resource, simplebus_map_resource),
+	DEVMETHOD(bus_unmap_resource, simplebus_unmap_resource),
+	DEVMETHOD(bus_set_resource, bus_generic_rl_set_resource),
+	DEVMETHOD(bus_get_resource, bus_generic_rl_get_resource),
+	DEVMETHOD(bus_child_pnpinfo, ofw_bus_gen_child_pnpinfo),
 	DEVMETHOD(bus_get_resource_list, simplebus_get_resource_list),
-	DEVMETHOD(bus_get_property,	simplebus_get_property),
-	DEVMETHOD(bus_get_device_path,  ofw_bus_gen_get_device_path),
+	DEVMETHOD(bus_get_property, simplebus_get_property),
+	DEVMETHOD(bus_get_device_path, ofw_bus_gen_get_device_path),
 
 	/* ofw_bus interface */
-	DEVMETHOD(ofw_bus_get_devinfo,	simplebus_get_devinfo),
-	DEVMETHOD(ofw_bus_get_compat,	ofw_bus_gen_get_compat),
-	DEVMETHOD(ofw_bus_get_model,	ofw_bus_gen_get_model),
-	DEVMETHOD(ofw_bus_get_name,	ofw_bus_gen_get_name),
-	DEVMETHOD(ofw_bus_get_node,	ofw_bus_gen_get_node),
-	DEVMETHOD(ofw_bus_get_type,	ofw_bus_gen_get_type),
+	DEVMETHOD(ofw_bus_get_devinfo, simplebus_get_devinfo),
+	DEVMETHOD(ofw_bus_get_compat, ofw_bus_gen_get_compat),
+	DEVMETHOD(ofw_bus_get_model, ofw_bus_gen_get_model),
+	DEVMETHOD(ofw_bus_get_name, ofw_bus_gen_get_name),
+	DEVMETHOD(ofw_bus_get_node, ofw_bus_gen_get_node),
+	DEVMETHOD(ofw_bus_get_type, ofw_bus_gen_get_type),
 
 	DEVMETHOD_END
 };
@@ -130,7 +129,7 @@ EARLY_DRIVER_MODULE(simplebus, simplebus, simplebus_driver, 0, 0,
 static int
 simplebus_probe(device_t dev)
 {
- 
+
 	if (!ofw_bus_status_okay(dev))
 		return (ENXIO);
 	/*
@@ -150,9 +149,9 @@ simplebus_probe(device_t dev)
 	 * ranges property we will fail to attach, so just fail to probe too.
 	 */
 	if (!(ofw_bus_is_compatible(dev, "simple-bus") &&
-	    ofw_bus_has_prop(dev, "ranges")) &&
-	    (ofw_bus_get_type(dev) == NULL || strcmp(ofw_bus_get_type(dev),
-	     "soc") != 0))
+		ofw_bus_has_prop(dev, "ranges")) &&
+	    (ofw_bus_get_type(dev) == NULL ||
+		strcmp(ofw_bus_get_type(dev), "soc") != 0))
 		return (ENXIO);
 
 	device_set_desc(dev, "Flattened device tree simple bus");
@@ -163,8 +162,8 @@ simplebus_probe(device_t dev)
 int
 simplebus_attach_impl(device_t dev)
 {
-	struct		simplebus_softc *sc;
-	phandle_t	node;
+	struct simplebus_softc *sc;
+	phandle_t node;
 
 	sc = device_get_softc(dev);
 	simplebus_init(dev, 0);
@@ -188,7 +187,7 @@ simplebus_attach_impl(device_t dev)
 int
 simplebus_attach(device_t dev)
 {
-	int	rv;
+	int rv;
 
 	rv = simplebus_attach_impl(dev);
 	if (rv != 0)
@@ -200,7 +199,7 @@ simplebus_attach(device_t dev)
 int
 simplebus_detach(device_t dev)
 {
-	struct		simplebus_softc *sc;
+	struct simplebus_softc *sc;
 
 	sc = device_get_softc(dev);
 	if (sc->ranges != NULL)
@@ -251,8 +250,8 @@ simplebus_fill_ranges(phandle_t node, struct simplebus_softc *sc)
 	if (sc->nranges == 0)
 		return (0);
 
-	sc->ranges = malloc(sc->nranges * sizeof(sc->ranges[0]),
-	    M_DEVBUF, M_WAITOK);
+	sc->ranges = malloc(sc->nranges * sizeof(sc->ranges[0]), M_DEVBUF,
+	    M_WAITOK);
 	base_ranges = malloc(nbase_ranges, M_DEVBUF, M_WAITOK);
 	OF_getencprop(node, "ranges", base_ranges, nbase_ranges);
 
@@ -324,7 +323,7 @@ simplebus_add_device(device_t dev, phandle_t node, u_int order,
 	}
 	device_set_ivars(cdev, ndi);
 
-	return(cdev);
+	return (cdev);
 }
 
 static device_t
@@ -348,12 +347,12 @@ simplebus_add_child(device_t dev, u_int order, const char *name, int unit)
 static const struct ofw_bus_devinfo *
 simplebus_get_devinfo(device_t bus __unused, device_t child)
 {
-        struct simplebus_devinfo *ndi;
-        
-        ndi = device_get_ivars(child);
+	struct simplebus_devinfo *ndi;
+
+	ndi = device_get_ivars(child);
 	if (ndi == NULL)
 		return (NULL);
-        return (&ndi->obdinfo);
+	return (&ndi->obdinfo);
 }
 
 static struct resource_list *
@@ -405,7 +404,7 @@ simplebus_get_property(device_t bus, device_t child, const char *propname,
 	 * in BE format. Now, since the upper bits are stored as the first
 	 * of the pair, both halves require swapping.
 	 */
-	 if (type == DEVICE_PROP_UINT64) {
+	if (type == DEVICE_PROP_UINT64) {
 		ret = OF_getencprop(node, propname, propvalue, size);
 		if (ret <= 0) {
 			return (ret);
@@ -461,20 +460,22 @@ simplebus_alloc_resource(device_t bus, device_t child, int type, int *rid,
 		rle = resource_list_find(&di->rl, type, *rid);
 		if (rle == NULL) {
 			if (bootverbose)
-				device_printf(bus, "no default resources for "
-				    "rid = %d, type = %d\n", *rid, type);
+				device_printf(bus,
+				    "no default resources for "
+				    "rid = %d, type = %d\n",
+				    *rid, type);
 			return (NULL);
 		}
 		start = rle->start;
 		end = rle->end;
 		count = rle->count;
-        }
+	}
 
 	if (type == SYS_RES_MEMORY) {
 		/* Remap through ranges property */
 		for (j = 0; j < sc->nranges; j++) {
-			if (start >= sc->ranges[j].bus && end <
-			    sc->ranges[j].bus + sc->ranges[j].size) {
+			if (start >= sc->ranges[j].bus &&
+			    end < sc->ranges[j].bus + sc->ranges[j].size) {
 				start -= sc->ranges[j].bus;
 				start += sc->ranges[j].host;
 				end -= sc->ranges[j].bus;
@@ -484,8 +485,10 @@ simplebus_alloc_resource(device_t bus, device_t child, int type, int *rid,
 		}
 		if (j == sc->nranges && sc->nranges != 0) {
 			if (bootverbose)
-				device_printf(bus, "Could not map resource "
-				    "%#jx-%#jx\n", start, end);
+				device_printf(bus,
+				    "Could not map resource "
+				    "%#jx-%#jx\n",
+				    start, end);
 
 			return (NULL);
 		}

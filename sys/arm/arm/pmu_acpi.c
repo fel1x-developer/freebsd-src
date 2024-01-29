@@ -32,8 +32,9 @@
 #include <sys/module.h>
 #include <sys/rman.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
 #include <dev/acpica/acpivar.h>
+
+#include <contrib/dev/acpica/include/acpi.h>
 
 #include "acpi_bus_if.h"
 #include "pmu.h"
@@ -79,23 +80,26 @@ madt_handler(ACPI_SUBTABLE_HEADER *entry, void *arg)
 
 	if (cpuid == -1) {
 		/* pcpu not found. */
-		device_printf(sc->dev, "MADT: could not find pcpu, "
-		    "ArmMpidr %lx\n", intr->ArmMpidr);
+		device_printf(sc->dev,
+		    "MADT: could not find pcpu, "
+		    "ArmMpidr %lx\n",
+		    intr->ArmMpidr);
 		return;
 	}
 
 	if (bootverbose)
-		device_printf(sc->dev, "MADT: cpu %d (mpidr %lu) irq %d "
-		    "%s-triggered\n", cpuid, intr->ArmMpidr,
-		    intr->PerformanceInterrupt,
-		    (intr->Flags & ACPI_MADT_PERFORMANCE_IRQ_MODE) ?
-		    "edge" : "level");
+		device_printf(sc->dev,
+		    "MADT: cpu %d (mpidr %lu) irq %d "
+		    "%s-triggered\n",
+		    cpuid, intr->ArmMpidr, intr->PerformanceInterrupt,
+		    (intr->Flags & ACPI_MADT_PERFORMANCE_IRQ_MODE) ? "edge" :
+								     "level");
 
 	bus_set_resource(sc->dev, SYS_RES_IRQ, ctx->i,
 	    intr->PerformanceInterrupt, 1);
 
-	sc->irq[ctx->i].res = bus_alloc_resource_any(sc->dev, SYS_RES_IRQ,
-	    &rid, RF_ACTIVE | RF_SHAREABLE);
+	sc->irq[ctx->i].res = bus_alloc_resource_any(sc->dev, SYS_RES_IRQ, &rid,
+	    RF_ACTIVE | RF_SHAREABLE);
 	if (sc->irq[ctx->i].res == NULL) {
 		device_printf(sc->dev, "Failed to allocate IRQ %d\n", ctx->i);
 		ctx->error = ENXIO;
@@ -110,7 +114,8 @@ madt_handler(ACPI_SUBTABLE_HEADER *entry, void *arg)
 	KASSERT(data->type == INTR_MAP_DATA_ACPI, ("Wrong data type"));
 	ad = (struct intr_map_data_acpi *)data;
 	ad->trig = (intr->Flags & ACPI_MADT_PERFORMANCE_IRQ_MODE) ?
-		INTR_TRIGGER_EDGE : INTR_TRIGGER_LEVEL;
+	    INTR_TRIGGER_EDGE :
+	    INTR_TRIGGER_LEVEL;
 	ad->pol = INTR_POLARITY_HIGH;
 
 	if (!intr_is_per_cpu(sc->irq[ctx->i].res))
@@ -179,9 +184,9 @@ pmu_acpi_attach(device_t dev)
 }
 
 static device_method_t pmu_acpi_methods[] = {
-	DEVMETHOD(device_identify,	pmu_acpi_identify),
-	DEVMETHOD(device_probe,		pmu_acpi_probe),
-	DEVMETHOD(device_attach,	pmu_acpi_attach),
+	DEVMETHOD(device_identify, pmu_acpi_identify),
+	DEVMETHOD(device_probe, pmu_acpi_probe),
+	DEVMETHOD(device_attach, pmu_acpi_attach),
 	DEVMETHOD_END,
 };
 

@@ -34,12 +34,12 @@
  * SUCH DAMAGE.
  */
 #pragma once
-#include_next <unistd.h>
 #include <getopt.h>
+#include_next <unistd.h>
 
 struct crypt_data {
-	int	initialized;	/* For compatibility with glibc. */
-	char	__buf[256];	/* Buffer returned by crypt_r(). */
+	int initialized; /* For compatibility with glibc. */
+	char __buf[256]; /* Buffer returned by crypt_r(). */
 };
 
 static inline int

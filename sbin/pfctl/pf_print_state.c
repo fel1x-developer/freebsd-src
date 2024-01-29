@@ -1,4 +1,5 @@
-/*	$OpenBSD: pf_print_state.c,v 1.52 2008/08/12 16:40:18 david Exp $	*/
+/*	$OpenBSD: pf_print_state.c,v 1.52 2008/08/12 16:40:18 david Exp $
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
@@ -33,24 +34,25 @@
  */
 
 #include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/endian.h>
+#include <sys/socket.h>
+
 #include <net/if.h>
 #define TCPSTATES
-#include <netinet/tcp_fsm.h>
-#include <netinet/sctp.h>
 #include <net/pfvar.h>
+#include <netinet/sctp.h>
+#include <netinet/tcp_fsm.h>
+
 #include <arpa/inet.h>
 #include <netdb.h>
-
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
-#include "pfctl_parser.h"
 #include "pfctl.h"
+#include "pfctl_parser.h"
 
-void	print_name(struct pf_addr *, sa_family_t);
+void print_name(struct pf_addr *, sa_family_t);
 
 void
 print_addr(struct pf_addr_wrap *addr, sa_family_t af, int verbose)
@@ -104,8 +106,8 @@ print_addr(struct pf_addr_wrap *addr, sa_family_t af, int verbose)
 		else {
 			char buf[48];
 
-			if (inet_ntop(af, &addr->v.a.addr, buf,
-			    sizeof(buf)) == NULL)
+			if (inet_ntop(af, &addr->v.a.addr, buf, sizeof(buf)) ==
+			    NULL)
 				printf("?");
 			else
 				printf("%s", buf);
@@ -125,7 +127,7 @@ print_addr(struct pf_addr_wrap *addr, sa_family_t af, int verbose)
 	/* mask if not _both_ address and mask are zero */
 	if (addr->type != PF_ADDR_RANGE &&
 	    !(PF_AZERO(&addr->v.a.addr, AF_INET6) &&
-	    PF_AZERO(&addr->v.a.mask, AF_INET6))) {
+		PF_AZERO(&addr->v.a.mask, AF_INET6))) {
 		int bits = unmask(&addr->v.a.mask, af);
 
 		if (bits != (af == AF_INET ? 32 : 128))
@@ -147,8 +149,8 @@ print_name(struct pf_addr *addr, sa_family_t af)
 		sin.sin_len = sizeof(sin);
 		sin.sin_family = AF_INET;
 		sin.sin_addr = addr->v4;
-		getnameinfo((struct sockaddr *)&sin, sin.sin_len,
-		    host, sizeof(host), NULL, 0, NI_NOFQDN);
+		getnameinfo((struct sockaddr *)&sin, sin.sin_len, host,
+		    sizeof(host), NULL, 0, NI_NOFQDN);
 		break;
 	}
 	case AF_INET6: {
@@ -158,8 +160,8 @@ print_name(struct pf_addr *addr, sa_family_t af)
 		sin6.sin6_len = sizeof(sin6);
 		sin6.sin6_family = AF_INET6;
 		sin6.sin6_addr = addr->v6;
-		getnameinfo((struct sockaddr *)&sin6, sin6.sin6_len,
-		    host, sizeof(host), NULL, 0, NI_NOFQDN);
+		getnameinfo((struct sockaddr *)&sin6, sin6.sin6_len, host,
+		    sizeof(host), NULL, 0, NI_NOFQDN);
 		break;
 	}
 	}
@@ -197,13 +199,11 @@ void
 print_seq(struct pfctl_state_peer *p)
 {
 	if (p->seqdiff)
-		printf("[%u + %u](+%u)", p->seqlo,
-		    p->seqhi - p->seqlo, p->seqdiff);
+		printf("[%u + %u](+%u)", p->seqlo, p->seqhi - p->seqlo,
+		    p->seqdiff);
 	else
-		printf("[%u + %u]", p->seqlo,
-		    p->seqhi - p->seqlo);
+		printf("[%u + %u]", p->seqlo, p->seqhi - p->seqlo);
 }
-
 
 static const char *
 sctp_state_name(int state)
@@ -308,8 +308,8 @@ print_state(struct pfctl_state *s, int opts)
 		    dst->state == PF_TCPS_PROXY_DST)
 			printf("   PROXY:DST\n");
 		else
-			printf("   <BAD STATE LEVELS %u:%u>\n",
-			    src->state, dst->state);
+			printf("   <BAD STATE LEVELS %u:%u>\n", src->state,
+			    dst->state);
 		if (opts & PF_OPT_VERBOSE) {
 			printf("   ");
 			print_seq(src);
@@ -361,11 +361,8 @@ print_state(struct pfctl_state *s, int opts)
 		expire /= 60;
 		printf(", expires in %.2u:%.2u:%.2u", expire, min, sec);
 
-		printf(", %ju:%ju pkts, %ju:%ju bytes",
-		    s->packets[0],
-		    s->packets[1],
-		    s->bytes[0],
-		    s->bytes[1]);
+		printf(", %ju:%ju pkts, %ju:%ju bytes", s->packets[0],
+		    s->packets[1], s->bytes[0], s->bytes[1]);
 		if (s->anchor != -1)
 			printf(", anchor %u", s->anchor);
 		if (s->rule != -1)
@@ -389,15 +386,15 @@ print_state(struct pfctl_state *s, int opts)
 		if (s->state_flags & PFSTATE_SCRUB_TCP)
 			printf(", reassemble-tcp");
 		if (s->state_flags & PFSTATE_SETPRIO)
-			printf(", set-prio (0x%02x 0x%02x)",
-			    s->set_prio[0], s->set_prio[1]);
+			printf(", set-prio (0x%02x 0x%02x)", s->set_prio[0],
+			    s->set_prio[1]);
 		if (s->dnpipe || s->dnrpipe) {
 			if (s->state_flags & PFSTATE_DN_IS_PIPE)
-				printf(", dummynet pipe (%d %d)",
-				s->dnpipe, s->dnrpipe);
+				printf(", dummynet pipe (%d %d)", s->dnpipe,
+				    s->dnrpipe);
 			if (s->state_flags & PFSTATE_DN_IS_QUEUE)
-				printf(", dummynet queue (%d %d)",
-				s->dnpipe, s->dnrpipe);
+				printf(", dummynet queue (%d %d)", s->dnpipe,
+				    s->dnrpipe);
 		}
 		if (s->sync_flags & PFSYNC_FLAG_SRCNODE)
 			printf(", source-track");
@@ -420,17 +417,17 @@ print_state(struct pfctl_state *s, int opts)
 		printf("   id: %016jx creatorid: %08x", id, s->creatorid);
 		if (s->rt) {
 			switch (s->rt) {
-				case PF_ROUTETO:
-					printf(" route-to: ");
-					break;
-				case PF_DUPTO:
-					printf(" dup-to: ");
-					break;
-				case PF_REPLYTO:
-					printf(" reply-to: ");
-					break;
-				default:
-					printf(" gateway: ");
+			case PF_ROUTETO:
+				printf(" route-to: ");
+				break;
+			case PF_DUPTO:
+				printf(" dup-to: ");
+				break;
+			case PF_REPLYTO:
+				printf(" reply-to: ");
+				break;
+			default:
+				printf(" gateway: ");
 			}
 			print_host(&s->rt_addr, 0, af, opts);
 			if (s->rt_ifname[0])

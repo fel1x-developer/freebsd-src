@@ -14,42 +14,38 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/rman.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
 
 #include <dev/rtwn/if_rtwnvar.h>
-
 #include <dev/rtwn/pci/rtwn_pci_var.h>
-
-#include <dev/rtwn/rtl8192c/r92c.h>
-
 #include <dev/rtwn/rtl8188e/pci/r88ee.h>
 #include <dev/rtwn/rtl8188e/pci/r88ee_reg.h>
+#include <dev/rtwn/rtl8192c/r92c.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 void
 r88ee_init_bb(struct rtwn_softc *sc)
@@ -58,13 +54,14 @@ r88ee_init_bb(struct rtwn_softc *sc)
 	/* Enable BB and RF. */
 	rtwn_setbits_2(sc, R92C_SYS_FUNC_EN, 0,
 	    R92C_SYS_FUNC_EN_BBRSTB | R92C_SYS_FUNC_EN_BB_GLB_RST |
-	    R92C_SYS_FUNC_EN_DIO_RF);
+		R92C_SYS_FUNC_EN_DIO_RF);
 
 	rtwn_write_1(sc, R92C_RF_CTRL,
 	    R92C_RF_CTRL_EN | R92C_RF_CTRL_RSTB | R92C_RF_CTRL_SDMRSTB);
-	rtwn_write_1(sc, R92C_SYS_FUNC_EN, R92C_SYS_FUNC_EN_PPLL |
-	    R92C_SYS_FUNC_EN_PCIEA | R92C_SYS_FUNC_EN_DIO_PCIE |
-	    R92C_SYS_FUNC_EN_BB_GLB_RST | R92C_SYS_FUNC_EN_BBRSTB);
+	rtwn_write_1(sc, R92C_SYS_FUNC_EN,
+	    R92C_SYS_FUNC_EN_PPLL | R92C_SYS_FUNC_EN_PCIEA |
+		R92C_SYS_FUNC_EN_DIO_PCIE | R92C_SYS_FUNC_EN_BB_GLB_RST |
+		R92C_SYS_FUNC_EN_BBRSTB);
 
 	r88e_init_bb_common(sc);
 }
@@ -90,7 +87,7 @@ r88ee_power_on(struct rtwn_softc *sc)
 	rtwn_write_1(sc, R92C_RSV_CTRL, 0);
 
 	/* Wait for power ready bit */
-	for(ntries = 0; ntries < 5000; ntries++) {
+	for (ntries = 0; ntries < 5000; ntries++) {
 		if (rtwn_read_4(sc, R92C_APS_FSMCO) & R92C_APS_FSMCO_SUS_HOST)
 			break;
 		rtwn_delay(sc, 10);
@@ -109,19 +106,19 @@ r88ee_power_on(struct rtwn_softc *sc)
 	rtwn_setbits_1(sc, R92C_AFE_XTAL_CTRL + 2, 0, 0x80);
 
 	/* Disable HWPDN. */
-	rtwn_setbits_1_shift(sc, R92C_APS_FSMCO,
-	    R92C_APS_FSMCO_APDM_HPDN, 0, 1);
+	rtwn_setbits_1_shift(sc, R92C_APS_FSMCO, R92C_APS_FSMCO_APDM_HPDN, 0,
+	    1);
 
 	/* Disable WL suspend. */
 	rtwn_setbits_1_shift(sc, R92C_APS_FSMCO,
 	    R92C_APS_FSMCO_AFSM_HSUS | R92C_APS_FSMCO_AFSM_PCIE, 0, 1);
 
 	/* Auto-enable WLAN */
-	rtwn_setbits_1_shift(sc, R92C_APS_FSMCO,
-	    0, R92C_APS_FSMCO_APFM_ONMAC, 1);
+	rtwn_setbits_1_shift(sc, R92C_APS_FSMCO, 0, R92C_APS_FSMCO_APFM_ONMAC,
+	    1);
 	for (ntries = 0; ntries < 5000; ntries++) {
 		if (!(rtwn_read_2(sc, R92C_APS_FSMCO) &
-		    R92C_APS_FSMCO_APFM_ONMAC))
+			R92C_APS_FSMCO_APFM_ONMAC))
 			break;
 		rtwn_delay(sc, 10);
 	}
@@ -142,11 +139,10 @@ r88ee_power_on(struct rtwn_softc *sc)
 	/* Enable MAC DMA/WMAC/SCHEDULE/SEC blocks. */
 	rtwn_write_2(sc, R92C_CR, 0);
 	rtwn_setbits_2(sc, R92C_CR, 0,
-	    R92C_CR_HCI_TXDMA_EN | R92C_CR_TXDMA_EN |
-	    R92C_CR_HCI_RXDMA_EN | R92C_CR_RXDMA_EN |
-	    R92C_CR_PROTOCOL_EN | R92C_CR_SCHEDULE_EN |
-	    ((sc->sc_hwcrypto != RTWN_CRYPTO_SW) ? R92C_CR_ENSEC : 0) |
-	    R92C_CR_CALTMR_EN);
+	    R92C_CR_HCI_TXDMA_EN | R92C_CR_TXDMA_EN | R92C_CR_HCI_RXDMA_EN |
+		R92C_CR_RXDMA_EN | R92C_CR_PROTOCOL_EN | R92C_CR_SCHEDULE_EN |
+		((sc->sc_hwcrypto != RTWN_CRYPTO_SW) ? R92C_CR_ENSEC : 0) |
+		R92C_CR_CALTMR_EN);
 
 	rtwn_write_4(sc, R92C_INT_MIG, 0);
 	rtwn_write_4(sc, R92C_MCUTST_1, 0);
@@ -190,9 +186,8 @@ r88ee_power_off(struct rtwn_softc *sc)
 
 	/* Reset MAC TRX */
 	rtwn_write_1(sc, R92C_CR,
-	    R92C_CR_HCI_TXDMA_EN | R92C_CR_HCI_RXDMA_EN |
-	    R92C_CR_TXDMA_EN | R92C_CR_RXDMA_EN |
-	    R92C_CR_PROTOCOL_EN | R92C_CR_SCHEDULE_EN);
+	    R92C_CR_HCI_TXDMA_EN | R92C_CR_HCI_RXDMA_EN | R92C_CR_TXDMA_EN |
+		R92C_CR_RXDMA_EN | R92C_CR_PROTOCOL_EN | R92C_CR_SCHEDULE_EN);
 
 	/* Disable h/w encryption. */
 	rtwn_setbits_1_shift(sc, R92C_CR, R92C_CR_ENSEC, 0, 1);
@@ -220,13 +215,12 @@ r88ee_power_off(struct rtwn_softc *sc)
 	rtwn_setbits_1(sc, R92C_LPLDO_CTRL, 0, R92C_LPLDO_CTRL_SLEEP);
 
 	/* Turn off MAC by HW state machine */
-	rtwn_setbits_1_shift(sc, R92C_APS_FSMCO, 0,
-	    R92C_APS_FSMCO_APFM_OFF, 1);
+	rtwn_setbits_1_shift(sc, R92C_APS_FSMCO, 0, R92C_APS_FSMCO_APFM_OFF, 1);
 
 	for (ntries = 0; ntries < 10; ntries++) {
 		/* Wait until it will be disabled. */
 		if ((rtwn_read_2(sc, R92C_APS_FSMCO) &
-		    R92C_APS_FSMCO_APFM_OFF) == 0)
+			R92C_APS_FSMCO_APFM_OFF) == 0)
 			break;
 
 		rtwn_delay(sc, 5000);

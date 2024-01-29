@@ -27,15 +27,15 @@
 #ifndef _LD_COMMON_H_
 #define _LD_COMMON_H_
 
-#define	TARGET_ELF_NAME	"target"
-#define	TARGET_LIBRARY	"libpythagoras.so.0"
+#define TARGET_ELF_NAME "target"
+#define TARGET_LIBRARY "libpythagoras.so.0"
 
-void	expect_success(int binary, char *senv);
-void	expect_missing_library(int binary, char *senv);
+void expect_success(int binary, char *senv);
+void expect_missing_library(int binary, char *senv);
 
-void	try_to_run(int binary, int expected_exit_status, char * const *env,
-	    const char *expected_out, const char *expected_err);
-int	opendir_fd(const char *name);
-int	opendirat(int parent, const char *name);
+void try_to_run(int binary, int expected_exit_status, char *const *env,
+    const char *expected_out, const char *expected_err);
+int opendir_fd(const char *name);
+int opendirat(int parent, const char *name);
 
 #endif /* _LD_COMMON_H_ */

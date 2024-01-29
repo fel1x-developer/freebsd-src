@@ -31,19 +31,18 @@
 #ifndef _ARM_PMU_H_
 #define _ARM_PMU_H_
 
-#define	MAX_RLEN	MAXCPU
+#define MAX_RLEN MAXCPU
 
 struct pmu_intr {
-	struct resource	*res;
-	void		*ih;
-	int		cpuid;
+	struct resource *res;
+	void *ih;
+	int cpuid;
 };
 
 struct pmu_softc {
-	device_t		dev;
-	struct pmu_intr		irq[MAX_RLEN];
+	device_t dev;
+	struct pmu_intr irq[MAX_RLEN];
 };
-
 
 int pmu_attach(device_t dev);
 

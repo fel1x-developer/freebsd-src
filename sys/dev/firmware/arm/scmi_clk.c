@@ -36,23 +36,23 @@
 #include <sys/module.h>
 
 #include <dev/clk/clk.h>
-#include <dev/fdt/simplebus.h>
 #include <dev/fdt/fdt_common.h>
+#include <dev/fdt/simplebus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
 #include "scmi.h"
-#include "scmi_protocols.h"
 #include "scmi_clk.h"
+#include "scmi_protocols.h"
 
 struct scmi_clk_softc {
-	device_t	dev;
-	device_t	scmi;
-	struct clkdom	*clkdom;
+	device_t dev;
+	device_t scmi;
+	struct clkdom *clkdom;
 };
 
 struct scmi_clknode_softc {
-	device_t	dev;
-	int		clock_id;
+	device_t dev;
+	int clock_id;
 };
 
 static int __unused
@@ -179,9 +179,9 @@ scmi_clknode_set_freq(struct clknode *clk, uint64_t fin, uint64_t *fout,
 
 static clknode_method_t scmi_clknode_methods[] = {
 	/* Device interface */
-	CLKNODEMETHOD(clknode_init,		scmi_clknode_init),
-	CLKNODEMETHOD(clknode_recalc_freq,	scmi_clknode_recalc_freq),
-	CLKNODEMETHOD(clknode_set_freq,		scmi_clknode_set_freq),
+	CLKNODEMETHOD(clknode_init, scmi_clknode_init),
+	CLKNODEMETHOD(clknode_recalc_freq, scmi_clknode_recalc_freq),
+	CLKNODEMETHOD(clknode_set_freq, scmi_clknode_set_freq),
 	CLKNODEMETHOD_END
 };
 
@@ -318,8 +318,7 @@ scmi_clk_discover(struct scmi_clk_softc *sc)
 	if (out.status != 0)
 		return (ENXIO);
 
-	nclocks = (out.attributes & CLK_ATTRS_NCLOCKS_M) >>
-	    CLK_ATTRS_NCLOCKS_S;
+	nclocks = (out.attributes & CLK_ATTRS_NCLOCKS_M) >> CLK_ATTRS_NCLOCKS_S;
 
 	device_printf(sc->dev, "Found %d clocks.\n", nclocks);
 
@@ -414,10 +413,9 @@ scmi_clk_detach(device_t dev)
 
 static device_method_t scmi_clk_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		scmi_clk_probe),
-	DEVMETHOD(device_attach,	scmi_clk_attach),
-	DEVMETHOD(device_detach,	scmi_clk_detach),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, scmi_clk_probe),
+	DEVMETHOD(device_attach, scmi_clk_attach),
+	DEVMETHOD(device_detach, scmi_clk_detach), DEVMETHOD_END
 };
 
 static driver_t scmi_clk_driver = {

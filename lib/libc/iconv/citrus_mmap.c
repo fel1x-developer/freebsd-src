@@ -28,9 +28,8 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
-#include <sys/mman.h>
 #include <sys/types.h>
+#include <sys/mman.h>
 #include <sys/stat.h>
 
 #include <assert.h>
@@ -41,15 +40,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "un-namespace.h"
 
+#include "citrus_mmap.h"
 #include "citrus_namespace.h"
 #include "citrus_region.h"
-#include "citrus_mmap.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 int
-_citrus_map_file(struct _citrus_region * __restrict r,
-    const char * __restrict path)
+_citrus_map_file(struct _citrus_region *__restrict r,
+    const char *__restrict path)
 {
 	struct stat st;
 	void *head;
@@ -62,7 +62,7 @@ _citrus_map_file(struct _citrus_region * __restrict r,
 	if ((fd = _open(path, O_RDONLY | O_CLOEXEC)) == -1)
 		return (errno);
 
-	if (_fstat(fd, &st)  == -1) {
+	if (_fstat(fd, &st) == -1) {
 		ret = errno;
 		goto error;
 	}
@@ -71,7 +71,7 @@ _citrus_map_file(struct _citrus_region * __restrict r,
 		goto error;
 	}
 
-	head = mmap(NULL, (size_t)st.st_size, PROT_READ, MAP_FILE|MAP_PRIVATE,
+	head = mmap(NULL, (size_t)st.st_size, PROT_READ, MAP_FILE | MAP_PRIVATE,
 	    fd, (off_t)0);
 	if (head == MAP_FAILED) {
 		ret = errno;

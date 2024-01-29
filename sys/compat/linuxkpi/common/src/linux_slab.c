@@ -25,15 +25,16 @@
  */
 
 #include <sys/cdefs.h>
-#include <linux/slab.h>
-#include <linux/rcupdate.h>
-#include <linux/kernel.h>
-#include <linux/irq_work.h>
-#include <linux/llist.h>
-
 #include <sys/param.h>
 #include <sys/taskqueue.h>
+
 #include <vm/uma.h>
+
+#include <linux/irq_work.h>
+#include <linux/kernel.h>
+#include <linux/llist.h>
+#include <linux/rcupdate.h>
+#include <linux/slab.h>
 
 struct linux_kmem_rcu {
 	struct rcu_head rcu_head;
@@ -49,23 +50,22 @@ struct linux_kmem_cache {
 	struct task cache_task;
 };
 
-#define	LINUX_KMEM_TO_RCU(c, m)					\
-	((struct linux_kmem_rcu *)((char *)(m) +		\
-	(c)->cache_size - sizeof(struct linux_kmem_rcu)))
+#define LINUX_KMEM_TO_RCU(c, m)                                    \
+	((struct linux_kmem_rcu *)((char *)(m) + (c)->cache_size - \
+	    sizeof(struct linux_kmem_rcu)))
 
-#define	LINUX_RCU_TO_KMEM(r)					\
+#define LINUX_RCU_TO_KMEM(r)                                    \
 	((void *)((char *)(r) + sizeof(struct linux_kmem_rcu) - \
-	(r)->cache->cache_size))
+	    (r)->cache->cache_size))
 
 static LLIST_HEAD(linux_kfree_async_list);
 
-static void	lkpi_kmem_cache_free_async_fn(void *, int);
+static void lkpi_kmem_cache_free_async_fn(void *, int);
 
 void *
 lkpi_kmem_cache_alloc(struct linux_kmem_cache *c, gfp_t flags)
 {
-	return (uma_zalloc_arg(c->cache_zone, c,
-	    linux_check_m_flags(flags)));
+	return (uma_zalloc_arg(c->cache_zone, c, linux_check_m_flags(flags)));
 }
 
 void *
@@ -97,8 +97,8 @@ linux_kmem_ctor(void *mem, int size, void *arg, int flags)
 static void
 linux_kmem_cache_free_rcu_callback(struct rcu_head *head)
 {
-	struct linux_kmem_rcu *rcu =
-	    container_of(head, struct linux_kmem_rcu, rcu_head);
+	struct linux_kmem_rcu *rcu = container_of(head, struct linux_kmem_rcu,
+	    rcu_head);
 
 	uma_zfree(rcu->cache->cache_zone, LINUX_RCU_TO_KMEM(rcu));
 }
@@ -122,17 +122,15 @@ linux_kmem_cache_create(const char *name, size_t size, size_t align,
 		size += sizeof(struct linux_kmem_rcu);
 
 		/* create cache_zone */
-		c->cache_zone = uma_zcreate(name, size,
-		    linux_kmem_ctor, NULL, NULL, NULL,
-		    align, UMA_ZONE_ZINIT);
+		c->cache_zone = uma_zcreate(name, size, linux_kmem_ctor, NULL,
+		    NULL, NULL, align, UMA_ZONE_ZINIT);
 	} else {
 		/* make room for async task list items */
 		size = MAX(size, sizeof(struct llist_node));
 
 		/* create cache_zone */
 		c->cache_zone = uma_zcreate(name, size,
-		    ctor ? linux_kmem_ctor : NULL, NULL,
-		    NULL, NULL, align, 0);
+		    ctor ? linux_kmem_ctor : NULL, NULL, NULL, NULL, align, 0);
 	}
 
 	c->cache_flags = flags;
@@ -164,7 +162,7 @@ lkpi_kmem_cache_free_async_fn(void *context, int pending)
 	struct llist_node *freed, *next;
 
 	llist_for_each_safe(freed, next, llist_del_all(&c->cache_items))
-		lkpi_kmem_cache_free_sync(c, freed);
+	    lkpi_kmem_cache_free_sync(c, freed);
 }
 
 static inline void
@@ -211,11 +209,11 @@ linux_kfree_async_fn(void *context, int pending)
 {
 	struct llist_node *freed;
 
-	while((freed = llist_del_first(&linux_kfree_async_list)) != NULL)
+	while ((freed = llist_del_first(&linux_kfree_async_list)) != NULL)
 		kfree(freed);
 }
-static struct task linux_kfree_async_task =
-    TASK_INITIALIZER(0, linux_kfree_async_fn, &linux_kfree_async_task);
+static struct task linux_kfree_async_task = TASK_INITIALIZER(0,
+    linux_kfree_async_fn, &linux_kfree_async_task);
 
 void
 linux_kfree_async(void *addr)

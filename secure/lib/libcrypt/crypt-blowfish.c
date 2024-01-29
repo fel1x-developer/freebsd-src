@@ -51,11 +51,13 @@
  * and updated by Xin Li <delphij@FreeBSD.org>
  */
 
+#include <sys/types.h>
+
+#include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
 #include <string.h>
-#include <pwd.h>
+
 #include "blowfish.h"
 #include "crypt.h"
 
@@ -65,33 +67,26 @@
  */
 
 #define BCRYPT_VERSION '2'
-#define BCRYPT_MAXSALT 16	/* Precomputation is just so nice */
-#define BCRYPT_BLOCKS 6		/* Ciphertext blocks */
-#define BCRYPT_MINLOGROUNDS 4	/* we have log2(rounds) in salt */
-
+#define BCRYPT_MAXSALT 16     /* Precomputation is just so nice */
+#define BCRYPT_BLOCKS 6	      /* Ciphertext blocks */
+#define BCRYPT_MINLOGROUNDS 4 /* we have log2(rounds) in salt */
 
 static void encode_base64(u_int8_t *, u_int8_t *, u_int16_t);
 static void decode_base64(u_int8_t *, u_int16_t, const u_int8_t *);
 
 const static u_int8_t Base64Code[] =
-"./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    "./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-const static u_int8_t index_64[128] = {
-	255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-	255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-	255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-	255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-	255, 255, 255, 255, 255, 255, 0, 1, 54, 55,
-	56, 57, 58, 59, 60, 61, 62, 63, 255, 255,
-	255, 255, 255, 255, 255, 2, 3, 4, 5, 6,
-	7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
-	17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,
-	255, 255, 255, 255, 255, 255, 28, 29, 30,
-	31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
-	41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
-	51, 52, 53, 255, 255, 255, 255, 255
-};
-#define CHAR64(c)  ( (c) > 127 ? 255 : index_64[(c)])
+const static u_int8_t index_64[128] = { 255, 255, 255, 255, 255, 255, 255, 255,
+	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 1, 54, 55, 56, 57,
+	58, 59, 60, 61, 62, 63, 255, 255, 255, 255, 255, 255, 255, 2, 3, 4, 5,
+	6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+	25, 26, 27, 255, 255, 255, 255, 255, 255, 28, 29, 30, 31, 32, 33, 34,
+	35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52,
+	53, 255, 255, 255, 255, 255 };
+#define CHAR64(c) ((c) > 127 ? 255 : index_64[(c)])
 
 static void
 decode_base64(u_int8_t *buffer, u_int16_t len, const u_int8_t *data)
@@ -158,20 +153,20 @@ crypt_blowfish(const char *key, const char *salt, char *buffer)
 
 		/* Check for minor versions */
 		if (salt[1] != '$') {
-			 switch (salt[1]) {
-			 case 'a':	/* 'ab' should not yield the same as 'abab' */
-			 case 'b':	/* cap input length at 72 bytes */
-			 case 'y':	/* same as 'b', for compatibility
-					 * with openwall crypt_blowfish
-					 */
-				 minr = salt[1];
-				 salt++;
-				 break;
-			 default:
-				 return (-1);
-			 }
+			switch (salt[1]) {
+			case 'a': /* 'ab' should not yield the same as 'abab' */
+			case 'b': /* cap input length at 72 bytes */
+			case 'y': /* same as 'b', for compatibility
+				   * with openwall crypt_blowfish
+				   */
+				minr = salt[1];
+				salt++;
+				break;
+			default:
+				return (-1);
+			}
 		} else
-			 minr = 0;
+			minr = 0;
 
 		/* Discard version + "$" identifier */
 		salt += 2;
@@ -187,7 +182,8 @@ crypt_blowfish(const char *key, const char *salt, char *buffer)
 		logr = strtonum(arounds, BCRYPT_MINLOGROUNDS, 31, NULL);
 		if (logr == 0)
 			return (-1);
-		/* Computer power doesn't increase linearly, 2^x should be fine */
+		/* Computer power doesn't increase linearly, 2^x should be fine
+		 */
 		rounds = 1U << logr;
 
 		/* Discard num rounds + "$" identifier */
@@ -198,7 +194,7 @@ crypt_blowfish(const char *key, const char *salt, char *buffer)
 		return (-1);
 
 	/* We dont want the base64 salt but the raw data */
-	decode_base64(csalt, BCRYPT_MAXSALT, (const u_int8_t *) salt);
+	decode_base64(csalt, BCRYPT_MAXSALT, (const u_int8_t *)salt);
 	salt_len = BCRYPT_MAXSALT;
 	if (minr <= 'a')
 		key_len = (u_int8_t)(strlen(key) + (minr >= 'a' ? 1 : 0));
@@ -215,17 +211,18 @@ crypt_blowfish(const char *key, const char *salt, char *buffer)
 
 	/* Setting up S-Boxes and Subkeys */
 	Blowfish_initstate(&state);
-	Blowfish_expandstate(&state, csalt, salt_len,
-	    (const u_int8_t *) key, key_len);
+	Blowfish_expandstate(&state, csalt, salt_len, (const u_int8_t *)key,
+	    key_len);
 	for (k = 0; k < rounds; k++) {
-		Blowfish_expand0state(&state, (const u_int8_t *) key, key_len);
+		Blowfish_expand0state(&state, (const u_int8_t *)key, key_len);
 		Blowfish_expand0state(&state, csalt, salt_len);
 	}
 
 	/* This can be precomputed later */
 	j = 0;
 	for (i = 0; i < BCRYPT_BLOCKS; i++)
-		cdata[i] = Blowfish_stream2word(ciphertext, 4 * BCRYPT_BLOCKS, &j);
+		cdata[i] = Blowfish_stream2word(ciphertext, 4 * BCRYPT_BLOCKS,
+		    &j);
 
 	/* Now do the encryption */
 	for (k = 0; k < 64; k++)
@@ -240,7 +237,6 @@ crypt_blowfish(const char *key, const char *salt, char *buffer)
 		cdata[i] = cdata[i] >> 8;
 		ciphertext[4 * i + 0] = cdata[i] & 0xff;
 	}
-
 
 	*buffer++ = '$';
 	*buffer++ = BCRYPT_VERSION;

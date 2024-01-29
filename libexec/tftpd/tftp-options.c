@@ -31,8 +31,8 @@
 #include <sys/sysctl.h>
 
 #include <netinet/in.h>
-#include <arpa/tftp.h>
 
+#include <arpa/tftp.h>
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -40,23 +40,22 @@
 #include <string.h>
 #include <syslog.h>
 
-#include "tftp-utils.h"
 #include "tftp-io.h"
 #include "tftp-options.h"
+#include "tftp-utils.h"
 
 /*
  * Option handlers
  */
 
-struct options options[] = {
-	{ "tsize",	NULL, NULL, NULL /* option_tsize */, 1 },
-	{ "timeout",	NULL, NULL, option_timeout, 1 },
-	{ "blksize",	NULL, NULL, option_blksize, 1 },
-	{ "blksize2",	NULL, NULL, option_blksize2, 0 },
-	{ "rollover",	NULL, NULL, option_rollover, 0 },
-	{ "windowsize",	NULL, NULL, option_windowsize, 1 },
-	{ NULL,		NULL, NULL, NULL, 0 }
-};
+struct options options[] = { { "tsize", NULL, NULL, NULL /* option_tsize */,
+				 1 },
+	{ "timeout", NULL, NULL, option_timeout, 1 },
+	{ "blksize", NULL, NULL, option_blksize, 1 },
+	{ "blksize2", NULL, NULL, option_blksize2, 0 },
+	{ "rollover", NULL, NULL, option_rollover, 0 },
+	{ "windowsize", NULL, NULL, option_windowsize, 1 },
+	{ NULL, NULL, NULL, NULL, 0 } };
 
 /* By default allow them */
 int options_rfc_enabled = 1;
@@ -177,7 +176,7 @@ option_timeout(int peer)
 
 	if (debug & DEBUG_OPTIONS)
 		tftp_log(LOG_DEBUG, "Setting timeout to '%s'",
-			options[OPT_TIMEOUT].o_reply);
+		    options[OPT_TIMEOUT].o_reply);
 
 	return (0);
 }
@@ -189,8 +188,8 @@ option_rollover(int peer)
 	if (options[OPT_ROLLOVER].o_request == NULL)
 		return (0);
 
-	if (strcmp(options[OPT_ROLLOVER].o_request, "0") != 0
-	 && strcmp(options[OPT_ROLLOVER].o_request, "1") != 0) {
+	if (strcmp(options[OPT_ROLLOVER].o_request, "0") != 0 &&
+	    strcmp(options[OPT_ROLLOVER].o_request, "1") != 0) {
 		tftp_log(acting_as_client ? LOG_ERR : LOG_WARNING,
 		    "Bad value for rollover, "
 		    "should be either 0 or 1, received '%s', "
@@ -206,7 +205,7 @@ option_rollover(int peer)
 
 	if (debug & DEBUG_OPTIONS)
 		tftp_log(LOG_DEBUG, "Setting rollover to '%s'",
-			options[OPT_ROLLOVER].o_reply);
+		    options[OPT_ROLLOVER].o_reply);
 
 	return (0);
 }
@@ -222,8 +221,8 @@ option_blksize(int peer)
 
 	/* maximum size of an UDP packet according to the system */
 	len = sizeof(maxdgram);
-	if (sysctlbyname("net.inet.udp.maxdgram",
-	    &maxdgram, &len, NULL, 0) < 0) {
+	if (sysctlbyname("net.inet.udp.maxdgram", &maxdgram, &len, NULL, 0) <
+	    0) {
 		tftp_log(LOG_ERR, "sysctl: net.inet.udp.maxdgram");
 		return (acting_as_client ? 1 : 0);
 	}
@@ -233,8 +232,7 @@ option_blksize(int peer)
 	if (size < BLKSIZE_MIN || size > BLKSIZE_MAX) {
 		if (acting_as_client) {
 			tftp_log(LOG_ERR,
-			    "Invalid blocksize (%d bytes), aborting",
-			    size);
+			    "Invalid blocksize (%d bytes), aborting", size);
 			send_error(peer, EBADOP);
 			return (1);
 		} else {
@@ -250,14 +248,16 @@ option_blksize(int peer)
 			tftp_log(LOG_ERR,
 			    "Invalid blocksize (%d bytes), "
 			    "net.inet.udp.maxdgram sysctl limits it to "
-			    "%ld bytes.\n", size, maxdgram);
+			    "%ld bytes.\n",
+			    size, maxdgram);
 			send_error(peer, EBADOP);
 			return (1);
 		} else {
 			tftp_log(LOG_WARNING,
 			    "Invalid blocksize (%d bytes), "
 			    "net.inet.udp.maxdgram sysctl limits it to "
-			    "%ld bytes.\n", size, maxdgram);
+			    "%ld bytes.\n",
+			    size, maxdgram);
 			size = maxdgram;
 			/* No reason to return */
 		}
@@ -276,29 +276,28 @@ option_blksize(int peer)
 int
 option_blksize2(int peer __unused)
 {
-	u_long	maxdgram;
-	int	size, i;
-	size_t	len;
+	u_long maxdgram;
+	int size, i;
+	size_t len;
 
-	int sizes[] = {
-		8, 16, 32, 64, 128, 256, 512, 1024,
-		2048, 4096, 8192, 16384, 32768, 0
-	};
+	int sizes[] = { 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
+		16384, 32768, 0 };
 
 	if (options[OPT_BLKSIZE2].o_request == NULL)
 		return (0);
 
 	/* maximum size of an UDP packet according to the system */
 	len = sizeof(maxdgram);
-	if (sysctlbyname("net.inet.udp.maxdgram",
-	    &maxdgram, &len, NULL, 0) < 0) {
+	if (sysctlbyname("net.inet.udp.maxdgram", &maxdgram, &len, NULL, 0) <
+	    0) {
 		tftp_log(LOG_ERR, "sysctl: net.inet.udp.maxdgram");
 		return (acting_as_client ? 1 : 0);
 	}
 
 	size = atoi(options[OPT_BLKSIZE2].o_request);
 	for (i = 0; sizes[i] != 0; i++) {
-		if (size == sizes[i]) break;
+		if (size == sizes[i])
+			break;
 	}
 	if (sizes[i] == 0) {
 		tftp_log(LOG_INFO,
@@ -307,12 +306,14 @@ option_blksize2(int peer __unused)
 	}
 
 	if (size > (int)maxdgram) {
-		for (i = 0; sizes[i+1] != 0; i++) {
-			if ((int)maxdgram < sizes[i+1]) break;
+		for (i = 0; sizes[i + 1] != 0; i++) {
+			if ((int)maxdgram < sizes[i + 1])
+				break;
 		}
 		tftp_log(LOG_INFO,
 		    "Invalid blocksize2 (%d bytes), net.inet.udp.maxdgram "
-		    "sysctl limits it to %ld bytes.\n", size, maxdgram);
+		    "sysctl limits it to %ld bytes.\n",
+		    size, maxdgram);
 		size = sizes[i];
 		/* No need to return */
 	}
@@ -339,8 +340,7 @@ option_windowsize(int peer)
 	if (size < WINDOWSIZE_MIN || size > WINDOWSIZE_MAX) {
 		if (acting_as_client) {
 			tftp_log(LOG_ERR,
-			    "Invalid windowsize (%d blocks), aborting",
-			    size);
+			    "Invalid windowsize (%d blocks), aborting", size);
 			send_error(peer, EBADOP);
 			return (1);
 		} else {
@@ -366,14 +366,16 @@ option_windowsize(int peer)
  * Append the available options to the header
  */
 uint16_t
-make_options(int peer __unused, char *buffer, uint16_t size) {
-	int	i;
-	char	*value;
+make_options(int peer __unused, char *buffer, uint16_t size)
+{
+	int i;
+	char *value;
 	const char *option;
 	uint16_t length;
 	uint16_t returnsize = 0;
 
-	if (!options_rfc_enabled) return (0);
+	if (!options_rfc_enabled)
+		return (0);
 
 	for (i = 0; options[i].o_type != NULL; i++) {
 		if (options[i].rfc == 0 && !options_extra_enabled)
@@ -412,10 +414,11 @@ make_options(int peer __unused, char *buffer, uint16_t size) {
 int
 parse_options(int peer, char *buffer, uint16_t size)
 {
-	int	i, options_failed;
-	char	*c, *cp, *option, *value;
+	int i, options_failed;
+	char *c, *cp, *option, *value;
 
-	if (!options_rfc_enabled) return (0);
+	if (!options_rfc_enabled)
+		return (0);
 
 	/* Parse the options */
 	cp = buffer;
@@ -430,11 +433,12 @@ parse_options(int peer, char *buffer, uint16_t size)
 		cp += i;
 
 		/* We are at the end */
-		if (*option == '\0') break;
+		if (*option == '\0')
+			break;
 
 		if (debug & DEBUG_OPTIONS)
-			tftp_log(LOG_DEBUG,
-			    "option: '%s' value: '%s'", option, value);
+			tftp_log(LOG_DEBUG, "option: '%s' value: '%s'", option,
+			    value);
 
 		for (c = option; *c; c++)
 			if (isupper(*c))
@@ -457,8 +461,7 @@ parse_options(int peer, char *buffer, uint16_t size)
 			}
 		}
 		if (options[i].o_type == NULL)
-			tftp_log(LOG_WARNING,
-			    "Unknown option: '%s'", option);
+			tftp_log(LOG_WARNING, "Unknown option: '%s'", option);
 
 		size -= strlen(option) + strlen(value) + 2;
 	}

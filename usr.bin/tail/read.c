@@ -32,21 +32,18 @@
  * SUCH DAMAGE.
  */
 
-
-
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include <casper/cap_fileargs.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <libcasper.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <libcasper.h>
-#include <casper/cap_fileargs.h>
 
 #include "extern.h"
 
@@ -89,7 +86,7 @@ bytes(FILE *fp, const char *fn, off_t off)
 			if (*t == '\n' && len) {
 				WR(t + 1, len);
 				len = 0;
-		}
+			}
 		if (wrap) {
 			tlen = len;
 			for (t = ep - 1, len = 0; t >= p; --t, ++len)
@@ -159,7 +156,7 @@ lines(FILE *fp, const char *fn, off_t off)
 			if ((int)llines[recno].blen < cnt) {
 				llines[recno].blen = cnt + 256;
 				if ((llines[recno].l = realloc(llines[recno].l,
-				    llines[recno].blen)) == NULL)
+					 llines[recno].blen)) == NULL)
 					err(1, "failed to allocate memory");
 			}
 			bcopy(sp, llines[recno].l, llines[recno].len = cnt);

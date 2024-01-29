@@ -31,11 +31,10 @@
  */
 
 #include <dev/mlx5/driver.h>
-
 #include <dev/mlx5/mlx5_core/mlx5_core.h>
+#include <dev/mlx5/mlx5_fpga/core.h>
 #include <dev/mlx5/mlx5_fpga/ipsec.h>
 #include <dev/mlx5/mlx5_fpga/sdk.h>
-#include <dev/mlx5/mlx5_fpga/core.h>
 
 #define SBU_QP_QUEUE_SIZE 8
 
@@ -75,7 +74,8 @@ struct mlx5_fpga_ipsec {
 	struct mlx5_fpga_conn *conn;
 };
 
-static bool mlx5_fpga_is_ipsec_device(struct mlx5_core_dev *mdev)
+static bool
+mlx5_fpga_is_ipsec_device(struct mlx5_core_dev *mdev)
 {
 	if (!mdev->fpga || !MLX5_CAP_GEN(mdev, fpga))
 		return false;
@@ -91,24 +91,24 @@ static bool mlx5_fpga_is_ipsec_device(struct mlx5_core_dev *mdev)
 	return true;
 }
 
-static void mlx5_fpga_ipsec_send_complete(struct mlx5_fpga_conn *conn,
-					  struct mlx5_fpga_device *fdev,
-					  struct mlx5_fpga_dma_buf *buf,
-					  u8 status)
+static void
+mlx5_fpga_ipsec_send_complete(struct mlx5_fpga_conn *conn,
+    struct mlx5_fpga_device *fdev, struct mlx5_fpga_dma_buf *buf, u8 status)
 {
 	struct mlx5_ipsec_command_context *context;
 
 	if (status) {
 		context = container_of(buf, struct mlx5_ipsec_command_context,
-				       buf);
-		mlx5_fpga_warn(fdev, "IPSec command send failed with status %u\n",
-			       status);
+		    buf);
+		mlx5_fpga_warn(fdev,
+		    "IPSec command send failed with status %u\n", status);
 		context->status = MLX5_FPGA_IPSEC_SACMD_SEND_FAIL;
 		complete(&context->complete);
 	}
 }
 
-static inline int syndrome_to_errno(enum mlx5_ipsec_response_syndrome syndrome)
+static inline int
+syndrome_to_errno(enum mlx5_ipsec_response_syndrome syndrome)
 {
 	switch (syndrome) {
 	case MLX5_IPSEC_RESPONSE_SUCCESS:
@@ -123,7 +123,8 @@ static inline int syndrome_to_errno(enum mlx5_ipsec_response_syndrome syndrome)
 	return -EIO;
 }
 
-static void mlx5_fpga_ipsec_recv(void *cb_arg, struct mlx5_fpga_dma_buf *buf)
+static void
+mlx5_fpga_ipsec_recv(void *cb_arg, struct mlx5_fpga_dma_buf *buf)
 {
 	struct mlx5_ipsec_sadb_resp *resp = buf->sg[0].data;
 	struct mlx5_ipsec_command_context *context;
@@ -132,32 +133,33 @@ static void mlx5_fpga_ipsec_recv(void *cb_arg, struct mlx5_fpga_dma_buf *buf)
 	unsigned long flags;
 
 	if (buf->sg[0].size < sizeof(*resp)) {
-		mlx5_fpga_warn(fdev, "Short receive from FPGA IPSec: %u < %zu bytes\n",
-			       buf->sg[0].size, sizeof(*resp));
+		mlx5_fpga_warn(fdev,
+		    "Short receive from FPGA IPSec: %u < %zu bytes\n",
+		    buf->sg[0].size, sizeof(*resp));
 		return;
 	}
 
 	mlx5_fpga_dbg(fdev, "mlx5_ipsec recv_cb syndrome %08x sa_id %x\n",
-		      ntohl(resp->syndrome), ntohl(resp->sw_sa_handle));
+	    ntohl(resp->syndrome), ntohl(resp->sw_sa_handle));
 
 	spin_lock_irqsave(&fdev->ipsec->pending_cmds_lock, flags);
 	context = list_first_entry_or_null(&fdev->ipsec->pending_cmds,
-					   struct mlx5_ipsec_command_context,
-					   list);
+	    struct mlx5_ipsec_command_context, list);
 	if (context)
 		list_del(&context->list);
 	spin_unlock_irqrestore(&fdev->ipsec->pending_cmds_lock, flags);
 
 	if (!context) {
-		mlx5_fpga_warn(fdev, "Received IPSec offload response without pending command request\n");
+		mlx5_fpga_warn(fdev,
+		    "Received IPSec offload response without pending command request\n");
 		return;
 	}
 	mlx5_fpga_dbg(fdev, "Handling response for %p\n", context);
 
 	if (context->sa.sw_sa_handle != resp->sw_sa_handle) {
-		mlx5_fpga_err(fdev, "mismatch SA handle. cmd 0x%08x vs resp 0x%08x\n",
-			      ntohl(context->sa.sw_sa_handle),
-			      ntohl(resp->sw_sa_handle));
+		mlx5_fpga_err(fdev,
+		    "mismatch SA handle. cmd 0x%08x vs resp 0x%08x\n",
+		    ntohl(context->sa.sw_sa_handle), ntohl(resp->sw_sa_handle));
 		return;
 	}
 
@@ -166,13 +168,14 @@ static void mlx5_fpga_ipsec_recv(void *cb_arg, struct mlx5_fpga_dma_buf *buf)
 	context->status = MLX5_FPGA_IPSEC_SACMD_COMPLETE;
 
 	if (context->status_code)
-		mlx5_fpga_warn(fdev, "IPSec SADB command failed with syndrome %08x\n",
-			       syndrome);
+		mlx5_fpga_warn(fdev,
+		    "IPSec SADB command failed with syndrome %08x\n", syndrome);
 	complete(&context->complete);
 }
 
-void *mlx5_fpga_ipsec_sa_cmd_exec(struct mlx5_core_dev *mdev,
-				  struct mlx5_accel_ipsec_sa *cmd)
+void *
+mlx5_fpga_ipsec_sa_cmd_exec(struct mlx5_core_dev *mdev,
+    struct mlx5_accel_ipsec_sa *cmd)
 {
 	struct mlx5_ipsec_command_context *context;
 	struct mlx5_fpga_device *fdev = mdev->fpga;
@@ -202,7 +205,7 @@ void *mlx5_fpga_ipsec_sa_cmd_exec(struct mlx5_core_dev *mdev,
 	res = mlx5_fpga_sbu_conn_sendmsg(fdev->ipsec->conn, &context->buf);
 	if (res) {
 		mlx5_fpga_warn(fdev, "Failure sending IPSec command: %d\n",
-			       res);
+		    res);
 		spin_lock_irqsave(&fdev->ipsec->pending_cmds_lock, flags);
 		list_del(&context->list);
 		spin_unlock_irqrestore(&fdev->ipsec->pending_cmds_lock, flags);
@@ -213,14 +216,16 @@ void *mlx5_fpga_ipsec_sa_cmd_exec(struct mlx5_core_dev *mdev,
 	return context;
 }
 
-int mlx5_fpga_ipsec_sa_cmd_wait(void *ctx)
+int
+mlx5_fpga_ipsec_sa_cmd_wait(void *ctx)
 {
 	struct mlx5_ipsec_command_context *context = ctx;
 	int res;
 
-	res = wait_for_completion/*_killable XXXKIB*/(&context->complete);
+	res = wait_for_completion /*_killable XXXKIB*/ (&context->complete);
 	if (res) {
-		mlx5_fpga_warn(context->dev, "Failure waiting for IPSec command response\n");
+		mlx5_fpga_warn(context->dev,
+		    "Failure waiting for IPSec command response\n");
 		return -EINTR;
 	}
 
@@ -233,7 +238,8 @@ int mlx5_fpga_ipsec_sa_cmd_wait(void *ctx)
 	return res;
 }
 
-u32 mlx5_fpga_ipsec_device_caps(struct mlx5_core_dev *mdev)
+u32
+mlx5_fpga_ipsec_device_caps(struct mlx5_core_dev *mdev)
 {
 	struct mlx5_fpga_device *fdev = mdev->fpga;
 	u32 ret = 0;
@@ -258,7 +264,8 @@ u32 mlx5_fpga_ipsec_device_caps(struct mlx5_core_dev *mdev)
 	return ret;
 }
 
-unsigned int mlx5_fpga_ipsec_counters_count(struct mlx5_core_dev *mdev)
+unsigned int
+mlx5_fpga_ipsec_counters_count(struct mlx5_core_dev *mdev)
 {
 	struct mlx5_fpga_device *fdev = mdev->fpga;
 
@@ -266,11 +273,12 @@ unsigned int mlx5_fpga_ipsec_counters_count(struct mlx5_core_dev *mdev)
 		return 0;
 
 	return MLX5_GET(ipsec_extended_cap, fdev->ipsec->caps,
-			number_of_ipsec_counters);
+	    number_of_ipsec_counters);
 }
 
-int mlx5_fpga_ipsec_counters_read(struct mlx5_core_dev *mdev, u64 *counters,
-				  unsigned int counters_count)
+int
+mlx5_fpga_ipsec_counters_read(struct mlx5_core_dev *mdev, u64 *counters,
+    unsigned int counters_count)
 {
 	struct mlx5_fpga_device *fdev = mdev->fpga;
 	unsigned int i;
@@ -283,9 +291,10 @@ int mlx5_fpga_ipsec_counters_read(struct mlx5_core_dev *mdev, u64 *counters,
 		return 0;
 
 	addr = (u64)MLX5_GET(ipsec_extended_cap, fdev->ipsec->caps,
-			     ipsec_counters_addr_low) +
-	       ((u64)MLX5_GET(ipsec_extended_cap, fdev->ipsec->caps,
-			     ipsec_counters_addr_high) << 32);
+		   ipsec_counters_addr_low) +
+	    ((u64)MLX5_GET(ipsec_extended_cap, fdev->ipsec->caps,
+		 ipsec_counters_addr_high)
+		<< 32);
 
 	count = mlx5_fpga_ipsec_counters_count(mdev);
 
@@ -296,10 +305,10 @@ int mlx5_fpga_ipsec_counters_read(struct mlx5_core_dev *mdev, u64 *counters,
 	}
 
 	ret = mlx5_fpga_mem_read(fdev, count * sizeof(u64), addr, data,
-				 MLX5_FPGA_ACCESS_TYPE_DONTCARE);
+	    MLX5_FPGA_ACCESS_TYPE_DONTCARE);
 	if (ret < 0) {
-		mlx5_fpga_err(fdev, "Failed to read IPSec counters from HW: %d\n",
-			      ret);
+		mlx5_fpga_err(fdev,
+		    "Failed to read IPSec counters from HW: %d\n", ret);
 		goto out;
 	}
 	ret = 0;
@@ -310,16 +319,17 @@ int mlx5_fpga_ipsec_counters_read(struct mlx5_core_dev *mdev, u64 *counters,
 	/* Each counter is low word, then high. But each word is big-endian */
 	for (i = 0; i < count; i++)
 		counters[i] = (u64)ntohl(data[i * 2]) |
-			      ((u64)ntohl(data[i * 2 + 1]) << 32);
+		    ((u64)ntohl(data[i * 2 + 1]) << 32);
 
 out:
 	kfree(data);
 	return ret;
 }
 
-int mlx5_fpga_ipsec_init(struct mlx5_core_dev *mdev)
+int
+mlx5_fpga_ipsec_init(struct mlx5_core_dev *mdev)
 {
-	struct mlx5_fpga_conn_attr init_attr = {0};
+	struct mlx5_fpga_conn_attr init_attr = { 0 };
 	struct mlx5_fpga_device *fdev = mdev->fpga;
 	struct mlx5_fpga_conn *conn;
 	int err;
@@ -332,10 +342,11 @@ int mlx5_fpga_ipsec_init(struct mlx5_core_dev *mdev)
 		return -ENOMEM;
 
 	err = mlx5_fpga_get_sbu_caps(fdev, sizeof(fdev->ipsec->caps),
-				     fdev->ipsec->caps);
+	    fdev->ipsec->caps);
 	if (err) {
-		mlx5_fpga_err(fdev, "Failed to retrieve IPSec extended capabilities: %d\n",
-			      err);
+		mlx5_fpga_err(fdev,
+		    "Failed to retrieve IPSec extended capabilities: %d\n",
+		    err);
 		goto error;
 	}
 
@@ -349,8 +360,8 @@ int mlx5_fpga_ipsec_init(struct mlx5_core_dev *mdev)
 	conn = mlx5_fpga_sbu_conn_create(fdev, &init_attr);
 	if (IS_ERR(conn)) {
 		err = PTR_ERR(conn);
-		mlx5_fpga_err(fdev, "Error creating IPSec command connection %d\n",
-			      err);
+		mlx5_fpga_err(fdev,
+		    "Error creating IPSec command connection %d\n", err);
 		goto error;
 	}
 	fdev->ipsec->conn = conn;
@@ -362,7 +373,8 @@ error:
 	return err;
 }
 
-void mlx5_fpga_ipsec_cleanup(struct mlx5_core_dev *mdev)
+void
+mlx5_fpga_ipsec_cleanup(struct mlx5_core_dev *mdev)
 {
 	struct mlx5_fpga_device *fdev = mdev->fpga;
 

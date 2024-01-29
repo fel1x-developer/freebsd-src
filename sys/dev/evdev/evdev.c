@@ -28,6 +28,7 @@
 #include "opt_evdev.h"
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bitstring.h>
 #include <sys/ck.h>
 #include <sys/conf.h>
@@ -39,16 +40,15 @@
 #include <sys/proc.h>
 #include <sys/sx.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
 #include <dev/evdev/evdev.h>
 #include <dev/evdev/evdev_private.h>
 #include <dev/evdev/input.h>
 
 #ifdef EVDEV_DEBUG
-#define	debugf(evdev, fmt, args...)	printf("evdev: " fmt "\n", ##args)
+#define debugf(evdev, fmt, args...) printf("evdev: " fmt "\n", ##args)
 #else
-#define	debugf(evdev, fmt, args...)
+#define debugf(evdev, fmt, args...)
 #endif
 
 #ifdef FEATURE
@@ -58,11 +58,10 @@ FEATURE(evdev_support, "Evdev support in hybrid drivers");
 #endif
 #endif
 
-enum evdev_sparse_result
-{
-	EV_SKIP_EVENT,		/* Event value not changed */
-	EV_REPORT_EVENT,	/* Event value changed */
-	EV_REPORT_MT_SLOT,	/* Event value and MT slot number changed */
+enum evdev_sparse_result {
+	EV_SKIP_EVENT,	   /* Event value not changed */
+	EV_REPORT_EVENT,   /* Event value changed */
+	EV_REPORT_MT_SLOT, /* Event value and MT slot number changed */
 };
 
 MALLOC_DEFINE(M_EVDEV, "evdev", "evdev memory");
@@ -128,7 +127,7 @@ int
 evdev_set_report_size(struct evdev_dev *evdev, size_t report_size)
 {
 	if (report_size > KEY_CNT + REL_CNT + ABS_CNT + MAX_MT_SLOTS * MT_CNT +
-	    MSC_CNT + LED_CNT + SND_CNT + SW_CNT + FF_CNT)
+		MSC_CNT + LED_CNT + SND_CNT + SW_CNT + FF_CNT)
 		return (EINVAL);
 
 	evdev->ev_report_size = report_size;
@@ -165,7 +164,7 @@ evdev_estimate_report_size(struct evdev_dev *evdev)
 		size += res;
 		bit_count(evdev->ev_abs_flags, ABS_MT_FIRST, MT_CNT, &res);
 		if (res > 0) {
-			res++;	/* ABS_MT_SLOT or SYN_MT_REPORT */
+			res++; /* ABS_MT_SLOT or SYN_MT_REPORT */
 			if (bit_test(evdev->ev_abs_flags, ABS_MT_SLOT))
 				/* MT type B */
 				size += res * MAXIMAL_MT_SLOT(evdev);
@@ -192,7 +191,7 @@ evdev_estimate_report_size(struct evdev_dev *evdev)
 
 	/* XXX: FF part is not implemented yet */
 
-	size++;		/* SYN_REPORT */
+	size++; /* SYN_REPORT */
 	return (size);
 }
 
@@ -206,31 +205,26 @@ evdev_sysctl_create(struct evdev_dev *evdev)
 	sysctl_ctx_init(&evdev->ev_sysctl_ctx);
 
 	ev_sysctl_tree = SYSCTL_ADD_NODE_WITH_LABEL(&evdev->ev_sysctl_ctx,
-	    SYSCTL_STATIC_CHILDREN(_kern_evdev_input), OID_AUTO,
-	    ev_unit_str, CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "",
-	    "device index");
+	    SYSCTL_STATIC_CHILDREN(_kern_evdev_input), OID_AUTO, ev_unit_str,
+	    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "", "device index");
 
 	SYSCTL_ADD_STRING(&evdev->ev_sysctl_ctx,
 	    SYSCTL_CHILDREN(ev_sysctl_tree), OID_AUTO, "name", CTLFLAG_RD,
-	    evdev->ev_name, 0,
-	    "Input device name");
+	    evdev->ev_name, 0, "Input device name");
 
 	SYSCTL_ADD_STRUCT(&evdev->ev_sysctl_ctx,
 	    SYSCTL_CHILDREN(ev_sysctl_tree), OID_AUTO, "id", CTLFLAG_RD,
-	    &evdev->ev_id, input_id,
-	    "Input device identification");
+	    &evdev->ev_id, input_id, "Input device identification");
 
 	/* ioctl returns ENOENT if phys is not set. sysctl returns "" here */
 	SYSCTL_ADD_STRING(&evdev->ev_sysctl_ctx,
 	    SYSCTL_CHILDREN(ev_sysctl_tree), OID_AUTO, "phys", CTLFLAG_RD,
-	    evdev->ev_shortname, 0,
-	    "Input device short name");
+	    evdev->ev_shortname, 0, "Input device short name");
 
 	/* ioctl returns ENOENT if uniq is not set. sysctl returns "" here */
 	SYSCTL_ADD_STRING(&evdev->ev_sysctl_ctx,
 	    SYSCTL_CHILDREN(ev_sysctl_tree), OID_AUTO, "uniq", CTLFLAG_RD,
-	    evdev->ev_serial, 0,
-	    "Input device unique number");
+	    evdev->ev_serial, 0, "Input device unique number");
 
 	SYSCTL_ADD_OPAQUE(&evdev->ev_sysctl_ctx,
 	    SYSCTL_CHILDREN(ev_sysctl_tree), OID_AUTO, "props", CTLFLAG_RD,
@@ -244,8 +238,8 @@ evdev_sysctl_create(struct evdev_dev *evdev)
 
 	SYSCTL_ADD_OPAQUE(&evdev->ev_sysctl_ctx,
 	    SYSCTL_CHILDREN(ev_sysctl_tree), OID_AUTO, "key_bits", CTLFLAG_RD,
-	    evdev->ev_key_flags, sizeof(evdev->ev_key_flags),
-	    "", "Input device supported keys");
+	    evdev->ev_key_flags, sizeof(evdev->ev_key_flags), "",
+	    "Input device supported keys");
 
 	SYSCTL_ADD_OPAQUE(&evdev->ev_sysctl_ctx,
 	    SYSCTL_CHILDREN(ev_sysctl_tree), OID_AUTO, "rel_bits", CTLFLAG_RD,
@@ -293,8 +287,8 @@ evdev_register_common(struct evdev_dev *evdev)
 	if (evdev_event_supported(evdev, EV_REP) &&
 	    bit_test(evdev->ev_flags, EVDEV_FLAG_SOFTREPEAT)) {
 		/* Initialize callout */
-		callout_init_mtx(&evdev->ev_rep_callout,
-		    evdev->ev_state_lock, 0);
+		callout_init_mtx(&evdev->ev_rep_callout, evdev->ev_state_lock,
+		    0);
 
 		if (evdev->ev_rep[REP_DELAY] == 0 &&
 		    evdev->ev_rep[REP_PERIOD] == 0) {
@@ -322,7 +316,8 @@ evdev_register_common(struct evdev_dev *evdev)
 	if (ret != 0)
 		goto bail_out;
 
-	/* Create sysctls (for device enumeration without /dev/input access rights) */
+	/* Create sysctls (for device enumeration without /dev/input access
+	 * rights) */
 	evdev_sysctl_create(evdev);
 
 bail_out:
@@ -372,7 +367,8 @@ evdev_unregister(struct evdev_dev *evdev)
 	EVDEV_LIST_LOCK(evdev);
 	evdev->ev_cdev->si_drv1 = NULL;
 	/* Wake up sleepers */
-	CK_SLIST_FOREACH_SAFE(client, &evdev->ev_clients, ec_link, tmp) {
+	CK_SLIST_FOREACH_SAFE(client, &evdev->ev_clients, ec_link, tmp)
+	{
 		evdev_revoke_client(client);
 		evdev_dispose_client(evdev, client);
 		EVDEV_CLIENT_LOCKQ(client);
@@ -406,12 +402,10 @@ evdev_set_id(struct evdev_dev *evdev, uint16_t bustype, uint16_t vendor,
     uint16_t product, uint16_t version)
 {
 
-	evdev->ev_id = (struct input_id) {
-		.bustype = bustype,
+	evdev->ev_id = (struct input_id) { .bustype = bustype,
 		.vendor = vendor,
 		.product = product,
-		.version = version
-	};
+		.version = version };
 }
 
 inline void
@@ -513,7 +507,6 @@ evdev_support_msc(struct evdev_dev *evdev, uint16_t code)
 	KASSERT(code < MSC_CNT, ("invalid evdev msc property"));
 	bit_set(evdev->ev_msc_flags, code);
 }
-
 
 inline void
 evdev_support_led(struct evdev_dev *evdev, uint16_t code)
@@ -759,7 +752,7 @@ evdev_sparse_event(struct evdev_dev *evdev, uint16_t type, uint16_t code,
 			break;
 
 		default:
-			 return (EV_SKIP_EVENT);
+			return (EV_SKIP_EVENT);
 		}
 		break;
 
@@ -804,8 +797,8 @@ evdev_sparse_event(struct evdev_dev *evdev, uint16_t type, uint16_t code,
 				break;
 			/* Don`t repeat MT protocol type B events */
 			last_mt_slot = evdev_mt_get_last_slot(evdev);
-			if (evdev_mt_get_value(evdev, last_mt_slot, code)
-			     == value)
+			if (evdev_mt_get_value(evdev, last_mt_slot, code) ==
+			    value)
 				return (EV_SKIP_EVENT);
 			evdev_mt_set_value(evdev, last_mt_slot, code, value);
 			if (last_mt_slot != CURRENT_MT_SLOT(evdev)) {
@@ -846,8 +839,8 @@ evdev_propagate_event(struct evdev_dev *evdev, uint16_t type, uint16_t code,
 	struct epoch_tracker et;
 	struct evdev_client *client;
 
-	debugf(evdev, "%s pushed event %d/%d/%d",
-	    evdev->ev_shortname, type, code, value);
+	debugf(evdev, "%s pushed event %d/%d/%d", evdev->ev_shortname, type,
+	    code, value);
 
 	EVDEV_LOCK_ASSERT(evdev);
 
@@ -855,11 +848,12 @@ evdev_propagate_event(struct evdev_dev *evdev, uint16_t type, uint16_t code,
 	if (evdev->ev_lock_type == EV_LOCK_INTERNAL)
 		epoch_enter_preempt(INPUT_EPOCH, &et);
 
-	KASSERT(
-	    evdev->ev_lock_type == EV_LOCK_MTX || in_epoch(INPUT_EPOCH) != 0,
+	KASSERT(evdev->ev_lock_type == EV_LOCK_MTX ||
+		in_epoch(INPUT_EPOCH) != 0,
 	    ("Input epoch has not been entered\n"));
 
-	CK_SLIST_FOREACH(client, &evdev->ev_clients, ec_link) {
+	CK_SLIST_FOREACH(client, &evdev->ev_clients, ec_link)
+	{
 		if (evdev->ev_grabber != NULL && evdev->ev_grabber != client)
 			continue;
 
@@ -884,7 +878,7 @@ evdev_send_event(struct evdev_dev *evdev, uint16_t type, uint16_t code,
 	EVDEV_LOCK_ASSERT(evdev);
 
 	evdev_modify_event(evdev, type, code, &value);
-	sparse =  evdev_sparse_event(evdev, type, code, value);
+	sparse = evdev_sparse_event(evdev, type, code, value);
 	switch (sparse) {
 	case EV_REPORT_MT_SLOT:
 		/* report postponed ABS_MT_SLOT */
@@ -908,14 +902,14 @@ evdev_restore_after_kdb(struct evdev_dev *evdev)
 
 	/* Report postponed leds */
 	bit_foreach(evdev->ev_kdb_led_states, LED_CNT, code)
-		evdev_send_event(evdev, EV_LED, code,
-		    !bit_test(evdev->ev_led_states, code));
+	    evdev_send_event(evdev, EV_LED, code,
+		!bit_test(evdev->ev_led_states, code));
 	bit_nclear(evdev->ev_kdb_led_states, 0, LED_MAX);
 
 	/* Release stuck keys (CTRL + ALT + ESC) */
 	evdev_stop_repeat(evdev);
 	bit_foreach(evdev->ev_key_states, KEY_CNT, code)
-		evdev_send_event(evdev, EV_KEY, code, KEY_EVENT_UP);
+	    evdev_send_event(evdev, EV_KEY, code, KEY_EVENT_UP);
 	evdev_send_event(evdev, EV_SYN, SYN_REPORT, 1);
 }
 
@@ -950,10 +944,9 @@ evdev_push_event(struct evdev_dev *evdev, uint16_t type, uint16_t code,
 	if (type == EV_SYN && code == SYN_REPORT &&
 	    bit_test(evdev->ev_abs_flags, ABS_MT_SLOT))
 		evdev_mt_sync_frame(evdev);
-	else
-		if (bit_test(evdev->ev_flags, EVDEV_FLAG_MT_TRACK) &&
-		    evdev_mt_record_event(evdev, type, code, value))
-			goto exit;
+	else if (bit_test(evdev->ev_flags, EVDEV_FLAG_MT_TRACK) &&
+	    evdev_mt_record_event(evdev, type, code, value))
+		goto exit;
 
 	evdev_send_event(evdev, type, code, value);
 exit:
@@ -996,12 +989,12 @@ evdev_inject_event(struct evdev_dev *evdev, uint16_t type, uint16_t code,
 	case EV_REL:
 	case EV_ABS:
 	case EV_SW:
-push:
+	push:
 		if (evdev->ev_lock_type == EV_LOCK_MTX)
 			EVDEV_LOCK(evdev);
 		else if (evdev->ev_lock_type == EV_LOCK_EXT_EPOCH)
 			epoch_enter_preempt(INPUT_EPOCH, &et);
-		ret = evdev_push_event(evdev, type,  code, value);
+		ret = evdev_push_event(evdev, type, code, value);
 		if (evdev->ev_lock_type == EV_LOCK_MTX)
 			EVDEV_UNLOCK(evdev);
 		else if (evdev->ev_lock_type == EV_LOCK_EXT_EPOCH)
@@ -1120,8 +1113,8 @@ evdev_repeat_callout(void *arg)
 
 	if (evdev->ev_rep[REP_PERIOD])
 		callout_reset(&evdev->ev_rep_callout,
-		    evdev->ev_rep[REP_PERIOD] * hz / 1000,
-		    evdev_repeat_callout, evdev);
+		    evdev->ev_rep[REP_PERIOD] * hz / 1000, evdev_repeat_callout,
+		    evdev);
 	else
 		evdev->ev_rep_key = KEY_RESERVED;
 }
@@ -1135,8 +1128,8 @@ evdev_start_repeat(struct evdev_dev *evdev, uint16_t key)
 	if (evdev->ev_rep[REP_DELAY]) {
 		evdev->ev_rep_key = key;
 		callout_reset(&evdev->ev_rep_callout,
-		    evdev->ev_rep[REP_DELAY] * hz / 1000,
-		    evdev_repeat_callout, evdev);
+		    evdev->ev_rep[REP_DELAY] * hz / 1000, evdev_repeat_callout,
+		    evdev);
 	}
 }
 

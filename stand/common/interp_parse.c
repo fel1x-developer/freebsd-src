@@ -15,17 +15,19 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stand.h>
 #include <string.h>
+
 #include "bootstrap.h"
 
-static void	 clean(void);
-static int	 insert(int *argcp, char *buf);
-static char	*variable_lookup(char *name);
+static void clean(void);
+static int insert(int *argcp, char *buf);
+static char *variable_lookup(char *name);
 
-#define PARSE_BUFSIZE	1024	/* maximum size of one element */
-#define MAXARGS		20	/* maximum number of elements */
-static char		*args[MAXARGS];
+#define PARSE_BUFSIZE 1024 /* maximum size of one element */
+#define MAXARGS 20	   /* maximum number of elements */
+static char *args[MAXARGS];
 
 /*
  * parse: accept a string of input and "parse" it for backslash
@@ -47,13 +49,13 @@ static char		*args[MAXARGS];
  * me. - jkh
  */
 
-#define PARSE_FAIL(expr) \
-	if (expr) { \
+#define PARSE_FAIL(expr)                               \
+	if (expr) {                                    \
 		printf("fail at line %d\n", __LINE__); \
-		clean(); \
-		free(copy); \
-		free(buf); \
-		return 1; \
+		clean();                               \
+		free(copy);                            \
+		free(buf);                             \
+		return 1;                              \
 	}
 
 /* Accept the usual delimiters for a variable, returning counterpart */
@@ -168,7 +170,7 @@ parse(int *argc, char ***argv, const char *str)
 				strncpy(buf + i, val, PARSE_BUFSIZE - (i + 1));
 				i += min(len, PARSE_BUFSIZE - 1);
 			}
-			*q = tmp;	/* restore value */
+			*q = tmp; /* restore value */
 			p = q + (token ? 1 : 0);
 			state = STR;
 			break;
@@ -190,13 +192,13 @@ parse(int *argc, char ***argv, const char *str)
 	return 0;
 }
 
-#define MAXARGS	20
+#define MAXARGS 20
 
 /* Clean vector space */
 static void
 clean(void)
 {
-	int		i;
+	int i;
 
 	for (i = 0; i < MAXARGS; i++) {
 		if (args[i] != NULL) {

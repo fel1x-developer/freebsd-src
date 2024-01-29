@@ -48,7 +48,8 @@ kiconv_lookupconv(const char *drvname)
 		drivers = malloc(size);
 		if (drivers == NULL)
 			return (ENOMEM);
-		if (sysctlbyname("kern.iconv.drvlist", drivers, &size, NULL, 0) == -1) {
+		if (sysctlbyname("kern.iconv.drvlist", drivers, &size, NULL,
+			0) == -1) {
 			free(drivers);
 			return (errno);
 		}
@@ -74,11 +75,13 @@ kiconv_lookupcs(const char *tocode, const char *fromcode)
 		csi = malloc(size);
 		if (csi == NULL)
 			return (ENOMEM);
-		if (sysctlbyname("kern.iconv.cslist", csi, &size, NULL, 0) == -1) {
+		if (sysctlbyname("kern.iconv.cslist", csi, &size, NULL, 0) ==
+		    -1) {
 			free(csi);
 			return (errno);
 		}
-		for (i = 0, csip = csi; i < (size/sizeof(*csi)); i++, csip++){
+		for (i = 0, csip = csi; i < (size / sizeof(*csi));
+		     i++, csip++) {
 			if (strcmp(csip->cs_to, tocode) == 0 &&
 			    strcmp(csip->cs_from, fromcode) == 0) {
 				free(csi);

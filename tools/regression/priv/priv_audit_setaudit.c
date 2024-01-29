@@ -35,7 +35,6 @@
 #include <sys/types.h>
 
 #include <bsm/audit.h>
-
 #include <err.h>
 #include <errno.h>
 #include <stdio.h>
@@ -93,15 +92,14 @@ priv_audit_setaudit_addr(int asroot, int injail, struct test *test)
 		expect("priv_audit_setaudit_addr(asroot, !injail)", error, 0,
 		    0);
 	if (!asroot && injail)
-		expect("priv_audit_setaudit_addr(!asroot, injail)", error,
-		    -1, ENOSYS);
+		expect("priv_audit_setaudit_addr(!asroot, injail)", error, -1,
+		    ENOSYS);
 	if (!asroot && !injail)
-		expect("priv_audit_setaudit_addr(!asroot, !injail)", error,
-		    -1, EPERM);
+		expect("priv_audit_setaudit_addr(!asroot, !injail)", error, -1,
+		    EPERM);
 }
 
 void
 priv_audit_setaudit_cleanup(int asroot, int injail, struct test *test)
 {
-
 }

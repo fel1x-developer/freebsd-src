@@ -24,35 +24,32 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <dev/rtwn/if_rtwnvar.h>
-
 #include <dev/rtwn/rtl8812a/r12a_rx_desc.h>
-
 #include <dev/rtwn/rtl8821a/r21a.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 int8_t
 r21a_get_rssi_cck(struct rtwn_softc *sc, void *physt)
@@ -61,7 +58,7 @@ r21a_get_rssi_cck(struct rtwn_softc *sc, void *physt)
 	int8_t lna_idx, rssi;
 
 	lna_idx = (stat->cfosho[0] & 0xe0) >> 5;
-	rssi = -6 - 2*(stat->cfosho[0] & 0x1f);	/* Pout - (2 * VGA_idx) */
+	rssi = -6 - 2 * (stat->cfosho[0] & 0x1f); /* Pout - (2 * VGA_idx) */
 
 	switch (lna_idx) {
 	case 5:

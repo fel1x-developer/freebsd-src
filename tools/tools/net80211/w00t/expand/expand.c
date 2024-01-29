@@ -23,22 +23,25 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <sys/uio.h>
+
 #include <netinet/in.h>
-#include <arpa/inet.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
-#include <string.h>
+
+#include <arpa/inet.h>
+#include <assert.h>
+#include <err.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <err.h>
-#include <assert.h>
 #include <zlib.h>
+
 #include "w00t.h"
 
 enum {
@@ -81,18 +84,18 @@ struct params {
 	unsigned char guess;
 };
 
-int wanted(struct params *p, struct ieee80211_frame *wh, int len)
+int
+wanted(struct params *p, struct ieee80211_frame *wh, int len)
 {
 	char *bssid, *sa;
 
 	if (wh->i_fc[1] & IEEE80211_FC1_DIR_TODS) {
 		bssid = wh->i_addr1;
 		sa = wh->i_addr2;
-	}	
-	else {
+	} else {
 		bssid = wh->i_addr2;
 		sa = wh->i_addr3;
-	}	
+	}
 
 	if (memcmp(bssid, p->ap, 6) != 0)
 		return 0;
@@ -106,10 +109,11 @@ int wanted(struct params *p, struct ieee80211_frame *wh, int len)
 	if (memcmp(p->mac, sa, 6) == 0)
 		return 0;
 
-	return 1;	
+	return 1;
 }
 
-void enque(struct params *p, char **buf, struct ieee80211_frame *wh, int len)
+void
+enque(struct params *p, char **buf, struct ieee80211_frame *wh, int len)
 {
 	struct queue *q = p->q;
 	int qlen = 0;
@@ -127,16 +131,16 @@ void enque(struct params *p, char **buf, struct ieee80211_frame *wh, int len)
 		}
 
 		last = q;
-		q = q->next;	
+		q = q->next;
 	}
 
 	/* need to create slot */
 	if (!q) {
-		q = (struct queue*) malloc(sizeof(*q));
+		q = (struct queue *)malloc(sizeof(*q));
 		if (!q)
 			err(1, "malloc()");
 		memset(q, 0, sizeof(*q));
-	
+
 		/* insert */
 		if (!p->q)
 			p->q = q;
@@ -158,23 +162,25 @@ void enque(struct params *p, char **buf, struct ieee80211_frame *wh, int len)
 	*buf = ret;
 }
 
-void send_packet(struct params *p)
-{       
-        int rc;
+void
+send_packet(struct params *p)
+{
+	int rc;
 
-        rc = inject(p->tx, p->packet, p->packet_len);
-        if (rc == -1)
-                err(1, "inject()");
-        if (rc != p->packet_len) {
-                printf("Wrote %d/%d\n", rc, p->packet_len);
-                exit(1);
-        }
-        
-        if (gettimeofday(&p->last, NULL) == -1)
-                err(1, "gettimeofday()");
+	rc = inject(p->tx, p->packet, p->packet_len);
+	if (rc == -1)
+		err(1, "inject()");
+	if (rc != p->packet_len) {
+		printf("Wrote %d/%d\n", rc, p->packet_len);
+		exit(1);
+	}
+
+	if (gettimeofday(&p->last, NULL) == -1)
+		err(1, "gettimeofday()");
 }
 #include <openssl/rc4.h>
-void send_mcast(struct params *p, unsigned char x)
+void
+send_mcast(struct params *p, unsigned char x)
 {
 	struct ieee80211_frame *wh;
 	short *seq;
@@ -191,41 +197,40 @@ void send_mcast(struct params *p, unsigned char x)
 
 	/* 802.11 */
 	memset(p->packet, 0, sizeof(p->packet));
-	wh = (struct ieee80211_frame*) p->packet;
+	wh = (struct ieee80211_frame *)p->packet;
 	wh->i_fc[0] |= IEEE80211_FC0_TYPE_DATA;
 	wh->i_fc[0] |= IEEE80211_FC0_SUBTYPE_DATA;
 	wh->i_fc[1] |= IEEE80211_FC1_DIR_TODS;
 	wh->i_fc[1] |= IEEE80211_FC1_PROTECTED;
-	
+
 	wh->i_dur[0] = 0x69;
-	
+
 	memcpy(wh->i_addr1, p->ap, 6);
 	memcpy(wh->i_addr2, p->mac, 6);
 	memcpy(wh->i_addr3, p->mcast, 5);
 	wh->i_addr3[5] = x;
 
-	seq = (short*) wh->i_seq;
+	seq = (short *)wh->i_seq;
 	*seq = seqfn(p->seq++, 0);
 
 	/* IV */
-	data = (char*) (wh+1);
-	ptr = (char*) (q->wh+1);
+	data = (char *)(wh + 1);
+	ptr = (char *)(q->wh + 1);
 	memcpy(data, ptr, 3);
 
 	if (p->prga_len == 0) {
-	
+
 		RC4_KEY k;
 		unsigned char key[8];
 
 		memset(&key[3], 0x61, 5);
-		memcpy(key, (q->wh+1), 3);
+		memcpy(key, (q->wh + 1), 3);
 		p->prga_len = 128;
 
 		RC4_set_key(&k, 8, key);
 		memset(p->prga, 0, sizeof(p->prga));
 		RC4(&k, p->prga_len, p->prga, p->prga);
 
-		
 #if 0	
 		int ptl = q->len;
 		char *pt;
@@ -235,7 +240,7 @@ void send_mcast(struct params *p, unsigned char x)
 		p->prga_len = ptl;
 		for (i = 0; i < p->prga_len; i++)
 			p->prga[i] = ptr[i] ^ pt[i];
-#endif			
+#endif
 	}
 
 	/* data */
@@ -248,20 +253,20 @@ void send_mcast(struct params *p, unsigned char x)
 	if (len < sizeof(payload)) {
 		need_frag = len;
 		wh->i_fc[1] |= IEEE80211_FC1_MORE_FRAG;
-	}	
+	}
 #endif
 
 	/* crc */
-	pcrc = (uLong*) (data+len);
+	pcrc = (uLong *)(data + len);
 	*pcrc = crc32(crc, data, len);
 
 	/* wepify */
 	len += 4;
 	for (i = 0; i < (len); i++) {
-		assert( i <= p->prga_len);
+		assert(i <= p->prga_len);
 		data[i] ^= p->prga[i];
 	}
-//	data[i] ^= x;
+	//	data[i] ^= x;
 
 	len += sizeof(*wh);
 	p->packet_len = len + 4;
@@ -272,24 +277,24 @@ void send_mcast(struct params *p, unsigned char x)
 		memset(data, 0, len);
 
 		/* 802.11 */
-		*seq = seqfn(p->seq-1, 1);
+		*seq = seqfn(p->seq - 1, 1);
 		wh->i_fc[1] &= ~IEEE80211_FC1_MORE_FRAG;
 
 		/* data */
 		len = sizeof(payload) - need_frag;
 		assert(len > 0 && len <= (p->prga_len - 4));
 		memcpy(data, &payload[need_frag], len);
-	
+
 		/* crc */
 		crc = crc32(0L, Z_NULL, 0);
 		len = p->prga_len - 4;
-		pcrc = (uLong*) (data+len);
+		pcrc = (uLong *)(data + len);
 		*pcrc = crc32(crc, data, len);
 
 		/* wepify */
 		len += 4;
 		for (i = 0; i < len; i++) {
-			assert( i < p->prga_len);
+			assert(i < p->prga_len);
 			data[i] ^= p->prga[i];
 		}
 
@@ -299,27 +304,30 @@ void send_mcast(struct params *p, unsigned char x)
 	}
 }
 
-void send_queue(struct params *p)
+void
+send_queue(struct params *p)
 {
 	struct queue *q = p->q;
 	int i;
-	
+
 	assert(q);
 	assert(q->live);
 
 	for (i = 0; i < 5; i++) {
 		send_mcast(p, p->guess++);
 	}
-	
+
 	p->state = S_WAIT_RELAY;
 }
 
-void got_mcast(struct params *p, struct ieee80211_frame *wh, int len)
+void
+got_mcast(struct params *p, struct ieee80211_frame *wh, int len)
 {
 	printf("ao\n");
 }
 
-void read_wifi(struct params *p)
+void
+read_wifi(struct params *p)
 {
 	static char *buf = 0;
 	static int buflen = 4096;
@@ -327,11 +335,11 @@ void read_wifi(struct params *p)
 	int rc;
 
 	if (!buf) {
-		buf = (char*) malloc(buflen);
+		buf = (char *)malloc(buflen);
 		if (!buf)
 			err(1, "malloc()");
 	}
-	
+
 	rc = sniff(p->rx, buf, buflen);
 	if (rc == -1)
 		err(1, "sniff()");
@@ -342,7 +350,7 @@ void read_wifi(struct params *p)
 
 	/* relayed macast */
 	if (frame_type(wh, IEEE80211_FC0_TYPE_DATA,
-		       IEEE80211_FC0_SUBTYPE_DATA) &&
+		IEEE80211_FC0_SUBTYPE_DATA) &&
 	    (wh->i_fc[1] & IEEE80211_FC1_DIR_FROMDS) &&
 	    (memcmp(wh->i_addr2, p->ap, 6) == 0) &&
 	    (memcmp(wh->i_addr1, p->mcast, 5) == 0) &&
@@ -353,10 +361,10 @@ void read_wifi(struct params *p)
 
 	/* data */
 	if (frame_type(wh, IEEE80211_FC0_TYPE_DATA,
-		       IEEE80211_FC0_SUBTYPE_DATA)) {
+		IEEE80211_FC0_SUBTYPE_DATA)) {
 		if (!wanted(p, wh, rc))
 			return;
-		
+
 		enque(p, &buf, wh, rc);
 		if (p->state == S_START)
 			send_queue(p);
@@ -364,12 +372,13 @@ void read_wifi(struct params *p)
 	}
 }
 
-void own(struct params *p)
+void
+own(struct params *p)
 {
 	struct timeval tv;
 	struct timeval *to = NULL;
 	fd_set fds;
-	int tout = 10*1000;
+	int tout = 10 * 1000;
 
 	if (p->state == S_WAIT_RELAY) {
 		int el;
@@ -377,7 +386,7 @@ void own(struct params *p)
 		/* check timeout */
 		if (gettimeofday(&tv, NULL) == -1)
 			err(1, "gettimeofday()");
-	
+
 		el = elapsed(&p->last, &tv);
 
 		/* timeout */
@@ -391,32 +400,34 @@ void own(struct params *p)
 			}
 		}
 		el = tout - el;
-		tv.tv_sec = el/1000/1000;
-		tv.tv_usec = el - tv.tv_sec*1000*1000;
+		tv.tv_sec = el / 1000 / 1000;
+		tv.tv_usec = el - tv.tv_sec * 1000 * 1000;
 		to = &tv;
 	}
 
 	FD_ZERO(&fds);
 	FD_SET(p->rx, &fds);
 
-	if (select(p->rx+1, &fds, NULL, NULL, to) == -1)
+	if (select(p->rx + 1, &fds, NULL, NULL, to) == -1)
 		err(1, "select()");
 
 	if (FD_ISSET(p->rx, &fds))
 		read_wifi(p);
 }
 
-void usage(char *name)
+void
+usage(char *name)
 {
 	printf("Usage %s <opts>\n"
 	       "-h\thelp\n"
 	       "-b\t<bssid>\n"
-	       "-t\t<tap>\n"
-	       , name);
+	       "-t\t<tap>\n",
+	    name);
 	exit(1);
 }
 
-int main(int argc, char *argv[])
+int
+main(int argc, char *argv[])
 {
 	struct params p;
 	char *iface = "wlan0";

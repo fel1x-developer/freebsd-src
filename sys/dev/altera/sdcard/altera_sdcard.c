@@ -30,29 +30,29 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_altera_sdcard.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/bio.h>
 #include <sys/bus.h>
 #include <sys/condvar.h>
 #include <sys/conf.h>
-#include <sys/bio.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
-#include <sys/systm.h>
 #include <sys/taskqueue.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
 
-#include <geom/geom_disk.h>
-
 #include <dev/altera/sdcard/altera_sdcard.h>
+
+#include <geom/geom_disk.h>
 
 /*
  * Device driver for the Altera University Program Secure Data Card IP Core,
@@ -87,8 +87,8 @@ altera_sdcard_attach(struct altera_sdcard_softc *sc)
 	    taskqueue_thread_enqueue, &sc->as_taskqueue);
 	taskqueue_start_threads(&sc->as_taskqueue, 1, PI_DISK,
 	    "altera_sdcardc%d taskqueue", sc->as_unit);
-	TIMEOUT_TASK_INIT(sc->as_taskqueue, &sc->as_task, 0,
-	    altera_sdcard_task, sc);
+	TIMEOUT_TASK_INIT(sc->as_taskqueue, &sc->as_task, 0, altera_sdcard_task,
+	    sc);
 
 	/*
 	 * Kick off timer-driven processing with a manual poll so that we
@@ -102,8 +102,8 @@ void
 altera_sdcard_detach(struct altera_sdcard_softc *sc)
 {
 
-	KASSERT(sc->as_taskqueue != NULL, ("%s: taskqueue not present",
-	    __func__));
+	KASSERT(sc->as_taskqueue != NULL,
+	    ("%s: taskqueue not present", __func__));
 
 	/*
 	 * Winding down the driver on detach is a bit complex.  Update the

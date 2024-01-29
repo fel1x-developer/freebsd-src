@@ -25,7 +25,7 @@
  */
 
 #ifndef _MKIMG_IMAGE_H_
-#define	_MKIMG_IMAGE_H_
+#define _MKIMG_IMAGE_H_
 
 #include <stdint.h>
 

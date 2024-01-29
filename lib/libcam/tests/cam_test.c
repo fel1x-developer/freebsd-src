@@ -27,12 +27,12 @@
 /* Tests functions in sys/cam/cam.c */
 
 #include <sys/cdefs.h>
+
+#include <atf-c.h>
+#include <camlib.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include <camlib.h>
-
-#include <atf-c.h>
 
 #define ATF_CHECK_NE(x, y) ATF_CHECK((x) != (y))
 
@@ -78,7 +78,7 @@ ATF_TC_BODY(cam_strmatch, tc)
 	ATF_CHECK_EQ(0, cam_strmatch("foobar", "foo[a-c]ar", 6));
 	ATF_CHECK_EQ(0, cam_strmatch("fooxar", "foo[a-cx]ar", 6));
 	ATF_CHECK_NE(0, cam_strmatch("foodar", "foo[a-c]ar", 6));
-	
+
 	/* Back-to-back '[]' character sets */
 	ATF_CHECK_EQ(0, cam_strmatch("foobar", "fo[a-z][abc]ar", 6));
 	ATF_CHECK_NE(0, cam_strmatch("foAbar", "fo[a-z][abc]ar", 6));

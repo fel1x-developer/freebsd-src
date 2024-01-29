@@ -22,10 +22,9 @@
 
 #include "ah.h"
 #include "ah_internal.h"
-
 #include "ar5312/ar5312.h"
-#include "ar5312/ar5312reg.h"
 #include "ar5312/ar5312phy.h"
+#include "ar5312/ar5312reg.h"
 
 /*
  * Checks to see if an interrupt is pending on our NIC
@@ -36,11 +35,11 @@
 HAL_BOOL
 ar5312IsInterruptPending(struct ath_hal *ah)
 {
-        /* 
-         * Some platforms trigger our ISR before applying power to
-         * the card.  For the 5312, this is always true.
-         */
+	/*
+	 * Some platforms trigger our ISR before applying power to
+	 * the card.  For the 5312, this is always true.
+	 */
 
-	return(AH_TRUE);
+	return (AH_TRUE);
 }
 #endif /* AH_SUPPORT_AR5312 */

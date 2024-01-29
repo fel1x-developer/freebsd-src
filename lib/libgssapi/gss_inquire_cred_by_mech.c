@@ -28,18 +28,15 @@
 
 #include <gssapi/gssapi.h>
 
-#include "mech_switch.h"
 #include "cred.h"
+#include "mech_switch.h"
 #include "name.h"
 
 OM_uint32
 gss_inquire_cred_by_mech(OM_uint32 *minor_status,
-    const gss_cred_id_t cred_handle,
-    const gss_OID mech_type,
-    gss_name_t *cred_name,
-    OM_uint32 *initiator_lifetime,
-    OM_uint32 *acceptor_lifetime,
-    gss_cred_usage_t *cred_usage)
+    const gss_cred_id_t cred_handle, const gss_OID mech_type,
+    gss_name_t *cred_name, OM_uint32 *initiator_lifetime,
+    OM_uint32 *acceptor_lifetime, gss_cred_usage_t *cred_usage)
 {
 	OM_uint32 major_status;
 	struct _gss_mech_switch *m;
@@ -63,8 +60,8 @@ gss_inquire_cred_by_mech(OM_uint32 *minor_status,
 		return (GSS_S_NO_CRED);
 
 	if (cred_handle != GSS_C_NO_CREDENTIAL) {
-		struct _gss_cred *cred = (struct _gss_cred *) cred_handle;
-		SLIST_FOREACH(mcp, &cred->gc_mc, gmc_link)
+		struct _gss_cred *cred = (struct _gss_cred *)cred_handle;
+		SLIST_FOREACH (mcp, &cred->gc_mc, gmc_link)
 			if (mcp->gmc_mech == m)
 				break;
 		if (!mcp)
@@ -87,7 +84,7 @@ gss_inquire_cred_by_mech(OM_uint32 *minor_status,
 			m->gm_release_name(minor_status, &mn);
 			return (GSS_S_NO_CRED);
 		}
-		*cred_name = (gss_name_t) name;
+		*cred_name = (gss_name_t)name;
 	} else {
 		m->gm_release_name(minor_status, &mn);
 	}

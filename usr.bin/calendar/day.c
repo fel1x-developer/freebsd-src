@@ -30,6 +30,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <err.h>
 #include <locale.h>
 #include <stdio.h>
@@ -39,14 +40,14 @@
 
 #include "calendar.h"
 
-static time_t		time1, time2;
-const struct tm		tm0;
-char			dayname[100];
-int			year1, year2;
-
+static time_t time1, time2;
+const struct tm tm0;
+char dayname[100];
+int year1, year2;
 
 void
-settimes(time_t now, int before, int after, int friday, struct tm *tp1, struct tm *tp2)
+settimes(time_t now, int before, int after, int friday, struct tm *tp1,
+    struct tm *tp2)
 {
 	struct tm tp;
 
@@ -100,8 +101,8 @@ Mktime(char *dp)
 	}
 
 #ifdef DEBUG
-	fprintf(stderr, "Mktime: %d %d %s\n",
-	    (int)mktime(&tm), (int)t, asctime(&tm));
+	fprintf(stderr, "Mktime: %d %d %s\n", (int)mktime(&tm), (int)t,
+	    asctime(&tm));
 #endif
 	return (mktime(&tm));
 }

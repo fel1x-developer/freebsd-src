@@ -25,17 +25,17 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_LINUXKPI_LINUX_QRTR_H
-#define	_LINUXKPI_LINUX_QRTR_H
+#ifndef _LINUXKPI_LINUX_QRTR_H
+#define _LINUXKPI_LINUX_QRTR_H
 
 /* Qualcomm IPC Router (QRTR) */
 
 #include <sys/socket.h>
 
 struct sockaddr_qrtr {
-	sa_family_t		sq_family;
-	uint32_t		sq_node;
-	uint32_t		sq_port;
+	sa_family_t sq_family;
+	uint32_t sq_node;
+	uint32_t sq_port;
 };
 
-#endif	/* _LINUXKPI_LINUX_QRTR_H */
+#endif /* _LINUXKPI_LINUX_QRTR_H */

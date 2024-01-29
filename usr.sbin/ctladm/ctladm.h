@@ -35,8 +35,7 @@
 /*
  * get_hook: Structure for evaluating args in a callback.
  */
-struct get_hook
-{
+struct get_hook {
 	int argc;
 	char **argv;
 	int got;

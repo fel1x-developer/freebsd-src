@@ -26,56 +26,58 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
 #include <sys/param.h>
-#include <sys/queue.h>
+#include <sys/systm.h>
+#include <sys/bus.h> /* to get driver_intr_t */
 #include <sys/kernel.h>
+#include <sys/kobj.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
-#include <sys/systm.h>
-#include <sys/kobj.h>
-#include <sys/malloc.h>
-#include <sys/bus.h>			/* to get driver_intr_t */
+#include <sys/queue.h>
 
 #ifdef HAVE_KERNEL_OPTION_HEADERS
 #include "opt_snd.h"
 #endif
 
-#include <dev/sound/midi/mpu401.h>
 #include <dev/sound/midi/midi.h>
+#include <dev/sound/midi/mpu401.h>
 
 #include "mpu_if.h"
 #include "mpufoi_if.h"
 
 #ifndef KOBJMETHOD_END
-#define KOBJMETHOD_END	{ NULL, NULL }
+#define KOBJMETHOD_END     \
+	{                  \
+		NULL, NULL \
+	}
 #endif
 
-#define MPU_DATAPORT   0
-#define MPU_CMDPORT    1
-#define MPU_STATPORT   1
-#define MPU_RESET      0xff
-#define MPU_UART       0x3f
-#define MPU_ACK        0xfe
-#define MPU_STATMASK   0xc0
+#define MPU_DATAPORT 0
+#define MPU_CMDPORT 1
+#define MPU_STATPORT 1
+#define MPU_RESET 0xff
+#define MPU_UART 0x3f
+#define MPU_ACK 0xfe
+#define MPU_STATMASK 0xc0
 #define MPU_OUTPUTBUSY 0x40
-#define MPU_INPUTBUSY  0x80
+#define MPU_INPUTBUSY 0x80
 #define MPU_TRYDATA 50
-#define MPU_DELAY   2500
+#define MPU_DELAY 2500
 
-#define CMD(m,d)	MPUFOI_WRITE(m, m->cookie, MPU_CMDPORT,d)
-#define STATUS(m)	MPUFOI_READ(m, m->cookie, MPU_STATPORT)
-#define READ(m)		MPUFOI_READ(m, m->cookie, MPU_DATAPORT)
-#define WRITE(m,d)	MPUFOI_WRITE(m, m->cookie, MPU_DATAPORT,d)
+#define CMD(m, d) MPUFOI_WRITE(m, m->cookie, MPU_CMDPORT, d)
+#define STATUS(m) MPUFOI_READ(m, m->cookie, MPU_STATPORT)
+#define READ(m) MPUFOI_READ(m, m->cookie, MPU_DATAPORT)
+#define WRITE(m, d) MPUFOI_WRITE(m, m->cookie, MPU_DATAPORT, d)
 
 struct mpu401 {
 	KOBJ_FIELDS;
 	struct snd_midi *mid;
-	int	flags;
+	int flags;
 	driver_intr_t *si;
-	void   *cookie;
+	void *cookie;
 	struct callout timer;
 };
 
@@ -91,17 +93,14 @@ static void mpu401_mcallbackp(struct snd_midi *, void *, int);
 static const char *mpu401_mdescr(struct snd_midi *, void *, int);
 static const char *mpu401_mprovider(struct snd_midi *, void *);
 
-static kobj_method_t mpu401_methods[] = {
-	KOBJMETHOD(mpu_init, mpu401_minit),
+static kobj_method_t mpu401_methods[] = { KOBJMETHOD(mpu_init, mpu401_minit),
 	KOBJMETHOD(mpu_uninit, mpu401_muninit),
 	KOBJMETHOD(mpu_inqsize, mpu401_minqsize),
 	KOBJMETHOD(mpu_outqsize, mpu401_moutqsize),
 	KOBJMETHOD(mpu_callback, mpu401_mcallback),
 	KOBJMETHOD(mpu_callbackp, mpu401_mcallbackp),
 	KOBJMETHOD(mpu_descr, mpu401_mdescr),
-	KOBJMETHOD(mpu_provider, mpu401_mprovider),
-	KOBJMETHOD_END
-};
+	KOBJMETHOD(mpu_provider, mpu401_mprovider), KOBJMETHOD_END };
 
 DEFINE_CLASS(mpu401, mpu401_methods, 0);
 
@@ -112,12 +111,11 @@ mpu401_timeout(void *a)
 
 	if (m->si)
 		(m->si)(m->cookie);
-
 }
 static int
 mpu401_intr(struct mpu401 *m)
 {
-#define MPU_INTR_BUF	16
+#define MPU_INTR_BUF 16
 	MIDI_TYPE b[MPU_INTR_BUF];
 	int i;
 	int s;
@@ -125,21 +123,23 @@ mpu401_intr(struct mpu401 *m)
 /*
 	printf("mpu401_intr\n");
 */
-#define RXRDY(m) ( (STATUS(m) & MPU_INPUTBUSY) == 0)
-#define TXRDY(m) ( (STATUS(m) & MPU_OUTPUTBUSY) == 0)
+#define RXRDY(m) ((STATUS(m) & MPU_INPUTBUSY) == 0)
+#define TXRDY(m) ((STATUS(m) & MPU_OUTPUTBUSY) == 0)
 #if 0
-#define D(x,l) printf("mpu401_intr %d %x %s %s\n",l, x, x&MPU_INPUTBUSY?"RX":"", x&MPU_OUTPUTBUSY?"TX":"")
+#define D(x, l)                                   \
+	printf("mpu401_intr %d %x %s %s\n", l, x, \
+	    x &MPU_INPUTBUSY ? "RX" : "", x &MPU_OUTPUTBUSY ? "TX" : "")
 #else
-#define D(x,l)
+#define D(x, l)
 #endif
 	i = 0;
 	s = STATUS(m);
 	D(s, 1);
 	while ((s & MPU_INPUTBUSY) == 0 && i < MPU_INTR_BUF) {
 		b[i] = READ(m);
-/*
-		printf("mpu401_intr in i %d d %d\n", i, b[i]);
-*/
+		/*
+				printf("mpu401_intr in i %d d %d\n", i, b[i]);
+		*/
 		i++;
 		s = STATUS(m);
 	}
@@ -148,15 +148,17 @@ mpu401_intr(struct mpu401 *m)
 	i = 0;
 	while (!(s & MPU_OUTPUTBUSY) && i < MPU_INTR_BUF) {
 		if (midi_out(m->mid, b, 1)) {
-/*
-			printf("mpu401_intr out i %d d %d\n", i, b[0]);
-*/
+			/*
+						printf("mpu401_intr out i %d d
+			   %d\n", i, b[0]);
+			*/
 
 			WRITE(m, *b);
 		} else {
-/*
-			printf("mpu401_intr write: no output\n");
-*/
+			/*
+						printf("mpu401_intr write: no
+			   output\n");
+			*/
 			return 0;
 		}
 		i++;
@@ -172,7 +174,7 @@ mpu401_intr(struct mpu401 *m)
 
 struct mpu401 *
 mpu401_init(kobj_class_t cls, void *cookie, driver_intr_t softintr,
-    mpu401_intr_t ** cb)
+    mpu401_intr_t **cb)
 {
 	struct mpu401 *m;
 
@@ -278,7 +280,7 @@ mpu401_mcallback(struct snd_midi *sm, void *arg, int flags)
 static void
 mpu401_mcallbackp(struct snd_midi *sm, void *arg, int flags)
 {
-/*	printf("mpu401_callbackp\n"); */
+	/*	printf("mpu401_callbackp\n"); */
 	mpu401_mcallback(sm, arg, flags);
 }
 

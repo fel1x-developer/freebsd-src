@@ -36,15 +36,16 @@
 /*
  * Command to change one's public key in the public key database
  */
-#include <rpc/rpc.h>
 #include <rpc/key_prot.h>
+#include <rpc/rpc.h>
 #ifdef YP
 #include <rpcsvc/yp_prot.h>
 #include <rpcsvc/ypclnt.h>
 #else
-#define	YPOP_STORE	4
+#define YPOP_STORE 4
 #endif
 #include <sys/fcntl.h>
+
 #include <err.h>
 #include <pwd.h>
 #include <stdio.h>
@@ -63,7 +64,7 @@ static char *domain;
 static char PKMAP[] = "publickey.byname";
 #else
 static char PKFILE[] = "/etc/publickey";
-#endif	/* YP */
+#endif /* YP */
 static char ROOTKEY[] = "/etc/.rootkey";
 
 static void usage(void) __dead2;
@@ -72,12 +73,12 @@ extern int yp_update(char *, char *, int, char *, size_t, char *, size_t);
 int
 main(int argc, char **argv)
 {
-	char name[MAXNETNAMELEN+1];
+	char name[MAXNETNAMELEN + 1];
 	char public[HEXKEYBYTES + 1];
 	char secret[HEXKEYBYTES + 1];
 	char crypt1[HEXKEYBYTES + KEYCHECKSUMSIZE + 1];
 	char crypt2[HEXKEYBYTES + KEYCHECKSUMSIZE + 1];
-	int status;	
+	int status;
 	char *pass;
 	struct passwd *pw;
 	uid_t uid;
@@ -91,7 +92,7 @@ main(int argc, char **argv)
 #endif
 
 	while ((ch = getopt(argc, argv, "f")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case 'f':
 			force = 1;
 			break;
@@ -129,16 +130,17 @@ main(int argc, char **argv)
 			if (pw == NULL) {
 #ifdef YPPASSWD
 				errx(1,
-			"no NIS password entry found: can't change key");
+				    "no NIS password entry found: can't change key");
 #else
 				errx(1,
-			"no password entry found: can't change key");
+				    "no password entry found: can't change key");
 #endif
 			}
 		} else {
 			pw = getpwuid(0);
 			if (pw == NULL)
-			  errx(1, "no password entry found: can't change key");
+				errx(1,
+				    "no password entry found: can't change key");
 		}
 	}
 	pass = getpass("Password:");
@@ -149,9 +151,9 @@ main(int argc, char **argv)
 			errx(1, "invalid password");
 	}
 #else
-	force = 1;	/* Make this mandatory */
+	force = 1; /* Make this mandatory */
 #endif
-	genkeys(public, secret, pass);	
+	genkeys(public, secret, pass);
 
 	memcpy(crypt1, secret, HEXKEYBYTES);
 	memcpy(crypt1 + HEXKEYBYTES, secret, KEYCHECKSUMSIZE);
@@ -159,10 +161,11 @@ main(int argc, char **argv)
 	xencrypt(crypt1, pass);
 
 	if (force) {
-		memcpy(crypt2, crypt1, HEXKEYBYTES + KEYCHECKSUMSIZE + 1);	
+		memcpy(crypt2, crypt1, HEXKEYBYTES + KEYCHECKSUMSIZE + 1);
 		xdecrypt(crypt2, getpass("Retype password:"));
-		if (memcmp(crypt2, crypt2 + HEXKEYBYTES, KEYCHECKSUMSIZE) != 0
-			|| memcmp(crypt2, secret, HEXKEYBYTES) != 0)
+		if (memcmp(crypt2, crypt2 + HEXKEYBYTES, KEYCHECKSUMSIZE) !=
+			0 ||
+		    memcmp(crypt2, secret, HEXKEYBYTES) != 0)
 			errx(1, "password incorrect");
 	}
 
@@ -172,8 +175,8 @@ main(int argc, char **argv)
 	status = setpublicmap(name, public, crypt1);
 	if (status != 0) {
 #ifdef YP
-		errx(1, "unable to update NIS database (%u): %s",
-				status, yperr_string(status));
+		errx(1, "unable to update NIS database (%u): %s", status,
+		    yperr_string(status));
 #else
 		errx(1, "unable to update publickey database");
 #endif
@@ -189,7 +192,7 @@ main(int argc, char **argv)
 		 */
 		int fd;
 
-		fd = open(ROOTKEY, O_WRONLY|O_TRUNC|O_CREAT, 0);
+		fd = open(ROOTKEY, O_WRONLY | O_TRUNC | O_CREAT, 0);
 		if (fd < 0) {
 			warn("%s", ROOTKEY);
 		} else {
@@ -217,7 +220,6 @@ usage(void)
 	/* NOTREACHED */
 }
 
-
 /*
  * Set the entry in the public key file
  */
@@ -225,14 +227,14 @@ int
 setpublicmap(char *name, char *public, char *secret)
 {
 	char pkent[1024];
-	
-	(void)sprintf(pkent,"%s:%s", public, secret);
+
+	(void)sprintf(pkent, "%s:%s", public, secret);
 #ifdef YP
-	return (yp_update(domain, PKMAP, YPOP_STORE,
-		name, strlen(name), pkent, strlen(pkent)));
+	return (yp_update(domain, PKMAP, YPOP_STORE, name, strlen(name), pkent,
+	    strlen(pkent)));
 #else
-	return (localupdate(name, PKFILE, YPOP_STORE,
-		strlen(name), name, strlen(pkent), pkent));
+	return (localupdate(name, PKFILE, YPOP_STORE, strlen(name), name,
+	    strlen(pkent), pkent));
 #endif
 }
 
@@ -247,12 +249,12 @@ ypgetpwuid(uid_t uid)
 	char *p;
 
 	(void)sprintf(uidstr, "%d", uid);
-	if (yp_match(domain, "passwd.byuid", uidstr, strlen(uidstr), 
-			&val, &vallen) != 0) {
+	if (yp_match(domain, "passwd.byuid", uidstr, strlen(uidstr), &val,
+		&vallen) != 0) {
 		return (NULL);
 	}
 	p = strchr(val, ':');
-	if (p == NULL) {	
+	if (p == NULL) {
 		return (NULL);
 	}
 	pw.pw_passwd = p + 1;
@@ -263,4 +265,4 @@ ypgetpwuid(uid_t uid)
 	*p = 0;
 	return (&pw);
 }
-#endif	/* YPPASSWD */
+#endif /* YPPASSWD */

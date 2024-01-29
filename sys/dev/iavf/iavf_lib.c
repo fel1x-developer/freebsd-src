@@ -41,7 +41,8 @@
 #include "iavf_vc_common.h"
 
 static void iavf_init_hw(struct iavf_hw *hw, device_t dev);
-static u_int iavf_mc_filter_apply(void *arg, struct sockaddr_dl *sdl, u_int cnt);
+static u_int iavf_mc_filter_apply(void *arg, struct sockaddr_dl *sdl,
+    u_int cnt);
 
 /**
  * iavf_msec_pause - Pause for at least the specified number of milliseconds
@@ -71,11 +72,9 @@ iavf_get_default_rss_key(u32 *key)
 {
 	MPASS(key != NULL);
 
-	u32 rss_seed[IAVF_RSS_KEY_SIZE_REG] = {0x41b01687,
-	    0x183cfd8c, 0xce880440, 0x580cbc3c,
-	    0x35897377, 0x328b25e1, 0x4fa98922,
-	    0xb7d90c14, 0xd5bad70d, 0xcd15a2c1,
-	    0x0, 0x0, 0x0};
+	u32 rss_seed[IAVF_RSS_KEY_SIZE_REG] = { 0x41b01687, 0x183cfd8c,
+		0xce880440, 0x580cbc3c, 0x35897377, 0x328b25e1, 0x4fa98922,
+		0xb7d90c14, 0xd5bad70d, 0xcd15a2c1, 0x0, 0x0, 0x0 };
 
 	bcopy(rss_seed, key, IAVF_RSS_KEY_SIZE);
 }
@@ -99,21 +98,20 @@ iavf_allocate_pci_resources_common(struct iavf_sc *sc)
 
 	/* Map PCI BAR0 */
 	rid = PCIR_BAR(0);
-	sc->pci_mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-	    &rid, RF_ACTIVE);
+	sc->pci_mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
+	    RF_ACTIVE);
 
 	if (!(sc->pci_mem)) {
-		device_printf(dev, "Unable to allocate bus resource: PCI memory\n");
+		device_printf(dev,
+		    "Unable to allocate bus resource: PCI memory\n");
 		return (ENXIO);
 	}
 
 	iavf_init_hw(hw, dev);
 
 	/* Save off register access information */
-	sc->osdep.mem_bus_space_tag =
-		rman_get_bustag(sc->pci_mem);
-	sc->osdep.mem_bus_space_handle =
-		rman_get_bushandle(sc->pci_mem);
+	sc->osdep.mem_bus_space_tag = rman_get_bustag(sc->pci_mem);
+	sc->osdep.mem_bus_space_handle = rman_get_bushandle(sc->pci_mem);
 	sc->osdep.mem_bus_space_size = rman_get_size(sc->pci_mem);
 	sc->osdep.flush_reg = IAVF_VFGEN_RSTAT;
 	sc->osdep.dev = dev;
@@ -139,10 +137,8 @@ iavf_init_hw(struct iavf_hw *hw, device_t dev)
 	hw->vendor_id = pci_get_vendor(dev);
 	hw->device_id = pci_get_device(dev);
 	hw->revision_id = pci_read_config(dev, PCIR_REVID, 1);
-	hw->subsystem_vendor_id =
-	    pci_read_config(dev, PCIR_SUBVEND_0, 2);
-	hw->subsystem_device_id =
-	    pci_read_config(dev, PCIR_SUBDEV_0, 2);
+	hw->subsystem_vendor_id = pci_read_config(dev, PCIR_SUBVEND_0, 2);
+	hw->subsystem_device_id = pci_read_config(dev, PCIR_SUBDEV_0, 2);
 
 	hw->bus.device = pci_get_slot(dev);
 	hw->bus.func = pci_get_function(dev);
@@ -173,12 +169,14 @@ iavf_sysctl_current_speed(SYSCTL_HANDLER_ARGS)
 
 	if (IAVF_CAP_ADV_LINK_SPEED(sc))
 		error = sysctl_handle_string(oidp,
-		  __DECONST(char *, iavf_ext_speed_to_str(iavf_adv_speed_to_ext_speed(sc->link_speed_adv))),
-		  8, req);
+		    __DECONST(char *,
+			iavf_ext_speed_to_str(
+			    iavf_adv_speed_to_ext_speed(sc->link_speed_adv))),
+		    8, req);
 	else
 		error = sysctl_handle_string(oidp,
-		  __DECONST(char *, iavf_vc_speed_to_string(sc->link_speed)),
-		  8, req);
+		    __DECONST(char *, iavf_vc_speed_to_string(sc->link_speed)),
+		    8, req);
 
 	return (error);
 }
@@ -205,7 +203,7 @@ iavf_reset_complete(struct iavf_hw *hw)
 		reg = rd32(hw, IAVF_VFGEN_RSTAT) &
 		    IAVF_VFGEN_RSTAT_VFR_STATE_MASK;
 
-                if ((reg == VIRTCHNL_VFR_VFACTIVE) ||
+		if ((reg == VIRTCHNL_VFR_VFACTIVE) ||
 		    (reg == VIRTCHNL_VFR_COMPLETED))
 			return (0);
 		iavf_msec_pause(100);
@@ -248,25 +246,29 @@ iavf_setup_vc(struct iavf_sc *sc)
 			continue;
 		}
 
-		iavf_dbg_init(sc, "Initialized Admin Queue; starting"
-		    " send_api_ver attempt %d", i+1);
+		iavf_dbg_init(sc,
+		    "Initialized Admin Queue; starting"
+		    " send_api_ver attempt %d",
+		    i + 1);
 
-retry_send:
+	retry_send:
 		/* Send VF's API version */
 		error = iavf_send_api_ver(sc);
 		if (error) {
 			iavf_shutdown_adminq(hw);
 			ret_error = 2;
-			device_printf(dev, "%s: unable to send api"
+			device_printf(dev,
+			    "%s: unable to send api"
 			    " version to PF on attempt %d, error %d\n",
-			    __func__, i+1, error);
+			    __func__, i + 1, error);
 		}
 
 		asq_retries = 0;
 		while (!iavf_asq_done(hw)) {
 			if (++asq_retries > IAVF_AQ_MAX_ERR) {
 				iavf_shutdown_adminq(hw);
-				device_printf(dev, "Admin Queue timeout "
+				device_printf(dev,
+				    "Admin Queue timeout "
 				    "(waiting for send_api_ver), %d more tries...\n",
 				    IAVF_AQ_MAX_ERR - (i + 1));
 				ret_error = 3;
@@ -287,12 +289,14 @@ retry_send:
 				send_api_ver_retried = true;
 				device_printf(dev,
 				    "%s: Timeout while verifying API version on first"
-				    " try!\n", __func__);
+				    " try!\n",
+				    __func__);
 				goto retry_send;
 			} else {
 				device_printf(dev,
 				    "%s: Timeout while verifying API version on second"
-				    " try!\n", __func__);
+				    " try!\n",
+				    __func__);
 				ret_error = 4;
 				break;
 			}
@@ -300,7 +304,8 @@ retry_send:
 		if (error) {
 			device_printf(dev,
 			    "%s: Unable to verify API version,"
-			    " error %d\n", __func__, error);
+			    " error %d\n",
+			    __func__, error);
 			ret_error = 5;
 		}
 		break;
@@ -321,9 +326,9 @@ retry_send:
 int
 iavf_reset(struct iavf_sc *sc)
 {
-	struct iavf_hw	*hw = &sc->hw;
-	device_t	dev = sc->dev;
-	int		error = 0;
+	struct iavf_hw *hw = &sc->hw;
+	device_t dev = sc->dev;
+	int error = 0;
 
 	/* Ask the PF to reset us if we are initiating */
 	if (!iavf_test_state(&sc->state, IAVF_STATE_RESET_PENDING))
@@ -332,23 +337,22 @@ iavf_reset(struct iavf_sc *sc)
 	iavf_msec_pause(100);
 	error = iavf_reset_complete(hw);
 	if (error) {
-		device_printf(dev, "%s: VF reset failed\n",
-		    __func__);
+		device_printf(dev, "%s: VF reset failed\n", __func__);
 		return (error);
 	}
 	pci_enable_busmaster(dev);
 
 	error = iavf_shutdown_adminq(hw);
 	if (error) {
-		device_printf(dev, "%s: shutdown_adminq failed: %d\n",
-		    __func__, error);
+		device_printf(dev, "%s: shutdown_adminq failed: %d\n", __func__,
+		    error);
 		return (error);
 	}
 
 	error = iavf_init_adminq(hw);
 	if (error) {
-		device_printf(dev, "%s: init_adminq failed: %d\n",
-		    __func__, error);
+		device_printf(dev, "%s: init_adminq failed: %d\n", __func__,
+		    error);
 		return (error);
 	}
 
@@ -369,8 +373,8 @@ iavf_enable_adminq_irq(struct iavf_hw *hw)
 {
 	wr32(hw, IAVF_VFINT_DYN_CTL01,
 	    IAVF_VFINT_DYN_CTL01_INTENA_MASK |
-	    IAVF_VFINT_DYN_CTL01_CLEARPBA_MASK |
-	    IAVF_VFINT_DYN_CTL01_ITR_INDX_MASK);
+		IAVF_VFINT_DYN_CTL01_CLEARPBA_MASK |
+		IAVF_VFINT_DYN_CTL01_ITR_INDX_MASK);
 	wr32(hw, IAVF_VFINT_ICR0_ENA1, IAVF_VFINT_ICR0_ENA1_ADMINQ_MASK);
 	/* flush */
 	rd32(hw, IAVF_VFGEN_RSTAT);
@@ -412,14 +416,16 @@ retry_config:
 	if (error) {
 		device_printf(dev,
 		    "%s: Unable to send VF config request, attempt %d,"
-		    " error %d\n", __func__, retried + 1, error);
+		    " error %d\n",
+		    __func__, retried + 1, error);
 		ret_error = 2;
 	}
 
 	asq_retries = 0;
 	while (!iavf_asq_done(hw)) {
 		if (++asq_retries > IAVF_AQ_MAX_ERR) {
-			device_printf(dev, "%s: Admin Queue timeout "
+			device_printf(dev,
+			    "%s: Admin Queue timeout "
 			    "(waiting for send_vf_config_msg), attempt %d\n",
 			    __func__, retried + 1);
 			ret_error = 3;
@@ -434,11 +440,13 @@ retry_config:
 	if (!sc->vf_res) {
 		bufsz = sizeof(struct virtchnl_vf_resource) +
 		    (IAVF_MAX_VF_VSI * sizeof(struct virtchnl_vsi_resource));
-		sc->vf_res = (struct virtchnl_vf_resource *)malloc(bufsz, M_IAVF, M_NOWAIT);
+		sc->vf_res = (struct virtchnl_vf_resource *)malloc(bufsz,
+		    M_IAVF, M_NOWAIT);
 		if (!sc->vf_res) {
 			device_printf(dev,
 			    "%s: Unable to allocate memory for VF configuration"
-			    " message from PF on attempt %d\n", __func__, retried + 1);
+			    " message from PF on attempt %d\n",
+			    __func__, retried + 1);
 			ret_error = 1;
 			goto fail;
 		}
@@ -447,7 +455,8 @@ retry_config:
 	/* Check for VF config response */
 	error = iavf_get_vf_config(sc);
 	if (error == ETIMEDOUT) {
-		/* The 1st time we timeout, send the configuration message again */
+		/* The 1st time we timeout, send the configuration message again
+		 */
 		if (!retried) {
 			retried++;
 			goto retry_config;
@@ -483,13 +492,11 @@ iavf_print_device_info(struct iavf_sc *sc)
 
 	device_printf(dev,
 	    "VSIs %d, QPs %d, MSI-X %d, RSS sizes: key %d lut %d\n",
-	    sc->vf_res->num_vsis,
-	    sc->vf_res->num_queue_pairs,
-	    sc->vf_res->max_vectors,
-	    sc->vf_res->rss_key_size,
+	    sc->vf_res->num_vsis, sc->vf_res->num_queue_pairs,
+	    sc->vf_res->max_vectors, sc->vf_res->rss_key_size,
 	    sc->vf_res->rss_lut_size);
-	iavf_dbg_info(sc, "Capabilities=%b\n",
-	    sc->vf_res->vf_cap_flags, IAVF_PRINTF_VF_OFFLOAD_FLAGS);
+	iavf_dbg_info(sc, "Capabilities=%b\n", sc->vf_res->vf_cap_flags,
+	    IAVF_PRINTF_VF_OFFLOAD_FLAGS);
 }
 
 /**
@@ -564,11 +571,12 @@ iavf_set_mac_addresses(struct iavf_sc *sc)
 void
 iavf_init_filters(struct iavf_sc *sc)
 {
-	sc->mac_filters = (struct mac_list *)malloc(sizeof(struct iavf_mac_filter),
+	sc->mac_filters = (struct mac_list *)malloc(sizeof(
+							struct iavf_mac_filter),
 	    M_IAVF, M_WAITOK | M_ZERO);
 	SLIST_INIT(sc->mac_filters);
-	sc->vlan_filters = (struct vlan_list *)malloc(sizeof(struct iavf_vlan_filter),
-	    M_IAVF, M_WAITOK | M_ZERO);
+	sc->vlan_filters = (struct vlan_list *)
+	    malloc(sizeof(struct iavf_vlan_filter), M_IAVF, M_WAITOK | M_ZERO);
 	SLIST_INIT(sc->vlan_filters);
 }
 
@@ -612,25 +620,22 @@ iavf_add_device_sysctls_common(struct iavf_sc *sc)
 {
 	device_t dev = sc->dev;
 	struct sysctl_ctx_list *ctx = device_get_sysctl_ctx(dev);
-	struct sysctl_oid_list *ctx_list =
-	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev));
+	struct sysctl_oid_list *ctx_list = SYSCTL_CHILDREN(
+	    device_get_sysctl_tree(dev));
 
-	SYSCTL_ADD_PROC(ctx, ctx_list,
-	    OID_AUTO, "current_speed", CTLTYPE_STRING | CTLFLAG_RD,
-	    sc, 0, iavf_sysctl_current_speed, "A", "Current Port Speed");
+	SYSCTL_ADD_PROC(ctx, ctx_list, OID_AUTO, "current_speed",
+	    CTLTYPE_STRING | CTLFLAG_RD, sc, 0, iavf_sysctl_current_speed, "A",
+	    "Current Port Speed");
 
-	SYSCTL_ADD_PROC(ctx, ctx_list,
-	    OID_AUTO, "tx_itr", CTLTYPE_INT | CTLFLAG_RW,
-	    sc, 0, iavf_sysctl_tx_itr, "I",
+	SYSCTL_ADD_PROC(ctx, ctx_list, OID_AUTO, "tx_itr",
+	    CTLTYPE_INT | CTLFLAG_RW, sc, 0, iavf_sysctl_tx_itr, "I",
 	    "Immediately set TX ITR value for all queues");
 
-	SYSCTL_ADD_PROC(ctx, ctx_list,
-	    OID_AUTO, "rx_itr", CTLTYPE_INT | CTLFLAG_RW,
-	    sc, 0, iavf_sysctl_rx_itr, "I",
+	SYSCTL_ADD_PROC(ctx, ctx_list, OID_AUTO, "rx_itr",
+	    CTLTYPE_INT | CTLFLAG_RW, sc, 0, iavf_sysctl_rx_itr, "I",
 	    "Immediately set RX ITR value for all queues");
 
-	SYSCTL_ADD_UQUAD(ctx, ctx_list,
-	    OID_AUTO, "admin_irq", CTLFLAG_RD,
+	SYSCTL_ADD_UQUAD(ctx, ctx_list, OID_AUTO, "admin_irq", CTLFLAG_RD,
 	    &sc->admin_irq, "Admin Queue IRQ Handled");
 }
 
@@ -643,22 +648,23 @@ iavf_add_device_sysctls_common(struct iavf_sc *sc)
  * node.
  */
 void
-iavf_add_debug_sysctls_common(struct iavf_sc *sc, struct sysctl_oid_list *debug_list)
+iavf_add_debug_sysctls_common(struct iavf_sc *sc,
+    struct sysctl_oid_list *debug_list)
 {
 	device_t dev = sc->dev;
 	struct sysctl_ctx_list *ctx = device_get_sysctl_ctx(dev);
 
-	SYSCTL_ADD_UINT(ctx, debug_list,
-	    OID_AUTO, "shared_debug_mask", CTLFLAG_RW,
-	    &sc->hw.debug_mask, 0, "Shared code debug message level");
+	SYSCTL_ADD_UINT(ctx, debug_list, OID_AUTO, "shared_debug_mask",
+	    CTLFLAG_RW, &sc->hw.debug_mask, 0,
+	    "Shared code debug message level");
 
-	SYSCTL_ADD_UINT(ctx, debug_list,
-	    OID_AUTO, "core_debug_mask", CTLFLAG_RW,
-	    (unsigned int *)&sc->dbg_mask, 0, "Non-shared code debug message level");
+	SYSCTL_ADD_UINT(ctx, debug_list, OID_AUTO, "core_debug_mask",
+	    CTLFLAG_RW, (unsigned int *)&sc->dbg_mask, 0,
+	    "Non-shared code debug message level");
 
-	SYSCTL_ADD_PROC(ctx, debug_list,
-	    OID_AUTO, "filter_list", CTLTYPE_STRING | CTLFLAG_RD,
-	    sc, 0, iavf_sysctl_sw_filter_list, "A", "SW Filter List");
+	SYSCTL_ADD_PROC(ctx, debug_list, OID_AUTO, "filter_list",
+	    CTLTYPE_STRING | CTLFLAG_RD, sc, 0, iavf_sysctl_sw_filter_list, "A",
+	    "SW Filter List");
 }
 
 /**
@@ -693,7 +699,7 @@ iavf_sysctl_tx_itr(SYSCTL_HANDLER_ARGS)
 	if (requested_tx_itr < 0 || requested_tx_itr > IAVF_MAX_ITR) {
 		device_printf(dev,
 		    "Invalid TX itr value; value must be between 0 and %d\n",
-		        IAVF_MAX_ITR);
+		    IAVF_MAX_ITR);
 		return (EINVAL);
 	}
 
@@ -735,7 +741,7 @@ iavf_sysctl_rx_itr(SYSCTL_HANDLER_ARGS)
 	if (requested_rx_itr < 0 || requested_rx_itr > IAVF_MAX_ITR) {
 		device_printf(dev,
 		    "Invalid RX itr value; value must be between 0 and %d\n",
-		        IAVF_MAX_ITR);
+		    IAVF_MAX_ITR);
 		return (EINVAL);
 	}
 
@@ -754,17 +760,16 @@ iavf_sysctl_rx_itr(SYSCTL_HANDLER_ARGS)
 void
 iavf_configure_tx_itr(struct iavf_sc *sc)
 {
-	struct iavf_hw		*hw = &sc->hw;
-	struct iavf_vsi		*vsi = &sc->vsi;
-	struct iavf_tx_queue	*que = vsi->tx_queues;
+	struct iavf_hw *hw = &sc->hw;
+	struct iavf_vsi *vsi = &sc->vsi;
+	struct iavf_tx_queue *que = vsi->tx_queues;
 
 	vsi->tx_itr_setting = sc->tx_itr;
 
 	for (int i = 0; i < IAVF_NTXQS(vsi); i++, que++) {
-		struct tx_ring	*txr = &que->txr;
+		struct tx_ring *txr = &que->txr;
 
-		wr32(hw, IAVF_VFINT_ITRN1(IAVF_TX_ITR, i),
-		    vsi->tx_itr_setting);
+		wr32(hw, IAVF_VFINT_ITRN1(IAVF_TX_ITR, i), vsi->tx_itr_setting);
 		txr->itr = vsi->tx_itr_setting;
 		txr->latency = IAVF_AVE_LATENCY;
 	}
@@ -779,17 +784,16 @@ iavf_configure_tx_itr(struct iavf_sc *sc)
 void
 iavf_configure_rx_itr(struct iavf_sc *sc)
 {
-	struct iavf_hw		*hw = &sc->hw;
-	struct iavf_vsi		*vsi = &sc->vsi;
-	struct iavf_rx_queue	*que = vsi->rx_queues;
+	struct iavf_hw *hw = &sc->hw;
+	struct iavf_vsi *vsi = &sc->vsi;
+	struct iavf_rx_queue *que = vsi->rx_queues;
 
 	vsi->rx_itr_setting = sc->rx_itr;
 
 	for (int i = 0; i < IAVF_NRXQS(vsi); i++, que++) {
-		struct rx_ring	*rxr = &que->rxr;
+		struct rx_ring *rxr = &que->rxr;
 
-		wr32(hw, IAVF_VFINT_ITRN1(IAVF_RX_ITR, i),
-		    vsi->rx_itr_setting);
+		wr32(hw, IAVF_VFINT_ITRN1(IAVF_RX_ITR, i), vsi->rx_itr_setting);
 		rxr->itr = vsi->rx_itr_setting;
 		rxr->latency = IAVF_AVE_LATENCY;
 	}
@@ -810,12 +814,12 @@ iavf_create_debug_sysctl_tree(struct iavf_sc *sc)
 {
 	device_t dev = sc->dev;
 	struct sysctl_ctx_list *ctx = device_get_sysctl_ctx(dev);
-	struct sysctl_oid_list *ctx_list =
-	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev));
+	struct sysctl_oid_list *ctx_list = SYSCTL_CHILDREN(
+	    device_get_sysctl_tree(dev));
 	struct sysctl_oid *debug_node;
 
-	debug_node = SYSCTL_ADD_NODE(ctx, ctx_list,
-	    OID_AUTO, "debug", CTLFLAG_RD | CTLFLAG_SKIP, NULL, "Debug Sysctls");
+	debug_node = SYSCTL_ADD_NODE(ctx, ctx_list, OID_AUTO, "debug",
+	    CTLFLAG_RD | CTLFLAG_SKIP, NULL, "Debug Sysctls");
 
 	return (SYSCTL_CHILDREN(debug_node));
 }
@@ -840,7 +844,7 @@ iavf_add_vsi_sysctls(device_t dev, struct iavf_vsi *vsi,
 	tree = device_get_sysctl_tree(dev);
 	child = SYSCTL_CHILDREN(tree);
 	vsi->vsi_node = SYSCTL_ADD_NODE(ctx, child, OID_AUTO, sysctl_name,
-				   CTLFLAG_RD, NULL, "VSI Number");
+	    CTLFLAG_RD, NULL, "VSI Number");
 	vsi_list = SYSCTL_CHILDREN(vsi->vsi_node);
 
 	iavf_add_sysctls_eth_stats(ctx, vsi_list, &vsi->eth_stats);
@@ -885,14 +889,13 @@ iavf_sysctl_sw_filter_list(SYSCTL_HANDLER_ARGS)
 	/* Print MAC filters */
 	sbuf_printf(buf, "MAC Filters:\n");
 	ftl_len = 0;
-	SLIST_FOREACH(f, sc->mac_filters, next)
+	SLIST_FOREACH (f, sc->mac_filters, next)
 		ftl_len++;
 	if (ftl_len < 1)
 		sbuf_printf(buf, "(none)\n");
 	else {
-		SLIST_FOREACH(f, sc->mac_filters, next) {
-			sbuf_printf(buf,
-			    MAC_FORMAT ", flags %#06x\n",
+		SLIST_FOREACH (f, sc->mac_filters, next) {
+			sbuf_printf(buf, MAC_FORMAT ", flags %#06x\n",
 			    MAC_FORMAT_ARGS(f->macaddr), f->flags);
 		}
 	}
@@ -900,15 +903,13 @@ iavf_sysctl_sw_filter_list(SYSCTL_HANDLER_ARGS)
 	/* Print VLAN filters */
 	sbuf_printf(buf, "VLAN Filters:\n");
 	ftl_len = 0;
-	SLIST_FOREACH(v, sc->vlan_filters, next)
+	SLIST_FOREACH (v, sc->vlan_filters, next)
 		ftl_len++;
 	if (ftl_len < 1)
 		sbuf_printf(buf, "(none)");
 	else {
-		SLIST_FOREACH(v, sc->vlan_filters, next) {
-			sbuf_printf(buf,
-			    "%d, flags %#06x",
-			    v->vlan, v->flags);
+		SLIST_FOREACH (v, sc->vlan_filters, next) {
+			sbuf_printf(buf, "%d, flags %#06x", v->vlan, v->flags);
 			/* don't print '\n' for last entry */
 			if (++ftl_counter != ftl_len)
 				sbuf_printf(buf, "\n");
@@ -999,39 +1000,38 @@ iavf_set_initial_baudrate(if_t ifp)
  */
 void
 iavf_add_sysctls_eth_stats(struct sysctl_ctx_list *ctx,
-	struct sysctl_oid_list *child,
-	struct iavf_eth_stats *eth_stats)
+    struct sysctl_oid_list *child, struct iavf_eth_stats *eth_stats)
 {
-	struct iavf_sysctl_info ctls[] =
-	{
-		{&eth_stats->rx_bytes, "good_octets_rcvd", "Good Octets Received"},
-		{&eth_stats->rx_unicast, "ucast_pkts_rcvd",
-			"Unicast Packets Received"},
-		{&eth_stats->rx_multicast, "mcast_pkts_rcvd",
-			"Multicast Packets Received"},
-		{&eth_stats->rx_broadcast, "bcast_pkts_rcvd",
-			"Broadcast Packets Received"},
-		{&eth_stats->rx_discards, "rx_discards", "Discarded RX packets"},
-		{&eth_stats->rx_unknown_protocol, "rx_unknown_proto",
-			"RX unknown protocol packets"},
-		{&eth_stats->tx_bytes, "good_octets_txd", "Good Octets Transmitted"},
-		{&eth_stats->tx_unicast, "ucast_pkts_txd", "Unicast Packets Transmitted"},
-		{&eth_stats->tx_multicast, "mcast_pkts_txd",
-			"Multicast Packets Transmitted"},
-		{&eth_stats->tx_broadcast, "bcast_pkts_txd",
-			"Broadcast Packets Transmitted"},
-		{&eth_stats->tx_errors, "tx_errors", "TX packet errors"},
+	struct iavf_sysctl_info ctls[] = { { &eth_stats->rx_bytes,
+					       "good_octets_rcvd",
+					       "Good Octets Received" },
+		{ &eth_stats->rx_unicast, "ucast_pkts_rcvd",
+		    "Unicast Packets Received" },
+		{ &eth_stats->rx_multicast, "mcast_pkts_rcvd",
+		    "Multicast Packets Received" },
+		{ &eth_stats->rx_broadcast, "bcast_pkts_rcvd",
+		    "Broadcast Packets Received" },
+		{ &eth_stats->rx_discards, "rx_discards",
+		    "Discarded RX packets" },
+		{ &eth_stats->rx_unknown_protocol, "rx_unknown_proto",
+		    "RX unknown protocol packets" },
+		{ &eth_stats->tx_bytes, "good_octets_txd",
+		    "Good Octets Transmitted" },
+		{ &eth_stats->tx_unicast, "ucast_pkts_txd",
+		    "Unicast Packets Transmitted" },
+		{ &eth_stats->tx_multicast, "mcast_pkts_txd",
+		    "Multicast Packets Transmitted" },
+		{ &eth_stats->tx_broadcast, "bcast_pkts_txd",
+		    "Broadcast Packets Transmitted" },
+		{ &eth_stats->tx_errors, "tx_errors", "TX packet errors" },
 		// end
-		{0,0,0}
-	};
+		{ 0, 0, 0 } };
 
 	struct iavf_sysctl_info *entry = ctls;
 
-	while (entry->stat != 0)
-	{
-		SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, entry->name,
-				CTLFLAG_RD, entry->stat,
-				entry->description);
+	while (entry->stat != 0) {
+		SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, entry->name, CTLFLAG_RD,
+		    entry->stat, entry->description);
 		entry++;
 	}
 }
@@ -1073,14 +1073,14 @@ iavf_max_vc_speed_to_value(u8 link_speeds)
 void
 iavf_config_rss_reg(struct iavf_sc *sc)
 {
-	struct iavf_hw	*hw = &sc->hw;
-	struct iavf_vsi	*vsi = &sc->vsi;
-	u32		lut = 0;
-	u64		set_hena = 0, hena;
-	int		i, j, que_id;
-	u32		rss_seed[IAVF_RSS_KEY_SIZE_REG];
+	struct iavf_hw *hw = &sc->hw;
+	struct iavf_vsi *vsi = &sc->vsi;
+	u32 lut = 0;
+	u64 set_hena = 0, hena;
+	int i, j, que_id;
+	u32 rss_seed[IAVF_RSS_KEY_SIZE_REG];
 #ifdef RSS
-	u32		rss_hash_config;
+	u32 rss_hash_config;
 #endif
 
 	/* Don't set up RSS if using a single queue */
@@ -1093,32 +1093,32 @@ iavf_config_rss_reg(struct iavf_sc *sc)
 
 #ifdef RSS
 	/* Fetch the configured RSS key */
-	rss_getkey((uint8_t *) &rss_seed);
+	rss_getkey((uint8_t *)&rss_seed);
 #else
 	iavf_get_default_rss_key(rss_seed);
 #endif
 
 	/* Fill out hash function seed */
 	for (i = 0; i < IAVF_RSS_KEY_SIZE_REG; i++)
-                wr32(hw, IAVF_VFQF_HKEY(i), rss_seed[i]);
+		wr32(hw, IAVF_VFQF_HKEY(i), rss_seed[i]);
 
-	/* Enable PCTYPES for RSS: */
+		/* Enable PCTYPES for RSS: */
 #ifdef RSS
 	rss_hash_config = rss_gethashconfig();
 	if (rss_hash_config & RSS_HASHTYPE_RSS_IPV4)
-                set_hena |= ((u64)1 << IAVF_FILTER_PCTYPE_NONF_IPV4_OTHER);
+		set_hena |= ((u64)1 << IAVF_FILTER_PCTYPE_NONF_IPV4_OTHER);
 	if (rss_hash_config & RSS_HASHTYPE_RSS_TCP_IPV4)
-                set_hena |= ((u64)1 << IAVF_FILTER_PCTYPE_NONF_IPV4_TCP);
+		set_hena |= ((u64)1 << IAVF_FILTER_PCTYPE_NONF_IPV4_TCP);
 	if (rss_hash_config & RSS_HASHTYPE_RSS_UDP_IPV4)
-                set_hena |= ((u64)1 << IAVF_FILTER_PCTYPE_NONF_IPV4_UDP);
+		set_hena |= ((u64)1 << IAVF_FILTER_PCTYPE_NONF_IPV4_UDP);
 	if (rss_hash_config & RSS_HASHTYPE_RSS_IPV6)
-                set_hena |= ((u64)1 << IAVF_FILTER_PCTYPE_NONF_IPV6_OTHER);
+		set_hena |= ((u64)1 << IAVF_FILTER_PCTYPE_NONF_IPV6_OTHER);
 	if (rss_hash_config & RSS_HASHTYPE_RSS_IPV6_EX)
 		set_hena |= ((u64)1 << IAVF_FILTER_PCTYPE_FRAG_IPV6);
 	if (rss_hash_config & RSS_HASHTYPE_RSS_TCP_IPV6)
-                set_hena |= ((u64)1 << IAVF_FILTER_PCTYPE_NONF_IPV6_TCP);
-        if (rss_hash_config & RSS_HASHTYPE_RSS_UDP_IPV6)
-                set_hena |= ((u64)1 << IAVF_FILTER_PCTYPE_NONF_IPV6_UDP);
+		set_hena |= ((u64)1 << IAVF_FILTER_PCTYPE_NONF_IPV6_TCP);
+	if (rss_hash_config & RSS_HASHTYPE_RSS_UDP_IPV6)
+		set_hena |= ((u64)1 << IAVF_FILTER_PCTYPE_NONF_IPV6_UDP);
 #else
 	set_hena = IAVF_DEFAULT_RSS_HENA_XL710;
 #endif
@@ -1130,8 +1130,8 @@ iavf_config_rss_reg(struct iavf_sc *sc)
 
 	/* Populate the LUT with max no. of queues in round robin fashion */
 	for (i = 0, j = 0; i < IAVF_RSS_VSI_LUT_SIZE; i++, j++) {
-                if (j == IAVF_NRXQS(vsi))
-                        j = 0;
+		if (j == IAVF_NRXQS(vsi))
+			j = 0;
 #ifdef RSS
 		/*
 		 * Fetch the RSS bucket id for the given indirection entry.
@@ -1143,15 +1143,15 @@ iavf_config_rss_reg(struct iavf_sc *sc)
 #else
 		que_id = j;
 #endif
-                /* lut = 4-byte sliding window of 4 lut entries */
-                lut = (lut << 8) | (que_id & IAVF_RSS_VF_LUT_ENTRY_MASK);
-                /* On i = 3, we have 4 entries in lut; write to the register */
-                if ((i & 3) == 3) {
-                        wr32(hw, IAVF_VFQF_HLUT(i >> 2), lut);
-			iavf_dbg_rss(sc, "%s: HLUT(%2d): %#010x", __func__,
-			    i, lut);
+		/* lut = 4-byte sliding window of 4 lut entries */
+		lut = (lut << 8) | (que_id & IAVF_RSS_VF_LUT_ENTRY_MASK);
+		/* On i = 3, we have 4 entries in lut; write to the register */
+		if ((i & 3) == 3) {
+			wr32(hw, IAVF_VFQF_HLUT(i >> 2), lut);
+			iavf_dbg_rss(sc, "%s: HLUT(%2d): %#010x", __func__, i,
+			    lut);
 		}
-        }
+	}
 	iavf_flush(hw);
 }
 
@@ -1190,7 +1190,8 @@ iavf_config_rss(struct iavf_sc *sc)
 		iavf_dbg_info(sc, "Setting up RSS using messages to PF...\n");
 		iavf_config_rss_pf(sc);
 	} else
-		device_printf(sc->dev, "VF does not support RSS capability sent by PF.\n");
+		device_printf(sc->dev,
+		    "VF does not support RSS capability sent by PF.\n");
 }
 
 /**
@@ -1209,8 +1210,7 @@ iavf_config_promisc(struct iavf_sc *sc, int flags)
 
 	sc->promisc_flags = 0;
 
-	if (flags & IFF_ALLMULTI ||
-		if_llmaddr_count(ifp) == MAX_MULTICAST_ADDR)
+	if (flags & IFF_ALLMULTI || if_llmaddr_count(ifp) == MAX_MULTICAST_ADDR)
 		sc->promisc_flags |= FLAG_VF_MULTICAST_PROMISC;
 	if (flags & IFF_PROMISC)
 		sc->promisc_flags |= FLAG_VF_UNICAST_PROMISC;
@@ -1237,7 +1237,7 @@ iavf_mc_filter_apply(void *arg, struct sockaddr_dl *sdl, u_int cnt __unused)
 	struct iavf_sc *sc = (struct iavf_sc *)arg;
 	int error;
 
-	error = iavf_add_mac_filter(sc, (u8*)LLADDR(sdl), IAVF_FILTER_MC);
+	error = iavf_add_mac_filter(sc, (u8 *)LLADDR(sdl), IAVF_FILTER_MC);
 
 	return (!error);
 }
@@ -1256,9 +1256,9 @@ iavf_init_multi(struct iavf_sc *sc)
 	int mcnt = 0;
 
 	/* First clear any multicast filters */
-	SLIST_FOREACH(f, sc->mac_filters, next) {
-		if ((f->flags & IAVF_FILTER_USED)
-		    && (f->flags & IAVF_FILTER_MC)) {
+	SLIST_FOREACH (f, sc->mac_filters, next) {
+		if ((f->flags & IAVF_FILTER_USED) &&
+		    (f->flags & IAVF_FILTER_MC)) {
 			f->flags |= IAVF_FILTER_DEL;
 			mcnt++;
 		}
@@ -1317,7 +1317,7 @@ iavf_multi_set(struct iavf_sc *sc)
 int
 iavf_add_mac_filter(struct iavf_sc *sc, u8 *macaddr, u16 flags)
 {
-	struct iavf_mac_filter	*f;
+	struct iavf_mac_filter *f;
 
 	/* Does one already exist? */
 	f = iavf_find_mac_filter(sc, macaddr);
@@ -1358,10 +1358,10 @@ iavf_add_mac_filter(struct iavf_sc *sc, u8 *macaddr, u16 flags)
 struct iavf_mac_filter *
 iavf_find_mac_filter(struct iavf_sc *sc, u8 *macaddr)
 {
-	struct iavf_mac_filter	*f;
+	struct iavf_mac_filter *f;
 	bool match = FALSE;
 
-	SLIST_FOREACH(f, sc->mac_filters, next) {
+	SLIST_FOREACH (f, sc->mac_filters, next) {
 		if (cmp_etheraddr(f->macaddr, macaddr)) {
 			match = TRUE;
 			break;
@@ -1426,7 +1426,7 @@ iavf_baudrate_from_link_speed(struct iavf_sc *sc)
 void
 iavf_add_vlan_filter(struct iavf_sc *sc, u16 vtag)
 {
-	struct iavf_vlan_filter	*v;
+	struct iavf_vlan_filter *v;
 
 	v = (struct iavf_vlan_filter *)malloc(sizeof(struct iavf_vlan_filter),
 	    M_IAVF, M_WAITOK | M_ZERO);
@@ -1450,10 +1450,10 @@ iavf_add_vlan_filter(struct iavf_sc *sc, u16 vtag)
 int
 iavf_mark_del_vlan_filter(struct iavf_sc *sc, u16 vtag)
 {
-	struct iavf_vlan_filter	*v;
+	struct iavf_vlan_filter *v;
 	int i = 0;
 
-	SLIST_FOREACH(v, sc->vlan_filters, next) {
+	SLIST_FOREACH (v, sc->vlan_filters, next) {
 		if (v->vlan == vtag) {
 			v->flags = IAVF_FILTER_DEL;
 			++i;
@@ -1484,7 +1484,8 @@ iavf_update_msix_devinfo(device_t dev)
 	/* We can hardcode this offset since we know the device */
 	msix_ctrl = pci_read_config(dev, 0x70 + PCIR_MSIX_CTRL, 2);
 	dinfo->cfg.msix.msix_ctrl = msix_ctrl;
-	dinfo->cfg.msix.msix_msgnum = (msix_ctrl & PCIM_MSIXCTRL_TABLE_SIZE) + 1;
+	dinfo->cfg.msix.msix_msgnum = (msix_ctrl & PCIM_MSIXCTRL_TABLE_SIZE) +
+	    1;
 }
 
 /**

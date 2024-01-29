@@ -56,7 +56,7 @@
 #include <string.h>
 
 #ifndef _PATH_ETHERS
-#define	_PATH_ETHERS	"/etc/ethers"
+#define _PATH_ETHERS "/etc/ethers"
 #endif
 
 /*
@@ -68,8 +68,8 @@ ether_line(const char *l, struct ether_addr *e, char *hostname)
 {
 	int i, o[6];
 
-	i = sscanf(l, "%x:%x:%x:%x:%x:%x %s", &o[0], &o[1], &o[2], &o[3],
-	    &o[4], &o[5], hostname);
+	i = sscanf(l, "%x:%x:%x:%x:%x:%x %s", &o[0], &o[1], &o[2], &o[3], &o[4],
+	    &o[5], hostname);
 	if (i == 7) {
 		for (i = 0; i < 6; i++)
 			e->octet[i] = o[i];
@@ -91,12 +91,12 @@ ether_aton_r(const char *a, struct ether_addr *e)
 	i = sscanf(a, "%x:%x:%x:%x:%x:%x", &o0, &o1, &o2, &o3, &o4, &o5);
 	if (i != 6)
 		return (NULL);
-	e->octet[0]=o0;
-	e->octet[1]=o1;
-	e->octet[2]=o2;
-	e->octet[3]=o3;
-	e->octet[4]=o4;
-	e->octet[5]=o5;
+	e->octet[0] = o0;
+	e->octet[1] = o1;
+	e->octet[2] = o2;
+	e->octet[3] = o3;
+	e->octet[4] = o4;
+	e->octet[5] = o5;
 	return (e);
 }
 
@@ -150,7 +150,7 @@ ether_ntohost(char *hostname, const struct ether_addr *e)
 
 	if ((fp = fopen(_PATH_ETHERS, "re")) == NULL)
 		return (1);
-	while (fgets(buf,BUFSIZ,fp)) {
+	while (fgets(buf, BUFSIZ, fp)) {
 		if (buf[0] == '#')
 			continue;
 #ifdef YP
@@ -159,7 +159,7 @@ ether_ntohost(char *hostname, const struct ether_addr *e)
 				continue;
 			ether_a = ether_ntoa(e);
 			if (yp_match(yp_domain, "ethers.byaddr", ether_a,
-			    strlen(ether_a), &result, &resultlen)) {
+				strlen(ether_a), &result, &resultlen)) {
 				continue;
 			}
 			strncpy(buf, result, resultlen);
@@ -169,11 +169,11 @@ ether_ntohost(char *hostname, const struct ether_addr *e)
 #endif
 		if (!ether_line(buf, &local_ether, local_host)) {
 			if (!bcmp((char *)&local_ether.octet[0],
-			    (char *)&e->octet[0], 6)) {
+				(char *)&e->octet[0], 6)) {
 				/* We have a match. */
 				strcpy(hostname, local_host);
 				fclose(fp);
-				return(0);
+				return (0);
 			}
 		}
 	}
@@ -199,7 +199,7 @@ ether_hostton(const char *hostname, struct ether_addr *e)
 
 	if ((fp = fopen(_PATH_ETHERS, "re")) == NULL)
 		return (1);
-	while (fgets(buf,BUFSIZ,fp)) {
+	while (fgets(buf, BUFSIZ, fp)) {
 		if (buf[0] == '#')
 			continue;
 #ifdef YP
@@ -207,7 +207,7 @@ ether_hostton(const char *hostname, struct ether_addr *e)
 			if (yp_get_default_domain(&yp_domain))
 				continue;
 			if (yp_match(yp_domain, "ethers.byname", hostname,
-			    strlen(hostname), &result, &resultlen)) {
+				strlen(hostname), &result, &resultlen)) {
 				continue;
 			}
 			strncpy(buf, result, resultlen);
@@ -221,7 +221,7 @@ ether_hostton(const char *hostname, struct ether_addr *e)
 				bcopy((char *)&local_ether.octet[0],
 				    (char *)&e->octet[0], 6);
 				fclose(fp);
-				return(0);
+				return (0);
 			}
 		}
 	}

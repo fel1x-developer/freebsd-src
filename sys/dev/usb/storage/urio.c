@@ -43,56 +43,55 @@
  * 2000/2/24  first version.
  */
 
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
-#include <sys/malloc.h>
-#include <sys/priv.h>
+#include <sys/condvar.h>
 #include <sys/conf.h>
 #include <sys/fcntl.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
+#include <dev/usb/usb_generic.h>
+#include <dev/usb/usb_ioctl.h>
 #include <dev/usb/usbdi.h>
+
 #include "usbdevs.h"
 
-#include <dev/usb/usb_ioctl.h>
-#include <dev/usb/usb_generic.h>
-
-#define	USB_DEBUG_VAR urio_debug
-#include <dev/usb/usb_debug.h>
-
+#define USB_DEBUG_VAR urio_debug
 #include <dev/usb/storage/rio500_usb.h>
+#include <dev/usb/usb_debug.h>
 
 #ifdef USB_DEBUG
 static int urio_debug = 0;
 
 static SYSCTL_NODE(_hw_usb, OID_AUTO, urio, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "USB urio");
-SYSCTL_INT(_hw_usb_urio, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &urio_debug, 0, "urio debug level");
+SYSCTL_INT(_hw_usb_urio, OID_AUTO, debug, CTLFLAG_RWTUN, &urio_debug, 0,
+    "urio debug level");
 #endif
 
-#define	URIO_T_WR     0
-#define	URIO_T_RD     1
-#define	URIO_T_WR_CS  2
-#define	URIO_T_RD_CS  3
-#define	URIO_T_MAX    4
+#define URIO_T_WR 0
+#define URIO_T_RD 1
+#define URIO_T_WR_CS 2
+#define URIO_T_RD_CS 3
+#define URIO_T_MAX 4
 
-#define	URIO_BSIZE	(1<<12)		/* bytes */
-#define	URIO_IFQ_MAXLEN      2		/* units */
+#define URIO_BSIZE (1 << 12) /* bytes */
+#define URIO_IFQ_MAXLEN 2    /* units */
 
 struct urio_softc {
 	struct usb_fifo_sc sc_fifo;
@@ -101,11 +100,11 @@ struct urio_softc {
 	struct usb_device *sc_udev;
 	struct usb_xfer *sc_xfer[URIO_T_MAX];
 
-	uint8_t	sc_flags;
-#define	URIO_FLAG_READ_STALL    0x01	/* read transfer stalled */
-#define	URIO_FLAG_WRITE_STALL   0x02	/* write transfer stalled */
+	uint8_t sc_flags;
+#define URIO_FLAG_READ_STALL 0x01  /* read transfer stalled */
+#define URIO_FLAG_WRITE_STALL 0x02 /* write transfer stalled */
 
-	uint8_t	sc_name[16];
+	uint8_t sc_name[16];
 };
 
 /* prototypes */
@@ -194,9 +193,9 @@ static driver_t urio_driver = {
 };
 
 static const STRUCT_USB_HOST_ID urio_devs[] = {
-	{USB_VPI(USB_VENDOR_DIAMOND, USB_PRODUCT_DIAMOND_RIO500USB, 0)},
-	{USB_VPI(USB_VENDOR_DIAMOND2, USB_PRODUCT_DIAMOND2_RIO600USB, 0)},
-	{USB_VPI(USB_VENDOR_DIAMOND2, USB_PRODUCT_DIAMOND2_RIO800USB, 0)},
+	{ USB_VPI(USB_VENDOR_DIAMOND, USB_PRODUCT_DIAMOND_RIO500USB, 0) },
+	{ USB_VPI(USB_VENDOR_DIAMOND2, USB_PRODUCT_DIAMOND2_RIO600USB, 0) },
+	{ USB_VPI(USB_VENDOR_DIAMOND2, USB_PRODUCT_DIAMOND2_RIO800USB, 0) },
 };
 
 DRIVER_MODULE(urio, uhub, urio_driver, NULL, NULL);
@@ -232,12 +231,11 @@ urio_attach(device_t dev)
 
 	mtx_init(&sc->sc_mtx, "urio lock", NULL, MTX_DEF | MTX_RECURSE);
 
-	snprintf(sc->sc_name, sizeof(sc->sc_name),
-	    "%s", device_get_nameunit(dev));
+	snprintf(sc->sc_name, sizeof(sc->sc_name), "%s",
+	    device_get_nameunit(dev));
 
-	error = usbd_transfer_setup(uaa->device,
-	    &uaa->info.bIfaceIndex, sc->sc_xfer,
-	    urio_config, URIO_T_MAX, sc, &sc->sc_mtx);
+	error = usbd_transfer_setup(uaa->device, &uaa->info.bIfaceIndex,
+	    sc->sc_xfer, urio_config, URIO_T_MAX, sc, &sc->sc_mtx);
 
 	if (error) {
 		DPRINTF("error=%s\n", usbd_errstr(error));
@@ -245,17 +243,16 @@ urio_attach(device_t dev)
 	}
 
 	error = usb_fifo_attach(uaa->device, sc, &sc->sc_mtx,
-	    &urio_fifo_methods, &sc->sc_fifo,
-	    device_get_unit(dev), -1, uaa->info.bIfaceIndex,
-	    UID_ROOT, GID_OPERATOR, 0644);
+	    &urio_fifo_methods, &sc->sc_fifo, device_get_unit(dev), -1,
+	    uaa->info.bIfaceIndex, UID_ROOT, GID_OPERATOR, 0644);
 	if (error) {
 		goto detach;
 	}
-	return (0);			/* success */
+	return (0); /* success */
 
 detach:
 	urio_detach(dev);
-	return (ENOMEM);		/* failure */
+	return (ENOMEM); /* failure */
 }
 
 static void
@@ -274,14 +271,14 @@ urio_write_callback(struct usb_xfer *xfer, usb_error_t error)
 			return;
 		}
 		pc = usbd_xfer_get_frame(xfer, 0);
-		if (usb_fifo_get_data(f, pc, 0,
-		    usbd_xfer_max_len(xfer), &actlen, 0)) {
+		if (usb_fifo_get_data(f, pc, 0, usbd_xfer_max_len(xfer),
+			&actlen, 0)) {
 			usbd_xfer_set_frame_len(xfer, 0, actlen);
 			usbd_transfer_submit(xfer);
 		}
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			sc->sc_flags |= URIO_FLAG_WRITE_STALL;
@@ -325,12 +322,13 @@ urio_read_callback(struct usb_xfer *xfer, usb_error_t error)
 			return;
 		}
 		if (usb_fifo_put_bytes_max(f) != 0) {
-			usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
+			usbd_xfer_set_frame_len(xfer, 0,
+			    usbd_xfer_max_len(xfer));
 			usbd_transfer_submit(xfer);
 		}
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			sc->sc_flags |= URIO_FLAG_READ_STALL;
@@ -399,8 +397,8 @@ urio_open(struct usb_fifo *fifo, int fflags)
 		mtx_unlock(&sc->sc_mtx);
 
 		if (usb_fifo_alloc_buffer(fifo,
-		    usbd_xfer_max_len(sc->sc_xfer[URIO_T_RD]),
-		    URIO_IFQ_MAXLEN)) {
+			usbd_xfer_max_len(sc->sc_xfer[URIO_T_RD]),
+			URIO_IFQ_MAXLEN)) {
 			return (ENOMEM);
 		}
 	}
@@ -409,12 +407,12 @@ urio_open(struct usb_fifo *fifo, int fflags)
 		sc->sc_flags |= URIO_FLAG_WRITE_STALL;
 
 		if (usb_fifo_alloc_buffer(fifo,
-		    usbd_xfer_max_len(sc->sc_xfer[URIO_T_WR]),
-		    URIO_IFQ_MAXLEN)) {
+			usbd_xfer_max_len(sc->sc_xfer[URIO_T_WR]),
+			URIO_IFQ_MAXLEN)) {
 			return (ENOMEM);
 		}
 	}
-	return (0);			/* success */
+	return (0); /* success */
 }
 
 static void
@@ -426,8 +424,7 @@ urio_close(struct usb_fifo *fifo, int fflags)
 }
 
 static int
-urio_ioctl(struct usb_fifo *fifo, u_long cmd, void *addr,
-    int fflags)
+urio_ioctl(struct usb_fifo *fifo, u_long cmd, void *addr, int fflags)
 {
 	struct usb_ctl_request ur;
 	struct RioCommand *rio_cmd;
@@ -441,8 +438,8 @@ urio_ioctl(struct usb_fifo *fifo, u_long cmd, void *addr,
 		}
 		memset(&ur, 0, sizeof(ur));
 		rio_cmd = addr;
-		ur.ucr_request.bmRequestType =
-		    rio_cmd->requesttype | UT_READ_VENDOR_DEVICE;
+		ur.ucr_request.bmRequestType = rio_cmd->requesttype |
+		    UT_READ_VENDOR_DEVICE;
 		break;
 
 	case RIO_SEND_COMMAND:
@@ -452,8 +449,8 @@ urio_ioctl(struct usb_fifo *fifo, u_long cmd, void *addr,
 		}
 		memset(&ur, 0, sizeof(ur));
 		rio_cmd = addr;
-		ur.ucr_request.bmRequestType =
-		    rio_cmd->requesttype | UT_WRITE_VENDOR_DEVICE;
+		ur.ucr_request.bmRequestType = rio_cmd->requesttype |
+		    UT_WRITE_VENDOR_DEVICE;
 		break;
 
 	default:

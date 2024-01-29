@@ -32,48 +32,48 @@
  * for the polynomial (actually a trinomial) that the R.N.G. is based on, and
  * the separation between the two lower order coefficients of the trinomial.
  */
-#define	TYPE_0		0		/* linear congruential */
-#define	BREAK_0		8
-#define	DEG_0		0
-#define	SEP_0		0
+#define TYPE_0 0 /* linear congruential */
+#define BREAK_0 8
+#define DEG_0 0
+#define SEP_0 0
 
-#define	TYPE_1		1		/* x**7 + x**3 + 1 */
-#define	BREAK_1		32
-#define	DEG_1		7
-#define	SEP_1		3
+#define TYPE_1 1 /* x**7 + x**3 + 1 */
+#define BREAK_1 32
+#define DEG_1 7
+#define SEP_1 3
 
-#define	TYPE_2		2		/* x**15 + x + 1 */
-#define	BREAK_2		64
-#define	DEG_2		15
-#define	SEP_2		1
+#define TYPE_2 2 /* x**15 + x + 1 */
+#define BREAK_2 64
+#define DEG_2 15
+#define SEP_2 1
 
-#define	TYPE_3		3		/* x**31 + x**3 + 1 */
-#define	BREAK_3		128
-#define	DEG_3		31
-#define	SEP_3		3
+#define TYPE_3 3 /* x**31 + x**3 + 1 */
+#define BREAK_3 128
+#define DEG_3 31
+#define SEP_3 3
 
-#define	TYPE_4		4		/* x**63 + x + 1 */
-#define	BREAK_4		256
-#define	DEG_4		63
-#define	SEP_4		1
+#define TYPE_4 4 /* x**63 + x + 1 */
+#define BREAK_4 256
+#define DEG_4 63
+#define SEP_4 1
 
 /*
  * Array versions of the above information to make code run faster --
  * relies on fact that TYPE_i == i.
  */
-#define	MAX_TYPES	5		/* max number of types above */
+#define MAX_TYPES 5 /* max number of types above */
 
 /* A full instance of the random(3) generator. */
 struct __random_state {
-	uint32_t	*rst_fptr;
-	uint32_t	*rst_rptr;
-	uint32_t	*rst_state;
-	int		rst_type;
-	int		rst_deg;
-	int		rst_sep;
-	uint32_t	*rst_end_ptr;
+	uint32_t *rst_fptr;
+	uint32_t *rst_rptr;
+	uint32_t *rst_state;
+	int rst_type;
+	int rst_deg;
+	int rst_sep;
+	uint32_t *rst_end_ptr;
 	/* Flexible array member must be last. */
-	uint32_t	rst_randtbl[];
+	uint32_t rst_randtbl[];
 };
 
 struct __random_state *allocatestate(unsigned type);

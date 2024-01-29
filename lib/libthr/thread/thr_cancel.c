@@ -27,11 +27,12 @@
  */
 
 #include <sys/cdefs.h>
-#include "namespace.h"
-#include <pthread.h>
-#include "un-namespace.h"
 
+#include <pthread.h>
+
+#include "namespace.h"
 #include "thr_private.h"
+#include "un-namespace.h"
 
 __weak_reference(_thr_cancel, pthread_cancel);
 __weak_reference(_thr_cancel, _pthread_cancel);
@@ -47,8 +48,8 @@ __weak_reference(_Tthr_cancel_leave, _pthread_cancel_leave);
 static inline void
 testcancel(struct pthread *curthread)
 {
-	if (__predict_false(SHOULD_CANCEL(curthread) &&
-	    !THR_IN_CRITICAL(curthread)))
+	if (__predict_false(
+		SHOULD_CANCEL(curthread) && !THR_IN_CRITICAL(curthread)))
 		_pthread_exit(PTHREAD_CANCELED);
 }
 
@@ -102,7 +103,7 @@ _thr_setcancelstate(int state, int *oldstate)
 
 	if (oldstate) {
 		*oldstate = oldval ? PTHREAD_CANCEL_ENABLE :
-			PTHREAD_CANCEL_DISABLE;
+				     PTHREAD_CANCEL_DISABLE;
 	}
 	return (0);
 }
@@ -110,7 +111,7 @@ _thr_setcancelstate(int state, int *oldstate)
 int
 _thr_setcanceltype(int type, int *oldtype)
 {
-	struct pthread	*curthread = _get_curthread();
+	struct pthread *curthread = _get_curthread();
 	int oldval;
 
 	oldval = curthread->cancel_async;
@@ -128,7 +129,7 @@ _thr_setcanceltype(int type, int *oldtype)
 
 	if (oldtype) {
 		*oldtype = oldval ? PTHREAD_CANCEL_ASYNCHRONOUS :
-		 	PTHREAD_CANCEL_DEFERRED;
+				    PTHREAD_CANCEL_DEFERRED;
 	}
 	return (0);
 }
@@ -154,8 +155,8 @@ void
 _thr_cancel_enter2(struct pthread *curthread, int maycancel)
 {
 	curthread->cancel_point = 1;
-	if (__predict_false(SHOULD_CANCEL(curthread) &&
-	    !THR_IN_CRITICAL(curthread))) {
+	if (__predict_false(
+		SHOULD_CANCEL(curthread) && !THR_IN_CRITICAL(curthread))) {
 		if (!maycancel)
 			thr_wake(curthread->tid);
 		else
@@ -168,7 +169,7 @@ _thr_cancel_leave(struct pthread *curthread, int maycancel)
 {
 	curthread->cancel_point = 0;
 	if (__predict_false(SHOULD_CANCEL(curthread) &&
-	    !THR_IN_CRITICAL(curthread) && maycancel))
+		!THR_IN_CRITICAL(curthread) && maycancel))
 		_pthread_exit(PTHREAD_CANCELED);
 }
 

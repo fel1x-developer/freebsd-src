@@ -14,18 +14,19 @@
  */
 
 #ifndef _BOOT_I386_ARGS_H_
-#define	_BOOT_I386_ARGS_H_
+#define _BOOT_I386_ARGS_H_
 
-#define	KARGS_FLAGS_CD		0x0001	/* .bootdev is a bios CD dev */
-#define	KARGS_FLAGS_PXE		0x0002	/* .pxeinfo is valid */
-#define	KARGS_FLAGS_ZFS		0x0004	/* .zfspool is valid, EXTARG is zfs_boot_args */
-#define	KARGS_FLAGS_EXTARG	0x0008	/* variably sized extended argument */
-#define	KARGS_FLAGS_GELI	0x0010	/* EXTARG is geli_boot_args */
+#define KARGS_FLAGS_CD 0x0001  /* .bootdev is a bios CD dev */
+#define KARGS_FLAGS_PXE 0x0002 /* .pxeinfo is valid */
+#define KARGS_FLAGS_ZFS 0x0004 /* .zfspool is valid, EXTARG is zfs_boot_args \
+				*/
+#define KARGS_FLAGS_EXTARG 0x0008 /* variably sized extended argument */
+#define KARGS_FLAGS_GELI 0x0010	  /* EXTARG is geli_boot_args */
 
-#define	BOOTARGS_SIZE	24	/* sizeof(struct bootargs) */
-#define	BA_BOOTFLAGS	8	/* offsetof(struct bootargs, bootflags) */
-#define	BA_BOOTINFO	20	/* offsetof(struct bootargs, bootinfo) */
-#define	BI_SIZE		48	/* offsetof(struct bootinfo, bi_size) */
+#define BOOTARGS_SIZE 24 /* sizeof(struct bootargs) */
+#define BA_BOOTFLAGS 8	 /* offsetof(struct bootargs, bootflags) */
+#define BA_BOOTINFO 20	 /* offsetof(struct bootargs, bootinfo) */
+#define BI_SIZE 48	 /* offsetof(struct bootinfo, bi_size) */
 
 /*
  * We reserve some space above BTX allocated stack for the arguments
@@ -36,9 +37,9 @@
  * for bootinfo and the arguments to not run into each other.
  * Arguments area below ARGOFF is reserved for future use.
  */
-#define	ARGSPACE	0x1000	/* total size of the BTX args area */
-#define	ARGOFF		0x800	/* actual args offset within the args area */
-#define	ARGADJ		(ARGSPACE - ARGOFF)
+#define ARGSPACE 0x1000 /* total size of the BTX args area */
+#define ARGOFF 0x800	/* actual args offset within the args area */
+#define ARGADJ (ARGSPACE - ARGOFF)
 
 #ifndef __ASSEMBLER__
 
@@ -60,19 +61,18 @@
  * field and if it's non-NULL it copies the data it points to into another known
  * fixed location, and adjusts the bootinfo field to point to that new location.
  */
-struct bootargs
-{
-	uint32_t			howto;
-	uint32_t			bootdev;
-	uint32_t			bootflags;
+struct bootargs {
+	uint32_t howto;
+	uint32_t bootdev;
+	uint32_t bootflags;
 	union {
 		struct {
-			uint32_t	pxeinfo;
-			uint32_t	reserved;
+			uint32_t pxeinfo;
+			uint32_t reserved;
 		};
-		uint64_t		zfspool;
+		uint64_t zfspool;
 	};
-	uint32_t			bootinfo;
+	uint32_t bootinfo;
 
 	/*
 	 * If KARGS_FLAGS_EXTARG is set in bootflags, then the above fields
@@ -83,6 +83,7 @@ struct bootargs
 
 #ifdef LOADER_GELI_SUPPORT
 #include <crypto/intake.h>
+
 #include "geliboot.h"
 #endif
 
@@ -90,23 +91,22 @@ struct bootargs
  * geli_boot_data is embedded in geli_boot_args (passed from gptboot to loader)
  * and in zfs_boot_args (passed from zfsboot and gptzfsboot to loader).
  */
-struct geli_boot_data
-{
-    union {
-        char            gelipw[256];
-        struct {
-            char                notapw;	/* 
-					 * single null byte to stop keybuf
-					 * being interpreted as a password
-					 */
-            uint32_t            keybuf_sentinel;
+struct geli_boot_data {
+	union {
+		char gelipw[256];
+		struct {
+			char notapw; /*
+				      * single null byte to stop keybuf
+				      * being interpreted as a password
+				      */
+			uint32_t keybuf_sentinel;
 #ifdef LOADER_GELI_SUPPORT
-            struct keybuf       *keybuf;
+			struct keybuf *keybuf;
 #else
-            void                *keybuf;
+			void *keybuf;
 #endif
-        };
-    };
+		};
+	};
 };
 
 #ifdef LOADER_GELI_SUPPORT
@@ -127,31 +127,29 @@ import_geli_boot_data(struct geli_boot_data *gbdata)
 {
 
 	if (gbdata->gelipw[0] != '\0') {
-	    setenv("kern.geom.eli.passphrase", gbdata->gelipw, 1);
-	    explicit_bzero(gbdata->gelipw, sizeof(gbdata->gelipw));
+		setenv("kern.geom.eli.passphrase", gbdata->gelipw, 1);
+		explicit_bzero(gbdata->gelipw, sizeof(gbdata->gelipw));
 	} else if (gbdata->keybuf_sentinel == KEYBUF_SENTINEL) {
-	    geli_import_key_buffer(gbdata->keybuf);
+		geli_import_key_buffer(gbdata->keybuf);
 	}
 }
 #endif /* LOADER_GELI_SUPPORT */
 
-struct geli_boot_args
-{
-	uint32_t		size;
-	struct geli_boot_data	gelidata;
+struct geli_boot_args {
+	uint32_t size;
+	struct geli_boot_data gelidata;
 };
 
-struct zfs_boot_args
-{
-	uint32_t		size;
-	uint32_t		reserved;
-	uint64_t		pool;
-	uint64_t		root;
-	uint64_t		primary_pool;
-	uint64_t		primary_vdev;
-	struct geli_boot_data	gelidata;
+struct zfs_boot_args {
+	uint32_t size;
+	uint32_t reserved;
+	uint64_t pool;
+	uint64_t root;
+	uint64_t primary_pool;
+	uint64_t primary_vdev;
+	struct geli_boot_data gelidata;
 };
 
 #endif /*__ASSEMBLER__*/
 
-#endif	/* !_BOOT_I386_ARGS_H_ */
+#endif /* !_BOOT_I386_ARGS_H_ */

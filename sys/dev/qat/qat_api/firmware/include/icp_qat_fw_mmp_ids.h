@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
 
-
-/* --- (Automatically generated (relocation v. 1.3), do not modify manually) --- */
+/* --- (Automatically generated (relocation v. 1.3), do not modify manually) ---
+ */
 
 /**
  * @file icp_qat_fw_mmp_ids.h
@@ -1925,6 +1925,7 @@
 
 #endif /* __ICP_QAT_FW_MMP_IDS__ */
 
-/* --- (Automatically generated (relocation v. 1.3), do not modify manually) --- */
+/* --- (Automatically generated (relocation v. 1.3), do not modify manually) ---
+ */
 
 /* --- end of file --- */

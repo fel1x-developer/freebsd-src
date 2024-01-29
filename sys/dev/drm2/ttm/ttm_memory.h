@@ -39,7 +39,7 @@
  */
 
 struct ttm_mem_shrink {
-	int (*do_shrink) (struct ttm_mem_shrink *);
+	int (*do_shrink)(struct ttm_mem_shrink *);
 };
 
 /**
@@ -85,8 +85,9 @@ struct ttm_mem_global {
  * @func: The callback function.
  */
 
-static inline void ttm_mem_init_shrink(struct ttm_mem_shrink *shrink,
-				       int (*func) (struct ttm_mem_shrink *))
+static inline void
+ttm_mem_init_shrink(struct ttm_mem_shrink *shrink,
+    int (*func)(struct ttm_mem_shrink *))
 {
 	shrink->do_shrink = func;
 }
@@ -101,8 +102,9 @@ static inline void ttm_mem_init_shrink(struct ttm_mem_shrink *shrink,
  * -EBUSY: There's already a callback registered. (May change).
  */
 
-static inline int ttm_mem_register_shrink(struct ttm_mem_global *glob,
-					  struct ttm_mem_shrink *shrink)
+static inline int
+ttm_mem_register_shrink(struct ttm_mem_global *glob,
+    struct ttm_mem_shrink *shrink)
 {
 	mtx_lock(&glob->lock);
 	if (glob->shrink != NULL) {
@@ -122,8 +124,9 @@ static inline int ttm_mem_register_shrink(struct ttm_mem_global *glob,
  *
  */
 
-static inline void ttm_mem_unregister_shrink(struct ttm_mem_global *glob,
-					     struct ttm_mem_shrink *shrink)
+static inline void
+ttm_mem_unregister_shrink(struct ttm_mem_global *glob,
+    struct ttm_mem_shrink *shrink)
 {
 	mtx_lock(&glob->lock);
 	MPASS(glob->shrink == shrink);
@@ -136,13 +139,11 @@ struct vm_page;
 extern int ttm_mem_global_init(struct ttm_mem_global *glob);
 extern void ttm_mem_global_release(struct ttm_mem_global *glob);
 extern int ttm_mem_global_alloc(struct ttm_mem_global *glob, uint64_t memory,
-				bool no_wait, bool interruptible);
-extern void ttm_mem_global_free(struct ttm_mem_global *glob,
-				uint64_t amount);
+    bool no_wait, bool interruptible);
+extern void ttm_mem_global_free(struct ttm_mem_global *glob, uint64_t amount);
 extern int ttm_mem_global_alloc_page(struct ttm_mem_global *glob,
-				     struct vm_page *page,
-				     bool no_wait, bool interruptible);
+    struct vm_page *page, bool no_wait, bool interruptible);
 extern void ttm_mem_global_free_page(struct ttm_mem_global *glob,
-				     struct vm_page *page);
+    struct vm_page *page);
 extern size_t ttm_round_pot(size_t size);
 #endif

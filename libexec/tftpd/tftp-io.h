@@ -26,22 +26,22 @@
  */
 
 #include <sys/cdefs.h>
-#define RP_NONE		0
-#define	RP_RECVFROM	-1
-#define	RP_TOOSMALL	-2
-#define RP_ERROR	-3
-#define RP_WRONGSOURCE	-4
-#define	RP_TIMEOUT	-5
-#define	RP_TOOBIG	-6
+#define RP_NONE 0
+#define RP_RECVFROM -1
+#define RP_TOOSMALL -2
+#define RP_ERROR -3
+#define RP_WRONGSOURCE -4
+#define RP_TIMEOUT -5
+#define RP_TOOBIG -6
 
 const char *errtomsg(int);
-void	send_error(int peer, int);
-int	send_wrq(int peer, char *, char *);
-int	send_rrq(int peer, char *, char *);
-int	send_oack(int peer);
-int	send_ack(int peer, unsigned short);
-int	send_data(int peer, uint16_t, char *, int);
-int	receive_packet(int peer, char *, int, struct sockaddr_storage *, int);
+void send_error(int peer, int);
+int send_wrq(int peer, char *, char *);
+int send_rrq(int peer, char *, char *);
+int send_oack(int peer);
+int send_ack(int peer, unsigned short);
+int send_data(int peer, uint16_t, char *, int);
+int receive_packet(int peer, char *, int, struct sockaddr_storage *, int);
 
 extern struct sockaddr_storage peer_sock;
 extern struct sockaddr_storage me_sock;

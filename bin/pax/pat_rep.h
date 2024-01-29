@@ -37,10 +37,10 @@
  * data structure for storing user supplied replacement strings (-s)
  */
 typedef struct replace {
-	char		*nstr;	/* the new string we will substitute with */
-	regex_t		rcmp;	/* compiled regular expression used to match */
-	int		flgs;	/* print conversions? global in operation?  */
-#define	PRNT		0x1
-#define	GLOB		0x2
-	struct replace	*fow;	/* pointer to next pattern */
+	char *nstr;   /* the new string we will substitute with */
+	regex_t rcmp; /* compiled regular expression used to match */
+	int flgs;     /* print conversions? global in operation?  */
+#define PRNT 0x1
+#define GLOB 0x2
+	struct replace *fow; /* pointer to next pattern */
 } REPLACE;

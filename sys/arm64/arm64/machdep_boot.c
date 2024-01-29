@@ -26,8 +26,8 @@
  * SUCH DAMAGE.
  */
 
-#include "opt_platform.h"
 #include "opt_ddb.h"
+#include "opt_platform.h"
 
 #include <sys/param.h>
 #include <sys/systm.h>
@@ -45,8 +45,9 @@
 #include <machine/vmparam.h>
 
 #ifdef FDT
-#include <contrib/libfdt/libfdt.h>
 #include <dev/fdt/fdt_common.h>
+
+#include <contrib/libfdt/libfdt.h>
 #endif
 
 #ifdef DDB
@@ -59,27 +60,29 @@ static char *loader_envp;
 #ifdef FDT
 static char static_kenv[4096];
 
-#define	CMDLINE_GUARD "FreeBSD:"
-#define	LBABI_MAX_COMMAND_LINE 512
+#define CMDLINE_GUARD "FreeBSD:"
+#define LBABI_MAX_COMMAND_LINE 512
 static char linux_command_line[LBABI_MAX_COMMAND_LINE + 1];
 #endif
 
 /*
  * Fake up a boot descriptor table
  */
- #define PRELOAD_PUSH_VALUE(type, value) do {		\
-	*(type *)(preload_ptr + size) = (value);	\
-	size += sizeof(type);				\
-} while (0)
+#define PRELOAD_PUSH_VALUE(type, value)                  \
+	do {                                             \
+		*(type *)(preload_ptr + size) = (value); \
+		size += sizeof(type);                    \
+	} while (0)
 
- #define PRELOAD_PUSH_STRING(str) do {			\
- 	uint32_t ssize;					\
- 	ssize = strlen(str) + 1;			\
- 	PRELOAD_PUSH_VALUE(uint32_t, ssize);		\
-	strcpy((char*)(preload_ptr + size), str);	\
-	size += ssize;					\
-	size = roundup(size, sizeof(u_long));		\
-} while (0)
+#define PRELOAD_PUSH_STRING(str)                           \
+	do {                                               \
+		uint32_t ssize;                            \
+		ssize = strlen(str) + 1;                   \
+		PRELOAD_PUSH_VALUE(uint32_t, ssize);       \
+		strcpy((char *)(preload_ptr + size), str); \
+		size += ssize;                             \
+		size = roundup(size, sizeof(u_long));      \
+	} while (0)
 
 /* Build minimal set of metatda. */
 static vm_offset_t
@@ -143,7 +146,7 @@ cmdline_set_env(char *cmdline, const char *guard)
 
 	/* Test and remove guard. */
 	if (guard != NULL && guard[0] != '\0') {
-		guard_len  =  strlen(guard);
+		guard_len = strlen(guard);
 		if (strncasecmp(cmdline, guard, guard_len) != 0)
 			return;
 		cmdline += guard_len;
@@ -156,8 +159,9 @@ void
 parse_fdt_bootargs(void)
 {
 
-	if (loader_envp == NULL && fdt_get_chosen_bootargs(linux_command_line,
-	    LBABI_MAX_COMMAND_LINE) == 0) {
+	if (loader_envp == NULL &&
+	    fdt_get_chosen_bootargs(linux_command_line,
+		LBABI_MAX_COMMAND_LINE) == 0) {
 		init_static_kenv(static_kenv, sizeof(static_kenv));
 		cmdline_set_env(linux_command_line, CMDLINE_GUARD);
 	}

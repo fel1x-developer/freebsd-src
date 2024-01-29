@@ -24,11 +24,11 @@
  */
 
 #ifndef _SYS_EXTDIRENT_H
-#define	_SYS_EXTDIRENT_H
+#define _SYS_EXTDIRENT_H
 
-#pragma ident	"%Z%%M%	%I%	%E% SMI"
+#pragma ident "%Z%%M%	%I%	%E% SMI"
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -44,34 +44,33 @@ extern "C" {
  * V_RDDIR_ENTFLAGS, and if the file system supports the flags.
  */
 typedef struct edirent {
-	ino64_t		ed_ino;		/* "inode number" of entry */
-	off64_t		ed_off;		/* offset of disk directory entry */
-	uint32_t	ed_eflags;	/* per-entry flags */
-	unsigned short	ed_reclen;	/* length of this record */
-	char		ed_name[1];	/* name of file */
+	ino64_t ed_ino;		  /* "inode number" of entry */
+	off64_t ed_off;		  /* offset of disk directory entry */
+	uint32_t ed_eflags;	  /* per-entry flags */
+	unsigned short ed_reclen; /* length of this record */
+	char ed_name[1];	  /* name of file */
 } edirent_t;
 
-#define	EDIRENT_RECLEN(namelen)	\
-	((offsetof(edirent_t, ed_name[0]) + 1 + (namelen) + 7) & ~ 7)
-#define	EDIRENT_NAMELEN(reclen)	\
-	((reclen) - (offsetof(edirent_t, ed_name[0])))
+#define EDIRENT_RECLEN(namelen) \
+	((offsetof(edirent_t, ed_name[0]) + 1 + (namelen) + 7) & ~7)
+#define EDIRENT_NAMELEN(reclen) ((reclen) - (offsetof(edirent_t, ed_name[0])))
 
 /*
  * Extended entry flags
  *	Extended entries include a bitfield of extra information
  *	regarding that entry.
  */
-#define	ED_CASE_CONFLICT  0x10  /* Disconsidering case, entry is not unique */
+#define ED_CASE_CONFLICT 0x10 /* Disconsidering case, entry is not unique */
 
 /*
  * Extended flags accessor function
  */
-#define	ED_CASE_CONFLICTS(x)	((x)->ed_eflags & ED_CASE_CONFLICT)
+#define ED_CASE_CONFLICTS(x) ((x)->ed_eflags & ED_CASE_CONFLICT)
 
 #endif /* defined(_KERNEL) */
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* _SYS_EXTDIRENT_H */
+#endif /* _SYS_EXTDIRENT_H */

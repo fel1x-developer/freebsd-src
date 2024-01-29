@@ -62,8 +62,10 @@ mlx5e_iq_poll(struct mlx5e_iq *iq, int budget)
 		ci = iqcc & iq->wq.sz_m1;
 
 		if (likely(iq->data[ci].dma_sync != 0)) {
-			/* make sure data written by hardware is visible to CPU */
-			bus_dmamap_sync(iq->dma_tag, iq->data[ci].dma_map, iq->data[ci].dma_sync);
+			/* make sure data written by hardware is visible to CPU
+			 */
+			bus_dmamap_sync(iq->dma_tag, iq->data[ci].dma_map,
+			    iq->data[ci].dma_sync);
 			bus_dmamap_unload(iq->dma_tag, iq->data[ci].dma_map);
 
 			iq->data[ci].dma_sync = 0;
@@ -110,7 +112,8 @@ mlx5e_iq_send_nop(struct mlx5e_iq *iq, u32 ds_cnt)
 
 	memset(&wqe->ctrl, 0, sizeof(wqe->ctrl));
 
-	wqe->ctrl.opmod_idx_opcode = cpu_to_be32((iq->pc << 8) | MLX5_OPCODE_NOP);
+	wqe->ctrl.opmod_idx_opcode = cpu_to_be32(
+	    (iq->pc << 8) | MLX5_OPCODE_NOP);
 	wqe->ctrl.qpn_ds = cpu_to_be32((iq->sqn << 8) | ds_cnt);
 	wqe->ctrl.fm_ce_se = MLX5_WQE_CTRL_CQ_UPDATE;
 
@@ -163,7 +166,8 @@ mlx5e_iq_alloc_db(struct mlx5e_iq *iq)
 		err = -bus_dmamap_create(iq->dma_tag, 0, &iq->data[x].dma_map);
 		if (err != 0) {
 			while (x--)
-				bus_dmamap_destroy(iq->dma_tag, iq->data[x].dma_map);
+				bus_dmamap_destroy(iq->dma_tag,
+				    iq->data[x].dma_map);
 			free(iq->data, M_MLX5EN);
 			return (err);
 		}
@@ -172,8 +176,7 @@ mlx5e_iq_alloc_db(struct mlx5e_iq *iq)
 }
 
 static int
-mlx5e_iq_create(struct mlx5e_channel *c,
-    struct mlx5e_sq_param *param,
+mlx5e_iq_create(struct mlx5e_channel *c, struct mlx5e_sq_param *param,
     struct mlx5e_iq *iq)
 {
 	struct mlx5e_priv *priv = c->priv;
@@ -183,26 +186,25 @@ mlx5e_iq_create(struct mlx5e_channel *c,
 	int err;
 
 	/* Create DMA descriptor TAG */
-	if ((err = -bus_dma_tag_create(
-	    bus_get_dma_tag(mdev->pdev->dev.bsddev),
-	    1,				/* any alignment */
-	    0,				/* no boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    PAGE_SIZE,			/* maxsize */
-	    1,				/* nsegments */
-	    PAGE_SIZE,			/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockfuncarg */
-	    &iq->dma_tag)))
+	if ((err = -bus_dma_tag_create(bus_get_dma_tag(mdev->pdev->dev.bsddev),
+		 1,		    /* any alignment */
+		 0,		    /* no boundary */
+		 BUS_SPACE_MAXADDR, /* lowaddr */
+		 BUS_SPACE_MAXADDR, /* highaddr */
+		 NULL, NULL,	    /* filter, filterarg */
+		 PAGE_SIZE,	    /* maxsize */
+		 1,		    /* nsegments */
+		 PAGE_SIZE,	    /* maxsegsize */
+		 0,		    /* flags */
+		 NULL, NULL,	    /* lockfunc, lockfuncarg */
+		 &iq->dma_tag)))
 		goto done;
 
 	iq->mkey_be = cpu_to_be32(priv->mr.key);
 	iq->priv = priv;
 
-	err = mlx5_wq_cyc_create(mdev, &param->wq, sqc_wq,
-	    &iq->wq, &iq->wq_ctrl);
+	err = mlx5_wq_cyc_create(mdev, &param->wq, sqc_wq, &iq->wq,
+	    &iq->wq_ctrl);
 	if (err)
 		goto err_free_dma_tag;
 
@@ -269,19 +271,19 @@ mlx5e_iq_enable(struct mlx5e_iq *iq, struct mlx5e_sq_param *param,
 		MLX5_SET(sqc, sqc, qos_remap_en, 1);
 		if (MLX5_CAP_ETH(iq->priv->mdev, reg_umr_sq))
 			MLX5_SET(sqc, sqc, reg_umr, 1);
-		 else
+		else
 			mlx5_en_err(iq->priv->ifp,
 			    "No reg umr SQ capability, SQ remap disabled\n");
 	}
 
 	MLX5_SET(wq, wq, wq_type, MLX5_WQ_TYPE_CYCLIC);
 	MLX5_SET(wq, wq, uar_page, bfreg->index);
-	MLX5_SET(wq, wq, log_wq_pg_sz, iq->wq_ctrl.buf.page_shift -
-	    MLX5_ADAPTER_PAGE_SHIFT);
+	MLX5_SET(wq, wq, log_wq_pg_sz,
+	    iq->wq_ctrl.buf.page_shift - MLX5_ADAPTER_PAGE_SHIFT);
 	MLX5_SET64(wq, wq, dbr_addr, iq->wq_ctrl.db.dma);
 
 	mlx5_fill_page_array(&iq->wq_ctrl.buf,
-	    (__be64 *) MLX5_ADDR_OF(wq, wq, pas));
+	    (__be64 *)MLX5_ADDR_OF(wq, wq, pas));
 
 	err = mlx5_core_create_sq(iq->priv->mdev, in, inlen, &iq->sqn);
 
@@ -323,15 +325,13 @@ mlx5e_iq_disable(struct mlx5e_iq *iq)
 }
 
 int
-mlx5e_iq_open(struct mlx5e_channel *c,
-    struct mlx5e_sq_param *sq_param,
-    struct mlx5e_cq_param *cq_param,
-    struct mlx5e_iq *iq)
+mlx5e_iq_open(struct mlx5e_channel *c, struct mlx5e_sq_param *sq_param,
+    struct mlx5e_cq_param *cq_param, struct mlx5e_iq *iq)
 {
 	int err;
 
-	err = mlx5e_open_cq(c->priv, cq_param, &iq->cq,
-	    &mlx5e_iq_completion, c->ix);
+	err = mlx5e_open_cq(c->priv, cq_param, &iq->cq, &mlx5e_iq_completion,
+	    c->ix);
 	if (err)
 		return (err);
 
@@ -395,7 +395,7 @@ mlx5e_iq_drain(struct mlx5e_iq *iq)
 	mtx_unlock(&iq->lock);
 
 	/* error out remaining requests */
-	(void) mlx5e_iq_modify(iq, MLX5_SQC_STATE_RDY, MLX5_SQC_STATE_ERR);
+	(void)mlx5e_iq_modify(iq, MLX5_SQC_STATE_RDY, MLX5_SQC_STATE_ERR);
 
 	/* wait till SQ is empty */
 	mtx_lock(&iq->lock);
@@ -422,10 +422,9 @@ mlx5e_iq_close(struct mlx5e_iq *iq)
 void
 mlx5e_iq_static_init(struct mlx5e_iq *iq)
 {
-	mtx_init(&iq->lock, "mlx5iq",
-	    MTX_NETWORK_LOCK " IQ", MTX_DEF);
-	mtx_init(&iq->comp_lock, "mlx5iq_comp",
-	    MTX_NETWORK_LOCK " IQ COMP", MTX_DEF);
+	mtx_init(&iq->lock, "mlx5iq", MTX_NETWORK_LOCK " IQ", MTX_DEF);
+	mtx_init(&iq->comp_lock, "mlx5iq_comp", MTX_NETWORK_LOCK " IQ COMP",
+	    MTX_DEF);
 }
 
 void
@@ -464,10 +463,10 @@ mlx5e_iq_notify_hw(struct mlx5e_iq *iq)
 static inline bool
 mlx5e_iq_has_room_for(struct mlx5e_iq *iq, u16 n)
 {
-        u16 cc = iq->cc;
-        u16 pc = iq->pc;
+	u16 cc = iq->cc;
+	u16 pc = iq->pc;
 
-        return ((iq->wq.sz_m1 & (cc - pc)) >= n || cc == pc);
+	return ((iq->wq.sz_m1 & (cc - pc)) >= n || cc == pc);
 }
 
 int
@@ -495,8 +494,7 @@ mlx5e_iq_get_producer_index(struct mlx5e_iq *iq)
 }
 
 static void
-mlx5e_iq_load_memory_cb(void *arg, bus_dma_segment_t *segs,
-    int nseg, int error)
+mlx5e_iq_load_memory_cb(void *arg, bus_dma_segment_t *segs, int nseg, int error)
 {
 	u64 *pdma_address = arg;
 
@@ -510,15 +508,16 @@ CTASSERT(BUS_DMASYNC_POSTREAD != 0);
 CTASSERT(BUS_DMASYNC_POSTWRITE != 0);
 
 void
-mlx5e_iq_load_memory_single(struct mlx5e_iq *iq, u16 pi, void *buffer, size_t size,
-    u64 *pdma_address, u32 dma_sync)
+mlx5e_iq_load_memory_single(struct mlx5e_iq *iq, u16 pi, void *buffer,
+    size_t size, u64 *pdma_address, u32 dma_sync)
 {
 	int error;
 
 	error = bus_dmamap_load(iq->dma_tag, iq->data[pi].dma_map, buffer, size,
 	    &mlx5e_iq_load_memory_cb, pdma_address, BUS_DMA_NOWAIT);
 	if (unlikely(error))
-		panic("mlx5e_iq_load_memory: error=%d buffer=%p size=%zd", error, buffer, size);
+		panic("mlx5e_iq_load_memory: error=%d buffer=%p size=%zd",
+		    error, buffer, size);
 
 	switch (dma_sync) {
 	case BUS_DMASYNC_PREREAD:
@@ -528,7 +527,9 @@ mlx5e_iq_load_memory_single(struct mlx5e_iq *iq, u16 pi, void *buffer, size_t si
 		iq->data[pi].dma_sync = BUS_DMASYNC_POSTWRITE;
 		break;
 	default:
-		panic("mlx5e_iq_load_memory_single: Invalid DMA sync operation(%d)", dma_sync);
+		panic(
+		    "mlx5e_iq_load_memory_single: Invalid DMA sync operation(%d)",
+		    dma_sync);
 	}
 
 	/* make sure data in buffer is visible to hardware */

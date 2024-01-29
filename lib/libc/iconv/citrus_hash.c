@@ -34,11 +34,11 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "citrus_namespace.h"
-#include "citrus_types.h"
-#include "citrus_region.h"
-#include "citrus_hash.h"
 #include "citrus_db_hash.h"
+#include "citrus_hash.h"
+#include "citrus_namespace.h"
+#include "citrus_region.h"
+#include "citrus_types.h"
 
 int
 _citrus_string_hash_func(const char *key, int hashsize)

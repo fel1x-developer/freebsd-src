@@ -33,9 +33,10 @@
 #ifndef __MLX5_FPGA_H__
 #define __MLX5_FPGA_H__
 
-#include <linux/in6.h>
 #include <dev/mlx5/driver.h>
 #include <dev/mlx5/mlx5io.h>
+
+#include <linux/in6.h>
 
 enum mlx5_fpga_qpc_field_select {
 	MLX5_FPGA_QPC_STATE = BIT(0),
@@ -59,26 +60,26 @@ struct mlx5_fpga_shell_counters {
 int mlx5_fpga_caps(struct mlx5_core_dev *dev);
 int mlx5_fpga_query(struct mlx5_core_dev *dev, struct mlx5_fpga_query *query);
 int mlx5_fpga_query_mtmp(struct mlx5_core_dev *dev,
-			 struct mlx5_fpga_temperature *temp);
+    struct mlx5_fpga_temperature *temp);
 int mlx5_fpga_ctrl_op(struct mlx5_core_dev *dev, u8 op);
 int mlx5_fpga_access_reg(struct mlx5_core_dev *dev, u8 size, u64 addr,
-			 void *buf, bool write);
+    void *buf, bool write);
 int mlx5_fpga_sbu_caps(struct mlx5_core_dev *dev, void *caps, int size);
 int mlx5_fpga_load(struct mlx5_core_dev *dev, enum mlx5_fpga_image image);
 int mlx5_fpga_image_select(struct mlx5_core_dev *dev,
-			   enum mlx5_fpga_image image);
+    enum mlx5_fpga_image image);
 int mlx5_fpga_ctrl_connect(struct mlx5_core_dev *dev,
-			   enum mlx5_fpga_connect *connect);
+    enum mlx5_fpga_connect *connect);
 int mlx5_fpga_shell_counters(struct mlx5_core_dev *dev, bool clear,
-			     struct mlx5_fpga_shell_counters *data);
+    struct mlx5_fpga_shell_counters *data);
 
 int mlx5_fpga_create_qp(struct mlx5_core_dev *dev, void *fpga_qpc,
-			u32 *fpga_qpn);
+    u32 *fpga_qpn);
 int mlx5_fpga_modify_qp(struct mlx5_core_dev *dev, u32 fpga_qpn,
-			enum mlx5_fpga_qpc_field_select fields, void *fpga_qpc);
+    enum mlx5_fpga_qpc_field_select fields, void *fpga_qpc);
 int mlx5_fpga_query_qp(struct mlx5_core_dev *dev, u32 fpga_qpn, void *fpga_qpc);
 int mlx5_fpga_query_qp_counters(struct mlx5_core_dev *dev, u32 fpga_qpn,
-				bool clear, struct mlx5_fpga_qp_counters *data);
+    bool clear, struct mlx5_fpga_qp_counters *data);
 int mlx5_fpga_destroy_qp(struct mlx5_core_dev *dev, u32 fpga_qpn);
 
 #endif /* __MLX5_FPGA_H__ */

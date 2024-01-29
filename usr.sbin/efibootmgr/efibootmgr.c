@@ -24,35 +24,34 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/stat.h>
 #include <sys/param.h>
+#include <sys/stat.h>
+
 #include <assert.h>
 #include <ctype.h>
+#include <efichar.h>
+#include <efiutil.h>
+#include <efivar-dp.h>
+#include <efivar.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <libgeom.h>
-#include <paths.h>
-#include <signal.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <getopt.h>
-#include <limits.h>
-#include <inttypes.h>
-#include <stdbool.h>
-#include <string.h>
-#include <strings.h>
-#include <unistd.h>
-#include <libgeom.h>
 #include <geom/geom.h>
 #include <geom/geom_ctl.h>
 #include <geom/geom_int.h>
-
-#include <efivar.h>
-#include <efiutil.h>
-#include <efichar.h>
-#include <efivar-dp.h>
+#include <getopt.h>
+#include <inttypes.h>
+#include <libgeom.h>
+#include <limits.h>
+#include <paths.h>
+#include <signal.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+#include <unistd.h>
 
 #ifndef LOAD_OPTION_ACTIVE
 #define LOAD_OPTION_ACTIVE 0x00000001
@@ -62,94 +61,89 @@
 #define LOAD_OPTION_CATEGORY_BOOT 0x00000000
 #endif
 
-#define BAD_LENGTH	((size_t)-1)
+#define BAD_LENGTH ((size_t)-1)
 
 #define EFI_OS_INDICATIONS_BOOT_TO_FW_UI 0x0000000000000001
 
 typedef struct _bmgr_opts {
-	char	*dev;
-	char	*env;
-	char	*loader;
-	char	*label;
-	char	*kernel;
-	char	*name;
-	char	*order;
-	int     bootnum;
-	bool	copy;
-	bool    create;
-	bool    delete;
-	bool    delete_bootnext;
-	bool    del_timeout;
-	bool    dry_run;
-	bool	device_path;
-	bool	esp_device;
-	bool	find_dev;
-	bool    fw_ui;
-	bool    no_fw_ui;
-	bool	has_bootnum;
-	bool    once;
-	int	cp_src;
-	bool    set_active;
-	bool    set_bootnext;
-	bool    set_inactive;
-	bool    set_timeout;
-	int     timeout;
-	bool	unix_path;
-	bool    verbose;
+	char *dev;
+	char *env;
+	char *loader;
+	char *label;
+	char *kernel;
+	char *name;
+	char *order;
+	int bootnum;
+	bool copy;
+	bool create;
+	bool delete;
+	bool delete_bootnext;
+	bool del_timeout;
+	bool dry_run;
+	bool device_path;
+	bool esp_device;
+	bool find_dev;
+	bool fw_ui;
+	bool no_fw_ui;
+	bool has_bootnum;
+	bool once;
+	int cp_src;
+	bool set_active;
+	bool set_bootnext;
+	bool set_inactive;
+	bool set_timeout;
+	int timeout;
+	bool unix_path;
+	bool verbose;
 } bmgr_opts_t;
 
-static struct option lopts[] = {
-	{"activate", no_argument, NULL, 'a'},
-	{"bootnext", no_argument, NULL, 'n'}, /* set bootnext */
-	{"bootnum", required_argument, NULL, 'b'},
-	{"bootorder", required_argument, NULL, 'o'}, /* set order */
-	{"copy", required_argument, NULL, 'C'},		/* Copy boot method */
-	{"create", no_argument, NULL, 'c'},
-	{"deactivate", no_argument, NULL, 'A'},
-	{"del-timeout", no_argument, NULL, 'T'},
-	{"delete", no_argument, NULL, 'B'},
-	{"delete-bootnext", no_argument, NULL, 'N'},
-	{"device-path", no_argument, NULL, 'd'},
-	{"dry-run", no_argument, NULL, 'D'},
-	{"env", required_argument, NULL, 'e'},
-	{"esp", no_argument, NULL, 'E'},
-	{"efidev", required_argument, NULL, 'u'},
-	{"fw-ui", no_argument, NULL, 'f'},
-	{"no-fw-ui", no_argument, NULL, 'F'},
-	{"help", no_argument, NULL, 'h'},
-	{"kernel", required_argument, NULL, 'k'},
-	{"label", required_argument, NULL, 'L'},
-	{"loader", required_argument, NULL, 'l'},
-	{"once", no_argument, NULL, 'O'},
-	{"set-timeout", required_argument, NULL, 't'},
-	{"unix-path", no_argument, NULL, 'p'},
-	{"verbose", no_argument, NULL, 'v'},
-	{ NULL, 0, NULL, 0}
-};
+static struct option lopts[] = { { "activate", no_argument, NULL, 'a' },
+	{ "bootnext", no_argument, NULL, 'n' }, /* set bootnext */
+	{ "bootnum", required_argument, NULL, 'b' },
+	{ "bootorder", required_argument, NULL, 'o' }, /* set order */
+	{ "copy", required_argument, NULL, 'C' },      /* Copy boot method */
+	{ "create", no_argument, NULL, 'c' },
+	{ "deactivate", no_argument, NULL, 'A' },
+	{ "del-timeout", no_argument, NULL, 'T' },
+	{ "delete", no_argument, NULL, 'B' },
+	{ "delete-bootnext", no_argument, NULL, 'N' },
+	{ "device-path", no_argument, NULL, 'd' },
+	{ "dry-run", no_argument, NULL, 'D' },
+	{ "env", required_argument, NULL, 'e' },
+	{ "esp", no_argument, NULL, 'E' },
+	{ "efidev", required_argument, NULL, 'u' },
+	{ "fw-ui", no_argument, NULL, 'f' },
+	{ "no-fw-ui", no_argument, NULL, 'F' },
+	{ "help", no_argument, NULL, 'h' },
+	{ "kernel", required_argument, NULL, 'k' },
+	{ "label", required_argument, NULL, 'L' },
+	{ "loader", required_argument, NULL, 'l' },
+	{ "once", no_argument, NULL, 'O' },
+	{ "set-timeout", required_argument, NULL, 't' },
+	{ "unix-path", no_argument, NULL, 'p' },
+	{ "verbose", no_argument, NULL, 'v' }, { NULL, 0, NULL, 0 } };
 
 /* global efibootmgr opts */
 static bmgr_opts_t opts;
 
-static LIST_HEAD(efivars_head, entry) efivars =
-	LIST_HEAD_INITIALIZER(efivars);
+static LIST_HEAD(efivars_head, entry) efivars = LIST_HEAD_INITIALIZER(efivars);
 
 struct entry {
-	efi_guid_t	guid;
-	uint32_t	attrs;
-	uint8_t		*data;
-	size_t		size;
-	char		*name;
-	char		*label;
-	int		idx;
-	int		flags;
-#define SEEN	1
+	efi_guid_t guid;
+	uint32_t attrs;
+	uint8_t *data;
+	size_t size;
+	char *name;
+	char *label;
+	int idx;
+	int flags;
+#define SEEN 1
 
 	LIST_ENTRY(entry) entries;
 };
 
-#define MAX_DP_LEN	4096
-#define MAX_LOADOPT_LEN	8192
-
+#define MAX_DP_LEN 4096
+#define MAX_LOADOPT_LEN 8192
 
 static char *
 mangle_loader(char *loader)
@@ -163,10 +157,9 @@ mangle_loader(char *loader)
 	return loader;
 }
 
-
-#define COMMON_ATTRS EFI_VARIABLE_NON_VOLATILE | \
-	EFI_VARIABLE_BOOTSERVICE_ACCESS | \
-	EFI_VARIABLE_RUNTIME_ACCESS
+#define COMMON_ATTRS                                                  \
+	EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS | \
+	    EFI_VARIABLE_RUNTIME_ACCESS
 
 /*
  * We use global guid, and common var attrs and
@@ -180,23 +173,17 @@ set_bootvar(const char *name, uint8_t *data, size_t size)
 	    COMMON_ATTRS);
 }
 
-
 #define USAGE \
 	"   [-aAnB -b bootnum] [-N] [-t timeout] [-T] [-o bootorder] [-O] [--verbose] [--help]\n\
   [-c -l loader [-k kernel] [-L label] [--dry-run] [-b bootnum]]"
 
 #define CREATE_USAGE \
 	"       efibootmgr -c -l loader [-k kernel] [-L label] [--dry-run] [-b bootnum] [-a]"
-#define ORDER_USAGE \
-	"       efibootmgr -o bootvarnum1,bootvarnum2,..."
-#define TIMEOUT_USAGE \
-	"       efibootmgr -t seconds"
-#define DELETE_USAGE \
-	"       efibootmgr -B -b bootnum"
-#define ACTIVE_USAGE \
-	"       efibootmgr [-a | -A] -b bootnum"
-#define BOOTNEXT_USAGE \
-	"       efibootmgr [-n | -N] -b bootnum"
+#define ORDER_USAGE "       efibootmgr -o bootvarnum1,bootvarnum2,..."
+#define TIMEOUT_USAGE "       efibootmgr -t seconds"
+#define DELETE_USAGE "       efibootmgr -B -b bootnum"
+#define ACTIVE_USAGE "       efibootmgr [-a | -A] -b bootnum"
+#define BOOTNEXT_USAGE "       efibootmgr [-n | -N] -b bootnum"
 
 static void
 parse_args(int argc, char *argv[])
@@ -301,7 +288,7 @@ parse_args(int argc, char *argv[])
 	}
 	if (opts.create) {
 		if (!opts.loader)
-			errx(1, "%s",CREATE_USAGE);
+			errx(1, "%s", CREATE_USAGE);
 		return;
 	}
 
@@ -311,13 +298,12 @@ parse_args(int argc, char *argv[])
 	if ((opts.set_inactive || opts.set_active) && !opts.has_bootnum)
 		errx(1, "%s", ACTIVE_USAGE);
 
-	if (opts.delete && !opts.has_bootnum)
+	if (opts.delete &&!opts.has_bootnum)
 		errx(1, "%s", DELETE_USAGE);
 
 	if (opts.set_bootnext && !opts.has_bootnum)
 		errx(1, "%s", BOOTNEXT_USAGE);
 }
-
 
 static void
 read_vars(void)
@@ -337,10 +323,8 @@ read_vars(void)
 		if (efi_guid_cmp(guid, &EFI_GLOBAL_GUID) != 0 ||
 		    strlen(next_name) != 8 ||
 		    strncmp(next_name, "Boot", 4) != 0 ||
-		    !isxdigit(next_name[4]) ||
-		    !isxdigit(next_name[5]) ||
-		    !isxdigit(next_name[6]) ||
-		    !isxdigit(next_name[7]))
+		    !isxdigit(next_name[4]) || !isxdigit(next_name[5]) ||
+		    !isxdigit(next_name[6]) || !isxdigit(next_name[7]))
 			continue;
 		nent = malloc(sizeof(struct entry));
 		nent->name = strdup(next_name);
@@ -354,7 +338,6 @@ read_vars(void)
 		LIST_INSERT_HEAD(&efivars, nent, entries);
 	}
 }
-
 
 static void
 set_boot_order(char *order)
@@ -385,7 +368,7 @@ set_boot_order(char *order)
 		i++;
 	}
 	free(cp);
-	if (set_bootvar("BootOrder", (uint8_t*)new_data, size) < 0)
+	if (set_bootvar("BootOrder", (uint8_t *)new_data, size) < 0)
 		err(1, "Unabke to set BootOrder to %s", order);
 	free(new_data);
 }
@@ -417,7 +400,6 @@ handle_activity(int bootnum, bool active)
 		err(1, "handle activity efi_set_variable");
 }
 
-
 /*
  * add boot var to boot order.
  * called by create boot var. There is no option
@@ -437,8 +419,10 @@ add_to_boot_order(char *bootvar)
 
 	val = strtoul(&bootvar[4], NULL, 16);
 
-	if (efi_get_variable(EFI_GLOBAL_GUID, "BootOrder", &data, &size, &attrs) < 0) {
-		if (errno == ENOENT) { /* create it and set this bootvar to active */
+	if (efi_get_variable(EFI_GLOBAL_GUID, "BootOrder", &data, &size,
+		&attrs) < 0) {
+		if (errno ==
+		    ENOENT) { /* create it and set this bootvar to active */
 			size = 0;
 			data = NULL;
 		} else
@@ -464,7 +448,6 @@ add_to_boot_order(char *bootvar)
 	free(new);
 }
 
-
 static void
 remove_from_order(uint16_t bootnum)
 {
@@ -472,7 +455,8 @@ remove_from_order(uint16_t bootnum)
 	size_t size, i, j;
 	uint8_t *new, *data;
 
-	if (efi_get_variable(EFI_GLOBAL_GUID, "BootOrder", &data, &size, &attrs) < 0)
+	if (efi_get_variable(EFI_GLOBAL_GUID, "BootOrder", &data, &size,
+		&attrs) < 0)
 		return;
 
 	new = malloc(size);
@@ -491,7 +475,6 @@ remove_from_order(uint16_t bootnum)
 		err(1, "Unable to update BootOrder with new value");
 	free(new);
 }
-
 
 static void
 delete_bootvar(int bootnum)
@@ -521,7 +504,6 @@ delete_bootvar(int bootnum)
 		exit(defer);
 }
 
-
 static void
 del_bootnext(void)
 {
@@ -536,10 +518,9 @@ handle_bootnext(uint16_t bootnum)
 	uint16_t num;
 
 	le16enc(&num, bootnum);
-	if (set_bootvar("BootNext", (uint8_t*)&bootnum, sizeof(uint16_t)) < 0)
+	if (set_bootvar("BootNext", (uint8_t *)&bootnum, sizeof(uint16_t)) < 0)
 		err(1, "set_bootvar");
 }
-
 
 static int
 compare(const void *a, const void *b)
@@ -553,8 +534,8 @@ compare(const void *a, const void *b)
 	if (c < d)
 		return -1;
 	if (c == d)
-		return  0;
-	return  1;
+		return 0;
+	return 1;
 }
 
 static char *
@@ -566,7 +547,7 @@ make_next_boot_var_name(void)
 	int cnt = 0;
 	int i;
 
-	LIST_FOREACH(v, &efivars, entries) {
+	LIST_FOREACH (v, &efivars, entries) {
 		cnt++;
 	}
 
@@ -575,7 +556,7 @@ make_next_boot_var_name(void)
 		return NULL;
 
 	i = 0;
-	LIST_FOREACH(v, &efivars, entries) {
+	LIST_FOREACH (v, &efivars, entries) {
 		vals[i++] = v->idx;
 	}
 	qsort(vals, cnt, sizeof(uint16_t), compare);
@@ -605,7 +586,7 @@ make_boot_var_name(uint16_t bootnum)
 	struct entry *v;
 	char *name;
 
-	LIST_FOREACH(v, &efivars, entries) {
+	LIST_FOREACH (v, &efivars, entries) {
 		if (v->idx == bootnum)
 			return NULL;
 	}
@@ -617,8 +598,9 @@ make_boot_var_name(uint16_t bootnum)
 }
 
 static size_t
-create_loadopt(uint8_t *buf, size_t bufmax, uint32_t attributes, efidp dp, size_t dp_size,
-    const char *description, const uint8_t *optional_data, size_t optional_data_size)
+create_loadopt(uint8_t *buf, size_t bufmax, uint32_t attributes, efidp dp,
+    size_t dp_size, const char *description, const uint8_t *optional_data,
+    size_t optional_data_size)
 {
 	efi_char *bbuf = NULL;
 	uint8_t *pos = buf;
@@ -634,19 +616,20 @@ create_loadopt(uint8_t *buf, size_t bufmax, uint32_t attributes, efidp dp, size_
 	 * Compute the length to make sure the passed in buffer is long enough.
 	 */
 	utf8_to_ucs2(description, &bbuf, &desc_len);
-	len = sizeof(uint32_t) + sizeof(uint16_t) + desc_len + dp_size + optional_data_size;
+	len = sizeof(uint32_t) + sizeof(uint16_t) + desc_len + dp_size +
+	    optional_data_size;
 	if (len > bufmax) {
 		free(bbuf);
 		return BAD_LENGTH;
 	}
 
 	le32enc(pos, attributes);
-	pos += sizeof (attributes);
+	pos += sizeof(attributes);
 
 	le16enc(pos, dp_size);
-	pos += sizeof (uint16_t);
+	pos += sizeof(uint16_t);
 
-	memcpy(pos, bbuf, desc_len);	/* NB:desc_len includes strailing NUL */
+	memcpy(pos, bbuf, desc_len); /* NB:desc_len includes strailing NUL */
 	pos += desc_len;
 	free(bbuf);
 
@@ -661,10 +644,9 @@ create_loadopt(uint8_t *buf, size_t bufmax, uint32_t attributes, efidp dp, size_
 	return pos - buf;
 }
 
-
 static int
-make_boot_var(const char *label, const char *loader, const char *kernel, const char *env, bool dry_run,
-    int bootnum, bool activate)
+make_boot_var(const char *label, const char *loader, const char *kernel,
+    const char *env, bool dry_run, int bootnum, bool activate)
 {
 	struct entry *new_ent;
 	uint32_t load_attrs = 0;
@@ -710,7 +692,8 @@ make_boot_var(const char *label, const char *loader, const char *kernel, const c
 	if (kerneldp != NULL)
 		memcpy((char *)dp + llen, kerneldp, klen);
 
-	/* don't make the new bootvar active by default, use the -a option later */
+	/* don't make the new bootvar active by default, use the -a option later
+	 */
 	load_attrs = LOAD_OPTION_CATEGORY_BOOT;
 	if (activate)
 		load_attrs |= LOAD_OPTION_ACTIVE;
@@ -726,7 +709,7 @@ make_boot_var(const char *label, const char *loader, const char *kernel, const c
 	ret = 0;
 	if (!dry_run) {
 		ret = efi_set_variable(EFI_GLOBAL_GUID, bootvar,
-		    (uint8_t*)load_opt_buf, lopt_size, COMMON_ATTRS);
+		    (uint8_t *)load_opt_buf, lopt_size, COMMON_ATTRS);
 	}
 
 	if (ret)
@@ -746,7 +729,6 @@ make_boot_var(const char *label, const char *loader, const char *kernel, const c
 
 	return 0;
 }
-
 
 static void
 print_loadopt_str(uint8_t *data, size_t datalen)
@@ -773,7 +755,8 @@ print_loadopt_str(uint8_t *data, size_t datalen)
 	walker += sizeof(fplen);
 	// Next we have a 0 terminated UCS2 string that we know to be aligned
 	descr = (efi_char *)(intptr_t)(void *)walker;
-	len = ucs2len(descr); // XXX need to sanity check that len < (datalen - (ep - walker) / 2)
+	len = ucs2len(descr); // XXX need to sanity check that len < (datalen -
+			      // (ep - walker) / 2)
 	walker += (len + 1) * sizeof(efi_char);
 	if (walker > ep)
 		return;
@@ -796,9 +779,11 @@ print_loadopt_str(uint8_t *data, size_t datalen)
 		    (intptr_t)(void *)edp - (intptr_t)(void *)dp);
 		printf("%*s%s\n", indent, "", buf);
 		indent = 10 + len + 1;
-		rv = efivar_device_path_to_unix_path(dp, &dev, &relpath, &abspath);
+		rv = efivar_device_path_to_unix_path(dp, &dev, &relpath,
+		    &abspath);
 		if (rv == 0) {
-			printf("%*s%s:%s %s\n", indent + 4, "", dev, relpath, abspath);
+			printf("%*s%s:%s %s\n", indent + 4, "", dev, relpath,
+			    abspath);
 			free(dev);
 			free(relpath);
 			free(abspath);
@@ -812,12 +797,12 @@ get_descr(uint8_t *data)
 {
 	uint8_t *pos = data;
 	efi_char *desc;
-	int  len;
+	int len;
 	char *buf;
 	int i = 0;
 
 	pos += sizeof(uint32_t) + sizeof(uint16_t);
-	desc = (efi_char*)(intptr_t)(void *)pos;
+	desc = (efi_char *)(intptr_t)(void *)pos;
 	len = ucs2len(desc);
 	buf = malloc(len + 1);
 	memset(buf, 0, len + 1);
@@ -825,9 +810,8 @@ get_descr(uint8_t *data)
 		buf[i] = desc[i];
 		i++;
 	}
-	return (char*)buf;
+	return (char *)buf;
 }
-
 
 static bool
 print_boot_var(const char *name, bool verbose, bool curboot)
@@ -844,7 +828,7 @@ print_boot_var(const char *name, bool verbose, bool curboot)
 	load_attrs = le32dec(data);
 	d = get_descr(data);
 	printf("%c%s%c %s", curboot ? '+' : ' ', name,
-	    ((load_attrs & LOAD_OPTION_ACTIVE) ? '*': ' '), d);
+	    ((load_attrs & LOAD_OPTION_ACTIVE) ? '*' : ' '), d);
 	free(d);
 	if (verbose)
 		print_loadopt_str(data, size);
@@ -852,7 +836,6 @@ print_boot_var(const char *name, bool verbose, bool curboot)
 		printf("\n");
 	return true;
 }
-
 
 static bool
 os_indication_supported(uint64_t indication)
@@ -912,35 +895,41 @@ print_boot_vars(bool verbose)
 	bool boot_to_fw_ui;
 
 	if (os_indication_supported(EFI_OS_INDICATIONS_BOOT_TO_FW_UI)) {
-		boot_to_fw_ui =
-		    (os_indications() & EFI_OS_INDICATIONS_BOOT_TO_FW_UI) != 0;
-		printf("Boot to FW : %s\n", boot_to_fw_ui != 0 ?
-		    "true" : "false");
+		boot_to_fw_ui = (os_indications() &
+				    EFI_OS_INDICATIONS_BOOT_TO_FW_UI) != 0;
+		printf("Boot to FW : %s\n",
+		    boot_to_fw_ui != 0 ? "true" : "false");
 	}
 
-	ret = efi_get_variable(EFI_GLOBAL_GUID, "BootNext", &data, &size, &attrs);
+	ret = efi_get_variable(EFI_GLOBAL_GUID, "BootNext", &data, &size,
+	    &attrs);
 	if (ret > 0) {
 		printf("BootNext : %04x\n", le16dec(data));
 	}
 
-	ret = efi_get_variable(EFI_GLOBAL_GUID, "BootCurrent", &data, &size,&attrs);
+	ret = efi_get_variable(EFI_GLOBAL_GUID, "BootCurrent", &data, &size,
+	    &attrs);
 	current = le16dec(data);
 	printf("BootCurrent: %04x\n", current);
 
-	ret = efi_get_variable(EFI_GLOBAL_GUID, "Timeout", &data, &size, &attrs);
+	ret = efi_get_variable(EFI_GLOBAL_GUID, "Timeout", &data, &size,
+	    &attrs);
 	if (ret > 0) {
 		printf("Timeout    : %d seconds\n", le16dec(data));
 	}
 
-	if (efi_get_variable(EFI_GLOBAL_GUID, "BootOrder", &data, &size, &attrs) > 0) {
+	if (efi_get_variable(EFI_GLOBAL_GUID, "BootOrder", &data, &size,
+		&attrs) > 0) {
 		if (size % 2 == 1)
-			warn("Bad BootOrder variable: odd length %d", (int)size);
+			warn("Bad BootOrder variable: odd length %d",
+			    (int)size);
 		boot_order = malloc(size);
 		bolen = size / 2;
 		printf("BootOrder  : ");
 		for (size_t i = 0; i < size; i += 2) {
 			boot_order[i / 2] = le16dec(data + i);
-			printf("%04X%s", boot_order[i / 2], i == size - 2 ? "\n" : ", ");
+			printf("%04X%s", boot_order[i / 2],
+			    i == size - 2 ? "\n" : ", ");
 		}
 	}
 
@@ -949,20 +938,22 @@ print_boot_vars(bool verbose)
 		 * now we want to fetch 'em all fresh again
 		 * which possibly includes a newly created bootvar
 		 */
-		LIST_FOREACH(v, &efivars, entries) {
+		LIST_FOREACH (v, &efivars, entries) {
 			print_boot_var(v->name, verbose, v->idx == current);
 		}
 	} else {
-		LIST_FOREACH(v, &efivars, entries) {
+		LIST_FOREACH (v, &efivars, entries) {
 			v->flags = 0;
 		}
 		for (int i = 0; i < bolen; i++) {
 			char buffer[10];
 
-			snprintf(buffer, sizeof(buffer), "Boot%04X", boot_order[i]);
-			if (!print_boot_var(buffer, verbose, boot_order[i] == current))
+			snprintf(buffer, sizeof(buffer), "Boot%04X",
+			    boot_order[i]);
+			if (!print_boot_var(buffer, verbose,
+				boot_order[i] == current))
 				printf("%s: MISSING!\n", buffer);
-			LIST_FOREACH(v, &efivars, entries) {
+			LIST_FOREACH (v, &efivars, entries) {
 				if (v->idx == boot_order[i]) {
 					v->flags |= SEEN;
 					break;
@@ -971,9 +962,10 @@ print_boot_vars(bool verbose)
 		}
 		if (verbose) {
 			printf("\n\nUnreferenced Variables:\n");
-			LIST_FOREACH(v, &efivars, entries) {
+			LIST_FOREACH (v, &efivars, entries) {
 				if (v->flags == 0)
-					print_boot_var(v->name, verbose, v->idx == current);
+					print_boot_var(v->name, verbose,
+					    v->idx == current);
 			}
 		}
 	}
@@ -984,7 +976,7 @@ static void
 delete_timeout(void)
 {
 
-	efi_del_variable(EFI_GLOBAL_GUID,"Timeout");
+	efi_del_variable(EFI_GLOBAL_GUID, "Timeout");
 }
 
 static void
@@ -1012,9 +1004,11 @@ report_esp_device(bool do_dp, bool do_unix)
 	char buf[PATH_MAX];
 
 	if (do_dp && do_unix)
-		errx(1, "Can't report both UEFI device-path and Unix path together");
+		errx(1,
+		    "Can't report both UEFI device-path and Unix path together");
 
-	ret = efi_get_variable(EFI_GLOBAL_GUID, "BootCurrent", &data, &size,&attrs);
+	ret = efi_get_variable(EFI_GLOBAL_GUID, "BootCurrent", &data, &size,
+	    &attrs);
 	if (ret < 0)
 		err(1, "Can't get BootCurrent");
 	current = le16dec(data);
@@ -1031,7 +1025,8 @@ report_esp_device(bool do_dp, bool do_unix)
 	walker += sizeof(fplen);
 	// Next we have a 0 terminated UCS2 string that we know to be aligned
 	descr = (efi_char *)(intptr_t)(void *)walker;
-	len = ucs2len(descr); // XXX need to sanity check that len < (datalen - (ep - walker) / 2)
+	len = ucs2len(descr); // XXX need to sanity check that len < (datalen -
+			      // (ep - walker) / 2)
 	walker += (len + 1) * sizeof(efi_char);
 	if (walker > ep)
 		errx(1, "malformed boot variable %s", name);
@@ -1049,8 +1044,8 @@ report_esp_device(bool do_dp, bool do_unix)
 		errx(1, "Can't convert to unix path");
 	if (do_unix) {
 		if (abspath == NULL)
-			errx(1, "Can't find where %s:%s is mounted",
-			    dev, relpath);
+			errx(1, "Can't find where %s:%s is mounted", dev,
+			    relpath);
 		abspath[strlen(abspath) - strlen(relpath) - 1] = '\0';
 		printf("%s\n", abspath);
 	} else {
@@ -1089,21 +1084,20 @@ find_efi_device(const char *path)
 
 	ret = efivar_unix_path_to_device_path(path, &dp);
 	if (ret != 0)
-		errc(1, ret,
-		    "Cannot translate path '%s' to UEFI", path);
+		errc(1, ret, "Cannot translate path '%s' to UEFI", path);
 	len = efidp_size(dp);
 	if (len > MAX_DP_LEN)
 		errx(1, "Resulting device path too long.");
 	efidp_format_device_path(buf, sizeof(buf), dp, len);
 	printf("%s -> %s\n", path, buf);
-	exit (0);
+	exit(0);
 }
 
 int
 main(int argc, char *argv[])
 {
 
-	memset(&opts, 0, sizeof (bmgr_opts_t));
+	memset(&opts, 0, sizeof(bmgr_opts_t));
 	parse_args(argc, argv);
 
 	/*
@@ -1112,7 +1106,8 @@ main(int argc, char *argv[])
 	if (!efi_variables_supported() && !opts.find_dev) {
 		if (errno == EACCES && geteuid() != 0)
 			errx(1, "must be run as root");
-		errx(1, "efi variables not supported on this system. kldload efirt?");
+		errx(1,
+		    "efi variables not supported on this system. kldload efirt?");
 	}
 
 	read_vars();
@@ -1121,13 +1116,14 @@ main(int argc, char *argv[])
 		/*
 		 * side effect, adds to boot order, but not yet active.
 		 */
-		make_boot_var(opts.label ? opts.label : "",
-		    opts.loader, opts.kernel, opts.env, opts.dry_run,
+		make_boot_var(opts.label ? opts.label : "", opts.loader,
+		    opts.kernel, opts.env, opts.dry_run,
 		    opts.has_bootnum ? opts.bootnum : -1, opts.set_active);
-	else if (opts.set_active || opts.set_inactive )
+	else if (opts.set_active || opts.set_inactive)
 		handle_activity(opts.bootnum, opts.set_active);
 	else if (opts.order != NULL)
-		set_boot_order(opts.order); /* create a new bootorder with opts.order */
+		set_boot_order(
+		    opts.order); /* create a new bootorder with opts.order */
 	else if (opts.set_bootnext)
 		handle_bootnext(opts.bootnum);
 	else if (opts.delete_bootnext)

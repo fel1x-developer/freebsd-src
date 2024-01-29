@@ -28,20 +28,17 @@
 
 #include <gssapi/gssapi.h>
 
-#include "mech_switch.h"
 #include "context.h"
+#include "mech_switch.h"
 #include "utils.h"
 
 OM_uint32
-gss_wrap(OM_uint32 *minor_status,
-    const gss_ctx_id_t context_handle,
-    int conf_req_flag,
-    gss_qop_t qop_req,
-    const gss_buffer_t input_message_buffer,
-    int *conf_state,
+gss_wrap(OM_uint32 *minor_status, const gss_ctx_id_t context_handle,
+    int conf_req_flag, gss_qop_t qop_req,
+    const gss_buffer_t input_message_buffer, int *conf_state,
     gss_buffer_t output_message_buffer)
 {
-	struct _gss_context *ctx = (struct _gss_context *) context_handle;
+	struct _gss_context *ctx = (struct _gss_context *)context_handle;
 	struct _gss_mech_switch *m;
 
 	if (conf_state)
@@ -53,7 +50,6 @@ gss_wrap(OM_uint32 *minor_status,
 	}
 	m = ctx->gc_mech;
 
-	return (m->gm_wrap(minor_status, ctx->gc_ctx,
-		    conf_req_flag, qop_req, input_message_buffer,
-		    conf_state, output_message_buffer));
+	return (m->gm_wrap(minor_status, ctx->gc_ctx, conf_req_flag, qop_req,
+	    input_message_buffer, conf_state, output_message_buffer));
 }

@@ -27,23 +27,21 @@
 #include <sys/capsicum.h>
 #include <sys/stat.h>
 
+#include <atf-c.h>
+#include <casper/cap_fileargs.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <stdio.h>
-
-#include <atf-c.h>
-
 #include <libcasper.h>
-#include <casper/cap_fileargs.h>
+#include <stdio.h>
 
 #include "freebsd_test_suite/macros.h"
 
-#define MAX_FILES		200
+#define MAX_FILES 200
 
 static char *files[MAX_FILES];
 static int fds[MAX_FILES];
 
-#define	TEST_FILE	"/etc/passwd"
+#define TEST_FILE "/etc/passwd"
 
 static void
 check_capsicum(void)
@@ -77,7 +75,6 @@ static void
 clear_files(void)
 {
 	size_t i;
-
 
 	for (i = 0; files[i] != NULL; i++) {
 		unlink(files[i]);
@@ -137,9 +134,9 @@ test_file_lstat(fileargs_t *fa, const char *file)
 	equals &= (origsb.st_nlink == fasb.st_nlink);
 	equals &= (origsb.st_flags == fasb.st_flags);
 	equals &= (memcmp(&origsb.st_ctim, &fasb.st_ctim,
-	    sizeof(fasb.st_ctim)) == 0);
+		       sizeof(fasb.st_ctim)) == 0);
 	equals &= (memcmp(&origsb.st_birthtim, &fasb.st_birthtim,
-	    sizeof(fasb.st_birthtim)) == 0);
+		       sizeof(fasb.st_birthtim)) == 0);
 	if (!equals) {
 		return (EINVAL);
 	}
@@ -279,7 +276,9 @@ test_file_fread(FILE *pfile)
 }
 
 ATF_TC_WITH_CLEANUP(fileargs__open_read);
-ATF_TC_HEAD(fileargs__open_read, tc) {}
+ATF_TC_HEAD(fileargs__open_read, tc)
+{
+}
 ATF_TC_BODY(fileargs__open_read, tc)
 {
 	cap_rights_t rights, norights;
@@ -293,8 +292,7 @@ ATF_TC_BODY(fileargs__open_read, tc)
 
 	cap_rights_init(&rights, CAP_READ | CAP_FCNTL);
 	cap_rights_init(&norights, CAP_WRITE);
-	fa = fileargs_init(MAX_FILES, files, O_RDONLY, 0, &rights,
-	    FA_OPEN);
+	fa = fileargs_init(MAX_FILES, files, O_RDONLY, 0, &rights, FA_OPEN);
 	ATF_REQUIRE(fa != NULL);
 
 	for (i = 0; i < MAX_FILES; i++) {
@@ -326,7 +324,9 @@ ATF_TC_CLEANUP(fileargs__open_read, tc)
 }
 
 ATF_TC_WITH_CLEANUP(fileargs__open_write);
-ATF_TC_HEAD(fileargs__open_write, tc) {}
+ATF_TC_HEAD(fileargs__open_write, tc)
+{
+}
 ATF_TC_BODY(fileargs__open_write, tc)
 {
 	cap_rights_t rights, norights;
@@ -340,8 +340,7 @@ ATF_TC_BODY(fileargs__open_write, tc)
 
 	cap_rights_init(&rights, CAP_WRITE | CAP_FCNTL);
 	cap_rights_init(&norights, CAP_READ);
-	fa = fileargs_init(MAX_FILES, files, O_WRONLY, 0, &rights,
-	    FA_OPEN);
+	fa = fileargs_init(MAX_FILES, files, O_WRONLY, 0, &rights, FA_OPEN);
 	ATF_REQUIRE(fa != NULL);
 
 	for (i = 0; i < MAX_FILES; i++) {
@@ -373,7 +372,9 @@ ATF_TC_CLEANUP(fileargs__open_write, tc)
 }
 
 ATF_TC_WITH_CLEANUP(fileargs__open_create);
-ATF_TC_HEAD(fileargs__open_create, tc) {}
+ATF_TC_HEAD(fileargs__open_create, tc)
+{
+}
 ATF_TC_BODY(fileargs__open_create, tc)
 {
 	cap_rights_t rights, norights;
@@ -387,8 +388,8 @@ ATF_TC_BODY(fileargs__open_create, tc)
 
 	cap_rights_init(&rights, CAP_WRITE | CAP_FCNTL | CAP_READ);
 	cap_rights_init(&norights, CAP_FCHMOD);
-	fa = fileargs_init(MAX_FILES, files, O_RDWR | O_CREAT, 666,
-	    &rights, FA_OPEN);
+	fa = fileargs_init(MAX_FILES, files, O_RDWR | O_CREAT, 666, &rights,
+	    FA_OPEN);
 	ATF_REQUIRE(fa != NULL);
 
 	for (i = 0; i < MAX_FILES; i++) {
@@ -417,7 +418,9 @@ ATF_TC_CLEANUP(fileargs__open_create, tc)
 }
 
 ATF_TC_WITH_CLEANUP(fileargs__open_with_casper);
-ATF_TC_HEAD(fileargs__open_with_casper, tc) {}
+ATF_TC_HEAD(fileargs__open_with_casper, tc)
+{
+}
 ATF_TC_BODY(fileargs__open_with_casper, tc)
 {
 	cap_channel_t *capcas;
@@ -453,7 +456,9 @@ ATF_TC_CLEANUP(fileargs__open_with_casper, tc)
 }
 
 ATF_TC_WITH_CLEANUP(fileargs__fopen_read);
-ATF_TC_HEAD(fileargs__fopen_read, tc) {}
+ATF_TC_HEAD(fileargs__fopen_read, tc)
+{
+}
 ATF_TC_BODY(fileargs__fopen_read, tc)
 {
 	cap_rights_t rights, norights;
@@ -468,8 +473,7 @@ ATF_TC_BODY(fileargs__fopen_read, tc)
 
 	cap_rights_init(&rights, CAP_READ | CAP_FCNTL);
 	cap_rights_init(&norights, CAP_WRITE);
-	fa = fileargs_init(MAX_FILES, files, O_RDONLY, 0, &rights,
-	    FA_OPEN);
+	fa = fileargs_init(MAX_FILES, files, O_RDONLY, 0, &rights, FA_OPEN);
 	ATF_REQUIRE(fa != NULL);
 
 	for (i = 0; i < MAX_FILES; i++) {
@@ -486,8 +490,8 @@ ATF_TC_BODY(fileargs__fopen_read, tc)
 
 		/* DISALLOWED */
 		ATF_REQUIRE(test_file_lstat(fa, files[i]) == ENOTCAPABLE);
-		ATF_REQUIRE(test_file_fopen(fa, TEST_FILE, "r", NULL) ==
-		    ENOTCAPABLE);
+		ATF_REQUIRE(
+		    test_file_fopen(fa, TEST_FILE, "r", NULL) == ENOTCAPABLE);
 		ATF_REQUIRE(test_file_cap(fd, &norights) == false);
 		ATF_REQUIRE(test_file_fwrite(pfile) == EBADF);
 		ATF_REQUIRE(test_file_realpath(fa, files[i]) == ENOTCAPABLE);
@@ -503,7 +507,9 @@ ATF_TC_CLEANUP(fileargs__fopen_read, tc)
 }
 
 ATF_TC_WITH_CLEANUP(fileargs__fopen_write);
-ATF_TC_HEAD(fileargs__fopen_write, tc) {}
+ATF_TC_HEAD(fileargs__fopen_write, tc)
+{
+}
 ATF_TC_BODY(fileargs__fopen_write, tc)
 {
 	cap_rights_t rights, norights;
@@ -518,8 +524,7 @@ ATF_TC_BODY(fileargs__fopen_write, tc)
 
 	cap_rights_init(&rights, CAP_WRITE | CAP_FCNTL);
 	cap_rights_init(&norights, CAP_READ);
-	fa = fileargs_init(MAX_FILES, files, O_WRONLY, 0, &rights,
-	    FA_OPEN);
+	fa = fileargs_init(MAX_FILES, files, O_WRONLY, 0, &rights, FA_OPEN);
 	ATF_REQUIRE(fa != NULL);
 
 	for (i = 0; i < MAX_FILES; i++) {
@@ -536,8 +541,8 @@ ATF_TC_BODY(fileargs__fopen_write, tc)
 
 		/* DISALLOWED */
 		ATF_REQUIRE(test_file_lstat(fa, files[i]) == ENOTCAPABLE);
-		ATF_REQUIRE(test_file_fopen(fa, TEST_FILE, "w", NULL) ==
-		    ENOTCAPABLE);
+		ATF_REQUIRE(
+		    test_file_fopen(fa, TEST_FILE, "w", NULL) == ENOTCAPABLE);
 		ATF_REQUIRE(test_file_cap(fd, &norights) == false);
 		ATF_REQUIRE(test_file_fread(pfile) == EBADF);
 		ATF_REQUIRE(test_file_realpath(fa, files[i]) == ENOTCAPABLE);
@@ -553,7 +558,9 @@ ATF_TC_CLEANUP(fileargs__fopen_write, tc)
 }
 
 ATF_TC_WITH_CLEANUP(fileargs__fopen_create);
-ATF_TC_HEAD(fileargs__fopen_create, tc) {}
+ATF_TC_HEAD(fileargs__fopen_create, tc)
+{
+}
 ATF_TC_BODY(fileargs__fopen_create, tc)
 {
 	cap_rights_t rights;
@@ -583,8 +590,8 @@ ATF_TC_BODY(fileargs__fopen_create, tc)
 
 		/* DISALLOWED */
 		ATF_REQUIRE(test_file_lstat(fa, files[i]) == ENOTCAPABLE);
-		ATF_REQUIRE(test_file_fopen(fa, TEST_FILE, "w+", NULL) ==
-		    ENOTCAPABLE);
+		ATF_REQUIRE(
+		    test_file_fopen(fa, TEST_FILE, "w+", NULL) == ENOTCAPABLE);
 		ATF_REQUIRE(test_file_realpath(fa, files[i]) == ENOTCAPABLE);
 		ATF_REQUIRE(test_file_realpath(fa, TEST_FILE) == ENOTCAPABLE);
 
@@ -598,7 +605,9 @@ ATF_TC_CLEANUP(fileargs__fopen_create, tc)
 }
 
 ATF_TC_WITH_CLEANUP(fileargs__lstat);
-ATF_TC_HEAD(fileargs__lstat, tc) {}
+ATF_TC_HEAD(fileargs__lstat, tc)
+{
+}
 ATF_TC_BODY(fileargs__lstat, tc)
 {
 	fileargs_t *fa;
@@ -630,7 +639,9 @@ ATF_TC_CLEANUP(fileargs__lstat, tc)
 }
 
 ATF_TC_WITH_CLEANUP(fileargs__realpath);
-ATF_TC_HEAD(fileargs__realpath, tc) {}
+ATF_TC_HEAD(fileargs__realpath, tc)
+{
+}
 ATF_TC_BODY(fileargs__realpath, tc)
 {
 	fileargs_t *fa;
@@ -660,7 +671,9 @@ ATF_TC_CLEANUP(fileargs__realpath, tc)
 }
 
 ATF_TC_WITH_CLEANUP(fileargs__open_lstat);
-ATF_TC_HEAD(fileargs__open_lstat, tc) {}
+ATF_TC_HEAD(fileargs__open_lstat, tc)
+{
+}
 ATF_TC_BODY(fileargs__open_lstat, tc)
 {
 	cap_rights_t rights, norights;
@@ -708,7 +721,9 @@ ATF_TC_CLEANUP(fileargs__open_lstat, tc)
 }
 
 ATF_TC_WITH_CLEANUP(fileargs__open_realpath);
-ATF_TC_HEAD(fileargs__open_realpath, tc) {}
+ATF_TC_HEAD(fileargs__open_realpath, tc)
+{
+}
 ATF_TC_BODY(fileargs__open_realpath, tc)
 {
 	cap_rights_t rights, norights;

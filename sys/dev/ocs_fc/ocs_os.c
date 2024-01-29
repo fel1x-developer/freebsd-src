@@ -38,12 +38,12 @@
 
 static MALLOC_DEFINE(M_OCS, "OCS", "OneCore Storage data");
 
+#include <machine/bus.h>
+
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
 
-#include <machine/bus.h>
-
-callout_func_t	__ocs_callout;
+callout_func_t __ocs_callout;
 
 uint32_t
 ocs_config_read32(ocs_os_handle_t os, uint32_t reg)
@@ -98,7 +98,7 @@ ocs_config_write32(ocs_os_handle_t os, uint32_t reg, uint32_t val)
 uint32_t
 ocs_reg_read32(ocs_t *ocs, uint32_t rset, uint32_t off)
 {
-	ocs_pci_reg_t		*reg = NULL;
+	ocs_pci_reg_t *reg = NULL;
 
 	reg = &ocs->reg[rset];
 
@@ -122,7 +122,7 @@ ocs_reg_read32(ocs_t *ocs, uint32_t rset, uint32_t off)
 uint16_t
 ocs_reg_read16(ocs_t *ocs, uint32_t rset, uint32_t off)
 {
-	ocs_pci_reg_t		*reg = NULL;
+	ocs_pci_reg_t *reg = NULL;
 
 	reg = &ocs->reg[rset];
 
@@ -146,7 +146,7 @@ ocs_reg_read16(ocs_t *ocs, uint32_t rset, uint32_t off)
 uint8_t
 ocs_reg_read8(ocs_t *ocs, uint32_t rset, uint32_t off)
 {
-	ocs_pci_reg_t		*reg = NULL;
+	ocs_pci_reg_t *reg = NULL;
 
 	reg = &ocs->reg[rset];
 
@@ -171,7 +171,7 @@ ocs_reg_read8(ocs_t *ocs, uint32_t rset, uint32_t off)
 void
 ocs_reg_write32(ocs_t *ocs, uint32_t rset, uint32_t off, uint32_t val)
 {
-	ocs_pci_reg_t		*reg = NULL;
+	ocs_pci_reg_t *reg = NULL;
 
 	reg = &ocs->reg[rset];
 
@@ -196,7 +196,7 @@ ocs_reg_write32(ocs_t *ocs, uint32_t rset, uint32_t off, uint32_t val)
 void
 ocs_reg_write16(ocs_t *ocs, uint32_t rset, uint32_t off, uint16_t val)
 {
-	ocs_pci_reg_t		*reg = NULL;
+	ocs_pci_reg_t *reg = NULL;
 
 	reg = &ocs->reg[rset];
 
@@ -221,7 +221,7 @@ ocs_reg_write16(ocs_t *ocs, uint32_t rset, uint32_t off, uint16_t val)
 void
 ocs_reg_write8(ocs_t *ocs, uint32_t rset, uint32_t off, uint8_t val)
 {
-	ocs_pci_reg_t		*reg = NULL;
+	ocs_pci_reg_t *reg = NULL;
 
 	reg = &ocs->reg[rset];
 
@@ -252,7 +252,8 @@ ocs_malloc(ocs_os_handle_t os, size_t size, int32_t flags)
 	long offset = 0;
 	void *addr = malloc(size, M_OCS, flags);
 
-	linker_ddb_search_symbol_name(__builtin_return_address(1), nameb, sizeof(nameb), &offset);
+	linker_ddb_search_symbol_name(__builtin_return_address(1), nameb,
+	    sizeof(nameb), &offset);
 	printf("A: %p %ld @ %s+%#lx\n", addr, size, nameb, offset);
 
 	return addr;
@@ -287,14 +288,15 @@ ocs_free(ocs_os_handle_t os, void *addr, size_t size)
  * can detect a mapping failure if a descriptor's phys element is zero.
  *
  * @param arg Argument provided to bus_dmamap_load is a ocs_dma_t
- * @param seg Array of DMA segment(s), each describing segment's address and length
+ * @param seg Array of DMA segment(s), each describing segment's address and
+ * length
  * @param nseg Number of elements in array
  * @param error Indicates success (0) or failure of mapping
  */
 static void
 ocs_dma_load(void *arg, bus_dma_segment_t *seg, int nseg, int error)
 {
-	ocs_dma_t	*dma = arg;
+	ocs_dma_t *dma = arg;
 
 	if (error) {
 		printf("%s: error=%d\n", __func__, error);
@@ -316,10 +318,11 @@ ocs_dma_load(void *arg, bus_dma_segment_t *seg, int nseg, int error)
 int32_t
 ocs_dma_free(ocs_os_handle_t os, ocs_dma_t *dma)
 {
-	struct ocs_softc	*ocs = os;
+	struct ocs_softc *ocs = os;
 
 	if (!dma) {
-		device_printf(ocs->dev, "%s: bad parameter(s) dma=%p\n", __func__, dma);
+		device_printf(ocs->dev, "%s: bad parameter(s) dma=%p\n",
+		    __func__, dma);
 		return -1;
 	}
 
@@ -328,8 +331,8 @@ ocs_dma_free(ocs_os_handle_t os, ocs_dma_t *dma)
 	}
 
 	if (dma->map) {
-		bus_dmamap_sync(dma->tag, dma->map, BUS_DMASYNC_POSTREAD |
-				BUS_DMASYNC_POSTWRITE);
+		bus_dmamap_sync(dma->tag, dma->map,
+		    BUS_DMASYNC_POSTREAD | BUS_DMASYNC_POSTWRITE);
 		bus_dmamap_unload(dma->tag, dma->map);
 	}
 
@@ -358,11 +361,11 @@ ocs_dma_free(ocs_os_handle_t os, ocs_dma_t *dma)
 int32_t
 ocs_dma_alloc(ocs_os_handle_t os, ocs_dma_t *dma, size_t size, size_t align)
 {
-	struct ocs_softc	*ocs = os;
+	struct ocs_softc *ocs = os;
 
 	if (!dma || !size) {
 		device_printf(ocs->dev, "%s bad parameter(s) dma=%p size=%zd\n",
-				__func__, dma, size);
+		    __func__, dma, size);
 		return ENOMEM;
 	}
 
@@ -370,8 +373,8 @@ ocs_dma_alloc(ocs_os_handle_t os, ocs_dma_t *dma, size_t size, size_t align)
 
 	/* create a "tag" that describes the desired memory allocation */
 	if (bus_dma_tag_create(ocs->dmat, align, 0, BUS_SPACE_MAXADDR,
-				BUS_SPACE_MAXADDR, NULL, NULL,
-				size, 1, size, 0, NULL, NULL, &dma->tag)) {
+		BUS_SPACE_MAXADDR, NULL, NULL, size, 1, size, 0, NULL, NULL,
+		&dma->tag)) {
 		device_printf(ocs->dev, "DMA tag allocation failed\n");
 		return ENOMEM;
 	}
@@ -379,9 +382,10 @@ ocs_dma_alloc(ocs_os_handle_t os, ocs_dma_t *dma, size_t size, size_t align)
 	dma->size = size;
 
 	/* allocate the memory */
-	if (bus_dmamem_alloc(dma->tag, &dma->virt, BUS_DMA_NOWAIT | BUS_DMA_COHERENT,
-				&dma->map)) {
-		device_printf(ocs->dev, "DMA memory allocation failed s=%zd a=%zd\n", size, align);
+	if (bus_dmamem_alloc(dma->tag, &dma->virt,
+		BUS_DMA_NOWAIT | BUS_DMA_COHERENT, &dma->map)) {
+		device_printf(ocs->dev,
+		    "DMA memory allocation failed s=%zd a=%zd\n", size, align);
 		ocs_dma_free(ocs, dma);
 		return ENOMEM;
 	}
@@ -389,14 +393,15 @@ ocs_dma_alloc(ocs_os_handle_t os, ocs_dma_t *dma, size_t size, size_t align)
 	dma->alloc = dma->virt;
 
 	/* map virtual address to device visible address */
-	if (bus_dmamap_load(dma->tag, dma->map, dma->virt, dma->size, ocs_dma_load,
-				dma, 0)) {
+	if (bus_dmamap_load(dma->tag, dma->map, dma->virt, dma->size,
+		ocs_dma_load, dma, 0)) {
 		device_printf(ocs->dev, "DMA memory load failed\n");
 		ocs_dma_free(ocs, dma);
 		return ENOMEM;
 	}
 
-	/* if the DMA map load callback fails, it sets the physical address to zero */
+	/* if the DMA map load callback fails, it sets the physical address to
+	 * zero */
 	if (0 == dma->phys) {
 		device_printf(ocs->dev, "ocs_dma_load failed\n");
 		ocs_dma_free(ocs, dma);
@@ -513,7 +518,7 @@ ocs_bitmap_free(ocs_bitmap_t *bitmap)
 int32_t
 ocs_bitmap_find(ocs_bitmap_t *bitmap, uint32_t n_bits)
 {
-	int32_t		position = -1;
+	int32_t position = -1;
 
 	bit_ffc(bitmap, n_bits, &position);
 
@@ -536,7 +541,7 @@ ocs_bitmap_find(ocs_bitmap_t *bitmap, uint32_t n_bits)
 int32_t
 ocs_bitmap_search(ocs_bitmap_t *bitmap, uint8_t set, uint32_t n_bits)
 {
-	int32_t		position;
+	int32_t position;
 
 	if (!bitmap) {
 		return -1;
@@ -563,7 +568,8 @@ ocs_bitmap_clear(ocs_bitmap_t *bitmap, uint32_t bit)
 	bit_clear(bitmap, bit);
 }
 
-void _ocs_log(ocs_t *ocs, const char *func_name, int line, const char *fmt, ...)
+void
+_ocs_log(ocs_t *ocs, const char *func_name, int line, const char *fmt, ...)
 {
 	va_list ap;
 	char buf[256];
@@ -576,7 +582,8 @@ void _ocs_log(ocs_t *ocs, const char *func_name, int line, const char *fmt, ...)
 	p += snprintf(p, sizeof(buf) - (p - buf), "%s: ", DRV_NAME);
 	p += snprintf(p, sizeof(buf) - (p - buf), "%s:", func_name);
 	p += snprintf(p, sizeof(buf) - (p - buf), "%i:", line);
-	p += snprintf(p, sizeof(buf) - (p - buf), "%s:", (ocs != NULL) ? device_get_nameunit(ocs->dev) : "");
+	p += snprintf(p, sizeof(buf) - (p - buf),
+	    "%s:", (ocs != NULL) ? device_get_nameunit(ocs->dev) : "");
 	p += vsnprintf(p, sizeof(buf) - (p - buf), fmt, ap);
 
 	va_end(ap);
@@ -587,10 +594,11 @@ void _ocs_log(ocs_t *ocs, const char *func_name, int line, const char *fmt, ...)
 /**
  * @brief Common thread call function
  *
- * This is the common function called whenever a thread instantiated by ocs_thread_create() is started.
- * It captures the return value from the actual thread function and stashes it in the thread object, to
- * be later retrieved by ocs_thread_get_retval(), and calls kthread_exit(), the proscribed method to terminate
- * a thread.
+ * This is the common function called whenever a thread instantiated by
+ * ocs_thread_create() is started. It captures the return value from the actual
+ * thread function and stashes it in the thread object, to be later retrieved by
+ * ocs_thread_get_retval(), and calls kthread_exit(), the proscribed method to
+ * terminate a thread.
  *
  * @param arg a pointer to the thread object
  *
@@ -602,15 +610,15 @@ ocs_thread_call_fctn(void *arg)
 {
 	ocs_thread_t *thread = arg;
 	thread->retval = (*thread->fctn)(thread->arg);
-	ocs_free(NULL, thread->name, ocs_strlen(thread->name+1));
+	ocs_free(NULL, thread->name, ocs_strlen(thread->name + 1));
 	kthread_exit();
 }
 
 /**
  * @brief Create a kernel thread
  *
- * Creates a kernel thread and optionally starts it.   If the thread is not immediately
- * started, ocs_thread_start() should be called at some later point.
+ * Creates a kernel thread and optionally starts it.   If the thread is not
+ *immediately started, ocs_thread_start() should be called at some later point.
  *
  * @param os OS handle
  * @param thread pointer to thread object
@@ -624,7 +632,8 @@ ocs_thread_call_fctn(void *arg)
  */
 
 int32_t
-ocs_thread_create(ocs_os_handle_t os, ocs_thread_t *thread, ocs_thread_fctn fctn, const char *name, void *arg, ocs_thread_start_e start)
+ocs_thread_create(ocs_os_handle_t os, ocs_thread_t *thread,
+    ocs_thread_fctn fctn, const char *name, void *arg, ocs_thread_start_e start)
 {
 	int32_t rc = 0;
 
@@ -639,8 +648,9 @@ ocs_thread_create(ocs_os_handle_t os, ocs_thread_t *thread, ocs_thread_fctn fctn
 
 	ocs_atomic_set(&thread->terminate, 0);
 
-	rc = kthread_add(ocs_thread_call_fctn, thread, NULL, &thread->tcb, (start == OCS_THREAD_CREATE) ? RFSTOPPED : 0,
-		OCS_THREAD_DEFAULT_STACK_SIZE_PAGES, "%s", name);
+	rc = kthread_add(ocs_thread_call_fctn, thread, NULL, &thread->tcb,
+	    (start == OCS_THREAD_CREATE) ? RFSTOPPED : 0,
+	    OCS_THREAD_DEFAULT_STACK_SIZE_PAGES, "%s", name);
 
 	return rc;
 }
@@ -648,14 +658,16 @@ ocs_thread_create(ocs_os_handle_t os, ocs_thread_t *thread, ocs_thread_fctn fctn
 /**
  * @brief Start a thread
  *
- * Starts a thread that was created with OCS_THREAD_CREATE rather than OCS_THREAD_RUN
+ * Starts a thread that was created with OCS_THREAD_CREATE rather than
+ * OCS_THREAD_RUN
  *
  * @param thread pointer to thread object
  *
  * @return returns 0 for success, a negative error code value for failure.
  */
 
-int32_t ocs_thread_start(ocs_thread_t *thread)
+int32_t
+ocs_thread_start(ocs_thread_t *thread)
 {
 
 	thread_lock(thread->tcb);
@@ -673,7 +685,8 @@ int32_t ocs_thread_start(ocs_thread_t *thread)
  * @return pointer to application specific argument
  */
 
-void *ocs_thread_get_arg(ocs_thread_t *mythread)
+void *
+ocs_thread_get_arg(ocs_thread_t *mythread)
 {
 	return mythread->arg;
 }
@@ -681,8 +694,9 @@ void *ocs_thread_get_arg(ocs_thread_t *mythread)
 /**
  * @brief Request thread stop
  *
- * A stop request is made to the thread.  This is a voluntary call, the thread needs
- * to periodically query its terminate request using ocs_thread_terminate_requested()
+ * A stop request is made to the thread.  This is a voluntary call, the thread
+ * needs to periodically query its terminate request using
+ * ocs_thread_terminate_requested()
  *
  * @param thread pointer to thread object
  *
@@ -705,7 +719,8 @@ ocs_thread_terminate(ocs_thread_t *thread)
  * @return returns non-zero if a stop has been requested
  */
 
-int32_t ocs_thread_terminate_requested(ocs_thread_t *thread)
+int32_t
+ocs_thread_terminate_requested(ocs_thread_t *thread)
 {
 	return ocs_atomic_read(&thread->terminate);
 }
@@ -713,7 +728,8 @@ int32_t ocs_thread_terminate_requested(ocs_thread_t *thread)
 /**
  * @brief Retrieve threads return value
  *
- * After a thread has terminated, it's return value may be retrieved with this function.
+ * After a thread has terminated, it's return value may be retrieved with this
+ * function.
  *
  * @param thread pointer to thread object
  *
@@ -737,7 +753,8 @@ ocs_thread_get_retval(ocs_thread_t *thread)
  */
 
 void
-ocs_thread_yield(ocs_thread_t *thread) {
+ocs_thread_yield(ocs_thread_t *thread)
+{
 	pause("thread yield", 1);
 }
 
@@ -791,9 +808,10 @@ ocs_sem_init(ocs_sem_t *sem, int val, const char *name, ...)
  * @return A pointer to a kernel space copy of the argument on
  *	success; NULL on failure
  */
-void *ocs_ioctl_preprocess(ocs_os_handle_t os, void *arg, size_t size)
+void *
+ocs_ioctl_preprocess(ocs_os_handle_t os, void *arg, size_t size)
 {
-	 return arg;
+	return arg;
 }
 
 /**
@@ -813,7 +831,9 @@ void *ocs_ioctl_preprocess(ocs_os_handle_t os, void *arg, size_t size)
  *
  * @return Returns 0.
  */
-int32_t ocs_ioctl_postprocess(ocs_os_handle_t os, void *arg, void *kern_ptr, size_t size)
+int32_t
+ocs_ioctl_postprocess(ocs_os_handle_t os, void *arg, void *kern_ptr,
+    size_t size)
 {
 	return 0;
 }
@@ -837,20 +857,24 @@ int32_t ocs_ioctl_postprocess(ocs_os_handle_t os, void *arg, void *kern_ptr, siz
  *
  * @return Returns nothing.
  */
-void ocs_ioctl_free(ocs_os_handle_t os, void *kern_ptr, size_t size)
+void
+ocs_ioctl_free(ocs_os_handle_t os, void *kern_ptr, size_t size)
 {
 	return;
 }
 
-void ocs_intr_disable(ocs_os_handle_t os)
+void
+ocs_intr_disable(ocs_os_handle_t os)
 {
 }
 
-void ocs_intr_enable(ocs_os_handle_t os)
+void
+ocs_intr_enable(ocs_os_handle_t os)
 {
 }
 
-void ocs_print_stack(void)
+void
+ocs_print_stack(void)
 {
 #if defined(STACK)
 	struct stack st;
@@ -860,7 +884,8 @@ void ocs_print_stack(void)
 #endif
 }
 
-void ocs_abort(void)
+void
+ocs_abort(void)
 {
 	panic(">>> abort/panic\n");
 }
@@ -869,10 +894,14 @@ const char *
 ocs_pci_model(uint16_t vendor, uint16_t device)
 {
 	switch (device) {
-	case PCI_PRODUCT_EMULEX_OCE16002:	return "OCE16002";
-	case PCI_PRODUCT_EMULEX_OCE1600_VF:	return "OCE1600_VF";
-	case PCI_PRODUCT_EMULEX_OCE50102:	return "OCE50102";
-	case PCI_PRODUCT_EMULEX_OCE50102_VF:	return "OCE50102_VR";
+	case PCI_PRODUCT_EMULEX_OCE16002:
+		return "OCE16002";
+	case PCI_PRODUCT_EMULEX_OCE1600_VF:
+		return "OCE1600_VF";
+	case PCI_PRODUCT_EMULEX_OCE50102:
+		return "OCE50102";
+	case PCI_PRODUCT_EMULEX_OCE50102_VF:
+		return "OCE50102_VR";
 	default:
 		break;
 	}
@@ -881,11 +910,11 @@ ocs_pci_model(uint16_t vendor, uint16_t device)
 }
 
 void
-ocs_get_bus_dev_func(ocs_t *ocs, uint8_t* bus, uint8_t* dev, uint8_t* func)
+ocs_get_bus_dev_func(ocs_t *ocs, uint8_t *bus, uint8_t *dev, uint8_t *func)
 {
 	*bus = pci_get_bus(ocs->dev);
 	*dev = pci_get_slot(ocs->dev);
-	*func= pci_get_function(ocs->dev);
+	*func = pci_get_function(ocs->dev);
 }
 
 /**
@@ -939,10 +968,11 @@ __ocs_callout(void *t)
 }
 
 int32_t
-ocs_setup_timer(ocs_os_handle_t os, ocs_timer_t *timer, void(*func)(void *arg), void *data, uint32_t timeout_ms)
+ocs_setup_timer(ocs_os_handle_t os, ocs_timer_t *timer, void (*func)(void *arg),
+    void *data, uint32_t timeout_ms)
 {
-	struct	timeval tv;
-	int	hz;
+	struct timeval tv;
+	int hz;
 
 	if (timer == NULL) {
 		ocs_log_err(NULL, "bad parameter\n");
@@ -958,7 +988,7 @@ ocs_setup_timer(ocs_os_handle_t os, ocs_timer_t *timer, void(*func)(void *arg), 
 	timer->func = func;
 	timer->data = data;
 
-	tv.tv_sec  = timeout_ms / 1000;
+	tv.tv_sec = timeout_ms / 1000;
 	tv.tv_usec = (timeout_ms % 1000) * 1000;
 
 	hz = tvtohz(&tv);
@@ -968,7 +998,7 @@ ocs_setup_timer(ocs_os_handle_t os, ocs_timer_t *timer, void(*func)(void *arg), 
 		hz = 1;
 
 	mtx_lock(&timer->lock);
-		callout_reset(&timer->callout, hz, __ocs_callout, timer);
+	callout_reset(&timer->callout, hz, __ocs_callout, timer);
 	mtx_unlock(&timer->lock);
 
 	return 0;
@@ -977,15 +1007,15 @@ ocs_setup_timer(ocs_os_handle_t os, ocs_timer_t *timer, void(*func)(void *arg), 
 int32_t
 ocs_mod_timer(ocs_timer_t *timer, uint32_t timeout_ms)
 {
-	struct	timeval tv;
-	int	hz;
+	struct timeval tv;
+	int hz;
 
 	if (timer == NULL) {
 		ocs_log_err(NULL, "bad parameter\n");
 		return -1;
 	}
 
-	tv.tv_sec  = timeout_ms / 1000;
+	tv.tv_sec = timeout_ms / 1000;
 	tv.tv_usec = (timeout_ms % 1000) * 1000;
 
 	hz = tvtohz(&tv);
@@ -995,7 +1025,7 @@ ocs_mod_timer(ocs_timer_t *timer, uint32_t timeout_ms)
 		hz = 1;
 
 	mtx_lock(&timer->lock);
-		callout_reset(&timer->callout, hz, __ocs_callout, timer);
+	callout_reset(&timer->callout, hz, __ocs_callout, timer);
 	mtx_unlock(&timer->lock);
 
 	return 0;
@@ -1012,7 +1042,7 @@ ocs_del_timer(ocs_timer_t *timer)
 {
 
 	mtx_lock(&timer->lock);
-		callout_stop(&timer->callout);
+	callout_stop(&timer->callout);
 	mtx_unlock(&timer->lock);
 
 	return 0;
@@ -1024,7 +1054,7 @@ ocs_strdup(const char *s)
 	uint32_t l = strlen(s);
 	char *d;
 
-	d = ocs_malloc(NULL, l+1, OCS_M_NOWAIT);
+	d = ocs_malloc(NULL, l + 1, OCS_M_NOWAIT);
 	if (d != NULL) {
 		ocs_strcpy(d, s);
 	}
@@ -1036,7 +1066,10 @@ _ocs_assert(const char *cond, const char *filename, int linenum)
 {
 	const char *fn = strrchr(__FILE__, '/');
 
-	ocs_log_err(NULL, "%s(%d) assertion (%s) failed\n", (fn ? fn + 1 : filename), linenum, cond);
+	ocs_log_err(NULL, "%s(%d) assertion (%s) failed\n",
+	    (fn ? fn + 1 : filename), linenum, cond);
 	ocs_print_stack();
-	ocs_save_ddump_all(OCS_DDUMP_FLAGS_WQES|OCS_DDUMP_FLAGS_CQES|OCS_DDUMP_FLAGS_MQES, -1, TRUE);
+	ocs_save_ddump_all(OCS_DDUMP_FLAGS_WQES | OCS_DDUMP_FLAGS_CQES |
+		OCS_DDUMP_FLAGS_MQES,
+	    -1, TRUE);
 }

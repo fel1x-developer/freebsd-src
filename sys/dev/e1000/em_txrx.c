@@ -45,8 +45,8 @@
  *********************************************************************/
 static int em_tso_setup(struct e1000_softc *sc, if_pkt_info_t pi,
     uint32_t *txd_upper, uint32_t *txd_lower);
-static int em_transmit_checksum_setup(struct e1000_softc *sc,
-    if_pkt_info_t pi, uint32_t *txd_upper, uint32_t *txd_lower);
+static int em_transmit_checksum_setup(struct e1000_softc *sc, if_pkt_info_t pi,
+    uint32_t *txd_upper, uint32_t *txd_lower);
 static int em_isc_txd_encap(void *arg, if_pkt_info_t pi);
 static void em_isc_txd_flush(void *arg, uint16_t txqid, qidx_t pidx);
 static int em_isc_txd_credits_update(void *arg, uint16_t txqid, bool clear);
@@ -60,34 +60,30 @@ static int em_isc_rxd_pkt_get(void *arg, if_rxd_info_t ri);
 static void lem_isc_rxd_refill(void *arg, if_rxd_update_t iru);
 
 static int lem_isc_rxd_available(void *arg, uint16_t rxqid, qidx_t idx,
-   qidx_t budget);
+    qidx_t budget);
 static int lem_isc_rxd_pkt_get(void *arg, if_rxd_info_t ri);
 
 static void em_receive_checksum(uint16_t, uint8_t, if_rxd_info_t);
 static int em_determine_rsstype(uint32_t pkt_info);
 extern int em_intr(void *arg);
 
-struct if_txrx em_txrx = {
-	.ift_txd_encap = em_isc_txd_encap,
+struct if_txrx em_txrx = { .ift_txd_encap = em_isc_txd_encap,
 	.ift_txd_flush = em_isc_txd_flush,
 	.ift_txd_credits_update = em_isc_txd_credits_update,
 	.ift_rxd_available = em_isc_rxd_available,
 	.ift_rxd_pkt_get = em_isc_rxd_pkt_get,
 	.ift_rxd_refill = em_isc_rxd_refill,
 	.ift_rxd_flush = em_isc_rxd_flush,
-	.ift_legacy_intr = em_intr
-};
+	.ift_legacy_intr = em_intr };
 
-struct if_txrx lem_txrx = {
-	.ift_txd_encap = em_isc_txd_encap,
+struct if_txrx lem_txrx = { .ift_txd_encap = em_isc_txd_encap,
 	.ift_txd_flush = em_isc_txd_flush,
 	.ift_txd_credits_update = em_isc_txd_credits_update,
 	.ift_rxd_available = lem_isc_rxd_available,
 	.ift_rxd_pkt_get = lem_isc_rxd_pkt_get,
 	.ift_rxd_refill = lem_isc_rxd_refill,
 	.ift_rxd_flush = em_isc_rxd_flush,
-	.ift_legacy_intr = em_intr
-};
+	.ift_legacy_intr = em_intr };
 
 extern if_shared_ctx_t em_sctx;
 
@@ -105,22 +101,25 @@ em_dump_rs(struct e1000_softc *sc)
 	ntxd = scctx->isc_ntxd[0];
 	for (qid = 0; qid < sc->tx_num_queues; qid++) {
 		que = &sc->tx_queues[qid];
-		txr =  &que->txr;
+		txr = &que->txr;
 		rs_cidx = txr->tx_rs_cidx;
 		if (rs_cidx != txr->tx_rs_pidx) {
 			cur = txr->tx_rsq[rs_cidx];
 			status = txr->tx_base[cur].upper.fields.status;
 			if (!(status & E1000_TXD_STAT_DD))
-				printf("qid[%d]->tx_rsq[%d]: %d clear ", qid, rs_cidx, cur);
+				printf("qid[%d]->tx_rsq[%d]: %d clear ", qid,
+				    rs_cidx, cur);
 		} else {
-			rs_cidx = (rs_cidx-1)&(ntxd-1);
+			rs_cidx = (rs_cidx - 1) & (ntxd - 1);
 			cur = txr->tx_rsq[rs_cidx];
-			printf("qid[%d]->tx_rsq[rs_cidx-1=%d]: %d  ", qid, rs_cidx, cur);
+			printf("qid[%d]->tx_rsq[rs_cidx-1=%d]: %d  ", qid,
+			    rs_cidx, cur);
 		}
-		printf("cidx_prev=%d rs_pidx=%d ",txr->tx_cidx_processed,
+		printf("cidx_prev=%d rs_pidx=%d ", txr->tx_cidx_processed,
 		    txr->tx_rs_pidx);
 		for (i = 0; i < ntxd; i++) {
-			if (txr->tx_base[i].upper.fields.status & E1000_TXD_STAT_DD)
+			if (txr->tx_base[i].upper.fields.status &
+			    E1000_TXD_STAT_DD)
 				printf("%d set ", i);
 		}
 		printf("\n");
@@ -145,9 +144,9 @@ em_tso_setup(struct e1000_softc *sc, if_pkt_info_t pi, uint32_t *txd_upper,
 	uint32_t cmd_type_len;
 
 	hdr_len = pi->ipi_ehdrlen + pi->ipi_ip_hlen + pi->ipi_tcp_hlen;
-	*txd_lower = (E1000_TXD_CMD_DEXT |	/* Extended descr type */
-		      E1000_TXD_DTYP_D |	/* Data descr type */
-		      E1000_TXD_CMD_TSE);	/* Do TSE on this packet */
+	*txd_lower = (E1000_TXD_CMD_DEXT | /* Extended descr type */
+	    E1000_TXD_DTYP_D |		   /* Data descr type */
+	    E1000_TXD_CMD_TSE);		   /* Do TSE on this packet */
 
 	cur = pi->ipi_pidx;
 	TXD = (struct e1000_context_desc *)&txr->tx_base[cur];
@@ -157,13 +156,13 @@ em_tso_setup(struct e1000_softc *sc, if_pkt_info_t pi, uint32_t *txd_upper,
 	 * ipcse - End offset for header checksum calculation.
 	 * ipcso - Offset of place to put the checksum.
 	 */
-	switch(pi->ipi_etype) {
+	switch (pi->ipi_etype) {
 	case ETHERTYPE_IP:
 		/* IP and/or TCP header checksum calculation and insertion. */
 		*txd_upper = (E1000_TXD_POPTS_IXSM | E1000_TXD_POPTS_TXSM) << 8;
 
-		TXD->lower_setup.ip_fields.ipcse =
-		    htole16(pi->ipi_ehdrlen + pi->ipi_ip_hlen - 1);
+		TXD->lower_setup.ip_fields.ipcse = htole16(
+		    pi->ipi_ehdrlen + pi->ipi_ip_hlen - 1);
 		break;
 	case ETHERTYPE_IPV6:
 		/* TCP header checksum calculation and insertion. */
@@ -175,8 +174,8 @@ em_tso_setup(struct e1000_softc *sc, if_pkt_info_t pi, uint32_t *txd_upper,
 		break;
 	}
 	TXD->lower_setup.ip_fields.ipcss = pi->ipi_ehdrlen;
-	TXD->lower_setup.ip_fields.ipcso =
-	    pi->ipi_ehdrlen + offsetof(struct ip, ip_sum);
+	TXD->lower_setup.ip_fields.ipcso = pi->ipi_ehdrlen +
+	    offsetof(struct ip, ip_sum);
 
 	/*
 	 * tucss - Start offset for payload checksum calculation.
@@ -185,8 +184,8 @@ em_tso_setup(struct e1000_softc *sc, if_pkt_info_t pi, uint32_t *txd_upper,
 	 */
 	TXD->upper_setup.tcp_fields.tucss = pi->ipi_ehdrlen + pi->ipi_ip_hlen;
 	TXD->upper_setup.tcp_fields.tucse = 0;
-	TXD->upper_setup.tcp_fields.tucso =
-	    pi->ipi_ehdrlen + pi->ipi_ip_hlen + offsetof(struct tcphdr, th_sum);
+	TXD->upper_setup.tcp_fields.tucso = pi->ipi_ehdrlen + pi->ipi_ip_hlen +
+	    offsetof(struct tcphdr, th_sum);
 
 	/*
 	 * Payload size per packet w/o any headers.
@@ -199,15 +198,14 @@ em_tso_setup(struct e1000_softc *sc, if_pkt_info_t pi, uint32_t *txd_upper,
 	 * "PCI/PCI-X SDM 4.0" page 45, and "PCIe GbE SDM 2.5" page 63
 	 * - Set up basic TUCMDs
 	 * - For others IP bit on indicates IPv4, while off indicates IPv6
-	*/
-	cmd_type_len = sc->txd_cmd |
-	    E1000_TXD_CMD_DEXT | /* Extended descr */
-	    E1000_TXD_CMD_TSE |  /* TSE context */
-	    E1000_TXD_CMD_TCP;   /* Do TCP checksum */
+	 */
+	cmd_type_len = sc->txd_cmd | E1000_TXD_CMD_DEXT | /* Extended descr */
+	    E1000_TXD_CMD_TSE |				  /* TSE context */
+	    E1000_TXD_CMD_TCP;				  /* Do TCP checksum */
 	if (pi->ipi_etype == ETHERTYPE_IP)
 		cmd_type_len |= E1000_TXD_CMD_IP;
-	TXD->cmd_and_length = htole32(cmd_type_len |
-	    (pi->ipi_len - hdr_len)); /* Total len */
+	TXD->cmd_and_length = htole32(
+	    cmd_type_len | (pi->ipi_len - hdr_len)); /* Total len */
 
 	txr->tx_tso = true;
 
@@ -260,8 +258,7 @@ em_transmit_checksum_setup(struct e1000_softc *sc, if_pkt_info_t pi,
 	 * context every time.  82574L hardware spec, section 7.2.6,
 	 * second note.
 	 */
-	if (DONT_FORCE_CTX &&
-	    sc->tx_num_queues == 1 &&
+	if (DONT_FORCE_CTX && sc->tx_num_queues == 1 &&
 	    txr->csum_lhlen == pi->ipi_ehdrlen &&
 	    txr->csum_iphlen == pi->ipi_ip_hlen &&
 	    txr->csum_flags == csum_flags) {
@@ -322,8 +319,8 @@ em_transmit_checksum_setup(struct e1000_softc *sc, if_pkt_info_t pi,
 	txr->csum_txd_lower = *txd_lower;
 
 	TXD->tcp_seg_setup.data = htole32(0);
-	TXD->cmd_and_length =
-		htole32(E1000_TXD_CMD_IFCS | E1000_TXD_CMD_DEXT | cmd);
+	TXD->cmd_and_length = htole32(
+	    E1000_TXD_CMD_IFCS | E1000_TXD_CMD_DEXT | cmd);
 
 	if (++cur == scctx->isc_ntxd[0]) {
 		cur = 0;
@@ -417,7 +414,8 @@ em_isc_txd_encap(void *arg, if_pkt_info_t pi)
 			/* Now make the sentinel */
 			ctxd = &txr->tx_base[i];
 			ctxd->buffer_addr = htole64(seg_addr + seg_len);
-			ctxd->lower.data = htole32(cmd | txd_lower | TSO_WORKAROUND);
+			ctxd->lower.data = htole32(
+			    cmd | txd_lower | TSO_WORKAROUND);
 			ctxd->upper.data = htole32(txd_upper);
 			pidx_last = i;
 			if (++i == scctx->isc_ntxd[0])
@@ -432,8 +430,9 @@ em_isc_txd_encap(void *arg, if_pkt_info_t pi)
 			pidx_last = i;
 			if (++i == scctx->isc_ntxd[0])
 				i = 0;
-			DPRINTF(iflib_get_dev(sc->ctx), "pidx_last=%d i=%d ntxd[0]=%d\n",
-			    pidx_last, i, scctx->isc_ntxd[0]);
+			DPRINTF(iflib_get_dev(sc->ctx),
+			    "pidx_last=%d i=%d ntxd[0]=%d\n", pidx_last, i,
+			    scctx->isc_ntxd[0]);
 		}
 	}
 
@@ -445,9 +444,9 @@ em_isc_txd_encap(void *arg, if_pkt_info_t pi)
 	if (txd_flags && nsegs) {
 		txr->tx_rsq[txr->tx_rs_pidx] = pidx_last;
 		DPRINTF(iflib_get_dev(sc->ctx),
-		    "setting to RS on %d rs_pidx %d first: %d\n",
-		    pidx_last, txr->tx_rs_pidx, first);
-		txr->tx_rs_pidx = (txr->tx_rs_pidx+1) & (ntxd-1);
+		    "setting to RS on %d rs_pidx %d first: %d\n", pidx_last,
+		    txr->tx_rs_pidx, first);
+		txr->tx_rs_pidx = (txr->tx_rs_pidx + 1) & (ntxd - 1);
 		MPASS(txr->tx_rs_pidx != txr->tx_rs_cidx);
 	}
 	ctxd->lower.data |= htole32(E1000_TXD_CMD_EOP | txd_flags);
@@ -507,13 +506,13 @@ em_isc_txd_credits_update(void *arg, uint16_t txqid, bool clear)
 			delta += ntxd;
 		MPASS(delta > 0);
 		DPRINTF(iflib_get_dev(sc->ctx),
-			      "%s: cidx_processed=%u cur=%u clear=%d delta=%d\n",
-			      __FUNCTION__, prev, cur, clear, delta);
+		    "%s: cidx_processed=%u cur=%u clear=%d delta=%d\n",
+		    __FUNCTION__, prev, cur, clear, delta);
 
 		processed += delta;
-		prev  = cur;
-		rs_cidx = (rs_cidx + 1) & (ntxd-1);
-		if (rs_cidx  == txr->tx_rs_pidx)
+		prev = cur;
+		rs_cidx = (rs_cidx + 1) & (ntxd - 1);
+		if (rs_cidx == txr->tx_rs_pidx)
 			break;
 		cur = txr->tx_rsq[rs_cidx];
 		MPASS(cur != QIDX_INVALID);
@@ -522,7 +521,7 @@ em_isc_txd_credits_update(void *arg, uint16_t txqid, bool clear)
 
 	txr->tx_rs_cidx = rs_cidx;
 	txr->tx_cidx_processed = prev;
-	return(processed);
+	return (processed);
 }
 
 static void
@@ -583,8 +582,7 @@ em_isc_rxd_refill(void *arg, if_rxd_update_t iru)
 }
 
 static void
-em_isc_rxd_flush(void *arg, uint16_t rxqid, uint8_t flid __unused,
-    qidx_t pidx)
+em_isc_rxd_flush(void *arg, uint16_t rxqid, uint8_t flid __unused, qidx_t pidx)
 {
 	struct e1000_softc *sc = arg;
 	struct em_rx_queue *que = &sc->rx_queues[rxqid];
@@ -665,7 +663,7 @@ lem_isc_rxd_pkt_get(void *arg, if_rxd_info_t ri)
 		errors = rxd->errors;
 
 		/* Error Checking then decrement count */
-		MPASS ((status & E1000_RXD_STAT_DD) != 0);
+		MPASS((status & E1000_RXD_STAT_DD) != 0);
 
 		len = le16toh(rxd->length);
 		ri->iri_len += len;
@@ -728,7 +726,7 @@ em_isc_rxd_pkt_get(void *arg, if_rxd_info_t ri)
 		pkt_info = le32toh(rxd->wb.lower.mrq);
 
 		/* Error Checking then decrement count */
-		MPASS ((staterr & E1000_RXD_STAT_DD) != 0);
+		MPASS((staterr & E1000_RXD_STAT_DD) != 0);
 
 		len = le16toh(rxd->wb.upper.length);
 		ri->iri_len += len;
@@ -790,8 +788,8 @@ em_receive_checksum(uint16_t status, uint8_t errors, if_rxd_info_t ri)
 		ri->iri_csum_flags = (CSUM_IP_CHECKED | CSUM_IP_VALID);
 
 	/* Valid L4E checksum */
-	if (__predict_true(status &
-	    (E1000_RXD_STAT_TCPCS | E1000_RXD_STAT_UDPCS))) {
+	if (__predict_true(
+		status & (E1000_RXD_STAT_TCPCS | E1000_RXD_STAT_UDPCS))) {
 		ri->iri_csum_flags |= CSUM_DATA_VALID | CSUM_PSEUDO_HDR;
 		ri->iri_csum_data = htons(0xffff);
 	}

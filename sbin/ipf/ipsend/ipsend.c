@@ -3,42 +3,41 @@
  *
  * See the IPFILTER.LICENCE file for details on licencing.
  */
-#include <sys/param.h>
 #include <sys/types.h>
-#include <sys/time.h>
+#include <sys/param.h>
 #include <sys/socket.h>
+#include <sys/time.h>
+
 #include <netinet/in.h>
-#include <arpa/inet.h>
 #include <netinet/in_systm.h>
+#include <netinet/ip.h>
+#include <netinet/ip_var.h>
+#include <netinet/udp_var.h>
+
+#include <arpa/inet.h>
+#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <netdb.h>
 #include <string.h>
-#include <netinet/ip.h>
-# include <netinet/ip_var.h>
-#include "ipsend.h"
+#include <unistd.h>
+
 #include "ipf.h"
-# include <netinet/udp_var.h>
+#include "ipsend.h"
 
+extern char *optarg;
+extern int optind;
+extern void iplang(FILE *);
 
-extern	char	*optarg;
-extern	int	optind;
-extern	void	iplang(FILE *);
+char options[68];
+int opts;
+char default_device[] = "le0";
 
-char	options[68];
-int	opts;
-char	default_device[] = "le0";
-
-
-static	void	usage(char *);
-static	void	do_icmp(ip_t *, char *);
+static void usage(char *);
+static void do_icmp(ip_t *, char *);
 void udpcksum(ip_t *, struct udphdr *, int);
-int	main(int, char **);
+int main(int, char **);
 
-
-static	void	usage(prog)
-	char	*prog;
+static void usage(prog) char *prog;
 {
 	fprintf(stderr, "Usage: %s [options] dest [flags]\n\
 \toptions:\n\
@@ -55,66 +54,59 @@ static	void	usage(prog)
 \t\t-U\t\tSet UDP protocol\n\
 \t\t-v\tverbose mode\n\
 \t\t-w <window>\tSet the TCP window size\n\
-", prog);
+",
+	    prog);
 	fprintf(stderr, "Usage: %s [-dv] -L <filename>\n\
 \toptions:\n\
 \t\t-d\tdebug mode\n\
 \t\t-L filename\tUse IP language for sending packets\n\
 \t\t-v\tverbose mode\n\
-", prog);
+",
+	    prog);
 	exit(1);
 }
 
-
-static
-void do_icmp(ip_t *ip, char *args)
+static void
+do_icmp(ip_t *ip, char *args)
 {
-	struct	icmp	*ic;
-	char	*s;
+	struct icmp *ic;
+	char *s;
 
 	ip->ip_p = IPPROTO_ICMP;
 	ip->ip_len += sizeof(*ic);
 	ic = (struct icmp *)(ip + 1);
 	bzero((char *)ic, sizeof(*ic));
-	if (!(s = strchr(args, ',')))
-	    {
+	if (!(s = strchr(args, ','))) {
 		fprintf(stderr, "ICMP args missing: ,\n");
 		return;
-	    }
+	}
 	*s++ = '\0';
 	ic->icmp_type = atoi(args);
 	ic->icmp_code = atoi(s);
-	if (ic->icmp_type == ICMP_REDIRECT && strchr(s, ','))
-	    {
-		char	*t;
+	if (ic->icmp_type == ICMP_REDIRECT && strchr(s, ',')) {
+		char *t;
 
 		t = strtok(s, ",");
 		t = strtok(NULL, ",");
-		if (resolve(t, (char *)&ic->icmp_gwaddr) == -1)
-		    {
-			fprintf(stderr,"Cant resolve %s\n", t);
+		if (resolve(t, (char *)&ic->icmp_gwaddr) == -1) {
+			fprintf(stderr, "Cant resolve %s\n", t);
 			exit(2);
-		    }
-		if ((t = strtok(NULL, ",")))
-		    {
-			if (resolve(t, (char *)&ic->icmp_ip.ip_dst) == -1)
-			    {
-				fprintf(stderr,"Cant resolve %s\n", t);
+		}
+		if ((t = strtok(NULL, ","))) {
+			if (resolve(t, (char *)&ic->icmp_ip.ip_dst) == -1) {
+				fprintf(stderr, "Cant resolve %s\n", t);
 				exit(2);
-			    }
-			if ((t = strtok(NULL, ",")))
-			    {
-				if (resolve(t,
-					    (char *)&ic->icmp_ip.ip_src) == -1)
-				    {
-					fprintf(stderr,"Cant resolve %s\n", t);
+			}
+			if ((t = strtok(NULL, ","))) {
+				if (resolve(t, (char *)&ic->icmp_ip.ip_src) ==
+				    -1) {
+					fprintf(stderr, "Cant resolve %s\n", t);
 					exit(2);
-				    }
-			    }
-		    }
-	    }
+				}
+			}
+		}
+	}
 }
-
 
 int
 send_packets(char *dev, int mtu, ip_t *ip, struct in_addr gwip)
@@ -162,15 +154,15 @@ udpcksum(ip_t *ip, struct udphdr *udp, int len)
 int
 main(int argc, char **argv)
 {
-	FILE	*langfile = NULL;
-	struct	in_addr	gwip;
-	tcphdr_t	*tcp;
-	udphdr_t	*udp;
-	ip_t	*ip;
-	char	*name =  argv[0], host[MAXHOSTNAMELEN + 1];
-	char	*gateway = NULL, *dev = NULL;
-	char	*src = NULL, *dst, *s;
-	int	mtu = 1500, olen = 0, c, nonl = 0;
+	FILE *langfile = NULL;
+	struct in_addr gwip;
+	tcphdr_t *tcp;
+	udphdr_t *udp;
+	ip_t *ip;
+	char *name = argv[0], host[MAXHOSTNAMELEN + 1];
+	char *gateway = NULL, *dev = NULL;
+	char *src = NULL, *dst, *s;
+	int mtu = 1500, olen = 0, c, nonl = 0;
 
 	/*
 	 * 65535 is maximum packet size...you never know...
@@ -182,121 +174,113 @@ main(int argc, char **argv)
 	IP_HL_A(ip, sizeof(*ip) >> 2);
 
 	while ((c = getopt(argc, argv, "I:L:P:TUdf:i:g:m:o:s:t:vw:")) != -1) {
-		switch (c)
-		{
-		case 'I' :
+		switch (c) {
+		case 'I':
 			nonl++;
-			if (ip->ip_p)
-			    {
+			if (ip->ip_p) {
 				fprintf(stderr, "Protocol already set: %d\n",
-					ip->ip_p);
+				    ip->ip_p);
 				break;
-			    }
+			}
 			do_icmp(ip, optarg);
 			break;
-		case 'L' :
+		case 'L':
 			if (nonl) {
 				fprintf(stderr,
-					"Incorrect usage of -L option.\n");
+				    "Incorrect usage of -L option.\n");
 				usage(name);
 			}
 			if (!strcmp(optarg, "-"))
 				langfile = stdin;
 			else if (!(langfile = fopen(optarg, "r"))) {
-				fprintf(stderr, "can't open file %s\n",
-					optarg);
+				fprintf(stderr, "can't open file %s\n", optarg);
 				exit(1);
 			}
 			iplang(langfile);
 			return (0);
-		case 'P' :
-		    {
-			struct	protoent	*p;
+		case 'P': {
+			struct protoent *p;
 
 			nonl++;
-			if (ip->ip_p)
-			    {
+			if (ip->ip_p) {
 				fprintf(stderr, "Protocol already set: %d\n",
-					ip->ip_p);
+				    ip->ip_p);
 				break;
-			    }
+			}
 			if ((p = getprotobyname(optarg)))
 				ip->ip_p = p->p_proto;
 			else
 				fprintf(stderr, "Unknown protocol: %s\n",
-					optarg);
+				    optarg);
 			break;
-		    }
-		case 'T' :
+		}
+		case 'T':
 			nonl++;
-			if (ip->ip_p)
-			    {
+			if (ip->ip_p) {
 				fprintf(stderr, "Protocol already set: %d\n",
-					ip->ip_p);
+				    ip->ip_p);
 				break;
-			    }
+			}
 			ip->ip_p = IPPROTO_TCP;
 			ip->ip_len += sizeof(tcphdr_t);
 			break;
-		case 'U' :
+		case 'U':
 			nonl++;
-			if (ip->ip_p)
-			    {
+			if (ip->ip_p) {
 				fprintf(stderr, "Protocol already set: %d\n",
-					ip->ip_p);
+				    ip->ip_p);
 				break;
-			    }
+			}
 			ip->ip_p = IPPROTO_UDP;
 			ip->ip_len += sizeof(udphdr_t);
 			break;
-		case 'd' :
+		case 'd':
 			opts |= OPT_DEBUG;
 			break;
-		case 'f' :
+		case 'f':
 			nonl++;
 			ip->ip_off = strtol(optarg, NULL, 0);
 			break;
-		case 'g' :
+		case 'g':
 			nonl++;
 			gateway = optarg;
 			break;
-		case 'i' :
+		case 'i':
 			nonl++;
 			dev = optarg;
 			break;
-		case 'm' :
+		case 'm':
 			nonl++;
 			mtu = atoi(optarg);
-			if (mtu < 28)
-			    {
+			if (mtu < 28) {
 				fprintf(stderr, "mtu must be > 28\n");
 				exit(1);
-			    }
+			}
 			break;
-		case 'o' :
+		case 'o':
 			nonl++;
 			olen = buildopts(optarg, options, (IP_HL(ip) - 5) << 2);
 			break;
-		case 's' :
+		case 's':
 			nonl++;
 			src = optarg;
 			break;
-		case 't' :
+		case 't':
 			nonl++;
 			if (ip->ip_p == IPPROTO_TCP || ip->ip_p == IPPROTO_UDP)
 				tcp->th_dport = htons(atoi(optarg));
 			break;
-		case 'v' :
+		case 'v':
 			opts |= OPT_VERBOSE;
 			break;
-		case 'w' :
+		case 'w':
 			nonl++;
 			if (ip->ip_p == IPPROTO_TCP)
 				tcp->th_win = atoi(optarg);
 			else
 				fprintf(stderr, "set protocol to TCP first\n");
 			break;
-		default :
+		default:
 			fprintf(stderr, "Unknown option \"%c\"\n", c);
 			usage(name);
 		}
@@ -306,34 +290,29 @@ main(int argc, char **argv)
 		usage(name);
 	dst = argv[optind++];
 
-	if (!src)
-	    {
+	if (!src) {
 		gethostname(host, sizeof(host));
 		src = host;
-	    }
+	}
 
-	if (resolve(src, (char *)&ip->ip_src) == -1)
-	    {
-		fprintf(stderr,"Cant resolve %s\n", src);
+	if (resolve(src, (char *)&ip->ip_src) == -1) {
+		fprintf(stderr, "Cant resolve %s\n", src);
 		exit(2);
-	    }
+	}
 
-	if (resolve(dst, (char *)&ip->ip_dst) == -1)
-	    {
-		fprintf(stderr,"Cant resolve %s\n", dst);
+	if (resolve(dst, (char *)&ip->ip_dst) == -1) {
+		fprintf(stderr, "Cant resolve %s\n", dst);
 		exit(2);
-	    }
+	}
 
 	if (!gateway)
 		gwip = ip->ip_dst;
-	else if (resolve(gateway, (char *)&gwip) == -1)
-	    {
-		fprintf(stderr,"Cant resolve %s\n", gateway);
+	else if (resolve(gateway, (char *)&gwip) == -1) {
+		fprintf(stderr, "Cant resolve %s\n", gateway);
 		exit(2);
-	    }
+	}
 
-	if (olen)
-	    {
+	if (olen) {
 		int hlen;
 		char *p;
 
@@ -342,11 +321,10 @@ main(int argc, char **argv)
 		IP_HL_A(ip, hlen >> 2);
 		ip->ip_len += olen;
 		p = (char *)malloc(65536);
-		if (p == NULL)
-		    {
+		if (p == NULL) {
 			fprintf(stderr, "malloc failed\n");
 			exit(2);
-		    }
+		}
 
 		bcopy(ip, p, sizeof(*ip));
 		bcopy(options, p + sizeof(*ip), olen);
@@ -358,28 +336,33 @@ main(int argc, char **argv)
 		} else if (ip->ip_p == IPPROTO_UDP) {
 			udp = (udphdr_t *)(p + hlen);
 		}
-	    }
+	}
 
 	if (ip->ip_p == IPPROTO_TCP)
 		for (s = argv[optind]; s && (c = *s); s++)
-			switch(c)
-			{
-			case 'S' : case 's' :
+			switch (c) {
+			case 'S':
+			case 's':
 				tcp->th_flags |= TH_SYN;
 				break;
-			case 'A' : case 'a' :
+			case 'A':
+			case 'a':
 				tcp->th_flags |= TH_ACK;
 				break;
-			case 'F' : case 'f' :
+			case 'F':
+			case 'f':
 				tcp->th_flags |= TH_FIN;
 				break;
-			case 'R' : case 'r' :
+			case 'R':
+			case 'r':
 				tcp->th_flags |= TH_RST;
 				break;
-			case 'P' : case 'p' :
+			case 'P':
+			case 'p':
 				tcp->th_flags |= TH_PUSH;
 				break;
-			case 'U' : case 'u' :
+			case 'U':
+			case 'u':
 				tcp->th_flags |= TH_URG;
 				break;
 			}
@@ -398,7 +381,7 @@ main(int argc, char **argv)
 		udp->uh_sum = 0;
 		udpcksum(ip, udp, ip->ip_len - (IP_HL(ip) << 2));
 	}
-#ifdef	DOSOCKET
+#ifdef DOSOCKET
 	if (ip->ip_p == IPPROTO_TCP && tcp->th_dport)
 		return (do_socket(dev, mtu, ip, gwip));
 #endif

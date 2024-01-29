@@ -35,6 +35,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/kobj.h>
@@ -43,27 +44,25 @@
 #include <sys/mbuf.h>
 #include <sys/module.h>
 #include <sys/smp.h>
-#include <sys/systm.h>
 #include <sys/uio.h>
+
+#include <machine/fpu.h>
+#include <machine/md_var.h>
+#include <machine/specialreg.h>
 
 #include <crypto/aesni/aesni.h>
 #include <crypto/aesni/sha_sse.h>
 #include <crypto/sha1.h>
 #include <crypto/sha2/sha224.h>
 #include <crypto/sha2/sha256.h>
-
+#include <cryptodev_if.h>
 #include <opencrypto/cryptodev.h>
 #include <opencrypto/gmac.h>
-#include <cryptodev_if.h>
-
-#include <machine/md_var.h>
-#include <machine/specialreg.h>
-#include <machine/fpu.h>
 
 struct aesni_softc {
 	int32_t cid;
-	bool	has_aes;
-	bool	has_sha;
+	bool has_aes;
+	bool has_sha;
 };
 
 static int aesni_cipher_setup(struct aesni_session *ses,
@@ -109,8 +108,7 @@ aesni_probe(device_t dev)
 		device_set_desc(dev,
 		    "AES-CBC,AES-CCM,AES-GCM,AES-ICM,AES-XTS,SHA1,SHA256");
 	else if (has_aes)
-		device_set_desc(dev,
-		    "AES-CBC,AES-CCM,AES-GCM,AES-ICM,AES-XTS");
+		device_set_desc(dev, "AES-CBC,AES-CCM,AES-GCM,AES-ICM,AES-XTS");
 	else
 		device_set_desc(dev, "SHA1,SHA256");
 
@@ -126,7 +124,7 @@ aesni_attach(device_t dev)
 
 	sc->cid = crypto_get_driverid(dev, sizeof(struct aesni_session),
 	    CRYPTOCAP_F_SOFTWARE | CRYPTOCAP_F_SYNC |
-	    CRYPTOCAP_F_ACCEL_SOFTWARE);
+		CRYPTOCAP_F_ACCEL_SOFTWARE);
 	if (sc->cid < 0) {
 		device_printf(dev, "Could not get crypto driver id.\n");
 		return (ENOMEM);
@@ -340,8 +338,8 @@ aesni_cipher_alloc(struct cryptop *crp, int start, int length, bool *allocated)
 	return (addr);
 }
 
-static device_method_t aesni_methods[] = {
-	DEVMETHOD(device_identify, aesni_identify),
+static device_method_t aesni_methods[] = { DEVMETHOD(device_identify,
+					       aesni_identify),
 	DEVMETHOD(device_probe, aesni_probe),
 	DEVMETHOD(device_attach, aesni_attach),
 	DEVMETHOD(device_detach, aesni_detach),
@@ -350,8 +348,7 @@ static device_method_t aesni_methods[] = {
 	DEVMETHOD(cryptodev_newsession, aesni_newsession),
 	DEVMETHOD(cryptodev_process, aesni_process),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 static driver_t aesni_driver = {
 	"aesni",
@@ -722,14 +719,14 @@ aesni_cipher_crypt(struct aesni_session *ses, struct cryptop *crp,
 			crypto_copydata(crp, crp->crp_digest_start, sizeof(tag),
 			    tag);
 			if (!AES_GCM_decrypt(buf, outbuf, authbuf, iv, tag,
-			    crp->crp_payload_length, crp->crp_aad_length,
-			    csp->csp_ivlen, ses->enc_schedule, ses->rounds))
+				crp->crp_payload_length, crp->crp_aad_length,
+				csp->csp_ivlen, ses->enc_schedule, ses->rounds))
 				error = EBADMSG;
 		}
 		break;
 	case CRYPTO_AES_CCM_16:
 		if (encflag) {
-			memset(tag, 0, sizeof(tag));			
+			memset(tag, 0, sizeof(tag));
 			AES_CCM_encrypt(buf, outbuf, authbuf, iv, tag,
 			    crp->crp_payload_length, crp->crp_aad_length,
 			    csp->csp_ivlen, ses->mlen, ses->enc_schedule,
@@ -740,9 +737,9 @@ aesni_cipher_crypt(struct aesni_session *ses, struct cryptop *crp,
 			crypto_copydata(crp, crp->crp_digest_start, ses->mlen,
 			    tag);
 			if (!AES_CCM_decrypt(buf, outbuf, authbuf, iv, tag,
-			    crp->crp_payload_length, crp->crp_aad_length,
-			    csp->csp_ivlen, ses->mlen, ses->enc_schedule,
-			    ses->rounds))
+				crp->crp_payload_length, crp->crp_aad_length,
+				csp->csp_ivlen, ses->mlen, ses->enc_schedule,
+				ses->rounds))
 				error = EBADMSG;
 		}
 		break;
@@ -751,8 +748,10 @@ aesni_cipher_crypt(struct aesni_session *ses, struct cryptop *crp,
 	fpu_kern_leave(curthread, NULL);
 
 	if (outcopy && error == 0)
-		crypto_copyback(crp, CRYPTO_HAS_OUTPUT_BUFFER(crp) ?
-		    crp->crp_payload_output_start : crp->crp_payload_start,
+		crypto_copyback(crp,
+		    CRYPTO_HAS_OUTPUT_BUFFER(crp) ?
+			crp->crp_payload_output_start :
+			crp->crp_payload_start,
 		    crp->crp_payload_length, outbuf);
 
 out:
@@ -808,8 +807,7 @@ aesni_cipher_mac(struct aesni_session *ses, struct cryptop *crp,
 		    CRYPTO_OP_IS_ENCRYPT(crp->crp_op))
 			crypto_apply_buf(&crp->crp_obuf,
 			    crp->crp_payload_output_start,
-			    crp->crp_payload_length,
-			    ses->hash_update, &sctx);
+			    crp->crp_payload_length, ses->hash_update, &sctx);
 		else
 			crypto_apply(crp, crp->crp_payload_start,
 			    crp->crp_payload_length, ses->hash_update, &sctx);
@@ -842,12 +840,10 @@ aesni_cipher_mac(struct aesni_session *ses, struct cryptop *crp,
 		    CRYPTO_OP_IS_ENCRYPT(crp->crp_op))
 			crypto_apply_buf(&crp->crp_obuf,
 			    crp->crp_payload_output_start,
-			    crp->crp_payload_length,
-			    ses->hash_update, &sctx);
+			    crp->crp_payload_length, ses->hash_update, &sctx);
 		else
 			crypto_apply(crp, crp->crp_payload_start,
-			    crp->crp_payload_length,
-			    ses->hash_update, &sctx);
+			    crp->crp_payload_length, ses->hash_update, &sctx);
 
 		ses->hash_finalize(res, &sctx);
 	}

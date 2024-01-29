@@ -33,9 +33,9 @@
 #ifndef _CITRUS_TYPES_H_
 #define _CITRUS_TYPES_H_
 
-typedef uint32_t		_citrus_wc_t;
-typedef uint32_t		_citrus_index_t;
-typedef uint32_t		_citrus_csid_t;
-#define _CITRUS_CSID_INVALID	((_citrus_csid_t)-1)
+typedef uint32_t _citrus_wc_t;
+typedef uint32_t _citrus_index_t;
+typedef uint32_t _citrus_csid_t;
+#define _CITRUS_CSID_INVALID ((_citrus_csid_t)-1)
 
 #endif

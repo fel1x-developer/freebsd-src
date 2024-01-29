@@ -27,13 +27,12 @@
 #include <sys/extattr.h>
 #include <sys/ioctl.h>
 
-#include <bsm/libbsm.h>
-#include <bsm/auditd_lib.h>
-#include <security/audit/audit_ioctl.h>
-
 #include <atf-c.h>
+#include <bsm/auditd_lib.h>
+#include <bsm/libbsm.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <security/audit/audit_ioctl.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -158,7 +157,8 @@ check_auditpipe(struct pollfd fd[], const char *auditregex, FILE *pipestream)
 		timeout.tv_sec = MIN(timeout.tv_sec, 9);
 		if (timeout.tv_sec < 0) {
 			atf_tc_fail("%s not found in auditpipe within the "
-			    "time limit", auditregex);
+				    "time limit",
+			    auditregex);
 		}
 
 		switch (ppoll(fd, 1, &timeout, NULL)) {
@@ -169,14 +169,16 @@ check_auditpipe(struct pollfd fd[], const char *auditregex, FILE *pipestream)
 					return;
 			} else {
 				atf_tc_fail("Auditpipe returned an "
-				"unknown event %#x", fd[0].revents);
+					    "unknown event %#x",
+				    fd[0].revents);
 			}
 			break;
 
 		/* poll(2) timed out */
 		case 0:
 			atf_tc_fail("%s not found in auditpipe within the "
-					"time limit", auditregex);
+				    "time limit",
+			    auditregex);
 			break;
 
 		/* poll(2) standard error */
@@ -194,12 +196,14 @@ check_auditpipe(struct pollfd fd[], const char *auditregex, FILE *pipestream)
  * Wrapper functions around static "check_auditpipe"
  */
 static void
-check_audit_startup(struct pollfd fd[], const char *auditrgx, FILE *pipestream){
+check_audit_startup(struct pollfd fd[], const char *auditrgx, FILE *pipestream)
+{
 	check_auditpipe(fd, auditrgx, pipestream);
 }
 
 void
-check_audit(struct pollfd fd[], const char *auditrgx, FILE *pipestream) {
+check_audit(struct pollfd fd[], const char *auditrgx, FILE *pipestream)
+{
 	check_auditpipe(fd, auditrgx, pipestream);
 
 	/* Teardown: /dev/auditpipe's instance opened for this test-suite */
@@ -250,7 +254,6 @@ is_auditd_running(void)
 		    "Unexpected error from auditon(2): %s", strerror(errno));
 		return (false);
 	}
-
 }
 
 FILE *

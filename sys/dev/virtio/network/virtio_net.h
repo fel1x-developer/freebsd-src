@@ -32,57 +32,62 @@
 #define _VIRTIO_NET_H
 
 /* The feature bitmap for virtio net */
-#define VIRTIO_NET_F_CSUM		 0x000001 /* Host handles pkts w/ partial csum */
-#define VIRTIO_NET_F_GUEST_CSUM		 0x000002 /* Guest handles pkts w/ partial csum*/
-#define VIRTIO_NET_F_CTRL_GUEST_OFFLOADS 0x000004 /* Dynamic offload configuration. */
-#define VIRTIO_NET_F_MTU		 0x000008 /* Initial MTU advice */
-#define VIRTIO_NET_F_MAC		 0x000020 /* Host has given MAC address. */
-#define VIRTIO_NET_F_GSO		 0x000040 /* Host handles pkts w/ any GSO type */
-#define VIRTIO_NET_F_GUEST_TSO4		 0x000080 /* Guest can handle TSOv4 in. */
-#define VIRTIO_NET_F_GUEST_TSO6		 0x000100 /* Guest can handle TSOv6 in. */
-#define VIRTIO_NET_F_GUEST_ECN		 0x000200 /* Guest can handle TSO[6] w/ ECN in. */
-#define VIRTIO_NET_F_GUEST_UFO		 0x000400 /* Guest can handle UFO in. */
-#define VIRTIO_NET_F_HOST_TSO4		 0x000800 /* Host can handle TSOv4 in. */
-#define VIRTIO_NET_F_HOST_TSO6		 0x001000 /* Host can handle TSOv6 in. */
-#define VIRTIO_NET_F_HOST_ECN		 0x002000 /* Host can handle TSO[6] w/ ECN in. */
-#define VIRTIO_NET_F_HOST_UFO		 0x004000 /* Host can handle UFO in. */
-#define VIRTIO_NET_F_MRG_RXBUF		 0x008000 /* Host can merge receive buffers. */
-#define VIRTIO_NET_F_STATUS		 0x010000 /* virtio_net_config.status available*/
-#define VIRTIO_NET_F_CTRL_VQ		 0x020000 /* Control channel available */
-#define VIRTIO_NET_F_CTRL_RX		 0x040000 /* Control channel RX mode support */
-#define VIRTIO_NET_F_CTRL_VLAN		 0x080000 /* Control channel VLAN filtering */
-#define VIRTIO_NET_F_CTRL_RX_EXTRA	 0x100000 /* Extra RX mode control support */
-#define VIRTIO_NET_F_GUEST_ANNOUNCE	 0x200000 /* Announce device on network */
-#define VIRTIO_NET_F_MQ			 0x400000 /* Device supports Receive Flow Steering */
-#define VIRTIO_NET_F_CTRL_MAC_ADDR	 0x800000 /* Set MAC address */
-#define VIRTIO_NET_F_SPEED_DUPLEX	 (1ULL << 63) /* Device set linkspeed and duplex */
+#define VIRTIO_NET_F_CSUM 0x000001	 /* Host handles pkts w/ partial csum */
+#define VIRTIO_NET_F_GUEST_CSUM 0x000002 /* Guest handles pkts w/ partial \
+					    csum*/
+#define VIRTIO_NET_F_CTRL_GUEST_OFFLOADS \
+	0x000004			 /* Dynamic offload configuration. */
+#define VIRTIO_NET_F_MTU 0x000008	 /* Initial MTU advice */
+#define VIRTIO_NET_F_MAC 0x000020	 /* Host has given MAC address. */
+#define VIRTIO_NET_F_GSO 0x000040	 /* Host handles pkts w/ any GSO type */
+#define VIRTIO_NET_F_GUEST_TSO4 0x000080 /* Guest can handle TSOv4 in. */
+#define VIRTIO_NET_F_GUEST_TSO6 0x000100 /* Guest can handle TSOv6 in. */
+#define VIRTIO_NET_F_GUEST_ECN 0x000200	 /* Guest can handle TSO[6] w/ ECN in. \
+					  */
+#define VIRTIO_NET_F_GUEST_UFO 0x000400	 /* Guest can handle UFO in. */
+#define VIRTIO_NET_F_HOST_TSO4 0x000800	 /* Host can handle TSOv4 in. */
+#define VIRTIO_NET_F_HOST_TSO6 0x001000	 /* Host can handle TSOv6 in. */
+#define VIRTIO_NET_F_HOST_ECN 0x002000	 /* Host can handle TSO[6] w/ ECN in. */
+#define VIRTIO_NET_F_HOST_UFO 0x004000	 /* Host can handle UFO in. */
+#define VIRTIO_NET_F_MRG_RXBUF 0x008000	 /* Host can merge receive buffers. */
+#define VIRTIO_NET_F_STATUS 0x010000	 /* virtio_net_config.status available*/
+#define VIRTIO_NET_F_CTRL_VQ 0x020000	 /* Control channel available */
+#define VIRTIO_NET_F_CTRL_RX 0x040000	 /* Control channel RX mode support */
+#define VIRTIO_NET_F_CTRL_VLAN 0x080000	 /* Control channel VLAN filtering */
+#define VIRTIO_NET_F_CTRL_RX_EXTRA 0x100000  /* Extra RX mode control support \
+					      */
+#define VIRTIO_NET_F_GUEST_ANNOUNCE 0x200000 /* Announce device on network */
+#define VIRTIO_NET_F_MQ 0x400000 /* Device supports Receive Flow Steering */
+#define VIRTIO_NET_F_CTRL_MAC_ADDR 0x800000 /* Set MAC address */
+#define VIRTIO_NET_F_SPEED_DUPLEX \
+	(1ULL << 63) /* Device set linkspeed and duplex */
 
-#define VIRTIO_NET_S_LINK_UP	1	/* Link is up */
-#define VIRTIO_NET_S_ANNOUNCE	2	/* Announcement is needed */
+#define VIRTIO_NET_S_LINK_UP 1	/* Link is up */
+#define VIRTIO_NET_S_ANNOUNCE 2 /* Announcement is needed */
 
 struct virtio_net_config {
 	/* The config defining mac address (if VIRTIO_NET_F_MAC) */
-	uint8_t		mac[ETHER_ADDR_LEN];
+	uint8_t mac[ETHER_ADDR_LEN];
 	/* See VIRTIO_NET_F_STATUS and VIRTIO_NET_S_* above */
-	uint16_t	status;
+	uint16_t status;
 	/* Maximum number of each of transmit and receive queues;
 	 * see VIRTIO_NET_F_MQ and VIRTIO_NET_CTRL_MQ.
 	 * Legal values are between 1 and 0x8000.
 	 */
-	uint16_t	max_virtqueue_pairs;
+	uint16_t max_virtqueue_pairs;
 	/* Default maximum transmit unit advice */
-	uint16_t	mtu;
+	uint16_t mtu;
 	/*
 	 * speed, in units of 1Mb. All values 0 to INT_MAX are legal.
 	 * Any other value stands for unknown.
 	 */
-	uint32_t	speed;
+	uint32_t speed;
 	/*
 	 * 0x00 - half duplex
 	 * 0x01 - full duplex
 	 * Any other value stands for unknown.
 	 */
-	uint8_t		duplex;
+	uint8_t duplex;
 } __packed;
 
 /*
@@ -93,20 +98,20 @@ struct virtio_net_config {
  * only flattened.
  */
 struct virtio_net_hdr_v1 {
-#define VIRTIO_NET_HDR_F_NEEDS_CSUM	1	/* Use csum_start, csum_offset */
-#define VIRTIO_NET_HDR_F_DATA_VALID	2	/* Csum is valid */
+#define VIRTIO_NET_HDR_F_NEEDS_CSUM 1 /* Use csum_start, csum_offset */
+#define VIRTIO_NET_HDR_F_DATA_VALID 2 /* Csum is valid */
 	uint8_t flags;
-#define VIRTIO_NET_HDR_GSO_NONE		0	/* Not a GSO frame */
-#define VIRTIO_NET_HDR_GSO_TCPV4	1	/* GSO frame, IPv4 TCP (TSO) */
-#define VIRTIO_NET_HDR_GSO_UDP		3	/* GSO frame, IPv4 UDP (UFO) */
-#define VIRTIO_NET_HDR_GSO_TCPV6	4	/* GSO frame, IPv6 TCP */
-#define VIRTIO_NET_HDR_GSO_ECN		0x80	/* TCP has ECN set */
+#define VIRTIO_NET_HDR_GSO_NONE 0   /* Not a GSO frame */
+#define VIRTIO_NET_HDR_GSO_TCPV4 1  /* GSO frame, IPv4 TCP (TSO) */
+#define VIRTIO_NET_HDR_GSO_UDP 3    /* GSO frame, IPv4 UDP (UFO) */
+#define VIRTIO_NET_HDR_GSO_TCPV6 4  /* GSO frame, IPv6 TCP */
+#define VIRTIO_NET_HDR_GSO_ECN 0x80 /* TCP has ECN set */
 	uint8_t gso_type;
-	uint16_t hdr_len;	/* Ethernet + IP + tcp/udp hdrs */
-	uint16_t gso_size;	/* Bytes to append to hdr_len per frame */
-	uint16_t csum_start;	/* Position to start checksumming from */
-	uint16_t csum_offset;	/* Offset after that to place checksum */
-	uint16_t num_buffers;	/* Number of merged rx buffers */
+	uint16_t hdr_len;     /* Ethernet + IP + tcp/udp hdrs */
+	uint16_t gso_size;    /* Bytes to append to hdr_len per frame */
+	uint16_t csum_start;  /* Position to start checksumming from */
+	uint16_t csum_offset; /* Offset after that to place checksum */
+	uint16_t num_buffers; /* Number of merged rx buffers */
 };
 
 /*
@@ -117,13 +122,13 @@ struct virtio_net_hdr_v1 {
  */
 struct virtio_net_hdr {
 	/* See VIRTIO_NET_HDR_F_* */
-	uint8_t	flags;
+	uint8_t flags;
 	/* See VIRTIO_NET_HDR_GSO_* */
 	uint8_t gso_type;
-	uint16_t hdr_len;	/* Ethernet + IP + tcp/udp hdrs */
-	uint16_t gso_size;	/* Bytes to append to hdr_len per frame */
-	uint16_t csum_start;	/* Position to start checksumming from */
-	uint16_t csum_offset;	/* Offset after that to place checksum */
+	uint16_t hdr_len;     /* Ethernet + IP + tcp/udp hdrs */
+	uint16_t gso_size;    /* Bytes to append to hdr_len per frame */
+	uint16_t csum_start;  /* Position to start checksumming from */
+	uint16_t csum_offset; /* Offset after that to place checksum */
 };
 
 /*
@@ -132,7 +137,7 @@ struct virtio_net_hdr {
  */
 struct virtio_net_hdr_mrg_rxbuf {
 	struct virtio_net_hdr hdr;
-	uint16_t num_buffers;	/* Number of merged rx buffers */
+	uint16_t num_buffers; /* Number of merged rx buffers */
 };
 
 /*
@@ -147,8 +152,8 @@ struct virtio_net_ctrl_hdr {
 	uint8_t cmd;
 } __packed;
 
-#define VIRTIO_NET_OK	0
-#define VIRTIO_NET_ERR	1
+#define VIRTIO_NET_OK 0
+#define VIRTIO_NET_ERR 1
 
 /*
  * Control the RX mode, ie. promiscuous, allmulti, etc...
@@ -157,13 +162,13 @@ struct virtio_net_ctrl_hdr {
  * 0 and 1 are supported with the VIRTIO_NET_F_CTRL_RX feature.
  * Commands 2-5 are added with VIRTIO_NET_F_CTRL_RX_EXTRA.
  */
-#define VIRTIO_NET_CTRL_RX	0
-#define VIRTIO_NET_CTRL_RX_PROMISC	0
-#define VIRTIO_NET_CTRL_RX_ALLMULTI	1
-#define VIRTIO_NET_CTRL_RX_ALLUNI	2
-#define VIRTIO_NET_CTRL_RX_NOMULTI	3
-#define VIRTIO_NET_CTRL_RX_NOUNI	4
-#define VIRTIO_NET_CTRL_RX_NOBCAST	5
+#define VIRTIO_NET_CTRL_RX 0
+#define VIRTIO_NET_CTRL_RX_PROMISC 0
+#define VIRTIO_NET_CTRL_RX_ALLMULTI 1
+#define VIRTIO_NET_CTRL_RX_ALLUNI 2
+#define VIRTIO_NET_CTRL_RX_NOMULTI 3
+#define VIRTIO_NET_CTRL_RX_NOUNI 4
+#define VIRTIO_NET_CTRL_RX_NOBCAST 5
 
 /*
  * Control the MAC filter table.
@@ -185,13 +190,13 @@ struct virtio_net_ctrl_hdr {
  * VIRTIO_NET_F_CTRL_MAC_ADDR feature is available.
  */
 struct virtio_net_ctrl_mac {
-	uint32_t	entries;
-	uint8_t		macs[][ETHER_ADDR_LEN];
+	uint32_t entries;
+	uint8_t macs[][ETHER_ADDR_LEN];
 } __packed;
 
-#define VIRTIO_NET_CTRL_MAC	1
-#define VIRTIO_NET_CTRL_MAC_TABLE_SET	0
-#define VIRTIO_NET_CTRL_MAC_ADDR_SET	1
+#define VIRTIO_NET_CTRL_MAC 1
+#define VIRTIO_NET_CTRL_MAC_TABLE_SET 0
+#define VIRTIO_NET_CTRL_MAC_ADDR_SET 1
 
 /*
  * Control VLAN filtering
@@ -202,9 +207,9 @@ struct virtio_net_ctrl_mac {
  * byte VLAN ID.  VLAN filtering is available with the
  * VIRTIO_NET_F_CTRL_VLAN feature bit.
  */
-#define VIRTIO_NET_CTRL_VLAN	2
-#define VIRTIO_NET_CTRL_VLAN_ADD	0
-#define VIRTIO_NET_CTRL_VLAN_DEL	1
+#define VIRTIO_NET_CTRL_VLAN 2
+#define VIRTIO_NET_CTRL_VLAN_ADD 0
+#define VIRTIO_NET_CTRL_VLAN_DEL 1
 
 /*
  * Control link announce acknowledgement
@@ -214,8 +219,8 @@ struct virtio_net_ctrl_mac {
  * VIRTIO_NET_S_ANNOUNCE bit in the status field after it receives
  * this command.
  */
-#define VIRTIO_NET_CTRL_ANNOUNCE	3
-#define VIRTIO_NET_CTRL_ANNOUNCE_ACK	0
+#define VIRTIO_NET_CTRL_ANNOUNCE 3
+#define VIRTIO_NET_CTRL_ANNOUNCE_ACK 0
 
 /*
  * Control Receive Flow Steering
@@ -229,13 +234,13 @@ struct virtio_net_ctrl_mac {
  * virtqueues other than specified.
  */
 struct virtio_net_ctrl_mq {
-	uint16_t	virtqueue_pairs;
+	uint16_t virtqueue_pairs;
 } __packed;
 
-#define VIRTIO_NET_CTRL_MQ	4
-#define VIRTIO_NET_CTRL_MQ_VQ_PAIRS_SET		0
-#define VIRTIO_NET_CTRL_MQ_VQ_PAIRS_MIN		1
-#define VIRTIO_NET_CTRL_MQ_VQ_PAIRS_MAX		0x8000
+#define VIRTIO_NET_CTRL_MQ 4
+#define VIRTIO_NET_CTRL_MQ_VQ_PAIRS_SET 0
+#define VIRTIO_NET_CTRL_MQ_VQ_PAIRS_MIN 1
+#define VIRTIO_NET_CTRL_MQ_VQ_PAIRS_MAX 0x8000
 
 /*
  * Control network offloads
@@ -249,8 +254,8 @@ struct virtio_net_ctrl_mq {
  * See VIRTIO_NET_F_GUEST_* for the list of offloads
  * that can be enabled/disabled.
  */
-#define VIRTIO_NET_CTRL_GUEST_OFFLOADS		5
-#define VIRTIO_NET_CTRL_GUEST_OFFLOADS_SET	0
+#define VIRTIO_NET_CTRL_GUEST_OFFLOADS 5
+#define VIRTIO_NET_CTRL_GUEST_OFFLOADS_SET 0
 
 /*
  * Use the checksum offset in the VirtIO header to set the
@@ -258,7 +263,7 @@ struct virtio_net_ctrl_mq {
  */
 static inline int
 virtio_net_rx_csum_by_offset(struct mbuf *m, uint16_t eth_type, int ip_start,
-			struct virtio_net_hdr *hdr)
+    struct virtio_net_hdr *hdr)
 {
 #if defined(INET) || defined(INET6)
 	int offset = hdr->csum_start + hdr->csum_offset;
@@ -305,7 +310,7 @@ virtio_net_rx_csum_by_offset(struct mbuf *m, uint16_t eth_type, int ip_start,
 
 static inline int
 virtio_net_rx_csum_by_parse(struct mbuf *m, uint16_t eth_type, int ip_start,
-		       struct virtio_net_hdr *hdr)
+    struct virtio_net_hdr *hdr)
 {
 	int offset, proto;
 
@@ -323,8 +328,8 @@ virtio_net_rx_csum_by_parse(struct mbuf *m, uint16_t eth_type, int ip_start,
 #endif
 #if defined(INET6)
 	case ETHERTYPE_IPV6:
-		if (__predict_false(m->m_len < ip_start +
-		    sizeof(struct ip6_hdr)))
+		if (__predict_false(
+			m->m_len < ip_start + sizeof(struct ip6_hdr)))
 			return (1);
 		offset = ip6_lasthdr(m, ip_start, IPPROTO_IPV6, &proto);
 		if (__predict_false(offset < 0))
@@ -384,8 +389,9 @@ virtio_net_rx_csum(struct mbuf *m, struct virtio_net_hdr *hdr)
 	uint16_t eth_type;
 	int offset, error;
 
-	if ((hdr->flags & (VIRTIO_NET_HDR_F_NEEDS_CSUM |
-	    VIRTIO_NET_HDR_F_DATA_VALID)) == 0) {
+	if ((hdr->flags &
+		(VIRTIO_NET_HDR_F_NEEDS_CSUM | VIRTIO_NET_HDR_F_DATA_VALID)) ==
+	    0) {
 		return (0);
 	}
 
@@ -435,7 +441,7 @@ virtio_net_tx_offload_ctx(struct mbuf *m, int *etype, int *proto, int *start)
 		struct ip *ip, iphdr;
 		if (__predict_false(m->m_len < offset + sizeof(struct ip))) {
 			m_copydata(m, offset, sizeof(struct ip),
-			    (caddr_t) &iphdr);
+			    (caddr_t)&iphdr);
 			ip = &iphdr;
 		} else
 			ip = (struct ip *)(m->m_data + offset);
@@ -451,7 +457,7 @@ virtio_net_tx_offload_ctx(struct mbuf *m, int *etype, int *proto, int *start)
 		/* Assert the network stack sent us a valid packet. */
 		KASSERT(*start > offset,
 		    ("%s: mbuf %p start %d offset %d proto %d", __func__, m,
-		    *start, offset, *proto));
+			*start, offset, *proto));
 		break;
 #endif
 	default:
@@ -463,15 +469,15 @@ virtio_net_tx_offload_ctx(struct mbuf *m, int *etype, int *proto, int *start)
 }
 
 static inline int
-virtio_net_tx_offload_tso(if_t ifp, struct mbuf *m, int eth_type,
-		     int offset, bool allow_ecn, struct virtio_net_hdr *hdr)
+virtio_net_tx_offload_tso(if_t ifp, struct mbuf *m, int eth_type, int offset,
+    bool allow_ecn, struct virtio_net_hdr *hdr)
 {
 	static struct timeval lastecn;
 	static int curecn;
 	struct tcphdr *tcp, tcphdr;
 
 	if (__predict_false(m->m_len < offset + sizeof(struct tcphdr))) {
-		m_copydata(m, offset, sizeof(struct tcphdr), (caddr_t) &tcphdr);
+		m_copydata(m, offset, sizeof(struct tcphdr), (caddr_t)&tcphdr);
 		tcp = &tcphdr;
 	} else
 		tcp = (struct tcphdr *)(m->m_data + offset);
@@ -479,7 +485,7 @@ virtio_net_tx_offload_tso(if_t ifp, struct mbuf *m, int eth_type,
 	hdr->hdr_len = offset + (tcp->th_off << 2);
 	hdr->gso_size = m->m_pkthdr.tso_segsz;
 	hdr->gso_type = eth_type == ETHERTYPE_IP ? VIRTIO_NET_HDR_GSO_TCPV4 :
-	    VIRTIO_NET_HDR_GSO_TCPV6;
+						   VIRTIO_NET_HDR_GSO_TCPV6;
 
 	if (tcp->th_flags & TH_CWR) {
 		/*
@@ -503,7 +509,7 @@ virtio_net_tx_offload_tso(if_t ifp, struct mbuf *m, int eth_type,
 
 static inline struct mbuf *
 virtio_net_tx_offload(if_t ifp, struct mbuf *m, bool allow_ecn,
-		 struct virtio_net_hdr *hdr)
+    struct virtio_net_hdr *hdr)
 {
 	int flags, etype, csum_start, proto, error;
 
@@ -515,7 +521,7 @@ virtio_net_tx_offload(if_t ifp, struct mbuf *m, bool allow_ecn,
 
 	if ((etype == ETHERTYPE_IP && (flags & (CSUM_TCP | CSUM_UDP))) ||
 	    (etype == ETHERTYPE_IPV6 &&
-	        (flags & (CSUM_TCP_IPV6 | CSUM_UDP_IPV6)))) {
+		(flags & (CSUM_TCP_IPV6 | CSUM_UDP_IPV6)))) {
 		/*
 		 * We could compare the IP protocol vs the CSUM_ flag too,
 		 * but that really should not be necessary.
@@ -535,11 +541,11 @@ virtio_net_tx_offload(if_t ifp, struct mbuf *m, bool allow_ecn,
 		}
 
 		KASSERT(hdr->flags & VIRTIO_NET_HDR_F_NEEDS_CSUM,
-		    ("%s: mbuf %p TSO without checksum offload %#x",
-		    __func__, m, flags));
+		    ("%s: mbuf %p TSO without checksum offload %#x", __func__,
+			m, flags));
 
 		error = virtio_net_tx_offload_tso(ifp, m, etype, csum_start,
-					     allow_ecn, hdr);
+		    allow_ecn, hdr);
 		if (error)
 			goto drop;
 	}

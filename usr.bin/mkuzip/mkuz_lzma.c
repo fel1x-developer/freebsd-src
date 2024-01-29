@@ -26,14 +26,14 @@
  */
 
 #include <sys/param.h>
+
 #include <err.h>
+#include <lzma.h>
 #include <stdint.h>
 
-#include <lzma.h>
-
-#include "mkuzip.h"
 #include "mkuz_blk.h"
 #include "mkuz_lzma.h"
+#include "mkuzip.h"
 
 struct mkuz_lzma {
 	lzma_filter filters[2];
@@ -57,7 +57,7 @@ mkuz_lzma_init(int *comp_level)
 	if (*comp_level < 0 || *comp_level > 9)
 		errx(1, "provided compression level %d is invalid",
 		    *comp_level);
-		/* Not reached */
+	/* Not reached */
 
 	ulp = mkuz_safe_zmalloc(sizeof(struct mkuz_lzma));
 
@@ -97,8 +97,10 @@ mkuz_lzma_compress(void *p, const struct mkuz_blk *iblk, struct mkuz_blk *oblk)
 	ret = lzma_code(&ulp->strm, LZMA_FINISH);
 
 	if (ret != LZMA_STREAM_END)
-		errx(1, "lzma_code FINISH failed, code=%d, pos(in=%zd, "
-		    "out=%zd)", ret, (iblk->info.len - ulp->strm.avail_in),
+		errx(1,
+		    "lzma_code FINISH failed, code=%d, pos(in=%zd, "
+		    "out=%zd)",
+		    ret, (iblk->info.len - ulp->strm.avail_in),
 		    (oblk->alen - ulp->strm.avail_out));
 
 #if 0

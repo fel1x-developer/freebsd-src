@@ -26,12 +26,12 @@
  */
 
 #ifndef _RTLD_LOCK_H_
-#define	_RTLD_LOCK_H_
+#define _RTLD_LOCK_H_
 
-#define	RTLI_VERSION_ONE	0x01
-#define	RTLI_VERSION		0x02
+#define RTLI_VERSION_ONE 0x01
+#define RTLI_VERSION 0x02
 
-#define	MAX_RTLD_LOCKS	8
+#define MAX_RTLD_LOCKS 8
 
 /*
  * This structure is part of the ABI between rtld and threading
@@ -39,8 +39,7 @@
  * can be changed only by appending new fields at the end, with the
  * bump of RTLI_VERSION.
  */
-struct RtldLockInfo
-{
+struct RtldLockInfo {
 	/*
 	 * Valid if the object calling _rtld_thread_init() exported
 	 * symbol _pli_rtli_version.  Otherwise assume RTLI_VERSION_ONE.
@@ -48,18 +47,18 @@ struct RtldLockInfo
 	unsigned int rtli_version;
 
 	void *(*lock_create)(void);
-	void  (*lock_destroy)(void *);
-	void  (*rlock_acquire)(void *);
-	void  (*wlock_acquire)(void *);
-	void  (*lock_release)(void *);
-	int   (*thread_set_flag)(int);
-	int   (*thread_clr_flag)(int);
-	void  (*at_fork)(void);
+	void (*lock_destroy)(void *);
+	void (*rlock_acquire)(void *);
+	void (*wlock_acquire)(void *);
+	void (*lock_release)(void *);
+	int (*thread_set_flag)(int);
+	int (*thread_clr_flag)(int);
+	void (*at_fork)(void);
 
 	/* Version 2 fields */
 	char *(*dlerror_loc)(void);
-	int  *(*dlerror_seen)(void);
-	int   dlerror_loc_sz;
+	int *(*dlerror_seen)(void);
+	int dlerror_loc_sz;
 };
 
 #if defined(IN_RTLD) || defined(PTHREAD_KERNEL)
@@ -75,27 +74,27 @@ void _rtld_atfork_post(int *) __exported;
 struct rtld_lock;
 typedef struct rtld_lock *rtld_lock_t;
 
-extern rtld_lock_t	rtld_bind_lock;
-extern rtld_lock_t	rtld_libc_lock;
-extern rtld_lock_t	rtld_phdr_lock;
+extern rtld_lock_t rtld_bind_lock;
+extern rtld_lock_t rtld_libc_lock;
+extern rtld_lock_t rtld_phdr_lock;
 
 extern struct RtldLockInfo lockinfo;
 
-#define	RTLD_LOCK_UNLOCKED	0
-#define	RTLD_LOCK_RLOCKED	1
-#define	RTLD_LOCK_WLOCKED	2
+#define RTLD_LOCK_UNLOCKED 0
+#define RTLD_LOCK_RLOCKED 1
+#define RTLD_LOCK_WLOCKED 2
 
 struct Struct_RtldLockState;
 typedef struct Struct_RtldLockState RtldLockState;
 
-void	rlock_acquire(rtld_lock_t, RtldLockState *);
-void 	wlock_acquire(rtld_lock_t, RtldLockState *);
-void	lock_release(rtld_lock_t, RtldLockState *);
-void	lock_upgrade(rtld_lock_t, RtldLockState *);
-void	lock_restart_for_upgrade(RtldLockState *);
+void rlock_acquire(rtld_lock_t, RtldLockState *);
+void wlock_acquire(rtld_lock_t, RtldLockState *);
+void lock_release(rtld_lock_t, RtldLockState *);
+void lock_upgrade(rtld_lock_t, RtldLockState *);
+void lock_restart_for_upgrade(RtldLockState *);
 
-void	dlerror_dflt_init(void);
+void dlerror_dflt_init(void);
 
-#endif	/* IN_RTLD */
+#endif /* IN_RTLD */
 
 #endif

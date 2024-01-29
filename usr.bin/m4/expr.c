@@ -15,11 +15,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 #include <sys/cdefs.h>
+
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stddef.h>
-#include "mdef.h"
+
 #include "extern.h"
+#include "mdef.h"
 
 int32_t end_result;
 static const char *copy_toeval;
@@ -32,7 +34,7 @@ int
 yyerror(const char *msg)
 {
 	fprintf(stderr, "m4: %s in expr %s\n", msg, copy_toeval);
-	return(0);
+	return (0);
 }
 
 int

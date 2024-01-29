@@ -31,11 +31,13 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include <sys/cdefs.h>
 #include "opt_inet.h"
+
+#include <sys/cdefs.h>
 
 #ifdef TCP_OFFLOAD
 #include <sys/libkern.h>
+
 #include "iw_cxgbe.h"
 
 #define RANDOM_SKIP 16
@@ -46,7 +48,8 @@
  * - pseudo-randomize the id returned such that it is not trivially predictable.
  * - avoid reuse of recently used id (at the expense of predictability)
  */
-u32 c4iw_id_alloc(struct c4iw_id_table *alloc)
+u32
+c4iw_id_alloc(struct c4iw_id_table *alloc)
 {
 	unsigned long flags;
 	u32 obj;
@@ -73,7 +76,8 @@ u32 c4iw_id_alloc(struct c4iw_id_table *alloc)
 	return obj;
 }
 
-void c4iw_id_free(struct c4iw_id_table *alloc, u32 obj)
+void
+c4iw_id_free(struct c4iw_id_table *alloc, u32 obj)
 {
 	unsigned long flags;
 
@@ -85,8 +89,9 @@ void c4iw_id_free(struct c4iw_id_table *alloc, u32 obj)
 	spin_unlock_irqrestore(&alloc->lock, flags);
 }
 
-int c4iw_id_table_alloc(struct c4iw_id_table *alloc, u32 start, u32 num,
-			u32 reserved, u32 flags)
+int
+c4iw_id_table_alloc(struct c4iw_id_table *alloc, u32 start, u32 num,
+    u32 reserved, u32 flags)
 {
 	int i;
 
@@ -96,10 +101,9 @@ int c4iw_id_table_alloc(struct c4iw_id_table *alloc, u32 start, u32 num,
 		alloc->last = arc4random() % RANDOM_SKIP;
 	else
 		alloc->last = 0;
-	alloc->max  = num;
+	alloc->max = num;
 	spin_lock_init(&alloc->lock);
-	alloc->table = kmalloc(BITS_TO_LONGS(num) * sizeof(long),
-				GFP_KERNEL);
+	alloc->table = kmalloc(BITS_TO_LONGS(num) * sizeof(long), GFP_KERNEL);
 	if (!alloc->table)
 		return -ENOMEM;
 
@@ -111,7 +115,8 @@ int c4iw_id_table_alloc(struct c4iw_id_table *alloc, u32 start, u32 num,
 	return 0;
 }
 
-void c4iw_id_table_free(struct c4iw_id_table *alloc)
+void
+c4iw_id_table_free(struct c4iw_id_table *alloc)
 {
 	kfree(alloc->table);
 }

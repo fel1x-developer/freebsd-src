@@ -26,32 +26,33 @@
  * SUCH DAMAGE.
  */
 
-#include <ctype.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <errno.h>
 #include <sys/queue.h>
+
+#include <ctype.h>
+#include <errno.h>
 #include <rpc/rpc.h>
 #include <rpc/rpcsec_gss.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "rpcsec_gss_int.h"
 
 #ifndef _PATH_GSS_MECH
-#define _PATH_GSS_MECH	"/etc/gss/mech"
+#define _PATH_GSS_MECH "/etc/gss/mech"
 #endif
 
 #ifndef _PATH_GSS_QOP
-#define _PATH_GSS_QOP	"/etc/gss/qop"
+#define _PATH_GSS_QOP "/etc/gss/qop"
 #endif
 
 struct mech_info {
 	SLIST_ENTRY(mech_info) link;
-	char		*name;
-	gss_OID_desc	oid;
-	const char	**qops;
-	char		*lib;
-	char		*kobj;
+	char *name;
+	gss_OID_desc oid;
+	const char **qops;
+	char *lib;
+	char *kobj;
 };
 SLIST_HEAD(mech_info_list, mech_info);
 
@@ -60,21 +61,21 @@ static const char **mech_names;
 
 struct qop_info {
 	SLIST_ENTRY(qop_info) link;
-	char		*name;
-	char*		mech;
-	u_int		qop;
+	char *name;
+	char *mech;
+	u_int qop;
 };
 SLIST_HEAD(qop_info_list, qop_info);
 
 static struct qop_info_list qops = SLIST_HEAD_INITIALIZER(qops);
 
 static int
-_rpc_gss_string_to_oid(const char* s, gss_OID oid)
+_rpc_gss_string_to_oid(const char *s, gss_OID oid)
 {
-	int			number_count, i, j;
-	int			byte_count;
-	const char		*p, *q;
-	char			*res;
+	int number_count, i, j;
+	int byte_count;
+	const char *p, *q;
+	char *res;
 
 	/*
 	 * First figure out how many numbers in the oid, then
@@ -83,10 +84,11 @@ _rpc_gss_string_to_oid(const char* s, gss_OID oid)
 	number_count = 0;
 	for (p = s; p; p = q) {
 		q = strchr(p, '.');
-		if (q) q = q + 1;
+		if (q)
+			q = q + 1;
 		number_count++;
 	}
-	
+
 	/*
 	 * The first two numbers are in the first byte and each
 	 * subsequent number is encoded in a variable byte sequence.
@@ -109,7 +111,8 @@ _rpc_gss_string_to_oid(const char* s, gss_OID oid)
 			 * Find the end of this number.
 			 */
 			q = strchr(p, '.');
-			if (q) q = q + 1;
+			if (q)
+				q = q + 1;
 
 			/*
 			 * Read the number of of the string. Don't
@@ -146,11 +149,12 @@ _rpc_gss_string_to_oid(const char* s, gss_OID oid)
 				bytes = 0;
 				for (t = number; t; t >>= 7)
 					bytes++;
-				if (bytes == 0) bytes = 1;
+				if (bytes == 0)
+					bytes = 1;
 				while (bytes) {
 					if (res) {
-						int bit = 7*(bytes-1);
-						
+						int bit = 7 * (bytes - 1);
+
 						*res = (number >> bit) & 0x7f;
 						if (bytes != 1)
 							*res |= 0x80;
@@ -176,13 +180,13 @@ _rpc_gss_string_to_oid(const char* s, gss_OID oid)
 static void
 _rpc_gss_load_mech(void)
 {
-	FILE		*fp;
-	char		buf[256];
-	char		*p;
-	char		*name, *oid, *lib, *kobj;
+	FILE *fp;
+	char buf[256];
+	char *p;
+	char *name, *oid, *lib, *kobj;
 	struct mech_info *info;
-	int		count;
-	const char	**pp;
+	int count;
+	const char **pp;
 
 	if (SLIST_FIRST(&mechs))
 		return;
@@ -197,11 +201,17 @@ _rpc_gss_load_mech(void)
 			continue;
 		p = buf;
 		name = strsep(&p, "\t\n ");
-		if (p) while (isspace(*p)) p++;
+		if (p)
+			while (isspace(*p))
+				p++;
 		oid = strsep(&p, "\t\n ");
-		if (p) while (isspace(*p)) p++;
+		if (p)
+			while (isspace(*p))
+				p++;
 		lib = strsep(&p, "\t\n ");
-		if (p) while (isspace(*p)) p++;
+		if (p)
+			while (isspace(*p))
+				p++;
 		kobj = strsep(&p, "\t\n ");
 		if (!name || !oid || !lib || !kobj)
 			continue;
@@ -222,9 +232,9 @@ _rpc_gss_load_mech(void)
 	}
 	fclose(fp);
 
-	mech_names = malloc((count + 1) * sizeof(char*));
+	mech_names = malloc((count + 1) * sizeof(char *));
 	pp = mech_names;
-	SLIST_FOREACH(info, &mechs, link) {
+	SLIST_FOREACH (info, &mechs, link) {
 		*pp++ = info->name;
 	}
 	*pp = NULL;
@@ -233,15 +243,15 @@ _rpc_gss_load_mech(void)
 static void
 _rpc_gss_load_qop(void)
 {
-	FILE		*fp;
-	char		buf[256];
-	char		*p;
-	char		*name, *num, *mech;
+	FILE *fp;
+	char buf[256];
+	char *p;
+	char *name, *num, *mech;
 	struct mech_info *minfo;
 	struct qop_info *info;
-	int		count;
-	const char	**mech_qops;
-	const char	**pp;
+	int count;
+	const char **mech_qops;
+	const char **pp;
 
 	if (SLIST_FIRST(&qops))
 		return;
@@ -255,9 +265,13 @@ _rpc_gss_load_qop(void)
 			continue;
 		p = buf;
 		name = strsep(&p, "\t\n ");
-		if (p) while (isspace(*p)) p++;
+		if (p)
+			while (isspace(*p))
+				p++;
 		num = strsep(&p, "\t\n ");
-		if (p) while (isspace(*p)) p++;
+		if (p)
+			while (isspace(*p))
+				p++;
 		mech = strsep(&p, "\t\n ");
 		if (!name || !num || !mech)
 			continue;
@@ -275,15 +289,15 @@ _rpc_gss_load_qop(void)
 	/*
 	 * Compile lists of qops for each mechanism.
 	 */
-	SLIST_FOREACH(minfo, &mechs, link) {
+	SLIST_FOREACH (minfo, &mechs, link) {
 		count = 0;
-		SLIST_FOREACH(info, &qops, link) {
+		SLIST_FOREACH (info, &qops, link) {
 			if (strcmp(info->mech, minfo->name) == 0)
 				count++;
 		}
-		mech_qops = malloc((count + 1) * sizeof(char*));
+		mech_qops = malloc((count + 1) * sizeof(char *));
 		pp = mech_qops;
-		SLIST_FOREACH(info, &qops, link) {
+		SLIST_FOREACH (info, &qops, link) {
 			if (strcmp(info->mech, minfo->name) == 0)
 				*pp++ = info->name;
 		}
@@ -298,7 +312,7 @@ rpc_gss_mech_to_oid(const char *mech, gss_OID *oid_ret)
 	struct mech_info *info;
 
 	_rpc_gss_load_mech();
-	SLIST_FOREACH(info, &mechs, link) {
+	SLIST_FOREACH (info, &mechs, link) {
 		if (!strcmp(info->name, mech)) {
 			*oid_ret = &info->oid;
 			return (TRUE);
@@ -314,10 +328,9 @@ rpc_gss_oid_to_mech(gss_OID oid, const char **mech_ret)
 	struct mech_info *info;
 
 	_rpc_gss_load_mech();
-	SLIST_FOREACH(info, &mechs, link) {
-		if (oid->length == info->oid.length
-		    && !memcmp(oid->elements, info->oid.elements,
-			oid->length)) {
+	SLIST_FOREACH (info, &mechs, link) {
+		if (oid->length == info->oid.length &&
+		    !memcmp(oid->elements, info->oid.elements, oid->length)) {
 			*mech_ret = info->name;
 			return (TRUE);
 		}
@@ -332,9 +345,9 @@ rpc_gss_qop_to_num(const char *qop, const char *mech, u_int *num_ret)
 	struct qop_info *info;
 
 	_rpc_gss_load_qop();
-	SLIST_FOREACH(info, &qops, link) {
-		if (strcmp(info->name, qop) == 0
-		    && strcmp(info->mech, mech) == 0) {
+	SLIST_FOREACH (info, &qops, link) {
+		if (strcmp(info->name, qop) == 0 &&
+		    strcmp(info->mech, mech) == 0) {
 			*num_ret = info->qop;
 			return (TRUE);
 		}
@@ -352,7 +365,7 @@ _rpc_gss_num_to_qop(const char *mech, u_int num)
 		return "default";
 
 	_rpc_gss_load_qop();
-	SLIST_FOREACH(info, &qops, link) {
+	SLIST_FOREACH (info, &qops, link) {
 		if (info->qop == num && strcmp(info->mech, mech) == 0) {
 			return (info->name);
 		}
@@ -375,7 +388,7 @@ rpc_gss_get_mech_info(const char *mech, rpc_gss_service_t *service)
 
 	_rpc_gss_load_mech();
 	_rpc_gss_load_qop();
-	SLIST_FOREACH(info, &mechs, link) {
+	SLIST_FOREACH (info, &mechs, link) {
 		if (!strcmp(mech, info->name)) {
 			/*
 			 * I'm not sure what to do with service
@@ -409,9 +422,8 @@ rpc_gss_is_installed(const char *mech)
 	struct mech_info *info;
 
 	_rpc_gss_load_mech();
-	SLIST_FOREACH(info, &mechs, link)
+	SLIST_FOREACH (info, &mechs, link)
 		if (!strcmp(mech, info->name))
 			return (TRUE);
 	return (FALSE);
 }
-

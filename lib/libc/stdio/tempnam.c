@@ -30,12 +30,13 @@
  */
 
 #include <sys/param.h>
+
 #include <errno.h>
+#include <paths.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <paths.h>
 
 __warn_references(tempnam,
     "warning: tempnam() possibly used unsafely; consider using mkstemp()");
@@ -49,37 +50,37 @@ tempnam(const char *dir, const char *pfx)
 	char *f, *name;
 
 	if (!(name = malloc(MAXPATHLEN)))
-		return(NULL);
+		return (NULL);
 
 	if (!pfx)
 		pfx = "tmp.";
 
 	if ((f = secure_getenv("TMPDIR")) != NULL) {
 		(void)snprintf(name, MAXPATHLEN, "%s%s%sXXXXXX", f,
-		    *(f + strlen(f) - 1) == '/'? "": "/", pfx);
+		    *(f + strlen(f) - 1) == '/' ? "" : "/", pfx);
 		if ((f = _mktemp(name)))
-			return(f);
+			return (f);
 	}
 
 	if ((f = (char *)dir)) {
 		(void)snprintf(name, MAXPATHLEN, "%s%s%sXXXXXX", f,
-		    *(f + strlen(f) - 1) == '/'? "": "/", pfx);
+		    *(f + strlen(f) - 1) == '/' ? "" : "/", pfx);
 		if ((f = _mktemp(name)))
-			return(f);
+			return (f);
 	}
 
 	f = P_tmpdir;
 	(void)snprintf(name, MAXPATHLEN, "%s%sXXXXXX", f, pfx);
 	if ((f = _mktemp(name)))
-		return(f);
+		return (f);
 
 	f = _PATH_TMP;
 	(void)snprintf(name, MAXPATHLEN, "%s%sXXXXXX", f, pfx);
 	if ((f = _mktemp(name)))
-		return(f);
+		return (f);
 
 	sverrno = errno;
 	free(name);
 	errno = sverrno;
-	return(NULL);
+	return (NULL);
 }

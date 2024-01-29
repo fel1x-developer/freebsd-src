@@ -26,12 +26,13 @@
  */
 
 #include <sys/param.h>
-#include <sys/sysctl.h>
 #include <sys/limits.h>
+#include <sys/sysctl.h>
+
 #include <errno.h>
-#include <stdlib.h>
-#include <paths.h>
 #include <libutil.h>
+#include <paths.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #ifndef LOCALBASE_PATH
@@ -49,7 +50,7 @@ const char *
 getlocalbase(void)
 {
 #if LOCALBASE_CTL_LEN > 0
-	int localbase_oid[2] = {CTL_USER, USER_LOCALBASE};
+	int localbase_oid[2] = { CTL_USER, USER_LOCALBASE };
 	static char localpath[LOCALBASE_CTL_LEN];
 	size_t localpathlen = LOCALBASE_CTL_LEN;
 #endif

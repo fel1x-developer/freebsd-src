@@ -33,18 +33,19 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/kthread.h>
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/systm.h>
 #include <sys/time.h>
 
 #ifdef TESTPAUSE_DEBUG
-#define DPRINTF(x) do {							\
-	printf (x);							\
-} while (0)
+#define DPRINTF(x)         \
+	do {               \
+		printf(x); \
+	} while (0)
 #else
 #define DPRINTF(x)
 #endif
@@ -54,20 +55,20 @@ static int global_condvar;
 static int test_thrcnt;
 volatile int QUIT;
 
-static void 
+static void
 thr_suspender(void *arg)
 {
-	struct thread *td = (struct thread *) arg;
+	struct thread *td = (struct thread *)arg;
 	int error;
 
 	for (;;) {
 		if (QUIT == 1)
 			break;
-		error = kthread_suspend(td, 10*hz);
+		error = kthread_suspend(td, 10 * hz);
 		if (error != 0 && QUIT == 0) {
 			if (error == EWOULDBLOCK)
 				panic("Ooops: kthread deadlock\n");
-			else 
+			else
 				panic("kthread_suspend error: %d\n", error);
 			break;
 		}
@@ -81,10 +82,10 @@ thr_suspender(void *arg)
 	kthread_exit();
 }
 
-static void 
+static void
 thr_resumer(void *arg)
 {
-	struct thread *td = (struct thread *) arg;
+	struct thread *td = (struct thread *)arg;
 	int error;
 
 	for (;;) {
@@ -94,7 +95,7 @@ thr_resumer(void *arg)
 		error = kthread_resume(td);
 		if (error != 0)
 			panic("%s: error on kthread_resume. error: %d\n",
-				   	__func__, error);
+			    __func__, error);
 	}
 
 	mtx_lock(&test_global_lock);
@@ -133,17 +134,17 @@ kthrdlk_init(void)
 	test_thrcnt = 3;
 	mtx_init(&test_global_lock, "kthrdlk_lock", NULL, MTX_DEF);
 	testproc = NULL;
-	error = kproc_kthread_add(thr_getsuspended, NULL, &testproc, &newthr,
-	    0, 0, "kthrdlk", "thr_getsuspended");
+	error = kproc_kthread_add(thr_getsuspended, NULL, &testproc, &newthr, 0,
+	    0, "kthrdlk", "thr_getsuspended");
 	if (error != 0)
 		panic("cannot start thr_getsuspended error: %d\n", error);
 
-	error = kproc_kthread_add(thr_resumer, newthr, &testproc, NULL, 0, 0, 
+	error = kproc_kthread_add(thr_resumer, newthr, &testproc, NULL, 0, 0,
 	    "kthrdlk", "thr_resumer");
 	if (error != 0)
 		panic("cannot start thr_resumer error: %d\n", error);
 
-	error = kproc_kthread_add(thr_suspender, newthr, &testproc, NULL, 0, 0, 
+	error = kproc_kthread_add(thr_suspender, newthr, &testproc, NULL, 0, 0,
 	    "kthrdlk", "thr_suspender");
 	if (error != 0)
 		panic("cannot start thr_suspender error: %d\n", error);
@@ -159,9 +160,11 @@ kthrdlk_done(void)
 	mtx_lock(&test_global_lock);
 	QUIT = 1;
 	while (test_thrcnt != 0) {
-		ret = mtx_sleep(&global_condvar, &test_global_lock, 0, "waiting thrs end", 30 * hz);
+		ret = mtx_sleep(&global_condvar, &test_global_lock, 0,
+		    "waiting thrs end", 30 * hz);
 		if (ret == EWOULDBLOCK) {
-			panic("some threads not die! remaining: %d", test_thrcnt);
+			panic("some threads not die! remaining: %d",
+			    test_thrcnt);
 			break;
 		}
 	}
@@ -171,31 +174,25 @@ kthrdlk_done(void)
 	mtx_destroy(&test_global_lock);
 }
 
-static int 
-kthrdlk_handler(module_t mod, int /*modeventtype_t*/ what,
-                            void *arg)
+static int
+kthrdlk_handler(module_t mod, int /*modeventtype_t*/ what, void *arg)
 {
 	switch (what) {
-		case MOD_LOAD:
-			kthrdlk_init();
-			uprintf("kthrdlk loaded!\n");
-			return (0);
-		case MOD_UNLOAD:
-			kthrdlk_done();
-			uprintf("Bye Bye! kthrdlk unloaded!\n");
-			return (0);
+	case MOD_LOAD:
+		kthrdlk_init();
+		uprintf("kthrdlk loaded!\n");
+		return (0);
+	case MOD_UNLOAD:
+		kthrdlk_done();
+		uprintf("Bye Bye! kthrdlk unloaded!\n");
+		return (0);
 	}
 
 	return (EOPNOTSUPP);
 }
 
-static moduledata_t mod_data= {
-             "kthrdlk",
-             kthrdlk_handler,
-             0
-     };
+static moduledata_t mod_data = { "kthrdlk", kthrdlk_handler, 0 };
 
 MODULE_VERSION(kthrdlk, 1);
 
 DECLARE_MODULE(kthrdlk, mod_data, SI_SUB_EXEC, SI_ORDER_ANY);
-

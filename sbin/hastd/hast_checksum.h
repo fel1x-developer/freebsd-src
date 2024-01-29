@@ -26,19 +26,18 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_HAST_CHECKSUM_H_
-#define	_HAST_CHECKSUM_H_
-
-#include <stdlib.h>	/* size_t */
+#ifndef _HAST_CHECKSUM_H_
+#define _HAST_CHECKSUM_H_
 
 #include <hast.h>
 #include <nv.h>
+#include <stdlib.h> /* size_t */
 
 const char *checksum_name(int num);
 
-int checksum_send(const struct hast_resource *res, struct nv *nv,
-    void **datap, size_t *sizep, bool *freedatap);
-int checksum_recv(const struct hast_resource *res, struct nv *nv,
-    void **datap, size_t *sizep, bool *freedatap);
+int checksum_send(const struct hast_resource *res, struct nv *nv, void **datap,
+    size_t *sizep, bool *freedatap);
+int checksum_recv(const struct hast_resource *res, struct nv *nv, void **datap,
+    size_t *sizep, bool *freedatap);
 
-#endif	/* !_HAST_CHECKSUM_H_ */
+#endif /* !_HAST_CHECKSUM_H_ */

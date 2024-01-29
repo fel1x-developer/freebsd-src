@@ -26,17 +26,18 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/endian.h>
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/ethernet.h>
-#include <net/iflib.h>
-
 #include "opt_inet.h"
 #include "opt_inet6.h"
 #include "opt_rss.h"
+
+#include <sys/types.h>
+#include <sys/endian.h>
+#include <sys/socket.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_var.h>
+#include <net/iflib.h>
 
 #include "bnxt.h"
 
@@ -62,16 +63,14 @@ static int bnxt_isc_rxd_pkt_get(void *sc, if_rxd_info_t ri);
 
 static int bnxt_intr(void *sc);
 
-struct if_txrx bnxt_txrx  = {
-	.ift_txd_encap = bnxt_isc_txd_encap,
+struct if_txrx bnxt_txrx = { .ift_txd_encap = bnxt_isc_txd_encap,
 	.ift_txd_flush = bnxt_isc_txd_flush,
 	.ift_txd_credits_update = bnxt_isc_txd_credits_update,
 	.ift_rxd_available = bnxt_isc_rxd_available,
 	.ift_rxd_pkt_get = bnxt_isc_rxd_pkt_get,
 	.ift_rxd_refill = bnxt_isc_rxd_refill,
 	.ift_rxd_flush = bnxt_isc_rxd_flush,
-	.ift_legacy_intr = bnxt_intr
-};
+	.ift_legacy_intr = bnxt_intr };
 
 /*
  * Device Dependent Packet Transmit and Receive Functions
@@ -113,8 +112,9 @@ bnxt_isc_txd_encap(void *sc, if_pkt_info_t pi)
 	tbd->opaque = ((pi->ipi_nsegs + need_hi) << 24) | pi->ipi_new_pidx;
 	tbd->len = htole16(pi->ipi_segs[seg].ds_len);
 	tbd->addr = htole64(pi->ipi_segs[seg++].ds_addr);
-	flags_type = ((pi->ipi_nsegs + need_hi) <<
-	    TX_BD_SHORT_FLAGS_BD_CNT_SFT) & TX_BD_SHORT_FLAGS_BD_CNT_MASK;
+	flags_type = ((pi->ipi_nsegs + need_hi)
+			 << TX_BD_SHORT_FLAGS_BD_CNT_SFT) &
+	    TX_BD_SHORT_FLAGS_BD_CNT_MASK;
 	if (pi->ipi_len >= 2048)
 		flags_type |= TX_BD_SHORT_FLAGS_LHINT_GTE2K;
 	else
@@ -126,8 +126,9 @@ bnxt_isc_txd_encap(void *sc, if_pkt_info_t pi)
 		pi->ipi_new_pidx = RING_NEXT(txr, pi->ipi_new_pidx);
 		tbdh = &((struct tx_bd_long_hi *)txr->vaddr)[pi->ipi_new_pidx];
 		tbdh->kid_or_ts_high_mss = htole16(pi->ipi_tso_segsz);
-		tbdh->kid_or_ts_low_hdr_size = htole16((pi->ipi_ehdrlen + pi->ipi_ip_hlen +
-		    pi->ipi_tcp_hlen) >> 1);
+		tbdh->kid_or_ts_low_hdr_size = htole16(
+		    (pi->ipi_ehdrlen + pi->ipi_ip_hlen + pi->ipi_tcp_hlen) >>
+		    1);
 		tbdh->cfa_action = 0;
 		lflags = 0;
 		cfa_meta = 0;
@@ -141,17 +142,14 @@ bnxt_isc_txd_encap(void *sc, if_pkt_info_t pi)
 		if (pi->ipi_csum_flags & CSUM_TSO) {
 			lflags |= TX_BD_LONG_LFLAGS_LSO |
 			    TX_BD_LONG_LFLAGS_T_IPID;
-		}
-		else if(pi->ipi_csum_flags & CSUM_OFFLOAD) {
+		} else if (pi->ipi_csum_flags & CSUM_OFFLOAD) {
 			lflags |= TX_BD_LONG_LFLAGS_TCP_UDP_CHKSUM |
 			    TX_BD_LONG_LFLAGS_IP_CHKSUM;
-		}
-		else if(pi->ipi_csum_flags & CSUM_IP) {
+		} else if (pi->ipi_csum_flags & CSUM_IP) {
 			lflags |= TX_BD_LONG_LFLAGS_IP_CHKSUM;
 		}
 		tbdh->lflags = htole16(lflags);
-	}
-	else {
+	} else {
 		flags_type |= TX_BD_SHORT_TYPE_TX_BD_SHORT;
 	}
 
@@ -208,7 +206,7 @@ bnxt_isc_txd_credits_update(void *sc, uint16_t txqid, bool clear)
 		switch (type) {
 		case TX_CMPL_TYPE_TX_L2:
 			err = (le16toh(cmpl[cons].errors_v) &
-			    TX_CMPL_ERRORS_BUFFER_ERROR_MASK) >>
+				  TX_CMPL_ERRORS_BUFFER_ERROR_MASK) >>
 			    TX_CMPL_ERRORS_BUFFER_ERROR_SFT;
 			if (err)
 				device_printf(softc->dev,
@@ -258,7 +256,7 @@ bnxt_isc_rxd_refill(void *sc, if_rxd_update_t iru)
 	uint32_t pidx;
 	uint8_t flid;
 	uint64_t *paddrs;
-	qidx_t	*frag_idxs;
+	qidx_t *frag_idxs;
 
 	rxqid = iru->iru_qsidx;
 	count = iru->iru_count;
@@ -270,19 +268,18 @@ bnxt_isc_rxd_refill(void *sc, if_rxd_update_t iru)
 	if (flid == 0) {
 		rx_ring = &softc->rx_rings[rxqid];
 		type = RX_PROD_PKT_BD_TYPE_RX_PROD_PKT;
-	}
-	else {
+	} else {
 		rx_ring = &softc->ag_rings[rxqid];
 		type = RX_PROD_AGG_BD_TYPE_RX_PROD_AGG;
 	}
 	rxbd = (void *)rx_ring->vaddr;
 
-	for (i=0; i<count; i++) {
+	for (i = 0; i < count; i++) {
 		rxbd[pidx].flags_type = htole16(type);
 		rxbd[pidx].len = htole16(softc->rx_buf_size);
 		/* No need to byte-swap the opaque value */
-		rxbd[pidx].opaque = (((rxqid & 0xff) << 24) | (flid << 16)
-		    | (frag_idxs[i]));
+		rxbd[pidx].opaque = (((rxqid & 0xff) << 24) | (flid << 16) |
+		    (frag_idxs[i]));
 		rxbd[pidx].addr = htole64(paddrs[i]);
 		if (++pidx == rx_ring->ring_size)
 			pidx = 0;
@@ -291,8 +288,7 @@ bnxt_isc_rxd_refill(void *sc, if_rxd_update_t iru)
 }
 
 static void
-bnxt_isc_rxd_flush(void *sc, uint16_t rxqid, uint8_t flid,
-    qidx_t pidx)
+bnxt_isc_rxd_flush(void *sc, uint16_t rxqid, uint8_t flid, qidx_t pidx)
 {
 	struct bnxt_softc *softc = (struct bnxt_softc *)sc;
 	struct bnxt_ring *rx_ring;
@@ -347,7 +343,7 @@ bnxt_isc_rxd_available(void *sc, uint16_t rxqid, qidx_t idx, qidx_t budget)
 				goto cmpl_invalid;
 
 			/* Now account for all the AG completions */
-			for (i=0; i<ags; i++) {
+			for (i = 0; i < ags; i++) {
 				NEXT_CP_CONS_V(&cpr->ring, cons, v_bit);
 				CMPL_PREFETCH_NEXT(cpr, cons);
 				if (!CMP_VALID(&cmp[cons], v_bit))
@@ -358,7 +354,7 @@ bnxt_isc_rxd_available(void *sc, uint16_t rxqid, qidx_t idx, qidx_t budget)
 		case CMPL_BASE_TYPE_RX_TPA_END:
 			rtpae = (void *)&cmp[cons];
 			ags = (rtpae->agg_bufs_v1 &
-			    RX_TPA_END_CMPL_AGG_BUFS_MASK) >>
+				  RX_TPA_END_CMPL_AGG_BUFS_MASK) >>
 			    RX_TPA_END_CMPL_AGG_BUFS_SFT;
 			NEXT_CP_CONS_V(&cpr->ring, cons, v_bit);
 			CMPL_PREFETCH_NEXT(cpr, cons);
@@ -366,7 +362,7 @@ bnxt_isc_rxd_available(void *sc, uint16_t rxqid, qidx_t idx, qidx_t budget)
 			if (!CMP_VALID(&cmp[cons], v_bit))
 				goto cmpl_invalid;
 			/* Now account for all the AG completions */
-			for (i=0; i<ags; i++) {
+			for (i = 0; i < ags; i++) {
 				NEXT_CP_CONS_V(&cpr->ring, cons, v_bit);
 				CMPL_PREFETCH_NEXT(cpr, cons);
 				if (!CMP_VALID(&cmp[cons], v_bit))
@@ -385,8 +381,8 @@ bnxt_isc_rxd_available(void *sc, uint16_t rxqid, qidx_t idx, qidx_t budget)
 			break;
 		default:
 			device_printf(softc->dev,
-			    "Unhandled completion type %d on RXQ %d\n",
-			    type, rxqid);
+			    "Unhandled completion type %d on RXQ %d\n", type,
+			    rxqid);
 
 			/* Odd completion types use two completions */
 			if (type & 1) {
@@ -446,7 +442,7 @@ bnxt_pkt_get_l2(struct bnxt_softc *softc, if_rxd_info_t ri,
 	struct rx_abuf_cmpl *acp;
 	uint32_t flags2;
 	uint32_t errors;
-	uint8_t	ags;
+	uint8_t ags;
 	int i;
 
 	rcp = &((struct rx_pkt_cmpl *)cpr->ring.vaddr)[cpr->cons];
@@ -455,8 +451,7 @@ bnxt_pkt_get_l2(struct bnxt_softc *softc, if_rxd_info_t ri,
 	if (flags_type & RX_PKT_CMPL_FLAGS_RSS_VALID) {
 		ri->iri_flowid = le32toh(rcp->rss_hash);
 		bnxt_set_rsstype(ri, rcp->rss_hash_type);
-	}
-	else {
+	} else {
 		ri->iri_rsstype = M_HASHTYPE_NONE;
 	}
 	ags = (rcp->agg_bufs_v1 & RX_PKT_CMPL_AGG_BUFS_MASK) >>
@@ -481,25 +476,26 @@ bnxt_pkt_get_l2(struct bnxt_softc *softc, if_rxd_info_t ri,
 		/* TODO: Should this be the entire 16-bits? */
 		ri->iri_vtag = le32toh(rcph->metadata) &
 		    (RX_PKT_CMPL_METADATA_VID_MASK | RX_PKT_CMPL_METADATA_DE |
-		    RX_PKT_CMPL_METADATA_PRI_MASK);
+			RX_PKT_CMPL_METADATA_PRI_MASK);
 	}
 	if (flags2 & RX_PKT_CMPL_FLAGS2_IP_CS_CALC) {
 		ri->iri_csum_flags |= CSUM_IP_CHECKED;
 		if (!(errors & RX_PKT_CMPL_ERRORS_IP_CS_ERROR))
 			ri->iri_csum_flags |= CSUM_IP_VALID;
 	}
-	if (flags2 & (RX_PKT_CMPL_FLAGS2_L4_CS_CALC |
-		      RX_PKT_CMPL_FLAGS2_T_L4_CS_CALC)) {
+	if (flags2 &
+	    (RX_PKT_CMPL_FLAGS2_L4_CS_CALC | RX_PKT_CMPL_FLAGS2_T_L4_CS_CALC)) {
 		ri->iri_csum_flags |= CSUM_L4_CALC;
-		if (!(errors & (RX_PKT_CMPL_ERRORS_L4_CS_ERROR |
-				RX_PKT_CMPL_ERRORS_T_L4_CS_ERROR))) {
+		if (!(errors &
+			(RX_PKT_CMPL_ERRORS_L4_CS_ERROR |
+			    RX_PKT_CMPL_ERRORS_T_L4_CS_ERROR))) {
 			ri->iri_csum_flags |= CSUM_L4_VALID;
 			ri->iri_csum_data = 0xffff;
 		}
 	}
 
 	/* And finally the ag ring stuff. */
-	for (i=1; i < ri->iri_nfrags; i++) {
+	for (i = 1; i < ri->iri_nfrags; i++) {
 		NEXT_CP_CONS_V(&cpr->ring, cpr->cons, cpr->v_bit);
 		ri->iri_cidx = RING_NEXT(&cpr->ring, ri->iri_cidx);
 		acp = &((struct rx_abuf_cmpl *)cpr->ring.vaddr)[cpr->cons];
@@ -518,12 +514,12 @@ static int
 bnxt_pkt_get_tpa(struct bnxt_softc *softc, if_rxd_info_t ri,
     struct bnxt_cp_ring *cpr, uint16_t flags_type)
 {
-	struct rx_tpa_end_cmpl *agend =
-	    &((struct rx_tpa_end_cmpl *)cpr->ring.vaddr)[cpr->cons];
+	struct rx_tpa_end_cmpl *agend = &(
+	    (struct rx_tpa_end_cmpl *)cpr->ring.vaddr)[cpr->cons];
 	struct rx_abuf_cmpl *acp;
 	struct bnxt_full_tpa_start *tpas;
 	uint32_t flags2;
-	uint8_t	ags;
+	uint8_t ags;
 	uint8_t agg_id;
 	int i;
 
@@ -536,8 +532,7 @@ bnxt_pkt_get_tpa(struct bnxt_softc *softc, if_rxd_info_t ri,
 	if (le16toh(tpas->low.flags_type) & RX_TPA_START_CMPL_FLAGS_RSS_VALID) {
 		ri->iri_flowid = le32toh(tpas->low.rss_hash);
 		bnxt_set_rsstype(ri, tpas->low.rss_hash_type);
-	}
-	else {
+	} else {
 		ri->iri_rsstype = M_HASHTYPE_NONE;
 	}
 	ags = (agend->agg_bufs_v1 & RX_TPA_END_CMPL_AGG_BUFS_MASK) >>
@@ -560,8 +555,8 @@ bnxt_pkt_get_tpa(struct bnxt_softc *softc, if_rxd_info_t ri,
 		/* TODO: Should this be the entire 16-bits? */
 		ri->iri_vtag = le32toh(tpas->high.metadata) &
 		    (RX_TPA_START_CMPL_METADATA_VID_MASK |
-		    RX_TPA_START_CMPL_METADATA_DE |
-		    RX_TPA_START_CMPL_METADATA_PRI_MASK);
+			RX_TPA_START_CMPL_METADATA_DE |
+			RX_TPA_START_CMPL_METADATA_PRI_MASK);
 	}
 	if (flags2 & RX_TPA_START_CMPL_FLAGS2_IP_CS_CALC) {
 		ri->iri_csum_flags |= CSUM_IP_CHECKED;
@@ -574,7 +569,7 @@ bnxt_pkt_get_tpa(struct bnxt_softc *softc, if_rxd_info_t ri,
 	}
 
 	/* Now the ag ring stuff. */
-	for (i=1; i < ri->iri_nfrags; i++) {
+	for (i = 1; i < ri->iri_nfrags; i++) {
 		NEXT_CP_CONS_V(&cpr->ring, cpr->cons, cpr->v_bit);
 		ri->iri_cidx = RING_NEXT(&cpr->ring, ri->iri_cidx);
 		acp = &((struct rx_abuf_cmpl *)cpr->ring.vaddr)[cpr->cons];
@@ -627,9 +622,10 @@ bnxt_isc_rxd_pkt_get(void *sc, if_rxd_info_t ri)
 		case CMPL_BASE_TYPE_RX_TPA_START:
 			rtpa = (void *)&cmp_q[cpr->cons];
 			agg_id = (rtpa->agg_id &
-			    RX_TPA_START_CMPL_AGG_ID_MASK) >>
+				     RX_TPA_START_CMPL_AGG_ID_MASK) >>
 			    RX_TPA_START_CMPL_AGG_ID_SFT;
-			softc->rx_rings[ri->iri_qsidx].tpa_start[agg_id].low = *rtpa;
+			softc->rx_rings[ri->iri_qsidx].tpa_start[agg_id].low =
+			    *rtpa;
 
 			NEXT_CP_CONS_V(&cpr->ring, cpr->cons, cpr->v_bit);
 			ri->iri_cidx = RING_NEXT(&cpr->ring, ri->iri_cidx);
@@ -661,6 +657,7 @@ bnxt_intr(void *sc)
 {
 	struct bnxt_softc *softc = (struct bnxt_softc *)sc;
 
-	device_printf(softc->dev, "STUB: %s @ %s:%d\n", __func__, __FILE__, __LINE__);
+	device_printf(softc->dev, "STUB: %s @ %s:%d\n", __func__, __FILE__,
+	    __LINE__);
 	return ENOSYS;
 }

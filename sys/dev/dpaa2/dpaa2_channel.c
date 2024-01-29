@@ -33,76 +33,76 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
+#include <sys/buf_ring.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
-#include <sys/module.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/proc.h>
+#include <sys/rman.h>
+#include <sys/smp.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/mbuf.h>
 #include <sys/taskqueue.h>
-#include <sys/sysctl.h>
-#include <sys/buf_ring.h>
-#include <sys/smp.h>
-#include <sys/proc.h>
 
+#include <machine/atomic.h>
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <machine/atomic.h>
 #include <machine/vmparam.h>
 
-#include <net/ethernet.h>
 #include <net/bpf.h>
+#include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
 #include <net/if_var.h>
 
-#include "dpaa2_types.h"
+#include "dpaa2_bp.h"
+#include "dpaa2_buf.h"
 #include "dpaa2_channel.h"
-#include "dpaa2_ni.h"
+#include "dpaa2_cmd_if.h"
+#include "dpaa2_con.h"
+#include "dpaa2_io.h"
 #include "dpaa2_mc.h"
 #include "dpaa2_mc_if.h"
 #include "dpaa2_mcp.h"
-#include "dpaa2_io.h"
-#include "dpaa2_con.h"
-#include "dpaa2_buf.h"
+#include "dpaa2_ni.h"
 #include "dpaa2_swp.h"
 #include "dpaa2_swp_if.h"
-#include "dpaa2_bp.h"
-#include "dpaa2_cmd_if.h"
+#include "dpaa2_types.h"
 
 MALLOC_DEFINE(M_DPAA2_CH, "dpaa2_ch", "DPAA2 QBMan Channel");
 
-#define RX_SEG_N		 (1u)
-#define RX_SEG_SZ		 (((MJUM9BYTES - 1) / PAGE_SIZE + 1) * PAGE_SIZE)
-#define RX_SEG_MAXSZ	 	 (((MJUM9BYTES - 1) / PAGE_SIZE + 1) * PAGE_SIZE)
+#define RX_SEG_N (1u)
+#define RX_SEG_SZ (((MJUM9BYTES - 1) / PAGE_SIZE + 1) * PAGE_SIZE)
+#define RX_SEG_MAXSZ (((MJUM9BYTES - 1) / PAGE_SIZE + 1) * PAGE_SIZE)
 CTASSERT(RX_SEG_SZ % PAGE_SIZE == 0);
 CTASSERT(RX_SEG_MAXSZ % PAGE_SIZE == 0);
 
-#define TX_SEG_N		 (16u) /* XXX-DSL: does DPAA2 limit exist? */
-#define TX_SEG_SZ		 (PAGE_SIZE)
-#define TX_SEG_MAXSZ	 	 (TX_SEG_N * TX_SEG_SZ)
+#define TX_SEG_N (16u) /* XXX-DSL: does DPAA2 limit exist? */
+#define TX_SEG_SZ (PAGE_SIZE)
+#define TX_SEG_MAXSZ (TX_SEG_N * TX_SEG_SZ)
 CTASSERT(TX_SEG_SZ % PAGE_SIZE == 0);
 CTASSERT(TX_SEG_MAXSZ % PAGE_SIZE == 0);
 
-#define SGT_SEG_N		 (1u)
-#define SGT_SEG_SZ		 (PAGE_SIZE)
-#define SGT_SEG_MAXSZ	 	 (PAGE_SIZE)
+#define SGT_SEG_N (1u)
+#define SGT_SEG_SZ (PAGE_SIZE)
+#define SGT_SEG_MAXSZ (PAGE_SIZE)
 CTASSERT(SGT_SEG_SZ % PAGE_SIZE == 0);
 CTASSERT(SGT_SEG_MAXSZ % PAGE_SIZE == 0);
 
 static int dpaa2_chan_setup_dma(device_t, struct dpaa2_channel *, bus_size_t);
-static int dpaa2_chan_alloc_storage(device_t, struct dpaa2_channel *, bus_size_t,
-    int, bus_size_t);
+static int dpaa2_chan_alloc_storage(device_t, struct dpaa2_channel *,
+    bus_size_t, int, bus_size_t);
 static void dpaa2_chan_bp_task(void *, int);
 
 /**
- * @brief Сonfigures QBMan channel and registers data availability notifications.
+ * @brief Сonfigures QBMan channel and registers data availability
+ * notifications.
  */
 int
 dpaa2_chan_setup(device_t dev, device_t iodev, device_t condev, device_t bpdev,
@@ -133,19 +133,23 @@ dpaa2_chan_setup(device_t dev, device_t iodev, device_t condev, device_t bpdev,
 	}
 	error = DPAA2_CMD_CON_OPEN(dev, child, &cmd, coninfo->id, &contk);
 	if (error) {
-		device_printf(dev, "%s: failed to open DPCON: id=%d, error=%d\n",
-		    __func__, coninfo->id, error);
+		device_printf(dev,
+		    "%s: failed to open DPCON: id=%d, error=%d\n", __func__,
+		    coninfo->id, error);
 		goto fail_con_open;
 	}
 
 	error = DPAA2_CMD_CON_ENABLE(dev, child, &cmd);
 	if (error) {
-		device_printf(dev, "%s: failed to enable channel: dpcon_id=%d, "
-		    "chan_id=%d\n", __func__, coninfo->id, consc->attr.chan_id);
+		device_printf(dev,
+		    "%s: failed to enable channel: dpcon_id=%d, "
+		    "chan_id=%d\n",
+		    __func__, coninfo->id, consc->attr.chan_id);
 		goto fail_con_enable;
 	}
 
-	ch = malloc(sizeof(struct dpaa2_channel), M_DPAA2_CH, M_WAITOK | M_ZERO);
+	ch = malloc(sizeof(struct dpaa2_channel), M_DPAA2_CH,
+	    M_WAITOK | M_ZERO);
 	if (ch == NULL) {
 		device_printf(dev, "%s: malloc() failed\n", __func__);
 		error = ENOMEM;
@@ -157,7 +161,7 @@ dpaa2_chan_setup(device_t dev, device_t iodev, device_t condev, device_t bpdev,
 	ch->con_dev = condev;
 	ch->id = consc->attr.chan_id;
 	ch->flowid = flowid;
-	ch->tx_frames = 0; /* for debug purposes */
+	ch->tx_frames = 0;  /* for debug purposes */
 	ch->tx_dropped = 0; /* for debug purposes */
 	ch->store_sz = 0;
 	ch->store_idx = 0;
@@ -210,9 +214,10 @@ dpaa2_chan_setup(device_t dev, device_t iodev, device_t condev, device_t bpdev,
 	notif_cfg.qman_ctx = ctx->qman_ctx;
 	error = DPAA2_CMD_CON_SET_NOTIF(dev, child, &cmd, &notif_cfg);
 	if (error) {
-		device_printf(dev, "%s: failed to register DPCON "
-		    "notifications: dpcon_id=%d, chan_id=%d\n", __func__,
-		    coninfo->id, consc->attr.chan_id);
+		device_printf(dev,
+		    "%s: failed to register DPCON "
+		    "notifications: dpcon_id=%d, chan_id=%d\n",
+		    __func__, coninfo->id, consc->attr.chan_id);
 		goto fail_dpcon_notif;
 	}
 
@@ -237,8 +242,10 @@ dpaa2_chan_setup(device_t dev, device_t iodev, device_t condev, device_t bpdev,
 	/* Prepare queues for the channel */
 	error = dpaa2_chan_setup_fq(dev, ch, DPAA2_NI_QUEUE_TX_CONF);
 	if (error) {
-		device_printf(dev, "%s: failed to prepare TxConf queue: "
-		    "error=%d\n", __func__, error);
+		device_printf(dev,
+		    "%s: failed to prepare TxConf queue: "
+		    "error=%d\n",
+		    __func__, error);
 		goto fail_fq_setup;
 	}
 	error = dpaa2_chan_setup_fq(dev, ch, DPAA2_NI_QUEUE_RX);
@@ -249,9 +256,10 @@ dpaa2_chan_setup(device_t dev, device_t iodev, device_t condev, device_t bpdev,
 	}
 
 	if (bootverbose) {
-		device_printf(dev, "channel: dpio_id=%d dpcon_id=%d chan_id=%d, "
-		    "priorities=%d\n", ioinfo->id, coninfo->id, ch->id,
-		    consc->attr.prior_num);
+		device_printf(dev,
+		    "channel: dpio_id=%d dpcon_id=%d chan_id=%d, "
+		    "priorities=%d\n",
+		    ioinfo->id, coninfo->id, ch->id, consc->attr.prior_num);
 	}
 
 	*channel = ch;
@@ -263,7 +271,8 @@ dpaa2_chan_setup(device_t dev, device_t iodev, device_t condev, device_t bpdev,
 
 fail_fq_setup:
 	if (ch->store.vaddr != NULL) {
-		bus_dmamem_free(ch->store.dmat, ch->store.vaddr, ch->store.dmap);
+		bus_dmamem_free(ch->store.dmat, ch->store.vaddr,
+		    ch->store.dmap);
 	}
 	if (ch->store.dmat != NULL) {
 		bus_dma_tag_destroy(ch->store.dmat);
@@ -277,7 +286,8 @@ fail_dpcon_notif:
 fail_buf_ring:
 	mtx_destroy(&ch->xmit_mtx);
 fail_dma_setup:
-	/* while (taskqueue_cancel(ch->cleanup_tq, &ch->cleanup_task, NULL)) { */
+	/* while (taskqueue_cancel(ch->cleanup_tq, &ch->cleanup_task, NULL)) {
+	 */
 	/* 	taskqueue_drain(ch->cleanup_tq, &ch->cleanup_task); */
 	/* } */
 	/* taskqueue_free(ch->cleanup_tq); */
@@ -313,14 +323,14 @@ dpaa2_chan_setup_fq(device_t dev, struct dpaa2_channel *ch,
 	case DPAA2_NI_QUEUE_RX:
 		KASSERT(sc->attr.num.rx_tcs <= DPAA2_MAX_TCS,
 		    ("too many Rx traffic classes: rx_tcs=%d\n",
-		    sc->attr.num.rx_tcs));
+			sc->attr.num.rx_tcs));
 
 		/* One queue per Rx traffic class within a channel */
 		for (int i = 0; i < sc->attr.num.rx_tcs; i++) {
 			fq = &ch->rx_queues[i];
 			fq->chan = ch;
 			fq->flowid = ch->flowid;
-			fq->tc = (uint8_t) i;
+			fq->tc = (uint8_t)i;
 			fq->type = queue_type;
 
 			ch->rxq_n++;
@@ -331,7 +341,7 @@ dpaa2_chan_setup_fq(device_t dev, struct dpaa2_channel *ch,
 		fq = &sc->rxe_queue;
 		fq->chan = ch;
 		fq->flowid = 0; /* ignored */
-		fq->tc = 0; /* ignored */
+		fq->tc = 0;	/* ignored */
 		fq->type = queue_type;
 		break;
 	default:
@@ -383,54 +393,51 @@ dpaa2_chan_setup_dma(device_t dev, struct dpaa2_channel *ch,
 
 	mtx_init(&ch->dma_mtx, "dpaa2_ch_dma_mtx", NULL, MTX_DEF);
 
-	error = bus_dma_tag_create(
-	    bus_get_dma_tag(dev),	/* parent */
-	    alignment, 0,		/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* low restricted addr */
-	    BUS_SPACE_MAXADDR,		/* high restricted addr */
-	    NULL, NULL,			/* filter, filterarg */
-	    RX_SEG_MAXSZ,		/* maxsize */
-	    RX_SEG_N,			/* nsegments */
-	    RX_SEG_SZ,			/* maxsegsize */
-	    0,				/* flags */
-	    NULL,			/* lockfunc */
-	    NULL,			/* lockarg */
+	error = bus_dma_tag_create(bus_get_dma_tag(dev), /* parent */
+	    alignment, 0,      /* alignment, boundary */
+	    BUS_SPACE_MAXADDR, /* low restricted addr */
+	    BUS_SPACE_MAXADDR, /* high restricted addr */
+	    NULL, NULL,	       /* filter, filterarg */
+	    RX_SEG_MAXSZ,      /* maxsize */
+	    RX_SEG_N,	       /* nsegments */
+	    RX_SEG_SZ,	       /* maxsegsize */
+	    0,		       /* flags */
+	    NULL,	       /* lockfunc */
+	    NULL,	       /* lockarg */
 	    &ch->rx_dmat);
 	if (error) {
 		device_printf(dev, "%s: failed to create rx_dmat\n", __func__);
 		goto fail_rx_tag;
 	}
 
-	error = bus_dma_tag_create(
-	    bus_get_dma_tag(dev),	/* parent */
-	    alignment, 0,		/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* low restricted addr */
-	    BUS_SPACE_MAXADDR,		/* high restricted addr */
-	    NULL, NULL,			/* filter, filterarg */
-	    TX_SEG_MAXSZ,		/* maxsize */
-	    TX_SEG_N,			/* nsegments */
-	    TX_SEG_SZ,			/* maxsegsize */
-	    0,				/* flags */
-	    NULL,			/* lockfunc */
-	    NULL,			/* lockarg */
+	error = bus_dma_tag_create(bus_get_dma_tag(dev), /* parent */
+	    alignment, 0,      /* alignment, boundary */
+	    BUS_SPACE_MAXADDR, /* low restricted addr */
+	    BUS_SPACE_MAXADDR, /* high restricted addr */
+	    NULL, NULL,	       /* filter, filterarg */
+	    TX_SEG_MAXSZ,      /* maxsize */
+	    TX_SEG_N,	       /* nsegments */
+	    TX_SEG_SZ,	       /* maxsegsize */
+	    0,		       /* flags */
+	    NULL,	       /* lockfunc */
+	    NULL,	       /* lockarg */
 	    &ch->tx_dmat);
 	if (error) {
 		device_printf(dev, "%s: failed to create tx_dmat\n", __func__);
 		goto fail_tx_tag;
 	}
 
-	error = bus_dma_tag_create(
-	    bus_get_dma_tag(dev),	/* parent */
-	    alignment, 0,		/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* low restricted addr */
-	    BUS_SPACE_MAXADDR,		/* high restricted addr */
-	    NULL, NULL,			/* filter, filterarg */
-	    SGT_SEG_MAXSZ,		/* maxsize */
-	    SGT_SEG_N,			/* nsegments */
-	    SGT_SEG_SZ,			/* maxsegsize */
-	    0,				/* flags */
-	    NULL,			/* lockfunc */
-	    NULL,			/* lockarg */
+	error = bus_dma_tag_create(bus_get_dma_tag(dev), /* parent */
+	    alignment, 0,      /* alignment, boundary */
+	    BUS_SPACE_MAXADDR, /* low restricted addr */
+	    BUS_SPACE_MAXADDR, /* high restricted addr */
+	    NULL, NULL,	       /* filter, filterarg */
+	    SGT_SEG_MAXSZ,     /* maxsize */
+	    SGT_SEG_N,	       /* nsegments */
+	    SGT_SEG_SZ,	       /* maxsegsize */
+	    0,		       /* flags */
+	    NULL,	       /* lockfunc */
+	    NULL,	       /* lockarg */
 	    &ch->sgt_dmat);
 	if (error) {
 		device_printf(dev, "%s: failed to create sgt_dmat\n", __func__);
@@ -456,25 +463,24 @@ fail_rx_tag:
  * @brief Allocate a DMA-mapped storage to keep responses from VDQ command.
  */
 static int
-dpaa2_chan_alloc_storage(device_t dev, struct dpaa2_channel *ch, bus_size_t size,
-    int mapflags, bus_size_t alignment)
+dpaa2_chan_alloc_storage(device_t dev, struct dpaa2_channel *ch,
+    bus_size_t size, int mapflags, bus_size_t alignment)
 {
 	struct dpaa2_buf *buf = &ch->store;
 	uint32_t maxsize = ((size - 1) / PAGE_SIZE + 1) * PAGE_SIZE;
 	int error;
 
-	error = bus_dma_tag_create(
-	    bus_get_dma_tag(dev),	/* parent */
-	    alignment, 0,		/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* low restricted addr */
-	    BUS_SPACE_MAXADDR,		/* high restricted addr */
-	    NULL, NULL,			/* filter, filterarg */
-	    maxsize,			/* maxsize */
-	    1,				/* nsegments */
-	    maxsize,			/* maxsegsize */
-	    BUS_DMA_ALLOCNOW,		/* flags */
-	    NULL,			/* lockfunc */
-	    NULL,			/* lockarg */
+	error = bus_dma_tag_create(bus_get_dma_tag(dev), /* parent */
+	    alignment, 0,      /* alignment, boundary */
+	    BUS_SPACE_MAXADDR, /* low restricted addr */
+	    BUS_SPACE_MAXADDR, /* high restricted addr */
+	    NULL, NULL,	       /* filter, filterarg */
+	    maxsize,	       /* maxsize */
+	    1,		       /* nsegments */
+	    maxsize,	       /* maxsegsize */
+	    BUS_DMA_ALLOCNOW,  /* flags */
+	    NULL,	       /* lockfunc */
+	    NULL,	       /* lockarg */
 	    &buf->dmat);
 	if (error != 0) {
 		device_printf(dev, "%s: failed to create DMA tag\n", __func__);
@@ -539,8 +545,10 @@ dpaa2_chan_bp_task(void *arg, int count)
 	/* Get state of the buffer pool */
 	error = DPAA2_SWP_QUERY_BP(ch->io_dev, bpsc->attr.bpid, &bpconf);
 	if (error) {
-		device_printf(sc->dev, "%s: DPAA2_SWP_QUERY_BP() failed: "
-		    "error=%d\n", __func__, error);
+		device_printf(sc->dev,
+		    "%s: DPAA2_SWP_QUERY_BP() failed: "
+		    "error=%d\n",
+		    __func__, error);
 		return;
 	}
 

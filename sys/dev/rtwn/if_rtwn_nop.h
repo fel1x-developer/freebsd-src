@@ -64,4 +64,4 @@ rtwn_nop_void_int(void *buf, int is5ghz)
 {
 }
 
-#endif	/* IF_RTWN_NOP_H */
+#endif /* IF_RTWN_NOP_H */

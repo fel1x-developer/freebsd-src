@@ -25,7 +25,7 @@
  */
 
 #ifndef _OSSL_AES_GCM_H_
-#define	_OSSL_AES_GCM_H_
+#define _OSSL_AES_GCM_H_
 
 #include <crypto/openssl/ossl_cipher.h>
 
@@ -44,12 +44,14 @@ struct ossl_aes_gcm_ops {
 	    unsigned char *out, size_t len);
 	int (*finish)(struct ossl_gcm_context *ctx, const unsigned char *tag,
 	    size_t len);
-	void (*tag)(struct ossl_gcm_context *ctx, unsigned char *tag,
-	    size_t len);
+	void (
+	    *tag)(struct ossl_gcm_context *ctx, unsigned char *tag, size_t len);
 };
 
 #ifndef __SIZEOF_INT128__
-typedef	struct { uint64_t v[2]; } __uint128_t;
+typedef struct {
+	uint64_t v[2];
+} __uint128_t;
 #endif
 
 struct ossl_gcm_context {

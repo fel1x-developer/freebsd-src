@@ -29,16 +29,16 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <err.h>
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "un-namespace.h"
 
 #include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 static FILE *err_file; /* file to use for error output */
 static void (*err_exit)(int);

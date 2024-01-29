@@ -42,13 +42,13 @@
  * @is_SATA_SSD: 1 if this is a SATA device AND an SSD, 0 otherwise
  */
 struct _map_phy_change {
-	uint64_t	physical_id;
-	uint32_t	device_info;
-	uint16_t	dev_handle;
-	uint16_t	slot;
-	uint8_t	reason;
-	uint8_t	is_processed;
-	uint8_t	is_SATA_SSD;
+	uint64_t physical_id;
+	uint32_t device_info;
+	uint16_t dev_handle;
+	uint16_t slot;
+	uint8_t reason;
+	uint8_t is_processed;
+	uint8_t is_SATA_SSD;
 	uint8_t reserved;
 };
 
@@ -58,17 +58,16 @@ struct _map_phy_change {
  * @dev_handle: device handle for the device pointed by this entry
  */
 struct _map_topology_change {
-	uint16_t	enc_handle;
-	uint16_t	exp_handle;
-	uint8_t	num_entries;
-	uint8_t	start_phy_num;
-	uint8_t	num_phys;
-	uint8_t	exp_status;
+	uint16_t enc_handle;
+	uint16_t exp_handle;
+	uint8_t num_entries;
+	uint8_t start_phy_num;
+	uint8_t num_phys;
+	uint8_t exp_status;
 	struct _map_phy_change *phy_details;
 };
 
-extern int
-mpssas_get_sas_address_for_sata_disk(struct mps_softc *ioc,
+extern int mpssas_get_sas_address_for_sata_disk(struct mps_softc *ioc,
     u64 *sas_address, u16 handle, u32 device_info, u8 *is_SATA_SSD);
 
 #endif

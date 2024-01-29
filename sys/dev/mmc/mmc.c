@@ -55,13 +55,13 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/malloc.h>
-#include <sys/lock.h>
-#include <sys/module.h>
-#include <sys/mutex.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/sbuf.h>
 #include <sys/sysctl.h>
 #include <sys/time.h>
@@ -69,8 +69,8 @@
 #include <dev/mmc/bridge.h>
 #include <dev/mmc/mmc_private.h>
 #include <dev/mmc/mmc_subr.h>
-#include <dev/mmc/mmcreg.h>
 #include <dev/mmc/mmcbrvar.h>
+#include <dev/mmc/mmcreg.h>
 #include <dev/mmc/mmcvar.h>
 
 #include "mmcbr_if.h"
@@ -82,52 +82,52 @@ CTASSERT(bus_timing_max <= sizeof(uint32_t) * NBBY);
  * Per-card data
  */
 struct mmc_ivars {
-	uint32_t raw_cid[4];	/* Raw bits of the CID */
-	uint32_t raw_csd[4];	/* Raw bits of the CSD */
-	uint32_t raw_scr[2];	/* Raw bits of the SCR */
+	uint32_t raw_cid[4];		      /* Raw bits of the CID */
+	uint32_t raw_csd[4];		      /* Raw bits of the CSD */
+	uint32_t raw_scr[2];		      /* Raw bits of the SCR */
 	uint8_t raw_ext_csd[MMC_EXTCSD_SIZE]; /* Raw bits of the EXT_CSD */
-	uint32_t raw_sd_status[16];	/* Raw bits of the SD_STATUS */
+	uint32_t raw_sd_status[16];	      /* Raw bits of the SD_STATUS */
 	uint16_t rca;
-	u_char read_only;	/* True when the device is read-only */
-	u_char high_cap;	/* High Capacity device (block addressed) */
+	u_char read_only; /* True when the device is read-only */
+	u_char high_cap;  /* High Capacity device (block addressed) */
 	enum mmc_card_mode mode;
 	enum mmc_bus_width bus_width;	/* Bus width to use */
-	struct mmc_cid cid;	/* cid decoded */
-	struct mmc_csd csd;	/* csd decoded */
-	struct mmc_scr scr;	/* scr decoded */
-	struct mmc_sd_status sd_status;	/* SD_STATUS decoded */
-	uint32_t sec_count;	/* Card capacity in 512byte blocks */
-	uint32_t timings;	/* Mask of bus timings supported */
-	uint32_t vccq_120;	/* Mask of bus timings at VCCQ of 1.2 V */
-	uint32_t vccq_180;	/* Mask of bus timings at VCCQ of 1.8 V */
-	uint32_t tran_speed;	/* Max speed in normal mode */
-	uint32_t hs_tran_speed;	/* Max speed in high speed mode */
-	uint32_t erase_sector;	/* Card native erase sector size */
-	uint32_t cmd6_time;	/* Generic switch timeout [us] */
-	uint32_t quirks;	/* Quirks as per mmc_quirk->quirks */
-	char card_id_string[64];/* Formatted CID info (serial, MFG, etc) */
-	char card_sn_string[16];/* Formatted serial # for disk->d_ident */
+	struct mmc_cid cid;		/* cid decoded */
+	struct mmc_csd csd;		/* csd decoded */
+	struct mmc_scr scr;		/* scr decoded */
+	struct mmc_sd_status sd_status; /* SD_STATUS decoded */
+	uint32_t sec_count;		/* Card capacity in 512byte blocks */
+	uint32_t timings;		/* Mask of bus timings supported */
+	uint32_t vccq_120;	 /* Mask of bus timings at VCCQ of 1.2 V */
+	uint32_t vccq_180;	 /* Mask of bus timings at VCCQ of 1.8 V */
+	uint32_t tran_speed;	 /* Max speed in normal mode */
+	uint32_t hs_tran_speed;	 /* Max speed in high speed mode */
+	uint32_t erase_sector;	 /* Card native erase sector size */
+	uint32_t cmd6_time;	 /* Generic switch timeout [us] */
+	uint32_t quirks;	 /* Quirks as per mmc_quirk->quirks */
+	char card_id_string[64]; /* Formatted CID info (serial, MFG, etc) */
+	char card_sn_string[16]; /* Formatted serial # for disk->d_ident */
 };
 
-#define	CMD_RETRIES	3
+#define CMD_RETRIES 3
 
 static const struct mmc_quirk mmc_quirks[] = {
 	/*
 	 * For some SanDisk iNAND devices, the CMD38 argument needs to be
 	 * provided in EXT_CSD[113].
 	 */
-	{ 0x2, 0x100,	 		"SEM02G", MMC_QUIRK_INAND_CMD38 },
-	{ 0x2, 0x100,			"SEM04G", MMC_QUIRK_INAND_CMD38 },
-	{ 0x2, 0x100,			"SEM08G", MMC_QUIRK_INAND_CMD38 },
-	{ 0x2, 0x100,			"SEM16G", MMC_QUIRK_INAND_CMD38 },
-	{ 0x2, 0x100,			"SEM32G", MMC_QUIRK_INAND_CMD38 },
+	{ 0x2, 0x100, "SEM02G", MMC_QUIRK_INAND_CMD38 },
+	{ 0x2, 0x100, "SEM04G", MMC_QUIRK_INAND_CMD38 },
+	{ 0x2, 0x100, "SEM08G", MMC_QUIRK_INAND_CMD38 },
+	{ 0x2, 0x100, "SEM16G", MMC_QUIRK_INAND_CMD38 },
+	{ 0x2, 0x100, "SEM32G", MMC_QUIRK_INAND_CMD38 },
 
 	/*
 	 * Disable TRIM for Kingston eMMCs where a firmware bug can lead to
 	 * unrecoverable data corruption.
 	 */
-	{ 0x70, MMC_QUIRK_OID_ANY,	"V10008", MMC_QUIRK_BROKEN_TRIM },
-	{ 0x70, MMC_QUIRK_OID_ANY,	"V10016", MMC_QUIRK_BROKEN_TRIM },
+	{ 0x70, MMC_QUIRK_OID_ANY, "V10008", MMC_QUIRK_BROKEN_TRIM },
+	{ 0x70, MMC_QUIRK_OID_ANY, "V10016", MMC_QUIRK_BROKEN_TRIM },
 	{ 0x0, 0x0, NULL, 0x0 }
 };
 
@@ -156,14 +156,14 @@ static int mmc_wait_for_request(device_t busdev, device_t dev,
 static int mmc_write_ivar(device_t bus, device_t child, int which,
     uintptr_t value);
 
-#define	MMC_LOCK(_sc)		mtx_lock(&(_sc)->sc_mtx)
-#define	MMC_UNLOCK(_sc)		mtx_unlock(&(_sc)->sc_mtx)
-#define	MMC_LOCK_INIT(_sc)						\
-	mtx_init(&(_sc)->sc_mtx, device_get_nameunit((_sc)->dev),	\
-	    "mmc", MTX_DEF)
-#define	MMC_LOCK_DESTROY(_sc)	mtx_destroy(&(_sc)->sc_mtx);
-#define	MMC_ASSERT_LOCKED(_sc)	mtx_assert(&(_sc)->sc_mtx, MA_OWNED);
-#define	MMC_ASSERT_UNLOCKED(_sc) mtx_assert(&(_sc)->sc_mtx, MA_NOTOWNED);
+#define MMC_LOCK(_sc) mtx_lock(&(_sc)->sc_mtx)
+#define MMC_UNLOCK(_sc) mtx_unlock(&(_sc)->sc_mtx)
+#define MMC_LOCK_INIT(_sc)                                               \
+	mtx_init(&(_sc)->sc_mtx, device_get_nameunit((_sc)->dev), "mmc", \
+	    MTX_DEF)
+#define MMC_LOCK_DESTROY(_sc) mtx_destroy(&(_sc)->sc_mtx);
+#define MMC_ASSERT_LOCKED(_sc) mtx_assert(&(_sc)->sc_mtx, MA_OWNED);
+#define MMC_ASSERT_UNLOCKED(_sc) mtx_assert(&(_sc)->sc_mtx, MA_NOTOWNED);
 
 static int mmc_all_send_cid(struct mmc_softc *sc, uint32_t *rawcid);
 static void mmc_app_decode_scr(uint32_t *raw_scr, struct mmc_scr *scr);
@@ -184,8 +184,7 @@ static int mmc_delete_cards(struct mmc_softc *sc, bool final);
 static void mmc_discover_cards(struct mmc_softc *sc);
 static void mmc_format_card_id_string(struct mmc_ivars *ivar);
 static void mmc_go_discovery(struct mmc_softc *sc);
-static uint32_t mmc_get_bits(uint32_t *bits, int bit_len, int start,
-    int size);
+static uint32_t mmc_get_bits(uint32_t *bits, int bit_len, int start, int size);
 static int mmc_highest_voltage(uint32_t ocr);
 static bool mmc_host_timing(device_t dev, enum mmc_bus_timing timing);
 static void mmc_idle_cards(struct mmc_softc *sc);
@@ -204,8 +203,7 @@ static int mmc_send_app_op_cond(struct mmc_softc *sc, uint32_t ocr,
     uint32_t *rocr);
 static int mmc_send_csd(struct mmc_softc *sc, uint16_t rca, uint32_t *rawcsd);
 static int mmc_send_if_cond(struct mmc_softc *sc, uint8_t vhs);
-static int mmc_send_op_cond(struct mmc_softc *sc, uint32_t ocr,
-    uint32_t *rocr);
+static int mmc_send_op_cond(struct mmc_softc *sc, uint32_t ocr, uint32_t *rocr);
 static int mmc_send_relative_addr(struct mmc_softc *sc, uint32_t *resp);
 static int mmc_set_blocklen(struct mmc_softc *sc, uint32_t len);
 static int mmc_set_card_bus_width(struct mmc_softc *sc, struct mmc_ivars *ivar,
@@ -234,7 +232,7 @@ static void
 mmc_ms_delay(int ms)
 {
 
-	DELAY(1000 * ms);	/* XXX BAD */
+	DELAY(1000 * ms); /* XXX BAD */
 }
 
 static int
@@ -341,8 +339,10 @@ mmc_acquire_bus(device_t busdev, device_t dev)
 		rca = ivar->rca;
 		if (sc->last_rca != rca) {
 			if (mmc_select_card(sc, rca) != MMC_ERR_NONE) {
-				device_printf(busdev, "Card at relative "
-				    "address %d failed to select\n", rca);
+				device_printf(busdev,
+				    "Card at relative "
+				    "address %d failed to select\n",
+				    rca);
 				return (ENXIO);
 			}
 			sc->last_rca = rca;
@@ -366,13 +366,15 @@ mmc_acquire_bus(device_t busdev, device_t dev)
 			if (bootverbose || mmc_debug) {
 				device_printf(busdev,
 				    "setting bus width to %d bits %s timing\n",
-				    (ivar->bus_width == bus_width_4) ? 4 :
-				    (ivar->bus_width == bus_width_8) ? 8 : 1,
+				    (ivar->bus_width == bus_width_4)	 ? 4 :
+					(ivar->bus_width == bus_width_8) ? 8 :
+									   1,
 				    mmc_timing_to_string(timing));
 			}
 			if (mmc_set_card_bus_width(sc, ivar, timing) !=
 			    MMC_ERR_NONE) {
-				device_printf(busdev, "Card at relative "
+				device_printf(busdev,
+				    "Card at relative "
 				    "address %d failed to set bus width\n",
 				    rca);
 				return (ENXIO);
@@ -380,14 +382,18 @@ mmc_acquire_bus(device_t busdev, device_t dev)
 			mmcbr_set_bus_width(busdev, ivar->bus_width);
 			mmcbr_update_ios(busdev);
 			if (mmc_set_vccq(sc, ivar, timing) != MMC_ERR_NONE) {
-				device_printf(busdev, "Failed to set VCCQ "
-				    "for card at relative address %d\n", rca);
+				device_printf(busdev,
+				    "Failed to set VCCQ "
+				    "for card at relative address %d\n",
+				    rca);
 				return (ENXIO);
 			}
 			if (timing >= bus_timing_mmc_hs200 &&
 			    mmc_retune(busdev, dev, true) != 0) {
-				device_printf(busdev, "Card at relative "
-				    "address %d failed to re-tune\n", rca);
+				device_printf(busdev,
+				    "Card at relative "
+				    "address %d failed to re-tune\n",
+				    rca);
 				return (ENXIO);
 			}
 		}
@@ -434,8 +440,7 @@ mmc_highest_voltage(uint32_t ocr)
 {
 	int i;
 
-	for (i = MMC_OCR_MAX_VOLTAGE_SHIFT;
-	    i >= MMC_OCR_MIN_VOLTAGE_SHIFT; i--)
+	for (i = MMC_OCR_MAX_VOLTAGE_SHIFT; i >= MMC_OCR_MIN_VOLTAGE_SHIFT; i--)
 		if (ocr & (1 << i))
 			return (i);
 	return (-1);
@@ -472,10 +477,10 @@ mmc_wait_for_req(struct mmc_softc *sc, struct mmc_request *req)
 	while ((req->flags & MMC_REQ_DONE) == 0)
 		msleep(req, &sc->sc_mtx, 0, "mmcreq", 0);
 	MMC_UNLOCK(sc);
-	if (__predict_false(mmc_debug > 2 || (mmc_debug > 0 &&
-	    req->cmd->error != MMC_ERR_NONE)))
-		device_printf(sc->dev, "CMD%d RESULT: %d\n",
-		    req->cmd->opcode, req->cmd->error);
+	if (__predict_false(mmc_debug > 2 ||
+		(mmc_debug > 0 && req->cmd->error != MMC_ERR_NONE)))
+		device_printf(sc->dev, "CMD%d RESULT: %d\n", req->cmd->opcode,
+		    req->cmd->error);
 	return (0);
 }
 
@@ -490,7 +495,7 @@ mmc_wait_for_request(device_t busdev, device_t dev, struct mmc_request *req)
 	sc = device_get_softc(busdev);
 	KASSERT(sc->owner != NULL,
 	    ("%s: Request from %s without bus being acquired.", __func__,
-	    device_get_nameunit(dev)));
+		device_get_nameunit(dev)));
 
 	/*
 	 * Unless no device is selected or re-tuning is already ongoing,
@@ -499,8 +504,10 @@ mmc_wait_for_request(device_t busdev, device_t dev, struct mmc_request *req)
 	 * to be re-tuned prior to pausing (see also mmc_retune_pause()).
 	 */
 	if (__predict_false(sc->last_rca != 0 && sc->retune_ongoing == 0 &&
-	    (((retune_req = mmcbr_get_retune_req(busdev)) != retune_req_none &&
-	    sc->retune_paused == 0) || sc->retune_needed == 1))) {
+		(((retune_req = mmcbr_get_retune_req(busdev)) !=
+			 retune_req_none &&
+		     sc->retune_paused == 0) ||
+		    sc->retune_needed == 1))) {
 		if (__predict_false(mmc_debug > 1)) {
 			device_printf(busdev,
 			    "Re-tuning with%s circuit reset required\n",
@@ -522,12 +529,12 @@ mmc_wait_for_request(device_t busdev, device_t dev, struct mmc_request *req)
 		sc->retune_ongoing = 0;
 		switch (err) {
 		case MMC_ERR_NONE:
-		case MMC_ERR_FAILED:	/* Re-tune error but still might work */
+		case MMC_ERR_FAILED: /* Re-tune error but still might work */
 			break;
-		case MMC_ERR_BADCRC:	/* Switch failure on HS400 recovery */
+		case MMC_ERR_BADCRC: /* Switch failure on HS400 recovery */
 			return (ENXIO);
-		case MMC_ERR_INVALID:	/* Driver implementation b0rken */
-		default:		/* Unknown error, should not happen */
+		case MMC_ERR_INVALID: /* Driver implementation b0rken */
+		default:	      /* Unknown error, should not happen */
 			return (EINVAL);
 		}
 		sc->retune_needed = 0;
@@ -536,8 +543,8 @@ mmc_wait_for_request(device_t busdev, device_t dev, struct mmc_request *req)
 }
 
 static int
-mmc_wait_for_command(struct mmc_softc *sc, uint32_t opcode,
-    uint32_t arg, uint32_t flags, uint32_t *resp, int retries)
+mmc_wait_for_command(struct mmc_softc *sc, uint32_t opcode, uint32_t arg,
+    uint32_t flags, uint32_t *resp, int retries)
 {
 	struct mmc_command cmd;
 	int err;
@@ -668,7 +675,7 @@ mmc_power_up(struct mmc_softc *sc)
 	mmcbr_set_power_mode(dev, power_up);
 	mmcbr_set_clock(dev, 0);
 	mmcbr_update_ios(dev);
-	for (vccq = vccq_330; ; vccq--) {
+	for (vccq = vccq_330;; vccq--) {
 		mmcbr_set_vccq(dev, vccq);
 		if (mmcbr_switch_vccq(dev) == 0 || vccq == vccq_120)
 			break;
@@ -723,7 +730,7 @@ mmc_sd_switch(struct mmc_softc *sc, uint8_t mode, uint8_t grp, uint8_t value,
 
 	cmd.opcode = SD_SWITCH_FUNC;
 	cmd.flags = MMC_RSP_R1 | MMC_CMD_ADTC;
-	cmd.arg = mode << 31;			/* 0 - check, 1 - set */
+	cmd.arg = mode << 31; /* 0 - check, 1 - set */
 	cmd.arg |= 0x00FFFFFF;
 	cmd.arg &= ~(0xF << (grp * 4));
 	cmd.arg |= value << (grp * 4);
@@ -743,7 +750,7 @@ mmc_set_card_bus_width(struct mmc_softc *sc, struct mmc_ivars *ivar,
 {
 	struct mmc_command cmd;
 	int err;
-	uint8_t	value;
+	uint8_t value;
 
 	if (mmcbr_get_mode(sc->dev) == mode_sd) {
 		memset(&cmd, 0, sizeof(cmd));
@@ -874,7 +881,7 @@ mmc_set_power_class(struct mmc_softc *sc, struct mmc_ivars *ivar)
 		break;
 	default:
 		device_printf(dev, "No power class support for VDD 0x%x\n",
-			1 << mmcbr_get_vdd(dev));
+		    1 << mmcbr_get_vdd(dev));
 		return (MMC_ERR_INVALID);
 	}
 
@@ -897,7 +904,7 @@ mmc_set_timing(struct mmc_softc *sc, struct mmc_ivars *ivar,
     enum mmc_bus_timing timing)
 {
 	u_char switch_res[64];
-	uint8_t	value;
+	uint8_t value;
 	int err;
 
 	if (mmcbr_get_mode(sc->dev) == mode_sd) {
@@ -968,21 +975,14 @@ mmc_set_vccq(struct mmc_softc *sc, struct mmc_ivars *ivar,
 		return (MMC_ERR_NONE);
 }
 
-static const uint8_t p8[8] = {
-	0x55, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-};
+static const uint8_t p8[8] = { 0x55, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
-static const uint8_t p8ok[8] = {
-	0xAA, 0x55, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-};
+static const uint8_t p8ok[8] = { 0xAA, 0x55, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00 };
 
-static const uint8_t p4[4] = {
-	0x5A, 0x00, 0x00, 0x00
-};
+static const uint8_t p4[4] = { 0x5A, 0x00, 0x00, 0x00 };
 
-static const uint8_t p4ok[4] = {
-	0xA5, 0x00, 0x00, 0x00
-};
+static const uint8_t p4ok[4] = { 0xA5, 0x00, 0x00, 0x00 };
 
 static int
 mmc_test_bus_width(struct mmc_softc *sc)
@@ -1149,8 +1149,8 @@ mmc_format_card_id_string(struct mmc_ivars *ivar)
 		snprintf(oidstr, sizeof(oidstr), "%c%c", c1, c2);
 	else
 		snprintf(oidstr, sizeof(oidstr), "0x%04x", ivar->cid.oid);
-	snprintf(ivar->card_sn_string, sizeof(ivar->card_sn_string),
-	    "%08X", ivar->cid.psn);
+	snprintf(ivar->card_sn_string, sizeof(ivar->card_sn_string), "%08X",
+	    ivar->cid.psn);
 	snprintf(ivar->card_id_string, sizeof(ivar->card_id_string),
 	    "%s%s %s %d.%d SN %08X MFG %02d/%04d by %d %s",
 	    ivar->mode == mode_sd ? "SD" : "MMC", ivar->high_cap ? "HC" : "",
@@ -1159,21 +1159,17 @@ mmc_format_card_id_string(struct mmc_ivars *ivar)
 	    ivar->cid.mid, oidstr);
 }
 
-static const int exp[8] = {
-	1, 10, 100, 1000, 10000, 100000, 1000000, 10000000
-};
+static const int exp[8] = { 1, 10, 100, 1000, 10000, 100000, 1000000,
+	10000000 };
 
-static const int mant[16] = {
-	0, 10, 12, 13, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80
-};
+static const int mant[16] = { 0, 10, 12, 13, 15, 20, 25, 30, 35, 40, 45, 50, 55,
+	60, 70, 80 };
 
-static const int cur_min[8] = {
-	500, 1000, 5000, 10000, 25000, 35000, 60000, 100000
-};
+static const int cur_min[8] = { 500, 1000, 5000, 10000, 25000, 35000, 60000,
+	100000 };
 
-static const int cur_max[8] = {
-	1000, 5000, 10000, 25000, 35000, 45000, 800000, 200000
-};
+static const int cur_max[8] = { 1000, 5000, 10000, 25000, 35000, 45000, 800000,
+	200000 };
 
 static int
 mmc_decode_csd_sd(uint32_t *raw_csd, struct mmc_csd *csd)
@@ -1232,7 +1228,8 @@ mmc_decode_csd_sd(uint32_t *raw_csd, struct mmc_csd *csd)
 		csd->read_blk_misalign = mmc_get_bits(raw_csd, 128, 77, 1);
 		csd->dsr_imp = mmc_get_bits(raw_csd, 128, 76, 1);
 		csd->capacity = ((uint64_t)mmc_get_bits(raw_csd, 128, 48, 22) +
-		    1) * 512 * 1024;
+				    1) *
+		    512 * 1024;
 		csd->erase_blk_en = mmc_get_bits(raw_csd, 128, 46, 1);
 		csd->erase_sector = mmc_get_bits(raw_csd, 128, 39, 7) + 1;
 		csd->wp_grp_size = mmc_get_bits(raw_csd, 128, 32, 7);
@@ -1293,8 +1290,7 @@ mmc_app_decode_scr(uint32_t *raw_scr, struct mmc_scr *scr)
 
 	scr_struct = mmc_get_bits(raw_scr, 64, 60, 4);
 	if (scr_struct != 0) {
-		printf("Unrecognised SCR structure version %d\n",
-		    scr_struct);
+		printf("Unrecognised SCR structure version %d\n", scr_struct);
 		return;
 	}
 	scr->sda_vsn = mmc_get_bits(raw_scr, 64, 56, 4);
@@ -1400,7 +1396,7 @@ mmc_app_sd_status(struct mmc_softc *sc, uint16_t rca, uint32_t *rawsdstatus)
 
 	err = mmc_wait_for_app_cmd(sc->dev, sc->dev, rca, &cmd, CMD_RETRIES);
 	for (i = 0; i < 16; i++)
-	    rawsdstatus[i] = be32toh(rawsdstatus[i]);
+		rawsdstatus[i] = be32toh(rawsdstatus[i]);
 	return (err);
 }
 
@@ -1513,14 +1509,15 @@ mmc_host_timing(device_t dev, enum mmc_bus_timing timing)
 
 	host_caps = mmcbr_get_caps(dev);
 
-#define	HOST_TIMING_CAP(host_caps, cap) ({				\
-	bool retval;							\
-	if (((host_caps) & (cap)) == (cap))				\
-		retval = true;						\
-	else								\
-		retval = false;						\
-	retval;								\
-})
+#define HOST_TIMING_CAP(host_caps, cap)             \
+	({                                          \
+		bool retval;                        \
+		if (((host_caps) & (cap)) == (cap)) \
+			retval = true;              \
+		else                                \
+			retval = false;             \
+		retval;                             \
+	})
 
 	switch (timing) {
 	case bus_timing_normal:
@@ -1541,13 +1538,13 @@ mmc_host_timing(device_t dev, enum mmc_bus_timing timing)
 		return (HOST_TIMING_CAP(host_caps, MMC_CAP_MMC_DDR52));
 	case bus_timing_mmc_hs200:
 		return (HOST_TIMING_CAP(host_caps, MMC_CAP_MMC_HS200_120) ||
-			HOST_TIMING_CAP(host_caps, MMC_CAP_MMC_HS200_180));
+		    HOST_TIMING_CAP(host_caps, MMC_CAP_MMC_HS200_180));
 	case bus_timing_mmc_hs400:
 		return (HOST_TIMING_CAP(host_caps, MMC_CAP_MMC_HS400_120) ||
-			HOST_TIMING_CAP(host_caps, MMC_CAP_MMC_HS400_180));
+		    HOST_TIMING_CAP(host_caps, MMC_CAP_MMC_HS400_180));
 	case bus_timing_mmc_hs400es:
-		return (HOST_TIMING_CAP(host_caps, MMC_CAP_MMC_HS400 |
-		    MMC_CAP_MMC_ENH_STROBE));
+		return (HOST_TIMING_CAP(host_caps,
+		    MMC_CAP_MMC_HS400 | MMC_CAP_MMC_ENH_STROBE));
 	}
 
 #undef HOST_TIMING_CAP
@@ -1560,8 +1557,8 @@ mmc_log_card(device_t dev, struct mmc_ivars *ivar, int newcard)
 {
 	enum mmc_bus_timing timing;
 
-	device_printf(dev, "Card at relative address 0x%04x%s:\n",
-	    ivar->rca, newcard ? " added" : "");
+	device_printf(dev, "Card at relative address 0x%04x%s:\n", ivar->rca,
+	    newcard ? " added" : "");
 	device_printf(dev, " card: %s\n", ivar->card_id_string);
 	for (timing = bus_timing_max; timing > bus_timing_normal; timing--) {
 		if (isset(&ivar->timings, timing))
@@ -1569,8 +1566,9 @@ mmc_log_card(device_t dev, struct mmc_ivars *ivar, int newcard)
 	}
 	device_printf(dev, " quirks: %b\n", ivar->quirks, MMC_QUIRKS_FMT);
 	device_printf(dev, " bus: %ubit, %uMHz (%s timing)\n",
-	    (ivar->bus_width == bus_width_1 ? 1 :
-	    (ivar->bus_width == bus_width_4 ? 4 : 8)),
+	    (ivar->bus_width == bus_width_1 ?
+		    1 :
+		    (ivar->bus_width == bus_width_4 ? 4 : 8)),
 	    mmc_timing_to_dtr(ivar, timing) / 1000000,
 	    mmc_timing_to_string(timing));
 	device_printf(dev, " memory: %u blocks, erase sector %u blocks%s\n",
@@ -1619,8 +1617,8 @@ mmc_discover_cards(struct mmc_softc *sc)
 		if (bootverbose || mmc_debug) {
 			device_printf(sc->dev,
 			    "%sard detected (CID %08x%08x%08x%08x)\n",
-			    newcard ? "New c" : "C",
-			    raw_cid[0], raw_cid[1], raw_cid[2], raw_cid[3]);
+			    newcard ? "New c" : "C", raw_cid[0], raw_cid[1],
+			    raw_cid[2], raw_cid[3]);
 		}
 		if (newcard) {
 			ivar = malloc(sizeof(struct mmc_ivars), M_DEVBUF,
@@ -1636,16 +1634,16 @@ mmc_discover_cards(struct mmc_softc *sc)
 			mmc_decode_cid_sd(ivar->raw_cid, &ivar->cid);
 			err = mmc_send_relative_addr(sc, &resp);
 			if (err != MMC_ERR_NONE) {
-				device_printf(sc->dev,
-				    "Error getting RCA %d\n", err);
+				device_printf(sc->dev, "Error getting RCA %d\n",
+				    err);
 				goto free_ivar;
 			}
 			ivar->rca = resp >> 16;
 			/* Get card CSD. */
 			err = mmc_send_csd(sc, ivar->rca, ivar->raw_csd);
 			if (err != MMC_ERR_NONE) {
-				device_printf(sc->dev,
-				    "Error getting CSD %d\n", err);
+				device_printf(sc->dev, "Error getting CSD %d\n",
+				    err);
 				goto free_ivar;
 			}
 			if (bootverbose || mmc_debug)
@@ -1688,8 +1686,8 @@ mmc_discover_cards(struct mmc_softc *sc)
 			}
 			err = mmc_app_send_scr(sc, ivar->rca, ivar->raw_scr);
 			if (err != MMC_ERR_NONE) {
-				device_printf(sc->dev,
-				    "Error reading SCR %d\n", err);
+				device_printf(sc->dev, "Error reading SCR %d\n",
+				    err);
 				goto free_ivar;
 			}
 			mmc_app_decode_scr(ivar->raw_scr, &ivar->scr);
@@ -1725,8 +1723,8 @@ mmc_discover_cards(struct mmc_softc *sc)
 			mmc_app_decode_sd_status(ivar->raw_sd_status,
 			    &ivar->sd_status);
 			if (ivar->sd_status.au_size != 0) {
-				ivar->erase_sector =
-				    16 << ivar->sd_status.au_size;
+				ivar->erase_sector = 16
+				    << ivar->sd_status.au_size;
 			}
 			/* Find maximum supported bus width. */
 			if ((host_caps & MMC_CAP_4_BIT_DATA) &&
@@ -1762,8 +1760,8 @@ mmc_discover_cards(struct mmc_softc *sc)
 
 		err = mmc_send_status(sc->dev, sc->dev, ivar->rca, &status);
 		if (err != MMC_ERR_NONE) {
-			device_printf(sc->dev,
-			    "Error reading card status %d\n", err);
+			device_printf(sc->dev, "Error reading card status %d\n",
+			    err);
 			goto free_ivar;
 		}
 		if ((status & R1_CARD_IS_LOCKED) != 0) {
@@ -1842,7 +1840,7 @@ mmc_discover_cards(struct mmc_softc *sc)
 			}
 			if ((card_type & EXT_CSD_CARD_TYPE_HS400_1_2V) != 0 &&
 			    (ext_csd[EXT_CSD_STROBE_SUPPORT] &
-			    EXT_CSD_STROBE_SUPPORT_EN) != 0 &&
+				EXT_CSD_STROBE_SUPPORT_EN) != 0 &&
 			    (host_caps & MMC_CAP_SIGNALING_120) != 0 &&
 			    ivar->bus_width == bus_width_8) {
 				setbit(&ivar->timings, bus_timing_mmc_hs400es);
@@ -1850,7 +1848,7 @@ mmc_discover_cards(struct mmc_softc *sc)
 			}
 			if ((card_type & EXT_CSD_CARD_TYPE_HS400_1_8V) != 0 &&
 			    (ext_csd[EXT_CSD_STROBE_SUPPORT] &
-			    EXT_CSD_STROBE_SUPPORT_EN) != 0 &&
+				EXT_CSD_STROBE_SUPPORT_EN) != 0 &&
 			    (host_caps & MMC_CAP_SIGNALING_180) != 0 &&
 			    ivar->bus_width == bus_width_8) {
 				setbit(&ivar->timings, bus_timing_mmc_hs400es);
@@ -1871,8 +1869,8 @@ mmc_discover_cards(struct mmc_softc *sc)
 				err = mmc_switch(sc->dev, sc->dev, ivar->rca,
 				    EXT_CSD_CMD_SET_NORMAL,
 				    EXT_CSD_ERASE_GRP_DEF,
-				    EXT_CSD_ERASE_GRP_DEF_EN,
-				    ivar->cmd6_time, true);
+				    EXT_CSD_ERASE_GRP_DEF_EN, ivar->cmd6_time,
+				    true);
 				if (err != MMC_ERR_NONE) {
 					device_printf(sc->dev,
 					    "Error setting erase group %d\n",
@@ -1884,14 +1882,14 @@ mmc_discover_cards(struct mmc_softc *sc)
 
 		mmc_decode_cid_mmc(ivar->raw_cid, &ivar->cid, rev >= 5);
 
-child_common:
+	child_common:
 		for (quirk = &mmc_quirks[0]; quirk->mid != 0x0; quirk++) {
 			if ((quirk->mid == MMC_QUIRK_MID_ANY ||
-			    quirk->mid == ivar->cid.mid) &&
+				quirk->mid == ivar->cid.mid) &&
 			    (quirk->oid == MMC_QUIRK_OID_ANY ||
-			    quirk->oid == ivar->cid.oid) &&
+				quirk->oid == ivar->cid.oid) &&
 			    strncmp(quirk->pnm, ivar->cid.pnm,
-			    sizeof(ivar->cid.pnm)) == 0) {
+				sizeof(ivar->cid.pnm)) == 0) {
 				ivar->quirks = quirk->quirks;
 				break;
 			}
@@ -1926,7 +1924,7 @@ child_common:
 				device_printf(sc->dev, "Error adding child\n");
 		}
 
-free_ivar:
+	free_ivar:
 		if (newcard && child == NULL)
 			free(ivar, M_DEVBUF);
 		(void)mmc_select_card(sc, 0);
@@ -1961,8 +1959,8 @@ mmc_update_child_list(struct mmc_softc *sc)
 		if (i != j)
 			sc->child_list[i] = child;
 	}
-	sc->child_list = realloc(sc->child_list, sizeof(device_t) *
-	    sc->child_count, M_DEVBUF, M_WAITOK);
+	sc->child_list = realloc(sc->child_list,
+	    sizeof(device_t) * sc->child_count, M_DEVBUF, M_WAITOK);
 }
 
 static void
@@ -2006,8 +2004,7 @@ mmc_delete_cards(struct mmc_softc *sc, bool final)
 		ivar = device_get_ivars(sc->child_list[i]);
 		if (bootverbose || mmc_debug)
 			device_printf(sc->dev,
-			    "Card at relative address %d deleted\n",
-			    ivar->rca);
+			    "Card at relative address %d deleted\n", ivar->rca);
 		err = device_delete_child(sc->dev, sc->child_list[i]);
 		if (err != 0) {
 			j++;
@@ -2125,8 +2122,8 @@ mmc_calculate_clock(struct mmc_softc *sc)
 			ivar = device_get_ivars(sc->child_list[i]);
 			if (isclr(&ivar->timings, max_timing) ||
 			    !mmc_host_timing(dev, max_timing)) {
-				for (timing = max_timing - 1; timing >=
-				    bus_timing_normal; timing--) {
+				for (timing = max_timing - 1;
+				     timing >= bus_timing_normal; timing--) {
 					if (isset(&ivar->timings, timing) &&
 					    mmc_host_timing(dev, timing)) {
 						max_timing = timing;
@@ -2167,26 +2164,32 @@ mmc_calculate_clock(struct mmc_softc *sc)
 
 		rca = ivar->rca;
 		if (mmc_select_card(sc, rca) != MMC_ERR_NONE) {
-			device_printf(dev, "Card at relative address %d "
-			    "failed to select\n", rca);
+			device_printf(dev,
+			    "Card at relative address %d "
+			    "failed to select\n",
+			    rca);
 			continue;
 		}
 
-		if (timing == bus_timing_mmc_hs200 ||	/* includes HS400 */
+		if (timing == bus_timing_mmc_hs200 || /* includes HS400 */
 		    timing == bus_timing_mmc_hs400es) {
 			if (mmc_set_vccq(sc, ivar, timing) != MMC_ERR_NONE) {
-				device_printf(dev, "Failed to set VCCQ for "
-				    "card at relative address %d\n", rca);
+				device_printf(dev,
+				    "Failed to set VCCQ for "
+				    "card at relative address %d\n",
+				    rca);
 				continue;
 			}
 		}
 
-		if (timing == bus_timing_mmc_hs200) {	/* includes HS400 */
+		if (timing == bus_timing_mmc_hs200) { /* includes HS400 */
 			/* Set bus width (required for initial tuning). */
 			if (mmc_set_card_bus_width(sc, ivar, timing) !=
 			    MMC_ERR_NONE) {
-				device_printf(dev, "Card at relative address "
-				    "%d failed to set bus width\n", rca);
+				device_printf(dev,
+				    "Card at relative address "
+				    "%d failed to set bus width\n",
+				    rca);
 				continue;
 			}
 			mmcbr_set_bus_width(dev, ivar->bus_width);
@@ -2194,18 +2197,20 @@ mmc_calculate_clock(struct mmc_softc *sc)
 		} else if (timing == bus_timing_mmc_hs400es) {
 			if (mmc_switch_to_hs400(sc, ivar, max_dtr, timing) !=
 			    MMC_ERR_NONE) {
-				device_printf(dev, "Card at relative address "
-				    "%d failed to set %s timing\n", rca,
-				    mmc_timing_to_string(timing));
+				device_printf(dev,
+				    "Card at relative address "
+				    "%d failed to set %s timing\n",
+				    rca, mmc_timing_to_string(timing));
 				continue;
 			}
 			goto power_class;
 		}
 
 		if (mmc_set_timing(sc, ivar, timing) != MMC_ERR_NONE) {
-			device_printf(dev, "Card at relative address %d "
-			    "failed to set %s timing\n", rca,
-			    mmc_timing_to_string(timing));
+			device_printf(dev,
+			    "Card at relative address %d "
+			    "failed to set %s timing\n",
+			    rca, mmc_timing_to_string(timing));
 			continue;
 		}
 
@@ -2216,20 +2221,24 @@ mmc_calculate_clock(struct mmc_softc *sc)
 			 */
 			if (mmc_set_card_bus_width(sc, ivar, timing) !=
 			    MMC_ERR_NONE) {
-				device_printf(dev, "Card at relative address "
-				    "%d failed to set bus width\n", rca);
+				device_printf(dev,
+				    "Card at relative address "
+				    "%d failed to set bus width\n",
+				    rca);
 				continue;
 			}
 			mmcbr_set_bus_width(dev, ivar->bus_width);
 			mmcbr_update_ios(dev);
 			if (mmc_set_vccq(sc, ivar, timing) != MMC_ERR_NONE) {
-				device_printf(dev, "Failed to set VCCQ for "
-				    "card at relative address %d\n", rca);
+				device_printf(dev,
+				    "Failed to set VCCQ for "
+				    "card at relative address %d\n",
+				    rca);
 				continue;
 			}
 		}
 
-clock:
+	clock:
 		/* Set clock (must be done before initial tuning). */
 		mmcbr_set_clock(dev, max_dtr);
 		mmcbr_update_ios(dev);
@@ -2244,23 +2253,29 @@ clock:
 			goto power_class;
 
 		if (mmcbr_tune(dev, hs400) != 0) {
-			device_printf(dev, "Card at relative address %d "
-			    "failed to execute initial tuning\n", rca);
+			device_printf(dev,
+			    "Card at relative address %d "
+			    "failed to execute initial tuning\n",
+			    rca);
 			continue;
 		}
 
-		if (hs400 == true && mmc_switch_to_hs400(sc, ivar, max_dtr,
-		    max_timing) != MMC_ERR_NONE) {
-			device_printf(dev, "Card at relative address %d "
-			    "failed to set %s timing\n", rca,
-			    mmc_timing_to_string(max_timing));
+		if (hs400 == true &&
+		    mmc_switch_to_hs400(sc, ivar, max_dtr, max_timing) !=
+			MMC_ERR_NONE) {
+			device_printf(dev,
+			    "Card at relative address %d "
+			    "failed to set %s timing\n",
+			    rca, mmc_timing_to_string(max_timing));
 			continue;
 		}
 
-power_class:
+	power_class:
 		if (mmc_set_power_class(sc, ivar) != MMC_ERR_NONE) {
-			device_printf(dev, "Card at relative address %d "
-			    "failed to set power class\n", rca);
+			device_printf(dev,
+			    "Card at relative address %d "
+			    "failed to set power class\n",
+			    rca);
 		}
 	}
 	(void)mmc_select_card(sc, 0);
@@ -2412,10 +2427,10 @@ mmc_retune_pause(device_t busdev, device_t dev, bool retune)
 	sc = device_get_softc(busdev);
 	KASSERT(device_get_parent(dev) == busdev,
 	    ("%s: %s is not a child of %s", __func__, device_get_nameunit(dev),
-	    device_get_nameunit(busdev)));
+		device_get_nameunit(busdev)));
 	KASSERT(sc->owner != NULL,
 	    ("%s: Request from %s without bus being acquired.", __func__,
-	    device_get_nameunit(dev)));
+		device_get_nameunit(dev)));
 
 	if (retune == true && sc->retune_paused == 0)
 		sc->retune_needed = 1;
@@ -2430,10 +2445,10 @@ mmc_retune_unpause(device_t busdev, device_t dev)
 	sc = device_get_softc(busdev);
 	KASSERT(device_get_parent(dev) == busdev,
 	    ("%s: %s is not a child of %s", __func__, device_get_nameunit(dev),
-	    device_get_nameunit(busdev)));
+		device_get_nameunit(busdev)));
 	KASSERT(sc->owner != NULL,
 	    ("%s: Request from %s without bus being acquired.", __func__,
-	    device_get_nameunit(dev)));
+		device_get_nameunit(dev)));
 	KASSERT(sc->retune_paused != 0,
 	    ("%s: Re-tune pause count already at 0", __func__));
 

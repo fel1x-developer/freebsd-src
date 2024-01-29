@@ -29,39 +29,38 @@
  * SUCH DAMAGE.
  */
 
-
-
 /*
  * netstat
  */
 #include <sys/param.h>
+#include <sys/callout.h>
 #include <sys/queue.h>
 #include <sys/socket.h>
-#include <sys/callout.h>
-#define	_WANT_SOCKET
-#include <sys/socketvar.h>
+#define _WANT_SOCKET
 #include <sys/protosw.h>
+#include <sys/socketvar.h>
 
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <net/route.h>
+#include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
+
+#include <arpa/inet.h>
 #ifdef INET6
 #include <netinet/ip6.h>
 #endif
-#define	_WANT_INPCB
+#define _WANT_INPCB
+#include <netinet/icmp_var.h>
 #include <netinet/in_pcb.h>
 #include <netinet/ip_icmp.h>
-#include <netinet/icmp_var.h>
 #include <netinet/ip_var.h>
 #include <netinet/tcp.h>
-#include <netinet/tcpip.h>
 #include <netinet/tcp_seq.h>
+#include <netinet/tcpip.h>
 #define TCPSTATES
 #include <netinet/tcp_fsm.h>
 #include <netinet/tcp_timer.h>
-#define	_WANT_TCPCB
+#define _WANT_TCPCB
 #include <netinet/tcp_var.h>
 #include <netinet/udp.h>
 #include <netinet/udp_var.h>
@@ -72,8 +71,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "systat.h"
 #include "extern.h"
+#include "systat.h"
 
 static struct netinfo *enter(struct in_conninfo *, uint8_t, int, const char *);
 static void enter_kvm(struct inpcb *, struct socket *, int, const char *);
@@ -83,37 +82,37 @@ static void fetchnetstat_sysctl(void);
 static char *inetname(struct sockaddr *);
 static void inetprint(struct sockaddr *, const char *);
 
-#define	streq(a,b)	(strcmp(a,b)==0)
-#define	YMAX(w)		(getmaxy(w)-2)
+#define streq(a, b) (strcmp(a, b) == 0)
+#define YMAX(w) (getmaxy(w) - 2)
 
 WINDOW *
 opennetstat(void)
 {
 	sethostent(1);
 	setnetent(1);
-	return (subwin(stdscr, LINES-3-1, 0, MAINWIN_ROW, 0));
+	return (subwin(stdscr, LINES - 3 - 1, 0, MAINWIN_ROW, 0));
 }
 
 struct netinfo {
 	TAILQ_ENTRY(netinfo) chain;
-	short	ni_line;		/* line on screen */
-	short	ni_seen;		/* 0 when not present in list */
-	short	ni_flags;
-#define	NIF_LACHG	0x1		/* local address changed */
-#define	NIF_FACHG	0x2		/* foreign address changed */
-	short	ni_state;		/* tcp state */
-	const char	*ni_proto;		/* protocol */
-	struct sockaddr_storage ni_lsa;	/* local address */
-	struct sockaddr_storage	ni_fsa;	/* foreign address */
-	u_int	ni_rcvcc;		/* rcv buffer character count */
-	u_int	ni_sndcc;		/* snd buffer character count */
+	short ni_line; /* line on screen */
+	short ni_seen; /* 0 when not present in list */
+	short ni_flags;
+#define NIF_LACHG 0x1			/* local address changed */
+#define NIF_FACHG 0x2			/* foreign address changed */
+	short ni_state;			/* tcp state */
+	const char *ni_proto;		/* protocol */
+	struct sockaddr_storage ni_lsa; /* local address */
+	struct sockaddr_storage ni_fsa; /* foreign address */
+	u_int ni_rcvcc;			/* rcv buffer character count */
+	u_int ni_sndcc;			/* snd buffer character count */
 };
 
 static TAILQ_HEAD(netinfohead, netinfo) netcb = TAILQ_HEAD_INITIALIZER(netcb);
 
-static	int aflag = 0;
-static	int nflag = 0;
-static	int lastrow = 1;
+static int aflag = 0;
+static int nflag = 0;
+static int lastrow = 1;
 
 void
 closenetstat(WINDOW *w)
@@ -122,7 +121,7 @@ closenetstat(WINDOW *w)
 
 	endhostent();
 	endnetent();
-	TAILQ_FOREACH(p, &netcb, chain) {
+	TAILQ_FOREACH (p, &netcb, chain) {
 		if (p->ni_line != -1)
 			lastrow--;
 		p->ni_line = -1;
@@ -134,17 +133,15 @@ closenetstat(WINDOW *w)
 	}
 }
 
-static const char *miblist[] = {
-	"net.inet.tcp.pcblist",
-	"net.inet.udp.pcblist"
-};
+static const char *miblist[] = { "net.inet.tcp.pcblist",
+	"net.inet.udp.pcblist" };
 
 static char tcb[] = "tcb", udb[] = "udb";
 
 struct nlist namelist[] = {
-#define	X_TCB	0
+#define X_TCB 0
 	{ .n_name = tcb },
-#define	X_UDB	1
+#define X_UDB 1
 	{ .n_name = udb },
 	{ .n_name = NULL },
 };
@@ -152,8 +149,8 @@ struct nlist namelist[] = {
 int
 initnetstat(void)
 {
-	protos = TCP|UDP;
-	return(1);
+	protos = TCP | UDP;
+	return (1);
 }
 
 void
@@ -179,24 +176,22 @@ fetchnetstat_kvm(void)
 
 	if (namelist[X_TCB].n_value == 0)
 		return;
-	TAILQ_FOREACH(p, &netcb, chain)
+	TAILQ_FOREACH (p, &netcb, chain)
 		p->ni_seen = 0;
-	if (protos&TCP) {
+	if (protos & TCP) {
 		off = NPTR(X_TCB);
 		istcp = 1;
-	}
-	else if (protos&UDP) {
+	} else if (protos & UDP) {
 		off = NPTR(X_UDB);
 		istcp = 0;
-	}
-	else {
+	} else {
 		error("No protocols to display");
 		return;
 	}
 again:
-	KREAD(off, &head, sizeof (struct inpcbhead));
-	LIST_FOREACH(next, &head, inp_list) {
-		KREAD(next, &inpcb, sizeof (inpcb));
+	KREAD(off, &head, sizeof(struct inpcbhead));
+	LIST_FOREACH (next, &head, inp_list) {
+		KREAD(next, &inpcb, sizeof(inpcb));
 		next = &inpcb;
 		if (!aflag) {
 			if (inpcb.inp_vflag & INP_IPV4) {
@@ -205,8 +200,8 @@ again:
 			}
 #ifdef INET6
 			else if (inpcb.inp_vflag & INP_IPV6) {
-				if (memcmp(&inpcb.in6p_laddr,
-				    &in6addr_any, sizeof(in6addr_any)) == 0)
+				if (memcmp(&inpcb.in6p_laddr, &in6addr_any,
+					sizeof(in6addr_any)) == 0)
 					continue;
 			}
 #endif
@@ -216,13 +211,13 @@ again:
 		if (nports && !checkport(&inpcb.inp_inc))
 			continue;
 		if (istcp) {
-			KREAD(inpcb.inp_socket, &sockb, sizeof (sockb));
-			KREAD(inpcb.inp_ppcb, &tcpcb, sizeof (tcpcb));
+			KREAD(inpcb.inp_socket, &sockb, sizeof(sockb));
+			KREAD(inpcb.inp_ppcb, &tcpcb, sizeof(tcpcb));
 			enter_kvm(&inpcb, &sockb, tcpcb.t_state, "tcp");
 		} else
 			enter_kvm(&inpcb, &sockb, 0, "udp");
 	}
-	if (istcp && (protos&UDP)) {
+	if (istcp && (protos & UDP)) {
 		istcp = 0;
 		off = NPTR(X_UDB);
 		goto again;
@@ -241,19 +236,19 @@ fetchnetstat_sysctl(void)
 	int plen;
 	size_t lsz;
 
-	TAILQ_FOREACH(p, &netcb, chain)
+	TAILQ_FOREACH (p, &netcb, chain)
 		p->ni_seen = 0;
-	if (protos&TCP) {
+	if (protos & TCP) {
 		idx = 0;
-	} else if (protos&UDP) {
+	} else if (protos & UDP) {
 		idx = 1;
 	} else {
 		error("No protocols to display");
 		return;
 	}
 
-	for (;idx < 2; idx++) {
-		if (idx == 1 && !(protos&UDP))
+	for (; idx < 2; idx++) {
+		if (idx == 1 && !(protos & UDP))
 			break;
 		inpg = (struct xinpgen *)sysctl_dynread(miblist[idx], &lsz);
 		if (inpg == NULL) {
@@ -295,8 +290,8 @@ fetchnetstat_sysctl(void)
 #ifdef INET6
 				else if (xip->inp_vflag & INP_IPV6) {
 					if (memcmp(&xip->in6p_laddr,
-					    &in6addr_any, sizeof(in6addr_any))
-					    == 0)
+						&in6addr_any,
+						sizeof(in6addr_any)) == 0)
 						continue;
 				}
 #endif
@@ -306,8 +301,8 @@ fetchnetstat_sysctl(void)
 			if (nports && !checkport(&xip->inp_inc))
 				continue;
 			if (idx == 0)
-				enter_sysctl(xip, &xip->xi_socket,
-				    xtp->t_state, "tcp");
+				enter_sysctl(xip, &xip->xi_socket, xtp->t_state,
+				    "tcp");
 			else
 				enter_sysctl(xip, &xip->xi_socket, 0, "udp");
 		}
@@ -390,7 +385,7 @@ enter(struct in_conninfo *inc, uint8_t vflag, int state, const char *proto)
 	 * will appear as ``not seen'' in the kernel
 	 * data structures.
 	 */
-	TAILQ_FOREACH(p, &netcb, chain) {
+	TAILQ_FOREACH (p, &netcb, chain) {
 		if (!streq(proto, p->ni_proto))
 			continue;
 		if (p->ni_lsa.ss_family != lsa.ss_family ||
@@ -410,7 +405,7 @@ enter(struct in_conninfo *inc, uint8_t vflag, int state, const char *proto)
 		memcpy(&p->ni_lsa, &lsa, lsa.ss_len);
 		memcpy(&p->ni_fsa, &fsa, fsa.ss_len);
 		p->ni_proto = strdup(proto);
-		p->ni_flags = NIF_LACHG|NIF_FACHG;
+		p->ni_flags = NIF_LACHG | NIF_FACHG;
 	}
 	p->ni_state = state;
 	p->ni_seen = 1;
@@ -418,19 +413,20 @@ enter(struct in_conninfo *inc, uint8_t vflag, int state, const char *proto)
 }
 
 /* column locations */
-#define	LADDR	0
-#define	FADDR	LADDR+23
-#define	PROTO	FADDR+23
-#define	RCVCC	PROTO+6
-#define	SNDCC	RCVCC+7
-#define	STATE	SNDCC+7
+#define LADDR 0
+#define FADDR LADDR + 23
+#define PROTO FADDR + 23
+#define RCVCC PROTO + 6
+#define SNDCC RCVCC + 7
+#define STATE SNDCC + 7
 
 void
 labelnetstat(void)
 {
 	if (use_kvm && namelist[X_TCB].n_type == 0)
 		return;
-	wmove(wnd, 0, 0); wclrtobot(wnd);
+	wmove(wnd, 0, 0);
+	wclrtobot(wnd);
 	mvwaddstr(wnd, 0, LADDR, "Local Address");
 	mvwaddstr(wnd, 0, FADDR, "Foreign Address");
 	mvwaddstr(wnd, 0, PROTO, "Proto");
@@ -457,12 +453,13 @@ shownetstat(void)
 			p = TAILQ_NEXT(p, chain);
 			continue;
 		}
-		wmove(wnd, p->ni_line, 0); wdeleteln(wnd);
-		TAILQ_FOREACH(q, &netcb, chain)
+		wmove(wnd, p->ni_line, 0);
+		wdeleteln(wnd);
+		TAILQ_FOREACH (q, &netcb, chain)
 			if (q != p && q->ni_line > p->ni_line) {
 				q->ni_line--;
 				/* this shouldn't be necessary */
-				q->ni_flags |= NIF_LACHG|NIF_FACHG;
+				q->ni_flags |= NIF_LACHG | NIF_FACHG;
 			}
 		lastrow--;
 		q = TAILQ_NEXT(p, chain);
@@ -473,7 +470,7 @@ shownetstat(void)
 	/*
 	 * Update existing connections and add new ones.
 	 */
-	TAILQ_FOREACH(p, &netcb, chain) {
+	TAILQ_FOREACH (p, &netcb, chain) {
 		if (p->ni_line == -1) {
 			/*
 			 * Add a new entry if possible.
@@ -481,7 +478,7 @@ shownetstat(void)
 			if (lastrow > YMAX(wnd))
 				continue;
 			p->ni_line = lastrow++;
-			p->ni_flags |= NIF_LACHG|NIF_FACHG;
+			p->ni_flags |= NIF_LACHG | NIF_FACHG;
 		}
 		if (p->ni_flags & NIF_LACHG) {
 			wmove(wnd, p->ni_line, LADDR);
@@ -511,8 +508,10 @@ shownetstat(void)
 		wclrtoeol(wnd);
 	}
 	if (lastrow < YMAX(wnd)) {
-		wmove(wnd, lastrow, 0); wclrtobot(wnd);
-		wmove(wnd, YMAX(wnd), 0); wdeleteln(wnd);	/* XXX */
+		wmove(wnd, lastrow, 0);
+		wclrtobot(wnd);
+		wmove(wnd, YMAX(wnd), 0);
+		wdeleteln(wnd); /* XXX */
 	}
 }
 
@@ -574,7 +573,7 @@ inetname(struct sockaddr *sa)
 #ifdef INET6
 	if (sa->sa_family == AF_INET6) {
 		if (memcmp(&((struct sockaddr_in6 *)sa)->sin6_addr,
-		    &in6addr_any, sizeof(in6addr_any)) == 0)
+			&in6addr_any, sizeof(in6addr_any)) == 0)
 			strcpy(line, "*");
 		else
 			getnameinfo(sa, sa->sa_len, line, sizeof(line), NULL, 0,
@@ -585,7 +584,7 @@ inetname(struct sockaddr *sa)
 
 	in = ((struct sockaddr_in *)sa)->sin_addr;
 	if (!nflag && in.s_addr != INADDR_ANY) {
-		hp = gethostbyaddr((char *)&in, sizeof (in), AF_INET);
+		hp = gethostbyaddr((char *)&in, sizeof(in), AF_INET);
 		if (hp)
 			cp = hp->h_name;
 	}
@@ -595,9 +594,9 @@ inetname(struct sockaddr *sa)
 		snprintf(line, sizeof(line), "%s", cp);
 	else {
 		in.s_addr = ntohl(in.s_addr);
-#define C(x)	((x) & 0xff)
+#define C(x) ((x) & 0xff)
 		snprintf(line, sizeof(line), "%u.%u.%u.%u", C(in.s_addr >> 24),
-			C(in.s_addr >> 16), C(in.s_addr >> 8), C(in.s_addr));
+		    C(in.s_addr >> 16), C(in.s_addr >> 8), C(in.s_addr));
 	}
 	return (line);
 }
@@ -609,17 +608,17 @@ cmdnetstat(const char *cmd, const char *args)
 		aflag = !aflag;
 		goto fixup;
 	}
-	if  (prefix(cmd, "numbers") || prefix(cmd, "names")) {
+	if (prefix(cmd, "numbers") || prefix(cmd, "names")) {
 		struct netinfo *p;
 		int new;
 
 		new = prefix(cmd, "numbers");
 		if (new == nflag)
 			return (1);
-		TAILQ_FOREACH(p, &netcb, chain) {
+		TAILQ_FOREACH (p, &netcb, chain) {
 			if (p->ni_line == -1)
 				continue;
-			p->ni_flags |= NIF_LACHG|NIF_FACHG;
+			p->ni_flags |= NIF_LACHG | NIF_FACHG;
 		}
 		nflag = new;
 		goto redisplay;

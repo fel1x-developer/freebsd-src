@@ -3,30 +3,31 @@
  *
  * Copyright (c) 2023 Google LLC
  *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
- * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer.
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
  *
  * 3. Neither the name of the copyright holder nor the names of its contributors
- *    may be used to endorse or promote products derived from this software without
- *    specific prior written permission.
+ *    may be used to endorse or promote products derived from this software
+ * without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
  */
 #include <sys/malloc.h>
 
@@ -77,8 +78,10 @@ gve_free_qpl(struct gve_priv *priv, uint32_t id)
 		 */
 		if (vm_page_unwire_noq(qpl->pages[i])) {
 			if (!qpl->kva) {
-				pmap_qremove((vm_offset_t)qpl->dmas[i].cpu_addr, 1);
-				kva_free((vm_offset_t)qpl->dmas[i].cpu_addr, PAGE_SIZE);
+				pmap_qremove((vm_offset_t)qpl->dmas[i].cpu_addr,
+				    1);
+				kva_free((vm_offset_t)qpl->dmas[i].cpu_addr,
+				    PAGE_SIZE);
 			}
 			vm_page_free(qpl->pages[i]);
 		}
@@ -101,7 +104,8 @@ gve_alloc_qpl(struct gve_priv *priv, uint32_t id, int npages, bool single_kva)
 	int i;
 
 	if (npages + priv->num_registered_pages > priv->max_registered_pages) {
-		device_printf(priv->dev, "Reached max number of registered pages %ju > %ju\n",
+		device_printf(priv->dev,
+		    "Reached max number of registered pages %ju > %ju\n",
 		    (uintmax_t)npages + priv->num_registered_pages,
 		    (uintmax_t)priv->max_registered_pages);
 		return (EINVAL);
@@ -121,28 +125,31 @@ gve_alloc_qpl(struct gve_priv *priv, uint32_t id, int npages, bool single_kva)
 	if (single_kva) {
 		qpl->kva = kva_alloc(PAGE_SIZE * npages);
 		if (!qpl->kva) {
-			device_printf(priv->dev, "Failed to create the single kva for QPL %d\n", id);
+			device_printf(priv->dev,
+			    "Failed to create the single kva for QPL %d\n", id);
 			err = ENOMEM;
 			goto abort;
 		}
 	}
 
 	for (i = 0; i < npages; i++) {
-		qpl->pages[i] = vm_page_alloc_noobj(VM_ALLOC_WIRED |
-						    VM_ALLOC_WAITOK |
-						    VM_ALLOC_ZERO);
+		qpl->pages[i] = vm_page_alloc_noobj(
+		    VM_ALLOC_WIRED | VM_ALLOC_WAITOK | VM_ALLOC_ZERO);
 
 		if (!single_kva) {
 			qpl->dmas[i].cpu_addr = (void *)kva_alloc(PAGE_SIZE);
 			if (!qpl->dmas[i].cpu_addr) {
-				device_printf(priv->dev, "Failed to create kva for page %d in QPL %d", i, id);
+				device_printf(priv->dev,
+				    "Failed to create kva for page %d in QPL %d",
+				    i, id);
 				err = ENOMEM;
 				goto abort;
 			}
-			pmap_qenter((vm_offset_t)qpl->dmas[i].cpu_addr, &(qpl->pages[i]), 1);
+			pmap_qenter((vm_offset_t)qpl->dmas[i].cpu_addr,
+			    &(qpl->pages[i]), 1);
 		} else
-			qpl->dmas[i].cpu_addr = (void *)(qpl->kva + (PAGE_SIZE * i));
-
+			qpl->dmas[i].cpu_addr = (void *)(qpl->kva +
+			    (PAGE_SIZE * i));
 
 		qpl->num_pages++;
 	}
@@ -151,10 +158,11 @@ gve_alloc_qpl(struct gve_priv *priv, uint32_t id, int npages, bool single_kva)
 		pmap_qenter(qpl->kva, qpl->pages, npages);
 
 	for (i = 0; i < npages; i++) {
-		err = gve_dmamap_create(priv, /*size=*/PAGE_SIZE, /*align=*/PAGE_SIZE,
-		    &qpl->dmas[i]);
+		err = gve_dmamap_create(priv, /*size=*/PAGE_SIZE,
+		    /*align=*/PAGE_SIZE, &qpl->dmas[i]);
 		if (err != 0) {
-			device_printf(priv->dev, "Failed to dma-map page %d in QPL %d\n", i, id);
+			device_printf(priv->dev,
+			    "Failed to dma-map page %d in QPL %d\n", i, id);
 			goto abort;
 		}
 
@@ -185,7 +193,8 @@ gve_free_qpls(struct gve_priv *priv)
 	}
 }
 
-int gve_alloc_qpls(struct gve_priv *priv)
+int
+gve_alloc_qpls(struct gve_priv *priv)
 {
 	int num_qpls = gve_num_tx_qpls(priv) + gve_num_rx_qpls(priv);
 	int err;
@@ -198,14 +207,16 @@ int gve_alloc_qpls(struct gve_priv *priv)
 	    M_WAITOK | M_ZERO);
 
 	for (i = 0; i < gve_num_tx_qpls(priv); i++) {
-		err = gve_alloc_qpl(priv, i, priv->tx_desc_cnt / GVE_QPL_DIVISOR,
+		err = gve_alloc_qpl(priv, i,
+		    priv->tx_desc_cnt / GVE_QPL_DIVISOR,
 		    /*single_kva=*/true);
 		if (err != 0)
 			goto abort;
 	}
 
 	for (; i < num_qpls; i++) {
-		err = gve_alloc_qpl(priv, i, priv->rx_desc_cnt, /*single_kva=*/false);
+		err = gve_alloc_qpl(priv, i, priv->rx_desc_cnt,
+		    /*single_kva=*/false);
 		if (err != 0)
 			goto abort;
 	}

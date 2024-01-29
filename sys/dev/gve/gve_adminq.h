@@ -3,78 +3,81 @@
  *
  * Copyright (c) 2023 Google LLC
  *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
- * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer.
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
  *
  * 3. Neither the name of the copyright holder nor the names of its contributors
- *    may be used to endorse or promote products derived from this software without
- *    specific prior written permission.
+ *    may be used to endorse or promote products derived from this software
+ * without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
  */
 #ifndef _GVE_AQ_H_
 #define _GVE_AQ_H_ 1
 
 #include <sys/types.h>
-#include <net/if.h>
-#include <net/iflib.h>
+
 #include <machine/bus.h>
 #include <machine/resource.h>
 
+#include <net/if.h>
+#include <net/iflib.h>
+
 /* Admin queue opcodes */
 enum gve_adminq_opcodes {
-	GVE_ADMINQ_DESCRIBE_DEVICE		= 0x1,
-	GVE_ADMINQ_CONFIGURE_DEVICE_RESOURCES	= 0x2,
-	GVE_ADMINQ_REGISTER_PAGE_LIST		= 0x3,
-	GVE_ADMINQ_UNREGISTER_PAGE_LIST		= 0x4,
-	GVE_ADMINQ_CREATE_TX_QUEUE		= 0x5,
-	GVE_ADMINQ_CREATE_RX_QUEUE		= 0x6,
-	GVE_ADMINQ_DESTROY_TX_QUEUE		= 0x7,
-	GVE_ADMINQ_DESTROY_RX_QUEUE		= 0x8,
-	GVE_ADMINQ_DECONFIGURE_DEVICE_RESOURCES	= 0x9,
-	GVE_ADMINQ_SET_DRIVER_PARAMETER		= 0xB,
-	GVE_ADMINQ_REPORT_STATS			= 0xC,
-	GVE_ADMINQ_REPORT_LINK_SPEED		= 0xD,
-	GVE_ADMINQ_GET_PTYPE_MAP		= 0xE,
-	GVE_ADMINQ_VERIFY_DRIVER_COMPATIBILITY	= 0xF,
+	GVE_ADMINQ_DESCRIBE_DEVICE = 0x1,
+	GVE_ADMINQ_CONFIGURE_DEVICE_RESOURCES = 0x2,
+	GVE_ADMINQ_REGISTER_PAGE_LIST = 0x3,
+	GVE_ADMINQ_UNREGISTER_PAGE_LIST = 0x4,
+	GVE_ADMINQ_CREATE_TX_QUEUE = 0x5,
+	GVE_ADMINQ_CREATE_RX_QUEUE = 0x6,
+	GVE_ADMINQ_DESTROY_TX_QUEUE = 0x7,
+	GVE_ADMINQ_DESTROY_RX_QUEUE = 0x8,
+	GVE_ADMINQ_DECONFIGURE_DEVICE_RESOURCES = 0x9,
+	GVE_ADMINQ_SET_DRIVER_PARAMETER = 0xB,
+	GVE_ADMINQ_REPORT_STATS = 0xC,
+	GVE_ADMINQ_REPORT_LINK_SPEED = 0xD,
+	GVE_ADMINQ_GET_PTYPE_MAP = 0xE,
+	GVE_ADMINQ_VERIFY_DRIVER_COMPATIBILITY = 0xF,
 };
 
 /* Admin queue status codes */
 enum gve_adminq_statuses {
-	GVE_ADMINQ_COMMAND_UNSET			= 0x0,
-	GVE_ADMINQ_COMMAND_PASSED			= 0x1,
-	GVE_ADMINQ_COMMAND_ERROR_ABORTED		= 0xFFFFFFF0,
-	GVE_ADMINQ_COMMAND_ERROR_ALREADY_EXISTS		= 0xFFFFFFF1,
-	GVE_ADMINQ_COMMAND_ERROR_CANCELLED		= 0xFFFFFFF2,
-	GVE_ADMINQ_COMMAND_ERROR_DATALOSS		= 0xFFFFFFF3,
-	GVE_ADMINQ_COMMAND_ERROR_DEADLINE_EXCEEDED	= 0xFFFFFFF4,
-	GVE_ADMINQ_COMMAND_ERROR_FAILED_PRECONDITION	= 0xFFFFFFF5,
-	GVE_ADMINQ_COMMAND_ERROR_INTERNAL_ERROR		= 0xFFFFFFF6,
-	GVE_ADMINQ_COMMAND_ERROR_INVALID_ARGUMENT	= 0xFFFFFFF7,
-	GVE_ADMINQ_COMMAND_ERROR_NOT_FOUND		= 0xFFFFFFF8,
-	GVE_ADMINQ_COMMAND_ERROR_OUT_OF_RANGE		= 0xFFFFFFF9,
-	GVE_ADMINQ_COMMAND_ERROR_PERMISSION_DENIED	= 0xFFFFFFFA,
-	GVE_ADMINQ_COMMAND_ERROR_UNAUTHENTICATED	= 0xFFFFFFFB,
-	GVE_ADMINQ_COMMAND_ERROR_RESOURCE_EXHAUSTED	= 0xFFFFFFFC,
-	GVE_ADMINQ_COMMAND_ERROR_UNAVAILABLE		= 0xFFFFFFFD,
-	GVE_ADMINQ_COMMAND_ERROR_UNIMPLEMENTED		= 0xFFFFFFFE,
-	GVE_ADMINQ_COMMAND_ERROR_UNKNOWN_ERROR		= 0xFFFFFFFF,
+	GVE_ADMINQ_COMMAND_UNSET = 0x0,
+	GVE_ADMINQ_COMMAND_PASSED = 0x1,
+	GVE_ADMINQ_COMMAND_ERROR_ABORTED = 0xFFFFFFF0,
+	GVE_ADMINQ_COMMAND_ERROR_ALREADY_EXISTS = 0xFFFFFFF1,
+	GVE_ADMINQ_COMMAND_ERROR_CANCELLED = 0xFFFFFFF2,
+	GVE_ADMINQ_COMMAND_ERROR_DATALOSS = 0xFFFFFFF3,
+	GVE_ADMINQ_COMMAND_ERROR_DEADLINE_EXCEEDED = 0xFFFFFFF4,
+	GVE_ADMINQ_COMMAND_ERROR_FAILED_PRECONDITION = 0xFFFFFFF5,
+	GVE_ADMINQ_COMMAND_ERROR_INTERNAL_ERROR = 0xFFFFFFF6,
+	GVE_ADMINQ_COMMAND_ERROR_INVALID_ARGUMENT = 0xFFFFFFF7,
+	GVE_ADMINQ_COMMAND_ERROR_NOT_FOUND = 0xFFFFFFF8,
+	GVE_ADMINQ_COMMAND_ERROR_OUT_OF_RANGE = 0xFFFFFFF9,
+	GVE_ADMINQ_COMMAND_ERROR_PERMISSION_DENIED = 0xFFFFFFFA,
+	GVE_ADMINQ_COMMAND_ERROR_UNAUTHENTICATED = 0xFFFFFFFB,
+	GVE_ADMINQ_COMMAND_ERROR_RESOURCE_EXHAUSTED = 0xFFFFFFFC,
+	GVE_ADMINQ_COMMAND_ERROR_UNAVAILABLE = 0xFFFFFFFD,
+	GVE_ADMINQ_COMMAND_ERROR_UNIMPLEMENTED = 0xFFFFFFFE,
+	GVE_ADMINQ_COMMAND_ERROR_UNKNOWN_ERROR = 0xFFFFFFFF,
 };
 
 #define GVE_ADMINQ_DEVICE_DESCRIPTOR_VERSION 1
@@ -103,10 +106,10 @@ struct gve_device_descriptor {
 	__be16 counters;
 	__be16 reserved2;
 	__be16 rx_pages_per_qpl;
-	uint8_t  mac[ETHER_ADDR_LEN];
+	uint8_t mac[ETHER_ADDR_LEN];
 	__be16 num_device_options;
 	__be16 total_length;
-	uint8_t  reserved3[6];
+	uint8_t reserved3[6];
 };
 
 _Static_assert(sizeof(struct gve_device_descriptor) == 40,
@@ -185,7 +188,7 @@ enum gve_dev_opt_req_feat_mask {
 };
 
 enum gve_sup_feature_mask {
-	GVE_SUP_MODIFY_RING_MASK  = 1 << 0,
+	GVE_SUP_MODIFY_RING_MASK = 1 << 0,
 	GVE_SUP_JUMBO_FRAMES_MASK = 1 << 2,
 };
 
@@ -199,10 +202,10 @@ enum gve_driver_capability {
 	gve_driver_capability_alt_miss_compl = 4,
 };
 
-#define GVE_CAP1(a) BIT((int) a)
-#define GVE_CAP2(a) BIT(((int) a) - 64)
-#define GVE_CAP3(a) BIT(((int) a) - 128)
-#define GVE_CAP4(a) BIT(((int) a) - 192)
+#define GVE_CAP1(a) BIT((int)a)
+#define GVE_CAP2(a) BIT(((int)a) - 64)
+#define GVE_CAP3(a) BIT(((int)a) - 128)
+#define GVE_CAP4(a) BIT(((int)a) - 192)
 
 /*
  * The following four defines describe 256 compatibility bits.
@@ -305,8 +308,8 @@ _Static_assert(sizeof(struct gve_adminq_create_rx_queue) == 56,
 struct gve_queue_resources {
 	union {
 		struct {
-			__be32 db_index;	/* Device -> Guest */
-			__be32 counter_index;	/* Device -> Guest */
+			__be32 db_index;      /* Device -> Guest */
+			__be32 counter_index; /* Device -> Guest */
 		};
 		uint8_t reserved[64];
 	};
@@ -331,7 +334,7 @@ _Static_assert(sizeof(struct gve_adminq_destroy_rx_queue) == 4,
 
 /* GVE Set Driver Parameter Types */
 enum gve_set_driver_param_types {
-	GVE_SET_PARAM_MTU	= 0x1,
+	GVE_SET_PARAM_MTU = 0x1,
 };
 
 struct gve_adminq_set_driver_parameter {
@@ -357,7 +360,7 @@ struct gve_adminq_command {
 	__be32 status;
 	union {
 		struct gve_adminq_configure_device_resources
-					configure_device_resources;
+		    configure_device_resources;
 		struct gve_adminq_create_tx_queue create_tx_queue;
 		struct gve_adminq_create_rx_queue create_rx_queue;
 		struct gve_adminq_destroy_tx_queue destroy_tx_queue;
@@ -367,7 +370,7 @@ struct gve_adminq_command {
 		struct gve_adminq_unregister_page_list unreg_page_list;
 		struct gve_adminq_set_driver_parameter set_driver_param;
 		struct gve_adminq_verify_driver_compatibility
-					verify_driver_compatibility;
+		    verify_driver_compatibility;
 		uint8_t reserved[56];
 	};
 };
@@ -387,8 +390,9 @@ int gve_adminq_configure_device_resources(struct gve_priv *priv);
 int gve_adminq_deconfigure_device_resources(struct gve_priv *priv);
 void gve_release_adminq(struct gve_priv *priv);
 int gve_adminq_register_page_list(struct gve_priv *priv,
-        struct gve_queue_page_list *qpl);
-int gve_adminq_unregister_page_list(struct gve_priv *priv, uint32_t page_list_id);
+    struct gve_queue_page_list *qpl);
+int gve_adminq_unregister_page_list(struct gve_priv *priv,
+    uint32_t page_list_id);
 int gve_adminq_verify_driver_compatibility(struct gve_priv *priv,
-        uint64_t driver_info_len, vm_paddr_t driver_info_addr);
+    uint64_t driver_info_len, vm_paddr_t driver_info_addr);
 #endif /* _GVE_AQ_H_ */

@@ -29,37 +29,35 @@
  * SUCH DAMAGE.
  */
 
-
-
 /*
  * Common network command support routines.
  */
 #include <sys/param.h>
+#include <sys/protosw.h>
 #include <sys/queue.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
-#include <sys/protosw.h>
 
 #include <net/route.h>
 #include <netinet/in.h>
+#include <netinet/in_pcb.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
-#include <netinet/in_pcb.h>
-#include <arpa/inet.h>
 
+#include <arpa/inet.h>
 #include <ctype.h>
 #include <netdb.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "systat.h"
 #include "extern.h"
+#include "systat.h"
 
-#define	streq(a,b)	(strcmp(a,b)==0)
+#define streq(a, b) (strcmp(a, b) == 0)
 
-static	struct hitem {
-	struct	in_addr addr;
-	int	onoff;
+static struct hitem {
+	struct in_addr addr;
+	int onoff;
 } *hosts;
 
 int nports, nhosts, protos;
@@ -97,7 +95,8 @@ netcmd(const char *cmd, const char *args)
 		return (1);
 	}
 	if (prefix(cmd, "show")) {
-		move(CMDLINE, 0); clrtoeol();
+		move(CMDLINE, 0);
+		clrtoeol();
 		if (*args == '\0') {
 			showprotos();
 			showhosts();
@@ -129,7 +128,7 @@ changeitems(const char *args, int onoff)
 	cp = strchr(tmpstr1, '\n');
 	if (cp)
 		*cp = '\0';
-	for (;;tmpstr1 = cp) {
+	for (;; tmpstr1 = cp) {
 		for (cp = tmpstr1; *cp && isspace(*cp); cp++)
 			;
 		tmpstr1 = cp;
@@ -140,7 +139,9 @@ changeitems(const char *args, int onoff)
 		if (cp - tmpstr1 == 0)
 			break;
 		sp = getservbyname(tmpstr1,
-		    protos == TCP ? "tcp" : protos == UDP ? "udp" : 0);
+		    protos == TCP     ? "tcp" :
+			protos == UDP ? "udp" :
+					0);
 		if (sp) {
 			selectport(sp->s_port, onoff);
 			continue;
@@ -179,17 +180,17 @@ static void
 showprotos(void)
 {
 
-	if ((protos&TCP) == 0)
+	if ((protos & TCP) == 0)
 		addch('!');
 	addstr("tcp ");
-	if ((protos&UDP) == 0)
+	if ((protos & UDP) == 0)
 		addch('!');
 	addstr("udp ");
 }
 
-static	struct pitem {
-	long	port;
-	int	onoff;
+static struct pitem {
+	long port;
+	int onoff;
 } *ports;
 
 static int
@@ -210,9 +211,10 @@ selectport(long port, int onoff)
 			return (0);
 		}
 	if (nports == 0)
-		ports = (struct pitem *)malloc(sizeof (*p));
+		ports = (struct pitem *)malloc(sizeof(*p));
 	else
-		ports = (struct pitem *)realloc(ports, (nports+1)*sizeof (*p));
+		ports = (struct pitem *)realloc(ports,
+		    (nports + 1) * sizeof(*p));
 	p = &ports[nports++];
 	p->port = port;
 	p->onoff = onoff;
@@ -225,9 +227,10 @@ checkport(struct in_conninfo *inc)
 	struct pitem *p;
 
 	if (ports)
-	for (p = ports; p < ports+nports; p++)
-		if (p->port == inc->inc_lport || p->port == inc->inc_fport)
-			return (p->onoff);
+		for (p = ports; p < ports + nports; p++)
+			if (p->port == inc->inc_lport ||
+			    p->port == inc->inc_fport)
+				return (p->onoff);
 	return (1);
 }
 
@@ -237,9 +240,11 @@ showports(void)
 	struct pitem *p;
 	struct servent *sp;
 
-	for (p = ports; p < ports+nports; p++) {
+	for (p = ports; p < ports + nports; p++) {
 		sp = getservbyport(p->port,
-		    protos == (TCP|UDP) ? 0 : protos == TCP ? "tcp" : "udp");
+		    protos == (TCP | UDP) ? 0 :
+			protos == TCP	  ? "tcp" :
+					    "udp");
 		if (!p->onoff)
 			addch('!');
 		if (sp)
@@ -261,15 +266,16 @@ selecthost(struct in_addr *in, int onoff)
 		nhosts = 0;
 		return (1);
 	}
-	for (p = hosts; p < hosts+nhosts; p++)
+	for (p = hosts; p < hosts + nhosts; p++)
 		if (p->addr.s_addr == in->s_addr) {
 			p->onoff = onoff;
 			return (0);
 		}
 	if (nhosts == 0)
-		hosts = (struct hitem *)malloc(sizeof (*p));
+		hosts = (struct hitem *)malloc(sizeof(*p));
 	else
-		hosts = (struct hitem *)realloc(hosts, (nhosts+1)*sizeof (*p));
+		hosts = (struct hitem *)realloc(hosts,
+		    (nhosts + 1) * sizeof(*p));
 	p = &hosts[nhosts++];
 	p->addr = *in;
 	p->onoff = onoff;
@@ -282,10 +288,10 @@ checkhost(struct in_conninfo *inc)
 	struct hitem *p;
 
 	if (hosts)
-	for (p = hosts; p < hosts+nhosts; p++)
-		if (p->addr.s_addr == inc->inc_laddr.s_addr ||
-		    p->addr.s_addr == inc->inc_faddr.s_addr)
-			return (p->onoff);
+		for (p = hosts; p < hosts + nhosts; p++)
+			if (p->addr.s_addr == inc->inc_laddr.s_addr ||
+			    p->addr.s_addr == inc->inc_faddr.s_addr)
+				return (p->onoff);
 	return (1);
 }
 
@@ -295,8 +301,8 @@ showhosts(void)
 	struct hitem *p;
 	struct hostent *hp;
 
-	for (p = hosts; p < hosts+nhosts; p++) {
-		hp = gethostbyaddr((char *)&p->addr, sizeof (p->addr), AF_INET);
+	for (p = hosts; p < hosts + nhosts; p++) {
+		hp = gethostbyaddr((char *)&p->addr, sizeof(p->addr), AF_INET);
 		if (!p->onoff)
 			addch('!');
 		printw("%s ", hp ? hp->h_name : (char *)inet_ntoa(p->addr));

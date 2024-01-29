@@ -5,6 +5,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "igc_api.h"
 
 static void igc_config_collision_dist_generic(struct igc_hw *hw);
@@ -15,7 +16,8 @@ static void igc_config_collision_dist_generic(struct igc_hw *hw);
  *
  *  Setups up the function pointers to no-op functions
  **/
-void igc_init_mac_ops_generic(struct igc_hw *hw)
+void
+igc_init_mac_ops_generic(struct igc_hw *hw)
 {
 	struct igc_mac_info *mac = &hw->mac;
 	DEBUGFUNC("igc_init_mac_ops_generic");
@@ -30,7 +32,8 @@ void igc_init_mac_ops_generic(struct igc_hw *hw)
  *  igc_null_ops_generic - No-op function, returns 0
  *  @hw: pointer to the HW structure
  **/
-s32 igc_null_ops_generic(struct igc_hw IGC_UNUSEDARG *hw)
+s32
+igc_null_ops_generic(struct igc_hw IGC_UNUSEDARG *hw)
 {
 	DEBUGFUNC("igc_null_ops_generic");
 	return IGC_SUCCESS;
@@ -40,7 +43,8 @@ s32 igc_null_ops_generic(struct igc_hw IGC_UNUSEDARG *hw)
  *  igc_null_mac_generic - No-op function, return void
  *  @hw: pointer to the HW structure
  **/
-void igc_null_mac_generic(struct igc_hw IGC_UNUSEDARG *hw)
+void
+igc_null_mac_generic(struct igc_hw IGC_UNUSEDARG *hw)
 {
 	DEBUGFUNC("igc_null_mac_generic");
 	return;
@@ -52,8 +56,9 @@ void igc_null_mac_generic(struct igc_hw IGC_UNUSEDARG *hw)
  *  @s: dummy variable
  *  @d: dummy variable
  **/
-s32 igc_null_link_info(struct igc_hw IGC_UNUSEDARG *hw,
-			 u16 IGC_UNUSEDARG *s, u16 IGC_UNUSEDARG *d)
+s32
+igc_null_link_info(struct igc_hw IGC_UNUSEDARG *hw, u16 IGC_UNUSEDARG *s,
+    u16 IGC_UNUSEDARG *d)
 {
 	DEBUGFUNC("igc_null_link_info");
 	return IGC_SUCCESS;
@@ -63,7 +68,8 @@ s32 igc_null_link_info(struct igc_hw IGC_UNUSEDARG *hw,
  *  igc_null_mng_mode - No-op function, return false
  *  @hw: pointer to the HW structure
  **/
-bool igc_null_mng_mode(struct igc_hw IGC_UNUSEDARG *hw)
+bool
+igc_null_mng_mode(struct igc_hw IGC_UNUSEDARG *hw)
 {
 	DEBUGFUNC("igc_null_mng_mode");
 	return false;
@@ -75,8 +81,9 @@ bool igc_null_mng_mode(struct igc_hw IGC_UNUSEDARG *hw)
  *  @h: dummy variable
  *  @a: dummy variable
  **/
-void igc_null_update_mc(struct igc_hw IGC_UNUSEDARG *hw,
-			  u8 IGC_UNUSEDARG *h, u32 IGC_UNUSEDARG a)
+void
+igc_null_update_mc(struct igc_hw IGC_UNUSEDARG *hw, u8 IGC_UNUSEDARG *h,
+    u32 IGC_UNUSEDARG a)
 {
 	DEBUGFUNC("igc_null_update_mc");
 	return;
@@ -88,8 +95,9 @@ void igc_null_update_mc(struct igc_hw IGC_UNUSEDARG *hw,
  *  @a: dummy variable
  *  @b: dummy variable
  **/
-void igc_null_write_vfta(struct igc_hw IGC_UNUSEDARG *hw,
-			   u32 IGC_UNUSEDARG a, u32 IGC_UNUSEDARG b)
+void
+igc_null_write_vfta(struct igc_hw IGC_UNUSEDARG *hw, u32 IGC_UNUSEDARG a,
+    u32 IGC_UNUSEDARG b)
 {
 	DEBUGFUNC("igc_null_write_vfta");
 	return;
@@ -101,8 +109,9 @@ void igc_null_write_vfta(struct igc_hw IGC_UNUSEDARG *hw,
  *  @h: dummy variable
  *  @a: dummy variable
  **/
-int igc_null_rar_set(struct igc_hw IGC_UNUSEDARG *hw,
-			u8 IGC_UNUSEDARG *h, u32 IGC_UNUSEDARG a)
+int
+igc_null_rar_set(struct igc_hw IGC_UNUSEDARG *hw, u8 IGC_UNUSEDARG *h,
+    u32 IGC_UNUSEDARG a)
 {
 	DEBUGFUNC("igc_null_rar_set");
 	return IGC_SUCCESS;
@@ -114,7 +123,8 @@ int igc_null_rar_set(struct igc_hw IGC_UNUSEDARG *hw,
  *
  *  Sets the LAN function id to zero for a single port device.
  **/
-void igc_set_lan_id_single_port(struct igc_hw *hw)
+void
+igc_set_lan_id_single_port(struct igc_hw *hw)
 {
 	struct igc_bus_info *bus = &hw->bus;
 
@@ -128,7 +138,8 @@ void igc_set_lan_id_single_port(struct igc_hw *hw)
  *  Clears the register array which contains the VLAN filter table by
  *  setting all the values to 0.
  **/
-void igc_clear_vfta_generic(struct igc_hw *hw)
+void
+igc_clear_vfta_generic(struct igc_hw *hw)
 {
 	u32 offset;
 
@@ -149,7 +160,8 @@ void igc_clear_vfta_generic(struct igc_hw *hw)
  *  Writes value at the given offset in the register array which stores
  *  the VLAN filter table.
  **/
-void igc_write_vfta_generic(struct igc_hw *hw, u32 offset, u32 value)
+void
+igc_write_vfta_generic(struct igc_hw *hw, u32 offset, u32 value)
 {
 	DEBUGFUNC("igc_write_vfta_generic");
 
@@ -166,10 +178,11 @@ void igc_write_vfta_generic(struct igc_hw *hw, u32 offset, u32 value)
  *  register to the devices MAC address and clearing all the other receive
  *  address registers to 0.
  **/
-void igc_init_rx_addrs_generic(struct igc_hw *hw, u16 rar_count)
+void
+igc_init_rx_addrs_generic(struct igc_hw *hw, u16 rar_count)
 {
 	u32 i;
-	u8 mac_addr[ETH_ADDR_LEN] = {0};
+	u8 mac_addr[ETH_ADDR_LEN] = { 0 };
 
 	DEBUGFUNC("igc_init_rx_addrs_generic");
 
@@ -179,7 +192,7 @@ void igc_init_rx_addrs_generic(struct igc_hw *hw, u16 rar_count)
 	hw->mac.ops.rar_set(hw, hw->mac.addr, 0);
 
 	/* Zero out the other (rar_entry_count - 1) receive addresses */
-	DEBUGOUT1("Clearing RAR[1-%u]\n", rar_count-1);
+	DEBUGOUT1("Clearing RAR[1-%u]\n", rar_count - 1);
 	for (i = 1; i < rar_count; i++)
 		hw->mac.ops.rar_set(hw, mac_addr, i);
 }
@@ -196,7 +209,8 @@ void igc_init_rx_addrs_generic(struct igc_hw *hw, u16 rar_count)
  *  This function will return SUCCESS unless it encounters an error while
  *  reading the EEPROM.
  **/
-s32 igc_check_alt_mac_addr_generic(struct igc_hw *hw)
+s32
+igc_check_alt_mac_addr_generic(struct igc_hw *hw)
 {
 	u32 i;
 	s32 ret_val;
@@ -209,9 +223,8 @@ s32 igc_check_alt_mac_addr_generic(struct igc_hw *hw)
 	if (ret_val)
 		return ret_val;
 
-
 	ret_val = hw->nvm.ops.read(hw, NVM_ALT_MAC_ADDR_PTR, 1,
-				   &nvm_alt_mac_addr_offset);
+	    &nvm_alt_mac_addr_offset);
 	if (ret_val) {
 		DEBUGOUT("NVM Read Error\n");
 		return ret_val;
@@ -260,7 +273,8 @@ s32 igc_check_alt_mac_addr_generic(struct igc_hw *hw)
  *  Sets the receive address array register at index to the address passed
  *  in by addr.
  **/
-int igc_rar_set_generic(struct igc_hw *hw, u8 *addr, u32 index)
+int
+igc_rar_set_generic(struct igc_hw *hw, u8 *addr, u32 index)
 {
 	u32 rar_low, rar_high;
 
@@ -269,10 +283,10 @@ int igc_rar_set_generic(struct igc_hw *hw, u8 *addr, u32 index)
 	/* HW expects these in little endian so we reverse the byte order
 	 * from network order (big endian) to little endian
 	 */
-	rar_low = ((u32) addr[0] | ((u32) addr[1] << 8) |
-		   ((u32) addr[2] << 16) | ((u32) addr[3] << 24));
+	rar_low = ((u32)addr[0] | ((u32)addr[1] << 8) | ((u32)addr[2] << 16) |
+	    ((u32)addr[3] << 24));
 
-	rar_high = ((u32) addr[4] | ((u32) addr[5] << 8));
+	rar_high = ((u32)addr[4] | ((u32)addr[5] << 8));
 
 	/* If MAC address zero, no need to set the AV bit */
 	if (rar_low || rar_high)
@@ -298,7 +312,8 @@ int igc_rar_set_generic(struct igc_hw *hw, u8 *addr, u32 index)
  *  Generates a multicast address hash value which is used to determine
  *  the multicast filter table array address and new table value.
  **/
-u32 igc_hash_mc_addr_generic(struct igc_hw *hw, u8 *mc_addr)
+u32
+igc_hash_mc_addr_generic(struct igc_hw *hw, u8 *mc_addr)
 {
 	u32 hash_value, hash_mask;
 	u8 bit_shift = 0;
@@ -354,8 +369,9 @@ u32 igc_hash_mc_addr_generic(struct igc_hw *hw, u8 *mc_addr)
 		break;
 	}
 
-	hash_value = hash_mask & (((mc_addr[4] >> (8 - bit_shift)) |
-				  (((u16) mc_addr[5]) << bit_shift)));
+	hash_value = hash_mask &
+	    (((mc_addr[4] >> (8 - bit_shift)) |
+		(((u16)mc_addr[5]) << bit_shift)));
 
 	return hash_value;
 }
@@ -369,8 +385,9 @@ u32 igc_hash_mc_addr_generic(struct igc_hw *hw, u8 *mc_addr)
  *  Updates entire Multicast Table Array.
  *  The caller must have a packed mc_addr_list of multicast addresses.
  **/
-void igc_update_mc_addr_list_generic(struct igc_hw *hw,
-				       u8 *mc_addr_list, u32 mc_addr_count)
+void
+igc_update_mc_addr_list_generic(struct igc_hw *hw, u8 *mc_addr_list,
+    u32 mc_addr_count)
 {
 	u32 hash_value, hash_bit, hash_reg;
 	int i;
@@ -381,7 +398,7 @@ void igc_update_mc_addr_list_generic(struct igc_hw *hw,
 	memset(&hw->mac.mta_shadow, 0, sizeof(hw->mac.mta_shadow));
 
 	/* update mta_shadow from mc_addr_list */
-	for (i = 0; (u32) i < mc_addr_count; i++) {
+	for (i = 0; (u32)i < mc_addr_count; i++) {
 		hash_value = igc_hash_mc_addr_generic(hw, mc_addr_list);
 
 		hash_reg = (hash_value >> 5) & (hw->mac.mta_reg_count - 1);
@@ -403,7 +420,8 @@ void igc_update_mc_addr_list_generic(struct igc_hw *hw,
  *
  *  Clears the base hardware counters by reading the counter registers.
  **/
-void igc_clear_hw_cntrs_base_generic(struct igc_hw *hw)
+void
+igc_clear_hw_cntrs_base_generic(struct igc_hw *hw)
 {
 	DEBUGFUNC("igc_clear_hw_cntrs_base_generic");
 
@@ -456,7 +474,8 @@ void igc_clear_hw_cntrs_base_generic(struct igc_hw *hw)
  *  change in link status has been detected, then we read the PHY registers
  *  to get the current speed/duplex if link exists.
  **/
-s32 igc_check_for_copper_link_generic(struct igc_hw *hw)
+s32
+igc_check_for_copper_link_generic(struct igc_hw *hw)
 {
 	struct igc_mac_info *mac = &hw->mac;
 	s32 ret_val;
@@ -524,7 +543,8 @@ s32 igc_check_for_copper_link_generic(struct igc_hw *hw)
  *  should be established.  Assumes the hardware has previously been reset
  *  and the transmitter and receiver are not enabled.
  **/
-s32 igc_setup_link_generic(struct igc_hw *hw)
+s32
+igc_setup_link_generic(struct igc_hw *hw)
 {
 	s32 ret_val;
 
@@ -549,7 +569,7 @@ s32 igc_setup_link_generic(struct igc_hw *hw)
 	hw->fc.current_mode = hw->fc.requested_mode;
 
 	DEBUGOUT1("After fix-ups FlowControl is now = %x\n",
-		hw->fc.current_mode);
+	    hw->fc.current_mode);
 
 	/* Call the necessary media_type subroutine to configure the link. */
 	ret_val = hw->mac.ops.setup_physical_interface(hw);
@@ -561,7 +581,8 @@ s32 igc_setup_link_generic(struct igc_hw *hw)
 	 * control is disabled, because it does not hurt anything to
 	 * initialize these registers.
 	 */
-	DEBUGOUT("Initializing the Flow Control address, type and timer regs\n");
+	DEBUGOUT(
+	    "Initializing the Flow Control address, type and timer regs\n");
 	IGC_WRITE_REG(hw, IGC_FCT, FLOW_CONTROL_TYPE);
 	IGC_WRITE_REG(hw, IGC_FCAH, FLOW_CONTROL_ADDRESS_HIGH);
 	IGC_WRITE_REG(hw, IGC_FCAL, FLOW_CONTROL_ADDRESS_LOW);
@@ -578,7 +599,8 @@ s32 igc_setup_link_generic(struct igc_hw *hw)
  *  Configures the collision distance to the default value and is used
  *  during link setup.
  **/
-static void igc_config_collision_dist_generic(struct igc_hw *hw)
+static void
+igc_config_collision_dist_generic(struct igc_hw *hw)
 {
 	u32 tctl;
 
@@ -601,7 +623,8 @@ static void igc_config_collision_dist_generic(struct igc_hw *hw)
  *  flow control XON frame transmission is enabled, then set XON frame
  *  transmission as well.
  **/
-s32 igc_set_fc_watermarks_generic(struct igc_hw *hw)
+s32
+igc_set_fc_watermarks_generic(struct igc_hw *hw)
 {
 	u32 fcrtl = 0, fcrth = 0;
 
@@ -640,7 +663,8 @@ s32 igc_set_fc_watermarks_generic(struct igc_hw *hw)
  *  autonegotiation is managed by the PHY rather than the MAC.  Software must
  *  also configure these bits when link is forced on a fiber connection.
  **/
-s32 igc_force_mac_fc_generic(struct igc_hw *hw)
+s32
+igc_force_mac_fc_generic(struct igc_hw *hw)
 {
 	u32 ctrl;
 
@@ -702,7 +726,8 @@ s32 igc_force_mac_fc_generic(struct igc_hw *hw)
  *  and did not fail, then we configure flow control based on our link
  *  partner.
  **/
-s32 igc_config_fc_after_link_up_generic(struct igc_hw *hw)
+s32
+igc_config_fc_after_link_up_generic(struct igc_hw *hw)
 {
 	struct igc_mac_info *mac = &hw->mac;
 	s32 ret_val = IGC_SUCCESS;
@@ -734,7 +759,8 @@ s32 igc_config_fc_after_link_up_generic(struct igc_hw *hw)
 			return ret_val;
 
 		if (!(mii_status_reg & MII_SR_AUTONEG_COMPLETE)) {
-			DEBUGOUT("Copper PHY and Auto Neg has not completed.\n");
+			DEBUGOUT(
+			    "Copper PHY and Auto Neg has not completed.\n");
 			return ret_val;
 		}
 
@@ -745,11 +771,11 @@ s32 igc_config_fc_after_link_up_generic(struct igc_hw *hw)
 		 * flow control was negotiated.
 		 */
 		ret_val = hw->phy.ops.read_reg(hw, PHY_AUTONEG_ADV,
-					       &mii_nway_adv_reg);
+		    &mii_nway_adv_reg);
 		if (ret_val)
 			return ret_val;
 		ret_val = hw->phy.ops.read_reg(hw, PHY_LP_ABILITY,
-					       &mii_nway_lp_ability_reg);
+		    &mii_nway_lp_ability_reg);
 		if (ret_val)
 			return ret_val;
 
@@ -799,7 +825,8 @@ s32 igc_config_fc_after_link_up_generic(struct igc_hw *hw)
 				DEBUGOUT("Flow Control = FULL.\n");
 			} else {
 				hw->fc.current_mode = igc_fc_rx_pause;
-				DEBUGOUT("Flow Control = Rx PAUSE frames only.\n");
+				DEBUGOUT(
+				    "Flow Control = Rx PAUSE frames only.\n");
 			}
 		}
 		/* For receiving PAUSE frames ONLY.
@@ -810,9 +837,9 @@ s32 igc_config_fc_after_link_up_generic(struct igc_hw *hw)
 		 *   0   |    1    |   1   |    1    | igc_fc_tx_pause
 		 */
 		else if (!(mii_nway_adv_reg & NWAY_AR_PAUSE) &&
-			  (mii_nway_adv_reg & NWAY_AR_ASM_DIR) &&
-			  (mii_nway_lp_ability_reg & NWAY_LPAR_PAUSE) &&
-			  (mii_nway_lp_ability_reg & NWAY_LPAR_ASM_DIR)) {
+		    (mii_nway_adv_reg & NWAY_AR_ASM_DIR) &&
+		    (mii_nway_lp_ability_reg & NWAY_LPAR_PAUSE) &&
+		    (mii_nway_lp_ability_reg & NWAY_LPAR_ASM_DIR)) {
 			hw->fc.current_mode = igc_fc_tx_pause;
 			DEBUGOUT("Flow Control = Tx PAUSE frames only.\n");
 		}
@@ -824,9 +851,9 @@ s32 igc_config_fc_after_link_up_generic(struct igc_hw *hw)
 		 *   1   |    1    |   0   |    1    | igc_fc_rx_pause
 		 */
 		else if ((mii_nway_adv_reg & NWAY_AR_PAUSE) &&
-			 (mii_nway_adv_reg & NWAY_AR_ASM_DIR) &&
-			 !(mii_nway_lp_ability_reg & NWAY_LPAR_PAUSE) &&
-			 (mii_nway_lp_ability_reg & NWAY_LPAR_ASM_DIR)) {
+		    (mii_nway_adv_reg & NWAY_AR_ASM_DIR) &&
+		    !(mii_nway_lp_ability_reg & NWAY_LPAR_PAUSE) &&
+		    (mii_nway_lp_ability_reg & NWAY_LPAR_ASM_DIR)) {
 			hw->fc.current_mode = igc_fc_rx_pause;
 			DEBUGOUT("Flow Control = Rx PAUSE frames only.\n");
 		} else {
@@ -872,8 +899,9 @@ s32 igc_config_fc_after_link_up_generic(struct igc_hw *hw)
  *  Read the status register for the current speed/duplex and store the current
  *  speed and duplex for copper connections.
  **/
-s32 igc_get_speed_and_duplex_copper_generic(struct igc_hw *hw, u16 *speed,
-					      u16 *duplex)
+s32
+igc_get_speed_and_duplex_copper_generic(struct igc_hw *hw, u16 *speed,
+    u16 *duplex)
 {
 	u32 status;
 
@@ -918,7 +946,8 @@ s32 igc_get_speed_and_duplex_copper_generic(struct igc_hw *hw, u16 *speed,
  *
  *  Acquire the HW semaphore to access the PHY or NVM
  **/
-s32 igc_get_hw_semaphore_generic(struct igc_hw *hw)
+s32
+igc_get_hw_semaphore_generic(struct igc_hw *hw)
 {
 	u32 swsm;
 	s32 timeout = hw->nvm.word_size + 1;
@@ -969,7 +998,8 @@ s32 igc_get_hw_semaphore_generic(struct igc_hw *hw)
  *
  *  Release hardware semaphore used to access the PHY or NVM
  **/
-void igc_put_hw_semaphore_generic(struct igc_hw *hw)
+void
+igc_put_hw_semaphore_generic(struct igc_hw *hw)
 {
 	u32 swsm;
 
@@ -988,7 +1018,8 @@ void igc_put_hw_semaphore_generic(struct igc_hw *hw)
  *
  *  Check EEPROM for Auto Read done bit.
  **/
-s32 igc_get_auto_rd_done_generic(struct igc_hw *hw)
+s32
+igc_get_auto_rd_done_generic(struct igc_hw *hw)
 {
 	s32 i = 0;
 
@@ -1020,7 +1051,8 @@ s32 igc_get_auto_rd_done_generic(struct igc_hw *hw)
  *  Disables PCI-Express master access and verifies there are no pending
  *  requests.
  **/
-s32 igc_disable_pcie_master_generic(struct igc_hw *hw)
+s32
+igc_disable_pcie_master_generic(struct igc_hw *hw)
 {
 	u32 ctrl;
 	s32 timeout = MASTER_DISABLE_TIMEOUT;
@@ -1033,7 +1065,7 @@ s32 igc_disable_pcie_master_generic(struct igc_hw *hw)
 
 	while (timeout) {
 		if (!(IGC_READ_REG(hw, IGC_STATUS) &
-		      IGC_STATUS_GIO_MASTER_ENABLE))
+			IGC_STATUS_GIO_MASTER_ENABLE))
 			break;
 		usec_delay(100);
 		timeout--;

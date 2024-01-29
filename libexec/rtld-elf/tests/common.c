@@ -33,7 +33,7 @@
 void
 expect_success(int binary, char *senv)
 {
-	char * const env[] = { senv, NULL };
+	char *const env[] = { senv, NULL };
 
 	try_to_run(binary, 0, env, "the hypotenuse of 3 and 4 is 5\n", "");
 }
@@ -41,21 +41,21 @@ expect_success(int binary, char *senv)
 void
 expect_missing_library(int binary, char *senv)
 {
-	char * const env[] = { senv, NULL };
+	char *const env[] = { senv, NULL };
 
 	try_to_run(binary, 1, env, "",
-	   "ld-elf.so.1: Shared object \"libpythagoras.so.0\" not found,"
+	    "ld-elf.so.1: Shared object \"libpythagoras.so.0\" not found,"
 	    " required by \"target\"\n");
 }
 
 void
-try_to_run(int binary, int exit_status, char * const *env,
-        const char *expected_out, const char *expected_err)
+try_to_run(int binary, int exit_status, char *const *env,
+    const char *expected_out, const char *expected_err)
 {
 	pid_t child = atf_utils_fork();
 
 	if (child == 0) {
-		char * const args[] = { "target", NULL };
+		char *const args[] = { "target", NULL };
 
 		fexecve(binary, args, env);
 		atf_tc_fail("fexecve() failed");

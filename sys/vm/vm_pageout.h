@@ -74,16 +74,16 @@
 extern u_long vm_page_max_user_wired;
 extern int vm_pageout_page_count;
 
-#define	VM_OOM_MEM	1
-#define	VM_OOM_MEM_PF	2
-#define	VM_OOM_SWAPZ	3
+#define VM_OOM_MEM 1
+#define VM_OOM_MEM_PF 2
+#define VM_OOM_SWAPZ 3
 
 /*
  * vm_lowmem flags.
  */
-#define	VM_LOW_KMEM	0x01
-#define	VM_LOW_PAGES	0x02
-#define	VM_LOW_MBUFS	0x04
+#define VM_LOW_KMEM 0x01
+#define VM_LOW_PAGES 0x02
+#define VM_LOW_MBUFS 0x04
 
 /*
  *	Exported routines.
@@ -107,4 +107,4 @@ void vm_swapout_run(void);
 void vm_swapout_run_idle(void);
 
 #endif /* _KERNEL */
-#endif	/* _VM_VM_PAGEOUT_H_ */
+#endif /* _VM_VM_PAGEOUT_H_ */

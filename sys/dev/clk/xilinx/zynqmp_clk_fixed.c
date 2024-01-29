@@ -26,21 +26,19 @@
  */
 
 #include <sys/cdefs.h>
-
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
 
 #include <dev/clk/clk.h>
-
 #include <dev/clk/xilinx/zynqmp_clk_fixed.h>
 
 #include "clkdev_if.h"
 #include "zynqmp_firmware_if.h"
 
 struct zynqmp_clk_fixed_softc {
-	device_t	firmware;
-	uint32_t	id;
+	device_t firmware;
+	uint32_t id;
 };
 
 static int
@@ -59,11 +57,11 @@ zynqmp_clk_fixed_recalc(struct clknode *clk, uint64_t *freq)
 	int rv;
 
 	sc = clknode_get_softc(clk);
-	rv = ZYNQMP_FIRMWARE_CLOCK_GET_FIXEDFACTOR(sc->firmware, sc->id, &mult, &div);
+	rv = ZYNQMP_FIRMWARE_CLOCK_GET_FIXEDFACTOR(sc->firmware, sc->id, &mult,
+	    &div);
 	if (rv != 0) {
 		printf("%s: Error while getting fixed factor for %s\n",
-		    __func__,
-		    clknode_get_name(clk));
+		    __func__, clknode_get_name(clk));
 		return (EINVAL);
 	}
 
@@ -73,16 +71,18 @@ zynqmp_clk_fixed_recalc(struct clknode *clk, uint64_t *freq)
 
 static clknode_method_t zynqmp_clk_fixed_clknode_methods[] = {
 	/* Device interface */
-	CLKNODEMETHOD(clknode_init,		zynqmp_clk_fixed_init),
-	CLKNODEMETHOD(clknode_recalc_freq,	zynqmp_clk_fixed_recalc),
+	CLKNODEMETHOD(clknode_init, zynqmp_clk_fixed_init),
+	CLKNODEMETHOD(clknode_recalc_freq, zynqmp_clk_fixed_recalc),
 	CLKNODEMETHOD_END
 };
 
 DEFINE_CLASS_1(zynqmp_clk_fixed_clknode, zynqmp_clk_fixed_clknode_class,
-    zynqmp_clk_fixed_clknode_methods, sizeof(struct zynqmp_clk_fixed_softc), clknode_class);
+    zynqmp_clk_fixed_clknode_methods, sizeof(struct zynqmp_clk_fixed_softc),
+    clknode_class);
 
 int
-zynqmp_clk_fixed_register(struct clkdom *clkdom, device_t fw, struct clknode_init_def *clkdef)
+zynqmp_clk_fixed_register(struct clkdom *clkdom, device_t fw,
+    struct clknode_init_def *clkdef)
 {
 	struct clknode *clk;
 	struct zynqmp_clk_fixed_softc *sc;

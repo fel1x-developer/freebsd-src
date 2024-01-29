@@ -27,9 +27,8 @@
 #ifndef IOVCTL_H
 #define IOVCTL_H
 
-char *		find_device(const char *);
-nvlist_t *	parse_config_file(const char *, const nvlist_t *);
-void		validate_config(nvlist_t *, const nvlist_t *, const regex_t *);
+char *find_device(const char *);
+nvlist_t *parse_config_file(const char *, const nvlist_t *);
+void validate_config(nvlist_t *, const nvlist_t *, const regex_t *);
 
 #endif
-

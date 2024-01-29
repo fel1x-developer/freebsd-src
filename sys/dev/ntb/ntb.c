@@ -25,34 +25,33 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/rmlock.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
+#include <sys/rmlock.h>
 #include <sys/sbuf.h>
 #include <sys/sysctl.h>
 
 #include "ntb.h"
 
-SYSCTL_NODE(_hw, OID_AUTO, ntb, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
-    "NTB sysctls");
+SYSCTL_NODE(_hw, OID_AUTO, ntb, CTLFLAG_RW | CTLFLAG_MPSAFE, 0, "NTB sysctls");
 
 struct ntb_child {
-	device_t	dev;
-	int		function;
-	int		enabled;
-	int		mwoff;
-	int		mwcnt;
-	int		spadoff;
-	int		spadcnt;
-	int		dboff;
-	int		dbcnt;
-	uint64_t	dbmask;
-	void		*ctx;
+	device_t dev;
+	int function;
+	int enabled;
+	int mwoff;
+	int mwcnt;
+	int spadoff;
+	int spadcnt;
+	int dboff;
+	int dbcnt;
+	uint64_t dbmask;
+	void *ctx;
 	const struct ntb_ctx_ops *ctx_ops;
-	struct rmlock	ctx_lock;
+	struct rmlock ctx_lock;
 	struct ntb_child *next;
 };
 
@@ -73,8 +72,10 @@ ntb_register_device(device_t dev)
 	dbu = 0;
 	dbt = flsll(NTB_DB_VALID_MASK(dev));
 
-	device_printf(dev, "%d memory windows, %d scratchpads, "
-	    "%d doorbells\n", mwt, spadt, dbt);
+	device_printf(dev,
+	    "%d memory windows, %d scratchpads, "
+	    "%d doorbells\n",
+	    mwt, spadt, dbt);
 
 	snprintf(buf, sizeof(buf), "hint.%s.%d.config", device_get_name(dev),
 	    device_get_unit(dev));
@@ -219,8 +220,8 @@ ntb_link_event(device_t dev)
 	enum ntb_width width;
 
 	if (NTB_LINK_IS_UP(dev, &speed, &width)) {
-		device_printf(dev, "Link is up (PCIe %d.x / x%d)\n",
-		    (int)speed, (int)width);
+		device_printf(dev, "Link is up (PCIe %d.x / x%d)\n", (int)speed,
+		    (int)width);
 	} else {
 		device_printf(dev, "Link is down\n");
 	}
@@ -410,7 +411,8 @@ ntb_mw_get_wc(device_t ntb, unsigned mw_idx, vm_memattr_t *mode)
 {
 	struct ntb_child *nc = device_get_ivars(ntb);
 
-	return (NTB_MW_GET_WC(device_get_parent(ntb), mw_idx + nc->mwoff, mode));
+	return (
+	    NTB_MW_GET_WC(device_get_parent(ntb), mw_idx + nc->mwoff, mode));
 }
 
 int
@@ -418,7 +420,8 @@ ntb_mw_set_wc(device_t ntb, unsigned mw_idx, vm_memattr_t mode)
 {
 	struct ntb_child *nc = device_get_ivars(ntb);
 
-	return (NTB_MW_SET_WC(device_get_parent(ntb), mw_idx + nc->mwoff, mode));
+	return (
+	    NTB_MW_SET_WC(device_get_parent(ntb), mw_idx + nc->mwoff, mode));
 }
 
 uint8_t
@@ -469,8 +472,8 @@ ntb_peer_spad_read(device_t ntb, unsigned int idx, uint32_t *val)
 {
 	struct ntb_child *nc = device_get_ivars(ntb);
 
-	return (NTB_PEER_SPAD_READ(device_get_parent(ntb), idx + nc->spadoff,
-	    val));
+	return (
+	    NTB_PEER_SPAD_READ(device_get_parent(ntb), idx + nc->spadoff, val));
 }
 
 uint64_t
@@ -493,8 +496,9 @@ ntb_db_vector_mask(device_t ntb, uint32_t vector)
 {
 	struct ntb_child *nc = device_get_ivars(ntb);
 
-	return ((NTB_DB_VECTOR_MASK(device_get_parent(ntb), vector)
-	    >> nc->dboff) & nc->dbmask);
+	return (
+	    (NTB_DB_VECTOR_MASK(device_get_parent(ntb), vector) >> nc->dboff) &
+	    nc->dbmask);
 }
 
 int
@@ -525,8 +529,8 @@ ntb_db_read(device_t ntb)
 {
 	struct ntb_child *nc = device_get_ivars(ntb);
 
-	return ((NTB_DB_READ(device_get_parent(ntb)) >> nc->dboff)
-	    & nc->dbmask);
+	return (
+	    (NTB_DB_READ(device_get_parent(ntb)) >> nc->dboff) & nc->dbmask);
 }
 
 void

@@ -27,33 +27,33 @@
  */
 
 #include <sys/cdefs.h>
-#include "namespace.h"
 #include <sys/param.h>
 #include <sys/auxv.h>
 #include <sys/elf.h>
 #include <sys/signalvar.h>
 #include <sys/syscall.h>
-#include <signal.h>
+
 #include <errno.h>
+#include <pthread.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pthread.h>
-#include "un-namespace.h"
-#include "libc_private.h"
 
 #include "libc_private.h"
+#include "namespace.h"
 #include "thr_private.h"
+#include "un-namespace.h"
 
 /* #define DEBUG_SIGNAL */
 #ifdef DEBUG_SIGNAL
-#define DBG_MSG		stdout_debug
+#define DBG_MSG stdout_debug
 #else
 #define DBG_MSG(x...)
 #endif
 
 struct usigaction {
 	struct sigaction sigact;
-	struct urwlock   lock;
+	struct urwlock lock;
 };
 
 static struct usigaction _thr_sigact[_SIG_MAXSIG];
@@ -71,25 +71,20 @@ static void check_deferred_signal(struct pthread *);
 static void check_suspend(struct pthread *);
 static void check_cancel(struct pthread *curthread, ucontext_t *ucp);
 
-int	_sigtimedwait(const sigset_t *set, siginfo_t *info,
-	const struct timespec * timeout);
-int	_sigwaitinfo(const sigset_t *set, siginfo_t *info);
-int	_sigwait(const sigset_t *set, int *sig);
-int	_setcontext(const ucontext_t *);
-int	_swapcontext(ucontext_t *, const ucontext_t *);
+int _sigtimedwait(const sigset_t *set, siginfo_t *info,
+    const struct timespec *timeout);
+int _sigwaitinfo(const sigset_t *set, siginfo_t *info);
+int _sigwait(const sigset_t *set, int *sig);
+int _setcontext(const ucontext_t *);
+int _swapcontext(ucontext_t *, const ucontext_t *);
 
-static const sigset_t _thr_deferset={{
-	0xffffffff & ~(_SIG_BIT(SIGBUS)|_SIG_BIT(SIGILL)|_SIG_BIT(SIGFPE)|
-	_SIG_BIT(SIGSEGV)|_SIG_BIT(SIGTRAP)|_SIG_BIT(SIGSYS)),
-	0xffffffff,
-	0xffffffff,
-	0xffffffff}};
+static const sigset_t _thr_deferset = { { 0xffffffff &
+	~(_SIG_BIT(SIGBUS) | _SIG_BIT(SIGILL) | _SIG_BIT(SIGFPE) |
+	    _SIG_BIT(SIGSEGV) | _SIG_BIT(SIGTRAP) | _SIG_BIT(SIGSYS)),
+    0xffffffff, 0xffffffff, 0xffffffff } };
 
-static const sigset_t _thr_maskset={{
-	0xffffffff,
-	0xffffffff,
-	0xffffffff,
-	0xffffffff}};
+static const sigset_t _thr_maskset = { { 0xffffffff, 0xffffffff, 0xffffffff,
+    0xffffffff } };
 
 static void
 thr_signal_block_slow(struct pthread *curthread)
@@ -186,8 +181,7 @@ thr_remove_thr_signals(const sigset_t *set, sigset_t *newset)
 }
 
 static void
-sigcancel_handler(int sig __unused,
-	siginfo_t *info __unused, ucontext_t *ucp)
+sigcancel_handler(int sig __unused, siginfo_t *info __unused, ucontext_t *ucp)
 {
 	struct pthread *curthread = _get_curthread();
 	int err;
@@ -200,8 +194,8 @@ sigcancel_handler(int sig __unused,
 	errno = err;
 }
 
-typedef void (*ohandler)(int sig, int code, struct sigcontext *scp,
-    char *addr, __sighandler_t *catcher);
+typedef void (*ohandler)(int sig, int code, struct sigcontext *scp, char *addr,
+    __sighandler_t *catcher);
 
 /*
  * The signal handler wrapper is entered with all signal masked.
@@ -226,14 +220,16 @@ thr_sighandler(int sig, siginfo_t *info, void *_ucp)
 	curthread->deferred_run = 0;
 
 	/*
-	 * if a thread is in critical region, for example it holds low level locks,
-	 * try to defer the signal processing, however if the signal is synchronous
-	 * signal, it means a bad thing has happened, this is a programming error,
-	 * resuming fault point can not help anything (normally causes deadloop),
-	 * so here we let user code handle it immediately.
+	 * if a thread is in critical region, for example it holds low level
+	 * locks, try to defer the signal processing, however if the signal is
+	 * synchronous signal, it means a bad thing has happened, this is a
+	 * programming error, resuming fault point can not help anything
+	 * (normally causes deadloop), so here we let user code handle it
+	 * immediately.
 	 */
 	if (THR_IN_CRITICAL(curthread) && SIGISMEMBER(_thr_deferset, sig)) {
-		memcpy(&curthread->deferred_sigact, &act, sizeof(struct sigaction));
+		memcpy(&curthread->deferred_sigact, &act,
+		    sizeof(struct sigaction));
 		memcpy(&curthread->deferred_siginfo, info, sizeof(siginfo_t));
 		curthread->deferred_sigmask = ucp->uc_sigmask;
 		/* mask all signals, we will restore it later. */
@@ -271,7 +267,7 @@ handle_signal(struct sigaction *actp, int sig, siginfo_t *info, ucontext_t *ucp)
 	 * in signal handler.
 	 * If user signal handler calls a cancellation point function, e.g,
 	 * it calls write() to write data to file, because write() is a
-	 * cancellation point, the thread is immediately cancelled if 
+	 * cancellation point, the thread is immediately cancelled if
 	 * cancellation is pending, to avoid this problem while thread is in
 	 * deferring mode, cancellation is temporarily disabled.
 	 */
@@ -334,14 +330,14 @@ check_cancel(struct pthread *curthread, ucontext_t *ucp)
 {
 
 	if (__predict_true(!curthread->cancel_pending ||
-	    !curthread->cancel_enable || curthread->no_cancel))
+		!curthread->cancel_enable || curthread->no_cancel))
 		return;
 
 	/*
- 	 * Otherwise, we are in defer mode, and we are at
+	 * Otherwise, we are in defer mode, and we are at
 	 * cancel point, tell kernel to not block the current
 	 * thread on next cancelable system call.
-	 * 
+	 *
 	 * There are three cases we should call thr_wake() to
 	 * turn on TDP_WAKEUP or send SIGCANCEL in kernel:
 	 * 1) we are going to call a cancelable system call,
@@ -356,7 +352,7 @@ check_cancel(struct pthread *curthread, ucontext_t *ucp)
 	 *    also should reenable the flag.
 	 * 3) thread is in sigsuspend(), and the syscall insists
 	 *    on getting a signal before it agrees to return.
- 	 */
+	 */
 	if (curthread->cancel_point) {
 		if (curthread->in_sigsuspend && ucp) {
 			SIGADDSET(ucp->uc_sigmask, SIGCANCEL);
@@ -370,7 +366,7 @@ check_cancel(struct pthread *curthread, ucontext_t *ucp)
 		 * immediately.
 		 */
 		_pthread_exit_mask(PTHREAD_CANCELED,
-		    ucp? &ucp->uc_sigmask : NULL);
+		    ucp ? &ucp->uc_sigmask : NULL);
 	}
 }
 
@@ -383,7 +379,7 @@ check_deferred_signal(struct pthread *curthread)
 	int uc_len;
 
 	if (__predict_true(curthread->deferred_siginfo.si_signo == 0 ||
-	    curthread->deferred_run))
+		curthread->deferred_run))
 		return;
 
 	curthread->deferred_run = 1;
@@ -408,16 +404,17 @@ check_suspend(struct pthread *curthread)
 {
 	uint32_t cycle;
 
-	if (__predict_true((curthread->flags &
-		(THR_FLAGS_NEED_SUSPEND | THR_FLAGS_SUSPENDED))
-		!= THR_FLAGS_NEED_SUSPEND))
+	if (__predict_true(
+		(curthread->flags &
+		    (THR_FLAGS_NEED_SUSPEND | THR_FLAGS_SUSPENDED)) !=
+		THR_FLAGS_NEED_SUSPEND))
 		return;
 	if (curthread == _single_thread)
 		return;
 	if (curthread->force_exit)
 		return;
 
-	/* 
+	/*
 	 * Blocks SIGCANCEL which other threads must send.
 	 */
 	_thr_signal_block(curthread);
@@ -559,8 +556,7 @@ _thr_signal_postfork_child(void)
 	int i;
 
 	for (i = 1; i <= _SIG_MAXSIG; ++i) {
-		bzero(&__libc_sigaction_slot(i) -> lock,
-		    sizeof(struct urwlock));
+		bzero(&__libc_sigaction_slot(i)->lock, sizeof(struct urwlock));
 	}
 }
 
@@ -588,12 +584,12 @@ __thr_sigaction(int sig, const struct sigaction *act, struct sigaction *oact)
 
 	__sys_sigprocmask(SIG_SETMASK, &_thr_maskset, &oldset);
 	_thr_rwl_wrlock(&usa->lock);
- 
+
 	if (act != NULL) {
 		oldact2 = usa->sigact;
 		newact = *act;
 
- 		/*
+		/*
 		 * if a new sig handler is SIG_DFL or SIG_IGN,
 		 * don't remove old handler from __libc_sigact[],
 		 * so deferred signals still can use the handlers,
@@ -667,7 +663,7 @@ _thr_sigmask(int how, const sigset_t *set, sigset_t *oset)
 }
 
 int
-_sigsuspend(const sigset_t * set)
+_sigsuspend(const sigset_t *set)
 {
 	sigset_t newset;
 
@@ -675,7 +671,7 @@ _sigsuspend(const sigset_t * set)
 }
 
 int
-__thr_sigsuspend(const sigset_t * set)
+__thr_sigsuspend(const sigset_t *set)
 {
 	struct pthread *curthread;
 	sigset_t newset;
@@ -701,7 +697,7 @@ __thr_sigsuspend(const sigset_t * set)
 
 int
 _sigtimedwait(const sigset_t *set, siginfo_t *info,
-	const struct timespec * timeout)
+    const struct timespec *timeout)
 {
 	sigset_t newset;
 
@@ -716,9 +712,9 @@ _sigtimedwait(const sigset_t *set, siginfo_t *info,
  */
 int
 __thr_sigtimedwait(const sigset_t *set, siginfo_t *info,
-    const struct timespec * timeout)
+    const struct timespec *timeout)
 {
-	struct pthread	*curthread = _get_curthread();
+	struct pthread *curthread = _get_curthread();
 	sigset_t newset;
 	int ret;
 
@@ -741,11 +737,11 @@ _sigwaitinfo(const sigset_t *set, siginfo_t *info)
  * Cancellation behavior:
  *   Thread may be canceled at start, if thread got signal,
  *   it is not canceled.
- */ 
+ */
 int
 __thr_sigwaitinfo(const sigset_t *set, siginfo_t *info)
 {
-	struct pthread	*curthread = _get_curthread();
+	struct pthread *curthread = _get_curthread();
 	sigset_t newset;
 	int ret;
 
@@ -767,11 +763,11 @@ _sigwait(const sigset_t *set, int *sig)
  * Cancellation behavior:
  *   Thread may be canceled at start, if thread got signal,
  *   it is not canceled.
- */ 
+ */
 int
 __thr_sigwait(const sigset_t *set, int *sig)
 {
-	struct pthread	*curthread = _get_curthread();
+	struct pthread *curthread = _get_curthread();
 	sigset_t newset;
 	int ret;
 
@@ -794,7 +790,7 @@ __thr_setcontext(const ucontext_t *ucp)
 	}
 	if (!SIGISMEMBER(ucp->uc_sigmask, SIGCANCEL))
 		return (__sys_setcontext(ucp));
-	(void) memcpy(&uc, ucp, sizeof(uc));
+	(void)memcpy(&uc, ucp, sizeof(uc));
 	SIGDELSET(uc.uc_sigmask, SIGCANCEL);
 	return (__sys_setcontext(&uc));
 }
@@ -809,7 +805,7 @@ __thr_swapcontext(ucontext_t *oucp, const ucontext_t *ucp)
 		return (-1);
 	}
 	if (SIGISMEMBER(ucp->uc_sigmask, SIGCANCEL)) {
-		(void) memcpy(&uc, ucp, sizeof(uc));
+		(void)memcpy(&uc, ucp, sizeof(uc));
 		SIGDELSET(uc.uc_sigmask, SIGCANCEL);
 		ucp = &uc;
 	}

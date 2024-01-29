@@ -1,20 +1,20 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
+#include "adf_cfg_device.h"
 #include "adf_cfg_instance.h"
 #include "adf_cfg_section.h"
-#include "adf_cfg_device.h"
-#include "icp_qat_hw.h"
 #include "adf_common_drv.h"
+#include "icp_qat_hw.h"
 
 #define ADF_CFG_SVCS_MAX (12)
 #define ADF_CFG_DEPRE_PARAMS_NUM (4)
 
 #define ADF_CFG_CAP_DC ADF_ACCEL_CAPABILITIES_COMPRESSION
 #define ADF_CFG_CAP_ASYM ADF_ACCEL_CAPABILITIES_CRYPTO_ASYMMETRIC
-#define ADF_CFG_CAP_SYM                                                        \
-	(ADF_ACCEL_CAPABILITIES_CRYPTO_SYMMETRIC |                             \
-	 ADF_ACCEL_CAPABILITIES_CIPHER |                                       \
-	 ADF_ACCEL_CAPABILITIES_AUTHENTICATION)
+#define ADF_CFG_CAP_SYM                            \
+	(ADF_ACCEL_CAPABILITIES_CRYPTO_SYMMETRIC | \
+	    ADF_ACCEL_CAPABILITIES_CIPHER |        \
+	    ADF_ACCEL_CAPABILITIES_AUTHENTICATION)
 #define ADF_CFG_CAP_CY (ADF_CFG_CAP_ASYM | ADF_CFG_CAP_SYM)
 
 #define ADF_CFG_FW_CAP_RL ICP_ACCEL_CAPABILITIES_RL
@@ -22,46 +22,45 @@
 #define ADF_CFG_FW_CAP_ECEDMONT ICP_ACCEL_CAPABILITIES_ECEDMONT
 #define ADF_CFG_FW_CAP_EXT_ALGCHAIN ICP_ACCEL_CAPABILITIES_EXT_ALGCHAIN
 
-#define ADF_CFG_CY_RINGS                                                       \
-	(CRYPTO | CRYPTO << ADF_CFG_SERV_RING_PAIR_1_SHIFT |                   \
-	 CRYPTO << ADF_CFG_SERV_RING_PAIR_2_SHIFT |                            \
-	 CRYPTO << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
+#define ADF_CFG_CY_RINGS                                     \
+	(CRYPTO | CRYPTO << ADF_CFG_SERV_RING_PAIR_1_SHIFT | \
+	    CRYPTO << ADF_CFG_SERV_RING_PAIR_2_SHIFT |       \
+	    CRYPTO << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
 
-#define ADF_CFG_SYM_RINGS                                                      \
-	(SYM | SYM << ADF_CFG_SERV_RING_PAIR_1_SHIFT |                         \
-	 SYM << ADF_CFG_SERV_RING_PAIR_2_SHIFT |                               \
-	 SYM << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
+#define ADF_CFG_SYM_RINGS                              \
+	(SYM | SYM << ADF_CFG_SERV_RING_PAIR_1_SHIFT | \
+	    SYM << ADF_CFG_SERV_RING_PAIR_2_SHIFT |    \
+	    SYM << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
 
-#define ADF_CFG_ASYM_RINGS                                                     \
-	(ASYM | ASYM << ADF_CFG_SERV_RING_PAIR_1_SHIFT |                       \
-	 ASYM << ADF_CFG_SERV_RING_PAIR_2_SHIFT |                              \
-	 ASYM << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
+#define ADF_CFG_ASYM_RINGS                               \
+	(ASYM | ASYM << ADF_CFG_SERV_RING_PAIR_1_SHIFT | \
+	    ASYM << ADF_CFG_SERV_RING_PAIR_2_SHIFT |     \
+	    ASYM << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
 
-#define ADF_CFG_CY_DC_RINGS                                                    \
-	(CRYPTO | CRYPTO << ADF_CFG_SERV_RING_PAIR_1_SHIFT |                   \
-	 NA << ADF_CFG_SERV_RING_PAIR_2_SHIFT |                                \
-	 COMP << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
+#define ADF_CFG_CY_DC_RINGS                                  \
+	(CRYPTO | CRYPTO << ADF_CFG_SERV_RING_PAIR_1_SHIFT | \
+	    NA << ADF_CFG_SERV_RING_PAIR_2_SHIFT |           \
+	    COMP << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
 
-#define ADF_CFG_ASYM_DC_RINGS                                                  \
-	(ASYM | ASYM << ADF_CFG_SERV_RING_PAIR_1_SHIFT |                       \
-	 COMP << ADF_CFG_SERV_RING_PAIR_2_SHIFT |                              \
-	 COMP << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
+#define ADF_CFG_ASYM_DC_RINGS                            \
+	(ASYM | ASYM << ADF_CFG_SERV_RING_PAIR_1_SHIFT | \
+	    COMP << ADF_CFG_SERV_RING_PAIR_2_SHIFT |     \
+	    COMP << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
 
-#define ADF_CFG_SYM_DC_RINGS                                                   \
-	(SYM | SYM << ADF_CFG_SERV_RING_PAIR_1_SHIFT |                         \
-	 COMP << ADF_CFG_SERV_RING_PAIR_2_SHIFT |                              \
-	 COMP << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
+#define ADF_CFG_SYM_DC_RINGS                           \
+	(SYM | SYM << ADF_CFG_SERV_RING_PAIR_1_SHIFT | \
+	    COMP << ADF_CFG_SERV_RING_PAIR_2_SHIFT |   \
+	    COMP << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
 
-#define ADF_CFG_DC_RINGS                                                       \
-	(COMP | COMP << ADF_CFG_SERV_RING_PAIR_1_SHIFT |                       \
-	 COMP << ADF_CFG_SERV_RING_PAIR_2_SHIFT |                              \
-	 COMP << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
+#define ADF_CFG_DC_RINGS                                 \
+	(COMP | COMP << ADF_CFG_SERV_RING_PAIR_1_SHIFT | \
+	    COMP << ADF_CFG_SERV_RING_PAIR_2_SHIFT |     \
+	    COMP << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
 
-static char adf_cfg_deprecated_params[][ADF_CFG_MAX_KEY_LEN_IN_BYTES] =
-    { ADF_DEV_KPT_ENABLE,
-      ADF_STORAGE_FIRMWARE_ENABLED,
-      ADF_RL_FIRMWARE_ENABLED,
-      ADF_PKE_DISABLED };
+static char adf_cfg_deprecated_params[][ADF_CFG_MAX_KEY_LEN_IN_BYTES] = {
+	ADF_DEV_KPT_ENABLE, ADF_STORAGE_FIRMWARE_ENABLED,
+	ADF_RL_FIRMWARE_ENABLED, ADF_PKE_DISABLED
+};
 
 struct adf_cfg_enabled_services {
 	const char svcs_enabled[ADF_CFG_MAX_VAL_LEN_IN_BYTES];
@@ -75,128 +74,90 @@ struct adf_cfg_profile {
 	struct adf_cfg_enabled_services supported_svcs[ADF_CFG_SVCS_MAX];
 };
 
-static struct adf_cfg_profile adf_profiles[] =
-    { { ADF_FW_IMAGE_DEFAULT,
-	{
-	    { "cy",
-	      ADF_CFG_CY_RINGS,
-	      ADF_CFG_CAP_CY,
-	      ADF_CFG_FW_CAP_ECEDMONT | ADF_CFG_FW_CAP_EXT_ALGCHAIN },
-	    { "asym;sym",
-	      ADF_CFG_CY_RINGS,
-	      ADF_CFG_CAP_CY,
-	      ADF_CFG_FW_CAP_ECEDMONT | ADF_CFG_FW_CAP_EXT_ALGCHAIN },
-	    { "sym;asym",
-	      ADF_CFG_CY_RINGS,
-	      ADF_CFG_CAP_CY,
-	      ADF_CFG_FW_CAP_ECEDMONT | ADF_CFG_FW_CAP_EXT_ALGCHAIN },
-	    { "dc", ADF_CFG_DC_RINGS, ADF_CFG_CAP_DC, 0 },
-	    { "sym",
-	      ADF_CFG_SYM_RINGS,
-	      ADF_CFG_CAP_SYM,
-	      ADF_CFG_FW_CAP_EXT_ALGCHAIN },
-	    { "asym",
-	      ADF_CFG_ASYM_RINGS,
-	      ADF_CFG_CAP_ASYM,
-	      ADF_CFG_FW_CAP_ECEDMONT },
-	    { "cy;dc",
-	      ADF_CFG_CY_DC_RINGS,
-	      ADF_CFG_CAP_CY | ADF_CFG_CAP_DC,
-	      ADF_CFG_FW_CAP_ECEDMONT | ADF_CFG_FW_CAP_EXT_ALGCHAIN },
-	    { "dc;cy",
-	      ADF_CFG_CY_DC_RINGS,
-	      ADF_CFG_CAP_CY | ADF_CFG_CAP_DC,
-	      ADF_CFG_FW_CAP_ECEDMONT | ADF_CFG_FW_CAP_EXT_ALGCHAIN },
-	    { "asym;dc",
-	      ADF_CFG_ASYM_DC_RINGS,
-	      ADF_CFG_CAP_ASYM | ADF_CFG_CAP_DC,
-	      ADF_CFG_FW_CAP_ECEDMONT },
-	    { "dc;asym",
-	      ADF_CFG_ASYM_DC_RINGS,
-	      ADF_CFG_CAP_ASYM | ADF_CFG_CAP_DC,
-	      ADF_CFG_FW_CAP_ECEDMONT },
-	    { "sym;dc",
-	      ADF_CFG_SYM_DC_RINGS,
-	      ADF_CFG_CAP_SYM | ADF_CFG_CAP_DC,
-	      ADF_CFG_FW_CAP_EXT_ALGCHAIN },
-	    { "dc;sym",
-	      ADF_CFG_SYM_DC_RINGS,
-	      ADF_CFG_CAP_SYM | ADF_CFG_CAP_DC,
-	      ADF_CFG_FW_CAP_EXT_ALGCHAIN },
-	} },
-      { ADF_FW_IMAGE_CRYPTO,
-	{
-	    { "cy",
-	      ADF_CFG_CY_RINGS,
-	      ADF_CFG_CAP_CY,
-	      ADF_CFG_FW_CAP_RL | ADF_CFG_FW_CAP_HKDF |
-		  ADF_CFG_FW_CAP_ECEDMONT | ADF_CFG_FW_CAP_EXT_ALGCHAIN },
-	    { "sym",
-	      ADF_CFG_SYM_RINGS,
-	      ADF_CFG_CAP_SYM,
-	      ADF_CFG_FW_CAP_RL | ADF_CFG_FW_CAP_HKDF |
-		  ADF_CFG_FW_CAP_EXT_ALGCHAIN },
-	    { "asym",
-	      ADF_CFG_ASYM_RINGS,
-	      ADF_CFG_CAP_ASYM,
-	      ADF_CFG_FW_CAP_RL | ADF_CFG_FW_CAP_ECEDMONT },
-	} },
-      { ADF_FW_IMAGE_COMPRESSION,
-	{
-	    { "dc", ADF_CFG_DC_RINGS, ADF_CFG_CAP_DC, 0 },
-	} },
-      { ADF_FW_IMAGE_CUSTOM1,
-	{
-	    { "cy",
-	      ADF_CFG_CY_RINGS,
-	      ADF_CFG_CAP_CY,
-	      ADF_CFG_FW_CAP_RL | ADF_CFG_FW_CAP_HKDF |
-		  ADF_CFG_FW_CAP_ECEDMONT | ADF_CFG_FW_CAP_EXT_ALGCHAIN },
-	    { "dc", ADF_CFG_DC_RINGS, ADF_CFG_CAP_DC, 0 },
-	    { "sym",
-	      ADF_CFG_SYM_RINGS,
-	      ADF_CFG_CAP_SYM,
-	      ADF_CFG_FW_CAP_RL | ADF_CFG_FW_CAP_HKDF |
-		  ADF_CFG_FW_CAP_EXT_ALGCHAIN },
-	    { "asym",
-	      ADF_CFG_ASYM_RINGS,
-	      ADF_CFG_CAP_ASYM,
-	      ADF_CFG_FW_CAP_RL | ADF_CFG_FW_CAP_ECEDMONT },
-	    { "cy;dc",
-	      ADF_CFG_CY_DC_RINGS,
-	      ADF_CFG_CAP_CY | ADF_CFG_CAP_DC,
-	      ADF_CFG_FW_CAP_RL | ADF_CFG_FW_CAP_HKDF |
-		  ADF_CFG_FW_CAP_ECEDMONT | ADF_CFG_FW_CAP_EXT_ALGCHAIN },
-	    { "dc;cy",
-	      ADF_CFG_CY_DC_RINGS,
-	      ADF_CFG_CAP_CY | ADF_CFG_CAP_DC,
-	      ADF_CFG_FW_CAP_RL | ADF_CFG_FW_CAP_HKDF |
-		  ADF_CFG_FW_CAP_ECEDMONT | ADF_CFG_FW_CAP_EXT_ALGCHAIN },
-	    { "asym;dc",
-	      ADF_CFG_ASYM_DC_RINGS,
-	      ADF_CFG_CAP_ASYM | ADF_CFG_CAP_DC,
-	      ADF_CFG_FW_CAP_RL | ADF_CFG_FW_CAP_ECEDMONT },
-	    { "dc;asym",
-	      ADF_CFG_ASYM_DC_RINGS,
-	      ADF_CFG_CAP_ASYM | ADF_CFG_CAP_DC,
-	      ADF_CFG_FW_CAP_RL | ADF_CFG_FW_CAP_ECEDMONT },
-	    { "sym;dc",
-	      ADF_CFG_SYM_DC_RINGS,
-	      ADF_CFG_CAP_SYM | ADF_CFG_CAP_DC,
-	      ADF_CFG_FW_CAP_RL | ADF_CFG_FW_CAP_HKDF |
-		  ADF_CFG_FW_CAP_EXT_ALGCHAIN },
-	    { "dc;sym",
-	      ADF_CFG_SYM_DC_RINGS,
-	      ADF_CFG_CAP_SYM | ADF_CFG_CAP_DC,
-	      ADF_CFG_FW_CAP_RL | ADF_CFG_FW_CAP_HKDF |
-		  ADF_CFG_FW_CAP_EXT_ALGCHAIN },
-	} } };
+static struct adf_cfg_profile adf_profiles[] = {
+	{ ADF_FW_IMAGE_DEFAULT,
+	    {
+		{ "cy", ADF_CFG_CY_RINGS, ADF_CFG_CAP_CY,
+		    ADF_CFG_FW_CAP_ECEDMONT | ADF_CFG_FW_CAP_EXT_ALGCHAIN },
+		{ "asym;sym", ADF_CFG_CY_RINGS, ADF_CFG_CAP_CY,
+		    ADF_CFG_FW_CAP_ECEDMONT | ADF_CFG_FW_CAP_EXT_ALGCHAIN },
+		{ "sym;asym", ADF_CFG_CY_RINGS, ADF_CFG_CAP_CY,
+		    ADF_CFG_FW_CAP_ECEDMONT | ADF_CFG_FW_CAP_EXT_ALGCHAIN },
+		{ "dc", ADF_CFG_DC_RINGS, ADF_CFG_CAP_DC, 0 },
+		{ "sym", ADF_CFG_SYM_RINGS, ADF_CFG_CAP_SYM,
+		    ADF_CFG_FW_CAP_EXT_ALGCHAIN },
+		{ "asym", ADF_CFG_ASYM_RINGS, ADF_CFG_CAP_ASYM,
+		    ADF_CFG_FW_CAP_ECEDMONT },
+		{ "cy;dc", ADF_CFG_CY_DC_RINGS, ADF_CFG_CAP_CY | ADF_CFG_CAP_DC,
+		    ADF_CFG_FW_CAP_ECEDMONT | ADF_CFG_FW_CAP_EXT_ALGCHAIN },
+		{ "dc;cy", ADF_CFG_CY_DC_RINGS, ADF_CFG_CAP_CY | ADF_CFG_CAP_DC,
+		    ADF_CFG_FW_CAP_ECEDMONT | ADF_CFG_FW_CAP_EXT_ALGCHAIN },
+		{ "asym;dc", ADF_CFG_ASYM_DC_RINGS,
+		    ADF_CFG_CAP_ASYM | ADF_CFG_CAP_DC,
+		    ADF_CFG_FW_CAP_ECEDMONT },
+		{ "dc;asym", ADF_CFG_ASYM_DC_RINGS,
+		    ADF_CFG_CAP_ASYM | ADF_CFG_CAP_DC,
+		    ADF_CFG_FW_CAP_ECEDMONT },
+		{ "sym;dc", ADF_CFG_SYM_DC_RINGS,
+		    ADF_CFG_CAP_SYM | ADF_CFG_CAP_DC,
+		    ADF_CFG_FW_CAP_EXT_ALGCHAIN },
+		{ "dc;sym", ADF_CFG_SYM_DC_RINGS,
+		    ADF_CFG_CAP_SYM | ADF_CFG_CAP_DC,
+		    ADF_CFG_FW_CAP_EXT_ALGCHAIN },
+	    } },
+	{ ADF_FW_IMAGE_CRYPTO,
+	    {
+		{ "cy", ADF_CFG_CY_RINGS, ADF_CFG_CAP_CY,
+		    ADF_CFG_FW_CAP_RL | ADF_CFG_FW_CAP_HKDF |
+			ADF_CFG_FW_CAP_ECEDMONT | ADF_CFG_FW_CAP_EXT_ALGCHAIN },
+		{ "sym", ADF_CFG_SYM_RINGS, ADF_CFG_CAP_SYM,
+		    ADF_CFG_FW_CAP_RL | ADF_CFG_FW_CAP_HKDF |
+			ADF_CFG_FW_CAP_EXT_ALGCHAIN },
+		{ "asym", ADF_CFG_ASYM_RINGS, ADF_CFG_CAP_ASYM,
+		    ADF_CFG_FW_CAP_RL | ADF_CFG_FW_CAP_ECEDMONT },
+	    } },
+	{ ADF_FW_IMAGE_COMPRESSION,
+	    {
+		{ "dc", ADF_CFG_DC_RINGS, ADF_CFG_CAP_DC, 0 },
+	    } },
+	{ ADF_FW_IMAGE_CUSTOM1,
+	    {
+		{ "cy", ADF_CFG_CY_RINGS, ADF_CFG_CAP_CY,
+		    ADF_CFG_FW_CAP_RL | ADF_CFG_FW_CAP_HKDF |
+			ADF_CFG_FW_CAP_ECEDMONT | ADF_CFG_FW_CAP_EXT_ALGCHAIN },
+		{ "dc", ADF_CFG_DC_RINGS, ADF_CFG_CAP_DC, 0 },
+		{ "sym", ADF_CFG_SYM_RINGS, ADF_CFG_CAP_SYM,
+		    ADF_CFG_FW_CAP_RL | ADF_CFG_FW_CAP_HKDF |
+			ADF_CFG_FW_CAP_EXT_ALGCHAIN },
+		{ "asym", ADF_CFG_ASYM_RINGS, ADF_CFG_CAP_ASYM,
+		    ADF_CFG_FW_CAP_RL | ADF_CFG_FW_CAP_ECEDMONT },
+		{ "cy;dc", ADF_CFG_CY_DC_RINGS, ADF_CFG_CAP_CY | ADF_CFG_CAP_DC,
+		    ADF_CFG_FW_CAP_RL | ADF_CFG_FW_CAP_HKDF |
+			ADF_CFG_FW_CAP_ECEDMONT | ADF_CFG_FW_CAP_EXT_ALGCHAIN },
+		{ "dc;cy", ADF_CFG_CY_DC_RINGS, ADF_CFG_CAP_CY | ADF_CFG_CAP_DC,
+		    ADF_CFG_FW_CAP_RL | ADF_CFG_FW_CAP_HKDF |
+			ADF_CFG_FW_CAP_ECEDMONT | ADF_CFG_FW_CAP_EXT_ALGCHAIN },
+		{ "asym;dc", ADF_CFG_ASYM_DC_RINGS,
+		    ADF_CFG_CAP_ASYM | ADF_CFG_CAP_DC,
+		    ADF_CFG_FW_CAP_RL | ADF_CFG_FW_CAP_ECEDMONT },
+		{ "dc;asym", ADF_CFG_ASYM_DC_RINGS,
+		    ADF_CFG_CAP_ASYM | ADF_CFG_CAP_DC,
+		    ADF_CFG_FW_CAP_RL | ADF_CFG_FW_CAP_ECEDMONT },
+		{ "sym;dc", ADF_CFG_SYM_DC_RINGS,
+		    ADF_CFG_CAP_SYM | ADF_CFG_CAP_DC,
+		    ADF_CFG_FW_CAP_RL | ADF_CFG_FW_CAP_HKDF |
+			ADF_CFG_FW_CAP_EXT_ALGCHAIN },
+		{ "dc;sym", ADF_CFG_SYM_DC_RINGS,
+		    ADF_CFG_CAP_SYM | ADF_CFG_CAP_DC,
+		    ADF_CFG_FW_CAP_RL | ADF_CFG_FW_CAP_HKDF |
+			ADF_CFG_FW_CAP_EXT_ALGCHAIN },
+	    } }
+};
 
 int
 adf_cfg_get_ring_pairs(struct adf_cfg_device *device,
-		       struct adf_cfg_instance *inst,
-		       const char *process_name,
-		       struct adf_accel_dev *accel_dev)
+    struct adf_cfg_instance *inst, const char *process_name,
+    struct adf_accel_dev *accel_dev)
 {
 	int i = 0;
 	int ret = EFAULT;
@@ -210,8 +171,8 @@ adf_cfg_get_ring_pairs(struct adf_cfg_device *device,
 	    inst->polling_mode == ADF_CFG_RESP_POLL) {
 		first_user_bundle = device->max_kernel_bundle_nr + 1;
 		for (i = first_user_bundle; i < device->bundle_num; i++) {
-			free_inst = adf_cfg_get_free_instance(
-			    device, device->bundles[i], inst, process_name);
+			free_inst = adf_cfg_get_free_instance(device,
+			    device->bundles[i], inst, process_name);
 
 			if (!free_inst)
 				continue;
@@ -238,54 +199,42 @@ adf_cfg_get_ring_pairs(struct adf_cfg_device *device,
 			 */
 			if (free_bundle_type == device->bundles[i]->type &&
 			    CPU_SUBSET(&device->bundles[i]->affinity_mask,
-				       &inst->affinity_mask)) {
-				free_inst = adf_cfg_get_free_instance(
-				    device,
-				    device->bundles[i],
-				    inst,
-				    process_name);
+				&inst->affinity_mask)) {
+				free_inst = adf_cfg_get_free_instance(device,
+				    device->bundles[i], inst, process_name);
 
 				if (!free_inst)
 					continue;
 				ret = adf_cfg_get_ring_pairs_from_bundle(
-				    device->bundles[i],
-				    inst,
-				    process_name,
+				    device->bundles[i], inst, process_name,
 				    free_inst);
 
 				return ret;
-
 			}
 		}
 		for (i = 0; i < device->bundle_num; i++) {
 			if (adf_cfg_is_free(device->bundles[i])) {
-				free_inst = adf_cfg_get_free_instance(
-				    device,
-				    device->bundles[i],
-				    inst,
-				    process_name);
+				free_inst = adf_cfg_get_free_instance(device,
+				    device->bundles[i], inst, process_name);
 				if (!free_inst)
 					continue;
 
 				ret = adf_cfg_get_ring_pairs_from_bundle(
-				    device->bundles[i],
-				    inst,
-				    process_name,
+				    device->bundles[i], inst, process_name,
 				    free_inst);
 				return ret;
 			}
 		}
 	}
 	pr_err("Don't have enough rings for instance %s in process %s\n",
-	       inst->name,
-	       process_name);
+	    inst->name, process_name);
 
 	return ret;
 }
 
 int
 adf_cfg_get_services_enabled(struct adf_accel_dev *accel_dev,
-			     u16 *ring_to_svc_map)
+    u16 *ring_to_svc_map)
 {
 	char key[ADF_CFG_MAX_KEY_LEN_IN_BYTES];
 	char val[ADF_CFG_MAX_VAL_LEN_IN_BYTES];
@@ -308,23 +257,20 @@ adf_cfg_get_services_enabled(struct adf_accel_dev *accel_dev,
 	for (i = 0; i < ADF_CFG_SVCS_MAX; i++) {
 		svcs = &adf_profiles[fw_image_type].supported_svcs[i];
 
-		if (!strncmp(svcs->svcs_enabled,
-			     "",
-			     ADF_CFG_MAX_VAL_LEN_IN_BYTES))
+		if (!strncmp(svcs->svcs_enabled, "",
+			ADF_CFG_MAX_VAL_LEN_IN_BYTES))
 			break;
 
-		if (!strncmp(val,
-			     svcs->svcs_enabled,
-			     ADF_CFG_MAX_VAL_LEN_IN_BYTES)) {
+		if (!strncmp(val, svcs->svcs_enabled,
+			ADF_CFG_MAX_VAL_LEN_IN_BYTES)) {
 			*ring_to_svc_map = svcs->rng_to_svc_msk;
 			return 0;
 		}
 	}
 
 	device_printf(GET_DEV(accel_dev),
-		      "Invalid ServicesEnabled %s for ServicesProfile: %d\n",
-		      val,
-		      fw_image_type);
+	    "Invalid ServicesEnabled %s for ServicesProfile: %d\n", val,
+	    fw_image_type);
 
 	return EFAULT;
 }
@@ -364,9 +310,7 @@ adf_cfg_set_asym_rings_mask(struct adf_accel_dev *accel_dev)
 
 void
 adf_cfg_gen_dispatch_arbiter(struct adf_accel_dev *accel_dev,
-			     const u32 *thrd_to_arb_map,
-			     u32 *thrd_to_arb_map_gen,
-			     u32 total_engines)
+    const u32 *thrd_to_arb_map, u32 *thrd_to_arb_map_gen, u32 total_engines)
 {
 	int engine, thread, service, bits;
 	u32 thread_ability, ability_map, service_mask, service_type;
@@ -387,8 +331,8 @@ adf_cfg_gen_dispatch_arbiter(struct adf_accel_dev *accel_dev,
 			/* parse each service */
 			for (service = 0; service < ADF_CFG_MAX_SERVICES;
 			     service++) {
-				service_type =
-				    GET_SRV_TYPE(ena_srv_mask, service);
+				service_type = GET_SRV_TYPE(ena_srv_mask,
+				    service);
 				switch (service_type) {
 				case CRYPTO:
 					service_mask = ADF_CFG_ASYM_SRV_MASK;
@@ -412,8 +356,8 @@ adf_cfg_gen_dispatch_arbiter(struct adf_accel_dev *accel_dev,
 					service_mask = ADF_CFG_UNKNOWN_SRV_MASK;
 				}
 				if (thread_ability & service_mask)
-					thrd_to_arb_map_gen[engine] |=
-					    (1 << bits);
+					thrd_to_arb_map_gen[engine] |= (1
+					    << bits);
 				bits++;
 			}
 		}
@@ -422,7 +366,7 @@ adf_cfg_gen_dispatch_arbiter(struct adf_accel_dev *accel_dev,
 
 int
 adf_cfg_get_fw_image_type(struct adf_accel_dev *accel_dev,
-			  enum adf_cfg_fw_image_type *fw_image_type)
+    enum adf_cfg_fw_image_type *fw_image_type)
 {
 	*fw_image_type = ADF_FW_IMAGE_CUSTOM1;
 
@@ -430,9 +374,8 @@ adf_cfg_get_fw_image_type(struct adf_accel_dev *accel_dev,
 }
 
 static int
-adf_cfg_get_caps_enabled(struct adf_accel_dev *accel_dev,
-			 u32 *enabled_svc_caps,
-			 u32 *enabled_fw_caps)
+adf_cfg_get_caps_enabled(struct adf_accel_dev *accel_dev, u32 *enabled_svc_caps,
+    u32 *enabled_fw_caps)
 {
 	char key[ADF_CFG_MAX_KEY_LEN_IN_BYTES];
 	char val[ADF_CFG_MAX_VAL_LEN_IN_BYTES];
@@ -463,23 +406,20 @@ adf_cfg_get_caps_enabled(struct adf_accel_dev *accel_dev,
 	for (i = 0; i < ADF_CFG_SVCS_MAX; i++) {
 		svcs = &adf_profiles[fw_image_type].supported_svcs[i];
 
-		if (!strncmp(svcs->svcs_enabled,
-			     "",
-			     ADF_CFG_MAX_VAL_LEN_IN_BYTES))
+		if (!strncmp(svcs->svcs_enabled, "",
+			ADF_CFG_MAX_VAL_LEN_IN_BYTES))
 			break;
 
-		if (!strncmp(val,
-			     svcs->svcs_enabled,
-			     ADF_CFG_MAX_VAL_LEN_IN_BYTES)) {
+		if (!strncmp(val, svcs->svcs_enabled,
+			ADF_CFG_MAX_VAL_LEN_IN_BYTES)) {
 			*enabled_svc_caps = svcs->enabled_svc_cap;
 			*enabled_fw_caps = svcs->enabled_fw_cap;
 			return 0;
 		}
 	}
 	device_printf(GET_DEV(accel_dev),
-		      "Invalid ServicesEnabled %s for ServicesProfile: %d\n",
-		      val,
-		      fw_image_type);
+	    "Invalid ServicesEnabled %s for ServicesProfile: %d\n", val,
+	    fw_image_type);
 
 	return EFAULT;
 }
@@ -494,18 +434,17 @@ adf_cfg_check_deprecated_params(struct adf_accel_dev *accel_dev)
 	for (i = 0; i < ADF_CFG_DEPRE_PARAMS_NUM; i++) {
 		/* give a warning if the deprecated params are set by user */
 		snprintf(key, sizeof(key), "%s", adf_cfg_deprecated_params[i]);
-		if (!adf_cfg_get_param_value(
-			accel_dev, ADF_GENERAL_SEC, key, val)) {
+		if (!adf_cfg_get_param_value(accel_dev, ADF_GENERAL_SEC, key,
+			val)) {
 			device_printf(GET_DEV(accel_dev),
-				      "Parameter '%s' has been deprecated\n",
-				      key);
+			    "Parameter '%s' has been deprecated\n", key);
 		}
 	}
 }
 
 static int
 adf_cfg_check_enabled_services(struct adf_accel_dev *accel_dev,
-			       u32 enabled_svc_caps)
+    u32 enabled_svc_caps)
 {
 	u32 hw_caps = GET_HW_DATA(accel_dev)->accel_capabilities_mask;
 
@@ -525,13 +464,12 @@ adf_cfg_update_pf_accel_cap_mask(struct adf_accel_dev *accel_dev)
 	u32 enabled_fw_caps = 0;
 
 	if (hw_data->get_accel_cap) {
-		hw_data->accel_capabilities_mask =
-		    hw_data->get_accel_cap(accel_dev);
+		hw_data->accel_capabilities_mask = hw_data->get_accel_cap(
+		    accel_dev);
 	}
 
-	if (adf_cfg_get_caps_enabled(accel_dev,
-				     &enabled_svc_caps,
-				     &enabled_fw_caps))
+	if (adf_cfg_get_caps_enabled(accel_dev, &enabled_svc_caps,
+		&enabled_fw_caps))
 		return EFAULT;
 
 	if (adf_cfg_check_enabled_services(accel_dev, enabled_svc_caps))
@@ -556,9 +494,8 @@ adf_cfg_update_vf_accel_cap_mask(struct adf_accel_dev *accel_dev)
 {
 	u32 enabled_svc_caps = 0;
 	u32 enabled_fw_caps = 0;
-	if (adf_cfg_get_caps_enabled(accel_dev,
-				     &enabled_svc_caps,
-				     &enabled_fw_caps))
+	if (adf_cfg_get_caps_enabled(accel_dev, &enabled_svc_caps,
+		&enabled_fw_caps))
 		return EFAULT;
 
 	if (adf_cfg_check_enabled_services(accel_dev, enabled_svc_caps))
@@ -569,7 +506,7 @@ adf_cfg_update_vf_accel_cap_mask(struct adf_accel_dev *accel_dev)
 
 int
 adf_cfg_device_init(struct adf_cfg_device *device,
-		    struct adf_accel_dev *accel_dev)
+    struct adf_accel_dev *accel_dev)
 {
 	int i = 0;
 	/* max_inst indicates the max instance number one bank can hold */
@@ -582,15 +519,13 @@ adf_cfg_device_init(struct adf_cfg_device *device,
 	device->bundle_num = 0;
 	device->bundles = (struct adf_cfg_bundle **)malloc(
 	    sizeof(struct adf_cfg_bundle *) * accel_dev->hw_device->num_banks,
-	    M_QAT,
-	    M_WAITOK | M_ZERO);
+	    M_QAT, M_WAITOK | M_ZERO);
 
 	device->bundle_num = accel_dev->hw_device->num_banks;
 
 	device->instances = (struct adf_cfg_instance **)malloc(
 	    sizeof(struct adf_cfg_instance *) * device->bundle_num * max_inst,
-	    M_QAT,
-	    M_WAITOK | M_ZERO);
+	    M_QAT, M_WAITOK | M_ZERO);
 
 	device->instance_index = 0;
 
@@ -610,7 +545,7 @@ adf_cfg_device_init(struct adf_cfg_device *device,
 	/* Based on the svc configured, get ring_to_svc_map */
 	if (hw_data->get_ring_to_svc_map) {
 		if (hw_data->get_ring_to_svc_map(accel_dev,
-						 &hw_data->ring_to_svc_map))
+			&hw_data->ring_to_svc_map))
 			goto failed;
 	}
 
@@ -622,8 +557,7 @@ adf_cfg_device_init(struct adf_cfg_device *device,
 	 */
 	for (i = 0; i < device->bundle_num; i++) {
 		device->bundles[i] = malloc(sizeof(struct adf_cfg_bundle),
-					    M_QAT,
-					    M_WAITOK | M_ZERO);
+		    M_QAT, M_WAITOK | M_ZERO);
 
 		device->bundles[i]->max_section = max_inst;
 		adf_cfg_bundle_init(device->bundles[i], device, i, accel_dev);
@@ -651,7 +585,7 @@ failed:
 
 void
 adf_cfg_device_clear(struct adf_cfg_device *device,
-		     struct adf_accel_dev *accel_dev)
+    struct adf_accel_dev *accel_dev)
 {
 	int i = 0;
 
@@ -681,9 +615,8 @@ adf_cfg_device_clear(struct adf_cfg_device *device,
  * Static configuration for userspace
  */
 static int
-adf_cfg_static_conf_user(struct adf_accel_dev *accel_dev,
-			 int cy_enabled,
-			 int dc_enabled)
+adf_cfg_static_conf_user(struct adf_accel_dev *accel_dev, int cy_enabled,
+    int dc_enabled)
 {
 	int ret = 0;
 	unsigned long val = 0;
@@ -695,8 +628,7 @@ adf_cfg_static_conf_user(struct adf_accel_dev *accel_dev,
 	int cpus = num_online_cpus();
 
 	if (!(IS_QAT_GEN4(pci_get_device(GET_DEV(accel_dev))))) {
-		device_printf(
-		    GET_DEV(accel_dev),
+		device_printf(GET_DEV(accel_dev),
 		    "User space configuration supported only on QAT 4xxx devices\n");
 		return ENXIO;
 	}
@@ -723,79 +655,65 @@ adf_cfg_static_conf_user(struct adf_accel_dev *accel_dev,
 
 	val = cy_user_instances;
 	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, ADF_NUM_CY);
-	ret |= adf_cfg_add_key_value_param(
-	    accel_dev, ADF_SAL_SEC, key, (void *)&val, ADF_DEC);
+	ret |= adf_cfg_add_key_value_param(accel_dev, ADF_SAL_SEC, key,
+	    (void *)&val, ADF_DEC);
 
 	val = dc_user_instances;
 	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, ADF_NUM_DC);
-	ret |= adf_cfg_add_key_value_param(
-	    accel_dev, ADF_SAL_SEC, key, (void *)&val, ADF_DEC);
+	ret |= adf_cfg_add_key_value_param(accel_dev, ADF_SAL_SEC, key,
+	    (void *)&val, ADF_DEC);
 
 	val = accel_dev->cfg->num_user_processes;
 	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, ADF_NUM_PROCESSES);
-	ret |= adf_cfg_add_key_value_param(
-	    accel_dev, ADF_SAL_SEC, key, (void *)&val, ADF_DEC);
+	ret |= adf_cfg_add_key_value_param(accel_dev, ADF_SAL_SEC, key,
+	    (void *)&val, ADF_DEC);
 
 	for (i = 0; i < cy_user_instances; i++) {
 		val = (accel_dev->accel_id * cy_user_instances + i) % cpus;
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_CY "%d" ADF_ETRMGR_CORE_AFFINITY,
-			 i);
-		ret |= adf_cfg_add_key_value_param(
-		    accel_dev, ADF_SAL_SEC, key, (void *)&val, ADF_DEC);
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES,
+		    ADF_CY "%d" ADF_ETRMGR_CORE_AFFINITY, i);
+		ret |= adf_cfg_add_key_value_param(accel_dev, ADF_SAL_SEC, key,
+		    (void *)&val, ADF_DEC);
 
 		val = ADF_CFG_STATIC_CONF_POLL;
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_CY "%d" ADF_POLL_MODE,
-			 i);
-		ret |= adf_cfg_add_key_value_param(
-		    accel_dev, ADF_SAL_SEC, key, (void *)&val, ADF_DEC);
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES,
+		    ADF_CY "%d" ADF_POLL_MODE, i);
+		ret |= adf_cfg_add_key_value_param(accel_dev, ADF_SAL_SEC, key,
+		    (void *)&val, ADF_DEC);
 
 		snprintf(value, ADF_CFG_MAX_VAL_LEN_IN_BYTES, ADF_CY "%d", i);
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_CY_NAME_FORMAT,
-			 i);
-		ret |= adf_cfg_add_key_value_param(
-		    accel_dev, ADF_SAL_SEC, key, (void *)value, ADF_STR);
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, ADF_CY_NAME_FORMAT,
+		    i);
+		ret |= adf_cfg_add_key_value_param(accel_dev, ADF_SAL_SEC, key,
+		    (void *)value, ADF_STR);
 	}
 
 	for (i = 0; i < dc_user_instances; i++) {
 		val = (accel_dev->accel_id * dc_user_instances + i) % cpus;
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_DC "%d" ADF_ETRMGR_CORE_AFFINITY,
-			 i);
-		ret |= adf_cfg_add_key_value_param(
-		    accel_dev, ADF_SAL_SEC, key, (void *)&val, ADF_DEC);
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES,
+		    ADF_DC "%d" ADF_ETRMGR_CORE_AFFINITY, i);
+		ret |= adf_cfg_add_key_value_param(accel_dev, ADF_SAL_SEC, key,
+		    (void *)&val, ADF_DEC);
 
 		val = ADF_CFG_STATIC_CONF_POLL;
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_DC "%d" ADF_POLL_MODE,
-			 i);
-		ret |= adf_cfg_add_key_value_param(
-		    accel_dev, ADF_SAL_SEC, key, (void *)&val, ADF_DEC);
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES,
+		    ADF_DC "%d" ADF_POLL_MODE, i);
+		ret |= adf_cfg_add_key_value_param(accel_dev, ADF_SAL_SEC, key,
+		    (void *)&val, ADF_DEC);
 
 		snprintf(value, ADF_CFG_MAX_VAL_LEN_IN_BYTES, ADF_DC "%d", i);
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_DC_NAME_FORMAT,
-			 i);
-		ret |= adf_cfg_add_key_value_param(
-		    accel_dev, ADF_SAL_SEC, key, (void *)value, ADF_STR);
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, ADF_DC_NAME_FORMAT,
+		    i);
+		ret |= adf_cfg_add_key_value_param(accel_dev, ADF_SAL_SEC, key,
+		    (void *)value, ADF_STR);
 	}
 
 	return ret;
 }
 
 static int
-adf_cfg_static_conf_kernel(struct adf_accel_dev *accel_dev,
-			   int asym_enabled,
-			   int sym_enabled,
-			   int dc_enabled)
+adf_cfg_static_conf_kernel(struct adf_accel_dev *accel_dev, int asym_enabled,
+    int sym_enabled, int dc_enabled)
 {
 	int ret = 0;
 	char key[ADF_CFG_MAX_KEY_LEN_IN_BYTES];
@@ -853,91 +771,73 @@ adf_cfg_static_conf_kernel(struct adf_accel_dev *accel_dev,
 
 	val = (cy_poll_instances + cy_irq_instances);
 	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, ADF_NUM_CY);
-	ret |= adf_cfg_add_key_value_param(
-	    accel_dev, ADF_KERNEL_SAL_SEC, key, (void *)&val, ADF_DEC);
+	ret |= adf_cfg_add_key_value_param(accel_dev, ADF_KERNEL_SAL_SEC, key,
+	    (void *)&val, ADF_DEC);
 
 	val = dc_instances;
 	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, ADF_NUM_DC);
-	ret |= adf_cfg_add_key_value_param(
-	    accel_dev, ADF_KERNEL_SAL_SEC, key, (void *)&val, ADF_DEC);
+	ret |= adf_cfg_add_key_value_param(accel_dev, ADF_KERNEL_SAL_SEC, key,
+	    (void *)&val, ADF_DEC);
 
 	for (i = 0; i < (cy_irq_instances); i++) {
 		val = (accel_dev->accel_id * cy_irq_instances + i) % cpus;
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_CY "%d" ADF_ETRMGR_CORE_AFFINITY,
-			 i);
-		ret |= adf_cfg_add_key_value_param(
-		    accel_dev, ADF_KERNEL_SAL_SEC, key, (void *)&val, ADF_DEC);
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES,
+		    ADF_CY "%d" ADF_ETRMGR_CORE_AFFINITY, i);
+		ret |= adf_cfg_add_key_value_param(accel_dev,
+		    ADF_KERNEL_SAL_SEC, key, (void *)&val, ADF_DEC);
 
 		val = ADF_CFG_STATIC_CONF_IRQ;
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_CY "%d" ADF_POLL_MODE,
-			 i);
-		ret |= adf_cfg_add_key_value_param(
-		    accel_dev, ADF_KERNEL_SAL_SEC, key, (void *)&val, ADF_DEC);
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES,
+		    ADF_CY "%d" ADF_POLL_MODE, i);
+		ret |= adf_cfg_add_key_value_param(accel_dev,
+		    ADF_KERNEL_SAL_SEC, key, (void *)&val, ADF_DEC);
 
 		snprintf(value, ADF_CFG_MAX_VAL_LEN_IN_BYTES, ADF_CY "%d", i);
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_CY_NAME_FORMAT,
-			 i);
-		ret |= adf_cfg_add_key_value_param(
-		    accel_dev, ADF_KERNEL_SAL_SEC, key, (void *)value, ADF_STR);
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, ADF_CY_NAME_FORMAT,
+		    i);
+		ret |= adf_cfg_add_key_value_param(accel_dev,
+		    ADF_KERNEL_SAL_SEC, key, (void *)value, ADF_STR);
 	}
 
 	for (i = cy_irq_instances; i < (cy_poll_instances + cy_irq_instances);
 	     i++) {
 		val = (accel_dev->accel_id * cy_poll_instances + i) % cpus;
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_CY "%d" ADF_ETRMGR_CORE_AFFINITY,
-			 i);
-		ret |= adf_cfg_add_key_value_param(
-		    accel_dev, ADF_KERNEL_SAL_SEC, key, (void *)&val, ADF_DEC);
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES,
+		    ADF_CY "%d" ADF_ETRMGR_CORE_AFFINITY, i);
+		ret |= adf_cfg_add_key_value_param(accel_dev,
+		    ADF_KERNEL_SAL_SEC, key, (void *)&val, ADF_DEC);
 
 		val = ADF_CFG_STATIC_CONF_POLL;
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_CY "%d" ADF_POLL_MODE,
-			 i);
-		ret |= adf_cfg_add_key_value_param(
-		    accel_dev, ADF_KERNEL_SAL_SEC, key, (void *)&val, ADF_DEC);
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES,
+		    ADF_CY "%d" ADF_POLL_MODE, i);
+		ret |= adf_cfg_add_key_value_param(accel_dev,
+		    ADF_KERNEL_SAL_SEC, key, (void *)&val, ADF_DEC);
 
 		snprintf(value, ADF_CFG_MAX_VAL_LEN_IN_BYTES, ADF_CY "%d", i);
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_CY_NAME_FORMAT,
-			 i);
-		ret |= adf_cfg_add_key_value_param(
-		    accel_dev, ADF_KERNEL_SAL_SEC, key, (void *)value, ADF_STR);
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, ADF_CY_NAME_FORMAT,
+		    i);
+		ret |= adf_cfg_add_key_value_param(accel_dev,
+		    ADF_KERNEL_SAL_SEC, key, (void *)value, ADF_STR);
 	}
 
 	for (i = 0; i < dc_instances; i++) {
 		val = (accel_dev->accel_id * dc_instances + i) % cpus;
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_DC "%d" ADF_ETRMGR_CORE_AFFINITY,
-			 i);
-		ret |= adf_cfg_add_key_value_param(
-		    accel_dev, ADF_KERNEL_SAL_SEC, key, (void *)&val, ADF_DEC);
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES,
+		    ADF_DC "%d" ADF_ETRMGR_CORE_AFFINITY, i);
+		ret |= adf_cfg_add_key_value_param(accel_dev,
+		    ADF_KERNEL_SAL_SEC, key, (void *)&val, ADF_DEC);
 
 		val = ADF_CFG_STATIC_CONF_POLL;
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_DC "%d" ADF_POLL_MODE,
-			 i);
-		ret |= adf_cfg_add_key_value_param(
-		    accel_dev, ADF_KERNEL_SAL_SEC, key, (void *)&val, ADF_DEC);
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES,
+		    ADF_DC "%d" ADF_POLL_MODE, i);
+		ret |= adf_cfg_add_key_value_param(accel_dev,
+		    ADF_KERNEL_SAL_SEC, key, (void *)&val, ADF_DEC);
 
 		snprintf(value, ADF_CFG_MAX_VAL_LEN_IN_BYTES, ADF_DC "%d", i);
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_DC_NAME_FORMAT,
-			 i);
-		ret |= adf_cfg_add_key_value_param(
-		    accel_dev, ADF_KERNEL_SAL_SEC, key, (void *)value, ADF_STR);
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, ADF_DC_NAME_FORMAT,
+		    i);
+		ret |= adf_cfg_add_key_value_param(accel_dev,
+		    ADF_KERNEL_SAL_SEC, key, (void *)value, ADF_STR);
 	}
 
 	return ret;
@@ -1006,23 +906,22 @@ adf_cfg_static_conf(struct adf_accel_dev *accel_dev)
 	if (strcmp(ADF_CFG_SYM_ASYM, accel_dev->cfg->cfg_services) == 0) {
 		strncpy(value, ADF_CFG_CY, ADF_CFG_MAX_VAL_LEN_IN_BYTES);
 	} else {
-		strncpy(value,
-			accel_dev->cfg->cfg_services,
-			ADF_CFG_MAX_VAL_LEN_IN_BYTES);
+		strncpy(value, accel_dev->cfg->cfg_services,
+		    ADF_CFG_MAX_VAL_LEN_IN_BYTES);
 	}
 
-	ret |= adf_cfg_add_key_value_param(
-	    accel_dev, ADF_GENERAL_SEC, key, (void *)value, ADF_STR);
+	ret |= adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+	    (void *)value, ADF_STR);
 
 	val = ADF_CFG_STATIC_CONF_VER;
 	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, ADF_CONFIG_VERSION);
-	ret |= adf_cfg_add_key_value_param(
-	    accel_dev, ADF_GENERAL_SEC, key, (void *)&val, ADF_DEC);
+	ret |= adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+	    (void *)&val, ADF_DEC);
 
 	val = ADF_CFG_STATIC_CONF_AUTO_RESET;
 	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, ADF_AUTO_RESET_ON_ERROR);
-	ret |= adf_cfg_add_key_value_param(
-	    accel_dev, ADF_GENERAL_SEC, key, (void *)&val, ADF_DEC);
+	ret |= adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+	    (void *)&val, ADF_DEC);
 
 	if (accel_dev->hw_device->get_num_accel_units) {
 		int cy_au = 0;
@@ -1050,107 +949,102 @@ adf_cfg_static_conf(struct adf_accel_dev *accel_dev)
 		}
 
 		val = cy_au;
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_NUM_CY_ACCEL_UNITS);
-		ret |= adf_cfg_add_key_value_param(
-		    accel_dev, ADF_GENERAL_SEC, key, (void *)&val, ADF_DEC);
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES,
+		    ADF_NUM_CY_ACCEL_UNITS);
+		ret |= adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC,
+		    key, (void *)&val, ADF_DEC);
 
 		val = dc_au;
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_NUM_DC_ACCEL_UNITS);
-		ret |= adf_cfg_add_key_value_param(
-		    accel_dev, ADF_GENERAL_SEC, key, (void *)&val, ADF_DEC);
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES,
+		    ADF_NUM_DC_ACCEL_UNITS);
+		ret |= adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC,
+		    key, (void *)&val, ADF_DEC);
 
 		val = ADF_CFG_STATIC_CONF_NUM_INLINE_ACCEL_UNITS;
-		snprintf(key,
-			 ADF_CFG_MAX_KEY_LEN_IN_BYTES,
-			 ADF_NUM_INLINE_ACCEL_UNITS);
-		ret |= adf_cfg_add_key_value_param(
-		    accel_dev, ADF_GENERAL_SEC, key, (void *)&val, ADF_DEC);
+		snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES,
+		    ADF_NUM_INLINE_ACCEL_UNITS);
+		ret |= adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC,
+		    key, (void *)&val, ADF_DEC);
 	}
 
 	val = ADF_CFG_STATIC_CONF_CY_ASYM_RING_SIZE;
 	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, ADF_CY ADF_RING_ASYM_SIZE);
-	ret |= adf_cfg_add_key_value_param(
-	    accel_dev, ADF_GENERAL_SEC, key, (void *)&val, ADF_DEC);
+	ret |= adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+	    (void *)&val, ADF_DEC);
 
 	val = ADF_CFG_STATIC_CONF_CY_SYM_RING_SIZE;
 	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, ADF_CY ADF_RING_SYM_SIZE);
-	ret |= adf_cfg_add_key_value_param(
-	    accel_dev, ADF_GENERAL_SEC, key, (void *)&val, ADF_DEC);
+	ret |= adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+	    (void *)&val, ADF_DEC);
 
 	val = ADF_CFG_STATIC_CONF_DC_INTER_BUF_SIZE;
 	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, ADF_INTER_BUF_SIZE);
-	ret |= adf_cfg_add_key_value_param(
-	    accel_dev, ADF_GENERAL_SEC, key, (void *)&val, ADF_DEC);
+	ret |= adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+	    (void *)&val, ADF_DEC);
 
 	val = ADF_CFG_STATIC_CONF_SAL_STATS_CFG_DC;
 	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, SAL_STATS_CFG_DC);
-	ret |= adf_cfg_add_key_value_param(
-	    accel_dev, ADF_GENERAL_SEC, key, (void *)&val, ADF_DEC);
+	ret |= adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+	    (void *)&val, ADF_DEC);
 
 	val = ADF_CFG_STATIC_CONF_SAL_STATS_CFG_DH;
 	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, SAL_STATS_CFG_DH);
-	ret |= adf_cfg_add_key_value_param(
-	    accel_dev, ADF_GENERAL_SEC, key, (void *)&val, ADF_DEC);
+	ret |= adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+	    (void *)&val, ADF_DEC);
 
 	val = ADF_CFG_STATIC_CONF_SAL_STATS_CFG_DRBG;
 	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, SAL_STATS_CFG_DRBG);
-	ret |= adf_cfg_add_key_value_param(
-	    accel_dev, ADF_GENERAL_SEC, key, (void *)&val, ADF_DEC);
+	ret |= adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+	    (void *)&val, ADF_DEC);
 
 	val = ADF_CFG_STATIC_CONF_SAL_STATS_CFG_DSA;
 	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, SAL_STATS_CFG_DSA);
-	ret |= adf_cfg_add_key_value_param(
-	    accel_dev, ADF_GENERAL_SEC, key, (void *)&val, ADF_DEC);
+	ret |= adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+	    (void *)&val, ADF_DEC);
 
 	val = ADF_CFG_STATIC_CONF_SAL_STATS_CFG_ECC;
 	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, SAL_STATS_CFG_ECC);
-	ret |= adf_cfg_add_key_value_param(
-	    accel_dev, ADF_GENERAL_SEC, key, (void *)&val, ADF_DEC);
+	ret |= adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+	    (void *)&val, ADF_DEC);
 
 	val = ADF_CFG_STATIC_CONF_SAL_STATS_CFG_ENABLED;
 	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, SAL_STATS_CFG_ENABLED);
-	ret |= adf_cfg_add_key_value_param(
-	    accel_dev, ADF_GENERAL_SEC, key, (void *)&val, ADF_DEC);
+	ret |= adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+	    (void *)&val, ADF_DEC);
 
 	val = ADF_CFG_STATIC_CONF_SAL_STATS_CFG_KEYGEN;
 	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, SAL_STATS_CFG_KEYGEN);
-	ret |= adf_cfg_add_key_value_param(
-	    accel_dev, ADF_GENERAL_SEC, key, (void *)&val, ADF_DEC);
+	ret |= adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+	    (void *)&val, ADF_DEC);
 
 	val = ADF_CFG_STATIC_CONF_SAL_STATS_CFG_LN;
 	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, SAL_STATS_CFG_LN);
-	ret |= adf_cfg_add_key_value_param(
-	    accel_dev, ADF_GENERAL_SEC, key, (void *)&val, ADF_DEC);
+	ret |= adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+	    (void *)&val, ADF_DEC);
 
 	val = ADF_CFG_STATIC_CONF_SAL_STATS_CFG_PRIME;
 	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, SAL_STATS_CFG_PRIME);
-	ret |= adf_cfg_add_key_value_param(
-	    accel_dev, ADF_GENERAL_SEC, key, (void *)&val, ADF_DEC);
+	ret |= adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+	    (void *)&val, ADF_DEC);
 
 	val = ADF_CFG_STATIC_CONF_SAL_STATS_CFG_RSA;
 	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, SAL_STATS_CFG_RSA);
-	ret |= adf_cfg_add_key_value_param(
-	    accel_dev, ADF_GENERAL_SEC, key, (void *)&val, ADF_DEC);
+	ret |= adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+	    (void *)&val, ADF_DEC);
 
 	val = ADF_CFG_STATIC_CONF_SAL_STATS_CFG_SYM;
 	snprintf(key, ADF_CFG_MAX_KEY_LEN_IN_BYTES, SAL_STATS_CFG_SYM);
-	ret |= adf_cfg_add_key_value_param(
-	    accel_dev, ADF_GENERAL_SEC, key, (void *)&val, ADF_DEC);
+	ret |= adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+	    (void *)&val, ADF_DEC);
 
 	if (ks_enabled) {
-		ret |= adf_cfg_static_conf_kernel(accel_dev,
-						  asym_enabled,
-						  sym_enabled,
-						  dc_enabled);
+		ret |= adf_cfg_static_conf_kernel(accel_dev, asym_enabled,
+		    sym_enabled, dc_enabled);
 	}
 
 	if (us_enabled) {
-		ret |=
-		    adf_cfg_static_conf_user(accel_dev, cy_enabled, dc_enabled);
+		ret |= adf_cfg_static_conf_user(accel_dev, cy_enabled,
+		    dc_enabled);
 	}
 
 	if (ret)
@@ -1176,9 +1070,8 @@ adf_config_device(struct adf_accel_dev *accel_dev)
 
 	cfg = accel_dev->cfg;
 	cfg->dev = NULL;
-	cfg_device = (struct adf_cfg_device *)malloc(sizeof(*cfg_device),
-						     M_QAT,
-						     M_WAITOK | M_ZERO);
+	cfg_device = (struct adf_cfg_device *)malloc(sizeof(*cfg_device), M_QAT,
+	    M_WAITOK | M_ZERO);
 
 	ret = EFAULT;
 
@@ -1192,9 +1085,8 @@ adf_config_device(struct adf_accel_dev *accel_dev)
 	{
 		sec = list_entry(list, struct adf_cfg_section, list);
 		if (!strcmp(sec->name, ADF_GENERAL_SEC)) {
-			ret = adf_cfg_process_section(accel_dev,
-						      sec->name,
-						      accel_dev->accel_id);
+			ret = adf_cfg_process_section(accel_dev, sec->name,
+			    accel_dev->accel_id);
 			if (ret)
 				goto failed;
 			sec->processed = true;
@@ -1206,9 +1098,8 @@ adf_config_device(struct adf_accel_dev *accel_dev)
 	{
 		sec = list_entry(list, struct adf_cfg_section, list);
 		if (!strcmp(sec->name, ADF_KERNEL_SEC)) {
-			ret = adf_cfg_process_section(accel_dev,
-						      sec->name,
-						      accel_dev->accel_id);
+			ret = adf_cfg_process_section(accel_dev, sec->name,
+			    accel_dev->accel_id);
 			if (ret)
 				goto failed;
 			sec->processed = true;
@@ -1220,9 +1111,8 @@ adf_config_device(struct adf_accel_dev *accel_dev)
 	{
 		sec = list_entry(list, struct adf_cfg_section, list);
 		if (!strcmp(sec->name, ADF_KERNEL_SAL_SEC)) {
-			ret = adf_cfg_process_section(accel_dev,
-						      sec->name,
-						      accel_dev->accel_id);
+			ret = adf_cfg_process_section(accel_dev, sec->name,
+			    accel_dev->accel_id);
 			if (ret)
 				goto failed;
 			sec->processed = true;
@@ -1235,9 +1125,8 @@ adf_config_device(struct adf_accel_dev *accel_dev)
 		sec = list_entry(list, struct adf_cfg_section, list);
 		/* avoid reprocessing one section */
 		if (!sec->processed && !sec->is_derived) {
-			ret = adf_cfg_process_section(accel_dev,
-						      sec->name,
-						      accel_dev->accel_id);
+			ret = adf_cfg_process_section(accel_dev, sec->name,
+			    accel_dev->accel_id);
 			if (ret)
 				goto failed;
 			sec->processed = true;
@@ -1245,9 +1134,8 @@ adf_config_device(struct adf_accel_dev *accel_dev)
 	}
 
 	/* newly added accel section */
-	ret = adf_cfg_process_section(accel_dev,
-				      ADF_ACCEL_SEC,
-				      accel_dev->accel_id);
+	ret = adf_cfg_process_section(accel_dev, ADF_ACCEL_SEC,
+	    accel_dev->accel_id);
 	if (ret)
 		goto failed;
 
@@ -1259,9 +1147,8 @@ adf_config_device(struct adf_accel_dev *accel_dev)
 	{
 		sec = list_entry(list, struct adf_cfg_section, list);
 		if (!sec->is_derived) {
-			ret = adf_cfg_cleanup_section(accel_dev,
-						      sec->name,
-						      accel_dev->accel_id);
+			ret = adf_cfg_cleanup_section(accel_dev, sec->name,
+			    accel_dev->accel_id);
 			if (ret)
 				goto failed;
 		}

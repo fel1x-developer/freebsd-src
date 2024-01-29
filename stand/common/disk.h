@@ -79,20 +79,20 @@
  * the device's strategy method.
  */
 
-#ifndef	_DISK_H
-#define	_DISK_H
+#ifndef _DISK_H
+#define _DISK_H
 
-#define	D_SLICENONE	-1
-#define	D_SLICEWILD	 0
-#define	D_PARTNONE	-1
-#define	D_PARTWILD	-2
-#define	D_PARTISGPT	255
+#define D_SLICENONE -1
+#define D_SLICEWILD 0
+#define D_PARTNONE -1
+#define D_PARTWILD -2
+#define D_PARTISGPT 255
 
 struct disk_devdesc {
-	struct devdesc	dd;		/* Must be first. */
-	int		d_slice;
-	int		d_partition;
-	uint64_t	d_offset;
+	struct devdesc dd; /* Must be first. */
+	int d_slice;
+	int d_partition;
+	uint64_t d_offset;
 };
 
 /*
@@ -113,4 +113,4 @@ extern int disk_parsedev(struct devdesc **, const char *, const char **);
 
 char *disk_fmtdev(struct devdesc *vdev);
 
-#endif	/* _DISK_H */
+#endif /* _DISK_H */

@@ -42,8 +42,8 @@
  *
  *    #include <devdctl/guid.h>
  */
-#ifndef	_VDEV_H_
-#define	_VDEV_H_
+#ifndef _VDEV_H_
+#define _VDEV_H_
 
 /*=========================== Forward Declarations ===========================*/
 struct zpool_handle;
@@ -58,9 +58,8 @@ typedef struct nvlist nvlist_t;
  * \brief Wrapper class for a vdev's name/value configuration list
  *        simplifying access to commonly used vdev attributes.
  */
-class Vdev
-{
-public:
+class Vdev {
+    public:
 	/**
 	 * \brief Instantiate a vdev object for a vdev that is a member
 	 *        of an imported pool.
@@ -112,37 +111,37 @@ public:
 	 *        functions.
 	 */
 	virtual ~Vdev();
-	bool			DoesNotExist()	const;
+	bool DoesNotExist() const;
 
 	/**
 	 * \brief Return a list of the vdev's children.
 	 */
-	std::list<Vdev>		 Children();
+	std::list<Vdev> Children();
 
-	virtual DevdCtl::Guid	 GUID()		const;
-	bool			 IsSpare()	const;
-	virtual DevdCtl::Guid	 PoolGUID()	const;
-	virtual vdev_state	 State()	const;
-	std::string		 Path()		const;
-	virtual std::string	 PhysicalPath()	const;
-	std::string		 GUIDString()	const;
-	nvlist_t		*PoolConfig()	const;
-	nvlist_t		*Config()	const;
-	Vdev			 Parent();
-	Vdev			 RootVdev();
-	std::string		 Name(zpool_handle_t *, bool verbose)	const;
-	bool			 IsSpare();
-	bool			 IsAvailableSpare()	const;
-	bool			 IsActiveSpare()	const;
-	bool			 IsResilvering()	const;
+	virtual DevdCtl::Guid GUID() const;
+	bool IsSpare() const;
+	virtual DevdCtl::Guid PoolGUID() const;
+	virtual vdev_state State() const;
+	std::string Path() const;
+	virtual std::string PhysicalPath() const;
+	std::string GUIDString() const;
+	nvlist_t *PoolConfig() const;
+	nvlist_t *Config() const;
+	Vdev Parent();
+	Vdev RootVdev();
+	std::string Name(zpool_handle_t *, bool verbose) const;
+	bool IsSpare();
+	bool IsAvailableSpare() const;
+	bool IsActiveSpare() const;
+	bool IsResilvering() const;
 
-private:
-	void			 VdevLookupGuid();
-	bool			 VdevLookupPoolGuid();
-	DevdCtl::Guid		 m_poolGUID;
-	DevdCtl::Guid		 m_vdevGUID;
-	nvlist_t		*m_poolConfig;
-	nvlist_t		*m_config;
+    private:
+	void VdevLookupGuid();
+	bool VdevLookupPoolGuid();
+	DevdCtl::Guid m_poolGUID;
+	DevdCtl::Guid m_vdevGUID;
+	nvlist_t *m_poolConfig;
+	nvlist_t *m_config;
 };
 
 //- Special objects -----------------------------------------------------------

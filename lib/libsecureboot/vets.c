@@ -31,29 +31,31 @@
  */
 
 #include <sys/time.h>
+
 #include <stdarg.h>
 #define NEED_BRSSL_H
-#include "libsecureboot-priv.h"
 #include <brssl.h>
 #include <ta.h>
 
+#include "libsecureboot-priv.h"
+
 #ifndef TRUST_ANCHOR_STR
-# define TRUST_ANCHOR_STR ta_PEM
+#define TRUST_ANCHOR_STR ta_PEM
 #endif
 
-#define EPOCH_YEAR		1970
-#define AVG_SECONDS_PER_YEAR	31556952L
-#define SECONDS_PER_DAY		86400
-#define SECONDS_PER_YEAR	365 * SECONDS_PER_DAY
+#define EPOCH_YEAR 1970
+#define AVG_SECONDS_PER_YEAR 31556952L
+#define SECONDS_PER_DAY 86400
+#define SECONDS_PER_YEAR 365 * SECONDS_PER_DAY
 #ifndef VE_UTC_MAX_JUMP
-# define VE_UTC_MAX_JUMP	20 * SECONDS_PER_YEAR
+#define VE_UTC_MAX_JUMP 20 * SECONDS_PER_YEAR
 #endif
-#define X509_DAYS_TO_UTC0	719528
+#define X509_DAYS_TO_UTC0 719528
 
 int DebugVe = 0;
 
 #ifndef VE_VERIFY_FLAGS
-# define VE_VERIFY_FLAGS VEF_VERBOSE
+#define VE_VERIFY_FLAGS VEF_VERBOSE
 #endif
 int VerifyFlags = VE_VERIFY_FLAGS;
 
@@ -95,7 +97,7 @@ static int enforce_validity = 0;
 void
 ve_enforce_validity_set(int i)
 {
-    enforce_validity = i;
+	enforce_validity = i;
 }
 
 static char ebuf[512];
@@ -163,15 +165,15 @@ gdate(char *buf, size_t bufsz, time_t clock)
 	}
 	d++;
 	if (d > days[m]) {
-	    d = 1;
-	    m++;
-	    if (m >= 12) {
-		year++;
-		m = 0;
-	    }
+		d = 1;
+		m++;
+		if (m >= 12) {
+			year++;
+			m = 0;
+		}
 	}
-	(void)snprintf(buf, bufsz, "%04d-%02d-%02d", year, m+1, d);
-	return(buf);
+	(void)snprintf(buf, bufsz, "%04d-%02d-%02d", year, m + 1, d);
+	return (buf);
 }
 
 /* this is the time we use for verifying certs */
@@ -193,8 +195,7 @@ static time_t ve_utc = 0;
 void
 ve_utc_set(time_t utc)
 {
-	if (utc > ve_utc &&
-	    (ve_utc == 0 || (utc - ve_utc) < VE_UTC_MAX_JUMP)) {
+	if (utc > ve_utc && (ve_utc == 0 || (utc - ve_utc) < VE_UTC_MAX_JUMP)) {
 		DEBUG_PRINTF(2, ("Set ve_utc=%jd\n", (intmax_t)utc));
 		ve_utc = utc;
 	}
@@ -241,7 +242,7 @@ x509_cn_get(br_x509_certificate *xc, char *buf, size_t len)
 	mc.vtable->end_cert(&mc.vtable);
 	/* we don't actually care about cert status - just its name */
 	err = mc.vtable->end_chain(&mc.vtable);
-	(void)err;			/* keep compiler quiet */
+	(void)err; /* keep compiler quiet */
 
 	if (cn.status <= 0)
 		buf = NULL;
@@ -250,16 +251,16 @@ x509_cn_get(br_x509_certificate *xc, char *buf, size_t len)
 
 /* ASN parsing related defines */
 #define ASN1_PRIMITIVE_TAG 0x1F
-#define ASN1_INF_LENGTH    0x80
-#define ASN1_LENGTH_MASK   0x7F
+#define ASN1_INF_LENGTH 0x80
+#define ASN1_LENGTH_MASK 0x7F
 
 /*
  * Get TBS part of certificate.
  * Since BearSSL doesn't provide any API to do this,
  * it has to be implemented here.
  */
-static void*
-X509_to_tbs(unsigned char* cert, size_t* output_size)
+static void *
+X509_to_tbs(unsigned char *cert, size_t *output_size)
 {
 	unsigned char *result;
 	size_t tbs_size;
@@ -333,7 +334,8 @@ ve_anchors_add(br_x509_certificate *xcs, size_t num, anchor_list *anchors,
 
 			cp = x509_cn_get(&xcs[u], buf, sizeof(buf));
 			if (cp) {
-				printf("x509_anchor(%s) %s\n", cp, anchors_name);
+				printf("x509_anchor(%s) %s\n", cp,
+				    anchors_name);
 			}
 		}
 	}
@@ -355,7 +357,6 @@ ve_forbidden_anchors_add(br_x509_certificate *xcs, size_t num)
 {
 	return (ve_anchors_add(xcs, num, &forbidden_anchors, "forbidden"));
 }
-
 
 /**
  * @brief add trust anchors in buf
@@ -422,12 +423,12 @@ ve_trust_init(void)
 
 	if (once >= 0)
 		return (once);
-	once = 0;			/* to be sure */
+	once = 0; /* to be sure */
 #ifdef BUILD_UTC
-	ve_utc_set(BUILD_UTC);		/* ensure sanity */
+	ve_utc_set(BUILD_UTC); /* ensure sanity */
 #endif
 	ve_utc_set(time(NULL));
-	ve_error_set(NULL);		/* make sure it is empty */
+	ve_error_set(NULL); /* make sure it is empty */
 #ifdef VE_PCR_SUPPORT
 	ve_pcr_init();
 #endif
@@ -435,9 +436,10 @@ ve_trust_init(void)
 #ifdef TRUST_ANCHOR_STR
 	if (TRUST_ANCHOR_STR != NULL && strlen(TRUST_ANCHOR_STR) != 0ul)
 		ve_trust_anchors_add_buf(__DECONST(unsigned char *,
-		    TRUST_ANCHOR_STR), sizeof(TRUST_ANCHOR_STR));
+					     TRUST_ANCHOR_STR),
+		    sizeof(TRUST_ANCHOR_STR));
 #endif
-	once = (int) VEC_LEN(trust_anchors);
+	once = (int)VEC_LEN(trust_anchors);
 #ifdef VE_OPENPGP_SUPPORT
 	once += openpgp_trust_init();
 #endif
@@ -446,9 +448,9 @@ ve_trust_init(void)
 
 #ifdef HAVE_BR_X509_TIME_CHECK
 static int
-verify_time_cb(void *tctx __unused,
-    uint32_t not_before_days, uint32_t not_before_seconds,
-    uint32_t not_after_days, uint32_t not_after_seconds)
+verify_time_cb(void *tctx __unused, uint32_t not_before_days,
+    uint32_t not_before_seconds, uint32_t not_after_days,
+    uint32_t not_after_seconds)
 {
 	time_t not_before;
 	time_t not_after;
@@ -458,8 +460,12 @@ verify_time_cb(void *tctx __unused,
 #endif
 
 	if (enforce_validity) {
-		not_before = ((not_before_days - X509_DAYS_TO_UTC0) * SECONDS_PER_DAY) + not_before_seconds;
-		not_after =  ((not_after_days - X509_DAYS_TO_UTC0) * SECONDS_PER_DAY) + not_after_seconds;
+		not_before = ((not_before_days - X509_DAYS_TO_UTC0) *
+				 SECONDS_PER_DAY) +
+		    not_before_seconds;
+		not_after = ((not_after_days - X509_DAYS_TO_UTC0) *
+				SECONDS_PER_DAY) +
+		    not_after_seconds;
 		if (ve_utc < not_before)
 			rc = -1;
 		else if (ve_utc > not_after)
@@ -473,7 +479,7 @@ verify_time_cb(void *tctx __unused,
 		    gdate(date, sizeof(date), ve_utc), rc);
 #endif
 	} else
-		rc = 0;			/* don't fail */
+		rc = 0; /* don't fail */
 	return rc;
 }
 #endif
@@ -484,10 +490,8 @@ verify_time_cb(void *tctx __unused,
  * certificate
  */
 static br_x509_pkey *
-verify_signer_xcs(br_x509_certificate *xcs,
-    size_t num,
-    br_name_element *elts, size_t num_elts,
-    anchor_list *anchors)
+verify_signer_xcs(br_x509_certificate *xcs, size_t num, br_name_element *elts,
+    size_t num_elts, anchor_list *anchors)
 {
 	br_x509_minimal_context mc;
 	br_x509_certificate *xc;
@@ -505,15 +509,14 @@ verify_signer_xcs(br_x509_certificate *xcs,
 		return (NULL);
 	}
 
-	DEBUG_PRINTF(5, ("verify_signer: %zu trust anchors\n",
-		VEC_LEN(*anchors)));
+	DEBUG_PRINTF(5,
+	    ("verify_signer: %zu trust anchors\n", VEC_LEN(*anchors)));
 
-	br_x509_minimal_init(&mc, &br_sha256_vtable,
-	    &VEC_ELT(*anchors, 0),
+	br_x509_minimal_init(&mc, &br_sha256_vtable, &VEC_ELT(*anchors, 0),
 	    VEC_LEN(*anchors));
 #ifdef VE_ECDSA_SUPPORT
-	br_x509_minimal_set_ecdsa(&mc,
-	    &br_ec_prime_i31, &br_ecdsa_i31_vrfy_asn1);
+	br_x509_minimal_set_ecdsa(&mc, &br_ec_prime_i31,
+	    &br_ecdsa_i31_vrfy_asn1);
 #endif
 #ifdef VE_RSA_SUPPORT
 	br_x509_minimal_set_rsa(&mc, &br_rsa_i31_pkcs1_vrfy);
@@ -543,7 +546,7 @@ verify_signer_xcs(br_x509_certificate *xcs,
 #endif
 #endif
 	mc.vtable->start_chain(&mc.vtable, NULL);
-	for (u = 0; u < VEC_LEN(chain); u ++) {
+	for (u = 0; u < VEC_LEN(chain); u++) {
 		xc = &VEC_ELT(chain, u);
 		mc.vtable->start_cert(&mc.vtable, xc->data_len);
 		mc.vtable->append(&mc.vtable, xc->data, xc->data_len);
@@ -565,7 +568,8 @@ verify_signer_xcs(br_x509_certificate *xcs,
 
 		switch (err) {
 		case 54:
-			ve_error_set("Validation failed, certificate not valid as of %s",
+			ve_error_set(
+			    "Validation failed, certificate not valid as of %s",
 			    gdate(date, sizeof(date), ve_utc));
 			break;
 		default: {
@@ -578,7 +582,8 @@ verify_signer_xcs(br_x509_certificate *xcs,
 			else
 				ve_error_set("Validation failed, %s (%s)",
 				    err_desc, err_name);
-			break; }
+			break;
+		}
 		}
 	} else {
 		tpk = mc.vtable->get_pkey(&mc.vtable, &usages);
@@ -635,8 +640,7 @@ check_forbidden_digests(br_x509_certificate *xcs, size_t num)
 					md->update(&ctx.vtable, tbs, tbs_len);
 					md->out(&ctx.vtable, sha256_digest);
 				}
-				if (!memcmp(sha256_digest,
-					digest->data,
+				if (!memcmp(sha256_digest, digest->data,
 					br_sha256_SIZE))
 					return (1);
 
@@ -649,8 +653,7 @@ check_forbidden_digests(br_x509_certificate *xcs, size_t num)
 					md->update(&ctx.vtable, tbs, tbs_len);
 					md->out(&ctx.vtable, sha384_digest);
 				}
-				if (!memcmp(sha384_digest,
-					digest->data,
+				if (!memcmp(sha384_digest, digest->data,
 					br_sha384_SIZE))
 					return (1);
 
@@ -663,8 +666,7 @@ check_forbidden_digests(br_x509_certificate *xcs, size_t num)
 					md->update(&ctx.vtable, tbs, tbs_len);
 					md->out(&ctx.vtable, sha512_digest);
 				}
-				if (!memcmp(sha512_digest,
-					digest->data,
+				if (!memcmp(sha512_digest, digest->data,
 					br_sha512_SIZE))
 					return (1);
 
@@ -677,8 +679,7 @@ check_forbidden_digests(br_x509_certificate *xcs, size_t num)
 }
 
 static br_x509_pkey *
-verify_signer(const char *certs,
-    br_name_element *elts, size_t num_elts)
+verify_signer(const char *certs, br_name_element *elts, size_t num_elts)
 {
 	br_x509_certificate *xcs;
 	br_x509_pkey *pk;
@@ -700,7 +701,8 @@ verify_signer(const char *certs,
 	 * 2. CA that signed the chain is found in forbidden_anchors.
 	 */
 	if (VEC_LEN(forbidden_anchors) > 0)
-		pk = verify_signer_xcs(xcs, num, elts, num_elts, &forbidden_anchors);
+		pk = verify_signer_xcs(xcs, num, elts, num_elts,
+		    &forbidden_anchors);
 	if (pk != NULL) {
 		ve_error_set("Certificate is on forbidden list\n");
 		xfreepkey(pk);
@@ -828,10 +830,8 @@ verify_ec(br_x509_pkey *pk, const char *file, const char *sigfile)
  * @return 0 on failure
  */
 int
-verify_rsa_digest (br_rsa_public_key *pkey,
-    const unsigned char *hash_oid,
-    unsigned char *mdata, size_t mlen,
-    unsigned char *sdata, size_t slen)
+verify_rsa_digest(br_rsa_public_key *pkey, const unsigned char *hash_oid,
+    unsigned char *mdata, size_t mlen, unsigned char *sdata, size_t slen)
 {
 	br_rsa_pkcs1_vrfy vrfy;
 	unsigned char vhbuf[br_sha512_SIZE];
@@ -840,9 +840,9 @@ verify_rsa_digest (br_rsa_public_key *pkey,
 
 	if (!vrfy(sdata, slen, hash_oid, mlen, pkey, vhbuf) ||
 	    memcmp(vhbuf, mdata, mlen) != 0) {
-		return (0);		/* fail */
+		return (0); /* fail */
 	}
-	return (1);			/* ok */
+	return (1); /* ok */
 }
 #endif
 
@@ -871,7 +871,7 @@ verify_rsa_digest (br_rsa_public_key *pkey,
  */
 #ifdef VE_RSA_SUPPORT
 static unsigned char *
-verify_rsa(br_x509_pkey *pk,  const char *file, const char *sigfile)
+verify_rsa(br_x509_pkey *pk, const char *file, const char *sigfile)
 {
 	unsigned char rhbuf[br_sha512_SIZE];
 	const unsigned char *hash_oid;
@@ -911,8 +911,8 @@ verify_rsa(br_x509_pkey *pk,  const char *file, const char *sigfile)
 	md->init(&mctx.vtable);
 	md->update(&mctx.vtable, fcp, flen);
 	md->out(&mctx.vtable, rhbuf);
-	if (!verify_rsa_digest(&pk->key.rsa, hash_oid,
-		rhbuf, hlen, po->data, po->data_len)) {
+	if (!verify_rsa_digest(&pk->key.rsa, hash_oid, rhbuf, hlen, po->data,
+		po->data_len)) {
 		free(fcp);
 		fcp = NULL;
 	}
@@ -987,7 +987,7 @@ verify_sig(const char *sigfile, int flags)
 		break;
 #endif
 	default:
-		ucp = NULL;		/* not supported */
+		ucp = NULL; /* not supported */
 	}
 	xfreepkey(pk);
 	if (!ucp) {
@@ -999,7 +999,6 @@ verify_sig(const char *sigfile, int flags)
 	}
 	return (ucp);
 }
-
 
 /**
  * @brief verify hash matches
@@ -1041,7 +1040,7 @@ ve_check_hash(br_hash_compat_context *ctx, const br_hash_class *md,
 	hex = hexdigest(hexbuf, sizeof(hexbuf), hbuf, hlen);
 	if (!hex)
 		return (VE_FINGERPRINT_WRONG);
-	n = 2*hlen;
+	n = 2 * hlen;
 	if ((rc = strncmp(hex, want, n))) {
 		ve_error_set("%s: %.*s != %.*s", path, n, hex, n, want);
 		rc = VE_FINGERPRINT_WRONG;
@@ -1051,23 +1050,25 @@ ve_check_hash(br_hash_compat_context *ctx, const br_hash_class *md,
 
 #ifdef VE_HASH_KAT_STR
 static int
-test_hash(const br_hash_class *md, size_t hlen,
-    const char *hname, const char *s, size_t slen, const char *want)
+test_hash(const br_hash_class *md, size_t hlen, const char *hname,
+    const char *s, size_t slen, const char *want)
 {
 	br_hash_compat_context mctx;
 
 	md->init(&mctx.vtable);
 	md->update(&mctx.vtable, s, slen);
-	return (ve_check_hash(&mctx, md, hname, want, hlen) != VE_FINGERPRINT_OK);
+	return (
+	    ve_check_hash(&mctx, md, hname, want, hlen) != VE_FINGERPRINT_OK);
 }
 
 #endif
 
-#define ve_test_hash(n, N) \
-	printf("Testing hash: " #n "\t\t\t\t%s\n", \
-	    test_hash(&br_ ## n ## _vtable, br_ ## n ## _SIZE, #n, \
-	    VE_HASH_KAT_STR, VE_HASH_KAT_STRLEN(VE_HASH_KAT_STR), \
-	    vh_ ## N) ? "Failed" : "Passed")
+#define ve_test_hash(n, N)                                                  \
+	printf("Testing hash: " #n "\t\t\t\t%s\n",                          \
+	    test_hash(&br_##n##_vtable, br_##n##_SIZE, #n, VE_HASH_KAT_STR, \
+		VE_HASH_KAT_STRLEN(VE_HASH_KAT_STR), vh_##N) ?              \
+		"Failed" :                                                  \
+		"Passed")
 
 /**
  * @brief
@@ -1127,12 +1128,14 @@ ve_self_tests(void)
 		cn.oid = cn_oid;
 		cn.buf = cn_buf;
 
-		for (u = 0; u < num; u ++) {
+		for (u = 0; u < num; u++) {
 			cn.len = sizeof(cn_buf);
-			if ((pk = verify_signer_xcs(&xcs[u], 1, &cn, 1, &trust_anchors)) != NULL) {
+			if ((pk = verify_signer_xcs(&xcs[u], 1, &cn, 1,
+				 &trust_anchors)) != NULL) {
 				free_cert_contents(&xcs[u]);
 				once++;
-				printf("Testing verify certificate: %s\tPassed\n",
+				printf(
+				    "Testing verify certificate: %s\tPassed\n",
 				    cn.status ? cn_buf : "");
 				xfreepkey(pk);
 			}
@@ -1141,7 +1144,7 @@ ve_self_tests(void)
 			printf("Testing verify certificate:\t\t\tFailed\n");
 		xfree(xcs);
 	}
-#endif	/* VERIFY_CERTS_STR */
+#endif /* VERIFY_CERTS_STR */
 #ifdef VE_OPENPGP_SUPPORT
 	if (!openpgp_self_tests())
 		once++;

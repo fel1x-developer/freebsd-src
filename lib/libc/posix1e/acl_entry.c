@@ -27,12 +27,13 @@
  */
 
 #include <sys/types.h>
-#include "namespace.h"
 #include <sys/acl.h>
-#include "un-namespace.h"
 
 #include <errno.h>
 #include <stdlib.h>
+
+#include "namespace.h"
+#include "un-namespace.h"
 
 /*
  * acl_create_entry() (23.4.7): create a new ACL entry in the ACL pointed
@@ -61,8 +62,8 @@ acl_create_entry(acl_t *acl_p, acl_entry_t *entry_p)
 
 	*entry_p = &acl_int->acl_entry[acl_int->acl_cnt++];
 
-	(**entry_p).ae_tag  = ACL_UNDEFINED_TAG;
-	(**entry_p).ae_id   = ACL_UNDEFINED_ID;
+	(**entry_p).ae_tag = ACL_UNDEFINED_TAG;
+	(**entry_p).ae_id = ACL_UNDEFINED_ID;
 	(**entry_p).ae_perm = ACL_PERM_NONE;
 	(**entry_p).ae_entry_type = 0;
 	(**entry_p).ae_flags = 0;
@@ -103,11 +104,11 @@ acl_create_entry_np(acl_t *acl_p, acl_entry_t *entry_p, int offset)
 
 	*entry_p = &acl_int->acl_entry[offset];
 
-	(**entry_p).ae_tag  = ACL_UNDEFINED_TAG;
-	(**entry_p).ae_id   = ACL_UNDEFINED_ID;
+	(**entry_p).ae_tag = ACL_UNDEFINED_TAG;
+	(**entry_p).ae_id = ACL_UNDEFINED_ID;
 	(**entry_p).ae_perm = ACL_PERM_NONE;
 	(**entry_p).ae_entry_type = 0;
-	(**entry_p).ae_flags= 0;
+	(**entry_p).ae_flags = 0;
 
 	(*acl_p)->ats_cur_entry = 0;
 
@@ -129,7 +130,7 @@ acl_get_entry(acl_t acl, int entry_id, acl_entry_t *entry_p)
 	}
 	acl_int = &acl->ats_acl;
 
-	switch(entry_id) {
+	switch (entry_id) {
 	case ACL_FIRST_ENTRY:
 		acl->ats_cur_entry = 0;
 		/* PASSTHROUGH */

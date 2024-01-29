@@ -36,11 +36,11 @@
 
 #include <linux/bitops.h>
 #include <linux/compiler.h>
+#include <linux/if_ether.h>
+#include <linux/if_vlan.h>
+#include <linux/kobject.h>
 #include <linux/list.h>
 #include <linux/mutex.h>
-#include <linux/kobject.h>
-#include <linux/if_vlan.h>
-#include <linux/if_ether.h>
 #ifdef CONFIG_MLX4_EN_DCB
 #include <linux/dcbnl.h>
 #endif
@@ -48,58 +48,56 @@
 #include <sys/socket.h>
 #include <sys/taskqueue.h>
 
-#include <net/if_types.h>
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_dl.h>
-
-#include <dev/mlx4/device.h>
-#include <dev/mlx4/qp.h>
-#include <dev/mlx4/cq.h>
-#include <dev/mlx4/srq.h>
-#include <dev/mlx4/doorbell.h>
 #include <dev/mlx4/cmd.h>
+#include <dev/mlx4/cq.h>
+#include <dev/mlx4/device.h>
+#include <dev/mlx4/doorbell.h>
+#include <dev/mlx4/qp.h>
+#include <dev/mlx4/srq.h>
+#include <dev/mlx4/stats.h>
 
 #include <net/debugnet.h>
+#include <net/if.h>
+#include <net/if_dl.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
 #include <netinet/tcp_lro.h>
 
 #include "en_port.h"
-#include <dev/mlx4/stats.h>
 
-#define DRV_NAME	"mlx4_en"
+#define DRV_NAME "mlx4_en"
 
-#define MLX4_EN_MSG_LEVEL	(NETIF_MSG_LINK | NETIF_MSG_IFDOWN)
+#define MLX4_EN_MSG_LEVEL (NETIF_MSG_LINK | NETIF_MSG_IFDOWN)
 
 /*
  * Device constants
  */
 
-
-#define MLX4_EN_PAGE_SHIFT	12
-#define MLX4_EN_PAGE_SIZE	(1 << MLX4_EN_PAGE_SHIFT)
-#define	MLX4_NET_IP_ALIGN	2	/* bytes */
-#define DEF_RX_RINGS		16
-#define MAX_RX_RINGS		128
-#define MIN_RX_RINGS		4
-#define TXBB_SIZE		64
+#define MLX4_EN_PAGE_SHIFT 12
+#define MLX4_EN_PAGE_SIZE (1 << MLX4_EN_PAGE_SHIFT)
+#define MLX4_NET_IP_ALIGN 2 /* bytes */
+#define DEF_RX_RINGS 16
+#define MAX_RX_RINGS 128
+#define MIN_RX_RINGS 4
+#define TXBB_SIZE 64
 
 #ifndef MLX4_EN_MAX_RX_SEGS
-#define	MLX4_EN_MAX_RX_SEGS 1	/* or 8 */
+#define MLX4_EN_MAX_RX_SEGS 1 /* or 8 */
 #endif
 
 #ifndef MLX4_EN_MAX_RX_BYTES
-#define	MLX4_EN_MAX_RX_BYTES MCLBYTES
+#define MLX4_EN_MAX_RX_BYTES MCLBYTES
 #endif
 
-#define HEADROOM		(2048 / TXBB_SIZE + 1)
-#define INIT_OWNER_BIT		0xffffffff
-#define STAMP_STRIDE		64
-#define STAMP_DWORDS		(STAMP_STRIDE / 4)
-#define STAMP_SHIFT		31
-#define STAMP_VAL		0x7fffffff
-#define STATS_DELAY		(HZ / 4)
-#define SERVICE_TASK_DELAY	(HZ / 4)
-#define MAX_NUM_OF_FS_RULES	256
+#define HEADROOM (2048 / TXBB_SIZE + 1)
+#define INIT_OWNER_BIT 0xffffffff
+#define STAMP_STRIDE 64
+#define STAMP_DWORDS (STAMP_STRIDE / 4)
+#define STAMP_SHIFT 31
+#define STAMP_VAL 0x7fffffff
+#define STATS_DELAY (HZ / 4)
+#define SERVICE_TASK_DELAY (HZ / 4)
+#define MAX_NUM_OF_FS_RULES 256
 
 #define MLX4_EN_FILTER_HASH_SHIFT 4
 #define MLX4_EN_FILTER_EXPIRY_QUOTA 60
@@ -109,17 +107,17 @@
 #endif
 
 /* vlan valid range */
-#define VLAN_MIN_VALUE		1
-#define VLAN_MAX_VALUE		4094
+#define VLAN_MIN_VALUE 1
+#define VLAN_MAX_VALUE 4094
 
 /*
  * OS related constants and tunables
  */
 
-#define MLX4_EN_WATCHDOG_TIMEOUT	(15 * HZ)
+#define MLX4_EN_WATCHDOG_TIMEOUT (15 * HZ)
 
-#define MLX4_EN_ALLOC_SIZE     PAGE_ALIGN(PAGE_SIZE)
-#define MLX4_EN_ALLOC_ORDER    get_order(MLX4_EN_ALLOC_SIZE)
+#define MLX4_EN_ALLOC_SIZE PAGE_ALIGN(PAGE_SIZE)
+#define MLX4_EN_ALLOC_ORDER get_order(MLX4_EN_ALLOC_SIZE)
 
 enum mlx4_en_alloc_type {
 	MLX4_EN_ALLOC_NEW = 0,
@@ -127,89 +125,94 @@ enum mlx4_en_alloc_type {
 };
 
 /* Maximum ring sizes */
-#define MLX4_EN_DEF_TX_QUEUE_SIZE       4096
+#define MLX4_EN_DEF_TX_QUEUE_SIZE 4096
 
 /* Minimum packet number till arming the CQ */
-#define MLX4_EN_MIN_RX_ARM	2048
-#define MLX4_EN_MIN_TX_ARM	2048
+#define MLX4_EN_MIN_RX_ARM 2048
+#define MLX4_EN_MIN_TX_ARM 2048
 
 /* Maximum ring sizes */
-#define MLX4_EN_MAX_TX_SIZE	8192
-#define MLX4_EN_MAX_RX_SIZE	8192
+#define MLX4_EN_MAX_TX_SIZE 8192
+#define MLX4_EN_MAX_RX_SIZE 8192
 
 /* Minimum ring sizes */
-#define MLX4_EN_MIN_RX_SIZE	(4096 / TXBB_SIZE)
-#define MLX4_EN_MIN_TX_SIZE	(4096 / TXBB_SIZE)
+#define MLX4_EN_MIN_RX_SIZE (4096 / TXBB_SIZE)
+#define MLX4_EN_MIN_TX_SIZE (4096 / TXBB_SIZE)
 
-#define MLX4_EN_SMALL_PKT_SIZE		64
+#define MLX4_EN_SMALL_PKT_SIZE 64
 
-#define MLX4_EN_MAX_TX_RING_P_UP	32
-#define MLX4_EN_NUM_UP			1
+#define MLX4_EN_MAX_TX_RING_P_UP 32
+#define MLX4_EN_NUM_UP 1
 
-#define MAX_TX_RINGS			(MLX4_EN_MAX_TX_RING_P_UP * \
-					MLX4_EN_NUM_UP)
+#define MAX_TX_RINGS (MLX4_EN_MAX_TX_RING_P_UP * MLX4_EN_NUM_UP)
 
-#define MLX4_EN_NO_VLAN			0xffff
+#define MLX4_EN_NO_VLAN 0xffff
 
-#define MLX4_EN_DEF_TX_RING_SIZE	1024
-#define MLX4_EN_DEF_RX_RING_SIZE  	1024
+#define MLX4_EN_DEF_TX_RING_SIZE 1024
+#define MLX4_EN_DEF_RX_RING_SIZE 1024
 
 /* Target number of bytes to coalesce with interrupt moderation */
-#define MLX4_EN_RX_COAL_TARGET	44
-#define MLX4_EN_RX_COAL_TIME	0x10
+#define MLX4_EN_RX_COAL_TARGET 44
+#define MLX4_EN_RX_COAL_TIME 0x10
 
-#define MLX4_EN_TX_COAL_PKTS	64
-#define MLX4_EN_TX_COAL_TIME	64
+#define MLX4_EN_TX_COAL_PKTS 64
+#define MLX4_EN_TX_COAL_TIME 64
 
-#define MLX4_EN_RX_RATE_LOW		400000
-#define MLX4_EN_RX_COAL_TIME_LOW	0
-#define MLX4_EN_RX_RATE_HIGH		450000
-#define MLX4_EN_RX_COAL_TIME_HIGH	128
-#define MLX4_EN_RX_SIZE_THRESH		1024
-#define MLX4_EN_RX_RATE_THRESH		(1000000 / MLX4_EN_RX_COAL_TIME_HIGH)
-#define MLX4_EN_SAMPLE_INTERVAL		0
-#define MLX4_EN_AVG_PKT_SMALL		256
+#define MLX4_EN_RX_RATE_LOW 400000
+#define MLX4_EN_RX_COAL_TIME_LOW 0
+#define MLX4_EN_RX_RATE_HIGH 450000
+#define MLX4_EN_RX_COAL_TIME_HIGH 128
+#define MLX4_EN_RX_SIZE_THRESH 1024
+#define MLX4_EN_RX_RATE_THRESH (1000000 / MLX4_EN_RX_COAL_TIME_HIGH)
+#define MLX4_EN_SAMPLE_INTERVAL 0
+#define MLX4_EN_AVG_PKT_SMALL 256
 
-#define MLX4_EN_AUTO_CONF	0xffff
+#define MLX4_EN_AUTO_CONF 0xffff
 
-#define MLX4_EN_DEF_RX_PAUSE	1
-#define MLX4_EN_DEF_TX_PAUSE	1
+#define MLX4_EN_DEF_RX_PAUSE 1
+#define MLX4_EN_DEF_TX_PAUSE 1
 
 /* Interval between successive polls in the Tx routine when polling is used
    instead of interrupts (in per-core Tx rings) - should be power of 2 */
-#define MLX4_EN_TX_POLL_MODER	16
-#define MLX4_EN_TX_POLL_TIMEOUT	(HZ / 4)
+#define MLX4_EN_TX_POLL_MODER 16
+#define MLX4_EN_TX_POLL_TIMEOUT (HZ / 4)
 
-#define MLX4_EN_64_ALIGN	(64 - NET_SKB_PAD)
-#define SMALL_PACKET_SIZE      (256 - NET_IP_ALIGN)
-#define HEADER_COPY_SIZE       (128)
+#define MLX4_EN_64_ALIGN (64 - NET_SKB_PAD)
+#define SMALL_PACKET_SIZE (256 - NET_IP_ALIGN)
+#define HEADER_COPY_SIZE (128)
 #define MLX4_LOOPBACK_TEST_PAYLOAD (HEADER_COPY_SIZE - ETHER_HDR_LEN)
 
-#define MLX4_EN_MIN_MTU		46
-#define ETH_BCAST		0xffffffffffffULL
+#define MLX4_EN_MIN_MTU 46
+#define ETH_BCAST 0xffffffffffffULL
 
-#define MLX4_EN_LOOPBACK_RETRIES	5
-#define MLX4_EN_LOOPBACK_TIMEOUT	100
+#define MLX4_EN_LOOPBACK_RETRIES 5
+#define MLX4_EN_LOOPBACK_TIMEOUT 100
 
 #ifdef MLX4_EN_PERF_STAT
 /* Number of samples to 'average' */
-#define AVG_SIZE			128
-#define AVG_FACTOR			1024
+#define AVG_SIZE 128
+#define AVG_FACTOR 1024
 
-#define INC_PERF_COUNTER(cnt)		(++(cnt))
-#define ADD_PERF_COUNTER(cnt, add)	((cnt) += (add))
+#define INC_PERF_COUNTER(cnt) (++(cnt))
+#define ADD_PERF_COUNTER(cnt, add) ((cnt) += (add))
 #define AVG_PERF_COUNTER(cnt, sample) \
 	((cnt) = ((cnt) * (AVG_SIZE - 1) + (sample) * AVG_FACTOR) / AVG_SIZE)
-#define GET_PERF_COUNTER(cnt)		(cnt)
-#define GET_AVG_PERF_COUNTER(cnt)	((cnt) / AVG_FACTOR)
+#define GET_PERF_COUNTER(cnt) (cnt)
+#define GET_AVG_PERF_COUNTER(cnt) ((cnt) / AVG_FACTOR)
 
 #else
 
-#define INC_PERF_COUNTER(cnt)		do {} while (0)
-#define ADD_PERF_COUNTER(cnt, add)	do {} while (0)
-#define AVG_PERF_COUNTER(cnt, sample)	do {} while (0)
-#define GET_PERF_COUNTER(cnt)		(0)
-#define GET_AVG_PERF_COUNTER(cnt)	(0)
+#define INC_PERF_COUNTER(cnt) \
+	do {                  \
+	} while (0)
+#define ADD_PERF_COUNTER(cnt, add) \
+	do {                       \
+	} while (0)
+#define AVG_PERF_COUNTER(cnt, sample) \
+	do {                          \
+	} while (0)
+#define GET_PERF_COUNTER(cnt) (0)
+#define GET_AVG_PERF_COUNTER(cnt) (0)
 #endif /* MLX4_EN_PERF_STAT */
 
 /* Constants for TX flow */
@@ -228,27 +231,24 @@ enum cq_type {
 	TX = 1,
 };
 
-
 /*
  * Useful macros
  */
-#define ROUNDUP_LOG2(x)		ilog2(roundup_pow_of_two(x))
-#define XNOR(x, y)		(!(x) == !(y))
-#define ILLEGAL_MAC(addr)	(addr == 0xffffffffffffULL || addr == 0x0)
+#define ROUNDUP_LOG2(x) ilog2(roundup_pow_of_two(x))
+#define XNOR(x, y) (!(x) == !(y))
+#define ILLEGAL_MAC(addr) (addr == 0xffffffffffffULL || addr == 0x0)
 
 struct mlx4_en_tx_info {
 	bus_dmamap_t dma_map;
-        struct mbuf *mb;
-        u32 nr_txbb;
+	struct mbuf *mb;
+	u32 nr_txbb;
 	u32 nr_bytes;
 };
 
-
-#define MLX4_EN_BIT_DESC_OWN	0x80000000
-#define CTRL_SIZE	sizeof(struct mlx4_wqe_ctrl_seg)
-#define MLX4_EN_MEMTYPE_PAD	0x100
-#define DS_SIZE		sizeof(struct mlx4_wqe_data_seg)
-
+#define MLX4_EN_BIT_DESC_OWN 0x80000000
+#define CTRL_SIZE sizeof(struct mlx4_wqe_ctrl_seg)
+#define MLX4_EN_MEMTYPE_PAD 0x100
+#define DS_SIZE sizeof(struct mlx4_wqe_data_seg)
 
 struct mlx4_en_tx_desc {
 	struct mlx4_wqe_ctrl_seg ctrl;
@@ -259,29 +259,29 @@ struct mlx4_en_tx_desc {
 	};
 };
 
-#define MLX4_EN_USE_SRQ		0x01000000
+#define MLX4_EN_USE_SRQ 0x01000000
 
 #define MLX4_EN_RX_BUDGET 64
 
-#define	MLX4_EN_TX_MAX_DESC_SIZE 512	/* bytes */
-#define	MLX4_EN_TX_MAX_MBUF_SIZE 65536	/* bytes */
-#define	MLX4_EN_TX_MAX_PAYLOAD_SIZE 65536	/* bytes */
-#define	MLX4_EN_TX_MAX_MBUF_FRAGS \
-    ((MLX4_EN_TX_MAX_DESC_SIZE - 128) / DS_SIZE_ALIGNMENT) /* units */
-#define	MLX4_EN_TX_WQE_MAX_WQEBBS			\
-    (MLX4_EN_TX_MAX_DESC_SIZE / TXBB_SIZE) /* units */
+#define MLX4_EN_TX_MAX_DESC_SIZE 512	  /* bytes */
+#define MLX4_EN_TX_MAX_MBUF_SIZE 65536	  /* bytes */
+#define MLX4_EN_TX_MAX_PAYLOAD_SIZE 65536 /* bytes */
+#define MLX4_EN_TX_MAX_MBUF_FRAGS \
+	((MLX4_EN_TX_MAX_DESC_SIZE - 128) / DS_SIZE_ALIGNMENT) /* units */
+#define MLX4_EN_TX_WQE_MAX_WQEBBS \
+	(MLX4_EN_TX_MAX_DESC_SIZE / TXBB_SIZE) /* units */
 
-#define MLX4_EN_CX3_LOW_ID	0x1000
-#define MLX4_EN_CX3_HIGH_ID	0x1005
+#define MLX4_EN_CX3_LOW_ID 0x1000
+#define MLX4_EN_CX3_HIGH_ID 0x1005
 
 struct mlx4_en_tx_ring {
-        spinlock_t tx_lock;
+	spinlock_t tx_lock;
 	bus_dma_tag_t dma_tag;
 	struct mlx4_hwq_resources wqres;
-	u32 size ; /* number of TXBBs */
+	u32 size; /* number of TXBBs */
 	u32 size_mask;
 	u16 stride;
-	u16 cqn;	/* index of port CQ associated with this ring */
+	u16 cqn; /* index of port CQ associated with this ring */
 	u32 prod;
 	u32 cons;
 	u32 buf_size;
@@ -334,15 +334,15 @@ struct mlx4_en_rx_ring {
 	struct mlx4_hwq_resources wqres;
 	bus_dma_tag_t dma_tag;
 	struct mlx4_en_rx_spare spare;
-	u32 size ;	/* number of Rx descs*/
+	u32 size; /* number of Rx descs*/
 	u32 actual_size;
 	u32 size_mask;
 	u16 log_stride;
-	u16 cqn;	/* index of port CQ associated with this ring */
+	u16 cqn; /* index of port CQ associated with this ring */
 	u32 prod;
 	u32 cons;
 	u32 buf_size;
-	u8  fcs_del;
+	u8 fcs_del;
 	u32 rx_mb_size;
 	u32 rx_mr_key_be;
 	int qpn;
@@ -363,38 +363,31 @@ struct mlx4_en_rx_ring {
 	struct lro_ctrl lro;
 };
 
-static inline int mlx4_en_can_lro(__be16 status)
+static inline int
+mlx4_en_can_lro(__be16 status)
 {
-	const __be16 status_all = cpu_to_be16(
-			MLX4_CQE_STATUS_IPV4    |
-			MLX4_CQE_STATUS_IPV4F   |
-			MLX4_CQE_STATUS_IPV6    |
-			MLX4_CQE_STATUS_IPV4OPT |
-			MLX4_CQE_STATUS_TCP     |
-			MLX4_CQE_STATUS_UDP     |
-			MLX4_CQE_STATUS_IPOK);
+	const __be16 status_all = cpu_to_be16(MLX4_CQE_STATUS_IPV4 |
+	    MLX4_CQE_STATUS_IPV4F | MLX4_CQE_STATUS_IPV6 |
+	    MLX4_CQE_STATUS_IPV4OPT | MLX4_CQE_STATUS_TCP |
+	    MLX4_CQE_STATUS_UDP | MLX4_CQE_STATUS_IPOK);
 	const __be16 status_ipv4_ipok_tcp = cpu_to_be16(
-			MLX4_CQE_STATUS_IPV4    |
-			MLX4_CQE_STATUS_IPOK    |
-			MLX4_CQE_STATUS_TCP);
+	    MLX4_CQE_STATUS_IPV4 | MLX4_CQE_STATUS_IPOK | MLX4_CQE_STATUS_TCP);
 	const __be16 status_ipv6_ipok_tcp = cpu_to_be16(
-			MLX4_CQE_STATUS_IPV6    |
-			MLX4_CQE_STATUS_IPOK    |
-			MLX4_CQE_STATUS_TCP);
+	    MLX4_CQE_STATUS_IPV6 | MLX4_CQE_STATUS_IPOK | MLX4_CQE_STATUS_TCP);
 
 	status &= status_all;
-	return (status == status_ipv4_ipok_tcp ||
-			status == status_ipv6_ipok_tcp);
+	return (
+	    status == status_ipv4_ipok_tcp || status == status_ipv6_ipok_tcp);
 }
 
 struct mlx4_en_cq {
-	struct mlx4_cq          mcq;
+	struct mlx4_cq mcq;
 	struct mlx4_hwq_resources wqres;
-	int                     ring;
-	spinlock_t              lock;
-	if_t			dev;
-        /* Per-core Tx cq processing support */
-        struct timer_list timer;
+	int ring;
+	spinlock_t lock;
+	if_t dev;
+	/* Per-core Tx cq processing support */
+	struct timer_list timer;
 	int size;
 	int buf_size;
 	unsigned vector;
@@ -404,23 +397,23 @@ struct mlx4_en_cq {
 	struct mlx4_cqe *buf;
 	struct task cq_task;
 	struct taskqueue *tq;
-#define MLX4_EN_OPCODE_ERROR	0x1e
+#define MLX4_EN_OPCODE_ERROR 0x1e
 	u32 tot_rx;
 	u32 tot_tx;
 	u32 curr_poll_rx_cpu_id;
 
 #ifdef CONFIG_NET_RX_BUSY_POLL
 	unsigned int state;
-#define MLX4_EN_CQ_STATE_IDLE        0
-#define MLX4_EN_CQ_STATE_NAPI     1    /* NAPI owns this CQ */
-#define MLX4_EN_CQ_STATE_POLL     2    /* poll owns this CQ */
+#define MLX4_EN_CQ_STATE_IDLE 0
+#define MLX4_EN_CQ_STATE_NAPI 1 /* NAPI owns this CQ */
+#define MLX4_EN_CQ_STATE_POLL 2 /* poll owns this CQ */
 #define MLX4_CQ_LOCKED (MLX4_EN_CQ_STATE_NAPI | MLX4_EN_CQ_STATE_POLL)
-#define MLX4_EN_CQ_STATE_NAPI_YIELD  4    /* NAPI yielded this CQ */
-#define MLX4_EN_CQ_STATE_POLL_YIELD  8    /* poll yielded this CQ */
+#define MLX4_EN_CQ_STATE_NAPI_YIELD 4 /* NAPI yielded this CQ */
+#define MLX4_EN_CQ_STATE_POLL_YIELD 8 /* poll yielded this CQ */
 #define CQ_YIELD (MLX4_EN_CQ_STATE_NAPI_YIELD | MLX4_EN_CQ_STATE_POLL_YIELD)
 #define CQ_USER_PEND (MLX4_EN_CQ_STATE_POLL | MLX4_EN_CQ_STATE_POLL_YIELD)
 	spinlock_t poll_lock; /* protects from LLS/napi conflicts */
-#endif  /* CONFIG_NET_RX_BUSY_POLL */
+#endif			      /* CONFIG_NET_RX_BUSY_POLL */
 };
 
 struct mlx4_en_port_profile {
@@ -449,26 +442,25 @@ struct mlx4_en_profile {
 };
 
 struct mlx4_en_dev {
-	struct mlx4_dev		*dev;
-	struct pci_dev		*pdev;
-	struct mutex		state_lock;
-	if_t			pndev[MLX4_MAX_PORTS + 1];
-	u32			port_cnt;
-	bool			device_up;
-	struct mlx4_en_profile	profile;
-	u32			LSO_support;
+	struct mlx4_dev *dev;
+	struct pci_dev *pdev;
+	struct mutex state_lock;
+	if_t pndev[MLX4_MAX_PORTS + 1];
+	u32 port_cnt;
+	bool device_up;
+	struct mlx4_en_profile profile;
+	u32 LSO_support;
 	struct workqueue_struct *workqueue;
-	struct device		*dma_device;
-	void __iomem		*uar_map;
-	struct mlx4_uar		priv_uar;
-	struct mlx4_mr		mr;
-	u32			priv_pdn;
-	spinlock_t		uar_lock;
-	u8			mac_removed[MLX4_MAX_PORTS + 1];
-	unsigned long		last_overflow_check;
-	unsigned long		overflow_period;
+	struct device *dma_device;
+	void __iomem *uar_map;
+	struct mlx4_uar priv_uar;
+	struct mlx4_mr mr;
+	u32 priv_pdn;
+	spinlock_t uar_lock;
+	u8 mac_removed[MLX4_MAX_PORTS + 1];
+	unsigned long last_overflow_check;
+	unsigned long overflow_period;
 };
-
 
 struct mlx4_en_rss_map {
 	int base_qpn;
@@ -479,8 +471,8 @@ struct mlx4_en_rss_map {
 };
 
 enum mlx4_en_port_flag {
-	MLX4_EN_PORT_ANC = 1<<0, /* Auto-negotiation complete */
-	MLX4_EN_PORT_ANE = 1<<1, /* Auto-negotiation enabled */
+	MLX4_EN_PORT_ANC = 1 << 0, /* Auto-negotiation complete */
+	MLX4_EN_PORT_ANE = 1 << 1, /* Auto-negotiation enabled */
 };
 
 struct mlx4_en_port_state {
@@ -497,11 +489,11 @@ enum mlx4_en_addr_list_act {
 };
 
 struct mlx4_en_addr_list {
-	struct list_head	list;
-	enum mlx4_en_addr_list_act	action;
-	u8			addr[ETH_ALEN];
-	u64			reg_id;
-	u64			tunnel_reg_id;
+	struct list_head list;
+	enum mlx4_en_addr_list_act action;
+	u8 addr[ETH_ALEN];
+	u64 reg_id;
+	u64 tunnel_reg_id;
 };
 
 #ifdef CONFIG_MLX4_EN_DCB
@@ -514,19 +506,18 @@ struct mlx4_en_addr_list {
 
 #endif
 
-
 enum {
-	MLX4_EN_FLAG_PROMISC		= (1 << 0),
-	MLX4_EN_FLAG_MC_PROMISC		= (1 << 1),
+	MLX4_EN_FLAG_PROMISC = (1 << 0),
+	MLX4_EN_FLAG_MC_PROMISC = (1 << 1),
 	/* whether we need to enable hardware loopback by putting dmac
 	 * in Tx WQE
 	 */
-	MLX4_EN_FLAG_ENABLE_HW_LOOPBACK	= (1 << 2),
+	MLX4_EN_FLAG_ENABLE_HW_LOOPBACK = (1 << 2),
 	/* whether we need to drop packets that hardware loopback-ed */
-	MLX4_EN_FLAG_RX_FILTER_NEEDED	= (1 << 3),
-	MLX4_EN_FLAG_FORCE_PROMISC	= (1 << 4),
+	MLX4_EN_FLAG_RX_FILTER_NEEDED = (1 << 3),
+	MLX4_EN_FLAG_FORCE_PROMISC = (1 << 4),
 #ifdef CONFIG_MLX4_EN_DCB
-	MLX4_EN_FLAG_DCB_ENABLED	= (1 << 5)
+	MLX4_EN_FLAG_DCB_ENABLED = (1 << 5)
 #endif
 };
 
@@ -534,10 +525,10 @@ enum {
 #define MLX4_EN_MAC_HASH_IDX 5
 
 struct en_port {
-	struct kobject		kobj;
-	struct mlx4_dev		*dev;
-	u8			port_num;
-	u8			vport_num;
+	struct kobject kobj;
+	struct mlx4_dev *dev;
+	u8 port_num;
+	u8 vport_num;
 };
 
 struct mlx4_en_priv {
@@ -578,7 +569,7 @@ struct mlx4_en_priv {
 	int gone;
 	int allocated;
 	unsigned char current_mac[ETH_ALEN + 2];
-        u64 mac;
+	u64 mac;
 	int mac_index;
 	unsigned max_mtu;
 	int base_qpn;
@@ -625,7 +616,7 @@ struct mlx4_en_priv {
 	eventhandler_tag vlan_attach;
 	eventhandler_tag vlan_detach;
 	struct callout watchdog_timer;
-        struct ifmedia media;
+	struct ifmedia media;
 	volatile int blocked;
 	struct sysctl_oid *conf_sysctl;
 	struct sysctl_oid *stat_sysctl;
@@ -667,20 +658,23 @@ mlx4_netdev_priv(const if_t dev)
 	return (if_getsoftc(dev));
 }
 
-static inline struct mlx4_cqe *mlx4_en_get_cqe(u8 *buf, int idx, int cqe_sz)
+static inline struct mlx4_cqe *
+mlx4_en_get_cqe(u8 *buf, int idx, int cqe_sz)
 {
 	return (struct mlx4_cqe *)(buf + idx * cqe_sz);
 }
 
 #ifdef CONFIG_NET_RX_BUSY_POLL
-static inline void mlx4_en_cq_init_lock(struct mlx4_en_cq *cq)
+static inline void
+mlx4_en_cq_init_lock(struct mlx4_en_cq *cq)
 {
 	spin_lock_init(&cq->poll_lock);
 	cq->state = MLX4_EN_CQ_STATE_IDLE;
 }
 
 /* called from the device poll rutine to get ownership of a cq */
-static inline bool mlx4_en_cq_lock_napi(struct mlx4_en_cq *cq)
+static inline bool
+mlx4_en_cq_lock_napi(struct mlx4_en_cq *cq)
 {
 	int rc = true;
 	spin_lock(&cq->poll_lock);
@@ -696,12 +690,13 @@ static inline bool mlx4_en_cq_lock_napi(struct mlx4_en_cq *cq)
 }
 
 /* returns true is someone tried to get the cq while napi had it */
-static inline bool mlx4_en_cq_unlock_napi(struct mlx4_en_cq *cq)
+static inline bool
+mlx4_en_cq_unlock_napi(struct mlx4_en_cq *cq)
 {
 	int rc = false;
 	spin_lock(&cq->poll_lock);
-	WARN_ON(cq->state & (MLX4_EN_CQ_STATE_POLL |
-			       MLX4_EN_CQ_STATE_NAPI_YIELD));
+	WARN_ON(
+	    cq->state & (MLX4_EN_CQ_STATE_POLL | MLX4_EN_CQ_STATE_NAPI_YIELD));
 
 	if (cq->state & MLX4_EN_CQ_STATE_POLL_YIELD)
 		rc = true;
@@ -711,7 +706,8 @@ static inline bool mlx4_en_cq_unlock_napi(struct mlx4_en_cq *cq)
 }
 
 /* called from mlx4_en_low_latency_poll() */
-static inline bool mlx4_en_cq_lock_poll(struct mlx4_en_cq *cq)
+static inline bool
+mlx4_en_cq_lock_poll(struct mlx4_en_cq *cq)
 {
 	int rc = true;
 	spin_lock_bh(&cq->poll_lock);
@@ -733,7 +729,8 @@ static inline bool mlx4_en_cq_lock_poll(struct mlx4_en_cq *cq)
 }
 
 /* returns true if someone tried to get the cq while it was locked */
-static inline bool mlx4_en_cq_unlock_poll(struct mlx4_en_cq *cq)
+static inline bool
+mlx4_en_cq_unlock_poll(struct mlx4_en_cq *cq)
 {
 	int rc = false;
 	spin_lock_bh(&cq->poll_lock);
@@ -747,37 +744,44 @@ static inline bool mlx4_en_cq_unlock_poll(struct mlx4_en_cq *cq)
 }
 
 /* true if a socket is polling, even if it did not get the lock */
-static inline bool mlx4_en_cq_busy_polling(struct mlx4_en_cq *cq)
+static inline bool
+mlx4_en_cq_busy_polling(struct mlx4_en_cq *cq)
 {
 	WARN_ON(!(cq->state & MLX4_CQ_LOCKED));
 	return cq->state & CQ_USER_PEND;
 }
 #else
-static inline void mlx4_en_cq_init_lock(struct mlx4_en_cq *cq)
+static inline void
+mlx4_en_cq_init_lock(struct mlx4_en_cq *cq)
 {
 }
 
-static inline bool mlx4_en_cq_lock_napi(struct mlx4_en_cq *cq)
+static inline bool
+mlx4_en_cq_lock_napi(struct mlx4_en_cq *cq)
 {
 	return true;
 }
 
-static inline bool mlx4_en_cq_unlock_napi(struct mlx4_en_cq *cq)
+static inline bool
+mlx4_en_cq_unlock_napi(struct mlx4_en_cq *cq)
 {
 	return false;
 }
 
-static inline bool mlx4_en_cq_lock_poll(struct mlx4_en_cq *cq)
+static inline bool
+mlx4_en_cq_lock_poll(struct mlx4_en_cq *cq)
 {
 	return false;
 }
 
-static inline bool mlx4_en_cq_unlock_poll(struct mlx4_en_cq *cq)
+static inline bool
+mlx4_en_cq_unlock_poll(struct mlx4_en_cq *cq)
 {
 	return false;
 }
 
-static inline bool mlx4_en_cq_busy_polling(struct mlx4_en_cq *cq)
+static inline bool
+mlx4_en_cq_busy_polling(struct mlx4_en_cq *cq)
 {
 	return false;
 }
@@ -787,7 +791,7 @@ static inline bool mlx4_en_cq_busy_polling(struct mlx4_en_cq *cq)
 
 void mlx4_en_destroy_netdev(if_t dev);
 int mlx4_en_init_netdev(struct mlx4_en_dev *mdev, int port,
-			struct mlx4_en_port_profile *prof);
+    struct mlx4_en_port_profile *prof);
 
 int mlx4_en_start_port(if_t dev);
 void mlx4_en_stop_port(if_t dev);
@@ -797,10 +801,10 @@ int mlx4_en_alloc_resources(struct mlx4_en_priv *priv);
 
 int mlx4_en_pre_config(struct mlx4_en_priv *priv);
 int mlx4_en_create_cq(struct mlx4_en_priv *priv, struct mlx4_en_cq **pcq,
-		      int entries, int ring, enum cq_type mode, int node);
+    int entries, int ring, enum cq_type mode, int node);
 void mlx4_en_destroy_cq(struct mlx4_en_priv *priv, struct mlx4_en_cq **pcq);
 int mlx4_en_activate_cq(struct mlx4_en_priv *priv, struct mlx4_en_cq *cq,
-			int cq_idx);
+    int cq_idx);
 void mlx4_en_deactivate_cq(struct mlx4_en_priv *priv, struct mlx4_en_cq *cq);
 int mlx4_en_set_cq_moder(struct mlx4_en_priv *priv, struct mlx4_en_cq *cq);
 int mlx4_en_arm_cq(struct mlx4_en_priv *priv, struct mlx4_en_cq *cq);
@@ -811,35 +815,30 @@ u16 mlx4_en_select_queue(if_t dev, struct mbuf *mb);
 int mlx4_en_xmit(struct mlx4_en_priv *priv, int tx_ind, struct mbuf **mbp);
 int mlx4_en_transmit(if_t dev, struct mbuf *m);
 int mlx4_en_create_tx_ring(struct mlx4_en_priv *priv,
-			   struct mlx4_en_tx_ring **pring,
-			   u32 size, u16 stride, int node, int queue_idx);
+    struct mlx4_en_tx_ring **pring, u32 size, u16 stride, int node,
+    int queue_idx);
 void mlx4_en_destroy_tx_ring(struct mlx4_en_priv *priv,
-			     struct mlx4_en_tx_ring **pring);
+    struct mlx4_en_tx_ring **pring);
 int mlx4_en_activate_tx_ring(struct mlx4_en_priv *priv,
-			     struct mlx4_en_tx_ring *ring,
-			     int cq, int user_prio);
+    struct mlx4_en_tx_ring *ring, int cq, int user_prio);
 void mlx4_en_deactivate_tx_ring(struct mlx4_en_priv *priv,
-				struct mlx4_en_tx_ring *ring);
+    struct mlx4_en_tx_ring *ring);
 void mlx4_en_set_num_rx_rings(struct mlx4_en_dev *mdev);
 void mlx4_en_qflush(if_t dev);
 
 int mlx4_en_create_rx_ring(struct mlx4_en_priv *priv,
-			   struct mlx4_en_rx_ring **pring,
-			   u32 size, int node);
+    struct mlx4_en_rx_ring **pring, u32 size, int node);
 void mlx4_en_destroy_rx_ring(struct mlx4_en_priv *priv,
-			     struct mlx4_en_rx_ring **pring,
-			     u32 size);
+    struct mlx4_en_rx_ring **pring, u32 size);
 void mlx4_en_rx_que(void *context, int pending);
 int mlx4_en_activate_rx_rings(struct mlx4_en_priv *priv);
 void mlx4_en_deactivate_rx_ring(struct mlx4_en_priv *priv,
-				struct mlx4_en_rx_ring *ring);
-int mlx4_en_process_rx_cq(if_t dev,
-			  struct mlx4_en_cq *cq,
-			  int budget);
+    struct mlx4_en_rx_ring *ring);
+int mlx4_en_process_rx_cq(if_t dev, struct mlx4_en_cq *cq, int budget);
 void mlx4_en_poll_tx_cq(unsigned long data);
 void mlx4_en_fill_qp_context(struct mlx4_en_priv *priv, int size, int stride,
-		int is_tx, int rss, int qpn, int cqn, int user_prio,
-		struct mlx4_qp_context *context);
+    int is_tx, int rss, int qpn, int cqn, int user_prio,
+    struct mlx4_qp_context *context);
 void mlx4_en_sqp_event(struct mlx4_qp *qp, enum mlx4_event event);
 int mlx4_en_map_buffer(struct mlx4_buf *buf);
 void mlx4_en_unmap_buffer(struct mlx4_buf *buf);
@@ -873,10 +872,10 @@ int mlx4_en_setup_tc(if_t dev, u8 up);
 
 #ifdef CONFIG_RFS_ACCEL
 void mlx4_en_cleanup_filters(struct mlx4_en_priv *priv,
-			     struct mlx4_en_rx_ring *rx_ring);
+    struct mlx4_en_rx_ring *rx_ring);
 #endif
 
-#define MLX4_EN_NUM_SELF_TEST	5
+#define MLX4_EN_NUM_SELF_TEST 5
 void mlx4_en_ex_selftest(if_t dev, u32 *flags, u64 *buf);
 void mlx4_en_ptp_overflow_check(struct mlx4_en_dev *mdev);
 
@@ -890,8 +889,7 @@ u64 mlx4_en_get_cqe_ts(struct mlx4_cqe *cqe);
 
 /* Functions for caching and restoring statistics */
 int mlx4_en_get_sset_count(if_t dev, int sset);
-void mlx4_en_restore_ethtool_stats(struct mlx4_en_priv *priv,
-				    u64 *data);
+void mlx4_en_restore_ethtool_stats(struct mlx4_en_priv *priv, u64 *data);
 
 /*
  * Globals
@@ -901,65 +899,59 @@ extern const struct ethtool_ops mlx4_en_ethtool_ops;
 /*
  * Defines for link speed - needed by selftest
  */
-#define MLX4_EN_LINK_SPEED_1G	1000
-#define MLX4_EN_LINK_SPEED_10G	10000
-#define MLX4_EN_LINK_SPEED_40G	40000
+#define MLX4_EN_LINK_SPEED_1G 1000
+#define MLX4_EN_LINK_SPEED_10G 10000
+#define MLX4_EN_LINK_SPEED_40G 40000
 
 enum {
-        NETIF_MSG_DRV           = 0x0001,
-        NETIF_MSG_PROBE         = 0x0002,
-        NETIF_MSG_LINK          = 0x0004,
-        NETIF_MSG_TIMER         = 0x0008,
-        NETIF_MSG_IFDOWN        = 0x0010,
-        NETIF_MSG_IFUP          = 0x0020,
-        NETIF_MSG_RX_ERR        = 0x0040,
-        NETIF_MSG_TX_ERR        = 0x0080,
-        NETIF_MSG_TX_QUEUED     = 0x0100,
-        NETIF_MSG_INTR          = 0x0200,
-        NETIF_MSG_TX_DONE       = 0x0400,
-        NETIF_MSG_RX_STATUS     = 0x0800,
-        NETIF_MSG_PKTDATA       = 0x1000,
-        NETIF_MSG_HW            = 0x2000,
-        NETIF_MSG_WOL           = 0x4000,
+	NETIF_MSG_DRV = 0x0001,
+	NETIF_MSG_PROBE = 0x0002,
+	NETIF_MSG_LINK = 0x0004,
+	NETIF_MSG_TIMER = 0x0008,
+	NETIF_MSG_IFDOWN = 0x0010,
+	NETIF_MSG_IFUP = 0x0020,
+	NETIF_MSG_RX_ERR = 0x0040,
+	NETIF_MSG_TX_ERR = 0x0080,
+	NETIF_MSG_TX_QUEUED = 0x0100,
+	NETIF_MSG_INTR = 0x0200,
+	NETIF_MSG_TX_DONE = 0x0400,
+	NETIF_MSG_RX_STATUS = 0x0800,
+	NETIF_MSG_PKTDATA = 0x1000,
+	NETIF_MSG_HW = 0x2000,
+	NETIF_MSG_WOL = 0x4000,
 };
-
 
 /*
  * printk / logging functions
  */
 
-#define en_print(level, priv, format, arg...)                   \
-        {                                                       \
-        if ((priv)->registered)                                 \
-                printk(level "%s: %s: " format, DRV_NAME,       \
-                        if_name((priv)->dev), ## arg); \
-        else                                                    \
-                printk(level "%s: %s: Port %d: " format,        \
-                        DRV_NAME, dev_name(&(priv)->mdev->pdev->dev), \
-                        (priv)->port, ## arg);                  \
-        }
+#define en_print(level, priv, format, arg...)                                 \
+	{                                                                     \
+		if ((priv)->registered)                                       \
+			printk(level "%s: %s: " format, DRV_NAME,             \
+			    if_name((priv)->dev), ##arg);                     \
+		else                                                          \
+			printk(level "%s: %s: Port %d: " format, DRV_NAME,    \
+			    dev_name(&(priv)->mdev->pdev->dev), (priv)->port, \
+			    ##arg);                                           \
+	}
 
-
-#define en_dbg(mlevel, priv, format, arg...)			\
-do {								\
-	if (NETIF_MSG_##mlevel & priv->msg_enable)		\
-		en_print(KERN_DEBUG, priv, format, ##arg);	\
-} while (0)
-#define en_warn(priv, format, arg...)			\
+#define en_dbg(mlevel, priv, format, arg...)                       \
+	do {                                                       \
+		if (NETIF_MSG_##mlevel & priv->msg_enable)         \
+			en_print(KERN_DEBUG, priv, format, ##arg); \
+	} while (0)
+#define en_warn(priv, format, arg...) \
 	en_print(KERN_WARNING, priv, format, ##arg)
-#define en_err(priv, format, arg...)			\
-	en_print(KERN_ERR, priv, format, ##arg)
-#define en_info(priv, format, arg...)			\
-	en_print(KERN_INFO, priv, format, ## arg)
+#define en_err(priv, format, arg...) en_print(KERN_ERR, priv, format, ##arg)
+#define en_info(priv, format, arg...) en_print(KERN_INFO, priv, format, ##arg)
 
-#define mlx4_err(mdev, format, arg...)			\
-	pr_err("%s %s: " format, DRV_NAME,		\
-	       dev_name(&(mdev)->pdev->dev), ##arg)
-#define mlx4_info(mdev, format, arg...)			\
-	pr_info("%s %s: " format, DRV_NAME,		\
-		dev_name(&(mdev)->pdev->dev), ##arg)
-#define mlx4_warn(mdev, format, arg...)			\
-	pr_warning("%s %s: " format, DRV_NAME,		\
-		   dev_name(&(mdev)->pdev->dev), ##arg)
+#define mlx4_err(mdev, format, arg...) \
+	pr_err("%s %s: " format, DRV_NAME, dev_name(&(mdev)->pdev->dev), ##arg)
+#define mlx4_info(mdev, format, arg...) \
+	pr_info("%s %s: " format, DRV_NAME, dev_name(&(mdev)->pdev->dev), ##arg)
+#define mlx4_warn(mdev, format, arg...)                                      \
+	pr_warning("%s %s: " format, DRV_NAME, dev_name(&(mdev)->pdev->dev), \
+	    ##arg)
 
 #endif

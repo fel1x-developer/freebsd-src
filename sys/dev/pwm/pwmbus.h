@@ -29,41 +29,39 @@
 #define _PWMBUS_H_
 
 struct pwmbus_softc {
-	device_t	dev;
-	u_int		nchannels;
+	device_t dev;
+	u_int nchannels;
 };
 
 struct pwmbus_ivars {
-	u_int	pi_channel;
+	u_int pi_channel;
 };
 
 enum {
-	PWMBUS_IVAR_CHANNEL,	/* Channel used by child dev */
+	PWMBUS_IVAR_CHANNEL, /* Channel used by child dev */
 };
 
-#define PWMBUS_ACCESSOR(A, B, T)					\
-static inline int							\
-pwmbus_get_ ## A(device_t dev, T *t)					\
-{									\
-	return BUS_READ_IVAR(device_get_parent(dev), dev,		\
-	    PWMBUS_IVAR_ ## B, (uintptr_t *) t);			\
-}									\
-static inline int							\
-pwmbus_set_ ## A(device_t dev, T t)					\
-{									\
-	return BUS_WRITE_IVAR(device_get_parent(dev), dev,		\
-	    PWMBUS_IVAR_ ## B, (uintptr_t) t);				\
-}
+#define PWMBUS_ACCESSOR(A, B, T)                                   \
+	static inline int pwmbus_get_##A(device_t dev, T *t)       \
+	{                                                          \
+		return BUS_READ_IVAR(device_get_parent(dev), dev,  \
+		    PWMBUS_IVAR_##B, (uintptr_t *)t);              \
+	}                                                          \
+	static inline int pwmbus_set_##A(device_t dev, T t)        \
+	{                                                          \
+		return BUS_WRITE_IVAR(device_get_parent(dev), dev, \
+		    PWMBUS_IVAR_##B, (uintptr_t)t);                \
+	}
 
 PWMBUS_ACCESSOR(channel, CHANNEL, u_int)
 
 #ifdef FDT
-#define	PWMBUS_FDT_PNP_INFO(t)	FDTCOMPAT_PNP_INFO(t, pwmbus)
+#define PWMBUS_FDT_PNP_INFO(t) FDTCOMPAT_PNP_INFO(t, pwmbus)
 #else
-#define	PWMBUS_FDT_PNP_INFO(t)
+#define PWMBUS_FDT_PNP_INFO(t)
 #endif
 
-extern driver_t   pwmbus_driver;
-extern driver_t   ofw_pwmbus_driver;
+extern driver_t pwmbus_driver;
+extern driver_t ofw_pwmbus_driver;
 
 #endif /* _PWMBUS_H_ */

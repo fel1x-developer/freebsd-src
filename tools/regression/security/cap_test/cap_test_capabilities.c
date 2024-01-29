@@ -52,7 +52,7 @@
 
 #include "cap_test.h"
 
-#define	SYSCALL_FAIL(syscall, message) \
+#define SYSCALL_FAIL(syscall, message) \
 	FAIL("%s:\t%s (rights 0x%jx)", #syscall, message, rights)
 
 /*
@@ -60,53 +60,56 @@
  * pass, then it did. Otherwise, ensure that the errno is ENOTCAPABLE;
  * capability restrictions should kick in before any other error logic.
  */
-#define	CHECK_RESULT(syscall, rights_needed, succeeded)	do {		\
-	if ((rights & (rights_needed)) == (rights_needed)) {		\
-		if (succeeded) {					\
-			if (success == -1)				\
-				success = PASSED;			\
-		} else {						\
-			SYSCALL_FAIL(syscall, "failed");		\
-		}							\
-	} else {							\
-		if (succeeded) {					\
-			FAILX("%s:\tsucceeded when it shouldn't have"	\
-			    " (rights 0x%jx)", #syscall,		\
-			    (uintmax_t)rights);				\
-		} else if (errno != ENOTCAPABLE) {			\
-			SYSCALL_FAIL(syscall, "errno != ENOTCAPABLE");	\
-		}							\
-	}								\
-	errno = 0;							\
-} while (0)
+#define CHECK_RESULT(syscall, rights_needed, succeeded)                        \
+	do {                                                                   \
+		if ((rights & (rights_needed)) == (rights_needed)) {           \
+			if (succeeded) {                                       \
+				if (success == -1)                             \
+					success = PASSED;                      \
+			} else {                                               \
+				SYSCALL_FAIL(syscall, "failed");               \
+			}                                                      \
+		} else {                                                       \
+			if (succeeded) {                                       \
+				FAILX("%s:\tsucceeded when it shouldn't have"  \
+				      " (rights 0x%jx)",                       \
+				    #syscall, (uintmax_t)rights);              \
+			} else if (errno != ENOTCAPABLE) {                     \
+				SYSCALL_FAIL(syscall, "errno != ENOTCAPABLE"); \
+			}                                                      \
+		}                                                              \
+		errno = 0;                                                     \
+	} while (0)
 
 /*
  * As above, but for the special mmap() case: unmap after successful mmap().
  */
-#define	CHECK_MMAP_RESULT(rights_needed)	do {			\
-	if ((rights & (rights_needed)) == (rights_needed)) {		\
-		if (p == MAP_FAILED)					\
-			SYSCALL_FAIL(mmap, "failed");			\
-		else {							\
-			(void)munmap(p, getpagesize());			\
-			if (success == -1)				\
-				success = PASSED;			\
-		}							\
-	} else {							\
-		if (p != MAP_FAILED) {					\
-			FAILX("%s:\tsucceeded when it shouldn't have"	\
-			    " (rights 0x%jx)", "mmap", rights);		\
-			(void)munmap(p, getpagesize());			\
-		} else if (errno != ENOTCAPABLE)			\
-			SYSCALL_FAIL(syscall, "errno != ENOTCAPABLE");	\
-	}								\
-	errno = 0;							\
-} while (0)
+#define CHECK_MMAP_RESULT(rights_needed)                                       \
+	do {                                                                   \
+		if ((rights & (rights_needed)) == (rights_needed)) {           \
+			if (p == MAP_FAILED)                                   \
+				SYSCALL_FAIL(mmap, "failed");                  \
+			else {                                                 \
+				(void)munmap(p, getpagesize());                \
+				if (success == -1)                             \
+					success = PASSED;                      \
+			}                                                      \
+		} else {                                                       \
+			if (p != MAP_FAILED) {                                 \
+				FAILX("%s:\tsucceeded when it shouldn't have"  \
+				      " (rights 0x%jx)",                       \
+				    "mmap", rights);                           \
+				(void)munmap(p, getpagesize());                \
+			} else if (errno != ENOTCAPABLE)                       \
+				SYSCALL_FAIL(syscall, "errno != ENOTCAPABLE"); \
+		}                                                              \
+		errno = 0;                                                     \
+	} while (0)
 
 /*
  * Given a file descriptor, create a capability with specific rights and
- * make sure only those rights work. 
-*/
+ * make sure only those rights work.
+ */
 static int
 try_file_ops(int filefd, int dirfd, cap_rights_t rights)
 {
@@ -169,8 +172,8 @@ try_file_ops(int filefd, int dirfd, cap_rights_t rights)
 	    fd_cap, 0);
 	CHECK_MMAP_RESULT(CAP_MMAP_RW);
 
-	p = mmap(NULL, getpagesize(), PROT_READ | PROT_EXEC, MAP_SHARED,
-	    fd_cap, 0);
+	p = mmap(NULL, getpagesize(), PROT_READ | PROT_EXEC, MAP_SHARED, fd_cap,
+	    0);
 	CHECK_MMAP_RESULT(CAP_MMAP_RX);
 
 	p = mmap(NULL, getpagesize(), PROT_EXEC | PROT_WRITE, MAP_SHARED,
@@ -411,20 +414,21 @@ try_file_ops(int filefd, int dirfd, cap_rights_t rights)
 	return (success);
 }
 
-#define TRY(rights) \
-do { \
-	if (success == PASSED) \
-		success = try_file_ops(filefd, dirfd, (rights)); \
-	else \
-		/* We've already failed, but try the test anyway. */ \
-		try_file_ops(filefd, dirfd, (rights)); \
-} while (0)
+#define TRY(rights)                                                          \
+	do {                                                                 \
+		if (success == PASSED)                                       \
+			success = try_file_ops(filefd, dirfd, (rights));     \
+		else                                                         \
+			/* We've already failed, but try the test anyway. */ \
+			try_file_ops(filefd, dirfd, (rights));               \
+	} while (0)
 
-#define	KEEP_ERRNO(...)	do {						\
-	int _saved_errno = errno;					\
-	__VA_ARGS__;							\
-	errno = _saved_errno;						\
-} while (0);
+#define KEEP_ERRNO(...)                   \
+	do {                              \
+		int _saved_errno = errno; \
+		__VA_ARGS__;              \
+		errno = _saved_errno;     \
+	} while (0);
 
 int
 test_capabilities(void)
@@ -513,7 +517,8 @@ test_capabilities(void)
 	TRY(CAP_MKNODAT | CAP_LOOKUP);
 	TRY(CAP_SYMLINKAT | CAP_LOOKUP);
 	TRY(CAP_UNLINKAT | CAP_LOOKUP);
-	/* Rename needs CAP_RENAMEAT on source directory and CAP_LINKAT on destination directory. */
+	/* Rename needs CAP_RENAMEAT on source directory and CAP_LINKAT on
+	 * destination directory. */
 	TRY(CAP_RENAMEAT | CAP_UNLINKAT | CAP_LOOKUP);
 #ifdef TODO
 	TRY(CAP_LOOKUP);

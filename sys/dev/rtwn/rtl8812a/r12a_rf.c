@@ -24,35 +24,33 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <dev/rtwn/if_rtwnreg.h>
 #include <dev/rtwn/if_rtwnvar.h>
-
 #include <dev/rtwn/rtl8812a/r12a.h>
 #include <dev/rtwn/rtl8812a/r12a_reg.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 uint32_t
 r12a_rf_read(struct rtwn_softc *sc, int chain, uint8_t addr)
@@ -66,11 +64,11 @@ r12a_rf_read(struct rtwn_softc *sc, int chain, uint8_t addr)
 	val = rtwn_bb_read(sc, R12A_HSSI_PARAM1(chain));
 	pi_mode = (val & R12A_HSSI_PARAM1_PI) ? 1 : 0;
 
-	rtwn_bb_setbits(sc, R12A_HSSI_PARAM2,
-	    R12A_HSSI_PARAM2_READ_ADDR_MASK, addr);
+	rtwn_bb_setbits(sc, R12A_HSSI_PARAM2, R12A_HSSI_PARAM2_READ_ADDR_MASK,
+	    addr);
 
-	val = rtwn_bb_read(sc, pi_mode ? R12A_HSPI_READBACK(chain) :
-	    R12A_LSSI_READBACK(chain));
+	val = rtwn_bb_read(sc,
+	    pi_mode ? R12A_HSPI_READBACK(chain) : R12A_LSSI_READBACK(chain));
 
 	/* Turn on CCA (when exiting). */
 	if (addr != R92C_RF_AC)
@@ -87,21 +85,19 @@ r12a_c_cut_rf_read(struct rtwn_softc *sc, int chain, uint8_t addr)
 	val = rtwn_bb_read(sc, R12A_HSSI_PARAM1(chain));
 	pi_mode = (val & R12A_HSSI_PARAM1_PI) ? 1 : 0;
 
-	rtwn_bb_setbits(sc, R12A_HSSI_PARAM2,
-	    R12A_HSSI_PARAM2_READ_ADDR_MASK, addr);
+	rtwn_bb_setbits(sc, R12A_HSSI_PARAM2, R12A_HSSI_PARAM2_READ_ADDR_MASK,
+	    addr);
 	rtwn_delay(sc, 20);
 
-	val = rtwn_bb_read(sc, pi_mode ? R12A_HSPI_READBACK(chain) :
-	    R12A_LSSI_READBACK(chain));
+	val = rtwn_bb_read(sc,
+	    pi_mode ? R12A_HSPI_READBACK(chain) : R12A_LSSI_READBACK(chain));
 
 	return (MS(val, R92C_LSSI_READBACK_DATA));
 }
 
 void
-r12a_rf_write(struct rtwn_softc *sc, int chain, uint8_t addr,
-    uint32_t val)
+r12a_rf_write(struct rtwn_softc *sc, int chain, uint8_t addr, uint32_t val)
 {
 	rtwn_bb_write(sc, R12A_LSSI_PARAM(chain),
-	    SM(R88E_LSSI_PARAM_ADDR, addr) |
-	    SM(R92C_LSSI_PARAM_DATA, val));
+	    SM(R88E_LSSI_PARAM_ADDR, addr) | SM(R92C_LSSI_PARAM_DATA, val));
 }

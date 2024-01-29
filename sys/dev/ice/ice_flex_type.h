@@ -32,13 +32,13 @@
 #ifndef _ICE_FLEX_TYPE_H_
 #define _ICE_FLEX_TYPE_H_
 
-#define ICE_FV_OFFSET_INVAL	0x1FF
+#define ICE_FV_OFFSET_INVAL 0x1FF
 
 #pragma pack(1)
 /* Extraction Sequence (Field Vector) Table */
 struct ice_fv_word {
 	u8 prot_id;
-	u16 off;		/* Offset within the protocol header */
+	u16 off; /* Offset within the protocol header */
 	u8 resvrd;
 };
 
@@ -52,45 +52,45 @@ struct ice_fv {
 };
 
 /* Packet Type (PTYPE) values */
-#define ICE_PTYPE_MAC_PAY		1
-#define ICE_PTYPE_IPV4FRAG_PAY		22
-#define ICE_PTYPE_IPV4_PAY		23
-#define ICE_PTYPE_IPV4_UDP_PAY		24
-#define ICE_PTYPE_IPV4_TCP_PAY		26
-#define ICE_PTYPE_IPV4_SCTP_PAY		27
-#define ICE_PTYPE_IPV4_ICMP_PAY		28
-#define ICE_PTYPE_IPV6FRAG_PAY		88
-#define ICE_PTYPE_IPV6_PAY		89
-#define ICE_PTYPE_IPV6_UDP_PAY		90
-#define ICE_PTYPE_IPV6_TCP_PAY		92
-#define ICE_PTYPE_IPV6_SCTP_PAY		93
-#define ICE_PTYPE_IPV6_ICMP_PAY		94
+#define ICE_PTYPE_MAC_PAY 1
+#define ICE_PTYPE_IPV4FRAG_PAY 22
+#define ICE_PTYPE_IPV4_PAY 23
+#define ICE_PTYPE_IPV4_UDP_PAY 24
+#define ICE_PTYPE_IPV4_TCP_PAY 26
+#define ICE_PTYPE_IPV4_SCTP_PAY 27
+#define ICE_PTYPE_IPV4_ICMP_PAY 28
+#define ICE_PTYPE_IPV6FRAG_PAY 88
+#define ICE_PTYPE_IPV6_PAY 89
+#define ICE_PTYPE_IPV6_UDP_PAY 90
+#define ICE_PTYPE_IPV6_TCP_PAY 92
+#define ICE_PTYPE_IPV6_SCTP_PAY 93
+#define ICE_PTYPE_IPV6_ICMP_PAY 94
 
 struct ice_meta_sect {
 	struct ice_pkg_ver ver;
-#define ICE_META_SECT_NAME_SIZE	28
+#define ICE_META_SECT_NAME_SIZE 28
 	char name[ICE_META_SECT_NAME_SIZE];
 	__le32 track_id;
 };
 
 /* Packet Type Groups (PTG) - Inner Most fields (IM) */
-#define ICE_PTG_IM_IPV4_TCP		16
-#define ICE_PTG_IM_IPV4_UDP		17
-#define ICE_PTG_IM_IPV4_SCTP		18
-#define ICE_PTG_IM_IPV4_PAY		20
-#define ICE_PTG_IM_IPV4_OTHER		21
-#define ICE_PTG_IM_IPV6_TCP		32
-#define ICE_PTG_IM_IPV6_UDP		33
-#define ICE_PTG_IM_IPV6_SCTP		34
-#define ICE_PTG_IM_IPV6_OTHER		37
-#define ICE_PTG_IM_L2_OTHER		67
+#define ICE_PTG_IM_IPV4_TCP 16
+#define ICE_PTG_IM_IPV4_UDP 17
+#define ICE_PTG_IM_IPV4_SCTP 18
+#define ICE_PTG_IM_IPV4_PAY 20
+#define ICE_PTG_IM_IPV4_OTHER 21
+#define ICE_PTG_IM_IPV6_TCP 32
+#define ICE_PTG_IM_IPV6_UDP 33
+#define ICE_PTG_IM_IPV6_SCTP 34
+#define ICE_PTG_IM_IPV6_OTHER 37
+#define ICE_PTG_IM_L2_OTHER 67
 
 struct ice_flex_fields {
 	union {
 		struct {
 			u8 src_ip;
 			u8 dst_ip;
-			u8 flow_label;	/* valid for IPv6 only */
+			u8 flow_label; /* valid for IPv6 only */
 		} ip_fields;
 
 		struct {
@@ -108,7 +108,7 @@ struct ice_flex_fields {
 		struct {
 			u8 src_prt;
 			u8 dst_prt;
-			u8 flow_label;	/* valid for IPv6 only */
+			u8 flow_label; /* valid for IPv6 only */
 			u8 spi;
 		} ip_esp_fields;
 
@@ -119,13 +119,13 @@ struct ice_flex_fields {
 	} fields;
 };
 
-#define ICE_XLT1_DFLT_GRP	0
-#define ICE_XLT1_TABLE_SIZE	1024
+#define ICE_XLT1_DFLT_GRP 0
+#define ICE_XLT1_TABLE_SIZE 1024
 
 /* package labels */
 struct ice_label {
 	__le16 value;
-#define ICE_PKG_LABEL_SIZE	64
+#define ICE_PKG_LABEL_SIZE 64
 	char name[ICE_PKG_LABEL_SIZE];
 };
 
@@ -134,9 +134,11 @@ struct ice_label_section {
 	struct ice_label label[STRUCT_HACK_VAR_LEN];
 };
 
-#define ICE_MAX_LABELS_IN_BUF ICE_MAX_ENTRIES_IN_BUF( \
-	ice_struct_size((struct ice_label_section *)0, label, 1) - \
-	sizeof(struct ice_label), sizeof(struct ice_label))
+#define ICE_MAX_LABELS_IN_BUF                                                 \
+	ICE_MAX_ENTRIES_IN_BUF(ice_struct_size((struct ice_label_section *)0, \
+				   label, 1) -                                \
+		sizeof(struct ice_label),                                     \
+	    sizeof(struct ice_label))
 
 struct ice_sw_fv_section {
 	__le16 count;
@@ -156,7 +158,7 @@ struct ice_sw_fv_list_entry {
  * fields of the packet are now little endian.
  */
 struct ice_boost_key_value {
-#define ICE_BOOST_REMAINING_HV_KEY     15
+#define ICE_BOOST_REMAINING_HV_KEY 15
 	u8 remaining_hv_key[ICE_BOOST_REMAINING_HV_KEY];
 	union {
 		struct {
@@ -187,7 +189,7 @@ struct ice_boost_tcam_entry {
 	/* The following contains bitfields which are not on byte boundaries.
 	 * These fields are currently unused by driver software.
 	 */
-#define ICE_BOOST_BIT_FIELDS		43
+#define ICE_BOOST_BIT_FIELDS 43
 	u8 bit_fields[ICE_BOOST_BIT_FIELDS];
 };
 
@@ -197,10 +199,11 @@ struct ice_boost_tcam_section {
 	struct ice_boost_tcam_entry tcam[STRUCT_HACK_VAR_LEN];
 };
 
-#define ICE_MAX_BST_TCAMS_IN_BUF ICE_MAX_ENTRIES_IN_BUF( \
-	ice_struct_size((struct ice_boost_tcam_section *)0, tcam, 1) - \
-	sizeof(struct ice_boost_tcam_entry), \
-	sizeof(struct ice_boost_tcam_entry))
+#define ICE_MAX_BST_TCAMS_IN_BUF                                           \
+	ICE_MAX_ENTRIES_IN_BUF(                                            \
+	    ice_struct_size((struct ice_boost_tcam_section *)0, tcam, 1) - \
+		sizeof(struct ice_boost_tcam_entry),                       \
+	    sizeof(struct ice_boost_tcam_entry))
 
 struct ice_xlt1_section {
 	__le16 count;
@@ -249,7 +252,7 @@ struct ice_tunnel_entry {
 	u8 marked;
 };
 
-#define ICE_TUNNEL_MAX_ENTRIES	16
+#define ICE_TUNNEL_MAX_ENTRIES 16
 
 struct ice_tunnel_table {
 	struct ice_tunnel_entry tbl[ICE_TUNNEL_MAX_ENTRIES];
@@ -269,7 +272,7 @@ struct ice_es {
 	u16 *ref_count;
 	struct LIST_HEAD_TYPE prof_map;
 	struct ice_fv_word *t;
-	struct ice_lock prof_map_lock;	/* protect access to profiles list */
+	struct ice_lock prof_map_lock; /* protect access to profiles list */
 	u8 *written;
 	u8 reverse; /* set to true to reverse FV order */
 };
@@ -282,7 +285,7 @@ struct ice_es {
  * Note: PTG 0 is the default packet type group and it is assumed that all PTYPE
  * are a part of this group until moved to a new PTG.
  */
-#define ICE_DEFAULT_PTG	0
+#define ICE_DEFAULT_PTG 0
 
 struct ice_ptg_entry {
 	struct ice_ptg_ptype *first_ptype;
@@ -294,8 +297,8 @@ struct ice_ptg_ptype {
 	u8 ptg;
 };
 
-#define ICE_MAX_TCAM_PER_PROFILE	32
-#define ICE_MAX_PTG_PER_PROFILE		32
+#define ICE_MAX_TCAM_PER_PROFILE 32
+#define ICE_MAX_PTG_PER_PROFILE 32
 
 struct ice_prof_map {
 	struct LIST_ENTRY_TYPE list;
@@ -306,7 +309,7 @@ struct ice_prof_map {
 	u8 ptg[ICE_MAX_PTG_PER_PROFILE];
 };
 
-#define ICE_INVALID_TCAM	0xFFFF
+#define ICE_INVALID_TCAM 0xFFFF
 
 struct ice_tcam_inf {
 	u16 tcam_idx;
@@ -336,8 +339,8 @@ struct ice_vsig_vsi {
 	u16 vsig;
 };
 
-#define ICE_XLT1_CNT	1024
-#define ICE_MAX_PTGS	256
+#define ICE_XLT1_CNT 1024
+#define ICE_MAX_PTGS 256
 
 /* XLT1 Table */
 struct ice_xlt1 {
@@ -348,20 +351,20 @@ struct ice_xlt1 {
 	u16 count;
 };
 
-#define ICE_XLT2_CNT	768
-#define ICE_MAX_VSIGS	768
+#define ICE_XLT2_CNT 768
+#define ICE_MAX_VSIGS 768
 
 /* VSIG bit layout:
  * [0:12]: incremental VSIG index 1 to ICE_MAX_VSIGS
  * [13:15]: PF number of device
  */
-#define ICE_VSIG_IDX_M	(0x1FFF)
-#define ICE_PF_NUM_S	13
-#define ICE_PF_NUM_M	(0x07 << ICE_PF_NUM_S)
-#define ICE_VSIG_VALUE(vsig, pf_id) \
+#define ICE_VSIG_IDX_M (0x1FFF)
+#define ICE_PF_NUM_S 13
+#define ICE_PF_NUM_M (0x07 << ICE_PF_NUM_S)
+#define ICE_VSIG_VALUE(vsig, pf_id)               \
 	((u16)((((u16)(vsig)) & ICE_VSIG_IDX_M) | \
-	       (((u16)(pf_id) << ICE_PF_NUM_S) & ICE_PF_NUM_M)))
-#define ICE_DEFAULT_VSIG	0
+	    (((u16)(pf_id) << ICE_PF_NUM_S) & ICE_PF_NUM_M)))
+#define ICE_DEFAULT_VSIG 0
 
 /* XLT2 Table */
 struct ice_xlt2 {
@@ -385,7 +388,7 @@ union ice_match_fld {
 	u32 val;
 };
 
-#define ICE_MATCH_LIST_SZ	20
+#define ICE_MATCH_LIST_SZ 20
 #pragma pack(1)
 struct ice_match {
 	u8 count;
@@ -402,8 +405,8 @@ struct ice_prof_id_key {
 /* Keys are made up of two values, each one-half the size of the key.
  * For TCAM, the entire key is 80 bits wide (or 2, 40-bit wide values)
  */
-#define ICE_TCAM_KEY_VAL_SZ	5
-#define ICE_TCAM_KEY_SZ		(2 * ICE_TCAM_KEY_VAL_SZ)
+#define ICE_TCAM_KEY_VAL_SZ 5
+#define ICE_TCAM_KEY_SZ (2 * ICE_TCAM_KEY_VAL_SZ)
 
 struct ice_prof_tcam_entry {
 	__le16 addr;
@@ -468,7 +471,7 @@ struct ice_chs_chg {
 	u16 tcam_idx;
 };
 
-#define ICE_FLOW_PTYPE_MAX		ICE_XLT1_CNT
+#define ICE_FLOW_PTYPE_MAX ICE_XLT1_CNT
 
 enum ice_prof_type {
 	ICE_PROF_INVALID = 0x0,
@@ -484,18 +487,17 @@ enum ice_prof_type {
 /* Number of bits/bytes contained in meta init entry. Note, this should be a
  * multiple of 32 bits.
  */
-#define ICE_META_INIT_BITS	192
-#define ICE_META_INIT_DW_CNT	(ICE_META_INIT_BITS / (sizeof(__le32) * \
-				 BITS_PER_BYTE))
+#define ICE_META_INIT_BITS 192
+#define ICE_META_INIT_DW_CNT \
+	(ICE_META_INIT_BITS / (sizeof(__le32) * BITS_PER_BYTE))
 
 /* The meta init Flag field starts at this bit */
-#define ICE_META_FLAGS_ST		123
+#define ICE_META_FLAGS_ST 123
 
 /* The entry and bit to check for Double VLAN Mode (DVM) support */
-#define ICE_META_VLAN_MODE_ENTRY	0
-#define ICE_META_FLAG_VLAN_MODE		60
-#define ICE_META_VLAN_MODE_BIT		(ICE_META_FLAGS_ST + \
-					 ICE_META_FLAG_VLAN_MODE)
+#define ICE_META_VLAN_MODE_ENTRY 0
+#define ICE_META_FLAG_VLAN_MODE 60
+#define ICE_META_VLAN_MODE_BIT (ICE_META_FLAGS_ST + ICE_META_FLAG_VLAN_MODE)
 
 struct ice_meta_init_entry {
 	__le32 bm[ICE_META_INIT_DW_CNT];

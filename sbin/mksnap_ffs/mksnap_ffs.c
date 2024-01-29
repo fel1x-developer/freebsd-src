@@ -39,10 +39,6 @@
 #include <sys/mount.h>
 #include <sys/stat.h>
 
-#include <ufs/ufs/extattr.h>
-#include <ufs/ufs/quota.h>
-#include <ufs/ufs/ufsmount.h>
-
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -53,6 +49,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
+#include <ufs/ufs/extattr.h>
+#include <ufs/ufs/quota.h>
+#include <ufs/ufs/ufsmount.h>
 #include <unistd.h>
 
 static void
@@ -68,7 +67,7 @@ isdir(const char *path, struct stat *stbufp)
 
 	if (stat(path, stbufp) < 0)
 		return (-1);
-        if (!S_ISDIR(stbufp->st_mode))
+	if (!S_ISDIR(stbufp->st_mode))
 		return (0);
 	return (1);
 }
@@ -102,14 +101,14 @@ main(int argc, char **argv)
 	if (argc == 2)
 		snapname = argv[1];
 	else if (argc == 3)
-		snapname = argv[2];	/* Old usage. */
+		snapname = argv[2]; /* Old usage. */
 	else
 		usage();
 
 	/*
 	 * Check that the user running this program has permission
 	 * to create and remove a snapshot file from the directory
-	 * in which they have requested to have it made. If the 
+	 * in which they have requested to have it made. If the
 	 * directory is sticky and not owned by the user, then they
 	 * will not be able to remove the snapshot when they are
 	 * done with it.
@@ -145,7 +144,7 @@ main(int argc, char **argv)
 	 * real root.
 	 */
 	for (cp = stfsbuf.f_mntonname; issamefs(cp, &stfsbuf) != 1;
-	    cp = strchrnul(cp + 1, '/')) {
+	     cp = strchrnul(cp + 1, '/')) {
 		if (cp[0] == '\0')
 			errx(1, "%s: Not a mount point", stfsbuf.f_mntonname);
 	}

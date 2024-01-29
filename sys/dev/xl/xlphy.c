@@ -63,42 +63,38 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
-#include <sys/module.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
+#include <sys/socket.h>
+
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
 
 #include <net/if.h>
 #include <net/if_media.h>
 
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include "miidevs.h"
-
 #include "miibus_if.h"
+#include "miidevs.h"
 
 static int xlphy_probe(device_t);
 static int xlphy_attach(device_t);
 
 static device_method_t xlphy_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		xlphy_probe),
-	DEVMETHOD(device_attach,	xlphy_attach),
-	DEVMETHOD(device_detach,	mii_phy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, xlphy_probe),
+	DEVMETHOD(device_attach, xlphy_attach),
+	DEVMETHOD(device_detach, mii_phy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), DEVMETHOD_END
 };
 
-static driver_t xlphy_driver = {
-	"xlphy",
-	xlphy_methods,
-	sizeof(struct mii_softc)
-};
+static driver_t xlphy_driver = { "xlphy", xlphy_methods,
+	sizeof(struct mii_softc) };
 
 DRIVER_MODULE(xlphy, miibus, xlphy_driver, 0, 0);
 
-static int	xlphy_service(struct mii_softc *, struct mii_data *, int);
-static void	xlphy_reset(struct mii_softc *);
+static int xlphy_service(struct mii_softc *, struct mii_data *, int);
+static void xlphy_reset(struct mii_softc *);
 
 /*
  * Some 3Com internal PHYs report zero for OUI and model, others use
@@ -109,22 +105,18 @@ static void	xlphy_reset(struct mii_softc *);
  */
 static const struct mii_phydesc xlphys[] = {
 	{ 0, 0, "3Com internal media interface" },
-	MII_PHY_DESC(xxBROADCOM, 3C905C),
-	MII_PHY_END
+	MII_PHY_DESC(xxBROADCOM, 3C905C), MII_PHY_END
 };
 
-static const struct mii_phy_funcs xlphy_funcs = {
-	xlphy_service,
-	ukphy_status,
-	xlphy_reset
-};
+static const struct mii_phy_funcs xlphy_funcs = { xlphy_service, ukphy_status,
+	xlphy_reset };
 
 static int
 xlphy_probe(device_t dev)
 {
 
 	if (strcmp(device_get_name(device_get_parent(device_get_parent(dev))),
-	    "xl") == 0)
+		"xl") == 0)
 		return (mii_phy_dev_probe(dev, xlphys, BUS_PROBE_DEFAULT));
 	return (ENXIO);
 }
@@ -136,8 +128,8 @@ xlphy_attach(device_t dev)
 	/*
 	 * The 3Com PHY can never be isolated.
 	 */
-	mii_phy_dev_attach(dev, MIIF_NOISOLATE | MIIF_NOMANPAUSE,
-	    &xlphy_funcs, 1);
+	mii_phy_dev_attach(dev, MIIF_NOISOLATE | MIIF_NOMANPAUSE, &xlphy_funcs,
+	    1);
 	return (0);
 }
 
@@ -179,5 +171,5 @@ xlphy_reset(struct mii_softc *sc)
 	 * XXX 3Com PHY doesn't set the BMCR properly after
 	 * XXX reset, which breaks autonegotiation.
 	 */
-	PHY_WRITE(sc, MII_BMCR, BMCR_S100|BMCR_AUTOEN|BMCR_FDX);
+	PHY_WRITE(sc, MII_BMCR, BMCR_S100 | BMCR_AUTOEN | BMCR_FDX);
 }

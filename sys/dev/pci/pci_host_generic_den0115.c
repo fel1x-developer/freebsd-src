@@ -31,19 +31,17 @@
 #include <sys/module.h>
 #include <sys/rman.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
-
-#include <dev/acpica/acpivar.h>
 #include <dev/acpica/acpi_pcibvar.h>
-
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcib_private.h>
+#include <dev/acpica/acpivar.h>
 #include <dev/pci/pci_host_generic.h>
 #include <dev/pci/pci_host_generic_acpi.h>
-
+#include <dev/pci/pcib_private.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 #include <dev/psci/psci.h>
+
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
 
 #include "pcib_if.h"
 
@@ -91,21 +89,21 @@ pci_host_acpi_smccc_probe(device_t dev)
 	return (BUS_PROBE_SPECIFIC);
 }
 
-#define	SMCCC_PCI_VERSION						\
-    SMCCC_FUNC_ID(SMCCC_FAST_CALL, SMCCC_32BIT_CALL,			\
-    SMCCC_STD_SECURE_SERVICE_CALLS, 0x130)
-#define	SMCCC_PCI_FEATURES						\
-    SMCCC_FUNC_ID(SMCCC_FAST_CALL, SMCCC_32BIT_CALL,			\
-    SMCCC_STD_SECURE_SERVICE_CALLS, 0x131)
-#define	SMCCC_PCI_READ						\
-    SMCCC_FUNC_ID(SMCCC_FAST_CALL, SMCCC_32BIT_CALL,			\
-    SMCCC_STD_SECURE_SERVICE_CALLS, 0x132)
-#define	SMCCC_PCI_WRITE						\
-    SMCCC_FUNC_ID(SMCCC_FAST_CALL, SMCCC_32BIT_CALL,			\
-    SMCCC_STD_SECURE_SERVICE_CALLS, 0x133)
-#define	SMCCC_PCI_GET_SEG_INFO						\
-    SMCCC_FUNC_ID(SMCCC_FAST_CALL, SMCCC_32BIT_CALL,			\
-    SMCCC_STD_SECURE_SERVICE_CALLS, 0x134)
+#define SMCCC_PCI_VERSION                                \
+	SMCCC_FUNC_ID(SMCCC_FAST_CALL, SMCCC_32BIT_CALL, \
+	    SMCCC_STD_SECURE_SERVICE_CALLS, 0x130)
+#define SMCCC_PCI_FEATURES                               \
+	SMCCC_FUNC_ID(SMCCC_FAST_CALL, SMCCC_32BIT_CALL, \
+	    SMCCC_STD_SECURE_SERVICE_CALLS, 0x131)
+#define SMCCC_PCI_READ                                   \
+	SMCCC_FUNC_ID(SMCCC_FAST_CALL, SMCCC_32BIT_CALL, \
+	    SMCCC_STD_SECURE_SERVICE_CALLS, 0x132)
+#define SMCCC_PCI_WRITE                                  \
+	SMCCC_FUNC_ID(SMCCC_FAST_CALL, SMCCC_32BIT_CALL, \
+	    SMCCC_STD_SECURE_SERVICE_CALLS, 0x133)
+#define SMCCC_PCI_GET_SEG_INFO                           \
+	SMCCC_FUNC_ID(SMCCC_FAST_CALL, SMCCC_32BIT_CALL, \
+	    SMCCC_STD_SECURE_SERVICE_CALLS, 0x134)
 
 CTASSERT(SMCCC_PCI_VERSION == 0x84000130);
 CTASSERT(SMCCC_PCI_FEATURES == 0x84000131);
@@ -113,11 +111,11 @@ CTASSERT(SMCCC_PCI_READ == 0x84000132);
 CTASSERT(SMCCC_PCI_WRITE == 0x84000133);
 CTASSERT(SMCCC_PCI_GET_SEG_INFO == 0x84000134);
 
-#define	SMCCC_PCI_MAJOR(x)	(((x) >> 16) & 0x7fff)
-#define	SMCCC_PCI_MINOR(x)	((x) & 0xffff)
+#define SMCCC_PCI_MAJOR(x) (((x) >> 16) & 0x7fff)
+#define SMCCC_PCI_MINOR(x) ((x) & 0xffff)
 
-#define	SMCCC_PCI_SEG_END(x)	(((x) >> 8) & 0xff)
-#define	SMCCC_PCI_SEG_START(x)	((x) & 0xff)
+#define SMCCC_PCI_SEG_END(x) (((x) >> 8) & 0xff)
+#define SMCCC_PCI_SEG_START(x) ((x) & 0xff)
 
 static bool
 pci_host_acpi_smccc_has_feature(uint32_t pci_func_id)
@@ -125,7 +123,7 @@ pci_host_acpi_smccc_has_feature(uint32_t pci_func_id)
 	struct arm_smccc_res result;
 
 	if (psci_callfn(SMCCC_PCI_FEATURES, pci_func_id, 0, 0, 0, 0, 0, 0,
-	    &result) < 0) {
+		&result) < 0) {
 		return (false);
 	}
 
@@ -164,8 +162,7 @@ pci_host_acpi_smccc_attach(device_t dev)
 
 	/* Read the version */
 	if (!pci_host_acpi_smccc_pci_version(&version)) {
-		device_printf(dev,
-		    "Failed to read the SMCCC PCI version\n");
+		device_printf(dev, "Failed to read the SMCCC PCI version\n");
 		return (ENXIO);
 	}
 
@@ -185,8 +182,8 @@ pci_host_acpi_smccc_attach(device_t dev)
 		return (error);
 
 	if (pci_host_acpi_smccc_has_feature(SMCCC_PCI_GET_SEG_INFO) &&
-	    psci_callfn(SMCCC_PCI_GET_SEG_INFO, sc->base.ecam, 0, 0, 0, 0, 0,
-	     0, &result) == SMCCC_RET_SUCCESS) {
+	    psci_callfn(SMCCC_PCI_GET_SEG_INFO, sc->base.ecam, 0, 0, 0, 0, 0, 0,
+		&result) == SMCCC_RET_SUCCESS) {
 		start = SMCCC_PCI_SEG_START(result.a1);
 		end = SMCCC_PCI_SEG_END(result.a1);
 
@@ -199,8 +196,8 @@ pci_host_acpi_smccc_attach(device_t dev)
 }
 
 static uint32_t
-pci_host_acpi_smccc_read_config(device_t dev, u_int bus, u_int slot,
-    u_int func, u_int reg, int bytes)
+pci_host_acpi_smccc_read_config(device_t dev, u_int bus, u_int slot, u_int func,
+    u_int reg, int bytes)
 {
 	struct generic_pcie_acpi_softc *sc;
 	struct arm_smccc_res result;
@@ -210,13 +207,12 @@ pci_host_acpi_smccc_read_config(device_t dev, u_int bus, u_int slot,
 
 	if ((bus < sc->base.bus_start) || (bus > sc->base.bus_end))
 		return (~0U);
-	if ((slot > PCI_SLOTMAX) || (func > PCI_FUNCMAX) ||
-	    (reg > PCIE_REGMAX))
+	if ((slot > PCI_SLOTMAX) || (func > PCI_FUNCMAX) || (reg > PCIE_REGMAX))
 		return (~0U);
 
 	addr = (sc->base.ecam << 16) | (bus << 8) | (slot << 3) | (func << 0);
-	if (psci_callfn(SMCCC_PCI_READ, addr, reg, bytes, 0, 0, 0, 0,
-	    &result) < 0) {
+	if (psci_callfn(SMCCC_PCI_READ, addr, reg, bytes, 0, 0, 0, 0, &result) <
+	    0) {
 		return (~0U);
 	}
 
@@ -235,8 +231,7 @@ pci_host_acpi_smccc_write_config(device_t dev, u_int bus, u_int slot,
 
 	if ((bus < sc->base.bus_start) || (bus > sc->base.bus_end))
 		return;
-	if ((slot > PCI_SLOTMAX) || (func > PCI_FUNCMAX) ||
-	    (reg > PCIE_REGMAX))
+	if ((slot > PCI_SLOTMAX) || (func > PCI_FUNCMAX) || (reg > PCIE_REGMAX))
 		return;
 
 	addr = (sc->base.ecam << 16) | (bus << 8) | (slot << 3) | (func << 0);
@@ -244,18 +239,18 @@ pci_host_acpi_smccc_write_config(device_t dev, u_int bus, u_int slot,
 }
 
 static device_method_t generic_pcie_acpi_smccc_methods[] = {
-	DEVMETHOD(device_probe,		pci_host_acpi_smccc_probe),
-	DEVMETHOD(device_attach,	pci_host_acpi_smccc_attach),
+	DEVMETHOD(device_probe, pci_host_acpi_smccc_probe),
+	DEVMETHOD(device_attach, pci_host_acpi_smccc_attach),
 
 	/* pcib interface */
-	DEVMETHOD(pcib_read_config,	pci_host_acpi_smccc_read_config),
-	DEVMETHOD(pcib_write_config,	pci_host_acpi_smccc_write_config),
+	DEVMETHOD(pcib_read_config, pci_host_acpi_smccc_read_config),
+	DEVMETHOD(pcib_write_config, pci_host_acpi_smccc_write_config),
 
 	DEVMETHOD_END
 };
 
 DEFINE_CLASS_1(pcib, generic_pcie_acpi_smccc_driver,
-    generic_pcie_acpi_smccc_methods,
-    sizeof(struct generic_pcie_acpi_softc), generic_pcie_acpi_driver);
+    generic_pcie_acpi_smccc_methods, sizeof(struct generic_pcie_acpi_softc),
+    generic_pcie_acpi_driver);
 
 DRIVER_MODULE(pcib_smccc, acpi, generic_pcie_acpi_smccc_driver, 0, 0);

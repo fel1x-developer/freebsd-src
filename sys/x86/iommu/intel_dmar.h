@@ -29,7 +29,7 @@
  */
 
 #ifndef __X86_IOMMU_INTEL_DMAR_H
-#define	__X86_IOMMU_INTEL_DMAR_H
+#define __X86_IOMMU_INTEL_DMAR_H
 
 #include <dev/iommu/iommu.h>
 
@@ -65,43 +65,40 @@ struct dmar_domain {
 	u_int refs;			/* (u) Refs, including ctx */
 	struct dmar_unit *dmar;		/* (c) */
 	LIST_ENTRY(dmar_domain) link;	/* (u) Member in the dmar list */
-	LIST_HEAD(, dmar_ctx) contexts;	/* (u) */
+	LIST_HEAD(, dmar_ctx) contexts; /* (u) */
 	vm_object_t pgtbl_obj;		/* (c) Page table pages */
 	u_int batch_no;
 };
 
 struct dmar_ctx {
 	struct iommu_ctx context;
-	uint64_t last_fault_rec[2];	/* Last fault reported */
-	LIST_ENTRY(dmar_ctx) link;	/* (u) Member in the domain list */
-	u_int refs;			/* (u) References from tags */
+	uint64_t last_fault_rec[2]; /* Last fault reported */
+	LIST_ENTRY(dmar_ctx) link;  /* (u) Member in the domain list */
+	u_int refs;		    /* (u) References from tags */
 };
 
-#define	DMAR_DOMAIN_PGLOCK(dom)		VM_OBJECT_WLOCK((dom)->pgtbl_obj)
-#define	DMAR_DOMAIN_PGTRYLOCK(dom)	VM_OBJECT_TRYWLOCK((dom)->pgtbl_obj)
-#define	DMAR_DOMAIN_PGUNLOCK(dom)	VM_OBJECT_WUNLOCK((dom)->pgtbl_obj)
-#define	DMAR_DOMAIN_ASSERT_PGLOCKED(dom) \
+#define DMAR_DOMAIN_PGLOCK(dom) VM_OBJECT_WLOCK((dom)->pgtbl_obj)
+#define DMAR_DOMAIN_PGTRYLOCK(dom) VM_OBJECT_TRYWLOCK((dom)->pgtbl_obj)
+#define DMAR_DOMAIN_PGUNLOCK(dom) VM_OBJECT_WUNLOCK((dom)->pgtbl_obj)
+#define DMAR_DOMAIN_ASSERT_PGLOCKED(dom) \
 	VM_OBJECT_ASSERT_WLOCKED((dom)->pgtbl_obj)
 
-#define	DMAR_DOMAIN_LOCK(dom)	mtx_lock(&(dom)->iodom.lock)
-#define	DMAR_DOMAIN_UNLOCK(dom)	mtx_unlock(&(dom)->iodom.lock)
-#define	DMAR_DOMAIN_ASSERT_LOCKED(dom) mtx_assert(&(dom)->iodom.lock, MA_OWNED)
+#define DMAR_DOMAIN_LOCK(dom) mtx_lock(&(dom)->iodom.lock)
+#define DMAR_DOMAIN_UNLOCK(dom) mtx_unlock(&(dom)->iodom.lock)
+#define DMAR_DOMAIN_ASSERT_LOCKED(dom) mtx_assert(&(dom)->iodom.lock, MA_OWNED)
 
-#define	DMAR2IOMMU(dmar)	&((dmar)->iommu)
-#define	IOMMU2DMAR(dmar)	\
-	__containerof((dmar), struct dmar_unit, iommu)
+#define DMAR2IOMMU(dmar) &((dmar)->iommu)
+#define IOMMU2DMAR(dmar) __containerof((dmar), struct dmar_unit, iommu)
 
-#define	DOM2IODOM(domain)	&((domain)->iodom)
-#define	IODOM2DOM(domain)	\
-	__containerof((domain), struct dmar_domain, iodom)
+#define DOM2IODOM(domain) &((domain)->iodom)
+#define IODOM2DOM(domain) __containerof((domain), struct dmar_domain, iodom)
 
-#define	CTX2IOCTX(ctx)		&((ctx)->context)
-#define	IOCTX2CTX(ctx)		\
-	__containerof((ctx), struct dmar_ctx, context)
+#define CTX2IOCTX(ctx) &((ctx)->context)
+#define IOCTX2CTX(ctx) __containerof((ctx), struct dmar_ctx, context)
 
-#define	CTX2DOM(ctx)		IODOM2DOM((ctx)->context.domain)
-#define	CTX2DMAR(ctx)		(CTX2DOM(ctx)->dmar)
-#define	DOM2DMAR(domain)	((domain)->dmar)
+#define CTX2DOM(ctx) IODOM2DOM((ctx)->context.domain)
+#define CTX2DMAR(ctx) (CTX2DOM(ctx)->dmar)
+#define DOM2DMAR(domain) ((domain)->dmar)
 
 struct dmar_msi_data {
 	int irq;
@@ -117,9 +114,9 @@ struct dmar_msi_data {
 	const char *name;
 };
 
-#define	DMAR_INTR_FAULT		0
-#define	DMAR_INTR_QI		1
-#define	DMAR_INTR_TOTAL		2
+#define DMAR_INTR_FAULT 0
+#define DMAR_INTR_QI 1
+#define DMAR_INTR_TOTAL 2
 
 struct dmar_unit {
 	struct iommu_unit iommu;
@@ -206,22 +203,22 @@ struct dmar_unit {
 	struct taskqueue *qi_taskqueue;
 };
 
-#define	DMAR_LOCK(dmar)		mtx_lock(&(dmar)->iommu.lock)
-#define	DMAR_UNLOCK(dmar)	mtx_unlock(&(dmar)->iommu.lock)
-#define	DMAR_ASSERT_LOCKED(dmar) mtx_assert(&(dmar)->iommu.lock, MA_OWNED)
+#define DMAR_LOCK(dmar) mtx_lock(&(dmar)->iommu.lock)
+#define DMAR_UNLOCK(dmar) mtx_unlock(&(dmar)->iommu.lock)
+#define DMAR_ASSERT_LOCKED(dmar) mtx_assert(&(dmar)->iommu.lock, MA_OWNED)
 
-#define	DMAR_FAULT_LOCK(dmar)	mtx_lock_spin(&(dmar)->fault_lock)
-#define	DMAR_FAULT_UNLOCK(dmar)	mtx_unlock_spin(&(dmar)->fault_lock)
-#define	DMAR_FAULT_ASSERT_LOCKED(dmar) mtx_assert(&(dmar)->fault_lock, MA_OWNED)
+#define DMAR_FAULT_LOCK(dmar) mtx_lock_spin(&(dmar)->fault_lock)
+#define DMAR_FAULT_UNLOCK(dmar) mtx_unlock_spin(&(dmar)->fault_lock)
+#define DMAR_FAULT_ASSERT_LOCKED(dmar) mtx_assert(&(dmar)->fault_lock, MA_OWNED)
 
-#define	DMAR_IS_COHERENT(dmar)	(((dmar)->hw_ecap & DMAR_ECAP_C) != 0)
-#define	DMAR_HAS_QI(dmar)	(((dmar)->hw_ecap & DMAR_ECAP_QI) != 0)
-#define	DMAR_X2APIC(dmar) \
+#define DMAR_IS_COHERENT(dmar) (((dmar)->hw_ecap & DMAR_ECAP_C) != 0)
+#define DMAR_HAS_QI(dmar) (((dmar)->hw_ecap & DMAR_ECAP_QI) != 0)
+#define DMAR_X2APIC(dmar) \
 	(x2apic_mode && ((dmar)->hw_ecap & DMAR_ECAP_EIM) != 0)
 
 /* Barrier ids */
-#define	DMAR_BARRIER_RMRR	0
-#define	DMAR_BARRIER_USEQ	1
+#define DMAR_BARRIER_RMRR 0
+#define DMAR_BARRIER_USEQ 1
 
 struct dmar_unit *dmar_find(device_t dev, bool verbose);
 struct dmar_unit *dmar_find_hpet(device_t dev, uint16_t *rid);
@@ -346,10 +343,10 @@ static inline void
 dmar_write4(const struct dmar_unit *unit, int reg, uint32_t val)
 {
 
-	KASSERT(reg != DMAR_GCMD_REG || (val & DMAR_GCMD_TE) ==
-	    (unit->hw_gcmd & DMAR_GCMD_TE),
+	KASSERT(reg != DMAR_GCMD_REG ||
+		(val & DMAR_GCMD_TE) == (unit->hw_gcmd & DMAR_GCMD_TE),
 	    ("dmar%d clearing TE 0x%08x 0x%08x", unit->iommu.unit,
-	    unit->hw_gcmd, val));
+		unit->hw_gcmd, val));
 	bus_write_4(unit->regs, reg, val);
 }
 
@@ -404,8 +401,9 @@ static inline void
 dmar_pte_store(volatile uint64_t *dst, uint64_t val)
 {
 
-	KASSERT(*dst == 0, ("used pte %p oldval %jx newval %jx",
-	    dst, (uintmax_t)*dst, (uintmax_t)val));
+	KASSERT(*dst == 0,
+	    ("used pte %p oldval %jx newval %jx", dst, (uintmax_t)*dst,
+		(uintmax_t)val));
 	dmar_pte_store1(dst, val);
 }
 
@@ -438,44 +436,44 @@ dmar_pte_clear(volatile uint64_t *dst)
 
 extern struct timespec dmar_hw_timeout;
 
-#define	DMAR_WAIT_UNTIL(cond)					\
-{								\
-	struct timespec last, curr;				\
-	bool forever;						\
-								\
-	if (dmar_hw_timeout.tv_sec == 0 &&			\
-	    dmar_hw_timeout.tv_nsec == 0) {			\
-		forever = true;					\
-	} else {						\
-		forever = false;				\
-		nanouptime(&curr);				\
-		timespecadd(&curr, &dmar_hw_timeout, &last);	\
-	}							\
-	for (;;) {						\
-		if (cond) {					\
-			error = 0;				\
-			break;					\
-		}						\
-		nanouptime(&curr);				\
-		if (!forever && timespeccmp(&last, &curr, <)) {	\
-			error = ETIMEDOUT;			\
-			break;					\
-		}						\
-		cpu_spinwait();					\
-	}							\
-}
+#define DMAR_WAIT_UNTIL(cond)                                           \
+	{                                                               \
+		struct timespec last, curr;                             \
+		bool forever;                                           \
+                                                                        \
+		if (dmar_hw_timeout.tv_sec == 0 &&                      \
+		    dmar_hw_timeout.tv_nsec == 0) {                     \
+			forever = true;                                 \
+		} else {                                                \
+			forever = false;                                \
+			nanouptime(&curr);                              \
+			timespecadd(&curr, &dmar_hw_timeout, &last);    \
+		}                                                       \
+		for (;;) {                                              \
+			if (cond) {                                     \
+				error = 0;                              \
+				break;                                  \
+			}                                               \
+			nanouptime(&curr);                              \
+			if (!forever && timespeccmp(&last, &curr, <)) { \
+				error = ETIMEDOUT;                      \
+				break;                                  \
+			}                                               \
+			cpu_spinwait();                                 \
+		}                                                       \
+	}
 
 #ifdef INVARIANTS
-#define	TD_PREP_PINNED_ASSERT						\
-	int old_td_pinned;						\
+#define TD_PREP_PINNED_ASSERT \
+	int old_td_pinned;    \
 	old_td_pinned = curthread->td_pinned
-#define	TD_PINNED_ASSERT						\
-	KASSERT(curthread->td_pinned == old_td_pinned,			\
-	    ("pin count leak: %d %d %s:%d", curthread->td_pinned,	\
-	    old_td_pinned, __FILE__, __LINE__))
+#define TD_PINNED_ASSERT                                          \
+	KASSERT(curthread->td_pinned == old_td_pinned,            \
+	    ("pin count leak: %d %d %s:%d", curthread->td_pinned, \
+		old_td_pinned, __FILE__, __LINE__))
 #else
-#define	TD_PREP_PINNED_ASSERT
-#define	TD_PINNED_ASSERT
+#define TD_PREP_PINNED_ASSERT
+#define TD_PINNED_ASSERT
 #endif
 
 #endif

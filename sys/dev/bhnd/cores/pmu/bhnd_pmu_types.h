@@ -35,18 +35,18 @@
 
 /**
  * bhnd_pmu(4) regulators.
- */ 
+ */
 typedef enum bhnd_pmu_regulator {
-	BHND_REGULATOR_PAREF_LDO	= 0,	/**< PA reference LDO */
+	BHND_REGULATOR_PAREF_LDO = 0, /**< PA reference LDO */
 } bhnd_pmu_regulator;
 
 /**
  * bhnd_pmu(4) spurious signal avoidance modes.
  */
 typedef enum bhnd_pmu_spuravoid {
-	BHND_PMU_SPURAVOID_NONE	= 0,	/**< spur avoidance disabled */
-	BHND_PMU_SPURAVOID_M1	= 1,	/**< chipset-specific mode 1 */
-	BHND_PMU_SPURAVOID_M2	= 2,	/**< chipset-specific mode 2 */
+	BHND_PMU_SPURAVOID_NONE = 0, /**< spur avoidance disabled */
+	BHND_PMU_SPURAVOID_M1 = 1,   /**< chipset-specific mode 1 */
+	BHND_PMU_SPURAVOID_M2 = 2,   /**< chipset-specific mode 2 */
 } bhnd_pmu_spuravoid;
 
 #endif /* _BHND_CORES_PMU_BHND_PMU_TYPES_H_ */

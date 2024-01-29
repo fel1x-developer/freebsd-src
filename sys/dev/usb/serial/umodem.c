@@ -72,86 +72,86 @@
  *
  */
 
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
+#include <dev/usb/usb_cdc.h>
+#include <dev/usb/usb_ioctl.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
 #include <dev/usb/usbhid.h>
-#include <dev/usb/usb_cdc.h>
-#include "usbdevs.h"
+
 #include "usb_if.h"
+#include "usbdevs.h"
 
-#include <dev/usb/usb_ioctl.h>
-
-#define	USB_DEBUG_VAR umodem_debug
+#define USB_DEBUG_VAR umodem_debug
+#include <dev/usb/quirk/usb_quirk.h>
+#include <dev/usb/serial/usb_serial.h>
 #include <dev/usb/usb_debug.h>
 #include <dev/usb/usb_process.h>
-#include <dev/usb/quirk/usb_quirk.h>
-
-#include <dev/usb/serial/usb_serial.h>
 
 #ifdef USB_DEBUG
 static int umodem_debug = 0;
 
 static SYSCTL_NODE(_hw_usb, OID_AUTO, umodem, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "USB umodem");
-SYSCTL_INT(_hw_usb_umodem, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &umodem_debug, 0, "Debug level");
+SYSCTL_INT(_hw_usb_umodem, OID_AUTO, debug, CTLFLAG_RWTUN, &umodem_debug, 0,
+    "Debug level");
 #endif
 
 static const STRUCT_USB_DUAL_ID umodem_dual_devs[] = {
 	/* Generic Modem class match */
-	{USB_IFACE_CLASS(UICLASS_CDC),
-		USB_IFACE_SUBCLASS(UISUBCLASS_ABSTRACT_CONTROL_MODEL),
-		USB_IFACE_PROTOCOL(UIPROTO_CDC_AT)},
-	{USB_IFACE_CLASS(UICLASS_CDC),
-		USB_IFACE_SUBCLASS(UISUBCLASS_ABSTRACT_CONTROL_MODEL),
-		USB_IFACE_PROTOCOL(UIPROTO_CDC_NONE)},
+	{ USB_IFACE_CLASS(UICLASS_CDC),
+	    USB_IFACE_SUBCLASS(UISUBCLASS_ABSTRACT_CONTROL_MODEL),
+	    USB_IFACE_PROTOCOL(UIPROTO_CDC_AT) },
+	{ USB_IFACE_CLASS(UICLASS_CDC),
+	    USB_IFACE_SUBCLASS(UISUBCLASS_ABSTRACT_CONTROL_MODEL),
+	    USB_IFACE_PROTOCOL(UIPROTO_CDC_NONE) },
 };
 
 static const STRUCT_USB_HOST_ID umodem_host_devs[] = {
 	/* Huawei Modem class match */
-	{USB_VENDOR(USB_VENDOR_HUAWEI), USB_IFACE_CLASS(UICLASS_VENDOR),
-		USB_IFACE_SUBCLASS(0x02), USB_IFACE_PROTOCOL(0x01)},
-	{USB_VENDOR(USB_VENDOR_HUAWEI), USB_IFACE_CLASS(UICLASS_VENDOR),
-		USB_IFACE_SUBCLASS(0x02), USB_IFACE_PROTOCOL(0x02)},
-	{USB_VENDOR(USB_VENDOR_HUAWEI), USB_IFACE_CLASS(UICLASS_VENDOR),
-		USB_IFACE_SUBCLASS(0x02), USB_IFACE_PROTOCOL(0x10)},
-	{USB_VENDOR(USB_VENDOR_HUAWEI), USB_IFACE_CLASS(UICLASS_VENDOR),
-		USB_IFACE_SUBCLASS(0x02), USB_IFACE_PROTOCOL(0x12)},
-	{USB_VENDOR(USB_VENDOR_HUAWEI), USB_IFACE_CLASS(UICLASS_VENDOR),
-		USB_IFACE_SUBCLASS(0x02), USB_IFACE_PROTOCOL(0x61)},
-	{USB_VENDOR(USB_VENDOR_HUAWEI), USB_IFACE_CLASS(UICLASS_VENDOR),
-		USB_IFACE_SUBCLASS(0x02), USB_IFACE_PROTOCOL(0x62)},
-	{USB_VENDOR(USB_VENDOR_HUAWEI),USB_IFACE_CLASS(UICLASS_CDC),
-		USB_IFACE_SUBCLASS(UISUBCLASS_ABSTRACT_CONTROL_MODEL),
-		USB_IFACE_PROTOCOL(0xFF)},
-	{USB_VENDOR(USB_VENDOR_HUAWEI), USB_IFACE_CLASS(0xFF),
-		USB_IFACE_SUBCLASS(0xF), USB_IFACE_PROTOCOL(0xFF)},
+	{ USB_VENDOR(USB_VENDOR_HUAWEI), USB_IFACE_CLASS(UICLASS_VENDOR),
+	    USB_IFACE_SUBCLASS(0x02), USB_IFACE_PROTOCOL(0x01) },
+	{ USB_VENDOR(USB_VENDOR_HUAWEI), USB_IFACE_CLASS(UICLASS_VENDOR),
+	    USB_IFACE_SUBCLASS(0x02), USB_IFACE_PROTOCOL(0x02) },
+	{ USB_VENDOR(USB_VENDOR_HUAWEI), USB_IFACE_CLASS(UICLASS_VENDOR),
+	    USB_IFACE_SUBCLASS(0x02), USB_IFACE_PROTOCOL(0x10) },
+	{ USB_VENDOR(USB_VENDOR_HUAWEI), USB_IFACE_CLASS(UICLASS_VENDOR),
+	    USB_IFACE_SUBCLASS(0x02), USB_IFACE_PROTOCOL(0x12) },
+	{ USB_VENDOR(USB_VENDOR_HUAWEI), USB_IFACE_CLASS(UICLASS_VENDOR),
+	    USB_IFACE_SUBCLASS(0x02), USB_IFACE_PROTOCOL(0x61) },
+	{ USB_VENDOR(USB_VENDOR_HUAWEI), USB_IFACE_CLASS(UICLASS_VENDOR),
+	    USB_IFACE_SUBCLASS(0x02), USB_IFACE_PROTOCOL(0x62) },
+	{ USB_VENDOR(USB_VENDOR_HUAWEI), USB_IFACE_CLASS(UICLASS_CDC),
+	    USB_IFACE_SUBCLASS(UISUBCLASS_ABSTRACT_CONTROL_MODEL),
+	    USB_IFACE_PROTOCOL(0xFF) },
+	{ USB_VENDOR(USB_VENDOR_HUAWEI), USB_IFACE_CLASS(0xFF),
+	    USB_IFACE_SUBCLASS(0xF), USB_IFACE_PROTOCOL(0xFF) },
 	/* Kyocera AH-K3001V */
-	{USB_VPI(USB_VENDOR_KYOCERA, USB_PRODUCT_KYOCERA_AHK3001V, 1)},
-	{USB_VPI(USB_VENDOR_SIERRA, USB_PRODUCT_SIERRA_MC5720, 1)},
-	{USB_VPI(USB_VENDOR_CURITEL, USB_PRODUCT_CURITEL_PC5740, 1)},
+	{ USB_VPI(USB_VENDOR_KYOCERA, USB_PRODUCT_KYOCERA_AHK3001V, 1) },
+	{ USB_VPI(USB_VENDOR_SIERRA, USB_PRODUCT_SIERRA_MC5720, 1) },
+	{ USB_VPI(USB_VENDOR_CURITEL, USB_PRODUCT_CURITEL_PC5740, 1) },
 	/* Winbond */
-	{USB_VENDOR(USB_VENDOR_WINBOND), USB_PRODUCT(USB_PRODUCT_WINBOND_CDC)},
+	{ USB_VENDOR(USB_VENDOR_WINBOND),
+	    USB_PRODUCT(USB_PRODUCT_WINBOND_CDC) },
 };
 
 /*
@@ -160,7 +160,7 @@ static const STRUCT_USB_HOST_ID umodem_host_devs[] = {
  *
  * TODO: The TTY buffers should be increased!
  */
-#define	UMODEM_BUF_SIZE 1024
+#define UMODEM_BUF_SIZE 1024
 
 enum {
 	UMODEM_BULK_WR,
@@ -170,7 +170,7 @@ enum {
 	UMODEM_N_TRANSFER,
 };
 
-#define	UMODEM_MODVER			1	/* module version */
+#define UMODEM_MODVER 1 /* module version */
 
 struct umodem_softc {
 	struct ucom_super_softc sc_super_ucom;
@@ -182,16 +182,16 @@ struct umodem_softc {
 
 	uint16_t sc_line;
 
-	uint8_t	sc_lsr;			/* local status register */
-	uint8_t	sc_msr;			/* modem status register */
-	uint8_t	sc_ctrl_iface_no;
-	uint8_t	sc_data_iface_no;
+	uint8_t sc_lsr; /* local status register */
+	uint8_t sc_msr; /* modem status register */
+	uint8_t sc_ctrl_iface_no;
+	uint8_t sc_data_iface_no;
 	uint8_t sc_iface_index[2];
-	uint8_t	sc_cm_over_data;
-	uint8_t	sc_cm_cap;		/* CM capabilities */
-	uint8_t	sc_acm_cap;		/* ACM capabilities */
-	uint8_t	sc_line_coding[32];	/* used in USB device mode */
-	uint8_t	sc_abstract_state[32];	/* used in USB device mode */
+	uint8_t sc_cm_over_data;
+	uint8_t sc_cm_cap;	       /* CM capabilities */
+	uint8_t sc_acm_cap;	       /* ACM capabilities */
+	uint8_t sc_line_coding[32];    /* used in USB device mode */
+	uint8_t sc_abstract_state[32]; /* used in USB device mode */
 };
 
 static device_probe_t umodem_probe;
@@ -206,28 +206,27 @@ static usb_callback_t umodem_intr_write_callback;
 static usb_callback_t umodem_write_callback;
 static usb_callback_t umodem_read_callback;
 
-static void	umodem_free(struct ucom_softc *);
-static void	umodem_start_read(struct ucom_softc *);
-static void	umodem_stop_read(struct ucom_softc *);
-static void	umodem_start_write(struct ucom_softc *);
-static void	umodem_stop_write(struct ucom_softc *);
-static void	umodem_get_caps(struct usb_attach_arg *, uint8_t *, uint8_t *);
-static void	umodem_cfg_get_status(struct ucom_softc *, uint8_t *,
-		    uint8_t *);
-static int	umodem_pre_param(struct ucom_softc *, struct termios *);
-static void	umodem_cfg_param(struct ucom_softc *, struct termios *);
-static void	umodem_cfg_open(struct ucom_softc *);
-static int	umodem_ioctl(struct ucom_softc *, uint32_t, caddr_t, int,
-		    struct thread *);
-static void	umodem_cfg_set_dtr(struct ucom_softc *, uint8_t);
-static void	umodem_cfg_set_rts(struct ucom_softc *, uint8_t);
-static void	umodem_cfg_set_break(struct ucom_softc *, uint8_t);
-static void	*umodem_get_desc(struct usb_attach_arg *, uint8_t, uint8_t);
+static void umodem_free(struct ucom_softc *);
+static void umodem_start_read(struct ucom_softc *);
+static void umodem_stop_read(struct ucom_softc *);
+static void umodem_start_write(struct ucom_softc *);
+static void umodem_stop_write(struct ucom_softc *);
+static void umodem_get_caps(struct usb_attach_arg *, uint8_t *, uint8_t *);
+static void umodem_cfg_get_status(struct ucom_softc *, uint8_t *, uint8_t *);
+static int umodem_pre_param(struct ucom_softc *, struct termios *);
+static void umodem_cfg_param(struct ucom_softc *, struct termios *);
+static void umodem_cfg_open(struct ucom_softc *);
+static int umodem_ioctl(struct ucom_softc *, uint32_t, caddr_t, int,
+    struct thread *);
+static void umodem_cfg_set_dtr(struct ucom_softc *, uint8_t);
+static void umodem_cfg_set_rts(struct ucom_softc *, uint8_t);
+static void umodem_cfg_set_break(struct ucom_softc *, uint8_t);
+static void *umodem_get_desc(struct usb_attach_arg *, uint8_t, uint8_t);
 static usb_error_t umodem_set_comm_feature(struct usb_device *, uint8_t,
-		    uint16_t, uint16_t);
-static void	umodem_poll(struct ucom_softc *ucom);
-static void	umodem_find_data_iface(struct usb_attach_arg *uaa,
-		    uint8_t, uint8_t *, uint8_t *);
+    uint16_t, uint16_t);
+static void umodem_poll(struct ucom_softc *ucom);
+static void umodem_find_data_iface(struct usb_attach_arg *uaa, uint8_t,
+    uint8_t *, uint8_t *);
 
 static const struct usb_config umodem_config[UMODEM_N_TRANSFER] = {
 	[UMODEM_BULK_WR] = {
@@ -299,8 +298,7 @@ static device_method_t umodem_methods[] = {
 	/* Device interface */
 	DEVMETHOD(device_probe, umodem_probe),
 	DEVMETHOD(device_attach, umodem_attach),
-	DEVMETHOD(device_detach, umodem_detach),
-	DEVMETHOD_END
+	DEVMETHOD(device_detach, umodem_detach), DEVMETHOD_END
 };
 
 static driver_t umodem_driver = {
@@ -363,12 +361,12 @@ umodem_attach(device_t dev)
 
 	if ((cmd == NULL) || (cmd->bLength < sizeof(*cmd))) {
 		cud = usbd_find_descriptor(uaa->device, NULL,
-		    uaa->info.bIfaceIndex, UDESC_CS_INTERFACE,
-		    0xFF, UDESCSUB_CDC_UNION, 0xFF);
+		    uaa->info.bIfaceIndex, UDESC_CS_INTERFACE, 0xFF,
+		    UDESCSUB_CDC_UNION, 0xFF);
 
 		if ((cud == NULL) || (cud->bLength < sizeof(*cud))) {
 			DPRINTF("Missing descriptor. "
-			    "Assuming data interface is next.\n");
+				"Assuming data interface is next.\n");
 			if (sc->sc_ctrl_iface_no == 0xFF) {
 				goto detach;
 			} else {
@@ -398,7 +396,8 @@ umodem_attach(device_t dev)
 		sc->sc_data_iface_no = cmd->bDataInterface;
 	}
 
-	device_printf(dev, "data interface %d, has %sCM over "
+	device_printf(dev,
+	    "data interface %d, has %sCM over "
 	    "data, has %sbreak\n",
 	    sc->sc_data_iface_no,
 	    sc->sc_cm_cap & USB_CDC_CM_OVER_DATA ? "" : "no ",
@@ -415,9 +414,11 @@ umodem_attach(device_t dev)
 		if (iface) {
 			id = usbd_get_interface_descriptor(iface);
 
-			if (id && (id->bInterfaceNumber == sc->sc_data_iface_no)) {
+			if (id &&
+			    (id->bInterfaceNumber == sc->sc_data_iface_no)) {
 				sc->sc_iface_index[0] = i;
-				usbd_set_parent_iface(uaa->device, i, uaa->info.bIfaceIndex);
+				usbd_set_parent_iface(uaa->device, i,
+				    uaa->info.bIfaceIndex);
 				break;
 			}
 		} else {
@@ -431,19 +432,17 @@ umodem_attach(device_t dev)
 	} else {
 		if (sc->sc_cm_cap & USB_CDC_CM_OVER_DATA) {
 			if (sc->sc_acm_cap & USB_CDC_ACM_HAS_FEATURE) {
-				error = umodem_set_comm_feature
-				(uaa->device, sc->sc_ctrl_iface_no,
-				 UCDC_ABSTRACT_STATE, UCDC_DATA_MULTIPLEXED);
+				error = umodem_set_comm_feature(uaa->device,
+				    sc->sc_ctrl_iface_no, UCDC_ABSTRACT_STATE,
+				    UCDC_DATA_MULTIPLEXED);
 
 				/* ignore any errors */
 			}
 			sc->sc_cm_over_data = 1;
 		}
 	}
-	error = usbd_transfer_setup(uaa->device,
-	    sc->sc_iface_index, sc->sc_xfer,
-	    umodem_config, UMODEM_N_TRANSFER,
-	    sc, &sc->sc_mtx);
+	error = usbd_transfer_setup(uaa->device, sc->sc_iface_index,
+	    sc->sc_xfer, umodem_config, UMODEM_N_TRANSFER, sc, &sc->sc_mtx);
 	if (error) {
 		device_printf(dev, "Can't setup transfer\n");
 		goto detach;
@@ -467,8 +466,8 @@ detach:
 }
 
 static void
-umodem_find_data_iface(struct usb_attach_arg *uaa,
-    uint8_t iface_index, uint8_t *p_data_no, uint8_t *p_match_class)
+umodem_find_data_iface(struct usb_attach_arg *uaa, uint8_t iface_index,
+    uint8_t *p_data_no, uint8_t *p_match_class)
 {
 	struct usb_interface_descriptor *id;
 	struct usb_interface *iface;
@@ -574,7 +573,7 @@ umodem_cfg_get_status(struct ucom_softc *ucom, uint8_t *lsr, uint8_t *msr)
 static int
 umodem_pre_param(struct ucom_softc *ucom, struct termios *t)
 {
-	return (0);			/* we accept anything */
+	return (0); /* we accept anything */
 }
 
 static void
@@ -590,12 +589,12 @@ umodem_cfg_param(struct ucom_softc *ucom, struct termios *t)
 
 	USETDW(ls.dwDTERate, t->c_ospeed);
 
-	ls.bCharFormat = (t->c_cflag & CSTOPB) ?
-	    UCDC_STOP_BIT_2 : UCDC_STOP_BIT_1;
+	ls.bCharFormat = (t->c_cflag & CSTOPB) ? UCDC_STOP_BIT_2 :
+						 UCDC_STOP_BIT_1;
 
 	ls.bParityType = (t->c_cflag & PARENB) ?
-	    ((t->c_cflag & PARODD) ?
-	    UCDC_PARITY_ODD : UCDC_PARITY_EVEN) : UCDC_PARITY_NONE;
+	    ((t->c_cflag & PARODD) ? UCDC_PARITY_ODD : UCDC_PARITY_EVEN) :
+	    UCDC_PARITY_NONE;
 
 	switch (t->c_cflag & CSIZE) {
 	case CS5:
@@ -612,9 +611,8 @@ umodem_cfg_param(struct ucom_softc *ucom, struct termios *t)
 		break;
 	}
 
-	DPRINTF("rate=%d fmt=%d parity=%d bits=%d\n",
-	    UGETDW(ls.dwDTERate), ls.bCharFormat,
-	    ls.bParityType, ls.bDataBits);
+	DPRINTF("rate=%d fmt=%d parity=%d bits=%d\n", UGETDW(ls.dwDTERate),
+	    ls.bCharFormat, ls.bParityType, ls.bDataBits);
 
 	req.bmRequestType = UT_WRITE_CLASS_INTERFACE;
 	req.bRequest = UCDC_SET_LINE_CODING;
@@ -623,11 +621,10 @@ umodem_cfg_param(struct ucom_softc *ucom, struct termios *t)
 	req.wIndex[1] = 0;
 	USETW(req.wLength, sizeof(ls));
 
-	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, 
-	    &req, &ls, 0, 1000);
+	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, &ls, 0, 1000);
 }
 
-static void	
+static void
 umodem_cfg_open(struct ucom_softc *ucom)
 {
 	struct umodem_softc *sc = ucom->sc_parent;
@@ -640,8 +637,8 @@ umodem_cfg_open(struct ucom_softc *ucom)
 }
 
 static int
-umodem_ioctl(struct ucom_softc *ucom, uint32_t cmd, caddr_t data,
-    int flag, struct thread *td)
+umodem_ioctl(struct ucom_softc *ucom, uint32_t cmd, caddr_t data, int flag,
+    struct thread *td)
 {
 	struct umodem_softc *sc = ucom->sc_parent;
 	int error = 0;
@@ -688,8 +685,7 @@ umodem_cfg_set_dtr(struct ucom_softc *ucom, uint8_t onoff)
 	req.wIndex[1] = 0;
 	USETW(req.wLength, 0);
 
-	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, 
-	    &req, NULL, 0, 1000);
+	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, NULL, 0, 1000);
 }
 
 static void
@@ -712,8 +708,7 @@ umodem_cfg_set_rts(struct ucom_softc *ucom, uint8_t onoff)
 	req.wIndex[1] = 0;
 	USETW(req.wLength, 0);
 
-	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, 
-	    &req, NULL, 0, 1000);
+	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, NULL, 0, 1000);
 }
 
 static void
@@ -735,8 +730,8 @@ umodem_cfg_set_break(struct ucom_softc *ucom, uint8_t onoff)
 		req.wIndex[1] = 0;
 		USETW(req.wLength, 0);
 
-		ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, 
-		    &req, NULL, 0, 1000);
+		ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, NULL, 0,
+		    1000);
 	}
 }
 
@@ -754,10 +749,10 @@ umodem_intr_write_callback(struct usb_xfer *xfer, usb_error_t error)
 
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		break;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* start clear stall */
 			usbd_xfer_set_stall(xfer);
@@ -783,7 +778,8 @@ umodem_intr_read_callback(struct usb_xfer *xfer, usb_error_t error)
 
 		if (actlen < 8) {
 			DPRINTF("received short packet, "
-			    "%d bytes\n", actlen);
+				"%d bytes\n",
+			    actlen);
 			goto tr_setup;
 		}
 		if (actlen > (int)sizeof(pkt)) {
@@ -801,7 +797,7 @@ umodem_intr_read_callback(struct usb_xfer *xfer, usb_error_t error)
 		}
 		if (pkt.bmRequestType != UCDC_NOTIFICATION) {
 			DPRINTF("unknown message type, "
-			    "0x%02x, on notify pipe!\n",
+				"0x%02x, on notify pipe!\n",
 			    pkt.bmRequestType);
 			goto tr_setup;
 		}
@@ -813,11 +809,11 @@ umodem_intr_read_callback(struct usb_xfer *xfer, usb_error_t error)
 			 */
 			if (actlen < 2) {
 				DPRINTF("invalid notification "
-				    "length, %d bytes!\n", actlen);
+					"length, %d bytes!\n",
+				    actlen);
 				break;
 			}
-			DPRINTF("notify bytes = %02x%02x\n",
-			    pkt.data[0],
+			DPRINTF("notify bytes = %02x%02x\n", pkt.data[0],
 			    pkt.data[1]);
 
 			/* Currently, lsr is always zero. */
@@ -843,12 +839,12 @@ umodem_intr_read_callback(struct usb_xfer *xfer, usb_error_t error)
 		}
 
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -868,16 +864,16 @@ umodem_write_callback(struct usb_xfer *xfer, usb_error_t error)
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_SETUP:
 	case USB_ST_TRANSFERRED:
-tr_setup:
+	tr_setup:
 		pc = usbd_xfer_get_frame(xfer, 0);
-		if (ucom_get_data(&sc->sc_ucom, pc, 0,
-		    UMODEM_BUF_SIZE, &actlen)) {
+		if (ucom_get_data(&sc->sc_ucom, pc, 0, UMODEM_BUF_SIZE,
+			&actlen)) {
 			usbd_xfer_set_frame_len(xfer, 0, actlen);
 			usbd_transfer_submit(xfer);
 		}
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -905,12 +901,12 @@ umodem_read_callback(struct usb_xfer *xfer, usb_error_t error)
 		ucom_put_data(&sc->sc_ucom, pc, 0, actlen);
 
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -934,8 +930,7 @@ umodem_set_comm_feature(struct usb_device *udev, uint8_t iface_no,
 	struct usb_device_request req;
 	struct usb_cdc_abstract_state ast;
 
-	DPRINTF("feature=%d state=%d\n",
-	    feature, state);
+	DPRINTF("feature=%d state=%d\n", feature, state);
 
 	req.bmRequestType = UT_WRITE_CLASS_INTERFACE;
 	req.bRequest = UCDC_SET_COMM_FEATURE;
@@ -990,9 +985,8 @@ umodem_poll(struct ucom_softc *ucom)
 }
 
 static int
-umodem_handle_request(device_t dev,
-    const void *preq, void **pptr, uint16_t *plen,
-    uint16_t offset, uint8_t *pstate)
+umodem_handle_request(device_t dev, const void *preq, void **pptr,
+    uint16_t *plen, uint16_t offset, uint8_t *pstate)
 {
 	struct umodem_softc *sc = device_get_softc(dev);
 	const struct usb_device_request *req = preq;
@@ -1004,8 +998,7 @@ umodem_handle_request(device_t dev,
 		if ((req->bmRequestType == UT_WRITE_CLASS_INTERFACE) &&
 		    (req->bRequest == UCDC_SET_LINE_CODING) &&
 		    (req->wIndex[0] == sc->sc_ctrl_iface_no) &&
-		    (req->wIndex[1] == 0x00) &&
-		    (req->wValue[0] == 0x00) &&
+		    (req->wIndex[1] == 0x00) && (req->wValue[0] == 0x00) &&
 		    (req->wValue[1] == 0x00)) {
 			if (offset == 0) {
 				*plen = sizeof(sc->sc_line_coding);
@@ -1039,5 +1032,5 @@ umodem_handle_request(device_t dev,
 			return (0);
 		}
 	}
-	return (ENXIO);			/* use builtin handler */
+	return (ENXIO); /* use builtin handler */
 }

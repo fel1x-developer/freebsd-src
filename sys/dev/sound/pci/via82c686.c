@@ -30,34 +30,33 @@
 #include "opt_snd.h"
 #endif
 
-#include <dev/sound/pcm/sound.h>
-#include <dev/sound/pcm/ac97.h>
+#include <sys/sysctl.h>
 
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
-#include <sys/sysctl.h>
-
 #include <dev/sound/pci/via82c686.h>
+#include <dev/sound/pcm/ac97.h>
+#include <dev/sound/pcm/sound.h>
 
 #define VIA_PCI_ID 0x30581106
-#define	NSEGS		4	/* Number of segments in SGD table */
+#define NSEGS 4 /* Number of segments in SGD table */
 
-#define SEGS_PER_CHAN	(NSEGS/2)
+#define SEGS_PER_CHAN (NSEGS / 2)
 
-#define TIMEOUT	50
-#define	VIA_DEFAULT_BUFSZ	0x1000
+#define TIMEOUT 50
+#define VIA_DEFAULT_BUFSZ 0x1000
 
 #undef DEB
 #define DEB(x)
 
 /* we rely on this struct being packed to 64 bits */
 struct via_dma_op {
-        u_int32_t ptr;
-        u_int32_t flags;
-#define VIA_DMAOP_EOL         0x80000000
-#define VIA_DMAOP_FLAG        0x40000000
-#define VIA_DMAOP_STOP        0x20000000
-#define VIA_DMAOP_COUNT(x)    ((x)&0x00FFFFFF)
+	u_int32_t ptr;
+	u_int32_t flags;
+#define VIA_DMAOP_EOL 0x80000000
+#define VIA_DMAOP_FLAG 0x40000000
+#define VIA_DMAOP_STOP 0x20000000
+#define VIA_DMAOP_COUNT(x) ((x) & 0x00FFFFFF)
 };
 
 struct via_info;
@@ -93,15 +92,11 @@ struct via_info {
 	struct mtx *lock;
 };
 
-static u_int32_t via_fmt[] = {
-	SND_FORMAT(AFMT_U8, 1, 0),
-	SND_FORMAT(AFMT_U8, 2, 0),
-	SND_FORMAT(AFMT_S16_LE, 1, 0),
-	SND_FORMAT(AFMT_S16_LE, 2, 0),
-	0
-};
-static struct pcmchan_caps via_vracaps = {4000, 48000, via_fmt, 0};
-static struct pcmchan_caps via_caps = {48000, 48000, via_fmt, 0};
+static u_int32_t via_fmt[] = { SND_FORMAT(AFMT_U8, 1, 0),
+	SND_FORMAT(AFMT_U8, 2, 0), SND_FORMAT(AFMT_S16_LE, 1, 0),
+	SND_FORMAT(AFMT_S16_LE, 2, 0), 0 };
+static struct pcmchan_caps via_vracaps = { 4000, 48000, via_fmt, 0 };
+static struct pcmchan_caps via_caps = { 48000, 48000, via_fmt, 0 };
 
 static __inline u_int32_t
 via_rd(struct via_info *via, int regno, int size)
@@ -145,8 +140,9 @@ via_waitready_codec(struct via_info *via)
 	int i;
 
 	/* poll until codec not busy */
-	for (i = 0; (i < TIMEOUT) &&
-	    (via_rd(via, VIA_CODEC_CTL, 4) & VIA_CODEC_BUSY); i++)
+	for (i = 0;
+	     (i < TIMEOUT) && (via_rd(via, VIA_CODEC_CTL, 4) & VIA_CODEC_BUSY);
+	     i++)
 		DELAY(1);
 	if (i >= TIMEOUT) {
 		printf("via: codec busy\n");
@@ -163,8 +159,9 @@ via_waitvalid_codec(struct via_info *via)
 
 	/* poll until codec valid */
 	for (i = 0; (i < TIMEOUT) &&
-	    !(via_rd(via, VIA_CODEC_CTL, 4) & VIA_CODEC_PRIVALID); i++)
-		    DELAY(1);
+	     !(via_rd(via, VIA_CODEC_CTL, 4) & VIA_CODEC_PRIVALID);
+	     i++)
+		DELAY(1);
 	if (i >= TIMEOUT) {
 		printf("via: codec invalid\n");
 		return 1;
@@ -178,9 +175,11 @@ via_write_codec(kobj_t obj, void *addr, int reg, u_int32_t val)
 {
 	struct via_info *via = addr;
 
-	if (via_waitready_codec(via)) return -1;
+	if (via_waitready_codec(via))
+		return -1;
 
-	via_wr(via, VIA_CODEC_CTL, VIA_CODEC_PRIVALID | VIA_CODEC_INDEX(reg) | val, 4);
+	via_wr(via, VIA_CODEC_CTL,
+	    VIA_CODEC_PRIVALID | VIA_CODEC_INDEX(reg) | val, 4);
 
 	return 0;
 }
@@ -193,7 +192,8 @@ via_read_codec(kobj_t obj, void *addr, int reg)
 	if (via_waitready_codec(via))
 		return -1;
 
-	via_wr(via, VIA_CODEC_CTL, VIA_CODEC_PRIVALID | VIA_CODEC_READ | VIA_CODEC_INDEX(reg),4);
+	via_wr(via, VIA_CODEC_CTL,
+	    VIA_CODEC_PRIVALID | VIA_CODEC_READ | VIA_CODEC_INDEX(reg), 4);
 
 	if (via_waitready_codec(via))
 		return -1;
@@ -204,11 +204,9 @@ via_read_codec(kobj_t obj, void *addr, int reg)
 	return via_rd(via, VIA_CODEC_CTL, 2);
 }
 
-static kobj_method_t via_ac97_methods[] = {
-    	KOBJMETHOD(ac97_read,		via_read_codec),
-    	KOBJMETHOD(ac97_write,		via_write_codec),
-	KOBJMETHOD_END
-};
+static kobj_method_t via_ac97_methods[] = { KOBJMETHOD(ac97_read,
+						via_read_codec),
+	KOBJMETHOD(ac97_write, via_write_codec), KOBJMETHOD_END };
 AC97_DECLARE(via_ac97);
 
 /* -------------------------------------------------------------------- */
@@ -230,7 +228,7 @@ via_buildsgdt(struct via_chinfo *ch)
 	phys_addr = sndbuf_getbufaddr(ch->buffer);
 
 	for (i = 0; i < segs; i++) {
-		flag = (i == segs - 1)? VIA_DMAOP_EOL : VIA_DMAOP_FLAG;
+		flag = (i == segs - 1) ? VIA_DMAOP_EOL : VIA_DMAOP_FLAG;
 		ch->sgd_table[i].ptr = phys_addr + (i * seg_size);
 		ch->sgd_table[i].flags = flag | seg_size;
 	}
@@ -240,7 +238,8 @@ via_buildsgdt(struct via_chinfo *ch)
 
 /* channel interface */
 static void *
-viachan_init(kobj_t obj, void *devinfo, struct snd_dbuf *b, struct pcm_channel *c, int dir)
+viachan_init(kobj_t obj, void *devinfo, struct snd_dbuf *b,
+    struct pcm_channel *c, int dir)
 {
 	struct via_info *via = devinfo;
 	struct via_chinfo *ch;
@@ -260,7 +259,8 @@ viachan_init(kobj_t obj, void *devinfo, struct snd_dbuf *b, struct pcm_channel *
 		ch->count = VIA_RECORD_DMAOPS_COUNT;
 		ch->ctrl = VIA_RECORD_CONTROL;
 		ch->mode = VIA_RECORD_MODE;
-		ch->sgd_addr = via->sgd_addr + sizeof(struct via_dma_op) * SEGS_PER_CHAN;
+		ch->sgd_addr = via->sgd_addr +
+		    sizeof(struct via_dma_op) * SEGS_PER_CHAN;
 		ch->sgd_table = &via->sgd_table[SEGS_PER_CHAN];
 	}
 
@@ -317,7 +317,8 @@ viachan_setspeed(kobj_t obj, void *data, u_int32_t speed)
 	 *  return 48 kHz cuz that's all you got.
 	 */
 	if (via->codec_caps & AC97_EXTCAP_VRA) {
-		reg = (ch->dir == PCMDIR_PLAY)? AC97_REGEXT_FDACRATE : AC97_REGEXT_LADCRATE;
+		reg = (ch->dir == PCMDIR_PLAY) ? AC97_REGEXT_FDACRATE :
+						 AC97_REGEXT_LADCRATE;
 		return ac97_setrate(via->codec, reg, speed);
 	} else
 		return 48000;
@@ -371,7 +372,7 @@ viachan_getptr(kobj_t obj, void *data)
 	base1 = via_rd(via, ch->base, 4);
 	len = via_rd(via, ch->count, 4);
 	base = via_rd(via, ch->base, 4);
-	if (base != base1) 	/* Avoid race hazard */
+	if (base != base1) /* Avoid race hazard */
 		len = via_rd(via, ch->count, 4);
 	snd_mtxunlock(via->lock);
 
@@ -402,19 +403,17 @@ viachan_getcaps(kobj_t obj, void *data)
 	struct via_chinfo *ch = data;
 	struct via_info *via = ch->parent;
 
-	return (via->codec_caps & AC97_EXTCAP_VRA)? &via_vracaps : &via_caps;
+	return (via->codec_caps & AC97_EXTCAP_VRA) ? &via_vracaps : &via_caps;
 }
 
-static kobj_method_t viachan_methods[] = {
-    	KOBJMETHOD(channel_init,		viachan_init),
-    	KOBJMETHOD(channel_setformat,		viachan_setformat),
-    	KOBJMETHOD(channel_setspeed,		viachan_setspeed),
-    	KOBJMETHOD(channel_setblocksize,	viachan_setblocksize),
-    	KOBJMETHOD(channel_trigger,		viachan_trigger),
-    	KOBJMETHOD(channel_getptr,		viachan_getptr),
-    	KOBJMETHOD(channel_getcaps,		viachan_getcaps),
-	KOBJMETHOD_END
-};
+static kobj_method_t viachan_methods[] = { KOBJMETHOD(channel_init,
+					       viachan_init),
+	KOBJMETHOD(channel_setformat, viachan_setformat),
+	KOBJMETHOD(channel_setspeed, viachan_setspeed),
+	KOBJMETHOD(channel_setblocksize, viachan_setblocksize),
+	KOBJMETHOD(channel_trigger, viachan_trigger),
+	KOBJMETHOD(channel_getptr, viachan_getptr),
+	KOBJMETHOD(channel_getcaps, viachan_getcaps), KOBJMETHOD_END };
 CHANNEL_DECLARE(viachan);
 
 /* -------------------------------------------------------------------- */
@@ -482,35 +481,41 @@ via_attach(device_t dev)
 
 	if ((data & VIA_AC97STATUS_RDY) == 0) {
 		/* Cold reset per ac97r2.3 spec (page 95) */
-		pci_write_config(dev, VIA_ACLINKCTRL, VIA_ACLINK_EN, 1);			/* Assert low */
-		DELAY(100);									/* Wait T_rst_low */
-		pci_write_config(dev, VIA_ACLINKCTRL, VIA_ACLINK_EN | VIA_ACLINK_NRST, 1);	/* Assert high */
-		DELAY(5);									/* Wait T_rst2clk */
-		pci_write_config(dev, VIA_ACLINKCTRL, VIA_ACLINK_EN, 1);			/* Assert low */
+		pci_write_config(dev, VIA_ACLINKCTRL, VIA_ACLINK_EN,
+		    1);	    /* Assert low */
+		DELAY(100); /* Wait T_rst_low */
+		pci_write_config(dev, VIA_ACLINKCTRL,
+		    VIA_ACLINK_EN | VIA_ACLINK_NRST, 1); /* Assert high */
+		DELAY(5);				 /* Wait T_rst2clk */
+		pci_write_config(dev, VIA_ACLINKCTRL, VIA_ACLINK_EN,
+		    1); /* Assert low */
 	} else {
 		/* Warm reset */
-		pci_write_config(dev, VIA_ACLINKCTRL, VIA_ACLINK_EN, 1);			/* Force no sync */
+		pci_write_config(dev, VIA_ACLINKCTRL, VIA_ACLINK_EN,
+		    1); /* Force no sync */
 		DELAY(100);
-		pci_write_config(dev, VIA_ACLINKCTRL, VIA_ACLINK_EN | VIA_ACLINK_SYNC, 1);	/* Sync */
-		DELAY(5);									/* Wait T_sync_high */
-		pci_write_config(dev, VIA_ACLINKCTRL, VIA_ACLINK_EN, 1);			/* Force no sync */
-		DELAY(5);									/* Wait T_sync2clk */
+		pci_write_config(dev, VIA_ACLINKCTRL,
+		    VIA_ACLINK_EN | VIA_ACLINK_SYNC, 1); /* Sync */
+		DELAY(5);				 /* Wait T_sync_high */
+		pci_write_config(dev, VIA_ACLINKCTRL, VIA_ACLINK_EN,
+		    1);	  /* Force no sync */
+		DELAY(5); /* Wait T_sync2clk */
 	}
 
 	/* Power everything up */
-	pci_write_config(dev, VIA_ACLINKCTRL, VIA_ACLINK_DESIRED, 1);	
+	pci_write_config(dev, VIA_ACLINKCTRL, VIA_ACLINK_DESIRED, 1);
 
 	/* Wait for codec to become ready (largest reported delay here 310ms) */
 	for (cnt = 0; cnt < 2000; cnt++) {
 		data = pci_read_config(dev, VIA_AC97STATUS, 1);
-		if (data & VIA_AC97STATUS_RDY) 
+		if (data & VIA_AC97STATUS_RDY)
 			break;
 		DELAY(5000);
 	}
 
 	via->regid = PCIR_BAR(0);
-	via->reg = bus_alloc_resource_any(dev, SYS_RES_IOPORT,
-		&via->regid, RF_ACTIVE);
+	via->reg = bus_alloc_resource_any(dev, SYS_RES_IOPORT, &via->regid,
+	    RF_ACTIVE);
 	if (!via->reg) {
 		device_printf(dev, "cannot allocate bus resource.");
 		goto bad;
@@ -522,14 +527,20 @@ via_attach(device_t dev)
 
 	via->irqid = 0;
 	via->irq = bus_alloc_resource_any(dev, SYS_RES_IRQ, &via->irqid,
-		RF_ACTIVE | RF_SHAREABLE);
-	if (!via->irq || snd_setup_intr(dev, via->irq, INTR_MPSAFE, via_intr, via, &via->ih)) {
+	    RF_ACTIVE | RF_SHAREABLE);
+	if (!via->irq ||
+	    snd_setup_intr(dev, via->irq, INTR_MPSAFE, via_intr, via,
+		&via->ih)) {
 		device_printf(dev, "unable to map interrupt\n");
 		goto bad;
 	}
 
-	via_wr(via, VIA_PLAY_MODE, VIA_RPMODE_AUTOSTART | VIA_RPMODE_INTR_FLAG | VIA_RPMODE_INTR_EOL, 1);
-	via_wr(via, VIA_RECORD_MODE, VIA_RPMODE_AUTOSTART | VIA_RPMODE_INTR_FLAG | VIA_RPMODE_INTR_EOL, 1);
+	via_wr(via, VIA_PLAY_MODE,
+	    VIA_RPMODE_AUTOSTART | VIA_RPMODE_INTR_FLAG | VIA_RPMODE_INTR_EOL,
+	    1);
+	via_wr(via, VIA_RECORD_MODE,
+	    VIA_RPMODE_AUTOSTART | VIA_RPMODE_INTR_FLAG | VIA_RPMODE_INTR_EOL,
+	    1);
 
 	via->codec = AC97_CREATE(dev, via, via_ac97);
 	if (!via->codec)
@@ -539,18 +550,18 @@ via_attach(device_t dev)
 		goto bad;
 
 	via->codec_caps = ac97_getextcaps(via->codec);
-	ac97_setextmode(via->codec, 
-			via->codec_caps & (AC97_EXTCAP_VRA | AC97_EXTCAP_VRM));
+	ac97_setextmode(via->codec,
+	    via->codec_caps & (AC97_EXTCAP_VRA | AC97_EXTCAP_VRM));
 
 	/* DMA tag for buffers */
-	if (bus_dma_tag_create(/*parent*/bus_get_dma_tag(dev), /*alignment*/2,
-		/*boundary*/0,
-		/*lowaddr*/BUS_SPACE_MAXADDR_32BIT,
-		/*highaddr*/BUS_SPACE_MAXADDR,
-		/*filter*/NULL, /*filterarg*/NULL,
-		/*maxsize*/via->bufsz, /*nsegments*/1, /*maxsegz*/0x3ffff,
-		/*flags*/0, /*lockfunc*/NULL,
-		/*lockarg*/NULL, &via->parent_dmat) != 0) {
+	if (bus_dma_tag_create(/*parent*/ bus_get_dma_tag(dev), /*alignment*/ 2,
+		/*boundary*/ 0,
+		/*lowaddr*/ BUS_SPACE_MAXADDR_32BIT,
+		/*highaddr*/ BUS_SPACE_MAXADDR,
+		/*filter*/ NULL, /*filterarg*/ NULL,
+		/*maxsize*/ via->bufsz, /*nsegments*/ 1, /*maxsegz*/ 0x3ffff,
+		/*flags*/ 0, /*lockfunc*/ NULL,
+		/*lockarg*/ NULL, &via->parent_dmat) != 0) {
 		device_printf(dev, "unable to create dma tag\n");
 		goto bad;
 	}
@@ -560,47 +571,58 @@ via_attach(device_t dev)
 	 *  requires a list in memory of work to do.  We need only 16 bytes
 	 *  for this list, and it is wasteful to allocate 16K.
 	 */
-	if (bus_dma_tag_create(/*parent*/bus_get_dma_tag(dev), /*alignment*/2,
-		/*boundary*/0,
-		/*lowaddr*/BUS_SPACE_MAXADDR_32BIT,
-		/*highaddr*/BUS_SPACE_MAXADDR,
-		/*filter*/NULL, /*filterarg*/NULL,
-		/*maxsize*/NSEGS * sizeof(struct via_dma_op),
-		/*nsegments*/1, /*maxsegz*/0x3ffff,
-		/*flags*/0, /*lockfunc*/NULL,
-		/*lockarg*/NULL, &via->sgd_dmat) != 0) {
+	if (bus_dma_tag_create(/*parent*/ bus_get_dma_tag(dev), /*alignment*/ 2,
+		/*boundary*/ 0,
+		/*lowaddr*/ BUS_SPACE_MAXADDR_32BIT,
+		/*highaddr*/ BUS_SPACE_MAXADDR,
+		/*filter*/ NULL, /*filterarg*/ NULL,
+		/*maxsize*/ NSEGS * sizeof(struct via_dma_op),
+		/*nsegments*/ 1, /*maxsegz*/ 0x3ffff,
+		/*flags*/ 0, /*lockfunc*/ NULL,
+		/*lockarg*/ NULL, &via->sgd_dmat) != 0) {
 		device_printf(dev, "unable to create dma tag\n");
 		goto bad;
 	}
 
 	if (bus_dmamem_alloc(via->sgd_dmat, (void **)&via->sgd_table,
-	    BUS_DMA_NOWAIT, &via->sgd_dmamap) != 0)
+		BUS_DMA_NOWAIT, &via->sgd_dmamap) != 0)
 		goto bad;
 	if (bus_dmamap_load(via->sgd_dmat, via->sgd_dmamap, via->sgd_table,
-	    NSEGS * sizeof(struct via_dma_op), dma_cb, via, 0) != 0)
+		NSEGS * sizeof(struct via_dma_op), dma_cb, via, 0) != 0)
 		goto bad;
 
 	snprintf(status, SND_STATUSLEN, "port 0x%jx irq %jd on %s",
-		 rman_get_start(via->reg), rman_get_start(via->irq),
-		 device_get_nameunit(device_get_parent(dev)));
+	    rman_get_start(via->reg), rman_get_start(via->irq),
+	    device_get_nameunit(device_get_parent(dev)));
 
 	/* Register */
-	if (pcm_register(dev, via, 1, 1)) goto bad;
+	if (pcm_register(dev, via, 1, 1))
+		goto bad;
 	pcm_addchan(dev, PCMDIR_PLAY, &viachan_class, via);
 	pcm_addchan(dev, PCMDIR_REC, &viachan_class, via);
 	pcm_setstatus(dev, status);
 	return 0;
 bad:
-	if (via->codec) ac97_destroy(via->codec);
-	if (via->reg) bus_release_resource(dev, SYS_RES_IOPORT, via->regid, via->reg);
-	if (via->ih) bus_teardown_intr(dev, via->irq, via->ih);
-	if (via->irq) bus_release_resource(dev, SYS_RES_IRQ, via->irqid, via->irq);
-	if (via->parent_dmat) bus_dma_tag_destroy(via->parent_dmat);
-	if (via->sgd_addr) bus_dmamap_unload(via->sgd_dmat, via->sgd_dmamap);
-	if (via->sgd_table) bus_dmamem_free(via->sgd_dmat, via->sgd_table, via->sgd_dmamap);
-	if (via->sgd_dmat) bus_dma_tag_destroy(via->sgd_dmat);
-	if (via->lock) snd_mtxfree(via->lock);
-	if (via) free(via, M_DEVBUF);
+	if (via->codec)
+		ac97_destroy(via->codec);
+	if (via->reg)
+		bus_release_resource(dev, SYS_RES_IOPORT, via->regid, via->reg);
+	if (via->ih)
+		bus_teardown_intr(dev, via->irq, via->ih);
+	if (via->irq)
+		bus_release_resource(dev, SYS_RES_IRQ, via->irqid, via->irq);
+	if (via->parent_dmat)
+		bus_dma_tag_destroy(via->parent_dmat);
+	if (via->sgd_addr)
+		bus_dmamap_unload(via->sgd_dmat, via->sgd_dmamap);
+	if (via->sgd_table)
+		bus_dmamem_free(via->sgd_dmat, via->sgd_table, via->sgd_dmamap);
+	if (via->sgd_dmat)
+		bus_dma_tag_destroy(via->sgd_dmat);
+	if (via->lock)
+		snd_mtxfree(via->lock);
+	if (via)
+		free(via, M_DEVBUF);
 	return ENXIO;
 }
 
@@ -627,12 +649,9 @@ via_detach(device_t dev)
 	return 0;
 }
 
-static device_method_t via_methods[] = {
-	DEVMETHOD(device_probe,		via_probe),
-	DEVMETHOD(device_attach,	via_attach),
-	DEVMETHOD(device_detach,	via_detach),
-	{ 0, 0}
-};
+static device_method_t via_methods[] = { DEVMETHOD(device_probe, via_probe),
+	DEVMETHOD(device_attach, via_attach),
+	DEVMETHOD(device_detach, via_detach), { 0, 0 } };
 
 static driver_t via_driver = {
 	"pcm",

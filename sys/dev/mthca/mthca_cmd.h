@@ -41,41 +41,43 @@
 
 enum {
 	/* command completed successfully: */
-	MTHCA_CMD_STAT_OK 	      = 0x00,
-	/* Internal error (such as a bus error) occurred while processing command: */
-	MTHCA_CMD_STAT_INTERNAL_ERR   = 0x01,
+	MTHCA_CMD_STAT_OK = 0x00,
+	/* Internal error (such as a bus error) occurred while processing
+	   command: */
+	MTHCA_CMD_STAT_INTERNAL_ERR = 0x01,
 	/* Operation/command not supported or opcode modifier not supported: */
-	MTHCA_CMD_STAT_BAD_OP 	      = 0x02,
+	MTHCA_CMD_STAT_BAD_OP = 0x02,
 	/* Parameter not supported or parameter out of range: */
-	MTHCA_CMD_STAT_BAD_PARAM      = 0x03,
+	MTHCA_CMD_STAT_BAD_PARAM = 0x03,
 	/* System not enabled or bad system state: */
-	MTHCA_CMD_STAT_BAD_SYS_STATE  = 0x04,
+	MTHCA_CMD_STAT_BAD_SYS_STATE = 0x04,
 	/* Attempt to access reserved or unallocaterd resource: */
-	MTHCA_CMD_STAT_BAD_RESOURCE   = 0x05,
-	/* Requested resource is currently executing a command, or is otherwise busy: */
-	MTHCA_CMD_STAT_RESOURCE_BUSY  = 0x06,
+	MTHCA_CMD_STAT_BAD_RESOURCE = 0x05,
+	/* Requested resource is currently executing a command, or is otherwise
+	   busy: */
+	MTHCA_CMD_STAT_RESOURCE_BUSY = 0x06,
 	/* memory error: */
-	MTHCA_CMD_STAT_DDR_MEM_ERR    = 0x07,
+	MTHCA_CMD_STAT_DDR_MEM_ERR = 0x07,
 	/* Required capability exceeds device limits: */
-	MTHCA_CMD_STAT_EXCEED_LIM     = 0x08,
+	MTHCA_CMD_STAT_EXCEED_LIM = 0x08,
 	/* Resource is not in the appropriate state or ownership: */
-	MTHCA_CMD_STAT_BAD_RES_STATE  = 0x09,
+	MTHCA_CMD_STAT_BAD_RES_STATE = 0x09,
 	/* Index out of range: */
-	MTHCA_CMD_STAT_BAD_INDEX      = 0x0a,
+	MTHCA_CMD_STAT_BAD_INDEX = 0x0a,
 	/* FW image corrupted: */
-	MTHCA_CMD_STAT_BAD_NVMEM      = 0x0b,
+	MTHCA_CMD_STAT_BAD_NVMEM = 0x0b,
 	/* Attempt to modify a QP/EE which is not in the presumed state: */
 	MTHCA_CMD_STAT_BAD_QPEE_STATE = 0x10,
 	/* Bad segment parameters (Address/Size): */
-	MTHCA_CMD_STAT_BAD_SEG_PARAM  = 0x20,
+	MTHCA_CMD_STAT_BAD_SEG_PARAM = 0x20,
 	/* Memory Region has Memory Windows bound to: */
-	MTHCA_CMD_STAT_REG_BOUND      = 0x21,
+	MTHCA_CMD_STAT_REG_BOUND = 0x21,
 	/* HCA local attached memory not present: */
-	MTHCA_CMD_STAT_LAM_NOT_PRE    = 0x22,
+	MTHCA_CMD_STAT_LAM_NOT_PRE = 0x22,
 	/* Bad management packet (silently discarded): */
-	MTHCA_CMD_STAT_BAD_PKT 	      = 0x30,
+	MTHCA_CMD_STAT_BAD_PKT = 0x30,
 	/* More outstanding CQEs in CQ than new CQ size: */
-	MTHCA_CMD_STAT_BAD_SIZE       = 0x40
+	MTHCA_CMD_STAT_BAD_SIZE = 0x40
 };
 
 enum {
@@ -94,27 +96,27 @@ enum {
 };
 
 enum {
-	DEV_LIM_FLAG_RC                 = 1 << 0,
-	DEV_LIM_FLAG_UC                 = 1 << 1,
-	DEV_LIM_FLAG_UD                 = 1 << 2,
-	DEV_LIM_FLAG_RD                 = 1 << 3,
-	DEV_LIM_FLAG_RAW_IPV6           = 1 << 4,
-	DEV_LIM_FLAG_RAW_ETHER          = 1 << 5,
-	DEV_LIM_FLAG_SRQ                = 1 << 6,
-	DEV_LIM_FLAG_IPOIB_CSUM		= 1 << 7,
-	DEV_LIM_FLAG_BAD_PKEY_CNTR      = 1 << 8,
-	DEV_LIM_FLAG_BAD_QKEY_CNTR      = 1 << 9,
-	DEV_LIM_FLAG_MW                 = 1 << 16,
-	DEV_LIM_FLAG_AUTO_PATH_MIG      = 1 << 17,
-	DEV_LIM_FLAG_ATOMIC             = 1 << 18,
-	DEV_LIM_FLAG_RAW_MULTI          = 1 << 19,
+	DEV_LIM_FLAG_RC = 1 << 0,
+	DEV_LIM_FLAG_UC = 1 << 1,
+	DEV_LIM_FLAG_UD = 1 << 2,
+	DEV_LIM_FLAG_RD = 1 << 3,
+	DEV_LIM_FLAG_RAW_IPV6 = 1 << 4,
+	DEV_LIM_FLAG_RAW_ETHER = 1 << 5,
+	DEV_LIM_FLAG_SRQ = 1 << 6,
+	DEV_LIM_FLAG_IPOIB_CSUM = 1 << 7,
+	DEV_LIM_FLAG_BAD_PKEY_CNTR = 1 << 8,
+	DEV_LIM_FLAG_BAD_QKEY_CNTR = 1 << 9,
+	DEV_LIM_FLAG_MW = 1 << 16,
+	DEV_LIM_FLAG_AUTO_PATH_MIG = 1 << 17,
+	DEV_LIM_FLAG_ATOMIC = 1 << 18,
+	DEV_LIM_FLAG_RAW_MULTI = 1 << 19,
 	DEV_LIM_FLAG_UD_AV_PORT_ENFORCE = 1 << 20,
-	DEV_LIM_FLAG_UD_MULTI           = 1 << 21,
+	DEV_LIM_FLAG_UD_MULTI = 1 << 21,
 };
 
 struct mthca_mailbox {
 	dma_addr_t dma;
-	void      *buf;
+	void *buf;
 };
 
 struct mthca_dev_lim {
@@ -176,7 +178,7 @@ struct mthca_dev_lim {
 		struct {
 			int resize_srq;
 			int max_pbl_sz;
-			u8  bmme_flags;
+			u8 bmme_flags;
 			u32 reserved_lkey;
 			int lam_required;
 			u64 max_icm_sz;
@@ -185,11 +187,11 @@ struct mthca_dev_lim {
 };
 
 struct mthca_adapter {
-	u32  vendor_id;
-	u32  device_id;
-	u32  revision_id;
+	u32 vendor_id;
+	u32 device_id;
+	u32 revision_id;
 	char board_id[MTHCA_BOARD_ID_LEN];
-	u8   inta_pin;
+	u8 inta_pin;
 };
 
 struct mthca_init_hca_param {
@@ -208,16 +210,16 @@ struct mthca_init_hca_param {
 	u64 uarc_base;
 	u16 log_mc_entry_sz;
 	u16 mc_hash_sz;
-	u8  log_num_qps;
-	u8  log_num_eecs;
-	u8  log_num_srqs;
-	u8  log_num_cqs;
-	u8  log_num_eqs;
-	u8  log_mc_table_sz;
-	u8  mtt_seg_sz;
-	u8  log_mpt_sz;
-	u8  log_uar_sz;
-	u8  log_uarc_sz;
+	u8 log_num_qps;
+	u8 log_num_eecs;
+	u8 log_num_srqs;
+	u8 log_num_cqs;
+	u8 log_num_eqs;
+	u8 log_mc_table_sz;
+	u8 mtt_seg_sz;
+	u8 log_mpt_sz;
+	u8 log_uar_sz;
+	u8 log_uarc_sz;
 };
 
 struct mthca_init_ib_param {
@@ -245,11 +247,11 @@ int mthca_cmd_init(struct mthca_dev *dev);
 void mthca_cmd_cleanup(struct mthca_dev *dev);
 int mthca_cmd_use_events(struct mthca_dev *dev);
 void mthca_cmd_use_polling(struct mthca_dev *dev);
-void mthca_cmd_event(struct mthca_dev *dev, u16 token,
-		     u8  status, u64 out_param);
+void mthca_cmd_event(struct mthca_dev *dev, u16 token, u8 status,
+    u64 out_param);
 
 struct mthca_mailbox *mthca_alloc_mailbox(struct mthca_dev *dev,
-					  gfp_t gfp_mask);
+    gfp_t gfp_mask);
 void mthca_free_mailbox(struct mthca_dev *dev, struct mthca_mailbox *mailbox);
 
 int mthca_SYS_EN(struct mthca_dev *dev);
@@ -261,19 +263,15 @@ int mthca_QUERY_FW(struct mthca_dev *dev);
 int mthca_ENABLE_LAM(struct mthca_dev *dev);
 int mthca_DISABLE_LAM(struct mthca_dev *dev);
 int mthca_QUERY_DDR(struct mthca_dev *dev);
-int mthca_QUERY_DEV_LIM(struct mthca_dev *dev,
-			struct mthca_dev_lim *dev_lim);
-int mthca_QUERY_ADAPTER(struct mthca_dev *dev,
-			struct mthca_adapter *adapter);
-int mthca_INIT_HCA(struct mthca_dev *dev,
-		   struct mthca_init_hca_param *param);
-int mthca_INIT_IB(struct mthca_dev *dev,
-		  struct mthca_init_ib_param *param,
-		  int port);
+int mthca_QUERY_DEV_LIM(struct mthca_dev *dev, struct mthca_dev_lim *dev_lim);
+int mthca_QUERY_ADAPTER(struct mthca_dev *dev, struct mthca_adapter *adapter);
+int mthca_INIT_HCA(struct mthca_dev *dev, struct mthca_init_hca_param *param);
+int mthca_INIT_IB(struct mthca_dev *dev, struct mthca_init_ib_param *param,
+    int port);
 int mthca_CLOSE_IB(struct mthca_dev *dev, int port);
 int mthca_CLOSE_HCA(struct mthca_dev *dev, int panic);
 int mthca_SET_IB(struct mthca_dev *dev, struct mthca_set_ib_param *param,
-		 int port);
+    int port);
 int mthca_MAP_ICM(struct mthca_dev *dev, struct mthca_icm *icm, u64 virt);
 int mthca_MAP_ICM_page(struct mthca_dev *dev, u64 dma_addr, u64 virt);
 int mthca_UNMAP_ICM(struct mthca_dev *dev, u64 virt, u32 page_count);
@@ -281,45 +279,44 @@ int mthca_MAP_ICM_AUX(struct mthca_dev *dev, struct mthca_icm *icm);
 int mthca_UNMAP_ICM_AUX(struct mthca_dev *dev);
 int mthca_SET_ICM_SIZE(struct mthca_dev *dev, u64 icm_size, u64 *aux_pages);
 int mthca_SW2HW_MPT(struct mthca_dev *dev, struct mthca_mailbox *mailbox,
-		    int mpt_index);
+    int mpt_index);
 int mthca_HW2SW_MPT(struct mthca_dev *dev, struct mthca_mailbox *mailbox,
-		    int mpt_index);
+    int mpt_index);
 int mthca_WRITE_MTT(struct mthca_dev *dev, struct mthca_mailbox *mailbox,
-		    int num_mtt);
+    int num_mtt);
 int mthca_SYNC_TPT(struct mthca_dev *dev);
-int mthca_MAP_EQ(struct mthca_dev *dev, u64 event_mask, int unmap,
-		 int eq_num);
+int mthca_MAP_EQ(struct mthca_dev *dev, u64 event_mask, int unmap, int eq_num);
 int mthca_SW2HW_EQ(struct mthca_dev *dev, struct mthca_mailbox *mailbox,
-		   int eq_num);
+    int eq_num);
 int mthca_HW2SW_EQ(struct mthca_dev *dev, struct mthca_mailbox *mailbox,
-		   int eq_num);
+    int eq_num);
 int mthca_SW2HW_CQ(struct mthca_dev *dev, struct mthca_mailbox *mailbox,
-		   int cq_num);
+    int cq_num);
 int mthca_HW2SW_CQ(struct mthca_dev *dev, struct mthca_mailbox *mailbox,
-		   int cq_num);
+    int cq_num);
 int mthca_RESIZE_CQ(struct mthca_dev *dev, int cq_num, u32 lkey, u8 log_size);
 int mthca_SW2HW_SRQ(struct mthca_dev *dev, struct mthca_mailbox *mailbox,
-		    int srq_num);
+    int srq_num);
 int mthca_HW2SW_SRQ(struct mthca_dev *dev, struct mthca_mailbox *mailbox,
-		    int srq_num);
+    int srq_num);
 int mthca_QUERY_SRQ(struct mthca_dev *dev, u32 num,
-		    struct mthca_mailbox *mailbox);
+    struct mthca_mailbox *mailbox);
 int mthca_ARM_SRQ(struct mthca_dev *dev, int srq_num, int limit);
 int mthca_MODIFY_QP(struct mthca_dev *dev, enum ib_qp_state cur,
-		    enum ib_qp_state next, u32 num, int is_ee,
-		    struct mthca_mailbox *mailbox, u32 optmask);
+    enum ib_qp_state next, u32 num, int is_ee, struct mthca_mailbox *mailbox,
+    u32 optmask);
 int mthca_QUERY_QP(struct mthca_dev *dev, u32 num, int is_ee,
-		   struct mthca_mailbox *mailbox);
+    struct mthca_mailbox *mailbox);
 int mthca_CONF_SPECIAL_QP(struct mthca_dev *dev, int type, u32 qpn);
 int mthca_MAD_IFC(struct mthca_dev *dev, int ignore_mkey, int ignore_bkey,
-		  int port, const struct ib_wc *in_wc, const struct ib_grh *in_grh,
-		  const void *in_mad, void *response_mad);
+    int port, const struct ib_wc *in_wc, const struct ib_grh *in_grh,
+    const void *in_mad, void *response_mad);
 int mthca_READ_MGM(struct mthca_dev *dev, int index,
-		   struct mthca_mailbox *mailbox);
+    struct mthca_mailbox *mailbox);
 int mthca_WRITE_MGM(struct mthca_dev *dev, int index,
-		    struct mthca_mailbox *mailbox);
+    struct mthca_mailbox *mailbox);
 int mthca_MGID_HASH(struct mthca_dev *dev, struct mthca_mailbox *mailbox,
-		    u16 *hash);
+    u16 *hash);
 int mthca_NOP(struct mthca_dev *dev);
 
 #endif /* MTHCA_CMD_H */

@@ -49,56 +49,61 @@
  * of cases and performing limited validation.
  */
 
-#define FAIL(msg)	{printf("# %s\n", msg); \
-			return (-1);}
+#define FAIL(msg)                      \
+	{                              \
+		printf("# %s\n", msg); \
+		return (-1);           \
+	}
 
-#define FAIL_ERR(msg)	{printf("# %s: %s\n", msg, strerror(errno)); \
-			return (-1);}
+#define FAIL_ERR(msg)                                       \
+	{                                                   \
+		printf("# %s: %s\n", msg, strerror(errno)); \
+		return (-1);                                \
+	}
 
-#define	TEST_PORT	5678
-#define	TEST_MAGIC	0x4440f7bb
-#define	TEST_PAGES	4
-#define	TEST_SECONDS	30
+#define TEST_PORT 5678
+#define TEST_MAGIC 0x4440f7bb
+#define TEST_PAGES 4
+#define TEST_SECONDS 30
 
 struct test_header {
-	uint32_t	th_magic;
-	uint32_t	th_header_length;
-	uint32_t	th_offset;
-	uint32_t	th_length;
-	char		th_md5[33];
+	uint32_t th_magic;
+	uint32_t th_header_length;
+	uint32_t th_offset;
+	uint32_t th_length;
+	char th_md5[33];
 };
 
 struct sendfile_test {
-	uint32_t	hdr_length;
-	uint32_t	offset;
-	uint32_t	length;
-	uint32_t	file_size;
+	uint32_t hdr_length;
+	uint32_t offset;
+	uint32_t length;
+	uint32_t file_size;
 };
 
-static int	file_fd;
-static char	path[PATH_MAX];
-static int	listen_socket;
-static int	accept_socket;
+static int file_fd;
+static char path[PATH_MAX];
+static int listen_socket;
+static int accept_socket;
 
 static int test_th(struct test_header *th, uint32_t *header_length,
-		uint32_t *offset, uint32_t *length);
+    uint32_t *offset, uint32_t *length);
 static void signal_alarm(int signum);
 static void setup_alarm(int seconds);
 static void cancel_alarm(void);
 static int receive_test(void);
 static void run_child(void);
 static int new_test_socket(int *connect_socket);
-static void init_th(struct test_header *th, uint32_t header_length, 
-		uint32_t offset, uint32_t length);
+static void init_th(struct test_header *th, uint32_t header_length,
+    uint32_t offset, uint32_t length);
 static int send_test(int connect_socket, struct sendfile_test);
 static int write_test_file(size_t file_size);
 static void run_parent(void);
 static void cleanup(void);
 
-
 static int
-test_th(struct test_header *th, uint32_t *header_length, uint32_t *offset, 
-		uint32_t *length)
+test_th(struct test_header *th, uint32_t *header_length, uint32_t *offset,
+    uint32_t *length)
 {
 
 	if (th->th_magic != htonl(TEST_MAGIC))
@@ -173,9 +178,9 @@ receive_test(void)
 	}
 
 	rxmd5 = MD5End(&md5ctx, NULL);
-	
-	if ((counter != header_length+length) || 
-			memcmp(th.th_md5, rxmd5, 33) != 0)
+
+	if ((counter != header_length + length) ||
+	    memcmp(th.th_md5, rxmd5, 33) != 0)
 		FAIL("receive length mismatch")
 
 	free(rxmd5);
@@ -201,7 +206,8 @@ run_child(void)
 		sin.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 		sin.sin_port = htons(TEST_PORT);
 
-		if (bind(listen_socket, (struct sockaddr *)&sin, sizeof(sin)) < 0) {
+		if (bind(listen_socket, (struct sockaddr *)&sin, sizeof(sin)) <
+		    0) {
 			printf("# bind: %s\n", strerror(errno));
 			rc = -1;
 		}
@@ -213,7 +219,7 @@ run_child(void)
 	}
 
 	if (!rc) {
-		accept_socket = accept(listen_socket, NULL, NULL);	
+		accept_socket = accept(listen_socket, NULL, NULL);
 		setup_alarm(TEST_SECONDS);
 		if (receive_test() != 0)
 			rc = -1;
@@ -251,8 +257,8 @@ new_test_socket(int *connect_socket)
 }
 
 static void
-init_th(struct test_header *th, uint32_t header_length, uint32_t offset, 
-		uint32_t length)
+init_th(struct test_header *th, uint32_t header_length, uint32_t offset,
+    uint32_t length)
 {
 	bzero(th, sizeof(*th));
 	th->th_magic = htonl(TEST_MAGIC);
@@ -310,8 +316,8 @@ send_test(int connect_socket, struct sendfile_test test)
 		header = NULL;
 	}
 
-	if (sendfile(file_fd, connect_socket, test.offset, test.length, 
-				hdtrp, &off, 0) < 0) {
+	if (sendfile(file_fd, connect_socket, test.offset, test.length, hdtrp,
+		&off, 0) < 0) {
 		if (header != NULL)
 			free(header);
 		FAIL_ERR("sendfile")
@@ -382,17 +388,21 @@ run_parent(void)
 	const int pagesize = getpagesize();
 
 	struct sendfile_test tests[] = {
- 		{ .hdr_length = 0, .offset = 0, .length = 1 },
+		{ .hdr_length = 0, .offset = 0, .length = 1 },
 		{ .hdr_length = 0, .offset = 0, .length = pagesize },
 		{ .hdr_length = 0, .offset = 1, .length = 1 },
 		{ .hdr_length = 0, .offset = 1, .length = pagesize },
 		{ .hdr_length = 0, .offset = pagesize, .length = pagesize },
-		{ .hdr_length = 0, .offset = 0, .length = 2*pagesize },
+		{ .hdr_length = 0, .offset = 0, .length = 2 * pagesize },
 		{ .hdr_length = 0, .offset = 0, .length = 0 },
 		{ .hdr_length = 0, .offset = pagesize, .length = 0 },
-		{ .hdr_length = 0, .offset = 2*pagesize, .length = 0 },
-		{ .hdr_length = 0, .offset = TEST_PAGES*pagesize, .length = 0 },
-		{ .hdr_length = 0, .offset = 0, .length = pagesize,
+		{ .hdr_length = 0, .offset = 2 * pagesize, .length = 0 },
+		{ .hdr_length = 0,
+		    .offset = TEST_PAGES * pagesize,
+		    .length = 0 },
+		{ .hdr_length = 0,
+		    .offset = 0,
+		    .length = pagesize,
 		    .file_size = 1 }
 	};
 
@@ -427,7 +437,7 @@ run_parent(void)
 			continue;
 		}
 
-		if (send_test(connect_socket, tests[test_num-1]) != 0) {
+		if (send_test(connect_socket, tests[test_num - 1]) != 0) {
 			printf("not ok %d\n", test_num);
 			kill(pid, SIGALRM);
 			close(connect_socket);
@@ -440,8 +450,7 @@ run_parent(void)
 				printf("%s %d\n", "ok", test_num);
 			else
 				printf("%s %d\n", "not ok", test_num);
-		}
-		else {
+		} else {
 			printf("not ok %d\n", test_num);
 		}
 	}

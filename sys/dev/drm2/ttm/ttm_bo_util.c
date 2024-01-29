@@ -29,19 +29,21 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/sf_buf.h>
+
 #include <dev/drm2/drmP.h>
 #include <dev/drm2/ttm/ttm_bo_driver.h>
 #include <dev/drm2/ttm/ttm_placement.h>
-#include <sys/sf_buf.h>
 
-void ttm_bo_free_old_node(struct ttm_buffer_object *bo)
+void
+ttm_bo_free_old_node(struct ttm_buffer_object *bo)
 {
 	ttm_bo_mem_put(bo, &bo->mem);
 }
 
-int ttm_bo_move_ttm(struct ttm_buffer_object *bo,
-		    bool evict,
-		    bool no_wait_gpu, struct ttm_mem_reg *new_mem)
+int
+ttm_bo_move_ttm(struct ttm_buffer_object *bo, bool evict, bool no_wait_gpu,
+    struct ttm_mem_reg *new_mem)
 {
 	struct ttm_tt *ttm = bo->ttm;
 	struct ttm_mem_reg *old_mem = &bo->mem;
@@ -51,7 +53,7 @@ int ttm_bo_move_ttm(struct ttm_buffer_object *bo,
 		ttm_tt_unbind(ttm);
 		ttm_bo_free_old_node(bo);
 		ttm_flag_masked(&old_mem->placement, TTM_PL_FLAG_SYSTEM,
-				TTM_PL_MASK_MEM);
+		    TTM_PL_MASK_MEM);
 		old_mem->mem_type = TTM_PL_SYSTEM;
 	}
 
@@ -71,7 +73,8 @@ int ttm_bo_move_ttm(struct ttm_buffer_object *bo,
 	return 0;
 }
 
-int ttm_mem_io_lock(struct ttm_mem_type_manager *man, bool interruptible)
+int
+ttm_mem_io_lock(struct ttm_mem_type_manager *man, bool interruptible)
 {
 	if (likely(man->io_reserve_fastpath))
 		return 0;
@@ -87,7 +90,8 @@ int ttm_mem_io_lock(struct ttm_mem_type_manager *man, bool interruptible)
 	return 0;
 }
 
-void ttm_mem_io_unlock(struct ttm_mem_type_manager *man)
+void
+ttm_mem_io_unlock(struct ttm_mem_type_manager *man)
 {
 	if (likely(man->io_reserve_fastpath))
 		return;
@@ -95,24 +99,24 @@ void ttm_mem_io_unlock(struct ttm_mem_type_manager *man)
 	sx_xunlock(&man->io_reserve_mutex);
 }
 
-static int ttm_mem_io_evict(struct ttm_mem_type_manager *man)
+static int
+ttm_mem_io_evict(struct ttm_mem_type_manager *man)
 {
 	struct ttm_buffer_object *bo;
 
 	if (!man->use_io_reserve_lru || list_empty(&man->io_reserve_lru))
 		return -EAGAIN;
 
-	bo = list_first_entry(&man->io_reserve_lru,
-			      struct ttm_buffer_object,
-			      io_reserve_lru);
+	bo = list_first_entry(&man->io_reserve_lru, struct ttm_buffer_object,
+	    io_reserve_lru);
 	list_del_init(&bo->io_reserve_lru);
 	ttm_bo_unmap_virtual_locked(bo);
 
 	return 0;
 }
 
-static int ttm_mem_io_reserve(struct ttm_bo_device *bdev,
-			      struct ttm_mem_reg *mem)
+static int
+ttm_mem_io_reserve(struct ttm_bo_device *bdev, struct ttm_mem_reg *mem)
 {
 	struct ttm_mem_type_manager *man = &bdev->man[mem->mem_type];
 	int ret = 0;
@@ -122,9 +126,8 @@ static int ttm_mem_io_reserve(struct ttm_bo_device *bdev,
 	if (likely(man->io_reserve_fastpath))
 		return bdev->driver->io_mem_reserve(bdev, mem);
 
-	if (bdev->driver->io_mem_reserve &&
-	    mem->bus.io_reserved_count++ == 0) {
-retry:
+	if (bdev->driver->io_mem_reserve && mem->bus.io_reserved_count++ == 0) {
+	retry:
 		ret = bdev->driver->io_mem_reserve(bdev, mem);
 		if (ret == -EAGAIN) {
 			ret = ttm_mem_io_evict(man);
@@ -135,29 +138,28 @@ retry:
 	return ret;
 }
 
-static void ttm_mem_io_free(struct ttm_bo_device *bdev,
-			    struct ttm_mem_reg *mem)
+static void
+ttm_mem_io_free(struct ttm_bo_device *bdev, struct ttm_mem_reg *mem)
 {
 	struct ttm_mem_type_manager *man = &bdev->man[mem->mem_type];
 
 	if (likely(man->io_reserve_fastpath))
 		return;
 
-	if (bdev->driver->io_mem_reserve &&
-	    --mem->bus.io_reserved_count == 0 &&
+	if (bdev->driver->io_mem_reserve && --mem->bus.io_reserved_count == 0 &&
 	    bdev->driver->io_mem_free)
 		bdev->driver->io_mem_free(bdev, mem);
-
 }
 
-int ttm_mem_io_reserve_vm(struct ttm_buffer_object *bo)
+int
+ttm_mem_io_reserve_vm(struct ttm_buffer_object *bo)
 {
 	struct ttm_mem_reg *mem = &bo->mem;
 	int ret;
 
 	if (!mem->bus.io_reserved_vm) {
 		struct ttm_mem_type_manager *man =
-			&bo->bdev->man[mem->mem_type];
+		    &bo->bdev->man[mem->mem_type];
 
 		ret = ttm_mem_io_reserve(bo->bdev, mem);
 		if (unlikely(ret != 0))
@@ -165,12 +167,13 @@ int ttm_mem_io_reserve_vm(struct ttm_buffer_object *bo)
 		mem->bus.io_reserved_vm = true;
 		if (man->use_io_reserve_lru)
 			list_add_tail(&bo->io_reserve_lru,
-				      &man->io_reserve_lru);
+			    &man->io_reserve_lru);
 	}
 	return 0;
 }
 
-void ttm_mem_io_free_vm(struct ttm_buffer_object *bo)
+void
+ttm_mem_io_free_vm(struct ttm_buffer_object *bo)
 {
 	struct ttm_mem_reg *mem = &bo->mem;
 
@@ -181,16 +184,16 @@ void ttm_mem_io_free_vm(struct ttm_buffer_object *bo)
 	}
 }
 
-static
-int ttm_mem_reg_ioremap(struct ttm_bo_device *bdev, struct ttm_mem_reg *mem,
-			void **virtual)
+static int
+ttm_mem_reg_ioremap(struct ttm_bo_device *bdev, struct ttm_mem_reg *mem,
+    void **virtual)
 {
 	struct ttm_mem_type_manager *man = &bdev->man[mem->mem_type];
 	int ret;
 	void *addr;
 
 	*virtual = NULL;
-	(void) ttm_mem_io_lock(man, false);
+	(void)ttm_mem_io_lock(man, false);
 	ret = ttm_mem_io_reserve(bdev, mem);
 	ttm_mem_io_unlock(man);
 	if (ret || !mem->bus.is_iomem)
@@ -200,10 +203,12 @@ int ttm_mem_reg_ioremap(struct ttm_bo_device *bdev, struct ttm_mem_reg *mem,
 		addr = mem->bus.addr;
 	} else {
 		addr = pmap_mapdev_attr(mem->bus.base + mem->bus.offset,
-		    mem->bus.size, (mem->placement & TTM_PL_FLAG_WC) ?
-		    VM_MEMATTR_WRITE_COMBINING : VM_MEMATTR_UNCACHEABLE);
+		    mem->bus.size,
+		    (mem->placement & TTM_PL_FLAG_WC) ?
+			VM_MEMATTR_WRITE_COMBINING :
+			VM_MEMATTR_UNCACHEABLE);
 		if (!addr) {
-			(void) ttm_mem_io_lock(man, false);
+			(void)ttm_mem_io_lock(man, false);
 			ttm_mem_io_free(bdev, mem);
 			ttm_mem_io_unlock(man);
 			return -ENOMEM;
@@ -213,9 +218,9 @@ int ttm_mem_reg_ioremap(struct ttm_bo_device *bdev, struct ttm_mem_reg *mem,
 	return 0;
 }
 
-static
-void ttm_mem_reg_iounmap(struct ttm_bo_device *bdev, struct ttm_mem_reg *mem,
-			 void *virtual)
+static void
+ttm_mem_reg_iounmap(struct ttm_bo_device *bdev, struct ttm_mem_reg *mem,
+    void *virtual)
 {
 	struct ttm_mem_type_manager *man;
 
@@ -223,17 +228,18 @@ void ttm_mem_reg_iounmap(struct ttm_bo_device *bdev, struct ttm_mem_reg *mem,
 
 	if (virtual && mem->bus.addr == NULL)
 		pmap_unmapdev(virtual, mem->bus.size);
-	(void) ttm_mem_io_lock(man, false);
+	(void)ttm_mem_io_lock(man, false);
 	ttm_mem_io_free(bdev, mem);
 	ttm_mem_io_unlock(man);
 }
 
-static int ttm_copy_io_page(void *dst, void *src, unsigned long page)
+static int
+ttm_copy_io_page(void *dst, void *src, unsigned long page)
 {
-	uint32_t *dstP =
-	    (uint32_t *) ((unsigned long)dst + (page << PAGE_SHIFT));
-	uint32_t *srcP =
-	    (uint32_t *) ((unsigned long)src + (page << PAGE_SHIFT));
+	uint32_t *dstP = (uint32_t *)((unsigned long)dst +
+	    (page << PAGE_SHIFT));
+	uint32_t *srcP = (uint32_t *)((unsigned long)src +
+	    (page << PAGE_SHIFT));
 
 	int i;
 	for (i = 0; i < PAGE_SIZE / sizeof(uint32_t); ++i)
@@ -242,9 +248,9 @@ static int ttm_copy_io_page(void *dst, void *src, unsigned long page)
 	return 0;
 }
 
-static int ttm_copy_io_ttm_page(struct ttm_tt *ttm, void *src,
-				unsigned long page,
-				vm_memattr_t prot)
+static int
+ttm_copy_io_ttm_page(struct ttm_tt *ttm, void *src, unsigned long page,
+    vm_memattr_t prot)
 {
 	vm_page_t d = ttm->pages[page];
 	void *dst;
@@ -266,9 +272,9 @@ static int ttm_copy_io_ttm_page(struct ttm_tt *ttm, void *src,
 	return 0;
 }
 
-static int ttm_copy_ttm_io_page(struct ttm_tt *ttm, void *dst,
-				unsigned long page,
-				vm_memattr_t prot)
+static int
+ttm_copy_ttm_io_page(struct ttm_tt *ttm, void *dst, unsigned long page,
+    vm_memattr_t prot)
 {
 	vm_page_t s = ttm->pages[page];
 	void *src;
@@ -288,9 +294,9 @@ static int ttm_copy_ttm_io_page(struct ttm_tt *ttm, void *dst,
 	return 0;
 }
 
-int ttm_bo_move_memcpy(struct ttm_buffer_object *bo,
-		       bool evict, bool no_wait_gpu,
-		       struct ttm_mem_reg *new_mem)
+int
+ttm_bo_move_memcpy(struct ttm_buffer_object *bo, bool evict, bool no_wait_gpu,
+    struct ttm_mem_reg *new_mem)
 {
 	struct ttm_bo_device *bdev = bo->bdev;
 	struct ttm_mem_type_manager *man = &bdev->man[new_mem->mem_type];
@@ -340,12 +346,10 @@ int ttm_bo_move_memcpy(struct ttm_buffer_object *bo,
 		page = i * dir + add;
 		if (old_iomap == NULL) {
 			vm_memattr_t prot = ttm_io_prot(old_mem->placement);
-			ret = ttm_copy_ttm_io_page(ttm, new_iomap, page,
-						   prot);
+			ret = ttm_copy_ttm_io_page(ttm, new_iomap, page, prot);
 		} else if (new_iomap == NULL) {
 			vm_memattr_t prot = ttm_io_prot(new_mem->placement);
-			ret = ttm_copy_io_ttm_page(ttm, old_iomap, page,
-						   prot);
+			ret = ttm_copy_io_ttm_page(ttm, old_iomap, page, prot);
 		} else
 			ret = ttm_copy_io_page(new_iomap, old_iomap, page);
 		if (ret) {
@@ -376,7 +380,8 @@ out:
 
 MALLOC_DEFINE(M_TTM_TRANSF_OBJ, "ttm_transf_obj", "TTM Transfer Objects");
 
-static void ttm_transfered_destroy(struct ttm_buffer_object *bo)
+static void
+ttm_transfered_destroy(struct ttm_buffer_object *bo)
 {
 	free(bo, M_TTM_TRANSF_OBJ);
 }
@@ -437,8 +442,8 @@ ttm_buffer_object_transfer(struct ttm_buffer_object *bo,
 vm_memattr_t
 ttm_io_prot(uint32_t caching_flags)
 {
-#if defined(__i386__) || defined(__amd64__) || defined(__powerpc__) || 	\
- defined(__arm__)
+#if defined(__i386__) || defined(__amd64__) || defined(__powerpc__) || \
+    defined(__arm__)
 	if (caching_flags & TTM_PL_FLAG_WC)
 		return (VM_MEMATTR_WRITE_COMBINING);
 	else
@@ -452,10 +457,9 @@ ttm_io_prot(uint32_t caching_flags)
 #endif
 }
 
-static int ttm_bo_ioremap(struct ttm_buffer_object *bo,
-			  unsigned long offset,
-			  unsigned long size,
-			  struct ttm_bo_kmap_obj *map)
+static int
+ttm_bo_ioremap(struct ttm_buffer_object *bo, unsigned long offset,
+    unsigned long size, struct ttm_bo_kmap_obj *map)
 {
 	struct ttm_mem_reg *mem = &bo->mem;
 
@@ -465,18 +469,19 @@ static int ttm_bo_ioremap(struct ttm_buffer_object *bo,
 	} else {
 		map->bo_kmap_type = ttm_bo_map_iomap;
 		map->virtual = pmap_mapdev_attr(bo->mem.bus.base +
-		    bo->mem.bus.offset + offset, size,
+			bo->mem.bus.offset + offset,
+		    size,
 		    (mem->placement & TTM_PL_FLAG_WC) ?
-		    VM_MEMATTR_WRITE_COMBINING : VM_MEMATTR_UNCACHEABLE);
+			VM_MEMATTR_WRITE_COMBINING :
+			VM_MEMATTR_UNCACHEABLE);
 		map->size = size;
 	}
 	return (!map->virtual) ? -ENOMEM : 0;
 }
 
-static int ttm_bo_kmap_ttm(struct ttm_buffer_object *bo,
-			   unsigned long start_page,
-			   unsigned long num_pages,
-			   struct ttm_bo_kmap_obj *map)
+static int
+ttm_bo_kmap_ttm(struct ttm_buffer_object *bo, unsigned long start_page,
+    unsigned long num_pages, struct ttm_bo_kmap_obj *map)
 {
 	struct ttm_mem_reg *mem = &bo->mem;
 	vm_memattr_t prot;
@@ -507,15 +512,16 @@ static int ttm_bo_kmap_ttm(struct ttm_buffer_object *bo,
 		 * or to make the buffer object look contiguous.
 		 */
 		prot = (mem->placement & TTM_PL_FLAG_CACHED) ?
-			VM_MEMATTR_DEFAULT : ttm_io_prot(mem->placement);
+		    VM_MEMATTR_DEFAULT :
+		    ttm_io_prot(mem->placement);
 		map->bo_kmap_type = ttm_bo_map_vmap;
 		map->num_pages = num_pages;
 		map->virtual = (void *)kva_alloc(num_pages * PAGE_SIZE);
 		if (map->virtual != NULL) {
 			for (i = 0; i < num_pages; i++) {
 				/* XXXKIB hack */
-				pmap_page_set_memattr(ttm->pages[start_page +
-				    i], prot);
+				pmap_page_set_memattr(
+				    ttm->pages[start_page + i], prot);
 			}
 			pmap_qenter((vm_offset_t)map->virtual,
 			    &ttm->pages[start_page], num_pages);
@@ -524,12 +530,11 @@ static int ttm_bo_kmap_ttm(struct ttm_buffer_object *bo,
 	return (!map->virtual) ? -ENOMEM : 0;
 }
 
-int ttm_bo_kmap(struct ttm_buffer_object *bo,
-		unsigned long start_page, unsigned long num_pages,
-		struct ttm_bo_kmap_obj *map)
+int
+ttm_bo_kmap(struct ttm_buffer_object *bo, unsigned long start_page,
+    unsigned long num_pages, struct ttm_bo_kmap_obj *map)
 {
-	struct ttm_mem_type_manager *man =
-		&bo->bdev->man[bo->mem.mem_type];
+	struct ttm_mem_type_manager *man = &bo->bdev->man[bo->mem.mem_type];
 	unsigned long offset, size;
 	int ret;
 
@@ -544,7 +549,7 @@ int ttm_bo_kmap(struct ttm_buffer_object *bo,
 	if (num_pages > 1 && !DRM_SUSER(DRM_CURPROC))
 		return -EPERM;
 #endif
-	(void) ttm_mem_io_lock(man, false);
+	(void)ttm_mem_io_lock(man, false);
 	ret = ttm_mem_io_reserve(bo->bdev, &bo->mem);
 	ttm_mem_io_unlock(man);
 	if (ret)
@@ -558,11 +563,11 @@ int ttm_bo_kmap(struct ttm_buffer_object *bo,
 	}
 }
 
-void ttm_bo_kunmap(struct ttm_bo_kmap_obj *map)
+void
+ttm_bo_kunmap(struct ttm_bo_kmap_obj *map)
 {
 	struct ttm_buffer_object *bo = map->bo;
-	struct ttm_mem_type_manager *man =
-		&bo->bdev->man[bo->mem.mem_type];
+	struct ttm_mem_type_manager *man = &bo->bdev->man[bo->mem.mem_type];
 
 	if (!map->virtual)
 		return;
@@ -572,8 +577,7 @@ void ttm_bo_kunmap(struct ttm_bo_kmap_obj *map)
 		break;
 	case ttm_bo_map_vmap:
 		pmap_qremove((vm_offset_t)(map->virtual), map->num_pages);
-		kva_free((vm_offset_t)map->virtual,
-		    map->num_pages * PAGE_SIZE);
+		kva_free((vm_offset_t)map->virtual, map->num_pages * PAGE_SIZE);
 		break;
 	case ttm_bo_map_kmap:
 		sf_buf_free(map->sf);
@@ -583,7 +587,7 @@ void ttm_bo_kunmap(struct ttm_bo_kmap_obj *map)
 	default:
 		MPASS(0);
 	}
-	(void) ttm_mem_io_lock(man, false);
+	(void)ttm_mem_io_lock(man, false);
 	ttm_mem_io_free(map->bo->bdev, &map->bo->mem);
 	ttm_mem_io_unlock(man);
 	map->virtual = NULL;
@@ -591,11 +595,9 @@ void ttm_bo_kunmap(struct ttm_bo_kmap_obj *map)
 	map->sf = NULL;
 }
 
-int ttm_bo_move_accel_cleanup(struct ttm_buffer_object *bo,
-			      void *sync_obj,
-			      bool evict,
-			      bool no_wait_gpu,
-			      struct ttm_mem_reg *new_mem)
+int
+ttm_bo_move_accel_cleanup(struct ttm_buffer_object *bo, void *sync_obj,
+    bool evict, bool no_wait_gpu, struct ttm_mem_reg *new_mem)
 {
 	struct ttm_bo_device *bdev = bo->bdev;
 	struct ttm_bo_driver *driver = bdev->driver;

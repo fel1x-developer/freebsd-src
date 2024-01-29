@@ -35,6 +35,7 @@
  */
 #pragma once
 #include <sys/cdefs.h>
+
 #include_next <ctype.h>
 
 /*
@@ -46,11 +47,11 @@
  */
 #ifndef isxdigit
 __BEGIN_DECLS
-int	isalpha(int);
-int	isascii(int);
-int	isdigit(int);
-int	isgraph(int);
-int	islower(int);
-int	isxdigit(int);
+int isalpha(int);
+int isascii(int);
+int isdigit(int);
+int isgraph(int);
+int islower(int);
+int isxdigit(int);
 __END_DECLS
 #endif

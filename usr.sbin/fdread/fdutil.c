@@ -26,9 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <dev/ic/nec765.h>
-
 #include <sys/fdcio.h>
+
+#include <dev/ic/nec765.h>
 
 #include <err.h>
 #include <stdio.h>
@@ -50,20 +50,17 @@ printstatus(struct fdc_status *fdcsp, int terse)
 
 	if (!terse)
 		fprintf(stderr,
-		"\nFDC status ST0=%#x ST1=%#x ST2=%#x C=%u H=%u R=%u N=%u:\n",
-			fdcsp->status[0] & 0xff,
-			fdcsp->status[1] & 0xff,
-			fdcsp->status[2] & 0xff,
-			fdcsp->status[3] & 0xff,
-			fdcsp->status[4] & 0xff,
-			fdcsp->status[5] & 0xff,
-			fdcsp->status[6] & 0xff);
+		    "\nFDC status ST0=%#x ST1=%#x ST2=%#x C=%u H=%u R=%u N=%u:\n",
+		    fdcsp->status[0] & 0xff, fdcsp->status[1] & 0xff,
+		    fdcsp->status[2] & 0xff, fdcsp->status[3] & 0xff,
+		    fdcsp->status[4] & 0xff, fdcsp->status[5] & 0xff,
+		    fdcsp->status[6] & 0xff);
 
 	if ((fdcsp->status[0] & NE7_ST0_IC_RC) == 0) {
 		sprintf(msgbuf, "timeout");
 	} else if ((fdcsp->status[0] & NE7_ST0_IC_RC) != NE7_ST0_IC_AT) {
 		sprintf(msgbuf, "unexcpted interrupt code %#x",
-			fdcsp->status[0] & NE7_ST0_IC_RC);
+		    fdcsp->status[0] & NE7_ST0_IC_RC);
 	} else {
 		strcpy(msgbuf, "unexpected error code in ST1/ST2");
 
@@ -87,60 +84,32 @@ printstatus(struct fdc_status *fdcsp, int terse)
 	fputs(msgbuf, stderr);
 }
 
-static struct fd_type fd_types_auto[1] =
-    { { 0,0,0,0,0,0,0,0,0,0,0,FL_AUTO } };
-
+static struct fd_type fd_types_auto[1] = { { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    FL_AUTO } };
 
 static struct fd_type fd_types_288m[] = {
 #if 0
 	{ FDF_3_2880 },
 #endif
-	{ FDF_3_1722 },
-	{ FDF_3_1476 },
-	{ FDF_3_1440 },
-	{ FDF_3_1200 },
-	{ FDF_3_820 },
-	{ FDF_3_800 },
-	{ FDF_3_720 },
-	{ 0,0,0,0,0,0,0,0,0,0,0,0 }
+	{ FDF_3_1722 }, { FDF_3_1476 }, { FDF_3_1440 }, { FDF_3_1200 },
+	{ FDF_3_820 }, { FDF_3_800 }, { FDF_3_720 },
+	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 };
 
-static struct fd_type fd_types_144m[] = {
-	{ FDF_3_1722 },
-	{ FDF_3_1476 },
-	{ FDF_3_1440 },
-	{ FDF_3_1200 },
-	{ FDF_3_820 },
-	{ FDF_3_800 },
-	{ FDF_3_720 },
-	{ 0,0,0,0,0,0,0,0,0,0,0,0 }
-};
+static struct fd_type fd_types_144m[] = { { FDF_3_1722 }, { FDF_3_1476 },
+	{ FDF_3_1440 }, { FDF_3_1200 }, { FDF_3_820 }, { FDF_3_800 },
+	{ FDF_3_720 }, { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } };
 
-static struct fd_type fd_types_12m[] = {
-	{ FDF_5_1200 },
-	{ FDF_5_1230 },
-	{ FDF_5_1480 },
-	{ FDF_5_1440 },
-	{ FDF_5_820 },
-	{ FDF_5_800 },
-	{ FDF_5_720 },
-	{ FDF_5_360 | FL_2STEP },
-	{ FDF_5_640 },
-	{ 0,0,0,0,0,0,0,0,0,0,0,0 }
-};
+static struct fd_type fd_types_12m[] = { { FDF_5_1200 }, { FDF_5_1230 },
+	{ FDF_5_1480 }, { FDF_5_1440 }, { FDF_5_820 }, { FDF_5_800 },
+	{ FDF_5_720 }, { FDF_5_360 | FL_2STEP }, { FDF_5_640 },
+	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } };
 
-static struct fd_type fd_types_720k[] =
-{
-	{ FDF_3_720 },
-	{ 0,0,0,0,0,0,0,0,0,0,0,0 }
-};
+static struct fd_type fd_types_720k[] = { { FDF_3_720 },
+	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } };
 
-static struct fd_type fd_types_360k[] =
-{
-	{ FDF_5_360 },
-	{ 0,0,0,0,0,0,0,0,0,0,0,0 }
-};
-
+static struct fd_type fd_types_360k[] = { { FDF_5_360 },
+	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } };
 
 /*
  * Parse a format string, and fill in the parameter pointed to by `out'.
@@ -165,8 +134,8 @@ static struct fd_type fd_types_360k[] =
  * Any omitted value will be passed on from parameter `in'.
  */
 void
-parse_fmt(const char *s, enum fd_drivetype type,
-	  struct fd_type in, struct fd_type *out)
+parse_fmt(const char *s, enum fd_drivetype type, struct fd_type in,
+    struct fd_type *out)
 {
 	int i, j;
 	const char *cp;
@@ -198,52 +167,56 @@ parse_fmt(const char *s, enum fd_drivetype type,
 		}
 
 		switch (i) {
-		case 0:		/* sectrac */
+		case 0: /* sectrac */
 			if (getnum(s1, &out->sectrac))
 				errx(EX_USAGE,
-				     "bad numeric value for sectrac: %s", s1);
+				    "bad numeric value for sectrac: %s", s1);
 			break;
 
-		case 1:		/* secsize */
+		case 1: /* secsize */
 			if (getnum(s1, &j))
 				errx(EX_USAGE,
-				     "bad numeric value for secsize: %s", s1);
-			if (j == 128) out->secsize = 0;
-			else if (j == 256) out->secsize = 1;
-			else if (j == 512) out->secsize = 2;
-			else if (j == 1024) out->secsize = 3;
+				    "bad numeric value for secsize: %s", s1);
+			if (j == 128)
+				out->secsize = 0;
+			else if (j == 256)
+				out->secsize = 1;
+			else if (j == 512)
+				out->secsize = 2;
+			else if (j == 1024)
+				out->secsize = 3;
 			else
 				errx(EX_USAGE, "bad sector size %d", j);
 			break;
 
-		case 2:		/* datalen */
+		case 2: /* datalen */
 			if (getnum(s1, &j))
 				errx(EX_USAGE,
-				     "bad numeric value for datalen: %s", s1);
+				    "bad numeric value for datalen: %s", s1);
 			if (j >= 256)
 				errx(EX_USAGE, "bad datalen %d", j);
 			out->datalen = j;
 			break;
 
-		case 3:		/* gap */
+		case 3: /* gap */
 			if (getnum(s1, &out->gap))
-				errx(EX_USAGE,
-				     "bad numeric value for gap: %s", s1);
+				errx(EX_USAGE, "bad numeric value for gap: %s",
+				    s1);
 			break;
 
-		case 4:		/* ncyls */
+		case 4: /* ncyls */
 			if (getnum(s1, &j))
 				errx(EX_USAGE,
-				     "bad numeric value for ncyls: %s", s1);
+				    "bad numeric value for ncyls: %s", s1);
 			if (j > 85)
 				errx(EX_USAGE, "bad # of cylinders %d", j);
 			out->tracks = j;
 			break;
 
-		case 5:		/* speed */
+		case 5: /* speed */
 			if (getnum(s1, &j))
 				errx(EX_USAGE,
-				     "bad numeric value for speed: %s", s1);
+				    "bad numeric value for speed: %s", s1);
 			switch (type) {
 			default:
 				abort(); /* paranoia */
@@ -282,32 +255,32 @@ parse_fmt(const char *s, enum fd_drivetype type,
 			}
 			break;
 
-		case 6:		/* heads */
+		case 6: /* heads */
 			if (getnum(s1, &j))
 				errx(EX_USAGE,
-				     "bad numeric value for heads: %s", s1);
+				    "bad numeric value for heads: %s", s1);
 			if (j == 1 || j == 2)
 				out->heads = j;
 			else
 				errx(EX_USAGE, "bad # of heads %d", j);
 			break;
 
-		case 7:		/* f_gap */
+		case 7: /* f_gap */
 			if (getnum(s1, &out->f_gap))
 				errx(EX_USAGE,
-				     "bad numeric value for f_gap: %s", s1);
+				    "bad numeric value for f_gap: %s", s1);
 			break;
 
-		case 8:		/* f_inter */
+		case 8: /* f_inter */
 			if (getnum(s1, &out->f_inter))
 				errx(EX_USAGE,
-				     "bad numeric value for f_inter: %s", s1);
+				    "bad numeric value for f_inter: %s", s1);
 			break;
 
-		case 9:		/* offs2 */
+		case 9: /* offs2 */
 			if (getnum(s1, &out->offset_side2))
 				errx(EX_USAGE,
-				     "bad numeric value for offs2: %s", s1);
+				    "bad numeric value for offs2: %s", s1);
 			break;
 
 		default:
@@ -349,16 +322,26 @@ print_fmt(struct fd_type in)
 
 	secsize = 128 << in.secsize;
 	switch (in.trans) {
-	case FDC_250KBPS:	speed = 250; break;
-	case FDC_300KBPS:	speed = 300; break;
-	case FDC_500KBPS:	speed = 500; break;
-	case FDC_1MBPS:		speed = 1000; break;
-	default:		speed = 1; break;
+	case FDC_250KBPS:
+		speed = 250;
+		break;
+	case FDC_300KBPS:
+		speed = 300;
+		break;
+	case FDC_500KBPS:
+		speed = 500;
+		break;
+	case FDC_1MBPS:
+		speed = 1000;
+		break;
+	default:
+		speed = 1;
+		break;
 	}
 
-	printf("%d,%d,%#x,%#x,%d,%d,%d,%#x,%d,%d",
-	       in.sectrac, secsize, in.datalen, in.gap, in.tracks,
-	       speed, in.heads, in.f_gap, in.f_inter, in.offset_side2);
+	printf("%d,%d,%#x,%#x,%d,%d,%d,%#x,%d,%d", in.sectrac, secsize,
+	    in.datalen, in.gap, in.tracks, speed, in.heads, in.f_gap,
+	    in.f_inter, in.offset_side2);
 	if (in.flags & FL_MFM)
 		printf(",+mfm");
 	if (in.flags & FL_2STEP)
@@ -436,7 +419,7 @@ getnum(const char *s, int *res)
 
 	ul = strtoul(s, &cp, 0);
 	if (*cp != '\0')
-	  return (-1);
+		return (-1);
 
 	*res = (int)ul;
 	return (0);

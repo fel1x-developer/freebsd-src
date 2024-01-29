@@ -38,7 +38,7 @@
 int
 tslog_init(void)
 {
-	void * tslog_buf;
+	void *tslog_buf;
 
 	/* Allocate buffer and pass to libsa tslog code. */
 	if ((tslog_buf = malloc(LOADER_TSLOGSIZE)) == NULL)
@@ -60,7 +60,7 @@ tslog_init(void)
 int
 tslog_publish(void)
 {
-	void * tslog_buf;
+	void *tslog_buf;
 	size_t tslog_bufpos;
 
 	/* Record a log entry for ending logging. */

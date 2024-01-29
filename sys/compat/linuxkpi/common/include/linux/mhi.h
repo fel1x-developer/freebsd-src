@@ -25,16 +25,16 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_LINUXKPI_LINUX_MHI_H
-#define	_LINUXKPI_LINUX_MHI_H
+#ifndef _LINUXKPI_LINUX_MHI_H
+#define _LINUXKPI_LINUX_MHI_H
 
 #include <linux/types.h>
 
 /* Modem Host Interface (MHI) */
 
 /* XXX FIXME */
-#define	MHI_DB_BRST_DISABLE	0
-#define	MHI_ER_CTRL		0
+#define MHI_DB_BRST_DISABLE 0
+#define MHI_ER_CTRL 0
 
 enum mhi_callback {
 	MHI_CB_SYS_ERROR,
@@ -49,50 +49,51 @@ enum mhi_callback {
 };
 
 struct mhi_channel_config {
-	const char		*name;
-	int	auto_queue, dir, doorbell, doorbell_mode_switch, ee_mask, event_ring, lpm_notify, num, num_elements, offload_channel, pollcfg;
+	const char *name;
+	int auto_queue, dir, doorbell, doorbell_mode_switch, ee_mask,
+	    event_ring, lpm_notify, num, num_elements, offload_channel, pollcfg;
 };
 
 struct mhi_event_config {
-	int	client_managed, data_type, hardware_event, irq, irq_moderation_ms, mode, num_elements, offload_channel, priority;
+	int client_managed, data_type, hardware_event, irq, irq_moderation_ms,
+	    mode, num_elements, offload_channel, priority;
 };
 
-struct mhi_device {
-};
+struct mhi_device { };
 
 struct mhi_controller_config {
-	const struct mhi_channel_config	*ch_cfg;
-	struct mhi_event_config		*event_cfg;
+	const struct mhi_channel_config *ch_cfg;
+	struct mhi_event_config *event_cfg;
 
-	int	buf_len, max_channels, num_channels, num_events, use_bounce_buf;
+	int buf_len, max_channels, num_channels, num_events, use_bounce_buf;
 
-	uint32_t			timeout_ms;
+	uint32_t timeout_ms;
 };
 
 struct mhi_controller {
-	struct device			*cntrl_dev;
-	struct mhi_device		*mhi_dev;
-	void				*regs;
-	int				*irq;
-	const char			*fw_image;
+	struct device *cntrl_dev;
+	struct mhi_device *mhi_dev;
+	void *regs;
+	int *irq;
+	const char *fw_image;
 
-	bool				fbc_download;
-	size_t				rddm_size;
-	size_t				sbl_size;
-	size_t				seg_len;
-	size_t				reg_len;
-	int				nr_irqs;
-	unsigned long			irq_flags;
-	uint32_t			timeout_ms;
+	bool fbc_download;
+	size_t rddm_size;
+	size_t sbl_size;
+	size_t seg_len;
+	size_t reg_len;
+	int nr_irqs;
+	unsigned long irq_flags;
+	uint32_t timeout_ms;
 
-	dma_addr_t			iova_start;
-	dma_addr_t			iova_stop;
+	dma_addr_t iova_start;
+	dma_addr_t iova_stop;
 
-	int				(*runtime_get)(struct mhi_controller *);
-	void				(*runtime_put)(struct mhi_controller *);
-	void				(*status_cb)(struct mhi_controller *, enum mhi_callback);
-	int				(*read_reg)(struct mhi_controller *, void __iomem *, uint32_t *);
-	void				(*write_reg)(struct mhi_controller *, void __iomem *, uint32_t);
+	int (*runtime_get)(struct mhi_controller *);
+	void (*runtime_put)(struct mhi_controller *);
+	void (*status_cb)(struct mhi_controller *, enum mhi_callback);
+	int (*read_reg)(struct mhi_controller *, void __iomem *, uint32_t *);
+	void (*write_reg)(struct mhi_controller *, void __iomem *, uint32_t);
 };
 
 /* -------------------------------------------------------------------------- */
@@ -217,4 +218,4 @@ mhi_force_rddm_mode(struct mhi_controller *mhi_ctrl)
 	return (0);
 }
 
-#endif	/* _LINUXKPI_LINUX_MHI_H */
+#endif /* _LINUXKPI_LINUX_MHI_H */

@@ -26,8 +26,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef	_LINUXKPI_LINUX_KOBJECT_H_
-#define	_LINUXKPI_LINUX_KOBJECT_H_
+#ifndef _LINUXKPI_LINUX_KOBJECT_H_
+#define _LINUXKPI_LINUX_KOBJECT_H_
 
 #include <machine/stdarg.h>
 
@@ -43,7 +43,7 @@ struct kobject;
 struct kset;
 struct sysctl_oid;
 
-#define	KOBJ_CHANGE		0x01
+#define KOBJ_CHANGE 0x01
 
 struct kobj_type {
 	void (*release)(struct kobject *kobj);
@@ -55,21 +55,21 @@ struct kobj_type {
 extern const struct kobj_type linux_kfree_type;
 
 struct kobject {
-	struct kobject		*parent;
-	char			*name;
-	struct kref		kref;
-	const struct kobj_type	*ktype;
-	struct list_head	entry;
-	struct sysctl_oid	*oidp;
-	struct kset		*kset;
+	struct kobject *parent;
+	char *name;
+	struct kref kref;
+	const struct kobj_type *ktype;
+	struct list_head entry;
+	struct sysctl_oid *oidp;
+	struct kset *kset;
 };
 
 extern struct kobject *mm_kobj;
 
 struct attribute {
-	const char	*name;
-	struct module	*owner;
-	mode_t		mode;
+	const char *name;
+	struct module *owner;
+	mode_t mode;
 };
 
 extern const struct sysfs_ops kobj_sysfs_ops;
@@ -87,9 +87,9 @@ struct kset_uevent_ops {
 };
 
 struct kset {
-	struct list_head	list;
-	spinlock_t		list_lock;
-	struct kobject		kobj;
+	struct list_head list;
+	spinlock_t list_lock;
+	struct kobject kobj;
 	const struct kset_uevent_ops *uevent_ops;
 };
 
@@ -123,9 +123,9 @@ kobject_get(struct kobject *kobj)
 }
 
 struct kobject *kobject_create(void);
-int	kobject_set_name_vargs(struct kobject *kobj, const char *fmt, va_list);
-int	kobject_add(struct kobject *kobj, struct kobject *parent,
-	    const char *fmt, ...);
+int kobject_set_name_vargs(struct kobject *kobj, const char *fmt, va_list);
+int kobject_add(struct kobject *kobj, struct kobject *parent, const char *fmt,
+    ...);
 
 static inline struct kobject *
 kobject_create_and_add(const char *name, struct kobject *parent)
@@ -154,9 +154,9 @@ kobject_name(const struct kobject *kobj)
 	return kobj->name;
 }
 
-int	kobject_set_name(struct kobject *kobj, const char *fmt, ...);
-int	kobject_init_and_add(struct kobject *kobj, const struct kobj_type *ktype,
-	    struct kobject *parent, const char *fmt, ...);
+int kobject_set_name(struct kobject *kobj, const char *fmt, ...);
+int kobject_init_and_add(struct kobject *kobj, const struct kobj_type *ktype,
+    struct kobject *parent, const char *fmt, ...);
 
 static __inline void
 kobject_uevent_env(struct kobject *kobj, int action, char *envp[])
@@ -170,10 +170,10 @@ kobject_uevent_env(struct kobject *kobj, int action, char *envp[])
 	 */
 }
 
-void	kset_init(struct kset *kset);
-int	kset_register(struct kset *kset);
-void	kset_unregister(struct kset *kset);
-struct kset * kset_create_and_add(const char *name,
+void kset_init(struct kset *kset);
+int kset_register(struct kset *kset);
+void kset_unregister(struct kset *kset);
+struct kset *kset_create_and_add(const char *name,
     const struct kset_uevent_ops *u, struct kobject *parent_kobj);
 
 static inline struct kset *

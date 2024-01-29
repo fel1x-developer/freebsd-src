@@ -6,15 +6,16 @@
  * $Id: load_file.c,v 1.6.2.2 2012/07/22 08:04:24 darren_r Exp $
  */
 
-#include "ipf.h"
 #include <ctype.h>
+
+#include "ipf.h"
 
 alist_t *
 load_file(char *filename)
 {
 	alist_t *a, *rtop, *rbot;
 	char *s, line[1024], *t;
-	int linenum, not;
+	int linenum, not ;
 	FILE *fp;
 
 	fp = fopen(filename + 7, "r");
@@ -36,8 +37,8 @@ load_file(char *filename)
 		 */
 		s = strchr(line, '\n');
 		if (s == NULL) {
-			fprintf(stderr, "%d:%s: line too long\n",
-				linenum, filename);
+			fprintf(stderr, "%d:%s: line too long\n", linenum,
+			    filename);
 			fclose(fp);
 			alist_free(rtop);
 			return (NULL);
@@ -79,7 +80,7 @@ load_file(char *filename)
 
 		a = alist_new(AF_UNSPEC, t);
 		if (a != NULL) {
-			a->al_not = not;
+			a->al_not = not ;
 			if (rbot != NULL)
 				rbot->al_next = a;
 			else
@@ -87,7 +88,7 @@ load_file(char *filename)
 			rbot = a;
 		} else {
 			fprintf(stderr, "%s:%d unrecognised content :%s\n",
-				filename, linenum, t);
+			    filename, linenum, t);
 		}
 	}
 	fclose(fp);

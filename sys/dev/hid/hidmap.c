@@ -33,43 +33,47 @@
 #include "opt_hid.h"
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
-#include <dev/evdev/input.h>
 #include <dev/evdev/evdev.h>
-
+#include <dev/evdev/input.h>
 #include <dev/hid/hid.h>
 #include <dev/hid/hidbus.h>
 #include <dev/hid/hidmap.h>
 
 #ifdef HID_DEBUG
-#define DPRINTFN(hm, n, fmt, ...) do {					\
-	if ((hm)->debug_var != NULL && *(hm)->debug_var >= (n)) {	\
-		device_printf((hm)->dev, "%s: " fmt,			\
-		    __FUNCTION__ ,##__VA_ARGS__);			\
-	}								\
-} while (0)
-#define DPRINTF(hm, ...)	DPRINTFN(hm, 1, __VA_ARGS__)
+#define DPRINTFN(hm, n, fmt, ...)                                          \
+	do {                                                               \
+		if ((hm)->debug_var != NULL && *(hm)->debug_var >= (n)) {  \
+			device_printf((hm)->dev, "%s: " fmt, __FUNCTION__, \
+			    ##__VA_ARGS__);                                \
+		}                                                          \
+	} while (0)
+#define DPRINTF(hm, ...) DPRINTFN(hm, 1, __VA_ARGS__)
 #else
-#define DPRINTF(...) do { } while (0)
-#define DPRINTFN(...) do { } while (0)
+#define DPRINTF(...) \
+	do {         \
+	} while (0)
+#define DPRINTFN(...) \
+	do {          \
+	} while (0)
 #endif
 
 static evdev_open_t hidmap_ev_open;
 static evdev_close_t hidmap_ev_close;
 
-#define	HIDMAP_WANT_MERGE_KEYS(hm)	((hm)->key_rel != NULL)
+#define HIDMAP_WANT_MERGE_KEYS(hm) ((hm)->key_rel != NULL)
 
-#define HIDMAP_FOREACH_ITEM(hm, mi, uoff)				\
-	for (u_int _map = 0, _item = 0, _uoff_priv = -1;		\
-	    ((mi) = hidmap_get_next_map_item(				\
-		(hm), &_map, &_item, &_uoff_priv, &(uoff))) != NULL;)
+#define HIDMAP_FOREACH_ITEM(hm, mi, uoff)                          \
+	for (u_int _map = 0, _item = 0, _uoff_priv = -1;           \
+	     ((mi) = hidmap_get_next_map_item((hm), &_map, &_item, \
+		  &_uoff_priv, &(uoff))) != NULL;)
 
 static inline bool
 hidmap_get_next_map_index(const struct hidmap_item *map, int nmap_items,
@@ -92,8 +96,8 @@ hidmap_get_next_map_item(struct hidmap *hm, u_int *map, u_int *item,
 {
 
 	*uoff = *uoff_priv;
-	while (!hidmap_get_next_map_index(
-	   hm->map[*map], hm->nmap_items[*map], item, uoff)) {
+	while (!hidmap_get_next_map_index(hm->map[*map], hm->nmap_items[*map],
+	    item, uoff)) {
 		++*map;
 		*item = 0;
 		*uoff = -1;
@@ -206,8 +210,8 @@ hidmap_intr(void *context, void *buf, hid_size_t len)
 		if (hi->type == HIDMAP_TYPE_FINALCB) {
 			DPRINTFN(hm, 6, "type=%d item=%*D\n", hi->type,
 			    (int)sizeof(hi->cb), &hi->cb, " ");
-			if (hi->cb(hm, hi, (union hidmap_cb_ctx){.rid = id})
-			    == 0)
+			if (hi->cb(hm, hi,
+				(union hidmap_cb_ctx) { .rid = id }) == 0)
 				do_sync = true;
 			continue;
 		}
@@ -222,22 +226,22 @@ hidmap_intr(void *context, void *buf, hid_size_t len)
 		 * to be an unsigned value. Otherwise, all integer values are
 		 * signed values represented in 2’s complement format.
 		 */
-		data = hi->lmin < 0 || hi->lmax < 0
-		    ? hid_get_data(buf, len, &hi->loc)
-		    : hid_get_udata(buf, len, &hi->loc);
+		data = hi->lmin < 0 || hi->lmax < 0 ?
+		    hid_get_data(buf, len, &hi->loc) :
+		    hid_get_udata(buf, len, &hi->loc);
 
 		DPRINTFN(hm, 6, "type=%d data=%d item=%*D\n", hi->type, data,
 		    (int)sizeof(hi->cb), &hi->cb, " ");
 
 		if (hi->invert_value && hi->type < HIDMAP_TYPE_ARR_LIST)
-			data = hi->evtype == EV_REL
-			    ? -data
-			    : hi->lmin + hi->lmax - data;
+			data = hi->evtype == EV_REL ?
+			    -data :
+			    hi->lmin + hi->lmax - data;
 
 		switch (hi->type) {
 		case HIDMAP_TYPE_CALLBACK:
-			if (hi->cb(hm, hi, (union hidmap_cb_ctx){.data = data})
-			    != 0)
+			if (hi->cb(hm, hi,
+				(union hidmap_cb_ctx) { .data = data }) != 0)
 				continue;
 			break;
 
@@ -281,8 +285,10 @@ hidmap_intr(void *context, void *buf, hid_size_t len)
 			 */
 			key = hi->codes[data - hi->lmin];
 			if (key == KEY_RESERVED)
-				DPRINTF(hm, "Can not map unknown HID "
-				    "array index: %08x\n", data);
+				DPRINTF(hm,
+				    "Can not map unknown HID "
+				    "array index: %08x\n",
+				    data);
 			goto report_key;
 
 		case HIDMAP_TYPE_ARR_RANGE:
@@ -301,7 +307,8 @@ hidmap_intr(void *context, void *buf, hid_size_t len)
 			 */
 			usage = data - hi->lmin + hi->umin;
 			found = false;
-			HIDMAP_FOREACH_ITEM(hm, mi, uoff) {
+			HIDMAP_FOREACH_ITEM(hm, mi, uoff)
+			{
 				if (usage == mi->usage + uoff &&
 				    mi->type == EV_KEY && !mi->has_cb) {
 					key = mi->code;
@@ -310,9 +317,11 @@ hidmap_intr(void *context, void *buf, hid_size_t len)
 				}
 			}
 			if (!found)
-				DPRINTF(hm, "Can not map unknown HID "
-				    "usage: %08x\n", usage);
-report_key:
+				DPRINTF(hm,
+				    "Can not map unknown HID "
+				    "usage: %08x\n",
+				    usage);
+		report_key:
 			if (key == HIDMAP_KEY_NULL || key == hi->last_key)
 				continue;
 			if (hi->last_key != KEY_RESERVED)
@@ -343,7 +352,8 @@ can_map_callback(struct hid_item *hi, const struct hidmap_item *mi,
 	return (mi->has_cb && !mi->final_cb &&
 	    hi->usage == mi->usage + usage_offset &&
 	    (mi->relabs == HIDMAP_RELABS_ANY ||
-	    !(hi->flags & HIO_RELATIVE) == !(mi->relabs == HIDMAP_RELATIVE)));
+		!(hi->flags & HIO_RELATIVE) ==
+		    !(mi->relabs == HIDMAP_RELATIVE)));
 }
 
 static inline bool
@@ -354,7 +364,8 @@ can_map_variable(struct hid_item *hi, const struct hidmap_item *mi,
 	return ((hi->flags & HIO_VARIABLE) != 0 && !mi->has_cb &&
 	    hi->usage == mi->usage + usage_offset &&
 	    (mi->relabs == HIDMAP_RELABS_ANY ||
-	    !(hi->flags & HIO_RELATIVE) == !(mi->relabs == HIDMAP_RELATIVE)));
+		!(hi->flags & HIO_RELATIVE) ==
+		    !(mi->relabs == HIDMAP_RELATIVE)));
 }
 
 static inline bool
@@ -375,8 +386,7 @@ can_map_arr_list(struct hid_item *hi, const struct hidmap_item *mi,
 {
 
 	return ((hi->flags & HIO_VARIABLE) == 0 && !mi->has_cb &&
-	    usage == mi->usage + usage_offset &&
-	    mi->type == EV_KEY &&
+	    usage == mi->usage + usage_offset && mi->type == EV_KEY &&
 	    (mi->code != KEY_RESERVED && mi->code != HIDMAP_KEY_NULL));
 }
 
@@ -388,14 +398,15 @@ hidmap_probe_hid_item(struct hid_item *hi, const struct hidmap_item *map,
 	uint16_t uoff;
 	bool found = false;
 
-#define	HIDMAP_FOREACH_INDEX(map, nitems, idx, uoff)	\
-	for ((idx) = 0, (uoff) = -1;			\
+#define HIDMAP_FOREACH_INDEX(map, nitems, idx, uoff) \
+	for ((idx) = 0, (uoff) = -1;                 \
 	     hidmap_get_next_map_index((map), (nitems), &(idx), &(uoff));)
 
-	HIDMAP_FOREACH_INDEX(map, nitems_map, i, uoff) {
+	HIDMAP_FOREACH_INDEX(map, nitems_map, i, uoff)
+	{
 		if (can_map_callback(hi, map + i, uoff)) {
 			if (map[i].cb(NULL, NULL,
-			    (union hidmap_cb_ctx){.hi = hi}) != 0)
+				(union hidmap_cb_ctx) { .hi = hi }) != 0)
 				break;
 			setbit(caps, i);
 			return (true);
@@ -403,7 +414,8 @@ hidmap_probe_hid_item(struct hid_item *hi, const struct hidmap_item *map,
 	}
 
 	if (hi->flags & HIO_VARIABLE) {
-		HIDMAP_FOREACH_INDEX(map, nitems_map, i, uoff) {
+		HIDMAP_FOREACH_INDEX(map, nitems_map, i, uoff)
+		{
 			if (can_map_variable(hi, map + i, uoff)) {
 				KASSERT(map[i].type == EV_KEY ||
 					map[i].type == EV_REL ||
@@ -418,7 +430,8 @@ hidmap_probe_hid_item(struct hid_item *hi, const struct hidmap_item *map,
 	}
 
 	if (hi->usage_minimum != 0 || hi->usage_maximum != 0) {
-		HIDMAP_FOREACH_INDEX(map, nitems_map, i, uoff) {
+		HIDMAP_FOREACH_INDEX(map, nitems_map, i, uoff)
+		{
 			if (can_map_arr_range(hi, map + i, uoff)) {
 				setbit(caps, i);
 				found = true;
@@ -428,8 +441,10 @@ hidmap_probe_hid_item(struct hid_item *hi, const struct hidmap_item *map,
 	}
 
 	for (j = 0; j < hi->nusages; j++) {
-		HIDMAP_FOREACH_INDEX(map, nitems_map, i, uoff) {
-			if (can_map_arr_list(hi, map+i, hi->usages[j], uoff)) {
+		HIDMAP_FOREACH_INDEX(map, nitems_map, i, uoff)
+		{
+			if (can_map_arr_list(hi, map + i, hi->usages[j],
+				uoff)) {
 				setbit(caps, i);
 				found = true;
 			}
@@ -453,11 +468,12 @@ hidmap_probe_hid_descr(void *d_ptr, hid_size_t d_len, uint8_t tlc_index,
 		    M_WAITOK | M_ZERO);
 		do_free = true;
 	} else
-		bzero (caps, HIDMAP_CAPS_SZ(nitems_map));
+		bzero(caps, HIDMAP_CAPS_SZ(nitems_map));
 
 	/* Parse inputs */
 	hd = hid_start_parse(d_ptr, d_len, 1 << hid_input);
-	HIDBUS_FOREACH_ITEM(hd, &hi, tlc_index) {
+	HIDBUS_FOREACH_ITEM(hd, &hi, tlc_index)
+	{
 		if (hi.kind != hid_input)
 			continue;
 		if (hi.flags & HIO_CONST)
@@ -471,7 +487,7 @@ hidmap_probe_hid_descr(void *d_ptr, hid_size_t d_len, uint8_t tlc_index,
 	/* Take finalizing callbacks in to account */
 	for (i = 0; i < nitems_map; i++) {
 		if (map[i].has_cb && map[i].final_cb &&
-		    map[i].cb(NULL, NULL, (union hidmap_cb_ctx){}) == 0) {
+		    map[i].cb(NULL, NULL, (union hidmap_cb_ctx) {}) == 0) {
 			setbit(caps, i);
 			items++;
 		}
@@ -497,8 +513,8 @@ hidmap_probe_hid_descr(void *d_ptr, hid_size_t d_len, uint8_t tlc_index,
 }
 
 uint32_t
-hidmap_add_map(struct hidmap *hm, const struct hidmap_item *map,
-    int nitems_map, hidmap_caps_t caps)
+hidmap_add_map(struct hidmap *hm, const struct hidmap_item *map, int nitems_map,
+    hidmap_caps_t caps)
 {
 	void *d_ptr;
 	uint32_t items;
@@ -513,14 +529,16 @@ hidmap_add_map(struct hidmap *hm, const struct hidmap_item *map,
 
 	error = hid_get_report_descr(hm->dev, &d_ptr, &d_len);
 	if (error != 0) {
-		device_printf(hm->dev, "could not retrieve report descriptor "
-		     "from device: %d\n", error);
+		device_printf(hm->dev,
+		    "could not retrieve report descriptor "
+		    "from device: %d\n",
+		    error);
 		return (error);
 	}
 
 	hm->cb_state = HIDMAP_CB_IS_PROBING;
-	items = hidmap_probe_hid_descr(d_ptr, d_len, tlc_index, map,
-	    nitems_map, caps);
+	items = hidmap_probe_hid_descr(d_ptr, d_len, tlc_index, map, nitems_map,
+	    caps);
 	if (items == 0)
 		return (ENXIO);
 
@@ -544,7 +562,8 @@ hidmap_parse_hid_item(struct hidmap *hm, struct hid_item *hi,
 	uint16_t uoff;
 	bool found = false;
 
-	HIDMAP_FOREACH_ITEM(hm, mi, uoff) {
+	HIDMAP_FOREACH_ITEM(hm, mi, uoff)
+	{
 		if (can_map_callback(hi, mi, uoff)) {
 			bzero(&hi_temp, sizeof(hi_temp));
 			hi_temp.cb = mi->cb;
@@ -554,7 +573,7 @@ hidmap_parse_hid_item(struct hidmap *hm, struct hid_item *hi,
 			 * callbacks MUST be identical.
 			 */
 			if (mi->cb(hm, &hi_temp,
-			    (union hidmap_cb_ctx){.hi = hi}) != 0)
+				(union hidmap_cb_ctx) { .hi = hi }) != 0)
 				break;
 			bcopy(&hi_temp, item, sizeof(hi_temp));
 			goto mapped;
@@ -562,13 +581,14 @@ hidmap_parse_hid_item(struct hidmap *hm, struct hid_item *hi,
 	}
 
 	if (hi->flags & HIO_VARIABLE) {
-		HIDMAP_FOREACH_ITEM(hm, mi, uoff) {
+		HIDMAP_FOREACH_ITEM(hm, mi, uoff)
+		{
 			if (can_map_variable(hi, mi, uoff)) {
 				item->evtype = mi->type;
 				item->code = mi->code + uoff;
-				item->type = hi->flags & HIO_NULLSTATE
-				    ? HIDMAP_TYPE_VAR_NULLST
-				    : HIDMAP_TYPE_VARIABLE;
+				item->type = hi->flags & HIO_NULLSTATE ?
+				    HIDMAP_TYPE_VAR_NULLST :
+				    HIDMAP_TYPE_VARIABLE;
 				item->last_val = 0;
 				item->invert_value = mi->invert_value;
 				switch (mi->type) {
@@ -582,18 +602,14 @@ hidmap_parse_hid_item(struct hidmap *hm, struct hid_item *hi,
 					break;
 				case EV_ABS:
 					evdev_support_event(hm->evdev, EV_ABS);
-					evdev_support_abs(hm->evdev,
-					    item->code,
+					evdev_support_abs(hm->evdev, item->code,
 					    hi->logical_minimum,
-					    hi->logical_maximum,
-					    mi->fuzz,
-					    mi->flat,
-					    hid_item_resolution(hi));
+					    hi->logical_maximum, mi->fuzz,
+					    mi->flat, hid_item_resolution(hi));
 					break;
 				case EV_SW:
 					evdev_support_event(hm->evdev, EV_SW);
-					evdev_support_sw(hm->evdev,
-					    item->code);
+					evdev_support_sw(hm->evdev, item->code);
 					break;
 				default:
 					KASSERT(0, ("Unsupported event type"));
@@ -605,7 +621,8 @@ hidmap_parse_hid_item(struct hidmap *hm, struct hid_item *hi,
 	}
 
 	if (hi->usage_minimum != 0 || hi->usage_maximum != 0) {
-		HIDMAP_FOREACH_ITEM(hm, mi, uoff) {
+		HIDMAP_FOREACH_ITEM(hm, mi, uoff)
+		{
 			if (can_map_arr_range(hi, mi, uoff)) {
 				hidmap_support_key(hm, mi->code + uoff);
 				found = true;
@@ -620,12 +637,13 @@ hidmap_parse_hid_item(struct hidmap *hm, struct hid_item *hi,
 	}
 
 	for (i = 0; i < hi->nusages; i++) {
-		HIDMAP_FOREACH_ITEM(hm, mi, uoff) {
+		HIDMAP_FOREACH_ITEM(hm, mi, uoff)
+		{
 			if (can_map_arr_list(hi, mi, hi->usages[i], uoff)) {
 				hidmap_support_key(hm, mi->code + uoff);
 				if (item->codes == NULL)
-					item->codes = malloc(
-					    hi->nusages * sizeof(uint16_t),
+					item->codes = malloc(hi->nusages *
+						sizeof(uint16_t),
 					    M_DEVBUF, M_WAITOK | M_ZERO);
 				item->codes[i] = mi->code + uoff;
 				found = true;
@@ -665,14 +683,17 @@ hidmap_parse_hid_descr(struct hidmap *hm, uint8_t tlc_index)
 
 	error = hid_get_report_descr(hm->dev, &d_ptr, &d_len);
 	if (error != 0) {
-		DPRINTF(hm, "could not retrieve report descriptor from "
-		     "device: %d\n", error);
+		DPRINTF(hm,
+		    "could not retrieve report descriptor from "
+		    "device: %d\n",
+		    error);
 		return (error);
 	}
 
 	/* Parse inputs */
 	hd = hid_start_parse(d_ptr, d_len, 1 << hid_input);
-	HIDBUS_FOREACH_ITEM(hd, &hi, tlc_index) {
+	HIDBUS_FOREACH_ITEM(hd, &hi, tlc_index)
+	{
 		if (hi.kind != hid_input)
 			continue;
 		if (hi.flags & HIO_CONST)
@@ -687,11 +708,10 @@ hidmap_parse_hid_descr(struct hidmap *hm, uint8_t tlc_index)
 
 	/* Add finalizing callbacks to the end of list */
 	for (i = 0; i < hm->nmaps; i++) {
-		for (map = hm->map[i];
-		     map < hm->map[i] + hm->nmap_items[i];
+		for (map = hm->map[i]; map < hm->map[i] + hm->nmap_items[i];
 		     map++) {
 			if (map->has_cb && map->final_cb &&
-			    map->cb(hm, item, (union hidmap_cb_ctx){}) == 0) {
+			    map->cb(hm, item, (union hidmap_cb_ctx) {}) == 0) {
 				item->cb = map->cb;
 				item->type = HIDMAP_TYPE_FINALCB;
 				item++;
@@ -704,8 +724,10 @@ hidmap_parse_hid_descr(struct hidmap *hm, uint8_t tlc_index)
 	 * map items might be duplicated in different maps. Save real number.
 	 */
 	if (hm->nhid_items != item - hm->hid_items)
-		DPRINTF(hm, "Parsed HID item number mismatch: expected=%u "
-		    "result=%td\n", hm->nhid_items, item - hm->hid_items);
+		DPRINTF(hm,
+		    "Parsed HID item number mismatch: expected=%u "
+		    "result=%td\n",
+		    hm->nhid_items, item - hm->hid_items);
 	hm->nhid_items = item - hm->hid_items;
 
 	if (HIDMAP_WANT_MERGE_KEYS(hm))
@@ -715,9 +737,8 @@ hidmap_parse_hid_descr(struct hidmap *hm, uint8_t tlc_index)
 }
 
 int
-hidmap_probe(struct hidmap* hm, device_t dev,
-    const struct hid_device_id *id, int nitems_id,
-    const struct hidmap_item *map, int nitems_map,
+hidmap_probe(struct hidmap *hm, device_t dev, const struct hid_device_id *id,
+    int nitems_id, const struct hidmap_item *map, int nitems_map,
     const char *suffix, hidmap_caps_t caps)
 {
 	int error;
@@ -738,7 +759,7 @@ hidmap_probe(struct hidmap* hm, device_t dev,
 }
 
 int
-hidmap_attach(struct hidmap* hm)
+hidmap_attach(struct hidmap *hm)
 {
 	const struct hid_device_info *hw = hid_get_device_info(hm->dev);
 #ifdef HID_DEBUG
@@ -753,9 +774,9 @@ hidmap_attach(struct hidmap* hm)
 		    device_get_name(hm->dev));
 		TUNABLE_INT_FETCH(tunable, &hm->debug_level);
 		SYSCTL_ADD_INT(device_get_sysctl_ctx(hm->dev),
-			SYSCTL_CHILDREN(device_get_sysctl_tree(hm->dev)),
-			OID_AUTO, "debug", CTLFLAG_RWTUN,
-			&hm->debug_level, 0, "Verbosity level");
+		    SYSCTL_CHILDREN(device_get_sysctl_tree(hm->dev)), OID_AUTO,
+		    "debug", CTLFLAG_RWTUN, &hm->debug_level, 0,
+		    "Verbosity level");
 	}
 #endif
 
@@ -801,7 +822,7 @@ hidmap_attach(struct hidmap* hm)
 }
 
 int
-hidmap_detach(struct hidmap* hm)
+hidmap_detach(struct hidmap *hm)
 {
 	struct hidmap_hid_item *hi;
 
@@ -811,12 +832,11 @@ hidmap_detach(struct hidmap* hm)
 
 	evdev_free(hm->evdev);
 	if (hm->hid_items != NULL) {
-		for (hi = hm->hid_items;
-		     hi < hm->hid_items + hm->nhid_items;
+		for (hi = hm->hid_items; hi < hm->hid_items + hm->nhid_items;
 		     hi++)
 			if (hi->type == HIDMAP_TYPE_FINALCB ||
 			    hi->type == HIDMAP_TYPE_CALLBACK)
-				hi->cb(hm, hi, (union hidmap_cb_ctx){});
+				hi->cb(hm, hi, (union hidmap_cb_ctx) {});
 			else if (hi->type == HIDMAP_TYPE_ARR_LIST)
 				free(hi->codes, M_DEVBUF);
 		free(hm->hid_items, M_DEVBUF);

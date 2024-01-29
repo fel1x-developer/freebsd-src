@@ -32,14 +32,15 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <errno.h>
 #include <stdio.h>
-#include "un-namespace.h"
+
 #include "libc_private.h"
 #include "local.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
-static int	sflush_locked(FILE *);
+static int sflush_locked(FILE *);
 
 /*
  * Flush a single file, or (if fp is NULL) all files.
@@ -109,14 +110,14 @@ __sflush(FILE *fp)
 	if ((p = fp->_bf._base) == NULL)
 		return (0);
 
-	n = fp->_p - p;		/* write this much */
+	n = fp->_p - p; /* write this much */
 
 	/*
 	 * Set these immediately to avoid problems with longjmp and to allow
 	 * exchange buffering (via setvbuf) in user write function.
 	 */
 	fp->_p = p;
-	fp->_w = f & (__SLBF|__SNBF) ? 0 : fp->_bf._size;
+	fp->_w = f & (__SLBF | __SNBF) ? 0 : fp->_bf._size;
 
 	for (; n > 0; n -= t, p += t) {
 		t = _swrite(fp, (char *)p, n);
@@ -138,7 +139,7 @@ __sflush(FILE *fp)
 static int
 sflush_locked(FILE *fp)
 {
-	int	ret;
+	int ret;
 
 	FLOCKFILE_CANCELSAFE(fp);
 	ret = __sflush(fp);

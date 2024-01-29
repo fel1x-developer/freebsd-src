@@ -45,7 +45,7 @@
 
 /**
  * Validate the alignment of a value of @p type.
- * 
+ *
  * @param	inp	The value data.
  * @param	ilen	The value length, in bytes.
  * @param	itype	The value type.
@@ -90,7 +90,7 @@ bhnd_nvram_value_check_aligned(const void *inp, size_t ilen,
 	/* If the type is not an array type, the length must be equal to the
 	 * size of a single element of @p type. */
 	if (!bhnd_nvram_is_array_type(itype) && ilen != width)
-			return (EFTYPE);
+		return (EFTYPE);
 
 	return (0);
 }
@@ -116,7 +116,7 @@ int
 bhnd_nvram_value_nelem(const void *inp, size_t ilen, bhnd_nvram_type itype,
     size_t *nelem)
 {
-	int	error;
+	int error;
 
 	BHND_NV_ASSERT(inp != NULL, ("NULL inp"));
 
@@ -145,8 +145,8 @@ bhnd_nvram_value_nelem(const void *inp, size_t ilen, bhnd_nvram_type itype,
 		return (0);
 
 	case BHND_NVRAM_TYPE_STRING_ARRAY: {
-		const char	*p;
-		size_t		 nleft;
+		const char *p;
+		size_t nleft;
 
 		/* Iterate over the NUL-terminated strings to calculate
 		 * total element count */
@@ -219,7 +219,7 @@ bhnd_nvram_value_nelem(const void *inp, size_t ilen, bhnd_nvram_type itype,
 
 /**
  * Return the size, in bytes, of a value of @p itype with @p nelem elements.
- * 
+ *
  * @param	inp	The actual data to be queried, or NULL if unknown. If
  *			NULL and the base type is not a fixed width type
  *			(e.g. BHND_NVRAM_TYPE_STRING), 0 will be returned.
@@ -227,7 +227,7 @@ bhnd_nvram_value_nelem(const void *inp, size_t ilen, bhnd_nvram_type itype,
  * @param	itype	The value type.
  * @param	nelem	The number of elements. If @p itype is not an array
  *			type, this value must be 1.
- * 
+ *
  * @retval 0		If @p itype has a variable width, and @p inp is NULL.
  * @retval 0		If a @p nelem value greater than 1 is provided for a
  *			non-array @p itype.
@@ -259,7 +259,7 @@ bhnd_nvram_value_size(const void *inp, size_t ilen, bhnd_nvram_type itype,
 	case BHND_NVRAM_TYPE_INT32_ARRAY:
 	case BHND_NVRAM_TYPE_INT64_ARRAY:
 	case BHND_NVRAM_TYPE_CHAR_ARRAY:
-	case BHND_NVRAM_TYPE_BOOL_ARRAY:{
+	case BHND_NVRAM_TYPE_BOOL_ARRAY: {
 		size_t width;
 
 		width = bhnd_nvram_type_width(itype);
@@ -276,8 +276,8 @@ bhnd_nvram_value_size(const void *inp, size_t ilen, bhnd_nvram_type itype,
 	}
 
 	case BHND_NVRAM_TYPE_STRING_ARRAY: {
-		const char	*p;
-		size_t		 total_size;
+		const char *p;
+		size_t total_size;
 
 		if (inp == NULL)
 			return (0);
@@ -287,7 +287,7 @@ bhnd_nvram_value_size(const void *inp, size_t ilen, bhnd_nvram_type itype,
 		p = inp;
 		total_size = 0;
 		for (size_t i = 0; i < nelem; i++) {
-			size_t	elem_size;
+			size_t elem_size;
 
 			elem_size = strnlen(p, ilen - total_size);
 			p += elem_size;
@@ -299,7 +299,7 @@ bhnd_nvram_value_size(const void *inp, size_t ilen, bhnd_nvram_type itype,
 			}
 
 			/* Would total_size + elem_size overflow?
-			 * 
+			 *
 			 * A memory range larger than SIZE_MAX shouldn't be,
 			 * possible, but include the check for completeness */
 			if (SIZE_MAX - total_size < elem_size)
@@ -392,8 +392,8 @@ int
 bhnd_nvram_value_printf(const char *fmt, const void *inp, size_t ilen,
     bhnd_nvram_type itype, char *outp, size_t *olen, ...)
 {
-	va_list	ap;
-	int	error;
+	va_list ap;
+	int error;
 
 	va_start(ap, olen);
 	error = bhnd_nvram_value_vprintf(fmt, inp, ilen, itype, outp, olen, ap);
@@ -433,8 +433,8 @@ int
 bhnd_nvram_value_vprintf(const char *fmt, const void *inp, size_t ilen,
     bhnd_nvram_type itype, char *outp, size_t *olen, va_list ap)
 {
-	bhnd_nvram_val	val;
-	int		error;
+	bhnd_nvram_val val;
+	int error;
 
 	/* Map input buffer as a value instance */
 	error = bhnd_nvram_val_init(&val, NULL, inp, ilen, itype,
@@ -471,8 +471,8 @@ const void *
 bhnd_nvram_value_array_next(const void *inp, size_t ilen, bhnd_nvram_type itype,
     const void *prev, size_t *olen)
 {
-	const u_char	*next;
-	size_t		 offset;
+	const u_char *next;
+	size_t offset;
 
 	/* Handle first element */
 	if (prev == NULL) {
@@ -498,7 +498,8 @@ bhnd_nvram_value_array_next(const void *inp, size_t ilen, bhnd_nvram_type itype,
 	*olen = bhnd_nvram_value_size(next, ilen - offset, itype, 1);
 	if (ilen - offset < *olen) {
 		BHND_NV_LOG("short element of type %s -- misaligned "
-		    "representation", bhnd_nvram_type_name(itype));
+			    "representation",
+		    bhnd_nvram_type_name(itype));
 		return (NULL);
 	}
 
@@ -512,7 +513,7 @@ bhnd_nvram_value_array_next(const void *inp, size_t ilen, bhnd_nvram_type itype,
  * @param		inp	The value to be coerced.
  * @param		ilen	The size of @p inp, in bytes.
  * @param		itype	The base data type of @p inp.
- * @param[out]		outp	On success, the value will be written to this 
+ * @param[out]		outp	On success, the value will be written to this
  *				buffer. This argment may be NULL if the value
  *				is not desired.
  * @param[in,out]	olen	The capacity of @p outp. On success, will be set
@@ -529,12 +530,12 @@ int
 bhnd_nvram_value_coerce(const void *inp, size_t ilen, bhnd_nvram_type itype,
     void *outp, size_t *olen, bhnd_nvram_type otype)
 {
-	bhnd_nvram_val	val;
-	int		error;
+	bhnd_nvram_val val;
+	int error;
 
 	/* Wrap input buffer in a value instance */
-	error = bhnd_nvram_val_init(&val, NULL, inp, ilen,
-	    itype, BHND_NVRAM_VAL_BORROW_DATA|BHND_NVRAM_VAL_FIXED);
+	error = bhnd_nvram_val_init(&val, NULL, inp, ilen, itype,
+	    BHND_NVRAM_VAL_BORROW_DATA | BHND_NVRAM_VAL_FIXED);
 	if (error)
 		return (error);
 

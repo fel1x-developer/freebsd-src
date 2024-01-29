@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2001 Jonathan Chen All rights reserved.
  * Copyright (c) 2005-2008 M. Warner Losh <imp@FreeBSD.org>
- * 
+ *
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,100 +34,93 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/endian.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
+#include <sys/pciio.h>
+#include <sys/rman.h>
 
-#include <sys/bus.h>
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
-#include <sys/endian.h>
 
-#include <sys/pciio.h>
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
-
-#include <dev/pccard/pccardvar.h>
-#include <dev/pccard/pccard_cis.h>
-
+#include <dev/cardbus/cardbus_cis.h>
 #include <dev/cardbus/cardbusreg.h>
 #include <dev/cardbus/cardbusvar.h>
-#include <dev/cardbus/cardbus_cis.h>
+#include <dev/pccard/pccard_cis.h>
+#include <dev/pccard/pccardvar.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 extern int cardbus_cis_debug;
 
-#define	DPRINTF(a) if (cardbus_cis_debug) printf a
-#define	DEVPRINTF(x) if (cardbus_cis_debug) device_printf x
+#define DPRINTF(a)             \
+	if (cardbus_cis_debug) \
+	printf a
+#define DEVPRINTF(x)           \
+	if (cardbus_cis_debug) \
+	device_printf x
 
-#define CIS_CONFIG_SPACE	(struct resource *)~0UL
+#define CIS_CONFIG_SPACE (struct resource *)~0UL
 
-static int decode_tuple_generic(device_t cbdev, device_t child, int id,
-    int len, uint8_t *tupledata, uint32_t start, uint32_t *off,
+static int decode_tuple_generic(device_t cbdev, device_t child, int id, int len,
+    uint8_t *tupledata, uint32_t start, uint32_t *off,
     struct tuple_callbacks *info, void *);
 static int decode_tuple_linktarget(device_t cbdev, device_t child, int id,
     int len, uint8_t *tupledata, uint32_t start, uint32_t *off,
     struct tuple_callbacks *info, void *);
-static int decode_tuple_vers_1(device_t cbdev, device_t child, int id,
-    int len, uint8_t *tupledata, uint32_t start, uint32_t *off,
+static int decode_tuple_vers_1(device_t cbdev, device_t child, int id, int len,
+    uint8_t *tupledata, uint32_t start, uint32_t *off,
     struct tuple_callbacks *info, void *);
-static int decode_tuple_funcid(device_t cbdev, device_t child, int id,
-    int len, uint8_t *tupledata, uint32_t start, uint32_t *off,
+static int decode_tuple_funcid(device_t cbdev, device_t child, int id, int len,
+    uint8_t *tupledata, uint32_t start, uint32_t *off,
     struct tuple_callbacks *info, void *);
-static int decode_tuple_manfid(device_t cbdev, device_t child, int id,
-    int len, uint8_t *tupledata, uint32_t start, uint32_t *off,
+static int decode_tuple_manfid(device_t cbdev, device_t child, int id, int len,
+    uint8_t *tupledata, uint32_t start, uint32_t *off,
     struct tuple_callbacks *info, void *);
-static int decode_tuple_funce(device_t cbdev, device_t child, int id,
-    int len, uint8_t *tupledata, uint32_t start, uint32_t *off,
+static int decode_tuple_funce(device_t cbdev, device_t child, int id, int len,
+    uint8_t *tupledata, uint32_t start, uint32_t *off,
     struct tuple_callbacks *info, void *);
-static int decode_tuple_bar(device_t cbdev, device_t child, int id,
-    int len, uint8_t *tupledata, uint32_t start, uint32_t *off,
+static int decode_tuple_bar(device_t cbdev, device_t child, int id, int len,
+    uint8_t *tupledata, uint32_t start, uint32_t *off,
     struct tuple_callbacks *info, void *);
 static int decode_tuple_unhandled(device_t cbdev, device_t child, int id,
     int len, uint8_t *tupledata, uint32_t start, uint32_t *off,
     struct tuple_callbacks *info, void *);
-static int decode_tuple_end(device_t cbdev, device_t child, int id,
-    int len, uint8_t *tupledata, uint32_t start, uint32_t *off,
+static int decode_tuple_end(device_t cbdev, device_t child, int id, int len,
+    uint8_t *tupledata, uint32_t start, uint32_t *off,
     struct tuple_callbacks *info, void *);
 
-static int	cardbus_read_tuple_conf(device_t cbdev, device_t child,
-		    uint32_t start, uint32_t *off, int *tupleid, int *len,
-		    uint8_t *tupledata);
-static int	cardbus_read_tuple_mem(device_t cbdev, struct resource *res,
-		    uint32_t start, uint32_t *off, int *tupleid, int *len,
-		    uint8_t *tupledata);
-static int	cardbus_read_tuple(device_t cbdev, device_t child,
-		    struct resource *res, uint32_t start, uint32_t *off,
-		    int *tupleid, int *len, uint8_t *tupledata);
-static void	cardbus_read_tuple_finish(device_t cbdev, device_t child,
-		    int rid, struct resource *res);
-static struct resource	*cardbus_read_tuple_init(device_t cbdev, device_t child,
-		    uint32_t *start, int *rid);
-static int	decode_tuple(device_t cbdev, device_t child, int tupleid,
-		    int len, uint8_t *tupledata, uint32_t start,
-		    uint32_t *off, struct tuple_callbacks *callbacks,
-		    void *);
-#define	MAKETUPLE(NAME,FUNC) { CISTPL_ ## NAME, #NAME, decode_tuple_ ## FUNC }
+static int cardbus_read_tuple_conf(device_t cbdev, device_t child,
+    uint32_t start, uint32_t *off, int *tupleid, int *len, uint8_t *tupledata);
+static int cardbus_read_tuple_mem(device_t cbdev, struct resource *res,
+    uint32_t start, uint32_t *off, int *tupleid, int *len, uint8_t *tupledata);
+static int cardbus_read_tuple(device_t cbdev, device_t child,
+    struct resource *res, uint32_t start, uint32_t *off, int *tupleid, int *len,
+    uint8_t *tupledata);
+static void cardbus_read_tuple_finish(device_t cbdev, device_t child, int rid,
+    struct resource *res);
+static struct resource *cardbus_read_tuple_init(device_t cbdev, device_t child,
+    uint32_t *start, int *rid);
+static int decode_tuple(device_t cbdev, device_t child, int tupleid, int len,
+    uint8_t *tupledata, uint32_t start, uint32_t *off,
+    struct tuple_callbacks *callbacks, void *);
+#define MAKETUPLE(NAME, FUNC)                             \
+	{                                                 \
+		CISTPL_##NAME, #NAME, decode_tuple_##FUNC \
+	}
 
-static char *funcnames[] = {
-	"Multi-Functioned",
-	"Memory",
-	"Serial Port",
-	"Parallel Port",
-	"Fixed Disk",
-	"Video Adaptor",
-	"Network Adaptor",
-	"AIMS",
-	"SCSI",
-	"Security"
-};
+static char *funcnames[] = { "Multi-Functioned", "Memory", "Serial Port",
+	"Parallel Port", "Fixed Disk", "Video Adaptor", "Network Adaptor",
+	"AIMS", "SCSI", "Security" };
 
 /*
  * Handler functions for various CIS tuples
  */
 
 static int
-decode_tuple_generic(device_t cbdev, device_t child, int id,
-    int len, uint8_t *tupledata, uint32_t start, uint32_t *off,
+decode_tuple_generic(device_t cbdev, device_t child, int id, int len,
+    uint8_t *tupledata, uint32_t start, uint32_t *off,
     struct tuple_callbacks *info, void *argp)
 {
 	int i;
@@ -149,8 +142,8 @@ decode_tuple_generic(device_t cbdev, device_t child, int id,
 }
 
 static int
-decode_tuple_linktarget(device_t cbdev, device_t child, int id,
-    int len, uint8_t *tupledata, uint32_t start, uint32_t *off,
+decode_tuple_linktarget(device_t cbdev, device_t child, int id, int len,
+    uint8_t *tupledata, uint32_t start, uint32_t *off,
     struct tuple_callbacks *info, void *argp)
 {
 	int i;
@@ -168,16 +161,16 @@ decode_tuple_linktarget(device_t cbdev, device_t child, int id,
 	if (len != 3 || tupledata[0] != 'C' || tupledata[1] != 'I' ||
 	    tupledata[2] != 'S') {
 		printf("Invalid data for CIS Link Target!\n");
-		decode_tuple_generic(cbdev, child, id, len, tupledata,
-		    start, off, info, argp);
+		decode_tuple_generic(cbdev, child, id, len, tupledata, start,
+		    off, info, argp);
 		return (EINVAL);
 	}
 	return (0);
 }
 
 static int
-decode_tuple_vers_1(device_t cbdev, device_t child, int id,
-    int len, uint8_t *tupledata, uint32_t start, uint32_t *off,
+decode_tuple_vers_1(device_t cbdev, device_t child, int id, int len,
+    uint8_t *tupledata, uint32_t start, uint32_t *off,
     struct tuple_callbacks *info, void *argp)
 {
 	int i;
@@ -199,8 +192,8 @@ decode_tuple_vers_1(device_t cbdev, device_t child, int id,
 }
 
 static int
-decode_tuple_funcid(device_t cbdev, device_t child, int id,
-    int len, uint8_t *tupledata, uint32_t start, uint32_t *off,
+decode_tuple_funcid(device_t cbdev, device_t child, int id, int len,
+    uint8_t *tupledata, uint32_t start, uint32_t *off,
     struct tuple_callbacks *info, void *argp)
 {
 	struct cardbus_devinfo *dinfo = device_get_ivars(child);
@@ -220,13 +213,13 @@ decode_tuple_funcid(device_t cbdev, device_t child, int id,
 		printf("\n");
 	}
 	if (len > 0)
-		dinfo->funcid = tupledata[0];		/* use first in list */
+		dinfo->funcid = tupledata[0]; /* use first in list */
 	return (0);
 }
 
 static int
-decode_tuple_manfid(device_t cbdev, device_t child, int id,
-    int len, uint8_t *tupledata, uint32_t start, uint32_t *off,
+decode_tuple_manfid(device_t cbdev, device_t child, int id, int len,
+    uint8_t *tupledata, uint32_t start, uint32_t *off,
     struct tuple_callbacks *info, void *argp)
 {
 	struct cardbus_devinfo *dinfo = device_get_ivars(child);
@@ -247,8 +240,8 @@ decode_tuple_manfid(device_t cbdev, device_t child, int id,
 }
 
 static int
-decode_tuple_funce(device_t cbdev, device_t child, int id,
-    int len, uint8_t *tupledata, uint32_t start, uint32_t *off,
+decode_tuple_funce(device_t cbdev, device_t child, int id, int len,
+    uint8_t *tupledata, uint32_t start, uint32_t *off,
     struct tuple_callbacks *info, void *argp)
 {
 	struct cardbus_devinfo *dinfo = device_get_ivars(child);
@@ -260,9 +253,9 @@ decode_tuple_funce(device_t cbdev, device_t child, int id,
 			printf("%02x", tupledata[i]);
 		printf("\n");
 	}
-	if (len < 2)			/* too short */
+	if (len < 2) /* too short */
 		return (0);
-	type = tupledata[0];		/* XXX <32 always? */
+	type = tupledata[0]; /* XXX <32 always? */
 	switch (dinfo->funcid) {
 	case PCCARD_FUNCTION_NETWORK:
 		switch (type) {
@@ -275,15 +268,15 @@ decode_tuple_funce(device_t cbdev, device_t child, int id,
 			    tupledata[1]);
 			break;
 		}
-		dinfo->fepresent |= 1<<type;
+		dinfo->fepresent |= 1 << type;
 		break;
 	}
 	return (0);
 }
 
 static int
-decode_tuple_bar(device_t cbdev, device_t child, int id,
-    int len, uint8_t *tupledata, uint32_t start, uint32_t *off,
+decode_tuple_bar(device_t cbdev, device_t child, int id, int len,
+    uint8_t *tupledata, uint32_t start, uint32_t *off,
     struct tuple_callbacks *info, void *argp)
 {
 	struct cardbus_devinfo *dinfo = device_get_ivars(child);
@@ -297,7 +290,7 @@ decode_tuple_bar(device_t cbdev, device_t child, int id,
 	}
 
 	reg = *tupledata;
-	len = le32toh(*(uint32_t*)(tupledata + 2));
+	len = le32toh(*(uint32_t *)(tupledata + 2));
 	if (reg & TPL_BAR_REG_AS)
 		type = SYS_RES_IOPORT;
 	else
@@ -306,7 +299,7 @@ decode_tuple_bar(device_t cbdev, device_t child, int id,
 	bar = reg & TPL_BAR_REG_ASI_MASK;
 	if (bar == 0) {
 		device_printf(cbdev, "Invalid BAR type 0 in CIS\n");
-		return (EINVAL);	/* XXX Return an error? */
+		return (EINVAL); /* XXX Return an error? */
 	} else if (bar == 7) {
 		/* XXX Should we try to map in Option ROMs? */
 		return (0);
@@ -345,8 +338,8 @@ decode_tuple_bar(device_t cbdev, device_t child, int id,
 }
 
 static int
-decode_tuple_unhandled(device_t cbdev, device_t child, int id,
-    int len, uint8_t *tupledata, uint32_t start, uint32_t *off,
+decode_tuple_unhandled(device_t cbdev, device_t child, int id, int len,
+    uint8_t *tupledata, uint32_t start, uint32_t *off,
     struct tuple_callbacks *info, void *argp)
 {
 	/* Make this message suck less XXX */
@@ -355,8 +348,8 @@ decode_tuple_unhandled(device_t cbdev, device_t child, int id,
 }
 
 static int
-decode_tuple_end(device_t cbdev, device_t child, int id,
-    int len, uint8_t *tupledata, uint32_t start, uint32_t *off,
+decode_tuple_end(device_t cbdev, device_t child, int id, int len,
+    uint8_t *tupledata, uint32_t start, uint32_t *off,
     struct tuple_callbacks *info, void *argp)
 {
 	if (cardbus_cis_debug)
@@ -424,8 +417,7 @@ cardbus_read_tuple_mem(device_t cbdev, struct resource *res, uint32_t start,
 
 static int
 cardbus_read_tuple(device_t cbdev, device_t child, struct resource *res,
-    uint32_t start, uint32_t *off, int *tupleid, int *len,
-    uint8_t *tupledata)
+    uint32_t start, uint32_t *off, int *tupleid, int *len, uint8_t *tupledata)
 {
 	if (res == CIS_CONFIG_SPACE)
 		return (cardbus_read_tuple_conf(cbdev, child, start, off,
@@ -480,12 +472,12 @@ cardbus_read_tuple_init(device_t cbdev, device_t child, uint32_t *start,
 	res = bus_alloc_resource_any(child, SYS_RES_MEMORY, rid,
 	    rman_make_alignment_flags(4096) | RF_ACTIVE);
 	if (res == NULL) {
-		device_printf(cbdev, "Unable to allocate resource "
+		device_printf(cbdev,
+		    "Unable to allocate resource "
 		    "to read CIS.\n");
 		return (NULL);
 	}
-	DEVPRINTF((cbdev, "CIS Mapped to %#jx\n",
-	    rman_get_start(res)));
+	DEVPRINTF((cbdev, "CIS Mapped to %#jx\n", rman_get_start(res)));
 
 	/* Flip to the right ROM image if CIS is in ROM */
 	if (space == PCIM_CIS_ASI_ROM) {
@@ -501,9 +493,11 @@ cardbus_read_tuple_init(device_t cbdev, device_t child, uint32_t *start,
 			romsig = bus_read_2(res,
 			    imagebase + CARDBUS_EXROM_SIGNATURE);
 			if (romsig != 0xaa55) {
-				device_printf(cbdev, "Bad header in rom %d: "
-				    "[%x] %04x\n", romnum, imagebase +
-				    CARDBUS_EXROM_SIGNATURE, romsig);
+				device_printf(cbdev,
+				    "Bad header in rom %d: "
+				    "[%x] %04x\n",
+				    romnum, imagebase + CARDBUS_EXROM_SIGNATURE,
+				    romsig);
 				cardbus_read_tuple_finish(cbdev, child, *rid,
 				    res);
 				*rid = 0;
@@ -518,8 +512,8 @@ cardbus_read_tuple_init(device_t cbdev, device_t child, uint32_t *start,
 				break;
 
 			/* Find out where the next Option ROM image is */
-			pcidata = imagebase + bus_read_2(res,
-			    imagebase + CARDBUS_EXROM_DATA_PTR);
+			pcidata = imagebase +
+			    bus_read_2(res, imagebase + CARDBUS_EXROM_DATA_PTR);
 			imagesize = bus_read_2(res,
 			    pcidata + CARDBUS_EXROM_DATA_IMAGE_LENGTH);
 
@@ -528,18 +522,22 @@ cardbus_read_tuple_init(device_t cbdev, device_t child, uint32_t *start,
 				 * XXX some ROMs seem to have this as zero,
 				 * can we assume this means 1 block?
 				 */
-				device_printf(cbdev, "Warning, size of Option "
+				device_printf(cbdev,
+				    "Warning, size of Option "
 				    "ROM image %d is 0 bytes, assuming 512 "
-				    "bytes.\n", romnum);
+				    "bytes.\n",
+				    romnum);
 				imagesize = 1;
 			}
 
 			/* Image size is in 512 byte units */
 			imagesize <<= 9;
 
-			if ((bus_read_1(res, pcidata +
-			    CARDBUS_EXROM_DATA_INDICATOR) & 0x80) != 0) {
-				device_printf(cbdev, "Cannot find CIS in "
+			if ((bus_read_1(res,
+				 pcidata + CARDBUS_EXROM_DATA_INDICATOR) &
+				0x80) != 0) {
+				device_printf(cbdev,
+				    "Cannot find CIS in "
 				    "Option ROM\n");
 				cardbus_read_tuple_finish(cbdev, child, *rid,
 				    res);
@@ -572,8 +570,8 @@ decode_tuple(device_t cbdev, device_t child, int tupleid, int len,
 			return (callbacks[i].func(cbdev, child, tupleid, len,
 			    tupledata, start, off, &callbacks[i], argp));
 	}
-	return (callbacks[i].func(cbdev, child, tupleid, len,
-	    tupledata, start, off, NULL, argp));
+	return (callbacks[i].func(cbdev, child, tupleid, len, tupledata, start,
+	    off, NULL, argp));
 }
 
 int
@@ -605,8 +603,8 @@ cardbus_parse_cis(device_t cbdev, device_t child,
 	}
 
 	do {
-		if (cardbus_read_tuple(cbdev, child, res, start, &off,
-		    &tupleid, &len, tupledata) != 0) {
+		if (cardbus_read_tuple(cbdev, child, res, start, &off, &tupleid,
+			&len, tupledata) != 0) {
 			device_printf(cbdev, "Failed to read CIS.\n");
 			cardbus_read_tuple_finish(cbdev, child, rid, res);
 			free(tupledata, M_DEVBUF);
@@ -614,8 +612,8 @@ cardbus_parse_cis(device_t cbdev, device_t child,
 		}
 
 		if (expect_linktarget && tupleid != CISTPL_LINKTARGET) {
-			device_printf(cbdev, "Expecting link target, got 0x%x\n",
-			    tupleid);
+			device_printf(cbdev,
+			    "Expecting link target, got 0x%x\n", tupleid);
 			cardbus_read_tuple_finish(cbdev, child, rid, res);
 			free(tupledata, M_DEVBUF);
 			return (EINVAL);
@@ -639,19 +637,19 @@ int
 cardbus_do_cis(device_t cbdev, device_t child)
 {
 	struct tuple_callbacks init_callbacks[] = {
-		MAKETUPLE(LONGLINK_CB,		unhandled),
-		MAKETUPLE(INDIRECT,		unhandled),
-		MAKETUPLE(LONGLINK_MFC,		unhandled),
-		MAKETUPLE(BAR,			bar),
-		MAKETUPLE(LONGLINK_A,		unhandled),
-		MAKETUPLE(LONGLINK_C,		unhandled),
-		MAKETUPLE(LINKTARGET,		linktarget),
-		MAKETUPLE(VERS_1,		vers_1),
-		MAKETUPLE(MANFID,		manfid),
-		MAKETUPLE(FUNCID,		funcid),
-		MAKETUPLE(FUNCE,		funce),
-		MAKETUPLE(END,			end),
-		MAKETUPLE(GENERIC,		generic),
+		MAKETUPLE(LONGLINK_CB, unhandled),
+		MAKETUPLE(INDIRECT, unhandled),
+		MAKETUPLE(LONGLINK_MFC, unhandled),
+		MAKETUPLE(BAR, bar),
+		MAKETUPLE(LONGLINK_A, unhandled),
+		MAKETUPLE(LONGLINK_C, unhandled),
+		MAKETUPLE(LINKTARGET, linktarget),
+		MAKETUPLE(VERS_1, vers_1),
+		MAKETUPLE(MANFID, manfid),
+		MAKETUPLE(FUNCID, funcid),
+		MAKETUPLE(FUNCE, funce),
+		MAKETUPLE(END, end),
+		MAKETUPLE(GENERIC, generic),
 	};
 
 	return (cardbus_parse_cis(cbdev, child, init_callbacks, NULL));

@@ -9,22 +9,21 @@
 
 #include "ipf.h"
 
-
 /*
  * ECN is a new addition to TCP - RFC 2481
  */
 #ifndef TH_ECN
-# define	TH_ECN  0x40
+#define TH_ECN 0x40
 #endif
 #ifndef TH_CWR
-# define	TH_CWR  0x80
+#define TH_CWR 0x80
 #endif
 
-extern	char	flagset[];
-extern	u_char	flags[];
+extern char flagset[];
+extern u_char flags[];
 
-
-u_char tcpflags(char *flgs)
+u_char
+tcpflags(char *flgs)
 {
 	u_char tcpf = 0;
 	char *s, *t;

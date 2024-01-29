@@ -27,60 +27,51 @@
  *
  */
 
-#ifndef	__QCOM_TLMM_IPQ4018_HW_H__
-#define	__QCOM_TLMM_IPQ4018_HW_H__
+#ifndef __QCOM_TLMM_IPQ4018_HW_H__
+#define __QCOM_TLMM_IPQ4018_HW_H__
 
-extern	int qcom_tlmm_ipq4018_hw_pin_set_function(
-	    struct qcom_tlmm_softc *sc, int pin, int function);
-extern	int qcom_tlmm_ipq4018_hw_pin_get_function(
-	    struct qcom_tlmm_softc *sc, int pin, int *function);
+extern int qcom_tlmm_ipq4018_hw_pin_set_function(struct qcom_tlmm_softc *sc,
+    int pin, int function);
+extern int qcom_tlmm_ipq4018_hw_pin_get_function(struct qcom_tlmm_softc *sc,
+    int pin, int *function);
 
-extern	int qcom_tlmm_ipq4018_hw_pin_set_oe_output(
-	    struct qcom_tlmm_softc *sc, int pin);
-extern	int qcom_tlmm_ipq4018_hw_pin_set_oe_input(
-	    struct qcom_tlmm_softc *sc, int pin);
-extern	int qcom_tlmm_ipq4018_hw_pin_get_oe_state(
-	    struct qcom_tlmm_softc *sc, int pin, bool *is_output);
+extern int qcom_tlmm_ipq4018_hw_pin_set_oe_output(struct qcom_tlmm_softc *sc,
+    int pin);
+extern int qcom_tlmm_ipq4018_hw_pin_set_oe_input(struct qcom_tlmm_softc *sc,
+    int pin);
+extern int qcom_tlmm_ipq4018_hw_pin_get_oe_state(struct qcom_tlmm_softc *sc,
+    int pin, bool *is_output);
 
-extern	int qcom_tlmm_ipq4018_hw_pin_set_output_value(
-	    struct qcom_tlmm_softc *sc,
-	    uint32_t pin, unsigned int value);
-extern	int qcom_tlmm_ipq4018_hw_pin_get_output_value(
-	    struct qcom_tlmm_softc *sc,
-	    uint32_t pin, unsigned int *val);
-extern	int qcom_tlmm_ipq4018_hw_pin_get_input_value(
-	    struct qcom_tlmm_softc *sc,
-	    uint32_t pin, unsigned int *val);
-extern	int qcom_tlmm_ipq4018_hw_pin_toggle_output_value(
-	    struct qcom_tlmm_softc *sc,
-	    uint32_t pin);
+extern int qcom_tlmm_ipq4018_hw_pin_set_output_value(struct qcom_tlmm_softc *sc,
+    uint32_t pin, unsigned int value);
+extern int qcom_tlmm_ipq4018_hw_pin_get_output_value(struct qcom_tlmm_softc *sc,
+    uint32_t pin, unsigned int *val);
+extern int qcom_tlmm_ipq4018_hw_pin_get_input_value(struct qcom_tlmm_softc *sc,
+    uint32_t pin, unsigned int *val);
+extern int
+qcom_tlmm_ipq4018_hw_pin_toggle_output_value(struct qcom_tlmm_softc *sc,
+    uint32_t pin);
 
-extern	int qcom_tlmm_ipq4018_hw_pin_set_pupd_config(
-	    struct qcom_tlmm_softc *sc, uint32_t pin,
-	    qcom_tlmm_pin_pupd_config_t pupd);
-extern	int qcom_tlmm_ipq4018_hw_pin_get_pupd_config(
-	    struct qcom_tlmm_softc *sc, uint32_t pin,
-	    qcom_tlmm_pin_pupd_config_t *pupd);
+extern int qcom_tlmm_ipq4018_hw_pin_set_pupd_config(struct qcom_tlmm_softc *sc,
+    uint32_t pin, qcom_tlmm_pin_pupd_config_t pupd);
+extern int qcom_tlmm_ipq4018_hw_pin_get_pupd_config(struct qcom_tlmm_softc *sc,
+    uint32_t pin, qcom_tlmm_pin_pupd_config_t *pupd);
 
-extern	int qcom_tlmm_ipq4018_hw_pin_set_drive_strength(
-	    struct qcom_tlmm_softc *sc, uint32_t pin,
-	    uint8_t drv);
-extern	int qcom_tlmm_ipq4018_hw_pin_get_drive_strength(
-	    struct qcom_tlmm_softc *sc, uint32_t pin,
-	    uint8_t *drv);
+extern int
+qcom_tlmm_ipq4018_hw_pin_set_drive_strength(struct qcom_tlmm_softc *sc,
+    uint32_t pin, uint8_t drv);
+extern int
+qcom_tlmm_ipq4018_hw_pin_get_drive_strength(struct qcom_tlmm_softc *sc,
+    uint32_t pin, uint8_t *drv);
 
-extern	int qcom_tlmm_ipq4018_hw_pin_set_vm(
-	    struct qcom_tlmm_softc *sc, uint32_t pin,
-	    bool enable);
-extern	int qcom_tlmm_ipq4018_hw_pin_get_vm(
-	    struct qcom_tlmm_softc *sc, uint32_t pin,
-	    bool *enable);
+extern int qcom_tlmm_ipq4018_hw_pin_set_vm(struct qcom_tlmm_softc *sc,
+    uint32_t pin, bool enable);
+extern int qcom_tlmm_ipq4018_hw_pin_get_vm(struct qcom_tlmm_softc *sc,
+    uint32_t pin, bool *enable);
 
-extern	int qcom_tlmm_ipq4018_hw_pin_set_open_drain(
-	    struct qcom_tlmm_softc *sc, uint32_t pin,
-	    bool enable);
-extern	int qcom_tlmm_ipq4018_hw_pin_get_open_drain(
-	    struct qcom_tlmm_softc *sc, uint32_t pin,
-	    bool *enable);
+extern int qcom_tlmm_ipq4018_hw_pin_set_open_drain(struct qcom_tlmm_softc *sc,
+    uint32_t pin, bool enable);
+extern int qcom_tlmm_ipq4018_hw_pin_get_open_drain(struct qcom_tlmm_softc *sc,
+    uint32_t pin, bool *enable);
 
-#endif	/* __QCOM_TLMM_IPQ4018_HW_H__ */
+#endif /* __QCOM_TLMM_IPQ4018_HW_H__ */

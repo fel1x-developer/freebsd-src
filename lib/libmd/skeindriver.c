@@ -5,20 +5,20 @@
  *
  * Copyright (C) 1990-2, RSA Data Security, Inc. Created 1990. All rights
  * reserved.
- * 
+ *
  * RSA Data Security, Inc. makes no representations concerning either the
  * merchantability of this software or the suitability of this software for
  * any particular purpose. It is provided "as is" without express or implied
  * warranty of any kind.
- * 
+ *
  * These notices must be retained in any copies of any part of this
  * documentation and/or software. */
 
 #include <sys/types.h>
 
 #include <stdio.h>
-#include <time.h>
 #include <string.h>
+#include <time.h>
 
 #include "skein.h"
 
@@ -43,10 +43,10 @@
 static void
 SKEINString(char *string)
 {
-	char buf[2*128 + 1];
+	char buf[2 * 128 + 1];
 
-	printf("SKEIN%d (\"%s\") = %s\n",
-	       SKEIN, string, SKEIN_Data(string, strlen(string), buf));
+	printf("SKEIN%d (\"%s\") = %s\n", SKEIN, string,
+	    SKEIN_Data(string, strlen(string), buf));
 }
 
 /* Digests a reference suite of strings and prints the results. */
@@ -60,9 +60,9 @@ main(void)
 	SKEINString("message digest");
 	SKEINString("abcdefghijklmnopqrstuvwxyz");
 	SKEINString("ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-		  "abcdefghijklmnopqrstuvwxyz0123456789");
+		    "abcdefghijklmnopqrstuvwxyz0123456789");
 	SKEINString("1234567890123456789012345678901234567890"
-		  "1234567890123456789012345678901234567890");
+		    "1234567890123456789012345678901234567890");
 
 	return 0;
 }

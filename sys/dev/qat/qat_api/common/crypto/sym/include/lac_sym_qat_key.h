@@ -17,8 +17,8 @@
 #define LAC_SYM_QAT_KEY_H
 
 #include "cpa.h"
-#include "lac_sym.h"
 #include "icp_qat_fw_la.h"
+#include "lac_sym.h"
 
 /**
 ******************************************************************************
@@ -57,13 +57,10 @@
 * @return None
 *
 *****************************************************************************/
-void
-LacSymQat_KeySslRequestPopulate(icp_qat_la_bulk_req_hdr_t *pKeyGenReqHdr,
-				icp_qat_fw_la_key_gen_common_t *pKeyGenReqMid,
-				Cpa32U generatedKeyLenInBytes,
-				Cpa32U labelLenInBytes,
-				Cpa32U secretLenInBytes,
-				Cpa32U iterations);
+void LacSymQat_KeySslRequestPopulate(icp_qat_la_bulk_req_hdr_t *pKeyGenReqHdr,
+    icp_qat_fw_la_key_gen_common_t *pKeyGenReqMid,
+    Cpa32U generatedKeyLenInBytes, Cpa32U labelLenInBytes,
+    Cpa32U secretLenInBytes, Cpa32U iterations);
 
 /**
 *******************************************************************************
@@ -85,10 +82,8 @@ LacSymQat_KeySslRequestPopulate(icp_qat_la_bulk_req_hdr_t *pKeyGenReqHdr,
 *****************************************************************************/
 void LacSymQat_KeyTlsRequestPopulate(
     icp_qat_fw_la_key_gen_common_t *pKeyGenReqParams,
-    Cpa32U generatedKeyLenInBytes,
-    Cpa32U labelLenInBytes,
-    Cpa32U secretLenInBytes,
-    Cpa8U seedLenInBytes,
+    Cpa32U generatedKeyLenInBytes, Cpa32U labelLenInBytes,
+    Cpa32U secretLenInBytes, Cpa8U seedLenInBytes,
     icp_qat_fw_la_cmd_id_t cmdId);
 
 /**
@@ -108,12 +103,9 @@ void LacSymQat_KeyTlsRequestPopulate(
 * @return None
 *
 *****************************************************************************/
-void
-LacSymQat_KeyMgfRequestPopulate(icp_qat_la_bulk_req_hdr_t *pKeyGenReqHdr,
-				icp_qat_fw_la_key_gen_common_t *pKeyGenReqMid,
-				Cpa8U seedLenInBytes,
-				Cpa16U maskLenInBytes,
-				Cpa8U hashLenInBytes);
+void LacSymQat_KeyMgfRequestPopulate(icp_qat_la_bulk_req_hdr_t *pKeyGenReqHdr,
+    icp_qat_fw_la_key_gen_common_t *pKeyGenReqMid, Cpa8U seedLenInBytes,
+    Cpa16U maskLenInBytes, Cpa8U hashLenInBytes);
 
 /**
 *******************************************************************************
@@ -132,12 +124,9 @@ LacSymQat_KeyMgfRequestPopulate(icp_qat_la_bulk_req_hdr_t *pKeyGenReqHdr,
 * @return None
 *
 *****************************************************************************/
-void LacSymQat_KeySslKeyMaterialInputPopulate(
-    sal_service_t *pService,
-    icp_qat_fw_la_ssl_key_material_input_t *pSslKeyMaterialInput,
-    void *pSeed,
-    Cpa64U labelPhysAddr,
-    void *pSecret);
+void LacSymQat_KeySslKeyMaterialInputPopulate(sal_service_t *pService,
+    icp_qat_fw_la_ssl_key_material_input_t *pSslKeyMaterialInput, void *pSeed,
+    Cpa64U labelPhysAddr, void *pSecret);
 
 /**
 *******************************************************************************
@@ -155,10 +144,8 @@ void LacSymQat_KeySslKeyMaterialInputPopulate(
 * @return None
 *
 *****************************************************************************/
-void LacSymQat_KeyTlsKeyMaterialInputPopulate(
-    sal_service_t *pService,
-    icp_qat_fw_la_tls_key_material_input_t *pTlsKeyMaterialInput,
-    void *pSeed,
+void LacSymQat_KeyTlsKeyMaterialInputPopulate(sal_service_t *pService,
+    icp_qat_fw_la_tls_key_material_input_t *pTlsKeyMaterialInput, void *pSeed,
     Cpa64U labelPhysAddr);
 
 /**
@@ -178,11 +165,9 @@ void LacSymQat_KeyTlsKeyMaterialInputPopulate(
 * @return None
 *
 *****************************************************************************/
-void LacSymQat_KeyTlsHKDFKeyMaterialInputPopulate(
-    sal_service_t *pService,
+void LacSymQat_KeyTlsHKDFKeyMaterialInputPopulate(sal_service_t *pService,
     icp_qat_fw_la_hkdf_key_material_input_t *pTlsKeyMaterialInput,
-    CpaCyKeyGenHKDFOpData *pKeyGenTlsOpData,
-    Cpa64U subLabelsPhysAddr,
+    CpaCyKeyGenHKDFOpData *pKeyGenTlsOpData, Cpa64U subLabelsPhysAddr,
     icp_qat_fw_la_cmd_id_t cmdId);
 
 #endif /* LAC_SYM_QAT_KEY_H */

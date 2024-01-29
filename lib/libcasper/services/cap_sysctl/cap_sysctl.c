@@ -40,11 +40,10 @@
 
 #include <assert.h>
 #include <errno.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include <libcasper.h>
 #include <libcasper_service.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "cap_sysctl.h"
 
@@ -243,7 +242,7 @@ cap_sysctlnametomib(cap_channel_t *chan, const char *name, int *mibp,
 	mib = nvlist_get_binary(req, "mib", &mibsz);
 	*sizep = mibsz / sizeof(int);
 
-	memcpy(mibp, mib, mibsz); 
+	memcpy(mibp, mib, mibsz);
 
 	nvlist_destroy(req);
 
@@ -273,10 +272,10 @@ sysctl_valid(const nvlist_t *nvl, bool limit)
 	if (nvlist_error(nvl) != 0)
 		return (nvlist_error(nvl));
 
-#define	HAS_NAME	0x01
-#define	HAS_MIB		0x02
-#define	HAS_ID		(HAS_NAME | HAS_MIB)
-#define	HAS_OPERATION	0x04
+#define HAS_NAME 0x01
+#define HAS_MIB 0x02
+#define HAS_ID (HAS_NAME | HAS_MIB)
+#define HAS_OPERATION 0x04
 
 	fields = 0;
 	cookie = NULL;
@@ -311,8 +310,9 @@ sysctl_valid(const nvlist_t *nvl, bool limit)
 			 * Requests can only include the RDWR flags; limits may
 			 * also include the RECURSIVE flag.
 			 */
-			mask = limit ? (CAP_SYSCTL_RDWR |
-			    CAP_SYSCTL_RECURSIVE) : CAP_SYSCTL_RDWR;
+			mask = limit ?
+			    (CAP_SYSCTL_RDWR | CAP_SYSCTL_RECURSIVE) :
+			    CAP_SYSCTL_RDWR;
 			if ((operation & ~mask) != 0 ||
 			    (operation & CAP_SYSCTL_RDWR) == 0)
 				return (EINVAL);
@@ -380,11 +380,13 @@ sysctl_allowed(const nvlist_t *limits, const nvlist_t *req)
 					continue;
 			}
 		} else {
-			lmib = dnvlist_get_binary(limit, "mib", &lsize, NULL, 0);
+			lmib = dnvlist_get_binary(limit, "mib", &lsize, NULL,
+			    0);
 			if (lmib == NULL)
 				continue;
-			if (lsize > reqsize || ((op & CAP_SYSCTL_RECURSIVE) == 0 &&
-			    lsize < reqsize))
+			if (lsize > reqsize ||
+			    ((op & CAP_SYSCTL_RECURSIVE) == 0 &&
+				lsize < reqsize))
 				continue;
 			if (memcmp(lmib, reqmib, lsize) != 0)
 				continue;

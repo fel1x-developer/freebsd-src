@@ -52,20 +52,18 @@
 #include <sys/param.h>
 #include <sys/errno.h>
 
-#include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <util.h>
-
 #include <fs/msdosfs/bpb.h>
-#include "msdos/denode.h"
 #include <fs/msdosfs/fat.h>
 #include <fs/msdosfs/msdosfsmount.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <util.h>
 
 #include "makefs.h"
 #include "msdos.h"
-
+#include "msdos/denode.h"
 
 /*
  * If deget() succeeds it returns with the gotten denode locked().
@@ -89,8 +87,9 @@ deget(struct msdosfsmount *pmp, u_long dirclust, u_long diroffset,
 	struct denode *ldep;
 	struct m_buf *bp;
 
-	MSDOSFS_DPRINTF(("deget(pmp %p, dirclust %lu, diroffset %lx, depp %p)\n",
-	    pmp, dirclust, diroffset, depp));
+	MSDOSFS_DPRINTF(
+	    ("deget(pmp %p, dirclust %lu, diroffset %lx, depp %p)\n", pmp,
+		dirclust, diroffset, depp));
 
 	/*
 	 * On FAT32 filesystems, root is a (more or less) normal
@@ -109,13 +108,13 @@ deget(struct msdosfsmount *pmp, u_long dirclust, u_long diroffset,
 	ldep->de_inode = inode;
 	ldep->de_pmp = pmp;
 	ldep->de_refcnt = 1;
-	fc_purge(ldep, 0);	/* init the FAT cache for this denode */
+	fc_purge(ldep, 0); /* init the FAT cache for this denode */
 	/*
 	 * Copy the directory entry into the denode area of the vnode.
 	 */
-	if ((dirclust == MSDOSFSROOT
-	     || (FAT32(pmp) && dirclust == pmp->pm_rootdirblk))
-	    && diroffset == MSDOSFSROOT_OFS) {
+	if ((dirclust == MSDOSFSROOT ||
+		(FAT32(pmp) && dirclust == pmp->pm_rootdirblk)) &&
+	    diroffset == MSDOSFSROOT_OFS) {
 		/*
 		 * Directory entry for the root directory. There isn't one,
 		 * so we manufacture one. We should probably rummage
@@ -129,7 +128,7 @@ deget(struct msdosfsmount *pmp, u_long dirclust, u_long diroffset,
 		ldep->de_LowerCase = 0;
 		if (FAT32(pmp))
 			ldep->de_StartCluster = pmp->pm_rootdirblk;
-			/* de_FileSize will be filled in further down */
+		/* de_FileSize will be filled in further down */
 		else {
 			ldep->de_StartCluster = MSDOSFSROOT;
 			ldep->de_FileSize = pmp->pm_rootdirsize * DEV_BSIZE;
@@ -140,9 +139,9 @@ deget(struct msdosfsmount *pmp, u_long dirclust, u_long diroffset,
 		 * denode
 		 */
 		ldep->de_CHun = 0;
-		ldep->de_CTime = 0x0000;	/* 00:00:00	 */
-		ldep->de_CDate = (0 << DD_YEAR_SHIFT) | (1 << DD_MONTH_SHIFT)
-		    | (1 << DD_DAY_SHIFT);
+		ldep->de_CTime = 0x0000; /* 00:00:00	 */
+		ldep->de_CDate = (0 << DD_YEAR_SHIFT) | (1 << DD_MONTH_SHIFT) |
+		    (1 << DD_DAY_SHIFT);
 		/* Jan 1, 1980	 */
 		ldep->de_ADate = ldep->de_CDate;
 		ldep->de_MTime = ldep->de_CTime;
@@ -179,8 +178,9 @@ deget(struct msdosfsmount *pmp, u_long dirclust, u_long diroffset,
 		 * instead of what is written in directory entry.
 		 */
 		if (diroffset == 0 && ldep->de_StartCluster != dirclust) {
-			MSDOSFS_DPRINTF(("deget(): \".\" entry at clust %lu != %lu\n",
-			    dirclust, ldep->de_StartCluster));
+			MSDOSFS_DPRINTF(
+			    ("deget(): \".\" entry at clust %lu != %lu\n",
+				dirclust, ldep->de_StartCluster));
 
 			ldep->de_StartCluster = dirclust;
 		}
@@ -191,8 +191,8 @@ deget(struct msdosfsmount *pmp, u_long dirclust, u_long diroffset,
 				ldep->de_FileSize = de_cn2off(pmp, size);
 				error = 0;
 			} else {
-				MSDOSFS_DPRINTF(("deget(): pcbmap returned %d\n",
-				    error));
+				MSDOSFS_DPRINTF(
+				    ("deget(): pcbmap returned %d\n", error));
 			}
 		}
 	}
@@ -228,7 +228,7 @@ detrunc(struct denode *dep, u_long length, int flags, struct ucred *cred)
 	 */
 	if (dep->de_vnode != NULL && !FAT32(pmp)) {
 		MSDOSFS_DPRINTF(("detrunc(): can't truncate root directory, "
-		    "clust %ld, offset %ld\n",
+				 "clust %ld, offset %ld\n",
 		    dep->de_dirclust, dep->de_diroffset));
 
 		return (EINVAL);
@@ -251,11 +251,11 @@ detrunc(struct denode *dep, u_long length, int flags, struct ucred *cred)
 		dep->de_StartCluster = 0;
 		eofentry = ~0ul;
 	} else {
-		error = pcbmap(dep, de_clcount(pmp, length) - 1, 0,
-		    &eofentry, 0);
+		error = pcbmap(dep, de_clcount(pmp, length) - 1, 0, &eofentry,
+		    0);
 		if (error) {
-			MSDOSFS_DPRINTF(("detrunc(): pcbmap fails %d\n",
-			    error));
+			MSDOSFS_DPRINTF(
+			    ("detrunc(): pcbmap fails %d\n", error));
 			return (error);
 		}
 	}
@@ -274,8 +274,8 @@ detrunc(struct denode *dep, u_long length, int flags, struct ucred *cred)
 			    pmp->pm_bpcluster, 0, &bp);
 			if (error) {
 				brelse(bp);
-				MSDOSFS_DPRINTF(("detrunc(): bread fails %d\n",
-				    error));
+				MSDOSFS_DPRINTF(
+				    ("detrunc(): bread fails %d\n", error));
 
 				return (error);
 			}
@@ -290,7 +290,7 @@ detrunc(struct denode *dep, u_long length, int flags, struct ucred *cred)
 	 */
 	dep->de_FileSize = length;
 	if (!isadir)
-		dep->de_flag |= DE_UPDATE|DE_MODIFIED;
+		dep->de_flag |= DE_UPDATE | DE_MODIFIED;
 	MSDOSFS_DPRINTF(("detrunc(): eofentry %lu\n", eofentry));
 
 	/*
@@ -298,11 +298,11 @@ detrunc(struct denode *dep, u_long length, int flags, struct ucred *cred)
 	 * now.
 	 */
 	if (eofentry != ~0ul) {
-		error = fatentry(FAT_GET_AND_SET, pmp, eofentry,
-				 &chaintofree, CLUST_EOFE);
+		error = fatentry(FAT_GET_AND_SET, pmp, eofentry, &chaintofree,
+		    CLUST_EOFE);
 		if (error) {
-			MSDOSFS_DPRINTF(("detrunc(): fatentry errors %d\n",
-			    error));
+			MSDOSFS_DPRINTF(
+			    ("detrunc(): fatentry errors %d\n", error));
 			return (error);
 		}
 		fc_setcache(dep, FC_LASTFC, de_cluster(pmp, length - 1),
@@ -354,7 +354,7 @@ deextend(struct denode *dep, u_long length, struct ucred *cred)
 		error = m_extendfile(dep, count, NULL, NULL, DE_CLEAR);
 		if (error) {
 			/* truncate the added clusters away again */
-			(void) detrunc(dep, dep->de_FileSize, 0, cred);
+			(void)detrunc(dep, dep->de_FileSize, 0, cred);
 			return (error);
 		}
 	}

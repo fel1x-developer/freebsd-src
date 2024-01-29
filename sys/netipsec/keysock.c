@@ -37,6 +37,7 @@
 
 #include <sys/types.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/domain.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
@@ -50,32 +51,32 @@
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
-
-#include <net/if.h>
-#include <net/vnet.h>
-
-#include <netinet/in.h>
-
-#include <net/pfkeyv2.h>
-#include <netipsec/key.h>
-#include <netipsec/keysock.h>
-#include <netipsec/key_debug.h>
-#include <netipsec/ipsec.h>
 
 #include <machine/stdarg.h>
+
+#include <net/if.h>
+#include <net/pfkeyv2.h>
+#include <net/vnet.h>
+#include <netinet/in.h>
+#include <netipsec/ipsec.h>
+#include <netipsec/key.h>
+#include <netipsec/key_debug.h>
+#include <netipsec/keysock.h>
 
 static struct mtx keysock_mtx;
 MTX_SYSINIT(keysock, &keysock_mtx, "key socket pcb list", MTX_DEF);
 
-#define	KEYSOCK_LOCK()		mtx_lock(&keysock_mtx)
-#define	KEYSOCK_UNLOCK()	mtx_unlock(&keysock_mtx)
+#define KEYSOCK_LOCK() mtx_lock(&keysock_mtx)
+#define KEYSOCK_UNLOCK() mtx_unlock(&keysock_mtx)
 
-VNET_DEFINE_STATIC(LIST_HEAD(, keycb), keycb_list) =
-    LIST_HEAD_INITIALIZER(keycb_list);
-#define	V_keycb_list		VNET(keycb_list)
+VNET_DEFINE_STATIC(LIST_HEAD(, keycb), keycb_list) = LIST_HEAD_INITIALIZER(
+    keycb_list);
+#define V_keycb_list VNET(keycb_list)
 
-static struct sockaddr key_src = { 2, PF_KEY, };
+static struct sockaddr key_src = {
+	2,
+	PF_KEY,
+};
 
 static int key_sendup0(struct keycb *, struct mbuf *, int);
 
@@ -87,8 +88,8 @@ VNET_PCPUSTAT_SYSUNINIT(pfkeystat);
 #endif /* VIMAGE */
 
 static int
-key_send(struct socket *so, int flags, struct mbuf *m,
-    struct sockaddr *nam, struct mbuf *control, struct thread *td)
+key_send(struct socket *so, int flags, struct mbuf *m, struct sockaddr *nam,
+    struct mbuf *control, struct thread *td)
 {
 	struct sadb_msg *msg;
 	int len, error = 0;
@@ -186,7 +187,8 @@ key_sendup_mbuf(struct socket *so, struct mbuf *m, int target)
 	KASSERT(so != NULL || target != KEY_SENDUP_ONE,
 	    ("NULL socket pointer was passed."));
 	KASSERT(target == KEY_SENDUP_ONE || target == KEY_SENDUP_ALL ||
-	    target == KEY_SENDUP_REGISTERED, ("Wrong target %d", target));
+		target == KEY_SENDUP_REGISTERED,
+	    ("Wrong target %d", target));
 
 	PFKEYSTAT_INC(in_total);
 	PFKEYSTAT_ADD(in_bytes, m->m_pkthdr.len);
@@ -203,7 +205,7 @@ key_sendup_mbuf(struct socket *so, struct mbuf *m, int target)
 		PFKEYSTAT_INC(in_msgtype[msg->sadb_msg_type]);
 	}
 	KEYSOCK_LOCK();
-	LIST_FOREACH(kp, &V_keycb_list, kp_next) {
+	LIST_FOREACH (kp, &V_keycb_list, kp_next) {
 		/*
 		 * If you are in promiscuous mode, and when you get broadcasted
 		 * reply, you'll get two PF_KEY messages.
@@ -221,8 +223,8 @@ key_sendup_mbuf(struct socket *so, struct mbuf *m, int target)
 		if (so != NULL && so->so_pcb == kp)
 			continue;
 
-		if (target == KEY_SENDUP_ONE || (target ==
-		    KEY_SENDUP_REGISTERED && kp->kp_registered == 0))
+		if (target == KEY_SENDUP_ONE ||
+		    (target == KEY_SENDUP_REGISTERED && kp->kp_registered == 0))
 			continue;
 
 		/* KEY_SENDUP_ALL + KEY_SENDUP_REGISTERED */
@@ -237,7 +239,7 @@ key_sendup_mbuf(struct socket *so, struct mbuf *m, int target)
 			PFKEYSTAT_INC(in_msgtarget[target]);
 	}
 
-	if (so)	{ /* KEY_SENDUP_ONE */
+	if (so) { /* KEY_SENDUP_ONE */
 		error = key_sendup0(so->so_pcb, m, 0);
 		if (error == 0)
 			PFKEYSTAT_INC(in_msgtarget[KEY_SENDUP_ONE]);
@@ -331,25 +333,24 @@ key_shutdown(struct socket *so, enum shutdown_how how)
 	return (0);
 }
 
-SYSCTL_NODE(_net, PF_KEY, key, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
-    "Key Family");
+SYSCTL_NODE(_net, PF_KEY, key, CTLFLAG_RW | CTLFLAG_MPSAFE, 0, "Key Family");
 
 static struct protosw keysw = {
-	.pr_type =		SOCK_RAW,
-	.pr_protocol =		PF_KEY_V2,
-	.pr_flags =		PR_ATOMIC | PR_ADDR,
-	.pr_abort =		key_close,
-	.pr_attach =		key_attach,
-	.pr_detach =		key_detach,
-	.pr_send =		key_send,
-	.pr_shutdown =		key_shutdown,
-	.pr_close =		key_close,
+	.pr_type = SOCK_RAW,
+	.pr_protocol = PF_KEY_V2,
+	.pr_flags = PR_ATOMIC | PR_ADDR,
+	.pr_abort = key_close,
+	.pr_attach = key_attach,
+	.pr_detach = key_detach,
+	.pr_send = key_send,
+	.pr_shutdown = key_shutdown,
+	.pr_close = key_close,
 };
 
 static struct domain keydomain = {
-	.dom_family =		PF_KEY,
-	.dom_name =		"key",
-	.dom_nprotosw =		1,
-	.dom_protosw =		{ &keysw },
+	.dom_family = PF_KEY,
+	.dom_name = "key",
+	.dom_nprotosw = 1,
+	.dom_protosw = { &keysw },
 };
 DOMAIN_SET(key);

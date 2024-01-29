@@ -37,8 +37,8 @@
  * is greatly appreciated.
  */
 
-#include "opt_inet.h"
 #include "opt_ath.h"
+#include "opt_inet.h"
 /*
  * This is needed for register operations which are performed
  * by the driver - eg, calls to ath_hal_gettsf32().
@@ -51,38 +51,37 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/sysctl.h>
-#include <sys/mbuf.h>
-#include <sys/malloc.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
+#include <sys/bus.h>
+#include <sys/callout.h>
+#include <sys/endian.h>
+#include <sys/errno.h>
 #include <sys/kernel.h>
+#include <sys/kthread.h>
+#include <sys/ktr.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/priv.h>
+#include <sys/smp.h> /* for mp_ncpus */
 #include <sys/socket.h>
 #include <sys/sockio.h>
-#include <sys/errno.h>
-#include <sys/callout.h>
-#include <sys/bus.h>
-#include <sys/endian.h>
-#include <sys/kthread.h>
+#include <sys/sysctl.h>
 #include <sys/taskqueue.h>
-#include <sys/priv.h>
-#include <sys/module.h>
-#include <sys/ktr.h>
-#include <sys/smp.h>	/* for mp_ncpus */
 
 #include <machine/bus.h>
 
+#include <net/ethernet.h>
 #include <net/if.h>
-#include <net/if_var.h>
+#include <net/if_arp.h>
 #include <net/if_dl.h>
+#include <net/if_llc.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_llc.h>
-
-#include <net80211/ieee80211_var.h>
+#include <net/if_var.h>
 #include <net80211/ieee80211_regdomain.h>
+#include <net80211/ieee80211_var.h>
 #ifdef IEEE80211_SUPPORT_SUPERG
 #include <net80211/ieee80211_superg.h>
 #endif
@@ -93,25 +92,24 @@
 #include <net/bpf.h>
 
 #ifdef INET
-#include <netinet/in.h>
 #include <netinet/if_ether.h>
+#include <netinet/in.h>
 #endif
 
-#include <dev/ath/if_athvar.h>
-#include <dev/ath/ath_hal/ah_devid.h>		/* XXX for softled */
+#include <dev/ath/ath_hal/ah_devid.h> /* XXX for softled */
 #include <dev/ath/ath_hal/ah_diagcodes.h>
-
+#include <dev/ath/if_ath_beacon.h>
 #include <dev/ath/if_ath_debug.h>
+#include <dev/ath/if_ath_descdma.h>
+#include <dev/ath/if_ath_keycache.h>
+#include <dev/ath/if_ath_led.h>
 #include <dev/ath/if_ath_misc.h>
+#include <dev/ath/if_ath_rx.h>
+#include <dev/ath/if_ath_sysctl.h>
 #include <dev/ath/if_ath_tsf.h>
 #include <dev/ath/if_ath_tx.h>
-#include <dev/ath/if_ath_sysctl.h>
-#include <dev/ath/if_ath_led.h>
-#include <dev/ath/if_ath_keycache.h>
-#include <dev/ath/if_ath_rx.h>
-#include <dev/ath/if_ath_beacon.h>
 #include <dev/ath/if_athdfs.h>
-#include <dev/ath/if_ath_descdma.h>
+#include <dev/ath/if_athvar.h>
 
 #ifdef ATH_TX99_DIAG
 #include <dev/ath/ath_tx99/ath_tx99.h>
@@ -119,29 +117,33 @@
 
 #include <dev/ath/if_ath_tx_edma.h>
 
-#ifdef	ATH_DEBUG_ALQ
+#ifdef ATH_DEBUG_ALQ
 #include <dev/ath/if_ath_alq.h>
 #endif
 
 /*
  * some general macros
  */
-#define	INCR(_l, _sz)		(_l) ++; (_l) &= ((_sz) - 1)
-#define	DECR(_l, _sz)		(_l) --; (_l) &= ((_sz) - 1)
+#define INCR(_l, _sz) \
+	(_l)++;       \
+	(_l) &= ((_sz)-1)
+#define DECR(_l, _sz) \
+	(_l)--;       \
+	(_l) &= ((_sz)-1)
 
 /*
  * XXX doesn't belong here, and should be tunable
  */
-#define	ATH_TXSTATUS_RING_SIZE	512
+#define ATH_TXSTATUS_RING_SIZE 512
 
 MALLOC_DECLARE(M_ATHDEV);
 
 static void ath_edma_tx_processq(struct ath_softc *sc, int dosched);
 
-#ifdef	ATH_DEBUG_ALQ
+#ifdef ATH_DEBUG_ALQ
 static void
-ath_tx_alq_edma_push(struct ath_softc *sc, int txq, int nframes,
-    int fifo_depth, int frame_cnt)
+ath_tx_alq_edma_push(struct ath_softc *sc, int txq, int nframes, int fifo_depth,
+    int frame_cnt)
 {
 	struct if_ath_alq_tx_fifo_push aq;
 
@@ -150,11 +152,10 @@ ath_tx_alq_edma_push(struct ath_softc *sc, int txq, int nframes,
 	aq.fifo_depth = htobe32(fifo_depth);
 	aq.frame_cnt = htobe32(frame_cnt);
 
-	if_ath_alq_post(&sc->sc_alq, ATH_ALQ_TX_FIFO_PUSH,
-	    sizeof(aq),
-	    (const char *) &aq);
+	if_ath_alq_post(&sc->sc_alq, ATH_ALQ_TX_FIFO_PUSH, sizeof(aq),
+	    (const char *)&aq);
 }
-#endif	/* ATH_DEBUG_ALQ */
+#endif /* ATH_DEBUG_ALQ */
 
 /*
  * XXX TODO: push an aggregate as a single FIFO slot, even though
@@ -174,16 +175,13 @@ ath_tx_edma_push_staging_list(struct ath_softc *sc, struct ath_txq *txq,
 	struct ath_buf *bf, *bf_last;
 	struct ath_buf *bfi, *bfp;
 	int i, sqdepth;
-	TAILQ_HEAD(axq_q_f_s, ath_buf)  sq;
+	TAILQ_HEAD(axq_q_f_s, ath_buf) sq;
 
 	ATH_TXQ_LOCK_ASSERT(txq);
 
 	DPRINTF(sc, ATH_DEBUG_XMIT | ATH_DEBUG_TX_PROC,
-	    "%s: called; TXQ=%d, fifo.depth=%d, axq_q empty=%d\n",
-	    __func__,
-	    txq->axq_qnum,
-	    txq->axq_fifo_depth,
-	    !! (TAILQ_EMPTY(&txq->axq_q)));
+	    "%s: called; TXQ=%d, fifo.depth=%d, axq_q empty=%d\n", __func__,
+	    txq->axq_qnum, txq->axq_fifo_depth, !!(TAILQ_EMPTY(&txq->axq_q)));
 
 	/*
 	 * Don't bother doing any work if it's full.
@@ -241,7 +239,7 @@ ath_tx_edma_push_staging_list(struct ath_softc *sc, struct ath_txq *txq,
 	 * Walk the descriptor list and link them appropriately.
 	 */
 	bfp = NULL;
-	TAILQ_FOREACH(bfi, &sq, bf_list) {
+	TAILQ_FOREACH (bfi, &sq, bf_list) {
 		if (bfp != NULL) {
 			ath_hal_settxdesclink(sc->sc_ah, bfp->bf_lastds,
 			    bfi->bf_daddr);
@@ -250,12 +248,12 @@ ath_tx_edma_push_staging_list(struct ath_softc *sc, struct ath_txq *txq,
 	}
 
 	i = 0;
-	TAILQ_FOREACH(bfi, &sq, bf_list) {
-#ifdef	ATH_DEBUG
+	TAILQ_FOREACH (bfi, &sq, bf_list) {
+#ifdef ATH_DEBUG
 		if (sc->sc_debug & ATH_DEBUG_XMIT_DESC)
 			ath_printtxbuf(sc, bfi, txq->axq_qnum, i, 0);
-#endif/* ATH_DEBUG */
-#ifdef	ATH_DEBUG_ALQ
+#endif /* ATH_DEBUG */
+#ifdef ATH_DEBUG_ALQ
 		if (if_ath_alq_checkdebug(&sc->sc_alq, ATH_ALQ_EDMA_TXDESC))
 			ath_tx_alq_post(sc, bfi);
 #endif /* ATH_DEBUG_ALQ */
@@ -276,8 +274,8 @@ ath_tx_edma_push_staging_list(struct ath_softc *sc, struct ath_txq *txq,
 	/* Bump FIFO queue */
 	txq->axq_fifo_depth++;
 	DPRINTF(sc, ATH_DEBUG_XMIT | ATH_DEBUG_TX_PROC,
-	    "%s: queued %d packets; depth=%d, fifo depth=%d\n",
-	    __func__, sqdepth, txq->fifo.axq_depth, txq->axq_fifo_depth);
+	    "%s: queued %d packets; depth=%d, fifo depth=%d\n", __func__,
+	    sqdepth, txq->fifo.axq_depth, txq->axq_fifo_depth);
 
 	/* Push the first entry into the hardware */
 	ath_hal_puttxbuf(sc->sc_ah, txq->axq_qnum, bf->bf_daddr);
@@ -285,14 +283,13 @@ ath_tx_edma_push_staging_list(struct ath_softc *sc, struct ath_txq *txq,
 	/* Push start on the DMA if it's not already started */
 	ath_hal_txstart(sc->sc_ah, txq->axq_qnum);
 
-#ifdef	ATH_DEBUG_ALQ
-	ath_tx_alq_edma_push(sc, txq->axq_qnum, sqdepth,
-	    txq->axq_fifo_depth,
+#ifdef ATH_DEBUG_ALQ
+	ath_tx_alq_edma_push(sc, txq->axq_qnum, sqdepth, txq->axq_fifo_depth,
 	    txq->fifo.axq_depth);
 #endif /* ATH_DEBUG_ALQ */
 }
 
-#define	TX_BATCH_SIZE	32
+#define TX_BATCH_SIZE 32
 
 /*
  * Push some frames into the TX FIFO if we have space.
@@ -305,12 +302,8 @@ ath_edma_tx_fifo_fill(struct ath_softc *sc, struct ath_txq *txq)
 
 	DPRINTF(sc, ATH_DEBUG_TX_PROC,
 	    "%s: Q%d: called; fifo.depth=%d, fifo depth=%d, depth=%d, aggr_depth=%d\n",
-	    __func__,
-	    txq->axq_qnum,
-	    txq->fifo.axq_depth,
-	    txq->axq_fifo_depth,
-	    txq->axq_depth,
-	    txq->axq_aggr_depth);
+	    __func__, txq->axq_qnum, txq->fifo.axq_depth, txq->axq_fifo_depth,
+	    txq->axq_depth, txq->axq_aggr_depth);
 
 	/*
 	 * For now, push up to 32 frames per TX FIFO slot.
@@ -406,8 +399,7 @@ ath_edma_dma_restart(struct ath_softc *sc, struct ath_txq *txq)
 	int fifostart = 1;
 	int old_fifo_depth;
 
-	DPRINTF(sc, ATH_DEBUG_RESET, "%s: Q%d: called\n",
-	    __func__,
+	DPRINTF(sc, ATH_DEBUG_RESET, "%s: Q%d: called\n", __func__,
 	    txq->axq_qnum);
 
 	ATH_TXQ_LOCK_ASSERT(txq);
@@ -427,7 +419,7 @@ ath_edma_dma_restart(struct ath_softc *sc, struct ath_txq *txq)
 	 * FIFO end, at which point we get ready to push another
 	 * entry into the FIFO.
 	 */
-	TAILQ_FOREACH(bf, &txq->fifo.axq_q, bf_list) {
+	TAILQ_FOREACH (bf, &txq->fifo.axq_q, bf_list) {
 		/*
 		 * If we're looking for FIFOEND and we haven't found
 		 * it, skip.
@@ -435,11 +427,11 @@ ath_edma_dma_restart(struct ath_softc *sc, struct ath_txq *txq)
 		 * If we're looking for FIFOEND and we've found it,
 		 * reset for another descriptor.
 		 */
-#ifdef	ATH_DEBUG
+#ifdef ATH_DEBUG
 		if (sc->sc_debug & ATH_DEBUG_XMIT_DESC)
 			ath_printtxbuf(sc, bf, txq->axq_qnum, i, 0);
-#endif/* ATH_DEBUG */
-#ifdef	ATH_DEBUG_ALQ
+#endif /* ATH_DEBUG */
+#ifdef ATH_DEBUG_ALQ
 		if (if_ath_alq_checkdebug(&sc->sc_alq, ATH_ALQ_EDMA_TXDESC))
 			ath_tx_alq_post(sc, bf);
 #endif /* ATH_DEBUG_ALQ */
@@ -454,9 +446,7 @@ ath_edma_dma_restart(struct ath_softc *sc, struct ath_txq *txq)
 		if (txq->axq_fifo_depth >= HAL_TXFIFO_DEPTH) {
 			device_printf(sc->sc_dev,
 			    "%s: Q%d: more frames in the queue; FIFO depth=%d?!\n",
-			    __func__,
-			    txq->axq_qnum,
-			    txq->axq_fifo_depth);
+			    __func__, txq->axq_qnum, txq->axq_fifo_depth);
 		}
 
 #if 0
@@ -486,7 +476,7 @@ ath_edma_dma_restart(struct ath_softc *sc, struct ath_txq *txq)
 		 * clear fifostart so we continue looking for
 		 * said last entry.
 		 */
-		if (! (bf->bf_flags & ATH_BUF_FIFOEND))
+		if (!(bf->bf_flags & ATH_BUF_FIFOEND))
 			fifostart = 0;
 		i++;
 	}
@@ -496,19 +486,13 @@ ath_edma_dma_restart(struct ath_softc *sc, struct ath_txq *txq)
 		ath_hal_txstart(sc->sc_ah, txq->axq_qnum);
 
 	DPRINTF(sc, ATH_DEBUG_RESET, "%s: Q%d: FIFO depth was %d, is %d\n",
-	    __func__,
-	    txq->axq_qnum,
-	    old_fifo_depth,
-	    txq->axq_fifo_depth);
+	    __func__, txq->axq_qnum, old_fifo_depth, txq->axq_fifo_depth);
 
 	/* And now, let's check! */
 	if (txq->axq_fifo_depth != old_fifo_depth) {
 		device_printf(sc->sc_dev,
-		    "%s: Q%d: FIFO depth should be %d, is %d\n",
-		    __func__,
-		    txq->axq_qnum,
-		    old_fifo_depth,
-		    txq->axq_fifo_depth);
+		    "%s: Q%d: FIFO depth should be %d, is %d\n", __func__,
+		    txq->axq_qnum, old_fifo_depth, txq->axq_fifo_depth);
 	}
 }
 
@@ -584,17 +568,16 @@ ath_edma_xmit_handoff_mcast(struct ath_softc *sc, struct ath_txq *txq,
 
 		/* re-sync buffer to memory */
 		bus_dmamap_sync(sc->sc_dmat, bf_last->bf_dmamap,
-		   BUS_DMASYNC_PREWRITE);
+		    BUS_DMASYNC_PREWRITE);
 
 		/* link descriptor */
-		ath_hal_settxdesclink(sc->sc_ah,
-		    bf_last->bf_lastds,
+		ath_hal_settxdesclink(sc->sc_ah, bf_last->bf_lastds,
 		    bf->bf_daddr);
 	}
-#ifdef	ATH_DEBUG_ALQ
+#ifdef ATH_DEBUG_ALQ
 	if (if_ath_alq_checkdebug(&sc->sc_alq, ATH_ALQ_EDMA_TXDESC))
 		ath_tx_alq_post(sc, bf);
-#endif	/* ATH_DEBUG_ALQ */
+#endif /* ATH_DEBUG_ALQ */
 	ATH_TXQ_INSERT_TAIL(txq, bf, bf_list);
 	ATH_TXQ_UNLOCK(txq);
 }
@@ -621,12 +604,8 @@ ath_edma_xmit_handoff(struct ath_softc *sc, struct ath_txq *txq,
     struct ath_buf *bf)
 {
 
-	DPRINTF(sc, ATH_DEBUG_XMIT_DESC,
-	    "%s: called; bf=%p, txq=%p, qnum=%d\n",
-	    __func__,
-	    bf,
-	    txq,
-	    txq->axq_qnum);
+	DPRINTF(sc, ATH_DEBUG_XMIT_DESC, "%s: called; bf=%p, txq=%p, qnum=%d\n",
+	    __func__, bf, txq, txq->axq_qnum);
 
 	if (txq->axq_qnum == ATH_TXQ_SWQ)
 		ath_edma_xmit_handoff_mcast(sc, txq, bf);
@@ -640,11 +619,9 @@ ath_edma_setup_txfifo(struct ath_softc *sc, int qnum)
 	struct ath_tx_edma_fifo *te = &sc->sc_txedma[qnum];
 
 	te->m_fifo = malloc(sizeof(struct ath_buf *) * HAL_TXFIFO_DEPTH,
-	    M_ATHDEV,
-	    M_NOWAIT | M_ZERO);
+	    M_ATHDEV, M_NOWAIT | M_ZERO);
 	if (te->m_fifo == NULL) {
-		device_printf(sc->sc_dev, "%s: malloc failed\n",
-		    __func__);
+		device_printf(sc->sc_dev, "%s: malloc failed\n", __func__);
 		return (-ENOMEM);
 	}
 
@@ -672,15 +649,13 @@ ath_edma_dma_txsetup(struct ath_softc *sc)
 	int error;
 	int i;
 
-	error = ath_descdma_alloc_desc(sc, &sc->sc_txsdma,
-	    NULL, "txcomp", sc->sc_tx_statuslen, ATH_TXSTATUS_RING_SIZE);
+	error = ath_descdma_alloc_desc(sc, &sc->sc_txsdma, NULL, "txcomp",
+	    sc->sc_tx_statuslen, ATH_TXSTATUS_RING_SIZE);
 	if (error != 0)
 		return (error);
 
-	ath_hal_setuptxstatusring(sc->sc_ah,
-	    (void *) sc->sc_txsdma.dd_desc,
-	    sc->sc_txsdma.dd_desc_paddr,
-	    ATH_TXSTATUS_RING_SIZE);
+	ath_hal_setuptxstatusring(sc->sc_ah, (void *)sc->sc_txsdma.dd_desc,
+	    sc->sc_txsdma.dd_desc_paddr, ATH_TXSTATUS_RING_SIZE);
 
 	for (i = 0; i < HAL_NUM_TX_QUEUES; i++) {
 		ath_edma_setup_txfifo(sc, i);
@@ -713,7 +688,7 @@ ath_edma_tx_drain(struct ath_softc *sc, ATH_RESET_TYPE reset_type)
 
 	DPRINTF(sc, ATH_DEBUG_RESET, "%s: called\n", __func__);
 
-	(void) ath_stoptxdma(sc);
+	(void)ath_stoptxdma(sc);
 
 	/*
 	 * If reset type is noloss, the TX FIFO needs to be serviced
@@ -760,7 +735,7 @@ ath_edma_tx_drain(struct ath_softc *sc, ATH_RESET_TYPE reset_type)
 static void
 ath_edma_tx_proc(void *arg, int npending)
 {
-	struct ath_softc *sc = (struct ath_softc *) arg;
+	struct ath_softc *sc = (struct ath_softc *)arg;
 
 	ATH_PCU_LOCK(sc);
 	sc->sc_txproc_cnt++;
@@ -803,35 +778,34 @@ ath_edma_tx_processq(struct ath_softc *sc, int dosched)
 	int idx;
 	int i;
 
-#ifdef	ATH_DEBUG
+#ifdef ATH_DEBUG
 	/* XXX */
 	uint32_t txstatus[32];
 #endif
 
 	DPRINTF(sc, ATH_DEBUG_TX_PROC, "%s: called\n", __func__);
 
-	for (idx = 0; ; idx++) {
+	for (idx = 0;; idx++) {
 		bzero(&ts, sizeof(ts));
 
 		ATH_TXSTATUS_LOCK(sc);
-#ifdef	ATH_DEBUG
+#ifdef ATH_DEBUG
 		ath_hal_gettxrawtxdesc(ah, txstatus);
 #endif
-		status = ath_hal_txprocdesc(ah, NULL, (void *) &ts);
+		status = ath_hal_txprocdesc(ah, NULL, (void *)&ts);
 		ATH_TXSTATUS_UNLOCK(sc);
 
 		if (status == HAL_EINPROGRESS) {
 			DPRINTF(sc, ATH_DEBUG_TX_PROC,
-			    "%s: (%d): EINPROGRESS\n",
-			    __func__, idx);
+			    "%s: (%d): EINPROGRESS\n", __func__, idx);
 			break;
 		}
 
-#ifdef	ATH_DEBUG
+#ifdef ATH_DEBUG
 		if (sc->sc_debug & ATH_DEBUG_TX_PROC)
 			if (ts.ts_queue_id != sc->sc_bhalq)
-			ath_printtxstatbuf(sc, NULL, txstatus, ts.ts_queue_id,
-			    idx, (status == HAL_OK));
+				ath_printtxstatbuf(sc, NULL, txstatus,
+				    ts.ts_queue_id, idx, (status == HAL_OK));
 #endif
 
 		/*
@@ -849,8 +823,7 @@ ath_edma_tx_processq(struct ath_softc *sc, int dosched)
 #if defined(ATH_DEBUG_ALQ) && defined(ATH_DEBUG)
 		if (if_ath_alq_checkdebug(&sc->sc_alq, ATH_ALQ_EDMA_TXSTATUS)) {
 			if_ath_alq_post(&sc->sc_alq, ATH_ALQ_EDMA_TXSTATUS,
-			    sc->sc_tx_statuslen,
-			    (char *) txstatus);
+			    sc->sc_tx_statuslen, (char *)txstatus);
 		}
 #endif /* ATH_DEBUG_ALQ */
 
@@ -884,18 +857,16 @@ ath_edma_tx_processq(struct ath_softc *sc, int dosched)
 		 * debugged but not by crashing _here_.
 		 */
 		if (bf == NULL) {
-			device_printf(sc->sc_dev, "%s: Q%d: empty?\n",
-			    __func__,
+			device_printf(sc->sc_dev, "%s: Q%d: empty?\n", __func__,
 			    ts.ts_queue_id);
 			ATH_TXQ_UNLOCK(txq);
 			continue;
 		}
 
-		DPRINTF(sc, ATH_DEBUG_TX_PROC, "%s: Q%d, bf=%p, start=%d, end=%d\n",
-		    __func__,
-		    ts.ts_queue_id, bf,
-		    !! (bf->bf_flags & ATH_BUF_FIFOPTR),
-		    !! (bf->bf_flags & ATH_BUF_FIFOEND));
+		DPRINTF(sc, ATH_DEBUG_TX_PROC,
+		    "%s: Q%d, bf=%p, start=%d, end=%d\n", __func__,
+		    ts.ts_queue_id, bf, !!(bf->bf_flags & ATH_BUF_FIFOPTR),
+		    !!(bf->bf_flags & ATH_BUF_FIFOEND));
 
 		/* XXX TODO: actually output debugging info about this */
 
@@ -927,14 +898,12 @@ ath_edma_tx_processq(struct ath_softc *sc, int dosched)
 		 * If this isn't the final buffer in a FIFO set, mark
 		 * the buffer as busy so it goes onto the holding queue.
 		 */
-		if (! (bf->bf_flags & ATH_BUF_FIFOEND))
+		if (!(bf->bf_flags & ATH_BUF_FIFOEND))
 			bf->bf_flags |= ATH_BUF_BUSY;
 
-		DPRINTF(sc, ATH_DEBUG_TX_PROC, "%s: Q%d: FIFO depth is now %d (%d)\n",
-		    __func__,
-		    txq->axq_qnum,
-		    txq->axq_fifo_depth,
-		    txq->fifo.axq_depth);
+		DPRINTF(sc, ATH_DEBUG_TX_PROC,
+		    "%s: Q%d: FIFO depth is now %d (%d)\n", __func__,
+		    txq->axq_qnum, txq->axq_fifo_depth, txq->fifo.axq_depth);
 
 		/* XXX assert FIFO depth >= 0 */
 		ATH_TXQ_UNLOCK(txq);
@@ -972,16 +941,15 @@ ath_edma_tx_processq(struct ath_softc *sc, int dosched)
 			ts.ts_rate =
 			    bf->bf_state.bfs_rc[ts.ts_finaltsi].ratecode;
 			switch (ts.ts_finaltsi) {
-			case 3: ts.ts_longretry +=
-			    bf->bf_state.bfs_rc[2].tries;
-			case 2: ts.ts_longretry +=
-			    bf->bf_state.bfs_rc[1].tries;
-			case 1: ts.ts_longretry +=
-			    bf->bf_state.bfs_rc[0].tries;
+			case 3:
+				ts.ts_longretry += bf->bf_state.bfs_rc[2].tries;
+			case 2:
+				ts.ts_longretry += bf->bf_state.bfs_rc[1].tries;
+			case 1:
+				ts.ts_longretry += bf->bf_state.bfs_rc[0].tries;
 			}
 		} else {
-			device_printf(sc->sc_dev, "%s: finaltsi=%d\n",
-			    __func__,
+			device_printf(sc->sc_dev, "%s: finaltsi=%d\n", __func__,
 			    ts.ts_finaltsi);
 			ts.ts_rate = bf->bf_state.bfs_rc[0].ratecode;
 		}
@@ -1007,8 +975,7 @@ ath_edma_tx_processq(struct ath_softc *sc, int dosched)
 		    ((bf->bf_state.bfs_txflags & HAL_TXDESC_NOACK) == 0)) {
 			nacked++;
 			sc->sc_stats.ast_tx_rssi = ts.ts_rssi;
-			ATH_RSSI_LPF(sc->sc_halstats.ns_avgtxrssi,
-			    ts.ts_rssi);
+			ATH_RSSI_LPF(sc->sc_halstats.ns_avgtxrssi, ts.ts_rssi);
 			ATH_RSSI_LPF(ATH_NODE(ni)->an_node_stats.ns_avgtxrssi,
 			    ts.ts_rssi);
 		}
@@ -1058,9 +1025,9 @@ ath_xmit_setup_edma(struct ath_softc *sc)
 {
 
 	/* Fetch EDMA field and buffer sizes */
-	(void) ath_hal_gettxdesclen(sc->sc_ah, &sc->sc_tx_desclen);
-	(void) ath_hal_gettxstatuslen(sc->sc_ah, &sc->sc_tx_statuslen);
-	(void) ath_hal_getntxmaps(sc->sc_ah, &sc->sc_tx_nmaps);
+	(void)ath_hal_gettxdesclen(sc->sc_ah, &sc->sc_tx_desclen);
+	(void)ath_hal_gettxstatuslen(sc->sc_ah, &sc->sc_tx_statuslen);
+	(void)ath_hal_getntxmaps(sc->sc_ah, &sc->sc_tx_nmaps);
 
 	if (bootverbose) {
 		device_printf(sc->sc_dev, "TX descriptor length: %d\n",

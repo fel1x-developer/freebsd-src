@@ -31,6 +31,8 @@
 
 #include <sys/types.h>
 #include <sys/errno.h>
+
+#include <cam/scsi/scsi_all.h>
 #include <ctype.h>
 #include <err.h>
 #include <fcntl.h>
@@ -41,7 +43,7 @@
 #include <string.h>
 #include <strings.h>
 #include <unistd.h>
-#include <cam/scsi/scsi_all.h>
+
 #include "mfiutil.h"
 
 MFI_TABLE(top, drive);
@@ -61,8 +63,8 @@ mfi_drive_name(struct mfi_pd_info *pinfo, uint16_t device_id, uint32_t def)
 	int error, fd, len;
 
 	if ((def & MFI_DNAME_HONOR_OPTS) != 0 &&
-	    (mfi_opts & (MFI_DNAME_ES|MFI_DNAME_DEVICE_ID)) != 0)
-		def = mfi_opts & (MFI_DNAME_ES|MFI_DNAME_DEVICE_ID);
+	    (mfi_opts & (MFI_DNAME_ES | MFI_DNAME_DEVICE_ID)) != 0)
+		def = mfi_opts & (MFI_DNAME_ES | MFI_DNAME_DEVICE_ID);
 
 	buf[0] = '\0';
 	if (pinfo == NULL && def & MFI_DNAME_ES) {
@@ -101,8 +103,9 @@ mfi_drive_name(struct mfi_pd_info *pinfo, uint16_t device_id, uint32_t def)
 			len -= error;
 		}
 	}
-	if ((def & (MFI_DNAME_ES|MFI_DNAME_DEVICE_ID)) ==
-	    (MFI_DNAME_ES|MFI_DNAME_DEVICE_ID) && len >= 2) {
+	if ((def & (MFI_DNAME_ES | MFI_DNAME_DEVICE_ID)) ==
+		(MFI_DNAME_ES | MFI_DNAME_DEVICE_ID) &&
+	    len >= 2) {
 		*p++ = ' ';
 		len--;
 		*p = '\0';
@@ -110,14 +113,12 @@ mfi_drive_name(struct mfi_pd_info *pinfo, uint16_t device_id, uint32_t def)
 	}
 	if (def & MFI_DNAME_ES) {
 		if (pinfo->encl_device_id == 0xffff)
-			error = snprintf(p, len, "S%u",
-			    pinfo->slot_number);
+			error = snprintf(p, len, "S%u", pinfo->slot_number);
 		else if (pinfo->encl_device_id == pinfo->ref.v.device_id)
-			error = snprintf(p, len, "E%u",
-			    pinfo->encl_index);
+			error = snprintf(p, len, "E%u", pinfo->encl_index);
 		else
-			error = snprintf(p, len, "E%u:S%u",
-			    pinfo->encl_index, pinfo->slot_number);
+			error = snprintf(p, len, "E%u:S%u", pinfo->encl_index,
+			    pinfo->slot_number);
 		if (error >= 0) {
 			p += error;
 			len -= error;
@@ -182,17 +183,17 @@ mfi_lookup_drive(int fd, char *drive, uint16_t *device_id)
 			goto bad;
 		cp = drive;
 		if (toupper(drive[0]) == 'E') {
-			cp++;			/* Eat 'E' */
+			cp++; /* Eat 'E' */
 			val = strtol(cp, &cp, 0);
 			if (val < 0 || val > 0xff || *cp != ':')
 				goto bad;
 			encl = val;
-			cp++;			/* Eat ':' */
+			cp++; /* Eat ':' */
 			if (toupper(*cp) != 'S')
 				goto bad;
 		} else
 			encl = 0xff;
-		cp++;				/* Eat 'S' */
+		cp++; /* Eat 'S' */
 		if (*cp == '\0')
 			goto bad;
 		val = strtol(cp, &cp, 0);
@@ -211,8 +212,8 @@ mfi_lookup_drive(int fd, char *drive, uint16_t *device_id)
 				continue;
 
 			if (((encl == 0xff &&
-			    list->addr[i].encl_device_id == 0xffff) ||
-			    list->addr[i].encl_index == encl) &&
+				 list->addr[i].encl_device_id == 0xffff) ||
+				list->addr[i].encl_index == encl) &&
 			    list->addr[i].slot_number == slot) {
 				*device_id = list->addr[i].device_id;
 				free(list);
@@ -263,8 +264,8 @@ fetch:
 	list = reallocf(list, list_size);
 	if (list == NULL)
 		return (-1);
-	if (mfi_dcmd_command(fd, MFI_DCMD_PD_GET_LIST, list, list_size, NULL,
-	    0, statusp) < 0) {
+	if (mfi_dcmd_command(fd, MFI_DCMD_PD_GET_LIST, list, list_size, NULL, 0,
+		statusp) < 0) {
 		free(list);
 		return (-1);
 	}
@@ -296,8 +297,8 @@ cam_strvis(char *dst, const char *src, int srclen, int dstlen)
 	/* Trim leading/trailing spaces, nulls. */
 	while (srclen > 0 && src[0] == ' ')
 		src++, srclen--;
-	while (srclen > 0
-	    && (src[srclen-1] == ' ' || src[srclen-1] == '\0'))
+	while (
+	    srclen > 0 && (src[srclen - 1] == ' ' || src[srclen - 1] == '\0'))
 		srclen--;
 
 	while (srclen > 0 && dstlen > 1) {
@@ -331,12 +332,14 @@ const char *
 mfi_pd_inq_string(struct mfi_pd_info *info)
 {
 	struct scsi_inquiry_data iqd, *inq_data = &iqd;
-	char vendor[16], product[48], revision[16], rstr[12], serial[SID_VENDOR_SPECIFIC_0_SIZE];
+	char vendor[16], product[48], revision[16], rstr[12],
+	    serial[SID_VENDOR_SPECIFIC_0_SIZE];
 	static char inq_string[64];
 
 	memcpy(inq_data, info->inquiry_data,
-	    (sizeof (iqd) <  sizeof (info->inquiry_data))?
-	    sizeof (iqd) : sizeof (info->inquiry_data));
+	    (sizeof(iqd) < sizeof(info->inquiry_data)) ?
+		sizeof(iqd) :
+		sizeof(info->inquiry_data));
 	if (SID_QUAL_IS_VENDOR_UNIQUE(inq_data))
 		return (NULL);
 	if (SID_TYPE(inq_data) != T_DIRECT)
@@ -350,13 +353,13 @@ mfi_pd_inq_string(struct mfi_pd_info *info)
 	    sizeof(product));
 	cam_strvis(revision, inq_data->revision, sizeof(inq_data->revision),
 	    sizeof(revision));
-	cam_strvis(serial, (char *)inq_data->vendor_specific0, sizeof(inq_data->vendor_specific0),
-	    sizeof(serial));
+	cam_strvis(serial, (char *)inq_data->vendor_specific0,
+	    sizeof(inq_data->vendor_specific0), sizeof(serial));
 
 	/* Hack for SATA disks, no idea how to tell speed. */
 	if (strcmp(vendor, "ATA") == 0) {
-		snprintf(inq_string, sizeof(inq_string), "<%s %s serial=%s> SATA",
-		    product, revision, serial);
+		snprintf(inq_string, sizeof(inq_string),
+		    "<%s %s serial=%s> SATA", product, revision, serial);
 		return (inq_string);
 	}
 
@@ -368,12 +371,11 @@ mfi_pd_inq_string(struct mfi_pd_info *info)
 		strcpy(rstr, "SAS");
 		break;
 	default:
-		snprintf(rstr, sizeof (rstr), "SCSI-%d",
-		    SID_ANSI_REV(inq_data));
+		snprintf(rstr, sizeof(rstr), "SCSI-%d", SID_ANSI_REV(inq_data));
 		break;
 	}
-	snprintf(inq_string, sizeof(inq_string), "<%s %s %s serial=%s> %s", vendor,
-	    product, revision, serial, rstr);
+	snprintf(inq_string, sizeof(inq_string), "<%s %s %s serial=%s> %s",
+	    vendor, product, revision, serial, rstr);
 	return (inq_string);
 }
 
@@ -418,7 +420,7 @@ drive_set_state(char *drive, uint16_t new_state)
 	mbox[4] = new_state & 0xff;
 	mbox[5] = new_state >> 8;
 	if (mfi_dcmd_command(fd, MFI_DCMD_PD_STATE_SET, NULL, 0, mbox, 6,
-	    NULL) < 0) {
+		NULL) < 0) {
 		error = errno;
 		warn("Failed to set drive %u to %s", device_id,
 		    mfi_pdstate(new_state));
@@ -436,8 +438,8 @@ fail_drive(int ac, char **av)
 {
 
 	if (ac != 2) {
-		warnx("fail: %s", ac > 2 ? "extra arguments" :
-		    "drive required");
+		warnx("fail: %s",
+		    ac > 2 ? "extra arguments" : "drive required");
 		return (EINVAL);
 	}
 
@@ -450,8 +452,8 @@ good_drive(int ac, char **av)
 {
 
 	if (ac != 2) {
-		warnx("good: %s", ac > 2 ? "extra arguments" :
-		    "drive required");
+		warnx("good: %s",
+		    ac > 2 ? "extra arguments" : "drive required");
 		return (EINVAL);
 	}
 
@@ -464,8 +466,8 @@ rebuild_drive(int ac, char **av)
 {
 
 	if (ac != 2) {
-		warnx("rebuild: %s", ac > 2 ? "extra arguments" :
-		    "drive required");
+		warnx("rebuild: %s",
+		    ac > 2 ? "extra arguments" : "drive required");
 		return (EINVAL);
 	}
 
@@ -478,8 +480,8 @@ syspd_drive(int ac, char **av)
 {
 
 	if (ac != 2) {
-		warnx("syspd: %s", ac > 2 ? "extra arguments" :
-		    "drive required");
+		warnx("syspd: %s",
+		    ac > 2 ? "extra arguments" : "drive required");
 		return (EINVAL);
 	}
 
@@ -496,8 +498,8 @@ start_rebuild(int ac, char **av)
 	int error, fd;
 
 	if (ac != 2) {
-		warnx("start rebuild: %s", ac > 2 ? "extra arguments" :
-		    "drive required");
+		warnx("start rebuild: %s",
+		    ac > 2 ? "extra arguments" : "drive required");
 		return (EINVAL);
 	}
 
@@ -532,7 +534,7 @@ start_rebuild(int ac, char **av)
 	/* Start the rebuild. */
 	mbox_store_pdref(&mbox[0], &info.ref);
 	if (mfi_dcmd_command(fd, MFI_DCMD_PD_REBUILD_START, NULL, 0, mbox, 4,
-	    NULL) < 0) {
+		NULL) < 0) {
 		error = errno;
 		warn("Failed to start rebuild on drive %u", device_id);
 		close(fd);
@@ -553,8 +555,8 @@ abort_rebuild(int ac, char **av)
 	int error, fd;
 
 	if (ac != 2) {
-		warnx("abort rebuild: %s", ac > 2 ? "extra arguments" :
-		    "drive required");
+		warnx("abort rebuild: %s",
+		    ac > 2 ? "extra arguments" : "drive required");
 		return (EINVAL);
 	}
 
@@ -589,7 +591,7 @@ abort_rebuild(int ac, char **av)
 	/* Abort the rebuild. */
 	mbox_store_pdref(&mbox[0], &info.ref);
 	if (mfi_dcmd_command(fd, MFI_DCMD_PD_REBUILD_ABORT, NULL, 0, mbox, 4,
-	    NULL) < 0) {
+		NULL) < 0) {
 		error = errno;
 		warn("Failed to abort rebuild on drive %u", device_id);
 		close(fd);
@@ -609,8 +611,8 @@ drive_progress(int ac, char **av)
 	int error, fd;
 
 	if (ac != 2) {
-		warnx("drive progress: %s", ac > 2 ? "extra arguments" :
-		    "drive required");
+		warnx("drive progress: %s",
+		    ac > 2 ? "extra arguments" : "drive required");
 		return (EINVAL);
 	}
 
@@ -643,11 +645,12 @@ drive_progress(int ac, char **av)
 		mfi_display_progress("Patrol Read", &info.prog_info.patrol);
 	if (info.prog_info.active & MFI_PD_PROGRESS_CLEAR)
 		mfi_display_progress("Clear", &info.prog_info.clear);
-	if ((info.prog_info.active & (MFI_PD_PROGRESS_REBUILD |
-	    MFI_PD_PROGRESS_PATROL | MFI_PD_PROGRESS_CLEAR)) == 0)
+	if ((info.prog_info.active &
+		(MFI_PD_PROGRESS_REBUILD | MFI_PD_PROGRESS_PATROL |
+		    MFI_PD_PROGRESS_CLEAR)) == 0)
 		printf("No activity in progress for drive %s.\n",
-		mfi_drive_name(NULL, device_id,
-		    MFI_DNAME_DEVICE_ID|MFI_DNAME_HONOR_OPTS));
+		    mfi_drive_name(NULL, device_id,
+			MFI_DNAME_DEVICE_ID | MFI_DNAME_HONOR_OPTS));
 
 	return (0);
 }
@@ -664,8 +667,8 @@ drive_clear(int ac, char **av)
 	int error, fd;
 
 	if (ac != 3) {
-		warnx("drive clear: %s", ac > 3 ? "extra arguments" :
-		    "drive and action requires");
+		warnx("drive clear: %s",
+		    ac > 3 ? "extra arguments" : "drive and action requires");
 		return (EINVAL);
 	}
 
@@ -676,7 +679,8 @@ drive_clear(int ac, char **av)
 	else if ((strcmp(av[2], "stop") == 0) || (strcmp(av[2], "abort") == 0))
 		opcode = MFI_DCMD_PD_CLEAR_ABORT;
 	else {
-		warnx("drive clear: invalid action, must be 'start' or 'stop'\n");
+		warnx(
+		    "drive clear: invalid action, must be 'start' or 'stop'\n");
 		return (EINVAL);
 	}
 
@@ -725,8 +729,8 @@ drive_locate(int ac, char **av)
 	uint8_t mbox[4];
 
 	if (ac != 3) {
-		warnx("locate: %s", ac > 3 ? "extra arguments" :
-		    "drive and state required");
+		warnx("locate: %s",
+		    ac > 3 ? "extra arguments" : "drive and state required");
 		return (EINVAL);
 	}
 
@@ -752,7 +756,6 @@ drive_locate(int ac, char **av)
 		close(fd);
 		return (error);
 	}
-
 
 	mbox_store_device_id(&mbox[0], device_id);
 	mbox[2] = 0;

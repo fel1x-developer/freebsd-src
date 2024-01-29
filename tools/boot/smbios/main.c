@@ -17,25 +17,26 @@
 #define SMBIOS_SERIAL_NUMBERS 1
 #define SMBIOS_LITTLE_ENDIAN_UUID 1
 
+#include <sys/mman.h>
+
 #include <arpa/inet.h>
 
 #include "smbios.h"
+
 #include "smbios.c"
 
-#include <sys/mman.h>
+#define MAX_MAP 10
+#define PAGE (64 << 10)
 
-#define MAX_MAP	10
-#define PAGE	(64<<10)
-
-static struct mapping 
-{
+static struct mapping {
 	uintptr_t pa;
 	caddr_t va;
 } map[MAX_MAP];
 static int fd;
 static int nmap;
 
-caddr_t ptov(uintptr_t pa)
+caddr_t
+ptov(uintptr_t pa)
 {
 	caddr_t va;
 	uintptr_t pa2;
@@ -83,7 +84,7 @@ int
 main(int argc, char **argv)
 {
 	uintptr_t addr;
-	
+
 	if (argc != 2)
 		usage();
 	addr = strtoull(argv[1], NULL, 0);

@@ -51,8 +51,7 @@ snprintf__two_formatters(void)
 {
 	char buffer[128];
 
-	if (snprintf(buffer, sizeof(buffer), "%s, %s!", "Hello",
-	    "tests") <= 0)
+	if (snprintf(buffer, sizeof(buffer), "%s, %s!", "Hello", "tests") <= 0)
 		errx(EXIT_FAILURE, "snprintf with two formatters failed");
 
 	if (strcmp(buffer, "Hello, tests!") != 0)
@@ -65,7 +64,8 @@ snprintf__overflow(void)
 	char buffer[10];
 
 	if (snprintf(buffer, sizeof(buffer), "0123456789abcdef") != 16)
-		errx(EXIT_FAILURE, "snprintf did not return the expected "
+		errx(EXIT_FAILURE,
+		    "snprintf did not return the expected "
 		    "number of characters");
 
 	if (strcmp(buffer, "012345678") != 0)

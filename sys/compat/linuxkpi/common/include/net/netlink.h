@@ -23,16 +23,15 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_LINUXKPI_NET_NETLINK_H
-#define	_LINUXKPI_NET_NETLINK_H
+#ifndef _LINUXKPI_NET_NETLINK_H
+#define _LINUXKPI_NET_NETLINK_H
 
 #include <netlink/netlink.h>
 
-struct nla_policy {
-};
+struct nla_policy { };
 
 struct netlink_callback {
-	int		args[8];
+	int args[8];
 };
 
 static __inline int
@@ -50,4 +49,4 @@ nla_put_u16(struct sk_buff *skb, int attr, uint32_t val)
 	return (nla_put(skb, attr, sizeof(uint32_t), &val));
 }
 
-#endif	/* _LINUXKPI_NET_NETLINK_H */
+#endif /* _LINUXKPI_NET_NETLINK_H */

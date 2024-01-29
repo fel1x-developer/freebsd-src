@@ -26,47 +26,43 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
-#include "diag.h"
-
 #include "ah.h"
 #include "ah_internal.h"
+#include "diag.h"
 /* XXX cheat, 5212 has a superset of the key table defs */
-#include "ar5212/ar5212reg.h"
-
-#include "dumpregs.h"
-
+#include <ctype.h>
+#include <err.h>
 #include <getopt.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
-#include <err.h>
 
+#include "ar5212/ar5212reg.h"
 #include "ctrl.h"
+#include "dumpregs.h"
 
 typedef struct {
 	HAL_REVS revs;
 	u_int32_t regdata[0xffff / sizeof(u_int32_t)];
-#define	MAXREGS	5*1024
+#define MAXREGS 5 * 1024
 	struct dumpreg *regs[MAXREGS];
 	u_int nregs;
-	u_int	show_names	: 1,
-		show_addrs	: 1;
+	u_int show_names : 1, show_addrs : 1;
 } dumpregs_t;
-static	dumpregs_t state;
+static dumpregs_t state;
 
 #undef OS_REG_READ
-#define	OS_REG_READ(ah, off)	state.regdata[(off) >> 2]
+#define OS_REG_READ(ah, off) state.regdata[(off) >> 2]
 
-static	int ath_hal_anyregs(int what);
-static	int ath_hal_setupregs(struct ath_diag *atd, int what);
-static	u_int ath_hal_setupdiagregs(const HAL_REGRANGE regs[], u_int nr);
-static	void ath_hal_dumpregs(FILE *fd, int what);
-static	void ath_hal_dumprange(FILE *fd, u_int a, u_int b);
-static	void ath_hal_dumpkeycache(FILE *fd, int nkeys);
-static	void ath_hal_dumpint(FILE *fd, int what);
-static	void ath_hal_dumpqcu(FILE *fd, int what);
-static	void ath_hal_dumpdcu(FILE *fd, int what);
-static	void ath_hal_dumpbb(FILE *fd, int what);
+static int ath_hal_anyregs(int what);
+static int ath_hal_setupregs(struct ath_diag *atd, int what);
+static u_int ath_hal_setupdiagregs(const HAL_REGRANGE regs[], u_int nr);
+static void ath_hal_dumpregs(FILE *fd, int what);
+static void ath_hal_dumprange(FILE *fd, u_int a, u_int b);
+static void ath_hal_dumpkeycache(FILE *fd, int nkeys);
+static void ath_hal_dumpint(FILE *fd, int what);
+static void ath_hal_dumpqcu(FILE *fd, int what);
+static void ath_hal_dumpdcu(FILE *fd, int what);
+static void ath_hal_dumpbb(FILE *fd, int what);
 
 static void
 usage(void)
@@ -154,7 +150,7 @@ main(int argc, char *argv[])
 	 * Whilst we're doing the ath_diag pieces, we have to set this
 	 * ourselves.
 	 */
-	strncpy(atd.ad_name, ifname, sizeof (atd.ad_name));
+	strncpy(atd.ad_name, ifname, sizeof(atd.ad_name));
 
 	argc -= optind;
 	argv += optind;
@@ -162,24 +158,25 @@ main(int argc, char *argv[])
 		what = DUMP_BASIC;
 
 	atd.ad_id = HAL_DIAG_REVS;
-	atd.ad_out_data = (caddr_t) &state.revs;
+	atd.ad_out_data = (caddr_t)&state.revs;
 	atd.ad_out_size = sizeof(state.revs);
 
 	if (ath_driver_req_fetch_diag(&req, SIOCGATHDIAG, &atd) < 0)
 		err(1, "%s", atd.ad_name);
 
 	if (ath_hal_setupregs(&atd, what) == 0)
-		errx(-1, "no registers are known for this part "
-		    "(devid 0x%x mac %d.%d phy %d)", state.revs.ah_devid,
-		    state.revs.ah_macVersion, state.revs.ah_macRev,
-		    state.revs.ah_phyRev);
+		errx(-1,
+		    "no registers are known for this part "
+		    "(devid 0x%x mac %d.%d phy %d)",
+		    state.revs.ah_devid, state.revs.ah_macVersion,
+		    state.revs.ah_macRev, state.revs.ah_phyRev);
 
-	atd.ad_out_size = ath_hal_setupdiagregs((HAL_REGRANGE *) atd.ad_in_data,
-		atd.ad_in_size / sizeof(HAL_REGRANGE));
-	atd.ad_out_data = (caddr_t) malloc(atd.ad_out_size);
+	atd.ad_out_size = ath_hal_setupdiagregs((HAL_REGRANGE *)atd.ad_in_data,
+	    atd.ad_in_size / sizeof(HAL_REGRANGE));
+	atd.ad_out_data = (caddr_t)malloc(atd.ad_out_size);
 	if (atd.ad_out_data == NULL) {
 		fprintf(stderr, "Cannot malloc output buffer, size %u\n",
-			atd.ad_out_size);
+		    atd.ad_out_size);
 		exit(-1);
 	}
 	atd.ad_id = HAL_DIAG_REGS | ATH_DIAG_IN | ATH_DIAG_DYN;
@@ -194,22 +191,24 @@ main(int argc, char *argv[])
 	dp = (u_int32_t *)atd.ad_out_data;
 	ep = (u_int32_t *)(atd.ad_out_data + atd.ad_out_size);
 	while (dp < ep) {
-		u_int r = dp[0];	/* start of range */
-		u_int e = dp[1];	/* end of range */
+		u_int r = dp[0]; /* start of range */
+		u_int e = dp[1]; /* end of range */
 		dp++;
 		dp++;
 		/* convert offsets to indices */
-		r >>= 2; e >>= 2;
+		r >>= 2;
+		e >>= 2;
 		do {
 			if (dp >= ep) {
-				fprintf(stderr, "Warning, botched return data;"
-					"register at offset 0x%x not present\n",
-					r << 2);
+				fprintf(stderr,
+				    "Warning, botched return data;"
+				    "register at offset 0x%x not present\n",
+				    r << 2);
 				break;
 			}
 			state.regdata[r++] = *dp++;
 		} while (r <= e);
-	} 
+	}
 
 	if (what & DUMP_BASIC)
 		ath_hal_dumpregs(stdout, DUMP_BASIC);
@@ -222,7 +221,7 @@ main(int argc, char *argv[])
 			ath_hal_dumpint(stdout, what);
 	}
 	if ((what & DUMP_QCU) && ath_hal_anyregs(DUMP_QCU)) {
-		if (what & (DUMP_BASIC|DUMP_INTERRUPT))
+		if (what & (DUMP_BASIC | DUMP_INTERRUPT))
 			putchar('\n');
 		if (state.show_addrs)
 			ath_hal_dumpregs(stdout, DUMP_QCU);
@@ -230,7 +229,7 @@ main(int argc, char *argv[])
 			ath_hal_dumpqcu(stdout, what);
 	}
 	if ((what & DUMP_DCU) && ath_hal_anyregs(DUMP_DCU)) {
-		if (what & (DUMP_BASIC|DUMP_INTERRUPT|DUMP_QCU))
+		if (what & (DUMP_BASIC | DUMP_INTERRUPT | DUMP_QCU))
 			putchar('\n');
 		if (state.show_addrs)
 			ath_hal_dumpregs(stdout, DUMP_DCU);
@@ -239,14 +238,15 @@ main(int argc, char *argv[])
 	}
 	if (what & DUMP_KEYCACHE) {
 		if (state.show_addrs) {
-			if (what & (DUMP_BASIC|DUMP_INTERRUPT|DUMP_QCU|DUMP_DCU))
+			if (what &
+			    (DUMP_BASIC | DUMP_INTERRUPT | DUMP_QCU | DUMP_DCU))
 				putchar('\n');
 			ath_hal_dumpregs(stdout, DUMP_KEYCACHE);
 		} else
 			ath_hal_dumpkeycache(stdout, 128);
 	}
 	if (what & DUMP_BASEBAND) {
-		if (what &~ DUMP_BASEBAND)
+		if (what & ~DUMP_BASEBAND)
 			fprintf(stdout, "\n");
 		ath_hal_dumpbb(stdout, what);
 	}
@@ -263,8 +263,8 @@ regcompar(const void *a, const void *b)
 }
 
 void
-register_regs(struct dumpreg *chipregs, u_int nchipregs,
-	int def_srev_min, int def_srev_max, int def_phy_min, int def_phy_max)
+register_regs(struct dumpreg *chipregs, u_int nchipregs, int def_srev_min,
+    int def_srev_max, int def_phy_min, int def_phy_max)
 {
 	const int existing_regs = state.nregs;
 	int i, j;
@@ -287,17 +287,17 @@ register_regs(struct dumpreg *chipregs, u_int nchipregs,
 			 */
 			if (nr->addr == r->addr &&
 			    (nr->name == r->name ||
-			     nr->name != NULL && r->name != NULL &&
-			     strcmp(nr->name, r->name) == 0)) {
+				nr->name != NULL && r->name != NULL &&
+				    strcmp(nr->name, r->name) == 0)) {
 				if (nr->srevMin < r->srevMin &&
 				    (r->srevMin <= nr->srevMax &&
-				     nr->srevMax+1 <= r->srevMax)) {
+					nr->srevMax + 1 <= r->srevMax)) {
 					r->srevMin = nr->srevMin;
 					goto skip;
 				}
 				if (nr->srevMax > r->srevMax &&
 				    (r->srevMin <= nr->srevMin &&
-				     nr->srevMin <= r->srevMax)) {
+					nr->srevMin <= r->srevMax)) {
 					r->srevMax = nr->srevMax;
 					goto skip;
 				}
@@ -311,23 +311,25 @@ register_regs(struct dumpreg *chipregs, u_int nchipregs,
 		if (state.nregs == MAXREGS)
 			errx(-1, "too many registers; bump MAXREGS");
 		state.regs[state.nregs++] = nr;
-	skip:
-		;
+	skip:;
 	}
 	qsort(state.regs, state.nregs, sizeof(struct dumpreg *), regcompar);
 }
 
 void
-register_keycache(u_int nslots,
-	int def_srev_min, int def_srev_max, int def_phy_min, int def_phy_max)
+register_keycache(u_int nslots, int def_srev_min, int def_srev_max,
+    int def_phy_min, int def_phy_max)
 {
-#define	SET(r, a) do { \
-	r->addr = a; r->type = DUMP_KEYCACHE; r++; \
-} while(0)
+#define SET(r, a)                        \
+	do {                             \
+		r->addr = a;             \
+		r->type = DUMP_KEYCACHE; \
+		r++;                     \
+	} while (0)
 	struct dumpreg *keyregs, *r;
 	int i;
 
-	keyregs = (struct dumpreg *) calloc(nslots, 8*sizeof(struct dumpreg));
+	keyregs = (struct dumpreg *)calloc(nslots, 8 * sizeof(struct dumpreg));
 	if (keyregs == NULL)
 		errx(-1, "no space to %d keycache slots\n", nslots);
 	r = keyregs;
@@ -341,31 +343,31 @@ register_keycache(u_int nslots,
 		SET(r, AR_KEYTABLE_MAC0(i));
 		SET(r, AR_KEYTABLE_MAC1(i));
 	}
-	register_regs(keyregs, 8*nslots,
-	    def_srev_min, def_srev_max, def_phy_min, def_phy_max);
+	register_regs(keyregs, 8 * nslots, def_srev_min, def_srev_max,
+	    def_phy_min, def_phy_max);
 #undef SET
 }
 
 void
-register_range(u_int brange, u_int erange, int type,
-	int def_srev_min, int def_srev_max, int def_phy_min, int def_phy_max)
+register_range(u_int brange, u_int erange, int type, int def_srev_min,
+    int def_srev_max, int def_phy_min, int def_phy_max)
 {
 	struct dumpreg *bbregs, *r;
 	int i, nregs;
 
 	nregs = (erange - brange) / sizeof(uint32_t);
-	bbregs = (struct dumpreg *) calloc(nregs, sizeof(struct dumpreg));
+	bbregs = (struct dumpreg *)calloc(nregs, sizeof(struct dumpreg));
 	if (bbregs == NULL)
-		errx(-1, "no space for %d register slots (type %d)\n",
-		    nregs, type);
+		errx(-1, "no space for %d register slots (type %d)\n", nregs,
+		    type);
 	r = bbregs;
 	for (i = 0; i < nregs; i++) {
-		r->addr = brange + (i<<2);
+		r->addr = brange + (i << 2);
 		r->type = type;
 		r++;
 	}
-	register_regs(bbregs, nregs,
-	    def_srev_min, def_srev_max, def_phy_min, def_phy_max);
+	register_regs(bbregs, nregs, def_srev_min, def_srev_max, def_phy_min,
+	    def_phy_max);
 }
 
 static __inline int
@@ -415,13 +417,13 @@ ath_hal_setupregs(struct ath_diag *atd, int what)
 	}
 	space += sizeof(HAL_REGRANGE);
 
-	atd->ad_in_data = (caddr_t) malloc(space);
+	atd->ad_in_data = (caddr_t)malloc(space);
 	if (atd->ad_in_data == NULL) {
 		fprintf(stderr, "Cannot malloc memory for registers!\n");
 		exit(-1);
 	}
 	atd->ad_in_size = space;
-	cp = (u_int8_t *) atd->ad_in_data;
+	cp = (u_int8_t *)atd->ad_in_data;
 	brun = erun = -1;
 	for (i = 0; i < state.nregs; i++) {
 		const struct dumpreg *dr = state.regs[i];
@@ -480,42 +482,29 @@ ath_hal_dumprange(FILE *fd, u_int a, u_int b)
 {
 	u_int r;
 
-	for (r = a; r+16 <= b; r += 5*4)
+	for (r = a; r + 16 <= b; r += 5 * 4)
 		fprintf(fd,
-			"%04x %08x  %04x %08x  %04x %08x  %04x %08x  %04x %08x\n"
-			, r, OS_REG_READ(ah, r)
-			, r+4, OS_REG_READ(ah, r+4)
-			, r+8, OS_REG_READ(ah, r+8)
-			, r+12, OS_REG_READ(ah, r+12)
-			, r+16, OS_REG_READ(ah, r+16)
-		);
-	switch (b-r) {
+		    "%04x %08x  %04x %08x  %04x %08x  %04x %08x  %04x %08x\n",
+		    r, OS_REG_READ(ah, r), r + 4, OS_REG_READ(ah, r + 4), r + 8,
+		    OS_REG_READ(ah, r + 8), r + 12, OS_REG_READ(ah, r + 12),
+		    r + 16, OS_REG_READ(ah, r + 16));
+	switch (b - r) {
 	case 16:
-		fprintf(fd
-			, "%04x %08x  %04x %08x  %04x %08x  %04x %08x\n"
-			, r, OS_REG_READ(ah, r)
-			, r+4, OS_REG_READ(ah, r+4)
-			, r+8, OS_REG_READ(ah, r+8)
-			, r+12, OS_REG_READ(ah, r+12)
-		);
+		fprintf(fd, "%04x %08x  %04x %08x  %04x %08x  %04x %08x\n", r,
+		    OS_REG_READ(ah, r), r + 4, OS_REG_READ(ah, r + 4), r + 8,
+		    OS_REG_READ(ah, r + 8), r + 12, OS_REG_READ(ah, r + 12));
 		break;
 	case 12:
-		fprintf(fd, "%04x %08x  %04x %08x  %04x %08x\n"
-			, r, OS_REG_READ(ah, r)
-			, r+4, OS_REG_READ(ah, r+4)
-			, r+8, OS_REG_READ(ah, r+8)
-		);
+		fprintf(fd, "%04x %08x  %04x %08x  %04x %08x\n", r,
+		    OS_REG_READ(ah, r), r + 4, OS_REG_READ(ah, r + 4), r + 8,
+		    OS_REG_READ(ah, r + 8));
 		break;
 	case 8:
-		fprintf(fd, "%04x %08x  %04x %08x\n"
-			, r, OS_REG_READ(ah, r)
-			, r+4, OS_REG_READ(ah, r+4)
-		);
+		fprintf(fd, "%04x %08x  %04x %08x\n", r, OS_REG_READ(ah, r),
+		    r + 4, OS_REG_READ(ah, r + 4));
 		break;
 	case 4:
-		fprintf(fd, "%04x %08x\n"
-			, r, OS_REG_READ(ah, r)
-		);
+		fprintf(fd, "%04x %08x\n", r, OS_REG_READ(ah, r));
 		break;
 	}
 }
@@ -526,22 +515,14 @@ ath_hal_dumpint(FILE *fd, int what)
 	int i;
 
 	/* Interrupt registers */
-	fprintf(fd, "IMR: %08x S0 %08x S1 %08x S2 %08x S3 %08x S4 %08x\n"
-		, OS_REG_READ(ah, AR_IMR)
-		, OS_REG_READ(ah, AR_IMR_S0)
-		, OS_REG_READ(ah, AR_IMR_S1)
-		, OS_REG_READ(ah, AR_IMR_S2)
-		, OS_REG_READ(ah, AR_IMR_S3)
-		, OS_REG_READ(ah, AR_IMR_S4)
-	);
-	fprintf(fd, "ISR: %08x S0 %08x S1 %08x S2 %08x S3 %08x S4 %08x\n"
-		, OS_REG_READ(ah, AR_ISR)
-		, OS_REG_READ(ah, AR_ISR_S0)
-		, OS_REG_READ(ah, AR_ISR_S1)
-		, OS_REG_READ(ah, AR_ISR_S2)
-		, OS_REG_READ(ah, AR_ISR_S3)
-		, OS_REG_READ(ah, AR_ISR_S4)
-	);
+	fprintf(fd, "IMR: %08x S0 %08x S1 %08x S2 %08x S3 %08x S4 %08x\n",
+	    OS_REG_READ(ah, AR_IMR), OS_REG_READ(ah, AR_IMR_S0),
+	    OS_REG_READ(ah, AR_IMR_S1), OS_REG_READ(ah, AR_IMR_S2),
+	    OS_REG_READ(ah, AR_IMR_S3), OS_REG_READ(ah, AR_IMR_S4));
+	fprintf(fd, "ISR: %08x S0 %08x S1 %08x S2 %08x S3 %08x S4 %08x\n",
+	    OS_REG_READ(ah, AR_ISR), OS_REG_READ(ah, AR_ISR_S0),
+	    OS_REG_READ(ah, AR_ISR_S1), OS_REG_READ(ah, AR_ISR_S2),
+	    OS_REG_READ(ah, AR_ISR_S3), OS_REG_READ(ah, AR_ISR_S4));
 }
 
 static void
@@ -550,24 +531,19 @@ ath_hal_dumpqcu(FILE *fd, int what)
 	int i;
 
 	/* QCU registers */
-	fprintf(fd, "%-8s %08x  %-8s %08x  %-8s %08x\n"
-		, "Q_TXE", OS_REG_READ(ah, AR_Q_TXE)
-		, "Q_TXD", OS_REG_READ(ah, AR_Q_TXD)
-		, "Q_RDYTIMSHD", OS_REG_READ(ah, AR_Q_RDYTIMESHDN)
-	);
-	fprintf(fd, "Q_ONESHOTARM_SC %08x  Q_ONESHOTARM_CC %08x\n"
-		, OS_REG_READ(ah, AR_Q_ONESHOTARM_SC)
-		, OS_REG_READ(ah, AR_Q_ONESHOTARM_CC)
-	);
+	fprintf(fd, "%-8s %08x  %-8s %08x  %-8s %08x\n", "Q_TXE",
+	    OS_REG_READ(ah, AR_Q_TXE), "Q_TXD", OS_REG_READ(ah, AR_Q_TXD),
+	    "Q_RDYTIMSHD", OS_REG_READ(ah, AR_Q_RDYTIMESHDN));
+	fprintf(fd, "Q_ONESHOTARM_SC %08x  Q_ONESHOTARM_CC %08x\n",
+	    OS_REG_READ(ah, AR_Q_ONESHOTARM_SC),
+	    OS_REG_READ(ah, AR_Q_ONESHOTARM_CC));
 	for (i = 0; i < 10; i++)
-		fprintf(fd, "Q[%u] TXDP %08x CBR %08x RDYT %08x MISC %08x STS %08x\n"
-			, i
-			, OS_REG_READ(ah, AR_QTXDP(i))
-			, OS_REG_READ(ah, AR_QCBRCFG(i))
-			, OS_REG_READ(ah, AR_QRDYTIMECFG(i))
-			, OS_REG_READ(ah, AR_QMISC(i))
-			, OS_REG_READ(ah, AR_QSTS(i))
-		);
+		fprintf(fd,
+		    "Q[%u] TXDP %08x CBR %08x RDYT %08x MISC %08x STS %08x\n",
+		    i, OS_REG_READ(ah, AR_QTXDP(i)),
+		    OS_REG_READ(ah, AR_QCBRCFG(i)),
+		    OS_REG_READ(ah, AR_QRDYTIMECFG(i)),
+		    OS_REG_READ(ah, AR_QMISC(i)), OS_REG_READ(ah, AR_QSTS(i)));
 }
 
 static void
@@ -577,14 +553,13 @@ ath_hal_dumpdcu(FILE *fd, int what)
 
 	/* DCU registers */
 	for (i = 0; i < 10; i++)
-		fprintf(fd, "D[%u] MASK %08x IFS %08x RTRY %08x CHNT %08x MISC %06x\n"
-			, i
-			, OS_REG_READ(ah, AR_DQCUMASK(i))
-			, OS_REG_READ(ah, AR_DLCL_IFS(i))
-			, OS_REG_READ(ah, AR_DRETRY_LIMIT(i))
-			, OS_REG_READ(ah, AR_DCHNTIME(i))
-			, OS_REG_READ(ah, AR_DMISC(i))
-		);
+		fprintf(fd,
+		    "D[%u] MASK %08x IFS %08x RTRY %08x CHNT %08x MISC %06x\n",
+		    i, OS_REG_READ(ah, AR_DQCUMASK(i)),
+		    OS_REG_READ(ah, AR_DLCL_IFS(i)),
+		    OS_REG_READ(ah, AR_DRETRY_LIMIT(i)),
+		    OS_REG_READ(ah, AR_DCHNTIME(i)),
+		    OS_REG_READ(ah, AR_DMISC(i)));
 }
 
 static void
@@ -625,12 +600,14 @@ ath_hal_setupdiagregs(const HAL_REGRANGE regs[], u_int nr)
 
 	space = 0;
 	for (i = 0; i < nr; i++) {
-		u_int n = sizeof(HAL_REGRANGE) + sizeof(u_int32_t);	/* reg range + first */
+		u_int n = sizeof(HAL_REGRANGE) +
+		    sizeof(u_int32_t); /* reg range + first */
 		if (regs[i].end) {
 			if (regs[i].end < regs[i].start) {
-				fprintf(stderr, "%s: bad register range, "
-					"end 0x%x < start 0x%x\n",
-					__func__, regs[i].end, regs[i].end);
+				fprintf(stderr,
+				    "%s: bad register range, "
+				    "end 0x%x < start 0x%x\n",
+				    __func__, regs[i].end, regs[i].end);
 				exit(-1);
 			}
 			n += regs[i].end - regs[i].start;
@@ -643,39 +620,40 @@ ath_hal_setupdiagregs(const HAL_REGRANGE regs[], u_int nr)
 /*
  * Format an Ethernet MAC for printing.
  */
-static const char*
+static const char *
 ether_sprintf(const u_int8_t *mac)
 {
 	static char etherbuf[18];
 	snprintf(etherbuf, sizeof(etherbuf), "%02x:%02x:%02x:%02x:%02x:%02x",
-		mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+	    mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 	return etherbuf;
 }
 
 #ifndef isclr
-#define	setbit(a,i)	((a)[(i)/NBBY] |= 1<<((i)%NBBY))
-#define	clrbit(a,i)	((a)[(i)/NBBY] &= ~(1<<((i)%NBBY)))
-#define	isset(a,i)	((a)[(i)/NBBY] & (1<<((i)%NBBY)))
-#define	isclr(a,i)	(((a)[(i)/NBBY] & (1<<((i)%NBBY))) == 0)
+#define setbit(a, i) ((a)[(i) / NBBY] |= 1 << ((i) % NBBY))
+#define clrbit(a, i) ((a)[(i) / NBBY] &= ~(1 << ((i) % NBBY)))
+#define isset(a, i) ((a)[(i) / NBBY] & (1 << ((i) % NBBY)))
+#define isclr(a, i) (((a)[(i) / NBBY] & (1 << ((i) % NBBY))) == 0)
 #endif
 
 static void
 ath_hal_dumpkeycache(FILE *fd, int nkeys)
 {
 	static const char *keytypenames[] = {
-		"WEP-40", 	/* AR_KEYTABLE_TYPE_40 */
-		"WEP-104",	/* AR_KEYTABLE_TYPE_104 */
-		"#2",
-		"WEP-128",	/* AR_KEYTABLE_TYPE_128 */
-		"TKIP",		/* AR_KEYTABLE_TYPE_TKIP */
-		"AES-OCB",	/* AR_KEYTABLE_TYPE_AES */
-		"AES-CCM",	/* AR_KEYTABLE_TYPE_CCM */
-		"CLR",		/* AR_KEYTABLE_TYPE_CLR */
+		"WEP-40",	 /* AR_KEYTABLE_TYPE_40 */
+		"WEP-104",	 /* AR_KEYTABLE_TYPE_104 */
+		"#2", "WEP-128", /* AR_KEYTABLE_TYPE_128 */
+		"TKIP",		 /* AR_KEYTABLE_TYPE_TKIP */
+		"AES-OCB",	 /* AR_KEYTABLE_TYPE_AES */
+		"AES-CCM",	 /* AR_KEYTABLE_TYPE_CCM */
+		"CLR",		 /* AR_KEYTABLE_TYPE_CLR */
 	};
-	int micEnabled = SREV(state.revs.ah_macVersion, state.revs.ah_macRev) < SREV(4,8) ? 0 :
-	       OS_REG_READ(ah, AR_STA_ID1) & AR_STA_ID1_CRPT_MIC_ENABLE;
+	int micEnabled = SREV(state.revs.ah_macVersion, state.revs.ah_macRev) <
+		SREV(4, 8) ?
+	    0 :
+	    OS_REG_READ(ah, AR_STA_ID1) & AR_STA_ID1_CRPT_MIC_ENABLE;
 	u_int8_t mac[IEEE80211_ADDR_LEN];
-	u_int8_t ismic[128/NBBY];
+	u_int8_t ismic[128 / NBBY];
 	int entry;
 	int first = 1;
 
@@ -689,7 +667,7 @@ ath_hal_dumpkeycache(FILE *fd, int nkeys)
 			continue;
 		macLo = OS_REG_READ(ah, AR_KEYTABLE_MAC0(entry));
 		macHi <<= 1;
-		if (macLo & (1<<31))
+		if (macLo & (1 << 31))
 			macHi |= 1;
 		macLo <<= 1;
 		mac[4] = macHi & 0xff;
@@ -700,7 +678,7 @@ ath_hal_dumpkeycache(FILE *fd, int nkeys)
 		mac[3] = macLo >> 24;
 		type = OS_REG_READ(ah, AR_KEYTABLE_TYPE(entry));
 		if ((type & 7) == AR_KEYTABLE_TYPE_TKIP && micEnabled)
-			setbit(ismic, entry+64);
+			setbit(ismic, entry + 64);
 		key0 = OS_REG_READ(ah, AR_KEYTABLE_KEY0(entry));
 		key1 = OS_REG_READ(ah, AR_KEYTABLE_KEY1(entry));
 		key2 = OS_REG_READ(ah, AR_KEYTABLE_KEY2(entry));
@@ -710,26 +688,15 @@ ath_hal_dumpkeycache(FILE *fd, int nkeys)
 			fprintf(fd, "\n");
 			first = 0;
 		}
-		fprintf(fd, "KEY[%03u] MAC %s %-7s %02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x\n"
-			, entry
-			, ether_sprintf(mac)
-			, isset(ismic, entry) ? "MIC" : keytypenames[type & 7]
-			, (key0 >>  0) & 0xff
-			, (key0 >>  8) & 0xff
-			, (key0 >> 16) & 0xff
-			, (key0 >> 24) & 0xff
-			, (key1 >>  0) & 0xff
-			, (key1 >>  8) & 0xff
-			, (key2 >>  0) & 0xff
-			, (key2 >>  8) & 0xff
-			, (key2 >> 16) & 0xff
-			, (key2 >> 24) & 0xff
-			, (key3 >>  0) & 0xff
-			, (key3 >>  8) & 0xff
-			, (key4 >>  0) & 0xff
-			, (key4 >>  8) & 0xff
-			, (key4 >> 16) & 0xff
-			, (key4 >> 24) & 0xff
-		);
+		fprintf(fd,
+		    "KEY[%03u] MAC %s %-7s %02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x\n",
+		    entry, ether_sprintf(mac),
+		    isset(ismic, entry) ? "MIC" : keytypenames[type & 7],
+		    (key0 >> 0) & 0xff, (key0 >> 8) & 0xff, (key0 >> 16) & 0xff,
+		    (key0 >> 24) & 0xff, (key1 >> 0) & 0xff, (key1 >> 8) & 0xff,
+		    (key2 >> 0) & 0xff, (key2 >> 8) & 0xff, (key2 >> 16) & 0xff,
+		    (key2 >> 24) & 0xff, (key3 >> 0) & 0xff, (key3 >> 8) & 0xff,
+		    (key4 >> 0) & 0xff, (key4 >> 8) & 0xff, (key4 >> 16) & 0xff,
+		    (key4 >> 24) & 0xff);
 	}
 }

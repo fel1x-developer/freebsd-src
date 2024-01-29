@@ -71,7 +71,7 @@ void e1000_config_collision_dist(struct e1000_hw *hw);
 int e1000_rar_set(struct e1000_hw *hw, u8 *addr, u32 index);
 u32 e1000_hash_mc_addr(struct e1000_hw *hw, u8 *mc_addr);
 void e1000_update_mc_addr_list(struct e1000_hw *hw, u8 *mc_addr_list,
-			       u32 mc_addr_count);
+    u32 mc_addr_count);
 s32 e1000_setup_led(struct e1000_hw *hw);
 s32 e1000_cleanup_led(struct e1000_hw *hw);
 s32 e1000_check_reset_block(struct e1000_hw *hw);
@@ -86,7 +86,7 @@ s32 e1000_validate_mdi_setting(struct e1000_hw *hw);
 s32 e1000_read_phy_reg(struct e1000_hw *hw, u32 offset, u16 *data);
 s32 e1000_write_phy_reg(struct e1000_hw *hw, u32 offset, u16 data);
 s32 e1000_write_8bit_ctrl_reg(struct e1000_hw *hw, u32 reg, u32 offset,
-			      u8 data);
+    u8 data);
 s32 e1000_get_phy_info(struct e1000_hw *hw);
 void e1000_release_phy(struct e1000_hw *hw);
 s32 e1000_acquire_phy(struct e1000_hw *hw);
@@ -112,13 +112,11 @@ bool e1000_check_mng_mode(struct e1000_hw *hw);
 bool e1000_enable_tx_pkt_filtering(struct e1000_hw *hw);
 s32 e1000_mng_enable_host_if(struct e1000_hw *hw);
 s32 e1000_mng_host_if_write(struct e1000_hw *hw, u8 *buffer, u16 length,
-			    u16 offset, u8 *sum);
+    u16 offset, u8 *sum);
 s32 e1000_mng_write_cmd_header(struct e1000_hw *hw,
-			       struct e1000_host_mng_command_header *hdr);
+    struct e1000_host_mng_command_header *hdr);
 s32 e1000_mng_write_dhcp_info(struct e1000_hw *hw, u8 *buffer, u16 length);
-u32  e1000_translate_register_82542(u32 reg);
-
-
+u32 e1000_translate_register_82542(u32 reg);
 
 /*
  * TBI_ACCEPT macro definition:
@@ -149,19 +147,20 @@ u32  e1000_translate_register_82542(u32 reg);
  */
 
 /* The carrier extension symbol, as received by the NIC. */
-#define CARRIER_EXTENSION   0x0F
+#define CARRIER_EXTENSION 0x0F
 
-#define TBI_ACCEPT(a, status, errors, length, last_byte, \
-		   min_frame_size, max_frame_size) \
-	(e1000_tbi_sbp_enabled_82543(a) && \
-	 (((errors) & E1000_RXD_ERR_FRAME_ERR_MASK) == E1000_RXD_ERR_CE) && \
-	 ((last_byte) == CARRIER_EXTENSION) && \
-	 (((status) & E1000_RXD_STAT_VP) ? \
-	  (((length) > ((min_frame_size) - VLAN_TAG_SIZE)) && \
-	  ((length) <= ((max_frame_size) + 1))) : \
-	  (((length) > (min_frame_size)) && \
-	  ((length) <= ((max_frame_size) + VLAN_TAG_SIZE + 1)))))
+#define TBI_ACCEPT(a, status, errors, length, last_byte, min_frame_size,       \
+    max_frame_size)                                                            \
+	(e1000_tbi_sbp_enabled_82543(a) &&                                     \
+	    (((errors) & E1000_RXD_ERR_FRAME_ERR_MASK) == E1000_RXD_ERR_CE) && \
+	    ((last_byte) == CARRIER_EXTENSION) &&                              \
+	    (((status) & E1000_RXD_STAT_VP) ?                                  \
+		    (((length) > ((min_frame_size)-VLAN_TAG_SIZE)) &&          \
+			((length) <= ((max_frame_size) + 1))) :                \
+		    (((length) > (min_frame_size)) &&                          \
+			((length) <=                                           \
+			    ((max_frame_size) + VLAN_TAG_SIZE + 1)))))
 
 #define E1000_MAX(a, b) ((a) > (b) ? (a) : (b))
-#define E1000_DIVIDE_ROUND_UP(a, b)	(((a) + (b) - 1) / (b)) /* ceil(a/b) */
-#endif /* _E1000_API_H_ */
+#define E1000_DIVIDE_ROUND_UP(a, b) (((a) + (b)-1) / (b)) /* ceil(a/b) */
+#endif							  /* _E1000_API_H_ */

@@ -36,17 +36,16 @@
 #include "opt_ppb_1284.h"
 
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/lock.h>
+#include <sys/mutex.h>
 
-#include <dev/ppbus/ppbconf.h>
 #include <dev/ppbus/ppb_1284.h>
+#include <dev/ppbus/ppbconf.h>
+#include <dev/ppbus/ppbio.h>
 
 #include "ppbus_if.h"
-
-#include <dev/ppbus/ppbio.h>
 
 #define DEVTOSOFTC(dev) ((struct ppb_data *)device_get_softc(dev))
 
@@ -112,8 +111,7 @@ ppb_1284_set_state(device_t bus, int state)
 	/* call ppb_1284_reset_error() if you absolutely want to change
 	 * the state from PPB_ERROR to another */
 	mtx_assert(ppb->ppc_lock, MA_OWNED);
-	if ((ppb->state != PPB_ERROR) &&
-			(ppb->error == PPB_NO_ERROR)) {
+	if ((ppb->state != PPB_ERROR) && (ppb->error == PPB_NO_ERROR)) {
 		ppb->state = state;
 		ppb->error = PPB_NO_ERROR;
 	}
@@ -127,15 +125,14 @@ ppb_1284_set_error(device_t bus, int error, int event)
 	struct ppb_data *ppb = DEVTOSOFTC(bus);
 
 	/* do not accumulate errors */
-	if ((ppb->error == PPB_NO_ERROR) &&
-			(ppb->state != PPB_ERROR)) {
+	if ((ppb->error == PPB_NO_ERROR) && (ppb->state != PPB_ERROR)) {
 		ppb->error = error;
 		ppb->state = PPB_ERROR;
 	}
 
 #ifdef DEBUG_1284
 	printf("ppb1284: error=%d status=0x%x event=%d\n", error,
-		ppb_rstr(bus) & 0xff, event);
+	    ppb_rstr(bus) & 0xff, event);
 #endif
 
 	return (0);
@@ -158,23 +155,23 @@ ppb_request_mode(int mode, int options)
 		switch (mode) {
 		case PPB_NIBBLE:
 			request_mode = (options & PPB_REQUEST_ID) ?
-					NIBBLE_1284_REQUEST_ID :
-					NIBBLE_1284_NORMAL;
+			    NIBBLE_1284_REQUEST_ID :
+			    NIBBLE_1284_NORMAL;
 			break;
 		case PPB_PS2:
 			request_mode = (options & PPB_REQUEST_ID) ?
-					BYTE_1284_REQUEST_ID :
-					BYTE_1284_NORMAL;
+			    BYTE_1284_REQUEST_ID :
+			    BYTE_1284_NORMAL;
 			break;
 		case PPB_ECP:
 			if (options & PPB_USE_RLE)
 				request_mode = (options & PPB_REQUEST_ID) ?
-					ECP_1284_RLE_REQUEST_ID :
-					ECP_1284_RLE;
+				    ECP_1284_RLE_REQUEST_ID :
+				    ECP_1284_RLE;
 			else
 				request_mode = (options & PPB_REQUEST_ID) ?
-					ECP_1284_REQUEST_ID :
-					ECP_1284_NORMAL;
+				    ECP_1284_REQUEST_ID :
+				    ECP_1284_NORMAL;
 			break;
 		case PPB_EPP:
 			request_mode = EPP_1284_NORMAL;
@@ -219,8 +216,7 @@ ppb_peripheral_negociate(device_t bus, int mode, int options)
 	r = ppb_rdtr(bus);
 
 	/* nibble mode is not supported */
-	if ((r == (char)request_mode) ||
-			(r == NIBBLE_1284_NORMAL)) {
+	if ((r == (char)request_mode) || (r == NIBBLE_1284_NORMAL)) {
 		/* Event 5 - restore direction bit, no data avail */
 		ppb_wctr(bus, (STROBE | nINIT) & ~(SELECTIN));
 		DELAY(1);
@@ -402,7 +398,7 @@ byte_peripheral_write(device_t bus, char *buffer, int len, int *sent)
 	/* wait forever, the remote host is master and should initiate
 	 * termination
 	 */
-	for (i=0; i<len; i++) {
+	for (i = 0; i < len; i++) {
 		/* force remote nFAULT low to release the remote waiting
 		 * process, if any
 		 */
@@ -413,8 +409,7 @@ byte_peripheral_write(device_t bus, char *buffer, int len, int *sent)
 		printf("y");
 #endif
 		/* Event 7 */
-		error = ppb_poll_bus(bus, PPB_FOREVER, nBUSY, nBUSY,
-					PPB_INTR);
+		error = ppb_poll_bus(bus, PPB_FOREVER, nBUSY, nBUSY, PPB_INTR);
 
 		if (error && error != EWOULDBLOCK)
 			goto error;
@@ -422,7 +417,8 @@ byte_peripheral_write(device_t bus, char *buffer, int len, int *sent)
 #ifdef DEBUG_1284
 		printf("b");
 #endif
-		if ((error = byte_peripheral_outbyte(bus, buffer+i, (i == len-1))))
+		if ((error = byte_peripheral_outbyte(bus, buffer + i,
+			 (i == len - 1))))
 			goto error;
 	}
 error:
@@ -510,7 +506,7 @@ nibble_1284_inbyte(device_t bus, char *buffer)
 	}
 
 	*buffer = ((nibble2char(nibble[1]) << 4) & 0xf0) |
-				(nibble2char(nibble[0]) & 0x0f);
+	    (nibble2char(nibble[0]) & 0x0f);
 
 error:
 	return (error);
@@ -559,18 +555,18 @@ spp_1284_read(device_t bus, int mode, char *buffer, int max, int *read)
 		switch (mode) {
 		case PPB_NIBBLE:
 			/* read a byte, error means no more data */
-			if (nibble_1284_inbyte(bus, buffer+len))
+			if (nibble_1284_inbyte(bus, buffer + len))
 				goto end_while;
 			break;
 		case PPB_BYTE:
-			if (byte_1284_inbyte(bus, buffer+len))
+			if (byte_1284_inbyte(bus, buffer + len))
 				goto end_while;
 			break;
 		default:
 			error = EINVAL;
 			goto end_while;
 		}
-		len ++;
+		len++;
 	}
 end_while:
 
@@ -590,8 +586,7 @@ end_while:
  *
  */
 int
-ppb_1284_read_id(device_t bus, int mode, char *buffer,
-		int max, int *read)
+ppb_1284_read_id(device_t bus, int mode, char *buffer, int max, int *read)
 {
 	int error = 0;
 
@@ -601,7 +596,8 @@ ppb_1284_read_id(device_t bus, int mode, char *buffer,
 	switch (mode) {
 	case PPB_NIBBLE:
 	case PPB_ECP:
-		if ((error = ppb_1284_negociate(bus, PPB_NIBBLE, PPB_REQUEST_ID)))
+		if ((error = ppb_1284_negociate(bus, PPB_NIBBLE,
+			 PPB_REQUEST_ID)))
 			return (error);
 		error = spp_1284_read(bus, PPB_NIBBLE, buffer, max, read);
 		break;
@@ -624,8 +620,7 @@ ppb_1284_read_id(device_t bus, int mode, char *buffer,
  * IEEE1284 read
  */
 int
-ppb_1284_read(device_t bus, int mode, char *buffer,
-		int max, int *read)
+ppb_1284_read(device_t bus, int mode, char *buffer, int max, int *read)
 {
 	int error = 0;
 
@@ -705,8 +700,8 @@ ppb_1284_negociate(device_t bus, int mode, int options)
 #ifdef PERIPH_1284
 	/* ignore the PError line, wait a bit more, remote host's
 	 * interrupts don't respond fast enough */
-	if (ppb_poll_bus(bus, 40, nACK | SELECT | nFAULT,
-				SELECT | nFAULT, PPB_NOINTR | PPB_POLL)) {
+	if (ppb_poll_bus(bus, 40, nACK | SELECT | nFAULT, SELECT | nFAULT,
+		PPB_NOINTR | PPB_POLL)) {
 		ppb_1284_set_error(bus, PPB_NOT_IEEE1284, 2);
 		error = ENODEV;
 		goto error;
@@ -714,7 +709,7 @@ ppb_1284_negociate(device_t bus, int mode, int options)
 #else
 	/* Event 2 - trying IEEE1284 dialog */
 	if (do_1284_wait(bus, nACK | PERROR | SELECT | nFAULT,
-			PERROR  | SELECT | nFAULT)) {
+		PERROR | SELECT | nFAULT)) {
 		ppb_1284_set_error(bus, PPB_NOT_IEEE1284, 2);
 		error = ENODEV;
 		goto error;
@@ -770,14 +765,14 @@ ppb_1284_negociate(device_t bus, int mode, int options)
 #ifdef PERIPH_1284
 		/* ignore PError line */
 		if (do_1284_wait(bus, nACK | SELECT | nBUSY,
-					nACK | SELECT | nBUSY)) {
+			nACK | SELECT | nBUSY)) {
 			ppb_1284_set_error(bus, PPB_TIMEOUT, 30);
 			error = ENODEV;
 			goto error;
 		}
 #else
 		if (do_1284_wait(bus, nACK | SELECT | PERROR | nBUSY,
-					nACK | SELECT | PERROR | nBUSY)) {
+			nACK | SELECT | PERROR | nBUSY)) {
 			ppb_1284_set_error(bus, PPB_TIMEOUT, 30);
 			error = ENODEV;
 			goto error;

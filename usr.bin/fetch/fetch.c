@@ -37,6 +37,7 @@
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
+#include <fetch.h>
 #include <getopt.h>
 #include <signal.h>
 #include <stdint.h>
@@ -46,57 +47,54 @@
 #include <termios.h>
 #include <unistd.h>
 
-#include <fetch.h>
-
-#define MINBUFSIZE	16384
-#define TIMEOUT		120
+#define MINBUFSIZE 16384
+#define TIMEOUT 120
 
 /* Option flags */
-static int	 A_flag;	/*    -A: do not follow 302 redirects */
-static int	 a_flag;	/*    -a: auto retry */
-static off_t	 B_size;	/*    -B: buffer size */
-static int	 b_flag;	/*!   -b: workaround TCP bug */
-static char    *c_dirname;	/*    -c: remote directory */
-static int	 d_flag;	/*    -d: direct connection */
-static int	 F_flag;	/*    -F: restart without checking mtime  */
-static char	*f_filename;	/*    -f: file to fetch */
-static char	*h_hostname;	/*    -h: host to fetch from */
-static int	 i_flag;	/*    -i: specify file for mtime comparison */
-static char	*i_filename;	/*        name of input file */
-static int	 l_flag;	/*    -l: link rather than copy file: URLs */
-static int	 m_flag;	/* -[Mm]: mirror mode */
-static char	*N_filename;	/*    -N: netrc file name */
-static int	 n_flag;	/*    -n: do not preserve modification time */
-static int	 o_flag;	/*    -o: specify output file */
-static int	 o_directory;	/*        output file is a directory */
-static char	*o_filename;	/*        name of output file */
-static int	 o_stdout;	/*        output file is stdout */
-static int	 once_flag;	/*    -1: stop at first successful file */
-static int	 p_flag;	/* -[Pp]: use passive FTP */
-static int	 R_flag;	/*    -R: don't delete partial files */
-static int	 r_flag;	/*    -r: restart previous transfer */
-static off_t	 S_size;        /*    -S: require size to match */
-static int	 s_flag;        /*    -s: show size, don't fetch */
-static long	 T_secs;	/*    -T: transfer timeout in seconds */
-static int	 t_flag;	/*!   -t: workaround TCP bug */
-static int	 U_flag;	/*    -U: do not use high ports */
-static int	 v_level = 1;	/*    -v: verbosity level */
-static int	 v_tty;		/*        stdout is a tty */
-static int	 v_progress;	/*        whether to display progress */
-static pid_t	 pgrp;		/*        our process group */
-static long	 w_secs;	/*    -w: retry delay */
-static int	 family = PF_UNSPEC;	/* -[46]: address family to use */
+static int A_flag;	       /*    -A: do not follow 302 redirects */
+static int a_flag;	       /*    -a: auto retry */
+static off_t B_size;	       /*    -B: buffer size */
+static int b_flag;	       /*!   -b: workaround TCP bug */
+static char *c_dirname;	       /*    -c: remote directory */
+static int d_flag;	       /*    -d: direct connection */
+static int F_flag;	       /*    -F: restart without checking mtime  */
+static char *f_filename;       /*    -f: file to fetch */
+static char *h_hostname;       /*    -h: host to fetch from */
+static int i_flag;	       /*    -i: specify file for mtime comparison */
+static char *i_filename;       /*        name of input file */
+static int l_flag;	       /*    -l: link rather than copy file: URLs */
+static int m_flag;	       /* -[Mm]: mirror mode */
+static char *N_filename;       /*    -N: netrc file name */
+static int n_flag;	       /*    -n: do not preserve modification time */
+static int o_flag;	       /*    -o: specify output file */
+static int o_directory;	       /*        output file is a directory */
+static char *o_filename;       /*        name of output file */
+static int o_stdout;	       /*        output file is stdout */
+static int once_flag;	       /*    -1: stop at first successful file */
+static int p_flag;	       /* -[Pp]: use passive FTP */
+static int R_flag;	       /*    -R: don't delete partial files */
+static int r_flag;	       /*    -r: restart previous transfer */
+static off_t S_size;	       /*    -S: require size to match */
+static int s_flag;	       /*    -s: show size, don't fetch */
+static long T_secs;	       /*    -T: transfer timeout in seconds */
+static int t_flag;	       /*!   -t: workaround TCP bug */
+static int U_flag;	       /*    -U: do not use high ports */
+static int v_level = 1;	       /*    -v: verbosity level */
+static int v_tty;	       /*        stdout is a tty */
+static int v_progress;	       /*        whether to display progress */
+static pid_t pgrp;	       /*        our process group */
+static long w_secs;	       /*    -w: retry delay */
+static int family = PF_UNSPEC; /* -[46]: address family to use */
 
-static int	 sigalrm;	/* SIGALRM received */
-static int	 siginfo;	/* SIGINFO received */
-static int	 sigint;	/* SIGINT received */
+static int sigalrm; /* SIGALRM received */
+static int siginfo; /* SIGINFO received */
+static int sigint;  /* SIGINT received */
 
-static long	 ftp_timeout = TIMEOUT;	/* default timeout for FTP transfers */
-static long	 http_timeout = TIMEOUT;/* default timeout for HTTP transfers */
-static char	*buf;		/* transfer buffer */
+static long ftp_timeout = TIMEOUT;  /* default timeout for FTP transfers */
+static long http_timeout = TIMEOUT; /* default timeout for HTTP transfers */
+static char *buf;		    /* transfer buffer */
 
-enum options
-{
+enum options {
 	OPTION_BIND_ADDRESS,
 	OPTION_NO_FTP_PASSIVE_MODE,
 	OPTION_HTTP_REFERER,
@@ -113,9 +111,7 @@ enum options
 	OPTION_SSL_NO_VERIFY_PEER
 };
 
-
-static struct option longopts[] =
-{
+static struct option longopts[] = {
 	/* mapping to single character argument */
 	{ "one-file", no_argument, NULL, '1' },
 	{ "ipv4-only", no_argument, NULL, '4' },
@@ -160,7 +156,8 @@ static struct option longopts[] =
 	{ "crl", required_argument, NULL, OPTION_SSL_CRL_FILE },
 	{ "no-sslv3", no_argument, NULL, OPTION_SSL_NO_SSL3 },
 	{ "no-tlsv1", no_argument, NULL, OPTION_SSL_NO_TLS1 },
-	{ "no-verify-hostname", no_argument, NULL, OPTION_SSL_NO_VERIFY_HOSTNAME },
+	{ "no-verify-hostname", no_argument, NULL,
+	    OPTION_SSL_NO_VERIFY_HOSTNAME },
 	{ "no-verify-peer", no_argument, NULL, OPTION_SSL_NO_VERIFY_PEER },
 
 	{ NULL, 0, NULL, 0 }
@@ -186,14 +183,14 @@ sig_handler(int sig)
 }
 
 struct xferstat {
-	char		 name[64];
-	struct timeval	 start;		/* start of transfer */
-	struct timeval	 last;		/* time of last update */
-	struct timeval	 last2;		/* time of previous last update */
-	off_t		 size;		/* size of file per HTTP hdr */
-	off_t		 offset;	/* starting offset in file */
-	off_t		 rcvd;		/* bytes already received */
-	off_t		 lastrcvd;	/* bytes received since last update */
+	char name[64];
+	struct timeval start; /* start of transfer */
+	struct timeval last;  /* time of last update */
+	struct timeval last2; /* time of previous last update */
+	off_t size;	      /* size of file per HTTP hdr */
+	off_t offset;	      /* starting offset in file */
+	off_t rcvd;	      /* bytes already received */
+	off_t lastrcvd;	      /* bytes received since last update */
 };
 
 /*
@@ -205,17 +202,16 @@ stat_seconds(char *str, size_t strsz, long seconds)
 {
 
 	if (seconds > 86400)
-		snprintf(str, strsz, "%02ldd%02ldh",
-		    seconds / 86400, (seconds % 86400) / 3600);
+		snprintf(str, strsz, "%02ldd%02ldh", seconds / 86400,
+		    (seconds % 86400) / 3600);
 	else if (seconds > 3600)
-		snprintf(str, strsz, "%02ldh%02ldm",
-		    seconds / 3600, (seconds % 3600) / 60);
+		snprintf(str, strsz, "%02ldh%02ldm", seconds / 3600,
+		    (seconds % 3600) / 60);
 	else if (seconds > 60)
-		snprintf(str, strsz, "%02ldm%02lds",
-		    seconds / 60, seconds % 60);
+		snprintf(str, strsz, "%02ldm%02lds", seconds / 60,
+		    seconds % 60);
 	else
-		snprintf(str, strsz, "   %02lds",
-		    seconds);
+		snprintf(str, strsz, "   %02lds", seconds);
 }
 
 /*
@@ -262,8 +258,8 @@ stat_bps(char *str, size_t strsz, struct xferstat *xs)
 	char bytes[16];
 	double delta, bps;
 
-	delta = ((double)xs->last.tv_sec + (xs->last.tv_usec / 1.e6))
-	    - ((double)xs->last2.tv_sec + (xs->last2.tv_usec / 1.e6));
+	delta = ((double)xs->last.tv_sec + (xs->last.tv_usec / 1.e6)) -
+	    ((double)xs->last2.tv_sec + (xs->last2.tv_usec / 1.e6));
 
 	if (delta == 0.0) {
 		snprintf(str, strsz, "?? Bps");
@@ -303,11 +299,9 @@ stat_display(struct xferstat *xs, int force)
 	} else {
 		stat_bytes(bytes, sizeof bytes, xs->size);
 		setproctitle("%s [%d%% of %s]", xs->name,
-		    (int)((100.0 * xs->rcvd) / xs->size),
-		    bytes);
+		    (int)((100.0 * xs->rcvd) / xs->size), bytes);
 		fprintf(stderr, "%3d%% of %s",
-		    (int)((100.0 * xs->rcvd) / xs->size),
-		    bytes);
+		    (int)((100.0 * xs->rcvd) / xs->size), bytes);
 	}
 	if (force == 2) {
 		xs->lastrcvd = xs->offset;
@@ -316,7 +310,7 @@ stat_display(struct xferstat *xs, int force)
 	stat_bps(bps, sizeof bps, xs);
 	fprintf(stderr, " %s", bps);
 	if ((xs->size > 0 && xs->rcvd > 0 &&
-	     xs->last.tv_sec >= xs->start.tv_sec + 3) ||
+		xs->last.tv_sec >= xs->start.tv_sec + 3) ||
 	    force == 2) {
 		stat_eta(eta, sizeof eta, xs);
 		fprintf(stderr, " %s", eta);
@@ -401,11 +395,11 @@ query_auth(struct url *URL)
 	if (tcgetattr(STDIN_FILENO, &tios) == 0) {
 		saved_flags = tios.c_lflag;
 		tios.c_lflag &= ~ECHO;
-		tios.c_lflag |= ECHONL|ICANON;
-		tcsetattr(STDIN_FILENO, TCSAFLUSH|TCSASOFT, &tios);
+		tios.c_lflag |= ECHONL | ICANON;
+		tcsetattr(STDIN_FILENO, TCSAFLUSH | TCSASOFT, &tios);
 		nopwd = (fgets(URL->pwd, sizeof URL->pwd, stdin) == NULL);
 		tios.c_lflag = saved_flags;
-		tcsetattr(STDIN_FILENO, TCSANOW|TCSASOFT, &tios);
+		tcsetattr(STDIN_FILENO, TCSANOW | TCSASOFT, &tios);
 	} else {
 		nopwd = (fgets(URL->pwd, sizeof URL->pwd, stdin) == NULL);
 	}
@@ -583,8 +577,9 @@ again:
 		goto signal;
 	if (f == NULL) {
 		warnx("%s: %s", URL, fetchLastErrString);
-		if (i_flag && (strcmp(url->scheme, SCHEME_HTTP) == 0 ||
-		    strcmp(url->scheme, SCHEME_HTTPS) == 0) &&
+		if (i_flag &&
+		    (strcmp(url->scheme, SCHEME_HTTP) == 0 ||
+			strcmp(url->scheme, SCHEME_HTTPS) == 0) &&
 		    fetchLastErrCode == FETCH_OK &&
 		    strcmp(fetchLastErrString, "Not Modified") == 0) {
 			/* HTTP Not Modified Response, return OK. */
@@ -633,13 +628,15 @@ again:
 		of = stdout;
 	} else if (r_flag && sb.st_size != -1) {
 		/* resume mode, local file exists */
-		if (!F_flag && us.mtime && sb.st_mtime != us.mtime && tries == 1) {
+		if (!F_flag && us.mtime && sb.st_mtime != us.mtime &&
+		    tries == 1) {
 			/* no match! have to refetch */
 			fclose(f);
 			/* if precious, warn the user and give up */
 			if (R_flag) {
 				warnx("%s: local modification time "
-				    "does not match remote", path);
+				      "does not match remote",
+				    path);
 				goto failure_keep;
 			}
 		} else if (url->offset > sb.st_size) {
@@ -655,8 +652,9 @@ again:
 			if (sb.st_size > us.size) {
 				/* local file too long! */
 				warnx("%s: local file (%jd bytes) is longer "
-				    "than remote file (%jd bytes)", path,
-				    (intmax_t)sb.st_size, (intmax_t)us.size);
+				      "than remote file (%jd bytes)",
+				    path, (intmax_t)sb.st_size,
+				    (intmax_t)us.size);
 				goto failure;
 			}
 			/* we got it, open local file */
@@ -721,12 +719,13 @@ again:
 				slash = path;
 			else
 				++slash;
-			if(tmppath != NULL)
+			if (tmppath != NULL)
 				free(tmppath);
 			asprintf(&tmppath, "%.*s.fetch.XXXXXX.%s",
 			    (int)(slash - path), path, slash);
 			if (tmppath != NULL) {
-				if (mkstemps(tmppath, strlen(slash) + 1) == -1) {
+				if (mkstemps(tmppath, strlen(slash) + 1) ==
+				    -1) {
 					warn("%s: mkstemps()", path);
 					goto failure;
 				}
@@ -795,7 +794,7 @@ again:
 	 * set the mtime in case the file is not removed (-r or -R) and
 	 * the user later restarts the transfer.
 	 */
- signal:
+signal:
 	/* set mtime of local file */
 	if (!n_flag && us.mtime && !o_stdout && of != NULL &&
 	    (stat(path, &sb) != -1) && sb.st_mode & S_IFREG) {
@@ -833,9 +832,9 @@ again:
 
 	/* did the transfer complete normally? */
 	if (us.size != -1 && count < us.size) {
-		warnx("%s appears to be truncated: %jd/%jd bytes",
-		    path, (intmax_t)count, (intmax_t)us.size);
-		if(!o_stdout && a_flag && count > size_prev) {
+		warnx("%s appears to be truncated: %jd/%jd bytes", path,
+		    (intmax_t)count, (intmax_t)us.size);
+		if (!o_stdout && a_flag && count > size_prev) {
 			fclose(f);
 			if (w_secs)
 				sleep(w_secs);
@@ -854,23 +853,23 @@ again:
 		goto failure_keep;
 	}
 
- success:
+success:
 	r = 0;
 	if (tmppath != NULL && rename(tmppath, path) == -1) {
 		warn("%s: rename()", path);
 		goto failure_keep;
 	}
 	goto done;
- failure:
+failure:
 	if (of && of != stdout && !R_flag && !r_flag)
 		if (stat(path, &sb) != -1 && (sb.st_mode & S_IFREG))
 			unlink(tmppath ? tmppath : path);
 	if (R_flag && tmppath != NULL && sb.st_size == -1)
 		rename(tmppath, path); /* ignore errors here */
- failure_keep:
+failure_keep:
 	r = -1;
 	goto done;
- done:
+done:
 	if (f)
 		fclose(f);
 	if (of && of != stdout)
@@ -886,20 +885,19 @@ static void
 usage(void)
 {
 	fprintf(stderr, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n",
-"usage: fetch [-146AadFlMmnPpqRrsUv] [-B bytes] [--bind-address=host]",
-"       [--ca-cert=file] [--ca-path=dir] [--cert=file] [--crl=file]",
-"       [-i file] [--key=file] [-N file] [--no-passive] [--no-proxy=list]",
-"       [--no-sslv3] [--no-tlsv1] [--no-verify-hostname] [--no-verify-peer]",
-"       [-o file] [--referer=URL] [-S bytes] [-T seconds]",
-"       [--user-agent=agent-string] [-w seconds] URL ...",
-"       fetch [-146AadFlMmnPpqRrsUv] [-B bytes] [--bind-address=host]",
-"       [--ca-cert=file] [--ca-path=dir] [--cert=file] [--crl=file]",
-"       [-i file] [--key=file] [-N file] [--no-passive] [--no-proxy=list]",
-"       [--no-sslv3] [--no-tlsv1] [--no-verify-hostname] [--no-verify-peer]",
-"       [-o file] [--referer=URL] [-S bytes] [-T seconds]",
-"       [--user-agent=agent-string] [-w seconds] -h host -f file [-c dir]");
+	    "usage: fetch [-146AadFlMmnPpqRrsUv] [-B bytes] [--bind-address=host]",
+	    "       [--ca-cert=file] [--ca-path=dir] [--cert=file] [--crl=file]",
+	    "       [-i file] [--key=file] [-N file] [--no-passive] [--no-proxy=list]",
+	    "       [--no-sslv3] [--no-tlsv1] [--no-verify-hostname] [--no-verify-peer]",
+	    "       [-o file] [--referer=URL] [-S bytes] [-T seconds]",
+	    "       [--user-agent=agent-string] [-w seconds] URL ...",
+	    "       fetch [-146AadFlMmnPpqRrsUv] [-B bytes] [--bind-address=host]",
+	    "       [--ca-cert=file] [--ca-path=dir] [--cert=file] [--crl=file]",
+	    "       [-i file] [--key=file] [-N file] [--no-passive] [--no-proxy=list]",
+	    "       [--no-sslv3] [--no-tlsv1] [--no-verify-hostname] [--no-verify-peer]",
+	    "       [-o file] [--referer=URL] [-S bytes] [-T seconds]",
+	    "       [--user-agent=agent-string] [-w seconds] -h host -f file [-c dir]");
 }
-
 
 /*
  * Entry point
@@ -913,10 +911,9 @@ main(int argc, char *argv[])
 	char *end, *q;
 	int c, e, is_http, r;
 
-
 	while ((c = getopt_long(argc, argv,
-	    "146AaB:bc:dFf:Hh:i:lMmN:nPpo:qRrS:sT:tUvw:",
-	    longopts, NULL)) != -1)
+		    "146AaB:bc:dFf:Hh:i:lMmN:nPpo:qRrS:sT:tUvw:", longopts,
+		    NULL)) != -1)
 		switch (c) {
 		case '1':
 			once_flag = 1;
@@ -956,7 +953,7 @@ main(int argc, char *argv[])
 			break;
 		case 'H':
 			warnx("the -H option is now implicit, "
-			    "use -U to disable");
+			      "use -U to disable");
 			break;
 		case 'h':
 			h_hostname = optarg;
@@ -975,7 +972,8 @@ main(int argc, char *argv[])
 		case 'M':
 		case 'm':
 			if (r_flag)
-				errx(1, "the -m and -r flags "
+				errx(1,
+				    "the -m and -r flags "
 				    "are mutually exclusive");
 			m_flag = 1;
 			break;
@@ -997,7 +995,8 @@ main(int argc, char *argv[])
 			break;
 		case 'r':
 			if (m_flag)
-				errx(1, "the -m and -r flags "
+				errx(1,
+				    "the -m and -r flags "
 				    "are mutually exclusive");
 			r_flag = 1;
 			break;
@@ -1089,7 +1088,7 @@ main(int argc, char *argv[])
 		if (strcspn(h_hostname, "@:/") != strlen(h_hostname))
 			errx(1, "invalid hostname");
 		if (asprintf(argv, "ftp://%s/%s/%s", h_hostname,
-		    c_dirname ? c_dirname : "", f_filename) == -1)
+			c_dirname ? c_dirname : "", f_filename) == -1)
 			errx(1, "%s", strerror(ENOMEM));
 		argc++;
 	}
@@ -1196,22 +1195,23 @@ main(int argc, char *argv[])
 
 		if (e) {
 			r = 1;
-			if ((fetchLastErrCode
-			    && fetchLastErrCode != FETCH_AUTH
-			    && fetchLastErrCode != FETCH_UNAVAIL
-			    && fetchLastErrCode != FETCH_MOVED
-			    && fetchLastErrCode != FETCH_URL
-			    && fetchLastErrCode != FETCH_RESOLV
-			    && fetchLastErrCode != FETCH_UNKNOWN
-			    && (!is_http || (
-			    	   fetchLastErrCode != FETCH_PROTO
-			    	&& fetchLastErrCode != FETCH_SERVER
-			    	&& fetchLastErrCode != FETCH_TEMP
-			    	&& fetchLastErrCode != FETCH_TIMEOUT
-			    )))) {
+			if ((fetchLastErrCode &&
+				fetchLastErrCode != FETCH_AUTH &&
+				fetchLastErrCode != FETCH_UNAVAIL &&
+				fetchLastErrCode != FETCH_MOVED &&
+				fetchLastErrCode != FETCH_URL &&
+				fetchLastErrCode != FETCH_RESOLV &&
+				fetchLastErrCode != FETCH_UNKNOWN &&
+				(!is_http ||
+				    (fetchLastErrCode != FETCH_PROTO &&
+					fetchLastErrCode != FETCH_SERVER &&
+					fetchLastErrCode != FETCH_TEMP &&
+					fetchLastErrCode != FETCH_TIMEOUT)))) {
 				if (w_secs && v_level)
-					fprintf(stderr, "Waiting %ld seconds "
-					    "before retrying\n", w_secs);
+					fprintf(stderr,
+					    "Waiting %ld seconds "
+					    "before retrying\n",
+					    w_secs);
 				if (w_secs)
 					sleep(w_secs);
 				if (a_flag)

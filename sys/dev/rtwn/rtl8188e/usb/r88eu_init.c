@@ -18,38 +18,35 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <dev/rtwn/if_rtwnreg.h>
 #include <dev/rtwn/if_rtwnvar.h>
-
+#include <dev/rtwn/rtl8188e/usb/r88eu.h>
+#include <dev/rtwn/rtl8188e/usb/r88eu_reg.h>
 #include <dev/rtwn/rtl8192c/r92c.h>
 #include <dev/rtwn/rtl8192c/r92c_var.h>
 
-#include <dev/rtwn/rtl8188e/usb/r88eu.h>
-#include <dev/rtwn/rtl8188e/usb/r88eu_reg.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 void
 r88eu_init_bb(struct rtwn_softc *sc)
@@ -58,13 +55,13 @@ r88eu_init_bb(struct rtwn_softc *sc)
 	/* Enable BB and RF. */
 	rtwn_setbits_2(sc, R92C_SYS_FUNC_EN, 0,
 	    R92C_SYS_FUNC_EN_BBRSTB | R92C_SYS_FUNC_EN_BB_GLB_RST |
-	    R92C_SYS_FUNC_EN_DIO_RF);
+		R92C_SYS_FUNC_EN_DIO_RF);
 
 	rtwn_write_1(sc, R92C_RF_CTRL,
 	    R92C_RF_CTRL_EN | R92C_RF_CTRL_RSTB | R92C_RF_CTRL_SDMRSTB);
 	rtwn_write_1(sc, R92C_SYS_FUNC_EN,
 	    R92C_SYS_FUNC_EN_USBA | R92C_SYS_FUNC_EN_USBD |
-	    R92C_SYS_FUNC_EN_BB_GLB_RST | R92C_SYS_FUNC_EN_BBRSTB);
+		R92C_SYS_FUNC_EN_BB_GLB_RST | R92C_SYS_FUNC_EN_BBRSTB);
 
 	r88e_init_bb_common(sc);
 }
@@ -72,10 +69,11 @@ r88eu_init_bb(struct rtwn_softc *sc)
 int
 r88eu_power_on(struct rtwn_softc *sc)
 {
-#define RTWN_CHK(res) do {	\
-	if (res != 0)		\
-		return (EIO);	\
-} while(0)
+#define RTWN_CHK(res)                 \
+	do {                          \
+		if (res != 0)         \
+			return (EIO); \
+	} while (0)
 	int ntries;
 
 	/* Wait for power ready bit. */
@@ -104,11 +102,11 @@ r88eu_power_on(struct rtwn_softc *sc)
 	RTWN_CHK(rtwn_setbits_1_shift(sc, R92C_APS_FSMCO,
 	    R92C_APS_FSMCO_AFSM_HSUS | R92C_APS_FSMCO_AFSM_PCIE, 0, 1));
 
-	RTWN_CHK(rtwn_setbits_1_shift(sc, R92C_APS_FSMCO,
-	    0, R92C_APS_FSMCO_APFM_ONMAC, 1));
+	RTWN_CHK(rtwn_setbits_1_shift(sc, R92C_APS_FSMCO, 0,
+	    R92C_APS_FSMCO_APFM_ONMAC, 1));
 	for (ntries = 0; ntries < 5000; ntries++) {
 		if (!(rtwn_read_2(sc, R92C_APS_FSMCO) &
-		    R92C_APS_FSMCO_APFM_ONMAC))
+			R92C_APS_FSMCO_APFM_ONMAC))
 			break;
 		rtwn_delay(sc, 10);
 	}
@@ -116,17 +114,15 @@ r88eu_power_on(struct rtwn_softc *sc)
 		return (ETIMEDOUT);
 
 	/* Enable LDO normal mode. */
-	RTWN_CHK(rtwn_setbits_1(sc, R92C_LPLDO_CTRL,
-	    R92C_LPLDO_CTRL_SLEEP, 0));
+	RTWN_CHK(rtwn_setbits_1(sc, R92C_LPLDO_CTRL, R92C_LPLDO_CTRL_SLEEP, 0));
 
 	/* Enable MAC DMA/WMAC/SCHEDULE/SEC blocks. */
 	RTWN_CHK(rtwn_write_2(sc, R92C_CR, 0));
 	RTWN_CHK(rtwn_setbits_2(sc, R92C_CR, 0,
-	    R92C_CR_HCI_TXDMA_EN | R92C_CR_TXDMA_EN |
-	    R92C_CR_HCI_RXDMA_EN | R92C_CR_RXDMA_EN |
-	    R92C_CR_PROTOCOL_EN | R92C_CR_SCHEDULE_EN |
-	    ((sc->sc_hwcrypto != RTWN_CRYPTO_SW) ? R92C_CR_ENSEC : 0) |
-	    R92C_CR_CALTMR_EN));
+	    R92C_CR_HCI_TXDMA_EN | R92C_CR_TXDMA_EN | R92C_CR_HCI_RXDMA_EN |
+		R92C_CR_RXDMA_EN | R92C_CR_PROTOCOL_EN | R92C_CR_SCHEDULE_EN |
+		((sc->sc_hwcrypto != RTWN_CRYPTO_SW) ? R92C_CR_ENSEC : 0) |
+		R92C_CR_CALTMR_EN));
 
 	return (0);
 #undef RTWN_CHK
@@ -141,7 +137,7 @@ r88eu_power_off(struct rtwn_softc *sc)
 	/* Disable any kind of TX reports. */
 	error = rtwn_setbits_1(sc, R88E_TX_RPT_CTRL,
 	    R88E_TX_RPT1_ENA | R88E_TX_RPT2_ENA, 0);
-	if (error == ENXIO)	/* hardware gone */
+	if (error == ENXIO) /* hardware gone */
 		return;
 
 	/* Stop Rx. */
@@ -171,9 +167,8 @@ r88eu_power_off(struct rtwn_softc *sc)
 
 	/* Reset MAC TRX */
 	rtwn_write_1(sc, R92C_CR,
-	    R92C_CR_HCI_TXDMA_EN | R92C_CR_HCI_RXDMA_EN |
-	    R92C_CR_TXDMA_EN | R92C_CR_RXDMA_EN |
-	    R92C_CR_PROTOCOL_EN | R92C_CR_SCHEDULE_EN);
+	    R92C_CR_HCI_TXDMA_EN | R92C_CR_HCI_RXDMA_EN | R92C_CR_TXDMA_EN |
+		R92C_CR_RXDMA_EN | R92C_CR_PROTOCOL_EN | R92C_CR_SCHEDULE_EN);
 
 	/* check if removed later */
 	rtwn_setbits_1_shift(sc, R92C_CR, R92C_CR_ENSEC, 0, 1);
@@ -201,13 +196,12 @@ r88eu_power_off(struct rtwn_softc *sc)
 	rtwn_setbits_1(sc, R92C_LPLDO_CTRL, 0, R92C_LPLDO_CTRL_SLEEP);
 
 	/* Turn off MAC by HW state machine */
-	rtwn_setbits_1_shift(sc, R92C_APS_FSMCO, 0,
-	    R92C_APS_FSMCO_APFM_OFF, 1);
+	rtwn_setbits_1_shift(sc, R92C_APS_FSMCO, 0, R92C_APS_FSMCO_APFM_OFF, 1);
 
 	for (ntries = 0; ntries < 10; ntries++) {
 		/* Wait until it will be disabled. */
 		if ((rtwn_read_2(sc, R92C_APS_FSMCO) &
-		    R92C_APS_FSMCO_APFM_OFF) == 0)
+			R92C_APS_FSMCO_APFM_OFF) == 0)
 			break;
 
 		rtwn_delay(sc, 5000);
@@ -222,8 +216,8 @@ r88eu_power_off(struct rtwn_softc *sc)
 	rtwn_setbits_1(sc, R92C_AFE_XTAL_CTRL + 2, 0, 0x80);
 
 	/* Enable WL suspend. */
-	rtwn_setbits_1_shift(sc, R92C_APS_FSMCO,
-	    R92C_APS_FSMCO_AFSM_PCIE, R92C_APS_FSMCO_AFSM_HSUS, 1);
+	rtwn_setbits_1_shift(sc, R92C_APS_FSMCO, R92C_APS_FSMCO_AFSM_PCIE,
+	    R92C_APS_FSMCO_AFSM_HSUS, 1);
 
 	/* Enable bandgap mbias in suspend. */
 	rtwn_write_1(sc, R92C_APS_FSMCO + 3, 0);
@@ -256,10 +250,12 @@ r88eu_init_intr(struct rtwn_softc *sc)
 {
 	/* TODO: adjust */
 	rtwn_write_4(sc, R88E_HISR, 0xffffffff);
-	rtwn_write_4(sc, R88E_HIMR, R88E_HIMR_CPWM | R88E_HIMR_CPWM2 |
-	    R88E_HIMR_TBDER | R88E_HIMR_PSTIMEOUT);
-	rtwn_write_4(sc, R88E_HIMRE, R88E_HIMRE_RXFOVW |
-	    R88E_HIMRE_TXFOVW | R88E_HIMRE_RXERR | R88E_HIMRE_TXERR);
+	rtwn_write_4(sc, R88E_HIMR,
+	    R88E_HIMR_CPWM | R88E_HIMR_CPWM2 | R88E_HIMR_TBDER |
+		R88E_HIMR_PSTIMEOUT);
+	rtwn_write_4(sc, R88E_HIMRE,
+	    R88E_HIMRE_RXFOVW | R88E_HIMRE_TXFOVW | R88E_HIMRE_RXERR |
+		R88E_HIMRE_TXERR);
 	rtwn_setbits_1(sc, R92C_USB_SPECIAL_OPTION, 0,
 	    R92C_USB_SPECIAL_OPTION_INT_BULK_SEL);
 }
@@ -268,8 +264,7 @@ void
 r88eu_init_rx_agg(struct rtwn_softc *sc)
 {
 	/* XXX merge? */
-	rtwn_setbits_1(sc, R92C_TRXDMA_CTRL, 0,
-	    R92C_TRXDMA_CTRL_RXDMA_AGG_EN);
+	rtwn_setbits_1(sc, R92C_TRXDMA_CTRL, 0, R92C_TRXDMA_CTRL_RXDMA_AGG_EN);
 	/* XXX dehardcode */
 	rtwn_write_1(sc, R92C_RXDMA_AGG_PG_TH, 48);
 	rtwn_write_1(sc, R92C_RXDMA_AGG_PG_TH + 1, 4);

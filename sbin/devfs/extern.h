@@ -27,7 +27,7 @@
  */
 
 #ifndef __DEVFS_H__
-#define	__DEVFS_H__
+#define __DEVFS_H__
 
 #include <fs/devfs/devfs.h>
 
@@ -36,7 +36,7 @@ struct intstr {
 	int i;
 };
 
-typedef int (command_t)(int, char **);
+typedef int(command_t)(int, char **);
 struct cmd {
 	const char *name;
 	command_t *handler;
@@ -52,6 +52,6 @@ size_t efgetln(FILE *, char **);
 void tokenize(const char *, int *, char ***);
 void usage(void) __dead2;
 
-extern int mpfd;		/* Mount-point file descriptor. */
+extern int mpfd; /* Mount-point file descriptor. */
 
 #endif /* !__DEVFS_H__ */

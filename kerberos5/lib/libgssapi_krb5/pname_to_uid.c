@@ -37,7 +37,7 @@ _gsskrb5_pname_to_uid(OM_uint32 *minor_status, const gss_name_t pname,
     const gss_OID mech, uid_t *uidp)
 {
 	krb5_context context;
-	krb5_const_principal name = (krb5_const_principal) pname;
+	krb5_const_principal name = (krb5_const_principal)pname;
 	krb5_error_code kret;
 	char lname[MAXLOGNAME + 1], buf[1024], *bufp;
 	struct passwd pwd, *pw;
@@ -46,7 +46,7 @@ _gsskrb5_pname_to_uid(OM_uint32 *minor_status, const gss_name_t pname,
 	OM_uint32 ret;
 	static size_t buflen_hint = 1024;
 
-	GSSAPI_KRB5_INIT (&context);
+	GSSAPI_KRB5_INIT(&context);
 
 	kret = krb5_aname_to_localname(context, name, sizeof(lname), lname);
 	if (kret) {

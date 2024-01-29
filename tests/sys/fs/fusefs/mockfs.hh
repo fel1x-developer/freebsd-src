@@ -40,16 +40,17 @@ extern "C" {
 
 #define TIME_T_MAX (std::numeric_limits<time_t>::max())
 
-/* 
+/*
  * A pseudo-fuse errno used indicate that a fuse operation should have no
  * response, at least not immediately
  */
 #define FUSE_NORESPONSE 9999
 
-#define SET_OUT_HEADER_LEN(out, variant) { \
-	(out).header.len = (sizeof((out).header) + \
-			    sizeof((out).body.variant)); \
-}
+#define SET_OUT_HEADER_LEN(out, variant)                   \
+	{                                                  \
+		(out).header.len = (sizeof((out).header) + \
+		    sizeof((out).body.variant));           \
+	}
 
 /*
  * Create an expectation on FUSE_LOOKUP and return it so the caller can set
@@ -58,15 +59,16 @@ extern "C" {
  * This must be a macro instead of a method because EXPECT_CALL returns a type
  * with a deleted constructor.
  */
-#define EXPECT_LOOKUP(parent, path)					\
-	EXPECT_CALL(*m_mock, process(					\
-		ResultOf([=](auto in) {					\
-			return (in.header.opcode == FUSE_LOOKUP &&	\
-				in.header.nodeid == (parent) &&	\
-				strcmp(in.body.lookup, (path)) == 0);	\
-		}, Eq(true)),						\
-		_)							\
-	)
+#define EXPECT_LOOKUP(parent, path)                                        \
+	EXPECT_CALL(*m_mock,                                               \
+	    process(ResultOf(                                              \
+			[=](auto in) {                                     \
+				return (in.header.opcode == FUSE_LOOKUP && \
+				    in.header.nodeid == (parent) &&        \
+				    strcmp(in.body.lookup, (path)) == 0);  \
+			},                                                 \
+			Eq(true)),                                         \
+		_))
 
 extern int verbosity;
 
@@ -77,73 +79,70 @@ extern int verbosity;
  */
 const uint32_t max_max_write = 0x20000;
 
-
 /* This struct isn't defined by fuse_kernel.h or libfuse, but it should be */
 struct fuse_create_out {
-	struct fuse_entry_out	entry;
-	struct fuse_open_out	open;
+	struct fuse_entry_out entry;
+	struct fuse_open_out open;
 };
 
 /* Protocol 7.8 version of struct fuse_attr */
-struct fuse_attr_7_8
-{
-	uint64_t	ino;
-	uint64_t	size;
-	uint64_t	blocks;
-	uint64_t	atime;
-	uint64_t	mtime;
-	uint64_t	ctime;
-	uint32_t	atimensec;
-	uint32_t	mtimensec;
-	uint32_t	ctimensec;
-	uint32_t	mode;
-	uint32_t	nlink;
-	uint32_t	uid;
-	uint32_t	gid;
-	uint32_t	rdev;
+struct fuse_attr_7_8 {
+	uint64_t ino;
+	uint64_t size;
+	uint64_t blocks;
+	uint64_t atime;
+	uint64_t mtime;
+	uint64_t ctime;
+	uint32_t atimensec;
+	uint32_t mtimensec;
+	uint32_t ctimensec;
+	uint32_t mode;
+	uint32_t nlink;
+	uint32_t uid;
+	uint32_t gid;
+	uint32_t rdev;
 };
 
 /* Protocol 7.8 version of struct fuse_attr_out */
-struct fuse_attr_out_7_8
-{
-	uint64_t	attr_valid;
-	uint32_t	attr_valid_nsec;
-	uint32_t	dummy;
+struct fuse_attr_out_7_8 {
+	uint64_t attr_valid;
+	uint32_t attr_valid_nsec;
+	uint32_t dummy;
 	struct fuse_attr_7_8 attr;
 };
 
 /* Protocol 7.8 version of struct fuse_entry_out */
 struct fuse_entry_out_7_8 {
-	uint64_t	nodeid;		/* Inode ID */
-	uint64_t	generation;	/* Inode generation: nodeid:gen must
-				   be unique for the fs's lifetime */
-	uint64_t	entry_valid;	/* Cache timeout for the name */
-	uint64_t	attr_valid;	/* Cache timeout for the attributes */
-	uint32_t	entry_valid_nsec;
-	uint32_t	attr_valid_nsec;
+	uint64_t nodeid;      /* Inode ID */
+	uint64_t generation;  /* Inode generation: nodeid:gen must
+			 be unique for the fs's lifetime */
+	uint64_t entry_valid; /* Cache timeout for the name */
+	uint64_t attr_valid;  /* Cache timeout for the attributes */
+	uint32_t entry_valid_nsec;
+	uint32_t attr_valid_nsec;
 	struct fuse_attr_7_8 attr;
 };
 
 /* Output struct for FUSE_CREATE for protocol 7.8 servers */
 struct fuse_create_out_7_8 {
-	struct fuse_entry_out_7_8	entry;
-	struct fuse_open_out	open;
+	struct fuse_entry_out_7_8 entry;
+	struct fuse_open_out open;
 };
 
 /* Output struct for FUSE_INIT for protocol 7.22 and earlier servers */
 struct fuse_init_out_7_22 {
-	uint32_t	major;
-	uint32_t	minor;
-	uint32_t	max_readahead;
-	uint32_t	flags;
-	uint16_t	max_background;
-	uint16_t	congestion_threshold;
-	uint32_t	max_write;
+	uint32_t major;
+	uint32_t minor;
+	uint32_t max_readahead;
+	uint32_t flags;
+	uint16_t max_background;
+	uint16_t congestion_threshold;
+	uint32_t max_write;
 };
 
 union fuse_payloads_in {
-	fuse_access_in	access;
-	fuse_bmap_in	bmap;
+	fuse_access_in access;
+	fuse_bmap_in bmap;
 	/*
 	 * In fusefs-libs 3.4.2 and below the buffer size is fixed at 0x21000
 	 * minus the header sizes.  fusefs-libs 3.4.3 (and FUSE Protocol 7.29)
@@ -152,98 +151,94 @@ union fuse_payloads_in {
 	 * See fuse_kern_chan.c in fusefs-libs 2.9.9 and below, or
 	 * FUSE_DEFAULT_MAX_PAGES_PER_REQ in fusefs-libs 3.4.3 and above.
 	 */
-	uint8_t		bytes[
-	    max_max_write + 0x1000 - sizeof(struct fuse_in_header)
-	];
-	fuse_copy_file_range_in	copy_file_range;
-	fuse_create_in	create;
+	uint8_t bytes[max_max_write + 0x1000 - sizeof(struct fuse_in_header)];
+	fuse_copy_file_range_in copy_file_range;
+	fuse_create_in create;
 	fuse_fallocate_in fallocate;
-	fuse_flush_in	flush;
-	fuse_fsync_in	fsync;
-	fuse_fsync_in	fsyncdir;
-	fuse_forget_in	forget;
-	fuse_getattr_in	getattr;
+	fuse_flush_in flush;
+	fuse_fsync_in fsync;
+	fuse_fsync_in fsyncdir;
+	fuse_forget_in forget;
+	fuse_getattr_in getattr;
 	fuse_interrupt_in interrupt;
-	fuse_lk_in	getlk;
+	fuse_lk_in getlk;
 	fuse_getxattr_in getxattr;
-	fuse_init_in	init;
-	fuse_link_in	link;
+	fuse_init_in init;
+	fuse_link_in link;
 	fuse_listxattr_in listxattr;
-	char		lookup[0];
-	fuse_lseek_in	lseek;
-	fuse_mkdir_in	mkdir;
-	fuse_mknod_in	mknod;
-	fuse_open_in	open;
-	fuse_open_in	opendir;
-	fuse_read_in	read;
-	fuse_read_in	readdir;
-	fuse_release_in	release;
-	fuse_release_in	releasedir;
-	fuse_rename_in	rename;
-	char		rmdir[0];
-	fuse_setattr_in	setattr;
+	char lookup[0];
+	fuse_lseek_in lseek;
+	fuse_mkdir_in mkdir;
+	fuse_mknod_in mknod;
+	fuse_open_in open;
+	fuse_open_in opendir;
+	fuse_read_in read;
+	fuse_read_in readdir;
+	fuse_release_in release;
+	fuse_release_in releasedir;
+	fuse_rename_in rename;
+	char rmdir[0];
+	fuse_setattr_in setattr;
 	fuse_setxattr_in setxattr;
-	fuse_lk_in	setlk;
-	fuse_lk_in	setlkw;
-	char		unlink[0];
-	fuse_write_in	write;
+	fuse_lk_in setlk;
+	fuse_lk_in setlkw;
+	char unlink[0];
+	fuse_write_in write;
 };
 
 struct mockfs_buf_in {
-	fuse_in_header		header;
-	union fuse_payloads_in	body;
+	fuse_in_header header;
+	union fuse_payloads_in body;
 };
 
 union fuse_payloads_out {
-	fuse_attr_out		attr;
-	fuse_attr_out_7_8	attr_7_8;
-	fuse_bmap_out		bmap;
-	fuse_create_out		create;
-	fuse_create_out_7_8	create_7_8;
+	fuse_attr_out attr;
+	fuse_attr_out_7_8 attr_7_8;
+	fuse_bmap_out bmap;
+	fuse_create_out create;
+	fuse_create_out_7_8 create_7_8;
 	/*
 	 * The protocol places no limits on the size of bytes.  Choose
 	 * a size big enough for anything we'll test.
 	 */
-	uint8_t			bytes[0x40000];
-	fuse_entry_out		entry;
-	fuse_entry_out_7_8	entry_7_8;
-	fuse_lk_out		getlk;
-	fuse_getxattr_out	getxattr;
-	fuse_init_out		init;
-	fuse_init_out_7_22	init_7_22;
-	fuse_lseek_out		lseek;
+	uint8_t bytes[0x40000];
+	fuse_entry_out entry;
+	fuse_entry_out_7_8 entry_7_8;
+	fuse_lk_out getlk;
+	fuse_getxattr_out getxattr;
+	fuse_init_out init;
+	fuse_init_out_7_22 init_7_22;
+	fuse_lseek_out lseek;
 	/* The inval_entry structure should be followed by the entry's name */
-	fuse_notify_inval_entry_out	inval_entry;
-	fuse_notify_inval_inode_out	inval_inode;
+	fuse_notify_inval_entry_out inval_entry;
+	fuse_notify_inval_inode_out inval_inode;
 	/* The store structure should be followed by the data to store */
-	fuse_notify_store_out		store;
-	fuse_listxattr_out	listxattr;
-	fuse_open_out		open;
-	fuse_statfs_out		statfs;
+	fuse_notify_store_out store;
+	fuse_listxattr_out listxattr;
+	fuse_open_out open;
+	fuse_statfs_out statfs;
 	/*
 	 * The protocol places no limits on the length of the string.  This is
 	 * merely convenient for testing.
 	 */
-	char			str[80];
-	fuse_write_out		write;
+	char str[80];
+	fuse_write_out write;
 };
 
 struct mockfs_buf_out {
-	fuse_out_header		header;
-	union fuse_payloads_out	body;
+	fuse_out_header header;
+	union fuse_payloads_out body;
 	/* the expected errno of the write to /dev/fuse */
-	int			expected_errno;
+	int expected_errno;
 
 	/* Default constructor: zero everything */
-	mockfs_buf_out() {
-		memset(this, 0, sizeof(*this));
-	}
+	mockfs_buf_out() { memset(this, 0, sizeof(*this)); }
 };
 
 /* A function that can be invoked in place of MockFS::process */
-typedef std::function<void (const mockfs_buf_in& in,
-			    std::vector<std::unique_ptr<mockfs_buf_out>> &out)>
-ProcessMockerT;
+typedef std::function<void(const mockfs_buf_in &in,
+    std::vector<std::unique_ptr<mockfs_buf_out>> &out)>
+    ProcessMockerT;
 
 /*
  * Helper function used for setting an error expectation for any fuse operation.
@@ -256,16 +251,10 @@ ProcessMockerT ReturnNegativeCache(const struct timespec *entry_valid);
 
 /* Helper function used for returning a single immediate response */
 ProcessMockerT ReturnImmediate(
-	std::function<void(const mockfs_buf_in& in,
-			   struct mockfs_buf_out &out)> f);
+    std::function<void(const mockfs_buf_in &in, struct mockfs_buf_out &out)> f);
 
 /* How the daemon should check /dev/fuse for readiness */
-enum poll_method {
-	BLOCKING,
-	SELECT,
-	POLL,
-	KQ
-};
+enum poll_method { BLOCKING, SELECT, POLL, KQ };
 
 /*
  * Fake FUSE filesystem
@@ -286,7 +275,7 @@ class MockFS {
 
 	/* file descriptor of /dev/fuse control device */
 	volatile int m_fuse_fd;
-	
+
 	/* The minor version of the kernel API that this mock daemon targets */
 	uint32_t m_kernel_minor_version;
 
@@ -308,8 +297,8 @@ class MockFS {
 	unsigned m_time_gran;
 
 	void audit_request(const mockfs_buf_in &in, ssize_t buflen);
-	void debug_request(const mockfs_buf_in&, ssize_t buflen);
-	void debug_response(const mockfs_buf_out&);
+	void debug_request(const mockfs_buf_in &, ssize_t buflen);
+	void debug_response(const mockfs_buf_out &);
 
 	/* Initialize a session after mounting */
 	void init(uint32_t flags);
@@ -318,11 +307,11 @@ class MockFS {
 	bool pid_ok(pid_t pid);
 
 	/* Default request handler */
-	void process_default(const mockfs_buf_in&,
-		std::vector<std::unique_ptr<mockfs_buf_out>>&);
+	void process_default(const mockfs_buf_in &,
+	    std::vector<std::unique_ptr<mockfs_buf_out>> &);
 
 	/* Entry point for the daemon thread */
-	static void* service(void*);
+	static void *service(void *);
 
 	/*
 	 * Read, but do not process, a single request from the kernel
@@ -331,9 +320,9 @@ class MockFS {
 	 * @param res	Return value of read(2).  If positive, the amount of
 	 *		data read from the fuse device.
 	 */
-	void read_request(mockfs_buf_in& in, ssize_t& res);
+	void read_request(mockfs_buf_in &in, ssize_t &res);
 
-	public:
+    public:
 	/* Write a single response back to the kernel */
 	void write_response(const mockfs_buf_out &out);
 
@@ -343,7 +332,7 @@ class MockFS {
 	/* Maximum size of a FUSE_WRITE write */
 	uint32_t m_maxwrite;
 
-	/* 
+	/*
 	 * Number of events that were available from /dev/fuse after the last
 	 * kevent call.  Only valid when m_pm = KQ.
 	 */
@@ -353,12 +342,11 @@ class MockFS {
 	bool m_quit;
 
 	/* Create a new mockfs and mount it to a tempdir */
-	MockFS(int max_readahead, bool allow_other,
-		bool default_permissions, bool push_symlinks_in, bool ro,
-		enum poll_method pm, uint32_t flags,
-		uint32_t kernel_minor_version, uint32_t max_write, bool async,
-		bool no_clusterr, unsigned time_gran, bool nointr,
-		bool noatime, const char *fsname, const char *subtype);
+	MockFS(int max_readahead, bool allow_other, bool default_permissions,
+	    bool push_symlinks_in, bool ro, enum poll_method pm, uint32_t flags,
+	    uint32_t kernel_minor_version, uint32_t max_write, bool async,
+	    bool no_clusterr, unsigned time_gran, bool nointr, bool noatime,
+	    const char *fsname, const char *subtype);
 
 	virtual ~MockFS();
 
@@ -410,9 +398,9 @@ class MockFS {
 	 * @param	data	Pointer to the data to cache
 	 * @param	len	Size of data
 	 */
-	int notify_store(ino_t ino, off_t off, const void* data, ssize_t size);
+	int notify_store(ino_t ino, off_t off, const void *data, ssize_t size);
 
-	/* 
+	/*
 	 * Request handler
 	 *
 	 * This method is expected to provide the responses to each FUSE
@@ -421,8 +409,9 @@ class MockFS {
 	 * plus a delayed response to an earlier operation, push two bufs.
 	 * Test cases must define each response using Googlemock expectations
 	 */
-	MOCK_METHOD2(process, void(const mockfs_buf_in&,
-				std::vector<std::unique_ptr<mockfs_buf_out>>&));
+	MOCK_METHOD2(process,
+	    void(const mockfs_buf_in &,
+		std::vector<std::unique_ptr<mockfs_buf_out>> &));
 
 	/* Gracefully unmount */
 	void unmount();

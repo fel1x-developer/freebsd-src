@@ -33,35 +33,34 @@
 
 #include "ixl_pf.h"
 
-#define IXL_I2C_T_RISE		1
-#define IXL_I2C_T_FALL		1
-#define IXL_I2C_T_SU_DATA	1
-#define IXL_I2C_T_SU_STA	5
-#define IXL_I2C_T_SU_STO	4
-#define IXL_I2C_T_HD_STA	4
-#define IXL_I2C_T_LOW		5
-#define IXL_I2C_T_HIGH		4
-#define IXL_I2C_T_BUF		5
+#define IXL_I2C_T_RISE 1
+#define IXL_I2C_T_FALL 1
+#define IXL_I2C_T_SU_DATA 1
+#define IXL_I2C_T_SU_STA 5
+#define IXL_I2C_T_SU_STO 4
+#define IXL_I2C_T_HD_STA 4
+#define IXL_I2C_T_LOW 5
+#define IXL_I2C_T_HIGH 4
+#define IXL_I2C_T_BUF 5
 #define IXL_I2C_CLOCK_STRETCHING_TIMEOUT 500
 
-#define IXL_I2C_REG(_hw)	\
-    I40E_GLGEN_I2CPARAMS(_hw->func_caps.mdio_port_num)
+#define IXL_I2C_REG(_hw) I40E_GLGEN_I2CPARAMS(_hw->func_caps.mdio_port_num)
 
 /* I2C bit-banging functions */
-static s32	ixl_set_i2c_data(struct ixl_pf *pf, u32 *i2cctl, bool data);
-static bool	ixl_get_i2c_data(struct ixl_pf *pf, u32 *i2cctl);
-static void	ixl_raise_i2c_clk(struct ixl_pf *pf, u32 *i2cctl);
-static void	ixl_lower_i2c_clk(struct ixl_pf *pf, u32 *i2cctl);
-static s32	ixl_clock_out_i2c_bit(struct ixl_pf *pf, bool data);
-static s32	ixl_get_i2c_ack(struct ixl_pf *pf);
-static s32	ixl_clock_out_i2c_byte(struct ixl_pf *pf, u8 data);
-static s32	ixl_clock_in_i2c_bit(struct ixl_pf *pf, bool *data);
-static s32	ixl_clock_in_i2c_byte(struct ixl_pf *pf, u8 *data);
-static void 	ixl_i2c_bus_clear(struct ixl_pf *pf);
-static void	ixl_i2c_start(struct ixl_pf *pf);
-static void	ixl_i2c_stop(struct ixl_pf *pf);
+static s32 ixl_set_i2c_data(struct ixl_pf *pf, u32 *i2cctl, bool data);
+static bool ixl_get_i2c_data(struct ixl_pf *pf, u32 *i2cctl);
+static void ixl_raise_i2c_clk(struct ixl_pf *pf, u32 *i2cctl);
+static void ixl_lower_i2c_clk(struct ixl_pf *pf, u32 *i2cctl);
+static s32 ixl_clock_out_i2c_bit(struct ixl_pf *pf, bool data);
+static s32 ixl_get_i2c_ack(struct ixl_pf *pf);
+static s32 ixl_clock_out_i2c_byte(struct ixl_pf *pf, u8 data);
+static s32 ixl_clock_in_i2c_bit(struct ixl_pf *pf, bool *data);
+static s32 ixl_clock_in_i2c_byte(struct ixl_pf *pf, u8 *data);
+static void ixl_i2c_bus_clear(struct ixl_pf *pf);
+static void ixl_i2c_start(struct ixl_pf *pf);
+static void ixl_i2c_stop(struct ixl_pf *pf);
 
-static s32	ixl_wait_for_i2c_completion(struct i40e_hw *hw, u8 portnum);
+static s32 ixl_wait_for_i2c_completion(struct i40e_hw *hw, u8 portnum);
 
 /**
  *  ixl_i2c_bus_clear - Clears the I2C bus
@@ -412,7 +411,8 @@ ixl_set_i2c_data(struct ixl_pf *pf, u32 *i2cctl, bool data)
 	*i2cctl = rd32(hw, IXL_I2C_REG(hw));
 	if (data != ixl_get_i2c_data(pf, i2cctl)) {
 		status = I40E_ERR_PHY;
-		ixl_dbg(pf, IXL_DBG_I2C, "Error - I2C data was not set to %X.\n", data);
+		ixl_dbg(pf, IXL_DBG_I2C,
+		    "Error - I2C data was not set to %X.\n", data);
 	}
 
 	return status;
@@ -446,15 +446,13 @@ ixl_i2c_start(struct ixl_pf *pf)
 
 	/* Minimum low period of clock is 4.7 us */
 	i40e_usec_delay(IXL_I2C_T_LOW);
-
 }
 
 /**
  *  ixl_read_i2c_byte_bb - Reads 8 bit word over I2C
  **/
 s32
-ixl_read_i2c_byte_bb(struct ixl_pf *pf, u8 byte_offset,
-		  u8 dev_addr, u8 *data)
+ixl_read_i2c_byte_bb(struct ixl_pf *pf, u8 byte_offset, u8 dev_addr, u8 *data)
 {
 	struct i40e_hw *hw = &pf->hw;
 	u32 max_retry = 10;
@@ -486,7 +484,8 @@ ixl_read_i2c_byte_bb(struct ixl_pf *pf, u8 byte_offset,
 
 		status = ixl_clock_out_i2c_byte(pf, byte_offset);
 		if (status != I40E_SUCCESS) {
-			ixl_dbg(pf, IXL_DBG_I2C, "byte_offset clock out error\n");
+			ixl_dbg(pf, IXL_DBG_I2C,
+			    "byte_offset clock out error\n");
 			goto fail;
 		}
 
@@ -519,12 +518,13 @@ ixl_read_i2c_byte_bb(struct ixl_pf *pf, u8 byte_offset,
 		status = I40E_SUCCESS;
 		goto done;
 
-fail:
+	fail:
 		ixl_i2c_bus_clear(pf);
 		i40e_msec_delay(100);
 		retry++;
 		if (retry < max_retry)
-			ixl_dbg(pf, IXL_DBG_I2C, "I2C byte read error - Retrying\n");
+			ixl_dbg(pf, IXL_DBG_I2C,
+			    "I2C byte read error - Retrying\n");
 		else
 			ixl_dbg(pf, IXL_DBG_I2C, "I2C byte read error\n");
 
@@ -542,8 +542,7 @@ done:
  *  ixl_write_i2c_byte_bb - Writes 8 bit word over I2C
  **/
 s32
-ixl_write_i2c_byte_bb(struct ixl_pf *pf, u8 byte_offset,
-		       u8 dev_addr, u8 data)
+ixl_write_i2c_byte_bb(struct ixl_pf *pf, u8 byte_offset, u8 dev_addr, u8 data)
 {
 	struct i40e_hw *hw = &pf->hw;
 	s32 status = I40E_SUCCESS;
@@ -585,12 +584,13 @@ ixl_write_i2c_byte_bb(struct ixl_pf *pf, u8 byte_offset,
 		ixl_i2c_stop(pf);
 		goto write_byte_out;
 
-fail:
+	fail:
 		ixl_i2c_bus_clear(pf);
 		i40e_msec_delay(100);
 		retry++;
 		if (retry < max_retry)
-			ixl_dbg(pf, IXL_DBG_I2C, "I2C byte write error - Retrying\n");
+			ixl_dbg(pf, IXL_DBG_I2C,
+			    "I2C byte write error - Retrying\n");
 		else
 			ixl_dbg(pf, IXL_DBG_I2C, "I2C byte write error\n");
 	} while (retry < max_retry);
@@ -608,8 +608,7 @@ write_byte_out:
  *  ixl_read_i2c_byte_reg - Reads 8 bit word over I2C using a hardware register
  **/
 s32
-ixl_read_i2c_byte_reg(struct ixl_pf *pf, u8 byte_offset,
-		  u8 dev_addr, u8 *data)
+ixl_read_i2c_byte_reg(struct ixl_pf *pf, u8 byte_offset, u8 dev_addr, u8 *data)
 {
 	struct i40e_hw *hw = &pf->hw;
 	u32 reg = 0;
@@ -635,11 +634,11 @@ ixl_read_i2c_byte_reg(struct ixl_pf *pf, u8 byte_offset,
 }
 
 /**
- *  ixl_write_i2c_byte_reg - Writes 8 bit word over I2C using a hardware register
+ *  ixl_write_i2c_byte_reg - Writes 8 bit word over I2C using a hardware
+ *register
  **/
 s32
-ixl_write_i2c_byte_reg(struct ixl_pf *pf, u8 byte_offset,
-		       u8 dev_addr, u8 data)
+ixl_write_i2c_byte_reg(struct ixl_pf *pf, u8 byte_offset, u8 dev_addr, u8 data)
 {
 	struct i40e_hw *hw = &pf->hw;
 	s32 status = I40E_SUCCESS;
@@ -647,7 +646,8 @@ ixl_write_i2c_byte_reg(struct ixl_pf *pf, u8 byte_offset,
 	u8 upperbyte = 0;
 	u16 datai2c = 0;
 
-	status = ixl_read_i2c_byte_reg(pf, byte_offset + 1, dev_addr, &upperbyte);
+	status = ixl_read_i2c_byte_reg(pf, byte_offset + 1, dev_addr,
+	    &upperbyte);
 	datai2c = ((u16)upperbyte << 8) | (u16)data;
 	reg = rd32(hw, I40E_GLGEN_I2CCMD(hw->func_caps.mdio_port_num));
 
@@ -696,22 +696,20 @@ ixl_wait_for_i2c_completion(struct i40e_hw *hw, u8 portnum)
  *  ixl_read_i2c_byte_aq - Reads 8 bit word over I2C using an AQ command
  **/
 s32
-ixl_read_i2c_byte_aq(struct ixl_pf *pf, u8 byte_offset,
-		  u8 dev_addr, u8 *data)
+ixl_read_i2c_byte_aq(struct ixl_pf *pf, u8 byte_offset, u8 dev_addr, u8 *data)
 {
 	struct i40e_hw *hw = &pf->hw;
 	s32 status = I40E_SUCCESS;
 	u32 reg;
 
 	status = i40e_aq_get_phy_register(hw,
-					I40E_AQ_PHY_REG_ACCESS_EXTERNAL_MODULE,
-					dev_addr, false,
-					byte_offset,
-					&reg, NULL);
+	    I40E_AQ_PHY_REG_ACCESS_EXTERNAL_MODULE, dev_addr, false,
+	    byte_offset, &reg, NULL);
 
 	if (status)
 		ixl_dbg(pf, IXL_DBG_I2C, "I2C byte read status %s, error %s\n",
-		    i40e_stat_str(hw, status), i40e_aq_str(hw, hw->aq.asq_last_status));
+		    i40e_stat_str(hw, status),
+		    i40e_aq_str(hw, hw->aq.asq_last_status));
 	else
 		*data = (u8)reg;
 
@@ -722,21 +720,19 @@ ixl_read_i2c_byte_aq(struct ixl_pf *pf, u8 byte_offset,
  *  ixl_write_i2c_byte_aq - Writes 8 bit word over I2C using an AQ command
  **/
 s32
-ixl_write_i2c_byte_aq(struct ixl_pf *pf, u8 byte_offset,
-		       u8 dev_addr, u8 data)
+ixl_write_i2c_byte_aq(struct ixl_pf *pf, u8 byte_offset, u8 dev_addr, u8 data)
 {
 	struct i40e_hw *hw = &pf->hw;
 	s32 status = I40E_SUCCESS;
 
 	status = i40e_aq_set_phy_register(hw,
-					I40E_AQ_PHY_REG_ACCESS_EXTERNAL_MODULE,
-					dev_addr, false,
-					byte_offset,
-					data, NULL);
+	    I40E_AQ_PHY_REG_ACCESS_EXTERNAL_MODULE, dev_addr, false,
+	    byte_offset, data, NULL);
 
 	if (status)
 		ixl_dbg(pf, IXL_DBG_I2C, "I2C byte write status %s, error %s\n",
-		    i40e_stat_str(hw, status), i40e_aq_str(hw, hw->aq.asq_last_status));
+		    i40e_stat_str(hw, status),
+		    i40e_aq_str(hw, hw->aq.asq_last_status));
 
 	return status;
 }

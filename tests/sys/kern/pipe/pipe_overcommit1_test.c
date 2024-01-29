@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2005 Michael J. Silbersack <silby@freebsd.org> 
+ * Copyright (C) 2005 Michael J. Silbersack <silby@freebsd.org>
  *  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,6 +27,7 @@
  */
 
 #include <sys/param.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>

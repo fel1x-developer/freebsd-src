@@ -51,26 +51,26 @@
 /* Retrieve the session descriptor pointer from the session context structure
  * that the user allocates. The pointer to the internally realigned address
  * is stored at the start of the session context that the user allocates */
-#define DC_SESSION_DESC_FROM_CTX_GET(pSession)                                 \
+#define DC_SESSION_DESC_FROM_CTX_GET(pSession) \
 	(dc_session_desc_t *)(*(LAC_ARCH_UINT *)pSession)
 
 /* Maximum size for the compression part of the content descriptor */
 #define DC_QAT_COMP_CONTENT_DESC_SIZE sizeof(icp_qat_fw_comp_cd_hdr_t)
 
 /* Maximum size for the translator part of the content descriptor */
-#define DC_QAT_TRANS_CONTENT_DESC_SIZE                                         \
+#define DC_QAT_TRANS_CONTENT_DESC_SIZE \
 	(sizeof(icp_qat_fw_xlt_cd_hdr_t) + DC_QAT_MAX_TRANS_SETUP_BLK_SZ)
 
 /* Maximum size of the decompression content descriptor */
-#define DC_QAT_CONTENT_DESC_DECOMP_MAX_SIZE                                    \
-	LAC_ALIGN_POW2_ROUNDUP(DC_QAT_COMP_CONTENT_DESC_SIZE,                  \
-			       (1 << LAC_64BYTE_ALIGNMENT_SHIFT))
+#define DC_QAT_CONTENT_DESC_DECOMP_MAX_SIZE                   \
+	LAC_ALIGN_POW2_ROUNDUP(DC_QAT_COMP_CONTENT_DESC_SIZE, \
+	    (1 << LAC_64BYTE_ALIGNMENT_SHIFT))
 
 /* Maximum size of the compression content descriptor */
-#define DC_QAT_CONTENT_DESC_COMP_MAX_SIZE                                      \
-	LAC_ALIGN_POW2_ROUNDUP(DC_QAT_COMP_CONTENT_DESC_SIZE +                 \
-				   DC_QAT_TRANS_CONTENT_DESC_SIZE,             \
-			       (1 << LAC_64BYTE_ALIGNMENT_SHIFT))
+#define DC_QAT_CONTENT_DESC_COMP_MAX_SIZE                      \
+	LAC_ALIGN_POW2_ROUNDUP(DC_QAT_COMP_CONTENT_DESC_SIZE + \
+		DC_QAT_TRANS_CONTENT_DESC_SIZE,                \
+	    (1 << LAC_64BYTE_ALIGNMENT_SHIFT))
 
 /* Direction of the request */
 typedef enum dc_request_dir_e {
@@ -284,10 +284,8 @@ typedef struct dc_session_desc_s {
  * @retval CPA_STATUS_RESOURCE       Error related to system resources
  *****************************************************************************/
 CpaStatus dcInitSession(CpaInstanceHandle dcInstance,
-			CpaDcSessionHandle pSessionHandle,
-			CpaDcSessionSetupData *pSessionData,
-			CpaBufferList *pContextBuffer,
-			CpaDcCallbackFn callbackFn);
+    CpaDcSessionHandle pSessionHandle, CpaDcSessionSetupData *pSessionData,
+    CpaBufferList *pContextBuffer, CpaDcCallbackFn callbackFn);
 
 /**
  *****************************************************************************
@@ -318,9 +316,8 @@ CpaStatus dcInitSession(CpaInstanceHandle dcInstance,
  * @retval CPA_STATUS_INVALID_PARAM  Invalid parameter passed in
  *****************************************************************************/
 CpaStatus dcGetSessionSize(CpaInstanceHandle dcInstance,
-			   CpaDcSessionSetupData *pSessionData,
-			   Cpa32U *pSessionSize,
-			   Cpa32U *pContextSize);
+    CpaDcSessionSetupData *pSessionData, Cpa32U *pSessionSize,
+    Cpa32U *pContextSize);
 
 /**
  *****************************************************************************
@@ -343,7 +340,7 @@ CpaStatus dcGetSessionSize(CpaInstanceHandle dcInstance,
  * @retval CPA_STATUS_UNSUPPORTED    Unsupported feature
  *****************************************************************************/
 CpaStatus dcSetCnvError(CpaInstanceHandle dcInstance,
-			CpaDcSessionHandle pSessionHandle);
+    CpaDcSessionHandle pSessionHandle);
 
 /**
  *****************************************************************************
@@ -363,7 +360,7 @@ CpaStatus dcSetCnvError(CpaInstanceHandle dcInstance,
  *
  *****************************************************************************/
 CpaStatus dcCheckSessionData(const CpaDcSessionSetupData *pSessionData,
-			     CpaInstanceHandle dcInstance);
+    CpaInstanceHandle dcInstance);
 
 /**
  *****************************************************************************
@@ -384,8 +381,7 @@ CpaStatus dcCheckSessionData(const CpaDcSessionSetupData *pSessionData,
  *
  *****************************************************************************/
 CpaStatus dcGetCompressCommandId(sal_compression_service_t *pService,
-				 CpaDcSessionSetupData *pSessionData,
-				 Cpa8U *pDcCmdId);
+    CpaDcSessionSetupData *pSessionData, Cpa8U *pDcCmdId);
 
 /**
  *****************************************************************************
@@ -406,8 +402,7 @@ CpaStatus dcGetCompressCommandId(sal_compression_service_t *pService,
  *
  *****************************************************************************/
 CpaStatus dcGetDecompressCommandId(sal_compression_service_t *pService,
-				   CpaDcSessionSetupData *pSessionData,
-				   Cpa8U *pDcCmdId);
+    CpaDcSessionSetupData *pSessionData, Cpa8U *pDcCmdId);
 
 /**
  *****************************************************************************
@@ -422,6 +417,6 @@ CpaStatus dcGetDecompressCommandId(sal_compression_service_t *pService,
  *
  *****************************************************************************/
 void dcTransContentDescPopulate(icp_qat_fw_comp_req_t *pMsg,
-				icp_qat_fw_slice_t nextSlice);
+    icp_qat_fw_slice_t nextSlice);
 
 #endif /* DC_SESSION_H */

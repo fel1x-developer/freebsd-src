@@ -34,7 +34,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define	NOBODY	"nobody"
+#define NOBODY "nobody"
 
 /*
  * Simple exercise for the mlock() system call -- confirm that mlock() and
@@ -62,7 +62,7 @@ main(int argc, char *argv[])
 		errx(-1, "getpwnam: user \"%s\" has uid 0", NOBODY);
 
 	pagesize = getpagesize();
-	page = mmap(NULL, pagesize, PROT_READ|PROT_WRITE, MAP_ANON, -1, 0);
+	page = mmap(NULL, pagesize, PROT_READ | PROT_WRITE, MAP_ANON, -1, 0);
 	if (page == MAP_FAILED)
 		errx(-1, "mmap: %s", strerror(errno));
 

@@ -29,29 +29,28 @@
  * SUCH DAMAGE.
  */
 
-
-
 /* From:
 	"Id: mbufs.c,v 1.5 1997/02/24 20:59:03 wollman Exp"
 */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
 
+#include <netinet/icmp_var.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
-#include <netinet/icmp_var.h>
 
+#include <paths.h>
 #include <stdlib.h>
 #include <string.h>
-#include <paths.h>
-#include "systat.h"
+
 #include "extern.h"
 #include "mode.h"
+#include "systat.h"
 
 static struct icmpstat icmpstat, initstat, oldstat;
 
@@ -84,7 +83,7 @@ static struct icmpstat icmpstat, initstat, oldstat;
 WINDOW *
 openicmp(void)
 {
-	return (subwin(stdscr, LINES-3-1, 0, MAINWIN_ROW, 0));
+	return (subwin(stdscr, LINES - 3 - 1, 0, MAINWIN_ROW, 0));
 }
 
 void
@@ -100,26 +99,37 @@ closeicmp(WINDOW *w)
 void
 labelicmp(void)
 {
-	wmove(wnd, 0, 0); wclrtoeol(wnd);
+	wmove(wnd, 0, 0);
+	wclrtoeol(wnd);
 #define L(row, str) mvwprintw(wnd, row, 10, str)
 #define R(row, str) mvwprintw(wnd, row, 45, str);
-	L(0, "ICMP Input");		R(0, "ICMP Output");
-	L(1, "total messages");		R(1, "total messages");
-	L(2, "with bad code");		R(2, "errors generated");
-	L(3, "with bad length");	R(3, "suppressed - original too short");
-	L(4, "with bad checksum");	R(4, "suppressed - original was ICMP");
-	L(5, "with insufficient data");	R(5, "responses sent");
-					R(6, "suppressed - multicast echo");
-					R(7, "suppressed - multicast tstamp");
-	L(9, "Input Histogram");	R(9, "Output Histogram");
-#define B(row, str) L(row, str); R(row, str)
+	L(0, "ICMP Input");
+	R(0, "ICMP Output");
+	L(1, "total messages");
+	R(1, "total messages");
+	L(2, "with bad code");
+	R(2, "errors generated");
+	L(3, "with bad length");
+	R(3, "suppressed - original too short");
+	L(4, "with bad checksum");
+	R(4, "suppressed - original was ICMP");
+	L(5, "with insufficient data");
+	R(5, "responses sent");
+	R(6, "suppressed - multicast echo");
+	R(7, "suppressed - multicast tstamp");
+	L(9, "Input Histogram");
+	R(9, "Output Histogram");
+#define B(row, str)  \
+	L(row, str); \
+	R(row, str)
 	B(10, "echo response");
 	B(11, "echo request");
 	B(12, "destination unreachable");
 	B(13, "redirect");
 	B(14, "time-to-live exceeded");
 	B(15, "parameter problem");
-	L(16, "router advertisement");	R(16, "router solicitation");
+	L(16, "router advertisement");
+	R(16, "router solicitation");
 #undef L
 #undef R
 #undef B
@@ -131,7 +141,7 @@ domode(struct icmpstat *ret)
 	const struct icmpstat *sub;
 	int i, divisor = 1;
 
-	switch(currentmode) {
+	switch (currentmode) {
 	case display_RATE:
 		sub = &oldstat;
 		divisor = (delay > 1000000) ? delay / 1000000 : 1;
@@ -180,12 +190,11 @@ showicmp(void)
 		totalout += stats.icps_outhist[i];
 	}
 	totalin += stats.icps_badcode + stats.icps_badlen +
-		stats.icps_checksum + stats.icps_tooshort;
+	    stats.icps_checksum + stats.icps_tooshort;
 	mvwprintw(wnd, 1, 0, "%9lu", totalin);
 	mvwprintw(wnd, 1, 35, "%9lu", totalout);
 
-#define DO(stat, row, col) \
-	mvwprintw(wnd, row, col, "%9lu", stats.stat)
+#define DO(stat, row, col) mvwprintw(wnd, row, col, "%9lu", stats.stat)
 
 	DO(icps_badcode, 2, 0);
 	DO(icps_badlen, 3, 0);
@@ -197,8 +206,9 @@ showicmp(void)
 	DO(icps_reflect, 5, 35);
 	DO(icps_bmcastecho, 6, 35);
 	DO(icps_bmcasttstamp, 7, 35);
-#define DO2(type, row) DO(icps_inhist[type], row, 0); DO(icps_outhist[type], \
-							 row, 35)
+#define DO2(type, row)                 \
+	DO(icps_inhist[type], row, 0); \
+	DO(icps_outhist[type], row, 35)
 	DO2(ICMP_ECHOREPLY, 10);
 	DO2(ICMP_ECHO, 11);
 	DO2(ICMP_UNREACH, 12);

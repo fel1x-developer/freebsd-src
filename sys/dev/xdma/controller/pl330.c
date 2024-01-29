@@ -30,25 +30,26 @@
 
 /* ARM PrimeCell DMA Controller (PL330) driver. */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
+
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/endian.h>
 #include <sys/systm.h>
-#include <sys/conf.h>
 #include <sys/bus.h>
+#include <sys/conf.h>
+#include <sys/endian.h>
 #include <sys/kernel.h>
 #include <sys/kthread.h>
-#include <sys/sglist.h>
-#include <sys/module.h>
 #include <sys/lock.h>
+#include <sys/module.h>
 #include <sys/resource.h>
 #include <sys/rman.h>
+#include <sys/sglist.h>
 
 #include <vm/vm.h>
+#include <vm/pmap.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_kern.h>
-#include <vm/pmap.h>
 
 #include <machine/bus.h>
 
@@ -58,8 +59,8 @@
 #include <dev/ofw/ofw_bus_subr.h>
 #endif
 
-#include <dev/xdma/xdma.h>
 #include <dev/xdma/controller/pl330.h>
+#include <dev/xdma/xdma.h>
 
 #include "xdma_if.h"
 
@@ -67,28 +68,26 @@
 #undef PL330_DEBUG
 
 #ifdef PL330_DEBUG
-#define dprintf(fmt, ...)  printf(fmt, ##__VA_ARGS__)
+#define dprintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
 #define dprintf(fmt, ...)
 #endif
 
-#define	READ4(_sc, _reg)	\
-	bus_read_4(_sc->res[0], _reg)
-#define	WRITE4(_sc, _reg, _val)	\
-	bus_write_4(_sc->res[0], _reg, _val)
+#define READ4(_sc, _reg) bus_read_4(_sc->res[0], _reg)
+#define WRITE4(_sc, _reg, _val) bus_write_4(_sc->res[0], _reg, _val)
 
-#define	PL330_NCHANNELS	32
-#define	PL330_MAXLOAD	2048
+#define PL330_NCHANNELS 32
+#define PL330_MAXLOAD 2048
 
 struct pl330_channel {
-	struct pl330_softc	*sc;
-	xdma_channel_t		*xchan;
-	int			used;
-	int			index;
-	uint8_t			*ibuf;
-	bus_addr_t		ibuf_phys;
-	uint32_t		enqueued;
-	uint32_t		capacity;
+	struct pl330_softc *sc;
+	xdma_channel_t *xchan;
+	int used;
+	int index;
+	uint8_t *ibuf;
+	bus_addr_t ibuf_phys;
+	uint32_t enqueued;
+	uint32_t capacity;
 };
 
 struct pl330_fdt_data {
@@ -96,55 +95,52 @@ struct pl330_fdt_data {
 };
 
 struct pl330_softc {
-	device_t		dev;
-	struct resource		*res[PL330_NCHANNELS + 1];
-	void			*ih[PL330_NCHANNELS];
-	struct pl330_channel	channels[PL330_NCHANNELS];
+	device_t dev;
+	struct resource *res[PL330_NCHANNELS + 1];
+	void *ih[PL330_NCHANNELS];
+	struct pl330_channel channels[PL330_NCHANNELS];
 };
 
-static struct resource_spec pl330_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ SYS_RES_IRQ,		0,	RF_ACTIVE },
-	{ SYS_RES_IRQ,		1,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		2,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		3,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		4,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		5,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		6,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		7,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		8,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		9,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		10,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		11,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		12,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		13,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		14,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		15,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		16,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		17,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		18,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		19,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		20,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		21,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		22,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		23,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		24,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		25,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		26,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		27,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		28,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		29,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		30,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		31,	RF_ACTIVE | RF_OPTIONAL },
-	{ -1, 0 }
-};
+static struct resource_spec pl330_spec[] = { { SYS_RES_MEMORY, 0, RF_ACTIVE },
+	{ SYS_RES_IRQ, 0, RF_ACTIVE },
+	{ SYS_RES_IRQ, 1, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 2, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 3, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 4, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 5, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 6, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 7, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 8, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 9, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 10, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 11, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 12, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 13, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 14, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 15, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 16, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 17, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 18, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 19, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 20, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 21, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 22, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 23, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 24, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 25, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 26, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 27, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 28, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 29, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 30, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 31, RF_ACTIVE | RF_OPTIONAL }, { -1, 0 } };
 
-#define	HWTYPE_NONE	0
-#define	HWTYPE_STD	1
+#define HWTYPE_NONE 0
+#define HWTYPE_STD 1
 
 static struct ofw_compat_data compat_data[] = {
-	{ "arm,pl330",		HWTYPE_STD },
-	{ NULL,			HWTYPE_NONE },
+	{ "arm,pl330", HWTYPE_STD },
+	{ NULL, HWTYPE_NONE },
 };
 
 static void
@@ -163,9 +159,8 @@ pl330_intr(void *arg)
 
 	pending = READ4(sc, INTMIS);
 
-	dprintf("%s: 0x%x, LC0 %x, SAR %x DAR %x\n",
-	    __func__, pending, READ4(sc, LC0(0)),
-	    READ4(sc, SAR(0)), READ4(sc, DAR(0)));
+	dprintf("%s: 0x%x, LC0 %x, SAR %x DAR %x\n", __func__, pending,
+	    READ4(sc, LC0(0)), READ4(sc, SAR(0)), READ4(sc, DAR(0)));
 
 	WRITE4(sc, INTCLR, pending);
 
@@ -220,8 +215,7 @@ emit_lp(uint8_t *buf, uint8_t idx, uint32_t iter)
 }
 
 static uint32_t
-emit_lpend(uint8_t *buf, uint8_t idx,
-    uint8_t burst, uint8_t jump_addr_relative)
+emit_lpend(uint8_t *buf, uint8_t idx, uint8_t burst, uint8_t jump_addr_relative)
 {
 
 	buf[0] = DMALPEND;
@@ -293,8 +287,7 @@ emit_wfp(uint8_t *buf, uint32_t p_id)
 }
 
 static uint32_t
-emit_go(uint8_t *buf, uint32_t chan_id,
-    uint32_t addr, uint8_t non_secure)
+emit_go(uint8_t *buf, uint32_t chan_id, uint32_t addr, uint8_t non_secure)
 {
 
 	buf[0] = DMAGO;
@@ -346,10 +339,12 @@ pl330_attach(device_t dev)
 	for (i = 0; i < PL330_NCHANNELS; i++) {
 		if (sc->res[i + 1] == NULL)
 			break;
-		err = bus_setup_intr(dev, sc->res[i + 1], INTR_TYPE_MISC | INTR_MPSAFE,
-		    NULL, pl330_intr, sc, sc->ih[i]);
+		err = bus_setup_intr(dev, sc->res[i + 1],
+		    INTR_TYPE_MISC | INTR_MPSAFE, NULL, pl330_intr, sc,
+		    sc->ih[i]);
 		if (err) {
-			device_printf(dev, "Unable to alloc interrupt resource.\n");
+			device_printf(dev,
+			    "Unable to alloc interrupt resource.\n");
 			return (ENXIO);
 		}
 	}
@@ -410,8 +405,7 @@ pl330_channel_free(device_t dev, struct xdma_channel *xchan)
 }
 
 static int
-pl330_channel_capacity(device_t dev, xdma_channel_t *xchan,
-    uint32_t *capacity)
+pl330_channel_capacity(device_t dev, xdma_channel_t *xchan, uint32_t *capacity)
 {
 	struct pl330_channel *chan;
 
@@ -599,8 +593,8 @@ pl330_ofw_md_data(device_t dev, pcell_t *cells, int ncells, void **ptr)
 	if (ncells != 1)
 		return (-1);
 
-	data = malloc(sizeof(struct pl330_fdt_data),
-	    M_DEVBUF, (M_WAITOK | M_ZERO));
+	data = malloc(sizeof(struct pl330_fdt_data), M_DEVBUF,
+	    (M_WAITOK | M_ZERO));
 	data->periph_id = cells[0];
 
 	*ptr = data;
@@ -611,22 +605,22 @@ pl330_ofw_md_data(device_t dev, pcell_t *cells, int ncells, void **ptr)
 
 static device_method_t pl330_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,			pl330_probe),
-	DEVMETHOD(device_attach,		pl330_attach),
-	DEVMETHOD(device_detach,		pl330_detach),
+	DEVMETHOD(device_probe, pl330_probe),
+	DEVMETHOD(device_attach, pl330_attach),
+	DEVMETHOD(device_detach, pl330_detach),
 
 	/* xDMA Interface */
-	DEVMETHOD(xdma_channel_alloc,		pl330_channel_alloc),
-	DEVMETHOD(xdma_channel_free,		pl330_channel_free),
-	DEVMETHOD(xdma_channel_control,		pl330_channel_control),
+	DEVMETHOD(xdma_channel_alloc, pl330_channel_alloc),
+	DEVMETHOD(xdma_channel_free, pl330_channel_free),
+	DEVMETHOD(xdma_channel_control, pl330_channel_control),
 
 	/* xDMA SG Interface */
-	DEVMETHOD(xdma_channel_capacity,	pl330_channel_capacity),
-	DEVMETHOD(xdma_channel_prep_sg,		pl330_channel_prep_sg),
-	DEVMETHOD(xdma_channel_submit_sg,	pl330_channel_submit_sg),
+	DEVMETHOD(xdma_channel_capacity, pl330_channel_capacity),
+	DEVMETHOD(xdma_channel_prep_sg, pl330_channel_prep_sg),
+	DEVMETHOD(xdma_channel_submit_sg, pl330_channel_submit_sg),
 
 #ifdef FDT
-	DEVMETHOD(xdma_ofw_md_data,		pl330_ofw_md_data),
+	DEVMETHOD(xdma_ofw_md_data, pl330_ofw_md_data),
 #endif
 
 	DEVMETHOD_END

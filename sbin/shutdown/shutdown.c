@@ -50,29 +50,18 @@
 
 #ifdef DEBUG
 #undef _PATH_NOLOGIN
-#define	_PATH_NOLOGIN	"./nologin"
+#define _PATH_NOLOGIN "./nologin"
 #endif
 
-#define	H		*60*60
-#define	M		*60
-#define	S		*1
-#define	NOLOG_TIME	5*60
+#define H *60 * 60
+#define M *60
+#define S *1
+#define NOLOG_TIME 5 * 60
 static struct interval {
 	int timeleft, timetowait;
-} tlist[] = {
-	{ 10 H,  5 H },
-	{  5 H,  3 H },
-	{  2 H,  1 H },
-	{  1 H, 30 M },
-	{ 30 M, 10 M },
-	{ 20 M, 10 M },
-	{ 10 M,  5 M },
-	{  5 M,  3 M },
-	{  2 M,  1 M },
-	{  1 M, 30 S },
-	{ 30 S, 30 S },
-	{  0  ,  0   }
-};
+} tlist[] = { { 10 H, 5 H }, { 5 H, 3 H }, { 2 H, 1 H }, { 1 H, 30 M },
+	{ 30 M, 10 M }, { 20 M, 10 M }, { 10 M, 5 M }, { 5 M, 3 M },
+	{ 2 M, 1 M }, { 1 M, 30 S }, { 30 S, 30 S }, { 0, 0 } };
 #undef H
 #undef M
 #undef S
@@ -198,7 +187,8 @@ poweroff:
 		for (;;) {
 			if (!fgets(p, endp - p + 1, stdin))
 				break;
-			for (; *p &&  p < endp; ++p);
+			for (; *p && p < endp; ++p)
+				;
 			if (p == endp) {
 				*p = '\n';
 				*++p = '\0';
@@ -236,7 +226,7 @@ poweroff:
 #endif
 	openlog("shutdown", LOG_CONS, LOG_AUTH);
 	loop();
-	return(0);
+	return (0);
 }
 
 static void
@@ -249,8 +239,7 @@ loop(void)
 	if (offset <= NOLOG_TIME) {
 		logged = 1;
 		nolog();
-	}
-	else
+	} else
 		logged = 0;
 	tp = tlist;
 	if (tp->timeleft < offset)
@@ -283,10 +272,7 @@ loop(void)
 
 static jmp_buf alarmbuf;
 
-static const char *restricted_environ[] = {
-	"PATH=" _PATH_STDPATH,
-	NULL
-};
+static const char *restricted_environ[] = { "PATH=" _PATH_STDPATH, NULL };
 
 static void
 timewarn(int timeleft)
@@ -309,9 +295,9 @@ timewarn(int timeleft)
 
 	(void)fprintf(pf,
 	    "\007*** %sSystem shutdown message from %s@%s ***\007\n",
-	    timeleft ? "": "FINAL ", whom, hostname);
+	    timeleft ? "" : "FINAL ", whom, hostname);
 
-	if (timeleft > 10*60)
+	if (timeleft > 10 * 60)
 		(void)fprintf(pf, "System going down at %5.5s\n\n",
 		    ctime(&shuttime) + 11);
 	else if (timeleft > 59)
@@ -351,11 +337,19 @@ die_you_gravy_sucking_pig_dog(void)
 	char *empty_environ[] = { NULL };
 
 	BOOTTRACE("%s by %s",
-	    doreboot ? "reboot" : dohalt ? "halt" : dopower ? "power-down" :
-	    docycle ? "power-cycle" : "shutdown", whom);
+	    doreboot	? "reboot" :
+		dohalt	? "halt" :
+		dopower ? "power-down" :
+		docycle ? "power-cycle" :
+			  "shutdown",
+	    whom);
 	syslog(LOG_NOTICE, "%s by %s: %s",
-	    doreboot ? "reboot" : dohalt ? "halt" : dopower ? "power-down" :
-	    docycle ? "power-cycle" : "shutdown", whom, mbuf);
+	    doreboot	? "reboot" :
+		dohalt	? "halt" :
+		dopower ? "power-down" :
+		docycle ? "power-cycle" :
+			  "shutdown",
+	    whom, mbuf);
 
 	(void)printf("\r\nSystem shutdown time has arrived\007\007\r\n");
 	if (killflg) {
@@ -386,43 +380,42 @@ die_you_gravy_sucking_pig_dog(void)
 	} else {
 		if (doreboot) {
 			BOOTTRACE("exec reboot(8) -l...");
-			execle(_PATH_REBOOT, "reboot", "-l", nosync, 
-				(char *)NULL, empty_environ);
+			execle(_PATH_REBOOT, "reboot", "-l", nosync,
+			    (char *)NULL, empty_environ);
 			syslog(LOG_ERR, "shutdown: can't exec %s: %m.",
-				_PATH_REBOOT);
+			    _PATH_REBOOT);
 			warn(_PATH_REBOOT);
-		}
-		else if (dohalt) {
+		} else if (dohalt) {
 			BOOTTRACE("exec halt(8) -l...");
-			execle(_PATH_HALT, "halt", "-l", nosync,
-				(char *)NULL, empty_environ);
+			execle(_PATH_HALT, "halt", "-l", nosync, (char *)NULL,
+			    empty_environ);
 			syslog(LOG_ERR, "shutdown: can't exec %s: %m.",
-				_PATH_HALT);
+			    _PATH_HALT);
 			warn(_PATH_HALT);
-		}
-		else if (dopower) {
+		} else if (dopower) {
 			BOOTTRACE("exec halt(8) -l -p...");
 			execle(_PATH_HALT, "halt", "-l", "-p", nosync,
-				(char *)NULL, empty_environ);
+			    (char *)NULL, empty_environ);
 			syslog(LOG_ERR, "shutdown: can't exec %s: %m.",
-				_PATH_HALT);
+			    _PATH_HALT);
 			warn(_PATH_HALT);
-		}
-		else if (docycle) {
+		} else if (docycle) {
 			execle(_PATH_HALT, "halt", "-l", "-c", nosync,
-				(char *)NULL, empty_environ);
+			    (char *)NULL, empty_environ);
 			syslog(LOG_ERR, "shutdown: can't exec %s: %m.",
-				_PATH_HALT);
+			    _PATH_HALT);
 			warn(_PATH_HALT);
 		}
 		BOOTTRACE("SIGTERM to init(8)...");
-		(void)kill(1, SIGTERM);		/* to single-user */
+		(void)kill(1, SIGTERM); /* to single-user */
 	}
 #endif
 	finish(0);
 }
 
-#define	ATOI2(p)	(p[0] - '0') * 10 + (p[1] - '0'); p += 2;
+#define ATOI2(p)                          \
+	(p[0] - '0') * 10 + (p[1] - '0'); \
+	p += 2;
 
 static void
 getoffset(char *timearg)
@@ -435,13 +428,13 @@ getoffset(char *timearg)
 
 	(void)time(&now);
 
-	if (!strcasecmp(timearg, "now")) {		/* now */
+	if (!strcasecmp(timearg, "now")) { /* now */
 		offset = 0;
 		shuttime = now;
 		return;
 	}
 
-	if (*timearg == '+') {				/* +minutes */
+	if (*timearg == '+') { /* +minutes */
 		if (!isdigit(*++timearg))
 			badtime();
 		errno = 0;
@@ -474,16 +467,15 @@ getoffset(char *timearg)
 				p[0] = p[1];
 				p[1] = p[2];
 				p[2] = '\0';
-			}
-			else
+			} else
 				badtime();
 		}
 
-	unsetenv("TZ");					/* OUR timezone */
-	lt = localtime(&now);				/* current time val */
+	unsetenv("TZ");	      /* OUR timezone */
+	lt = localtime(&now); /* current time val */
 	maybe_today = 1;
 
-	switch(strlen(timearg)) {
+	switch (strlen(timearg)) {
 	case 10:
 		this_year = lt->tm_year;
 		lt->tm_year = ATOI2(timearg);
@@ -541,20 +533,20 @@ getoffset(char *timearg)
 	}
 }
 
-#define	NOMSG	"\n\nNO LOGINS: System going down at "
+#define NOMSG "\n\nNO LOGINS: System going down at "
 static void
 nolog(void)
 {
 	int logfd;
 	char *ct;
 
-	(void)unlink(_PATH_NOLOGIN);	/* in case linked to another file */
+	(void)unlink(_PATH_NOLOGIN); /* in case linked to another file */
 	(void)signal(SIGINT, finish);
 	(void)signal(SIGHUP, finish);
 	(void)signal(SIGQUIT, finish);
 	(void)signal(SIGTERM, finish);
-	if ((logfd = open(_PATH_NOLOGIN, O_WRONLY|O_CREAT|O_TRUNC,
-	    0664)) >= 0) {
+	if ((logfd = open(_PATH_NOLOGIN, O_WRONLY | O_CREAT | O_TRUNC, 0664)) >=
+	    0) {
 		(void)write(logfd, NOMSG, sizeof(NOMSG) - 1);
 		ct = ctime(&shuttime);
 		(void)write(logfd, ct + 11, 5);

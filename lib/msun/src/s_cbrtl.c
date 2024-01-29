@@ -19,14 +19,14 @@
 #include <ieeefp.h>
 #endif
 
-#include "fpmath.h"    
+#include "fpmath.h"
 #include "math.h"
 #include "math_private.h"
 
-#define	BIAS	(LDBL_MAX_EXP - 1)
+#define BIAS (LDBL_MAX_EXP - 1)
 
-static const unsigned
-    B1 = 709958130;	/* B1 = (127-127.0/3-0.03306235651)*2**23 */
+static const unsigned B1 =
+    709958130; /* B1 = (127-127.0/3-0.03306235651)*2**23 */
 
 long double
 cbrtl(long double x)
@@ -59,21 +59,21 @@ cbrtl(long double x)
 		u.e *= 0x1.0p514;
 		k = u.bits.exp;
 		k -= BIAS + 514;
- 	} else
+	} else
 		k -= BIAS;
 	u.xbits.expsign = BIAS;
-	v.e = 1; 
+	v.e = 1;
 
 	x = u.e;
 	switch (k % 3) {
 	case 1:
 	case -2:
-		x = 2*x;
+		x = 2 * x;
 		k--;
 		break;
 	case 2:
 	case -1:
-		x = 4*x;
+		x = 4 * x;
 		k -= 2;
 		break;
 	}
@@ -108,7 +108,7 @@ cbrtl(long double x)
 	 */
 	volatile double vd2 = 0x1.0p32;
 	volatile double vd1 = 0x1.0p-31;
-	#define vd ((long double)vd2 + vd1)
+#define vd ((long double)vd2 + vd1)
 
 	t = dt + vd - 0x1.0p32;
 #elif LDBL_MANT_DIG == 113
@@ -126,14 +126,14 @@ cbrtl(long double x)
 #endif
 
 	/*
-     	 * Final step Newton iteration to 64 or 113 bits with
+	 * Final step Newton iteration to 64 or 113 bits with
 	 * error < 0.667 ulps
 	 */
-	s=t*t;				/* t*t is exact */
-	r=x/s;				/* error <= 0.5 ulps; |r| < |t| */
-	w=t+t;				/* t+t is exact */
-	r=(r-t)/(w+r);			/* r-t is exact; w+r ~= 3*t */
-	t=t+t*r;			/* error <= (0.5 + 0.5/3) * ulp */
+	s = t * t;	       /* t*t is exact */
+	r = x / s;	       /* error <= 0.5 ulps; |r| < |t| */
+	w = t + t;	       /* t+t is exact */
+	r = (r - t) / (w + r); /* r-t is exact; w+r ~= 3*t */
+	t = t + t * r;	       /* error <= (0.5 + 0.5/3) * ulp */
 
 	t *= v.e;
 	RETURNI(t);

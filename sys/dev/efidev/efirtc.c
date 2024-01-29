@@ -41,8 +41,8 @@
 static bool efirtc_zeroes_subseconds;
 static struct timespec efirtc_resadj;
 
-static const u_int us_per_s  = 1000000;
-static const u_int ns_per_s  = 1000000000;
+static const u_int us_per_s = 1000000;
+static const u_int ns_per_s = 1000000000;
 static const u_int ns_per_us = 1000;
 
 static void
@@ -71,8 +71,10 @@ efirtc_probe(device_t dev)
 	 */
 	if ((error = efi_get_time(&tm)) != 0) {
 		if (bootverbose)
-			device_printf(dev, "cannot read EFI realtime clock, "
-			    "error %d\n", error);
+			device_printf(dev,
+			    "cannot read EFI realtime clock, "
+			    "error %d\n",
+			    error);
 		return (error);
 	}
 	device_set_desc(dev, "EFI Realtime Clock");
@@ -162,7 +164,7 @@ efirtc_settime(device_t dev, struct timespec *ts)
 	ts->tv_sec -= utc_offset();
 	if (!efirtc_zeroes_subseconds)
 		timespecadd(ts, &efirtc_resadj, ts);
-	
+
 	clock_ts_to_ct(ts, &ct);
 	clock_dbgprint_ct(dev, CLOCK_DBG_WRITE, &ct);
 
@@ -180,23 +182,19 @@ efirtc_settime(device_t dev, struct timespec *ts)
 
 static device_method_t efirtc_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,	efirtc_identify),
-	DEVMETHOD(device_probe,		efirtc_probe),
-	DEVMETHOD(device_attach,	efirtc_attach),
-	DEVMETHOD(device_detach,	efirtc_detach),
+	DEVMETHOD(device_identify, efirtc_identify),
+	DEVMETHOD(device_probe, efirtc_probe),
+	DEVMETHOD(device_attach, efirtc_attach),
+	DEVMETHOD(device_detach, efirtc_detach),
 
 	/* Clock interface */
-	DEVMETHOD(clock_gettime,	efirtc_gettime),
-	DEVMETHOD(clock_settime,	efirtc_settime),
+	DEVMETHOD(clock_gettime, efirtc_gettime),
+	DEVMETHOD(clock_settime, efirtc_settime),
 
 	DEVMETHOD_END
 };
 
-static driver_t efirtc_driver = {
-	"efirtc",
-	efirtc_methods,
-	0
-};
+static driver_t efirtc_driver = { "efirtc", efirtc_methods, 0 };
 
 DRIVER_MODULE(efirtc, nexus, efirtc_driver, 0, 0);
 MODULE_VERSION(efirtc, 1);

@@ -34,12 +34,11 @@
 #include <sys/param.h>
 #include <sys/errno.h>
 #include <sys/mount.h>
-#include <sys/time.h>
 #include <sys/sysctl.h>
-
-#include <security/mac_bsdextended/mac_bsdextended.h>
+#include <sys/time.h>
 
 #include <err.h>
+#include <security/mac_bsdextended/mac_bsdextended.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -55,11 +54,13 @@ void
 usage(void)
 {
 
-	fprintf(stderr, "usage: ugidfw add [subject [not] [uid uid] [gid gid]]"
+	fprintf(stderr,
+	    "usage: ugidfw add [subject [not] [uid uid] [gid gid]]"
 	    " [object [not] [uid uid] \\\n");
 	fprintf(stderr, "    [gid gid]] mode arswxn\n");
 	fprintf(stderr, "       ugidfw list\n");
-	fprintf(stderr, "       ugidfw set rulenum [subject [not] [uid uid] [gid gid]]"
+	fprintf(stderr,
+	    "       ugidfw set rulenum [subject [not] [uid uid] [gid gid]]"
 	    " [object [not] \\\n");
 	fprintf(stderr, "    [uid uid] [gid gid]] mode arswxn\n");
 	fprintf(stderr, "       ugidfw remove rulenum\n");
@@ -101,7 +102,7 @@ list_rules(void)
 	rule_slots = bsde_get_rule_slots(BUFSIZ, errstr);
 	if (rule_slots == -1) {
 		warnx("unable to get rule slots; mac_bsdextended.ko "
-		    "may not be loaded");
+		      "may not be loaded");
 		errx(1, "bsde_get_rule_slots: %s", errstr);
 	}
 
@@ -146,7 +147,7 @@ set_rule(int argc, char *argv[])
 	if (*endp != '\0')
 		usage();
 
-	if ((long) value != (int) value || value < 0)
+	if ((long)value != (int)value || value < 0)
 		usage();
 
 	rulenum = value;
@@ -176,10 +177,10 @@ remove_rule(int argc, char *argv[])
 		usage();
 
 	value = strtol(argv[0], &endp, 10);
-	if (*endp != '\0')  
+	if (*endp != '\0')
 		usage();
 
-	if ((long) value != (int) value || value < 0)
+	if ((long)value != (int)value || value < 0)
 		usage();
 
 	rulenum = value;
@@ -197,15 +198,15 @@ main(int argc, char *argv[])
 		usage();
 
 	if (strcmp("add", argv[1]) == 0) {
-		add_rule(argc-2, argv+2);
+		add_rule(argc - 2, argv + 2);
 	} else if (strcmp("list", argv[1]) == 0) {
 		if (argc != 2)
 			usage();
 		list_rules();
 	} else if (strcmp("set", argv[1]) == 0) {
-		set_rule(argc-2, argv+2);
+		set_rule(argc - 2, argv + 2);
 	} else if (strcmp("remove", argv[1]) == 0) {
-		remove_rule(argc-2, argv+2);
+		remove_rule(argc - 2, argv + 2);
 	} else
 		usage();
 

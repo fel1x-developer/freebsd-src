@@ -27,45 +27,44 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 
+#include <sys/cdefs.h>
+#include <sys/types.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/eventhandler.h>
 #include <sys/kernel.h>
-#include <sys/systm.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
 #include <sys/module.h>
-#include <sys/types.h>
+#include <sys/socket.h>
 #include <sys/sockopt.h>
 #include <sys/sysctl.h>
-#include <sys/socket.h>
 
 #include <net/ethernet.h>
 #include <net/if.h>
-#include <net/if_var.h>
+#include <net/if_llatbl.h>
 #include <net/if_private.h>
 #include <net/if_types.h>
+#include <net/if_var.h>
 #include <net/if_vlan_var.h>
-#include <net/if_llatbl.h>
 #include <net/route.h>
-
 #include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <netinet/in_pcb.h>
 #include <netinet/in_var.h>
-#include <netinet6/in6_var.h>
 #include <netinet6/in6_pcb.h>
+#include <netinet6/in6_var.h>
 #include <netinet6/nd6.h>
 #define TCPSTATES
 #include <netinet/tcp.h>
 #include <netinet/tcp_fsm.h>
+#include <netinet/tcp_offload.h>
+#include <netinet/tcp_syncache.h>
 #include <netinet/tcp_timer.h>
 #include <netinet/tcp_var.h>
-#include <netinet/tcp_syncache.h>
-#include <netinet/tcp_offload.h>
 #include <netinet/toecore.h>
 
 static struct mtx toedev_lock;
@@ -228,7 +227,7 @@ toe_listen_start(struct inpcb *inp, void *arg)
 
 	t = arg;
 	mtx_lock(&toedev_lock);
-	TAILQ_FOREACH(tod, &toedev_list, link) {
+	TAILQ_FOREACH (tod, &toedev_list, link) {
 		if (t == NULL || t == tod)
 			tod->tod_listen_start(tod, tp);
 	}
@@ -260,8 +259,8 @@ toe_listen_stop_event(void *arg __unused, struct tcpcb *tp)
 	    ("%s: t_state %s", __func__, tcpstates[tp->t_state]));
 
 	mtx_lock(&toedev_lock);
-	TAILQ_FOREACH(tod, &toedev_list, link)
-	    tod->tod_listen_stop(tod, tp);
+	TAILQ_FOREACH (tod, &toedev_list, link)
+		tod->tod_listen_stop(tod, tp);
 	mtx_unlock(&toedev_lock);
 }
 
@@ -310,7 +309,7 @@ register_toedev(struct toedev *tod)
 	struct toedev *t;
 
 	mtx_lock(&toedev_lock);
-	TAILQ_FOREACH(t, &toedev_list, link) {
+	TAILQ_FOREACH (t, &toedev_list, link) {
 		if (t == tod) {
 			mtx_unlock(&toedev_lock);
 			return (EEXIST);
@@ -338,7 +337,7 @@ unregister_toedev(struct toedev *tod)
 	int rc = ENODEV;
 
 	mtx_lock(&toedev_lock);
-	TAILQ_FOREACH_SAFE(t, &toedev_list, link, t2) {
+	TAILQ_FOREACH_SAFE (t, &toedev_list, link, t2) {
 		if (t == tod) {
 			TAILQ_REMOVE(&toedev_list, tod, link);
 			registered_toedevs--;
@@ -359,8 +358,8 @@ toe_syncache_add(struct in_conninfo *inc, struct tcpopt *to, struct tcphdr *th,
 
 	INP_RLOCK_ASSERT(inp);
 
-	(void )syncache_add(inc, to, th, inp, inp->inp_socket, NULL, tod,
-	    todctx, iptos, htons(0));
+	(void)syncache_add(inc, to, th, inp, inp->inp_socket, NULL, tod, todctx,
+	    iptos, htons(0));
 }
 
 int
@@ -534,11 +533,11 @@ toe_connect_failed(struct toedev *tod, struct inpcb *inp, int err)
 			    ("%s: tp %p still offloaded.", __func__, tp));
 			tcp_timer_activate(tp, TT_KEEP, TP_KEEPINIT(tp));
 			if (tcp_output(tp) < 0)
-				INP_WLOCK(inp);	/* re-acquire */
+				INP_WLOCK(inp); /* re-acquire */
 		} else {
 			tp = tcp_drop(tp, err);
 			if (tp == NULL)
-				INP_WLOCK(inp);	/* re-acquire */
+				INP_WLOCK(inp); /* re-acquire */
 		}
 	}
 	INP_WLOCK_ASSERT(inp);
@@ -594,11 +593,7 @@ toecore_mod_handler(module_t mod, int cmd, void *arg)
 	return (EOPNOTSUPP);
 }
 
-static moduledata_t mod_data= {
-	"toecore",
-	toecore_mod_handler,
-	0
-};
+static moduledata_t mod_data = { "toecore", toecore_mod_handler, 0 };
 
 MODULE_VERSION(toecore, 1);
 DECLARE_MODULE(toecore, mod_data, SI_SUB_EXEC, SI_ORDER_ANY);

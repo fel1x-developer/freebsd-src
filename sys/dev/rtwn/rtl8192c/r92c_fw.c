@@ -18,45 +18,42 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-#include <net80211/ieee80211_ratectl.h>
-
-#include <dev/rtwn/if_rtwnreg.h>
-#include <dev/rtwn/if_rtwnvar.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <dev/rtwn/if_rtwn_debug.h>
 #include <dev/rtwn/if_rtwn_ridx.h>
 #include <dev/rtwn/if_rtwn_rx.h>
 #include <dev/rtwn/if_rtwn_task.h>
 #include <dev/rtwn/if_rtwn_tx.h>
-
+#include <dev/rtwn/if_rtwnreg.h>
+#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/rtl8192c/r92c.h>
-#include <dev/rtwn/rtl8192c/r92c_reg.h>
-#include <dev/rtwn/rtl8192c/r92c_var.h>
 #include <dev/rtwn/rtl8192c/r92c_fw_cmd.h>
+#include <dev/rtwn/rtl8192c/r92c_reg.h>
 #include <dev/rtwn/rtl8192c/r92c_tx_desc.h>
+#include <dev/rtwn/rtl8192c/r92c_var.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_ratectl.h>
+#include <net80211/ieee80211_var.h>
 
 #ifndef RTWN_WITHOUT_UCODE
 static int
@@ -66,11 +63,12 @@ r92c_fw_cmd(struct rtwn_softc *sc, uint8_t id, const void *buf, int len)
 	int ntries, error;
 
 	KASSERT(len <= sizeof(cmd.msg),
-	    ("%s: firmware command too long (%d > %zu)\n",
-	    __func__, len, sizeof(cmd.msg)));
+	    ("%s: firmware command too long (%d > %zu)\n", __func__, len,
+		sizeof(cmd.msg)));
 
 	if (!(sc->sc_flags & RTWN_FW_LOADED)) {
-		RTWN_DPRINTF(sc, RTWN_DEBUG_FIRMWARE, "%s: firmware "
+		RTWN_DPRINTF(sc, RTWN_DEBUG_FIRMWARE,
+		    "%s: firmware "
 		    "was not loaded; command (id %u) will be discarded\n",
 		    __func__, id);
 		return (0);
@@ -83,8 +81,7 @@ r92c_fw_cmd(struct rtwn_softc *sc, uint8_t id, const void *buf, int len)
 		rtwn_delay(sc, 2000);
 	}
 	if (ntries == 100) {
-		device_printf(sc->sc_dev,
-		    "could not send firmware command\n");
+		device_printf(sc->sc_dev, "could not send firmware command\n");
 		return (ETIMEDOUT);
 	}
 	memset(&cmd, 0, sizeof(cmd));
@@ -104,8 +101,7 @@ r92c_fw_cmd(struct rtwn_softc *sc, uint8_t id, const void *buf, int len)
 		if (error != 0)
 			return (error);
 	}
-	error = rtwn_write_4(sc, R92C_HMEBOX(sc->fwcur),
-	    *(uint32_t *)&cmd);
+	error = rtwn_write_4(sc, R92C_HMEBOX(sc->fwcur), *(uint32_t *)&cmd);
 	if (error != 0)
 		return (error);
 
@@ -128,13 +124,13 @@ r92c_fw_reset(struct rtwn_softc *sc, int reason)
 	/* Wait until 8051 resets by itself. */
 	for (ntries = 0; ntries < 100; ntries++) {
 		if ((rtwn_read_2(sc, R92C_SYS_FUNC_EN) &
-		    R92C_SYS_FUNC_EN_CPUEN) == 0)
+			R92C_SYS_FUNC_EN_CPUEN) == 0)
 			return;
 		rtwn_delay(sc, 50);
 	}
 	/* Force 8051 reset. */
-	rtwn_setbits_1_shift(sc, R92C_SYS_FUNC_EN,
-	    R92C_SYS_FUNC_EN_CPUEN, 0, 1);
+	rtwn_setbits_1_shift(sc, R92C_SYS_FUNC_EN, R92C_SYS_FUNC_EN_CPUEN, 0,
+	    1);
 }
 
 void
@@ -147,8 +143,8 @@ r92c_fw_download_enable(struct rtwn_softc *sc, int enable)
 		/* MCU firmware download enable. */
 		rtwn_setbits_1(sc, R92C_MCUFWDL, 0, R92C_MCUFWDL_EN);
 		/* 8051 reset. */
-		rtwn_setbits_1_shift(sc, R92C_MCUFWDL, R92C_MCUFWDL_ROM_DLEN,
-		    0, 2);
+		rtwn_setbits_1_shift(sc, R92C_MCUFWDL, R92C_MCUFWDL_ROM_DLEN, 0,
+		    2);
 	} else {
 		/* MCU download disable. */
 		rtwn_setbits_1(sc, R92C_MCUFWDL, R92C_MCUFWDL_EN, 0);
@@ -163,8 +159,7 @@ r92c_fw_download_enable(struct rtwn_softc *sc, int enable)
  */
 #ifndef RTWN_WITHOUT_UCODE
 static int
-r92c_send_ra_cmd(struct rtwn_softc *sc, int macid, uint32_t rates,
-    int maxrate)
+r92c_send_ra_cmd(struct rtwn_softc *sc, int macid, uint32_t rates, int maxrate)
 {
 	struct r92c_fw_cmd_macid_cfg cmd;
 	uint8_t mode;
@@ -180,8 +175,8 @@ r92c_send_ra_cmd(struct rtwn_softc *sc, int macid, uint32_t rates,
 		mode = R92C_RAID_11BG;
 	/* XXX misleading 'mode' value here for unicast frames */
 	RTWN_DPRINTF(sc, RTWN_DEBUG_RA,
-	    "%s: mode 0x%x, rates 0x%08x, basicrates 0x%08x\n", __func__,
-	    mode, rates, basicrates);
+	    "%s: mode 0x%x, rates 0x%08x, basicrates 0x%08x\n", __func__, mode,
+	    rates, basicrates);
 
 	/* Set rates mask for group addressed frames. */
 	cmd.macid = RTWN_MACID_BC | R92C_CMD_MACID_VALID;
@@ -206,8 +201,8 @@ r92c_send_ra_cmd(struct rtwn_softc *sc, int macid, uint32_t rates,
 	error = r92c_fw_cmd(sc, R92C_CMD_MACID_CONFIG, &cmd, sizeof(cmd));
 	if (error != 0) {
 		device_printf(sc->sc_dev,
-		    "%s: could not set RA mask for %d station\n",
-		    __func__, macid);
+		    "%s: could not set RA mask for %d station\n", __func__,
+		    macid);
 		return (error);
 	}
 
@@ -259,7 +254,7 @@ r92c_joinbss_rpt(struct rtwn_softc *sc, int macid)
 	struct ieee80211vap *vap;
 	struct r92c_fw_cmd_joinbss_rpt cmd;
 
-	if (sc->vaps[0] == NULL)	/* XXX fix */
+	if (sc->vaps[0] == NULL) /* XXX fix */
 		goto end;
 
 	vap = &sc->vaps[0]->vap;
@@ -303,8 +298,7 @@ r92c_set_rsvd_page(struct rtwn_softc *sc, int probe_resp, int null,
 }
 
 int
-r92c_set_pwrmode(struct rtwn_softc *sc, struct ieee80211vap *vap,
-    int off)
+r92c_set_pwrmode(struct rtwn_softc *sc, struct ieee80211vap *vap, int off)
 {
 	struct r92c_fw_cmd_pwrmode mode;
 	int error;
@@ -317,12 +311,12 @@ r92c_set_pwrmode(struct rtwn_softc *sc, struct ieee80211vap *vap,
 	else
 		mode.mode = R92C_PWRMODE_CAM;
 	mode.smart_ps = R92C_PWRMODE_SMARTPS_NULLDATA;
-	mode.bcn_pass = 1;	/* XXX */
+	mode.bcn_pass = 1; /* XXX */
 	error = r92c_fw_cmd(sc, R92C_CMD_SET_PWRMODE, &mode, sizeof(mode));
 	if (error != 0) {
 		device_printf(sc->sc_dev,
-		    "%s: CMD_SET_PWRMODE was not sent, error %d\n",
-		    __func__, error);
+		    "%s: CMD_SET_PWRMODE was not sent, error %d\n", __func__,
+		    error);
 	}
 
 	return (error);
@@ -349,8 +343,8 @@ r92c_set_rssi(struct rtwn_softc *sc)
 		cmd.macid = i;
 		cmd.pwdb = rn->avg_pwdb;
 		RTWN_DPRINTF(sc, RTWN_DEBUG_RSSI,
-		    "%s: sending RSSI command (macid %d, rssi %d)\n",
-		    __func__, i, rn->avg_pwdb);
+		    "%s: sending RSSI command (macid %d, rssi %d)\n", __func__,
+		    i, rn->avg_pwdb);
 
 		RTWN_NT_UNLOCK(sc);
 		r92c_fw_cmd(sc, R92C_CMD_RSSI_SETTING, &cmd, sizeof(cmd));
@@ -378,8 +372,8 @@ r92c_ratectl_tx_complete(struct rtwn_softc *sc, uint8_t *buf, int len)
 	rpt = (struct r92c_c2h_tx_rpt *)buf;
 	if (len != sizeof(*rpt)) {
 		device_printf(sc->sc_dev,
-		    "%s: wrong report size (%d, must be %zu)\n",
-		    __func__, len, sizeof(*rpt));
+		    "%s: wrong report size (%d, must be %zu)\n", __func__, len,
+		    sizeof(*rpt));
 		return;
 	}
 
@@ -393,8 +387,7 @@ r92c_ratectl_tx_complete(struct rtwn_softc *sc, uint8_t *buf, int len)
 	macid = MS(rpt->rptb5, R92C_RPTB5_MACID);
 	if (macid > sc->macid_limit) {
 		device_printf(sc->sc_dev,
-		    "macid %u is too big; increase MACID_MAX limit\n",
-		    macid);
+		    "macid %u is too big; increase MACID_MAX limit\n", macid);
 		return;
 	}
 
@@ -403,10 +396,11 @@ r92c_ratectl_tx_complete(struct rtwn_softc *sc, uint8_t *buf, int len)
 	RTWN_NT_LOCK(sc);
 	ni = sc->node_list[macid];
 	if (ni != NULL) {
-		RTWN_DPRINTF(sc, RTWN_DEBUG_INTR, "%s: frame for macid %u was"
-		    "%s sent (%d retries)\n", __func__, macid,
-		    (rpt->rptb7 & R92C_RPTB7_PKT_OK) ? "" : " not",
-		    ntries);
+		RTWN_DPRINTF(sc, RTWN_DEBUG_INTR,
+		    "%s: frame for macid %u was"
+		    "%s sent (%d retries)\n",
+		    __func__, macid,
+		    (rpt->rptb7 & R92C_RPTB7_PKT_OK) ? "" : " not", ntries);
 
 		txs.flags = IEEE80211_RATECTL_STATUS_LONG_RETRY;
 		txs.long_retries = ntries;
@@ -447,7 +441,7 @@ r92c_handle_c2h_task(struct rtwn_softc *sc, union sec_param *data)
 	/* Read current status. */
 	status = rtwn_read_1(sc, R92C_C2H_EVT_CLEAR);
 	if (status == R92C_C2H_EVT_HOST_CLOSE)
-		goto end;	/* nothing to do */
+		goto end; /* nothing to do */
 	else if (status == R92C_C2H_EVT_FW_CLOSE) {
 		len = rtwn_read_1(sc, R92C_C2H_EVT_MSG);
 		id = MS(len, R92C_C2H_EVTB0_ID);
@@ -457,8 +451,9 @@ r92c_handle_c2h_task(struct rtwn_softc *sc, union sec_param *data)
 		/* Try to optimize event reads. */
 		for (i = 0; i < len; i += 2)
 			buf[i / 2] = rtwn_read_2(sc, off + i);
-		KASSERT(i < sizeof(buf), ("%s: buffer overrun (%d >= %zu)!",
-		    __func__, i, sizeof(buf)));
+		KASSERT(i < sizeof(buf),
+		    ("%s: buffer overrun (%d >= %zu)!", __func__, i,
+			sizeof(buf)));
 
 		switch (id) {
 		case R92C_C2H_EVT_TX_REPORT:
@@ -501,4 +496,4 @@ r92c_handle_c2h_report(void *arg)
 	rtwn_cmd_sleepable(sc, NULL, 0, r92c_handle_c2h_task);
 }
 
-#endif	/* RTWN_WITHOUT_UCODE */
+#endif /* RTWN_WITHOUT_UCODE */

@@ -4,7 +4,7 @@
  *
  * Copyright (c) 1996-1999 Whistle Communications, Inc.
  * All rights reserved.
- * 
+ *
  * Subject to the following obligations and disclaimer of warranty, use and
  * redistribution of this software, in source or object code forms, with or
  * without modifications are expressly permitted by Whistle Communications;
@@ -15,7 +15,7 @@
  *    Communications, Inc. trademarks, including the mark "WHISTLE
  *    COMMUNICATIONS" on advertising, endorsements, or otherwise except as
  *    such appears in the above copyright notice or in the software.
- * 
+ *
  * THIS SOFTWARE IS BEING PROVIDED BY WHISTLE COMMUNICATIONS "AS IS", AND
  * TO THE MAXIMUM EXTENT PERMITTED BY LAW, WHISTLE COMMUNICATIONS MAKES NO
  * REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED, REGARDING THIS SOFTWARE,
@@ -40,33 +40,32 @@
 
 #include <sys/types.h>
 #include <sys/param.h>
-#include <sys/time.h>
-#include <sys/socket.h>
-#include <poll.h>
 #include <sys/linker.h>
-#include <stddef.h>
+#include <sys/socket.h>
+#include <sys/time.h>
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <errno.h>
 #include <ctype.h>
 #include <err.h>
+#include <errno.h>
+#include <poll.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 /* the 'sockaddr overhead' for a netgraph address. This is everything before
  * the string that constitutes the address. */
-#define	NGSA_OVERHEAD	(offsetof(struct sockaddr_ng, sg_data))
+#define NGSA_OVERHEAD (offsetof(struct sockaddr_ng, sg_data))
 
-extern int	_gNgDebugLevel;
+extern int _gNgDebugLevel;
 
-extern void	(*_NgLog)(const char *fmt, ...);
-extern void	(*_NgLogx)(const char *fmt, ...);
+extern void (*_NgLog)(const char *fmt, ...);
+extern void (*_NgLogx)(const char *fmt, ...);
 
-#define NGLOG	(*_NgLog)
-#define NGLOGX	(*_NgLogx)
+#define NGLOG (*_NgLog)
+#define NGLOGX (*_NgLogx)
 
-extern void	_NgDebugSockaddr(const struct sockaddr_ng *sg);
-extern void	_NgDebugMsg(const struct ng_mesg *msg, const char *path);
-extern void	_NgDebugBytes(const u_char *ptr, int size);
-
+extern void _NgDebugSockaddr(const struct sockaddr_ng *sg);
+extern void _NgDebugMsg(const struct ng_mesg *msg, const char *path);
+extern void _NgDebugBytes(const u_char *ptr, int size);

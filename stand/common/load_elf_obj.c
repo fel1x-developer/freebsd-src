@@ -28,36 +28,38 @@
 
 #include <sys/param.h>
 #include <sys/exec.h>
+#include <sys/link_elf.h>
 #include <sys/linker.h>
 #include <sys/module.h>
+
+#include <machine/elf.h>
+
+#include <stand.h>
 #include <stdint.h>
 #include <string.h>
-#include <machine/elf.h>
-#include <stand.h>
-#include <sys/link_elf.h>
 
 #include "bootstrap.h"
 
-#define COPYOUT(s,d,l)	archsw.arch_copyout((vm_offset_t)(s), d, l)
+#define COPYOUT(s, d, l) archsw.arch_copyout((vm_offset_t)(s), d, l)
 
 #if defined(__i386__) && __ELF_WORD_SIZE == 64
 #undef ELF_TARG_CLASS
 #undef ELF_TARG_MACH
-#define ELF_TARG_CLASS  ELFCLASS64
-#define ELF_TARG_MACH   EM_X86_64
+#define ELF_TARG_CLASS ELFCLASS64
+#define ELF_TARG_MACH EM_X86_64
 #endif
 
 typedef struct elf_file {
-	Elf_Ehdr	hdr;
-	Elf_Shdr	*e_shdr;
+	Elf_Ehdr hdr;
+	Elf_Shdr *e_shdr;
 
-	int		symtabindex;	/* Index of symbol table */
-	int		shstrindex;	/* Index of section name string table */
+	int symtabindex; /* Index of symbol table */
+	int shstrindex;	 /* Index of section name string table */
 
-	int		fd;
-	vm_offset_t	off;
+	int fd;
+	vm_offset_t off;
 #ifdef LOADER_VERIEXEC_VECTX
-	struct vectx	*vctx;
+	struct vectx *vctx;
 #endif
 } *elf_file_t;
 
@@ -67,18 +69,18 @@ typedef struct elf_file {
 #define VECTX_HANDLE(ef) (ef)->fd
 #endif
 
-static int __elfN(obj_loadimage)(struct preloaded_file *mp, elf_file_t ef,
-    uint64_t loadaddr);
+static int __elfN(
+    obj_loadimage)(struct preloaded_file *mp, elf_file_t ef, uint64_t loadaddr);
 static int __elfN(obj_lookup_set)(struct preloaded_file *mp, elf_file_t ef,
     const char *name, Elf_Addr *startp, Elf_Addr *stopp, int *countp);
 static int __elfN(obj_reloc_ptr)(struct preloaded_file *mp, elf_file_t ef,
     Elf_Addr p, void *val, size_t len);
-static int __elfN(obj_parse_modmetadata)(struct preloaded_file *mp,
-    elf_file_t ef);
+static int __elfN(
+    obj_parse_modmetadata)(struct preloaded_file *mp, elf_file_t ef);
 static Elf_Addr __elfN(obj_symaddr)(struct elf_file *ef, Elf_Size symidx);
 
-const char	*__elfN(obj_kerneltype) = "elf kernel";
-const char	*__elfN(obj_moduletype) = "elf obj module";
+const char *__elfN(obj_kerneltype) = "elf kernel";
+const char *__elfN(obj_moduletype) = "elf obj module";
 
 /*
  * Attempt to load the file (file) as an ELF module.  It will be stored at
@@ -86,11 +88,11 @@ const char	*__elfN(obj_moduletype) = "elf obj module";
  * will be saved in (result).
  */
 int
-__elfN(obj_loadfile)(char *filename, uint64_t dest,
-    struct preloaded_file **result)
+__elfN(
+    obj_loadfile)(char *filename, uint64_t dest, struct preloaded_file **result)
 {
 	struct preloaded_file *fp, *kfp;
-	struct elf_file	ef;
+	struct elf_file ef;
 	Elf_Ehdr *hdr;
 	int err;
 	ssize_t bytes_read;
@@ -101,15 +103,16 @@ __elfN(obj_loadfile)(char *filename, uint64_t dest,
 	/*
 	 * Open the image, read and validate the ELF header
 	 */
-	if (filename == NULL)	/* can't handle nameless */
-		return(EFTYPE);
+	if (filename == NULL) /* can't handle nameless */
+		return (EFTYPE);
 	if ((ef.fd = open(filename, O_RDONLY)) == -1)
-		return(errno);
+		return (errno);
 #ifdef LOADER_VERIEXEC_VECTX
 	{
 		int verror;
 
-		ef.vctx = vectx_open(ef.fd, filename, 0L, NULL, &verror, __func__);
+		ef.vctx = vectx_open(ef.fd, filename, 0L, NULL, &verror,
+		    __func__);
 		if (verror) {
 			printf("Unverified %s: %s\n", filename, ve_error_get());
 			close(ef.fd);
@@ -122,7 +125,7 @@ __elfN(obj_loadfile)(char *filename, uint64_t dest,
 	hdr = &ef.hdr;
 	bytes_read = VECTX_READ(VECTX_HANDLE(&ef), hdr, sizeof(*hdr));
 	if (bytes_read != sizeof(*hdr)) {
-		err = EFTYPE;	/* could be EIO, but may be small file */
+		err = EFTYPE; /* could be EIO, but may be small file */
 		goto oerr;
 	}
 
@@ -131,11 +134,11 @@ __elfN(obj_loadfile)(char *filename, uint64_t dest,
 		err = EFTYPE;
 		goto oerr;
 	}
-	if (hdr->e_ident[EI_CLASS] != ELF_TARG_CLASS ||	/* Layout ? */
+	if (hdr->e_ident[EI_CLASS] != ELF_TARG_CLASS || /* Layout ? */
 	    hdr->e_ident[EI_DATA] != ELF_TARG_DATA ||
-	    hdr->e_ident[EI_VERSION] != EV_CURRENT ||	/* Version ? */
+	    hdr->e_ident[EI_VERSION] != EV_CURRENT || /* Version ? */
 	    hdr->e_version != EV_CURRENT ||
-	    hdr->e_machine != ELF_TARG_MACH ||		/* Machine ? */
+	    hdr->e_machine != ELF_TARG_MACH || /* Machine ? */
 	    hdr->e_type != ET_REL) {
 		err = EFTYPE;
 		goto oerr;
@@ -156,8 +159,8 @@ __elfN(obj_loadfile)(char *filename, uint64_t dest,
 
 	kfp = file_findfile(NULL, __elfN(obj_kerneltype));
 	if (kfp == NULL) {
-		printf("elf" __XSTRING(__ELF_WORD_SIZE)
-		    "_obj_loadfile: can't load module before kernel\n");
+		printf("elf" __XSTRING(
+		    __ELF_WORD_SIZE) "_obj_loadfile: can't load module before kernel\n");
 		err = EPERM;
 		goto oerr;
 	}
@@ -172,8 +175,8 @@ __elfN(obj_loadfile)(char *filename, uint64_t dest,
 	 */
 	fp = file_alloc();
 	if (fp == NULL) {
-		printf("elf" __XSTRING(__ELF_WORD_SIZE)
-		    "_obj_loadfile: cannot allocate module info\n");
+		printf("elf" __XSTRING(
+		    __ELF_WORD_SIZE) "_obj_loadfile: cannot allocate module info\n");
 		err = EPERM;
 		goto out;
 	}
@@ -215,7 +218,7 @@ out:
 	if (ef.e_shdr != NULL)
 		free(ef.e_shdr);
 
-	return(err);
+	return (err);
 }
 
 /*
@@ -239,8 +242,8 @@ __elfN(obj_loadimage)(struct preloaded_file *fp, elf_file_t ef, uint64_t off)
 	shdrbytes = hdr->e_shnum * hdr->e_shentsize;
 	shdr = alloc_pread(VECTX_HANDLE(ef), (off_t)hdr->e_shoff, shdrbytes);
 	if (shdr == NULL) {
-		printf("\nelf" __XSTRING(__ELF_WORD_SIZE)
-		    "_obj_loadimage: read section headers failed\n");
+		printf("\nelf" __XSTRING(
+		    __ELF_WORD_SIZE) "_obj_loadimage: read section headers failed\n");
 		goto out;
 	}
 	ef->e_shdr = shdr;
@@ -283,8 +286,8 @@ __elfN(obj_loadimage)(struct preloaded_file *fp, elf_file_t ef, uint64_t off)
 		}
 	}
 	if (nsym != 1) {
-		printf("\nelf" __XSTRING(__ELF_WORD_SIZE)
-		    "_obj_loadimage: file has no valid symbol table\n");
+		printf("\nelf" __XSTRING(
+		    __ELF_WORD_SIZE) "_obj_loadimage: file has no valid symbol table\n");
 		goto out;
 	}
 	lastaddr = roundup(lastaddr, shdr[ef->symtabindex].sh_addralign);
@@ -294,8 +297,8 @@ __elfN(obj_loadimage)(struct preloaded_file *fp, elf_file_t ef, uint64_t off)
 	symstrindex = shdr[ef->symtabindex].sh_link;
 	if (symstrindex < 0 || symstrindex >= hdr->e_shnum ||
 	    shdr[symstrindex].sh_type != SHT_STRTAB) {
-		printf("\nelf" __XSTRING(__ELF_WORD_SIZE)
-		    "_obj_loadimage: file has invalid symbol strings\n");
+		printf("\nelf" __XSTRING(
+		    __ELF_WORD_SIZE) "_obj_loadimage: file has invalid symbol strings\n");
 		goto out;
 	}
 	lastaddr = roundup(lastaddr, shdr[symstrindex].sh_addralign);
@@ -305,8 +308,8 @@ __elfN(obj_loadimage)(struct preloaded_file *fp, elf_file_t ef, uint64_t off)
 	/* Section names. */
 	if (hdr->e_shstrndx == 0 || hdr->e_shstrndx >= hdr->e_shnum ||
 	    shdr[hdr->e_shstrndx].sh_type != SHT_STRTAB) {
-		printf("\nelf" __XSTRING(__ELF_WORD_SIZE)
-		    "_obj_loadimage: file has no section names\n");
+		printf("\nelf" __XSTRING(
+		    __ELF_WORD_SIZE) "_obj_loadimage: file has no section names\n");
 		goto out;
 	}
 	ef->shstrindex = hdr->e_shstrndx;
@@ -332,8 +335,7 @@ __elfN(obj_loadimage)(struct preloaded_file *fp, elf_file_t ef, uint64_t off)
 	kern_bzero(firstaddr, lastaddr - firstaddr);
 
 	/* Figure section with the lowest file offset we haven't loaded yet. */
-	for (cshdr = NULL; /* none */; /* none */)
-	{
+	for (cshdr = NULL; /* none */; /* none */) {
 		/*
 		 * Find next section to load. The complexity of this loop is
 		 * O(n^2), but with  the number of sections being typically
@@ -359,9 +361,9 @@ __elfN(obj_loadimage)(struct preloaded_file *fp, elf_file_t ef, uint64_t off)
 			break;
 
 		if (kern_pread(VECTX_HANDLE(ef), (vm_offset_t)cshdr->sh_addr,
-		    cshdr->sh_size, (off_t)cshdr->sh_offset) != 0) {
-			printf("\nelf" __XSTRING(__ELF_WORD_SIZE)
-			    "_obj_loadimage: read failed\n");
+			cshdr->sh_size, (off_t)cshdr->sh_offset) != 0) {
+			printf("\nelf" __XSTRING(
+			    __ELF_WORD_SIZE) "_obj_loadimage: read failed\n");
 			goto out;
 		}
 	}
@@ -386,10 +388,10 @@ out:
 
 #if defined(__i386__) && __ELF_WORD_SIZE == 64
 struct mod_metadata64 {
-	int		md_version;	/* structure version MDTV_* */
-	int		md_type;	/* type of entry MDT_* */
-	uint64_t	md_data;	/* specific data */
-	uint64_t	md_cval;	/* common string label */
+	int md_version;	  /* structure version MDTV_* */
+	int md_type;	  /* type of entry MDT_* */
+	uint64_t md_data; /* specific data */
+	uint64_t md_cval; /* common string label */
 };
 #endif
 
@@ -407,7 +409,7 @@ __elfN(obj_parse_modmetadata)(struct preloaded_file *fp, elf_file_t ef)
 	Elf_Addr v, p, p_stop;
 
 	if (__elfN(obj_lookup_set)(fp, ef, "modmetadata_set", &p, &p_stop,
-	    &modcnt) != 0)
+		&modcnt) != 0)
 		return 0;
 
 	modcnt = 0;
@@ -432,7 +434,7 @@ __elfN(obj_parse_modmetadata)(struct preloaded_file *fp, elf_file_t ef)
 			return (error);
 #endif
 		p += sizeof(Elf_Addr);
-		switch(md.md_type) {
+		switch (md.md_type) {
 		case MDT_DEPEND:
 			s = strdupout((vm_offset_t)md.md_cval);
 			minfolen = sizeof(*mdepend) + strlen(s) + 1;
@@ -441,7 +443,7 @@ __elfN(obj_parse_modmetadata)(struct preloaded_file *fp, elf_file_t ef)
 				return ENOMEM;
 			COPYOUT((vm_offset_t)md.md_data, mdepend,
 			    sizeof(*mdepend));
-			strcpy((char*)(mdepend + 1), s);
+			strcpy((char *)(mdepend + 1), s);
 			free(s);
 			file_addmetadata(fp, MODINFOMD_DEPLIST, minfolen,
 			    mdepend);
@@ -467,7 +469,7 @@ __elfN(obj_parse_modmetadata)(struct preloaded_file *fp, elf_file_t ef)
 
 static int
 __elfN(obj_lookup_set)(struct preloaded_file *fp, elf_file_t ef,
-    const char* name, Elf_Addr *startp, Elf_Addr *stopp, int *countp)
+    const char *name, Elf_Addr *startp, Elf_Addr *stopp, int *countp)
 {
 	Elf_Ehdr *hdr;
 	Elf_Shdr *shdr;
@@ -487,7 +489,7 @@ __elfN(obj_lookup_set)(struct preloaded_file *fp, elf_file_t ef,
 		p = strdupout(shstrtab + shdr[i].sh_name);
 		if (strncmp(p, "set_", 4) == 0 && strcmp(p + 4, name) == 0) {
 			*startp = shdr[i].sh_addr;
-			*stopp = shdr[i].sh_addr +  shdr[i].sh_size;
+			*stopp = shdr[i].sh_addr + shdr[i].sh_size;
 			*countp = (*stopp - *startp) / sizeof(Elf_Addr);
 			free(p);
 			return (0);
@@ -524,8 +526,8 @@ __elfN(obj_reloc_ptr)(struct preloaded_file *mp, elf_file_t ef, Elf_Addr p,
 		base = shdr[shdr[i].sh_info].sh_addr;
 		if (base == 0 || shdr[i].sh_addr == 0)
 			continue;
-		if (off < base || off + len > base +
-		    shdr[shdr[i].sh_info].sh_size)
+		if (off < base ||
+		    off + len > base + shdr[shdr[i].sh_info].sh_size)
 			continue;
 
 		switch (shdr[i].sh_type) {

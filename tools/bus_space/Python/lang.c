@@ -25,6 +25,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <Python.h>
 
 #include "bus.h"
@@ -180,11 +181,11 @@ busdma_tag_create(PyObject *self, PyObject *args)
 	u_int nsegs, datarate, flags;
 	int tid;
 
-	if (!PyArg_ParseTuple(args, "skkkkIkII", &dev, &align, &bndry,
-	    &maxaddr, &maxsz, &nsegs, &maxsegsz, &datarate, &flags))
+	if (!PyArg_ParseTuple(args, "skkkkIkII", &dev, &align, &bndry, &maxaddr,
+		&maxsz, &nsegs, &maxsegsz, &datarate, &flags))
 		return (NULL);
-	tid = bd_tag_create(dev, align, bndry, maxaddr, maxsz, nsegs,
-	    maxsegsz, datarate, flags);
+	tid = bd_tag_create(dev, align, bndry, maxaddr, maxsz, nsegs, maxsegsz,
+	    datarate, flags);
 	if (tid == -1) {
 		PyErr_SetString(PyExc_IOError, strerror(errno));
 		return (NULL);
@@ -198,12 +199,12 @@ busdma_tag_derive(PyObject *self, PyObject *args)
 	u_long align, bndry, maxaddr, maxsz, maxsegsz;
 	u_int nsegs, datarate, flags;
 	int ptid, tid;
- 
+
 	if (!PyArg_ParseTuple(args, "ikkkkIkII", &ptid, &align, &bndry,
-	    &maxaddr, &maxsz, &nsegs, &maxsegsz, &datarate, &flags))
+		&maxaddr, &maxsz, &nsegs, &maxsegsz, &datarate, &flags))
 		return (NULL);
-	tid = bd_tag_derive(ptid, align, bndry, maxaddr, maxsz, nsegs,
-	    maxsegsz, datarate, flags);
+	tid = bd_tag_derive(ptid, align, bndry, maxaddr, maxsz, nsegs, maxsegsz,
+	    datarate, flags);
 	if (tid == -1) {
 		PyErr_SetString(PyExc_IOError, strerror(errno));
 		return (NULL);
@@ -215,7 +216,7 @@ static PyObject *
 busdma_tag_destroy(PyObject *self, PyObject *args)
 {
 	int error, tid;
- 
+
 	if (!PyArg_ParseTuple(args, "i", &tid))
 		return (NULL);
 	error = bd_tag_destroy(tid);
@@ -231,7 +232,7 @@ busdma_md_create(PyObject *self, PyObject *args)
 {
 	u_int flags;
 	int error, mdid, tid;
- 
+
 	if (!PyArg_ParseTuple(args, "iI", &tid, &flags))
 		return (NULL);
 	mdid = bd_md_create(tid, flags);
@@ -416,65 +417,60 @@ busdma_sync_range(PyObject *self, PyObject *args)
 
 static char bus_docstr[] = "Access to H/W bus memory and register areas.";
 
-static PyMethodDef bus_methods[] = {
-    { "read_1", bus_read_1, METH_VARARGS, "Read a 1-byte data item." },
-    { "read_2", bus_read_2, METH_VARARGS, "Read a 2-byte data item." },
-    { "read_4", bus_read_4, METH_VARARGS, "Read a 4-byte data item." },
+static PyMethodDef bus_methods[] = { { "read_1", bus_read_1, METH_VARARGS,
+					 "Read a 1-byte data item." },
+	{ "read_2", bus_read_2, METH_VARARGS, "Read a 2-byte data item." },
+	{ "read_4", bus_read_4, METH_VARARGS, "Read a 4-byte data item." },
 
-    { "write_1", bus_write_1, METH_VARARGS, "Write a 1-byte data item." },
-    { "write_2", bus_write_2, METH_VARARGS, "Write a 2-byte data item." },
-    { "write_4", bus_write_4, METH_VARARGS, "Write a 4-byte data item." },
+	{ "write_1", bus_write_1, METH_VARARGS, "Write a 1-byte data item." },
+	{ "write_2", bus_write_2, METH_VARARGS, "Write a 2-byte data item." },
+	{ "write_4", bus_write_4, METH_VARARGS, "Write a 4-byte data item." },
 
-    { "map", bus_map, METH_VARARGS,
-	"Return a resource ID for a device file created by proto(4)" },
-    { "unmap", bus_unmap, METH_VARARGS,
-	"Free a resource ID" },
-    { "subregion", bus_subregion, METH_VARARGS,
-	"Return a resource ID for a subregion of another resource ID" },
+	{ "map", bus_map, METH_VARARGS,
+	    "Return a resource ID for a device file created by proto(4)" },
+	{ "unmap", bus_unmap, METH_VARARGS, "Free a resource ID" },
+	{ "subregion", bus_subregion, METH_VARARGS,
+	    "Return a resource ID for a subregion of another resource ID" },
 
-    { NULL, NULL, 0, NULL }
-};
+	{ NULL, NULL, 0, NULL } };
 
 static char busdma_docstr[] = "A bus- and device-independent interface"
-    " to Direct Memory Access (DMA) mechanisms.";
+			      " to Direct Memory Access (DMA) mechanisms.";
 
 static PyMethodDef busdma_methods[] = {
-    { "tag_create", busdma_tag_create, METH_VARARGS,
-	"Create a root tag." },
-    { "tag_derive", busdma_tag_derive, METH_VARARGS,
-	"Derive a child tag." },
-    { "tag_destroy", busdma_tag_destroy, METH_VARARGS,
-	"Destroy a tag." },
+	{ "tag_create", busdma_tag_create, METH_VARARGS, "Create a root tag." },
+	{ "tag_derive", busdma_tag_derive, METH_VARARGS,
+	    "Derive a child tag." },
+	{ "tag_destroy", busdma_tag_destroy, METH_VARARGS, "Destroy a tag." },
 
-    { "md_create", busdma_md_create, METH_VARARGS,
-	"Create a new and empty memory descriptor." },
-    { "md_destroy", busdma_md_destroy, METH_VARARGS,
-	"Destroy a previously created memory descriptor." },
-    { "md_load", busdma_md_load, METH_VARARGS,
-	"Load a buffer into a memory descriptor." },
-    { "md_unload", busdma_md_unload, METH_VARARGS,
-	"Unload a memory descriptor." },
+	{ "md_create", busdma_md_create, METH_VARARGS,
+	    "Create a new and empty memory descriptor." },
+	{ "md_destroy", busdma_md_destroy, METH_VARARGS,
+	    "Destroy a previously created memory descriptor." },
+	{ "md_load", busdma_md_load, METH_VARARGS,
+	    "Load a buffer into a memory descriptor." },
+	{ "md_unload", busdma_md_unload, METH_VARARGS,
+	    "Unload a memory descriptor." },
 
-    { "mem_alloc", busdma_mem_alloc, METH_VARARGS,
-	"Allocate memory according to the DMA constraints." },
-    { "mem_free", busdma_mem_free, METH_VARARGS,
-	"Free allocated memory." },
+	{ "mem_alloc", busdma_mem_alloc, METH_VARARGS,
+	    "Allocate memory according to the DMA constraints." },
+	{ "mem_free", busdma_mem_free, METH_VARARGS, "Free allocated memory." },
 
-    { "md_first_seg", busdma_md_first_seg, METH_VARARGS,
-	"Return first segment in one of the segment lists." },
-    { "md_next_seg", busdma_md_next_seg, METH_VARARGS,
-	"Return next segment in the segment list." },
-    { "seg_get_addr", busdma_seg_get_addr, METH_VARARGS,
-	"Return the address of the segment." },
-    { "seg_get_size", busdma_seg_get_size, METH_VARARGS,
-	"Return the size of the segment." },
+	{ "md_first_seg", busdma_md_first_seg, METH_VARARGS,
+	    "Return first segment in one of the segment lists." },
+	{ "md_next_seg", busdma_md_next_seg, METH_VARARGS,
+	    "Return next segment in the segment list." },
+	{ "seg_get_addr", busdma_seg_get_addr, METH_VARARGS,
+	    "Return the address of the segment." },
+	{ "seg_get_size", busdma_seg_get_size, METH_VARARGS,
+	    "Return the size of the segment." },
 
-    { "sync", busdma_sync, METH_VARARGS,
-	"Make the entire memory descriptor coherent WRT to DMA." },
-    { "sync_range", busdma_sync_range, METH_VARARGS,
-	"Make part of the memory descriptor coherent WRT to DMA." },
+	{ "sync", busdma_sync, METH_VARARGS,
+	    "Make the entire memory descriptor coherent WRT to DMA." },
+	{ "sync_range", busdma_sync_range, METH_VARARGS,
+	    "Make part of the memory descriptor coherent WRT to DMA." },
 
-    { NULL, NULL, 0, NULL }
+	{ NULL, NULL, 0, NULL }
 };
 
 static PyObject *
@@ -503,7 +499,7 @@ static struct PyModuleDef bus_module = {
 	PyModuleDef_HEAD_INIT,
 	"bus",
 	bus_docstr,
-        -1,
+	-1,
 	bus_methods,
 };
 
@@ -511,7 +507,7 @@ static struct PyModuleDef busdma_module = {
 	PyModuleDef_HEAD_INIT,
 	"busdma",
 	busdma_docstr,
-        -1,
+	-1,
 	busdma_methods,
 };
 

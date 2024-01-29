@@ -9,7 +9,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -38,8 +38,8 @@
 #include <dev/ath/ath_hal/ah_internal.h>
 
 extern struct ath_hal_chip AR5212_chip;
-//extern struct ath_hal_rf RF2316_rf;
-//extern struct ath_hal_rf RF2317_rf;
+// extern struct ath_hal_rf RF2316_rf;
+// extern struct ath_hal_rf RF2317_rf;
 extern struct ath_hal_rf RF2413_rf;
 extern struct ath_hal_rf RF2425_rf;
 extern struct ath_hal_rf RF5111_rf;
@@ -54,8 +54,8 @@ ath_hal_ar5212_modevent(module_t mod __unused, int type, void *data __unused)
 	switch (type) {
 	case MOD_LOAD:
 		ath_hal_add_chip(&AR5212_chip);
-//		ath_hal_add_rf(&RF2316_rf);
-//		ath_hal_add_rf(&RF2317_rf);
+		//		ath_hal_add_rf(&RF2316_rf);
+		//		ath_hal_add_rf(&RF2317_rf);
 		ath_hal_add_rf(&RF2413_rf);
 		ath_hal_add_rf(&RF2425_rf);
 		ath_hal_add_rf(&RF5111_rf);
@@ -66,8 +66,8 @@ ath_hal_ar5212_modevent(module_t mod __unused, int type, void *data __unused)
 
 	case MOD_UNLOAD:
 		ath_hal_remove_chip(&AR5212_chip);
-//		ath_hal_remove_rf(&RF2316_rf);
-//		ath_hal_remove_rf(&RF2317_rf);
+		//		ath_hal_remove_rf(&RF2316_rf);
+		//		ath_hal_remove_rf(&RF2317_rf);
 		ath_hal_remove_rf(&RF2413_rf);
 		ath_hal_remove_rf(&RF2425_rf);
 		ath_hal_remove_rf(&RF5111_rf);

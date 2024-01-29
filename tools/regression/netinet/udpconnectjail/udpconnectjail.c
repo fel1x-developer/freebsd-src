@@ -31,7 +31,6 @@
 #include <netinet/in.h>
 
 #include <arpa/inet.h>
-
 #include <err.h>
 #include <errno.h>
 #include <stdio.h>
@@ -84,7 +83,7 @@ main(int argc, __unused char *argv[])
 	sin.sin_len = sizeof(sin);
 	sin.sin_family = AF_INET;
 	sin.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-	sin.sin_port = htons(8080);	/* Arbitrary */
+	sin.sin_port = htons(8080); /* Arbitrary */
 
 	/*
 	 * First run the system call test outside of a jail.
@@ -104,7 +103,7 @@ main(int argc, __unused char *argv[])
 	thejail.jailname = "udpconnectjail";
 	thejail.ip4s = 1;
 	thejail.ip4 = &ia4;
-	
+
 	if (jail(&thejail) < 0)
 		errx(-1, "jail: %s", strerror(errno));
 	test("in jail", &sin);

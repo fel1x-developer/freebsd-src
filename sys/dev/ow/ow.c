@@ -25,10 +25,9 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-
 #include <sys/bus.h>
 #include <sys/errno.h>
+#include <sys/kernel.h>
 #include <sys/libkern.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
@@ -50,26 +49,24 @@
 typedef int ow_enum_fn(device_t, device_t);
 typedef int ow_found_fn(device_t, romid_t);
 
-struct ow_softc
-{
-	device_t	dev;		/* Newbus driver back pointer */
-	struct mtx	mtx;		/* bus mutex */
-	device_t	owner;		/* bus owner, if != NULL */
+struct ow_softc {
+	device_t dev;	/* Newbus driver back pointer */
+	struct mtx mtx; /* bus mutex */
+	device_t owner; /* bus owner, if != NULL */
 };
 
-struct ow_devinfo
-{
-	romid_t	romid;
+struct ow_devinfo {
+	romid_t romid;
 };
 
 static int ow_acquire_bus(device_t ndev, device_t pdev, int how);
 static void ow_release_bus(device_t ndev, device_t pdev);
 
-#define	OW_LOCK(_sc) mtx_lock(&(_sc)->mtx)
-#define	OW_UNLOCK(_sc) mtx_unlock(&(_sc)->mtx)
-#define	OW_LOCK_DESTROY(_sc) mtx_destroy(&_sc->mtx)
-#define	OW_ASSERT_LOCKED(_sc) mtx_assert(&_sc->mtx, MA_OWNED)
-#define	OW_ASSERT_UNLOCKED(_sc) mtx_assert(&_sc->mtx, MA_NOTOWNED)
+#define OW_LOCK(_sc) mtx_lock(&(_sc)->mtx)
+#define OW_UNLOCK(_sc) mtx_unlock(&(_sc)->mtx)
+#define OW_LOCK_DESTROY(_sc) mtx_destroy(&_sc->mtx)
+#define OW_ASSERT_LOCKED(_sc) mtx_assert(&_sc->mtx, MA_OWNED)
+#define OW_ASSERT_UNLOCKED(_sc) mtx_assert(&_sc->mtx, MA_NOTOWNED)
 
 static MALLOC_DEFINE(M_OW, "ow", "House keeping data for 1wire bus");
 
@@ -79,7 +76,7 @@ static const struct ow_timing timing_regular_min = {
 	.t_low1 = 1,
 	.t_release = 0,
 	.t_rec = 1,
-	.t_rdv = 15,		/* fixed */
+	.t_rdv = 15, /* fixed */
 	.t_rstl = 480,
 	.t_rsth = 480,
 	.t_pdl = 60,
@@ -92,27 +89,27 @@ static const struct ow_timing timing_regular_max = {
 	.t_low0 = 120,
 	.t_low1 = 15,
 	.t_release = 45,
-	.t_rec = 960,		/* infinity */
-	.t_rdv = 15,		/* fixed */
-	.t_rstl = 960,		/* infinity */
-	.t_rsth = 960,		/* infinity */
-	.t_pdl = 240,		/* 60us to 240us */
-	.t_pdh = 60,		/* 15us to 60us */
-	.t_lowr = 15,		/* 1us */
+	.t_rec = 960,  /* infinity */
+	.t_rdv = 15,   /* fixed */
+	.t_rstl = 960, /* infinity */
+	.t_rsth = 960, /* infinity */
+	.t_pdl = 240,  /* 60us to 240us */
+	.t_pdh = 60,   /* 15us to 60us */
+	.t_lowr = 15,  /* 1us */
 };
 
 static struct ow_timing timing_regular = {
-	.t_slot = 60,		/*  60 <= t < 120 */
-	.t_low0 = 60,		/*  60 <= t < t_slot < 120 */
-	.t_low1 = 1,		/*   1 <= t < 15 */
-	.t_release = 45,	/*   0 <= t < 45 */
-	.t_rec = 15,		/*   1 <= t < inf */
-	.t_rdv = 15,		/* t == 15 */
-	.t_rstl = 480,		/* 480 <= t < inf */
-	.t_rsth = 480,		/* 480 <= t < inf */
-	.t_pdl = 60,		/*  60 <= t < 240 */
-	.t_pdh = 60,		/*  15 <= t < 60 */
-	.t_lowr = 1,		/*   1 <= t < 15 */
+	.t_slot = 60,	 /*  60 <= t < 120 */
+	.t_low0 = 60,	 /*  60 <= t < t_slot < 120 */
+	.t_low1 = 1,	 /*   1 <= t < 15 */
+	.t_release = 45, /*   0 <= t < 45 */
+	.t_rec = 15,	 /*   1 <= t < inf */
+	.t_rdv = 15,	 /* t == 15 */
+	.t_rstl = 480,	 /* 480 <= t < inf */
+	.t_rsth = 480,	 /* 480 <= t < inf */
+	.t_pdl = 60,	 /*  60 <= t < 240 */
+	.t_pdh = 60,	 /*  15 <= t < 60 */
+	.t_lowr = 1,	 /*   1 <= t < 15 */
 };
 
 /* NB: Untested */
@@ -122,7 +119,7 @@ static const struct ow_timing timing_overdrive_min = {
 	.t_low1 = 1,
 	.t_release = 0,
 	.t_rec = 1,
-	.t_rdv = 2,		/* fixed */
+	.t_rdv = 2, /* fixed */
 	.t_rstl = 48,
 	.t_rsth = 48,
 	.t_pdl = 8,
@@ -135,27 +132,27 @@ static const struct ow_timing timing_overdrive_max = {
 	.t_low0 = 16,
 	.t_low1 = 2,
 	.t_release = 4,
-	.t_rec = 960,		/* infinity */
-	.t_rdv = 2,		/* fixed */
+	.t_rec = 960, /* infinity */
+	.t_rdv = 2,   /* fixed */
 	.t_rstl = 80,
-	.t_rsth = 960,		/* infinity */
+	.t_rsth = 960, /* infinity */
 	.t_pdl = 24,
 	.t_pdh = 6,
 	.t_lowr = 2,
 };
 
 static struct ow_timing timing_overdrive = {
-	.t_slot = 11,		/* 6 <= t < 16 */
-	.t_low0 = 6,		/* 6 <= t < t_slot < 16 */
-	.t_low1 = 1,		/* 1 <= t < 2 */
-	.t_release = 4,		/* 0 <= t < 4 */
-	.t_rec = 1,		/* 1 <= t < inf */
-	.t_rdv = 2,		/* t == 2 */
-	.t_rstl = 48,		/* 48 <= t < 80 */
-	.t_rsth = 48,		/* 48 <= t < inf */
-	.t_pdl = 8,		/* 8 <= t < 24 */
-	.t_pdh = 2,		/* 2 <= t < 6 */
-	.t_lowr = 1,		/* 1 <= t < 2 */
+	.t_slot = 11,	/* 6 <= t < 16 */
+	.t_low0 = 6,	/* 6 <= t < t_slot < 16 */
+	.t_low1 = 1,	/* 1 <= t < 2 */
+	.t_release = 4, /* 0 <= t < 4 */
+	.t_rec = 1,	/* 1 <= t < inf */
+	.t_rdv = 2,	/* t == 2 */
+	.t_rstl = 48,	/* 48 <= t < 80 */
+	.t_rsth = 48,	/* 48 <= t < inf */
+	.t_pdl = 8,	/* 8 <= t < 24 */
+	.t_pdh = 2,	/* 2 <= t < 6 */
+	.t_lowr = 1,	/* 1 <= t < 2 */
 };
 
 SYSCTL_NODE(_hw, OID_AUTO, ow, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
@@ -165,30 +162,29 @@ SYSCTL_NODE(_hw_ow, OID_AUTO, regular, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
 SYSCTL_NODE(_hw_ow, OID_AUTO, overdrive, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
     "Overdrive mode timings");
 
-#define	_OW_TIMING_SYSCTL(mode, param)		\
-    static int \
-    sysctl_ow_timing_ ## mode ## _ ## param(SYSCTL_HANDLER_ARGS) \
-    { \
-	    int val = timing_ ## mode.param; \
-	    int err; \
-	    err = sysctl_handle_int(oidp, &val, 0, req); \
-	    if (err != 0 || req->newptr == NULL) \
-		return (err); \
-	    if (val < timing_ ## mode ## _min.param) \
-		return (EINVAL); \
-	    else if (val >= timing_ ## mode ## _max.param) \
-		return (EINVAL); \
-	    timing_ ## mode.param = val; \
-	    return (0); \
-    } \
-SYSCTL_PROC(_hw_ow_ ## mode, OID_AUTO, param, \
-    CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_NEEDGIANT, 0, sizeof(int), \
-    sysctl_ow_timing_ ## mode ## _ ## param, "I", \
-    "1-Wire timing parameter in microseconds (-1 resets to default)")
+#define _OW_TIMING_SYSCTL(mode, param)                                       \
+	static int sysctl_ow_timing_##mode##_##param(SYSCTL_HANDLER_ARGS)    \
+	{                                                                    \
+		int val = timing_##mode.param;                               \
+		int err;                                                     \
+		err = sysctl_handle_int(oidp, &val, 0, req);                 \
+		if (err != 0 || req->newptr == NULL)                         \
+			return (err);                                        \
+		if (val < timing_##mode##_min.param)                         \
+			return (EINVAL);                                     \
+		else if (val >= timing_##mode##_max.param)                   \
+			return (EINVAL);                                     \
+		timing_##mode.param = val;                                   \
+		return (0);                                                  \
+	}                                                                    \
+	SYSCTL_PROC(_hw_ow_##mode, OID_AUTO, param,                          \
+	    CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_NEEDGIANT, 0, sizeof(int), \
+	    sysctl_ow_timing_##mode##_##param, "I",                          \
+	    "1-Wire timing parameter in microseconds (-1 resets to default)")
 
-#define	OW_TIMING_SYSCTL(param)	\
-    _OW_TIMING_SYSCTL(regular, param); \
-    _OW_TIMING_SYSCTL(overdrive, param)
+#define OW_TIMING_SYSCTL(param)            \
+	_OW_TIMING_SYSCTL(regular, param); \
+	_OW_TIMING_SYSCTL(overdrive, param)
 
 OW_TIMING_SYSCTL(t_slot);
 OW_TIMING_SYSCTL(t_low0);
@@ -251,7 +247,7 @@ ow_send_command(device_t ndev, device_t pdev, struct ow_cmd *cmd)
 	} while (present == 1 && tries-- > 0);
 	if (present == 1) {
 		device_printf(ndev, "Reset said the device wasn't there.\n");
-		return ENOENT;		/* No devices acked the RESET */
+		return ENOENT; /* No devices acked the RESET */
 	}
 	if (present == -1) {
 		device_printf(ndev, "Reset discovered bus wired wrong.\n");
@@ -271,8 +267,8 @@ ow_send_command(device_t ndev, device_t pdev, struct ow_cmd *cmd)
 		 * timings here. Commands that need to be handled like this
 		 * are expected to be flagged by the client.
 		 */
-		t = (cmd->flags & OW_FLAG_OVERDRIVE) ?
-		    &timing_overdrive : &timing_regular;
+		t = (cmd->flags & OW_FLAG_OVERDRIVE) ? &timing_overdrive :
+						       &timing_regular;
 		for (i = 0; i < cmd->xpt_len; i++)
 			ow_send_byte(lldev, t, cmd->xpt_cmd[i]);
 		if (cmd->flags & OW_FLAG_READ_BIT) {
@@ -356,24 +352,23 @@ ow_child_by_romid(device_t dev, romid_t romid)
 /*
  * CRC generator table -- taken from AN937 DOW CRC LOOKUP FUNCTION Table 2
  */
-const uint8_t ow_crc_table[] = {
-	0, 94, 188, 226, 97, 63, 221, 131, 194, 156, 126, 32, 163, 253, 31, 65,
-	157, 195, 33, 127, 252, 162, 64, 30, 95, 1, 227, 189, 62, 96, 130, 220,
-	35, 125, 159, 193, 66, 28, 254, 160, 225, 191, 93, 3, 128, 222, 60, 98,
-	190, 224, 2, 92, 223, 129, 99, 61, 124, 34, 192, 158, 29, 67, 161, 255,
-	70, 24, 250, 164, 39, 121, 155, 197, 132, 218, 56, 102, 229, 187, 89, 7,
-	219, 133,103, 57, 186, 228, 6, 88, 25, 71, 165, 251, 120, 38, 196, 154,
-	101, 59, 217, 135, 4, 90, 184, 230, 167, 249, 27, 69, 198, 152, 122, 36,
-	248, 166, 68, 26, 153, 199, 37, 123, 58, 100, 134, 216, 91, 5, 231, 185,
-	140,210, 48, 110, 237, 179, 81, 15, 78, 16, 242,  172, 47, 113,147, 205,
-	17, 79, 173, 243, 112, 46, 204, 146, 211,141, 111, 49, 178, 236, 14, 80,
-	175, 241, 19, 77, 206, 144, 114, 44, 109, 51, 209, 143, 12, 82,176, 238,
-	50, 108, 142, 208, 83, 13, 239, 177, 240, 174, 76, 18, 145, 207, 45, 115,
-	202, 148, 118, 40, 171, 245, 23, 73, 8, 86, 180, 234, 105, 55, 213, 139,
-	87, 9, 235, 181, 54, 104, 138, 212, 149, 203, 41, 119, 244, 170, 72, 22,
-	233, 183, 85, 11, 136, 214, 52, 106, 43, 117, 151, 201, 74, 20, 246, 168,
-	116, 42, 200, 150, 21, 75, 169, 247, 182, 232, 10, 84, 215, 137, 107, 53
-};
+const uint8_t ow_crc_table[] = { 0, 94, 188, 226, 97, 63, 221, 131, 194, 156,
+	126, 32, 163, 253, 31, 65, 157, 195, 33, 127, 252, 162, 64, 30, 95, 1,
+	227, 189, 62, 96, 130, 220, 35, 125, 159, 193, 66, 28, 254, 160, 225,
+	191, 93, 3, 128, 222, 60, 98, 190, 224, 2, 92, 223, 129, 99, 61, 124,
+	34, 192, 158, 29, 67, 161, 255, 70, 24, 250, 164, 39, 121, 155, 197,
+	132, 218, 56, 102, 229, 187, 89, 7, 219, 133, 103, 57, 186, 228, 6, 88,
+	25, 71, 165, 251, 120, 38, 196, 154, 101, 59, 217, 135, 4, 90, 184, 230,
+	167, 249, 27, 69, 198, 152, 122, 36, 248, 166, 68, 26, 153, 199, 37,
+	123, 58, 100, 134, 216, 91, 5, 231, 185, 140, 210, 48, 110, 237, 179,
+	81, 15, 78, 16, 242, 172, 47, 113, 147, 205, 17, 79, 173, 243, 112, 46,
+	204, 146, 211, 141, 111, 49, 178, 236, 14, 80, 175, 241, 19, 77, 206,
+	144, 114, 44, 109, 51, 209, 143, 12, 82, 176, 238, 50, 108, 142, 208,
+	83, 13, 239, 177, 240, 174, 76, 18, 145, 207, 45, 115, 202, 148, 118,
+	40, 171, 245, 23, 73, 8, 86, 180, 234, 105, 55, 213, 139, 87, 9, 235,
+	181, 54, 104, 138, 212, 149, 203, 41, 119, 244, 170, 72, 22, 233, 183,
+	85, 11, 136, 214, 52, 106, 43, 117, 151, 201, 74, 20, 246, 168, 116, 42,
+	200, 150, 21, 75, 169, 247, 182, 232, 10, 84, 215, 137, 107, 53 };
 
 /*
  * Converted from DO_CRC page 131 ANN937
@@ -404,8 +399,8 @@ ow_device_found(device_t dev, romid_t romid)
 	 * All valid ROM IDs have a valid CRC. Check that first.
 	 */
 	if (!ow_check_crc(romid)) {
-		device_printf(dev, "Device romid %8D failed CRC.\n",
-		    &romid, ":");
+		device_printf(dev, "Device romid %8D failed CRC.\n", &romid,
+		    ":");
 		return EINVAL;
 	}
 
@@ -438,7 +433,7 @@ ow_enumerate(device_t dev, ow_enum_fn *enumfp, ow_found_fn *foundfp)
 			printf("Reached the sanity limit\n");
 			return EIO;
 		}
-again:
+	again:
 		probed = 0;
 		last = -1;
 
@@ -571,7 +566,7 @@ ow_detach(device_t ndev)
 	bus_generic_detach(ndev);
 
 	/*
-	 * We delete all the children, and free up the ivars 
+	 * We delete all the children, and free up the ivars
 	 */
 	if (device_get_children(ndev, &children, &nkid) != 0)
 		return ENOMEM;
@@ -685,8 +680,8 @@ ow_release_bus(device_t ndev, device_t pdev)
 	OW_ASSERT_UNLOCKED(sc);
 	OW_LOCK(sc);
 	if (sc->owner == NULL)
-		panic("%s: %s releasing unowned bus.", device_get_nameunit(ndev),
-		    device_get_nameunit(pdev));
+		panic("%s: %s releasing unowned bus.",
+		    device_get_nameunit(ndev), device_get_nameunit(pdev));
 	if (sc->owner != pdev)
 		panic("%s: %s don't own the bus. %s does. game over.",
 		    device_get_nameunit(ndev), device_get_nameunit(pdev),
@@ -698,22 +693,20 @@ ow_release_bus(device_t ndev, device_t pdev)
 
 static device_method_t ow_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		ow_probe),
-	DEVMETHOD(device_attach,	ow_attach),
-	DEVMETHOD(device_detach,	ow_detach),
+	DEVMETHOD(device_probe, ow_probe), DEVMETHOD(device_attach, ow_attach),
+	DEVMETHOD(device_detach, ow_detach),
 
 	/* Bus interface */
-	DEVMETHOD(bus_child_pnpinfo,	ow_child_pnpinfo),
-	DEVMETHOD(bus_read_ivar,	ow_read_ivar),
-	DEVMETHOD(bus_write_ivar,	ow_write_ivar),
-	DEVMETHOD(bus_print_child,	ow_print_child),
-	DEVMETHOD(bus_probe_nomatch,	ow_probe_nomatch),
+	DEVMETHOD(bus_child_pnpinfo, ow_child_pnpinfo),
+	DEVMETHOD(bus_read_ivar, ow_read_ivar),
+	DEVMETHOD(bus_write_ivar, ow_write_ivar),
+	DEVMETHOD(bus_print_child, ow_print_child),
+	DEVMETHOD(bus_probe_nomatch, ow_probe_nomatch),
 
 	/* One Wire Network/Transport layer interface */
-	DEVMETHOD(own_send_command,	ow_send_command),
-	DEVMETHOD(own_acquire_bus,	ow_acquire_bus),
-	DEVMETHOD(own_release_bus,	ow_release_bus),
-	DEVMETHOD(own_crc,		ow_crc),
+	DEVMETHOD(own_send_command, ow_send_command),
+	DEVMETHOD(own_acquire_bus, ow_acquire_bus),
+	DEVMETHOD(own_release_bus, ow_release_bus), DEVMETHOD(own_crc, ow_crc),
 	{ 0, 0 }
 };
 

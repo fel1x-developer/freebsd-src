@@ -38,31 +38,31 @@
  * Author: Ken Merry <ken@FreeBSD.org>
  */
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/types.h>
-#include <sys/malloc.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
 #include <sys/condvar.h>
+#include <sys/dnv.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mutex.h>
+#include <sys/nv.h>
 #include <sys/queue.h>
 #include <sys/sysctl.h>
-#include <sys/nv.h>
-#include <sys/dnv.h>
 
+#include <cam/ctl/ctl.h>
+#include <cam/ctl/ctl_backend.h>
+#include <cam/ctl/ctl_frontend.h>
+#include <cam/ctl/ctl_io.h>
 #include <cam/scsi/scsi_all.h>
 #include <cam/scsi/scsi_da.h>
-#include <cam/ctl/ctl_io.h>
-#include <cam/ctl/ctl.h>
-#include <cam/ctl/ctl_frontend.h>
-#include <cam/ctl/ctl_backend.h>
 /* XXX KDM move defines from ctl_ioctl.h to somewhere else */
-#include <cam/ctl/ctl_ioctl.h>
-#include <cam/ctl/ctl_ha.h>
-#include <cam/ctl/ctl_private.h>
 #include <cam/ctl/ctl_debug.h>
+#include <cam/ctl/ctl_ha.h>
+#include <cam/ctl/ctl_ioctl.h>
+#include <cam/ctl/ctl_private.h>
 
 extern struct ctl_softc *control_softc;
 
@@ -77,7 +77,7 @@ ctl_frontend_register(struct ctl_frontend *fe)
 
 	/* Sanity check, make sure this isn't a duplicate registration. */
 	mtx_lock(&softc->ctl_lock);
-	STAILQ_FOREACH(fe_tmp, &softc->fe_list, links) {
+	STAILQ_FOREACH (fe_tmp, &softc->fe_list, links) {
 		if (strcmp(fe_tmp->name, fe->name) == 0) {
 			mtx_unlock(&softc->ctl_lock);
 			return (-1);
@@ -89,8 +89,7 @@ ctl_frontend_register(struct ctl_frontend *fe)
 	/* Call the frontend's initialization routine. */
 	if (fe->init != NULL) {
 		if ((error = fe->init()) != 0) {
-			printf("%s frontend init error: %d\n",
-			    fe->name, error);
+			printf("%s frontend init error: %d\n", fe->name, error);
 			return (error);
 		}
 	}
@@ -111,8 +110,8 @@ ctl_frontend_deregister(struct ctl_frontend *fe)
 	/* Call the frontend's shutdown routine.*/
 	if (fe->shutdown != NULL) {
 		if ((error = fe->shutdown()) != 0) {
-			printf("%s frontend shutdown error: %d\n",
-			    fe->name, error);
+			printf("%s frontend shutdown error: %d\n", fe->name,
+			    error);
 			return (error);
 		}
 	}
@@ -131,7 +130,7 @@ ctl_frontend_find(char *frontend_name)
 	struct ctl_frontend *fe;
 
 	mtx_lock(&softc->ctl_lock);
-	STAILQ_FOREACH(fe, &softc->fe_list, links) {
+	STAILQ_FOREACH (fe, &softc->fe_list, links) {
 		if (strcmp(fe->name, frontend_name) == 0) {
 			mtx_unlock(&softc->ctl_lock);
 			return (fe);
@@ -157,8 +156,8 @@ ctl_port_register(struct ctl_port *port)
 	if (port->targ_port >= 0)
 		port_num = port->targ_port;
 	else
-		port_num = ctl_ffz(softc->ctl_port_mask,
-		    softc->port_min, softc->port_max);
+		port_num = ctl_ffz(softc->ctl_port_mask, softc->port_min,
+		    softc->port_max);
 	if ((port_num < 0) ||
 	    (ctl_set_mask(softc->ctl_port_mask, port_num) < 0)) {
 		mtx_unlock(&softc->ctl_lock);
@@ -187,10 +186,10 @@ ctl_port_register(struct ctl_port *port)
 	 * a REQUEST SENSE.
 	 */
 	retval = ctl_pool_create(softc, port->port_name,
-				 port->num_requested_ctl_io + 20, &pool);
+	    port->num_requested_ctl_io + 20, &pool);
 	if (retval != 0) {
 		free(port->wwpn_iid, M_CTL);
-error:
+	error:
 		port->targ_port = -1;
 		mtx_lock(&softc->ctl_lock);
 		ctl_clear_mask(softc->ctl_port_mask, port_num);
@@ -207,8 +206,8 @@ error:
 	mtx_lock(&softc->ctl_lock);
 	STAILQ_INSERT_TAIL(&port->frontend->port_list, port, fe_links);
 	for (tport = NULL, nport = STAILQ_FIRST(&softc->port_list);
-	    nport != NULL && nport->targ_port < port_num;
-	    tport = nport, nport = STAILQ_NEXT(tport, links)) {
+	     nport != NULL && nport->targ_port < port_num;
+	     tport = nport, nport = STAILQ_NEXT(tport, links)) {
 	}
 	if (tport)
 		STAILQ_INSERT_AFTER(&softc->port_list, tport, port, links);
@@ -258,7 +257,7 @@ ctl_port_deregister(struct ctl_port *port)
 
 void
 ctl_port_set_wwns(struct ctl_port *port, int wwnn_valid, uint64_t wwnn,
-		      int wwpn_valid, uint64_t wwpn)
+    int wwpn_valid, uint64_t wwpn)
 {
 	struct scsi_vpd_id_descriptor *desc;
 	int len, proto;
@@ -281,7 +280,8 @@ ctl_port_set_wwns(struct ctl_port *port, int wwnn_valid, uint64_t wwnn,
 		port->target_devid = malloc(sizeof(struct ctl_devid) + len,
 		    M_CTL, M_WAITOK | M_ZERO);
 		port->target_devid->len = len;
-		desc = (struct scsi_vpd_id_descriptor *)port->target_devid->data;
+		desc = (struct scsi_vpd_id_descriptor *)
+			   port->target_devid->data;
 		desc->proto_codeset = proto | SVPD_ID_CODESET_BINARY;
 		desc->id_type = SVPD_ID_PIV | SVPD_ID_ASSOC_TARGET |
 		    SVPD_ID_TYPE_NAA;
@@ -295,8 +295,8 @@ ctl_port_set_wwns(struct ctl_port *port, int wwnn_valid, uint64_t wwnn,
 		free(port->port_devid, M_CTL);
 
 		len = sizeof(struct scsi_vpd_device_id) + CTL_WWPN_LEN;
-		port->port_devid = malloc(sizeof(struct ctl_devid) + len,
-		    M_CTL, M_WAITOK | M_ZERO);
+		port->port_devid = malloc(sizeof(struct ctl_devid) + len, M_CTL,
+		    M_WAITOK | M_ZERO);
 		port->port_devid->len = len;
 		desc = (struct scsi_vpd_id_descriptor *)port->port_devid->data;
 		desc->proto_codeset = proto | SVPD_ID_CODESET_BINARY;
@@ -324,7 +324,7 @@ ctl_port_online(struct ctl_port *port)
 				port->lun_enable(port->targ_lun_arg, l);
 			}
 		} else {
-			STAILQ_FOREACH(lun, &softc->lun_list, links)
+			STAILQ_FOREACH (lun, &softc->lun_list, links)
 				port->lun_enable(port->targ_lun_arg, lun->lun);
 		}
 	}
@@ -339,7 +339,7 @@ ctl_port_online(struct ctl_port *port)
 			port->status &= ~CTL_PORT_STATUS_HA_SHARED;
 	}
 	port->status |= CTL_PORT_STATUS_ONLINE;
-	STAILQ_FOREACH(lun, &softc->lun_list, links) {
+	STAILQ_FOREACH (lun, &softc->lun_list, links) {
 		if (ctl_lun_map_to_port(port, lun->lun) == UINT32_MAX)
 			continue;
 		mtx_lock(&lun->lun_lock);
@@ -368,13 +368,13 @@ ctl_port_offline(struct ctl_port *port)
 				port->lun_disable(port->targ_lun_arg, l);
 			}
 		} else {
-			STAILQ_FOREACH(lun, &softc->lun_list, links)
+			STAILQ_FOREACH (lun, &softc->lun_list, links)
 				port->lun_disable(port->targ_lun_arg, lun->lun);
 		}
 	}
 	mtx_lock(&softc->ctl_lock);
 	port->status &= ~CTL_PORT_STATUS_ONLINE;
-	STAILQ_FOREACH(lun, &softc->lun_list, links) {
+	STAILQ_FOREACH (lun, &softc->lun_list, links) {
 		if (ctl_lun_map_to_port(port, lun->lun) == UINT32_MAX)
 			continue;
 		mtx_lock(&lun->lun_lock);

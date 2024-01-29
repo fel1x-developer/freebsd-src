@@ -37,10 +37,12 @@
  */
 
 #include <sys/types.h>
+#include <sys/extattr.h>
 #include <sys/sbuf.h>
 #include <sys/uio.h>
-#include <sys/extattr.h>
 
+#include <err.h>
+#include <errno.h>
 #include <libgen.h>
 #include <libutil.h>
 #include <stdio.h>
@@ -48,13 +50,11 @@
 #include <string.h>
 #include <unistd.h>
 #include <vis.h>
-#include <err.h>
-#include <errno.h>
 
 static enum { EADUNNO, EAGET, EASET, EARM, EALS } what = EADUNNO;
 
 static void __dead2
-usage(void) 
+usage(void)
 {
 
 	switch (what) {
@@ -80,7 +80,7 @@ usage(void)
 	default:
 		fprintf(stderr, "usage: (getextattr|lsextattr|rmextattr");
 		fprintf(stderr, "|setextattr)\n");
-		exit (-1);
+		exit(-1);
 	}
 }
 
@@ -102,26 +102,26 @@ int
 main(int argc, char *argv[])
 {
 #define STDIN_BUF_SZ 4096
-	char	 stdin_data[STDIN_BUF_SZ];
-	char	*p;
+	char stdin_data[STDIN_BUF_SZ];
+	char *p;
 
 	const char *options, *attrname;
-	size_t	len;
-	ssize_t	ret;
-	int	 ch, error, i, arg_counter, attrnamespace, minargc;
+	size_t len;
+	ssize_t ret;
+	int ch, error, i, arg_counter, attrnamespace, minargc;
 
-	char   *visbuf = NULL;
-	int	visbuflen = 0;
-	char   *buf = NULL;
-	int	buflen = 0;
-	struct	sbuf *attrvalue = NULL;
-	int	flag_force = 0;
-	int	flag_nofollow = 0;
-	int	flag_null = 0;
-	int	count_quiet = 0;
-	int	flag_from_stdin = 0;
-	int	flag_string = 0;
-	int	flag_hex = 0;
+	char *visbuf = NULL;
+	int visbuflen = 0;
+	char *buf = NULL;
+	int buflen = 0;
+	struct sbuf *attrvalue = NULL;
+	int flag_force = 0;
+	int flag_nofollow = 0;
+	int flag_null = 0;
+	int count_quiet = 0;
+	int flag_from_stdin = 0;
+	int flag_string = 0;
+	int flag_hex = 0;
 
 	p = basename(argv[0]);
 	if (p == NULL)
@@ -187,11 +187,13 @@ main(int argc, char *argv[])
 	error = extattr_string_to_namespace(argv[0], &attrnamespace);
 	if (error)
 		err(-1, "%s", argv[0]);
-	argc--; argv++;
+	argc--;
+	argv++;
 
 	if (what != EALS) {
 		attrname = argv[0];
-		argc--; argv++;
+		argc--;
+		argv++;
 	} else
 		attrname = NULL;
 
@@ -202,7 +204,8 @@ main(int argc, char *argv[])
 				sbuf_bcat(attrvalue, stdin_data, error);
 		} else {
 			sbuf_cpy(attrvalue, argv[0]);
-			argc--; argv++;
+			argc--;
+			argv++;
 		}
 		sbuf_finish(attrvalue);
 	}
@@ -258,10 +261,10 @@ main(int argc, char *argv[])
 			if (!count_quiet)
 				printf("%s\t", argv[arg_counter]);
 			for (i = 0; i < ret; i += ch + 1) {
-			    /* The attribute name length is unsigned. */
-			    ch = (unsigned char)buf[i];
-			    printf("%s%*.*s", i ? "\t" : "",
-				ch, ch, buf + i + 1);
+				/* The attribute name length is unsigned. */
+				ch = (unsigned char)buf[i];
+				printf("%s%*.*s", i ? "\t" : "", ch, ch,
+				    buf + i + 1);
 			}
 			if (!count_quiet || ret > 0)
 				printf("\n");
@@ -288,13 +291,12 @@ main(int argc, char *argv[])
 				printf("%s\t", argv[arg_counter]);
 			if (flag_string) {
 				mkbuf(&visbuf, &visbuflen, ret * 4 + 1);
-				strvisx(visbuf, buf, ret,
-				    VIS_SAFE | VIS_WHITE);
+				strvisx(visbuf, buf, ret, VIS_SAFE | VIS_WHITE);
 				printf("\"%s\"", visbuf);
 			} else if (flag_hex) {
 				for (i = 0; i < ret; i++)
 					printf("%s%02x", i ? " " : "",
-							(unsigned char)buf[i]);
+					    (unsigned char)buf[i]);
 			} else {
 				fwrite(buf, ret, 1, stdout);
 			}
@@ -304,11 +306,11 @@ main(int argc, char *argv[])
 		default:
 			break;
 		}
-		if (!count_quiet) 
+		if (!count_quiet)
 			warn("%s: failed", argv[arg_counter]);
 		if (flag_force)
 			continue;
-		return(1);
+		return (1);
 	}
 	return (0);
 }

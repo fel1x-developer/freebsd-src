@@ -34,7 +34,7 @@
  */
 
 #ifndef _MATHIMPL_H_
-#define	_MATHIMPL_H_
+#define _MATHIMPL_H_
 
 #include <math.h>
 
@@ -47,7 +47,7 @@
  * instead of a pure macro to avoid depending on the gcc feature of
  * statement-expressions.
  */
-#define	TRUNC(d)	(_b_trunc(&(d)))
+#define TRUNC(d) (_b_trunc(&(d)))
 
 static __inline void
 _b_trunc(volatile double *_dp)
@@ -59,14 +59,14 @@ _b_trunc(volatile double *_dp)
 }
 
 struct Double {
-	double	a;
-	double	b;
+	double a;
+	double b;
 };
 
 /*
  * Functions internal to the math package, yet not static.
  */
-double	__exp__D(double, double);
+double __exp__D(double, double);
 struct Double __log__D(double);
 
 #endif /* !_MATHIMPL_H_ */

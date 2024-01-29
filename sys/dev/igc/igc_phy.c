@@ -5,6 +5,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "igc_api.h"
 
 static s32 igc_wait_autoneg(struct igc_hw *hw);
@@ -15,7 +16,8 @@ static s32 igc_wait_autoneg(struct igc_hw *hw);
  *
  *  Setups up the function pointers to no-op functions
  **/
-void igc_init_phy_ops_generic(struct igc_hw *hw)
+void
+igc_init_phy_ops_generic(struct igc_hw *hw)
 {
 	struct igc_phy_info *phy = &hw->phy;
 	DEBUGFUNC("igc_init_phy_ops_generic");
@@ -46,8 +48,8 @@ void igc_init_phy_ops_generic(struct igc_hw *hw)
  *  @hw: pointer to the HW structure
  *  @data: dummy variable
  **/
-s32 igc_null_set_page(struct igc_hw IGC_UNUSEDARG *hw,
-			u16 IGC_UNUSEDARG data)
+s32
+igc_null_set_page(struct igc_hw IGC_UNUSEDARG *hw, u16 IGC_UNUSEDARG data)
 {
 	DEBUGFUNC("igc_null_set_page");
 	return IGC_SUCCESS;
@@ -59,8 +61,9 @@ s32 igc_null_set_page(struct igc_hw IGC_UNUSEDARG *hw,
  *  @offset: dummy variable
  *  @data: dummy variable
  **/
-s32 igc_null_read_reg(struct igc_hw IGC_UNUSEDARG *hw,
-			u32 IGC_UNUSEDARG offset, u16 IGC_UNUSEDARG *data)
+s32
+igc_null_read_reg(struct igc_hw IGC_UNUSEDARG *hw, u32 IGC_UNUSEDARG offset,
+    u16 IGC_UNUSEDARG *data)
 {
 	DEBUGFUNC("igc_null_read_reg");
 	return IGC_SUCCESS;
@@ -70,7 +73,8 @@ s32 igc_null_read_reg(struct igc_hw IGC_UNUSEDARG *hw,
  *  igc_null_phy_generic - No-op function, return void
  *  @hw: pointer to the HW structure
  **/
-void igc_null_phy_generic(struct igc_hw IGC_UNUSEDARG *hw)
+void
+igc_null_phy_generic(struct igc_hw IGC_UNUSEDARG *hw)
 {
 	DEBUGFUNC("igc_null_phy_generic");
 	return;
@@ -81,8 +85,8 @@ void igc_null_phy_generic(struct igc_hw IGC_UNUSEDARG *hw)
  *  @hw: pointer to the HW structure
  *  @active: dummy variable
  **/
-s32 igc_null_lplu_state(struct igc_hw IGC_UNUSEDARG *hw,
-			  bool IGC_UNUSEDARG active)
+s32
+igc_null_lplu_state(struct igc_hw IGC_UNUSEDARG *hw, bool IGC_UNUSEDARG active)
 {
 	DEBUGFUNC("igc_null_lplu_state");
 	return IGC_SUCCESS;
@@ -94,8 +98,9 @@ s32 igc_null_lplu_state(struct igc_hw IGC_UNUSEDARG *hw,
  *  @offset: dummy variable
  *  @data: dummy variable
  **/
-s32 igc_null_write_reg(struct igc_hw IGC_UNUSEDARG *hw,
-			 u32 IGC_UNUSEDARG offset, u16 IGC_UNUSEDARG data)
+s32
+igc_null_write_reg(struct igc_hw IGC_UNUSEDARG *hw, u32 IGC_UNUSEDARG offset,
+    u16 IGC_UNUSEDARG data)
 {
 	DEBUGFUNC("igc_null_write_reg");
 	return IGC_SUCCESS;
@@ -109,7 +114,8 @@ s32 igc_null_write_reg(struct igc_hw IGC_UNUSEDARG *hw,
  *  is blocked.  If a reset is not blocked return IGC_SUCCESS, otherwise
  *  return IGC_BLK_PHY_RESET (12).
  **/
-s32 igc_check_reset_block_generic(struct igc_hw *hw)
+s32
+igc_check_reset_block_generic(struct igc_hw *hw)
 {
 	u32 manc;
 
@@ -117,8 +123,8 @@ s32 igc_check_reset_block_generic(struct igc_hw *hw)
 
 	manc = IGC_READ_REG(hw, IGC_MANC);
 
-	return (manc & IGC_MANC_BLK_PHY_RST_ON_IDE) ?
-	       IGC_BLK_PHY_RESET : IGC_SUCCESS;
+	return (manc & IGC_MANC_BLK_PHY_RST_ON_IDE) ? IGC_BLK_PHY_RESET :
+						      IGC_SUCCESS;
 }
 
 /**
@@ -128,7 +134,8 @@ s32 igc_check_reset_block_generic(struct igc_hw *hw)
  *  Reads the PHY registers and stores the PHY ID and possibly the PHY
  *  revision in the hardware structure.
  **/
-s32 igc_get_phy_id(struct igc_hw *hw)
+s32
+igc_get_phy_id(struct igc_hw *hw)
 {
 	struct igc_phy_info *phy = &hw->phy;
 	s32 ret_val = IGC_SUCCESS;
@@ -164,7 +171,8 @@ s32 igc_get_phy_id(struct igc_hw *hw)
  *  Reads the MDI control register in the PHY at offset and stores the
  *  information read to data.
  **/
-s32 igc_read_phy_reg_mdic(struct igc_hw *hw, u32 offset, u16 *data)
+s32
+igc_read_phy_reg_mdic(struct igc_hw *hw, u32 offset, u16 *data)
 {
 	struct igc_phy_info *phy = &hw->phy;
 	u32 i, mdic = 0;
@@ -181,8 +189,7 @@ s32 igc_read_phy_reg_mdic(struct igc_hw *hw, u32 offset, u16 *data)
 	 * PHY to retrieve the desired data.
 	 */
 	mdic = ((offset << IGC_MDIC_REG_SHIFT) |
-		(phy->addr << IGC_MDIC_PHY_SHIFT) |
-		(IGC_MDIC_OP_READ));
+	    (phy->addr << IGC_MDIC_PHY_SHIFT) | (IGC_MDIC_OP_READ));
 
 	IGC_WRITE_REG(hw, IGC_MDIC, mdic);
 
@@ -206,11 +213,10 @@ s32 igc_read_phy_reg_mdic(struct igc_hw *hw, u32 offset, u16 *data)
 	}
 	if (((mdic & IGC_MDIC_REG_MASK) >> IGC_MDIC_REG_SHIFT) != offset) {
 		DEBUGOUT2("MDI Read offset error - requested %d, returned %d\n",
-			  offset,
-			  (mdic & IGC_MDIC_REG_MASK) >> IGC_MDIC_REG_SHIFT);
+		    offset, (mdic & IGC_MDIC_REG_MASK) >> IGC_MDIC_REG_SHIFT);
 		return -IGC_ERR_PHY;
 	}
-	*data = (u16) mdic;
+	*data = (u16)mdic;
 
 	return IGC_SUCCESS;
 }
@@ -223,7 +229,8 @@ s32 igc_read_phy_reg_mdic(struct igc_hw *hw, u32 offset, u16 *data)
  *
  *  Writes data to MDI control register in the PHY at offset.
  **/
-s32 igc_write_phy_reg_mdic(struct igc_hw *hw, u32 offset, u16 data)
+s32
+igc_write_phy_reg_mdic(struct igc_hw *hw, u32 offset, u16 data)
 {
 	struct igc_phy_info *phy = &hw->phy;
 	u32 i, mdic = 0;
@@ -239,10 +246,8 @@ s32 igc_write_phy_reg_mdic(struct igc_hw *hw, u32 offset, u16 data)
 	 * Control register.  The MAC will take care of interfacing with the
 	 * PHY to retrieve the desired data.
 	 */
-	mdic = (((u32)data) |
-		(offset << IGC_MDIC_REG_SHIFT) |
-		(phy->addr << IGC_MDIC_PHY_SHIFT) |
-		(IGC_MDIC_OP_WRITE));
+	mdic = (((u32)data) | (offset << IGC_MDIC_REG_SHIFT) |
+	    (phy->addr << IGC_MDIC_PHY_SHIFT) | (IGC_MDIC_OP_WRITE));
 
 	IGC_WRITE_REG(hw, IGC_MDIC, mdic);
 
@@ -265,9 +270,9 @@ s32 igc_write_phy_reg_mdic(struct igc_hw *hw, u32 offset, u16 data)
 		return -IGC_ERR_PHY;
 	}
 	if (((mdic & IGC_MDIC_REG_MASK) >> IGC_MDIC_REG_SHIFT) != offset) {
-		DEBUGOUT2("MDI Write offset error - requested %d, returned %d\n",
-			  offset,
-			  (mdic & IGC_MDIC_REG_MASK) >> IGC_MDIC_REG_SHIFT);
+		DEBUGOUT2(
+		    "MDI Write offset error - requested %d, returned %d\n",
+		    offset, (mdic & IGC_MDIC_REG_MASK) >> IGC_MDIC_REG_SHIFT);
 		return -IGC_ERR_PHY;
 	}
 
@@ -283,7 +288,8 @@ s32 igc_write_phy_reg_mdic(struct igc_hw *hw, u32 offset, u16 data)
  *  return successful.  Otherwise, setup advertisement and flow control to
  *  the appropriate values for the wanted auto-negotiation.
  **/
-static s32 igc_phy_setup_autoneg(struct igc_hw *hw)
+static s32
+igc_phy_setup_autoneg(struct igc_hw *hw)
 {
 	struct igc_phy_info *phy = &hw->phy;
 	s32 ret_val;
@@ -303,17 +309,17 @@ static s32 igc_phy_setup_autoneg(struct igc_hw *hw)
 	if (phy->autoneg_mask & ADVERTISE_1000_FULL) {
 		/* Read the MII 1000Base-T Control Register (Address 9). */
 		ret_val = phy->ops.read_reg(hw, PHY_1000T_CTRL,
-					    &mii_1000t_ctrl_reg);
+		    &mii_1000t_ctrl_reg);
 		if (ret_val)
 			return ret_val;
 	}
 
 	if (phy->autoneg_mask & ADVERTISE_2500_FULL) {
 		/* Read the MULTI GBT AN Control Register - reg 7.32 */
-		ret_val = phy->ops.read_reg(hw, (STANDARD_AN_REG_MASK <<
-					    MMD_DEVADDR_SHIFT) |
-					    ANEG_MULTIGBT_AN_CTRL,
-					    &aneg_multigbt_an_ctrl);
+		ret_val = phy->ops.read_reg(hw,
+		    (STANDARD_AN_REG_MASK << MMD_DEVADDR_SHIFT) |
+			ANEG_MULTIGBT_AN_CTRL,
+		    &aneg_multigbt_an_ctrl);
 
 		if (ret_val)
 			return ret_val;
@@ -330,10 +336,8 @@ static s32 igc_phy_setup_autoneg(struct igc_hw *hw)
 	 * Advertisement Register (Address 4) and the 1000 mb speed bits in
 	 * the  1000Base-T Control Register (Address 9).
 	 */
-	mii_autoneg_adv_reg &= ~(NWAY_AR_100TX_FD_CAPS |
-				 NWAY_AR_100TX_HD_CAPS |
-				 NWAY_AR_10T_FD_CAPS   |
-				 NWAY_AR_10T_HD_CAPS);
+	mii_autoneg_adv_reg &= ~(NWAY_AR_100TX_FD_CAPS | NWAY_AR_100TX_HD_CAPS |
+	    NWAY_AR_10T_FD_CAPS | NWAY_AR_10T_HD_CAPS);
 	mii_1000t_ctrl_reg &= ~(CR_1000T_HD_CAPS | CR_1000T_FD_CAPS);
 
 	DEBUGOUT1("autoneg_advertised %x\n", phy->autoneg_advertised);
@@ -446,14 +450,13 @@ static s32 igc_phy_setup_autoneg(struct igc_hw *hw)
 
 	if (phy->autoneg_mask & ADVERTISE_1000_FULL)
 		ret_val = phy->ops.write_reg(hw, PHY_1000T_CTRL,
-					     mii_1000t_ctrl_reg);
+		    mii_1000t_ctrl_reg);
 
 	if (phy->autoneg_mask & ADVERTISE_2500_FULL)
 		ret_val = phy->ops.write_reg(hw,
-					     (STANDARD_AN_REG_MASK <<
-					     MMD_DEVADDR_SHIFT) |
-					     ANEG_MULTIGBT_AN_CTRL,
-					     aneg_multigbt_an_ctrl);
+		    (STANDARD_AN_REG_MASK << MMD_DEVADDR_SHIFT) |
+			ANEG_MULTIGBT_AN_CTRL,
+		    aneg_multigbt_an_ctrl);
 
 	return ret_val;
 }
@@ -467,7 +470,8 @@ static s32 igc_phy_setup_autoneg(struct igc_hw *hw)
  *  and restart the negotiation process between the link partner.  If
  *  autoneg_wait_to_complete, then wait for autoneg to complete before exiting.
  **/
-static s32 igc_copper_link_autoneg(struct igc_hw *hw)
+static s32
+igc_copper_link_autoneg(struct igc_hw *hw)
 {
 	struct igc_phy_info *phy = &hw->phy;
 	s32 ret_val;
@@ -512,7 +516,8 @@ static s32 igc_copper_link_autoneg(struct igc_hw *hw)
 	if (phy->autoneg_wait_to_complete) {
 		ret_val = igc_wait_autoneg(hw);
 		if (ret_val) {
-			DEBUGOUT("Error while waiting for autoneg to complete\n");
+			DEBUGOUT(
+			    "Error while waiting for autoneg to complete\n");
 			return ret_val;
 		}
 	}
@@ -531,7 +536,8 @@ static s32 igc_copper_link_autoneg(struct igc_hw *hw)
  *  to configure collision distance and flow control are called.  If link is
  *  not established, we return -IGC_ERR_PHY (-2).
  **/
-s32 igc_setup_copper_link_generic(struct igc_hw *hw)
+s32
+igc_setup_copper_link_generic(struct igc_hw *hw)
 {
 	s32 ret_val;
 	bool link;
@@ -560,8 +566,7 @@ s32 igc_setup_copper_link_generic(struct igc_hw *hw)
 	/* Check link status. Wait up to 100 microseconds for link to become
 	 * valid.
 	 */
-	ret_val = igc_phy_has_link_generic(hw, COPPER_LINK_UP_LIMIT, 10,
-					     &link);
+	ret_val = igc_phy_has_link_generic(hw, COPPER_LINK_UP_LIMIT, 10, &link);
 	if (ret_val)
 		return ret_val;
 
@@ -588,7 +593,8 @@ s32 igc_setup_copper_link_generic(struct igc_hw *hw)
  *  caller must write to the PHY_CONTROL register for these settings to
  *  take effect.
  **/
-void igc_phy_force_speed_duplex_setup(struct igc_hw *hw, u16 *phy_ctrl)
+void
+igc_phy_force_speed_duplex_setup(struct igc_hw *hw, u16 *phy_ctrl)
 {
 	struct igc_mac_info *mac = &hw->mac;
 	u32 ctrl;
@@ -651,7 +657,8 @@ void igc_phy_force_speed_duplex_setup(struct igc_hw *hw, u16 *phy_ctrl)
  *  During driver activity, SmartSpeed should be enabled so performance is
  *  maintained.
  **/
-s32 igc_set_d3_lplu_state_generic(struct igc_hw *hw, bool active)
+s32
+igc_set_d3_lplu_state_generic(struct igc_hw *hw, bool active)
 {
 	struct igc_phy_info *phy = &hw->phy;
 	s32 ret_val;
@@ -668,8 +675,7 @@ s32 igc_set_d3_lplu_state_generic(struct igc_hw *hw, bool active)
 
 	if (!active) {
 		data &= ~IGP02IGC_PM_D3_LPLU;
-		ret_val = phy->ops.write_reg(hw, IGP02IGC_PHY_POWER_MGMT,
-					     data);
+		ret_val = phy->ops.write_reg(hw, IGP02IGC_PHY_POWER_MGMT, data);
 		if (ret_val)
 			return ret_val;
 		/* LPLU and SmartSpeed are mutually exclusive.  LPLU is used
@@ -679,49 +685,44 @@ s32 igc_set_d3_lplu_state_generic(struct igc_hw *hw, bool active)
 		 */
 		if (phy->smart_speed == igc_smart_speed_on) {
 			ret_val = phy->ops.read_reg(hw,
-						    IGP01IGC_PHY_PORT_CONFIG,
-						    &data);
+			    IGP01IGC_PHY_PORT_CONFIG, &data);
 			if (ret_val)
 				return ret_val;
 
 			data |= IGP01IGC_PSCFR_SMART_SPEED;
 			ret_val = phy->ops.write_reg(hw,
-						     IGP01IGC_PHY_PORT_CONFIG,
-						     data);
+			    IGP01IGC_PHY_PORT_CONFIG, data);
 			if (ret_val)
 				return ret_val;
 		} else if (phy->smart_speed == igc_smart_speed_off) {
 			ret_val = phy->ops.read_reg(hw,
-						    IGP01IGC_PHY_PORT_CONFIG,
-						    &data);
+			    IGP01IGC_PHY_PORT_CONFIG, &data);
 			if (ret_val)
 				return ret_val;
 
 			data &= ~IGP01IGC_PSCFR_SMART_SPEED;
 			ret_val = phy->ops.write_reg(hw,
-						     IGP01IGC_PHY_PORT_CONFIG,
-						     data);
+			    IGP01IGC_PHY_PORT_CONFIG, data);
 			if (ret_val)
 				return ret_val;
 		}
 	} else if ((phy->autoneg_advertised == IGC_ALL_SPEED_DUPLEX) ||
-		   (phy->autoneg_advertised == IGC_ALL_NOT_GIG) ||
-		   (phy->autoneg_advertised == IGC_ALL_10_SPEED)) {
+	    (phy->autoneg_advertised == IGC_ALL_NOT_GIG) ||
+	    (phy->autoneg_advertised == IGC_ALL_10_SPEED)) {
 		data |= IGP02IGC_PM_D3_LPLU;
-		ret_val = phy->ops.write_reg(hw, IGP02IGC_PHY_POWER_MGMT,
-					     data);
+		ret_val = phy->ops.write_reg(hw, IGP02IGC_PHY_POWER_MGMT, data);
 		if (ret_val)
 			return ret_val;
 
 		/* When LPLU is enabled, we should disable SmartSpeed */
 		ret_val = phy->ops.read_reg(hw, IGP01IGC_PHY_PORT_CONFIG,
-					    &data);
+		    &data);
 		if (ret_val)
 			return ret_val;
 
 		data &= ~IGP01IGC_PSCFR_SMART_SPEED;
 		ret_val = phy->ops.write_reg(hw, IGP01IGC_PHY_PORT_CONFIG,
-					     data);
+		    data);
 	}
 
 	return ret_val;
@@ -735,7 +736,8 @@ s32 igc_set_d3_lplu_state_generic(struct igc_hw *hw, bool active)
  *
  *  A downshift is detected by querying the PHY link health.
  **/
-s32 igc_check_downshift_generic(struct igc_hw *hw)
+s32
+igc_check_downshift_generic(struct igc_hw *hw)
 {
 	struct igc_phy_info *phy = &hw->phy;
 	s32 ret_val;
@@ -760,7 +762,8 @@ s32 igc_check_downshift_generic(struct igc_hw *hw)
  *  Waits for auto-negotiation to complete or for the auto-negotiation time
  *  limit to expire, which ever happens first.
  **/
-static s32 igc_wait_autoneg(struct igc_hw *hw)
+static s32
+igc_wait_autoneg(struct igc_hw *hw)
 {
 	s32 ret_val = IGC_SUCCESS;
 	u16 i, phy_status;
@@ -798,8 +801,9 @@ static s32 igc_wait_autoneg(struct igc_hw *hw)
  *
  *  Polls the PHY status register for link, 'iterations' number of times.
  **/
-s32 igc_phy_has_link_generic(struct igc_hw *hw, u32 iterations,
-			       u32 usec_interval, bool *success)
+s32
+igc_phy_has_link_generic(struct igc_hw *hw, u32 iterations, u32 usec_interval,
+    bool *success)
 {
 	s32 ret_val = IGC_SUCCESS;
 	u16 i, phy_status;
@@ -821,7 +825,7 @@ s32 igc_phy_has_link_generic(struct igc_hw *hw, u32 iterations,
 			 * see if they have relinquished the resources yet.
 			 */
 			if (usec_interval >= 1000)
-				msec_delay(usec_interval/1000);
+				msec_delay(usec_interval / 1000);
 			else
 				usec_delay(usec_interval);
 		}
@@ -831,7 +835,7 @@ s32 igc_phy_has_link_generic(struct igc_hw *hw, u32 iterations,
 		if (phy_status & MII_SR_LINK_STATUS)
 			break;
 		if (usec_interval >= 1000)
-			msec_delay(usec_interval/1000);
+			msec_delay(usec_interval / 1000);
 		else
 			usec_delay(usec_interval);
 	}
@@ -850,7 +854,8 @@ s32 igc_phy_has_link_generic(struct igc_hw *hw, u32 iterations,
  *  bit in the PHY.  Wait the appropriate delay time for the device to
  *  reset and release the semaphore (if necessary).
  **/
-s32 igc_phy_hw_reset_generic(struct igc_hw *hw)
+s32
+igc_phy_hw_reset_generic(struct igc_hw *hw)
 {
 	struct igc_phy_info *phy = &hw->phy;
 	s32 ret_val;
@@ -903,7 +908,8 @@ s32 igc_phy_hw_reset_generic(struct igc_hw *hw)
  * driver unload, or wake on lan is not enabled, restore the link to previous
  * settings.
  **/
-void igc_power_up_phy_copper(struct igc_hw *hw)
+void
+igc_power_up_phy_copper(struct igc_hw *hw)
 {
 	u16 mii_reg = 0;
 
@@ -922,7 +928,8 @@ void igc_power_up_phy_copper(struct igc_hw *hw)
  * driver unload, or wake on lan is not enabled, restore the link to previous
  * settings.
  **/
-void igc_power_down_phy_copper(struct igc_hw *hw)
+void
+igc_power_down_phy_copper(struct igc_hw *hw)
 {
 	u16 mii_reg = 0;
 
@@ -941,7 +948,8 @@ void igc_power_down_phy_copper(struct igc_hw *hw)
  *  Acquires semaphore, if necessary, then writes the data to PHY register
  *  at the offset.  Release any acquired semaphores before exiting.
  **/
-s32 igc_write_phy_reg_gpy(struct igc_hw *hw, u32 offset, u16 data)
+s32
+igc_write_phy_reg_gpy(struct igc_hw *hw, u32 offset, u16 data)
 {
 	s32 ret_val;
 	u8 dev_addr = (offset & GPY_MMD_MASK) >> GPY_MMD_SHIFT;
@@ -959,8 +967,7 @@ s32 igc_write_phy_reg_gpy(struct igc_hw *hw, u32 offset, u16 data)
 			return ret_val;
 		hw->phy.ops.release(hw);
 	} else {
-		ret_val = igc_write_xmdio_reg(hw, (u16)offset, dev_addr,
-						data);
+		ret_val = igc_write_xmdio_reg(hw, (u16)offset, dev_addr, data);
 	}
 	return ret_val;
 }
@@ -975,7 +982,8 @@ s32 igc_write_phy_reg_gpy(struct igc_hw *hw, u32 offset, u16 data)
  *  Acquires semaphore, if necessary, then reads the data in the PHY register
  *  at the offset.  Release any acquired semaphores before exiting.
  **/
-s32 igc_read_phy_reg_gpy(struct igc_hw *hw, u32 offset, u16 *data)
+s32
+igc_read_phy_reg_gpy(struct igc_hw *hw, u32 offset, u16 *data)
 {
 	s32 ret_val;
 	u8 dev_addr = (offset & GPY_MMD_MASK) >> GPY_MMD_SHIFT;
@@ -993,12 +1001,10 @@ s32 igc_read_phy_reg_gpy(struct igc_hw *hw, u32 offset, u16 *data)
 			return ret_val;
 		hw->phy.ops.release(hw);
 	} else {
-		ret_val = igc_read_xmdio_reg(hw, (u16)offset, dev_addr,
-					       data);
+		ret_val = igc_read_xmdio_reg(hw, (u16)offset, dev_addr, data);
 	}
 	return ret_val;
 }
-
 
 /**
  *  __igc_access_xmdio_reg - Read/write XMDIO register
@@ -1008,8 +1014,9 @@ s32 igc_read_phy_reg_gpy(struct igc_hw *hw, u32 offset, u16 *data)
  *  @data: pointer to value to read/write from/to the XMDIO address
  *  @read: boolean flag to indicate read or write
  **/
-static s32 __igc_access_xmdio_reg(struct igc_hw *hw, u16 address,
-				    u8 dev_addr, u16 *data, bool read)
+static s32
+__igc_access_xmdio_reg(struct igc_hw *hw, u16 address, u8 dev_addr, u16 *data,
+    bool read)
 {
 	s32 ret_val;
 
@@ -1023,8 +1030,8 @@ static s32 __igc_access_xmdio_reg(struct igc_hw *hw, u16 address,
 	if (ret_val)
 		return ret_val;
 
-	ret_val = hw->phy.ops.write_reg(hw, IGC_MMDAC, IGC_MMDAC_FUNC_DATA |
-					dev_addr);
+	ret_val = hw->phy.ops.write_reg(hw, IGC_MMDAC,
+	    IGC_MMDAC_FUNC_DATA | dev_addr);
 	if (ret_val)
 		return ret_val;
 
@@ -1050,7 +1057,8 @@ static s32 __igc_access_xmdio_reg(struct igc_hw *hw, u16 address,
  *  @dev_addr: device address to program
  *  @data: value to be read from the EMI address
  **/
-s32 igc_read_xmdio_reg(struct igc_hw *hw, u16 addr, u8 dev_addr, u16 *data)
+s32
+igc_read_xmdio_reg(struct igc_hw *hw, u16 addr, u8 dev_addr, u16 *data)
 {
 	DEBUGFUNC("igc_read_xmdio_reg");
 
@@ -1064,7 +1072,8 @@ s32 igc_read_xmdio_reg(struct igc_hw *hw, u16 addr, u8 dev_addr, u16 *data)
  *  @dev_addr: device address to program
  *  @data: value to be written to the XMDIO address
  **/
-s32 igc_write_xmdio_reg(struct igc_hw *hw, u16 addr, u8 dev_addr, u16 data)
+s32
+igc_write_xmdio_reg(struct igc_hw *hw, u16 addr, u8 dev_addr, u16 data)
 {
 	DEBUGFUNC("igc_write_xmdio_reg");
 

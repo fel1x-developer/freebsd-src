@@ -34,12 +34,12 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
-#include <sys/module.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/rman.h>
 
 #include <vm/vm.h>
 
@@ -48,26 +48,25 @@
 
 #include <dev/pci/pcivar.h>
 
-#include "pcib_if.h"
-#include "pci_if.h"
-
+#include "dpaa2_cmd_if.h"
 #include "dpaa2_mc.h"
 #include "dpaa2_mcp.h"
 #include "dpaa2_swp.h"
 #include "dpaa2_swp_if.h"
-#include "dpaa2_cmd_if.h"
+#include "pci_if.h"
+#include "pcib_if.h"
 
 /* DPAA2 Buffer Pool resource specification. */
 struct resource_spec dpaa2_bp_spec[] = {
-	/*
-	 * DPMCP resources.
-	 *
-	 * NOTE: MC command portals (MCPs) are used to send commands to, and
-	 *	 receive responses from, the MC firmware. One portal per DPBP.
-	 */
-#define MCP_RES_NUM	(1u)
-#define MCP_RID_OFF	(0u)
-#define MCP_RID(rid)	((rid) + MCP_RID_OFF)
+/*
+ * DPMCP resources.
+ *
+ * NOTE: MC command portals (MCPs) are used to send commands to, and
+ *	 receive responses from, the MC firmware. One portal per DPBP.
+ */
+#define MCP_RES_NUM (1u)
+#define MCP_RID_OFF (0u)
+#define MCP_RID(rid) ((rid) + MCP_RID_OFF)
 	/* --- */
 	{ DPAA2_DEV_MCP, MCP_RID(0), RF_ACTIVE | RF_SHAREABLE | RF_OPTIONAL },
 	/* --- */
@@ -141,13 +140,15 @@ dpaa2_bp_attach(device_t dev)
 
 	error = bus_alloc_resources(sc->dev, dpaa2_bp_spec, sc->res);
 	if (error) {
-		device_printf(dev, "%s: failed to allocate resources: "
-		    "error=%d\n", __func__, error);
+		device_printf(dev,
+		    "%s: failed to allocate resources: "
+		    "error=%d\n",
+		    __func__, error);
 		goto err_exit;
 	}
 
 	/* Send commands to MC via allocated portal. */
-	mcp_dev = (device_t) rman_get_start(sc->res[MCP_RID(0)]);
+	mcp_dev = (device_t)rman_get_start(sc->res[MCP_RID(0)]);
 	mcp_dinfo = device_get_ivars(mcp_dev);
 	dinfo->portal = mcp_dinfo->portal;
 
@@ -168,20 +169,25 @@ dpaa2_bp_attach(device_t dev)
 
 	error = DPAA2_CMD_BP_RESET(dev, child, &cmd);
 	if (error) {
-		device_printf(dev, "%s: failed to reset DPBP: id=%d, error=%d\n",
-		    __func__, dinfo->id, error);
+		device_printf(dev,
+		    "%s: failed to reset DPBP: id=%d, error=%d\n", __func__,
+		    dinfo->id, error);
 		goto close_bp;
 	}
 	error = DPAA2_CMD_BP_ENABLE(dev, child, &cmd);
 	if (error) {
-		device_printf(dev, "%s: failed to enable DPBP: id=%d, "
-		    "error=%d\n", __func__, dinfo->id, error);
+		device_printf(dev,
+		    "%s: failed to enable DPBP: id=%d, "
+		    "error=%d\n",
+		    __func__, dinfo->id, error);
 		goto close_bp;
 	}
 	error = DPAA2_CMD_BP_GET_ATTRIBUTES(dev, child, &cmd, &sc->attr);
 	if (error) {
-		device_printf(dev, "%s: failed to get DPBP attributes: id=%d, "
-		    "error=%d\n", __func__, dinfo->id, error);
+		device_printf(dev,
+		    "%s: failed to get DPBP attributes: id=%d, "
+		    "error=%d\n",
+		    __func__, dinfo->id, error);
 		goto close_bp;
 	}
 
@@ -201,9 +207,9 @@ err_exit:
 
 static device_method_t dpaa2_bp_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		dpaa2_bp_probe),
-	DEVMETHOD(device_attach,	dpaa2_bp_attach),
-	DEVMETHOD(device_detach,	dpaa2_bp_detach),
+	DEVMETHOD(device_probe, dpaa2_bp_probe),
+	DEVMETHOD(device_attach, dpaa2_bp_attach),
+	DEVMETHOD(device_detach, dpaa2_bp_detach),
 
 	DEVMETHOD_END
 };

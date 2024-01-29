@@ -34,64 +34,64 @@
  */
 
 #ifndef _EQOS_VAR_H
-#define	_EQOS_VAR_H
+#define _EQOS_VAR_H
 
 #include <dev/eqos/if_eqos_reg.h>
 
-#define	EQOS_DMA_DESC_COUNT	256
+#define EQOS_DMA_DESC_COUNT 256
 
-#define	EQOS_RES_MEM		0
-#define	EQOS_RES_IRQ0		1
-#define	EQOS_RES_COUNT		2
+#define EQOS_RES_MEM 0
+#define EQOS_RES_IRQ0 1
+#define EQOS_RES_COUNT 2
 
-#define	EQOS_INTR_FLAGS		(INTR_TYPE_NET | INTR_MPSAFE)
+#define EQOS_INTR_FLAGS (INTR_TYPE_NET | INTR_MPSAFE)
 
 struct eqos_dma_desc {
-	uint32_t	des0;
-	uint32_t	des1;
-	uint32_t	des2;
-	uint32_t	des3;
+	uint32_t des0;
+	uint32_t des1;
+	uint32_t des2;
+	uint32_t des3;
 } __packed;
 
 struct eqos_bufmap {
-	bus_dmamap_t		map;
-	struct mbuf		*mbuf;
+	bus_dmamap_t map;
+	struct mbuf *mbuf;
 };
 
 struct eqos_ring {
-	bus_dma_tag_t		desc_tag;
-	bus_dmamap_t		desc_map;
-	struct eqos_dma_desc	*desc_ring;
-	bus_addr_t		desc_ring_paddr;
+	bus_dma_tag_t desc_tag;
+	bus_dmamap_t desc_map;
+	struct eqos_dma_desc *desc_ring;
+	bus_addr_t desc_ring_paddr;
 
-	bus_dma_tag_t		buf_tag;
-	struct eqos_bufmap	buf_map[EQOS_DMA_DESC_COUNT];
+	bus_dma_tag_t buf_tag;
+	struct eqos_bufmap buf_map[EQOS_DMA_DESC_COUNT];
 
-	u_int			head;
-	u_int			tail;
+	u_int head;
+	u_int tail;
 };
 
 struct eqos_softc {
-	device_t		dev;
-	struct resource 	*res[EQOS_RES_COUNT];
-	void			*irq_handle;
+	device_t dev;
+	struct resource *res[EQOS_RES_COUNT];
+	void *irq_handle;
 #ifdef FDT
-	struct syscon		*grf;
-	int			grf_offset;
+	struct syscon *grf;
+	int grf_offset;
 #endif
-	uint32_t		csr_clock;
-	uint32_t		csr_clock_range;
-	uint32_t		hw_feature[4];
-	bool			link_up;
-	int			tx_watchdog;
+	uint32_t csr_clock;
+	uint32_t csr_clock_range;
+	uint32_t hw_feature[4];
+	bool link_up;
+	int tx_watchdog;
 
-	struct ifnet		*ifp;
-	device_t		miibus;
-	struct mtx		lock;
-	struct callout		callout;
+	struct ifnet *ifp;
+	device_t miibus;
+	struct mtx lock;
+	struct callout callout;
 
-	struct eqos_ring	tx;
-	struct eqos_ring	rx;
+	struct eqos_ring tx;
+	struct eqos_ring rx;
 };
 
 DECLARE_CLASS(eqos_driver);

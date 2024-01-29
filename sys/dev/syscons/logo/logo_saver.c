@@ -30,33 +30,34 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/consio.h>
+#include <sys/fbio.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/syslog.h>
-#include <sys/consio.h>
-#include <sys/fbio.h>
 
 #include <dev/fb/fbreg.h>
 #include <dev/fb/splashreg.h>
 #include <dev/syscons/syscons.h>
 
-#define SAVER_NAME	 "logo_saver"
+#define SAVER_NAME "logo_saver"
 
-#define SET_ORIGIN(adp, o) do {				\
-	int oo = o;					\
-	if (oo != last_origin)				\
-	    vidd_set_win_org(adp, last_origin = oo);	\
+#define SET_ORIGIN(adp, o)                                       \
+	do {                                                     \
+		int oo = o;                                      \
+		if (oo != last_origin)                           \
+			vidd_set_win_org(adp, last_origin = oo); \
 	} while (0)
 
-extern unsigned int	 logo_w;
-extern unsigned int	 logo_h;
-extern unsigned char	 logo_pal[];
-extern unsigned char	 logo_img[];
-extern unsigned int	 logo_img_size;
+extern unsigned int logo_w;
+extern unsigned int logo_h;
+extern unsigned char logo_pal[];
+extern unsigned char logo_img[];
+extern unsigned int logo_img_size;
 
-static u_char		*vid;
-static int		 banksize, scrmode, bpsl, scrw, scrh;
-static int		 blanked;
+static u_char *vid;
+static int banksize, scrmode, bpsl, scrw, scrh;
+static int blanked;
 
 static void
 logo_blit(video_adapter_t *adp, int x, int y)
@@ -159,13 +160,8 @@ logo_term(video_adapter_t *adp)
 	return (0);
 }
 
-static scrn_saver_t logo_module = {
-	SAVER_NAME,
-	logo_init,
-	logo_term,
-	logo_saver,
-	NULL
-};
+static scrn_saver_t logo_module = { SAVER_NAME, logo_init, logo_term,
+	logo_saver, NULL };
 
 #ifdef BEASTIE_LOGO
 SAVER_MODULE(beastie_saver, logo_module);

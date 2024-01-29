@@ -36,21 +36,22 @@
  */
 #include <sys/param.h>
 
-#include <cerrno>
 #include <ctype.h>
 #include <err.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+
+#include "config.h"
+#include "configvers.h"
+#include "y.tab.h"
+
+#include <cerrno>
 #include <string>
 #include <unordered_map>
 
-#include "y.tab.h"
-#include "config.h"
-#include "configvers.h"
-
-typedef std::unordered_map<std::string, std::string>	env_map;
+typedef std::unordered_map<std::string, std::string> env_map;
 
 static char *tail(char *);
 static void do_clean(FILE *);
@@ -65,8 +66,7 @@ static void process_into_file(char *line, FILE *ofp);
 static int process_into_map(char *line, env_map &emap);
 static void dump_map(env_map &emap, FILE *ofp);
 
-static void __printflike(1, 2)
-errout(const char *fmt, ...)
+static void __printflike(1, 2) errout(const char *fmt, ...)
 {
 	va_list ap;
 
@@ -84,7 +84,7 @@ fl_lookup(char *file)
 {
 	struct file_list *fp;
 
-	STAILQ_FOREACH(fp, &ftab, f_next) {
+	STAILQ_FOREACH (fp, &ftab, f_next) {
 		if (eq(fp->f_fn, file))
 			return (fp);
 	}
@@ -99,7 +99,7 @@ new_fent(void)
 {
 	struct file_list *fp;
 
-	fp = (struct file_list *) calloc(1, sizeof *fp);
+	fp = (struct file_list *)calloc(1, sizeof *fp);
 	if (fp == NULL)
 		err(EXIT_FAILURE, "calloc");
 	STAILQ_INSERT_TAIL(&ftab, fp, f_next);
@@ -144,7 +144,7 @@ makefile(void)
 	fprintf(ofp, "KERN_IDENT=%s\n", ident);
 	fprintf(ofp, "MACHINE=%s\n", machinename);
 	fprintf(ofp, "MACHINE_ARCH=%s\n", machinearch);
-	SLIST_FOREACH_SAFE(op, &mkopt, op_next, t) {
+	SLIST_FOREACH_SAFE (op, &mkopt, op_next, t) {
 		fprintf(ofp, "%s=%s", op->op_name, op->op_value);
 		while ((op = SLIST_NEXT(op, op_append)) != NULL)
 			fprintf(ofp, " %s", op->op_value);
@@ -153,7 +153,7 @@ makefile(void)
 	if (debugging)
 		fprintf(ofp, "DEBUG=-g\n");
 	if (*srcdir != '\0')
-		fprintf(ofp,"S=%s\n", srcdir);
+		fprintf(ofp, "S=%s\n", srcdir);
 	while (fgets(line, BUFSIZ, ifp) != NULL) {
 		if (*line != '%') {
 			fprintf(ofp, "%s", line);
@@ -176,8 +176,8 @@ makefile(void)
 			    "Unknown %% construct in generic makefile: %s",
 			    line);
 	}
-	(void) fclose(ifp);
-	(void) fclose(ofp);
+	(void)fclose(ifp);
+	(void)fclose(ofp);
 	moveifchanged("Makefile.new", "Makefile");
 }
 
@@ -312,9 +312,9 @@ makehints(void)
 	 */
 	if (versreq <= CONFIGVERS_ENVMODE_REQ)
 		fprintf(ofp, "int hintmode = %d;\n",
-			!STAILQ_EMPTY(&hints) ? 1 : 0);
+		    !STAILQ_EMPTY(&hints) ? 1 : 0);
 	fprintf(ofp, "char static_hints[] = {\n");
-	STAILQ_FOREACH(hint, &hints, hint_next) {
+	STAILQ_FOREACH (hint, &hints, hint_next) {
 		ifp = fopen(hint->hint_name, "r");
 		if (ifp == NULL)
 			err(1, "%s", hint->hint_name);
@@ -354,9 +354,9 @@ makeenv(void)
 	 */
 	if (versreq <= CONFIGVERS_ENVMODE_REQ)
 		fprintf(ofp, "int envmode = %d;\n",
-			!STAILQ_EMPTY(&envvars) ? 1 : 0);
+		    !STAILQ_EMPTY(&envvars) ? 1 : 0);
 	fprintf(ofp, "char static_env[] = {\n");
-	STAILQ_FOREACH(envvar, &envvars, envvar_next) {
+	STAILQ_FOREACH (envvar, &envvars, envvar_next) {
 		if (envvar->env_is_file) {
 			ifp = fopen(envvar->env_str, "r");
 			if (ifp == NULL)
@@ -387,8 +387,8 @@ read_file(char *fname)
 	configword wd;
 	char *rfile, *compilewith, *depends, *clean, *warning;
 	const char *objprefix;
-	int compile, match, nreqs, std, filetype, negate,
-	    imp_rule, no_ctfconvert, no_obj, before_depend, nowerror;
+	int compile, match, nreqs, std, filetype, negate, imp_rule,
+	    no_ctfconvert, no_obj, before_depend, nowerror;
 
 	fp = fopen(fname, "r");
 	if (fp == NULL)
@@ -406,13 +406,12 @@ next:
 	 */
 	wd = get_word(fp);
 	if (wd.eof()) {
-		(void) fclose(fp);
+		(void)fclose(fp);
 		return;
-	} 
+	}
 	if (wd.eol())
 		goto next;
-	if (wd[0] == '#')
-	{
+	if (wd[0] == '#') {
 		while (!(wd = get_word(fp)).eof() && !wd.eol())
 			;
 		goto next;
@@ -421,8 +420,7 @@ next:
 		wd = get_quoted_word(fp);
 		if (wd.eof() || wd.eol())
 			errout("%s: missing include filename.\n", fname);
-		(void) snprintf(ifname, sizeof(ifname), "../../%s",
-		    wd->c_str());
+		(void)snprintf(ifname, sizeof(ifname), "../../%s", wd->c_str());
 		read_file(ifname);
 		while (!(wd = get_word(fp)).eof() && !wd.eol())
 			;
@@ -454,8 +452,8 @@ next:
 	if (eq(wd, "standard"))
 		std = 1;
 	else if (!eq(wd, "optional"))
-		errout("%s: \"%s\" %s must be optional or standard\n",
-		    fname, wd->c_str(), rfile);
+		errout("%s: \"%s\" %s must be optional or standard\n", fname,
+		    wd->c_str(), rfile);
 	for (wd = get_word(fp); !wd.eol(); wd = get_word(fp)) {
 		if (wd.eof())
 			return;
@@ -466,7 +464,7 @@ next:
 		if (eq(wd, "|")) {
 			if (nreqs == 0)
 				errout("%s: syntax error describing %s\n",
-				       fname, rfile);
+				    fname, rfile);
 			compile += match;
 			match = 1;
 			nreqs = 0;
@@ -485,7 +483,7 @@ next:
 				errout("%s: alternate rule required when "
 				       "\"no-implicit-rule\" is specified for"
 				       " %s.\n",
-				       fname, rfile);
+				    fname, rfile);
 			imp_rule++;
 			continue;
 		}
@@ -497,7 +495,7 @@ next:
 			wd = get_quoted_word(fp);
 			if (wd.eof() || wd.eol())
 				errout("%s: %s missing dependency string.\n",
-				       fname, rfile);
+				    fname, rfile);
 			depends = ns(wd);
 			continue;
 		}
@@ -505,15 +503,16 @@ next:
 			wd = get_quoted_word(fp);
 			if (wd.eof() || wd.eol())
 				errout("%s: %s missing clean file list.\n",
-				       fname, rfile);
+				    fname, rfile);
 			clean = ns(wd);
 			continue;
 		}
 		if (eq(wd, "compile-with")) {
 			wd = get_quoted_word(fp);
 			if (wd.eof() || wd.eol())
-				errout("%s: %s missing compile command string.\n",
-				       fname, rfile);
+				errout(
+				    "%s: %s missing compile command string.\n",
+				    fname, rfile);
 			compilewith = ns(wd);
 			continue;
 		}
@@ -521,7 +520,7 @@ next:
 			wd = get_quoted_word(fp);
 			if (wd.eof() || wd.eol())
 				errout("%s: %s missing warning text string.\n",
-				       fname, rfile);
+				    fname, rfile);
 			warning = ns(wd);
 			continue;
 		}
@@ -529,7 +528,7 @@ next:
 			wd = get_quoted_word(fp);
 			if (wd.eof() || wd.eol())
 				errout("%s: %s missing object prefix string.\n",
-				       fname, rfile);
+				    fname, rfile);
 			objprefix = ns(wd);
 			continue;
 		}
@@ -547,9 +546,10 @@ next:
 		}
 		nreqs++;
 		if (std)
-			errout("standard entry %s has optional inclusion specifier %s!\n",
-			       rfile, wd->c_str());
-		STAILQ_FOREACH(dp, &dtab, d_next)
+			errout(
+			    "standard entry %s has optional inclusion specifier %s!\n",
+			    rfile, wd->c_str());
+		STAILQ_FOREACH (dp, &dtab, d_next)
 			if (eq(dp->d_name, wd)) {
 				if (negate)
 					match = 0;
@@ -557,7 +557,7 @@ next:
 					dp->d_done |= DEVDONE;
 				goto nextparam;
 			}
-		SLIST_FOREACH(op, &opt, op_next)
+		SLIST_FOREACH (op, &opt, op_next)
 			if (op->op_value == 0 &&
 			    strcasecmp(op->op_name, wd) == 0) {
 				if (negate)
@@ -565,14 +565,13 @@ next:
 				goto nextparam;
 			}
 		match &= negate;
-nextparam:;
+	nextparam:;
 		negate = 0;
 	}
 	compile += match;
 	if (compile && tp == NULL) {
 		if (std == 0 && nreqs == 0)
-			errout("%s: what is %s optional on?\n",
-			       fname, rfile);
+			errout("%s: what is %s optional on?\n", fname, rfile);
 		tp = new_fent();
 		tp->f_fn = rfile;
 		tp->f_type = filetype;
@@ -608,11 +607,11 @@ read_files(void)
 {
 	char fname[MAXPATHLEN];
 	struct files_name *nl, *tnl;
-	
-	(void) snprintf(fname, sizeof(fname), "../../conf/files");
+
+	(void)snprintf(fname, sizeof(fname), "../../conf/files");
 	read_file(fname);
-	(void) snprintf(fname, sizeof(fname),
-		       	"../../conf/files.%s", machinename);
+	(void)snprintf(fname, sizeof(fname), "../../conf/files.%s",
+	    machinename);
 	read_file(fname);
 	for (nl = STAILQ_FIRST(&fntab); nl != NULL; nl = tnl) {
 		read_file(nl->f_name);
@@ -630,7 +629,7 @@ do_before_depend(FILE *fp)
 
 	fputs("BEFORE_DEPEND=", fp);
 	lpos = 15;
-	STAILQ_FOREACH(tp, &ftab, f_next)
+	STAILQ_FOREACH (tp, &ftab, f_next)
 		if (tp->f_flags & BEFORE_DEPEND) {
 			len = strlen(tp->f_fn) + strlen(tp->f_srcprefix);
 			if (len + lpos > 72) {
@@ -656,7 +655,7 @@ do_objs(FILE *fp)
 
 	fprintf(fp, "OBJS=");
 	lpos = 6;
-	STAILQ_FOREACH(tp, &ftab, f_next) {
+	STAILQ_FOREACH (tp, &ftab, f_next) {
 		if (tp->f_flags & NO_OBJ)
 			continue;
 		sp = tail(tp->f_fn);
@@ -694,7 +693,7 @@ do_xxfiles(char *tag, FILE *fp)
 	fprintf(fp, "%sFILES=", SUFF);
 	free(SUFF);
 	lpos = 8;
-	STAILQ_FOREACH(tp, &ftab, f_next)
+	STAILQ_FOREACH (tp, &ftab, f_next)
 		if (tp->f_type != NODEPEND) {
 			len = strlen(tp->f_fn);
 			if (tp->f_fn[len - slen - 1] != '.')
@@ -720,7 +719,7 @@ tail(char *fn)
 	cp = strrchr(fn, '/');
 	if (cp == NULL)
 		return (fn);
-	return (cp+1);
+	return (cp + 1);
 }
 
 /*
@@ -735,36 +734,32 @@ do_rules(FILE *f)
 	char *compilewith;
 	char cmd[128];
 
-	STAILQ_FOREACH(ftp, &ftab, f_next) {
+	STAILQ_FOREACH (ftp, &ftab, f_next) {
 		if (ftp->f_warn)
 			fprintf(stderr, "WARNING: %s\n", ftp->f_warn);
 		cp = (np = ftp->f_fn) + strlen(ftp->f_fn) - 1;
 		och = *cp;
 		if (ftp->f_flags & NO_IMPLCT_RULE) {
 			if (ftp->f_depends)
-				fprintf(f, "%s%s: %s\n",
-					ftp->f_objprefix, np, ftp->f_depends);
+				fprintf(f, "%s%s: %s\n", ftp->f_objprefix, np,
+				    ftp->f_depends);
 			else
 				fprintf(f, "%s%s: \n", ftp->f_objprefix, np);
-		}
-		else {
+		} else {
 			*cp = '\0';
 			if (och == 'o') {
 				fprintf(f, "%s%so:\n\t-cp %s%so .\n\n",
-					ftp->f_objprefix, tail(np),
-					ftp->f_srcprefix, np);
+				    ftp->f_objprefix, tail(np),
+				    ftp->f_srcprefix, np);
 				continue;
 			}
 			if (ftp->f_depends) {
 				fprintf(f, "%s%so: %s%s%c %s\n",
-					ftp->f_objprefix, tail(np),
-					ftp->f_srcprefix, np, och,
-					ftp->f_depends);
-			}
-			else {
-				fprintf(f, "%s%so: %s%s%c\n",
-					ftp->f_objprefix, tail(np),
-					ftp->f_srcprefix, np, och);
+				    ftp->f_objprefix, tail(np),
+				    ftp->f_srcprefix, np, och, ftp->f_depends);
+			} else {
+				fprintf(f, "%s%so: %s%s%c\n", ftp->f_objprefix,
+				    tail(np), ftp->f_srcprefix, np, och);
 			}
 		}
 		compilewith = ftp->f_compilewith;
@@ -780,16 +775,15 @@ do_rules(FILE *f)
 				    "config: don't know rules for %s\n", np);
 				break;
 			}
-			snprintf(cmd, sizeof(cmd),
-			    "${%s_%c%s}", ftype,
+			snprintf(cmd, sizeof(cmd), "${%s_%c%s}", ftype,
 			    toupper(och),
 			    ftp->f_flags & NOWERROR ? "_NOWERROR" : "");
 			compilewith = cmd;
 		}
 		*cp = och;
 		if (strlen(ftp->f_objprefix))
-			fprintf(f, "\t%s %s%s\n", compilewith,
-			    ftp->f_srcprefix, np);
+			fprintf(f, "\t%s %s%s\n", compilewith, ftp->f_srcprefix,
+			    np);
 		else
 			fprintf(f, "\t%s\n", compilewith);
 
@@ -808,7 +802,7 @@ do_clean(FILE *fp)
 
 	fputs("CLEAN=", fp);
 	lpos = 7;
-	STAILQ_FOREACH(tp, &ftab, f_next)
+	STAILQ_FOREACH (tp, &ftab, f_next)
 		if (tp->f_clean) {
 			len = strlen(tp->f_clean);
 			if (len + lpos > 72) {

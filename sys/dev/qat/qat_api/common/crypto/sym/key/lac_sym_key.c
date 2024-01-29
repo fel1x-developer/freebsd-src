@@ -20,8 +20,8 @@
 *******************************************************************************
 */
 #include "cpa.h"
-#include "cpa_cy_key.h"
 #include "cpa_cy_im.h"
+#include "cpa_cy_key.h"
 
 /*
 *******************************************************************************
@@ -32,107 +32,95 @@
 #include "icp_adf_debug.h"
 #include "icp_adf_init.h"
 #include "icp_adf_transport.h"
-
-#include "qat_utils.h"
-
-#include "lac_log.h"
 #include "lac_hooks.h"
-#include "lac_sym.h"
-#include "lac_sym_qat_hash_defs_lookup.h"
-#include "lac_sym_qat.h"
+#include "lac_log.h"
 #include "lac_sal.h"
-#include "lac_sym_key.h"
 #include "lac_sal_types_crypto.h"
-#include "sal_service_state.h"
-#include "lac_sym_qat_key.h"
+#include "lac_sym.h"
 #include "lac_sym_hash_defs.h"
+#include "lac_sym_key.h"
+#include "lac_sym_qat.h"
+#include "lac_sym_qat_hash_defs_lookup.h"
+#include "lac_sym_qat_key.h"
+#include "qat_utils.h"
+#include "sal_service_state.h"
 #include "sal_statistics.h"
 
 /* Number of statistics */
 #define LAC_KEY_NUM_STATS (sizeof(CpaCyKeyGenStats64) / sizeof(Cpa64U))
 
-#define LAC_KEY_STAT_INC(statistic, instanceHandle)                            \
-	do {                                                                   \
-		sal_crypto_service_t *pService = NULL;                         \
-		pService = (sal_crypto_service_t *)instanceHandle;             \
-		if (CPA_TRUE ==                                                \
-		    pService->generic_service_info.stats                       \
-			->bKeyGenStatsEnabled) {                               \
-			qatUtilsAtomicInc(                                     \
-			    &pService                                          \
-				 ->pLacKeyStats[offsetof(CpaCyKeyGenStats64,   \
-							 statistic) /          \
-						sizeof(Cpa64U)]);              \
-		}                                                              \
+#define LAC_KEY_STAT_INC(statistic, instanceHandle)                          \
+	do {                                                                 \
+		sal_crypto_service_t *pService = NULL;                       \
+		pService = (sal_crypto_service_t *)instanceHandle;           \
+		if (CPA_TRUE ==                                              \
+		    pService->generic_service_info.stats                     \
+			->bKeyGenStatsEnabled) {                             \
+			qatUtilsAtomicInc(                                   \
+			    &pService                                        \
+				 ->pLacKeyStats[offsetof(CpaCyKeyGenStats64, \
+						    statistic) /             \
+				     sizeof(Cpa64U)]);                       \
+		}                                                            \
 	} while (0)
 /**< Macro to increment a Key stat (derives offset into array of atomics) */
 
-#define LAC_KEY_STATS32_GET(keyStats, instanceHandle)                          \
-	do {                                                                   \
-		int i;                                                         \
-		sal_crypto_service_t *pService =                               \
-		    (sal_crypto_service_t *)instanceHandle;                    \
-		for (i = 0; i < LAC_KEY_NUM_STATS; i++) {                      \
-			((Cpa32U *)&(keyStats))[i] =                           \
-			    (Cpa32U)qatUtilsAtomicGet(                         \
-				&pService->pLacKeyStats[i]);                   \
-		}                                                              \
+#define LAC_KEY_STATS32_GET(keyStats, instanceHandle)                      \
+	do {                                                               \
+		int i;                                                     \
+		sal_crypto_service_t *pService = (sal_crypto_service_t *)  \
+		    instanceHandle;                                        \
+		for (i = 0; i < LAC_KEY_NUM_STATS; i++) {                  \
+			((Cpa32U *)&(keyStats))[i] = (Cpa32U)              \
+			    qatUtilsAtomicGet(&pService->pLacKeyStats[i]); \
+		}                                                          \
 	} while (0)
 /**< Macro to get all 32bit Key stats (from internal array of atomics) */
 
-#define LAC_KEY_STATS64_GET(keyStats, instanceHandle)                          \
-	do {                                                                   \
-		int i;                                                         \
-		sal_crypto_service_t *pService =                               \
-		    (sal_crypto_service_t *)instanceHandle;                    \
-		for (i = 0; i < LAC_KEY_NUM_STATS; i++) {                      \
-			((Cpa64U *)&(keyStats))[i] =                           \
-			    qatUtilsAtomicGet(&pService->pLacKeyStats[i]);     \
-		}                                                              \
+#define LAC_KEY_STATS64_GET(keyStats, instanceHandle)                     \
+	do {                                                              \
+		int i;                                                    \
+		sal_crypto_service_t *pService = (sal_crypto_service_t *) \
+		    instanceHandle;                                       \
+		for (i = 0; i < LAC_KEY_NUM_STATS; i++) {                 \
+			((Cpa64U *)&(keyStats))[i] = qatUtilsAtomicGet(   \
+			    &pService->pLacKeyStats[i]);                  \
+		}                                                         \
 	} while (0)
 /**< Macro to get all 64bit Key stats (from internal array of atomics) */
 
 #define IS_HKDF_UNSUPPORTED(cmdId, hkdfSupported)                              \
 	((ICP_QAT_FW_LA_CMD_HKDF_EXTRACT <= cmdId &&                           \
-	  ICP_QAT_FW_LA_CMD_HKDF_EXTRACT_AND_EXPAND_LABEL >= cmdId) &&         \
-	 !hkdfSupported) /**< macro to check whether the HKDF algorithm can be \
-			    supported on the device */
+	     ICP_QAT_FW_LA_CMD_HKDF_EXTRACT_AND_EXPAND_LABEL >= cmdId) &&      \
+	    !hkdfSupported) /**< macro to check whether the HKDF algorithm can \
+			       be supported on the device */
 
 /* Sublabel for HKDF TLS Key Generation, as defined in RFC8446. */
-const static Cpa8U key256[HKDF_SUB_LABEL_KEY_LENGTH] = { 0,   16,  9,   't',
-							 'l', 's', '1', '3',
-							 ' ', 'k', 'e', 'y',
-							 0 };
-const static Cpa8U key384[HKDF_SUB_LABEL_KEY_LENGTH] = { 0,   32,  9,   't',
-							 'l', 's', '1', '3',
-							 ' ', 'k', 'e', 'y',
-							 0 };
-const static Cpa8U keyChaChaPoly[HKDF_SUB_LABEL_KEY_LENGTH] = { 0,   32,  9,
-								't', 'l', 's',
-								'1', '3', ' ',
-								'k', 'e', 'y',
-								0 };
+const static Cpa8U key256[HKDF_SUB_LABEL_KEY_LENGTH] = { 0, 16, 9, 't', 'l',
+	's', '1', '3', ' ', 'k', 'e', 'y', 0 };
+const static Cpa8U key384[HKDF_SUB_LABEL_KEY_LENGTH] = { 0, 32, 9, 't', 'l',
+	's', '1', '3', ' ', 'k', 'e', 'y', 0 };
+const static Cpa8U keyChaChaPoly[HKDF_SUB_LABEL_KEY_LENGTH] = { 0, 32, 9, 't',
+	'l', 's', '1', '3', ' ', 'k', 'e', 'y', 0 };
 /* Sublabel for HKDF TLS IV key Generation, as defined in RFC8446. */
-const static Cpa8U iv256[HKDF_SUB_LABEL_IV_LENGTH] = { 0,   12,  8,   't',
-						       'l', 's', '1', '3',
-						       ' ', 'i', 'v', 0 };
-const static Cpa8U iv384[HKDF_SUB_LABEL_IV_LENGTH] = { 0,   12,  8,   't',
-						       'l', 's', '1', '3',
-						       ' ', 'i', 'v', 0 };
+const static Cpa8U iv256[HKDF_SUB_LABEL_IV_LENGTH] = { 0, 12, 8, 't', 'l', 's',
+	'1', '3', ' ', 'i', 'v', 0 };
+const static Cpa8U iv384[HKDF_SUB_LABEL_IV_LENGTH] = { 0, 12, 8, 't', 'l', 's',
+	'1', '3', ' ', 'i', 'v', 0 };
 /* Sublabel for HKDF TLS RESUMPTION key Generation, as defined in RFC8446. */
-const static Cpa8U resumption256[HKDF_SUB_LABEL_RESUMPTION_LENGTH] =
-    { 0,   32,  16,  't', 'l', 's', '1', '3', ' ', 'r',
-      'e', 's', 'u', 'm', 'p', 't', 'i', 'o', 'n', 0 };
-const static Cpa8U resumption384[HKDF_SUB_LABEL_RESUMPTION_LENGTH] =
-    { 0,   48,  16,  't', 'l', 's', '1', '3', ' ', 'r',
-      'e', 's', 'u', 'm', 'p', 't', 'i', 'o', 'n', 0 };
+const static Cpa8U resumption256[HKDF_SUB_LABEL_RESUMPTION_LENGTH] = { 0, 32,
+	16, 't', 'l', 's', '1', '3', ' ', 'r', 'e', 's', 'u', 'm', 'p', 't',
+	'i', 'o', 'n', 0 };
+const static Cpa8U resumption384[HKDF_SUB_LABEL_RESUMPTION_LENGTH] = { 0, 48,
+	16, 't', 'l', 's', '1', '3', ' ', 'r', 'e', 's', 'u', 'm', 'p', 't',
+	'i', 'o', 'n', 0 };
 /* Sublabel for HKDF TLS FINISHED key Generation, as defined in RFC8446. */
-const static Cpa8U finished256[HKDF_SUB_LABEL_FINISHED_LENGTH] =
-    { 0,   32,  14,  't', 'l', 's', '1', '3', ' ',
-      'f', 'i', 'n', 'i', 's', 'h', 'e', 'd', 0 };
-const static Cpa8U finished384[HKDF_SUB_LABEL_FINISHED_LENGTH] =
-    { 0,   48,  14,  't', 'l', 's', '1', '3', ' ',
-      'f', 'i', 'n', 'i', 's', 'h', 'e', 'd', 0 };
+const static Cpa8U finished256[HKDF_SUB_LABEL_FINISHED_LENGTH] = { 0, 32, 14,
+	't', 'l', 's', '1', '3', ' ', 'f', 'i', 'n', 'i', 's', 'h', 'e', 'd',
+	0 };
+const static Cpa8U finished384[HKDF_SUB_LABEL_FINISHED_LENGTH] = { 0, 48, 14,
+	't', 'l', 's', '1', '3', ' ', 'f', 'i', 'n', 'i', 's', 'h', 'e', 'd',
+	0 };
 
 /**
  ******************************************************************************
@@ -154,32 +142,21 @@ typedef enum {
 } lac_key_stat_type_t;
 
 /*** Local functions prototypes ***/
-static void
-LacSymKey_MgfHandleResponse(icp_qat_fw_la_cmd_id_t lacCmdId,
-			    void *pOpaqueData,
-			    icp_qat_fw_comn_flags cmnRespFlags);
+static void LacSymKey_MgfHandleResponse(icp_qat_fw_la_cmd_id_t lacCmdId,
+    void *pOpaqueData, icp_qat_fw_comn_flags cmnRespFlags);
 
-static CpaStatus
-LacSymKey_MgfSync(const CpaInstanceHandle instanceHandle,
-		  const CpaCyGenFlatBufCbFunc pKeyGenCb,
-		  void *pCallbackTag,
-		  const void *pKeyGenMgfOpData,
-		  CpaFlatBuffer *pGeneratedMaskBuffer,
-		  CpaBoolean bIsExtRequest);
+static CpaStatus LacSymKey_MgfSync(const CpaInstanceHandle instanceHandle,
+    const CpaCyGenFlatBufCbFunc pKeyGenCb, void *pCallbackTag,
+    const void *pKeyGenMgfOpData, CpaFlatBuffer *pGeneratedMaskBuffer,
+    CpaBoolean bIsExtRequest);
 
-static void
-LacSymKey_SslTlsHandleResponse(icp_qat_fw_la_cmd_id_t lacCmdId,
-			       void *pOpaqueData,
-			       icp_qat_fw_comn_flags cmnRespFlags);
+static void LacSymKey_SslTlsHandleResponse(icp_qat_fw_la_cmd_id_t lacCmdId,
+    void *pOpaqueData, icp_qat_fw_comn_flags cmnRespFlags);
 
-static CpaStatus
-LacSymKey_SslTlsSync(CpaInstanceHandle instanceHandle,
-		     const CpaCyGenFlatBufCbFunc pKeyGenCb,
-		     void *pCallbackTag,
-		     icp_qat_fw_la_cmd_id_t lacCmdId,
-		     void *pKeyGenSslTlsOpData,
-		     Cpa8U hashAlgorithm,
-		     CpaFlatBuffer *pKeyGenOutpuData);
+static CpaStatus LacSymKey_SslTlsSync(CpaInstanceHandle instanceHandle,
+    const CpaCyGenFlatBufCbFunc pKeyGenCb, void *pCallbackTag,
+    icp_qat_fw_la_cmd_id_t lacCmdId, void *pKeyGenSslTlsOpData,
+    Cpa8U hashAlgorithm, CpaFlatBuffer *pKeyGenOutpuData);
 
 /*** Implementation ***/
 
@@ -195,8 +172,8 @@ LacKey_GetHandle(CpaInstanceHandle instanceHandle_in)
 {
 	CpaInstanceHandle instanceHandle = NULL;
 	if (CPA_INSTANCE_HANDLE_SINGLE == instanceHandle_in) {
-		instanceHandle =
-		    Lac_GetFirstHandle(SAL_SERVICE_TYPE_CRYPTO_SYM);
+		instanceHandle = Lac_GetFirstHandle(
+		    SAL_SERVICE_TYPE_CRYPTO_SYM);
 	} else {
 		instanceHandle = instanceHandle_in;
 	}
@@ -235,12 +212,9 @@ LacKey_GetHandle(CpaInstanceHandle instanceHandle_in)
 *****************************************************************************/
 static CpaStatus
 LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
-				 const CpaCyGenFlatBufCbFunc pKeyGenCb,
-				 void *pCallbackTag,
-				 icp_qat_fw_la_cmd_id_t lacCmdId,
-				 void *pKeyGenSslTlsOpData,
-				 Cpa8U hashAlgorithm,
-				 CpaFlatBuffer *pKeyGenOutputData);
+    const CpaCyGenFlatBufCbFunc pKeyGenCb, void *pCallbackTag,
+    icp_qat_fw_la_cmd_id_t lacCmdId, void *pKeyGenSslTlsOpData,
+    Cpa8U hashAlgorithm, CpaFlatBuffer *pKeyGenOutputData);
 
 /**
  ******************************************************************************
@@ -259,9 +233,8 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
  *
  *****************************************************************************/
 static void
-LacKey_StatsInc(icp_qat_fw_la_cmd_id_t lacCmdId,
-		lac_key_stat_type_t statType,
-		CpaInstanceHandle instanceHandle)
+LacKey_StatsInc(icp_qat_fw_la_cmd_id_t lacCmdId, lac_key_stat_type_t statType,
+    CpaInstanceHandle instanceHandle)
 {
 	if (ICP_QAT_FW_LA_CMD_SSL3_KEY_DERIVE == lacCmdId) {
 		switch (statType) {
@@ -270,14 +243,14 @@ LacKey_StatsInc(icp_qat_fw_la_cmd_id_t lacCmdId,
 			break;
 		case LAC_KEY_REQUEST_ERRORS:
 			LAC_KEY_STAT_INC(numSslKeyGenRequestErrors,
-					 instanceHandle);
+			    instanceHandle);
 			break;
 		case LAC_KEY_COMPLETED:
 			LAC_KEY_STAT_INC(numSslKeyGenCompleted, instanceHandle);
 			break;
 		case LAC_KEY_COMPLETED_ERRORS:
 			LAC_KEY_STAT_INC(numSslKeyGenCompletedErrors,
-					 instanceHandle);
+			    instanceHandle);
 			break;
 		default:
 			QAT_UTILS_LOG("Invalid statistics type\n");
@@ -291,14 +264,14 @@ LacKey_StatsInc(icp_qat_fw_la_cmd_id_t lacCmdId,
 			break;
 		case LAC_KEY_REQUEST_ERRORS:
 			LAC_KEY_STAT_INC(numTlsKeyGenRequestErrors,
-					 instanceHandle);
+			    instanceHandle);
 			break;
 		case LAC_KEY_COMPLETED:
 			LAC_KEY_STAT_INC(numTlsKeyGenCompleted, instanceHandle);
 			break;
 		case LAC_KEY_COMPLETED_ERRORS:
 			LAC_KEY_STAT_INC(numTlsKeyGenCompletedErrors,
-					 instanceHandle);
+			    instanceHandle);
 			break;
 		default:
 			QAT_UTILS_LOG("Invalid statistics type\n");
@@ -315,68 +288,57 @@ LacKeygen_StatsShow(CpaInstanceHandle instanceHandle)
 	LAC_KEY_STATS64_GET(keyStats, instanceHandle);
 
 	QAT_UTILS_LOG(SEPARATOR BORDER
-		      "                  Key Stats:                " BORDER
-		      "\n" SEPARATOR);
+	    "                  Key Stats:                " BORDER
+	    "\n" SEPARATOR);
 
-	QAT_UTILS_LOG(BORDER " SSL Key Requests:               %16llu " BORDER
-			     "\n" BORDER
-			     " SSL Key Request Errors:         %16llu " BORDER
-			     "\n" BORDER
-			     " SSL Key Completed               %16llu " BORDER
-			     "\n" BORDER
-			     " SSL Key Complete Errors:        %16llu " BORDER
-			     "\n" SEPARATOR,
-		      (unsigned long long)keyStats.numSslKeyGenRequests,
-		      (unsigned long long)keyStats.numSslKeyGenRequestErrors,
-		      (unsigned long long)keyStats.numSslKeyGenCompleted,
-		      (unsigned long long)keyStats.numSslKeyGenCompletedErrors);
+	QAT_UTILS_LOG(BORDER
+	    " SSL Key Requests:               %16llu " BORDER "\n" BORDER
+	    " SSL Key Request Errors:         %16llu " BORDER "\n" BORDER
+	    " SSL Key Completed               %16llu " BORDER "\n" BORDER
+	    " SSL Key Complete Errors:        %16llu " BORDER "\n" SEPARATOR,
+	    (unsigned long long)keyStats.numSslKeyGenRequests,
+	    (unsigned long long)keyStats.numSslKeyGenRequestErrors,
+	    (unsigned long long)keyStats.numSslKeyGenCompleted,
+	    (unsigned long long)keyStats.numSslKeyGenCompletedErrors);
 
-	QAT_UTILS_LOG(BORDER " TLS Key Requests:               %16llu " BORDER
-			     "\n" BORDER
-			     " TLS Key Request Errors:         %16llu " BORDER
-			     "\n" BORDER
-			     " TLS Key Completed               %16llu " BORDER
-			     "\n" BORDER
-			     " TLS Key Complete Errors:        %16llu " BORDER
-			     "\n" SEPARATOR,
-		      (unsigned long long)keyStats.numTlsKeyGenRequests,
-		      (unsigned long long)keyStats.numTlsKeyGenRequestErrors,
-		      (unsigned long long)keyStats.numTlsKeyGenCompleted,
-		      (unsigned long long)keyStats.numTlsKeyGenCompletedErrors);
+	QAT_UTILS_LOG(BORDER
+	    " TLS Key Requests:               %16llu " BORDER "\n" BORDER
+	    " TLS Key Request Errors:         %16llu " BORDER "\n" BORDER
+	    " TLS Key Completed               %16llu " BORDER "\n" BORDER
+	    " TLS Key Complete Errors:        %16llu " BORDER "\n" SEPARATOR,
+	    (unsigned long long)keyStats.numTlsKeyGenRequests,
+	    (unsigned long long)keyStats.numTlsKeyGenRequestErrors,
+	    (unsigned long long)keyStats.numTlsKeyGenCompleted,
+	    (unsigned long long)keyStats.numTlsKeyGenCompletedErrors);
 
-	QAT_UTILS_LOG(BORDER " MGF Key Requests:               %16llu " BORDER
-			     "\n" BORDER
-			     " MGF Key Request Errors:         %16llu " BORDER
-			     "\n" BORDER
-			     " MGF Key Completed               %16llu " BORDER
-			     "\n" BORDER
-			     " MGF Key Complete Errors:        %16llu " BORDER
-			     "\n" SEPARATOR,
-		      (unsigned long long)keyStats.numMgfKeyGenRequests,
-		      (unsigned long long)keyStats.numMgfKeyGenRequestErrors,
-		      (unsigned long long)keyStats.numMgfKeyGenCompleted,
-		      (unsigned long long)keyStats.numMgfKeyGenCompletedErrors);
+	QAT_UTILS_LOG(BORDER
+	    " MGF Key Requests:               %16llu " BORDER "\n" BORDER
+	    " MGF Key Request Errors:         %16llu " BORDER "\n" BORDER
+	    " MGF Key Completed               %16llu " BORDER "\n" BORDER
+	    " MGF Key Complete Errors:        %16llu " BORDER "\n" SEPARATOR,
+	    (unsigned long long)keyStats.numMgfKeyGenRequests,
+	    (unsigned long long)keyStats.numMgfKeyGenRequestErrors,
+	    (unsigned long long)keyStats.numMgfKeyGenCompleted,
+	    (unsigned long long)keyStats.numMgfKeyGenCompletedErrors);
 }
 
 /** @ingroup LacSymKey */
 CpaStatus
 cpaCyKeyGenQueryStats(CpaInstanceHandle instanceHandle_in,
-		      struct _CpaCyKeyGenStats *pSymKeyStats)
+    struct _CpaCyKeyGenStats *pSymKeyStats)
 {
 	CpaInstanceHandle instanceHandle = NULL;
 
-
 	if (CPA_INSTANCE_HANDLE_SINGLE == instanceHandle_in) {
-		instanceHandle =
-		    Lac_GetFirstHandle(SAL_SERVICE_TYPE_CRYPTO_SYM);
+		instanceHandle = Lac_GetFirstHandle(
+		    SAL_SERVICE_TYPE_CRYPTO_SYM);
 	} else {
 		instanceHandle = instanceHandle_in;
 	}
 
 	LAC_CHECK_INSTANCE_HANDLE(instanceHandle);
 	SAL_CHECK_INSTANCE_TYPE(instanceHandle,
-				(SAL_SERVICE_TYPE_CRYPTO |
-				 SAL_SERVICE_TYPE_CRYPTO_SYM));
+	    (SAL_SERVICE_TYPE_CRYPTO | SAL_SERVICE_TYPE_CRYPTO_SYM));
 	LAC_CHECK_NULL_PARAM(pSymKeyStats);
 
 	SAL_RUNNING_CHECK(instanceHandle);
@@ -389,22 +351,20 @@ cpaCyKeyGenQueryStats(CpaInstanceHandle instanceHandle_in,
 /** @ingroup LacSymKey */
 CpaStatus
 cpaCyKeyGenQueryStats64(CpaInstanceHandle instanceHandle_in,
-			CpaCyKeyGenStats64 *pSymKeyStats)
+    CpaCyKeyGenStats64 *pSymKeyStats)
 {
 	CpaInstanceHandle instanceHandle = NULL;
 
-
 	if (CPA_INSTANCE_HANDLE_SINGLE == instanceHandle_in) {
-		instanceHandle =
-		    Lac_GetFirstHandle(SAL_SERVICE_TYPE_CRYPTO_SYM);
+		instanceHandle = Lac_GetFirstHandle(
+		    SAL_SERVICE_TYPE_CRYPTO_SYM);
 	} else {
 		instanceHandle = instanceHandle_in;
 	}
 
 	LAC_CHECK_INSTANCE_HANDLE(instanceHandle);
 	SAL_CHECK_INSTANCE_TYPE(instanceHandle,
-				(SAL_SERVICE_TYPE_CRYPTO |
-				 SAL_SERVICE_TYPE_CRYPTO_SYM));
+	    (SAL_SERVICE_TYPE_CRYPTO | SAL_SERVICE_TYPE_CRYPTO_SYM));
 	LAC_CHECK_NULL_PARAM(pSymKeyStats);
 
 	SAL_RUNNING_CHECK(instanceHandle);
@@ -511,9 +471,8 @@ static const Cpa32U cipherSuiteHKDFHashSizes
  *
  *****************************************************************************/
 static void
-LacSymKey_MgfHandleResponse(icp_qat_fw_la_cmd_id_t lacCmdId,
-			    void *pOpaqueData,
-			    icp_qat_fw_comn_flags cmnRespFlags)
+LacSymKey_MgfHandleResponse(icp_qat_fw_la_cmd_id_t lacCmdId, void *pOpaqueData,
+    icp_qat_fw_comn_flags cmnRespFlags)
 {
 	CpaCyKeyGenMgfOpData *pMgfOpData = NULL;
 	lac_sym_key_cookie_t *pCookie = NULL;
@@ -521,9 +480,9 @@ LacSymKey_MgfHandleResponse(icp_qat_fw_la_cmd_id_t lacCmdId,
 	void *pCallbackTag = NULL;
 	CpaFlatBuffer *pGeneratedKeyBuffer = NULL;
 	CpaStatus status = CPA_STATUS_SUCCESS;
-	CpaBoolean respStatusOk =
-	    (ICP_QAT_FW_COMN_STATUS_FLAG_OK ==
-	     ICP_QAT_FW_COMN_RESP_CRYPTO_STAT_GET(cmnRespFlags)) ?
+	CpaBoolean respStatusOk = (ICP_QAT_FW_COMN_STATUS_FLAG_OK ==
+				      ICP_QAT_FW_COMN_RESP_CRYPTO_STAT_GET(
+					  cmnRespFlags)) ?
 	    CPA_TRUE :
 	    CPA_FALSE;
 
@@ -532,11 +491,11 @@ LacSymKey_MgfHandleResponse(icp_qat_fw_la_cmd_id_t lacCmdId,
 	if (CPA_TRUE == respStatusOk) {
 		status = CPA_STATUS_SUCCESS;
 		LAC_KEY_STAT_INC(numMgfKeyGenCompleted,
-				 pCookie->instanceHandle);
+		    pCookie->instanceHandle);
 	} else {
 		status = CPA_STATUS_FAIL;
 		LAC_KEY_STAT_INC(numMgfKeyGenCompletedErrors,
-				 pCookie->instanceHandle);
+		    pCookie->instanceHandle);
 	}
 
 	pKeyGenMgfCb = (CpaCyGenFlatBufCbFunc)(pCookie->pKeyGenCb);
@@ -579,11 +538,9 @@ LacSymKey_MgfHandleResponse(icp_qat_fw_la_cmd_id_t lacCmdId,
  *****************************************************************************/
 static CpaStatus
 LacSymKey_MgfSync(const CpaInstanceHandle instanceHandle,
-		  const CpaCyGenFlatBufCbFunc pKeyGenCb,
-		  void *pCallbackTag,
-		  const void *pKeyGenMgfOpData,
-		  CpaFlatBuffer *pGeneratedMaskBuffer,
-		  CpaBoolean bIsExtRequest)
+    const CpaCyGenFlatBufCbFunc pKeyGenCb, void *pCallbackTag,
+    const void *pKeyGenMgfOpData, CpaFlatBuffer *pGeneratedMaskBuffer,
+    CpaBoolean bIsExtRequest)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 
@@ -593,19 +550,15 @@ LacSymKey_MgfSync(const CpaInstanceHandle instanceHandle,
 
 	if (CPA_STATUS_SUCCESS == status) {
 		if (CPA_TRUE == bIsExtRequest) {
-			status = cpaCyKeyGenMgfExt(
-			    instanceHandle,
-			    LacSync_GenFlatBufCb,
-			    pSyncCallbackData,
+			status = cpaCyKeyGenMgfExt(instanceHandle,
+			    LacSync_GenFlatBufCb, pSyncCallbackData,
 			    (const CpaCyKeyGenMgfOpDataExt *)pKeyGenMgfOpData,
 			    pGeneratedMaskBuffer);
 		} else {
 			status = cpaCyKeyGenMgf(instanceHandle,
-						LacSync_GenFlatBufCb,
-						pSyncCallbackData,
-						(const CpaCyKeyGenMgfOpData *)
-						    pKeyGenMgfOpData,
-						pGeneratedMaskBuffer);
+			    LacSync_GenFlatBufCb, pSyncCallbackData,
+			    (const CpaCyKeyGenMgfOpData *)pKeyGenMgfOpData,
+			    pGeneratedMaskBuffer);
 		}
 	} else {
 		/* Failure allocating sync cookie */
@@ -616,16 +569,13 @@ LacSymKey_MgfSync(const CpaInstanceHandle instanceHandle,
 	if (CPA_STATUS_SUCCESS == status) {
 		CpaStatus syncStatus = CPA_STATUS_SUCCESS;
 
-		syncStatus =
-		    LacSync_WaitForCallback(pSyncCallbackData,
-					    LAC_SYM_SYNC_CALLBACK_TIMEOUT,
-					    &status,
-					    NULL);
+		syncStatus = LacSync_WaitForCallback(pSyncCallbackData,
+		    LAC_SYM_SYNC_CALLBACK_TIMEOUT, &status, NULL);
 
 		/* If callback doesn't come back */
 		if (CPA_STATUS_SUCCESS != syncStatus) {
 			LAC_KEY_STAT_INC(numMgfKeyGenCompletedErrors,
-					 instanceHandle);
+			    instanceHandle);
 			LAC_LOG_ERROR("Callback timed out");
 			status = syncStatus;
 		}
@@ -688,12 +638,9 @@ LacSymKey_MgfSync(const CpaInstanceHandle instanceHandle,
  *****************************************************************************/
 static CpaStatus
 LacSymKey_MgfCommon(const CpaInstanceHandle instanceHandle,
-		    const CpaCyGenFlatBufCbFunc pKeyGenCb,
-		    void *pCallbackTag,
-		    const void *pOpData,
-		    const CpaCyKeyGenMgfOpData *pKeyGenMgfOpData,
-		    CpaFlatBuffer *pGeneratedMaskBuffer,
-		    CpaCySymHashAlgorithm hashAlgorithm)
+    const CpaCyGenFlatBufCbFunc pKeyGenCb, void *pCallbackTag,
+    const void *pOpData, const CpaCyKeyGenMgfOpData *pKeyGenMgfOpData,
+    CpaFlatBuffer *pGeneratedMaskBuffer, CpaCySymHashAlgorithm hashAlgorithm)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 
@@ -711,22 +658,20 @@ LacSymKey_MgfCommon(const CpaInstanceHandle instanceHandle,
 	sal_crypto_service_t *pService = NULL;
 	Cpa64U inputPhysAddr = 0;
 	Cpa64U outputPhysAddr = 0;
-/* Structure initializer is supported by C99, but it is
- * not supported by some former Intel compiler.
- */
+	/* Structure initializer is supported by C99, but it is
+	 * not supported by some former Intel compiler.
+	 */
 	CpaCySymHashSetupData hashSetupData = { 0 };
 	Cpa32U hashBlkSizeInBytes = 0;
 	lac_sym_qat_hash_alg_info_t *pHashAlgInfo = NULL;
 	icp_qat_fw_serv_specif_flags laCmdFlags = 0;
-	icp_qat_fw_comn_flags cmnRequestFlags =
-	    ICP_QAT_FW_COMN_FLAGS_BUILD(QAT_COMN_PTR_TYPE_FLAT,
-					QAT_COMN_CD_FLD_TYPE_64BIT_ADR);
+	icp_qat_fw_comn_flags cmnRequestFlags = ICP_QAT_FW_COMN_FLAGS_BUILD(
+	    QAT_COMN_PTR_TYPE_FLAT, QAT_COMN_CD_FLD_TYPE_64BIT_ADR);
 
 	pService = (sal_crypto_service_t *)instanceHandle;
 	LAC_CHECK_INSTANCE_HANDLE(instanceHandle);
 	SAL_CHECK_INSTANCE_TYPE(instanceHandle,
-				(SAL_SERVICE_TYPE_CRYPTO |
-				 SAL_SERVICE_TYPE_CRYPTO_SYM));
+	    (SAL_SERVICE_TYPE_CRYPTO | SAL_SERVICE_TYPE_CRYPTO_SYM));
 
 	SAL_RUNNING_CHECK(instanceHandle);
 	LAC_CHECK_NULL_PARAM(pOpData);
@@ -756,9 +701,8 @@ LacSymKey_MgfCommon(const CpaInstanceHandle instanceHandle,
 	}
 
 	/* Get hash alg info */
-	LacSymQat_HashAlgLookupGet(instanceHandle,
-				   hashAlgorithm,
-				   &pHashAlgInfo);
+	LacSymQat_HashAlgLookupGet(instanceHandle, hashAlgorithm,
+	    &pHashAlgInfo);
 
 	/* Allocate the cookie */
 	pCookie = (lac_sym_key_cookie_t *)Lac_MemPoolEntryAlloc(
@@ -788,26 +732,20 @@ LacSymKey_MgfCommon(const CpaInstanceHandle instanceHandle,
 		/* Populate the CD ctrl Block (LW 27 - LW 31)
 		 * and the CD Hash HW setup block
 		 */
-		LacSymQat_HashContentDescInit(
-		    &(keyGenReqFtr),
-		    instanceHandle,
+		LacSymQat_HashContentDescInit(&(keyGenReqFtr), instanceHandle,
 		    &hashSetupData,
 		    /* point to base of hw setup block */
 		    (Cpa8U *)pCookie->contentDesc,
-		    LAC_SYM_KEY_NO_HASH_BLK_OFFSET_QW,
-		    ICP_QAT_FW_SLICE_DRAM_WR,
+		    LAC_SYM_KEY_NO_HASH_BLK_OFFSET_QW, ICP_QAT_FW_SLICE_DRAM_WR,
 		    ICP_QAT_HW_AUTH_MODE0, /* just a plain hash */
 		    CPA_FALSE, /* Not using sym Constants Table in Shared SRAM
 				*/
 		    CPA_FALSE, /* not using the optimised Content Desc */
 		    CPA_FALSE, /* Not using the stateful SHA3 Content Desc */
-		    NULL,
-		    &hashBlkSizeInBytes);
+		    NULL, &hashBlkSizeInBytes);
 
 		/* Populate the Req param LW 14-26 */
-		LacSymQat_KeyMgfRequestPopulate(
-		    &keyGenReqHdr,
-		    &keyGenReqMid,
+		LacSymQat_KeyMgfRequestPopulate(&keyGenReqHdr, &keyGenReqMid,
 		    pKeyGenMgfOpData->seedBuffer.dataLenInBytes,
 		    pKeyGenMgfOpData->maskLenInBytes,
 		    (Cpa8U)pHashAlgInfo->digestLength);
@@ -816,13 +754,12 @@ LacSymKey_MgfCommon(const CpaInstanceHandle instanceHandle,
 		contentDescInfo.hardwareSetupBlockPhys =
 		    LAC_MEM_CAST_PTR_TO_UINT64(
 			pSymCookie->keyContentDescPhyAddr);
-		contentDescInfo.hwBlkSzQuadWords =
-		    LAC_BYTES_TO_QUADWORDS(hashBlkSizeInBytes);
+		contentDescInfo.hwBlkSzQuadWords = LAC_BYTES_TO_QUADWORDS(
+		    hashBlkSizeInBytes);
 
 		/* Populate common request fields */
-		inputPhysAddr =
-		    LAC_MEM_CAST_PTR_TO_UINT64(LAC_OS_VIRT_TO_PHYS_EXTERNAL(
-			pService->generic_service_info,
+		inputPhysAddr = LAC_MEM_CAST_PTR_TO_UINT64(
+		    LAC_OS_VIRT_TO_PHYS_EXTERNAL(pService->generic_service_info,
 			pKeyGenMgfOpData->seedBuffer.pData));
 
 		if (inputPhysAddr == 0) {
@@ -832,7 +769,7 @@ LacSymKey_MgfCommon(const CpaInstanceHandle instanceHandle,
 		}
 		outputPhysAddr = LAC_MEM_CAST_PTR_TO_UINT64(
 		    LAC_OS_VIRT_TO_PHYS_EXTERNAL(pService->generic_service_info,
-						 pGeneratedMaskBuffer->pData));
+			pGeneratedMaskBuffer->pData));
 		if (outputPhysAddr == 0) {
 			LAC_LOG_ERROR(
 			    "Unable to get the physical address of the mask");
@@ -847,32 +784,30 @@ LacSymKey_MgfCommon(const CpaInstanceHandle instanceHandle,
 		pCacheDummyMid = (Cpa8U *)&(keyGenReqMid);
 		pCacheDummyFtr = (Cpa8U *)&(keyGenReqFtr);
 
-		memcpy(pMsgDummy,
-		       pCacheDummyHdr,
-		       (LAC_LONG_WORD_IN_BYTES * LAC_SIZE_OF_CACHE_HDR_IN_LW));
+		memcpy(pMsgDummy, pCacheDummyHdr,
+		    (LAC_LONG_WORD_IN_BYTES * LAC_SIZE_OF_CACHE_HDR_IN_LW));
 		memset((pMsgDummy +
-			(LAC_LONG_WORD_IN_BYTES * LAC_SIZE_OF_CACHE_HDR_IN_LW)),
-		       0,
-		       (LAC_LONG_WORD_IN_BYTES *
+			   (LAC_LONG_WORD_IN_BYTES *
+			       LAC_SIZE_OF_CACHE_HDR_IN_LW)),
+		    0,
+		    (LAC_LONG_WORD_IN_BYTES *
 			LAC_SIZE_OF_CACHE_TO_CLEAR_IN_LW));
-		memcpy(pMsgDummy + (LAC_LONG_WORD_IN_BYTES *
-				    LAC_START_OF_CACHE_MID_IN_LW),
-		       pCacheDummyMid,
-		       (LAC_LONG_WORD_IN_BYTES * LAC_SIZE_OF_CACHE_MID_IN_LW));
-		memcpy(pMsgDummy + (LAC_LONG_WORD_IN_BYTES *
-				    LAC_START_OF_CACHE_FTR_IN_LW),
-		       pCacheDummyFtr,
-		       (LAC_LONG_WORD_IN_BYTES * LAC_SIZE_OF_CACHE_FTR_IN_LW));
+		memcpy(pMsgDummy +
+			(LAC_LONG_WORD_IN_BYTES * LAC_START_OF_CACHE_MID_IN_LW),
+		    pCacheDummyMid,
+		    (LAC_LONG_WORD_IN_BYTES * LAC_SIZE_OF_CACHE_MID_IN_LW));
+		memcpy(pMsgDummy +
+			(LAC_LONG_WORD_IN_BYTES * LAC_START_OF_CACHE_FTR_IN_LW),
+		    pCacheDummyFtr,
+		    (LAC_LONG_WORD_IN_BYTES * LAC_SIZE_OF_CACHE_FTR_IN_LW));
 
 		SalQatMsg_ContentDescHdrWrite((icp_qat_fw_comn_req_t *)&(
 						  keyGenReq),
-					      &(contentDescInfo));
+		    &(contentDescInfo));
 
 		SalQatMsg_CmnHdrWrite((icp_qat_fw_comn_req_t *)&keyGenReq,
-				      ICP_QAT_FW_COMN_REQ_CPM_FW_LA,
-				      ICP_QAT_FW_LA_CMD_MGF1,
-				      cmnRequestFlags,
-				      laCmdFlags);
+		    ICP_QAT_FW_COMN_REQ_CPM_FW_LA, ICP_QAT_FW_LA_CMD_MGF1,
+		    cmnRequestFlags, laCmdFlags);
 
 		/*
 		 * MGF uses a flat buffer but we can use zero for source and
@@ -880,17 +815,12 @@ LacSymKey_MgfCommon(const CpaInstanceHandle instanceHandle,
 		 * hash length and mask length to find source length.
 		 */
 		SalQatMsg_CmnMidWrite((icp_qat_fw_la_bulk_req_t *)&(keyGenReq),
-				      pCookie,
-				      LAC_SYM_KEY_QAT_PTR_TYPE,
-				      inputPhysAddr,
-				      outputPhysAddr,
-				      0,
-				      0);
+		    pCookie, LAC_SYM_KEY_QAT_PTR_TYPE, inputPhysAddr,
+		    outputPhysAddr, 0, 0);
 
 		/* Send to QAT */
 		status = icp_adf_transPutMsg(pService->trans_handle_sym_tx,
-					     (void *)&(keyGenReq),
-					     LAC_QAT_SYM_REQ_SZ_LW);
+		    (void *)&(keyGenReq), LAC_QAT_SYM_REQ_SZ_LW);
 	}
 	if (CPA_STATUS_SUCCESS == status) {
 		/* Update stats */
@@ -910,38 +840,29 @@ LacSymKey_MgfCommon(const CpaInstanceHandle instanceHandle,
  */
 CpaStatus
 cpaCyKeyGenMgf(const CpaInstanceHandle instanceHandle_in,
-	       const CpaCyGenFlatBufCbFunc pKeyGenCb,
-	       void *pCallbackTag,
-	       const CpaCyKeyGenMgfOpData *pKeyGenMgfOpData,
-	       CpaFlatBuffer *pGeneratedMaskBuffer)
+    const CpaCyGenFlatBufCbFunc pKeyGenCb, void *pCallbackTag,
+    const CpaCyKeyGenMgfOpData *pKeyGenMgfOpData,
+    CpaFlatBuffer *pGeneratedMaskBuffer)
 {
 	CpaInstanceHandle instanceHandle = NULL;
 
-
 	if (CPA_INSTANCE_HANDLE_SINGLE == instanceHandle_in) {
-		instanceHandle =
-		    Lac_GetFirstHandle(SAL_SERVICE_TYPE_CRYPTO_SYM);
+		instanceHandle = Lac_GetFirstHandle(
+		    SAL_SERVICE_TYPE_CRYPTO_SYM);
 	} else {
 		instanceHandle = instanceHandle_in;
 	}
 
 	/* If synchronous Operation */
 	if (NULL == pKeyGenCb) {
-		return LacSymKey_MgfSync(instanceHandle,
-					 pKeyGenCb,
-					 pCallbackTag,
-					 (const void *)pKeyGenMgfOpData,
-					 pGeneratedMaskBuffer,
-					 CPA_FALSE);
+		return LacSymKey_MgfSync(instanceHandle, pKeyGenCb,
+		    pCallbackTag, (const void *)pKeyGenMgfOpData,
+		    pGeneratedMaskBuffer, CPA_FALSE);
 	}
 	/* Asynchronous Operation */
-	return LacSymKey_MgfCommon(instanceHandle,
-				   pKeyGenCb,
-				   pCallbackTag,
-				   (const void *)pKeyGenMgfOpData,
-				   pKeyGenMgfOpData,
-				   pGeneratedMaskBuffer,
-				   CPA_CY_SYM_HASH_SHA1);
+	return LacSymKey_MgfCommon(instanceHandle, pKeyGenCb, pCallbackTag,
+	    (const void *)pKeyGenMgfOpData, pKeyGenMgfOpData,
+	    pGeneratedMaskBuffer, CPA_CY_SYM_HASH_SHA1);
 }
 
 /**
@@ -949,29 +870,24 @@ cpaCyKeyGenMgf(const CpaInstanceHandle instanceHandle_in,
  */
 CpaStatus
 cpaCyKeyGenMgfExt(const CpaInstanceHandle instanceHandle_in,
-		  const CpaCyGenFlatBufCbFunc pKeyGenCb,
-		  void *pCallbackTag,
-		  const CpaCyKeyGenMgfOpDataExt *pKeyGenMgfOpDataExt,
-		  CpaFlatBuffer *pGeneratedMaskBuffer)
+    const CpaCyGenFlatBufCbFunc pKeyGenCb, void *pCallbackTag,
+    const CpaCyKeyGenMgfOpDataExt *pKeyGenMgfOpDataExt,
+    CpaFlatBuffer *pGeneratedMaskBuffer)
 {
 	CpaInstanceHandle instanceHandle = NULL;
 
-
 	if (CPA_INSTANCE_HANDLE_SINGLE == instanceHandle_in) {
-		instanceHandle =
-		    Lac_GetFirstHandle(SAL_SERVICE_TYPE_CRYPTO_SYM);
+		instanceHandle = Lac_GetFirstHandle(
+		    SAL_SERVICE_TYPE_CRYPTO_SYM);
 	} else {
 		instanceHandle = instanceHandle_in;
 	}
 
 	/* If synchronous Operation */
 	if (NULL == pKeyGenCb) {
-		return LacSymKey_MgfSync(instanceHandle,
-					 pKeyGenCb,
-					 pCallbackTag,
-					 (const void *)pKeyGenMgfOpDataExt,
-					 pGeneratedMaskBuffer,
-					 CPA_TRUE);
+		return LacSymKey_MgfSync(instanceHandle, pKeyGenCb,
+		    pCallbackTag, (const void *)pKeyGenMgfOpDataExt,
+		    pGeneratedMaskBuffer, CPA_TRUE);
 	}
 
 	/* Param check specific for Ext function, rest of parameters validated
@@ -985,13 +901,9 @@ cpaCyKeyGenMgfExt(const CpaInstanceHandle instanceHandle_in,
 	}
 
 	/* Asynchronous Operation */
-	return LacSymKey_MgfCommon(instanceHandle,
-				   pKeyGenCb,
-				   pCallbackTag,
-				   (const void *)pKeyGenMgfOpDataExt,
-				   &pKeyGenMgfOpDataExt->baseOpData,
-				   pGeneratedMaskBuffer,
-				   pKeyGenMgfOpDataExt->hashAlgorithm);
+	return LacSymKey_MgfCommon(instanceHandle, pKeyGenCb, pCallbackTag,
+	    (const void *)pKeyGenMgfOpDataExt, &pKeyGenMgfOpDataExt->baseOpData,
+	    pGeneratedMaskBuffer, pKeyGenMgfOpDataExt->hashAlgorithm);
 }
 
 /**
@@ -1011,8 +923,7 @@ cpaCyKeyGenMgfExt(const CpaInstanceHandle instanceHandle_in,
  *****************************************************************************/
 static void
 LacSymKey_SslTlsHandleResponse(icp_qat_fw_la_cmd_id_t lacCmdId,
-			       void *pOpaqueData,
-			       icp_qat_fw_comn_flags cmnRespFlags)
+    void *pOpaqueData, icp_qat_fw_comn_flags cmnRespFlags)
 {
 	void *pSslTlsOpData = NULL;
 	CpaCyGenFlatBufCbFunc pKeyGenSslTlsCb = NULL;
@@ -1021,9 +932,9 @@ LacSymKey_SslTlsHandleResponse(icp_qat_fw_la_cmd_id_t lacCmdId,
 	CpaFlatBuffer *pGeneratedKeyBuffer = NULL;
 	CpaStatus status = CPA_STATUS_SUCCESS;
 
-	CpaBoolean respStatusOk =
-	    (ICP_QAT_FW_COMN_STATUS_FLAG_OK ==
-	     ICP_QAT_FW_COMN_RESP_CRYPTO_STAT_GET(cmnRespFlags)) ?
+	CpaBoolean respStatusOk = (ICP_QAT_FW_COMN_STATUS_FLAG_OK ==
+				      ICP_QAT_FW_COMN_RESP_CRYPTO_STAT_GET(
+					  cmnRespFlags)) ?
 	    CPA_TRUE :
 	    CPA_FALSE;
 
@@ -1032,14 +943,12 @@ LacSymKey_SslTlsHandleResponse(icp_qat_fw_la_cmd_id_t lacCmdId,
 	pSslTlsOpData = pCookie->pKeyGenOpData;
 
 	if (CPA_TRUE == respStatusOk) {
-		LacKey_StatsInc(lacCmdId,
-				LAC_KEY_COMPLETED,
-				pCookie->instanceHandle);
+		LacKey_StatsInc(lacCmdId, LAC_KEY_COMPLETED,
+		    pCookie->instanceHandle);
 	} else {
 		status = CPA_STATUS_FAIL;
-		LacKey_StatsInc(lacCmdId,
-				LAC_KEY_COMPLETED_ERRORS,
-				pCookie->instanceHandle);
+		LacKey_StatsInc(lacCmdId, LAC_KEY_COMPLETED_ERRORS,
+		    pCookie->instanceHandle);
 	}
 
 	pKeyGenSslTlsCb = (CpaCyGenFlatBufCbFunc)(pCookie->pKeyGenCb);
@@ -1049,10 +958,8 @@ LacSymKey_SslTlsHandleResponse(icp_qat_fw_la_cmd_id_t lacCmdId,
 
 	Lac_MemPoolEntryFree(pCookie);
 
-	(*pKeyGenSslTlsCb)(pCallbackTag,
-			   status,
-			   pSslTlsOpData,
-			   pGeneratedKeyBuffer);
+	(*pKeyGenSslTlsCb)(pCallbackTag, status, pSslTlsOpData,
+	    pGeneratedKeyBuffer);
 }
 
 /**
@@ -1089,12 +996,9 @@ LacSymKey_SslTlsHandleResponse(icp_qat_fw_la_cmd_id_t lacCmdId,
 *****************************************************************************/
 static CpaStatus
 LacSymKey_SslTlsSync(CpaInstanceHandle instanceHandle,
-		     const CpaCyGenFlatBufCbFunc pKeyGenCb,
-		     void *pCallbackTag,
-		     icp_qat_fw_la_cmd_id_t lacCmdId,
-		     void *pKeyGenSslTlsOpData,
-		     Cpa8U hashAlgorithm,
-		     CpaFlatBuffer *pKeyGenOutpuData)
+    const CpaCyGenFlatBufCbFunc pKeyGenCb, void *pCallbackTag,
+    icp_qat_fw_la_cmd_id_t lacCmdId, void *pKeyGenSslTlsOpData,
+    Cpa8U hashAlgorithm, CpaFlatBuffer *pKeyGenOutpuData)
 {
 	lac_sync_op_data_t *pSyncCallbackData = NULL;
 	CpaStatus status = CPA_STATUS_SUCCESS;
@@ -1102,34 +1006,25 @@ LacSymKey_SslTlsSync(CpaInstanceHandle instanceHandle,
 	status = LacSync_CreateSyncCookie(&pSyncCallbackData);
 	if (CPA_STATUS_SUCCESS == status) {
 		status = LacSymKey_KeyGenSslTls_GenCommon(instanceHandle,
-							  pKeyGenCb,
-							  pSyncCallbackData,
-							  lacCmdId,
-							  pKeyGenSslTlsOpData,
-							  hashAlgorithm,
-							  pKeyGenOutpuData);
+		    pKeyGenCb, pSyncCallbackData, lacCmdId, pKeyGenSslTlsOpData,
+		    hashAlgorithm, pKeyGenOutpuData);
 	} else {
 		/* Failure allocating sync cookie */
-		LacKey_StatsInc(lacCmdId,
-				LAC_KEY_REQUEST_ERRORS,
-				instanceHandle);
+		LacKey_StatsInc(lacCmdId, LAC_KEY_REQUEST_ERRORS,
+		    instanceHandle);
 		return status;
 	}
 
 	if (CPA_STATUS_SUCCESS == status) {
 		CpaStatus syncStatus = CPA_STATUS_SUCCESS;
 
-		syncStatus =
-		    LacSync_WaitForCallback(pSyncCallbackData,
-					    LAC_SYM_SYNC_CALLBACK_TIMEOUT,
-					    &status,
-					    NULL);
+		syncStatus = LacSync_WaitForCallback(pSyncCallbackData,
+		    LAC_SYM_SYNC_CALLBACK_TIMEOUT, &status, NULL);
 
 		/* If callback doesn't come back */
 		if (CPA_STATUS_SUCCESS != syncStatus) {
-			LacKey_StatsInc(lacCmdId,
-					LAC_KEY_COMPLETED_ERRORS,
-					instanceHandle);
+			LacKey_StatsInc(lacCmdId, LAC_KEY_COMPLETED_ERRORS,
+			    instanceHandle);
 			LAC_LOG_ERROR("Callback timed out");
 			status = syncStatus;
 		}
@@ -1147,37 +1042,31 @@ LacSymKey_SslTlsSync(CpaInstanceHandle instanceHandle,
 }
 
 static CpaStatus
-computeHashKey(CpaFlatBuffer *secret,
-	       CpaFlatBuffer *hash,
-	       CpaCySymHashAlgorithm *hashAlgorithm)
+computeHashKey(CpaFlatBuffer *secret, CpaFlatBuffer *hash,
+    CpaCySymHashAlgorithm *hashAlgorithm)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 
 	switch (*hashAlgorithm) {
 	case CPA_CY_SYM_HASH_MD5:
-		status = qatUtilsHashMD5Full(secret->pData,
-					     hash->pData,
-					     secret->dataLenInBytes);
+		status = qatUtilsHashMD5Full(secret->pData, hash->pData,
+		    secret->dataLenInBytes);
 		break;
 	case CPA_CY_SYM_HASH_SHA1:
-		status = qatUtilsHashSHA1Full(secret->pData,
-					      hash->pData,
-					      secret->dataLenInBytes);
+		status = qatUtilsHashSHA1Full(secret->pData, hash->pData,
+		    secret->dataLenInBytes);
 		break;
 	case CPA_CY_SYM_HASH_SHA256:
-		status = qatUtilsHashSHA256Full(secret->pData,
-						hash->pData,
-						secret->dataLenInBytes);
+		status = qatUtilsHashSHA256Full(secret->pData, hash->pData,
+		    secret->dataLenInBytes);
 		break;
 	case CPA_CY_SYM_HASH_SHA384:
-		status = qatUtilsHashSHA384Full(secret->pData,
-						hash->pData,
-						secret->dataLenInBytes);
+		status = qatUtilsHashSHA384Full(secret->pData, hash->pData,
+		    secret->dataLenInBytes);
 		break;
 	case CPA_CY_SYM_HASH_SHA512:
-		status = qatUtilsHashSHA512Full(secret->pData,
-						hash->pData,
-						secret->dataLenInBytes);
+		status = qatUtilsHashSHA512Full(secret->pData, hash->pData,
+		    secret->dataLenInBytes);
 		break;
 	default:
 		status = CPA_STATUS_FAIL;
@@ -1187,12 +1076,9 @@ computeHashKey(CpaFlatBuffer *secret,
 
 static CpaStatus
 LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
-				 const CpaCyGenFlatBufCbFunc pKeyGenCb,
-				 void *pCallbackTag,
-				 icp_qat_fw_la_cmd_id_t lacCmdId,
-				 void *pKeyGenSslTlsOpData,
-				 Cpa8U hashAlgCipher,
-				 CpaFlatBuffer *pKeyGenOutputData)
+    const CpaCyGenFlatBufCbFunc pKeyGenCb, void *pCallbackTag,
+    icp_qat_fw_la_cmd_id_t lacCmdId, void *pKeyGenSslTlsOpData,
+    Cpa8U hashAlgCipher, CpaFlatBuffer *pKeyGenOutputData)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 	CpaBoolean precompute = CPA_FALSE;
@@ -1208,9 +1094,9 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 	lac_sym_cookie_t *pSymCookie = NULL;
 	Cpa64U inputPhysAddr = 0;
 	Cpa64U outputPhysAddr = 0;
-/* Structure initializer is supported by C99, but it is
- * not supported by some former Intel compiler.
- */
+	/* Structure initializer is supported by C99, but it is
+	 * not supported by some former Intel compiler.
+	 */
 	CpaCySymHashSetupData hashSetupData = { 0 };
 	sal_qat_content_desc_info_t contentDescInfo = { 0 };
 	Cpa32U hashBlkSizeInBytes = 0;
@@ -1219,24 +1105,19 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 	CpaFlatBuffer inputSecret = { 0 };
 	CpaFlatBuffer hashKeyOutput = { 0 };
 	Cpa32U uSecretLen = 0;
-	CpaCySymHashNestedModeSetupData *pNestedModeSetupData =
-	    &(hashSetupData.nestedModeSetupData);
+	CpaCySymHashNestedModeSetupData *pNestedModeSetupData = &(
+	    hashSetupData.nestedModeSetupData);
 	icp_qat_fw_serv_specif_flags laCmdFlags = 0;
-	icp_qat_fw_comn_flags cmnRequestFlags =
-	    ICP_QAT_FW_COMN_FLAGS_BUILD(QAT_COMN_PTR_TYPE_FLAT,
-					QAT_COMN_CD_FLD_TYPE_64BIT_ADR);
+	icp_qat_fw_comn_flags cmnRequestFlags = ICP_QAT_FW_COMN_FLAGS_BUILD(
+	    QAT_COMN_PTR_TYPE_FLAT, QAT_COMN_CD_FLD_TYPE_64BIT_ADR);
 
 	sal_crypto_service_t *pService = (sal_crypto_service_t *)instanceHandle;
 
 	/* If synchronous Operation */
 	if (NULL == pKeyGenCb) {
 		return LacSymKey_SslTlsSync(instanceHandle,
-					    LacSync_GenFlatBufCb,
-					    pCallbackTag,
-					    lacCmdId,
-					    pKeyGenSslTlsOpData,
-					    hashAlgCipher,
-					    pKeyGenOutputData);
+		    LacSync_GenFlatBufCb, pCallbackTag, lacCmdId,
+		    pKeyGenSslTlsOpData, hashAlgCipher, pKeyGenOutputData);
 	}
 	/* Allocate the cookie */
 	pCookie = (lac_sym_key_cookie_t *)Lac_MemPoolEntryAlloc(
@@ -1301,11 +1182,11 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 			 * The other operations remain unchanged.
 			 */
 			if ((uSecretLen >
-			     ICP_QAT_FW_LA_TLS_V1_1_SECRET_LEN_MAX) &&
+				ICP_QAT_FW_LA_TLS_V1_1_SECRET_LEN_MAX) &&
 			    (CPA_CY_KEY_TLS_OP_MASTER_SECRET_DERIVE ==
-				 pKeyGenTlsOpData->tlsOp ||
-			     CPA_CY_KEY_TLS_OP_USER_DEFINED ==
-				 pKeyGenTlsOpData->tlsOp)) {
+				    pKeyGenTlsOpData->tlsOp ||
+				CPA_CY_KEY_TLS_OP_USER_DEFINED ==
+				    pKeyGenTlsOpData->tlsOp)) {
 				CpaCySymHashAlgorithm hashAlgorithm =
 				    (CpaCySymHashAlgorithm)hashAlgCipher;
 				/* secret = [s1 | s2 ]
@@ -1320,7 +1201,7 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 				 */
 				tlsPrefixLen =
 				    (pKeyGenTlsOpData->secret.dataLenInBytes +
-				     1) >>
+					1) >>
 				    1;
 				inputSecret.dataLenInBytes = tlsPrefixLen;
 				inputSecret.pData =
@@ -1339,9 +1220,8 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 				    &pCookie->hashKeyBuffer[0];
 				hashKeyOutput.dataLenInBytes =
 				    LAC_HASH_MD5_DIGEST_SIZE;
-				computeHashKey(&inputSecret,
-					       &hashKeyOutput,
-					       &hashAlgorithm);
+				computeHashKey(&inputSecret, &hashKeyOutput,
+				    &hashAlgorithm);
 
 				pNestedModeSetupData->pOuterPrefixData =
 				    &pCookie->hashKeyBuffer[0];
@@ -1353,7 +1233,7 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 				inputSecret.pData =
 				    pKeyGenTlsOpData->secret.pData +
 				    (pKeyGenTlsOpData->secret.dataLenInBytes -
-				     tlsPrefixLen);
+					tlsPrefixLen);
 
 				/* Compute SHA1 on the second half of the
 				 * pre_master_secret
@@ -1365,9 +1245,8 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 					 [LAC_HASH_MD5_DIGEST_SIZE];
 				hashKeyOutput.dataLenInBytes =
 				    LAC_HASH_SHA1_DIGEST_SIZE;
-				computeHashKey(&inputSecret,
-					       &hashKeyOutput,
-					       &hashAlgorithm);
+				computeHashKey(&inputSecret, &hashKeyOutput,
+				    &hashAlgorithm);
 
 				pNestedModeSetupData->pInnerPrefixData =
 				    &pCookie->hashKeyBuffer
@@ -1387,7 +1266,7 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 				 */
 				tlsPrefixLen =
 				    (pKeyGenTlsOpData->secret.dataLenInBytes +
-				     1) >>
+					1) >>
 				    1;
 				/* last byte of s1 will be first byte of s2 if
 				 * Length is odd
@@ -1395,7 +1274,7 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 				pNestedModeSetupData->pInnerPrefixData =
 				    pKeyGenTlsOpData->secret.pData +
 				    (pKeyGenTlsOpData->secret.dataLenInBytes -
-				     tlsPrefixLen);
+					tlsPrefixLen);
 
 				pNestedModeSetupData->pOuterPrefixData =
 				    pKeyGenTlsOpData->secret.pData;
@@ -1414,10 +1293,10 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 
 			uSecretLen = pKeyGenTlsOpData->secret.dataLenInBytes;
 
-			hashSetupData.hashAlgorithm =
-			    (CpaCySymHashAlgorithm)hashAlgorithm;
-			hashSetupData.digestResultLenInBytes =
-			    (Cpa32U)getDigestSizeFromHashAlgo(hashAlgorithm);
+			hashSetupData.hashAlgorithm = (CpaCySymHashAlgorithm)
+			    hashAlgorithm;
+			hashSetupData.digestResultLenInBytes = (Cpa32U)
+			    getDigestSizeFromHashAlgo(hashAlgorithm);
 			pNestedModeSetupData->outerHashAlgorithm =
 			    (CpaCySymHashAlgorithm)hashAlgorithm;
 			if (CPA_CY_KEY_TLS_OP_MASTER_SECRET_DERIVE ==
@@ -1458,8 +1337,8 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 				hashKeyOutput.dataLenInBytes =
 				    hashSetupData.digestResultLenInBytes;
 				computeHashKey(&pKeyGenTlsOpData->secret,
-					       &hashKeyOutput,
-					       &hashSetupData.hashAlgorithm);
+				    &hashKeyOutput,
+				    &hashSetupData.hashAlgorithm);
 
 				/* Outer prefix = secret , inner prefix = secret
 				 * secret < 64 bytes
@@ -1490,8 +1369,8 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 		}
 		/* TLS v1.3 */
 		else if ((ICP_QAT_FW_LA_CMD_HKDF_EXTRACT <= lacCmdId) &&
-			 (ICP_QAT_FW_LA_CMD_HKDF_EXTRACT_AND_EXPAND_LABEL >=
-			  lacCmdId)) {
+		    (ICP_QAT_FW_LA_CMD_HKDF_EXTRACT_AND_EXPAND_LABEL >=
+			lacCmdId)) {
 			CpaCyKeyGenHKDFOpData *pKeyGenTlsOpData =
 			    (CpaCyKeyGenHKDFOpData *)pKeyGenSslTlsOpData;
 			CpaCySymHashAlgorithm hashAlgorithm =
@@ -1542,14 +1421,11 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 		 * Note that following function doesn't look at inner/outer
 		 * prefix pointers in nested digest ctx
 		 */
-		LacSymQat_HashContentDescInit(
-		    &keyGenReqFtr,
-		    instanceHandle,
+		LacSymQat_HashContentDescInit(&keyGenReqFtr, instanceHandle,
 		    &hashSetupData,
 		    pCookie
 			->contentDesc, /* Pointer to base of hw setup block */
-		    LAC_SYM_KEY_NO_HASH_BLK_OFFSET_QW,
-		    ICP_QAT_FW_SLICE_DRAM_WR,
+		    LAC_SYM_KEY_NO_HASH_BLK_OFFSET_QW, ICP_QAT_FW_SLICE_DRAM_WR,
 		    qatHashMode,
 		    CPA_FALSE, /* Not using sym Constants Table in Shared SRAM
 				*/
@@ -1572,7 +1448,8 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 			 */
 			iterations =
 			    (pKeyGenSslOpData->generatedKeyLenInBytes +
-			     (LAC_SYM_QAT_KEY_SSL_BYTES_PER_ITERATION - 1)) >>
+				(LAC_SYM_QAT_KEY_SSL_BYTES_PER_ITERATION -
+				    1)) >>
 			    LAC_SYM_QAT_KEY_SSL_ITERATIONS_SHIFT;
 
 			if (CPA_CY_KEY_SSL_OP_USER_DEFINED ==
@@ -1595,26 +1472,23 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 				/* Calculate label length.
 				 * eg. 3 iterations is ABBCCC so length is 6
 				 */
-				labelLen =
-				    ((iterations * iterations) + iterations) >>
+				labelLen = ((iterations * iterations) +
+					       iterations) >>
 				    1;
-				labelPhysAddr =
-				    LAC_OS_VIRT_TO_PHYS_INTERNAL(pLabel);
+				labelPhysAddr = LAC_OS_VIRT_TO_PHYS_INTERNAL(
+				    pLabel);
 			}
 
-			LacSymQat_KeySslRequestPopulate(
-			    &keyGenReqHdr,
+			LacSymQat_KeySslRequestPopulate(&keyGenReqHdr,
 			    &keyGenReqMid,
-			    pKeyGenSslOpData->generatedKeyLenInBytes,
-			    labelLen,
+			    pKeyGenSslOpData->generatedKeyLenInBytes, labelLen,
 			    pKeyGenSslOpData->secret.dataLenInBytes,
 			    iterations);
 
 			LacSymQat_KeySslKeyMaterialInputPopulate(
 			    &(pService->generic_service_info),
 			    &(pCookie->u.sslKeyInput),
-			    pKeyGenSslOpData->seed.pData,
-			    labelPhysAddr,
+			    pKeyGenSslOpData->seed.pData, labelPhysAddr,
 			    pKeyGenSslOpData->secret.pData);
 
 			inputPhysAddr = LAC_MEM_CAST_PTR_TO_UINT64(
@@ -1622,7 +1496,7 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 		}
 		/* TLS v1.1, v1.2 */
 		else if (ICP_QAT_FW_LA_CMD_TLS_V1_1_KEY_DERIVE == lacCmdId ||
-			 ICP_QAT_FW_LA_CMD_TLS_V1_2_KEY_DERIVE == lacCmdId) {
+		    ICP_QAT_FW_LA_CMD_TLS_V1_2_KEY_DERIVE == lacCmdId) {
 			CpaCyKeyGenTlsOpData *pKeyGenTlsOpData =
 			    (CpaCyKeyGenTlsOpData *)pKeyGenSslTlsOpData;
 			lac_sym_qat_hash_state_buffer_info_t
@@ -1642,11 +1516,8 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 			hashStateBufferInfo.stateStorageSzQuadWords = 0;
 
 			LacSymQat_HashSetupReqParamsMetaData(&(keyGenReqFtr),
-							     instanceHandle,
-							     &(hashSetupData),
-							     hashStateBuffer,
-							     qatHashMode,
-							     CPA_FALSE);
+			    instanceHandle, &(hashSetupData), hashStateBuffer,
+			    qatHashMode, CPA_FALSE);
 
 			pHashReqParams = (icp_qat_la_auth_req_params_t *)&(
 			    keyGenReqFtr.serv_specif_rqpars);
@@ -1661,24 +1532,24 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 			pCacheDummyHdr = (Cpa8U *)&(keyGenReqHdr);
 			pCacheDummyMid = (Cpa8U *)&(keyGenReqMid);
 			pCacheDummyFtr = (Cpa8U *)&(keyGenReqFtr);
-			memcpy(pMsgDummy,
-			       pCacheDummyHdr,
-			       (LAC_LONG_WORD_IN_BYTES *
+			memcpy(pMsgDummy, pCacheDummyHdr,
+			    (LAC_LONG_WORD_IN_BYTES *
 				LAC_SIZE_OF_CACHE_HDR_IN_LW));
-			memcpy(pMsgDummy + (LAC_LONG_WORD_IN_BYTES *
-					    LAC_START_OF_CACHE_MID_IN_LW),
-			       pCacheDummyMid,
-			       (LAC_LONG_WORD_IN_BYTES *
+			memcpy(pMsgDummy +
+				(LAC_LONG_WORD_IN_BYTES *
+				    LAC_START_OF_CACHE_MID_IN_LW),
+			    pCacheDummyMid,
+			    (LAC_LONG_WORD_IN_BYTES *
 				LAC_SIZE_OF_CACHE_MID_IN_LW));
-			memcpy(pMsgDummy + (LAC_LONG_WORD_IN_BYTES *
-					    LAC_START_OF_CACHE_FTR_IN_LW),
-			       pCacheDummyFtr,
-			       (LAC_LONG_WORD_IN_BYTES *
+			memcpy(pMsgDummy +
+				(LAC_LONG_WORD_IN_BYTES *
+				    LAC_START_OF_CACHE_FTR_IN_LW),
+			    pCacheDummyFtr,
+			    (LAC_LONG_WORD_IN_BYTES *
 				LAC_SIZE_OF_CACHE_FTR_IN_LW));
 
 			LacSymQat_HashStatePrefixAadBufferPopulate(
-			    &hashStateBufferInfo,
-			    &keyGenReqFtr,
+			    &hashStateBufferInfo, &keyGenReqFtr,
 			    pNestedModeSetupData->pInnerPrefixData,
 			    pNestedModeSetupData->innerPrefixLenInBytes,
 			    pNestedModeSetupData->pOuterPrefixData,
@@ -1689,16 +1560,14 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 			 * hash state buffer size so all other fields are set to
 			 * 0
 			 */
-			LacSymQat_HashRequestParamsPopulate(
-			    &(keyGenReq),
+			LacSymQat_HashRequestParamsPopulate(&(keyGenReq),
 			    0, /* Auth offset */
 			    0, /* Auth length */
 			    &(pService->generic_service_info),
 			    &hashStateBufferInfo, /* Hash state prefix buffer */
 			    ICP_QAT_FW_LA_PARTIAL_NONE,
 			    0, /* Hash result size */
-			    CPA_FALSE,
-			    NULL,
+			    CPA_FALSE, NULL,
 			    CPA_CY_SYM_HASH_NONE, /* Hash algorithm */
 			    NULL);		  /* HKDF only */
 
@@ -1718,59 +1587,54 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 					status = CPA_STATUS_FAIL;
 				}
 			} else if (CPA_CY_KEY_TLS_OP_MASTER_SECRET_DERIVE ==
-				   pKeyGenTlsOpData->tlsOp) {
+			    pKeyGenTlsOpData->tlsOp) {
 				pLabel = pService->pTlsLabel->masterSecret;
 				labelLen =
 				    sizeof(
 					LAC_SYM_KEY_TLS_MASTER_SECRET_LABEL) -
 				    1;
-				labelPhysAddr =
-				    LAC_OS_VIRT_TO_PHYS_INTERNAL(pLabel);
+				labelPhysAddr = LAC_OS_VIRT_TO_PHYS_INTERNAL(
+				    pLabel);
 			} else if (CPA_CY_KEY_TLS_OP_KEY_MATERIAL_DERIVE ==
-				   pKeyGenTlsOpData->tlsOp) {
+			    pKeyGenTlsOpData->tlsOp) {
 				pLabel = pService->pTlsLabel->keyMaterial;
 				labelLen =
 				    sizeof(LAC_SYM_KEY_TLS_KEY_MATERIAL_LABEL) -
 				    1;
-				labelPhysAddr =
-				    LAC_OS_VIRT_TO_PHYS_INTERNAL(pLabel);
+				labelPhysAddr = LAC_OS_VIRT_TO_PHYS_INTERNAL(
+				    pLabel);
 			} else if (CPA_CY_KEY_TLS_OP_CLIENT_FINISHED_DERIVE ==
-				   pKeyGenTlsOpData->tlsOp) {
+			    pKeyGenTlsOpData->tlsOp) {
 				pLabel = pService->pTlsLabel->clientFinished;
 				labelLen =
 				    sizeof(LAC_SYM_KEY_TLS_CLIENT_FIN_LABEL) -
 				    1;
-				labelPhysAddr =
-				    LAC_OS_VIRT_TO_PHYS_INTERNAL(pLabel);
+				labelPhysAddr = LAC_OS_VIRT_TO_PHYS_INTERNAL(
+				    pLabel);
 			} else {
 				pLabel = pService->pTlsLabel->serverFinished;
 				labelLen =
 				    sizeof(LAC_SYM_KEY_TLS_SERVER_FIN_LABEL) -
 				    1;
-				labelPhysAddr =
-				    LAC_OS_VIRT_TO_PHYS_INTERNAL(pLabel);
+				labelPhysAddr = LAC_OS_VIRT_TO_PHYS_INTERNAL(
+				    pLabel);
 			}
-			LacSymQat_KeyTlsRequestPopulate(
-			    &keyGenReqMid,
-			    pKeyGenTlsOpData->generatedKeyLenInBytes,
-			    labelLen,
+			LacSymQat_KeyTlsRequestPopulate(&keyGenReqMid,
+			    pKeyGenTlsOpData->generatedKeyLenInBytes, labelLen,
 			    pKeyGenTlsOpData->secret.dataLenInBytes,
-			    pKeyGenTlsOpData->seed.dataLenInBytes,
-			    lacCmdId);
+			    pKeyGenTlsOpData->seed.dataLenInBytes, lacCmdId);
 
 			LacSymQat_KeyTlsKeyMaterialInputPopulate(
 			    &(pService->generic_service_info),
 			    &(pCookie->u.tlsKeyInput),
-			    pKeyGenTlsOpData->seed.pData,
-			    labelPhysAddr);
+			    pKeyGenTlsOpData->seed.pData, labelPhysAddr);
 
 			inputPhysAddr = LAC_MEM_CAST_PTR_TO_UINT64(
 			    pSymCookie->keyTlsKeyInputPhyAddr);
 		}
 		/* TLS v1.3 */
 		else if (ICP_QAT_FW_LA_CMD_HKDF_EXTRACT <= lacCmdId &&
-			 ICP_QAT_FW_LA_CMD_HKDF_EXTRACT_AND_EXPAND >=
-			     lacCmdId) {
+		    ICP_QAT_FW_LA_CMD_HKDF_EXTRACT_AND_EXPAND >= lacCmdId) {
 			CpaCyKeyGenHKDFOpData *pKeyGenTlsOpData =
 			    (CpaCyKeyGenHKDFOpData *)pKeyGenSslTlsOpData;
 			lac_sym_qat_hash_state_buffer_info_t
@@ -1787,11 +1651,8 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 			hashStateBufferInfo.stateStorageSzQuadWords = 0;
 
 			LacSymQat_HashSetupReqParamsMetaData(&(keyGenReqFtr),
-							     instanceHandle,
-							     &(hashSetupData),
-							     hashStateBuffer,
-							     qatHashMode,
-							     CPA_FALSE);
+			    instanceHandle, &(hashSetupData), hashStateBuffer,
+			    qatHashMode, CPA_FALSE);
 
 			pHashReqParams = (icp_qat_la_auth_req_params_t *)&(
 			    keyGenReqFtr.serv_specif_rqpars);
@@ -1806,24 +1667,24 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 			pCacheDummyHdr = (Cpa8U *)&(keyGenReqHdr);
 			pCacheDummyMid = (Cpa8U *)&(keyGenReqMid);
 			pCacheDummyFtr = (Cpa8U *)&(keyGenReqFtr);
-			memcpy(pMsgDummy,
-			       pCacheDummyHdr,
-			       (LAC_LONG_WORD_IN_BYTES *
+			memcpy(pMsgDummy, pCacheDummyHdr,
+			    (LAC_LONG_WORD_IN_BYTES *
 				LAC_SIZE_OF_CACHE_HDR_IN_LW));
-			memcpy(pMsgDummy + (LAC_LONG_WORD_IN_BYTES *
-					    LAC_START_OF_CACHE_MID_IN_LW),
-			       pCacheDummyMid,
-			       (LAC_LONG_WORD_IN_BYTES *
+			memcpy(pMsgDummy +
+				(LAC_LONG_WORD_IN_BYTES *
+				    LAC_START_OF_CACHE_MID_IN_LW),
+			    pCacheDummyMid,
+			    (LAC_LONG_WORD_IN_BYTES *
 				LAC_SIZE_OF_CACHE_MID_IN_LW));
-			memcpy(pMsgDummy + (LAC_LONG_WORD_IN_BYTES *
-					    LAC_START_OF_CACHE_FTR_IN_LW),
-			       pCacheDummyFtr,
-			       (LAC_LONG_WORD_IN_BYTES *
+			memcpy(pMsgDummy +
+				(LAC_LONG_WORD_IN_BYTES *
+				    LAC_START_OF_CACHE_FTR_IN_LW),
+			    pCacheDummyFtr,
+			    (LAC_LONG_WORD_IN_BYTES *
 				LAC_SIZE_OF_CACHE_FTR_IN_LW));
 
 			LacSymQat_HashStatePrefixAadBufferPopulate(
-			    &hashStateBufferInfo,
-			    &keyGenReqFtr,
+			    &hashStateBufferInfo, &keyGenReqFtr,
 			    pNestedModeSetupData->pInnerPrefixData,
 			    pNestedModeSetupData->innerPrefixLenInBytes,
 			    pNestedModeSetupData->pOuterPrefixData,
@@ -1834,35 +1695,30 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 			 * hash state buffer size so all other fields are set to
 			 * 0
 			 */
-			LacSymQat_HashRequestParamsPopulate(
-			    &(keyGenReq),
+			LacSymQat_HashRequestParamsPopulate(&(keyGenReq),
 			    0, /* Auth offset */
 			    0, /* Auth length */
 			    &(pService->generic_service_info),
 			    &hashStateBufferInfo, /* Hash state prefix buffer */
 			    ICP_QAT_FW_LA_PARTIAL_NONE,
 			    0, /* Hash result size */
-			    CPA_FALSE,
-			    NULL,
+			    CPA_FALSE, NULL,
 			    CPA_CY_SYM_HASH_NONE,      /* Hash algorithm */
 			    pKeyGenTlsOpData->secret); /* IKM or PRK */
 
-			LacSymQat_KeyTlsRequestPopulate(
-			    &keyGenReqMid,
+			LacSymQat_KeyTlsRequestPopulate(&keyGenReqMid,
 			    cipherSuiteHKDFHashSizes[hashAlgCipher]
 						    [LAC_KEY_HKDF_DIGESTS],
 			    /* For EXTRACT, EXPAND, FW expects info to be passed
 			       as label */
 			    pKeyGenTlsOpData->infoLen,
 			    pKeyGenTlsOpData->secretLen,
-			    pKeyGenTlsOpData->seedLen,
-			    lacCmdId);
+			    pKeyGenTlsOpData->seedLen, lacCmdId);
 
 			LacSymQat_KeyTlsHKDFKeyMaterialInputPopulate(
 			    &(pService->generic_service_info),
-			    &(pCookie->u.tlsHKDFKeyInput),
-			    pKeyGenTlsOpData,
-			    0,	 /* No subLabels used */
+			    &(pCookie->u.tlsHKDFKeyInput), pKeyGenTlsOpData,
+			    0,	       /* No subLabels used */
 			    lacCmdId); /* Pass op being performed */
 
 			inputPhysAddr = LAC_MEM_CAST_PTR_TO_UINT64(
@@ -1870,8 +1726,8 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 		}
 		/* TLS v1.3 LABEL */
 		else if (ICP_QAT_FW_LA_CMD_HKDF_EXPAND_LABEL == lacCmdId ||
-			 ICP_QAT_FW_LA_CMD_HKDF_EXTRACT_AND_EXPAND_LABEL ==
-			     lacCmdId) {
+		    ICP_QAT_FW_LA_CMD_HKDF_EXTRACT_AND_EXPAND_LABEL ==
+			lacCmdId) {
 			CpaCyKeyGenHKDFOpData *pKeyGenTlsOpData =
 			    (CpaCyKeyGenHKDFOpData *)pKeyGenSslTlsOpData;
 			Cpa64U subLabelsPhysAddr = 0;
@@ -1889,11 +1745,8 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 			hashStateBufferInfo.stateStorageSzQuadWords = 0;
 
 			LacSymQat_HashSetupReqParamsMetaData(&(keyGenReqFtr),
-							     instanceHandle,
-							     &(hashSetupData),
-							     hashStateBuffer,
-							     qatHashMode,
-							     CPA_FALSE);
+			    instanceHandle, &(hashSetupData), hashStateBuffer,
+			    qatHashMode, CPA_FALSE);
 
 			pHashReqParams = (icp_qat_la_auth_req_params_t *)&(
 			    keyGenReqFtr.serv_specif_rqpars);
@@ -1908,24 +1761,24 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 			pCacheDummyHdr = (Cpa8U *)&(keyGenReqHdr);
 			pCacheDummyMid = (Cpa8U *)&(keyGenReqMid);
 			pCacheDummyFtr = (Cpa8U *)&(keyGenReqFtr);
-			memcpy(pMsgDummy,
-			       pCacheDummyHdr,
-			       (LAC_LONG_WORD_IN_BYTES *
+			memcpy(pMsgDummy, pCacheDummyHdr,
+			    (LAC_LONG_WORD_IN_BYTES *
 				LAC_SIZE_OF_CACHE_HDR_IN_LW));
-			memcpy(pMsgDummy + (LAC_LONG_WORD_IN_BYTES *
-					    LAC_START_OF_CACHE_MID_IN_LW),
-			       pCacheDummyMid,
-			       (LAC_LONG_WORD_IN_BYTES *
+			memcpy(pMsgDummy +
+				(LAC_LONG_WORD_IN_BYTES *
+				    LAC_START_OF_CACHE_MID_IN_LW),
+			    pCacheDummyMid,
+			    (LAC_LONG_WORD_IN_BYTES *
 				LAC_SIZE_OF_CACHE_MID_IN_LW));
-			memcpy(pMsgDummy + (LAC_LONG_WORD_IN_BYTES *
-					    LAC_START_OF_CACHE_FTR_IN_LW),
-			       pCacheDummyFtr,
-			       (LAC_LONG_WORD_IN_BYTES *
+			memcpy(pMsgDummy +
+				(LAC_LONG_WORD_IN_BYTES *
+				    LAC_START_OF_CACHE_FTR_IN_LW),
+			    pCacheDummyFtr,
+			    (LAC_LONG_WORD_IN_BYTES *
 				LAC_SIZE_OF_CACHE_FTR_IN_LW));
 
 			LacSymQat_HashStatePrefixAadBufferPopulate(
-			    &hashStateBufferInfo,
-			    &keyGenReqFtr,
+			    &hashStateBufferInfo, &keyGenReqFtr,
 			    pNestedModeSetupData->pInnerPrefixData,
 			    pNestedModeSetupData->innerPrefixLenInBytes,
 			    pNestedModeSetupData->pOuterPrefixData,
@@ -1936,32 +1789,28 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 			 * hash state buffer size so all other fields are set to
 			 * 0
 			 */
-			LacSymQat_HashRequestParamsPopulate(
-			    &(keyGenReq),
+			LacSymQat_HashRequestParamsPopulate(&(keyGenReq),
 			    0, /* Auth offset */
 			    0, /* Auth length */
 			    &(pService->generic_service_info),
 			    &hashStateBufferInfo, /* Hash state prefix buffer */
 			    ICP_QAT_FW_LA_PARTIAL_NONE,
 			    0, /* Hash result size */
-			    CPA_FALSE,
-			    NULL,
+			    CPA_FALSE, NULL,
 			    CPA_CY_SYM_HASH_NONE,      /* Hash algorithm */
 			    pKeyGenTlsOpData->secret); /* IKM or PRK */
 
-			LacSymQat_KeyTlsRequestPopulate(
-			    &keyGenReqMid,
+			LacSymQat_KeyTlsRequestPopulate(&keyGenReqMid,
 			    cipherSuiteHKDFHashSizes[hashAlgCipher]
 						    [LAC_KEY_HKDF_DIGESTS],
 			    pKeyGenTlsOpData->numLabels, /* Number of Labels */
 			    pKeyGenTlsOpData->secretLen,
-			    pKeyGenTlsOpData->seedLen,
-			    lacCmdId);
+			    pKeyGenTlsOpData->seedLen, lacCmdId);
 
 			/* Get physical address of subLabels */
 			switch (hashAlgCipher) {
 			case CPA_CY_HKDF_TLS_AES_128_GCM_SHA256: /* Fall Through
-								    */
+								  */
 			case CPA_CY_HKDF_TLS_AES_128_CCM_SHA256:
 			case CPA_CY_HKDF_TLS_AES_128_CCM_8_SHA256:
 				subLabelsPhysAddr = pService->pTlsHKDFSubLabel
@@ -1982,8 +1831,7 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 
 			LacSymQat_KeyTlsHKDFKeyMaterialInputPopulate(
 			    &(pService->generic_service_info),
-			    &(pCookie->u.tlsHKDFKeyInput),
-			    pKeyGenTlsOpData,
+			    &(pCookie->u.tlsHKDFKeyInput), pKeyGenTlsOpData,
 			    subLabelsPhysAddr,
 			    lacCmdId); /* Pass op being performed */
 
@@ -1993,7 +1841,7 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 
 		outputPhysAddr = LAC_MEM_CAST_PTR_TO_UINT64(
 		    LAC_OS_VIRT_TO_PHYS_EXTERNAL(pService->generic_service_info,
-						 pKeyGenOutputData->pData));
+			pKeyGenOutputData->pData));
 
 		if (outputPhysAddr == 0) {
 			LAC_LOG_ERROR(
@@ -2017,23 +1865,22 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 		pCacheDummyMid = (Cpa8U *)&(keyGenReqMid);
 		pCacheDummyFtr = (Cpa8U *)&(keyGenReqFtr);
 
-		memcpy(pMsgDummy,
-		       pCacheDummyHdr,
-		       (LAC_LONG_WORD_IN_BYTES * LAC_SIZE_OF_CACHE_HDR_IN_LW));
-		memcpy(pMsgDummy + (LAC_LONG_WORD_IN_BYTES *
-				    LAC_START_OF_CACHE_MID_IN_LW),
-		       pCacheDummyMid,
-		       (LAC_LONG_WORD_IN_BYTES * LAC_SIZE_OF_CACHE_MID_IN_LW));
+		memcpy(pMsgDummy, pCacheDummyHdr,
+		    (LAC_LONG_WORD_IN_BYTES * LAC_SIZE_OF_CACHE_HDR_IN_LW));
+		memcpy(pMsgDummy +
+			(LAC_LONG_WORD_IN_BYTES * LAC_START_OF_CACHE_MID_IN_LW),
+		    pCacheDummyMid,
+		    (LAC_LONG_WORD_IN_BYTES * LAC_SIZE_OF_CACHE_MID_IN_LW));
 		memcpy(&lw26,
-		       pMsgDummy + (LAC_LONG_WORD_IN_BYTES *
-				    LAC_START_OF_CACHE_FTR_IN_LW),
-		       LAC_LONG_WORD_IN_BYTES);
-		memcpy(pMsgDummy + (LAC_LONG_WORD_IN_BYTES *
-				    LAC_START_OF_CACHE_FTR_IN_LW),
-		       pCacheDummyFtr,
-		       (LAC_LONG_WORD_IN_BYTES * LAC_SIZE_OF_CACHE_FTR_IN_LW));
-		tmp = (char *)(pMsgDummy + (LAC_LONG_WORD_IN_BYTES *
-					    LAC_START_OF_CACHE_FTR_IN_LW));
+		    pMsgDummy +
+			(LAC_LONG_WORD_IN_BYTES * LAC_START_OF_CACHE_FTR_IN_LW),
+		    LAC_LONG_WORD_IN_BYTES);
+		memcpy(pMsgDummy +
+			(LAC_LONG_WORD_IN_BYTES * LAC_START_OF_CACHE_FTR_IN_LW),
+		    pCacheDummyFtr,
+		    (LAC_LONG_WORD_IN_BYTES * LAC_SIZE_OF_CACHE_FTR_IN_LW));
+		tmp = (char *)(pMsgDummy +
+		    (LAC_LONG_WORD_IN_BYTES * LAC_START_OF_CACHE_FTR_IN_LW));
 
 		/* Copy LW26, or'd with what's already there, into the Msg, for
 		 * TLS */
@@ -2041,53 +1888,43 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
 			a = (unsigned char)*(tmp + n);
 			lw26[n] = lw26[n] | a;
 		}
-		memcpy(pMsgDummy + (LAC_LONG_WORD_IN_BYTES *
-				    LAC_START_OF_CACHE_FTR_IN_LW),
-		       &lw26,
-		       LAC_LONG_WORD_IN_BYTES);
+		memcpy(pMsgDummy +
+			(LAC_LONG_WORD_IN_BYTES * LAC_START_OF_CACHE_FTR_IN_LW),
+		    &lw26, LAC_LONG_WORD_IN_BYTES);
 
 		contentDescInfo.pData = pCookie->contentDesc;
 		contentDescInfo.hardwareSetupBlockPhys =
 		    LAC_MEM_CAST_PTR_TO_UINT64(
 			pSymCookie->keyContentDescPhyAddr);
-		contentDescInfo.hwBlkSzQuadWords =
-		    LAC_BYTES_TO_QUADWORDS(hashBlkSizeInBytes);
+		contentDescInfo.hwBlkSzQuadWords = LAC_BYTES_TO_QUADWORDS(
+		    hashBlkSizeInBytes);
 
 		/* Populate common request fields */
 		SalQatMsg_ContentDescHdrWrite((icp_qat_fw_comn_req_t *)&(
 						  keyGenReq),
-					      &(contentDescInfo));
+		    &(contentDescInfo));
 
 		SalQatMsg_CmnHdrWrite((icp_qat_fw_comn_req_t *)&keyGenReq,
-				      ICP_QAT_FW_COMN_REQ_CPM_FW_LA,
-				      lacCmdId,
-				      cmnRequestFlags,
-				      laCmdFlags);
+		    ICP_QAT_FW_COMN_REQ_CPM_FW_LA, lacCmdId, cmnRequestFlags,
+		    laCmdFlags);
 
 		SalQatMsg_CmnMidWrite((icp_qat_fw_la_bulk_req_t *)&(keyGenReq),
-				      pCookie,
-				      LAC_SYM_KEY_QAT_PTR_TYPE,
-				      inputPhysAddr,
-				      outputPhysAddr,
-				      0,
-				      0);
+		    pCookie, LAC_SYM_KEY_QAT_PTR_TYPE, inputPhysAddr,
+		    outputPhysAddr, 0, 0);
 
 		/* Send to QAT */
 		status = icp_adf_transPutMsg(pService->trans_handle_sym_tx,
-					     (void *)&(keyGenReq),
-					     LAC_QAT_SYM_REQ_SZ_LW);
+		    (void *)&(keyGenReq), LAC_QAT_SYM_REQ_SZ_LW);
 	}
 	if (CPA_STATUS_SUCCESS == status) {
 		/* Update stats */
-		LacKey_StatsInc(lacCmdId,
-				LAC_KEY_REQUESTS,
-				pCookie->instanceHandle);
+		LacKey_StatsInc(lacCmdId, LAC_KEY_REQUESTS,
+		    pCookie->instanceHandle);
 	} else {
 		/* Clean up cookie memory */
 		if (NULL != pCookie) {
-			LacKey_StatsInc(lacCmdId,
-					LAC_KEY_REQUEST_ERRORS,
-					pCookie->instanceHandle);
+			LacKey_StatsInc(lacCmdId, LAC_KEY_REQUEST_ERRORS,
+			    pCookie->instanceHandle);
 			Lac_MemPoolEntryFree(pCookie);
 		}
 	}
@@ -2112,10 +1949,8 @@ LacSymKey_KeyGenSslTls_GenCommon(CpaInstanceHandle instanceHandle,
  * @param[in] cmdId                      Keygen operation to perform.
  */
 static CpaStatus
-LacSymKey_CheckParamSslTls(const void *pKeyGenOpData,
-			   Cpa8U hashAlgCipher,
-			   const CpaFlatBuffer *pGeneratedKeyBuffer,
-			   icp_qat_fw_la_cmd_id_t cmdId)
+LacSymKey_CheckParamSslTls(const void *pKeyGenOpData, Cpa8U hashAlgCipher,
+    const CpaFlatBuffer *pGeneratedKeyBuffer, icp_qat_fw_la_cmd_id_t cmdId)
 {
 	/* Api max value */
 	Cpa32U maxSecretLen = 0;
@@ -2134,8 +1969,8 @@ LacSymKey_CheckParamSslTls(const void *pKeyGenOpData,
 	LAC_CHECK_NULL_PARAM(pGeneratedKeyBuffer->pData);
 
 	if (ICP_QAT_FW_LA_CMD_SSL3_KEY_DERIVE == cmdId) {
-		CpaCyKeyGenSslOpData *opData =
-		    (CpaCyKeyGenSslOpData *)pKeyGenOpData;
+		CpaCyKeyGenSslOpData *opData = (CpaCyKeyGenSslOpData *)
+		    pKeyGenOpData;
 
 		/* User info */
 		uSecretLen = opData->secret.dataLenInBytes;
@@ -2181,9 +2016,9 @@ LacSymKey_CheckParamSslTls(const void *pKeyGenOpData,
 	}
 	/* TLS v1.1 or TLS v.12 */
 	else if (ICP_QAT_FW_LA_CMD_TLS_V1_1_KEY_DERIVE == cmdId ||
-		 ICP_QAT_FW_LA_CMD_TLS_V1_2_KEY_DERIVE == cmdId) {
-		CpaCyKeyGenTlsOpData *opData =
-		    (CpaCyKeyGenTlsOpData *)pKeyGenOpData;
+	    ICP_QAT_FW_LA_CMD_TLS_V1_2_KEY_DERIVE == cmdId) {
+		CpaCyKeyGenTlsOpData *opData = (CpaCyKeyGenTlsOpData *)
+		    pKeyGenOpData;
 
 		/* User info */
 		uSecretLen = opData->secret.dataLenInBytes;
@@ -2200,8 +2035,8 @@ LacSymKey_CheckParamSslTls(const void *pKeyGenOpData,
 			 * represents
 			 * the max value tha firmware can handle.
 			 */
-			maxSecretLen =
-			    ICP_QAT_FW_LA_TLS_V1_1_SECRET_LEN_MAX * 4;
+			maxSecretLen = ICP_QAT_FW_LA_TLS_V1_1_SECRET_LEN_MAX *
+			    4;
 		} else {
 			/* Api max value */
 			/* ICP_QAT_FW_LA_TLS_V1_2_SECRET_LEN_MAX needs to be
@@ -2212,8 +2047,8 @@ LacSymKey_CheckParamSslTls(const void *pKeyGenOpData,
 			 * represents
 			 * the max value tha firmware can handle.
 			 */
-			maxSecretLen =
-			    ICP_QAT_FW_LA_TLS_V1_2_SECRET_LEN_MAX * 8;
+			maxSecretLen = ICP_QAT_FW_LA_TLS_V1_2_SECRET_LEN_MAX *
+			    8;
 
 			/* Check Hash algorithm */
 			if (0 == getDigestSizeFromHashAlgo(hashAlgCipher)) {
@@ -2232,7 +2067,7 @@ LacSymKey_CheckParamSslTls(const void *pKeyGenOpData,
 			LAC_INVALID_PARAM_LOG("opData->tlsOp");
 			return CPA_STATUS_INVALID_PARAM;
 		} else if ((Cpa32U)opData->tlsOp ==
-			   CPA_CY_KEY_TLS_OP_USER_DEFINED) {
+		    CPA_CY_KEY_TLS_OP_USER_DEFINED) {
 			LAC_CHECK_NULL_PARAM(opData->userLabel.pData);
 			/* Maximum label length for TLS Key Gen request */
 			if (opData->userLabel.dataLenInBytes >
@@ -2245,9 +2080,9 @@ LacSymKey_CheckParamSslTls(const void *pKeyGenOpData,
 
 		/* Maximum/only seed length for TLS Key Gen request */
 		if (((Cpa32U)opData->tlsOp !=
-		     CPA_CY_KEY_TLS_OP_MASTER_SECRET_DERIVE) &&
+			CPA_CY_KEY_TLS_OP_MASTER_SECRET_DERIVE) &&
 		    ((Cpa32U)opData->tlsOp !=
-		     CPA_CY_KEY_TLS_OP_KEY_MATERIAL_DERIVE)) {
+			CPA_CY_KEY_TLS_OP_KEY_MATERIAL_DERIVE)) {
 			if (uSeedLen > maxSeedLen) {
 				LAC_INVALID_PARAM_LOG("seed.dataLenInBytes");
 				return CPA_STATUS_INVALID_PARAM;
@@ -2267,9 +2102,9 @@ LacSymKey_CheckParamSslTls(const void *pKeyGenOpData,
 	}
 	/* TLS v1.3 */
 	else if (cmdId >= ICP_QAT_FW_LA_CMD_HKDF_EXTRACT &&
-		 cmdId <= ICP_QAT_FW_LA_CMD_HKDF_EXTRACT_AND_EXPAND_LABEL) {
-		CpaCyKeyGenHKDFOpData *HKDF_Data =
-		    (CpaCyKeyGenHKDFOpData *)pKeyGenOpData;
+	    cmdId <= ICP_QAT_FW_LA_CMD_HKDF_EXTRACT_AND_EXPAND_LABEL) {
+		CpaCyKeyGenHKDFOpData *HKDF_Data = (CpaCyKeyGenHKDFOpData *)
+		    pKeyGenOpData;
 		CpaCyKeyHKDFCipherSuite cipherSuite = hashAlgCipher;
 		CpaCySymHashAlgorithm hashAlgorithm =
 		    getHashAlgorithmFromCipherSuiteHKDF(cipherSuite);
@@ -2440,36 +2275,25 @@ LacSymKey_CheckParamSslTls(const void *pKeyGenOpData,
  */
 static CpaStatus
 LacSymKey_KeyGenSslTls(const CpaInstanceHandle instanceHandle_in,
-		       const CpaCyGenFlatBufCbFunc pKeyGenCb,
-		       void *pCallbackTag,
-		       const void *pKeyGenOpData,
-		       Cpa8U hashAlgorithm,
-		       CpaFlatBuffer *pGeneratedKeyBuffer,
-		       icp_qat_fw_la_cmd_id_t cmdId)
+    const CpaCyGenFlatBufCbFunc pKeyGenCb, void *pCallbackTag,
+    const void *pKeyGenOpData, Cpa8U hashAlgorithm,
+    CpaFlatBuffer *pGeneratedKeyBuffer, icp_qat_fw_la_cmd_id_t cmdId)
 {
 	CpaStatus status = CPA_STATUS_FAIL;
 	CpaInstanceHandle instanceHandle = LacKey_GetHandle(instanceHandle_in);
 
 	LAC_CHECK_INSTANCE_HANDLE(instanceHandle);
 	SAL_CHECK_INSTANCE_TYPE(instanceHandle,
-				(SAL_SERVICE_TYPE_CRYPTO |
-				 SAL_SERVICE_TYPE_CRYPTO_SYM));
+	    (SAL_SERVICE_TYPE_CRYPTO | SAL_SERVICE_TYPE_CRYPTO_SYM));
 	SAL_RUNNING_CHECK(instanceHandle);
 
-	status = LacSymKey_CheckParamSslTls(pKeyGenOpData,
-					    hashAlgorithm,
-					    pGeneratedKeyBuffer,
-					    cmdId);
+	status = LacSymKey_CheckParamSslTls(pKeyGenOpData, hashAlgorithm,
+	    pGeneratedKeyBuffer, cmdId);
 	if (CPA_STATUS_SUCCESS != status)
 		return status;
-	return LacSymKey_KeyGenSslTls_GenCommon(instanceHandle,
-						pKeyGenCb,
-						pCallbackTag,
-						cmdId,
-						LAC_CONST_PTR_CAST(
-						    pKeyGenOpData),
-						hashAlgorithm,
-						pGeneratedKeyBuffer);
+	return LacSymKey_KeyGenSslTls_GenCommon(instanceHandle, pKeyGenCb,
+	    pCallbackTag, cmdId, LAC_CONST_PTR_CAST(pKeyGenOpData),
+	    hashAlgorithm, pGeneratedKeyBuffer);
 }
 
 /**
@@ -2519,27 +2343,23 @@ LacSymKey_KeyGenSslTls(const CpaInstanceHandle instanceHandle_in,
  */
 CpaStatus
 cpaCyKeyGenSsl(const CpaInstanceHandle instanceHandle_in,
-	       const CpaCyGenFlatBufCbFunc pKeyGenCb,
-	       void *pCallbackTag,
-	       const CpaCyKeyGenSslOpData *pKeyGenSslOpData,
-	       CpaFlatBuffer *pGeneratedKeyBuffer)
+    const CpaCyGenFlatBufCbFunc pKeyGenCb, void *pCallbackTag,
+    const CpaCyKeyGenSslOpData *pKeyGenSslOpData,
+    CpaFlatBuffer *pGeneratedKeyBuffer)
 {
 	CpaInstanceHandle instanceHandle = NULL;
 
 	if (CPA_INSTANCE_HANDLE_SINGLE == instanceHandle_in) {
-		instanceHandle =
-		    Lac_GetFirstHandle(SAL_SERVICE_TYPE_CRYPTO_SYM);
+		instanceHandle = Lac_GetFirstHandle(
+		    SAL_SERVICE_TYPE_CRYPTO_SYM);
 	} else {
 		instanceHandle = instanceHandle_in;
 	}
 
-	return LacSymKey_KeyGenSslTls(instanceHandle,
-				      pKeyGenCb,
-				      pCallbackTag,
-				      LAC_CONST_PTR_CAST(pKeyGenSslOpData),
-				      CPA_CY_SYM_HASH_NONE, /* Hash algorithm */
-				      pGeneratedKeyBuffer,
-				      ICP_QAT_FW_LA_CMD_SSL3_KEY_DERIVE);
+	return LacSymKey_KeyGenSslTls(instanceHandle, pKeyGenCb, pCallbackTag,
+	    LAC_CONST_PTR_CAST(pKeyGenSslOpData),
+	    CPA_CY_SYM_HASH_NONE, /* Hash algorithm */
+	    pGeneratedKeyBuffer, ICP_QAT_FW_LA_CMD_SSL3_KEY_DERIVE);
 }
 
 /**
@@ -2589,28 +2409,23 @@ cpaCyKeyGenSsl(const CpaInstanceHandle instanceHandle_in,
  */
 CpaStatus
 cpaCyKeyGenTls(const CpaInstanceHandle instanceHandle_in,
-	       const CpaCyGenFlatBufCbFunc pKeyGenCb,
-	       void *pCallbackTag,
-	       const CpaCyKeyGenTlsOpData *pKeyGenTlsOpData,
-	       CpaFlatBuffer *pGeneratedKeyBuffer)
+    const CpaCyGenFlatBufCbFunc pKeyGenCb, void *pCallbackTag,
+    const CpaCyKeyGenTlsOpData *pKeyGenTlsOpData,
+    CpaFlatBuffer *pGeneratedKeyBuffer)
 {
 	CpaInstanceHandle instanceHandle = NULL;
 
-
 	if (CPA_INSTANCE_HANDLE_SINGLE == instanceHandle_in) {
-		instanceHandle =
-		    Lac_GetFirstHandle(SAL_SERVICE_TYPE_CRYPTO_SYM);
+		instanceHandle = Lac_GetFirstHandle(
+		    SAL_SERVICE_TYPE_CRYPTO_SYM);
 	} else {
 		instanceHandle = instanceHandle_in;
 	}
 
-	return LacSymKey_KeyGenSslTls(instanceHandle,
-				      pKeyGenCb,
-				      pCallbackTag,
-				      LAC_CONST_PTR_CAST(pKeyGenTlsOpData),
-				      CPA_CY_SYM_HASH_NONE, /* Hash algorithm */
-				      pGeneratedKeyBuffer,
-				      ICP_QAT_FW_LA_CMD_TLS_V1_1_KEY_DERIVE);
+	return LacSymKey_KeyGenSslTls(instanceHandle, pKeyGenCb, pCallbackTag,
+	    LAC_CONST_PTR_CAST(pKeyGenTlsOpData),
+	    CPA_CY_SYM_HASH_NONE, /* Hash algorithm */
+	    pGeneratedKeyBuffer, ICP_QAT_FW_LA_CMD_TLS_V1_1_KEY_DERIVE);
 }
 
 /**
@@ -2661,29 +2476,22 @@ cpaCyKeyGenTls(const CpaInstanceHandle instanceHandle_in,
  */
 CpaStatus
 cpaCyKeyGenTls2(const CpaInstanceHandle instanceHandle_in,
-		const CpaCyGenFlatBufCbFunc pKeyGenCb,
-		void *pCallbackTag,
-		const CpaCyKeyGenTlsOpData *pKeyGenTlsOpData,
-		CpaCySymHashAlgorithm hashAlgorithm,
-		CpaFlatBuffer *pGeneratedKeyBuffer)
+    const CpaCyGenFlatBufCbFunc pKeyGenCb, void *pCallbackTag,
+    const CpaCyKeyGenTlsOpData *pKeyGenTlsOpData,
+    CpaCySymHashAlgorithm hashAlgorithm, CpaFlatBuffer *pGeneratedKeyBuffer)
 {
 	CpaInstanceHandle instanceHandle = NULL;
 
-
 	if (CPA_INSTANCE_HANDLE_SINGLE == instanceHandle_in) {
-		instanceHandle =
-		    Lac_GetFirstHandle(SAL_SERVICE_TYPE_CRYPTO_SYM);
+		instanceHandle = Lac_GetFirstHandle(
+		    SAL_SERVICE_TYPE_CRYPTO_SYM);
 	} else {
 		instanceHandle = instanceHandle_in;
 	}
 
-	return LacSymKey_KeyGenSslTls(instanceHandle,
-				      pKeyGenCb,
-				      pCallbackTag,
-				      LAC_CONST_PTR_CAST(pKeyGenTlsOpData),
-				      hashAlgorithm,
-				      pGeneratedKeyBuffer,
-				      ICP_QAT_FW_LA_CMD_TLS_V1_2_KEY_DERIVE);
+	return LacSymKey_KeyGenSslTls(instanceHandle, pKeyGenCb, pCallbackTag,
+	    LAC_CONST_PTR_CAST(pKeyGenTlsOpData), hashAlgorithm,
+	    pGeneratedKeyBuffer, ICP_QAT_FW_LA_CMD_TLS_V1_2_KEY_DERIVE);
 }
 
 /**
@@ -2736,11 +2544,9 @@ cpaCyKeyGenTls2(const CpaInstanceHandle instanceHandle_in,
  */
 CpaStatus
 cpaCyKeyGenTls3(const CpaInstanceHandle instanceHandle_in,
-		const CpaCyGenFlatBufCbFunc pKeyGenCb,
-		void *pCallbackTag,
-		const CpaCyKeyGenHKDFOpData *pKeyGenTlsOpData,
-		CpaCyKeyHKDFCipherSuite cipherSuite,
-		CpaFlatBuffer *pGeneratedKeyBuffer)
+    const CpaCyGenFlatBufCbFunc pKeyGenCb, void *pCallbackTag,
+    const CpaCyKeyGenHKDFOpData *pKeyGenTlsOpData,
+    CpaCyKeyHKDFCipherSuite cipherSuite, CpaFlatBuffer *pGeneratedKeyBuffer)
 {
 
 	LAC_CHECK_NULL_PARAM(pKeyGenTlsOpData);
@@ -2756,15 +2562,10 @@ cpaCyKeyGenTls3(const CpaInstanceHandle instanceHandle_in,
 		return CPA_STATUS_INVALID_PARAM;
 	}
 
-
-	return LacSymKey_KeyGenSslTls(instanceHandle_in,
-				      pKeyGenCb,
-				      pCallbackTag,
-				      LAC_CONST_PTR_CAST(pKeyGenTlsOpData),
-				      cipherSuite,
-				      pGeneratedKeyBuffer,
-				      (icp_qat_fw_la_cmd_id_t)
-					  pKeyGenTlsOpData->hkdfKeyOp);
+	return LacSymKey_KeyGenSslTls(instanceHandle_in, pKeyGenCb,
+	    pCallbackTag, LAC_CONST_PTR_CAST(pKeyGenTlsOpData), cipherSuite,
+	    pGeneratedKeyBuffer,
+	    (icp_qat_fw_la_cmd_id_t)pKeyGenTlsOpData->hkdfKeyOp);
 }
 
 /*
@@ -2781,17 +2582,16 @@ LacSymKey_Init(CpaInstanceHandle instanceHandle_in)
 
 	pService = (sal_crypto_service_t *)instanceHandle;
 
-	pService->pLacKeyStats =
-	    LAC_OS_MALLOC(LAC_KEY_NUM_STATS * sizeof(QatUtilsAtomic));
+	pService->pLacKeyStats = LAC_OS_MALLOC(
+	    LAC_KEY_NUM_STATS * sizeof(QatUtilsAtomic));
 
 	if (NULL != pService->pLacKeyStats) {
 		LAC_OS_BZERO((void *)pService->pLacKeyStats,
-			     LAC_KEY_NUM_STATS * sizeof(QatUtilsAtomic));
+		    LAC_KEY_NUM_STATS * sizeof(QatUtilsAtomic));
 
 		status = LAC_OS_CAMALLOC(&pService->pSslLabel,
-					 ICP_QAT_FW_LA_SSL_LABEL_LEN_MAX,
-					 LAC_8BYTE_ALIGNMENT,
-					 pService->nodeAffinity);
+		    ICP_QAT_FW_LA_SSL_LABEL_LEN_MAX, LAC_8BYTE_ALIGNMENT,
+		    pService->nodeAffinity);
 	} else {
 		status = CPA_STATUS_RESOURCE;
 	}
@@ -2808,130 +2608,115 @@ LacSymKey_Init(CpaInstanceHandle instanceHandle_in)
 
 		/* Allocate memory for TLS labels */
 		status = LAC_OS_CAMALLOC(&pService->pTlsLabel,
-					 sizeof(lac_sym_key_tls_labels_t),
-					 LAC_8BYTE_ALIGNMENT,
-					 pService->nodeAffinity);
+		    sizeof(lac_sym_key_tls_labels_t), LAC_8BYTE_ALIGNMENT,
+		    pService->nodeAffinity);
 	}
 
 	if (CPA_STATUS_SUCCESS == status) {
 		/* Allocate memory for HKDF sub_labels */
-		status =
-		    LAC_OS_CAMALLOC(&pService->pTlsHKDFSubLabel,
-				    sizeof(lac_sym_key_tls_hkdf_sub_labels_t),
-				    LAC_8BYTE_ALIGNMENT,
-				    pService->nodeAffinity);
+		status = LAC_OS_CAMALLOC(&pService->pTlsHKDFSubLabel,
+		    sizeof(lac_sym_key_tls_hkdf_sub_labels_t),
+		    LAC_8BYTE_ALIGNMENT, pService->nodeAffinity);
 	}
 
 	if (CPA_STATUS_SUCCESS == status) {
 		LAC_OS_BZERO(pService->pTlsLabel,
-			     sizeof(lac_sym_key_tls_labels_t));
+		    sizeof(lac_sym_key_tls_labels_t));
 
 		/* Copy the TLS v1.2 labels into the dynamically allocated
 		 * structure */
 		memcpy(pService->pTlsLabel->masterSecret,
-		       LAC_SYM_KEY_TLS_MASTER_SECRET_LABEL,
-		       sizeof(LAC_SYM_KEY_TLS_MASTER_SECRET_LABEL) - 1);
+		    LAC_SYM_KEY_TLS_MASTER_SECRET_LABEL,
+		    sizeof(LAC_SYM_KEY_TLS_MASTER_SECRET_LABEL) - 1);
 
 		memcpy(pService->pTlsLabel->keyMaterial,
-		       LAC_SYM_KEY_TLS_KEY_MATERIAL_LABEL,
-		       sizeof(LAC_SYM_KEY_TLS_KEY_MATERIAL_LABEL) - 1);
+		    LAC_SYM_KEY_TLS_KEY_MATERIAL_LABEL,
+		    sizeof(LAC_SYM_KEY_TLS_KEY_MATERIAL_LABEL) - 1);
 
 		memcpy(pService->pTlsLabel->clientFinished,
-		       LAC_SYM_KEY_TLS_CLIENT_FIN_LABEL,
-		       sizeof(LAC_SYM_KEY_TLS_CLIENT_FIN_LABEL) - 1);
+		    LAC_SYM_KEY_TLS_CLIENT_FIN_LABEL,
+		    sizeof(LAC_SYM_KEY_TLS_CLIENT_FIN_LABEL) - 1);
 
 		memcpy(pService->pTlsLabel->serverFinished,
-		       LAC_SYM_KEY_TLS_SERVER_FIN_LABEL,
-		       sizeof(LAC_SYM_KEY_TLS_SERVER_FIN_LABEL) - 1);
+		    LAC_SYM_KEY_TLS_SERVER_FIN_LABEL,
+		    sizeof(LAC_SYM_KEY_TLS_SERVER_FIN_LABEL) - 1);
 
 		LAC_OS_BZERO(pService->pTlsHKDFSubLabel,
-			     sizeof(lac_sym_key_tls_hkdf_sub_labels_t));
+		    sizeof(lac_sym_key_tls_hkdf_sub_labels_t));
 
 		/* Copy the TLS v1.3 subLabels into the dynamically allocated
 		 * struct */
 		/* KEY SHA-256 */
-		memcpy(&pService->pTlsHKDFSubLabel->keySublabel256,
-		       &key256,
-		       HKDF_SUB_LABEL_KEY_LENGTH);
+		memcpy(&pService->pTlsHKDFSubLabel->keySublabel256, &key256,
+		    HKDF_SUB_LABEL_KEY_LENGTH);
 		pService->pTlsHKDFSubLabel->keySublabel256.labelLen =
 		    HKDF_SUB_LABEL_KEY_LENGTH;
 		pService->pTlsHKDFSubLabel->keySublabel256.sublabelFlag = 1
 		    << QAT_FW_HKDF_INNER_SUBLABEL_16_BYTE_OKM_BITPOS;
 		/* KEY SHA-384 */
-		memcpy(&pService->pTlsHKDFSubLabel->keySublabel384,
-		       &key384,
-		       HKDF_SUB_LABEL_KEY_LENGTH);
+		memcpy(&pService->pTlsHKDFSubLabel->keySublabel384, &key384,
+		    HKDF_SUB_LABEL_KEY_LENGTH);
 		pService->pTlsHKDFSubLabel->keySublabel384.labelLen =
 		    HKDF_SUB_LABEL_KEY_LENGTH;
 		pService->pTlsHKDFSubLabel->keySublabel384.sublabelFlag = 1
 		    << QAT_FW_HKDF_INNER_SUBLABEL_32_BYTE_OKM_BITPOS;
 		/* KEY CHACHAPOLY */
 		memcpy(&pService->pTlsHKDFSubLabel->keySublabelChaChaPoly,
-		       &keyChaChaPoly,
-		       HKDF_SUB_LABEL_KEY_LENGTH);
+		    &keyChaChaPoly, HKDF_SUB_LABEL_KEY_LENGTH);
 		pService->pTlsHKDFSubLabel->keySublabelChaChaPoly.labelLen =
 		    HKDF_SUB_LABEL_KEY_LENGTH;
 		pService->pTlsHKDFSubLabel->keySublabelChaChaPoly.sublabelFlag =
 		    1 << QAT_FW_HKDF_INNER_SUBLABEL_32_BYTE_OKM_BITPOS;
 		/* IV SHA-256 */
-		memcpy(&pService->pTlsHKDFSubLabel->ivSublabel256,
-		       &iv256,
-		       HKDF_SUB_LABEL_IV_LENGTH);
+		memcpy(&pService->pTlsHKDFSubLabel->ivSublabel256, &iv256,
+		    HKDF_SUB_LABEL_IV_LENGTH);
 		pService->pTlsHKDFSubLabel->ivSublabel256.labelLen =
 		    HKDF_SUB_LABEL_IV_LENGTH;
 		pService->pTlsHKDFSubLabel->ivSublabel256.sublabelFlag = 1
 		    << QAT_FW_HKDF_INNER_SUBLABEL_12_BYTE_OKM_BITPOS;
 		/* IV SHA-384 */
-		memcpy(&pService->pTlsHKDFSubLabel->ivSublabel384,
-		       &iv384,
-		       HKDF_SUB_LABEL_IV_LENGTH);
+		memcpy(&pService->pTlsHKDFSubLabel->ivSublabel384, &iv384,
+		    HKDF_SUB_LABEL_IV_LENGTH);
 		pService->pTlsHKDFSubLabel->ivSublabel384.labelLen =
 		    HKDF_SUB_LABEL_IV_LENGTH;
 		pService->pTlsHKDFSubLabel->ivSublabel384.sublabelFlag = 1
 		    << QAT_FW_HKDF_INNER_SUBLABEL_12_BYTE_OKM_BITPOS;
 		/* IV CHACHAPOLY */
 		memcpy(&pService->pTlsHKDFSubLabel->ivSublabelChaChaPoly,
-		       &iv256,
-		       HKDF_SUB_LABEL_IV_LENGTH);
+		    &iv256, HKDF_SUB_LABEL_IV_LENGTH);
 		pService->pTlsHKDFSubLabel->ivSublabelChaChaPoly.labelLen =
 		    HKDF_SUB_LABEL_IV_LENGTH;
 		pService->pTlsHKDFSubLabel->ivSublabelChaChaPoly.sublabelFlag =
 		    1 << QAT_FW_HKDF_INNER_SUBLABEL_12_BYTE_OKM_BITPOS;
 		/* RESUMPTION SHA-256 */
 		memcpy(&pService->pTlsHKDFSubLabel->resumptionSublabel256,
-		       &resumption256,
-		       HKDF_SUB_LABEL_RESUMPTION_LENGTH);
+		    &resumption256, HKDF_SUB_LABEL_RESUMPTION_LENGTH);
 		pService->pTlsHKDFSubLabel->resumptionSublabel256.labelLen =
 		    HKDF_SUB_LABEL_RESUMPTION_LENGTH;
 		/* RESUMPTION SHA-384 */
 		memcpy(&pService->pTlsHKDFSubLabel->resumptionSublabel384,
-		       &resumption384,
-		       HKDF_SUB_LABEL_RESUMPTION_LENGTH);
+		    &resumption384, HKDF_SUB_LABEL_RESUMPTION_LENGTH);
 		pService->pTlsHKDFSubLabel->resumptionSublabel384.labelLen =
 		    HKDF_SUB_LABEL_RESUMPTION_LENGTH;
 		/* RESUMPTION CHACHAPOLY */
 		memcpy(
 		    &pService->pTlsHKDFSubLabel->resumptionSublabelChaChaPoly,
-		    &resumption256,
-		    HKDF_SUB_LABEL_RESUMPTION_LENGTH);
+		    &resumption256, HKDF_SUB_LABEL_RESUMPTION_LENGTH);
 		pService->pTlsHKDFSubLabel->resumptionSublabelChaChaPoly
 		    .labelLen = HKDF_SUB_LABEL_RESUMPTION_LENGTH;
 		/* FINISHED SHA-256 */
 		memcpy(&pService->pTlsHKDFSubLabel->finishedSublabel256,
-		       &finished256,
-		       HKDF_SUB_LABEL_FINISHED_LENGTH);
+		    &finished256, HKDF_SUB_LABEL_FINISHED_LENGTH);
 		pService->pTlsHKDFSubLabel->finishedSublabel256.labelLen =
 		    HKDF_SUB_LABEL_FINISHED_LENGTH;
 		/* FINISHED SHA-384 */
 		memcpy(&pService->pTlsHKDFSubLabel->finishedSublabel384,
-		       &finished384,
-		       HKDF_SUB_LABEL_FINISHED_LENGTH);
+		    &finished384, HKDF_SUB_LABEL_FINISHED_LENGTH);
 		pService->pTlsHKDFSubLabel->finishedSublabel384.labelLen =
 		    HKDF_SUB_LABEL_FINISHED_LENGTH;
 		/* FINISHED CHACHAPOLY */
 		memcpy(&pService->pTlsHKDFSubLabel->finishedSublabelChaChaPoly,
-		       &finished256,
-		       HKDF_SUB_LABEL_FINISHED_LENGTH);
+		    &finished256, HKDF_SUB_LABEL_FINISHED_LENGTH);
 		pService->pTlsHKDFSubLabel->finishedSublabelChaChaPoly
 		    .labelLen = HKDF_SUB_LABEL_FINISHED_LENGTH;
 
@@ -2948,7 +2733,7 @@ LacSymKey_Init(CpaInstanceHandle instanceHandle_in)
 
 		/* Register request handlers */
 		LacSymQat_RespHandlerRegister(ICP_QAT_FW_LA_CMD_SSL3_KEY_DERIVE,
-					      LacSymKey_SslTlsHandleResponse);
+		    LacSymKey_SslTlsHandleResponse);
 
 		LacSymQat_RespHandlerRegister(
 		    ICP_QAT_FW_LA_CMD_TLS_V1_1_KEY_DERIVE,
@@ -2959,10 +2744,10 @@ LacSymKey_Init(CpaInstanceHandle instanceHandle_in)
 		    LacSymKey_SslTlsHandleResponse);
 
 		LacSymQat_RespHandlerRegister(ICP_QAT_FW_LA_CMD_HKDF_EXTRACT,
-					      LacSymKey_SslTlsHandleResponse);
+		    LacSymKey_SslTlsHandleResponse);
 
 		LacSymQat_RespHandlerRegister(ICP_QAT_FW_LA_CMD_HKDF_EXPAND,
-					      LacSymKey_SslTlsHandleResponse);
+		    LacSymKey_SslTlsHandleResponse);
 
 		LacSymQat_RespHandlerRegister(
 		    ICP_QAT_FW_LA_CMD_HKDF_EXTRACT_AND_EXPAND,
@@ -2977,7 +2762,7 @@ LacSymKey_Init(CpaInstanceHandle instanceHandle_in)
 		    LacSymKey_SslTlsHandleResponse);
 
 		LacSymQat_RespHandlerRegister(ICP_QAT_FW_LA_CMD_MGF1,
-					      LacSymKey_MgfHandleResponse);
+		    LacSymKey_MgfHandleResponse);
 	}
 
 	if (CPA_STATUS_SUCCESS != status) {

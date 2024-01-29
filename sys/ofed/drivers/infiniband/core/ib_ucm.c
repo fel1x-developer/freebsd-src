@@ -34,35 +34,34 @@
  */
 
 #include <sys/cdefs.h>
-#include <linux/completion.h>
-#include <linux/fs.h>
-#include <linux/module.h>
-#include <linux/device.h>
-#include <linux/err.h>
-#include <linux/poll.h>
-#include <linux/sched.h>
-#include <linux/file.h>
-#include <linux/cdev.h>
-#include <linux/idr.h>
-#include <linux/mutex.h>
-#include <linux/slab.h>
 
 #include <asm/uaccess.h>
-
+#include <linux/cdev.h>
+#include <linux/completion.h>
+#include <linux/device.h>
+#include <linux/err.h>
+#include <linux/file.h>
+#include <linux/fs.h>
+#include <linux/idr.h>
+#include <linux/module.h>
+#include <linux/mutex.h>
+#include <linux/poll.h>
+#include <linux/sched.h>
+#include <linux/slab.h>
 #include <rdma/ib.h>
 #include <rdma/ib_cm.h>
-#include <rdma/ib_user_cm.h>
 #include <rdma/ib_marshall.h>
+#include <rdma/ib_user_cm.h>
 
 MODULE_AUTHOR("Libor Michalek");
 MODULE_DESCRIPTION("InfiniBand userspace Connection Manager access");
 MODULE_LICENSE("Dual BSD/GPL");
 
 struct ib_ucm_device {
-	int			devnum;
-	struct cdev		cdev;
-	struct device		dev;
-	struct ib_device	*ib_dev;
+	int devnum;
+	struct cdev cdev;
+	struct device dev;
+	struct ib_device *ib_dev;
 };
 
 struct ib_ucm_file {
@@ -70,23 +69,23 @@ struct ib_ucm_file {
 	struct file *filp;
 	struct ib_ucm_device *device;
 
-	struct list_head  ctxs;
-	struct list_head  events;
+	struct list_head ctxs;
+	struct list_head events;
 	wait_queue_head_t poll_wait;
 };
 
 struct ib_ucm_context {
-	int                 id;
-	struct completion   comp;
-	atomic_t            ref;
-	int		    events_reported;
+	int id;
+	struct completion comp;
+	atomic_t ref;
+	int events_reported;
 
 	struct ib_ucm_file *file;
-	struct ib_cm_id    *cm_id;
-	__u64		   uid;
+	struct ib_cm_id *cm_id;
+	__u64 uid;
 
-	struct list_head    events;    /* list of pending events. */
-	struct list_head    file_list; /* member in file ctx list */
+	struct list_head events;    /* list of pending events. */
+	struct list_head file_list; /* member in file ctx list */
 };
 
 struct ib_ucm_event {
@@ -102,28 +101,23 @@ struct ib_ucm_event {
 	int info_len;
 };
 
-enum {
-	IB_UCM_MAJOR = 231,
-	IB_UCM_BASE_MINOR = 224,
-	IB_UCM_MAX_DEVICES = 32
-};
+enum { IB_UCM_MAJOR = 231, IB_UCM_BASE_MINOR = 224, IB_UCM_MAX_DEVICES = 32 };
 
 #define IB_UCM_BASE_DEV MKDEV(IB_UCM_MAJOR, IB_UCM_BASE_MINOR)
 
 static void ib_ucm_add_one(struct ib_device *device);
 static void ib_ucm_remove_one(struct ib_device *device, void *client_data);
 
-static struct ib_client ucm_client = {
-	.name   = "ucm",
-	.add    = ib_ucm_add_one,
-	.remove = ib_ucm_remove_one
-};
+static struct ib_client ucm_client = { .name = "ucm",
+	.add = ib_ucm_add_one,
+	.remove = ib_ucm_remove_one };
 
 static DEFINE_MUTEX(ctx_id_mutex);
 static DEFINE_IDR(ctx_id_table);
 static DECLARE_BITMAP(dev_map, IB_UCM_MAX_DEVICES);
 
-static struct ib_ucm_context *ib_ucm_ctx_get(struct ib_ucm_file *file, int id)
+static struct ib_ucm_context *
+ib_ucm_ctx_get(struct ib_ucm_file *file, int id)
 {
 	struct ib_ucm_context *ctx;
 
@@ -140,18 +134,21 @@ static struct ib_ucm_context *ib_ucm_ctx_get(struct ib_ucm_file *file, int id)
 	return ctx;
 }
 
-static void ib_ucm_ctx_put(struct ib_ucm_context *ctx)
+static void
+ib_ucm_ctx_put(struct ib_ucm_context *ctx)
 {
 	if (atomic_dec_and_test(&ctx->ref))
 		complete(&ctx->comp);
 }
 
-static inline int ib_ucm_new_cm_id(int event)
+static inline int
+ib_ucm_new_cm_id(int event)
 {
 	return event == IB_CM_REQ_RECEIVED || event == IB_CM_SIDR_REQ_RECEIVED;
 }
 
-static void ib_ucm_cleanup_events(struct ib_ucm_context *ctx)
+static void
+ib_ucm_cleanup_events(struct ib_ucm_context *ctx)
 {
 	struct ib_ucm_event *uevent;
 
@@ -159,8 +156,8 @@ static void ib_ucm_cleanup_events(struct ib_ucm_context *ctx)
 	list_del(&ctx->file_list);
 	while (!list_empty(&ctx->events)) {
 
-		uevent = list_entry(ctx->events.next,
-				    struct ib_ucm_event, ctx_list);
+		uevent = list_entry(ctx->events.next, struct ib_ucm_event,
+		    ctx_list);
 		list_del(&uevent->file_list);
 		list_del(&uevent->ctx_list);
 		mutex_unlock(&ctx->file->file_mutex);
@@ -175,7 +172,8 @@ static void ib_ucm_cleanup_events(struct ib_ucm_context *ctx)
 	mutex_unlock(&ctx->file->file_mutex);
 }
 
-static struct ib_ucm_context *ib_ucm_ctx_alloc(struct ib_ucm_file *file)
+static struct ib_ucm_context *
+ib_ucm_ctx_alloc(struct ib_ucm_file *file)
 {
 	struct ib_ucm_context *ctx;
 
@@ -202,71 +200,75 @@ error:
 	return NULL;
 }
 
-static void ib_ucm_event_req_get(struct ib_ucm_req_event_resp *ureq,
-				 struct ib_cm_req_event_param *kreq)
+static void
+ib_ucm_event_req_get(struct ib_ucm_req_event_resp *ureq,
+    struct ib_cm_req_event_param *kreq)
 {
-	ureq->remote_ca_guid             = kreq->remote_ca_guid;
-	ureq->remote_qkey                = kreq->remote_qkey;
-	ureq->remote_qpn                 = kreq->remote_qpn;
-	ureq->qp_type                    = kreq->qp_type;
-	ureq->starting_psn               = kreq->starting_psn;
-	ureq->responder_resources        = kreq->responder_resources;
-	ureq->initiator_depth            = kreq->initiator_depth;
-	ureq->local_cm_response_timeout  = kreq->local_cm_response_timeout;
-	ureq->flow_control               = kreq->flow_control;
+	ureq->remote_ca_guid = kreq->remote_ca_guid;
+	ureq->remote_qkey = kreq->remote_qkey;
+	ureq->remote_qpn = kreq->remote_qpn;
+	ureq->qp_type = kreq->qp_type;
+	ureq->starting_psn = kreq->starting_psn;
+	ureq->responder_resources = kreq->responder_resources;
+	ureq->initiator_depth = kreq->initiator_depth;
+	ureq->local_cm_response_timeout = kreq->local_cm_response_timeout;
+	ureq->flow_control = kreq->flow_control;
 	ureq->remote_cm_response_timeout = kreq->remote_cm_response_timeout;
-	ureq->retry_count                = kreq->retry_count;
-	ureq->rnr_retry_count            = kreq->rnr_retry_count;
-	ureq->srq                        = kreq->srq;
-	ureq->port			 = kreq->port;
+	ureq->retry_count = kreq->retry_count;
+	ureq->rnr_retry_count = kreq->rnr_retry_count;
+	ureq->srq = kreq->srq;
+	ureq->port = kreq->port;
 
 	ib_copy_path_rec_to_user(&ureq->primary_path, kreq->primary_path);
 	if (kreq->alternate_path)
 		ib_copy_path_rec_to_user(&ureq->alternate_path,
-					 kreq->alternate_path);
+		    kreq->alternate_path);
 }
 
-static void ib_ucm_event_rep_get(struct ib_ucm_rep_event_resp *urep,
-				 struct ib_cm_rep_event_param *krep)
+static void
+ib_ucm_event_rep_get(struct ib_ucm_rep_event_resp *urep,
+    struct ib_cm_rep_event_param *krep)
 {
-	urep->remote_ca_guid      = krep->remote_ca_guid;
-	urep->remote_qkey         = krep->remote_qkey;
-	urep->remote_qpn          = krep->remote_qpn;
-	urep->starting_psn        = krep->starting_psn;
+	urep->remote_ca_guid = krep->remote_ca_guid;
+	urep->remote_qkey = krep->remote_qkey;
+	urep->remote_qpn = krep->remote_qpn;
+	urep->starting_psn = krep->starting_psn;
 	urep->responder_resources = krep->responder_resources;
-	urep->initiator_depth     = krep->initiator_depth;
-	urep->target_ack_delay    = krep->target_ack_delay;
-	urep->failover_accepted   = krep->failover_accepted;
-	urep->flow_control        = krep->flow_control;
-	urep->rnr_retry_count     = krep->rnr_retry_count;
-	urep->srq                 = krep->srq;
+	urep->initiator_depth = krep->initiator_depth;
+	urep->target_ack_delay = krep->target_ack_delay;
+	urep->failover_accepted = krep->failover_accepted;
+	urep->flow_control = krep->flow_control;
+	urep->rnr_retry_count = krep->rnr_retry_count;
+	urep->srq = krep->srq;
 }
 
-static void ib_ucm_event_sidr_rep_get(struct ib_ucm_sidr_rep_event_resp *urep,
-				      struct ib_cm_sidr_rep_event_param *krep)
+static void
+ib_ucm_event_sidr_rep_get(struct ib_ucm_sidr_rep_event_resp *urep,
+    struct ib_cm_sidr_rep_event_param *krep)
 {
 	urep->status = krep->status;
-	urep->qkey   = krep->qkey;
-	urep->qpn    = krep->qpn;
+	urep->qkey = krep->qkey;
+	urep->qpn = krep->qpn;
 };
 
-static int ib_ucm_event_process(struct ib_cm_event *evt,
-				struct ib_ucm_event *uvt)
+static int
+ib_ucm_event_process(struct ib_cm_event *evt, struct ib_ucm_event *uvt)
 {
 	void *info = NULL;
 
 	switch (evt->event) {
 	case IB_CM_REQ_RECEIVED:
 		ib_ucm_event_req_get(&uvt->resp.u.req_resp,
-				     &evt->param.req_rcvd);
-		uvt->data_len      = IB_CM_REQ_PRIVATE_DATA_SIZE;
-		uvt->resp.present  = IB_UCM_PRES_PRIMARY;
+		    &evt->param.req_rcvd);
+		uvt->data_len = IB_CM_REQ_PRIVATE_DATA_SIZE;
+		uvt->resp.present = IB_UCM_PRES_PRIMARY;
 		uvt->resp.present |= (evt->param.req_rcvd.alternate_path ?
-				      IB_UCM_PRES_ALTERNATE : 0);
+			IB_UCM_PRES_ALTERNATE :
+			0);
 		break;
 	case IB_CM_REP_RECEIVED:
 		ib_ucm_event_rep_get(&uvt->resp.u.rep_resp,
-				     &evt->param.rep_rcvd);
+		    &evt->param.rep_rcvd);
 		uvt->data_len = IB_CM_REP_PRIVATE_DATA_SIZE;
 		break;
 	case IB_CM_RTU_RECEIVED:
@@ -283,18 +285,18 @@ static int ib_ucm_event_process(struct ib_cm_event *evt,
 		break;
 	case IB_CM_MRA_RECEIVED:
 		uvt->resp.u.mra_resp.timeout =
-					evt->param.mra_rcvd.service_timeout;
+		    evt->param.mra_rcvd.service_timeout;
 		uvt->data_len = IB_CM_MRA_PRIVATE_DATA_SIZE;
 		break;
 	case IB_CM_REJ_RECEIVED:
 		uvt->resp.u.rej_resp.reason = evt->param.rej_rcvd.reason;
 		uvt->data_len = IB_CM_REJ_PRIVATE_DATA_SIZE;
 		uvt->info_len = evt->param.rej_rcvd.ari_length;
-		info	      = evt->param.rej_rcvd.ari;
+		info = evt->param.rej_rcvd.ari;
 		break;
 	case IB_CM_LAP_RECEIVED:
 		ib_copy_path_rec_to_user(&uvt->resp.u.lap_resp.path,
-					 evt->param.lap_rcvd.alternate_path);
+		    evt->param.lap_rcvd.alternate_path);
 		uvt->data_len = IB_CM_LAP_PRIVATE_DATA_SIZE;
 		uvt->resp.present = IB_UCM_PRES_ALTERNATE;
 		break;
@@ -302,21 +304,19 @@ static int ib_ucm_event_process(struct ib_cm_event *evt,
 		uvt->resp.u.apr_resp.status = evt->param.apr_rcvd.ap_status;
 		uvt->data_len = IB_CM_APR_PRIVATE_DATA_SIZE;
 		uvt->info_len = evt->param.apr_rcvd.info_len;
-		info	      = evt->param.apr_rcvd.apr_info;
+		info = evt->param.apr_rcvd.apr_info;
 		break;
 	case IB_CM_SIDR_REQ_RECEIVED:
-		uvt->resp.u.sidr_req_resp.pkey =
-					evt->param.sidr_req_rcvd.pkey;
-		uvt->resp.u.sidr_req_resp.port =
-					evt->param.sidr_req_rcvd.port;
+		uvt->resp.u.sidr_req_resp.pkey = evt->param.sidr_req_rcvd.pkey;
+		uvt->resp.u.sidr_req_resp.port = evt->param.sidr_req_rcvd.port;
 		uvt->data_len = IB_CM_SIDR_REQ_PRIVATE_DATA_SIZE;
 		break;
 	case IB_CM_SIDR_REP_RECEIVED:
 		ib_ucm_event_sidr_rep_get(&uvt->resp.u.sidr_rep_resp,
-					  &evt->param.sidr_rep_rcvd);
+		    &evt->param.sidr_rep_rcvd);
 		uvt->data_len = IB_CM_SIDR_REP_PRIVATE_DATA_SIZE;
 		uvt->info_len = evt->param.sidr_rep_rcvd.info_len;
-		info	      = evt->param.sidr_rep_rcvd.info;
+		info = evt->param.sidr_rep_rcvd.info;
 		break;
 	default:
 		uvt->resp.u.send_status = evt->param.send_status;
@@ -324,7 +324,8 @@ static int ib_ucm_event_process(struct ib_cm_event *evt,
 	}
 
 	if (uvt->data_len) {
-		uvt->data = kmemdup(evt->private_data, uvt->data_len, GFP_KERNEL);
+		uvt->data = kmemdup(evt->private_data, uvt->data_len,
+		    GFP_KERNEL);
 		if (!uvt->data)
 			goto err1;
 
@@ -346,8 +347,8 @@ err1:
 	return -ENOMEM;
 }
 
-static int ib_ucm_event_handler(struct ib_cm_id *cm_id,
-				struct ib_cm_event *event)
+static int
+ib_ucm_event_handler(struct ib_cm_id *cm_id, struct ib_cm_event *event)
 {
 	struct ib_ucm_event *uevent;
 	struct ib_ucm_context *ctx;
@@ -383,9 +384,9 @@ err1:
 	return ib_ucm_new_cm_id(event->event);
 }
 
-static ssize_t ib_ucm_event(struct ib_ucm_file *file,
-			    const char __user *inbuf,
-			    int in_len, int out_len)
+static ssize_t
+ib_ucm_event(struct ib_ucm_file *file, const char __user *inbuf, int in_len,
+    int out_len)
 {
 	struct ib_ucm_context *ctx;
 	struct ib_ucm_event_get cmd;
@@ -406,7 +407,7 @@ static ssize_t ib_ucm_event(struct ib_ucm_file *file,
 			return -EAGAIN;
 
 		if (wait_event_interruptible(file->poll_wait,
-					     !list_empty(&file->events)))
+			!list_empty(&file->events)))
 			return -ERESTARTSYS;
 
 		mutex_lock(&file->file_mutex);
@@ -427,7 +428,7 @@ static ssize_t ib_ucm_event(struct ib_ucm_file *file,
 	}
 
 	if (copy_to_user((void __user *)(unsigned long)cmd.response,
-			 &uevent->resp, sizeof(uevent->resp))) {
+		&uevent->resp, sizeof(uevent->resp))) {
 		result = -EFAULT;
 		goto done;
 	}
@@ -438,7 +439,7 @@ static ssize_t ib_ucm_event(struct ib_ucm_file *file,
 			goto done;
 		}
 		if (copy_to_user((void __user *)(unsigned long)cmd.data,
-				 uevent->data, uevent->data_len)) {
+			uevent->data, uevent->data_len)) {
 			result = -EFAULT;
 			goto done;
 		}
@@ -450,7 +451,7 @@ static ssize_t ib_ucm_event(struct ib_ucm_file *file,
 			goto done;
 		}
 		if (copy_to_user((void __user *)(unsigned long)cmd.info,
-				 uevent->info, uevent->info_len)) {
+			uevent->info, uevent->info_len)) {
 			result = -EFAULT;
 			goto done;
 		}
@@ -468,9 +469,9 @@ done:
 	return result;
 }
 
-static ssize_t ib_ucm_create_id(struct ib_ucm_file *file,
-				const char __user *inbuf,
-				int in_len, int out_len)
+static ssize_t
+ib_ucm_create_id(struct ib_ucm_file *file, const char __user *inbuf, int in_len,
+    int out_len)
 {
 	struct ib_ucm_create_id cmd;
 	struct ib_ucm_create_id_resp resp;
@@ -490,16 +491,16 @@ static ssize_t ib_ucm_create_id(struct ib_ucm_file *file,
 		return -ENOMEM;
 
 	ctx->uid = cmd.uid;
-	ctx->cm_id = ib_create_cm_id(file->device->ib_dev,
-				     ib_ucm_event_handler, ctx);
+	ctx->cm_id = ib_create_cm_id(file->device->ib_dev, ib_ucm_event_handler,
+	    ctx);
 	if (IS_ERR(ctx->cm_id)) {
 		result = PTR_ERR(ctx->cm_id);
 		goto err1;
 	}
 
 	resp.id = ctx->id;
-	if (copy_to_user((void __user *)(unsigned long)cmd.response,
-			 &resp, sizeof(resp))) {
+	if (copy_to_user((void __user *)(unsigned long)cmd.response, &resp,
+		sizeof(resp))) {
 		result = -EFAULT;
 		goto err2;
 	}
@@ -515,9 +516,9 @@ err1:
 	return result;
 }
 
-static ssize_t ib_ucm_destroy_id(struct ib_ucm_file *file,
-				 const char __user *inbuf,
-				 int in_len, int out_len)
+static ssize_t
+ib_ucm_destroy_id(struct ib_ucm_file *file, const char __user *inbuf,
+    int in_len, int out_len)
 {
 	struct ib_ucm_destroy_id cmd;
 	struct ib_ucm_destroy_id_resp resp;
@@ -552,17 +553,17 @@ static ssize_t ib_ucm_destroy_id(struct ib_ucm_file *file,
 	ib_ucm_cleanup_events(ctx);
 
 	resp.events_reported = ctx->events_reported;
-	if (copy_to_user((void __user *)(unsigned long)cmd.response,
-			 &resp, sizeof(resp)))
+	if (copy_to_user((void __user *)(unsigned long)cmd.response, &resp,
+		sizeof(resp)))
 		result = -EFAULT;
 
 	kfree(ctx);
 	return result;
 }
 
-static ssize_t ib_ucm_attr_id(struct ib_ucm_file *file,
-			      const char __user *inbuf,
-			      int in_len, int out_len)
+static ssize_t
+ib_ucm_attr_id(struct ib_ucm_file *file, const char __user *inbuf, int in_len,
+    int out_len)
 {
 	struct ib_ucm_attr_id_resp resp;
 	struct ib_ucm_attr_id cmd;
@@ -579,22 +580,22 @@ static ssize_t ib_ucm_attr_id(struct ib_ucm_file *file,
 	if (IS_ERR(ctx))
 		return PTR_ERR(ctx);
 
-	resp.service_id   = ctx->cm_id->service_id;
+	resp.service_id = ctx->cm_id->service_id;
 	resp.service_mask = ctx->cm_id->service_mask;
-	resp.local_id     = ctx->cm_id->local_id;
-	resp.remote_id    = ctx->cm_id->remote_id;
+	resp.local_id = ctx->cm_id->local_id;
+	resp.remote_id = ctx->cm_id->remote_id;
 
-	if (copy_to_user((void __user *)(unsigned long)cmd.response,
-			 &resp, sizeof(resp)))
+	if (copy_to_user((void __user *)(unsigned long)cmd.response, &resp,
+		sizeof(resp)))
 		result = -EFAULT;
 
 	ib_ucm_ctx_put(ctx);
 	return result;
 }
 
-static ssize_t ib_ucm_init_qp_attr(struct ib_ucm_file *file,
-				   const char __user *inbuf,
-				   int in_len, int out_len)
+static ssize_t
+ib_ucm_init_qp_attr(struct ib_ucm_file *file, const char __user *inbuf,
+    int in_len, int out_len)
 {
 	struct ib_uverbs_qp_attr resp;
 	struct ib_ucm_init_qp_attr cmd;
@@ -621,8 +622,8 @@ static ssize_t ib_ucm_init_qp_attr(struct ib_ucm_file *file,
 
 	ib_copy_qp_attr_to_user(&resp, &qp_attr);
 
-	if (copy_to_user((void __user *)(unsigned long)cmd.response,
-			 &resp, sizeof(resp)))
+	if (copy_to_user((void __user *)(unsigned long)cmd.response, &resp,
+		sizeof(resp)))
 		result = -EFAULT;
 
 out:
@@ -630,7 +631,8 @@ out:
 	return result;
 }
 
-static int ucm_validate_listen(__be64 service_id, __be64 service_mask)
+static int
+ucm_validate_listen(__be64 service_id, __be64 service_mask)
 {
 	service_id &= service_mask;
 
@@ -641,9 +643,9 @@ static int ucm_validate_listen(__be64 service_id, __be64 service_mask)
 	return 0;
 }
 
-static ssize_t ib_ucm_listen(struct ib_ucm_file *file,
-			     const char __user *inbuf,
-			     int in_len, int out_len)
+static ssize_t
+ib_ucm_listen(struct ib_ucm_file *file, const char __user *inbuf, int in_len,
+    int out_len)
 {
 	struct ib_ucm_listen cmd;
 	struct ib_ucm_context *ctx;
@@ -666,9 +668,9 @@ out:
 	return result;
 }
 
-static ssize_t ib_ucm_notify(struct ib_ucm_file *file,
-			     const char __user *inbuf,
-			     int in_len, int out_len)
+static ssize_t
+ib_ucm_notify(struct ib_ucm_file *file, const char __user *inbuf, int in_len,
+    int out_len)
 {
 	struct ib_ucm_notify cmd;
 	struct ib_ucm_context *ctx;
@@ -681,12 +683,13 @@ static ssize_t ib_ucm_notify(struct ib_ucm_file *file,
 	if (IS_ERR(ctx))
 		return PTR_ERR(ctx);
 
-	result = ib_cm_notify(ctx->cm_id, (enum ib_event_type) cmd.event);
+	result = ib_cm_notify(ctx->cm_id, (enum ib_event_type)cmd.event);
 	ib_ucm_ctx_put(ctx);
 	return result;
 }
 
-static int ib_ucm_alloc_data(const void **dest, u64 src, u32 len)
+static int
+ib_ucm_alloc_data(const void **dest, u64 src, u32 len)
 {
 	void *data;
 
@@ -703,10 +706,11 @@ static int ib_ucm_alloc_data(const void **dest, u64 src, u32 len)
 	return 0;
 }
 
-static int ib_ucm_path_get(struct ib_sa_path_rec **path, u64 src)
+static int
+ib_ucm_path_get(struct ib_sa_path_rec **path, u64 src)
 {
 	struct ib_user_path_rec upath;
-	struct ib_sa_path_rec  *sa_path;
+	struct ib_sa_path_rec *sa_path;
 
 	*path = NULL;
 
@@ -718,7 +722,7 @@ static int ib_ucm_path_get(struct ib_sa_path_rec **path, u64 src)
 		return -ENOMEM;
 
 	if (copy_from_user(&upath, (void __user *)(unsigned long)src,
-			   sizeof(upath))) {
+		sizeof(upath))) {
 
 		kfree(sa_path);
 		return -EFAULT;
@@ -729,17 +733,17 @@ static int ib_ucm_path_get(struct ib_sa_path_rec **path, u64 src)
 	return 0;
 }
 
-static ssize_t ib_ucm_send_req(struct ib_ucm_file *file,
-			       const char __user *inbuf,
-			       int in_len, int out_len)
+static ssize_t
+ib_ucm_send_req(struct ib_ucm_file *file, const char __user *inbuf, int in_len,
+    int out_len)
 {
 	struct ib_cm_req_param param;
 	struct ib_ucm_context *ctx;
 	struct ib_ucm_req cmd;
 	int result;
 
-	param.private_data   = NULL;
-	param.primary_path   = NULL;
+	param.private_data = NULL;
+	param.primary_path = NULL;
 	param.alternate_path = NULL;
 
 	if (copy_from_user(&cmd, inbuf, sizeof(cmd)))
@@ -757,21 +761,21 @@ static ssize_t ib_ucm_send_req(struct ib_ucm_file *file,
 	if (result)
 		goto done;
 
-	param.private_data_len           = cmd.len;
-	param.service_id                 = cmd.sid;
-	param.qp_num                     = cmd.qpn;
-	param.qp_type                    = cmd.qp_type;
-	param.starting_psn               = cmd.psn;
-	param.peer_to_peer               = cmd.peer_to_peer;
-	param.responder_resources        = cmd.responder_resources;
-	param.initiator_depth            = cmd.initiator_depth;
+	param.private_data_len = cmd.len;
+	param.service_id = cmd.sid;
+	param.qp_num = cmd.qpn;
+	param.qp_type = cmd.qp_type;
+	param.starting_psn = cmd.psn;
+	param.peer_to_peer = cmd.peer_to_peer;
+	param.responder_resources = cmd.responder_resources;
+	param.initiator_depth = cmd.initiator_depth;
 	param.remote_cm_response_timeout = cmd.remote_cm_response_timeout;
-	param.flow_control               = cmd.flow_control;
-	param.local_cm_response_timeout  = cmd.local_cm_response_timeout;
-	param.retry_count                = cmd.retry_count;
-	param.rnr_retry_count            = cmd.rnr_retry_count;
-	param.max_cm_retries             = cmd.max_cm_retries;
-	param.srq                        = cmd.srq;
+	param.flow_control = cmd.flow_control;
+	param.local_cm_response_timeout = cmd.local_cm_response_timeout;
+	param.retry_count = cmd.retry_count;
+	param.rnr_retry_count = cmd.rnr_retry_count;
+	param.max_cm_retries = cmd.max_cm_retries;
+	param.srq = cmd.srq;
 
 	ctx = ib_ucm_ctx_get(file, cmd.id);
 	if (!IS_ERR(ctx)) {
@@ -787,9 +791,9 @@ done:
 	return result;
 }
 
-static ssize_t ib_ucm_send_rep(struct ib_ucm_file *file,
-			       const char __user *inbuf,
-			       int in_len, int out_len)
+static ssize_t
+ib_ucm_send_rep(struct ib_ucm_file *file, const char __user *inbuf, int in_len,
+    int out_len)
 {
 	struct ib_cm_rep_param param;
 	struct ib_ucm_context *ctx;
@@ -805,15 +809,15 @@ static ssize_t ib_ucm_send_rep(struct ib_ucm_file *file,
 	if (result)
 		return result;
 
-	param.qp_num              = cmd.qpn;
-	param.starting_psn        = cmd.psn;
-	param.private_data_len    = cmd.len;
+	param.qp_num = cmd.qpn;
+	param.starting_psn = cmd.psn;
+	param.private_data_len = cmd.len;
 	param.responder_resources = cmd.responder_resources;
-	param.initiator_depth     = cmd.initiator_depth;
-	param.failover_accepted   = cmd.failover_accepted;
-	param.flow_control        = cmd.flow_control;
-	param.rnr_retry_count     = cmd.rnr_retry_count;
-	param.srq                 = cmd.srq;
+	param.initiator_depth = cmd.initiator_depth;
+	param.failover_accepted = cmd.failover_accepted;
+	param.flow_control = cmd.flow_control;
+	param.rnr_retry_count = cmd.rnr_retry_count;
+	param.srq = cmd.srq;
 
 	ctx = ib_ucm_ctx_get(file, cmd.id);
 	if (!IS_ERR(ctx)) {
@@ -827,11 +831,11 @@ static ssize_t ib_ucm_send_rep(struct ib_ucm_file *file,
 	return result;
 }
 
-static ssize_t ib_ucm_send_private_data(struct ib_ucm_file *file,
-					const char __user *inbuf, int in_len,
-					int (*func)(struct ib_cm_id *cm_id,
-						    const void *private_data,
-						    u8 private_data_len))
+static ssize_t
+ib_ucm_send_private_data(struct ib_ucm_file *file, const char __user *inbuf,
+    int in_len,
+    int (*func)(struct ib_cm_id *cm_id, const void *private_data,
+	u8 private_data_len))
 {
 	struct ib_ucm_private_data cmd;
 	struct ib_ucm_context *ctx;
@@ -856,35 +860,31 @@ static ssize_t ib_ucm_send_private_data(struct ib_ucm_file *file,
 	return result;
 }
 
-static ssize_t ib_ucm_send_rtu(struct ib_ucm_file *file,
-			       const char __user *inbuf,
-			       int in_len, int out_len)
+static ssize_t
+ib_ucm_send_rtu(struct ib_ucm_file *file, const char __user *inbuf, int in_len,
+    int out_len)
 {
 	return ib_ucm_send_private_data(file, inbuf, in_len, ib_send_cm_rtu);
 }
 
-static ssize_t ib_ucm_send_dreq(struct ib_ucm_file *file,
-				const char __user *inbuf,
-				int in_len, int out_len)
+static ssize_t
+ib_ucm_send_dreq(struct ib_ucm_file *file, const char __user *inbuf, int in_len,
+    int out_len)
 {
 	return ib_ucm_send_private_data(file, inbuf, in_len, ib_send_cm_dreq);
 }
 
-static ssize_t ib_ucm_send_drep(struct ib_ucm_file *file,
-				const char __user *inbuf,
-				int in_len, int out_len)
+static ssize_t
+ib_ucm_send_drep(struct ib_ucm_file *file, const char __user *inbuf, int in_len,
+    int out_len)
 {
 	return ib_ucm_send_private_data(file, inbuf, in_len, ib_send_cm_drep);
 }
 
-static ssize_t ib_ucm_send_info(struct ib_ucm_file *file,
-				const char __user *inbuf, int in_len,
-				int (*func)(struct ib_cm_id *cm_id,
-					    int status,
-					    const void *info,
-					    u8 info_len,
-					    const void *data,
-					    u8 data_len))
+static ssize_t
+ib_ucm_send_info(struct ib_ucm_file *file, const char __user *inbuf, int in_len,
+    int (*func)(struct ib_cm_id *cm_id, int status, const void *info,
+	u8 info_len, const void *data, u8 data_len))
 {
 	struct ib_ucm_context *ctx;
 	struct ib_ucm_info cmd;
@@ -905,8 +905,8 @@ static ssize_t ib_ucm_send_info(struct ib_ucm_file *file,
 
 	ctx = ib_ucm_ctx_get(file, cmd.id);
 	if (!IS_ERR(ctx)) {
-		result = func(ctx->cm_id, cmd.status, info, cmd.info_len,
-			      data, cmd.data_len);
+		result = func(ctx->cm_id, cmd.status, info, cmd.info_len, data,
+		    cmd.data_len);
 		ib_ucm_ctx_put(ctx);
 	} else
 		result = PTR_ERR(ctx);
@@ -917,23 +917,23 @@ done:
 	return result;
 }
 
-static ssize_t ib_ucm_send_rej(struct ib_ucm_file *file,
-			       const char __user *inbuf,
-			       int in_len, int out_len)
+static ssize_t
+ib_ucm_send_rej(struct ib_ucm_file *file, const char __user *inbuf, int in_len,
+    int out_len)
 {
 	return ib_ucm_send_info(file, inbuf, in_len, (void *)ib_send_cm_rej);
 }
 
-static ssize_t ib_ucm_send_apr(struct ib_ucm_file *file,
-			       const char __user *inbuf,
-			       int in_len, int out_len)
+static ssize_t
+ib_ucm_send_apr(struct ib_ucm_file *file, const char __user *inbuf, int in_len,
+    int out_len)
 {
 	return ib_ucm_send_info(file, inbuf, in_len, (void *)ib_send_cm_apr);
 }
 
-static ssize_t ib_ucm_send_mra(struct ib_ucm_file *file,
-			       const char __user *inbuf,
-			       int in_len, int out_len)
+static ssize_t
+ib_ucm_send_mra(struct ib_ucm_file *file, const char __user *inbuf, int in_len,
+    int out_len)
 {
 	struct ib_ucm_context *ctx;
 	struct ib_ucm_mra cmd;
@@ -958,9 +958,9 @@ static ssize_t ib_ucm_send_mra(struct ib_ucm_file *file,
 	return result;
 }
 
-static ssize_t ib_ucm_send_lap(struct ib_ucm_file *file,
-			       const char __user *inbuf,
-			       int in_len, int out_len)
+static ssize_t
+ib_ucm_send_lap(struct ib_ucm_file *file, const char __user *inbuf, int in_len,
+    int out_len)
 {
 	struct ib_ucm_context *ctx;
 	struct ib_sa_path_rec *path = NULL;
@@ -992,9 +992,9 @@ done:
 	return result;
 }
 
-static ssize_t ib_ucm_send_sidr_req(struct ib_ucm_file *file,
-				    const char __user *inbuf,
-				    int in_len, int out_len)
+static ssize_t
+ib_ucm_send_sidr_req(struct ib_ucm_file *file, const char __user *inbuf,
+    int in_len, int out_len)
 {
 	struct ib_cm_sidr_req_param param;
 	struct ib_ucm_context *ctx;
@@ -1016,9 +1016,9 @@ static ssize_t ib_ucm_send_sidr_req(struct ib_ucm_file *file,
 		goto done;
 
 	param.private_data_len = cmd.len;
-	param.service_id       = cmd.sid;
-	param.timeout_ms       = cmd.timeout;
-	param.max_cm_retries   = cmd.max_cm_retries;
+	param.service_id = cmd.sid;
+	param.timeout_ms = cmd.timeout;
+	param.max_cm_retries = cmd.max_cm_retries;
 
 	ctx = ib_ucm_ctx_get(file, cmd.id);
 	if (!IS_ERR(ctx)) {
@@ -1033,9 +1033,9 @@ done:
 	return result;
 }
 
-static ssize_t ib_ucm_send_sidr_rep(struct ib_ucm_file *file,
-				    const char __user *inbuf,
-				    int in_len, int out_len)
+static ssize_t
+ib_ucm_send_sidr_rep(struct ib_ucm_file *file, const char __user *inbuf,
+    int in_len, int out_len)
 {
 	struct ib_cm_sidr_rep_param param;
 	struct ib_ucm_sidr_rep cmd;
@@ -1047,8 +1047,7 @@ static ssize_t ib_ucm_send_sidr_rep(struct ib_ucm_file *file,
 	if (copy_from_user(&cmd, inbuf, sizeof(cmd)))
 		return -EFAULT;
 
-	result = ib_ucm_alloc_data(&param.private_data,
-				   cmd.data, cmd.data_len);
+	result = ib_ucm_alloc_data(&param.private_data, cmd.data, cmd.data_len);
 	if (result)
 		goto done;
 
@@ -1056,11 +1055,11 @@ static ssize_t ib_ucm_send_sidr_rep(struct ib_ucm_file *file,
 	if (result)
 		goto done;
 
-	param.qp_num		= cmd.qpn;
-	param.qkey		= cmd.qkey;
-	param.status		= cmd.status;
-	param.info_length	= cmd.info_len;
-	param.private_data_len	= cmd.data_len;
+	param.qp_num = cmd.qpn;
+	param.qkey = cmd.qkey;
+	param.status = cmd.status;
+	param.info_length = cmd.info_len;
+	param.private_data_len = cmd.data_len;
 
 	ctx = ib_ucm_ctx_get(file, cmd.id);
 	if (!IS_ERR(ctx)) {
@@ -1076,30 +1075,29 @@ done:
 }
 
 static ssize_t (*ucm_cmd_table[])(struct ib_ucm_file *file,
-				  const char __user *inbuf,
-				  int in_len, int out_len) = {
-	[IB_USER_CM_CMD_CREATE_ID]     = ib_ucm_create_id,
-	[IB_USER_CM_CMD_DESTROY_ID]    = ib_ucm_destroy_id,
-	[IB_USER_CM_CMD_ATTR_ID]       = ib_ucm_attr_id,
-	[IB_USER_CM_CMD_LISTEN]        = ib_ucm_listen,
-	[IB_USER_CM_CMD_NOTIFY]        = ib_ucm_notify,
-	[IB_USER_CM_CMD_SEND_REQ]      = ib_ucm_send_req,
-	[IB_USER_CM_CMD_SEND_REP]      = ib_ucm_send_rep,
-	[IB_USER_CM_CMD_SEND_RTU]      = ib_ucm_send_rtu,
-	[IB_USER_CM_CMD_SEND_DREQ]     = ib_ucm_send_dreq,
-	[IB_USER_CM_CMD_SEND_DREP]     = ib_ucm_send_drep,
-	[IB_USER_CM_CMD_SEND_REJ]      = ib_ucm_send_rej,
-	[IB_USER_CM_CMD_SEND_MRA]      = ib_ucm_send_mra,
-	[IB_USER_CM_CMD_SEND_LAP]      = ib_ucm_send_lap,
-	[IB_USER_CM_CMD_SEND_APR]      = ib_ucm_send_apr,
+    const char __user *inbuf, int in_len, int out_len) = {
+	[IB_USER_CM_CMD_CREATE_ID] = ib_ucm_create_id,
+	[IB_USER_CM_CMD_DESTROY_ID] = ib_ucm_destroy_id,
+	[IB_USER_CM_CMD_ATTR_ID] = ib_ucm_attr_id,
+	[IB_USER_CM_CMD_LISTEN] = ib_ucm_listen,
+	[IB_USER_CM_CMD_NOTIFY] = ib_ucm_notify,
+	[IB_USER_CM_CMD_SEND_REQ] = ib_ucm_send_req,
+	[IB_USER_CM_CMD_SEND_REP] = ib_ucm_send_rep,
+	[IB_USER_CM_CMD_SEND_RTU] = ib_ucm_send_rtu,
+	[IB_USER_CM_CMD_SEND_DREQ] = ib_ucm_send_dreq,
+	[IB_USER_CM_CMD_SEND_DREP] = ib_ucm_send_drep,
+	[IB_USER_CM_CMD_SEND_REJ] = ib_ucm_send_rej,
+	[IB_USER_CM_CMD_SEND_MRA] = ib_ucm_send_mra,
+	[IB_USER_CM_CMD_SEND_LAP] = ib_ucm_send_lap,
+	[IB_USER_CM_CMD_SEND_APR] = ib_ucm_send_apr,
 	[IB_USER_CM_CMD_SEND_SIDR_REQ] = ib_ucm_send_sidr_req,
 	[IB_USER_CM_CMD_SEND_SIDR_REP] = ib_ucm_send_sidr_rep,
-	[IB_USER_CM_CMD_EVENT]	       = ib_ucm_event,
-	[IB_USER_CM_CMD_INIT_QP_ATTR]  = ib_ucm_init_qp_attr,
+	[IB_USER_CM_CMD_EVENT] = ib_ucm_event,
+	[IB_USER_CM_CMD_INIT_QP_ATTR] = ib_ucm_init_qp_attr,
 };
 
-static ssize_t ib_ucm_write(struct file *filp, const char __user *buf,
-			    size_t len, loff_t *pos)
+static ssize_t
+ib_ucm_write(struct file *filp, const char __user *buf, size_t len, loff_t *pos)
 {
 	struct ib_ucm_file *file = filp->private_data;
 	struct ib_ucm_cmd_hdr hdr;
@@ -1120,16 +1118,16 @@ static ssize_t ib_ucm_write(struct file *filp, const char __user *buf,
 	if (hdr.in + sizeof(hdr) > len)
 		return -EINVAL;
 
-	result = ucm_cmd_table[hdr.cmd](file, buf + sizeof(hdr),
-					hdr.in, hdr.out);
+	result = ucm_cmd_table[hdr.cmd](file, buf + sizeof(hdr), hdr.in,
+	    hdr.out);
 	if (!result)
 		result = len;
 
 	return result;
 }
 
-static unsigned int ib_ucm_poll(struct file *filp,
-				struct poll_table_struct *wait)
+static unsigned int
+ib_ucm_poll(struct file *filp, struct poll_table_struct *wait)
 {
 	struct ib_ucm_file *file = filp->private_data;
 	unsigned int mask = 0;
@@ -1150,7 +1148,8 @@ static unsigned int ib_ucm_poll(struct file *filp,
  *  - no further module initialization is required for open to work
  *    after the device is registered.
  */
-static int ib_ucm_open(struct inode *inode, struct file *filp)
+static int
+ib_ucm_open(struct inode *inode, struct file *filp)
 {
 	struct ib_ucm_file *file;
 
@@ -1166,20 +1165,22 @@ static int ib_ucm_open(struct inode *inode, struct file *filp)
 
 	filp->private_data = file;
 	file->filp = filp;
-	file->device = container_of(inode->i_cdev->si_drv1, struct ib_ucm_device, cdev);
+	file->device = container_of(inode->i_cdev->si_drv1,
+	    struct ib_ucm_device, cdev);
 
 	return nonseekable_open(inode, filp);
 }
 
-static int ib_ucm_close(struct inode *inode, struct file *filp)
+static int
+ib_ucm_close(struct inode *inode, struct file *filp)
 {
 	struct ib_ucm_file *file = filp->private_data;
 	struct ib_ucm_context *ctx;
 
 	mutex_lock(&file->file_mutex);
 	while (!list_empty(&file->ctxs)) {
-		ctx = list_entry(file->ctxs.next,
-				 struct ib_ucm_context, file_list);
+		ctx = list_entry(file->ctxs.next, struct ib_ucm_context,
+		    file_list);
 		mutex_unlock(&file->file_mutex);
 
 		mutex_lock(&ctx_id_mutex);
@@ -1198,7 +1199,8 @@ static int ib_ucm_close(struct inode *inode, struct file *filp)
 }
 
 static DECLARE_BITMAP(overflow_map, IB_UCM_MAX_DEVICES);
-static void ib_ucm_release_dev(struct device *dev)
+static void
+ib_ucm_release_dev(struct device *dev)
 {
 	struct ib_ucm_device *ucm_dev;
 
@@ -1212,16 +1214,16 @@ static void ib_ucm_release_dev(struct device *dev)
 }
 
 static const struct file_operations ucm_fops = {
-	.owner	 = THIS_MODULE,
-	.open	 = ib_ucm_open,
+	.owner = THIS_MODULE,
+	.open = ib_ucm_open,
 	.release = ib_ucm_close,
-	.write	 = ib_ucm_write,
-	.poll    = ib_ucm_poll,
-	.llseek	 = no_llseek,
+	.write = ib_ucm_write,
+	.poll = ib_ucm_poll,
+	.llseek = no_llseek,
 };
 
-static ssize_t show_ibdev(struct device *dev, struct device_attribute *attr,
-			  char *buf)
+static ssize_t
+show_ibdev(struct device *dev, struct device_attribute *attr, char *buf)
 {
 	struct ib_ucm_device *ucm_dev;
 
@@ -1231,15 +1233,17 @@ static ssize_t show_ibdev(struct device *dev, struct device_attribute *attr,
 static DEVICE_ATTR(ibdev, S_IRUGO, show_ibdev, NULL);
 
 static dev_t overflow_maj;
-static int find_overflow_devnum(void)
+static int
+find_overflow_devnum(void)
 {
 	int ret;
 
 	if (!overflow_maj) {
 		ret = alloc_chrdev_region(&overflow_maj, 0, IB_UCM_MAX_DEVICES,
-					  "infiniband_cm");
+		    "infiniband_cm");
 		if (ret) {
-			pr_err("ucm: couldn't register dynamic device number\n");
+			pr_err(
+			    "ucm: couldn't register dynamic device number\n");
 			return ret;
 		}
 	}
@@ -1251,7 +1255,8 @@ static int find_overflow_devnum(void)
 	return ret;
 }
 
-static void ib_ucm_add_one(struct ib_device *device)
+static void
+ib_ucm_add_one(struct ib_device *device)
 {
 	int devnum;
 	dev_t base;
@@ -1314,7 +1319,8 @@ err:
 	return;
 }
 
-static void ib_ucm_remove_one(struct ib_device *device, void *client_data)
+static void
+ib_ucm_remove_one(struct ib_device *device, void *client_data)
 {
 	struct ib_ucm_device *ucm_dev = client_data;
 
@@ -1325,14 +1331,15 @@ static void ib_ucm_remove_one(struct ib_device *device, void *client_data)
 }
 
 static CLASS_ATTR_STRING(abi_version, S_IRUGO,
-			 __stringify(IB_USER_CM_ABI_VERSION));
+    __stringify(IB_USER_CM_ABI_VERSION));
 
-static int __init ib_ucm_init(void)
+static int __init
+ib_ucm_init(void)
 {
 	int ret;
 
 	ret = register_chrdev_region(IB_UCM_BASE_DEV, IB_UCM_MAX_DEVICES,
-				     "infiniband_cm");
+	    "infiniband_cm");
 	if (ret) {
 		pr_err("ucm: couldn't register device number\n");
 		goto error1;
@@ -1359,7 +1366,8 @@ error1:
 	return ret;
 }
 
-static void __exit ib_ucm_cleanup(void)
+static void __exit
+ib_ucm_cleanup(void)
 {
 	ib_unregister_client(&ucm_client);
 	class_remove_file(&cm_class, &class_attr_abi_version.attr);

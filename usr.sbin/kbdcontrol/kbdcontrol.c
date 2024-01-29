@@ -29,113 +29,209 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/param.h>
+#include <sys/consio.h>
+#include <sys/kbio.h>
+#include <sys/queue.h>
+#include <sys/sysctl.h>
+
 #include <ctype.h>
 #include <err.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <sys/kbio.h>
-#include <sys/consio.h>
-#include <sys/param.h>
-#include <sys/queue.h>
-#include <sys/sysctl.h>
-#include "path.h"
-#include "lex.h"
 
-#define	SPECIAL		0x80000000
+#include "lex.h"
+#include "path.h"
+
+#define SPECIAL 0x80000000
 
 #ifndef BOOTSTRAP_KBDCONTROL
-static const char ctrl_names[32][4] = {
-	"nul", "soh", "stx", "etx", "eot", "enq", "ack", "bel",
-	"bs ", "ht ", "nl ", "vt ", "ff ", "cr ", "so ", "si ",
-	"dle", "dc1", "dc2", "dc3", "dc4", "nak", "syn", "etb",
-	"can", "em ", "sub", "esc", "fs ", "gs ", "rs ", "us "
-	};
+static const char ctrl_names[32][4] = { "nul", "soh", "stx", "etx", "eot",
+	"enq", "ack", "bel", "bs ", "ht ", "nl ", "vt ", "ff ", "cr ", "so ",
+	"si ", "dle", "dc1", "dc2", "dc3", "dc4", "nak", "syn", "etb", "can",
+	"em ", "sub", "esc", "fs ", "gs ", "rs ", "us " };
 #endif
 
 static const char acc_names[15][5] = {
-	"dgra", "dacu", "dcir", "dtil", "dmac", "dbre", "ddot",
-	"duml", "dsla", "drin", "dced", "dapo", "ddac", "dogo",
+	"dgra",
+	"dacu",
+	"dcir",
+	"dtil",
+	"dmac",
+	"dbre",
+	"ddot",
+	"duml",
+	"dsla",
+	"drin",
+	"dced",
+	"dapo",
+	"ddac",
+	"dogo",
 	"dcar",
-	};
+};
 
 static const char acc_names_u[15][5] = {
-	"DGRA", "DACU", "DCIR", "DTIL", "DMAC", "DBRE", "DDOT",
-	"DUML", "DSLA", "DRIN", "DCED", "DAPO", "DDAC", "DOGO",
+	"DGRA",
+	"DACU",
+	"DCIR",
+	"DTIL",
+	"DMAC",
+	"DBRE",
+	"DDOT",
+	"DUML",
+	"DSLA",
+	"DRIN",
+	"DCED",
+	"DAPO",
+	"DDAC",
+	"DOGO",
 	"DCAR",
-	};
+};
 
 #ifndef BOOTSTRAP_KBDCONTROL
 static const char fkey_table[96][MAXFK] = {
-/* 01-04 */	"\033[M", "\033[N", "\033[O", "\033[P",
-/* 05-08 */	"\033[Q", "\033[R", "\033[S", "\033[T",
-/* 09-12 */	"\033[U", "\033[V", "\033[W", "\033[X",
-/* 13-16 */	"\033[Y", "\033[Z", "\033[a", "\033[b",
-/* 17-20 */	"\033[c", "\033[d", "\033[e", "\033[f",
-/* 21-24 */	"\033[g", "\033[h", "\033[i", "\033[j",
-/* 25-28 */	"\033[k", "\033[l", "\033[m", "\033[n",
-/* 29-32 */	"\033[o", "\033[p", "\033[q", "\033[r",
-/* 33-36 */	"\033[s", "\033[t", "\033[u", "\033[v",
-/* 37-40 */	"\033[w", "\033[x", "\033[y", "\033[z",
-/* 41-44 */	"\033[@", "\033[[", "\033[\\","\033[]",
-/* 45-48 */     "\033[^", "\033[_", "\033[`", "\033[{",
-/* 49-52 */	"\033[H", "\033[A", "\033[I", "-"     ,
-/* 53-56 */	"\033[D", "\033[E", "\033[C", "+"     ,
-/* 57-60 */	"\033[F", "\033[B", "\033[G", "\033[L",
-/* 61-64 */     "\177",   "\033[J", "\033[~", "\033[}",
-/* 65-68 */	""      , ""      , ""      , ""      ,
-/* 69-72 */	""      , ""      , ""      , ""      ,
-/* 73-76 */	""      , ""      , ""      , ""      ,
-/* 77-80 */	""      , ""      , ""      , ""      ,
-/* 81-84 */	""      , ""      , ""      , ""      ,
-/* 85-88 */	""      , ""      , ""      , ""      ,
-/* 89-92 */	""      , ""      , ""      , ""      ,
-/* 93-96 */	""      , ""      , ""      , ""      ,
-	};
+	/* 01-04 */ "\033[M",
+	"\033[N",
+	"\033[O",
+	"\033[P",
+	/* 05-08 */ "\033[Q",
+	"\033[R",
+	"\033[S",
+	"\033[T",
+	/* 09-12 */ "\033[U",
+	"\033[V",
+	"\033[W",
+	"\033[X",
+	/* 13-16 */ "\033[Y",
+	"\033[Z",
+	"\033[a",
+	"\033[b",
+	/* 17-20 */ "\033[c",
+	"\033[d",
+	"\033[e",
+	"\033[f",
+	/* 21-24 */ "\033[g",
+	"\033[h",
+	"\033[i",
+	"\033[j",
+	/* 25-28 */ "\033[k",
+	"\033[l",
+	"\033[m",
+	"\033[n",
+	/* 29-32 */ "\033[o",
+	"\033[p",
+	"\033[q",
+	"\033[r",
+	/* 33-36 */ "\033[s",
+	"\033[t",
+	"\033[u",
+	"\033[v",
+	/* 37-40 */ "\033[w",
+	"\033[x",
+	"\033[y",
+	"\033[z",
+	/* 41-44 */ "\033[@",
+	"\033[[",
+	"\033[\\",
+	"\033[]",
+	/* 45-48 */ "\033[^",
+	"\033[_",
+	"\033[`",
+	"\033[{",
+	/* 49-52 */ "\033[H",
+	"\033[A",
+	"\033[I",
+	"-",
+	/* 53-56 */ "\033[D",
+	"\033[E",
+	"\033[C",
+	"+",
+	/* 57-60 */ "\033[F",
+	"\033[B",
+	"\033[G",
+	"\033[L",
+	/* 61-64 */ "\177",
+	"\033[J",
+	"\033[~",
+	"\033[}",
+	/* 65-68 */ "",
+	"",
+	"",
+	"",
+	/* 69-72 */ "",
+	"",
+	"",
+	"",
+	/* 73-76 */ "",
+	"",
+	"",
+	"",
+	/* 77-80 */ "",
+	"",
+	"",
+	"",
+	/* 81-84 */ "",
+	"",
+	"",
+	"",
+	/* 85-88 */ "",
+	"",
+	"",
+	"",
+	/* 89-92 */ "",
+	"",
+	"",
+	"",
+	/* 93-96 */ "",
+	"",
+	"",
+	"",
+};
 #endif
 
 #ifndef BOOTSTRAP_KBDCONTROL
 static const int ndelays = nitems(kbdelays);
 static const int nrepeats = nitems(kbrates);
-static int	hex = 0;
+static int hex = 0;
 #endif
-static int	paths_configured = 0;
-static int	token;
+static int paths_configured = 0;
+static int token;
 
-int		number;
-char		letter;
+int number;
+char letter;
 
-static void	add_keymap_path(const char *path);
-static void	dump_accent_definition(char *name, accentmap_t *accentmap);
-static void	dump_entry(int value);
-static void	dump_key_definition(char *name, keymap_t *keymap);
-static int	get_accent_definition_line(accentmap_t *);
-static int	get_entry(void);
-static int	get_key_definition_line(keymap_t *);
-static void	load_keymap(char *opt, int dumponly);
+static void add_keymap_path(const char *path);
+static void dump_accent_definition(char *name, accentmap_t *accentmap);
+static void dump_entry(int value);
+static void dump_key_definition(char *name, keymap_t *keymap);
+static int get_accent_definition_line(accentmap_t *);
+static int get_entry(void);
+static int get_key_definition_line(keymap_t *);
+static void load_keymap(char *opt, int dumponly);
 #ifndef BOOTSTRAP_KBDCONTROL
-static void	load_default_functionkeys(void);
+static void load_default_functionkeys(void);
 #endif
-static char *	nextarg(int ac, char **av, int *indp, int oc);
-static char *	mkfullname(const char *s1, const char *s2, const char *s3);
+static char *nextarg(int ac, char **av, int *indp, int oc);
+static char *mkfullname(const char *s1, const char *s2, const char *s3);
 #ifndef BOOTSTRAP_KBDCONTROL
-static void	print_accent_definition_line(FILE *fp, int accent,
-		struct acc_t *key);
-static void	print_entry(FILE *fp, int value);
-static void	print_key_definition_line(FILE *fp, int scancode,
-		struct keyent_t *key);
-static void	print_keymap(void);
-static void	release_keyboard(void);
-static void	mux_keyboard(u_int op, char *kbd);
-static void	set_bell_values(char *opt);
-static void	set_functionkey(char *keynumstr, char *string);
-static void	set_keyboard(char *device);
-static void	set_keyrates(char *opt);
-static void	show_kbd_info(void);
+static void print_accent_definition_line(FILE *fp, int accent,
+    struct acc_t *key);
+static void print_entry(FILE *fp, int value);
+static void print_key_definition_line(FILE *fp, int scancode,
+    struct keyent_t *key);
+static void print_keymap(void);
+static void release_keyboard(void);
+static void mux_keyboard(u_int op, char *kbd);
+static void set_bell_values(char *opt);
+static void set_functionkey(char *keynumstr, char *string);
+static void set_keyboard(char *device);
+static void set_keyrates(char *opt);
+static void show_kbd_info(void);
 #endif
-static void	usage(void) __dead2;
+static void usage(void) __dead2;
 
 struct pathent {
 	STAILQ_ENTRY(pathent) next;
@@ -161,18 +257,17 @@ static char *
 nextarg(int ac, char **av, int *indp, int oc)
 {
 	if (*indp < ac)
-		return(av[(*indp)++]);
+		return (av[(*indp)++]);
 	warnx("option requires two arguments -- %c", oc);
 	usage();
 }
 
-
 static char *
 mkfullname(const char *s1, const char *s2, const char *s3)
 {
-	static char	*buf = NULL;
-	static int	bufl = 0;
-	int		f;
+	static char *buf = NULL;
+	static int bufl = 0;
+	int f;
 
 	f = strlen(s1) + strlen(s2) + strlen(s3) + 1;
 	if (f > bufl) {
@@ -183,16 +278,15 @@ mkfullname(const char *s1, const char *s2, const char *s3)
 	}
 	if (!buf) {
 		bufl = 0;
-		return(NULL);
+		return (NULL);
 	}
 
 	bufl = f;
 	strcpy(buf, s1);
 	strcat(buf, s2);
 	strcat(buf, s3);
-	return(buf);
+	return (buf);
 }
-
 
 static int
 get_entry(void)
@@ -326,7 +420,7 @@ get_key_definition_line(keymap_t *map)
 
 	/* get key definitions */
 	map->key[scancode].spcl = 0;
-	for (i=0; i<NUM_STATES; i++) {
+	for (i = 0; i < NUM_STATES; i++) {
 		if ((def = get_entry()) == -1)
 			return -1;
 		if (def & SPECIAL)
@@ -501,18 +595,17 @@ print_entry(FILE *fp, int value)
 		break;
 	default:
 		if (value & SPECIAL) {
-		 	if (val >= F_FN && val <= L_FN)
+			if (val >= F_FN && val <= L_FN)
 				fprintf(fp, " fkey%02d", val - F_FN + 1);
-		 	else if (val >= F_SCR && val <= L_SCR)
+			else if (val >= F_SCR && val <= L_SCR)
 				fprintf(fp, " scr%02d ", val - F_SCR + 1);
-		 	else if (val >= F_ACC && val <= L_ACC)
+			else if (val >= F_ACC && val <= L_ACC)
 				fprintf(fp, " %-6s", acc_names[val - F_ACC]);
 			else if (hex)
 				fprintf(fp, " 0x%02x  ", val);
 			else
 				fprintf(fp, " %3d   ", val);
-		}
-		else {
+		} else {
 			if (val < ' ')
 				fprintf(fp, " %s   ", ctrl_names[val]);
 			else if (val == 127)
@@ -539,7 +632,7 @@ print_key_definition_line(FILE *fp, int scancode, struct keyent_t *key)
 		fprintf(fp, "  %03d  ", scancode);
 
 	/* print key definitions */
-	for (i=0; i<NUM_STATES; i++) {
+	for (i = 0; i < NUM_STATES; i++) {
 		if (key->spcl & (0x80 >> i))
 			print_entry(fp, key->map[i] | SPECIAL);
 		else
@@ -702,11 +795,11 @@ dump_entry(int value)
 			printf("PASTE, ");
 			break;
 		default:
-	 		if (value >= F_FN && value <= L_FN)
+			if (value >= F_FN && value <= L_FN)
 				printf(" F(%2d),", value - F_FN + 1);
-	 		else if (value >= F_SCR && value <= L_SCR)
+			else if (value >= F_SCR && value <= L_SCR)
 				printf(" S(%2d),", value - F_SCR + 1);
-	 		else if (value >= F_ACC && value <= L_ACC)
+			else if (value >= F_ACC && value <= L_ACC)
 				printf(" %-4s, ", acc_names_u[value - F_ACC]);
 			else
 				printf(" 0x%02X, ", value);
@@ -726,16 +819,16 @@ dump_entry(int value)
 static void
 dump_key_definition(char *name, keymap_t *keymap)
 {
-	int	i, j;
+	int i, j;
 
-	printf("static keymap_t keymap_%s = { 0x%02x, {\n",
-	       name, (unsigned)keymap->n_keys);
+	printf("static keymap_t keymap_%s = { 0x%02x, {\n", name,
+	    (unsigned)keymap->n_keys);
 	printf(
-"/*                                                         alt\n"
-" * scan                       cntrl          alt    alt   cntrl\n"
-" * code  base   shift  cntrl  shift   alt   shift  cntrl  shift    spcl flgs\n"
-" * ---------------------------------------------------------------------------\n"
-" */\n");
+	    "/*                                                         alt\n"
+	    " * scan                       cntrl          alt    alt   cntrl\n"
+	    " * code  base   shift  cntrl  shift   alt   shift  cntrl  shift    spcl flgs\n"
+	    " * ---------------------------------------------------------------------------\n"
+	    " */\n");
 	for (i = 0; i < keymap->n_keys; i++) {
 		printf("/*%02x*/{{", i);
 		for (j = 0; j < NUM_STATES; j++) {
@@ -744,9 +837,8 @@ dump_key_definition(char *name, keymap_t *keymap)
 			else
 				dump_entry(keymap->key[i].map[j]);
 		}
-		printf("}, 0x%02X,0x%02X },\n",
-		       (unsigned)keymap->key[i].spcl,
-		       (unsigned)keymap->key[i].flgs);
+		printf("}, 0x%02X,0x%02X },\n", (unsigned)keymap->key[i].spcl,
+		    (unsigned)keymap->key[i].flgs);
 	}
 	printf("} };\n\n");
 }
@@ -757,8 +849,8 @@ dump_accent_definition(char *name, accentmap_t *accentmap)
 	int i, j;
 	int c;
 
-	printf("static accentmap_t accentmap_%s = { %d",
-		name, accentmap->n_accs);
+	printf("static accentmap_t accentmap_%s = { %d", name,
+	    accentmap->n_accs);
 	if (accentmap->n_accs <= 0) {
 		printf(" };\n\n");
 		return;
@@ -798,7 +890,7 @@ dump_accent_definition(char *name, accentmap_t *accentmap)
 static void
 add_keymap_path(const char *path)
 {
-	struct pathent* pe;
+	struct pathent *pe;
 	size_t len;
 
 	len = strlen(path);
@@ -838,12 +930,12 @@ load_keymap(char *opt, int dumponly)
 	oaccentmap_t oaccentmap;
 #endif /* OPIO_DEADKEYMAP */
 	struct pathent *pe;
-	FILE	*file;
-	int	j;
-	char	*name, *cp;
-	char	blank[] = "", keymap_path[] = KEYMAP_PATH;
-	char	vt_keymap_path[] = VT_KEYMAP_PATH, dotkbd[] = ".kbd";
-	char	*postfix[] = {blank, dotkbd, NULL};
+	FILE *file;
+	int j;
+	char *name, *cp;
+	char blank[] = "", keymap_path[] = KEYMAP_PATH;
+	char vt_keymap_path[] = VT_KEYMAP_PATH, dotkbd[] = ".kbd";
+	char *postfix[] = { blank, dotkbd, NULL };
 
 	if (!paths_configured) {
 		cp = getenv("KEYMAP_PATH");
@@ -860,8 +952,8 @@ load_keymap(char *opt, int dumponly)
 	}
 
 	file = NULL;
-	STAILQ_FOREACH(pe, &pathlist, next) {
-		for (j=0; postfix[j] && file == NULL; j++) {
+	STAILQ_FOREACH (pe, &pathlist, next) {
+		for (j = 0; postfix[j] && file == NULL; j++) {
 			name = mkfullname(pe->path, opt, postfix[j]);
 			file = fopen(name, "r");
 			if (file != NULL)
@@ -878,15 +970,17 @@ load_keymap(char *opt, int dumponly)
 	while (1) {
 		if (get_definition_line(file, &keymap, &accentmap) < 0)
 			break;
-    	}
+	}
 	if (dumponly) {
 		/* fix up the filename to make it a valid C identifier */
 		for (cp = opt; *cp; cp++)
-			if (!isalpha(*cp) && !isdigit(*cp)) *cp = '_';
+			if (!isalpha(*cp) && !isdigit(*cp))
+				*cp = '_';
 		printf("/*\n"
 		       " * Automatically generated from %s.\n"
-	               " * DO NOT EDIT!\n"
-		       " */\n", name);
+		       " * DO NOT EDIT!\n"
+		       " */\n",
+		    name);
 		dump_key_definition(opt, &keymap);
 		dump_accent_definition(opt, &accentmap);
 		return;
@@ -897,8 +991,8 @@ load_keymap(char *opt, int dumponly)
 		fclose(file);
 		return;
 	}
-	if ((accentmap.n_accs > 0)
-	    && (ioctl(0, PIO_DEADKEYMAP, &accentmap) < 0)) {
+	if ((accentmap.n_accs > 0) &&
+	    (ioctl(0, PIO_DEADKEYMAP, &accentmap) < 0)) {
 #ifdef OPIO_DEADKEYMAP
 		to_old_accentmap(&accentmap, &oaccentmap);
 		if (ioctl(0, OPIO_DEADKEYMAP, &oaccentmap) < 0)
@@ -950,19 +1044,17 @@ print_keymap(void)
 #endif /* OGIO_DEADKEYMAP */
 			memset(&accentmap, 0, sizeof(accentmap));
 	}
-    	printf(
-"#                                                         alt\n"
-"# scan                       cntrl          alt    alt   cntrl lock\n"
-"# code  base   shift  cntrl  shift  alt    shift  cntrl  shift state\n"
-"# ------------------------------------------------------------------\n"
-    	);
-	for (i=0; i<keymap.n_keys; i++)
+	printf(
+	    "#                                                         alt\n"
+	    "# scan                       cntrl          alt    alt   cntrl lock\n"
+	    "# code  base   shift  cntrl  shift  alt    shift  cntrl  shift state\n"
+	    "# ------------------------------------------------------------------\n");
+	for (i = 0; i < keymap.n_keys; i++)
 		print_key_definition_line(stdout, i, &keymap.key[i]);
 
 	printf("\n");
 	for (i = 0; i < NUM_DEADKEYS; i++)
 		print_accent_definition_line(stdout, i, &accentmap.acc[i]);
-
 }
 
 static void
@@ -971,7 +1063,7 @@ load_default_functionkeys(void)
 	fkeyarg_t fkey;
 	int i;
 
-	for (i=0; i<NUM_FKEYS; i++) {
+	for (i = 0; i < NUM_FKEYS; i++) {
 		fkey.keynum = i;
 		strcpy(fkey.keydef, fkey_table[i]);
 		fkey.flen = strlen(fkey_table[i]);
@@ -992,12 +1084,12 @@ set_functionkey(char *keynumstr, char *string)
 	fkey.keynum = atoi(keynumstr);
 	if (fkey.keynum < 1 || fkey.keynum > NUM_FKEYS) {
 		warnx("function key number must be between 1 and %d",
-			NUM_FKEYS);
+		    NUM_FKEYS);
 		return;
 	}
 	if ((fkey.flen = strlen(string)) > MAXFK) {
-		warnx("function key string too long (%d > %d)",
-			fkey.flen, MAXFK);
+		warnx("function key string too long (%d > %d)", fkey.flen,
+		    MAXFK);
 		return;
 	}
 	strncpy(fkey.keydef, string, MAXFK);
@@ -1025,7 +1117,7 @@ set_bell_values(char *opt)
 	else if (!strcmp(opt, "off"))
 		duration = 0, pitch = 0;
 	else {
-		char		*v1;
+		char *v1;
 
 		bell = 0;
 		duration = strtol(opt, &v1, 0);
@@ -1034,13 +1126,14 @@ set_bell_values(char *opt)
 		opt = ++v1;
 		pitch = strtol(opt, &v1, 0);
 		if ((pitch < 0) || (*opt == '\0') || (*v1 != '\0')) {
-badopt:
-			warnx("argument to -b must be duration.pitch or [quiet.]visual|normal|off");
+		badopt:
+			warnx(
+			    "argument to -b must be duration.pitch or [quiet.]visual|normal|off");
 			return;
 		}
 		if (pitch != 0)
-			pitch = 1193182 / pitch;	/* in Hz */
-		duration /= 10;	/* in 10 m sec */
+			pitch = 1193182 / pitch; /* in Hz */
+		duration /= 10;			 /* in 10 m sec */
 	}
 
 	ioctl(0, CONS_BELLTYPE, &bell);
@@ -1072,8 +1165,8 @@ set_keyrates(char *opt)
 		d = 0;
 		r = 0;
 	} else {
-		int		n;
-		char		*v1;
+		int n;
+		char *v1;
 
 		delay = strtol(opt, &v1, 0);
 		if ((delay < 0) || (*v1 != '.'))
@@ -1081,8 +1174,9 @@ set_keyrates(char *opt)
 		opt = ++v1;
 		repeat = strtol(opt, &v1, 0);
 		if ((repeat < 0) || (*opt == '\0') || (*v1 != '\0')) {
-badopt:
-			warnx("argument to -r must be delay.repeat or slow|normal|fast");
+		badopt:
+			warnx(
+			    "argument to -r must be delay.repeat or slow|normal|fast");
 			return;
 		}
 		for (n = 0; n < ndelays - 1; n++)
@@ -1098,7 +1192,8 @@ badopt:
 	arg[0] = delay;
 	arg[1] = repeat;
 	if (ioctl(0, KDSETREPEAT, arg)) {
-		warn("fallback, setting keyboard rate via legacy interface (KDSETRAD), will be removed soon");
+		warn(
+		    "fallback, setting keyboard rate via legacy interface (KDSETRAD), will be removed soon");
 		if (ioctl(0, KDSETRAD, (d << 5) | r))
 			warn("setting keyboard rate");
 	}
@@ -1111,13 +1206,13 @@ get_kbd_type_name(int type)
 		int type;
 		const char *name;
 	} name_table[] = {
-		{ KB_84,	"AT 84" },
-		{ KB_101,	"AT 101/102" },
-		{ KB_OTHER,	"generic" },
+		{ KB_84, "AT 84" },
+		{ KB_101, "AT 101/102" },
+		{ KB_OTHER, "generic" },
 	};
 	unsigned int i;
 
-	for (i = 0; i < sizeof(name_table)/sizeof(name_table[0]); ++i) {
+	for (i = 0; i < sizeof(name_table) / sizeof(name_table[0]); ++i) {
 		if (type == name_table[i].type)
 			return name_table[i].name;
 	}
@@ -1134,9 +1229,9 @@ show_kbd_info(void)
 		return;
 	}
 	printf("kbd%d:\n", info.kb_index);
-	printf("    %.*s%d, type:%s (%d)\n",
-		(int)sizeof(info.kb_name), info.kb_name, info.kb_unit,
-		get_kbd_type_name(info.kb_type), info.kb_type);
+	printf("    %.*s%d, type:%s (%d)\n", (int)sizeof(info.kb_name),
+	    info.kb_name, info.kb_unit, get_kbd_type_name(info.kb_type),
+	    info.kb_type);
 }
 
 static void
@@ -1164,9 +1259,9 @@ set_keyboard(char *device)
 	close(fd);
 #if 1
 	printf("kbd%d\n", info.kb_index);
-	printf("    %.*s%d, type:%s (%d)\n",
-		(int)sizeof(info.kb_name), info.kb_name, info.kb_unit,
-		get_kbd_type_name(info.kb_type), info.kb_type);
+	printf("    %.*s%d, type:%s (%d)\n", (int)sizeof(info.kb_name),
+	    info.kb_name, info.kb_unit, get_kbd_type_name(info.kb_type),
+	    info.kb_type);
 #endif
 
 	if (ioctl(0, CONS_SETKBD, info.kb_index) == -1)
@@ -1188,9 +1283,9 @@ release_keyboard(void)
 	}
 #if 1
 	printf("kbd%d\n", info.kb_index);
-	printf("    %.*s%d, type:%s (%d)\n",
-		(int)sizeof(info.kb_name), info.kb_name, info.kb_unit,
-		get_kbd_type_name(info.kb_type), info.kb_type);
+	printf("    %.*s%d, type:%s (%d)\n", (int)sizeof(info.kb_name),
+	    info.kb_name, info.kb_unit, get_kbd_type_name(info.kb_type),
+	    info.kb_type);
 #endif
 	if (ioctl(0, CONS_RELKBD, 0) == -1)
 		warn("unable to release the keyboard");
@@ -1199,8 +1294,8 @@ release_keyboard(void)
 static void
 mux_keyboard(u_int op, char *kbd)
 {
-	keyboard_info_t	info;
-	char		*unit, *ep;
+	keyboard_info_t info;
+	char *unit, *ep;
 
 	/*
 	 * If stdin is not associated with a keyboard, the following ioctl
@@ -1212,9 +1307,9 @@ mux_keyboard(u_int op, char *kbd)
 	}
 #if 1
 	printf("kbd%d\n", info.kb_index);
-	printf("    %.*s%d, type:%s (%d)\n",
-		(int)sizeof(info.kb_name), info.kb_name, info.kb_unit,
-		get_kbd_type_name(info.kb_type), info.kb_type);
+	printf("    %.*s%d, type:%s (%d)\n", (int)sizeof(info.kb_name),
+	    info.kb_name, info.kb_unit, get_kbd_type_name(info.kb_type),
+	    info.kb_type);
 #endif
 	/*
 	 * split kbd into name and unit. find the right most part of the
@@ -1244,7 +1339,7 @@ mux_keyboard(u_int op, char *kbd)
 		warnx("unable to find keyboard driver name in '%s'", kbd);
 		return;
 	}
-	if (unit - kbd >= (int) sizeof(info.kb_name)) {
+	if (unit - kbd >= (int)sizeof(info.kb_name)) {
 		warnx("keyboard name '%s' is too long", kbd);
 		return;
 	}
@@ -1265,27 +1360,25 @@ static void
 usage(void)
 {
 #ifdef BOOTSTRAP_KBDCONTROL
-	fprintf(stderr, "%s\n",
-"usage: kbdcontrol [-L mapfile] [-P path]");
+	fprintf(stderr, "%s\n", "usage: kbdcontrol [-L mapfile] [-P path]");
 #else
 	fprintf(stderr, "%s\n%s\n%s\n",
-"usage: kbdcontrol [-dFKix] [-A name] [-a name] [-b duration.pitch | [quiet.]belltype]",
-"                  [-r delay.repeat | speed] [-l mapfile] [-f # string]",
-"                  [-k device] [-L mapfile] [-P path]");
+	    "usage: kbdcontrol [-dFKix] [-A name] [-a name] [-b duration.pitch | [quiet.]belltype]",
+	    "                  [-r delay.repeat | speed] [-l mapfile] [-f # string]",
+	    "                  [-k device] [-L mapfile] [-P path]");
 #endif
 	exit(1);
 }
-
 
 int
 main(int argc, char **argv)
 {
 #ifdef BOOTSTRAP_KBDCONTROL
-	const char	*optstring = "L:P:";
+	const char *optstring = "L:P:";
 #else
-	const char	*optstring = "A:a:b:df:iKk:Fl:L:P:r:x";
+	const char *optstring = "A:a:b:df:iKk:Fl:L:P:r:x";
 #endif
-	int		opt;
+	int opt;
 
 	/* Collect any -P arguments, regardless of where they appear. */
 	while ((opt = getopt(argc, argv, optstring)) != -1) {
@@ -1297,11 +1390,12 @@ main(int argc, char **argv)
 
 	optind = optreset = 1;
 	while ((opt = getopt(argc, argv, optstring)) != -1)
-		switch(opt) {
+		switch (opt) {
 #ifndef BOOTSTRAP_KBDCONTROL
 		case 'A':
 		case 'a':
-			mux_keyboard((opt == 'A')? KBRELKBD : KBADDKBD, optarg);
+			mux_keyboard((opt == 'A') ? KBRELKBD : KBADDKBD,
+			    optarg);
 			break;
 		case 'b':
 			set_bell_values(optarg);

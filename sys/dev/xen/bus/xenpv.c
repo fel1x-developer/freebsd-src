@@ -28,11 +28,11 @@
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
+#include <sys/limits.h>
 #include <sys/module.h>
 #include <sys/pcpu.h>
 #include <sys/rman.h>
 #include <sys/smp.h>
-#include <sys/limits.h>
 #include <sys/vmmeter.h>
 
 #include <vm/vm.h>
@@ -40,8 +40,8 @@
 #include <vm/vm_param.h>
 #include <vm/vm_phys.h>
 
-#include <xen/xen-os.h>
 #include <xen/gnttab.h>
+#include <xen/xen-os.h>
 
 #include "xenmem_if.h"
 
@@ -58,11 +58,11 @@
  * region.
  */
 #ifdef __amd64__
-#define LOW_MEM_LIMIT	0x100000000ul
+#define LOW_MEM_LIMIT 0x100000000ul
 #elif defined(__i386__)
-#define LOW_MEM_LIMIT	0x100000ul
+#define LOW_MEM_LIMIT 0x100000ul
 #else
-#define LOW_MEM_LIMIT	0
+#define LOW_MEM_LIMIT 0
 #endif
 
 static void
@@ -138,7 +138,8 @@ xenpv_alloc_physmem(device_t dev, device_t child, int *res_id, size_t size)
 }
 
 static int
-xenpv_free_physmem(device_t dev, device_t child, int res_id, struct resource *res)
+xenpv_free_physmem(device_t dev, device_t child, int res_id,
+    struct resource *res)
 {
 	vm_paddr_t phys_addr;
 	void *virt_addr;
@@ -155,22 +156,22 @@ xenpv_free_physmem(device_t dev, device_t child, int res_id, struct resource *re
 
 static device_method_t xenpv_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,		xenpv_identify),
-	DEVMETHOD(device_probe,			xenpv_probe),
-	DEVMETHOD(device_attach,		xenpv_attach),
-	DEVMETHOD(device_suspend,		bus_generic_suspend),
-	DEVMETHOD(device_resume,		bus_generic_resume),
+	DEVMETHOD(device_identify, xenpv_identify),
+	DEVMETHOD(device_probe, xenpv_probe),
+	DEVMETHOD(device_attach, xenpv_attach),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
 
 	/* Bus interface */
-	DEVMETHOD(bus_add_child,		bus_generic_add_child),
-	DEVMETHOD(bus_alloc_resource,		bus_generic_alloc_resource),
-	DEVMETHOD(bus_release_resource,		bus_generic_release_resource),
-	DEVMETHOD(bus_activate_resource,	bus_generic_activate_resource),
-	DEVMETHOD(bus_deactivate_resource,	bus_generic_deactivate_resource),
+	DEVMETHOD(bus_add_child, bus_generic_add_child),
+	DEVMETHOD(bus_alloc_resource, bus_generic_alloc_resource),
+	DEVMETHOD(bus_release_resource, bus_generic_release_resource),
+	DEVMETHOD(bus_activate_resource, bus_generic_activate_resource),
+	DEVMETHOD(bus_deactivate_resource, bus_generic_deactivate_resource),
 
 	/* Interface to allocate memory for foreign mappings */
-	DEVMETHOD(xenmem_alloc,			xenpv_alloc_physmem),
-	DEVMETHOD(xenmem_free,			xenpv_free_physmem),
+	DEVMETHOD(xenmem_alloc, xenpv_alloc_physmem),
+	DEVMETHOD(xenmem_free, xenpv_free_physmem),
 
 	DEVMETHOD_END
 };

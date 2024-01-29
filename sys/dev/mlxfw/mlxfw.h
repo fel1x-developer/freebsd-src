@@ -34,8 +34,8 @@
 
 #include <sys/firmware.h>
 
-#define NLA_ALIGNTO		4
-#define NLA_ALIGN(len)		(((len) + NLA_ALIGNTO - 1) & ~(NLA_ALIGNTO - 1))
+#define NLA_ALIGNTO 4
+#define NLA_ALIGN(len) (((len) + NLA_ALIGNTO - 1) & ~(NLA_ALIGNTO - 1))
 
 enum mlxfw_fsm_state {
 	MLXFW_FSM_STATE_IDLE,
@@ -66,25 +66,24 @@ struct firmware;
 
 struct mlxfw_dev_ops {
 	int (*component_query)(struct mlxfw_dev *mlxfw_dev, u16 component_index,
-			       u32 *p_max_size, u8 *p_align_bits,
-			       u16 *p_max_write_size);
+	    u32 *p_max_size, u8 *p_align_bits, u16 *p_max_write_size);
 
 	int (*fsm_lock)(struct mlxfw_dev *mlxfw_dev, u32 *fwhandle);
 
 	int (*fsm_component_update)(struct mlxfw_dev *mlxfw_dev, u32 fwhandle,
-				    u16 component_index, u32 component_size);
+	    u16 component_index, u32 component_size);
 
 	int (*fsm_block_download)(struct mlxfw_dev *mlxfw_dev, u32 fwhandle,
-				  u8 *data, u16 size, u32 offset);
+	    u8 *data, u16 size, u32 offset);
 
 	int (*fsm_component_verify)(struct mlxfw_dev *mlxfw_dev, u32 fwhandle,
-				    u16 component_index);
+	    u16 component_index);
 
 	int (*fsm_activate)(struct mlxfw_dev *mlxfw_dev, u32 fwhandle);
 
 	int (*fsm_query_state)(struct mlxfw_dev *mlxfw_dev, u32 fwhandle,
-			       enum mlxfw_fsm_state *fsm_state,
-			       enum mlxfw_fsm_state_err *fsm_state_err);
+	    enum mlxfw_fsm_state *fsm_state,
+	    enum mlxfw_fsm_state_err *fsm_state_err);
 
 	void (*fsm_cancel)(struct mlxfw_dev *mlxfw_dev, u32 fwhandle);
 
@@ -98,5 +97,5 @@ struct mlxfw_dev {
 };
 
 int mlxfw_firmware_flash(struct mlxfw_dev *mlxfw_dev,
-			 const struct firmware *firmware);
+    const struct firmware *firmware);
 #endif

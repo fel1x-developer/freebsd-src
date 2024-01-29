@@ -11,19 +11,19 @@
 
 #include "ipf.h"
 
-typedef	struct	variable	{
-	struct	variable	*v_next;
-	char	*v_name;
-	char	*v_value;
+typedef struct variable {
+	struct variable *v_next;
+	char *v_name;
+	char *v_value;
 } variable_t;
 
-static	variable_t	*vtop = NULL;
+static variable_t *vtop = NULL;
 
 static variable_t *find_var(char *);
 static char *expand_string(char *, int);
 
-
-static variable_t *find_var(char *name)
+static variable_t *
+find_var(char *name)
 {
 	variable_t *v;
 
@@ -33,8 +33,8 @@ static variable_t *find_var(char *name)
 	return (NULL);
 }
 
-
-char *get_variable(char *string, char **after, int line)
+char *
+get_variable(char *string, char **after, int line)
 {
 	char c, *s, *t, *value;
 	variable_t *v;
@@ -55,8 +55,8 @@ char *get_variable(char *string, char **after, int line)
 			if (!ISALPHA(*t) && !ISDIGIT(*t) && (*t != '_'))
 				break;
 	} else {
-		fprintf(stderr, "%d: variables cannot start with '%c'\n",
-			line, *s);
+		fprintf(stderr, "%d: variables cannot start with '%c'\n", line,
+		    *s);
 		return (NULL);
 	}
 
@@ -78,8 +78,8 @@ char *get_variable(char *string, char **after, int line)
 	return (value);
 }
 
-
-static char *expand_string(char *oldstring, int line)
+static char *
+expand_string(char *oldstring, int line)
 {
 	char c, *s, *p1, *p2, *p3, *newstring, *value;
 	int len;
@@ -92,12 +92,11 @@ static char *expand_string(char *oldstring, int line)
 			*s = '\0';
 			s++;
 
-			switch (*s)
-			{
-			case '$' :
+			switch (*s) {
+			case '$':
 				bcopy(s, s - 1, strlen(s));
 				break;
-			default :
+			default:
 				c = *s;
 				if (c == '\0')
 					return (newstring);
@@ -136,8 +135,8 @@ static char *expand_string(char *oldstring, int line)
 	return (newstring);
 }
 
-
-void set_variable(char *name, char *value)
+void
+set_variable(char *name, char *value)
 {
 	variable_t *v;
 	int len;
@@ -158,7 +157,7 @@ void set_variable(char *name, char *value)
 	    (*value == '\'' && value[len - 1] == '\'')) {
 		value[len - 1] = '\0';
 		value++;
-		len -=2;
+		len -= 2;
 	}
 
 	v = (variable_t *)malloc(sizeof(*v));

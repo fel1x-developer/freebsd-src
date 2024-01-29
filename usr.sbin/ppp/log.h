@@ -26,36 +26,36 @@
  * SUCH DAMAGE.
  */
 
-#define LogLOG		(0)
-#define LogMIN		(1)
-#define LogASYNC	(1)	/* syslog(LOG_INFO, ....)	 */
-#define LogCBCP		(2)
-#define LogCCP		(3)
-#define LogCHAT		(4)
-#define LogCOMMAND	(5)
-#define LogCONNECT	(6)
-#define LogDEBUG	(7)	/* syslog(LOG_DEBUG, ....)	 */
-#define LogDNS		(8)
-#define LogFILTER       (9)
-#define LogHDLC		(10)
-#define LogID0		(11)
-#define LogIPCP		(12)
-#define LogIPV6CP	(13)
-#define LogLCP		(14)
-#define LogLQM		(15)
-#define LogPHASE	(16)
-#define LogPHYSICAL	(17)	/* syslog(LOG_INFO, ....)	 */
-#define LogRADIUS	(18)	/* syslog(LOG_INFO, ....)	 */
-#define LogSYNC		(19)	/* syslog(LOG_INFO, ....)	 */
-#define LogTCPIP	(20)
-#define LogTIMER	(21)	/* syslog(LOG_DEBUG, ....)	 */
-#define LogTUN		(22)	/* If set, tun%d is output with each message */
-#define LogWARN		(23)	/* Sent to VarTerm else syslog(LOG_WARNING, ) */
-#define LogERROR	(24)	/* syslog(LOG_ERR, ....), + sent to VarTerm */
-#define LogALERT	(25)	/* syslog(LOG_ALERT, ....)	 */
+#define LogLOG (0)
+#define LogMIN (1)
+#define LogASYNC (1) /* syslog(LOG_INFO, ....)	 */
+#define LogCBCP (2)
+#define LogCCP (3)
+#define LogCHAT (4)
+#define LogCOMMAND (5)
+#define LogCONNECT (6)
+#define LogDEBUG (7) /* syslog(LOG_DEBUG, ....)	 */
+#define LogDNS (8)
+#define LogFILTER (9)
+#define LogHDLC (10)
+#define LogID0 (11)
+#define LogIPCP (12)
+#define LogIPV6CP (13)
+#define LogLCP (14)
+#define LogLQM (15)
+#define LogPHASE (16)
+#define LogPHYSICAL (17) /* syslog(LOG_INFO, ....)	 */
+#define LogRADIUS (18)	 /* syslog(LOG_INFO, ....)	 */
+#define LogSYNC (19)	 /* syslog(LOG_INFO, ....)	 */
+#define LogTCPIP (20)
+#define LogTIMER (21) /* syslog(LOG_DEBUG, ....)	 */
+#define LogTUN (22)   /* If set, tun%d is output with each message */
+#define LogWARN (23)  /* Sent to VarTerm else syslog(LOG_WARNING, ) */
+#define LogERROR (24) /* syslog(LOG_ERR, ....), + sent to VarTerm */
+#define LogALERT (25) /* syslog(LOG_ALERT, ....)	 */
 
-#define LogMAXCONF	(22)
-#define LogMAX		(25)
+#define LogMAXCONF (22)
+#define LogMAX (25)
 
 struct mbuf;
 struct cmdargs;
@@ -71,20 +71,20 @@ extern void log_Discard(int);
 extern void log_DiscardLocal(int, u_long *);
 extern void log_DiscardAll(void);
 extern void log_DiscardAllLocal(u_long *);
-#define LOG_KEPT_SYSLOG (1)	/* Results of log_IsKept() */
-#define LOG_KEPT_LOCAL  (2)	/* Results of log_IsKept() */
+#define LOG_KEPT_SYSLOG (1) /* Results of log_IsKept() */
+#define LOG_KEPT_LOCAL (2)  /* Results of log_IsKept() */
 extern int log_IsKept(int);
 extern int log_IsKeptLocal(int, u_long);
 extern void log_Open(const char *);
 extern void log_SetTun(int, const char *);
 extern void log_Close(void);
 #ifdef __GNUC__
-extern void log_Printf(int, const char *,...)
-            __attribute__ ((format (printf, 2, 3)));
+extern void log_Printf(int, const char *, ...)
+    __attribute__((format(printf, 2, 3)));
 extern void log_WritePrompts(struct datalink *, const char *, ...)
-            __attribute__ ((format (printf, 2, 3)));
+    __attribute__((format(printf, 2, 3)));
 #else
-extern void log_Printf(int, const char *,...);
+extern void log_Printf(int, const char *, ...);
 extern void log_WritePrompts(struct datalink *, const char *, ...);
 #endif
 extern void log_DumpBp(int, const char *, const struct mbuf *);

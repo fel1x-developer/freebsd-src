@@ -29,31 +29,29 @@
  */
 
 #include <sys/types.h>
-#include <sys/sysctl.h>
 #include <sys/errno.h>
-#include <sys/resource.h>
 #include <sys/queue.h>
+#include <sys/resource.h>
+#include <sys/sysctl.h>
 
 #include <ctype.h>
 #include <err.h>
 #include <fcntl.h>
+#include <kvm.h>
 #include <limits.h>
+#include <nlist.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
-#include <kvm.h>
-#include <nlist.h>
 
 #include "devstat.h"
 
-int
-compute_stats(struct devstat *current, struct devstat *previous,
-	      long double etime, u_int64_t *total_bytes,
-	      u_int64_t *total_transfers, u_int64_t *total_blocks,
-	      long double *kb_per_transfer, long double *transfers_per_second,
-	      long double *mb_per_second, long double *blocks_per_second,
-	      long double *ms_per_transaction);
+int compute_stats(struct devstat *current, struct devstat *previous,
+    long double etime, u_int64_t *total_bytes, u_int64_t *total_transfers,
+    u_int64_t *total_blocks, long double *kb_per_transfer,
+    long double *transfers_per_second, long double *mb_per_second,
+    long double *blocks_per_second, long double *ms_per_transaction);
 
 typedef enum {
 	DEVSTAT_ARG_NOTYPE,
@@ -68,31 +66,30 @@ char devstat_errbuf[DEVSTAT_ERRBUF_SIZE];
  * Table to match descriptive strings with device types.  These are in
  * order from most common to least common to speed search time.
  */
-struct devstat_match_table match_table[] = {
-	{"da",		DEVSTAT_TYPE_DIRECT,	DEVSTAT_MATCH_TYPE},
-	{"cd",		DEVSTAT_TYPE_CDROM,	DEVSTAT_MATCH_TYPE},
-	{"scsi",	DEVSTAT_TYPE_IF_SCSI,	DEVSTAT_MATCH_IF},
-	{"ide",		DEVSTAT_TYPE_IF_IDE,	DEVSTAT_MATCH_IF},
-	{"other",	DEVSTAT_TYPE_IF_OTHER,	DEVSTAT_MATCH_IF},
-	{"nvme",	DEVSTAT_TYPE_IF_NVME,	DEVSTAT_MATCH_IF},
-	{"worm",	DEVSTAT_TYPE_WORM,	DEVSTAT_MATCH_TYPE},
-	{"sa",		DEVSTAT_TYPE_SEQUENTIAL,DEVSTAT_MATCH_TYPE},
-	{"pass",	DEVSTAT_TYPE_PASS,	DEVSTAT_MATCH_PASS},
-	{"optical",	DEVSTAT_TYPE_OPTICAL,	DEVSTAT_MATCH_TYPE},
-	{"array",	DEVSTAT_TYPE_STORARRAY,	DEVSTAT_MATCH_TYPE},
-	{"changer",	DEVSTAT_TYPE_CHANGER,	DEVSTAT_MATCH_TYPE},
-	{"scanner",	DEVSTAT_TYPE_SCANNER,	DEVSTAT_MATCH_TYPE},
-	{"printer",	DEVSTAT_TYPE_PRINTER,	DEVSTAT_MATCH_TYPE},
-	{"floppy",	DEVSTAT_TYPE_FLOPPY,	DEVSTAT_MATCH_TYPE},
-	{"proc",	DEVSTAT_TYPE_PROCESSOR,	DEVSTAT_MATCH_TYPE},
-	{"comm",	DEVSTAT_TYPE_COMM,	DEVSTAT_MATCH_TYPE},
-	{"enclosure",	DEVSTAT_TYPE_ENCLOSURE,	DEVSTAT_MATCH_TYPE},
-	{NULL,		0,			0}
-};
+struct devstat_match_table match_table[] = { { "da", DEVSTAT_TYPE_DIRECT,
+						 DEVSTAT_MATCH_TYPE },
+	{ "cd", DEVSTAT_TYPE_CDROM, DEVSTAT_MATCH_TYPE },
+	{ "scsi", DEVSTAT_TYPE_IF_SCSI, DEVSTAT_MATCH_IF },
+	{ "ide", DEVSTAT_TYPE_IF_IDE, DEVSTAT_MATCH_IF },
+	{ "other", DEVSTAT_TYPE_IF_OTHER, DEVSTAT_MATCH_IF },
+	{ "nvme", DEVSTAT_TYPE_IF_NVME, DEVSTAT_MATCH_IF },
+	{ "worm", DEVSTAT_TYPE_WORM, DEVSTAT_MATCH_TYPE },
+	{ "sa", DEVSTAT_TYPE_SEQUENTIAL, DEVSTAT_MATCH_TYPE },
+	{ "pass", DEVSTAT_TYPE_PASS, DEVSTAT_MATCH_PASS },
+	{ "optical", DEVSTAT_TYPE_OPTICAL, DEVSTAT_MATCH_TYPE },
+	{ "array", DEVSTAT_TYPE_STORARRAY, DEVSTAT_MATCH_TYPE },
+	{ "changer", DEVSTAT_TYPE_CHANGER, DEVSTAT_MATCH_TYPE },
+	{ "scanner", DEVSTAT_TYPE_SCANNER, DEVSTAT_MATCH_TYPE },
+	{ "printer", DEVSTAT_TYPE_PRINTER, DEVSTAT_MATCH_TYPE },
+	{ "floppy", DEVSTAT_TYPE_FLOPPY, DEVSTAT_MATCH_TYPE },
+	{ "proc", DEVSTAT_TYPE_PROCESSOR, DEVSTAT_MATCH_TYPE },
+	{ "comm", DEVSTAT_TYPE_COMM, DEVSTAT_MATCH_TYPE },
+	{ "enclosure", DEVSTAT_TYPE_ENCLOSURE, DEVSTAT_MATCH_TYPE },
+	{ NULL, 0, 0 } };
 
 struct devstat_args {
-	devstat_metric 		metric;
-	devstat_arg_type	argtype;
+	devstat_metric metric;
+	devstat_arg_type argtype;
 } devstat_arg_list[] = {
 	{ DSM_NONE, DEVSTAT_ARG_NOTYPE },
 	{ DSM_TOTAL_BYTES, DEVSTAT_ARG_UINT64 },
@@ -142,17 +139,17 @@ struct devstat_args {
 };
 
 static const char *namelist[] = {
-#define X_NUMDEVS	0
+#define X_NUMDEVS 0
 	"_devstat_num_devs",
-#define X_GENERATION	1
+#define X_GENERATION 1
 	"_devstat_generation",
-#define X_VERSION	2
+#define X_VERSION 2
 	"_devstat_version",
-#define X_DEVICE_STATQ	3
+#define X_DEVICE_STATQ 3
 	"_device_statq",
-#define X_TIME_UPTIME	4
+#define X_TIME_UPTIME 4
 	"_time_uptime",
-#define X_END		5
+#define X_END 5
 };
 
 /*
@@ -163,8 +160,7 @@ static int readkmem(kvm_t *kd, unsigned long addr, void *buf, size_t nbytes);
 static int readkmem_nl(kvm_t *kd, const char *name, void *buf, size_t nbytes);
 static char *get_devstat_kvm(kvm_t *kd);
 
-#define KREADNL(kd, var, val) \
-	readkmem_nl(kd, namelist[var], &val, sizeof(val))
+#define KREADNL(kd, var, val) readkmem_nl(kd, namelist[var], &val, sizeof(val))
 
 int
 devstat_getnumdevs(kvm_t *kd)
@@ -178,21 +174,21 @@ devstat_getnumdevs(kvm_t *kd)
 	 * Find out how many devices we have in the system.
 	 */
 	if (kd == NULL) {
-		if (sysctlbyname("kern.devstat.numdevs", &numdevs,
-				 &numdevsize, NULL, 0) == -1) {
+		if (sysctlbyname("kern.devstat.numdevs", &numdevs, &numdevsize,
+			NULL, 0) == -1) {
 			snprintf(devstat_errbuf, sizeof(devstat_errbuf),
-				 "%s: error getting number of devices\n"
-				 "%s: %s", __func__, __func__, 
-				 strerror(errno));
-			return(-1);
+			    "%s: error getting number of devices\n"
+			    "%s: %s",
+			    __func__, __func__, strerror(errno));
+			return (-1);
 		} else
-			return(numdevs);
+			return (numdevs);
 	} else {
 
 		if (KREADNL(kd, X_NUMDEVS, numdevs) == -1)
-			return(-1);
+			return (-1);
 		else
-			return(numdevs);
+			return (numdevs);
 	}
 }
 
@@ -215,19 +211,19 @@ devstat_getgeneration(kvm_t *kd)
 	 * Get the current generation number.
 	 */
 	if (kd == NULL) {
-		if (sysctlbyname("kern.devstat.generation", &generation, 
-				 &gensize, NULL, 0) == -1) {
+		if (sysctlbyname("kern.devstat.generation", &generation,
+			&gensize, NULL, 0) == -1) {
 			snprintf(devstat_errbuf, sizeof(devstat_errbuf),
-				 "%s: error getting devstat generation\n%s: %s",
-				 __func__, __func__, strerror(errno));
-			return(-1);
+			    "%s: error getting devstat generation\n%s: %s",
+			    __func__, __func__, strerror(errno));
+			return (-1);
 		} else
-			return(generation);
+			return (generation);
 	} else {
 		if (KREADNL(kd, X_GENERATION, generation) == -1)
-			return(-1);
+			return (-1);
 		else
-			return(generation);
+			return (generation);
 	}
 }
 
@@ -250,18 +246,18 @@ devstat_getversion(kvm_t *kd)
 	 */
 	if (kd == NULL) {
 		if (sysctlbyname("kern.devstat.version", &version, &versize,
-				 NULL, 0) == -1) {
+			NULL, 0) == -1) {
 			snprintf(devstat_errbuf, sizeof(devstat_errbuf),
-				 "%s: error getting devstat version\n%s: %s",
-				 __func__, __func__, strerror(errno));
-			return(-1);
+			    "%s: error getting devstat version\n%s: %s",
+			    __func__, __func__, strerror(errno));
+			return (-1);
 		} else
-			return(version);
+			return (version);
 	} else {
 		if (KREADNL(kd, X_VERSION, version) == -1)
-			return(-1);
+			return (-1);
 		else
-			return(version);
+			return (version);
 	}
 }
 
@@ -290,11 +286,12 @@ devstat_checkversion(kvm_t *kd)
 			buflen = 0;
 
 		res = snprintf(devstat_errbuf + buflen,
-			       DEVSTAT_ERRBUF_SIZE - buflen,
-			       "%s%s: userland devstat version %d is not "
-			       "the same as the kernel\n%s: devstat "
-			       "version %d\n", version == -1 ? "\n" : "",
-			       __func__, DEVSTAT_VERSION, __func__, version);
+		    DEVSTAT_ERRBUF_SIZE - buflen,
+		    "%s%s: userland devstat version %d is not "
+		    "the same as the kernel\n%s: devstat "
+		    "version %d\n",
+		    version == -1 ? "\n" : "", __func__, DEVSTAT_VERSION,
+		    __func__, version);
 
 		if (res < 0)
 			devstat_errbuf[buflen] = '\0';
@@ -302,14 +299,12 @@ devstat_checkversion(kvm_t *kd)
 		buflen = strlen(devstat_errbuf);
 		if (version < DEVSTAT_VERSION)
 			res = snprintf(devstat_errbuf + buflen,
-				       DEVSTAT_ERRBUF_SIZE - buflen,
-				       "%s: libdevstat newer than kernel\n",
-				       __func__);
+			    DEVSTAT_ERRBUF_SIZE - buflen,
+			    "%s: libdevstat newer than kernel\n", __func__);
 		else
 			res = snprintf(devstat_errbuf + buflen,
-				       DEVSTAT_ERRBUF_SIZE - buflen,
-				       "%s: kernel newer than libdevstat\n",
-				       __func__);
+			    DEVSTAT_ERRBUF_SIZE - buflen,
+			    "%s: kernel newer than libdevstat\n", __func__);
 
 		if (res < 0)
 			devstat_errbuf[buflen] = '\0';
@@ -317,13 +312,13 @@ devstat_checkversion(kvm_t *kd)
 		retval = -1;
 	}
 
-	return(retval);
+	return (retval);
 }
 
 /*
  * Get the current list of devices and statistics, and the current
  * generation number.
- * 
+ *
  * Return values:
  * -1  -- error
  *  0  -- device list is unchanged
@@ -343,8 +338,8 @@ devstat_getdevs(kvm_t *kd, struct statinfo *stats)
 
 	if (dinfo == NULL) {
 		snprintf(devstat_errbuf, sizeof(devstat_errbuf),
-			 "%s: stats->dinfo was NULL", __func__);
-		return(-1);
+		    "%s: stats->dinfo was NULL", __func__);
+		return (-1);
 	}
 
 	oldgeneration = dinfo->generation;
@@ -361,25 +356,25 @@ devstat_getdevs(kvm_t *kd, struct statinfo *stats)
 			 * getnumdevs() has already done that for us.
 			 */
 			if ((dinfo->numdevs = devstat_getnumdevs(kd)) < 0)
-				return(-1);
-			
+				return (-1);
+
 			/*
-			 * The kern.devstat.all sysctl returns the current 
-			 * generation number, as well as all the devices.  
+			 * The kern.devstat.all sysctl returns the current
+			 * generation number, as well as all the devices.
 			 * So we need four bytes more.
 			 */
 			dssize = (dinfo->numdevs * sizeof(struct devstat)) +
-				 sizeof(long);
+			    sizeof(long);
 			dinfo->mem_ptr = (u_int8_t *)malloc(dssize);
 			if (dinfo->mem_ptr == NULL) {
 				snprintf(devstat_errbuf, sizeof(devstat_errbuf),
-					 "%s: Cannot allocate memory for mem_ptr element",
-					 __func__);
-				return(-1);
+				    "%s: Cannot allocate memory for mem_ptr element",
+				    __func__);
+				return (-1);
 			}
 		} else
 			dssize = (dinfo->numdevs * sizeof(struct devstat)) +
-				 sizeof(long);
+			    sizeof(long);
 
 		/*
 		 * Request all of the devices.  We only really allow for one
@@ -390,62 +385,66 @@ devstat_getdevs(kvm_t *kd, struct statinfo *stats)
 		 * the user can just wait until all devices are added.
 		 */
 		for (;;) {
-			error = sysctlbyname("kern.devstat.all",
-					     dinfo->mem_ptr, 
-					     &dssize, NULL, 0);
+			error = sysctlbyname("kern.devstat.all", dinfo->mem_ptr,
+			    &dssize, NULL, 0);
 			if (error != -1 || errno != EBUSY)
 				break;
 		}
 		if (error == -1) {
 			/*
-			 * If we get ENOMEM back, that means that there are 
-			 * more devices now, so we need to allocate more 
+			 * If we get ENOMEM back, that means that there are
+			 * more devices now, so we need to allocate more
 			 * space for the device array.
 			 */
 			if (errno == ENOMEM) {
 				/*
-				 * No need to set the error string here, 
-				 * devstat_getnumdevs() will do that if it fails.
+				 * No need to set the error string here,
+				 * devstat_getnumdevs() will do that if it
+				 * fails.
 				 */
-				if ((dinfo->numdevs = devstat_getnumdevs(kd)) < 0)
-					return(-1);
+				if ((dinfo->numdevs = devstat_getnumdevs(kd)) <
+				    0)
+					return (-1);
 
-				dssize = (dinfo->numdevs * 
-					sizeof(struct devstat)) + sizeof(long);
+				dssize = (dinfo->numdevs *
+					     sizeof(struct devstat)) +
+				    sizeof(long);
 				dinfo->mem_ptr = (u_int8_t *)
-					realloc(dinfo->mem_ptr, dssize);
-				if ((error = sysctlbyname("kern.devstat.all", 
-				    dinfo->mem_ptr, &dssize, NULL, 0)) == -1) {
+				    realloc(dinfo->mem_ptr, dssize);
+				if ((error = sysctlbyname("kern.devstat.all",
+					 dinfo->mem_ptr, &dssize, NULL, 0)) ==
+				    -1) {
 					snprintf(devstat_errbuf,
-						 sizeof(devstat_errbuf),
-					    	 "%s: error getting device "
-					    	 "stats\n%s: %s", __func__,
-					    	 __func__, strerror(errno));
-					return(-1);
+					    sizeof(devstat_errbuf),
+					    "%s: error getting device "
+					    "stats\n%s: %s",
+					    __func__, __func__,
+					    strerror(errno));
+					return (-1);
 				}
 			} else {
 				snprintf(devstat_errbuf, sizeof(devstat_errbuf),
-					 "%s: error getting device stats\n"
-					 "%s: %s", __func__, __func__,
-					 strerror(errno));
-				return(-1);
+				    "%s: error getting device stats\n"
+				    "%s: %s",
+				    __func__, __func__, strerror(errno));
+				return (-1);
 			}
-		} 
+		}
 
 	} else {
 		if (KREADNL(kd, X_TIME_UPTIME, ts.tv_sec) == -1)
-			return(-1);
+			return (-1);
 		else
 			stats->snap_time = ts.tv_sec;
 
-		/* 
+		/*
 		 * This is of course non-atomic, but since we are working
 		 * on a core dump, the generation is unlikely to change
 		 */
 		if ((dinfo->numdevs = devstat_getnumdevs(kd)) == -1)
-			return(-1);
+			return (-1);
 		if ((dinfo->mem_ptr = (u_int8_t *)get_devstat_kvm(kd)) == NULL)
-			return(-1);
+			return (-1);
 	}
 	/*
 	 * The sysctl spits out the generation as the first four bytes,
@@ -471,18 +470,18 @@ devstat_getdevs(kvm_t *kd, struct statinfo *stats)
 	if (oldgeneration != dinfo->generation) {
 		if (devstat_getnumdevs(kd) != dinfo->numdevs) {
 			if ((dinfo->numdevs = devstat_getnumdevs(kd)) < 0)
-				return(-1);
+				return (-1);
 			dssize = (dinfo->numdevs * sizeof(struct devstat)) +
-				sizeof(long);
+			    sizeof(long);
 			dinfo->mem_ptr = (u_int8_t *)realloc(dinfo->mem_ptr,
-							     dssize);
+			    dssize);
 		}
 		retval = 1;
 	}
 
 	dinfo->devices = (struct devstat *)(dinfo->mem_ptr + sizeof(long));
 
-	return(retval);
+	return (retval);
 }
 
 /*
@@ -520,7 +519,7 @@ devstat_getdevs(kvm_t *kd, struct statinfo *stats)
  *        selected by the user or devices matching a pattern given by the
  *        user will be selected in addition to devices that are already
  *        selected.  Additional devices will be selected, up to maxshowdevs
- *        number of devices. 
+ *        number of devices.
  *      - only mode. (DS_SELECT_ONLY)  Only devices matching devices
  *        explicitly given by the user or devices matching a pattern
  *        given by the user will be selected.  No other devices will be
@@ -540,7 +539,7 @@ devstat_getdevs(kvm_t *kd, struct statinfo *stats)
  * - the number of devices selected and the total number of items in the
  *   device selection list may be changed
  * - the selection generation may be changed to match the current generation
- * 
+ *
  * Return values:
  * -1  -- error
  *  0  -- selected devices are unchanged
@@ -548,12 +547,10 @@ devstat_getdevs(kvm_t *kd, struct statinfo *stats)
  */
 int
 devstat_selectdevs(struct device_selection **dev_select, int *num_selected,
-		   int *num_selections, long *select_generation, 
-		   long current_generation, struct devstat *devices,
-		   int numdevs, struct devstat_match *matches, int num_matches,
-		   char **dev_selections, int num_dev_selections,
-		   devstat_select_mode select_mode, int maxshowdevs,
-		   int perf_select)
+    int *num_selections, long *select_generation, long current_generation,
+    struct devstat *devices, int numdevs, struct devstat_match *matches,
+    int num_matches, char **dev_selections, int num_dev_selections,
+    devstat_select_mode select_mode, int maxshowdevs, int perf_select)
 {
 	int i, j, k;
 	int init_selections = 0, init_selected_var = 0;
@@ -563,36 +560,37 @@ devstat_selectdevs(struct device_selection **dev_select, int *num_selected,
 	int changed = 0, found = 0;
 
 	if ((dev_select == NULL) || (devices == NULL) || (numdevs < 0))
-		return(-1);
+		return (-1);
 
 	/*
 	 * We always want to make sure that we have as many dev_select
-	 * entries as there are devices. 
+	 * entries as there are devices.
 	 */
 	/*
 	 * In this case, we haven't selected devices before.
 	 */
 	if (*dev_select == NULL) {
-		*dev_select = (struct device_selection *)malloc(numdevs *
-			sizeof(struct device_selection));
+		*dev_select = (struct device_selection *)malloc(
+		    numdevs * sizeof(struct device_selection));
 		*select_generation = current_generation;
 		init_selections = 1;
 		changed = 1;
-	/*
-	 * In this case, we have selected devices before, but the device
-	 * list has changed since we last selected devices, so we need to
-	 * either enlarge or reduce the size of the device selection list.
-	 * But delay the resizing until after copying the data to old_dev_select
-	 * as to not lose any data in the case of reducing the size.
-	 */
+		/*
+		 * In this case, we have selected devices before, but the device
+		 * list has changed since we last selected devices, so we need
+		 * to either enlarge or reduce the size of the device selection
+		 * list. But delay the resizing until after copying the data to
+		 * old_dev_select as to not lose any data in the case of
+		 * reducing the size.
+		 */
 	} else if (*num_selections != numdevs) {
 		*select_generation = current_generation;
 		init_selections = 1;
-	/*
-	 * In this case, we've selected devices before, and the selection
-	 * list is the same size as it was the last time, but the device
-	 * list has changed.
-	 */
+		/*
+		 * In this case, we've selected devices before, and the
+		 * selection list is the same size as it was the last time, but
+		 * the device list has changed.
+		 */
 	} else if (*select_generation < current_generation) {
 		*select_generation = current_generation;
 		init_selections = 1;
@@ -600,9 +598,9 @@ devstat_selectdevs(struct device_selection **dev_select, int *num_selected,
 
 	if (*dev_select == NULL) {
 		snprintf(devstat_errbuf, sizeof(devstat_errbuf),
-			 "%s: Cannot (re)allocate memory for dev_select argument",
-			 __func__);
-		return(-1);
+		    "%s: Cannot (re)allocate memory for dev_select argument",
+		    __func__);
+		return (-1);
 	}
 
 	/*
@@ -621,55 +619,56 @@ devstat_selectdevs(struct device_selection **dev_select, int *num_selected,
 	old_num_selected = *num_selected;
 
 	/*
-	 * We want to make a backup of the current selection list if 
-	 * the list of devices has changed, or if we're in performance 
+	 * We want to make a backup of the current selection list if
+	 * the list of devices has changed, or if we're in performance
 	 * selection mode.  In both cases, we don't want to make a backup
 	 * if we already know for sure that the list will be different.
 	 * This is certainly the case if this is our first time through the
 	 * selection code.
 	 */
-	if (((init_selected_var != 0) || (init_selections != 0)
-	 || (perf_select != 0)) && (changed == 0)){
+	if (((init_selected_var != 0) || (init_selections != 0) ||
+		(perf_select != 0)) &&
+	    (changed == 0)) {
 		old_dev_select = (struct device_selection *)malloc(
 		    *num_selections * sizeof(struct device_selection));
 		if (old_dev_select == NULL) {
 			snprintf(devstat_errbuf, sizeof(devstat_errbuf),
-				 "%s: Cannot allocate memory for selection list backup",
-				 __func__);
-			return(-1);
+			    "%s: Cannot allocate memory for selection list backup",
+			    __func__);
+			return (-1);
 		}
 		old_num_selections = *num_selections;
-		bcopy(*dev_select, old_dev_select, 
+		bcopy(*dev_select, old_dev_select,
 		    sizeof(struct device_selection) * *num_selections);
 	}
 
 	if (!changed && *num_selections != numdevs) {
 		*dev_select = (struct device_selection *)reallocf(*dev_select,
-			numdevs * sizeof(struct device_selection));
+		    numdevs * sizeof(struct device_selection));
 	}
 
 	if (init_selections != 0) {
 		bzero(*dev_select, sizeof(struct device_selection) * numdevs);
 
 		for (i = 0; i < numdevs; i++) {
-			(*dev_select)[i].device_number = 
-				devices[i].device_number;
+			(*dev_select)[i].device_number =
+			    devices[i].device_number;
 			strncpy((*dev_select)[i].device_name,
-				devices[i].device_name,
-				DEVSTAT_NAME_LEN);
-			(*dev_select)[i].device_name[DEVSTAT_NAME_LEN - 1]='\0';
+			    devices[i].device_name, DEVSTAT_NAME_LEN);
+			(*dev_select)[i].device_name[DEVSTAT_NAME_LEN - 1] =
+			    '\0';
 			(*dev_select)[i].unit_number = devices[i].unit_number;
 			(*dev_select)[i].position = i;
 		}
 		*num_selections = numdevs;
 	} else if (init_selected_var != 0) {
-		for (i = 0; i < numdevs; i++) 
+		for (i = 0; i < numdevs; i++)
 			(*dev_select)[i].selected = 0;
 	}
 
 	/* we haven't gotten around to selecting anything yet.. */
-	if ((select_mode == DS_SELECT_ONLY) || (init_selections != 0)
-	 || (init_selected_var != 0))
+	if ((select_mode == DS_SELECT_ONLY) || (init_selections != 0) ||
+	    (init_selected_var != 0))
 		*num_selected = 0;
 
 	/*
@@ -680,8 +679,7 @@ devstat_selectdevs(struct device_selection **dev_select, int *num_selected,
 		char tmpstr[80];
 
 		snprintf(tmpstr, sizeof(tmpstr), "%s%d",
-			 (*dev_select)[i].device_name,
-			 (*dev_select)[i].unit_number);
+		    (*dev_select)[i].device_name, (*dev_select)[i].unit_number);
 		for (j = 0; j < num_dev_selections; j++) {
 			if (strcmp(tmpstr, dev_selections[j]) == 0) {
 				/*
@@ -700,7 +698,7 @@ devstat_selectdevs(struct device_selection **dev_select, int *num_selected,
 				 * mode, we de-select the specified device and
 				 * decrement the selection count.
 				 */
-				switch(select_mode) {
+				switch (select_mode) {
 				case DS_SELECT_ADD:
 				case DS_SELECT_ADDONLY:
 					if ((*dev_select)[i].selected)
@@ -708,7 +706,7 @@ devstat_selectdevs(struct device_selection **dev_select, int *num_selected,
 					/* FALLTHROUGH */
 				case DS_SELECT_ONLY:
 					(*dev_select)[i].selected =
-						++selection_number;
+					    ++selection_number;
 					(*num_selected)++;
 					break;
 				case DS_SELECT_REMOVE:
@@ -734,8 +732,8 @@ devstat_selectdevs(struct device_selection **dev_select, int *num_selected,
 	 */
 	for (i = 0; (i < num_matches) && (*num_selected < maxshowdevs); i++) {
 		/* We should probably indicate some error here */
-		if ((matches[i].match_fields == DEVSTAT_MATCH_NONE)
-		 || (matches[i].num_match_categories <= 0))
+		if ((matches[i].match_fields == DEVSTAT_MATCH_NONE) ||
+		    (matches[i].num_match_categories <= 0))
 			continue;
 
 		for (j = 0; j < numdevs; j++) {
@@ -750,33 +748,42 @@ devstat_selectdevs(struct device_selection **dev_select, int *num_selected,
 			 *   - the device type check
 			 *   - the device interface check
 			 *   - the passthrough check
-			 * If a the matching test is successful, it 
+			 * If a the matching test is successful, it
 			 * decrements the number of matching categories,
 			 * and if we've reached the last element that
 			 * needed to be matched, the if statement succeeds.
-			 * 
+			 *
 			 */
-			if ((((matches[i].match_fields & DEVSTAT_MATCH_TYPE)!=0)
-			  && ((devices[j].device_type & DEVSTAT_TYPE_MASK) ==
-			        (matches[i].device_type & DEVSTAT_TYPE_MASK))
-			  &&(((matches[i].match_fields & DEVSTAT_MATCH_PASS)!=0)
-			   || (((matches[i].match_fields & 
-				DEVSTAT_MATCH_PASS) == 0)
-			    && ((devices[j].device_type &
-			        DEVSTAT_TYPE_PASS) == 0)))
-			  && (--num_match_categories == 0)) 
-			 || (((matches[i].match_fields & DEVSTAT_MATCH_IF) != 0)
-			  && ((devices[j].device_type & DEVSTAT_TYPE_IF_MASK) ==
-			        (matches[i].device_type & DEVSTAT_TYPE_IF_MASK))
-			  &&(((matches[i].match_fields & DEVSTAT_MATCH_PASS)!=0)
-			   || (((matches[i].match_fields &
-				DEVSTAT_MATCH_PASS) == 0)
-			    && ((devices[j].device_type & 
-				DEVSTAT_TYPE_PASS) == 0)))
-			  && (--num_match_categories == 0))
-			 || (((matches[i].match_fields & DEVSTAT_MATCH_PASS)!=0)
-			  && ((devices[j].device_type & DEVSTAT_TYPE_PASS) != 0)
-			  && (--num_match_categories == 0))) {
+			if ((((matches[i].match_fields & DEVSTAT_MATCH_TYPE) !=
+				 0) &&
+				((devices[j].device_type & DEVSTAT_TYPE_MASK) ==
+				    (matches[i].device_type &
+					DEVSTAT_TYPE_MASK)) &&
+				(((matches[i].match_fields &
+				      DEVSTAT_MATCH_PASS) != 0) ||
+				    (((matches[i].match_fields &
+					  DEVSTAT_MATCH_PASS) == 0) &&
+					((devices[j].device_type &
+					     DEVSTAT_TYPE_PASS) == 0))) &&
+				(--num_match_categories == 0)) ||
+			    (((matches[i].match_fields & DEVSTAT_MATCH_IF) !=
+				 0) &&
+				((devices[j].device_type &
+				     DEVSTAT_TYPE_IF_MASK) ==
+				    (matches[i].device_type &
+					DEVSTAT_TYPE_IF_MASK)) &&
+				(((matches[i].match_fields &
+				      DEVSTAT_MATCH_PASS) != 0) ||
+				    (((matches[i].match_fields &
+					  DEVSTAT_MATCH_PASS) == 0) &&
+					((devices[j].device_type &
+					     DEVSTAT_TYPE_PASS) == 0))) &&
+				(--num_match_categories == 0)) ||
+			    (((matches[i].match_fields & DEVSTAT_MATCH_PASS) !=
+				 0) &&
+				((devices[j].device_type & DEVSTAT_TYPE_PASS) !=
+				    0) &&
+				(--num_match_categories == 0))) {
 
 				/*
 				 * This is probably a non-optimal solution
@@ -798,11 +805,12 @@ devstat_selectdevs(struct device_selection **dev_select, int *num_selected,
 				 * selection list...but it could happen.
 				 */
 				if (found != 1) {
-					fprintf(stderr, "selectdevs: couldn't"
-						" find %s%d in selection "
-						"list\n",
-						devices[j].device_name,
-						devices[j].unit_number);
+					fprintf(stderr,
+					    "selectdevs: couldn't"
+					    " find %s%d in selection "
+					    "list\n",
+					    devices[j].device_name,
+					    devices[j].unit_number);
 					break;
 				}
 
@@ -820,14 +828,14 @@ devstat_selectdevs(struct device_selection **dev_select, int *num_selected,
 				 * mode, we de-select the given device and
 				 * decrement the selected count.
 				 */
-				switch(select_mode) {
+				switch (select_mode) {
 				case DS_SELECT_ADD:
 				case DS_SELECT_ADDONLY:
 				case DS_SELECT_ONLY:
 					if ((*dev_select)[k].selected != 0)
 						break;
 					(*dev_select)[k].selected =
-						++selection_number;
+					    ++selection_number;
 					(*num_selected)++;
 					break;
 				case DS_SELECT_REMOVE:
@@ -862,8 +870,7 @@ devstat_selectdevs(struct device_selection **dev_select, int *num_selected,
 
 		/* Sort the device array by throughput  */
 		qsort(*dev_select, *num_selections,
-		      sizeof(struct device_selection),
-		      compare_select);
+		    sizeof(struct device_selection), compare_select);
 
 		if (*num_selected == 0) {
 			/*
@@ -876,7 +883,7 @@ devstat_selectdevs(struct device_selection **dev_select, int *num_selected,
 			for (i = 0; i < *num_selections; i++) {
 				if ((*dev_select)[i].selected == 0) {
 					(*dev_select)[i].selected =
-						++selection_number;
+					    ++selection_number;
 					(*num_selected)++;
 				}
 			}
@@ -885,7 +892,7 @@ devstat_selectdevs(struct device_selection **dev_select, int *num_selected,
 			for (i = 0; i < *num_selections; i++) {
 				if ((*dev_select)[i].selected != 0) {
 					(*dev_select)[i].selected =
-						++selection_number;
+					    ++selection_number;
 				}
 			}
 		}
@@ -924,8 +931,9 @@ devstat_selectdevs(struct device_selection **dev_select, int *num_selected,
 		 * Now we go through the selection list and we look at
 		 * it three different ways.
 		 */
-		for (i = 0; (i < *num_selections) && (changed == 0) && 
-		     (i < old_num_selections); i++) {
+		for (i = 0; (i < *num_selections) && (changed == 0) &&
+		     (i < old_num_selections);
+		     i++) {
 			/*
 			 * If the device at index i in both the new and old
 			 * selection arrays has the same device number and
@@ -933,9 +941,9 @@ devstat_selectdevs(struct device_selection **dev_select, int *num_selected,
 			 * continue on to the next index.
 			 */
 			if (((*dev_select)[i].device_number ==
-			     old_dev_select[i].device_number)
-			 && ((*dev_select)[i].selected == 
-			     old_dev_select[i].selected))
+				old_dev_select[i].device_number) &&
+			    ((*dev_select)[i].selected ==
+				old_dev_select[i].selected))
 				continue;
 
 			/*
@@ -948,7 +956,7 @@ devstat_selectdevs(struct device_selection **dev_select, int *num_selected,
 			 * changed to 1 and exit the loop.
 			 */
 			else if ((*dev_select)[i].device_number ==
-			          old_dev_select[i].device_number) {
+			    old_dev_select[i].device_number) {
 				changed = 1;
 				break;
 			}
@@ -973,14 +981,15 @@ devstat_selectdevs(struct device_selection **dev_select, int *num_selected,
 				 */
 				for (j = 0; j < old_num_selections; j++) {
 					if (((*dev_select)[i].device_number ==
-					      old_dev_select[j].device_number)
-					 && ((*dev_select)[i].selected ==
-					      old_dev_select[j].selected)){
+						old_dev_select[j]
+						    .device_number) &&
+					    ((*dev_select)[i].selected ==
+						old_dev_select[j].selected)) {
 						found = 1;
 						break;
-					}
-					else if ((*dev_select)[i].device_number
-					    == old_dev_select[j].device_number)
+					} else if ((*dev_select)[i]
+						       .device_number ==
+					    old_dev_select[j].device_number)
 						break;
 				}
 				if (found == 0)
@@ -991,7 +1000,7 @@ devstat_selectdevs(struct device_selection **dev_select, int *num_selected,
 	if (old_dev_select != NULL)
 		free(old_dev_select);
 
-	return(changed);
+	return (changed);
 }
 
 /*
@@ -1009,20 +1018,20 @@ devstat_selectdevs(struct device_selection **dev_select, int *num_selected,
 static int
 compare_select(const void *arg1, const void *arg2)
 {
-	if ((((const struct device_selection *)arg1)->selected)
-	 && (((const struct device_selection *)arg2)->selected == 0))
-		return(-1);
-	else if ((((const struct device_selection *)arg1)->selected == 0)
-	      && (((const struct device_selection *)arg2)->selected))
-		return(1);
+	if ((((const struct device_selection *)arg1)->selected) &&
+	    (((const struct device_selection *)arg2)->selected == 0))
+		return (-1);
+	else if ((((const struct device_selection *)arg1)->selected == 0) &&
+	    (((const struct device_selection *)arg2)->selected))
+		return (1);
 	else if (((const struct device_selection *)arg2)->bytes <
-	         ((const struct device_selection *)arg1)->bytes)
-		return(-1);
+	    ((const struct device_selection *)arg1)->bytes)
+		return (-1);
 	else if (((const struct device_selection *)arg2)->bytes >
-		 ((const struct device_selection *)arg1)->bytes)
-		return(1);
+	    ((const struct device_selection *)arg1)->bytes)
+		return (1);
 	else
-		return(0);
+		return (0);
 }
 
 /*
@@ -1031,7 +1040,7 @@ compare_select(const void *arg1, const void *arg2)
  */
 int
 devstat_buildmatch(char *match_str, struct devstat_match **matches,
-		   int *num_matches)
+    int *num_matches)
 {
 	char *tstr[5];
 	char **tempstr;
@@ -1041,14 +1050,14 @@ devstat_buildmatch(char *match_str, struct devstat_match **matches,
 	/* We can't do much without a string to parse */
 	if (match_str == NULL) {
 		snprintf(devstat_errbuf, sizeof(devstat_errbuf),
-			 "%s: no match expression", __func__);
-		return(-1);
+		    "%s: no match expression", __func__);
+		return (-1);
 	}
 
 	/*
 	 * Break the (comma delimited) input string out into separate strings.
 	 */
-	for (tempstr = tstr, num_args  = 0; 
+	for (tempstr = tstr, num_args = 0;
 	     (*tempstr = strsep(&match_str, ",")) != NULL && (num_args < 5);)
 		if (**tempstr != '\0') {
 			num_args++;
@@ -1059,22 +1068,22 @@ devstat_buildmatch(char *match_str, struct devstat_match **matches,
 	/* The user gave us too many type arguments */
 	if (num_args > 3) {
 		snprintf(devstat_errbuf, sizeof(devstat_errbuf),
-			 "%s: too many type arguments", __func__);
-		return(-1);
+		    "%s: too many type arguments", __func__);
+		return (-1);
 	}
 
 	if (*num_matches == 0)
 		*matches = NULL;
 
 	*matches = (struct devstat_match *)reallocf(*matches,
-		  sizeof(struct devstat_match) * (*num_matches + 1));
+	    sizeof(struct devstat_match) * (*num_matches + 1));
 
 	if (*matches == NULL) {
 		snprintf(devstat_errbuf, sizeof(devstat_errbuf),
-			 "%s: Cannot allocate memory for matches list", __func__);
-		return(-1);
+		    "%s: Cannot allocate memory for matches list", __func__);
+		return (-1);
 	}
-			  
+
 	/* Make sure the current entry is clear */
 	bzero(&matches[0][*num_matches], sizeof(struct devstat_match));
 
@@ -1097,40 +1106,41 @@ devstat_buildmatch(char *match_str, struct devstat_match **matches,
 		 */
 		tempstr3 = &tempstr2[strlen(tempstr2) - 1];
 
-		while ((*tempstr3 != '\0') && (tempstr3 > tempstr2)
-		    && (isspace(*tempstr3))) {
+		while ((*tempstr3 != '\0') && (tempstr3 > tempstr2) &&
+		    (isspace(*tempstr3))) {
 			*tempstr3 = '\0';
 			tempstr3--;
 		}
 
 		/*
 		 * Go through the match table comparing the user's
-		 * arguments to known device types, interfaces, etc.  
+		 * arguments to known device types, interfaces, etc.
 		 */
 		for (j = 0; match_table[j].match_str != NULL; j++) {
 			/*
 			 * We do case-insensitive matching, in case someone
 			 * wants to enter "SCSI" instead of "scsi" or
-			 * something like that.  Only compare as many 
-			 * characters as are in the string in the match 
-			 * table.  This should help if someone tries to use 
-			 * a super-long match expression.  
+			 * something like that.  Only compare as many
+			 * characters as are in the string in the match
+			 * table.  This should help if someone tries to use
+			 * a super-long match expression.
 			 */
 			if (strncasecmp(tempstr2, match_table[j].match_str,
-			    strlen(match_table[j].match_str)) == 0) {
+				strlen(match_table[j].match_str)) == 0) {
 				/*
 				 * Make sure the user hasn't specified two
 				 * items of the same type, like "da" and
 				 * "cd".  One device cannot be both.
 				 */
 				if (((*matches)[*num_matches].match_fields &
-				    match_table[j].match_field) != 0) {
+					match_table[j].match_field) != 0) {
 					snprintf(devstat_errbuf,
-						 sizeof(devstat_errbuf),
-						 "%s: cannot have more than "
-						 "one match item in a single "
-						 "category", __func__);
-					return(-1);
+					    sizeof(devstat_errbuf),
+					    "%s: cannot have more than "
+					    "one match item in a single "
+					    "category",
+					    __func__);
+					return (-1);
 				}
 				/*
 				 * If we've gotten this far, we have a
@@ -1138,9 +1148,9 @@ devstat_buildmatch(char *match_str, struct devstat_match **matches,
 				 * the match entry.
 				 */
 				(*matches)[*num_matches].match_fields |=
-					match_table[j].match_field;
+				    match_table[j].match_field;
 				(*matches)[*num_matches].device_type |=
-					match_table[j].type;
+				    match_table[j].type;
 				(*matches)[*num_matches].num_match_categories++;
 				break;
 			}
@@ -1152,15 +1162,14 @@ devstat_buildmatch(char *match_str, struct devstat_match **matches,
 		 */
 		if ((*matches)[*num_matches].num_match_categories != (i + 1)) {
 			snprintf(devstat_errbuf, sizeof(devstat_errbuf),
-				 "%s: unknown match item \"%s\"", __func__,
-				 tstr[i]);
-			return(-1);
+			    "%s: unknown match item \"%s\"", __func__, tstr[i]);
+			return (-1);
 		}
 	}
 
 	(*num_matches)++;
 
-	return(0);
+	return (0);
 }
 
 /*
@@ -1174,32 +1183,23 @@ devstat_buildmatch(char *match_str, struct devstat_match **matches,
  */
 int
 compute_stats(struct devstat *current, struct devstat *previous,
-	      long double etime, u_int64_t *total_bytes,
-	      u_int64_t *total_transfers, u_int64_t *total_blocks,
-	      long double *kb_per_transfer, long double *transfers_per_second,
-	      long double *mb_per_second, long double *blocks_per_second,
-	      long double *ms_per_transaction)
+    long double etime, u_int64_t *total_bytes, u_int64_t *total_transfers,
+    u_int64_t *total_blocks, long double *kb_per_transfer,
+    long double *transfers_per_second, long double *mb_per_second,
+    long double *blocks_per_second, long double *ms_per_transaction)
 {
-	return(devstat_compute_statistics(current, previous, etime,
-	       total_bytes ? DSM_TOTAL_BYTES : DSM_SKIP,
-	       total_bytes,
-	       total_transfers ? DSM_TOTAL_TRANSFERS : DSM_SKIP,
-	       total_transfers,
-	       total_blocks ? DSM_TOTAL_BLOCKS : DSM_SKIP,
-	       total_blocks,
-	       kb_per_transfer ? DSM_KB_PER_TRANSFER : DSM_SKIP,
-	       kb_per_transfer,
-	       transfers_per_second ? DSM_TRANSFERS_PER_SECOND : DSM_SKIP,
-	       transfers_per_second,
-	       mb_per_second ? DSM_MB_PER_SECOND : DSM_SKIP,
-	       mb_per_second,
-	       blocks_per_second ? DSM_BLOCKS_PER_SECOND : DSM_SKIP,
-	       blocks_per_second,
-	       ms_per_transaction ? DSM_MS_PER_TRANSACTION : DSM_SKIP,
-	       ms_per_transaction,
-	       DSM_NONE));
+	return (devstat_compute_statistics(current, previous, etime,
+	    total_bytes ? DSM_TOTAL_BYTES : DSM_SKIP, total_bytes,
+	    total_transfers ? DSM_TOTAL_TRANSFERS : DSM_SKIP, total_transfers,
+	    total_blocks ? DSM_TOTAL_BLOCKS : DSM_SKIP, total_blocks,
+	    kb_per_transfer ? DSM_KB_PER_TRANSFER : DSM_SKIP, kb_per_transfer,
+	    transfers_per_second ? DSM_TRANSFERS_PER_SECOND : DSM_SKIP,
+	    transfers_per_second, mb_per_second ? DSM_MB_PER_SECOND : DSM_SKIP,
+	    mb_per_second, blocks_per_second ? DSM_BLOCKS_PER_SECOND : DSM_SKIP,
+	    blocks_per_second,
+	    ms_per_transaction ? DSM_MS_PER_TRANSACTION : DSM_SKIP,
+	    ms_per_transaction, DSM_NONE));
 }
-
 
 /* This is 1/2^64 */
 #define BINTIME_SCALE 5.42101086242752217003726400434970855712890625e-20
@@ -1215,19 +1215,19 @@ devstat_compute_etime(struct bintime *cur_time, struct bintime *prev_time)
 		etime -= prev_time->sec;
 		etime -= prev_time->frac * BINTIME_SCALE;
 	}
-	return(etime);
+	return (etime);
 }
 
-#define DELTA(field, index)				\
+#define DELTA(field, index) \
 	(current->field[(index)] - (previous ? previous->field[(index)] : 0))
 
-#define DELTA_T(field)					\
-	devstat_compute_etime(&current->field,  	\
-	(previous ? &previous->field : NULL))
+#define DELTA_T(field)                         \
+	devstat_compute_etime(&current->field, \
+	    (previous ? &previous->field : NULL))
 
 int
 devstat_compute_statistics(struct devstat *current, struct devstat *previous,
-			   long double etime, ...)
+    long double etime, ...)
 {
 	u_int64_t totalbytes, totalbytesread, totalbyteswrite, totalbytesfree;
 	u_int64_t totaltransfers, totaltransfersread, totaltransferswrite;
@@ -1248,8 +1248,8 @@ devstat_compute_statistics(struct devstat *current, struct devstat *previous,
 	 */
 	if (current == NULL) {
 		snprintf(devstat_errbuf, sizeof(devstat_errbuf),
-			 "%s: current stats structure was NULL", __func__);
-		return(-1);
+		    "%s: current stats structure was NULL", __func__);
+		return (-1);
 	}
 
 	totalbytesread = DELTA(bytes, DEVSTAT_READ);
@@ -1262,7 +1262,7 @@ devstat_compute_statistics(struct devstat *current, struct devstat *previous,
 	totaltransfersother = DELTA(operations, DEVSTAT_NO_DATA);
 	totaltransfersfree = DELTA(operations, DEVSTAT_FREE);
 	totaltransfers = totaltransfersread + totaltransferswrite +
-			 totaltransfersother + totaltransfersfree;
+	    totaltransfersother + totaltransfersfree;
 
 	totalblocks = totalbytes;
 	totalblocksread = totalbytesread;
@@ -1297,8 +1297,7 @@ devstat_compute_statistics(struct devstat *current, struct devstat *previous,
 
 		if (metric >= DSM_MAX) {
 			snprintf(devstat_errbuf, sizeof(devstat_errbuf),
-				 "%s: metric %d is out of range", __func__,
-				 metric);
+			    "%s: metric %d is out of range", __func__, metric);
 			retval = -1;
 			goto bailout;
 		}
@@ -1492,7 +1491,7 @@ devstat_compute_statistics(struct devstat *current, struct devstat *previous,
 		/*
 		 * Some devstat callers update the duration and some don't.
 		 * So this will only be accurate if they provide the
-		 * duration. 
+		 * duration.
 		 */
 		case DSM_MS_PER_TRANSACTION:
 			if (totaltransfers > 0) {
@@ -1575,7 +1574,7 @@ devstat_compute_statistics(struct devstat *current, struct devstat *previous,
 			 * the loop.
 			 */
 			snprintf(devstat_errbuf, sizeof(devstat_errbuf),
-				 "%s: unknown metric %d", __func__, metric);
+			    "%s: unknown metric %d", __func__, metric);
 			retval = -1;
 			goto bailout;
 			break; /* NOTREACHED */
@@ -1586,20 +1585,20 @@ devstat_compute_statistics(struct devstat *current, struct devstat *previous,
 bailout:
 
 	va_end(ap);
-	return(retval);
+	return (retval);
 }
 
-static int 
+static int
 readkmem(kvm_t *kd, unsigned long addr, void *buf, size_t nbytes)
 {
 
 	if (kvm_read(kd, addr, buf, nbytes) == -1) {
 		snprintf(devstat_errbuf, sizeof(devstat_errbuf),
-			 "%s: error reading value (kvm_read): %s", __func__,
-			 kvm_geterr(kd));
-		return(-1);
+		    "%s: error reading value (kvm_read): %s", __func__,
+		    kvm_geterr(kd));
+		return (-1);
 	}
-	return(0);
+	return (0);
 }
 
 static int
@@ -1612,11 +1611,11 @@ readkmem_nl(kvm_t *kd, const char *name, void *buf, size_t nbytes)
 
 	if (kvm_nlist(kd, nl) == -1) {
 		snprintf(devstat_errbuf, sizeof(devstat_errbuf),
-			 "%s: error getting name list (kvm_nlist): %s",
-			 __func__, kvm_geterr(kd));
-		return(-1);
+		    "%s: error getting name list (kvm_nlist): %s", __func__,
+		    kvm_geterr(kd));
+		return (-1);
 	}
-	return(readkmem(kd, nl[0].n_value, buf, nbytes));
+	return (readkmem(kd, nl[0].n_value, buf, nbytes));
 }
 
 /*
@@ -1635,17 +1634,16 @@ get_devstat_kvm(kvm_t *kd)
 	char *rv = NULL;
 
 	if ((num_devs = devstat_getnumdevs(kd)) <= 0)
-		return(NULL);
+		return (NULL);
 	if (KREADNL(kd, X_DEVICE_STATQ, dhead) == -1)
-		return(NULL);
+		return (NULL);
 
 	nds = STAILQ_FIRST(&dhead);
-	
+
 	if ((rv = malloc(sizeof(gen))) == NULL) {
-		snprintf(devstat_errbuf, sizeof(devstat_errbuf), 
-			 "%s: out of memory (initial malloc failed)",
-			 __func__);
-		return(NULL);
+		snprintf(devstat_errbuf, sizeof(devstat_errbuf),
+		    "%s: out of memory (initial malloc failed)", __func__);
+		return (NULL);
 	}
 	gen = devstat_getgeneration(kd);
 	memcpy(rv, &gen, sizeof(gen));
@@ -1653,23 +1651,21 @@ get_devstat_kvm(kvm_t *kd)
 	/*
 	 * Now push out all the devices.
 	 */
-	for (i = 0; (nds != NULL) && (i < num_devs);  
+	for (i = 0; (nds != NULL) && (i < num_devs);
 	     nds = STAILQ_NEXT(nds, dev_links), i++) {
 		if (readkmem(kd, (long)nds, &ds, sizeof(ds)) == -1) {
 			free(rv);
-			return(NULL);
+			return (NULL);
 		}
 		nds = &ds;
-		rv = (char *)reallocf(rv, sizeof(gen) + 
-				      sizeof(ds) * (i + 1));
+		rv = (char *)reallocf(rv, sizeof(gen) + sizeof(ds) * (i + 1));
 		if (rv == NULL) {
-			snprintf(devstat_errbuf, sizeof(devstat_errbuf), 
-				 "%s: out of memory (malloc failed)",
-				 __func__);
-			return(NULL);
+			snprintf(devstat_errbuf, sizeof(devstat_errbuf),
+			    "%s: out of memory (malloc failed)", __func__);
+			return (NULL);
 		}
 		memcpy(rv + wp, &ds, sizeof(ds));
 		wp += sizeof(ds);
 	}
-	return(rv);
+	return (rv);
 }

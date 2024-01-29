@@ -37,18 +37,19 @@
  */
 
 #include <sys/types.h>
-#include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/time.h>
 
-#include <rpc/rpc.h>
 #include <rpc/key_prot.h>
+#include <rpc/rpc.h>
 
 #ifdef YP
 #include <sys/wait.h>
+
+#include <netdb.h>
 #include <rpcsvc/yp_prot.h>
 #include <rpcsvc/ypclnt.h>
-#include <netdb.h>
-#endif	/* YP */
+#endif /* YP */
 
 #include <pwd.h>
 #include <stdio.h>
@@ -60,7 +61,7 @@
 
 #ifdef YP
 static char SHELL[] = "/bin/sh";
-static char YPDBPATH[]="/var/yp";	/* This is defined but not used! */
+static char YPDBPATH[] = "/var/yp"; /* This is defined but not used! */
 static char UPDATEFILE[] = "updaters";
 
 static int _openchild(char *, FILE **, FILE **);
@@ -72,8 +73,8 @@ static char *basename(char *path);
  * if there is no access violation.
  */
 int
-mapupdate(char *requester, char *mapname, u_int op, u_int keylen,
-    char *key, u_int datalen, char *data)
+mapupdate(char *requester, char *mapname, u_int op, u_int keylen, char *key,
+    u_int datalen, char *data)
 {
 	char updater[MAXMAPNAMELEN + 40];
 	FILE *childargs;
@@ -86,12 +87,11 @@ mapupdate(char *requester, char *mapname, u_int op, u_int keylen,
 	pid_t pid;
 	u_int yperrno;
 
-
 #ifdef DEBUG
 	printf("%s %s\n", key, data);
 #endif
 	(void)sprintf(updater, "make -s -f %s/%s %s", YPDBPATH, /* !!! */
-					UPDATEFILE, mapname);
+	    UPDATEFILE, mapname);
 	pid = _openchild(updater, &childargs, &childrslt);
 	if (pid < 0) {
 		return (YPERR_YPERR);
@@ -160,9 +160,9 @@ _openchild(char *command, FILE **fto, FILE **ffrom)
 		(void)dup(pdfrom[1]);
 		getrlimit(RLIMIT_NOFILE, &rl);
 		for (i = rl.rlim_max - 1; i >= 3; i--) {
-			(void) close(i);
+			(void)close(i);
 		}
-		com = malloc((unsigned) strlen(command) + 6);
+		com = malloc((unsigned)strlen(command) + 6);
 		if (com == NULL) {
 			_exit(~0);
 		}
@@ -210,12 +210,12 @@ basename(char *path)
 
 #else /* YP */
 
-#define	ERR_ACCESS	1
-#define	ERR_MALLOC	2
-#define	ERR_READ	3
-#define	ERR_WRITE	4
-#define	ERR_DBASE	5
-#define	ERR_KEY		6
+#define ERR_ACCESS 1
+#define ERR_MALLOC 2
+#define ERR_READ 3
+#define ERR_WRITE 4
+#define ERR_DBASE 5
+#define ERR_KEY 6
 
 static int match(char *, char *);
 
@@ -268,7 +268,7 @@ localupdate(char *name, char *filename, u_int op, u_int keylen __unused,
 		goto cleanup;
 	}
 	err = -1;
-	while (fgets(line, sizeof (line), rf)) {
+	while (fgets(line, sizeof(line), rf)) {
 		if (err < 0 && match(line, name)) {
 			switch (op) {
 			case YPOP_INSERT:
@@ -327,6 +327,6 @@ match(char *line, char *name)
 
 	len = strlen(name);
 	return (strncmp(line, name, len) == 0 &&
-		(line[len] == ' ' || line[len] == '\t'));
+	    (line[len] == ' ' || line[len] == '\t'));
 }
 #endif /* !YP */

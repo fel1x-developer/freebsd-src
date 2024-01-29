@@ -32,29 +32,29 @@
 #define _CITRUS_HASH_H_
 
 #define _CITRUS_HASH_ENTRY(type) LIST_ENTRY(type)
-#define _CITRUS_HASH_HEAD(headname, type, hashsize)	\
-struct headname {					\
-	LIST_HEAD(, type)	chh_table[hashsize];	\
-}
-#define _CITRUS_HASH_INIT(head, hashsize)			\
-do {								\
-	int _ch_loop;						\
-								\
-	for (_ch_loop = 0; _ch_loop < hashsize; _ch_loop++)	\
-		LIST_INIT(&(head)->chh_table[_ch_loop]);	\
-} while (0)
-#define _CITRUS_HASH_REMOVE(elm, field)	LIST_REMOVE(elm, field)
-#define _CITRUS_HASH_INSERT(head, elm, field, hashval)		\
-    LIST_INSERT_HEAD(&(head)->chh_table[hashval], elm, field)
-#define _CITRUS_HASH_SEARCH(head, elm, field, matchfunc, key, hashval)	\
-do {									\
-	LIST_FOREACH((elm), &(head)->chh_table[hashval], field)		\
-		if (matchfunc((elm), key) == 0)				\
-			break;						\
-} while (0)
+#define _CITRUS_HASH_HEAD(headname, type, hashsize)    \
+	struct headname {                              \
+		LIST_HEAD(, type) chh_table[hashsize]; \
+	}
+#define _CITRUS_HASH_INIT(head, hashsize)                           \
+	do {                                                        \
+		int _ch_loop;                                       \
+                                                                    \
+		for (_ch_loop = 0; _ch_loop < hashsize; _ch_loop++) \
+			LIST_INIT(&(head)->chh_table[_ch_loop]);    \
+	} while (0)
+#define _CITRUS_HASH_REMOVE(elm, field) LIST_REMOVE(elm, field)
+#define _CITRUS_HASH_INSERT(head, elm, field, hashval) \
+	LIST_INSERT_HEAD(&(head)->chh_table[hashval], elm, field)
+#define _CITRUS_HASH_SEARCH(head, elm, field, matchfunc, key, hashval)   \
+	do {                                                             \
+		LIST_FOREACH ((elm), &(head)->chh_table[hashval], field) \
+			if (matchfunc((elm), key) == 0)                  \
+				break;                                   \
+	} while (0)
 
 __BEGIN_DECLS
-int	 _citrus_string_hash_func(const char *, int);
+int _citrus_string_hash_func(const char *, int);
 __END_DECLS
 
 #endif

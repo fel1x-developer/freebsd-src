@@ -31,42 +31,42 @@
  * SOFTWARE.
  */
 
-#include <linux/string.h>
 #include <linux/slab.h>
-
-#include <rdma/ib_verbs.h>
+#include <linux/string.h>
 #include <rdma/ib_cache.h>
+#include <rdma/ib_verbs.h>
 
 #include "mthca_dev.h"
 
 enum {
-      MTHCA_RATE_TAVOR_FULL   = 0,
-      MTHCA_RATE_TAVOR_1X     = 1,
-      MTHCA_RATE_TAVOR_4X     = 2,
-      MTHCA_RATE_TAVOR_1X_DDR = 3
+	MTHCA_RATE_TAVOR_FULL = 0,
+	MTHCA_RATE_TAVOR_1X = 1,
+	MTHCA_RATE_TAVOR_4X = 2,
+	MTHCA_RATE_TAVOR_1X_DDR = 3
 };
 
 enum {
-      MTHCA_RATE_MEMFREE_FULL    = 0,
-      MTHCA_RATE_MEMFREE_QUARTER = 1,
-      MTHCA_RATE_MEMFREE_EIGHTH  = 2,
-      MTHCA_RATE_MEMFREE_HALF    = 3
+	MTHCA_RATE_MEMFREE_FULL = 0,
+	MTHCA_RATE_MEMFREE_QUARTER = 1,
+	MTHCA_RATE_MEMFREE_EIGHTH = 2,
+	MTHCA_RATE_MEMFREE_HALF = 3
 };
 
 struct mthca_av {
 	__be32 port_pd;
-	u8     reserved1;
-	u8     g_slid;
+	u8 reserved1;
+	u8 g_slid;
 	__be16 dlid;
-	u8     reserved2;
-	u8     gid_index;
-	u8     msg_sr;
-	u8     hop_limit;
+	u8 reserved2;
+	u8 gid_index;
+	u8 msg_sr;
+	u8 hop_limit;
 	__be32 sl_tclass_flowlabel;
 	__be32 dgid[4];
 };
 
-static enum ib_rate memfree_rate_to_ib(u8 mthca_rate, u8 port_rate)
+static enum ib_rate
+memfree_rate_to_ib(u8 mthca_rate, u8 port_rate)
 {
 	switch (mthca_rate) {
 	case MTHCA_RATE_MEMFREE_EIGHTH:
@@ -81,17 +81,23 @@ static enum ib_rate memfree_rate_to_ib(u8 mthca_rate, u8 port_rate)
 	}
 }
 
-static enum ib_rate tavor_rate_to_ib(u8 mthca_rate, u8 port_rate)
+static enum ib_rate
+tavor_rate_to_ib(u8 mthca_rate, u8 port_rate)
 {
 	switch (mthca_rate) {
-	case MTHCA_RATE_TAVOR_1X:     return IB_RATE_2_5_GBPS;
-	case MTHCA_RATE_TAVOR_1X_DDR: return IB_RATE_5_GBPS;
-	case MTHCA_RATE_TAVOR_4X:     return IB_RATE_10_GBPS;
-	default:		      return mult_to_ib_rate(port_rate);
+	case MTHCA_RATE_TAVOR_1X:
+		return IB_RATE_2_5_GBPS;
+	case MTHCA_RATE_TAVOR_1X_DDR:
+		return IB_RATE_5_GBPS;
+	case MTHCA_RATE_TAVOR_4X:
+		return IB_RATE_10_GBPS;
+	default:
+		return mult_to_ib_rate(port_rate);
 	}
 }
 
-enum ib_rate mthca_rate_to_ib(struct mthca_dev *dev, u8 mthca_rate, u8 port)
+enum ib_rate
+mthca_rate_to_ib(struct mthca_dev *dev, u8 mthca_rate, u8 port)
 {
 	if (mthca_is_memfree(dev)) {
 		/* Handle old Arbel FW */
@@ -103,7 +109,8 @@ enum ib_rate mthca_rate_to_ib(struct mthca_dev *dev, u8 mthca_rate, u8 port)
 		return tavor_rate_to_ib(mthca_rate, dev->rate[port - 1]);
 }
 
-static u8 ib_rate_to_memfree(u8 req_rate, u8 cur_rate)
+static u8
+ib_rate_to_memfree(u8 req_rate, u8 cur_rate)
 {
 	if (cur_rate <= req_rate)
 		return 0;
@@ -113,25 +120,35 @@ static u8 ib_rate_to_memfree(u8 req_rate, u8 cur_rate)
 	 * no more than Y is (X - 1) / Y.
 	 */
 	switch ((cur_rate - 1) / req_rate) {
-	case 0:	 return MTHCA_RATE_MEMFREE_FULL;
-	case 1:	 return MTHCA_RATE_MEMFREE_HALF;
-	case 2:	 /* fall through */
-	case 3:	 return MTHCA_RATE_MEMFREE_QUARTER;
-	default: return MTHCA_RATE_MEMFREE_EIGHTH;
+	case 0:
+		return MTHCA_RATE_MEMFREE_FULL;
+	case 1:
+		return MTHCA_RATE_MEMFREE_HALF;
+	case 2: /* fall through */
+	case 3:
+		return MTHCA_RATE_MEMFREE_QUARTER;
+	default:
+		return MTHCA_RATE_MEMFREE_EIGHTH;
 	}
 }
 
-static u8 ib_rate_to_tavor(u8 static_rate)
+static u8
+ib_rate_to_tavor(u8 static_rate)
 {
 	switch (static_rate) {
-	case IB_RATE_2_5_GBPS: return MTHCA_RATE_TAVOR_1X;
-	case IB_RATE_5_GBPS:   return MTHCA_RATE_TAVOR_1X_DDR;
-	case IB_RATE_10_GBPS:  return MTHCA_RATE_TAVOR_4X;
-	default:	       return MTHCA_RATE_TAVOR_FULL;
+	case IB_RATE_2_5_GBPS:
+		return MTHCA_RATE_TAVOR_1X;
+	case IB_RATE_5_GBPS:
+		return MTHCA_RATE_TAVOR_1X_DDR;
+	case IB_RATE_10_GBPS:
+		return MTHCA_RATE_TAVOR_4X;
+	default:
+		return MTHCA_RATE_TAVOR_FULL;
 	}
 }
 
-u8 mthca_get_rate(struct mthca_dev *dev, int static_rate, u8 port)
+u8
+mthca_get_rate(struct mthca_dev *dev, int static_rate, u8 port)
 {
 	u8 rate;
 
@@ -140,7 +157,7 @@ u8 mthca_get_rate(struct mthca_dev *dev, int static_rate, u8 port)
 
 	if (mthca_is_memfree(dev))
 		rate = ib_rate_to_memfree(ib_rate_to_mult(static_rate),
-					  dev->rate[port - 1]);
+		    dev->rate[port - 1]);
 	else
 		rate = ib_rate_to_tavor(static_rate);
 
@@ -150,10 +167,9 @@ u8 mthca_get_rate(struct mthca_dev *dev, int static_rate, u8 port)
 	return rate;
 }
 
-int mthca_create_ah(struct mthca_dev *dev,
-		    struct mthca_pd *pd,
-		    struct ib_ah_attr *ah_attr,
-		    struct mthca_ah *ah)
+int
+mthca_create_ah(struct mthca_dev *dev, struct mthca_pd *pd,
+    struct ib_ah_attr *ah_attr, struct mthca_ah *ah)
 {
 	u32 index = -1;
 	struct mthca_av *av = NULL;
@@ -161,14 +177,14 @@ int mthca_create_ah(struct mthca_dev *dev,
 	ah->type = MTHCA_AH_PCI_POOL;
 
 	if (mthca_is_memfree(dev)) {
-		ah->av   = kmalloc(sizeof *ah->av, GFP_ATOMIC);
+		ah->av = kmalloc(sizeof *ah->av, GFP_ATOMIC);
 		if (!ah->av)
 			return -ENOMEM;
 
 		ah->type = MTHCA_AH_KMALLOC;
-		av       = ah->av;
+		av = ah->av;
 	} else if (!atomic_read(&pd->sqp_count) &&
-		 !(dev->mthca_flags & MTHCA_FLAG_DDR_HIDDEN)) {
+	    !(dev->mthca_flags & MTHCA_FLAG_DDR_HIDDEN)) {
 		index = mthca_alloc(&dev->av_table.alloc);
 
 		/* fall back to allocate in host memory */
@@ -180,14 +196,13 @@ int mthca_create_ah(struct mthca_dev *dev,
 			goto on_hca_fail;
 
 		ah->type = MTHCA_AH_ON_HCA;
-		ah->avdma  = dev->av_table.ddr_av_base +
-			index * MTHCA_AV_SIZE;
+		ah->avdma = dev->av_table.ddr_av_base + index * MTHCA_AV_SIZE;
 	}
 
 on_hca_fail:
 	if (ah->type == MTHCA_AH_PCI_POOL) {
-		ah->av = pci_pool_alloc(dev->av_table.pool,
-					GFP_ATOMIC, &ah->avdma);
+		ah->av = pci_pool_alloc(dev->av_table.pool, GFP_ATOMIC,
+		    &ah->avdma);
 		if (!ah->av)
 			return -ENOMEM;
 
@@ -199,19 +214,20 @@ on_hca_fail:
 	memset(av, 0, MTHCA_AV_SIZE);
 
 	av->port_pd = cpu_to_be32(pd->pd_num | (ah_attr->port_num << 24));
-	av->g_slid  = ah_attr->src_path_bits;
-	av->dlid    = cpu_to_be16(ah_attr->dlid);
-	av->msg_sr  = (3 << 4) | /* 2K message */
-		mthca_get_rate(dev, ah_attr->static_rate, ah_attr->port_num);
+	av->g_slid = ah_attr->src_path_bits;
+	av->dlid = cpu_to_be16(ah_attr->dlid);
+	av->msg_sr = (3 << 4) | /* 2K message */
+	    mthca_get_rate(dev, ah_attr->static_rate, ah_attr->port_num);
 	av->sl_tclass_flowlabel = cpu_to_be32(ah_attr->sl << 28);
 	if (ah_attr->ah_flags & IB_AH_GRH) {
 		av->g_slid |= 0x80;
-		av->gid_index = (ah_attr->port_num - 1) * dev->limits.gid_table_len +
-			ah_attr->grh.sgid_index;
+		av->gid_index = (ah_attr->port_num - 1) *
+			dev->limits.gid_table_len +
+		    ah_attr->grh.sgid_index;
 		av->hop_limit = ah_attr->grh.hop_limit;
-		av->sl_tclass_flowlabel |=
-			cpu_to_be32((ah_attr->grh.traffic_class << 20) |
-				    ah_attr->grh.flow_label);
+		av->sl_tclass_flowlabel |= cpu_to_be32(
+		    (ah_attr->grh.traffic_class << 20) |
+		    ah_attr->grh.flow_label);
 		memcpy(av->dgid, ah_attr->grh.dgid.raw, 16);
 	} else {
 		/* Arbel workaround -- low byte of GID must be 2 */
@@ -221,29 +237,29 @@ on_hca_fail:
 	if (0) {
 		int j;
 
-		mthca_dbg(dev, "Created UDAV at %p/%08lx:\n",
-			  av, (unsigned long) ah->avdma);
+		mthca_dbg(dev, "Created UDAV at %p/%08lx:\n", av,
+		    (unsigned long)ah->avdma);
 		for (j = 0; j < 8; ++j)
-			printk(KERN_DEBUG "  [%2x] %08x\n",
-			       j * 4, be32_to_cpu(((__be32 *) av)[j]));
+			printk(KERN_DEBUG "  [%2x] %08x\n", j * 4,
+			    be32_to_cpu(((__be32 *)av)[j]));
 	}
 
 	if (ah->type == MTHCA_AH_ON_HCA) {
-		memcpy_toio(dev->av_table.av_map + index * MTHCA_AV_SIZE,
-			    av, MTHCA_AV_SIZE);
+		memcpy_toio(dev->av_table.av_map + index * MTHCA_AV_SIZE, av,
+		    MTHCA_AV_SIZE);
 		kfree(av);
 	}
 
 	return 0;
 }
 
-int mthca_destroy_ah(struct mthca_dev *dev, struct mthca_ah *ah)
+int
+mthca_destroy_ah(struct mthca_dev *dev, struct mthca_ah *ah)
 {
 	switch (ah->type) {
 	case MTHCA_AH_ON_HCA:
 		mthca_free(&dev->av_table.alloc,
-			   (ah->avdma - dev->av_table.ddr_av_base) /
-			   MTHCA_AV_SIZE);
+		    (ah->avdma - dev->av_table.ddr_av_base) / MTHCA_AV_SIZE);
 		break;
 
 	case MTHCA_AH_PCI_POOL:
@@ -258,40 +274,43 @@ int mthca_destroy_ah(struct mthca_dev *dev, struct mthca_ah *ah)
 	return 0;
 }
 
-int mthca_ah_grh_present(struct mthca_ah *ah)
+int
+mthca_ah_grh_present(struct mthca_ah *ah)
 {
 	return !!(ah->av->g_slid & 0x80);
 }
 
-int mthca_read_ah(struct mthca_dev *dev, struct mthca_ah *ah,
-		  struct ib_ud_header *header)
+int
+mthca_read_ah(struct mthca_dev *dev, struct mthca_ah *ah,
+    struct ib_ud_header *header)
 {
 	if (ah->type == MTHCA_AH_ON_HCA)
 		return -EINVAL;
 
-	header->lrh.service_level   = be32_to_cpu(ah->av->sl_tclass_flowlabel) >> 28;
+	header->lrh.service_level = be32_to_cpu(ah->av->sl_tclass_flowlabel) >>
+	    28;
 	header->lrh.destination_lid = ah->av->dlid;
-	header->lrh.source_lid      = cpu_to_be16(ah->av->g_slid & 0x7f);
+	header->lrh.source_lid = cpu_to_be16(ah->av->g_slid & 0x7f);
 	if (mthca_ah_grh_present(ah)) {
 		header->grh.traffic_class =
-			(be32_to_cpu(ah->av->sl_tclass_flowlabel) >> 20) & 0xff;
-		header->grh.flow_label    =
-			ah->av->sl_tclass_flowlabel & cpu_to_be32(0xfffff);
-		header->grh.hop_limit     = ah->av->hop_limit;
+		    (be32_to_cpu(ah->av->sl_tclass_flowlabel) >> 20) & 0xff;
+		header->grh.flow_label = ah->av->sl_tclass_flowlabel &
+		    cpu_to_be32(0xfffff);
+		header->grh.hop_limit = ah->av->hop_limit;
 		ib_get_cached_gid(&dev->ib_dev,
-				  be32_to_cpu(ah->av->port_pd) >> 24,
-				  ah->av->gid_index % dev->limits.gid_table_len,
-				  &header->grh.source_gid, NULL);
-		memcpy(header->grh.destination_gid.raw,
-		       ah->av->dgid, 16);
+		    be32_to_cpu(ah->av->port_pd) >> 24,
+		    ah->av->gid_index % dev->limits.gid_table_len,
+		    &header->grh.source_gid, NULL);
+		memcpy(header->grh.destination_gid.raw, ah->av->dgid, 16);
 	}
 
 	return 0;
 }
 
-int mthca_ah_query(struct ib_ah *ibah, struct ib_ah_attr *attr)
+int
+mthca_ah_query(struct ib_ah *ibah, struct ib_ah_attr *attr)
 {
-	struct mthca_ah *ah   = to_mah(ibah);
+	struct mthca_ah *ah = to_mah(ibah);
 	struct mthca_dev *dev = to_mdev(ibah->device);
 
 	/* Only implement for MAD and memfree ah for now. */
@@ -299,54 +318,53 @@ int mthca_ah_query(struct ib_ah *ibah, struct ib_ah_attr *attr)
 		return -ENOSYS;
 
 	memset(attr, 0, sizeof *attr);
-	attr->dlid          = be16_to_cpu(ah->av->dlid);
-	attr->sl            = be32_to_cpu(ah->av->sl_tclass_flowlabel) >> 28;
-	attr->port_num      = be32_to_cpu(ah->av->port_pd) >> 24;
-	attr->static_rate   = mthca_rate_to_ib(dev, ah->av->msg_sr & 0x7,
-					       attr->port_num);
+	attr->dlid = be16_to_cpu(ah->av->dlid);
+	attr->sl = be32_to_cpu(ah->av->sl_tclass_flowlabel) >> 28;
+	attr->port_num = be32_to_cpu(ah->av->port_pd) >> 24;
+	attr->static_rate = mthca_rate_to_ib(dev, ah->av->msg_sr & 0x7,
+	    attr->port_num);
 	attr->src_path_bits = ah->av->g_slid & 0x7F;
-	attr->ah_flags      = mthca_ah_grh_present(ah) ? IB_AH_GRH : 0;
+	attr->ah_flags = mthca_ah_grh_present(ah) ? IB_AH_GRH : 0;
 
 	if (attr->ah_flags) {
-		attr->grh.traffic_class =
-			be32_to_cpu(ah->av->sl_tclass_flowlabel) >> 20;
-		attr->grh.flow_label =
-			be32_to_cpu(ah->av->sl_tclass_flowlabel) & 0xfffff;
-		attr->grh.hop_limit  = ah->av->hop_limit;
+		attr->grh.traffic_class = be32_to_cpu(
+					      ah->av->sl_tclass_flowlabel) >>
+		    20;
+		attr->grh.flow_label = be32_to_cpu(
+					   ah->av->sl_tclass_flowlabel) &
+		    0xfffff;
+		attr->grh.hop_limit = ah->av->hop_limit;
 		attr->grh.sgid_index = ah->av->gid_index &
-				       (dev->limits.gid_table_len - 1);
+		    (dev->limits.gid_table_len - 1);
 		memcpy(attr->grh.dgid.raw, ah->av->dgid, 16);
 	}
 
 	return 0;
 }
 
-int mthca_init_av_table(struct mthca_dev *dev)
+int
+mthca_init_av_table(struct mthca_dev *dev)
 {
 	int err;
 
 	if (mthca_is_memfree(dev))
 		return 0;
 
-	err = mthca_alloc_init(&dev->av_table.alloc,
-			       dev->av_table.num_ddr_avs,
-			       dev->av_table.num_ddr_avs - 1,
-			       0);
+	err = mthca_alloc_init(&dev->av_table.alloc, dev->av_table.num_ddr_avs,
+	    dev->av_table.num_ddr_avs - 1, 0);
 	if (err)
 		return err;
 
 	dev->av_table.pool = pci_pool_create("mthca_av", dev->pdev,
-					     MTHCA_AV_SIZE,
-					     MTHCA_AV_SIZE, 0);
+	    MTHCA_AV_SIZE, MTHCA_AV_SIZE, 0);
 	if (!dev->av_table.pool)
 		goto out_free_alloc;
 
 	if (!(dev->mthca_flags & MTHCA_FLAG_DDR_HIDDEN)) {
-		dev->av_table.av_map = ioremap(pci_resource_start(dev->pdev, 4) +
-					       dev->av_table.ddr_av_base -
-					       dev->ddr_start,
-					       dev->av_table.num_ddr_avs *
-					       MTHCA_AV_SIZE);
+		dev->av_table.av_map = ioremap(pci_resource_start(dev->pdev,
+						   4) +
+			dev->av_table.ddr_av_base - dev->ddr_start,
+		    dev->av_table.num_ddr_avs * MTHCA_AV_SIZE);
 		if (!dev->av_table.av_map)
 			goto out_free_pool;
 	} else
@@ -354,15 +372,16 @@ int mthca_init_av_table(struct mthca_dev *dev)
 
 	return 0;
 
- out_free_pool:
+out_free_pool:
 	pci_pool_destroy(dev->av_table.pool);
 
- out_free_alloc:
+out_free_alloc:
 	mthca_alloc_cleanup(&dev->av_table.alloc);
 	return -ENOMEM;
 }
 
-void mthca_cleanup_av_table(struct mthca_dev *dev)
+void
+mthca_cleanup_av_table(struct mthca_dev *dev)
 {
 	if (mthca_is_memfree(dev))
 		return;

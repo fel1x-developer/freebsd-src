@@ -21,44 +21,44 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/socket.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
+
+#include <dev/usb/usb.h>
+#include <dev/usb/usbdi.h>
+#include <dev/usb/usbdi_util.h>
 
 #include <net/if.h>
 #include <net/if_var.h>
 #include <net/rndis.h>
 
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-#include <dev/usb/usbdi_util.h>
 #include "usbdevs.h"
 
-#define	USB_DEBUG_VAR urndis_debug
+#define USB_DEBUG_VAR urndis_debug
+#include <dev/usb/net/if_urndisreg.h>
+#include <dev/usb/net/usb_ethernet.h>
+#include <dev/usb/usb_cdc.h>
 #include <dev/usb/usb_debug.h>
 #include <dev/usb/usb_process.h>
+
 #include "usb_if.h"
-
-#include <dev/usb/net/usb_ethernet.h>
-#include <dev/usb/net/if_urndisreg.h>
-
-#include <dev/usb/usb_cdc.h>
 
 static device_probe_t urndis_probe;
 static device_attach_t urndis_attach;
@@ -77,24 +77,23 @@ static uether_fn_t urndis_start;
 static uether_fn_t urndis_setmulti;
 static uether_fn_t urndis_setpromisc;
 
-static uint32_t	urndis_ctrl_query(struct urndis_softc *sc, uint32_t oid,
-		    struct rndis_query_req *msg, uint16_t len,
-		    const void **rbuf, uint16_t *rbufsz);
-static uint32_t	urndis_ctrl_set(struct urndis_softc *sc, uint32_t oid,
-		    struct rndis_set_req *msg, uint16_t len);
-static uint32_t	urndis_ctrl_handle_init(struct urndis_softc *sc,
-		    const struct rndis_comp_hdr *hdr);
-static uint32_t	urndis_ctrl_handle_query(struct urndis_softc *sc,
-		    const struct rndis_comp_hdr *hdr, const void **buf,
-		    uint16_t *bufsz);
-static uint32_t	urndis_ctrl_handle_reset(struct urndis_softc *sc,
-		    const struct rndis_comp_hdr *hdr);
-static uint32_t	urndis_ctrl_init(struct urndis_softc *sc);
-static uint32_t	urndis_ctrl_halt(struct urndis_softc *sc);
+static uint32_t urndis_ctrl_query(struct urndis_softc *sc, uint32_t oid,
+    struct rndis_query_req *msg, uint16_t len, const void **rbuf,
+    uint16_t *rbufsz);
+static uint32_t urndis_ctrl_set(struct urndis_softc *sc, uint32_t oid,
+    struct rndis_set_req *msg, uint16_t len);
+static uint32_t urndis_ctrl_handle_init(struct urndis_softc *sc,
+    const struct rndis_comp_hdr *hdr);
+static uint32_t urndis_ctrl_handle_query(struct urndis_softc *sc,
+    const struct rndis_comp_hdr *hdr, const void **buf, uint16_t *bufsz);
+static uint32_t urndis_ctrl_handle_reset(struct urndis_softc *sc,
+    const struct rndis_comp_hdr *hdr);
+static uint32_t urndis_ctrl_init(struct urndis_softc *sc);
+static uint32_t urndis_ctrl_halt(struct urndis_softc *sc);
 
 #ifdef USB_DEBUG
 static int urndis_debug = 0;
-static	SYSCTL_NODE(_hw_usb, OID_AUTO, urndis, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
+static SYSCTL_NODE(_hw_usb, OID_AUTO, urndis, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "USB RNDIS-Ethernet");
 SYSCTL_INT(_hw_usb_urndis, OID_AUTO, debug, CTLFLAG_RWTUN, &urndis_debug, 0,
     "Debug level");
@@ -161,23 +160,23 @@ static driver_t urndis_driver = {
 
 static const STRUCT_USB_HOST_ID urndis_host_devs[] = {
 	/* Generic RNDIS class match */
-	{USB_IFACE_CLASS(UICLASS_CDC),
-		USB_IFACE_SUBCLASS(UISUBCLASS_ABSTRACT_CONTROL_MODEL),
-		USB_IFACE_PROTOCOL(0xff)},
-	{USB_IFACE_CLASS(UICLASS_WIRELESS), USB_IFACE_SUBCLASS(UISUBCLASS_RF),
-		USB_IFACE_PROTOCOL(UIPROTO_RNDIS)},
-	{USB_IFACE_CLASS(UICLASS_IAD), USB_IFACE_SUBCLASS(UISUBCLASS_SYNC),
-		USB_IFACE_PROTOCOL(UIPROTO_ACTIVESYNC)},
+	{ USB_IFACE_CLASS(UICLASS_CDC),
+	    USB_IFACE_SUBCLASS(UISUBCLASS_ABSTRACT_CONTROL_MODEL),
+	    USB_IFACE_PROTOCOL(0xff) },
+	{ USB_IFACE_CLASS(UICLASS_WIRELESS), USB_IFACE_SUBCLASS(UISUBCLASS_RF),
+	    USB_IFACE_PROTOCOL(UIPROTO_RNDIS) },
+	{ USB_IFACE_CLASS(UICLASS_IAD), USB_IFACE_SUBCLASS(UISUBCLASS_SYNC),
+	    USB_IFACE_PROTOCOL(UIPROTO_ACTIVESYNC) },
 	/* HP-WebOS */
-	{USB_VENDOR(USB_VENDOR_PALM), USB_IFACE_CLASS(UICLASS_CDC),
-		USB_IFACE_SUBCLASS(UISUBCLASS_ABSTRACT_CONTROL_MODEL),
-		USB_IFACE_PROTOCOL(0xff)},
+	{ USB_VENDOR(USB_VENDOR_PALM), USB_IFACE_CLASS(UICLASS_CDC),
+	    USB_IFACE_SUBCLASS(UISUBCLASS_ABSTRACT_CONTROL_MODEL),
+	    USB_IFACE_PROTOCOL(0xff) },
 	/* Nokia 7 plus */
-	{USB_IFACE_CLASS(UICLASS_IAD), USB_IFACE_SUBCLASS(0x4),
-		USB_IFACE_PROTOCOL(UIPROTO_ACTIVESYNC)},
+	{ USB_IFACE_CLASS(UICLASS_IAD), USB_IFACE_SUBCLASS(0x4),
+	    USB_IFACE_PROTOCOL(UIPROTO_ACTIVESYNC) },
 	/* Novatel Wireless 8800/8000/etc */
-	{USB_IFACE_CLASS(UICLASS_IAD), USB_IFACE_SUBCLASS(0xef),
-		USB_IFACE_PROTOCOL(UIPROTO_RNDIS)},
+	{ USB_IFACE_CLASS(UICLASS_IAD), USB_IFACE_SUBCLASS(0xef),
+	    USB_IFACE_PROTOCOL(UIPROTO_RNDIS) },
 };
 
 DRIVER_MODULE(urndis, uhub, urndis_driver, NULL, NULL);
@@ -201,7 +200,8 @@ urndis_probe(device_t dev)
 {
 	struct usb_attach_arg *uaa = device_get_ivars(dev);
 
-	return (usbd_lookup_id_by_uaa(urndis_host_devs, sizeof(urndis_host_devs), uaa));
+	return (usbd_lookup_id_by_uaa(urndis_host_devs,
+	    sizeof(urndis_host_devs), uaa));
 }
 
 static void
@@ -230,7 +230,8 @@ urndis_attach(device_t dev)
 	struct usb_cdc_cm_descriptor *cmd;
 	const void *buf;
 	uint16_t bufsz;
-	uint8_t iface_index[2] = { uaa->info.bIfaceIndex + 1, uaa->info.bIfaceIndex };
+	uint8_t iface_index[2] = { uaa->info.bIfaceIndex + 1,
+		uaa->info.bIfaceIndex };
 	int error;
 	uint8_t i;
 
@@ -240,7 +241,8 @@ urndis_attach(device_t dev)
 	cmd = usbd_find_descriptor(uaa->device, NULL, uaa->info.bIfaceIndex,
 	    UDESC_CS_INTERFACE, 0xFF, UDESCSUB_CDC_CM, 0xFF);
 	if (cmd != NULL) {
-		DPRINTF("Call Mode Descriptor found, dataif=%d\n", cmd->bDataInterface);
+		DPRINTF("Call Mode Descriptor found, dataif=%d\n",
+		    cmd->bDataInterface);
 		iface_index[0] = cmd->bDataInterface;
 	}
 
@@ -256,9 +258,9 @@ urndis_attach(device_t dev)
 		if (error != 0)
 			break;
 
-		error = usbd_transfer_setup(uaa->device,
-		    iface_index, sc->sc_xfer, urndis_config,
-		    URNDIS_N_TRANSFER, sc, &sc->sc_mtx);
+		error = usbd_transfer_setup(uaa->device, iface_index,
+		    sc->sc_xfer, urndis_config, URNDIS_N_TRANSFER, sc,
+		    &sc->sc_mtx);
 
 		if (error == 0)
 			break;
@@ -299,8 +301,8 @@ urndis_attach(device_t dev)
 	    NDIS_PACKET_TYPE_ALL_MULTICAST;
 	msg.ibuf.filter = htole32(sc->sc_filter);
 	URNDIS_LOCK(sc);
-	error = urndis_ctrl_set(sc, OID_GEN_CURRENT_PACKET_FILTER,
-	    &msg.hdr.set, sizeof(msg.hdr.set) + sizeof(msg.ibuf.filter));
+	error = urndis_ctrl_set(sc, OID_GEN_CURRENT_PACKET_FILTER, &msg.hdr.set,
+	    sizeof(msg.hdr.set) + sizeof(msg.ibuf.filter));
 	URNDIS_UNLOCK(sc);
 	if (error != (int)RNDIS_STATUS_SUCCESS) {
 		device_printf(dev, "Unable to set data filters\n");
@@ -324,11 +326,11 @@ urndis_attach(device_t dev)
 	usbd_transfer_start(sc->sc_xfer[URNDIS_INTR_RX]);
 	URNDIS_UNLOCK(sc);
 
-	return (0);			/* success */
+	return (0); /* success */
 
 detach:
 	(void)urndis_detach(dev);
-	return (ENXIO);			/* failure */
+	return (ENXIO); /* failure */
 }
 
 static int
@@ -428,8 +430,8 @@ urndis_resume(device_t dev)
 }
 
 static usb_error_t
-urndis_ctrl_msg(struct urndis_softc *sc, uint8_t rt, uint8_t r,
-    uint16_t index, uint16_t value, void *buf, uint16_t buflen)
+urndis_ctrl_msg(struct urndis_softc *sc, uint8_t rt, uint8_t r, uint16_t index,
+    uint16_t value, void *buf, uint16_t buflen)
 {
 	usb_device_request_t req;
 
@@ -439,9 +441,8 @@ urndis_ctrl_msg(struct urndis_softc *sc, uint8_t rt, uint8_t r,
 	USETW(req.wIndex, index);
 	USETW(req.wLength, buflen);
 
-	return (usbd_do_request_flags(sc->sc_ue.ue_udev,
-	    &sc->sc_mtx, &req, buf, (rt & UT_READ) ?
-	    USB_SHORT_XFER_OK : 0, NULL, 2000 /* ms */ ));
+	return (usbd_do_request_flags(sc->sc_ue.ue_udev, &sc->sc_mtx, &req, buf,
+	    (rt & UT_READ) ? USB_SHORT_XFER_OK : 0, NULL, 2000 /* ms */));
 }
 
 static usb_error_t
@@ -531,20 +532,15 @@ urndis_ctrl_handle_init(struct urndis_softc *sc,
 
 	msg = (const struct rndis_init_comp *)hdr;
 
-	DPRINTF("len %u rid %u status 0x%x "
+	DPRINTF(
+	    "len %u rid %u status 0x%x "
 	    "ver_major %u ver_minor %u devflags 0x%x medium 0x%x pktmaxcnt %u "
 	    "pktmaxsz %u align %u aflistoffset %u aflistsz %u\n",
-	    le32toh(msg->rm_len),
-	    le32toh(msg->rm_rid),
-	    le32toh(msg->rm_status),
-	    le32toh(msg->rm_ver_major),
-	    le32toh(msg->rm_ver_minor),
-	    le32toh(msg->rm_devflags),
-	    le32toh(msg->rm_medium),
-	    le32toh(msg->rm_pktmaxcnt),
-	    le32toh(msg->rm_pktmaxsz),
-	    le32toh(msg->rm_align),
-	    le32toh(msg->rm_aflistoffset),
+	    le32toh(msg->rm_len), le32toh(msg->rm_rid), le32toh(msg->rm_status),
+	    le32toh(msg->rm_ver_major), le32toh(msg->rm_ver_minor),
+	    le32toh(msg->rm_devflags), le32toh(msg->rm_medium),
+	    le32toh(msg->rm_pktmaxcnt), le32toh(msg->rm_pktmaxsz),
+	    le32toh(msg->rm_align), le32toh(msg->rm_aflistoffset),
 	    le32toh(msg->rm_aflistsz));
 
 	if (le32toh(msg->rm_status) != RNDIS_STATUS_SUCCESS) {
@@ -576,12 +572,9 @@ urndis_ctrl_handle_query(struct urndis_softc *sc,
 	msg = (const struct rndis_query_comp *)hdr;
 
 	DPRINTF("len %u rid %u status 0x%x "
-	    "buflen %u bufoff %u\n",
-	    le32toh(msg->rm_len),
-	    le32toh(msg->rm_rid),
-	    le32toh(msg->rm_status),
-	    le32toh(msg->rm_infobuflen),
-	    le32toh(msg->rm_infobufoffset));
+		"buflen %u bufoff %u\n",
+	    le32toh(msg->rm_len), le32toh(msg->rm_rid), le32toh(msg->rm_status),
+	    le32toh(msg->rm_infobuflen), le32toh(msg->rm_infobufoffset));
 
 	*buf = NULL;
 	*bufsz = 0;
@@ -595,12 +588,11 @@ urndis_ctrl_handle_query(struct urndis_softc *sc,
 
 	if (limit > (uint64_t)le32toh(msg->rm_len)) {
 		DPRINTF("ctrl message error: invalid query info "
-		    "len/offset/end_position(%u/%u/%u) -> "
-		    "go out of buffer limit %u\n",
-		    le32toh(msg->rm_infobuflen),
-		    le32toh(msg->rm_infobufoffset),
+			"len/offset/end_position(%u/%u/%u) -> "
+			"go out of buffer limit %u\n",
+		    le32toh(msg->rm_infobuflen), le32toh(msg->rm_infobufoffset),
 		    le32toh(msg->rm_infobuflen) +
-		    le32toh(msg->rm_infobufoffset) + RNDIS_HEADER_OFFSET,
+			le32toh(msg->rm_infobufoffset) + RNDIS_HEADER_OFFSET,
 		    le32toh(msg->rm_len));
 		return (RNDIS_STATUS_FAILURE);
 	}
@@ -623,10 +615,8 @@ urndis_ctrl_handle_reset(struct urndis_softc *sc,
 	rval = le32toh(msg->rm_status);
 
 	DPRINTF("len %u status 0x%x "
-	    "adrreset %u\n",
-	    le32toh(msg->rm_len),
-	    rval,
-	    le32toh(msg->rm_adrreset));
+		"adrreset %u\n",
+	    le32toh(msg->rm_len), rval, le32toh(msg->rm_adrreset));
 
 	if (rval != RNDIS_STATUS_SUCCESS) {
 		DPRINTF("reset failed 0x%x\n", rval);
@@ -666,12 +656,9 @@ urndis_ctrl_init(struct urndis_softc *sc)
 	msg.rm_max_xfersz = htole32(RNDIS_RX_MAXLEN);
 
 	DPRINTF("type %u len %u rid %u ver_major %u "
-	    "ver_minor %u max_xfersz %u\n",
-	    le32toh(msg.rm_type),
-	    le32toh(msg.rm_len),
-	    le32toh(msg.rm_rid),
-	    le32toh(msg.rm_ver_major),
-	    le32toh(msg.rm_ver_minor),
+		"ver_minor %u max_xfersz %u\n",
+	    le32toh(msg.rm_type), le32toh(msg.rm_len), le32toh(msg.rm_rid),
+	    le32toh(msg.rm_ver_major), le32toh(msg.rm_ver_minor),
 	    le32toh(msg.rm_max_xfersz));
 
 	rval = urndis_ctrl_send(sc, &msg, sizeof(msg));
@@ -699,10 +686,8 @@ urndis_ctrl_halt(struct urndis_softc *sc)
 	msg.rm_len = htole32(sizeof(msg));
 	msg.rm_rid = 0;
 
-	DPRINTF("type %u len %u rid %u\n",
-	    le32toh(msg.rm_type),
-	    le32toh(msg.rm_len),
-	    le32toh(msg.rm_rid));
+	DPRINTF("type %u len %u rid %u\n", le32toh(msg.rm_type),
+	    le32toh(msg.rm_len), le32toh(msg.rm_rid));
 
 	rval = urndis_ctrl_send(sc, &msg, sizeof(msg));
 
@@ -726,27 +711,23 @@ urndis_ctrl_query(struct urndis_softc *sc, uint32_t oid,
 
 	msg->rm_type = htole32(REMOTE_NDIS_QUERY_MSG);
 	msg->rm_len = htole32(len);
-	msg->rm_rid = 0;		/* XXX */
+	msg->rm_rid = 0; /* XXX */
 	msg->rm_oid = htole32(oid);
 	datalen = len - sizeof(*msg);
 	msg->rm_infobuflen = htole32(datalen);
 	if (datalen != 0) {
-		msg->rm_infobufoffset = htole32(sizeof(*msg) -
-		    RNDIS_HEADER_OFFSET);
+		msg->rm_infobufoffset = htole32(
+		    sizeof(*msg) - RNDIS_HEADER_OFFSET);
 	} else {
 		msg->rm_infobufoffset = 0;
 	}
 	msg->rm_devicevchdl = 0;
 
 	DPRINTF("type %u len %u rid %u oid 0x%x "
-	    "infobuflen %u infobufoffset %u devicevchdl %u\n",
-	    le32toh(msg->rm_type),
-	    le32toh(msg->rm_len),
-	    le32toh(msg->rm_rid),
-	    le32toh(msg->rm_oid),
-	    le32toh(msg->rm_infobuflen),
-	    le32toh(msg->rm_infobufoffset),
-	    le32toh(msg->rm_devicevchdl));
+		"infobuflen %u infobufoffset %u devicevchdl %u\n",
+	    le32toh(msg->rm_type), le32toh(msg->rm_len), le32toh(msg->rm_rid),
+	    le32toh(msg->rm_oid), le32toh(msg->rm_infobuflen),
+	    le32toh(msg->rm_infobufoffset), le32toh(msg->rm_devicevchdl));
 
 	rval = urndis_ctrl_send(sc, msg, len);
 
@@ -772,27 +753,23 @@ urndis_ctrl_set(struct urndis_softc *sc, uint32_t oid,
 
 	msg->rm_type = htole32(REMOTE_NDIS_SET_MSG);
 	msg->rm_len = htole32(len);
-	msg->rm_rid = 0;		/* XXX */
+	msg->rm_rid = 0; /* XXX */
 	msg->rm_oid = htole32(oid);
 	datalen = len - sizeof(*msg);
 	msg->rm_infobuflen = htole32(datalen);
 	if (datalen != 0) {
-		msg->rm_infobufoffset = htole32(sizeof(*msg) -
-		    RNDIS_HEADER_OFFSET);
+		msg->rm_infobufoffset = htole32(
+		    sizeof(*msg) - RNDIS_HEADER_OFFSET);
 	} else {
 		msg->rm_infobufoffset = 0;
 	}
 	msg->rm_devicevchdl = 0;
 
 	DPRINTF("type %u len %u rid %u oid 0x%x "
-	    "infobuflen %u infobufoffset %u devicevchdl %u\n",
-	    le32toh(msg->rm_type),
-	    le32toh(msg->rm_len),
-	    le32toh(msg->rm_rid),
-	    le32toh(msg->rm_oid),
-	    le32toh(msg->rm_infobuflen),
-	    le32toh(msg->rm_infobufoffset),
-	    le32toh(msg->rm_devicevchdl));
+		"infobuflen %u infobufoffset %u devicevchdl %u\n",
+	    le32toh(msg->rm_type), le32toh(msg->rm_len), le32toh(msg->rm_rid),
+	    le32toh(msg->rm_oid), le32toh(msg->rm_infobuflen),
+	    le32toh(msg->rm_infobufoffset), le32toh(msg->rm_devicevchdl));
 
 	rval = urndis_ctrl_send(sc, msg, len);
 
@@ -827,7 +804,8 @@ urndis_bulk_read_callback(struct usb_xfer *xfer, usb_error_t error)
 	case USB_ST_TRANSFERRED:
 		usbd_xfer_status(xfer, &actlen, NULL, &aframes, NULL);
 
-		DPRINTFN(1, "received %u bytes in %u frames\n", actlen, aframes);
+		DPRINTFN(1, "received %u bytes in %u frames\n", actlen,
+		    aframes);
 
 		for (offset = 0; actlen >= (uint32_t)sizeof(msg);) {
 			/* copy out header */
@@ -839,16 +817,20 @@ urndis_bulk_read_callback(struct usb_xfer *xfer, usb_error_t error)
 				msg.rm_len = le32toh(msg.rm_len);
 				msg.rm_dataoffset = le32toh(msg.rm_dataoffset);
 				msg.rm_datalen = le32toh(msg.rm_datalen);
-				msg.rm_oobdataoffset = le32toh(msg.rm_oobdataoffset);
+				msg.rm_oobdataoffset = le32toh(
+				    msg.rm_oobdataoffset);
 				msg.rm_oobdatalen = le32toh(msg.rm_oobdatalen);
-				msg.rm_oobdataelements = le32toh(msg.rm_oobdataelements);
-				msg.rm_pktinfooffset = le32toh(msg.rm_pktinfooffset);
+				msg.rm_oobdataelements = le32toh(
+				    msg.rm_oobdataelements);
+				msg.rm_pktinfooffset = le32toh(
+				    msg.rm_pktinfooffset);
 				msg.rm_pktinfolen = le32toh(msg.rm_pktinfolen);
 				msg.rm_vchandle = le32toh(msg.rm_vchandle);
 				msg.rm_reserved = le32toh(msg.rm_reserved);
 			}
 
-			DPRINTF("len %u data(off:%u len:%u) "
+			DPRINTF(
+			    "len %u data(off:%u len:%u) "
 			    "oobdata(off:%u len:%u nb:%u) perpacket(off:%u len:%u)\n",
 			    msg.rm_len, msg.rm_dataoffset, msg.rm_datalen,
 			    msg.rm_oobdataoffset, msg.rm_oobdatalen,
@@ -861,41 +843,53 @@ urndis_bulk_read_callback(struct usb_xfer *xfer, usb_error_t error)
 				    msg.rm_type, REMOTE_NDIS_PACKET_MSG);
 				goto tr_setup;
 			} else if (msg.rm_len < (uint32_t)sizeof(msg)) {
-				DPRINTF("invalid msg len %u < %u\n",
-				    msg.rm_len, (unsigned)sizeof(msg));
+				DPRINTF("invalid msg len %u < %u\n", msg.rm_len,
+				    (unsigned)sizeof(msg));
 				goto tr_setup;
 			} else if (msg.rm_len > (uint32_t)actlen) {
 				DPRINTF("invalid msg len %u > buffer "
-				    "len %u\n", msg.rm_len, actlen);
+					"len %u\n",
+				    msg.rm_len, actlen);
 				goto tr_setup;
 			} else if (msg.rm_dataoffset >= (uint32_t)actlen) {
 				DPRINTF("invalid msg dataoffset %u > buffer "
-				    "dataoffset %u\n", msg.rm_dataoffset, actlen);
+					"dataoffset %u\n",
+				    msg.rm_dataoffset, actlen);
 				goto tr_setup;
 			} else if (msg.rm_datalen > (uint32_t)actlen) {
 				DPRINTF("invalid msg datalen %u > buffer "
-				    "datalen %u\n", msg.rm_datalen, actlen);
+					"datalen %u\n",
+				    msg.rm_datalen, actlen);
 				goto tr_setup;
 			} else if ((msg.rm_dataoffset + msg.rm_datalen +
-			    (uint32_t)__offsetof(struct rndis_packet_msg,
-			    rm_dataoffset)) > (uint32_t)actlen) {
-				DPRINTF("invalid dataoffset %u larger than %u\n",
+				       (uint32_t)__offsetof(
+					   struct rndis_packet_msg,
+					   rm_dataoffset)) > (uint32_t)actlen) {
+				DPRINTF(
+				    "invalid dataoffset %u larger than %u\n",
 				    msg.rm_dataoffset + msg.rm_datalen +
-				    (uint32_t)__offsetof(struct rndis_packet_msg,
-				    rm_dataoffset), actlen);
+					(uint32_t)
+					    __offsetof(struct rndis_packet_msg,
+						rm_dataoffset),
+				    actlen);
 				goto tr_setup;
-			} else if (msg.rm_datalen < (uint32_t)sizeof(struct ether_header)) {
+			} else if (msg.rm_datalen <
+			    (uint32_t)sizeof(struct ether_header)) {
 				if_inc_counter(ifp, IFCOUNTER_IERRORS, 1);
 				DPRINTF("invalid ethernet size "
-				    "%u < %u\n", msg.rm_datalen, (unsigned)sizeof(struct ether_header));
+					"%u < %u\n",
+				    msg.rm_datalen,
+				    (unsigned)sizeof(struct ether_header));
 				goto tr_setup;
-			} else if (msg.rm_datalen > (uint32_t)(MCLBYTES - ETHER_ALIGN)) {
+			} else if (msg.rm_datalen >
+			    (uint32_t)(MCLBYTES - ETHER_ALIGN)) {
 				if_inc_counter(ifp, IFCOUNTER_IERRORS, 1);
 				DPRINTF("invalid ethernet size "
-				    "%u > %u\n",
+					"%u > %u\n",
 				    msg.rm_datalen, (unsigned)MCLBYTES);
 				goto tr_setup;
-			} else if (msg.rm_datalen > (uint32_t)(MHLEN - ETHER_ALIGN)) {
+			} else if (msg.rm_datalen >
+			    (uint32_t)(MHLEN - ETHER_ALIGN)) {
 				m = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
 			} else {
 				m = m_gethdr(M_NOWAIT, MT_DATA);
@@ -903,12 +897,15 @@ urndis_bulk_read_callback(struct usb_xfer *xfer, usb_error_t error)
 
 			/* check if we have a buffer */
 			if (m != NULL) {
-				m->m_len = m->m_pkthdr.len = msg.rm_datalen + ETHER_ALIGN;
+				m->m_len = m->m_pkthdr.len = msg.rm_datalen +
+				    ETHER_ALIGN;
 				m_adj(m, ETHER_ALIGN);
 
-				usbd_copy_out(pc, offset + msg.rm_dataoffset +
-				    __offsetof(struct rndis_packet_msg,
-				    rm_dataoffset), m->m_data, msg.rm_datalen);
+				usbd_copy_out(pc,
+				    offset + msg.rm_dataoffset +
+					__offsetof(struct rndis_packet_msg,
+					    rm_dataoffset),
+				    m->m_data, msg.rm_datalen);
 
 				/* enqueue */
 				uether_rxmbuf(&sc->sc_ue, m, msg.rm_datalen);
@@ -920,14 +917,14 @@ urndis_bulk_read_callback(struct usb_xfer *xfer, usb_error_t error)
 		}
 
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, RNDIS_RX_MAXLEN);
 		usbd_xfer_set_frames(xfer, 1);
 		usbd_transfer_submit(xfer);
-		uether_rxflush(&sc->sc_ue);	/* must be last */
+		uether_rxflush(&sc->sc_ue); /* must be last */
 		break;
 
-	default:			/* Error */
+	default: /* Error */
 		DPRINTFN(1, "error = %s\n", usbd_errstr(error));
 
 		if (error != USB_ERR_CANCELLED) {
@@ -963,15 +960,17 @@ urndis_bulk_write_callback(struct usb_xfer *xfer, usb_error_t error)
 
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		memset(&msg, 0, sizeof(msg));
 
 		for (x = 0; x != RNDIS_TX_FRAMES_MAX; x++) {
-			struct usb_page_cache *pc = usbd_xfer_get_frame(xfer, x);
+			struct usb_page_cache *pc = usbd_xfer_get_frame(xfer,
+			    x);
 
-			usbd_xfer_set_frame_offset(xfer, x * RNDIS_TX_MAXLEN, x);
+			usbd_xfer_set_frame_offset(xfer, x * RNDIS_TX_MAXLEN,
+			    x);
 
-next_pkt:
+		next_pkt:
 			m = if_dequeue(ifp);
 
 			if (m == NULL)
@@ -994,7 +993,8 @@ next_pkt:
 			/* copy in all data */
 			usbd_copy_in(pc, 0, &msg, sizeof(msg));
 			usbd_m_copy_in(pc, sizeof(msg), m, 0, m->m_pkthdr.len);
-			usbd_xfer_set_frame_len(xfer, x, sizeof(msg) + m->m_pkthdr.len);
+			usbd_xfer_set_frame_len(xfer, x,
+			    sizeof(msg) + m->m_pkthdr.len);
 
 			/*
 			 * If there's a BPF listener, bounce a copy of
@@ -1011,7 +1011,7 @@ next_pkt:
 		}
 		break;
 
-	default:			/* Error */
+	default: /* Error */
 		DPRINTFN(11, "transfer error, %s\n", usbd_errstr(error));
 
 		/* count output errors */
@@ -1042,12 +1042,12 @@ urndis_intr_read_callback(struct usb_xfer *xfer, usb_error_t error)
 
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		break;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* start clear stall */
 			usbd_xfer_set_stall(xfer);

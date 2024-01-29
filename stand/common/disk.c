@@ -28,31 +28,32 @@
 #include <sys/cdefs.h>
 #include <sys/disk.h>
 #include <sys/queue.h>
-#include <stand.h>
-#include <stdarg.h>
+
+#include <assert.h>
 #include <bootstrap.h>
 #include <part.h>
-#include <assert.h>
+#include <stand.h>
+#include <stdarg.h>
 
 #include "disk.h"
 
 #ifdef DISK_DEBUG
-# define DPRINTF(fmt, args...)	printf("%s: " fmt "\n" , __func__ , ## args)
+#define DPRINTF(fmt, args...) printf("%s: " fmt "\n", __func__, ##args)
 #else
-# define DPRINTF(fmt, args...)	((void)0)
+#define DPRINTF(fmt, args...) ((void)0)
 #endif
 
 struct open_disk {
-	struct ptable		*table;
-	uint64_t		mediasize;
-	uint64_t		entrysize;
-	u_int			sectorsize;
+	struct ptable *table;
+	uint64_t mediasize;
+	uint64_t entrysize;
+	u_int sectorsize;
 };
 
 struct print_args {
-	struct disk_devdesc	*dev;
-	const char		*prefix;
-	int			verbose;
+	struct disk_devdesc *dev;
+	const char *prefix;
+	int verbose;
 };
 
 /* Convert size to a human-readable number. */
@@ -125,7 +126,7 @@ ptable_print(void *arg, const char *pname, const struct ptable_entry *part)
 	if (pa->verbose) {
 		/* Emit extra tab when the line is shorter than 3 tab stops */
 		if (strlen(line) < 24)
-			(void) pager_output("\t");
+			(void)pager_output("\t");
 
 		snprintf(line, sizeof(line), "\t%s",
 		    display_size(partsize, sectsize));
@@ -280,8 +281,7 @@ disk_open(struct disk_devdesc *dev, uint64_t mediasize, u_int sectorsize)
 	}
 	od->mediasize = mediasize;
 
-	if (ptable_gettype(od->table) == PTABLE_BSD &&
-	    partition >= 0) {
+	if (ptable_gettype(od->table) == PTABLE_BSD && partition >= 0) {
 		/* It doesn't matter what value has d_slice */
 		rc = ptable_getpart(od->table, &part, partition);
 		if (rc == 0) {
@@ -326,8 +326,7 @@ disk_open(struct disk_devdesc *dev, uint64_t mediasize, u_int sectorsize)
 		 * then try to read BSD label, otherwise return the
 		 * whole MBR slice.
 		 */
-		if (partition == D_PARTWILD &&
-		    part.type != PART_FREEBSD)
+		if (partition == D_PARTWILD && part.type != PART_FREEBSD)
 			goto out;
 		/* Try to read BSD label */
 		table = ptable_open(dev, part.end - part.start + 1,
@@ -418,7 +417,7 @@ disk_parsedev(struct devdesc **idev, const char *devspec, const char **path)
 	char *cp;
 	struct disk_devdesc *dev;
 
-	np = devspec + 4;	/* Skip the leading 'disk' */
+	np = devspec + 4; /* Skip the leading 'disk' */
 	unit = -1;
 	/*
 	 * If there is path/file info after the device info, then any missing
@@ -451,7 +450,7 @@ disk_parsedev(struct devdesc **idev, const char *devspec, const char **path)
 		} else
 #endif
 #ifdef LOADER_MBR_SUPPORT
-		if (*cp == 's') {
+		    if (*cp == 's') {
 			np = cp + 1;
 			slice = strtol(np, &cp, 10);
 			if (np == cp)
@@ -477,6 +476,6 @@ disk_parsedev(struct devdesc **idev, const char *devspec, const char **path)
 	dev->d_partition = partition;
 	*idev = &dev->dd;
 	if (path != NULL)
-		*path = (*cp == '\0') ? cp: cp + 1;
+		*path = (*cp == '\0') ? cp : cp + 1;
 	return (0);
 }

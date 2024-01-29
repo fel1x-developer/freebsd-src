@@ -29,10 +29,10 @@
 #include <sys/param.h>
 
 #include <stdarg.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <ucontext.h>
+#include <unistd.h>
 
 __weak_reference(__makecontext, makecontext);
 
@@ -63,9 +63,8 @@ __makecontext(ucontext_t *ucp, void (*start)(void), int argc, ...)
 	int i, regargs, stackargs;
 
 	/* Sanity checks */
-	if ((ucp == NULL) || (argc < 0)
-	    || (ucp->uc_stack.ss_sp == NULL)
-	    || (ucp->uc_stack.ss_size < MINSIGSTKSZ)) {
+	if ((ucp == NULL) || (argc < 0) || (ucp->uc_stack.ss_sp == NULL) ||
+	    (ucp->uc_stack.ss_size < MINSIGSTKSZ)) {
 		/* invalidate context */
 		ucp->uc_mcontext.mc_len = 0;
 		return;
@@ -77,8 +76,8 @@ __makecontext(ucontext_t *ucp, void (*start)(void), int argc, ...)
 	 * aligned.
 	 */
 	stackargs = (argc > 8) ? argc - 8 : 0;
-	sp = (char *) ucp->uc_stack.ss_sp + ucp->uc_stack.ss_size
-		- sizeof(uintptr_t)*(stackargs + 2);
+	sp = (char *)ucp->uc_stack.ss_sp + ucp->uc_stack.ss_size -
+	    sizeof(uintptr_t) * (stackargs + 2);
 	sp = (char *)((uintptr_t)sp & ~0x1f);
 
 	mc = &ucp->uc_mcontext;
@@ -118,9 +117,9 @@ __makecontext(ucontext_t *ucp, void (*start)(void), int argc, ...)
 	/* Cast to ensure this is treated as a function descriptor. */
 	mc->mc_srr0 = *(uintptr_t *)_ctx_start;
 #else
-	mc->mc_srr0 = (uintptr_t) _ctx_start;
+	mc->mc_srr0 = (uintptr_t)_ctx_start;
 #endif
-	mc->mc_gpr[1] = (uintptr_t) sp;		/* new stack pointer */
-	mc->mc_gpr[14] = (uintptr_t) start;	/* r14 <- start */
-	mc->mc_gpr[15] = (uintptr_t) ucp;	/* r15 <- ucp */
+	mc->mc_gpr[1] = (uintptr_t)sp;	   /* new stack pointer */
+	mc->mc_gpr[14] = (uintptr_t)start; /* r14 <- start */
+	mc->mc_gpr[15] = (uintptr_t)ucp;   /* r15 <- ucp */
 }

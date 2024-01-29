@@ -27,14 +27,14 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/systm.h>
 
 #ifdef FDT
 #include <dev/ofw/ofw_bus.h>
@@ -44,9 +44,10 @@
 
 #include <dev/iicbus/iicbus.h>
 #include <dev/iicbus/iiconf.h>
+#include <dev/iicbus/mux/iicmux.h>
+
 #include "iicbus_if.h"
 #include "iicmux_if.h"
-#include <dev/iicbus/mux/iicmux.h>
 
 enum pca954x_type {
 	PCA954X_MUX,
@@ -54,11 +55,11 @@ enum pca954x_type {
 };
 
 struct pca954x_descr {
-	const char 		*partname;
-	const char		*description;
-	enum pca954x_type	type;
-	uint8_t			numchannels;
-	uint8_t			enable;
+	const char *partname;
+	const char *description;
+	enum pca954x_type type;
+	uint8_t numchannels;
+	uint8_t enable;
 };
 
 static struct pca954x_descr pca9540_descr = {
@@ -132,14 +133,16 @@ pca954x_bus_select(device_t dev, int busidx, struct iic_reqbus_data *rd)
 		uint8_t en;
 
 		en = sc->descr->enable;
-		KASSERT(en > 0 && powerof2(en), ("%s: %s enable %#x "
-		    "invalid\n", __func__, sc->descr->partname, en));
+		KASSERT(en > 0 && powerof2(en),
+		    ("%s: %s enable %#x "
+		     "invalid\n",
+			__func__, sc->descr->partname, en));
 		busbits = en | (busidx & (en - 1));
 	} else if (sc->descr->type == PCA954X_SW) {
 		busbits = 1u << busidx;
 	} else {
-		panic("%s: %s: unsupported type %d\n",
-		    __func__, sc->descr->partname, sc->descr->type);
+		panic("%s: %s: unsupported type %d\n", __func__,
+		    sc->descr->partname, sc->descr->type);
 	}
 
 	msg.slave = sc->addr;
@@ -168,7 +171,7 @@ pca954x_find_chip(device_t dev)
 	int i;
 
 	if (resource_string_value(device_get_name(dev), device_get_unit(dev),
-	    "chip_type", &type) == 0) {
+		"chip_type", &type) == 0) {
 		for (i = 0; i < nitems(part_descrs) - 1; ++i) {
 			if (strcasecmp(type, part_descrs[i]->partname) == 0)
 				return (part_descrs[i]);
@@ -200,12 +203,13 @@ pca954x_attach(device_t dev)
 
 	sc = device_get_softc(dev);
 	sc->addr = iicbus_get_addr(dev);
-	sc->idle_disconnect = device_has_property(dev, "i2c-mux-idle-disconnect");
+	sc->idle_disconnect = device_has_property(dev,
+	    "i2c-mux-idle-disconnect");
 
 	sc->descr = descr = pca954x_find_chip(dev);
 	error = iicmux_attach(dev, device_get_parent(dev), descr->numchannels);
 	if (error == 0)
-                bus_generic_attach(dev);
+		bus_generic_attach(dev);
 
 	return (error);
 }
@@ -221,12 +225,12 @@ pca954x_detach(device_t dev)
 
 static device_method_t pca954x_methods[] = {
 	/* device methods */
-	DEVMETHOD(device_probe,			pca954x_probe),
-	DEVMETHOD(device_attach,		pca954x_attach),
-	DEVMETHOD(device_detach,		pca954x_detach),
+	DEVMETHOD(device_probe, pca954x_probe),
+	DEVMETHOD(device_attach, pca954x_attach),
+	DEVMETHOD(device_detach, pca954x_detach),
 
 	/* iicmux methods */
-	DEVMETHOD(iicmux_bus_select,		pca954x_bus_select),
+	DEVMETHOD(iicmux_bus_select, pca954x_bus_select),
 
 	DEVMETHOD_END
 };

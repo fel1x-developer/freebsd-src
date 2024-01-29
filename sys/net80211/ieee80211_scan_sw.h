@@ -22,9 +22,9 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef	__NET80211_IEEE80211_SCAN_SW_H__
-#define	__NET80211_IEEE80211_SCAN_SW_H__
+#ifndef __NET80211_IEEE80211_SCAN_SW_H__
+#define __NET80211_IEEE80211_SCAN_SW_H__
 
-extern	void ieee80211_swscan_attach(struct ieee80211com *ic);
+extern void ieee80211_swscan_attach(struct ieee80211com *ic);
 
-#endif	/* __NET80211_IEEE80211_SCAN_SW_H__ */
+#endif /* __NET80211_IEEE80211_SCAN_SW_H__ */

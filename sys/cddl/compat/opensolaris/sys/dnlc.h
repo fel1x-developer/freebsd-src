@@ -25,14 +25,18 @@
  */
 
 #ifndef _OPENSOLARIS_SYS_DNLC_H_
-#define	_OPENSOLARIS_SYS_DNLC_H_
+#define _OPENSOLARIS_SYS_DNLC_H_
 
-#define	DNLC_NO_VNODE	((void *)(intptr_t)0xdeadc0de)
+#define DNLC_NO_VNODE ((void *)(intptr_t)0xdeadc0de)
 
-#define	dnlc_lookup(dvp, name)	(NULL)
-#define	dnlc_update(dvp, name, vp)	do { } while (0)
-#define	dnlc_remove(dvp, name)		do { } while (0)
-#define	dnlc_purge_vfsp(vfsp, count)	(0)
+#define dnlc_lookup(dvp, name) (NULL)
+#define dnlc_update(dvp, name, vp) \
+	do {                       \
+	} while (0)
+#define dnlc_remove(dvp, name) \
+	do {                   \
+	} while (0)
+#define dnlc_purge_vfsp(vfsp, count) (0)
 void dnlc_reduce_cache(void *arg);
 
-#endif	/* !_OPENSOLARIS_SYS_DNLC_H_ */
+#endif /* !_OPENSOLARIS_SYS_DNLC_H_ */

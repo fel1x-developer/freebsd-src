@@ -39,45 +39,39 @@
 #ifndef UVERBS_H
 #define UVERBS_H
 
-#include <linux/kref.h>
-#include <linux/idr.h>
-#include <linux/mutex.h>
-#include <linux/completion.h>
 #include <linux/cdev.h>
-#include <linux/srcu.h>
-#include <linux/rcupdate.h>
+#include <linux/completion.h>
+#include <linux/idr.h>
+#include <linux/kref.h>
+#include <linux/mutex.h>
 #include <linux/rbtree.h>
+#include <linux/rcupdate.h>
+#include <linux/srcu.h>
 #include <linux/wait.h>
-
-#include <rdma/ib_verbs.h>
 #include <rdma/ib_umem.h>
 #include <rdma/ib_user_verbs.h>
+#include <rdma/ib_verbs.h>
 #include <rdma/uverbs_std_types.h>
 
 #define UVERBS_MODULE_NAME ib_uverbs
 #include <rdma/uverbs_named_ioctl.h>
 
 static inline void
-ib_uverbs_init_udata(struct ib_udata *udata,
-		     const void __user *ibuf,
-		     void __user *obuf,
-		     size_t ilen, size_t olen)
+ib_uverbs_init_udata(struct ib_udata *udata, const void __user *ibuf,
+    void __user *obuf, size_t ilen, size_t olen)
 {
-	udata->inbuf  = ibuf;
+	udata->inbuf = ibuf;
 	udata->outbuf = obuf;
-	udata->inlen  = ilen;
+	udata->inlen = ilen;
 	udata->outlen = olen;
 }
 
 static inline void
 ib_uverbs_init_udata_buf_or_null(struct ib_udata *udata,
-				 const void __user *ibuf,
-				 void __user *obuf,
-				 size_t ilen, size_t olen)
+    const void __user *ibuf, void __user *obuf, size_t ilen, size_t olen)
 {
-	ib_uverbs_init_udata(udata,
-			     ilen ? ibuf : NULL, olen ? obuf : NULL,
-			     ilen, olen);
+	ib_uverbs_init_udata(udata, ilen ? ibuf : NULL, olen ? obuf : NULL,
+	    ilen, olen);
 }
 
 /*
@@ -103,51 +97,51 @@ ib_uverbs_init_udata_buf_or_null(struct ib_udata *udata,
  */
 
 struct ib_uverbs_device {
-	atomic_t				refcount;
-	u32					num_comp_vectors;
-	struct completion			comp;
-	struct device				dev;
-	struct ib_device	__rcu	       *ib_dev;
-	int					devnum;
-	struct cdev			        cdev;
-	struct rb_root				xrcd_tree;
-	struct mutex				xrcd_tree_mutex;
-	struct srcu_struct			disassociate_srcu;
-	struct mutex				lists_mutex; /* protect lists */
-	struct list_head			uverbs_file_list;
-	struct uverbs_api			*uapi;
+	atomic_t refcount;
+	u32 num_comp_vectors;
+	struct completion comp;
+	struct device dev;
+	struct ib_device __rcu *ib_dev;
+	int devnum;
+	struct cdev cdev;
+	struct rb_root xrcd_tree;
+	struct mutex xrcd_tree_mutex;
+	struct srcu_struct disassociate_srcu;
+	struct mutex lists_mutex; /* protect lists */
+	struct list_head uverbs_file_list;
+	struct uverbs_api *uapi;
 };
 
 struct ib_uverbs_event_queue {
-	spinlock_t				lock;
-	int					is_closed;
-	wait_queue_head_t			poll_wait;
-	struct fasync_struct		       *async_queue;
-	struct list_head			event_list;
+	spinlock_t lock;
+	int is_closed;
+	wait_queue_head_t poll_wait;
+	struct fasync_struct *async_queue;
+	struct list_head event_list;
 };
 
 struct ib_uverbs_async_event_file {
-	struct ib_uobject			uobj;
-	struct ib_uverbs_event_queue		ev_queue;
-	struct ib_event_handler			event_handler;
+	struct ib_uobject uobj;
+	struct ib_uverbs_event_queue ev_queue;
+	struct ib_event_handler event_handler;
 };
 
 struct ib_uverbs_completion_event_file {
-	struct ib_uobject			uobj;
-	struct ib_uverbs_event_queue		ev_queue;
+	struct ib_uobject uobj;
+	struct ib_uverbs_event_queue ev_queue;
 };
 
 struct ib_uverbs_file {
-	struct kref				ref;
-	struct ib_uverbs_device		       *device;
-	struct mutex				ucontext_lock;
+	struct kref ref;
+	struct ib_uverbs_device *device;
+	struct mutex ucontext_lock;
 	/*
 	 * ucontext must be accessed via ib_uverbs_get_ucontext() or with
 	 * ucontext_lock held
 	 */
-	struct ib_ucontext		       *ucontext;
-	struct ib_uverbs_async_event_file      *async_file;
-	struct list_head			list;
+	struct ib_ucontext *ucontext;
+	struct ib_uverbs_async_event_file *async_file;
+	struct list_head list;
 
 	/*
 	 * To access the uobjects list hw_destroy_rwsem must be held for write
@@ -155,71 +149,72 @@ struct ib_uverbs_file {
 	 * hw_destroy_rwsem should be called across any destruction of the HW
 	 * object of an associated uobject.
 	 */
-	struct rw_semaphore	hw_destroy_rwsem;
-	spinlock_t		uobjects_lock;
-	struct list_head	uobjects;
+	struct rw_semaphore hw_destroy_rwsem;
+	spinlock_t uobjects_lock;
+	struct list_head uobjects;
 
 	struct mutex umap_lock;
 	struct list_head umaps;
 
-	struct xarray		idr;
+	struct xarray idr;
 };
 
 struct ib_uverbs_event {
 	union {
-		struct ib_uverbs_async_event_desc	async;
-		struct ib_uverbs_comp_event_desc	comp;
-	}					desc;
-	struct list_head			list;
-	struct list_head			obj_list;
-	u32				       *counter;
+		struct ib_uverbs_async_event_desc async;
+		struct ib_uverbs_comp_event_desc comp;
+	} desc;
+	struct list_head list;
+	struct list_head obj_list;
+	u32 *counter;
 };
 
 struct ib_uverbs_mcast_entry {
-	struct list_head	list;
-	union ib_gid 		gid;
-	u16 			lid;
+	struct list_head list;
+	union ib_gid gid;
+	u16 lid;
 };
 
 struct ib_uevent_object {
-	struct ib_uobject	uobject;
+	struct ib_uobject uobject;
 	/* List member for ib_uverbs_async_event_file list */
-	struct list_head	event_list;
-	u32			events_reported;
+	struct list_head event_list;
+	u32 events_reported;
 };
 
 struct ib_uxrcd_object {
-	struct ib_uobject	uobject;
-	atomic_t		refcnt;
+	struct ib_uobject uobject;
+	atomic_t refcnt;
 };
 
 struct ib_usrq_object {
-	struct ib_uevent_object	uevent;
+	struct ib_uevent_object uevent;
 	struct ib_uxrcd_object *uxrcd;
 };
 
 struct ib_uqp_object {
-	struct ib_uevent_object	uevent;
+	struct ib_uevent_object uevent;
 	/* lock for mcast list */
-	struct mutex		mcast_lock;
-	struct list_head 	mcast_list;
+	struct mutex mcast_lock;
+	struct list_head mcast_list;
 	struct ib_uxrcd_object *uxrcd;
 };
 
 struct ib_uwq_object {
-	struct ib_uevent_object	uevent;
+	struct ib_uevent_object uevent;
 };
 
 struct ib_ucq_object {
 	struct ib_uevent_object uevent;
-	struct list_head	comp_list;
-	u32			comp_events_reported;
+	struct list_head comp_list;
+	u32 comp_events_reported;
 };
 
 extern const struct file_operations uverbs_event_fops;
 extern const struct file_operations uverbs_async_event_fops;
 void ib_uverbs_init_event_queue(struct ib_uverbs_event_queue *ev_queue);
-void ib_uverbs_init_async_event_file(struct ib_uverbs_async_event_file *ev_file);
+void ib_uverbs_init_async_event_file(
+    struct ib_uverbs_async_event_file *ev_file);
 void ib_uverbs_free_event_queue(struct ib_uverbs_event_queue *event_queue);
 void ib_uverbs_flow_resources_free(struct ib_uflow_resources *uflow_res);
 
@@ -227,7 +222,7 @@ int ib_alloc_ucontext(struct uverbs_attr_bundle *attrs);
 int ib_init_ucontext(struct uverbs_attr_bundle *attrs);
 
 void ib_uverbs_release_ucq(struct ib_uverbs_completion_event_file *ev_file,
-			   struct ib_ucq_object *uobj);
+    struct ib_ucq_object *uobj);
 void ib_uverbs_release_uevent(struct ib_uevent_object *uobj);
 void ib_uverbs_release_file(struct kref *ref);
 
@@ -237,12 +232,10 @@ void ib_uverbs_qp_event_handler(struct ib_event *event, void *context_ptr);
 void ib_uverbs_wq_event_handler(struct ib_event *event, void *context_ptr);
 void ib_uverbs_srq_event_handler(struct ib_event *event, void *context_ptr);
 int ib_uverbs_dealloc_xrcd(struct ib_uobject *uobject, struct ib_xrcd *xrcd,
-			   enum rdma_remove_reason why,
-			   struct uverbs_attr_bundle *attrs);
+    enum rdma_remove_reason why, struct uverbs_attr_bundle *attrs);
 
 int uverbs_dealloc_mw(struct ib_mw *mw);
-void ib_uverbs_detach_umcast(struct ib_qp *qp,
-			     struct ib_uqp_object *uobj);
+void ib_uverbs_detach_umcast(struct ib_qp *qp, struct ib_uqp_object *uobj);
 
 long ib_uverbs_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
 
@@ -256,29 +249,28 @@ struct ib_uverbs_flow_spec {
 				__u16 reserved;
 			};
 		};
-		struct ib_uverbs_flow_spec_eth     eth;
-		struct ib_uverbs_flow_spec_ipv4    ipv4;
-		struct ib_uverbs_flow_spec_esp     esp;
+		struct ib_uverbs_flow_spec_eth eth;
+		struct ib_uverbs_flow_spec_ipv4 ipv4;
+		struct ib_uverbs_flow_spec_esp esp;
 		struct ib_uverbs_flow_spec_tcp_udp tcp_udp;
-		struct ib_uverbs_flow_spec_ipv6    ipv6;
-		struct ib_uverbs_flow_spec_action_tag	flow_tag;
-		struct ib_uverbs_flow_spec_action_drop	drop;
+		struct ib_uverbs_flow_spec_ipv6 ipv6;
+		struct ib_uverbs_flow_spec_action_tag flow_tag;
+		struct ib_uverbs_flow_spec_action_drop drop;
 		struct ib_uverbs_flow_spec_action_handle action;
 		struct ib_uverbs_flow_spec_action_count flow_count;
 	};
 };
 
 int ib_uverbs_kern_spec_to_ib_spec_filter(enum ib_flow_spec_type type,
-					  const void *kern_spec_mask,
-					  const void *kern_spec_val,
-					  size_t kern_filter_sz,
-					  union ib_flow_spec *ib_spec);
+    const void *kern_spec_mask, const void *kern_spec_val,
+    size_t kern_filter_sz, union ib_flow_spec *ib_spec);
 
 /*
  * ib_uverbs_query_port_resp.port_cap_flags started out as just a copy of the
  * PortInfo CapabilityMask, but was extended with unique bits.
  */
-static inline u32 make_port_cap_flags(const struct ib_port_attr *attr)
+static inline u32
+make_port_cap_flags(const struct ib_port_attr *attr)
 {
 	u32 res;
 
@@ -295,8 +287,7 @@ static inline u32 make_port_cap_flags(const struct ib_port_attr *attr)
 	return res;
 }
 
-
 void copy_port_attr_to_resp(struct ib_port_attr *attr,
-			    struct ib_uverbs_query_port_resp *resp,
-			    struct ib_device *ib_dev, u8 port_num);
+    struct ib_uverbs_query_port_resp *resp, struct ib_device *ib_dev,
+    u8 port_num);
 #endif /* UVERBS_H */

@@ -26,87 +26,79 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_bhyve_snapshot.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/smp.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/pcpu.h>
 #include <sys/proc.h>
 #include <sys/reg.h>
+#include <sys/smp.h>
 #include <sys/smr.h>
 #include <sys/sysctl.h>
 
 #include <vm/vm.h>
-#include <vm/vm_extern.h>
 #include <vm/pmap.h>
+#include <vm/vm_extern.h>
 
 #include <machine/cpufunc.h>
-#include <machine/psl.h>
 #include <machine/md_var.h>
-#include <machine/specialreg.h>
+#include <machine/psl.h>
 #include <machine/smp.h>
+#include <machine/specialreg.h>
 #include <machine/vmm.h>
 #include <machine/vmm_dev.h>
 #include <machine/vmm_instruction_emul.h>
 #include <machine/vmm_snapshot.h>
 
-#include "vmm_lapic.h"
-#include "vmm_stat.h"
-#include "vmm_ktr.h"
-#include "vmm_ioport.h"
+#include "npt.h"
+#include "svm.h"
+#include "svm_msr.h"
+#include "svm_softc.h"
 #include "vatpic.h"
 #include "vlapic.h"
 #include "vlapic_priv.h"
-
-#include "x86.h"
 #include "vmcb.h"
-#include "svm.h"
-#include "svm_softc.h"
-#include "svm_msr.h"
-#include "npt.h"
+#include "vmm_ioport.h"
+#include "vmm_ktr.h"
+#include "vmm_lapic.h"
+#include "vmm_stat.h"
+#include "x86.h"
 
 SYSCTL_DECL(_hw_vmm);
-SYSCTL_NODE(_hw_vmm, OID_AUTO, svm, CTLFLAG_RW | CTLFLAG_MPSAFE, NULL,
-    NULL);
+SYSCTL_NODE(_hw_vmm, OID_AUTO, svm, CTLFLAG_RW | CTLFLAG_MPSAFE, NULL, NULL);
 
 /*
  * SVM CPUID function 0x8000_000A, edx bit decoding.
  */
-#define AMD_CPUID_SVM_NP		BIT(0)  /* Nested paging or RVI */
-#define AMD_CPUID_SVM_LBR		BIT(1)  /* Last branch virtualization */
-#define AMD_CPUID_SVM_SVML		BIT(2)  /* SVM lock */
-#define AMD_CPUID_SVM_NRIP_SAVE		BIT(3)  /* Next RIP is saved */
-#define AMD_CPUID_SVM_TSC_RATE		BIT(4)  /* TSC rate control. */
-#define AMD_CPUID_SVM_VMCB_CLEAN	BIT(5)  /* VMCB state caching */
-#define AMD_CPUID_SVM_FLUSH_BY_ASID	BIT(6)  /* Flush by ASID */
-#define AMD_CPUID_SVM_DECODE_ASSIST	BIT(7)  /* Decode assist */
-#define AMD_CPUID_SVM_PAUSE_INC		BIT(10) /* Pause intercept filter. */
-#define AMD_CPUID_SVM_PAUSE_FTH		BIT(12) /* Pause filter threshold */
-#define	AMD_CPUID_SVM_AVIC		BIT(13)	/* AVIC present */
+#define AMD_CPUID_SVM_NP BIT(0)		   /* Nested paging or RVI */
+#define AMD_CPUID_SVM_LBR BIT(1)	   /* Last branch virtualization */
+#define AMD_CPUID_SVM_SVML BIT(2)	   /* SVM lock */
+#define AMD_CPUID_SVM_NRIP_SAVE BIT(3)	   /* Next RIP is saved */
+#define AMD_CPUID_SVM_TSC_RATE BIT(4)	   /* TSC rate control. */
+#define AMD_CPUID_SVM_VMCB_CLEAN BIT(5)	   /* VMCB state caching */
+#define AMD_CPUID_SVM_FLUSH_BY_ASID BIT(6) /* Flush by ASID */
+#define AMD_CPUID_SVM_DECODE_ASSIST BIT(7) /* Decode assist */
+#define AMD_CPUID_SVM_PAUSE_INC BIT(10)	   /* Pause intercept filter. */
+#define AMD_CPUID_SVM_PAUSE_FTH BIT(12)	   /* Pause filter threshold */
+#define AMD_CPUID_SVM_AVIC BIT(13)	   /* AVIC present */
 
-#define	VMCB_CACHE_DEFAULT	(VMCB_CACHE_ASID 	|	\
-				VMCB_CACHE_IOPM		|	\
-				VMCB_CACHE_I		|	\
-				VMCB_CACHE_TPR		|	\
-				VMCB_CACHE_CR2		|	\
-				VMCB_CACHE_CR		|	\
-				VMCB_CACHE_DR		|	\
-				VMCB_CACHE_DT		|	\
-				VMCB_CACHE_SEG		|	\
-				VMCB_CACHE_NP)
+#define VMCB_CACHE_DEFAULT                                                   \
+	(VMCB_CACHE_ASID | VMCB_CACHE_IOPM | VMCB_CACHE_I | VMCB_CACHE_TPR | \
+	    VMCB_CACHE_CR2 | VMCB_CACHE_CR | VMCB_CACHE_DR | VMCB_CACHE_DT | \
+	    VMCB_CACHE_SEG | VMCB_CACHE_NP)
 
 static uint32_t vmcb_clean = VMCB_CACHE_DEFAULT;
-SYSCTL_INT(_hw_vmm_svm, OID_AUTO, vmcb_clean, CTLFLAG_RDTUN, &vmcb_clean,
-    0, NULL);
+SYSCTL_INT(_hw_vmm_svm, OID_AUTO, vmcb_clean, CTLFLAG_RDTUN, &vmcb_clean, 0,
+    NULL);
 
 static MALLOC_DEFINE(M_SVM, "svm", "svm");
 static MALLOC_DEFINE(M_SVM_VLAPIC, "svm-vlapic", "svm-vlapic");
 
-static uint32_t svm_feature = ~0U;	/* AMD SVM features. */
+static uint32_t svm_feature = ~0U; /* AMD SVM features. */
 SYSCTL_UINT(_hw_vmm_svm, OID_AUTO, features, CTLFLAG_RDTUN, &svm_feature, 0,
     "SVM features advertised by CPUID.8000000AH:EDX");
 
@@ -281,7 +273,7 @@ svm_modresume(void)
 {
 
 	svm_enable(NULL);
-}		
+}
 
 #ifdef BHYVE_SNAPSHOT
 void
@@ -300,14 +292,14 @@ svm_set_tsc_offset(struct svm_vcpu *vcpu, uint64_t offset)
 #endif
 
 /* Pentium compatible MSRs */
-#define MSR_PENTIUM_START 	0	
-#define MSR_PENTIUM_END 	0x1FFF
+#define MSR_PENTIUM_START 0
+#define MSR_PENTIUM_END 0x1FFF
 /* AMD 6th generation and Intel compatible MSRs */
-#define MSR_AMD6TH_START 	0xC0000000UL	
-#define MSR_AMD6TH_END 		0xC0001FFFUL	
+#define MSR_AMD6TH_START 0xC0000000UL
+#define MSR_AMD6TH_END 0xC0001FFFUL
 /* AMD 7th and 8th generation compatible MSRs */
-#define MSR_AMD7TH_START 	0xC0010000UL	
-#define MSR_AMD7TH_END 		0xC0011FFFUL	
+#define MSR_AMD7TH_START 0xC0010000UL
+#define MSR_AMD7TH_END 0xC0011FFFUL
 
 /*
  * Get the index and bit position for a MSR in permission bitmap.
@@ -327,12 +319,12 @@ svm_msr_index(uint64_t msr, int *index, int *bit)
 		return (0);
 	}
 
-	base += (MSR_PENTIUM_END - MSR_PENTIUM_START + 1); 
+	base += (MSR_PENTIUM_END - MSR_PENTIUM_START + 1);
 	if (msr >= MSR_AMD6TH_START && msr <= MSR_AMD6TH_END) {
-		off = (msr - MSR_AMD6TH_START); 
+		off = (msr - MSR_AMD6TH_START);
 		*index = (off + base) / 4;
 		return (0);
-	} 
+	}
 
 	base += (MSR_AMD6TH_END - MSR_AMD6TH_START + 1);
 	if (msr >= MSR_AMD7TH_START && msr <= MSR_AMD7TH_END) {
@@ -356,8 +348,10 @@ svm_msr_perm(uint8_t *perm_bitmap, uint64_t msr, bool read, bool write)
 	KASSERT(error == 0, ("%s: invalid msr %#lx", __func__, msr));
 	KASSERT(index >= 0 && index < SVM_MSR_BITMAP_SIZE,
 	    ("%s: invalid index %d for msr %#lx", __func__, index, msr));
-	KASSERT(bit >= 0 && bit <= 6, ("%s: invalid bit position %d "
-	    "msr %#lx", __func__, bit, msr));
+	KASSERT(bit >= 0 && bit <= 6,
+	    ("%s: invalid bit position %d "
+	     "msr %#lx",
+		__func__, bit, msr));
 
 	if (read)
 		perm_bitmap[index] &= ~(1UL << bit);
@@ -385,7 +379,7 @@ svm_get_intercept(struct svm_vcpu *vcpu, int idx, uint32_t bitmask)
 {
 	struct vmcb_ctrl *ctrl;
 
-	KASSERT(idx >=0 && idx < 5, ("invalid intercept index %d", idx));
+	KASSERT(idx >= 0 && idx < 5, ("invalid intercept index %d", idx));
 
 	ctrl = svm_get_vmcb_ctrl(vcpu);
 	return (ctrl->intercept[idx] & bitmask ? 1 : 0);
@@ -397,7 +391,7 @@ svm_set_intercept(struct svm_vcpu *vcpu, int idx, uint32_t bitmask, int enabled)
 	struct vmcb_ctrl *ctrl;
 	uint32_t oldval;
 
-	KASSERT(idx >=0 && idx < 5, ("invalid intercept index %d", idx));
+	KASSERT(idx >= 0 && idx < 5, ("invalid intercept index %d", idx));
 
 	ctrl = svm_get_vmcb_ctrl(vcpu);
 	oldval = ctrl->intercept[idx];
@@ -494,8 +488,8 @@ vmcb_init(struct svm_softc *sc, struct svm_vcpu *vcpu, uint64_t iopm_base_pa,
 	svm_enable_intercept(vcpu, VMCB_CTRL2_INTCPT, VMCB_INTCPT_MWAIT);
 
 	/*
-	 * Intercept SVM instructions since AMD enables them in guests otherwise.
-	 * Non-intercepted VMMCALL causes #UD, skip it.
+	 * Intercept SVM instructions since AMD enables them in guests
+	 * otherwise. Non-intercepted VMMCALL causes #UD, skip it.
 	 */
 	svm_enable_intercept(vcpu, VMCB_CTRL2_INTCPT, VMCB_INTCPT_VMLOAD);
 	svm_enable_intercept(vcpu, VMCB_CTRL2_INTCPT, VMCB_INTCPT_VMSAVE);
@@ -535,13 +529,10 @@ vmcb_init(struct svm_softc *sc, struct svm_vcpu *vcpu, uint64_t iopm_base_pa,
 	state->efer = EFER_SVM;
 
 	/* Set up the PAT to power-on state */
-	state->g_pat = PAT_VALUE(0, PAT_WRITE_BACK)	|
-	    PAT_VALUE(1, PAT_WRITE_THROUGH)	|
-	    PAT_VALUE(2, PAT_UNCACHED)		|
-	    PAT_VALUE(3, PAT_UNCACHEABLE)	|
-	    PAT_VALUE(4, PAT_WRITE_BACK)	|
-	    PAT_VALUE(5, PAT_WRITE_THROUGH)	|
-	    PAT_VALUE(6, PAT_UNCACHED)		|
+	state->g_pat = PAT_VALUE(0, PAT_WRITE_BACK) |
+	    PAT_VALUE(1, PAT_WRITE_THROUGH) | PAT_VALUE(2, PAT_UNCACHED) |
+	    PAT_VALUE(3, PAT_UNCACHEABLE) | PAT_VALUE(4, PAT_WRITE_BACK) |
+	    PAT_VALUE(5, PAT_WRITE_THROUGH) | PAT_VALUE(6, PAT_UNCACHED) |
 	    PAT_VALUE(7, PAT_UNCACHEABLE);
 
 	/* Set up DR6/7 to power-on state */
@@ -557,14 +548,14 @@ svm_init(struct vm *vm, pmap_t pmap)
 {
 	struct svm_softc *svm_sc;
 
-	svm_sc = malloc(sizeof (*svm_sc), M_SVM, M_WAITOK | M_ZERO);
+	svm_sc = malloc(sizeof(*svm_sc), M_SVM, M_WAITOK | M_ZERO);
 
-	svm_sc->msr_bitmap = contigmalloc(SVM_MSR_BITMAP_SIZE, M_SVM,
-	    M_WAITOK, 0, ~(vm_paddr_t)0, PAGE_SIZE, 0);
+	svm_sc->msr_bitmap = contigmalloc(SVM_MSR_BITMAP_SIZE, M_SVM, M_WAITOK,
+	    0, ~(vm_paddr_t)0, PAGE_SIZE, 0);
 	if (svm_sc->msr_bitmap == NULL)
 		panic("contigmalloc of SVM MSR bitmap failed");
-	svm_sc->iopm_bitmap = contigmalloc(SVM_IO_BITMAP_SIZE, M_SVM,
-	    M_WAITOK, 0, ~(vm_paddr_t)0, PAGE_SIZE, 0);
+	svm_sc->iopm_bitmap = contigmalloc(SVM_IO_BITMAP_SIZE, M_SVM, M_WAITOK,
+	    0, ~(vm_paddr_t)0, PAGE_SIZE, 0);
 	if (svm_sc->iopm_bitmap == NULL)
 		panic("contigmalloc of SVM IO bitmap failed");
 
@@ -664,8 +655,8 @@ svm_vcpu_mode(struct vmcb *vmcb)
 
 	if (state->efer & EFER_LMA) {
 		error = vmcb_seg(vmcb, VM_REG_GUEST_CS, &seg);
-		KASSERT(error == 0, ("%s: vmcb_seg(cs) error %d", __func__,
-		    error));
+		KASSERT(error == 0,
+		    ("%s: vmcb_seg(cs) error %d", __func__, error));
 
 		/*
 		 * Section 4.8.1 for APM2, check if Code Segment has
@@ -675,7 +666,7 @@ svm_vcpu_mode(struct vmcb *vmcb)
 			return (CPU_MODE_64BIT);
 		else
 			return (CPU_MODE_COMPATIBILITY);
-	} else  if (state->cr0 & CR0_PE) {
+	} else if (state->cr0 & CR0_PE) {
 		return (CPU_MODE_PROTECTED);
 	} else {
 		return (CPU_MODE_REAL);
@@ -740,19 +731,19 @@ svm_inout_str_seginfo(struct svm_vcpu *vcpu, int64_t info1, int in,
 static int
 svm_inout_str_addrsize(uint64_t info1)
 {
-        uint32_t size;
+	uint32_t size;
 
-        size = (info1 >> 7) & 0x7;
-        switch (size) {
-        case 1:
-                return (2);     /* 16 bit */
-        case 2:
-                return (4);     /* 32 bit */
-        case 4:
-                return (8);     /* 64 bit */
-        default:
-                panic("%s: invalid size encoding %d", __func__, size);
-        }
+	size = (info1 >> 7) & 0x7;
+	switch (size) {
+	case 1:
+		return (2); /* 16 bit */
+	case 2:
+		return (4); /* 32 bit */
+	case 4:
+		return (8); /* 64 bit */
+	default:
+		panic("%s: invalid size encoding %d", __func__, size);
+	}
 }
 
 static void
@@ -768,7 +759,7 @@ svm_paging_info(struct vmcb *vmcb, struct vm_guest_paging *paging)
 	    state->efer);
 }
 
-#define	UNHANDLED 0
+#define UNHANDLED 0
 
 /*
  * Handle guest I/O intercept.
@@ -784,8 +775,8 @@ svm_handle_io(struct svm_vcpu *vcpu, struct vm_exit *vmexit)
 	int inout_string;
 
 	state = svm_get_vmcb_state(vcpu);
-	ctrl  = svm_get_vmcb_ctrl(vcpu);
-	regs  = svm_get_guest_regctx(vcpu);
+	ctrl = svm_get_vmcb_ctrl(vcpu);
+	regs = svm_get_guest_regctx(vcpu);
 
 	info1 = ctrl->exitinfo1;
 	inout_string = info1 & BIT(2) ? 1 : 0;
@@ -800,13 +791,13 @@ svm_handle_io(struct svm_vcpu *vcpu, struct vm_exit *vmexit)
 	if (inout_string && !decode_assist())
 		return (UNHANDLED);
 
-	vmexit->exitcode 	= VM_EXITCODE_INOUT;
-	vmexit->u.inout.in 	= (info1 & BIT(0)) ? 1 : 0;
-	vmexit->u.inout.string 	= inout_string;
-	vmexit->u.inout.rep 	= (info1 & BIT(3)) ? 1 : 0;
-	vmexit->u.inout.bytes 	= (info1 >> 4) & 0x7;
-	vmexit->u.inout.port 	= (uint16_t)(info1 >> 16);
-	vmexit->u.inout.eax 	= (uint32_t)(state->rax);
+	vmexit->exitcode = VM_EXITCODE_INOUT;
+	vmexit->u.inout.in = (info1 & BIT(0)) ? 1 : 0;
+	vmexit->u.inout.string = inout_string;
+	vmexit->u.inout.rep = (info1 & BIT(3)) ? 1 : 0;
+	vmexit->u.inout.bytes = (info1 >> 4) & 0x7;
+	vmexit->u.inout.port = (uint16_t)(info1 >> 16);
+	vmexit->u.inout.eax = (uint32_t)(state->rax);
 
 	if (inout_string) {
 		vmexit->exitcode = VM_EXITCODE_INOUT_STR;
@@ -851,7 +842,7 @@ svm_npf_emul_fault(uint64_t exitinfo1)
 		return (false);
 	}
 
-	return (true);	
+	return (true);
 }
 
 static void
@@ -874,7 +865,7 @@ svm_handle_inst_emul(struct vmcb *vmcb, uint64_t gpa, struct vm_exit *vmexit)
 	error = vmcb_seg(vmcb, VM_REG_GUEST_CS, &seg);
 	KASSERT(error == 0, ("%s: vmcb_seg(CS) error %d", __func__, error));
 
-	switch(paging->cpu_mode) {
+	switch (paging->cpu_mode) {
 	case CPU_MODE_REAL:
 		vmexit->u.inst_emul.cs_base = seg.base;
 		vmexit->u.inst_emul.cs_d = 0;
@@ -886,13 +877,13 @@ svm_handle_inst_emul(struct vmcb *vmcb, uint64_t gpa, struct vm_exit *vmexit)
 		/*
 		 * Section 4.8.1 of APM2, Default Operand Size or D bit.
 		 */
-		vmexit->u.inst_emul.cs_d = (seg.attrib & VMCB_CS_ATTRIB_D) ?
-		    1 : 0;
+		vmexit->u.inst_emul.cs_d = (seg.attrib & VMCB_CS_ATTRIB_D) ? 1 :
+									     0;
 		break;
 	default:
 		vmexit->u.inst_emul.cs_base = 0;
 		vmexit->u.inst_emul.cs_d = 0;
-		break;	
+		break;
 	}
 
 	/*
@@ -941,8 +932,8 @@ svm_eventinject(struct svm_vcpu *vcpu, int intr_type, int vector,
 	KASSERT((ctrl->eventinj & VMCB_EVENTINJ_VALID) == 0,
 	    ("%s: event already pending %#lx", __func__, ctrl->eventinj));
 
-	KASSERT(vector >=0 && vector <= 255, ("%s: invalid vector %d",
-	    __func__, vector));
+	KASSERT(vector >= 0 && vector <= 255,
+	    ("%s: invalid vector %d", __func__, vector));
 
 	switch (intr_type) {
 	case VMCB_EVENTINJ_TYPE_INTR:
@@ -982,8 +973,10 @@ svm_update_virqinfo(struct svm_vcpu *vcpu)
 	vlapic_set_cr8(vlapic, ctrl->v_tpr);
 
 	/* Virtual interrupt injection is not used. */
-	KASSERT(ctrl->v_intr_vector == 0, ("%s: invalid "
-	    "v_intr_vector %d", __func__, ctrl->v_intr_vector));
+	KASSERT(ctrl->v_intr_vector == 0,
+	    ("%s: invalid "
+	     "v_intr_vector %d",
+		__func__, ctrl->v_intr_vector));
 }
 
 static void
@@ -993,7 +986,7 @@ svm_save_intinfo(struct svm_softc *svm_sc, struct svm_vcpu *vcpu)
 	uint64_t intinfo;
 
 	ctrl = svm_get_vmcb_ctrl(vcpu);
-	intinfo = ctrl->exitintinfo;	
+	intinfo = ctrl->exitintinfo;
 	if (!VMCB_EXITINTINFO_VALID(intinfo))
 		return;
 
@@ -1137,7 +1130,7 @@ clear_nmi_blocking(struct svm_vcpu *vcpu)
 	KASSERT(!error, ("%s: error %d setting intr_shadow", __func__, error));
 }
 
-#define	EFER_MBZ_BITS	0xFFFFFFFFFFFF0200UL
+#define EFER_MBZ_BITS 0xFFFFFFFFFFFF0200UL
 
 static int
 svm_write_efer(struct svm_softc *sc, struct svm_vcpu *vcpu, uint64_t newval,
@@ -1153,7 +1146,7 @@ svm_write_efer(struct svm_softc *sc, struct svm_vcpu *vcpu, uint64_t newval,
 	oldval = state->efer;
 	SVM_CTR2(vcpu, "wrmsr(efer) %#lx/%#lx", oldval, newval);
 
-	newval &= ~0xFE;		/* clear the Read-As-Zero (RAZ) bits */
+	newval &= ~0xFE; /* clear the Read-As-Zero (RAZ) bits */
 	changed = oldval ^ newval;
 
 	if (newval & EFER_MBZ_BITS)
@@ -1257,33 +1250,33 @@ exit_reason_to_str(uint64_t reason)
 		int reason;
 		const char *str;
 	} reasons[] = {
-		{ .reason = VMCB_EXIT_INVALID,	.str = "invalvmcb" },
-		{ .reason = VMCB_EXIT_SHUTDOWN,	.str = "shutdown" },
-		{ .reason = VMCB_EXIT_NPF, 	.str = "nptfault" },
-		{ .reason = VMCB_EXIT_PAUSE,	.str = "pause" },
-		{ .reason = VMCB_EXIT_HLT,	.str = "hlt" },
-		{ .reason = VMCB_EXIT_CPUID,	.str = "cpuid" },
-		{ .reason = VMCB_EXIT_IO,	.str = "inout" },
-		{ .reason = VMCB_EXIT_MC,	.str = "mchk" },
-		{ .reason = VMCB_EXIT_INTR,	.str = "extintr" },
-		{ .reason = VMCB_EXIT_NMI,	.str = "nmi" },
-		{ .reason = VMCB_EXIT_VINTR,	.str = "vintr" },
-		{ .reason = VMCB_EXIT_MSR,	.str = "msr" },
-		{ .reason = VMCB_EXIT_IRET,	.str = "iret" },
-		{ .reason = VMCB_EXIT_MONITOR,	.str = "monitor" },
-		{ .reason = VMCB_EXIT_MWAIT,	.str = "mwait" },
-		{ .reason = VMCB_EXIT_VMRUN,	.str = "vmrun" },
-		{ .reason = VMCB_EXIT_VMMCALL,	.str = "vmmcall" },
-		{ .reason = VMCB_EXIT_VMLOAD,	.str = "vmload" },
-		{ .reason = VMCB_EXIT_VMSAVE,	.str = "vmsave" },
-		{ .reason = VMCB_EXIT_STGI,	.str = "stgi" },
-		{ .reason = VMCB_EXIT_CLGI,	.str = "clgi" },
-		{ .reason = VMCB_EXIT_SKINIT,	.str = "skinit" },
-		{ .reason = VMCB_EXIT_ICEBP,	.str = "icebp" },
-		{ .reason = VMCB_EXIT_INVD,	.str = "invd" },
-		{ .reason = VMCB_EXIT_INVLPGA,	.str = "invlpga" },
-		{ .reason = VMCB_EXIT_POPF,	.str = "popf" },
-		{ .reason = VMCB_EXIT_PUSHF,	.str = "pushf" },
+		{ .reason = VMCB_EXIT_INVALID, .str = "invalvmcb" },
+		{ .reason = VMCB_EXIT_SHUTDOWN, .str = "shutdown" },
+		{ .reason = VMCB_EXIT_NPF, .str = "nptfault" },
+		{ .reason = VMCB_EXIT_PAUSE, .str = "pause" },
+		{ .reason = VMCB_EXIT_HLT, .str = "hlt" },
+		{ .reason = VMCB_EXIT_CPUID, .str = "cpuid" },
+		{ .reason = VMCB_EXIT_IO, .str = "inout" },
+		{ .reason = VMCB_EXIT_MC, .str = "mchk" },
+		{ .reason = VMCB_EXIT_INTR, .str = "extintr" },
+		{ .reason = VMCB_EXIT_NMI, .str = "nmi" },
+		{ .reason = VMCB_EXIT_VINTR, .str = "vintr" },
+		{ .reason = VMCB_EXIT_MSR, .str = "msr" },
+		{ .reason = VMCB_EXIT_IRET, .str = "iret" },
+		{ .reason = VMCB_EXIT_MONITOR, .str = "monitor" },
+		{ .reason = VMCB_EXIT_MWAIT, .str = "mwait" },
+		{ .reason = VMCB_EXIT_VMRUN, .str = "vmrun" },
+		{ .reason = VMCB_EXIT_VMMCALL, .str = "vmmcall" },
+		{ .reason = VMCB_EXIT_VMLOAD, .str = "vmload" },
+		{ .reason = VMCB_EXIT_VMSAVE, .str = "vmsave" },
+		{ .reason = VMCB_EXIT_STGI, .str = "stgi" },
+		{ .reason = VMCB_EXIT_CLGI, .str = "clgi" },
+		{ .reason = VMCB_EXIT_SKINIT, .str = "skinit" },
+		{ .reason = VMCB_EXIT_ICEBP, .str = "icebp" },
+		{ .reason = VMCB_EXIT_INVD, .str = "invd" },
+		{ .reason = VMCB_EXIT_INVLPGA, .str = "invlpga" },
+		{ .reason = VMCB_EXIT_POPF, .str = "popf" },
+		{ .reason = VMCB_EXIT_PUSHF, .str = "pushf" },
 	};
 
 	for (i = 0; i < nitems(reasons); i++) {
@@ -1293,7 +1286,7 @@ exit_reason_to_str(uint64_t reason)
 	snprintf(reasonbuf, sizeof(reasonbuf), "%#lx", reason);
 	return (reasonbuf);
 }
-#endif	/* KTR */
+#endif /* KTR */
 
 /*
  * From section "State Saved on Exit" in APMv2: nRIP is saved for all #VMEXITs
@@ -1306,15 +1299,15 @@ static int
 nrip_valid(uint64_t exitcode)
 {
 	switch (exitcode) {
-	case 0x00 ... 0x0F:	/* read of CR0 through CR15 */
-	case 0x10 ... 0x1F:	/* write of CR0 through CR15 */
-	case 0x20 ... 0x2F:	/* read of DR0 through DR15 */
-	case 0x30 ... 0x3F:	/* write of DR0 through DR15 */
-	case 0x43:		/* INT3 */
-	case 0x44:		/* INTO */
-	case 0x45:		/* BOUND */
-	case 0x65 ... 0x7C:	/* VMEXIT_CR0_SEL_WRITE ... VMEXIT_MSR */
-	case 0x80 ... 0x8D:	/* VMEXIT_VMRUN ... VMEXIT_XSETBV */
+	case 0x00 ... 0x0F: /* read of CR0 through CR15 */
+	case 0x10 ... 0x1F: /* write of CR0 through CR15 */
+	case 0x20 ... 0x2F: /* read of DR0 through DR15 */
+	case 0x30 ... 0x3F: /* write of DR0 through DR15 */
+	case 0x43:	    /* INT3 */
+	case 0x44:	    /* INTO */
+	case 0x45:	    /* BOUND */
+	case 0x65 ... 0x7C: /* VMEXIT_CR0_SEL_WRITE ... VMEXIT_MSR */
+	case 0x80 ... 0x8D: /* VMEXIT_VMRUN ... VMEXIT_XSETBV */
 		return (1);
 	default:
 		return (0);
@@ -1360,12 +1353,14 @@ svm_vmexit(struct svm_softc *svm_sc, struct svm_vcpu *vcpu,
 		return (0);
 	}
 
-	KASSERT((ctrl->eventinj & VMCB_EVENTINJ_VALID) == 0, ("%s: event "
-	    "injection valid bit is set %#lx", __func__, ctrl->eventinj));
+	KASSERT((ctrl->eventinj & VMCB_EVENTINJ_VALID) == 0,
+	    ("%s: event "
+	     "injection valid bit is set %#lx",
+		__func__, ctrl->eventinj));
 
 	KASSERT(vmexit->inst_length >= 0 && vmexit->inst_length <= 15,
 	    ("invalid inst_length %d: code (%#lx), info1 (%#lx), info2 (%#lx)",
-	    vmexit->inst_length, code, info1, info2));
+		vmexit->inst_length, code, info1, info2));
 
 	svm_update_virqinfo(vcpu);
 	svm_save_intinfo(svm_sc, vcpu);
@@ -1379,15 +1374,15 @@ svm_vmexit(struct svm_softc *svm_sc, struct svm_vcpu *vcpu,
 		clear_nmi_blocking(vcpu);
 		handled = 1;
 		break;
-	case VMCB_EXIT_VINTR:	/* interrupt window exiting */
+	case VMCB_EXIT_VINTR: /* interrupt window exiting */
 		vmm_stat_incr(vcpu->vcpu, VMEXIT_VINTR, 1);
 		handled = 1;
 		break;
-	case VMCB_EXIT_INTR:	/* external interrupt */
+	case VMCB_EXIT_INTR: /* external interrupt */
 		vmm_stat_incr(vcpu->vcpu, VMEXIT_EXTINT, 1);
 		handled = 1;
 		break;
-	case VMCB_EXIT_NMI:	/* external NMI */
+	case VMCB_EXIT_NMI: /* external NMI */
 		handled = 1;
 		break;
 	case 0x40 ... 0x5F:
@@ -1406,8 +1401,8 @@ svm_vmexit(struct svm_softc *svm_sc, struct svm_vcpu *vcpu,
 			break;
 		case IDT_PF:
 			error = svm_setreg(vcpu, VM_REG_GUEST_CR2, info2);
-			KASSERT(error == 0, ("%s: error %d updating cr2",
-			    __func__, error));
+			KASSERT(error == 0,
+			    ("%s: error %d updating cr2", __func__, error));
 			/* fallthru */
 		case IDT_NP:
 		case IDT_SS:
@@ -1502,7 +1497,8 @@ svm_vmexit(struct svm_softc *svm_sc, struct svm_vcpu *vcpu,
 			 * event injection is identical to what it was when
 			 * the exception originally happened.
 			 */
-			SVM_CTR2(vcpu, "Reset inst_length from %d "
+			SVM_CTR2(vcpu,
+			    "Reset inst_length from %d "
 			    "to zero before injecting exception %d",
 			    vmexit->inst_length, idtvec);
 			vmexit->inst_length = 0;
@@ -1519,20 +1515,23 @@ svm_vmexit(struct svm_softc *svm_sc, struct svm_vcpu *vcpu,
 			     "when reflecting exception %d into guest",
 				vmexit->inst_length, idtvec));
 			/* Reflect the exception back into the guest */
-			SVM_CTR2(vcpu, "Reflecting exception "
-			    "%d/%#x into the guest", idtvec, (int)info1);
+			SVM_CTR2(vcpu,
+			    "Reflecting exception "
+			    "%d/%#x into the guest",
+			    idtvec, (int)info1);
 			error = vm_inject_exception(vcpu->vcpu, idtvec,
 			    errcode_valid, info1, 0);
-			KASSERT(error == 0, ("%s: vm_inject_exception error %d",
-			    __func__, error));
+			KASSERT(error == 0,
+			    ("%s: vm_inject_exception error %d", __func__,
+				error));
 			handled = 1;
 		}
 		break;
-	case VMCB_EXIT_MSR:	/* MSR access. */
+	case VMCB_EXIT_MSR: /* MSR access. */
 		eax = state->rax;
 		ecx = ctx->sctx_rcx;
 		edx = ctx->sctx_rdx;
-		retu = false;	
+		retu = false;
 
 		if (info1) {
 			vmm_stat_incr(vcpu->vcpu, VMEXIT_WRMSR, 1);
@@ -1568,9 +1567,8 @@ svm_vmexit(struct svm_softc *svm_sc, struct svm_vcpu *vcpu,
 		break;
 	case VMCB_EXIT_CPUID:
 		vmm_stat_incr(vcpu->vcpu, VMEXIT_CPUID, 1);
-		handled = x86_emulate_cpuid(vcpu->vcpu,
-		    &state->rax, &ctx->sctx_rbx, &ctx->sctx_rcx,
-		    &ctx->sctx_rdx);
+		handled = x86_emulate_cpuid(vcpu->vcpu, &state->rax,
+		    &ctx->sctx_rbx, &ctx->sctx_rcx, &ctx->sctx_rdx);
 		break;
 	case VMCB_EXIT_HLT:
 		vmm_stat_incr(vcpu->vcpu, VMEXIT_HLT, 1);
@@ -1584,7 +1582,8 @@ svm_vmexit(struct svm_softc *svm_sc, struct svm_vcpu *vcpu,
 	case VMCB_EXIT_NPF:
 		/* EXITINFO2 contains the faulting guest physical address */
 		if (info1 & VMCB_NPF_INFO1_RSV) {
-			SVM_CTR2(vcpu, "nested page fault with "
+			SVM_CTR2(vcpu,
+			    "nested page fault with "
 			    "reserved bits set: info1(%#lx) info2(%#lx)",
 			    info1, info2);
 		} else if (vm_mem_allocated(vcpu->vcpu, info2)) {
@@ -1592,13 +1591,15 @@ svm_vmexit(struct svm_softc *svm_sc, struct svm_vcpu *vcpu,
 			vmexit->u.paging.gpa = info2;
 			vmexit->u.paging.fault_type = npf_fault_type(info1);
 			vmm_stat_incr(vcpu->vcpu, VMEXIT_NESTED_FAULT, 1);
-			SVM_CTR3(vcpu, "nested page fault "
+			SVM_CTR3(vcpu,
+			    "nested page fault "
 			    "on gpa %#lx/%#lx at rip %#lx",
 			    info2, info1, state->rip);
 		} else if (svm_npf_emul_fault(info1)) {
 			svm_handle_inst_emul(vmcb, info2, vmexit);
 			vmm_stat_incr(vcpu->vcpu, VMEXIT_INST_EMUL, 1);
-			SVM_CTR3(vcpu, "inst_emul fault "
+			SVM_CTR3(vcpu,
+			    "inst_emul fault "
 			    "for gpa %#lx/%#lx at rip %#lx",
 			    info2, info1, state->rip);
 		}
@@ -1666,7 +1667,7 @@ svm_vmexit(struct svm_softc *svm_sc, struct svm_vcpu *vcpu,
 	default:
 		vmm_stat_incr(vcpu->vcpu, VMEXIT_UNKNOWN, 1);
 		break;
-	}	
+	}
 
 	SVM_CTR4(vcpu, "%s %s vmexit at %#lx/%d",
 	    handled ? "handled" : "unhandled", exit_reason_to_str(code),
@@ -1701,13 +1702,14 @@ svm_inj_intinfo(struct svm_softc *svm_sc, struct svm_vcpu *vcpu)
 	if (!vm_entry_intinfo(vcpu->vcpu, &intinfo))
 		return;
 
-	KASSERT(VMCB_EXITINTINFO_VALID(intinfo), ("%s: entry intinfo is not "
-	    "valid: %#lx", __func__, intinfo));
+	KASSERT(VMCB_EXITINTINFO_VALID(intinfo),
+	    ("%s: entry intinfo is not "
+	     "valid: %#lx",
+		__func__, intinfo));
 
 	svm_eventinject(vcpu, VMCB_EXITINTINFO_TYPE(intinfo),
-		VMCB_EXITINTINFO_VECTOR(intinfo),
-		VMCB_EXITINTINFO_EC(intinfo),
-		VMCB_EXITINTINFO_EC_VALID(intinfo));
+	    VMCB_EXITINTINFO_VECTOR(intinfo), VMCB_EXITINTINFO_EC(intinfo),
+	    VMCB_EXITINTINFO_EC_VALID(intinfo));
 	vmm_stat_incr(vcpu->vcpu, VCPU_INTINFO_INJECTED, 1);
 	SVM_CTR1(vcpu, "Injected entry intinfo: %#lx", intinfo);
 }
@@ -1730,13 +1732,14 @@ svm_inj_interrupts(struct svm_softc *sc, struct svm_vcpu *vcpu,
 	}
 
 	state = svm_get_vmcb_state(vcpu);
-	ctrl  = svm_get_vmcb_ctrl(vcpu);
+	ctrl = svm_get_vmcb_ctrl(vcpu);
 
 	need_intr_window = 0;
 
 	if (vcpu->nextrip != state->rip) {
 		ctrl->intr_shadow = 0;
-		SVM_CTR2(vcpu, "Guest interrupt blocking "
+		SVM_CTR2(vcpu,
+		    "Guest interrupt blocking "
 		    "cleared due to rip change: %#lx/%#lx",
 		    vcpu->nextrip, state->rip);
 	}
@@ -1759,13 +1762,15 @@ svm_inj_interrupts(struct svm_softc *sc, struct svm_vcpu *vcpu,
 			 * Can't inject another NMI if the guest has not
 			 * yet executed an "iret" after the last NMI.
 			 */
-			SVM_CTR0(vcpu, "Cannot inject NMI due "
+			SVM_CTR0(vcpu,
+			    "Cannot inject NMI due "
 			    "to NMI-blocking");
 		} else if (ctrl->intr_shadow) {
 			/*
 			 * Can't inject an NMI if the vcpu is in an intr_shadow.
 			 */
-			SVM_CTR0(vcpu, "Cannot inject NMI due to "
+			SVM_CTR0(vcpu,
+			    "Cannot inject NMI due to "
 			    "interrupt shadow");
 			need_intr_window = 1;
 			goto done;
@@ -1774,8 +1779,10 @@ svm_inj_interrupts(struct svm_softc *sc, struct svm_vcpu *vcpu,
 			 * If there is already an exception/interrupt pending
 			 * then defer the NMI until after that.
 			 */
-			SVM_CTR1(vcpu, "Cannot inject NMI due to "
-			    "eventinj %#lx", ctrl->eventinj);
+			SVM_CTR1(vcpu,
+			    "Cannot inject NMI due to "
+			    "eventinj %#lx",
+			    ctrl->eventinj);
 
 			/*
 			 * Use self-IPI to trigger a VM-exit as soon as
@@ -1787,13 +1794,13 @@ svm_inj_interrupts(struct svm_softc *sc, struct svm_vcpu *vcpu,
 			 * Although not explicitly specified in APMv2 the
 			 * relative priorities were verified empirically.
 			 */
-			ipi_cpu(curcpu, IPI_AST);	/* XXX vmm_ipinum? */
+			ipi_cpu(curcpu, IPI_AST); /* XXX vmm_ipinum? */
 		} else {
 			vm_nmi_clear(vcpu->vcpu);
 
 			/* Inject NMI, vector number is not used */
-			svm_eventinject(vcpu, VMCB_EVENTINJ_TYPE_NMI,
-			    IDT_NMI, 0, false);
+			svm_eventinject(vcpu, VMCB_EVENTINJ_TYPE_NMI, IDT_NMI,
+			    0, false);
 
 			/* virtual NMI blocking is now in effect */
 			enable_nmi_blocking(vcpu);
@@ -1820,22 +1827,28 @@ svm_inj_interrupts(struct svm_softc *sc, struct svm_vcpu *vcpu,
 	 * then we cannot inject the pending interrupt.
 	 */
 	if ((state->rflags & PSL_I) == 0) {
-		SVM_CTR2(vcpu, "Cannot inject vector %d due to "
-		    "rflags %#lx", vector, state->rflags);
+		SVM_CTR2(vcpu,
+		    "Cannot inject vector %d due to "
+		    "rflags %#lx",
+		    vector, state->rflags);
 		need_intr_window = 1;
 		goto done;
 	}
 
 	if (ctrl->intr_shadow) {
-		SVM_CTR1(vcpu, "Cannot inject vector %d due to "
-		    "interrupt shadow", vector);
+		SVM_CTR1(vcpu,
+		    "Cannot inject vector %d due to "
+		    "interrupt shadow",
+		    vector);
 		need_intr_window = 1;
 		goto done;
 	}
 
 	if (ctrl->eventinj & VMCB_EVENTINJ_VALID) {
-		SVM_CTR2(vcpu, "Cannot inject vector %d due to "
-		    "eventinj %#lx", vector, ctrl->eventinj);
+		SVM_CTR2(vcpu,
+		    "Cannot inject vector %d due to "
+		    "eventinj %#lx",
+		    vector, ctrl->eventinj);
 		need_intr_window = 1;
 		goto done;
 	}
@@ -1888,10 +1901,10 @@ done:
 		 * be delivered on VM entry. The KASSERT below enforces this.
 		 */
 		KASSERT((ctrl->eventinj & VMCB_EVENTINJ_VALID) != 0 ||
-		    (state->rflags & PSL_I) == 0 || ctrl->intr_shadow,
+			(state->rflags & PSL_I) == 0 || ctrl->intr_shadow,
 		    ("Bogus intr_window_exiting: eventinj (%#lx), "
-		    "intr_shadow (%u), rflags (%#lx)",
-		    ctrl->eventinj, ctrl->intr_shadow, state->rflags));
+		     "intr_shadow (%u), rflags (%#lx)",
+			ctrl->eventinj, ctrl->intr_shadow, state->rflags));
 		enable_intr_window_exiting(vcpu);
 	} else {
 		disable_intr_window_exiting(vcpu);
@@ -1969,12 +1982,12 @@ svm_pmap_activate(struct svm_vcpu *vcpu, pmap_t pmap)
 	ctrl->tlb_ctrl = VMCB_TLB_FLUSH_NOTHING;
 
 	if (vcpu->asid.gen != asid[cpu].gen) {
-		alloc_asid = true;	/* (c) and (d) */
+		alloc_asid = true; /* (c) and (d) */
 	} else if (vcpu->eptgen != eptgen) {
 		if (flush_by_asid())
-			ctrl->tlb_ctrl = VMCB_TLB_FLUSH_GUEST;	/* (b1) */
+			ctrl->tlb_ctrl = VMCB_TLB_FLUSH_GUEST; /* (b1) */
 		else
-			alloc_asid = true;			/* (b2) */
+			alloc_asid = true; /* (b2) */
 	} else {
 		/*
 		 * This is the common case (a).
@@ -2036,7 +2049,7 @@ static __inline void
 enable_gintr(void)
 {
 
-        __asm __volatile("stgi");
+	__asm __volatile("stgi");
 }
 
 static __inline void
@@ -2230,7 +2243,7 @@ svm_run(void *vcpui, register_t rip, pmap_t pmap, struct vm_eventinfo *evinfo)
 		/* Restore host LDTR. */
 		lldt(ldt_sel);
 
-		/* #VMEXIT disables interrupts so re-enable them here. */ 
+		/* #VMEXIT disables interrupts so re-enable them here. */
 		enable_gintr();
 
 		/* Update 'nextrip' */
@@ -2431,12 +2444,12 @@ svm_setcap(void *vcpui, int type, int val)
 
 	switch (type) {
 	case VM_CAP_HALT_EXIT:
-		svm_set_intercept(vcpu, VMCB_CTRL1_INTCPT,
-		    VMCB_INTCPT_HLT, val);
+		svm_set_intercept(vcpu, VMCB_CTRL1_INTCPT, VMCB_INTCPT_HLT,
+		    val);
 		break;
 	case VM_CAP_PAUSE_EXIT:
-		svm_set_intercept(vcpu, VMCB_CTRL1_INTCPT,
-		    VMCB_INTCPT_PAUSE, val);
+		svm_set_intercept(vcpu, VMCB_CTRL1_INTCPT, VMCB_INTCPT_PAUSE,
+		    val);
 		break;
 	case VM_CAP_UNRESTRICTED_GUEST:
 		/* Unrestricted guest execution cannot be disabled in SVM */
@@ -2525,7 +2538,7 @@ svm_getcap(void *vcpui, int type, int *retval)
 		    VMCB_INTCPT_PAUSE);
 		break;
 	case VM_CAP_UNRESTRICTED_GUEST:
-		*retval = 1;	/* unrestricted guest is always enabled */
+		*retval = 1; /* unrestricted guest is always enabled */
 		break;
 	case VM_CAP_BPT_EXIT:
 		*retval = svm_get_intercept(vcpu, VMCB_EXC_INTCPT, BIT(IDT_BP));
@@ -2582,9 +2595,9 @@ static void
 svm_vlapic_cleanup(struct vlapic *vlapic)
 {
 
-        vlapic_cleanup(vlapic);
+	vlapic_cleanup(vlapic);
 	free(vlapic->apic_page, M_SVM_VLAPIC);
-        free(vlapic, M_SVM_VLAPIC);
+	free(vlapic, M_SVM_VLAPIC);
 }
 
 #ifdef BHYVE_SNAPSHOT
@@ -2661,88 +2674,72 @@ svm_vcpu_snapshot(void *vcpui, struct vm_snapshot_meta *meta)
 	/* Specific AMD registers */
 	err += svm_snapshot_reg(vcpu, VM_REG_GUEST_INTR_SHADOW, meta);
 
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_CR_INTERCEPT, 4), meta);
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_DR_INTERCEPT, 4), meta);
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_EXC_INTERCEPT, 4), meta);
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_INST1_INTERCEPT, 4), meta);
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_INST2_INTERCEPT, 4), meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_CR_INTERCEPT, 4),
+	    meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_DR_INTERCEPT, 4),
+	    meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_EXC_INTERCEPT, 4),
+	    meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_INST1_INTERCEPT, 4),
+	    meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_INST2_INTERCEPT, 4),
+	    meta);
 
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_PAUSE_FILTHRESH, 2), meta);
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_PAUSE_FILCNT, 2), meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_PAUSE_FILTHRESH, 2),
+	    meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_PAUSE_FILCNT, 2),
+	    meta);
 
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_ASID, 4), meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_ASID, 4), meta);
 
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_TLB_CTRL, 4), meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_TLB_CTRL, 4), meta);
 
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_VIRQ, 8), meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_VIRQ, 8), meta);
 
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_EXIT_REASON, 8), meta);
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_EXITINFO1, 8), meta);
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_EXITINFO2, 8), meta);
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_EXITINTINFO, 8), meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_EXIT_REASON, 8),
+	    meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_EXITINFO1, 8),
+	    meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_EXITINFO2, 8),
+	    meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_EXITINTINFO, 8),
+	    meta);
 
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_NP_ENABLE, 1), meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_NP_ENABLE, 1),
+	    meta);
 
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_AVIC_BAR, 8), meta);
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_AVIC_PAGE, 8), meta);
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_AVIC_LT, 8), meta);
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_AVIC_PT, 8), meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_AVIC_BAR, 8), meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_AVIC_PAGE, 8),
+	    meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_AVIC_LT, 8), meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_AVIC_PT, 8), meta);
 
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_CPL, 1), meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_CPL, 1), meta);
 
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_STAR, 8), meta);
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_LSTAR, 8), meta);
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_CSTAR, 8), meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_STAR, 8), meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_LSTAR, 8), meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_CSTAR, 8), meta);
 
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_SFMASK, 8), meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_SFMASK, 8), meta);
 
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_KERNELGBASE, 8), meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_KERNELGBASE, 8),
+	    meta);
 
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_SYSENTER_CS, 8), meta);
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_SYSENTER_ESP, 8), meta);
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_SYSENTER_EIP, 8), meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_SYSENTER_CS, 8),
+	    meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_SYSENTER_ESP, 8),
+	    meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_SYSENTER_EIP, 8),
+	    meta);
 
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_GUEST_PAT, 8), meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_GUEST_PAT, 8),
+	    meta);
 
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_DBGCTL, 8), meta);
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_BR_FROM, 8), meta);
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_BR_TO, 8), meta);
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_INT_FROM, 8), meta);
-	err += vmcb_snapshot_any(vcpu,
-				VMCB_ACCESS(VMCB_OFF_INT_TO, 8), meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_DBGCTL, 8), meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_BR_FROM, 8), meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_BR_TO, 8), meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_INT_FROM, 8), meta);
+	err += vmcb_snapshot_any(vcpu, VMCB_ACCESS(VMCB_OFF_INT_TO, 8), meta);
 	if (err != 0)
 		goto done;
 
@@ -2803,26 +2800,26 @@ svm_restore_tsc(void *vcpui, uint64_t offset)
 #endif
 
 const struct vmm_ops vmm_ops_amd = {
-	.modinit	= svm_modinit,
-	.modcleanup	= svm_modcleanup,
-	.modresume	= svm_modresume,
-	.init		= svm_init,
-	.run		= svm_run,
-	.cleanup	= svm_cleanup,
-	.vcpu_init	= svm_vcpu_init,
-	.vcpu_cleanup	= svm_vcpu_cleanup,
-	.getreg		= svm_getreg,
-	.setreg		= svm_setreg,
-	.getdesc	= svm_getdesc,
-	.setdesc	= svm_setdesc,
-	.getcap		= svm_getcap,
-	.setcap		= svm_setcap,
-	.vmspace_alloc	= svm_vmspace_alloc,
-	.vmspace_free	= svm_vmspace_free,
-	.vlapic_init	= svm_vlapic_init,
-	.vlapic_cleanup	= svm_vlapic_cleanup,
+	.modinit = svm_modinit,
+	.modcleanup = svm_modcleanup,
+	.modresume = svm_modresume,
+	.init = svm_init,
+	.run = svm_run,
+	.cleanup = svm_cleanup,
+	.vcpu_init = svm_vcpu_init,
+	.vcpu_cleanup = svm_vcpu_cleanup,
+	.getreg = svm_getreg,
+	.setreg = svm_setreg,
+	.getdesc = svm_getdesc,
+	.setdesc = svm_setdesc,
+	.getcap = svm_getcap,
+	.setcap = svm_setcap,
+	.vmspace_alloc = svm_vmspace_alloc,
+	.vmspace_free = svm_vmspace_free,
+	.vlapic_init = svm_vlapic_init,
+	.vlapic_cleanup = svm_vlapic_cleanup,
 #ifdef BHYVE_SNAPSHOT
-	.vcpu_snapshot	= svm_vcpu_snapshot,
-	.restore_tsc	= svm_restore_tsc,
+	.vcpu_snapshot = svm_vcpu_snapshot,
+	.restore_tsc = svm_restore_tsc,
 #endif
 };

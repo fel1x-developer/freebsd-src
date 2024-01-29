@@ -35,9 +35,11 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <linux/xarray.h>
-#include "uverbs.h"
+
 #include "core_priv.h"
+#include "uverbs.h"
 
 /**
  * rdma_umap_priv_init() - Initialize the private data of a vma
@@ -58,9 +60,9 @@
  * to cope in some way with their IO pages going to the zero page.
  *
  */
-void rdma_umap_priv_init(struct rdma_umap_priv *priv,
-			 struct vm_area_struct *vma,
-			 struct rdma_user_mmap_entry *entry)
+void
+rdma_umap_priv_init(struct rdma_umap_priv *priv, struct vm_area_struct *vma,
+    struct rdma_user_mmap_entry *entry)
 {
 	struct ib_uverbs_file *ufile = vma->vm_file->private_data;
 
@@ -95,9 +97,10 @@ EXPORT_SYMBOL(rdma_umap_priv_init);
  * Return -EINVAL on wrong flags or size, -EAGAIN on failure to map. 0 on
  * success.
  */
-int rdma_user_mmap_io(struct ib_ucontext *ucontext, struct vm_area_struct *vma,
-		      unsigned long pfn, unsigned long size, pgprot_t prot,
-		      struct rdma_user_mmap_entry *entry)
+int
+rdma_user_mmap_io(struct ib_ucontext *ucontext, struct vm_area_struct *vma,
+    unsigned long pfn, unsigned long size, pgprot_t prot,
+    struct rdma_user_mmap_entry *entry)
 {
 	struct ib_uverbs_file *ufile = ucontext->ufile;
 	struct rdma_umap_priv *priv;
@@ -109,8 +112,7 @@ int rdma_user_mmap_io(struct ib_ucontext *ucontext, struct vm_area_struct *vma,
 		return -EINVAL;
 
 	/* Driver is using this wrong, must be called by ib_uverbs_mmap */
-	if (WARN_ON(!vma->vm_file ||
-		    vma->vm_file->private_data != ufile))
+	if (WARN_ON(!vma->vm_file || vma->vm_file->private_data != ufile))
 		return -EINVAL;
 
 	priv = kzalloc(sizeof(*priv), GFP_KERNEL);
@@ -145,7 +147,7 @@ EXPORT_SYMBOL(rdma_user_mmap_io);
  */
 struct rdma_user_mmap_entry *
 rdma_user_mmap_entry_get_pgoff(struct ib_ucontext *ucontext,
-			       unsigned long pgoff)
+    unsigned long pgoff)
 {
 	struct rdma_user_mmap_entry *entry;
 
@@ -186,7 +188,7 @@ EXPORT_SYMBOL(rdma_user_mmap_entry_get_pgoff);
  */
 struct rdma_user_mmap_entry *
 rdma_user_mmap_entry_get(struct ib_ucontext *ucontext,
-			 struct vm_area_struct *vma)
+    struct vm_area_struct *vma)
 {
 	struct rdma_user_mmap_entry *entry;
 
@@ -203,10 +205,11 @@ rdma_user_mmap_entry_get(struct ib_ucontext *ucontext,
 }
 EXPORT_SYMBOL(rdma_user_mmap_entry_get);
 
-static void rdma_user_mmap_entry_free(struct kref *kref)
+static void
+rdma_user_mmap_entry_free(struct kref *kref)
 {
-	struct rdma_user_mmap_entry *entry =
-		container_of(kref, struct rdma_user_mmap_entry, ref);
+	struct rdma_user_mmap_entry *entry = container_of(kref,
+	    struct rdma_user_mmap_entry, ref);
 	struct ib_ucontext *ucontext = entry->ucontext;
 	unsigned long i;
 
@@ -235,7 +238,8 @@ static void rdma_user_mmap_entry_free(struct kref *kref)
  * and entry is no longer needed. This function will erase the
  * entry and free it if its refcnt reaches zero.
  */
-void rdma_user_mmap_entry_put(struct rdma_user_mmap_entry *entry)
+void
+rdma_user_mmap_entry_put(struct rdma_user_mmap_entry *entry)
 {
 	kref_put(&entry->ref, rdma_user_mmap_entry_free);
 }
@@ -251,7 +255,8 @@ EXPORT_SYMBOL(rdma_user_mmap_entry_put);
  * entry, however existing mmaps continue to exist and ops->mmap_free() will
  * not be called until all user mmaps are destroyed.
  */
-void rdma_user_mmap_entry_remove(struct rdma_user_mmap_entry *entry)
+void
+rdma_user_mmap_entry_remove(struct rdma_user_mmap_entry *entry)
 {
 	if (!entry)
 		return;
@@ -283,10 +288,10 @@ EXPORT_SYMBOL(rdma_user_mmap_entry_remove);
  *
  * Return: 0 on success and -ENOMEM on failure
  */
-int rdma_user_mmap_entry_insert_range(struct ib_ucontext *ucontext,
-				      struct rdma_user_mmap_entry *entry,
-				      size_t length, u32 min_pgoff,
-				      u32 max_pgoff)
+int
+rdma_user_mmap_entry_insert_range(struct ib_ucontext *ucontext,
+    struct rdma_user_mmap_entry *entry, size_t length, u32 min_pgoff,
+    u32 max_pgoff)
 {
 	struct ib_uverbs_file *ufile = ucontext->ufile;
 	u32 xa_first, xa_last, npages;
@@ -315,7 +320,7 @@ int rdma_user_mmap_entry_insert_range(struct ib_ucontext *ucontext,
 	entry->npages = npages;
 
 	/* Find an empty range */
-	for (i = min_pgoff, j = 0; (i + j) <= max_pgoff && j != npages; ) {
+	for (i = min_pgoff, j = 0; (i + j) <= max_pgoff && j != npages;) {
 		if (xa_load(&ucontext->mmap_xa, i + j) != NULL) {
 			if (unlikely(i + j == max_pgoff))
 				break;
@@ -378,11 +383,11 @@ EXPORT_SYMBOL(rdma_user_mmap_entry_insert_range);
  *
  * Return: 0 on success and -ENOMEM on failure
  */
-int rdma_user_mmap_entry_insert(struct ib_ucontext *ucontext,
-				struct rdma_user_mmap_entry *entry,
-				size_t length)
+int
+rdma_user_mmap_entry_insert(struct ib_ucontext *ucontext,
+    struct rdma_user_mmap_entry *entry, size_t length)
 {
 	return rdma_user_mmap_entry_insert_range(ucontext, entry, length, 0,
-						 U32_MAX);
+	    U32_MAX);
 }
 EXPORT_SYMBOL(rdma_user_mmap_entry_insert);

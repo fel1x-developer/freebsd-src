@@ -59,6 +59,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "stand.h"
 
 int
@@ -89,7 +90,7 @@ close(int fd)
 	}
 
 	/* free unused entries from tail. */
-	TAILQ_FOREACH_REVERSE_SAFE(last, &files, file_list, f_link, f) {
+	TAILQ_FOREACH_REVERSE_SAFE (last, &files, file_list, f_link, f) {
 		if (last->f_flags != 0)
 			break;
 		TAILQ_REMOVE(&files, last, f_link);

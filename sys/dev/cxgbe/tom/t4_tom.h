@@ -31,6 +31,7 @@
 #ifndef __T4_TOM_H__
 #define __T4_TOM_H__
 #include <sys/vmem.h>
+
 #include "common/t4_hw.h"
 #include "common/t4_msg.h"
 #include "tom/t4_tls.h"
@@ -49,42 +50,42 @@
  */
 #define MAX_RCV_WND ((1U << 27) - 1)
 
-#define	DDP_RSVD_WIN (16 * 1024U)
-#define	SB_DDP_INDICATE	SB_IN_TOE	/* soreceive must respond to indicate */
+#define DDP_RSVD_WIN (16 * 1024U)
+#define SB_DDP_INDICATE SB_IN_TOE /* soreceive must respond to indicate */
 
 #define USE_DDP_RX_FLOW_CONTROL
 
-#define PPOD_SZ(n)	((n) * sizeof(struct pagepod))
-#define PPOD_SIZE	(PPOD_SZ(1))
+#define PPOD_SZ(n) ((n) * sizeof(struct pagepod))
+#define PPOD_SIZE (PPOD_SZ(1))
 
 /* TOE PCB flags */
 enum {
-	TPF_ATTACHED	   = (1 << 0),	/* a tcpcb refers to this toepcb */
-	TPF_FLOWC_WR_SENT  = (1 << 1),	/* firmware flow context WR sent */
-	TPF_TX_DATA_SENT   = (1 << 2),	/* some data sent */
-	TPF_TX_SUSPENDED   = (1 << 3),	/* tx suspended for lack of resources */
-	TPF_SEND_FIN	   = (1 << 4),	/* send FIN after all pending data */
-	TPF_FIN_SENT	   = (1 << 5),	/* FIN has been sent */
-	TPF_ABORT_SHUTDOWN = (1 << 6),	/* connection abort is in progress */
-	TPF_CPL_PENDING    = (1 << 7),	/* haven't received the last CPL */
-	TPF_SYNQE	   = (1 << 8),	/* synq_entry, not really a toepcb */
-	TPF_SYNQE_EXPANDED = (1 << 9),	/* toepcb ready, tid context updated */
-	TPF_TLS_STARTING   = (1 << 10), /* starting TLS receive */
-	TPF_KTLS           = (1 << 11), /* send TLS records from KTLS */
-	TPF_INITIALIZED    = (1 << 12), /* init_toepcb has been called */
-	TPF_TLS_RECEIVE	   = (1 << 13), /* should receive TLS records */
-	TPF_TLS_RX_QUIESCED = (1 << 14), /* RX quiesced for TLS RX startup */
-	TPF_WAITING_FOR_FINAL = (1<< 15), /* waiting for wakeup on final CPL */
+	TPF_ATTACHED = (1 << 0),       /* a tcpcb refers to this toepcb */
+	TPF_FLOWC_WR_SENT = (1 << 1),  /* firmware flow context WR sent */
+	TPF_TX_DATA_SENT = (1 << 2),   /* some data sent */
+	TPF_TX_SUSPENDED = (1 << 3),   /* tx suspended for lack of resources */
+	TPF_SEND_FIN = (1 << 4),       /* send FIN after all pending data */
+	TPF_FIN_SENT = (1 << 5),       /* FIN has been sent */
+	TPF_ABORT_SHUTDOWN = (1 << 6), /* connection abort is in progress */
+	TPF_CPL_PENDING = (1 << 7),    /* haven't received the last CPL */
+	TPF_SYNQE = (1 << 8),	       /* synq_entry, not really a toepcb */
+	TPF_SYNQE_EXPANDED = (1 << 9), /* toepcb ready, tid context updated */
+	TPF_TLS_STARTING = (1 << 10),  /* starting TLS receive */
+	TPF_KTLS = (1 << 11),	       /* send TLS records from KTLS */
+	TPF_INITIALIZED = (1 << 12),   /* init_toepcb has been called */
+	TPF_TLS_RECEIVE = (1 << 13),   /* should receive TLS records */
+	TPF_TLS_RX_QUIESCED = (1 << 14),   /* RX quiesced for TLS RX startup */
+	TPF_WAITING_FOR_FINAL = (1 << 15), /* waiting for wakeup on final CPL */
 };
 
 enum {
-	DDP_OK		= (1 << 0),	/* OK to turn on DDP */
-	DDP_SC_REQ	= (1 << 1),	/* state change (on/off) requested */
-	DDP_ON		= (1 << 2),	/* DDP is turned on */
-	DDP_BUF0_ACTIVE	= (1 << 3),	/* buffer 0 in use (not invalidated) */
-	DDP_BUF1_ACTIVE	= (1 << 4),	/* buffer 1 in use (not invalidated) */
-	DDP_TASK_ACTIVE = (1 << 5),	/* requeue task is queued / running */
-	DDP_DEAD	= (1 << 6),	/* toepcb is shutting down */
+	DDP_OK = (1 << 0),	    /* OK to turn on DDP */
+	DDP_SC_REQ = (1 << 1),	    /* state change (on/off) requested */
+	DDP_ON = (1 << 2),	    /* DDP is turned on */
+	DDP_BUF0_ACTIVE = (1 << 3), /* buffer 0 in use (not invalidated) */
+	DDP_BUF1_ACTIVE = (1 << 4), /* buffer 1 in use (not invalidated) */
+	DDP_TASK_ACTIVE = (1 << 5), /* requeue task is queued / running */
+	DDP_DEAD = (1 << 6),	    /* toepcb is shutting down */
 };
 
 struct bio;
@@ -109,33 +110,33 @@ struct conn_params {
 	int8_t mtu_idx;
 	int8_t ulp_mode;
 	int8_t tx_align;
-	int16_t txq_idx;	/* ofld_txq = &sc->sge.ofld_txq[txq_idx] */
-	int16_t rxq_idx;	/* ofld_rxq = &sc->sge.ofld_rxq[rxq_idx] */
+	int16_t txq_idx; /* ofld_txq = &sc->sge.ofld_txq[txq_idx] */
+	int16_t rxq_idx; /* ofld_rxq = &sc->sge.ofld_rxq[rxq_idx] */
 	int16_t l2t_idx;
 	uint16_t emss;
 	uint16_t opt0_bufsize;
-	u_int sndbuf;		/* controls TP tx pages */
+	u_int sndbuf; /* controls TP tx pages */
 };
 
 struct ofld_tx_sdesc {
-	uint32_t plen;		/* payload length */
-	uint8_t tx_credits;	/* firmware tx credits (unit is 16B) */
+	uint32_t plen;	    /* payload length */
+	uint8_t tx_credits; /* firmware tx credits (unit is 16B) */
 };
 
 struct ppod_region {
 	u_int pr_start;
 	u_int pr_len;
 	u_int pr_page_shift[4];
-	uint32_t pr_tag_mask;		/* hardware tagmask for this region. */
-	uint32_t pr_invalid_bit;	/* OR with this to invalidate tag. */
-	uint32_t pr_alias_mask;		/* AND with tag to get alias bits. */
-	u_int pr_alias_shift;		/* shift this much for first alias bit. */
+	uint32_t pr_tag_mask;	 /* hardware tagmask for this region. */
+	uint32_t pr_invalid_bit; /* OR with this to invalidate tag. */
+	uint32_t pr_alias_mask;	 /* AND with tag to get alias bits. */
+	u_int pr_alias_shift;	 /* shift this much for first alias bit. */
 	vmem_t *pr_arena;
 };
 
 struct ppod_reservation {
 	struct ppod_region *prsv_pr;
-	uint32_t prsv_tag;		/* Full tag: pgsz, alias, tag, color */
+	uint32_t prsv_tag; /* Full tag: pgsz, alias, tag, color */
 	u_int prsv_nppods;
 };
 
@@ -144,7 +145,7 @@ struct pageset {
 	vm_page_t *pages;
 	int npages;
 	int flags;
-	int offset;		/* offset in first page */
+	int offset; /* offset in first page */
 	int len;
 	struct ppod_reservation prsv;
 	struct vmspace *vm;
@@ -154,7 +155,7 @@ struct pageset {
 
 TAILQ_HEAD(pagesetq, pageset);
 
-#define	PS_PPODS_WRITTEN	0x0001	/* Page pods written to the card. */
+#define PS_PPODS_WRITTEN 0x0001 /* Page pods written to the card. */
 
 struct ddp_buffer {
 	struct pageset *ps;
@@ -171,7 +172,7 @@ struct ddp_pcb {
 	u_int waiting_count;
 	u_int active_count;
 	u_int cached_count;
-	int active_id;	/* the currently active DDP buffer */
+	int active_id; /* the currently active DDP buffer */
 	struct task requeue_task;
 	struct kaiocb *queueing;
 	struct mtx lock;
@@ -179,30 +180,30 @@ struct ddp_pcb {
 
 struct toepcb {
 	struct tom_data *td;
-	struct inpcb *inp;	/* backpointer to host stack's PCB */
-	u_int flags;		/* miscellaneous flags */
+	struct inpcb *inp;	  /* backpointer to host stack's PCB */
+	u_int flags;		  /* miscellaneous flags */
 	TAILQ_ENTRY(toepcb) link; /* toep_list */
 	int refcount;
 	struct vnet *vnet;
-	struct vi_info *vi;	/* virtual interface */
+	struct vi_info *vi; /* virtual interface */
 	struct sge_ofld_txq *ofld_txq;
 	struct sge_ofld_rxq *ofld_rxq;
 	struct sge_wrq *ctrlq;
-	struct l2t_entry *l2te;	/* L2 table entry used by this connection */
+	struct l2t_entry *l2te; /* L2 table entry used by this connection */
 	struct clip_entry *ce;	/* CLIP table entry used by this tid */
 	int tid;		/* Connection identifier */
 
 	/* tx credit handling */
-	u_int tx_total;		/* total tx WR credits (in 16B units) */
-	u_int tx_credits;	/* tx WR credits (in 16B units) available */
-	u_int tx_nocompl;	/* tx WR credits since last compl request */
-	u_int plen_nocompl;	/* payload since last compl request */
+	u_int tx_total;	    /* total tx WR credits (in 16B units) */
+	u_int tx_credits;   /* tx WR credits (in 16B units) available */
+	u_int tx_nocompl;   /* tx WR credits since last compl request */
+	u_int plen_nocompl; /* payload since last compl request */
 
 	struct conn_params params;
 
 	void *ulpcb;
 	void *ulpcb2;
-	struct mbufq ulp_pduq;	/* PDUs waiting to be sent out. */
+	struct mbufq ulp_pduq; /* PDUs waiting to be sent out. */
 	struct mbufq ulp_pdu_reclaimq;
 
 	struct ddp_pcb ddp;
@@ -227,17 +228,17 @@ ulp_mode(struct toepcb *toep)
 	return (toep->params.ulp_mode);
 }
 
-#define	DDP_LOCK(toep)		mtx_lock(&(toep)->ddp.lock)
-#define	DDP_UNLOCK(toep)	mtx_unlock(&(toep)->ddp.lock)
-#define	DDP_ASSERT_LOCKED(toep)	mtx_assert(&(toep)->ddp.lock, MA_OWNED)
+#define DDP_LOCK(toep) mtx_lock(&(toep)->ddp.lock)
+#define DDP_UNLOCK(toep) mtx_unlock(&(toep)->ddp.lock)
+#define DDP_ASSERT_LOCKED(toep) mtx_assert(&(toep)->ddp.lock, MA_OWNED)
 
 /*
  * Compressed state for embryonic connections for a listener.
  */
 struct synq_entry {
-	struct listen_ctx *lctx;	/* backpointer to listen ctx */
+	struct listen_ctx *lctx; /* backpointer to listen ctx */
 	struct mbuf *syn;
-	int flags;			/* same as toepcb's tp_flags */
+	int flags; /* same as toepcb's tp_flags */
 	volatile int ok_to_respond;
 	volatile u_int refcnt;
 	int tid;
@@ -252,15 +253,15 @@ struct synq_entry {
 };
 
 /* listen_ctx flags */
-#define LCTX_RPL_PENDING 1	/* waiting for a CPL_PASS_OPEN_RPL */
+#define LCTX_RPL_PENDING 1 /* waiting for a CPL_PASS_OPEN_RPL */
 
 struct listen_ctx {
-	LIST_ENTRY(listen_ctx) link;	/* listen hash linkage */
+	LIST_ENTRY(listen_ctx) link; /* listen hash linkage */
 	volatile int refcount;
 	int stid;
 	struct stid_region stid_region;
 	int flags;
-	struct inpcb *inp;		/* listening socket's inp */
+	struct inpcb *inp; /* listening socket's inp */
 	struct vnet *vnet;
 	struct sge_wrq *ctrlq;
 	struct sge_ofld_rxq *ofld_rxq;
@@ -268,18 +269,18 @@ struct listen_ctx {
 };
 
 /* tcb_histent flags */
-#define TE_RPL_PENDING	1
-#define TE_ACTIVE	2
+#define TE_RPL_PENDING 1
+#define TE_ACTIVE 2
 
 /* bits in one 8b tcb_histent sample. */
-#define TS_RTO			(1 << 0)
-#define TS_DUPACKS		(1 << 1)
-#define TS_FASTREXMT		(1 << 2)
-#define TS_SND_BACKLOGGED	(1 << 3)
-#define TS_CWND_LIMITED		(1 << 4)
-#define TS_ECN_ECE		(1 << 5)
-#define TS_ECN_CWR		(1 << 6)
-#define TS_RESERVED		(1 << 7)	/* Unused. */
+#define TS_RTO (1 << 0)
+#define TS_DUPACKS (1 << 1)
+#define TS_FASTREXMT (1 << 2)
+#define TS_SND_BACKLOGGED (1 << 3)
+#define TS_CWND_LIMITED (1 << 4)
+#define TS_ECN_ECE (1 << 5)
+#define TS_ECN_CWR (1 << 6)
+#define TS_RESERVED (1 << 7) /* Unused. */
 
 struct tcb_histent {
 	struct mtx te_lock;
@@ -302,7 +303,7 @@ struct tom_data {
 	struct mtx lctx_hash_lock;
 	LIST_HEAD(, listen_ctx) *listen_hash;
 	u_long listen_mask;
-	int lctx_count;		/* # of lctx in the hash table */
+	int lctx_count; /* # of lctx in the hash table */
 
 	struct ppod_region pr;
 
@@ -379,8 +380,8 @@ mbuf_iscsi_iso(struct mbuf *m)
 }
 
 /* Flags for iSCSI segmentation offload. */
-#define	CXGBE_ISO_TYPE(flags)	((flags) & 0x3)
-#define	CXGBE_ISO_F		0x4
+#define CXGBE_ISO_TYPE(flags) ((flags) & 0x3)
+#define CXGBE_ISO_F 0x4
 
 static inline void
 set_mbuf_iscsi_iso_flags(struct mbuf *m, uint8_t flags)
@@ -465,7 +466,7 @@ void aiotx_init_toep(struct toepcb *);
 int t4_aio_queue_aiotx(struct socket *, struct kaiocb *);
 void t4_init_cpl_io_handlers(void);
 void t4_uninit_cpl_io_handlers(void);
-void send_abort_rpl(struct adapter *, struct sge_ofld_txq *, int , int);
+void send_abort_rpl(struct adapter *, struct sge_ofld_txq *, int, int);
 void send_flowc_wr(struct toepcb *, struct tcpcb *);
 void send_reset(struct adapter *, struct toepcb *, uint32_t);
 int send_rx_credits(struct adapter *, struct toepcb *, int);

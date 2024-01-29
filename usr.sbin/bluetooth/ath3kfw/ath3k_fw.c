@@ -27,18 +27,19 @@
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#include <err.h>
-#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include "ath3k_fw.h"
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
 #include "ath3k_dbg.h"
+#include "ath3k_fw.h"
 
 int
 ath3k_fw_read(struct ath3k_firmware *fw, const char *fwname)
@@ -59,7 +60,7 @@ ath3k_fw_read(struct ath3k_firmware *fw, const char *fwname)
 		close(fd);
 		return (0);
 	}
-	
+
 	buf = calloc(1, sb.st_size);
 	if (buf == NULL) {
 		warn("%s: calloc", __func__);
@@ -77,10 +78,8 @@ ath3k_fw_read(struct ath3k_firmware *fw, const char *fwname)
 	}
 
 	if (r != sb.st_size) {
-		fprintf(stderr, "%s: read len %d != file size %d\n",
-		    __func__,
-		    (int) r,
-		    (int) sb.st_size);
+		fprintf(stderr, "%s: read len %d != file size %d\n", __func__,
+		    (int)r, (int)sb.st_size);
 		free(buf);
 		close(fd);
 		return (0);

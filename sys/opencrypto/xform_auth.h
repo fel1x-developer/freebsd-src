@@ -18,7 +18,7 @@
  * Permission to use, copy, and modify this software without fee
  * is hereby granted, provided that this entire notice is included in
  * all source code copies of any software which is or includes a copy or
- * modification of this software. 
+ * modification of this software.
  *
  * THIS SOFTWARE IS BEING PROVIDED "AS IS", WITHOUT ANY EXPRESS OR
  * IMPLIED WARRANTY. IN PARTICULAR, NONE OF THE AUTHORS MAKES ANY
@@ -37,28 +37,27 @@
 #include <crypto/sha2/sha256.h>
 #include <crypto/sha2/sha384.h>
 #include <crypto/sha2/sha512.h>
-#include <opencrypto/rmd160.h>
-#include <opencrypto/gmac.h>
 #include <opencrypto/cbc_mac.h>
-
 #include <opencrypto/cryptodev.h>
+#include <opencrypto/gmac.h>
+#include <opencrypto/rmd160.h>
 
 /* XXX use a define common with other hash stuff ! */
-#define	AH_ALEN_MAX	64	/* max authenticator hash length */
+#define AH_ALEN_MAX 64 /* max authenticator hash length */
 
 /* Declarations */
 struct auth_hash {
 	int type;
 	const char *name;
 	uint16_t keysize;
-	uint16_t hashsize; 
+	uint16_t hashsize;
 	uint16_t ctxsize;
 	uint16_t blocksize;
-	void (*Init) (void *);
-	void (*Setkey) (void *, const uint8_t *, u_int);
-	void (*Reinit) (void *, const uint8_t *, u_int);
-	int  (*Update) (void *, const void *, u_int);
-	void (*Final) (uint8_t *, void *);
+	void (*Init)(void *);
+	void (*Setkey)(void *, const uint8_t *, u_int);
+	void (*Reinit)(void *, const uint8_t *, u_int);
+	int (*Update)(void *, const void *, u_int);
+	void (*Final)(uint8_t *, void *);
 };
 
 extern const struct auth_hash auth_hash_null;

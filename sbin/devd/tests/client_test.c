@@ -23,15 +23,14 @@
  */
 
 #include <sys/cdefs.h>
-#include <stdbool.h>
-#include <stdio.h>
-
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 
 #include <atf-c.h>
+#include <stdbool.h>
+#include <stdio.h>
 
 const char create_pat[] = "!system=DEVFS subsystem=CDEV type=CREATE cdev=md";
 const char destroy_pat[] = "!system=DEVFS subsystem=CDEV type=DESTROY cdev=md";
@@ -67,7 +66,8 @@ create_two_events(void)
 
 /* Setup and return an open client socket */
 static int
-common_setup(int socktype, const char* sockpath) {
+common_setup(int socktype, const char *sockpath)
+{
 	struct sockaddr_un devd_addr;
 	int s, error;
 
@@ -76,7 +76,7 @@ common_setup(int socktype, const char* sockpath) {
 	strlcpy(devd_addr.sun_path, sockpath, sizeof(devd_addr.sun_path));
 	s = socket(PF_LOCAL, socktype, 0);
 	ATF_REQUIRE(s >= 0);
-	error = connect(s, (struct sockaddr*)&devd_addr, SUN_LEN(&devd_addr));
+	error = connect(s, (struct sockaddr *)&devd_addr, SUN_LEN(&devd_addr));
 	ATF_REQUIRE_EQ(0, error);
 
 	create_two_events();
@@ -181,4 +181,3 @@ ATF_TP_ADD_TCS(tp)
 
 	return (atf_no_error());
 }
-

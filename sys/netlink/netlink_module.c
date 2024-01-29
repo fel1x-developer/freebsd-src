@@ -27,31 +27,29 @@
  */
 
 #include <sys/param.h>
+#include <sys/ck.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
-
-#include <sys/lock.h>
 #include <sys/rmlock.h>
-#include <sys/ck.h>
 #include <sys/syslog.h>
+
+#include <machine/atomic.h>
 
 #include <netlink/netlink.h>
 #include <netlink/netlink_ctl.h>
 #include <netlink/netlink_var.h>
 #include <netlink/route/route_var.h>
 
-#include <machine/atomic.h>
-
 FEATURE(netlink, "Netlink support");
 
-#define	DEBUG_MOD_NAME	nl_mod
-#define	DEBUG_MAX_LEVEL	LOG_DEBUG3
+#define DEBUG_MOD_NAME nl_mod
+#define DEBUG_MAX_LEVEL LOG_DEBUG3
 #include <netlink/netlink_debug.h>
 _DECLARE_DEBUG(LOG_INFO);
 
-
-#define NL_MAX_HANDLERS	20
+#define NL_MAX_HANDLERS 20
 struct nl_proto_handler _nl_handlers[NL_MAX_HANDLERS];
 struct nl_proto_handler *nl_handlers = _nl_handlers;
 
@@ -63,8 +61,8 @@ VNET_DEFINE(struct nl_control *, nl_ctl) = NULL;
 struct mtx nl_global_mtx;
 MTX_SYSINIT(nl_global_mtx, &nl_global_mtx, "global netlink lock", MTX_DEF);
 
-#define NL_GLOBAL_LOCK()	mtx_lock(&nl_global_mtx)
-#define NL_GLOBAL_UNLOCK()	mtx_unlock(&nl_global_mtx)
+#define NL_GLOBAL_LOCK() mtx_lock(&nl_global_mtx)
+#define NL_GLOBAL_UNLOCK() mtx_unlock(&nl_global_mtx)
 
 int netlink_unloading = 0;
 
@@ -92,10 +90,12 @@ vnet_nl_ctl_init(void)
 	if (tmp == NULL) {
 		atomic_store_ptr(&V_nl_ctl, ctl);
 		CK_LIST_INSERT_HEAD(&vnets_head, ctl, ctl_next);
-		NL_LOG(LOG_DEBUG2, "VNET %p init done, inserted %p into global list",
-		    curvnet, ctl);
+		NL_LOG(LOG_DEBUG2,
+		    "VNET %p init done, inserted %p into global list", curvnet,
+		    ctl);
 	} else {
-		NL_LOG(LOG_DEBUG, "per-VNET init clash, dropping this instance");
+		NL_LOG(LOG_DEBUG,
+		    "per-VNET init clash, dropping this instance");
 		free_nl_ctl(ctl);
 		ctl = tmp;
 	}
@@ -149,11 +149,13 @@ netlink_register_proto(int proto, const char *proto_name, nl_handler_f handler)
 	if ((proto < 0) || (proto >= NL_MAX_HANDLERS))
 		return (false);
 	NL_GLOBAL_LOCK();
-	KASSERT((nl_handlers[proto].cb == NULL), ("netlink handler %d is already set", proto));
+	KASSERT((nl_handlers[proto].cb == NULL),
+	    ("netlink handler %d is already set", proto));
 	nl_handlers[proto].cb = handler;
 	nl_handlers[proto].proto_name = proto_name;
 	NL_GLOBAL_UNLOCK();
-	NL_LOG(LOG_DEBUG2, "Registered netlink %s(%d) handler", proto_name, proto);
+	NL_LOG(LOG_DEBUG2, "Registered netlink %s(%d) handler", proto_name,
+	    proto);
 	return (true);
 }
 
@@ -163,7 +165,8 @@ netlink_unregister_proto(int proto)
 	if ((proto < 0) || (proto >= NL_MAX_HANDLERS))
 		return (false);
 	NL_GLOBAL_LOCK();
-	KASSERT((nl_handlers[proto].cb != NULL), ("netlink handler %d is not set", proto));
+	KASSERT((nl_handlers[proto].cb != NULL),
+	    ("netlink handler %d is not set", proto));
 	nl_handlers[proto].cb = NULL;
 	nl_handlers[proto].proto_name = NULL;
 	NL_GLOBAL_UNLOCK();
@@ -196,10 +199,12 @@ can_unload(void)
 
 	NL_GLOBAL_LOCK();
 
-	CK_LIST_FOREACH(ctl, &vnets_head, ctl_next) {
+	CK_LIST_FOREACH(ctl, &vnets_head, ctl_next)
+	{
 		NL_LOG(LOG_DEBUG2, "Iterating VNET head %p", ctl);
 		if (!CK_LIST_EMPTY(&ctl->ctl_pcb_head)) {
-			NL_LOG(LOG_NOTICE, "non-empty socket list in ctl %p", ctl);
+			NL_LOG(LOG_NOTICE, "non-empty socket list in ctl %p",
+			    ctl);
 			result = false;
 			break;
 		}

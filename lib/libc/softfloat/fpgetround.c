@@ -31,9 +31,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "namespace.h"
-
 #include <ieeefp.h>
+
+#include "namespace.h"
 #ifdef SOFTFLOAT_FOR_GCC
 #include "softfloat-for-gcc.h"
 #endif
@@ -41,11 +41,10 @@
 #include "softfloat.h"
 
 #ifdef __weak_alias
-__weak_alias(fpgetround,_fpgetround)
+__weak_alias(fpgetround, _fpgetround)
 #endif
 
-fp_rnd_t
-fpgetround(void)
+    fp_rnd_t fpgetround(void)
 {
 
 	return float_rounding_mode;

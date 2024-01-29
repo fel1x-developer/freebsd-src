@@ -27,12 +27,13 @@
  */
 
 #include <sys/types.h>
-#include <sys/time.h>
-#include <sys/resource.h>
-#include <sys/stat.h>
 #include <sys/param.h>
+#include <sys/resource.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/wait.h>
+
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
@@ -49,7 +50,6 @@
 #include <syslog.h>
 #include <unistd.h>
 
-
 /*
  * auth_checknologin()
  * Checks for the existence of a nologin file in the login_cap
@@ -62,25 +62,24 @@
 void
 auth_checknologin(login_cap_t *lc)
 {
-  const char *file;
+	const char *file;
 
-  /* Do we ignore a nologin file? */
-  if (login_getcapbool(lc, "ignorenologin", 0))
-    return;
+	/* Do we ignore a nologin file? */
+	if (login_getcapbool(lc, "ignorenologin", 0))
+		return;
 
-  /* Note that <file> will be "" if there is no nologin capability */
-  if ((file = login_getcapstr(lc, "nologin", "", NULL)) == NULL)
-    exit(1);
+	/* Note that <file> will be "" if there is no nologin capability */
+	if ((file = login_getcapstr(lc, "nologin", "", NULL)) == NULL)
+		exit(1);
 
-  /*
-   * *file is true IFF there was a "nologin" capability
-   * Note that auth_cat() returns 1 only if the specified
-   * file exists, and is readable.  E.g., /.nologin exists.
-   */
-  if ((*file && auth_cat(file)) || auth_cat(_PATH_NOLOGIN))
-    exit(1);
+	/*
+	 * *file is true IFF there was a "nologin" capability
+	 * Note that auth_cat() returns 1 only if the specified
+	 * file exists, and is readable.  E.g., /.nologin exists.
+	 */
+	if ((*file && auth_cat(file)) || auth_cat(_PATH_NOLOGIN))
+		exit(1);
 }
-
 
 /*
  * auth_cat()
@@ -92,14 +91,14 @@ auth_checknologin(login_cap_t *lc)
 int
 auth_cat(const char *file)
 {
-  int fd, count;
-  char buf[BUFSIZ];
+	int fd, count;
+	char buf[BUFSIZ];
 
-  if ((fd = open(file, O_RDONLY | O_CLOEXEC)) < 0)
-    return 0;
-  while ((count = read(fd, buf, sizeof(buf))) > 0)
-    (void)write(fileno(stdout), buf, count);
-  close(fd);
-  sleep(5);	/* wait an arbitrary time to drain */
-  return 1;
+	if ((fd = open(file, O_RDONLY | O_CLOEXEC)) < 0)
+		return 0;
+	while ((count = read(fd, buf, sizeof(buf))) > 0)
+		(void)write(fileno(stdout), buf, count);
+	close(fd);
+	sleep(5); /* wait an arbitrary time to drain */
+	return 1;
 }

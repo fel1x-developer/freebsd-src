@@ -25,20 +25,21 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- * 
+ *
  * Matthew Jacob
  * Feral Software
  * mjacob@feral.com
  */
-#include <unistd.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <fcntl.h>
 #include <sys/ioctl.h>
+
 #include <cam/scsi/scsi_all.h>
 #include <cam/scsi/scsi_ses.h>
+#include <fcntl.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 int
 main(int a, char **v)
@@ -50,7 +51,7 @@ main(int a, char **v)
 	char *x;
 
 	if (a != 3) {
-usage:
+	usage:
 		fprintf(stderr, "usage: %s device objectid\n", *v);
 		return (1);
 	}
@@ -65,12 +66,12 @@ usage:
 		goto usage;
 	}
 	obj.obj_id = cvt;
-	if (ioctl(fd, SESIOC_GETOBJSTAT, (caddr_t) &obj) < 0) {
+	if (ioctl(fd, SESIOC_GETOBJSTAT, (caddr_t)&obj) < 0) {
 		perror("SESIOC_GETOBJSTAT");
 		return (1);
 	}
 	fprintf(stdout, "Object 0x%x: 0x%x 0x%x 0x%x 0x%x\n", obj.obj_id,
 	    obj.cstat[0], obj.cstat[1], obj.cstat[2], obj.cstat[3]);
-	(void) close(fd);
+	(void)close(fd);
 	return (0);
 }

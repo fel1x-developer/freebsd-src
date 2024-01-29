@@ -28,29 +28,31 @@
 
 #include <sys/param.h>
 #include <sys/jail.h>
+
 #include <errno.h>
 #include <jail.h>
+#include <lauxlib.h>
+#include <lua.h>
+#include <lualib.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <lua.h>
-#include <lauxlib.h>
-#include <lualib.h>
-
-#define	JAIL_METATABLE "jail iterator metatable"
+#define JAIL_METATABLE "jail iterator metatable"
 
 /*
  * Taken from RhodiumToad's lspawn implementation, let static analyzers make
  * better decisions about the behavior after we raise an error.
  */
 #if defined(LUA_VERSION_NUM) && defined(LUA_API)
-LUA_API int   (lua_error) (lua_State *L) __dead2;
+LUA_API int(lua_error)(lua_State *L) __dead2;
 #endif
 #if defined(LUA_ERRFILE) && defined(LUALIB_API)
-LUALIB_API int (luaL_argerror) (lua_State *L, int arg, const char *extramsg) __dead2;
-LUALIB_API int (luaL_typeerror) (lua_State *L, int arg, const char *tname) __dead2;
-LUALIB_API int (luaL_error) (lua_State *L, const char *fmt, ...) __dead2;
+LUALIB_API int(
+    luaL_argerror)(lua_State *L, int arg, const char *extramsg) __dead2;
+LUALIB_API int(
+    luaL_typeerror)(lua_State *L, int arg, const char *tname) __dead2;
+LUALIB_API int(luaL_error)(lua_State *L, const char *fmt, ...) __dead2;
 #endif
 
 int luaopen_jail(lua_State *);
@@ -62,9 +64,9 @@ static void getparam_table(lua_State *L, int paramindex,
     getparam_filter keyfilt, void *udata);
 
 struct l_jail_iter {
-	struct jailparam	*params;
-	size_t			params_count;
-	int			jid;
+	struct jailparam *params;
+	size_t params_count;
+	int jid;
 };
 
 static bool
@@ -73,13 +75,12 @@ l_jail_filter(const char *param_name, void *data __unused)
 
 	/*
 	 * Allowing lastjid will mess up our iteration over all jails on the
-	 * system, as this is a special parameter that indicates where the search
-	 * starts from.  We'll always add jid and name, so just silently remove
-	 * these.
+	 * system, as this is a special parameter that indicates where the
+	 * search starts from.  We'll always add jid and name, so just silently
+	 * remove these.
 	 */
 	return (strcmp(param_name, "lastjid") != 0 &&
-	    strcmp(param_name, "jid") != 0 &&
-	    strcmp(param_name, "name") != 0);
+	    strcmp(param_name, "jid") != 0 && strcmp(param_name, "name") != 0);
 }
 
 static int
@@ -201,15 +202,13 @@ l_list(lua_State *L)
 		jailparam_free(iter->params, 1);
 		free(iter->params);
 		free(iter);
-		return (luaL_error(L, "jailparam_init: %s",
-		    jail_errmsg));
+		return (luaL_error(L, "jailparam_init: %s", jail_errmsg));
 	}
 	if (jailparam_init(&iter->params[2], "name") == -1) {
 		jailparam_free(iter->params, 2);
 		free(iter->params);
 		free(iter);
-		return (luaL_error(L, "jailparam_init: %s",
-		    jail_errmsg));
+		return (luaL_error(L, "jailparam_init: %s", jail_errmsg));
 	}
 
 	/*
@@ -347,7 +346,7 @@ getparam_table(lua_State *L, int paramindex, struct jailparam *params,
 }
 
 struct getparams_filter_args {
-	int	filter_type;
+	int filter_type;
 };
 
 static bool
@@ -396,21 +395,21 @@ l_getparams(lua_State *L)
 	if (type == LUA_TSTRING) {
 		if (jailparam_init(&params[0], "name") == -1) {
 			free(params);
-			return (luaL_error(L, "jailparam_init: %s",
-			    jail_errmsg));
+			return (
+			    luaL_error(L, "jailparam_init: %s", jail_errmsg));
 		}
 		name = lua_tostring(L, 1);
 		if (jailparam_import(&params[0], name) == -1) {
 			jailparam_free(params, 1);
 			free(params);
-			return (luaL_error(L, "jailparam_import: %s",
-			    jail_errmsg));
+			return (
+			    luaL_error(L, "jailparam_import: %s", jail_errmsg));
 		}
 	} else /* type == LUA_TNUMBER */ {
 		if (jailparam_init(&params[0], "jid") == -1) {
 			free(params);
-			return (luaL_error(L, "jailparam_init: %s",
-			    jail_errmsg));
+			return (
+			    luaL_error(L, "jailparam_init: %s", jail_errmsg));
 		}
 		jid = lua_tointeger(L, 1);
 		if (jailparam_import_raw(&params[0], &jid, sizeof(jid)) == -1) {
@@ -425,7 +424,8 @@ l_getparams(lua_State *L)
 	 * Set the remaining param names being requested.
 	 */
 	gpa.filter_type = type;
-	getparam_table(L, 2, params, 0, &params_count, l_getparams_filter, &gpa);
+	getparam_table(L, 2, params, 0, &params_count, l_getparams_filter,
+	    &gpa);
 
 	/*
 	 * Get the values and convert to a table.
@@ -487,21 +487,21 @@ l_setparams(lua_State *L)
 	if (type == LUA_TSTRING) {
 		if (jailparam_init(&params[0], "name") == -1) {
 			free(params);
-			return (luaL_error(L, "jailparam_init: %s",
-			    jail_errmsg));
+			return (
+			    luaL_error(L, "jailparam_init: %s", jail_errmsg));
 		}
 		name = lua_tostring(L, 1);
 		if (jailparam_import(&params[0], name) == -1) {
 			jailparam_free(params, 1);
 			free(params);
-			return (luaL_error(L, "jailparam_import: %s",
-			    jail_errmsg));
+			return (
+			    luaL_error(L, "jailparam_import: %s", jail_errmsg));
 		}
 	} else /* type == LUA_TNUMBER */ {
 		if (jailparam_init(&params[0], "jid") == -1) {
 			free(params);
-			return (luaL_error(L, "jailparam_init: %s",
-			    jail_errmsg));
+			return (
+			    luaL_error(L, "jailparam_init: %s", jail_errmsg));
 		}
 		jid = lua_tointeger(L, 1);
 		if (jailparam_import_raw(&params[0], &jid, sizeof(jid)) == -1) {
@@ -524,14 +524,14 @@ l_setparams(lua_State *L)
 		if (name == NULL) {
 			jailparam_free(params, i);
 			free(params);
-			return (luaL_argerror(L, 2,
-			    "param names must be strings"));
+			return (
+			    luaL_argerror(L, 2, "param names must be strings"));
 		}
 		if (jailparam_init(&params[i], name) == -1) {
 			jailparam_free(params, i);
 			free(params);
-			return (luaL_error(L, "jailparam_init: %s",
-			    jail_errmsg));
+			return (
+			    luaL_error(L, "jailparam_init: %s", jail_errmsg));
 		}
 
 		value = lua_tostring(L, -1);
@@ -544,8 +544,8 @@ l_setparams(lua_State *L)
 		if (jailparam_import(&params[i], value) == -1) {
 			jailparam_free(params, i + 1);
 			free(params);
-			return (luaL_error(L, "jailparam_import: %s",
-			    jail_errmsg));
+			return (
+			    luaL_error(L, "jailparam_import: %s", jail_errmsg));
 		}
 
 		lua_pop(L, 1);
@@ -638,18 +638,18 @@ static const struct luaL_Reg l_jail[] = {
 	 * @return	jail id (integer)
 	 *		or nil, error (string) on error
 	 */
-	{"getid", l_getid},
+	{ "getid", l_getid },
 	/** Get name of a jail by id.
 	 * @param jid	jail id (integer)
 	 * @return	jail name (string)
 	 *		or nil, error (string) on error
 	 */
-	{"getname", l_getname},
+	{ "getname", l_getname },
 	/** Get a list of all known jail parameters.
 	 * @return	list of jail parameter names (table of strings)
 	 *		or nil, error (string) on error
 	 */
-	{"allparams", l_allparams},
+	{ "allparams", l_allparams },
 	/** Get the listed params for a given jail.
 	 * @param jail	jail name (string) or id (integer)
 	 * @param params	list of parameter names (table of strings)
@@ -657,7 +657,7 @@ static const struct luaL_Reg l_jail[] = {
 	 * @return	jid (integer), params (table of [string] = string)
 	 *		or nil, error (string) on error
 	 */
-	{"getparams", l_getparams},
+	{ "getparams", l_getparams },
 	/** Set params for a given jail.
 	 * @param jail	jail name (string) or id (integer)
 	 * @param params	params and values (table of [string] = string)
@@ -665,27 +665,26 @@ static const struct luaL_Reg l_jail[] = {
 	 * @return	jid (integer)
 	 *		or nil, error (string) on error
 	 */
-	{"setparams", l_setparams},
+	{ "setparams", l_setparams },
 	/** Get a list of jail parameters for running jails on the system.
 	 * @param params	optional list of parameter names (table of
 	 *			strings)
 	 * @return	iterator (function), jail_obj (object) with next and
 	 *		close methods
 	 */
-	{"list", l_list},
+	{ "list", l_list },
 	/** Attach to a running jail.
 	 * @param jail	jail name (string) or id (integer)
 	 * @return	true (boolean)
 	 *		or nil, error (string) on error
 	 */
-	{"attach", l_attach},
+	{ "attach", l_attach },
 	/** Remove a running jail.
 	 * @param jail	jail name (string) or id (integer)
 	 * @return	true (boolean)
 	 *		or nil, error (string) on error
 	 */
-	{"remove", l_remove},
-	{NULL, NULL}
+	{ "remove", l_remove }, { NULL, NULL }
 };
 
 int

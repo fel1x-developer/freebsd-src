@@ -46,7 +46,7 @@
  */
 
 #ifndef _ZFSD_EVENT_H_
-#define	_ZFSD_EVENT_H_
+#define _ZFSD_EVENT_H_
 
 /*============================ Namespace Control =============================*/
 using std::string;
@@ -59,9 +59,8 @@ struct nvlist;
 typedef struct nvlist nvlist_t;
 
 /*--------------------------------- ZfsEvent ---------------------------------*/
-class ZfsEvent : public DevdCtl::ZfsEvent
-{
-public:
+class ZfsEvent : public DevdCtl::ZfsEvent {
+    public:
 	/** Specialized DevdCtlEvent object factory for ZFS events. */
 	static BuildMethod Builder;
 
@@ -72,9 +71,9 @@ public:
 	 * consume the event.
 	 * \return True if this event should be queued for later reevaluation
 	 */
-	virtual bool Process()		  const;
+	virtual bool Process() const;
 
-protected:
+    protected:
 	/** DeepCopy Constructor. */
 	ZfsEvent(const ZfsEvent &src);
 
@@ -85,21 +84,20 @@ protected:
 	 * Detach any spares that are no longer needed, but were not
 	 * automatically detached by the kernel
 	 */
-	virtual void CleanupSpares()	  const;
-	virtual void ProcessPoolEvent()	  const;
+	virtual void CleanupSpares() const;
+	virtual void ProcessPoolEvent() const;
 	static VdevCallback_t TryDetach;
 };
 
-class GeomEvent : public DevdCtl::GeomEvent
-{
-public:
+class GeomEvent : public DevdCtl::GeomEvent {
+    public:
 	static BuildMethod Builder;
 
-	virtual DevdCtl::Event *DeepCopy() const; 
+	virtual DevdCtl::Event *DeepCopy() const;
 
-	virtual bool Process()		  const;
+	virtual bool Process() const;
 
-protected:
+    protected:
 	/** DeepCopy Constructor. */
 	GeomEvent(const GeomEvent &src);
 
@@ -120,9 +118,8 @@ protected:
 	 * \return  true if the event that caused the online action can
 	 *          be considered consumed.
 	 */
-	static bool	    OnlineByLabel(const string &devPath,
-					  const string& physPath,
-					  nvlist_t *devConfig);
+	static bool OnlineByLabel(const string &devPath, const string &physPath,
+	    nvlist_t *devConfig);
 
 	/**
 	 * \brief Read and return label information for a device.
@@ -136,7 +133,6 @@ protected:
 	 *          the vdev configuraiton found on the device specified by
 	 *          devFd.  Otherwise NULL.
 	 */
-	static nvlist_t    *ReadLabel(int devFd, bool &inUse, bool &degraded);
-
+	static nvlist_t *ReadLabel(int devFd, bool &inUse, bool &degraded);
 };
 #endif /*_ZFSD_EVENT_H_ */

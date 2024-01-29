@@ -36,24 +36,24 @@
 #include "nvme_private.h"
 
 struct nvme_consumer {
-	uint32_t		id;
-	nvme_cons_ns_fn_t	ns_fn;
-	nvme_cons_ctrlr_fn_t	ctrlr_fn;
-	nvme_cons_async_fn_t	async_fn;
-	nvme_cons_fail_fn_t	fail_fn;
+	uint32_t id;
+	nvme_cons_ns_fn_t ns_fn;
+	nvme_cons_ctrlr_fn_t ctrlr_fn;
+	nvme_cons_async_fn_t async_fn;
+	nvme_cons_fail_fn_t fail_fn;
 };
 
 struct nvme_consumer nvme_consumer[NVME_MAX_CONSUMERS];
-#define	INVALID_CONSUMER_ID	0xFFFF
+#define INVALID_CONSUMER_ID 0xFFFF
 
-int32_t		nvme_retry_count;
+int32_t nvme_retry_count;
 
 MALLOC_DEFINE(M_NVME, "nvme", "nvme(4) memory allocations");
 
 static void
 nvme_init(void)
 {
-	uint32_t	i;
+	uint32_t i;
 
 	for (i = 0; i < NVME_MAX_CONSUMERS; i++)
 		nvme_consumer[i].id = INVALID_CONSUMER_ID;
@@ -71,7 +71,7 @@ SYSUNINIT(nvme_unregister, SI_SUB_DRIVERS, SI_ORDER_SECOND, nvme_uninit, NULL);
 int
 nvme_shutdown(device_t dev)
 {
-	struct nvme_controller	*ctrlr;
+	struct nvme_controller *ctrlr;
 
 	ctrlr = DEVICE2SOFTC(dev);
 	nvme_ctrlr_shutdown(ctrlr);
@@ -82,8 +82,8 @@ nvme_shutdown(device_t dev)
 int
 nvme_attach(device_t dev)
 {
-	struct nvme_controller	*ctrlr = DEVICE2SOFTC(dev);
-	int			status;
+	struct nvme_controller *ctrlr = DEVICE2SOFTC(dev);
+	int status;
 
 	status = nvme_ctrlr_construct(ctrlr, dev);
 	if (status != 0) {
@@ -103,7 +103,7 @@ nvme_attach(device_t dev)
 int
 nvme_detach(device_t dev)
 {
-	struct nvme_controller	*ctrlr = DEVICE2SOFTC(dev);
+	struct nvme_controller *ctrlr = DEVICE2SOFTC(dev);
 
 	config_intrhook_drain(&ctrlr->config_hook);
 
@@ -112,12 +112,11 @@ nvme_detach(device_t dev)
 }
 
 static void
-nvme_notify(struct nvme_consumer *cons,
-	    struct nvme_controller *ctrlr)
+nvme_notify(struct nvme_consumer *cons, struct nvme_controller *ctrlr)
 {
-	struct nvme_namespace	*ns;
-	void			*ctrlr_cookie;
-	int			cmpset, ns_idx;
+	struct nvme_namespace *ns;
+	void *ctrlr_cookie;
+	int cmpset, ns_idx;
 
 	/*
 	 * The consumer may register itself after the nvme devices
@@ -155,13 +154,14 @@ nvme_notify(struct nvme_consumer *cons,
 		 */
 		return;
 	}
-	for (ns_idx = 0; ns_idx < min(ctrlr->cdata.nn, NVME_MAX_NAMESPACES); ns_idx++) {
+	for (ns_idx = 0; ns_idx < min(ctrlr->cdata.nn, NVME_MAX_NAMESPACES);
+	     ns_idx++) {
 		ns = &ctrlr->ns[ns_idx];
 		if (ns->data.nsze == 0)
 			continue;
 		if (cons->ns_fn != NULL)
-			ns->cons_cookie[cons->id] =
-			    (*cons->ns_fn)(ns, ctrlr_cookie);
+			ns->cons_cookie[cons->id] = (*cons->ns_fn)(ns,
+			    ctrlr_cookie);
 	}
 }
 
@@ -180,9 +180,9 @@ nvme_notify_new_controller(struct nvme_controller *ctrlr)
 static void
 nvme_notify_new_consumer(struct nvme_consumer *cons)
 {
-	device_t		*devlist;
-	struct nvme_controller	*ctrlr;
-	int			dev_idx, devcount;
+	device_t *devlist;
+	struct nvme_controller *ctrlr;
+	int dev_idx, devcount;
 
 	if (devclass_get_devices(devclass_find("nvme"), &devlist, &devcount))
 		return;
@@ -197,20 +197,19 @@ nvme_notify_new_consumer(struct nvme_consumer *cons)
 
 void
 nvme_notify_async_consumers(struct nvme_controller *ctrlr,
-			    const struct nvme_completion *async_cpl,
-			    uint32_t log_page_id, void *log_page_buffer,
-			    uint32_t log_page_size)
+    const struct nvme_completion *async_cpl, uint32_t log_page_id,
+    void *log_page_buffer, uint32_t log_page_size)
 {
-	struct nvme_consumer	*cons;
-	void			*ctrlr_cookie;
-	uint32_t		i;
+	struct nvme_consumer *cons;
+	void *ctrlr_cookie;
+	uint32_t i;
 
 	for (i = 0; i < NVME_MAX_CONSUMERS; i++) {
 		cons = &nvme_consumer[i];
 		if (cons->id != INVALID_CONSUMER_ID && cons->async_fn != NULL &&
 		    (ctrlr_cookie = ctrlr->cons_cookie[i]) != NULL) {
-			(*cons->async_fn)(ctrlr_cookie, async_cpl,
-			    log_page_id, log_page_buffer, log_page_size);
+			(*cons->async_fn)(ctrlr_cookie, async_cpl, log_page_id,
+			    log_page_buffer, log_page_size);
 		}
 	}
 }
@@ -218,9 +217,9 @@ nvme_notify_async_consumers(struct nvme_controller *ctrlr,
 void
 nvme_notify_fail_consumers(struct nvme_controller *ctrlr)
 {
-	struct nvme_consumer	*cons;
-	void			*ctrlr_cookie;
-	uint32_t		i;
+	struct nvme_consumer *cons;
+	void *ctrlr_cookie;
+	uint32_t i;
 
 	/*
 	 * This controller failed during initialization (i.e. IDENTIFY
@@ -245,10 +244,10 @@ nvme_notify_fail_consumers(struct nvme_controller *ctrlr)
 void
 nvme_notify_ns(struct nvme_controller *ctrlr, int nsid)
 {
-	struct nvme_consumer	*cons;
-	struct nvme_namespace	*ns;
-	void			*ctrlr_cookie;
-	uint32_t		i;
+	struct nvme_consumer *cons;
+	struct nvme_namespace *ns;
+	void *ctrlr_cookie;
+	uint32_t i;
 
 	KASSERT(nsid <= NVME_MAX_NAMESPACES,
 	    ("%s: Namespace notification to nsid %d exceeds range\n",
@@ -268,8 +267,7 @@ nvme_notify_ns(struct nvme_controller *ctrlr, int nsid)
 
 struct nvme_consumer *
 nvme_register_consumer(nvme_cons_ns_fn_t ns_fn, nvme_cons_ctrlr_fn_t ctrlr_fn,
-		       nvme_cons_async_fn_t async_fn,
-		       nvme_cons_fail_fn_t fail_fn)
+    nvme_cons_async_fn_t async_fn, nvme_cons_fail_fn_t fail_fn)
 {
 	int i;
 
@@ -302,7 +300,7 @@ nvme_unregister_consumer(struct nvme_consumer *consumer)
 void
 nvme_completion_poll_cb(void *arg, const struct nvme_completion *cpl)
 {
-	struct nvme_completion_poll_status	*status = arg;
+	struct nvme_completion_poll_status *status = arg;
 
 	/*
 	 * Copy status into the argument passed by the caller, so that
@@ -316,14 +314,10 @@ nvme_completion_poll_cb(void *arg, const struct nvme_completion *cpl)
 static int
 nvme_modevent(module_t mod __unused, int type __unused, void *argp __unused)
 {
-       return (0);
+	return (0);
 }
 
-static moduledata_t nvme_mod = {
-       "nvme",
-       nvme_modevent,
-       0
-};
+static moduledata_t nvme_mod = { "nvme", nvme_modevent, 0 };
 
 DECLARE_MODULE(nvme, nvme_mod, SI_SUB_DRIVERS, SI_ORDER_FIRST);
 MODULE_VERSION(nvme, 1);

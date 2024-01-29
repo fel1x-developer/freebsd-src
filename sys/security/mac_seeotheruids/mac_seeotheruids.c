@@ -44,11 +44,11 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/priv.h>
 #include <sys/proc.h>
-#include <sys/systm.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 #include <sys/sysctl.h>
@@ -65,7 +65,7 @@ static SYSCTL_NODE(_security_mac, OID_AUTO, seeotheruids,
     CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "TrustedBSD mac_seeotheruids policy controls");
 
-static int	seeotheruids_enabled = 1;
+static int seeotheruids_enabled = 1;
 SYSCTL_INT(_security_mac_seeotheruids, OID_AUTO, enabled, CTLFLAG_RW,
     &seeotheruids_enabled, 0, "Enforce seeotheruids policy");
 
@@ -73,30 +73,32 @@ SYSCTL_INT(_security_mac_seeotheruids, OID_AUTO, enabled, CTLFLAG_RW,
  * Exception: allow credentials to be aware of other credentials with the
  * same primary gid.
  */
-static int	primarygroup_enabled = 0;
+static int primarygroup_enabled = 0;
 SYSCTL_INT(_security_mac_seeotheruids, OID_AUTO, primarygroup_enabled,
-    CTLFLAG_RW, &primarygroup_enabled, 0, "Make an exception for credentials "
+    CTLFLAG_RW, &primarygroup_enabled, 0,
+    "Make an exception for credentials "
     "with the same real primary group id");
 
 /*
  * Exception: allow the root user to be aware of other credentials by virtue
  * of privilege.
  */
-static int	suser_privileged = 1;
-SYSCTL_INT(_security_mac_seeotheruids, OID_AUTO, suser_privileged,
-    CTLFLAG_RW, &suser_privileged, 0, "Make an exception for superuser");
+static int suser_privileged = 1;
+SYSCTL_INT(_security_mac_seeotheruids, OID_AUTO, suser_privileged, CTLFLAG_RW,
+    &suser_privileged, 0, "Make an exception for superuser");
 
 /*
  * Exception: allow processes with a specific gid to be exempt from the
  * policy.  One sysctl enables this functionality; the other sets the
  * exempt gid.
  */
-static int	specificgid_enabled = 0;
+static int specificgid_enabled = 0;
 SYSCTL_INT(_security_mac_seeotheruids, OID_AUTO, specificgid_enabled,
-    CTLFLAG_RW, &specificgid_enabled, 0, "Make an exception for credentials "
+    CTLFLAG_RW, &specificgid_enabled, 0,
+    "Make an exception for credentials "
     "with a specific gid as their real primary group id or group set");
 
-static gid_t	specificgid = 0;
+static gid_t specificgid = 0;
 SYSCTL_UINT(_security_mac_seeotheruids, OID_AUTO, specificgid, CTLFLAG_RW,
     &specificgid, 0, "Specific gid to be exempt from seeotheruids policy");
 
@@ -144,8 +146,7 @@ seeotheruids_proc_check_sched(struct ucred *cred, struct proc *p)
 }
 
 static int
-seeotheruids_proc_check_signal(struct ucred *cred, struct proc *p,
-    int signum)
+seeotheruids_proc_check_signal(struct ucred *cred, struct proc *p, int signum)
 {
 
 	return (seeotheruids_check(cred, p->p_ucred));
@@ -174,8 +175,7 @@ seeotheruids_socket_check_visible(struct ucred *cred, struct socket *so,
 	return (seeotheruids_check(cred, so->so_cred));
 }
 
-static struct mac_policy_ops seeotheruids_ops =
-{
+static struct mac_policy_ops seeotheruids_ops = {
 	.mpo_proc_check_debug = seeotheruids_proc_check_debug,
 	.mpo_proc_check_sched = seeotheruids_proc_check_sched,
 	.mpo_proc_check_signal = seeotheruids_proc_check_signal,

@@ -24,13 +24,15 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/param.h>
 #include <sys/fcntl.h>
-#include <sys/syscall.h>
 #include <sys/stat.h>
+#include <sys/syscall.h>
+
 #include <unistd.h>
+
 #include "libc_private.h"
+#include "namespace.h"
 
 int
 stat(const char *path, struct stat *sb)

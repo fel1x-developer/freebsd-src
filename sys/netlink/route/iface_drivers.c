@@ -25,35 +25,35 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
+
+#include <sys/cdefs.h>
 #include <sys/types.h>
 #include <sys/malloc.h>
 #include <sys/socket.h>
+#include <sys/socketvar.h>
 #include <sys/sockio.h>
 #include <sys/syslog.h>
-#include <sys/socketvar.h>
 
 #include <net/ethernet.h>
 #include <net/if.h>
+#include <net/if_clone.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
 #include <net/if_var.h>
-#include <net/if_clone.h>
 #include <net/if_vlan_var.h>
 #include <net/route.h>
 #include <net/route/nhop.h>
 #include <net/route/route_ctl.h>
+#include <netinet6/scope6_var.h> /* scope deembedding */
 #include <netlink/netlink.h>
 #include <netlink/netlink_ctl.h>
 #include <netlink/netlink_route.h>
 #include <netlink/route/route_var.h>
 
-#include <netinet6/scope6_var.h> /* scope deembedding */
-
-#define	DEBUG_MOD_NAME	nl_iface_drivers
-#define	DEBUG_MAX_LEVEL	LOG_DEBUG3
+#define DEBUG_MOD_NAME nl_iface_drivers
+#define DEBUG_MAX_LEVEL LOG_DEBUG3
 #include <netlink/netlink_debug.h>
 _DECLARE_DEBUG(LOG_INFO);
 
@@ -77,12 +77,14 @@ _nl_modify_ifp_generic(struct ifnet *ifp, struct nl_parsed_link *lattrs,
 			if_setdescr(ifp, buf);
 			if_setlastchange(ifp);
 		} else {
-			nlmsg_report_err_msg(npt, "Not enough privileges to set descr");
+			nlmsg_report_err_msg(npt,
+			    "Not enough privileges to set descr");
 			return (EPERM);
 		}
 	}
 
-	if ((lattrs->ifi_change & IFF_UP) && (lattrs->ifi_flags & IFF_UP) == 0) {
+	if ((lattrs->ifi_change & IFF_UP) &&
+	    (lattrs->ifi_flags & IFF_UP) == 0) {
 		/* Request to down the interface */
 		if_down(ifp);
 	}
@@ -90,9 +92,11 @@ _nl_modify_ifp_generic(struct ifnet *ifp, struct nl_parsed_link *lattrs,
 	if (lattrs->ifla_mtu > 0) {
 		if (nlp_has_priv(npt->nlp, PRIV_NET_SETIFMTU)) {
 			struct ifreq ifr = { .ifr_mtu = lattrs->ifla_mtu };
-			error = ifhwioctl(SIOCSIFMTU, ifp, (char *)&ifr, curthread);
+			error = ifhwioctl(SIOCSIFMTU, ifp, (char *)&ifr,
+			    curthread);
 		} else {
-			nlmsg_report_err_msg(npt, "Not enough privileges to set mtu");
+			nlmsg_report_err_msg(npt,
+			    "Not enough privileges to set mtu");
 			return (EPERM);
 		}
 	}
@@ -122,8 +126,8 @@ _nl_store_ifp_cookie(struct nl_pstate *npt, struct ifnet *ifp)
 	int ifname_len = strlen(if_name(ifp));
 	uint32_t ifindex = (uint32_t)if_getindex(ifp);
 
-	int nla_len = sizeof(struct nlattr) * 3 +
-		sizeof(ifindex) + NL_ITEM_ALIGN(ifname_len + 1);
+	int nla_len = sizeof(struct nlattr) * 3 + sizeof(ifindex) +
+	    NL_ITEM_ALIGN(ifname_len + 1);
 	struct nlattr *nla_cookie = npt_alloc(npt, nla_len);
 
 	/* Nested TLV */
@@ -142,4 +146,3 @@ _nl_store_ifp_cookie(struct nl_pstate *npt, struct ifnet *ifp)
 
 	nlmsg_report_cookie(npt, nla_cookie);
 }
-

@@ -135,7 +135,7 @@ kstack_cleanup_encoded(const char *old, char *new, int kflag)
 		cp_tofree = cp_loop = strdup(new);
 	} else
 		cp_tofree = cp_loop = strdup(old);
-        while ((cp_line = strsep(&cp_loop, "\n")) != NULL) {
+	while ((cp_line = strsep(&cp_loop, "\n")) != NULL) {
 		if (strlen(cp_line) != 0 && *cp_line != 127)
 			xo_emit("{le:token/%s}", cp_line);
 	}
@@ -149,17 +149,16 @@ static int
 kinfo_kstack_compare(const void *a, const void *b)
 {
 
-        return ((const struct kinfo_kstack *)a)->kkst_tid -
-            ((const struct kinfo_kstack *)b)->kkst_tid;
+	return ((const struct kinfo_kstack *)a)->kkst_tid -
+	    ((const struct kinfo_kstack *)b)->kkst_tid;
 }
 
 static void
 kinfo_kstack_sort(struct kinfo_kstack *kkstp, int count)
 {
 
-        qsort(kkstp, count, sizeof(*kkstp), kinfo_kstack_compare);
+	qsort(kkstp, count, sizeof(*kkstp), kinfo_kstack_compare);
 }
-
 
 void
 procstat_kstack(struct procstat *procstat, struct kinfo_proc *kipp)
@@ -171,8 +170,8 @@ procstat_kstack(struct procstat *procstat, struct kinfo_proc *kipp)
 	unsigned int kip_count, kstk_count;
 
 	if ((procstat_opts & PS_OPT_NOHEADER) == 0)
-		xo_emit("{T:/%5s %6s %-19s %-19s %-29s}\n", "PID", "TID", "COMM",
-		    "TDNAME", "KSTACK");
+		xo_emit("{T:/%5s %6s %-19s %-19s %-29s}\n", "PID", "TID",
+		    "COMM", "TDNAME", "KSTACK");
 
 	kkstp = kkstp_free = procstat_getkstack(procstat, kipp, &kstk_count);
 	if (kkstp == NULL)
@@ -210,7 +209,7 @@ procstat_kstack(struct procstat *procstat, struct kinfo_proc *kipp)
 		xo_emit("{:thread_id/%6d/%d} ", kkstp->kkst_tid);
 		xo_emit("{:command/%-19s/%s} ", kipp->ki_comm);
 		xo_emit("{:thread_name/%-19s/%s} ",
-                    kinfo_proc_thread_name(kipp));
+		    kinfo_proc_thread_name(kipp));
 
 		switch (kkstp->kkst_state) {
 		case KKST_STATE_RUNNING:

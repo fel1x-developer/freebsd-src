@@ -32,11 +32,11 @@
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/devmap.h>
-#include <sys/proc.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/proc.h>
 #include <sys/rman.h>
 #include <sys/sysctl.h>
 
@@ -45,59 +45,59 @@
 #include <machine/resource.h>
 
 #include <dev/clk/clk.h>
-#include <dev/phy/phy.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 #include <dev/ofw/ofw_pci.h>
 #include <dev/ofw/ofwpci.h>
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcib_private.h>
 #include <dev/pci/pci_dw.h>
+#include <dev/pci/pcib_private.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+#include <dev/phy/phy.h>
 
-#include "pcib_if.h"
 #include "pci_dw_if.h"
+#include "pcib_if.h"
 
-#define MV_GLOBAL_CONTROL_REG		0x8000
-#define PCIE_APP_LTSSM_EN		(1 << 2)
+#define MV_GLOBAL_CONTROL_REG 0x8000
+#define PCIE_APP_LTSSM_EN (1 << 2)
 
-#define MV_GLOBAL_STATUS_REG		0x8008
-#define	 MV_STATUS_RDLH_LINK_UP			(1 << 1)
-#define  MV_STATUS_PHY_LINK_UP			(1 << 9)
+#define MV_GLOBAL_STATUS_REG 0x8008
+#define MV_STATUS_RDLH_LINK_UP (1 << 1)
+#define MV_STATUS_PHY_LINK_UP (1 << 9)
 
-#define MV_INT_CAUSE1			0x801C
-#define MV_INT_MASK1			0x8020
-#define  INT_A_ASSERT_MASK			(1 <<  9)
-#define  INT_B_ASSERT_MASK			(1 << 10)
-#define  INT_C_ASSERT_MASK			(1 << 11)
-#define  INT_D_ASSERT_MASK			(1 << 12)
+#define MV_INT_CAUSE1 0x801C
+#define MV_INT_MASK1 0x8020
+#define INT_A_ASSERT_MASK (1 << 9)
+#define INT_B_ASSERT_MASK (1 << 10)
+#define INT_C_ASSERT_MASK (1 << 11)
+#define INT_D_ASSERT_MASK (1 << 12)
 
-#define MV_INT_CAUSE2			0x8024
-#define MV_INT_MASK2			0x8028
-#define MV_ERR_INT_CAUSE		0x802C
-#define MV_ERR_INT_MASK			0x8030
+#define MV_INT_CAUSE2 0x8024
+#define MV_INT_MASK2 0x8028
+#define MV_ERR_INT_CAUSE 0x802C
+#define MV_ERR_INT_MASK 0x8030
 
-#define MV_ARCACHE_TRC_REG		0x8050
-#define MV_AWCACHE_TRC_REG		0x8054
-#define MV_ARUSER_REG			0x805C
-#define MV_AWUSER_REG			0x8060
+#define MV_ARCACHE_TRC_REG 0x8050
+#define MV_AWCACHE_TRC_REG 0x8054
+#define MV_ARUSER_REG 0x805C
+#define MV_AWUSER_REG 0x8060
 
-#define	MV_MAX_LANES	8
+#define MV_MAX_LANES 8
 struct pci_mv_softc {
-	struct pci_dw_softc	dw_sc;
-	device_t		dev;
-	phandle_t		node;
-	struct resource 	*irq_res;
-	void			*intr_cookie;
-	phy_t			phy[MV_MAX_LANES];
-	clk_t			clk_core;
-	clk_t			clk_reg;
+	struct pci_dw_softc dw_sc;
+	device_t dev;
+	phandle_t node;
+	struct resource *irq_res;
+	void *intr_cookie;
+	phy_t phy[MV_MAX_LANES];
+	clk_t clk_core;
+	clk_t clk_reg;
 };
 
 /* Compatible devices. */
 static struct ofw_compat_data compat_data[] = {
-	{"marvell,armada8k-pcie", 1},
-	{NULL,		 	  0},
+	{ "marvell,armada8k-pcie", 1 },
+	{ NULL, 0 },
 };
 
 static int
@@ -106,14 +106,14 @@ pci_mv_phy_init(struct pci_mv_softc *sc)
 	int i, rv;
 
 	for (i = 0; i < MV_MAX_LANES; i++) {
-		rv =  phy_get_by_ofw_idx(sc->dev, sc->node, i, &(sc->phy[i]));
+		rv = phy_get_by_ofw_idx(sc->dev, sc->node, i, &(sc->phy[i]));
 		if (rv != 0 && rv != ENOENT) {
 			device_printf(sc->dev, "Cannot get phy[%d]\n", i);
 /* XXX revert when phy driver will be implemented */
 #if 0
 		goto fail;
 #else
-		continue;
+			continue;
 #endif
 		}
 		if (sc->phy[i] == NULL)
@@ -131,7 +131,7 @@ fail:
 		if (sc->phy[i] == NULL)
 			continue;
 		phy_release(sc->phy[i]);
-	  }
+	}
 
 	return (rv);
 }
@@ -157,8 +157,8 @@ pci_mv_init(struct pci_mv_softc *sc)
 
 	/* Enable all INTx interrupt (virtuual) pins */
 	reg = pci_dw_dbi_rd4(sc->dev, MV_INT_MASK1);
-	reg |= INT_A_ASSERT_MASK | INT_B_ASSERT_MASK |
-	       INT_C_ASSERT_MASK | INT_D_ASSERT_MASK;
+	reg |= INT_A_ASSERT_MASK | INT_B_ASSERT_MASK | INT_C_ASSERT_MASK |
+	    INT_D_ASSERT_MASK;
 	pci_dw_dbi_wr4(sc->dev, MV_INT_MASK1, reg);
 
 	/* Enable local interrupts */
@@ -172,7 +172,8 @@ pci_mv_init(struct pci_mv_softc *sc)
 	pci_dw_dbi_wr4(sc->dev, MV_ERR_INT_MASK, 0);
 }
 
-static int pci_mv_intr(void *arg)
+static int
+pci_mv_intr(void *arg)
 {
 	struct pci_mv_softc *sc = arg;
 	uint32_t cause1, cause2;
@@ -300,7 +301,7 @@ pci_mv_attach(device_t dev)
 
 	/* Setup interrupt  */
 	if (bus_setup_intr(dev, sc->irq_res, INTR_TYPE_MISC | INTR_MPSAFE,
-		    pci_mv_intr, NULL, sc, &sc->intr_cookie)) {
+		pci_mv_intr, NULL, sc, &sc->intr_cookie)) {
 		device_printf(dev, "cannot setup interrupt handler\n");
 		rv = ENXIO;
 		goto out;
@@ -314,14 +315,14 @@ out:
 
 static device_method_t pci_mv_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,			pci_mv_probe),
-	DEVMETHOD(device_attach,		pci_mv_attach),
+	DEVMETHOD(device_probe, pci_mv_probe),
+	DEVMETHOD(device_attach, pci_mv_attach),
 
-	DEVMETHOD(pci_dw_get_link,		pci_mv_get_link),
+	DEVMETHOD(pci_dw_get_link, pci_mv_get_link),
 
 	DEVMETHOD_END
 };
 
-DEFINE_CLASS_1(pcib, pci_mv_driver, pci_mv_methods,
-    sizeof(struct pci_mv_softc), pci_dw_driver);
-DRIVER_MODULE( pci_mv, simplebus, pci_mv_driver, NULL, NULL);
+DEFINE_CLASS_1(pcib, pci_mv_driver, pci_mv_methods, sizeof(struct pci_mv_softc),
+    pci_dw_driver);
+DRIVER_MODULE(pci_mv, simplebus, pci_mv_driver, NULL, NULL);

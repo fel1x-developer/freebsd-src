@@ -26,9 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_watchdog.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/conf.h>
@@ -36,15 +36,15 @@
 #include <sys/kernel.h>
 #include <sys/kerneldump.h>
 #include <sys/msgbuf.h>
-#include <sys/watchdog.h>
 #include <sys/vmmeter.h>
+#include <sys/watchdog.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
-#include <vm/vm_page.h>
-#include <vm/vm_phys.h>
-#include <vm/vm_dumpset.h>
 #include <vm/pmap.h>
+#include <vm/vm_dumpset.h>
+#include <vm/vm_page.h>
+#include <vm/vm_param.h>
+#include <vm/vm_phys.h>
 
 #include <machine/atomic.h>
 #include <machine/elf.h>
@@ -91,7 +91,7 @@ blk_write(struct dumperinfo *di, char *ptr, vm_paddr_t pa, size_t sz)
 	u_int maxdumpsz;
 
 	maxdumpsz = min(di->maxiosize, MAXDUMPPGS * PAGE_SIZE);
-	if (maxdumpsz == 0)	/* seatbelt */
+	if (maxdumpsz == 0) /* seatbelt */
 		maxdumpsz = PAGE_SIZE;
 	error = 0;
 	if ((sz % PAGE_SIZE) != 0) {
@@ -217,7 +217,7 @@ retry:
 	dumpsize += round_page(mbp->msg_size);
 	dumpsize += round_page(sizeof(dump_avail));
 	dumpsize += round_page(BITSET_SIZE(vm_page_dump_pages));
-	VM_PAGE_DUMP_FOREACH(state->dump_bitset, pa) {
+	VM_PAGE_DUMP_FOREACH (state->dump_bitset, pa) {
 		/* Clear out undumpable pages now if needed */
 		if (PHYS_IN_DMAP(pa) && vm_phys_is_dumpable(pa))
 			dumpsize += PAGE_SIZE;
@@ -286,7 +286,8 @@ retry:
 			error = blk_write(di, (char *)&tmpbuffer, 0, PAGE_SIZE);
 			if (error)
 				goto fail;
-			/* Flush, in case we reuse tmpbuffer in the same block */
+			/* Flush, in case we reuse tmpbuffer in the same block
+			 */
 			error = blk_flush(di);
 			if (error)
 				goto fail;
@@ -303,7 +304,8 @@ retry:
 			error = blk_write(di, (char *)&tmpbuffer, 0, PAGE_SIZE);
 			if (error)
 				goto fail;
-			/* Flush, in case we reuse tmpbuffer in the same block */
+			/* Flush, in case we reuse tmpbuffer in the same block
+			 */
 			error = blk_flush(di);
 			if (error)
 				goto fail;
@@ -327,7 +329,7 @@ retry:
 
 	/* Dump memory chunks */
 	/* XXX cluster it up and use blk_dump() */
-	VM_PAGE_DUMP_FOREACH(state->dump_bitset, pa) {
+	VM_PAGE_DUMP_FOREACH (state->dump_bitset, pa) {
 		error = blk_write(di, 0, pa, PAGE_SIZE);
 		if (error)
 			goto fail;
@@ -356,12 +358,12 @@ fail:
 			goto retry;
 		}
 		printf("Dump failed.\n");
-	}
-	else if (error == ECANCELED)
+	} else if (error == ECANCELED)
 		printf("Dump aborted\n");
 	else if (error == E2BIG) {
 		printf("Dump failed. Partition too small (about %lluMB were "
-		    "needed this time).\n", (long long)dumpsize >> 20);
+		       "needed this time).\n",
+		    (long long)dumpsize >> 20);
 	} else
 		printf("** DUMP FAILED (ERROR %d) **\n", error);
 	return (error);

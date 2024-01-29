@@ -49,15 +49,15 @@
 
 #include "main.h"
 
-#define	SYSCTL_NAME	"kern.acct_configured"
+#define SYSCTL_NAME "kern.acct_configured"
 
 /*
  * Actual filenames used across all of the tests.
  */
-static int	fpath1_initialized;
-static char	fpath1[1024];
-static int	fpath2_initialized;
-static char	fpath2[1024];
+static int fpath1_initialized;
+static char fpath1[1024];
+static int fpath2_initialized;
+static char fpath2[1024];
 
 int
 priv_acct_setup(int asroot, int injail, struct test *test)
@@ -87,7 +87,7 @@ priv_acct_setup(int asroot, int injail, struct test *test)
 			return (-1);
 		}
 	} else if (test->t_test_func == priv_acct_disable ||
-	     test->t_test_func == priv_acct_rotate) {
+	    test->t_test_func == priv_acct_rotate) {
 		if (acct(fpath1) != 0) {
 			warn("priv_acct_setup: acct(\"%s\")", fpath1);
 			return (-1);

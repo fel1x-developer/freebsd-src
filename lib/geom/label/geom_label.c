@@ -27,22 +27,23 @@
  */
 
 #include <sys/param.h>
+
+#include <assert.h>
 #include <errno.h>
+#include <geom/label/g_label.h>
+#include <libgeom.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <assert.h>
-#include <libgeom.h>
-#include <geom/label/g_label.h>
 
 #include "core/geom.h"
 #include "misc/subr.h"
 
 #ifdef STATIC_GEOM_CLASSES
-#define PUBSYM(x)	glabel_##x
+#define PUBSYM(x) glabel_##x
 #else
-#define PUBSYM(x)	x
+#define PUBSYM(x) x
 #endif
 
 uint32_t PUBSYM(lib_version) = G_LIB_VERSION;
@@ -55,35 +56,19 @@ static void label_label(struct gctl_req *req);
 static void label_refresh(struct gctl_req *req);
 
 struct g_command PUBSYM(class_commands)[] = {
-	{ "clear", G_FLAG_VERBOSE, label_main, G_NULL_OPTS,
-	    "[-v] dev ..."
-	},
+	{ "clear", G_FLAG_VERBOSE, label_main, G_NULL_OPTS, "[-v] dev ..." },
 	{ "create", G_FLAG_VERBOSE | G_FLAG_LOADKLD, NULL, G_NULL_OPTS,
-	    "[-v] name dev"
-	},
+	    "[-v] name dev" },
 	{ "destroy", G_FLAG_VERBOSE, NULL,
-	    {
-		{ 'f', "force", NULL, G_TYPE_BOOL },
-		G_OPT_SENTINEL
-	    },
-	    "[-fv] name ..."
-	},
-	{ "dump", 0, label_main, G_NULL_OPTS,
-	    "dev ..."
-	},
+	    { { 'f', "force", NULL, G_TYPE_BOOL }, G_OPT_SENTINEL },
+	    "[-fv] name ..." },
+	{ "dump", 0, label_main, G_NULL_OPTS, "dev ..." },
 	{ "label", G_FLAG_VERBOSE | G_FLAG_LOADKLD, label_main, G_NULL_OPTS,
-	    "[-v] name dev"
-	},
-	{ "refresh", 0, label_main, G_NULL_OPTS,
-	    "dev ..."
-	},
+	    "[-v] name dev" },
+	{ "refresh", 0, label_main, G_NULL_OPTS, "dev ..." },
 	{ "stop", G_FLAG_VERBOSE, NULL,
-	    {
-		{ 'f', "force", NULL, G_TYPE_BOOL },
-		G_OPT_SENTINEL
-	    },
-	    "[-fv] name ..."
-	},
+	    { { 'f', "force", NULL, G_TYPE_BOOL }, G_OPT_SENTINEL },
+	    "[-fv] name ..." },
 	G_CMD_SENTINEL
 };
 
@@ -247,8 +232,8 @@ label_refresh(struct gctl_req *req)
 		name = gctl_get_ascii(req, "arg%d", i);
 		fd = g_open(name, 1);
 		if (fd == -1) {
-			printf("Can't refresh metadata from %s: %s.\n",
-			    name, strerror(errno));
+			printf("Can't refresh metadata from %s: %s.\n", name,
+			    strerror(errno));
 		} else {
 			printf("Metadata from %s refreshed.\n", name);
 			(void)g_close(fd);

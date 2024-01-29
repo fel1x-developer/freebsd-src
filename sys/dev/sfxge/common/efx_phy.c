@@ -31,52 +31,52 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "efx.h"
 #include "efx_impl.h"
 
 #if EFSYS_OPT_SIENA
-static const efx_phy_ops_t	__efx_phy_siena_ops = {
-	siena_phy_power,		/* epo_power */
-	NULL,				/* epo_reset */
-	siena_phy_reconfigure,		/* epo_reconfigure */
-	siena_phy_verify,		/* epo_verify */
-	siena_phy_oui_get,		/* epo_oui_get */
-	NULL,				/* epo_link_state_get */
+static const efx_phy_ops_t __efx_phy_siena_ops = {
+	siena_phy_power,       /* epo_power */
+	NULL,		       /* epo_reset */
+	siena_phy_reconfigure, /* epo_reconfigure */
+	siena_phy_verify,      /* epo_verify */
+	siena_phy_oui_get,     /* epo_oui_get */
+	NULL,		       /* epo_link_state_get */
 #if EFSYS_OPT_PHY_STATS
-	siena_phy_stats_update,		/* epo_stats_update */
-#endif	/* EFSYS_OPT_PHY_STATS */
+	siena_phy_stats_update, /* epo_stats_update */
+#endif				/* EFSYS_OPT_PHY_STATS */
 #if EFSYS_OPT_BIST
-	NULL,				/* epo_bist_enable_offline */
-	siena_phy_bist_start,		/* epo_bist_start */
-	siena_phy_bist_poll,		/* epo_bist_poll */
-	siena_phy_bist_stop,		/* epo_bist_stop */
-#endif	/* EFSYS_OPT_BIST */
+	NULL,		      /* epo_bist_enable_offline */
+	siena_phy_bist_start, /* epo_bist_start */
+	siena_phy_bist_poll,  /* epo_bist_poll */
+	siena_phy_bist_stop,  /* epo_bist_stop */
+#endif			      /* EFSYS_OPT_BIST */
 };
-#endif	/* EFSYS_OPT_SIENA */
+#endif /* EFSYS_OPT_SIENA */
 
 #if EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2
-static const efx_phy_ops_t	__efx_phy_ef10_ops = {
-	ef10_phy_power,			/* epo_power */
-	NULL,				/* epo_reset */
-	ef10_phy_reconfigure,		/* epo_reconfigure */
-	ef10_phy_verify,		/* epo_verify */
-	ef10_phy_oui_get,		/* epo_oui_get */
-	ef10_phy_link_state_get,	/* epo_link_state_get */
+static const efx_phy_ops_t __efx_phy_ef10_ops = {
+	ef10_phy_power,		 /* epo_power */
+	NULL,			 /* epo_reset */
+	ef10_phy_reconfigure,	 /* epo_reconfigure */
+	ef10_phy_verify,	 /* epo_verify */
+	ef10_phy_oui_get,	 /* epo_oui_get */
+	ef10_phy_link_state_get, /* epo_link_state_get */
 #if EFSYS_OPT_PHY_STATS
-	ef10_phy_stats_update,		/* epo_stats_update */
-#endif	/* EFSYS_OPT_PHY_STATS */
+	ef10_phy_stats_update, /* epo_stats_update */
+#endif			       /* EFSYS_OPT_PHY_STATS */
 #if EFSYS_OPT_BIST
-	ef10_bist_enable_offline,	/* epo_bist_enable_offline */
-	ef10_bist_start,		/* epo_bist_start */
-	ef10_bist_poll,			/* epo_bist_poll */
-	ef10_bist_stop,			/* epo_bist_stop */
-#endif	/* EFSYS_OPT_BIST */
+	ef10_bist_enable_offline, /* epo_bist_enable_offline */
+	ef10_bist_start,	  /* epo_bist_start */
+	ef10_bist_poll,		  /* epo_bist_poll */
+	ef10_bist_stop,		  /* epo_bist_stop */
+#endif				  /* EFSYS_OPT_BIST */
 };
-#endif	/* EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2 */
+#endif /* EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2 */
 
-	__checkReturn	efx_rc_t
-efx_phy_probe(
-	__in		efx_nic_t *enp)
+__checkReturn efx_rc_t
+efx_phy_probe(__in efx_nic_t *enp)
 {
 	efx_port_t *epp = &(enp->en_port);
 	efx_nic_cfg_t *encp = &(enp->en_nic_cfg);
@@ -94,25 +94,25 @@ efx_phy_probe(
 	case EFX_FAMILY_SIENA:
 		epop = &__efx_phy_siena_ops;
 		break;
-#endif	/* EFSYS_OPT_SIENA */
+#endif /* EFSYS_OPT_SIENA */
 
 #if EFSYS_OPT_HUNTINGTON
 	case EFX_FAMILY_HUNTINGTON:
 		epop = &__efx_phy_ef10_ops;
 		break;
-#endif	/* EFSYS_OPT_HUNTINGTON */
+#endif /* EFSYS_OPT_HUNTINGTON */
 
 #if EFSYS_OPT_MEDFORD
 	case EFX_FAMILY_MEDFORD:
 		epop = &__efx_phy_ef10_ops;
 		break;
-#endif	/* EFSYS_OPT_MEDFORD */
+#endif /* EFSYS_OPT_MEDFORD */
 
 #if EFSYS_OPT_MEDFORD2
 	case EFX_FAMILY_MEDFORD2:
 		epop = &__efx_phy_ef10_ops;
 		break;
-#endif	/* EFSYS_OPT_MEDFORD2 */
+#endif /* EFSYS_OPT_MEDFORD2 */
 
 	default:
 		rc = ENOTSUP;
@@ -132,9 +132,8 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-efx_phy_verify(
-	__in		efx_nic_t *enp)
+__checkReturn efx_rc_t
+efx_phy_verify(__in efx_nic_t *enp)
 {
 	efx_port_t *epp = &(enp->en_port);
 	const efx_phy_ops_t *epop = epp->ep_epop;
@@ -147,10 +146,8 @@ efx_phy_verify(
 
 #if EFSYS_OPT_PHY_LED_CONTROL
 
-	__checkReturn	efx_rc_t
-efx_phy_led_set(
-	__in		efx_nic_t *enp,
-	__in		efx_phy_led_mode_t mode)
+__checkReturn efx_rc_t
+efx_phy_led_set(__in efx_nic_t *enp, __in efx_phy_led_mode_t mode)
 {
 	efx_nic_cfg_t *encp = (&enp->en_nic_cfg);
 	efx_port_t *epp = &(enp->en_port);
@@ -188,13 +185,11 @@ fail1:
 
 	return (rc);
 }
-#endif	/* EFSYS_OPT_PHY_LED_CONTROL */
+#endif /* EFSYS_OPT_PHY_LED_CONTROL */
 
-			void
-efx_phy_adv_cap_get(
-	__in		efx_nic_t *enp,
-	__in		uint32_t flag,
-	__out		uint32_t *maskp)
+void
+efx_phy_adv_cap_get(__in efx_nic_t *enp, __in uint32_t flag,
+    __out uint32_t *maskp)
 {
 	efx_port_t *epp = &(enp->en_port);
 
@@ -218,10 +213,8 @@ efx_phy_adv_cap_get(
 	}
 }
 
-	__checkReturn	efx_rc_t
-efx_phy_adv_cap_set(
-	__in		efx_nic_t *enp,
-	__in		uint32_t mask)
+__checkReturn efx_rc_t
+efx_phy_adv_cap_set(__in efx_nic_t *enp, __in uint32_t mask)
 {
 	efx_port_t *epp = &(enp->en_port);
 	const efx_phy_ops_t *epop = epp->ep_epop;
@@ -267,10 +260,8 @@ fail1:
 	return (rc);
 }
 
-	void
-efx_phy_lp_cap_get(
-	__in		efx_nic_t *enp,
-	__out		uint32_t *maskp)
+void
+efx_phy_lp_cap_get(__in efx_nic_t *enp, __out uint32_t *maskp)
 {
 	efx_port_t *epp = &(enp->en_port);
 
@@ -280,10 +271,8 @@ efx_phy_lp_cap_get(
 	*maskp = epp->ep_lp_cap_mask;
 }
 
-	__checkReturn	efx_rc_t
-efx_phy_oui_get(
-	__in		efx_nic_t *enp,
-	__out		uint32_t *ouip)
+__checkReturn efx_rc_t
+efx_phy_oui_get(__in efx_nic_t *enp, __out uint32_t *ouip)
 {
 	efx_port_t *epp = &(enp->en_port);
 	const efx_phy_ops_t *epop = epp->ep_epop;
@@ -294,10 +283,8 @@ efx_phy_oui_get(
 	return (epop->epo_oui_get(enp, ouip));
 }
 
-			void
-efx_phy_media_type_get(
-	__in		efx_nic_t *enp,
-	__out		efx_phy_media_type_t *typep)
+void
+efx_phy_media_type_get(__in efx_nic_t *enp, __out efx_phy_media_type_t *typep)
 {
 	efx_port_t *epp = &(enp->en_port);
 
@@ -310,13 +297,9 @@ efx_phy_media_type_get(
 		*typep = epp->ep_fixed_port_type;
 }
 
-	__checkReturn		efx_rc_t
-efx_phy_module_get_info(
-	__in			efx_nic_t *enp,
-	__in			uint8_t dev_addr,
-	__in			size_t offset,
-	__in			size_t len,
-	__out_bcount(len)	uint8_t *data)
+__checkReturn efx_rc_t
+efx_phy_module_get_info(__in efx_nic_t *enp, __in uint8_t dev_addr,
+    __in size_t offset, __in size_t len, __out_bcount(len) uint8_t *data)
 {
 	efx_rc_t rc;
 
@@ -329,8 +312,8 @@ efx_phy_module_get_info(
 		goto fail1;
 	}
 
-	if ((rc = efx_mcdi_phy_module_get_info(enp, dev_addr,
-	    offset, len, data)) != 0)
+	if ((rc = efx_mcdi_phy_module_get_info(enp, dev_addr, offset, len,
+		 data)) != 0)
 		goto fail2;
 
 	return (0);
@@ -343,10 +326,8 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-efx_phy_fec_type_get(
-	__in		efx_nic_t *enp,
-	__out		efx_phy_fec_type_t *typep)
+__checkReturn efx_rc_t
+efx_phy_fec_type_get(__in efx_nic_t *enp, __out efx_phy_fec_type_t *typep)
 {
 	efx_rc_t rc;
 	efx_phy_link_state_t epls;
@@ -364,10 +345,8 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-efx_phy_link_state_get(
-	__in		efx_nic_t *enp,
-	__out		efx_phy_link_state_t *eplsp)
+__checkReturn efx_rc_t
+efx_phy_link_state_get(__in efx_nic_t *enp, __out efx_phy_link_state_t *eplsp)
 {
 	efx_port_t *epp = &(enp->en_port);
 	const efx_phy_ops_t *epop = epp->ep_epop;
@@ -399,7 +378,7 @@ fail1:
 #if EFSYS_OPT_NAMES
 
 /* START MKCONFIG GENERATED PhyStatNamesBlock af9ffa24da3bc100 */
-static const char * const __efx_phy_stat_name[] = {
+static const char *const __efx_phy_stat_name[] = {
 	"oui",
 	"pma_pmd_link_up",
 	"pma_pmd_rx_fault",
@@ -450,10 +429,8 @@ static const char * const __efx_phy_stat_name[] = {
 
 /* END MKCONFIG GENERATED PhyStatNamesBlock */
 
-					const char *
-efx_phy_stat_name(
-	__in				efx_nic_t *enp,
-	__in				efx_phy_stat_t type)
+const char *
+efx_phy_stat_name(__in efx_nic_t *enp, __in efx_phy_stat_t type)
 {
 	_NOTE(ARGUNUSED(enp))
 	EFSYS_ASSERT3U(enp->en_magic, ==, EFX_NIC_MAGIC);
@@ -462,13 +439,11 @@ efx_phy_stat_name(
 	return (__efx_phy_stat_name[type]);
 }
 
-#endif	/* EFSYS_OPT_NAMES */
+#endif /* EFSYS_OPT_NAMES */
 
-	__checkReturn			efx_rc_t
-efx_phy_stats_update(
-	__in				efx_nic_t *enp,
-	__in				efsys_mem_t *esmp,
-	__inout_ecount(EFX_PHY_NSTATS)	uint32_t *stat)
+__checkReturn efx_rc_t
+efx_phy_stats_update(__in efx_nic_t *enp, __in efsys_mem_t *esmp,
+    __inout_ecount(EFX_PHY_NSTATS) uint32_t *stat)
 {
 	efx_port_t *epp = &(enp->en_port);
 	const efx_phy_ops_t *epop = epp->ep_epop;
@@ -479,13 +454,12 @@ efx_phy_stats_update(
 	return (epop->epo_stats_update(enp, esmp, stat));
 }
 
-#endif	/* EFSYS_OPT_PHY_STATS */
+#endif /* EFSYS_OPT_PHY_STATS */
 
 #if EFSYS_OPT_BIST
 
-	__checkReturn		efx_rc_t
-efx_bist_enable_offline(
-	__in			efx_nic_t *enp)
+__checkReturn efx_rc_t
+efx_bist_enable_offline(__in efx_nic_t *enp)
 {
 	efx_port_t *epp = &(enp->en_port);
 	const efx_phy_ops_t *epop = epp->ep_epop;
@@ -509,13 +483,10 @@ fail1:
 	EFSYS_PROBE1(fail1, efx_rc_t, rc);
 
 	return (rc);
-
 }
 
-	__checkReturn		efx_rc_t
-efx_bist_start(
-	__in			efx_nic_t *enp,
-	__in			efx_bist_type_t type)
+__checkReturn efx_rc_t
+efx_bist_start(__in efx_nic_t *enp, __in efx_bist_type_t type)
 {
 	efx_port_t *epp = &(enp->en_port);
 	const efx_phy_ops_t *epop = epp->ep_epop;
@@ -547,14 +518,10 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-efx_bist_poll(
-	__in			efx_nic_t *enp,
-	__in			efx_bist_type_t type,
-	__out			efx_bist_result_t *resultp,
-	__out_opt		uint32_t *value_maskp,
-	__out_ecount_opt(count)	unsigned long *valuesp,
-	__in			size_t count)
+__checkReturn efx_rc_t
+efx_bist_poll(__in efx_nic_t *enp, __in efx_bist_type_t type,
+    __out efx_bist_result_t *resultp, __out_opt uint32_t *value_maskp,
+    __out_ecount_opt(count) unsigned long *valuesp, __in size_t count)
 {
 	efx_port_t *epp = &(enp->en_port);
 	const efx_phy_ops_t *epop = epp->ep_epop;
@@ -572,8 +539,8 @@ efx_bist_poll(
 		goto fail1;
 	}
 
-	if ((rc = epop->epo_bist_poll(enp, type, resultp, value_maskp,
-	    valuesp, count)) != 0)
+	if ((rc = epop->epo_bist_poll(enp, type, resultp, value_maskp, valuesp,
+		 count)) != 0)
 		goto fail2;
 
 	return (0);
@@ -586,10 +553,8 @@ fail1:
 	return (rc);
 }
 
-			void
-efx_bist_stop(
-	__in		efx_nic_t *enp,
-	__in		efx_bist_type_t type)
+void
+efx_bist_stop(__in efx_nic_t *enp, __in efx_bist_type_t type)
 {
 	efx_port_t *epp = &(enp->en_port);
 	const efx_phy_ops_t *epop = epp->ep_epop;
@@ -608,10 +573,9 @@ efx_bist_stop(
 	epp->ep_current_bist = EFX_BIST_TYPE_UNKNOWN;
 }
 
-#endif	/* EFSYS_OPT_BIST */
-			void
-efx_phy_unprobe(
-	__in	efx_nic_t *enp)
+#endif /* EFSYS_OPT_BIST */
+void
+efx_phy_unprobe(__in efx_nic_t *enp)
 {
 	efx_port_t *epp = &(enp->en_port);
 

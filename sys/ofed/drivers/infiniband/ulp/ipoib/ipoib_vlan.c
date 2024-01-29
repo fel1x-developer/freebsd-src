@@ -33,18 +33,17 @@
  */
 
 #include <sys/cdefs.h>
-#include <linux/module.h>
-
-#include <linux/init.h>
-#include <linux/slab.h>
-#include <linux/seq_file.h>
 
 #include <asm/uaccess.h>
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/seq_file.h>
+#include <linux/slab.h>
 
 #include "ipoib.h"
 
-static ssize_t show_parent(struct device *d, struct device_attribute *attr,
-			   char *buf)
+static ssize_t
+show_parent(struct device *d, struct device_attribute *attr, char *buf)
 {
 	if_t dev = to_net_dev(d);
 	struct ipoib_dev_priv *priv = dev->if_softc;
@@ -53,7 +52,8 @@ static ssize_t show_parent(struct device *d, struct device_attribute *attr,
 }
 static DEVICE_ATTR(parent, S_IRUGO, show_parent, NULL);
 
-int ipoib_vlan_add(if_t pdev, unsigned short pkey)
+int
+ipoib_vlan_add(if_t pdev, unsigned short pkey)
 {
 	struct ipoib_dev_priv *ppriv, *priv;
 	char intf_name[IFNAMSIZ];
@@ -77,7 +77,8 @@ int ipoib_vlan_add(if_t pdev, unsigned short pkey)
 		goto err;
 	}
 
-	list_for_each_entry(priv, &ppriv->child_intfs, list) {
+	list_for_each_entry(priv, &ppriv->child_intfs, list)
+	{
 		if (priv->pkey == pkey) {
 			result = -ENOTUNIQ;
 			priv = NULL;
@@ -85,8 +86,8 @@ int ipoib_vlan_add(if_t pdev, unsigned short pkey)
 		}
 	}
 
-	snprintf(intf_name, sizeof intf_name, "%s.%04x",
-		 ppriv->dev->name, pkey);
+	snprintf(intf_name, sizeof intf_name, "%s.%04x", ppriv->dev->name,
+	    pkey);
 	priv = ipoib_intf_alloc(intf_name, ppriv->ca);
 	if (!priv) {
 		result = -ENOMEM;
@@ -95,8 +96,8 @@ int ipoib_vlan_add(if_t pdev, unsigned short pkey)
 
 	priv->max_ib_mtu = ppriv->max_ib_mtu;
 	/* MTU will be reset when mcast join happens */
-	priv->dev->mtu   = IPOIB_UD_MTU(priv->max_ib_mtu);
-	priv->mcast_mtu  = priv->admin_mtu = priv->dev->mtu;
+	priv->dev->mtu = IPOIB_UD_MTU(priv->max_ib_mtu);
+	priv->mcast_mtu = priv->admin_mtu = priv->dev->mtu;
 	set_bit(IPOIB_FLAG_SUBINTERFACE, &priv->flags);
 
 	result = ipoib_set_dev_features(priv, ppriv->ca);
@@ -111,9 +112,10 @@ int ipoib_vlan_add(if_t pdev, unsigned short pkey)
 
 	result = ipoib_dev_init(priv->dev, ppriv->ca, ppriv->port);
 	if (result < 0) {
-		ipoib_warn(ppriv, "failed to initialize subinterface: "
-			   "device %s, port %d",
-			   ppriv->ca->name, ppriv->port);
+		ipoib_warn(ppriv,
+		    "failed to initialize subinterface: "
+		    "device %s, port %d",
+		    ppriv->ca->name, ppriv->port);
 		goto err;
 	}
 
@@ -160,7 +162,8 @@ err:
 	return result;
 }
 
-int ipoib_vlan_delete(if_t pdev, unsigned short pkey)
+int
+ipoib_vlan_delete(if_t pdev, unsigned short pkey)
 {
 	struct ipoib_dev_priv *ppriv, *priv, *tpriv;
 	if_t dev = NULL;
@@ -172,7 +175,8 @@ int ipoib_vlan_delete(if_t pdev, unsigned short pkey)
 
 	rtnl_lock();
 	mutex_lock(&ppriv->vlan_mutex);
-	list_for_each_entry_safe(priv, tpriv, &ppriv->child_intfs, list) {
+	list_for_each_entry_safe(priv, tpriv, &ppriv->child_intfs, list)
+	{
 		if (priv->pkey == pkey) {
 			unregister_netdevice(priv->dev);
 			ipoib_dev_cleanup(priv->dev);

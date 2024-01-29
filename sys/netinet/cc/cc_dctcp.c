@@ -37,58 +37,56 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
-
-#include <net/vnet.h>
 
 #include <net/route.h>
 #include <net/route/nhop.h>
-
+#include <net/vnet.h>
+#include <netinet/cc/cc.h>
+#include <netinet/cc/cc_module.h>
 #include <netinet/in_pcb.h>
 #include <netinet/tcp.h>
 #include <netinet/tcp_seq.h>
 #include <netinet/tcp_var.h>
-#include <netinet/cc/cc.h>
-#include <netinet/cc/cc_module.h>
 
 #define DCTCP_SHIFT 10
-#define MAX_ALPHA_VALUE (1<<DCTCP_SHIFT)
+#define MAX_ALPHA_VALUE (1 << DCTCP_SHIFT)
 VNET_DEFINE_STATIC(uint32_t, dctcp_alpha) = MAX_ALPHA_VALUE;
-#define V_dctcp_alpha	    VNET(dctcp_alpha)
+#define V_dctcp_alpha VNET(dctcp_alpha)
 VNET_DEFINE_STATIC(uint32_t, dctcp_shift_g) = 4;
-#define	V_dctcp_shift_g	    VNET(dctcp_shift_g)
+#define V_dctcp_shift_g VNET(dctcp_shift_g)
 VNET_DEFINE_STATIC(uint32_t, dctcp_slowstart) = 0;
-#define	V_dctcp_slowstart   VNET(dctcp_slowstart)
+#define V_dctcp_slowstart VNET(dctcp_slowstart)
 VNET_DEFINE_STATIC(uint32_t, dctcp_ect1) = 0;
-#define	V_dctcp_ect1	    VNET(dctcp_ect1)
+#define V_dctcp_ect1 VNET(dctcp_ect1)
 
 struct dctcp {
-	uint32_t bytes_ecn;	  /* # of marked bytes during a RTT */
-	uint32_t bytes_total;	  /* # of acked bytes during a RTT */
-	int      alpha;		  /* the fraction of marked bytes */
-	int      ce_prev;	  /* CE state of the last segment */
-	tcp_seq  save_sndnxt;	  /* end sequence number of the current window */
-	int      ece_curr;	  /* ECE flag in this segment */
-	int      ece_prev;	  /* ECE flag in the last segment */
+	uint32_t bytes_ecn;   /* # of marked bytes during a RTT */
+	uint32_t bytes_total; /* # of acked bytes during a RTT */
+	int alpha;	      /* the fraction of marked bytes */
+	int ce_prev;	      /* CE state of the last segment */
+	tcp_seq save_sndnxt;  /* end sequence number of the current window */
+	int ece_curr;	      /* ECE flag in this segment */
+	int ece_prev;	      /* ECE flag in the last segment */
 	uint32_t num_cong_events; /* # of congestion events */
 };
 
-static void	dctcp_ack_received(struct cc_var *ccv, uint16_t type);
-static void	dctcp_after_idle(struct cc_var *ccv);
-static void	dctcp_cb_destroy(struct cc_var *ccv);
-static int	dctcp_cb_init(struct cc_var *ccv, void *ptr);
-static void	dctcp_cong_signal(struct cc_var *ccv, uint32_t type);
-static void	dctcp_conn_init(struct cc_var *ccv);
-static void	dctcp_post_recovery(struct cc_var *ccv);
-static void	dctcp_ecnpkt_handler(struct cc_var *ccv);
-static void	dctcp_update_alpha(struct cc_var *ccv);
-static size_t	dctcp_data_sz(void);
+static void dctcp_ack_received(struct cc_var *ccv, uint16_t type);
+static void dctcp_after_idle(struct cc_var *ccv);
+static void dctcp_cb_destroy(struct cc_var *ccv);
+static int dctcp_cb_init(struct cc_var *ccv, void *ptr);
+static void dctcp_cong_signal(struct cc_var *ccv, uint32_t type);
+static void dctcp_conn_init(struct cc_var *ccv);
+static void dctcp_post_recovery(struct cc_var *ccv);
+static void dctcp_ecnpkt_handler(struct cc_var *ccv);
+static void dctcp_update_alpha(struct cc_var *ccv);
+static size_t dctcp_data_sz(void);
 
 struct cc_algo dctcp_cc_algo = {
 	.name = "dctcp",
@@ -125,7 +123,8 @@ dctcp_ack_received(struct cc_var *ccv, uint16_t type)
 			newreno_cc_ack_received(ccv, type);
 
 		if (type == CC_DUPACK)
-			bytes_acked = min(ccv->bytes_this_ack, CCV(ccv, t_maxseg));
+			bytes_acked = min(ccv->bytes_this_ack,
+			    CCV(ccv, t_maxseg));
 
 		if (type == CC_ACK)
 			bytes_acked = ccv->bytes_this_ack;
@@ -135,18 +134,18 @@ dctcp_ack_received(struct cc_var *ccv, uint16_t type)
 
 		/* Update total marked bytes. */
 		if (dctcp_data->ece_curr) {
-			//XXRMS: For fluid-model DCTCP, update
-			//cwnd here during for RTT fairness
-			if (!dctcp_data->ece_prev
-			    && bytes_acked > CCV(ccv, t_maxseg)) {
-				dctcp_data->bytes_ecn +=
-				    (bytes_acked - CCV(ccv, t_maxseg));
+			// XXRMS: For fluid-model DCTCP, update
+			// cwnd here during for RTT fairness
+			if (!dctcp_data->ece_prev &&
+			    bytes_acked > CCV(ccv, t_maxseg)) {
+				dctcp_data->bytes_ecn += (bytes_acked -
+				    CCV(ccv, t_maxseg));
 			} else
 				dctcp_data->bytes_ecn += bytes_acked;
 			dctcp_data->ece_prev = 1;
 		} else {
-			if (dctcp_data->ece_prev
-			    && bytes_acked > CCV(ccv, t_maxseg))
+			if (dctcp_data->ece_prev &&
+			    bytes_acked > CCV(ccv, t_maxseg))
 				dctcp_data->bytes_ecn += CCV(ccv, t_maxseg);
 			dctcp_data->ece_prev = 0;
 		}
@@ -203,7 +202,8 @@ dctcp_cb_init(struct cc_var *ccv, void *ptr)
 
 	INP_WLOCK_ASSERT(tptoinpcb(ccv->ccvc.tcp));
 	if (ptr == NULL) {
-		dctcp_data = malloc(sizeof(struct dctcp), M_CC_MEM, M_NOWAIT|M_ZERO);
+		dctcp_data = malloc(sizeof(struct dctcp), M_CC_MEM,
+		    M_NOWAIT | M_ZERO);
 		if (dctcp_data == NULL)
 			return (ENOMEM);
 	} else
@@ -251,17 +251,18 @@ dctcp_cong_signal(struct cc_var *ccv, uint32_t type)
 		case CC_NDUPACK:
 			if (!IN_FASTRECOVERY(CCV(ccv, t_flags))) {
 				if (!IN_CONGRECOVERY(CCV(ccv, t_flags))) {
-					CCV(ccv, snd_ssthresh) =
-					    max(cwin / 2, 2 * mss);
+					CCV(ccv, snd_ssthresh) = max(cwin / 2,
+					    2 * mss);
 					dctcp_data->num_cong_events++;
 				} else {
-					/* cwnd has already updated as congestion
-					 * recovery. Reverse cwnd value using
-					 * snd_cwnd_prev and recalculate snd_ssthresh
+					/* cwnd has already updated as
+					 * congestion recovery. Reverse cwnd
+					 * value using snd_cwnd_prev and
+					 * recalculate snd_ssthresh
 					 */
 					cwin = CCV(ccv, snd_cwnd_prev);
-					CCV(ccv, snd_ssthresh) =
-					    max(cwin / 2, 2 * mss);
+					CCV(ccv, snd_ssthresh) = max(cwin / 2,
+					    2 * mss);
 				}
 				ENTER_RECOVERY(CCV(ccv, t_flags));
 			}
@@ -275,17 +276,20 @@ dctcp_cong_signal(struct cc_var *ccv, uint32_t type)
 			if (!IN_CONGRECOVERY(CCV(ccv, t_flags))) {
 				if (V_dctcp_slowstart &&
 				    dctcp_data->num_cong_events++ == 0) {
-					CCV(ccv, snd_ssthresh) =
-					    max(cwin / 2, 2 * mss);
+					CCV(ccv, snd_ssthresh) = max(cwin / 2,
+					    2 * mss);
 					dctcp_data->alpha = MAX_ALPHA_VALUE;
 					dctcp_data->bytes_ecn = 0;
 					dctcp_data->bytes_total = 0;
-					dctcp_data->save_sndnxt = CCV(ccv, snd_nxt);
+					dctcp_data->save_sndnxt = CCV(ccv,
+					    snd_nxt);
 				} else
 					CCV(ccv, snd_ssthresh) =
-					    max((cwin - (((uint64_t)cwin *
-					    dctcp_data->alpha) >> (DCTCP_SHIFT+1))),
-					    2 * mss);
+					    max((cwin -
+						    (((uint64_t)cwin *
+							 dctcp_data->alpha) >>
+							(DCTCP_SHIFT + 1))),
+						2 * mss);
 				CCV(ccv, snd_cwnd) = CCV(ccv, snd_ssthresh);
 				ENTER_CONGRECOVERY(CCV(ccv, t_flags));
 			}
@@ -293,8 +297,10 @@ dctcp_cong_signal(struct cc_var *ccv, uint32_t type)
 			break;
 		case CC_RTO:
 			CCV(ccv, snd_ssthresh) = max(min(CCV(ccv, snd_wnd),
-							 CCV(ccv, snd_cwnd)) / 2 / mss,
-						     2) * mss;
+							 CCV(ccv, snd_cwnd)) /
+							 2 / mss,
+						     2) *
+			    mss;
 			CCV(ccv, snd_cwnd) = mss;
 			dctcp_update_alpha(ccv);
 			dctcp_data->save_sndnxt += CCV(ccv, t_maxseg);
@@ -397,8 +403,10 @@ dctcp_update_alpha(struct cc_var *ccv)
 	 * Alpha must be round to 0 - MAX_ALPHA_VALUE.
 	 */
 	dctcp_data->alpha = ulmin(alpha_prev - (alpha_prev >> V_dctcp_shift_g) +
-	    ((uint64_t)dctcp_data->bytes_ecn << (DCTCP_SHIFT - V_dctcp_shift_g)) /
-	    dctcp_data->bytes_total, MAX_ALPHA_VALUE);
+		((uint64_t)dctcp_data->bytes_ecn
+		    << (DCTCP_SHIFT - V_dctcp_shift_g)) /
+		    dctcp_data->bytes_total,
+	    MAX_ALPHA_VALUE);
 
 	/* Initialize internal parameters for next alpha calculation */
 	dctcp_data->bytes_ecn = 0;
@@ -461,9 +469,8 @@ dctcp_slowstart_handler(SYSCTL_HANDLER_ARGS)
 }
 
 SYSCTL_DECL(_net_inet_tcp_cc_dctcp);
-SYSCTL_NODE(_net_inet_tcp_cc, OID_AUTO, dctcp,
-    CTLFLAG_RW | CTLFLAG_MPSAFE, NULL,
-    "dctcp congestion control related settings");
+SYSCTL_NODE(_net_inet_tcp_cc, OID_AUTO, dctcp, CTLFLAG_RW | CTLFLAG_MPSAFE,
+    NULL, "dctcp congestion control related settings");
 
 SYSCTL_PROC(_net_inet_tcp_cc_dctcp, OID_AUTO, alpha,
     CTLFLAG_VNET | CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_NEEDGIANT,
@@ -481,8 +488,7 @@ SYSCTL_PROC(_net_inet_tcp_cc_dctcp, OID_AUTO, slowstart,
     "half CWND reduction after the first slow start");
 
 SYSCTL_UINT(_net_inet_tcp_cc_dctcp, OID_AUTO, ect1,
-    CTLFLAG_VNET | CTLFLAG_RW | CTLFLAG_NEEDGIANT,
-    &VNET_NAME(dctcp_ect1), 0,
+    CTLFLAG_VNET | CTLFLAG_RW | CTLFLAG_NEEDGIANT, &VNET_NAME(dctcp_ect1), 0,
     "Send DCTCP segments with ÍP ECT(0) or ECT(1)");
 
 DECLARE_CC_MODULE(dctcp, &dctcp_cc_algo);

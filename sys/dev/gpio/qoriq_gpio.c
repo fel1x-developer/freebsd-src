@@ -28,13 +28,13 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/conf.h>
 #include <sys/bus.h>
+#include <sys/conf.h>
+#include <sys/gpio.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
-#include <sys/gpio.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
@@ -91,9 +91,9 @@ qoriq_gpio_pin_getname(device_t dev, uint32_t pin, char *name)
 	if (!VALID_PIN(pin))
 		return (EINVAL);
 
-	snprintf(name, GPIOMAXNAME, "qoriq_gpio%d.%d",
-	    device_get_unit(dev), pin);
-	name[GPIOMAXNAME-1] = '\0';
+	snprintf(name, GPIOMAXNAME, "qoriq_gpio%d.%d", device_get_unit(dev),
+	    pin);
+	name[GPIOMAXNAME - 1] = '\0';
 
 	return (0);
 }
@@ -114,8 +114,7 @@ qoriq_gpio_pin_configure(device_t dev, uint32_t pin, uint32_t flags)
 		reg = bus_read_4(sc->sc_mem, GPIO_GPDIR);
 		reg &= ~(1 << (31 - pin));
 		bus_write_4(sc->sc_mem, GPIO_GPDIR, reg);
-	}
-	else if (flags & GPIO_PIN_OUTPUT) {
+	} else if (flags & GPIO_PIN_OUTPUT) {
 		reg = bus_read_4(sc->sc_mem, GPIO_GPDIR);
 		reg |= (1 << (31 - pin));
 		bus_write_4(sc->sc_mem, GPIO_GPDIR, reg);
@@ -227,12 +226,8 @@ qoriq_gpio_pin_toggle(device_t dev, uint32_t pin)
 	return (0);
 }
 
-static struct ofw_compat_data gpio_matches[] = {
-    {"fsl,pq3-gpio", 1},
-    {"fsl,mpc8572-gpio", 1},
-    {"fsl,qoriq-gpio", 1},
-    {0, 0}
-};
+static struct ofw_compat_data gpio_matches[] = { { "fsl,pq3-gpio", 1 },
+	{ "fsl,mpc8572-gpio", 1 }, { "fsl,qoriq-gpio", 1 }, { 0, 0 } };
 
 static int
 qoriq_gpio_probe(device_t dev)
@@ -358,10 +353,11 @@ qoriq_gpio_attach(device_t dev)
 
 	/* Allocate memory. */
 	rid = 0;
-	sc->sc_mem = bus_alloc_resource_any(dev,
-		     SYS_RES_MEMORY, &rid, RF_ACTIVE);
+	sc->sc_mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
+	    RF_ACTIVE);
 	if (sc->sc_mem == NULL) {
-		device_printf(dev, "Can't allocate memory for device output port");
+		device_printf(dev,
+		    "Can't allocate memory for device output port");
 		qoriq_gpio_detach(dev);
 		return (ENOMEM);
 	}
@@ -397,7 +393,7 @@ qoriq_gpio_detach(device_t dev)
 	if (sc->sc_mem != NULL) {
 		/* Release output port resource. */
 		bus_release_resource(dev, SYS_RES_MEMORY,
-				     rman_get_rid(sc->sc_mem), sc->sc_mem);
+		    rman_get_rid(sc->sc_mem), sc->sc_mem);
 	}
 
 	GPIO_LOCK_DESTROY(sc);
@@ -407,24 +403,24 @@ qoriq_gpio_detach(device_t dev)
 
 static device_method_t qoriq_gpio_methods[] = {
 	/* device_if */
-	DEVMETHOD(device_probe, 	qoriq_gpio_probe),
-	DEVMETHOD(device_attach, 	qoriq_gpio_attach),
-	DEVMETHOD(device_detach, 	qoriq_gpio_detach),
+	DEVMETHOD(device_probe, qoriq_gpio_probe),
+	DEVMETHOD(device_attach, qoriq_gpio_attach),
+	DEVMETHOD(device_detach, qoriq_gpio_detach),
 
 	/* GPIO protocol */
-	DEVMETHOD(gpio_get_bus, 	qoriq_gpio_get_bus),
-	DEVMETHOD(gpio_pin_max, 	qoriq_gpio_pin_max),
-	DEVMETHOD(gpio_pin_getname, 	qoriq_gpio_pin_getname),
-	DEVMETHOD(gpio_pin_getcaps, 	qoriq_gpio_pin_getcaps),
-	DEVMETHOD(gpio_pin_get, 	qoriq_gpio_pin_get),
-	DEVMETHOD(gpio_pin_set, 	qoriq_gpio_pin_set),
-	DEVMETHOD(gpio_pin_getflags, 	qoriq_gpio_pin_getflags),
-	DEVMETHOD(gpio_pin_setflags, 	qoriq_gpio_pin_setflags),
-	DEVMETHOD(gpio_pin_toggle, 	qoriq_gpio_pin_toggle),
+	DEVMETHOD(gpio_get_bus, qoriq_gpio_get_bus),
+	DEVMETHOD(gpio_pin_max, qoriq_gpio_pin_max),
+	DEVMETHOD(gpio_pin_getname, qoriq_gpio_pin_getname),
+	DEVMETHOD(gpio_pin_getcaps, qoriq_gpio_pin_getcaps),
+	DEVMETHOD(gpio_pin_get, qoriq_gpio_pin_get),
+	DEVMETHOD(gpio_pin_set, qoriq_gpio_pin_set),
+	DEVMETHOD(gpio_pin_getflags, qoriq_gpio_pin_getflags),
+	DEVMETHOD(gpio_pin_setflags, qoriq_gpio_pin_setflags),
+	DEVMETHOD(gpio_pin_toggle, qoriq_gpio_pin_toggle),
 
-	DEVMETHOD(gpio_map_gpios,	qoriq_gpio_map_gpios),
-	DEVMETHOD(gpio_pin_access_32,	qoriq_gpio_pin_access_32),
-	DEVMETHOD(gpio_pin_config_32,	qoriq_gpio_pin_config_32),
+	DEVMETHOD(gpio_map_gpios, qoriq_gpio_map_gpios),
+	DEVMETHOD(gpio_pin_access_32, qoriq_gpio_pin_access_32),
+	DEVMETHOD(gpio_pin_config_32, qoriq_gpio_pin_config_32),
 
 	DEVMETHOD_END
 };

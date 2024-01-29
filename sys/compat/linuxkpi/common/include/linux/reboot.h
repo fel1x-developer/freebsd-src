@@ -25,7 +25,7 @@
  */
 
 #ifndef _LINUXKPI_LINUX_REBOOT_H_
-#define	_LINUXKPI_LINUX_REBOOT_H_
+#define _LINUXKPI_LINUX_REBOOT_H_
 
 #include <sys/reboot.h>
 
@@ -37,4 +37,3 @@ orderly_poweroff(bool force)
 }
 
 #endif
-

@@ -32,48 +32,41 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-
 #include <sys/bio.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/cons.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
-
-#include <machine/bus.h>
 #include <sys/rman.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
-#include <machine/md_var.h>
 
-#include <geom/geom_disk.h>
+#include <machine/bus.h>
+#include <machine/md_var.h>
 
 #include <dev/ida/idareg.h>
 #include <dev/ida/idavar.h>
+
+#include <geom/geom_disk.h>
 
 /* prototypes */
 static int idad_probe(device_t dev);
 static int idad_attach(device_t dev);
 static int idad_detach(device_t dev);
 
-static	d_strategy_t	idad_strategy;
-static	dumper_t	idad_dump;
+static d_strategy_t idad_strategy;
+static dumper_t idad_dump;
 
-static device_method_t idad_methods[] = {
-	DEVMETHOD(device_probe,		idad_probe),
-	DEVMETHOD(device_attach,	idad_attach),
-	DEVMETHOD(device_detach,	idad_detach),
-	{ 0, 0 }
-};
+static device_method_t idad_methods[] = { DEVMETHOD(device_probe, idad_probe),
+	DEVMETHOD(device_attach, idad_attach),
+	DEVMETHOD(device_detach, idad_detach), { 0, 0 } };
 
-static driver_t idad_driver = {
-	"idad",
-	idad_methods,
-	sizeof(struct idad_softc)
-};
+static driver_t idad_driver = { "idad", idad_methods,
+	sizeof(struct idad_softc) };
 
 DRIVER_MODULE(idad, ida, idad_driver, 0, 0);
 
@@ -90,7 +83,7 @@ idad_strategy(struct bio *bp)
 
 	drv = bp->bio_disk->d_drv1;
 	if (drv == NULL) {
-    		bp->bio_error = EINVAL;
+		bp->bio_error = EINVAL;
 		goto bad;
 	}
 
@@ -138,8 +131,8 @@ idad_dump(void *arg, void *virtual, off_t offset, size_t length)
 	drv->controller->flags &= ~IDA_INTERRUPTS;
 
 	if (length > 0) {
-		error = ida_command(drv->controller, CMD_WRITE, virtual,
-		    length, drv->drive, offset / DEV_BSIZE, DMA_DATA_OUT);
+		error = ida_command(drv->controller, CMD_WRITE, virtual, length,
+		    drv->drive, offset / DEV_BSIZE, DMA_DATA_OUT);
 	}
 	drv->controller->flags |= IDA_INTERRUPTS;
 	return (error);
@@ -181,8 +174,8 @@ idad_attach(device_t dev)
 	drv->drive = (intptr_t)device_get_ivars(dev);
 
 	mtx_lock(&drv->controller->lock);
-	error = ida_command(drv->controller, CMD_GET_LOG_DRV_INFO,
-	    &dinfo, sizeof(dinfo), drv->drive, 0, DMA_DATA_IN);
+	error = ida_command(drv->controller, CMD_GET_LOG_DRV_INFO, &dinfo,
+	    sizeof(dinfo), drv->drive, 0, DMA_DATA_IN);
 	mtx_unlock(&drv->controller->lock);
 	if (error) {
 		device_printf(dev, "CMD_GET_LOG_DRV_INFO failed\n");
@@ -199,8 +192,8 @@ idad_attach(device_t dev)
 	 * other initialization
 	 */
 	device_printf(dev, "%uMB (%u sectors), blocksize=%d\n",
-	    drv->secperunit / ((1024 * 1024) / drv->secsize),
-	    drv->secperunit, drv->secsize);
+	    drv->secperunit / ((1024 * 1024) / drv->secsize), drv->secperunit,
+	    drv->secsize);
 
 	drv->disk = disk_alloc();
 	drv->disk->d_strategy = idad_strategy;
@@ -211,7 +204,7 @@ idad_attach(device_t dev)
 	drv->disk->d_fwsectors = drv->sectors;
 	drv->disk->d_fwheads = drv->heads;
 	drv->disk->d_drv1 = drv;
-	drv->disk->d_maxsize = DFLTPHYS;		/* XXX guess? */
+	drv->disk->d_maxsize = DFLTPHYS; /* XXX guess? */
 	drv->disk->d_unit = drv->unit;
 	disk_create(drv->disk, DISK_VERSION);
 

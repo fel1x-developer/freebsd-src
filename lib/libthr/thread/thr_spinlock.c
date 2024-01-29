@@ -30,29 +30,30 @@
  */
 
 #include <sys/types.h>
-#include <pthread.h>
+
 #include <libc_private.h>
+#include <pthread.h>
 #include <spinlock.h>
 
 #include "thr_private.h"
 
-#define	MAX_SPINLOCKS	72
+#define MAX_SPINLOCKS 72
 
 /*
  * These data structures are used to trace all spinlocks
  * in libc.
  */
 struct spinlock_extra {
-	spinlock_t	*owner;
-	struct umutex	lock;
+	spinlock_t *owner;
+	struct umutex lock;
 };
 
-static struct umutex		spinlock_static_lock = DEFAULT_UMUTEX;
-static struct spinlock_extra	extra[MAX_SPINLOCKS];
-static int			spinlock_count;
-static int			initialized;
+static struct umutex spinlock_static_lock = DEFAULT_UMUTEX;
+static struct spinlock_extra extra[MAX_SPINLOCKS];
+static int spinlock_count;
+static int initialized;
 
-static void	init_spinlock(spinlock_t *lck);
+static void init_spinlock(spinlock_t *lck);
 
 /*
  * These are for compatibility only.  Spinlocks of this type
@@ -62,7 +63,7 @@ static void	init_spinlock(spinlock_t *lck);
 void
 __thr_spinunlock(spinlock_t *lck)
 {
-	struct spinlock_extra	*_extra;
+	struct spinlock_extra *_extra;
 
 	_extra = lck->thr_extra;
 	THR_UMUTEX_UNLOCK(_get_curthread(), &_extra->lock);

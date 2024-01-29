@@ -25,15 +25,15 @@
  */
 
 #ifndef _GPT_H_
-#define	_GPT_H_
+#define _GPT_H_
 
-#include <uuid.h>
 #include <drv.h>
+#include <uuid.h>
 
-#define	MAXTBLENTS	128
+#define MAXTBLENTS 128
 
 int gptread(struct dsk *dskp, char *buf);
 int gptfind(const uuid_t *uuid, struct dsk *dskp, int part);
 void gptbootfailed(struct dsk *dskp);
 
-#endif	/* !_GPT_H_ */
+#endif /* !_GPT_H_ */

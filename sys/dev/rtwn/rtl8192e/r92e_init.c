@@ -24,41 +24,37 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/rtwn/if_rtwnreg.h>
-#include <dev/rtwn/if_rtwnvar.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <dev/rtwn/if_rtwn_debug.h>
-
+#include <dev/rtwn/if_rtwnreg.h>
+#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/rtl8192c/r92c.h>
-
 #include <dev/rtwn/rtl8192e/r92e.h>
-#include <dev/rtwn/rtl8192e/r92e_reg.h>
 #include <dev/rtwn/rtl8192e/r92e_priv.h>
+#include <dev/rtwn/rtl8192e/r92e_reg.h>
 #include <dev/rtwn/rtl8192e/r92e_var.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 int
 r92e_llt_init(struct rtwn_softc *sc)
@@ -101,7 +97,7 @@ r92e_init_bb(struct rtwn_softc *sc)
 	/* Enable BB and RF. */
 	rtwn_setbits_2(sc, R92C_SYS_FUNC_EN, 0,
 	    R92C_SYS_FUNC_EN_BBRSTB | R92C_SYS_FUNC_EN_BB_GLB_RST |
-	    R92C_SYS_FUNC_EN_DIO_RF);
+		R92C_SYS_FUNC_EN_DIO_RF);
 
 	/* PathA RF Power On. */
 	rtwn_write_1(sc, R92C_RF_CTRL,
@@ -113,15 +109,15 @@ r92e_init_bb(struct rtwn_softc *sc)
 
 		while (!rtwn_check_condition(sc, bb_prog->cond)) {
 			KASSERT(bb_prog->next != NULL,
-			    ("%s: wrong condition value (i %d)\n",
-			    __func__, i));
+			    ("%s: wrong condition value (i %d)\n", __func__,
+				i));
 			bb_prog = bb_prog->next;
 		}
 
 		for (j = 0; j < bb_prog->count; j++) {
 			RTWN_DPRINTF(sc, RTWN_DEBUG_RESET,
-			    "BB: reg 0x%03x, val 0x%08x\n",
-			    bb_prog->reg[j], bb_prog->val[j]);
+			    "BB: reg 0x%03x, val 0x%08x\n", bb_prog->reg[j],
+			    bb_prog->val[j]);
 
 			rtwn_bb_write(sc, bb_prog->reg[j], bb_prog->val[j]);
 			rtwn_delay(sc, 1);
@@ -134,14 +130,14 @@ r92e_init_bb(struct rtwn_softc *sc)
 
 		while (!rtwn_check_condition(sc, agc_prog->cond)) {
 			KASSERT(agc_prog->next != NULL,
-			    ("%s: wrong condition value (2) (i %d)\n",
-			    __func__, i));
+			    ("%s: wrong condition value (2) (i %d)\n", __func__,
+				i));
 			agc_prog = agc_prog->next;
 		}
 
 		for (j = 0; j < agc_prog->count; j++) {
-			RTWN_DPRINTF(sc, RTWN_DEBUG_RESET,
-			    "AGC: val 0x%08x\n", agc_prog->val[j]);
+			RTWN_DPRINTF(sc, RTWN_DEBUG_RESET, "AGC: val 0x%08x\n",
+			    agc_prog->val[j]);
 
 			rtwn_bb_write(sc, R92C_OFDM0_AGCRSSITABLE,
 			    agc_prog->val[j]);
@@ -175,12 +171,10 @@ r92e_init_rf(struct rtwn_softc *sc)
 		type = (reg >> off) & 0x10;
 
 		/* Set RF_ENV enable. */
-		rtwn_bb_setbits(sc, R92C_FPGA0_RFIFACEOE(chain),
-		    0, 0x100000);
+		rtwn_bb_setbits(sc, R92C_FPGA0_RFIFACEOE(chain), 0, 0x100000);
 		rtwn_delay(sc, 1);
 		/* Set RF_ENV output high. */
-		rtwn_bb_setbits(sc, R92C_FPGA0_RFIFACEOE(chain),
-		    0, 0x10);
+		rtwn_bb_setbits(sc, R92C_FPGA0_RFIFACEOE(chain), 0, 0x10);
 		rtwn_delay(sc, 1);
 		/* Set address and data lengths of RF registers. */
 		rtwn_bb_setbits(sc, R92C_HSSI_PARAM2(chain),
@@ -220,10 +214,11 @@ r92e_adj_crystal(struct rtwn_softc *sc)
 int
 r92e_power_on(struct rtwn_softc *sc)
 {
-#define RTWN_CHK(res) do {	\
-	if (res != 0)		\
-		return (EIO);	\
-} while(0)
+#define RTWN_CHK(res)                 \
+	do {                          \
+		if (res != 0)         \
+			return (EIO); \
+	} while (0)
 	int ntries;
 
 	if (rtwn_read_4(sc, R92C_SYS_CFG) & R92C_SYS_CFG_TRP_BT_EN)
@@ -243,7 +238,8 @@ r92e_power_on(struct rtwn_softc *sc)
 	/* Disable HWPDN, SW LPS and WL suspend. */
 	RTWN_CHK(rtwn_setbits_1_shift(sc, R92C_APS_FSMCO,
 	    R92C_APS_FSMCO_APFM_RSM | R92C_APS_FSMCO_AFSM_HSUS |
-	    R92C_APS_FSMCO_AFSM_PCIE | R92C_APS_FSMCO_APDM_HPDN, 0, 1));
+		R92C_APS_FSMCO_AFSM_PCIE | R92C_APS_FSMCO_APDM_HPDN,
+	    0, 1));
 
 	/* Wait for power ready bit. */
 	for (ntries = 0; ntries < 5000; ntries++) {
@@ -265,7 +261,7 @@ r92e_power_on(struct rtwn_softc *sc)
 	    R92C_APS_FSMCO_APFM_ONMAC, 1));
 	for (ntries = 0; ntries < 5000; ntries++) {
 		if (!(rtwn_read_2(sc, R92C_APS_FSMCO) &
-		    R92C_APS_FSMCO_APFM_ONMAC))
+			R92C_APS_FSMCO_APFM_ONMAC))
 			break;
 		rtwn_delay(sc, 10);
 	}
@@ -275,11 +271,10 @@ r92e_power_on(struct rtwn_softc *sc)
 	/* Enable MAC DMA/WMAC/SCHEDULE/SEC blocks. */
 	RTWN_CHK(rtwn_write_2(sc, R92C_CR, 0));
 	RTWN_CHK(rtwn_setbits_2(sc, R92C_CR, 0,
-	    R92C_CR_HCI_TXDMA_EN | R92C_CR_TXDMA_EN |
-	    R92C_CR_HCI_RXDMA_EN | R92C_CR_RXDMA_EN |
-	    R92C_CR_PROTOCOL_EN | R92C_CR_SCHEDULE_EN |
-	    ((sc->sc_hwcrypto != RTWN_CRYPTO_SW) ? R92C_CR_ENSEC : 0) |
-	    R92C_CR_CALTMR_EN));
+	    R92C_CR_HCI_TXDMA_EN | R92C_CR_TXDMA_EN | R92C_CR_HCI_RXDMA_EN |
+		R92C_CR_RXDMA_EN | R92C_CR_PROTOCOL_EN | R92C_CR_SCHEDULE_EN |
+		((sc->sc_hwcrypto != RTWN_CRYPTO_SW) ? R92C_CR_ENSEC : 0) |
+		R92C_CR_CALTMR_EN));
 
 	return (0);
 }
@@ -291,7 +286,7 @@ r92e_power_off(struct rtwn_softc *sc)
 
 	/* Stop Rx. */
 	error = rtwn_write_1(sc, R92C_CR, 0);
-	if (error == ENXIO)	/* hardware gone */
+	if (error == ENXIO) /* hardware gone */
 		return;
 
 	/* Move card to Low Power state. */
@@ -320,8 +315,7 @@ r92e_power_off(struct rtwn_softc *sc)
 	rtwn_setbits_1(sc, R92C_SYS_FUNC_EN, R92C_SYS_FUNC_EN_BB_GLB_RST, 0);
 
 	/* Reset MAC TRX. */
-	rtwn_write_1(sc, R92C_CR,
-	    R92C_CR_HCI_TXDMA_EN | R92C_CR_HCI_RXDMA_EN);
+	rtwn_write_1(sc, R92C_CR, R92C_CR_HCI_TXDMA_EN | R92C_CR_HCI_RXDMA_EN);
 
 	/* Check if removed later. */
 	rtwn_setbits_1_shift(sc, R92C_CR, R92C_CR_ENSEC, 0, 1);
@@ -336,8 +330,8 @@ r92e_power_off(struct rtwn_softc *sc)
 	/* Reset MCU IO wrapper. */
 	rtwn_setbits_1(sc, R92C_RSV_CTRL + 1, 0x01, 0);
 
-	rtwn_setbits_1_shift(sc, R92C_SYS_FUNC_EN,
-	    R92C_SYS_FUNC_EN_CPUEN, 0, 1);
+	rtwn_setbits_1_shift(sc, R92C_SYS_FUNC_EN, R92C_SYS_FUNC_EN_CPUEN, 0,
+	    1);
 
 	/* Enable MCU IO wrapper. */
 	rtwn_setbits_1(sc, R92C_RSV_CTRL + 1, 0, 0x01);
@@ -351,13 +345,12 @@ r92e_power_off(struct rtwn_softc *sc)
 	rtwn_setbits_1(sc, R92C_LEDCFG2, 0x80, 0);
 
 	/* Turn off MAC by HW state machine */
-	rtwn_setbits_1_shift(sc, R92C_APS_FSMCO, 0, R92C_APS_FSMCO_APFM_OFF,
-	    1);
+	rtwn_setbits_1_shift(sc, R92C_APS_FSMCO, 0, R92C_APS_FSMCO_APFM_OFF, 1);
 
 	for (ntries = 0; ntries < 5000; ntries++) {
 		/* Wait until it will be disabled. */
 		if ((rtwn_read_2(sc, R92C_APS_FSMCO) &
-		    R92C_APS_FSMCO_APFM_OFF) == 0)
+			R92C_APS_FSMCO_APFM_OFF) == 0)
 			break;
 
 		rtwn_delay(sc, 10);
@@ -369,8 +362,8 @@ r92e_power_off(struct rtwn_softc *sc)
 	}
 
 	/* SOP option to disable BG/MB. */
-	rtwn_setbits_1_shift(sc, R92C_APS_FSMCO, 0xff,
-	   R92C_APS_FSMCO_SOP_RCK, 3);
+	rtwn_setbits_1_shift(sc, R92C_APS_FSMCO, 0xff, R92C_APS_FSMCO_SOP_RCK,
+	    3);
 
 	/* Unlock small LDO Register. */
 	rtwn_setbits_1(sc, 0xcc, 0, 0x4);
@@ -383,6 +376,5 @@ r92e_power_off(struct rtwn_softc *sc)
 	    R92C_APS_FSMCO_AFSM_HSUS, 1);
 
 	/* Enable SW LPS. */
-	rtwn_setbits_1_shift(sc, R92C_APS_FSMCO, 0,
-	    R92C_APS_FSMCO_APFM_RSM, 1);
+	rtwn_setbits_1_shift(sc, R92C_APS_FSMCO, 0, R92C_APS_FSMCO_APFM_RSM, 1);
 }

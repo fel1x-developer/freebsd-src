@@ -62,26 +62,29 @@ setup(int nb)
 		size = size / 100 * pct + 1;
 
 		if (size > 32000 && op->hog == 0)
-			size = 32000;	/* arbitrary limit number of files pr. dir */
+			size =
+			    32000; /* arbitrary limit number of files pr. dir */
 
 		/* Resource requirements: */
-		reserve_in =  2 * op->incarnations + 7;
+		reserve_in = 2 * op->incarnations + 7;
 		reserve_bl = 26 * size * op->incarnations;
 		if (reserve_in > in || reserve_bl > bl)
 			size = reserve_in = reserve_bl = 0;
 
 		if (op->verbose > 1)
-			printf("link(size=%lu, incarnations=%d). Free(%jdk, %jd), reserve(%jdk, %jd)\n",
-				size, op->incarnations, bl/1024, in, reserve_bl/1024, reserve_in);
+			printf(
+			    "link(size=%lu, incarnations=%d). Free(%jdk, %jd), reserve(%jdk, %jd)\n",
+			    size, op->incarnations, bl / 1024, in,
+			    reserve_bl / 1024, reserve_in);
 		reservedf(reserve_bl, reserve_in);
 		putval(size);
 	} else {
 		size = getval();
 	}
 	if (size == 0)
-		exit (1);
+		exit(1);
 
-	sprintf(path,"%s.%05d", getprogname(), getpid());
+	sprintf(path, "%s.%05d", getprogname(), getpid());
 	if (mkdir(path, 0770) < 0)
 		err(1, "mkdir(%s), %s:%d", path, __FILE__, __LINE__);
 
@@ -111,7 +114,7 @@ test(void)
 
 	pid = getpid();
 	for (j = 0; j < (int)size && done_testing == 0; j++) {
-		sprintf(file,"p%05d.%05d", pid, j);
+		sprintf(file, "p%05d.%05d", pid, j);
 		if (j == 0) {
 			if ((fd = creat(file, 0660)) == -1) {
 				if (errno != EINTR) {
@@ -130,14 +133,12 @@ test(void)
 				}
 			}
 		}
-
 	}
 
 	for (i = --j; i >= 0; i--) {
-		sprintf(file,"p%05d.%05d", pid, i);
+		sprintf(file, "p%05d.%05d", pid, i);
 		if (unlink(file) == -1)
 			err(3, "unlink(%s)", file);
-
 	}
 
 	return (0);

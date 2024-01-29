@@ -38,6 +38,7 @@
 
 #include <err.h>
 #include <stdio.h>
+
 #include "config.h"
 #include "y.tab.h"
 
@@ -48,12 +49,11 @@ headers(void)
 	int errors;
 
 	errors = 0;
-	STAILQ_FOREACH(dp, &dtab, d_next) {
+	STAILQ_FOREACH (dp, &dtab, d_next) {
 		if (!(dp->d_done & DEVDONE)) {
-			warnx("Error: device \"%s\" is unknown",
-			       dp->d_name);
-			       errors++;
-			}
+			warnx("Error: device \"%s\" is unknown", dp->d_name);
+			errors++;
+		}
 	}
 	if (errors)
 		errx(1, "%d errors", errors);

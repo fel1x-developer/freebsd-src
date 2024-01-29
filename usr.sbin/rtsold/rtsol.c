@@ -6,7 +6,7 @@
  * Copyright (C) 1995, 1996, 1997, and 1998 WIDE Project.
  * Copyright (C) 2011 Hiroki Sato
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -18,7 +18,7 @@
  * 3. Neither the name of the project nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE PROJECT AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -41,30 +41,29 @@
 #include <sys/wait.h>
 
 #include <net/if.h>
-#include <net/route.h>
 #include <net/if_dl.h>
+#include <net/route.h>
 
-#define	__BSD_VISIBLE	1	/* IN6ADDR_LINKLOCAL_ALLROUTERS_INIT */
+#define __BSD_VISIBLE 1 /* IN6ADDR_LINKLOCAL_ALLROUTERS_INIT */
 #include <netinet/in.h>
-#undef 	__BSD_VISIBLE
+#undef __BSD_VISIBLE
+#include <netinet/icmp6.h>
 #include <netinet/ip6.h>
 #include <netinet6/ip6_var.h>
-#include <netinet/icmp6.h>
 
 #include <arpa/inet.h>
-
 #include <capsicum_helpers.h>
-#include <netdb.h>
-#include <time.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <time.h>
 #include <err.h>
 #include <errno.h>
-#include <string.h>
+#include <fcntl.h>
+#include <netdb.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
+#include <time.h>
+#include <unistd.h>
+
 #include "rtsold.h"
 
 static char rsid[IFNAMSIZ + 1 + sizeof(DNSINFO_ORIGIN_LABEL) + 1 + NI_MAXHOST];
@@ -77,26 +76,28 @@ static int ra_opt_rdnss_dispatch(struct ifinfo *, struct rainfo *,
     struct script_msg_head_t *, struct script_msg_head_t *);
 static char *make_rsid(const char *, const char *, struct rainfo *);
 
-#define	_ARGS_MANAGED	managedconf_script, ifi->ifname, rasender
-#define	_ARGS_OTHER	otherconf_script, ifi->ifname, rasender
-#define	_ARGS_ALWAYS	alwaysconf_script, ifi->ifname, rasender
-#define	_ARGS_RESADD	resolvconf_script, "-a", rsid
-#define	_ARGS_RESDEL	resolvconf_script, "-d", rsid
+#define _ARGS_MANAGED managedconf_script, ifi->ifname, rasender
+#define _ARGS_OTHER otherconf_script, ifi->ifname, rasender
+#define _ARGS_ALWAYS alwaysconf_script, ifi->ifname, rasender
+#define _ARGS_RESADD resolvconf_script, "-a", rsid
+#define _ARGS_RESDEL resolvconf_script, "-d", rsid
 
-#define	CALL_SCRIPT(name, sm_head) do {				\
-	const char *const sarg[] = { _ARGS_##name, NULL };	\
-	call_script(sarg, sm_head);				\
-} while (0)
+#define CALL_SCRIPT(name, sm_head)                                 \
+	do {                                                       \
+		const char *const sarg[] = { _ARGS_##name, NULL }; \
+		call_script(sarg, sm_head);                        \
+	} while (0)
 
-#define	ELM_MALLOC(p, error_action) do {			\
-	p = malloc(sizeof(*p));					\
-	if (p == NULL) {					\
-		warnmsg(LOG_ERR, __func__, "malloc failed: %s", \
-		    strerror(errno));				\
-		error_action;					\
-	}							\
-	memset(p, 0, sizeof(*p));				\
-} while (0)
+#define ELM_MALLOC(p, error_action)                                     \
+	do {                                                            \
+		p = malloc(sizeof(*p));                                 \
+		if (p == NULL) {                                        \
+			warnmsg(LOG_ERR, __func__, "malloc failed: %s", \
+			    strerror(errno));                           \
+			error_action;                                   \
+		}                                                       \
+		memset(p, 0, sizeof(*p));                               \
+	} while (0)
 
 int
 recvsockopen(void)
@@ -112,8 +113,8 @@ recvsockopen(void)
 
 	/* Provide info about the receiving interface. */
 	on = 1;
-	if (setsockopt(sock, IPPROTO_IPV6, IPV6_RECVPKTINFO, &on,
-	    sizeof(on)) < 0) {
+	if (setsockopt(sock, IPPROTO_IPV6, IPV6_RECVPKTINFO, &on, sizeof(on)) <
+	    0) {
 		warnmsg(LOG_ERR, __func__, "setsockopt(IPV6_RECVPKTINFO): %s",
 		    strerror(errno));
 		goto fail;
@@ -121,8 +122,8 @@ recvsockopen(void)
 
 	/* Include the hop limit from the received header. */
 	on = 1;
-	if (setsockopt(sock, IPPROTO_IPV6, IPV6_RECVHOPLIMIT, &on,
-	    sizeof(on)) < 0) {
+	if (setsockopt(sock, IPPROTO_IPV6, IPV6_RECVHOPLIMIT, &on, sizeof(on)) <
+	    0) {
 		warnmsg(LOG_ERR, __func__, "setsockopt(IPV6_RECVHOPLIMIT): %s",
 		    strerror(errno));
 		goto fail;
@@ -132,7 +133,7 @@ recvsockopen(void)
 	ICMP6_FILTER_SETBLOCKALL(&filt);
 	ICMP6_FILTER_SETPASS(ND_ROUTER_ADVERT, &filt);
 	if (setsockopt(sock, IPPROTO_ICMPV6, ICMP6_FILTER, &filt,
-	    sizeof(filt)) == -1) {
+		sizeof(filt)) == -1) {
 		warnmsg(LOG_ERR, __func__, "setsockopt(ICMP6_FILTER): %s",
 		    strerror(errno));
 		goto fail;
@@ -200,7 +201,7 @@ rtsol_input(int sock)
 
 	/* Extract control message info. */
 	for (cm = (struct cmsghdr *)CMSG_FIRSTHDR(&hdr); cm != NULL;
-	    cm = (struct cmsghdr *)CMSG_NXTHDR(&hdr, cm)) {
+	     cm = (struct cmsghdr *)CMSG_NXTHDR(&hdr, cm)) {
 		if (cm->cmsg_level == IPPROTO_IPV6 &&
 		    cm->cmsg_type == IPV6_PKTINFO &&
 		    cm->cmsg_len == CMSG_LEN(sizeof(struct in6_pktinfo))) {
@@ -214,19 +215,17 @@ rtsol_input(int sock)
 	}
 
 	if (ifindex == 0) {
-		warnmsg(LOG_ERR, __func__,
-		    "failed to get receiving interface");
+		warnmsg(LOG_ERR, __func__, "failed to get receiving interface");
 		return;
 	}
 	if (hlimp == NULL) {
-		warnmsg(LOG_ERR, __func__,
-		    "failed to get receiving hop limit");
+		warnmsg(LOG_ERR, __func__, "failed to get receiving hop limit");
 		return;
 	}
 
 	if ((size_t)msglen < sizeof(struct nd_router_advert)) {
-		warnmsg(LOG_INFO, __func__,
-		    "packet size(%zd) is too short", msglen);
+		warnmsg(LOG_INFO, __func__, "packet size(%zd) is too short",
+		    msglen);
 		return;
 	}
 
@@ -255,8 +254,7 @@ rtsol_input(int sock)
 
 	if (*hlimp != 255) {
 		warnmsg(LOG_INFO, __func__,
-		    "invalid RA with hop limit(%d) from %s on %s",
-		    *hlimp,
+		    "invalid RA with hop limit(%d) from %s on %s", *hlimp,
 		    inet_ntop(AF_INET6, &from.sin6_addr, ntopbuf,
 			sizeof(ntopbuf)),
 		    if_indextoname(pi->ipi6_ifindex, ifnamebuf));
@@ -283,8 +281,7 @@ rtsol_input(int sock)
 		return;
 	}
 
-	warnmsg(LOG_DEBUG, __func__,
-	    "received RA from %s on %s, state is %d",
+	warnmsg(LOG_DEBUG, __func__, "received RA from %s on %s, state is %d",
 	    inet_ntop(AF_INET6, &from.sin6_addr, ntopbuf, sizeof(ntopbuf)),
 	    ifi->ifname, ifi->state);
 
@@ -351,8 +348,9 @@ rtsol_input(int sock)
 		newent_rai = 1;
 	}
 
-#define	RA_OPT_NEXT_HDR(x)	(struct nd_opt_hdr *)((char *)(x) + \
-				(((struct nd_opt_hdr *)(x))->nd_opt_len * 8))
+#define RA_OPT_NEXT_HDR(x)                  \
+	(struct nd_opt_hdr *)((char *)(x) + \
+	    (((struct nd_opt_hdr *)(x))->nd_opt_len * 8))
 	/* Process RA options. */
 	warnmsg(LOG_DEBUG, __func__, "Processing RA");
 	raoptp = (char *)icp + sizeof(struct nd_router_advert);
@@ -388,17 +386,18 @@ rtsol_input(int sock)
 				warnmsg(LOG_INFO, __func__,
 				    "too short RDNSS option in RA from %s "
 				    "was ignored.",
-				inet_ntop(AF_INET6, &from.sin6_addr, ntopbuf,
-				    sizeof(ntopbuf)));
+				    inet_ntop(AF_INET6, &from.sin6_addr,
+					ntopbuf, sizeof(ntopbuf)));
 				break;
 			}
 
-			addr = (struct in6_addr *)(void *)(raoptp + sizeof(*rdnss));
+			addr = (struct in6_addr *)(void *)(raoptp +
+			    sizeof(*rdnss));
 			while ((char *)addr < (char *)RA_OPT_NEXT_HDR(raoptp)) {
 				if (inet_ntop(AF_INET6, addr, ntopbuf,
 					sizeof(ntopbuf)) == NULL) {
 					warnmsg(LOG_INFO, __func__,
-		    			    "an invalid address in RDNSS option"
+					    "an invalid address in RDNSS option"
 					    " in RA from %s was ignored.",
 					    inet_ntop(AF_INET6, &from.sin6_addr,
 						ntopbuf, sizeof(ntopbuf)));
@@ -408,16 +407,16 @@ rtsol_input(int sock)
 				if (IN6_IS_ADDR_LINKLOCAL(addr))
 					/* XXX: % has to be escaped here */
 					l = snprintf(nsbuf, sizeof(nsbuf),
-					    "%s%c%s", ntopbuf,
-					    SCOPE_DELIMITER,
+					    "%s%c%s", ntopbuf, SCOPE_DELIMITER,
 					    ifi->ifname);
 				else
-					l = snprintf(nsbuf, sizeof(nsbuf),
-					    "%s", ntopbuf);
+					l = snprintf(nsbuf, sizeof(nsbuf), "%s",
+					    ntopbuf);
 				if (l < 0 || (size_t)l >= sizeof(nsbuf)) {
 					warnmsg(LOG_ERR, __func__,
 					    "address copying error in "
-					    "RDNSS option: %d.", l);
+					    "RDNSS option: %d.",
+					    l);
 					addr++;
 					continue;
 				}
@@ -446,13 +445,13 @@ rtsol_input(int sock)
 				memset(&rao->rao_expire, 0,
 				    sizeof(rao->rao_expire));
 				memset(&lifetime, 0, sizeof(lifetime));
-				lifetime.tv_sec =
-				    ntohl(rdnss->nd_opt_rdnss_lifetime);
+				lifetime.tv_sec = ntohl(
+				    rdnss->nd_opt_rdnss_lifetime);
 				TS_ADD(&now, &lifetime, &rao->rao_expire);
 
 				if (newent_rao)
-					TAILQ_INSERT_TAIL(&rai->rai_ra_opt,
-					    rao, rao_next);
+					TAILQ_INSERT_TAIL(&rai->rai_ra_opt, rao,
+					    rao_next);
 				addr++;
 			}
 			break;
@@ -462,10 +461,10 @@ rtsol_input(int sock)
 			/* Optlen sanity check (Section 5.3.1 in RFC 6106) */
 			if (dnssl->nd_opt_dnssl_len < 2) {
 				warnmsg(LOG_INFO, __func__,
-		    			"too short DNSSL option"
-					"in RA from %s was ignored.",
-					inet_ntop(AF_INET6, &from.sin6_addr,
-					    ntopbuf, sizeof(ntopbuf)));
+				    "too short DNSSL option"
+				    "in RA from %s was ignored.",
+				    inet_ntop(AF_INET6, &from.sin6_addr,
+					ntopbuf, sizeof(ntopbuf)));
 				break;
 			}
 
@@ -477,8 +476,8 @@ rtsol_input(int sock)
 			*(p - 1) = '\0';
 
 			p = raoptp + sizeof(*dnssl);
-			while (1 < (len = dname_labeldec(dname, sizeof(dname),
-			    p))) {
+			while (1 <
+			    (len = dname_labeldec(dname, sizeof(dname), p))) {
 				/* length == 1 means empty string */
 				warnmsg(LOG_DEBUG, __func__, "dname = %s",
 				    dname);
@@ -505,17 +504,17 @@ rtsol_input(int sock)
 				memset(&rao->rao_expire, 0,
 				    sizeof(rao->rao_expire));
 				memset(&lifetime, 0, sizeof(lifetime));
-				lifetime.tv_sec =
-				    ntohl(dnssl->nd_opt_dnssl_lifetime);
+				lifetime.tv_sec = ntohl(
+				    dnssl->nd_opt_dnssl_lifetime);
 				TS_ADD(&now, &lifetime, &rao->rao_expire);
 
 				if (newent_rao)
-					TAILQ_INSERT_TAIL(&rai->rai_ra_opt,
-					    rao, rao_next);
+					TAILQ_INSERT_TAIL(&rai->rai_ra_opt, rao,
+					    rao_next);
 				p += len;
 			}
 			break;
-		default:  
+		default:
 			/* nothing to do for other options */
 			break;
 		}
@@ -528,8 +527,8 @@ rtsol_input(int sock)
 	ifi->racnt++;
 
 	switch (ifi->state) {
-	case IFS_IDLE:		/* should be ignored */
-	case IFS_DELAY:		/* right? */
+	case IFS_IDLE:	/* should be ignored */
+	case IFS_DELAY: /* right? */
 		break;
 	case IFS_PROBE:
 		ifi->state = IFS_IDLE;
@@ -551,10 +550,10 @@ ra_opt_handler(struct ifinfo *ifi)
 	struct rainfo *rai;
 	struct script_msg *smp1, *smp2, *smp3;
 	struct timespec now;
-	struct script_msg_head_t sm_rdnss_head =
-	    TAILQ_HEAD_INITIALIZER(sm_rdnss_head);
-	struct script_msg_head_t sm_dnssl_head =
-	    TAILQ_HEAD_INITIALIZER(sm_dnssl_head);
+	struct script_msg_head_t sm_rdnss_head = TAILQ_HEAD_INITIALIZER(
+	    sm_rdnss_head);
+	struct script_msg_head_t sm_dnssl_head = TAILQ_HEAD_INITIALIZER(
+	    sm_dnssl_head);
 
 	int dcount, dlen;
 
@@ -567,8 +566,8 @@ ra_opt_handler(struct ifinfo *ifi)
 	 * source addresses on a single interface will be gathered and
 	 * handled, not overridden.  [RFC 4861 6.3.4]
 	 */
-	TAILQ_FOREACH(rai, &ifi->ifi_rainfo, rai_next) {
-		TAILQ_FOREACH(rao, &rai->rai_ra_opt, rao_next) {
+	TAILQ_FOREACH (rai, &ifi->ifi_rainfo, rai_next) {
+		TAILQ_FOREACH (rao, &rai->rai_ra_opt, rao_next) {
 			switch (rao->rao_type) {
 			case ND_OPT_RDNSS:
 				if (TS_CMP(&now, &rao->rao_expire, >)) {
@@ -603,14 +602,16 @@ ra_opt_handler(struct ifinfo *ifi)
 				if (dcount > 6) {
 					warnmsg(LOG_INFO, __func__,
 					    "dnssl entry exceeding maximum count (%d>6)"
-					    ": %s", dcount, (char *)rao->rao_msg);
+					    ": %s",
+					    dcount, (char *)rao->rao_msg);
 					break;
 				}
 				if (256 < dlen + strlen(rao->rao_msg) +
-				    strlen(resstr_sp)) {
+					strlen(resstr_sp)) {
 					warnmsg(LOG_INFO, __func__,
 					    "dnssl entry exceeding maximum length "
-					    "(>256): %s", (char *)rao->rao_msg);
+					    "(>256): %s",
+					    (char *)rao->rao_msg);
 					break;
 				}
 				ELM_MALLOC(smp1, continue);
@@ -633,9 +634,9 @@ ra_opt_handler(struct ifinfo *ifi)
 				break;
 			}
 			continue;
-free2:
+		free2:
 			free(smp2);
-free1:
+		free1:
 			free(smp1);
 		}
 		/* Call the script for each information source. */
@@ -654,7 +655,7 @@ char *
 make_rsid(const char *ifname, const char *origin, struct rainfo *rai)
 {
 	char hbuf[NI_MAXHOST];
-	
+
 	if (rai == NULL)
 		sprintf(rsid, "%s:%s", ifname, origin);
 	else {
@@ -690,7 +691,8 @@ ra_opt_rdnss_dispatch(struct ifinfo *ifi, struct rainfo *rai,
 
 	r = make_rsid(ifi->ifname, DNSINFO_ORIGIN_LABEL, uflag ? rai : NULL);
 	if (r == NULL) {
-		warnmsg(LOG_ERR, __func__, "make_rsid() failed.  "
+		warnmsg(LOG_ERR, __func__,
+		    "make_rsid() failed.  "
 		    "Script was not invoked.");
 		error = 1;
 		goto ra_opt_rdnss_freeit;
@@ -726,9 +728,8 @@ find_raopt(struct rainfo *rai, int type, void *msg, size_t len)
 {
 	struct ra_opt *rao;
 
-	TAILQ_FOREACH(rao, &rai->rai_ra_opt, rao_next) {
-		if (rao->rao_type == type &&
-		    rao->rao_len == strlen(msg) &&
+	TAILQ_FOREACH (rao, &rai->rai_ra_opt, rao_next) {
+		if (rao->rao_type == type && rao->rao_len == strlen(msg) &&
 		    memcmp(rao->rao_msg, msg, len) == 0)
 			break;
 	}
@@ -748,13 +749,13 @@ call_script(const char *const argv[], struct script_msg_head_t *sm_head)
 
 	wfd = cap_script_run(capscript, argv);
 	if (wfd == -1) {
-		warnmsg(LOG_ERR, __func__,
-		    "failed to run %s: %s", argv[0], strerror(errno));
+		warnmsg(LOG_ERR, __func__, "failed to run %s: %s", argv[0],
+		    strerror(errno));
 		return;
 	}
 
 	if (sm_head != NULL) {
-		TAILQ_FOREACH(smp, sm_head, sm_next) {
+		TAILQ_FOREACH (smp, sm_head, sm_next) {
 			len = strlen(smp->sm_msg);
 			warnmsg(LOG_DEBUG, __func__, "write to child = %s(%zd)",
 			    smp->sm_msg, len);
@@ -772,8 +773,8 @@ call_script(const char *const argv[], struct script_msg_head_t *sm_head)
 	if (cap_script_wait(capscript, &status) != 0)
 		warnmsg(LOG_ERR, __func__, "wait(): %s", strerror(errno));
 	else
-		warnmsg(LOG_DEBUG, __func__, "script \"%s\" status %d",
-		    argv[0], status);
+		warnmsg(LOG_DEBUG, __func__, "script \"%s\" status %d", argv[0],
+		    status);
 }
 
 /* Decode domain name label encoding in RFC 1035 Section 3.1 */
@@ -789,8 +790,7 @@ dname_labeldec(char *dst, size_t dlen, const char *src)
 	src_last = strchr(src, '\0');
 	dst_origin = dst;
 	memset(dst, '\0', dlen);
-	while ((len = (*src++) & 0x3f) &&
-	    src + len <= src_last &&
+	while ((len = (*src++) & 0x3f) && src + len <= src_last &&
 	    len + (dst == dst_origin ? 0 : 1) < dlen) {
 		if (dst != dst_origin) {
 			*dst++ = '.';

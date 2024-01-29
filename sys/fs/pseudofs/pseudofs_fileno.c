@@ -28,19 +28,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_pseudofs.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/systm.h>
+#include <sys/kernel.h>
 #include <sys/limits.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
 #include <fs/pseudofs/pseudofs.h>
 #include <fs/pseudofs/pseudofs_internal.h>
@@ -109,8 +108,7 @@ pfs_fileno_alloc(struct pfs_node *pn)
 		pn->pn_fileno = pn->pn_parent->pn_parent->pn_fileno;
 		break;
 	case pfstype_none:
-		KASSERT(0,
-		    ("%s(): pfstype_none node", __func__));
+		KASSERT(0, ("%s(): pfstype_none node", __func__));
 		break;
 	}
 
@@ -150,8 +148,7 @@ pfs_fileno_free(struct pfs_node *pn)
 		/* ignore these, as they don't "own" their file number */
 		break;
 	case pfstype_none:
-		KASSERT(0,
-		    ("pfs_fileno_free() called for pfstype_none node"));
+		KASSERT(0, ("pfs_fileno_free() called for pfstype_none node"));
 		break;
 	}
 }

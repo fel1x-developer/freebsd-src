@@ -42,7 +42,7 @@ static int log_level = 0;
 static char *peer_name = NULL;
 static char *peer_addr = NULL;
 
-#define	MSGBUF_LEN	1024
+#define MSGBUF_LEN 1024
 
 void
 log_init(int level)
@@ -106,15 +106,15 @@ log_common(int priority, int log_errno, const char *fmt, va_list ap)
 		if (peer_name != NULL) {
 			fprintf(stderr, "%s: %s (%s): %s\n", getprogname(),
 			    peer_addr, peer_name, msgbuf_strvised);
-			syslog(priority, "%s (%s): %s",
-			    peer_addr, peer_name, msgbuf_strvised);
+			syslog(priority, "%s (%s): %s", peer_addr, peer_name,
+			    msgbuf_strvised);
 		} else if (peer_addr != NULL) {
 			fprintf(stderr, "%s: %s: %s\n", getprogname(),
 			    peer_addr, msgbuf_strvised);
-			syslog(priority, "%s: %s",
-			    peer_addr, msgbuf_strvised);
+			syslog(priority, "%s: %s", peer_addr, msgbuf_strvised);
 		} else {
-			fprintf(stderr, "%s: %s\n", getprogname(), msgbuf_strvised);
+			fprintf(stderr, "%s: %s\n", getprogname(),
+			    msgbuf_strvised);
 			syslog(priority, "%s", msgbuf_strvised);
 		}
 
@@ -124,18 +124,17 @@ log_common(int priority, int log_errno, const char *fmt, va_list ap)
 		if (peer_name != NULL) {
 			fprintf(stderr, "%s: %s (%s): %s: %s\n", getprogname(),
 			    peer_addr, peer_name, msgbuf_strvised, errstr);
-			syslog(priority, "%s (%s): %s: %s",
-			    peer_addr, peer_name, msgbuf_strvised, errstr);
+			syslog(priority, "%s (%s): %s: %s", peer_addr,
+			    peer_name, msgbuf_strvised, errstr);
 		} else if (peer_addr != NULL) {
 			fprintf(stderr, "%s: %s: %s: %s\n", getprogname(),
 			    peer_addr, msgbuf_strvised, errstr);
-			syslog(priority, "%s: %s: %s",
-			    peer_addr, msgbuf_strvised, errstr);
+			syslog(priority, "%s: %s: %s", peer_addr,
+			    msgbuf_strvised, errstr);
 		} else {
 			fprintf(stderr, "%s: %s: %s\n", getprogname(),
 			    msgbuf_strvised, errstr);
-			syslog(priority, "%s: %s",
-			    msgbuf_strvised, errstr);
+			syslog(priority, "%s: %s", msgbuf_strvised, errstr);
 		}
 	}
 }

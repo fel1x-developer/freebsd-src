@@ -49,47 +49,47 @@
  * ctags: create a tags file
  */
 
-NODE	*head;			/* head of the sorted binary tree */
+NODE *head; /* head of the sorted binary tree */
 
-				/* boolean "func" (see init()) */
-bool	_wht[256], _etk[256], _itk[256], _btk[256], _gd[256];
+/* boolean "func" (see init()) */
+bool _wht[256], _etk[256], _itk[256], _btk[256], _gd[256];
 
-FILE	*inf;			/* ioptr for current input file */
-FILE	*outf;			/* ioptr for tags file */
+FILE *inf;  /* ioptr for current input file */
+FILE *outf; /* ioptr for tags file */
 
-long	lineftell;		/* ftell after getc( inf ) == '\n' */
+long lineftell; /* ftell after getc( inf ) == '\n' */
 
-int	lineno;			/* line number of current line */
-int	dflag;			/* -d: non-macro defines */
-int	tflag;			/* -t: create tags for typedefs */
-int	vflag;			/* -v: vgrind style index output */
-int	wflag;			/* -w: suppress warnings */
-int	xflag;			/* -x: cxref style output */
+int lineno; /* line number of current line */
+int dflag;  /* -d: non-macro defines */
+int tflag;  /* -t: create tags for typedefs */
+int vflag;  /* -v: vgrind style index output */
+int wflag;  /* -w: suppress warnings */
+int xflag;  /* -x: cxref style output */
 
-char	*curfile;		/* current input file name */
-char	searchar = '/';		/* use /.../ searches by default */
-char	lbuf[LINE_MAX];
+char *curfile;	     /* current input file name */
+char searchar = '/'; /* use /.../ searches by default */
+char lbuf[LINE_MAX];
 
-void	init(void);
-void	find_entries(char *);
+void init(void);
+void find_entries(char *);
 static void usage(void) __dead2;
 
 int
 main(int argc, char **argv)
 {
-	static const char	*outfile = "tags";	/* output file */
-	int	aflag;				/* -a: append to tags */
-	int	uflag;				/* -u: update tags */
-	int	exit_val;			/* exit value */
-	int	step;				/* step through args */
-	int	ch;				/* getopts char */
+	static const char *outfile = "tags"; /* output file */
+	int aflag;			     /* -a: append to tags */
+	int uflag;			     /* -u: update tags */
+	int exit_val;			     /* exit value */
+	int step;			     /* step through args */
+	int ch;				     /* getopts char */
 
 	setlocale(LC_ALL, "");
 
 	aflag = uflag = NO;
 	tflag = YES;
 	while ((ch = getopt(argc, argv, "BFTadf:tuwvx")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case 'B':
 			searchar = '?';
 			break;
@@ -143,8 +143,7 @@ main(int argc, char **argv)
 		if (!(inf = fopen(argv[step], "r"))) {
 			warn("%s", argv[step]);
 			exit_val = 1;
-		}
-		else {
+		} else {
 			curfile = argv[step];
 			find_entries(argv[step]);
 			(void)fclose(inf);
@@ -176,21 +175,23 @@ main(int argc, char **argv)
 					err(1, "unlinking %s", outfile);
 				if ((outf = fopen(outfile, "w")) == NULL)
 					err(1, "recreating %s", outfile);
-				if ((regx = calloc(argc, sizeof(regex_t))) == NULL)
+				if ((regx = calloc(argc, sizeof(regex_t))) ==
+				    NULL)
 					err(1, "RE alloc");
 				for (step = 0; step < argc; step++) {
 					(void)strcpy(lbuf, "\t");
-					(void)strlcat(lbuf, argv[step], LINE_MAX);
+					(void)strlcat(lbuf, argv[step],
+					    LINE_MAX);
 					(void)strlcat(lbuf, "\t", LINE_MAX);
 					if (regcomp(regx + step, lbuf,
-					    REG_NOSPEC))
+						REG_NOSPEC))
 						warn("RE compilation failed");
 				}
-nextline:
+			nextline:
 				while (fgets(lbuf, LINE_MAX, oldf)) {
 					for (step = 0; step < argc; step++)
-						if (regexec(regx + step,
-						    lbuf, 0, NULL, 0) == 0)
+						if (regexec(regx + step, lbuf,
+							0, NULL, 0) == 0)
 							goto nextline;
 					fputs(lbuf, outf);
 				}
@@ -201,7 +202,7 @@ nextline:
 				fclose(outf);
 				++aflag;
 			}
-udone:
+		udone:
 			if (!(outf = fopen(outfile, aflag ? "a" : "w")))
 				err(1, "%s", outfile);
 			put_entries(head);
@@ -230,7 +231,8 @@ udone:
 static void
 usage(void)
 {
-	(void)fprintf(stderr, "usage: ctags [-BFTaduwvx] [-f tagsfile] file ...\n");
+	(void)fprintf(stderr,
+	    "usage: ctags [-BFTaduwvx] [-f tagsfile] file ...\n");
 	exit(1);
 }
 
@@ -247,27 +249,27 @@ usage(void)
 void
 init(void)
 {
-	int		i;
-	const unsigned char	*sp;
+	int i;
+	const unsigned char *sp;
 
 	for (i = 0; i < 256; i++) {
 		_wht[i] = _etk[i] = _itk[i] = _btk[i] = NO;
 		_gd[i] = YES;
 	}
-#define	CWHITE	" \f\t\n"
-	for (sp = CWHITE; *sp; sp++)	/* white space chars */
+#define CWHITE " \f\t\n"
+	for (sp = CWHITE; *sp; sp++) /* white space chars */
 		_wht[*sp] = YES;
-#define	CTOKEN	" \t\n\"'#()[]{}=-+%*/&|^~!<>;,.:?"
-	for (sp = CTOKEN; *sp; sp++)	/* token ending chars */
+#define CTOKEN " \t\n\"'#()[]{}=-+%*/&|^~!<>;,.:?"
+	for (sp = CTOKEN; *sp; sp++) /* token ending chars */
 		_etk[*sp] = YES;
-#define	CINTOK	"ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz0123456789"
-	for (sp = CINTOK; *sp; sp++)	/* valid in-token chars */
+#define CINTOK "ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz0123456789"
+	for (sp = CINTOK; *sp; sp++) /* valid in-token chars */
 		_itk[*sp] = YES;
-#define	CBEGIN	"ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz"
-	for (sp = CBEGIN; *sp; sp++)	/* token starting chars */
+#define CBEGIN "ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz"
+	for (sp = CBEGIN; *sp; sp++) /* token starting chars */
 		_btk[*sp] = YES;
-#define	CNOTGD	",;"
-	for (sp = CNOTGD; *sp; sp++)	/* invalid after-function chars */
+#define CNOTGD ",;"
+	for (sp = CNOTGD; *sp; sp++) /* invalid after-function chars */
 		_gd[*sp] = NO;
 }
 
@@ -279,12 +281,12 @@ init(void)
 void
 find_entries(char *file)
 {
-	char	*cp;
+	char *cp;
 
-	lineno = 0;				/* should be 1 ?? KB */
+	lineno = 0; /* should be 1 ?? KB */
 	if ((cp = strrchr(file, '.'))) {
 		if (cp[1] == 'l' && !cp[2]) {
-			int	c;
+			int c;
 
 			for (;;) {
 				if (GETC(==, EOF))
@@ -294,12 +296,12 @@ find_entries(char *file)
 					break;
 				}
 			}
-#define	LISPCHR	";(["
-/* lisp */		if (strchr(LISPCHR, c)) {
+#define LISPCHR ";(["
+			/* lisp */ if (strchr(LISPCHR, c)) {
 				l_entries();
 				return;
 			}
-/* lex */		else {
+			/* lex */ else {
 				/*
 				 * we search all 3 parts of a lex file
 				 * for C references.  This may be wrong.
@@ -310,7 +312,7 @@ find_entries(char *file)
 				rewind(inf);
 			}
 		}
-/* yacc */	else if (cp[1] == 'y' && !cp[2]) {
+		/* yacc */ else if (cp[1] == 'y' && !cp[2]) {
 			/*
 			 * we search only the 3rd part of a yacc file
 			 * for C references.  This may be wrong.
@@ -320,11 +322,12 @@ find_entries(char *file)
 			pfnote("yyparse", lineno);
 			y_entries();
 		}
-/* fortran */	else if ((cp[1] != 'c' && cp[1] != 'h') && !cp[2]) {
+		/* fortran */ else if ((cp[1] != 'c' && cp[1] != 'h') &&
+		    !cp[2]) {
 			if (PF_funcs())
 				return;
 			rewind(inf);
 		}
 	}
-/* C */	c_entries();
+	/* C */ c_entries();
 }

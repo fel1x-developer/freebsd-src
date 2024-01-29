@@ -31,20 +31,22 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 
-#include <ufs/ufs/dinode.h>
 #include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
+
 #include "ffs/ffs_extern.h"
 #include "ffs/ufs_bswap.h"
 
 /*
- * Update the frsum fields to reflect addition or deletion 
+ * Update the frsum fields to reflect addition or deletion
  * of some frags.
  */
 void
-ffs_fragacct_swap(struct fs *fs, int fragmap, uint32_t fraglist[], int cnt, int needswap)
+ffs_fragacct_swap(struct fs *fs, int fragmap, uint32_t fraglist[], int cnt,
+    int needswap)
 {
 	int inblk;
 	int field, subfield;
@@ -59,8 +61,9 @@ ffs_fragacct_swap(struct fs *fs, int fragmap, uint32_t fraglist[], int cnt, int 
 		subfield = inside[siz];
 		for (pos = siz; pos <= fs->fs_frag; pos++) {
 			if ((fragmap & field) == subfield) {
-				fraglist[siz] = ufs_rw32(
-				    ufs_rw32(fraglist[siz], needswap) + cnt,
+				fraglist[siz] = ufs_rw32(ufs_rw32(fraglist[siz],
+							     needswap) +
+					cnt,
 				    needswap);
 				pos += siz;
 				field <<= siz;

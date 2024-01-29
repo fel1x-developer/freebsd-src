@@ -28,22 +28,20 @@
 #include <sys/capsicum.h>
 #include <sys/nv.h>
 
-#include <arpa/inet.h>
 #include <netinet/in.h>
 
+#include <arpa/inet.h>
 #include <assert.h>
+#include <atf-c.h>
+#include <casper/cap_netdb.h>
 #include <err.h>
 #include <errno.h>
+#include <libcasper.h>
 #include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <libcasper.h>
-#include <casper/cap_netdb.h>
-
-#include <atf-c.h>
 
 static cap_channel_t *
 initcap(void)

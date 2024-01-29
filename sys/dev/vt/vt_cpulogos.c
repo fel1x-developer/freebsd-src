@@ -25,13 +25,13 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/callout.h>
 #include <sys/cons.h>
-#include <sys/lock.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/mutex.h>
 #include <sys/smp.h>
-#include <sys/systm.h>
 #include <sys/terminal.h>
 
 #include <dev/vt/vt.h>
@@ -47,12 +47,12 @@ vt_vga2bsd(unsigned char vga)
 {
 	static const unsigned char lut[8] = {
 		0,
-		4,	/* 1 and 4 swap */
+		4, /* 1 and 4 swap */
 		2,
-		6,	/* 3 and 6 swap */
-		1,	/* 4 and 1 swap */
+		6, /* 3 and 6 swap */
+		1, /* 4 and 1 swap */
 		5,
-		3,	/* 6 and 3 swap */
+		3, /* 6 and 3 swap */
 		7,
 	};
 	unsigned int bright;
@@ -91,7 +91,8 @@ vt_draw_1_logo(struct vt_device *vd, vt_axis_t top, vt_axis_t left)
 	}
 
 	/* Decode basic RLE (gets us to 30-40% of uncompressed data size): */
-	for (i = 0, xy = 0; xy < vt_logo_sprite_height * vt_logo_sprite_width;) {
+	for (i = 0, xy = 0;
+	     xy < vt_logo_sprite_height * vt_logo_sprite_width;) {
 		if (data[i] == rle_sent) {
 			runcolor = data[i + 1];
 			run = data[i + 2];
@@ -104,7 +105,8 @@ vt_draw_1_logo(struct vt_device *vd, vt_axis_t top, vt_axis_t left)
 
 			i += 3;
 		} else {
-			vt_draw_2_vga16_px(vd, left + (xy % vt_logo_sprite_width),
+			vt_draw_2_vga16_px(vd,
+			    left + (xy % vt_logo_sprite_width),
 			    top + (xy / vt_logo_sprite_width), data[i]);
 
 			i++;

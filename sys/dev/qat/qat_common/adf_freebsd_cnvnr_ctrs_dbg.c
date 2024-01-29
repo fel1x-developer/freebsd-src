@@ -1,39 +1,37 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
 #include <sys/types.h>
-#include <sys/sysctl.h>
 #include <sys/systm.h>
+#include <sys/sysctl.h>
+
+#include "adf_cfg.h"
 #include "adf_cnvnr_freq_counters.h"
 #include "adf_common_drv.h"
-#include "adf_cfg.h"
 #include "icp_qat_fw_init_admin.h"
 
 #define ADF_CNVNR_ERR_MASK 0xFFF
 
-#define LINE                                                                   \
+#define LINE \
 	"+-----------------------------------------------------------------+\n"
-#define BANNER                                                                 \
+#define BANNER \
 	"|             CNV Error Freq Statistics for Qat Device            |\n"
 #define NEW_LINE "\n"
-#define REPORT_ENTRY_FORMAT                                                    \
+#define REPORT_ENTRY_FORMAT \
 	"|[AE %2d]: TotalErrors: %5d : LastError: %s [%5d]  |\n"
 #define MAX_LINE_LENGTH 128
 #define MAX_REPORT_SIZE ((ADF_MAX_ACCELENGINES + 3) * MAX_LINE_LENGTH)
 
-#define PRINT_LINE(line)                                                       \
-	(snprintf(                                                             \
-	    report_ptr, MAX_REPORT_SIZE - (report_ptr - report), "%s", line))
+#define PRINT_LINE(line)                                                     \
+	(snprintf(report_ptr, MAX_REPORT_SIZE - (report_ptr - report), "%s", \
+	    line))
 
-const char  *cnvnr_err_str[] = {"No Error      ",
-				"Checksum Error",
-				"Length Error-P",
-				"Decomp Error  ",
-				"Xlat Error    ",
-				"Length Error-C",
-				"Unknown Error "};
+const char *cnvnr_err_str[] = { "No Error      ", "Checksum Error",
+	"Length Error-P", "Decomp Error  ", "Xlat Error    ", "Length Error-C",
+	"Unknown Error " };
 
 /* Handler for HB status check */
-static int qat_cnvnr_ctrs_dbg_read(SYSCTL_HANDLER_ARGS)
+static int
+qat_cnvnr_ctrs_dbg_read(SYSCTL_HANDLER_ARGS)
 {
 	struct adf_accel_dev *accel_dev = arg1;
 	struct adf_hw_device_data *hw_device;
@@ -93,40 +91,35 @@ static int qat_cnvnr_ctrs_dbg_read(SYSCTL_HANDLER_ARGS)
 		if (accel_dev->au_info && !test_bit(ae, &dc_ae_msk))
 			continue;
 		explicit_bzero(&response,
-			       sizeof(struct icp_qat_fw_init_admin_resp));
+		    sizeof(struct icp_qat_fw_init_admin_resp));
 		request.cmd_id = ICP_QAT_FW_CNV_STATS_GET;
-		if (adf_put_admin_msg_sync(
-			accel_dev, ae, &request, &response) ||
+		if (adf_put_admin_msg_sync(accel_dev, ae, &request,
+			&response) ||
 		    response.status) {
 			return EFAULT;
 		}
 		error_type = CNV_ERROR_TYPE_GET(response.latest_error);
 		if (error_type == CNV_ERR_TYPE_DECOMP_PRODUCED_LENGTH_ERROR ||
 		    error_type == CNV_ERR_TYPE_DECOMP_CONSUMED_LENGTH_ERROR) {
-			latest_error =
-			    CNV_ERROR_LENGTH_DELTA_GET(response.latest_error);
+			latest_error = CNV_ERROR_LENGTH_DELTA_GET(
+			    response.latest_error);
 		} else if (error_type == CNV_ERR_TYPE_DECOMPRESSION_ERROR ||
-			   error_type == CNV_ERR_TYPE_TRANSLATION_ERROR) {
-			latest_error =
-			    CNV_ERROR_DECOMP_STATUS_GET(response.latest_error);
+		    error_type == CNV_ERR_TYPE_TRANSLATION_ERROR) {
+			latest_error = CNV_ERROR_DECOMP_STATUS_GET(
+			    response.latest_error);
 		} else {
-			latest_error =
-			    response.latest_error & ADF_CNVNR_ERR_MASK;
+			latest_error = response.latest_error &
+			    ADF_CNVNR_ERR_MASK;
 		}
 
-		bytes_written =
-		    snprintf(report_ptr,
-			     MAX_REPORT_SIZE - (report_ptr - report),
-			     REPORT_ENTRY_FORMAT,
-			     ae,
-			     response.error_count,
-			     cnvnr_err_str[error_type],
-			     latest_error);
+		bytes_written = snprintf(report_ptr,
+		    MAX_REPORT_SIZE - (report_ptr - report),
+		    REPORT_ENTRY_FORMAT, ae, response.error_count,
+		    cnvnr_err_str[error_type], latest_error);
 		if (bytes_written <= 0) {
 			printf("ERROR: No space left in CnV ctrs line buffer\n"
 			       "\tAcceleration ID: %d, Engine: %d\n",
-			       accel_dev->accel_id,
-			       ae);
+			    accel_dev->accel_id, ae);
 			break;
 		}
 		report_ptr += bytes_written;
@@ -148,22 +141,16 @@ adf_cnvnr_freq_counters_add(struct adf_accel_dev *accel_dev)
 		return EINVAL;
 
 	/* Creating context and tree */
-	qat_sysctl_ctx =
-	    device_get_sysctl_ctx(accel_dev->accel_pci_dev.pci_dev);
-	qat_cnvnr_ctrs_sysctl_tree =
-	    device_get_sysctl_tree(accel_dev->accel_pci_dev.pci_dev);
+	qat_sysctl_ctx = device_get_sysctl_ctx(
+	    accel_dev->accel_pci_dev.pci_dev);
+	qat_cnvnr_ctrs_sysctl_tree = device_get_sysctl_tree(
+	    accel_dev->accel_pci_dev.pci_dev);
 
 	/* Create "cnv_error" string type leaf - with callback */
 	oid_rc = SYSCTL_ADD_PROC(qat_sysctl_ctx,
-				 SYSCTL_CHILDREN(qat_cnvnr_ctrs_sysctl_tree),
-				 OID_AUTO,
-				 "cnv_error",
-				 CTLTYPE_STRING | CTLFLAG_RD,
-				 accel_dev,
-				 0,
-				 qat_cnvnr_ctrs_dbg_read,
-				 "IU",
-				 "QAT CnVnR status");
+	    SYSCTL_CHILDREN(qat_cnvnr_ctrs_sysctl_tree), OID_AUTO, "cnv_error",
+	    CTLTYPE_STRING | CTLFLAG_RD, accel_dev, 0, qat_cnvnr_ctrs_dbg_read,
+	    "IU", "QAT CnVnR status");
 
 	if (!oid_rc) {
 		printf("ERROR: Memory allocation failed\n");

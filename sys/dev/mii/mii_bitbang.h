@@ -32,23 +32,22 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define	MII_BIT_MDO		0	/* data out (host->PHY) */
-#define	MII_BIT_MDI		1	/* data in (PHY->host) */
-#define	MII_BIT_MDC		2	/* clock */
-#define	MII_BIT_DIR_HOST_PHY	3	/* set direction: host->PHY */
-#define	MII_BIT_DIR_PHY_HOST	4	/* set direction: PHY->host */
-#define	MII_NBITS		5
+#define MII_BIT_MDO 0	       /* data out (host->PHY) */
+#define MII_BIT_MDI 1	       /* data in (PHY->host) */
+#define MII_BIT_MDC 2	       /* clock */
+#define MII_BIT_DIR_HOST_PHY 3 /* set direction: host->PHY */
+#define MII_BIT_DIR_PHY_HOST 4 /* set direction: PHY->host */
+#define MII_NBITS 5
 
 struct mii_bitbang_ops {
-	uint32_t	(*mbo_read)(device_t);
-	void		(*mbo_write)(device_t, uint32_t);
-	uint32_t	mbo_bits[MII_NBITS];
+	uint32_t (*mbo_read)(device_t);
+	void (*mbo_write)(device_t, uint32_t);
+	uint32_t mbo_bits[MII_NBITS];
 };
 
-typedef	const struct mii_bitbang_ops *mii_bitbang_ops_t;
+typedef const struct mii_bitbang_ops *mii_bitbang_ops_t;
 
-int	mii_bitbang_readreg(device_t dev, mii_bitbang_ops_t ops,
-	    int phy, int reg);
-void	mii_bitbang_sync(device_t dev, mii_bitbang_ops_t ops);
-void	mii_bitbang_writereg(device_t dev, mii_bitbang_ops_t ops,
-	    int phy, int reg, int val);
+int mii_bitbang_readreg(device_t dev, mii_bitbang_ops_t ops, int phy, int reg);
+void mii_bitbang_sync(device_t dev, mii_bitbang_ops_t ops);
+void mii_bitbang_writereg(device_t dev, mii_bitbang_ops_t ops, int phy, int reg,
+    int val);

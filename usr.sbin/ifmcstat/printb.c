@@ -30,6 +30,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <assert.h>
 #include <stdio.h>
 
@@ -51,7 +52,7 @@ printb(const char *s, unsigned int v, const char *bits)
 	if (bits) {
 		putchar('<');
 		while ((i = *bits++) != '\0') {
-			if (v & (1 << (i-1))) {
+			if (v & (1 << (i - 1))) {
 				if (any)
 					putchar(',');
 				any = 1;

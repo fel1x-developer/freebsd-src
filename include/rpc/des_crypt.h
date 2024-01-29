@@ -44,26 +44,24 @@
 #define _DES_DES_CRYPT_H
 
 #include <sys/cdefs.h>
+
 #include <rpc/rpc.h>
 
-#define DES_MAXDATA 8192	/* max bytes encrypted in one call */
+#define DES_MAXDATA 8192 /* max bytes encrypted in one call */
 #define DES_DIRMASK (1 << 0)
-#define DES_ENCRYPT (0*DES_DIRMASK)	/* Encrypt */
-#define DES_DECRYPT (1*DES_DIRMASK)	/* Decrypt */
-
+#define DES_ENCRYPT (0 * DES_DIRMASK) /* Encrypt */
+#define DES_DECRYPT (1 * DES_DIRMASK) /* Decrypt */
 
 #define DES_DEVMASK (1 << 1)
-#define	DES_HW (0*DES_DEVMASK)	/* Use hardware device */ 
-#define DES_SW (1*DES_DEVMASK)	/* Use software device */
+#define DES_HW (0 * DES_DEVMASK) /* Use hardware device */
+#define DES_SW (1 * DES_DEVMASK) /* Use software device */
 
+#define DESERR_NONE 0	    /* succeeded */
+#define DESERR_NOHWDEVICE 1 /* succeeded, but hw device not available */
+#define DESERR_HWERROR 2    /* failed, hardware/driver error */
+#define DESERR_BADPARAM 3   /* failed, bad parameter to call */
 
-#define DESERR_NONE 0	/* succeeded */
-#define DESERR_NOHWDEVICE 1	/* succeeded, but hw device not available */
-#define DESERR_HWERROR 2	/* failed, hardware/driver error */
-#define DESERR_BADPARAM 3	/* failed, bad parameter to call */
-
-#define DES_FAILED(err) \
-	((err) > DESERR_NOHWDEVICE)
+#define DES_FAILED(err) ((err) > DESERR_NOHWDEVICE)
 
 /*
  * cbc_crypt()
@@ -79,27 +77,26 @@
  * encrypted though, in software).
  */
 
-
 /*
  * Cipher Block Chaining mode
  */
 __BEGIN_DECLS
-int cbc_crypt( char *, char *, unsigned int, unsigned int, char *);
+int cbc_crypt(char *, char *, unsigned int, unsigned int, char *);
 __END_DECLS
 
 /*
  * Electronic Code Book mode
  */
 __BEGIN_DECLS
-int ecb_crypt( char *, char *, unsigned int, unsigned int );
+int ecb_crypt(char *, char *, unsigned int, unsigned int);
 __END_DECLS
 
-/* 
+/*
  * Set des parity for a key.
  * DES parity is odd and in the low bit of each byte
  */
 __BEGIN_DECLS
-void des_setparity( char *);
+void des_setparity(char *);
 __END_DECLS
 
-#endif  /* _DES_DES_CRYPT_H */
+#endif /* _DES_DES_CRYPT_H */

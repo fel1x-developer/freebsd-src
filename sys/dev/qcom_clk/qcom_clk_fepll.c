@@ -29,6 +29,7 @@
 #include <sys/lock.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
+
 #include <machine/bus.h>
 
 #include <dev/clk/clk.h>
@@ -36,9 +37,8 @@
 #include <dev/clk/clk_fixed.h>
 #include <dev/clk/clk_mux.h>
 
-#include "qcom_clk_fepll.h"
-
 #include "clkdev_if.h"
+#include "qcom_clk_fepll.h"
 
 #if 0
 #define DPRINTF(dev, msg...) device_printf(dev, "cpufreq_dt: " msg);
@@ -58,10 +58,10 @@
  */
 
 struct qcom_clk_fepll_sc {
-	struct clknode	*clknode;
+	struct clknode *clknode;
 	uint32_t offset;
-	uint32_t fdbkdiv_shift; /* FDBKDIV base */
-	uint32_t fdbkdiv_width; /* FDBKDIV width */
+	uint32_t fdbkdiv_shift;	  /* FDBKDIV base */
+	uint32_t fdbkdiv_width;	  /* FDBKDIV width */
 	uint32_t refclkdiv_shift; /* REFCLKDIV base */
 	uint32_t refclkdiv_width; /* REFCLKDIV width */
 };
@@ -77,8 +77,7 @@ qcom_clk_fepll_recalc(struct clknode *clk, uint64_t *freq)
 
 	if (freq == NULL || *freq == 0) {
 		device_printf(clknode_get_device(sc->clknode),
-		    "%s: called; NULL or 0 frequency\n",
-		    __func__);
+		    "%s: called; NULL or 0 frequency\n", __func__);
 		return (ENXIO);
 	}
 
@@ -88,8 +87,7 @@ qcom_clk_fepll_recalc(struct clknode *clk, uint64_t *freq)
 	CLKDEV_READ_4(clknode_get_device(sc->clknode), sc->offset, &reg);
 	CLKDEV_DEVICE_UNLOCK(clknode_get_device(sc->clknode));
 
-	fdbkdiv = (reg >> sc->fdbkdiv_shift) &
-	    ((1U << sc->fdbkdiv_width) - 1);
+	fdbkdiv = (reg >> sc->fdbkdiv_shift) & ((1U << sc->fdbkdiv_width) - 1);
 	refclkdiv = (reg >> sc->refclkdiv_shift) &
 	    ((1U << sc->refclkdiv_width) - 1);
 
@@ -116,13 +114,13 @@ qcom_clk_fepll_init(struct clknode *clk, device_t dev)
 
 static clknode_method_t qcom_clk_fepll_methods[] = {
 	/* Device interface */
-	CLKNODEMETHOD(clknode_init,		qcom_clk_fepll_init),
-	CLKNODEMETHOD(clknode_recalc_freq,	qcom_clk_fepll_recalc),
+	CLKNODEMETHOD(clknode_init, qcom_clk_fepll_init),
+	CLKNODEMETHOD(clknode_recalc_freq, qcom_clk_fepll_recalc),
 	CLKNODEMETHOD_END
 };
 
 DEFINE_CLASS_1(qcom_clk_fepll, qcom_clk_fepll_class, qcom_clk_fepll_methods,
-   sizeof(struct qcom_clk_fepll_sc), clknode_class);
+    sizeof(struct qcom_clk_fepll_sc), clknode_class);
 
 int
 qcom_clk_fepll_register(struct clkdom *clkdom,

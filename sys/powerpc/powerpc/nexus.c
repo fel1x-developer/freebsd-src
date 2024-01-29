@@ -64,49 +64,50 @@
 static struct rman intr_rman;
 static struct rman mem_rman;
 
-static device_probe_t		nexus_probe;
-static device_attach_t		nexus_attach;
+static device_probe_t nexus_probe;
+static device_attach_t nexus_attach;
 
-static bus_get_rman_t		nexus_get_rman;
-static bus_map_resource_t	nexus_map_resource;
-static bus_unmap_resource_t	nexus_unmap_resource;
+static bus_get_rman_t nexus_get_rman;
+static bus_map_resource_t nexus_map_resource;
+static bus_unmap_resource_t nexus_unmap_resource;
 
 #ifdef SMP
-static bus_bind_intr_t		nexus_bind_intr;
+static bus_bind_intr_t nexus_bind_intr;
 #endif
-static bus_config_intr_t	nexus_config_intr;
-static bus_setup_intr_t		nexus_setup_intr;
-static bus_teardown_intr_t	nexus_teardown_intr;
+static bus_config_intr_t nexus_config_intr;
+static bus_setup_intr_t nexus_setup_intr;
+static bus_teardown_intr_t nexus_teardown_intr;
 
-static bus_get_bus_tag_t	nexus_get_bus_tag;
+static bus_get_bus_tag_t nexus_get_bus_tag;
 
-static ofw_bus_map_intr_t	nexus_ofw_map_intr;
+static ofw_bus_map_intr_t nexus_ofw_map_intr;
 
 static device_method_t nexus_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		nexus_probe),
-	DEVMETHOD(device_attach,	nexus_attach),
+	DEVMETHOD(device_probe, nexus_probe),
+	DEVMETHOD(device_attach, nexus_attach),
 
 	/* Bus interface */
-	DEVMETHOD(bus_add_child,	bus_generic_add_child),
-	DEVMETHOD(bus_adjust_resource,	bus_generic_rman_adjust_resource),
+	DEVMETHOD(bus_add_child, bus_generic_add_child),
+	DEVMETHOD(bus_adjust_resource, bus_generic_rman_adjust_resource),
 	DEVMETHOD(bus_activate_resource, bus_generic_rman_activate_resource),
-	DEVMETHOD(bus_alloc_resource,	bus_generic_rman_alloc_resource),
-	DEVMETHOD(bus_deactivate_resource, bus_generic_rman_deactivate_resource),
-	DEVMETHOD(bus_get_rman,		nexus_get_rman),
-	DEVMETHOD(bus_map_resource,	nexus_map_resource),
-	DEVMETHOD(bus_release_resource,	bus_generic_rman_release_resource),
-	DEVMETHOD(bus_unmap_resource,   nexus_unmap_resource),
+	DEVMETHOD(bus_alloc_resource, bus_generic_rman_alloc_resource),
+	DEVMETHOD(bus_deactivate_resource,
+	    bus_generic_rman_deactivate_resource),
+	DEVMETHOD(bus_get_rman, nexus_get_rman),
+	DEVMETHOD(bus_map_resource, nexus_map_resource),
+	DEVMETHOD(bus_release_resource, bus_generic_rman_release_resource),
+	DEVMETHOD(bus_unmap_resource, nexus_unmap_resource),
 #ifdef SMP
-	DEVMETHOD(bus_bind_intr,	nexus_bind_intr),
+	DEVMETHOD(bus_bind_intr, nexus_bind_intr),
 #endif
-	DEVMETHOD(bus_config_intr,	nexus_config_intr),
-	DEVMETHOD(bus_setup_intr,	nexus_setup_intr),
-	DEVMETHOD(bus_teardown_intr,	nexus_teardown_intr),
-	DEVMETHOD(bus_get_bus_tag,	nexus_get_bus_tag),
+	DEVMETHOD(bus_config_intr, nexus_config_intr),
+	DEVMETHOD(bus_setup_intr, nexus_setup_intr),
+	DEVMETHOD(bus_teardown_intr, nexus_teardown_intr),
+	DEVMETHOD(bus_get_bus_tag, nexus_get_bus_tag),
 
 	/* ofw_bus interface */
-	DEVMETHOD(ofw_bus_map_intr,	nexus_ofw_map_intr),
+	DEVMETHOD(ofw_bus_map_intr, nexus_ofw_map_intr),
 
 	DEVMETHOD_END
 };
@@ -118,8 +119,8 @@ MODULE_VERSION(nexus, 1);
 static int
 nexus_probe(device_t dev)
 {
-        
-	device_quiet(dev);	/* suppress attach message for neatness */
+
+	device_quiet(dev); /* suppress attach message for neatness */
 
 	return (BUS_PROBE_DEFAULT);
 }
@@ -168,7 +169,7 @@ nexus_setup_intr(device_t bus __unused, device_t child, struct resource *r,
 		return (error);
 
 	if (bus_get_domain(child, &domain) != 0) {
-		if(bootverbose)
+		if (bootverbose)
 			device_printf(child, "no domain found\n");
 		domain = 0;
 	}
@@ -182,7 +183,7 @@ static int
 nexus_teardown_intr(device_t bus __unused, device_t child __unused,
     struct resource *r, void *ih)
 {
-        
+
 	if (r == NULL)
 		return (EINVAL);
 
@@ -194,9 +195,9 @@ nexus_get_bus_tag(device_t bus __unused, device_t child __unused)
 {
 
 #if BYTE_ORDER == LITTLE_ENDIAN
-	return(&bs_le_tag);
+	return (&bs_le_tag);
 #else
-	return(&bs_be_tag);
+	return (&bs_be_tag);
 #endif
 }
 
@@ -272,7 +273,8 @@ nexus_map_resource(device_t bus, device_t child, int type, struct resource *r,
 	 */
 	switch (type) {
 	case SYS_RES_IOPORT:
-		panic("%s:%d SYS_RES_IOPORT handling not implemented", __func__, __LINE__);
+		panic("%s:%d SYS_RES_IOPORT handling not implemented", __func__,
+		    __LINE__);
 		/*   XXX: untested
 		map->r_bushandle = start;
 		if ((rman_get_flags(r) & RF_LITTLEENDIAN) != 0)
@@ -295,7 +297,6 @@ nexus_map_resource(device_t bus, device_t child, int type, struct resource *r,
 	}
 
 	return (0);
-
 }
 
 static int
@@ -317,5 +318,4 @@ nexus_unmap_resource(device_t bus, device_t child, int type, struct resource *r,
 	}
 
 	return (0);
-
 }

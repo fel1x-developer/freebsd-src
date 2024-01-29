@@ -31,8 +31,8 @@
 #include <sys/stat.h>
 
 #include <netinet/in.h>
-#include <arpa/tftp.h>
 
+#include <arpa/tftp.h>
 #include <assert.h>
 #include <errno.h>
 #include <stdio.h>
@@ -44,11 +44,11 @@
 #include "tftp-file.h"
 #include "tftp-utils.h"
 
-static FILE	*file;
-static int	convert;
+static FILE *file;
+static int convert;
 
-static char	convbuffer[66000];
-static int	gotcr = 0;
+static char convbuffer[66000];
+static int gotcr = 0;
 
 static size_t
 convert_from_net(char *buffer, size_t count)
@@ -88,7 +88,7 @@ convert_from_net(char *buffer, size_t count)
 					abort();
 				}
 			} else
-				convbuffer[n-1] = '\n';
+				convbuffer[n - 1] = '\n';
 			gotcr = 0;
 			continue;
 		}
@@ -113,7 +113,7 @@ convert_to_net(char *buffer, size_t count, int init)
 		newline = -1;
 		n = 0;
 		in = 0;
-		return 0 ;
+		return 0;
 	}
 
 	/*
@@ -129,11 +129,13 @@ convert_to_net(char *buffer, size_t count, int init)
 	while (i < count) {
 		if (n == in) {
 			/* When done we're done */
-			if (feof(file)) break;
+			if (feof(file))
+				break;
 
 			/* Otherwise read another bunch */
 			in = fread(convbuffer, 1, count, file);
-			if (in == 0) break;
+			if (in == 0)
+				break;
 			n = 0;
 		}
 
@@ -161,7 +163,7 @@ convert_to_net(char *buffer, size_t count, int init)
 		 * Whoops... that isn't allowed (but it will happen
 		 * when there is a CR or LF at the end of the buffer)
 		 */
-		newline = buffer[i-1];
+		newline = buffer[i - 1];
 	}
 
 	if (i < count) {
@@ -169,7 +171,6 @@ convert_to_net(char *buffer, size_t count, int init)
 		return i;
 	} else
 		return count;
-
 }
 
 int
@@ -265,7 +266,6 @@ read_close(void)
 	return 0;
 }
 
-
 /* When an error has occurred, it is possible that the two sides
  * are out of synch.  Ie: that what I think is the other side's
  * response to packet N is really their response to packet N-1.
@@ -278,7 +278,7 @@ read_close(void)
  */
 
 int
-synchnet(int peer)			/* socket to flush */
+synchnet(int peer) /* socket to flush */
 {
 	int i, j = 0;
 	char rbuf[MAXPKTSIZE];
@@ -286,14 +286,14 @@ synchnet(int peer)			/* socket to flush */
 	socklen_t fromlen;
 
 	while (1) {
-		(void) ioctl(peer, FIONREAD, &i);
+		(void)ioctl(peer, FIONREAD, &i);
 		if (i) {
 			j++;
 			fromlen = sizeof from;
-			(void) recvfrom(peer, rbuf, sizeof (rbuf), 0,
-				(struct sockaddr *)&from, &fromlen);
+			(void)recvfrom(peer, rbuf, sizeof(rbuf), 0,
+			    (struct sockaddr *)&from, &fromlen);
 		} else {
-			return(j);
+			return (j);
 		}
 	}
 }

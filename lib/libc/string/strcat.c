@@ -32,11 +32,13 @@
 #include <string.h>
 
 char *
-strcat(char * __restrict s, const char * __restrict append)
+strcat(char *__restrict s, const char *__restrict append)
 {
 	char *save = s;
 
-	for (; *s; ++s);
-	while ((*s++ = *append++));
-	return(save);
+	for (; *s; ++s)
+		;
+	while ((*s++ = *append++))
+		;
+	return (save);
 }

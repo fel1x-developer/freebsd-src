@@ -74,7 +74,8 @@ p_login(char *p, struct passwd *pw, ENTRY *ep __unused)
 		warnx("\'.\' is dangerous in a login name");
 	for (; *p; ++p)
 		if (isupper(*p)) {
-			warnx("upper-case letters are dangerous in a login name");
+			warnx(
+			    "upper-case letters are dangerous in a login name");
 			break;
 		}
 	return (0);
@@ -226,8 +227,7 @@ p_shell(char *p, struct passwd *pw, ENTRY *ep __unused)
 			return (-1);
 		}
 		pw->pw_shell = strdup(p);
-	}
-	else
+	} else
 		pw->pw_shell = dup_shell(p);
 	if (!pw->pw_shell) {
 		warnx("can't save entry");
@@ -238,12 +238,12 @@ p_shell(char *p, struct passwd *pw, ENTRY *ep __unused)
 			warnx("WARNING: shell '%s' does not exist",
 			    pw->pw_shell);
 		else
-			warn("WARNING: can't stat shell '%s'",  pw->pw_shell);
+			warn("WARNING: can't stat shell '%s'", pw->pw_shell);
 		return (0);
 	}
 	if (!S_ISREG(sbuf.st_mode)) {
 		warnx("WARNING: shell '%s' is not a regular file",
-			pw->pw_shell);
+		    pw->pw_shell);
 		return (0);
 	}
 	if ((sbuf.st_mode & (S_IXOTH | S_IXGRP | S_IXUSR)) == 0) {

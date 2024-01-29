@@ -42,17 +42,17 @@
 #define _MACHINE_ELF_WANT_32BIT
 #include <machine/elf.h>
 #include <machine/metadata.h>
-#include <string.h>
+
+#include <btxv86.h>
 #include <stand.h>
+#include <string.h>
 
 #include "bootstrap.h"
-#include "multiboot.h"
 #include "libi386.h"
-#include <btxv86.h>
+#include "multiboot.h"
 
-#define MULTIBOOT_SUPPORTED_FLAGS \
-				(MULTIBOOT_PAGE_ALIGN|MULTIBOOT_MEMORY_INFO)
-#define NUM_MODULES		2
+#define MULTIBOOT_SUPPORTED_FLAGS (MULTIBOOT_PAGE_ALIGN | MULTIBOOT_MEMORY_INFO)
+#define NUM_MODULES 2
 
 extern int elf32_loadfile_raw(char *filename, uint64_t dest,
     struct preloaded_file **result, int multiboot);
@@ -67,8 +67,8 @@ static int multiboot_obj_loadfile(char *, uint64_t, struct preloaded_file **);
 static int multiboot_obj_exec(struct preloaded_file *fp);
 
 struct file_format multiboot = { multiboot_loadfile, multiboot_exec };
-struct file_format multiboot_obj =
-    { multiboot_obj_loadfile, multiboot_obj_exec };
+struct file_format multiboot_obj = { multiboot_obj_loadfile,
+	multiboot_obj_exec };
 
 extern void multiboot_tramp();
 
@@ -78,13 +78,13 @@ static int
 multiboot_loadfile(char *filename, uint64_t dest,
     struct preloaded_file **result)
 {
-	uint32_t		*magic;
-	int			 i, error;
-	caddr_t			 header_search;
-	ssize_t			 search_size;
-	int			 fd;
-	struct multiboot_header	*header;
-	char			*cmdline;
+	uint32_t *magic;
+	int i, error;
+	caddr_t header_search;
+	ssize_t search_size;
+	int fd;
+	struct multiboot_header *header;
+	char *cmdline;
 
 	/*
 	 * Read MULTIBOOT_SEARCH size in order to search for the
@@ -118,8 +118,8 @@ multiboot_loadfile(char *filename, uint64_t dest,
 	/* Valid multiboot header has been found, validate checksum */
 	if (header->magic + header->flags + header->checksum != 0) {
 		printf(
-	"Multiboot checksum failed, magic: 0x%x flags: 0x%x checksum: 0x%x\n",
-	header->magic, header->flags, header->checksum);
+		    "Multiboot checksum failed, magic: 0x%x flags: 0x%x checksum: 0x%x\n",
+		    header->magic, header->flags, header->checksum);
 		error = EFTYPE;
 		goto out;
 	}
@@ -134,8 +134,8 @@ multiboot_loadfile(char *filename, uint64_t dest,
 	error = elf32_loadfile_raw(filename, dest, result, 1);
 	if (error != 0) {
 		printf(
-	"elf32_loadfile_raw failed: %d unable to load multiboot kernel\n",
-	error);
+		    "elf32_loadfile_raw failed: %d unable to load multiboot kernel\n",
+		    error);
 		goto out;
 	}
 
@@ -155,15 +155,15 @@ out:
 static int
 multiboot_exec(struct preloaded_file *fp)
 {
-	vm_offset_t			 modulep, kernend, entry;
-	struct file_metadata		*md;
-	Elf_Ehdr			*ehdr;
-	struct multiboot_info		*mb_info = NULL;
-	struct multiboot_mod_list	*mb_mod = NULL;
-	char				*cmdline = NULL;
-	size_t				 len;
-	int				 error, mod_num;
-	struct xen_header		 header;
+	vm_offset_t modulep, kernend, entry;
+	struct file_metadata *md;
+	Elf_Ehdr *ehdr;
+	struct multiboot_info *mb_info = NULL;
+	struct multiboot_mod_list *mb_mod = NULL;
+	char *cmdline = NULL;
+	size_t len;
+	int error, mod_num;
+	struct xen_header header;
 
 	CTASSERT(sizeof(header) <= PAGE_SIZE);
 
@@ -180,7 +180,8 @@ multiboot_exec(struct preloaded_file *fp)
 		goto error;
 	}
 	bzero(mb_info, sizeof(struct multiboot_info));
-	mb_info->flags = MULTIBOOT_INFO_MEMORY|MULTIBOOT_INFO_BOOT_LOADER_NAME;
+	mb_info->flags = MULTIBOOT_INFO_MEMORY |
+	    MULTIBOOT_INFO_BOOT_LOADER_NAME;
 	mb_info->mem_lower = bios_basemem / 1024;
 	mb_info->mem_upper = bios_extmem / 1024;
 	mb_info->boot_loader_name = VTOP(mbl_name);
@@ -319,9 +320,9 @@ static int
 multiboot_obj_loadfile(char *filename, uint64_t dest,
     struct preloaded_file **result)
 {
-	struct preloaded_file	*mfp, *kfp, *rfp;
-	struct kernel_module	*kmp;
-	int			 error, mod_num;
+	struct preloaded_file *mfp, *kfp, *rfp;
+	struct kernel_module *kmp;
+	int error, mod_num;
 
 	/* See if there's a multiboot kernel loaded */
 	mfp = file_findfile(NULL, "elf multiboot kernel");
@@ -342,8 +343,8 @@ multiboot_obj_loadfile(char *filename, uint64_t dest,
 		rfp = file_loadraw(filename, "elf kernel", 0);
 		if (rfp == NULL) {
 			printf(
-			"Unable to load %s as a multiboot payload kernel\n",
-			filename);
+			    "Unable to load %s as a multiboot payload kernel\n",
+			    filename);
 			return (EINVAL);
 		}
 
@@ -355,7 +356,6 @@ multiboot_obj_loadfile(char *filename, uint64_t dest,
 			    rfp->f_name, error);
 			return (EINVAL);
 		}
-
 
 		/*
 		 * Reserve one page at the end of the kernel to place some

@@ -69,121 +69,114 @@
 #include "opt_wlan.h"
 
 #include <sys/param.h>
-#include <sys/sockio.h>
-#include <sys/sysctl.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/module.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
 #include <sys/kdb.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/socket.h>
+#include <sys/sockio.h>
+#include <sys/sysctl.h>
 
 #include <net/bpf.h>
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
 #include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
+#include <net/if_var.h>
 
 #ifdef INET
+#include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/in_var.h>
-#include <netinet/if_ether.h>
 #include <netinet/ip.h>
 #endif
 
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_input.h>
-#include <net80211/ieee80211_regdomain.h>
-#include <net80211/ieee80211_radiotap.h>
-
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
-#include "usbdevs.h"
-
 #include <dev/usb/wlan/if_uathreg.h>
 #include <dev/usb/wlan/if_uathvar.h>
+
+#include <net80211/ieee80211_input.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_regdomain.h>
+#include <net80211/ieee80211_var.h>
+
+#include "usbdevs.h"
 
 static SYSCTL_NODE(_hw_usb, OID_AUTO, uath, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "USB Atheros");
 
-static	int uath_countrycode = CTRY_DEFAULT;	/* country code */
-SYSCTL_INT(_hw_usb_uath, OID_AUTO, countrycode, CTLFLAG_RWTUN, &uath_countrycode,
-    0, "country code");
-static	int uath_regdomain = 0;			/* regulatory domain */
-SYSCTL_INT(_hw_usb_uath, OID_AUTO, regdomain, CTLFLAG_RD, &uath_regdomain,
-    0, "regulatory domain");
+static int uath_countrycode = CTRY_DEFAULT; /* country code */
+SYSCTL_INT(_hw_usb_uath, OID_AUTO, countrycode, CTLFLAG_RWTUN,
+    &uath_countrycode, 0, "country code");
+static int uath_regdomain = 0; /* regulatory domain */
+SYSCTL_INT(_hw_usb_uath, OID_AUTO, regdomain, CTLFLAG_RD, &uath_regdomain, 0,
+    "regulatory domain");
 
 #ifdef UATH_DEBUG
 int uath_debug = 0;
 SYSCTL_INT(_hw_usb_uath, OID_AUTO, debug, CTLFLAG_RWTUN, &uath_debug, 0,
     "uath debug level");
 enum {
-	UATH_DEBUG_XMIT		= 0x00000001,	/* basic xmit operation */
-	UATH_DEBUG_XMIT_DUMP	= 0x00000002,	/* xmit dump */
-	UATH_DEBUG_RECV		= 0x00000004,	/* basic recv operation */
-	UATH_DEBUG_TX_PROC	= 0x00000008,	/* tx ISR proc */
-	UATH_DEBUG_RX_PROC	= 0x00000010,	/* rx ISR proc */
-	UATH_DEBUG_RECV_ALL	= 0x00000020,	/* trace all frames (beacons) */
-	UATH_DEBUG_INIT		= 0x00000040,	/* initialization of dev */
-	UATH_DEBUG_DEVCAP	= 0x00000080,	/* dev caps */
-	UATH_DEBUG_CMDS		= 0x00000100,	/* commands */
-	UATH_DEBUG_CMDS_DUMP	= 0x00000200,	/* command buffer dump */
-	UATH_DEBUG_RESET	= 0x00000400,	/* reset processing */
-	UATH_DEBUG_STATE	= 0x00000800,	/* 802.11 state transitions */
-	UATH_DEBUG_MULTICAST	= 0x00001000,	/* multicast */
-	UATH_DEBUG_WME		= 0x00002000,	/* WME */
-	UATH_DEBUG_CHANNEL	= 0x00004000,	/* channel */
-	UATH_DEBUG_RATES	= 0x00008000,	/* rates */
-	UATH_DEBUG_CRYPTO	= 0x00010000,	/* crypto */
-	UATH_DEBUG_LED		= 0x00020000,	/* LED */
-	UATH_DEBUG_ANY		= 0xffffffff
+	UATH_DEBUG_XMIT = 0x00000001,	   /* basic xmit operation */
+	UATH_DEBUG_XMIT_DUMP = 0x00000002, /* xmit dump */
+	UATH_DEBUG_RECV = 0x00000004,	   /* basic recv operation */
+	UATH_DEBUG_TX_PROC = 0x00000008,   /* tx ISR proc */
+	UATH_DEBUG_RX_PROC = 0x00000010,   /* rx ISR proc */
+	UATH_DEBUG_RECV_ALL = 0x00000020,  /* trace all frames (beacons) */
+	UATH_DEBUG_INIT = 0x00000040,	   /* initialization of dev */
+	UATH_DEBUG_DEVCAP = 0x00000080,	   /* dev caps */
+	UATH_DEBUG_CMDS = 0x00000100,	   /* commands */
+	UATH_DEBUG_CMDS_DUMP = 0x00000200, /* command buffer dump */
+	UATH_DEBUG_RESET = 0x00000400,	   /* reset processing */
+	UATH_DEBUG_STATE = 0x00000800,	   /* 802.11 state transitions */
+	UATH_DEBUG_MULTICAST = 0x00001000, /* multicast */
+	UATH_DEBUG_WME = 0x00002000,	   /* WME */
+	UATH_DEBUG_CHANNEL = 0x00004000,   /* channel */
+	UATH_DEBUG_RATES = 0x00008000,	   /* rates */
+	UATH_DEBUG_CRYPTO = 0x00010000,	   /* crypto */
+	UATH_DEBUG_LED = 0x00020000,	   /* LED */
+	UATH_DEBUG_ANY = 0xffffffff
 };
-#define	DPRINTF(sc, m, fmt, ...) do {				\
-	if (sc->sc_debug & (m))					\
-		printf(fmt, __VA_ARGS__);			\
-} while (0)
+#define DPRINTF(sc, m, fmt, ...)                  \
+	do {                                      \
+		if (sc->sc_debug & (m))           \
+			printf(fmt, __VA_ARGS__); \
+	} while (0)
 #else
-#define	DPRINTF(sc, m, fmt, ...) do {				\
-	(void) sc;						\
-} while (0)
+#define DPRINTF(sc, m, fmt, ...) \
+	do {                     \
+		(void)sc;        \
+	} while (0)
 #endif
 
 /* recognized device vendors/products */
 static const STRUCT_USB_HOST_ID uath_devs[] = {
-#define	UATH_DEV(v,p) { USB_VP(USB_VENDOR_##v, USB_PRODUCT_##v##_##p) }
-	UATH_DEV(ACCTON,		SMCWUSBTG2),
-	UATH_DEV(ATHEROS,		AR5523),
-	UATH_DEV(ATHEROS2,		AR5523_1),
-	UATH_DEV(ATHEROS2,		AR5523_2),
-	UATH_DEV(ATHEROS2,		AR5523_3),
-	UATH_DEV(CONCEPTRONIC,		AR5523_1),
-	UATH_DEV(CONCEPTRONIC,		AR5523_2),
-	UATH_DEV(DLINK,			DWLAG122),
-	UATH_DEV(DLINK,			DWLAG132),
-	UATH_DEV(DLINK,			DWLG132),
-	UATH_DEV(DLINK2,		DWA120),
-	UATH_DEV(GIGASET,		AR5523),
-	UATH_DEV(GIGASET,		SMCWUSBTG),
-	UATH_DEV(GLOBALSUN,		AR5523_1),
-	UATH_DEV(GLOBALSUN,		AR5523_2),
-	UATH_DEV(NETGEAR,		WG111U),
-	UATH_DEV(NETGEAR3,		WG111T),
-	UATH_DEV(NETGEAR3,		WPN111),
-	UATH_DEV(NETGEAR3,		WPN111_2),
-	UATH_DEV(UMEDIA,		TEW444UBEU),
-	UATH_DEV(UMEDIA,		AR5523_2),
-	UATH_DEV(WISTRONNEWEB,		AR5523_1),
-	UATH_DEV(WISTRONNEWEB,		AR5523_2),
-	UATH_DEV(ZCOM,			AR5523)
+#define UATH_DEV(v, p)                                        \
+	{                                                     \
+		USB_VP(USB_VENDOR_##v, USB_PRODUCT_##v##_##p) \
+	}
+	UATH_DEV(ACCTON, SMCWUSBTG2), UATH_DEV(ATHEROS, AR5523),
+	UATH_DEV(ATHEROS2, AR5523_1), UATH_DEV(ATHEROS2, AR5523_2),
+	UATH_DEV(ATHEROS2, AR5523_3), UATH_DEV(CONCEPTRONIC, AR5523_1),
+	UATH_DEV(CONCEPTRONIC, AR5523_2), UATH_DEV(DLINK, DWLAG122),
+	UATH_DEV(DLINK, DWLAG132), UATH_DEV(DLINK, DWLG132),
+	UATH_DEV(DLINK2, DWA120), UATH_DEV(GIGASET, AR5523),
+	UATH_DEV(GIGASET, SMCWUSBTG), UATH_DEV(GLOBALSUN, AR5523_1),
+	UATH_DEV(GLOBALSUN, AR5523_2), UATH_DEV(NETGEAR, WG111U),
+	UATH_DEV(NETGEAR3, WG111T), UATH_DEV(NETGEAR3, WPN111),
+	UATH_DEV(NETGEAR3, WPN111_2), UATH_DEV(UMEDIA, TEW444UBEU),
+	UATH_DEV(UMEDIA, AR5523_2), UATH_DEV(WISTRONNEWEB, AR5523_1),
+	UATH_DEV(WISTRONNEWEB, AR5523_2), UATH_DEV(ZCOM, AR5523)
 #undef UATH_DEV
 };
 
@@ -243,69 +236,61 @@ static const struct usb_config uath_usbconfig[UATH_N_XFERS] = {
 };
 
 static struct ieee80211vap *uath_vap_create(struct ieee80211com *,
-		    const char [IFNAMSIZ], int, enum ieee80211_opmode, int,
-		    const uint8_t [IEEE80211_ADDR_LEN],
-		    const uint8_t [IEEE80211_ADDR_LEN]);
-static void	uath_vap_delete(struct ieee80211vap *);
-static int	uath_alloc_cmd_list(struct uath_softc *, struct uath_cmd []);
-static void	uath_free_cmd_list(struct uath_softc *, struct uath_cmd []);
-static int	uath_host_available(struct uath_softc *);
-static int	uath_get_capability(struct uath_softc *, uint32_t, uint32_t *);
-static int	uath_get_devcap(struct uath_softc *);
-static struct uath_cmd *
-		uath_get_cmdbuf(struct uath_softc *);
-static int	uath_cmd_read(struct uath_softc *, uint32_t, const void *,
-		    int, void *, int, int);
-static int	uath_cmd_write(struct uath_softc *, uint32_t, const void *,
-		    int, int);
-static void	uath_stat(void *);
+    const char[IFNAMSIZ], int, enum ieee80211_opmode, int,
+    const uint8_t[IEEE80211_ADDR_LEN], const uint8_t[IEEE80211_ADDR_LEN]);
+static void uath_vap_delete(struct ieee80211vap *);
+static int uath_alloc_cmd_list(struct uath_softc *, struct uath_cmd[]);
+static void uath_free_cmd_list(struct uath_softc *, struct uath_cmd[]);
+static int uath_host_available(struct uath_softc *);
+static int uath_get_capability(struct uath_softc *, uint32_t, uint32_t *);
+static int uath_get_devcap(struct uath_softc *);
+static struct uath_cmd *uath_get_cmdbuf(struct uath_softc *);
+static int uath_cmd_read(struct uath_softc *, uint32_t, const void *, int,
+    void *, int, int);
+static int uath_cmd_write(struct uath_softc *, uint32_t, const void *, int,
+    int);
+static void uath_stat(void *);
 #ifdef UATH_DEBUG
-static void	uath_dump_cmd(const uint8_t *, int, char);
-static const char *
-		uath_codename(int);
+static void uath_dump_cmd(const uint8_t *, int, char);
+static const char *uath_codename(int);
 #endif
-static int	uath_get_devstatus(struct uath_softc *,
-		    uint8_t macaddr[IEEE80211_ADDR_LEN]);
-static int	uath_get_status(struct uath_softc *, uint32_t, void *, int);
-static int	uath_alloc_rx_data_list(struct uath_softc *);
-static int	uath_alloc_tx_data_list(struct uath_softc *);
-static void	uath_free_rx_data_list(struct uath_softc *);
-static void	uath_free_tx_data_list(struct uath_softc *);
-static int	uath_init(struct uath_softc *);
-static void	uath_stop(struct uath_softc *);
-static void	uath_parent(struct ieee80211com *);
-static int	uath_transmit(struct ieee80211com *, struct mbuf *);
-static void	uath_start(struct uath_softc *);
-static int	uath_raw_xmit(struct ieee80211_node *, struct mbuf *,
-		    const struct ieee80211_bpf_params *);
-static void	uath_scan_start(struct ieee80211com *);
-static void	uath_scan_end(struct ieee80211com *);
-static void	uath_set_channel(struct ieee80211com *);
-static void	uath_update_mcast(struct ieee80211com *);
-static void	uath_update_promisc(struct ieee80211com *);
-static int	uath_config(struct uath_softc *, uint32_t, uint32_t);
-static int	uath_config_multi(struct uath_softc *, uint32_t, const void *,
-		    int);
-static int	uath_switch_channel(struct uath_softc *,
-		    struct ieee80211_channel *);
-static int	uath_set_rxfilter(struct uath_softc *, uint32_t, uint32_t);
-static void	uath_watchdog(void *);
-static void	uath_abort_xfers(struct uath_softc *);
-static int	uath_dataflush(struct uath_softc *);
-static int	uath_cmdflush(struct uath_softc *);
-static int	uath_flush(struct uath_softc *);
-static int	uath_set_ledstate(struct uath_softc *, int);
-static int	uath_set_chan(struct uath_softc *, struct ieee80211_channel *);
-static int	uath_reset_tx_queues(struct uath_softc *);
-static int	uath_wme_init(struct uath_softc *);
-static struct uath_data *
-		uath_getbuf(struct uath_softc *);
-static int	uath_newstate(struct ieee80211vap *, enum ieee80211_state,
-		    int);
-static int	uath_set_key(struct uath_softc *,
-		    const struct ieee80211_key *, int);
-static int	uath_set_keys(struct uath_softc *, struct ieee80211vap *);
-static void	uath_sysctl_node(struct uath_softc *);
+static int uath_get_devstatus(struct uath_softc *,
+    uint8_t macaddr[IEEE80211_ADDR_LEN]);
+static int uath_get_status(struct uath_softc *, uint32_t, void *, int);
+static int uath_alloc_rx_data_list(struct uath_softc *);
+static int uath_alloc_tx_data_list(struct uath_softc *);
+static void uath_free_rx_data_list(struct uath_softc *);
+static void uath_free_tx_data_list(struct uath_softc *);
+static int uath_init(struct uath_softc *);
+static void uath_stop(struct uath_softc *);
+static void uath_parent(struct ieee80211com *);
+static int uath_transmit(struct ieee80211com *, struct mbuf *);
+static void uath_start(struct uath_softc *);
+static int uath_raw_xmit(struct ieee80211_node *, struct mbuf *,
+    const struct ieee80211_bpf_params *);
+static void uath_scan_start(struct ieee80211com *);
+static void uath_scan_end(struct ieee80211com *);
+static void uath_set_channel(struct ieee80211com *);
+static void uath_update_mcast(struct ieee80211com *);
+static void uath_update_promisc(struct ieee80211com *);
+static int uath_config(struct uath_softc *, uint32_t, uint32_t);
+static int uath_config_multi(struct uath_softc *, uint32_t, const void *, int);
+static int uath_switch_channel(struct uath_softc *, struct ieee80211_channel *);
+static int uath_set_rxfilter(struct uath_softc *, uint32_t, uint32_t);
+static void uath_watchdog(void *);
+static void uath_abort_xfers(struct uath_softc *);
+static int uath_dataflush(struct uath_softc *);
+static int uath_cmdflush(struct uath_softc *);
+static int uath_flush(struct uath_softc *);
+static int uath_set_ledstate(struct uath_softc *, int);
+static int uath_set_chan(struct uath_softc *, struct ieee80211_channel *);
+static int uath_reset_tx_queues(struct uath_softc *);
+static int uath_wme_init(struct uath_softc *);
+static struct uath_data *uath_getbuf(struct uath_softc *);
+static int uath_newstate(struct ieee80211vap *, enum ieee80211_state, int);
+static int uath_set_key(struct uath_softc *, const struct ieee80211_key *, int);
+static int uath_set_keys(struct uath_softc *, struct ieee80211vap *);
+static void uath_sysctl_node(struct uath_softc *);
 
 static int
 uath_match(device_t dev)
@@ -329,7 +314,7 @@ uath_attach(device_t dev)
 	struct usb_attach_arg *uaa = device_get_ivars(dev);
 	struct ieee80211com *ic = &sc->sc_ic;
 	uint8_t bands[IEEE80211_MODE_BYTES];
-	uint8_t iface_index = UATH_IFACE_INDEX;		/* XXX */
+	uint8_t iface_index = UATH_IFACE_INDEX; /* XXX */
 	usb_error_t error;
 
 	sc->sc_dev = dev;
@@ -351,14 +336,16 @@ uath_attach(device_t dev)
 	error = usbd_transfer_setup(uaa->device, &iface_index, sc->sc_xfer,
 	    uath_usbconfig, UATH_N_XFERS, sc, &sc->sc_mtx);
 	if (error) {
-		device_printf(dev, "could not allocate USB transfers, "
-		    "err=%s\n", usbd_errstr(error));
+		device_printf(dev,
+		    "could not allocate USB transfers, "
+		    "err=%s\n",
+		    usbd_errstr(error));
 		goto fail;
 	}
 
-	sc->sc_cmd_dma_buf = 
+	sc->sc_cmd_dma_buf =
 	    usbd_xfer_get_frame_buffer(sc->sc_xfer[UATH_INTR_TX], 0);
-	sc->sc_tx_dma_buf = 
+	sc->sc_tx_dma_buf =
 	    usbd_xfer_get_frame_buffer(sc->sc_xfer[UATH_BULK_TX], 0);
 
 	/*
@@ -415,12 +402,11 @@ uath_attach(device_t dev)
 
 	ic->ic_softc = sc;
 	ic->ic_name = device_get_nameunit(dev);
-	ic->ic_phytype = IEEE80211_T_OFDM;	/* not only, but not used */
-	ic->ic_opmode = IEEE80211_M_STA;	/* default to BSS mode */
+	ic->ic_phytype = IEEE80211_T_OFDM; /* not only, but not used */
+	ic->ic_opmode = IEEE80211_M_STA;   /* default to BSS mode */
 
 	/* set device capabilities */
-	ic->ic_caps =
-	    IEEE80211_C_STA |		/* station mode */
+	ic->ic_caps = IEEE80211_C_STA | /* station mode */
 	    IEEE80211_C_MONITOR |	/* monitor mode supported */
 	    IEEE80211_C_TXPMGT |	/* tx power management */
 	    IEEE80211_C_SHPREAMBLE |	/* short preamble supported */
@@ -452,20 +438,21 @@ uath_attach(device_t dev)
 	ic->ic_transmit = uath_transmit;
 	ic->ic_parent = uath_parent;
 
-	ieee80211_radiotap_attach(ic,
-	    &sc->sc_txtap.wt_ihdr, sizeof(sc->sc_txtap),
-		UATH_TX_RADIOTAP_PRESENT,
+	ieee80211_radiotap_attach(ic, &sc->sc_txtap.wt_ihdr,
+	    sizeof(sc->sc_txtap), UATH_TX_RADIOTAP_PRESENT,
 	    &sc->sc_rxtap.wr_ihdr, sizeof(sc->sc_rxtap),
-		UATH_RX_RADIOTAP_PRESENT);
+	    UATH_RX_RADIOTAP_PRESENT);
 
 	if (bootverbose)
 		ieee80211_announce(ic);
 
 	return (0);
 
-fail2:	UATH_UNLOCK(sc);
+fail2:
+	UATH_UNLOCK(sc);
 	uath_free_cmd_list(sc, sc->sc_cmd);
-fail1:	usbd_transfer_unsetup(sc->sc_xfer, UATH_N_XFERS);
+fail1:
+	usbd_transfer_unsetup(sc->sc_xfer, UATH_N_XFERS);
 fail:
 	return (error);
 }
@@ -544,7 +531,7 @@ uath_alloc_cmd_list(struct uath_softc *sc, struct uath_cmd cmds[])
 	for (i = 0; i != UATH_CMD_LIST_COUNT; i++) {
 		struct uath_cmd *cmd = &cmds[i];
 
-		cmd->sc = sc;	/* backpointer for callbacks */
+		cmd->sc = sc; /* backpointer for callbacks */
 		cmd->msgid = i;
 		cmd->buf = ((uint8_t *)sc->sc_cmd_dma_buf) +
 		    (i * UATH_MAX_CMDSZ);
@@ -566,8 +553,8 @@ uath_host_available(struct uath_softc *sc)
 	setup.sw_ver_minor = htobe32(ATH_SW_VER_MINOR);
 	setup.sw_ver_patch = htobe32(ATH_SW_VER_PATCH);
 	setup.sw_ver_build = htobe32(ATH_SW_VER_BUILD);
-	return uath_cmd_read(sc, WDCMSG_HOST_AVAILABLE,
-		&setup, sizeof setup, NULL, 0, 0);
+	return uath_cmd_read(sc, WDCMSG_HOST_AVAILABLE, &setup, sizeof setup,
+	    NULL, 0, 0);
 }
 
 #ifdef UATH_DEBUG
@@ -581,8 +568,7 @@ uath_dump_cmd(const uint8_t *buf, int len, char prefix)
 		if ((i % 16) == 0) {
 			printf("%s%c ", sep, prefix);
 			sep = "\n";
-		}
-		else if ((i % 4) == 0)
+		} else if ((i % 4) == 0)
 			printf(" ");
 		printf("%02x", buf[i]);
 	}
@@ -593,64 +579,66 @@ static const char *
 uath_codename(int code)
 {
 	static const char *names[] = {
-	    "0x00",
-	    "HOST_AVAILABLE",
-	    "BIND",
-	    "TARGET_RESET",
-	    "TARGET_GET_CAPABILITY",
-	    "TARGET_SET_CONFIG",
-	    "TARGET_GET_STATUS",
-	    "TARGET_GET_STATS",
-	    "TARGET_START",
-	    "TARGET_STOP",
-	    "TARGET_ENABLE",
-	    "TARGET_DISABLE",
-	    "CREATE_CONNECTION",
-	    "UPDATE_CONNECT_ATTR",
-	    "DELETE_CONNECT",
-	    "SEND",
-	    "FLUSH",
-	    "STATS_UPDATE",
-	    "BMISS",
-	    "DEVICE_AVAIL",
-	    "SEND_COMPLETE",
-	    "DATA_AVAIL",
-	    "SET_PWR_MODE",
-	    "BMISS_ACK",
-	    "SET_LED_STEADY",
-	    "SET_LED_BLINK",
-	    "SETUP_BEACON_DESC",
-	    "BEACON_INIT",
-	    "RESET_KEY_CACHE",
-	    "RESET_KEY_CACHE_ENTRY",
-	    "SET_KEY_CACHE_ENTRY",
-	    "SET_DECOMP_MASK",
-	    "SET_REGULATORY_DOMAIN",
-	    "SET_LED_STATE",
-	    "WRITE_ASSOCID",
-	    "SET_STA_BEACON_TIMERS",
-	    "GET_TSF",
-	    "RESET_TSF",
-	    "SET_ADHOC_MODE",
-	    "SET_BASIC_RATE",
-	    "MIB_CONTROL",
-	    "GET_CHANNEL_DATA",
-	    "GET_CUR_RSSI",
-	    "SET_ANTENNA_SWITCH",
-	    "0x2c", "0x2d", "0x2e",
-	    "USE_SHORT_SLOT_TIME",
-	    "SET_POWER_MODE",
-	    "SETUP_PSPOLL_DESC",
-	    "SET_RX_MULTICAST_FILTER",
-	    "RX_FILTER",
-	    "PER_CALIBRATION",
-	    "RESET",
-	    "DISABLE",
-	    "PHY_DISABLE",
-	    "SET_TX_POWER_LIMIT",
-	    "SET_TX_QUEUE_PARAMS",
-	    "SETUP_TX_QUEUE",
-	    "RELEASE_TX_QUEUE",
+		"0x00",
+		"HOST_AVAILABLE",
+		"BIND",
+		"TARGET_RESET",
+		"TARGET_GET_CAPABILITY",
+		"TARGET_SET_CONFIG",
+		"TARGET_GET_STATUS",
+		"TARGET_GET_STATS",
+		"TARGET_START",
+		"TARGET_STOP",
+		"TARGET_ENABLE",
+		"TARGET_DISABLE",
+		"CREATE_CONNECTION",
+		"UPDATE_CONNECT_ATTR",
+		"DELETE_CONNECT",
+		"SEND",
+		"FLUSH",
+		"STATS_UPDATE",
+		"BMISS",
+		"DEVICE_AVAIL",
+		"SEND_COMPLETE",
+		"DATA_AVAIL",
+		"SET_PWR_MODE",
+		"BMISS_ACK",
+		"SET_LED_STEADY",
+		"SET_LED_BLINK",
+		"SETUP_BEACON_DESC",
+		"BEACON_INIT",
+		"RESET_KEY_CACHE",
+		"RESET_KEY_CACHE_ENTRY",
+		"SET_KEY_CACHE_ENTRY",
+		"SET_DECOMP_MASK",
+		"SET_REGULATORY_DOMAIN",
+		"SET_LED_STATE",
+		"WRITE_ASSOCID",
+		"SET_STA_BEACON_TIMERS",
+		"GET_TSF",
+		"RESET_TSF",
+		"SET_ADHOC_MODE",
+		"SET_BASIC_RATE",
+		"MIB_CONTROL",
+		"GET_CHANNEL_DATA",
+		"GET_CUR_RSSI",
+		"SET_ANTENNA_SWITCH",
+		"0x2c",
+		"0x2d",
+		"0x2e",
+		"USE_SHORT_SLOT_TIME",
+		"SET_POWER_MODE",
+		"SETUP_PSPOLL_DESC",
+		"SET_RX_MULTICAST_FILTER",
+		"RX_FILTER",
+		"PER_CALIBRATION",
+		"RESET",
+		"DISABLE",
+		"PHY_DISABLE",
+		"SET_TX_POWER_LIMIT",
+		"SET_TX_QUEUE_PARAMS",
+		"SETUP_TX_QUEUE",
+		"RELEASE_TX_QUEUE",
 	};
 	static char buf[8];
 
@@ -689,23 +677,23 @@ uath_cmdsend(struct uath_softc *sc, uint32_t code, const void *idata, int ilen,
 
 	hdr = (struct uath_cmd_hdr *)cmd->buf;
 	memset(hdr, 0, sizeof(struct uath_cmd_hdr));
-	hdr->len   = htobe32(cmd->buflen);
-	hdr->code  = htobe32(code);
-	hdr->msgid = cmd->msgid;	/* don't care about endianness */
+	hdr->len = htobe32(cmd->buflen);
+	hdr->code = htobe32(code);
+	hdr->msgid = cmd->msgid; /* don't care about endianness */
 	hdr->magic = htobe32((cmd->flags & UATH_CMD_FLAG_MAGIC) ? 1 << 24 : 0);
 	memcpy((uint8_t *)(hdr + 1), idata, ilen);
 
 #ifdef UATH_DEBUG
 	if (sc->sc_debug & UATH_DEBUG_CMDS) {
-		printf("%s: send  %s [flags 0x%x] olen %d\n",
-		    __func__, uath_codename(code), cmd->flags, olen);
+		printf("%s: send  %s [flags 0x%x] olen %d\n", __func__,
+		    uath_codename(code), cmd->flags, olen);
 		if (sc->sc_debug & UATH_DEBUG_CMDS_DUMP)
 			uath_dump_cmd(cmd->buf, cmd->buflen, '+');
 	}
 #endif
 	cmd->odata = odata;
 	KASSERT(odata == NULL ||
-	    olen < UATH_MAX_CMDSZ - sizeof(*hdr) + sizeof(uint32_t),
+		olen < UATH_MAX_CMDSZ - sizeof(*hdr) + sizeof(uint32_t),
 	    ("odata %p olen %u", odata, olen));
 	cmd->olen = olen;
 
@@ -718,12 +706,15 @@ uath_cmdsend(struct uath_softc *sc, uint32_t code, const void *idata, int ilen,
 
 		/* wait at most two seconds for command reply */
 		error = mtx_sleep(cmd, &sc->sc_mtx, 0, "uathcmd", 2 * hz);
-		cmd->odata = NULL;	/* in case reply comes too late */
+		cmd->odata = NULL; /* in case reply comes too late */
 		if (error != 0) {
-			device_printf(sc->sc_dev, "timeout waiting for reply "
-			    "to cmd 0x%x (%u)\n", code, code);
+			device_printf(sc->sc_dev,
+			    "timeout waiting for reply "
+			    "to cmd 0x%x (%u)\n",
+			    code, code);
 		} else if (cmd->olen != olen) {
-			device_printf(sc->sc_dev, "unexpected reply data count "
+			device_printf(sc->sc_dev,
+			    "unexpected reply data count "
 			    "to cmd 0x%x (%u), got %u, expected %u\n",
 			    code, code, cmd->olen, olen);
 			error = EINVAL;
@@ -734,8 +725,8 @@ uath_cmdsend(struct uath_softc *sc, uint32_t code, const void *idata, int ilen,
 }
 
 static int
-uath_cmd_read(struct uath_softc *sc, uint32_t code, const void *idata,
-    int ilen, void *odata, int olen, int flags)
+uath_cmd_read(struct uath_softc *sc, uint32_t code, const void *idata, int ilen,
+    void *odata, int olen, int flags)
 {
 
 	flags |= UATH_CMD_FLAG_READ;
@@ -788,8 +779,8 @@ uath_stat(void *arg)
 	error = uath_cmd_write(sc, WDCMSG_TARGET_GET_STATS, NULL, 0,
 	    UATH_CMD_FLAG_ASYNC);
 	if (error != 0) {
-		device_printf(sc->sc_dev,
-		    "could not query stats, error %d\n", error);
+		device_printf(sc->sc_dev, "could not query stats, error %d\n",
+		    error);
 	}
 	UATH_UNLOCK(sc);
 }
@@ -800,8 +791,8 @@ uath_get_capability(struct uath_softc *sc, uint32_t cap, uint32_t *val)
 	int error;
 
 	cap = htobe32(cap);
-	error = uath_cmd_read(sc, WDCMSG_TARGET_GET_CAPABILITY,
-	    &cap, sizeof cap, val, sizeof(uint32_t), UATH_CMD_FLAG_MAGIC);
+	error = uath_cmd_read(sc, WDCMSG_TARGET_GET_CAPABILITY, &cap,
+	    sizeof cap, val, sizeof(uint32_t), UATH_CMD_FLAG_MAGIC);
 	if (error != 0) {
 		device_printf(sc->sc_dev, "could not read capability %u\n",
 		    be32toh(cap));
@@ -814,13 +805,14 @@ uath_get_capability(struct uath_softc *sc, uint32_t cap, uint32_t *val)
 static int
 uath_get_devcap(struct uath_softc *sc)
 {
-#define	GETCAP(x, v) do {				\
-	error = uath_get_capability(sc, x, &v);		\
-	if (error != 0)					\
-		return (error);				\
-	DPRINTF(sc, UATH_DEBUG_DEVCAP,			\
-	    "%s: %s=0x%08x\n", __func__, #x, v);	\
-} while (0)
+#define GETCAP(x, v)                                                        \
+	do {                                                                \
+		error = uath_get_capability(sc, x, &v);                     \
+		if (error != 0)                                             \
+			return (error);                                     \
+		DPRINTF(sc, UATH_DEBUG_DEVCAP, "%s: %s=0x%08x\n", __func__, \
+		    #x, v);                                                 \
+	} while (0)
 	struct uath_devcap *cap = &sc->sc_devcap;
 	int error;
 
@@ -863,7 +855,7 @@ uath_get_devcap(struct uath_softc *sc)
 	GETCAP(CAP_CIPHER_TKIP, cap->supportCipherTKIP);
 	GETCAP(CAP_MIC_TKIP, cap->supportMicTKIP);
 
-	cap->supportCipherWEP = 1;	/* NB: always available */
+	cap->supportCipherWEP = 1; /* NB: always available */
 
 	return (0);
 }
@@ -880,8 +872,8 @@ uath_get_devstatus(struct uath_softc *sc, uint8_t macaddr[IEEE80211_ADDR_LEN])
 		return (error);
 	}
 
-	error = uath_get_status(sc, ST_SERIAL_NUMBER,
-	    &sc->sc_serial[0], sizeof(sc->sc_serial));
+	error = uath_get_status(sc, ST_SERIAL_NUMBER, &sc->sc_serial[0],
+	    sizeof(sc->sc_serial));
 	if (error != 0) {
 		device_printf(sc->sc_dev,
 		    "could not read device serial number\n");
@@ -896,8 +888,8 @@ uath_get_status(struct uath_softc *sc, uint32_t which, void *odata, int olen)
 	int error;
 
 	which = htobe32(which);
-	error = uath_cmd_read(sc, WDCMSG_TARGET_GET_STATUS,
-	    &which, sizeof(which), odata, olen, UATH_CMD_FLAG_MAGIC);
+	error = uath_cmd_read(sc, WDCMSG_TARGET_GET_STATUS, &which,
+	    sizeof(which), odata, olen, UATH_CMD_FLAG_MAGIC);
 	if (error != 0)
 		device_printf(sc->sc_dev,
 		    "could not read EEPROM offset 0x%02x\n", be32toh(which));
@@ -930,8 +922,8 @@ uath_free_data_list(struct uath_softc *sc, struct uath_data data[], int ndata,
 }
 
 static int
-uath_alloc_data_list(struct uath_softc *sc, struct uath_data data[],
-    int ndata, int maxsz, void *dma_buf)
+uath_alloc_data_list(struct uath_softc *sc, struct uath_data data[], int ndata,
+    int maxsz, void *dma_buf)
 {
 	int i, error;
 
@@ -958,7 +950,8 @@ uath_alloc_data_list(struct uath_softc *sc, struct uath_data data[],
 
 	return (0);
 
-fail:	uath_free_data_list(sc, data, ndata, 1 /* free mbufs */);
+fail:
+	uath_free_data_list(sc, data, ndata, 1 /* free mbufs */);
 	return (error);
 }
 
@@ -968,9 +961,8 @@ uath_alloc_rx_data_list(struct uath_softc *sc)
 	int error, i;
 
 	/* XXX is it enough to store the RX packet with MCLBYTES bytes?  */
-	error = uath_alloc_data_list(sc,
-	    sc->sc_rx, UATH_RX_DATA_LIST_COUNT, MCLBYTES,
-	    NULL /* setup mbufs */);
+	error = uath_alloc_data_list(sc, sc->sc_rx, UATH_RX_DATA_LIST_COUNT,
+	    MCLBYTES, NULL /* setup mbufs */);
 	if (error != 0)
 		return (error);
 
@@ -978,8 +970,7 @@ uath_alloc_rx_data_list(struct uath_softc *sc)
 	STAILQ_INIT(&sc->sc_rx_inactive);
 
 	for (i = 0; i < UATH_RX_DATA_LIST_COUNT; i++) {
-		STAILQ_INSERT_HEAD(&sc->sc_rx_inactive, &sc->sc_rx[i],
-		    next);
+		STAILQ_INSERT_HEAD(&sc->sc_rx_inactive, &sc->sc_rx[i], next);
 		UATH_STAT_INC(sc, st_rx_inactive);
 	}
 
@@ -991,9 +982,8 @@ uath_alloc_tx_data_list(struct uath_softc *sc)
 {
 	int error, i;
 
-	error = uath_alloc_data_list(sc,
-	    sc->sc_tx, UATH_TX_DATA_LIST_COUNT, UATH_MAX_TXBUFSZ,
-	    sc->sc_tx_dma_buf);
+	error = uath_alloc_data_list(sc, sc->sc_tx, UATH_TX_DATA_LIST_COUNT,
+	    UATH_MAX_TXBUFSZ, sc->sc_tx_dma_buf);
 	if (error != 0)
 		return (error);
 
@@ -1002,8 +992,7 @@ uath_alloc_tx_data_list(struct uath_softc *sc)
 	STAILQ_INIT(&sc->sc_tx_pending);
 
 	for (i = 0; i < UATH_TX_DATA_LIST_COUNT; i++) {
-		STAILQ_INSERT_HEAD(&sc->sc_tx_inactive, &sc->sc_tx[i],
-		    next);
+		STAILQ_INSERT_HEAD(&sc->sc_tx_inactive, &sc->sc_tx[i], next);
 		UATH_STAT_INC(sc, st_tx_inactive);
 	}
 
@@ -1033,14 +1022,14 @@ uath_vap_create(struct ieee80211com *ic, const char name[IFNAMSIZ], int unit,
 	struct uath_vap *uvp;
 	struct ieee80211vap *vap;
 
-	if (!TAILQ_EMPTY(&ic->ic_vaps))		/* only one at a time */
+	if (!TAILQ_EMPTY(&ic->ic_vaps)) /* only one at a time */
 		return (NULL);
-	uvp =  malloc(sizeof(struct uath_vap), M_80211_VAP, M_WAITOK | M_ZERO);
+	uvp = malloc(sizeof(struct uath_vap), M_80211_VAP, M_WAITOK | M_ZERO);
 	vap = &uvp->vap;
 	/* enable s/w bmiss handling for sta mode */
 
 	if (ieee80211_vap_setup(ic, vap, name, unit, opmode,
-	    flags | IEEE80211_CLONE_NOBEACONS, bssid) != 0) {
+		flags | IEEE80211_CLONE_NOBEACONS, bssid) != 0) {
 		/* out of memory */
 		free(uvp, M_80211_VAP);
 		return (NULL);
@@ -1105,11 +1094,11 @@ uath_init(struct uath_softc *sc)
 	uath_config(sc, CFG_PROTECTION_TYPE, 0x00000000);
 	uath_config(sc, CFG_MODE_CTS, 0x00000002);
 
-	error = uath_cmd_read(sc, WDCMSG_TARGET_START, NULL, 0,
-	    &val, sizeof(val), UATH_CMD_FLAG_MAGIC);
+	error = uath_cmd_read(sc, WDCMSG_TARGET_START, NULL, 0, &val,
+	    sizeof(val), UATH_CMD_FLAG_MAGIC);
 	if (error) {
-		device_printf(sc->sc_dev,
-		    "could not start target, error %d\n", error);
+		device_printf(sc->sc_dev, "could not start target, error %d\n",
+		    error);
 		goto fail;
 	}
 	DPRINTF(sc, UATH_DEBUG_INIT, "%s returns handle: 0x%x\n",
@@ -1132,8 +1121,8 @@ uath_init(struct uath_softc *sc)
 	/* enable Rx */
 	uath_set_rxfilter(sc, 0x0, UATH_FILTER_OP_INIT);
 	uath_set_rxfilter(sc,
-	    UATH_FILTER_RX_UCAST | UATH_FILTER_RX_MCAST |
-	    UATH_FILTER_RX_BCAST | UATH_FILTER_RX_BEACON,
+	    UATH_FILTER_RX_UCAST | UATH_FILTER_RX_MCAST | UATH_FILTER_RX_BCAST |
+		UATH_FILTER_RX_BEACON,
 	    UATH_FILTER_OP_SET);
 
 	sc->sc_flags |= UATH_FLAG_INITDONE;
@@ -1175,11 +1164,11 @@ uath_config(struct uath_softc *sc, uint32_t reg, uint32_t val)
 	int error;
 
 	write.reg = htobe32(reg);
-	write.len = htobe32(0);	/* 0 = single write */
+	write.len = htobe32(0); /* 0 = single write */
 	*(uint32_t *)write.data = htobe32(val);
 
 	error = uath_cmd_write(sc, WDCMSG_TARGET_SET_CONFIG, &write,
-	    3 * sizeof (uint32_t), 0);
+	    3 * sizeof(uint32_t), 0);
 	if (error != 0) {
 		device_printf(sc->sc_dev, "could not write register 0x%02x\n",
 		    reg);
@@ -1200,7 +1189,7 @@ uath_config_multi(struct uath_softc *sc, uint32_t reg, const void *data,
 
 	/* properly handle the case where len is zero (reset) */
 	error = uath_cmd_write(sc, WDCMSG_TARGET_SET_CONFIG, &write,
-	    (len == 0) ? sizeof (uint32_t) : 2 * sizeof (uint32_t) + len, 0);
+	    (len == 0) ? sizeof(uint32_t) : 2 * sizeof(uint32_t) + len, 0);
 	if (error != 0) {
 		device_printf(sc->sc_dev,
 		    "could not write %d bytes to register 0x%02x\n", len, reg);
@@ -1218,8 +1207,8 @@ uath_switch_channel(struct uath_softc *sc, struct ieee80211_channel *c)
 	/* set radio frequency */
 	error = uath_set_chan(sc, c);
 	if (error) {
-		device_printf(sc->sc_dev,
-		    "could not set channel, error %d\n", error);
+		device_printf(sc->sc_dev, "could not set channel, error %d\n",
+		    error);
 		goto failed;
 	}
 	/* reset Tx rings */
@@ -1238,14 +1227,14 @@ uath_switch_channel(struct uath_softc *sc, struct ieee80211_channel *c)
 	}
 	error = uath_set_ledstate(sc, 0);
 	if (error) {
-		device_printf(sc->sc_dev,
-		    "could not set led state, error %d\n", error);
+		device_printf(sc->sc_dev, "could not set led state, error %d\n",
+		    error);
 		goto failed;
 	}
 	error = uath_flush(sc);
 	if (error) {
-		device_printf(sc->sc_dev,
-		    "could not flush pipes, error %d\n", error);
+		device_printf(sc->sc_dev, "could not flush pipes, error %d\n",
+		    error);
 		goto failed;
 	}
 failed:
@@ -1262,8 +1251,8 @@ uath_set_rxfilter(struct uath_softc *sc, uint32_t bits, uint32_t op)
 
 	DPRINTF(sc, UATH_DEBUG_RECV | UATH_DEBUG_RECV_ALL,
 	    "setting Rx filter=0x%x flags=0x%x\n", bits, op);
-	return uath_cmd_write(sc, WDCMSG_RX_FILTER, &rxfilter,
-	    sizeof rxfilter, 0);
+	return uath_cmd_write(sc, WDCMSG_RX_FILTER, &rxfilter, sizeof rxfilter,
+	    0);
 }
 
 static void
@@ -1339,15 +1328,15 @@ uath_dataflush(struct uath_softc *sc)
 	/* one chunk only */
 	chunk->seqnum = 0;
 	chunk->flags = UATH_CFLAGS_FINAL;
-	chunk->length = htobe16(sizeof (struct uath_tx_desc));
+	chunk->length = htobe16(sizeof(struct uath_tx_desc));
 
 	memset(desc, 0, sizeof(struct uath_tx_desc));
 	desc->msglen = htobe32(sizeof(struct uath_tx_desc));
-	desc->msgid  = (sc->sc_msgid++) + 1; /* don't care about endianness */
-	desc->type   = htobe32(WDCMSG_FLUSH);
-	desc->txqid  = htobe32(0);
+	desc->msgid = (sc->sc_msgid++) + 1; /* don't care about endianness */
+	desc->type = htobe32(WDCMSG_FLUSH);
+	desc->txqid = htobe32(0);
 	desc->connid = htobe32(0);
-	desc->flags  = htobe32(0);
+	desc->flags = htobe32(0);
 
 #ifdef UATH_DEBUG
 	if (sc->sc_debug & UATH_DEBUG_CMDS) {
@@ -1400,11 +1389,11 @@ static int
 uath_set_ledstate(struct uath_softc *sc, int connected)
 {
 
-	DPRINTF(sc, UATH_DEBUG_LED,
-	    "set led state %sconnected\n", connected ? "" : "!");
+	DPRINTF(sc, UATH_DEBUG_LED, "set led state %sconnected\n",
+	    connected ? "" : "!");
 	connected = htobe32(connected);
-	return uath_cmd_write(sc, WDCMSG_SET_LED_STATE,
-	     &connected, sizeof connected, 0);
+	return uath_cmd_write(sc, WDCMSG_SET_LED_STATE, &connected,
+	    sizeof connected, 0);
 }
 
 static int
@@ -1429,13 +1418,13 @@ uath_set_chan(struct uath_softc *sc, struct ieee80211_channel *c)
 	if (c->ic_flags & IEEE80211_CHAN_TURBO)
 		reset.flags |= htobe32(UATH_CHAN_TURBO);
 	reset.freq = htobe32(c->ic_freq);
-	reset.maxrdpower = htobe32(50);	/* XXX */
+	reset.maxrdpower = htobe32(50); /* XXX */
 	reset.channelchange = htobe32(1);
 	reset.keeprccontent = htobe32(0);
 
 	DPRINTF(sc, UATH_DEBUG_CHANNEL, "set channel %d, flags 0x%x freq %u\n",
-	    ieee80211_chan2ieee(ic, c),
-	    be32toh(reset.flags), be32toh(reset.freq));
+	    ieee80211_chan2ieee(ic, c), be32toh(reset.flags),
+	    be32toh(reset.freq));
 	return uath_cmd_write(sc, WDCMSG_RESET, &reset, sizeof reset, 0);
 }
 
@@ -1461,26 +1450,26 @@ uath_wme_init(struct uath_softc *sc)
 {
 	/* XXX get from net80211 */
 	static const struct uath_wme_settings uath_wme_11g[4] = {
-		{ 7, 4, 10,  0, 0 },	/* Background */
-		{ 3, 4, 10,  0, 0 },	/* Best-Effort */
-		{ 3, 3,  4, 26, 0 },	/* Video */
-		{ 2, 2,  3, 47, 0 }	/* Voice */
+		{ 7, 4, 10, 0, 0 }, /* Background */
+		{ 3, 4, 10, 0, 0 }, /* Best-Effort */
+		{ 3, 3, 4, 26, 0 }, /* Video */
+		{ 2, 2, 3, 47, 0 }  /* Voice */
 	};
 	struct uath_cmd_txq_setup qinfo;
 	int ac, error;
 
 	DPRINTF(sc, UATH_DEBUG_WME, "%s: setup Tx queues\n", __func__);
 	for (ac = 0; ac < 4; ac++) {
-		qinfo.qid		= htobe32(ac);
-		qinfo.len		= htobe32(sizeof(qinfo.attr));
-		qinfo.attr.priority	= htobe32(ac);	/* XXX */
-		qinfo.attr.aifs		= htobe32(uath_wme_11g[ac].aifsn);
-		qinfo.attr.logcwmin	= htobe32(uath_wme_11g[ac].logcwmin);
-		qinfo.attr.logcwmax	= htobe32(uath_wme_11g[ac].logcwmax);
-		qinfo.attr.bursttime	= htobe32(IEEE80211_TXOP_TO_US(
-					    uath_wme_11g[ac].txop));
-		qinfo.attr.mode		= htobe32(uath_wme_11g[ac].acm);/*XXX? */
-		qinfo.attr.qflags	= htobe32(1);	/* XXX? */
+		qinfo.qid = htobe32(ac);
+		qinfo.len = htobe32(sizeof(qinfo.attr));
+		qinfo.attr.priority = htobe32(ac); /* XXX */
+		qinfo.attr.aifs = htobe32(uath_wme_11g[ac].aifsn);
+		qinfo.attr.logcwmin = htobe32(uath_wme_11g[ac].logcwmin);
+		qinfo.attr.logcwmax = htobe32(uath_wme_11g[ac].logcwmax);
+		qinfo.attr.bursttime = htobe32(
+		    IEEE80211_TXOP_TO_US(uath_wme_11g[ac].txop));
+		qinfo.attr.mode = htobe32(uath_wme_11g[ac].acm); /*XXX? */
+		qinfo.attr.qflags = htobe32(1);			 /* XXX? */
 
 		error = uath_cmd_write(sc, WDCMSG_SETUP_TX_QUEUE, &qinfo,
 		    sizeof qinfo, 0);
@@ -1556,8 +1545,8 @@ uath_tx_start(struct uath_softc *sc, struct mbuf *m0, struct ieee80211_node *ni,
 	m_copydata(m0, 0, m0->m_pkthdr.len, (uint8_t *)(desc + 1));
 
 	framelen = m0->m_pkthdr.len + IEEE80211_CRC_LEN;
-	msglen = framelen + sizeof (struct uath_tx_desc);
-	data->buflen = msglen + sizeof (struct uath_chunk);
+	msglen = framelen + sizeof(struct uath_tx_desc);
+	data->buflen = msglen + sizeof(struct uath_chunk);
 
 	/* one chunk only for now */
 	chunk->seqnum = sc->sc_seqnum++;
@@ -1570,8 +1559,8 @@ uath_tx_start(struct uath_softc *sc, struct mbuf *m0, struct ieee80211_node *ni,
 	/* fill Tx descriptor */
 	desc->msglen = htobe32(msglen);
 	/* NB: to get UATH_TX_NOTIFY reply, `msgid' must be larger than 0  */
-	desc->msgid  = (sc->sc_msgid++) + 1; /* don't care about endianness */
-	desc->type   = htobe32(WDCMSG_SEND);
+	desc->msgid = (sc->sc_msgid++) + 1; /* don't care about endianness */
+	desc->type = htobe32(WDCMSG_SEND);
 	switch (wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) {
 	case IEEE80211_FC0_TYPE_CTL:
 	case IEEE80211_FC0_TYPE_MGT:
@@ -1588,7 +1577,7 @@ uath_tx_start(struct uath_softc *sc, struct mbuf *m0, struct ieee80211_node *ni,
 		break;
 	default:
 		device_printf(sc->sc_dev, "bogus frame type 0x%x (%s)\n",
-			wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK, __func__);
+		    wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK, __func__);
 		m_freem(m0);
 		return (EIO);
 	}
@@ -1598,7 +1587,7 @@ uath_tx_start(struct uath_softc *sc, struct mbuf *m0, struct ieee80211_node *ni,
 		desc->connid = htobe32(UATH_ID_BSS);
 	else
 		desc->connid = htobe32(UATH_ID_INVALID);
-	desc->flags  = htobe32(0 /* no UATH_TX_NOTIFY */);
+	desc->flags = htobe32(0 /* no UATH_TX_NOTIFY */);
 	desc->buflen = htobe32(m0->m_pkthdr.len);
 
 #ifdef UATH_DEBUG
@@ -1622,14 +1611,14 @@ uath_tx_start(struct uath_softc *sc, struct mbuf *m0, struct ieee80211_node *ni,
  * fragments; return the tx buffers allocated and drop node references.
  */
 static void
-uath_txfrag_cleanup(struct uath_softc *sc,
-    uath_datahead *frags, struct ieee80211_node *ni)
+uath_txfrag_cleanup(struct uath_softc *sc, uath_datahead *frags,
+    struct ieee80211_node *ni)
 {
 	struct uath_data *bf, *next;
 
 	UATH_ASSERT_LOCKED(sc);
 
-	STAILQ_FOREACH_SAFE(bf, frags, next, next) {
+	STAILQ_FOREACH_SAFE (bf, frags, next, next) {
 		/* NB: bf assumed clean */
 		STAILQ_REMOVE_HEAD(frags, next);
 		STAILQ_INSERT_HEAD(&sc->sc_tx_inactive, bf, next);
@@ -1644,8 +1633,8 @@ uath_txfrag_cleanup(struct uath_softc *sc,
  * uath_tx_start.
  */
 static int
-uath_txfrag_setup(struct uath_softc *sc, uath_datahead *frags,
-    struct mbuf *m0, struct ieee80211_node *ni)
+uath_txfrag_setup(struct uath_softc *sc, uath_datahead *frags, struct mbuf *m0,
+    struct ieee80211_node *ni)
 {
 	struct mbuf *m;
 	struct uath_data *bf;
@@ -1653,11 +1642,11 @@ uath_txfrag_setup(struct uath_softc *sc, uath_datahead *frags,
 	UATH_ASSERT_LOCKED(sc);
 	for (m = m0->m_nextpkt; m != NULL; m = m->m_nextpkt) {
 		bf = uath_getbuf(sc);
-		if (bf == NULL) {       /* out of buffers, cleanup */
+		if (bf == NULL) { /* out of buffers, cleanup */
 			uath_txfrag_cleanup(sc, frags, ni);
 			break;
 		}
-		(void) ieee80211_ref_node(ni);
+		(void)ieee80211_ref_node(ni);
 		STAILQ_INSERT_TAIL(frags, bf, next);
 	}
 
@@ -1665,7 +1654,7 @@ uath_txfrag_setup(struct uath_softc *sc, uath_datahead *frags,
 }
 
 static int
-uath_transmit(struct ieee80211com *ic, struct mbuf *m)   
+uath_transmit(struct ieee80211com *ic, struct mbuf *m)
 {
 	struct uath_softc *sc = ic->ic_softc;
 	int error;
@@ -1716,7 +1705,7 @@ uath_start(struct uath_softc *sc)
 		 * so all go out or none...
 		 */
 		STAILQ_INIT(&frags);
-		if ((m->m_flags & M_FRAG) && 
+		if ((m->m_flags & M_FRAG) &&
 		    !uath_txfrag_setup(sc, &frags, m, ni)) {
 			DPRINTF(sc, UATH_DEBUG_XMIT,
 			    "%s: out of txfrag buffers\n", __func__);
@@ -1734,10 +1723,10 @@ uath_start(struct uath_softc *sc)
 		 */
 		next = m->m_nextpkt;
 		if (uath_tx_start(sc, m, ni, bf) != 0) {
-	bad:
-			if_inc_counter(ni->ni_vap->iv_ifp,
-			    IFCOUNTER_OERRORS, 1);
-	reclaim:
+		bad:
+			if_inc_counter(ni->ni_vap->iv_ifp, IFCOUNTER_OERRORS,
+			    1);
+		reclaim:
 			STAILQ_INSERT_HEAD(&sc->sc_tx_inactive, bf, next);
 			UATH_STAT_INC(sc, st_tx_inactive);
 			uath_txfrag_cleanup(sc, &frags, ni);
@@ -1874,8 +1863,9 @@ uath_update_promisc(struct ieee80211com *ic)
 	if (sc->sc_flags & UATH_FLAG_INITDONE) {
 		uath_set_rxfilter(sc,
 		    UATH_FILTER_RX_UCAST | UATH_FILTER_RX_MCAST |
-		    UATH_FILTER_RX_BCAST | UATH_FILTER_RX_BEACON |
-		    UATH_FILTER_RX_PROM, UATH_FILTER_OP_SET);
+			UATH_FILTER_RX_BCAST | UATH_FILTER_RX_BEACON |
+			UATH_FILTER_RX_PROM,
+		    UATH_FILTER_OP_SET);
 	}
 	UATH_UNLOCK(sc);
 }
@@ -1898,8 +1888,7 @@ uath_create_connection(struct uath_softc *sc, uint32_t connid)
 
 	rs = &ni->ni_rates;
 	create.connattr.rateset.length = rs->rs_nrates;
-	bcopy(rs->rs_rates, &create.connattr.rateset.set[0],
-	    rs->rs_nrates);
+	bcopy(rs->rs_rates, &create.connattr.rateset.set[0], rs->rs_nrates);
 
 	/* XXX turbo */
 	if (IEEE80211_IS_CHAN_A(ni->ni_chan))
@@ -1920,16 +1909,16 @@ uath_set_rates(struct uath_softc *sc, const struct ieee80211_rateset *rs)
 	struct uath_cmd_rates rates;
 
 	memset(&rates, 0, sizeof(rates));
-	rates.connid = htobe32(UATH_ID_BSS);		/* XXX */
-	rates.size   = htobe32(sizeof(struct uath_cmd_rateset));
+	rates.connid = htobe32(UATH_ID_BSS); /* XXX */
+	rates.size = htobe32(sizeof(struct uath_cmd_rateset));
 	/* XXX bounds check rs->rs_nrates */
 	rates.rateset.length = rs->rs_nrates;
 	bcopy(rs->rs_rates, &rates.rateset.set[0], rs->rs_nrates);
 
-	DPRINTF(sc, UATH_DEBUG_RATES,
-	    "setting supported rates nrates=%d\n", rs->rs_nrates);
-	return uath_cmd_write(sc, WDCMSG_SET_BASIC_RATE,
-	    &rates, sizeof rates, 0);
+	DPRINTF(sc, UATH_DEBUG_RATES, "setting supported rates nrates=%d\n",
+	    rs->rs_nrates);
+	return uath_cmd_write(sc, WDCMSG_SET_BASIC_RATE, &rates, sizeof rates,
+	    0);
 }
 
 static int
@@ -1942,9 +1931,9 @@ uath_write_associd(struct uath_softc *sc)
 
 	ni = ieee80211_ref_node(vap->iv_bss);
 	memset(&associd, 0, sizeof(associd));
-	associd.defaultrateix = htobe32(1);	/* XXX */
+	associd.defaultrateix = htobe32(1); /* XXX */
 	associd.associd = htobe32(ni->ni_associd);
-	associd.timoffset = htobe32(0x3b);	/* XXX */
+	associd.timoffset = htobe32(0x3b); /* XXX */
 	IEEE80211_ADDR_COPY(associd.bssid, ni->ni_bssid);
 	ieee80211_free_node(ni);
 	return uath_cmd_write(sc, WDCMSG_WRITE_ASSOCID, &associd,
@@ -1966,8 +1955,8 @@ uath_set_ledsteady(struct uath_softc *sc, int lednum, int ledmode)
 }
 
 static int
-uath_set_ledblink(struct uath_softc *sc, int lednum, int ledmode,
-	int blinkrate, int slowmode)
+uath_set_ledblink(struct uath_softc *sc, int lednum, int ledmode, int blinkrate,
+    int slowmode)
 {
 	struct uath_cmd_ledblink led;
 
@@ -1992,9 +1981,8 @@ uath_newstate(struct ieee80211vap *vap, enum ieee80211_state nstate, int arg)
 	struct uath_softc *sc = ic->ic_softc;
 	struct uath_vap *uvp = UATH_VAP(vap);
 
-	DPRINTF(sc, UATH_DEBUG_STATE,
-	    "%s: %s -> %s\n", __func__, ieee80211_state_name[vap->iv_state],
-	    ieee80211_state_name[nstate]);
+	DPRINTF(sc, UATH_DEBUG_STATE, "%s: %s -> %s\n", __func__,
+	    ieee80211_state_name[vap->iv_state], ieee80211_state_name[nstate]);
 
 	IEEE80211_UNLOCK(ic);
 	UATH_LOCK(sc);
@@ -2053,7 +2041,8 @@ uath_newstate(struct ieee80211vap *vap, enum ieee80211_state nstate, int arg)
 		 * Tx rate is controlled by firmware, report the maximum
 		 * negotiated rate in ifconfig output.
 		 */
-		ni->ni_txrate = ni->ni_rates.rs_rates[ni->ni_rates.rs_nrates-1];
+		ni->ni_txrate =
+		    ni->ni_rates.rs_rates[ni->ni_rates.rs_nrates - 1];
 
 		if (uath_write_associd(sc) != 0) {
 			device_printf(sc->sc_dev,
@@ -2080,8 +2069,7 @@ uath_newstate(struct ieee80211vap *vap, enum ieee80211_state nstate, int arg)
 }
 
 static int
-uath_set_key(struct uath_softc *sc, const struct ieee80211_key *wk,
-    int index)
+uath_set_key(struct uath_softc *sc, const struct ieee80211_key *wk, int index)
 {
 #if 0
 	struct uath_cmd_crypto crypto;
@@ -2123,7 +2111,7 @@ uath_set_keys(struct uath_softc *sc, struct ieee80211vap *vap)
 	for (i = 0; i < IEEE80211_WEP_NKID; i++) {
 		const struct ieee80211_key *wk = &vap->iv_nw_keys[i];
 
-		if (wk->wk_flags & (IEEE80211_KEY_XMIT|IEEE80211_KEY_RECV)) {
+		if (wk->wk_flags & (IEEE80211_KEY_XMIT | IEEE80211_KEY_RECV)) {
 			error = uath_set_key(sc, wk, i);
 			if (error)
 				return (error);
@@ -2131,13 +2119,13 @@ uath_set_keys(struct uath_softc *sc, struct ieee80211vap *vap)
 	}
 	if (vap->iv_def_txkey != IEEE80211_KEYIX_NONE) {
 		error = uath_set_key(sc, &vap->iv_nw_keys[vap->iv_def_txkey],
-			UATH_DEFAULT_KEY);
+		    UATH_DEFAULT_KEY);
 	}
 	return (error);
 }
 
-#define	UATH_SYSCTL_STAT_ADD32(c, h, n, p, d)	\
-	    SYSCTL_ADD_UINT(c, h, OID_AUTO, n, CTLFLAG_RD, p, 0, d)
+#define UATH_SYSCTL_STAT_ADD32(c, h, n, p, d) \
+	SYSCTL_ADD_UINT(c, h, OID_AUTO, n, CTLFLAG_RD, p, 0, d)
 
 static void
 uath_sysctl_node(struct uath_softc *sc)
@@ -2179,24 +2167,24 @@ uath_sysctl_node(struct uath_softc *sc)
 	UATH_SYSCTL_STAT_ADD32(ctx, child, "err", &stats->st_err,
 	    "Unknown errors");
 
-	UATH_SYSCTL_STAT_ADD32(ctx, child, "cmd_active",
-	    &stats->st_cmd_active, "Active numbers in Command queue");
+	UATH_SYSCTL_STAT_ADD32(ctx, child, "cmd_active", &stats->st_cmd_active,
+	    "Active numbers in Command queue");
 	UATH_SYSCTL_STAT_ADD32(ctx, child, "cmd_inactive",
 	    &stats->st_cmd_inactive, "Inactive numbers in Command queue");
 	UATH_SYSCTL_STAT_ADD32(ctx, child, "cmd_pending",
 	    &stats->st_cmd_pending, "Pending numbers in Command queue");
 	UATH_SYSCTL_STAT_ADD32(ctx, child, "cmd_waiting",
 	    &stats->st_cmd_waiting, "Waiting numbers in Command queue");
-	UATH_SYSCTL_STAT_ADD32(ctx, child, "rx_active",
-	    &stats->st_rx_active, "Active numbers in RX queue");
+	UATH_SYSCTL_STAT_ADD32(ctx, child, "rx_active", &stats->st_rx_active,
+	    "Active numbers in RX queue");
 	UATH_SYSCTL_STAT_ADD32(ctx, child, "rx_inactive",
 	    &stats->st_rx_inactive, "Inactive numbers in RX queue");
-	UATH_SYSCTL_STAT_ADD32(ctx, child, "tx_active",
-	    &stats->st_tx_active, "Active numbers in TX queue");
+	UATH_SYSCTL_STAT_ADD32(ctx, child, "tx_active", &stats->st_tx_active,
+	    "Active numbers in TX queue");
 	UATH_SYSCTL_STAT_ADD32(ctx, child, "tx_inactive",
 	    &stats->st_tx_inactive, "Inactive numbers in TX queue");
-	UATH_SYSCTL_STAT_ADD32(ctx, child, "tx_pending",
-	    &stats->st_tx_pending, "Pending numbers in TX queue");
+	UATH_SYSCTL_STAT_ADD32(ctx, child, "tx_pending", &stats->st_tx_pending,
+	    "Pending numbers in TX queue");
 }
 
 #undef UATH_SYSCTL_STAT_ADD32
@@ -2214,9 +2202,9 @@ uath_cmdeof(struct uath_softc *sc, struct uath_cmd *cmd)
 #ifdef UATH_DEBUG
 	if (sc->sc_debug & UATH_DEBUG_CMDS) {
 		uint32_t len = be32toh(hdr->len);
-		printf("%s: %s [ix %u] len %u status %u\n",
-		    __func__, uath_codename(be32toh(hdr->code)),
-		    hdr->msgid, len, be32toh(hdr->magic));
+		printf("%s: %s [ix %u] len %u status %u\n", __func__,
+		    uath_codename(be32toh(hdr->code)), hdr->msgid, len,
+		    be32toh(hdr->magic));
 		if (sc->sc_debug & UATH_DEBUG_CMDS_DUMP)
 			uath_dump_cmd(cmd->buf,
 			    len > UATH_MAX_CMDSZ ? sizeof(*hdr) : len, '-');
@@ -2224,28 +2212,29 @@ uath_cmdeof(struct uath_softc *sc, struct uath_cmd *cmd)
 #endif
 	hdr->code = be32toh(hdr->code);
 	hdr->len = be32toh(hdr->len);
-	hdr->magic = be32toh(hdr->magic);	/* target status on return */
+	hdr->magic = be32toh(hdr->magic); /* target status on return */
 
 	switch (hdr->code & 0xff) {
 	/* reply to a read command */
 	default:
 		DPRINTF(sc, UATH_DEBUG_RX_PROC | UATH_DEBUG_RECV_ALL,
-		    "%s: code %d hdr len %u\n",
-		    __func__, hdr->code & 0xff, hdr->len);
+		    "%s: code %d hdr len %u\n", __func__, hdr->code & 0xff,
+		    hdr->len);
 		/*
 		 * The first response from the target after the
 		 * HOST_AVAILABLE has an invalid msgid so we must
 		 * treat it specially.
 		 */
 		if (hdr->msgid < UATH_CMD_LIST_COUNT) {
-			uint32_t *rp = (uint32_t *)(hdr+1);
+			uint32_t *rp = (uint32_t *)(hdr + 1);
 			u_int olen;
 
 			if (sizeof(*hdr) > hdr->len ||
 			    hdr->len > UATH_MAX_CMDSZ) {
 				device_printf(sc->sc_dev,
 				    "%s: invalid WDC msg length %u; "
-				    "msg ignored\n", __func__, hdr->len);
+				    "msg ignored\n",
+				    __func__, hdr->len);
 				return;
 			}
 			/*
@@ -2288,7 +2277,7 @@ uath_cmdeof(struct uath_softc *sc, struct uath_cmd *cmd)
 				cmd->olen = olen;
 			}
 		}
-		wakeup_one(cmd);		/* wake up caller */
+		wakeup_one(cmd); /* wake up caller */
 		break;
 
 	case WDCMSG_TARGET_START:
@@ -2298,16 +2287,15 @@ uath_cmdeof(struct uath_softc *sc, struct uath_cmd *cmd)
 		}
 		dlen = hdr->len - sizeof(*hdr);
 		if (dlen != sizeof(uint32_t)) {
-			device_printf(sc->sc_dev,
-			    "%s: dlen (%u) != %zu!\n",
+			device_printf(sc->sc_dev, "%s: dlen (%u) != %zu!\n",
 			    __func__, dlen, sizeof(uint32_t));
 			return;
 		}
 		/* XXX have submitter do this */
 		/* copy answer into caller's supplied buffer */
-		bcopy(hdr+1, cmd->odata, sizeof(uint32_t));
+		bcopy(hdr + 1, cmd->odata, sizeof(uint32_t));
 		cmd->olen = sizeof(uint32_t);
-		wakeup_one(cmd);		/* wake up caller */
+		wakeup_one(cmd); /* wake up caller */
 		break;
 
 	case WDCMSG_SEND_COMPLETE:
@@ -2349,8 +2337,8 @@ uath_intr_rx_callback(struct usb_xfer *xfer, usb_error_t error)
 
 		if (actlen < sizeof(struct uath_cmd_hdr)) {
 			device_printf(sc->sc_dev,
-			    "%s: short xfer error (actlen %d)\n",
-			    __func__, actlen);
+			    "%s: short xfer error (actlen %d)\n", __func__,
+			    actlen);
 			goto setup;
 		}
 
@@ -2367,7 +2355,7 @@ uath_intr_rx_callback(struct usb_xfer *xfer, usb_error_t error)
 
 		uath_cmdeof(sc, cmd);
 	case USB_ST_SETUP:
-setup:
+	setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		break;
@@ -2393,7 +2381,9 @@ uath_intr_tx_callback(struct usb_xfer *xfer, usb_error_t error)
 		STAILQ_REMOVE_HEAD(&sc->sc_cmd_active, next);
 		UATH_STAT_DEC(sc, st_cmd_active);
 		STAILQ_INSERT_TAIL((cmd->flags & UATH_CMD_FLAG_READ) ?
-		    &sc->sc_cmd_waiting : &sc->sc_cmd_inactive, cmd, next);
+			&sc->sc_cmd_waiting :
+			&sc->sc_cmd_inactive,
+		    cmd, next);
 		if (cmd->flags & UATH_CMD_FLAG_READ)
 			UATH_STAT_INC(sc, st_cmd_waiting);
 		else
@@ -2403,17 +2393,19 @@ uath_intr_tx_callback(struct usb_xfer *xfer, usb_error_t error)
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_TRANSFERRED:
 	case USB_ST_SETUP:
-setup:
+	setup:
 		cmd = STAILQ_FIRST(&sc->sc_cmd_pending);
 		if (cmd == NULL) {
-			DPRINTF(sc, UATH_DEBUG_XMIT, "%s: empty pending queue\n",
-			    __func__);
+			DPRINTF(sc, UATH_DEBUG_XMIT,
+			    "%s: empty pending queue\n", __func__);
 			return;
 		}
 		STAILQ_REMOVE_HEAD(&sc->sc_cmd_pending, next);
 		UATH_STAT_DEC(sc, st_cmd_pending);
 		STAILQ_INSERT_TAIL((cmd->flags & UATH_CMD_FLAG_ASYNC) ?
-		    &sc->sc_cmd_inactive : &sc->sc_cmd_active, cmd, next);
+			&sc->sc_cmd_inactive :
+			&sc->sc_cmd_active,
+		    cmd, next);
 		if (cmd->flags & UATH_CMD_FLAG_ASYNC)
 			UATH_STAT_INC(sc, st_cmd_inactive);
 		else
@@ -2499,8 +2491,8 @@ uath_data_rxeof(struct usb_xfer *xfer, struct uath_data *data,
 
 	if (chunklen > actlen) {
 		device_printf(sc->sc_dev,
-		    "%s: invalid chunk length (len %u > actlen %d)\n",
-		    __func__, chunklen, actlen);
+		    "%s: invalid chunk length (len %u > actlen %d)\n", __func__,
+		    chunklen, actlen);
 		counter_u64_add(ic->ic_ierrors, 1);
 		/* XXX cleanup? */
 		UATH_RESET_INTRX(sc);
@@ -2526,8 +2518,8 @@ uath_data_rxeof(struct usb_xfer *xfer, struct uath_data *data,
 	if (chunk->flags & UATH_CFLAGS_FINAL) {
 		if (chunklen < sizeof(struct uath_rx_desc)) {
 			device_printf(sc->sc_dev,
-			    "%s: invalid chunk length %d\n",
-			    __func__, chunklen);
+			    "%s: invalid chunk length %d\n", __func__,
+			    chunklen);
 			counter_u64_add(ic->ic_ierrors, 1);
 			if (sc->sc_intrx_head != NULL)
 				m_freem(sc->sc_intrx_head);
@@ -2543,7 +2535,7 @@ uath_data_rxeof(struct usb_xfer *xfer, struct uath_data *data,
 		if (chunk->seqnum == 0)
 			UATH_RESET_INTRX(sc);
 		if ((sc->sc_intrx_len + sizeof(struct uath_rx_desc) +
-		    chunklen) > UATH_MAX_INTRX_SIZE) {
+			chunklen) > UATH_MAX_INTRX_SIZE) {
 			UATH_STAT_INC(sc, st_invalidlen);
 			counter_u64_add(ic->ic_ierrors, 1);
 			if (sc->sc_intrx_head != NULL)
@@ -2592,10 +2584,10 @@ uath_data_rxeof(struct usb_xfer *xfer, struct uath_data *data,
 	 * located at the end, 32-bit aligned
 	 */
 	desc = (chunk->flags & UATH_CFLAGS_RXMSG) ?
-		(struct uath_rx_desc *)(chunk + 1) :
-		(struct uath_rx_desc *)(((uint8_t *)chunk) + 
-		    sizeof(struct uath_chunk) + be16toh(chunk->length) -
-		    sizeof(struct uath_rx_desc));
+	    (struct uath_rx_desc *)(chunk + 1) :
+	    (struct uath_rx_desc *)(((uint8_t *)chunk) +
+		sizeof(struct uath_chunk) + be16toh(chunk->length) -
+		sizeof(struct uath_rx_desc));
 	if ((uint8_t *)chunk + actlen - sizeof(struct uath_rx_desc) <
 	    (uint8_t *)desc) {
 		device_printf(sc->sc_dev,
@@ -2614,11 +2606,12 @@ uath_data_rxeof(struct usb_xfer *xfer, struct uath_data *data,
 	DPRINTF(sc, UATH_DEBUG_RECV | UATH_DEBUG_RECV_ALL,
 	    "%s: frame len %u code %u status %u rate %u antenna %u "
 	    "rssi %d channel %u phyerror %u connix %u decrypterror %u "
-	    "keycachemiss %u\n", __func__, be32toh(desc->framelen)
-	    , be32toh(desc->code), be32toh(desc->status), be32toh(desc->rate)
-	    , be32toh(desc->antenna), be32toh(desc->rssi), be32toh(desc->channel)
-	    , be32toh(desc->phyerror), be32toh(desc->connix)
-	    , be32toh(desc->decrypterror), be32toh(desc->keycachemiss));
+	    "keycachemiss %u\n",
+	    __func__, be32toh(desc->framelen), be32toh(desc->code),
+	    be32toh(desc->status), be32toh(desc->rate), be32toh(desc->antenna),
+	    be32toh(desc->rssi), be32toh(desc->channel),
+	    be32toh(desc->phyerror), be32toh(desc->connix),
+	    be32toh(desc->decrypterror), be32toh(desc->keycachemiss));
 
 	if (be32toh(desc->len) > MCLBYTES) {
 		DPRINTF(sc, UATH_DEBUG_RECV | UATH_DEBUG_RECV_ALL,
@@ -2640,8 +2633,8 @@ uath_data_rxeof(struct usb_xfer *xfer, struct uath_data *data,
 
 		if (be32toh(desc->framelen) < UATH_RX_DUMMYSIZE) {
 			device_printf(sc->sc_dev,
-			    "%s: framelen too small (%u)\n",
-			    __func__, be32toh(desc->framelen));
+			    "%s: framelen too small (%u)\n", __func__,
+			    be32toh(desc->framelen));
 			counter_u64_add(ic->ic_ierrors, 1);
 			if (sc->sc_intrx_head != NULL)
 				m_freem(sc->sc_intrx_head);
@@ -2722,7 +2715,7 @@ uath_bulk_rx_callback(struct usb_xfer *xfer, usb_error_t error)
 		UATH_STAT_INC(sc, st_rx_inactive);
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-setup:
+	setup:
 		data = STAILQ_FIRST(&sc->sc_rx_inactive);
 		if (data == NULL)
 			return;
@@ -2748,14 +2741,14 @@ setup:
 			wh = mtod(m, struct ieee80211_frame *);
 			ni = ieee80211_find_rxnode(ic,
 			    (struct ieee80211_frame_min *)wh);
-			nf = -95;	/* XXX */
+			nf = -95; /* XXX */
 			if (ni != NULL) {
-				(void) ieee80211_input(ni, m,
+				(void)ieee80211_input(ni, m,
 				    (int)be32toh(desc->rssi), nf);
 				/* node is no longer needed */
 				ieee80211_free_node(ni);
 			} else
-				(void) ieee80211_input_all(ic, m,
+				(void)ieee80211_input_all(ic, m,
 				    (int)be32toh(desc->rssi), nf);
 			m = NULL;
 			desc = NULL;
@@ -2817,11 +2810,11 @@ uath_bulk_tx_callback(struct usb_xfer *xfer, usb_error_t error)
 		UATH_STAT_INC(sc, st_tx_inactive);
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-setup:
+	setup:
 		data = STAILQ_FIRST(&sc->sc_tx_pending);
 		if (data == NULL) {
-			DPRINTF(sc, UATH_DEBUG_XMIT, "%s: empty pending queue\n",
-			    __func__);
+			DPRINTF(sc, UATH_DEBUG_XMIT,
+			    "%s: empty pending queue\n", __func__);
 			return;
 		}
 		STAILQ_REMOVE_HEAD(&sc->sc_tx_pending, next);
@@ -2853,18 +2846,13 @@ setup:
 	}
 }
 
-static device_method_t uath_methods[] = {
-	DEVMETHOD(device_probe, uath_match),
+static device_method_t uath_methods[] = { DEVMETHOD(device_probe, uath_match),
 	DEVMETHOD(device_attach, uath_attach),
-	DEVMETHOD(device_detach, uath_detach),
-	DEVMETHOD_END
-};
+	DEVMETHOD(device_detach, uath_detach), DEVMETHOD_END };
 
-static driver_t uath_driver = {
-	.name = "uath",
+static driver_t uath_driver = { .name = "uath",
 	.methods = uath_methods,
-	.size = sizeof(struct uath_softc)
-};
+	.size = sizeof(struct uath_softc) };
 
 DRIVER_MODULE(uath, uhub, uath_driver, NULL, NULL);
 MODULE_DEPEND(uath, wlan, 1, 1, 1);

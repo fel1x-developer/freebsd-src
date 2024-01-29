@@ -27,37 +27,37 @@
  */
 
 #ifndef _MEM_H_
-#define	_MEM_H_
+#define _MEM_H_
 
 #include <sys/linker_set.h>
 
 struct vcpu;
 
-typedef int (*mem_func_t)(struct vcpu *vcpu, int dir, uint64_t addr,
-			  int size, uint64_t *val, void *arg1, long arg2);
+typedef int (*mem_func_t)(struct vcpu *vcpu, int dir, uint64_t addr, int size,
+    uint64_t *val, void *arg1, long arg2);
 
 struct mem_range {
-	const char 	*name;
-	int		flags;
-	mem_func_t	handler;
-	void		*arg1;
-	long		arg2;
-	uint64_t  	base;
-	uint64_t  	size;
+	const char *name;
+	int flags;
+	mem_func_t handler;
+	void *arg1;
+	long arg2;
+	uint64_t base;
+	uint64_t size;
 };
-#define	MEM_F_READ		0x1
-#define	MEM_F_WRITE		0x2
-#define	MEM_F_RW		0x3
-#define	MEM_F_IMMUTABLE		0x4	/* mem_range cannot be unregistered */
+#define MEM_F_READ 0x1
+#define MEM_F_WRITE 0x2
+#define MEM_F_RW 0x3
+#define MEM_F_IMMUTABLE 0x4 /* mem_range cannot be unregistered */
 
-void	init_mem(int ncpu);
-int     emulate_mem(struct vcpu *vcpu, uint64_t paddr, struct vie *vie,
-		    struct vm_guest_paging *paging);
+void init_mem(int ncpu);
+int emulate_mem(struct vcpu *vcpu, uint64_t paddr, struct vie *vie,
+    struct vm_guest_paging *paging);
 
-int	read_mem(struct vcpu *vpu, uint64_t gpa, uint64_t *rval, int size);
-int	register_mem(struct mem_range *memp);
-int	register_mem_fallback(struct mem_range *memp);
-int	unregister_mem(struct mem_range *memp);
-int	write_mem(struct vcpu *vcpu, uint64_t gpa, uint64_t wval, int size);
+int read_mem(struct vcpu *vpu, uint64_t gpa, uint64_t *rval, int size);
+int register_mem(struct mem_range *memp);
+int register_mem_fallback(struct mem_range *memp);
+int unregister_mem(struct mem_range *memp);
+int write_mem(struct vcpu *vcpu, uint64_t gpa, uint64_t wval, int size);
 
-#endif	/* _MEM_H_ */
+#endif /* _MEM_H_ */

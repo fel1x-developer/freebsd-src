@@ -33,14 +33,15 @@
  * SUCH DAMAGE.
  */
 
+#include <assert.h>
+#include <limits.h>
 #include <namespace.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <limits.h>
-#include <stdint.h>
-#include <assert.h>
 #include <wchar.h>
+
 #include "printf.h"
 
 /*
@@ -93,8 +94,8 @@ __wcsconv(wchar_t *wcsarg, int prec)
 	/* Fill the output buffer. */
 	p = wcsarg;
 	mbs = initial;
-	if ((nbytes = wcsrtombs(convbuf, (const wchar_t **)&p,
-	    nbytes, &mbs)) == (size_t)-1) {
+	if ((nbytes = wcsrtombs(convbuf, (const wchar_t **)&p, nbytes, &mbs)) ==
+	    (size_t)-1) {
 		free(convbuf);
 		return (NULL);
 	}
@@ -102,14 +103,13 @@ __wcsconv(wchar_t *wcsarg, int prec)
 	return (convbuf);
 }
 
-
 /* 's' ---------------------------------------------------------------*/
 
 int
 __printf_arginfo_str(const struct printf_info *pi, size_t n, int *argt)
 {
 
-	assert (n > 0);
+	assert(n > 0);
 	if (pi->is_long || pi->spec == 'C')
 		argt[0] = PA_WSTRING;
 	else
@@ -118,7 +118,8 @@ __printf_arginfo_str(const struct printf_info *pi, size_t n, int *argt)
 }
 
 int
-__printf_render_str(struct __printf_io *io, const struct printf_info *pi, const void *const *arg)
+__printf_render_str(struct __printf_io *io, const struct printf_info *pi,
+    const void *const *arg)
 {
 	const char *p;
 	wchar_t *wcp;
@@ -130,12 +131,12 @@ __printf_render_str(struct __printf_io *io, const struct printf_info *pi, const 
 		if (wcp == NULL)
 			return (__printf_out(io, pi, "(null)", 6));
 		convbuf = __wcsconv(wcp, pi->prec);
-		if (convbuf == NULL) 
+		if (convbuf == NULL)
 			return (-1);
 		l = __printf_out(io, pi, convbuf, strlen(convbuf));
 		free(convbuf);
 		return (l);
-	} 
+	}
 	p = *((char **)arg[0]);
 	if (p == NULL)
 		return (__printf_out(io, pi, "(null)", 6));
@@ -151,7 +152,7 @@ int
 __printf_arginfo_chr(const struct printf_info *pi, size_t n, int *argt)
 {
 
-	assert (n > 0);
+	assert(n > 0);
 	if (pi->is_long || pi->spec == 'C')
 		argt[0] = PA_WCHAR;
 	else
@@ -160,12 +161,13 @@ __printf_arginfo_chr(const struct printf_info *pi, size_t n, int *argt)
 }
 
 int
-__printf_render_chr(struct __printf_io *io, const struct printf_info *pi, const void *const *arg)
+__printf_render_chr(struct __printf_io *io, const struct printf_info *pi,
+    const void *const *arg)
 {
 	int i;
 	wint_t ii;
 	unsigned char c;
-	static const mbstate_t initial;		/* XXX: this is bogus! */
+	static const mbstate_t initial; /* XXX: this is bogus! */
 	mbstate_t mbs;
 	size_t mbseqlen;
 	char buf[MB_CUR_MAX];
@@ -175,7 +177,7 @@ __printf_render_chr(struct __printf_io *io, const struct printf_info *pi, const 
 
 		mbs = initial;
 		mbseqlen = wcrtomb(buf, (wchar_t)ii, &mbs);
-		if (mbseqlen == (size_t) -1)
+		if (mbseqlen == (size_t)-1)
 			return (-1);
 		return (__printf_out(io, pi, buf, mbseqlen));
 	}

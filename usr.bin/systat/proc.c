@@ -37,8 +37,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "systat.h"
 #include "extern.h"
+#include "systat.h"
 
 /*
  * vm objects of swappable types
@@ -124,8 +124,10 @@ static int
 swobj_sort(const void *a, const void *b)
 {
 
-	return ((((const struct swapvm *) a)->kvo_me >
-	    ((const struct swapvm *) b)->kvo_me) ? -1 : 1);
+	return ((((const struct swapvm *)a)->kvo_me >
+		    ((const struct swapvm *)b)->kvo_me) ?
+		-1 :
+		1);
 }
 
 static bool
@@ -236,7 +238,7 @@ procgetinfo(void)
 	struct kinfo_proc *kipp;
 
 	nproc = 0;
-	if ( ! get_swap_vmobjects() ) /* call failed or nothing is paged-out */
+	if (!get_swap_vmobjects()) /* call failed or nothing is paged-out */
 		return;
 
 	kipp = procstat_getprocs(prstat, KERN_PROC_PROC, 0, &cnt);

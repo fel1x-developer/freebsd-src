@@ -30,15 +30,14 @@
  * Authors: Alan Somers         (Spectra Logic Corporation)
  */
 
+#include <devdctl/event.h>
+#include <devdctl/event_factory.h>
+#include <devdctl/guid.h>
 #include <gtest/gtest.h>
 
 #include <list>
 #include <map>
 #include <string>
-
-#include <devdctl/guid.h>
-#include <devdctl/event.h>
-#include <devdctl/event_factory.h>
 
 using namespace DevdCtl;
 using namespace std;
@@ -46,15 +45,14 @@ using namespace testing;
 
 #define REGISTRY_SIZE 2
 
-struct DevNameTestParams
-{
-	const char* evs;
+struct DevNameTestParams {
+	const char *evs;
 	bool is_disk;
-	const char* devname;
+	const char *devname;
 };
 
-class DevNameTest : public TestWithParam<DevNameTestParams>{
-protected:
+class DevNameTest : public TestWithParam<DevNameTestParams> {
+    protected:
 	virtual void SetUp()
 	{
 		m_factory = new EventFactory();
@@ -63,8 +61,10 @@ protected:
 
 	virtual void TearDown()
 	{
-		if (m_ev) delete m_ev;
-		if (m_factory) delete m_factory;
+		if (m_ev)
+			delete m_ev;
+		if (m_factory)
+			delete m_factory;
 	}
 
 	EventFactory *m_factory;
@@ -77,17 +77,19 @@ DevdCtl::EventFactory::Record DevNameTest::s_registry[REGISTRY_SIZE] = {
 	{ Event::NOTIFY, "GEOM", &GeomEvent::Builder }
 };
 
-TEST_P(DevNameTest, TestDevname) {
+TEST_P(DevNameTest, TestDevname)
+{
 	std::string devname;
 	DevNameTestParams param = GetParam();
-	
+
 	string evString(param.evs);
 	m_ev = Event::CreateEvent(*m_factory, evString);
 	m_ev->DevName(devname);
 	EXPECT_STREQ(param.devname, devname.c_str());
 }
 
-TEST_P(DevNameTest, TestIsDiskDev) {
+TEST_P(DevNameTest, TestIsDiskDev)
+{
 	DevNameTestParams param = GetParam();
 
 	string evString(param.evs);
@@ -96,41 +98,60 @@ TEST_P(DevNameTest, TestIsDiskDev) {
 }
 
 /* TODO: clean this up using C++-11 uniform initializers */
-INSTANTIATE_TEST_CASE_P(IsDiskDevTestInstantiation, DevNameTest, Values(
-	(DevNameTestParams){
-		.evs = "!system=DEVFS subsystem=CDEV type=CREATE cdev=da6\n",
-		.is_disk = true, .devname = "da6"},
-	(DevNameTestParams){.is_disk = false, .devname = "cuau0",
-		.evs = "!system=DEVFS subsystem=CDEV type=CREATE cdev=cuau0\n"},
-	(DevNameTestParams){.is_disk = true, .devname = "ada6",
-		.evs = "!system=DEVFS subsystem=CDEV type=CREATE cdev=ada6\n"},
-	(DevNameTestParams){.is_disk = true, .devname = "da6p1",
-		.evs = "!system=DEVFS subsystem=CDEV type=CREATE cdev=da6p1\n"},
-	(DevNameTestParams){.is_disk = true, .devname = "ada6p1",
-		.evs = "!system=DEVFS subsystem=CDEV type=CREATE cdev=ada6p1\n"},
-	(DevNameTestParams){.is_disk = true, .devname = "da6s0p1",
-		.evs = "!system=DEVFS subsystem=CDEV type=CREATE cdev=da6s0p1\n"},
-	(DevNameTestParams){.is_disk = true, .devname = "ada6s0p1",
-		.evs = "!system=DEVFS subsystem=CDEV type=CREATE cdev=ada6s0p1\n"},
-	/* 
+INSTANTIATE_TEST_CASE_P(IsDiskDevTestInstantiation, DevNameTest,
+    Values(
+	(DevNameTestParams) {
+	    .evs = "!system=DEVFS subsystem=CDEV type=CREATE cdev=da6\n",
+	    .is_disk = true,
+	    .devname = "da6" },
+	(DevNameTestParams) { .is_disk = false,
+	    .devname = "cuau0",
+	    .evs = "!system=DEVFS subsystem=CDEV type=CREATE cdev=cuau0\n" },
+	(DevNameTestParams) { .is_disk = true,
+	    .devname = "ada6",
+	    .evs = "!system=DEVFS subsystem=CDEV type=CREATE cdev=ada6\n" },
+	(DevNameTestParams) { .is_disk = true,
+	    .devname = "da6p1",
+	    .evs = "!system=DEVFS subsystem=CDEV type=CREATE cdev=da6p1\n" },
+	(DevNameTestParams) { .is_disk = true,
+	    .devname = "ada6p1",
+	    .evs = "!system=DEVFS subsystem=CDEV type=CREATE cdev=ada6p1\n" },
+	(DevNameTestParams) { .is_disk = true,
+	    .devname = "da6s0p1",
+	    .evs = "!system=DEVFS subsystem=CDEV type=CREATE cdev=da6s0p1\n" },
+	(DevNameTestParams) { .is_disk = true,
+	    .devname = "ada6s0p1",
+	    .evs = "!system=DEVFS subsystem=CDEV type=CREATE cdev=ada6s0p1\n" },
+	/*
 	 * Test physical path nodes.  These are currently all set to false since
 	 * physical path nodes are implemented with symlinks, and most CAM and
 	 * ZFS operations can't use symlinked device nodes
 	 */
 	/* A SpectraBSD-style physical path node*/
-	(DevNameTestParams){.is_disk = false, .devname = "enc@50030480019f53fd/elmtype@array_device/slot@18/da",
-		.evs = "!system=DEVFS subsystem=CDEV type=CREATE cdev=enc@50030480019f53fd/elmtype@array_device/slot@18/da\n"},
-	(DevNameTestParams){.is_disk = false, .devname = "enc@50030480019f53fd/elmtype@array_device/slot@18/pass",
-		.evs = "!system=DEVFS subsystem=CDEV type=CREATE cdev=enc@50030480019f53fd/elmtype@array_device/slot@18/pass\n"},
+	(DevNameTestParams) { .is_disk = false,
+	    .devname = "enc@50030480019f53fd/elmtype@array_device/slot@18/da",
+	    .evs =
+		"!system=DEVFS subsystem=CDEV type=CREATE cdev=enc@50030480019f53fd/elmtype@array_device/slot@18/da\n" },
+	(DevNameTestParams) { .is_disk = false,
+	    .devname = "enc@50030480019f53fd/elmtype@array_device/slot@18/pass",
+	    .evs =
+		"!system=DEVFS subsystem=CDEV type=CREATE cdev=enc@50030480019f53fd/elmtype@array_device/slot@18/pass\n" },
 	/* A FreeBSD-style physical path node */
-	(DevNameTestParams){.is_disk = true, .devname = "enc@n50030480019f53fd/type@0/slot@18/elmdesc@ArrayDevice18/da6",
-		.evs = "!system=DEVFS subsystem=CDEV type=CREATE cdev=enc@n50030480019f53fd/type@0/slot@18/elmdesc@ArrayDevice18/da6\n"},
-	(DevNameTestParams){.is_disk = false, .devname = "enc@n50030480019f53fd/type@0/slot@18/elmdesc@ArrayDevice18/pass6",
-		.evs = "!system=DEVFS subsystem=CDEV type=CREATE cdev=enc@n50030480019f53fd/type@0/slot@18/elmdesc@ArrayDevice18/pass6\n"},
-	
+	(DevNameTestParams) { .is_disk = true,
+	    .devname =
+		"enc@n50030480019f53fd/type@0/slot@18/elmdesc@ArrayDevice18/da6",
+	    .evs =
+		"!system=DEVFS subsystem=CDEV type=CREATE cdev=enc@n50030480019f53fd/type@0/slot@18/elmdesc@ArrayDevice18/da6\n" },
+	(DevNameTestParams) { .is_disk = false,
+	    .devname =
+		"enc@n50030480019f53fd/type@0/slot@18/elmdesc@ArrayDevice18/pass6",
+	    .evs =
+		"!system=DEVFS subsystem=CDEV type=CREATE cdev=enc@n50030480019f53fd/type@0/slot@18/elmdesc@ArrayDevice18/pass6\n" },
+
 	/*
 	 * Test some GEOM events
 	 */
-	(DevNameTestParams){.is_disk = true, .devname = "da5",
-		.evs = "!system=GEOM subsystem=disk type=GEOM::physpath devname=da5\n"})
-);
+	(DevNameTestParams) { .is_disk = true,
+	    .devname = "da5",
+	    .evs =
+		"!system=GEOM subsystem=disk type=GEOM::physpath devname=da5\n" }));

@@ -29,4 +29,4 @@
  * SUCH DAMAGE.
  */
 
-#define	_PATH_FINGER	"/usr/bin/finger"
+#define _PATH_FINGER "/usr/bin/finger"

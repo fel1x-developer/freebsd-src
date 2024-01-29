@@ -24,63 +24,62 @@
  */
 
 #ifndef __KVM_ARM_H__
-#define	__KVM_ARM_H__
+#define __KVM_ARM_H__
 
-typedef uint32_t	arm_physaddr_t;
-typedef uint32_t	arm_pd_entry_t;
-typedef uint32_t	arm_pt_entry_t;
+typedef uint32_t arm_physaddr_t;
+typedef uint32_t arm_pd_entry_t;
+typedef uint32_t arm_pt_entry_t;
 
-#define	ARM_PAGE_SHIFT	12
-#define	ARM_PAGE_SIZE	(1 << ARM_PAGE_SHIFT)	/* Page size */
-#define	ARM_PAGE_MASK	(ARM_PAGE_SIZE - 1)
+#define ARM_PAGE_SHIFT 12
+#define ARM_PAGE_SIZE (1 << ARM_PAGE_SHIFT) /* Page size */
+#define ARM_PAGE_MASK (ARM_PAGE_SIZE - 1)
 
-#define	ARM_L1_TABLE_SIZE	0x4000		/* 16K */
+#define ARM_L1_TABLE_SIZE 0x4000 /* 16K */
 
-#define	ARM_L1_S_SIZE	0x00100000	/* 1M */
-#define	ARM_L1_S_OFFSET	(ARM_L1_S_SIZE - 1)
-#define	ARM_L1_S_FRAME	(~ARM_L1_S_OFFSET)
-#define	ARM_L1_S_SHIFT	20
+#define ARM_L1_S_SIZE 0x00100000 /* 1M */
+#define ARM_L1_S_OFFSET (ARM_L1_S_SIZE - 1)
+#define ARM_L1_S_FRAME (~ARM_L1_S_OFFSET)
+#define ARM_L1_S_SHIFT 20
 
-#define	ARM_L2_L_SIZE	0x00010000	/* 64K */
-#define	ARM_L2_L_OFFSET	(ARM_L2_L_SIZE - 1)
-#define	ARM_L2_L_FRAME	(~ARM_L2_L_OFFSET)
-#define	ARM_L2_L_SHIFT	16
+#define ARM_L2_L_SIZE 0x00010000 /* 64K */
+#define ARM_L2_L_OFFSET (ARM_L2_L_SIZE - 1)
+#define ARM_L2_L_FRAME (~ARM_L2_L_OFFSET)
+#define ARM_L2_L_SHIFT 16
 
-#define	ARM_L2_S_SIZE	0x00001000	/* 4K */
-#define	ARM_L2_S_OFFSET	(ARM_L2_S_SIZE - 1)
-#define	ARM_L2_S_FRAME	(~ARM_L2_S_OFFSET)
-#define	ARM_L2_S_SHIFT	12
-#define	ARM_L2_TEX1	0x00000080
-#define	ARM_PTE2_RO	ARM_L2_TEX1
-#define	ARM_L2_NX	0x00000001
-#define	ARM_PTE2_NX	ARM_L2_NX
+#define ARM_L2_S_SIZE 0x00001000 /* 4K */
+#define ARM_L2_S_OFFSET (ARM_L2_S_SIZE - 1)
+#define ARM_L2_S_FRAME (~ARM_L2_S_OFFSET)
+#define ARM_L2_S_SHIFT 12
+#define ARM_L2_TEX1 0x00000080
+#define ARM_PTE2_RO ARM_L2_TEX1
+#define ARM_L2_NX 0x00000001
+#define ARM_PTE2_NX ARM_L2_NX
 
 /*
  * Note: L2_S_PROT_W differs depending on whether the system is generic or
  *       xscale.  This isn't easily accessible in this context, so use an
  *       approximation of 'xscale' which is a subset of 'generic'.
  */
-#define	ARM_L2_AP0(x)	((x) << 4)
-#define	ARM_AP_W	0x01
-#define	ARM_L2_S_PROT_W	(ARM_L2_AP0(ARM_AP_W))
+#define ARM_L2_AP0(x) ((x) << 4)
+#define ARM_AP_W 0x01
+#define ARM_L2_S_PROT_W (ARM_L2_AP0(ARM_AP_W))
 
-#define	ARM_L1_TYPE_INV	0x00		/* Invalid (fault) */
-#define	ARM_L1_TYPE_C	0x01		/* Coarse L2 */
-#define	ARM_L1_TYPE_S	0x02		/* Section */
-#define	ARM_L1_TYPE_MASK	0x03		/* Mask	of type	bits */
+#define ARM_L1_TYPE_INV 0x00  /* Invalid (fault) */
+#define ARM_L1_TYPE_C 0x01    /* Coarse L2 */
+#define ARM_L1_TYPE_S 0x02    /* Section */
+#define ARM_L1_TYPE_MASK 0x03 /* Mask	of type	bits */
 
-#define	ARM_L1_S_ADDR_MASK	0xfff00000	/* phys	address	of section */
-#define	ARM_L1_C_ADDR_MASK	0xfffffc00	/* phys	address	of L2 Table */
+#define ARM_L1_S_ADDR_MASK 0xfff00000 /* phys	address	of section */
+#define ARM_L1_C_ADDR_MASK 0xfffffc00 /* phys	address	of L2 Table */
 
-#define	ARM_L2_TYPE_INV	0x00		/* Invalid (fault) */
-#define	ARM_L2_TYPE_L	0x01		/* Large Page - 64k */
-#define	ARM_L2_TYPE_S	0x02		/* Small Page -  4k */
-#define	ARM_L2_TYPE_T	0x03		/* Tiny Page  -  1k - not used */
-#define	ARM_L2_TYPE_MASK	0x03
+#define ARM_L2_TYPE_INV 0x00 /* Invalid (fault) */
+#define ARM_L2_TYPE_L 0x01   /* Large Page - 64k */
+#define ARM_L2_TYPE_S 0x02   /* Small Page -  4k */
+#define ARM_L2_TYPE_T 0x03   /* Tiny Page  -  1k - not used */
+#define ARM_L2_TYPE_MASK 0x03
 
 #ifdef __arm__
 #include <machine/acle-compat.h>
-
 #include <machine/pte.h>
 
 _Static_assert(PAGE_SHIFT == ARM_PAGE_SHIFT, "PAGE_SHIFT mismatch");
@@ -111,6 +110,6 @@ _Static_assert(L2_TYPE_S == ARM_L2_TYPE_S, "L2_TYPE_S mismatch");
 _Static_assert(L2_TYPE_MASK == ARM_L2_TYPE_MASK, "L2_TYPE_MASK mismatch");
 #endif
 
-int	_arm_native(kvm_t *);
+int _arm_native(kvm_t *);
 
 #endif /* !__KVM_ARM_H__ */

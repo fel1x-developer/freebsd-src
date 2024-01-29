@@ -16,13 +16,14 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <sys/param.h>
+
 #include <errno.h>
 #include <libgen.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/param.h>
 
-char * __freebsd11_dirname(char *path);
+char *__freebsd11_dirname(char *path);
 
 char *
 __freebsd11_dirname(char *path)
@@ -34,7 +35,7 @@ __freebsd11_dirname(char *path)
 	if (dname == NULL) {
 		dname = (char *)malloc(MAXPATHLEN);
 		if (dname == NULL)
-			return(NULL);
+			return (NULL);
 	}
 
 	/* Empty or NULL string gets treated as "." */
@@ -75,4 +76,4 @@ __freebsd11_dirname(char *path)
 	return (dname);
 }
 
-__sym_compat(dirname, __freebsd11_dirname, FBSD_1.0);
+__sym_compat(dirname, __freebsd11_dirname, FBSD_1 .0);

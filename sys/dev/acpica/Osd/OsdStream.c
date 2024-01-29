@@ -30,20 +30,21 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <contrib/dev/acpica/include/acpi.h>
 
 void
 AcpiOsPrintf(const char *Format, ...)
 {
-    va_list	ap;
+	va_list ap;
 
-    va_start(ap, Format);
-    vprintf(Format, ap);
-    va_end(ap);
+	va_start(ap, Format);
+	vprintf(Format, ap);
+	va_end(ap);
 }
 
 void
 AcpiOsVprintf(const char *Format, va_list Args)
 {
-    vprintf(Format, Args);
+	vprintf(Format, Args);
 }

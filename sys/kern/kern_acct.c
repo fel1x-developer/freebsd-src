@@ -93,9 +93,11 @@
 #include <security/mac/mac_framework.h>
 
 _Static_assert(sizeof(struct acctv3) - offsetof(struct acctv3, ac_trailer) ==
-    sizeof(struct acctv2) - offsetof(struct acctv2, ac_trailer), "trailer");
+	sizeof(struct acctv2) - offsetof(struct acctv2, ac_trailer),
+    "trailer");
 _Static_assert(sizeof(struct acctv3) - offsetof(struct acctv3, ac_len2) ==
-    sizeof(struct acctv2) - offsetof(struct acctv2, ac_len2), "len2");
+	sizeof(struct acctv2) - offsetof(struct acctv2, ac_len2),
+    "len2");
 
 /*
  * The routines implemented in this file are described in:
@@ -112,54 +114,54 @@ _Static_assert(sizeof(struct acctv3) - offsetof(struct acctv3, ac_len2) ==
  */
 
 /* Floating point definitions from <float.h>. */
-#define FLT_MANT_DIG    24              /* p */
-#define FLT_MAX_EXP     128             /* emax */
+#define FLT_MANT_DIG 24 /* p */
+#define FLT_MAX_EXP 128 /* emax */
 
 /*
  * Internal accounting functions.
  * The former's operation is described in Leffler, et al., and the latter
  * was provided by UCB with the 4.4BSD-Lite release
  */
-static uint32_t	encode_timeval(struct timeval);
-static uint32_t	encode_long(long);
-static void	acctwatch(void);
-static void	acct_thread(void *);
-static int	acct_disable(struct thread *, int);
+static uint32_t encode_timeval(struct timeval);
+static uint32_t encode_long(long);
+static void acctwatch(void);
+static void acct_thread(void *);
+static int acct_disable(struct thread *, int);
 
 /*
  * Accounting vnode pointer, saved vnode pointer, and flags for each.
  * acct_sx protects against changes to the active vnode and credentials
  * while accounting records are being committed to disk.
  */
-static int		 acct_configured;
-static int		 acct_suspended;
-static struct vnode	*acct_vp;
-static struct ucred	*acct_cred;
-static int		 acct_flags;
-static struct sx	 acct_sx;
+static int acct_configured;
+static int acct_suspended;
+static struct vnode *acct_vp;
+static struct ucred *acct_cred;
+static int acct_flags;
+static struct sx acct_sx;
 
 SX_SYSINIT(acct, &acct_sx, "acct_sx");
 
 /*
  * State of the accounting kthread.
  */
-static int		 acct_state;
+static int acct_state;
 
-#define	ACCT_RUNNING	1	/* Accounting kthread is running. */
-#define	ACCT_EXITREQ	2	/* Accounting kthread should exit. */
+#define ACCT_RUNNING 1 /* Accounting kthread is running. */
+#define ACCT_EXITREQ 2 /* Accounting kthread should exit. */
 
 /*
  * Values associated with enabling and disabling accounting
  */
-static int acctsuspend = 2;	/* stop accounting when < 2% free space left */
-SYSCTL_INT(_kern, OID_AUTO, acct_suspend, CTLFLAG_RW,
-	&acctsuspend, 0, "percentage of free disk space below which accounting stops");
+static int acctsuspend = 2; /* stop accounting when < 2% free space left */
+SYSCTL_INT(_kern, OID_AUTO, acct_suspend, CTLFLAG_RW, &acctsuspend, 0,
+    "percentage of free disk space below which accounting stops");
 
-static int acctresume = 4;	/* resume when free space risen to > 4% */
-SYSCTL_INT(_kern, OID_AUTO, acct_resume, CTLFLAG_RW,
-	&acctresume, 0, "percentage of free disk space above which accounting resumes");
+static int acctresume = 4; /* resume when free space risen to > 4% */
+SYSCTL_INT(_kern, OID_AUTO, acct_resume, CTLFLAG_RW, &acctresume, 0,
+    "percentage of free disk space above which accounting resumes");
 
-static int acctchkfreq = 15;	/* frequency (in seconds) to check space */
+static int acctchkfreq = 15; /* frequency (in seconds) to check space */
 
 static int
 sysctl_acct_chkfreq(SYSCTL_HANDLER_ARGS)
@@ -182,14 +184,13 @@ sysctl_acct_chkfreq(SYSCTL_HANDLER_ARGS)
 }
 SYSCTL_PROC(_kern, OID_AUTO, acct_chkfreq,
     CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, &acctchkfreq, 0,
-    sysctl_acct_chkfreq, "I",
-    "frequency for checking the free space");
+    sysctl_acct_chkfreq, "I", "frequency for checking the free space");
 
 SYSCTL_INT(_kern, OID_AUTO, acct_configured, CTLFLAG_RD, &acct_configured, 0,
-	"Accounting configured or not");
+    "Accounting configured or not");
 
 SYSCTL_INT(_kern, OID_AUTO, acct_suspended, CTLFLAG_RD, &acct_suspended, 0,
-	"Accounting suspended or not");
+    "Accounting suspended or not");
 
 /*
  * Accounting system call.  Written based on the specification and previous
@@ -287,7 +288,7 @@ sys_acct(struct thread *td, struct acct_args *uap)
 		error = kproc_create(acct_thread, NULL, NULL, 0, 0,
 		    "accounting");
 		if (error) {
-			(void) acct_disable(td, 0);
+			(void)acct_disable(td, 0);
 			sx_xunlock(&acct_sx);
 			log(LOG_NOTICE, "Unable to start accounting thread\n");
 			return (error);
@@ -396,8 +397,8 @@ acct_process(struct thread *td)
 	/* Convert tmp (i.e. u + s) into hz units to match ru_i*. */
 	t = tmp.tv_sec * hz + tmp.tv_usec / tick;
 	if (t)
-		acct.ac_mem = encode_long((ru.ru_ixrss + ru.ru_idrss +
-		    + ru.ru_isrss) / t);
+		acct.ac_mem = encode_long(
+		    (ru.ru_ixrss + ru.ru_idrss + +ru.ru_isrss) / t);
 	else
 		acct.ac_mem = 0;
 
@@ -422,8 +423,8 @@ acct_process(struct thread *td)
 	/*
 	 * Write the accounting information to the file.
 	 */
-	ret = vn_rdwr(UIO_WRITE, acct_vp, (caddr_t)&acct, sizeof (acct),
-	    (off_t)0, UIO_SYSSPACE, IO_APPEND|IO_UNIT, acct_cred, NOCRED,
+	ret = vn_rdwr(UIO_WRITE, acct_vp, (caddr_t)&acct, sizeof(acct),
+	    (off_t)0, UIO_SYSSPACE, IO_APPEND | IO_UNIT, acct_cred, NOCRED,
 	    NULL, td);
 	sx_sunlock(&acct_sx);
 	td->td_pflags2 &= ~TDP2_ACCT;
@@ -457,8 +458,8 @@ static uint32_t
 encode_timeval(struct timeval tv)
 {
 	int log2_s;
-	int val, exp;	/* Unnormalized value and exponent */
-	int norm_exp;	/* Normalized exponent */
+	int val, exp; /* Unnormalized value and exponent */
+	int norm_exp; /* Normalized exponent */
 	int shift;
 
 	/*
@@ -483,15 +484,16 @@ encode_timeval(struct timeval tv)
 		} else {
 			exp = log2_s + LOG2_1M - CALC_BITS;
 			val = (unsigned int)(((uint64_t)1000000 * tv.tv_sec +
-			    tv.tv_usec) >> exp);
+						 tv.tv_usec) >>
+			    exp);
 		}
 	}
 	/* Now normalize and pack the value into an IEEE-754 float. */
 	norm_exp = fls(val) - 1;
 	shift = FLT_MANT_DIG - norm_exp - 1;
 #ifdef ACCT_DEBUG
-	printf("val=%d exp=%d shift=%d log2(val)=%d\n",
-	    val, exp, shift, norm_exp);
+	printf("val=%d exp=%d shift=%d log2(val)=%d\n", val, exp, shift,
+	    norm_exp);
 	printf("exp=%x mant=%x\n", FLT_MAX_EXP - 1 + exp + norm_exp,
 	    ((shift > 0 ? (val << shift) : (val >> -shift)) & MANT_MASK));
 #endif
@@ -506,7 +508,7 @@ encode_timeval(struct timeval tv)
 static uint32_t
 encode_long(long val)
 {
-	int norm_exp;	/* Normalized exponent */
+	int norm_exp; /* Normalized exponent */
 	int shift;
 
 	if (val == 0)
@@ -520,8 +522,7 @@ encode_long(long val)
 	norm_exp = fls(val) - 1;
 	shift = FLT_MANT_DIG - norm_exp - 1;
 #ifdef ACCT_DEBUG
-	printf("val=%d shift=%d log2(val)=%d\n",
-	    val, shift, norm_exp);
+	printf("val=%d shift=%d log2(val)=%d\n", val, shift, norm_exp);
 	printf("exp=%x mant=%x\n", FLT_MAX_EXP - 1 + exp + norm_exp,
 	    ((shift > 0 ? (val << shift) : (val >> -shift)) & MANT_MASK));
 #endif
@@ -560,7 +561,7 @@ acctwatch(void)
 	 * accounting thread to die.
 	 */
 	if (acct_vp->v_type == VBAD) {
-		(void) acct_disable(NULL, 1);
+		(void)acct_disable(NULL, 1);
 		acct_state |= ACCT_EXITREQ;
 		return;
 	}
@@ -575,14 +576,13 @@ acctwatch(void)
 		return;
 	}
 	if (acct_suspended) {
-		if (sp->f_bavail > (int64_t)(acctresume * sp->f_blocks /
-		    100)) {
+		if (sp->f_bavail > (int64_t)(acctresume * sp->f_blocks / 100)) {
 			acct_suspended = 0;
 			log(LOG_NOTICE, "Accounting resumed\n");
 		}
 	} else {
-		if (sp->f_bavail <= (int64_t)(acctsuspend * sp->f_blocks /
-		    100)) {
+		if (sp->f_bavail <=
+		    (int64_t)(acctsuspend * sp->f_blocks / 100)) {
 			acct_suspended = 1;
 			log(LOG_NOTICE, "Accounting suspended\n");
 		}

@@ -32,26 +32,28 @@
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/linker.h>
-#include <sys/socket.h>
-#include <sys/syslog.h>
 #include <sys/queue.h>
+#include <sys/socket.h>
 #include <sys/sysctl.h>
+#include <sys/syslog.h>
+
+#include <bsnmp/snmpmod.h>
+#include <errno.h>
+#include <netgraph.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
-#include <unistd.h>
 #include <string.h>
-#include <netgraph.h>
-#include <bsnmp/snmpmod.h>
-#include "snmp_netgraph.h"
-#include "netgraph_tree.h"
+#include <unistd.h>
+
 #include "netgraph_oid.h"
+#include "netgraph_tree.h"
+#include "snmp_netgraph.h"
 
 /* maximum message size */
-#define RESBUFSIZ	20000
+#define RESBUFSIZ 20000
 
 /* default node name */
-#define NODENAME	"NgSnmpd"
+#define NODENAME "NgSnmpd"
 
 /* my node Id */
 ng_ID_t snmp_node;
@@ -79,36 +81,35 @@ struct csock_buf {
 	struct ng_mesg *mesg;
 	char path[NG_PATHSIZ];
 };
-static STAILQ_HEAD(, csock_buf) csock_bufs =
-	STAILQ_HEAD_INITIALIZER(csock_bufs);
+static STAILQ_HEAD(, csock_buf) csock_bufs = STAILQ_HEAD_INITIALIZER(
+    csock_bufs);
 
 /*
  * We dispatch unsolicieted messages by node cookies and ids.
  * So we must keep a list of hook names and dispatch functions.
  */
 struct msgreg {
-	u_int32_t 	cookie;
-	ng_ID_t		id;
-	ng_cookie_f	*func;
-	void		*arg;
+	u_int32_t cookie;
+	ng_ID_t id;
+	ng_cookie_f *func;
+	void *arg;
 	const struct lmodule *mod;
 	SLIST_ENTRY(msgreg) link;
 };
-static SLIST_HEAD(, msgreg) msgreg_list =
-	SLIST_HEAD_INITIALIZER(msgreg_list);
+static SLIST_HEAD(, msgreg) msgreg_list = SLIST_HEAD_INITIALIZER(msgreg_list);
 
 /*
  * Data messages are dispatched by hook names.
  */
 struct datareg {
-	char		hook[NG_HOOKSIZ];
-	ng_hook_f	*func;
-	void		*arg;
+	char hook[NG_HOOKSIZ];
+	ng_hook_f *func;
+	void *arg;
 	const struct lmodule *mod;
 	SLIST_ENTRY(datareg) link;
 };
-static SLIST_HEAD(, datareg) datareg_list =
-	SLIST_HEAD_INITIALIZER(datareg_list);
+static SLIST_HEAD(, datareg) datareg_list = SLIST_HEAD_INITIALIZER(
+    datareg_list);
 
 /* the netgraph sockets */
 static int csock, dsock;
@@ -118,19 +119,18 @@ static void *csock_fd, *dsock_fd;
 static struct lmodule *module;
 
 /* statistics */
-static u_int32_t stats[LEAF_begemotNgTooLargeDatas+1];
+static u_int32_t stats[LEAF_begemotNgTooLargeDatas + 1];
 
 /* netgraph type list */
 struct ngtype {
-	char		name[NG_TYPESIZ];
-	struct asn_oid	index;
+	char name[NG_TYPESIZ];
+	struct asn_oid index;
 	TAILQ_ENTRY(ngtype) link;
 };
 TAILQ_HEAD(ngtype_list, ngtype);
 
 static struct ngtype_list ngtype_list;
 static uint64_t ngtype_tick;
-
 
 /*
  * Register a function to receive unsolicited messages
@@ -171,8 +171,8 @@ ng_unregister_cookie(void *dd)
  * Register a function for hook data.
  */
 void *
-ng_register_hook(const struct lmodule *mod, const char *hook,
-    ng_hook_f *func, void *arg)
+ng_register_hook(const struct lmodule *mod, const char *hook, ng_hook_f *func,
+    void *arg)
 {
 	struct datareg *d;
 
@@ -317,14 +317,14 @@ csock_input(int fd __unused, void *udata __unused)
  * Write a message to a node.
  */
 int
-ng_output(const char *path, u_int cookie, u_int opcode,
-    const void *arg, size_t arglen)
+ng_output(const char *path, u_int cookie, u_int opcode, const void *arg,
+    size_t arglen)
 {
 	return (NgSendMsg(csock, path, (int)cookie, (int)opcode, arg, arglen));
 }
 int
-ng_output_node(const char *node, u_int cookie, u_int opcode,
-    const void *arg, size_t arglen)
+ng_output_node(const char *node, u_int cookie, u_int opcode, const void *arg,
+    size_t arglen)
 {
 	char path[NG_PATHSIZ];
 
@@ -332,8 +332,8 @@ ng_output_node(const char *node, u_int cookie, u_int opcode,
 	return (ng_output(path, cookie, opcode, arg, arglen));
 }
 int
-ng_output_id(ng_ID_t node, u_int cookie, u_int opcode,
-    const void *arg, size_t arglen)
+ng_output_id(ng_ID_t node, u_int cookie, u_int opcode, const void *arg,
+    size_t arglen)
 {
 	char path[NG_PATHSIZ];
 
@@ -341,15 +341,13 @@ ng_output_id(ng_ID_t node, u_int cookie, u_int opcode,
 	return (ng_output(path, cookie, opcode, arg, arglen));
 }
 
-
-
 /*
  * Execute a synchronuous dialog with the csock. All message we receive, that
  * do not match our request, are queue until the next call to the IDLE function.
  */
 struct ng_mesg *
-ng_dialog(const char *path, u_int cookie, u_int opcode,
-    const void *arg, size_t arglen)
+ng_dialog(const char *path, u_int cookie, u_int opcode, const void *arg,
+    size_t arglen)
 {
 	int token, err;
 	struct ng_mesg *mesg;
@@ -371,7 +369,7 @@ ng_dialog(const char *path, u_int cookie, u_int opcode,
 		mesg = NULL;
 		gettimeofday(&tv, NULL);
 		if (timercmp(&tv, &end, >=)) {
-  block:
+		block:
 			syslog(LOG_WARNING, "no response for request %u/%u",
 			    cookie, opcode);
 			errno = EWOULDBLOCK;
@@ -381,7 +379,8 @@ ng_dialog(const char *path, u_int cookie, u_int opcode,
 		if (tv.tv_sec == 0 && tv.tv_usec < clockinfo.tick)
 			goto block;
 
-		if (setsockopt(csock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) == -1)
+		if (setsockopt(csock, SOL_SOCKET, SO_RCVTIMEO, &tv,
+			sizeof(tv)) == -1)
 			syslog(LOG_WARNING, "setsockopt(SO_RCVTIMEO): %m");
 		if ((mesg = csock_read(rpath)) == NULL) {
 			if (errno == EWOULDBLOCK)
@@ -415,8 +414,8 @@ ng_dialog(const char *path, u_int cookie, u_int opcode,
 	return (mesg);
 }
 struct ng_mesg *
-ng_dialog_node(const char *node, u_int cookie, u_int opcode,
-    const void *arg, size_t arglen)
+ng_dialog_node(const char *node, u_int cookie, u_int opcode, const void *arg,
+    size_t arglen)
 {
 	char path[NG_PATHSIZ];
 
@@ -424,15 +423,14 @@ ng_dialog_node(const char *node, u_int cookie, u_int opcode,
 	return (ng_dialog(path, cookie, opcode, arg, arglen));
 }
 struct ng_mesg *
-ng_dialog_id(ng_ID_t id, u_int cookie, u_int opcode,
-    const void *arg, size_t arglen)
+ng_dialog_id(ng_ID_t id, u_int cookie, u_int opcode, const void *arg,
+    size_t arglen)
 {
 	char path[NG_PATHSIZ];
 
 	sprintf(path, "[%x]:", id);
 	return (ng_dialog(path, cookie, opcode, arg, arglen));
 }
-
 
 /*
  * Send a data message to a given hook.
@@ -554,8 +552,8 @@ ng_node_id(const char *path)
 	struct ng_mesg *resp;
 	ng_ID_t id;
 
-	if ((resp = ng_dialog(path, NGM_GENERIC_COOKIE, NGM_NODEINFO,
-	    NULL, 0)) == NULL)
+	if ((resp = ng_dialog(path, NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL,
+		 0)) == NULL)
 		return (0);
 	id = ((struct nodeinfo *)(void *)resp->data)->id;
 	free(resp);
@@ -567,8 +565,8 @@ ng_node_id_node(const char *node)
 	struct ng_mesg *resp;
 	ng_ID_t id;
 
-	if ((resp = ng_dialog_node(node, NGM_GENERIC_COOKIE, NGM_NODEINFO,
-	    NULL, 0)) == NULL)
+	if ((resp = ng_dialog_node(node, NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL,
+		 0)) == NULL)
 		return (0);
 	id = ((struct nodeinfo *)(void *)resp->data)->id;
 	free(resp);
@@ -579,21 +577,20 @@ ng_node_name(ng_ID_t id, char *name)
 {
 	struct ng_mesg *resp;
 
-	if ((resp = ng_dialog_id(id, NGM_GENERIC_COOKIE, NGM_NODEINFO,
-	    NULL, 0)) == NULL)
+	if ((resp = ng_dialog_id(id, NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL,
+		 0)) == NULL)
 		return (0);
 	strcpy(name, ((struct nodeinfo *)(void *)resp->data)->name);
 	free(resp);
 	return (id);
-
 }
 ng_ID_t
 ng_node_type(ng_ID_t id, char *type)
 {
 	struct ng_mesg *resp;
 
-	if ((resp = ng_dialog_id(id, NGM_GENERIC_COOKIE, NGM_NODEINFO,
-	    NULL, 0)) == NULL)
+	if ((resp = ng_dialog_id(id, NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL,
+		 0)) == NULL)
 		return (0);
 	strcpy(type, ((struct nodeinfo *)(void *)resp->data)->type);
 	free(resp);
@@ -611,8 +608,8 @@ ng_connect_node(const char *node, const char *ourhook, const char *peerhook)
 	snprintf(conn.path, NG_PATHSIZ, "%s:", node);
 	strlcpy(conn.ourhook, ourhook, NG_HOOKSIZ);
 	strlcpy(conn.peerhook, peerhook, NG_HOOKSIZ);
-	return (NgSendMsg(csock, ".:",
-	    NGM_GENERIC_COOKIE, NGM_CONNECT, &conn, sizeof(conn)));
+	return (NgSendMsg(csock, ".:", NGM_GENERIC_COOKIE, NGM_CONNECT, &conn,
+	    sizeof(conn)));
 }
 int
 ng_connect_id(ng_ID_t id, const char *ourhook, const char *peerhook)
@@ -622,8 +619,8 @@ ng_connect_id(ng_ID_t id, const char *ourhook, const char *peerhook)
 	snprintf(conn.path, NG_PATHSIZ, "[%x]:", id);
 	strlcpy(conn.ourhook, ourhook, NG_HOOKSIZ);
 	strlcpy(conn.peerhook, peerhook, NG_HOOKSIZ);
-	return (NgSendMsg(csock, ".:",
-	    NGM_GENERIC_COOKIE, NGM_CONNECT, &conn, sizeof(conn)));
+	return (NgSendMsg(csock, ".:", NGM_GENERIC_COOKIE, NGM_CONNECT, &conn,
+	    sizeof(conn)));
 }
 
 int
@@ -638,8 +635,8 @@ ng_connect2_id(ng_ID_t id, ng_ID_t peer, const char *ourhook,
 	snprintf(conn.path, NG_PATHSIZ, "[%x]:", peer);
 	strlcpy(conn.ourhook, ourhook, NG_HOOKSIZ);
 	strlcpy(conn.peerhook, peerhook, NG_HOOKSIZ);
-	return (NgSendMsg(csock, path,
-	    NGM_GENERIC_COOKIE, NGM_CONNECT, &conn, sizeof(conn)));
+	return (NgSendMsg(csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &conn,
+	    sizeof(conn)));
 }
 
 int
@@ -658,8 +655,8 @@ ng_connect2_tee_id(ng_ID_t id, ng_ID_t peer, const char *ourhook,
 	snprintf(conn.path, NG_PATHSIZ, "[%x]:", peer);
 	strlcpy(conn.ourhook, "right", NG_HOOKSIZ);
 	strlcpy(conn.peerhook, peerhook, NG_HOOKSIZ);
-	return (NgSendMsg(csock, path,
-	    NGM_GENERIC_COOKIE, NGM_CONNECT, &conn, sizeof(conn)));
+	return (NgSendMsg(csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &conn,
+	    sizeof(conn)));
 }
 
 /*
@@ -676,8 +673,8 @@ ng_next_node_id_internal(ng_ID_t node, const char *type, const char *hook,
 	struct hooklist *hooklist;
 	u_int i;
 
-	if ((resp = ng_dialog_id(node, NGM_GENERIC_COOKIE, NGM_LISTHOOKS,
-	    NULL, 0)) == NULL) {
+	if ((resp = ng_dialog_id(node, NGM_GENERIC_COOKIE, NGM_LISTHOOKS, NULL,
+		 0)) == NULL) {
 		syslog(LOG_ERR, "get hook list: %m");
 		exit(1);
 	}
@@ -737,8 +734,8 @@ ng_mkpeer_id(ng_ID_t id, const char *nodename, const char *type,
 	strlcpy(mkpeer.peerhook, peerhook, NG_HOOKSIZ);
 
 	sprintf(path, "[%x]:", id);
-	if (NgSendMsg(csock, path, NGM_GENERIC_COOKIE, NGM_MKPEER,
-	    &mkpeer, sizeof(mkpeer)) == -1)
+	if (NgSendMsg(csock, path, NGM_GENERIC_COOKIE, NGM_MKPEER, &mkpeer,
+		sizeof(mkpeer)) == -1)
 		return (0);
 
 	if ((id = ng_next_node_id_internal(id, NULL, hook, 0)) == 0)
@@ -747,8 +744,8 @@ ng_mkpeer_id(ng_ID_t id, const char *nodename, const char *type,
 	if (nodename != NULL) {
 		strcpy(name.name, nodename);
 		sprintf(path, "[%x]:", id);
-		if (NgSendMsg(csock, path, NGM_GENERIC_COOKIE, NGM_NAME,
-		    &name, sizeof(name)) == -1)
+		if (NgSendMsg(csock, path, NGM_GENERIC_COOKIE, NGM_NAME, &name,
+			sizeof(name)) == -1)
 			return (0);
 	}
 	return (id);
@@ -763,8 +760,8 @@ ng_shutdown_id(ng_ID_t id)
 	char path[NG_PATHSIZ];
 
 	snprintf(path, NG_PATHSIZ, "[%x]:", id);
-	return (NgSendMsg(csock, path, NGM_GENERIC_COOKIE,
-	    NGM_SHUTDOWN, NULL, 0));
+	return (
+	    NgSendMsg(csock, path, NGM_GENERIC_COOKIE, NGM_SHUTDOWN, NULL, 0));
 }
 
 /*
@@ -776,8 +773,8 @@ ng_rmhook(const char *ourhook)
 	struct ngm_rmhook rmhook;
 
 	strlcpy(rmhook.ourhook, ourhook, NG_HOOKSIZ);
-	return (NgSendMsg(csock, ".:",
-	    NGM_GENERIC_COOKIE, NGM_RMHOOK, &rmhook, sizeof(rmhook)));
+	return (NgSendMsg(csock, ".:", NGM_GENERIC_COOKIE, NGM_RMHOOK, &rmhook,
+	    sizeof(rmhook)));
 }
 
 /*
@@ -791,8 +788,8 @@ ng_rmhook_id(ng_ID_t id, const char *hook)
 
 	strlcpy(rmhook.ourhook, hook, NG_HOOKSIZ);
 	snprintf(path, NG_PATHSIZ, "[%x]:", id);
-	return (NgSendMsg(csock, path,
-	    NGM_GENERIC_COOKIE, NGM_RMHOOK, &rmhook, sizeof(rmhook)));
+	return (NgSendMsg(csock, path, NGM_GENERIC_COOKIE, NGM_RMHOOK, &rmhook,
+	    sizeof(rmhook)));
 }
 
 /*
@@ -809,11 +806,11 @@ ng_rmhook_tee_id(ng_ID_t node, const char *hook)
 	ng_ID_t next_node;
 	const char *next_hook;
 
-  again:
+again:
 	/* if we have just shutdown a tee node, which had no other hooks
 	 * connected, the node id may already be wrong here. */
-	if ((resp = ng_dialog_id(node, NGM_GENERIC_COOKIE, NGM_LISTHOOKS,
-	    NULL, 0)) == NULL)
+	if ((resp = ng_dialog_id(node, NGM_GENERIC_COOKIE, NGM_LISTHOOKS, NULL,
+		 0)) == NULL)
 		return (0);
 
 	hooklist = (struct hooklist *)(void *)resp->data;
@@ -864,8 +861,8 @@ ng_peer_hook_id(ng_ID_t node, const char *hook, char *peerhook)
 	u_int i;
 	int ret;
 
-	if ((resp = ng_dialog_id(node, NGM_GENERIC_COOKIE, NGM_LISTHOOKS,
-	    NULL, 0)) == NULL) {
+	if ((resp = ng_dialog_id(node, NGM_GENERIC_COOKIE, NGM_LISTHOOKS, NULL,
+		 0)) == NULL) {
 		syslog(LOG_ERR, "get hook list: %m");
 		exit(1);
 	}
@@ -898,7 +895,6 @@ ng_peer_hook_id(ng_ID_t node, const char *hook, char *peerhook)
 
 	return (ret);
 }
-
 
 /*
  * Now the module is started. Select on the sockets, so that we can get
@@ -957,61 +953,53 @@ ng_fini(void)
 }
 
 const struct snmp_module config = {
-	"This module implements access to the netgraph sub-system",
-	ng_init,
-	ng_fini,
-	ng_idle,
-	NULL,
-	NULL,
-	ng_start,
-	NULL,
-	netgraph_ctree,
-	netgraph_CTREE_SIZE,
-	NULL
+	"This module implements access to the netgraph sub-system", ng_init,
+	ng_fini, ng_idle, NULL, NULL, ng_start, NULL, netgraph_ctree,
+	netgraph_CTREE_SIZE, NULL
 };
 
 int
-op_ng_config(struct snmp_context *ctx, struct snmp_value *value,
-    u_int sub, u_int iidx __unused, enum snmp_op op)
+op_ng_config(struct snmp_context *ctx, struct snmp_value *value, u_int sub,
+    u_int iidx __unused, enum snmp_op op)
 {
 	asn_subid_t which = value->var.subs[sub - 1];
 	int ret;
 
 	switch (op) {
 
-	  case SNMP_OP_GETNEXT:
+	case SNMP_OP_GETNEXT:
 		abort();
 
-	  case SNMP_OP_GET:
+	case SNMP_OP_GET:
 		/*
 		 * Come here for GET, GETNEXT and COMMIT
 		 */
 		switch (which) {
 
-		  case LEAF_begemotNgControlNodeName:
+		case LEAF_begemotNgControlNodeName:
 			return (string_get(value, snmp_nodename, -1));
 
-		  case LEAF_begemotNgResBufSiz:
+		case LEAF_begemotNgResBufSiz:
 			value->v.integer = resbufsiz;
 			break;
 
-		  case LEAF_begemotNgTimeout:
+		case LEAF_begemotNgTimeout:
 			value->v.integer = timeout;
 			break;
 
-		  case LEAF_begemotNgDebugLevel:
+		case LEAF_begemotNgDebugLevel:
 			value->v.uint32 = debug_level;
 			break;
 
-		  default:
+		default:
 			abort();
 		}
 		return (SNMP_ERR_NOERROR);
 
-	  case SNMP_OP_SET:
+	case SNMP_OP_SET:
 		switch (which) {
 
-		  case LEAF_begemotNgControlNodeName:
+		case LEAF_begemotNgControlNodeName:
 			/* only at initialisation */
 			if (community != COMM_INITIALIZE)
 				return (SNMP_ERR_NOT_WRITEABLE);
@@ -1019,8 +1007,8 @@ op_ng_config(struct snmp_context *ctx, struct snmp_value *value,
 			if (snmp_node != 0)
 				return (SNMP_ERR_NOT_WRITEABLE);
 
-			if ((ret = string_save(value, ctx, -1, &snmp_nodename))
-			    != SNMP_ERR_NOERROR)
+			if ((ret = string_save(value, ctx, -1,
+				 &snmp_nodename)) != SNMP_ERR_NOERROR)
 				return (ret);
 
 			if (NgMkSockNode(snmp_nodename, &csock, &dsock) < 0) {
@@ -1032,7 +1020,7 @@ op_ng_config(struct snmp_context *ctx, struct snmp_value *value,
 
 			return (SNMP_ERR_NOERROR);
 
-		  case LEAF_begemotNgResBufSiz:
+		case LEAF_begemotNgResBufSiz:
 			ctx->scratch->int1 = resbufsiz;
 			if (value->v.integer < 1024 ||
 			    value->v.integer > 0x10000)
@@ -1040,15 +1028,14 @@ op_ng_config(struct snmp_context *ctx, struct snmp_value *value,
 			resbufsiz = value->v.integer;
 			return (SNMP_ERR_NOERROR);
 
-		  case LEAF_begemotNgTimeout:
+		case LEAF_begemotNgTimeout:
 			ctx->scratch->int1 = timeout;
-			if (value->v.integer < 10 ||
-			    value->v.integer > 10000)
+			if (value->v.integer < 10 || value->v.integer > 10000)
 				return (SNMP_ERR_WRONG_VALUE);
 			timeout = value->v.integer;
 			return (SNMP_ERR_NOERROR);
 
-		  case LEAF_begemotNgDebugLevel:
+		case LEAF_begemotNgDebugLevel:
 			ctx->scratch->int1 = debug_level;
 			debug_level = value->v.uint32;
 			NgSetDebug(debug_level);
@@ -1056,41 +1043,41 @@ op_ng_config(struct snmp_context *ctx, struct snmp_value *value,
 		}
 		abort();
 
-	  case SNMP_OP_ROLLBACK:
+	case SNMP_OP_ROLLBACK:
 		switch (which) {
 
-		  case LEAF_begemotNgControlNodeName:
+		case LEAF_begemotNgControlNodeName:
 			string_rollback(ctx, &snmp_nodename);
 			close(csock);
 			close(dsock);
 			snmp_node = 0;
 			return (SNMP_ERR_NOERROR);
 
-		  case LEAF_begemotNgResBufSiz:
+		case LEAF_begemotNgResBufSiz:
 			resbufsiz = ctx->scratch->int1;
 			return (SNMP_ERR_NOERROR);
 
-		  case LEAF_begemotNgTimeout:
+		case LEAF_begemotNgTimeout:
 			timeout = ctx->scratch->int1;
 			return (SNMP_ERR_NOERROR);
 
-		  case LEAF_begemotNgDebugLevel:
+		case LEAF_begemotNgDebugLevel:
 			debug_level = ctx->scratch->int1;
 			NgSetDebug(debug_level);
 			return (SNMP_ERR_NOERROR);
 		}
 		abort();
 
-	  case SNMP_OP_COMMIT:
+	case SNMP_OP_COMMIT:
 		switch (which) {
 
-		  case LEAF_begemotNgControlNodeName:
+		case LEAF_begemotNgControlNodeName:
 			string_commit(ctx);
 			return (SNMP_ERR_NOERROR);
 
-		  case LEAF_begemotNgResBufSiz:
-		  case LEAF_begemotNgTimeout:
-		  case LEAF_begemotNgDebugLevel:
+		case LEAF_begemotNgResBufSiz:
+		case LEAF_begemotNgTimeout:
+		case LEAF_begemotNgDebugLevel:
 			return (SNMP_ERR_NOERROR);
 		}
 		abort();
@@ -1104,18 +1091,18 @@ op_ng_stats(struct snmp_context *ctx __unused, struct snmp_value *value,
 {
 	switch (op) {
 
-	  case SNMP_OP_GETNEXT:
+	case SNMP_OP_GETNEXT:
 		abort();
 
-	  case SNMP_OP_GET:
+	case SNMP_OP_GET:
 		value->v.uint32 = stats[value->var.subs[sub - 1] - 1];
 		return (SNMP_ERR_NOERROR);
 
-	  case SNMP_OP_SET:
+	case SNMP_OP_SET:
 		return (SNMP_ERR_NOT_WRITEABLE);
 
-	  case SNMP_OP_ROLLBACK:
-	  case SNMP_OP_COMMIT:
+	case SNMP_OP_ROLLBACK:
+	case SNMP_OP_COMMIT:
 		abort();
 	}
 	abort();
@@ -1140,8 +1127,8 @@ fetch_types(void)
 		free(t);
 	}
 
-	if ((resp = ng_dialog_id(snmp_node, NGM_GENERIC_COOKIE,
-	    NGM_LISTTYPES, NULL, 0)) == NULL)
+	if ((resp = ng_dialog_id(snmp_node, NGM_GENERIC_COOKIE, NGM_LISTTYPES,
+		 NULL, 0)) == NULL)
 		return (SNMP_ERR_GENERR);
 	typelist = (struct typelist *)(void *)resp->data;
 
@@ -1210,8 +1197,8 @@ ngtype_unload(const u_char *name, size_t namelen)
 }
 
 int
-op_ng_type(struct snmp_context *ctx, struct snmp_value *value,
-    u_int sub, u_int iidx, enum snmp_op op)
+op_ng_type(struct snmp_context *ctx, struct snmp_value *value, u_int sub,
+    u_int iidx, enum snmp_op op)
 {
 	asn_subid_t which = value->var.subs[sub - 1];
 	struct ngtype *t;
@@ -1222,22 +1209,24 @@ op_ng_type(struct snmp_context *ctx, struct snmp_value *value,
 
 	switch (op) {
 
-	  case SNMP_OP_GETNEXT:
+	case SNMP_OP_GETNEXT:
 		if ((ret = fetch_types()) != 0)
 			return (ret);
-		if ((t = NEXT_OBJECT_OID(&ngtype_list, &value->var, sub)) == NULL)
+		if ((t = NEXT_OBJECT_OID(&ngtype_list, &value->var, sub)) ==
+		    NULL)
 			return (SNMP_ERR_NOSUCHNAME);
 		index_append(&value->var, sub, &t->index);
 		break;
 
-	  case SNMP_OP_GET:
+	case SNMP_OP_GET:
 		if ((ret = fetch_types()) != 0)
 			return (ret);
-		if ((t = FIND_OBJECT_OID(&ngtype_list, &value->var, sub)) == NULL)
+		if ((t = FIND_OBJECT_OID(&ngtype_list, &value->var, sub)) ==
+		    NULL)
 			return (SNMP_ERR_NOSUCHNAME);
 		break;
 
-	  case SNMP_OP_SET:
+	case SNMP_OP_SET:
 		if (index_decode(&value->var, sub, iidx, &name, &namelen))
 			return (SNMP_ERR_NO_CREATION);
 		if (namelen == 0 || namelen >= NG_TYPESIZ) {
@@ -1289,14 +1278,14 @@ op_ng_type(struct snmp_context *ctx, struct snmp_value *value,
 		}
 		return (SNMP_ERR_NOERROR);
 
-	  case SNMP_OP_ROLLBACK:
+	case SNMP_OP_ROLLBACK:
 		ret = SNMP_ERR_NOERROR;
 		if (!(ctx->scratch->int1 & 2)) {
 			/* did not exist */
 			if (ctx->scratch->int1 & 1) {
 				/* request to load - unload */
 				if (ngtype_unload(ctx->scratch->ptr2,
-				    ctx->scratch->int2) == -1)
+					ctx->scratch->int2) == -1)
 					ret = SNMP_ERR_UNDO_FAILED;
 			}
 		} else {
@@ -1304,18 +1293,18 @@ op_ng_type(struct snmp_context *ctx, struct snmp_value *value,
 			if (!(ctx->scratch->int1 & 1)) {
 				/* request to unload - reload */
 				if (ngtype_load(ctx->scratch->ptr2,
-				    ctx->scratch->int2) == -1)
+					ctx->scratch->int2) == -1)
 					ret = SNMP_ERR_UNDO_FAILED;
 			}
 		}
 		free(ctx->scratch->ptr2);
 		return (ret);
 
-	  case SNMP_OP_COMMIT:
+	case SNMP_OP_COMMIT:
 		free(ctx->scratch->ptr2);
 		return (SNMP_ERR_NOERROR);
 
-	  default:
+	default:
 		abort();
 	}
 
@@ -1324,11 +1313,11 @@ op_ng_type(struct snmp_context *ctx, struct snmp_value *value,
 	 */
 	switch (which) {
 
-	  case LEAF_begemotNgTypeStatus:
+	case LEAF_begemotNgTypeStatus:
 		value->v.integer = status;
 		break;
 
-	  default:
+	default:
 		abort();
 	}
 	return (SNMP_ERR_NOERROR);
@@ -1343,8 +1332,8 @@ find_node(const struct asn_oid *oid, u_int sub, struct nodeinfo *info)
 	ng_ID_t id = oid->subs[sub];
 	struct ng_mesg *resp;
 
-	if ((resp = ng_dialog_id(id, NGM_GENERIC_COOKIE, NGM_NODEINFO,
-	    NULL, 0)) == NULL)
+	if ((resp = ng_dialog_id(id, NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL,
+		 0)) == NULL)
 		return (-1);
 
 	*info = *(struct nodeinfo *)(void *)resp->data;
@@ -1375,7 +1364,7 @@ find_node_next(const struct asn_oid *oid, u_int sub, struct nodeinfo *info)
 	u_int i;
 
 	if ((resp = ng_dialog_id(snmp_node, NGM_GENERIC_COOKIE, NGM_LISTNODES,
-	    NULL, 0)) == NULL)
+		 NULL, 0)) == NULL)
 		return (-1);
 	list = (struct namelist *)(void *)resp->data;
 
@@ -1413,30 +1402,30 @@ op_ng_node(struct snmp_context *ctx __unused, struct snmp_value *value,
 
 	switch (op) {
 
-	  case SNMP_OP_GETNEXT:
+	case SNMP_OP_GETNEXT:
 		if (find_node_next(&value->var, sub, &nodeinfo) == -1)
 			return (SNMP_ERR_NOSUCHNAME);
 		value->var.len = sub + 1;
 		value->var.subs[sub] = nodeinfo.id;
 		break;
 
-	  case SNMP_OP_GET:
+	case SNMP_OP_GET:
 		if (idxlen != 1)
 			return (SNMP_ERR_NOSUCHNAME);
 		if (find_node(&value->var, sub, &nodeinfo) == -1)
 			return (SNMP_ERR_NOSUCHNAME);
 		break;
 
-	  case SNMP_OP_SET:
+	case SNMP_OP_SET:
 		if (idxlen != 1)
 			return (SNMP_ERR_NO_CREATION);
 		if (find_node(&value->var, sub, &nodeinfo) == -1)
 			return (SNMP_ERR_NO_CREATION);
 		return (SNMP_ERR_NOT_WRITEABLE);
 
-	  case SNMP_OP_ROLLBACK:
-	  case SNMP_OP_COMMIT:
-	  default:
+	case SNMP_OP_ROLLBACK:
+	case SNMP_OP_COMMIT:
+	default:
 		abort();
 	}
 
@@ -1445,18 +1434,18 @@ op_ng_node(struct snmp_context *ctx __unused, struct snmp_value *value,
 	 */
 	switch (which) {
 
-	  case LEAF_begemotNgNodeStatus:
+	case LEAF_begemotNgNodeStatus:
 		value->v.integer = 1;
 		break;
-	  case LEAF_begemotNgNodeName:
+	case LEAF_begemotNgNodeName:
 		return (string_get(value, nodeinfo.name, -1));
-	  case LEAF_begemotNgNodeType:
+	case LEAF_begemotNgNodeType:
 		return (string_get(value, nodeinfo.type, -1));
-	  case LEAF_begemotNgNodeHooks:
+	case LEAF_begemotNgNodeHooks:
 		value->v.uint32 = nodeinfo.hooks;
 		break;
 
-	  default:
+	default:
 		abort();
 	}
 	return (SNMP_ERR_NOERROR);
@@ -1472,8 +1461,8 @@ find_hook(int32_t id, const u_char *hook, size_t hooklen, struct linkinfo *info)
 	struct hooklist *list;
 	u_int i;
 
-	if ((resp = ng_dialog_id(id, NGM_GENERIC_COOKIE,
-	    NGM_LISTHOOKS, NULL, 0)) == NULL)
+	if ((resp = ng_dialog_id(id, NGM_GENERIC_COOKIE, NGM_LISTHOOKS, NULL,
+		 0)) == NULL)
 		return (-1);
 
 	list = (struct hooklist *)(void *)resp->data;
@@ -1520,7 +1509,7 @@ find_hook_next(const struct asn_oid *oid, u_int sub, struct nodeinfo *nodeinfo,
 	 * Get and sort Node list
 	 */
 	if ((resp = ng_dialog_id(snmp_node, NGM_GENERIC_COOKIE, NGM_LISTNODES,
-	    NULL, 0)) == NULL)
+		 NULL, 0)) == NULL)
 		return (-1);
 	list = (struct namelist *)(void *)resp->data;
 
@@ -1556,7 +1545,7 @@ find_hook_next(const struct asn_oid *oid, u_int sub, struct nodeinfo *nodeinfo,
 	 * and find the next one.
 	 */
 	if ((resp1 = ng_dialog_id(list->nodeinfo[node_index].id,
-	    NGM_GENERIC_COOKIE, NGM_LISTHOOKS, NULL, 0)) == NULL) {
+		 NGM_GENERIC_COOKIE, NGM_LISTHOOKS, NULL, 0)) == NULL) {
 		free(resp);
 		return (-1);
 	}
@@ -1587,10 +1576,10 @@ find_hook_next(const struct asn_oid *oid, u_int sub, struct nodeinfo *nodeinfo,
 	free(resp1);
 	node_index++;
 
-  return_first_hook:
+return_first_hook:
 	while (node_index < list->numnames) {
 		if ((resp1 = ng_dialog_id(list->nodeinfo[node_index].id,
-		    NGM_GENERIC_COOKIE, NGM_LISTHOOKS, NULL, 0)) == NULL)
+			 NGM_GENERIC_COOKIE, NGM_LISTHOOKS, NULL, 0)) == NULL)
 			break;
 		hooks = (struct hooklist *)(void *)resp1->data;
 		if (hooks->nodeinfo.hooks > 0) {
@@ -1628,21 +1617,20 @@ op_ng_hook(struct snmp_context *ctx __unused, struct snmp_value *value,
 
 	switch (op) {
 
-	  case SNMP_OP_GETNEXT:
-		if (find_hook_next(&value->var, sub, &nodeinfo, &linkinfo) == -1)
+	case SNMP_OP_GETNEXT:
+		if (find_hook_next(&value->var, sub, &nodeinfo, &linkinfo) ==
+		    -1)
 			return (SNMP_ERR_NOSUCHNAME);
 
 		value->var.len = sub + 1 + 1 + strlen(linkinfo.ourhook);
 		value->var.subs[sub] = nodeinfo.id;
 		value->var.subs[sub + 1] = strlen(linkinfo.ourhook);
 		for (i = 0; i < strlen(linkinfo.ourhook); i++)
-			value->var.subs[sub + i + 2] =
-			    linkinfo.ourhook[i];
+			value->var.subs[sub + i + 2] = linkinfo.ourhook[i];
 		break;
 
-	  case SNMP_OP_GET:
-		if (index_decode(&value->var, sub, iidx, &lid,
-		    &hook, &hooklen))
+	case SNMP_OP_GET:
+		if (index_decode(&value->var, sub, iidx, &lid, &hook, &hooklen))
 			return (SNMP_ERR_NOSUCHNAME);
 		if (find_hook(lid, hook, hooklen, &linkinfo) == -1) {
 			free(hook);
@@ -1651,9 +1639,8 @@ op_ng_hook(struct snmp_context *ctx __unused, struct snmp_value *value,
 		free(hook);
 		break;
 
-	  case SNMP_OP_SET:
-		if (index_decode(&value->var, sub, iidx, &lid,
-		    &hook, &hooklen))
+	case SNMP_OP_SET:
+		if (index_decode(&value->var, sub, iidx, &lid, &hook, &hooklen))
 			return (SNMP_ERR_NO_CREATION);
 		if (find_hook(lid, hook, hooklen, &linkinfo) == -1) {
 			free(hook);
@@ -1662,26 +1649,25 @@ op_ng_hook(struct snmp_context *ctx __unused, struct snmp_value *value,
 		free(hook);
 		return (SNMP_ERR_NOT_WRITEABLE);
 
-	  case SNMP_OP_ROLLBACK:
-	  case SNMP_OP_COMMIT:
-	  default:
+	case SNMP_OP_ROLLBACK:
+	case SNMP_OP_COMMIT:
+	default:
 		abort();
-
 	}
 
 	switch (which) {
 
-	  case LEAF_begemotNgHookStatus:
+	case LEAF_begemotNgHookStatus:
 		value->v.integer = 1;
 		break;
-	  case LEAF_begemotNgHookPeerNodeId:
+	case LEAF_begemotNgHookPeerNodeId:
 		value->v.uint32 = linkinfo.nodeinfo.id;
 		break;
-	  case LEAF_begemotNgHookPeerHook:
+	case LEAF_begemotNgHookPeerHook:
 		return (string_get(value, linkinfo.peerhook, -1));
-	  case LEAF_begemotNgHookPeerType:
+	case LEAF_begemotNgHookPeerType:
 		return (string_get(value, linkinfo.nodeinfo.type, -1));
-	  default:
+	default:
 		abort();
 	}
 	return (SNMP_ERR_NOERROR);

@@ -30,18 +30,19 @@
  */
 
 #include <sys/types.h>
-#include "namespace.h"
 #include <sys/acl.h>
-#include "un-namespace.h"
 #include <sys/errno.h>
+
+#include <assert.h>
 #include <grp.h>
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 
 #include "acl_support.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 static acl_tag_t acl_string_to_tag(char *tag, char *qualifier);
 
@@ -55,36 +56,32 @@ acl_string_to_tag(char *tag, char *qualifier)
 	if (*qualifier == '\0') {
 		if ((!strcmp(tag, "user")) || (!strcmp(tag, "u"))) {
 			return (ACL_USER_OBJ);
-		} else
-		if ((!strcmp(tag, "group")) || (!strcmp(tag, "g"))) {
+		} else if ((!strcmp(tag, "group")) || (!strcmp(tag, "g"))) {
 			return (ACL_GROUP_OBJ);
-		} else
-		if ((!strcmp(tag, "mask")) || (!strcmp(tag, "m"))) {
+		} else if ((!strcmp(tag, "mask")) || (!strcmp(tag, "m"))) {
 			return (ACL_MASK);
-		} else
-		if ((!strcmp(tag, "other")) || (!strcmp(tag, "o"))) {
+		} else if ((!strcmp(tag, "other")) || (!strcmp(tag, "o"))) {
 			return (ACL_OTHER);
 		} else
-			return(-1);
+			return (-1);
 	} else {
 		if ((!strcmp(tag, "user")) || (!strcmp(tag, "u"))) {
-			return(ACL_USER);
+			return (ACL_USER);
+		} else if ((!strcmp(tag, "group")) || (!strcmp(tag, "g"))) {
+			return (ACL_GROUP);
 		} else
-		if ((!strcmp(tag, "group")) || (!strcmp(tag, "g"))) {
-			return(ACL_GROUP);
-		} else
-			return(-1);
+			return (-1);
 	}
 }
 
 static int
 _posix1e_acl_entry_from_text(acl_t aclp, char *entry)
 {
-	acl_tag_t	 t;
-	acl_perm_t	 p;
-	char		*tag, *qualifier, *permission;
-	uid_t		 id;
-	int		 error;
+	acl_tag_t t;
+	acl_perm_t p;
+	char *tag, *qualifier, *permission;
+	uid_t id;
+	int error;
 
 	assert(_acl_brand(aclp) == ACL_BRAND_POSIX);
 
@@ -130,30 +127,30 @@ _posix1e_acl_entry_from_text(acl_t aclp, char *entry)
 	if (error == -1) {
 		errno = EINVAL;
 		return (-1);
-	}		
+	}
 
-	switch(t) {
-		case ACL_USER_OBJ:
-		case ACL_GROUP_OBJ:
-		case ACL_MASK:
-		case ACL_OTHER:
-			if (*qualifier != '\0') {
-				errno = EINVAL;
-				return (-1);
-			}
-			id = 0;
-			break;
-
-		case ACL_USER:
-		case ACL_GROUP:
-			error = _acl_name_to_id(t, qualifier, &id);
-			if (error == -1)
-				return (-1);
-			break;
-
-		default:
+	switch (t) {
+	case ACL_USER_OBJ:
+	case ACL_GROUP_OBJ:
+	case ACL_MASK:
+	case ACL_OTHER:
+		if (*qualifier != '\0') {
 			errno = EINVAL;
 			return (-1);
+		}
+		id = 0;
+		break;
+
+	case ACL_USER:
+	case ACL_GROUP:
+		error = _acl_name_to_id(t, qualifier, &id);
+		if (error == -1)
+			return (-1);
+		break;
+
+	default:
+		errno = EINVAL;
+		return (-1);
 	}
 
 	error = _posix1e_acl_add_entry(aclp, t, id, p);
@@ -190,19 +187,19 @@ _text_is_nfs4_entry(const char *entry)
 acl_t
 acl_from_text(const char *buf_p)
 {
-	acl_t		 acl;
-	char		*mybuf_p, *line, *cur, *notcomment, *comment, *entry;
-	int		 error;
+	acl_t acl;
+	char *mybuf_p, *line, *cur, *notcomment, *comment, *entry;
+	int error;
 
 	/* Local copy we can mess up. */
 	mybuf_p = strdup(buf_p);
 	if (mybuf_p == NULL)
-		return(NULL);
+		return (NULL);
 
 	acl = acl_init(3); /* XXX: WTF, 3? */
 	if (acl == NULL) {
 		free(mybuf_p);
-		return(NULL);
+		return (NULL);
 	}
 
 	/* Outer loop: delimit at \n boundaries. */
@@ -232,7 +229,8 @@ acl_from_text(const char *buf_p)
 				break;
 
 			case ACL_BRAND_POSIX:
-				error = _posix1e_acl_entry_from_text(acl, entry);
+				error = _posix1e_acl_entry_from_text(acl,
+				    entry);
 				break;
 
 			default:
@@ -255,12 +253,12 @@ acl_from_text(const char *buf_p)
 #endif
 
 	free(mybuf_p);
-	return(acl);
+	return (acl);
 
 error_label:
 	acl_free(acl);
 	free(mybuf_p);
-	return(NULL);
+	return (NULL);
 }
 
 /*
@@ -272,12 +270,12 @@ error_label:
 int
 _acl_name_to_id(acl_tag_t tag, char *name, uid_t *id)
 {
-	struct group	*g;
-	struct passwd	*p;
-	unsigned long	l;
-	char 		*endp;
+	struct group *g;
+	struct passwd *p;
+	unsigned long l;
+	char *endp;
 
-	switch(tag) {
+	switch (tag) {
 	case ACL_USER:
 		p = getpwnam(name);
 		if (p == NULL) {

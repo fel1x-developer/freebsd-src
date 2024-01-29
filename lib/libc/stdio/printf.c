@@ -37,12 +37,12 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <xlocale.h>
 
 int
-printf(char const * __restrict fmt, ...)
+printf(char const *__restrict fmt, ...)
 {
 	int ret;
 	va_list ap;
@@ -53,7 +53,7 @@ printf(char const * __restrict fmt, ...)
 	return (ret);
 }
 int
-printf_l(locale_t locale, char const * __restrict fmt, ...)
+printf_l(locale_t locale, char const *__restrict fmt, ...)
 {
 	int ret;
 	va_list ap;

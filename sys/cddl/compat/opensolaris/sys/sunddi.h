@@ -25,7 +25,7 @@
  */
 
 #ifndef _OPENSOLARIS_SYS_SUNDDI_H_
-#define	_OPENSOLARIS_SYS_SUNDDI_H_
+#define _OPENSOLARIS_SYS_SUNDDI_H_
 
 #ifdef _KERNEL
 
@@ -33,20 +33,18 @@
 #include <sys/libkern.h>
 #include <sys/sysevent.h>
 
-#define	ddi_driver_major(zfs_dip)		(0)
-#define	ddi_copyin(from, to, size, flag)				\
-	(copyin((from), (to), (size)), 0)
-#define	ddi_copyout(from, to, size, flag)				\
-	(copyout((from), (to), (size)), 0)
+#define ddi_driver_major(zfs_dip) (0)
+#define ddi_copyin(from, to, size, flag) (copyin((from), (to), (size)), 0)
+#define ddi_copyout(from, to, size, flag) (copyout((from), (to), (size)), 0)
 int ddi_strtol(const char *str, char **nptr, int base, long *result);
 int ddi_strtoul(const char *str, char **nptr, int base, unsigned long *result);
 int ddi_strtoll(const char *str, char **nptr, int base, long long *result);
 int ddi_strtoull(const char *str, char **nptr, int base,
     unsigned long long *result);
 
-#define	DDI_SUCCESS	(0)
-#define	DDI_FAILURE	(-1)
-#define	DDI_SLEEP	0x666
+#define DDI_SUCCESS (0)
+#define DDI_FAILURE (-1)
+#define DDI_SLEEP 0x666
 
 int ddi_soft_state_init(void **statep, size_t size, size_t nitems);
 void ddi_soft_state_fini(void **statep);
@@ -57,11 +55,11 @@ void ddi_soft_state_free(void *state, int item);
 
 int _ddi_log_sysevent(char *vendor, char *class_name, char *subclass_name,
     nvlist_t *attr_list, sysevent_id_t *eidp, int flag);
-#define	ddi_log_sysevent(dip, vendor, class_name, subclass_name,	\
-	    attr_list, eidp, flag)					\
-	_ddi_log_sysevent((vendor), (class_name), (subclass_name),	\
+#define ddi_log_sysevent(dip, vendor, class_name, subclass_name, attr_list, \
+    eidp, flag)                                                             \
+	_ddi_log_sysevent((vendor), (class_name), (subclass_name),          \
 	    (attr_list), (eidp), (flag))
 
-#endif	/* _KERNEL */
+#endif /* _KERNEL */
 
-#endif	/* _OPENSOLARIS_SYS_SUNDDI_H_ */
+#endif /* _OPENSOLARIS_SYS_SUNDDI_H_ */

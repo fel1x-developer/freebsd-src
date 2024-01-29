@@ -26,10 +26,10 @@
  */
 
 #include <sys/param.h>
-#include <sys/malloc.h>
 #include <sys/lock.h>
-#include <sys/rmlock.h>
+#include <sys/malloc.h>
 #include <sys/mbuf.h>
+#include <sys/rmlock.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 #include <sys/syslog.h>
@@ -39,8 +39,8 @@
 #include <netlink/netlink_linux.h>
 #include <netlink/netlink_var.h>
 
-#define	DEBUG_MOD_NAME	nl_writer
-#define	DEBUG_MAX_LEVEL	LOG_DEBUG3
+#define DEBUG_MOD_NAME nl_writer
+#define DEBUG_MAX_LEVEL LOG_DEBUG3
 #include <netlink/netlink_debug.h>
 _DECLARE_DEBUG(LOG_INFO);
 
@@ -82,7 +82,8 @@ _nlmsg_get_unicast_writer(struct nl_writer *nw, int size, struct nlpcb *nlp)
 }
 
 bool
-_nlmsg_get_group_writer(struct nl_writer *nw, int size, int protocol, int group_id)
+_nlmsg_get_group_writer(struct nl_writer *nw, int size, int protocol,
+    int group_id)
 {
 	nw->group.proto = protocol;
 	nw->group.id = group_id;
@@ -108,7 +109,7 @@ _nlmsg_flush(struct nl_writer *nw)
 		/* Send completed messages */
 		nw->buf->datalen -= nw->buf->datalen - completed_len;
 		nw->hdr = NULL;
-        }
+	}
 
 	if (nw->buf->datalen == 0) {
 		MPASS(nw->num_messages == 0);
@@ -143,12 +144,14 @@ _nlmsg_refill_buffer(struct nl_writer *nw, u_int required_len)
 	if (nw->enomem)
 		return (false);
 
-	NL_LOG(LOG_DEBUG3, "no space at offset %u/%u (want %u), trying to "
-	    "reclaim", nw->buf->datalen, nw->buf->buflen, required_len);
+	NL_LOG(LOG_DEBUG3,
+	    "no space at offset %u/%u (want %u), trying to "
+	    "reclaim",
+	    nw->buf->datalen, nw->buf->buflen, required_len);
 
 	/* Calculate new buffer size and allocate it. */
-	completed_len = (nw->hdr != NULL) ?
-	    (char *)nw->hdr - nw->buf->data : nw->buf->datalen;
+	completed_len = (nw->hdr != NULL) ? (char *)nw->hdr - nw->buf->data :
+					    nw->buf->datalen;
 	if (completed_len > 0 && required_len < NLMBUFSIZE) {
 		/* We already ran out of space, use largest effective size. */
 		new_len = max(nw->buf->buflen, NLMBUFSIZE);
@@ -186,8 +189,8 @@ _nlmsg_refill_buffer(struct nl_writer *nw, u_int required_len)
 		nl_buf_free(nw->buf);
 	nw->buf = new;
 	nw->hdr = (last_len > 0) ? (struct nlmsghdr *)new->data : NULL;
-	NL_LOG(LOG_DEBUG2, "switched buffer: used %u/%u bytes",
-	    new->datalen, new->buflen);
+	NL_LOG(LOG_DEBUG2, "switched buffer: used %u/%u bytes", new->datalen,
+	    new->buflen);
 
 	return (true);
 }
@@ -237,7 +240,8 @@ _nlmsg_end(struct nl_writer *nw)
 	}
 
 	nw->hdr->nlmsg_len = nb->data + nb->datalen - (char *)nw->hdr;
-	NL_LOG(LOG_DEBUG2, "wrote msg len: %u type: %d: flags: 0x%X seq: %u pid: %u",
+	NL_LOG(LOG_DEBUG2,
+	    "wrote msg len: %u type: %d: flags: 0x%X seq: %u pid: %u",
 	    nw->hdr->nlmsg_len, nw->hdr->nlmsg_type, nw->hdr->nlmsg_flags,
 	    nw->hdr->nlmsg_seq, nw->hdr->nlmsg_pid);
 	nw->hdr = NULL;
@@ -285,7 +289,8 @@ nlmsg_ack(struct nlpcb *nlp, int error, struct nlmsghdr *hdr,
 	NL_LOG(LOG_DEBUG3, "acknowledging message type %d seq %d",
 	    hdr->nlmsg_type, hdr->nlmsg_seq);
 
-	if (!nlmsg_add(nw, nlp->nl_port, hdr->nlmsg_seq, NLMSG_ERROR, nl_flags, payload_len))
+	if (!nlmsg_add(nw, nlp->nl_port, hdr->nlmsg_seq, NLMSG_ERROR, nl_flags,
+		payload_len))
 		goto enomem;
 
 	errmsg = nlmsg_reserve_data(nw, payload_len, struct nlmsgerr);
@@ -303,15 +308,17 @@ nlmsg_ack(struct nlpcb *nlp, int error, struct nlmsghdr *hdr,
 	if (nlmsg_end(nw))
 		return;
 enomem:
-	NLP_LOG(LOG_DEBUG, nlp, "error allocating ack data for message %d seq %u",
-	    hdr->nlmsg_type, hdr->nlmsg_seq);
+	NLP_LOG(LOG_DEBUG, nlp,
+	    "error allocating ack data for message %d seq %u", hdr->nlmsg_type,
+	    hdr->nlmsg_seq);
 	nlmsg_abort(nw);
 }
 
 bool
 _nlmsg_end_dump(struct nl_writer *nw, int error, struct nlmsghdr *hdr)
 {
-	if (!nlmsg_add(nw, hdr->nlmsg_pid, hdr->nlmsg_seq, NLMSG_DONE, 0, sizeof(int))) {
+	if (!nlmsg_add(nw, hdr->nlmsg_pid, hdr->nlmsg_seq, NLMSG_DONE, 0,
+		sizeof(int))) {
 		NL_LOG(LOG_DEBUG, "Error finalizing table dump");
 		return (false);
 	}

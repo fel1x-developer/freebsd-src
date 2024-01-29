@@ -34,11 +34,10 @@
 
 #include "e1000_api.h"
 
-
 static s32 e1000_acquire_nvm_i210(struct e1000_hw *hw);
 static void e1000_release_nvm_i210(struct e1000_hw *hw);
 static s32 e1000_write_nvm_srwr(struct e1000_hw *hw, u16 offset, u16 words,
-				u16 *data);
+    u16 *data);
 static s32 e1000_pool_flash_update_done_i210(struct e1000_hw *hw);
 static s32 e1000_valid_led_default_i210(struct e1000_hw *hw, u16 *data);
 
@@ -51,7 +50,8 @@ static s32 e1000_valid_led_default_i210(struct e1000_hw *hw, u16 *data);
  *  Return successful if access grant bit set, else clear the request for
  *  EEPROM access and return -E1000_ERR_NVM (-1).
  **/
-static s32 e1000_acquire_nvm_i210(struct e1000_hw *hw)
+static s32
+e1000_acquire_nvm_i210(struct e1000_hw *hw)
 {
 	s32 ret_val;
 
@@ -69,7 +69,8 @@ static s32 e1000_acquire_nvm_i210(struct e1000_hw *hw)
  *  Stop any current commands to the EEPROM and clear the EEPROM request bit,
  *  then release the semaphores acquired.
  **/
-static void e1000_release_nvm_i210(struct e1000_hw *hw)
+static void
+e1000_release_nvm_i210(struct e1000_hw *hw)
 {
 	DEBUGFUNC("e1000_release_nvm_i210");
 
@@ -86,8 +87,8 @@ static void e1000_release_nvm_i210(struct e1000_hw *hw)
  *  Reads a 16 bit word from the Shadow Ram using the EERD register.
  *  Uses necessary synchronization semaphores.
  **/
-s32 e1000_read_nvm_srrd_i210(struct e1000_hw *hw, u16 offset, u16 words,
-			     u16 *data)
+s32
+e1000_read_nvm_srrd_i210(struct e1000_hw *hw, u16 offset, u16 words, u16 *data)
 {
 	s32 status = E1000_SUCCESS;
 	u16 i, count;
@@ -99,10 +100,11 @@ s32 e1000_read_nvm_srrd_i210(struct e1000_hw *hw, u16 offset, u16 words,
 	 * to read in bursts than synchronizing access for each word. */
 	for (i = 0; i < words; i += E1000_EERD_EEWR_MAX_COUNT) {
 		count = (words - i) / E1000_EERD_EEWR_MAX_COUNT > 0 ?
-			E1000_EERD_EEWR_MAX_COUNT : (words - i);
+		    E1000_EERD_EEWR_MAX_COUNT :
+		    (words - i);
 		if (hw->nvm.ops.acquire(hw) == E1000_SUCCESS) {
 			status = e1000_read_nvm_eerd(hw, offset, count,
-						     data + i);
+			    data + i);
 			hw->nvm.ops.release(hw);
 		} else {
 			status = E1000_ERR_SWFW_SYNC;
@@ -131,8 +133,8 @@ s32 e1000_read_nvm_srrd_i210(struct e1000_hw *hw, u16 offset, u16 words,
  *  If error code is returned, data and Shadow RAM may be inconsistent - buffer
  *  partially written.
  **/
-s32 e1000_write_nvm_srwr_i210(struct e1000_hw *hw, u16 offset, u16 words,
-			      u16 *data)
+s32
+e1000_write_nvm_srwr_i210(struct e1000_hw *hw, u16 offset, u16 words, u16 *data)
 {
 	s32 status = E1000_SUCCESS;
 	u16 i, count;
@@ -144,10 +146,11 @@ s32 e1000_write_nvm_srwr_i210(struct e1000_hw *hw, u16 offset, u16 words,
 	 * to write in bursts than synchronizing access for each word. */
 	for (i = 0; i < words; i += E1000_EERD_EEWR_MAX_COUNT) {
 		count = (words - i) / E1000_EERD_EEWR_MAX_COUNT > 0 ?
-			E1000_EERD_EEWR_MAX_COUNT : (words - i);
+		    E1000_EERD_EEWR_MAX_COUNT :
+		    (words - i);
 		if (hw->nvm.ops.acquire(hw) == E1000_SUCCESS) {
 			status = e1000_write_nvm_srwr(hw, offset, count,
-						      data + i);
+			    data + i);
 			hw->nvm.ops.release(hw);
 		} else {
 			status = E1000_ERR_SWFW_SYNC;
@@ -172,8 +175,8 @@ s32 e1000_write_nvm_srwr_i210(struct e1000_hw *hw, u16 offset, u16 words,
  *  If e1000_update_nvm_checksum is not called after this function , the
  *  Shadow Ram will most likely contain an invalid checksum.
  **/
-static s32 e1000_write_nvm_srwr(struct e1000_hw *hw, u16 offset, u16 words,
-				u16 *data)
+static s32
+e1000_write_nvm_srwr(struct e1000_hw *hw, u16 offset, u16 words, u16 *data)
 {
 	struct e1000_nvm_info *nvm = &hw->nvm;
 	u32 i, k, eewr = 0;
@@ -197,8 +200,7 @@ static s32 e1000_write_nvm_srwr(struct e1000_hw *hw, u16 offset, u16 words,
 		ret_val = -E1000_ERR_NVM;
 
 		eewr = ((offset + i) << E1000_NVM_RW_ADDR_SHIFT) |
-			(data[i] << E1000_NVM_RW_REG_DATA) |
-			E1000_NVM_RW_REG_START;
+		    (data[i] << E1000_NVM_RW_REG_DATA) | E1000_NVM_RW_REG_START;
 
 		E1000_WRITE_REG(hw, E1000_SRWR, eewr);
 
@@ -229,7 +231,8 @@ out:
  *  Reads 16-bit words from the OTP. Return error when the word is not
  *  stored in OTP.
  **/
-static s32 e1000_read_invm_word_i210(struct e1000_hw *hw, u8 address, u16 *data)
+static s32
+e1000_read_invm_word_i210(struct e1000_hw *hw, u8 address, u16 *data)
 {
 	s32 status = -E1000_ERR_INVM_VALUE_NOT_FOUND;
 	u32 invm_dword;
@@ -252,8 +255,8 @@ static s32 e1000_read_invm_word_i210(struct e1000_hw *hw, u8 address, u16 *data)
 			word_address = INVM_DWORD_TO_WORD_ADDRESS(invm_dword);
 			if (word_address == address) {
 				*data = INVM_DWORD_TO_WORD_DATA(invm_dword);
-				DEBUGOUT2("Read INVM Word 0x%02x = %x",
-					  address, *data);
+				DEBUGOUT2("Read INVM Word 0x%02x = %x", address,
+				    *data);
 				status = E1000_SUCCESS;
 				break;
 			}
@@ -271,8 +274,9 @@ static s32 e1000_read_invm_word_i210(struct e1000_hw *hw, u8 address, u16 *data)
  *
  *  Wrapper function to return data formerly found in the NVM.
  **/
-static s32 e1000_read_invm_i210(struct e1000_hw *hw, u16 offset,
-				u16 E1000_UNUSEDARG words, u16 *data)
+static s32
+e1000_read_invm_i210(struct e1000_hw *hw, u16 offset, u16 E1000_UNUSEDARG words,
+    u16 *data)
 {
 	s32 ret_val = E1000_SUCCESS;
 
@@ -283,9 +287,9 @@ static s32 e1000_read_invm_i210(struct e1000_hw *hw, u16 offset,
 	case NVM_MAC_ADDR:
 		ret_val = e1000_read_invm_word_i210(hw, (u8)offset, &data[0]);
 		ret_val |= e1000_read_invm_word_i210(hw, (u8)offset + 1,
-						     &data[1]);
+		    &data[1]);
 		ret_val |= e1000_read_invm_word_i210(hw, (u8)offset + 2,
-						     &data[2]);
+		    &data[2]);
 		if (ret_val != E1000_SUCCESS)
 			DEBUGOUT("MAC Addr not found in iNVM\n");
 		break;
@@ -351,15 +355,15 @@ static s32 e1000_read_invm_i210(struct e1000_hw *hw, u16 offset,
  *
  *  Reads iNVM version and image type.
  **/
-s32 e1000_read_invm_version(struct e1000_hw *hw,
-			    struct e1000_fw_version *invm_ver)
+s32
+e1000_read_invm_version(struct e1000_hw *hw, struct e1000_fw_version *invm_ver)
 {
 	u32 *record = NULL;
 	u32 *next_record = NULL;
 	u32 i = 0;
 	u32 invm_dword = 0;
-	u32 invm_blocks = E1000_INVM_SIZE - (E1000_INVM_ULT_BYTES_SIZE /
-					     E1000_INVM_RECORD_SIZE_IN_BYTES);
+	u32 invm_blocks = E1000_INVM_SIZE -
+	    (E1000_INVM_ULT_BYTES_SIZE / E1000_INVM_RECORD_SIZE_IN_BYTES);
 	u32 buffer[E1000_INVM_SIZE];
 	s32 status = -E1000_ERR_INVM_VALUE_NOT_FOUND;
 	u16 version = 0;
@@ -385,7 +389,7 @@ s32 e1000_read_invm_version(struct e1000_hw *hw,
 		}
 		/* Check if we have second version location used */
 		else if ((i == 1) &&
-			 ((*record & E1000_INVM_VER_FIELD_TWO) == 0)) {
+		    ((*record & E1000_INVM_VER_FIELD_TWO) == 0)) {
 			version = (*record & E1000_INVM_VER_FIELD_ONE) >> 3;
 			status = E1000_SUCCESS;
 			break;
@@ -395,10 +399,10 @@ s32 e1000_read_invm_version(struct e1000_hw *hw,
 		 * used and it is the last one used
 		 */
 		else if ((((*record & E1000_INVM_VER_FIELD_ONE) == 0) &&
-			 ((*record & 0x3) == 0)) || (((*record & 0x3) != 0) &&
-			 (i != 1))) {
-			version = (*next_record & E1000_INVM_VER_FIELD_TWO)
-				  >> 13;
+			     ((*record & 0x3) == 0)) ||
+		    (((*record & 0x3) != 0) && (i != 1))) {
+			version = (*next_record & E1000_INVM_VER_FIELD_TWO) >>
+			    13;
 			status = E1000_SUCCESS;
 			break;
 		}
@@ -407,7 +411,7 @@ s32 e1000_read_invm_version(struct e1000_hw *hw,
 		 * used and it is the last one used
 		 */
 		else if (((*record & E1000_INVM_VER_FIELD_TWO) == 0) &&
-			 ((*record & 0x3) == 0)) {
+		    ((*record & 0x3) == 0)) {
 			version = (*record & E1000_INVM_VER_FIELD_ONE) >> 3;
 			status = E1000_SUCCESS;
 			break;
@@ -415,8 +419,8 @@ s32 e1000_read_invm_version(struct e1000_hw *hw,
 	}
 
 	if (status == E1000_SUCCESS) {
-		invm_ver->invm_major = (version & E1000_INVM_MAJOR_MASK)
-					>> E1000_INVM_MAJOR_SHIFT;
+		invm_ver->invm_major = (version & E1000_INVM_MAJOR_MASK) >>
+		    E1000_INVM_MAJOR_SHIFT;
 		invm_ver->invm_minor = version & E1000_INVM_MINOR_MASK;
 	}
 	/* Read Image Type */
@@ -432,10 +436,10 @@ s32 e1000_read_invm_version(struct e1000_hw *hw,
 		}
 		/* Check if we have image type in first location used */
 		else if ((((*record & 0x3) == 0) &&
-			 ((*record & E1000_INVM_IMGTYPE_FIELD) == 0)) ||
-			 ((((*record & 0x3) != 0) && (i != 1)))) {
+			     ((*record & E1000_INVM_IMGTYPE_FIELD) == 0)) ||
+		    ((((*record & 0x3) != 0) && (i != 1)))) {
 			invm_ver->invm_img_type =
-				(*next_record & E1000_INVM_IMGTYPE_FIELD) >> 23;
+			    (*next_record & E1000_INVM_IMGTYPE_FIELD) >> 23;
 			status = E1000_SUCCESS;
 			break;
 		}
@@ -450,7 +454,8 @@ s32 e1000_read_invm_version(struct e1000_hw *hw,
  *  Calculates the EEPROM checksum by reading/adding each word of the EEPROM
  *  and then verifies that the sum of the EEPROM is equal to 0xBABA.
  **/
-s32 e1000_validate_nvm_checksum_i210(struct e1000_hw *hw)
+s32
+e1000_validate_nvm_checksum_i210(struct e1000_hw *hw)
 {
 	s32 status = E1000_SUCCESS;
 	s32 (*read_op_ptr)(struct e1000_hw *, u16, u16, u16 *);
@@ -480,7 +485,6 @@ s32 e1000_validate_nvm_checksum_i210(struct e1000_hw *hw)
 	return status;
 }
 
-
 /**
  *  e1000_update_nvm_checksum_i210 - Update EEPROM checksum
  *  @hw: pointer to the HW structure
@@ -489,7 +493,8 @@ s32 e1000_validate_nvm_checksum_i210(struct e1000_hw *hw)
  *  up to the checksum.  Then calculates the EEPROM checksum and writes the
  *  value to the EEPROM. Next commit EEPROM data onto the Flash.
  **/
-s32 e1000_update_nvm_checksum_i210(struct e1000_hw *hw)
+s32
+e1000_update_nvm_checksum_i210(struct e1000_hw *hw)
 {
 	s32 ret_val;
 	u16 checksum = 0;
@@ -519,14 +524,15 @@ s32 e1000_update_nvm_checksum_i210(struct e1000_hw *hw)
 			ret_val = e1000_read_nvm_eerd(hw, i, 1, &nvm_data);
 			if (ret_val) {
 				hw->nvm.ops.release(hw);
-				DEBUGOUT("NVM Read Error while updating checksum.\n");
+				DEBUGOUT(
+				    "NVM Read Error while updating checksum.\n");
 				goto out;
 			}
 			checksum += nvm_data;
 		}
-		checksum = (u16) NVM_SUM - checksum;
+		checksum = (u16)NVM_SUM - checksum;
 		ret_val = e1000_write_nvm_srwr(hw, NVM_CHECKSUM_REG, 1,
-						&checksum);
+		    &checksum);
 		if (ret_val != E1000_SUCCESS) {
 			hw->nvm.ops.release(hw);
 			DEBUGOUT("NVM Write Error while updating checksum.\n");
@@ -548,7 +554,8 @@ out:
  *  @hw: pointer to the HW structure
  *
  **/
-bool e1000_get_flash_presence_i210(struct e1000_hw *hw)
+bool
+e1000_get_flash_presence_i210(struct e1000_hw *hw)
 {
 	u32 eec = 0;
 	bool ret_val = false;
@@ -568,7 +575,8 @@ bool e1000_get_flash_presence_i210(struct e1000_hw *hw)
  *  @hw: pointer to the HW structure
  *
  **/
-s32 e1000_update_flash_i210(struct e1000_hw *hw)
+s32
+e1000_update_flash_i210(struct e1000_hw *hw)
 {
 	s32 ret_val;
 	u32 flup;
@@ -599,7 +607,8 @@ out:
  *  @hw: pointer to the HW structure
  *
  **/
-s32 e1000_pool_flash_update_done_i210(struct e1000_hw *hw)
+s32
+e1000_pool_flash_update_done_i210(struct e1000_hw *hw)
 {
 	s32 ret_val = -E1000_ERR_NVM;
 	u32 i, reg;
@@ -624,7 +633,8 @@ s32 e1000_pool_flash_update_done_i210(struct e1000_hw *hw)
  *
  *  Initialize the i210/i211 NVM parameters and function pointers.
  **/
-static s32 e1000_init_nvm_params_i210(struct e1000_hw *hw)
+static s32
+e1000_init_nvm_params_i210(struct e1000_hw *hw)
 {
 	s32 ret_val;
 	struct e1000_nvm_info *nvm = &hw->nvm;
@@ -637,16 +647,16 @@ static s32 e1000_init_nvm_params_i210(struct e1000_hw *hw)
 	nvm->ops.valid_led_default = e1000_valid_led_default_i210;
 	if (e1000_get_flash_presence_i210(hw)) {
 		hw->nvm.type = e1000_nvm_flash_hw;
-		nvm->ops.read    = e1000_read_nvm_srrd_i210;
-		nvm->ops.write   = e1000_write_nvm_srwr_i210;
+		nvm->ops.read = e1000_read_nvm_srrd_i210;
+		nvm->ops.write = e1000_write_nvm_srwr_i210;
 		nvm->ops.validate = e1000_validate_nvm_checksum_i210;
-		nvm->ops.update   = e1000_update_nvm_checksum_i210;
+		nvm->ops.update = e1000_update_nvm_checksum_i210;
 	} else {
 		hw->nvm.type = e1000_nvm_invm;
-		nvm->ops.read     = e1000_read_invm_i210;
-		nvm->ops.write    = e1000_null_write_nvm;
+		nvm->ops.read = e1000_read_invm_i210;
+		nvm->ops.write = e1000_null_write_nvm;
 		nvm->ops.validate = e1000_null_ops_generic;
-		nvm->ops.update   = e1000_null_ops_generic;
+		nvm->ops.update = e1000_null_ops_generic;
 	}
 	return ret_val;
 }
@@ -657,7 +667,8 @@ static s32 e1000_init_nvm_params_i210(struct e1000_hw *hw)
  *
  *  Called to initialize all function pointers and parameters.
  **/
-void e1000_init_function_pointers_i210(struct e1000_hw *hw)
+void
+e1000_init_function_pointers_i210(struct e1000_hw *hw)
 {
 	e1000_init_function_pointers_82575(hw);
 	hw->nvm.ops.init_params = e1000_init_nvm_params_i210;
@@ -671,7 +682,8 @@ void e1000_init_function_pointers_i210(struct e1000_hw *hw)
  *  Read the EEPROM for the current default LED configuration.  If the
  *  LED configuration is not valid, set to a valid LED configuration.
  **/
-static s32 e1000_valid_led_default_i210(struct e1000_hw *hw, u16 *data)
+static s32
+e1000_valid_led_default_i210(struct e1000_hw *hw, u16 *data)
 {
 	s32 ret_val;
 
@@ -705,7 +717,8 @@ out:
  * Works around an errata in the PLL circuit where it occasionally
  * provides the wrong clock frequency after power up.
  **/
-static s32 e1000_pll_workaround_i210(struct e1000_hw *hw)
+static s32
+e1000_pll_workaround_i210(struct e1000_hw *hw)
 {
 	s32 ret_val;
 	u32 wuc, mdicnfg, ctrl, ctrl_ext, reg_val;
@@ -721,8 +734,7 @@ static s32 e1000_pll_workaround_i210(struct e1000_hw *hw)
 	E1000_WRITE_REG(hw, E1000_MDICNFG, reg_val);
 
 	/* Get data from NVM, or set default */
-	ret_val = e1000_read_invm_word_i210(hw, E1000_INVM_AUTOLOAD,
-					    &nvm_word);
+	ret_val = e1000_read_invm_word_i210(hw, E1000_INVM_AUTOLOAD, &nvm_word);
 	if (ret_val != E1000_SUCCESS)
 		nvm_word = E1000_INVM_DEFAULT_AL;
 	tmp_nvm = nvm_word | E1000_INVM_PLL_WO_VAL;
@@ -734,8 +746,7 @@ static s32 e1000_pll_workaround_i210(struct e1000_hw *hw)
 		e1000_read_phy_reg_mdic(hw, E1000_PHY_PLL_FREQ_REG, &phy_word);
 		usec_delay(20);
 		e1000_write_phy_reg_mdic(hw, GS40G_PAGE_SELECT, 0);
-		if ((phy_word & E1000_PHY_PLL_UNCONF)
-		    != E1000_PHY_PLL_UNCONF) {
+		if ((phy_word & E1000_PHY_PLL_UNCONF) != E1000_PHY_PLL_UNCONF) {
 			ret_val = E1000_SUCCESS;
 			break;
 		} else {
@@ -743,7 +754,7 @@ static s32 e1000_pll_workaround_i210(struct e1000_hw *hw)
 		}
 		/* directly reset the internal PHY */
 		ctrl = E1000_READ_REG(hw, E1000_CTRL);
-		E1000_WRITE_REG(hw, E1000_CTRL, ctrl|E1000_CTRL_PHY_RST);
+		E1000_WRITE_REG(hw, E1000_CTRL, ctrl | E1000_CTRL_PHY_RST);
 
 		ctrl_ext = E1000_READ_REG(hw, E1000_CTRL_EXT);
 		ctrl_ext |= (E1000_CTRL_EXT_PHYPDEN | E1000_CTRL_EXT_SDLPE);
@@ -782,7 +793,8 @@ static s32 e1000_pll_workaround_i210(struct e1000_hw *hw)
  *  E1000_SUCCESS.  If we were to return with error, EEPROM-less silicon
  *  would not be able to be reset or change link.
  **/
-static s32 e1000_get_cfg_done_i210(struct e1000_hw *hw)
+static s32
+e1000_get_cfg_done_i210(struct e1000_hw *hw)
 {
 	s32 timeout = PHY_CFG_TIMEOUT;
 	u32 mask = E1000_NVM_CFG_DONE_PORT_0;
@@ -807,7 +819,8 @@ static s32 e1000_get_cfg_done_i210(struct e1000_hw *hw)
  *
  *  Called to initialize hw for i210 hw family.
  **/
-s32 e1000_init_hw_i210(struct e1000_hw *hw)
+s32
+e1000_init_hw_i210(struct e1000_hw *hw)
 {
 	struct e1000_mac_info *mac = &hw->mac;
 	s32 ret_val;

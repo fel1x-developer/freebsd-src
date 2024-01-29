@@ -33,6 +33,7 @@
  */
 
 #include <sys/queue.h>
+
 #include <assert.h>
 #define L2CAP_SOCKET_CHECKED
 #include <bluetooth.h>
@@ -44,6 +45,7 @@
 #include <syslog.h>
 #include <unistd.h>
 #include <usbhid.h>
+
 #include "bthid_config.h"
 #include "bthidd.h"
 #include "btuinput.h"
@@ -56,15 +58,15 @@
 bthid_session_p
 session_open(bthid_server_p srv, hid_device_p const d)
 {
-	bthid_session_p	s;
+	bthid_session_p s;
 
 	assert(srv != NULL);
 	assert(d != NULL);
 
-	if ((s = (bthid_session_p) malloc(sizeof(*s))) == NULL)
+	if ((s = (bthid_session_p)malloc(sizeof(*s))) == NULL)
 		return (NULL);
 
-	s->srv = srv;  
+	s->srv = srv;
 	memcpy(&s->bdaddr, &d->bdaddr, sizeof(s->bdaddr));
 	s->ctrl = -1;
 	s->intr = -1;
@@ -101,16 +103,17 @@ int32_t
 session_run(bthid_session_p s)
 {
 	hid_device_p d = get_hid_device(&s->bdaddr);
-	struct sockaddr_l2cap   local;
-	socklen_t               len;
+	struct sockaddr_l2cap local;
+	socklen_t len;
 
 	if (d->keyboard) {
 		/* Open /dev/vkbdctl */
 		s->vkbd = open("/dev/vkbdctl", O_RDWR);
 		if (s->vkbd < 0) {
-			syslog(LOG_ERR, "Could not open /dev/vkbdctl " \
-				"for %s. %s (%d)", bt_ntoa(&s->bdaddr, NULL),
-				strerror(errno), errno);
+			syslog(LOG_ERR,
+			    "Could not open /dev/vkbdctl "
+			    "for %s. %s (%d)",
+			    bt_ntoa(&s->bdaddr, NULL), strerror(errno), errno);
 			return (-1);
 		}
 		/* Register session's vkbd descriptor (if needed) for read */
@@ -124,23 +127,25 @@ session_run(bthid_session_p s)
 
 	/* Take local bdaddr */
 	len = sizeof(local);
-	getsockname(s->ctrl, (struct sockaddr *) &local, &len);
+	getsockname(s->ctrl, (struct sockaddr *)&local, &len);
 
 	if (d->mouse && s->srv->uinput) {
 		s->umouse = uinput_open_mouse(d, &local.l2cap_bdaddr);
 		if (s->umouse < 0) {
-			syslog(LOG_ERR, "Could not open /dev/uinput " \
-				"for %s. %s (%d)", bt_ntoa(&s->bdaddr,
-				NULL), strerror(errno), errno);
+			syslog(LOG_ERR,
+			    "Could not open /dev/uinput "
+			    "for %s. %s (%d)",
+			    bt_ntoa(&s->bdaddr, NULL), strerror(errno), errno);
 			return (-1);
 		}
 	}
 	if (d->keyboard && s->srv->uinput) {
 		s->ukbd = uinput_open_keyboard(d, &local.l2cap_bdaddr);
 		if (s->ukbd < 0) {
-			syslog(LOG_ERR, "Could not open /dev/uinput " \
-				"for %s. %s (%d)", bt_ntoa(&s->bdaddr,
-				NULL), strerror(errno), errno);
+			syslog(LOG_ERR,
+			    "Could not open /dev/uinput "
+			    "for %s. %s (%d)",
+			    bt_ntoa(&s->bdaddr, NULL), strerror(errno), errno);
 			return (-1);
 		}
 		/* Register session's ukbd descriptor (if needed) for read */
@@ -158,12 +163,12 @@ session_run(bthid_session_p s)
 bthid_session_p
 session_by_bdaddr(bthid_server_p srv, bdaddr_p bdaddr)
 {
-	bthid_session_p	s;
+	bthid_session_p s;
 
 	assert(srv != NULL);
 	assert(bdaddr != NULL);
 
-	LIST_FOREACH(s, &srv->sessions, next)
+	LIST_FOREACH (s, &srv->sessions, next)
 		if (memcmp(&s->bdaddr, bdaddr, sizeof(s->bdaddr)) == 0)
 			break;
 
@@ -177,14 +182,14 @@ session_by_bdaddr(bthid_server_p srv, bdaddr_p bdaddr)
 bthid_session_p
 session_by_fd(bthid_server_p srv, int32_t fd)
 {
-	bthid_session_p	s;
+	bthid_session_p s;
 
 	assert(srv != NULL);
 	assert(fd >= 0);
 
-	LIST_FOREACH(s, &srv->sessions, next)
-		if (s->ctrl == fd || s->intr == fd ||
-		    s->vkbd == fd || s->ukbd == fd)
+	LIST_FOREACH (s, &srv->sessions, next)
+		if (s->ctrl == fd || s->intr == fd || s->vkbd == fd ||
+		    s->ukbd == fd)
 			break;
 
 	return (s);
@@ -208,7 +213,7 @@ session_close(bthid_session_p s)
 		close(s->intr);
 
 		if (s->srv->maxfd == s->intr)
-			s->srv->maxfd --;
+			s->srv->maxfd--;
 	}
 
 	if (s->ctrl != -1) {
@@ -217,7 +222,7 @@ session_close(bthid_session_p s)
 		close(s->ctrl);
 
 		if (s->srv->maxfd == s->ctrl)
-			s->srv->maxfd --;
+			s->srv->maxfd--;
 	}
 
 	if (s->vkbd != -1) {
@@ -225,7 +230,7 @@ session_close(bthid_session_p s)
 		close(s->vkbd);
 
 		if (s->srv->maxfd == s->vkbd)
-			s->srv->maxfd --;
+			s->srv->maxfd--;
 	}
 
 	if (s->umouse != -1)
@@ -236,7 +241,7 @@ session_close(bthid_session_p s)
 		close(s->ukbd);
 
 		if (s->srv->maxfd == s->ukbd)
-			s->srv->maxfd --;
+			s->srv->maxfd--;
 	}
 
 	free(s->ctx);
@@ -246,4 +251,3 @@ session_close(bthid_session_p s)
 	memset(s, 0, sizeof(*s));
 	free(s);
 }
-

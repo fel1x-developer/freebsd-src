@@ -29,7 +29,7 @@
 /*-
  * Copyright (c) 2002, 2006 by Matthew Jacob
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
@@ -43,7 +43,7 @@
  * 3. Neither the names of the above listed copyright holders nor the names
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -67,7 +67,7 @@
  * Copyright (c) 2005, WHEEL Sp. z o.o.
  * Copyright (c) 2004, 2005 Justin T. Gibbs
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
@@ -81,7 +81,7 @@
  * 3. Neither the names of the above listed copyright holders nor the names
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -94,17 +94,16 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF THE COPYRIGHT
  * OWNER OR CONTRIBUTOR IS ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef  _MPT_CAM_H_
-#define  _MPT_CAM_H_
+#ifndef _MPT_CAM_H_
+#define _MPT_CAM_H_
 
 #include <cam/cam.h>
-#include <cam/cam_debug.h>
 #include <cam/cam_ccb.h>
+#include <cam/cam_debug.h>
+#include <cam/cam_periph.h>
 #include <cam/cam_sim.h>
 #include <cam/cam_xpt.h>
-#include <cam/cam_periph.h>
 #include <cam/cam_xpt_sim.h>
-#include <cam/cam_debug.h>
 #include <cam/scsi/scsi_all.h>
 #include <cam/scsi/scsi_message.h>
 
@@ -120,7 +119,7 @@ mpt_freeze_ccb(union ccb *ccb)
 {
 	if ((ccb->ccb_h.status & CAM_DEV_QFRZN) == 0) {
 		ccb->ccb_h.status |= CAM_DEV_QFRZN;
-		xpt_freeze_devq(ccb->ccb_h.path, /*count*/1);
+		xpt_freeze_devq(ccb->ccb_h.path, /*count*/ 1);
 	}
 }
 
@@ -135,7 +134,7 @@ mpt_set_ccb_status(union ccb *ccb, cam_status status)
 /*
  * The longest timeout specified for a Task Managent command.
  */
-#define	MPT_TMF_MAX_TIMEOUT	(20000)
+#define MPT_TMF_MAX_TIMEOUT (20000)
 
 static __inline void
 mpt_wakeup_recovery_thread(struct mpt_softc *mpt)
@@ -144,6 +143,6 @@ mpt_wakeup_recovery_thread(struct mpt_softc *mpt)
 }
 
 /************************** Version Compatibility *************************/
-#define	mpt_sim_alloc(a, b, c, mpt, e, f, g)	\
+#define mpt_sim_alloc(a, b, c, mpt, e, f, g) \
 	cam_sim_alloc(a, b, c, mpt, (mpt)->unit, &(mpt)->mpt_lock, e, f, g)
 #endif /*_MPT_CAM_H_ */

@@ -36,21 +36,22 @@
  * ====================================================
  */
 
+#include <sys/types.h>
+
 #include <float.h>
 #include <math.h>
-#include <sys/types.h>
 
 #include "fpmath.h"
 
 #if LDBL_MANL_SIZE > 32
-#define	MASK	((uint64_t)-1)
+#define MASK ((uint64_t)-1)
 #else
-#define	MASK	((uint32_t)-1)
+#define MASK ((uint32_t)-1)
 #endif
 /* Return the last n bits of a word, representing the fractional part. */
-#define	GETFRAC(bits, n)	((bits) & ~(MASK << (n)))
+#define GETFRAC(bits, n) ((bits) & ~(MASK << (n)))
 /* The number of fraction bits in manh, not counting the integer bit */
-#define	HIBITS	(LDBL_MANT_DIG - LDBL_MANL_SIZE)
+#define HIBITS (LDBL_MANT_DIG - LDBL_MANL_SIZE)
 
 static const long double zero[] = { 0.0L, -0.0L };
 
@@ -62,13 +63,13 @@ modfl(long double x, long double *iptr)
 
 	ux.e = x;
 	e = ux.bits.exp - LDBL_MAX_EXP + 1;
-	if (e < HIBITS) {			/* Integer part is in manh. */
-		if (e < 0) {			/* |x|<1 */
+	if (e < HIBITS) {    /* Integer part is in manh. */
+		if (e < 0) { /* |x|<1 */
 			*iptr = zero[ux.bits.sign];
 			return (x);
 		} else {
 			if ((GETFRAC(ux.bits.manh, HIBITS - 1 - e) |
-			     ux.bits.manl) == 0) {	/* X is an integer. */
+				ux.bits.manl) == 0) { /* X is an integer. */
 				*iptr = x;
 				return (zero[ux.bits.sign]);
 			} else {
@@ -80,12 +81,12 @@ modfl(long double x, long double *iptr)
 				return (x - ux.e);
 			}
 		}
-	} else if (e >= LDBL_MANT_DIG - 1) {	/* x has no fraction part. */
+	} else if (e >= LDBL_MANT_DIG - 1) { /* x has no fraction part. */
 		*iptr = x;
-		if (x != x)			/* Handle NaNs. */
+		if (x != x) /* Handle NaNs. */
 			return (x);
 		return (zero[ux.bits.sign]);
-	} else {				/* Fraction part is in manl. */
+	} else { /* Fraction part is in manl. */
 		if (GETFRAC(ux.bits.manl, LDBL_MANT_DIG - 1 - e) == 0) {
 			/* x is integral. */
 			*iptr = x;

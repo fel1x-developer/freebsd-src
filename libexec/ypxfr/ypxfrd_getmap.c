@@ -33,18 +33,20 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/types.h>
+#include <sys/fcntl.h>
+#include <sys/stat.h>
+#include <sys/uio.h>
+
 #include <errno.h>
+#include <rpc/rpc.h>
+#include <rpcsvc/yp.h>
+#include <rpcsvc/ypxfrd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-#include <rpcsvc/ypxfrd.h>
-#include <rpcsvc/yp.h>
-#include <rpc/rpc.h>
-#include <sys/uio.h>
-#include <sys/fcntl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
+
 #include "ypxfr_extern.h"
 
 static int fp = 0;
@@ -54,50 +56,51 @@ xdr_my_xfr(register XDR *xdrs, xfr *objp)
 {
 	while (1) {
 		if (!xdr_xfr(xdrs, objp))
-			return(FALSE);
+			return (FALSE);
 		if (objp->ok == TRUE) {
 			if (write(fp, objp->xfr_u.xfrblock_buf.xfrblock_buf_val,
-			    objp->xfr_u.xfrblock_buf.xfrblock_buf_len) == -1) {
+				objp->xfr_u.xfrblock_buf.xfrblock_buf_len) ==
+			    -1) {
 				yp_error("write failed: %s", strerror(errno));
-				return(FALSE);
+				return (FALSE);
 			}
 		}
 		xdr_free((xdrproc_t)xdr_xfr, (char *)objp);
 		if (objp->ok == FALSE) {
 			switch (objp->xfr_u.xfrstat) {
-			case(XFR_DONE):
-				return(TRUE);
+			case (XFR_DONE):
+				return (TRUE);
 				break;
-			case(XFR_READ_ERR):
+			case (XFR_READ_ERR):
 				yp_error("got read error from rpc.ypxfrd");
-				return(FALSE);
+				return (FALSE);
 				break;
-			case(XFR_ACCESS):
+			case (XFR_ACCESS):
 				yp_error("rpc.ypxfrd couldn't access the map");
-				return(FALSE);
+				return (FALSE);
 				break;
-			case(XFR_DENIED):
+			case (XFR_DENIED):
 				yp_error("access to map denied by rpc.ypxfrd");
-				return(FALSE);
+				return (FALSE);
 				break;
-			case(XFR_DB_TYPE_MISMATCH):
+			case (XFR_DB_TYPE_MISMATCH):
 				yp_error("client/server DB type mismatch");
-				return(FALSE);
+				return (FALSE);
 				break;
-			case(XFR_DB_ENDIAN_MISMATCH):
+			case (XFR_DB_ENDIAN_MISMATCH):
 				yp_error("client/server byte order mismatch");
-				return(FALSE);
+				return (FALSE);
 				break;
 			default:
 				yp_error("got unknown status from rpc.ypxfrd");
-				return(FALSE);
+				return (FALSE);
 				break;
 			}
 		}
 	}
 }
 
-#define PERM_SECURE (S_IRUSR|S_IWUSR)
+#define PERM_SECURE (S_IRUSR | S_IWUSR)
 
 int
 ypxfrd_get_map(char *host, char *map, char *domain, char *tmpname)
@@ -111,34 +114,33 @@ ypxfrd_get_map(char *host, char *map, char *domain, char *tmpname)
 	req.xfrmap = map;
 	req.xfrdomain = domain;
 	req.xfrmap_filename = "";
-	req.xfr_db_type = XFR_DB_BSD_HASH;	/*
-	req.xfr_byte_order = XFR_ENDIAN_ANY;	 * Berkeley DB isn't
-						 * byte-order sensitive.
-						 */
+	req.xfr_db_type = XFR_DB_BSD_HASH; /*
+   req.xfr_byte_order = XFR_ENDIAN_ANY;	 * Berkeley DB isn't
+					    * byte-order sensitive.
+					    */
 
 	bzero((char *)&resp, sizeof(resp));
 
-	if ((clnt = clnt_create(host, YPXFRD_FREEBSD_PROG,
-				YPXFRD_FREEBSD_VERS, "tcp")) == NULL) {
-		return(1);
+	if ((clnt = clnt_create(host, YPXFRD_FREEBSD_PROG, YPXFRD_FREEBSD_VERS,
+		 "tcp")) == NULL) {
+		return (1);
 	}
 
-	if ((fp = open(tmpname, O_RDWR|O_CREAT, PERM_SECURE)) == -1) {
+	if ((fp = open(tmpname, O_RDWR | O_CREAT, PERM_SECURE)) == -1) {
 		clnt_destroy(clnt);
 		yp_error("couldn't open %s: %s", tmpname, strerror(errno));
-		return(1);
+		return (1);
 	}
 
-	if (clnt_call(clnt,YPXFRD_GETMAP,
-			(xdrproc_t)xdr_ypxfr_mapname, (char *)&req,
-			(xdrproc_t)xdr_my_xfr, (char *)&resp,
-			timeout) != RPC_SUCCESS) {
-		yp_error("%s", clnt_sperror(clnt,"call to rpc.ypxfrd failed"));
+	if (clnt_call(clnt, YPXFRD_GETMAP, (xdrproc_t)xdr_ypxfr_mapname,
+		(char *)&req, (xdrproc_t)xdr_my_xfr, (char *)&resp,
+		timeout) != RPC_SUCCESS) {
+		yp_error("%s", clnt_sperror(clnt, "call to rpc.ypxfrd failed"));
 		status++;
 		unlink(tmpname);
 	}
 
 	clnt_destroy(clnt);
 	close(fp);
-	return(status);
+	return (status);
 }

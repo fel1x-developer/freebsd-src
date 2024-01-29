@@ -32,39 +32,39 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_FINGER_H_
-#define	_FINGER_H_
+#ifndef _FINGER_H_
+#define _FINGER_H_
 
 typedef struct person {
-	uid_t uid;			/* user id */
-	char *dir;			/* user's home directory */
-	char *homephone;		/* pointer to home phone no. */
-	char *name;			/* login name */
-	char *office;			/* pointer to office name */
-	char *officephone;		/* pointer to office phone no. */
-	char *realname;			/* pointer to full name */
-	char *shell;			/* user's shell */
-	time_t mailread;		/* last time mail was read */
-	time_t mailrecv;		/* last time mail was received */
-	struct where *whead, *wtail;	/* list of where user is or has been */
+	uid_t uid;		     /* user id */
+	char *dir;		     /* user's home directory */
+	char *homephone;	     /* pointer to home phone no. */
+	char *name;		     /* login name */
+	char *office;		     /* pointer to office name */
+	char *officephone;	     /* pointer to office phone no. */
+	char *realname;		     /* pointer to full name */
+	char *shell;		     /* user's shell */
+	time_t mailread;	     /* last time mail was read */
+	time_t mailrecv;	     /* last time mail was received */
+	struct where *whead, *wtail; /* list of where user is or has been */
 } PERSON;
 
 enum status { LASTLOG, LOGGEDIN };
 
 typedef struct where {
-	struct where *next;		/* next place user is or has been */
-	enum status info;		/* type/status of request */
-	short writable;			/* tty is writable */
-	time_t loginat;			/* time of (last) login */
-	time_t idletime;		/* how long idle (if logged in) */
-	char tty[sizeof ((struct utmpx *)0)->ut_line];  /* tty line */
-	char host[sizeof ((struct utmpx *)0)->ut_host]; /* host name */
+	struct where *next; /* next place user is or has been */
+	enum status info;   /* type/status of request */
+	short writable;	    /* tty is writable */
+	time_t loginat;	    /* time of (last) login */
+	time_t idletime;    /* how long idle (if logged in) */
+	char tty[sizeof((struct utmpx *)0)->ut_line];  /* tty line */
+	char host[sizeof((struct utmpx *)0)->ut_host]; /* host name */
 } WHERE;
 
-#define UNPRIV_NAME	"nobody"	/* Preferred privilege level */
-#define UNPRIV_UGID	32767		/* Default uid and gid */
-#define OUTPUT_MAX	100000		/* Do not keep listinging forever */
-#define TIME_LIMIT	360		/* Do not keep listinging forever */
+#define UNPRIV_NAME "nobody" /* Preferred privilege level */
+#define UNPRIV_UGID 32767    /* Default uid and gid */
+#define OUTPUT_MAX 100000    /* Do not keep listinging forever */
+#define TIME_LIMIT 360	     /* Do not keep listinging forever */
 
 #include "extern.h"
 

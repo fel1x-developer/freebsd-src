@@ -31,7 +31,7 @@
 #ifdef _KERNEL
 #include <sys/systm.h>
 #else
-#define	panic(x) (void)0
+#define panic(x) (void)0
 #endif
 
 /* We need to provide these functions never call them */

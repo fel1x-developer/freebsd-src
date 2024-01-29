@@ -30,61 +30,62 @@
  */
 
 #include <sys/types.h>
-#include <sys/stat.h>
+#include <sys/param.h>
 #include <sys/file.h>
 #include <sys/mman.h>
-#include <sys/param.h>
+#include <sys/stat.h>
 
 #include <assert.h>
 #include <ctype.h>
 #include <dirent.h>
 #include <err.h>
-#include <iostream>
-#include <sstream>
 #include <stdio.h>
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
 
-#include "y.tab.h"
 #include "config.h"
 #include "configvers.h"
+#include "y.tab.h"
+
+#include <iostream>
+#include <sstream>
 
 #ifndef TRUE
-#define TRUE	(1)
+#define TRUE (1)
 #endif
 
 #ifndef FALSE
-#define FALSE	(0)
+#define FALSE (0)
 #endif
 
-#define	CDIR	"../compile/"
+#define CDIR "../compile/"
 
-char	*machinename;
-char	*machinearch;
+char *machinename;
+char *machinearch;
 
-struct cfgfile_head	cfgfiles;
-struct cputype_head	cputype;
-struct opt_head		opt, mkopt, rmopts;
-struct opt_list_head	otab;
-struct envvar_head	envvars;
-struct hint_head	hints;
-struct includepath_head	includepath;
+struct cfgfile_head cfgfiles;
+struct cputype_head cputype;
+struct opt_head opt, mkopt, rmopts;
+struct opt_list_head otab;
+struct envvar_head envvars;
+struct hint_head hints;
+struct includepath_head includepath;
 
-char *	PREFIX;
-char 	destdir[MAXPATHLEN];
-char 	srcdir[MAXPATHLEN];
+char *PREFIX;
+char destdir[MAXPATHLEN];
+char srcdir[MAXPATHLEN];
 
-int	debugging;
-int	found_defaults;
-int	incignore;
+int debugging;
+int found_defaults;
+int incignore;
 
 /*
  * Preserve old behaviour in INCLUDE_CONFIG_FILE handling (files are included
  * literally).
  */
-int	filebased = 0;
-int	versreq;
+int filebased = 0;
+int versreq;
 
 static void configfile(void);
 static void get_srcdir(void);
@@ -113,7 +114,7 @@ main(int argc, char **argv)
 	int ch, len;
 	char *p;
 	char *kernfile;
-	struct includepath* ipath;
+	struct includepath *ipath;
 	int printmachine;
 	bool cust_dest = false;
 
@@ -146,8 +147,8 @@ main(int argc, char **argv)
 			debugging++;
 			break;
 		case 'I':
-			ipath = (struct includepath *) \
-			    	calloc(1, sizeof (struct includepath));
+			ipath = (struct includepath *)calloc(1,
+			    sizeof(struct includepath));
 			if (ipath == NULL)
 				err(EXIT_FAILURE, "calloc");
 			ipath->path = optarg;
@@ -226,7 +227,7 @@ main(int argc, char **argv)
 	checkversion();
 
 	if (printmachine) {
-		printf("%s\t%s\n",machinename,machinearch);
+		printf("%s\t%s\n", machinename, machinearch);
 		exit(0);
 	}
 
@@ -245,12 +246,12 @@ main(int argc, char **argv)
 	} else if (!S_ISDIR(buf.st_mode))
 		errx(EXIT_FAILURE, "%s isn't a directory", p);
 
-	configfile();			/* put config file into kernel*/
-	options();			/* make options .h files */
-	makefile();			/* build Makefile */
-	makeenv();			/* build env.c */
-	makehints();			/* build hints.c */
-	headers();			/* make a lot of .h files */
+	configfile(); /* put config file into kernel*/
+	options();    /* make options .h files */
+	makefile();   /* build Makefile */
+	makeenv();    /* build env.c */
+	makehints();  /* build hints.c */
+	headers();    /* make a lot of .h files */
 	cleanheaders(p);
 	printf("Kernel build directory is %s\n", p);
 	printf("Don't forget to do ``make cleandepend && make depend''\n");
@@ -311,8 +312,10 @@ get_line_buf(void)
 
 	line_buf.flush();
 	if (!line_buf.good()) {
-		errx(EXIT_FAILURE, "failed to generate line buffer, "
-		    "partial line = %s", line_buf.str().c_str());
+		errx(EXIT_FAILURE,
+		    "failed to generate line buffer, "
+		    "partial line = %s",
+		    line_buf.str().c_str());
 	}
 
 	return line_buf.str();
@@ -337,16 +340,15 @@ begin:
 			break;
 	if (ch == EOF)
 		return (configword().eof(true));
-	if (ch == '\\'){
+	if (ch == '\\') {
 		escaped_nl = 1;
 		goto begin;
 	}
 	if (ch == '\n') {
-		if (escaped_nl){
+		if (escaped_nl) {
 			escaped_nl = 0;
 			goto begin;
-		}
-		else
+		} else
 			return (configword().eol(true));
 	}
 	line_buf << (char)ch;
@@ -361,7 +363,7 @@ begin:
 	}
 	if (ch == EOF)
 		return (configword().eof(true));
-	(void) ungetc(ch, fp);
+	(void)ungetc(ch, fp);
 	return (configword(get_line_buf()));
 }
 
@@ -383,16 +385,15 @@ begin:
 			break;
 	if (ch == EOF)
 		return (configword().eof(true));
-	if (ch == '\\'){
+	if (ch == '\\') {
 		escaped_nl = 1;
 		goto begin;
 	}
 	if (ch == '\n') {
-		if (escaped_nl){
+		if (escaped_nl) {
 			escaped_nl = 0;
 			goto begin;
-		}
-		else
+		} else
 			return (configword().eol(true));
 	}
 	if (ch == '"' || ch == '\'') {
@@ -404,7 +405,7 @@ begin:
 				break;
 			if (ch == '\n' && !escaped_nl) {
 				printf("config: missing quote reading `%s'\n",
-					get_line_buf().c_str());
+				    get_line_buf().c_str());
 				exit(2);
 			}
 			if (ch == '\\' && !escaped_nl) {
@@ -424,7 +425,7 @@ begin:
 			line_buf << (char)ch;
 		}
 		if (ch != EOF)
-			(void) ungetc(ch, fp);
+			(void)ungetc(ch, fp);
 	}
 	if (ch == EOF)
 		return (configword().eof(true));
@@ -466,12 +467,12 @@ configfile_dynamic(std::ostringstream &cfg)
 	cfg << "options\t" << OPT_AUTOGEN << lend;
 	cfg << "ident\t" << ident << lend;
 	cfg << "machine\t" << machinename << lend;
-	SLIST_FOREACH(cput, &cputype, cpu_next)
+	SLIST_FOREACH (cput, &cputype, cpu_next)
 		cfg << "cpu\t" << cput->cpu_name << lend;
-	SLIST_FOREACH(ol, &mkopt, op_next)
-		cfg << "makeoptions\t" << ol->op_name << '=' <<
-		    ol->op_value << lend;
-	SLIST_FOREACH(ol, &opt, op_next) {
+	SLIST_FOREACH (ol, &mkopt, op_next)
+		cfg << "makeoptions\t" << ol->op_name << '=' << ol->op_value
+		    << lend;
+	SLIST_FOREACH (ol, &opt, op_next) {
 		if (strncmp(ol->op_name, "DEV_", 4) == 0)
 			continue;
 		cfg << "options\t" << ol->op_name;
@@ -490,7 +491,7 @@ configfile_dynamic(std::ostringstream &cfg)
 	/*
 	 * Mark this file as containing everything we need.
 	 */
-	STAILQ_FOREACH(d, &dtab, d_next)
+	STAILQ_FOREACH (d, &dtab, d_next)
 		cfg << "device\t" << d->d_name << lend;
 	free(lend);
 }
@@ -510,7 +511,7 @@ configfile_filebased(std::ostringstream &cfg)
 	 * C string in the macro, we have to slash their ends then the line
 	 * wraps.
 	 */
-	STAILQ_FOREACH(cf, &cfgfiles, cfg_next) {
+	STAILQ_FOREACH (cf, &cfgfiles, cfg_next) {
 		cff = fopen(cf->cfg_path, "r");
 		if (cff == NULL) {
 			warn("Couldn't open file %s", cf->cfg_path);
@@ -551,7 +552,7 @@ configfile(void)
 	}
 
 	cfg.flush();
-	/* 
+	/*
 	 * We print first part of the template, replace our tag with
 	 * configuration files content and later continue writing our
 	 * template.
@@ -646,7 +647,7 @@ cleanheaders(char *p)
 
 	remember("y.tab.h");
 	remember("setdefs.h");
-	STAILQ_FOREACH(fl, &ftab, f_next)
+	STAILQ_FOREACH (fl, &ftab, f_next)
 		remember(fl->f_fn);
 
 	/*
@@ -741,8 +742,10 @@ kernconfdump(const char *file)
 	if (o == NULL)
 		err(EXIT_FAILURE, "Couldn't allocate memory");
 	/* ELF note section header. */
-	asprintf(&cmd, "/usr/bin/elfdump -c %s | grep -A 8 kern_conf"
-	    "| tail -5 | cut -d ' ' -f 2 | paste - - - - -", file);
+	asprintf(&cmd,
+	    "/usr/bin/elfdump -c %s | grep -A 8 kern_conf"
+	    "| tail -5 | cut -d ' ' -f 2 | paste - - - - -",
+	    file);
 	if (cmd == NULL)
 		errx(EXIT_FAILURE, "asprintf() failed");
 	pp = popen(cmd, "r");
@@ -756,9 +759,11 @@ kernconfdump(const char *file)
 	if (size > SIZE_MAX - off || off + size > (size_t)st.st_size)
 		errx(EXIT_FAILURE, "%s: incoherent ELF headers", file);
 	if (r != 5)
-		errx(EXIT_FAILURE, "File %s doesn't contain configuration "
+		errx(EXIT_FAILURE,
+		    "File %s doesn't contain configuration "
 		    "file. Either unsupported, or not compiled with "
-		    "INCLUDE_CONFIG_FILE", file);
+		    "INCLUDE_CONFIG_FILE",
+		    file);
 	r = fseek(fp, off, SEEK_CUR);
 	if (r != 0)
 		err(EXIT_FAILURE, "fseek() failed");
@@ -783,7 +788,8 @@ badversion(void)
 	fprintf(stderr, "config version = %d, ", CONFIGVERS);
 	fprintf(stderr, "version required = %d\n\n", versreq);
 	fprintf(stderr, "Make sure that /usr/src/usr.sbin/config is in sync\n");
-	fprintf(stderr, "with your /usr/src/sys and install a new config binary\n");
+	fprintf(stderr,
+	    "with your /usr/src/sys and install a new config binary\n");
 	fprintf(stderr, "before trying this again.\n\n");
 	fprintf(stderr, "If running the new config fails check your config\n");
 	fprintf(stderr, "file against the GENERIC or LINT config files for\n");

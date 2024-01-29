@@ -28,38 +28,38 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
 
+#include <vm/vm.h>
+#include <vm/pmap.h>
+#include <vm/vm_object.h>
+
 #include <dev/agp/agppriv.h>
 #include <dev/agp/agpreg.h>
-#include <dev/pci/pcivar.h>
 #include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
-#include <vm/vm.h>
-#include <vm/vm_object.h>
-#include <vm/pmap.h>
-
-#define	MAX_APSIZE	0x3f		/* 256 MB */
+#define MAX_APSIZE 0x3f /* 256 MB */
 
 struct agp_intel_softc {
 	struct agp_softc agp;
-	u_int32_t	initial_aperture; /* aperture size at startup */
+	u_int32_t initial_aperture; /* aperture size at startup */
 	struct agp_gatt *gatt;
-	u_int		aperture_mask;
-	u_int32_t	current_aperture; /* current aperture size */
+	u_int aperture_mask;
+	u_int32_t current_aperture; /* current aperture size */
 };
 
-static const char*
+static const char *
 agp_intel_match(device_t dev)
 {
-	if (pci_get_class(dev) != PCIC_BRIDGE
-	    || pci_get_subclass(dev) != PCIS_BRIDGE_HOST)
+	if (pci_get_class(dev) != PCIC_BRIDGE ||
+	    pci_get_subclass(dev) != PCIS_BRIDGE_HOST)
 		return (NULL);
 
 	if (agp_find_caps(dev) == 0)
@@ -71,10 +71,10 @@ agp_intel_match(device_t dev)
 		return ("Intel 82443LX (440 LX) host to PCI bridge");
 	case 0x71908086:
 		return ("Intel 82443BX (440 BX) host to PCI bridge");
- 	case 0x71a08086:
- 		return ("Intel 82443GX host to PCI bridge");
- 	case 0x71a18086:
- 		return ("Intel 82443GX host to AGP bridge");
+	case 0x71a08086:
+		return ("Intel 82443GX host to PCI bridge");
+	case 0x71a18086:
+		return ("Intel 82443GX host to AGP bridge");
 	case 0x11308086:
 		return ("Intel 82815 (i815 GMCH) host to PCI bridge");
 	case 0x25008086:
@@ -160,8 +160,8 @@ agp_intel_commit_gatt(device_t dev)
 	case 0x25008086: /* i820 */
 	case 0x25018086: /* i820 */
 		pci_write_config(dev, AGP_INTEL_I820_RDCR,
-				 (pci_read_config(dev, AGP_INTEL_I820_RDCR, 1)
-				  | (1 << 1)), 1);
+		    (pci_read_config(dev, AGP_INTEL_I820_RDCR, 1) | (1 << 1)),
+		    1);
 		break;
 	case 0x1a308086: /* i845 */
 	case 0x25608086: /* i845G */
@@ -170,8 +170,8 @@ agp_intel_commit_gatt(device_t dev)
 	case 0x25708086: /* i865 */
 	case 0x25788086: /* i875P */
 		pci_write_config(dev, AGP_INTEL_I845_AGPM,
-				 (pci_read_config(dev, AGP_INTEL_I845_AGPM, 1)
-				  | (1 << 1)), 1);
+		    (pci_read_config(dev, AGP_INTEL_I845_AGPM, 1) | (1 << 1)),
+		    1);
 		break;
 	case 0x1a218086: /* i840 */
 	case 0x25308086: /* i850 */
@@ -179,13 +179,13 @@ agp_intel_commit_gatt(device_t dev)
 	case 0x255d8086: /* E7205 */
 	case 0x25508086: /* E7505 */
 		pci_write_config(dev, AGP_INTEL_MCHCFG,
-				 (pci_read_config(dev, AGP_INTEL_MCHCFG, 2)
-				  | (1 << 9)), 2);
+		    (pci_read_config(dev, AGP_INTEL_MCHCFG, 2) | (1 << 9)), 2);
 		break;
 	default: /* Intel Generic (maybe) */
 		pci_write_config(dev, AGP_INTEL_NBXCFG,
-				 (pci_read_config(dev, AGP_INTEL_NBXCFG, 4)
-				  & ~(1 << 10)) | (1 << 9), 4);
+		    (pci_read_config(dev, AGP_INTEL_NBXCFG, 4) & ~(1 << 10)) |
+			(1 << 9),
+		    4);
 	}
 
 	/* Clear errors. */
@@ -351,7 +351,8 @@ agp_intel_set_aperture(device_t dev, u_int32_t aperture)
 	/*
 	 * Double check for sanity.
 	 */
-	if ((((apsize ^ sc->aperture_mask) << 22) | ((1 << 22) - 1)) + 1 != aperture)
+	if ((((apsize ^ sc->aperture_mask) << 22) | ((1 << 22) - 1)) + 1 !=
+	    aperture)
 		return (EINVAL);
 
 	sc->current_aperture = apsize;
@@ -401,25 +402,24 @@ agp_intel_flush_tlb(device_t dev)
 
 static device_method_t agp_intel_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		agp_intel_probe),
-	DEVMETHOD(device_attach,	agp_intel_attach),
-	DEVMETHOD(device_detach,	agp_intel_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	agp_intel_resume),
+	DEVMETHOD(device_probe, agp_intel_probe),
+	DEVMETHOD(device_attach, agp_intel_attach),
+	DEVMETHOD(device_detach, agp_intel_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, agp_intel_resume),
 
 	/* AGP interface */
-	DEVMETHOD(agp_get_aperture,	agp_intel_get_aperture),
-	DEVMETHOD(agp_set_aperture,	agp_intel_set_aperture),
-	DEVMETHOD(agp_bind_page,	agp_intel_bind_page),
-	DEVMETHOD(agp_unbind_page,	agp_intel_unbind_page),
-	DEVMETHOD(agp_flush_tlb,	agp_intel_flush_tlb),
-	DEVMETHOD(agp_enable,		agp_generic_enable),
-	DEVMETHOD(agp_alloc_memory,	agp_generic_alloc_memory),
-	DEVMETHOD(agp_free_memory,	agp_generic_free_memory),
-	DEVMETHOD(agp_bind_memory,	agp_generic_bind_memory),
-	DEVMETHOD(agp_unbind_memory,	agp_generic_unbind_memory),
-	{ 0, 0 }
+	DEVMETHOD(agp_get_aperture, agp_intel_get_aperture),
+	DEVMETHOD(agp_set_aperture, agp_intel_set_aperture),
+	DEVMETHOD(agp_bind_page, agp_intel_bind_page),
+	DEVMETHOD(agp_unbind_page, agp_intel_unbind_page),
+	DEVMETHOD(agp_flush_tlb, agp_intel_flush_tlb),
+	DEVMETHOD(agp_enable, agp_generic_enable),
+	DEVMETHOD(agp_alloc_memory, agp_generic_alloc_memory),
+	DEVMETHOD(agp_free_memory, agp_generic_free_memory),
+	DEVMETHOD(agp_bind_memory, agp_generic_bind_memory),
+	DEVMETHOD(agp_unbind_memory, agp_generic_unbind_memory), { 0, 0 }
 };
 
 static driver_t agp_intel_driver = {

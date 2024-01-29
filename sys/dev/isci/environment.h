@@ -39,37 +39,41 @@
  * @brief Types and macros specific to the FreeBSD environment.
  */
 
-#include <sys/types.h>
-#include <sys/libkern.h>
-#include <machine/bus.h>
 #include "opt_isci.h"
 
-typedef int8_t 		S8;
-typedef uint8_t		U8;
+#include <sys/types.h>
+#include <sys/libkern.h>
 
-typedef int16_t		S16;
-typedef uint16_t	U16;
+#include <machine/bus.h>
 
-typedef int32_t		S32;
-typedef uint32_t	U32;
+typedef int8_t S8;
+typedef uint8_t U8;
 
-typedef int64_t		S64;
-typedef uint64_t	U64;
+typedef int16_t S16;
+typedef uint16_t U16;
+
+typedef int32_t S32;
+typedef uint32_t U32;
+
+typedef int64_t S64;
+typedef uint64_t U64;
 
 /* Technically, this should be defined as bus_addr_t, but SCIL makes some
  *  incorrect assumptions in some of its physical address calculations which
  *  necessitate using uint64_t here to avoid compiler warnings.  This is
  *  easier for now than modifying SCIL, and works just as well.
  */
-typedef uint64_t	SCI_PHYSICAL_ADDRESS;
+typedef uint64_t SCI_PHYSICAL_ADDRESS;
 
-typedef U64		SATI_LBA;
-typedef void *		FUNCPTR;
+typedef U64 SATI_LBA;
+typedef void *FUNCPTR;
 
-#define sci_cb_physical_address_upper(address) ((uint32_t)((address)>>32))
-#define sci_cb_physical_address_lower(address) ((uint32_t)((address)&0xFFFFFFFF))
-#define sci_cb_make_physical_address(physical_address, address_upper, address_lower) \
-	((physical_address) = ((U64)(address_upper))<<32 | (address_lower))
+#define sci_cb_physical_address_upper(address) ((uint32_t)((address) >> 32))
+#define sci_cb_physical_address_lower(address) \
+	((uint32_t)((address) & 0xFFFFFFFF))
+#define sci_cb_make_physical_address(physical_address, address_upper, \
+    address_lower)                                                    \
+	((physical_address) = ((U64)(address_upper)) << 32 | (address_lower))
 
 #define INLINE __inline
 

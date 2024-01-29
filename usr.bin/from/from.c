@@ -30,12 +30,13 @@
  */
 
 #include <sys/types.h>
+
 #include <ctype.h>
 #include <err.h>
+#include <paths.h>
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <paths.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -80,15 +81,17 @@ main(int argc, char **argv)
 
 	if (file == NULL) {
 		if (argc) {
-			(void)snprintf(buf, sizeof(buf), "%s/%s", _PATH_MAILDIR, *argv);
-			file  = buf;
+			(void)snprintf(buf, sizeof(buf), "%s/%s", _PATH_MAILDIR,
+			    *argv);
+			file = buf;
 		} else {
 			if (!(file = getenv("MAIL"))) {
 				if (!(pwd = getpwuid(getuid())))
-					errx(1, "no password file entry for you");
+					errx(1,
+					    "no password file entry for you");
 				file = pwd->pw_name;
-				(void)snprintf(buf, sizeof(buf),
-				    "%s/%s", _PATH_MAILDIR, file);
+				(void)snprintf(buf, sizeof(buf), "%s/%s",
+				    _PATH_MAILDIR, file);
 				file = buf;
 			}
 		}
@@ -97,8 +100,7 @@ main(int argc, char **argv)
 	/* read from stdin */
 	if (strcmp(file, "-") == 0) {
 		mbox = stdin;
-	} 
-	else if ((mbox = fopen(file, "r")) == NULL) {
+	} else if ((mbox = fopen(file, "r")) == NULL) {
 		errx(1, "can't read %s", file);
 	}
 	for (newline = 1; fgets(buf, sizeof(buf), mbox);) {
@@ -117,7 +119,7 @@ main(int argc, char **argv)
 	}
 	if (count != -1)
 		printf("There %s %d message%s in your incoming mailbox.\n",
-		    count == 1 ? "is" : "are", count, count == 1 ? "" : "s"); 
+		    count == 1 ? "is" : "are", count, count == 1 ? "" : "s");
 	fclose(mbox);
 	exit(0);
 }
@@ -137,14 +139,14 @@ match(const char *line, const char *sender)
 
 	for (first = *sender++;;) {
 		if (isspace(ch = *line))
-			return(0);
+			return (0);
 		++line;
 		ch = tolower(ch);
 		if (ch != first)
 			continue;
 		for (p = sender, t = line;;) {
 			if (!(pch = *p++))
-				return(1);
+				return (1);
 			ch = tolower(*t);
 			t++;
 			if (ch != pch)

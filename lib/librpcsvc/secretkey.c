@@ -38,15 +38,15 @@
 /*
  * Secret key lookup routines
  */
-#include <stdio.h>
 #include <pwd.h>
-#include <rpc/rpc.h>
 #include <rpc/key_prot.h>
+#include <rpc/rpc.h>
 #include <rpcsvc/yp_prot.h>
 #include <rpcsvc/ypclnt.h>
+#include <stdio.h>
 #include <string.h>
 
-extern int xdecrypt( char *, char * );
+extern int xdecrypt(char *, char *);
 
 /*
  * Get somebody's encrypted secret key from the database, using the given
@@ -75,7 +75,7 @@ getsecretkey(char *netname, char *secretkey, char *passwd)
 		return (1);
 	}
 	p[HEXKEYBYTES] = '\0';
-	(void) strncpy(secretkey, p, HEXKEYBYTES);
+	(void)strncpy(secretkey, p, HEXKEYBYTES);
 	secretkey[HEXKEYBYTES] = '\0';
 	return (1);
 }

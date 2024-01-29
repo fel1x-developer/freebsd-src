@@ -24,13 +24,13 @@
  * Use is subject to license terms.
  */
 
+#include <sys/mman.h>
 
-#include <unistd.h>
 #include <fcntl.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/mman.h>
-#include <pthread.h>
+#include <unistd.h>
 
 /*
  * --------------------------------------------------------------------
@@ -48,14 +48,14 @@ mapper(void *fdp)
 	void *addr;
 	int fd = *(int *)fdp;
 
-	if ((addr =
-	    mmap(0, 8192, PROT_READ, MAP_SHARED, fd, 0)) == MAP_FAILED) {
+	if ((addr = mmap(0, 8192, PROT_READ, MAP_SHARED, fd, 0)) ==
+	    MAP_FAILED) {
 		perror("mmap");
 		exit(1);
 	}
 	for (;;) {
-		if (mmap(addr, 8192, PROT_READ,
-		    MAP_SHARED|MAP_FIXED, fd, 0) == MAP_FAILED) {
+		if (mmap(addr, 8192, PROT_READ, MAP_SHARED | MAP_FIXED, fd,
+			0) == MAP_FAILED) {
 			perror("mmap");
 			exit(1);
 		}
@@ -72,11 +72,11 @@ main(int argc, char **argv)
 	pthread_t pt;
 
 	if (argc != 2) {
-		(void) printf("usage: %s <file name>\n", argv[0]);
+		(void)printf("usage: %s <file name>\n", argv[0]);
 		exit(1);
 	}
 
-	if ((fd = open(argv[1], O_RDWR|O_CREAT|O_TRUNC, 0666)) == -1) {
+	if ((fd = open(argv[1], O_RDWR | O_CREAT | O_TRUNC, 0666)) == -1) {
 		perror("open");
 		exit(1);
 	}
@@ -86,7 +86,7 @@ main(int argc, char **argv)
 		exit(1);
 	}
 	for (;;) {
-		if (write(fd, buf, sizeof (buf)) == -1) {
+		if (write(fd, buf, sizeof(buf)) == -1) {
 			perror("write");
 			exit(1);
 		}

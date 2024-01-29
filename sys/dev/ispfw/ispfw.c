@@ -29,95 +29,97 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/firmware.h>
 #include <sys/kernel.h>
 #include <sys/linker.h>
 #include <sys/module.h>
-#include <sys/systm.h>
 
-#if	defined(ISP_ALL) || !defined(KLD_MODULE) 
-#define	ISP_2400	1
-#define	ISP_2500	1
-#define	ISP_2600	1
-#define	ISP_2700	1
-#define	ISP_2800	1
+#if defined(ISP_ALL) || !defined(KLD_MODULE)
+#define ISP_2400 1
+#define ISP_2500 1
+#define ISP_2600 1
+#define ISP_2700 1
+#define ISP_2800 1
 #endif
 
 #ifndef MODULE_NAME
-#define	MODULE_NAME	"ispfw"
+#define MODULE_NAME "ispfw"
 #endif
 
-#if	defined(ISP_2400)
+#if defined(ISP_2400)
 #include <dev/ispfw/asm_2400.h>
 #endif
-#if	defined(ISP_2500)
+#if defined(ISP_2500)
 #include <dev/ispfw/asm_2500.h>
 #endif
-#if	defined(ISP_2600)
+#if defined(ISP_2600)
 #include <dev/ispfw/asm_2600.h>
 #endif
-#if	defined(ISP_2700)
+#if defined(ISP_2700)
 #include <dev/ispfw/asm_2700.h>
 #endif
-#if	defined(ISP_2800)
+#if defined(ISP_2800)
 #include <dev/ispfw/asm_2800.h>
 #endif
 
-#if	defined(ISP_2400)
-static int	isp_2400_loaded;
+#if defined(ISP_2400)
+static int isp_2400_loaded;
 #endif
-#if	defined(ISP_2500)
-static int	isp_2500_loaded;
+#if defined(ISP_2500)
+static int isp_2500_loaded;
 #endif
-#if	defined(ISP_2600)
-static int	isp_2600_loaded;
+#if defined(ISP_2600)
+static int isp_2600_loaded;
 #endif
-#if	defined(ISP_2700)
-static int	isp_2700_loaded;
+#if defined(ISP_2700)
+static int isp_2700_loaded;
 #endif
-#if	defined(ISP_2800)
-static int	isp_2800_loaded;
+#if defined(ISP_2800)
+static int isp_2800_loaded;
 #endif
 
-#define	ISPFW_VERSION	1
+#define ISPFW_VERSION 1
 
-#define	RMACRO(token)	do {						\
-	if (token##_loaded)						\
-		break;							\
-	if (firmware_register(#token, token##_risc_code,		\
-	    token##_risc_code[3] * sizeof(token##_risc_code[3]),	\
-	    ISPFW_VERSION, NULL) == NULL)				\
-		break;							\
-	token##_loaded++;						\
-} while (0)
+#define RMACRO(token)                                                        \
+	do {                                                                 \
+		if (token##_loaded)                                          \
+			break;                                               \
+		if (firmware_register(#token, token##_risc_code,             \
+			token##_risc_code[3] * sizeof(token##_risc_code[3]), \
+			ISPFW_VERSION, NULL) == NULL)                        \
+			break;                                               \
+		token##_loaded++;                                            \
+	} while (0)
 
-#define	UMACRO(token)	do {						\
-	if (!token##_loaded)						\
-		break;							\
-	if (firmware_unregister(#token) != 0) {				\
-		error = EBUSY;						\
-		break;							\
-	}								\
-	token##_loaded--;						\
-} while (0)
+#define UMACRO(token)                                   \
+	do {                                            \
+		if (!token##_loaded)                    \
+			break;                          \
+		if (firmware_unregister(#token) != 0) { \
+			error = EBUSY;                  \
+			break;                          \
+		}                                       \
+		token##_loaded--;                       \
+	} while (0)
 
 static int
 do_load_fw(void)
 {
 
-#if	defined(ISP_2400)
+#if defined(ISP_2400)
 	RMACRO(isp_2400);
 #endif
-#if	defined(ISP_2500)
+#if defined(ISP_2500)
 	RMACRO(isp_2500);
 #endif
-#if	defined(ISP_2600)
+#if defined(ISP_2600)
 	RMACRO(isp_2600);
 #endif
-#if	defined(ISP_2700)
+#if defined(ISP_2700)
 	RMACRO(isp_2700);
 #endif
-#if	defined(ISP_2800)
+#if defined(ISP_2800)
 	RMACRO(isp_2800);
 #endif
 	return (0);
@@ -128,19 +130,19 @@ do_unload_fw(void)
 {
 	int error = 0;
 
-#if	defined(ISP_2400)
+#if defined(ISP_2400)
 	UMACRO(isp_2400);
 #endif
-#if	defined(ISP_2500)
+#if defined(ISP_2500)
 	UMACRO(isp_2500);
 #endif
-#if	defined(ISP_2600)
+#if defined(ISP_2600)
 	UMACRO(isp_2600);
 #endif
-#if	defined(ISP_2700)
+#if defined(ISP_2700)
 	UMACRO(isp_2700);
 #endif
-#if	defined(ISP_2800)
+#if defined(ISP_2800)
 	UMACRO(isp_2800);
 #endif
 	return (error);
@@ -158,21 +160,19 @@ module_handler(module_t mod, int what, void *arg)
 	}
 	return (EOPNOTSUPP);
 }
-static moduledata_t ispfw_mod = {
-	MODULE_NAME, module_handler, NULL
-};
-#if	defined(ISP_ALL) || !defined(KLD_MODULE) 
+static moduledata_t ispfw_mod = { MODULE_NAME, module_handler, NULL };
+#if defined(ISP_ALL) || !defined(KLD_MODULE)
 DECLARE_MODULE(ispfw, ispfw_mod, SI_SUB_DRIVERS, SI_ORDER_THIRD);
-#elif	defined(ISP_2400)
+#elif defined(ISP_2400)
 DECLARE_MODULE(isp_2400, ispfw_mod, SI_SUB_DRIVERS, SI_ORDER_THIRD);
-#elif	defined(ISP_2500)
+#elif defined(ISP_2500)
 DECLARE_MODULE(isp_2500, ispfw_mod, SI_SUB_DRIVERS, SI_ORDER_THIRD);
-#elif	defined(ISP_2600)
+#elif defined(ISP_2600)
 DECLARE_MODULE(isp_2600, ispfw_mod, SI_SUB_DRIVERS, SI_ORDER_THIRD);
-#elif	defined(ISP_2700)
+#elif defined(ISP_2700)
 DECLARE_MODULE(isp_2700, ispfw_mod, SI_SUB_DRIVERS, SI_ORDER_THIRD);
-#elif	defined(ISP_2800)
+#elif defined(ISP_2800)
 DECLARE_MODULE(isp_2800, ispfw_mod, SI_SUB_DRIVERS, SI_ORDER_THIRD);
 #else
-#error	"firmware not specified"
+#error "firmware not specified"
 #endif

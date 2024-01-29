@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: ISC
  *
- * Copyright (C) 2015-2021 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
- * Copyright (C) 2019-2021 Matt Dunwoodie <ncon@noconroy.net>
+ * Copyright (C) 2015-2021 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights
+ * Reserved. Copyright (C) 2019-2021 Matt Dunwoodie <ncon@noconroy.net>
  */
 
 #include "opt_inet.h"
@@ -14,28 +14,31 @@
 #include <sys/mutex.h>
 #include <sys/rwlock.h>
 #include <sys/socket.h>
-#include <crypto/siphash/siphash.h>
-#include <netinet/in.h>
+
 #include <vm/uma.h>
+
+#include <netinet/in.h>
+
+#include <crypto/siphash/siphash.h>
 
 #include "wg_cookie.h"
 
-#define COOKIE_MAC1_KEY_LABEL	"mac1----"
-#define COOKIE_COOKIE_KEY_LABEL	"cookie--"
-#define COOKIE_SECRET_MAX_AGE	120
-#define COOKIE_SECRET_LATENCY	5
+#define COOKIE_MAC1_KEY_LABEL "mac1----"
+#define COOKIE_COOKIE_KEY_LABEL "cookie--"
+#define COOKIE_SECRET_MAX_AGE 120
+#define COOKIE_SECRET_LATENCY 5
 
 /* Constants for initiation rate limiting */
-#define RATELIMIT_SIZE		(1 << 13)
-#define RATELIMIT_MASK		(RATELIMIT_SIZE - 1)
-#define RATELIMIT_SIZE_MAX	(RATELIMIT_SIZE * 8)
-#define INITIATIONS_PER_SECOND	20
-#define INITIATIONS_BURSTABLE	5
-#define INITIATION_COST		(SBT_1S / INITIATIONS_PER_SECOND)
-#define TOKEN_MAX		(INITIATION_COST * INITIATIONS_BURSTABLE)
-#define ELEMENT_TIMEOUT		1
-#define IPV4_MASK_SIZE		4 /* Use all 4 bytes of IPv4 address */
-#define IPV6_MASK_SIZE		8 /* Use top 8 bytes (/64) of IPv6 address */
+#define RATELIMIT_SIZE (1 << 13)
+#define RATELIMIT_MASK (RATELIMIT_SIZE - 1)
+#define RATELIMIT_SIZE_MAX (RATELIMIT_SIZE * 8)
+#define INITIATIONS_PER_SECOND 20
+#define INITIATIONS_BURSTABLE 5
+#define INITIATION_COST (SBT_1S / INITIATIONS_PER_SECOND)
+#define TOKEN_MAX (INITIATION_COST * INITIATIONS_BURSTABLE)
+#define ELEMENT_TIMEOUT 1
+#define IPV4_MASK_SIZE 4 /* Use all 4 bytes of IPv4 address */
+#define IPV6_MASK_SIZE 8 /* Use top 8 bytes (/64) of IPv6 address */
 
 struct ratelimit_key {
 	struct vnet *vnet;
@@ -43,37 +46,39 @@ struct ratelimit_key {
 };
 
 struct ratelimit_entry {
-	LIST_ENTRY(ratelimit_entry)	r_entry;
-	struct ratelimit_key		r_key;
-	sbintime_t			r_last_time;	/* sbinuptime */
-	uint64_t			r_tokens;
+	LIST_ENTRY(ratelimit_entry) r_entry;
+	struct ratelimit_key r_key;
+	sbintime_t r_last_time; /* sbinuptime */
+	uint64_t r_tokens;
 };
 
 struct ratelimit {
-	uint8_t				rl_secret[SIPHASH_KEY_LENGTH];
-	struct mtx			rl_mtx;
-	struct callout			rl_gc;
-	LIST_HEAD(, ratelimit_entry)	rl_table[RATELIMIT_SIZE];
-	size_t				rl_table_num;
-	bool				rl_initialized;
+	uint8_t rl_secret[SIPHASH_KEY_LENGTH];
+	struct mtx rl_mtx;
+	struct callout rl_gc;
+	LIST_HEAD(, ratelimit_entry) rl_table[RATELIMIT_SIZE];
+	size_t rl_table_num;
+	bool rl_initialized;
 };
 
-static void	precompute_key(uint8_t *,
-			const uint8_t[COOKIE_INPUT_SIZE], const char *);
-static void	macs_mac1(struct cookie_macs *, const void *, size_t,
-			const uint8_t[COOKIE_KEY_SIZE]);
-static void	macs_mac2(struct cookie_macs *, const void *, size_t,
-			const uint8_t[COOKIE_COOKIE_SIZE]);
-static int	timer_expired(sbintime_t, uint32_t, uint32_t);
-static void	make_cookie(struct cookie_checker *,
-			uint8_t[COOKIE_COOKIE_SIZE], struct sockaddr *);
-static void	ratelimit_init(struct ratelimit *);
-static void	ratelimit_deinit(struct ratelimit *);
-static void	ratelimit_gc_callout(void *);
-static void	ratelimit_gc_schedule(struct ratelimit *);
-static void	ratelimit_gc(struct ratelimit *, bool);
-static int	ratelimit_allow(struct ratelimit *, struct sockaddr *, struct vnet *);
-static uint64_t siphash13(const uint8_t [SIPHASH_KEY_LENGTH], const void *, size_t);
+static void precompute_key(uint8_t *, const uint8_t[COOKIE_INPUT_SIZE],
+    const char *);
+static void macs_mac1(struct cookie_macs *, const void *, size_t,
+    const uint8_t[COOKIE_KEY_SIZE]);
+static void macs_mac2(struct cookie_macs *, const void *, size_t,
+    const uint8_t[COOKIE_COOKIE_SIZE]);
+static int timer_expired(sbintime_t, uint32_t, uint32_t);
+static void make_cookie(struct cookie_checker *, uint8_t[COOKIE_COOKIE_SIZE],
+    struct sockaddr *);
+static void ratelimit_init(struct ratelimit *);
+static void ratelimit_deinit(struct ratelimit *);
+static void ratelimit_gc_callout(void *);
+static void ratelimit_gc_schedule(struct ratelimit *);
+static void ratelimit_gc(struct ratelimit *, bool);
+static int ratelimit_allow(struct ratelimit *, struct sockaddr *,
+    struct vnet *);
+static uint64_t siphash13(const uint8_t[SIPHASH_KEY_LENGTH], const void *,
+    size_t);
 
 static struct ratelimit ratelimit_v4;
 #ifdef INET6
@@ -86,7 +91,8 @@ int
 cookie_init(void)
 {
 	if ((ratelimit_zone = uma_zcreate("wg ratelimit",
-	    sizeof(struct ratelimit_entry), NULL, NULL, NULL, NULL, 0, 0)) == NULL)
+		 sizeof(struct ratelimit_entry), NULL, NULL, NULL, NULL, 0,
+		 0)) == NULL)
 		return ENOMEM;
 
 	ratelimit_init(&ratelimit_v4);
@@ -187,7 +193,7 @@ cookie_maker_consume_payload(struct cookie_maker *cm,
 	}
 
 	if (!xchacha20poly1305_decrypt(cookie, ecookie, COOKIE_ENCRYPTED_SIZE,
-	    cm->cm_mac1_last, COOKIE_MAC_SIZE, nonce, cm->cm_cookie_key)) {
+		cm->cm_mac1_last, COOKIE_MAC_SIZE, nonce, cm->cm_cookie_key)) {
 		ret = EINVAL;
 		goto error;
 	}
@@ -217,7 +223,7 @@ cookie_maker_mac(struct cookie_maker *cm, struct cookie_macs *macs, void *buf,
 
 	if (cm->cm_cookie_valid &&
 	    !timer_expired(cm->cm_cookie_birthdate,
-	    COOKIE_SECRET_MAX_AGE - COOKIE_SECRET_LATENCY, 0)) {
+		COOKIE_SECRET_MAX_AGE - COOKIE_SECRET_LATENCY, 0)) {
 		macs_mac2(macs, buf, len, cm->cm_cookie);
 	} else {
 		bzero(macs->mac2, COOKIE_MAC_SIZE);
@@ -227,8 +233,9 @@ cookie_maker_mac(struct cookie_maker *cm, struct cookie_macs *macs, void *buf,
 }
 
 int
-cookie_checker_validate_macs(struct cookie_checker *cc, struct cookie_macs *macs,
-    void *buf, size_t len, bool check_cookie, struct sockaddr *sa, struct vnet *vnet)
+cookie_checker_validate_macs(struct cookie_checker *cc,
+    struct cookie_macs *macs, void *buf, size_t len, bool check_cookie,
+    struct sockaddr *sa, struct vnet *vnet)
 {
 	struct cookie_macs our_macs;
 	uint8_t cookie[COOKIE_COOKIE_SIZE];
@@ -247,7 +254,8 @@ cookie_checker_validate_macs(struct cookie_checker *cc, struct cookie_macs *macs
 		macs_mac2(&our_macs, buf, len, cookie);
 
 		/* If the mac2 is invalid, we want to send a cookie response */
-		if (timingsafe_bcmp(our_macs.mac2, macs->mac2, COOKIE_MAC_SIZE) != 0)
+		if (timingsafe_bcmp(our_macs.mac2, macs->mac2,
+			COOKIE_MAC_SIZE) != 0)
 			return EAGAIN;
 
 		/* If the mac2 is valid, we may want rate limit the peer.
@@ -314,8 +322,7 @@ make_cookie(struct cookie_checker *cc, uint8_t cookie[COOKIE_COOKIE_SIZE],
 	struct blake2s_state state;
 
 	mtx_lock(&cc->cc_secret_mtx);
-	if (timer_expired(cc->cc_secret_birthdate,
-	    COOKIE_SECRET_MAX_AGE, 0)) {
+	if (timer_expired(cc->cc_secret_birthdate, COOKIE_SECRET_MAX_AGE, 0)) {
 		arc4random_buf(cc->cc_secret, COOKIE_SECRET_SIZE);
 		cc->cc_secret_birthdate = getsbinuptime();
 	}
@@ -325,16 +332,16 @@ make_cookie(struct cookie_checker *cc, uint8_t cookie[COOKIE_COOKIE_SIZE],
 
 	if (sa->sa_family == AF_INET) {
 		blake2s_update(&state, (uint8_t *)&satosin(sa)->sin_addr,
-				sizeof(struct in_addr));
+		    sizeof(struct in_addr));
 		blake2s_update(&state, (uint8_t *)&satosin(sa)->sin_port,
-				sizeof(in_port_t));
+		    sizeof(in_port_t));
 		blake2s_final(&state, cookie);
 #ifdef INET6
 	} else if (sa->sa_family == AF_INET6) {
 		blake2s_update(&state, (uint8_t *)&satosin6(sa)->sin6_addr,
-				sizeof(struct in6_addr));
+		    sizeof(struct in6_addr));
 		blake2s_update(&state, (uint8_t *)&satosin6(sa)->sin6_port,
-				sizeof(in_port_t));
+		    sizeof(in_port_t));
 		blake2s_final(&state, cookie);
 #endif
 	} else {
@@ -405,7 +412,7 @@ ratelimit_gc(struct ratelimit *rl, bool force)
 	expiry = getsbinuptime() - ELEMENT_TIMEOUT * SBT_1S;
 
 	for (i = 0; i < RATELIMIT_SIZE; i++) {
-		LIST_FOREACH_SAFE(r, &rl->rl_table[i], r_entry, tr) {
+		LIST_FOREACH_SAFE (r, &rl->rl_table[i], r_entry, tr) {
 			if (r->r_last_time < expiry || force) {
 				rl->rl_table_num--;
 				LIST_REMOVE(r, r_entry);
@@ -441,7 +448,7 @@ ratelimit_allow(struct ratelimit *rl, struct sockaddr *sa, struct vnet *vnet)
 	bucket = siphash13(rl->rl_secret, &key, len) & RATELIMIT_MASK;
 	mtx_lock(&rl->rl_mtx);
 
-	LIST_FOREACH(r, &rl->rl_table[bucket], r_entry) {
+	LIST_FOREACH (r, &rl->rl_table[bucket], r_entry) {
 		if (bcmp(&r->r_key, &key, len) != 0)
 			continue;
 
@@ -496,7 +503,8 @@ error:
 	return ret;
 }
 
-static uint64_t siphash13(const uint8_t key[SIPHASH_KEY_LENGTH], const void *src, size_t len)
+static uint64_t
+siphash13(const uint8_t key[SIPHASH_KEY_LENGTH], const void *src, size_t len)
 {
 	SIPHASH_CTX ctx;
 	return (SipHashX(&ctx, 1, 3, key, src, len));

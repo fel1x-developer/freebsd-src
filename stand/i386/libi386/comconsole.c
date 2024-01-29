@@ -24,56 +24,55 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
-#include <bootstrap.h>
+
 #include <machine/cpufunc.h>
+
 #include <dev/ic/ns16550.h>
 #include <dev/pci/pcireg.h>
+
+#include <bootstrap.h>
+#include <stand.h>
+
 #include "libi386.h"
 
-#define COMC_FMT	0x3		/* 8N1 */
-#define COMC_TXWAIT	0x40000		/* transmit timeout */
-#define COMC_BPS(x)	(115200 / (x))	/* speed to DLAB divisor */
-#define COMC_DIV2BPS(x)	(115200 / (x))	/* DLAB divisor to speed */
+#define COMC_FMT 0x3		       /* 8N1 */
+#define COMC_TXWAIT 0x40000	       /* transmit timeout */
+#define COMC_BPS(x) (115200 / (x))     /* speed to DLAB divisor */
+#define COMC_DIV2BPS(x) (115200 / (x)) /* DLAB divisor to speed */
 
-#ifndef	COMPORT
-#define COMPORT		0x3f8
+#ifndef COMPORT
+#define COMPORT 0x3f8
 #endif
-#ifndef	COMSPEED
-#define COMSPEED	115200
+#ifndef COMSPEED
+#define COMSPEED 115200
 #endif
 
-static void	comc_probe(struct console *cp);
-static int	comc_init(int arg);
-static void	comc_putchar(int c);
-static int	comc_getchar(void);
-static int	comc_getspeed(void);
-static int	comc_ischar(void);
-static int	comc_parseint(const char *string);
+static void comc_probe(struct console *cp);
+static int comc_init(int arg);
+static void comc_putchar(int c);
+static int comc_getchar(void);
+static int comc_getspeed(void);
+static int comc_ischar(void);
+static int comc_parseint(const char *string);
 static uint32_t comc_parse_pcidev(const char *string);
-static int	comc_pcidev_set(struct env_var *ev, int flags,
-		    const void *value);
-static int	comc_pcidev_handle(uint32_t locator);
-static int	comc_port_set(struct env_var *ev, int flags,
-		    const void *value);
-static void	comc_setup(int speed, int port);
-static int	comc_speed_set(struct env_var *ev, int flags,
-		    const void *value);
+static int comc_pcidev_set(struct env_var *ev, int flags, const void *value);
+static int comc_pcidev_handle(uint32_t locator);
+static int comc_port_set(struct env_var *ev, int flags, const void *value);
+static void comc_setup(int speed, int port);
+static int comc_speed_set(struct env_var *ev, int flags, const void *value);
 
-static int	comc_curspeed;
-static int	comc_port = COMPORT;
-static uint32_t	comc_locator;
+static int comc_curspeed;
+static int comc_port = COMPORT;
+static uint32_t comc_locator;
 
-struct console comconsole = {
-	.c_name = "comconsole",
+struct console comconsole = { .c_name = "comconsole",
 	.c_desc = "serial port",
 	.c_flags = 0,
 	.c_probe = comc_probe,
 	.c_init = comc_init,
 	.c_out = comc_putchar,
 	.c_in = comc_getchar,
-	.c_ready = comc_ischar
-};
+	.c_ready = comc_ischar };
 
 static void
 comc_probe(struct console *cp)
@@ -222,26 +221,26 @@ comc_parse_pcidev(const char *string)
 	int pres;
 
 	pres = strtol(string, &p, 0);
-	if (p == string || *p != ':' || pres < 0 )
+	if (p == string || *p != ':' || pres < 0)
 		return (0);
 	bus = pres;
 	p1 = ++p;
 
 	pres = strtol(p1, &p, 0);
-	if (p == string || *p != ':' || pres < 0 )
+	if (p == string || *p != ':' || pres < 0)
 		return (0);
 	dev = pres;
 	p1 = ++p;
 
 	pres = strtol(p1, &p, 0);
-	if (p == string || (*p != ':' && *p != '\0') || pres < 0 )
+	if (p == string || (*p != ':' && *p != '\0') || pres < 0)
 		return (0);
 	func = pres;
 
 	if (*p == ':') {
 		p1 = ++p;
 		pres = strtol(p1, &p, 0);
-		if (p == string || *p != '\0' || pres <= 0 )
+		if (p == string || *p != '\0' || pres <= 0)
 			return (0);
 		bar = pres;
 	} else
@@ -262,13 +261,13 @@ comc_pcidev_handle(uint32_t locator)
 	char intbuf[64];
 	uint32_t port;
 
-	if (biospci_read_config(locator & 0xffff,
-	    (locator & 0xff0000) >> 16, BIOSPCI_32BITS, &port) == -1) {
+	if (biospci_read_config(locator & 0xffff, (locator & 0xff0000) >> 16,
+		BIOSPCI_32BITS, &port) == -1) {
 		printf("Cannot read bar at 0x%x\n", locator);
 		return (CMD_ERROR);
 	}
 
-	/* 
+	/*
 	 * biospci_read_config() sets port == 0xffffffff if the pcidev
 	 * isn't found on the bus.  Check for 0xffffffff and return to not
 	 * panic in BTX.
@@ -281,12 +280,12 @@ comc_pcidev_handle(uint32_t locator)
 		printf("Memory bar at 0x%x\n", locator);
 		return (CMD_ERROR);
 	}
-        port &= PCIM_BAR_IO_BASE;
+	port &= PCIM_BAR_IO_BASE;
 
 	sprintf(intbuf, "%d", port);
 	unsetenv("comconsole_port");
-	env_setenv("comconsole_port", EV_VOLATILE, intbuf,
-		   comc_port_set, env_nounset);
+	env_setenv("comconsole_port", EV_VOLATILE, intbuf, comc_port_set,
+	    env_nounset);
 
 	comc_setup(comc_curspeed, port);
 	comc_locator = locator;
@@ -329,7 +328,7 @@ comc_setup(int speed, int port)
 
 	unsetenv("hw.uart.console");
 
-#define	COMC_TEST	0xbb
+#define COMC_TEST 0xbb
 	/*
 	 * Write byte to scratch register and read it out.
 	 */
@@ -374,10 +373,10 @@ comc_parseint(const char *speedstr)
 static int
 comc_getspeed(void)
 {
-	u_int	divisor;
-	u_char	dlbh;
-	u_char	dlbl;
-	u_char	cfcr;
+	u_int divisor;
+	u_char dlbh;
+	u_char dlbl;
+	u_char cfcr;
 
 	cfcr = inb(comc_port + com_cfcr);
 	outb(comc_port + com_cfcr, CFCR_DLAB | cfcr);

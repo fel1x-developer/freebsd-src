@@ -29,27 +29,27 @@
  */
 
 #include <sys/param.h>
-
-#include <netinet/in.h>
+#include <sys/disk.h>
 
 #include <machine/stdarg.h>
 
+#include <netinet/in.h>
+
 #include <stand.h>
-#include <sys/disk.h>
 
 #include "disk.h"
 #include "libofw.h"
 
-static int	ofwd_init(void);
-static int	ofwd_strategy(void *devdata, int flag, daddr_t dblk,
-		    size_t size, char *buf, size_t *rsize);
-static int	ofwd_open(struct open_file *f, ...);
-static int	ofwd_close(struct open_file *f);
-static int	ofwd_ioctl(struct open_file *f, u_long cmd, void *data);
-static int	ofwd_print(int verbose);
-static char *	ofwd_fmtdev(struct devdesc *);
-static int	ofwd_parsedev(struct devdesc **, const char *, const char **);
-static bool	ofwd_match(struct devsw *, const char *);
+static int ofwd_init(void);
+static int ofwd_strategy(void *devdata, int flag, daddr_t dblk, size_t size,
+    char *buf, size_t *rsize);
+static int ofwd_open(struct open_file *f, ...);
+static int ofwd_close(struct open_file *f);
+static int ofwd_ioctl(struct open_file *f, u_long cmd, void *data);
+static int ofwd_print(int verbose);
+static char *ofwd_fmtdev(struct devdesc *);
+static int ofwd_parsedev(struct devdesc **, const char *, const char **);
+static bool ofwd_match(struct devsw *, const char *);
 
 struct devsw ofwdisk = {
 	.dv_name = "block",
@@ -136,8 +136,7 @@ ofwd_open(struct open_file *f, ...)
 			kdp = NULL;
 		}
 		if ((dp->d_handle = OF_open(dp->d_path)) == -1) {
-			printf("%s: Could not open %s\n", __func__,
-			    dp->d_path);
+			printf("%s: Could not open %s\n", __func__, dp->d_path);
 			return (ENOENT);
 		}
 		kdp = dp;
@@ -211,7 +210,6 @@ ofwd_print(int verbose __unused)
 
 	return (0);
 }
-
 
 static bool
 ofwd_match(struct devsw *devsw, const char *devspec)

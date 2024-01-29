@@ -31,5 +31,5 @@
 
 #include <paths.h>
 
-#define	_PATH_GETTYTAB	"/etc/gettytab"
-#define	_PATH_LOGIN	"/usr/bin/login"
+#define _PATH_GETTYTAB "/etc/gettytab"
+#define _PATH_LOGIN "/usr/bin/login"

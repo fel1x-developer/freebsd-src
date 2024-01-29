@@ -30,22 +30,22 @@
 
 #include <sys/types.h>
 
+#include <cam/cam.h>
+#include <cam/cam_ccb.h>
+#include <cam/scsi/scsi_all.h>
+#include <cam/scsi/scsi_message.h>
+#include <cam/scsi/scsi_pass.h>
 #include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
 
-#include <cam/cam.h>
-#include <cam/cam_ccb.h>
-#include <cam/scsi/scsi_all.h>
-#include <cam/scsi/scsi_pass.h>
-#include <cam/scsi/scsi_message.h>
 #include "camlib.h"
 #include "scsi_wrap.h"
 
 void *
-scsi_wrap_get_physical_element_status(struct cam_device *device, int task_attr, int retry_count,
-    int timeout, uint8_t report_type, uint32_t start_element)
+scsi_wrap_get_physical_element_status(struct cam_device *device, int task_attr,
+    int retry_count, int timeout, uint8_t report_type, uint32_t start_element)
 {
 	uint32_t allocation_length;
 	union ccb *ccb = NULL;
@@ -75,16 +75,9 @@ again:
 		return (NULL);
 	}
 
-	scsi_get_physical_element_status(&ccb->csio,
-	    retry_count,
-	    NULL,
-	    task_attr,
-	    (uint8_t *)hdr,
-	    allocation_length,
-	    report_type,
-	    start_element,
-	    SSD_FULL_SIZE,
-	    timeout);
+	scsi_get_physical_element_status(&ccb->csio, retry_count, NULL,
+	    task_attr, (uint8_t *)hdr, allocation_length, report_type,
+	    start_element, SSD_FULL_SIZE, timeout);
 
 	/* Disable freezing the device queue */
 	ccb->ccb_h.flags |= CAM_DEV_QFRZDIS;
@@ -95,13 +88,12 @@ again:
 	}
 
 	if ((ccb->ccb_h.status & CAM_STATUS_MASK) != CAM_REQ_CMP) {
-		cam_error_print(device, ccb, CAM_ESF_ALL,
-				CAM_EPF_ALL, stderr);
+		cam_error_print(device, ccb, CAM_ESF_ALL, CAM_EPF_ALL, stderr);
 		goto errout;
 	}
 
 	dtors = scsi_4btoul(hdr->num_descriptors);
-	reported  = scsi_4btoul(hdr->num_returned);
+	reported = scsi_4btoul(hdr->num_returned);
 	if (dtors != 0 && dtors != reported) {
 		/*
 		 * Get all the data... in the future we may need to step through
@@ -109,7 +101,8 @@ again:
 		 * response. A 4k transfer can do 128 heads and current designs
 		 * have 16.
 		 */
-		allocation_length = dtors * sizeof(struct scsi_get_physical_element_descriptor) +
+		allocation_length = dtors *
+			sizeof(struct scsi_get_physical_element_descriptor) +
 		    sizeof(*hdr);
 		goto again;
 	}
@@ -140,15 +133,15 @@ scsi_wrap_inquiry(struct cam_device *device, uint32_t page, uint32_t length)
 	}
 
 	scsi_inquiry(&ccb->csio,
-		     /*retries*/ 0,
-		     /*cbfcnp*/ NULL,
-		     /* tag_action */ MSG_SIMPLE_Q_TAG,
-		     /* inq_buf */ (uint8_t *)buf,
-		     /* inq_len */ length,
-		     /* evpd */ 1,
-		     /* page_code */ page,
-		     /* sense_len */ SSD_FULL_SIZE,
-		     /* timeout */ 5000);
+	    /*retries*/ 0,
+	    /*cbfcnp*/ NULL,
+	    /* tag_action */ MSG_SIMPLE_Q_TAG,
+	    /* inq_buf */ (uint8_t *)buf,
+	    /* inq_len */ length,
+	    /* evpd */ 1,
+	    /* page_code */ page,
+	    /* sense_len */ SSD_FULL_SIZE,
+	    /* timeout */ 5000);
 
 	/* Disable freezing the device queue */
 	ccb->ccb_h.flags |= CAM_DEV_QFRZDIS;
@@ -173,6 +166,7 @@ struct scsi_vpd_block_device_characteristics *
 scsi_wrap_vpd_block_device_characteristics(struct cam_device *device)
 {
 
-	return ((struct scsi_vpd_block_device_characteristics *)scsi_wrap_inquiry(
-	    device, SVPD_BDC, sizeof(struct scsi_vpd_block_device_characteristics)));
+	return ((struct scsi_vpd_block_device_characteristics *)
+		scsi_wrap_inquiry(device, SVPD_BDC,
+		    sizeof(struct scsi_vpd_block_device_characteristics)));
 }

@@ -23,32 +23,31 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_LINUXKPI_NET_PAGE_POOL_H
-#define	_LINUXKPI_NET_PAGE_POOL_H
+#ifndef _LINUXKPI_NET_PAGE_POOL_H
+#define _LINUXKPI_NET_PAGE_POOL_H
 
-#include <linux/kernel.h>	/* pr_debug */
-#include <linux/types.h>
 #include <linux/dma-mapping.h>
+#include <linux/kernel.h> /* pr_debug */
+#include <linux/types.h>
 
 struct device;
 
 struct page_pool_params {
-	struct device			*dev;
-	uint32_t			flags;
-	uint32_t			order;
-	uint32_t			pool_size;
-	uint32_t			max_len;
-	uint32_t			offset;
-	int				nid;		/* NUMA */
-	enum dma_data_direction		dma_dir;
+	struct device *dev;
+	uint32_t flags;
+	uint32_t order;
+	uint32_t pool_size;
+	uint32_t max_len;
+	uint32_t offset;
+	int nid; /* NUMA */
+	enum dma_data_direction dma_dir;
 };
 
-struct page_pool {
-};
+struct page_pool { };
 
-#define	PP_FLAG_DMA_MAP		BIT(0)
-#define	PP_FLAG_DMA_SYNC_DEV	BIT(1)
-#define	PP_FLAG_PAGE_FRAG	BIT(2)
+#define PP_FLAG_DMA_MAP BIT(0)
+#define PP_FLAG_DMA_SYNC_DEV BIT(1)
+#define PP_FLAG_PAGE_FRAG BIT(2)
 
 static inline struct page_pool *
 page_pool_create(const struct page_pool_params *ppparams)
@@ -66,8 +65,7 @@ page_pool_destroy(struct page_pool *ppool)
 }
 
 static inline struct page *
-page_pool_dev_alloc_frag(struct page_pool *ppool, uint32_t *offset,
-    size_t size)
+page_pool_dev_alloc_frag(struct page_pool *ppool, uint32_t *offset, size_t size)
 {
 
 	pr_debug("%s: TODO\n", __func__);
@@ -114,4 +112,4 @@ page_pool_ethtool_stats_get_strings(uint8_t *x)
 	return (x);
 }
 
-#endif	/* _LINUXKPI_NET_PAGE_POOL_H */
+#endif /* _LINUXKPI_NET_PAGE_POOL_H */

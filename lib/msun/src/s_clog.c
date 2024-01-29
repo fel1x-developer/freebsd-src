@@ -31,13 +31,13 @@
 #include "math.h"
 #include "math_private.h"
 
-#define	MANT_DIG	DBL_MANT_DIG
-#define	MAX_EXP		DBL_MAX_EXP
-#define	MIN_EXP		DBL_MIN_EXP
+#define MANT_DIG DBL_MANT_DIG
+#define MAX_EXP DBL_MAX_EXP
+#define MIN_EXP DBL_MIN_EXP
 
-static const double
-ln2_hi = 6.9314718055829871e-1,		/*  0x162e42fefa0000.0p-53 */
-ln2_lo = 1.6465949582897082e-12;	/*  0x1cf79abc9e3b3a.0p-92 */
+static const double ln2_hi =
+			6.9314718055829871e-1, /*  0x162e42fefa0000.0p-53 */
+    ln2_lo = 1.6465949582897082e-12;	       /*  0x1cf79abc9e3b3a.0p-92 */
 
 double complex
 clog(double complex z)
@@ -82,14 +82,16 @@ clog(double complex z)
 	/* Avoid overflow. */
 	if (kx >= MAX_EXP - 1)
 		return (CMPLX(log(hypot(x * 0x1p-1022, y * 0x1p-1022)) +
-		    (MAX_EXP - 2) * ln2_lo + (MAX_EXP - 2) * ln2_hi, v));
+			(MAX_EXP - 2) * ln2_lo + (MAX_EXP - 2) * ln2_hi,
+		    v));
 	if (kx >= (MAX_EXP - 1) / 2)
 		return (CMPLX(log(hypot(x, y)), v));
 
 	/* Reduce inaccuracies and avoid underflow when ax is denormal. */
 	if (kx <= MIN_EXP - 2)
 		return (CMPLX(log(hypot(x * 0x1p1023, y * 0x1p1023)) +
-		    (MIN_EXP - 2) * ln2_lo + (MIN_EXP - 2) * ln2_hi, v));
+			(MIN_EXP - 2) * ln2_lo + (MIN_EXP - 2) * ln2_hi,
+		    v));
 
 	/* Avoid remaining underflows (when ax is small but not denormal). */
 	if (ky < (MIN_EXP - 1) / 2 + MANT_DIG)

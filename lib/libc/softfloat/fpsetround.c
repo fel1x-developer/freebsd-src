@@ -31,9 +31,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "namespace.h"
-
 #include <ieeefp.h>
+
+#include "namespace.h"
 #ifdef SOFTFLOAT_FOR_GCC
 #include "softfloat-for-gcc.h"
 #endif
@@ -41,11 +41,10 @@
 #include "softfloat.h"
 
 #ifdef __weak_alias
-__weak_alias(fpsetround,_fpsetround)
+__weak_alias(fpsetround, _fpsetround)
 #endif
 
-fp_rnd_t
-fpsetround(fp_rnd_t rnd_dir)
+    fp_rnd_t fpsetround(fp_rnd_t rnd_dir)
 {
 	fp_rnd_t old;
 

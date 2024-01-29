@@ -37,53 +37,50 @@
  * is greatly appreciated.
  */
 
-#include "opt_inet.h"
 #include "opt_ath.h"
+#include "opt_inet.h"
 #include "opt_wlan.h"
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/sysctl.h>
-#include <sys/mbuf.h>
-#include <sys/malloc.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
+#include <sys/bus.h>
+#include <sys/callout.h>
+#include <sys/endian.h>
+#include <sys/errno.h>
 #include <sys/kernel.h>
+#include <sys/kthread.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/priv.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
-#include <sys/errno.h>
-#include <sys/callout.h>
-#include <sys/bus.h>
-#include <sys/endian.h>
-#include <sys/kthread.h>
+#include <sys/sysctl.h>
 #include <sys/taskqueue.h>
-#include <sys/priv.h>
 
 #include <machine/bus.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_llc.h>
-
-#include <net80211/ieee80211_var.h>
-
-#include <net/bpf.h>
-
-#include <dev/ath/if_athvar.h>
 
 #include <dev/ath/if_ath_debug.h>
 #include <dev/ath/if_ath_keycache.h>
 #include <dev/ath/if_ath_misc.h>
+#include <dev/ath/if_athvar.h>
+
+#include <net/bpf.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_dl.h>
+#include <net/if_llc.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+#include <net80211/ieee80211_var.h>
 
 #ifdef ATH_DEBUG
 static void
 ath_keyprint(struct ath_softc *sc, const char *tag, u_int ix,
-	const HAL_KEYVAL *hk, const u_int8_t mac[IEEE80211_ADDR_LEN])
+    const HAL_KEYVAL *hk, const u_int8_t mac[IEEE80211_ADDR_LEN])
 {
 	static const char *ciphers[] = {
 		"WEP",
@@ -120,14 +117,14 @@ ath_keyprint(struct ath_softc *sc, const char *tag, u_int ix,
  */
 static int
 ath_keyset_tkip(struct ath_softc *sc, const struct ieee80211_key *k,
-	HAL_KEYVAL *hk, const u_int8_t mac[IEEE80211_ADDR_LEN])
+    HAL_KEYVAL *hk, const u_int8_t mac[IEEE80211_ADDR_LEN])
 {
-#define	IEEE80211_KEY_XR	(IEEE80211_KEY_XMIT | IEEE80211_KEY_RECV)
+#define IEEE80211_KEY_XR (IEEE80211_KEY_XMIT | IEEE80211_KEY_RECV)
 	static const u_int8_t zerobssid[IEEE80211_ADDR_LEN];
 	struct ath_hal *ah = sc->sc_ah;
 
 	KASSERT(k->wk_cipher->ic_cipher == IEEE80211_CIPHER_TKIP,
-		("got a non-TKIP key, cipher %u", k->wk_cipher->ic_cipher));
+	    ("got a non-TKIP key, cipher %u", k->wk_cipher->ic_cipher));
 	if ((k->wk_flags & IEEE80211_KEY_XR) == IEEE80211_KEY_XR) {
 		if (sc->sc_splitmic) {
 			/*
@@ -140,9 +137,9 @@ ath_keyset_tkip(struct ath_softc *sc, const struct ieee80211_key *k,
 				return 0;
 
 			memcpy(hk->kv_mic, k->wk_rxmic, sizeof(hk->kv_mic));
-			KEYPRINTF(sc, k->wk_keyix+32, hk, mac);
+			KEYPRINTF(sc, k->wk_keyix + 32, hk, mac);
 			/* XXX delete tx key on failure? */
-			return ath_hal_keyset(ah, k->wk_keyix+32, hk, mac);
+			return ath_hal_keyset(ah, k->wk_keyix + 32, hk, mac);
 		} else {
 			/*
 			 * Room for both TX+RX MIC keys in one key cache
@@ -181,17 +178,16 @@ ath_keyset_tkip(struct ath_softc *sc, const struct ieee80211_key *k,
  */
 int
 ath_keyset(struct ath_softc *sc, struct ieee80211vap *vap,
-	const struct ieee80211_key *k,
-	struct ieee80211_node *bss)
+    const struct ieee80211_key *k, struct ieee80211_node *bss)
 {
 	static const u_int8_t ciphermap[] = {
-		HAL_CIPHER_WEP,		/* IEEE80211_CIPHER_WEP */
-		HAL_CIPHER_TKIP,	/* IEEE80211_CIPHER_TKIP */
-		HAL_CIPHER_AES_OCB,	/* IEEE80211_CIPHER_AES_OCB */
-		HAL_CIPHER_AES_CCM,	/* IEEE80211_CIPHER_AES_CCM */
-		(u_int8_t) -1,		/* 4 is not allocated */
-		HAL_CIPHER_CKIP,	/* IEEE80211_CIPHER_CKIP */
-		HAL_CIPHER_CLR,		/* IEEE80211_CIPHER_NONE */
+		HAL_CIPHER_WEP,	    /* IEEE80211_CIPHER_WEP */
+		HAL_CIPHER_TKIP,    /* IEEE80211_CIPHER_TKIP */
+		HAL_CIPHER_AES_OCB, /* IEEE80211_CIPHER_AES_OCB */
+		HAL_CIPHER_AES_CCM, /* IEEE80211_CIPHER_AES_CCM */
+		(u_int8_t)-1,	    /* 4 is not allocated */
+		HAL_CIPHER_CKIP,    /* IEEE80211_CIPHER_CKIP */
+		HAL_CIPHER_CLR,	    /* IEEE80211_CIPHER_NONE */
 	};
 	struct ath_hal *ah = sc->sc_ah;
 	const struct ieee80211_cipher *cip = k->wk_cipher;
@@ -208,7 +204,7 @@ ath_keyset(struct ath_softc *sc, struct ieee80211vap *vap,
 	 */
 	if ((k->wk_flags & IEEE80211_KEY_SWCRYPT) == 0) {
 		KASSERT(cip->ic_cipher < nitems(ciphermap),
-			("invalid cipher type %u", cip->ic_cipher));
+		    ("invalid cipher type %u", cip->ic_cipher));
 		hk.kv_type = ciphermap[cip->ic_cipher];
 		hk.kv_len = k->wk_keylen;
 		memcpy(hk.kv_val, k->wk_key, k->wk_keylen);
@@ -226,7 +222,7 @@ ath_keyset(struct ath_softc *sc, struct ieee80211vap *vap,
 
 	/*
 	 * XXX TODO: check this:
-	 * 
+	 *
 	 * Group keys on hardware that supports multicast frame
 	 * key search should only be done in adhoc/hostap mode,
 	 * not STA mode.
@@ -239,8 +235,7 @@ ath_keyset(struct ath_softc *sc, struct ieee80211vap *vap,
 #else
 	if (
 #endif
-	    (k->wk_flags & IEEE80211_KEY_GROUP) &&
-	    sc->sc_mcastkey) {
+	    (k->wk_flags & IEEE80211_KEY_GROUP) && sc->sc_mcastkey) {
 		/*
 		 * Group keys on hardware that supports multicast frame
 		 * key search use a MAC that is the sender's address with
@@ -272,47 +267,46 @@ ath_keyset(struct ath_softc *sc, struct ieee80211vap *vap,
  * each key, one for decrypt/encrypt and the other for the MIC.
  */
 static u_int16_t
-key_alloc_2pair(struct ath_softc *sc,
-	ieee80211_keyix *txkeyix, ieee80211_keyix *rxkeyix)
+key_alloc_2pair(struct ath_softc *sc, ieee80211_keyix *txkeyix,
+    ieee80211_keyix *rxkeyix)
 {
 	u_int i, keyix;
 
 	KASSERT(sc->sc_splitmic, ("key cache !split"));
 	/* XXX could optimize */
-	for (i = 0; i < nitems(sc->sc_keymap)/4; i++) {
+	for (i = 0; i < nitems(sc->sc_keymap) / 4; i++) {
 		u_int8_t b = sc->sc_keymap[i];
 		if (b != 0xff) {
 			/*
 			 * One or more slots in this byte are free.
 			 */
-			keyix = i*NBBY;
+			keyix = i * NBBY;
 			while (b & 1) {
-		again:
+			again:
 				keyix++;
 				b >>= 1;
 			}
 			/* XXX IEEE80211_KEY_XMIT | IEEE80211_KEY_RECV */
-			if (isset(sc->sc_keymap, keyix+32) ||
-			    isset(sc->sc_keymap, keyix+64) ||
-			    isset(sc->sc_keymap, keyix+32+64)) {
+			if (isset(sc->sc_keymap, keyix + 32) ||
+			    isset(sc->sc_keymap, keyix + 64) ||
+			    isset(sc->sc_keymap, keyix + 32 + 64)) {
 				/* full pair unavailable */
 				/* XXX statistic */
-				if (keyix == (i+1)*NBBY) {
+				if (keyix == (i + 1) * NBBY) {
 					/* no slots were appropriate, advance */
 					continue;
 				}
 				goto again;
 			}
 			setbit(sc->sc_keymap, keyix);
-			setbit(sc->sc_keymap, keyix+64);
-			setbit(sc->sc_keymap, keyix+32);
-			setbit(sc->sc_keymap, keyix+32+64);
+			setbit(sc->sc_keymap, keyix + 64);
+			setbit(sc->sc_keymap, keyix + 32);
+			setbit(sc->sc_keymap, keyix + 32 + 64);
 			DPRINTF(sc, ATH_DEBUG_KEYCACHE,
-				"%s: key pair %u,%u %u,%u\n",
-				__func__, keyix, keyix+64,
-				keyix+32, keyix+32+64);
+			    "%s: key pair %u,%u %u,%u\n", __func__, keyix,
+			    keyix + 64, keyix + 32, keyix + 32 + 64);
 			*txkeyix = keyix;
-			*rxkeyix = keyix+32;
+			*rxkeyix = keyix + 32;
 			return 1;
 		}
 	}
@@ -325,39 +319,38 @@ key_alloc_2pair(struct ath_softc *sc,
  * each key, one for decrypt/encrypt and the other for the MIC.
  */
 static u_int16_t
-key_alloc_pair(struct ath_softc *sc,
-	ieee80211_keyix *txkeyix, ieee80211_keyix *rxkeyix)
+key_alloc_pair(struct ath_softc *sc, ieee80211_keyix *txkeyix,
+    ieee80211_keyix *rxkeyix)
 {
 	u_int i, keyix;
 
 	KASSERT(!sc->sc_splitmic, ("key cache split"));
 	/* XXX could optimize */
-	for (i = 0; i < nitems(sc->sc_keymap)/4; i++) {
+	for (i = 0; i < nitems(sc->sc_keymap) / 4; i++) {
 		u_int8_t b = sc->sc_keymap[i];
 		if (b != 0xff) {
 			/*
 			 * One or more slots in this byte are free.
 			 */
-			keyix = i*NBBY;
+			keyix = i * NBBY;
 			while (b & 1) {
-		again:
+			again:
 				keyix++;
 				b >>= 1;
 			}
-			if (isset(sc->sc_keymap, keyix+64)) {
+			if (isset(sc->sc_keymap, keyix + 64)) {
 				/* full pair unavailable */
 				/* XXX statistic */
-				if (keyix == (i+1)*NBBY) {
+				if (keyix == (i + 1) * NBBY) {
 					/* no slots were appropriate, advance */
 					continue;
 				}
 				goto again;
 			}
 			setbit(sc->sc_keymap, keyix);
-			setbit(sc->sc_keymap, keyix+64);
-			DPRINTF(sc, ATH_DEBUG_KEYCACHE,
-				"%s: key pair %u,%u\n",
-				__func__, keyix, keyix+64);
+			setbit(sc->sc_keymap, keyix + 64);
+			DPRINTF(sc, ATH_DEBUG_KEYCACHE, "%s: key pair %u,%u\n",
+			    __func__, keyix, keyix + 64);
 			*txkeyix = *rxkeyix = keyix;
 			return 1;
 		}
@@ -370,8 +363,8 @@ key_alloc_pair(struct ath_softc *sc,
  * Allocate a single key cache slot.
  */
 static int
-key_alloc_single(struct ath_softc *sc,
-	ieee80211_keyix *txkeyix, ieee80211_keyix *rxkeyix)
+key_alloc_single(struct ath_softc *sc, ieee80211_keyix *txkeyix,
+    ieee80211_keyix *rxkeyix)
 {
 	u_int i, keyix;
 
@@ -390,12 +383,12 @@ key_alloc_single(struct ath_softc *sc,
 			/*
 			 * One or more slots are free.
 			 */
-			keyix = i*NBBY;
+			keyix = i * NBBY;
 			while (b & 1)
 				keyix++, b >>= 1;
 			setbit(sc->sc_keymap, keyix);
 			DPRINTF(sc, ATH_DEBUG_KEYCACHE, "%s: key %u\n",
-				__func__, keyix);
+			    __func__, keyix);
 			*txkeyix = *rxkeyix = keyix;
 			return 1;
 		}
@@ -415,7 +408,7 @@ key_alloc_single(struct ath_softc *sc,
  */
 int
 ath_key_alloc(struct ieee80211vap *vap, struct ieee80211_key *k,
-	ieee80211_keyix *keyix, ieee80211_keyix *rxkeyix)
+    ieee80211_keyix *keyix, ieee80211_keyix *rxkeyix)
 {
 	struct ath_softc *sc = vap->iv_ic->ic_softc;
 
@@ -435,22 +428,21 @@ ath_key_alloc(struct ieee80211vap *vap, struct ieee80211_key *k,
 		 * Only global keys should have key index assigned.
 		 */
 		if (!(&vap->iv_nw_keys[0] <= k &&
-		      k < &vap->iv_nw_keys[IEEE80211_WEP_NKID])) {
+			k < &vap->iv_nw_keys[IEEE80211_WEP_NKID])) {
 			/* should not happen */
-			DPRINTF(sc, ATH_DEBUG_KEYCACHE,
-				"%s: bogus group key\n", __func__);
+			DPRINTF(sc, ATH_DEBUG_KEYCACHE, "%s: bogus group key\n",
+			    __func__);
 			return 0;
 		}
 		if (vap->iv_opmode != IEEE80211_M_HOSTAP ||
-		    !(k->wk_flags & IEEE80211_KEY_GROUP) ||
-		    !sc->sc_mcastkey) {
+		    !(k->wk_flags & IEEE80211_KEY_GROUP) || !sc->sc_mcastkey) {
 			/*
 			 * XXX we pre-allocate the global keys so
 			 * have no way to check if they've already
 			 * been allocated.
 			 */
-			*keyix = *rxkeyix =
-			    ieee80211_crypto_get_key_wepidx(vap, k);
+			*keyix = *rxkeyix = ieee80211_crypto_get_key_wepidx(vap,
+			    k);
 			return 1;
 		}
 		/*
@@ -501,7 +493,7 @@ ath_key_delete(struct ieee80211vap *vap, const struct ieee80211_key *k)
 	 */
 	if (cip->ic_cipher == IEEE80211_CIPHER_TKIP &&
 	    (k->wk_flags & IEEE80211_KEY_SWMIC) == 0 && sc->sc_splitmic)
-		ath_hal_keyreset(ah, keyix+32);		/* RX key */
+		ath_hal_keyreset(ah, keyix + 32); /* RX key */
 	if (keyix >= IEEE80211_WEP_NKID) {
 		/*
 		 * Don't touch keymap entries for global keys so
@@ -510,11 +502,11 @@ ath_key_delete(struct ieee80211vap *vap, const struct ieee80211_key *k)
 		clrbit(sc->sc_keymap, keyix);
 		if (cip->ic_cipher == IEEE80211_CIPHER_TKIP &&
 		    (k->wk_flags & IEEE80211_KEY_SWMIC) == 0) {
-			clrbit(sc->sc_keymap, keyix+64);	/* TX key MIC */
+			clrbit(sc->sc_keymap, keyix + 64); /* TX key MIC */
 			if (sc->sc_splitmic) {
 				/* +32 for RX key, +32+64 for RX key MIC */
-				clrbit(sc->sc_keymap, keyix+32);
-				clrbit(sc->sc_keymap, keyix+32+64);
+				clrbit(sc->sc_keymap, keyix + 32);
+				clrbit(sc->sc_keymap, keyix + 32 + 64);
 			}
 		}
 	}

@@ -36,7 +36,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define	MAXNUM		65		/* Biggest number we handle. */
+#define MAXNUM 65 /* Biggest number we handle. */
 
 static const char	*name1[] = {
 	"",		"one",		"two",		"three",
@@ -60,11 +60,11 @@ static const char	*name1[] = {
 	"novemdecillion",		"vigintillion",
 };
 
-static void	convert(char *);
-static int	number(char *, int);
-static void	pfract(int);
-static int	unit(int, char *);
-static void	usage(void);
+static void convert(char *);
+static int number(char *, int);
+static void pfract(int);
+static int unit(int, char *);
+static void usage(void);
 
 static int lflag;
 
@@ -88,8 +88,8 @@ main(int argc, char *argv[])
 	argv += optind;
 
 	if (*argv == NULL)
-		for (first = 1;
-		    fgets(line, sizeof(line), stdin) != NULL; first = 0) {
+		for (first = 1; fgets(line, sizeof(line), stdin) != NULL;
+		     first = 0) {
 			if (strchr(line, '\n') == NULL)
 				errx(1, "line too long.");
 			if (!first)
@@ -135,7 +135,8 @@ convert(char *line)
 				break;
 			/* FALLTHROUGH */
 		default:
-badnum:			errx(1, "illegal number: %s", line);
+		badnum:
+			errx(1, "illegal number: %s", line);
 			break;
 		}
 	}
@@ -185,8 +186,8 @@ unit(int len, char *p)
 			len -= off;
 			if (number(p, off)) {
 				rval = 1;
-				(void)printf(" %s%s",
-				    name3[len / 3], lflag ? " " : ".\n");
+				(void)printf(" %s%s", name3[len / 3],
+				    lflag ? " " : ".\n");
 			}
 			p += off;
 		}
@@ -194,8 +195,8 @@ unit(int len, char *p)
 			len -= 3;
 			if (number(p, 3)) {
 				rval = 1;
-				(void)printf(" %s%s",
-				    name3[len / 3], lflag ? " " : ".\n");
+				(void)printf(" %s%s", name3[len / 3],
+				    lflag ? " " : ".\n");
 			}
 		}
 	}
@@ -248,9 +249,9 @@ number(char *p, int len)
 static void
 pfract(int len)
 {
-	static char const * const pref[] = { "", "ten-", "hundred-" };
+	static char const *const pref[] = { "", "ten-", "hundred-" };
 
-	switch(len) {
+	switch (len) {
 	case 1:
 		(void)printf("tenths.\n");
 		break;

@@ -9,26 +9,24 @@
 #define IPF_TFTP_PROXY
 
 typedef struct ipf_tftp_softc_s {
-	int     	ipf_p_tftp_readonly;
-	ipftuneable_t	*ipf_p_tftp_tune;
+	int ipf_p_tftp_readonly;
+	ipftuneable_t *ipf_p_tftp_tune;
 } ipf_tftp_softc_t;
 
 int ipf_p_tftp_backchannel(fr_info_t *, ap_session_t *, nat_t *);
-int ipf_p_tftp_client(ipf_tftp_softc_t *, fr_info_t *, ap_session_t *,
-			   nat_t *);
+int ipf_p_tftp_client(ipf_tftp_softc_t *, fr_info_t *, ap_session_t *, nat_t *);
 int ipf_p_tftp_in(void *, fr_info_t *, ap_session_t *, nat_t *);
 void ipf_p_tftp_main_load(void);
 void ipf_p_tftp_main_unload(void);
 int ipf_p_tftp_new(void *, fr_info_t *, ap_session_t *, nat_t *);
 void ipf_p_tftp_del(ipf_main_softc_t *, ap_session_t *);
 int ipf_p_tftp_out(void *, fr_info_t *, ap_session_t *, nat_t *);
-int ipf_p_tftp_server(ipf_tftp_softc_t *, fr_info_t *, ap_session_t *,
-			   nat_t *);
+int ipf_p_tftp_server(ipf_tftp_softc_t *, fr_info_t *, ap_session_t *, nat_t *);
 void *ipf_p_tftp_soft_create(ipf_main_softc_t *);
 void ipf_p_tftp_soft_destroy(ipf_main_softc_t *, void *);
 
-static	frentry_t	tftpfr;
-static	int		tftp_proxy_init = 0;
+static frentry_t tftpfr;
+static int tftp_proxy_init = 0;
 
 typedef enum tftp_cmd_e {
 	TFTP_CMD_READ = 1,
@@ -39,22 +37,20 @@ typedef enum tftp_cmd_e {
 } tftp_cmd_t;
 
 typedef struct tftpinfo {
-	tftp_cmd_t	ti_lastcmd;
-	int		ti_nextblk;
-	int		ti_lastblk;
-	int		ti_lasterror;
-	char		ti_filename[80];
-	ipnat_t		*ti_rule;
+	tftp_cmd_t ti_lastcmd;
+	int ti_nextblk;
+	int ti_lastblk;
+	int ti_lasterror;
+	char ti_filename[80];
+	ipnat_t *ti_rule;
 } tftpinfo_t;
 
-static  ipftuneable_t   ipf_tftp_tuneables[] = {
+static ipftuneable_t ipf_tftp_tuneables[] = {
 	{ { (void *)offsetof(ipf_tftp_softc_t, ipf_p_tftp_readonly) },
-		"tftp_read_only",	0,	1,
-		stsizeof(ipf_tftp_softc_t, ipf_p_tftp_readonly),
-		0, NULL, NULL },
+	    "tftp_read_only", 0, 1,
+	    stsizeof(ipf_tftp_softc_t, ipf_p_tftp_readonly), 0, NULL, NULL },
 	{ { NULL }, NULL, 0, 0, 0, 0, NULL, NULL }
 };
-
 
 /*
  * TFTP application proxy initialization.
@@ -65,11 +61,10 @@ ipf_p_tftp_main_load(void)
 
 	bzero((char *)&tftpfr, sizeof(tftpfr));
 	tftpfr.fr_ref = 1;
-	tftpfr.fr_flags = FR_INQUE|FR_PASS|FR_QUICK|FR_KEEPSTATE;
+	tftpfr.fr_flags = FR_INQUE | FR_PASS | FR_QUICK | FR_KEEPSTATE;
 	MUTEX_INIT(&tftpfr.fr_lock, "TFTP proxy rule lock");
 	tftp_proxy_init = 1;
 }
-
 
 void
 ipf_p_tftp_main_unload(void)
@@ -80,7 +75,6 @@ ipf_p_tftp_main_unload(void)
 		tftp_proxy_init = 0;
 	}
 }
-
 
 void *
 ipf_p_tftp_soft_create(ipf_main_softc_t *softc)
@@ -94,8 +88,7 @@ ipf_p_tftp_soft_create(ipf_main_softc_t *softc)
 	bzero((char *)softt, sizeof(*softt));
 
 	softt->ipf_p_tftp_tune = ipf_tune_array_copy(softt,
-						     sizeof(ipf_tftp_tuneables),
-						     ipf_tftp_tuneables);
+	    sizeof(ipf_tftp_tuneables), ipf_tftp_tuneables);
 	if (softt->ipf_p_tftp_tune == NULL) {
 		ipf_p_tftp_soft_destroy(softc, softt);
 		return (NULL);
@@ -109,7 +102,6 @@ ipf_p_tftp_soft_create(ipf_main_softc_t *softc)
 
 	return (softt);
 }
-
 
 void
 ipf_p_tftp_soft_destroy(ipf_main_softc_t *softc, void *arg)
@@ -125,7 +117,6 @@ ipf_p_tftp_soft_destroy(ipf_main_softc_t *softc, void *arg)
 	KFREE(softt);
 }
 
-
 int
 ipf_p_tftp_out(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 {
@@ -136,7 +127,6 @@ ipf_p_tftp_out(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 		return (ipf_p_tftp_client(softt, fin, aps, nat));
 	return (ipf_p_tftp_server(softt, fin, aps, nat));
 }
-
 
 int
 ipf_p_tftp_in(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
@@ -149,7 +139,6 @@ ipf_p_tftp_in(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 	return (ipf_p_tftp_server(softt, fin, aps, nat));
 }
 
-
 int
 ipf_p_tftp_new(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 {
@@ -159,7 +148,7 @@ ipf_p_tftp_new(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 	ipnat_t *np;
 	int size;
 
-	fin = fin;	/* LINT */
+	fin = fin; /* LINT */
 
 	np = nat->nat_ptr;
 	size = np->in_size;
@@ -194,7 +183,7 @@ ipf_p_tftp_new(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 	ipn->in_ifps[1] = nat->nat_ifps[1];
 	ipn->in_v[0] = nat->nat_ptr->in_v[1];
 	ipn->in_v[1] = nat->nat_ptr->in_v[0];
-	ipn->in_flags = IPN_UDP|IPN_FIXEDDPORT|IPN_PROXYRULE;
+	ipn->in_flags = IPN_UDP | IPN_FIXEDDPORT | IPN_PROXYRULE;
 
 	ipn->in_nsrcip6 = nat->nat_odst6;
 	ipn->in_osrcip6 = nat->nat_ndst6;
@@ -245,7 +234,6 @@ ipf_p_tftp_new(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 	return (0);
 }
 
-
 void
 ipf_p_tftp_del(ipf_main_softc_t *softc, ap_session_t *aps)
 {
@@ -257,7 +245,6 @@ ipf_p_tftp_del(ipf_main_softc_t *softc, ap_session_t *aps)
 		ipf_nat_rule_deref(softc, &tftp->ti_rule);
 	}
 }
-
 
 /*
  * Setup for a new TFTP proxy.
@@ -293,7 +280,7 @@ ipf_p_tftp_backchannel(fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 	fi.fin_data[1] = 0;
 
 	bzero((char *)&udp, sizeof(udp));
-	udp.uh_sport = 0;	/* XXX - don't specify remote port */
+	udp.uh_sport = 0; /* XXX - don't specify remote port */
 	udp.uh_dport = ti->ti_rule->in_ndport;
 	udp.uh_ulen = htons(sizeof(udp));
 	udp.uh_sum = 0;
@@ -304,8 +291,8 @@ ipf_p_tftp_backchannel(fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 	fi.fin_dport = ntohs(ti->ti_rule->in_ndport);
 	fi.fin_dlen = sizeof(udp);
 	fi.fin_plen = fi.fin_hlen + sizeof(udp);
-	fi.fin_flx &= FI_LOWTTL|FI_FRAG|FI_TCPUDP|FI_OPTIONS|FI_IGNORE;
-	nflags = NAT_SLAVE|IPN_UDP|SI_W_SPORT;
+	fi.fin_flx &= FI_LOWTTL | FI_FRAG | FI_TCPUDP | FI_OPTIONS | FI_IGNORE;
+	nflags = NAT_SLAVE | IPN_UDP | SI_W_SPORT;
 #ifdef USE_INET6
 	ip6 = (ip6_t *)fin->fin_ip;
 #endif
@@ -351,7 +338,7 @@ ipf_p_tftp_backchannel(fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 		nat2 = ipf_nat_add(&fi, ti->ti_rule, NULL, nflags, dir);
 	MUTEX_EXIT(&softn->ipf_nat_new);
 	if (nat2 != NULL) {
-		(void) ipf_nat_proto(&fi, nat2, IPN_UDP);
+		(void)ipf_nat_proto(&fi, nat2, IPN_UDP);
 		ipf_nat_update(&fi, nat2);
 		fi.fin_ifp = NULL;
 		if (ti->ti_rule->in_redir == NAT_MAP) {
@@ -397,10 +384,9 @@ ipf_p_tftp_backchannel(fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 	return (0);
 }
 
-
 int
 ipf_p_tftp_client(ipf_tftp_softc_t *softt, fr_info_t *fin, ap_session_t *aps,
-	nat_t *nat)
+    nat_t *nat)
 {
 	u_char *msg, *s, *t;
 	tftpinfo_t *ti;
@@ -417,13 +403,12 @@ ipf_p_tftp_client(ipf_tftp_softc_t *softt, fr_info_t *fin, ap_session_t *aps,
 	opcode = (msg[0] << 8) | msg[1];
 	DT3(tftp_cmd, fr_info_t *, fin, int, opcode, nat_t *, nat);
 
-	switch (opcode)
-	{
-	case TFTP_CMD_WRITE :
+	switch (opcode) {
+	case TFTP_CMD_WRITE:
 		if (softt->ipf_p_tftp_readonly != 0)
 			break;
 		/* FALLTHROUGH */
-	case TFTP_CMD_READ :
+	case TFTP_CMD_READ:
 		len = fin->fin_dlen - sizeof(*udp) - 2;
 		if (len > sizeof(ti->ti_filename) - 1)
 			len = sizeof(ti->ti_filename) - 1;
@@ -435,7 +420,7 @@ ipf_p_tftp_client(ipf_tftp_softc_t *softt, fr_info_t *fin, ap_session_t *aps,
 		}
 		ipf_p_tftp_backchannel(fin, aps, nat);
 		break;
-	default :
+	default:
 		return (-1);
 	}
 
@@ -444,10 +429,9 @@ ipf_p_tftp_client(ipf_tftp_softc_t *softt, fr_info_t *fin, ap_session_t *aps,
 	return (0);
 }
 
-
 int
 ipf_p_tftp_server(ipf_tftp_softc_t *softt, fr_info_t *fin, ap_session_t *aps,
-	nat_t *nat)
+    nat_t *nat)
 {
 	tftpinfo_t *ti;
 	u_short opcode;
@@ -463,17 +447,16 @@ ipf_p_tftp_server(ipf_tftp_softc_t *softt, fr_info_t *fin, ap_session_t *aps,
 	arg = (msg[2] << 8) | msg[3];
 	opcode = (msg[0] << 8) | msg[1];
 
-	switch (opcode)
-	{
-	case TFTP_CMD_ACK :
+	switch (opcode) {
+	case TFTP_CMD_ACK:
 		ti->ti_lastblk = arg;
 		break;
 
-	case TFTP_CMD_ERROR :
+	case TFTP_CMD_ERROR:
 		ti->ti_lasterror = arg;
 		break;
 
-	default :
+	default:
 		return (-1);
 	}
 

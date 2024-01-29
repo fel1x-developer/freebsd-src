@@ -112,8 +112,9 @@
  */
 
 #include <sys/cdefs.h>
-#include "xgbe.h"
+
 #include "xgbe-common.h"
+#include "xgbe.h"
 
 static void
 xgbe_wrapper_tx_descriptor_init(struct xgbe_prv_data *pdata)

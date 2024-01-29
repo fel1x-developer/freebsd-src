@@ -25,11 +25,11 @@
  */
 
 #ifndef _LINUXKPI_LINUX_ATOMIC_H_
-#define	_LINUXKPI_LINUX_ATOMIC_H_
+#define _LINUXKPI_LINUX_ATOMIC_H_
 
+#include <asm/atomic-long.h>
 #include <asm/atomic.h>
 #include <asm/atomic64.h>
-#include <asm/atomic-long.h>
 #include <asm/barrier.h>
 
 #endif /* _LINUXKPI_LINUX_ATOMIC_H_ */

@@ -8,53 +8,24 @@
 
 #include "ipf.h"
 
-wordtab_t natfields[] = {
-	{ "all",	-2 },
-	{ "ifp0",	1 },
-	{ "ifp1",	2 },
-	{ "mtu0",	3 },
-	{ "mtu1",	4 },
-	{ "ifname0",	5 },
-	{ "ifname1",	6 },
-	{ "sumd0",	7 },
-	{ "sumd1",	8 },
-	{ "pkts0",	9 },
-	{ "pkts1",	10 },
-	{ "bytes0",	11 },
-	{ "bytes1",	12 },
-	{ "proto0",	13 },
-	{ "proto1",	14 },
-	{ "hash0",	15 },
-	{ "hash1",	16 },
-	{ "ref",	17 },
-	{ "rev",	18 },
-	{ "v0",		19 },
-	{ "redir",	20 },
-	{ "use",	21 },
-	{ "ipsumd",	22 },
-	{ "dir",	23 },
-	{ "olddstip",	24 },
-	{ "oldsrcip",	25 },
-	{ "newdstip",	26 },
-	{ "newsrcip",	27 },
-	{ "olddport",	28 },
-	{ "oldsport",	29 },
-	{ "newdport",	30 },
-	{ "newsport",	31 },
-	{ "age",	32 },
-	{ "v1",		33 },
-	{ NULL, 0 }
-};
-
+wordtab_t natfields[] = { { "all", -2 }, { "ifp0", 1 }, { "ifp1", 2 },
+	{ "mtu0", 3 }, { "mtu1", 4 }, { "ifname0", 5 }, { "ifname1", 6 },
+	{ "sumd0", 7 }, { "sumd1", 8 }, { "pkts0", 9 }, { "pkts1", 10 },
+	{ "bytes0", 11 }, { "bytes1", 12 }, { "proto0", 13 }, { "proto1", 14 },
+	{ "hash0", 15 }, { "hash1", 16 }, { "ref", 17 }, { "rev", 18 },
+	{ "v0", 19 }, { "redir", 20 }, { "use", 21 }, { "ipsumd", 22 },
+	{ "dir", 23 }, { "olddstip", 24 }, { "oldsrcip", 25 },
+	{ "newdstip", 26 }, { "newsrcip", 27 }, { "olddport", 28 },
+	{ "oldsport", 29 }, { "newdport", 30 }, { "newsport", 31 },
+	{ "age", 32 }, { "v1", 33 }, { NULL, 0 } };
 
 void
-printnatfield( nat_t *n, int fieldnum)
+printnatfield(nat_t *n, int fieldnum)
 {
 	int i;
 
-	switch (fieldnum)
-	{
-	case -2 :
+	switch (fieldnum) {
+	case -2:
 		for (i = 1; natfields[i].w_word != NULL; i++) {
 			if (natfields[i].w_value > 0) {
 				printnatfield(n, i);
@@ -98,7 +69,7 @@ printnatfield( nat_t *n, int fieldnum)
 
 	case 9:
 #ifdef USE_QUAD_T
-		PRINTF("%"PRIu64"", n->nat_pkts[0]);
+		PRINTF("%" PRIu64 "", n->nat_pkts[0]);
 #else
 		PRINTF("%lu", n->nat_pkts[0]);
 #endif
@@ -106,7 +77,7 @@ printnatfield( nat_t *n, int fieldnum)
 
 	case 10:
 #ifdef USE_QUAD_T
-		PRINTF("%"PRIu64"", n->nat_pkts[1]);
+		PRINTF("%" PRIu64 "", n->nat_pkts[1]);
 #else
 		PRINTF("%lu", n->nat_pkts[1]);
 #endif
@@ -114,7 +85,7 @@ printnatfield( nat_t *n, int fieldnum)
 
 	case 11:
 #ifdef USE_QUAD_T
-		PRINTF("%"PRIu64"", n->nat_bytes[0]);
+		PRINTF("%" PRIu64 "", n->nat_bytes[0]);
 #else
 		PRINTF("%lu", n->nat_bytes[0]);
 #endif
@@ -122,7 +93,7 @@ printnatfield( nat_t *n, int fieldnum)
 
 	case 12:
 #ifdef USE_QUAD_T
-		PRINTF("%"PRIu64"", n->nat_bytes[1]);
+		PRINTF("%" PRIu64 "", n->nat_bytes[1]);
 #else
 		PRINTF("%lu", n->nat_bytes[1]);
 #endif

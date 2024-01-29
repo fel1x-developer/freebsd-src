@@ -27,7 +27,7 @@
  */
 
 #ifndef _MEMSTAT_INTERNAL_H_
-#define	_MEMSTAT_INTERNAL_H_
+#define _MEMSTAT_INTERNAL_H_
 
 /*
  * memstat maintains its own internal notion of statistics on each memory
@@ -40,40 +40,40 @@ struct memory_type {
 	/*
 	 * Static properties of type.
 	 */
-	int	 mt_allocator;		/* malloc(9), uma(9), etc. */
-	char	 mt_name[MEMTYPE_MAXNAME];	/* name of memory type. */
+	int mt_allocator;	       /* malloc(9), uma(9), etc. */
+	char mt_name[MEMTYPE_MAXNAME]; /* name of memory type. */
 
 	/*
 	 * (Relatively) static zone settings, that don't uniquely identify
 	 * the zone, but also don't change much.
 	 */
-	uint64_t	 mt_countlimit;	/* 0, or maximum allocations. */
-	uint64_t	 mt_byteslimit;	/* 0, or maximum bytes. */
-	uint64_t	 mt_sizemask;	/* malloc: allocated size bitmask. */
-	uint64_t	 mt_size;	/* uma: size of objects. */
-	uint64_t	 mt_rsize;	/* uma: real size of objects. */
+	uint64_t mt_countlimit; /* 0, or maximum allocations. */
+	uint64_t mt_byteslimit; /* 0, or maximum bytes. */
+	uint64_t mt_sizemask;	/* malloc: allocated size bitmask. */
+	uint64_t mt_size;	/* uma: size of objects. */
+	uint64_t mt_rsize;	/* uma: real size of objects. */
 
 	/*
 	 * Zone or type information that includes all caches and any central
 	 * zone state.  Depending on the allocator, this may be synthesized
 	 * from several sources, or directly measured.
 	 */
-	uint64_t	 mt_memalloced;	/* Bytes allocated over life time. */
-	uint64_t	 mt_memfreed;	/* Bytes freed over life time. */
-	uint64_t	 mt_numallocs;	/* Allocations over life time. */
-	uint64_t	 mt_numfrees;	/* Frees over life time. */
-	uint64_t	 mt_bytes;	/* Bytes currently allocated. */
-	uint64_t	 mt_count;	/* Number of current allocations. */
-	uint64_t	 mt_free;	/* Number of cached free items. */
-	uint64_t	 mt_failures;	/* Number of allocation failures. */
-	uint64_t	 mt_sleeps;	/* Number of allocation sleeps. */
-	uint64_t	 mt_xdomain;	/* Number of cross domain sleeps. */
+	uint64_t mt_memalloced; /* Bytes allocated over life time. */
+	uint64_t mt_memfreed;	/* Bytes freed over life time. */
+	uint64_t mt_numallocs;	/* Allocations over life time. */
+	uint64_t mt_numfrees;	/* Frees over life time. */
+	uint64_t mt_bytes;	/* Bytes currently allocated. */
+	uint64_t mt_count;	/* Number of current allocations. */
+	uint64_t mt_free;	/* Number of cached free items. */
+	uint64_t mt_failures;	/* Number of allocation failures. */
+	uint64_t mt_sleeps;	/* Number of allocation sleeps. */
+	uint64_t mt_xdomain;	/* Number of cross domain sleeps. */
 
 	/*
 	 * Caller-owned memory.
 	 */
-	void		*mt_caller_pointer[MEMSTAT_MAXCALLER];	/* Pointers. */
-	uint64_t	 mt_caller_uint64[MEMSTAT_MAXCALLER];	/* Integers. */
+	void *mt_caller_pointer[MEMSTAT_MAXCALLER];   /* Pointers. */
+	uint64_t mt_caller_uint64[MEMSTAT_MAXCALLER]; /* Integers. */
 
 	/*
 	 * For allocators making use of per-CPU caches, we also provide raw
@@ -87,42 +87,41 @@ struct memory_type {
 	 * from zone, which should (combined with per-cpu) add up to the
 	 * global stats above.
 	 */
-	uint64_t	 mt_zonefree;	/* Free items in zone. */
-	uint64_t	 mt_kegfree;	/* Free items in keg. */
+	uint64_t mt_zonefree; /* Free items in zone. */
+	uint64_t mt_kegfree;  /* Free items in keg. */
 
 	/*
 	 * Per-CPU measurements fall into two categories: per-CPU allocation,
 	 * and per-CPU cache state.
 	 */
 	struct mt_percpu_alloc_s {
-		uint64_t	 mtp_memalloced;/* Per-CPU mt_memalloced. */
-		uint64_t	 mtp_memfreed;	/* Per-CPU mt_memfreed. */
-		uint64_t	 mtp_numallocs;	/* Per-CPU mt_numallocs. */
-		uint64_t	 mtp_numfrees;	/* Per-CPU mt_numfrees. */
-		uint64_t	 mtp_sizemask;	/* Per-CPU mt_sizemask. */
-		void		*mtp_caller_pointer[MEMSTAT_MAXCALLER];
-		uint64_t	 mtp_caller_uint64[MEMSTAT_MAXCALLER];
-	}	*mt_percpu_alloc;
+		uint64_t mtp_memalloced; /* Per-CPU mt_memalloced. */
+		uint64_t mtp_memfreed;	 /* Per-CPU mt_memfreed. */
+		uint64_t mtp_numallocs;	 /* Per-CPU mt_numallocs. */
+		uint64_t mtp_numfrees;	 /* Per-CPU mt_numfrees. */
+		uint64_t mtp_sizemask;	 /* Per-CPU mt_sizemask. */
+		void *mtp_caller_pointer[MEMSTAT_MAXCALLER];
+		uint64_t mtp_caller_uint64[MEMSTAT_MAXCALLER];
+	} *mt_percpu_alloc;
 
 	struct mt_percpu_cache_s {
-		uint64_t	 mtp_free;	/* Per-CPU cache free items. */
-	}	*mt_percpu_cache;
+		uint64_t mtp_free; /* Per-CPU cache free items. */
+	} *mt_percpu_cache;
 
-	LIST_ENTRY(memory_type)	mt_list;	/* List of types. */
+	LIST_ENTRY(memory_type) mt_list; /* List of types. */
 };
 
 /*
  * Description of struct memory_type_list is in memstat.h.
  */
 struct memory_type_list {
-	LIST_HEAD(, memory_type)	mtl_list;
-	int				mtl_error;
+	LIST_HEAD(, memory_type) mtl_list;
+	int mtl_error;
 };
 
-void			 _memstat_mtl_empty(struct memory_type_list *list);
-struct memory_type	*_memstat_mt_allocate(struct memory_type_list *list,
-			    int allocator, const char *name, int maxcpus);
-void			 _memstat_mt_reset_stats(struct memory_type *mtp,
-			    int maxcpus);
+void _memstat_mtl_empty(struct memory_type_list *list);
+struct memory_type *_memstat_mt_allocate(struct memory_type_list *list,
+    int allocator, const char *name, int maxcpus);
+void _memstat_mt_reset_stats(struct memory_type *mtp, int maxcpus);
 
 #endif /* !_MEMSTAT_INTERNAL_H_ */

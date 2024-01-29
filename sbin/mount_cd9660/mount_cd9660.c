@@ -34,41 +34,36 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/param.h>
 #include <sys/cdio.h>
 #include <sys/file.h>
-#include <sys/param.h>
-#include <sys/mount.h>
-#include <sys/module.h>
 #include <sys/iconv.h>
 #include <sys/linker.h>
+#include <sys/module.h>
+#include <sys/mount.h>
 
 #include <arpa/inet.h>
-
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <grp.h>
 #include <pwd.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
 
 #include "mntopts.h"
 
-static struct mntopt mopts[] = {
-	MOPT_STDOPTS,
-	MOPT_UPDATE,
-	MOPT_END
-};
+static struct mntopt mopts[] = { MOPT_STDOPTS, MOPT_UPDATE, MOPT_END };
 
-static gid_t	a_gid(const char *);
-static uid_t	a_uid(const char *);
-static mode_t	a_mask(const char *);
-static int	get_ssector(const char *dev);
-static int	set_charset(struct iovec **, int *iovlen, const char *);
-void	usage(void);
+static gid_t a_gid(const char *);
+static uid_t a_uid(const char *);
+static mode_t a_mask(const char *);
+static int get_ssector(const char *dev);
+static int set_charset(struct iovec **, int *iovlen, const char *);
+void usage(void);
 
 int
 main(int argc, char **argv)
@@ -78,7 +73,7 @@ main(int argc, char **argv)
 	int ch, mntflags;
 	char *dev, *dir, *p, *val, mntpath[MAXPATHLEN];
 	int verbose;
-	int ssector;		/* starting sector, 0 for 1st session */
+	int ssector; /* starting sector, 0 for 1st session */
 	char fstype[] = "cd9660";
 
 	iov = NULL;
@@ -89,7 +84,8 @@ main(int argc, char **argv)
 	while ((ch = getopt(argc, argv, "begG:jm:M:o:rs:U:vC:")) != -1)
 		switch (ch) {
 		case 'b':
-			build_iovec(&iov, &iovlen, "brokenjoliet", NULL, (size_t)-1);
+			build_iovec(&iov, &iovlen, "brokenjoliet", NULL,
+			    (size_t)-1);
 			break;
 		case 'e':
 			build_iovec(&iov, &iovlen, "extatt", NULL, (size_t)-1);
@@ -98,16 +94,20 @@ main(int argc, char **argv)
 			build_iovec(&iov, &iovlen, "gens", NULL, (size_t)-1);
 			break;
 		case 'G':
-		        build_iovec_argf(&iov, &iovlen, "gid", "%d", a_gid(optarg));
+			build_iovec_argf(&iov, &iovlen, "gid", "%d",
+			    a_gid(optarg));
 			break;
 		case 'm':
-			build_iovec_argf(&iov, &iovlen, "mask", "%u", a_mask(optarg));
+			build_iovec_argf(&iov, &iovlen, "mask", "%u",
+			    a_mask(optarg));
 			break;
 		case 'M':
-			build_iovec_argf(&iov, &iovlen, "dirmask", "%u", a_mask(optarg));
+			build_iovec_argf(&iov, &iovlen, "dirmask", "%u",
+			    a_mask(optarg));
 			break;
 		case 'j':
-			build_iovec(&iov, &iovlen, "nojoliet", NULL, (size_t)-1);
+			build_iovec(&iov, &iovlen, "nojoliet", NULL,
+			    (size_t)-1);
 			break;
 		case 'o':
 			getmntopts(optarg, mopts, &mntflags, NULL);
@@ -126,7 +126,8 @@ main(int argc, char **argv)
 			ssector = atoi(optarg);
 			break;
 		case 'U':
-		        build_iovec_argf(&iov, &iovlen, "uid", "%d", a_uid(optarg));
+			build_iovec_argf(&iov, &iovlen, "uid", "%d",
+			    a_uid(optarg));
 			break;
 		case 'v':
 			verbose++;
@@ -191,8 +192,8 @@ void
 usage(void)
 {
 	(void)fprintf(stderr,
-"usage: mount_cd9660 [-begjrv] [-C charset] [-G gid] [-m mask] [-M mask]\n"
-"                    [-o options] [-U uid] [-s startsector] special node\n");
+	    "usage: mount_cd9660 [-begjrv] [-C charset] [-G gid] [-m mask] [-M mask]\n"
+	    "                    [-o options] [-U uid] [-s startsector] special node\n");
 	exit(EX_USAGE);
 }
 
@@ -222,12 +223,12 @@ get_ssector(const char *dev)
 	t.data_len = ntocentries * sizeof(struct cd_toc_entry);
 	t.data = toc_buffer;
 
-	if (ioctl(fd, CDIOREADTOCENTRYS, (char *) &t) == -1) {
+	if (ioctl(fd, CDIOREADTOCENTRYS, (char *)&t) == -1) {
 		close(fd);
 		return -1;
 	}
 	close(fd);
-	
+
 	for (i = ntocentries - 1; i >= 0; i--)
 		if ((toc_buffer[i].control & 4) != 0)
 			/* found a data track */
@@ -243,14 +244,16 @@ set_charset(struct iovec **iov, int *iovlen, const char *localcs)
 {
 	int error;
 	char *cs_disk;	/* disk charset for Joliet cs conversion */
-	char *cs_local;	/* local charset for Joliet cs conversion */
+	char *cs_local; /* local charset for Joliet cs conversion */
 
 	cs_disk = NULL;
 	cs_local = NULL;
 
 	if (modfind("cd9660_iconv") < 0)
-		if (kldload("cd9660_iconv") < 0 || modfind("cd9660_iconv") < 0) {
-			warnx( "cannot find or load \"cd9660_iconv\" kernel module");
+		if (kldload("cd9660_iconv") < 0 ||
+		    modfind("cd9660_iconv") < 0) {
+			warnx(
+			    "cannot find or load \"cd9660_iconv\" kernel module");
 			return (-1);
 		}
 
@@ -266,7 +269,7 @@ set_charset(struct iovec **iov, int *iovlen, const char *localcs)
 	error = kiconv_add_xlat16_cspairs(cs_disk, cs_local);
 	if (error)
 		return (-1);
-	
+
 	build_iovec(iov, iovlen, "cs_disk", cs_disk, (size_t)-1);
 	build_iovec(iov, iovlen, "cs_local", cs_local, (size_t)-1);
 
@@ -283,7 +286,8 @@ a_gid(const char *s)
 	if ((gr = getgrnam(s)) != NULL)
 		gid = gr->gr_gid;
 	else {
-		for (gname = s; *s && isdigit(*s); ++s);
+		for (gname = s; *s && isdigit(*s); ++s)
+			;
 		if (!*s)
 			gid = atoi(gname);
 		else
@@ -302,7 +306,8 @@ a_uid(const char *s)
 	if ((pw = getpwnam(s)) != NULL)
 		uid = pw->pw_uid;
 	else {
-		for (uname = s; *s && isdigit(*s); ++s);
+		for (uname = s; *s && isdigit(*s); ++s)
+			;
 		if (!*s)
 			uid = atoi(uname);
 		else

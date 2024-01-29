@@ -39,9 +39,9 @@
 #include <string.h>
 #include <unistd.h>
 
-#define	BIND_ATTEMPTS	10
-#define	LOOPS	500
-#define	NUM_ATTEMPTS	1000
+#define BIND_ATTEMPTS 10
+#define LOOPS 500
+#define NUM_ATTEMPTS 1000
 
 static volatile int quit;
 
@@ -163,8 +163,8 @@ main(void)
 			s = socket(PF_INET, SOCK_STREAM, 0);
 			if (s == -1)
 				errx(-1, "socket: %s", strerror(errno));
-			if (connect(s, (struct sockaddr *)&sin,
-			    sizeof(sin)) < 0)
+			if (connect(s, (struct sockaddr *)&sin, sizeof(sin)) <
+			    0)
 				errx(-1, "connect: %s", strerror(errno));
 			close(s);
 		}
@@ -187,8 +187,8 @@ main(void)
 	/* Do `NUM_ATTEMPTS` accepts with an invalid pointer. */
 	for (i = 0; !quit && i < NUM_ATTEMPTS; i++) {
 		size = sizeof(sin);
-		if (accept(s, (struct sockaddr *)(uintptr_t)(0x100),
-		    &size) != -1)
+		if (accept(s, (struct sockaddr *)(uintptr_t)(0x100), &size) !=
+		    -1)
 			errx(-1, "accept succeeded\n");
 		if (errno != EFAULT)
 			errx(-1, "accept: %s", strerror(errno));

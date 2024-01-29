@@ -40,11 +40,12 @@
 
 #include <machine/md_var.h>
 #include <machine/specialreg.h>
+
+#include <amd64/linux32/linux.h>
+#include <amd64/linux32/linux32_proto.h>
 #include <x86/ifunc.h>
 
 #include <compat/freebsd32/freebsd32_util.h>
-#include <amd64/linux32/linux.h>
-#include <amd64/linux32/linux32_proto.h>
 #include <compat/linux/linux_emul.h>
 #include <compat/linux/linux_fork.h>
 #include <compat/linux/linux_ipc.h>
@@ -52,14 +53,14 @@
 #include <compat/linux/linux_signal.h>
 #include <compat/linux/linux_util.h>
 
-static void	bsd_to_linux_rusage(struct rusage *ru, struct l_rusage *lru);
+static void bsd_to_linux_rusage(struct rusage *ru, struct l_rusage *lru);
 
 struct l_old_select_argv {
-	l_int		nfds;
-	l_uintptr_t	readfds;
-	l_uintptr_t	writefds;
-	l_uintptr_t	exceptfds;
-	l_uintptr_t	timeout;
+	l_int nfds;
+	l_uintptr_t readfds;
+	l_uintptr_t writefds;
+	l_uintptr_t exceptfds;
+	l_uintptr_t timeout;
 } __packed;
 
 static void
@@ -122,8 +123,8 @@ linux_ipc(struct thread *td, struct linux_ipc_args *args)
 	switch (args->what & 0xFFFF) {
 	case LINUX_SEMOP: {
 
-		return (kern_semop(td, args->arg1, PTRIN(args->ptr),
-		    args->arg2, NULL));
+		return (kern_semop(td, args->arg1, PTRIN(args->ptr), args->arg2,
+		    NULL));
 	}
 	case LINUX_SEMGET: {
 		struct linux_semget_args a;
@@ -556,7 +557,8 @@ DEFINE_IFUNC(, int, futex_xchgl, (int, uint32_t *, int *))
 {
 
 	return ((cpu_stdext_feature & CPUID_STDEXT_SMAP) != 0 ?
-	    futex_xchgl_smap : futex_xchgl_nosmap);
+		futex_xchgl_smap :
+		futex_xchgl_nosmap);
 }
 
 int futex_addl_nosmap(int oparg, uint32_t *uaddr, int *oldval);
@@ -565,7 +567,8 @@ DEFINE_IFUNC(, int, futex_addl, (int, uint32_t *, int *))
 {
 
 	return ((cpu_stdext_feature & CPUID_STDEXT_SMAP) != 0 ?
-	    futex_addl_smap : futex_addl_nosmap);
+		futex_addl_smap :
+		futex_addl_nosmap);
 }
 
 int futex_orl_nosmap(int oparg, uint32_t *uaddr, int *oldval);
@@ -574,7 +577,8 @@ DEFINE_IFUNC(, int, futex_orl, (int, uint32_t *, int *))
 {
 
 	return ((cpu_stdext_feature & CPUID_STDEXT_SMAP) != 0 ?
-	    futex_orl_smap : futex_orl_nosmap);
+		futex_orl_smap :
+		futex_orl_nosmap);
 }
 
 int futex_andl_nosmap(int oparg, uint32_t *uaddr, int *oldval);
@@ -583,7 +587,8 @@ DEFINE_IFUNC(, int, futex_andl, (int, uint32_t *, int *))
 {
 
 	return ((cpu_stdext_feature & CPUID_STDEXT_SMAP) != 0 ?
-	    futex_andl_smap : futex_andl_nosmap);
+		futex_andl_smap :
+		futex_andl_nosmap);
 }
 
 int futex_xorl_nosmap(int oparg, uint32_t *uaddr, int *oldval);
@@ -592,7 +597,8 @@ DEFINE_IFUNC(, int, futex_xorl, (int, uint32_t *, int *))
 {
 
 	return ((cpu_stdext_feature & CPUID_STDEXT_SMAP) != 0 ?
-	    futex_xorl_smap : futex_xorl_nosmap);
+		futex_xorl_smap :
+		futex_xorl_nosmap);
 }
 
 int
@@ -600,7 +606,8 @@ linux_ptrace_peekuser(struct thread *td, pid_t pid, void *addr, void *data)
 {
 
 	LINUX_RATELIMIT_MSG_OPT1("PTRACE_PEEKUSER offset %ld not implemented; "
-	    "returning EINVAL", (uintptr_t)addr);
+				 "returning EINVAL",
+	    (uintptr_t)addr);
 	return (EINVAL);
 }
 
@@ -609,6 +616,7 @@ linux_ptrace_pokeuser(struct thread *td, pid_t pid, void *addr, void *data)
 {
 
 	LINUX_RATELIMIT_MSG_OPT1("PTRACE_POKEUSER offset %ld "
-	    "not implemented; returning EINVAL", (uintptr_t)addr);
+				 "not implemented; returning EINVAL",
+	    (uintptr_t)addr);
 	return (EINVAL);
 }

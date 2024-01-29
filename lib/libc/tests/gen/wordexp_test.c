@@ -30,14 +30,14 @@
  */
 
 #include <sys/wait.h>
+
+#include <atf-c.h>
 #include <errno.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wordexp.h>
-
-#include <atf-c.h>
 
 static void
 chld_handler(int x)
@@ -153,9 +153,9 @@ ATF_TC_BODY(WRDE_DOOFFS__WRDE_APPEND_test, tc)
 	we.we_offs = 2;
 	r = wordexp("this is", &we, WRDE_DOOFFS);
 	ATF_REQUIRE(r == 0);
-	r = wordexp("a test", &we, WRDE_APPEND|WRDE_DOOFFS);
+	r = wordexp("a test", &we, WRDE_APPEND | WRDE_DOOFFS);
 	ATF_REQUIRE(r == 0);
-	r = wordexp("of wordexp", &we, WRDE_APPEND|WRDE_DOOFFS);
+	r = wordexp("of wordexp", &we, WRDE_APPEND | WRDE_DOOFFS);
 	ATF_REQUIRE(r == 0);
 	ATF_REQUIRE(we.we_wordc == 6);
 	ATF_REQUIRE(we.we_wordv[0] == NULL);
@@ -196,11 +196,11 @@ ATF_TC_BODY(WRDE_NOCMD_test, tc)
 	ATF_REQUIRE(r == WRDE_CMDSUB);
 	r = wordexp("$((3+5))", &we, WRDE_NOCMD);
 	ATF_REQUIRE(r == 0);
-	r = wordexp("\\$\\(date\\)", &we, WRDE_NOCMD|WRDE_REUSE);
+	r = wordexp("\\$\\(date\\)", &we, WRDE_NOCMD | WRDE_REUSE);
 	ATF_REQUIRE(r == 0);
-	r = wordexp("'`date`'", &we, WRDE_NOCMD|WRDE_REUSE);
+	r = wordexp("'`date`'", &we, WRDE_NOCMD | WRDE_REUSE);
 	ATF_REQUIRE(r == 0);
-	r = wordexp("'$(date)'", &we, WRDE_NOCMD|WRDE_REUSE);
+	r = wordexp("'$(date)'", &we, WRDE_NOCMD | WRDE_REUSE);
 	ATF_REQUIRE(r == 0);
 	wordfree(&we);
 }

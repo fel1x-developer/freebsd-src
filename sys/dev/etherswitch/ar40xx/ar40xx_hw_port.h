@@ -24,19 +24,17 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#ifndef	__AR40XX_HW_PORT_H__
-#define	__AR40XX_HW_PORT_H__
+#ifndef __AR40XX_HW_PORT_H__
+#define __AR40XX_HW_PORT_H__
 
-extern	int ar40xx_hw_port_init(struct ar40xx_softc *sc, int port);
-extern	int ar40xx_hw_port_cpuport_setup(struct ar40xx_softc *sc);
-extern	int ar40xx_hw_port_link_up(struct ar40xx_softc *sc, int port);
-extern	int ar40xx_hw_port_link_down(struct ar40xx_softc *sc, int port);
-extern	int ar40xx_hw_get_port_pvid(struct ar40xx_softc *sc, int port,
-	    int *pvid);
-extern	int ar40xx_hw_set_port_pvid(struct ar40xx_softc *sc, int port,
-	    int pvid);
-extern	int ar40xx_hw_port_setup(struct ar40xx_softc *sc, int port,
-	    uint32_t members);
+extern int ar40xx_hw_port_init(struct ar40xx_softc *sc, int port);
+extern int ar40xx_hw_port_cpuport_setup(struct ar40xx_softc *sc);
+extern int ar40xx_hw_port_link_up(struct ar40xx_softc *sc, int port);
+extern int ar40xx_hw_port_link_down(struct ar40xx_softc *sc, int port);
+extern int ar40xx_hw_get_port_pvid(struct ar40xx_softc *sc, int port,
+    int *pvid);
+extern int ar40xx_hw_set_port_pvid(struct ar40xx_softc *sc, int port, int pvid);
+extern int ar40xx_hw_port_setup(struct ar40xx_softc *sc, int port,
+    uint32_t members);
 
-#endif	/* __AR40XX_HW_PORT_H__ */
-
+#endif /* __AR40XX_HW_PORT_H__ */

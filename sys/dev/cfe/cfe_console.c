@@ -26,15 +26,15 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
-#include <sys/kdb.h>
-#include <sys/kernel.h>
-#include <sys/priv.h>
-#include <sys/systm.h>
 #include <sys/types.h>
+#include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/conf.h>
 #include <sys/cons.h>
 #include <sys/consio.h>
+#include <sys/kdb.h>
+#include <sys/kernel.h>
+#include <sys/priv.h>
 #include <sys/tty.h>
 
 #include <dev/cfe/cfe_api.h>
@@ -42,40 +42,40 @@
 
 #include <ddb/ddb.h>
 
-#ifndef	CFECONS_POLL_HZ
-#define	CFECONS_POLL_HZ	4
+#ifndef CFECONS_POLL_HZ
+#define CFECONS_POLL_HZ 4
 #endif
-#define CFEBURSTLEN	128	/* max number of bytes to write in one chunk */
+#define CFEBURSTLEN 128 /* max number of bytes to write in one chunk */
 
 static tsw_open_t cfe_tty_open;
 static tsw_close_t cfe_tty_close;
 static tsw_outwakeup_t cfe_tty_outwakeup;
 
 static struct ttydevsw cfe_ttydevsw = {
-	.tsw_flags	= TF_NOPREFIX,
-	.tsw_open	= cfe_tty_open,
-	.tsw_close	= cfe_tty_close,
-	.tsw_outwakeup	= cfe_tty_outwakeup,
+	.tsw_flags = TF_NOPREFIX,
+	.tsw_open = cfe_tty_open,
+	.tsw_close = cfe_tty_close,
+	.tsw_outwakeup = cfe_tty_outwakeup,
 };
 
-static int			conhandle = -1;
+static int conhandle = -1;
 /* XXX does cfe have to poll? */
-static int			polltime;
-static struct callout		cfe_timer;
+static int polltime;
+static struct callout cfe_timer;
 
 #if defined(KDB)
-static int			alt_break_state;
+static int alt_break_state;
 #endif
 
-static void	cfe_timeout(void *);
+static void cfe_timeout(void *);
 
-static cn_probe_t	cfe_cnprobe;
-static cn_init_t	cfe_cninit;
-static cn_term_t	cfe_cnterm;
-static cn_getc_t	cfe_cngetc;
-static cn_putc_t	cfe_cnputc;
-static cn_grab_t	cfe_cngrab;
-static cn_ungrab_t	cfe_cnungrab;
+static cn_probe_t cfe_cnprobe;
+static cn_init_t cfe_cninit;
+static cn_term_t cfe_cnterm;
+static cn_getc_t cfe_cngetc;
+static cn_putc_t cfe_cnputc;
+static cn_grab_t cfe_cngrab;
+static cn_ungrab_t cfe_cnungrab;
 
 CONSOLE_DRIVER(cfe);
 
@@ -84,8 +84,7 @@ cn_drvinit(void *unused)
 {
 	struct tty *tp;
 
-	if (cfe_consdev.cn_pri != CN_DEAD &&
-	    cfe_consdev.cn_name[0] != '\0') {
+	if (cfe_consdev.cn_pri != CN_DEAD && cfe_consdev.cn_name[0] != '\0') {
 		tp = tty_alloc(&cfe_ttydevsw, NULL);
 		callout_init_mtx(&cfe_timer, tty_getlock(tp), 0);
 		tty_makedev(tp, NULL, "cfecons");
@@ -134,8 +133,8 @@ cfe_tty_outwakeup(struct tty *tp)
 static void
 cfe_timeout(void *v)
 {
-	struct	tty *tp;
-	int 	c;
+	struct tty *tp;
+	int c;
 
 	tp = (struct tty *)v;
 
@@ -179,19 +178,16 @@ cfe_cninit(struct consdev *cp)
 static void
 cfe_cnterm(struct consdev *cp)
 {
-
 }
 
 static void
 cfe_cngrab(struct consdev *cp)
 {
-
 }
 
 static void
 cfe_cnungrab(struct consdev *cp)
 {
-
 }
 
 static int

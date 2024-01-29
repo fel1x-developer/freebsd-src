@@ -26,17 +26,17 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_VMM_HOST_H_
-#define	_VMM_HOST_H_
+#ifndef _VMM_HOST_H_
+#define _VMM_HOST_H_
 
-#ifndef	_KERNEL
+#ifndef _KERNEL
 #error "no user-serviceable parts inside"
 #endif
 
 struct xsave_limits {
-	int		xsave_enabled;
-	uint64_t	xcr0_allowed;
-	uint32_t	xsave_max_size;
+	int xsave_enabled;
+	uint64_t xcr0_allowed;
+	uint32_t xsave_max_size;
 };
 
 void vmm_host_state_init(void);

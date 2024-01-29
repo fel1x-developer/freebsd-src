@@ -24,8 +24,8 @@
  */
 
 #include <sys/cdefs.h>
-#include "../libsecureboot-priv.h"
 
+#include "../libsecureboot-priv.h"
 #include "decode.h"
 #include "packet.h"
 
@@ -79,19 +79,19 @@ decode_key(int tag, unsigned char **pptr, size_t len, OpenPGP_key *key)
 	unsigned char mdata[EVP_MAX_MD_SIZE];
 	unsigned int mlen;
 #endif
-    
+
 	if (tag != 6)
 		return (-1);
 
 	key->key = NULL;
 	ptr = *pptr;
 	version = *ptr;
-	if (version == 4) {		/* all we support really */
+	if (version == 4) { /* all we support really */
 		/* comput key fingerprint and id @sa rfc4880:12.2 */
-		mdata[0] = 0x99;	/* rfc4880: 12.2.a.1 */
+		mdata[0] = 0x99; /* rfc4880: 12.2.a.1 */
 		mdata[1] = (len >> 8) & 0xff;
 		mdata[2] = len & 0xff;
-	
+
 #ifdef USE_BEARSSL
 		br_sha1_init(&mctx);
 		br_sha1_update(&mctx, mdata, 3);
@@ -108,12 +108,12 @@ decode_key(int tag, unsigned char **pptr, size_t len, OpenPGP_key *key)
 #endif
 		key->id = octets2hex(&mdata[mlen - 8], 8);
 	}
-	ptr += 1;			/* done with version */
-	ptr += 4;			/* skip ctime */
+	ptr += 1; /* done with version */
+	ptr += 4; /* skip ctime */
 	if (version == 3)
-		ptr += 2;		/* valid days */
+		ptr += 2; /* valid days */
 	key->sig_alg = *ptr++;
-	if (key->sig_alg == 1) {	/* RSA */
+	if (key->sig_alg == 1) { /* RSA */
 #ifdef USE_BEARSSL
 		key->key = NEW(br_rsa_public_key);
 		if (!key->key)
@@ -159,7 +159,7 @@ load_key_buf(unsigned char *buf, size_t nbytes)
 	ssize_t rc;
 	int tag;
 	OpenPGP_key *key;
-    
+
 	if (!buf)
 		return (NULL);
 
@@ -173,8 +173,7 @@ load_key_buf(unsigned char *buf, size_t nbytes)
 		ptr = buf;
 	key = NEW(OpenPGP_key);
 	if (key) {
-		rc = decode_packet(0, &ptr, nbytes, (decoder_t)decode_key,
-		    key);
+		rc = decode_packet(0, &ptr, nbytes, (decoder_t)decode_key, key);
 		if (rc < 0) {
 			free(key);
 			key = NULL;
@@ -228,7 +227,6 @@ openpgp_trust_add_buf(unsigned char *buf, size_t nbytes)
 	return (key != NULL);
 }
 
-
 /**
  * @brief if keyID is in our list clobber it
  *
@@ -239,9 +237,9 @@ openpgp_trust_revoke(const char *keyID)
 {
 	OpenPGP_key *key, *tkey;
 
-	openpgp_trust_add(NULL);	/* initialize if needed */
+	openpgp_trust_add(NULL); /* initialize if needed */
 
-	LIST_FOREACH(key, &trust_list, entries) {
+	LIST_FOREACH (key, &trust_list, entries) {
 		if (strcmp(key->id, keyID) == 0) {
 			tkey = key;
 			LIST_REMOVE(tkey, entries);
@@ -264,9 +262,9 @@ openpgp_trust_get(const char *keyID)
 {
 	OpenPGP_key *key;
 
-	openpgp_trust_add(NULL);	/* initialize if needed */
+	openpgp_trust_add(NULL); /* initialize if needed */
 
-	LIST_FOREACH(key, &trust_list, entries) {
+	LIST_FOREACH (key, &trust_list, entries) {
 		if (strcmp(key->id, keyID) == 0)
 			return (key);
 	}
@@ -339,7 +337,8 @@ load_key_id(const char *keyID)
 	if (!key)
 		key = load_trusted_key_id(keyID);
 #endif
-	DEBUG_PRINTF(2, ("load_key_id(%s): %s\n", keyID, key ? "found" : "nope"));
+	DEBUG_PRINTF(2,
+	    ("load_key_id(%s): %s\n", keyID, key ? "found" : "nope"));
 	return (key);
 }
 
@@ -386,7 +385,7 @@ openpgp_trust_init(void)
 int
 openpgp_self_tests(void)
 {
-	static int rc = -1;		/* remember result */
+	static int rc = -1; /* remember result */
 #ifdef HAVE_VC_ASC
 	const char **vp, **tp;
 	char *fdata, *sdata = NULL;
@@ -394,14 +393,14 @@ openpgp_self_tests(void)
 
 	if (openpgp_trust_init() > 0) {
 		for (tp = ta_ASC, vp = vc_ASC; *tp && *vp && rc; tp++, vp++) {
-			if ((fdata = strdup(*tp)) &&
-			    (sdata = strdup(*vp))) {
+			if ((fdata = strdup(*tp)) && (sdata = strdup(*vp))) {
 				fbytes = strlen(fdata);
 				sbytes = strlen(sdata);
 				rc = openpgp_verify("ta_ASC",
 				    (unsigned char *)fdata, fbytes,
 				    (unsigned char *)sdata, sbytes, 0);
-				printf("Testing verify OpenPGP signature:\t\t%s\n",
+				printf(
+				    "Testing verify OpenPGP signature:\t\t%s\n",
 				    rc ? "Failed" : "Passed");
 			}
 			free(fdata);

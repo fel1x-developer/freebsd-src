@@ -42,7 +42,7 @@
 #include "gdtoaimp.h"
 
 long double
-strtold_l(const char * __restrict s, char ** __restrict sp, locale_t locale)
+strtold_l(const char *__restrict s, char **__restrict sp, locale_t locale)
 {
 	long double result;
 	FIX_LOCALE(locale);

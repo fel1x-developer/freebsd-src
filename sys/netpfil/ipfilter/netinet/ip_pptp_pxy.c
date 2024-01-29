@@ -7,55 +7,52 @@
  * $Id$
  *
  */
-#define	IPF_PPTP_PROXY
-
-
+#define IPF_PPTP_PROXY
 
 /*
  * PPTP proxy
  */
 typedef struct pptp_side {
-	u_32_t		pptps_nexthdr;
-	u_32_t		pptps_next;
-	int		pptps_state;
-	int		pptps_gothdr;
-	int		pptps_len;
-	int		pptps_bytes;
-	char		*pptps_wptr;
-	char		pptps_buffer[512];
+	u_32_t pptps_nexthdr;
+	u_32_t pptps_next;
+	int pptps_state;
+	int pptps_gothdr;
+	int pptps_len;
+	int pptps_bytes;
+	char *pptps_wptr;
+	char pptps_buffer[512];
 } pptp_side_t;
 
 typedef struct pptp_pxy {
-	nat_t		*pptp_nat;
-	struct ipstate	*pptp_state;
-	u_short		pptp_call[2];
-	pptp_side_t	pptp_side[2];
-	ipnat_t		*pptp_rule;
+	nat_t *pptp_nat;
+	struct ipstate *pptp_state;
+	u_short pptp_call[2];
+	pptp_side_t pptp_side[2];
+	ipnat_t *pptp_rule;
 } pptp_pxy_t;
 
-typedef	struct pptp_hdr {
-	u_short		pptph_len;
-	u_short		pptph_type;
-	u_32_t		pptph_cookie;
+typedef struct pptp_hdr {
+	u_short pptph_len;
+	u_short pptph_type;
+	u_32_t pptph_cookie;
 } pptp_hdr_t;
 
-#define	PPTP_MSGTYPE_CTL	1
-#define	PPTP_MTCTL_STARTREQ	1
-#define	PPTP_MTCTL_STARTREP	2
-#define	PPTP_MTCTL_STOPREQ	3
-#define	PPTP_MTCTL_STOPREP	4
-#define	PPTP_MTCTL_ECHOREQ	5
-#define	PPTP_MTCTL_ECHOREP	6
-#define	PPTP_MTCTL_OUTREQ	7
-#define	PPTP_MTCTL_OUTREP	8
-#define	PPTP_MTCTL_INREQ	9
-#define	PPTP_MTCTL_INREP	10
-#define	PPTP_MTCTL_INCONNECT	11
-#define	PPTP_MTCTL_CLEAR	12
-#define	PPTP_MTCTL_DISCONNECT	13
-#define	PPTP_MTCTL_WANERROR	14
-#define	PPTP_MTCTL_LINKINFO	15
-
+#define PPTP_MSGTYPE_CTL 1
+#define PPTP_MTCTL_STARTREQ 1
+#define PPTP_MTCTL_STARTREP 2
+#define PPTP_MTCTL_STOPREQ 3
+#define PPTP_MTCTL_STOPREP 4
+#define PPTP_MTCTL_ECHOREQ 5
+#define PPTP_MTCTL_ECHOREP 6
+#define PPTP_MTCTL_OUTREQ 7
+#define PPTP_MTCTL_OUTREP 8
+#define PPTP_MTCTL_INREQ 9
+#define PPTP_MTCTL_INREP 10
+#define PPTP_MTCTL_INCONNECT 11
+#define PPTP_MTCTL_CLEAR 12
+#define PPTP_MTCTL_DISCONNECT 13
+#define PPTP_MTCTL_WANERROR 14
+#define PPTP_MTCTL_LINKINFO 15
 
 void ipf_p_pptp_main_load(void);
 void ipf_p_pptp_main_unload(void);
@@ -67,12 +64,11 @@ int ipf_p_pptp_message(fr_info_t *, nat_t *, pptp_pxy_t *, pptp_side_t *);
 int ipf_p_pptp_nextmessage(fr_info_t *, nat_t *, pptp_pxy_t *, int);
 int ipf_p_pptp_mctl(fr_info_t *, nat_t *, pptp_pxy_t *, pptp_side_t *);
 
-static	frentry_t	pptpfr;
+static frentry_t pptpfr;
 
-static	int	pptp_proxy_init = 0;
-static	int	ipf_p_pptp_debug = 0;
-static	int	ipf_p_pptp_gretimeout = IPF_TTLVAL(120);	/* 2 minutes */
-
+static int pptp_proxy_init = 0;
+static int ipf_p_pptp_debug = 0;
+static int ipf_p_pptp_gretimeout = IPF_TTLVAL(120); /* 2 minutes */
 
 /*
  * PPTP application proxy initialization.
@@ -84,11 +80,10 @@ ipf_p_pptp_main_load(void)
 	pptpfr.fr_ref = 1;
 	pptpfr.fr_age[0] = ipf_p_pptp_gretimeout;
 	pptpfr.fr_age[1] = ipf_p_pptp_gretimeout;
-	pptpfr.fr_flags = FR_OUTQUE|FR_PASS|FR_QUICK|FR_KEEPSTATE;
+	pptpfr.fr_flags = FR_OUTQUE | FR_PASS | FR_QUICK | FR_KEEPSTATE;
 	MUTEX_INIT(&pptpfr.fr_lock, "PPTP proxy rule lock");
 	pptp_proxy_init = 1;
 }
-
 
 void
 ipf_p_pptp_main_unload(void)
@@ -98,7 +93,6 @@ ipf_p_pptp_main_unload(void)
 		pptp_proxy_init = 0;
 	}
 }
-
 
 /*
  * Setup for a new PPTP proxy.
@@ -123,7 +117,7 @@ ipf_p_pptp_new(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 	size = np->in_size;
 
 	if (ipf_nat_outlookup(fin, 0, IPPROTO_GRE, nat->nat_osrcip,
-			  ip->ip_dst) != NULL) {
+		ip->ip_dst) != NULL) {
 		if (ipf_p_pptp_debug > 0)
 			printf("ipf_p_pptp_new: GRE session already exists\n");
 		return (-1);
@@ -185,7 +179,6 @@ ipf_p_pptp_new(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 	return (0);
 }
 
-
 void
 ipf_p_pptp_donatstate(fr_info_t *fin, nat_t *nat, pptp_pxy_t *pptp)
 {
@@ -215,7 +208,7 @@ ipf_p_pptp_donatstate(fr_info_t *fin, nat_t *nat, pptp_pxy_t *pptp)
 		}
 		ip = fin->fin_ip;
 		ip->ip_p = IPPROTO_GRE;
-		fi.fin_flx &= ~(FI_TCPUDP|FI_STATE|FI_FRAG);
+		fi.fin_flx &= ~(FI_TCPUDP | FI_STATE | FI_FRAG);
 		fi.fin_flx |= FI_IGNORE;
 		fi.fin_dp = &gre;
 		gre.gr_flags = htons(1 << 13);
@@ -236,10 +229,10 @@ ipf_p_pptp_donatstate(fr_info_t *fin, nat_t *nat, pptp_pxy_t *pptp)
 
 		MUTEX_ENTER(&softn->ipf_nat_new);
 		nat2 = ipf_nat_add(&fi, pptp->pptp_rule, &pptp->pptp_nat,
-				   NAT_SLAVE, nat->nat_dir);
+		    NAT_SLAVE, nat->nat_dir);
 		MUTEX_EXIT(&softn->ipf_nat_new);
 		if (nat2 != NULL) {
-			(void) ipf_nat_proto(&fi, nat2, 0);
+			(void)ipf_nat_proto(&fi, nat2, 0);
 			MUTEX_ENTER(&nat2->nat_lock);
 			ipf_nat_update(&fi, nat2);
 			MUTEX_EXIT(&nat2->nat_lock);
@@ -259,12 +252,11 @@ ipf_p_pptp_donatstate(fr_info_t *fin, nat_t *nat, pptp_pxy_t *pptp)
 				fi.fin_fi.fi_saddr = nat2->nat_osrcaddr;
 		}
 		fi.fin_ifp = NULL;
-		(void) ipf_state_add(softc, &fi, &pptp->pptp_state, 0);
+		(void)ipf_state_add(softc, &fi, &pptp->pptp_state, 0);
 	}
 	ip->ip_p = p;
 	return;
 }
-
 
 /*
  * Try and build up the next PPTP message in the TCP stream and if we can
@@ -288,7 +280,7 @@ ipf_p_pptp_nextmessage(fr_info_t *fin, nat_t *nat, pptp_pxy_t *pptp, int rev)
 	start = ntohl(tcp->th_seq);
 	pptps = &pptp->pptp_side[rev];
 	off = (char *)tcp - (char *)fin->fin_ip + (TCP_OFF(tcp) << 2) +
-	      fin->fin_ipoff;
+	    fin->fin_ipoff;
 
 	if (dlen <= 0)
 		return (0);
@@ -306,7 +298,7 @@ ipf_p_pptp_nextmessage(fr_info_t *fin, nat_t *nat, pptp_pxy_t *pptp, int rev)
 	if (pptps->pptps_next != start) {
 		if (ipf_p_pptp_debug > 5)
 			printf("%s: next (%x) != start (%x)\n", funcname,
-				pptps->pptps_next, start);
+			    pptps->pptps_next, start);
 		return (-1);
 	}
 
@@ -331,8 +323,8 @@ ipf_p_pptp_nextmessage(fr_info_t *fin, nat_t *nat, pptp_pxy_t *pptp, int rev)
 				if (ntohl(hdr->pptph_cookie) != 0x1a2b3c4d) {
 					if (ipf_p_pptp_debug > 1)
 						printf("%s: bad cookie (%x)\n",
-						       funcname,
-						       hdr->pptph_cookie);
+						    funcname,
+						    hdr->pptph_cookie);
 					return (-1);
 				}
 			}
@@ -355,7 +347,7 @@ ipf_p_pptp_nextmessage(fr_info_t *fin, nat_t *nat, pptp_pxy_t *pptp, int rev)
 			if (len > sizeof(pptps->pptps_buffer)) {
 				if (ipf_p_pptp_debug > 3)
 					printf("%s: message too big (%d)\n",
-					       funcname, len);
+					    funcname, len);
 				pptps->pptps_next = pptps->pptps_nexthdr;
 				pptps->pptps_wptr = pptps->pptps_buffer;
 				pptps->pptps_gothdr = 0;
@@ -388,35 +380,32 @@ ipf_p_pptp_nextmessage(fr_info_t *fin, nat_t *nat, pptp_pxy_t *pptp, int rev)
 	return (0);
 }
 
-
 /*
  * handle a complete PPTP message
  */
 int
 ipf_p_pptp_message(fr_info_t *fin, nat_t *nat, pptp_pxy_t *pptp,
-	pptp_side_t *pptps)
+    pptp_side_t *pptps)
 {
 	pptp_hdr_t *hdr = (pptp_hdr_t *)pptps->pptps_buffer;
 
-	switch (ntohs(hdr->pptph_type))
-	{
-	case PPTP_MSGTYPE_CTL :
+	switch (ntohs(hdr->pptph_type)) {
+	case PPTP_MSGTYPE_CTL:
 		ipf_p_pptp_mctl(fin, nat, pptp, pptps);
 		break;
 
-	default :
+	default:
 		break;
 	}
 	return (0);
 }
-
 
 /*
  * handle a complete PPTP control message
  */
 int
 ipf_p_pptp_mctl(fr_info_t *fin, nat_t *nat, pptp_pxy_t *pptp,
-	pptp_side_t *pptps)
+    pptp_side_t *pptps)
 {
 	u_short *buffer = (u_short *)(pptps->pptps_buffer);
 	pptp_side_t *pptpo;
@@ -430,33 +419,32 @@ ipf_p_pptp_mctl(fr_info_t *fin, nat_t *nat, pptp_pxy_t *pptp,
 	 * Breakout to handle all the various messages.  Most are just state
 	 * transition.
 	 */
-	switch (ntohs(buffer[4]))
-	{
-	case PPTP_MTCTL_STARTREQ :
+	switch (ntohs(buffer[4])) {
+	case PPTP_MTCTL_STARTREQ:
 		pptps->pptps_state = PPTP_MTCTL_STARTREQ;
 		break;
-	case PPTP_MTCTL_STARTREP :
+	case PPTP_MTCTL_STARTREP:
 		if (pptpo->pptps_state == PPTP_MTCTL_STARTREQ)
 			pptps->pptps_state = PPTP_MTCTL_STARTREP;
 		break;
-	case PPTP_MTCTL_STOPREQ :
+	case PPTP_MTCTL_STOPREQ:
 		pptps->pptps_state = PPTP_MTCTL_STOPREQ;
 		break;
-	case PPTP_MTCTL_STOPREP :
+	case PPTP_MTCTL_STOPREP:
 		if (pptpo->pptps_state == PPTP_MTCTL_STOPREQ)
 			pptps->pptps_state = PPTP_MTCTL_STOPREP;
 		break;
-	case PPTP_MTCTL_ECHOREQ :
+	case PPTP_MTCTL_ECHOREQ:
 		pptps->pptps_state = PPTP_MTCTL_ECHOREQ;
 		break;
-	case PPTP_MTCTL_ECHOREP :
+	case PPTP_MTCTL_ECHOREP:
 		if (pptpo->pptps_state == PPTP_MTCTL_ECHOREQ)
 			pptps->pptps_state = PPTP_MTCTL_ECHOREP;
 		break;
-	case PPTP_MTCTL_OUTREQ :
+	case PPTP_MTCTL_OUTREQ:
 		pptps->pptps_state = PPTP_MTCTL_OUTREQ;
 		break;
-	case PPTP_MTCTL_OUTREP :
+	case PPTP_MTCTL_OUTREP:
 		if (pptpo->pptps_state == PPTP_MTCTL_OUTREQ) {
 			pptps->pptps_state = PPTP_MTCTL_OUTREP;
 			pptp->pptp_call[0] = buffer[7];
@@ -464,10 +452,10 @@ ipf_p_pptp_mctl(fr_info_t *fin, nat_t *nat, pptp_pxy_t *pptp,
 			ipf_p_pptp_donatstate(fin, nat, pptp);
 		}
 		break;
-	case PPTP_MTCTL_INREQ :
+	case PPTP_MTCTL_INREQ:
 		pptps->pptps_state = PPTP_MTCTL_INREQ;
 		break;
-	case PPTP_MTCTL_INREP :
+	case PPTP_MTCTL_INREP:
 		if (pptpo->pptps_state == PPTP_MTCTL_INREQ) {
 			pptps->pptps_state = PPTP_MTCTL_INREP;
 			pptp->pptp_call[0] = buffer[7];
@@ -475,26 +463,25 @@ ipf_p_pptp_mctl(fr_info_t *fin, nat_t *nat, pptp_pxy_t *pptp,
 			ipf_p_pptp_donatstate(fin, nat, pptp);
 		}
 		break;
-	case PPTP_MTCTL_INCONNECT :
+	case PPTP_MTCTL_INCONNECT:
 		pptps->pptps_state = PPTP_MTCTL_INCONNECT;
 		break;
-	case PPTP_MTCTL_CLEAR :
+	case PPTP_MTCTL_CLEAR:
 		pptps->pptps_state = PPTP_MTCTL_CLEAR;
 		break;
-	case PPTP_MTCTL_DISCONNECT :
+	case PPTP_MTCTL_DISCONNECT:
 		pptps->pptps_state = PPTP_MTCTL_DISCONNECT;
 		break;
-	case PPTP_MTCTL_WANERROR :
+	case PPTP_MTCTL_WANERROR:
 		pptps->pptps_state = PPTP_MTCTL_WANERROR;
 		break;
-	case PPTP_MTCTL_LINKINFO :
+	case PPTP_MTCTL_LINKINFO:
 		pptps->pptps_state = PPTP_MTCTL_LINKINFO;
 		break;
 	}
 
 	return (0);
 }
-
 
 /*
  * For outgoing PPTP packets.  refresh timeouts for NAT & state entries, if
@@ -522,10 +509,9 @@ ipf_p_pptp_inout(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 		pptp->pptp_side[rev].pptps_next = ntohl(tcp->th_seq) + 1;
 		pptp->pptp_side[rev].pptps_nexthdr = ntohl(tcp->th_seq) + 1;
 	}
-	return (ipf_p_pptp_nextmessage(fin, nat, (pptp_pxy_t *)aps->aps_data,
-				     rev));
+	return (
+	    ipf_p_pptp_nextmessage(fin, nat, (pptp_pxy_t *)aps->aps_data, rev));
 }
-
 
 /*
  * clean up after ourselves.

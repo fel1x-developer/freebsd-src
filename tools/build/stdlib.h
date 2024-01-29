@@ -25,14 +25,14 @@
  */
 
 #ifndef _LEGACY_STDLIB_H_
-#define	_LEGACY_STDLIB_H_
+#define _LEGACY_STDLIB_H_
 
 #include_next <stdlib.h>
 
 __BEGIN_DECLS
-   
+
 #if __BSD_VISIBLE
-void	*reallocarray(void *, size_t, size_t);
+void *reallocarray(void *, size_t, size_t);
 #endif /* __BSD_VISIBLE */
 
 __END_DECLS

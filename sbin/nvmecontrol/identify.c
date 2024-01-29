@@ -46,10 +46,10 @@
 #define NONE 0xfffffffeu
 
 static struct options {
-	bool		hex;
-	bool		verbose;
-	const char	*dev;
-	uint32_t	nsid;
+	bool hex;
+	bool verbose;
+	const char *dev;
+	uint32_t nsid;
 } opt = {
 	.hex = false,
 	.verbose = false,
@@ -61,16 +61,16 @@ void
 print_namespace(struct nvme_namespace_data *nsdata)
 {
 	char cbuf[UINT128_DIG + 1];
-	uint32_t	i;
-	uint32_t	lbaf, lbads, ms, rp;
-	uint8_t		thin_prov, ptype;
-	uint8_t		flbas_fmt, t;
+	uint32_t i;
+	uint32_t lbaf, lbads, ms, rp;
+	uint8_t thin_prov, ptype;
+	uint8_t flbas_fmt, t;
 
 	thin_prov = (nsdata->nsfeat >> NVME_NS_DATA_NSFEAT_THIN_PROV_SHIFT) &
-		NVME_NS_DATA_NSFEAT_THIN_PROV_MASK;
+	    NVME_NS_DATA_NSFEAT_THIN_PROV_MASK;
 
 	flbas_fmt = (nsdata->flbas >> NVME_NS_DATA_FLBAS_FORMAT_SHIFT) &
-		NVME_NS_DATA_FLBAS_FORMAT_MASK;
+	    NVME_NS_DATA_FLBAS_FORMAT_MASK;
 
 	printf("Size:                        %lld blocks\n",
 	    (long long)nsdata->nsze);
@@ -79,84 +79,129 @@ print_namespace(struct nvme_namespace_data *nsdata)
 	printf("Utilization:                 %lld blocks\n",
 	    (long long)nsdata->nuse);
 	printf("Thin Provisioning:           %s\n",
-		thin_prov ? "Supported" : "Not Supported");
-	printf("Number of LBA Formats:       %d\n", nsdata->nlbaf+1);
+	    thin_prov ? "Supported" : "Not Supported");
+	printf("Number of LBA Formats:       %d\n", nsdata->nlbaf + 1);
 	printf("Current LBA Format:          LBA Format #%02d", flbas_fmt);
-	if (nsdata->lbaf[flbas_fmt] >> NVME_NS_DATA_LBAF_MS_SHIFT & NVME_NS_DATA_LBAF_MS_MASK)
-		printf(" %s metadata\n", nsdata->flbas >> NVME_NS_DATA_FLBAS_EXTENDED_SHIFT &
-		    NVME_NS_DATA_FLBAS_EXTENDED_MASK ? "Extended" : "Separate");
+	if (nsdata->lbaf[flbas_fmt] >> NVME_NS_DATA_LBAF_MS_SHIFT &
+	    NVME_NS_DATA_LBAF_MS_MASK)
+		printf(" %s metadata\n",
+		    nsdata->flbas >> NVME_NS_DATA_FLBAS_EXTENDED_SHIFT &
+			    NVME_NS_DATA_FLBAS_EXTENDED_MASK ?
+			"Extended" :
+			"Separate");
 	else
 		printf("\n");
 	printf("Metadata Capabilities\n");
 	printf("  Extended:                  %s\n",
-		nsdata->mc >> NVME_NS_DATA_MC_EXTENDED_SHIFT & NVME_NS_DATA_MC_EXTENDED_MASK ? "Supported" : "Not Supported");
+	    nsdata->mc >> NVME_NS_DATA_MC_EXTENDED_SHIFT &
+		    NVME_NS_DATA_MC_EXTENDED_MASK ?
+		"Supported" :
+		"Not Supported");
 	printf("  Separate:                  %s\n",
-		nsdata->mc >> NVME_NS_DATA_MC_POINTER_SHIFT & NVME_NS_DATA_MC_POINTER_MASK ? "Supported" : "Not Supported");
+	    nsdata->mc >> NVME_NS_DATA_MC_POINTER_SHIFT &
+		    NVME_NS_DATA_MC_POINTER_MASK ?
+		"Supported" :
+		"Not Supported");
 	printf("Data Protection Caps:        %s%s%s%s%s%s\n",
 	    (nsdata->dpc == 0) ? "Not Supported" : "",
 	    ((nsdata->dpc >> NVME_NS_DATA_DPC_MD_END_SHIFT) &
-	     NVME_NS_DATA_DPC_MD_END_MASK) ? "Last Bytes, " : "",
+		NVME_NS_DATA_DPC_MD_END_MASK) ?
+		"Last Bytes, " :
+		"",
 	    ((nsdata->dpc >> NVME_NS_DATA_DPC_MD_START_SHIFT) &
-	     NVME_NS_DATA_DPC_MD_START_MASK) ? "First Bytes, " : "",
+		NVME_NS_DATA_DPC_MD_START_MASK) ?
+		"First Bytes, " :
+		"",
 	    ((nsdata->dpc >> NVME_NS_DATA_DPC_PIT3_SHIFT) &
-	     NVME_NS_DATA_DPC_PIT3_MASK) ? "Type 3, " : "",
+		NVME_NS_DATA_DPC_PIT3_MASK) ?
+		"Type 3, " :
+		"",
 	    ((nsdata->dpc >> NVME_NS_DATA_DPC_PIT2_SHIFT) &
-	     NVME_NS_DATA_DPC_PIT2_MASK) ? "Type 2, " : "",
+		NVME_NS_DATA_DPC_PIT2_MASK) ?
+		"Type 2, " :
+		"",
 	    ((nsdata->dpc >> NVME_NS_DATA_DPC_PIT1_SHIFT) &
-	     NVME_NS_DATA_DPC_PIT1_MASK) ? "Type 1" : "");
+		NVME_NS_DATA_DPC_PIT1_MASK) ?
+		"Type 1" :
+		"");
 	printf("Data Protection Settings:    ");
 	ptype = (nsdata->dps >> NVME_NS_DATA_DPS_PIT_SHIFT) &
 	    NVME_NS_DATA_DPS_PIT_MASK;
 	if (ptype) {
 		printf("Type %d, %s Bytes\n", ptype,
 		    ((nsdata->dps >> NVME_NS_DATA_DPS_MD_START_SHIFT) &
-		     NVME_NS_DATA_DPS_MD_START_MASK) ? "First" : "Last");
+			NVME_NS_DATA_DPS_MD_START_MASK) ?
+			"First" :
+			"Last");
 	} else {
 		printf("Not Enabled\n");
 	}
 	printf("Multi-Path I/O Capabilities: %s%s\n",
 	    (nsdata->nmic == 0) ? "Not Supported" : "",
 	    ((nsdata->nmic >> NVME_NS_DATA_NMIC_MAY_BE_SHARED_SHIFT) &
-	     NVME_NS_DATA_NMIC_MAY_BE_SHARED_MASK) ? "May be shared" : "");
+		NVME_NS_DATA_NMIC_MAY_BE_SHARED_MASK) ?
+		"May be shared" :
+		"");
 	printf("Reservation Capabilities:    %s%s%s%s%s%s%s%s%s\n",
 	    (nsdata->rescap == 0) ? "Not Supported" : "",
 	    ((nsdata->rescap >> NVME_NS_DATA_RESCAP_IEKEY13_SHIFT) &
-	     NVME_NS_DATA_RESCAP_IEKEY13_MASK) ? "IEKEY13, " : "",
+		NVME_NS_DATA_RESCAP_IEKEY13_MASK) ?
+		"IEKEY13, " :
+		"",
 	    ((nsdata->rescap >> NVME_NS_DATA_RESCAP_EX_AC_AR_SHIFT) &
-	     NVME_NS_DATA_RESCAP_EX_AC_AR_MASK) ? "EX_AC_AR, " : "",
+		NVME_NS_DATA_RESCAP_EX_AC_AR_MASK) ?
+		"EX_AC_AR, " :
+		"",
 	    ((nsdata->rescap >> NVME_NS_DATA_RESCAP_WR_EX_AR_SHIFT) &
-	     NVME_NS_DATA_RESCAP_WR_EX_AR_MASK) ? "WR_EX_AR, " : "",
+		NVME_NS_DATA_RESCAP_WR_EX_AR_MASK) ?
+		"WR_EX_AR, " :
+		"",
 	    ((nsdata->rescap >> NVME_NS_DATA_RESCAP_EX_AC_RO_SHIFT) &
-	     NVME_NS_DATA_RESCAP_EX_AC_RO_MASK) ? "EX_AC_RO, " : "",
+		NVME_NS_DATA_RESCAP_EX_AC_RO_MASK) ?
+		"EX_AC_RO, " :
+		"",
 	    ((nsdata->rescap >> NVME_NS_DATA_RESCAP_WR_EX_RO_SHIFT) &
-	     NVME_NS_DATA_RESCAP_WR_EX_RO_MASK) ? "WR_EX_RO, " : "",
+		NVME_NS_DATA_RESCAP_WR_EX_RO_MASK) ?
+		"WR_EX_RO, " :
+		"",
 	    ((nsdata->rescap >> NVME_NS_DATA_RESCAP_EX_AC_SHIFT) &
-	     NVME_NS_DATA_RESCAP_EX_AC_MASK) ? "EX_AC, " : "",
+		NVME_NS_DATA_RESCAP_EX_AC_MASK) ?
+		"EX_AC, " :
+		"",
 	    ((nsdata->rescap >> NVME_NS_DATA_RESCAP_WR_EX_SHIFT) &
-	     NVME_NS_DATA_RESCAP_WR_EX_MASK) ? "WR_EX, " : "",
+		NVME_NS_DATA_RESCAP_WR_EX_MASK) ?
+		"WR_EX, " :
+		"",
 	    ((nsdata->rescap >> NVME_NS_DATA_RESCAP_PTPL_SHIFT) &
-	     NVME_NS_DATA_RESCAP_PTPL_MASK) ? "PTPL" : "");
+		NVME_NS_DATA_RESCAP_PTPL_MASK) ?
+		"PTPL" :
+		"");
 	printf("Format Progress Indicator:   ");
 	if ((nsdata->fpi >> NVME_NS_DATA_FPI_SUPP_SHIFT) &
 	    NVME_NS_DATA_FPI_SUPP_MASK) {
 		printf("%u%% remains\n",
 		    (nsdata->fpi >> NVME_NS_DATA_FPI_PERC_SHIFT) &
-		    NVME_NS_DATA_FPI_PERC_MASK);
+			NVME_NS_DATA_FPI_PERC_MASK);
 	} else
 		printf("Not Supported\n");
 	t = (nsdata->dlfeat >> NVME_NS_DATA_DLFEAT_READ_SHIFT) &
 	    NVME_NS_DATA_DLFEAT_READ_MASK;
 	printf("Deallocate Logical Block:    Read %s%s%s\n",
-	    (t == NVME_NS_DATA_DLFEAT_READ_NR) ? "Not Reported" :
-	    (t == NVME_NS_DATA_DLFEAT_READ_00) ? "00h" :
-	    (t == NVME_NS_DATA_DLFEAT_READ_FF) ? "FFh" : "Unknown",
+	    (t == NVME_NS_DATA_DLFEAT_READ_NR)	   ? "Not Reported" :
+		(t == NVME_NS_DATA_DLFEAT_READ_00) ? "00h" :
+		(t == NVME_NS_DATA_DLFEAT_READ_FF) ? "FFh" :
+						     "Unknown",
 	    (nsdata->dlfeat >> NVME_NS_DATA_DLFEAT_DWZ_SHIFT) &
-	     NVME_NS_DATA_DLFEAT_DWZ_MASK ? ", Write Zero" : "",
+		    NVME_NS_DATA_DLFEAT_DWZ_MASK ?
+		", Write Zero" :
+		"",
 	    (nsdata->dlfeat >> NVME_NS_DATA_DLFEAT_GCRC_SHIFT) &
-	     NVME_NS_DATA_DLFEAT_GCRC_MASK ? ", Guard CRC" : "");
+		    NVME_NS_DATA_DLFEAT_GCRC_MASK ?
+		", Guard CRC" :
+		"");
 	printf("Optimal I/O Boundary:        %u blocks\n", nsdata->noiob);
 	printf("NVM Capacity:                %s bytes\n",
-	   uint128_to_str(to128(nsdata->nvmcap), cbuf, sizeof(cbuf)));
+	    uint128_to_str(to128(nsdata->nvmcap), cbuf, sizeof(cbuf)));
 	if ((nsdata->nsfeat >> NVME_NS_DATA_NSFEAT_NPVALID_SHIFT) &
 	    NVME_NS_DATA_NSFEAT_NPVALID_MASK) {
 		printf("Preferred Write Granularity: %u blocks\n",
@@ -181,25 +226,28 @@ print_namespace(struct nvme_namespace_data *nsdata)
 	for (i = 0; i <= nsdata->nlbaf; i++) {
 		lbaf = nsdata->lbaf[i];
 		lbads = (lbaf >> NVME_NS_DATA_LBAF_LBADS_SHIFT) &
-			NVME_NS_DATA_LBAF_LBADS_MASK;
+		    NVME_NS_DATA_LBAF_LBADS_MASK;
 		if (lbads == 0)
 			continue;
 		ms = (lbaf >> NVME_NS_DATA_LBAF_MS_SHIFT) &
-			NVME_NS_DATA_LBAF_MS_MASK;
+		    NVME_NS_DATA_LBAF_MS_MASK;
 		rp = (lbaf >> NVME_NS_DATA_LBAF_RP_SHIFT) &
-			NVME_NS_DATA_LBAF_RP_MASK;
+		    NVME_NS_DATA_LBAF_RP_MASK;
 		printf("LBA Format #%02d: Data Size: %5d  Metadata Size: %5d"
-		    "  Performance: %s\n",
-		    i, 1 << lbads, ms, (rp == 0) ? "Best" :
-		    (rp == 1) ? "Better" : (rp == 2) ? "Good" : "Degraded");
+		       "  Performance: %s\n",
+		    i, 1 << lbads, ms,
+		    (rp == 0)	  ? "Best" :
+			(rp == 1) ? "Better" :
+			(rp == 2) ? "Good" :
+				    "Degraded");
 	}
 }
 
 static void
 identify_ctrlr(int fd)
 {
-	struct nvme_controller_data	cdata;
-	int				hexlength;
+	struct nvme_controller_data cdata;
+	int hexlength;
 
 	if (read_controller_data(fd, &cdata))
 		errx(EX_IOERR, "Identify request failed");
@@ -222,8 +270,8 @@ identify_ctrlr(int fd)
 static void
 identify_ns(int fd, uint32_t nsid)
 {
-	struct nvme_namespace_data	nsdata;
-	int				hexlength;
+	struct nvme_namespace_data nsdata;
+	int hexlength;
 
 	if (read_namespace_data(fd, nsid, &nsdata))
 		errx(EX_IOERR, "Identify request failed");
@@ -246,9 +294,9 @@ identify_ns(int fd, uint32_t nsid)
 static void
 identify(const struct cmd *f, int argc, char *argv[])
 {
-	char		*path;
-	int		fd;
-	uint32_t	nsid;
+	char *path;
+	int fd;
+	uint32_t nsid;
 
 	if (arg_parse(argc, argv, f))
 		return;
@@ -276,9 +324,11 @@ identify(const struct cmd *f, int argc, char *argv[])
 }
 
 static const struct opts identify_opts[] = {
-#define OPT(l, s, t, opt, addr, desc) { l, s, t, &opt.addr, desc }
-	OPT("hex", 'x', arg_none, opt, hex,
-	    "Print identiy information in hex"),
+#define OPT(l, s, t, opt, addr, desc)    \
+	{                                \
+		l, s, t, &opt.addr, desc \
+	}
+	OPT("hex", 'x', arg_none, opt, hex, "Print identiy information in hex"),
 	OPT("verbose", 'v', arg_none, opt, verbose,
 	    "More verbosity: print entire identify table"),
 	OPT("nsid", 'n', arg_uint32, opt, nsid,

@@ -108,6 +108,13 @@
 #include <sys/mutex.h>
 #include <sys/socket.h>
 
+#include <machine/bus.h>
+
+#include <dev/le/am79900reg.h>
+#include <dev/le/am79900var.h>
+#include <dev/le/lancereg.h>
+#include <dev/le/lancevar.h>
+
 #include <net/bpf.h>
 #include <net/ethernet.h>
 #include <net/if.h>
@@ -116,25 +123,18 @@
 #include <net/if_media.h>
 #include <net/if_var.h>
 
-#include <machine/bus.h>
-
-#include <dev/le/lancereg.h>
-#include <dev/le/lancevar.h>
-#include <dev/le/am79900reg.h>
-#include <dev/le/am79900var.h>
-
-static void	am79900_meminit(struct lance_softc *);
-static void	am79900_rint(struct lance_softc *);
-static void	am79900_tint(struct lance_softc *);
-static void	am79900_start_locked(struct lance_softc *sc);
+static void am79900_meminit(struct lance_softc *);
+static void am79900_rint(struct lance_softc *);
+static void am79900_tint(struct lance_softc *);
+static void am79900_start_locked(struct lance_softc *sc);
 
 #ifdef LEDEBUG
-static void	am79900_recv_print(struct lance_softc *, int);
-static void	am79900_xmit_print(struct lance_softc *, int);
+static void am79900_recv_print(struct lance_softc *, int);
+static void am79900_xmit_print(struct lance_softc *, int);
 #endif
 
 int
-am79900_config(struct am79900_softc *sc, const char* name, int unit)
+am79900_config(struct am79900_softc *sc, const char *name, int unit)
 {
 	int error, mem;
 
@@ -192,14 +192,14 @@ am79900_meminit(struct lance_softc *sc)
 	else
 		init.init_mode = LE_HTOLE32(LE_MODE_NORMAL);
 
-	init.init_mode |= LE_HTOLE32(((ffs(sc->sc_ntbuf) - 1) << 28) |
-	    ((ffs(sc->sc_nrbuf) - 1) << 20));
+	init.init_mode |= LE_HTOLE32(
+	    ((ffs(sc->sc_ntbuf) - 1) << 28) | ((ffs(sc->sc_nrbuf) - 1) << 20));
 
 	init.init_padr[0] = LE_HTOLE32(sc->sc_enaddr[0] |
 	    (sc->sc_enaddr[1] << 8) | (sc->sc_enaddr[2] << 16) |
 	    (sc->sc_enaddr[3] << 24));
-	init.init_padr[1] = LE_HTOLE32(sc->sc_enaddr[4] |
-	    (sc->sc_enaddr[5] << 8));
+	init.init_padr[1] = LE_HTOLE32(
+	    sc->sc_enaddr[4] | (sc->sc_enaddr[5] << 8));
 	lance_setladrf(sc, init.init_ladrf);
 
 	sc->sc_last_rd = 0;
@@ -219,8 +219,8 @@ am79900_meminit(struct lance_softc *sc)
 	for (bix = 0; bix < sc->sc_nrbuf; bix++) {
 		a = sc->sc_addr + LE_RBUFADDR(sc, bix);
 		rmd.rmd0 = LE_HTOLE32(a);
-		rmd.rmd1 = LE_HTOLE32(LE_R1_OWN | LE_R1_ONES |
-		    (-LEBLEN & 0xfff));
+		rmd.rmd1 = LE_HTOLE32(
+		    LE_R1_OWN | LE_R1_ONES | (-LEBLEN & 0xfff));
 		rmd.rmd2 = 0;
 		rmd.rmd3 = 0;
 		(*sc->sc_copytodesc)(sc, &rmd, LE_RMDADDR(sc, bix),
@@ -266,7 +266,7 @@ am79900_rint(struct lance_softc *sc)
 
 		m = NULL;
 		if ((rmd1 & (LE_R1_ERR | LE_R1_STP | LE_R1_ENP)) !=
-		    (LE_R1_STP | LE_R1_ENP)){
+		    (LE_R1_STP | LE_R1_ENP)) {
 			if (rmd1 & LE_R1_ERR) {
 #ifdef LEDEBUG
 				if (rmd1 & LE_R1_ENP) {
@@ -278,9 +278,8 @@ am79900_rint(struct lance_softc *sc)
 							if_printf(ifp,
 							    "crc mismatch\n");
 					}
-				} else
-					if (rmd1 & LE_R1_OFLO)
-						if_printf(ifp, "overflow\n");
+				} else if (rmd1 & LE_R1_OFLO)
+					if_printf(ifp, "overflow\n");
 #endif
 				if (rmd1 & LE_R1_BUFF)
 					if_printf(ifp,
@@ -298,8 +297,8 @@ am79900_rint(struct lance_softc *sc)
 			    (LE_LE32TOH(rmd.rmd2) & 0xfff) - ETHER_CRC_LEN);
 		}
 
-		rmd.rmd1 = LE_HTOLE32(LE_R1_OWN | LE_R1_ONES |
-		    (-LEBLEN & 0xfff));
+		rmd.rmd1 = LE_HTOLE32(
+		    LE_R1_OWN | LE_R1_ONES | (-LEBLEN & 0xfff));
 		rmd.rmd2 = 0;
 		rmd.rmd3 = 0;
 		(*sc->sc_copytodesc)(sc, &rmd, rp, sizeof(rmd));
@@ -355,7 +354,8 @@ am79900_tint(struct lance_softc *sc)
 
 #ifdef LEDEBUG
 		if (sc->sc_flags & LE_DEBUG)
-			if_printf(ifp, "trans tmd: "
+			if_printf(ifp,
+			    "trans tmd: "
 			    "adr %08x, flags/blen %08x\n",
 			    LE_LE32TOH(tmd.tmd0), tmd1);
 #endif
@@ -451,8 +451,10 @@ am79900_intr(void *arg)
 	 * the interrupt enable bit in order to keep receiving them
 	 * (some chips work without this, some don't).
 	 */
-	(*sc->sc_wrcsr)(sc, LE_CSR0, isr & ~(LE_C0_INEA | LE_C0_TDMD |
-	    LE_C0_STOP | LE_C0_STRT | LE_C0_INIT));
+	(*sc->sc_wrcsr)(sc, LE_CSR0,
+	    isr &
+		~(LE_C0_INEA | LE_C0_TDMD | LE_C0_STOP | LE_C0_STRT |
+		    LE_C0_INIT));
 
 	if (isr & LE_C0_ERR) {
 		if (isr & LE_C0_BABL) {
@@ -539,8 +541,7 @@ am79900_start_locked(struct lance_softc *sc)
 	bix = sc->sc_last_td;
 	enq = 0;
 
-	for (; sc->sc_no_td < sc->sc_ntbuf &&
-	    !if_sendq_empty(ifp);) {
+	for (; sc->sc_no_td < sc->sc_ntbuf && !if_sendq_empty(ifp);) {
 		rp = LE_TMDADDR(sc, bix);
 		(*sc->sc_copyfromdesc)(sc, &tmd, rp, sizeof(tmd));
 

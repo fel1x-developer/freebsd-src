@@ -36,10 +36,10 @@
 #include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
-#include <sys/rwlock.h>
 #include <sys/malloc.h>
 #include <sys/mount.h>
 #include <sys/proc.h>
+#include <sys/rwlock.h>
 #include <sys/vnode.h>
 
 #include <fs/nullfs/null.h>
@@ -52,7 +52,7 @@
  * alias is removed the lower vnode is vrele'd.
  */
 
-#define	NULL_NHASH(vp) (&null_node_hashtbl[vfs_hash_index(vp) & null_hash_mask])
+#define NULL_NHASH(vp) (&null_node_hashtbl[vfs_hash_index(vp) & null_hash_mask])
 
 static LIST_HEAD(null_node_hashhead, null_node) *null_node_hashtbl;
 static struct rwlock null_hash_lock;
@@ -106,7 +106,7 @@ null_hashget_locked(struct mount *mp, struct vnode *lowervp)
 	 * reference count (but NOT the lower vnode's VREF counter).
 	 */
 	hd = NULL_NHASH(lowervp);
-	LIST_FOREACH(a, hd, null_hash) {
+	LIST_FOREACH (a, hd, null_hash) {
 		if (a->null_lowervp == lowervp && NULLTOV(a)->v_mount == mp) {
 			/*
 			 * Since we have the lower node locked the nullfs
@@ -151,11 +151,10 @@ null_hashins(struct mount *mp, struct null_node *xp)
 
 	hd = NULL_NHASH(xp->null_lowervp);
 #ifdef INVARIANTS
-	LIST_FOREACH(oxp, hd, null_hash) {
+	LIST_FOREACH (oxp, hd, null_hash) {
 		if (oxp->null_lowervp == xp->null_lowervp &&
 		    NULLTOV(oxp)->v_mount == mp) {
-			VNASSERT(0, NULLTOV(oxp),
-			    ("vnode already in hash"));
+			VNASSERT(0, NULLTOV(oxp), ("vnode already in hash"));
 		}
 	}
 #endif
@@ -180,7 +179,7 @@ null_destroy_proto(struct vnode *vp, void *xp)
 /*
  * Make a new or get existing nullfs node.
  * Vp is the alias vnode, lowervp is the lower vnode.
- * 
+ *
  * The lowervp assumed to be locked and having "spare" reference. This routine
  * vrele lowervp if nullfs node was taken from hash. Otherwise it "transfers"
  * the caller's "spare" reference to created nullfs vnode.
@@ -290,7 +289,7 @@ null_checkvp(struct vnode *vp, char *fil, int lno)
 	 * with a funny vop vector.
 	 */
 	if (vp->v_op != null_vnodeop_p) {
-		printf ("null_checkvp: on non-null-node\n");
+		printf("null_checkvp: on non-null-node\n");
 		panic("null_checkvp");
 	}
 #endif
@@ -300,14 +299,13 @@ null_checkvp(struct vnode *vp, char *fil, int lno)
 	}
 	VI_LOCK_FLAGS(a->null_lowervp, MTX_DUPOK);
 	if (a->null_lowervp->v_usecount < 1)
-		panic ("null with unref'ed lowervp, vp %p lvp %p",
-		    vp, a->null_lowervp);
+		panic("null with unref'ed lowervp, vp %p lvp %p", vp,
+		    a->null_lowervp);
 	VI_UNLOCK(a->null_lowervp);
 #ifdef notyet
-	printf("null %x/%d -> %x/%d [%s, %d]\n",
-	        NULLTOV(a), vrefcnt(NULLTOV(a)),
-		a->null_lowervp, vrefcnt(a->null_lowervp),
-		fil, lno);
+	printf("null %x/%d -> %x/%d [%s, %d]\n", NULLTOV(a),
+	    vrefcnt(NULLTOV(a)), a->null_lowervp, vrefcnt(a->null_lowervp), fil,
+	    lno);
 #endif
 	return (a->null_lowervp);
 }

@@ -11,20 +11,22 @@
  */
 
 #include <sys/param.h>
+
+#include <machine/cpufunc.h>
+
 #include <err.h>
 #include <fcntl.h>
 #include <libutil.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <machine/cpufunc.h>
 
-#define	OP_GET		3
-#define	OP_GET_LEN	4
+#define OP_GET 3
+#define OP_GET_LEN 4
 
 /* I/O ports */
-#define	FWCTL_OUT	0x510
-#define	FWCTL_IN	0x511
+#define FWCTL_OUT 0x510
+#define FWCTL_IN 0x511
 
 static void
 reset_fwctl(void)

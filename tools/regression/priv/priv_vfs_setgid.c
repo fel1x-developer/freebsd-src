@@ -51,8 +51,8 @@ int
 priv_vfs_setgid_fowner_setup(int asroot, int injail, struct test *test)
 {
 
-	setup_file("priv_vfs_setgid_fowner: fpath", fpath, UID_OWNER,
-	    GID_OWNER, 0600);
+	setup_file("priv_vfs_setgid_fowner: fpath", fpath, UID_OWNER, GID_OWNER,
+	    0600);
 	fpath_initialized = 1;
 	return (0);
 }
@@ -75,17 +75,13 @@ priv_vfs_setgid_fowner(int asroot, int injail, struct test *test)
 
 	error = chmod(fpath, 0600 | S_ISGID);
 	if (asroot && injail)
-		expect("priv_vfs_setgid_fowner(asroot, injail)", error, 0,
-		    0);
+		expect("priv_vfs_setgid_fowner(asroot, injail)", error, 0, 0);
 	if (asroot && !injail)
-		expect("priv_vfs_setgid_fowner(asroot, !injail)", error, 0,
-		    0);
+		expect("priv_vfs_setgid_fowner(asroot, !injail)", error, 0, 0);
 	if (!asroot && injail)
-		expect("priv_vfs_setgid_fowner(!asroot, injail)", error, 0,
-		    0);
+		expect("priv_vfs_setgid_fowner(!asroot, injail)", error, 0, 0);
 	if (!asroot && !injail)
-		expect("priv_vfs_setgid_fowner(!asroot, !injail)", error, 0,
-		    0);
+		expect("priv_vfs_setgid_fowner(!asroot, !injail)", error, 0, 0);
 }
 
 void
@@ -95,11 +91,9 @@ priv_vfs_setgid_fother(int asroot, int injail, struct test *test)
 
 	error = chmod(fpath, 0600 | S_ISGID);
 	if (asroot && injail)
-		expect("priv_vfs_setgid_fother(asroot, injail)", error, 0,
-		    0);
+		expect("priv_vfs_setgid_fother(asroot, injail)", error, 0, 0);
 	if (asroot && !injail)
-		expect("priv_vfs_setgid_fother(asroot, !injail)", error, 0,
-		    0);
+		expect("priv_vfs_setgid_fother(asroot, !injail)", error, 0, 0);
 	if (!asroot && injail)
 		expect("priv_vfs_setgid_fother(!asroot, injail)", error, -1,
 		    EPERM);

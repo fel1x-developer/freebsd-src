@@ -30,4 +30,4 @@
 int fsshare(const char *, const char *, const char *);
 int fsunshare(const char *, const char *);
 
-#endif	/* !_OPENSOLARIS_FSSHARE_H_ */
+#endif /* !_OPENSOLARIS_FSSHARE_H_ */

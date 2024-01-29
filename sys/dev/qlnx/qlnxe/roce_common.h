@@ -27,7 +27,7 @@
  */
 
 #ifndef __ROCE_COMMON__
-#define __ROCE_COMMON__ 
+#define __ROCE_COMMON__
 /************************************************************************/
 /* Add include to common rdma target for both eCore and protocol rdma driver */
 /************************************************************************/
@@ -36,20 +36,21 @@
 /* ROCE FW CONSTANTS */
 /************************/
 
-#define ROCE_REQ_MAX_INLINE_DATA_SIZE (256)	//max size of inline data in single request
-#define ROCE_REQ_MAX_SINGLE_SQ_WQE_SIZE	(288)	//Maximum size of single SQ WQE (rdma wqe and inline data)
+#define ROCE_REQ_MAX_INLINE_DATA_SIZE \
+	(256) // max size of inline data in single request
+#define ROCE_REQ_MAX_SINGLE_SQ_WQE_SIZE \
+	(288) // Maximum size of single SQ WQE (rdma wqe and inline data)
 
-#define ROCE_MAX_QPS				(32*1024)
-#define ROCE_DCQCN_NP_MAX_QPS  (64)	/* notification point max QPs*/
-#define ROCE_DCQCN_RP_MAX_QPS  (64)		/* reaction point max QPs*/
+#define ROCE_MAX_QPS (32 * 1024)
+#define ROCE_DCQCN_NP_MAX_QPS (64) /* notification point max QPs*/
+#define ROCE_DCQCN_RP_MAX_QPS (64) /* reaction point max QPs*/
 
 /*
  * Affiliated asynchronous events / errors enumeration
  */
-enum roce_async_events_type
-{
-	ROCE_ASYNC_EVENT_NONE=0,
-	ROCE_ASYNC_EVENT_COMM_EST=1,
+enum roce_async_events_type {
+	ROCE_ASYNC_EVENT_NONE = 0,
+	ROCE_ASYNC_EVENT_COMM_EST = 1,
 	ROCE_ASYNC_EVENT_SQ_DRAINED,
 	ROCE_ASYNC_EVENT_SRQ_LIMIT,
 	ROCE_ASYNC_EVENT_LAST_WQE_REACHED,

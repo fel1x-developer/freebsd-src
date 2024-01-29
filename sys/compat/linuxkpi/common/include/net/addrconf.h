@@ -28,10 +28,11 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_LINUXKPI_NET_ADDRCONF_H
-#define	_LINUXKPI_NET_ADDRCONF_H
+#ifndef _LINUXKPI_NET_ADDRCONF_H
+#define _LINUXKPI_NET_ADDRCONF_H
 
 #include <sys/types.h>
+
 #include <netinet/in.h>
 
 static __inline void
@@ -46,4 +47,4 @@ addrconf_addr_solict_mult(struct in6_addr *ia6, struct in6_addr *sol)
 	sol->s6_addr8[12] = 0xff;
 }
 
-#endif	/* _LINUXKPI_NET_ADDRCONF_H */
+#endif /* _LINUXKPI_NET_ADDRCONF_H */

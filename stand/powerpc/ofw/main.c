@@ -28,23 +28,24 @@
 #include <sys/cdefs.h>
 #include <sys/endian.h>
 
-#include <stand.h>
-#include "openfirm.h"
-#include "libofw.h"
-#include "bootstrap.h"
-
 #include <machine/asm.h>
 #include <machine/psl.h>
 
-struct arch_switch	archsw;		/* MI/MD interface boundary */
+#include <stand.h>
+
+#include "bootstrap.h"
+#include "libofw.h"
+#include "openfirm.h"
+
+struct arch_switch archsw; /* MI/MD interface boundary */
 
 extern char end[];
 
-uint32_t	acells, scells;
+uint32_t acells, scells;
 
 static char bootargs[128];
 
-#define	HEAP_SIZE	0x800000
+#define HEAP_SIZE 0x800000
 static char heap[HEAP_SIZE]; // In BSS, so uses no space
 
 #define OF_puts(fd, text) OF_write(fd, text, strlen(text))
@@ -54,7 +55,7 @@ mfmsr(void)
 {
 	register_t value;
 
-	__asm __volatile ("mfmsr %0" : "=r"(value));
+	__asm __volatile("mfmsr %0" : "=r"(value));
 
 	return (value);
 }
@@ -70,10 +71,10 @@ init_heap(void)
 uint64_t
 memsize(void)
 {
-	phandle_t	memoryp;
-	cell_t		reg[24];
-	int		i, sz;
-	uint64_t	memsz;
+	phandle_t memoryp;
+	cell_t reg[24];
+	int i, sz;
+	uint64_t memsz;
 
 	memsz = 0;
 	memoryp = OF_instance_to_package(memory);
@@ -128,12 +129,12 @@ openfirmware_docall(void *buf)
 int
 main(int (*openfirm)(void *))
 {
-	phandle_t	root;
-	int		i;
-	char		bootpath[64];
-	char		*ch;
-	int		bargc;
-	char		**bargv;
+	phandle_t root;
+	int i;
+	char bootpath[64];
+	char *ch;
+	int bargc;
+	char **bargv;
 
 	/*
 	 * Initialise the Open Firmware routines by giving them the entry point.
@@ -162,8 +163,8 @@ main(int (*openfirm)(void *))
 	init_heap();
 
 	/*
-         * Set up console.
-         */
+	 * Set up console.
+	 */
 	cons_probe();
 
 	archsw.arch_getdev = ofw_getdev;
@@ -203,11 +204,10 @@ main(int (*openfirm)(void *))
 		env_setenv("currdev", EV_VOLATILE, bargv[0], gen_setcurrdev,
 		    env_nounset);
 	else
-		env_setenv("currdev", EV_VOLATILE, bootpath,
-			   gen_setcurrdev, env_nounset);
-	env_setenv("loaddev", EV_VOLATILE, bootpath, env_noset,
-	    env_nounset);
-	setenv("LINES", "24", 1);		/* optional */
+		env_setenv("currdev", EV_VOLATILE, bootpath, gen_setcurrdev,
+		    env_nounset);
+	env_setenv("loaddev", EV_VOLATILE, bootpath, env_noset, env_nounset);
+	setenv("LINES", "24", 1); /* optional */
 
 	/*
 	 * On non-Apple hardware, where it works reliably, pass flattened
@@ -218,7 +218,7 @@ main(int (*openfirm)(void *))
 	if (!(mfmsr() & PSL_DR))
 		setenv("usefdt", "1", 1);
 
-	interact();				/* doesn't return */
+	interact(); /* doesn't return */
 
 	OF_exit();
 

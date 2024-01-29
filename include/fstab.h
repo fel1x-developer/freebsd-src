@@ -43,23 +43,23 @@
  * if type is "rq", then use concatenation of fs_file and "quotas" to locate
  * quota file.
  */
-#define	_PATH_FSTAB	"/etc/fstab"
-#define	FSTAB		"/etc/fstab"	/* deprecated */
+#define _PATH_FSTAB "/etc/fstab"
+#define FSTAB "/etc/fstab" /* deprecated */
 
-#define	FSTAB_RW	"rw"		/* read/write device */
-#define	FSTAB_RQ	"rq"		/* read/write with quotas */
-#define	FSTAB_RO	"ro"		/* read-only device */
-#define	FSTAB_SW	"sw"		/* swap device */
-#define	FSTAB_XX	"xx"		/* ignore totally */
+#define FSTAB_RW "rw" /* read/write device */
+#define FSTAB_RQ "rq" /* read/write with quotas */
+#define FSTAB_RO "ro" /* read-only device */
+#define FSTAB_SW "sw" /* swap device */
+#define FSTAB_XX "xx" /* ignore totally */
 
 struct fstab {
-	char	*fs_spec;		/* block special device name */
-	char	*fs_file;		/* file system path prefix */
-	char	*fs_vfstype;		/* File system type, ufs, nfs */
-	char	*fs_mntops;		/* Mount options ala -o */
-	char	*fs_type;		/* FSTAB_* from fs_mntops */
-	int	fs_freq;		/* dump frequency, in days */
-	int	fs_passno;		/* pass number on parallel fsck */
+	char *fs_spec;	  /* block special device name */
+	char *fs_file;	  /* file system path prefix */
+	char *fs_vfstype; /* File system type, ufs, nfs */
+	char *fs_mntops;  /* Mount options ala -o */
+	char *fs_type;	  /* FSTAB_* from fs_mntops */
+	int fs_freq;	  /* dump frequency, in days */
+	int fs_passno;	  /* pass number on parallel fsck */
 };
 
 #include <sys/cdefs.h>

@@ -26,27 +26,27 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 
-#include "ipfw2.h"
+#include <net/if.h> /* IFNAMSIZ */
+#include <net/pfvar.h>
+#include <netinet/in.h> /* in_addr */
+#include <netinet/ip_fw.h>
 
 #include <err.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
-#include <fcntl.h>
 
-#include <net/if.h>		/* IFNAMSIZ */
-#include <net/pfvar.h>
-#include <netinet/in.h>	/* in_addr */
-#include <netinet/ip_fw.h>
+#include "ipfw2.h"
 
 /*
  * Map between current altq queue id numbers and names.
  */
-static TAILQ_HEAD(, pf_altq) altq_entries =
-	TAILQ_HEAD_INITIALIZER(altq_entries);
+static TAILQ_HEAD(, pf_altq) altq_entries = TAILQ_HEAD_INITIALIZER(
+    altq_entries);
 
 void
 altq_set_enabled(int enabled)
@@ -115,7 +115,7 @@ altq_name_to_qid(const char *name)
 	struct pf_altq *altq;
 
 	altq_fetch();
-	TAILQ_FOREACH(altq, &altq_entries, entries)
+	TAILQ_FOREACH (altq, &altq_entries, entries)
 		if (strcmp(name, altq->qname) == 0)
 			break;
 	if (altq == NULL)
@@ -129,7 +129,7 @@ altq_qid_to_name(u_int32_t qid)
 	struct pf_altq *altq;
 
 	altq_fetch();
-	TAILQ_FOREACH(altq, &altq_entries, entries)
+	TAILQ_FOREACH (altq, &altq_entries, entries)
 		if (qid == altq->qid)
 			break;
 	if (altq == NULL)

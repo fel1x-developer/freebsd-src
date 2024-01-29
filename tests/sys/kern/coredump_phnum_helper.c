@@ -54,8 +54,8 @@ main(int argc __unused, char **argv __unused)
 		 * Alternate protections to interleave RW and R PT_LOAD
 		 * segments.
 		 */
-		if (mprotect((char *)v + i * page_size, page_size,
-		    PROT_READ) != 0)
+		if (mprotect((char *)v + i * page_size, page_size, PROT_READ) !=
+		    0)
 			err(1, "mprotect");
 	}
 

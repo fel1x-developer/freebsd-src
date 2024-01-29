@@ -29,7 +29,6 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/param.h>
 #include <sys/stat.h>
 
@@ -40,13 +39,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "un-namespace.h"
 
 #include "gen-private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
-#define	ISDOT(dp) \
-	(dp->d_name[0] == '.' && (dp->d_name[1] == '\0' || \
-	    (dp->d_name[1] == '.' && dp->d_name[2] == '\0')))
+#define ISDOT(dp)                     \
+	(dp->d_name[0] == '.' &&      \
+	    (dp->d_name[1] == '\0' || \
+		(dp->d_name[1] == '.' && dp->d_name[2] == '\0')))
 
 extern int __getcwd(char *, size_t);
 
@@ -109,7 +110,7 @@ getcwd(char *pt, size_t size)
 	root_dev = s.st_dev;
 	root_ino = s.st_ino;
 
-	errno = 0;			/* XXX readdir has no error return. */
+	errno = 0; /* XXX readdir has no error return. */
 
 	for (first = 1;; first = 0) {
 		/* Stat the current level. */
@@ -130,17 +131,17 @@ getcwd(char *pt, size_t size)
 			 */
 			bcopy(bpt, pt, ept - bpt);
 			if (dir)
-				(void) closedir(dir);
+				(void)closedir(dir);
 			return (pt);
 		}
 
 		/* Open and stat parent directory. */
-		fd = _openat(dir != NULL ? _dirfd(dir) : AT_FDCWD,
-				"..", O_RDONLY | O_CLOEXEC);
+		fd = _openat(dir != NULL ? _dirfd(dir) : AT_FDCWD, "..",
+		    O_RDONLY | O_CLOEXEC);
 		if (fd == -1)
 			goto err;
 		if (dir)
-			(void) closedir(dir);
+			(void)closedir(dir);
 		if (!(dir = fdopendir(fd)) || _fstat(_dirfd(dir), &s)) {
 			_close(fd);
 			goto err;
@@ -168,7 +169,7 @@ getcwd(char *pt, size_t size)
 
 				/* Save the first error for later. */
 				if (fstatat(_dirfd(dir), dp->d_name, &s,
-				    AT_SYMLINK_NOFOLLOW)) {
+					AT_SYMLINK_NOFOLLOW)) {
 					if (!save_errno)
 						save_errno = errno;
 					errno = 0;
@@ -219,7 +220,7 @@ err:
 	if (ptsize)
 		free(pt);
 	if (dir)
-		(void) closedir(dir);
+		(void)closedir(dir);
 
 	errno = save_errno;
 	return (NULL);

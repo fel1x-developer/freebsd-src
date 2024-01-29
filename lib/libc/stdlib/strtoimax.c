@@ -36,8 +36,9 @@
 
 #include <ctype.h>
 #include <errno.h>
-#include <stdlib.h>
 #include <inttypes.h>
+#include <stdlib.h>
+
 #include "xlocale_private.h"
 
 /*
@@ -47,8 +48,8 @@
  * alphabets and digits are each contiguous.
  */
 intmax_t
-strtoimax_l(const char * __restrict nptr, char ** __restrict endptr, int base,
-		locale_t locale)
+strtoimax_l(const char *__restrict nptr, char **__restrict endptr, int base,
+    locale_t locale)
 {
 	const char *s;
 	uintmax_t acc;
@@ -74,17 +75,14 @@ strtoimax_l(const char * __restrict nptr, char ** __restrict endptr, int base,
 		if (c == '+')
 			c = *s++;
 	}
-	if ((base == 0 || base == 16) &&
-	    c == '0' && (*s == 'x' || *s == 'X') &&
-	    ((s[1] >= '0' && s[1] <= '9') ||
-	    (s[1] >= 'A' && s[1] <= 'F') ||
-	    (s[1] >= 'a' && s[1] <= 'f'))) {
+	if ((base == 0 || base == 16) && c == '0' && (*s == 'x' || *s == 'X') &&
+	    ((s[1] >= '0' && s[1] <= '9') || (s[1] >= 'A' && s[1] <= 'F') ||
+		(s[1] >= 'a' && s[1] <= 'f'))) {
 		c = s[1];
 		s += 2;
 		base = 16;
 	}
-	if ((base == 0 || base == 2) &&
-	    c == '0' && (*s == 'b' || *s == 'B') &&
+	if ((base == 0 || base == 2) && c == '0' && (*s == 'b' || *s == 'B') &&
 	    (s[1] >= '0' && s[1] <= '1')) {
 		c = s[1];
 		s += 2;
@@ -114,11 +112,11 @@ strtoimax_l(const char * __restrict nptr, char ** __restrict endptr, int base,
 	 * Set 'any' if any `digits' consumed; make it negative to indicate
 	 * overflow.
 	 */
-	cutoff = neg ? (uintmax_t)-(INTMAX_MIN + INTMAX_MAX) + INTMAX_MAX
-	    : INTMAX_MAX;
+	cutoff = neg ? (uintmax_t) - (INTMAX_MIN + INTMAX_MAX) + INTMAX_MAX :
+		       INTMAX_MAX;
 	cutlim = cutoff % base;
 	cutoff /= base;
-	for ( ; ; c = *s++) {
+	for (;; c = *s++) {
 		if (c >= '0' && c <= '9')
 			c -= '0';
 		else if (c >= 'A' && c <= 'Z')
@@ -141,7 +139,7 @@ strtoimax_l(const char * __restrict nptr, char ** __restrict endptr, int base,
 		acc = neg ? INTMAX_MIN : INTMAX_MAX;
 		errno = ERANGE;
 	} else if (!any) {
-noconv:
+	noconv:
 		errno = EINVAL;
 	} else if (neg)
 		acc = -acc;
@@ -150,7 +148,7 @@ noconv:
 	return (acc);
 }
 intmax_t
-strtoimax(const char * __restrict nptr, char ** __restrict endptr, int base)
+strtoimax(const char *__restrict nptr, char **__restrict endptr, int base)
 {
 	return strtoimax_l(nptr, endptr, base, __get_locale());
 }

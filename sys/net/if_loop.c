@@ -42,23 +42,24 @@
 #include <sys/kernel.h>
 #include <sys/mbuf.h>
 #include <sys/module.h>
-#include <machine/bus.h>
 #include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
 
+#include <machine/bus.h>
+
+#include <net/bpf.h>
 #include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_private.h>
 #include <net/if_clone.h>
+#include <net/if_private.h>
 #include <net/if_types.h>
+#include <net/if_var.h>
 #include <net/netisr.h>
 #include <net/route.h>
-#include <net/bpf.h>
 #include <net/vnet.h>
 
-#ifdef	INET
+#ifdef INET
 #include <netinet/in.h>
 #include <netinet/in_var.h>
 #endif
@@ -67,36 +68,35 @@
 #ifndef INET
 #include <netinet/in.h>
 #endif
-#include <netinet6/in6_var.h>
 #include <netinet/ip6.h>
+#include <netinet6/in6_var.h>
 #endif
 
 #include <security/mac/mac_framework.h>
 
 #ifdef TINY_LOMTU
-#define	LOMTU	(1024+512)
+#define LOMTU (1024 + 512)
 #elif defined(LARGE_LOMTU)
-#define LOMTU	131072
+#define LOMTU 131072
 #else
-#define LOMTU	16384
+#define LOMTU 16384
 #endif
 
-#define	LO_CSUM_FEATURES	(CSUM_IP | CSUM_TCP | CSUM_UDP | CSUM_SCTP)
-#define	LO_CSUM_FEATURES6	(CSUM_TCP_IPV6 | CSUM_UDP_IPV6 | CSUM_SCTP_IPV6)
-#define	LO_CSUM_SET		(CSUM_DATA_VALID | CSUM_DATA_VALID_IPV6 | \
-				    CSUM_PSEUDO_HDR | \
-				    CSUM_IP_CHECKED | CSUM_IP_VALID | \
-				    CSUM_SCTP_VALID)
+#define LO_CSUM_FEATURES (CSUM_IP | CSUM_TCP | CSUM_UDP | CSUM_SCTP)
+#define LO_CSUM_FEATURES6 (CSUM_TCP_IPV6 | CSUM_UDP_IPV6 | CSUM_SCTP_IPV6)
+#define LO_CSUM_SET                                                 \
+	(CSUM_DATA_VALID | CSUM_DATA_VALID_IPV6 | CSUM_PSEUDO_HDR | \
+	    CSUM_IP_CHECKED | CSUM_IP_VALID | CSUM_SCTP_VALID)
 
-static int	loioctl(struct ifnet *, u_long, caddr_t);
-static int	looutput(struct ifnet *ifp, struct mbuf *m,
-		    const struct sockaddr *dst, struct route *ro);
+static int loioctl(struct ifnet *, u_long, caddr_t);
+static int looutput(struct ifnet *ifp, struct mbuf *m,
+    const struct sockaddr *dst, struct route *ro);
 
-VNET_DEFINE(struct ifnet *, loif);	/* Used externally */
+VNET_DEFINE(struct ifnet *, loif); /* Used externally */
 
 #ifdef VIMAGE
 VNET_DEFINE_STATIC(struct if_clone *, lo_cloner);
-#define	V_lo_cloner		VNET(lo_cloner)
+#define V_lo_cloner VNET(lo_cloner)
 #endif
 
 static struct if_clone *lo_cloner;
@@ -136,8 +136,8 @@ lo_clone_create(struct if_clone *ifc, char *name, size_t len,
 	ifp->if_ioctl = loioctl;
 	ifp->if_output = looutput;
 	ifp->if_snd.ifq_maxlen = ifqmaxlen;
-	ifp->if_capabilities = ifp->if_capenable =
-	    IFCAP_HWCSUM | IFCAP_HWCSUM_IPV6 | IFCAP_LINKSTATE;
+	ifp->if_capabilities = ifp->if_capenable = IFCAP_HWCSUM |
+	    IFCAP_HWCSUM_IPV6 | IFCAP_LINKSTATE;
 	ifp->if_hwassist = LO_CSUM_FEATURES | LO_CSUM_FEATURES6;
 	if_attach(ifp);
 	bpfattach(ifp, DLT_NULL, sizeof(u_int32_t));
@@ -163,8 +163,7 @@ vnet_loif_init(const void *unused __unused)
 	struct ifc_data ifd = { .unit = 0 };
 	ifc_create_ifp(loname, &ifd, NULL);
 }
-VNET_SYSINIT(vnet_loif_init, SI_SUB_PSEUDO, SI_ORDER_ANY,
-    vnet_loif_init, NULL);
+VNET_SYSINIT(vnet_loif_init, SI_SUB_PSEUDO, SI_ORDER_ANY, vnet_loif_init, NULL);
 
 #ifdef VIMAGE
 static void
@@ -187,7 +186,8 @@ loop_modevent(module_t mod, int type, void *data)
 		break;
 
 	case MOD_UNLOAD:
-		printf("loop module unload - not possible for this module type\n");
+		printf(
+		    "loop module unload - not possible for this module type\n");
 		return (EINVAL);
 
 	default:
@@ -196,11 +196,7 @@ loop_modevent(module_t mod, int type, void *data)
 	return (0);
 }
 
-static moduledata_t loop_mod = {
-	"if_lo",
-	loop_modevent,
-	0
-};
+static moduledata_t loop_mod = { "if_lo", loop_modevent, 0 };
 
 DECLARE_MODULE(if_lo, loop_mod, SI_SUB_PROTO_IFATTACHDOMAIN, SI_ORDER_ANY);
 
@@ -223,7 +219,7 @@ looutput(struct ifnet *ifp, struct mbuf *m, const struct sockaddr *dst,
 	}
 #endif
 
-	if (ro != NULL && ro->ro_flags & (RT_REJECT|RT_BLACKHOLE)) {
+	if (ro != NULL && ro->ro_flags & (RT_REJECT | RT_BLACKHOLE)) {
 		m_freem(m);
 		return (ro->ro_flags & RT_BLACKHOLE ? 0 : EHOSTUNREACH);
 	}
@@ -241,7 +237,7 @@ looutput(struct ifnet *ifp, struct mbuf *m, const struct sockaddr *dst,
 	else
 		af = RO_GET_FAMILY(ro, dst);
 
-#if 1	/* XXX */
+#if 1 /* XXX */
 	switch (af) {
 	case AF_INET:
 		if (ifp->if_capenable & IFCAP_RXCSUM) {
@@ -338,10 +334,10 @@ if_simloop(struct ifnet *ifp, struct mbuf *m, int af, int hlen)
 		if (mtod(m, vm_offset_t) & 3) {
 			KASSERT(hlen >= 3, ("if_simloop: hlen too small"));
 			bcopy(m->m_data,
-			    (char *)(mtod(m, vm_offset_t)
-				- (mtod(m, vm_offset_t) & 3)),
+			    (char *)(mtod(m, vm_offset_t) -
+				(mtod(m, vm_offset_t) & 3)),
 			    m->m_len);
-			m->m_data -= (mtod(m,vm_offset_t) & 3);
+			m->m_data -= (mtod(m, vm_offset_t) & 3);
 		}
 #endif
 	}
@@ -366,7 +362,7 @@ if_simloop(struct ifnet *ifp, struct mbuf *m, int af, int hlen)
 	}
 	if_inc_counter(ifp, IFCOUNTER_IPACKETS, 1);
 	if_inc_counter(ifp, IFCOUNTER_IBYTES, m->m_pkthdr.len);
-	netisr_queue(isr, m);	/* mbuf is free'd on failure. */
+	netisr_queue(isr, m); /* mbuf is free'd on failure. */
 	return (0);
 }
 
@@ -392,7 +388,7 @@ loioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 	case SIOCADDMULTI:
 	case SIOCDELMULTI:
 		if (ifr == NULL) {
-			error = EAFNOSUPPORT;		/* XXX */
+			error = EAFNOSUPPORT; /* XXX */
 			break;
 		}
 		switch (ifr->ifr_addr.sa_family) {
@@ -416,8 +412,8 @@ loioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 		break;
 
 	case SIOCSIFFLAGS:
-		if_link_state_change(ifp, (ifp->if_flags & IFF_UP) ?
-		    LINK_STATE_UP: LINK_STATE_DOWN);
+		if_link_state_change(ifp,
+		    (ifp->if_flags & IFF_UP) ? LINK_STATE_UP : LINK_STATE_DOWN);
 		break;
 
 	case SIOCSIFCAP:

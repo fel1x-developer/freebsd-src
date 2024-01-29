@@ -28,35 +28,33 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-
 #include <sys/bio.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
 
+#include <dev/ida/idareg.h>
+#include <dev/ida/idavar.h>
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
 
 #include <geom/geom_disk.h>
 
-#include <dev/ida/idavar.h>
-#include <dev/ida/idareg.h>
+#define IDA_PCI_MAX_DMA_ADDR 0xFFFFFFFF
+#define IDA_PCI_MAX_DMA_COUNT 0xFFFFFFFF
 
-#define	IDA_PCI_MAX_DMA_ADDR	0xFFFFFFFF
-#define	IDA_PCI_MAX_DMA_COUNT	0xFFFFFFFF
+#define IDA_PCI_MEMADDR PCIR_BAR(1) /* Mem I/O Address */
 
-#define	IDA_PCI_MEMADDR		PCIR_BAR(1)		/* Mem I/O Address */
-
-#define	IDA_DEVICEID_SMART		0xAE100E11
-#define	IDA_DEVICEID_DEC_SMART		0x00461011
-#define	IDA_DEVICEID_NCR_53C1510	0x00101000
+#define IDA_DEVICEID_SMART 0xAE100E11
+#define IDA_DEVICEID_DEC_SMART 0x00461011
+#define IDA_DEVICEID_NCR_53C1510 0x00101000
 
 static int
 ida_v3_fifo_full(struct ida_softc *ida)
@@ -77,7 +75,7 @@ ida_v3_done(struct ida_softc *ida)
 
 	completed = ida_inl(ida, R_DONE_FIFO);
 	if (completed == -1) {
-		return (0);			/* fifo is empty */
+		return (0); /* fifo is empty */
 	}
 	return (completed);
 }
@@ -117,8 +115,8 @@ ida_v4_done(struct ida_softc *ida)
 
 	completed = ida_inl(ida, R_42XX_REPLY);
 	if (completed == -1)
-		return (0);			/* fifo is empty */
-	ida_outl(ida, R_42XX_REPLY, 0);		/* confirm read */
+		return (0);		/* fifo is empty */
+	ida_outl(ida, R_42XX_REPLY, 0); /* confirm read */
 	return (completed);
 }
 
@@ -156,27 +154,21 @@ static struct ida_access ida_v4_access = {
 };
 
 static struct ida_board board_id[] = {
-	{ 0x40300E11, "Compaq SMART-2/P array controller",
-	    &ida_v3_access, 0 },
-	{ 0x40310E11, "Compaq SMART-2SL array controller",
-	    &ida_v3_access, 0 },
-	{ 0x40320E11, "Compaq Smart Array 3200 controller",
-	    &ida_v3_access, 0 },
-	{ 0x40330E11, "Compaq Smart Array 3100ES controller",
-	    &ida_v3_access, 0 },
-	{ 0x40340E11, "Compaq Smart Array 221 controller",
-	    &ida_v3_access, 0 },
+	{ 0x40300E11, "Compaq SMART-2/P array controller", &ida_v3_access, 0 },
+	{ 0x40310E11, "Compaq SMART-2SL array controller", &ida_v3_access, 0 },
+	{ 0x40320E11, "Compaq Smart Array 3200 controller", &ida_v3_access, 0 },
+	{ 0x40330E11, "Compaq Smart Array 3100ES controller", &ida_v3_access,
+	    0 },
+	{ 0x40340E11, "Compaq Smart Array 221 controller", &ida_v3_access, 0 },
 
-	{ 0x40400E11, "Compaq Integrated Array controller",
-	    &ida_v4_access, IDA_FIRMWARE },
-	{ 0x40480E11, "Compaq RAID LC2 controller",
-	    &ida_v4_access, IDA_FIRMWARE },
-	{ 0x40500E11, "Compaq Smart Array 4200 controller",
-	    &ida_v4_access, 0 },
-	{ 0x40510E11, "Compaq Smart Array 4250ES controller",
-	    &ida_v4_access, 0 },
-	{ 0x40580E11, "Compaq Smart Array 431 controller",
-	    &ida_v4_access, 0 },
+	{ 0x40400E11, "Compaq Integrated Array controller", &ida_v4_access,
+	    IDA_FIRMWARE },
+	{ 0x40480E11, "Compaq RAID LC2 controller", &ida_v4_access,
+	    IDA_FIRMWARE },
+	{ 0x40500E11, "Compaq Smart Array 4200 controller", &ida_v4_access, 0 },
+	{ 0x40510E11, "Compaq Smart Array 4250ES controller", &ida_v4_access,
+	    0 },
+	{ 0x40580E11, "Compaq Smart Array 431 controller", &ida_v4_access, 0 },
 
 	{ 0, "", 0, 0 },
 };
@@ -184,19 +176,15 @@ static struct ida_board board_id[] = {
 static int ida_pci_probe(device_t dev);
 static int ida_pci_attach(device_t dev);
 
-static device_method_t ida_pci_methods[] = {
-	DEVMETHOD(device_probe,		ida_pci_probe),
-	DEVMETHOD(device_attach,	ida_pci_attach),
-	DEVMETHOD(device_detach,	ida_detach),
+static device_method_t ida_pci_methods[] = { DEVMETHOD(device_probe,
+						 ida_pci_probe),
+	DEVMETHOD(device_attach, ida_pci_attach),
+	DEVMETHOD(device_detach, ida_detach),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
-static driver_t ida_pci_driver = {
-	"ida",
-	ida_pci_methods,
-	sizeof(struct ida_softc)
-};
+static driver_t ida_pci_driver = { "ida", ida_pci_methods,
+	sizeof(struct ida_softc) };
 
 static struct ida_board *
 ida_pci_match(device_t dev)
@@ -207,8 +195,7 @@ ida_pci_match(device_t dev)
 	id = pci_get_devid(dev);
 	sub_id = pci_get_subdevice(dev) << 16 | pci_get_subvendor(dev);
 
-	if (id == IDA_DEVICEID_SMART ||
-	    id == IDA_DEVICEID_DEC_SMART ||
+	if (id == IDA_DEVICEID_SMART || id == IDA_DEVICEID_DEC_SMART ||
 	    id == IDA_DEVICEID_NCR_53C1510) {
 		for (i = 0; board_id[i].board; i++)
 			if (board_id[i].board == sub_id)
@@ -257,20 +244,19 @@ ida_pci_attach(device_t dev)
 	}
 
 	error = bus_dma_tag_create(
-		/* parent	*/ bus_get_dma_tag(dev),
-		/* alignment	*/ 1,
-		/* boundary	*/ 0,
-		/* lowaddr	*/ BUS_SPACE_MAXADDR_32BIT,
-		/* highaddr	*/ BUS_SPACE_MAXADDR,
-		/* filter	*/ NULL,
-		/* filterarg	*/ NULL,
-		/* maxsize	*/ BUS_SPACE_MAXSIZE_32BIT,
-		/* nsegments	*/ BUS_SPACE_UNRESTRICTED,
-		/* maxsegsize	*/ BUS_SPACE_MAXSIZE_32BIT,
-		/* flags	*/ BUS_DMA_ALLOCNOW,
-		/* lockfunc	*/ NULL,
-		/* lockarg	*/ NULL,
-		&ida->parent_dmat);
+	    /* parent	*/ bus_get_dma_tag(dev),
+	    /* alignment	*/ 1,
+	    /* boundary	*/ 0,
+	    /* lowaddr	*/ BUS_SPACE_MAXADDR_32BIT,
+	    /* highaddr	*/ BUS_SPACE_MAXADDR,
+	    /* filter	*/ NULL,
+	    /* filterarg	*/ NULL,
+	    /* maxsize	*/ BUS_SPACE_MAXSIZE_32BIT,
+	    /* nsegments	*/ BUS_SPACE_UNRESTRICTED,
+	    /* maxsegsize	*/ BUS_SPACE_MAXSIZE_32BIT,
+	    /* flags	*/ BUS_DMA_ALLOCNOW,
+	    /* lockfunc	*/ NULL,
+	    /* lockarg	*/ NULL, &ida->parent_dmat);
 	if (error != 0) {
 		device_printf(dev, "can't allocate DMA tag\n");
 		ida_free(ida);
@@ -282,11 +268,12 @@ ida_pci_attach(device_t dev)
 	ida->irq = bus_alloc_resource_any(dev, ida->irq_res_type, &rid,
 	    RF_ACTIVE | RF_SHAREABLE);
 	if (ida->irq == NULL) {
-	        ida_free(ida);
-	        return (ENOMEM);
+		ida_free(ida);
+		return (ENOMEM);
 	}
-	error = bus_setup_intr(dev, ida->irq, INTR_TYPE_BIO | INTR_ENTROPY | INTR_MPSAFE,
-	    NULL, ida_intr, ida, &ida->ih);
+	error = bus_setup_intr(dev, ida->irq,
+	    INTR_TYPE_BIO | INTR_ENTROPY | INTR_MPSAFE, NULL, ida_intr, ida,
+	    &ida->ih);
 	if (error) {
 		device_printf(dev, "can't setup interrupt\n");
 		ida_free(ida);
@@ -295,8 +282,8 @@ ida_pci_attach(device_t dev)
 
 	error = ida_setup(ida);
 	if (error) {
-	        ida_free(ida);
-	        return (error);
+		ida_free(ida);
+		return (error);
 	}
 
 	return (0);

@@ -31,12 +31,15 @@
 #ifndef _XLOCALE_PRIVATE__H_
 #define _XLOCALE_PRIVATE__H_
 
-#include <xlocale.h>
-#include <locale.h>
-#include <stdlib.h>
-#include <stdint.h>
 #include <sys/types.h>
+
 #include <machine/atomic.h>
+
+#include <locale.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <xlocale.h>
+
 #include "setlocale.h"
 
 /**
@@ -59,17 +62,17 @@ enum {
 
 _Static_assert(XLC_LAST - XLC_COLLATE == 6, "XLC values should be contiguous");
 _Static_assert(XLC_COLLATE == LC_COLLATE - 1,
-               "XLC_COLLATE doesn't match the LC_COLLATE value.");
+    "XLC_COLLATE doesn't match the LC_COLLATE value.");
 _Static_assert(XLC_CTYPE == LC_CTYPE - 1,
-               "XLC_CTYPE doesn't match the LC_CTYPE value.");
+    "XLC_CTYPE doesn't match the LC_CTYPE value.");
 _Static_assert(XLC_MONETARY == LC_MONETARY - 1,
-               "XLC_MONETARY doesn't match the LC_MONETARY value.");
+    "XLC_MONETARY doesn't match the LC_MONETARY value.");
 _Static_assert(XLC_NUMERIC == LC_NUMERIC - 1,
-               "XLC_NUMERIC doesn't match the LC_NUMERIC value.");
+    "XLC_NUMERIC doesn't match the LC_NUMERIC value.");
 _Static_assert(XLC_TIME == LC_TIME - 1,
-               "XLC_TIME doesn't match the LC_TIME value.");
+    "XLC_TIME doesn't match the LC_TIME value.");
 _Static_assert(XLC_MESSAGES == LC_MESSAGES - 1,
-               "XLC_MESSAGES doesn't match the LC_MESSAGES value.");
+    "XLC_MESSAGES doesn't match the LC_MESSAGES value.");
 
 /**
  * Header used for objects that are reference counted.  Objects may optionally
@@ -86,7 +89,7 @@ struct xlocale_refcounted {
 	/** Number of references to this component.  */
 	long retain_count;
 	/** Function used to destroy this component, if one is required*/
-	void(*destructor)(void*);
+	void (*destructor)(void *);
 };
 
 #define XLOCALE_DEF_VERSION_LEN 12
@@ -98,13 +101,13 @@ struct xlocale_refcounted {
 struct xlocale_component {
 	struct xlocale_refcounted header;
 	/** Name of the locale used for this component. */
-	char locale[ENCODING_LEN+1];
+	char locale[ENCODING_LEN + 1];
 	/** Version of the definition for this component. */
 	char version[XLOCALE_DEF_VERSION_LEN];
 };
 
 /**
- * xlocale structure, stores per-thread locale information.  
+ * xlocale structure, stores per-thread locale information.
  */
 struct _xlocale {
 	struct xlocale_refcounted header;
@@ -137,7 +140,7 @@ struct _xlocale {
 /**
  * Increments the reference count of a reference-counted structure.
  */
-__attribute__((unused)) static void*
+__attribute__((unused)) static void *
 xlocale_retain(void *val)
 {
 	struct xlocale_refcounted *obj = val;
@@ -166,12 +169,12 @@ xlocale_release(void *val)
  * use some statically defined tables rather than allocating memory for the
  * locales' use.
  */
-extern void* __collate_load(const char*, locale_t);
-extern void* __ctype_load(const char*, locale_t);
-extern void* __messages_load(const char*, locale_t);
-extern void* __monetary_load(const char*, locale_t);
-extern void* __numeric_load(const char*, locale_t);
-extern void* __time_load(const char*, locale_t);
+extern void *__collate_load(const char *, locale_t);
+extern void *__ctype_load(const char *, locale_t);
+extern void *__messages_load(const char *, locale_t);
+extern void *__monetary_load(const char *, locale_t);
+extern void *__numeric_load(const char *, locale_t);
+extern void *__time_load(const char *, locale_t);
 
 extern struct _xlocale __xlocale_global_locale;
 extern struct _xlocale __xlocale_C_locale;
@@ -198,7 +201,8 @@ extern _Thread_local locale_t __thread_locale;
  * this call is not guaranteed to remain valid after the locale changes.  As
  * such, this should only be called within libc functions.
  */
-static inline locale_t __get_locale(void)
+static inline locale_t
+__get_locale(void)
 {
 
 	if (!__has_thread_locale) {
@@ -211,12 +215,16 @@ static inline locale_t __get_locale(void)
  * Two magic values are allowed for locale_t objects.  NULL and -1.  This
  * function maps those to the real locales that they represent.
  */
-static inline locale_t get_real_locale(locale_t locale)
+static inline locale_t
+get_real_locale(locale_t locale)
 {
 	switch ((intptr_t)locale) {
-		case 0: return (&__xlocale_C_locale);
-		case -1: return (&__xlocale_global_locale);
-		default: return (locale);
+	case 0:
+		return (&__xlocale_C_locale);
+	case -1:
+		return (&__xlocale_global_locale);
+	default:
+		return (locale);
 	}
 }
 

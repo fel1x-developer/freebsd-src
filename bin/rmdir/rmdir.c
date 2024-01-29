@@ -47,7 +47,7 @@ main(int argc, char *argv[])
 	int ch, errors;
 
 	while ((ch = getopt(argc, argv, "pv")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case 'p':
 			pflag = 1;
 			break;

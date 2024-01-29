@@ -13,7 +13,7 @@
  * N66001-04-C-6019 ("SEFOS").
  *
  * This software was developed at the University of Cambridge Computer
- * Laboratory with support from a grant from Google, Inc. 
+ * Laboratory with support from a grant from Google, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,21 +37,21 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_mac.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/pipe.h>
 #include <sys/sbuf.h>
 #include <sys/sdt.h>
-#include <sys/systm.h>
-#include <sys/vnode.h>
-#include <sys/pipe.h>
 #include <sys/sysctl.h>
+#include <sys/vnode.h>
 
 #include <security/mac/mac_framework.h>
 #include <security/mac/mac_internal.h>
@@ -103,8 +103,8 @@ mac_pipe_copy_label(struct label *src, struct label *dest)
 }
 
 int
-mac_pipe_externalize_label(struct label *label, char *elements,
-    char *outbuf, size_t outbuflen)
+mac_pipe_externalize_label(struct label *label, char *elements, char *outbuf,
+    size_t outbuflen)
 {
 	int error;
 
@@ -139,26 +139,25 @@ mac_pipe_relabel(struct ucred *cred, struct pipepair *pp,
 	    newlabel);
 }
 
-MAC_CHECK_PROBE_DEFINE4(pipe_check_ioctl, "struct ucred *",
-    "struct pipepair *", "unsigned long", "void *");
+MAC_CHECK_PROBE_DEFINE4(pipe_check_ioctl, "struct ucred *", "struct pipepair *",
+    "unsigned long", "void *");
 
 int
-mac_pipe_check_ioctl(struct ucred *cred, struct pipepair *pp,
-    unsigned long cmd, void *data)
+mac_pipe_check_ioctl(struct ucred *cred, struct pipepair *pp, unsigned long cmd,
+    void *data)
 {
 	int error;
 
 	mtx_assert(&pp->pp_mtx, MA_OWNED);
 
-	MAC_POLICY_CHECK_NOSLEEP(pipe_check_ioctl, cred, pp, pp->pp_label,
-	    cmd, data);
+	MAC_POLICY_CHECK_NOSLEEP(pipe_check_ioctl, cred, pp, pp->pp_label, cmd,
+	    data);
 	MAC_CHECK_PROBE4(pipe_check_ioctl, error, cred, pp, cmd, data);
 
 	return (error);
 }
 
-MAC_CHECK_PROBE_DEFINE2(pipe_check_poll, "struct ucred *",
-    "struct pipepair *");
+MAC_CHECK_PROBE_DEFINE2(pipe_check_poll, "struct ucred *", "struct pipepair *");
 
 int
 mac_pipe_check_poll_impl(struct ucred *cred, struct pipepair *pp)
@@ -173,8 +172,7 @@ mac_pipe_check_poll_impl(struct ucred *cred, struct pipepair *pp)
 	return (error);
 }
 
-MAC_CHECK_PROBE_DEFINE2(pipe_check_read, "struct ucred *",
-    "struct pipepair *");
+MAC_CHECK_PROBE_DEFINE2(pipe_check_read, "struct ucred *", "struct pipepair *");
 
 int
 mac_pipe_check_read_impl(struct ucred *cred, struct pipepair *pp)
@@ -207,8 +205,7 @@ mac_pipe_check_relabel(struct ucred *cred, struct pipepair *pp,
 	return (error);
 }
 
-MAC_CHECK_PROBE_DEFINE2(pipe_check_stat, "struct ucred *",
-    "struct pipepair *");
+MAC_CHECK_PROBE_DEFINE2(pipe_check_stat, "struct ucred *", "struct pipepair *");
 
 int
 mac_pipe_check_stat(struct ucred *cred, struct pipepair *pp)
@@ -240,8 +237,7 @@ mac_pipe_check_write(struct ucred *cred, struct pipepair *pp)
 }
 
 int
-mac_pipe_label_set(struct ucred *cred, struct pipepair *pp,
-    struct label *label)
+mac_pipe_label_set(struct ucred *cred, struct pipepair *pp, struct label *label)
 {
 	int error;
 

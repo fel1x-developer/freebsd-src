@@ -28,8 +28,8 @@
 #ifndef _CMD_PMC_H_
 #define _CMD_PMC_H_
 
-#define	DEFAULT_DISPLAY_HEIGHT		256	/* file virtual height */
-#define	DEFAULT_DISPLAY_WIDTH		1024	/* file virtual width */
+#define DEFAULT_DISPLAY_HEIGHT 256 /* file virtual height */
+#define DEFAULT_DISPLAY_WIDTH 1024 /* file virtual width */
 
 extern int pmc_displayheight;
 extern int pmc_displaywidth;
@@ -41,18 +41,18 @@ typedef int (*cmd_disp_t)(int, char **);
 #if defined(__cplusplus)
 extern "C" {
 #endif
-	int	cmd_pmc_stat(int, char **);
-	int	cmd_pmc_filter(int, char **);
-	int	cmd_pmc_stat_system(int, char **);
-	int	cmd_pmc_list_events(int, char **);
-	int	cmd_pmc_summary(int, char **);
+int cmd_pmc_stat(int, char **);
+int cmd_pmc_filter(int, char **);
+int cmd_pmc_stat_system(int, char **);
+int cmd_pmc_list_events(int, char **);
+int cmd_pmc_summary(int, char **);
 #if defined(__cplusplus)
 };
 #endif
-int	pmc_util_get_pid(struct pmcstat_args *);
-void	pmc_util_start_pmcs(struct pmcstat_args *);
-void	pmc_util_cleanup(struct pmcstat_args *);
-void	pmc_util_shutdown_logging(struct pmcstat_args *args);
-void	pmc_util_kill_process(struct pmcstat_args *args);
+int pmc_util_get_pid(struct pmcstat_args *);
+void pmc_util_start_pmcs(struct pmcstat_args *);
+void pmc_util_cleanup(struct pmcstat_args *);
+void pmc_util_shutdown_logging(struct pmcstat_args *args);
+void pmc_util_kill_process(struct pmcstat_args *args);
 
 #endif

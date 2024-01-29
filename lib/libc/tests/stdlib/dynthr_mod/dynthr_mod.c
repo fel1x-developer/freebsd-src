@@ -31,12 +31,12 @@
  * may be omitted in redistributions.
  */
 
+#include <pthread.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
-#include <pthread.h>
 
 void mod_main(int op);
 
@@ -68,4 +68,3 @@ mod_main(int op)
 		break;
 	}
 }
-

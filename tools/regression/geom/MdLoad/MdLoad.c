@@ -33,39 +33,40 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <stdint.h>
-#include <string.h>
-#include <ctype.h>
-#include <errno.h>
-#include <paths.h>
-#include <fcntl.h>
-#include <err.h>
-#include <bsdxml.h>
 #include <sys/types.h>
-#include <sys/stat.h>
+#include <sys/mman.h>
 #include <sys/queue.h>
 #include <sys/sbuf.h>
-#include <sys/mman.h>
+#include <sys/stat.h>
+
+#include <bsdxml.h>
+#include <ctype.h>
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <paths.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 struct sector {
-	LIST_ENTRY(sector)	sectors;
-	off_t			offset;
-	unsigned char		*data;
+	LIST_ENTRY(sector) sectors;
+	off_t offset;
+	unsigned char *data;
 };
 
 struct simdisk_softc {
-	int			sectorsize;
-	off_t			mediasize;
-	off_t			lastsector;
-	LIST_HEAD(,sector)	sectors;
-	struct sbuf		*sbuf;
-	struct sector		*sp;
-	u_int			fwsectors;
-	u_int			fwheads;
-	u_int			fwcylinders;
+	int sectorsize;
+	off_t mediasize;
+	off_t lastsector;
+	LIST_HEAD(, sector) sectors;
+	struct sbuf *sbuf;
+	struct sector *sp;
+	u_int fwsectors;
+	u_int fwheads;
+	u_int fwcylinders;
 };
 
 static void
@@ -80,7 +81,7 @@ g_simdisk_insertsector(struct simdisk_softc *sc, struct sector *dsp)
 		return;
 	}
 	dsp3 = NULL;
-	LIST_FOREACH(dsp2, &sc->sectors, sectors) {
+	LIST_FOREACH (dsp2, &sc->sectors, sectors) {
 		dsp3 = dsp2;
 		if (dsp2->offset > dsp->offset) {
 			LIST_INSERT_BEFORE(dsp2, dsp, sectors);
@@ -142,7 +143,7 @@ endElement(void *userData, const char *name)
 		if (*p != '\0')
 			errx(1, "strtoul croaked on fwcylinders");
 	} else if (!strcasecmp(name, "offset")) {
-		sc->sp->offset= strtoull(sbuf_data(sc->sbuf), &p, 0);
+		sc->sp->offset = strtoull(sbuf_data(sc->sbuf), &p, 0);
 		if (*p != '\0')
 			errx(1, "strtoul croaked on offset");
 	} else if (!strcasecmp(name, "fill")) {
@@ -153,14 +154,16 @@ endElement(void *userData, const char *name)
 		p = sbuf_data(sc->sbuf);
 		for (i = 0; i < sc->sectorsize; i++) {
 			if (!isxdigit(*p))
-				errx(1, "I croaked on hexdata %d:(%02x)", i, *p);
+				errx(1, "I croaked on hexdata %d:(%02x)", i,
+				    *p);
 			if (isdigit(*p))
 				j = (*p - '0') << 4;
 			else
 				j = (tolower(*p) - 'a' + 10) << 4;
 			p++;
 			if (!isxdigit(*p))
-				errx(1, "I croaked on hexdata %d:(%02x)", i, *p);
+				errx(1, "I croaked on hexdata %d:(%02x)", i,
+				    *p);
 			if (isdigit(*p))
 				j |= *p - '0';
 			else
@@ -216,7 +219,7 @@ g_simdisk_xml_load(const char *file)
 	if (fd < 0)
 		err(1, "%s", file);
 	fstat(fd, &st);
-	p = mmap(NULL, st.st_size, PROT_READ, MAP_NOCORE|MAP_PRIVATE, fd, 0);
+	p = mmap(NULL, st.st_size, PROT_READ, MAP_NOCORE | MAP_PRIVATE, fd, 0);
 	i = XML_Parse(parser, p, st.st_size, 1);
 	if (i != 1)
 		errx(1, "XML_Parse complains: return %d", i);
@@ -245,8 +248,8 @@ main(int argc, char **argv)
 	sprintf(buf, "mdconfig -a -t malloc -s %jd -S %d",
 	    (intmax_t)sc->mediasize / sc->sectorsize, sc->sectorsize);
 	if (sc->fwsectors && sc->fwheads)
-		sprintf(buf + strlen(buf), " -x %d -y %d",
-		    sc->fwsectors, sc->fwheads);
+		sprintf(buf + strlen(buf), " -x %d -y %d", sc->fwsectors,
+		    sc->fwheads);
 	sprintf(buf + strlen(buf), " -u %s", argv[1]);
 	error = system(buf);
 	if (error)
@@ -258,12 +261,12 @@ main(int argc, char **argv)
 	}
 	if (fd < 0)
 		err(1, "Could not open %s", argv[1]);
-	LIST_FOREACH(dsp, &sc->sectors, sectors) {
+	LIST_FOREACH (dsp, &sc->sectors, sectors) {
 		lseek(fd, dsp->offset, SEEK_SET);
 		error = write(fd, dsp->data, sc->sectorsize);
 		if (error != sc->sectorsize)
 			err(1, "write sectordata failed");
 	}
 	close(fd);
-	exit (0);
+	exit(0);
 }

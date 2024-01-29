@@ -27,9 +27,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -43,15 +43,14 @@
 #include "gpiobus_if.h"
 #include "iicbb_if.h"
 
-#define	GPIOIIC_SCL_DFLT	0
-#define	GPIOIIC_SDA_DFLT	1
-#define	GPIOIIC_MIN_PINS	2
+#define GPIOIIC_SCL_DFLT 0
+#define GPIOIIC_SDA_DFLT 1
+#define GPIOIIC_MIN_PINS 2
 
-struct gpioiic_softc 
-{
-	device_t	dev;
-	gpio_pin_t	sclpin;
-	gpio_pin_t	sdapin;
+struct gpioiic_softc {
+	device_t dev;
+	gpio_pin_t sclpin;
+	gpio_pin_t sdapin;
 };
 
 #ifdef FDT
@@ -59,9 +58,9 @@ struct gpioiic_softc
 #include <dev/ofw/ofw_bus.h>
 
 static struct ofw_compat_data compat_data[] = {
-	{"i2c-gpio",  true}, /* Standard devicetree compat string */
-	{"gpioiic",   true}, /* Deprecated old freebsd compat string */
-	{NULL,        false}
+	{ "i2c-gpio", true }, /* Standard devicetree compat string */
+	{ "gpioiic", true },  /* Deprecated old freebsd compat string */
+	{ NULL, false }
 };
 OFWBUS_PNP_INFO(compat_data);
 SIMPLEBUS_PNP_INFO(compat_data);
@@ -89,23 +88,23 @@ gpioiic_setup_fdt_pins(struct gpioiic_softc *sc)
 	 */
 	if (OF_hasprop(node, "gpios")) {
 		if ((err = gpio_pin_get_by_ofw_idx(sc->dev, node,
-		    GPIOIIC_SCL_DFLT, &sc->sclpin)) != 0) {
+			 GPIOIIC_SCL_DFLT, &sc->sclpin)) != 0) {
 			device_printf(sc->dev, "invalid gpios property\n");
 			return (err);
 		}
 		if ((err = gpio_pin_get_by_ofw_idx(sc->dev, node,
-		    GPIOIIC_SDA_DFLT, &sc->sdapin)) != 0) {
+			 GPIOIIC_SDA_DFLT, &sc->sdapin)) != 0) {
 			device_printf(sc->dev, "ivalid gpios property\n");
 			return (err);
 		}
 	} else {
 		if ((err = gpio_pin_get_by_ofw_property(sc->dev, node,
-		    "scl-gpios", &sc->sclpin)) != 0) {
+			 "scl-gpios", &sc->sclpin)) != 0) {
 			device_printf(sc->dev, "missing scl-gpios property\n");
 			return (err);
 		}
 		if ((err = gpio_pin_get_by_ofw_property(sc->dev, node,
-		    "sda-gpios", &sc->sdapin)) != 0) {
+			 "sda-gpios", &sc->sdapin)) != 0) {
 			device_printf(sc->dev, "missing sda-gpios property\n");
 			return (err);
 		}
@@ -132,7 +131,7 @@ gpioiic_setup_hinted_pins(struct gpioiic_softc *sc)
 	 */
 	if (resource_string_value(devname, unit, "at", &busname) != 0 ||
 	    (strcmp(busname, device_get_nameunit(busdev)) != 0 &&
-	     strcmp(busname, device_get_name(busdev)) != 0)) {
+		strcmp(busname, device_get_name(busdev)) != 0)) {
 		return (ENOENT);
 	}
 
@@ -148,7 +147,7 @@ gpioiic_setup_hinted_pins(struct gpioiic_softc *sc)
 			return (ENOENT);
 		}
 #endif
-		device_printf(sc->dev, 
+		device_printf(sc->dev,
 		    "invalid pins hint; it must contain at least %d pins\n",
 		    GPIOIIC_MIN_PINS);
 		return (EINVAL);
@@ -175,11 +174,11 @@ gpioiic_setup_hinted_pins(struct gpioiic_softc *sc)
 	}
 
 	/* Allocate gpiobus_pin structs for the pins we found above. */
-	if ((err = gpio_pin_get_by_child_index(sc->dev, sclnum,
-	    &sc->sclpin)) != 0)
+	if ((err = gpio_pin_get_by_child_index(sc->dev, sclnum, &sc->sclpin)) !=
+	    0)
 		return (err);
-	if ((err = gpio_pin_get_by_child_index(sc->dev, sdanum,
-	    &sc->sdapin)) != 0)
+	if ((err = gpio_pin_get_by_child_index(sc->dev, sdanum, &sc->sdapin)) !=
+	    0)
 		return (err);
 
 	return (0);
@@ -276,7 +275,7 @@ gpioiic_probe(device_t dev)
 #ifdef FDT
 	if (ofw_bus_status_okay(dev) &&
 	    ofw_bus_search_compatible(dev, compat_data)->ocd_data)
-                rv = BUS_PROBE_DEFAULT;
+		rv = BUS_PROBE_DEFAULT;
 #endif
 
 	device_set_desc(dev, "GPIO I2C");
@@ -313,7 +312,8 @@ gpioiic_attach(device_t dev)
 	device_printf(dev, "SCL pin: %s:%d, SDA pin: %s:%d\n",
 #ifdef FDT
 	    device_get_nameunit(GPIO_GET_BUS(sc->sclpin->dev)), sc->sclpin->pin,
-	    device_get_nameunit(GPIO_GET_BUS(sc->sdapin->dev)), sc->sdapin->pin);
+	    device_get_nameunit(GPIO_GET_BUS(sc->sdapin->dev)),
+	    sc->sdapin->pin);
 #else
 	    device_get_nameunit(device_get_parent(dev)), sc->sclpin->pin,
 	    device_get_nameunit(device_get_parent(dev)), sc->sdapin->pin);
@@ -340,20 +340,20 @@ gpioiic_detach(device_t dev)
 
 static device_method_t gpioiic_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		gpioiic_probe),
-	DEVMETHOD(device_attach,	gpioiic_attach),
-	DEVMETHOD(device_detach,	gpioiic_detach),
+	DEVMETHOD(device_probe, gpioiic_probe),
+	DEVMETHOD(device_attach, gpioiic_attach),
+	DEVMETHOD(device_detach, gpioiic_detach),
 
 	/* iicbb interface */
-	DEVMETHOD(iicbb_setsda,		gpioiic_setsda),
-	DEVMETHOD(iicbb_setscl,		gpioiic_setscl),
-	DEVMETHOD(iicbb_getsda,		gpioiic_getsda),
-	DEVMETHOD(iicbb_getscl,		gpioiic_getscl),
-	DEVMETHOD(iicbb_reset,		gpioiic_reset),
+	DEVMETHOD(iicbb_setsda, gpioiic_setsda),
+	DEVMETHOD(iicbb_setscl, gpioiic_setscl),
+	DEVMETHOD(iicbb_getsda, gpioiic_getsda),
+	DEVMETHOD(iicbb_getscl, gpioiic_getscl),
+	DEVMETHOD(iicbb_reset, gpioiic_reset),
 
 #ifdef FDT
 	/* OFW bus interface */
-	DEVMETHOD(ofw_bus_get_node,	gpioiic_get_node),
+	DEVMETHOD(ofw_bus_get_node, gpioiic_get_node),
 #endif
 
 	DEVMETHOD_END

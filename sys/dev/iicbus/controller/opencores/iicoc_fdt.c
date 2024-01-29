@@ -31,37 +31,29 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/limits.h>
-#include <sys/module.h>
-#include <sys/bus.h>
 #include <sys/lock.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
 
 #include <dev/clk/clk.h>
-
 #include <dev/iicbus/iicbus.h>
 #include <dev/iicbus/iiconf.h>
-
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
 #include "iicbus_if.h"
 #include "iicoc.h"
 
-static struct ofw_compat_data compat_data[] = {
-	{ "opencores,i2c-ocores",	1 },
-	{ "sifive,fu740-c000-i2c",	1 },
-	{ "sifive,fu540-c000-i2c",	1 },
-	{ "sifive,i2c0",		1 },
-	{ NULL,				0 }
-};
+static struct ofw_compat_data compat_data[] = { { "opencores,i2c-ocores", 1 },
+	{ "sifive,fu740-c000-i2c", 1 }, { "sifive,fu540-c000-i2c", 1 },
+	{ "sifive,i2c0", 1 }, { NULL, 0 } };
 
-static struct resource_spec iicoc_spec[] = {
-	{ SYS_RES_MEMORY, 0, RF_ACTIVE },
-	RESOURCE_SPEC_END
-};
+static struct resource_spec iicoc_spec[] = { { SYS_RES_MEMORY, 0, RF_ACTIVE },
+	RESOURCE_SPEC_END };
 
 static phandle_t
 iicoc_get_node(device_t bus, device_t dev)
@@ -93,8 +85,7 @@ iicoc_attach(device_t dev)
 
 	node = ofw_bus_get_node(dev);
 	sc->reg_shift = 0;
-	OF_getencprop(node, "reg-shift", &sc->reg_shift,
-	    sizeof(sc->reg_shift));
+	OF_getencprop(node, "reg-shift", &sc->reg_shift, sizeof(sc->reg_shift));
 
 	error = clk_get_by_ofw_index(dev, 0, 0, &clock);
 	if (error) {

@@ -27,22 +27,25 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/dtrace_bsd.h>
+#include <sys/dtrace_impl.h>
 #include <sys/kernel.h>
-#include <sys/malloc.h>
 #include <sys/kmem.h>
+#include <sys/malloc.h>
 #include <sys/proc.h>
 #include <sys/smp.h>
-#include <sys/dtrace_impl.h>
-#include <sys/dtrace_bsd.h>
-#include <cddl/dev/dtrace/dtrace_cddl.h>
+
+#include <vm/pmap.h>
+
 #include <machine/armreg.h>
 #include <machine/clock.h>
 #include <machine/frame.h>
 #include <machine/trap.h>
 #include <machine/vmparam.h>
-#include <vm/pmap.h>
 
-extern dtrace_id_t	dtrace_probeid_error;
+#include <cddl/dev/dtrace/dtrace_cddl.h>
+
+extern dtrace_id_t dtrace_probeid_error;
 extern int (*dtrace_invop_jump_addr)(struct trapframe *);
 extern void dtrace_getnanotime(struct timespec *tsp);
 extern void dtrace_getnanouptime(struct timespec *tsp);
@@ -80,7 +83,7 @@ dtrace_invop_add(int (*func)(uintptr_t, struct trapframe *, uintptr_t))
 {
 	dtrace_invop_hdlr_t *hdlr;
 
-	hdlr = kmem_alloc(sizeof (dtrace_invop_hdlr_t), KM_SLEEP);
+	hdlr = kmem_alloc(sizeof(dtrace_invop_hdlr_t), KM_SLEEP);
 	hdlr->dtih_func = func;
 	hdlr->dtih_next = dtrace_invop_hdlr;
 	dtrace_invop_hdlr = hdlr;
@@ -141,7 +144,6 @@ dtrace_xcall(processorid_t cpu, dtrace_xcall_t func, void *arg)
 static void
 dtrace_sync_func(void)
 {
-
 }
 
 void
@@ -205,7 +207,8 @@ dtrace_trap(struct trapframe *frame, u_int type)
 		switch (type) {
 		case EXCP_DATA_ABORT:
 			/* Flag a bad address. */
-			cpu_core[curcpu].cpuc_dtrace_flags |= CPU_DTRACE_BADADDR;
+			cpu_core[curcpu].cpuc_dtrace_flags |=
+			    CPU_DTRACE_BADADDR;
 			cpu_core[curcpu].cpuc_dtrace_illval = frame->tf_far;
 
 			/*
@@ -230,8 +233,8 @@ dtrace_probe_error(dtrace_state_t *state, dtrace_epid_t epid, int which,
 {
 
 	dtrace_probe(dtrace_probeid_error, (uint64_t)(uintptr_t)state,
-	    (uintptr_t)epid,
-	    (uintptr_t)which, (uintptr_t)fault, (uintptr_t)fltoffs);
+	    (uintptr_t)epid, (uintptr_t)which, (uintptr_t)fault,
+	    (uintptr_t)fltoffs);
 }
 
 static void

@@ -41,6 +41,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <ctype.h>
 #include <limits.h>
 #include <stdio.h>
@@ -50,36 +51,36 @@
 
 #include "extern.h"
 
-#define	SECS_PER_HOUR	3600
+#define SECS_PER_HOUR 3600
 
 /*
  * Bit-values which indicate which components of time were specified
  * by the string given to parse8601 or parseDWM.  These are needed to
  * calculate what time-in-the-future will match that string.
  */
-#define	TSPEC_YEAR		0x0001
-#define	TSPEC_MONTHOFYEAR	0x0002
-#define	TSPEC_LDAYOFMONTH	0x0004
-#define	TSPEC_DAYOFMONTH	0x0008
-#define	TSPEC_DAYOFWEEK		0x0010
-#define	TSPEC_HOUROFDAY		0x0020
+#define TSPEC_YEAR 0x0001
+#define TSPEC_MONTHOFYEAR 0x0002
+#define TSPEC_LDAYOFMONTH 0x0004
+#define TSPEC_DAYOFMONTH 0x0008
+#define TSPEC_DAYOFWEEK 0x0010
+#define TSPEC_HOUROFDAY 0x0020
 
-#define	TNYET_ADJ4DST		-10	/* DST has "not yet" been adjusted */
+#define TNYET_ADJ4DST -10 /* DST has "not yet" been adjusted */
 
 struct ptime_data {
-	time_t		 basesecs;	/* Base point for relative times */
-	time_t		 tsecs;		/* Time in seconds */
-	struct tm	 basetm;	/* Base Time expanded into fields */
-	struct tm	 tm;		/* Time expanded into fields */
-	int		 did_adj4dst;	/* Track calls to ptime_adjust4dst */
-	int		 parseopts;	/* Options given for parsing */
-	int		 tmspec;	/* Indicates which time fields had
-					 * been specified by the user */
+	time_t basesecs;  /* Base point for relative times */
+	time_t tsecs;	  /* Time in seconds */
+	struct tm basetm; /* Base Time expanded into fields */
+	struct tm tm;	  /* Time expanded into fields */
+	int did_adj4dst;  /* Track calls to ptime_adjust4dst */
+	int parseopts;	  /* Options given for parsing */
+	int tmspec;	  /* Indicates which time fields had
+			   * been specified by the user */
 };
 
-static int	 days_pmonth(int month, int year);
-static int	 parse8601(struct ptime_data *ptime, const char *str);
-static int	 parseDWM(struct ptime_data *ptime, const char *str);
+static int days_pmonth(int month, int year);
+static int parse8601(struct ptime_data *ptime, const char *str);
+static int parseDWM(struct ptime_data *ptime, const char *str);
 
 /*
  * Simple routine to calculate the number of days in a given month.
@@ -87,8 +88,8 @@ static int	 parseDWM(struct ptime_data *ptime, const char *str);
 static int
 days_pmonth(int month, int year)
 {
-	static const int mtab[] = {31, 28, 31, 30, 31, 30, 31, 31,
-	    30, 31, 30, 31};
+	static const int mtab[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30,
+		31 };
 	int ndays;
 
 	ndays = mtab[month];
@@ -107,9 +108,9 @@ days_pmonth(int month, int year)
 			 * both 100 and 400.
 			 */
 			if (year % 100 != 0)
-				ndays++;	/* not multiple of 100 */
+				ndays++; /* not multiple of 100 */
 			else if (year % 400 == 0)
-				ndays++;	/* is multiple of 100 and 400 */
+				ndays++; /* is multiple of 100 and 400 */
 		}
 	}
 	return (ndays);
@@ -168,8 +169,8 @@ parse8601(struct ptime_data *ptime, const char *s)
 	}
 
 	/* sanity check */
-	if (tm.tm_year < 70 || tm.tm_mon < 0 || tm.tm_mon > 12
-	    || tm.tm_mday < 1 || tm.tm_mday > 31)
+	if (tm.tm_year < 70 || tm.tm_mon < 0 || tm.tm_mon > 12 ||
+	    tm.tm_mday < 1 || tm.tm_mday > 31)
 		return (-1);
 
 	if (*t != '\0') {
@@ -198,8 +199,8 @@ parse8601(struct ptime_data *ptime, const char *s)
 		}
 
 		/* sanity check */
-		if (tm.tm_sec < 0 || tm.tm_sec > 60 || tm.tm_min < 0
-		    || tm.tm_min > 59 || tm.tm_hour < 0 || tm.tm_hour > 23)
+		if (tm.tm_sec < 0 || tm.tm_sec > 60 || tm.tm_min < 0 ||
+		    tm.tm_min > 59 || tm.tm_hour < 0 || tm.tm_hour > 23)
 			return (-1);
 	}
 
@@ -365,7 +366,7 @@ ptime_adjust4dst(struct ptime_data *ptime, const struct ptime_data *dstsrc)
 	/* Check to see if this adjustment was already made */
 	if ((adjtime.did_adj4dst != TNYET_ADJ4DST) &&
 	    (adjtime.did_adj4dst == dstsrc->tm.tm_isdst))
-		return (0);		/* yes, so don't make it twice */
+		return (0); /* yes, so don't make it twice */
 
 	/* See if daylight-saving has changed between the two times. */
 	if (dstsrc->tm.tm_isdst != adjtime.tm.tm_isdst) {
@@ -423,8 +424,7 @@ ptime_relparse(struct ptime_data *ptime, int parseopts, time_t basetime,
 	 */
 	dpm = days_pmonth(ptime->tm.tm_mon, ptime->tm.tm_year);
 	if ((parseopts & PTM_PARSE_MATCHDOM) &&
-	    (ptime->tmspec & TSPEC_DAYOFMONTH) &&
-	    (ptime->tm.tm_mday> dpm)) {
+	    (ptime->tmspec & TSPEC_DAYOFMONTH) && (ptime->tm.tm_mday > dpm)) {
 		/*
 		 * ptime_nxtime() will want a ptime->tsecs value,
 		 * but we need to avoid mktime resetting all the
@@ -441,8 +441,7 @@ ptime_relparse(struct ptime_data *ptime, int parseopts, time_t basetime,
 		if (ptime->tsecs > (time_t)-1)
 			ptimeset_nxtime(ptime);
 		if (verbose && dbg_at_times > 1)
-			fprintf(stderr,
-			    " to: %4d/%02d/%02d %02d:%02d\n",
+			fprintf(stderr, " to: %4d/%02d/%02d %02d:%02d\n",
 			    ptime->tm.tm_year, ptime->tm.tm_mon,
 			    ptime->tm.tm_mday, ptime->tm.tm_hour,
 			    ptime->tm.tm_min);
@@ -495,10 +494,10 @@ ptimeget_ctime(const struct ptime_data *ptime)
  * NILVALUE.
  */
 char *
-ptimeget_ctime_rfc5424(const struct ptime_data *ptime,
-    char *timebuf, size_t bufsize)
+ptimeget_ctime_rfc5424(const struct ptime_data *ptime, char *timebuf,
+    size_t bufsize)
 {
-	static const char NILVALUE[] = {"-"};	/* RFC5424 specified NILVALUE */
+	static const char NILVALUE[] = { "-" }; /* RFC5424 specified NILVALUE */
 	int chars;
 	struct tm tm;
 	int tz_hours;
@@ -541,12 +540,11 @@ ptimeget_ctime_rfc5424(const struct ptime_data *ptime,
 	tz_mins = (tz_offset % 3600) / 60;
 
 	chars = snprintf(timebuf, bufsize,
-	    "%04d-%02d-%02d"	/* date */
-	    "T%02d:%02d:%02d"	/* time */
-	    "%c%02d:%02d",	/* time zone offset */
-	    tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
-	    tm.tm_hour, tm.tm_min, tm.tm_sec,
-	    tz_sign, tz_hours, tz_mins);
+	    "%04d-%02d-%02d"  /* date */
+	    "T%02d:%02d:%02d" /* time */
+	    "%c%02d:%02d",    /* time zone offset */
+	    tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min,
+	    tm.tm_sec, tz_sign, tz_hours, tz_mins);
 
 	/* If the timestamp is too big for timebuf, return the NILVALUE. */
 	if (chars >= (int)bufsize) {
@@ -557,8 +555,8 @@ ptimeget_ctime_rfc5424(const struct ptime_data *ptime,
 }
 
 double
-ptimeget_diff(const struct ptime_data *minuend, const struct
-    ptime_data *subtrahend)
+ptimeget_diff(const struct ptime_data *minuend,
+    const struct ptime_data *subtrahend)
 {
 
 	/* Just like difftime(), we have no good error-return */

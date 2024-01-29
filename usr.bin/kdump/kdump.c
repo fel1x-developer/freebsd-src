@@ -31,35 +31,36 @@
 
 #define _WANT_KERNEL_ERRNO
 #ifdef __LP64__
-#define	_WANT_KEVENT32
+#define _WANT_KEVENT32
 #endif
-#define	_WANT_FREEBSD11_KEVENT
-#define	_WANT_FREEBSD_BITSET
+#define _WANT_FREEBSD11_KEVENT
+#define _WANT_FREEBSD_BITSET
 #include <sys/param.h>
-#include <sys/capsicum.h>
 #include <sys/_bitset.h>
 #include <sys/bitset.h>
+#include <sys/capsicum.h>
 #include <sys/errno.h>
-#include <sys/time.h>
-#include <sys/uio.h>
 #include <sys/event.h>
+#include <sys/ioctl.h>
 #include <sys/ktrace.h>
 #include <sys/mman.h>
-#include <sys/ioctl.h>
+#include <sys/queue.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/sysent.h>
+#include <sys/time.h>
+#include <sys/uio.h>
 #include <sys/umtx.h>
 #include <sys/un.h>
-#include <sys/queue.h>
 #include <sys/wait.h>
 #ifdef WITH_CASPER
 #include <sys/nv.h>
 #endif
-#include <arpa/inet.h>
 #include <netinet/in.h>
-#include <ctype.h>
+
+#include <arpa/inet.h>
 #include <capsicum_helpers.h>
+#include <ctype.h>
 #include <err.h>
 #include <grp.h>
 #include <inttypes.h>
@@ -75,14 +76,14 @@
 #include <time.h>
 #include <unistd.h>
 #include <vis.h>
-#include "ktrace.h"
+
 #include "kdump.h"
+#include "ktrace.h"
 
 #ifdef WITH_CASPER
-#include <libcasper.h>
-
 #include <casper/cap_grp.h>
 #include <casper/cap_pwd.h>
+#include <libcasper.h>
 #endif
 
 int fetchprocinfo(struct ktr_header *, u_int *);
@@ -116,10 +117,10 @@ void ktrsyscall_freebsd(struct ktr_syscall *ktr, register_t **resip,
     int *resnarg, char *resc, u_int sv_flags);
 void usage(void);
 
-#define	TIMESTAMP_NONE		0x0
-#define	TIMESTAMP_ABSOLUTE	0x1
-#define	TIMESTAMP_ELAPSED	0x2
-#define	TIMESTAMP_RELATIVE	0x4
+#define TIMESTAMP_NONE 0x0
+#define TIMESTAMP_ABSOLUTE 0x1
+#define TIMESTAMP_ELAPSED 0x2
+#define TIMESTAMP_RELATIVE 0x4
 
 bool decimal, fancy = true, resolv;
 static bool abiflag, suppressdata, syscallno, tail, threads, cpuflag;
@@ -128,14 +129,13 @@ static const char *tracefile = DEF_TRACEFILE;
 static struct ktr_header ktr_header;
 static short version;
 
-#define TIME_FORMAT	"%b %e %T %Y"
-#define eqs(s1, s2)	(strcmp((s1), (s2)) == 0)
+#define TIME_FORMAT "%b %e %T %Y"
+#define eqs(s1, s2) (strcmp((s1), (s2)) == 0)
 
-struct proc_info
-{
-	TAILQ_ENTRY(proc_info)	info;
-	u_int			sv_flags;
-	pid_t			pid;
+struct proc_info {
+	TAILQ_ENTRY(proc_info) info;
+	u_int sv_flags;
+	pid_t pid;
 };
 
 static TAILQ_HEAD(trace_procs, proc_info) trace_procs;
@@ -184,7 +184,7 @@ cappwdgrp_setup(cap_channel_t **cappwdp, cap_channel_t **capgrpp)
 	*capgrpp = capgrploc;
 	return (0);
 }
-#endif	/* WITH_CASPER */
+#endif /* WITH_CASPER */
 
 void
 print_integer_arg(const char *(*decoder)(int), int value)
@@ -334,7 +334,7 @@ main(int argc, char *argv[])
 
 	timestamp = TIMESTAMP_NONE;
 
-	while ((ch = getopt(argc,argv,"f:cdElm:np:AHRrSsTt:")) != -1)
+	while ((ch = getopt(argc, argv, "f:cdElm:np:AHRrSsTt:")) != -1)
 		switch (ch) {
 		case 'A':
 			abiflag = true;
@@ -434,11 +434,11 @@ main(int argc, char *argv[])
 		if (ktr_header.ktr_type & KTR_DROP) {
 			ktr_header.ktr_type &= ~KTR_DROP;
 			if (!drop_logged && threads) {
-				printf(
-				    "%6d %6d %-8.*s Events dropped.\n",
+				printf("%6d %6d %-8.*s Events dropped.\n",
 				    ktr_header.ktr_pid,
 				    ktr_header.ktr_tid > 0 ?
-				    (lwpid_t)ktr_header.ktr_tid : 0,
+					(lwpid_t)ktr_header.ktr_tid :
+					0,
 				    MAXCOMLEN, ktr_header.ktr_comm);
 				drop_logged = 1;
 			} else if (!drop_logged) {
@@ -451,7 +451,7 @@ main(int argc, char *argv[])
 		if ((ktrlen = ktr_header.ktr_len) < 0)
 			errx(1, "bogus length 0x%x", ktrlen);
 		if (ktrlen > size) {
-			m = realloc(m, ktrlen+1);
+			m = realloc(m, ktrlen + 1);
 			if (m == NULL)
 				errx(1, "%s", strerror(ENOMEM));
 			size = ktrlen;
@@ -466,7 +466,7 @@ main(int argc, char *argv[])
 		if (pid && ktr_header.ktr_pid != pid &&
 		    ktr_header.ktr_tid != pid)
 			continue;
-		if ((trpoints & (1<<ktr_header.ktr_type)) == 0)
+		if ((trpoints & (1 << ktr_header.ktr_type)) == 0)
 			continue;
 		sv_flags = findabi(&ktr_header);
 		dumpheader(&ktr_header, sv_flags);
@@ -541,7 +541,7 @@ fetchprocinfo(struct ktr_header *kth, u_int *flags)
 
 	switch (kth->ktr_type) {
 	case KTR_PROCCTOR:
-		TAILQ_FOREACH(pi, &trace_procs, info) {
+		TAILQ_FOREACH (pi, &trace_procs, info) {
 			if (pi->pid == kth->ktr_pid) {
 				TAILQ_REMOVE(&trace_procs, pi, info);
 				break;
@@ -556,7 +556,7 @@ fetchprocinfo(struct ktr_header *kth, u_int *flags)
 		return (1);
 
 	case KTR_PROCDTOR:
-		TAILQ_FOREACH(pi, &trace_procs, info) {
+		TAILQ_FOREACH (pi, &trace_procs, info) {
 			if (pi->pid == kth->ktr_pid) {
 				TAILQ_REMOVE(&trace_procs, pi, info);
 				free(pi);
@@ -574,7 +574,7 @@ findabi(struct ktr_header *kth)
 {
 	struct proc_info *pi;
 
-	TAILQ_FOREACH(pi, &trace_procs, info) {
+	TAILQ_FOREACH (pi, &trace_procs, info) {
 		if (pi->pid == kth->ktr_pid) {
 			return (pi->sv_flags);
 		}
@@ -597,8 +597,7 @@ dumptimeval(struct ktr_header_v0 *kth)
 		if (prevtime_e.tv_sec == 0)
 			prevtime_e = kth->ktr_time;
 		timersub(&kth->ktr_time, &prevtime_e, &temp);
-		printf("%jd.%06ld ", (intmax_t)temp.tv_sec,
-		    temp.tv_usec);
+		printf("%jd.%06ld ", (intmax_t)temp.tv_sec, temp.tv_usec);
 	}
 	if (timestamp & TIMESTAMP_RELATIVE) {
 		if (prevtime.tv_sec == 0)
@@ -631,8 +630,7 @@ dumptimespec(struct ktr_header *kth)
 		if (prevtime_e.tv_sec == 0)
 			prevtime_e = kth->ktr_time;
 		timespecsub(&kth->ktr_time, &prevtime_e, &temp);
-		printf("%jd.%09ld ", (intmax_t)temp.tv_sec,
-		    temp.tv_nsec);
+		printf("%jd.%09ld ", (intmax_t)temp.tv_sec, temp.tv_nsec);
 	}
 	if (timestamp & TIMESTAMP_RELATIVE) {
 		if (prevtime.tv_sec == 0)
@@ -711,11 +709,11 @@ dumpheader(struct ktr_header *kth, u_int sv_flags)
 	 */
 	if (threads)
 		printf("%6d %6d %-8.*s ", kth->ktr_pid,
-		    kth->ktr_tid > 0 ? (lwpid_t)kth->ktr_tid : 0,
-		    MAXCOMLEN, kth->ktr_comm);
+		    kth->ktr_tid > 0 ? (lwpid_t)kth->ktr_tid : 0, MAXCOMLEN,
+		    kth->ktr_comm);
 	else
 		printf("%6d %-8.*s ", kth->ktr_pid, MAXCOMLEN, kth->ktr_comm);
-        if (timestamp) {
+	if (timestamp) {
 		if (version == KTR_VERSION0)
 			dumptimeval((struct ktr_header_v0 *)kth);
 		else
@@ -831,11 +829,10 @@ ktrsyscall(struct ktr_syscall *ktr, u_int sv_flags)
 			case SV_ABI_LINUX:
 #ifdef __amd64__
 				if (sv_flags & SV_ILP32)
-					ktrsyscall_linux32(ktr, &ip,
-					    &narg, &c);
+					ktrsyscall_linux32(ktr, &ip, &narg, &c);
 				else
 #endif
-				ktrsyscall_linux(ktr, &ip, &narg, &c);
+					ktrsyscall_linux(ktr, &ip, &narg, &c);
 				break;
 #endif /* SYSDECODE_HAVE_LINUX */
 			}
@@ -848,8 +845,8 @@ ktrsyscall(struct ktr_syscall *ktr, u_int sv_flags)
 }
 
 void
-ktrsyscall_freebsd(struct ktr_syscall *ktr, register_t **resip,
-    int *resnarg, char *resc, u_int sv_flags)
+ktrsyscall_freebsd(struct ktr_syscall *ktr, register_t **resip, int *resnarg,
+    char *resc, u_int sv_flags)
 {
 	int narg = ktr->ktr_narg;
 	register_t *ip, *first;
@@ -859,746 +856,727 @@ ktrsyscall_freebsd(struct ktr_syscall *ktr, register_t **resip,
 	ip = first = &ktr->ktr_args[0];
 	char c = *resc;
 
-			quad_align = 0;
-			if (sv_flags & SV_ILP32) {
+	quad_align = 0;
+	if (sv_flags & SV_ILP32) {
 #ifdef __powerpc__
-				quad_align = 1;
+		quad_align = 1;
 #endif
-				quad_slots = 2;
-			} else
-				quad_slots = 1;
-			switch (ktr->ktr_code) {
-			case SYS_bindat:
-			case SYS_chflagsat:
-			case SYS_connectat:
-			case SYS_faccessat:
-			case SYS_fchmodat:
-			case SYS_fchownat:
-			case SYS_fstatat:
-			case SYS_futimesat:
-			case SYS_linkat:
-			case SYS_mkdirat:
-			case SYS_mkfifoat:
-			case SYS_mknodat:
-			case SYS_openat:
-			case SYS_readlinkat:
-			case SYS_renameat:
-			case SYS_unlinkat:
-			case SYS_utimensat:
-				putchar('(');
-				print_integer_arg_valid(sysdecode_atfd, *ip);
-				c = ',';
-				ip++;
-				narg--;
-				break;
-			}
-			switch (ktr->ktr_code) {
-			case SYS_ioctl: {
-				print_number(ip, narg, c);
-				putchar(c);
-				ioctlname(*ip);
-				c = ',';
-				ip++;
-				narg--;
-				break;
-			}
-			case SYS_ptrace:
-				putchar('(');
-				print_integer_arg(sysdecode_ptrace_request, *ip);
-				c = ',';
-				ip++;
-				narg--;
-				break;
-			case SYS_access:
-			case SYS_eaccess:
-			case SYS_faccessat:
-				print_number(ip, narg, c);
-				putchar(',');
-				print_mask_arg(sysdecode_access_mode, *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_close_range:
-				print_number(ip, narg, c);
-				print_number(ip, narg, c);
-				putchar(',');
-				print_mask_arg0(sysdecode_close_range_flags,
-				    *ip);
-				ip += 3;
-				narg -= 3;
-				break;
-			case SYS_open:
-			case SYS_openat:
-				print_number(ip, narg, c);
-				putchar(',');
-				print_mask_arg(sysdecode_open_flags, ip[0]);
-				if ((ip[0] & O_CREAT) == O_CREAT) {
-					putchar(',');
-					decode_filemode(ip[1]);
-				}
-				ip += 2;
-				narg -= 2;
-				break;
-			case SYS_wait4:
-				print_number(ip, narg, c);
-				print_number(ip, narg, c);
-				putchar(',');
-				print_mask_arg0(sysdecode_wait4_options, *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_wait6:
-				putchar('(');
-				print_integer_arg(sysdecode_idtype, *ip);
-				c = ',';
-				ip++;
-				narg--;
-				print_number64(first, ip, narg, c);
-				print_number(ip, narg, c);
-				putchar(',');
-				print_mask_arg(sysdecode_wait6_options, *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_chmod:
-			case SYS_fchmod:
-			case SYS_lchmod:
-			case SYS_fchmodat:
-				print_number(ip, narg, c);
-				putchar(',');
-				decode_filemode(*ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_mknodat:
-				print_number(ip, narg, c);
-				putchar(',');
-				decode_filemode(*ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_getfsstat:
-				print_number(ip, narg, c);
-				print_number(ip, narg, c);
-				putchar(',');
-				print_integer_arg(sysdecode_getfsstat_mode, *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_mount:
-				print_number(ip, narg, c);
-				print_number(ip, narg, c);
-				putchar(',');
-				print_mask_arg0(sysdecode_mount_flags, *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_unmount:
-				print_number(ip, narg, c);
-				putchar(',');
-				print_mask_arg0(sysdecode_mount_flags, *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_recvmsg:
-			case SYS_sendmsg:
-				print_number(ip, narg, c);
-				print_number(ip, narg, c);
-				putchar(',');
-				print_mask_arg0(sysdecode_msg_flags, *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_recvfrom:
-			case SYS_sendto:
-				print_number(ip, narg, c);
-				print_number(ip, narg, c);
-				print_number(ip, narg, c);
-				putchar(',');
-				print_mask_arg0(sysdecode_msg_flags, *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_chflags:
-			case SYS_chflagsat:
-			case SYS_fchflags:
-			case SYS_lchflags:
-				print_number(ip, narg, c);
-				putchar(',');
-				decode_fileflags(*ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_kill:
-				print_number(ip, narg, c);
-				putchar(',');
-				print_signal(*ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_reboot:
-				putchar('(');
-				print_mask_arg(sysdecode_reboot_howto, *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_umask:
-				putchar('(');
-				decode_filemode(*ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_msync:
-				print_number(ip, narg, c);
-				print_number(ip, narg, c);
-				putchar(',');
-				print_mask_arg(sysdecode_msync_flags, *ip);
-				ip++;
-				narg--;
-				break;
+		quad_slots = 2;
+	} else
+		quad_slots = 1;
+	switch (ktr->ktr_code) {
+	case SYS_bindat:
+	case SYS_chflagsat:
+	case SYS_connectat:
+	case SYS_faccessat:
+	case SYS_fchmodat:
+	case SYS_fchownat:
+	case SYS_fstatat:
+	case SYS_futimesat:
+	case SYS_linkat:
+	case SYS_mkdirat:
+	case SYS_mkfifoat:
+	case SYS_mknodat:
+	case SYS_openat:
+	case SYS_readlinkat:
+	case SYS_renameat:
+	case SYS_unlinkat:
+	case SYS_utimensat:
+		putchar('(');
+		print_integer_arg_valid(sysdecode_atfd, *ip);
+		c = ',';
+		ip++;
+		narg--;
+		break;
+	}
+	switch (ktr->ktr_code) {
+	case SYS_ioctl: {
+		print_number(ip, narg, c);
+		putchar(c);
+		ioctlname(*ip);
+		c = ',';
+		ip++;
+		narg--;
+		break;
+	}
+	case SYS_ptrace:
+		putchar('(');
+		print_integer_arg(sysdecode_ptrace_request, *ip);
+		c = ',';
+		ip++;
+		narg--;
+		break;
+	case SYS_access:
+	case SYS_eaccess:
+	case SYS_faccessat:
+		print_number(ip, narg, c);
+		putchar(',');
+		print_mask_arg(sysdecode_access_mode, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_close_range:
+		print_number(ip, narg, c);
+		print_number(ip, narg, c);
+		putchar(',');
+		print_mask_arg0(sysdecode_close_range_flags, *ip);
+		ip += 3;
+		narg -= 3;
+		break;
+	case SYS_open:
+	case SYS_openat:
+		print_number(ip, narg, c);
+		putchar(',');
+		print_mask_arg(sysdecode_open_flags, ip[0]);
+		if ((ip[0] & O_CREAT) == O_CREAT) {
+			putchar(',');
+			decode_filemode(ip[1]);
+		}
+		ip += 2;
+		narg -= 2;
+		break;
+	case SYS_wait4:
+		print_number(ip, narg, c);
+		print_number(ip, narg, c);
+		putchar(',');
+		print_mask_arg0(sysdecode_wait4_options, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_wait6:
+		putchar('(');
+		print_integer_arg(sysdecode_idtype, *ip);
+		c = ',';
+		ip++;
+		narg--;
+		print_number64(first, ip, narg, c);
+		print_number(ip, narg, c);
+		putchar(',');
+		print_mask_arg(sysdecode_wait6_options, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_chmod:
+	case SYS_fchmod:
+	case SYS_lchmod:
+	case SYS_fchmodat:
+		print_number(ip, narg, c);
+		putchar(',');
+		decode_filemode(*ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_mknodat:
+		print_number(ip, narg, c);
+		putchar(',');
+		decode_filemode(*ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_getfsstat:
+		print_number(ip, narg, c);
+		print_number(ip, narg, c);
+		putchar(',');
+		print_integer_arg(sysdecode_getfsstat_mode, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_mount:
+		print_number(ip, narg, c);
+		print_number(ip, narg, c);
+		putchar(',');
+		print_mask_arg0(sysdecode_mount_flags, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_unmount:
+		print_number(ip, narg, c);
+		putchar(',');
+		print_mask_arg0(sysdecode_mount_flags, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_recvmsg:
+	case SYS_sendmsg:
+		print_number(ip, narg, c);
+		print_number(ip, narg, c);
+		putchar(',');
+		print_mask_arg0(sysdecode_msg_flags, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_recvfrom:
+	case SYS_sendto:
+		print_number(ip, narg, c);
+		print_number(ip, narg, c);
+		print_number(ip, narg, c);
+		putchar(',');
+		print_mask_arg0(sysdecode_msg_flags, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_chflags:
+	case SYS_chflagsat:
+	case SYS_fchflags:
+	case SYS_lchflags:
+		print_number(ip, narg, c);
+		putchar(',');
+		decode_fileflags(*ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_kill:
+		print_number(ip, narg, c);
+		putchar(',');
+		print_signal(*ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_reboot:
+		putchar('(');
+		print_mask_arg(sysdecode_reboot_howto, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_umask:
+		putchar('(');
+		decode_filemode(*ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_msync:
+		print_number(ip, narg, c);
+		print_number(ip, narg, c);
+		putchar(',');
+		print_mask_arg(sysdecode_msync_flags, *ip);
+		ip++;
+		narg--;
+		break;
 #ifdef SYS_freebsd6_mmap
-			case SYS_freebsd6_mmap:
-				print_number(ip, narg, c);
-				print_number(ip, narg, c);
-				putchar(',');
-				print_mask_arg(sysdecode_mmap_prot, *ip);
-				putchar(',');
-				ip++;
-				narg--;
-				print_mask_arg(sysdecode_mmap_flags, *ip);
-				ip++;
-				narg--;
-				break;
+	case SYS_freebsd6_mmap:
+		print_number(ip, narg, c);
+		print_number(ip, narg, c);
+		putchar(',');
+		print_mask_arg(sysdecode_mmap_prot, *ip);
+		putchar(',');
+		ip++;
+		narg--;
+		print_mask_arg(sysdecode_mmap_flags, *ip);
+		ip++;
+		narg--;
+		break;
 #endif
-			case SYS_mmap:
-				print_number(ip, narg, c);
-				print_number(ip, narg, c);
-				putchar(',');
-				print_mask_arg(sysdecode_mmap_prot, *ip);
-				putchar(',');
-				ip++;
-				narg--;
-				print_mask_arg(sysdecode_mmap_flags, *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_mprotect:
-				print_number(ip, narg, c);
-				print_number(ip, narg, c);
-				putchar(',');
-				print_mask_arg(sysdecode_mmap_prot, *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_madvise:
-				print_number(ip, narg, c);
-				print_number(ip, narg, c);
-				putchar(',');
-				print_integer_arg(sysdecode_madvice, *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_pathconf:
-			case SYS_lpathconf:
-			case SYS_fpathconf:
-				print_number(ip, narg, c);
-				putchar(',');
-				print_integer_arg(sysdecode_pathconf_name, *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_getpriority:
-			case SYS_setpriority:
-				putchar('(');
-				print_integer_arg(sysdecode_prio_which, *ip);
-				c = ',';
-				ip++;
-				narg--;
-				break;
-			case SYS_fcntl:
-				print_number(ip, narg, c);
-				putchar(',');
-				print_integer_arg(sysdecode_fcntl_cmd, ip[0]);
-				if (sysdecode_fcntl_arg_p(ip[0])) {
-					putchar(',');
-					if (ip[0] == F_SETFL)
-						print_mask_arg(
-						    sysdecode_fcntl_fileflags,
-							ip[1]);
-					else
-						sysdecode_fcntl_arg(stdout,
-						    ip[0], ip[1],
-						    decimal ? 10 : 16);
-				}
-				ip += 2;
-				narg -= 2;
-				break;
-			case SYS_socket: {
-				int sockdomain;
-				putchar('(');
-				sockdomain = *ip;
-				print_integer_arg(sysdecode_socketdomain,
-				    sockdomain);
-				ip++;
-				narg--;
-				putchar(',');
-				print_mask_arg(sysdecode_socket_type, *ip);
-				ip++;
-				narg--;
-				if (sockdomain == PF_INET ||
-				    sockdomain == PF_INET6) {
-					putchar(',');
-					print_integer_arg(sysdecode_ipproto,
-					    *ip);
-					ip++;
-					narg--;
-				}
-				c = ',';
-				break;
-			}
-			case SYS_setsockopt:
-			case SYS_getsockopt: {
-				const char *str;
+	case SYS_mmap:
+		print_number(ip, narg, c);
+		print_number(ip, narg, c);
+		putchar(',');
+		print_mask_arg(sysdecode_mmap_prot, *ip);
+		putchar(',');
+		ip++;
+		narg--;
+		print_mask_arg(sysdecode_mmap_flags, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_mprotect:
+		print_number(ip, narg, c);
+		print_number(ip, narg, c);
+		putchar(',');
+		print_mask_arg(sysdecode_mmap_prot, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_madvise:
+		print_number(ip, narg, c);
+		print_number(ip, narg, c);
+		putchar(',');
+		print_integer_arg(sysdecode_madvice, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_pathconf:
+	case SYS_lpathconf:
+	case SYS_fpathconf:
+		print_number(ip, narg, c);
+		putchar(',');
+		print_integer_arg(sysdecode_pathconf_name, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_getpriority:
+	case SYS_setpriority:
+		putchar('(');
+		print_integer_arg(sysdecode_prio_which, *ip);
+		c = ',';
+		ip++;
+		narg--;
+		break;
+	case SYS_fcntl:
+		print_number(ip, narg, c);
+		putchar(',');
+		print_integer_arg(sysdecode_fcntl_cmd, ip[0]);
+		if (sysdecode_fcntl_arg_p(ip[0])) {
+			putchar(',');
+			if (ip[0] == F_SETFL)
+				print_mask_arg(sysdecode_fcntl_fileflags,
+				    ip[1]);
+			else
+				sysdecode_fcntl_arg(stdout, ip[0], ip[1],
+				    decimal ? 10 : 16);
+		}
+		ip += 2;
+		narg -= 2;
+		break;
+	case SYS_socket: {
+		int sockdomain;
+		putchar('(');
+		sockdomain = *ip;
+		print_integer_arg(sysdecode_socketdomain, sockdomain);
+		ip++;
+		narg--;
+		putchar(',');
+		print_mask_arg(sysdecode_socket_type, *ip);
+		ip++;
+		narg--;
+		if (sockdomain == PF_INET || sockdomain == PF_INET6) {
+			putchar(',');
+			print_integer_arg(sysdecode_ipproto, *ip);
+			ip++;
+			narg--;
+		}
+		c = ',';
+		break;
+	}
+	case SYS_setsockopt:
+	case SYS_getsockopt: {
+		const char *str;
 
-				print_number(ip, narg, c);
-				putchar(',');
-				print_integer_arg_valid(sysdecode_sockopt_level,
-				    *ip);
-				str = sysdecode_sockopt_name(ip[0], ip[1]);
-				if (str != NULL) {
-					printf(",%s", str);
-					ip++;
-					narg--;
-				}
-				ip++;
-				narg--;
-				break;
-			}
+		print_number(ip, narg, c);
+		putchar(',');
+		print_integer_arg_valid(sysdecode_sockopt_level, *ip);
+		str = sysdecode_sockopt_name(ip[0], ip[1]);
+		if (str != NULL) {
+			printf(",%s", str);
+			ip++;
+			narg--;
+		}
+		ip++;
+		narg--;
+		break;
+	}
 #ifdef SYS_freebsd6_lseek
-			case SYS_freebsd6_lseek:
-				print_number(ip, narg, c);
-				/* Hidden 'pad' argument, not in lseek(2) */
-				print_number(ip, narg, c);
-				print_number64(first, ip, narg, c);
-				putchar(',');
-				print_integer_arg(sysdecode_whence, *ip);
-				ip++;
-				narg--;
-				break;
+	case SYS_freebsd6_lseek:
+		print_number(ip, narg, c);
+		/* Hidden 'pad' argument, not in lseek(2) */
+		print_number(ip, narg, c);
+		print_number64(first, ip, narg, c);
+		putchar(',');
+		print_integer_arg(sysdecode_whence, *ip);
+		ip++;
+		narg--;
+		break;
 #endif
-			case SYS_lseek:
-				print_number(ip, narg, c);
-				print_number64(first, ip, narg, c);
-				putchar(',');
-				print_integer_arg(sysdecode_whence, *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_flock:
-				print_number(ip, narg, c);
-				putchar(',');
-				print_mask_arg(sysdecode_flock_operation, *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_mkfifo:
-			case SYS_mkfifoat:
-			case SYS_mkdir:
-			case SYS_mkdirat:
-				print_number(ip, narg, c);
-				putchar(',');
-				decode_filemode(*ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_shutdown:
-				print_number(ip, narg, c);
-				putchar(',');
-				print_integer_arg(sysdecode_shutdown_how, *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_socketpair:
-				putchar('(');
-				print_integer_arg(sysdecode_socketdomain, *ip);
-				ip++;
-				narg--;
-				putchar(',');
-				print_mask_arg(sysdecode_socket_type, *ip);
-				ip++;
-				narg--;
-				c = ',';
-				break;
-			case SYS_getrlimit:
-			case SYS_setrlimit:
-				putchar('(');
-				print_integer_arg(sysdecode_rlimit, *ip);
-				ip++;
-				narg--;
-				c = ',';
-				break;
-			case SYS_getrusage:
-				putchar('(');
-				print_integer_arg(sysdecode_getrusage_who, *ip);
-				ip++;
-				narg--;
-				c = ',';
-				break;
-			case SYS_quotactl:
-				print_number(ip, narg, c);
-				putchar(',');
-				if (!sysdecode_quotactl_cmd(stdout, *ip)) {
-					if (decimal)
-						printf("<invalid=%d>", (int)*ip);
-					else
-						printf("<invalid=%#x>",
-						    (int)*ip);
-				}
-				ip++;
-				narg--;
-				c = ',';
-				break;
-			case SYS_nfssvc:
-				putchar('(');
-				print_integer_arg(sysdecode_nfssvc_flags, *ip);
-				ip++;
-				narg--;
-				c = ',';
-				break;
-			case SYS_rtprio:
-			case SYS_rtprio_thread:
-				putchar('(');
-				print_integer_arg(sysdecode_rtprio_function,
-				    *ip);
-				ip++;
-				narg--;
-				c = ',';
-				break;
-			case SYS___semctl:
-				print_number(ip, narg, c);
-				print_number(ip, narg, c);
-				putchar(',');
-				print_integer_arg(sysdecode_semctl_cmd, *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_semget:
-				print_number(ip, narg, c);
-				print_number(ip, narg, c);
-				putchar(',');
-				print_mask_arg(sysdecode_semget_flags, *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_msgctl:
-				print_number(ip, narg, c);
-				putchar(',');
-				print_integer_arg(sysdecode_msgctl_cmd, *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_shmat:
-				print_number(ip, narg, c);
-				print_number(ip, narg, c);
-				putchar(',');
-				print_mask_arg(sysdecode_shmat_flags, *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_shmctl:
-				print_number(ip, narg, c);
-				putchar(',');
-				print_integer_arg(sysdecode_shmctl_cmd, *ip);
-				ip++;
-				narg--;
-				break;
+	case SYS_lseek:
+		print_number(ip, narg, c);
+		print_number64(first, ip, narg, c);
+		putchar(',');
+		print_integer_arg(sysdecode_whence, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_flock:
+		print_number(ip, narg, c);
+		putchar(',');
+		print_mask_arg(sysdecode_flock_operation, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_mkfifo:
+	case SYS_mkfifoat:
+	case SYS_mkdir:
+	case SYS_mkdirat:
+		print_number(ip, narg, c);
+		putchar(',');
+		decode_filemode(*ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_shutdown:
+		print_number(ip, narg, c);
+		putchar(',');
+		print_integer_arg(sysdecode_shutdown_how, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_socketpair:
+		putchar('(');
+		print_integer_arg(sysdecode_socketdomain, *ip);
+		ip++;
+		narg--;
+		putchar(',');
+		print_mask_arg(sysdecode_socket_type, *ip);
+		ip++;
+		narg--;
+		c = ',';
+		break;
+	case SYS_getrlimit:
+	case SYS_setrlimit:
+		putchar('(');
+		print_integer_arg(sysdecode_rlimit, *ip);
+		ip++;
+		narg--;
+		c = ',';
+		break;
+	case SYS_getrusage:
+		putchar('(');
+		print_integer_arg(sysdecode_getrusage_who, *ip);
+		ip++;
+		narg--;
+		c = ',';
+		break;
+	case SYS_quotactl:
+		print_number(ip, narg, c);
+		putchar(',');
+		if (!sysdecode_quotactl_cmd(stdout, *ip)) {
+			if (decimal)
+				printf("<invalid=%d>", (int)*ip);
+			else
+				printf("<invalid=%#x>", (int)*ip);
+		}
+		ip++;
+		narg--;
+		c = ',';
+		break;
+	case SYS_nfssvc:
+		putchar('(');
+		print_integer_arg(sysdecode_nfssvc_flags, *ip);
+		ip++;
+		narg--;
+		c = ',';
+		break;
+	case SYS_rtprio:
+	case SYS_rtprio_thread:
+		putchar('(');
+		print_integer_arg(sysdecode_rtprio_function, *ip);
+		ip++;
+		narg--;
+		c = ',';
+		break;
+	case SYS___semctl:
+		print_number(ip, narg, c);
+		print_number(ip, narg, c);
+		putchar(',');
+		print_integer_arg(sysdecode_semctl_cmd, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_semget:
+		print_number(ip, narg, c);
+		print_number(ip, narg, c);
+		putchar(',');
+		print_mask_arg(sysdecode_semget_flags, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_msgctl:
+		print_number(ip, narg, c);
+		putchar(',');
+		print_integer_arg(sysdecode_msgctl_cmd, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_shmat:
+		print_number(ip, narg, c);
+		print_number(ip, narg, c);
+		putchar(',');
+		print_mask_arg(sysdecode_shmat_flags, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_shmctl:
+		print_number(ip, narg, c);
+		putchar(',');
+		print_integer_arg(sysdecode_shmctl_cmd, *ip);
+		ip++;
+		narg--;
+		break;
 #ifdef SYS_freebsd12_shm_open
-			case SYS_freebsd12_shm_open:
-				if (ip[0] == (uintptr_t)SHM_ANON) {
-					printf("(SHM_ANON");
-					ip++;
-				} else {
-					print_number(ip, narg, c);
-				}
-				putchar(',');
-				print_mask_arg(sysdecode_open_flags, ip[0]);
-				putchar(',');
-				decode_filemode(ip[1]);
-				ip += 2;
-				narg -= 2;
-				break;
+	case SYS_freebsd12_shm_open:
+		if (ip[0] == (uintptr_t)SHM_ANON) {
+			printf("(SHM_ANON");
+			ip++;
+		} else {
+			print_number(ip, narg, c);
+		}
+		putchar(',');
+		print_mask_arg(sysdecode_open_flags, ip[0]);
+		putchar(',');
+		decode_filemode(ip[1]);
+		ip += 2;
+		narg -= 2;
+		break;
 #endif
-			case SYS_shm_open2:
-				if (ip[0] == (uintptr_t)SHM_ANON) {
-					printf("(SHM_ANON");
-					ip++;
-				} else {
-					print_number(ip, narg, c);
-				}
-				putchar(',');
-				print_mask_arg(sysdecode_open_flags, ip[0]);
-				putchar(',');
-				decode_filemode(ip[1]);
-				putchar(',');
-				print_mask_arg(sysdecode_shmflags, ip[2]);
-				ip += 3;
-				narg -= 3;
-				break;
-			case SYS_minherit:
-				print_number(ip, narg, c);
-				print_number(ip, narg, c);
-				putchar(',');
-				print_integer_arg(sysdecode_minherit_inherit,
-				    *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_rfork:
-				putchar('(');
-				print_mask_arg(sysdecode_rfork_flags, *ip);
-				ip++;
-				narg--;
-				c = ',';
-				break;
-			case SYS_lio_listio:
-				putchar('(');
-				print_integer_arg(sysdecode_lio_listio_mode,
-				    *ip);
-				ip++;
-				narg--;
-				c = ',';
-				break;
-			case SYS_mlockall:
-				putchar('(');
-				print_mask_arg(sysdecode_mlockall_flags, *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_sched_setscheduler:
-				print_number(ip, narg, c);
-				putchar(',');
-				print_integer_arg(sysdecode_scheduler_policy,
-				    *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_sched_get_priority_max:
-			case SYS_sched_get_priority_min:
-				putchar('(');
-				print_integer_arg(sysdecode_scheduler_policy,
-				    *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_sendfile:
-				print_number(ip, narg, c);
-				print_number(ip, narg, c);
-				print_number(ip, narg, c);
-				print_number(ip, narg, c);
-				print_number(ip, narg, c);
-				print_number(ip, narg, c);
-				putchar(',');
-				print_mask_arg(sysdecode_sendfile_flags, *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_kldsym:
-				print_number(ip, narg, c);
-				putchar(',');
-				print_integer_arg(sysdecode_kldsym_cmd, *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_sigprocmask:
-				putchar('(');
-				print_integer_arg(sysdecode_sigprocmask_how,
-				    *ip);
-				ip++;
-				narg--;
-				c = ',';
-				break;
-			case SYS___acl_get_file:
-			case SYS___acl_set_file:
-			case SYS___acl_get_fd:
-			case SYS___acl_set_fd:
-			case SYS___acl_delete_file:
-			case SYS___acl_delete_fd:
-			case SYS___acl_aclcheck_file:
-			case SYS___acl_aclcheck_fd:
-			case SYS___acl_get_link:
-			case SYS___acl_set_link:
-			case SYS___acl_delete_link:
-			case SYS___acl_aclcheck_link:
-				print_number(ip, narg, c);
-				putchar(',');
-				print_integer_arg(sysdecode_acltype, *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_sigaction:
-				putchar('(');
-				print_signal(*ip);
-				ip++;
-				narg--;
-				c = ',';
-				break;
-			case SYS_extattrctl:
-				print_number(ip, narg, c);
-				putchar(',');
-				print_integer_arg(sysdecode_extattrnamespace,
-				    *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_nmount:
-				print_number(ip, narg, c);
-				print_number(ip, narg, c);
-				putchar(',');
-				print_mask_arg0(sysdecode_mount_flags, *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_thr_create:
-				print_number(ip, narg, c);
-				print_number(ip, narg, c);
-				putchar(',');
-				print_mask_arg(sysdecode_thr_create_flags, *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_thr_kill:
-				print_number(ip, narg, c);
-				putchar(',');
-				print_signal(*ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_kldunloadf:
-				print_number(ip, narg, c);
-				putchar(',');
-				print_integer_arg(sysdecode_kldunload_flags,
-				    *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_linkat:
-			case SYS_renameat:
-			case SYS_symlinkat:
-				print_number(ip, narg, c);
-				putchar(',');
-				print_integer_arg_valid(sysdecode_atfd, *ip);
-				ip++;
-				narg--;
-				print_number(ip, narg, c);
-				break;
-			case SYS_cap_fcntls_limit:
-				print_number(ip, narg, c);
-				putchar(',');
-				arg = *ip;
-				ip++;
-				narg--;
-				print_mask_arg32(sysdecode_cap_fcntlrights, arg);
-				break;
-			case SYS_posix_fadvise:
-				print_number(ip, narg, c);
-				print_number(ip, narg, c);
-				print_number(ip, narg, c);
-				(void)putchar(',');
-				print_integer_arg(sysdecode_fadvice, *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS_procctl:
-				putchar('(');
-				print_integer_arg(sysdecode_idtype, *ip);
-				c = ',';
-				ip++;
-				narg--;
-				print_number64(first, ip, narg, c);
-				putchar(',');
-				print_integer_arg(sysdecode_procctl_cmd, *ip);
-				ip++;
-				narg--;
-				break;
-			case SYS__umtx_op: {
-				int op;
+	case SYS_shm_open2:
+		if (ip[0] == (uintptr_t)SHM_ANON) {
+			printf("(SHM_ANON");
+			ip++;
+		} else {
+			print_number(ip, narg, c);
+		}
+		putchar(',');
+		print_mask_arg(sysdecode_open_flags, ip[0]);
+		putchar(',');
+		decode_filemode(ip[1]);
+		putchar(',');
+		print_mask_arg(sysdecode_shmflags, ip[2]);
+		ip += 3;
+		narg -= 3;
+		break;
+	case SYS_minherit:
+		print_number(ip, narg, c);
+		print_number(ip, narg, c);
+		putchar(',');
+		print_integer_arg(sysdecode_minherit_inherit, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_rfork:
+		putchar('(');
+		print_mask_arg(sysdecode_rfork_flags, *ip);
+		ip++;
+		narg--;
+		c = ',';
+		break;
+	case SYS_lio_listio:
+		putchar('(');
+		print_integer_arg(sysdecode_lio_listio_mode, *ip);
+		ip++;
+		narg--;
+		c = ',';
+		break;
+	case SYS_mlockall:
+		putchar('(');
+		print_mask_arg(sysdecode_mlockall_flags, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_sched_setscheduler:
+		print_number(ip, narg, c);
+		putchar(',');
+		print_integer_arg(sysdecode_scheduler_policy, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_sched_get_priority_max:
+	case SYS_sched_get_priority_min:
+		putchar('(');
+		print_integer_arg(sysdecode_scheduler_policy, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_sendfile:
+		print_number(ip, narg, c);
+		print_number(ip, narg, c);
+		print_number(ip, narg, c);
+		print_number(ip, narg, c);
+		print_number(ip, narg, c);
+		print_number(ip, narg, c);
+		putchar(',');
+		print_mask_arg(sysdecode_sendfile_flags, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_kldsym:
+		print_number(ip, narg, c);
+		putchar(',');
+		print_integer_arg(sysdecode_kldsym_cmd, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_sigprocmask:
+		putchar('(');
+		print_integer_arg(sysdecode_sigprocmask_how, *ip);
+		ip++;
+		narg--;
+		c = ',';
+		break;
+	case SYS___acl_get_file:
+	case SYS___acl_set_file:
+	case SYS___acl_get_fd:
+	case SYS___acl_set_fd:
+	case SYS___acl_delete_file:
+	case SYS___acl_delete_fd:
+	case SYS___acl_aclcheck_file:
+	case SYS___acl_aclcheck_fd:
+	case SYS___acl_get_link:
+	case SYS___acl_set_link:
+	case SYS___acl_delete_link:
+	case SYS___acl_aclcheck_link:
+		print_number(ip, narg, c);
+		putchar(',');
+		print_integer_arg(sysdecode_acltype, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_sigaction:
+		putchar('(');
+		print_signal(*ip);
+		ip++;
+		narg--;
+		c = ',';
+		break;
+	case SYS_extattrctl:
+		print_number(ip, narg, c);
+		putchar(',');
+		print_integer_arg(sysdecode_extattrnamespace, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_nmount:
+		print_number(ip, narg, c);
+		print_number(ip, narg, c);
+		putchar(',');
+		print_mask_arg0(sysdecode_mount_flags, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_thr_create:
+		print_number(ip, narg, c);
+		print_number(ip, narg, c);
+		putchar(',');
+		print_mask_arg(sysdecode_thr_create_flags, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_thr_kill:
+		print_number(ip, narg, c);
+		putchar(',');
+		print_signal(*ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_kldunloadf:
+		print_number(ip, narg, c);
+		putchar(',');
+		print_integer_arg(sysdecode_kldunload_flags, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_linkat:
+	case SYS_renameat:
+	case SYS_symlinkat:
+		print_number(ip, narg, c);
+		putchar(',');
+		print_integer_arg_valid(sysdecode_atfd, *ip);
+		ip++;
+		narg--;
+		print_number(ip, narg, c);
+		break;
+	case SYS_cap_fcntls_limit:
+		print_number(ip, narg, c);
+		putchar(',');
+		arg = *ip;
+		ip++;
+		narg--;
+		print_mask_arg32(sysdecode_cap_fcntlrights, arg);
+		break;
+	case SYS_posix_fadvise:
+		print_number(ip, narg, c);
+		print_number(ip, narg, c);
+		print_number(ip, narg, c);
+		(void)putchar(',');
+		print_integer_arg(sysdecode_fadvice, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS_procctl:
+		putchar('(');
+		print_integer_arg(sysdecode_idtype, *ip);
+		c = ',';
+		ip++;
+		narg--;
+		print_number64(first, ip, narg, c);
+		putchar(',');
+		print_integer_arg(sysdecode_procctl_cmd, *ip);
+		ip++;
+		narg--;
+		break;
+	case SYS__umtx_op: {
+		int op;
 
-				print_number(ip, narg, c);
-				putchar(',');
-				if (print_mask_arg_part(sysdecode_umtx_op_flags,
-				    *ip, &op))
-					putchar('|');
-				print_integer_arg(sysdecode_umtx_op, op);
-				putchar('>');
-				switch (*ip) {
-				case UMTX_OP_CV_WAIT:
-					ip++;
-					narg--;
-					putchar(',');
-					print_mask_argul(
-					    sysdecode_umtx_cvwait_flags, *ip);
-					break;
-				case UMTX_OP_RW_RDLOCK:
-					ip++;
-					narg--;
-					putchar(',');
-					print_mask_argul(
-					    sysdecode_umtx_rwlock_flags, *ip);
-					break;
-				}
-				ip++;
-				narg--;
-				break;
-			}
-			case SYS_ftruncate:
-			case SYS_truncate:
-				print_number(ip, narg, c);
-				print_number64(first, ip, narg, c);
-				break;
-			case SYS_fchownat:
-				print_number(ip, narg, c);
-				print_number(ip, narg, c);
-				print_number(ip, narg, c);
-				break;
-			case SYS_fstatat:
-			case SYS_utimensat:
-				print_number(ip, narg, c);
-				print_number(ip, narg, c);
-				break;
-			case SYS_unlinkat:
-				print_number(ip, narg, c);
-				break;
-			case SYS_sysarch:
-				putchar('(');
-				print_integer_arg(sysdecode_sysarch_number, *ip);
-				ip++;
-				narg--;
-				c = ',';
-				break;
-			case SYS_getitimer:
-			case SYS_setitimer:
-				putchar('(');
-				print_integer_arg(sysdecode_itimer, *ip);
-				ip++;
-				narg--;
-				c = ',';
-				break;
-			}
-			switch (ktr->ktr_code) {
-			case SYS_chflagsat:
-			case SYS_fchownat:
-			case SYS_faccessat:
-			case SYS_fchmodat:
-			case SYS_fstatat:
-			case SYS_linkat:
-			case SYS_unlinkat:
-			case SYS_utimensat:
-				putchar(',');
-				print_mask_arg0(sysdecode_atflags, *ip);
-				ip++;
-				narg--;
-				break;
-			}
+		print_number(ip, narg, c);
+		putchar(',');
+		if (print_mask_arg_part(sysdecode_umtx_op_flags, *ip, &op))
+			putchar('|');
+		print_integer_arg(sysdecode_umtx_op, op);
+		putchar('>');
+		switch (*ip) {
+		case UMTX_OP_CV_WAIT:
+			ip++;
+			narg--;
+			putchar(',');
+			print_mask_argul(sysdecode_umtx_cvwait_flags, *ip);
+			break;
+		case UMTX_OP_RW_RDLOCK:
+			ip++;
+			narg--;
+			putchar(',');
+			print_mask_argul(sysdecode_umtx_rwlock_flags, *ip);
+			break;
+		}
+		ip++;
+		narg--;
+		break;
+	}
+	case SYS_ftruncate:
+	case SYS_truncate:
+		print_number(ip, narg, c);
+		print_number64(first, ip, narg, c);
+		break;
+	case SYS_fchownat:
+		print_number(ip, narg, c);
+		print_number(ip, narg, c);
+		print_number(ip, narg, c);
+		break;
+	case SYS_fstatat:
+	case SYS_utimensat:
+		print_number(ip, narg, c);
+		print_number(ip, narg, c);
+		break;
+	case SYS_unlinkat:
+		print_number(ip, narg, c);
+		break;
+	case SYS_sysarch:
+		putchar('(');
+		print_integer_arg(sysdecode_sysarch_number, *ip);
+		ip++;
+		narg--;
+		c = ',';
+		break;
+	case SYS_getitimer:
+	case SYS_setitimer:
+		putchar('(');
+		print_integer_arg(sysdecode_itimer, *ip);
+		ip++;
+		narg--;
+		c = ',';
+		break;
+	}
+	switch (ktr->ktr_code) {
+	case SYS_chflagsat:
+	case SYS_fchownat:
+	case SYS_faccessat:
+	case SYS_fchmodat:
+	case SYS_fstatat:
+	case SYS_linkat:
+	case SYS_unlinkat:
+	case SYS_utimensat:
+		putchar(',');
+		print_mask_arg0(sysdecode_atflags, *ip);
+		ip++;
+		narg--;
+		break;
+	}
 	*resc = c;
 	*resip = ip;
 	*resnarg = narg;
@@ -1629,8 +1607,9 @@ ktrsysret(struct ktr_sysret *ktr, u_int sv_flags)
 	else if (error == EJUSTRETURN)
 		printf("JUSTRETURN");
 	else {
-		printf("-1 errno %d", sysdecode_freebsd_to_abi_errno(
-		    syscallabi(sv_flags), error));
+		printf("-1 errno %d",
+		    sysdecode_freebsd_to_abi_errno(syscallabi(sv_flags),
+			error));
 		if (fancy)
 			printf(" %s", strerror(ktr->ktr_error));
 	}
@@ -1652,18 +1631,18 @@ hexdump(char *p, int len, int screenwidth)
 	width = 0;
 	do {
 		width += 2;
-		i = 13;			/* base offset */
-		i += (width / 2) + 1;	/* spaces every second byte */
-		i += (width * 2);	/* width of bytes */
-		i += 3;			/* "  |" */
-		i += width;		/* each byte */
-		i += 1;			/* "|" */
+		i = 13;		      /* base offset */
+		i += (width / 2) + 1; /* spaces every second byte */
+		i += (width * 2);     /* width of bytes */
+		i += 3;		      /* "  |" */
+		i += width;	      /* each byte */
+		i += 1;		      /* "|" */
 	} while (i < screenwidth);
 	width -= 2;
 
 	for (n = 0; n < len; n += width) {
 		for (i = n; i < n + width; i++) {
-			if ((i % width) == 0) {	/* beginning of line */
+			if ((i % width) == 0) { /* beginning of line */
 				printf("       0x%04x", i);
 			}
 			if ((i % 2) == 0) {
@@ -1699,8 +1678,8 @@ visdump(char *dp, int datalen, int screenwidth)
 
 	printf("       \"");
 	col = 8;
-	for (;datalen > 0; datalen--, dp++) {
-		vis(visbuf, *dp, VIS_CSTYLE | VIS_NOLOCALE, *(dp+1));
+	for (; datalen > 0; datalen--, dp++) {
+		vis(visbuf, *dp, VIS_CSTYLE | VIS_NOLOCALE, *(dp + 1));
 		cp = visbuf;
 		/*
 		 * Keep track of printables and
@@ -1710,18 +1689,18 @@ visdump(char *dp, int datalen, int screenwidth)
 			putchar('\t');
 			col = 8;
 		}
-		switch(*cp) {
+		switch (*cp) {
 		case '\n':
 			col = 0;
 			putchar('\n');
 			continue;
 		case '\t':
-			width = 8 - (col&07);
+			width = 8 - (col & 07);
 			break;
 		default:
 			width = strlen(cp);
 		}
-		if (col + width > (screenwidth-2)) {
+		if (col + width > (screenwidth - 2)) {
 			printf("\\\n\t");
 			col = 8;
 		}
@@ -1738,14 +1717,14 @@ visdump(char *dp, int datalen, int screenwidth)
 void
 ktrgenio(struct ktr_genio *ktr, int len)
 {
-	int datalen = len - sizeof (struct ktr_genio);
-	char *dp = (char *)ktr + sizeof (struct ktr_genio);
+	int datalen = len - sizeof(struct ktr_genio);
+	char *dp = (char *)ktr + sizeof(struct ktr_genio);
 	static int screenwidth = 0;
 	int i, binary;
 
 	printf("fd %d %s %d byte%s\n", ktr->ktr_fd,
-		ktr->ktr_rw == UIO_READ ? "read" : "wrote", datalen,
-		datalen == 1 ? "" : "s");
+	    ktr->ktr_rw == UIO_READ ? "read" : "wrote", datalen,
+	    datalen == 1 ? "" : "s");
 	if (suppressdata)
 		return;
 	if (screenwidth == 0) {
@@ -1760,7 +1739,7 @@ ktrgenio(struct ktr_genio *ktr, int len)
 	if (maxdata && datalen > maxdata)
 		datalen = maxdata;
 
-	for (i = 0, binary = 0; i < datalen && binary == 0; i++)  {
+	for (i = 0, binary = 0; i < datalen && binary == 0; i++) {
 		if (dp[i] >= 32 && dp[i] < 127)
 			continue;
 		if (dp[i] == 10 || dp[i] == 13 || dp[i] == 0 || dp[i] == 9)
@@ -1782,8 +1761,8 @@ ktrpsig(struct ktr_psig *psig)
 	if (psig->action == SIG_DFL) {
 		printf(" SIG_DFL");
 	} else {
-		printf(" caught handler=0x%lx mask=0x%x",
-		    (u_long)psig->action, psig->mask.__bits[0]);
+		printf(" caught handler=0x%lx mask=0x%x", (u_long)psig->action,
+		    psig->mask.__bits[0]);
 	}
 	printf(" code=");
 	str = sysdecode_sigcode(psig->signo, psig->code);
@@ -1798,7 +1777,7 @@ void
 ktrcsw_old(struct ktr_csw_old *cs)
 {
 	printf("%s %s\n", cs->out ? "stop" : "resume",
-		cs->user ? "user" : "kernel");
+	    cs->user ? "user" : "kernel");
 }
 
 void
@@ -1858,11 +1837,11 @@ ktritimerval(struct itimerval *it)
 void
 ktrsockaddr(struct sockaddr *sa)
 {
-/*
- TODO: Support additional address families
-	#include <netsmb/netbios.h>
-	struct sockaddr_nb	*nb;
-*/
+	/*
+	 TODO: Support additional address families
+		#include <netsmb/netbios.h>
+		struct sockaddr_nb	*nb;
+	*/
 	const char *str;
 	char addr[64];
 
@@ -1879,13 +1858,13 @@ ktrsockaddr(struct sockaddr *sa)
 		printf("<invalid=%d>", sa->sa_family);
 	printf(", ");
 
-#define check_sockaddr_len(n)					\
-	if (sa_##n.s##n##_len < sizeof(struct sockaddr_##n)) {	\
-		printf("invalid");				\
-		break;						\
+#define check_sockaddr_len(n)                                  \
+	if (sa_##n.s##n##_len < sizeof(struct sockaddr_##n)) { \
+		printf("invalid");                             \
+		break;                                         \
 	}
 
-	switch(sa->sa_family) {
+	switch (sa->sa_family) {
 	case AF_INET: {
 		struct sockaddr_in sa_in;
 
@@ -1902,8 +1881,8 @@ ktrsockaddr(struct sockaddr *sa)
 		memset(&sa_in6, 0, sizeof(sa_in6));
 		memcpy(&sa_in6, sa, sa->sa_len);
 		check_sockaddr_len(in6);
-		getnameinfo((struct sockaddr *)&sa_in6, sizeof(sa_in6),
-		    addr, sizeof(addr), NULL, 0, NI_NUMERICHOST);
+		getnameinfo((struct sockaddr *)&sa_in6, sizeof(sa_in6), addr,
+		    sizeof(addr), NULL, 0, NI_NUMERICHOST);
 		printf("[%s]:%u", addr, htons(sa_in6.sin6_port));
 		break;
 	}
@@ -1926,7 +1905,7 @@ ktrstat(struct stat *statp)
 {
 	char mode[12], timestr[PATH_MAX + 4];
 	struct passwd *pwd;
-	struct group  *grp;
+	struct group *grp;
 	struct tm *tm;
 
 	/*
@@ -1934,8 +1913,8 @@ ktrstat(struct stat *statp)
 	 * buffer exactly sizeof(struct stat) bytes long.
 	 */
 	printf("struct stat {");
-	printf("dev=%ju, ino=%ju, ",
-		(uintmax_t)statp->st_dev, (uintmax_t)statp->st_ino);
+	printf("dev=%ju, ino=%ju, ", (uintmax_t)statp->st_dev,
+	    (uintmax_t)statp->st_ino);
 	if (!resolv)
 		printf("mode=0%jo, ", (uintmax_t)statp->st_mode);
 	else {
@@ -2021,8 +2000,8 @@ ktrstat(struct stat *statp)
 	else
 		printf(", ");
 	printf("size=%jd, blksize=%ju, blocks=%jd, flags=0x%x",
-		(uintmax_t)statp->st_size, (uintmax_t)statp->st_blksize,
-		(intmax_t)statp->st_blocks, statp->st_flags);
+	    (uintmax_t)statp->st_size, (uintmax_t)statp->st_blksize,
+	    (intmax_t)statp->st_blocks, statp->st_flags);
 	printf(" }\n");
 }
 
@@ -2062,8 +2041,7 @@ ktrstruct(char *buf, size_t buflen)
 	struct sockaddr_storage ss;
 	struct bitset *set;
 
-	for (name = buf, namelen = 0;
-	     namelen < buflen && name[namelen] != '\0';
+	for (name = buf, namelen = 0; namelen < buflen && name[namelen] != '\0';
 	     ++namelen)
 		/* nothing */;
 	if (namelen == buflen)
@@ -2220,8 +2198,7 @@ ktrstructarray(struct ktr_struct_array *ksa, size_t buflen)
 
 	buflen -= sizeof(*ksa);
 	for (name = (char *)(ksa + 1), namelen = 0;
-	     namelen < buflen && name[namelen] != '\0';
-	     ++namelen)
+	     namelen < buflen && name[namelen] != '\0'; ++namelen)
 		/* nothing */;
 	if (namelen == buflen)
 		goto invalid;
@@ -2236,7 +2213,7 @@ ktrstructarray(struct ktr_struct_array *ksa, size_t buflen)
 	printf("struct %s[] = { ", name);
 	first = true;
 	for (; datalen >= ksa->struct_size;
-	    data += ksa->struct_size, datalen -= ksa->struct_size) {
+	     data += ksa->struct_size, datalen -= ksa->struct_size) {
 		if (!first)
 			printf("\n             ");
 		else
@@ -2312,7 +2289,8 @@ bad_size:
 void
 usage(void)
 {
-	fprintf(stderr, "usage: kdump [-dEnlHRrSsTA] [-f trfile] "
+	fprintf(stderr,
+	    "usage: kdump [-dEnlHRrSsTA] [-f trfile] "
 	    "[-m maxdata] [-p pid] [-t trstr]\n");
 	exit(1);
 }

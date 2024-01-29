@@ -26,8 +26,8 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef	_DEV_OFW_OFW_BUS_H_
-#define	_DEV_OFW_OFW_BUS_H_
+#ifndef _DEV_OFW_OFW_BUS_H_
+#define _DEV_OFW_OFW_BUS_H_
 
 #include <sys/bus.h>
 

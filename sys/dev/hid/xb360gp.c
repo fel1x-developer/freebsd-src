@@ -39,65 +39,77 @@
 #include <sys/module.h>
 #include <sys/sysctl.h>
 
-#include <dev/evdev/input.h>
 #include <dev/evdev/evdev.h>
-
+#include <dev/evdev/input.h>
 #include <dev/hid/hgame.h>
 #include <dev/hid/hid.h>
 #include <dev/hid/hidbus.h>
 #include <dev/hid/hidmap.h>
 #include <dev/hid/hidquirk.h>
 #include <dev/hid/hidrdesc.h>
-
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 
-static const uint8_t	xb360gp_rdesc[] = {HID_XB360GP_REPORT_DESCR()};
+static const uint8_t xb360gp_rdesc[] = { HID_XB360GP_REPORT_DESCR() };
 
-#define XB360GP_MAP_BUT(number, code)	\
-	{ HIDMAP_KEY(HUP_BUTTON, number, code) }
-#define XB360GP_MAP_ABS(usage, code)	\
-	{ HIDMAP_ABS(HUP_GENERIC_DESKTOP, HUG_##usage, code) }
-#define XB360GP_MAP_ABS_FLT(usage, code)	\
-	{ HIDMAP_ABS(HUP_GENERIC_DESKTOP, HUG_##usage, code),	\
-	    .fuzz = 16, .flat = 128 }
-#define XB360GP_MAP_ABS_INV(usage, code)	\
-	{ HIDMAP_ABS(HUP_GENERIC_DESKTOP, HUG_##usage, code),	\
-	    .fuzz = 16, .flat = 128, .invert_value = true }
-#define XB360GP_MAP_CRG(usage_from, usage_to, callback)	\
-	{ HIDMAP_ANY_CB_RANGE(HUP_GENERIC_DESKTOP,	\
-	    HUG_##usage_from, HUG_##usage_to, callback) }
-#define XB360GP_FINALCB(cb)		\
-	{ HIDMAP_FINAL_CB(&cb) }
+#define XB360GP_MAP_BUT(number, code)                \
+	{                                            \
+		HIDMAP_KEY(HUP_BUTTON, number, code) \
+	}
+#define XB360GP_MAP_ABS(usage, code)                               \
+	{                                                          \
+		HIDMAP_ABS(HUP_GENERIC_DESKTOP, HUG_##usage, code) \
+	}
+#define XB360GP_MAP_ABS_FLT(usage, code)                            \
+	{                                                           \
+		HIDMAP_ABS(HUP_GENERIC_DESKTOP, HUG_##usage, code), \
+		    .fuzz = 16, .flat = 128                         \
+	}
+#define XB360GP_MAP_ABS_INV(usage, code)                            \
+	{                                                           \
+		HIDMAP_ABS(HUP_GENERIC_DESKTOP, HUG_##usage, code), \
+		    .fuzz = 16, .flat = 128, .invert_value = true   \
+	}
+#define XB360GP_MAP_CRG(usage_from, usage_to, callback)                    \
+	{                                                                  \
+		HIDMAP_ANY_CB_RANGE(HUP_GENERIC_DESKTOP, HUG_##usage_from, \
+		    HUG_##usage_to, callback)                              \
+	}
+#define XB360GP_FINALCB(cb)          \
+	{                            \
+		HIDMAP_FINAL_CB(&cb) \
+	}
 
 /* Customized to match usbhid's XBox 360 descriptor */
 static const struct hidmap_item xb360gp_map[] = {
-	XB360GP_MAP_BUT(1,		BTN_SOUTH),
-	XB360GP_MAP_BUT(2,		BTN_EAST),
-	XB360GP_MAP_BUT(3,		BTN_WEST),
-	XB360GP_MAP_BUT(4,		BTN_NORTH),
-	XB360GP_MAP_BUT(5,		BTN_TL),
-	XB360GP_MAP_BUT(6,		BTN_TR),
-	XB360GP_MAP_BUT(7,		BTN_SELECT),
-	XB360GP_MAP_BUT(8,		BTN_START),
-	XB360GP_MAP_BUT(9,		BTN_THUMBL),
-	XB360GP_MAP_BUT(10,		BTN_THUMBR),
-	XB360GP_MAP_BUT(11,		BTN_MODE),
+	XB360GP_MAP_BUT(1, BTN_SOUTH),
+	XB360GP_MAP_BUT(2, BTN_EAST),
+	XB360GP_MAP_BUT(3, BTN_WEST),
+	XB360GP_MAP_BUT(4, BTN_NORTH),
+	XB360GP_MAP_BUT(5, BTN_TL),
+	XB360GP_MAP_BUT(6, BTN_TR),
+	XB360GP_MAP_BUT(7, BTN_SELECT),
+	XB360GP_MAP_BUT(8, BTN_START),
+	XB360GP_MAP_BUT(9, BTN_THUMBL),
+	XB360GP_MAP_BUT(10, BTN_THUMBR),
+	XB360GP_MAP_BUT(11, BTN_MODE),
 	XB360GP_MAP_CRG(D_PAD_UP, D_PAD_LEFT, hgame_dpad_cb),
-	XB360GP_MAP_ABS_FLT(X,		ABS_X),
-	XB360GP_MAP_ABS_INV(Y,		ABS_Y),
-	XB360GP_MAP_ABS(Z,		ABS_Z),
-	XB360GP_MAP_ABS_FLT(RX,		ABS_RX),
-	XB360GP_MAP_ABS_INV(RY,		ABS_RY),
-	XB360GP_MAP_ABS(RZ,		ABS_RZ),
-	XB360GP_FINALCB(		hgame_final_cb),
+	XB360GP_MAP_ABS_FLT(X, ABS_X),
+	XB360GP_MAP_ABS_INV(Y, ABS_Y),
+	XB360GP_MAP_ABS(Z, ABS_Z),
+	XB360GP_MAP_ABS_FLT(RX, ABS_RX),
+	XB360GP_MAP_ABS_INV(RY, ABS_RY),
+	XB360GP_MAP_ABS(RZ, ABS_RZ),
+	XB360GP_FINALCB(hgame_final_cb),
 };
 
 static const STRUCT_USB_HOST_ID xb360gp_devs[] = {
 	/* the Xbox 360 gamepad doesn't use the HID class */
-	{USB_IFACE_CLASS(UICLASS_VENDOR),
-	 USB_IFACE_SUBCLASS(UISUBCLASS_XBOX360_CONTROLLER),
-	 USB_IFACE_PROTOCOL(UIPROTO_XBOX360_GAMEPAD),},
+	{
+	    USB_IFACE_CLASS(UICLASS_VENDOR),
+	    USB_IFACE_SUBCLASS(UISUBCLASS_XBOX360_CONTROLLER),
+	    USB_IFACE_PROTOCOL(UIPROTO_XBOX360_GAMEPAD),
+	},
 };
 
 static void
@@ -142,12 +154,14 @@ xb360gp_attach(device_t dev)
 	 * Turn off the four LEDs on the gamepad which
 	 * are blinking by default:
 	 */
-	static const uint8_t reportbuf[3] = {1, 3, 0};
+	static const uint8_t reportbuf[3] = { 1, 3, 0 };
 	error = hid_set_report(dev, reportbuf, sizeof(reportbuf),
 	    HID_OUTPUT_REPORT, 0);
 	if (error)
-		device_printf(dev, "set output report failed, error=%d "
-		    "(ignored)\n", error);
+		device_printf(dev,
+		    "set output report failed, error=%d "
+		    "(ignored)\n",
+		    error);
 
 	return (hidmap_attach(&sc->hm));
 }
@@ -160,13 +174,11 @@ xb360gp_detach(device_t dev)
 	return (hidmap_detach(&sc->hm));
 }
 
-static device_method_t xb360gp_methods[] = {
-	DEVMETHOD(device_identify,	xb360gp_identify),
-	DEVMETHOD(device_probe,		xb360gp_probe),
-	DEVMETHOD(device_attach,	xb360gp_attach),
-	DEVMETHOD(device_detach,	xb360gp_detach),
-	DEVMETHOD_END
-};
+static device_method_t xb360gp_methods[] = { DEVMETHOD(device_identify,
+						 xb360gp_identify),
+	DEVMETHOD(device_probe, xb360gp_probe),
+	DEVMETHOD(device_attach, xb360gp_attach),
+	DEVMETHOD(device_detach, xb360gp_detach), DEVMETHOD_END };
 
 DEFINE_CLASS_0(xb360gp, xb360gp_driver, xb360gp_methods,
     sizeof(struct hgame_softc));

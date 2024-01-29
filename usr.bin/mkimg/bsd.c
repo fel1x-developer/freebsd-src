@@ -26,25 +26,23 @@
 
 #include <sys/cdefs.h>
 #include <sys/errno.h>
+
+#include <bsd.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <bsd.h>
 
 #include "endian.h"
 #include "image.h"
 #include "mkimg.h"
 #include "scheme.h"
 
-static struct mkimg_alias bsd_aliases[] = {
-    {	ALIAS_FREEBSD_NANDFS, ALIAS_INT2TYPE(FS_NANDFS) },
-    {	ALIAS_FREEBSD_SWAP, ALIAS_INT2TYPE(FS_SWAP) },
-    {	ALIAS_FREEBSD_UFS, ALIAS_INT2TYPE(FS_BSDFFS) },
-    {	ALIAS_FREEBSD_VINUM, ALIAS_INT2TYPE(FS_VINUM) },
-    {	ALIAS_FREEBSD_ZFS, ALIAS_INT2TYPE(FS_ZFS) },
-    {	ALIAS_NONE, 0 }
-};
+static struct mkimg_alias bsd_aliases[] = { { ALIAS_FREEBSD_NANDFS,
+						ALIAS_INT2TYPE(FS_NANDFS) },
+	{ ALIAS_FREEBSD_SWAP, ALIAS_INT2TYPE(FS_SWAP) },
+	{ ALIAS_FREEBSD_UFS, ALIAS_INT2TYPE(FS_BSDFFS) },
+	{ ALIAS_FREEBSD_VINUM, ALIAS_INT2TYPE(FS_VINUM) },
+	{ ALIAS_FREEBSD_ZFS, ALIAS_INT2TYPE(FS_ZFS) }, { ALIAS_NONE, 0 } };
 
 static lba_t
 bsd_metadata(u_int where, lba_t blk)
@@ -78,7 +76,7 @@ bsd_write(lba_t imgsz, void *bootcode)
 	} else
 		memset(buf, 0, BSD_BOOTBLOCK_SIZE);
 
-	bsdparts = nparts + 1;	/* Account for c partition */
+	bsdparts = nparts + 1; /* Account for c partition */
 	if (bsdparts < BSD_NPARTS_MIN)
 		bsdparts = BSD_NPARTS_MIN;
 
@@ -97,7 +95,7 @@ bsd_write(lba_t imgsz, void *bootcode)
 
 	dp = &d->d_partitions[BSD_PART_RAW];
 	le32enc(&dp->p_size, imgsz);
-	TAILQ_FOREACH(part, &partlist, link) {
+	TAILQ_FOREACH (part, &partlist, link) {
 		n = part->index + ((part->index >= BSD_PART_RAW) ? 1 : 0);
 		dp = &d->d_partitions[n];
 		le32enc(&dp->p_size, part->size);
@@ -119,15 +117,13 @@ bsd_write(lba_t imgsz, void *bootcode)
 	return (error);
 }
 
-static struct mkimg_scheme bsd_scheme = {
-	.name = "bsd",
+static struct mkimg_scheme bsd_scheme = { .name = "bsd",
 	.description = "BSD disk label",
 	.aliases = bsd_aliases,
 	.metadata = bsd_metadata,
 	.write = bsd_write,
 	.nparts = BSD_NPARTS_MAX - 1,
 	.bootcode = BSD_BOOTBLOCK_SIZE,
-	.maxsecsz = 512
-};
+	.maxsecsz = 512 };
 
 SCHEME_DEFINE(bsd_scheme);

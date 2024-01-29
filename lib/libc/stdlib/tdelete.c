@@ -23,7 +23,7 @@
  * SUCH DAMAGE.
  */
 
-#define	_SEARCH_PRIVATE
+#define _SEARCH_PRIVATE
 #include <search.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -33,35 +33,37 @@
 /*
  * Makes a step to the left along the binary search tree. This step is
  * also saved, so it can be replayed while rebalancing.
-*/
-#define	GO_LEFT() do {							\
-	if ((*leaf)->balance == 0 ||					\
-	    ((*leaf)->balance < 0 && (*leaf)->rlink->balance == 0)) {	\
-		/*							\
-		 * If we reach a node that is balanced, or has a child	\
-		 * in the opposite direction that is balanced, we know	\
-		 * that we won't need to perform any rotations above	\
-		 * this point. In this case rotations are always	\
-		 * capable of keeping the subtree in balance. Make	\
-		 * this the root node and reset the path.		\
-		 */							\
-		rootp = leaf;						\
-		path_init(&path);					\
-	}								\
-	path_taking_left(&path);					\
-	leaf = &(*leaf)->llink;						\
-} while (0)
+ */
+#define GO_LEFT()                                                              \
+	do {                                                                   \
+		if ((*leaf)->balance == 0 ||                                   \
+		    ((*leaf)->balance < 0 && (*leaf)->rlink->balance == 0)) {  \
+			/*                                                     \
+			 * If we reach a node that is balanced, or has a child \
+			 * in the opposite direction that is balanced, we know \
+			 * that we won't need to perform any rotations above   \
+			 * this point. In this case rotations are always       \
+			 * capable of keeping the subtree in balance. Make     \
+			 * this the root node and reset the path.              \
+			 */                                                    \
+			rootp = leaf;                                          \
+			path_init(&path);                                      \
+		}                                                              \
+		path_taking_left(&path);                                       \
+		leaf = &(*leaf)->llink;                                        \
+	} while (0)
 
 /* Makes a step to the right along the binary search tree. */
-#define	GO_RIGHT() do {							\
-	if ((*leaf)->balance == 0 ||					\
-	    ((*leaf)->balance > 0 && (*leaf)->llink->balance == 0)) {	\
-		rootp = leaf;						\
-		path_init(&path);					\
-	}								\
-	path_taking_right(&path);					\
-	leaf = &(*leaf)->rlink;						\
-} while (0)
+#define GO_RIGHT()                                                            \
+	do {                                                                  \
+		if ((*leaf)->balance == 0 ||                                  \
+		    ((*leaf)->balance > 0 && (*leaf)->llink->balance == 0)) { \
+			rootp = leaf;                                         \
+			path_init(&path);                                     \
+		}                                                             \
+		path_taking_right(&path);                                     \
+		leaf = &(*leaf)->rlink;                                       \
+	} while (0)
 
 void *
 tdelete(const void *restrict key, posix_tnode **restrict rootp,

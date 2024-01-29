@@ -24,8 +24,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_FDT_SIMPLEBUS_H
-#define	_FDT_SIMPLEBUS_H
+#ifndef _FDT_SIMPLEBUS_H
+#define _FDT_SIMPLEBUS_H
 
 #include <dev/ofw/ofw_bus.h>
 
@@ -45,15 +45,15 @@ struct simplebus_softc {
 
 	struct simplebus_range *ranges;
 	int nranges;
-#define	SB_FLAG_NO_RANGES	(1 << 0) /* Bus doesn't have ranges property */
+#define SB_FLAG_NO_RANGES (1 << 0) /* Bus doesn't have ranges property */
 	int flags;
 
 	pcell_t acells, scells;
 };
 
 struct simplebus_devinfo {
-	struct ofw_bus_devinfo	obdinfo;
-	struct resource_list	rl;
+	struct ofw_bus_devinfo obdinfo;
+	struct resource_list rl;
 };
 
 void simplebus_init(device_t dev, phandle_t node);
@@ -61,11 +61,10 @@ device_t simplebus_add_device(device_t dev, phandle_t node, u_int order,
     const char *name, int unit, struct simplebus_devinfo *di);
 struct simplebus_devinfo *simplebus_setup_dinfo(device_t dev, phandle_t node,
     struct simplebus_devinfo *di);
-int simplebus_fill_ranges(phandle_t node,
-    struct simplebus_softc *sc);
+int simplebus_fill_ranges(phandle_t node, struct simplebus_softc *sc);
 
 int simplebus_attach(device_t dev);
 int simplebus_attach_impl(device_t dev);
 int simplebus_detach(device_t dev);
 
-#endif	/* _FDT_SIMPLEBUS_H */
+#endif /* _FDT_SIMPLEBUS_H */

@@ -32,29 +32,25 @@
 
 #ifndef _DTB_HH_
 #define _DTB_HH_
-#include <map>
-#include <string>
-
 #include <assert.h>
 
 #include "input_buffer.hh"
 #include "util.hh"
+#include <map>
+#include <string>
 
-namespace dtc
-{
+namespace dtc {
 /**
  * The dtb namespace contains code related to the generation of device tree
  * blobs, the binary representation of flattened device trees.  The abstract
  * tree representation calls into this code to generate the output.
  */
-namespace dtb
-{
+namespace dtb {
 /** The token types in the DTB, as defined by §7.4.1 of the ePAPR
  * specification.  All of these values are written in big-endian format in the
  * output.
  */
-enum token_type
-{
+enum token_type {
 	/**
 	 * Marker indicating the start of a node in the tree.  This is followed
 	 * by the nul-terminated name.  If a unit address is specified, then
@@ -67,44 +63,44 @@ enum token_type
 	 */
 	FDT_BEGIN_NODE = 0x00000001,
 	/**
-	 * Marker indicating the end of a node.  
+	 * Marker indicating the end of a node.
 	 */
-	FDT_END_NODE   = 0x00000002,
+	FDT_END_NODE = 0x00000002,
 	/**
 	 * The start of a property.  This is followed by two 32-bit big-endian
 	 * values.  The first indicates the length of the property value, the
 	 * second its index in the strings table.  It is then followed by the
 	 * property value, if the value is of non-zero length.
 	 */
-	FDT_PROP       = 0x00000003,
+	FDT_PROP = 0x00000003,
 	/**
 	 * Ignored token.  May be used for padding inside DTB nodes.
 	 */
-	FDT_NOP        = 0x00000004,
+	FDT_NOP = 0x00000004,
 	/**
 	 * Marker indicating the end of the tree.
 	 */
-	FDT_END        = 0x00000009
+	FDT_END = 0x00000009
 };
 
 /**
  * Returns the token as a string.  This is used for debugging and for printing
  * human-friendly error messages about malformed DTB input.
  */
-inline const char *token_type_name(token_type t)
+inline const char *
+token_type_name(token_type t)
 {
-	switch(t)
-	{
-		case FDT_BEGIN_NODE:
-			return "FDT_BEGIN_NODE";
-		case FDT_END_NODE:
-			return "FDT_END_NODE";
-		case FDT_PROP:
-			return "FDT_PROP";
-		case FDT_NOP:
-			return "FDT_NOP";
-		case FDT_END:
-			return "FDT_END";
+	switch (t) {
+	case FDT_BEGIN_NODE:
+		return "FDT_BEGIN_NODE";
+	case FDT_END_NODE:
+		return "FDT_END_NODE";
+	case FDT_PROP:
+		return "FDT_PROP";
+	case FDT_NOP:
+		return "FDT_NOP";
+	case FDT_END:
+		return "FDT_END";
 	}
 	assert(0);
 	// Not reached.
@@ -119,14 +115,13 @@ inline const char *token_type_name(token_type t)
  * into the internal buffer, so the sizes of the three tables can be calculated
  * before storing them in the buffer.
  */
-struct output_writer
-{
+struct output_writer {
 	/**
 	 * Writes a label into the output stream.  This is only applicable for
 	 * assembly output, where the labels become symbols that can be
 	 * resolved at link time.
 	 */
-	virtual void write_label(const std::string &name)   = 0;
+	virtual void write_label(const std::string &name) = 0;
 	/**
 	 * Writes a comment into the output stream.  Useful only when debugging
 	 * the output.
@@ -135,29 +130,29 @@ struct output_writer
 	/**
 	 * Writes a string.  A nul terminator is implicitly added.
 	 */
-	virtual void write_string(const std::string &name)  = 0;
+	virtual void write_string(const std::string &name) = 0;
 	/**
 	 * Writes a single 8-bit value.
 	 */
-	virtual void write_data(uint8_t)        = 0;
+	virtual void write_data(uint8_t) = 0;
 	/**
 	 * Writes a single 32-bit value.  The value is written in big-endian
 	 * format, but should be passed in the host's native endian.
 	 */
-	virtual void write_data(uint32_t)       = 0;
+	virtual void write_data(uint32_t) = 0;
 	/**
 	 * Writes a single 64-bit value.  The value is written in big-endian
 	 * format, but should be passed in the host's native endian.
 	 */
-	virtual void write_data(uint64_t)       = 0;
+	virtual void write_data(uint64_t) = 0;
 	/**
 	 * Writes the collected output to the specified file descriptor.
 	 */
-	virtual void write_to_file(int fd)      = 0;
+	virtual void write_to_file(int fd) = 0;
 	/**
 	 * Returns the number of bytes.
 	 */
-	virtual uint32_t size()                 = 0;
+	virtual uint32_t size() = 0;
 	/**
 	 * Helper for writing tokens to the output stream.  This writes a
 	 * comment above the token describing its value, for easier debugging
@@ -179,23 +174,23 @@ struct output_writer
  * Binary file writer.  This class is responsible for writing the DTB output
  * directly in blob format.
  */
-class binary_writer : public output_writer
-{
+class binary_writer : public output_writer {
 	/**
 	 * The internal buffer used to store the blob while it is being
 	 * constructed.
 	 */
 	byte_buffer buffer;
-	public:
+
+    public:
 	/**
 	 *  The binary format does not support labels, so this method
 	 * does nothing.
 	 */
-	void write_label(const std::string &) override {}
+	void write_label(const std::string &) override { }
 	/**
 	 * Comments are ignored by the binary writer.
 	 */
-	void write_comment(const std::string&)  override {}
+	void write_comment(const std::string &) override { }
 	void write_string(const std::string &name) override;
 	void write_data(uint8_t v) override;
 	void write_data(uint32_t v) override;
@@ -208,8 +203,7 @@ class binary_writer : public output_writer
  * assembly format that is suitable for linking into a kernel, loader, and so
  * on.
  */
-class asm_writer : public output_writer
-{
+class asm_writer : public output_writer {
 	/**
 	 * The internal buffer for temporary values.  Note that this actually
 	 * contains ASCII text, but it is a byte buffer so that we can just
@@ -229,8 +223,8 @@ class asm_writer : public output_writer
 	uint32_t bytes_written;
 
 	/**
-	 * Writes a string directly to the output as-is.  This is the function that
-	 * performs the real output.
+	 * Writes a string directly to the output as-is.  This is the function
+	 * that performs the real output.
 	 */
 	void write_string(const char *c);
 	/**
@@ -238,7 +232,7 @@ class asm_writer : public output_writer
 	 */
 	void write_string(const std::string &c) override;
 	/**
-	 * Writes the string, starting on a new line.  
+	 * Writes the string, starting on a new line.
 	 */
 	void write_line(const char *c);
 	/**
@@ -246,8 +240,13 @@ class asm_writer : public output_writer
 	 * directive, with up to four per line.
 	 */
 	void write_byte(uint8_t b);
-	public:
-	asm_writer() : byte_count(0), bytes_written(0) {}
+
+    public:
+	asm_writer()
+	    : byte_count(0)
+	    , bytes_written(0)
+	{
+	}
 	void write_label(const std::string &name) override;
 	void write_comment(const std::string &name) override;
 	void write_data(uint8_t v) override;
@@ -262,8 +261,7 @@ class asm_writer : public output_writer
  * the values found in the header and is responsible for writing them to the
  * output.
  */
-struct header
-{
+struct header {
 	/**
 	 * Magic value, used to validate that this really is a device tree
 	 * blob.  Should always be set to 0xd00dfeed.
@@ -280,7 +278,7 @@ struct header
 	 */
 	uint32_t off_dt_struct;
 	/**
-	 * The offset from the start of the blob of the strings table.  
+	 * The offset from the start of the blob of the strings table.
 	 */
 	uint32_t off_dt_strings;
 	/**
@@ -309,7 +307,7 @@ struct header
 	 */
 	uint32_t size_dt_struct;
 	/**
-	 * Writes the entire header to the specified output buffer.  
+	 * Writes the entire header to the specified output buffer.
 	 */
 	void write(output_writer &out);
 	/**
@@ -320,8 +318,13 @@ struct header
 	 * Default constructor.  Initialises the values that have sensible
 	 * defaults, leaves the others blank.
 	 */
-	header() : magic(0xd00dfeed), version(17), last_comp_version(16),
-		boot_cpuid_phys(0) {}
+	header()
+	    : magic(0xd00dfeed)
+	    , version(17)
+	    , last_comp_version(16)
+	    , boot_cpuid_phys(0)
+	{
+	}
 };
 
 /**
@@ -334,7 +337,7 @@ struct header
  */
 class string_table {
 	/**
-	 * Map from strings to their offset. 
+	 * Map from strings to their offset.
 	 */
 	std::map<std::string, uint32_t> string_offsets;
 	/**
@@ -348,11 +351,15 @@ class string_table {
 	 * The current size of the strings section.
 	 */
 	uint32_t size;
-	public:
+
+    public:
 	/**
 	 * Default constructor, creates an empty strings table.
 	 */
-	string_table() : size(0) {}
+	string_table()
+	    : size(0)
+	{
+	}
 	/**
 	 * Adds a string to the table, returning the offset from the start
 	 * where it will be written.  If the string is already present, this

@@ -37,7 +37,7 @@
 #include <geom/label/g_label.h>
 #include <geom/label/g_label_msdosfs.h>
 
-#define LABEL_NO_NAME		"NO NAME    "
+#define LABEL_NO_NAME "NO NAME    "
 
 static void
 g_label_msdosfs_taste(struct g_consumer *cp, char *label, size_t size)
@@ -56,7 +56,7 @@ g_label_msdosfs_taste(struct g_consumer *cp, char *label, size_t size)
 	bzero(label, size);
 
 	/* Check if the sector size of the medium is a valid FAT sector size. */
-	switch(pp->sectorsize) {
+	switch (pp->sectorsize) {
 	case 512:
 	case 1024:
 	case 2048:
@@ -103,7 +103,7 @@ g_label_msdosfs_taste(struct g_consumer *cp, char *label, size_t size)
 
 		/* A volume with no name should have "NO NAME    " as label. */
 		if (strncmp(pfat_bsbpb->BS_VolLab, LABEL_NO_NAME,
-		    sizeof(pfat_bsbpb->BS_VolLab)) == 0) {
+			sizeof(pfat_bsbpb->BS_VolLab)) == 0) {
 			G_LABEL_DEBUG(1,
 			    "MSDOSFS: %s: FAT12/16 volume has no name.",
 			    pp->name);
@@ -131,7 +131,7 @@ g_label_msdosfs_taste(struct g_consumer *cp, char *label, size_t size)
 		 * If the volume label is not "NO NAME    " we're done.
 		 */
 		if (strncmp(pfat32_bsbpb->BS_VolLab, LABEL_NO_NAME,
-		    sizeof(pfat32_bsbpb->BS_VolLab)) != 0) {
+			sizeof(pfat32_bsbpb->BS_VolLab)) != 0) {
 			copysize = MIN(size - 1,
 			    sizeof(pfat32_bsbpb->BS_VolLab));
 			memcpy(label, pfat32_bsbpb->BS_VolLab, copysize);
@@ -144,10 +144,10 @@ g_label_msdosfs_taste(struct g_consumer *cp, char *label, size_t size)
 		 * label of FAT32 volumes may be stored as a special entry in
 		 * the root directory.
 		 */
-		fat_FirstDataSector =
-		    UINT16BYTES(pfat32_bsbpb->BPB_RsvdSecCnt) +
+		fat_FirstDataSector = UINT16BYTES(
+					  pfat32_bsbpb->BPB_RsvdSecCnt) +
 		    (pfat32_bsbpb->BPB_NumFATs *
-		     UINT32BYTES(pfat32_bsbpb->BPB_FATSz32));
+			UINT32BYTES(pfat32_bsbpb->BPB_FATSz32));
 		fat_BytesPerSector = UINT16BYTES(pfat32_bsbpb->BPB_BytsPerSec);
 
 		G_LABEL_DEBUG(2,
@@ -161,7 +161,7 @@ g_label_msdosfs_taste(struct g_consumer *cp, char *label, size_t size)
 		}
 
 		for (offset = fat_BytesPerSector * fat_FirstDataSector;;
-		    offset += fat_BytesPerSector) {
+		     offset += fat_BytesPerSector) {
 			sector = (uint8_t *)g_read_data(cp, offset,
 			    fat_BytesPerSector, NULL);
 			if (sector == NULL)
@@ -171,7 +171,8 @@ g_label_msdosfs_taste(struct g_consumer *cp, char *label, size_t size)
 			do {
 				/* No more entries available. */
 				if (pfat_entry->DIR_Name[0] == 0) {
-					G_LABEL_DEBUG(1, "MSDOSFS: %s: "
+					G_LABEL_DEBUG(1,
+					    "MSDOSFS: %s: "
 					    "FAT32 volume has no name.",
 					    pp->name);
 					goto error;
@@ -180,8 +181,8 @@ g_label_msdosfs_taste(struct g_consumer *cp, char *label, size_t size)
 				/* Skip empty or long name entries. */
 				if (pfat_entry->DIR_Name[0] == 0xe5 ||
 				    (pfat_entry->DIR_Attr &
-				     FAT_DES_ATTR_LONG_NAME) ==
-				    FAT_DES_ATTR_LONG_NAME) {
+					FAT_DES_ATTR_LONG_NAME) ==
+					FAT_DES_ATTR_LONG_NAME) {
 					continue;
 				}
 
@@ -198,7 +199,7 @@ g_label_msdosfs_taste(struct g_consumer *cp, char *label, size_t size)
 					label[copysize] = '\0';
 					goto endofchecks;
 				}
-			} while((uint8_t *)(++pfat_entry) <
+			} while ((uint8_t *)(++pfat_entry) <
 			    (uint8_t *)(sector + fat_BytesPerSector));
 			g_free(sector);
 		}
@@ -216,10 +217,9 @@ error:
 	g_free(sector);
 }
 
-struct g_label_desc g_label_msdosfs = {
-	.ld_taste = g_label_msdosfs_taste,
+struct g_label_desc g_label_msdosfs = { .ld_taste = g_label_msdosfs_taste,
 	.ld_dirprefix = "msdosfs/",
-	.ld_enabled = 1
-};
+	.ld_enabled = 1 };
 
-G_LABEL_INIT(msdosfs, g_label_msdosfs, "Create device nodes for MSDOSFS volumes");
+G_LABEL_INIT(msdosfs, g_label_msdosfs,
+    "Create device nodes for MSDOSFS volumes");

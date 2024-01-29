@@ -46,101 +46,99 @@
  * specifications, but the table hasn't been spotted in the wild yet.
  */
 
-#include <sys/cdefs.h>
 #include "opt_amdsbwd.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/eventhandler.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/systm.h>
-#include <sys/sysctl.h>
-#include <sys/bus.h>
-#include <machine/bus.h>
 #include <sys/rman.h>
+#include <sys/sysctl.h>
+#include <sys/watchdog.h>
+
+#include <machine/bus.h>
 #include <machine/cputypes.h>
 #include <machine/md_var.h>
 #include <machine/resource.h>
-#include <sys/watchdog.h>
 
-#include <dev/pci/pcivar.h>
 #include <dev/amdsbwd/amd_chipset.h>
+#include <dev/pci/pcivar.h>
+
 #include <isa/isavar.h>
 
 /*
  * Registers in the Watchdog IO space.
  * See SB7xx RRG 2.3.4, WDRT.
  */
-#define	AMDSB_WD_CTRL			0x00
-#define		AMDSB_WD_RUN		0x01
-#define		AMDSB_WD_FIRED		0x02
-#define		AMDSB_WD_SHUTDOWN	0x04
-#define		AMDSB_WD_DISABLE	0x08
-#define		AMDSB_WD_RESERVED	0x70
-#define		AMDSB_WD_RELOAD		0x80
-#define	AMDSB_WD_COUNT			0x04
-#define		AMDSB_WD_COUNT_MASK	0xffff
-#define	AMDSB_WDIO_REG_WIDTH		4
+#define AMDSB_WD_CTRL 0x00
+#define AMDSB_WD_RUN 0x01
+#define AMDSB_WD_FIRED 0x02
+#define AMDSB_WD_SHUTDOWN 0x04
+#define AMDSB_WD_DISABLE 0x08
+#define AMDSB_WD_RESERVED 0x70
+#define AMDSB_WD_RELOAD 0x80
+#define AMDSB_WD_COUNT 0x04
+#define AMDSB_WD_COUNT_MASK 0xffff
+#define AMDSB_WDIO_REG_WIDTH 4
 
-#define	amdsbwd_verbose_printf(dev, ...)	\
-	do {						\
-		if (bootverbose)			\
-			device_printf(dev, __VA_ARGS__);\
+#define amdsbwd_verbose_printf(dev, ...)                 \
+	do {                                             \
+		if (bootverbose)                         \
+			device_printf(dev, __VA_ARGS__); \
 	} while (0)
 
 struct amdsbwd_softc {
-	device_t		dev;
-	eventhandler_tag	ev_tag;
-	struct resource		*res_ctrl;
-	struct resource		*res_count;
-	int			rid_ctrl;
-	int			rid_count;
-	int			ms_per_tick;
-	int			max_ticks;
-	int			active;
-	unsigned int		timeout;
+	device_t dev;
+	eventhandler_tag ev_tag;
+	struct resource *res_ctrl;
+	struct resource *res_count;
+	int rid_ctrl;
+	int rid_count;
+	int ms_per_tick;
+	int max_ticks;
+	int active;
+	unsigned int timeout;
 };
 
-static void	amdsbwd_identify(driver_t *driver, device_t parent);
-static int	amdsbwd_probe(device_t dev);
-static int	amdsbwd_attach(device_t dev);
-static int	amdsbwd_detach(device_t dev);
-static int	amdsbwd_suspend(device_t dev);
-static int	amdsbwd_resume(device_t dev);
+static void amdsbwd_identify(driver_t *driver, device_t parent);
+static int amdsbwd_probe(device_t dev);
+static int amdsbwd_attach(device_t dev);
+static int amdsbwd_detach(device_t dev);
+static int amdsbwd_suspend(device_t dev);
+static int amdsbwd_resume(device_t dev);
 
-static device_method_t amdsbwd_methods[] = {
-	DEVMETHOD(device_identify,	amdsbwd_identify),
-	DEVMETHOD(device_probe,		amdsbwd_probe),
-	DEVMETHOD(device_attach,	amdsbwd_attach),
-	DEVMETHOD(device_detach,	amdsbwd_detach),
-	DEVMETHOD(device_suspend,	amdsbwd_suspend),
-	DEVMETHOD(device_resume,	amdsbwd_resume),
+static device_method_t amdsbwd_methods[] = { DEVMETHOD(device_identify,
+						 amdsbwd_identify),
+	DEVMETHOD(device_probe, amdsbwd_probe),
+	DEVMETHOD(device_attach, amdsbwd_attach),
+	DEVMETHOD(device_detach, amdsbwd_detach),
+	DEVMETHOD(device_suspend, amdsbwd_suspend),
+	DEVMETHOD(device_resume, amdsbwd_resume),
 #if 0
 	DEVMETHOD(device_shutdown,	amdsbwd_detach),
 #endif
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
-static driver_t		amdsbwd_driver = {
-	"amdsbwd",
-	amdsbwd_methods,
-	sizeof(struct amdsbwd_softc)
-};
+static driver_t amdsbwd_driver = { "amdsbwd", amdsbwd_methods,
+	sizeof(struct amdsbwd_softc) };
 
 DRIVER_MODULE(amdsbwd, isa, amdsbwd_driver, NULL, NULL);
 
 static uint8_t
 pmio_read(struct resource *res, uint8_t reg)
 {
-	bus_write_1(res, 0, reg);	/* Index */
-	return (bus_read_1(res, 1));	/* Data */
+	bus_write_1(res, 0, reg);    /* Index */
+	return (bus_read_1(res, 1)); /* Data */
 }
 
 static void
 pmio_write(struct resource *res, uint8_t reg, uint8_t val)
 {
-	bus_write_1(res, 0, reg);	/* Index */
-	bus_write_1(res, 1, val);	/* Data */
+	bus_write_1(res, 0, reg); /* Index */
+	bus_write_1(res, 1, val); /* Data */
 }
 
 static uint32_t
@@ -250,8 +248,8 @@ amdsbwd_event(void *arg, unsigned int cmd, int *error)
 static void
 amdsbwd_identify(driver_t *driver, device_t parent)
 {
-	device_t		child;
-	device_t		smb_dev;
+	device_t child;
+	device_t smb_dev;
 
 	if (resource_disabled("amdsbwd", 0))
 		return;
@@ -279,8 +277,8 @@ amdsbwd_identify(driver_t *driver, device_t parent)
 static void
 amdsbwd_probe_sb7xx(device_t dev, struct resource *pmres, uint32_t *addr)
 {
-	uint8_t	val;
-	int	i;
+	uint8_t val;
+	int i;
 
 	/* Report cause of previous reset for user's convenience. */
 	val = pmio_read(pmres, AMDSB_PM_RESET_STATUS0);
@@ -320,8 +318,8 @@ amdsbwd_probe_sb7xx(device_t dev, struct resource *pmres, uint32_t *addr)
 static void
 amdsbwd_probe_sb8xx(device_t dev, struct resource *pmres, uint32_t *addr)
 {
-	uint32_t	val;
-	int		i;
+	uint32_t val;
+	int i;
 
 	/* Report cause of previous reset for user's convenience. */
 
@@ -375,7 +373,7 @@ amdsbwd_probe_sb8xx(device_t dev, struct resource *pmres, uint32_t *addr)
 static void
 amdsbwd_probe_fch41(device_t dev, struct resource *pmres, uint32_t *addr)
 {
-	uint8_t	val;
+	uint8_t val;
 	char buf[36];
 
 	/*
@@ -422,13 +420,13 @@ amdsbwd_probe_fch41(device_t dev, struct resource *pmres, uint32_t *addr)
 static int
 amdsbwd_probe(device_t dev)
 {
-	struct resource		*res;
-	device_t		smb_dev;
-	uint32_t		addr;
-	int			rid;
-	int			rc;
-	uint32_t		devid;
-	uint8_t			revid;
+	struct resource *res;
+	device_t smb_dev;
+	uint32_t addr;
+	int rid;
+	int rc;
+	uint32_t devid;
+	uint8_t revid;
 
 	/* Do not claim some ISA PnP device by accident. */
 	if (isa_get_logicalid(dev) != 0)
@@ -456,7 +454,7 @@ amdsbwd_probe(device_t dev)
 		amdsbwd_probe_sb7xx(dev, res, &addr);
 	else if (devid == AMDSB_SMBUS_DEVID ||
 	    (devid == AMDFCH_SMBUS_DEVID && revid < AMDFCH41_SMBUS_REVID) ||
-	    (devid == AMDCZ_SMBUS_DEVID  && revid < AMDCZ49_SMBUS_REVID))
+	    (devid == AMDCZ_SMBUS_DEVID && revid < AMDCZ49_SMBUS_REVID))
 		amdsbwd_probe_sb8xx(dev, res, &addr);
 	else
 		amdsbwd_probe_fch41(dev, res, &addr);
@@ -509,8 +507,8 @@ amdsbwd_attach_sb(device_t dev, struct amdsbwd_softc *sc)
 static int
 amdsbwd_attach(device_t dev)
 {
-	struct amdsbwd_softc	*sc;
-	int			rc;
+	struct amdsbwd_softc *sc;
+	int rc;
 
 	sc = device_get_softc(dev);
 	sc->dev = dev;

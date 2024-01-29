@@ -26,19 +26,20 @@
  */
 #pragma once
 
-#include <crypto/chacha20/chacha.h>
 #include <dev/random/fenestrasX/fx_priv.h>
 
-#define	FX_CHACHA20_KEYSIZE	32
+#include <crypto/chacha20/chacha.h>
+
+#define FX_CHACHA20_KEYSIZE 32
 
 struct fxrng_basic_rng {
-	struct mtx		rng_lk;
-#define	FXRNG_RNG_LOCK(rng)	mtx_lock(&(rng)->rng_lk)
-#define	FXRNG_RNG_UNLOCK(rng)	mtx_unlock(&(rng)->rng_lk)
-#define	FXRNG_RNG_ASSERT(rng)	mtx_assert(&(rng)->rng_lk, MA_OWNED)
-#define	FXRNG_RNG_ASSERT_NOT(rng)	mtx_assert(&(rng)->rng_lk, MA_NOTOWNED)
+	struct mtx rng_lk;
+#define FXRNG_RNG_LOCK(rng) mtx_lock(&(rng)->rng_lk)
+#define FXRNG_RNG_UNLOCK(rng) mtx_unlock(&(rng)->rng_lk)
+#define FXRNG_RNG_ASSERT(rng) mtx_assert(&(rng)->rng_lk, MA_OWNED)
+#define FXRNG_RNG_ASSERT_NOT(rng) mtx_assert(&(rng)->rng_lk, MA_NOTOWNED)
 	/* CTR-mode cipher state, including 128-bit embedded counter. */
-	struct chacha_ctx	rng_prf;
+	struct chacha_ctx rng_prf;
 };
 
 /*

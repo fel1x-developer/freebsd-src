@@ -39,38 +39,40 @@
 #ifndef _RPC_RPC_H
 #define _RPC_RPC_H
 
-#include <rpc/types.h>		/* some typedefs */
 #include <sys/socket.h>
+
 #include <netinet/in.h>
 
+#include <rpc/types.h> /* some typedefs */
+
 /* external data representation interfaces */
-#include <rpc/xdr.h>		/* generic (de)serializer */
+#include <rpc/xdr.h> /* generic (de)serializer */
 
 /* Client side only authentication */
-#include <rpc/auth.h>		/* generic authenticator (client side) */
+#include <rpc/auth.h> /* generic authenticator (client side) */
 
 /* Client side (mostly) remote procedure call */
-#include <rpc/clnt.h>		/* generic rpc stuff */
+#include <rpc/clnt.h> /* generic rpc stuff */
 
 /* semi-private protocol headers */
-#include <rpc/rpc_msg.h>	/* protocol for rpc messages */
-#include <rpc/auth_unix.h>	/* protocol for unix style cred */
+#include <rpc/auth_unix.h> /* protocol for unix style cred */
+#include <rpc/rpc_msg.h>   /* protocol for rpc messages */
 /*
  *  Uncomment-out the next line if you are building the rpc library with
  *  DES Authentication (see the README file in the secure_rpc/ directory).
  */
-#include <rpc/auth_des.h>	/* protocol for des style cred */
+#include <rpc/auth_des.h> /* protocol for des style cred */
 
 /* Server side only remote procedure callee */
-#include <rpc/svc.h>		/* service manager and multiplexer */
-#include <rpc/svc_auth.h>	/* service side authenticator */
+#include <rpc/svc.h>	  /* service manager and multiplexer */
+#include <rpc/svc_auth.h> /* service side authenticator */
 
 /* Portmapper client, server, and protocol headers */
 #include <rpc/pmap_clnt.h>
 #include <rpc/pmap_prot.h>
 
 #ifndef _KERNEL
-#include <rpc/rpcb_clnt.h>	/* rpcbind interface functions */
+#include <rpc/rpcb_clnt.h> /* rpcbind interface functions */
 #endif
 
 #include <rpc/rpcent.h>
@@ -78,10 +80,10 @@
 __BEGIN_DECLS
 extern int get_myaddress(struct sockaddr_in *);
 extern int bindresvport(int, struct sockaddr_in *);
-extern int registerrpc(int, int, int, char *(*)(char [UDPMSGSIZE]),
-    xdrproc_t, xdrproc_t);
-extern int callrpc(const char *, int, int, int, xdrproc_t, void *,
-    xdrproc_t , void *);
+extern int registerrpc(int, int, int, char *(*)(char[UDPMSGSIZE]), xdrproc_t,
+    xdrproc_t);
+extern int callrpc(const char *, int, int, int, xdrproc_t, void *, xdrproc_t,
+    void *);
 extern int getrpcport(char *, int, int, int);
 
 char *taddr2uaddr(const struct netconfig *, const struct netbuf *);

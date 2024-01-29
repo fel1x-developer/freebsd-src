@@ -14,10 +14,10 @@
  */
 
 #ifndef _CONS_H_
-#define	_CONS_H_
+#define _CONS_H_
 
-#define IO_KEYBOARD	1
-#define IO_SERIAL	2
+#define IO_KEYBOARD 1
+#define IO_SERIAL 2
 
 extern uint8_t ioctrl;
 
@@ -30,4 +30,4 @@ int getchar(void);
 int keyhit(unsigned int secs);
 void getstr(char *cmdstr, size_t cmdstrsize);
 
-#endif	/* !_CONS_H_ */
+#endif /* !_CONS_H_ */

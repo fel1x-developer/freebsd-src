@@ -35,15 +35,15 @@
  * Generally useful tty stuff.
  */
 
-#include "rcv.h"
 #include "extern.h"
+#include "rcv.h"
 
-static	cc_t	c_erase;		/* Current erase char */
-static	cc_t	c_kill;			/* Current kill char */
-static	jmp_buf	rewrite;		/* Place to go when continued */
-static	jmp_buf	intjmp;			/* Place to go when interrupted */
+static cc_t c_erase;	/* Current erase char */
+static cc_t c_kill;	/* Current kill char */
+static jmp_buf rewrite; /* Place to go when continued */
+static jmp_buf intjmp;	/* Place to go when interrupted */
 #ifndef TIOCSTI
-static	int	ttyset;			/* We must now do erase/kill */
+static int ttyset; /* We must now do erase/kill */
 #endif
 
 /*
@@ -62,9 +62,9 @@ grabh(struct header *hp, int gflags)
 #ifndef TIOCSTI
 	sig_t savequit;
 #else
-# ifdef TIOCEXT
+#ifdef TIOCEXT
 	int extproc, flag;
-# endif /* TIOCEXT */
+#endif /* TIOCEXT */
 #endif /* TIOCSTI */
 
 	savetstp = signal(SIGTSTP, SIG_DFL);
@@ -88,14 +88,14 @@ grabh(struct header *hp, int gflags)
 	if ((savequit = signal(SIGQUIT, SIG_IGN)) == SIG_DFL)
 		(void)signal(SIGQUIT, SIG_DFL);
 #else
-# ifdef		TIOCEXT
+#ifdef TIOCEXT
 	extproc = ((ttybuf.c_lflag & EXTPROC) ? 1 : 0);
 	if (extproc) {
 		flag = 0;
 		if (ioctl(fileno(stdin), TIOCEXT, &flag) < 0)
 			warn("TIOCEXT: off");
 	}
-# endif	/* TIOCEXT */
+#endif /* TIOCEXT */
 	if (setjmp(intjmp))
 		goto out;
 	saveint = signal(SIGINT, ttyint);
@@ -105,8 +105,7 @@ grabh(struct header *hp, int gflags)
 		if (!ttyset && hp->h_to != NULL)
 			ttyset++, tcsetattr(fileno(stdin), TCSADRAIN, &ttybuf);
 #endif
-		hp->h_to =
-			extract(readtty("To: ", detract(hp->h_to, 0)), GTO);
+		hp->h_to = extract(readtty("To: ", detract(hp->h_to, 0)), GTO);
 	}
 	if (gflags & GSUBJECT) {
 #ifndef TIOCSTI
@@ -120,16 +119,15 @@ grabh(struct header *hp, int gflags)
 		if (!ttyset && hp->h_cc != NULL)
 			ttyset++, tcsetattr(fileno(stdin), TCSADRAIN, &ttybuf);
 #endif
-		hp->h_cc =
-			extract(readtty("Cc: ", detract(hp->h_cc, 0)), GCC);
+		hp->h_cc = extract(readtty("Cc: ", detract(hp->h_cc, 0)), GCC);
 	}
 	if (gflags & GBCC) {
 #ifndef TIOCSTI
 		if (!ttyset && hp->h_bcc != NULL)
 			ttyset++, tcsetattr(fileno(stdin), TCSADRAIN, &ttybuf);
 #endif
-		hp->h_bcc =
-			extract(readtty("Bcc: ", detract(hp->h_bcc, 0)), GBCC);
+		hp->h_bcc = extract(readtty("Bcc: ", detract(hp->h_bcc, 0)),
+		    GBCC);
 	}
 #ifdef TIOCSTI
 out:
@@ -144,13 +142,13 @@ out:
 		tcsetattr(fileno(stdin), TCSADRAIN, &ttybuf);
 	(void)signal(SIGQUIT, savequit);
 #else
-# ifdef		TIOCEXT
+#ifdef TIOCEXT
 	if (extproc) {
 		flag = 1;
 		if (ioctl(fileno(stdin), TIOCEXT, &flag) < 0)
 			warn("TIOCEXT: on");
 	}
-# endif	/* TIOCEXT */
+#endif /* TIOCEXT */
 #endif
 	(void)signal(SIGINT, saveint);
 	return (errs);
@@ -221,7 +219,7 @@ readtty(const char *pr, char src[])
 	(void)signal(SIGTTOU, SIG_DFL);
 	(void)signal(SIGTTIN, SIG_DFL);
 	if (c == EOF && ferror(stdin)) {
-redo:
+	redo:
 		cp = strlen(canonb) > 0 ? canonb : NULL;
 		clearerr(stdin);
 		return (readtty(pr, cp));

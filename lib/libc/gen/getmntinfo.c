@@ -30,12 +30,13 @@
  */
 
 #include <sys/param.h>
-#include <sys/ucred.h>
 #include <sys/mount.h>
+#include <sys/ucred.h>
+
 #include <stdlib.h>
 
-#define	MAX_TRIES	3
-#define	SCALING_FACTOR	2
+#define MAX_TRIES 3
+#define SCALING_FACTOR 2
 
 /*
  * Return information about mounted filesystems.

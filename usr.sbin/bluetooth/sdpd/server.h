@@ -37,67 +37,66 @@
  * File descriptor index entry
  */
 
-struct fd_idx
-{
-	unsigned	 valid    : 1;	/* descriptor is valid */
-	unsigned	 server   : 1;	/* descriptor is listening */
-	unsigned	 control  : 1;	/* descriptor is a control socket */
-	unsigned	 priv     : 1;	/* descriptor is privileged */
-	unsigned	 reserved : 1;
-	unsigned	 rsp_cs   : 11; /* response continuation state */
-	uint16_t	 rsp_size;	/* response size */
-	uint16_t	 rsp_limit;	/* response limit */
-	uint16_t	 omtu;		/* outgoing MTU */
-	uint8_t		*rsp;		/* outgoing buffer */
+struct fd_idx {
+	unsigned valid : 1;   /* descriptor is valid */
+	unsigned server : 1;  /* descriptor is listening */
+	unsigned control : 1; /* descriptor is a control socket */
+	unsigned priv : 1;    /* descriptor is privileged */
+	unsigned reserved : 1;
+	unsigned rsp_cs : 11; /* response continuation state */
+	uint16_t rsp_size;    /* response size */
+	uint16_t rsp_limit;   /* response limit */
+	uint16_t omtu;	      /* outgoing MTU */
+	uint8_t *rsp;	      /* outgoing buffer */
 };
 
-typedef struct fd_idx	fd_idx_t;
-typedef struct fd_idx *	fd_idx_p;
+typedef struct fd_idx fd_idx_t;
+typedef struct fd_idx *fd_idx_p;
 
 /*
  * SDP server
  */
 
-struct server
-{
-	uint32_t		 imtu;		/* incoming MTU */
-	uint8_t			*req;		/* incoming buffer */
-	int32_t			 maxfd;		/* max. descriptor is the set */
-	fd_set			 fdset;		/* current descriptor set */
-	fd_idx_p		 fdidx;		/* descriptor index */
-	struct sockaddr_l2cap	 req_sa;	/* local address */
+struct server {
+	uint32_t imtu;		      /* incoming MTU */
+	uint8_t *req;		      /* incoming buffer */
+	int32_t maxfd;		      /* max. descriptor is the set */
+	fd_set fdset;		      /* current descriptor set */
+	fd_idx_p fdidx;		      /* descriptor index */
+	struct sockaddr_l2cap req_sa; /* local address */
 };
 
-typedef struct server	server_t;
-typedef struct server *	server_p;
+typedef struct server server_t;
+typedef struct server *server_p;
 
 /*
  * External API
  */
 
-int32_t	server_init(server_p srv, const char *control);
-void	server_shutdown(server_p srv);
-int32_t	server_do(server_p srv);
+int32_t server_init(server_p srv, const char *control);
+void server_shutdown(server_p srv);
+int32_t server_do(server_p srv);
 
-int32_t	server_prepare_service_search_response(server_p srv, int32_t fd);
-int32_t	server_send_service_search_response(server_p srv, int32_t fd);
+int32_t server_prepare_service_search_response(server_p srv, int32_t fd);
+int32_t server_send_service_search_response(server_p srv, int32_t fd);
 
-int32_t	server_prepare_service_attribute_response(server_p srv, int32_t fd);
-int32_t	server_send_service_attribute_response(server_p srv, int32_t fd);
+int32_t server_prepare_service_attribute_response(server_p srv, int32_t fd);
+int32_t server_send_service_attribute_response(server_p srv, int32_t fd);
 
-int32_t	server_prepare_service_search_attribute_response(server_p srv, int32_t fd);
-#define	server_send_service_search_attribute_response \
+int32_t server_prepare_service_search_attribute_response(server_p srv,
+    int32_t fd);
+#define server_send_service_search_attribute_response \
 	server_send_service_attribute_response
 
-int32_t	server_prepare_service_register_response(server_p srv, int32_t fd);
-int32_t	server_send_service_register_response(server_p srv, int32_t fd);
+int32_t server_prepare_service_register_response(server_p srv, int32_t fd);
+int32_t server_send_service_register_response(server_p srv, int32_t fd);
 
-int32_t	server_prepare_service_unregister_response(server_p srv, int32_t fd);
-#define	server_send_service_unregister_response \
+int32_t server_prepare_service_unregister_response(server_p srv, int32_t fd);
+#define server_send_service_unregister_response \
 	server_send_service_register_response
 
-int32_t	server_prepare_service_change_response(server_p srv, int32_t fd);
-#define	server_send_service_change_response \
+int32_t server_prepare_service_change_response(server_p srv, int32_t fd);
+#define server_send_service_change_response \
 	server_send_service_register_response
 
 #endif /* ndef _SERVER_H_ */

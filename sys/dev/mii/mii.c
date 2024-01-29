@@ -41,18 +41,18 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/socket.h>
+#include <sys/bus.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
-#include <sys/bus.h>
 #include <sys/sbuf.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_media.h>
+#include <sys/socket.h>
 
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
+
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_var.h>
 
 MODULE_VERSION(miibus, 1);
 
@@ -76,25 +76,25 @@ static unsigned char mii_bitreverse(unsigned char x);
 
 static device_method_t miibus_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		miibus_probe),
-	DEVMETHOD(device_attach,	miibus_attach),
-	DEVMETHOD(device_detach,	miibus_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
+	DEVMETHOD(device_probe, miibus_probe),
+	DEVMETHOD(device_attach, miibus_attach),
+	DEVMETHOD(device_detach, miibus_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
 
 	/* bus interface */
-	DEVMETHOD(bus_print_child,	miibus_print_child),
-	DEVMETHOD(bus_read_ivar,	miibus_read_ivar),
-	DEVMETHOD(bus_child_detached,	miibus_child_detached),
-	DEVMETHOD(bus_child_pnpinfo,	miibus_child_pnpinfo),
-	DEVMETHOD(bus_child_location,	miibus_child_location),
-	DEVMETHOD(bus_hinted_child,	miibus_hinted_child),
+	DEVMETHOD(bus_print_child, miibus_print_child),
+	DEVMETHOD(bus_read_ivar, miibus_read_ivar),
+	DEVMETHOD(bus_child_detached, miibus_child_detached),
+	DEVMETHOD(bus_child_pnpinfo, miibus_child_pnpinfo),
+	DEVMETHOD(bus_child_location, miibus_child_location),
+	DEVMETHOD(bus_hinted_child, miibus_hinted_child),
 
 	/* MII interface */
-	DEVMETHOD(miibus_readreg,	miibus_readreg),
-	DEVMETHOD(miibus_writereg,	miibus_writereg),
-	DEVMETHOD(miibus_statchg,	miibus_statchg),
-	DEVMETHOD(miibus_linkchg,	miibus_linkchg),
-	DEVMETHOD(miibus_mediainit,	miibus_mediainit),
+	DEVMETHOD(miibus_readreg, miibus_readreg),
+	DEVMETHOD(miibus_writereg, miibus_writereg),
+	DEVMETHOD(miibus_statchg, miibus_statchg),
+	DEVMETHOD(miibus_linkchg, miibus_linkchg),
+	DEVMETHOD(miibus_mediainit, miibus_mediainit),
 
 	DEVMETHOD_END
 };
@@ -102,11 +102,11 @@ static device_method_t miibus_methods[] = {
 DEFINE_CLASS_0(miibus, miibus_driver, miibus_methods, sizeof(struct mii_data));
 
 struct miibus_ivars {
-	if_t		ifp;
-	ifm_change_cb_t	ifmedia_upd;
-	ifm_stat_cb_t	ifmedia_sts;
-	u_int		mii_flags;
-	u_int		mii_offset;
+	if_t ifp;
+	ifm_change_cb_t ifmedia_upd;
+	ifm_stat_cb_t ifmedia_sts;
+	u_int mii_flags;
+	u_int mii_offset;
 };
 
 static int
@@ -121,11 +121,11 @@ miibus_probe(device_t dev)
 int
 miibus_attach(device_t dev)
 {
-	struct miibus_ivars	*ivars;
-	struct mii_attach_args	*ma;
-	struct mii_data		*mii;
-	device_t		*children;
-	int			i, nchildren;
+	struct miibus_ivars *ivars;
+	struct mii_attach_args *ma;
+	struct mii_data *mii;
+	device_t *children;
+	int i, nchildren;
 
 	mii = device_get_softc(dev);
 	if (device_get_children(dev, &children, &nchildren) == 0) {
@@ -153,8 +153,8 @@ miibus_attach(device_t dev)
 static int
 miibus_detach(device_t dev)
 {
-	struct mii_data		*mii;
-	struct miibus_ivars	*ivars;
+	struct mii_data *mii;
+	struct miibus_ivars *ivars;
 
 	ivars = device_get_ivars(dev);
 	bus_generic_detach(dev);
@@ -217,8 +217,8 @@ miibus_child_pnpinfo(device_t dev __unused, device_t child, struct sbuf *sb)
 
 	ma = device_get_ivars(child);
 	sbuf_printf(sb, "oui=0x%x model=0x%x rev=0x%x",
-	    MII_OUI(ma->mii_id1, ma->mii_id2),
-	    MII_MODEL(ma->mii_id2), MII_REV(ma->mii_id2));
+	    MII_OUI(ma->mii_id1, ma->mii_id2), MII_MODEL(ma->mii_id2),
+	    MII_REV(ma->mii_id2));
 	return (0);
 }
 
@@ -260,8 +260,7 @@ miibus_hinted_child(device_t dev, const char *name, int unit)
 	 * in its BMSR twice, only allow to alter its attach arguments.
 	 */
 	if (ma == NULL) {
-		ma = malloc(sizeof(struct mii_attach_args), M_DEVBUF,
-		    M_NOWAIT);
+		ma = malloc(sizeof(struct mii_attach_args), M_DEVBUF, M_NOWAIT);
 		if (ma == NULL)
 			return;
 		phy = device_add_child(dev, name, unit);
@@ -289,7 +288,7 @@ miibus_hinted_child(device_t dev, const char *name, int unit)
 static int
 miibus_readreg(device_t dev, int phy, int reg)
 {
-	device_t		parent;
+	device_t parent;
 
 	parent = device_get_parent(dev);
 	return (MIIBUS_READREG(parent, phy, reg));
@@ -298,7 +297,7 @@ miibus_readreg(device_t dev, int phy, int reg)
 static int
 miibus_writereg(device_t dev, int phy, int reg, int data)
 {
-	device_t		parent;
+	device_t parent;
 
 	parent = device_get_parent(dev);
 	return (MIIBUS_WRITEREG(parent, phy, reg, data));
@@ -307,8 +306,8 @@ miibus_writereg(device_t dev, int phy, int reg, int data)
 static void
 miibus_statchg(device_t dev)
 {
-	device_t		parent;
-	struct mii_data		*mii;
+	device_t parent;
+	struct mii_data *mii;
 
 	parent = device_get_parent(dev);
 	MIIBUS_STATCHG(parent);
@@ -320,9 +319,9 @@ miibus_statchg(device_t dev)
 static void
 miibus_linkchg(device_t dev)
 {
-	struct mii_data		*mii;
-	device_t		parent;
-	int			link_state;
+	struct mii_data *mii;
+	device_t parent;
+	int link_state;
 
 	parent = device_get_parent(dev);
 	MIIBUS_LINKCHG(parent);
@@ -342,15 +341,15 @@ miibus_linkchg(device_t dev)
 static void
 miibus_mediainit(device_t dev)
 {
-	struct mii_data		*mii;
-	struct ifmedia_entry	*m;
-	int			media = 0;
+	struct mii_data *mii;
+	struct ifmedia_entry *m;
+	int media = 0;
 
 	/* Poke the parent in case it has any media of its own to add. */
 	MIIBUS_MEDIAINIT(device_get_parent(dev));
 
 	mii = device_get_softc(dev);
-	LIST_FOREACH(m, &mii->mii_media.ifm_list, ifm_list) {
+	LIST_FOREACH (m, &mii->mii_media.ifm_list, ifm_list) {
 		media = m->ifm_media;
 		if (media == (IFM_ETHER | IFM_AUTO))
 			break;
@@ -432,7 +431,7 @@ mii_attach(device_t dev, device_t *miibus, if_t ifp,
 	ma.mii_capmask = capmask;
 
 	if (resource_int_value(device_get_name(*miibus),
-	    device_get_unit(*miibus), "phymask", &phymask) != 0)
+		device_get_unit(*miibus), "phymask", &phymask) != 0)
 		phymask = 0xffffffff;
 
 	if (device_get_children(*miibus, &children, &nchildren) != 0) {
@@ -502,7 +501,7 @@ mii_attach(device_t dev, device_t *miibus, if_t ifp,
 			goto skip;
 		}
 		device_set_ivars(phy, args);
- skip:
+	skip:
 		ivars->mii_offset++;
 	}
 	free(children, M_TEMP);
@@ -533,7 +532,7 @@ mii_attach(device_t dev, device_t *miibus, if_t ifp,
 
 	return (0);
 
- fail:
+fail:
 	if (*miibus != NULL)
 		device_delete_child(dev, *miibus);
 	free(ivars, M_DEVBUF);
@@ -555,20 +554,21 @@ mii_mediachg(struct mii_data *mii)
 	mii->mii_media_status = 0;
 	mii->mii_media_active = IFM_NONE;
 
-	LIST_FOREACH(child, &mii->mii_phys, mii_list) {
+	LIST_FOREACH (child, &mii->mii_phys, mii_list) {
 		/*
 		 * If the media indicates a different PHY instance,
 		 * isolate this one.
 		 */
 		if (IFM_INST(ife->ifm_media) != child->mii_inst) {
 			if ((child->mii_flags & MIIF_NOISOLATE) != 0) {
-				device_printf(child->mii_dev, "%s: "
+				device_printf(child->mii_dev,
+				    "%s: "
 				    "can't handle non-zero PHY instance %d\n",
 				    __func__, child->mii_inst);
 				continue;
 			}
-			PHY_WRITE(child, MII_BMCR, PHY_READ(child, MII_BMCR) |
-			    BMCR_ISO);
+			PHY_WRITE(child, MII_BMCR,
+			    PHY_READ(child, MII_BMCR) | BMCR_ISO);
 			continue;
 		}
 		rv = PHY_SERVICE(child, mii, MII_MEDIACHG);
@@ -587,7 +587,7 @@ mii_tick(struct mii_data *mii)
 	struct mii_softc *child;
 	struct ifmedia_entry *ife = mii->mii_media.ifm_cur;
 
-	LIST_FOREACH(child, &mii->mii_phys, mii_list) {
+	LIST_FOREACH (child, &mii->mii_phys, mii_list) {
 		/*
 		 * If this PHY instance isn't currently selected, just skip
 		 * it.
@@ -610,7 +610,7 @@ mii_pollstat(struct mii_data *mii)
 	mii->mii_media_status = 0;
 	mii->mii_media_active = IFM_NONE;
 
-	LIST_FOREACH(child, &mii->mii_phys, mii_list) {
+	LIST_FOREACH (child, &mii->mii_phys, mii_list) {
 		/*
 		 * If we're not polling this PHY instance, just skip it.
 		 */
@@ -623,9 +623,8 @@ mii_pollstat(struct mii_data *mii)
 static unsigned char
 mii_bitreverse(unsigned char x)
 {
-	static unsigned const char nibbletab[16] = {
-		0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15
-	};
+	static unsigned const char nibbletab[16] = { 0, 8, 4, 12, 2, 10, 6, 14,
+		1, 9, 5, 13, 3, 11, 7, 15 };
 
 	return ((nibbletab[x & 15] << 4) | nibbletab[x >> 4]);
 }
@@ -638,8 +637,7 @@ mii_oui(u_int id1, u_int id2)
 	h = (id1 << 6) | (id2 >> 10);
 
 	return ((mii_bitreverse(h >> 16) << 16) |
-	    (mii_bitreverse((h >> 8) & 0xff) << 8) |
-	    mii_bitreverse(h & 0xff));
+	    (mii_bitreverse((h >> 8) & 0xff) << 8) | mii_bitreverse(h & 0xff));
 }
 
 int
@@ -647,15 +645,16 @@ mii_phy_mac_match(struct mii_softc *mii, const char *name)
 {
 
 	return (strcmp(device_get_name(device_get_parent(mii->mii_dev)),
-	    name) == 0);
+		    name) == 0);
 }
 
 int
 mii_dev_mac_match(device_t parent, const char *name)
 {
 
-	return (strcmp(device_get_name(device_get_parent(
-	    device_get_parent(parent))), name) == 0);
+	return (strcmp(device_get_name(
+			   device_get_parent(device_get_parent(parent))),
+		    name) == 0);
 }
 
 void *

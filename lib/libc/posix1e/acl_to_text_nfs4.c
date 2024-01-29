@@ -25,17 +25,18 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <assert.h>
-#include <string.h>
-#include <pwd.h>
-#include <grp.h>
-#include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/acl.h>
+#include <sys/syscall.h>
+
+#include <assert.h>
+#include <errno.h>
+#include <grp.h>
+#include <pwd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "acl_support.h"
 
@@ -220,7 +221,7 @@ format_entry(char *str, size_t size, const acl_entry_t entry, int flags)
 	off += snprintf(str + off, size - off, "\n");
 
 	/* Make sure we didn't truncate anything. */
-	assert (off < size);
+	assert(off < size);
 
 	return (0);
 }

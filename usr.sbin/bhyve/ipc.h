@@ -38,12 +38,11 @@ struct ipc_command {
 	int (*handler)(struct vmctx *ctx, const nvlist_t *nvl);
 };
 
-#define IPC_COMMAND(set, name, function)			\
-	static struct ipc_command name ## _ipc_command =	\
-	{ #name, function };					\
-	DATA_SET(set, name ## _ipc_command)
+#define IPC_COMMAND(set, name, function)                                    \
+	static struct ipc_command name##_ipc_command = { #name, function }; \
+	DATA_SET(set, name##_ipc_command)
 
-#define IPC_COMMAND_FOREACH(pvar, set)	SET_FOREACH(pvar, set)
+#define IPC_COMMAND_FOREACH(pvar, set) SET_FOREACH(pvar, set)
 
 SET_DECLARE(ipc_cmd_set, struct ipc_command);
 

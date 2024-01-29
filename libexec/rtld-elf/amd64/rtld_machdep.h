@@ -27,9 +27,10 @@
  */
 
 #ifndef RTLD_MACHDEP_H
-#define RTLD_MACHDEP_H	1
+#define RTLD_MACHDEP_H 1
 
 #include <sys/types.h>
+
 #include <machine/atomic.h>
 #include <machine/tls.h>
 
@@ -37,17 +38,16 @@ struct Struct_Obj_Entry;
 
 /* Return the address of the .dynamic section in the dynamic linker. */
 Elf_Dyn *rtld_dynamic_addr(void);
-#define	rtld_dynamic(obj)	rtld_dynamic_addr()
+#define rtld_dynamic(obj) rtld_dynamic_addr()
 
 Elf_Addr reloc_jmpslot(Elf_Addr *where, Elf_Addr target,
     const struct Struct_Obj_Entry *obj, const struct Struct_Obj_Entry *refobj,
     const Elf_Rel *rel);
 
-#define make_function_pointer(def, defobj)	\
+#define make_function_pointer(def, defobj) \
 	((defobj)->relocbase + (def)->st_value)
 
-#define call_initfini_pointer(obj, target) \
-	(((InitFunc)(target))())
+#define call_initfini_pointer(obj, target) (((InitFunc)(target))())
 
 #define call_init_pointer(obj, target) \
 	(((InitArrFunc)(target))(main_argc, main_argv, environ))
@@ -56,13 +56,14 @@ extern uint32_t cpu_feature;
 extern uint32_t cpu_feature2;
 extern uint32_t cpu_stdext_feature;
 extern uint32_t cpu_stdext_feature2;
-#define	call_ifunc_resolver(ptr) \
-	(((Elf_Addr (*)(uint32_t, uint32_t, uint32_t, uint32_t))ptr)( \
-	    cpu_feature, cpu_feature2, cpu_stdext_feature, cpu_stdext_feature2))
+#define call_ifunc_resolver(ptr)                                          \
+	(((Elf_Addr(*)(uint32_t, uint32_t, uint32_t,                      \
+	    uint32_t))ptr)(cpu_feature, cpu_feature2, cpu_stdext_feature, \
+	    cpu_stdext_feature2))
 
 typedef struct {
-    unsigned long ti_module;
-    unsigned long ti_offset;
+	unsigned long ti_module;
+	unsigned long ti_offset;
 } tls_index;
 
 void *__tls_get_addr(tls_index *ti) __exported;

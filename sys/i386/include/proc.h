@@ -30,16 +30,16 @@
  */
 
 #ifndef _MACHINE_PROC_H_
-#define	_MACHINE_PROC_H_
+#define _MACHINE_PROC_H_
 
 #include <machine/segments.h>
 
 struct proc_ldt {
-        caddr_t ldt_base;
-        int     ldt_len;
-        int     ldt_refcnt;
-        u_long  ldt_active;
-        struct  segment_descriptor ldt_sd;
+	caddr_t ldt_base;
+	int ldt_len;
+	int ldt_refcnt;
+	u_long ldt_active;
+	struct segment_descriptor ldt_sd;
 };
 
 /*
@@ -48,27 +48,27 @@ struct proc_ldt {
  *       t - Descriptor tables lock
  */
 struct mdthread {
-	int	md_spinlock_count;	/* (k) */
-	register_t md_saved_flags;	/* (k) */
-	register_t md_spurflt_addr;	/* (k) Spurious page fault address. */
+	int md_spinlock_count;	    /* (k) */
+	register_t md_saved_flags;  /* (k) */
+	register_t md_spurflt_addr; /* (k) Spurious page fault address. */
 };
 
 struct mdproc {
-	struct proc_ldt *md_ldt;	/* (t) per-process ldt */
+	struct proc_ldt *md_ldt; /* (t) per-process ldt */
 };
 
-#define	KINFO_PROC_SIZE 768
+#define KINFO_PROC_SIZE 768
 
-#ifdef	_KERNEL
+#ifdef _KERNEL
 
 #include <machine/md_var.h>
 
-void 	set_user_ldt(struct mdproc *);
-struct 	proc_ldt *user_ldt_alloc(struct mdproc *, int);
-void 	user_ldt_free(struct thread *);
-void	user_ldt_deref(struct proc_ldt *pldt);
+void set_user_ldt(struct mdproc *);
+struct proc_ldt *user_ldt_alloc(struct mdproc *, int);
+void user_ldt_free(struct thread *);
+void user_ldt_deref(struct proc_ldt *pldt);
 
 extern struct mtx dt_lock;
-#endif	/* _KERNEL */
+#endif /* _KERNEL */
 
 #endif /* !_MACHINE_PROC_H_ */

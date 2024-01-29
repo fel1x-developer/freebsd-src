@@ -41,9 +41,10 @@
  * version 3 of rpcbind.
  */
 #include <sys/types.h>
+
+#include <netconfig.h>
 #include <rpc/rpc.h>
 #include <rpc/rpcb_prot.h>
-#include <netconfig.h>
 #include <stdio.h>
 #ifdef RPCBIND_DEBUG
 #include <stdlib.h>
@@ -53,9 +54,9 @@
 #include "rpcbind.h"
 
 static void *rpcbproc_getaddr_3_local(void *, struct svc_req *, SVCXPRT *,
-					   rpcvers_t);
+    rpcvers_t);
 static void *rpcbproc_dump_3_local(void *, struct svc_req *, SVCXPRT *,
-					rpcvers_t);
+    rpcvers_t);
 
 /*
  * Called by svc_getreqset. There is a separate server handle for
@@ -89,12 +90,12 @@ rpcb_service_3(struct svc_req *rqstp, SVCXPRT *transp)
 #endif
 		/* This call just logs, no actual checks */
 		check_access(transp, rqstp->rq_proc, NULL, RPCBVERS);
-		(void) svc_sendreply(transp, (xdrproc_t)xdr_void, (char *)NULL);
+		(void)svc_sendreply(transp, (xdrproc_t)xdr_void, (char *)NULL);
 		return;
 
 	case RPCBPROC_SET:
-		xdr_argument = (xdrproc_t )xdr_rpcb;
-		xdr_result = (xdrproc_t )xdr_bool;
+		xdr_argument = (xdrproc_t)xdr_rpcb;
+		xdr_result = (xdrproc_t)xdr_bool;
 		local = rpcbproc_set_com;
 		break;
 
@@ -158,12 +159,11 @@ rpcb_service_3(struct svc_req *rqstp, SVCXPRT *transp)
 		svcerr_noproc(transp);
 		return;
 	}
-	(void) memset((char *)&argument, 0, sizeof (argument));
-	if (!svc_getargs(transp, (xdrproc_t) xdr_argument,
-				(char *) &argument)) {
+	(void)memset((char *)&argument, 0, sizeof(argument));
+	if (!svc_getargs(transp, (xdrproc_t)xdr_argument, (char *)&argument)) {
 		svcerr_decode(transp);
 		if (debugging)
-			(void) fprintf(stderr, "rpcbind: could not decode\n");
+			(void)fprintf(stderr, "rpcbind: could not decode\n");
 		return;
 	}
 	if (!check_access(transp, rqstp->rq_proc, &argument, RPCBVERS)) {
@@ -171,21 +171,20 @@ rpcb_service_3(struct svc_req *rqstp, SVCXPRT *transp)
 		goto done;
 	}
 	result = (*local)(&argument, rqstp, transp, RPCBVERS);
-	if (result != NULL && !svc_sendreply(transp, (xdrproc_t)xdr_result,
-						result)) {
+	if (result != NULL &&
+	    !svc_sendreply(transp, (xdrproc_t)xdr_result, result)) {
 		svcerr_systemerr(transp);
 		if (debugging) {
-			(void) fprintf(stderr, "rpcbind: svc_sendreply\n");
+			(void)fprintf(stderr, "rpcbind: svc_sendreply\n");
 			if (doabort) {
 				rpcbind_abort();
 			}
 		}
 	}
 done:
-	if (!svc_freeargs(transp, (xdrproc_t)xdr_argument, (char *)
-				&argument)) {
+	if (!svc_freeargs(transp, (xdrproc_t)xdr_argument, (char *)&argument)) {
 		if (debugging) {
-			(void) fprintf(stderr, "unable to free arguments\n");
+			(void)fprintf(stderr, "unable to free arguments\n");
 			if (doabort) {
 				rpcbind_abort();
 			}
@@ -204,7 +203,7 @@ done:
 /* ARGSUSED */
 static void *
 rpcbproc_getaddr_3_local(void *arg, struct svc_req *rqstp __unused,
-			 SVCXPRT *transp __unused, rpcvers_t versnum __unused)
+    SVCXPRT *transp __unused, rpcvers_t versnum __unused)
 {
 	RPCB *regp = (RPCB *)arg;
 #ifdef RPCBIND_DEBUG
@@ -212,21 +211,21 @@ rpcbproc_getaddr_3_local(void *arg, struct svc_req *rqstp __unused,
 		char *uaddr;
 
 		uaddr = taddr2uaddr(rpcbind_get_conf(transp->xp_netid),
-			    svc_getrpccaller(transp));
+		    svc_getrpccaller(transp));
 		fprintf(stderr, "RPCB_GETADDR req for (%lu, %lu, %s) from %s: ",
 		    (unsigned long)regp->r_prog, (unsigned long)regp->r_vers,
 		    regp->r_netid, uaddr);
 		free(uaddr);
 	}
 #endif
-	return (rpcbproc_getaddr_com(regp, rqstp, transp, RPCBVERS,
-	    RPCB_ALLVERS));
+	return (
+	    rpcbproc_getaddr_com(regp, rqstp, transp, RPCBVERS, RPCB_ALLVERS));
 }
 
 /* ARGSUSED */
 static void *
 rpcbproc_dump_3_local(void *arg __unused, struct svc_req *rqstp __unused,
-		      SVCXPRT *transp __unused, rpcvers_t versnum __unused)
+    SVCXPRT *transp __unused, rpcvers_t versnum __unused)
 {
 	return ((void *)&list_rbl);
 }

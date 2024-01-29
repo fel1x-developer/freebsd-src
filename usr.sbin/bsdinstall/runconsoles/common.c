@@ -42,15 +42,11 @@ reproduce_signal_death(int sig)
 	struct rlimit rl;
 
 	if (signal(sig, SIG_DFL) == SIG_ERR)
-		err(EX_OSERR,
-		    "cannot set action to reproduce signal %d",
-		    sig);
+		err(EX_OSERR, "cannot set action to reproduce signal %d", sig);
 	rl.rlim_cur = 0;
 	rl.rlim_max = 0;
 	if (setrlimit(RLIMIT_CORE, &rl) == -1)
 		err(EX_OSERR,
-		    "cannot disable core dumps to reproduce signal %d",
-		    sig);
+		    "cannot disable core dumps to reproduce signal %d", sig);
 	kill(getpid(), sig);
 }
-

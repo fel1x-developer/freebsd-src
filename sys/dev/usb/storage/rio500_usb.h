@@ -20,7 +20,6 @@
 
     ---------------------------------------------------------------------- */
 
-
 #include <sys/ioccom.h>
 #ifndef USB_VENDOR_DIAMOND
 #define USB_VENDOR_DIAMOND 0x841
@@ -29,19 +28,18 @@
 #define USB_PRODUCT_DIAMOND_RIO500USB 0x1
 #endif
 
-struct RioCommand
-{
-  uint16_t  length;
-  int   request;
-  int   requesttype;
-  int   value;
-  int   index;
-  void *buffer;
-  int  timeout;
+struct RioCommand {
+	uint16_t length;
+	int request;
+	int requesttype;
+	int value;
+	int index;
+	void *buffer;
+	int timeout;
 };
 
-#define RIO_SEND_COMMAND	_IOWR('U', 200, struct RioCommand)
-#define RIO_RECV_COMMAND	_IOWR('U', 201, struct RioCommand)
+#define RIO_SEND_COMMAND _IOWR('U', 200, struct RioCommand)
+#define RIO_RECV_COMMAND _IOWR('U', 201, struct RioCommand)
 
-#define RIO_DIR_OUT               	        0x0
-#define RIO_DIR_IN				0x1
+#define RIO_DIR_OUT 0x0
+#define RIO_DIR_IN 0x1

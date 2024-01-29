@@ -25,14 +25,13 @@
  * Include private header files
  *******************************************************************************
  */
+#include "dc_datapath.h"
 #include "dc_header_footer.h"
 #include "dc_session.h"
-#include "dc_datapath.h"
 
 CpaStatus
-cpaDcGenerateHeader(CpaDcSessionHandle pSessionHandle,
-		    CpaFlatBuffer *pDestBuff,
-		    Cpa32U *count)
+cpaDcGenerateHeader(CpaDcSessionHandle pSessionHandle, CpaFlatBuffer *pDestBuff,
+    Cpa32U *count)
 {
 	dc_session_desc_t *pSessionDesc = NULL;
 
@@ -111,9 +110,9 @@ cpaDcGenerateHeader(CpaDcSessionHandle pSessionHandle,
 			   The file will decompress ok if a greater window size
 			   is specified
 			   in the header. */
-			header =
-			    (DC_ZLIB_CM_DEFLATE +
-			     (DC_32K_WINDOW_SIZE << DC_ZLIB_WINDOWSIZE_OFFSET))
+			header = (DC_ZLIB_CM_DEFLATE +
+				     (DC_32K_WINDOW_SIZE
+					 << DC_ZLIB_WINDOWSIZE_OFFSET))
 			    << LAC_NUM_BITS_IN_BYTE;
 
 			switch (pSessionDesc->compLevel) {
@@ -156,9 +155,8 @@ cpaDcGenerateHeader(CpaDcSessionHandle pSessionHandle,
 }
 
 CpaStatus
-cpaDcGenerateFooter(CpaDcSessionHandle pSessionHandle,
-		    CpaFlatBuffer *pDestBuff,
-		    CpaDcRqResults *pRes)
+cpaDcGenerateFooter(CpaDcSessionHandle pSessionHandle, CpaFlatBuffer *pDestBuff,
+    CpaDcRqResults *pRes)
 {
 	dc_session_desc_t *pSessionDesc = NULL;
 
@@ -201,11 +199,11 @@ cpaDcGenerateFooter(CpaDcSessionHandle pSessionHandle,
 			/* Length of the uncompressed data */
 			pDest[4] = (Cpa8U)totalLenBeforeCompress;
 			pDest[5] = (Cpa8U)(totalLenBeforeCompress >>
-					   LAC_NUM_BITS_IN_BYTE);
+			    LAC_NUM_BITS_IN_BYTE);
 			pDest[6] = (Cpa8U)(totalLenBeforeCompress >>
-					   2 * LAC_NUM_BITS_IN_BYTE);
+			    2 * LAC_NUM_BITS_IN_BYTE);
 			pDest[7] = (Cpa8U)(totalLenBeforeCompress >>
-					   3 * LAC_NUM_BITS_IN_BYTE);
+			    3 * LAC_NUM_BITS_IN_BYTE);
 
 			/* Increment produced by the number of bytes added to
 			 * the buffer */

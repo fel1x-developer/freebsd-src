@@ -28,7 +28,7 @@
 #ifndef __IICMUX_H
 #define __IICMUX_H
 
-#define	IICMUX_MAX_BUSES	16	/* More than any available mux chip. */
+#define IICMUX_MAX_BUSES 16 /* More than any available mux chip. */
 
 /*
  * IICMUX_SELECT_IDLE instructs the mux hardware driver to do whatever it is
@@ -38,7 +38,7 @@
  * capable of various choices will have some mechanism to configure the choice
  * which is handled outside of the iicmux framework.
  */
-#define	IICMUX_SELECT_IDLE	(-1)
+#define IICMUX_SELECT_IDLE (-1)
 
 /*
  * The iicmux softc; chip drivers should embed one of these as the first member
@@ -46,14 +46,14 @@
  * initialize it before calling any other iicmux functions.
  */
 struct iicmux_softc {
-	device_t	busdev;   /* Upstream i2c bus (may not be our parent). */
-	device_t	dev;      /* Ourself. */
-	int		maxbus;   /* Index of highest populated busdevs slot. */
-	int		numbuses; /* Number of buses supported by the chip. */
-	int		debugmux; /* Write debug messages when > 0. */
-	device_t	childdevs[IICMUX_MAX_BUSES]; /* Child bus instances. */
+	device_t busdev; /* Upstream i2c bus (may not be our parent). */
+	device_t dev;	 /* Ourself. */
+	int maxbus;	 /* Index of highest populated busdevs slot. */
+	int numbuses;	 /* Number of buses supported by the chip. */
+	int debugmux;	 /* Write debug messages when > 0. */
+	device_t childdevs[IICMUX_MAX_BUSES]; /* Child bus instances. */
 #ifdef FDT
-	phandle_t	childnodes[IICMUX_MAX_BUSES]; /* Child bus fdt nodes. */
+	phandle_t childnodes[IICMUX_MAX_BUSES]; /* Child bus fdt nodes. */
 #endif
 };
 
@@ -69,8 +69,8 @@ DECLARE_CLASS(iicmux_driver);
  * must call iicmux_add_child() to inform the core driver of the downstream
  * busidx<->device_t relationship.
  */
-int  iicmux_add_child(device_t dev, device_t child, int busidx);
-int  iicmux_attach(device_t dev, device_t busdev, int numbuses);
-int  iicmux_detach(device_t dev);
+int iicmux_add_child(device_t dev, device_t child, int busidx);
+int iicmux_attach(device_t dev, device_t busdev, int numbuses);
+int iicmux_detach(device_t dev);
 
 #endif

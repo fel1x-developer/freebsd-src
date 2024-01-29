@@ -30,11 +30,11 @@
 struct fdt_header;
 
 struct fdt_mem_region {
-	unsigned long	start;
-	unsigned long	size;
+	unsigned long start;
+	unsigned long size;
 };
 
-#define	TMP_MAX_ETH	8
+#define TMP_MAX_ETH 8
 
 int fdt_copy(vm_offset_t);
 void fdt_fixup_cpubusfreqs(unsigned long, unsigned long);

@@ -31,18 +31,19 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <stdio.h>
 #include <wchar.h>
-#include "un-namespace.h"
+
 #include "libc_private.h"
 #include "local.h"
+#include "namespace.h"
+#include "un-namespace.h"
 #include "xlocale_private.h"
 
-wchar_t *fgetwln_l(FILE * __restrict, size_t *, locale_t);
+wchar_t *fgetwln_l(FILE *__restrict, size_t *, locale_t);
 
 wchar_t *
-fgetwln_l(FILE * __restrict fp, size_t *lenp, locale_t locale)
+fgetwln_l(FILE *__restrict fp, size_t *lenp, locale_t locale)
 {
 	wchar_t *ret;
 	wint_t wc;
@@ -59,7 +60,7 @@ fgetwln_l(FILE * __restrict fp, size_t *lenp, locale_t locale)
 
 	len = 0;
 	while ((wc = __fgetwc(fp, locale)) != WEOF) {
-#define	GROW	512
+#define GROW 512
 		if (len * sizeof(wchar_t) >= fp->_lb._size &&
 		    __slbexpand(fp, (len + GROW) * sizeof(wchar_t))) {
 			fp->_flags |= __SERR;
@@ -90,7 +91,7 @@ error:
 }
 
 wchar_t *
-fgetwln(FILE * __restrict fp, size_t *lenp)
+fgetwln(FILE *__restrict fp, size_t *lenp)
 {
 	return fgetwln_l(fp, lenp, __get_locale());
 }

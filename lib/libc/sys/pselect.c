@@ -31,6 +31,7 @@
 
 #include <sys/types.h>
 #include <sys/select.h>
+
 #include "libc_private.h"
 
 __weak_reference(__sys_pselect, __pselect);
@@ -41,7 +42,8 @@ pselect(int n, fd_set *rs, fd_set *ws, fd_set *es, const struct timespec *t,
     const sigset_t *s)
 {
 
-	return (((int (*)(int, fd_set *, fd_set *, fd_set *,
-	    const struct timespec *, const sigset_t *))
-	    __libc_interposing[INTERPOS_pselect])(n, rs, ws, es, t, s));
+	return ((
+	    (int (*)(int, fd_set *, fd_set *, fd_set *, const struct timespec *,
+		const sigset_t *))__libc_interposing[INTERPOS_pselect])(n, rs,
+	    ws, es, t, s));
 }

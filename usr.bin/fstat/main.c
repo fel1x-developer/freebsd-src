@@ -27,6 +27,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <err.h>
 #include <libgen.h>
 #include <stdlib.h>

@@ -33,20 +33,19 @@
 #include <sys/eventhandler.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/reboot.h>
 #include <sys/mutex.h>
+#include <sys/reboot.h>
 #include <sys/rman.h>
+
 #include <machine/bus.h>
 
-#include <dev/iicbus/iiconf.h>
 #include <dev/iicbus/iicbus.h>
-
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-
+#include <dev/iicbus/iiconf.h>
 #include <dev/iicbus/pmic/rockchip/rk805reg.h>
 #include <dev/iicbus/pmic/rockchip/rk808reg.h>
 #include <dev/iicbus/pmic/rockchip/rk8xx.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
 
 #include "clock_if.h"
 #include "regdev_if.h"
@@ -122,14 +121,15 @@ rk8xx_poweroff(void *arg, int howto)
 					device_printf(sc->dev,
 					    "Powercycle PMIC\n");
 				}
-				val |= sc->dev_ctrl.pwr_rst_mask;;
+				val |= sc->dev_ctrl.pwr_rst_mask;
+				;
 			} else {
 				/* Poweroff PMIC that can't powercycle */
 				val |= sc->dev_ctrl.pwr_off_mask;
 			}
 		}
-		error = rk8xx_write(sc->dev, sc->dev_ctrl.dev_ctrl_reg,
-		    &val, 1);
+		error = rk8xx_write(sc->dev, sc->dev_ctrl.dev_ctrl_reg, &val,
+		    1);
 
 		/* Wait a bit for the command to take effect. */
 		if (error == 0)
@@ -155,7 +155,7 @@ rk8xx_attach(struct rk8xx_softc *sc)
 	rk8xx_attach_regulators(sc);
 
 	if (OF_hasprop(ofw_bus_get_node(sc->dev),
-	    "rockchip,system-power-controller")) {
+		"rockchip,system-power-controller")) {
 		/*
 		 * The priority is chosen to override PSCI and EFI shutdown
 		 * methods as those two just hang without powering off on Rock64
@@ -176,18 +176,16 @@ rk8xx_detach(device_t dev)
 	return (EBUSY);
 }
 
-static device_method_t rk8xx_methods[] = {
-	DEVMETHOD(device_detach,	rk8xx_detach),
+static device_method_t rk8xx_methods[] = { DEVMETHOD(device_detach,
+					       rk8xx_detach),
 
 	/* regdev interface */
-	DEVMETHOD(regdev_map,		rk8xx_map),
+	DEVMETHOD(regdev_map, rk8xx_map),
 
 	/* Clock interface */
-	DEVMETHOD(clock_gettime,	rk8xx_gettime),
-	DEVMETHOD(clock_settime,	rk8xx_settime),
+	DEVMETHOD(clock_gettime, rk8xx_gettime),
+	DEVMETHOD(clock_settime, rk8xx_settime),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
-DEFINE_CLASS_0(rk8xx, rk8xx_driver, rk8xx_methods,
-    sizeof(struct rk8xx_softc));
+DEFINE_CLASS_0(rk8xx, rk8xx_driver, rk8xx_methods, sizeof(struct rk8xx_softc));

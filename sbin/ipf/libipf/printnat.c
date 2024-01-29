@@ -10,9 +10,6 @@
 #include "ipf.h"
 #include "kmem.h"
 
-
-
-
 /*
  * Print out a NAT rule
  */
@@ -36,51 +33,50 @@ printnat(ipnat_t *np, int opts)
 	if (np->in_flags & IPN_NO)
 		PRINTF("no ");
 
-	switch (np->in_redir)
-	{
-	case NAT_REDIRECT|NAT_ENCAP :
+	switch (np->in_redir) {
+	case NAT_REDIRECT | NAT_ENCAP:
 		PRINTF("encap in on");
 		proto = np->in_pr[0];
 		break;
-	case NAT_MAP|NAT_ENCAP :
+	case NAT_MAP | NAT_ENCAP:
 		PRINTF("encap out on");
 		proto = np->in_pr[1];
 		break;
-	case NAT_REDIRECT|NAT_DIVERTUDP :
+	case NAT_REDIRECT | NAT_DIVERTUDP:
 		PRINTF("divert in on");
 		proto = np->in_pr[0];
 		break;
-	case NAT_MAP|NAT_DIVERTUDP :
+	case NAT_MAP | NAT_DIVERTUDP:
 		PRINTF("divert out on");
 		proto = np->in_pr[1];
 		break;
-	case NAT_REDIRECT|NAT_REWRITE :
+	case NAT_REDIRECT | NAT_REWRITE:
 		PRINTF("rewrite in on");
 		proto = np->in_pr[0];
 		break;
-	case NAT_MAP|NAT_REWRITE :
+	case NAT_MAP | NAT_REWRITE:
 		PRINTF("rewrite out on");
 		proto = np->in_pr[1];
 		break;
-	case NAT_REDIRECT :
+	case NAT_REDIRECT:
 		PRINTF("rdr");
 		proto = np->in_pr[0];
 		break;
-	case NAT_MAP :
+	case NAT_MAP:
 		PRINTF("map");
 		proto = np->in_pr[1];
 		break;
-	case NAT_MAPBLK :
+	case NAT_MAPBLK:
 		PRINTF("map-block");
 		proto = np->in_pr[1];
 		break;
-	case NAT_BIMAP :
+	case NAT_BIMAP:
 		PRINTF("bimap");
 		proto = np->in_pr[0];
 		break;
-	default :
+	default:
 		FPRINTF(stderr, "unknown value for in_redir: %#x\n",
-			np->in_redir);
+		    np->in_redir);
 		proto = np->in_pr[0];
 		break;
 	}
@@ -104,7 +100,7 @@ printnat(ipnat_t *np, int opts)
 	if (family == AF_INET6)
 		PRINTF("inet6 ");
 
-	if (np->in_redir & (NAT_REWRITE|NAT_ENCAP|NAT_DIVERTUDP)) {
+	if (np->in_redir & (NAT_REWRITE | NAT_ENCAP | NAT_DIVERTUDP)) {
 		if ((proto != 0) || (np->in_flags & IPN_TCPUDP)) {
 			PRINTF("proto ");
 			printproto(pr, proto, np);
@@ -117,7 +113,7 @@ printnat(ipnat_t *np, int opts)
 			PRINTF("! ");
 		PRINTF("from ");
 		printnataddr(np->in_v[0], np->in_names, &np->in_osrc,
-			     np->in_ifnames[0]);
+		    np->in_ifnames[0]);
 		if (np->in_scmp)
 			printportcmp(proto, &np->in_tuc.ftu_src);
 
@@ -125,20 +121,20 @@ printnat(ipnat_t *np, int opts)
 			PRINTF(" !");
 		PRINTF(" to ");
 		printnataddr(np->in_v[0], np->in_names, &np->in_odst,
-			     np->in_ifnames[0]);
+		    np->in_ifnames[0]);
 		if (np->in_dcmp)
 			printportcmp(proto, &np->in_tuc.ftu_dst);
 	}
 
-	if (np->in_redir & (NAT_ENCAP|NAT_DIVERTUDP)) {
+	if (np->in_redir & (NAT_ENCAP | NAT_DIVERTUDP)) {
 		PRINTF(" -> src ");
 		printnataddr(np->in_v[1], np->in_names, &np->in_nsrc,
-			     np->in_ifnames[0]);
+		    np->in_ifnames[0]);
 		if ((np->in_redir & NAT_DIVERTUDP) != 0)
 			PRINTF(",%u", np->in_spmin);
 		PRINTF(" dst ");
 		printnataddr(np->in_v[1], np->in_names, &np->in_ndst,
-			     np->in_ifnames[0]);
+		    np->in_ifnames[0]);
 		if ((np->in_redir & NAT_DIVERTUDP) != 0)
 			PRINTF(",%u udp", np->in_dpmin);
 		if ((np->in_flags & IPN_PURGE) != 0)
@@ -156,7 +152,7 @@ printnat(ipnat_t *np, int opts)
 				PRINTF("%s", base + np->in_nsrc.na_num);
 		} else {
 			printnataddr(np->in_v[1], np->in_names, &np->in_nsrc,
-				     np->in_ifnames[0]);
+			    np->in_ifnames[0]);
 		}
 		if ((((np->in_flags & IPN_TCPUDP) != 0)) &&
 		    (np->in_spmin != 0)) {
@@ -178,7 +174,7 @@ printnat(ipnat_t *np, int opts)
 				PRINTF("%s", base + np->in_ndst.na_num);
 		} else {
 			printnataddr(np->in_v[1], np->in_names, &np->in_ndst,
-				     np->in_ifnames[0]);
+			    np->in_ifnames[0]);
 		}
 		if ((((np->in_flags & IPN_TCPUDP) != 0)) &&
 		    (np->in_dpmin != 0)) {
@@ -197,7 +193,7 @@ printnat(ipnat_t *np, int opts)
 	} else if (np->in_redir == NAT_REDIRECT) {
 		if (!(np->in_flags & IPN_FILTER)) {
 			printnataddr(np->in_v[0], np->in_names, &np->in_odst,
-				     np->in_ifnames[0]);
+			    np->in_ifnames[0]);
 			if (np->in_flags & IPN_TCPUDP) {
 				PRINTF(" port %d", np->in_odport);
 				if (np->in_odport != np->in_dtop)
@@ -212,7 +208,7 @@ printnat(ipnat_t *np, int opts)
 		}
 		PRINTF(" -> ");
 		printnataddr(np->in_v[1], np->in_names, &np->in_ndst,
-			     np->in_ifnames[0]);
+		    np->in_ifnames[0]);
 		if (np->in_flags & IPN_TCPUDP) {
 			if ((np->in_flags & IPN_FIXEDDPORT) != 0)
 				PRINTF(" port = %d", np->in_dpmin);
@@ -250,7 +246,7 @@ printnat(ipnat_t *np, int opts)
 
 		if (!(np->in_flags & IPN_FILTER)) {
 			printnataddr(np->in_v[0], np->in_names, &np->in_osrc,
-				     np->in_ifnames[0]);
+			    np->in_ifnames[0]);
 		}
 		if (np->in_flags & IPN_NO) {
 			putchar(' ');
@@ -262,10 +258,10 @@ printnat(ipnat_t *np, int opts)
 		if (np->in_flags & IPN_SIPRANGE) {
 			PRINTF("range ");
 			printnataddr(np->in_v[1], np->in_names, &np->in_nsrc,
-				     np->in_ifnames[0]);
+			    np->in_ifnames[0]);
 		} else {
 			printnataddr(np->in_v[1], np->in_names, &np->in_nsrc,
-				     np->in_ifnames[0]);
+			    np->in_ifnames[0]);
 		}
 		if (np->in_plabel != -1) {
 			PRINTF(" proxy port ");
@@ -301,9 +297,9 @@ printnat(ipnat_t *np, int opts)
 			if (np->in_flags & IPN_AUTOPORTMAP) {
 				PRINTF(" auto");
 				if (opts & OPT_DEBUG)
-					PRINTF(" [%d:%d %d %d]",
-					       np->in_spmin, np->in_spmax,
-					       np->in_ippip, np->in_ppip);
+					PRINTF(" [%d:%d %d %d]", np->in_spmin,
+					    np->in_spmax, np->in_ippip,
+					    np->in_ppip);
 			} else {
 				PRINTF(" %d:%d", np->in_spmin, np->in_spmax);
 			}
@@ -336,12 +332,12 @@ printnat(ipnat_t *np, int opts)
 
 	if (opts & OPT_DEBUG) {
 		PRINTF("\tspace %lu use %u hits %lu flags %#x proto %d/%d",
-			np->in_space, np->in_use, np->in_hits,
-			np->in_flags, np->in_pr[0], np->in_pr[1]);
+		    np->in_space, np->in_use, np->in_hits, np->in_flags,
+		    np->in_pr[0], np->in_pr[1]);
 		PRINTF(" hv %u/%u\n", np->in_hv[0], np->in_hv[1]);
-		PRINTF("\tifp[0] %p ifp[1] %p apr %p\n",
-			np->in_ifps[0], np->in_ifps[1], np->in_apr);
-		PRINTF("\ttqehead %p/%p comment %p\n",
-			np->in_tqehead[0], np->in_tqehead[1], np->in_comment);
+		PRINTF("\tifp[0] %p ifp[1] %p apr %p\n", np->in_ifps[0],
+		    np->in_ifps[1], np->in_apr);
+		PRINTF("\ttqehead %p/%p comment %p\n", np->in_tqehead[0],
+		    np->in_tqehead[1], np->in_comment);
 	}
 }

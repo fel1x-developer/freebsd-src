@@ -26,13 +26,13 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_BHYVERUN_H_
-#define	_BHYVERUN_H_
+#ifndef _BHYVERUN_H_
+#define _BHYVERUN_H_
 
 #include <stdbool.h>
 
-#define	VMEXIT_CONTINUE		(0)
-#define	VMEXIT_ABORT		(-1)
+#define VMEXIT_CONTINUE (0)
+#define VMEXIT_ABORT (-1)
 
 extern int guest_ncpus;
 extern uint16_t cpu_cores, cpu_sockets, cpu_threads;
@@ -52,7 +52,7 @@ void fbsdrun_addcpu(int vcpuid);
 void fbsdrun_deletecpu(int vcpuid);
 int fbsdrun_suspendcpu(int vcpuid);
 
-int  fbsdrun_virtio_msix(void);
+int fbsdrun_virtio_msix(void);
 
 typedef int (*vmexit_handler_t)(struct vmctx *, struct vcpu *, struct vm_run *);
 

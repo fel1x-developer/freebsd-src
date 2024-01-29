@@ -98,16 +98,15 @@
  */
 
 #include <sys/cdefs.h>
-#include <dev/mpt/mpt.h>
-#include <dev/mpt/mpt_cam.h> /* XXX For static handler registration */
-#include <dev/mpt/mpt_raid.h> /* XXX For static handler registration */
+#include <sys/sysctl.h>
 
 #include <dev/mpt/mpilib/mpi.h>
-#include <dev/mpt/mpilib/mpi_ioc.h>
 #include <dev/mpt/mpilib/mpi_fc.h>
+#include <dev/mpt/mpilib/mpi_ioc.h>
 #include <dev/mpt/mpilib/mpi_targ.h>
-
-#include <sys/sysctl.h>
+#include <dev/mpt/mpt.h>
+#include <dev/mpt/mpt_cam.h>  /* XXX For static handler registration */
+#include <dev/mpt/mpt_raid.h> /* XXX For static handler registration */
 
 #define MPT_MAX_TRYS 3
 #define MPT_MAX_WAIT 300000
@@ -116,7 +115,7 @@ static int maxwait_ack = 0;
 static int maxwait_int = 0;
 static int maxwait_state = 0;
 
-static TAILQ_HEAD(, mpt_softc)	mpt_tailq = TAILQ_HEAD_INITIALIZER(mpt_tailq);
+static TAILQ_HEAD(, mpt_softc) mpt_tailq = TAILQ_HEAD_INITIALIZER(mpt_tailq);
 mpt_reply_handler_t *mpt_reply_handlers[MPT_NUM_REPLY_HANDLERS];
 
 static mpt_reply_handler_t mpt_default_reply_handler;
@@ -124,7 +123,7 @@ static mpt_reply_handler_t mpt_config_reply_handler;
 static mpt_reply_handler_t mpt_handshake_reply_handler;
 static mpt_reply_handler_t mpt_event_reply_handler;
 static void mpt_send_event_ack(struct mpt_softc *mpt, request_t *ack_req,
-			       MSG_EVENT_NOTIFY_REPLY *msg, uint32_t context);
+    MSG_EVENT_NOTIFY_REPLY *msg, uint32_t context);
 static int mpt_send_event_request(struct mpt_softc *mpt, int onoff);
 static int mpt_soft_reset(struct mpt_softc *mpt);
 static void mpt_hard_reset(struct mpt_softc *mpt);
@@ -139,19 +138,19 @@ static int mpt_enable_ioc(struct mpt_softc *mpt, int);
  * to simplify our itterator.
  */
 static struct mpt_personality *mpt_personalities[MPT_MAX_PERSONALITIES + 1];
-static __inline struct mpt_personality*
-	mpt_pers_find(struct mpt_softc *, u_int);
-static __inline struct mpt_personality*
-	mpt_pers_find_reverse(struct mpt_softc *, u_int);
+static __inline struct mpt_personality *mpt_pers_find(struct mpt_softc *,
+    u_int);
+static __inline struct mpt_personality *
+mpt_pers_find_reverse(struct mpt_softc *, u_int);
 
 static __inline struct mpt_personality *
 mpt_pers_find(struct mpt_softc *mpt, u_int start_at)
 {
 	KASSERT(start_at <= MPT_MAX_PERSONALITIES,
-		("mpt_pers_find: starting position out of range"));
+	    ("mpt_pers_find: starting position out of range"));
 
-	while (start_at < MPT_MAX_PERSONALITIES
-	    && (mpt->mpt_pers_mask & (0x1 << start_at)) == 0) {
+	while (start_at < MPT_MAX_PERSONALITIES &&
+	    (mpt->mpt_pers_mask & (0x1 << start_at)) == 0) {
 		start_at++;
 	}
 	return (mpt_personalities[start_at]);
@@ -165,8 +164,8 @@ mpt_pers_find(struct mpt_softc *mpt, u_int start_at)
 static __inline struct mpt_personality *
 mpt_pers_find_reverse(struct mpt_softc *mpt, u_int start_at)
 {
-	while (start_at < MPT_MAX_PERSONALITIES
-	    && (mpt->mpt_pers_mask & (0x1 << start_at)) == 0) {
+	while (start_at < MPT_MAX_PERSONALITIES &&
+	    (mpt->mpt_pers_mask & (0x1 << start_at)) == 0) {
 		start_at--;
 	}
 	if (start_at < MPT_MAX_PERSONALITIES)
@@ -174,59 +173,54 @@ mpt_pers_find_reverse(struct mpt_softc *mpt, u_int start_at)
 	return (NULL);
 }
 
-#define MPT_PERS_FOREACH(mpt, pers)				\
-	for (pers = mpt_pers_find(mpt, /*start_at*/0);		\
-	     pers != NULL;					\
-	     pers = mpt_pers_find(mpt, /*start_at*/pers->id+1))
+#define MPT_PERS_FOREACH(mpt, pers)                                   \
+	for (pers = mpt_pers_find(mpt, /*start_at*/ 0); pers != NULL; \
+	     pers = mpt_pers_find(mpt, /*start_at*/ pers->id + 1))
 
-#define MPT_PERS_FOREACH_REVERSE(mpt, pers)				\
-	for (pers = mpt_pers_find_reverse(mpt, MPT_MAX_PERSONALITIES-1);\
-	     pers != NULL;						\
-	     pers = mpt_pers_find_reverse(mpt, /*start_at*/pers->id-1))
+#define MPT_PERS_FOREACH_REVERSE(mpt, pers)                                \
+	for (pers = mpt_pers_find_reverse(mpt, MPT_MAX_PERSONALITIES - 1); \
+	     pers != NULL;                                                 \
+	     pers = mpt_pers_find_reverse(mpt, /*start_at*/ pers->id - 1))
 
-static mpt_load_handler_t      mpt_stdload;
-static mpt_probe_handler_t     mpt_stdprobe;
-static mpt_attach_handler_t    mpt_stdattach;
-static mpt_enable_handler_t    mpt_stdenable;
-static mpt_ready_handler_t     mpt_stdready;
-static mpt_event_handler_t     mpt_stdevent;
-static mpt_reset_handler_t     mpt_stdreset;
-static mpt_shutdown_handler_t  mpt_stdshutdown;
-static mpt_detach_handler_t    mpt_stddetach;
-static mpt_unload_handler_t    mpt_stdunload;
-static struct mpt_personality mpt_default_personality =
-{
-	.load		= mpt_stdload,
-	.probe		= mpt_stdprobe,
-	.attach		= mpt_stdattach,
-	.enable		= mpt_stdenable,
-	.ready		= mpt_stdready,
-	.event		= mpt_stdevent,
-	.reset		= mpt_stdreset,
-	.shutdown	= mpt_stdshutdown,
-	.detach		= mpt_stddetach,
-	.unload		= mpt_stdunload
-};
+static mpt_load_handler_t mpt_stdload;
+static mpt_probe_handler_t mpt_stdprobe;
+static mpt_attach_handler_t mpt_stdattach;
+static mpt_enable_handler_t mpt_stdenable;
+static mpt_ready_handler_t mpt_stdready;
+static mpt_event_handler_t mpt_stdevent;
+static mpt_reset_handler_t mpt_stdreset;
+static mpt_shutdown_handler_t mpt_stdshutdown;
+static mpt_detach_handler_t mpt_stddetach;
+static mpt_unload_handler_t mpt_stdunload;
+static struct mpt_personality mpt_default_personality = { .load = mpt_stdload,
+	.probe = mpt_stdprobe,
+	.attach = mpt_stdattach,
+	.enable = mpt_stdenable,
+	.ready = mpt_stdready,
+	.event = mpt_stdevent,
+	.reset = mpt_stdreset,
+	.shutdown = mpt_stdshutdown,
+	.detach = mpt_stddetach,
+	.unload = mpt_stdunload };
 
-static mpt_load_handler_t      mpt_core_load;
-static mpt_attach_handler_t    mpt_core_attach;
-static mpt_enable_handler_t    mpt_core_enable;
-static mpt_reset_handler_t     mpt_core_ioc_reset;
-static mpt_event_handler_t     mpt_core_event;
-static mpt_shutdown_handler_t  mpt_core_shutdown;
-static mpt_shutdown_handler_t  mpt_core_detach;
-static mpt_unload_handler_t    mpt_core_unload;
-static struct mpt_personality mpt_core_personality =
-{
-	.name		= "mpt_core",
-	.load		= mpt_core_load,
-//	.attach		= mpt_core_attach,
-//	.enable		= mpt_core_enable,
-	.event		= mpt_core_event,
-	.reset		= mpt_core_ioc_reset,
-	.shutdown	= mpt_core_shutdown,
-	.detach		= mpt_core_detach,
-	.unload		= mpt_core_unload,
+static mpt_load_handler_t mpt_core_load;
+static mpt_attach_handler_t mpt_core_attach;
+static mpt_enable_handler_t mpt_core_enable;
+static mpt_reset_handler_t mpt_core_ioc_reset;
+static mpt_event_handler_t mpt_core_event;
+static mpt_shutdown_handler_t mpt_core_shutdown;
+static mpt_shutdown_handler_t mpt_core_detach;
+static mpt_unload_handler_t mpt_core_unload;
+static struct mpt_personality mpt_core_personality = {
+	.name = "mpt_core",
+	.load = mpt_core_load,
+	//	.attach		= mpt_core_attach,
+	//	.enable		= mpt_core_enable,
+	.event = mpt_core_event,
+	.reset = mpt_core_ioc_reset,
+	.shutdown = mpt_core_shutdown,
+	.detach = mpt_core_detach,
+	.unload = mpt_core_unload,
 };
 
 /*
@@ -234,9 +228,8 @@ static struct mpt_personality mpt_core_personality =
  * ordering information.  We want the core to always register FIRST.
  * other modules are set to SI_ORDER_SECOND.
  */
-static moduledata_t mpt_core_mod = {
-	"mpt_core", mpt_modevent, &mpt_core_personality
-};
+static moduledata_t mpt_core_mod = { "mpt_core", mpt_modevent,
+	&mpt_core_personality };
 DECLARE_MODULE(mpt_core, mpt_core_mod, SI_SUB_DRIVERS, SI_ORDER_FIRST);
 MODULE_VERSION(mpt_core, 1);
 
@@ -252,8 +245,7 @@ mpt_modevent(module_t mod, int type, void *data)
 
 	error = 0;
 	switch (type) {
-	case MOD_LOAD:
-	{
+	case MOD_LOAD: {
 		mpt_load_handler_t **def_handler;
 		mpt_load_handler_t **pers_handler;
 		int i;
@@ -278,7 +270,7 @@ mpt_modevent(module_t mod, int type, void *data)
 			pers_handler++;
 			def_handler++;
 		}
-		
+
 		error = (pers->load(pers));
 		if (error != 0)
 			mpt_personalities[i] = NULL;
@@ -334,7 +326,6 @@ mpt_stdenable(struct mpt_softc *mpt)
 static void
 mpt_stdready(struct mpt_softc *mpt)
 {
-
 }
 
 static int
@@ -349,19 +340,16 @@ mpt_stdevent(struct mpt_softc *mpt, request_t *req, MSG_EVENT_NOTIFY_REPLY *msg)
 static void
 mpt_stdreset(struct mpt_softc *mpt, int type)
 {
-
 }
 
 static void
 mpt_stdshutdown(struct mpt_softc *mpt)
 {
-
 }
 
 static void
 mpt_stddetach(struct mpt_softc *mpt)
 {
-
 }
 
 static int
@@ -383,9 +371,9 @@ mpt_postattach(void *unused)
 	struct mpt_softc *mpt;
 	struct mpt_personality *pers;
 
-	TAILQ_FOREACH(mpt, &mpt_tailq, links) {
+	TAILQ_FOREACH (mpt, &mpt_tailq, links) {
 		MPT_PERS_FOREACH(mpt, pers)
-			pers->ready(mpt);
+		pers->ready(mpt);
 	}
 }
 SYSINIT(mptdev, SI_SUB_CONFIGURE, SI_ORDER_MIDDLE, mpt_postattach, NULL);
@@ -404,12 +392,11 @@ mpt_map_rquest(void *arg, bus_dma_segment_t *segs, int nseg, int error)
 /**************************** Reply/Event Handling ****************************/
 int
 mpt_register_handler(struct mpt_softc *mpt, mpt_handler_type type,
-		     mpt_handler_t handler, uint32_t *phandler_id)
+    mpt_handler_t handler, uint32_t *phandler_id)
 {
 
 	switch (type) {
-	case MPT_HANDLER_REPLY:
-	{
+	case MPT_HANDLER_REPLY: {
 		u_int cbi;
 		u_int free_cbi;
 
@@ -438,8 +425,8 @@ mpt_register_handler(struct mpt_softc *mpt, mpt_handler_type type,
 			 * this handler was previously registered.
 			 */
 			if (free_cbi == MPT_HANDLER_ID_NONE &&
-			    (mpt_reply_handlers[cbi]
-			  == mpt_default_reply_handler))
+			    (mpt_reply_handlers[cbi] ==
+				mpt_default_reply_handler))
 				free_cbi = cbi;
 		}
 		if (free_cbi == MPT_HANDLER_ID_NONE) {
@@ -458,17 +445,16 @@ mpt_register_handler(struct mpt_softc *mpt, mpt_handler_type type,
 
 int
 mpt_deregister_handler(struct mpt_softc *mpt, mpt_handler_type type,
-		       mpt_handler_t handler, uint32_t handler_id)
+    mpt_handler_t handler, uint32_t handler_id)
 {
 
 	switch (type) {
-	case MPT_HANDLER_REPLY:
-	{
+	case MPT_HANDLER_REPLY: {
 		u_int cbi;
 
 		cbi = MPT_CBI(handler_id);
-		if (cbi >= MPT_NUM_REPLY_HANDLERS
-		 || mpt_reply_handlers[cbi] != handler.reply_handler)
+		if (cbi >= MPT_NUM_REPLY_HANDLERS ||
+		    mpt_reply_handlers[cbi] != handler.reply_handler)
 			return (ENOENT);
 		mpt_reply_handlers[cbi] = mpt_default_reply_handler;
 		break;
@@ -482,7 +468,7 @@ mpt_deregister_handler(struct mpt_softc *mpt, mpt_handler_type type,
 
 static int
 mpt_default_reply_handler(struct mpt_softc *mpt, request_t *req,
-	uint32_t reply_desc, MSG_DEFAULT_REPLY *reply_frame)
+    uint32_t reply_desc, MSG_DEFAULT_REPLY *reply_frame)
 {
 
 	mpt_prt(mpt,
@@ -494,12 +480,12 @@ mpt_default_reply_handler(struct mpt_softc *mpt, request_t *req,
 
 	mpt_prt(mpt, "Reply Frame Ignored\n");
 
-	return (/*free_reply*/TRUE);
+	return (/*free_reply*/ TRUE);
 }
 
 static int
 mpt_config_reply_handler(struct mpt_softc *mpt, request_t *req,
- uint32_t reply_desc, MSG_DEFAULT_REPLY *reply_frame)
+    uint32_t reply_desc, MSG_DEFAULT_REPLY *reply_frame)
 {
 
 	if (req != NULL) {
@@ -511,7 +497,7 @@ mpt_config_reply_handler(struct mpt_softc *mpt, request_t *req,
 			reply = (MSG_CONFIG_REPLY *)reply_frame;
 			req->IOCStatus = le16toh(reply_frame->IOCStatus);
 			bcopy(&reply->Header, &cfgp->Header,
-			      sizeof(cfgp->Header));
+			    sizeof(cfgp->Header));
 			cfgp->ExtPageLength = reply->ExtPageLength;
 			cfgp->ExtPageType = reply->ExtPageType;
 		}
@@ -533,7 +519,7 @@ mpt_config_reply_handler(struct mpt_softc *mpt, request_t *req,
 
 static int
 mpt_handshake_reply_handler(struct mpt_softc *mpt, request_t *req,
- uint32_t reply_desc, MSG_DEFAULT_REPLY *reply_frame)
+    uint32_t reply_desc, MSG_DEFAULT_REPLY *reply_frame)
 {
 
 	/* Nothing to be done. */
@@ -551,8 +537,7 @@ mpt_event_reply_handler(struct mpt_softc *mpt, request_t *req,
 
 	free_reply = TRUE;
 	switch (reply_frame->Function) {
-	case MPI_FUNCTION_EVENT_NOTIFICATION:
-	{
+	case MPI_FUNCTION_EVENT_NOTIFICATION: {
 		MSG_EVENT_NOTIFY_REPLY *msg;
 		struct mpt_personality *pers;
 		u_int handled;
@@ -564,19 +549,19 @@ mpt_event_reply_handler(struct mpt_softc *mpt, request_t *req,
 		msg->IOCLogInfo = le32toh(msg->IOCLogInfo);
 		msg->Event = le32toh(msg->Event);
 		MPT_PERS_FOREACH(mpt, pers)
-			handled += pers->event(mpt, req, msg);
+		handled += pers->event(mpt, req, msg);
 
 		if (handled == 0 && mpt->mpt_pers_mask == 0) {
 			mpt_lprt(mpt, MPT_PRT_INFO,
-				"No Handlers For Any Event Notify Frames. "
-				"Event %#x (ACK %sequired).\n",
-				msg->Event, msg->AckRequired? "r" : "not r");
+			    "No Handlers For Any Event Notify Frames. "
+			    "Event %#x (ACK %sequired).\n",
+			    msg->Event, msg->AckRequired ? "r" : "not r");
 		} else if (handled == 0) {
 			mpt_lprt(mpt,
-				msg->AckRequired? MPT_PRT_WARN : MPT_PRT_INFO,
-				"Unhandled Event Notify Frame. Event %#x "
-				"(ACK %sequired).\n",
-				msg->Event, msg->AckRequired? "r" : "not r");
+			    msg->AckRequired ? MPT_PRT_WARN : MPT_PRT_INFO,
+			    "Unhandled Event Notify Frame. Event %#x "
+			    "(ACK %sequired).\n",
+			    msg->Event, msg->AckRequired ? "r" : "not r");
 		}
 
 		if (msg->AckRequired) {
@@ -603,13 +588,13 @@ mpt_event_reply_handler(struct mpt_softc *mpt, request_t *req,
 		break;
 	}
 	case MPI_FUNCTION_PORT_ENABLE:
-		mpt_lprt(mpt, MPT_PRT_DEBUG , "enable port reply\n");
+		mpt_lprt(mpt, MPT_PRT_DEBUG, "enable port reply\n");
 		break;
 	case MPI_FUNCTION_EVENT_ACK:
 		break;
 	default:
 		mpt_prt(mpt, "unknown event function: %x\n",
-			reply_frame->Function);
+		    reply_frame->Function);
 		break;
 	}
 
@@ -624,7 +609,7 @@ mpt_event_reply_handler(struct mpt_softc *mpt, request_t *req,
 	 *  Let's just be safe for now and not free them up until we figure
 	 * out what's actually happening here.
 	 */
-#if	0
+#if 0
 	if ((reply_frame->MsgFlags & MPI_MSGFLAGS_CONTINUATION_REPLY) == 0) {
 		TAILQ_REMOVE(&mpt->request_pending_list, req, links);
 		mpt_free_request(mpt, req);
@@ -656,21 +641,20 @@ mpt_event_reply_handler(struct mpt_softc *mpt, request_t *req,
  */
 static int
 mpt_core_event(struct mpt_softc *mpt, request_t *req,
-	       MSG_EVENT_NOTIFY_REPLY *msg)
+    MSG_EVENT_NOTIFY_REPLY *msg)
 {
 
 	mpt_lprt(mpt, MPT_PRT_DEBUG, "mpt_core_event: 0x%x\n",
-                 msg->Event & 0xFF);
-	switch(msg->Event & 0xFF) {
+	    msg->Event & 0xFF);
+	switch (msg->Event & 0xFF) {
 	case MPI_EVENT_NONE:
 		break;
-	case MPI_EVENT_LOG_DATA:
-	{
+	case MPI_EVENT_LOG_DATA: {
 		int i;
 
 		/* Some error occurred that LSI wants logged */
 		mpt_prt(mpt, "EvtLogData: IOCLogInfo: 0x%08x\n",
-			msg->IOCLogInfo);
+		    msg->IOCLogInfo);
 		mpt_prt(mpt, "\tEvtLogData: Event Data:");
 		for (i = 0; i < msg->EventDataLength; i++)
 			mpt_prtc(mpt, "  %08x", msg->Data[i]);
@@ -694,12 +678,12 @@ mpt_core_event(struct mpt_softc *mpt, request_t *req,
 
 static void
 mpt_send_event_ack(struct mpt_softc *mpt, request_t *ack_req,
-		   MSG_EVENT_NOTIFY_REPLY *msg, uint32_t context)
+    MSG_EVENT_NOTIFY_REPLY *msg, uint32_t context)
 {
 	MSG_EVENT_ACK *ackp;
 
 	ackp = (MSG_EVENT_ACK *)ack_req->req_vbuf;
-	memset(ackp, 0, sizeof (*ackp));
+	memset(ackp, 0, sizeof(*ackp));
 	ackp->Function = MPI_FUNCTION_EVENT_ACK;
 	ackp->Event = htole32(msg->Event);
 	ackp->EventContext = htole32(msg->EventContext);
@@ -721,14 +705,14 @@ mpt_intr(void *arg)
 	MPT_LOCK_ASSERT(mpt);
 
 	while ((reply_desc = mpt_pop_reply_queue(mpt)) != MPT_REPLY_EMPTY) {
-		request_t	  *req;
+		request_t *req;
 		MSG_DEFAULT_REPLY *reply_frame;
-		uint32_t	   reply_baddr;
-		uint32_t           ctxt_idx;
-		u_int		   cb_index;
-		u_int		   req_index;
-		u_int		   offset;
-		int		   free_rf;
+		uint32_t reply_baddr;
+		uint32_t ctxt_idx;
+		u_int cb_index;
+		u_int req_index;
+		u_int offset;
+		int free_rf;
 
 		req = NULL;
 		reply_frame = NULL;
@@ -740,9 +724,8 @@ mpt_intr(void *arg)
 			 */
 			reply_baddr = MPT_REPLY_BADDR(reply_desc);
 			offset = reply_baddr - (mpt->reply_phys & 0xFFFFFFFF);
-			bus_dmamap_sync_range(mpt->reply_dmat,
-			    mpt->reply_dmap, offset, MPT_REPLY_SIZE,
-			    BUS_DMASYNC_POSTREAD);
+			bus_dmamap_sync_range(mpt->reply_dmat, mpt->reply_dmap,
+			    offset, MPT_REPLY_SIZE, BUS_DMASYNC_POSTREAD);
 			reply_frame = MPT_REPLY_OTOV(mpt, offset);
 			ctxt_idx = le32toh(reply_frame->MsgContext);
 		} else {
@@ -751,7 +734,7 @@ mpt_intr(void *arg)
 			type = MPI_GET_CONTEXT_REPLY_TYPE(reply_desc);
 			ctxt_idx = reply_desc;
 			mpt_lprt(mpt, MPT_PRT_DEBUG1, "Context Reply: 0x%08x\n",
-				    reply_desc);
+			    reply_desc);
 
 			switch (type) {
 			case MPI_CONTEXT_REPLY_TYPE_SCSI_INIT:
@@ -775,8 +758,10 @@ mpt_intr(void *arg)
 				}
 				req = mpt->tgt_cmd_ptrs[ctxt_idx];
 				if (req == NULL) {
-					mpt_prt(mpt, "no request backpointer "
-					    "at index %u", ctxt_idx);
+					mpt_prt(mpt,
+					    "no request backpointer "
+					    "at index %u",
+					    ctxt_idx);
 					reply_desc = MPT_REPLY_EMPTY;
 					ntrips = 1000;
 					break;
@@ -787,8 +772,8 @@ mpt_intr(void *arg)
 				 * so the code below will find the request
 				 * via indexing into the pool.
 				 */
-				ctxt_idx =
-				    req->index | mpt->scsi_tgt_handler_id;
+				ctxt_idx = req->index |
+				    mpt->scsi_tgt_handler_id;
 				req = NULL;
 				break;
 			case MPI_CONTEXT_REPLY_TYPE_LAN:
@@ -814,19 +799,20 @@ mpt_intr(void *arg)
 		if (req_index < MPT_MAX_REQUESTS(mpt)) {
 			req = &mpt->request_pool[req_index];
 		} else {
-			mpt_prt(mpt, "WARN: mpt_intr index == %d (reply_desc =="
-			    " 0x%x)\n", req_index, reply_desc);
+			mpt_prt(mpt,
+			    "WARN: mpt_intr index == %d (reply_desc =="
+			    " 0x%x)\n",
+			    req_index, reply_desc);
 		}
 
 		bus_dmamap_sync(mpt->request_dmat, mpt->request_dmap,
 		    BUS_DMASYNC_POSTREAD | BUS_DMASYNC_POSTWRITE);
-		free_rf = mpt_reply_handlers[cb_index](mpt, req,
-		    reply_desc, reply_frame);
+		free_rf = mpt_reply_handlers[cb_index](mpt, req, reply_desc,
+		    reply_frame);
 
 		if (reply_frame != NULL && free_rf) {
-			bus_dmamap_sync_range(mpt->reply_dmat,
-			    mpt->reply_dmap, offset, MPT_REPLY_SIZE,
-			    BUS_DMASYNC_PREREAD);
+			bus_dmamap_sync_range(mpt->reply_dmat, mpt->reply_dmap,
+			    offset, MPT_REPLY_SIZE, BUS_DMASYNC_PREREAD);
 			mpt_free_reply(mpt, reply_baddr);
 		}
 
@@ -847,17 +833,17 @@ mpt_intr(void *arg)
 /******************************* Error Recovery *******************************/
 void
 mpt_complete_request_chain(struct mpt_softc *mpt, struct req_queue *chain,
-			    u_int iocstatus)
+    u_int iocstatus)
 {
-	MSG_DEFAULT_REPLY  ioc_status_frame;
-	request_t	  *req;
+	MSG_DEFAULT_REPLY ioc_status_frame;
+	request_t *req;
 
 	memset(&ioc_status_frame, 0, sizeof(ioc_status_frame));
 	ioc_status_frame.MsgLength = roundup2(sizeof(ioc_status_frame), 4);
 	ioc_status_frame.IOCStatus = iocstatus;
-	while((req = TAILQ_FIRST(chain)) != NULL) {
+	while ((req = TAILQ_FIRST(chain)) != NULL) {
 		MSG_REQUEST_HEADER *msg_hdr;
-		u_int		    cb_index;
+		u_int cb_index;
 
 		bus_dmamap_sync(mpt->request_dmat, mpt->request_dmap,
 		    BUS_DMASYNC_POSTREAD | BUS_DMASYNC_POSTWRITE);
@@ -886,7 +872,7 @@ mpt_dump_reply_frame(struct mpt_softc *mpt, MSG_DEFAULT_REPLY *reply_frame)
 
 /******************************* Doorbell Access ******************************/
 static __inline uint32_t mpt_rd_db(struct mpt_softc *mpt);
-static __inline  uint32_t mpt_rd_intr(struct mpt_softc *mpt);
+static __inline uint32_t mpt_rd_intr(struct mpt_softc *mpt);
 
 static __inline uint32_t
 mpt_rd_db(struct mpt_softc *mpt)
@@ -908,7 +894,7 @@ mpt_wait_db_ack(struct mpt_softc *mpt)
 {
 	int i;
 
-	for (i=0; i < MPT_MAX_WAIT; i++) {
+	for (i = 0; i < MPT_MAX_WAIT; i++) {
 		if (!MPT_DB_IS_BUSY(mpt_rd_intr(mpt))) {
 			maxwait_ack = i > maxwait_ack ? i : maxwait_ack;
 			return (MPT_OK);
@@ -963,7 +949,8 @@ mpt_wait_state(struct mpt_softc *mpt, enum DB_STATE_BITS state)
 	return (MPT_FAIL);
 }
 
-/************************* Initialization/Configuration ************************/
+/************************* Initialization/Configuration
+ * ************************/
 static int mpt_download_fw(struct mpt_softc *mpt);
 
 /* Issue the reset COMMAND to the IOC */
@@ -1073,12 +1060,12 @@ mpt_hard_reset(struct mpt_softc *mpt)
 	/* Diag. port is now active so we can now hit the reset bit */
 	mpt_write(mpt, MPT_OFFSET_DIAGNOSTIC, diagreg | MPI_DIAG_RESET_ADAPTER);
 
-        /*
-         * Ensure that the reset has finished.  We delay 1ms
-         * prior to reading the register to make sure the chip
-         * has sufficiently completed its reset to handle register
-         * accesses.
-         */
+	/*
+	 * Ensure that the reset has finished.  We delay 1ms
+	 * prior to reading the register to make sure the chip
+	 * has sufficiently completed its reset to handle register
+	 * accesses.
+	 */
 	wait = 5000;
 	do {
 		DELAY(1000);
@@ -1086,8 +1073,9 @@ mpt_hard_reset(struct mpt_softc *mpt)
 	} while (--wait && (diagreg & MPI_DIAG_RESET_ADAPTER) == 0);
 
 	if (wait == 0) {
-		mpt_prt(mpt, "WARNING - Failed hard reset! "
-			"Trying to initialize anyway.\n");
+		mpt_prt(mpt,
+		    "WARNING - Failed hard reset! "
+		    "Trying to initialize anyway.\n");
 	}
 
 	/*
@@ -1120,7 +1108,7 @@ mpt_core_ioc_reset(struct mpt_softc *mpt, int type)
 	 * appropriate for an IOC reset.
 	 */
 	mpt_complete_request_chain(mpt, &mpt->request_pending_list,
-				   MPI_IOCSTATUS_INVALID_STATE);
+	    MPI_IOCSTATUS_INVALID_STATE);
 }
 
 /*
@@ -1132,16 +1120,16 @@ mpt_core_ioc_reset(struct mpt_softc *mpt, int type)
 int
 mpt_reset(struct mpt_softc *mpt, int reinit)
 {
-	struct	mpt_personality *pers;
-	int	ret;
-	int	retry_cnt = 0;
+	struct mpt_personality *pers;
+	int ret;
+	int retry_cnt = 0;
 
 	/*
 	 * Try a soft reset. If that fails, get out the big hammer.
 	 */
- again:
+again:
 	if ((ret = mpt_soft_reset(mpt)) != MPT_OK) {
-		int	cnt;
+		int cnt;
 		for (cnt = 0; cnt < 5; cnt++) {
 			/* Failed; do a hard reset */
 			mpt_hard_reset(mpt);
@@ -1174,7 +1162,7 @@ mpt_reset(struct mpt_softc *mpt, int reinit)
 		 */
 		mpt->reset_cnt++;
 		MPT_PERS_FOREACH(mpt, pers)
-			pers->reset(mpt, ret);
+		pers->reset(mpt, ret);
 	}
 
 	if (reinit) {
@@ -1202,18 +1190,18 @@ mpt_free_request(struct mpt_softc *mpt, request_t *req)
 	}
 	if ((nxt = req->chain) != NULL) {
 		req->chain = NULL;
-		mpt_free_request(mpt, nxt);	/* NB: recursion */
+		mpt_free_request(mpt, nxt); /* NB: recursion */
 	}
 	KASSERT(req->state != REQ_STATE_FREE, ("freeing free request"));
 	KASSERT(!(req->state & REQ_STATE_LOCKED), ("freeing locked request"));
 	MPT_LOCK_ASSERT(mpt);
 	KASSERT(mpt_req_on_free_list(mpt, req) == 0,
-	    ("mpt_free_request: req %p:%u func %x already on freelist",
-	    req, req->serno, ((MSG_REQUEST_HEADER *)req->req_vbuf)->Function));
+	    ("mpt_free_request: req %p:%u func %x already on freelist", req,
+		req->serno, ((MSG_REQUEST_HEADER *)req->req_vbuf)->Function));
 	KASSERT(mpt_req_on_pending_list(mpt, req) == 0,
-	    ("mpt_free_request: req %p:%u func %x on pending list",
-	    req, req->serno, ((MSG_REQUEST_HEADER *)req->req_vbuf)->Function));
-#ifdef	INVARIANTS
+	    ("mpt_free_request: req %p:%u func %x on pending list", req,
+		req->serno, ((MSG_REQUEST_HEADER *)req->req_vbuf)->Function));
+#ifdef INVARIANTS
 	mpt_req_not_spcl(mpt, req, "mpt_free_request", __LINE__);
 #endif
 
@@ -1224,8 +1212,8 @@ mpt_free_request(struct mpt_softc *mpt, request_t *req)
 		 */
 		req->serno = 0;
 		req->state = REQ_STATE_FREE;
-#ifdef	INVARIANTS
-		memset(req->req_vbuf, 0xff, sizeof (MSG_REQUEST_HEADER));
+#ifdef INVARIANTS
+		memset(req->req_vbuf, 0xff, sizeof(MSG_REQUEST_HEADER));
 #endif
 		TAILQ_INSERT_TAIL(&mpt->request_free_list, req, links);
 		if (mpt->getreqwaiter != 0) {
@@ -1264,8 +1252,8 @@ retry:
 		    ("mpt_get_request: corrupted request free list"));
 		KASSERT(req->state == REQ_STATE_FREE,
 		    ("req %p:%u not free on free list %x index %d function %x",
-		    req, req->serno, req->state, req->index,
-		    ((MSG_REQUEST_HEADER *)req->req_vbuf)->Function));
+			req, req->serno, req->state, req->index,
+			((MSG_REQUEST_HEADER *)req->req_vbuf)->Function));
 		TAILQ_REMOVE(&mpt->request_free_list, req, links);
 		req->state = REQ_STATE_ALLOCATED;
 		req->chain = NULL;
@@ -1290,13 +1278,13 @@ mpt_send_cmd(struct mpt_softc *mpt, request_t *req)
 	    BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
 	req->state |= REQ_STATE_QUEUED;
 	KASSERT(mpt_req_on_free_list(mpt, req) == 0,
-	    ("req %p:%u func %x on freelist list in mpt_send_cmd",
-	    req, req->serno, ((MSG_REQUEST_HEADER *)req->req_vbuf)->Function));
+	    ("req %p:%u func %x on freelist list in mpt_send_cmd", req,
+		req->serno, ((MSG_REQUEST_HEADER *)req->req_vbuf)->Function));
 	KASSERT(mpt_req_on_pending_list(mpt, req) == 0,
-	    ("req %p:%u func %x already on pending list in mpt_send_cmd",
-	    req, req->serno, ((MSG_REQUEST_HEADER *)req->req_vbuf)->Function));
+	    ("req %p:%u func %x already on pending list in mpt_send_cmd", req,
+		req->serno, ((MSG_REQUEST_HEADER *)req->req_vbuf)->Function));
 	TAILQ_INSERT_HEAD(&mpt->request_pending_list, req, links);
-	mpt_write(mpt, MPT_OFFSET_REQUEST_Q, (uint32_t) req->req_pbuf);
+	mpt_write(mpt, MPT_OFFSET_REQUEST_Q, (uint32_t)req->req_pbuf);
 }
 
 /*
@@ -1313,11 +1301,10 @@ mpt_send_cmd(struct mpt_softc *mpt, request_t *req)
  *	non-0		Timeout fired before request completion.
  */
 int
-mpt_wait_req(struct mpt_softc *mpt, request_t *req,
-	     mpt_req_state_t state, mpt_req_state_t mask,
-	     int sleep_ok, int time_ms)
+mpt_wait_req(struct mpt_softc *mpt, request_t *req, mpt_req_state_t state,
+    mpt_req_state_t mask, int sleep_ok, int time_ms)
 {
-	int   timeout;
+	int timeout;
 	u_int saved_cnt;
 	sbintime_t sbt;
 
@@ -1379,10 +1366,10 @@ mpt_send_handshake_cmd(struct mpt_softc *mpt, size_t len, void *cmd)
 
 	/* Check condition of the IOC */
 	data = mpt_rd_db(mpt);
-	if ((MPT_STATE(data) != MPT_DB_STATE_READY
-	  && MPT_STATE(data) != MPT_DB_STATE_RUNNING
-	  && MPT_STATE(data) != MPT_DB_STATE_FAULT)
-	 || MPT_DB_IS_IN_USE(data)) {
+	if ((MPT_STATE(data) != MPT_DB_STATE_READY &&
+		MPT_STATE(data) != MPT_DB_STATE_RUNNING &&
+		MPT_STATE(data) != MPT_DB_STATE_FAULT) ||
+	    MPT_DB_IS_IN_USE(data)) {
 		mpt_prt(mpt, "handshake aborted - invalid doorbell state\n");
 		mpt_print_db(data);
 		return (EBUSY);
@@ -1398,7 +1385,7 @@ mpt_send_handshake_cmd(struct mpt_softc *mpt, size_t len, void *cmd)
 
 	/*
 	 * Tell the handshake reg. we are going to send a command
-         * and how long it is going to be.
+	 * and how long it is going to be.
 	 */
 	data = (MPI_FUNCTION_HANDSHAKE << MPI_DOORBELL_FUNCTION_SHIFT) |
 	    (len << MPI_DOORBELL_ADD_DWORDS_SHIFT);
@@ -1468,15 +1455,16 @@ mpt_recv_handshake_reply(struct mpt_softc *mpt, size_t reply_len, void *reply)
 	 * Warn about a reply that's too short (except for IOC FACTS REPLY)
 	 */
 	if ((reply_len >> 1) != hdr->MsgLength &&
-	    (hdr->Function != MPI_FUNCTION_IOC_FACTS)){
-		mpt_prt(mpt, "reply length does not match message length: "
-			"got %x; expected %zx for function %x\n",
-			hdr->MsgLength << 2, reply_len << 1, hdr->Function);
+	    (hdr->Function != MPI_FUNCTION_IOC_FACTS)) {
+		mpt_prt(mpt,
+		    "reply length does not match message length: "
+		    "got %x; expected %zx for function %x\n",
+		    hdr->MsgLength << 2, reply_len << 1, hdr->Function);
 	}
 
 	/* Get rest of the reply; but don't overflow the provided buffer */
 	left = (hdr->MsgLength << 1) - 2;
-	reply_left =  reply_len - 2;
+	reply_left = reply_len - 2;
 	while (left--) {
 		if (mpt_wait_db_int(mpt) != MPT_OK) {
 			mpt_prt(mpt, "mpt_recv_handshake_cmd timeout3\n");
@@ -1515,9 +1503,9 @@ mpt_get_iocfacts(struct mpt_softc *mpt, MSG_IOC_FACTS_REPLY *freplp)
 	f_req.MsgContext = htole32(MPT_REPLY_HANDLER_HANDSHAKE);
 	error = mpt_send_handshake_cmd(mpt, sizeof f_req, &f_req);
 	if (error) {
-		return(error);
+		return (error);
 	}
-	error = mpt_recv_handshake_reply(mpt, sizeof (*freplp), freplp);
+	error = mpt_recv_handshake_reply(mpt, sizeof(*freplp), freplp);
 	return (error);
 }
 
@@ -1533,9 +1521,9 @@ mpt_get_portfacts(struct mpt_softc *mpt, U8 port, MSG_PORT_FACTS_REPLY *freplp)
 	f_req.MsgContext = htole32(MPT_REPLY_HANDLER_HANDSHAKE);
 	error = mpt_send_handshake_cmd(mpt, sizeof f_req, &f_req);
 	if (error) {
-		return(error);
+		return (error);
 	}
-	error = mpt_recv_handshake_reply(mpt, sizeof (*freplp), freplp);
+	error = mpt_recv_handshake_reply(mpt, sizeof(*freplp), freplp);
 	return (error);
 }
 
@@ -1555,8 +1543,8 @@ mpt_send_ioc_init(struct mpt_softc *mpt, uint32_t who)
 	memset(&init, 0, sizeof init);
 	init.WhoInit = who;
 	init.Function = MPI_FUNCTION_IOC_INIT;
-	init.MaxDevices = 0;	/* at least 256 devices per bus */
-	init.MaxBuses = 16;	/* at least 16 buses */
+	init.MaxDevices = 0; /* at least 256 devices per bus */
+	init.MaxBuses = 16;  /* at least 16 buses */
 
 	init.MsgVersion = htole16(MPI_VERSION);
 	init.HeaderVersion = htole16(MPI_HEADER_VERSION);
@@ -1564,7 +1552,7 @@ mpt_send_ioc_init(struct mpt_softc *mpt, uint32_t who)
 	init.MsgContext = htole32(MPT_REPLY_HANDLER_HANDSHAKE);
 
 	if ((error = mpt_send_handshake_cmd(mpt, sizeof init, &init)) != 0) {
-		return(error);
+		return (error);
 	}
 
 	error = mpt_recv_handshake_reply(mpt, sizeof reply, &reply);
@@ -1576,7 +1564,7 @@ mpt_send_ioc_init(struct mpt_softc *mpt, uint32_t who)
  */
 int
 mpt_issue_cfg_req(struct mpt_softc *mpt, request_t *req, cfgparms_t *params,
-		  bus_addr_t addr, bus_size_t len, int sleep_ok, int timeout_ms)
+    bus_addr_t addr, bus_size_t len, int sleep_ok, int timeout_ms)
 {
 	MSG_CONFIG *cfgp;
 	SGE_SIMPLE32 *se;
@@ -1601,31 +1589,31 @@ mpt_issue_cfg_req(struct mpt_softc *mpt, request_t *req, cfgparms_t *params,
 	se = (SGE_SIMPLE32 *)&cfgp->PageBufferSGE;
 	se->Address = htole32(addr);
 	MPI_pSGE_SET_LENGTH(se, len);
-	MPI_pSGE_SET_FLAGS(se, (MPI_SGE_FLAGS_SIMPLE_ELEMENT |
-	    MPI_SGE_FLAGS_LAST_ELEMENT | MPI_SGE_FLAGS_END_OF_BUFFER |
-	    MPI_SGE_FLAGS_END_OF_LIST |
-	    ((params->Action == MPI_CONFIG_ACTION_PAGE_WRITE_CURRENT
-	  || params->Action == MPI_CONFIG_ACTION_PAGE_WRITE_NVRAM)
-	   ? MPI_SGE_FLAGS_HOST_TO_IOC : MPI_SGE_FLAGS_IOC_TO_HOST)));
+	MPI_pSGE_SET_FLAGS(se,
+	    (MPI_SGE_FLAGS_SIMPLE_ELEMENT | MPI_SGE_FLAGS_LAST_ELEMENT |
+		MPI_SGE_FLAGS_END_OF_BUFFER | MPI_SGE_FLAGS_END_OF_LIST |
+		((params->Action == MPI_CONFIG_ACTION_PAGE_WRITE_CURRENT ||
+		     params->Action == MPI_CONFIG_ACTION_PAGE_WRITE_NVRAM) ?
+			MPI_SGE_FLAGS_HOST_TO_IOC :
+			MPI_SGE_FLAGS_IOC_TO_HOST)));
 	se->FlagsLength = htole32(se->FlagsLength);
 	cfgp->MsgContext = htole32(req->index | MPT_REPLY_HANDLER_CONFIG);
 
 	mpt_check_doorbell(mpt);
 	mpt_send_cmd(mpt, req);
-	return (mpt_wait_req(mpt, req, REQ_STATE_DONE, REQ_STATE_DONE,
-			     sleep_ok, timeout_ms));
+	return (mpt_wait_req(mpt, req, REQ_STATE_DONE, REQ_STATE_DONE, sleep_ok,
+	    timeout_ms));
 }
 
 int
 mpt_read_extcfg_header(struct mpt_softc *mpt, int PageVersion, int PageNumber,
-		       uint32_t PageAddress, int ExtPageType,
-		       CONFIG_EXTENDED_PAGE_HEADER *rslt,
-		       int sleep_ok, int timeout_ms)
+    uint32_t PageAddress, int ExtPageType, CONFIG_EXTENDED_PAGE_HEADER *rslt,
+    int sleep_ok, int timeout_ms)
 {
-	request_t  *req;
+	request_t *req;
 	cfgparms_t params;
 	MSG_CONFIG_REPLY *cfgp;
-	int	    error;
+	int error;
 
 	req = mpt_get_request(mpt, sleep_ok);
 	if (req == NULL) {
@@ -1641,8 +1629,8 @@ mpt_read_extcfg_header(struct mpt_softc *mpt, int PageVersion, int PageNumber,
 	params.PageAddress = PageAddress;
 	params.ExtPageType = ExtPageType;
 	params.ExtPageLength = 0;
-	error = mpt_issue_cfg_req(mpt, req, &params, /*addr*/0, /*len*/0,
-				  sleep_ok, timeout_ms);
+	error = mpt_issue_cfg_req(mpt, req, &params, /*addr*/ 0, /*len*/ 0,
+	    sleep_ok, timeout_ms);
 	if (error != 0) {
 		/*
 		 * Leave the request. Without resetting the chip, it's
@@ -1654,7 +1642,7 @@ mpt_read_extcfg_header(struct mpt_softc *mpt, int PageVersion, int PageNumber,
 		return (ETIMEDOUT);
 	}
 
-        switch (req->IOCStatus & MPI_IOCSTATUS_MASK) {
+	switch (req->IOCStatus & MPI_IOCSTATUS_MASK) {
 	case MPI_IOCSTATUS_SUCCESS:
 		cfgp = req->req_vbuf;
 		rslt->PageVersion = cfgp->Header.PageVersion;
@@ -1672,7 +1660,7 @@ mpt_read_extcfg_header(struct mpt_softc *mpt, int PageVersion, int PageNumber,
 		break;
 	default:
 		mpt_prt(mpt, "mpt_read_extcfg_header: Config Info Status %x\n",
-			req->IOCStatus);
+		    req->IOCStatus);
 		error = EIO;
 		break;
 	}
@@ -1682,12 +1670,12 @@ mpt_read_extcfg_header(struct mpt_softc *mpt, int PageVersion, int PageNumber,
 
 int
 mpt_read_extcfg_page(struct mpt_softc *mpt, int Action, uint32_t PageAddress,
-		     CONFIG_EXTENDED_PAGE_HEADER *hdr, void *buf, size_t len,
-		     int sleep_ok, int timeout_ms)
+    CONFIG_EXTENDED_PAGE_HEADER *hdr, void *buf, size_t len, int sleep_ok,
+    int timeout_ms)
 {
-	request_t    *req;
-	cfgparms_t    params;
-	int	      error;
+	request_t *req;
+	cfgparms_t params;
+	int error;
 
 	req = mpt_get_request(mpt, sleep_ok);
 	if (req == NULL) {
@@ -1704,8 +1692,7 @@ mpt_read_extcfg_page(struct mpt_softc *mpt, int Action, uint32_t PageAddress,
 	params.ExtPageType = hdr->ExtPageType;
 	params.ExtPageLength = hdr->ExtPageLength;
 	error = mpt_issue_cfg_req(mpt, req, &params,
-				  req->req_pbuf + MPT_RQSL(mpt),
-				  len, sleep_ok, timeout_ms);
+	    req->req_pbuf + MPT_RQSL(mpt), len, sleep_ok, timeout_ms);
 	if (error != 0) {
 		mpt_prt(mpt, "read_extcfg_page(%d) timed out\n", Action);
 		return (-1);
@@ -1713,24 +1700,24 @@ mpt_read_extcfg_page(struct mpt_softc *mpt, int Action, uint32_t PageAddress,
 
 	if ((req->IOCStatus & MPI_IOCSTATUS_MASK) != MPI_IOCSTATUS_SUCCESS) {
 		mpt_prt(mpt, "mpt_read_extcfg_page: Config Info Status %x\n",
-			req->IOCStatus);
+		    req->IOCStatus);
 		mpt_free_request(mpt, req);
 		return (-1);
 	}
-	memcpy(buf, ((uint8_t *)req->req_vbuf)+MPT_RQSL(mpt), len);
+	memcpy(buf, ((uint8_t *)req->req_vbuf) + MPT_RQSL(mpt), len);
 	mpt_free_request(mpt, req);
 	return (0);
 }
 
 int
 mpt_read_cfg_header(struct mpt_softc *mpt, int PageType, int PageNumber,
-		    uint32_t PageAddress, CONFIG_PAGE_HEADER *rslt,
-		    int sleep_ok, int timeout_ms)
+    uint32_t PageAddress, CONFIG_PAGE_HEADER *rslt, int sleep_ok,
+    int timeout_ms)
 {
-	request_t  *req;
+	request_t *req;
 	cfgparms_t params;
 	MSG_CONFIG *cfgp;
-	int	    error;
+	int error;
 
 	req = mpt_get_request(mpt, sleep_ok);
 	if (req == NULL) {
@@ -1744,8 +1731,8 @@ mpt_read_cfg_header(struct mpt_softc *mpt, int PageType, int PageNumber,
 	params.PageNumber = PageNumber;
 	params.PageType = PageType;
 	params.PageAddress = PageAddress;
-	error = mpt_issue_cfg_req(mpt, req, &params, /*addr*/0, /*len*/0,
-				  sleep_ok, timeout_ms);
+	error = mpt_issue_cfg_req(mpt, req, &params, /*addr*/ 0, /*len*/ 0,
+	    sleep_ok, timeout_ms);
 	if (error != 0) {
 		/*
 		 * Leave the request. Without resetting the chip, it's
@@ -1757,7 +1744,7 @@ mpt_read_cfg_header(struct mpt_softc *mpt, int PageType, int PageNumber,
 		return (ETIMEDOUT);
 	}
 
-        switch (req->IOCStatus & MPI_IOCSTATUS_MASK) {
+	switch (req->IOCStatus & MPI_IOCSTATUS_MASK) {
 	case MPI_IOCSTATUS_SUCCESS:
 		cfgp = req->req_vbuf;
 		bcopy(&cfgp->Header, rslt, sizeof(*rslt));
@@ -1765,13 +1752,13 @@ mpt_read_cfg_header(struct mpt_softc *mpt, int PageType, int PageNumber,
 		break;
 	case MPI_IOCSTATUS_CONFIG_INVALID_PAGE:
 		mpt_lprt(mpt, MPT_PRT_DEBUG,
-		    "Invalid Page Type %d Number %d Addr 0x%0x\n",
-		    PageType, PageNumber, PageAddress);
+		    "Invalid Page Type %d Number %d Addr 0x%0x\n", PageType,
+		    PageNumber, PageAddress);
 		error = EINVAL;
 		break;
 	default:
 		mpt_prt(mpt, "mpt_read_cfg_header: Config Info Status %x\n",
-			req->IOCStatus);
+		    req->IOCStatus);
 		error = EIO;
 		break;
 	}
@@ -1781,12 +1768,11 @@ mpt_read_cfg_header(struct mpt_softc *mpt, int PageType, int PageNumber,
 
 int
 mpt_read_cfg_page(struct mpt_softc *mpt, int Action, uint32_t PageAddress,
-		  CONFIG_PAGE_HEADER *hdr, size_t len, int sleep_ok,
-		  int timeout_ms)
+    CONFIG_PAGE_HEADER *hdr, size_t len, int sleep_ok, int timeout_ms)
 {
-	request_t    *req;
-	cfgparms_t    params;
-	int	      error;
+	request_t *req;
+	cfgparms_t params;
+	int error;
 
 	req = mpt_get_request(mpt, sleep_ok);
 	if (req == NULL) {
@@ -1801,8 +1787,7 @@ mpt_read_cfg_page(struct mpt_softc *mpt, int Action, uint32_t PageAddress,
 	params.PageType = hdr->PageType & MPI_CONFIG_PAGETYPE_MASK;
 	params.PageAddress = PageAddress;
 	error = mpt_issue_cfg_req(mpt, req, &params,
-				  req->req_pbuf + MPT_RQSL(mpt),
-				  len, sleep_ok, timeout_ms);
+	    req->req_pbuf + MPT_RQSL(mpt), len, sleep_ok, timeout_ms);
 	if (error != 0) {
 		mpt_prt(mpt, "read_cfg_page(%d) timed out\n", Action);
 		return (-1);
@@ -1810,34 +1795,33 @@ mpt_read_cfg_page(struct mpt_softc *mpt, int Action, uint32_t PageAddress,
 
 	if ((req->IOCStatus & MPI_IOCSTATUS_MASK) != MPI_IOCSTATUS_SUCCESS) {
 		mpt_prt(mpt, "mpt_read_cfg_page: Config Info Status %x\n",
-			req->IOCStatus);
+		    req->IOCStatus);
 		mpt_free_request(mpt, req);
 		return (-1);
 	}
-	memcpy(hdr, ((uint8_t *)req->req_vbuf)+MPT_RQSL(mpt), len);
+	memcpy(hdr, ((uint8_t *)req->req_vbuf) + MPT_RQSL(mpt), len);
 	mpt_free_request(mpt, req);
 	return (0);
 }
 
 int
 mpt_write_cfg_page(struct mpt_softc *mpt, int Action, uint32_t PageAddress,
-		   CONFIG_PAGE_HEADER *hdr, size_t len, int sleep_ok,
-		   int timeout_ms)
+    CONFIG_PAGE_HEADER *hdr, size_t len, int sleep_ok, int timeout_ms)
 {
-	request_t    *req;
-	cfgparms_t    params;
-	u_int	      hdr_attr;
-	int	      error;
+	request_t *req;
+	cfgparms_t params;
+	u_int hdr_attr;
+	int error;
 
 	hdr_attr = hdr->PageType & MPI_CONFIG_PAGEATTR_MASK;
 	if (hdr_attr != MPI_CONFIG_PAGEATTR_CHANGEABLE &&
 	    hdr_attr != MPI_CONFIG_PAGEATTR_PERSISTENT) {
 		mpt_prt(mpt, "page type 0x%x not changeable\n",
-			hdr->PageType & MPI_CONFIG_PAGETYPE_MASK);
+		    hdr->PageType & MPI_CONFIG_PAGETYPE_MASK);
 		return (-1);
 	}
 
-#if	0
+#if 0
 	/*
 	 * We shouldn't mask off other bits here.
 	 */
@@ -1860,7 +1844,7 @@ mpt_write_cfg_page(struct mpt_softc *mpt, int Action, uint32_t PageAddress,
 	params.PageLength = hdr->PageLength;
 	params.PageNumber = hdr->PageNumber;
 	params.PageAddress = PageAddress;
-#if	0
+#if 0
 	/* Restore stripped out attributes */
 	hdr->PageType |= hdr_attr;
 	params.PageType = hdr->PageType & MPI_CONFIG_PAGETYPE_MASK;
@@ -1868,16 +1852,15 @@ mpt_write_cfg_page(struct mpt_softc *mpt, int Action, uint32_t PageAddress,
 	params.PageType = hdr->PageType;
 #endif
 	error = mpt_issue_cfg_req(mpt, req, &params,
-				  req->req_pbuf + MPT_RQSL(mpt),
-				  len, sleep_ok, timeout_ms);
+	    req->req_pbuf + MPT_RQSL(mpt), len, sleep_ok, timeout_ms);
 	if (error != 0) {
 		mpt_prt(mpt, "mpt_write_cfg_page timed out\n");
 		return (-1);
 	}
 
-        if ((req->IOCStatus & MPI_IOCSTATUS_MASK) != MPI_IOCSTATUS_SUCCESS) {
+	if ((req->IOCStatus & MPI_IOCSTATUS_MASK) != MPI_IOCSTATUS_SUCCESS) {
 		mpt_prt(mpt, "mpt_write_cfg_page: Config Info Status %x\n",
-			req->IOCStatus);
+		    req->IOCStatus);
 		mpt_free_request(mpt, req);
 		return (-1);
 	}
@@ -1897,8 +1880,8 @@ mpt_read_config_info_ioc(struct mpt_softc *mpt)
 	int i;
 	size_t len;
 
-	rv = mpt_read_cfg_header(mpt, MPI_CONFIG_PAGETYPE_IOC,
-		2, 0, &hdr, FALSE, 5000);
+	rv = mpt_read_cfg_header(mpt, MPI_CONFIG_PAGETYPE_IOC, 2, 0, &hdr,
+	    FALSE, 5000);
 	/*
 	 * If it's an invalid page, so what? Not a supported function....
 	 */
@@ -1911,8 +1894,7 @@ mpt_read_config_info_ioc(struct mpt_softc *mpt)
 
 	mpt_lprt(mpt, MPT_PRT_DEBUG,
 	    "IOC Page 2 Header: Version %x len %x PageNumber %x PageType %x\n",
-	    hdr.PageVersion, hdr.PageLength << 2,
-	    hdr.PageNumber, hdr.PageType);
+	    hdr.PageVersion, hdr.PageLength << 2, hdr.PageNumber, hdr.PageType);
 
 	len = hdr.PageLength * sizeof(uint32_t);
 	mpt->ioc_page2 = malloc(len, M_DEVBUF, M_NOWAIT | M_ZERO);
@@ -1922,8 +1904,8 @@ mpt_read_config_info_ioc(struct mpt_softc *mpt)
 		return (ENOMEM);
 	}
 	memcpy(&mpt->ioc_page2->Header, &hdr, sizeof(hdr));
-	rv = mpt_read_cur_cfg_page(mpt, 0,
-	    &mpt->ioc_page2->Header, len, FALSE, 5000);
+	rv = mpt_read_cur_cfg_page(mpt, 0, &mpt->ioc_page2->Header, len, FALSE,
+	    5000);
 	if (rv) {
 		mpt_prt(mpt, "failed to read IOC Page 2\n");
 		mpt_raid_free_mem(mpt);
@@ -1962,20 +1944,19 @@ mpt_read_config_info_ioc(struct mpt_softc *mpt)
 			}
 		}
 		mpt_prtc(mpt, " )\n");
-		if ((mpt->ioc_page2->CapabilitiesFlags
-		   & (MPI_IOCPAGE2_CAP_FLAGS_IS_SUPPORT
-		    | MPI_IOCPAGE2_CAP_FLAGS_IME_SUPPORT
-		    | MPI_IOCPAGE2_CAP_FLAGS_IM_SUPPORT)) != 0) {
+		if ((mpt->ioc_page2->CapabilitiesFlags &
+			(MPI_IOCPAGE2_CAP_FLAGS_IS_SUPPORT |
+			    MPI_IOCPAGE2_CAP_FLAGS_IME_SUPPORT |
+			    MPI_IOCPAGE2_CAP_FLAGS_IM_SUPPORT)) != 0) {
 			mpt_prt(mpt, "%d Active Volume%s(%d Max)\n",
-				mpt->ioc_page2->NumActiveVolumes,
-				mpt->ioc_page2->NumActiveVolumes != 1
-			      ? "s " : " ",
-				mpt->ioc_page2->MaxVolumes);
+			    mpt->ioc_page2->NumActiveVolumes,
+			    mpt->ioc_page2->NumActiveVolumes != 1 ? "s " : " ",
+			    mpt->ioc_page2->MaxVolumes);
 			mpt_prt(mpt, "%d Hidden Drive Member%s(%d Max)\n",
-				mpt->ioc_page2->NumActivePhysDisks,
-				mpt->ioc_page2->NumActivePhysDisks != 1
-			      ? "s " : " ",
-				mpt->ioc_page2->MaxPhysDisks);
+			    mpt->ioc_page2->NumActivePhysDisks,
+			    mpt->ioc_page2->NumActivePhysDisks != 1 ? "s " :
+								      " ",
+			    mpt->ioc_page2->MaxPhysDisks);
 		}
 	}
 
@@ -1992,14 +1973,14 @@ mpt_read_config_info_ioc(struct mpt_softc *mpt)
 	 * safely refresh the page without windows of unreliable
 	 * data.
 	 */
-	mpt->raid_max_volumes =  mpt->ioc_page2->MaxVolumes;
+	mpt->raid_max_volumes = mpt->ioc_page2->MaxVolumes;
 
 	len = sizeof(*mpt->raid_volumes->config_page) +
-	    (sizeof (RAID_VOL0_PHYS_DISK) * (mpt->ioc_page2->MaxPhysDisks - 1));
+	    (sizeof(RAID_VOL0_PHYS_DISK) * (mpt->ioc_page2->MaxPhysDisks - 1));
 	for (i = 0; i < mpt->ioc_page2->MaxVolumes; i++) {
 		mpt_raid = &mpt->raid_volumes[i];
-		mpt_raid->config_page =
-		    malloc(len, M_DEVBUF, M_NOWAIT | M_ZERO);
+		mpt_raid->config_page = malloc(len, M_DEVBUF,
+		    M_NOWAIT | M_ZERO);
 		if (mpt_raid->config_page == NULL) {
 			mpt_prt(mpt, "Could not allocate RAID page data\n");
 			mpt_raid_free_mem(mpt);
@@ -2015,13 +1996,13 @@ mpt_read_config_info_ioc(struct mpt_softc *mpt)
 		mpt_raid_free_mem(mpt);
 		return (ENOMEM);
 	}
-	mpt->raid_max_disks =  mpt->ioc_page2->MaxPhysDisks;
+	mpt->raid_max_disks = mpt->ioc_page2->MaxPhysDisks;
 
 	/*
 	 * Load page 3.
 	 */
-	rv = mpt_read_cfg_header(mpt, MPI_CONFIG_PAGETYPE_IOC,
-	    3, 0, &hdr, FALSE, 5000);
+	rv = mpt_read_cfg_header(mpt, MPI_CONFIG_PAGETYPE_IOC, 3, 0, &hdr,
+	    FALSE, 5000);
 	if (rv) {
 		mpt_raid_free_mem(mpt);
 		return (EIO);
@@ -2038,8 +2019,8 @@ mpt_read_config_info_ioc(struct mpt_softc *mpt)
 		return (ENOMEM);
 	}
 	memcpy(&mpt->ioc_page3->Header, &hdr, sizeof(hdr));
-	rv = mpt_read_cur_cfg_page(mpt, 0,
-	    &mpt->ioc_page3->Header, len, FALSE, 5000);
+	rv = mpt_read_cur_cfg_page(mpt, 0, &mpt->ioc_page3->Header, len, FALSE,
+	    5000);
 	if (rv) {
 		mpt_raid_free_mem(mpt);
 		return (EIO);
@@ -2055,18 +2036,18 @@ mpt_read_config_info_ioc(struct mpt_softc *mpt)
 static int
 mpt_send_port_enable(struct mpt_softc *mpt, int port)
 {
-	request_t	*req;
+	request_t *req;
 	MSG_PORT_ENABLE *enable_req;
-	int		 error;
+	int error;
 
-	req = mpt_get_request(mpt, /*sleep_ok*/FALSE);
+	req = mpt_get_request(mpt, /*sleep_ok*/ FALSE);
 	if (req == NULL)
 		return (-1);
 
 	enable_req = req->req_vbuf;
-	memset(enable_req, 0,  MPT_RQSL(mpt));
+	memset(enable_req, 0, MPT_RQSL(mpt));
 
-	enable_req->Function   = MPI_FUNCTION_PORT_ENABLE;
+	enable_req->Function = MPI_FUNCTION_PORT_ENABLE;
 	enable_req->MsgContext = htole32(req->index | MPT_REPLY_HANDLER_CONFIG);
 	enable_req->PortNumber = port;
 
@@ -2074,8 +2055,8 @@ mpt_send_port_enable(struct mpt_softc *mpt, int port)
 	mpt_lprt(mpt, MPT_PRT_DEBUG, "enabling port %d\n", port);
 
 	mpt_send_cmd(mpt, req);
-	error = mpt_wait_req(mpt, req, REQ_STATE_DONE, REQ_STATE_DONE,
-	    FALSE, (mpt->is_sas || mpt->is_fc)? 300000 : 30000);
+	error = mpt_wait_req(mpt, req, REQ_STATE_DONE, REQ_STATE_DONE, FALSE,
+	    (mpt->is_sas || mpt->is_fc) ? 300000 : 30000);
 	if (error != 0) {
 		mpt_prt(mpt, "port %d enable timed out\n", port);
 		return (-1);
@@ -2101,9 +2082,9 @@ mpt_send_event_request(struct mpt_softc *mpt, int onoff)
 	enable_req = req->req_vbuf;
 	memset(enable_req, 0, sizeof *enable_req);
 
-	enable_req->Function   = MPI_FUNCTION_EVENT_NOTIFICATION;
+	enable_req->Function = MPI_FUNCTION_EVENT_NOTIFICATION;
 	enable_req->MsgContext = htole32(req->index | MPT_REPLY_HANDLER_EVENTS);
-	enable_req->Switch     = onoff;
+	enable_req->Switch = onoff;
 
 	mpt_check_doorbell(mpt);
 	mpt_lprt(mpt, MPT_PRT_DEBUG, "%sabling async events\n",
@@ -2144,16 +2125,13 @@ mpt_sysctl_attach(struct mpt_softc *mpt)
 	struct sysctl_ctx_list *ctx = device_get_sysctl_ctx(mpt->dev);
 	struct sysctl_oid *tree = device_get_sysctl_tree(mpt->dev);
 
-	SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		       "debug", CTLFLAG_RW, &mpt->verbose, 0,
-		       "Debugging/Verbose level");
-	SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		       "role", CTLFLAG_RD, &mpt->role, 0,
-		       "HBA role");
-#ifdef	MPT_TEST_MULTIPATH
-	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		       "failure_id", CTLFLAG_RW, &mpt->failure_id, -1,
-		       "Next Target to Fail");
+	SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "debug",
+	    CTLFLAG_RW, &mpt->verbose, 0, "Debugging/Verbose level");
+	SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "role",
+	    CTLFLAG_RD, &mpt->role, 0, "HBA role");
+#ifdef MPT_TEST_MULTIPATH
+	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "failure_id",
+	    CTLFLAG_RW, &mpt->failure_id, -1, "Next Target to Fail");
 #endif
 }
 
@@ -2192,11 +2170,13 @@ mpt_attach(struct mpt_softc *mpt)
 	 */
 	for (i = 0; i < MPT_MAX_PERSONALITIES; i++) {
 		pers = mpt_personalities[i];
-		if (pers != NULL  && MPT_PERS_ATTACHED(pers, mpt) != 0) {
+		if (pers != NULL && MPT_PERS_ATTACHED(pers, mpt) != 0) {
 			error = pers->enable(mpt);
 			if (error != 0) {
-				mpt_prt(mpt, "personality %s attached but would"
-				    " not enable (%d)\n", pers->name, error);
+				mpt_prt(mpt,
+				    "personality %s attached but would"
+				    " not enable (%d)\n",
+				    pers->name, error);
 				mpt_detach(mpt);
 				return (error);
 			}
@@ -2210,7 +2190,8 @@ mpt_shutdown(struct mpt_softc *mpt)
 {
 	struct mpt_personality *pers;
 
-	MPT_PERS_FOREACH_REVERSE(mpt, pers) {
+	MPT_PERS_FOREACH_REVERSE(mpt, pers)
+	{
 		pers->shutdown(mpt);
 	}
 	return (0);
@@ -2221,7 +2202,8 @@ mpt_detach(struct mpt_softc *mpt)
 {
 	struct mpt_personality *pers;
 
-	MPT_PERS_FOREACH_REVERSE(mpt, pers) {
+	MPT_PERS_FOREACH_REVERSE(mpt, pers)
+	{
 		pers->detach(mpt);
 		mpt->mpt_pers_mask &= ~(0x1 << pers->id);
 		pers->use_count--;
@@ -2259,7 +2241,7 @@ mpt_core_load(struct mpt_personality *pers)
 static int
 mpt_core_attach(struct mpt_softc *mpt)
 {
-        int val, error;
+	int val, error;
 
 	LIST_INIT(&mpt->ack_frames);
 	/* Put all request buffers on the free list */
@@ -2272,7 +2254,7 @@ mpt_core_attach(struct mpt_softc *mpt)
 	}
 	STAILQ_INIT(&mpt->trt_wildcard.atios);
 	STAILQ_INIT(&mpt->trt_wildcard.inots);
-#ifdef	MPT_TEST_MULTIPATH
+#ifdef MPT_TEST_MULTIPATH
 	mpt->failure_id = -1;
 #endif
 	mpt->scsi_tgt_handler_id = MPT_HANDLER_ID_NONE;
@@ -2351,7 +2333,7 @@ mpt_core_detach(struct mpt_softc *mpt)
 	int val;
 
 	/*
-	 * XXX: FREE MEMORY 
+	 * XXX: FREE MEMORY
 	 */
 	mpt_disable_ints(mpt);
 
@@ -2372,9 +2354,9 @@ mpt_core_unload(struct mpt_personality *pers)
 	return (0);
 }
 
-#define FW_UPLOAD_REQ_SIZE				\
-	(sizeof(MSG_FW_UPLOAD) - sizeof(SGE_MPI_UNION)	\
-       + sizeof(FW_UPLOAD_TCSGE) + sizeof(SGE_SIMPLE32))
+#define FW_UPLOAD_REQ_SIZE                               \
+	(sizeof(MSG_FW_UPLOAD) - sizeof(SGE_MPI_UNION) + \
+	    sizeof(FW_UPLOAD_TCSGE) + sizeof(SGE_SIMPLE32))
 
 static int
 mpt_upload_fw(struct mpt_softc *mpt)
@@ -2397,24 +2379,24 @@ mpt_upload_fw(struct mpt_softc *mpt)
 	tsge->Flags = MPI_SGE_FLAGS_TRANSACTION_ELEMENT;
 	tsge->ImageSize = htole32(mpt->fw_image_size);
 	sge = (SGE_SIMPLE32 *)(tsge + 1);
-	flags = (MPI_SGE_FLAGS_LAST_ELEMENT | MPI_SGE_FLAGS_END_OF_BUFFER
-	      | MPI_SGE_FLAGS_END_OF_LIST | MPI_SGE_FLAGS_SIMPLE_ELEMENT
-	      | MPI_SGE_FLAGS_32_BIT_ADDRESSING | MPI_SGE_FLAGS_IOC_TO_HOST);
+	flags = (MPI_SGE_FLAGS_LAST_ELEMENT | MPI_SGE_FLAGS_END_OF_BUFFER |
+	    MPI_SGE_FLAGS_END_OF_LIST | MPI_SGE_FLAGS_SIMPLE_ELEMENT |
+	    MPI_SGE_FLAGS_32_BIT_ADDRESSING | MPI_SGE_FLAGS_IOC_TO_HOST);
 	flags <<= MPI_SGE_FLAGS_SHIFT;
 	sge->FlagsLength = htole32(flags | mpt->fw_image_size);
 	sge->Address = htole32(mpt->fw_phys);
 	bus_dmamap_sync(mpt->fw_dmat, mpt->fw_dmap, BUS_DMASYNC_PREREAD);
 	error = mpt_send_handshake_cmd(mpt, sizeof(fw_req_buf), &fw_req_buf);
 	if (error)
-		return(error);
+		return (error);
 	error = mpt_recv_handshake_reply(mpt, sizeof(fw_reply), &fw_reply);
 	bus_dmamap_sync(mpt->fw_dmat, mpt->fw_dmap, BUS_DMASYNC_POSTREAD);
 	return (error);
 }
 
 static void
-mpt_diag_outsl(struct mpt_softc *mpt, uint32_t addr,
-	       uint32_t *data, bus_size_t len)
+mpt_diag_outsl(struct mpt_softc *mpt, uint32_t addr, uint32_t *data,
+    bus_size_t len)
 {
 	uint32_t *data_end;
 
@@ -2446,7 +2428,7 @@ mpt_download_fw(struct mpt_softc *mpt)
 	}
 
 	mpt_prt(mpt, "Downloading Firmware - Image Size %d\n",
-		mpt->fw_image_size);
+	    mpt->fw_image_size);
 
 	error = mpt_enable_diag_mode(mpt);
 	if (error != 0) {
@@ -2455,12 +2437,12 @@ mpt_download_fw(struct mpt_softc *mpt)
 	}
 
 	mpt_write(mpt, MPT_OFFSET_DIAGNOSTIC,
-		  MPI_DIAG_RW_ENABLE|MPI_DIAG_DISABLE_ARM);
+	    MPI_DIAG_RW_ENABLE | MPI_DIAG_DISABLE_ARM);
 
 	fw_hdr = (MpiFwHeader_t *)mpt->fw_image;
 	bus_dmamap_sync(mpt->fw_dmat, mpt->fw_dmap, BUS_DMASYNC_PREWRITE);
-	mpt_diag_outsl(mpt, fw_hdr->LoadStartAddress, (uint32_t*)fw_hdr,
-		       fw_hdr->ImageSize);
+	mpt_diag_outsl(mpt, fw_hdr->LoadStartAddress, (uint32_t *)fw_hdr,
+	    fw_hdr->ImageSize);
 	bus_dmamap_sync(mpt->fw_dmat, mpt->fw_dmap, BUS_DMASYNC_POSTWRITE);
 
 	ext_offset = fw_hdr->NextImageHeaderOffset;
@@ -2471,8 +2453,8 @@ mpt_download_fw(struct mpt_softc *mpt)
 		ext_offset = ext->NextImageHeaderOffset;
 		bus_dmamap_sync(mpt->fw_dmat, mpt->fw_dmap,
 		    BUS_DMASYNC_PREWRITE);
-		mpt_diag_outsl(mpt, ext->LoadStartAddress, (uint32_t*)ext,
-			       ext->ImageSize);
+		mpt_diag_outsl(mpt, ext->LoadStartAddress, (uint32_t *)ext,
+		    ext->ImageSize);
 		bus_dmamap_sync(mpt->fw_dmat, mpt->fw_dmap,
 		    BUS_DMASYNC_POSTWRITE);
 	}
@@ -2502,7 +2484,7 @@ mpt_download_fw(struct mpt_softc *mpt)
 	 * Re-enable the processor and clear the boot halt flag.
 	 */
 	data = mpt_read(mpt, MPT_OFFSET_DIAGNOSTIC);
-	data &= ~(MPI_DIAG_PREVENT_IOC_BOOT|MPI_DIAG_DISABLE_ARM);
+	data &= ~(MPI_DIAG_PREVENT_IOC_BOOT | MPI_DIAG_DISABLE_ARM);
 	mpt_write(mpt, MPT_OFFSET_DIAGNOSTIC, data);
 
 	mpt_disable_diag_mode(mpt);
@@ -2518,27 +2500,26 @@ mpt_dma_buf_alloc(struct mpt_softc *mpt)
 	int i, error;
 
 	/* Create a child tag for data buffers */
-	if (mpt_dma_tag_create(mpt, mpt->parent_dmat, 1,
-	    0, BUS_SPACE_MAXADDR, BUS_SPACE_MAXADDR,
-	    NULL, NULL, (mpt->max_cam_seg_cnt - 1) * PAGE_SIZE,
-	    mpt->max_cam_seg_cnt, BUS_SPACE_MAXSIZE_32BIT, 0,
-	    &mpt->buffer_dmat) != 0) {
+	if (mpt_dma_tag_create(mpt, mpt->parent_dmat, 1, 0, BUS_SPACE_MAXADDR,
+		BUS_SPACE_MAXADDR, NULL, NULL,
+		(mpt->max_cam_seg_cnt - 1) * PAGE_SIZE, mpt->max_cam_seg_cnt,
+		BUS_SPACE_MAXSIZE_32BIT, 0, &mpt->buffer_dmat) != 0) {
 		mpt_prt(mpt, "cannot create a dma tag for data buffers\n");
 		return (1);
 	}
 
 	/* Create a child tag for request buffers */
 	if (mpt_dma_tag_create(mpt, mpt->parent_dmat, PAGE_SIZE, 0,
-	    BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR,
-	    NULL, NULL, MPT_REQ_MEM_SIZE(mpt), 1, BUS_SPACE_MAXSIZE_32BIT, 0,
-	    &mpt->request_dmat) != 0) {
+		BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR, NULL, NULL,
+		MPT_REQ_MEM_SIZE(mpt), 1, BUS_SPACE_MAXSIZE_32BIT, 0,
+		&mpt->request_dmat) != 0) {
 		mpt_prt(mpt, "cannot create a dma tag for requests\n");
 		return (1);
 	}
 
 	/* Allocate some DMA accessible memory for requests */
 	if (bus_dmamem_alloc(mpt->request_dmat, (void **)&mpt->request,
-	    BUS_DMA_NOWAIT | BUS_DMA_COHERENT, &mpt->request_dmap) != 0) {
+		BUS_DMA_NOWAIT | BUS_DMA_COHERENT, &mpt->request_dmap) != 0) {
 		mpt_prt(mpt, "cannot allocate %d bytes of request memory\n",
 		    MPT_REQ_MEM_SIZE(mpt));
 		return (1);
@@ -2562,10 +2543,10 @@ mpt_dma_buf_alloc(struct mpt_softc *mpt)
 	 * Now create per-request dma maps
 	 */
 	i = 0;
-	pptr =  mpt->request_phys;
-	vptr =  mpt->request;
+	pptr = mpt->request_phys;
+	vptr = mpt->request;
 	end = pptr + MPT_REQ_MEM_SIZE(mpt);
-	while(pptr < end) {
+	while (pptr < end) {
 		request_t *req = &mpt->request_pool[i];
 		req->index = i++;
 
@@ -2647,8 +2628,7 @@ mpt_configure_ioc(struct mpt_softc *mpt, int tn, int needreset)
 	mpt2host_iocfacts_reply(&mpt->ioc_facts);
 
 	mpt_prt(mpt, "MPI Version=%d.%d.%d.%d\n",
-	    mpt->ioc_facts.MsgVersion >> 8,
-	    mpt->ioc_facts.MsgVersion & 0xFF,
+	    mpt->ioc_facts.MsgVersion >> 8, mpt->ioc_facts.MsgVersion & 0xFF,
 	    mpt->ioc_facts.HeaderVersion >> 8,
 	    mpt->ioc_facts.HeaderVersion & 0xFF);
 
@@ -2708,9 +2688,10 @@ mpt_configure_ioc(struct mpt_softc *mpt, int tn, int needreset)
 		mpt_free_request(mpt, req);
 	}
 
-	mpt_lprt(mpt, MPT_PRT_INFO, "Maximum Segment Count: %u, Maximum "
-		 "CAM Segment Count: %u\n", mpt->max_seg_cnt,
-		 mpt->max_cam_seg_cnt);
+	mpt_lprt(mpt, MPT_PRT_INFO,
+	    "Maximum Segment Count: %u, Maximum "
+	    "CAM Segment Count: %u\n",
+	    mpt->max_seg_cnt, mpt->max_cam_seg_cnt);
 
 	mpt_lprt(mpt, MPT_PRT_INFO, "MsgLength=%u IOCNumber = %d\n",
 	    mpt->ioc_facts.MsgLength, mpt->ioc_facts.IOCNumber);
@@ -2718,13 +2699,14 @@ mpt_configure_ioc(struct mpt_softc *mpt, int tn, int needreset)
 	    "IOCFACTS: GlobalCredits=%d BlockSize=%u bytes "
 	    "Request Frame Size %u bytes Max Chain Depth %u\n",
 	    mpt->ioc_facts.GlobalCredits, mpt->ioc_facts.BlockSize,
-	    mpt->ioc_facts.RequestFrameSize << 2,
-	    mpt->ioc_facts.MaxChainDepth);
-	mpt_lprt(mpt, MPT_PRT_INFO, "IOCFACTS: Num Ports %d, FWImageSize %d, "
-	    "Flags=%#x\n", mpt->ioc_facts.NumberOfPorts,
-	    mpt->ioc_facts.FWImageSize, mpt->ioc_facts.Flags);
+	    mpt->ioc_facts.RequestFrameSize << 2, mpt->ioc_facts.MaxChainDepth);
+	mpt_lprt(mpt, MPT_PRT_INFO,
+	    "IOCFACTS: Num Ports %d, FWImageSize %d, "
+	    "Flags=%#x\n",
+	    mpt->ioc_facts.NumberOfPorts, mpt->ioc_facts.FWImageSize,
+	    mpt->ioc_facts.Flags);
 
-	len = mpt->ioc_facts.NumberOfPorts * sizeof (MSG_PORT_FACTS_REPLY);
+	len = mpt->ioc_facts.NumberOfPorts * sizeof(MSG_PORT_FACTS_REPLY);
 	mpt->port_facts = malloc(len, M_DEVBUF, M_NOWAIT | M_ZERO);
 	if (mpt->port_facts == NULL) {
 		mpt_prt(mpt, "unable to allocate memory for port facts\n");
@@ -2755,9 +2737,8 @@ mpt_configure_ioc(struct mpt_softc *mpt, int tn, int needreset)
 			MPT_LOCK(mpt);
 			return (ENOMEM);
 		}
-		error = bus_dmamem_alloc(mpt->fw_dmat,
-		    (void **)&mpt->fw_image, BUS_DMA_NOWAIT |
-		    BUS_DMA_COHERENT, &mpt->fw_dmap);
+		error = bus_dmamem_alloc(mpt->fw_dmat, (void **)&mpt->fw_image,
+		    BUS_DMA_NOWAIT | BUS_DMA_COHERENT, &mpt->fw_dmap);
 		if (error != 0) {
 			mpt_prt(mpt, "cannot allocate firmware memory\n");
 			bus_dma_tag_destroy(mpt->fw_dmat);
@@ -2766,8 +2747,8 @@ mpt_configure_ioc(struct mpt_softc *mpt, int tn, int needreset)
 		}
 		mi.mpt = mpt;
 		mi.error = 0;
-		bus_dmamap_load(mpt->fw_dmat, mpt->fw_dmap,
-		    mpt->fw_image, mpt->fw_image_size, mpt_map_rquest, &mi, 0);
+		bus_dmamap_load(mpt->fw_dmat, mpt->fw_dmap, mpt->fw_image,
+		    mpt->fw_image_size, mpt_map_rquest, &mi, 0);
 		mpt->fw_phys = mi.phys;
 
 		MPT_LOCK(mpt);
@@ -2788,8 +2769,8 @@ mpt_configure_ioc(struct mpt_softc *mpt, int tn, int needreset)
 		pfp = &mpt->port_facts[port];
 		error = mpt_get_portfacts(mpt, 0, pfp);
 		if (error != MPT_OK) {
-			mpt_prt(mpt,
-			    "mpt_get_portfacts on port %d failed\n", port);
+			mpt_prt(mpt, "mpt_get_portfacts on port %d failed\n",
+			    port);
 			free(mpt->port_facts, M_DEVBUF);
 			mpt->port_facts = NULL;
 			return (mpt_configure_ioc(mpt, tn++, 1));
@@ -2802,8 +2783,8 @@ mpt_configure_ioc(struct mpt_softc *mpt, int tn, int needreset)
 			error = MPT_PRT_DEBUG;
 		}
 		mpt_lprt(mpt, error,
-		    "PORTFACTS[%d]: Type %x PFlags %x IID %d MaxDev %d\n",
-		    port, pfp->PortType, pfp->ProtocolFlags, pfp->PortSCSIID,
+		    "PORTFACTS[%d]: Type %x PFlags %x IID %d MaxDev %d\n", port,
+		    pfp->PortType, pfp->ProtocolFlags, pfp->PortSCSIID,
 		    pfp->MaxDevices);
 	}
 
@@ -2894,7 +2875,7 @@ mpt_enable_ioc(struct mpt_softc *mpt, int portenable)
 	 * Do *not* exceed global credits.
 	 */
 	for (val = 0, pptr = mpt->reply_phys;
-	    (pptr + MPT_REPLY_SIZE) < (mpt->reply_phys + PAGE_SIZE);
+	     (pptr + MPT_REPLY_SIZE) < (mpt->reply_phys + PAGE_SIZE);
 	     pptr += MPT_REPLY_SIZE) {
 		mpt_free_reply(mpt, pptr);
 		if (++val == mpt->ioc_facts.GlobalCredits - 1)
@@ -2922,7 +2903,7 @@ mpt_enable_ioc(struct mpt_softc *mpt, int portenable)
 /*
  * Endian Conversion Functions- only used on Big Endian machines
  */
-#if	_BYTE_ORDER == _BIG_ENDIAN
+#if _BYTE_ORDER == _BIG_ENDIAN
 void
 mpt2host_sge_simple_union(SGE_SIMPLE_UNION *sge)
 {
@@ -3030,8 +3011,9 @@ mpt2host_config_page_scsi_port_2(CONFIG_PAGE_SCSI_PORT_2 *sp2)
 
 	MPT_2_HOST32(sp2, PortFlags);
 	MPT_2_HOST32(sp2, PortSettings);
-	for (i = 0; i < sizeof(sp2->DeviceSettings) /
-	    sizeof(*sp2->DeviceSettings); i++) {
+	for (i = 0;
+	     i < sizeof(sp2->DeviceSettings) / sizeof(*sp2->DeviceSettings);
+	     i++) {
 		MPT_2_HOST16(sp2, DeviceSettings[i].DeviceFlags);
 	}
 }

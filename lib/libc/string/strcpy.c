@@ -41,10 +41,11 @@ __strcpy
 #else
 strcpy
 #endif
-(char * __restrict to, const char * __restrict from)
+    (char *__restrict to, const char *__restrict from)
 {
 	char *save = to;
 
-	for (; (*to = *from); ++from, ++to);
-	return(save);
+	for (; (*to = *from); ++from, ++to)
+		;
+	return (save);
 }

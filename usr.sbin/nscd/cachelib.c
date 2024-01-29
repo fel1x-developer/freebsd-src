@@ -38,31 +38,29 @@
 #define INITIAL_ENTRIES_CAPACITY 32
 #define ENTRIES_CAPACITY_STEP 32
 
-#define STRING_SIMPLE_HASH_BODY(in_var, var, a, M)		\
-	for ((var) = 0; *(in_var) != '\0'; ++(in_var))		\
-		(var) = ((a)*(var) + *(in_var)) % (M)
+#define STRING_SIMPLE_HASH_BODY(in_var, var, a, M)     \
+	for ((var) = 0; *(in_var) != '\0'; ++(in_var)) \
+	(var) = ((a) * (var) + *(in_var)) % (M)
 
-#define STRING_SIMPLE_MP2_HASH_BODY(in_var, var, a, M)		\
-	for ((var) = 0; *(in_var) != 0; ++(in_var))		\
-		(var) = ((a)*(var) + *(in_var)) & (M - 1)
+#define STRING_SIMPLE_MP2_HASH_BODY(in_var, var, a, M) \
+	for ((var) = 0; *(in_var) != 0; ++(in_var))    \
+	(var) = ((a) * (var) + *(in_var)) & (M - 1)
 
 static int cache_elemsize_common_continue_func(struct cache_common_entry_ *,
-	struct cache_policy_item_ *);
+    struct cache_policy_item_ *);
 static int cache_lifetime_common_continue_func(struct cache_common_entry_ *,
-	struct cache_policy_item_ *);
+    struct cache_policy_item_ *);
 static void clear_cache_entry(struct cache_entry_ *);
 static void destroy_cache_entry(struct cache_entry_ *);
 static void destroy_cache_mp_read_session(struct cache_mp_read_session_ *);
 static void destroy_cache_mp_write_session(struct cache_mp_write_session_ *);
 static int entries_bsearch_cmp_func(const void *, const void *);
 static int entries_qsort_cmp_func(const void *, const void *);
-static struct cache_entry_ ** find_cache_entry_p(struct cache_ *,
-	const char *);
+static struct cache_entry_ **find_cache_entry_p(struct cache_ *, const char *);
 static void flush_cache_entry(struct cache_entry_ *);
 static void flush_cache_policy(struct cache_common_entry_ *,
-	struct cache_policy_ *, struct cache_policy_ *,
-		int (*)(struct cache_common_entry_ *,
-		struct cache_policy_item_ *));
+    struct cache_policy_ *, struct cache_policy_ *,
+    int (*)(struct cache_common_entry_ *, struct cache_policy_item_ *));
 static int ht_items_cmp_func(const void *, const void *);
 static int ht_items_fixed_size_left_cmp_func(const void *, const void *);
 static hashtable_index_t ht_item_hash_func(const void *, size_t);
@@ -73,7 +71,7 @@ static hashtable_index_t ht_item_hash_func(const void *, size_t);
 static int
 ht_items_cmp_func(const void *p1, const void *p2)
 {
-    	struct cache_ht_item_data_ *hp1, *hp2;
+	struct cache_ht_item_data_ *hp1, *hp2;
 	size_t min_size;
 	int result;
 
@@ -85,7 +83,7 @@ ht_items_cmp_func(const void *p1, const void *p2)
 
 	if (hp1->key_size != hp2->key_size) {
 		min_size = (hp1->key_size < hp2->key_size) ? hp1->key_size :
-			hp2->key_size;
+							     hp2->key_size;
 		result = memcmp(hp1->key, hp2->key, min_size);
 
 		if (result == 0)
@@ -99,7 +97,7 @@ ht_items_cmp_func(const void *p1, const void *p2)
 static int
 ht_items_fixed_size_left_cmp_func(const void *p1, const void *p2)
 {
-    	struct cache_ht_item_data_ *hp1, *hp2;
+	struct cache_ht_item_data_ *hp1, *hp2;
 	size_t min_size;
 	int result;
 
@@ -111,14 +109,15 @@ ht_items_fixed_size_left_cmp_func(const void *p1, const void *p2)
 
 	if (hp1->key_size != hp2->key_size) {
 		min_size = (hp1->key_size < hp2->key_size) ? hp1->key_size :
-			hp2->key_size;
+							     hp2->key_size;
 		result = memcmp(hp1->key, hp2->key, min_size);
 
 		if (result == 0)
 			if (min_size == hp1->key_size)
-			    return (0);
+				return (0);
 			else
-			    return ((hp1->key_size < hp2->key_size) ? -1 : 1);
+				return (
+				    (hp1->key_size < hp2->key_size) ? -1 : 1);
 		else
 			return (result);
 	} else
@@ -128,7 +127,7 @@ ht_items_fixed_size_left_cmp_func(const void *p1, const void *p2)
 static hashtable_index_t
 ht_item_hash_func(const void *p, size_t cache_entries_size)
 {
-    	struct cache_ht_item_data_ *hp;
+	struct cache_ht_item_data_ *hp;
 	size_t i;
 
 	hashtable_index_t retval;
@@ -138,15 +137,15 @@ ht_item_hash_func(const void *p, size_t cache_entries_size)
 
 	retval = 0;
 	for (i = 0; i < hp->key_size; ++i)
-	    retval = (127 * retval + (unsigned char)hp->key[i]) %
-		cache_entries_size;
+		retval = (127 * retval + (unsigned char)hp->key[i]) %
+		    cache_entries_size;
 
 	return retval;
 }
 
 HASHTABLE_PROTOTYPE(cache_ht_, cache_ht_item_, struct cache_ht_item_data_);
 HASHTABLE_GENERATE(cache_ht_, cache_ht_item_, struct cache_ht_item_data_, data,
-	ht_item_hash_func, ht_items_cmp_func);
+    ht_item_hash_func, ht_items_cmp_func);
 
 /*
  * Routines to sort and search the entries by name
@@ -159,7 +158,7 @@ entries_bsearch_cmp_func(const void *key, const void *ent)
 	assert(ent != NULL);
 
 	return (strcmp((char const *)key,
-		(*(struct cache_entry_ const **)ent)->name));
+	    (*(struct cache_entry_ const **)ent)->name));
 }
 
 static int
@@ -170,7 +169,7 @@ entries_qsort_cmp_func(const void *e1, const void *e2)
 	assert(e2 != NULL);
 
 	return (strcmp((*(struct cache_entry_ const **)e1)->name,
-		(*(struct cache_entry_ const **)e2)->name));
+	    (*(struct cache_entry_ const **)e2)->name));
 }
 
 static struct cache_entry_ **
@@ -178,15 +177,15 @@ find_cache_entry_p(struct cache_ *the_cache, const char *entry_name)
 {
 
 	return ((struct cache_entry_ **)(bsearch(entry_name, the_cache->entries,
-		the_cache->entries_size, sizeof(struct cache_entry_ *),
-		entries_bsearch_cmp_func)));
+	    the_cache->entries_size, sizeof(struct cache_entry_ *),
+	    entries_bsearch_cmp_func)));
 }
 
 static void
 destroy_cache_mp_write_session(struct cache_mp_write_session_ *ws)
 {
 
-	struct cache_mp_data_item_	*data_item;
+	struct cache_mp_data_item_ *data_item;
 
 	TRACE_IN(destroy_cache_mp_write_session);
 	assert(ws != NULL);
@@ -214,10 +213,10 @@ destroy_cache_mp_read_session(struct cache_mp_read_session_ *rs)
 static void
 destroy_cache_entry(struct cache_entry_ *entry)
 {
-	struct cache_common_entry_	*common_entry;
-	struct cache_mp_entry_		*mp_entry;
-	struct cache_mp_read_session_	*rs;
-	struct cache_mp_write_session_	*ws;
+	struct cache_common_entry_ *common_entry;
+	struct cache_mp_entry_ *mp_entry;
+	struct cache_mp_read_session_ *rs;
+	struct cache_mp_write_session_ *ws;
 	struct cache_ht_item_ *ht_item;
 	struct cache_ht_item_data_ *ht_item_data;
 
@@ -227,7 +226,8 @@ destroy_cache_entry(struct cache_entry_ *entry)
 	if (entry->params->entry_type == CET_COMMON) {
 		common_entry = (struct cache_common_entry_ *)entry;
 
-		HASHTABLE_FOREACH(&(common_entry->items), ht_item) {
+		HASHTABLE_FOREACH(&(common_entry->items), ht_item)
+		{
 			HASHTABLE_ENTRY_FOREACH(ht_item, data, ht_item_data)
 			{
 				free(ht_item_data->key);
@@ -248,7 +248,7 @@ destroy_cache_entry(struct cache_entry_ *entry)
 			destroy_cache_lfu_policy(common_entry->policies[1]);
 			break;
 		default:
-		break;
+			break;
 		}
 		free(common_entry->policies);
 	} else {
@@ -268,11 +268,11 @@ destroy_cache_entry(struct cache_entry_ *entry)
 
 		if (mp_entry->completed_write_session != NULL)
 			destroy_cache_mp_write_session(
-				mp_entry->completed_write_session);
+			    mp_entry->completed_write_session);
 
 		if (mp_entry->pending_write_session != NULL)
 			destroy_cache_mp_write_session(
-				mp_entry->pending_write_session);
+			    mp_entry->pending_write_session);
 	}
 
 	free(entry->name);
@@ -283,8 +283,8 @@ destroy_cache_entry(struct cache_entry_ *entry)
 static void
 clear_cache_entry(struct cache_entry_ *entry)
 {
-	struct cache_mp_entry_		*mp_entry;
-	struct cache_common_entry_	*common_entry;
+	struct cache_mp_entry_ *mp_entry;
+	struct cache_common_entry_ *common_entry;
 	struct cache_ht_item_ *ht_item;
 	struct cache_ht_item_data_ *ht_item_data;
 	struct cache_policy_ *policy;
@@ -296,7 +296,8 @@ clear_cache_entry(struct cache_entry_ *entry)
 		common_entry = (struct cache_common_entry_ *)entry;
 
 		entry_size = 0;
-		HASHTABLE_FOREACH(&(common_entry->items), ht_item) {
+		HASHTABLE_FOREACH(&(common_entry->items), ht_item)
+		{
 			HASHTABLE_ENTRY_FOREACH(ht_item, data, ht_item_data)
 			{
 				free(ht_item_data->key);
@@ -314,7 +315,7 @@ clear_cache_entry(struct cache_entry_ *entry)
 			item = policy->get_first_item_func(policy);
 			while (item != NULL) {
 				next_item = policy->get_next_item_func(policy,
-			    		item);
+				    item);
 				policy->remove_item_func(policy, item);
 				policy->destroy_item_func(item);
 				item = next_item;
@@ -326,14 +327,14 @@ clear_cache_entry(struct cache_entry_ *entry)
 		if (mp_entry->rs_size == 0) {
 			if (mp_entry->completed_write_session != NULL) {
 				destroy_cache_mp_write_session(
-					mp_entry->completed_write_session);
+				    mp_entry->completed_write_session);
 				mp_entry->completed_write_session = NULL;
 			}
 
 			memset(&mp_entry->creation_time, 0,
-				sizeof(struct timeval));
+			    sizeof(struct timeval));
 			memset(&mp_entry->last_request_time, 0,
-				sizeof(struct timeval));
+			    sizeof(struct timeval));
 		}
 	}
 }
@@ -344,11 +345,13 @@ clear_cache_entry(struct cache_entry_ *entry)
  */
 static int
 cache_lifetime_common_continue_func(struct cache_common_entry_ *entry,
-	struct cache_policy_item_ *item)
+    struct cache_policy_item_ *item)
 {
 
 	return ((item->last_request_time.tv_sec - item->creation_time.tv_sec >
-		entry->common_params.max_lifetime.tv_sec) ? 1: 0);
+		    entry->common_params.max_lifetime.tv_sec) ?
+		1 :
+		0);
 }
 
 /*
@@ -357,11 +360,11 @@ cache_lifetime_common_continue_func(struct cache_common_entry_ *entry,
  */
 static int
 cache_elemsize_common_continue_func(struct cache_common_entry_ *entry,
-	struct cache_policy_item_ *item)
+    struct cache_policy_item_ *item)
 {
 
-	return ((entry->items_size > entry->common_params.satisf_elemsize) ? 1
-    		: 0);
+	return (
+	    (entry->items_size > entry->common_params.satisf_elemsize) ? 1 : 0);
 }
 
 /*
@@ -369,10 +372,9 @@ cache_elemsize_common_continue_func(struct cache_common_entry_ *entry,
  */
 static void
 flush_cache_policy(struct cache_common_entry_ *entry,
-	struct cache_policy_ *policy,
-	struct cache_policy_ *connected_policy,
-	int (*continue_func)(struct cache_common_entry_ *,
-		struct cache_policy_item_ *))
+    struct cache_policy_ *policy, struct cache_policy_ *connected_policy,
+    int (*continue_func)(struct cache_common_entry_ *,
+	struct cache_policy_item_ *))
 {
 	struct cache_policy_item_ *item, *next_item, *connected_item;
 	struct cache_ht_item_ *ht_item;
@@ -394,12 +396,12 @@ flush_cache_policy(struct cache_common_entry_ *entry,
 		ht_key.key_size = item->key_size;
 
 		hash = HASHTABLE_CALCULATE_HASH(cache_ht_, &entry->items,
-			&ht_key);
+		    &ht_key);
 		assert(hash < HASHTABLE_ENTRIES_COUNT(&entry->items));
 
 		ht_item = HASHTABLE_GET_ENTRY(&(entry->items), hash);
 		ht_item_data = HASHTABLE_ENTRY_FIND(cache_ht_, ht_item,
-			&ht_key);
+		    &ht_key);
 		assert(ht_item_data != NULL);
 		free(ht_item_data->key);
 		free(ht_item_data->value);
@@ -410,7 +412,7 @@ flush_cache_policy(struct cache_common_entry_ *entry,
 
 		if (connected_item != NULL) {
 			connected_policy->remove_item_func(connected_policy,
-				connected_item);
+			    connected_item);
 			connected_policy->destroy_item_func(connected_item);
 		}
 
@@ -421,8 +423,8 @@ flush_cache_policy(struct cache_common_entry_ *entry,
 static void
 flush_cache_entry(struct cache_entry_ *entry)
 {
-	struct cache_mp_entry_		*mp_entry;
-	struct cache_common_entry_	*common_entry;
+	struct cache_mp_entry_ *mp_entry;
+	struct cache_common_entry_ *common_entry;
 	struct cache_policy_ *policy, *connected_policy;
 
 	connected_policy = NULL;
@@ -436,13 +438,12 @@ flush_cache_entry(struct cache_entry_ *entry)
 				connected_policy = common_entry->policies[1];
 
 			flush_cache_policy(common_entry, policy,
-				connected_policy,
-				cache_lifetime_common_continue_func);
+			    connected_policy,
+			    cache_lifetime_common_continue_func);
 		}
 
-
 		if ((common_entry->common_params.max_elemsize != 0) &&
-			common_entry->items_size >
+		    common_entry->items_size >
 			common_entry->common_params.max_elemsize) {
 
 			if (common_entry->policies_size > 1) {
@@ -454,18 +455,18 @@ flush_cache_entry(struct cache_entry_ *entry)
 			}
 
 			flush_cache_policy(common_entry, policy,
-				connected_policy,
-				cache_elemsize_common_continue_func);
+			    connected_policy,
+			    cache_elemsize_common_continue_func);
 		}
 	} else {
 		mp_entry = (struct cache_mp_entry_ *)entry;
 
-		if ((mp_entry->mp_params.max_lifetime.tv_sec != 0)
-			|| (mp_entry->mp_params.max_lifetime.tv_usec != 0)) {
+		if ((mp_entry->mp_params.max_lifetime.tv_sec != 0) ||
+		    (mp_entry->mp_params.max_lifetime.tv_usec != 0)) {
 
 			if (mp_entry->last_request_time.tv_sec -
 				mp_entry->last_request_time.tv_sec >
-				mp_entry->mp_params.max_lifetime.tv_sec)
+			    mp_entry->mp_params.max_lifetime.tv_sec)
 				clear_cache_entry(entry);
 		}
 	}
@@ -486,7 +487,7 @@ init_cache(struct cache_params const *params)
 	memcpy(&retval->params, params, sizeof(struct cache_params));
 
 	retval->entries = calloc(INITIAL_ENTRIES_CAPACITY,
-		sizeof(*retval->entries));
+	    sizeof(*retval->entries));
 	assert(retval->entries != NULL);
 
 	retval->entries_capacity = INITIAL_ENTRIES_CAPACITY;
@@ -517,12 +518,12 @@ destroy_cache(struct cache_ *the_cache)
 
 int
 register_cache_entry(struct cache_ *the_cache,
-	struct cache_entry_params const *params)
+    struct cache_entry_params const *params)
 {
 	int policies_size;
 	size_t entry_name_size;
-	struct cache_common_entry_	*new_common_entry;
-	struct cache_mp_entry_		*new_mp_entry;
+	struct cache_common_entry_ *new_common_entry;
+	struct cache_mp_entry_ *new_mp_entry;
 
 	TRACE_IN(register_cache_entry);
 	assert(the_cache != NULL);
@@ -534,46 +535,42 @@ register_cache_entry(struct cache_ *the_cache,
 
 	if (the_cache->entries_size == the_cache->entries_capacity) {
 		struct cache_entry_ **new_entries;
-		size_t	new_capacity;
+		size_t new_capacity;
 
 		new_capacity = the_cache->entries_capacity +
-			ENTRIES_CAPACITY_STEP;
-		new_entries = calloc(new_capacity,
-			sizeof(*new_entries));
+		    ENTRIES_CAPACITY_STEP;
+		new_entries = calloc(new_capacity, sizeof(*new_entries));
 		assert(new_entries != NULL);
 
 		memcpy(new_entries, the_cache->entries,
-			sizeof(struct cache_entry_ *)
-			* the_cache->entries_size);
+		    sizeof(struct cache_entry_ *) * the_cache->entries_size);
 
 		free(the_cache->entries);
 		the_cache->entries = new_entries;
 	}
 
 	entry_name_size = strlen(params->entry_name) + 1;
-	switch (params->entry_type)
-	{
+	switch (params->entry_type) {
 	case CET_COMMON:
-		new_common_entry = calloc(1,
-			sizeof(*new_common_entry));
+		new_common_entry = calloc(1, sizeof(*new_common_entry));
 		assert(new_common_entry != NULL);
 
 		memcpy(&new_common_entry->common_params, params,
-			sizeof(struct common_cache_entry_params));
-		new_common_entry->params =
-		  (struct cache_entry_params *)&new_common_entry->common_params;
+		    sizeof(struct common_cache_entry_params));
+		new_common_entry->params = (struct cache_entry_params
+			*)&new_common_entry->common_params;
 
 		new_common_entry->common_params.cep.entry_name = calloc(1,
-			entry_name_size);
+		    entry_name_size);
 		assert(new_common_entry->common_params.cep.entry_name != NULL);
 		strlcpy(new_common_entry->common_params.cep.entry_name,
-			params->entry_name, entry_name_size);
+		    params->entry_name, entry_name_size);
 		new_common_entry->name =
-			new_common_entry->common_params.cep.entry_name;
+		    new_common_entry->common_params.cep.entry_name;
 
 		HASHTABLE_INIT(&(new_common_entry->items),
-			struct cache_ht_item_data_, data,
-			new_common_entry->common_params.cache_entries_size);
+		    struct cache_ht_item_data_, data,
+		    new_common_entry->common_params.cache_entries_size);
 
 		if (new_common_entry->common_params.policy == CPT_FIFO)
 			policies_size = 1;
@@ -581,7 +578,7 @@ register_cache_entry(struct cache_ *the_cache,
 			policies_size = 2;
 
 		new_common_entry->policies = calloc(policies_size,
-			sizeof(*new_common_entry->policies));
+		    sizeof(*new_common_entry->policies));
 		assert(new_common_entry->policies != NULL);
 
 		new_common_entry->policies_size = policies_size;
@@ -591,37 +588,36 @@ register_cache_entry(struct cache_ *the_cache,
 			switch (new_common_entry->common_params.policy) {
 			case CPT_LRU:
 				new_common_entry->policies[1] =
-					init_cache_lru_policy();
-			break;
+				    init_cache_lru_policy();
+				break;
 			case CPT_LFU:
 				new_common_entry->policies[1] =
-					init_cache_lfu_policy();
-			break;
+				    init_cache_lfu_policy();
+				break;
 			default:
-			break;
+				break;
 			}
 		}
 
 		new_common_entry->get_time_func =
-			the_cache->params.get_time_func;
+		    the_cache->params.get_time_func;
 		the_cache->entries[the_cache->entries_size++] =
-			(struct cache_entry_ *)new_common_entry;
+		    (struct cache_entry_ *)new_common_entry;
 		break;
 	case CET_MULTIPART:
-		new_mp_entry = calloc(1,
-			sizeof(*new_mp_entry));
+		new_mp_entry = calloc(1, sizeof(*new_mp_entry));
 		assert(new_mp_entry != NULL);
 
 		memcpy(&new_mp_entry->mp_params, params,
-			sizeof(struct mp_cache_entry_params));
+		    sizeof(struct mp_cache_entry_params));
 		new_mp_entry->params =
-			(struct cache_entry_params *)&new_mp_entry->mp_params;
+		    (struct cache_entry_params *)&new_mp_entry->mp_params;
 
 		new_mp_entry->mp_params.cep.entry_name = calloc(1,
-			entry_name_size);
+		    entry_name_size);
 		assert(new_mp_entry->mp_params.cep.entry_name != NULL);
-		strlcpy(new_mp_entry->mp_params.cep.entry_name, params->entry_name,
-			entry_name_size);
+		strlcpy(new_mp_entry->mp_params.cep.entry_name,
+		    params->entry_name, entry_name_size);
 		new_mp_entry->name = new_mp_entry->mp_params.cep.entry_name;
 
 		TAILQ_INIT(&new_mp_entry->ws_head);
@@ -629,13 +625,12 @@ register_cache_entry(struct cache_ *the_cache,
 
 		new_mp_entry->get_time_func = the_cache->params.get_time_func;
 		the_cache->entries[the_cache->entries_size++] =
-			(struct cache_entry_ *)new_mp_entry;
+		    (struct cache_entry_ *)new_mp_entry;
 		break;
 	}
 
-
 	qsort(the_cache->entries, the_cache->entries_size,
-		sizeof(struct cache_entry_ *), entries_qsort_cmp_func);
+	    sizeof(struct cache_entry_ *), entries_qsort_cmp_func);
 
 	TRACE_OUT(register_cache_entry);
 	return (0);
@@ -655,8 +650,9 @@ unregister_cache_entry(struct cache_ *the_cache, const char *entry_name)
 		--the_cache->entries_size;
 
 		memmove(del_ent, del_ent + 1,
-			(&(the_cache->entries[--the_cache->entries_size]) -
-	    		del_ent) * sizeof(struct cache_entry_ *));
+		    (&(the_cache->entries[--the_cache->entries_size]) -
+			del_ent) *
+			sizeof(struct cache_entry_ *));
 
 		TRACE_OUT(unregister_cache_entry);
 		return (0);
@@ -693,12 +689,12 @@ find_cache_entry(struct cache_ *the_cache, const char *entry_name)
  */
 int
 cache_read(struct cache_entry_ *entry, const char *key, size_t key_size,
-	char *value, size_t *value_size)
+    char *value, size_t *value_size)
 {
-	struct cache_common_entry_	*common_entry;
-	struct cache_ht_item_data_	item_data, *find_res;
-	struct cache_ht_item_		*item;
-	hashtable_index_t	hash;
+	struct cache_common_entry_ *common_entry;
+	struct cache_ht_item_data_ item_data, *find_res;
+	struct cache_ht_item_ *item;
+	hashtable_index_t hash;
 	struct cache_policy_item_ *connected_item;
 
 	TRACE_IN(cache_read);
@@ -715,7 +711,7 @@ cache_read(struct cache_entry_ *entry, const char *key, size_t key_size,
 	item_data.key_size = key_size;
 
 	hash = HASHTABLE_CALCULATE_HASH(cache_ht_, &common_entry->items,
-		&item_data);
+	    &item_data);
 	assert(hash < HASHTABLE_ENTRIES_COUNT(&common_entry->items));
 
 	item = HASHTABLE_GET_ENTRY(&(common_entry->items), hash);
@@ -725,18 +721,18 @@ cache_read(struct cache_entry_ *entry, const char *key, size_t key_size,
 		return (-1);
 	}
 	/* pretend that entry was not found if confidence is below threshold*/
-	if (find_res->confidence < 
+	if (find_res->confidence <
 	    common_entry->common_params.confidence_threshold) {
 		TRACE_OUT(cache_read);
 		return (-1);
 	}
 
 	if ((common_entry->common_params.max_lifetime.tv_sec != 0) ||
-		(common_entry->common_params.max_lifetime.tv_usec != 0)) {
+	    (common_entry->common_params.max_lifetime.tv_usec != 0)) {
 
 		if (find_res->fifo_policy_item->last_request_time.tv_sec -
 			find_res->fifo_policy_item->creation_time.tv_sec >
-			common_entry->common_params.max_lifetime.tv_sec) {
+		    common_entry->common_params.max_lifetime.tv_sec) {
 
 			free(find_res->key);
 			free(find_res->value);
@@ -745,17 +741,16 @@ cache_read(struct cache_entry_ *entry, const char *key, size_t key_size,
 			    find_res->fifo_policy_item->connected_item;
 			if (connected_item != NULL) {
 				common_entry->policies[1]->remove_item_func(
-					common_entry->policies[1],
-			    		connected_item);
+				    common_entry->policies[1], connected_item);
 				common_entry->policies[1]->destroy_item_func(
-					connected_item);
+				    connected_item);
 			}
 
 			common_entry->policies[0]->remove_item_func(
-				common_entry->policies[0],
-					find_res->fifo_policy_item);
+			    common_entry->policies[0],
+			    find_res->fifo_policy_item);
 			common_entry->policies[0]->destroy_item_func(
-				find_res->fifo_policy_item);
+			    find_res->fifo_policy_item);
 
 			HASHTABLE_ENTRY_REMOVE(cache_ht_, item, find_res);
 			--common_entry->items_size;
@@ -773,20 +768,20 @@ cache_read(struct cache_entry_ *entry, const char *key, size_t key_size,
 
 	++find_res->fifo_policy_item->request_count;
 	common_entry->get_time_func(
-		&find_res->fifo_policy_item->last_request_time);
+	    &find_res->fifo_policy_item->last_request_time);
 	common_entry->policies[0]->update_item_func(common_entry->policies[0],
-		find_res->fifo_policy_item);
+	    find_res->fifo_policy_item);
 
 	if (find_res->fifo_policy_item->connected_item != NULL) {
 		connected_item = find_res->fifo_policy_item->connected_item;
 		memcpy(&connected_item->last_request_time,
-			&find_res->fifo_policy_item->last_request_time,
-			sizeof(struct timeval));
+		    &find_res->fifo_policy_item->last_request_time,
+		    sizeof(struct timeval));
 		connected_item->request_count =
-			find_res->fifo_policy_item->request_count;
+		    find_res->fifo_policy_item->request_count;
 
 		common_entry->policies[1]->update_item_func(
-			common_entry->policies[1], connected_item);
+		    common_entry->policies[1], connected_item);
 	}
 
 	TRACE_OUT(cache_read);
@@ -799,16 +794,16 @@ cache_read(struct cache_entry_ *entry, const char *key, size_t key_size,
  */
 int
 cache_write(struct cache_entry_ *entry, const char *key, size_t key_size,
-    	char const *value, size_t value_size)
+    char const *value, size_t value_size)
 {
-	struct cache_common_entry_	*common_entry;
-	struct cache_ht_item_data_	item_data, *find_res;
-	struct cache_ht_item_		*item;
-	hashtable_index_t	hash;
+	struct cache_common_entry_ *common_entry;
+	struct cache_ht_item_data_ item_data, *find_res;
+	struct cache_ht_item_ *item;
+	hashtable_index_t hash;
 
-	struct cache_policy_		*policy, *connected_policy;
-	struct cache_policy_item_	*policy_item;
-	struct cache_policy_item_	*connected_policy_item;
+	struct cache_policy_ *policy, *connected_policy;
+	struct cache_policy_item_ *policy_item;
+	struct cache_policy_item_ *connected_policy_item;
 
 	TRACE_IN(cache_write);
 	assert(entry != NULL);
@@ -824,20 +819,23 @@ cache_write(struct cache_entry_ *entry, const char *key, size_t key_size,
 	item_data.key_size = key_size;
 
 	hash = HASHTABLE_CALCULATE_HASH(cache_ht_, &common_entry->items,
-		&item_data);
+	    &item_data);
 	assert(hash < HASHTABLE_ENTRIES_COUNT(&common_entry->items));
 
 	item = HASHTABLE_GET_ENTRY(&(common_entry->items), hash);
 	find_res = HASHTABLE_ENTRY_FIND(cache_ht_, item, &item_data);
 	if (find_res != NULL) {
-		if (find_res->confidence < common_entry->common_params.confidence_threshold) {
-		  	/* duplicate entry is no error, if confidence is low */
+		if (find_res->confidence <
+		    common_entry->common_params.confidence_threshold) {
+			/* duplicate entry is no error, if confidence is low */
 			if ((find_res->value_size == value_size) &&
 			    (memcmp(find_res->value, value, value_size) == 0)) {
-				/* increase confidence on exact match (key and values) */
+				/* increase confidence on exact match (key and
+				 * values) */
 				find_res->confidence++;
 			} else {
-				/* create new entry with low confidence, if value changed */
+				/* create new entry with low confidence, if
+				 * value changed */
 				free(item_data.value);
 				item_data.value = malloc(value_size);
 				assert(item_data.value != NULL);
@@ -870,10 +868,9 @@ cache_write(struct cache_entry_ *entry, const char *key, size_t key_size,
 
 	if (common_entry->policies_size > 1) {
 		connected_policy_item =
-			common_entry->policies[1]->create_item_func();
+		    common_entry->policies[1]->create_item_func();
 		memcpy(&connected_policy_item->creation_time,
-			&policy_item->creation_time,
-			sizeof(struct timeval));
+		    &policy_item->creation_time, sizeof(struct timeval));
 		connected_policy_item->key = policy_item->key;
 		connected_policy_item->key_size = policy_item->key_size;
 
@@ -884,16 +881,16 @@ cache_write(struct cache_entry_ *entry, const char *key, size_t key_size,
 	item_data.fifo_policy_item = policy_item;
 
 	common_entry->policies[0]->add_item_func(common_entry->policies[0],
-		policy_item);
+	    policy_item);
 	if (common_entry->policies_size > 1)
 		common_entry->policies[1]->add_item_func(
-			common_entry->policies[1], connected_policy_item);
+		    common_entry->policies[1], connected_policy_item);
 
 	HASHTABLE_ENTRY_STORE(cache_ht_, item, &item_data);
 	++common_entry->items_size;
 
 	if ((common_entry->common_params.max_elemsize != 0) &&
-		(common_entry->items_size >
+	    (common_entry->items_size >
 		common_entry->common_params.max_elemsize)) {
 		if (common_entry->policies_size > 1) {
 			policy = common_entry->policies[1];
@@ -904,7 +901,7 @@ cache_write(struct cache_entry_ *entry, const char *key, size_t key_size,
 		}
 
 		flush_cache_policy(common_entry, policy, connected_policy,
-			cache_elemsize_common_continue_func);
+		    cache_elemsize_common_continue_func);
 	}
 
 	TRACE_OUT(cache_write);
@@ -922,8 +919,8 @@ cache_write(struct cache_entry_ *entry, const char *key, size_t key_size,
 struct cache_mp_write_session_ *
 open_cache_mp_write_session(struct cache_entry_ *entry)
 {
-	struct cache_mp_entry_	*mp_entry;
-	struct cache_mp_write_session_	*retval;
+	struct cache_mp_entry_ *mp_entry;
+	struct cache_mp_write_session_ *retval;
 
 	TRACE_IN(open_cache_mp_write_session);
 	assert(entry != NULL);
@@ -931,13 +928,12 @@ open_cache_mp_write_session(struct cache_entry_ *entry)
 	mp_entry = (struct cache_mp_entry_ *)entry;
 
 	if ((mp_entry->mp_params.max_sessions > 0) &&
-		(mp_entry->ws_size == mp_entry->mp_params.max_sessions)) {
+	    (mp_entry->ws_size == mp_entry->mp_params.max_sessions)) {
 		TRACE_OUT(open_cache_mp_write_session);
 		return (NULL);
 	}
 
-	retval = calloc(1,
-		sizeof(*retval));
+	retval = calloc(1, sizeof(*retval));
 	assert(retval != NULL);
 
 	TAILQ_INIT(&retval->items);
@@ -955,10 +951,9 @@ open_cache_mp_write_session(struct cache_entry_ *entry)
  * (when write session size limit is exceeded).
  */
 int
-cache_mp_write(struct cache_mp_write_session_ *ws, char *data,
-	size_t data_size)
+cache_mp_write(struct cache_mp_write_session_ *ws, char *data, size_t data_size)
 {
-	struct cache_mp_data_item_	*new_item;
+	struct cache_mp_data_item_ *new_item;
 
 	TRACE_IN(cache_mp_write);
 	assert(ws != NULL);
@@ -966,13 +961,12 @@ cache_mp_write(struct cache_mp_write_session_ *ws, char *data,
 	assert(ws->parent_entry->params->entry_type == CET_MULTIPART);
 
 	if ((ws->parent_entry->mp_params.max_elemsize > 0) &&
-		(ws->parent_entry->mp_params.max_elemsize == ws->items_size)) {
+	    (ws->parent_entry->mp_params.max_elemsize == ws->items_size)) {
 		TRACE_OUT(cache_mp_write);
 		return (-1);
 	}
 
-	new_item = calloc(1,
-		sizeof(*new_item));
+	new_item = calloc(1, sizeof(*new_item));
 	assert(new_item != NULL);
 
 	new_item->value = malloc(data_size);
@@ -1026,7 +1020,7 @@ close_cache_mp_write_session(struct cache_mp_write_session_ *ws)
 		 * If there is no completed session yet, this will be the one
 		 */
 		ws->parent_entry->get_time_func(
-	    		&ws->parent_entry->creation_time);
+		    &ws->parent_entry->creation_time);
 		ws->parent_entry->completed_write_session = ws;
 	} else {
 		/*
@@ -1036,7 +1030,7 @@ close_cache_mp_write_session(struct cache_mp_write_session_ *ws)
 		 */
 		if (ws->parent_entry->pending_write_session != NULL)
 			destroy_cache_mp_write_session(
-				ws->parent_entry->pending_write_session);
+			    ws->parent_entry->pending_write_session);
 
 		ws->parent_entry->pending_write_session = ws;
 	}
@@ -1050,8 +1044,8 @@ close_cache_mp_write_session(struct cache_mp_write_session_ *ws)
 struct cache_mp_read_session_ *
 open_cache_mp_read_session(struct cache_entry_ *entry)
 {
-	struct cache_mp_entry_			*mp_entry;
-	struct cache_mp_read_session_	*retval;
+	struct cache_mp_entry_ *mp_entry;
+	struct cache_mp_read_session_ *retval;
 
 	TRACE_IN(open_cache_mp_read_session);
 	assert(entry != NULL);
@@ -1063,24 +1057,23 @@ open_cache_mp_read_session(struct cache_entry_ *entry)
 		return (NULL);
 	}
 
-	if ((mp_entry->mp_params.max_lifetime.tv_sec != 0)
-		|| (mp_entry->mp_params.max_lifetime.tv_usec != 0)) {
+	if ((mp_entry->mp_params.max_lifetime.tv_sec != 0) ||
+	    (mp_entry->mp_params.max_lifetime.tv_usec != 0)) {
 		if (mp_entry->last_request_time.tv_sec -
 			mp_entry->last_request_time.tv_sec >
-			mp_entry->mp_params.max_lifetime.tv_sec) {
+		    mp_entry->mp_params.max_lifetime.tv_sec) {
 			flush_cache_entry(entry);
 			TRACE_OUT(open_cache_mp_read_session);
 			return (NULL);
 		}
 	}
 
-	retval = calloc(1,
-		sizeof(*retval));
+	retval = calloc(1, sizeof(*retval));
 	assert(retval != NULL);
 
 	retval->parent_entry = mp_entry;
 	retval->current_item = TAILQ_FIRST(
-		&mp_entry->completed_write_session->items);
+	    &mp_entry->completed_write_session->items);
 
 	TAILQ_INSERT_HEAD(&mp_entry->rs_head, retval, entries);
 	++mp_entry->rs_size;
@@ -1144,11 +1137,11 @@ close_cache_mp_read_session(struct cache_mp_read_session_ *rs)
 	--rs->parent_entry->rs_size;
 
 	if ((rs->parent_entry->rs_size == 0) &&
-		(rs->parent_entry->pending_write_session != NULL)) {
+	    (rs->parent_entry->pending_write_session != NULL)) {
 		destroy_cache_mp_write_session(
-			rs->parent_entry->completed_write_session);
+		    rs->parent_entry->completed_write_session);
 		rs->parent_entry->completed_write_session =
-			rs->parent_entry->pending_write_session;
+		    rs->parent_entry->pending_write_session;
 		rs->parent_entry->pending_write_session = NULL;
 	}
 
@@ -1158,7 +1151,7 @@ close_cache_mp_read_session(struct cache_mp_read_session_ *rs)
 
 int
 transform_cache_entry(struct cache_entry_ *entry,
-	enum cache_transformation_t transformation)
+    enum cache_transformation_t transformation)
 {
 
 	TRACE_IN(transform_cache_entry);
@@ -1179,8 +1172,8 @@ transform_cache_entry(struct cache_entry_ *entry,
 
 int
 transform_cache_entry_part(struct cache_entry_ *entry,
-	enum cache_transformation_t transformation, const char *key_part,
-	size_t key_part_size, enum part_position_t part_position)
+    enum cache_transformation_t transformation, const char *key_part,
+    size_t key_part_size, enum part_position_t part_position)
 {
 	struct cache_common_entry_ *common_entry;
 	struct cache_ht_item_ *ht_item;
@@ -1200,39 +1193,40 @@ transform_cache_entry_part(struct cache_entry_ *entry,
 	}
 
 	memset(&ht_key, 0, sizeof(struct cache_ht_item_data_));
-	ht_key.key = (char *)key_part;	/* can't avoid casting here */
+	ht_key.key = (char *)key_part; /* can't avoid casting here */
 	ht_key.key_size = key_part_size;
 
 	common_entry = (struct cache_common_entry_ *)entry;
-	HASHTABLE_FOREACH(&(common_entry->items), ht_item) {
+	HASHTABLE_FOREACH(&(common_entry->items), ht_item)
+	{
 		do {
 			ht_item_data = HASHTABLE_ENTRY_FIND_SPECIAL(cache_ht_,
-				ht_item, &ht_key,
-				ht_items_fixed_size_left_cmp_func);
+			    ht_item, &ht_key,
+			    ht_items_fixed_size_left_cmp_func);
 
 			if (ht_item_data != NULL) {
-			    item = ht_item_data->fifo_policy_item;
-			    connected_item = item->connected_item;
+				item = ht_item_data->fifo_policy_item;
+				connected_item = item->connected_item;
 
-			    common_entry->policies[0]->remove_item_func(
-				common_entry->policies[0],
-				item);
+				common_entry->policies[0]->remove_item_func(
+				    common_entry->policies[0], item);
 
-			    free(ht_item_data->key);
-			    free(ht_item_data->value);
-			    HASHTABLE_ENTRY_REMOVE(cache_ht_, ht_item,
-				ht_item_data);
-			    --common_entry->items_size;
+				free(ht_item_data->key);
+				free(ht_item_data->value);
+				HASHTABLE_ENTRY_REMOVE(cache_ht_, ht_item,
+				    ht_item_data);
+				--common_entry->items_size;
 
-			    common_entry->policies[0]->destroy_item_func(
-				item);
-			    if (common_entry->policies_size == 2) {
-				common_entry->policies[1]->remove_item_func(
-				    common_entry->policies[1],
-				    connected_item);
-				common_entry->policies[1]->destroy_item_func(
-				    connected_item);
-			    }
+				common_entry->policies[0]->destroy_item_func(
+				    item);
+				if (common_entry->policies_size == 2) {
+					common_entry->policies[1]
+					    ->remove_item_func(
+						common_entry->policies[1],
+						connected_item);
+					common_entry->policies[1]
+					    ->destroy_item_func(connected_item);
+				}
 			}
 		} while (ht_item_data != NULL);
 	}

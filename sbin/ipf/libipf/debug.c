@@ -7,14 +7,13 @@
  * $Id$
  */
 
-# include <stdarg.h>
+#include <stdarg.h>
 #include <stdio.h>
 
 #include "ipf.h"
 #include "opts.h"
 
-int	debuglevel = 0;
-
+int debuglevel = 0;
 
 void
 debug(int level, char *fmt, ...)
@@ -27,7 +26,6 @@ debug(int level, char *fmt, ...)
 		vfprintf(stderr, fmt, pvar);
 	va_end(pvar);
 }
-
 
 void
 ipfkdebug(char *fmt, ...)

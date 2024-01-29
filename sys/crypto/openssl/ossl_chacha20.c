@@ -33,24 +33,21 @@
 #include <sys/malloc.h>
 #include <sys/time.h>
 
-#include <opencrypto/cryptodev.h>
-
 #include <crypto/openssl/ossl.h>
 #include <crypto/openssl/ossl_chacha.h>
 #include <crypto/openssl/ossl_cipher.h>
 #include <crypto/openssl/ossl_poly1305.h>
+#include <opencrypto/cryptodev.h>
 
 static ossl_cipher_process_t ossl_chacha20;
 
-struct ossl_cipher ossl_cipher_chacha20 = {
-	.type = CRYPTO_CHACHA20,
+struct ossl_cipher ossl_cipher_chacha20 = { .type = CRYPTO_CHACHA20,
 	.blocksize = CHACHA_BLK_SIZE,
 	.ivsize = CHACHA_CTR_SIZE,
 
 	.set_encrypt_key = NULL,
 	.set_decrypt_key = NULL,
-	.process = ossl_chacha20
-};
+	.process = ossl_chacha20 };
 
 static int
 ossl_chacha20(struct ossl_session_cipher *s, struct cryptop *crp,
@@ -286,8 +283,9 @@ ossl_chacha20_poly1305_encrypt(struct cryptop *crp,
 	Poly1305_Update(&auth_ctx, block, sizeof(uint64_t) * 2);
 
 	Poly1305_Final(&auth_ctx, tag);
-	crypto_copyback(crp, crp->crp_digest_start, csp->csp_auth_mlen == 0 ?
-	    POLY1305_HASH_LEN : csp->csp_auth_mlen, tag);
+	crypto_copyback(crp, crp->crp_digest_start,
+	    csp->csp_auth_mlen == 0 ? POLY1305_HASH_LEN : csp->csp_auth_mlen,
+	    tag);
 
 	explicit_bzero(&auth_ctx, sizeof(auth_ctx));
 	explicit_bzero(tag, sizeof(tag));
@@ -296,7 +294,6 @@ ossl_chacha20_poly1305_encrypt(struct cryptop *crp,
 	explicit_bzero(key, sizeof(key));
 	return (0);
 }
-
 
 int
 ossl_chacha20_poly1305_decrypt(struct cryptop *crp,

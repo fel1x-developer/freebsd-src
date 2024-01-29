@@ -26,19 +26,22 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/time.h>
+
+#include <assert.h>
 #include <namespace.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
-#include <wchar.h>
+#include <string.h>
 #include <vis.h>
-#include <assert.h>
-#include <sys/time.h>
+#include <wchar.h>
+
 #include "errlst.h"
 #include "printf.h"
 
 int
-__printf_arginfo_errno(const struct printf_info *pi __unused, size_t n, int *argt)
+__printf_arginfo_errno(const struct printf_info *pi __unused, size_t n,
+    int *argt)
 {
 
 	assert(n >= 1);
@@ -47,7 +50,8 @@ __printf_arginfo_errno(const struct printf_info *pi __unused, size_t n, int *arg
 }
 
 int
-__printf_render_errno(struct __printf_io *io, const struct printf_info *pi __unused, const void *const *arg)
+__printf_render_errno(struct __printf_io *io,
+    const struct printf_info *pi __unused, const void *const *arg)
 {
 	int ret, error;
 	char buf[64];
@@ -62,5 +66,5 @@ __printf_render_errno(struct __printf_io *io, const struct printf_info *pi __unu
 	sprintf(buf, "errno=%d/0x%x", error, error);
 	ret += __printf_out(io, pi, buf, strlen(buf));
 	__printf_flush(io);
-	return(ret);
+	return (ret);
 }

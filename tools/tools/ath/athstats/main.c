@@ -54,18 +54,14 @@ static struct {
 	const char *tag;
 	const char *fmt;
 } tags[] = {
-  { "default",
-    "input,output,altrate,short,long,xretry,crcerr,crypt,phyerr,rssi,rate"
-  },
-  { "ani",
-    "avgbrssi,avgrssi,avgtxrssi,NI,SI,step,owsd,cwst,NI+,NI-,SI+,SI-,OFDM,CCK,LISTEN"
-  },
-  { "tdma",
-    "input,output,bexmit,tdmau,tdmadj,crcerr,phyerr,phytor,rssi,noise,rate"
-  },
-  { "beacon",
-    "bstuck,bmiss,bexmit,beacons,bmisscount,reset,ofdm,cck,input,output"
-  },
+	{ "default",
+	    "input,output,altrate,short,long,xretry,crcerr,crypt,phyerr,rssi,rate" },
+	{ "ani",
+	    "avgbrssi,avgrssi,avgtxrssi,NI,SI,step,owsd,cwst,NI+,NI-,SI+,SI-,OFDM,CCK,LISTEN" },
+	{ "tdma",
+	    "input,output,bexmit,tdmau,tdmadj,crcerr,phyerr,phytor,rssi,noise,rate" },
+	{ "beacon",
+	    "bstuck,bmiss,bexmit,beacons,bmisscount,reset,ofdm,cck,input,output" },
 };
 
 static const char *
@@ -115,7 +111,9 @@ main(int argc, char *argv[])
 			wf->zerostats(wf);
 			break;
 		default:
-			errx(-1, "usage: %s [-a] [-i ifname] [-l] [-o fmt] [-z] [interval]\n", argv[0]);
+			errx(-1,
+			    "usage: %s [-a] [-i ifname] [-l] [-o fmt] [-z] [interval]\n",
+			    argv[0]);
 			/*NOTREACHED*/
 		}
 	}
@@ -152,7 +150,7 @@ main(int argc, char *argv[])
 		signalled = 0;
 		alarm(interval);
 		line++;
-		if (line == 21)		/* XXX tty line count */
+		if (line == 21) /* XXX tty line count */
 			goto banner;
 		else
 			goto loop;

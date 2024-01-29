@@ -26,91 +26,93 @@
 
 #ifndef _HV_KBD_H
 #define _HV_KBD_H
+#include "opt_evdev.h"
+
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
 #include <sys/queue.h>
-#include <sys/systm.h>
 
 #include <dev/kbd/kbdreg.h>
-
-#include "opt_evdev.h"
 #ifdef EVDEV_SUPPORT
 #include <dev/evdev/evdev.h>
 #include <dev/evdev/input.h>
 #endif
 
-#define HVKBD_DRIVER_NAME	"hvkbd"
-#define IS_UNICODE		(1)
-#define IS_BREAK		(2)
-#define IS_E0			(4)
-#define IS_E1			(8)
+#define HVKBD_DRIVER_NAME "hvkbd"
+#define IS_UNICODE (1)
+#define IS_BREAK (2)
+#define IS_E0 (4)
+#define IS_E1 (8)
 
-#define XTKBD_EMUL0		(0xe0)
-#define XTKBD_EMUL1		(0xe1)
-#define XTKBD_RELEASE		(0x80)
+#define XTKBD_EMUL0 (0xe0)
+#define XTKBD_EMUL1 (0xe1)
+#define XTKBD_RELEASE (0x80)
 
-#define DEBUG_HVSC(sc, ...) do {			\
-	if (sc->debug > 0) {				\
-		device_printf(sc->dev, __VA_ARGS__);	\
-	}						\
-} while (0)
-#define DEBUG_HVKBD(kbd, ...) do {			\
-	hv_kbd_sc *sc = (kbd)->kb_data;			\
-	DEBUG_HVSC(sc, __VA_ARGS__);				\
-} while (0)
+#define DEBUG_HVSC(sc, ...)                                  \
+	do {                                                 \
+		if (sc->debug > 0) {                         \
+			device_printf(sc->dev, __VA_ARGS__); \
+		}                                            \
+	} while (0)
+#define DEBUG_HVKBD(kbd, ...)                   \
+	do {                                    \
+		hv_kbd_sc *sc = (kbd)->kb_data; \
+		DEBUG_HVSC(sc, __VA_ARGS__);    \
+	} while (0)
 
 struct vmbus_channel;
 struct vmbus_xact_ctx;
 
 typedef struct keystroke_t {
-	uint16_t			makecode;
-	uint32_t			info;
+	uint16_t makecode;
+	uint32_t info;
 } keystroke;
 
 typedef struct keystroke_info {
-	LIST_ENTRY(keystroke_info)	link;
-	STAILQ_ENTRY(keystroke_info)	slink;
-	keystroke			ks;
+	LIST_ENTRY(keystroke_info) link;
+	STAILQ_ENTRY(keystroke_info) slink;
+	keystroke ks;
 } keystroke_info;
 
 typedef struct hv_kbd_sc_t {
-	struct vmbus_channel		*hs_chan;
-	device_t			dev;
-	struct vmbus_xact_ctx		*hs_xact_ctx;
-	int32_t				buflen;
-	uint8_t				*buf;
+	struct vmbus_channel *hs_chan;
+	device_t dev;
+	struct vmbus_xact_ctx *hs_xact_ctx;
+	int32_t buflen;
+	uint8_t *buf;
 
-	struct mtx			ks_mtx;
-	LIST_HEAD(, keystroke_info)	ks_free_list;
-	STAILQ_HEAD(, keystroke_info)	ks_queue;	/* keystroke info queue */
+	struct mtx ks_mtx;
+	LIST_HEAD(, keystroke_info) ks_free_list;
+	STAILQ_HEAD(, keystroke_info) ks_queue; /* keystroke info queue */
 
-	keyboard_t			sc_kbd;
-	int				sc_mode;
-	int				sc_state;
-	uint32_t			sc_accents;	/* accent key index (> 0) */
-	uint32_t			sc_composed_char; /* composed char code */
-	uint8_t				sc_prefix;	/* AT scan code prefix */
-	int				sc_polling;	/* polling recursion count */
-	uint32_t			sc_flags;
-	int				debug;
+	keyboard_t sc_kbd;
+	int sc_mode;
+	int sc_state;
+	uint32_t sc_accents;	   /* accent key index (> 0) */
+	uint32_t sc_composed_char; /* composed char code */
+	uint8_t sc_prefix;	   /* AT scan code prefix */
+	int sc_polling;		   /* polling recursion count */
+	uint32_t sc_flags;
+	int debug;
 
 #ifdef EVDEV_SUPPORT
-	struct evdev_dev		*ks_evdev;
-	int				ks_evdev_state;
+	struct evdev_dev *ks_evdev;
+	int ks_evdev_state;
 #endif
 } hv_kbd_sc;
 
-int	hv_kbd_produce_ks(hv_kbd_sc *sc, const keystroke *ks);
-int	hv_kbd_fetch_top(hv_kbd_sc *sc, keystroke *top);
-int	hv_kbd_modify_top(hv_kbd_sc *sc, keystroke *top);
-int	hv_kbd_remove_top(hv_kbd_sc *sc);
-int	hv_kbd_prod_is_ready(hv_kbd_sc *sc);
-void	hv_kbd_read_channel(struct vmbus_channel *, void *);
+int hv_kbd_produce_ks(hv_kbd_sc *sc, const keystroke *ks);
+int hv_kbd_fetch_top(hv_kbd_sc *sc, keystroke *top);
+int hv_kbd_modify_top(hv_kbd_sc *sc, keystroke *top);
+int hv_kbd_remove_top(hv_kbd_sc *sc);
+int hv_kbd_prod_is_ready(hv_kbd_sc *sc);
+void hv_kbd_read_channel(struct vmbus_channel *, void *);
 
-int	hv_kbd_drv_attach(device_t dev);
-int	hv_kbd_drv_detach(device_t dev);
+int hv_kbd_drv_attach(device_t dev);
+int hv_kbd_drv_detach(device_t dev);
 
-int	hvkbd_driver_load(module_t, int, void *);
-void	hv_kbd_intr(hv_kbd_sc *sc);
+int hvkbd_driver_load(module_t, int, void *);
+void hv_kbd_intr(hv_kbd_sc *sc);
 #endif

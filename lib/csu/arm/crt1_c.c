@@ -44,8 +44,8 @@
 #include <sys/param.h>
 #include <sys/elf_common.h>
 
-#include "libc_private.h"
 #include "csu_common.h"
+#include "libc_private.h"
 
 struct Struct_Obj_Entry;
 struct ps_strings;

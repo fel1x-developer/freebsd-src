@@ -31,6 +31,7 @@
 #include <machine/vmm.h>
 #include <machine/vmm_dev.h>
 #include <machine/vmm_instruction_emul.h>
+
 #include <amd64/vmm/intel/vmcs.h>
 #include <x86/apicreg.h>
 
@@ -40,7 +41,6 @@
 #include <stdlib.h>
 #include <strings.h>
 #include <unistd.h>
-
 #include <vmmapi.h>
 
 #include "bhyverun.h"
@@ -57,8 +57,7 @@
 #include "xmsr.h"
 
 void
-vm_inject_fault(struct vcpu *vcpu, int vector, int errcode_valid,
-    int errcode)
+vm_inject_fault(struct vcpu *vcpu, int vector, int errcode_valid, int errcode)
 {
 	int error, restart_instruction;
 
@@ -83,10 +82,9 @@ vmexit_inout(struct vmctx *ctx, struct vcpu *vcpu, struct vm_run *vmrun)
 
 	error = emulate_inout(ctx, vcpu, vme);
 	if (error) {
-		EPRINTLN("Unhandled %s%c 0x%04x at 0x%lx",
-		    in ? "in" : "out",
-		    bytes == 1 ? 'b' : (bytes == 2 ? 'w' : 'l'),
-		    port, vme->rip);
+		EPRINTLN("Unhandled %s%c 0x%04x at 0x%lx", in ? "in" : "out",
+		    bytes == 1 ? 'b' : (bytes == 2 ? 'w' : 'l'), port,
+		    vme->rip);
 		return (VMEXIT_ABORT);
 	} else {
 		return (VMEXIT_CONTINUE);
@@ -107,8 +105,8 @@ vmexit_rdmsr(struct vmctx *ctx __unused, struct vcpu *vcpu,
 	val = 0;
 	error = emulate_rdmsr(vcpu, vme->u.msr.code, &val);
 	if (error != 0) {
-		EPRINTLN("rdmsr to register %#x on vcpu %d",
-		    vme->u.msr.code, vcpu_id(vcpu));
+		EPRINTLN("rdmsr to register %#x on vcpu %d", vme->u.msr.code,
+		    vcpu_id(vcpu));
 		if (get_config_bool("x86.strictmsr")) {
 			vm_inject_gp(vcpu);
 			return (VMEXIT_CONTINUE);
@@ -147,7 +145,7 @@ vmexit_wrmsr(struct vmctx *ctx __unused, struct vcpu *vcpu,
 	return (VMEXIT_CONTINUE);
 }
 
-static const char * const vmx_exit_reason_desc[] = {
+static const char *const vmx_exit_reason_desc[] = {
 	[EXIT_REASON_EXCEPTION] = "Exception or non-maskable interrupt (NMI)",
 	[EXIT_REASON_EXT_INTR] = "External interrupt",
 	[EXIT_REASON_TRIPLE_FAULT] = "Triple fault",
@@ -224,9 +222,9 @@ vmexit_vmx_desc(uint32_t exit_reason)
 	return (vmx_exit_reason_desc[exit_reason]);
 }
 
-#define	DEBUG_EPT_MISCONFIG
+#define DEBUG_EPT_MISCONFIG
 #ifdef DEBUG_EPT_MISCONFIG
-#define	VMCS_GUEST_PHYSICAL_ADDRESS	0x00002400
+#define VMCS_GUEST_PHYSICAL_ADDRESS 0x00002400
 
 static uint64_t ept_misconfig_gpa, ept_misconfig_pte[4];
 static int ept_misconfig_ptenum;
@@ -246,14 +244,12 @@ vmexit_vmx(struct vmctx *ctx, struct vcpu *vcpu, struct vm_run *vmrun)
 	EPRINTLN("\tstatus\t\t%d", vme->u.vmx.status);
 	EPRINTLN("\texit_reason\t%u (%s)", vme->u.vmx.exit_reason,
 	    vmexit_vmx_desc(vme->u.vmx.exit_reason));
-	EPRINTLN("\tqualification\t0x%016lx",
-	    vme->u.vmx.exit_qualification);
+	EPRINTLN("\tqualification\t0x%016lx", vme->u.vmx.exit_qualification);
 	EPRINTLN("\tinst_type\t\t%d", vme->u.vmx.inst_type);
 	EPRINTLN("\tinst_error\t\t%d", vme->u.vmx.inst_error);
 #ifdef DEBUG_EPT_MISCONFIG
 	if (vme->u.vmx.exit_reason == EXIT_REASON_EPT_MISCONFIG) {
-		vm_get_register(vcpu,
-		    VMCS_IDENT(VMCS_GUEST_PHYSICAL_ADDRESS),
+		vm_get_register(vcpu, VMCS_IDENT(VMCS_GUEST_PHYSICAL_ADDRESS),
 		    &ept_misconfig_gpa);
 		vm_get_gpa_pmap(ctx, ept_misconfig_gpa, ept_misconfig_pte,
 		    &ept_misconfig_ptenum);
@@ -264,7 +260,7 @@ vmexit_vmx(struct vmctx *ctx, struct vcpu *vcpu, struct vm_run *vmrun)
 		    ept_misconfig_pte[1], ept_misconfig_pte[2],
 		    ept_misconfig_pte[3]);
 	}
-#endif	/* DEBUG_EPT_MISCONFIG */
+#endif /* DEBUG_EPT_MISCONFIG */
 	return (VMEXIT_ABORT);
 }
 
@@ -364,7 +360,7 @@ vmexit_inst_emul(struct vmctx *ctx __unused, struct vcpu *vcpu,
 		if (vmm_decode_instruction(mode, cs_d, vie) != 0)
 			goto fail;
 		if (vm_set_register(vcpu, VM_REG_GUEST_RIP,
-		    vme->rip + vie->num_processed) != 0)
+			vme->rip + vie->num_processed) != 0)
 			goto fail;
 	}
 
@@ -416,7 +412,7 @@ vmexit_suspend(struct vmctx *ctx, struct vcpu *vcpu, struct vm_run *vmrun)
 		EPRINTLN("vmexit_suspend: invalid reason %d", how);
 		exit(100);
 	}
-	return (0);	/* NOTREACHED */
+	return (0); /* NOTREACHED */
 }
 
 static int
@@ -475,7 +471,7 @@ vmexit_ipi(struct vmctx *ctx __unused, struct vcpu *vcpu __unused,
 
 	switch (vme->u.ipi.mode) {
 	case APIC_DELMODE_INIT:
-		CPU_FOREACH_ISSET(i, dmask) {
+		CPU_FOREACH_ISSET (i, dmask) {
 			error = fbsdrun_suspendcpu(i);
 			if (error) {
 				warnx("failed to suspend cpu %d", i);
@@ -484,7 +480,7 @@ vmexit_ipi(struct vmctx *ctx __unused, struct vcpu *vcpu __unused,
 		}
 		break;
 	case APIC_DELMODE_STARTUP:
-		CPU_FOREACH_ISSET(i, dmask) {
+		CPU_FOREACH_ISSET (i, dmask) {
 			spinup_ap(fbsdrun_vcpu(i),
 			    vme->u.ipi.vector << PAGE_SHIFT);
 		}
@@ -500,15 +496,15 @@ vmexit_ipi(struct vmctx *ctx __unused, struct vcpu *vcpu __unused,
 int vmexit_task_switch(struct vmctx *, struct vcpu *, struct vm_run *);
 
 const vmexit_handler_t vmexit_handlers[VM_EXITCODE_MAX] = {
-	[VM_EXITCODE_INOUT]  = vmexit_inout,
-	[VM_EXITCODE_INOUT_STR]  = vmexit_inout,
-	[VM_EXITCODE_VMX]    = vmexit_vmx,
-	[VM_EXITCODE_SVM]    = vmexit_svm,
-	[VM_EXITCODE_BOGUS]  = vmexit_bogus,
+	[VM_EXITCODE_INOUT] = vmexit_inout,
+	[VM_EXITCODE_INOUT_STR] = vmexit_inout,
+	[VM_EXITCODE_VMX] = vmexit_vmx,
+	[VM_EXITCODE_SVM] = vmexit_svm,
+	[VM_EXITCODE_BOGUS] = vmexit_bogus,
 	[VM_EXITCODE_REQIDLE] = vmexit_reqidle,
-	[VM_EXITCODE_RDMSR]  = vmexit_rdmsr,
-	[VM_EXITCODE_WRMSR]  = vmexit_wrmsr,
-	[VM_EXITCODE_MTRAP]  = vmexit_mtrap,
+	[VM_EXITCODE_RDMSR] = vmexit_rdmsr,
+	[VM_EXITCODE_WRMSR] = vmexit_wrmsr,
+	[VM_EXITCODE_MTRAP] = vmexit_mtrap,
 	[VM_EXITCODE_INST_EMUL] = vmexit_inst_emul,
 	[VM_EXITCODE_SUSPENDED] = vmexit_suspend,
 	[VM_EXITCODE_TASK_SWITCH] = vmexit_task_switch,

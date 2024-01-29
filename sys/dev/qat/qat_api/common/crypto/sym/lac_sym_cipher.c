@@ -17,12 +17,10 @@
 */
 #include "cpa.h"
 #include "cpa_cy_sym.h"
-
-#include "icp_adf_init.h"
-#include "icp_adf_transport.h"
 #include "icp_accel_devices.h"
 #include "icp_adf_debug.h"
-
+#include "icp_adf_init.h"
+#include "icp_adf_transport.h"
 #include "icp_qat_fw_la.h"
 
 /*
@@ -30,24 +28,22 @@
 * Include private header files
 *******************************************************************************
 */
-#include "lac_sym_cipher.h"
-#include "lac_session.h"
-#include "lac_mem.h"
+#include "lac_buffer_desc.h"
 #include "lac_common.h"
 #include "lac_list.h"
-#include "lac_sym.h"
-#include "lac_sym_key.h"
-#include "lac_sym_qat_hash_defs_lookup.h"
-#include "lac_sal_types_crypto.h"
+#include "lac_log.h"
+#include "lac_mem.h"
 #include "lac_sal.h"
 #include "lac_sal_ctrl.h"
-#include "lac_sym_cipher_defs.h"
-#include "lac_sym_cipher.h"
-#include "lac_sym_stats.h"
+#include "lac_sal_types_crypto.h"
+#include "lac_session.h"
 #include "lac_sym.h"
+#include "lac_sym_cipher.h"
+#include "lac_sym_cipher_defs.h"
+#include "lac_sym_key.h"
 #include "lac_sym_qat_cipher.h"
-#include "lac_log.h"
-#include "lac_buffer_desc.h"
+#include "lac_sym_qat_hash_defs_lookup.h"
+#include "lac_sym_stats.h"
 #include "sal_hw_gen.h"
 
 /*
@@ -58,13 +54,11 @@
 
 CpaStatus
 LacCipher_PerformIvCheck(sal_service_t *pService,
-			 lac_sym_bulk_cookie_t *pCbCookie,
-			 Cpa32U qatPacketType,
-			 Cpa8U **ppIvBuffer)
+    lac_sym_bulk_cookie_t *pCbCookie, Cpa32U qatPacketType, Cpa8U **ppIvBuffer)
 {
 	const CpaCySymOpData *pOpData = pCbCookie->pOpData;
-	lac_session_desc_t *pSessionDesc =
-	    LAC_SYM_SESSION_DESC_FROM_CTX_GET(pOpData->sessionCtx);
+	lac_session_desc_t *pSessionDesc = LAC_SYM_SESSION_DESC_FROM_CTX_GET(
+	    pOpData->sessionCtx);
 	CpaCySymCipherAlgorithm algorithm = pSessionDesc->cipherAlgorithm;
 	unsigned ivLenInBytes = 0;
 
@@ -86,11 +80,11 @@ LacCipher_PerformIvCheck(sal_service_t *pService,
 		LAC_CHECK_NULL_PARAM(pOpData->pIv);
 		if (pOpData->ivLenInBytes != ivLenInBytes) {
 			if (!(/* GCM with 12 byte IV is OK */
-			      (LAC_CIPHER_IS_GCM(algorithm) &&
-			       pOpData->ivLenInBytes ==
-				   LAC_CIPHER_IV_SIZE_GCM_12) ||
-			      /* IV len for CCM has been checked before */
-			      LAC_CIPHER_IS_CCM(algorithm))) {
+				(LAC_CIPHER_IS_GCM(algorithm) &&
+				    pOpData->ivLenInBytes ==
+					LAC_CIPHER_IV_SIZE_GCM_12) ||
+				/* IV len for CCM has been checked before */
+				LAC_CIPHER_IS_CCM(algorithm))) {
 				LAC_INVALID_PARAM_LOG("invalid cipher IV size");
 				return CPA_STATUS_INVALID_PARAM;
 			}
@@ -215,10 +209,9 @@ LacCipher_PerformIvCheck(sal_service_t *pService,
 	return CPA_STATUS_SUCCESS;
 }
 
-
 CpaStatus
 LacCipher_SessionSetupDataCheck(const CpaCySymCipherSetupData *pCipherSetupData,
-				Cpa32U capabilitiesMask)
+    Cpa32U capabilitiesMask)
 {
 	/* No key required for NULL algorithm */
 	if (!LAC_CIPHER_IS_NULL(pCipherSetupData->cipherAlgorithm)) {
@@ -245,13 +238,13 @@ LacCipher_SessionSetupDataCheck(const CpaCySymCipherSetupData *pCipherSetupData,
 			break;
 		case CPA_CY_SYM_CIPHER_AES_XTS:
 			if ((pCipherSetupData->cipherKeyLenInBytes !=
-			     ICP_QAT_HW_AES_128_XTS_KEY_SZ) &&
+				ICP_QAT_HW_AES_128_XTS_KEY_SZ) &&
 			    (pCipherSetupData->cipherKeyLenInBytes !=
-			     ICP_QAT_HW_AES_256_XTS_KEY_SZ) &&
+				ICP_QAT_HW_AES_256_XTS_KEY_SZ) &&
 			    (pCipherSetupData->cipherKeyLenInBytes !=
-			     ICP_QAT_HW_UCS_AES_128_XTS_KEY_SZ) &&
+				ICP_QAT_HW_UCS_AES_128_XTS_KEY_SZ) &&
 			    (pCipherSetupData->cipherKeyLenInBytes !=
-			     ICP_QAT_HW_UCS_AES_256_XTS_KEY_SZ)) {
+				ICP_QAT_HW_UCS_AES_256_XTS_KEY_SZ)) {
 				LAC_INVALID_PARAM_LOG(
 				    "Invalid AES XTS cipher key length");
 				return CPA_STATUS_INVALID_PARAM;
@@ -262,11 +255,11 @@ LacCipher_SessionSetupDataCheck(const CpaCySymCipherSetupData *pCipherSetupData,
 		case CPA_CY_SYM_CIPHER_AES_CTR:
 		case CPA_CY_SYM_CIPHER_AES_GCM:
 			if ((pCipherSetupData->cipherKeyLenInBytes !=
-			     ICP_QAT_HW_AES_128_KEY_SZ) &&
+				ICP_QAT_HW_AES_128_KEY_SZ) &&
 			    (pCipherSetupData->cipherKeyLenInBytes !=
-			     ICP_QAT_HW_AES_192_KEY_SZ) &&
+				ICP_QAT_HW_AES_192_KEY_SZ) &&
 			    (pCipherSetupData->cipherKeyLenInBytes !=
-			     ICP_QAT_HW_AES_256_KEY_SZ)) {
+				ICP_QAT_HW_AES_256_KEY_SZ)) {
 				LAC_INVALID_PARAM_LOG(
 				    "Invalid AES cipher key length");
 				return CPA_STATUS_INVALID_PARAM;
@@ -274,11 +267,11 @@ LacCipher_SessionSetupDataCheck(const CpaCySymCipherSetupData *pCipherSetupData,
 			break;
 		case CPA_CY_SYM_CIPHER_AES_F8:
 			if ((pCipherSetupData->cipherKeyLenInBytes !=
-			     ICP_QAT_HW_AES_128_F8_KEY_SZ) &&
+				ICP_QAT_HW_AES_128_F8_KEY_SZ) &&
 			    (pCipherSetupData->cipherKeyLenInBytes !=
-			     ICP_QAT_HW_AES_192_F8_KEY_SZ) &&
+				ICP_QAT_HW_AES_192_F8_KEY_SZ) &&
 			    (pCipherSetupData->cipherKeyLenInBytes !=
-			     ICP_QAT_HW_AES_256_F8_KEY_SZ)) {
+				ICP_QAT_HW_AES_256_F8_KEY_SZ)) {
 				LAC_INVALID_PARAM_LOG(
 				    "Invalid AES cipher key length");
 				return CPA_STATUS_INVALID_PARAM;
@@ -360,8 +353,7 @@ LacCipher_SessionSetupDataCheck(const CpaCySymCipherSetupData *pCipherSetupData,
 
 CpaStatus
 LacCipher_PerformParamCheck(CpaCySymCipherAlgorithm algorithm,
-			    const CpaCySymOpData *pOpData,
-			    const Cpa64U packetLen)
+    const CpaCySymOpData *pOpData, const Cpa64U packetLen)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 
@@ -370,7 +362,7 @@ LacCipher_PerformParamCheck(CpaCySymCipherAlgorithm algorithm,
 	 * LacSymPerform_BufferParamCheck() called from LacSym_Perform())
 	 */
 	if ((pOpData->messageLenToCipherInBytes +
-	     pOpData->cryptoStartSrcOffsetInBytes) > packetLen) {
+		pOpData->cryptoStartSrcOffsetInBytes) > packetLen) {
 		LAC_INVALID_PARAM_LOG("cipher len + offset greater than "
 				      "srcBuffer packet len");
 		status = CPA_STATUS_INVALID_PARAM;
@@ -396,9 +388,9 @@ LacCipher_PerformParamCheck(CpaCySymCipherAlgorithm algorithm,
 		 */
 		case CPA_CY_SYM_CIPHER_AES_XTS:
 			if ((pOpData->packetType ==
-			     CPA_CY_SYM_PACKET_TYPE_FULL) ||
+				CPA_CY_SYM_PACKET_TYPE_FULL) ||
 			    (pOpData->packetType ==
-			     CPA_CY_SYM_PACKET_TYPE_LAST_PARTIAL)) {
+				CPA_CY_SYM_PACKET_TYPE_LAST_PARTIAL)) {
 				/*
 				 * If this is the last of a partial request
 				 */
@@ -420,7 +412,7 @@ LacCipher_PerformParamCheck(CpaCySymCipherAlgorithm algorithm,
 			 */
 			if (pOpData->messageLenToCipherInBytes &
 			    (LacSymQat_CipherBlockSizeBytesGet(algorithm) -
-			     1)) {
+				1)) {
 				LAC_INVALID_PARAM_LOG(
 				    "data size must be block size"
 				    " multiple");
@@ -433,8 +425,8 @@ LacCipher_PerformParamCheck(CpaCySymCipherAlgorithm algorithm,
 
 Cpa32U
 LacCipher_GetCipherSliceType(sal_crypto_service_t *pService,
-			     CpaCySymCipherAlgorithm cipherAlgorithm,
-			     CpaCySymHashAlgorithm hashAlgorithm)
+    CpaCySymCipherAlgorithm cipherAlgorithm,
+    CpaCySymHashAlgorithm hashAlgorithm)
 {
 	Cpa32U sliceType = ICP_QAT_FW_LA_USE_LEGACY_SLICE_TYPE;
 	Cpa32U capabilitiesMask =
@@ -447,10 +439,10 @@ LacCipher_GetCipherSliceType(sal_crypto_service_t *pService,
 		    LAC_CIPHER_IS_GCM(cipherAlgorithm)) {
 			sliceType = ICP_QAT_FW_LA_USE_UCS_SLICE_TYPE;
 		} else if (LAC_CIPHER_IS_CCM(cipherAlgorithm) &&
-			   LAC_CIPHER_AES_V2(capabilitiesMask)) {
+		    LAC_CIPHER_AES_V2(capabilitiesMask)) {
 			sliceType = ICP_QAT_FW_LA_USE_LEGACY_SLICE_TYPE;
 		} else if (LAC_CIPHER_IS_AES(cipherAlgorithm) &&
-			   LAC_CIPHER_IS_CTR_MODE(cipherAlgorithm)) {
+		    LAC_CIPHER_IS_CTR_MODE(cipherAlgorithm)) {
 			sliceType = ICP_QAT_FW_LA_USE_UCS_SLICE_TYPE;
 		}
 	}

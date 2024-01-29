@@ -37,11 +37,11 @@
  * compress to d_len or less.
  */
 
-#define	MATCH_BITS	6
-#define	MATCH_MIN	3
-#define	MATCH_MAX	((1 << MATCH_BITS) + (MATCH_MIN - 1))
-#define	OFFSET_MASK	((1 << (16 - MATCH_BITS)) - 1)
-#define	LEMPEL_SIZE	256
+#define MATCH_BITS 6
+#define MATCH_MIN 3
+#define MATCH_MAX ((1 << MATCH_BITS) + (MATCH_MIN - 1))
+#define OFFSET_MASK ((1 << (16 - MATCH_BITS)) - 1)
+#define LEMPEL_SIZE 256
 
 /*ARGSUSED*/
 static int

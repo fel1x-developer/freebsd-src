@@ -29,8 +29,6 @@
  * SUCH DAMAGE.
  */
 
-
-
 /*
  * This file contains the I/O handling and the exchange of
  * edit characters. This connection itself is established in
@@ -40,9 +38,9 @@
 #include <sys/filio.h>
 
 #include <errno.h>
-#include <signal.h>
 #include <netdb.h>
 #include <poll.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -53,7 +51,7 @@
 #include "talk.h"
 #include "talk_ctl.h"
 
-extern void	display(xwin_t *, wchar_t *);
+extern void display(xwin_t *, wchar_t *);
 
 volatile sig_atomic_t gotwinch = 0;
 
@@ -79,7 +77,7 @@ talk(void)
 		    hp2->h_length == sizeof(his_machine_addr))
 			for (addr = hp2->h_addr_list; *addr != NULL; addr++)
 				if (memcmp(*addr, &his_machine_addr,
-				    sizeof(his_machine_addr)) == 0) {
+					sizeof(his_machine_addr)) == 0) {
 					his_machine_name = strdup(hp->h_name);
 					break;
 				}
@@ -91,7 +89,7 @@ talk(void)
 	free(his_machine_name);
 	message((char *)buf);
 	write(STDOUT_FILENO, "\007\007\007", 3);
-	
+
 	current_line = 0;
 
 	if ((sockfp = fdopen(sockt, "w+")) == NULL)
@@ -136,8 +134,8 @@ talk(void)
 
 			if ((w = getwchar()) != WEOF) {
 				display(&my_win, &w);
-				(void )fputwc(w, sockfp);
-				(void )fflush(sockfp);
+				(void)fputwc(w, sockfp);
+				(void)fflush(sockfp);
 			}
 		}
 	}
@@ -151,10 +149,10 @@ void
 p_error(const char *string)
 {
 	wmove(my_win.x_win, current_line, 0);
-	wprintw(my_win.x_win, "[%s : %s (%d)]\n",
-	    string, strerror(errno), errno);
+	wprintw(my_win.x_win, "[%s : %s (%d)]\n", string, strerror(errno),
+	    errno);
 	wrefresh(my_win.x_win);
-	move(LINES-1, 0);
+	move(LINES - 1, 0);
 	refresh();
 	quit();
 }

@@ -63,8 +63,9 @@
  *
  */
 
-#define SND_CHN_MATRIX_MAP_1_0	{					\
-	.id = SND_CHN_MATRIX_1_0,					\
+#define SND_CHN_MATRIX_MAP_1_0                  \
+	{                                       \
+		.id = SND_CHN_MATRIX_1_0,					\
 	.channels = 1,							\
 	.ext = 0,							\
 	.map = {							\
@@ -86,11 +87,12 @@
 	.mask = SND_CHN_T_MASK_FL | SND_CHN_T_MASK_FR |			\
 		SND_CHN_T_MASK_FC,					\
 	.offset = {  0,  0,  0,  0,  0,  0, -1, -1,  0,			\
-		     0,  0, -1, -1, -1, -1, -1, -1, -1  }		\
-}
+		     0,  0, -1, -1, -1, -1, -1, -1, -1  } \
+	}
 
-#define SND_CHN_MATRIX_MAP_2_0	{					\
-	.id = SND_CHN_MATRIX_2_0,					\
+#define SND_CHN_MATRIX_MAP_2_0                  \
+	{                                       \
+		.id = SND_CHN_MATRIX_2_0,					\
 	.channels = 2,							\
 	.ext = 0,							\
 	.map = {							\
@@ -117,11 +119,12 @@
 	},								\
 	.mask = SND_CHN_T_MASK_FL | SND_CHN_T_MASK_FR,			\
 	.offset = {  0,  1, -1, -1, -1, -1, -1, -1, -1,			\
-		    -1, -1, -1, -1, -1, -1, -1, -1, -1  }		\
-}
+		    -1, -1, -1, -1, -1, -1, -1, -1, -1  } \
+	}
 
-#define SND_CHN_MATRIX_MAP_2_1	{					\
-	.id = SND_CHN_MATRIX_2_1,					\
+#define SND_CHN_MATRIX_MAP_2_1                  \
+	{                                       \
+		.id = SND_CHN_MATRIX_2_1,					\
 	.channels = 3,							\
 	.ext = 1,							\
 	.map = {							\
@@ -154,11 +157,12 @@
 	.mask = SND_CHN_T_MASK_FL | SND_CHN_T_MASK_FR |			\
 		SND_CHN_T_MASK_LF,					\
 	.offset = {  0,  1, -1,  2, -1, -1, -1, -1, -1,			\
-		    -1, -1, -1, -1, -1, -1, -1, -1, -1  }		\
-}
+		    -1, -1, -1, -1, -1, -1, -1, -1, -1  } \
+	}
 
-#define SND_CHN_MATRIX_MAP_3_0	{	/* 3 channels default */	\
-	.id = SND_CHN_MATRIX_3_0,					\
+#define SND_CHN_MATRIX_MAP_3_0                  \
+	{ /* 3 channels default */              \
+		.id = SND_CHN_MATRIX_3_0,					\
 	.channels = 3,							\
 	.ext = 0,							\
 	.map = {							\
@@ -192,11 +196,12 @@
 	.mask = SND_CHN_T_MASK_FL | SND_CHN_T_MASK_FR |			\
 		SND_CHN_T_MASK_BC,					\
 	.offset = {  0,  1, -1, -1, -1, -1, -1, -1,  2,			\
-		    -1, -1, -1, -1, -1, -1, -1, -1, -1  }		\
-}
+		    -1, -1, -1, -1, -1, -1, -1, -1, -1  } \
+	}
 
-#define SND_CHN_MATRIX_MAP_3_1	{					\
-	.id = SND_CHN_MATRIX_3_1,					\
+#define SND_CHN_MATRIX_MAP_3_1                  \
+	{                                       \
+		.id = SND_CHN_MATRIX_3_1,					\
 	.channels = 4,							\
 	.ext = 1,							\
 	.map = {							\
@@ -235,11 +240,12 @@
 	.mask = SND_CHN_T_MASK_FL | SND_CHN_T_MASK_FR |			\
 		SND_CHN_T_MASK_LF | SND_CHN_T_MASK_BC,			\
 	.offset = {  0,  1, -1,  2, -1, -1, -1, -1,  3,			\
-		    -1, -1, -1, -1, -1, -1, -1, -1, -1  }		\
-}
+		    -1, -1, -1, -1, -1, -1, -1, -1, -1  } \
+	}
 
-#define SND_CHN_MATRIX_MAP_4_0	{					\
-	.id = SND_CHN_MATRIX_4_0,					\
+#define SND_CHN_MATRIX_MAP_4_0                  \
+	{                                       \
+		.id = SND_CHN_MATRIX_4_0,					\
 	.channels = 4,							\
 	.ext = 0,							\
 	.map = {							\
@@ -279,11 +285,12 @@
 	.mask = SND_CHN_T_MASK_FL | SND_CHN_T_MASK_FR |			\
 		SND_CHN_T_MASK_BL | SND_CHN_T_MASK_BR,			\
 	.offset = {  0,  1, -1, -1,  2,  3, -1, -1, -1,			\
-		    -1, -1, -1, -1, -1, -1, -1, -1, -1  }		\
-}
+		    -1, -1, -1, -1, -1, -1, -1, -1, -1  } \
+	}
 
-#define SND_CHN_MATRIX_MAP_4_1	{					\
-	.id = SND_CHN_MATRIX_4_1,					\
+#define SND_CHN_MATRIX_MAP_4_1                  \
+	{                                       \
+		.id = SND_CHN_MATRIX_4_1,					\
 	.channels = 5,							\
 	.ext = 1,							\
 	.map = {							\
@@ -329,11 +336,12 @@
 		SND_CHN_T_MASK_BL | SND_CHN_T_MASK_BR |			\
 		SND_CHN_T_MASK_LF,					\
 	.offset = {  0,  1, -1,  4,  2,  3, -1, -1, -1,			\
-		    -1, -1, -1, -1, -1, -1, -1, -1, -1  }		\
-}
+		    -1, -1, -1, -1, -1, -1, -1, -1, -1  } \
+	}
 
-#define SND_CHN_MATRIX_MAP_5_0	{	/* 5 channels default */	\
-	.id = SND_CHN_MATRIX_5_0,					\
+#define SND_CHN_MATRIX_MAP_5_0                  \
+	{ /* 5 channels default */              \
+		.id = SND_CHN_MATRIX_5_0,					\
 	.channels = 5,							\
 	.ext = 0,							\
 	.map = {							\
@@ -379,11 +387,12 @@
 		SND_CHN_T_MASK_BL | SND_CHN_T_MASK_BR |			\
 		SND_CHN_T_MASK_FC,					\
 	.offset = {  0,  1,  4, -1,  2,  3, -1, -1, -1,			\
-		    -1, -1, -1, -1, -1, -1, -1, -1, -1  }		\
-}
+		    -1, -1, -1, -1, -1, -1, -1, -1, -1  } \
+	}
 
-#define SND_CHN_MATRIX_MAP_5_1	{	/* 6 channels default */	\
-	.id = SND_CHN_MATRIX_5_1,					\
+#define SND_CHN_MATRIX_MAP_5_1                  \
+	{ /* 6 channels default */              \
+		.id = SND_CHN_MATRIX_5_1,					\
 	.channels = 6,							\
 	.ext = 1,							\
 	.map = {							\
@@ -432,11 +441,12 @@
 		SND_CHN_T_MASK_BL | SND_CHN_T_MASK_BR |			\
 		SND_CHN_T_MASK_FC | SND_CHN_T_MASK_LF,			\
 	.offset = {  0,  1,  4,  5,  2,  3, -1, -1, -1,			\
-		    -1, -1, -1, -1, -1, -1, -1, -1, -1  }		\
-}
+		    -1, -1, -1, -1, -1, -1, -1, -1, -1  } \
+	}
 
-#define SND_CHN_MATRIX_MAP_6_0	{					\
-	.id = SND_CHN_MATRIX_6_0,					\
+#define SND_CHN_MATRIX_MAP_6_0                  \
+	{                                       \
+		.id = SND_CHN_MATRIX_6_0,					\
 	.channels = 6,							\
 	.ext = 0,							\
 	.map  = {							\
@@ -487,11 +497,12 @@
 		SND_CHN_T_MASK_BL | SND_CHN_T_MASK_BR |			\
 		SND_CHN_T_MASK_FC | SND_CHN_T_MASK_BC,			\
 	.offset = {  0,  1,  4, -1,  2,  3, -1, -1,  5,			\
-		    -1, -1, -1, -1, -1, -1, -1, -1, -1  }		\
-}
+		    -1, -1, -1, -1, -1, -1, -1, -1, -1  } \
+	}
 
-#define SND_CHN_MATRIX_MAP_6_1	{					\
-	.id = SND_CHN_MATRIX_6_1,					\
+#define SND_CHN_MATRIX_MAP_6_1                  \
+	{                                       \
+		.id = SND_CHN_MATRIX_6_1,					\
 	.channels = 7,							\
 	.ext = 1,							\
 	.map = {							\
@@ -544,11 +555,12 @@
 		SND_CHN_T_MASK_FC | SND_CHN_T_MASK_LF |			\
 		SND_CHN_T_MASK_BC,					\
 	.offset = {  0,  1,  4,  5,  2,  3, -1, -1,  6,			\
-		    -1, -1, -1, -1, -1, -1, -1, -1, -1  }		\
-}
+		    -1, -1, -1, -1, -1, -1, -1, -1, -1  } \
+	}
 
-#define SND_CHN_MATRIX_MAP_7_0	{					\
-	.id = SND_CHN_MATRIX_7_0,					\
+#define SND_CHN_MATRIX_MAP_7_0                  \
+	{                                       \
+		.id = SND_CHN_MATRIX_7_0,					\
 	.channels = 7,							\
 	.ext = 0,							\
 	.map = {							\
@@ -606,11 +618,12 @@
 		SND_CHN_T_MASK_FC |					\
 		SND_CHN_T_MASK_SL | SND_CHN_T_MASK_SR,			\
 	.offset = {  0,  1,  4, -1,  2,  3, -1, -1, -1,			\
-		     5,  6, -1, -1, -1, -1, -1, -1, -1  }		\
-}
+		     5,  6, -1, -1, -1, -1, -1, -1, -1  } \
+	}
 
-#define SND_CHN_MATRIX_MAP_7_1	{					\
-	.id = SND_CHN_MATRIX_7_1,					\
+#define SND_CHN_MATRIX_MAP_7_1                  \
+	{                                       \
+		.id = SND_CHN_MATRIX_7_1,					\
 	.channels = 8,							\
 	.ext = 1,							\
 	.map = {							\
@@ -666,7 +679,7 @@
 		SND_CHN_T_MASK_FC | SND_CHN_T_MASK_LF |			\
 		SND_CHN_T_MASK_SL | SND_CHN_T_MASK_SR,			\
 	.offset = {  0,  1,  4,  5,  2,  3, -1, -1, -1,			\
-		     6,  7, -1, -1, -1, -1, -1, -1, -1  }		\
-}
+		     6,  7, -1, -1, -1, -1, -1, -1, -1  } \
+	}
 
-#endif	/* !_SND_MATRIX_MAP_H_ */
+#endif /* !_SND_MATRIX_MAP_H_ */

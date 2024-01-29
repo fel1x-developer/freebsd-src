@@ -28,20 +28,20 @@
  * See ../src/s_sinpi.c for implementation details.
  */
 
-#define	INLINE_KERNEL_SINDF
-#define	INLINE_KERNEL_COSDF
+#define INLINE_KERNEL_SINDF
+#define INLINE_KERNEL_COSDF
 
 #include "math.h"
 #include "math_private.h"
+
 #include "k_cosf.c"
 #include "k_sinf.c"
 
-#define	__kernel_cospif(x)	(__kernel_cosdf(M_PI * (x)))
-#define	__kernel_sinpif(x)	(__kernel_sindf(M_PI * (x)))
+#define __kernel_cospif(x) (__kernel_cosdf(M_PI * (x)))
+#define __kernel_sinpif(x) (__kernel_sindf(M_PI * (x)))
 
-static const float
-pi_hi =  3.14160156e+00F,	/* 0x40491000 */
-pi_lo = -8.90890988e-06F;	/* 0xb715777a */
+static const float pi_hi = 3.14160156e+00F, /* 0x40491000 */
+    pi_lo = -8.90890988e-06F;		    /* 0xb715777a */
 
 volatile static const float vzero = 0;
 
@@ -55,9 +55,9 @@ sinpif(float x)
 	ix = hx & 0x7fffffff;
 	SET_FLOAT_WORD(ax, ix);
 
-	if (ix < 0x3f800000) {			/* |x| < 1 */
-		if (ix < 0x3e800000) {		/* |x| < 0.25 */
-	 		if (ix < 0x38800000) {	/* |x| < 0x1p-14 */
+	if (ix < 0x3f800000) {		       /* |x| < 1 */
+		if (ix < 0x3e800000) {	       /* |x| < 0.25 */
+			if (ix < 0x38800000) { /* |x| < 0x1p-14 */
 				if (x == 0)
 					return (x);
 				SET_FLOAT_WORD(hi, hx & 0xffff0000);
@@ -72,30 +72,30 @@ sinpif(float x)
 			return ((hx & 0x80000000) ? -s : s);
 		}
 
-		if (ix < 0x3f000000)		/* |x| < 0.5 */
+		if (ix < 0x3f000000) /* |x| < 0.5 */
 			s = __kernel_cospif(0.5F - ax);
-		else if (ix < 0x3f400000)	/* |x| < 0.75 */
+		else if (ix < 0x3f400000) /* |x| < 0.75 */
 			s = __kernel_cospif(ax - 0.5F);
 		else
 			s = __kernel_sinpif(1 - ax);
 		return ((hx & 0x80000000) ? -s : s);
 	}
 
-	if (ix < 0x4b000000) {		/* 1 <= |x| < 0x1p23 */
-		FFLOORF(x, j0, ix);	/* Integer part of ax. */
+	if (ix < 0x4b000000) {	    /* 1 <= |x| < 0x1p23 */
+		FFLOORF(x, j0, ix); /* Integer part of ax. */
 		ax -= x;
 		GET_FLOAT_WORD(ix, ax);
 
 		if (ix == 0)
 			s = 0;
 		else {
-			if (ix < 0x3f000000) {		/* |x| < 0.5 */
-				if (ix < 0x3e800000)	/* |x| < 0.25 */
+			if (ix < 0x3f000000) {	     /* |x| < 0.5 */
+				if (ix < 0x3e800000) /* |x| < 0.25 */
 					s = __kernel_sinpif(ax);
 				else
 					s = __kernel_cospif(0.5F - ax);
 			} else {
-				if (ix < 0x3f400000)	/* |x| < 0.75 */
+				if (ix < 0x3f400000) /* |x| < 0.75 */
 					s = __kernel_cospif(ax - 0.5F);
 				else
 					s = __kernel_sinpif(1 - ax);

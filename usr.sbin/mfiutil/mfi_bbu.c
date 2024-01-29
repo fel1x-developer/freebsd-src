@@ -29,6 +29,7 @@
 #include <sys/param.h>
 #include <sys/errno.h>
 #include <sys/stat.h>
+
 #include <err.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -36,6 +37,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+
 #include "mfiutil.h"
 
 /* The autolearn period is given in seconds. */
@@ -140,7 +142,7 @@ start_bbu_learn(int ac, char **av __unused)
 	}
 
 	if (mfi_dcmd_command(fd, MFI_DCMD_BBU_START_LEARN, NULL, 0, NULL, 0,
-	    &status) < 0) {
+		&status) < 0) {
 		error = errno;
 		warn("Failed to start BBU learn");
 	} else if (status != MFI_STAT_OK) {

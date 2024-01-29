@@ -31,33 +31,27 @@
 #include <sys/user.h>
 
 #include <libprocstat.h>
+#include <libutil.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <libutil.h>
 
 #include "procstat.h"
 
 static struct {
 	const char *ri_name;
-	bool	ri_humanize;
-	int	ri_scale;
-} rusage_info[] = {
-	{ "maximum RSS", true, 1 },
+	bool ri_humanize;
+	int ri_scale;
+} rusage_info[] = { { "maximum RSS", true, 1 },
 	{ "integral shared memory", true, 1 },
 	{ "integral unshared data", true, 1 },
-	{ "integral unshared stack", true, 1 },
-	{ "page reclaims", false, 0 },
-	{ "page faults", false, 0 },
-	{ "swaps", false, 0 },
-	{ "block reads", false, 0 },
-	{ "block writes", false, 0 },
-	{ "messages sent", false, 0 },
-	{ "messages received", false, 0 },
+	{ "integral unshared stack", true, 1 }, { "page reclaims", false, 0 },
+	{ "page faults", false, 0 }, { "swaps", false, 0 },
+	{ "block reads", false, 0 }, { "block writes", false, 0 },
+	{ "messages sent", false, 0 }, { "messages received", false, 0 },
 	{ "signals received", false, 0 },
 	{ "voluntary context switches", false, 0 },
-	{ "involuntary context switches", false, 0 }
-};
+	{ "involuntary context switches", false, 0 } };
 
 /* xxx days hh:mm:ss.uuuuuu */
 static const char *
@@ -77,7 +71,7 @@ format_time(struct timeval *tv)
 		used += snprintf(buffer, sizeof(buffer), "1 day ");
 	else if (days > 0)
 		used += snprintf(buffer, sizeof(buffer), "%u days ", days);
-	
+
 	snprintf(buffer + used, sizeof(buffer) - used, "%02u:%02u:%02u.%06u",
 	    hours, minutes, seconds, (unsigned int)tv->tv_usec);
 	return (buffer);
@@ -91,8 +85,8 @@ format_value(long value, bool humanize, int scale)
 	if (scale != 0)
 		value <<= scale * 10;
 	if (humanize)
-		humanize_number(buffer, sizeof(buffer), value, "B",
-		    scale, HN_DECIMAL);
+		humanize_number(buffer, sizeof(buffer), value, "B", scale,
+		    HN_DECIMAL);
 	else
 		snprintf(buffer, sizeof(buffer), "%ld   ", value);
 	return (buffer);
@@ -148,7 +142,7 @@ print_rusage(struct kinfo_proc *kipp)
 		xo_emit("{d:resource/%-32s} {d:usage/%14s}\n",
 		    rusage_info[i].ri_name,
 		    format_value(*lp, rusage_info[i].ri_humanize,
-		    rusage_info[i].ri_scale));
+			rusage_info[i].ri_scale));
 		lp++;
 	}
 	if ((procstat_opts & PS_OPT_PERTHREAD) != 0) {

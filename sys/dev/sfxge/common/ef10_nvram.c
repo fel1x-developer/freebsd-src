@@ -29,6 +29,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "efx.h"
 #include "efx_impl.h"
 
@@ -40,10 +41,10 @@
 
 /* Cursor for TLV partition format */
 typedef struct tlv_cursor_s {
-	uint32_t	*block;			/* Base of data block */
-	uint32_t	*current;		/* Cursor position */
-	uint32_t	*end;			/* End tag position */
-	uint32_t	*limit;			/* Last dword of data block */
+	uint32_t *block;   /* Base of data block */
+	uint32_t *current; /* Cursor position */
+	uint32_t *end;	   /* End tag position */
+	uint32_t *limit;   /* Last dword of data block */
 } tlv_cursor_t;
 
 typedef struct nvram_partition_s {
@@ -61,20 +62,16 @@ typedef struct nvram_partition_s {
 	tlv_cursor_t tlv_cursor;
 } nvram_partition_t;
 
-static	__checkReturn		efx_rc_t
-tlv_validate_state(
-	__inout			tlv_cursor_t *cursor);
+static __checkReturn efx_rc_t tlv_validate_state(__inout tlv_cursor_t *cursor);
 
-static				void
-tlv_init_block(
-	__out	uint32_t	*block)
+static void
+tlv_init_block(__out uint32_t *block)
 {
 	*block = __CPU_TO_LE_32(TLV_TAG_END);
 }
 
-static				uint32_t
-tlv_tag(
-	__in	tlv_cursor_t	*cursor)
+static uint32_t
+tlv_tag(__in tlv_cursor_t *cursor)
 {
 	uint32_t dword, tag;
 
@@ -84,9 +81,8 @@ tlv_tag(
 	return (tag);
 }
 
-static				size_t
-tlv_length(
-	__in	tlv_cursor_t	*cursor)
+static size_t
+tlv_length(__in tlv_cursor_t *cursor)
 {
 	uint32_t dword, length;
 
@@ -99,9 +95,8 @@ tlv_length(
 	return ((size_t)length);
 }
 
-static				uint8_t *
-tlv_value(
-	__in	tlv_cursor_t	*cursor)
+static uint8_t *
+tlv_value(__in tlv_cursor_t *cursor)
 {
 	if (tlv_tag(cursor) == TLV_TAG_END)
 		return (NULL);
@@ -109,9 +104,8 @@ tlv_value(
 	return ((uint8_t *)(&cursor->current[2]));
 }
 
-static				uint8_t *
-tlv_item(
-	__in	tlv_cursor_t	*cursor)
+static uint8_t *
+tlv_item(__in tlv_cursor_t *cursor)
 {
 	if (tlv_tag(cursor) == TLV_TAG_END)
 		return (NULL);
@@ -123,12 +117,11 @@ tlv_item(
  * TLV item DWORD length is tag + length + value (rounded up to DWORD)
  * equivalent to tlv_n_words_for_len in mc-comms tlv.c
  */
-#define	TLV_DWORD_COUNT(length) \
-	(1 + 1 + (((length) + sizeof (uint32_t) - 1) / sizeof (uint32_t)))
+#define TLV_DWORD_COUNT(length) \
+	(1 + 1 + (((length) + sizeof(uint32_t) - 1) / sizeof(uint32_t)))
 
-static				uint32_t *
-tlv_next_item_ptr(
-	__in	tlv_cursor_t	*cursor)
+static uint32_t *
+tlv_next_item_ptr(__in tlv_cursor_t *cursor)
 {
 	uint32_t length;
 
@@ -137,9 +130,8 @@ tlv_next_item_ptr(
 	return (cursor->current + TLV_DWORD_COUNT(length));
 }
 
-static	__checkReturn		efx_rc_t
-tlv_advance(
-	__inout	tlv_cursor_t	*cursor)
+static __checkReturn efx_rc_t
+tlv_advance(__inout tlv_cursor_t *cursor)
 {
 	efx_rc_t rc;
 
@@ -171,9 +163,8 @@ fail1:
 	return (rc);
 }
 
-static				efx_rc_t
-tlv_rewind(
-	__in	tlv_cursor_t	*cursor)
+static efx_rc_t
+tlv_rewind(__in tlv_cursor_t *cursor)
 {
 	efx_rc_t rc;
 
@@ -190,10 +181,8 @@ fail1:
 	return (rc);
 }
 
-static				efx_rc_t
-tlv_find(
-	__inout	tlv_cursor_t	*cursor,
-	__in	uint32_t	tag)
+static efx_rc_t
+tlv_find(__inout tlv_cursor_t *cursor, __in uint32_t tag)
 {
 	efx_rc_t rc;
 
@@ -207,9 +196,8 @@ tlv_find(
 	return (rc);
 }
 
-static	__checkReturn		efx_rc_t
-tlv_validate_state(
-	__inout	tlv_cursor_t	*cursor)
+static __checkReturn efx_rc_t
+tlv_validate_state(__inout tlv_cursor_t *cursor)
 {
 	efx_rc_t rc;
 
@@ -253,53 +241,42 @@ fail1:
 	return (rc);
 }
 
-static				efx_rc_t
-tlv_init_cursor(
-	__out	tlv_cursor_t	*cursor,
-	__in	uint32_t	*block,
-	__in	uint32_t	*limit,
-	__in	uint32_t	*current)
+static efx_rc_t
+tlv_init_cursor(__out tlv_cursor_t *cursor, __in uint32_t *block,
+    __in uint32_t *limit, __in uint32_t *current)
 {
-	cursor->block	= block;
-	cursor->limit	= limit;
+	cursor->block = block;
+	cursor->limit = limit;
 
-	cursor->current	= current;
-	cursor->end	= NULL;
+	cursor->current = current;
+	cursor->end = NULL;
 
 	return (tlv_validate_state(cursor));
 }
 
-static	__checkReturn		efx_rc_t
-tlv_init_cursor_from_size(
-	__out	tlv_cursor_t	*cursor,
-	__in_bcount(size)
-		uint8_t		*block,
-	__in	size_t		size)
+static __checkReturn efx_rc_t
+tlv_init_cursor_from_size(__out tlv_cursor_t *cursor,
+    __in_bcount(size) uint8_t *block, __in size_t size)
 {
 	uint32_t *limit;
-	limit = (uint32_t *)(block + size - sizeof (uint32_t));
-	return (tlv_init_cursor(cursor, (uint32_t *)block,
-		limit, (uint32_t *)block));
+	limit = (uint32_t *)(block + size - sizeof(uint32_t));
+	return (tlv_init_cursor(cursor, (uint32_t *)block, limit,
+	    (uint32_t *)block));
 }
 
-static	__checkReturn		efx_rc_t
-tlv_init_cursor_at_offset(
-	__out	tlv_cursor_t	*cursor,
-	__in_bcount(size)
-		uint8_t		*block,
-	__in	size_t		size,
-	__in	size_t		offset)
+static __checkReturn efx_rc_t
+tlv_init_cursor_at_offset(__out tlv_cursor_t *cursor,
+    __in_bcount(size) uint8_t *block, __in size_t size, __in size_t offset)
 {
 	uint32_t *limit;
 	uint32_t *current;
-	limit = (uint32_t *)(block + size - sizeof (uint32_t));
+	limit = (uint32_t *)(block + size - sizeof(uint32_t));
 	current = (uint32_t *)(block + offset);
 	return (tlv_init_cursor(cursor, (uint32_t *)block, limit, current));
 }
 
-static	__checkReturn		efx_rc_t
-tlv_require_end(
-	__inout	tlv_cursor_t	*cursor)
+static __checkReturn efx_rc_t
+tlv_require_end(__inout tlv_cursor_t *cursor)
 {
 	uint32_t *pos;
 	efx_rc_t rc;
@@ -321,9 +298,8 @@ fail1:
 	return (rc);
 }
 
-static				size_t
-tlv_block_length_used(
-	__inout	tlv_cursor_t	*cursor)
+static size_t
+tlv_block_length_used(__inout tlv_cursor_t *cursor)
 {
 	efx_rc_t rc;
 
@@ -334,7 +310,7 @@ tlv_block_length_used(
 		goto fail2;
 
 	/* Return space used (including the END tag) */
-	return (cursor->end + 1 - cursor->block) * sizeof (uint32_t);
+	return (cursor->end + 1 - cursor->block) * sizeof(uint32_t);
 
 fail2:
 	EFSYS_PROBE(fail2);
@@ -344,9 +320,8 @@ fail1:
 	return (0);
 }
 
-static		uint32_t *
-tlv_last_segment_end(
-	__in	tlv_cursor_t *cursor)
+static uint32_t *
+tlv_last_segment_end(__in tlv_cursor_t *cursor)
 {
 	tlv_cursor_t segment_cursor;
 	uint32_t *last_segment_end = cursor->block;
@@ -359,7 +334,7 @@ tlv_last_segment_end(
 	 */
 	for (;;) {
 		if (tlv_init_cursor(&segment_cursor, segment_start,
-		    cursor->limit, segment_start) != 0)
+			cursor->limit, segment_start) != 0)
 			break;
 		if (tlv_require_end(&segment_cursor) != 0)
 			break;
@@ -370,12 +345,9 @@ tlv_last_segment_end(
 	return (last_segment_end);
 }
 
-static				uint32_t *
-tlv_write(
-	__in			tlv_cursor_t *cursor,
-	__in			uint32_t tag,
-	__in_bcount(size)	uint8_t *data,
-	__in			size_t size)
+static uint32_t *
+tlv_write(__in tlv_cursor_t *cursor, __in uint32_t tag,
+    __in_bcount(size) uint8_t *data, __in size_t size)
 {
 	uint32_t len = size;
 	uint32_t *ptr;
@@ -386,22 +358,18 @@ tlv_write(
 	*ptr++ = __CPU_TO_LE_32(len);
 
 	if (len > 0) {
-		ptr[(len - 1) / sizeof (uint32_t)] = 0;
+		ptr[(len - 1) / sizeof(uint32_t)] = 0;
 		memcpy(ptr, data, len);
-		ptr += EFX_P2ROUNDUP(uint32_t, len,
-		    sizeof (uint32_t)) / sizeof (*ptr);
+		ptr += EFX_P2ROUNDUP(uint32_t, len, sizeof(uint32_t)) /
+		    sizeof(*ptr);
 	}
 
 	return (ptr);
 }
 
-static	__checkReturn		efx_rc_t
-tlv_insert(
-	__inout	tlv_cursor_t	*cursor,
-	__in	uint32_t	tag,
-	__in_bcount(size)
-		uint8_t		*data,
-	__in	size_t		size)
+static __checkReturn efx_rc_t
+tlv_insert(__inout tlv_cursor_t *cursor, __in uint32_t tag,
+    __in_bcount(size) uint8_t *data, __in size_t size)
 {
 	unsigned int delta;
 	uint32_t *last_segment_end;
@@ -428,7 +396,7 @@ tlv_insert(
 
 	/* Move data up: new space at cursor->current */
 	memmove(cursor->current + delta, cursor->current,
-	    (last_segment_end + 1 - cursor->current) * sizeof (uint32_t));
+	    (last_segment_end + 1 - cursor->current) * sizeof(uint32_t));
 
 	/* Adjust the end pointer */
 	cursor->end += delta;
@@ -450,9 +418,8 @@ fail1:
 	return (rc);
 }
 
-static	__checkReturn		efx_rc_t
-tlv_delete(
-	__inout	tlv_cursor_t	*cursor)
+static __checkReturn efx_rc_t
+tlv_delete(__inout tlv_cursor_t *cursor)
 {
 	unsigned int delta;
 	uint32_t *last_segment_end;
@@ -475,9 +442,9 @@ tlv_delete(
 
 	/* Shuffle things down, destroying the item at cursor->current */
 	memmove(cursor->current, cursor->current + delta,
-	    (last_segment_end + 1 - cursor->current) * sizeof (uint32_t));
+	    (last_segment_end + 1 - cursor->current) * sizeof(uint32_t));
 	/* Zero the new space at the end of the TLV chain */
-	memset(last_segment_end + 1 - delta, 0, delta * sizeof (uint32_t));
+	memset(last_segment_end + 1 - delta, 0, delta * sizeof(uint32_t));
 	/* Adjust the end pointer */
 	cursor->end -= delta;
 
@@ -493,13 +460,9 @@ fail1:
 	return (rc);
 }
 
-static	__checkReturn		efx_rc_t
-tlv_modify(
-	__inout	tlv_cursor_t	*cursor,
-	__in	uint32_t	tag,
-	__in_bcount(size)
-		uint8_t		*data,
-	__in	size_t		size)
+static __checkReturn efx_rc_t
+tlv_modify(__inout tlv_cursor_t *cursor, __in uint32_t tag,
+    __in_bcount(size) uint8_t *data, __in size_t size)
 {
 	uint32_t *pos;
 	unsigned int old_ndwords;
@@ -540,7 +503,7 @@ tlv_modify(
 
 		/* Move up: new space at (cursor->current + old_ndwords) */
 		memmove(pos + delta, pos,
-		    (last_segment_end + 1 - pos) * sizeof (uint32_t));
+		    (last_segment_end + 1 - pos) * sizeof(uint32_t));
 
 		/* Adjust the end pointer */
 		cursor->end += delta;
@@ -552,11 +515,11 @@ tlv_modify(
 
 		/* Move down: remove words at (cursor->current + new_ndwords) */
 		memmove(pos, pos + delta,
-		    (last_segment_end + 1 - pos) * sizeof (uint32_t));
+		    (last_segment_end + 1 - pos) * sizeof(uint32_t));
 
 		/* Zero the new space at the end of the TLV chain */
 		memset(last_segment_end + 1 - delta, 0,
-		    delta * sizeof (uint32_t));
+		    delta * sizeof(uint32_t));
 
 		/* Adjust the end pointer */
 		cursor->end -= delta;
@@ -581,8 +544,8 @@ fail1:
 	return (rc);
 }
 
-static uint32_t checksum_tlv_partition(
-	__in	nvram_partition_t *partition)
+static uint32_t
+checksum_tlv_partition(__in nvram_partition_t *partition)
 {
 	tlv_cursor_t *cursor;
 	uint32_t *ptr;
@@ -604,9 +567,8 @@ static uint32_t checksum_tlv_partition(
 	return (csum);
 }
 
-static	__checkReturn		efx_rc_t
-tlv_update_partition_len_and_cks(
-	__in	tlv_cursor_t *cursor)
+static __checkReturn efx_rc_t
+tlv_update_partition_len_and_cks(__in tlv_cursor_t *cursor)
 {
 	efx_rc_t rc;
 	nvram_partition_t partition;
@@ -620,14 +582,14 @@ tlv_update_partition_len_and_cks(
 	 * that may fail here.
 	 */
 	partition.data = cursor->block;
-	memcpy(&partition.tlv_cursor, cursor, sizeof (*cursor));
+	memcpy(&partition.tlv_cursor, cursor, sizeof(*cursor));
 	header = (struct tlv_partition_header *)partition.data;
 	/* Sanity check. */
 	if (__LE_TO_CPU_32(header->tag) != TLV_TAG_PARTITION_HEADER) {
 		rc = EFAULT;
 		goto fail1;
 	}
-	new_len =  tlv_block_length_used(&partition.tlv_cursor);
+	new_len = tlv_block_length_used(&partition.tlv_cursor);
 	if (new_len == 0) {
 		rc = EFAULT;
 		goto fail2;
@@ -637,11 +599,10 @@ tlv_update_partition_len_and_cks(
 	header->generation = __CPU_TO_LE_32(
 	    __LE_TO_CPU_32(header->generation) + 1);
 
-	trailer = (struct tlv_partition_trailer *)((uint8_t *)header +
-	    new_len - sizeof (*trailer) - sizeof (uint32_t));
+	trailer = (struct tlv_partition_trailer *)((uint8_t *)header + new_len -
+	    sizeof(*trailer) - sizeof(uint32_t));
 	trailer->generation = header->generation;
-	trailer->checksum = __CPU_TO_LE_32(
-	    __LE_TO_CPU_32(trailer->checksum) -
+	trailer->checksum = __CPU_TO_LE_32(__LE_TO_CPU_32(trailer->checksum) -
 	    checksum_tlv_partition(&partition));
 
 	return (0);
@@ -655,11 +616,9 @@ fail1:
 }
 
 /* Validate buffer contents (before writing to flash) */
-	__checkReturn		efx_rc_t
-ef10_nvram_buffer_validate(
-	__in			uint32_t partn,
-	__in_bcount(partn_size)	caddr_t partn_data,
-	__in			size_t partn_size)
+__checkReturn efx_rc_t
+ef10_nvram_buffer_validate(__in uint32_t partn,
+    __in_bcount(partn_size) caddr_t partn_data, __in size_t partn_size)
 {
 	tlv_cursor_t cursor;
 	struct tlv_partition_header *header;
@@ -669,7 +628,7 @@ ef10_nvram_buffer_validate(
 	int pos;
 	efx_rc_t rc;
 
-	EFX_STATIC_ASSERT(sizeof (*header) <= EF10_NVRAM_CHUNK);
+	EFX_STATIC_ASSERT(sizeof(*header) <= EF10_NVRAM_CHUNK);
 
 	if ((partn_data == NULL) || (partn_size == 0)) {
 		rc = EINVAL;
@@ -678,7 +637,7 @@ ef10_nvram_buffer_validate(
 
 	/* The partition header must be the first item (at offset zero) */
 	if ((rc = tlv_init_cursor_from_size(&cursor, (uint8_t *)partn_data,
-		    partn_size)) != 0) {
+		 partn_size)) != 0) {
 		rc = EFAULT;
 		goto fail2;
 	}
@@ -725,7 +684,7 @@ ef10_nvram_buffer_validate(
 
 	/* Verify partition checksum */
 	cksum = 0;
-	for (pos = 0; (size_t)pos < total_length; pos += sizeof (uint32_t)) {
+	for (pos = 0; (size_t)pos < total_length; pos += sizeof(uint32_t)) {
 		cksum += *((uint32_t *)(partn_data + pos));
 	}
 	if (cksum != 0) {
@@ -759,11 +718,9 @@ fail1:
 	return (rc);
 }
 
-			void
-ef10_nvram_buffer_init(
-	__out_bcount(buffer_size)
-				caddr_t bufferp,
-	__in			size_t buffer_size)
+void
+ef10_nvram_buffer_init(__out_bcount(buffer_size) caddr_t bufferp,
+    __in size_t buffer_size)
 {
 	uint32_t *buf = (uint32_t *)bufferp;
 
@@ -772,12 +729,9 @@ ef10_nvram_buffer_init(
 	tlv_init_block(buf);
 }
 
-	__checkReturn		efx_rc_t
-ef10_nvram_buffer_create(
-	__in			uint32_t partn_type,
-	__out_bcount(partn_size)
-				caddr_t partn_data,
-	__in			size_t partn_size)
+__checkReturn efx_rc_t
+ef10_nvram_buffer_create(__in uint32_t partn_type,
+    __out_bcount(partn_size) caddr_t partn_data, __in size_t partn_size)
 {
 	uint32_t *buf = (uint32_t *)partn_data;
 	efx_rc_t rc;
@@ -785,8 +739,8 @@ ef10_nvram_buffer_create(
 	struct tlv_partition_header header;
 	struct tlv_partition_trailer trailer;
 
-	unsigned int min_buf_size = sizeof (struct tlv_partition_header) +
-	    sizeof (struct tlv_partition_trailer);
+	unsigned int min_buf_size = sizeof(struct tlv_partition_header) +
+	    sizeof(struct tlv_partition_trailer);
 	if (partn_size < min_buf_size) {
 		rc = EINVAL;
 		goto fail1;
@@ -795,38 +749,36 @@ ef10_nvram_buffer_create(
 	ef10_nvram_buffer_init(partn_data, partn_size);
 
 	if ((rc = tlv_init_cursor(&cursor, buf,
-	    (uint32_t *)((uint8_t *)buf + partn_size),
-	    buf)) != 0) {
+		 (uint32_t *)((uint8_t *)buf + partn_size), buf)) != 0) {
 		goto fail2;
 	}
 
 	header.tag = __CPU_TO_LE_32(TLV_TAG_PARTITION_HEADER);
-	header.length = __CPU_TO_LE_32(sizeof (header) - 8);
+	header.length = __CPU_TO_LE_32(sizeof(header) - 8);
 	header.type_id = __CPU_TO_LE_16(partn_type);
 	header.preset = 0;
 	header.generation = __CPU_TO_LE_32(1);
-	header.total_length = 0;  /* This will be fixed below. */
-	if ((rc = tlv_insert(
-	    &cursor, TLV_TAG_PARTITION_HEADER,
-	    (uint8_t *)&header.type_id, sizeof (header) - 8)) != 0)
+	header.total_length = 0; /* This will be fixed below. */
+	if ((rc = tlv_insert(&cursor, TLV_TAG_PARTITION_HEADER,
+		 (uint8_t *)&header.type_id, sizeof(header) - 8)) != 0)
 		goto fail3;
 	if ((rc = tlv_advance(&cursor)) != 0)
 		goto fail4;
 
 	trailer.tag = __CPU_TO_LE_32(TLV_TAG_PARTITION_TRAILER);
-	trailer.length = __CPU_TO_LE_32(sizeof (trailer) - 8);
+	trailer.length = __CPU_TO_LE_32(sizeof(trailer) - 8);
 	trailer.generation = header.generation;
-	trailer.checksum = 0;  /* This will be fixed below. */
+	trailer.checksum = 0; /* This will be fixed below. */
 	if ((rc = tlv_insert(&cursor, TLV_TAG_PARTITION_TRAILER,
-	    (uint8_t *)&trailer.generation, sizeof (trailer) - 8)) != 0)
+		 (uint8_t *)&trailer.generation, sizeof(trailer) - 8)) != 0)
 		goto fail5;
 
 	if ((rc = tlv_update_partition_len_and_cks(&cursor)) != 0)
 		goto fail6;
 
 	/* Check that the partition is valid. */
-	if ((rc = ef10_nvram_buffer_validate(partn_type,
-	    partn_data, partn_size)) != 0)
+	if ((rc = ef10_nvram_buffer_validate(partn_type, partn_data,
+		 partn_size)) != 0)
 		goto fail7;
 
 	return (0);
@@ -849,20 +801,15 @@ fail1:
 	return (rc);
 }
 
-static			uint32_t
-byte_offset(
-	__in		uint32_t *position,
-	__in		uint32_t *base)
+static uint32_t
+byte_offset(__in uint32_t *position, __in uint32_t *base)
 {
 	return (uint32_t)((uint8_t *)position - (uint8_t *)base);
 }
 
-	__checkReturn		efx_rc_t
-ef10_nvram_buffer_find_item_start(
-	__in_bcount(buffer_size)
-				caddr_t bufferp,
-	__in			size_t buffer_size,
-	__out			uint32_t *startp)
+__checkReturn efx_rc_t
+ef10_nvram_buffer_find_item_start(__in_bcount(buffer_size) caddr_t bufferp,
+    __in size_t buffer_size, __out uint32_t *startp)
 {
 	/* Read past partition header to find start address of the first key */
 	tlv_cursor_t cursor;
@@ -870,7 +817,7 @@ ef10_nvram_buffer_find_item_start(
 
 	/* A PARTITION_HEADER tag must be the first item (at offset zero) */
 	if ((rc = tlv_init_cursor_from_size(&cursor, (uint8_t *)bufferp,
-			buffer_size)) != 0) {
+		 buffer_size)) != 0) {
 		rc = EFAULT;
 		goto fail1;
 	}
@@ -902,13 +849,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-ef10_nvram_buffer_find_end(
-	__in_bcount(buffer_size)
-				caddr_t bufferp,
-	__in			size_t buffer_size,
-	__in			uint32_t offset,
-	__out			uint32_t *endp)
+__checkReturn efx_rc_t
+ef10_nvram_buffer_find_end(__in_bcount(buffer_size) caddr_t bufferp,
+    __in size_t buffer_size, __in uint32_t offset, __out uint32_t *endp)
 {
 	/* Read to end of partition */
 	tlv_cursor_t cursor;
@@ -918,7 +861,7 @@ ef10_nvram_buffer_find_end(
 	_NOTE(ARGUNUSED(offset))
 
 	if ((rc = tlv_init_cursor_from_size(&cursor, (uint8_t *)bufferp,
-			buffer_size)) != 0) {
+		 buffer_size)) != 0) {
 		rc = EFAULT;
 		goto fail1;
 	}
@@ -947,7 +890,7 @@ ef10_nvram_buffer_find_end(
 		cursor.current = segment_used;
 	}
 	/* Return space used (including the END tag) */
-	*endp = (segment_used - cursor.block) * sizeof (uint32_t);
+	*endp = (segment_used - cursor.block) * sizeof(uint32_t);
 
 	return (0);
 
@@ -959,22 +902,18 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	__success(return != B_FALSE)	boolean_t
-ef10_nvram_buffer_find_item(
-	__in_bcount(buffer_size)
-				caddr_t bufferp,
-	__in			size_t buffer_size,
-	__in			uint32_t offset,
-	__out			uint32_t *startp,
-	__out			uint32_t *lengthp)
+__checkReturn __success(return != B_FALSE) boolean_t
+    ef10_nvram_buffer_find_item(__in_bcount(buffer_size) caddr_t bufferp,
+	__in size_t buffer_size, __in uint32_t offset, __out uint32_t *startp,
+	__out uint32_t *lengthp)
 {
 	/* Find TLV at offset and return key start and length */
 	tlv_cursor_t cursor;
 	uint8_t *key;
 	uint32_t tag;
 
-	if (tlv_init_cursor_at_offset(&cursor, (uint8_t *)bufferp,
-			buffer_size, offset) != 0) {
+	if (tlv_init_cursor_at_offset(&cursor, (uint8_t *)bufferp, buffer_size,
+		offset) != 0) {
 		return (B_FALSE);
 	}
 
@@ -996,22 +935,17 @@ ef10_nvram_buffer_find_item(
 	return (B_FALSE);
 }
 
-	__checkReturn		efx_rc_t
-ef10_nvram_buffer_peek_item(
-	__in_bcount(buffer_size)
-				caddr_t bufferp,
-	__in			size_t buffer_size,
-	__in			uint32_t offset,
-	__out			uint32_t *tagp,
-	__out			uint32_t *lengthp,
-	__out			uint32_t *value_offsetp)
+__checkReturn efx_rc_t
+ef10_nvram_buffer_peek_item(__in_bcount(buffer_size) caddr_t bufferp,
+    __in size_t buffer_size, __in uint32_t offset, __out uint32_t *tagp,
+    __out uint32_t *lengthp, __out uint32_t *value_offsetp)
 {
 	efx_rc_t rc;
 	tlv_cursor_t cursor;
 	uint32_t tag;
 
 	if ((rc = tlv_init_cursor_at_offset(&cursor, (uint8_t *)bufferp,
-			buffer_size, offset)) != 0) {
+		 buffer_size, offset)) != 0) {
 		goto fail1;
 	}
 
@@ -1022,13 +956,13 @@ ef10_nvram_buffer_peek_item(
 		 * To allow stepping over the END tag, report the full tag
 		 * length and a zero length value.
 		 */
-		*lengthp = sizeof (tag);
-		*value_offsetp = sizeof (tag);
+		*lengthp = sizeof(tag);
+		*value_offsetp = sizeof(tag);
 	} else {
 		*lengthp = byte_offset(tlv_next_item_ptr(&cursor),
-			    cursor.current);
+		    cursor.current);
 		*value_offsetp = byte_offset((uint32_t *)tlv_value(&cursor),
-			    cursor.current);
+		    cursor.current);
 	}
 	return (0);
 
@@ -1038,18 +972,12 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-ef10_nvram_buffer_get_item(
-	__in_bcount(buffer_size)
-				caddr_t bufferp,
-	__in			size_t buffer_size,
-	__in			uint32_t offset,
-	__in			uint32_t length,
-	__out			uint32_t *tagp,
-	__out_bcount_part(value_max_size, *lengthp)
-				caddr_t valuep,
-	__in			size_t value_max_size,
-	__out			uint32_t *lengthp)
+__checkReturn efx_rc_t
+ef10_nvram_buffer_get_item(__in_bcount(buffer_size) caddr_t bufferp,
+    __in size_t buffer_size, __in uint32_t offset, __in uint32_t length,
+    __out uint32_t *tagp,
+    __out_bcount_part(value_max_size, *lengthp) caddr_t valuep,
+    __in size_t value_max_size, __out uint32_t *lengthp)
 {
 	efx_rc_t rc;
 	tlv_cursor_t cursor;
@@ -1061,7 +989,7 @@ ef10_nvram_buffer_get_item(
 	}
 
 	if ((rc = tlv_init_cursor_at_offset(&cursor, (uint8_t *)bufferp,
-			buffer_size, offset)) != 0) {
+		 buffer_size, offset)) != 0) {
 		goto fail2;
 	}
 
@@ -1087,22 +1015,17 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-ef10_nvram_buffer_insert_item(
-	__in_bcount(buffer_size)
-				caddr_t bufferp,
-	__in			size_t buffer_size,
-	__in			uint32_t offset,
-	__in			uint32_t tag,
-	__in_bcount(length)	caddr_t valuep,
-	__in			uint32_t length,
-	__out			uint32_t *lengthp)
+__checkReturn efx_rc_t
+ef10_nvram_buffer_insert_item(__in_bcount(buffer_size) caddr_t bufferp,
+    __in size_t buffer_size, __in uint32_t offset, __in uint32_t tag,
+    __in_bcount(length) caddr_t valuep, __in uint32_t length,
+    __out uint32_t *lengthp)
 {
 	efx_rc_t rc;
 	tlv_cursor_t cursor;
 
 	if ((rc = tlv_init_cursor_at_offset(&cursor, (uint8_t *)bufferp,
-			buffer_size, offset)) != 0) {
+		 buffer_size, offset)) != 0) {
 		goto fail1;
 	}
 
@@ -1111,8 +1034,7 @@ ef10_nvram_buffer_insert_item(
 	if (rc != 0)
 		goto fail2;
 
-	*lengthp = byte_offset(tlv_next_item_ptr(&cursor),
-		    cursor.current);
+	*lengthp = byte_offset(tlv_next_item_ptr(&cursor), cursor.current);
 
 	return (0);
 
@@ -1124,22 +1046,17 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-ef10_nvram_buffer_modify_item(
-	__in_bcount(buffer_size)
-				caddr_t bufferp,
-	__in			size_t buffer_size,
-	__in			uint32_t offset,
-	__in			uint32_t tag,
-	__in_bcount(length)	caddr_t valuep,
-	__in			uint32_t length,
-	__out			uint32_t *lengthp)
+__checkReturn efx_rc_t
+ef10_nvram_buffer_modify_item(__in_bcount(buffer_size) caddr_t bufferp,
+    __in size_t buffer_size, __in uint32_t offset, __in uint32_t tag,
+    __in_bcount(length) caddr_t valuep, __in uint32_t length,
+    __out uint32_t *lengthp)
 {
 	efx_rc_t rc;
 	tlv_cursor_t cursor;
 
 	if ((rc = tlv_init_cursor_at_offset(&cursor, (uint8_t *)bufferp,
-			buffer_size, offset)) != 0) {
+		 buffer_size, offset)) != 0) {
 		goto fail1;
 	}
 
@@ -1149,8 +1066,7 @@ ef10_nvram_buffer_modify_item(
 		goto fail2;
 	}
 
-	*lengthp = byte_offset(tlv_next_item_ptr(&cursor),
-		    cursor.current);
+	*lengthp = byte_offset(tlv_next_item_ptr(&cursor), cursor.current);
 
 	return (0);
 
@@ -1162,14 +1078,10 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-ef10_nvram_buffer_delete_item(
-	__in_bcount(buffer_size)
-				caddr_t bufferp,
-	__in			size_t buffer_size,
-	__in			uint32_t offset,
-	__in			uint32_t length,
-	__in			uint32_t end)
+__checkReturn efx_rc_t
+ef10_nvram_buffer_delete_item(__in_bcount(buffer_size) caddr_t bufferp,
+    __in size_t buffer_size, __in uint32_t offset, __in uint32_t length,
+    __in uint32_t end)
 {
 	efx_rc_t rc;
 	tlv_cursor_t cursor;
@@ -1177,7 +1089,7 @@ ef10_nvram_buffer_delete_item(
 	_NOTE(ARGUNUSED(length, end))
 
 	if ((rc = tlv_init_cursor_at_offset(&cursor, (uint8_t *)bufferp,
-			buffer_size, offset)) != 0) {
+		 buffer_size, offset)) != 0) {
 		goto fail1;
 	}
 
@@ -1194,17 +1106,15 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-ef10_nvram_buffer_finish(
-	__in_bcount(buffer_size)
-				caddr_t bufferp,
-	__in			size_t buffer_size)
+__checkReturn efx_rc_t
+ef10_nvram_buffer_finish(__in_bcount(buffer_size) caddr_t bufferp,
+    __in size_t buffer_size)
 {
 	efx_rc_t rc;
 	tlv_cursor_t cursor;
 
 	if ((rc = tlv_init_cursor_from_size(&cursor, (uint8_t *)bufferp,
-			buffer_size)) != 0) {
+		 buffer_size)) != 0) {
 		rc = EFAULT;
 		goto fail1;
 	}
@@ -1233,13 +1143,10 @@ fail1:
  * be multiple segments in a partition, so seg_offset allows segments
  * beyond the first to be read.
  */
-static	__checkReturn			efx_rc_t
-ef10_nvram_read_tlv_segment(
-	__in				efx_nic_t *enp,
-	__in				uint32_t partn,
-	__in				size_t seg_offset,
-	__in_bcount(max_seg_size)	caddr_t seg_data,
-	__in				size_t max_seg_size)
+static __checkReturn efx_rc_t
+ef10_nvram_read_tlv_segment(__in efx_nic_t *enp, __in uint32_t partn,
+    __in size_t seg_offset, __in_bcount(max_seg_size) caddr_t seg_data,
+    __in size_t max_seg_size)
 {
 	tlv_cursor_t cursor;
 	struct tlv_partition_header *header;
@@ -1249,7 +1156,7 @@ ef10_nvram_read_tlv_segment(
 	int pos;
 	efx_rc_t rc;
 
-	EFX_STATIC_ASSERT(sizeof (*header) <= EF10_NVRAM_CHUNK);
+	EFX_STATIC_ASSERT(sizeof(*header) <= EF10_NVRAM_CHUNK);
 
 	if ((seg_data == NULL) || (max_seg_size == 0)) {
 		rc = EINVAL;
@@ -1258,14 +1165,14 @@ ef10_nvram_read_tlv_segment(
 
 	/* Read initial chunk of the segment, starting at offset */
 	if ((rc = ef10_nvram_partn_read_mode(enp, partn, seg_offset, seg_data,
-		    EF10_NVRAM_CHUNK,
-		    MC_CMD_NVRAM_READ_IN_V2_TARGET_CURRENT)) != 0) {
+		 EF10_NVRAM_CHUNK, MC_CMD_NVRAM_READ_IN_V2_TARGET_CURRENT)) !=
+	    0) {
 		goto fail2;
 	}
 
 	/* A PARTITION_HEADER tag must be the first item at the given offset */
 	if ((rc = tlv_init_cursor_from_size(&cursor, (uint8_t *)seg_data,
-		    max_seg_size)) != 0) {
+		 max_seg_size)) != 0) {
 		rc = EFAULT;
 		goto fail3;
 	}
@@ -1285,10 +1192,10 @@ ef10_nvram_read_tlv_segment(
 	/* Read the remaining segment content */
 	if (total_length > EF10_NVRAM_CHUNK) {
 		if ((rc = ef10_nvram_partn_read_mode(enp, partn,
-			    seg_offset + EF10_NVRAM_CHUNK,
-			    seg_data + EF10_NVRAM_CHUNK,
-			    total_length - EF10_NVRAM_CHUNK,
-			    MC_CMD_NVRAM_READ_IN_V2_TARGET_CURRENT)) != 0)
+			 seg_offset + EF10_NVRAM_CHUNK,
+			 seg_data + EF10_NVRAM_CHUNK,
+			 total_length - EF10_NVRAM_CHUNK,
+			 MC_CMD_NVRAM_READ_IN_V2_TARGET_CURRENT)) != 0)
 			goto fail6;
 	}
 
@@ -1322,7 +1229,7 @@ ef10_nvram_read_tlv_segment(
 
 	/* Verify segment checksum */
 	cksum = 0;
-	for (pos = 0; (size_t)pos < total_length; pos += sizeof (uint32_t)) {
+	for (pos = 0; (size_t)pos < total_length; pos += sizeof(uint32_t)) {
 		cksum += *((uint32_t *)(seg_data + pos));
 	}
 	if (cksum != 0) {
@@ -1362,14 +1269,11 @@ fail1:
  * Read a single TLV item from a host memory
  * buffer containing a TLV formatted segment.
  */
-	__checkReturn		efx_rc_t
-ef10_nvram_buf_read_tlv(
-	__in				efx_nic_t *enp,
-	__in_bcount(max_seg_size)	caddr_t seg_data,
-	__in				size_t max_seg_size,
-	__in				uint32_t tag,
-	__deref_out_bcount_opt(*sizep)	caddr_t *datap,
-	__out				size_t *sizep)
+__checkReturn efx_rc_t
+ef10_nvram_buf_read_tlv(__in efx_nic_t *enp,
+    __in_bcount(max_seg_size) caddr_t seg_data, __in size_t max_seg_size,
+    __in uint32_t tag, __deref_out_bcount_opt(*sizep) caddr_t *datap,
+    __out size_t *sizep)
 {
 	tlv_cursor_t cursor;
 	caddr_t data;
@@ -1386,7 +1290,7 @@ ef10_nvram_buf_read_tlv(
 
 	/* Find requested TLV tag in segment data */
 	if ((rc = tlv_init_cursor_from_size(&cursor, (uint8_t *)seg_data,
-		    max_seg_size)) != 0) {
+		 max_seg_size)) != 0) {
 		rc = EFAULT;
 		goto fail2;
 	}
@@ -1427,13 +1331,10 @@ fail1:
 }
 
 /* Read a single TLV item from the first segment in a TLV formatted partition */
-	__checkReturn		efx_rc_t
-ef10_nvram_partn_read_tlv(
-	__in					efx_nic_t *enp,
-	__in					uint32_t partn,
-	__in					uint32_t tag,
-	__deref_out_bcount_opt(*seg_sizep)	caddr_t *seg_datap,
-	__out					size_t *seg_sizep)
+__checkReturn efx_rc_t
+ef10_nvram_partn_read_tlv(__in efx_nic_t *enp, __in uint32_t partn,
+    __in uint32_t tag, __deref_out_bcount_opt(*seg_sizep) caddr_t *seg_datap,
+    __out size_t *seg_sizep)
 {
 	caddr_t seg_data = NULL;
 	size_t partn_size = 0;
@@ -1467,8 +1368,8 @@ ef10_nvram_partn_read_tlv(
 	 */
 	retry = 10;
 	do {
-		if ((rc = ef10_nvram_read_tlv_segment(enp, partn, 0,
-		    seg_data, partn_size)) != 0)
+		if ((rc = ef10_nvram_read_tlv_segment(enp, partn, 0, seg_data,
+			 partn_size)) != 0)
 			--retry;
 	} while ((rc == EAGAIN) && (retry > 0));
 
@@ -1480,8 +1381,8 @@ ef10_nvram_partn_read_tlv(
 		goto fail4;
 	}
 
-	if ((rc = ef10_nvram_buf_read_tlv(enp, seg_data, partn_size,
-		    tag, &data, &length)) != 0)
+	if ((rc = ef10_nvram_buf_read_tlv(enp, seg_data, partn_size, tag, &data,
+		 &length)) != 0)
 		goto fail5;
 
 	EFSYS_KMEM_FREE(enp->en_esip, partn_size, seg_data);
@@ -1508,11 +1409,9 @@ fail1:
 }
 
 /* Compute the size of a segment. */
-	static	__checkReturn	efx_rc_t
-ef10_nvram_buf_segment_size(
-	__in			caddr_t seg_data,
-	__in			size_t max_seg_size,
-	__out			size_t *seg_sizep)
+static __checkReturn efx_rc_t
+ef10_nvram_buf_segment_size(__in caddr_t seg_data, __in size_t max_seg_size,
+    __out size_t *seg_sizep)
 {
 	efx_rc_t rc;
 	tlv_cursor_t cursor;
@@ -1524,7 +1423,7 @@ ef10_nvram_buf_segment_size(
 
 	/* A PARTITION_HEADER tag must be the first item at the given offset */
 	if ((rc = tlv_init_cursor_from_size(&cursor, (uint8_t *)seg_data,
-		    max_seg_size)) != 0) {
+		 max_seg_size)) != 0) {
 		rc = EFAULT;
 		goto fail1;
 	}
@@ -1559,7 +1458,7 @@ ef10_nvram_buf_segment_size(
 
 	/* Verify segment checksum */
 	cksum = 0;
-	for (pos = 0; (size_t)pos < *seg_sizep; pos += sizeof (uint32_t)) {
+	for (pos = 0; (size_t)pos < *seg_sizep; pos += sizeof(uint32_t)) {
 		cksum += *((uint32_t *)(seg_data + pos));
 	}
 	if (cksum != 0) {
@@ -1639,14 +1538,11 @@ fail1:
  * Add or update a single TLV item in a host memory buffer containing a TLV
  * formatted segment. Historically partitions consisted of only one segment.
  */
-	__checkReturn			efx_rc_t
-ef10_nvram_buf_write_tlv(
-	__inout_bcount(max_seg_size)	caddr_t seg_data,
-	__in				size_t max_seg_size,
-	__in				uint32_t tag,
-	__in_bcount(tag_size)		caddr_t tag_data,
-	__in				size_t tag_size,
-	__out				size_t *total_lengthp)
+__checkReturn efx_rc_t
+ef10_nvram_buf_write_tlv(__inout_bcount(max_seg_size) caddr_t seg_data,
+    __in size_t max_seg_size, __in uint32_t tag,
+    __in_bcount(tag_size) caddr_t tag_data, __in size_t tag_size,
+    __out size_t *total_lengthp)
 {
 	tlv_cursor_t cursor;
 	struct tlv_partition_header *header;
@@ -1658,7 +1554,7 @@ ef10_nvram_buf_write_tlv(
 
 	/* A PARTITION_HEADER tag must be the first item (at offset zero) */
 	if ((rc = tlv_init_cursor_from_size(&cursor, (uint8_t *)seg_data,
-			max_seg_size)) != 0) {
+		 max_seg_size)) != 0) {
 		rc = EFAULT;
 		goto fail1;
 	}
@@ -1671,8 +1567,8 @@ ef10_nvram_buf_write_tlv(
 	/* Update the TLV chain to contain the new data */
 	if ((rc = tlv_find(&cursor, tag)) == 0) {
 		/* Modify existing TLV item */
-		if ((rc = tlv_modify(&cursor, tag,
-			    (uint8_t *)tag_data, tag_size)) != 0)
+		if ((rc = tlv_modify(&cursor, tag, (uint8_t *)tag_data,
+			 tag_size)) != 0)
 			goto fail3;
 	} else {
 		/* Insert a new TLV item before the PARTITION_TRAILER */
@@ -1681,8 +1577,8 @@ ef10_nvram_buf_write_tlv(
 			rc = EINVAL;
 			goto fail4;
 		}
-		if ((rc = tlv_insert(&cursor, tag,
-			    (uint8_t *)tag_data, tag_size)) != 0) {
+		if ((rc = tlv_insert(&cursor, tag, (uint8_t *)tag_data,
+			 tag_size)) != 0) {
 			rc = EINVAL;
 			goto fail5;
 		}
@@ -1703,14 +1599,14 @@ ef10_nvram_buf_write_tlv(
 	}
 	generation = __LE_TO_CPU_32(header->generation) + 1;
 
-	header->total_length	= __CPU_TO_LE_32(*total_lengthp);
-	header->generation	= __CPU_TO_LE_32(generation);
-	trailer->generation	= __CPU_TO_LE_32(generation);
+	header->total_length = __CPU_TO_LE_32(*total_lengthp);
+	header->generation = __CPU_TO_LE_32(generation);
+	trailer->generation = __CPU_TO_LE_32(generation);
 
 	/* Recompute PARTITION_TRAILER checksum */
 	trailer->checksum = 0;
 	cksum = 0;
-	for (pos = 0; (size_t)pos < *total_lengthp; pos += sizeof (uint32_t)) {
+	for (pos = 0; (size_t)pos < *total_lengthp; pos += sizeof(uint32_t)) {
 		cksum += *((uint32_t *)(seg_data + pos));
 	}
 	trailer->checksum = ~cksum + 1;
@@ -1740,34 +1636,24 @@ fail1:
  * dynamic config partition. The first segment is the current active
  * configuration.
  */
-	__checkReturn		efx_rc_t
-ef10_nvram_partn_write_tlv(
-	__in			efx_nic_t *enp,
-	__in			uint32_t partn,
-	__in			uint32_t tag,
-	__in_bcount(size)	caddr_t data,
-	__in			size_t size)
+__checkReturn efx_rc_t
+ef10_nvram_partn_write_tlv(__in efx_nic_t *enp, __in uint32_t partn,
+    __in uint32_t tag, __in_bcount(size) caddr_t data, __in size_t size)
 {
-	return ef10_nvram_partn_write_segment_tlv(enp, partn, tag, data,
-	    size, B_FALSE);
+	return ef10_nvram_partn_write_segment_tlv(enp, partn, tag, data, size,
+	    B_FALSE);
 }
 
 /*
  * Read a segment from nvram at the given offset into a buffer (segment_data)
  * and optionally write a new tag to it.
  */
-static	__checkReturn		efx_rc_t
-ef10_nvram_segment_write_tlv(
-	__in			efx_nic_t *enp,
-	__in			uint32_t partn,
-	__in			uint32_t tag,
-	__in_bcount(size)	caddr_t data,
-	__in			size_t size,
-	__inout			caddr_t *seg_datap,
-	__inout			size_t *partn_offsetp,
-	__inout			size_t *src_remain_lenp,
-	__inout			size_t *dest_remain_lenp,
-	__in			boolean_t write)
+static __checkReturn efx_rc_t
+ef10_nvram_segment_write_tlv(__in efx_nic_t *enp, __in uint32_t partn,
+    __in uint32_t tag, __in_bcount(size) caddr_t data, __in size_t size,
+    __inout caddr_t *seg_datap, __inout size_t *partn_offsetp,
+    __inout size_t *src_remain_lenp, __inout size_t *dest_remain_lenp,
+    __in boolean_t write)
 {
 	efx_rc_t rc;
 	efx_rc_t status;
@@ -1787,8 +1673,8 @@ ef10_nvram_segment_write_tlv(
 		goto fail1;
 	}
 
-	status = ef10_nvram_buf_segment_size(*seg_datap,
-	    *src_remain_lenp, &original_segment_size);
+	status = ef10_nvram_buf_segment_size(*seg_datap, *src_remain_lenp,
+	    &original_segment_size);
 	if (status != 0) {
 		rc = EINVAL;
 		goto fail2;
@@ -1797,8 +1683,8 @@ ef10_nvram_segment_write_tlv(
 	if (write) {
 		/* Update the contents of the segment in the buffer */
 		if ((rc = ef10_nvram_buf_write_tlv(*seg_datap,
-			*dest_remain_lenp, tag, data, size,
-			&modified_segment_size)) != 0) {
+			 *dest_remain_lenp, tag, data, size,
+			 &modified_segment_size)) != 0) {
 			goto fail3;
 		}
 		*dest_remain_lenp -= modified_segment_size;
@@ -1848,14 +1734,10 @@ fail1:
  * its size to increase, which would overwrite the subsequent segments and
  * invalidate them.
  */
-	__checkReturn		efx_rc_t
-ef10_nvram_partn_write_segment_tlv(
-	__in			efx_nic_t *enp,
-	__in			uint32_t partn,
-	__in			uint32_t tag,
-	__in_bcount(size)	caddr_t data,
-	__in			size_t size,
-	__in			boolean_t all_segments)
+__checkReturn efx_rc_t
+ef10_nvram_partn_write_segment_tlv(__in efx_nic_t *enp, __in uint32_t partn,
+    __in uint32_t tag, __in_bcount(size) caddr_t data, __in size_t size,
+    __in boolean_t all_segments)
 {
 	size_t partn_size = 0;
 	caddr_t partn_data;
@@ -1922,11 +1804,11 @@ ef10_nvram_partn_write_segment_tlv(
 
 	/* Write new partition contents from the buffer to NVRAM */
 	if ((rc = ef10_nvram_partn_write(enp, partn, 0, partn_data,
-		    total_length)) != 0)
+		 total_length)) != 0)
 		goto fail7;
 
 	/* Unlock the partition */
-	(void) ef10_nvram_partn_unlock(enp, partn, NULL);
+	(void)ef10_nvram_partn_unlock(enp, partn, NULL);
 
 	EFSYS_KMEM_FREE(enp->en_esip, partn_size, partn_data);
 
@@ -1941,7 +1823,7 @@ fail5:
 fail4:
 	EFSYS_PROBE(fail4);
 
-	(void) ef10_nvram_partn_unlock(enp, partn, NULL);
+	(void)ef10_nvram_partn_unlock(enp, partn, NULL);
 fail3:
 	EFSYS_PROBE(fail3);
 
@@ -1958,16 +1840,14 @@ fail1:
  * Get the size of a NVRAM partition. This is the total size allocated in nvram,
  * not the data used by the segments in the partition.
  */
-	__checkReturn		efx_rc_t
-ef10_nvram_partn_size(
-	__in			efx_nic_t *enp,
-	__in			uint32_t partn,
-	__out			size_t *sizep)
+__checkReturn efx_rc_t
+ef10_nvram_partn_size(__in efx_nic_t *enp, __in uint32_t partn,
+    __out size_t *sizep)
 {
 	efx_rc_t rc;
 
-	if ((rc = efx_mcdi_nvram_info(enp, partn, sizep,
-	    NULL, NULL, NULL)) != 0)
+	if ((rc = efx_mcdi_nvram_info(enp, partn, sizep, NULL, NULL, NULL)) !=
+	    0)
 		goto fail1;
 
 	return (0);
@@ -1978,10 +1858,8 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-ef10_nvram_partn_lock(
-	__in			efx_nic_t *enp,
-	__in			uint32_t partn)
+__checkReturn efx_rc_t
+ef10_nvram_partn_lock(__in efx_nic_t *enp, __in uint32_t partn)
 {
 	efx_rc_t rc;
 
@@ -1996,14 +1874,10 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-ef10_nvram_partn_read_mode(
-	__in			efx_nic_t *enp,
-	__in			uint32_t partn,
-	__in			unsigned int offset,
-	__out_bcount(size)	caddr_t data,
-	__in			size_t size,
-	__in			uint32_t mode)
+__checkReturn efx_rc_t
+ef10_nvram_partn_read_mode(__in efx_nic_t *enp, __in uint32_t partn,
+    __in unsigned int offset, __out_bcount(size) caddr_t data, __in size_t size,
+    __in uint32_t mode)
 {
 	size_t chunk;
 	efx_rc_t rc;
@@ -2011,8 +1885,8 @@ ef10_nvram_partn_read_mode(
 	while (size > 0) {
 		chunk = MIN(size, EF10_NVRAM_CHUNK);
 
-		if ((rc = efx_mcdi_nvram_read(enp, partn, offset,
-			    data, chunk, mode)) != 0) {
+		if ((rc = efx_mcdi_nvram_read(enp, partn, offset, data, chunk,
+			 mode)) != 0) {
 			goto fail1;
 		}
 
@@ -2029,13 +1903,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-ef10_nvram_partn_read(
-	__in			efx_nic_t *enp,
-	__in			uint32_t partn,
-	__in			unsigned int offset,
-	__out_bcount(size)	caddr_t data,
-	__in			size_t size)
+__checkReturn efx_rc_t
+ef10_nvram_partn_read(__in efx_nic_t *enp, __in uint32_t partn,
+    __in unsigned int offset, __out_bcount(size) caddr_t data, __in size_t size)
 {
 	/*
 	 * An A/B partition has two data stores (current and backup).
@@ -2044,16 +1914,12 @@ ef10_nvram_partn_read(
 	 * there is only a single store and so the mode param is ignored.
 	 */
 	return ef10_nvram_partn_read_mode(enp, partn, offset, data, size,
-			    MC_CMD_NVRAM_READ_IN_V2_TARGET_CURRENT);
+	    MC_CMD_NVRAM_READ_IN_V2_TARGET_CURRENT);
 }
 
-	__checkReturn		efx_rc_t
-ef10_nvram_partn_read_backup(
-	__in			efx_nic_t *enp,
-	__in			uint32_t partn,
-	__in			unsigned int offset,
-	__out_bcount(size)	caddr_t data,
-	__in			size_t size)
+__checkReturn efx_rc_t
+ef10_nvram_partn_read_backup(__in efx_nic_t *enp, __in uint32_t partn,
+    __in unsigned int offset, __out_bcount(size) caddr_t data, __in size_t size)
 {
 	/*
 	 * An A/B partition has two data stores (current and backup).
@@ -2065,21 +1931,18 @@ ef10_nvram_partn_read_backup(
 	 * that the writes have succeeded.
 	 */
 	return ef10_nvram_partn_read_mode(enp, partn, offset, data, size,
-			    MC_CMD_NVRAM_READ_IN_V2_TARGET_BACKUP);
+	    MC_CMD_NVRAM_READ_IN_V2_TARGET_BACKUP);
 }
 
-	__checkReturn		efx_rc_t
-ef10_nvram_partn_erase(
-	__in			efx_nic_t *enp,
-	__in			uint32_t partn,
-	__in			unsigned int offset,
-	__in			size_t size)
+__checkReturn efx_rc_t
+ef10_nvram_partn_erase(__in efx_nic_t *enp, __in uint32_t partn,
+    __in unsigned int offset, __in size_t size)
 {
 	efx_rc_t rc;
 	uint32_t erase_size;
 
-	if ((rc = efx_mcdi_nvram_info(enp, partn, NULL, NULL,
-	    &erase_size, NULL)) != 0)
+	if ((rc = efx_mcdi_nvram_info(enp, partn, NULL, NULL, &erase_size,
+		 NULL)) != 0)
 		goto fail1;
 
 	if (erase_size == 0) {
@@ -2092,7 +1955,7 @@ ef10_nvram_partn_erase(
 		}
 		while (size > 0) {
 			if ((rc = efx_mcdi_nvram_erase(enp, partn, offset,
-			    erase_size)) != 0)
+				 erase_size)) != 0)
 				goto fail4;
 			offset += erase_size;
 			size -= erase_size;
@@ -2113,20 +1976,16 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-ef10_nvram_partn_write(
-	__in			efx_nic_t *enp,
-	__in			uint32_t partn,
-	__in			unsigned int offset,
-	__in_bcount(size)	caddr_t data,
-	__in			size_t size)
+__checkReturn efx_rc_t
+ef10_nvram_partn_write(__in efx_nic_t *enp, __in uint32_t partn,
+    __in unsigned int offset, __in_bcount(size) caddr_t data, __in size_t size)
 {
 	size_t chunk;
 	uint32_t write_size;
 	efx_rc_t rc;
 
-	if ((rc = efx_mcdi_nvram_info(enp, partn, NULL, NULL,
-	    NULL, &write_size)) != 0)
+	if ((rc = efx_mcdi_nvram_info(enp, partn, NULL, NULL, NULL,
+		 &write_size)) != 0)
 		goto fail1;
 
 	if (write_size != 0) {
@@ -2145,8 +2004,8 @@ ef10_nvram_partn_write(
 	while (size > 0) {
 		chunk = MIN(size, write_size);
 
-		if ((rc = efx_mcdi_nvram_write(enp, partn, offset,
-			    data, chunk)) != 0) {
+		if ((rc = efx_mcdi_nvram_write(enp, partn, offset, data,
+			 chunk)) != 0) {
 			goto fail3;
 		}
 
@@ -2167,11 +2026,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-ef10_nvram_partn_unlock(
-	__in			efx_nic_t *enp,
-	__in			uint32_t partn,
-	__out_opt		uint32_t *verify_resultp)
+__checkReturn efx_rc_t
+ef10_nvram_partn_unlock(__in efx_nic_t *enp, __in uint32_t partn,
+    __out_opt uint32_t *verify_resultp)
 {
 	boolean_t reboot = B_FALSE;
 	efx_rc_t rc;
@@ -2191,11 +2048,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-ef10_nvram_partn_set_version(
-	__in			efx_nic_t *enp,
-	__in			uint32_t partn,
-	__in_ecount(4)		uint16_t version[4])
+__checkReturn efx_rc_t
+ef10_nvram_partn_set_version(__in efx_nic_t *enp, __in uint32_t partn,
+    __in_ecount(4) uint16_t version[4])
 {
 	struct tlv_partition_version partn_version;
 	size_t size;
@@ -2207,13 +2062,13 @@ ef10_nvram_partn_set_version(
 	partn_version.version_y = __CPU_TO_LE_16(version[2]);
 	partn_version.version_z = __CPU_TO_LE_16(version[3]);
 
-	size = sizeof (partn_version) - (2 * sizeof (uint32_t));
+	size = sizeof(partn_version) - (2 * sizeof(uint32_t));
 
 	/* Write the version number to all segments in the partition */
 	if ((rc = ef10_nvram_partn_write_segment_tlv(enp,
-		    NVRAM_PARTITION_TYPE_DYNAMIC_CONFIG,
-		    TLV_TAG_PARTITION_VERSION(partn),
-		    (caddr_t)&partn_version.version_w, size, B_TRUE)) != 0)
+		 NVRAM_PARTITION_TYPE_DYNAMIC_CONFIG,
+		 TLV_TAG_PARTITION_VERSION(partn),
+		 (caddr_t)&partn_version.version_w, size, B_TRUE)) != 0)
 		goto fail1;
 
 	return (0);
@@ -2229,72 +2084,73 @@ fail1:
 #if EFSYS_OPT_NVRAM
 
 typedef struct ef10_parttbl_entry_s {
-	unsigned int		partn;
-	unsigned int		port_mask;
-	efx_nvram_type_t	nvtype;
+	unsigned int partn;
+	unsigned int port_mask;
+	efx_nvram_type_t nvtype;
 } ef10_parttbl_entry_t;
 
 /* Port mask values */
-#define	PORT_1		(1u << 1)
-#define	PORT_2		(1u << 2)
-#define	PORT_3		(1u << 3)
-#define	PORT_4		(1u << 4)
-#define	PORT_ALL	(0xffffffffu)
+#define PORT_1 (1u << 1)
+#define PORT_2 (1u << 2)
+#define PORT_3 (1u << 3)
+#define PORT_4 (1u << 4)
+#define PORT_ALL (0xffffffffu)
 
-#define	PARTN_MAP_ENTRY(partn, port_mask, nvtype)	\
-{ (NVRAM_PARTITION_TYPE_##partn), (PORT_##port_mask), (EFX_NVRAM_##nvtype) }
+#define PARTN_MAP_ENTRY(partn, port_mask, nvtype)                   \
+	{                                                           \
+		(NVRAM_PARTITION_TYPE_##partn), (PORT_##port_mask), \
+		    (EFX_NVRAM_##nvtype)                            \
+	}
 
 /* Translate EFX NVRAM types to firmware partition types */
 static ef10_parttbl_entry_t hunt_parttbl[] = {
 	/*		partn			ports	nvtype */
-	PARTN_MAP_ENTRY(MC_FIRMWARE,		ALL,	MC_FIRMWARE),
-	PARTN_MAP_ENTRY(MC_FIRMWARE_BACKUP,	ALL,	MC_GOLDEN),
-	PARTN_MAP_ENTRY(EXPANSION_ROM,		ALL,	BOOTROM),
-	PARTN_MAP_ENTRY(EXPROM_CONFIG_PORT0,	1,	BOOTROM_CFG),
-	PARTN_MAP_ENTRY(EXPROM_CONFIG_PORT1,	2,	BOOTROM_CFG),
-	PARTN_MAP_ENTRY(EXPROM_CONFIG_PORT2,	3,	BOOTROM_CFG),
-	PARTN_MAP_ENTRY(EXPROM_CONFIG_PORT3,	4,	BOOTROM_CFG),
-	PARTN_MAP_ENTRY(DYNAMIC_CONFIG,		ALL,	DYNAMIC_CFG),
-	PARTN_MAP_ENTRY(FPGA,			ALL,	FPGA),
-	PARTN_MAP_ENTRY(FPGA_BACKUP,		ALL,	FPGA_BACKUP),
-	PARTN_MAP_ENTRY(LICENSE,		ALL,	LICENSE),
+	PARTN_MAP_ENTRY(MC_FIRMWARE, ALL, MC_FIRMWARE),
+	PARTN_MAP_ENTRY(MC_FIRMWARE_BACKUP, ALL, MC_GOLDEN),
+	PARTN_MAP_ENTRY(EXPANSION_ROM, ALL, BOOTROM),
+	PARTN_MAP_ENTRY(EXPROM_CONFIG_PORT0, 1, BOOTROM_CFG),
+	PARTN_MAP_ENTRY(EXPROM_CONFIG_PORT1, 2, BOOTROM_CFG),
+	PARTN_MAP_ENTRY(EXPROM_CONFIG_PORT2, 3, BOOTROM_CFG),
+	PARTN_MAP_ENTRY(EXPROM_CONFIG_PORT3, 4, BOOTROM_CFG),
+	PARTN_MAP_ENTRY(DYNAMIC_CONFIG, ALL, DYNAMIC_CFG),
+	PARTN_MAP_ENTRY(FPGA, ALL, FPGA),
+	PARTN_MAP_ENTRY(FPGA_BACKUP, ALL, FPGA_BACKUP),
+	PARTN_MAP_ENTRY(LICENSE, ALL, LICENSE),
 };
 
 static ef10_parttbl_entry_t medford_parttbl[] = {
 	/*		partn			ports	nvtype */
-	PARTN_MAP_ENTRY(MC_FIRMWARE,		ALL,	MC_FIRMWARE),
-	PARTN_MAP_ENTRY(MC_FIRMWARE_BACKUP,	ALL,	MC_GOLDEN),
-	PARTN_MAP_ENTRY(EXPANSION_ROM,		ALL,	BOOTROM),
-	PARTN_MAP_ENTRY(EXPROM_CONFIG,		ALL,	BOOTROM_CFG),
-	PARTN_MAP_ENTRY(DYNAMIC_CONFIG,		ALL,	DYNAMIC_CFG),
-	PARTN_MAP_ENTRY(FPGA,			ALL,	FPGA),
-	PARTN_MAP_ENTRY(FPGA_BACKUP,		ALL,	FPGA_BACKUP),
-	PARTN_MAP_ENTRY(LICENSE,		ALL,	LICENSE),
-	PARTN_MAP_ENTRY(EXPANSION_UEFI,		ALL,	UEFIROM),
-	PARTN_MAP_ENTRY(MUM_FIRMWARE,		ALL,	MUM_FIRMWARE),
+	PARTN_MAP_ENTRY(MC_FIRMWARE, ALL, MC_FIRMWARE),
+	PARTN_MAP_ENTRY(MC_FIRMWARE_BACKUP, ALL, MC_GOLDEN),
+	PARTN_MAP_ENTRY(EXPANSION_ROM, ALL, BOOTROM),
+	PARTN_MAP_ENTRY(EXPROM_CONFIG, ALL, BOOTROM_CFG),
+	PARTN_MAP_ENTRY(DYNAMIC_CONFIG, ALL, DYNAMIC_CFG),
+	PARTN_MAP_ENTRY(FPGA, ALL, FPGA),
+	PARTN_MAP_ENTRY(FPGA_BACKUP, ALL, FPGA_BACKUP),
+	PARTN_MAP_ENTRY(LICENSE, ALL, LICENSE),
+	PARTN_MAP_ENTRY(EXPANSION_UEFI, ALL, UEFIROM),
+	PARTN_MAP_ENTRY(MUM_FIRMWARE, ALL, MUM_FIRMWARE),
 };
 
 static ef10_parttbl_entry_t medford2_parttbl[] = {
 	/*		partn			ports	nvtype */
-	PARTN_MAP_ENTRY(MC_FIRMWARE,		ALL,	MC_FIRMWARE),
-	PARTN_MAP_ENTRY(MC_FIRMWARE_BACKUP,	ALL,	MC_GOLDEN),
-	PARTN_MAP_ENTRY(EXPANSION_ROM,		ALL,	BOOTROM),
-	PARTN_MAP_ENTRY(EXPROM_CONFIG,		ALL,	BOOTROM_CFG),
-	PARTN_MAP_ENTRY(DYNAMIC_CONFIG,		ALL,	DYNAMIC_CFG),
-	PARTN_MAP_ENTRY(FPGA,			ALL,	FPGA),
-	PARTN_MAP_ENTRY(FPGA_BACKUP,		ALL,	FPGA_BACKUP),
-	PARTN_MAP_ENTRY(LICENSE,		ALL,	LICENSE),
-	PARTN_MAP_ENTRY(EXPANSION_UEFI,		ALL,	UEFIROM),
-	PARTN_MAP_ENTRY(MUM_FIRMWARE,		ALL,	MUM_FIRMWARE),
-	PARTN_MAP_ENTRY(DYNCONFIG_DEFAULTS,	ALL,	DYNCONFIG_DEFAULTS),
-	PARTN_MAP_ENTRY(ROMCONFIG_DEFAULTS,	ALL,	ROMCONFIG_DEFAULTS),
+	PARTN_MAP_ENTRY(MC_FIRMWARE, ALL, MC_FIRMWARE),
+	PARTN_MAP_ENTRY(MC_FIRMWARE_BACKUP, ALL, MC_GOLDEN),
+	PARTN_MAP_ENTRY(EXPANSION_ROM, ALL, BOOTROM),
+	PARTN_MAP_ENTRY(EXPROM_CONFIG, ALL, BOOTROM_CFG),
+	PARTN_MAP_ENTRY(DYNAMIC_CONFIG, ALL, DYNAMIC_CFG),
+	PARTN_MAP_ENTRY(FPGA, ALL, FPGA),
+	PARTN_MAP_ENTRY(FPGA_BACKUP, ALL, FPGA_BACKUP),
+	PARTN_MAP_ENTRY(LICENSE, ALL, LICENSE),
+	PARTN_MAP_ENTRY(EXPANSION_UEFI, ALL, UEFIROM),
+	PARTN_MAP_ENTRY(MUM_FIRMWARE, ALL, MUM_FIRMWARE),
+	PARTN_MAP_ENTRY(DYNCONFIG_DEFAULTS, ALL, DYNCONFIG_DEFAULTS),
+	PARTN_MAP_ENTRY(ROMCONFIG_DEFAULTS, ALL, ROMCONFIG_DEFAULTS),
 };
 
-static	__checkReturn		efx_rc_t
-ef10_parttbl_get(
-	__in			efx_nic_t *enp,
-	__out			ef10_parttbl_entry_t **parttblp,
-	__out			size_t *parttbl_rowsp)
+static __checkReturn efx_rc_t
+ef10_parttbl_get(__in efx_nic_t *enp, __out ef10_parttbl_entry_t **parttblp,
+    __out size_t *parttbl_rowsp)
 {
 	switch (enp->en_family) {
 	case EFX_FAMILY_HUNTINGTON:
@@ -2319,11 +2175,9 @@ ef10_parttbl_get(
 	return (0);
 }
 
-	__checkReturn		efx_rc_t
-ef10_nvram_type_to_partn(
-	__in			efx_nic_t *enp,
-	__in			efx_nvram_type_t type,
-	__out			uint32_t *partnp)
+__checkReturn efx_rc_t
+ef10_nvram_type_to_partn(__in efx_nic_t *enp, __in efx_nvram_type_t type,
+    __out uint32_t *partnp)
 {
 	efx_mcdi_iface_t *emip = &(enp->en_mcdi.em_emip);
 	ef10_parttbl_entry_t *parttbl = NULL;
@@ -2351,11 +2205,9 @@ ef10_nvram_type_to_partn(
 
 #if EFSYS_OPT_DIAG
 
-static	__checkReturn		efx_rc_t
-ef10_nvram_partn_to_type(
-	__in			efx_nic_t *enp,
-	__in			uint32_t partn,
-	__out			efx_nvram_type_t *typep)
+static __checkReturn efx_rc_t
+ef10_nvram_partn_to_type(__in efx_nic_t *enp, __in uint32_t partn,
+    __out efx_nvram_type_t *typep)
 {
 	efx_mcdi_iface_t *emip = &(enp->en_mcdi.em_emip);
 	ef10_parttbl_entry_t *parttbl = NULL;
@@ -2379,9 +2231,8 @@ ef10_nvram_partn_to_type(
 	return (ENOTSUP);
 }
 
-	__checkReturn		efx_rc_t
-ef10_nvram_test(
-	__in			efx_nic_t *enp)
+__checkReturn efx_rc_t
+ef10_nvram_test(__in efx_nic_t *enp)
 {
 	efx_nvram_type_t type;
 	unsigned int npartns = 0;
@@ -2391,7 +2242,7 @@ ef10_nvram_test(
 	efx_rc_t rc;
 
 	/* Read available partitions from NVRAM partition map */
-	size = MC_CMD_NVRAM_PARTITIONS_OUT_TYPE_ID_MAXNUM * sizeof (uint32_t);
+	size = MC_CMD_NVRAM_PARTITIONS_OUT_TYPE_ID_MAXNUM * sizeof(uint32_t);
 	EFSYS_KMEM_ALLOC(enp->en_esip, size, partns);
 	if (partns == NULL) {
 		rc = ENOMEM;
@@ -2399,7 +2250,7 @@ ef10_nvram_test(
 	}
 
 	if ((rc = efx_mcdi_nvram_partitions(enp, (caddr_t)partns, size,
-		    &npartns)) != 0) {
+		 &npartns)) != 0) {
 		goto fail2;
 	}
 
@@ -2425,22 +2276,19 @@ fail1:
 	return (rc);
 }
 
-#endif	/* EFSYS_OPT_DIAG */
+#endif /* EFSYS_OPT_DIAG */
 
-	__checkReturn		efx_rc_t
-ef10_nvram_partn_get_version(
-	__in			efx_nic_t *enp,
-	__in			uint32_t partn,
-	__out			uint32_t *subtypep,
-	__out_ecount(4)		uint16_t version[4])
+__checkReturn efx_rc_t
+ef10_nvram_partn_get_version(__in efx_nic_t *enp, __in uint32_t partn,
+    __out uint32_t *subtypep, __out_ecount(4) uint16_t version[4])
 {
 	efx_rc_t rc;
 
 	/* FIXME: get highest partn version from all ports */
 	/* FIXME: return partn description if available */
 
-	if ((rc = efx_mcdi_nvram_metadata(enp, partn, subtypep,
-		    version, NULL, 0)) != 0)
+	if ((rc = efx_mcdi_nvram_metadata(enp, partn, subtypep, version, NULL,
+		 0)) != 0)
 		goto fail1;
 
 	return (0);
@@ -2451,17 +2299,15 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-ef10_nvram_partn_rw_start(
-	__in			efx_nic_t *enp,
-	__in			uint32_t partn,
-	__out			size_t *chunk_sizep)
+__checkReturn efx_rc_t
+ef10_nvram_partn_rw_start(__in efx_nic_t *enp, __in uint32_t partn,
+    __out size_t *chunk_sizep)
 {
 	uint32_t write_size = 0;
 	efx_rc_t rc;
 
-	if ((rc = efx_mcdi_nvram_info(enp, partn, NULL, NULL,
-	    NULL, &write_size)) != 0)
+	if ((rc = efx_mcdi_nvram_info(enp, partn, NULL, NULL, NULL,
+		 &write_size)) != 0)
 		goto fail1;
 
 	if ((rc = ef10_nvram_partn_lock(enp, partn)) != 0)
@@ -2484,11 +2330,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-ef10_nvram_partn_rw_finish(
-	__in			efx_nic_t *enp,
-	__in			uint32_t partn,
-	__out_opt		uint32_t *verify_resultp)
+__checkReturn efx_rc_t
+ef10_nvram_partn_rw_finish(__in efx_nic_t *enp, __in uint32_t partn,
+    __out_opt uint32_t *verify_resultp)
 {
 	efx_rc_t rc;
 
@@ -2503,6 +2347,6 @@ fail1:
 	return (rc);
 }
 
-#endif	/* EFSYS_OPT_NVRAM */
+#endif /* EFSYS_OPT_NVRAM */
 
-#endif	/* EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2 */
+#endif /* EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2 */

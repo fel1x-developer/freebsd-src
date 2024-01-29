@@ -30,14 +30,14 @@
 #ifndef _BHND_NVRAM_BHND_NVRAM_BCMVAR_H_
 #define _BHND_NVRAM_BHND_NVRAM_BCMVAR_H_
 
-#define	BCM_NVRAM_ENCODE_OPT_VERSION	"bcm_version"
+#define BCM_NVRAM_ENCODE_OPT_VERSION "bcm_version"
 
 /**
  * BCM NVRAM header value data.
  */
 union bhnd_nvram_bcm_hvar_value {
-	uint16_t	u16;
-	uint32_t	u32;
+	uint16_t u16;
+	uint32_t u32;
 };
 
 /**
@@ -45,14 +45,14 @@ union bhnd_nvram_bcm_hvar_value {
  * vended as) NVRAM variables.
  */
 struct bhnd_nvram_bcm_hvar {
-	const char	*name;	/**< variable name */
-	bhnd_nvram_type	 type;	/**< value type */
-	size_t		 nelem;	/**< value element count */
-	size_t		 len;	/**< value length */
-	const char	*envp;	/**< Pointer to the NVRAM variable mirroring
-				     this header value, or NULL. */
-	bool		 stale;	/**< header value does not match
-				     mirrored NVRAM value */
+	const char *name;     /**< variable name */
+	bhnd_nvram_type type; /**< value type */
+	size_t nelem;	      /**< value element count */
+	size_t len;	      /**< value length */
+	const char *envp;     /**< Pointer to the NVRAM variable mirroring
+				   this header value, or NULL. */
+	bool stale;	      /**< header value does not match
+				   mirrored NVRAM value */
 
 	/** variable data */
 	union bhnd_nvram_bcm_hvar_value value;
@@ -62,13 +62,13 @@ struct bhnd_nvram_bcm_hvar {
 struct bhnd_nvram_bcmhdr {
 	uint32_t magic;
 	uint32_t size;
-	uint32_t cfg0;		/**< crc:8, version:8, sdram_init:16 */
-	uint32_t cfg1;		/**< sdram_config:16, sdram_refresh:16 */
-	uint32_t sdram_ncdl;	/**< sdram_ncdl */
+	uint32_t cfg0;	     /**< crc:8, version:8, sdram_init:16 */
+	uint32_t cfg1;	     /**< sdram_config:16, sdram_refresh:16 */
+	uint32_t sdram_ncdl; /**< sdram_ncdl */
 } __packed;
 
-int	bhnd_nvram_bcm_getvar_direct_common(struct bhnd_nvram_io *io,
-	    const char *name, void *outp, size_t *olen, bhnd_nvram_type otype,
-	    bool have_header);
+int bhnd_nvram_bcm_getvar_direct_common(struct bhnd_nvram_io *io,
+    const char *name, void *outp, size_t *olen, bhnd_nvram_type otype,
+    bool have_header);
 
 #endif /* _BHND_NVRAM_BHND_NVRAM_BCMVAR_H_ */

@@ -27,12 +27,14 @@
  */
 
 #include <sys/types.h>
-#include <sys/endian.h>
 #include <sys/param.h>
-#include <sys/sysctl.h>
+#include <sys/endian.h>
 #include <sys/stat.h>
+#include <sys/sysctl.h>
 #include <sys/uio.h>
+
 #include <netinet/in.h>
+
 #include <assert.h>
 #include <ctype.h>
 #include <err.h>
@@ -45,28 +47,23 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "mkuzip.h"
-#include "mkuz_cloop.h"
-#include "mkuz_blockcache.h"
-#include "mkuz_lzma.h"
-#include "mkuz_zlib.h"
-#include "mkuz_zstd.h"
 #include "mkuz_blk.h"
+#include "mkuz_blockcache.h"
 #include "mkuz_cfg.h"
+#include "mkuz_cloop.h"
 #include "mkuz_conveyor.h"
 #include "mkuz_format.h"
 #include "mkuz_fqueue.h"
-#include "mkuz_time.h"
 #include "mkuz_insize.h"
+#include "mkuz_lzma.h"
+#include "mkuz_time.h"
+#include "mkuz_zlib.h"
+#include "mkuz_zstd.h"
+#include "mkuzip.h"
 
-#define DEFAULT_CLSTSIZE	16384
+#define DEFAULT_CLSTSIZE 16384
 
-enum UZ_ALGORITHM {
-	UZ_ZLIB = 0,
-	UZ_LZMA,
-	UZ_ZSTD,
-	UZ_INVALID
-};
+enum UZ_ALGORITHM { UZ_ZLIB = 0, UZ_LZMA, UZ_ZSTD, UZ_INVALID };
 
 static const struct mkuz_format uzip_fmts[] = {
 	[UZ_ZLIB] = {
@@ -111,7 +108,8 @@ cmp_blkno(const struct mkuz_blk *bp, void *p)
 	return (bp->info.blkno == *ap);
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
 	struct mkuz_cfg cfs;
 	char *oname;
@@ -153,8 +151,8 @@ int main(int argc, char **argv)
 	cfs.nworkers = ncpu;
 	struct mkuz_blk *iblk, *oblk;
 
-	while((opt = getopt(argc, argv, "A:C:o:s:vZdLSj:")) != -1) {
-		switch(opt) {
+	while ((opt = getopt(argc, argv, "A:C:o:s:vZdLSj:")) != -1) {
+		switch (opt) {
 		case 'A':
 			for (tmp = UZ_ZLIB; tmp < UZ_INVALID; tmp++) {
 				if (strcmp(uzip_fmts[tmp].option, optarg) == 0)
@@ -163,7 +161,7 @@ int main(int argc, char **argv)
 			if (tmp == UZ_INVALID)
 				errx(1, "invalid algorithm specified: %s",
 				    optarg);
-				/* Not reached */
+			/* Not reached */
 			comp_alg = tmp;
 			break;
 		case 'C':
@@ -207,8 +205,10 @@ int main(int argc, char **argv)
 		case 'j':
 			tmp = atoi(optarg);
 			if (tmp <= 0) {
-				errx(1, "invalid number of compression threads"
-                                    " specified: %s", optarg);
+				errx(1,
+				    "invalid number of compression threads"
+				    " specified: %s",
+				    optarg);
 				/* Not reached */
 			}
 			cfs.nworkers = tmp;
@@ -239,8 +239,8 @@ int main(int argc, char **argv)
 		 */
 		if (hdr.magic[CLOOP_OFS_VERSN] == CLOOP_MAJVER_2)
 			hdr.magic[CLOOP_OFS_VERSN] = CLOOP_MAJVER_3;
-		hdr.magic[CLOOP_OFS_COMPR] =
-		    tolower(hdr.magic[CLOOP_OFS_COMPR]);
+		hdr.magic[CLOOP_OFS_COMPR] = tolower(
+		    hdr.magic[CLOOP_OFS_COMPR]);
 	}
 
 	if (cfs.blksz % DEV_BSIZE != 0)
@@ -248,7 +248,8 @@ int main(int argc, char **argv)
 
 	cfs.cbound_blksz = cfs.handler->f_compress_bound(cfs.blksz);
 	if (cfs.cbound_blksz > MAXPHYS)
-		errx(1, "maximal compressed cluster size %zu greater than MAXPHYS %zu",
+		errx(1,
+		    "maximal compressed cluster size %zu greater than MAXPHYS %zu",
 		    cfs.cbound_blksz, (size_t)MAXPHYS);
 
 	cfs.handler->f_init(&comp_level);
@@ -283,8 +284,10 @@ int main(int argc, char **argv)
 	hdr.nblocks = cfs.isize / cfs.blksz;
 	if ((cfs.isize % cfs.blksz) != 0) {
 		if (cfs.verbose != 0)
-			fprintf(stderr, "file size is not multiple "
-			"of %d, padding data\n", cfs.blksz);
+			fprintf(stderr,
+			    "file size is not multiple "
+			    "of %d, padding data\n",
+			    cfs.blksz);
 		hdr.nblocks++;
 	}
 	toc = mkuz_safe_malloc((hdr.nblocks + 1) * sizeof(*toc));
@@ -297,8 +300,9 @@ int main(int argc, char **argv)
 	 */
 	toc[hdr.nblocks] = 0;
 
-	cfs.fdw = open(oname, (cfs.en_dedup ? O_RDWR : O_WRONLY) | O_TRUNC | O_CREAT,
-		   S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
+	cfs.fdw = open(oname,
+	    (cfs.en_dedup ? O_RDWR : O_WRONLY) | O_TRUNC | O_CREAT,
+	    S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
 	if (cfs.fdw < 0) {
 		err(1, "open(%s)", oname);
 		/* Not reached */
@@ -316,23 +320,24 @@ int main(int argc, char **argv)
 	lseek(cfs.fdw, offset, SEEK_SET);
 
 	if (cfs.verbose != 0) {
-		fprintf(stderr, "data size %ju bytes, number of clusters "
-		    "%u, index length %zu bytes\n", cfs.isize,
-		    hdr.nblocks, iov[1].iov_len);
+		fprintf(stderr,
+		    "data size %ju bytes, number of clusters "
+		    "%u, index length %zu bytes\n",
+		    cfs.isize, hdr.nblocks, iov[1].iov_len);
 	}
 
 	cvp = mkuz_conveyor_ctor(&cfs);
 
 	last_offset = 0;
-        iblk = oblk = NULL;
-	for(i = io = 0; iblk != MKUZ_BLK_EOF; i++) {
+	iblk = oblk = NULL;
+	for (i = io = 0; iblk != MKUZ_BLK_EOF; i++) {
 		iblk = readblock(cfs.fdr, cfs.blksz);
 		mkuz_fqueue_enq(cvp->wrk_queue, iblk);
 		if (iblk != MKUZ_BLK_EOF &&
 		    (i < (cfs.nworkers * ITEMS_PER_WORKER))) {
 			continue;
 		}
-drain:
+	drain:
 		oblk = mkuz_fqueue_deq_when(cvp->results, cmp_blkno, &io);
 		assert(oblk->info.blkno == (unsigned)io);
 		oblk->info.offset = offset;
@@ -354,8 +359,8 @@ drain:
 			toc[io] = htobe64(chit->offset);
 			oblk->info.len = 0;
 		} else {
-			if (oblk->info.len > 0 && write(cfs.fdw, oblk->data,
-			    oblk->info.len) < 0) {
+			if (oblk->info.len > 0 &&
+			    write(cfs.fdw, oblk->data, oblk->info.len) < 0) {
 				err(1, "write(%s)", oname);
 				/* Not reached */
 			}
@@ -364,9 +369,11 @@ drain:
 			offset += oblk->info.len;
 		}
 		if (cfs.verbose != 0) {
-			fprintf(stderr, "cluster #%d, in %u bytes, "
-			    "out len=%lu offset=%lu", io, cfs.blksz,
-			    (u_long)oblk->info.len, (u_long)be64toh(toc[io]));
+			fprintf(stderr,
+			    "cluster #%d, in %u bytes, "
+			    "out len=%lu offset=%lu",
+			    io, cfs.blksz, (u_long)oblk->info.len,
+			    (u_long)be64toh(toc[io]));
 			if (chit != NULL) {
 				fprintf(stderr, " (backref'ed to #%d)",
 				    chit->blkno);
@@ -385,7 +392,8 @@ drain:
 			oblk->info.blkno = io;
 			oblk->info.len = oblk->alen;
 			if (cfs.verbose != 0) {
-				fprintf(stderr, "padding data with %lu bytes "
+				fprintf(stderr,
+				    "padding data with %lu bytes "
 				    "so that file size is multiple of %d\n",
 				    (u_long)oblk->alen, DEV_BSIZE);
 			}
@@ -398,11 +406,12 @@ drain:
 
 	if (cfs.verbose != 0 || summary.en != 0) {
 		et = getdtime();
-		fprintf(summary.f, "compressed data to %ju bytes, saved %lld "
-		    "bytes, %.2f%% decrease, %.2f bytes/sec.\n", offset,
-		    (long long)(cfs.isize - offset),
-		    100.0 * (long long)(cfs.isize - offset) /
-		    (float)cfs.isize, (float)cfs.isize / (et - st));
+		fprintf(summary.f,
+		    "compressed data to %ju bytes, saved %lld "
+		    "bytes, %.2f%% decrease, %.2f bytes/sec.\n",
+		    offset, (long long)(cfs.isize - offset),
+		    100.0 * (long long)(cfs.isize - offset) / (float)cfs.isize,
+		    (float)cfs.isize / (et - st));
 	}
 
 	/* Convert to big endian */
@@ -456,7 +465,8 @@ static void
 usage(void)
 {
 
-	fprintf(stderr, "usage: mkuzip [-vZdLS] [-o outfile] [-s cluster_size] "
+	fprintf(stderr,
+	    "usage: mkuzip [-vZdLS] [-o outfile] [-s cluster_size] "
 	    "[-j ncompr] infile\n");
 	exit(1);
 }
@@ -495,8 +505,8 @@ cleanup(void)
 int
 mkuz_memvcmp(const void *memory, unsigned char val, size_t size)
 {
-    const u_char *mm;
+	const u_char *mm;
 
-    mm = (const u_char *)memory;
-    return (*mm == val) && memcmp(mm, mm + 1, size - 1) == 0;
+	mm = (const u_char *)memory;
+	return (*mm == val) && memcmp(mm, mm + 1, size - 1) == 0;
 }

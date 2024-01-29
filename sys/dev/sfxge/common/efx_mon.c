@@ -31,6 +31,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "efx.h"
 #include "efx_impl.h"
 
@@ -40,16 +41,11 @@
 
 #if EFSYS_OPT_NAMES
 
-static const char * const __efx_mon_name[] = {
-	"",
-	"sfx90x0",
-	"sfx91x0",
-	"sfx92x0"
-};
+static const char *const __efx_mon_name[] = { "", "sfx90x0", "sfx91x0",
+	"sfx92x0" };
 
-		const char *
-efx_mon_name(
-	__in	efx_nic_t *enp)
+const char *
+efx_mon_name(__in efx_nic_t *enp)
 {
 	efx_nic_cfg_t *encp = &(enp->en_nic_cfg);
 
@@ -60,20 +56,19 @@ efx_mon_name(
 	return (__efx_mon_name[encp->enc_mon_type]);
 }
 
-#endif	/* EFSYS_OPT_NAMES */
+#endif /* EFSYS_OPT_NAMES */
 
 #if EFSYS_OPT_MON_MCDI
-static const efx_mon_ops_t	__efx_mon_mcdi_ops = {
+static const efx_mon_ops_t __efx_mon_mcdi_ops = {
 #if EFSYS_OPT_MON_STATS
-	mcdi_mon_stats_update,		/* emo_stats_update */
-	mcdi_mon_limits_update,		/* emo_limits_update */
-#endif	/* EFSYS_OPT_MON_STATS */
+	mcdi_mon_stats_update,	/* emo_stats_update */
+	mcdi_mon_limits_update, /* emo_limits_update */
+#endif				/* EFSYS_OPT_MON_STATS */
 };
 #endif
 
-	__checkReturn	efx_rc_t
-efx_mon_init(
-	__in		efx_nic_t *enp)
+__checkReturn efx_rc_t
+efx_mon_init(__in efx_nic_t *enp)
 {
 	efx_nic_cfg_t *encp = &(enp->en_nic_cfg);
 	efx_mon_t *emp = &(enp->en_mon);
@@ -127,7 +122,7 @@ fail1:
 #if EFSYS_OPT_NAMES
 
 /* START MKCONFIG GENERATED MonitorStatNamesBlock 277c17eda1a6d1a4 */
-static const char * const __mon_stat_name[] = {
+static const char *const __mon_stat_name[] = {
 	"controller_temp",
 	"phy_common_temp",
 	"controller_cooling",
@@ -212,10 +207,8 @@ static const char * const __mon_stat_name[] = {
 
 /* END MKCONFIG GENERATED MonitorStatNamesBlock */
 
-					const char *
-efx_mon_stat_name(
-	__in				efx_nic_t *enp,
-	__in				efx_mon_stat_t id)
+const char *
+efx_mon_stat_name(__in efx_nic_t *enp, __in efx_mon_stat_t id)
 {
 	_NOTE(ARGUNUSED(enp))
 	EFSYS_ASSERT3U(enp->en_magic, ==, EFX_NIC_MAGIC);
@@ -225,8 +218,8 @@ efx_mon_stat_name(
 }
 
 typedef struct _stat_description_t {
-	efx_mon_stat_t	stat;
-	const char	*desc;
+	efx_mon_stat_t stat;
+	const char *desc;
 } stat_description_t;
 
 /* START MKCONFIG GENERATED MonitorStatDescriptionsBlock f072138f16d2e1f8 */
@@ -315,10 +308,8 @@ static const char *__mon_stat_description[] = {
 
 /* END MKCONFIG GENERATED MonitorStatDescriptionsBlock */
 
-					const char *
-efx_mon_stat_description(
-	__in				efx_nic_t *enp,
-	__in				efx_mon_stat_t id)
+const char *
+efx_mon_stat_description(__in efx_nic_t *enp, __in efx_mon_stat_t id)
 {
 	_NOTE(ARGUNUSED(enp))
 	EFSYS_ASSERT3U(enp->en_magic, ==, EFX_NIC_MAGIC);
@@ -327,13 +318,11 @@ efx_mon_stat_description(
 	return (__mon_stat_description[id]);
 }
 
-#endif	/* EFSYS_OPT_NAMES */
+#endif /* EFSYS_OPT_NAMES */
 
 /* START MKCONFIG GENERATED MonitorMcdiMappingBlock 173eee0a5599996a */
-	__checkReturn			boolean_t
-efx_mon_mcdi_to_efx_stat(
-	__in				int mcdi_index,
-	__out				efx_mon_stat_t *statp)
+__checkReturn boolean_t
+efx_mon_mcdi_to_efx_stat(__in int mcdi_index, __out efx_mon_stat_t *statp)
 {
 
 	if ((mcdi_index % (MC_CMD_SENSOR_PAGE0_NEXT + 1)) ==
@@ -601,10 +590,9 @@ fail1:
 /* END MKCONFIG GENERATED MonitorMcdiMappingBlock */
 
 /* START MKCONFIG GENERATED MonitorStatisticUnitsBlock 2d447c656cc2d01d */
-	__checkReturn			boolean_t
-efx_mon_get_stat_unit(
-	__in				efx_mon_stat_t stat,
-	__out				efx_mon_stat_unit_t *unitp)
+__checkReturn boolean_t
+efx_mon_get_stat_unit(__in efx_mon_stat_t stat,
+    __out efx_mon_stat_unit_t *unitp)
 {
 	switch (stat) {
 	case EFX_MON_STAT_IN_1V0:
@@ -717,10 +705,9 @@ fail1:
 /* END MKCONFIG GENERATED MonitorStatisticUnitsBlock */
 
 /* START MKCONFIG GENERATED MonitorStatisticPortsBlock 1719b751d842534f */
-	__checkReturn			boolean_t
-efx_mon_get_stat_portmap(
-	__in				efx_mon_stat_t stat,
-	__out				efx_mon_stat_portmask_t *maskp)
+__checkReturn boolean_t
+efx_mon_get_stat_portmap(__in efx_mon_stat_t stat,
+    __out efx_mon_stat_portmask_t *maskp)
 {
 
 	switch (stat) {
@@ -827,11 +814,9 @@ fail1:
 
 /* END MKCONFIG GENERATED MonitorStatisticPortsBlock */
 
-	__checkReturn			efx_rc_t
-efx_mon_stats_update(
-	__in				efx_nic_t *enp,
-	__in				efsys_mem_t *esmp,
-	__inout_ecount(EFX_MON_NSTATS)	efx_mon_stat_value_t *values)
+__checkReturn efx_rc_t
+efx_mon_stats_update(__in efx_nic_t *enp, __in efsys_mem_t *esmp,
+    __inout_ecount(EFX_MON_NSTATS) efx_mon_stat_value_t *values)
 {
 	efx_mon_t *emp = &(enp->en_mon);
 	const efx_mon_ops_t *emop = emp->em_emop;
@@ -842,10 +827,9 @@ efx_mon_stats_update(
 	return (emop->emo_stats_update(enp, esmp, values));
 }
 
-	__checkReturn			efx_rc_t
-efx_mon_limits_update(
-	__in				efx_nic_t *enp,
-	__inout_ecount(EFX_MON_NSTATS)	efx_mon_stat_limits_t *values)
+__checkReturn efx_rc_t
+efx_mon_limits_update(__in efx_nic_t *enp,
+    __inout_ecount(EFX_MON_NSTATS) efx_mon_stat_limits_t *values)
 {
 	efx_mon_t *emp = &(enp->en_mon);
 	const efx_mon_ops_t *emop = emp->em_emop;
@@ -856,11 +840,10 @@ efx_mon_limits_update(
 	return (emop->emo_limits_update(enp, values));
 }
 
-#endif	/* EFSYS_OPT_MON_STATS */
+#endif /* EFSYS_OPT_MON_STATS */
 
-		void
-efx_mon_fini(
-	__in	efx_nic_t *enp)
+void
+efx_mon_fini(__in efx_nic_t *enp)
 {
 	efx_mon_t *emp = &(enp->en_mon);
 

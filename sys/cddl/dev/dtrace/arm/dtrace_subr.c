@@ -27,27 +27,30 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/dtrace_bsd.h>
+#include <sys/dtrace_impl.h>
 #include <sys/kernel.h>
-#include <sys/malloc.h>
 #include <sys/kmem.h>
+#include <sys/malloc.h>
 #include <sys/proc.h>
 #include <sys/smp.h>
-#include <sys/dtrace_impl.h>
-#include <sys/dtrace_bsd.h>
-#include <cddl/dev/dtrace/dtrace_cddl.h>
+
+#include <vm/pmap.h>
+
 #include <machine/armreg.h>
 #include <machine/clock.h>
 #include <machine/frame.h>
 #include <machine/trap.h>
-#include <vm/pmap.h>
 
-#define	DELAYBRANCH(x)	((int)(x) < 0)
+#include <cddl/dev/dtrace/dtrace_cddl.h>
 
-#define	BIT_PC		15
-#define	BIT_LR		14
-#define	BIT_SP		13
+#define DELAYBRANCH(x) ((int)(x) < 0)
 
-extern dtrace_id_t	dtrace_probeid_error;
+#define BIT_PC 15
+#define BIT_LR 14
+#define BIT_SP 13
+
+extern dtrace_id_t dtrace_probeid_error;
 extern int (*dtrace_invop_jump_addr)(struct trapframe *);
 extern void dtrace_getnanotime(struct timespec *tsp);
 extern void dtrace_getnanouptime(struct timespec *tsp);
@@ -80,13 +83,12 @@ dtrace_invop(uintptr_t addr, struct trapframe *frame, uintptr_t eax)
 	return (rval);
 }
 
-
 void
 dtrace_invop_add(int (*func)(uintptr_t, struct trapframe *, uintptr_t))
 {
 	dtrace_invop_hdlr_t *hdlr;
 
-	hdlr = kmem_alloc(sizeof (dtrace_invop_hdlr_t), KM_SLEEP);
+	hdlr = kmem_alloc(sizeof(dtrace_invop_hdlr_t), KM_SLEEP);
 	hdlr->dtih_func = func;
 	hdlr->dtih_next = dtrace_invop_hdlr;
 	dtrace_invop_hdlr = hdlr;
@@ -118,7 +120,6 @@ dtrace_invop_remove(int (*func)(uintptr_t, struct trapframe *, uintptr_t))
 
 	kmem_free(hdlr, 0);
 }
-
 
 /*ARGSUSED*/
 void
@@ -173,12 +174,11 @@ dtrace_sync(void)
 uint64_t
 dtrace_gethrtime(void)
 {
-	struct	timespec curtime;
+	struct timespec curtime;
 
 	dtrace_getnanouptime(&curtime);
 
 	return (curtime.tv_sec * 1000000000UL + curtime.tv_nsec);
-
 }
 
 uint64_t
@@ -214,7 +214,8 @@ dtrace_trap(struct trapframe *frame, u_int type)
 		/* Page fault. */
 		case FAULT_ALIGN:
 			/* Flag a bad address. */
-			cpu_core[curcpu].cpuc_dtrace_flags |= CPU_DTRACE_BADADDR;
+			cpu_core[curcpu].cpuc_dtrace_flags |=
+			    CPU_DTRACE_BADADDR;
 			cpu_core[curcpu].cpuc_dtrace_illval = 0;
 
 			/*
@@ -239,8 +240,8 @@ dtrace_probe_error(dtrace_state_t *state, dtrace_epid_t epid, int which,
 {
 
 	dtrace_probe(dtrace_probeid_error, (uint64_t)(uintptr_t)state,
-	    (uintptr_t)epid,
-	    (uintptr_t)which, (uintptr_t)fault, (uintptr_t)fltoffs);
+	    (uintptr_t)epid, (uintptr_t)which, (uintptr_t)fault,
+	    (uintptr_t)fltoffs);
 }
 
 static int
@@ -346,12 +347,14 @@ dtrace_invop_start(struct trapframe *frame)
 	return (0);
 }
 
-void dtrace_invop_init(void)
+void
+dtrace_invop_init(void)
 {
 	dtrace_invop_jump_addr = dtrace_invop_start;
 }
 
-void dtrace_invop_uninit(void)
+void
+dtrace_invop_uninit(void)
 {
 	dtrace_invop_jump_addr = 0;
 }

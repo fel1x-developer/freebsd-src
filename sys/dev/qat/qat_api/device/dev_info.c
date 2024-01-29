@@ -14,12 +14,12 @@
 /* QAT-API includes */
 #include "cpa_dev.h"
 #include "icp_accel_devices.h"
-#include "lac_common.h"
-#include "icp_adf_cfg.h"
-#include "lac_sal_types.h"
 #include "icp_adf_accel_mgr.h"
-#include "sal_string_parse.h"
+#include "icp_adf_cfg.h"
+#include "lac_common.h"
 #include "lac_sal.h"
+#include "lac_sal_types.h"
+#include "sal_string_parse.h"
 
 CpaStatus
 cpaGetNumDevices(Cpa16U *numDevices)
@@ -94,39 +94,39 @@ cpaGetDeviceInfo(Cpa16U device, CpaDeviceInfo *deviceInfo)
 	if (enabledServices & SAL_SERVICE_TYPE_COMPRESSION) {
 		deviceInfo->dcEnabled =
 		    (((capabilitiesMask & ICP_ACCEL_CAPABILITIES_COMPRESSION) !=
-		      0) ?
-			 CPA_TRUE :
-			 CPA_FALSE);
+			 0) ?
+			    CPA_TRUE :
+			    CPA_FALSE);
 	}
 
 	/* Determine if Crypto service is enabled */
 	if (enabledServices & SAL_SERVICE_TYPE_CRYPTO) {
 		deviceInfo->cySymEnabled =
 		    (((capabilitiesMask &
-		       ICP_ACCEL_CAPABILITIES_CRYPTO_SYMMETRIC)) ?
-			 CPA_TRUE :
-			 CPA_FALSE);
+			 ICP_ACCEL_CAPABILITIES_CRYPTO_SYMMETRIC)) ?
+			    CPA_TRUE :
+			    CPA_FALSE);
 		deviceInfo->cyAsymEnabled =
 		    (((capabilitiesMask &
-		       ICP_ACCEL_CAPABILITIES_CRYPTO_ASYMMETRIC) != 0) ?
-			 CPA_TRUE :
-			 CPA_FALSE);
+			  ICP_ACCEL_CAPABILITIES_CRYPTO_ASYMMETRIC) != 0) ?
+			    CPA_TRUE :
+			    CPA_FALSE);
 	}
 	/* Determine if Crypto Sym service is enabled */
 	if (enabledServices & SAL_SERVICE_TYPE_CRYPTO_SYM) {
 		deviceInfo->cySymEnabled =
 		    (((capabilitiesMask &
-		       ICP_ACCEL_CAPABILITIES_CRYPTO_SYMMETRIC)) ?
-			 CPA_TRUE :
-			 CPA_FALSE);
+			 ICP_ACCEL_CAPABILITIES_CRYPTO_SYMMETRIC)) ?
+			    CPA_TRUE :
+			    CPA_FALSE);
 	}
 	/* Determine if Crypto Asym service is enabled */
 	if (enabledServices & SAL_SERVICE_TYPE_CRYPTO_ASYM) {
 		deviceInfo->cyAsymEnabled =
 		    (((capabilitiesMask &
-		       ICP_ACCEL_CAPABILITIES_CRYPTO_ASYMMETRIC) != 0) ?
-			 CPA_TRUE :
-			 CPA_FALSE);
+			  ICP_ACCEL_CAPABILITIES_CRYPTO_ASYMMETRIC) != 0) ?
+			    CPA_TRUE :
+			    CPA_FALSE);
 	}
 	deviceInfo->deviceMemorySizeAvailable = pDevice->deviceMemAvail;
 

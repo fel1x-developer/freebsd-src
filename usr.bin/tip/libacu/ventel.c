@@ -36,29 +36,39 @@
  * Routines for calling up on a Ventel Modem
  * The Ventel is expected to be strapped for local echo (just like uucp)
  */
-#include "tip.h"
-#include <termios.h>
 #include <sys/ioctl.h>
 
-#define	MAXRETRY	5
+#include <termios.h>
 
-static	int dialtimeout = 0;
-static	jmp_buf timeoutbuf;
+#include "tip.h"
 
-static void	echo(char *);
-static void	sigALRM(int);
-static int	gobble(char, char *);
-static int	vensync(int);
+#define MAXRETRY 5
+
+static int dialtimeout = 0;
+static jmp_buf timeoutbuf;
+
+static void echo(char *);
+static void sigALRM(int);
+static int gobble(char, char *);
+static int vensync(int);
 
 /*
  * some sleep calls have been replaced by this macro
  * because some ventel modems require two <cr>s in less than
  * a second in order to 'wake up'... yes, it is dirty...
  */
-#define delay(num,denom) busyloop(CPUSPEED*num/denom)
-#define CPUSPEED 1000000	/* VAX 780 is 1MIPS */
-#define DELAY(n) do { long N = (n); while (--N > 0); } while (0)
-#define busyloop(n) do { DELAY(n); } while (0)
+#define delay(num, denom) busyloop(CPUSPEED *num / denom)
+#define CPUSPEED 1000000 /* VAX 780 is 1MIPS */
+#define DELAY(n)                \
+	do {                    \
+		long N = (n);   \
+		while (--N > 0) \
+			;       \
+	} while (0)
+#define busyloop(n)       \
+	do {              \
+		DELAY(n); \
+	} while (0)
 
 int
 ven_dialer(char *num, char *acu)
@@ -66,7 +76,7 @@ ven_dialer(char *num, char *acu)
 	char *cp;
 	int connected = 0;
 	char *msg, line[80];
-	struct termios	cntrl;
+	struct termios cntrl;
 
 	/*
 	 * Get in synch with a couple of carriage returns
@@ -98,12 +108,12 @@ ven_dialer(char *num, char *acu)
 #ifdef ACULOG
 	if (dialtimeout) {
 		(void)snprintf(line, sizeof line, "%ld second dial timeout",
-			number(value(DIALTIMEOUT)));
+		    number(value(DIALTIMEOUT)));
 		logent(value(HOST), num, "ventel", line);
 	}
 #endif
 	if (dialtimeout)
-		ven_disconnect();	/* insurance */
+		ven_disconnect(); /* insurance */
 	if (connected || dialtimeout || !boolean(value(VERBOSE)))
 		return (connected);
 	/* call failed, parse response for user */
@@ -201,7 +211,7 @@ gobble(char match, char response[])
 	return (c == match);
 }
 
-#define min(a,b)	((a)>(b)?(b):(a))
+#define min(a, b) ((a) > (b) ? (b) : (a))
 /*
  * This convoluted piece of code attempts to get
  * the ventel in sync.  If you don't have FIONREAD
@@ -231,7 +241,7 @@ vensync(int fd)
 		 * so the modem can frame the incoming characters.
 		 */
 		write(fd, "\r", 1);
-		delay(1,10);
+		delay(1, 10);
 		write(fd, "\r", 1);
 		sleep(2);
 		if (ioctl(fd, FIONREAD, (caddr_t)&nread) < 0) {

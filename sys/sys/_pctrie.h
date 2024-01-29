@@ -40,7 +40,7 @@ struct pctrie_node;
  * Radix tree root.
  */
 struct pctrie {
-	struct pctrie_node	*pt_root;
+	struct pctrie_node *pt_root;
 };
 
 #endif /* !__SYS_PCTRIE_H_ */

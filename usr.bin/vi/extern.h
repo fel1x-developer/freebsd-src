@@ -37,8 +37,7 @@ int ex_cmd(SCR *);
 int ex_range(SCR *, EXCMD *, int *);
 int ex_is_abbrev(CHAR_T *, size_t);
 int ex_is_unmap(CHAR_T *, size_t);
-void ex_badaddr
-  (SCR *, EXCMDLIST const *, enum badaddr, enum nresult);
+void ex_badaddr(SCR *, EXCMDLIST const *, enum badaddr, enum nresult);
 int ex_abbr(SCR *, EXCMD *);
 int ex_unabbr(SCR *, EXCMD *);
 int ex_append(SCR *, EXCMD *);
@@ -71,8 +70,8 @@ int ex_display(SCR *, EXCMD *);
 int ex_edit(SCR *, EXCMD *);
 int ex_equal(SCR *, EXCMD *);
 int ex_file(SCR *, EXCMD *);
-int ex_filter(SCR *, 
-   EXCMD *, MARK *, MARK *, MARK *, CHAR_T *, enum filtertype);
+int ex_filter(SCR *, EXCMD *, MARK *, MARK *, MARK *, CHAR_T *,
+    enum filtertype);
 int ex_global(SCR *, EXCMD *);
 int ex_v(SCR *, EXCMD *);
 int ex_g_insdel(SCR *, lnop_t, recno_t);
@@ -124,8 +123,7 @@ int ex_stop(SCR *, EXCMD *);
 int ex_s(SCR *, EXCMD *);
 int ex_subagain(SCR *, EXCMD *);
 int ex_subtilde(SCR *, EXCMD *);
-int re_compile(SCR *,
-    CHAR_T *, size_t, CHAR_T **, size_t *, regex_t *, u_int);
+int re_compile(SCR *, CHAR_T *, size_t, CHAR_T **, size_t *, regex_t *, u_int);
 void re_error(SCR *, int, regex_t *);
 int ex_tag_first(SCR *, CHAR_T *);
 int ex_tag_push(SCR *, EXCMD *);
@@ -138,7 +136,7 @@ int ex_tag_top(SCR *, EXCMD *);
 int ex_tag_display(SCR *);
 int ex_tag_copy(SCR *, SCR *);
 int tagq_free(SCR *, TAGQ *);
-int tagq_push(SCR*, TAGQ*, int, int );
+int tagq_push(SCR *, TAGQ *, int, int);
 void tag_msg(SCR *, tagmsg_t, char *);
 int ex_tagf_alloc(SCR *, char *);
 int ex_tag_free(SCR *);
@@ -159,8 +157,7 @@ int ex_wn(SCR *, EXCMD *);
 int ex_wq(SCR *, EXCMD *);
 int ex_write(SCR *, EXCMD *);
 int ex_xit(SCR *, EXCMD *);
-int ex_writefp(SCR *,
-   char *, FILE *, MARK *, MARK *, u_long *, u_long *, int);
+int ex_writefp(SCR *, char *, FILE *, MARK *, MARK *, u_long *, u_long *, int);
 int ex_yank(SCR *, EXCMD *);
 int ex_z(SCR *, EXCMD *);
 #endif
@@ -250,8 +247,8 @@ int v_sentencef(SCR *, VICMD *);
 int v_sentenceb(SCR *, VICMD *);
 int v_status(SCR *, VICMD *);
 int v_tcmd(SCR *, VICMD *, ARG_CHAR_T, u_int);
-int v_txt(SCR *, VICMD *, MARK *,
-   const CHAR_T *, size_t, ARG_CHAR_T, recno_t, u_long, u_int32_t);
+int v_txt(SCR *, VICMD *, MARK *, const CHAR_T *, size_t, ARG_CHAR_T, recno_t,
+    u_long, u_int32_t);
 int v_txt_auto(SCR *, recno_t, TEXT *, size_t, TEXT *);
 int v_ulcase(SCR *, VICMD *);
 int v_mulcase(SCR *, VICMD *);
@@ -311,7 +308,7 @@ int vs_bg(SCR *);
 int vs_swap(SCR *, SCR **, char *);
 int vs_resize(SCR *, long, adj_t);
 #endif /* common.h */
-char * codeset(void);
+char *codeset(void);
 void conv_init(SCR *, SCR *);
 int conv_enc(SCR *, int, char *);
 void conv_end(SCR *);
@@ -415,17 +412,14 @@ int rcv_read(SCR *, FREF *);
 int screen_init(GS *, SCR *, SCR **);
 int screen_end(SCR *);
 SCR *screen_next(SCR *);
-int f_search(SCR *,
-   MARK *, MARK *, CHAR_T *, size_t, CHAR_T **, u_int);
-int b_search(SCR *,
-   MARK *, MARK *, CHAR_T *, size_t, CHAR_T **, u_int);
+int f_search(SCR *, MARK *, MARK *, CHAR_T *, size_t, CHAR_T **, u_int);
+int b_search(SCR *, MARK *, MARK *, CHAR_T *, size_t, CHAR_T **, u_int);
 void search_busy(SCR *, busy_t);
-int seq_set(SCR *, CHAR_T *,
-   size_t, CHAR_T *, size_t, CHAR_T *, size_t, seq_t, int);
+int seq_set(SCR *, CHAR_T *, size_t, CHAR_T *, size_t, CHAR_T *, size_t, seq_t,
+    int);
 int seq_delete(SCR *, CHAR_T *, size_t, seq_t);
 int seq_free(SEQ *);
-SEQ *seq_find
-  (SCR *, SEQ **, EVENT *, CHAR_T *, size_t, seq_t, int *);
+SEQ *seq_find(SCR *, SEQ **, EVENT *, CHAR_T *, size_t, seq_t, int *);
 void seq_close(GS *);
 int seq_dump(SCR *, seq_t, int);
 int seq_save(SCR *, FILE *, char *, seq_t);

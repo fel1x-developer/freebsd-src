@@ -89,7 +89,7 @@ ATF_TC_BODY(disallowed_sealing, tc)
 	close(fd);
 }
 
-#define	BUF_SIZE	1024
+#define BUF_SIZE 1024
 
 ATF_TC_WITHOUT_HEAD(write_seal);
 ATF_TC_BODY(write_seal, tc)
@@ -113,8 +113,8 @@ ATF_TC_BODY(write_seal, tc)
 	ATF_REQUIRE(write(fd, buf, BUF_SIZE) == -1);
 	ATF_REQUIRE(errno == EPERM);
 
-	ATF_REQUIRE(mmap(0, BUF_SIZE, (PROT_READ | PROT_WRITE), MAP_SHARED,
-	    fd, 0) == MAP_FAILED);
+	ATF_REQUIRE(mmap(0, BUF_SIZE, (PROT_READ | PROT_WRITE), MAP_SHARED, fd,
+			0) == MAP_FAILED);
 	ATF_REQUIRE(errno == EACCES);
 
 	close(fd);
@@ -155,8 +155,8 @@ ATF_TC_BODY(mmap_write_seal, tc)
 	ATF_REQUIRE(fcntl(fd, F_ADD_SEALS, F_SEAL_WRITE) == 0);
 
 	ATF_REQUIRE(munmap(paddr, BUF_SIZE) == 0);
-	ATF_REQUIRE(mmap(0, BUF_SIZE, (PROT_READ | PROT_WRITE), MAP_SHARED,
-	    fd, 0) == MAP_FAILED);
+	ATF_REQUIRE(mmap(0, BUF_SIZE, (PROT_READ | PROT_WRITE), MAP_SHARED, fd,
+			0) == MAP_FAILED);
 	ATF_REQUIRE(errno == EACCES);
 
 	/* Make sure we can still map privately r/w or shared r/o. */
@@ -196,12 +196,12 @@ ATF_TC_BODY(truncate_seals, tc)
 	ATF_REQUIRE(memfd_truncate_test(8, 4, F_SEAL_GROW) == 0);
 	ATF_REQUIRE(memfd_truncate_test(4, 8, F_SEAL_SHRINK) == 0);
 
-	ATF_REQUIRE(memfd_truncate_test(4, 8, F_SEAL_GROW | F_SEAL_SHRINK) ==
-	    EPERM);
-	ATF_REQUIRE(memfd_truncate_test(8, 4, F_SEAL_GROW | F_SEAL_SHRINK) ==
-	    EPERM);
-	ATF_REQUIRE(memfd_truncate_test(4, 4, F_SEAL_GROW | F_SEAL_SHRINK) ==
-	    0);
+	ATF_REQUIRE(
+	    memfd_truncate_test(4, 8, F_SEAL_GROW | F_SEAL_SHRINK) == EPERM);
+	ATF_REQUIRE(
+	    memfd_truncate_test(8, 4, F_SEAL_GROW | F_SEAL_SHRINK) == EPERM);
+	ATF_REQUIRE(
+	    memfd_truncate_test(4, 4, F_SEAL_GROW | F_SEAL_SHRINK) == 0);
 }
 
 ATF_TC_WITHOUT_HEAD(get_seals);
@@ -242,8 +242,8 @@ ATF_TC_BODY(dup_seals, tc)
 	ATF_REQUIRE(write(fdx, buf, sizeof(buf)) == -1);
 	ATF_REQUIRE(errno == EPERM);
 
-	ATF_REQUIRE(mmap(0, BUF_SIZE, (PROT_READ | PROT_WRITE), MAP_SHARED,
-	    fdx, 0) == MAP_FAILED);
+	ATF_REQUIRE(mmap(0, BUF_SIZE, (PROT_READ | PROT_WRITE), MAP_SHARED, fdx,
+			0) == MAP_FAILED);
 	ATF_REQUIRE(errno == EACCES);
 
 	close(fd);

@@ -1,14 +1,14 @@
 /***************************************************************************
  *
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2007-2023 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -18,7 +18,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -30,7 +30,7 @@
  *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ *
  *
  ***************************************************************************/
 
@@ -86,25 +86,25 @@ extern "C" {
  *
  *****************************************************************************/
 typedef struct _CpaCyDhPhase1KeyGenOpData {
-    CpaFlatBuffer primeP;
-    /**< Flat buffer containing a pointer to the random odd prime number (p).
-     * The bit-length of this number may be one of 768, 1024, 1536, 2048,
-     * 3072, 4096 or 8192.
-     */
-    CpaFlatBuffer baseG;
-    /**< Flat buffer containing a pointer to base (g). This MUST comply with
-     * the following:
-     *    0 < g < p.
-     */
-    CpaFlatBuffer privateValueX;
-    /**< Flat buffer containing a pointer to the private value (x). This is a
-     * random value which MUST satisfy the following condition:
-     *     0 < PrivateValueX < (PrimeP - 1)
-     *
-     * Refer to PKCS #3: Diffie-Hellman Key-Agreement Standard for details.
-     * The client creating this data MUST ensure the compliance of this value
-     * with the standard. Note: This value is also needed to complete local
-     * phase 2 Diffie-Hellman operation.*/
+	CpaFlatBuffer primeP;
+	/**< Flat buffer containing a pointer to the random odd prime number
+	 * (p). The bit-length of this number may be one of 768, 1024, 1536,
+	 * 2048, 3072, 4096 or 8192.
+	 */
+	CpaFlatBuffer baseG;
+	/**< Flat buffer containing a pointer to base (g). This MUST comply with
+	 * the following:
+	 *    0 < g < p.
+	 */
+	CpaFlatBuffer privateValueX;
+	/**< Flat buffer containing a pointer to the private value (x). This is
+	 * a random value which MUST satisfy the following condition: 0 <
+	 * PrivateValueX < (PrimeP - 1)
+	 *
+	 * Refer to PKCS #3: Diffie-Hellman Key-Agreement Standard for details.
+	 * The client creating this data MUST ensure the compliance of this
+	 * value with the standard. Note: This value is also needed to complete
+	 * local phase 2 Diffie-Hellman operation.*/
 } CpaCyDhPhase1KeyGenOpData;
 
 /**
@@ -128,20 +128,19 @@ typedef struct _CpaCyDhPhase1KeyGenOpData {
  *
  *****************************************************************************/
 typedef struct _CpaCyDhPhase2SecretKeyGenOpData {
-    CpaFlatBuffer primeP;
-    /**< Flat buffer containing a pointer to the random odd prime number (p).
-     * The bit-length of this number may be one of 768, 1024, 1536, 2048,
-     * 3072, 4096 or 8192.
-     * This SHOULD be same prime number as was used in the phase 1 key
-     * generation operation. */
-    CpaFlatBuffer remoteOctetStringPV;
-    /**< Flat buffer containing a pointer to the remote entity
-     * octet string Public Value (PV). */
-    CpaFlatBuffer privateValueX;
-    /**< Flat buffer containing a pointer to the private value (x). This
-     * value may have been used in a call to the cpaCyDhKeyGenPhase1 function.
-     * This is a random value which MUST satisfy the following condition:
-     * 0 < privateValueX < (primeP - 1). */
+	CpaFlatBuffer primeP;
+	/**< Flat buffer containing a pointer to the random odd prime number
+	 * (p). The bit-length of this number may be one of 768, 1024, 1536,
+	 * 2048, 3072, 4096 or 8192. This SHOULD be same prime number as was
+	 * used in the phase 1 key generation operation. */
+	CpaFlatBuffer remoteOctetStringPV;
+	/**< Flat buffer containing a pointer to the remote entity
+	 * octet string Public Value (PV). */
+	CpaFlatBuffer privateValueX;
+	/**< Flat buffer containing a pointer to the private value (x). This
+	 * value may have been used in a call to the cpaCyDhKeyGenPhase1
+	 * function. This is a random value which MUST satisfy the following
+	 * condition: 0 < privateValueX < (primeP - 1). */
 } CpaCyDhPhase2SecretKeyGenOpData;
 
 /**
@@ -157,30 +156,30 @@ typedef struct _CpaCyDhPhase2SecretKeyGenOpData {
  *      collected per instance.
  ****************************************************************************/
 typedef struct _CpaCyDhStats {
-    Cpa32U numDhPhase1KeyGenRequests;
-    /**< Total number of successful Diffie-Hellman phase 1 key
-     * generation requests. */
-    Cpa32U numDhPhase1KeyGenRequestErrors;
-    /**< Total number of Diffie-Hellman phase 1 key generation requests
-     * that had an error and could not be processed. */
-    Cpa32U numDhPhase1KeyGenCompleted;
-    /**< Total number of Diffie-Hellman phase 1 key generation operations
-     * that completed successfully. */
-    Cpa32U numDhPhase1KeyGenCompletedErrors;
-    /**< Total number of Diffie-Hellman phase 1 key generation operations
-     * that could not be completed successfully due to errors. */
-    Cpa32U numDhPhase2KeyGenRequests;
-    /**< Total number of successful Diffie-Hellman phase 2 key
-     * generation requests. */
-    Cpa32U numDhPhase2KeyGenRequestErrors;
-    /**< Total number of Diffie-Hellman phase 2 key generation requests
-     * that had an error and could not be processed. */
-    Cpa32U numDhPhase2KeyGenCompleted;
-    /**< Total number of Diffie-Hellman phase 2 key generation operations
-     * that completed successfully. */
-    Cpa32U numDhPhase2KeyGenCompletedErrors;
-    /**< Total number of Diffie-Hellman phase 2 key generation operations
-     * that could not be completed successfully due to errors. */
+	Cpa32U numDhPhase1KeyGenRequests;
+	/**< Total number of successful Diffie-Hellman phase 1 key
+	 * generation requests. */
+	Cpa32U numDhPhase1KeyGenRequestErrors;
+	/**< Total number of Diffie-Hellman phase 1 key generation requests
+	 * that had an error and could not be processed. */
+	Cpa32U numDhPhase1KeyGenCompleted;
+	/**< Total number of Diffie-Hellman phase 1 key generation operations
+	 * that completed successfully. */
+	Cpa32U numDhPhase1KeyGenCompletedErrors;
+	/**< Total number of Diffie-Hellman phase 1 key generation operations
+	 * that could not be completed successfully due to errors. */
+	Cpa32U numDhPhase2KeyGenRequests;
+	/**< Total number of successful Diffie-Hellman phase 2 key
+	 * generation requests. */
+	Cpa32U numDhPhase2KeyGenRequestErrors;
+	/**< Total number of Diffie-Hellman phase 2 key generation requests
+	 * that had an error and could not be processed. */
+	Cpa32U numDhPhase2KeyGenCompleted;
+	/**< Total number of Diffie-Hellman phase 2 key generation operations
+	 * that completed successfully. */
+	Cpa32U numDhPhase2KeyGenCompletedErrors;
+	/**< Total number of Diffie-Hellman phase 2 key generation operations
+	 * that could not be completed successfully due to errors. */
 } CpaCyDhStats CPA_DEPRECATED;
 
 /**
@@ -194,30 +193,30 @@ typedef struct _CpaCyDhStats {
  *      collected per instance.
  ****************************************************************************/
 typedef struct _CpaCyDhStats64 {
-    Cpa64U numDhPhase1KeyGenRequests;
-    /**< Total number of successful Diffie-Hellman phase 1 key
-     * generation requests. */
-    Cpa64U numDhPhase1KeyGenRequestErrors;
-    /**< Total number of Diffie-Hellman phase 1 key generation requests
-     * that had an error and could not be processed. */
-    Cpa64U numDhPhase1KeyGenCompleted;
-    /**< Total number of Diffie-Hellman phase 1 key generation operations
-     * that completed successfully. */
-    Cpa64U numDhPhase1KeyGenCompletedErrors;
-    /**< Total number of Diffie-Hellman phase 1 key generation operations
-     * that could not be completed successfully due to errors. */
-    Cpa64U numDhPhase2KeyGenRequests;
-    /**< Total number of successful Diffie-Hellman phase 2 key
-     * generation requests. */
-    Cpa64U numDhPhase2KeyGenRequestErrors;
-    /**< Total number of Diffie-Hellman phase 2 key generation requests
-     * that had an error and could not be processed. */
-    Cpa64U numDhPhase2KeyGenCompleted;
-    /**< Total number of Diffie-Hellman phase 2 key generation operations
-     * that completed successfully. */
-    Cpa64U numDhPhase2KeyGenCompletedErrors;
-    /**< Total number of Diffie-Hellman phase 2 key generation operations
-     * that could not be completed successfully due to errors. */
+	Cpa64U numDhPhase1KeyGenRequests;
+	/**< Total number of successful Diffie-Hellman phase 1 key
+	 * generation requests. */
+	Cpa64U numDhPhase1KeyGenRequestErrors;
+	/**< Total number of Diffie-Hellman phase 1 key generation requests
+	 * that had an error and could not be processed. */
+	Cpa64U numDhPhase1KeyGenCompleted;
+	/**< Total number of Diffie-Hellman phase 1 key generation operations
+	 * that completed successfully. */
+	Cpa64U numDhPhase1KeyGenCompletedErrors;
+	/**< Total number of Diffie-Hellman phase 1 key generation operations
+	 * that could not be completed successfully due to errors. */
+	Cpa64U numDhPhase2KeyGenRequests;
+	/**< Total number of successful Diffie-Hellman phase 2 key
+	 * generation requests. */
+	Cpa64U numDhPhase2KeyGenRequestErrors;
+	/**< Total number of Diffie-Hellman phase 2 key generation requests
+	 * that had an error and could not be processed. */
+	Cpa64U numDhPhase2KeyGenCompleted;
+	/**< Total number of Diffie-Hellman phase 2 key generation operations
+	 * that completed successfully. */
+	Cpa64U numDhPhase2KeyGenCompletedErrors;
+	/**< Total number of Diffie-Hellman phase 2 key generation operations
+	 * that could not be completed successfully due to errors. */
 } CpaCyDhStats64;
 
 /**
@@ -300,12 +299,10 @@ typedef struct _CpaCyDhStats64 {
  *      CpaCyDhPhase1KeyGenOpData
  *
  *****************************************************************************/
-CpaStatus
-cpaCyDhKeyGenPhase1(const CpaInstanceHandle instanceHandle,
-        const CpaCyGenFlatBufCbFunc pDhPhase1Cb,
-        void *pCallbackTag,
-        const CpaCyDhPhase1KeyGenOpData *pPhase1KeyGenData,
-        CpaFlatBuffer *pLocalOctetStringPV);
+CpaStatus cpaCyDhKeyGenPhase1(const CpaInstanceHandle instanceHandle,
+    const CpaCyGenFlatBufCbFunc pDhPhase1Cb, void *pCallbackTag,
+    const CpaCyDhPhase1KeyGenOpData *pPhase1KeyGenData,
+    CpaFlatBuffer *pLocalOctetStringPV);
 
 /**
  *****************************************************************************
@@ -384,12 +381,10 @@ cpaCyDhKeyGenPhase1(const CpaInstanceHandle instanceHandle,
  *      CpaCyDhPhase2SecretKeyGenOpData
  *
  *****************************************************************************/
-CpaStatus
-cpaCyDhKeyGenPhase2Secret(const CpaInstanceHandle instanceHandle,
-        const CpaCyGenFlatBufCbFunc pDhPhase2Cb,
-        void *pCallbackTag,
-        const CpaCyDhPhase2SecretKeyGenOpData *pPhase2SecretKeyGenData,
-        CpaFlatBuffer *pOctetStringSecretKey);
+CpaStatus cpaCyDhKeyGenPhase2Secret(const CpaInstanceHandle instanceHandle,
+    const CpaCyGenFlatBufCbFunc pDhPhase2Cb, void *pCallbackTag,
+    const CpaCyDhPhase2SecretKeyGenOpData *pPhase2SecretKeyGenData,
+    CpaFlatBuffer *pOctetStringSecretKey);
 
 /**
  *****************************************************************************
@@ -446,9 +441,8 @@ cpaCyDhKeyGenPhase2Secret(const CpaInstanceHandle instanceHandle,
  * @see
  *      CpaCyDhStats
  *****************************************************************************/
-CpaStatus CPA_DEPRECATED
-cpaCyDhQueryStats(const CpaInstanceHandle instanceHandle,
-        struct _CpaCyDhStats *pDhStats);
+CpaStatus CPA_DEPRECATED cpaCyDhQueryStats(
+    const CpaInstanceHandle instanceHandle, struct _CpaCyDhStats *pDhStats);
 
 /**
  *****************************************************************************
@@ -501,9 +495,8 @@ cpaCyDhQueryStats(const CpaInstanceHandle instanceHandle,
  * @see
  *      CpaCyDhStats64
  *****************************************************************************/
-CpaStatus
-cpaCyDhQueryStats64(const CpaInstanceHandle instanceHandle,
-        CpaCyDhStats64 *pDhStats);
+CpaStatus cpaCyDhQueryStats64(const CpaInstanceHandle instanceHandle,
+    CpaCyDhStats64 *pDhStats);
 
 /*****************************************************************************/
 

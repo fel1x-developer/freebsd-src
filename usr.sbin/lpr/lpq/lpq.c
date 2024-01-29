@@ -30,7 +30,7 @@
  * SUCH DAMAGE.
  */
 
-#include "lp.cdefs.h"		/* A cross-platform version of <sys/cdefs.h> */
+#include "lp.cdefs.h" /* A cross-platform version of <sys/cdefs.h> */
 /*
  * Spool Queue examination program
  *
@@ -55,16 +55,16 @@
 #include "lp.local.h"
 #include "pathnames.h"
 
-int	 requ[MAXREQUESTS];	/* job number of spool entries */
-int	 requests;		/* # of spool requests */
-char	*user[MAXUSERS];	/* users to process */
-int	 users;			/* # of users in user array */
+int requ[MAXREQUESTS]; /* job number of spool entries */
+int requests;	       /* # of spool requests */
+char *user[MAXUSERS];  /* users to process */
+int users;	       /* # of users in user array */
 
-uid_t	uid, euid;
+uid_t uid, euid;
 
-static int	 ckqueue(const struct printer *_pp);
-static void	 usage(void);
-int 		 main(int _argc, char **_argv);
+static int ckqueue(const struct printer *_pp);
+static void usage(void);
+int main(int _argc, char **_argv);
 
 int
 main(int argc, char **argv)
@@ -84,14 +84,14 @@ main(int argc, char **argv)
 
 	aflag = lflag = 0;
 	while ((ch = getopt(argc, argv, "alP:")) != -1)
-		switch((char)ch) {
+		switch ((char)ch) {
 		case 'a':
 			++aflag;
 			break;
-		case 'l':			/* long output */
+		case 'l': /* long output */
 			++lflag;
 			break;
-		case 'P':		/* printer name */
+		case 'P': /* printer name */
 			printer = optarg;
 			break;
 		case '?':
@@ -107,8 +107,7 @@ main(int argc, char **argv)
 			if (requests >= MAXREQUESTS)
 				fatal(0, "too many requests");
 			requ[requests++] = atoi(*argv);
-		}
-		else {
+		} else {
 			if (users >= MAXUSERS)
 				fatal(0, "too many users");
 			user[users++] = *argv;
@@ -128,12 +127,12 @@ main(int argc, char **argv)
 			}
 			do {
 				more = nextprinter(pp, &status);
-looperr:
+			looperr:
 				switch (status) {
 				case PCAPERR_TCOPEN:
 					printf("warning: %s: unresolved "
 					       "tc= reference(s) ",
-					       pp->printer);
+					    pp->printer);
 				case PCAPERR_SUCCESS:
 					break;
 				default:
@@ -166,9 +165,9 @@ ckqueue(const struct printer *pp)
 		return (-1);
 	while ((d = readdir(dirp)) != NULL) {
 		if (d->d_name[0] != 'c' || d->d_name[1] != 'f')
-			continue;	/* daemon control files only */
+			continue; /* daemon control files only */
 		closedir(dirp);
-		return (1);		/* found something */
+		return (1); /* found something */
 	}
 	closedir(dirp);
 	return (0);
@@ -178,6 +177,6 @@ static void
 usage(void)
 {
 	fprintf(stderr,
-	"usage: lpq [-a] [-l] [-Pprinter] [user ...] [job ...]\n");
+	    "usage: lpq [-a] [-l] [-Pprinter] [user ...] [job ...]\n");
 	exit(1);
 }

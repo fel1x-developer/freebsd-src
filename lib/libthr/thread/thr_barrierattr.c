@@ -9,7 +9,7 @@
  * are met:
  * 1. Redistributions of source code must retain the above copyright
  *    notice(s), this list of conditions and the following disclaimer as
- *    the first lines of this file unmodified other than the possible 
+ *    the first lines of this file unmodified other than the possible
  *    addition of one or more copyright notices.
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice(s), this list of conditions and the following disclaimer in the
@@ -29,20 +29,21 @@
  */
 
 #include <sys/cdefs.h>
-#include "namespace.h"
-#include <errno.h>
-#include <stdlib.h>
-#include <pthread.h>
-#include "un-namespace.h"
 
+#include <errno.h>
+#include <pthread.h>
+#include <stdlib.h>
+
+#include "namespace.h"
 #include "thr_private.h"
+#include "un-namespace.h"
 
 __weak_reference(_pthread_barrierattr_destroy, pthread_barrierattr_destroy);
 __weak_reference(_pthread_barrierattr_init, pthread_barrierattr_init);
 __weak_reference(_pthread_barrierattr_setpshared,
-	pthread_barrierattr_setpshared);
+    pthread_barrierattr_setpshared);
 __weak_reference(_pthread_barrierattr_getpshared,
-	pthread_barrierattr_getpshared);
+    pthread_barrierattr_getpshared);
 
 int
 _pthread_barrierattr_destroy(pthread_barrierattr_t *attr)
@@ -56,8 +57,8 @@ _pthread_barrierattr_destroy(pthread_barrierattr_t *attr)
 }
 
 int
-_pthread_barrierattr_getpshared(const pthread_barrierattr_t * __restrict attr,
-    int * __restrict pshared)
+_pthread_barrierattr_getpshared(const pthread_barrierattr_t *__restrict attr,
+    int *__restrict pshared)
 {
 
 	if (attr == NULL || *attr == NULL)
@@ -87,7 +88,7 @@ _pthread_barrierattr_setpshared(pthread_barrierattr_t *attr, int pshared)
 
 	if (attr == NULL || *attr == NULL ||
 	    (pshared != PTHREAD_PROCESS_PRIVATE &&
-	    pshared != PTHREAD_PROCESS_SHARED))
+		pshared != PTHREAD_PROCESS_SHARED))
 		return (EINVAL);
 
 	(*attr)->pshared = pshared;

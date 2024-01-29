@@ -28,8 +28,8 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
-#ifndef	__IF_ATH_TSF_H__
-#define	__IF_ATH_TSF_H__
+#ifndef __IF_ATH_TSF_H__
+#define __IF_ATH_TSF_H__
 
 /*
  * Extend 15-bit time stamp from rx descriptor to
@@ -41,7 +41,7 @@ ath_extend_tsf15(u_int32_t rstamp, u_int64_t tsf)
 	if ((tsf & 0x7fff) < rstamp)
 		tsf -= 0x8000;
 
-	return ((tsf &~ 0x7fff) | rstamp);
+	return ((tsf & ~0x7fff) | rstamp);
 }
 
 /*

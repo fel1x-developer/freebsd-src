@@ -25,27 +25,28 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- * 
+ *
  * Matthew Jacob
  * Feral Software
  * mjacob@feral.com
  */
-#include <unistd.h>
+#include <sys/ioctl.h>
+
+#include <cam/scsi/scsi_all.h>
+#include <cam/scsi/scsi_enc.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <stdio.h>
-#include <fcntl.h>
-#include <errno.h>
+#include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
 #include <unistd.h>
-#include <sys/ioctl.h>
-#include <cam/scsi/scsi_all.h>
-#include <cam/scsi/scsi_enc.h>
 
-#define	ALLSTAT (SES_ENCSTAT_UNRECOV | SES_ENCSTAT_CRITICAL | \
-	SES_ENCSTAT_NONCRITICAL | SES_ENCSTAT_INFO)
+#define ALLSTAT                                       \
+	(SES_ENCSTAT_UNRECOV | SES_ENCSTAT_CRITICAL | \
+	    SES_ENCSTAT_NONCRITICAL | SES_ENCSTAT_INFO)
 
 /*
  * Monitor named SES devices and note (via syslog) any changes in status.
@@ -90,7 +91,7 @@ main(int a, char **v)
 		return (1);
 	}
 	for (dev = optind; dev < a; dev++)
-		carray[dev] = (encioc_enc_status_t) -1;
+		carray[dev] = (encioc_enc_status_t)-1;
 
 	/*
 	 * Check to make sure we can open all devices
@@ -102,11 +103,11 @@ main(int a, char **v)
 			return (1);
 		}
 		if (ioctl(fd, ENCIOC_INIT, NULL) < 0) {
-			fprintf(stderr, "%s: ENCIOC_INIT fails- %s\n",
-			    v[dev], strerror(errno));
+			fprintf(stderr, "%s: ENCIOC_INIT fails- %s\n", v[dev],
+			    strerror(errno));
 			return (1);
 		}
-		(void) close(fd);
+		(void)close(fd);
 	}
 	if (nodaemon == 0) {
 		if (daemon(0, 0) < 0) {
@@ -115,7 +116,7 @@ main(int a, char **v)
 		}
 		openlog("sesd", LOG_CONS, LOG_USER);
 	} else {
-		openlog("sesd", LOG_CONS|LOG_PERROR, LOG_USER);
+		openlog("sesd", LOG_CONS | LOG_PERROR, LOG_USER);
 	}
 
 	for (;;) {
@@ -129,29 +130,30 @@ main(int a, char **v)
 			/*
 			 * Get the actual current enclosure status.
 			 */
-			if (ioctl(fd, ENCIOC_GETENCSTAT, (caddr_t) &stat) < 0) {
-				syslog(LOG_ERR,
-				    "%s: ENCIOC_GETENCSTAT- %m", v[dev]);
-				(void) close(fd);
+			if (ioctl(fd, ENCIOC_GETENCSTAT, (caddr_t)&stat) < 0) {
+				syslog(LOG_ERR, "%s: ENCIOC_GETENCSTAT- %m",
+				    v[dev]);
+				(void)close(fd);
 				continue;
 			}
 			if (stat != 0 && clear) {
 				nstat = 0;
 				if (ioctl(fd, ENCIOC_SETENCSTAT,
-				    (caddr_t) &nstat) < 0) {
+					(caddr_t)&nstat) < 0) {
 					syslog(LOG_ERR,
-					    "%s: ENCIOC_SETENCSTAT- %m", v[dev]);
+					    "%s: ENCIOC_SETENCSTAT- %m",
+					    v[dev]);
 				}
 			}
-			(void) close(fd);
+			(void)close(fd);
 
 			if (stat == carray[dev])
 				continue;
 
 			carray[dev] = stat;
 			if ((stat & ALLSTAT) == 0) {
-				syslog(LOG_NOTICE,
-				    "%s: Enclosure Status OK", v[dev]);
+				syslog(LOG_NOTICE, "%s: Enclosure Status OK",
+				    v[dev]);
 			}
 			if (stat & SES_ENCSTAT_INFO) {
 				syslog(LOG_NOTICE,
@@ -162,12 +164,12 @@ main(int a, char **v)
 				    "%s: Enclosure Non-Critical", v[dev]);
 			}
 			if (stat & SES_ENCSTAT_CRITICAL) {
-				syslog(LOG_CRIT,
-				    "%s: Enclosure Critical", v[dev]);
+				syslog(LOG_CRIT, "%s: Enclosure Critical",
+				    v[dev]);
 			}
 			if (stat & SES_ENCSTAT_UNRECOV) {
-				syslog(LOG_ALERT,
-				    "%s: Enclosure Unrecoverable", v[dev]);
+				syslog(LOG_ALERT, "%s: Enclosure Unrecoverable",
+				    v[dev]);
 			}
 		}
 		sleep(polltime);

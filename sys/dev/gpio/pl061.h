@@ -27,27 +27,27 @@
  */
 
 #ifndef __DEV_PL061_H__
-#define	__DEV_PL061_H__
+#define __DEV_PL061_H__
 
 DECLARE_CLASS(pl061_driver);
 
-#define PL061_NUM_GPIO		8
+#define PL061_NUM_GPIO 8
 
 struct pl061_pin_irqsrc {
-	struct intr_irqsrc	isrc;
-	uint32_t		irq;
-	uint32_t 		mode;
+	struct intr_irqsrc isrc;
+	uint32_t irq;
+	uint32_t mode;
 };
 
 struct pl061_softc {
-	device_t		sc_dev;
-	device_t		sc_busdev;
-	struct mtx		sc_mtx;
-	struct resource		*sc_mem_res;
-	struct resource		*sc_irq_res;
-	void			*sc_irq_hdlr;
-	int			sc_mem_rid;
-	int			sc_irq_rid;
+	device_t sc_dev;
+	device_t sc_busdev;
+	struct mtx sc_mtx;
+	struct resource *sc_mem_res;
+	struct resource *sc_irq_res;
+	void *sc_irq_hdlr;
+	int sc_mem_rid;
+	int sc_irq_rid;
 	struct pl061_pin_irqsrc sc_isrcs[PL061_NUM_GPIO];
 };
 

@@ -46,19 +46,15 @@
 #include <string.h>
 #include <unistd.h>
 
-#define	SBUFLEN	128
-#define	USAGE \
+#define SBUFLEN 128
+#define USAGE \
 	"usage: ktrdump [-cflqrtH] [-i ktrfile] [-M core] [-N system] [-o outfile]\n"
 
 static void usage(void) __dead2;
 
-static struct nlist nl[] = {
-	{ .n_name = "_ktr_version" },
-	{ .n_name = "_ktr_entries" },
-	{ .n_name = "_ktr_idx" },
-	{ .n_name = "_ktr_buf" },
-	{ .n_name = NULL }
-};
+static struct nlist nl[] = { { .n_name = "_ktr_version" },
+	{ .n_name = "_ktr_entries" }, { .n_name = "_ktr_idx" },
+	{ .n_name = "_ktr_buf" }, { .n_name = NULL } };
 
 static int cflag;
 static int fflag;
@@ -116,8 +112,8 @@ main(int ac, char **av)
 			break;
 		case 'N':
 		case 'e':
-			if (strlcpy(execfile, optarg, sizeof(execfile))
-			    >= sizeof(execfile))
+			if (strlcpy(execfile, optarg, sizeof(execfile)) >=
+			    sizeof(execfile))
 				errx(1, "%s: File name too long", optarg);
 			Nflag = 1;
 			break;
@@ -130,16 +126,15 @@ main(int ac, char **av)
 				err(1, "%s", optarg);
 			cap_rights_init(&rights, CAP_FSTAT, CAP_MMAP_R);
 			if (caph_rights_limit(in, &rights) < 0)
-				err(1, "unable to limit rights for %s",
-				    optarg);
+				err(1, "unable to limit rights for %s", optarg);
 			break;
 		case 'l':
 			lflag = 1;
 			break;
 		case 'M':
 		case 'm':
-			if (strlcpy(corefile, optarg, sizeof(corefile))
-			    >= sizeof(corefile))
+			if (strlcpy(corefile, optarg, sizeof(corefile)) >=
+			    sizeof(corefile))
 				errx(1, "%s: File name too long", optarg);
 			Mflag = 1;
 			break;
@@ -179,7 +174,7 @@ main(int ac, char **av)
 	 * the trace buffer.
 	 */
 	if ((kd = kvm_openfiles(Nflag ? execfile : NULL,
-	    Mflag ? corefile : NULL, NULL, O_RDONLY, errbuf)) == NULL)
+		 Mflag ? corefile : NULL, NULL, O_RDONLY, errbuf)) == NULL)
 		errx(1, "%s", errbuf);
 
 	/*
@@ -216,14 +211,14 @@ main(int ac, char **av)
 		if (buf == MAP_FAILED)
 			errx(1, "mmap");
 	} else {
-		if (kvm_read(kd, nl[1].n_value, &entries, sizeof(entries))
-		    == -1)
+		if (kvm_read(kd, nl[1].n_value, &entries, sizeof(entries)) ==
+		    -1)
 			errx(1, "%s", kvm_geterr(kd));
 		if ((buf = malloc(sizeof(*buf) * entries)) == NULL)
 			err(1, NULL);
 		if (kvm_read(kd, nl[2].n_value, &index, sizeof(index)) == -1 ||
-		    kvm_read(kd, nl[3].n_value, &bufptr,
-		    sizeof(bufptr)) == -1 ||
+		    kvm_read(kd, nl[3].n_value, &bufptr, sizeof(bufptr)) ==
+			-1 ||
 		    kvm_read(kd, bufptr, buf, sizeof(*buf) * entries) == -1 ||
 		    kvm_read(kd, nl[2].n_value, &index2, sizeof(index2)) == -1)
 			errx(1, "%s", kvm_geterr(kd));
@@ -285,30 +280,49 @@ dump_entries:
 	for (;;) {
 		if (buf[i].ktr_desc == NULL)
 			break;
-		if (kvm_read(kd, (u_long)buf[i].ktr_desc, desc,
-		    sizeof(desc)) == -1)
+		if (kvm_read(kd, (u_long)buf[i].ktr_desc, desc, sizeof(desc)) ==
+		    -1)
 			errx(1, "%s", kvm_geterr(kd));
 		desc[sizeof(desc) - 1] = '\0';
 		parm = 0;
 		for (p = desc; (c = *p++) != '\0';) {
 			if (c != '%')
 				continue;
-next:			if ((c = *p++) == '\0')
+		next:
+			if ((c = *p++) == '\0')
 				break;
 			if (c == '%')
 				continue;
 			if (parm == KTR_PARMS)
 				errx(1, "too many parameters in \"%s\"", desc);
 			switch (c) {
-			case '0': case '1': case '2': case '3': case '4':
-			case '5': case '6': case '7': case '8': case '9':
-			case '#': case '-': case ' ': case '+': case '\'':
-			case 'h': case 'l': case 'j': case 't': case 'z':
-			case 'q': case 'L': case '.':
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+			case '#':
+			case '-':
+			case ' ':
+			case '+':
+			case '\'':
+			case 'h':
+			case 'l':
+			case 'j':
+			case 't':
+			case 'z':
+			case 'q':
+			case 'L':
+			case '.':
 				goto next;
 			case 's':
 				if (kvm_read(kd, (u_long)buf[i].ktr_parms[parm],
-				    sbuf[parm], sizeof(sbuf[parm])) == -1)
+					sbuf[parm], sizeof(sbuf[parm])) == -1)
 					strcpy(sbuf[parm], "(null)");
 				sbuf[parm][sizeof(sbuf[0]) - 1] = '\0';
 				parms[parm] = (u_long)sbuf[parm];
@@ -328,15 +342,15 @@ next:			if ((c = *p++) == '\0')
 			if (rflag) {
 				if (tlast == UINTPTR_MAX)
 					tlast = tnow;
-				fprintf(out, "%16ju ", !iflag ? tlast - tnow :
-				    tnow - tlast);
+				fprintf(out, "%16ju ",
+				    !iflag ? tlast - tnow : tnow - tlast);
 				tlast = tnow;
 			} else
 				fprintf(out, "%16ju ", tnow);
 		}
 		if (fflag) {
 			if (kvm_read(kd, (u_long)buf[i].ktr_file, fbuf,
-			    sizeof(fbuf)) == -1)
+				sizeof(fbuf)) == -1)
 				strcpy(fbuf, "(null)");
 			snprintf(obuf, sizeof(obuf), "%s:%d", fbuf,
 			    buf[i].ktr_line);
@@ -380,7 +394,7 @@ next:			if ((c = *p++) == '\0')
 		while (index == index2) {
 			usleep(50 * 1000);
 			if (kvm_read(kd, nl[2].n_value, &index2,
-			    sizeof(index2)) == -1)
+				sizeof(index2)) == -1)
 				errx(1, "%s", kvm_geterr(kd));
 		}
 		i = index;

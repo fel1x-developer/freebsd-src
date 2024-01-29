@@ -25,9 +25,9 @@
  */
 #include <sys/cdefs.h>
 #define NEED_BRSSL_H
-#include "libsecureboot-priv.h"
 #include <brssl.h>
 
+#include "libsecureboot-priv.h"
 
 static int
 is_ign(int c)
@@ -35,9 +35,8 @@ is_ign(int c)
 	if (c == 0) {
 		return (0);
 	}
-	if (c <= 32 || c == '-' || c == '_' || c == '.'
-		|| c == '/' || c == '+' || c == ':')
-	{
+	if (c <= 32 || c == '-' || c == '_' || c == '.' || c == '/' ||
+	    c == '+' || c == ':') {
 		return (1);
 	}
 	return (0);
@@ -58,7 +57,7 @@ next_char(const char **ps, const char *limit)
 		if (*ps == limit) {
 			return (0);
 		}
-		c = *(*ps) ++;
+		c = *(*ps)++;
 		if (c == 0) {
 			return (0);
 		}
@@ -111,10 +110,10 @@ looks_like_DER(const unsigned char *buf, size_t len)
 	if (len < 2) {
 		return (0);
 	}
-	if (*buf ++ != 0x30) {
+	if (*buf++ != 0x30) {
 		return (0);
 	}
-	fb = *buf ++;
+	fb = *buf++;
 	len -= 2;
 	if (fb < 0x80) {
 		return ((size_t)fb == len);
@@ -127,11 +126,11 @@ looks_like_DER(const unsigned char *buf, size_t len)
 		}
 		len -= (size_t)fb;
 		dlen = 0;
-		while (fb -- > 0) {
+		while (fb-- > 0) {
 			if (dlen > (len >> 8)) {
 				return (0);
 			}
-			dlen = (dlen << 8) + (size_t)*buf ++;
+			dlen = (dlen << 8) + (size_t)*buf++;
 		}
 		return (dlen == len);
 	}
@@ -223,7 +222,7 @@ decode_pem(const void *src, size_t len, size_t *num)
 		}
 	}
 	if (inobj) {
-	    ve_error_set("ERROR: unfinished PEM object");
+		ve_error_set("ERROR: unfinished PEM object");
 		xfree(po.name);
 		VEC_CLEAR(bv);
 		VEC_CLEAREXT(pem_list, &free_pem_object_contents);
@@ -265,10 +264,9 @@ parse_certificates(unsigned char *buf, size_t len, size_t *num)
 	if (pos == NULL) {
 		return (NULL);
 	}
-	for (u = 0; u < num_pos; u ++) {
-		if (eqstr(pos[u].name, "CERTIFICATE")
-			|| eqstr(pos[u].name, "X509 CERTIFICATE"))
-		{
+	for (u = 0; u < num_pos; u++) {
+		if (eqstr(pos[u].name, "CERTIFICATE") ||
+		    eqstr(pos[u].name, "X509 CERTIFICATE")) {
 			br_x509_certificate xc;
 
 			xc.data = pos[u].data;
@@ -277,7 +275,7 @@ parse_certificates(unsigned char *buf, size_t len, size_t *num)
 			VEC_ADD(cert_list, xc);
 		}
 	}
-	for (u = 0; u < num_pos; u ++) {
+	for (u = 0; u < num_pos; u++) {
 		free_pem_object_contents(&pos[u]);
 	}
 	xfree(pos);
@@ -313,7 +311,7 @@ read_certificates(const char *fname, size_t *num)
 	}
 	xcs = parse_certificates(buf, len, num);
 	if (xcs == NULL) {
-	    ve_error_set("ERROR: no certificate in file '%s'\n", fname);
+		ve_error_set("ERROR: no certificate in file '%s'\n", fname);
 	}
 	xfree(buf);
 	return (xcs);
@@ -325,12 +323,11 @@ free_certificates(br_x509_certificate *certs, size_t num)
 {
 	size_t u;
 
-	for (u = 0; u < num; u ++) {
+	for (u = 0; u < num; u++) {
 		xfree(certs[u].data);
 	}
 	xfree(certs);
 }
-
 
 static void
 dn_append(void *ctx, const void *buf, size_t len)
@@ -340,7 +337,7 @@ dn_append(void *ctx, const void *buf, size_t len)
 
 int
 certificate_to_trust_anchor_inner(br_x509_trust_anchor *ta,
-	br_x509_certificate *xc)
+    br_x509_certificate *xc)
 {
 	br_x509_decoder_context dc;
 	bvector vdn = VEC_INIT;
@@ -350,10 +347,10 @@ certificate_to_trust_anchor_inner(br_x509_trust_anchor *ta,
 	br_x509_decoder_push(&dc, xc->data, xc->data_len);
 	pk = br_x509_decoder_get_pkey(&dc);
 	if (pk == NULL) {
-	    ve_error_set("ERROR: CA decoding failed with error %d\n",
-		      br_x509_decoder_last_error(&dc));
-	    VEC_CLEAR(vdn);
-	    return (-1);
+		ve_error_set("ERROR: CA decoding failed with error %d\n",
+		    br_x509_decoder_last_error(&dc));
+		VEC_CLEAR(vdn);
+		return (-1);
 	}
 	ta->dn.data = VEC_TOARRAY(vdn);
 	ta->dn.len = VEC_LEN(vdn);
@@ -377,7 +374,7 @@ certificate_to_trust_anchor_inner(br_x509_trust_anchor *ta,
 		ta->pkey.key.ec.qlen = pk->key.ec.qlen;
 		break;
 	default:
-	    ve_error_set("ERROR: unsupported public key type in CA\n");
+		ve_error_set("ERROR: unsupported public key type in CA\n");
 		xfree(ta->dn.data);
 		return (-1);
 	}

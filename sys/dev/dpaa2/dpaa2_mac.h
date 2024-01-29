@@ -25,26 +25,26 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_DPAA2_MAC_H
-#define	_DPAA2_MAC_H
+#ifndef _DPAA2_MAC_H
+#define _DPAA2_MAC_H
 
-#include <sys/rman.h>
 #include <sys/bus.h>
 #include <sys/queue.h>
+#include <sys/rman.h>
 
 #include <net/ethernet.h>
 
-#include "dpaa2_types.h"
 #include "dpaa2_mcp.h"
+#include "dpaa2_types.h"
 
-#define DPAA2_MAC_MAX_RESOURCES	1  /* Maximum resources per DPMAC: 1 DPMCP. */
-#define DPAA2_MAC_MSI_COUNT	1  /* MSIs per DPMAC */
+#define DPAA2_MAC_MAX_RESOURCES 1 /* Maximum resources per DPMAC: 1 DPMCP. */
+#define DPAA2_MAC_MSI_COUNT 1	  /* MSIs per DPMAC */
 
 /* DPMAC link configuration options. */
-#define DPAA2_MAC_LINK_OPT_AUTONEG	((uint64_t) 0x01u)
-#define DPAA2_MAC_LINK_OPT_HALF_DUPLEX	((uint64_t) 0x02u)
-#define DPAA2_MAC_LINK_OPT_PAUSE	((uint64_t) 0x04u)
-#define DPAA2_MAC_LINK_OPT_ASYM_PAUSE	((uint64_t) 0x08u)
+#define DPAA2_MAC_LINK_OPT_AUTONEG ((uint64_t)0x01u)
+#define DPAA2_MAC_LINK_OPT_HALF_DUPLEX ((uint64_t)0x02u)
+#define DPAA2_MAC_LINK_OPT_PAUSE ((uint64_t)0x04u)
+#define DPAA2_MAC_LINK_OPT_ASYM_PAUSE ((uint64_t)0x08u)
 
 enum dpaa2_mac_eth_if {
 	DPAA2_MAC_ETH_IF_MII,
@@ -77,9 +77,9 @@ enum dpaa2_mac_link_type {
  * link_type:	Type of the link.
  */
 struct dpaa2_mac_attr {
-	uint32_t		 id;
-	uint32_t		 max_rate;
-	enum dpaa2_mac_eth_if	 eth_if;
+	uint32_t id;
+	uint32_t max_rate;
+	enum dpaa2_mac_eth_if eth_if;
 	enum dpaa2_mac_link_type link_type;
 };
 
@@ -87,12 +87,12 @@ struct dpaa2_mac_attr {
  * @brief Link state of the DPMAC object.
  */
 struct dpaa2_mac_link_state {
-	uint64_t		 options;
-	uint64_t		 supported;
-	uint64_t		 advert;
-	uint32_t		 rate;
-	bool			 up;
-	bool			 state_valid;
+	uint64_t options;
+	uint64_t supported;
+	uint64_t advert;
+	uint32_t rate;
+	bool up;
+	bool state_valid;
 };
 
 /**
@@ -103,14 +103,14 @@ struct dpaa2_mac_link_state {
  * attr:	Attributes of the DPMAC object.
  */
 struct dpaa2_mac_softc {
-	device_t		 dev;
-	uint8_t			 addr[ETHER_ADDR_LEN];
-	struct resource 	*res[DPAA2_MAC_MAX_RESOURCES];
-	struct dpaa2_mac_attr	 attr;
+	device_t dev;
+	uint8_t addr[ETHER_ADDR_LEN];
+	struct resource *res[DPAA2_MAC_MAX_RESOURCES];
+	struct dpaa2_mac_attr attr;
 
-	int			 irq_rid[DPAA2_MAC_MSI_COUNT];
-	struct resource		*irq_res;
-	void			*intr; /* interrupt handle */
+	int irq_rid[DPAA2_MAC_MSI_COUNT];
+	struct resource *irq_res;
+	void *intr; /* interrupt handle */
 };
 
 extern struct resource_spec dpaa2_mac_spec[];

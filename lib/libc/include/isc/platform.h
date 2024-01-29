@@ -28,10 +28,10 @@
  */
 #undef ISC_PLATFORM_NEEDTIMESPEC
 #ifdef ISC_PLATFORM_NEEDTIMESPEC
-#include <time.h>               /* For time_t */
+#include <time.h> /* For time_t */
 struct timespec {
-	time_t  tv_sec;         /* seconds */
-	long    tv_nsec;        /* nanoseconds */
+	time_t tv_sec; /* seconds */
+	long tv_nsec;  /* nanoseconds */
 };
 #endif
 

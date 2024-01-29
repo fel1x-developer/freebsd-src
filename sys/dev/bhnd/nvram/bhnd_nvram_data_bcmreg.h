@@ -30,47 +30,47 @@
 #ifndef _BHND_NVRAM_BHND_NVRAM_BCMREG_H_
 #define _BHND_NVRAM_BHND_NVRAM_BCMREG_H_
 
-#define BCM_NVRAM_GET_BITS(_value, _field)			\
-	((_value & _field ## _MASK) >> _field ## _SHIFT)
+#define BCM_NVRAM_GET_BITS(_value, _field) \
+	((_value & _field##_MASK) >> _field##_SHIFT)
 
-#define BCM_NVRAM_SET_BITS(_value, _field, _bits)		\
-	((_value & ~(_field ## _MASK)) |			\
-	    (((_bits) << _field ## _SHIFT) & _field ## _MASK))
+#define BCM_NVRAM_SET_BITS(_value, _field, _bits) \
+	((_value & ~(_field##_MASK)) |            \
+	    (((_bits) << _field##_SHIFT) & _field##_MASK))
 
 /* BCM NVRAM header fields */
-#define	BCM_NVRAM_MAGIC				0x48534C46	/* 'FLSH' */
-#define	BCM_NVRAM_VERSION			1
+#define BCM_NVRAM_MAGIC 0x48534C46 /* 'FLSH' */
+#define BCM_NVRAM_VERSION 1
 
-#define	BCM_NVRAM_CRC_SKIP			9		/* skip magic, size, and crc8 */
+#define BCM_NVRAM_CRC_SKIP 9 /* skip magic, size, and crc8 */
 
-#define	BCM_NVRAM_CFG0_CRC_MASK			0x000000FF
-#define	BCM_NVRAM_CFG0_CRC_SHIFT		0
-#define	BCM_NVRAM_CFG0_VER_MASK			0x0000FF00
-#define	BCM_NVRAM_CFG0_VER_SHIFT		8
-#define	BCM_NVRAM_CFG0_VER_DEFAULT		1		/* default version */
+#define BCM_NVRAM_CFG0_CRC_MASK 0x000000FF
+#define BCM_NVRAM_CFG0_CRC_SHIFT 0
+#define BCM_NVRAM_CFG0_VER_MASK 0x0000FF00
+#define BCM_NVRAM_CFG0_VER_SHIFT 8
+#define BCM_NVRAM_CFG0_VER_DEFAULT 1 /* default version */
 
-#define	BCM_NVRAM_CFG0_SDRAM_INIT_FIELD		cfg0
-#define	BCM_NVRAM_CFG0_SDRAM_INIT_MASK		0xFFFF0000
-#define	BCM_NVRAM_CFG0_SDRAM_INIT_SHIFT		16
-#define	BCM_NVRAM_CFG0_SDRAM_INIT_VAR		"sdram_init"
-#define	BCM_NVRAM_CFG0_SDRAM_INIT_FMT		"0x%04x"
+#define BCM_NVRAM_CFG0_SDRAM_INIT_FIELD cfg0
+#define BCM_NVRAM_CFG0_SDRAM_INIT_MASK 0xFFFF0000
+#define BCM_NVRAM_CFG0_SDRAM_INIT_SHIFT 16
+#define BCM_NVRAM_CFG0_SDRAM_INIT_VAR "sdram_init"
+#define BCM_NVRAM_CFG0_SDRAM_INIT_FMT "0x%04x"
 
-#define	BCM_NVRAM_CFG1_SDRAM_CFG_FIELD		cfg1
-#define	BCM_NVRAM_CFG1_SDRAM_CFG_MASK		0x0000FFFF
-#define	BCM_NVRAM_CFG1_SDRAM_CFG_SHIFT		0
-#define	BCM_NVRAM_CFG1_SDRAM_CFG_VAR		"sdram_config"
-#define	BCM_NVRAM_CFG1_SDRAM_CFG_FMT		"0x%04x"
+#define BCM_NVRAM_CFG1_SDRAM_CFG_FIELD cfg1
+#define BCM_NVRAM_CFG1_SDRAM_CFG_MASK 0x0000FFFF
+#define BCM_NVRAM_CFG1_SDRAM_CFG_SHIFT 0
+#define BCM_NVRAM_CFG1_SDRAM_CFG_VAR "sdram_config"
+#define BCM_NVRAM_CFG1_SDRAM_CFG_FMT "0x%04x"
 
-#define	BCM_NVRAM_CFG1_SDRAM_REFRESH_FIELD	cfg1
-#define	BCM_NVRAM_CFG1_SDRAM_REFRESH_MASK	0xFFFF0000
-#define	BCM_NVRAM_CFG1_SDRAM_REFRESH_SHIFT	16
-#define	BCM_NVRAM_CFG1_SDRAM_REFRESH_VAR	"sdram_refresh"
-#define	BCM_NVRAM_CFG1_SDRAM_REFRESH_FMT	"0x%04x"
+#define BCM_NVRAM_CFG1_SDRAM_REFRESH_FIELD cfg1
+#define BCM_NVRAM_CFG1_SDRAM_REFRESH_MASK 0xFFFF0000
+#define BCM_NVRAM_CFG1_SDRAM_REFRESH_SHIFT 16
+#define BCM_NVRAM_CFG1_SDRAM_REFRESH_VAR "sdram_refresh"
+#define BCM_NVRAM_CFG1_SDRAM_REFRESH_FMT "0x%04x"
 
-#define	BCM_NVRAM_SDRAM_NCDL_FIELD		sdram_ncdl
-#define	BCM_NVRAM_SDRAM_NCDL_MASK		UINT32_MAX
-#define	BCM_NVRAM_SDRAM_NCDL_SHIFT		0
-#define	BCM_NVRAM_SDRAM_NCDL_VAR		"sdram_ncdl"
-#define	BCM_NVRAM_SDRAM_NCDL_FMT		"0x%08x"
+#define BCM_NVRAM_SDRAM_NCDL_FIELD sdram_ncdl
+#define BCM_NVRAM_SDRAM_NCDL_MASK UINT32_MAX
+#define BCM_NVRAM_SDRAM_NCDL_SHIFT 0
+#define BCM_NVRAM_SDRAM_NCDL_VAR "sdram_ncdl"
+#define BCM_NVRAM_SDRAM_NCDL_FMT "0x%08x"
 
 #endif /* _BHND_NVRAM_BHND_NVRAM_BCMREG_H_ */

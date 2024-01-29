@@ -37,20 +37,19 @@
  * Alternatively pass IF SSID BSSID in and just try that.
  */
 
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net80211/ieee80211.h>
+#include <net80211/ieee80211_ioctl.h>
+
 #include <err.h>
 #include <stdio.h>
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
-
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-
-#include <net80211/ieee80211.h>
-#include <net80211/ieee80211_ioctl.h>
 
 static int
 if_up(int sd, const char *ifnam)
@@ -82,7 +81,8 @@ if_up(int sd, const char *ifnam)
 }
 
 static int
-try_mlme_assoc(int sd, const char *ifnam, uint8_t *ssid, uint8_t ssid_len, uint8_t *bssid)
+try_mlme_assoc(int sd, const char *ifnam, uint8_t *ssid, uint8_t ssid_len,
+    uint8_t *bssid)
 {
 	struct ieee80211req ireq;
 	struct ieee80211req_mlme mlme;
@@ -140,8 +140,8 @@ mlme_assoc_scan_results(int sd, const char *ifnam)
 		p += sr->isr_len;
 		len -= sr->isr_len;
 
-		error = try_mlme_assoc(sd, ifnam, (void *)(sr + 1), sr->isr_ssid_len,
-		    sr->isr_bssid);
+		error = try_mlme_assoc(sd, ifnam, (void *)(sr + 1),
+		    sr->isr_ssid_len, sr->isr_bssid);
 		if (error != 0) {
 			warnx("try_mlme_assoc");
 			return (error);
@@ -184,7 +184,8 @@ main(int argc, char *argv[])
 		errx(EX_UNAVAILABLE, "if_up");
 
 	if (argc == 4) {
-		error = try_mlme_assoc(sd, ifnam, ssid, strlen((const char *)ssid), bssid);
+		error = try_mlme_assoc(sd, ifnam, ssid,
+		    strlen((const char *)ssid), bssid);
 		if (error != 0)
 			errx(EX_UNAVAILABLE, "try_mlme_assoc");
 

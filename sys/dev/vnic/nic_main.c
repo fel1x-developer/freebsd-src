@@ -42,82 +42,82 @@
 #include <sys/bitset.h>
 #include <sys/bitstring.h>
 #include <sys/bus.h>
+#include <sys/cpuset.h>
+#include <sys/dnv.h>
 #include <sys/endian.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
-#include <sys/rman.h>
+#include <sys/mutex.h>
+#include <sys/nv.h>
 #include <sys/pciio.h>
 #include <sys/pcpu.h>
 #include <sys/proc.h>
+#include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
-#include <sys/cpuset.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
 
-#include <net/ethernet.h>
-#include <net/if.h>
-#include <net/if_media.h>
-
-#include <machine/bus.h>
 #include <machine/_inttypes.h>
+#include <machine/bus.h>
 
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
 
-#include <sys/dnv.h>
-#include <sys/nv.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
 #ifdef PCI_IOV
 #include <sys/iov_schema.h>
+
 #include <dev/pci/pci_iov.h>
 #endif
 
-#include "thunder_bgx.h"
-#include "nic_reg.h"
 #include "nic.h"
+#include "nic_reg.h"
 #include "q_struct.h"
+#include "thunder_bgx.h"
 
-#define	VNIC_PF_DEVSTR		"Cavium Thunder NIC Physical Function Driver"
+#define VNIC_PF_DEVSTR "Cavium Thunder NIC Physical Function Driver"
 
-#define	VNIC_PF_REG_RID		PCIR_BAR(PCI_CFG_REG_BAR_NUM)
+#define VNIC_PF_REG_RID PCIR_BAR(PCI_CFG_REG_BAR_NUM)
 
-#define	NIC_SET_VF_LMAC_MAP(bgx, lmac)		((((bgx) & 0xF) << 4) | ((lmac) & 0xF))
-#define	NIC_GET_BGX_FROM_VF_LMAC_MAP(map)	(((map) >> 4) & 0xF)
-#define	NIC_GET_LMAC_FROM_VF_LMAC_MAP(map)	((map) & 0xF)
+#define NIC_SET_VF_LMAC_MAP(bgx, lmac) ((((bgx) & 0xF) << 4) | ((lmac) & 0xF))
+#define NIC_GET_BGX_FROM_VF_LMAC_MAP(map) (((map) >> 4) & 0xF)
+#define NIC_GET_LMAC_FROM_VF_LMAC_MAP(map) ((map) & 0xF)
 
 /* Structure to be used by the SR-IOV for VF configuration schemas */
 struct nicvf_info {
-	boolean_t		vf_enabled;
-	int			vf_flags;
+	boolean_t vf_enabled;
+	int vf_flags;
 };
 
 struct nicpf {
-	device_t		dev;
-	uint8_t			node;
-	u_int			flags;
-	uint8_t			num_vf_en;      /* No of VF enabled */
-	struct nicvf_info	vf_info[MAX_NUM_VFS_SUPPORTED];
-	struct resource *	reg_base;       /* Register start address */
-	struct pkind_cfg	pkind;
-	uint8_t			vf_lmac_map[MAX_LMAC];
-	boolean_t		mbx_lock[MAX_NUM_VFS_SUPPORTED];
+	device_t dev;
+	uint8_t node;
+	u_int flags;
+	uint8_t num_vf_en; /* No of VF enabled */
+	struct nicvf_info vf_info[MAX_NUM_VFS_SUPPORTED];
+	struct resource *reg_base; /* Register start address */
+	struct pkind_cfg pkind;
+	uint8_t vf_lmac_map[MAX_LMAC];
+	boolean_t mbx_lock[MAX_NUM_VFS_SUPPORTED];
 
-	struct callout		check_link;
-	struct mtx		check_link_mtx;
+	struct callout check_link;
+	struct mtx check_link_mtx;
 
-	uint8_t			link[MAX_LMAC];
-	uint8_t			duplex[MAX_LMAC];
-	uint32_t		speed[MAX_LMAC];
-	uint16_t		cpi_base[MAX_NUM_VFS_SUPPORTED];
-	uint16_t		rssi_base[MAX_NUM_VFS_SUPPORTED];
-	uint16_t		rss_ind_tbl_size;
+	uint8_t link[MAX_LMAC];
+	uint8_t duplex[MAX_LMAC];
+	uint32_t speed[MAX_LMAC];
+	uint16_t cpi_base[MAX_NUM_VFS_SUPPORTED];
+	uint16_t rssi_base[MAX_NUM_VFS_SUPPORTED];
+	uint16_t rss_ind_tbl_size;
 
 	/* MSI-X */
-	boolean_t		msix_enabled;
-	uint8_t			num_vec;
-	struct msix_entry	msix_entries[NIC_PF_MSIX_VECTORS];
-	struct resource *	msix_table_res;
+	boolean_t msix_enabled;
+	uint8_t num_vec;
+	struct msix_entry msix_entries[NIC_PF_MSIX_VECTORS];
+	struct resource *msix_table_res;
 };
 
 static int nicpf_probe(device_t);
@@ -132,14 +132,14 @@ static int nicpf_iov_add_vf(device_t, uint16_t, const nvlist_t *);
 
 static device_method_t nicpf_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		nicpf_probe),
-	DEVMETHOD(device_attach,	nicpf_attach),
-	DEVMETHOD(device_detach,	nicpf_detach),
-	/* PCI SR-IOV interface */
+	DEVMETHOD(device_probe, nicpf_probe),
+	DEVMETHOD(device_attach, nicpf_attach),
+	DEVMETHOD(device_detach, nicpf_detach),
+/* PCI SR-IOV interface */
 #ifdef PCI_IOV
-	DEVMETHOD(pci_iov_init,		nicpf_iov_init),
-	DEVMETHOD(pci_iov_uninit,	nicpf_iov_uninit),
-	DEVMETHOD(pci_iov_add_vf,	nicpf_iov_add_vf),
+	DEVMETHOD(pci_iov_init, nicpf_iov_init),
+	DEVMETHOD(pci_iov_uninit, nicpf_iov_uninit),
+	DEVMETHOD(pci_iov_add_vf, nicpf_iov_add_vf),
 #endif
 	DEVMETHOD_END,
 };
@@ -366,8 +366,7 @@ nicpf_free_res(struct nicpf *nic)
 
 /* Register read/write APIs */
 static __inline void
-nic_reg_write(struct nicpf *nic, bus_space_handle_t offset,
-    uint64_t val)
+nic_reg_write(struct nicpf *nic, bus_space_handle_t offset, uint64_t val)
 {
 
 	bus_write_8(nic->reg_base, offset, val);
@@ -534,11 +533,11 @@ nic_get_bgx_stats(struct nicpf *nic, struct bgx_stats_msg *bgx)
 	mbx.bgx_stats.rx = bgx->rx;
 	mbx.bgx_stats.idx = bgx->idx;
 	if (bgx->rx != 0) {
-		mbx.bgx_stats.stats =
-		    bgx_get_rx_stats(nic->node, bgx_idx, lmac, bgx->idx);
+		mbx.bgx_stats.stats = bgx_get_rx_stats(nic->node, bgx_idx, lmac,
+		    bgx->idx);
 	} else {
-		mbx.bgx_stats.stats =
-		    bgx_get_tx_stats(nic->node, bgx_idx, lmac, bgx->idx);
+		mbx.bgx_stats.stats = bgx_get_tx_stats(nic->node, bgx_idx, lmac,
+		    bgx->idx);
 	}
 	nic_send_msg_to_vf(nic, bgx->vf_id, &mbx);
 }
@@ -607,15 +606,15 @@ nic_set_lmac_vf_mapping(struct nicpf *nic)
 		lmac_cnt = bgx_get_lmac_count(nic->node, bgx);
 		for (lmac = 0; lmac < lmac_cnt; lmac++)
 			nic->vf_lmac_map[next_bgx_lmac++] =
-						NIC_SET_VF_LMAC_MAP(bgx, lmac);
+			    NIC_SET_VF_LMAC_MAP(bgx, lmac);
 		nic->num_vf_en += lmac_cnt;
 
 		/* Program LMAC credits */
-		lmac_credit = (1UL << 1); /* channel credit enable */
+		lmac_credit = (1UL << 1);    /* channel credit enable */
 		lmac_credit |= (0x1ff << 2); /* Max outstanding pkt count */
 		/* 48KB BGX Tx buffer size, each unit is of size 16bytes */
-		lmac_credit |= (((((48 * 1024) / lmac_cnt) -
-		    NIC_HW_MAX_FRS) / 16) << 12);
+		lmac_credit |=
+		    (((((48 * 1024) / lmac_cnt) - NIC_HW_MAX_FRS) / 16) << 12);
 		lmac = bgx * MAX_LMAC_PER_BGX;
 		for (; lmac < lmac_cnt + (bgx * MAX_LMAC_PER_BGX); lmac++) {
 			nic_reg_write(nic, NIC_PF_LMAC_0_7_CREDIT + (lmac * 8),
@@ -844,9 +843,11 @@ nic_tx_channel_cfg(struct nicpf *nic, uint8_t vnic, struct sq_cfg_msg *sq)
 	tl4 += sq_idx;
 
 	tl3 = tl4 / (NIC_MAX_TL4 / NIC_MAX_TL3);
-	nic_reg_write(nic, NIC_PF_QSET_0_127_SQ_0_7_CFG2 |
-	    ((uint64_t)vnic << NIC_QS_ID_SHIFT) |
-	    ((uint32_t)sq_idx << NIC_Q_NUM_SHIFT), tl4);
+	nic_reg_write(nic,
+	    NIC_PF_QSET_0_127_SQ_0_7_CFG2 |
+		((uint64_t)vnic << NIC_QS_ID_SHIFT) |
+		((uint32_t)sq_idx << NIC_Q_NUM_SHIFT),
+	    tl4);
 	nic_reg_write(nic, NIC_PF_TL4_0_1023_CFG | (tl4 << 3),
 	    ((uint64_t)vnic << 27) | ((uint32_t)sq_idx << 24) | rr_quantum);
 
@@ -981,8 +982,8 @@ nic_handle_mbx_intr(struct nicpf *nic, int vf)
 		ret = nic_config_loopback(nic, &mbx.lbk);
 		break;
 	default:
-		device_printf(nic->dev,
-		    "Invalid msg from VF%d, msg 0x%x\n", vf, mbx.msg.msg);
+		device_printf(nic->dev, "Invalid msg from VF%d, msg 0x%x\n", vf,
+		    mbx.msg.msg);
 		break;
 	}
 
@@ -998,7 +999,7 @@ static void
 nic_mbx_intr_handler(struct nicpf *nic, int mbx)
 {
 	uint64_t intr;
-	uint8_t  vf, vf_per_mbx_reg = 64;
+	uint8_t vf, vf_per_mbx_reg = 64;
 
 	intr = nic_reg_read(nic, NIC_PF_MAILBOX_INT + (mbx << 3));
 	for (vf = 0; vf < vf_per_mbx_reg; vf++) {
@@ -1010,7 +1011,7 @@ nic_mbx_intr_handler(struct nicpf *nic, int mbx)
 }
 
 static void
-nic_mbx0_intr_handler (void *arg)
+nic_mbx0_intr_handler(void *arg)
 {
 	struct nicpf *nic = (struct nicpf *)arg;
 
@@ -1018,7 +1019,7 @@ nic_mbx0_intr_handler (void *arg)
 }
 
 static void
-nic_mbx1_intr_handler (void *arg)
+nic_mbx1_intr_handler(void *arg)
 {
 	struct nicpf *nic = (struct nicpf *)arg;
 
@@ -1034,8 +1035,8 @@ nic_enable_msix(struct nicpf *nic)
 
 	dinfo = device_get_ivars(nic->dev);
 	rid = dinfo->cfg.msix.msix_table_bar;
-	nic->msix_table_res =
-	    bus_alloc_resource_any(nic->dev, SYS_RES_MEMORY, &rid, RF_ACTIVE);
+	nic->msix_table_res = bus_alloc_resource_any(nic->dev, SYS_RES_MEMORY,
+	    &rid, RF_ACTIVE);
 	if (nic->msix_table_res == NULL) {
 		device_printf(nic->dev,
 		    "Could not allocate memory for MSI-X table\n");
@@ -1145,7 +1146,8 @@ nic_unregister_interrupts(struct nicpf *nic)
 	nic_disable_msix(nic);
 }
 
-static int nic_sriov_init(device_t dev, struct nicpf *nic)
+static int
+nic_sriov_init(device_t dev, struct nicpf *nic)
 {
 #ifdef PCI_IOV
 	nvlist_t *pf_schema, *vf_schema;
@@ -1177,8 +1179,7 @@ static int nic_sriov_init(device_t dev, struct nicpf *nic)
 
 	err = pci_iov_attach(dev, pf_schema, vf_schema);
 	if (err != 0) {
-		device_printf(dev,
-		    "Failed to initialize SR-IOV (error=%d)\n",
+		device_printf(dev, "Failed to initialize SR-IOV (error=%d)\n",
 		    err);
 		return (err);
 	}

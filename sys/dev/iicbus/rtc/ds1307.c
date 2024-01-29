@@ -43,9 +43,9 @@
 #include <dev/iicbus/iicbus.h>
 #include <dev/iicbus/iiconf.h>
 #ifdef FDT
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
 #endif
 
 #include <dev/iicbus/rtc/ds1307reg.h>
@@ -62,22 +62,20 @@ enum {
 };
 
 struct ds1307_softc {
-	device_t			sc_dev;
-	struct intr_config_hook		enum_hook;
-	uint32_t			chiptype;
-	uint8_t				sc_ctrl;
-	bool				sc_use_ampm;
+	device_t sc_dev;
+	struct intr_config_hook enum_hook;
+	uint32_t chiptype;
+	uint8_t sc_ctrl;
+	bool sc_use_ampm;
 };
 
 static void ds1307_start(void *);
 
 #ifdef FDT
 static const struct ofw_compat_data ds1307_compat_data[] = {
-	{"dallas,ds1307",		TYPE_DS1307},
-	{"maxim,ds1307",		TYPE_MAXIM1307},
-	{"microchip,mcp7941x",		TYPE_MICROCHIP_MCP7491X},
-	{"epson,rx8035",		TYPE_EPSON_RX8035},
-	{ NULL, 0 }
+	{ "dallas,ds1307", TYPE_DS1307 }, { "maxim,ds1307", TYPE_MAXIM1307 },
+	{ "microchip,mcp7941x", TYPE_MICROCHIP_MCP7491X },
+	{ "epson,rx8035", TYPE_EPSON_RX8035 }, { NULL, 0 }
 };
 #endif
 
@@ -226,7 +224,7 @@ ds1307_probe(device_t dev)
 
 	compat = ofw_bus_search_compatible(dev, ds1307_compat_data);
 	if (compat->ocd_str != NULL) {
-		switch(compat->ocd_data) {
+		switch (compat->ocd_data) {
 		case TYPE_DS1307:
 			device_set_desc(dev, "Dallas DS1307");
 			break;
@@ -349,19 +347,22 @@ mark_epson_time_valid(struct ds1307_softc *sc)
 		return (false);
 	}
 
-	control_mask = (RX8035_CTRL_2_PON | RX8035_CTRL_2_XSTP | RX8035_CTRL_2_VDET);
+	control_mask = (RX8035_CTRL_2_PON | RX8035_CTRL_2_XSTP |
+	    RX8035_CTRL_2_VDET);
 	ctrl2 = ctrl2 & ~(control_mask);
 
 	error = ds1307_write1(dev, (RX8035_CTRL_2 << 4), ctrl2);
 	if (error) {
-		device_printf(dev, "%s cannot write to Control 2 register: %d\n",
-		    __func__, error);
+		device_printf(dev,
+		    "%s cannot write to Control 2 register: %d\n", __func__,
+		    error);
 		return (false);
 	}
 	return (true);
 }
 
-static bool is_dev_time_valid(struct ds1307_softc *sc)
+static bool
+is_dev_time_valid(struct ds1307_softc *sc)
 {
 	device_t dev;
 	int error;
@@ -376,8 +377,8 @@ static bool is_dev_time_valid(struct ds1307_softc *sc)
 	/* Check if the oscillator is disabled. */
 	error = ds1307_read1(dev, DS1307_SECS, &secs);
 	if (error) {
-		device_printf(dev, "%s: cannot read from RTC: %d\n",
-		    __func__, error);
+		device_printf(dev, "%s: cannot read from RTC: %d\n", __func__,
+		    error);
 		return (false);
 	}
 
@@ -458,8 +459,8 @@ ds1307_gettime(device_t dev, struct timespec *ts)
 	error = iicdev_readfrom(sc->sc_dev, DS1307_SECS, data, sizeof(data),
 	    IIC_INTRWAIT);
 	if (error != 0) {
-		device_printf(dev, "%s: cannot read from RTC: %d\n",
-		    __func__, error);
+		device_printf(dev, "%s: cannot read from RTC: %d\n", __func__,
+		    error);
 		return (error);
 	}
 
@@ -486,14 +487,14 @@ ds1307_gettime(device_t dev, struct timespec *ts)
 
 	bct.nsec = 0;
 	bct.ispm = (data[DS1307_HOUR] & DS1307_HOUR_IS_PM) != 0;
-	bct.sec  = data[DS1307_SECS]  & DS1307_SECS_MASK;
-	bct.min  = data[DS1307_MINS]  & DS1307_MINS_MASK;
-	bct.hour = data[DS1307_HOUR]  & hourmask;
-	bct.day  = data[DS1307_DATE]  & DS1307_DATE_MASK;
-	bct.mon  = data[DS1307_MONTH] & DS1307_MONTH_MASK;
-	bct.year = data[DS1307_YEAR]  & DS1307_YEAR_MASK;
+	bct.sec = data[DS1307_SECS] & DS1307_SECS_MASK;
+	bct.min = data[DS1307_MINS] & DS1307_MINS_MASK;
+	bct.hour = data[DS1307_HOUR] & hourmask;
+	bct.day = data[DS1307_DATE] & DS1307_DATE_MASK;
+	bct.mon = data[DS1307_MONTH] & DS1307_MONTH_MASK;
+	bct.year = data[DS1307_YEAR] & DS1307_YEAR_MASK;
 
-	clock_dbgprint_bcd(sc->sc_dev, CLOCK_DBG_READ, &bct); 
+	clock_dbgprint_bcd(sc->sc_dev, CLOCK_DBG_READ, &bct);
 	return (clock_bcd_to_ts(&bct, ts, sc->sc_use_ampm));
 }
 
@@ -522,7 +523,8 @@ ds1307_settime(device_t dev, struct timespec *ts)
 	 */
 	if (sc->sc_use_ampm) {
 		pmflags = (sc->chiptype != TYPE_EPSON_RX8035) ?
-				DS1307_HOUR_USE_AMPM : 0;
+		    DS1307_HOUR_USE_AMPM :
+		    0;
 		if (bct.ispm)
 			pmflags |= DS1307_HOUR_IS_PM;
 
@@ -531,13 +533,13 @@ ds1307_settime(device_t dev, struct timespec *ts)
 	else
 		pmflags = 0;
 
-	data[DS1307_SECS]    = bct.sec;
-	data[DS1307_MINS]    = bct.min;
-	data[DS1307_HOUR]    = bct.hour | pmflags;
-	data[DS1307_DATE]    = bct.day;
+	data[DS1307_SECS] = bct.sec;
+	data[DS1307_MINS] = bct.min;
+	data[DS1307_HOUR] = bct.hour | pmflags;
+	data[DS1307_DATE] = bct.day;
 	data[DS1307_WEEKDAY] = bct.dow;
-	data[DS1307_MONTH]   = bct.mon;
-	data[DS1307_YEAR]    = bct.year & 0xff;
+	data[DS1307_MONTH] = bct.mon;
+	data[DS1307_YEAR] = bct.year & 0xff;
 	if (sc->chiptype == TYPE_MICROCHIP_MCP7491X) {
 		data[DS1307_SECS] |= MCP7941X_SECS_ST;
 		data[DS1307_WEEKDAY] |= MCP7941X_WEEKDAY_VBATEN;
@@ -550,8 +552,8 @@ ds1307_settime(device_t dev, struct timespec *ts)
 	error = iicdev_writeto(sc->sc_dev, DS1307_SECS, data, sizeof(data),
 	    IIC_INTRWAIT);
 	if (error != 0)
-		device_printf(dev, "%s: cannot write to RTC: %d\n",
-		    __func__, error);
+		device_printf(dev, "%s: cannot write to RTC: %d\n", __func__,
+		    error);
 
 	if (sc->chiptype == TYPE_EPSON_RX8035)
 		error = mark_epson_time_valid(sc);
@@ -559,16 +561,15 @@ ds1307_settime(device_t dev, struct timespec *ts)
 	return (error);
 }
 
-static device_method_t ds1307_methods[] = {
-	DEVMETHOD(device_probe,		ds1307_probe),
-	DEVMETHOD(device_attach,	ds1307_attach),
-	DEVMETHOD(device_detach,	ds1307_detach),
+static device_method_t ds1307_methods[] = { DEVMETHOD(device_probe,
+						ds1307_probe),
+	DEVMETHOD(device_attach, ds1307_attach),
+	DEVMETHOD(device_detach, ds1307_detach),
 
-	DEVMETHOD(clock_gettime,	ds1307_gettime),
-	DEVMETHOD(clock_settime,	ds1307_settime),
+	DEVMETHOD(clock_gettime, ds1307_gettime),
+	DEVMETHOD(clock_settime, ds1307_settime),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 static driver_t ds1307_driver = {
 	"ds1307",

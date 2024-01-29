@@ -49,9 +49,9 @@
 
 #include <sys/param.h>
 #include <sys/file.h>
+#include <sys/resource.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <sys/resource.h>
 #include <sys/wait.h>
 
 #include <err.h>
@@ -59,6 +59,8 @@
 #include <grp.h>
 #include <login_cap.h>
 #include <pwd.h>
+#include <security/openpam.h>
+#include <security/pam_appl.h>
 #include <setjmp.h>
 #include <signal.h>
 #include <stdio.h>
@@ -68,88 +70,85 @@
 #include <ttyent.h>
 #include <unistd.h>
 
-#include <security/pam_appl.h>
-#include <security/openpam.h>
-
 #include "login.h"
 #include "pathnames.h"
 
-static int		 auth_pam(void);
-static void		 bail(int, int);
-static void		 bail_internal(int, int, int);
-static int		 export(const char *);
-static void		 export_pam_environment(void);
-static int		 motd(const char *);
-static void		 badlogin(char *);
-static char		*getloginname(void);
-static void		 pam_syslog(const char *);
-static void		 pam_cleanup(void);
-static void		 refused(const char *, const char *, int);
-static const char	*stypeof(char *);
-static void		 sigint(int);
-static void		 timedout(int);
-static void		 bail_sig(int);
-static void		 usage(void);
+static int auth_pam(void);
+static void bail(int, int);
+static void bail_internal(int, int, int);
+static int export(const char *);
+static void export_pam_environment(void);
+static int motd(const char *);
+static void badlogin(char *);
+static char *getloginname(void);
+static void pam_syslog(const char *);
+static void pam_cleanup(void);
+static void refused(const char *, const char *, int);
+static const char *stypeof(char *);
+static void sigint(int);
+static void timedout(int);
+static void bail_sig(int);
+static void usage(void);
 
-#define	TTYGRPNAME		"tty"			/* group to own ttys */
-#define	DEFAULT_BACKOFF		3
-#define	DEFAULT_RETRIES		10
-#define	DEFAULT_PROMPT		"login: "
-#define	DEFAULT_PASSWD_PROMPT	"Password:"
-#define	TERM_UNKNOWN		"su"
-#define	DEFAULT_WARN		(2L * 7L * 86400L)	/* Two weeks */
-#define	NO_SLEEP_EXIT		0
-#define	SLEEP_EXIT		5
+#define TTYGRPNAME "tty" /* group to own ttys */
+#define DEFAULT_BACKOFF 3
+#define DEFAULT_RETRIES 10
+#define DEFAULT_PROMPT "login: "
+#define DEFAULT_PASSWD_PROMPT "Password:"
+#define TERM_UNKNOWN "su"
+#define DEFAULT_WARN (2L * 7L * 86400L) /* Two weeks */
+#define NO_SLEEP_EXIT 0
+#define SLEEP_EXIT 5
 
 /*
  * This bounds the time given to login.  Not a define so it can
  * be patched on machines where it's too small.
  */
-static u_int		timeout = 300;
+static u_int timeout = 300;
 
 /* Buffer for signal handling of timeout */
-static jmp_buf		 timeout_buf;
+static jmp_buf timeout_buf;
 
-char			 pwbuf[1024];
-struct passwd		 pwres;
-struct passwd		*pwd;
-static int		 failures;
+char pwbuf[1024];
+struct passwd pwres;
+struct passwd *pwd;
+static int failures;
 
-static char		*envinit[1];	/* empty environment list */
+static char *envinit[1]; /* empty environment list */
 
 /*
  * Command line flags and arguments
  */
-static int		 fflag;		/* -f: do not perform authentication */
-static int		 hflag;		/* -h: login from remote host */
-static char		*hostname;	/* hostname from command line */
-static int		 pflag;		/* -p: preserve environment */
+static int fflag;      /* -f: do not perform authentication */
+static int hflag;      /* -h: login from remote host */
+static char *hostname; /* hostname from command line */
+static int pflag;      /* -p: preserve environment */
 
 /*
  * User name
  */
-static char		*username;	/* user name */
-static char		*olduser;	/* previous user name */
+static char *username; /* user name */
+static char *olduser;  /* previous user name */
 
 /*
  * Prompts
  */
-static char		 default_prompt[] = DEFAULT_PROMPT;
-static const char	*prompt;
-static char		 default_passwd_prompt[] = DEFAULT_PASSWD_PROMPT;
-static const char	*passwd_prompt;
+static char default_prompt[] = DEFAULT_PROMPT;
+static const char *prompt;
+static char default_passwd_prompt[] = DEFAULT_PASSWD_PROMPT;
+static const char *passwd_prompt;
 
-static char		*tty;
+static char *tty;
 
 /*
  * PAM data
  */
-static pam_handle_t	*pamh = NULL;
-static struct pam_conv	 pamc = { openpam_ttyconv, NULL };
-static int		 pam_err;
-static int		 pam_silent = PAM_SILENT;
-static int		 pam_cred_established;
-static int		 pam_session_established;
+static pam_handle_t *pamh = NULL;
+static struct pam_conv pamc = { openpam_ttyconv, NULL };
+static int pam_err;
+static int pam_silent = PAM_SILENT;
+static int pam_cred_established;
+static int pam_session_established;
 
 int
 main(int argc, char *argv[])
@@ -208,8 +207,10 @@ main(int argc, char *argv[])
 			if (uid != 0)
 				errx(1, "-h option: %s", strerror(EPERM));
 			if (strlen(optarg) >= MAXHOSTNAMELEN)
-				errx(1, "-h option: %s: exceeds maximum "
-				    "hostname size", optarg);
+				errx(1,
+				    "-h option: %s: exceeds maximum "
+				    "hostname size",
+				    optarg);
 			hflag = 1;
 			hostname = optarg;
 			break;
@@ -255,14 +256,14 @@ main(int argc, char *argv[])
 	 * Get "login-retries" & "login-backoff" from default class
 	 */
 	lc = login_getclass(NULL);
-	prompt = login_getcapstr(lc, "login_prompt",
-	    default_prompt, default_prompt);
+	prompt = login_getcapstr(lc, "login_prompt", default_prompt,
+	    default_prompt);
 	passwd_prompt = login_getcapstr(lc, "passwd_prompt",
 	    default_passwd_prompt, default_passwd_prompt);
-	retries = login_getcapnum(lc, "login-retries",
-	    DEFAULT_RETRIES, DEFAULT_RETRIES);
-	backoff = login_getcapnum(lc, "login-backoff",
-	    DEFAULT_BACKOFF, DEFAULT_BACKOFF);
+	retries = login_getcapnum(lc, "login-retries", DEFAULT_RETRIES,
+	    DEFAULT_RETRIES);
+	backoff = login_getcapnum(lc, "login-backoff", DEFAULT_BACKOFF,
+	    DEFAULT_BACKOFF);
 	login_close(lc);
 	lc = NULL;
 
@@ -396,7 +397,7 @@ main(int argc, char *argv[])
 	 * kerberos credentials need to be saved so that the kernel
 	 * can authenticate to the NFS server.
 	 */
-	pam_err = pam_setcred(pamh, pam_silent|PAM_ESTABLISH_CRED);
+	pam_err = pam_setcred(pamh, pam_silent | PAM_ESTABLISH_CRED);
 	if (pam_err != PAM_SUCCESS) {
 		pam_syslog("pam_setcred()");
 		bail(NO_SLEEP_EXIT, 1);
@@ -427,7 +428,8 @@ main(int argc, char *argv[])
 		if (chdir("/") < 0)
 			refused("Cannot find root directory", "ROOTDIR", 1);
 		if (!quietlog || *pwd->pw_dir)
-			printf("No home directory.\nLogging in with home = \"/\".\n");
+			printf(
+			    "No home directory.\nLogging in with home = \"/\".\n");
 		pwd->pw_dir = strdup("/");
 		if (pwd->pw_dir == NULL) {
 			syslog(LOG_NOTICE, "strdup(): %m");
@@ -449,7 +451,7 @@ main(int argc, char *argv[])
 		syslog(LOG_NOTICE, "strdup(): %m");
 		bail(SLEEP_EXIT, 1);
 	}
-	if (*shell == '\0')   /* Not overridden */
+	if (*shell == '\0') /* Not overridden */
 		shell = pwd->pw_shell;
 	if ((shell = strdup(shell)) == NULL) {
 		syslog(LOG_NOTICE, "strdup(): %m");
@@ -479,8 +481,9 @@ main(int argc, char *argv[])
 	if (ttyn != tname && chflags(ttyn, 0))
 		if (errno != EOPNOTSUPP && errno != EROFS)
 			syslog(LOG_ERR, "chflags(%s): %m", ttyn);
-	if (ttyn != tname && chown(ttyn, pwd->pw_uid,
-	    (gr = getgrnam(TTYGRPNAME)) ? gr->gr_gid : pwd->pw_gid))
+	if (ttyn != tname &&
+	    chown(ttyn, pwd->pw_uid,
+		(gr = getgrnam(TTYGRPNAME)) ? gr->gr_gid : pwd->pw_gid))
 		if (errno != EROFS)
 			syslog(LOG_ERR, "chown(%s): %m", ttyn);
 
@@ -490,11 +493,10 @@ main(int argc, char *argv[])
 	 * hundreds of wtmp or lastlogin files.
 	 */
 	if (hflag)
-		syslog(LOG_INFO, "login from %s on %s as %s",
-		       hostname, tty, pwd->pw_name);
+		syslog(LOG_INFO, "login from %s on %s as %s", hostname, tty,
+		    pwd->pw_name);
 	else
-		syslog(LOG_INFO, "login on %s as %s",
-		       tty, pwd->pw_name);
+		syslog(LOG_INFO, "login on %s as %s", tty, pwd->pw_name);
 #endif
 
 	/*
@@ -506,8 +508,8 @@ main(int argc, char *argv[])
 			syslog(LOG_NOTICE, "ROOT LOGIN (%s) ON %s FROM %s",
 			    username, tty, hostname);
 		else
-			syslog(LOG_NOTICE, "ROOT LOGIN (%s) ON %s",
-			    username, tty);
+			syslog(LOG_NOTICE, "ROOT LOGIN (%s) ON %s", username,
+			    tty);
 	}
 
 	/*
@@ -528,7 +530,7 @@ main(int argc, char *argv[])
 		bail(NO_SLEEP_EXIT, 1);
 	}
 
-	pam_err = pam_setcred(pamh, pam_silent|PAM_REINITIALIZE_CRED);
+	pam_err = pam_setcred(pamh, pam_silent | PAM_REINITIALIZE_CRED);
 	if (pam_err != PAM_SUCCESS) {
 		pam_syslog("pam_setcred()");
 		bail(NO_SLEEP_EXIT, 1);
@@ -590,7 +592,7 @@ main(int argc, char *argv[])
 		bail(NO_SLEEP_EXIT, 1);
 	}
 	if (setusercontext(lc, pwd, pwd->pw_uid,
-	    LOGIN_SETALL & ~(LOGIN_SETLOGIN|LOGIN_SETGROUP)) != 0) {
+		LOGIN_SETALL & ~(LOGIN_SETLOGIN | LOGIN_SETGROUP)) != 0) {
 		syslog(LOG_ERR, "setusercontext() failed - exiting");
 		exit(1);
 	}
@@ -622,8 +624,8 @@ main(int argc, char *argv[])
 			/* $MAIL may have been set by class. */
 			cx = getenv("MAIL");
 			if (cx == NULL) {
-				asprintf(&cx, "%s/%s",
-				    _PATH_MAILDIR, pwd->pw_name);
+				asprintf(&cx, "%s/%s", _PATH_MAILDIR,
+				    pwd->pw_name);
 			}
 			if (cx && stat(cx, &st) == 0 && st.st_size != 0)
 				(void)printf("You have %smail.\n",
@@ -733,7 +735,7 @@ auth_pam(void)
 			break;
 		case PAM_NEW_AUTHTOK_REQD:
 			pam_err = pam_chauthtok(pamh,
-			    pam_silent|PAM_CHANGE_EXPIRED_AUTHTOK);
+			    pam_silent | PAM_CHANGE_EXPIRED_AUTHTOK);
 			if (pam_err != PAM_SUCCESS) {
 				pam_syslog("pam_chauthtok()");
 				rval = 1;
@@ -779,13 +781,10 @@ export_pam_environment(void)
  *   Solaris pam_putenv(3) man page.
  * Then export it.
  */
-static int
-export(const char *s)
+static int export(const char *s)
 {
-	static const char *noexport[] = {
-		"SHELL", "HOME", "LOGNAME", "MAIL", "CDPATH",
-		"IFS", "PATH", NULL
-	};
+	static const char *noexport[] = { "SHELL", "HOME", "LOGNAME", "MAIL",
+		"CDPATH", "IFS", "PATH", NULL };
 	char *p;
 	const char **pp;
 	size_t n;
@@ -830,7 +829,7 @@ getloginname(void)
 		err(1, "malloc()");
 	do {
 		(void)printf("%s", prompt);
-		for (p = nbuf; (ch = getchar()) != '\n'; ) {
+		for (p = nbuf; (ch = getchar()) != '\n';) {
 			if (ch == EOF) {
 				badlogin(username);
 				bail(NO_SLEEP_EXIT, 0);
@@ -910,17 +909,17 @@ badlogin(char *name)
 	if (failures == 0)
 		return;
 	if (hflag) {
-		syslog(LOG_NOTICE, "%d LOGIN FAILURE%s FROM %s",
-		    failures, failures > 1 ? "S" : "", hostname);
-		syslog(LOG_AUTHPRIV|LOG_NOTICE,
-		    "%d LOGIN FAILURE%s FROM %s, %s",
-		    failures, failures > 1 ? "S" : "", hostname, name);
+		syslog(LOG_NOTICE, "%d LOGIN FAILURE%s FROM %s", failures,
+		    failures > 1 ? "S" : "", hostname);
+		syslog(LOG_AUTHPRIV | LOG_NOTICE,
+		    "%d LOGIN FAILURE%s FROM %s, %s", failures,
+		    failures > 1 ? "S" : "", hostname, name);
 	} else {
-		syslog(LOG_NOTICE, "%d LOGIN FAILURE%s ON %s",
-		    failures, failures > 1 ? "S" : "", tty);
-		syslog(LOG_AUTHPRIV|LOG_NOTICE,
-		    "%d LOGIN FAILURE%s ON %s, %s",
-		    failures, failures > 1 ? "S" : "", tty, name);
+		syslog(LOG_NOTICE, "%d LOGIN FAILURE%s ON %s", failures,
+		    failures > 1 ? "S" : "", tty);
+		syslog(LOG_AUTHPRIV | LOG_NOTICE,
+		    "%d LOGIN FAILURE%s ON %s, %s", failures,
+		    failures > 1 ? "S" : "", tty, name);
 	}
 	failures = 0;
 }
@@ -943,7 +942,7 @@ refused(const char *msg, const char *rtype, int lout)
 {
 
 	if (msg != NULL)
-	    printf("%s.\n", msg);
+		printf("%s.\n", msg);
 	if (hflag)
 		syslog(LOG_NOTICE, "LOGIN %s REFUSED (%s) FROM %s ON TTY %s",
 		    pwd->pw_name, rtype, hostname, tty);
@@ -978,7 +977,8 @@ pam_cleanup(void)
 		}
 		pam_session_established = 0;
 		if (pam_cred_established) {
-			pam_err = pam_setcred(pamh, pam_silent|PAM_DELETE_CRED);
+			pam_err = pam_setcred(pamh,
+			    pam_silent | PAM_DELETE_CRED);
 			if (pam_err != PAM_SUCCESS)
 				pam_syslog("pam_setcred()");
 		}

@@ -67,7 +67,7 @@ editit(const char *pathname)
 	else
 		ret = WEXITSTATUS(st);
 
- fail:
+fail:
 	saved_errno = errno;
 	(void)signal(SIGHUP, sighup);
 	(void)signal(SIGINT, sigint);
@@ -112,7 +112,7 @@ eparse(const char *cmd, const char *left, const char *right)
 		break;
 
 	case 'l':
-LEFT:
+	LEFT:
 		/* Skip if there is no left column. */
 		if (left == NULL)
 			break;
@@ -123,7 +123,7 @@ LEFT:
 		break;
 
 	case 'r':
-RIGHT:
+	RIGHT:
 		/* Skip if there is no right column. */
 		if (right == NULL)
 			break;
@@ -176,8 +176,7 @@ RIGHT:
 
 		nread = fread(buf, sizeof(*buf), sizeof(buf), file);
 		/* Test for error or end of file. */
-		if (nread != sizeof(buf) &&
-		    (ferror(file) || !feof(file))) {
+		if (nread != sizeof(buf) && (ferror(file) || !feof(file))) {
 			warnx("error reading edited file: %s", filename);
 			cleanup(filename);
 		}

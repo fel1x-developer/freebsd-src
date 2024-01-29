@@ -19,52 +19,52 @@
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/queue.h>
-#include <sys/socket.h>
 #include <sys/signal.h>
+#include <sys/socket.h>
 #include <sys/tree.h>
 #include <sys/wait.h>
 
 #include <netinet/in.h>
-#include <arpa/inet.h>
 
+#include <arpa/inet.h>
 #include <err.h>
 #include <errno.h>
 #include <event.h>
-#include <unistd.h>
+#include <limits.h>
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <limits.h>
+#include <unistd.h>
 
 #include "ypldap.h"
 
-enum ypldap_process_type		ypldap_process;
+enum ypldap_process_type ypldap_process;
 
-__dead2 void	 usage(void);
-int		 check_child(pid_t, const char *);
-void		 main_sig_handler(int, short, void *);
-void		 main_shutdown(void);
-void		 main_dispatch_client(int, short, void *);
-void		 main_configure_client(struct env *);
-void		 main_init_timer(int, short, void *);
-void		 main_start_update(struct env *);
-void		 main_trash_update(struct env *);
-void		 main_end_update(struct env *);
-int		 main_create_user_groups(struct env *);
-void		 purge_config(struct env *);
-void		 reconfigure(struct env *);
+__dead2 void usage(void);
+int check_child(pid_t, const char *);
+void main_sig_handler(int, short, void *);
+void main_shutdown(void);
+void main_dispatch_client(int, short, void *);
+void main_configure_client(struct env *);
+void main_init_timer(int, short, void *);
+void main_start_update(struct env *);
+void main_trash_update(struct env *);
+void main_end_update(struct env *);
+int main_create_user_groups(struct env *);
+void purge_config(struct env *);
+void reconfigure(struct env *);
 
-int		 pipe_main2client[2];
+int pipe_main2client[2];
 
-pid_t		 client_pid = 0;
-char		*conffile = YPLDAP_CONF_FILE;
-int		 opts = 0;
+pid_t client_pid = 0;
+char *conffile = YPLDAP_CONF_FILE;
+int opts = 0;
 
 void
 usage(void)
 {
-	extern const char	*__progname;
+	extern const char *__progname;
 
 	fprintf(stderr, "usage: %s [-dnv] [-D macro=value] [-f file]\n",
 	    __progname);
@@ -74,7 +74,7 @@ usage(void)
 int
 check_child(pid_t pid, const char *pname)
 {
-	int	status;
+	int status;
 
 	if (waitpid(pid, &status, WNOHANG) > 0) {
 		if (WIFEXITED(status)) {
@@ -83,7 +83,8 @@ check_child(pid_t pid, const char *pname)
 		}
 		if (WIFSIGNALED(status)) {
 			log_warnx("check_child: lost child %s terminated; "
-			    "signal %d", pname, WTERMSIG(status));
+				  "signal %d",
+			    pname, WTERMSIG(status));
 			return (1);
 		}
 	}
@@ -94,7 +95,7 @@ check_child(pid_t pid, const char *pname)
 void
 main_sig_handler(int sig, short event, void *p)
 {
-	int		 die = 0;
+	int die = 0;
 
 	switch (sig) {
 	case SIGTERM:
@@ -131,10 +132,10 @@ main_start_update(struct env *env)
 	log_debug("starting directory update");
 	env->sc_user_line_len = 0;
 	env->sc_group_line_len = 0;
-	if ((env->sc_user_names_t = calloc(1,
-	    sizeof(*env->sc_user_names_t))) == NULL ||
+	if ((env->sc_user_names_t = calloc(1, sizeof(*env->sc_user_names_t))) ==
+		NULL ||
 	    (env->sc_group_names_t = calloc(1,
-	    sizeof(*env->sc_group_names_t))) == NULL)
+		 sizeof(*env->sc_group_names_t))) == NULL)
 		fatal(NULL);
 	RB_INIT(env->sc_user_names_t);
 	RB_INIT(env->sc_group_names_t);
@@ -148,24 +149,21 @@ main_start_update(struct env *env)
 void
 main_trash_update(struct env *env)
 {
-	struct userent	*ue;
-	struct groupent	*ge;
+	struct userent *ue;
+	struct groupent *ge;
 
 	env->update_trashed = 1;
 
 	while ((ue = RB_ROOT(env->sc_user_names_t)) != NULL) {
-		RB_REMOVE(user_name_tree,
-		    env->sc_user_names_t, ue);
+		RB_REMOVE(user_name_tree, env->sc_user_names_t, ue);
 		free(ue->ue_line);
 		free(ue->ue_netid_line);
 		free(ue);
 	}
 	free(env->sc_user_names_t);
 	env->sc_user_names_t = NULL;
-	while ((ge = RB_ROOT(env->sc_group_names_t))
-	    != NULL) {
-		RB_REMOVE(group_name_tree,
-		    env->sc_group_names_t, ge);
+	while ((ge = RB_ROOT(env->sc_group_names_t)) != NULL) {
+		RB_REMOVE(group_name_tree, env->sc_group_names_t, ge);
 		free(ge->ge_line);
 		free(ge);
 	}
@@ -176,16 +174,16 @@ main_trash_update(struct env *env)
 int
 main_create_user_groups(struct env *env)
 {
-	struct userent		*ue;
-	struct userent		 ukey;
-	struct groupent		*ge;
-	gid_t			 pw_gid;
-	char			*bp, *cp;
-	char			*p;
-	const char		*errstr = NULL;
-	size_t			 len;
+	struct userent *ue;
+	struct userent ukey;
+	struct groupent *ge;
+	gid_t pw_gid;
+	char *bp, *cp;
+	char *p;
+	const char *errstr = NULL;
+	size_t len;
 
-	RB_FOREACH(ue, user_name_tree, env->sc_user_names_t) {
+	RB_FOREACH (ue, user_name_tree, env->sc_user_names_t) {
 		bp = cp = ue->ue_line;
 
 		/* name */
@@ -202,7 +200,8 @@ main_create_user_groups(struct env *env)
 
 		pw_gid = (gid_t)strtonum(bp, 0, GID_MAX, &errstr);
 		if (errstr) {
-			log_warnx("main: failed to parse gid for uid: %d\n", ue->ue_uid);
+			log_warnx("main: failed to parse gid for uid: %d\n",
+			    ue->ue_uid);
 			return (-1);
 		}
 
@@ -213,7 +212,8 @@ main_create_user_groups(struct env *env)
 			return (-1);
 		}
 
-		if (snprintf(ue->ue_netid_line, LINE_WIDTH-1, "%d:%d", ue->ue_uid, pw_gid) >= LINE_WIDTH) {
+		if (snprintf(ue->ue_netid_line, LINE_WIDTH - 1, "%d:%d",
+			ue->ue_uid, pw_gid) >= LINE_WIDTH) {
 
 			return (-1);
 		}
@@ -221,7 +221,7 @@ main_create_user_groups(struct env *env)
 		ue->ue_gid = pw_gid;
 	}
 
-	RB_FOREACH(ge, group_name_tree, env->sc_group_names_t) {
+	RB_FOREACH (ge, group_name_tree, env->sc_group_names_t) {
 		bp = cp = ge->ge_line;
 
 		/* name */
@@ -237,31 +237,32 @@ main_create_user_groups(struct env *env)
 		if (*bp == '\0')
 			continue;
 		bp = cp;
-		for (;;) { 
+		for (;;) {
 			if (!(cp = strsep(&bp, ",")))
 				break;
 			ukey.ue_line = cp;
 			if ((ue = RB_FIND(user_name_tree, env->sc_user_names_t,
-			    &ukey)) == NULL) {
+				 &ukey)) == NULL) {
 				/* User not found */
 				log_warnx("main: unknown user %s in group %s\n",
-				   ukey.ue_line, ge->ge_line);
+				    ukey.ue_line, ge->ge_line);
 				if (bp != NULL)
-					*(bp-1) = ',';
+					*(bp - 1) = ',';
 				continue;
 			}
 			if (bp != NULL)
-				*(bp-1) = ',';
+				*(bp - 1) = ',';
 
-			/* Make sure the new group doesn't equal to the main gid */
+			/* Make sure the new group doesn't equal to the main gid
+			 */
 			if (ge->ge_gid == ue->ue_gid)
 				continue;
 
 			len = strlen(ue->ue_netid_line);
 			p = ue->ue_netid_line + len;
 
-			if ((snprintf(p, LINE_WIDTH-len-1, ",%d",
-				ge->ge_gid)) >= (int)(LINE_WIDTH-len)) {
+			if ((snprintf(p, LINE_WIDTH - len - 1, ",%d",
+				ge->ge_gid)) >= (int)(LINE_WIDTH - len)) {
 				return (-1);
 			}
 		}
@@ -273,8 +274,8 @@ main_create_user_groups(struct env *env)
 void
 main_end_update(struct env *env)
 {
-	struct userent		*ue;
-	struct groupent		*ge;
+	struct userent *ue;
+	struct groupent *ge;
 
 	if (env->update_trashed)
 		return;
@@ -303,8 +304,7 @@ main_end_update(struct env *env)
 	 * clean previous tree.
 	 */
 	while ((ue = RB_ROOT(env->sc_user_names)) != NULL) {
-		RB_REMOVE(user_name_tree, env->sc_user_names,
-		    ue);
+		RB_REMOVE(user_name_tree, env->sc_user_names, ue);
 		free(ue->ue_netid_line);
 		free(ue);
 	}
@@ -316,8 +316,7 @@ main_end_update(struct env *env)
 	env->sc_user_names_t = NULL;
 
 	while ((ge = RB_ROOT(env->sc_group_names)) != NULL) {
-		RB_REMOVE(group_name_tree,
-		    env->sc_group_names, ge);
+		RB_REMOVE(group_name_tree, env->sc_group_names, ge);
 		free(ge);
 	}
 	free(env->sc_group_names);
@@ -326,7 +325,6 @@ main_end_update(struct env *env)
 	env->sc_group_names = env->sc_group_names_t;
 	env->sc_group_lines = NULL;
 	env->sc_group_names_t = NULL;
-
 
 	flatten_entries(env);
 
@@ -337,25 +335,22 @@ main_end_update(struct env *env)
 make_uids:
 	RB_INIT(&env->sc_user_uids);
 	RB_INIT(&env->sc_group_gids);
-	RB_FOREACH(ue, user_name_tree, env->sc_user_names)
-		RB_INSERT(user_uid_tree,
-		    &env->sc_user_uids, ue);
-	RB_FOREACH(ge, group_name_tree, env->sc_group_names)
-		RB_INSERT(group_gid_tree,
-		    &env->sc_group_gids, ge);
-
+	RB_FOREACH (ue, user_name_tree, env->sc_user_names)
+		RB_INSERT(user_uid_tree, &env->sc_user_uids, ue);
+	RB_FOREACH (ge, group_name_tree, env->sc_group_names)
+		RB_INSERT(group_gid_tree, &env->sc_group_gids, ge);
 }
 
 void
 main_dispatch_client(int fd, short events, void *p)
 {
-	int		 n;
-	int		 shut = 0;
-	struct env	*env = p;
-	struct imsgev	*iev = env->sc_iev;
-	struct imsgbuf	*ibuf = &iev->ibuf;
-	struct idm_req	 ir;
-	struct imsg	 imsg;
+	int n;
+	int shut = 0;
+	struct env *env = p;
+	struct imsgev *iev = env->sc_iev;
+	struct imsgbuf *ibuf = &iev->ibuf;
+	struct idm_req ir;
+	struct imsg imsg;
 
 	if ((events & (EV_READ | EV_WRITE)) == 0)
 		fatalx("unknown event");
@@ -385,8 +380,8 @@ main_dispatch_client(int fd, short events, void *p)
 			main_start_update(env);
 			break;
 		case IMSG_PW_ENTRY: {
-			struct userent	*ue;
-			size_t		 len;
+			struct userent *ue;
+			size_t len;
 
 			if (env->update_trashed)
 				break;
@@ -403,7 +398,7 @@ main_dispatch_client(int fd, short events, void *p)
 			len = strlen(ue->ue_line) + 1;
 			ue->ue_line[strcspn(ue->ue_line, ":")] = '\0';
 			if (RB_INSERT(user_name_tree, env->sc_user_names_t,
-			    ue) != NULL) { /* dup */
+				ue) != NULL) { /* dup */
 				free(ue->ue_line);
 				free(ue);
 			} else
@@ -411,8 +406,8 @@ main_dispatch_client(int fd, short events, void *p)
 			break;
 		}
 		case IMSG_GRP_ENTRY: {
-			struct groupent	*ge;
-			size_t		 len;
+			struct groupent *ge;
+			size_t len;
 
 			if (env->update_trashed)
 				break;
@@ -429,7 +424,7 @@ main_dispatch_client(int fd, short events, void *p)
 			len = strlen(ge->ge_line) + 1;
 			ge->ge_line[strcspn(ge->ge_line, ":")] = '\0';
 			if (RB_INSERT(group_name_tree, env->sc_group_names_t,
-			    ge) != NULL) { /* dup */
+				ge) != NULL) { /* dup */
 				free(ge->ge_line);
 				free(ge);
 			} else
@@ -445,7 +440,7 @@ main_dispatch_client(int fd, short events, void *p)
 		}
 		default:
 			log_debug("main_dispatch_client: unexpected imsg %d",
-			   imsg.hdr.type);
+			    imsg.hdr.type);
 			break;
 		}
 		imsg_free(&imsg);
@@ -464,13 +459,13 @@ done:
 void
 main_configure_client(struct env *env)
 {
-	struct idm	*idm;
-	struct imsgev	*iev = env->sc_iev;
+	struct idm *idm;
+	struct imsgev *iev = env->sc_iev;
 
 	imsg_compose_event(iev, IMSG_CONF_START, 0, 0, -1, env, sizeof(*env));
-	TAILQ_FOREACH(idm, &env->sc_idms, idm_entry) {
-		imsg_compose_event(iev, IMSG_CONF_IDM, 0, 0, -1,
-		    idm, sizeof(*idm));
+	TAILQ_FOREACH (idm, &env->sc_idms, idm_entry) {
+		imsg_compose_event(iev, IMSG_CONF_IDM, 0, 0, -1, idm,
+		    sizeof(*idm));
 	}
 	imsg_compose_event(iev, IMSG_CONF_END, 0, 0, -1, NULL, 0);
 }
@@ -478,7 +473,7 @@ main_configure_client(struct env *env)
 void
 main_init_timer(int fd, short event, void *p)
 {
-	struct env	*env = p;
+	struct env *env = p;
 
 	main_configure_client(env);
 }
@@ -486,7 +481,7 @@ main_init_timer(int fd, short event, void *p)
 void
 purge_config(struct env *env)
 {
-	struct idm	*idm;
+	struct idm *idm;
 
 	while ((idm = TAILQ_FIRST(&env->sc_idms)) != NULL) {
 		TAILQ_REMOVE(&env->sc_idms, idm, idm_entry);
@@ -497,16 +492,16 @@ purge_config(struct env *env)
 int
 main(int argc, char *argv[])
 {
-	int		 c;
-	int		 debug;
-	struct passwd	*pw;
-	struct env	 env;
-	struct event	 ev_sigint;
-	struct event	 ev_sigterm;
-	struct event	 ev_sigchld;
-	struct event	 ev_sighup;
-	struct event	 ev_timer;
-	struct timeval	 tv;
+	int c;
+	int debug;
+	struct passwd *pw;
+	struct env env;
+	struct event ev_sigint;
+	struct event ev_sigterm;
+	struct event ev_sigchld;
+	struct event ev_sighup;
+	struct event ev_timer;
+	struct timeval tv;
 
 	debug = 0;
 	ypldap_process = PROC_MAIN;
@@ -564,10 +559,10 @@ main(int argc, char *argv[])
 			err(1, "failed to daemonize");
 	}
 
-	log_info("startup%s", (debug > 1)?" [debug mode]":"");
+	log_info("startup%s", (debug > 1) ? " [debug mode]" : "");
 
 	if (socketpair(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, PF_UNSPEC,
-	    pipe_main2client) == -1)
+		pipe_main2client) == -1)
 		fatal("socketpair");
 
 	client_pid = ldapclient(pipe_main2client);
@@ -593,7 +588,7 @@ main(int argc, char *argv[])
 	env.sc_iev->events = EV_READ;
 	env.sc_iev->data = &env;
 	event_set(&env.sc_iev->ev, env.sc_iev->ibuf.fd, env.sc_iev->events,
-	     env.sc_iev->handler, &env);
+	    env.sc_iev->handler, &env);
 	event_add(&env.sc_iev->ev, NULL);
 
 	yp_init(&env);
@@ -642,10 +637,10 @@ int
 imsg_compose_event(struct imsgev *iev, u_int16_t type, u_int32_t peerid,
     pid_t pid, int fd, void *data, u_int16_t datalen)
 {
-	int	ret;
+	int ret;
 
-	if ((ret = imsg_compose(&iev->ibuf, type, peerid,
-	    pid, fd, data, datalen)) != -1)
+	if ((ret = imsg_compose(&iev->ibuf, type, peerid, pid, fd, data,
+		 datalen)) != -1)
 		imsg_event_add(iev);
 	return (ret);
 }

@@ -35,15 +35,13 @@
  */
 
 #include <sys/param.h>
+#include <sys/acl.h>
+#include <sys/extattr.h>
 #include <sys/file.h>
 #include <sys/mtio.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <sys/extattr.h>
-#include <sys/acl.h>
 
-#include <ufs/ufs/extattr.h>
-#include <ufs/ufs/dinode.h>
 #include <protocols/dumprestore.h>
 
 #include <errno.h>
@@ -56,64 +54,66 @@
 #include <string.h>
 #include <time.h>
 #include <timeconv.h>
+#include <ufs/ufs/dinode.h>
+#include <ufs/ufs/extattr.h>
 #include <unistd.h>
 
-#include "restore.h"
 #include "extern.h"
+#include "restore.h"
 
-static long	fssize = MAXBSIZE;
-static int	mt = -1;
-static int	pipein = 0;
-static int	pipecmdin = 0;
-static FILE	*popenfp = NULL;
-static char	*magtape;
-static int	blkcnt;
-static int	numtrec;
-static char	*tapebuf;
-static union	u_spcl endoftapemark;
-static long	byteslide = 0;
-static long	blksread;		/* blocks read since last header */
-static int64_t	tapeaddr = 0;		/* current TP_BSIZE tape record */
-static long	tapesread;
-static jmp_buf	restart;
-static int	gettingfile = 0;	/* restart has a valid frame */
-static char	*host = NULL;
-static int	readmapflag;
+static long fssize = MAXBSIZE;
+static int mt = -1;
+static int pipein = 0;
+static int pipecmdin = 0;
+static FILE *popenfp = NULL;
+static char *magtape;
+static int blkcnt;
+static int numtrec;
+static char *tapebuf;
+static union u_spcl endoftapemark;
+static long byteslide = 0;
+static long blksread;	     /* blocks read since last header */
+static int64_t tapeaddr = 0; /* current TP_BSIZE tape record */
+static long tapesread;
+static jmp_buf restart;
+static int gettingfile = 0; /* restart has a valid frame */
+static char *host = NULL;
+static int readmapflag;
 
-static int	ofile;
-static char	*map;
-static char	lnkbuf[MAXPATHLEN + 1];
-static int	pathlen;
+static int ofile;
+static char *map;
+static char lnkbuf[MAXPATHLEN + 1];
+static int pathlen;
 
-struct context	curfile;	/* describes next file available on the tape */
-union u_spcl	u_spcl;		/* mapping of variables in a control block */
-int		Bcvt;		/* Swap Bytes */
-int		oldinofmt;	/* FreeBSD 1 inode format needs cvt */
+struct context curfile; /* describes next file available on the tape */
+union u_spcl u_spcl;	/* mapping of variables in a control block */
+int Bcvt;		/* Swap Bytes */
+int oldinofmt;		/* FreeBSD 1 inode format needs cvt */
 
-#define	FLUSHTAPEBUF()	blkcnt = ntrec + 1
+#define FLUSHTAPEBUF() blkcnt = ntrec + 1
 
 char *namespace_names[] = EXTATTR_NAMESPACE_NAMES;
 
-static void	 accthdr(struct s_spcl *);
-static int	 checksum(int *);
-static void	 findinode(struct s_spcl *);
-static void	 findtapeblksize(void);
-static char	*setupextattr(int);
-static void	 xtrattr(char *, size_t);
-static void	 skiphole(void (*)(char *, size_t), size_t *);
-static int	 gethead(struct s_spcl *);
-static void	 readtape(char *);
-static void	 setdumpnum(void);
-static u_long	 swabl(u_long);
-static u_char	*swablong(u_char *, int);
-static u_char	*swabshort(u_char *, int);
-static void	 terminateinput(void);
-static void	 xtrfile(char *, size_t);
-static void	 xtrlnkfile(char *, size_t);
-static void	 xtrlnkskip(char *, size_t);
-static void	 xtrmap(char *, size_t);
-static void	 xtrmapskip(char *, size_t);
-static void	 xtrskip(char *, size_t);
+static void accthdr(struct s_spcl *);
+static int checksum(int *);
+static void findinode(struct s_spcl *);
+static void findtapeblksize(void);
+static char *setupextattr(int);
+static void xtrattr(char *, size_t);
+static void skiphole(void (*)(char *, size_t), size_t *);
+static int gethead(struct s_spcl *);
+static void readtape(char *);
+static void setdumpnum(void);
+static u_long swabl(u_long);
+static u_char *swablong(u_char *, int);
+static u_char *swabshort(u_char *, int);
+static void terminateinput(void);
+static void xtrfile(char *, size_t);
+static void xtrlnkfile(char *, size_t);
+static void xtrlnkskip(char *, size_t);
+static void xtrmap(char *, size_t);
+static void xtrmapskip(char *, size_t);
+static void xtrskip(char *, size_t);
 
 /*
  * Set up an input source
@@ -132,7 +132,7 @@ setinput(char *source, int ispipecommand)
 		pipecmdin++;
 	else
 #ifdef RRESTORE
-	if (strchr(source, ':')) {
+	    if (strchr(source, ':')) {
 		host = source;
 		source = strchr(host, ':');
 		*source++ = '\0';
@@ -140,15 +140,15 @@ setinput(char *source, int ispipecommand)
 			done(1);
 	} else
 #endif
-	if (strcmp(source, "-") == 0) {
+	    if (strcmp(source, "-") == 0) {
 		/*
 		 * Since input is coming from a pipe we must establish
 		 * our own connection to the terminal.
 		 */
 		terminal = fopen(_PATH_TTY, "r");
 		if (terminal == NULL) {
-			(void)fprintf(stderr, "cannot open %s: %s\n",
-			    _PATH_TTY, strerror(errno));
+			(void)fprintf(stderr, "cannot open %s: %s\n", _PATH_TTY,
+			    strerror(errno));
 			terminal = fopen(_PATH_DEVNULL, "r");
 			if (terminal == NULL) {
 				(void)fprintf(stderr, "cannot open %s: %s\n",
@@ -180,7 +180,7 @@ newtapebuf(long size)
 		return;
 	if (tapebuf != NULL)
 		free(tapebuf - TP_BSIZE);
-	tapebuf = malloc((size+1) * TP_BSIZE);
+	tapebuf = malloc((size + 1) * TP_BSIZE);
 	if (tapebuf == NULL) {
 		fprintf(stderr, "Cannot allocate space for tape buffer\n");
 		done(1);
@@ -210,11 +210,11 @@ setup(void)
 		mt = popenfp ? fileno(popenfp) : -1;
 	} else
 #ifdef RRESTORE
-	if (host)
+	    if (host)
 		mt = rmtopen(magtape, 0);
 	else
 #endif
-	if (pipein)
+	    if (pipein)
 		mt = 0;
 	else
 		mt = open(magtape, O_RDONLY, 0);
@@ -250,13 +250,15 @@ setup(void)
 		fprintf(stderr, "cannot stat .: %s\n", strerror(errno));
 		done(1);
 	}
-	if (stbuf.st_blksize > 0 && stbuf.st_blksize < TP_BSIZE )
+	if (stbuf.st_blksize > 0 && stbuf.st_blksize < TP_BSIZE)
 		fssize = TP_BSIZE;
 	if (stbuf.st_blksize >= TP_BSIZE && stbuf.st_blksize <= MAXBSIZE)
 		fssize = stbuf.st_blksize;
 	if (((TP_BSIZE - 1) & stbuf.st_blksize) != 0) {
-		fprintf(stderr, "Warning: filesystem with non-multiple-of-%d "
-		    "blocksize (%d);\n", TP_BSIZE, stbuf.st_blksize);
+		fprintf(stderr,
+		    "Warning: filesystem with non-multiple-of-%d "
+		    "blocksize (%d);\n",
+		    TP_BSIZE, stbuf.st_blksize);
 		fssize = roundup(fssize, TP_BSIZE);
 		fprintf(stderr, "\twriting using blocksize %ld\n", fssize);
 	}
@@ -315,7 +317,7 @@ getvol(long nextvol)
 	int64_t prevtapea;
 	long i, newvol, savecnt;
 	union u_spcl tmpspcl;
-#	define tmpbuf tmpspcl.s_spcl
+#define tmpbuf tmpspcl.s_spcl
 	char buf[TP_BSIZE];
 
 	if (nextvol == 1) {
@@ -363,9 +365,9 @@ again:
 				}
 			fprintf(stderr, "\n");
 		}
-		do	{
+		do {
 			fprintf(stderr, "Specify next volume #: ");
-			(void) fflush(stderr);
+			(void)fflush(stderr);
 			if (fgets(buf, BUFSIZ, terminal) == NULL)
 				done(1);
 		} while (buf[0] == '\n');
@@ -383,7 +385,7 @@ again:
 	fprintf(stderr, "Mount tape volume %ld\n", newvol);
 	fprintf(stderr, "Enter ``none'' if there are no more tapes\n");
 	fprintf(stderr, "otherwise enter tape name (default: %s) ", magtape);
-	(void) fflush(stderr);
+	(void)fflush(stderr);
 	if (fgets(buf, BUFSIZ, terminal) == NULL)
 		done(1);
 	if (!strcmp(buf, "none\n")) {
@@ -391,7 +393,7 @@ again:
 		return;
 	}
 	if (buf[0] != '\n') {
-		(void) strcpy(magtape, buf);
+		(void)strcpy(magtape, buf);
 		magtape[strlen(magtape) - 1] = '\0';
 	}
 	if (pipecmdin) {
@@ -407,7 +409,7 @@ again:
 		mt = popenfp ? fileno(popenfp) : -1;
 	} else
 #ifdef RRESTORE
-	if (host)
+	    if (host)
 		mt = rmtopen(magtape, 0);
 	else
 #endif
@@ -444,17 +446,17 @@ gethdr:
 	}
 	tapesread |= 1 << (volno - 1);
 	blksread = savecnt;
- 	/*
- 	 * If continuing from the previous volume, skip over any
- 	 * blocks read already at the end of the previous volume.
- 	 *
- 	 * If coming to this volume at random, skip to the beginning
- 	 * of the next record.
- 	 */
+	/*
+	 * If continuing from the previous volume, skip over any
+	 * blocks read already at the end of the previous volume.
+	 *
+	 * If coming to this volume at random, skip to the beginning
+	 * of the next record.
+	 */
 	dprintf(stdout, "last rec %jd, tape starts with %jd\n",
 	    (intmax_t)prevtapea, (intmax_t)tmpbuf.c_tapea);
- 	if (tmpbuf.c_type == TS_TAPE) {
- 		if (curfile.action != USING) {
+	if (tmpbuf.c_type == TS_TAPE) {
+		if (curfile.action != USING) {
 			/*
 			 * XXX Dump incorrectly sets c_count to 1 in the
 			 * volume header of the first tape, so ignore
@@ -463,7 +465,7 @@ gethdr:
 			if (volno != 1)
 				for (i = tmpbuf.c_count; i > 0; i--)
 					readtape(buf);
- 		} else if (tmpbuf.c_tapea <= prevtapea) {
+		} else if (tmpbuf.c_tapea <= prevtapea) {
 			/*
 			 * Normally the value of c_tapea in the volume
 			 * header is the record number of the header itself.
@@ -473,19 +475,19 @@ gethdr:
 			 *
 			 * The next record we want is `prevtapea + 1'.
 			 */
- 			i = prevtapea + 1 - tmpbuf.c_tapea;
-			dprintf(stderr, "Skipping %ld duplicate record%s.\n",
-				i, i > 1 ? "s" : "");
- 			while (--i >= 0)
- 				readtape(buf);
- 		}
- 	}
+			i = prevtapea + 1 - tmpbuf.c_tapea;
+			dprintf(stderr, "Skipping %ld duplicate record%s.\n", i,
+			    i > 1 ? "s" : "");
+			while (--i >= 0)
+				readtape(buf);
+		}
+	}
 	if (curfile.action == USING) {
 		if (volno == 1)
 			panic("active file into volume 1\n");
 		return;
 	}
-	(void) gethead(&spcl);
+	(void)gethead(&spcl);
 	findinode(&spcl);
 	if (gettingfile) {
 		gettingfile = 0;
@@ -536,8 +538,8 @@ setdumpnum(void)
 		rmtioctl(MTFSF, dumpnum - 1);
 	else
 #endif
-		if (!pipecmdin && ioctl(mt, MTIOCTOP, (char *)&tcom) < 0)
-			fprintf(stderr, "ioctl MTFSF: %s\n", strerror(errno));
+	    if (!pipecmdin && ioctl(mt, MTIOCTOP, (char *)&tcom) < 0)
+		fprintf(stderr, "ioctl MTFSF: %s\n", strerror(errno));
 }
 
 void
@@ -619,15 +621,15 @@ extractfile(char *name)
 			return (GOOD);
 		}
 		if (linkit(lnkbuf, name, SYMLINK) == GOOD) {
-			(void) lchown(name, uid, gid);
-			(void) lchmod(name, mode);
+			(void)lchown(name, uid, gid);
+			(void)lchmod(name, mode);
 			if (extsize > 0)
 				set_extattr(-1, name, buf, extsize, SXA_LINK);
-			(void) utimensat(AT_FDCWD, name, ctimep,
+			(void)utimensat(AT_FDCWD, name, ctimep,
 			    AT_SYMLINK_NOFOLLOW);
-			(void) utimensat(AT_FDCWD, name, mtimep,
+			(void)utimensat(AT_FDCWD, name, mtimep,
 			    AT_SYMLINK_NOFOLLOW);
-			(void) lchflags(name, flags);
+			(void)lchflags(name, flags);
 			return (GOOD);
 		}
 		return (FAIL);
@@ -639,15 +641,15 @@ extractfile(char *name)
 			return (GOOD);
 		}
 		if (uflag)
-			(void) unlink(name);
+			(void)unlink(name);
 		if (mkfifo(name, 0600) < 0) {
-			fprintf(stderr, "%s: cannot create fifo: %s\n",
-			    name, strerror(errno));
+			fprintf(stderr, "%s: cannot create fifo: %s\n", name,
+			    strerror(errno));
 			skipfile();
 			return (FAIL);
 		}
-		(void) chown(name, uid, gid);
-		(void) chmod(name, mode);
+		(void)chown(name, uid, gid);
+		(void)chmod(name, mode);
 		if (extsize == 0) {
 			skipfile();
 		} else {
@@ -655,9 +657,9 @@ extractfile(char *name)
 			getfile(xtrnull, xtrattr, xtrnull);
 			set_extattr(-1, name, buf, extsize, SXA_FILE);
 		}
-		(void) utimensat(AT_FDCWD, name, ctimep, 0);
-		(void) utimensat(AT_FDCWD, name, mtimep, 0);
-		(void) chflags(name, flags);
+		(void)utimensat(AT_FDCWD, name, ctimep, 0);
+		(void)utimensat(AT_FDCWD, name, mtimep, 0);
+		(void)chflags(name, flags);
 		return (GOOD);
 
 	case IFCHR:
@@ -668,16 +670,16 @@ extractfile(char *name)
 			return (GOOD);
 		}
 		if (uflag)
-			(void) unlink(name);
+			(void)unlink(name);
 		if (mknod(name, (mode & (IFCHR | IFBLK)) | 0600,
-		    (int)curfile.rdev) < 0) {
+			(int)curfile.rdev) < 0) {
 			fprintf(stderr, "%s: cannot create special file: %s\n",
 			    name, strerror(errno));
 			skipfile();
 			return (FAIL);
 		}
-		(void) chown(name, uid, gid);
-		(void) chmod(name, mode);
+		(void)chown(name, uid, gid);
+		(void)chmod(name, mode);
 		if (extsize == 0) {
 			skipfile();
 		} else {
@@ -685,9 +687,9 @@ extractfile(char *name)
 			getfile(xtrnull, xtrattr, xtrnull);
 			set_extattr(-1, name, buf, extsize, SXA_FILE);
 		}
-		(void) utimensat(AT_FDCWD, name, ctimep, 0);
-		(void) utimensat(AT_FDCWD, name, mtimep, 0);
-		(void) chflags(name, flags);
+		(void)utimensat(AT_FDCWD, name, ctimep, 0);
+		(void)utimensat(AT_FDCWD, name, mtimep, 0);
+		(void)chflags(name, flags);
 		return (GOOD);
 
 	case IFREG:
@@ -697,24 +699,24 @@ extractfile(char *name)
 			return (GOOD);
 		}
 		if (uflag)
-			(void) unlink(name);
-		if ((ofile = open(name, O_WRONLY | O_CREAT | O_TRUNC,
-		    0600)) < 0) {
-			fprintf(stderr, "%s: cannot create file: %s\n",
-			    name, strerror(errno));
+			(void)unlink(name);
+		if ((ofile = open(name, O_WRONLY | O_CREAT | O_TRUNC, 0600)) <
+		    0) {
+			fprintf(stderr, "%s: cannot create file: %s\n", name,
+			    strerror(errno));
 			skipfile();
 			return (FAIL);
 		}
-		(void) fchown(ofile, uid, gid);
-		(void) fchmod(ofile, mode);
+		(void)fchown(ofile, uid, gid);
+		(void)fchmod(ofile, mode);
 		buf = setupextattr(extsize);
 		getfile(xtrfile, xtrattr, xtrskip);
 		if (extsize > 0)
 			set_extattr(ofile, name, buf, extsize, SXA_FD);
-		(void) futimens(ofile, ctimep);
-		(void) futimens(ofile, mtimep);
-		(void) fchflags(ofile, flags);
-		(void) close(ofile);
+		(void)futimens(ofile, ctimep);
+		(void)futimens(ofile, mtimep);
+		(void)fchflags(ofile, flags);
+		(void)close(ofile);
 		return (GOOD);
 	}
 	/* NOTREACHED */
@@ -740,7 +742,7 @@ set_extattr(int fd, char *name, void *buf, int size, enum set_extattr_mode mode)
 		 */
 		if (EXTATTR_NEXT(eap) > eaend || eap->ea_length <= 0) {
 			dprintf(stdout, "\n\t%scorrupted",
-				eap == buf ? "" : "remainder ");
+			    eap == buf ? "" : "remainder ");
 			break;
 		}
 		if (eap->ea_namespace == EXTATTR_NAMESPACE_EMPTY)
@@ -748,27 +750,23 @@ set_extattr(int fd, char *name, void *buf, int size, enum set_extattr_mode mode)
 		snprintf(eaname, sizeof(eaname), "%.*s",
 		    (int)eap->ea_namelength, eap->ea_name);
 		vprintf(stdout, "\n\t%s, (%d bytes), %s",
-			namespace_names[eap->ea_namespace], eap->ea_length,
-			eaname);
+		    namespace_names[eap->ea_namespace], eap->ea_length, eaname);
 		/*
 		 * First we try the general attribute setting interface.
 		 * However, some attributes can only be set by root or
 		 * by using special interfaces (for example, ACLs).
 		 */
 		if (mode == SXA_FD) {
-			res = extattr_set_fd(fd, eap->ea_namespace,
-			    eaname, EXTATTR_CONTENT(eap),
-			    EXTATTR_CONTENT_SIZE(eap));
+			res = extattr_set_fd(fd, eap->ea_namespace, eaname,
+			    EXTATTR_CONTENT(eap), EXTATTR_CONTENT_SIZE(eap));
 			method = "extattr_set_fd";
 		} else if (mode == SXA_LINK) {
-			res = extattr_set_link(name, eap->ea_namespace,
-			    eaname, EXTATTR_CONTENT(eap),
-			    EXTATTR_CONTENT_SIZE(eap));
+			res = extattr_set_link(name, eap->ea_namespace, eaname,
+			    EXTATTR_CONTENT(eap), EXTATTR_CONTENT_SIZE(eap));
 			method = "extattr_set_link";
 		} else if (mode == SXA_FILE) {
-			res = extattr_set_file(name, eap->ea_namespace,
-			    eaname, EXTATTR_CONTENT(eap),
-			    EXTATTR_CONTENT_SIZE(eap));
+			res = extattr_set_file(name, eap->ea_namespace, eaname,
+			    EXTATTR_CONTENT(eap), EXTATTR_CONTENT_SIZE(eap));
 			method = "extattr_set_file";
 		}
 		if (res != -1) {
@@ -864,7 +862,7 @@ skiphole(void (*skip)(char *, size_t), size_t *seekpos)
  */
 void
 getfile(void (*datafill)(char *, size_t), void (*attrfill)(char *, size_t),
-	void (*skip)(char *, size_t))
+    void (*skip)(char *, size_t))
 {
 	int i;
 	volatile off_t size;
@@ -906,16 +904,19 @@ loop:
 			readtape(&buf[curblk++][0]);
 			if (curblk == fssize / TP_BSIZE) {
 				skiphole(skip, &seekpos);
-				(*fillit)((char *)buf, (long)(size > TP_BSIZE ?
-				     fssize : (curblk - 1) * TP_BSIZE + size));
+				(*fillit)((char *)buf,
+				    (long)(size > TP_BSIZE ?
+					    fssize :
+					    (curblk - 1) * TP_BSIZE + size));
 				curblk = 0;
 			}
 		} else {
 			if (curblk > 0) {
 				skiphole(skip, &seekpos);
-				(*fillit)((char *)buf, (long)(size > TP_BSIZE ?
-				     curblk * TP_BSIZE :
-				     (curblk - 1) * TP_BSIZE + size));
+				(*fillit)((char *)buf,
+				    (long)(size > TP_BSIZE ?
+					    curblk * TP_BSIZE :
+					    (curblk - 1) * TP_BSIZE + size));
 				curblk = 0;
 			}
 			/*
@@ -930,7 +931,7 @@ loop:
 			if (size > -TP_BSIZE && curblk > 0) {
 				skiphole(skip, &seekpos);
 				(*fillit)((char *)buf,
-					(long)((curblk * TP_BSIZE) + size));
+				    (long)((curblk * TP_BSIZE) + size));
 				curblk = 0;
 			}
 			if (attrsize > 0) {
@@ -941,7 +942,7 @@ loop:
 			}
 			if (spcl.c_count - i > 1)
 				dprintf(stdout, "skipping %d junk block(s)\n",
-					spcl.c_count - i - 1);
+				    spcl.c_count - i - 1);
 			for (i++; i < spcl.c_count; i++) {
 				if (!readmapflag && i > TP_NINDIR) {
 					if (Dflag) {
@@ -949,7 +950,7 @@ loop:
 						    "spcl.c_count = %jd\n",
 						    (intmax_t)spcl.c_count);
 						break;
-					} else 
+					} else
 						panic("spcl.c_count = %jd\n",
 						    (intmax_t)spcl.c_count);
 				}
@@ -963,8 +964,8 @@ loop:
 		if (spcl.c_type == TS_ADDR)
 			goto loop;
 		dprintf(stdout,
-			"Missing address (header) block for %s at %ld blocks\n",
-			curfile.name, blksread);
+		    "Missing address (header) block for %s at %ld blocks\n",
+		    curfile.name, blksread);
 	}
 	if (curblk > 0)
 		panic("getfile: lost data\n");
@@ -1025,7 +1026,7 @@ xtrfile(char *buf, size_t size)
 
 	if (Nflag)
 		return;
-	if (write(ofile, buf, (int) size) == -1) {
+	if (write(ofile, buf, (int)size) == -1) {
 		fprintf(stderr,
 		    "write error extracting inode %ju, name %s\nwrite: %s\n",
 		    (uintmax_t)curfile.ino, curfile.name, strerror(errno));
@@ -1061,7 +1062,7 @@ xtrlnkfile(char *buf, size_t size)
 		    curfile.name, lnkbuf, buf, pathlen);
 		done(1);
 	}
-	(void) strcat(lnkbuf, buf);
+	(void)strcat(lnkbuf, buf);
 }
 
 /*
@@ -1073,7 +1074,7 @@ xtrlnkskip(char *buf, size_t size)
 {
 
 	fprintf(stderr, "unallocated block in symbolic link %s\n",
-		curfile.name);
+	    curfile.name);
 	done(1);
 }
 
@@ -1122,14 +1123,15 @@ readtape(char *buf)
 	int cnt, seek_failed;
 
 	if (blkcnt + (byteslide > 0) < numtrec) {
-		memmove(buf, &tapebuf[(blkcnt++ * TP_BSIZE) + byteslide], (long)TP_BSIZE);
+		memmove(buf, &tapebuf[(blkcnt++ * TP_BSIZE) + byteslide],
+		    (long)TP_BSIZE);
 		blksread++;
 		tapeaddr++;
 		return;
 	}
 	if (numtrec > 0)
-		memmove(&tapebuf[-TP_BSIZE],
-		    &tapebuf[(numtrec-1) * TP_BSIZE], (long)TP_BSIZE);
+		memmove(&tapebuf[-TP_BSIZE], &tapebuf[(numtrec - 1) * TP_BSIZE],
+		    (long)TP_BSIZE);
 	oldnumtrec = numtrec;
 	for (i = 0; i < ntrec; i++)
 		((struct s_spcl *)&tapebuf[i * TP_BSIZE])->c_magic = 0;
@@ -1207,8 +1209,8 @@ getmore:
 			seek_failed = (lseek(mt, i, SEEK_CUR) == (off_t)-1);
 
 		if (seek_failed) {
-			fprintf(stderr,
-			    "continuation failed: %s\n", strerror(errno));
+			fprintf(stderr, "continuation failed: %s\n",
+			    strerror(errno));
 			done(1);
 		}
 	}
@@ -1226,8 +1228,8 @@ getmore:
 			return;
 		}
 		if (rd % TP_BSIZE != 0)
-			panic("partial block read: %ld should be %ld\n",
-				rd, ntrec * TP_BSIZE);
+			panic("partial block read: %ld should be %ld\n", rd,
+			    ntrec * TP_BSIZE);
 		terminateinput();
 		memmove(&tapebuf[rd], &endoftapemark, (long)TP_BSIZE);
 	}
@@ -1235,8 +1237,8 @@ getmore:
 		blkcnt = 0;
 	else
 		blkcnt -= oldnumtrec;
-	memmove(buf,
-	    &tapebuf[(blkcnt++ * TP_BSIZE) + byteslide], (long)TP_BSIZE);
+	memmove(buf, &tapebuf[(blkcnt++ * TP_BSIZE) + byteslide],
+	    (long)TP_BSIZE);
 	blksread++;
 	tapeaddr++;
 }
@@ -1261,8 +1263,8 @@ findtapeblksize(void)
 		done(1);
 	}
 	if (i % TP_BSIZE != 0) {
-		fprintf(stderr, "Tape block size (%ld) %s (%d)\n",
-			i, "is not a multiple of dump block size", TP_BSIZE);
+		fprintf(stderr, "Tape block size (%ld) %s (%d)\n", i,
+		    "is not a multiple of dump block size", TP_BSIZE);
 		done(1);
 	}
 	ntrec = i / TP_BSIZE;
@@ -1281,11 +1283,11 @@ closemt(void)
 		popenfp = NULL;
 	} else
 #ifdef RRESTORE
-	if (host)
+	    if (host)
 		rmtclose();
 	else
 #endif
-		(void) close(mt);
+		(void)close(mt);
 }
 
 /*
@@ -1310,9 +1312,9 @@ gethead(struct s_spcl *buf)
 		    swabl(buf->c_magic) != NFS_MAGIC) {
 			if (swabl(buf->c_magic) == OFS_MAGIC) {
 				fprintf(stderr,
-				  "Format of dump tape is too old. Must use\n");
+				    "Format of dump tape is too old. Must use\n");
 				fprintf(stderr,
-				  "a version of restore from before 2002.\n");
+				    "a version of restore from before 2002.\n");
 			}
 			return (FAIL);
 		}
@@ -1325,8 +1327,8 @@ gethead(struct s_spcl *buf)
 		return (FAIL);
 	if (Bcvt) {
 		swabst((u_char *)"8l4s1q8l2q17l", (u_char *)buf);
-		swabst((u_char *)"l",(u_char *) &buf->c_level);
-		swabst((u_char *)"2l4q",(u_char *) &buf->c_flags);
+		swabst((u_char *)"l", (u_char *)&buf->c_level);
+		swabst((u_char *)"2l4q", (u_char *)&buf->c_flags);
 	}
 	readmapflag = 0;
 
@@ -1340,7 +1342,7 @@ gethead(struct s_spcl *buf)
 		buf->c_size = buf->c_count * TP_BSIZE;
 		if (buf->c_count > TP_NINDIR)
 			readmapflag = 1;
-		else 
+		else
 			for (i = 0; i < buf->c_count; i++)
 				buf->c_addr[i]++;
 		/* FALL THROUGH */
@@ -1392,7 +1394,7 @@ gethead(struct s_spcl *buf)
 	tapeaddr = buf->c_tapea;
 	if (dflag)
 		accthdr(buf);
-	return(GOOD);
+	return (GOOD);
 }
 
 /*
@@ -1408,10 +1410,10 @@ accthdr(struct s_spcl *header)
 
 	if (header->c_type == TS_TAPE) {
 		fprintf(stderr, "Volume header ");
- 		if (header->c_firstrec)
- 			fprintf(stderr, "begins with record %jd",
+		if (header->c_firstrec)
+			fprintf(stderr, "begins with record %jd",
 			    (intmax_t)header->c_firstrec);
- 		fprintf(stderr, "\n");
+		fprintf(stderr, "\n");
 		previno = 0x7fffffff;
 		return;
 	}
@@ -1437,7 +1439,7 @@ accthdr(struct s_spcl *header)
 	}
 	if (predict != blksread - 1)
 		fprintf(stderr, "; predicted %ld blocks, got %ld blocks",
-			predict, blksread - 1);
+		    predict, blksread - 1);
 	fprintf(stderr, "\n");
 newcalc:
 	blks = 0;
@@ -1486,7 +1488,7 @@ findinode(struct s_spcl *header)
 					if (byteslide < TP_BSIZE) {
 						blkcnt--;
 						blksread--;
-					} else 
+					} else
 						byteslide = 0;
 				}
 			}
@@ -1547,16 +1549,15 @@ findinode(struct s_spcl *header)
 					if (byteslide < TP_BSIZE) {
 						blkcnt--;
 						blksread--;
-					} else 
+					} else
 						byteslide = 0;
 				}
 			}
-
 		}
 	} while (htype == TS_ADDR);
 	if (skipcnt > 0)
-		fprintf(stderr, "resync restore, skipped %ld %s\n",
-		    skipcnt, Dflag ? "bytes" : "blocks");
+		fprintf(stderr, "resync restore, skipped %ld %s\n", skipcnt,
+		    Dflag ? "bytes" : "blocks");
 	skipcnt = 0;
 }
 
@@ -1582,9 +1583,9 @@ checksum(int *buf)
 	if (i != CHECKSUM) {
 		fprintf(stderr, "Checksum error %o, inode %ju file %s\n", i,
 		    (uintmax_t)curfile.ino, curfile.name);
-		return(FAIL);
+		return (FAIL);
 	}
-	return(GOOD);
+	return (GOOD);
 }
 
 #ifdef RRESTORE
@@ -1606,7 +1607,9 @@ swabshort(u_char *sp, int n)
 	char c;
 
 	while (--n >= 0) {
-		c = sp[0]; sp[0] = sp[1]; sp[1] = c;
+		c = sp[0];
+		sp[0] = sp[1];
+		sp[1] = c;
 		sp += 2;
 	}
 	return (sp);
@@ -1618,8 +1621,12 @@ swablong(u_char *sp, int n)
 	char c;
 
 	while (--n >= 0) {
-		c = sp[0]; sp[0] = sp[3]; sp[3] = c;
-		c = sp[2]; sp[2] = sp[1]; sp[1] = c;
+		c = sp[0];
+		sp[0] = sp[3];
+		sp[3] = c;
+		c = sp[2];
+		sp[2] = sp[1];
+		sp[1] = c;
 		sp += 4;
 	}
 	return (sp);
@@ -1631,10 +1638,18 @@ swabquad(u_char *sp, int n)
 	char c;
 
 	while (--n >= 0) {
-		c = sp[0]; sp[0] = sp[7]; sp[7] = c;
-		c = sp[1]; sp[1] = sp[6]; sp[6] = c;
-		c = sp[2]; sp[2] = sp[5]; sp[5] = c;
-		c = sp[3]; sp[3] = sp[4]; sp[4] = c;
+		c = sp[0];
+		sp[0] = sp[7];
+		sp[7] = c;
+		c = sp[1];
+		sp[1] = sp[6];
+		sp[6] = c;
+		c = sp[2];
+		sp[2] = sp[5];
+		sp[5] = c;
+		c = sp[3];
+		sp[3] = sp[4];
+		sp[4] = c;
 		sp += 8;
 	}
 	return (sp);
@@ -1647,12 +1662,22 @@ swabst(u_char *cp, u_char *sp)
 
 	while (*cp) {
 		switch (*cp) {
-		case '0': case '1': case '2': case '3': case '4':
-		case '5': case '6': case '7': case '8': case '9':
+		case '0':
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
 			n = (n * 10) + (*cp++ - '0');
 			continue;
 
-		case 's': case 'w': case 'h':
+		case 's':
+		case 'w':
+		case 'h':
 			if (n == 0)
 				n = 1;
 			sp = swabshort(sp, n);

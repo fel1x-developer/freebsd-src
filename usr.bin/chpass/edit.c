@@ -46,15 +46,14 @@
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
+#include <libutil.h>
 #include <paths.h>
+#include <pw_scan.h>
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <pw_scan.h>
-#include <libutil.h>
 
 #include "chpass.h"
 
@@ -109,8 +108,7 @@ display(const char *tfn, struct passwd *pw)
 		return (-1);
 	}
 
-	(void)fprintf(fp,
-	    "#Changing user information for %s.\n", pw->pw_name);
+	(void)fprintf(fp, "#Changing user information for %s.\n", pw->pw_name);
 	if (master_mode) {
 		(void)fprintf(fp, "Login: %s\n", pw->pw_name);
 		(void)fprintf(fp, "Password: %s\n", pw->pw_passwd);
@@ -136,10 +134,10 @@ display(const char *tfn, struct passwd *pw)
 #else
 	else if ((!list[E_SHELL].restricted && ok_shell(pw->pw_shell)) ||
 	    master_mode)
-		/*
-		 * If change not restrict (table.c) and standard shell
-		 *	OR if root, then allow editing of shell.
-		 */
+	/*
+	 * If change not restrict (table.c) and standard shell
+	 *	OR if root, then allow editing of shell.
+	 */
 #endif
 		(void)fprintf(fp, "Shell: %s\n",
 		    *pw->pw_shell ? pw->pw_shell : _PATH_BSHELL);
@@ -156,30 +154,30 @@ display(const char *tfn, struct passwd *pw)
 	p = strdup(p ? p : "");
 	list[E_NAME].save = p;
 	if (!list[E_NAME].restricted || master_mode)
-	  (void)fprintf(fp, "Full Name: %s\n", p);
+		(void)fprintf(fp, "Full Name: %s\n", p);
 
 	p = strsep(&bp, ",");
 	p = strdup(p ? p : "");
 	list[E_LOCATE].save = p;
 	if (!list[E_LOCATE].restricted || master_mode)
-	  (void)fprintf(fp, "Office Location: %s\n", p);
+		(void)fprintf(fp, "Office Location: %s\n", p);
 
 	p = strsep(&bp, ",");
 	p = strdup(p ? p : "");
 	list[E_BPHONE].save = p;
 	if (!list[E_BPHONE].restricted || master_mode)
-	  (void)fprintf(fp, "Office Phone: %s\n", p);
+		(void)fprintf(fp, "Office Phone: %s\n", p);
 
 	p = strsep(&bp, ",");
 	p = strdup(p ? p : "");
 	list[E_HPHONE].save = p;
 	if (!list[E_HPHONE].restricted || master_mode)
-	  (void)fprintf(fp, "Home Phone: %s\n", p);
+		(void)fprintf(fp, "Home Phone: %s\n", p);
 
 	bp = strdup(bp ? bp : "");
 	list[E_OTHER].save = bp;
 	if (!list[E_OTHER].restricted || master_mode)
-	  (void)fprintf(fp, "Other information: %s\n", bp);
+		(void)fprintf(fp, "Other information: %s\n", bp);
 
 	free(gecos);
 
@@ -201,8 +199,7 @@ verify(const char *tfn, struct passwd *pw)
 
 	if ((pw = pw_dup(pw)) == NULL)
 		return (NULL);
-	if ((fp = fopen(tfn, "r")) == NULL ||
-	    fstat(fileno(fp), &sb) == -1) {
+	if ((fp = fopen(tfn, "r")) == NULL || fstat(fileno(fp), &sb) == -1) {
 		warn("%s", tfn);
 		free(pw);
 		return (NULL);
@@ -221,8 +218,8 @@ verify(const char *tfn, struct passwd *pw)
 			--len;
 		for (ep = list;; ++ep) {
 			if (!ep->prompt) {
-				warnx("%s: unrecognized field on line %d",
-				    tfn, line);
+				warnx("%s: unrecognized field on line %d", tfn,
+				    line);
 				goto bad;
 			}
 			if (ep->len > len)
@@ -235,19 +232,20 @@ verify(const char *tfn, struct passwd *pw)
 				goto bad;
 			}
 			for (p = buf; p < buf + len && *p != ':'; ++p)
-				/* nothing */ ;
+				/* nothing */;
 			if (*p != ':') {
 				warnx("%s: line %d corrupted", tfn, line);
 				goto bad;
 			}
 			while (++p < buf + len && isspace(*p))
-				/* nothing */ ;
+				/* nothing */;
 			free(val);
 			asprintf(&val, "%.*s", (int)(buf + len - p), p);
 			if (val == NULL)
 				goto bad;
 			if (ep->except && strpbrk(val, ep->except)) {
-				warnx("%s: invalid character in \"%s\" field '%s'",
+				warnx(
+				    "%s: invalid character in \"%s\" field '%s'",
 				    tfn, ep->prompt, val);
 				goto bad;
 			}
@@ -261,8 +259,8 @@ verify(const char *tfn, struct passwd *pw)
 
 	/* Build the gecos field. */
 	len = asprintf(&p, "%s,%s,%s,%s,%s", list[E_NAME].save,
-	    list[E_LOCATE].save, list[E_BPHONE].save,
-	    list[E_HPHONE].save, list[E_OTHER].save);
+	    list[E_LOCATE].save, list[E_BPHONE].save, list[E_HPHONE].save,
+	    list[E_OTHER].save);
 	if (p == NULL) {
 		warn("asprintf()");
 		free(pw);
@@ -278,7 +276,7 @@ verify(const char *tfn, struct passwd *pw)
 		warn("pw_make()");
 		return (NULL);
 	}
-	npw = pw_scan(buf, PWSCAN_WARN|PWSCAN_MASTER);
+	npw = pw_scan(buf, PWSCAN_WARN | PWSCAN_MASTER);
 	free(buf);
 	return (npw);
 bad:

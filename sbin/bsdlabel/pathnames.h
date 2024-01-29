@@ -31,5 +31,5 @@
 
 #include <paths.h>
 
-#define	_PATH_BOOTDIR	"/boot"
-#define	PATH_TMPFILE	"/tmp/EdDk.XXXXXXXXXX"
+#define _PATH_BOOTDIR "/boot"
+#define PATH_TMPFILE "/tmp/EdDk.XXXXXXXXXX"

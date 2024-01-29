@@ -27,26 +27,30 @@
  */
 
 #include <sys/param.h>
-#include <sys/module.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/ata.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
-#include <sys/malloc.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/rman.h>
 #include <sys/sema.h>
 #include <sys/taskqueue.h>
+
 #include <vm/uma.h>
-#include <machine/stdarg.h>
-#include <machine/resource.h>
+
 #include <machine/bus.h>
-#include <sys/rman.h>
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
+#include <machine/resource.h>
+#include <machine/stdarg.h>
+
 #include <dev/ata/ata-all.h>
 #include <dev/ata/ata-pci.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
 #include <ata_if.h>
 
 /* local prototypes */
@@ -60,43 +64,44 @@ static int ata_netcell_setmode(device_t dev, int target, int mode);
 static int
 ata_netcell_probe(device_t dev)
 {
-    struct ata_pci_controller *ctlr = device_get_softc(dev);
+	struct ata_pci_controller *ctlr = device_get_softc(dev);
 
-    if (pci_get_devid(dev) == ATA_NETCELL_SR) {
-	device_set_desc(dev, "Netcell SyncRAID SR3000/5000 RAID Controller");
-	ctlr->chipinit = ata_netcell_chipinit;
-	return (BUS_PROBE_LOW_PRIORITY);
-    }
-    return ENXIO;
+	if (pci_get_devid(dev) == ATA_NETCELL_SR) {
+		device_set_desc(dev,
+		    "Netcell SyncRAID SR3000/5000 RAID Controller");
+		ctlr->chipinit = ata_netcell_chipinit;
+		return (BUS_PROBE_LOW_PRIORITY);
+	}
+	return ENXIO;
 }
 
 static int
 ata_netcell_chipinit(device_t dev)
 {
-    struct ata_pci_controller *ctlr = device_get_softc(dev);
+	struct ata_pci_controller *ctlr = device_get_softc(dev);
 
-    if (ata_setup_interrupt(dev, ata_generic_intr))
-        return ENXIO;
+	if (ata_setup_interrupt(dev, ata_generic_intr))
+		return ENXIO;
 
-    ctlr->ch_attach = ata_netcell_ch_attach;
-    ctlr->setmode = ata_netcell_setmode;
-    return 0;
+	ctlr->ch_attach = ata_netcell_ch_attach;
+	ctlr->setmode = ata_netcell_setmode;
+	return 0;
 }
 
 static int
 ata_netcell_ch_attach(device_t dev)
 {
-    struct ata_channel *ch = device_get_softc(dev);
+	struct ata_channel *ch = device_get_softc(dev);
 
-    /* setup the usual register normal pci style */
-    if (ata_pci_ch_attach(dev))
-	return ENXIO;
+	/* setup the usual register normal pci style */
+	if (ata_pci_ch_attach(dev))
+		return ENXIO;
 
-    /* the NetCell only supports 16 bit PIO transfers */
-    ch->flags |= ATA_USE_16BIT;
-    /* It is a hardware RAID without cable. */
-    ch->flags |= ATA_CHECKS_CABLE;
-    return 0;
+	/* the NetCell only supports 16 bit PIO transfers */
+	ch->flags |= ATA_USE_16BIT;
+	/* It is a hardware RAID without cable. */
+	ch->flags |= ATA_CHECKS_CABLE;
+	return 0;
 }
 
 static int

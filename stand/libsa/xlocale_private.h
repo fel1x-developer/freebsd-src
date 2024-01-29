@@ -29,6 +29,6 @@
 typedef int locale_t;
 #define FIX_LOCALE(x)
 #define isspace_l(c, l) isspace(c)
-#define __get_locale()	0
+#define __get_locale() 0
 
 #endif /* STAND_XLOCALE_PRIVATE_H */

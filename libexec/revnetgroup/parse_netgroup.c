@@ -40,10 +40,11 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <stdlib.h>
 #include <unistd.h>
+
 #include "hash.h"
 
 /*
@@ -55,25 +56,25 @@
  * - netgrp is the list of entries for the current netgroup
  */
 struct linelist {
-	struct linelist	*l_next;	/* Chain ptr. */
-	int		l_parsed;	/* Flag for cycles */
-	char		*l_groupname;	/* Name of netgroup */
-	char		*l_line;	/* Netgroup entrie(s) to be parsed */
+	struct linelist *l_next; /* Chain ptr. */
+	int l_parsed;		 /* Flag for cycles */
+	char *l_groupname;	 /* Name of netgroup */
+	char *l_line;		 /* Netgroup entrie(s) to be parsed */
 };
 
 struct netgrp {
-	struct netgrp	*ng_next;	/* Chain ptr */
-	char		*ng_str[3];	/* Field pointers, see below */
+	struct netgrp *ng_next; /* Chain ptr */
+	char *ng_str[3];	/* Field pointers, see below */
 };
-#define NG_HOST		0	/* Host name */
-#define NG_USER		1	/* User name */
-#define NG_DOM		2	/* and Domain name */
+#define NG_HOST 0 /* Host name */
+#define NG_USER 1 /* User name */
+#define NG_DOM 2  /* and Domain name */
 
-static struct linelist	*linehead = (struct linelist *)0;
-static struct netgrp	*nextgrp = (struct netgrp *)0;
+static struct linelist *linehead = (struct linelist *)0;
+static struct netgrp *nextgrp = (struct netgrp *)0;
 static struct {
-	struct netgrp	*gr;
-	char		*grname;
+	struct netgrp *gr;
+	char *grname;
 } grouphead = {
 	(struct netgrp *)0,
 	(char *)0,
@@ -97,13 +98,12 @@ __setnetgrent(char *group)
 		return;
 
 	if (grouphead.gr == (struct netgrp *)0 ||
-		strcmp(group, grouphead.grname)) {
+	    strcmp(group, grouphead.grname)) {
 		__endnetgrent();
 		if (parse_netgrp(group))
 			__endnetgrent();
 		else {
-			grouphead.grname = (char *)
-				malloc(strlen(group) + 1);
+			grouphead.grname = (char *)malloc(strlen(group) + 1);
 			strcpy(grouphead.grname, group);
 		}
 	}
@@ -206,8 +206,8 @@ parse_netgrp(char *group)
 	/* Watch for null pointer dereferences, dammit! */
 	while (pos != NULL && *pos != '\0') {
 		if (*pos == '(') {
-			grp = (struct netgrp *)malloc(sizeof (struct netgrp));
-			bzero((char *)grp, sizeof (struct netgrp));
+			grp = (struct netgrp *)malloc(sizeof(struct netgrp));
+			bzero((char *)grp, sizeof(struct netgrp));
 			grp->ng_next = grouphead.gr;
 			grouphead.gr = grp;
 			pos++;
@@ -228,10 +228,10 @@ parse_netgrp(char *group)
 					} else
 						len = strlen(spos);
 					if (len > 0) {
-						grp->ng_str[strpos] =  (char *)
-							malloc(len + 1);
+						grp->ng_str[strpos] = (char *)
+						    malloc(len + 1);
 						bcopy(spos, grp->ng_str[strpos],
-							len + 1);
+						    len + 1);
 					}
 				} else {
 					/*
@@ -251,13 +251,20 @@ parse_netgrp(char *group)
 			 * stay silent by default for compatibility's sake.
 			 */
 			if (fields < 3)
-					warnx("bad entry (%s%s%s%s%s) in netgroup \"%s\"",
-						grp->ng_str[NG_HOST] == NULL ? "" : grp->ng_str[NG_HOST],
-						grp->ng_str[NG_USER] == NULL ? "" : ",",
-						grp->ng_str[NG_USER] == NULL ? "" : grp->ng_str[NG_USER],
-						grp->ng_str[NG_DOM] == NULL ? "" : ",",
-						grp->ng_str[NG_DOM] == NULL ? "" : grp->ng_str[NG_DOM],
-						lp->l_groupname);
+				warnx(
+				    "bad entry (%s%s%s%s%s) in netgroup \"%s\"",
+				    grp->ng_str[NG_HOST] == NULL ?
+					"" :
+					grp->ng_str[NG_HOST],
+				    grp->ng_str[NG_USER] == NULL ? "" : ",",
+				    grp->ng_str[NG_USER] == NULL ?
+					"" :
+					grp->ng_str[NG_USER],
+				    grp->ng_str[NG_DOM] == NULL ? "" : ",",
+				    grp->ng_str[NG_DOM] == NULL ?
+					"" :
+					grp->ng_str[NG_DOM],
+				    lp->l_groupname);
 #endif
 		} else {
 			spos = strsep(&pos, ", \t");
@@ -286,7 +293,7 @@ read_for_group(char *group)
 	char line[LINSIZ + 1];
 	char *data = NULL;
 
-	data = lookup (gtable, group);
+	data = lookup(gtable, group);
 	sprintf(line, "%s %s", group, data);
 	pos = (char *)&line;
 #ifdef CANT_HAPPEN
@@ -296,52 +303,51 @@ read_for_group(char *group)
 	while (*pos == ' ' || *pos == '\t')
 		pos++;
 	spos = pos;
-	while (*pos != ' ' && *pos != '\t' && *pos != '\n' &&
-		*pos != '\0')
+	while (*pos != ' ' && *pos != '\t' && *pos != '\n' && *pos != '\0')
 		pos++;
 	len = pos - spos;
 	while (*pos == ' ' || *pos == '\t')
 		pos++;
 	if (*pos != '\n' && *pos != '\0') {
-		lp = (struct linelist *)malloc(sizeof (*lp));
+		lp = (struct linelist *)malloc(sizeof(*lp));
 		lp->l_parsed = 0;
 		lp->l_groupname = (char *)malloc(len + 1);
 		bcopy(spos, lp->l_groupname, len);
 		*(lp->l_groupname + len) = '\0';
 		len = strlen(pos);
 		olen = 0;
-			/*
-			 * Loop around handling line continuations.
-			 */
-			do {
-				if (*(pos + len - 1) == '\n')
-					len--;
-				if (*(pos + len - 1) == '\\') {
-					len--;
-					cont = 1;
+		/*
+		 * Loop around handling line continuations.
+		 */
+		do {
+			if (*(pos + len - 1) == '\n')
+				len--;
+			if (*(pos + len - 1) == '\\') {
+				len--;
+				cont = 1;
+			} else
+				cont = 0;
+			if (len > 0) {
+				linep = (char *)malloc(olen + len + 1);
+				if (olen > 0) {
+					bcopy(olinep, linep, olen);
+					free(olinep);
+				}
+				bcopy(pos, linep + olen, len);
+				olen += len;
+				*(linep + olen) = '\0';
+				olinep = linep;
+			}
+#ifdef CANT_HAPPEN
+			if (cont) {
+				if (fgets(line, LINSIZ, netf)) {
+					pos = line;
+					len = strlen(pos);
 				} else
 					cont = 0;
-				if (len > 0) {
-					linep = (char *)malloc(olen + len + 1);
-					if (olen > 0) {
-						bcopy(olinep, linep, olen);
-						free(olinep);
-					}
-					bcopy(pos, linep + olen, len);
-					olen += len;
-					*(linep + olen) = '\0';
-					olinep = linep;
-				}
-#ifdef CANT_HAPPEN
-				if (cont) {
-					if (fgets(line, LINSIZ, netf)) {
-						pos = line;
-						len = strlen(pos);
-					} else
-						cont = 0;
-				}
+			}
 #endif
-			} while (cont);
+		} while (cont);
 		lp->l_line = linep;
 		lp->l_next = linehead;
 		linehead = lp;

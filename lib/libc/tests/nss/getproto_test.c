@@ -27,6 +27,7 @@
 
 #include <arpa/inet.h>
 #include <assert.h>
+#include <atf-c.h>
 #include <errno.h>
 #include <netdb.h>
 #include <stdio.h>
@@ -34,8 +35,6 @@
 #include <string.h>
 #include <stringlist.h>
 #include <unistd.h>
-
-#include <atf-c.h>
 
 #include "testutil.h"
 
@@ -61,7 +60,7 @@ static void sdump_protoent(struct protoent *, char *, size_t);
 static int protoent_read_snapshot_func(struct protoent *, char *);
 
 static int protoent_check_ambiguity(struct protoent_test_data *,
-	struct protoent *);
+    struct protoent *);
 static int protoent_fill_test_data(struct protoent_test_data *);
 static int protoent_test_correctness(struct protoent *, void *);
 static int protoent_test_getprotobyname(struct protoent *, void *);
@@ -120,7 +119,7 @@ free_protoent(struct protoent *pe)
 	free(pe->p_aliases);
 }
 
-static  int
+static int
 compare_protoent(struct protoent *pe1, struct protoent *pe2, void *mdata)
 {
 	char **c1, **c2;
@@ -132,8 +131,8 @@ compare_protoent(struct protoent *pe1, struct protoent *pe2, void *mdata)
 		goto errfin;
 
 	if ((strcmp(pe1->p_name, pe2->p_name) != 0) ||
-		(pe1->p_proto != pe2->p_proto))
-			goto errfin;
+	    (pe1->p_proto != pe2->p_proto))
+		goto errfin;
 
 	c1 = pe1->p_aliases;
 	c2 = pe2->p_aliases;
@@ -141,7 +140,7 @@ compare_protoent(struct protoent *pe1, struct protoent *pe2, void *mdata)
 	if ((pe1->p_aliases == NULL) || (pe2->p_aliases == NULL))
 		goto errfin;
 
-	for (;*c1 && *c2; ++c1, ++c2)
+	for (; *c1 && *c2; ++c1, ++c2)
 		if (strcmp(*c1, *c2) != 0)
 			goto errfin;
 
@@ -166,8 +165,7 @@ sdump_protoent(struct protoent *pe, char *buffer, size_t buflen)
 	char **cp;
 	int written;
 
-	written = snprintf(buffer, buflen, "%s %d",
-		pe->p_name, pe->p_proto);
+	written = snprintf(buffer, buflen, "%s %d", pe->p_name, pe->p_proto);
 	buffer += written;
 	if (written > (int)buflen)
 		return;
@@ -204,39 +202,39 @@ protoent_read_snapshot_func(struct protoent *pe, char *line)
 	sl = NULL;
 	ps = line;
 	memset(pe, 0, sizeof(struct protoent));
-	while ( (s = strsep(&ps, " ")) != NULL) {
+	while ((s = strsep(&ps, " ")) != NULL) {
 		switch (i) {
-			case 0:
-				pe->p_name = strdup(s);
-				assert(pe->p_name != NULL);
+		case 0:
+			pe->p_name = strdup(s);
+			assert(pe->p_name != NULL);
 			break;
 
-			case 1:
-				pe->p_proto = (int)strtol(s, &ts, 10);
-				if (*ts != '\0') {
-					free(pe->p_name);
-					return (-1);
-				}
+		case 1:
+			pe->p_proto = (int)strtol(s, &ts, 10);
+			if (*ts != '\0') {
+				free(pe->p_name);
+				return (-1);
+			}
 			break;
 
-			default:
-				if (sl == NULL) {
-					if (strcmp(s, "(null)") == 0)
-						return (0);
+		default:
+			if (sl == NULL) {
+				if (strcmp(s, "(null)") == 0)
+					return (0);
 
-					sl = sl_init();
-					assert(sl != NULL);
+				sl = sl_init();
+				assert(sl != NULL);
 
-					if (strcmp(s, "noaliases") != 0) {
-						ts = strdup(s);
-						assert(ts != NULL);
-						sl_add(sl, ts);
-					}
-				} else {
+				if (strcmp(s, "noaliases") != 0) {
 					ts = strdup(s);
 					assert(ts != NULL);
 					sl_add(sl, ts);
 				}
+			} else {
+				ts = strdup(s);
+				assert(ts != NULL);
+				sl_add(sl, ts);
+			}
 			break;
 		}
 		++i;
@@ -320,8 +318,10 @@ static int
 protoent_check_ambiguity(struct protoent_test_data *td, struct protoent *pe)
 {
 
-	return (TEST_DATA_FIND(protoent, td, pe, compare_protoent,
-		NULL) != NULL ? 0 : -1);
+	return (
+	    TEST_DATA_FIND(protoent, td, pe, compare_protoent, NULL) != NULL ?
+		0 :
+		-1);
 }
 
 static int
@@ -338,9 +338,9 @@ protoent_test_getprotobyname(struct protoent *pe_model, void *mdata)
 		goto errfin;
 
 	if ((compare_protoent(pe, pe_model, NULL) != 0) &&
-	    (protoent_check_ambiguity((struct protoent_test_data *)mdata, pe)
-	    !=0))
-	    goto errfin;
+	    (protoent_check_ambiguity((struct protoent_test_data *)mdata, pe) !=
+		0))
+		goto errfin;
 
 	for (alias = pe_model->p_aliases; *alias; ++alias) {
 		pe = getprotobyname(*alias);
@@ -350,8 +350,8 @@ protoent_test_getprotobyname(struct protoent *pe_model, void *mdata)
 
 		if ((compare_protoent(pe, pe_model, NULL) != 0) &&
 		    (protoent_check_ambiguity(
-		    (struct protoent_test_data *)mdata, pe) != 0))
-		    goto errfin;
+			 (struct protoent_test_data *)mdata, pe) != 0))
+			goto errfin;
 	}
 
 	printf("ok\n");
@@ -374,8 +374,8 @@ protoent_test_getprotobynumber(struct protoent *pe_model, void *mdata)
 	pe = getprotobynumber(pe_model->p_proto);
 	if ((protoent_test_correctness(pe, NULL) != 0) ||
 	    ((compare_protoent(pe, pe_model, NULL) != 0) &&
-	    (protoent_check_ambiguity((struct protoent_test_data *)mdata, pe)
-	    != 0))) {
+		(protoent_check_ambiguity((struct protoent_test_data *)mdata,
+		     pe) != 0))) {
 		printf("not ok\n");
 		return (-1);
 	} else {
@@ -418,7 +418,7 @@ run_tests(const char *snapshot_file, enum test_methods method)
 			}
 
 			TEST_SNAPSHOT_FILE_READ(protoent, snapshot_file,
-				&td_snap, protoent_read_snapshot_func);
+			    &td_snap, protoent_read_snapshot_func);
 		}
 	}
 
@@ -429,26 +429,26 @@ run_tests(const char *snapshot_file, enum test_methods method)
 	case TEST_GETPROTOBYNAME:
 		if (snapshot_file == NULL)
 			rv = DO_1PASS_TEST(protoent, &td,
-				protoent_test_getprotobyname, (void *)&td);
+			    protoent_test_getprotobyname, (void *)&td);
 		else
 			rv = DO_1PASS_TEST(protoent, &td_snap,
-				protoent_test_getprotobyname, (void *)&td_snap);
+			    protoent_test_getprotobyname, (void *)&td_snap);
 		break;
 	case TEST_GETPROTOBYNUMBER:
 		if (snapshot_file == NULL)
 			rv = DO_1PASS_TEST(protoent, &td,
-				protoent_test_getprotobynumber, (void *)&td);
+			    protoent_test_getprotobynumber, (void *)&td);
 		else
 			rv = DO_1PASS_TEST(protoent, &td_snap,
-				protoent_test_getprotobynumber, (void *)&td_snap);
+			    protoent_test_getprotobynumber, (void *)&td_snap);
 		break;
 	case TEST_GETPROTOENT:
 		if (snapshot_file == NULL)
 			rv = DO_1PASS_TEST(protoent, &td,
-				protoent_test_getprotoent, (void *)&td);
+			    protoent_test_getprotoent, (void *)&td);
 		else
 			rv = DO_2PASS_TEST(protoent, &td, &td_snap,
-				compare_protoent, NULL);
+			    compare_protoent, NULL);
 		break;
 	case TEST_GETPROTOENT_2PASS:
 		TEST_DATA_INIT(protoent, &td_2pass, clone_protoent,
@@ -456,7 +456,7 @@ run_tests(const char *snapshot_file, enum test_methods method)
 		rv = protoent_fill_test_data(&td_2pass);
 		if (rv != -1)
 			rv = DO_2PASS_TEST(protoent, &td, &td_2pass,
-				compare_protoent, NULL);
+			    compare_protoent, NULL);
 		TEST_DATA_DESTROY(protoent, &td_2pass);
 		break;
 	case TEST_BUILD_SNAPSHOT:
@@ -476,7 +476,7 @@ fin:
 	return (rv);
 }
 
-#define	SNAPSHOT_FILE	"snapshot_proto"
+#define SNAPSHOT_FILE "snapshot_proto"
 
 ATF_TC_WITHOUT_HEAD(build_snapshot);
 ATF_TC_BODY(build_snapshot, tc)

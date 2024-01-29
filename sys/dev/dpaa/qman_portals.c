@@ -28,13 +28,13 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/proc.h>
 #include <sys/pcpu.h>
+#include <sys/proc.h>
 #include <sys/sched.h>
 
 #include <machine/bus.h>
@@ -45,8 +45,8 @@
 
 #include <powerpc/mpc85xx/mpc85xx.h>
 
-#include "qman.h"
 #include "portals.h"
+#include "qman.h"
 
 extern e_RxStoreResponse qman_received_frame_callback(t_Handle, t_Handle,
     t_Handle, uint32_t, t_DpaaFD *);
@@ -63,7 +63,7 @@ qman_portals_attach(device_t dev)
 	struct dpaa_portals_softc *sc;
 
 	sc = qp_sc = device_get_softc(dev);
-	
+
 	/* Map bman portal to physical address space */
 	if (law_enable(OCP85XX_TGTIF_QMAN, sc->sc_dp_pa, sc->sc_dp_size)) {
 		qman_portals_detach(dev);
@@ -106,8 +106,7 @@ qman_portals_detach(device_t dev)
 	for (i = 0; i < ARRAY_SIZE(sc->sc_rres); i++) {
 		if (sc->sc_rres[i] != NULL)
 			bus_release_resource(dev, SYS_RES_MEMORY,
-			    sc->sc_rrid[i],
-			    sc->sc_rres[i]);
+			    sc->sc_rrid[i], sc->sc_rres[i]);
 	}
 
 	return (0);
@@ -133,8 +132,8 @@ qman_portal_setup(struct qman_softc *qsc)
 	cpu = PCPU_GET(cpuid);
 
 	/* Check if portal is ready */
-	while (atomic_cmpset_acq_ptr((uintptr_t *)&sc->sc_dp[cpu].dp_ph,
-	    0, -1) == 0) {
+	while (atomic_cmpset_acq_ptr((uintptr_t *)&sc->sc_dp[cpu].dp_ph, 0,
+		   -1) == 0) {
 		p = atomic_load_acq_ptr((uintptr_t *)&sc->sc_dp[cpu].dp_ph);
 
 		/* Return if portal is already initialized */

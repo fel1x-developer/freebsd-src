@@ -34,81 +34,55 @@
 #include <sys/sysctl.h>
 #include <sys/uio.h>
 
+#include <dev/mfi/mfi_ioctl.h>
+
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <paths.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-#include <paths.h>
 
 #include "mfiutil.h"
-#include <dev/mfi/mfi_ioctl.h>
 
-static const char *mfi_status_codes[] = {
-	"Command completed successfully",
-	"Invalid command",
-	"Invalid DMCD opcode",
-	"Invalid parameter",
+static const char *mfi_status_codes[] = { "Command completed successfully",
+	"Invalid command", "Invalid DMCD opcode", "Invalid parameter",
 	"Invalid Sequence Number",
 	"Abort isn't possible for the requested command",
-	"Application 'host' code not found",
-	"Application in use",
-	"Application not initialized",
-	"Array index invalid",
-	"Array row not empty",
-	"Configuration resource conflict",
-	"Device not found",
-	"Drive too small",
-	"Flash memory allocation failed",
-	"Flash download already in progress",
-	"Flash operation failed",
-	"Bad flash image",
-	"Incomplete flash image",
-	"Flash not open",
-	"Flash not started",
-	"Flush failed",
+	"Application 'host' code not found", "Application in use",
+	"Application not initialized", "Array index invalid",
+	"Array row not empty", "Configuration resource conflict",
+	"Device not found", "Drive too small", "Flash memory allocation failed",
+	"Flash download already in progress", "Flash operation failed",
+	"Bad flash image", "Incomplete flash image", "Flash not open",
+	"Flash not started", "Flush failed",
 	"Specified application doesn't have host-resident code",
 	"Volume consistency check in progress",
-	"Volume initialization in progress",
-	"Volume LBA out of range",
+	"Volume initialization in progress", "Volume LBA out of range",
 	"Maximum number of volumes are already configured",
-	"Volume is not OPTIMAL",
-	"Volume rebuild in progress",
+	"Volume is not OPTIMAL", "Volume rebuild in progress",
 	"Volume reconstruction in progress",
 	"Volume RAID level is wrong for requested operation",
-	"Too many spares assigned",
-	"Scratch memory not available",
-	"Error writing MFC data to SEEPROM",
-	"Required hardware is missing",
-	"Item not found",
-	"Volume drives are not within an enclosure",
-	"Drive clear in progress",
-	"Drive type mismatch (SATA vs SAS)",
-	"Patrol read disabled",
-	"Invalid row index",
-	"SAS Config - Invalid action",
-	"SAS Config - Invalid data",
-	"SAS Config - Invalid page",
-	"SAS Config - Invalid type",
-	"SCSI command completed with error",
-	"SCSI I/O request failed",
+	"Too many spares assigned", "Scratch memory not available",
+	"Error writing MFC data to SEEPROM", "Required hardware is missing",
+	"Item not found", "Volume drives are not within an enclosure",
+	"Drive clear in progress", "Drive type mismatch (SATA vs SAS)",
+	"Patrol read disabled", "Invalid row index",
+	"SAS Config - Invalid action", "SAS Config - Invalid data",
+	"SAS Config - Invalid page", "SAS Config - Invalid type",
+	"SCSI command completed with error", "SCSI I/O request failed",
 	"SCSI RESERVATION_CONFLICT",
 	"One or more flush operations during shutdown failed",
-	"Firmware time is not set",
-	"Wrong firmware or drive state",
-	"Volume is offline",
-	"Peer controller rejected request",
+	"Firmware time is not set", "Wrong firmware or drive state",
+	"Volume is offline", "Peer controller rejected request",
 	"Unable to inform peer of communication changes",
-	"Volume reservation already in progress",
-	"I2C errors were detected",
-	"PCI errors occurred during XOR/DMA operation",
-	"Diagnostics failed",
+	"Volume reservation already in progress", "I2C errors were detected",
+	"PCI errors occurred during XOR/DMA operation", "Diagnostics failed",
 	"Unable to process command as boot messages are pending",
-	"Foreign configuration is incomplete"
-};
+	"Foreign configuration is incomplete" };
 
 const char *
 mfi_status(u_int status_code)
@@ -223,8 +197,8 @@ mfi_reconfig_supported(const char *dev)
 	mfi_unit = strtol(cp, NULL, 10);
 
 	len = sizeof(dummy);
-	snprintf(mibname, sizeof(mibname),
-	    "dev.mfi.%d.delete_busy_volumes", mfi_unit);
+	snprintf(mibname, sizeof(mibname), "dev.mfi.%d.delete_busy_volumes",
+	    mfi_unit);
 	return (sysctlbyname(mibname, &dummy, &len, NULL, 0) == 0);
 }
 
@@ -245,12 +219,12 @@ mfi_lookup_volume(int fd, const char *name, uint8_t *target_id)
 	}
 
 	if (mfi_dcmd_command(fd, MFI_DCMD_LD_GET_LIST, &list, sizeof(list),
-	    NULL, 0, NULL) < 0)
+		NULL, 0, NULL) < 0)
 		return (-1);
 
 	for (i = 0; i < list.ld_count; i++) {
-		if (mfi_query_disk(fd, list.ld_list[i].ld.v.target_id,
-		    &info) < 0)
+		if (mfi_query_disk(fd, list.ld_list[i].ld.v.target_id, &info) <
+		    0)
 			continue;
 		if (strcmp(name, info.devname) == 0) {
 			*target_id = list.ld_list[i].ld.v.target_id;
@@ -347,7 +321,8 @@ mfi_display_progress(const char *label, struct mfi_progress *prog)
 	if (prog->progress != 0 && prog->elapsed_seconds > 10) {
 		printf(" finished in ");
 		seconds = (0x10000 * (uint32_t)prog->elapsed_seconds) /
-		    prog->progress - prog->elapsed_seconds;
+			prog->progress -
+		    prog->elapsed_seconds;
 		print_time_humanized(seconds);
 	}
 	printf("\n");

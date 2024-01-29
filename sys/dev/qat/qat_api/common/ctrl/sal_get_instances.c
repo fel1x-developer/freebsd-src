@@ -31,8 +31,8 @@
 #include "icp_adf_accel_mgr.h"
 
 /* SAL includes */
-#include "lac_mem.h"
 #include "lac_list.h"
+#include "lac_mem.h"
 #include "lac_sal_types.h"
 
 /**
@@ -81,9 +81,8 @@ Lac_GetSingleCyNumInstances(
 	LAC_CHECK_STATUS(status);
 
 	/* Allocate memory to store addr of accel_devs */
-	pAdfInsts = malloc(num_accel_dev * sizeof(icp_accel_dev_t *),
-			   M_QAT,
-			   M_WAITOK | M_ZERO);
+	pAdfInsts = malloc(num_accel_dev * sizeof(icp_accel_dev_t *), M_QAT,
+	    M_WAITOK | M_ZERO);
 	if (NULL == pAdfInsts) {
 		QAT_UTILS_LOG("Failed to allocate dev instance memory\n");
 		return CPA_STATUS_RESOURCE;
@@ -91,8 +90,7 @@ Lac_GetSingleCyNumInstances(
 
 	num_accel_dev = 0;
 	status = icp_amgr_getAllAccelDevByCapabilities(accel_capability,
-						       pAdfInsts,
-						       &num_accel_dev);
+	    pAdfInsts, &num_accel_dev);
 	if (CPA_STATUS_SUCCESS != status) {
 		QAT_UTILS_LOG("No support for service %s\n", service);
 		free(pAdfInsts, M_QAT);
@@ -132,8 +130,7 @@ Lac_GetSingleCyNumInstances(
 static CpaStatus
 Lac_GetSingleCyInstances(
     const CpaAccelerationServiceType accelerationServiceType,
-    Cpa16U numInstances,
-    CpaInstanceHandle *pInstances)
+    Cpa16U numInstances, CpaInstanceHandle *pInstances)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 	icp_accel_dev_t **pAdfInsts = NULL;
@@ -170,14 +167,14 @@ Lac_GetSingleCyInstances(
 
 	/* Get the number of instances */
 	status = cpaGetNumInstances(accelerationServiceType,
-				    &num_allocated_instances);
+	    &num_allocated_instances);
 	if (CPA_STATUS_SUCCESS != status) {
 		return status;
 	}
 
 	if (numInstances > num_allocated_instances) {
 		QAT_UTILS_LOG("Only %d instances available\n",
-			      num_allocated_instances);
+		    num_allocated_instances);
 		return CPA_STATUS_RESOURCE;
 	}
 
@@ -186,9 +183,8 @@ Lac_GetSingleCyInstances(
 	LAC_CHECK_STATUS(status);
 
 	/* Allocate memory to store addr of accel_devs */
-	pAdfInsts = malloc(num_accel_dev * sizeof(icp_accel_dev_t *),
-			   M_QAT,
-			   M_WAITOK | M_ZERO);
+	pAdfInsts = malloc(num_accel_dev * sizeof(icp_accel_dev_t *), M_QAT,
+	    M_WAITOK | M_ZERO);
 	if (NULL == pAdfInsts) {
 		QAT_UTILS_LOG("Failed to allocate dev instance memory\n");
 		return CPA_STATUS_RESOURCE;
@@ -196,8 +192,7 @@ Lac_GetSingleCyInstances(
 
 	num_accel_dev = 0;
 	status = icp_amgr_getAllAccelDevByCapabilities(accel_capability,
-						       pAdfInsts,
-						       &num_accel_dev);
+	    pAdfInsts, &num_accel_dev);
 	if (CPA_STATUS_SUCCESS != status) {
 		QAT_UTILS_LOG("No support for service %s\n", service);
 		free(pAdfInsts, M_QAT);
@@ -240,13 +235,13 @@ Lac_GetSingleCyInstances(
  *****************************************************************************/
 CpaStatus
 cpaGetNumInstances(const CpaAccelerationServiceType accelerationServiceType,
-		   Cpa16U *pNumInstances)
+    Cpa16U *pNumInstances)
 {
 	switch (accelerationServiceType) {
 	case CPA_ACC_SVC_TYPE_CRYPTO_ASYM:
 	case CPA_ACC_SVC_TYPE_CRYPTO_SYM:
 		return Lac_GetSingleCyNumInstances(accelerationServiceType,
-						   pNumInstances);
+		    pNumInstances);
 	case CPA_ACC_SVC_TYPE_CRYPTO:
 		return cpaCyGetNumInstances(pNumInstances);
 	case CPA_ACC_SVC_TYPE_DATA_COMPRESSION:
@@ -265,15 +260,13 @@ cpaGetNumInstances(const CpaAccelerationServiceType accelerationServiceType,
  *****************************************************************************/
 CpaStatus
 cpaGetInstances(const CpaAccelerationServiceType accelerationServiceType,
-		Cpa16U numInstances,
-		CpaInstanceHandle *pInstances)
+    Cpa16U numInstances, CpaInstanceHandle *pInstances)
 {
 	switch (accelerationServiceType) {
 	case CPA_ACC_SVC_TYPE_CRYPTO_ASYM:
 	case CPA_ACC_SVC_TYPE_CRYPTO_SYM:
 		return Lac_GetSingleCyInstances(accelerationServiceType,
-						numInstances,
-						pInstances);
+		    numInstances, pInstances);
 
 	case CPA_ACC_SVC_TYPE_CRYPTO:
 		return cpaCyGetInstances(numInstances, pInstances);

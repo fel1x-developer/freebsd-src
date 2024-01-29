@@ -32,10 +32,10 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/limits.h>
-#include <sys/systm.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
@@ -45,16 +45,15 @@
 #include "sibareg.h"
 #include "sibavar.h"
 
-static int	siba_register_interrupts(device_t dev, device_t child,
-		    struct siba_devinfo *dinfo);
-static int	siba_append_dinfo_region(struct siba_devinfo *dinfo,
-		     uint8_t addridx, uint32_t base, uint32_t size,
-		     uint32_t bus_reserved);
+static int siba_register_interrupts(device_t dev, device_t child,
+    struct siba_devinfo *dinfo);
+static int siba_append_dinfo_region(struct siba_devinfo *dinfo, uint8_t addridx,
+    uint32_t base, uint32_t size, uint32_t bus_reserved);
 
 /**
  * Map a siba(4) OCP vendor code to its corresponding JEDEC JEP-106 vendor
  * code.
- * 
+ *
  * @param ocp_vendor An OCP vendor code.
  * @return The BHND_MFGID constant corresponding to @p ocp_vendor, or
  * BHND_MFGID_INVALID if the OCP vendor is unknown.
@@ -72,9 +71,9 @@ siba_get_bhnd_mfgid(uint16_t ocp_vendor)
 
 /**
  * Allocate and return a new empty device info structure.
- * 
+ *
  * @param bus The requesting bus device.
- * 
+ *
  * @retval NULL if allocation failed.
  */
 struct siba_devinfo *
@@ -82,15 +81,15 @@ siba_alloc_dinfo(device_t bus)
 {
 	struct siba_devinfo *dinfo;
 
-	dinfo = malloc(sizeof(struct siba_devinfo), M_BHND, M_NOWAIT|M_ZERO);
+	dinfo = malloc(sizeof(struct siba_devinfo), M_BHND, M_NOWAIT | M_ZERO);
 	if (dinfo == NULL)
 		return NULL;
 
 	for (u_int i = 0; i < nitems(dinfo->cfg); i++) {
-		dinfo->cfg[i] = ((struct siba_cfg_block){
-			.cb_base = 0,
-			.cb_size = 0,
-			.cb_rid = -1,
+		dinfo->cfg[i] = ((struct siba_cfg_block) {
+		    .cb_base = 0,
+		    .cb_size = 0,
+		    .cb_rid = -1,
 		});
 		dinfo->cfg_res[i] = NULL;
 		dinfo->cfg_rid[i] = -1;
@@ -100,10 +99,7 @@ siba_alloc_dinfo(device_t bus)
 
 	dinfo->pmu_state = SIBA_PMU_NONE;
 
-	dinfo->intr = (struct siba_intr) {
-		.mapped = false,
-		.rid = -1
-	};
+	dinfo->intr = (struct siba_intr) { .mapped = false, .rid = -1 };
 
 	return dinfo;
 }
@@ -111,12 +107,12 @@ siba_alloc_dinfo(device_t bus)
 /**
  * Initialize a device info structure previously allocated via
  * siba_alloc_dinfo, copying the provided core id.
- * 
+ *
  * @param dev The requesting bus device.
  * @param child The siba child device.
  * @param dinfo The device info instance.
  * @param core Device core info.
- * 
+ *
  * @retval 0 success
  * @retval non-zero initialization failed.
  */
@@ -164,7 +160,7 @@ siba_init_dinfo(device_t dev, device_t child, struct siba_devinfo *dinfo,
  */
 static int
 siba_register_interrupts(device_t dev, device_t child,
-     struct siba_devinfo *dinfo)
+    struct siba_devinfo *dinfo)
 {
 	int error;
 
@@ -181,8 +177,10 @@ siba_register_interrupts(device_t dev, device_t child,
 	error = BHND_BUS_MAP_INTR(dev, child, 0 /* single intr is always 0 */,
 	    &dinfo->intr.irq);
 	if (error) {
-		device_printf(dev, "failed mapping interrupt line for core %u: "
-		    "%d\n", dinfo->core_id.core_info.core_idx, error);
+		device_printf(dev,
+		    "failed mapping interrupt line for core %u: "
+		    "%d\n",
+		    dinfo->core_id.core_info.core_idx, error);
 		return (error);
 	}
 	dinfo->intr.mapped = true;
@@ -197,7 +195,7 @@ siba_register_interrupts(device_t dev, device_t child,
 /**
  * Map an addrspace index to its corresponding bhnd(4) BHND_PORT_DEVICE port
  * number.
- * 
+ *
  * @param addrspace Address space index.
  */
 u_int
@@ -214,7 +212,7 @@ siba_addrspace_device_port(u_int addrspace)
 /**
  * Map an addrspace index to its corresponding bhnd(4) BHND_PORT_DEVICE port
  * region number.
- * 
+ *
  * @param addrspace Address space index.
  */
 u_int
@@ -231,7 +229,7 @@ siba_addrspace_device_region(u_int addrspace)
 /**
  * Map an config block index to its corresponding bhnd(4) BHND_PORT_AGENT port
  * number.
- * 
+ *
  * @param cfg Config block index.
  */
 u_int
@@ -244,7 +242,7 @@ siba_cfg_agent_port(u_int cfg)
 /**
  * Map an config block index to its corresponding bhnd(4) BHND_PORT_AGENT port
  * region number.
- * 
+ *
  * @param cfg Config block index.
  */
 u_int
@@ -257,10 +255,10 @@ siba_cfg_agent_region(u_int cfg)
 /**
  * Return the number of bhnd(4) ports to advertise for the given
  * @p core_id and @p port_type.
- * 
+ *
  * Refer to the siba_addrspace_index() and siba_cfg_index() functions for
  * information on siba's mapping of bhnd(4) port and region identifiers.
- * 
+ *
  * @param core_id The siba core info.
  * @param port_type The bhnd(4) port type.
  */
@@ -289,7 +287,7 @@ siba_port_count(struct siba_core_id *core_id, bhnd_port_type port_type)
 /**
  * Return true if @p port of @p port_type is defined by @p core_id, false
  * otherwise.
- * 
+ *
  * @param core_id The siba core info.
  * @param port_type The bhnd(4) port type.
  * @param port The bhnd(4) port number.
@@ -308,7 +306,7 @@ siba_is_port_valid(struct siba_core_id *core_id, bhnd_port_type port_type,
 /**
  * Return the number of bhnd(4) regions to advertise for @p core_id on the
  * @p port of @p port_type.
- * 
+ *
  * @param core_id The siba core info.
  * @param port_type The bhnd(4) port type.
  */
@@ -346,24 +344,23 @@ siba_port_region_count(struct siba_core_id *core_id, bhnd_port_type port_type,
 	/* Validated above */
 	panic("siba_is_port_valid() returned true for unknown %s.%u port",
 	    bhnd_port_type_name(port_type), port);
-
 }
 
 /**
  * Map a bhnd(4) type/port/region triplet to its associated config block index,
  * if any.
- * 
+ *
  * We map config registers to port/region identifiers as follows:
- * 
+ *
  * 	[port].[region]	[cfg register block]
  * 	agent0.0	0
  * 	agent0.1	1
- * 
+ *
  * @param port_type The bhnd(4) port type.
  * @param port The bhnd(4) port number.
  * @param region The bhnd(4) port region.
  * @param addridx On success, the corresponding addrspace index.
- * 
+ *
  * @retval 0 success
  * @retval ENOENT if the given type/port/region cannot be mapped to a
  * siba config register block.
@@ -396,7 +393,7 @@ siba_cfg_index(struct siba_core_id *core_id, bhnd_port_type port_type,
  * entry, if any.
  *
  * The only supported port type is BHND_PORT_DEVICE.
- * 
+ *
  * @param dinfo The device info to search for a matching address space.
  * @param type The bhnd(4) port type.
  * @param port The bhnd(4) port number.
@@ -406,8 +403,8 @@ struct siba_cfg_block *
 siba_find_cfg_block(struct siba_devinfo *dinfo, bhnd_port_type type, u_int port,
     u_int region)
 {
-	u_int	cfgidx;
-	int	error;
+	u_int cfgidx;
+	int error;
 
 	/* Map to addrspace index */
 	error = siba_cfg_index(&dinfo->core_id, type, port, region, &cfgidx);
@@ -421,22 +418,22 @@ siba_find_cfg_block(struct siba_devinfo *dinfo, bhnd_port_type type, u_int port,
 /**
  * Map a bhnd(4) type/port/region triplet to its associated address space
  * index, if any.
- * 
+ *
  * For compatibility with bcma(4), we map address spaces to port/region
  * identifiers as follows:
- * 
+ *
  * 	[port.region]	[admatch index]
  * 	device0.0	0
  * 	device1.0	1
  * 	device1.1	2
  * 	device1.2	3
- * 
+ *
  * @param core_id The siba core info.
  * @param port_type The bhnd(4) port type.
  * @param port The bhnd(4) port number.
  * @param region The bhnd(4) port region.
  * @param addridx On success, the corresponding addrspace index.
- * 
+ *
  * @retval 0 success
  * @retval ENOENT if the given type/port/region cannot be mapped to a
  * siba address space.
@@ -475,7 +472,7 @@ siba_addrspace_index(struct siba_core_id *core_id, bhnd_port_type port_type,
  * entry, if any.
  *
  * The only supported port type is BHND_PORT_DEVICE.
- * 
+ *
  * @param dinfo The device info to search for a matching address space.
  * @param type The bhnd(4) port type.
  * @param port The bhnd(4) port number.
@@ -485,8 +482,8 @@ struct siba_addrspace *
 siba_find_addrspace(struct siba_devinfo *dinfo, bhnd_port_type type, u_int port,
     u_int region)
 {
-	u_int	addridx;
-	int	error;
+	u_int addridx;
+	int error;
 
 	/* Map to addrspace index */
 	error = siba_addrspace_index(&dinfo->core_id, type, port, region,
@@ -503,7 +500,7 @@ siba_find_addrspace(struct siba_devinfo *dinfo, bhnd_port_type type, u_int port,
 
 /**
  * Append an address space entry to @p dinfo.
- * 
+ *
  * @param dinfo The device info entry to update.
  * @param addridx The address space index.
  * @param base The mapping's base address.
@@ -511,7 +508,7 @@ siba_find_addrspace(struct siba_devinfo *dinfo, bhnd_port_type type, u_int port,
  * @param bus_reserved Number of bytes to reserve in @p size for bus use
  * when registering the resource list entry. This is used to reserve bus
  * access to the core's SIBA_CFG* register blocks.
- * 
+ *
  * @retval 0 success
  * @retval non-zero An error occurred appending the entry.
  */
@@ -519,8 +516,8 @@ static int
 siba_append_dinfo_region(struct siba_devinfo *dinfo, uint8_t addridx,
     uint32_t base, uint32_t size, uint32_t bus_reserved)
 {
-	struct siba_addrspace	*sa;
-	rman_res_t		 r_size;
+	struct siba_addrspace *sa;
+	rman_res_t r_size;
 
 	/* Verify that base + size will not overflow */
 	if (size > 0 && UINT32_MAX - (size - 1) < base)
@@ -554,7 +551,7 @@ siba_append_dinfo_region(struct siba_devinfo *dinfo, uint8_t addridx,
 
 /**
  * Deallocate the given device info structure and any associated resources.
- * 
+ *
  * @param dev The requesting bus device.
  * @param child The siba child device.
  * @param dinfo Device info associated with @p child to be deallocated.
@@ -588,9 +585,9 @@ siba_free_dinfo(device_t dev, device_t child, struct siba_devinfo *dinfo)
 /**
  * Return the core-enumeration-relative offset for the @p addrspace
  * SIBA_R0_ADMATCH* register.
- * 
+ *
  * @param addrspace The address space index.
- * 
+ *
  * @retval non-zero success
  * @retval 0 the given @p addrspace index is not supported.
  */
@@ -613,11 +610,11 @@ siba_admatch_offset(uint8_t addrspace)
 
 /**
  * Parse a SIBA_R0_ADMATCH* register.
- * 
+ *
  * @param addrspace The address space index.
  * @param am The address match register value to be parsed.
  * @param[out] admatch The parsed address match descriptor
- * 
+ *
  * @retval 0 success
  * @retval non-zero a parse error occurred.
  */
@@ -659,7 +656,7 @@ siba_parse_admatch(uint32_t am, struct siba_admatch *admatch)
 /**
  * Write @p value to @p dev's CFG0 target/initiator state register, performing
  * required read-back and waiting for completion.
- * 
+ *
  * @param dev The siba(4) child device.
  * @param reg The CFG0 state register to write (e.g. SIBA_CFG0_TMSTATELOW,
  * SIBA_CFG0_IMSTATE)
@@ -670,15 +667,16 @@ void
 siba_write_target_state(device_t dev, struct siba_devinfo *dinfo,
     bus_size_t reg, uint32_t value, uint32_t mask)
 {
-	struct bhnd_resource	*r;
-	uint32_t		 rval;
+	struct bhnd_resource *r;
+	uint32_t rval;
 
 	r = dinfo->cfg_res[0];
 
-	KASSERT(r != NULL, ("%s missing CFG0 mapping",
-	    device_get_nameunit(dev)));
-	KASSERT(reg <= SIBA_CFG_SIZE-4, ("%s invalid CFG0 register offset %#jx",
-	    device_get_nameunit(dev), (uintmax_t)reg));
+	KASSERT(r != NULL,
+	    ("%s missing CFG0 mapping", device_get_nameunit(dev)));
+	KASSERT(reg <= SIBA_CFG_SIZE - 4,
+	    ("%s invalid CFG0 register offset %#jx", device_get_nameunit(dev),
+		(uintmax_t)reg));
 
 	rval = bhnd_bus_read_4(r, reg);
 	rval &= ~mask;
@@ -693,7 +691,7 @@ siba_write_target_state(device_t dev, struct siba_devinfo *dinfo,
  * Spin for up to @p usec waiting for @p dev's CFG0 target/initiator state
  * register value to be equal to @p value after applying @p mask bits to both
  * values.
- * 
+ *
  * @param dev The siba(4) child device to wait on.
  * @param dinfo The @p dev's device info
  * @param reg The state register to read (e.g. SIBA_CFG0_TMSTATEHIGH,
@@ -701,7 +699,7 @@ siba_write_target_state(device_t dev, struct siba_devinfo *dinfo,
  * @param value The value against which @p reg will be compared.
  * @param mask The mask to be applied when comparing @p value with @p reg.
  * @param usec The maximum number of microseconds to wait for completion.
- * 
+ *
  * @retval 0 if SIBA_TMH_BUSY is cleared prior to the @p usec timeout.
  * @retval ENODEV if SIBA_CFG0 is not mapped by @p dinfo.
  * @retval ETIMEDOUT if a timeout occurs.
@@ -710,8 +708,8 @@ int
 siba_wait_target_state(device_t dev, struct siba_devinfo *dinfo, bus_size_t reg,
     uint32_t value, uint32_t mask, u_int usec)
 {
-	struct bhnd_resource	*r;
-	uint32_t		 rval;
+	struct bhnd_resource *r;
+	uint32_t rval;
 
 	if ((r = dinfo->cfg_res[0]) == NULL)
 		return (ENODEV);

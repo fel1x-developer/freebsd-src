@@ -29,18 +29,17 @@
  * SUCH DAMAGE.
  */
 
-
-
 #include <sys/types.h>
 #include <sys/uio.h>
+
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <paths.h>
 #include <signal.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "ttymsg.h"
@@ -73,8 +72,8 @@ ttymsg(struct iovec *iov, int iovcnt, const char *line, int tmout)
 		p += 4;
 	if (strchr(p, '/') != NULL) {
 		/* A slash is an attempt to break security... */
-		(void) snprintf(errbuf, sizeof(errbuf),
-		    "Too many '/' in \"%s\"", device);
+		(void)snprintf(errbuf, sizeof(errbuf), "Too many '/' in \"%s\"",
+		    device);
 		return (errbuf);
 	}
 
@@ -82,10 +81,10 @@ ttymsg(struct iovec *iov, int iovcnt, const char *line, int tmout)
 	 * open will fail on slip lines or exclusive-use lines
 	 * if not running as root; not an error.
 	 */
-	if ((fd = open(device, O_WRONLY|O_NONBLOCK, 0)) < 0) {
+	if ((fd = open(device, O_WRONLY | O_NONBLOCK, 0)) < 0) {
 		if (errno == EBUSY || errno == EACCES)
 			return (NULL);
-		(void) snprintf(errbuf, sizeof(errbuf), "%s: %s", device,
+		(void)snprintf(errbuf, sizeof(errbuf), "%s: %s", device,
 		    strerror(errno));
 		return (errbuf);
 	}
@@ -100,7 +99,7 @@ ttymsg(struct iovec *iov, int iovcnt, const char *line, int tmout)
 		if (wret >= 0) {
 			left -= wret;
 			if (iov != localiov) {
-				bcopy(iov, localiov, 
+				bcopy(iov, localiov,
 				    iovcnt * sizeof(struct iovec));
 				iov = localiov;
 			}
@@ -119,27 +118,27 @@ ttymsg(struct iovec *iov, int iovcnt, const char *line, int tmout)
 			int cpid;
 
 			if (forked) {
-				(void) close(fd);
+				(void)close(fd);
 				_exit(1);
 			}
 			cpid = fork();
 			if (cpid < 0) {
-				(void) snprintf(errbuf, sizeof(errbuf),
+				(void)snprintf(errbuf, sizeof(errbuf),
 				    "fork: %s", strerror(errno));
-				(void) close(fd);
+				(void)close(fd);
 				return (errbuf);
 			}
-			if (cpid) {	/* parent */
-				(void) close(fd);
+			if (cpid) { /* parent */
+				(void)close(fd);
 				return (NULL);
 			}
 			forked++;
 			/* wait at most tmout seconds */
-			(void) signal(SIGALRM, SIG_DFL);
-			(void) signal(SIGTERM, SIG_DFL); /* XXX */
-			(void) sigsetmask(0);
-			(void) alarm((u_int)tmout);
-			(void) fcntl(fd, F_SETFL, 0);	/* clear O_NONBLOCK */
+			(void)signal(SIGALRM, SIG_DFL);
+			(void)signal(SIGTERM, SIG_DFL); /* XXX */
+			(void)sigsetmask(0);
+			(void)alarm((u_int)tmout);
+			(void)fcntl(fd, F_SETFL, 0); /* clear O_NONBLOCK */
 			continue;
 		}
 		/*
@@ -148,15 +147,15 @@ ttymsg(struct iovec *iov, int iovcnt, const char *line, int tmout)
 		 */
 		if (errno == ENODEV || errno == EIO)
 			break;
-		(void) close(fd);
+		(void)close(fd);
 		if (forked)
 			_exit(1);
-		(void) snprintf(errbuf, sizeof(errbuf),
-		    "%s: %s", device, strerror(errno));
+		(void)snprintf(errbuf, sizeof(errbuf), "%s: %s", device,
+		    strerror(errno));
 		return (errbuf);
 	}
 
-	(void) close(fd);
+	(void)close(fd);
 	if (forked)
 		_exit(0);
 	return (NULL);

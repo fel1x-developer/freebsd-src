@@ -31,13 +31,12 @@
  * The functions are tested in the "C" and "ja_JP.eucJP" locales.
  */
 
+#include <atf-c.h>
 #include <locale.h>
 #include <stdio.h>
 #include <string.h>
 #include <wchar.h>
 #include <wctype.h>
-
-#include <atf-c.h>
 
 ATF_TC_WITHOUT_HEAD(towctrans_test);
 ATF_TC_BODY(towctrans_test, tc)
@@ -65,7 +64,8 @@ ATF_TC_BODY(towctrans_test, tc)
 		ATF_REQUIRE(towctrans(i, t) == i);
 
 	/* Japanese (EUC) locale. */
-	ATF_REQUIRE(strcmp(setlocale(LC_CTYPE, "ja_JP.eucJP"), "ja_JP.eucJP") == 0);
+	ATF_REQUIRE(
+	    strcmp(setlocale(LC_CTYPE, "ja_JP.eucJP"), "ja_JP.eucJP") == 0);
 	for (i = 0; i < sizeof(tran) / sizeof(*tran); i++) {
 		t = wctrans(tran[i].name);
 		ATF_REQUIRE(t != 0);

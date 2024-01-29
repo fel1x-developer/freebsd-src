@@ -72,11 +72,8 @@ void LacSymQat_ConstantsInitLookupTables(CpaInstanceHandle instanceHandle);
 *
 *****************************************************************************/
 void LacSymQat_ConstantsGetCipherOffset(CpaInstanceHandle instanceHandle,
-					uint8_t algo,
-					uint8_t mode,
-					uint8_t direction,
-					uint8_t convert,
-					uint8_t *poffset);
+    uint8_t algo, uint8_t mode, uint8_t direction, uint8_t convert,
+    uint8_t *poffset);
 
 /**
 *******************************************************************************
@@ -102,9 +99,6 @@ void LacSymQat_ConstantsGetCipherOffset(CpaInstanceHandle instanceHandle,
 *
 *****************************************************************************/
 void LacSymQat_ConstantsGetAuthOffset(CpaInstanceHandle instanceHandle,
-				      uint8_t algo,
-				      uint8_t mode,
-				      uint8_t nested,
-				      uint8_t *poffset);
+    uint8_t algo, uint8_t mode, uint8_t nested, uint8_t *poffset);
 
 #endif /* LAC_SYM_QAT_SHRAM_CONSTANTS_TABLE_H */

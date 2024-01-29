@@ -33,24 +33,25 @@
 #include <paths.h>
 #include <stdarg.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#define PROGNAME	"mktar"
+#define PROGNAME "mktar"
 
-#define SUBDIRNAME	"directory"
-#define NORMALFILENAME	"file"
-#define SPARSEFILENAME	"sparse_file"
-#define HARDLINKNAME	"hard_link"
-#define SHORTLINKNAME	"short_link"
-#define LONGLINKNAME	"long_link"
+#define SUBDIRNAME "directory"
+#define NORMALFILENAME "file"
+#define SPARSEFILENAME "sparse_file"
+#define HARDLINKNAME "hard_link"
+#define SHORTLINKNAME "short_link"
+#define LONGLINKNAME "long_link"
 
 static bool opt_g;
 static bool opt_v;
 
-static void verbose(const char *fmt, ...)
+static void
+verbose(const char *fmt, ...)
 {
 	va_list ap;
 
@@ -70,7 +71,7 @@ mknormalfile(const char *filename, mode_t mode)
 	ssize_t res;
 	int fd;
 
-	if ((fd = open(filename, O_RDWR|O_CREAT|O_EXCL, mode)) < 0)
+	if ((fd = open(filename, O_RDWR | O_CREAT | O_EXCL, mode)) < 0)
 		err(1, "%s", filename);
 	for (unsigned int i = 0; i < sizeof(buf); i++)
 		buf[i] = 32 + i % 64;
@@ -89,7 +90,7 @@ mksparsefile(const char *filename, mode_t mode)
 	ssize_t res;
 	int fd;
 
-	if ((fd = open(filename, O_RDWR|O_CREAT|O_EXCL, mode)) < 0)
+	if ((fd = open(filename, O_RDWR | O_CREAT | O_EXCL, mode)) < 0)
 		err(1, "%s", filename);
 	for (unsigned int i = 33; i <= 126; i++) {
 		memset(buf, i, sizeof(buf));
@@ -111,7 +112,8 @@ mklonglinktarget(const char *dirname, const char *filename)
 
 	if (asprintf(&piece, "%1$s/../%1$s/../%1$s/../%1$s/../", dirname) < 0)
 		err(1, "asprintf()");
-	if (asprintf(&target, "%1$s%1$s%1$s%1$s%1$s%1$s%1$s%1$s%2$s", piece, filename) < 0)
+	if (asprintf(&target, "%1$s%1$s%1$s%1$s%1$s%1$s%1$s%1$s%2$s", piece,
+		filename) < 0)
 		err(1, "asprintf()");
 	free(piece);
 	return target;
@@ -218,23 +220,14 @@ main(int argc, char *argv[])
 		err(1, "fork()");
 	if (pid == 0) {
 		verbose("creating tarball");
-		execlp(opt_g ? "gtar" : "tar",
-		    "tar",
-		    "-c",
-		    "-f", tarfilename,
-		    "-C", dirname,
-		    "--posix",
-		    "--zstd",
+		execlp(opt_g ? "gtar" : "tar", "tar", "-c", "-f", tarfilename,
+		    "-C", dirname, "--posix", "--zstd",
 #if 0
 		    "--options", "zstd:frame-per-file",
 #endif
-		    "./" SUBDIRNAME "/../" NORMALFILENAME,
-		    "./" SPARSEFILENAME,
-		    "./" HARDLINKNAME,
-		    "./" SHORTLINKNAME,
-		    "./" SUBDIRNAME,
-		    "./" LONGLINKNAME,
-		    NULL);
+		    "./" SUBDIRNAME "/../" NORMALFILENAME, "./" SPARSEFILENAME,
+		    "./" HARDLINKNAME, "./" SHORTLINKNAME, "./" SUBDIRNAME,
+		    "./" LONGLINKNAME, NULL);
 		err(1, "execlp()");
 	}
 	if (waitpid(pid, &wstatus, 0) < 0)

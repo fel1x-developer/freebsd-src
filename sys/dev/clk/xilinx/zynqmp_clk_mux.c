@@ -26,21 +26,19 @@
  */
 
 #include <sys/cdefs.h>
-
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
 
 #include <dev/clk/clk.h>
-
 #include <dev/clk/xilinx/zynqmp_clk_mux.h>
 
 #include "clkdev_if.h"
 #include "zynqmp_firmware_if.h"
 
 struct zynqmp_clk_mux_softc {
-	device_t	firmware;
-	uint32_t	id;
+	device_t firmware;
+	uint32_t id;
 };
 
 static int
@@ -61,16 +59,18 @@ zynqmp_clk_mux_set_mux(struct clknode *clk, int idx)
 
 static clknode_method_t zynqmp_clk_mux_clknode_methods[] = {
 	/* Device interface */
-	CLKNODEMETHOD(clknode_init,		zynqmp_clk_mux_init),
-	CLKNODEMETHOD(clknode_set_mux,		zynqmp_clk_mux_set_mux),
+	CLKNODEMETHOD(clknode_init, zynqmp_clk_mux_init),
+	CLKNODEMETHOD(clknode_set_mux, zynqmp_clk_mux_set_mux),
 	CLKNODEMETHOD_END
 };
 
 DEFINE_CLASS_1(zynqmp_clk_mux_clknode, zynqmp_clk_mux_clknode_class,
-    zynqmp_clk_mux_clknode_methods, sizeof(struct zynqmp_clk_mux_softc), clknode_class);
+    zynqmp_clk_mux_clknode_methods, sizeof(struct zynqmp_clk_mux_softc),
+    clknode_class);
 
 int
-zynqmp_clk_mux_register(struct clkdom *clkdom, device_t fw, struct clknode_init_def *clkdef)
+zynqmp_clk_mux_register(struct clkdom *clkdom, device_t fw,
+    struct clknode_init_def *clkdef)
 {
 	struct clknode *clk;
 	struct zynqmp_clk_mux_softc *sc;

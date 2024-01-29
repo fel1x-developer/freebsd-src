@@ -37,9 +37,8 @@
 #include "math.h"
 #include "math_private.h"
 
-static const double
-pi_hi = 3.1415926814079285e+00,	/* 0x400921fb 0x58000000 */
-pi_lo =-2.7818135228334233e-08;	/* 0xbe5dde97 0x3dcb3b3a */
+static const double pi_hi = 3.1415926814079285e+00, /* 0x400921fb 0x58000000 */
+    pi_lo = -2.7818135228334233e-08;		    /* 0xbe5dde97 0x3dcb3b3a */
 
 #include "k_cospil.h"
 #include "k_sinpil.h"
@@ -60,18 +59,18 @@ cospil(long double x)
 
 	ENTERI();
 
-	if (ix < 0x3fff) {			/* |x| < 1 */
-		if (ix < 0x3ffd) {		/* |x| < 0.25 */
-			if (ix < 0x3fdd) {	/* |x| < 0x1p-34 */
+	if (ix < 0x3fff) {		   /* |x| < 1 */
+		if (ix < 0x3ffd) {	   /* |x| < 0.25 */
+			if (ix < 0x3fdd) { /* |x| < 0x1p-34 */
 				if ((int)x == 0)
 					RETURNI(1);
 			}
 			RETURNI(__kernel_cospil(ax));
 		}
 
-		if (ix < 0x3ffe)			/* |x| < 0.5 */
+		if (ix < 0x3ffe) /* |x| < 0.5 */
 			c = __kernel_sinpil(0.5 - ax);
-		else if (lx < 0xc000000000000000ull) {	/* |x| < 0.75 */
+		else if (lx < 0xc000000000000000ull) { /* |x| < 0.75 */
 			if (ax == 0.5)
 				RETURNI(0);
 			c = -__kernel_sinpil(ax - 0.5);
@@ -80,13 +79,13 @@ cospil(long double x)
 		RETURNI(c);
 	}
 
-	if (ix < 0x403e) {			/* 1 <= |x| < 0x1p63 */
-		FFLOORL80(x, j0, ix, lx);	/* Integer part of ax. */
+	if (ix < 0x403e) {		  /* 1 <= |x| < 0x1p63 */
+		FFLOORL80(x, j0, ix, lx); /* Integer part of ax. */
 		ax -= x;
 		EXTRACT_LDBL80_WORDS(ix, lx, ax);
 
-		if (ix < 0x3ffe) {			/* |x| < 0.5 */
-			if (ix < 0x3ffd)		/* |x| < 0.25 */
+		if (ix < 0x3ffe) {	 /* |x| < 0.5 */
+			if (ix < 0x3ffd) /* |x| < 0.25 */
 				c = ix == 0 ? 1 : __kernel_cospil(ax);
 			else
 				c = __kernel_sinpil(0.5 - ax);

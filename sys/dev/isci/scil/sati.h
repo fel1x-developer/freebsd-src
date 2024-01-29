@@ -68,8 +68,8 @@
  * return an error indication (most likely INVALID FIELD IN CDB sense).
  */
 
-#include <dev/isci/scil/sati_types.h>
 #include <dev/isci/scil/sati_translator_sequence.h>
+#include <dev/isci/scil/sati_types.h>
 
 /**
  * @brief This method will be called by the core to indicate the start of a
@@ -77,13 +77,11 @@
  *
  * @return None
  */
-void sati_sequence_construct(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence
-);
+void sati_sequence_construct(SATI_TRANSLATOR_SEQUENCE_T *sequence);
 
 /**
- * @brief This method will be called by the core to request the current translation
- *        sequence be terminated.
+ * @brief This method will be called by the core to request the current
+ * translation sequence be terminated.
  *
  * @param[in]  sequence This parameter specifies the sequence
  *             data associated with the translation.
@@ -102,11 +100,8 @@ void sati_sequence_construct(
  *
  * @return None
  */
-void sati_sequence_terminate(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+void sati_sequence_terminate(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io);
 
 /**
  * @brief This method translates the supplied SCSI command into a
@@ -133,12 +128,8 @@ void sati_sequence_terminate(
  * @retval SATI_SUCCESS
  * @retval SATI_FAILURE_CHECK_RESPONSE_DATA
  */
-SATI_STATUS sati_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   SATI_DEVICE_T              * sati_device,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+SATI_STATUS sati_translate_command(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    SATI_DEVICE_T *sati_device, void *scsi_io, void *ata_io);
 
 /**
  * @brief This method translates the supplied SCSI task management request
@@ -165,12 +156,8 @@ SATI_STATUS sati_translate_command(
  * @retval SATI_SUCCESS
  * @retval SATI_FAILURE_CHECK_RESPONSE_DATA
  */
-SATI_STATUS sati_translate_task_management(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   SATI_DEVICE_T              * sati_device,
-   void                       * scsi_task,
-   void                       * ata_io
-);
+SATI_STATUS sati_translate_task_management(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    SATI_DEVICE_T *sati_device, void *scsi_task, void *ata_io);
 
 /**
  * @brief This method translates the supplied ATA response into the
@@ -193,11 +180,9 @@ SATI_STATUS sati_translate_task_management(
  * @retval SATI_SUCCESS
  * @retval SATI_FAILURE_CHECK_RESPONSE_DATA
  */
-SATI_STATUS sati_translate_command_response(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+SATI_STATUS
+sati_translate_command_response(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io);
 
 /**
  * @brief This method translates the supplied ATA response into the
@@ -219,11 +204,8 @@ SATI_STATUS sati_translate_command_response(
  * @return Indicate if the translation was successful.
  * @retval SATI_FAILURE_CHECK_RESPONSE_DATA
  */
-SATI_STATUS sati_translate_task_response(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+SATI_STATUS sati_translate_task_response(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io);
 
 /**
  * @brief This method simply returns the SAT major compliance version number
@@ -232,9 +214,7 @@ SATI_STATUS sati_translate_task_response(
  * @return Return the specification identifier with which this translator
  *         is compliant.
  */
-U32 sati_get_sat_compliance_version(
-   void
-);
+U32 sati_get_sat_compliance_version(void);
 
 /**
  * @brief This method simply returns the SAT version revision identifier
@@ -243,29 +223,21 @@ U32 sati_get_sat_compliance_version(
  * @return Return the specification revision identifier with which this
  *         translator is compliant.
  */
-U32 sati_get_sat_compliance_version_revision(
-   void
-);
+U32 sati_get_sat_compliance_version_revision(void);
 
 /**
-* @brief This method returns the number of data bytes written
-*        by the translation sequence.
-*
-* @param[in] sequence This parameter specifies the sequence data
-*            associated with the translation.
-*
-* @return Return the U16 number_data_bytes_set in the
-*         SATI_TRANSLATOR_SEQUENCE.
-*/
-U16 sati_get_number_data_bytes_set(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence
-);
+ * @brief This method returns the number of data bytes written
+ *        by the translation sequence.
+ *
+ * @param[in] sequence This parameter specifies the sequence data
+ *            associated with the translation.
+ *
+ * @return Return the U16 number_data_bytes_set in the
+ *         SATI_TRANSLATOR_SEQUENCE.
+ */
+U16 sati_get_number_data_bytes_set(SATI_TRANSLATOR_SEQUENCE_T *sequence);
 
-void sati_translate_error(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   U8                           error
-);
+void sati_translate_error(SATI_TRANSLATOR_SEQUENCE_T *sequence, void *scsi_io,
+    U8 error);
 
 #endif // _SATI_H_
-

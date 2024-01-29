@@ -28,6 +28,7 @@
 #include <sys/param.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -55,15 +56,17 @@ setup(int nb)
 		getdf(&bl, &in);
 
 		/* Resource requirements: */
-		reserve_in =    2 * op->incarnations;
+		reserve_in = 2 * op->incarnations;
 		reserve_bl = 20480 * op->incarnations;
 		freespace = (reserve_bl <= bl && reserve_in <= in);
 		if (!freespace)
 			reserve_bl = reserve_in = 0;
 
 		if (op->verbose > 1)
-			printf("mmap(incarnations=%d). Free(%jdk, %jd), reserve(%jdk, %jd)\n",
-			    op->incarnations, bl/1024, in, reserve_bl/1024, reserve_in);
+			printf(
+			    "mmap(incarnations=%d). Free(%jdk, %jd), reserve(%jdk, %jd)\n",
+			    op->incarnations, bl / 1024, in, reserve_bl / 1024,
+			    reserve_in);
 		reservedf(reserve_bl, reserve_in);
 		putval(freespace);
 	} else {
@@ -73,7 +76,7 @@ setup(int nb)
 		exit(0);
 	umask(0);
 
-	sprintf(path,"%s.%05d", getprogname(), getpid());
+	sprintf(path, "%s.%05d", getprogname(), getpid());
 	if (mkdir(path, 0770) < 0)
 		err(1, "mkdir(%s), %s:%d", path, __FILE__, __LINE__);
 
@@ -104,7 +107,7 @@ test(void)
 
 	pid = getpid();
 	for (i = 0; i < 100 && done_testing == 0; i++) {
-		sprintf(file,"p%05d.%05d", pid, i);
+		sprintf(file, "p%05d.%05d", pid, i);
 
 		if ((fdin = open(INPUTFILE, O_RDONLY)) < 0)
 			err(1, INPUTFILE);
@@ -122,12 +125,12 @@ test(void)
 		if (write(fdout, "", 1) != 1)
 			err(1, "write error");
 
-		if ((src = mmap(0, statbuf.st_size, PROT_READ, MAP_SHARED, fdin, 0)) ==
-			(caddr_t) - 1)
+		if ((src = mmap(0, statbuf.st_size, PROT_READ, MAP_SHARED, fdin,
+			 0)) == (caddr_t)-1)
 			err(1, "mmap error for input");
 
 		if ((dst = mmap(0, statbuf.st_size, PROT_READ | PROT_WRITE,
-			MAP_SHARED, fdout, 0)) == (caddr_t) - 1)
+			 MAP_SHARED, fdout, 0)) == (caddr_t)-1)
 			err(1, "mmap error for output");
 
 		memcpy(dst, src, statbuf.st_size);

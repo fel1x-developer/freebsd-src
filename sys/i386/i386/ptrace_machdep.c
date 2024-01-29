@@ -27,9 +27,9 @@
  *
  */
 
-#include <sys/cdefs.h>
 #include "opt_cpu.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/elf.h>
@@ -39,6 +39,7 @@
 #include <sys/proc.h>
 #include <sys/ptrace.h>
 #include <sys/reg.h>
+
 #include <machine/frame.h>
 #include <machine/md_var.h>
 #include <machine/pcb.h>
@@ -50,8 +51,7 @@ get_segbase(struct segment_descriptor *sdp)
 }
 
 static bool
-get_segbases(struct regset *rs, struct thread *td, void *buf,
-    size_t *sizep)
+get_segbases(struct regset *rs, struct thread *td, void *buf, size_t *sizep)
 {
 	struct segbasereg *reg;
 
@@ -66,8 +66,7 @@ get_segbases(struct regset *rs, struct thread *td, void *buf,
 }
 
 static bool
-set_segbases(struct regset *rs, struct thread *td, void *buf,
-    size_t size)
+set_segbases(struct regset *rs, struct thread *td, void *buf, size_t size)
 {
 	struct segbasereg *reg;
 
@@ -124,7 +123,7 @@ cpu_ptrace_xstate(struct thread *td, int req, void *addr, int data)
 
 	case PT_GETXSTATE_INFO:
 		if (data != sizeof(info)) {
-			error  = EINVAL;
+			error = EINVAL;
 			break;
 		}
 		info.xsave_len = cpu_max_ext_state_size;
@@ -148,8 +147,8 @@ cpu_ptrace_xstate(struct thread *td, int req, void *addr, int data)
 		error = copyin(addr, savefpu, data);
 		if (error == 0)
 			error = npxsetregs(td, (union savefpu *)savefpu,
-			    savefpu + sizeof(union savefpu), data -
-			    sizeof(union savefpu));
+			    savefpu + sizeof(union savefpu),
+			    data - sizeof(union savefpu));
 		free(savefpu, M_TEMP);
 		break;
 
@@ -219,7 +218,7 @@ cpu_ptrace(struct thread *td, int req, void *addr, int data)
 	case PT_GETFSBASE:
 	case PT_GETGSBASE:
 		sdp = req == PT_GETFSBASE ? &td->td_pcb->pcb_fsd :
-		    &td->td_pcb->pcb_gsd;
+					    &td->td_pcb->pcb_gsd;
 		r = get_segbase(sdp);
 		error = copyout(&r, addr, sizeof(r));
 		break;

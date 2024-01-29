@@ -29,10 +29,11 @@
  * SUCH DAMAGE.
  */
 
-#include "rcv.h"
 #include <errno.h>
 #include <fcntl.h>
+
 #include "extern.h"
+#include "rcv.h"
 
 /*
  * Mail -- a mail program
@@ -40,10 +41,10 @@
  * Lexical processing of commands.
  */
 
-static const char	*prompt = "& ";
+static const char *prompt = "& ";
 
 extern const struct cmd cmdtab[];
-extern const char *version;	
+extern const char *version;
 
 /*
  * Set up editing on the given file name.
@@ -121,8 +122,8 @@ setfile(char *name)
 	if (name != mailname)
 		strlcpy(mailname, name, sizeof(mailname));
 	mailsize = fsize(ibuf);
-	(void)snprintf(tempname, sizeof(tempname),
-	    "%s/mail.RxXXXXXXXXXX", tmpdir);
+	(void)snprintf(tempname, sizeof(tempname), "%s/mail.RxXXXXXXXXXX",
+	    tmpdir);
 	if ((fd = mkstemp(tempname)) == -1 || (otf = fdopen(fd, "w")) == NULL)
 		err(1, "%s", tempname);
 	(void)fcntl(fileno(otf), F_SETFD, 1);
@@ -143,7 +144,7 @@ setfile(char *name)
 	sawcom = 0;
 
 	if ((checkmode || !edit) && msgCount == 0) {
-nomail:
+	nomail:
 		if (!checkmode) {
 			fprintf(stderr, "No mail for %s\n", who);
 			return (-1);
@@ -170,11 +171,11 @@ incfile(void)
 	holdsigs();
 	newsize = fsize(ibuf);
 	if (newsize == 0)
-		return (-1);		/* mail box is now empty??? */
+		return (-1); /* mail box is now empty??? */
 	if (newsize < mailsize)
-		return (-1);		/* mail box has shrunk??? */
+		return (-1); /* mail box has shrunk??? */
 	if (newsize == mailsize)
-		return (0);		/* no new mail */
+		return (0); /* no new mail */
 	setptr(ibuf, mailsize);
 	setmsize(msgCount);
 	mailsize = ftello(ibuf);
@@ -183,8 +184,8 @@ incfile(void)
 	return (msgCount - omsgCount);
 }
 
-static int	*msgvec;
-static int	reset_on_stop;		/* do a reset() if stopped */
+static int *msgvec;
+static int reset_on_stop; /* do a reset() if stopped */
 
 /*
  * Interpret user commands one by one.  If standard input is not a tty,
@@ -239,7 +240,7 @@ commands(void)
 		}
 		reset_on_stop = 0;
 		if (n < 0) {
-				/* eof */
+			/* eof */
 			if (loading)
 				break;
 			if (sourcing) {
@@ -247,8 +248,7 @@ commands(void)
 				continue;
 			}
 			if (value("interactive") != NULL &&
-			    value("ignoreeof") != NULL &&
-			    ++eofloop < 25) {
+			    value("ignoreeof") != NULL && ++eofloop < 25) {
 				printf("Use \"quit\" to quit.\n");
 				continue;
 			}
@@ -293,7 +293,7 @@ execute(char linebuf[], int contxt)
 			printf("Can't \"!\" while sourcing\n");
 			goto out;
 		}
-		shell(cp+1);
+		shell(cp + 1);
 		return (0);
 	}
 	cp2 = word;
@@ -334,25 +334,23 @@ execute(char linebuf[], int contxt)
 	 */
 
 	if (!rcvmode && (com->c_argtype & M) == 0) {
-		printf("May not execute \"%s\" while sending\n",
-		    com->c_name);
+		printf("May not execute \"%s\" while sending\n", com->c_name);
 		goto out;
 	}
 	if (sourcing && com->c_argtype & I) {
-		printf("May not execute \"%s\" while sourcing\n",
-		    com->c_name);
+		printf("May not execute \"%s\" while sourcing\n", com->c_name);
 		goto out;
 	}
 	if (readonly && com->c_argtype & W) {
 		printf("May not execute \"%s\" -- message file is read only\n",
-		   com->c_name);
+		    com->c_name);
 		goto out;
 	}
 	if (contxt && com->c_argtype & R) {
 		printf("Cannot recursively invoke \"%s\"\n", com->c_name);
 		goto out;
 	}
-	switch (com->c_argtype & ~(F|P|I|M|T|W|R)) {
+	switch (com->c_argtype & ~(F | P | I | M | T | W | R)) {
 	case MSGLIST:
 		/*
 		 * A message list defaulting to nearest forward
@@ -364,7 +362,7 @@ execute(char linebuf[], int contxt)
 		}
 		if ((c = getmsglist(cp, msgvec, com->c_msgflag)) < 0)
 			break;
-		if (c  == 0) {
+		if (c == 0) {
 			*msgvec = first(com->c_msgflag, com->c_msgmask);
 			msgvec[1] = 0;
 		}
@@ -404,16 +402,16 @@ execute(char linebuf[], int contxt)
 		 * A vector of strings, in shell style.
 		 */
 		if ((c = getrawlist(cp, arglist,
-		    sizeof(arglist) / sizeof(*arglist))) < 0)
+			 sizeof(arglist) / sizeof(*arglist))) < 0)
 			break;
 		if (c < com->c_minargs) {
-			printf("%s requires at least %d arg(s)\n",
-			    com->c_name, com->c_minargs);
+			printf("%s requires at least %d arg(s)\n", com->c_name,
+			    com->c_minargs);
 			break;
 		}
 		if (c > com->c_maxargs) {
-			printf("%s takes no more than %d arg(s)\n",
-			    com->c_name, com->c_maxargs);
+			printf("%s takes no more than %d arg(s)\n", com->c_name,
+			    com->c_maxargs);
 			break;
 		}
 		e = (*com->c_func)(arglist);
@@ -489,8 +487,7 @@ lex(char word[])
 	 */
 
 	if (*word == '#')
-	    *(word+1) = '\0';
-
+		*(word + 1) = '\0';
 
 	for (cp = &cmdtab[0]; cp->c_name != NULL; cp++)
 		if (isprefix(word, cp->c_name))
@@ -523,7 +520,7 @@ isprefix(const char *as1, const char *as2)
  * Also, unstack all source files.
  */
 
-static int	inithdr;		/* am printing startup headers */
+static int inithdr; /* am printing startup headers */
 
 void
 intr(int s __unused)
@@ -607,7 +604,7 @@ newfileinfo(int omsgCount)
 {
 	struct message *mp;
 	int u, n, mdot, d, s;
-	char fname[PATHSIZE+1], zname[PATHSIZE+1], *ename;
+	char fname[PATHSIZE + 1], zname[PATHSIZE + 1], *ename;
 
 	for (mp = &message[omsgCount]; mp < &message[msgCount]; mp++)
 		if (mp->m_flag & MNEW)
@@ -647,7 +644,7 @@ newfileinfo(int omsgCount)
 		printf("%d messages", msgCount);
 	if (n > 0)
 		printf(" %d new", n);
-	if (u-n > 0)
+	if (u - n > 0)
 		printf(" %d unread", u);
 	if (d > 0)
 		printf(" %d deleted", d);

@@ -38,16 +38,16 @@
  * or
  *  cu phone-number [-s speed] [-l line] [-a acu]
  */
-#define	EXTERN
-#include "tip.h"
+#define EXTERN
 #include "pathnames.h"
+#include "tip.h"
 
-int	disc = TTYDISC;		/* tip normally runs this way */
-char	PNbuf[256];			/* This limits the size of a number */
+int disc = TTYDISC; /* tip normally runs this way */
+char PNbuf[256];    /* This limits the size of a number */
 
-static void	intprompt(int);
-static void	tipin(void);
-static int	escape(void);
+static void intprompt(int);
+static void tipin(void);
+static int escape(void);
 
 int
 main(int argc, char *argv[])
@@ -80,26 +80,35 @@ main(int argc, char *argv[])
 	for (; argc > 1; argv++, argc--) {
 		if (argv[1][0] != '-')
 			sys = argv[1];
-		else switch (argv[1][1]) {
+		else
+			switch (argv[1][1]) {
 
-		case 'v':
-			vflag++;
-			break;
+			case 'v':
+				vflag++;
+				break;
 
-		case 'n':
-			noesc++;
-			break;
+			case 'n':
+				noesc++;
+				break;
 
-		case '0': case '1': case '2': case '3': case '4':
-		case '5': case '6': case '7': case '8': case '9':
-			BR = atoi(&argv[1][1]);
-			break;
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				BR = atoi(&argv[1][1]);
+				break;
 
-		default:
-			fprintf(stderr, "%s: %s, unknown option\n", __progname,
-			    argv[1]);
-			break;
-		}
+			default:
+				fprintf(stderr, "%s: %s, unknown option\n",
+				    __progname, argv[1]);
+				break;
+			}
 	}
 
 	if (sys == NOSTR)
@@ -113,7 +122,7 @@ main(int argc, char *argv[])
 	 */
 	if (strlen(sys) > sizeof PNbuf - 1) {
 		fprintf(stderr, "%s: phone number too long (max = %d bytes)\n",
-			__progname, (int)sizeof(PNbuf) - 1);
+		    __progname, (int)sizeof(PNbuf) - 1);
 		exit(1);
 	}
 	strlcpy(PNbuf, sys, sizeof PNbuf - 1);
@@ -157,8 +166,8 @@ notnumber:
 	 */
 	if ((PH = getenv("PHONES")) == NOSTR)
 		PH = _PATH_PHONES;
-	vinit();				/* init variables */
-	setparity("none");			/* set the parity table */
+	vinit();	   /* init variables */
+	setparity("none"); /* set the parity table */
 
 	/*
 	 * Hardwired connections require the
@@ -205,24 +214,25 @@ cucommon:
 	tcgetattr(0, &defterm);
 	gotdefterm = 1;
 	term = defterm;
-	term.c_lflag &= ~(ICANON|IEXTEN|ECHO);
-	term.c_iflag &= ~(INPCK|ICRNL);
+	term.c_lflag &= ~(ICANON | IEXTEN | ECHO);
+	term.c_iflag &= ~(INPCK | ICRNL);
 	term.c_oflag &= ~OPOST;
 	term.c_cc[VMIN] = 1;
 	term.c_cc[VTIME] = 0;
 	defchars = term;
 	term.c_cc[VINTR] = term.c_cc[VQUIT] = term.c_cc[VSUSP] =
-	    term.c_cc[VDSUSP] = term.c_cc[VDISCARD] =
-	    term.c_cc[VLNEXT] = _POSIX_VDISABLE;
+	    term.c_cc[VDSUSP] = term.c_cc[VDISCARD] = term.c_cc[VLNEXT] =
+		_POSIX_VDISABLE;
 	raw();
 
-	pipe(fildes); pipe(repdes);
+	pipe(fildes);
+	pipe(repdes);
 	(void)signal(SIGALRM, timeout);
 
 	if (value(LINEDISC) != TTYDISC) {
 		int ld = (int)(intptr_t)value(LINEDISC);
 		ioctl(FD, TIOCSETD, &ld);
-	}		
+	}
 
 	/*
 	 * Everything's set up now:
@@ -300,7 +310,6 @@ raw(void)
 	tcsetattr(0, TCSADRAIN, &term);
 }
 
-
 /*
  * return keyboard to normal mode
  */
@@ -320,7 +329,7 @@ unexcl()
 	ioctl(FD, TIOCNXCL, 0);
 }
 
-static	jmp_buf promptbuf;
+static jmp_buf promptbuf;
 
 /*
  * Print string ``s'', then read a string
@@ -443,7 +452,7 @@ escape(void)
 	gch = gch & STRIP_PAR;
 	for (p = etable; p->e_char; p++)
 		if (p->e_char == gch) {
-			if ((p->e_flags&PRIV) && uid)
+			if ((p->e_flags & PRIV) && uid)
 				continue;
 			printf("%s", ctrl(c));
 			(*p->e_func)(gch);
@@ -484,17 +493,19 @@ interp(char *s)
 	while ((c = *s++)) {
 		for (q = "\nn\rr\tt\ff\033E\bb"; *q; q++)
 			if (*q++ == c) {
-				*p++ = '\\'; *p++ = *q;
+				*p++ = '\\';
+				*p++ = *q;
 				goto next;
 			}
 		if (c < 040) {
-			*p++ = '^'; *p++ = c + 'A'-1;
+			*p++ = '^';
+			*p++ = c + 'A' - 1;
 		} else if (c == 0177) {
-			*p++ = '^'; *p++ = '?';
+			*p++ = '^';
+			*p++ = '?';
 		} else
 			*p++ = c;
-	next:
-		;
+	next:;
 	}
 	*p = '\0';
 	return (buf);
@@ -507,7 +518,7 @@ ctrl(char c)
 
 	if (c < 040 || c == 0177) {
 		s[0] = '^';
-		s[1] = c == 0177 ? '?' : c+'A'-1;
+		s[1] = c == 0177 ? '?' : c + 'A' - 1;
 		s[2] = '\0';
 	} else {
 		s[0] = c;
@@ -526,11 +537,11 @@ help(int c)
 
 	printf("%c\r\n", c);
 	for (p = etable; p->e_char; p++) {
-		if ((p->e_flags&PRIV) && uid)
+		if ((p->e_flags & PRIV) && uid)
 			continue;
 		printf("%2s", ctrl(character(value(ESCAPE))));
 		printf("%-2s %c   %s\r\n", ctrl(p->e_char),
-			p->e_flags&EXP ? '*': ' ', p->e_help);
+		    p->e_flags & EXP ? '*' : ' ', p->e_help);
 	}
 }
 
@@ -540,20 +551,20 @@ help(int c)
 int
 ttysetup(int speed)
 {
-	struct termios	cntrl;
+	struct termios cntrl;
 
 	if (tcgetattr(FD, &cntrl))
 		return (-1);
 	cfsetspeed(&cntrl, speed);
-	cntrl.c_cflag &= ~(CSIZE|PARENB);
+	cntrl.c_cflag &= ~(CSIZE | PARENB);
 	cntrl.c_cflag |= CS8;
 	if (boolean(value(DC)))
 		cntrl.c_cflag |= CLOCAL;
 	if (boolean(value(HARDWAREFLOW)))
 		cntrl.c_cflag |= CRTSCTS;
-	cntrl.c_iflag &= ~(ISTRIP|ICRNL);
+	cntrl.c_iflag &= ~(ISTRIP | ICRNL);
 	cntrl.c_oflag &= ~OPOST;
-	cntrl.c_lflag &= ~(ICANON|ISIG|IEXTEN|ECHO);
+	cntrl.c_lflag &= ~(ICANON | ISIG | IEXTEN | ECHO);
 	cntrl.c_cc[VMIN] = 1;
 	cntrl.c_cc[VTIME] = 0;
 	if (boolean(value(TAND)))
@@ -610,14 +621,14 @@ setparity(char *defparity)
 	clr = 0377;
 	set = 0;
 	if (equal(parity, "odd"))
-		flip = 0200;			/* reverse bit 7 */
+		flip = 0200; /* reverse bit 7 */
 	else if (equal(parity, "zero"))
-		clr = 0177;			/* turn off bit 7 */
+		clr = 0177; /* turn off bit 7 */
 	else if (equal(parity, "one"))
-		set = 0200;			/* turn on bit 7 */
+		set = 0200; /* turn on bit 7 */
 	else if (!equal(parity, "even")) {
-		(void) fprintf(stderr, "%s: unknown parity value\r\n", parity);
-		(void) fflush(stderr);
+		(void)fprintf(stderr, "%s: unknown parity value\r\n", parity);
+		(void)fflush(stderr);
 	}
 	for (i = 0; i < 0200; i++)
 		partab[i] = ((evenpartab[i] ^ flip) | set) & clr;

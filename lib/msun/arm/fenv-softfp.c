@@ -24,7 +24,7 @@
  * SUCH DAMAGE.
  */
 
-#define	FENV_MANGLE(x)	__softfp_ ##x
+#define FENV_MANGLE(x) __softfp_##x
 #include "fenv-mangle.h"
-#include "fenv.c"
 
+#include "fenv.c"

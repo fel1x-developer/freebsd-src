@@ -40,12 +40,12 @@
  */
 struct svc_dg_data {
 	/* XXX: optbuf should be the first field, used by ti_opts.c code */
-	size_t		su_iosz;		/* size of send.recv buffer */
-	u_int32_t	su_xid;			/* transaction id */
-	XDR		su_xdrs;			/* XDR handle */
-	char		su_verfbody[MAX_AUTH_BYTES];	/* verifier body */
-	void		*su_cache;		/* cached data, NULL if none */
-	struct netbuf   su_srcaddr;		/* dst address of last msg */
+	size_t su_iosz;			  /* size of send.recv buffer */
+	u_int32_t su_xid;		  /* transaction id */
+	XDR su_xdrs;			  /* XDR handle */
+	char su_verfbody[MAX_AUTH_BYTES]; /* verifier body */
+	void *su_cache;			  /* cached data, NULL if none */
+	struct netbuf su_srcaddr;	  /* dst address of last msg */
 };
 
-#define __rpcb_get_dg_xidp(x)	(&((struct svc_dg_data *)(x)->xp_p2)->su_xid)
+#define __rpcb_get_dg_xidp(x) (&((struct svc_dg_data *)(x)->xp_p2)->su_xid)

@@ -28,12 +28,12 @@
  */
 
 #include <sys/cdefs.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 
 #include <rpc/rpc.h>
 #include <rpcsvc/nlm_prot.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 int
 main(int argc, char **argv)
@@ -56,8 +56,8 @@ main(int argc, char **argv)
 	notify.name = hostname;
 	notify.state = 0;
 	stat = rpc_call("localhost", NLM_PROG, NLM_VERS4, NLM4_FREE_ALL,
-	    (xdrproc_t) xdr_nlm4_notify, (void *) &notify,
-	    (xdrproc_t) xdr_void, NULL, NULL);
+	    (xdrproc_t)xdr_nlm4_notify, (void *)&notify, (xdrproc_t)xdr_void,
+	    NULL, NULL);
 
 	if (stat != RPC_SUCCESS) {
 		clnt_perrno(stat);

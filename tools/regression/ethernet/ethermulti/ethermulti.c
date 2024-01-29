@@ -25,24 +25,23 @@
  */
 
 #include <sys/types.h>
+#include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/time.h>
-#include <sys/ioctl.h>
 
+#include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_dl.h>
 #include <net/if_types.h>
-#include <net/ethernet.h>
 
 #include <err.h>
 #include <errno.h>
 #include <getopt.h>
+#include <ifaddrs.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <ifaddrs.h>
 
 static int dorandom = 0;
 static int verbose = 0;
@@ -63,8 +62,8 @@ static char *ifname = NULL;
  * us to test whether the same rights are granted using a socket with a
  * privileged cached credential vs. a socket with a regular credential.
  */
-#define	PRIV_ASIS	0
-#define	PRIV_GETROOT	1
+#define PRIV_ASIS 0
+#define PRIV_GETROOT 1
 static int
 get_socket_unpriv(int type)
 {
@@ -80,7 +79,7 @@ get_socket_priv(int type)
 
 	if (getuid() != 0)
 		errx(-1, "get_sock_priv: running without real uid 0");
-	
+
 	olduid = geteuid();
 	if (seteuid(0) < 0)
 		err(-1, "get_sock_priv: seteuid(0)");
@@ -104,9 +103,9 @@ get_socket(int type, int priv)
 }
 
 union sockunion {
-	struct sockaddr_storage	ss;
-	struct sockaddr		sa;
-	struct sockaddr_dl	sdl;
+	struct sockaddr_storage ss;
+	struct sockaddr sa;
+	struct sockaddr_dl sdl;
 };
 typedef union sockunion sockunion_t;
 
@@ -167,7 +166,7 @@ test_ether_multi(int sock)
 				continue;
 
 			if (bcmp(LLADDR(&psa->sdl), LLADDR(dlp),
-			    ETHER_ADDR_LEN) == 0) {
+				ETHER_ADDR_LEN) == 0) {
 				found = 1;
 				break;
 			}
@@ -176,7 +175,7 @@ test_ether_multi(int sock)
 	}
 	if (!found) {
 		warnx("group membership for %s not returned by getifmaddrs()",
-		   ether_ntoa(&ea));
+		    ether_ntoa(&ea));
 	}
 
 	/* Fill out ifreq, and fill out 802 group address. */
@@ -192,7 +191,6 @@ test_ether_multi(int sock)
 	/* Leave an 802 group. */
 	if (ioctl(sock, SIOCDELMULTI, &ifr) < 0)
 		warn("can't delete ethernet multicast membership");
-
 }
 
 static void
@@ -226,7 +224,7 @@ main(int argc, char *argv[])
 			ifname = optarg;
 			break;
 		case 'r':
-			dorandom = 1;	/* introduce non-determinism */
+			dorandom = 1; /* introduce non-determinism */
 			break;
 		case 'v':
 			verbose = 1;
@@ -244,8 +242,8 @@ main(int argc, char *argv[])
 		/*NOTREACHED*/
 	} else {
 		fprintf(stderr,
-		    "Running tests with ruid %d euid %d sock uid 0\n",
-		    getuid(), geteuid());
+		    "Running tests with ruid %d euid %d sock uid 0\n", getuid(),
+		    geteuid());
 		testsuite(PRIV_ASIS);
 	}
 	printf("ok 1 - ethermulti\n");

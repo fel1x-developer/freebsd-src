@@ -87,115 +87,92 @@
  *
  *****************************************************************************/
 
-#include <sys/cdefs.h>
-#include "opt_wlan.h"
 #include "opt_iwm.h"
+#include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/endian.h>
 #include <sys/firmware.h>
 #include <sys/kernel.h>
+#include <sys/linker.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
-#include <sys/mutex.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/linker.h>
 
 #include <machine/bus.h>
 #include <machine/endian.h>
 #include <machine/resource.h>
 
+#include <dev/iwm/if_iwm_config.h>
+#include <dev/iwm/if_iwm_debug.h>
+#include <dev/iwm/if_iwm_sf.h>
+#include <dev/iwm/if_iwm_util.h>
+#include <dev/iwm/if_iwmreg.h>
+#include <dev/iwm/if_iwmvar.h>
+
+#include <net/bpf.h>
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_arp.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
-#include <net/bpf.h>
-
+#include <net/if_var.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_ratectl.h>
+#include <net80211/ieee80211_regdomain.h>
+#include <net80211/ieee80211_var.h>
+#include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
-#include <netinet/if_ether.h>
 #include <netinet/ip.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_regdomain.h>
-#include <net80211/ieee80211_ratectl.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/iwm/if_iwmreg.h>
-#include <dev/iwm/if_iwmvar.h>
-#include <dev/iwm/if_iwm_config.h>
-#include <dev/iwm/if_iwm_debug.h>
-#include <dev/iwm/if_iwm_util.h>
-#include <dev/iwm/if_iwm_sf.h>
 
 /*
  * Aging and idle timeouts for the different possible scenarios
  * in default configuration
  */
 static const uint32_t
-sf_full_timeout_def[IWM_SF_NUM_SCENARIO][IWM_SF_NUM_TIMEOUT_TYPES] = {
-	{
-		htole32(IWM_SF_SINGLE_UNICAST_AGING_TIMER_DEF),
-		htole32(IWM_SF_SINGLE_UNICAST_IDLE_TIMER_DEF)
-	},
-	{
-		htole32(IWM_SF_AGG_UNICAST_AGING_TIMER_DEF),
-		htole32(IWM_SF_AGG_UNICAST_IDLE_TIMER_DEF)
-	},
-	{
-		htole32(IWM_SF_MCAST_AGING_TIMER_DEF),
-		htole32(IWM_SF_MCAST_IDLE_TIMER_DEF)
-	},
-	{
-		htole32(IWM_SF_BA_AGING_TIMER_DEF),
-		htole32(IWM_SF_BA_IDLE_TIMER_DEF)
-	},
-	{
-		htole32(IWM_SF_TX_RE_AGING_TIMER_DEF),
-		htole32(IWM_SF_TX_RE_IDLE_TIMER_DEF)
-	},
-};
+    sf_full_timeout_def[IWM_SF_NUM_SCENARIO][IWM_SF_NUM_TIMEOUT_TYPES] = {
+	    { htole32(IWM_SF_SINGLE_UNICAST_AGING_TIMER_DEF),
+		htole32(IWM_SF_SINGLE_UNICAST_IDLE_TIMER_DEF) },
+	    { htole32(IWM_SF_AGG_UNICAST_AGING_TIMER_DEF),
+		htole32(IWM_SF_AGG_UNICAST_IDLE_TIMER_DEF) },
+	    { htole32(IWM_SF_MCAST_AGING_TIMER_DEF),
+		htole32(IWM_SF_MCAST_IDLE_TIMER_DEF) },
+	    { htole32(IWM_SF_BA_AGING_TIMER_DEF),
+		htole32(IWM_SF_BA_IDLE_TIMER_DEF) },
+	    { htole32(IWM_SF_TX_RE_AGING_TIMER_DEF),
+		htole32(IWM_SF_TX_RE_IDLE_TIMER_DEF) },
+    };
 
 /*
  * Aging and idle timeouts for the different possible scenarios
  * in single BSS MAC configuration.
  */
 static const uint32_t
-sf_full_timeout[IWM_SF_NUM_SCENARIO][IWM_SF_NUM_TIMEOUT_TYPES] = {
-	{
-		htole32(IWM_SF_SINGLE_UNICAST_AGING_TIMER),
-		htole32(IWM_SF_SINGLE_UNICAST_IDLE_TIMER)
-	},
-	{
-		htole32(IWM_SF_AGG_UNICAST_AGING_TIMER),
-		htole32(IWM_SF_AGG_UNICAST_IDLE_TIMER)
-	},
-	{
-		htole32(IWM_SF_MCAST_AGING_TIMER),
-		htole32(IWM_SF_MCAST_IDLE_TIMER)
-	},
-	{
-		htole32(IWM_SF_BA_AGING_TIMER),
-		htole32(IWM_SF_BA_IDLE_TIMER)
-	},
-	{
-		htole32(IWM_SF_TX_RE_AGING_TIMER),
-		htole32(IWM_SF_TX_RE_IDLE_TIMER)
-	},
-};
+    sf_full_timeout[IWM_SF_NUM_SCENARIO][IWM_SF_NUM_TIMEOUT_TYPES] = {
+	    { htole32(IWM_SF_SINGLE_UNICAST_AGING_TIMER),
+		htole32(IWM_SF_SINGLE_UNICAST_IDLE_TIMER) },
+	    { htole32(IWM_SF_AGG_UNICAST_AGING_TIMER),
+		htole32(IWM_SF_AGG_UNICAST_IDLE_TIMER) },
+	    { htole32(IWM_SF_MCAST_AGING_TIMER),
+		htole32(IWM_SF_MCAST_IDLE_TIMER) },
+	    { htole32(IWM_SF_BA_AGING_TIMER), htole32(IWM_SF_BA_IDLE_TIMER) },
+	    { htole32(IWM_SF_TX_RE_AGING_TIMER),
+		htole32(IWM_SF_TX_RE_IDLE_TIMER) },
+    };
 
 static void
 iwm_fill_sf_command(struct iwm_softc *sc, struct iwm_sf_cfg_cmd *sf_cmd,
-	struct ieee80211_node *ni)
+    struct ieee80211_node *ni)
 {
 	int i, j, watermark;
 
@@ -211,7 +188,7 @@ iwm_fill_sf_command(struct iwm_softc *sc, struct iwm_sf_cfg_cmd *sf_cmd,
 		} else {
 			watermark = IWM_SF_W_MARK_LEGACY;
 		}
-	/* default watermark value for unassociated mode. */
+		/* default watermark value for unassociated mode. */
 	} else {
 		watermark = IWM_SF_W_MARK_MIMO2;
 	}
@@ -219,38 +196,40 @@ iwm_fill_sf_command(struct iwm_softc *sc, struct iwm_sf_cfg_cmd *sf_cmd,
 
 	for (i = 0; i < IWM_SF_NUM_SCENARIO; i++) {
 		for (j = 0; j < IWM_SF_NUM_TIMEOUT_TYPES; j++) {
-			sf_cmd->long_delay_timeouts[i][j] =
-					htole32(IWM_SF_LONG_DELAY_AGING_TIMER);
+			sf_cmd->long_delay_timeouts[i][j] = htole32(
+			    IWM_SF_LONG_DELAY_AGING_TIMER);
 		}
 	}
 
 	if (ni) {
-		_Static_assert(sizeof(sf_full_timeout) == sizeof(uint32_t) *
-		    IWM_SF_NUM_SCENARIO * IWM_SF_NUM_TIMEOUT_TYPES,
+		_Static_assert(sizeof(sf_full_timeout) ==
+			sizeof(uint32_t) * IWM_SF_NUM_SCENARIO *
+			    IWM_SF_NUM_TIMEOUT_TYPES,
 		    "sf_full_timeout has wrong size");
 
 		memcpy(sf_cmd->full_on_timeouts, sf_full_timeout,
-		       sizeof(sf_full_timeout));
+		    sizeof(sf_full_timeout));
 	} else {
-		_Static_assert(sizeof(sf_full_timeout_def) == sizeof(uint32_t) *
-		    IWM_SF_NUM_SCENARIO * IWM_SF_NUM_TIMEOUT_TYPES,
+		_Static_assert(sizeof(sf_full_timeout_def) ==
+			sizeof(uint32_t) * IWM_SF_NUM_SCENARIO *
+			    IWM_SF_NUM_TIMEOUT_TYPES,
 		    "sf_full_timeout_def has wrong size");
 
 		memcpy(sf_cmd->full_on_timeouts, sf_full_timeout_def,
-		       sizeof(sf_full_timeout_def));
+		    sizeof(sf_full_timeout_def));
 	}
 }
 
 static int
 iwm_sf_config(struct iwm_softc *sc, struct ieee80211_node *ni,
-	enum iwm_sf_state new_state)
+    enum iwm_sf_state new_state)
 {
 	struct iwm_sf_cfg_cmd sf_cmd = {
 		.state = htole32(new_state),
 	};
 	int ret = 0;
 
-#ifdef notyet	/* only relevant for sdio variants */
+#ifdef notyet /* only relevant for sdio variants */
 	if (sc->cfg->disable_dummy_notification)
 		sf_cmd.state |= htole32(IWM_SF_CFG_DUMMY_NOTIF_OFF);
 #endif
@@ -280,7 +259,7 @@ iwm_sf_config(struct iwm_softc *sc, struct ieee80211_node *ni,
 	}
 
 	ret = iwm_send_cmd_pdu(sc, IWM_REPLY_SF_CFG_CMD, IWM_CMD_ASYNC,
-				   sizeof(sf_cmd), &sf_cmd);
+	    sizeof(sf_cmd), &sf_cmd);
 	if (!ret)
 		sc->sf_state = new_state;
 
@@ -294,7 +273,7 @@ iwm_sf_config(struct iwm_softc *sc, struct ieee80211_node *ni,
  */
 int
 iwm_sf_update(struct iwm_softc *sc, struct ieee80211vap *changed_vif,
-	boolean_t remove_vif)
+    boolean_t remove_vif)
 {
 	enum iwm_sf_state new_state;
 	struct ieee80211_node *ni = NULL;

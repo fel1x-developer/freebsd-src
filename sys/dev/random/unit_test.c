@@ -34,7 +34,7 @@ cc -g -O0 -pthread -DRANDOM_<alg> -I../.. -lstdthreads -Wall \
 	../../crypto/rijndael/rijndael-api-fst.c \
 	../../crypto/rijndael/rijndael-alg-fst.c \
 	../../crypto/sha2/sha256c.c \
-        -lz \
+	-lz \
 	-o unit_test
 ./unit_test
 
@@ -44,6 +44,7 @@ possible future algorithms.
 */
 
 #include <sys/types.h>
+
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -55,8 +56,8 @@ possible future algorithms.
 #include "randomdev.h"
 #include "unit_test.h"
 
-#define	NUM_THREADS	  3
-#define	DEBUG
+#define NUM_THREADS 3
+#define DEBUG
 
 static volatile int stopseeding = 0;
 
@@ -76,7 +77,8 @@ myalloc(void *q, unsigned n, unsigned m)
 	return (calloc(n, m));
 }
 
-void myfree(void *q, void *p)
+void
+myfree(void *q, void *p)
 {
 	q = Z_NULL;
 	free(p);
@@ -98,15 +100,18 @@ block_deflate(uint8_t *uncompr, uint8_t *compr, const size_t len)
 	err = deflateInit(&c_stream, Z_DEFAULT_COMPRESSION);
 	check_err(err, "deflateInit");
 
-	c_stream.next_in  = uncompr;
+	c_stream.next_in = uncompr;
 	c_stream.next_out = compr;
 	c_stream.avail_in = len;
-	c_stream.avail_out = len*2u +512u;
+	c_stream.avail_out = len * 2u + 512u;
 
-	while (c_stream.total_in != len && c_stream.total_out < (len*2u + 512u)) {
+	while (c_stream.total_in != len &&
+	    c_stream.total_out < (len * 2u + 512u)) {
 		err = deflate(&c_stream, Z_NO_FLUSH);
 #ifdef DEBUG
-		printf("deflate progress: len = %zd  total_in = %lu  total_out = %lu\n", len, c_stream.total_in, c_stream.total_out);
+		printf(
+		    "deflate progress: len = %zd  total_in = %lu  total_out = %lu\n",
+		    len, c_stream.total_in, c_stream.total_out);
 #endif
 		check_err(err, "deflate(..., Z_NO_FLUSH)");
 	}
@@ -114,9 +119,12 @@ block_deflate(uint8_t *uncompr, uint8_t *compr, const size_t len)
 	for (;;) {
 		err = deflate(&c_stream, Z_FINISH);
 #ifdef DEBUG
-		printf("deflate    final: len = %zd  total_in = %lu  total_out = %lu\n", len, c_stream.total_in, c_stream.total_out);
+		printf(
+		    "deflate    final: len = %zd  total_in = %lu  total_out = %lu\n",
+		    len, c_stream.total_in, c_stream.total_out);
 #endif
-		if (err == Z_STREAM_END) break;
+		if (err == Z_STREAM_END)
+			break;
 		check_err(err, "deflate(..., Z_STREAM_END)");
 	}
 
@@ -147,17 +155,17 @@ RunHarvester(void *arg __unused)
 	int i, r;
 	struct harvest_event e;
 
-	for (i = 0; ; i++) {
+	for (i = 0;; i++) {
 		if (stopseeding)
 			break;
 		if (i % 1000 == 0)
 			printf("Harvest: %d\n", i);
-		r = random()%10;
+		r = random() % 10;
 		e.he_somecounter = i;
 		*((uint64_t *)e.he_entropy) = random();
 		e.he_size = 8;
 		e.he_destination = i;
-		e.he_source = (i + 3)%7;
+		e.he_source = (i + 3) % 7;
 		e.he_next = NULL;
 		random_alg_context.ra_event_processor(&e);
 		usleep(r);
@@ -184,17 +192,16 @@ ReadCSPRNG(void *threadid)
 	tid = (size_t)threadid;
 	printf("Thread #%zd starts\n", tid);
 
-	while (!random_alg_context.ra_seeded())
-	{
+	while (!random_alg_context.ra_seeded()) {
 		random_alg_context.ra_pre_read();
 		usleep(100);
 	}
 
 	for (i = 0; i < 100000; i++) {
 		buffersize = i + RANDOM_BLOCKSIZE;
-		buffersize -= buffersize%RANDOM_BLOCKSIZE;
+		buffersize -= buffersize % RANDOM_BLOCKSIZE;
 		buf = malloc(buffersize);
-		zbuf = malloc(2*i + 1024);
+		zbuf = malloc(2 * i + 1024);
 		if (i % 1000 == 0)
 			printf("Thread read %zd - %d\n", tid, i);
 		if (buf != NULL && zbuf != NULL) {
@@ -241,9 +248,11 @@ main(int argc, char *argv[])
 
 	for (t = 0; t < NUM_THREADS; t++) {
 		printf("In main: creating thread %ld\n", t);
-		rc = thrd_create(&threads[t], (t == 0 ? RunHarvester : ReadCSPRNG), NULL);
+		rc = thrd_create(&threads[t],
+		    (t == 0 ? RunHarvester : ReadCSPRNG), NULL);
 		if (rc != thrd_success) {
-			printf("ERROR; return code from thrd_create() is %d\n", rc);
+			printf("ERROR; return code from thrd_create() is %d\n",
+			    rc);
 			exit(-1);
 		}
 	}

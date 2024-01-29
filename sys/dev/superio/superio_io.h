@@ -1,4 +1,4 @@
- /*-
+/*-
  * SPDX-License-Identifier: BSD-2-Clause
  *
  * Copyright (c) 2019 Andriy Gapon
@@ -31,12 +31,12 @@
 #include <sys/types.h>
 
 struct superiocmd {
-	uint8_t	ldn;
-	uint8_t	cr;
-	uint8_t	val;
+	uint8_t ldn;
+	uint8_t cr;
+	uint8_t val;
 };
 
-#define SUPERIO_CR_READ		_IOWR('s', 0, struct superiocmd)
-#define SUPERIO_CR_WRITE	_IOW('s', 1, struct superiocmd)
+#define SUPERIO_CR_READ _IOWR('s', 0, struct superiocmd)
+#define SUPERIO_CR_WRITE _IOW('s', 1, struct superiocmd)
 
 #endif /*SUPERIO_IO_H*/

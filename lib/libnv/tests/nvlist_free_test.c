@@ -34,13 +34,15 @@
 
 static int ntest = 1;
 
-#define	CHECK(expr)	do {						\
-	if ((expr))							\
-		printf("ok # %d %s:%u\n", ntest, __FILE__, __LINE__);	\
-	else								\
-		printf("not ok # %d %s:%u\n", ntest, __FILE__, __LINE__);\
-	ntest++;							\
-} while (0)
+#define CHECK(expr)                                                           \
+	do {                                                                  \
+		if ((expr))                                                   \
+			printf("ok # %d %s:%u\n", ntest, __FILE__, __LINE__); \
+		else                                                          \
+			printf("not ok # %d %s:%u\n", ntest, __FILE__,        \
+			    __LINE__);                                        \
+		ntest++;                                                      \
+	} while (0)
 
 int
 main(void)

@@ -18,15 +18,13 @@
 #include "opt_ah.h"
 
 #include "ah.h"
-#include "ah_internal.h"
+#include "ah_desc.h" /* NB: for HAL_PHYERR* */
 #include "ah_devid.h"
-#include "ah_desc.h"                    /* NB: for HAL_PHYERR* */
-
+#include "ah_eeprom_v14.h" /* for owl_get_ntxchains() */
+#include "ah_internal.h"
 #include "ar5416/ar5416.h"
-#include "ar5416/ar5416reg.h"
 #include "ar5416/ar5416phy.h"
-
-#include "ah_eeprom_v14.h"	/* for owl_get_ntxchains() */
+#include "ar5416/ar5416reg.h"
 
 /*
  * These are default parameters for the AR5416 and
@@ -41,14 +39,14 @@
  * specific antenna and receive amplifier
  * configuration.
  */
-#define	AR5416_DFS_FIRPWR	-33
-#define	AR5416_DFS_RRSSI	20
-#define	AR5416_DFS_HEIGHT	10
-#define	AR5416_DFS_PRSSI	15
-#define	AR5416_DFS_INBAND	15
-#define	AR5416_DFS_RELPWR	8
-#define	AR5416_DFS_RELSTEP	12
-#define	AR5416_DFS_MAXLEN	255
+#define AR5416_DFS_FIRPWR -33
+#define AR5416_DFS_RRSSI 20
+#define AR5416_DFS_HEIGHT 10
+#define AR5416_DFS_PRSSI 15
+#define AR5416_DFS_INBAND 15
+#define AR5416_DFS_RELPWR 8
+#define AR5416_DFS_RELSTEP 12
+#define AR5416_DFS_MAXLEN 255
 
 HAL_BOOL
 ar5416GetDfsDefaultThresh(struct ath_hal *ah, HAL_PHYERR_PARAM *pe)
@@ -84,11 +82,11 @@ ar5416GetDfsThresh(struct ath_hal *ah, HAL_PHYERR_PARAM *pe)
 
 	val = OS_REG_READ(ah, AR_PHY_RADAR_0);
 
-	temp = MS(val,AR_PHY_RADAR_0_FIRPWR);
+	temp = MS(val, AR_PHY_RADAR_0_FIRPWR);
 	temp |= 0xFFFFFF80;
 	pe->pe_firpwr = temp;
 	pe->pe_rrssi = MS(val, AR_PHY_RADAR_0_RRSSI);
-	pe->pe_height =  MS(val, AR_PHY_RADAR_0_HEIGHT);
+	pe->pe_height = MS(val, AR_PHY_RADAR_0_HEIGHT);
 	pe->pe_prssi = MS(val, AR_PHY_RADAR_0_PRSSI);
 	pe->pe_inband = MS(val, AR_PHY_RADAR_0_INBAND);
 
@@ -98,21 +96,21 @@ ar5416GetDfsThresh(struct ath_hal *ah, HAL_PHYERR_PARAM *pe)
 	pe->pe_relstep = MS(val, AR_PHY_RADAR_1_RELSTEP_THRESH);
 	pe->pe_maxlen = MS(val, AR_PHY_RADAR_1_MAXLEN);
 
-	pe->pe_extchannel = !! (OS_REG_READ(ah, AR_PHY_RADAR_EXT) &
-	    AR_PHY_RADAR_EXT_ENA);
+	pe->pe_extchannel = !!(
+	    OS_REG_READ(ah, AR_PHY_RADAR_EXT) & AR_PHY_RADAR_EXT_ENA);
 
-	pe->pe_usefir128 = !! (OS_REG_READ(ah, AR_PHY_RADAR_1) &
-	    AR_PHY_RADAR_1_USE_FIR128);
-	pe->pe_blockradar = !! (OS_REG_READ(ah, AR_PHY_RADAR_1) &
-	    AR_PHY_RADAR_1_BLOCK_CHECK);
-	pe->pe_enmaxrssi = !! (OS_REG_READ(ah, AR_PHY_RADAR_1) &
-	    AR_PHY_RADAR_1_MAX_RRSSI);
-	pe->pe_enabled = !!
-	    (OS_REG_READ(ah, AR_PHY_RADAR_0) & AR_PHY_RADAR_0_ENA);
-	pe->pe_enrelpwr = !! (OS_REG_READ(ah, AR_PHY_RADAR_1) &
-	    AR_PHY_RADAR_1_RELPWR_ENA);
-	pe->pe_en_relstep_check = !! (OS_REG_READ(ah, AR_PHY_RADAR_1) &
-	    AR_PHY_RADAR_1_RELSTEP_CHECK);
+	pe->pe_usefir128 = !!(
+	    OS_REG_READ(ah, AR_PHY_RADAR_1) & AR_PHY_RADAR_1_USE_FIR128);
+	pe->pe_blockradar = !!(
+	    OS_REG_READ(ah, AR_PHY_RADAR_1) & AR_PHY_RADAR_1_BLOCK_CHECK);
+	pe->pe_enmaxrssi = !!(
+	    OS_REG_READ(ah, AR_PHY_RADAR_1) & AR_PHY_RADAR_1_MAX_RRSSI);
+	pe->pe_enabled = !!(
+	    OS_REG_READ(ah, AR_PHY_RADAR_0) & AR_PHY_RADAR_0_ENA);
+	pe->pe_enrelpwr = !!(
+	    OS_REG_READ(ah, AR_PHY_RADAR_1) & AR_PHY_RADAR_1_RELPWR_ENA);
+	pe->pe_en_relstep_check = !!(
+	    OS_REG_READ(ah, AR_PHY_RADAR_1) & AR_PHY_RADAR_1_RELSTEP_CHECK);
 }
 
 /*
@@ -193,11 +191,9 @@ ar5416EnableDfs(struct ath_hal *ah, HAL_PHYERR_PARAM *pe)
 		    AR_PHY_RADAR_1_RELSTEP_CHECK);
 
 	if (pe->pe_enrelpwr == 1)
-		OS_REG_SET_BIT(ah, AR_PHY_RADAR_1,
-		    AR_PHY_RADAR_1_RELPWR_ENA);
+		OS_REG_SET_BIT(ah, AR_PHY_RADAR_1, AR_PHY_RADAR_1_RELPWR_ENA);
 	else if (pe->pe_enrelpwr == 0)
-		OS_REG_CLR_BIT(ah, AR_PHY_RADAR_1,
-		    AR_PHY_RADAR_1_RELPWR_ENA);
+		OS_REG_CLR_BIT(ah, AR_PHY_RADAR_1, AR_PHY_RADAR_1_RELPWR_ENA);
 
 	if (pe->pe_maxlen != HAL_PHYERR_PARAM_NOVAL) {
 		val = OS_REG_READ(ah, AR_PHY_RADAR_1);
@@ -225,9 +221,9 @@ ar5416EnableDfs(struct ath_hal *ah, HAL_PHYERR_PARAM *pe)
  */
 
 /* Flags for pulse_bw_info */
-#define	PRI_CH_RADAR_FOUND		0x01
-#define	EXT_CH_RADAR_FOUND		0x02
-#define	EXT_CH_RADAR_EARLY_FOUND	0x04
+#define PRI_CH_RADAR_FOUND 0x01
+#define EXT_CH_RADAR_FOUND 0x02
+#define EXT_CH_RADAR_EARLY_FOUND 0x04
 
 HAL_BOOL
 ar5416ProcessRadarEvent(struct ath_hal *ah, struct ath_rx_status *rxs,
@@ -243,7 +239,7 @@ ar5416ProcessRadarEvent(struct ath_hal *ah, struct ath_rx_status *rxs,
 	int pri_found = 1, ext_found = 0;
 	int early_ext = 0;
 	int is_dc = 0;
-	uint16_t datalen;		/* length from the RX status field */
+	uint16_t datalen; /* length from the RX status field */
 
 	/* Check whether the given phy error is a radar event */
 	if ((rxs->rs_phyerr != HAL_PHYERR_RADAR) &&
@@ -260,12 +256,12 @@ ar5416ProcessRadarEvent(struct ath_hal *ah, struct ath_rx_status *rxs,
 
 	/* If hardware supports it, use combined RSSI, else use chain 0 RSSI */
 	if (doDfsCombinedRssi)
-		rssi = (uint8_t) rxs->rs_rssi;
-	else		
-		rssi = (uint8_t) rxs->rs_rssi_ctl[0];
+		rssi = (uint8_t)rxs->rs_rssi;
+	else
+		rssi = (uint8_t)rxs->rs_rssi_ctl[0];
 
 	/* Set this; but only use it if doDfsExtCh is set */
-	ext_rssi = (uint8_t) rxs->rs_rssi_ext[0];
+	ext_rssi = (uint8_t)rxs->rs_rssi_ext[0];
 
 	/* Cap it at 0 if the RSSI is a negative number */
 	if (rssi & 0x80)
@@ -285,23 +281,26 @@ ar5416ProcessRadarEvent(struct ath_hal *ah, struct ath_rx_status *rxs,
 		pulse_length_pri = *(buf + datalen - 3);
 		pulse_length_ext = *(buf + datalen - 2);
 		pulse_bw_info = *(buf + datalen - 1);
-		HALDEBUG(ah, HAL_DEBUG_DFS, "%s: rssi=%d, ext_rssi=%d, pulse_length_pri=%d,"
+		HALDEBUG(ah, HAL_DEBUG_DFS,
+		    "%s: rssi=%d, ext_rssi=%d, pulse_length_pri=%d,"
 		    " pulse_length_ext=%d, pulse_bw_info=%x\n",
-		    __func__, rssi, ext_rssi, pulse_length_pri, pulse_length_ext,
-		    pulse_bw_info);
+		    __func__, rssi, ext_rssi, pulse_length_pri,
+		    pulse_length_ext, pulse_bw_info);
 	} else {
 		/* The pulse width is byte 0 of the data */
 		if (datalen >= 1)
-			dur = ((uint8_t) buf[0]) & 0xff;
+			dur = ((uint8_t)buf[0]) & 0xff;
 		else
 			dur = 0;
 
 		if (dur == 0 && rssi == 0) {
-			HALDEBUG(ah, HAL_DEBUG_DFS, "%s: dur and rssi are 0\n", __func__);
+			HALDEBUG(ah, HAL_DEBUG_DFS, "%s: dur and rssi are 0\n",
+			    __func__);
 			return AH_FALSE;
 		}
 
-		HALDEBUG(ah, HAL_DEBUG_DFS, "%s: rssi=%d, dur=%d\n", __func__, rssi, dur);
+		HALDEBUG(ah, HAL_DEBUG_DFS, "%s: rssi=%d, dur=%d\n", __func__,
+		    rssi, dur);
 
 		/* Single-channel only */
 		pri_found = 1;
@@ -314,7 +313,7 @@ ar5416ProcessRadarEvent(struct ath_hal *ah, struct ath_rx_status *rxs,
 	 */
 	if (doDfsExtCh && pulse_bw_info == 0x0)
 		return AH_FALSE;
-		
+
 	/*
 	 * If the extended channel data is available, calculate
 	 * which to pay attention to.
@@ -347,7 +346,6 @@ ar5416ProcessRadarEvent(struct ath_hal *ah, struct ath_rx_status *rxs,
 			pri_found = 0;
 			ext_found = 1;
 		}
-		
 	}
 
 	/*
@@ -362,14 +360,16 @@ ar5416ProcessRadarEvent(struct ath_hal *ah, struct ath_rx_status *rxs,
 			break;
 		case PRI_CH_RADAR_FOUND:
 			/* Radar in primary channel */
-			/* Cannot use ctrl channel RSSI if ext channel is stronger */
+			/* Cannot use ctrl channel RSSI if ext channel is
+			 * stronger */
 			if (ext_rssi >= (rssi + 3)) {
 				rssi = 0;
 			}
 			break;
 		case EXT_CH_RADAR_FOUND:
 			/* Radar in extended channel */
-			/* Cannot use ext channel RSSI if ctrl channel is stronger */
+			/* Cannot use ext channel RSSI if ctrl channel is
+			 * stronger */
 			if (rssi >= (ext_rssi + 12)) {
 				rssi = 0;
 			} else {

@@ -31,8 +31,8 @@
 
 __BEGIN_DECLS
 
-int	fls(int) __pure2;
-int	flsl(long) __pure2;
-int	flsll(long long) __pure2;
+int fls(int) __pure2;
+int flsl(long) __pure2;
+int flsll(long long) __pure2;
 
 __END_DECLS

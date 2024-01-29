@@ -86,14 +86,13 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef	__IF_IWM_POWER_H__
-#define	__IF_IWM_POWER_H__
+#ifndef __IF_IWM_POWER_H__
+#define __IF_IWM_POWER_H__
 
-extern	int iwm_power_update_device(struct iwm_softc *sc);
-extern	int iwm_power_update_mac(struct iwm_softc *sc);
-extern	int iwm_power_update_ps(struct iwm_softc *sc);
-extern	int iwm_enable_beacon_filter(struct iwm_softc *sc,
-	    struct iwm_vap *ivp);
-extern	int iwm_disable_beacon_filter(struct iwm_softc *sc);
+extern int iwm_power_update_device(struct iwm_softc *sc);
+extern int iwm_power_update_mac(struct iwm_softc *sc);
+extern int iwm_power_update_ps(struct iwm_softc *sc);
+extern int iwm_enable_beacon_filter(struct iwm_softc *sc, struct iwm_vap *ivp);
+extern int iwm_disable_beacon_filter(struct iwm_softc *sc);
 
-#endif	/* __IF_IWM_POWER_H__ */
+#endif /* __IF_IWM_POWER_H__ */

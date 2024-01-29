@@ -89,7 +89,10 @@ static void
 sendfd(int fd, int fdtosend)
 {
 	struct msghdr mh;
-	struct message { struct cmsghdr msg_hdr; int fd; } m;
+	struct message {
+		struct cmsghdr msg_hdr;
+		int fd;
+	} m;
 	ssize_t len;
 	int after_inflight, before_inflight;
 
@@ -258,8 +261,8 @@ test_sysctls(int before_inflight, int before_openfiles)
 	trigger_gc();
 	after_inflight = getinflight();
 	if (after_inflight != before_inflight)
-		warnx("%s: before inflight: %d, after inflight: %d",
-		    test, before_inflight, after_inflight);
+		warnx("%s: before inflight: %d, after inflight: %d", test,
+		    before_inflight, after_inflight);
 
 	after_openfiles = getopenfiles();
 	if (after_openfiles != before_openfiles)
@@ -748,7 +751,7 @@ recursion(void)
 		    deferred1);
 }
 
-#define	RMDIR	"rm -Rf "
+#define RMDIR "rm -Rf "
 int
 main(void)
 {
@@ -772,14 +775,14 @@ main(void)
 	}
 	if (pid > 0) {
 		signal(SIGINT, SIG_IGN);
-		while (waitpid(pid, NULL, 0) != pid);
+		while (waitpid(pid, NULL, 0) != pid)
+			;
 		snprintf(cmd, sizeof(cmd), "%s %s", RMDIR, dpath);
 		(void)system(cmd);
 		exit(0);
 	}
 
-	printf("Start: inflight %d open %d\n", getinflight(),
-	    getopenfiles());
+	printf("Start: inflight %d open %d\n", getinflight(), getopenfiles());
 
 	twosome_nothing();
 	twosome_drop();
@@ -800,7 +803,6 @@ main(void)
 
 	recursion();
 
-	printf("Finish: inflight %d open %d\n", getinflight(),
-	    getopenfiles());
+	printf("Finish: inflight %d open %d\n", getinflight(), getopenfiles());
 	return (0);
 }

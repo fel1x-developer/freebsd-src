@@ -58,7 +58,7 @@ _csqrt(long double complex d)
 	return (csqrt((double complex)d));
 }
 
-#pragma	STDC CX_LIMITED_RANGE	OFF
+#pragma STDC CX_LIMITED_RANGE OFF
 
 /*
  * Compare d1 and d2 using special rules: NaN == NaN and +0 != -0.
@@ -75,27 +75,12 @@ _csqrt(long double complex d)
 static void
 test_finite(void)
 {
-	static const double tests[] = {
-	     /* csqrt(a + bI) = x + yI */
-	     /* a	b	x	y */
-		0,	8,	2,	2,
-		0,	-8,	2,	-2,
-		4,	0,	2,	0,
-		-4,	0,	0,	2,
-		3,	4,	2,	1,
-		3,	-4,	2,	-1,
-		-3,	4,	1,	2,
-		-3,	-4,	1,	-2,
-		5,	12,	3,	2,
-		7,	24,	4,	3,
-		9,	40,	5,	4,
-		11,	60,	6,	5,
-		13,	84,	7,	6,
-		33,	56,	7,	4,
-		39,	80,	8,	5,
-		65,	72,	9,	4,
-		987,	9916,	74,	67,
-		5289,	6640,	83,	40,
+	static const double tests[] = { /* csqrt(a + bI) = x + yI */
+					/* a	b	x	y */
+		0, 8, 2, 2, 0, -8, 2, -2, 4, 0, 2, 0, -4, 0, 0, 2, 3, 4, 2, 1,
+		3, -4, 2, -1, -3, 4, 1, 2, -3, -4, 1, -2, 5, 12, 3, 2, 7, 24, 4,
+		3, 9, 40, 5, 4, 11, 60, 6, 5, 13, 84, 7, 6, 33, 56, 7, 4, 39,
+		80, 8, 5, 65, 72, 9, 4, 987, 9916, 74, 67, 5289, 6640, 83, 40,
 		460766389075.0, 16762287900.0, 678910, 12345
 	};
 	/*
@@ -127,7 +112,6 @@ test_finite(void)
 			ATF_CHECK(t_csqrt(CMPLXL(a, b)) == CMPLXL(x, y));
 		}
 	}
-
 }
 
 /*
@@ -188,9 +172,9 @@ test_nans(void)
 	ATF_CHECK(isinf(cimagl(t_csqrt(CMPLXL(-INFINITY, NAN)))));
 
 	assert_equal(t_csqrt(CMPLXL(NAN, INFINITY)),
-		     CMPLXL(INFINITY, INFINITY));
+	    CMPLXL(INFINITY, INFINITY));
 	assert_equal(t_csqrt(CMPLXL(NAN, -INFINITY)),
-		     CMPLXL(INFINITY, -INFINITY));
+	    CMPLXL(INFINITY, -INFINITY));
 
 	assert_equal(t_csqrt(CMPLXL(0.0, NAN)), CMPLXL(NAN, NAN));
 	assert_equal(t_csqrt(CMPLXL(-0.0, NAN)), CMPLXL(NAN, NAN));
@@ -284,8 +268,7 @@ test_precision(int maxexp, int mantdig)
 			 * representable, given that mantdig is less than or
 			 * equal to the available precision.
 			 */
-			b = ldexpl((long double)sq_mantbits,
-			    exp - 1 - mantdig);
+			b = ldexpl((long double)sq_mantbits, exp - 1 - mantdig);
 			x = ldexpl(mantbits, (exp - 2 - mantdig) / 2);
 			CHECK_FPEQUAL(b, x * x * 2);
 			result = t_csqrt(CMPLXL(0, b));
@@ -349,14 +332,15 @@ ATF_TC_BODY(csqrtl, tc)
 
 	test_overflow(LDBL_MAX_EXP);
 
-	/* i386 is configured to use 53-bit rounding precision for long double. */
+	/* i386 is configured to use 53-bit rounding precision for long double.
+	 */
 	test_precision(LDBL_MAX_EXP,
 #ifndef __i386__
 	    LDBL_MANT_DIG
 #else
 	    DBL_MANT_DIG
 #endif
-	    );
+	);
 }
 
 ATF_TP_ADD_TCS(tp)

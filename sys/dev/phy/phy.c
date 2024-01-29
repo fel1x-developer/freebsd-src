@@ -23,16 +23,16 @@
  * SUCH DAMAGE.
  */
 
- #include <sys/cdefs.h>
-
 #include "opt_platform.h"
+
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/kobj.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/queue.h>
-#include <sys/systm.h>
 #include <sys/sx.h>
 
 #ifdef FDT
@@ -40,8 +40,8 @@
 #include <dev/ofw/ofw_bus_subr.h>
 #endif
 
-#include  <dev/phy/phy.h>
-#include  <dev/phy/phy_internal.h>
+#include <dev/phy/phy.h>
+#include <dev/phy/phy_internal.h>
 
 #ifdef FDT
 #include "phydev_if.h"
@@ -54,17 +54,15 @@ static int phynode_method_init(struct phynode *phynode);
 static int phynode_method_enable(struct phynode *phynode, bool disable);
 static int phynode_method_status(struct phynode *phynode, int *status);
 
-
 /*
  * Phy controller methods.
  */
-static phynode_method_t phynode_methods[] = {
-	PHYNODEMETHOD(phynode_init,		phynode_method_init),
-	PHYNODEMETHOD(phynode_enable,		phynode_method_enable),
-	PHYNODEMETHOD(phynode_status,		phynode_method_status),
+static phynode_method_t phynode_methods[] = { PHYNODEMETHOD(phynode_init,
+						  phynode_method_init),
+	PHYNODEMETHOD(phynode_enable, phynode_method_enable),
+	PHYNODEMETHOD(phynode_status, phynode_method_status),
 
-	PHYNODEMETHOD_END
-};
+	PHYNODEMETHOD_END };
 DEFINE_CLASS_0(phynode, phynode_class, phynode_methods, 0);
 
 static phynode_list_t phynode_list = TAILQ_HEAD_INITIALIZER(phynode_list);
@@ -114,7 +112,6 @@ phynode_create(device_t pdev, phynode_class_t phynode_class,
     struct phynode_init_def *def)
 {
 	struct phynode *phynode;
-
 
 	/* Create object and initialize it. */
 	phynode = malloc(sizeof(struct phynode), M_PHY, M_WAITOK | M_ZERO);
@@ -174,8 +171,8 @@ phynode_find_by_id(device_t dev, intptr_t id)
 
 	PHY_TOPO_ASSERT();
 
-	TAILQ_FOREACH(entry, &phynode_list, phylist_link) {
-		if ((entry->pdev == dev) && (entry->id ==  id))
+	TAILQ_FOREACH (entry, &phynode_list, phylist_link) {
+		if ((entry->pdev == dev) && (entry->id == id))
 			return (entry);
 	}
 
@@ -202,7 +199,8 @@ phynode_get_device(struct phynode *phynode)
 	return (phynode->pdev);
 }
 
-intptr_t phynode_get_id(struct phynode *phynode)
+intptr_t
+phynode_get_id(struct phynode *phynode)
 {
 
 	return (phynode->id);
@@ -302,7 +300,7 @@ phynode_status(struct phynode *phynode, int *status)
 	return (rv);
 }
 
- /* --------------------------------------------------------------------------
+/* --------------------------------------------------------------------------
  *
  * Phy consumers interface.
  *
@@ -316,7 +314,7 @@ phy_create(struct phynode *phynode, device_t cdev)
 
 	PHY_TOPO_ASSERT();
 
-	phy =  malloc(sizeof(struct phy), M_PHY, M_WAITOK | M_ZERO);
+	phy = malloc(sizeof(struct phy), M_PHY, M_WAITOK | M_ZERO);
 	phy->cdev = cdev;
 	phy->phynode = phynode;
 	phy->enable_cnt = 0;
@@ -355,9 +353,9 @@ phy_disable(phy_t phy)
 
 	phynode = phy->phynode;
 	KASSERT(phynode->ref_cnt > 0,
-	   ("Attempt to access unreferenced phy.\n"));
+	    ("Attempt to access unreferenced phy.\n"));
 	KASSERT(phy->enable_cnt > 0,
-	   ("Attempt to disable already disabled phy.\n"));
+	    ("Attempt to disable already disabled phy.\n"));
 
 	PHY_TOPO_SLOCK();
 	rv = phynode_disable(phynode);
@@ -375,7 +373,7 @@ phy_set_mode(phy_t phy, phy_mode_t mode, phy_submode_t submode)
 
 	phynode = phy->phynode;
 	KASSERT(phynode->ref_cnt > 0,
-	   ("Attempt to access unreferenced phy.\n"));
+	    ("Attempt to access unreferenced phy.\n"));
 
 	PHY_TOPO_SLOCK();
 	rv = phynode_set_mode(phynode, mode, submode);
@@ -391,7 +389,7 @@ phy_status(phy_t phy, int *status)
 
 	phynode = phy->phynode;
 	KASSERT(phynode->ref_cnt > 0,
-	   ("Attempt to access unreferenced phy.\n"));
+	    ("Attempt to access unreferenced phy.\n"));
 
 	PHY_TOPO_SLOCK();
 	rv = phynode_status(phynode, status);
@@ -425,7 +423,7 @@ phy_release(phy_t phy)
 
 	phynode = phy->phynode;
 	KASSERT(phynode->ref_cnt > 0,
-	   ("Attempt to access unreferenced phy.\n"));
+	    ("Attempt to access unreferenced phy.\n"));
 
 	PHY_TOPO_SLOCK();
 	while (phy->enable_cnt > 0) {
@@ -442,7 +440,8 @@ phy_release(phy_t phy)
 }
 
 #ifdef FDT
-int phydev_default_ofw_map(device_t provider, phandle_t xref, int ncells,
+int
+phydev_default_ofw_map(device_t provider, phandle_t xref, int ncells,
     pcell_t *cells, intptr_t *id)
 {
 	struct phynode *entry;
@@ -453,7 +452,7 @@ int phydev_default_ofw_map(device_t provider, phandle_t xref, int ncells,
 
 		node = OF_node_from_xref(xref);
 		PHY_TOPO_XLOCK();
-		TAILQ_FOREACH(entry, &phynode_list, phylist_link) {
+		TAILQ_FOREACH (entry, &phynode_list, phylist_link) {
 			if ((entry->pdev == provider) &&
 			    (entry->ofw_node == node)) {
 				*id = entry->id;
@@ -472,7 +471,7 @@ int phydev_default_ofw_map(device_t provider, phandle_t xref, int ncells,
 	}
 
 	/* No default way how to get ID, custom mapper is required. */
-	return  (ERANGE);
+	return (ERANGE);
 }
 
 int
@@ -521,7 +520,7 @@ phy_get_by_ofw_name(device_t consumer_dev, phandle_t cnode, char *name,
 		cnode = ofw_bus_get_node(consumer_dev);
 	if (cnode <= 0) {
 		device_printf(consumer_dev,
-		    "%s called on not ofw based device\n",  __func__);
+		    "%s called on not ofw based device\n", __func__);
 		return (ENXIO);
 	}
 	rv = ofw_bus_find_string_index(cnode, "phy-names", name, &idx);
@@ -558,7 +557,7 @@ phy_get_by_ofw_property(device_t consumer_dev, phandle_t cnode, char *name,
 		return (ENODEV);
 	}
 	/* Map phy to number. */
-	rv = PHYDEV_MAP(phydev, cells[0], ncells - 1 , cells + 1, &id);
+	rv = PHYDEV_MAP(phydev, cells[0], ncells - 1, cells + 1, &id);
 	OF_prop_free(cells);
 	if (rv != 0)
 		return (rv);

@@ -28,23 +28,21 @@
  */
 
 #include <dev/hptnr/hptnr_config.h>
- *
- * NVRAM write journaling interface.
- */
+**NVRAM write journaling interface.* /
 
 #ifndef _WJ_H_
 #define _WJ_H_
 
 #if defined(SUPPORT_BBU) || defined(SUPPORT_NVRAM)
 
-void wj_init(PVBUS vbus, void *nvram_addr, HPT_U32 nvram_size);
+    void wj_init(PVBUS vbus, void *nvram_addr, HPT_U32 nvram_size);
 void *wj_add_entry(PVBUS vbus, PVDEV vd, HPT_LBA lba, HPT_U16 sectors);
 void *wj_get_entry(PVBUS vbus, PVDEV *vd_p, HPT_LBA *lba_p, HPT_U16 *sectors_p);
 void wj_del_entry(PVBUS vbus, void *handle);
 void wj_del_vd(PVBUS vbus, PVDEV vd);
 void wj_sync_stamp(PVBUS vbus, PVDEV vd);
 
-#else 
+#else
 
 #define wj_add_entry(vbus, vd, lba, sectors) 0
 #define wj_get_entry(vbus, vd_p, lba_p, sectors_p) 0

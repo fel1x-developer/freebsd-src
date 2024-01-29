@@ -52,137 +52,108 @@
 #include <jail.h>
 #endif
 #include <kvm.h>
+#include <libxo/xo.h>
 #include <limits.h>
 #include <netdb.h>
 #include <nlist.h>
 #include <paths.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "netstat.h"
 #include "nl_defs.h"
-#include <libxo/xo.h>
 
 static struct protox {
-	int	pr_index;		/* index into nlist of cb head */
-	int	pr_sindex;		/* index into nlist of stat block */
-	u_char	pr_wanted;		/* 1 if wanted, 0 otherwise */
-	void	(*pr_cblocks)(u_long, const char *, int, int);
-					/* control blocks printing routine */
-	void	(*pr_stats)(u_long, const char *, int, int);
-					/* statistics printing routine */
-	void	(*pr_istats)(char *);	/* per/if statistics printing routine */
-	const char	*pr_name;		/* well-known name */
-	int	pr_usesysctl;		/* non-zero if we use sysctl, not kvm */
-	int	pr_protocol;
-} protox[] = {
-	{ -1	,	N_TCPSTAT,	1,	protopr,
-	  tcp_stats,	NULL,		"tcp",	1,	IPPROTO_TCP },
-	{ -1	,	N_UDPSTAT,	1,	protopr,
-	  udp_stats,	NULL,		"udp",	1,	IPPROTO_UDP },
+	int pr_index;	  /* index into nlist of cb head */
+	int pr_sindex;	  /* index into nlist of stat block */
+	u_char pr_wanted; /* 1 if wanted, 0 otherwise */
+	void (*pr_cblocks)(u_long, const char *, int, int);
+	/* control blocks printing routine */
+	void (*pr_stats)(u_long, const char *, int, int);
+	/* statistics printing routine */
+	void (*pr_istats)(char *); /* per/if statistics printing routine */
+	const char *pr_name;	   /* well-known name */
+	int pr_usesysctl;	   /* non-zero if we use sysctl, not kvm */
+	int pr_protocol;
+} protox[] = { { -1, N_TCPSTAT, 1, protopr, tcp_stats, NULL, "tcp", 1,
+		   IPPROTO_TCP },
+	{ -1, N_UDPSTAT, 1, protopr, udp_stats, NULL, "udp", 1, IPPROTO_UDP },
 #ifdef SCTP
-	{ -1,		N_SCTPSTAT,	1,	sctp_protopr,
-	  sctp_stats,	NULL,		"sctp",	1,	IPPROTO_SCTP },
+	{ -1, N_SCTPSTAT, 1, sctp_protopr, sctp_stats, NULL, "sctp", 1,
+	    IPPROTO_SCTP },
 #endif
 #ifdef SDP
-	{ -1,		-1,		1,	protopr,
-	 NULL,		NULL,		"sdp",	1,	IPPROTO_TCP },
+	{ -1, -1, 1, protopr, NULL, NULL, "sdp", 1, IPPROTO_TCP },
 #endif
-	{ -1	,	-1,		1,	protopr,
-	  divert_stats,	NULL,		"divert", 1,	0 },
-	{ -1	,	N_IPSTAT,	1,	protopr,
-	  ip_stats,	NULL,		"ip",	1,	IPPROTO_RAW },
-	{ -1	,	N_ICMPSTAT,	1,	protopr,
-	  icmp_stats,	NULL,		"icmp",	1,	IPPROTO_ICMP },
-	{ -1	,	N_IGMPSTAT,	1,	protopr,
-	  igmp_stats,	NULL,		"igmp",	1,	IPPROTO_IGMP },
+	{ -1, -1, 1, protopr, divert_stats, NULL, "divert", 1, 0 },
+	{ -1, N_IPSTAT, 1, protopr, ip_stats, NULL, "ip", 1, IPPROTO_RAW },
+	{ -1, N_ICMPSTAT, 1, protopr, icmp_stats, NULL, "icmp", 1,
+	    IPPROTO_ICMP },
+	{ -1, N_IGMPSTAT, 1, protopr, igmp_stats, NULL, "igmp", 1,
+	    IPPROTO_IGMP },
 #ifdef IPSEC
-	{ -1,		N_IPSEC4STAT,	1,	NULL,	/* keep as compat */
-	  ipsec_stats,	NULL,		"ipsec", 1,	0},
-	{ -1,		N_AHSTAT,	1,	NULL,
-	  ah_stats,	NULL,		"ah",	1,	0},
-	{ -1,		N_ESPSTAT,	1,	NULL,
-	  esp_stats,	NULL,		"esp",	1,	0},
-	{ -1,		N_IPCOMPSTAT,	1,	NULL,
-	  ipcomp_stats,	NULL,		"ipcomp", 1,	0},
+	{ -1, N_IPSEC4STAT, 1, NULL, /* keep as compat */
+	    ipsec_stats, NULL, "ipsec", 1, 0 },
+	{ -1, N_AHSTAT, 1, NULL, ah_stats, NULL, "ah", 1, 0 },
+	{ -1, N_ESPSTAT, 1, NULL, esp_stats, NULL, "esp", 1, 0 },
+	{ -1, N_IPCOMPSTAT, 1, NULL, ipcomp_stats, NULL, "ipcomp", 1, 0 },
 #endif
-	{ -1	,	N_PIMSTAT,	1,	protopr,
-	  pim_stats,	NULL,		"pim",	1,	IPPROTO_PIM },
-	{ -1,		N_CARPSTATS,	1,	NULL,
-	  carp_stats,	NULL,		"carp",	1,	0 },
+	{ -1, N_PIMSTAT, 1, protopr, pim_stats, NULL, "pim", 1, IPPROTO_PIM },
+	{ -1, N_CARPSTATS, 1, NULL, carp_stats, NULL, "carp", 1, 0 },
 #ifdef PF
-	{ -1,		N_PFSYNCSTATS,	1,	NULL,
-	  pfsync_stats,	NULL,		"pfsync", 1,	0 },
-	{ -1,		N_PFLOWSTATS,	1,	NULL,
-	  pflow_stats,	NULL,		"pflow", 1,	0 },
+	{ -1, N_PFSYNCSTATS, 1, NULL, pfsync_stats, NULL, "pfsync", 1, 0 },
+	{ -1, N_PFLOWSTATS, 1, NULL, pflow_stats, NULL, "pflow", 1, 0 },
 #endif
-	{ -1,		N_ARPSTAT,	1,	NULL,
-	  arp_stats,	NULL,		"arp", 1,	0 },
-	{ -1,		-1,		0,	NULL,
-	  NULL,		NULL,		NULL,	0,	0 }
-};
+	{ -1, N_ARPSTAT, 1, NULL, arp_stats, NULL, "arp", 1, 0 },
+	{ -1, -1, 0, NULL, NULL, NULL, NULL, 0, 0 } };
 
 #ifdef INET6
-static struct protox ip6protox[] = {
-	{ -1	,	N_TCPSTAT,	1,	protopr,
-	  tcp_stats,	NULL,		"tcp",	1,	IPPROTO_TCP },
-	{ -1	,	N_UDPSTAT,	1,	protopr,
-	  udp_stats,	NULL,		"udp",	1,	IPPROTO_UDP },
-	{ -1	,	N_IP6STAT,	1,	protopr,
-	  ip6_stats,	ip6_ifstats,	"ip6",	1,	IPPROTO_RAW },
-	{ -1	,	N_ICMP6STAT,	1,	protopr,
-	  icmp6_stats,	icmp6_ifstats,	"icmp6", 1,	IPPROTO_ICMPV6 },
+static struct protox ip6protox[] = { { -1, N_TCPSTAT, 1, protopr, tcp_stats,
+					 NULL, "tcp", 1, IPPROTO_TCP },
+	{ -1, N_UDPSTAT, 1, protopr, udp_stats, NULL, "udp", 1, IPPROTO_UDP },
+	{ -1, N_IP6STAT, 1, protopr, ip6_stats, ip6_ifstats, "ip6", 1,
+	    IPPROTO_RAW },
+	{ -1, N_ICMP6STAT, 1, protopr, icmp6_stats, icmp6_ifstats, "icmp6", 1,
+	    IPPROTO_ICMPV6 },
 #ifdef SDP
-	{ -1,		-1,		1,	protopr,
-	 NULL,		NULL,		"sdp",	1,	IPPROTO_TCP },
+	{ -1, -1, 1, protopr, NULL, NULL, "sdp", 1, IPPROTO_TCP },
 #endif
 #ifdef IPSEC
-	{ -1,		N_IPSEC6STAT,	1,	NULL,
-	  ipsec_stats,	NULL,		"ipsec6", 1,	0 },
+	{ -1, N_IPSEC6STAT, 1, NULL, ipsec_stats, NULL, "ipsec6", 1, 0 },
 #endif
 #ifdef notyet
-	{ -1,		N_PIM6STAT,	1,	NULL,
-	  pim6_stats,	NULL,		"pim6",	1,	0 },
+	{ -1, N_PIM6STAT, 1, NULL, pim6_stats, NULL, "pim6", 1, 0 },
 #endif
-	{ -1,		N_RIP6STAT,	1,	NULL,
-	  rip6_stats,	NULL,		"rip6",	1,	0 },
-	{ -1,		-1,		0,	NULL,
-	  NULL,		NULL,		NULL,	0,	0 }
-};
+	{ -1, N_RIP6STAT, 1, NULL, rip6_stats, NULL, "rip6", 1, 0 },
+	{ -1, -1, 0, NULL, NULL, NULL, NULL, 0, 0 } };
 #endif /*INET6*/
 
 #ifdef IPSEC
-static struct protox pfkeyprotox[] = {
-	{ -1,		N_PFKEYSTAT,	1,	NULL,
-	  pfkey_stats,	NULL,		"pfkey", 0,	0 },
-	{ -1,		-1,		0,	NULL,
-	  NULL,		NULL,		NULL,	0,	0 }
-};
+static struct protox pfkeyprotox[] = { { -1, N_PFKEYSTAT, 1, NULL, pfkey_stats,
+					   NULL, "pfkey", 0, 0 },
+	{ -1, -1, 0, NULL, NULL, NULL, NULL, 0, 0 } };
 #endif
 
 #ifdef NETGRAPH
 static struct protox netgraphprotox[] = {
-	{ N_NGSOCKLIST,	-1,		1,	netgraphprotopr,
-	  NULL,		NULL,		"ctrl",	0,	0 },
-	{ N_NGSOCKLIST,	-1,		1,	netgraphprotopr,
-	  NULL,		NULL,		"data",	0,	0 },
-	{ -1,		-1,		0,	NULL,
-	  NULL,		NULL,		NULL,	0,	0 }
+	{ N_NGSOCKLIST, -1, 1, netgraphprotopr, NULL, NULL, "ctrl", 0, 0 },
+	{ N_NGSOCKLIST, -1, 1, netgraphprotopr, NULL, NULL, "data", 0, 0 },
+	{ -1, -1, 0, NULL, NULL, NULL, NULL, 0, 0 }
 };
 #endif
 
-static struct protox *protoprotox[] = {
-					 protox,
+static struct protox *protoprotox[] = { protox,
 #ifdef INET6
-					 ip6protox,
+	ip6protox,
 #endif
 #ifdef IPSEC
-					 pfkeyprotox,
+	pfkeyprotox,
 #endif
-					 NULL };
+	NULL };
 
 static void printproto(struct protox *, const char *, bool *);
 static void usage(void) __dead2;
@@ -194,49 +165,49 @@ static int kresolve_list(struct nlist *_nl);
 static kvm_t *kvmd;
 static char *nlistf = NULL, *memf = NULL;
 
-int	Aflag;		/* show addresses of protocol control block */
-int	aflag;		/* show all sockets (including servers) */
-static int	Bflag;		/* show information about bpf consumers */
-int	bflag;		/* show i/f total bytes in/out */
-int	cflag;		/* show TCP congestion control stack */
-int	Cflag;		/* show congestion control algo and vars */
-int	dflag;		/* show i/f dropped packets */
-int	gflag;		/* show group (multicast) routing or stats */
-int	hflag;		/* show counters in human readable format */
-int	iflag;		/* show interfaces */
-int	Lflag;		/* show size of listen queues */
-int	mflag;		/* show memory stats */
-int	noutputs = 0;	/* how much outputs before we exit */
-int	numeric_addr;	/* show addresses numerically */
-int	numeric_port;	/* show ports numerically */
-int	Oflag;		/* show nhgrp objects*/
-int	oflag;		/* show nexthop objects*/
-int	Pflag;		/* show TCP log ID */
-static int pflag;	/* show given protocol */
-static int	Qflag;		/* show netisr information */
-int	rflag;		/* show routing tables (or routing stats) */
-int	Rflag;		/* show flow / RSS statistics */
-int	sflag;		/* show protocol statistics */
-int	Wflag;		/* wide display */
-int	Tflag;		/* TCP Information */
-int	xflag;		/* extra information, includes all socket buffer info */
-int	zflag;		/* zero stats */
+int Aflag;	  /* show addresses of protocol control block */
+int aflag;	  /* show all sockets (including servers) */
+static int Bflag; /* show information about bpf consumers */
+int bflag;	  /* show i/f total bytes in/out */
+int cflag;	  /* show TCP congestion control stack */
+int Cflag;	  /* show congestion control algo and vars */
+int dflag;	  /* show i/f dropped packets */
+int gflag;	  /* show group (multicast) routing or stats */
+int hflag;	  /* show counters in human readable format */
+int iflag;	  /* show interfaces */
+int Lflag;	  /* show size of listen queues */
+int mflag;	  /* show memory stats */
+int noutputs = 0; /* how much outputs before we exit */
+int numeric_addr; /* show addresses numerically */
+int numeric_port; /* show ports numerically */
+int Oflag;	  /* show nhgrp objects*/
+int oflag;	  /* show nexthop objects*/
+int Pflag;	  /* show TCP log ID */
+static int pflag; /* show given protocol */
+static int Qflag; /* show netisr information */
+int rflag;	  /* show routing tables (or routing stats) */
+int Rflag;	  /* show flow / RSS statistics */
+int sflag;	  /* show protocol statistics */
+int Wflag;	  /* wide display */
+int Tflag;	  /* TCP Information */
+int xflag;	  /* extra information, includes all socket buffer info */
+int zflag;	  /* zero stats */
 
-int	interval;	/* repeat interval for i/f stats */
+int interval; /* repeat interval for i/f stats */
 
-char	*interface;	/* desired i/f for stats, or NULL for all i/fs */
-int	unit;		/* unit number for above */
+char *interface; /* desired i/f for stats, or NULL for all i/fs */
+int unit;	 /* unit number for above */
 #ifdef JAIL
-char	*jail_name;	/* desired jail to operate in */
+char *jail_name; /* desired jail to operate in */
 #endif
 
-static int	af;		/* address family */
-int	live;		/* true if we are examining a live system */
+static int af; /* address family */
+int live;      /* true if we are examining a live system */
 
 int
 main(int argc, char *argv[])
 {
-	struct protox *tp = NULL;  /* for printing cblocks & stats */
+	struct protox *tp = NULL; /* for printing cblocks & stats */
 	int ch;
 	int fib = -1;
 	char *endptr;
@@ -251,9 +222,9 @@ main(int argc, char *argv[])
 	if (argc < 0)
 		exit(EXIT_FAILURE);
 
-	while ((ch = getopt(argc, argv, "46AaBbCcdF:f:ghI:ij:LlM:mN:nOoPp:Qq:RrSTsuWw:xz"))
-	    != -1)
-		switch(ch) {
+	while ((ch = getopt(argc, argv,
+		    "46AaBbCcdF:f:ghI:ij:LlM:mN:nOoPp:Qq:RrSTsuWw:xz")) != -1)
+		switch (ch) {
 		case '4':
 #ifdef INET
 			af = AF_INET;
@@ -307,11 +278,11 @@ main(int argc, char *argv[])
 				af = PF_KEY;
 #endif
 			else if (strcmp(optarg, "unix") == 0 ||
-				 strcmp(optarg, "local") == 0)
+			    strcmp(optarg, "local") == 0)
 				af = AF_UNIX;
 #ifdef NETGRAPH
-			else if (strcmp(optarg, "ng") == 0
-			    || strcmp(optarg, "netgraph") == 0)
+			else if (strcmp(optarg, "ng") == 0 ||
+			    strcmp(optarg, "netgraph") == 0)
 				af = AF_NETGRAPH;
 #endif
 			else if (strcmp(optarg, "link") == 0)
@@ -374,8 +345,10 @@ main(int argc, char *argv[])
 			break;
 		case 'p':
 			if ((tp = name2protox(optarg)) == NULL) {
-				xo_errx(1, "%s: unknown or uninstrumented "
-				    "protocol", optarg);
+				xo_errx(1,
+				    "%s: unknown or uninstrumented "
+				    "protocol",
+				    optarg);
 			}
 			pflag = 1;
 			break;
@@ -426,8 +399,8 @@ main(int argc, char *argv[])
 	argv += optind;
 	argc -= optind;
 
-#define	BACKWARD_COMPATIBILITY
-#ifdef	BACKWARD_COMPATIBILITY
+#define BACKWARD_COMPATIBILITY
+#ifdef BACKWARD_COMPATIBILITY
 	if (*argv) {
 		if (isdigit(**argv)) {
 			interval = atoi(*argv);
@@ -543,8 +516,6 @@ main(int argc, char *argv[])
 		exit(0);
 	}
 
-
-
 	if (gflag) {
 		xo_open_container("statistics");
 		if (sflag) {
@@ -632,17 +603,17 @@ fetch_stats_internal(const char *sysctlname, u_long off, void *stats,
 }
 
 int
-fetch_stats(const char *sysctlname, u_long off, void *stats,
-    size_t len, kreadfn_t kreadfn)
+fetch_stats(const char *sysctlname, u_long off, void *stats, size_t len,
+    kreadfn_t kreadfn)
 {
 
-	return (fetch_stats_internal(sysctlname, off, stats, len, kreadfn,
-    zflag));
+	return (
+	    fetch_stats_internal(sysctlname, off, stats, len, kreadfn, zflag));
 }
 
 int
-fetch_stats_ro(const char *sysctlname, u_long off, void *stats,
-    size_t len, kreadfn_t kreadfn)
+fetch_stats_ro(const char *sysctlname, u_long off, void *stats, size_t len,
+    kreadfn_t kreadfn)
 {
 
 	return (fetch_stats_internal(sysctlname, off, stats, len, kreadfn, 0));
@@ -681,7 +652,8 @@ printproto(struct protox *tp, const char *name, bool *first)
 			else if (tp->pr_sindex < 0) {
 				if (pflag)
 					xo_message("%s: stats routine doesn't "
-					    "work on cores", tp->pr_name);
+						   "work on cores",
+					    tp->pr_name);
 				return;
 			} else
 				off = nl[tp->pr_sindex].n_value;
@@ -699,13 +671,14 @@ printproto(struct protox *tp, const char *name, bool *first)
 		else if (tp->pr_index < 0) {
 			if (pflag)
 				xo_message("%s: PCB routine doesn't work on "
-				    "cores", tp->pr_name);
+					   "cores",
+				    tp->pr_name);
 			return;
 		} else
 			off = nl[tp->pr_index].n_value;
 	}
-	if (pr != NULL && (off || (live && tp->pr_usesysctl) ||
-	    af != AF_UNSPEC)) {
+	if (pr != NULL &&
+	    (off || (live && tp->pr_usesysctl) || af != AF_UNSPEC)) {
 		if (doingdblocks && *first) {
 			xo_open_list("socket");
 			*first = false;
@@ -770,8 +743,8 @@ kset_dpcpu(u_int cpuid)
 		xo_errx(-1, "%s: kvm is not available", __func__);
 
 	if (kvm_dpcpu_setcpu(kvmd, cpuid) < 0)
-		xo_errx(-1, "%s: kvm_dpcpu_setcpu(%u): %s", __func__,
-		    cpuid, kvm_geterr(kvmd)); 
+		xo_errx(-1, "%s: kvm_dpcpu_setcpu(%u): %s", __func__, cpuid,
+		    kvm_geterr(kvmd));
 	return;
 }
 
@@ -881,7 +854,7 @@ static struct protox *
 name2protox(const char *name)
 {
 	struct protox *tp;
-	char **alias;			/* alias from p->aliases */
+	char **alias; /* alias from p->aliases */
 	struct protoent *p;
 
 	/*
@@ -891,7 +864,7 @@ name2protox(const char *name)
 	if ((tp = knownname(name)) != NULL)
 		return (tp);
 
-	setprotoent(1);			/* make protocol lookup cheaper */
+	setprotoent(1); /* make protocol lookup cheaper */
 	while ((p = getprotoent()) != NULL) {
 		/* assert: name not same as p->name */
 		for (alias = p->p_aliases; *alias; alias++)
@@ -908,24 +881,24 @@ static void
 usage(void)
 {
 	(void)xo_error("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n",
-"usage: netstat [-j jail] [-46AaCcLnRSTWx] [-f protocol_family | -p protocol]\n"
-"               [-M core] [-N system]",
-"       netstat [-j jail] -i | -I interface [-46abdhnW] [-f address_family]\n"
-"               [-M core] [-N system]",
-"       netstat [-j jail] -w wait [-I interface] [-46d] [-M core] [-N system]\n"
-"               [-q howmany]",
-"       netstat [-j jail] -s [-46sz] [-f protocol_family | -p protocol]\n"
-"               [-M core] [-N system]",
-"       netstat [-j jail] -i | -I interface -s [-46s]\n"
-"               [-f protocol_family | -p protocol] [-M core] [-N system]",
-"       netstat [-j jail] -m [-M core] [-N system]",
-"       netstat [-j jail] -B [-z] [-I interface]",
-"       netstat [-j jail] -r [-46AnW] [-F fibnum] [-f address_family]\n"
-"               [-M core] [-N system]",
-"       netstat [-j jail] -rs [-s] [-M core] [-N system]",
-"       netstat [-j jail] -g [-46W] [-f address_family] [-M core] [-N system]",
-"       netstat [-j jail] -gs [-46s] [-f address_family] [-M core] [-N system]",
-"       netstat [-j jail] -Q");
+	    "usage: netstat [-j jail] [-46AaCcLnRSTWx] [-f protocol_family | -p protocol]\n"
+	    "               [-M core] [-N system]",
+	    "       netstat [-j jail] -i | -I interface [-46abdhnW] [-f address_family]\n"
+	    "               [-M core] [-N system]",
+	    "       netstat [-j jail] -w wait [-I interface] [-46d] [-M core] [-N system]\n"
+	    "               [-q howmany]",
+	    "       netstat [-j jail] -s [-46sz] [-f protocol_family | -p protocol]\n"
+	    "               [-M core] [-N system]",
+	    "       netstat [-j jail] -i | -I interface -s [-46s]\n"
+	    "               [-f protocol_family | -p protocol] [-M core] [-N system]",
+	    "       netstat [-j jail] -m [-M core] [-N system]",
+	    "       netstat [-j jail] -B [-z] [-I interface]",
+	    "       netstat [-j jail] -r [-46AnW] [-F fibnum] [-f address_family]\n"
+	    "               [-M core] [-N system]",
+	    "       netstat [-j jail] -rs [-s] [-M core] [-N system]",
+	    "       netstat [-j jail] -g [-46W] [-f address_family] [-M core] [-N system]",
+	    "       netstat [-j jail] -gs [-46s] [-f address_family] [-M core] [-N system]",
+	    "       netstat [-j jail] -Q");
 	xo_finish();
 	exit(1);
 }

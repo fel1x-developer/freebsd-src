@@ -64,10 +64,10 @@
 #include "cpa.h"
 #include "cpa_cy_sym.h"
 #include "cpa_cy_sym_dp.h"
+#include "icp_qat_fw_la.h"
 #include "lac_common.h"
 #include "lac_mem_pools.h"
 #include "lac_sym_cipher_defs.h"
-#include "icp_qat_fw_la.h"
 
 #define LAC_SYM_KEY_TLS_PREFIX_SIZE 128
 /**< Hash Prefix size in bytes for TLS (128 = MAX = SHA2 (384, 512)*/
@@ -84,9 +84,9 @@
 /* The ARC4 key will not be stored in the content descriptor so we only need to
  * reserve enough space for the next biggest cipher setup block.
  * Kasumi needs to store 2 keys and to have the size of 2 blocks for fw*/
-#define LAC_SYM_QAT_MAX_CIPHER_SETUP_BLK_SZ                                    \
-	(sizeof(icp_qat_hw_cipher_config_t) + 2 * ICP_QAT_HW_KASUMI_KEY_SZ +   \
-	 2 * ICP_QAT_HW_KASUMI_BLK_SZ)
+#define LAC_SYM_QAT_MAX_CIPHER_SETUP_BLK_SZ                                  \
+	(sizeof(icp_qat_hw_cipher_config_t) + 2 * ICP_QAT_HW_KASUMI_KEY_SZ + \
+	    2 * ICP_QAT_HW_KASUMI_BLK_SZ)
 /**< @ingroup LacSymQat
  * Maximum size for the cipher setup block of the content descriptor */
 
@@ -94,15 +94,15 @@
 /**< @ingroup LacSymQat
  * Maximum size for the hash setup block of the content descriptor */
 
-#define LAC_SYM_QAT_CONTENT_DESC_MAX_SIZE                                      \
-	LAC_ALIGN_POW2_ROUNDUP(LAC_SYM_QAT_MAX_CIPHER_SETUP_BLK_SZ +           \
-				   LAC_SYM_QAT_MAX_HASH_SETUP_BLK_SZ,          \
-			       (1 << LAC_64BYTE_ALIGNMENT_SHIFT))
+#define LAC_SYM_QAT_CONTENT_DESC_MAX_SIZE                            \
+	LAC_ALIGN_POW2_ROUNDUP(LAC_SYM_QAT_MAX_CIPHER_SETUP_BLK_SZ + \
+		LAC_SYM_QAT_MAX_HASH_SETUP_BLK_SZ,                   \
+	    (1 << LAC_64BYTE_ALIGNMENT_SHIFT))
 /**< @ingroup LacSymQat
  *  Maximum size of content descriptor. This is incremented to the next multiple
  * of 64 so that it can be 64 byte aligned */
 
-#define LAC_SYM_QAT_API_ALIGN_COOKIE_OFFSET                                    \
+#define LAC_SYM_QAT_API_ALIGN_COOKIE_OFFSET \
 	(offsetof(CpaCySymDpOpData, instanceHandle))
 /**< @ingroup LacSymQat
  * Size which needs to be reserved before the instanceHandle field of
@@ -173,8 +173,8 @@ typedef struct lac_sym_bulk_cookie_s {
 	/**< Boolean flag to indicate if the user's cipher IV buffer should be
 	 * updated after receiving the response from the QAT */
 	CpaBoolean updateKeySizeOnRecieve;
-/**< Boolean flag to indicate if the cipher key size should be
- * updated after receiving the response from the QAT */
+	/**< Boolean flag to indicate if the cipher key size should be
+	 * updated after receiving the response from the QAT */
 	CpaBufferList *pDstBuffer;
 	/**< Pointer to destination buffer to hold the data output */
 	struct lac_sym_bulk_cookie_s *pNext;
@@ -348,8 +348,8 @@ typedef struct icp_qat_la_bulk_req_ftr_s {
 void LacSym_CompileTimeAssertions(void);
 
 void LacDp_WriteRingMsgFull(CpaCySymDpOpData *pRequest,
-			    icp_qat_fw_la_bulk_req_t *pCurrentQatMsg);
+    icp_qat_fw_la_bulk_req_t *pCurrentQatMsg);
 void LacDp_WriteRingMsgOpt(CpaCySymDpOpData *pRequest,
-			   icp_qat_fw_la_bulk_req_t *pCurrentQatMsg);
+    icp_qat_fw_la_bulk_req_t *pCurrentQatMsg);
 
 #endif /* LAC_SYM_H */

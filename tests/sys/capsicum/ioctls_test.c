@@ -27,12 +27,13 @@
 #include <sys/filio.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
+
 #include <netinet/in.h>
+
+#include <atf-c.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-
-#include <atf-c.h>
 
 #include "freebsd_test_suite/macros.h"
 
@@ -41,10 +42,11 @@
  * processes.  This only works if the parent process is tripped up by
  * the early exit and fails some requirement itself.
  */
-#define	CHILD_REQUIRE(exp) do {						\
-		if (!(exp))						\
-			child_fail_require(__FILE__, __LINE__,		\
-			    #exp " not met");				\
+#define CHILD_REQUIRE(exp)                                     \
+	do {                                                   \
+		if (!(exp))                                    \
+			child_fail_require(__FILE__, __LINE__, \
+			    #exp " not met");                  \
 	} while (0)
 
 static __dead2 void

@@ -31,10 +31,11 @@
 #include <sys/types.h>
 #include <sys/event.h>
 #include <sys/time.h>
+
 #include <aio.h>
-#include <fcntl.h>
 #include <err.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -43,10 +44,10 @@
 #include "freebsd_test_suite/macros.h"
 #include "local.h"
 
-#define PATH_TEMPLATE   "aio.XXXXXXXXXX"
+#define PATH_TEMPLATE "aio.XXXXXXXXXX"
 
 #define LIO_MAX 5
-#define MAX_IOCBS_PER_LIO	64
+#define MAX_IOCBS_PER_LIO 64
 #define MAX_IOCBS (LIO_MAX * MAX_IOCBS_PER_LIO)
 #define MAX_RUNS 300
 
@@ -72,8 +73,8 @@ main(int argc, char *argv[])
 	PLAIN_REQUIRE_UNSAFE_AIO(0);
 
 	max_queue_per_proc_size = sizeof(max_queue_per_proc);
-	if (sysctlbyname("vfs.aio.max_aio_queue_per_proc",
-	    &max_queue_per_proc, &max_queue_per_proc_size, NULL, 0) != 0)
+	if (sysctlbyname("vfs.aio.max_aio_queue_per_proc", &max_queue_per_proc,
+		&max_queue_per_proc_size, NULL, 0) != 0)
 		err(1, "sysctlbyname");
 	iocbs_per_lio = max_queue_per_proc / LIO_MAX;
 	max_iocbs = LIO_MAX * iocbs_per_lio;
@@ -89,8 +90,8 @@ main(int argc, char *argv[])
 		tmp_file = 1;
 	} else {
 		file = argv[1];
-		fd = open(file, O_RDWR|O_CREAT, 0666);
-        }
+		fd = open(file, O_RDWR | O_CREAT, 0666);
+	}
 	if (fd < 0)
 		err(1, "can't open %s", argv[1]);
 
@@ -103,21 +104,20 @@ main(int argc, char *argv[])
 		printf("Run %d\n", run);
 #endif
 		for (j = 0; j < LIO_MAX; j++) {
-			lio[j] =
-			    malloc(sizeof(struct aiocb *) * iocbs_per_lio);
+			lio[j] = malloc(sizeof(struct aiocb *) * iocbs_per_lio);
 			for (i = 0; i < iocbs_per_lio; i++) {
 				k = (iocbs_per_lio * j) + i;
-				lio[j][i] = iocb[k] =
-				    calloc(1, sizeof(struct aiocb));
+				lio[j][i] = iocb[k] = calloc(1,
+				    sizeof(struct aiocb));
 				iocb[k]->aio_nbytes = sizeof(buffer);
 				iocb[k]->aio_buf = buffer;
 				iocb[k]->aio_fildes = fd;
-				iocb[k]->aio_offset
-				    = iocb[k]->aio_nbytes * k * (run + 1);
+				iocb[k]->aio_offset = iocb[k]->aio_nbytes * k *
+				    (run + 1);
 
 #ifdef DEBUG
 				printf("hello iocb[k] %jd\n",
-				       (intmax_t)iocb[k]->aio_offset);
+				    (intmax_t)iocb[k]->aio_offset);
 #endif
 				iocb[k]->aio_lio_opcode = LIO_WRITE;
 			}
@@ -125,19 +125,19 @@ main(int argc, char *argv[])
 			sig.sigev_value.sival_ptr = lio[j];
 			sig.sigev_notify = SIGEV_KEVENT;
 			time(&time1);
-			result = lio_listio(LIO_NOWAIT, lio[j],
-					    iocbs_per_lio, &sig);
+			result = lio_listio(LIO_NOWAIT, lio[j], iocbs_per_lio,
+			    &sig);
 			error = errno;
 			time(&time2);
 #ifdef DEBUG
 			printf("Time %jd %jd %jd result -> %d\n",
 			    (intmax_t)time1, (intmax_t)time2,
-			    (intmax_t)time2-time1, result);
+			    (intmax_t)time2 - time1, result);
 #endif
 			if (result != 0) {
-			        errno = error;
-				err(1, "FAIL: Result %d iteration %d\n",
-				    result, j);
+				errno = error;
+				err(1, "FAIL: Result %d iteration %d\n", result,
+				    j);
 			}
 #ifdef DEBUG
 			printf("write %d is at %p\n", j, lio[j]);
@@ -145,7 +145,7 @@ main(int argc, char *argv[])
 		}
 
 		for (i = 0; i < LIO_MAX; i++) {
-			for (j = LIO_MAX - 1; j >=0; j--) {
+			for (j = LIO_MAX - 1; j >= 0; j--) {
 				if (lio[j])
 					break;
 			}
@@ -157,8 +157,8 @@ main(int argc, char *argv[])
 #ifdef DEBUG
 				printf("FOO lio %d -> %p\n", j, lio[j]);
 #endif
-				result = kevent(kq, NULL, 0,
-						&kq_returned, 1, &ts);
+				result = kevent(kq, NULL, 0, &kq_returned, 1,
+				    &ts);
 				error = errno;
 				if (result < 0) {
 					perror("kevent error: ");
@@ -167,11 +167,9 @@ main(int argc, char *argv[])
 #ifdef DEBUG
 				printf("kevent %d %d errno %d return.ident %p "
 				       "return.data %p return.udata %p %p\n",
-				       i, result, error,
-				       (void*)kq_returned.ident,
-				       (void*)kq_returned.data,
-				       kq_returned.udata,
-				       lio[j]);
+				    i, result, error, (void *)kq_returned.ident,
+				    (void *)kq_returned.data, kq_returned.udata,
+				    lio[j]);
 #endif
 
 				if (kq_lio)
@@ -196,21 +194,29 @@ main(int argc, char *argv[])
 			printf("Error Result for %d is %d\n", j, result);
 #endif
 			if (result < 0) {
-				printf("FAIL: run %d, operation %d result %d \n", run, LIO_MAX - i -1, result);
+				printf(
+				    "FAIL: run %d, operation %d result %d \n",
+				    run, LIO_MAX - i - 1, result);
 				failed++;
 			} else
-				printf("PASS: run %d, operation %d result %d \n", run, LIO_MAX - i -1, result);
+				printf(
+				    "PASS: run %d, operation %d result %d \n",
+				    run, LIO_MAX - i - 1, result);
 			for (k = 0; k < max_iocbs / LIO_MAX; k++) {
 				result = aio_return(kq_lio[k]);
 #ifdef DEBUG
-				printf("Return Result for %d %d is %d\n", j, k, result);
+				printf("Return Result for %d %d is %d\n", j, k,
+				    result);
 #endif
 				if (result != sizeof(buffer)) {
-					printf("FAIL: run %d, operation %d sub-opt %d  result %d (errno=%d) should be %zu\n",
-					   run, LIO_MAX - i -1, k, result, errno, sizeof(buffer));
+					printf(
+					    "FAIL: run %d, operation %d sub-opt %d  result %d (errno=%d) should be %zu\n",
+					    run, LIO_MAX - i - 1, k, result,
+					    errno, sizeof(buffer));
 				} else {
-					printf("PASS: run %d, operation %d sub-opt %d  result %d\n",
-					   run, LIO_MAX - i -1, k, result);
+					printf(
+					    "PASS: run %d, operation %d sub-opt %d  result %d\n",
+					    run, LIO_MAX - i - 1, k, result);
 				}
 			}
 #ifdef DEBUG
@@ -234,5 +240,4 @@ main(int argc, char *argv[])
 		errx(1, "FAIL: %d testcases failed", failed);
 	else
 		errx(0, "PASS: All\n");
-
 }

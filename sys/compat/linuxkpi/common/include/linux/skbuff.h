@@ -33,49 +33,59 @@
  *       likely to change as we will improve the integration to FreeBSD mbufs.
  */
 
-#ifndef	_LINUXKPI_LINUX_SKBUFF_H
-#define	_LINUXKPI_LINUX_SKBUFF_H
+#ifndef _LINUXKPI_LINUX_SKBUFF_H
+#define _LINUXKPI_LINUX_SKBUFF_H
 
-#include <linux/kernel.h>
-#include <linux/page.h>
-#include <linux/dma-mapping.h>
-#include <linux/netdev_features.h>
-#include <linux/list.h>
-#include <linux/gfp.h>
 #include <linux/compiler.h>
-#include <linux/spinlock.h>
+#include <linux/dma-mapping.h>
+#include <linux/gfp.h>
+#include <linux/kernel.h>
 #include <linux/ktime.h>
+#include <linux/list.h>
+#include <linux/netdev_features.h>
+#include <linux/page.h>
+#include <linux/spinlock.h>
 
 /* #define	SKB_DEBUG */
 #ifdef SKB_DEBUG
-#define	DSKB_TODO	0x01
-#define	DSKB_IMPROVE	0x02
-#define	DSKB_TRACE	0x10
-#define	DSKB_TRACEX	0x20
+#define DSKB_TODO 0x01
+#define DSKB_IMPROVE 0x02
+#define DSKB_TRACE 0x10
+#define DSKB_TRACEX 0x20
 extern int linuxkpi_debug_skb;
 
-#define	SKB_TODO()							\
-    if (linuxkpi_debug_skb & DSKB_TODO)					\
+#define SKB_TODO()                          \
+	if (linuxkpi_debug_skb & DSKB_TODO) \
 	printf("SKB_TODO %s:%d\n", __func__, __LINE__)
-#define	SKB_IMPROVE(...)						\
-    if (linuxkpi_debug_skb & DSKB_IMPROVE)				\
+#define SKB_IMPROVE(...)                       \
+	if (linuxkpi_debug_skb & DSKB_IMPROVE) \
 	printf("SKB_IMPROVE %s:%d\n", __func__, __LINE__)
-#define	SKB_TRACE(_s)							\
-    if (linuxkpi_debug_skb & DSKB_TRACE)				\
+#define SKB_TRACE(_s)                        \
+	if (linuxkpi_debug_skb & DSKB_TRACE) \
 	printf("SKB_TRACE %s:%d %p\n", __func__, __LINE__, _s)
-#define	SKB_TRACE2(_s, _p)						\
-    if (linuxkpi_debug_skb & DSKB_TRACE)				\
+#define SKB_TRACE2(_s, _p)                   \
+	if (linuxkpi_debug_skb & DSKB_TRACE) \
 	printf("SKB_TRACE %s:%d %p, %p\n", __func__, __LINE__, _s, _p)
-#define	SKB_TRACE_FMT(_s, _fmt, ...)					\
-   if (linuxkpi_debug_skb & DSKB_TRACE)					\
-	printf("SKB_TRACE %s:%d %p " _fmt "\n", __func__, __LINE__, _s,	\
+#define SKB_TRACE_FMT(_s, _fmt, ...)                                    \
+	if (linuxkpi_debug_skb & DSKB_TRACE)                            \
+	printf("SKB_TRACE %s:%d %p " _fmt "\n", __func__, __LINE__, _s, \
 	    __VA_ARGS__)
 #else
-#define	SKB_TODO()		do { } while(0)
-#define	SKB_IMPROVE(...)	do { } while(0)
-#define	SKB_TRACE(_s)		do { } while(0)
-#define	SKB_TRACE2(_s, _p)	do { } while(0)
-#define	SKB_TRACE_FMT(_s, ...)	do { } while(0)
+#define SKB_TODO() \
+	do {       \
+	} while (0)
+#define SKB_IMPROVE(...) \
+	do {             \
+	} while (0)
+#define SKB_TRACE(_s) \
+	do {          \
+	} while (0)
+#define SKB_TRACE2(_s, _p) \
+	do {               \
+	} while (0)
+#define SKB_TRACE_FMT(_s, ...) \
+	do {                   \
+	} while (0)
 #endif
 
 enum sk_buff_pkt_type {
@@ -85,41 +95,41 @@ enum sk_buff_pkt_type {
 };
 
 struct skb_shared_hwtstamps {
-	ktime_t			hwtstamp;
+	ktime_t hwtstamp;
 };
 
-#define	NET_SKB_PAD		max(CACHE_LINE_SIZE, 32)
+#define NET_SKB_PAD max(CACHE_LINE_SIZE, 32)
 
 struct sk_buff_head {
-		/* XXX TODO */
+	/* XXX TODO */
 	union {
 		struct {
-			struct sk_buff		*next;
-			struct sk_buff		*prev;
+			struct sk_buff *next;
+			struct sk_buff *prev;
 		};
 		struct sk_buff_head_l {
-			struct sk_buff		*next;
-			struct sk_buff		*prev;
+			struct sk_buff *next;
+			struct sk_buff *prev;
 		} list;
 	};
-	size_t			qlen;
-	spinlock_t		lock;
+	size_t qlen;
+	spinlock_t lock;
 };
 
 enum sk_checksum_flags {
-	CHECKSUM_NONE			= 0x00,
-	CHECKSUM_UNNECESSARY		= 0x01,
-	CHECKSUM_PARTIAL		= 0x02,
-	CHECKSUM_COMPLETE		= 0x04,
+	CHECKSUM_NONE = 0x00,
+	CHECKSUM_UNNECESSARY = 0x01,
+	CHECKSUM_PARTIAL = 0x02,
+	CHECKSUM_COMPLETE = 0x04,
 };
 
 struct skb_frag {
-		/* XXX TODO */
-	struct page		*page;		/* XXX-BZ These three are a wild guess so far! */
-	off_t			offset;
-	size_t			size;
+	/* XXX TODO */
+	struct page *page; /* XXX-BZ These three are a wild guess so far! */
+	off_t offset;
+	size_t size;
 };
-typedef	struct skb_frag	skb_frag_t;
+typedef struct skb_frag skb_frag_t;
 
 enum skb_shared_info_gso_type {
 	SKB_GSO_TCPV4,
@@ -127,11 +137,11 @@ enum skb_shared_info_gso_type {
 };
 
 struct skb_shared_info {
-	enum skb_shared_info_gso_type	gso_type;
-	uint16_t			gso_size;
-	uint16_t			nr_frags;
-	struct sk_buff			*frag_list;
-	skb_frag_t			frags[64];	/* XXX TODO, 16xpage? */
+	enum skb_shared_info_gso_type gso_type;
+	uint16_t gso_size;
+	uint16_t nr_frags;
+	struct sk_buff *frag_list;
+	skb_frag_t frags[64]; /* XXX TODO, 16xpage? */
 };
 
 struct sk_buff {
@@ -139,48 +149,49 @@ struct sk_buff {
 	union {
 		/* struct sk_buff_head */
 		struct {
-			struct sk_buff		*next;
-			struct sk_buff		*prev;
+			struct sk_buff *next;
+			struct sk_buff *prev;
 		};
-		struct list_head	list;
+		struct list_head list;
 	};
-	uint32_t		_alloc_len;	/* Length of alloc data-buf. XXX-BZ give up for truesize? */
-	uint32_t		len;		/* ? */
-	uint32_t		data_len;	/* ? If we have frags? */
-	uint32_t		truesize;	/* The total size of all buffers, incl. frags. */
-	uint16_t		mac_len;	/* Link-layer header length. */
-	__sum16			csum;
-	uint16_t		l3hdroff;	/* network header offset from *head */
-	uint16_t		l4hdroff;	/* transport header offset from *head */
-	uint32_t		priority;
-	uint16_t		qmap;		/* queue mapping */
-	uint16_t		_flags;		/* Internal flags. */
-#define	_SKB_FLAGS_SKBEXTFRAG	0x0001
-	enum sk_buff_pkt_type	pkt_type;
-	uint16_t		mac_header;	/* offset of mac_header */
+	uint32_t _alloc_len; /* Length of alloc data-buf. XXX-BZ give up for
+				truesize? */
+	uint32_t len;	     /* ? */
+	uint32_t data_len;   /* ? If we have frags? */
+	uint32_t truesize;   /* The total size of all buffers, incl. frags. */
+	uint16_t mac_len;    /* Link-layer header length. */
+	__sum16 csum;
+	uint16_t l3hdroff; /* network header offset from *head */
+	uint16_t l4hdroff; /* transport header offset from *head */
+	uint32_t priority;
+	uint16_t qmap;	 /* queue mapping */
+	uint16_t _flags; /* Internal flags. */
+#define _SKB_FLAGS_SKBEXTFRAG 0x0001
+	enum sk_buff_pkt_type pkt_type;
+	uint16_t mac_header; /* offset of mac_header */
 
 	/* "Scratch" area for layers to store metadata. */
 	/* ??? I see sizeof() operations so probably an array. */
-	uint8_t			cb[64] __aligned(CACHE_LINE_SIZE);
+	uint8_t cb[64] __aligned(CACHE_LINE_SIZE);
 
-	struct net_device	*dev;
-	void			*sk;		/* XXX net/sock.h? */
+	struct net_device *dev;
+	void *sk; /* XXX net/sock.h? */
 
-	int		csum_offset, csum_start, ip_summed, protocol;
+	int csum_offset, csum_start, ip_summed, protocol;
 
-	uint8_t			*head;			/* Head of buffer. */
-	uint8_t			*data;			/* Head of data. */
-	uint8_t			*tail;			/* End of data. */
-	uint8_t			*end;			/* End of buffer. */
+	uint8_t *head; /* Head of buffer. */
+	uint8_t *data; /* Head of data. */
+	uint8_t *tail; /* End of data. */
+	uint8_t *end;  /* End of buffer. */
 
-	struct skb_shared_info	*shinfo;
+	struct skb_shared_info *shinfo;
 
 	/* FreeBSD specific bandaid (see linuxkpi_kfree_skb). */
-	void			*m;
-	void(*m_free_func)(void *);
+	void *m;
+	void (*m_free_func)(void *);
 
 	/* Force padding to CACHE_LINE_SIZE. */
-	uint8_t			__scratch[0] __aligned(CACHE_LINE_SIZE);
+	uint8_t __scratch[0] __aligned(CACHE_LINE_SIZE);
 };
 
 /* -------------------------------------------------------------------------- */
@@ -267,9 +278,11 @@ build_skb(void *data, unsigned int fragsz)
 
 /* -------------------------------------------------------------------------- */
 
-/* XXX BZ review this one for terminal condition as Linux "queues" are special. */
-#define	skb_list_walk_safe(_q, skb, tmp)				\
-	for ((skb) = (_q)->next; (skb) != NULL && ((tmp) = (skb)->next); (skb) = (tmp))
+/* XXX BZ review this one for terminal condition as Linux "queues" are special.
+ */
+#define skb_list_walk_safe(_q, skb, tmp)                                 \
+	for ((skb) = (_q)->next; (skb) != NULL && ((tmp) = (skb)->next); \
+	     (skb) = (tmp))
 
 /* Add headroom; cannot do once there is data in there. */
 static inline void
@@ -281,9 +294,10 @@ skb_reserve(struct sk_buff *skb, size_t len)
 	KASSERT(skb->data == skb->head, ("%s: skb %p not empty head %p data %p "
 	    "tail %p\n", __func__, skb, skb->head, skb->data, skb->tail));
 #else
-	KASSERT(skb->len == 0 && skb->data == skb->tail, ("%s: skb %p not "
-	    "empty head %p data %p tail %p len %u\n", __func__, skb,
-	    skb->head, skb->data, skb->tail, skb->len));
+	KASSERT(skb->len == 0 && skb->data == skb->tail,
+	    ("%s: skb %p not "
+	     "empty head %p data %p tail %p len %u\n",
+		__func__, skb, skb->head, skb->data, skb->tail, skb->len));
 #endif
 	skb->data += len;
 	skb->tail += len;
@@ -297,9 +311,11 @@ static inline void *
 __skb_push(struct sk_buff *skb, size_t len)
 {
 	SKB_TRACE(skb);
-	KASSERT(((skb->data - len) >= skb->head), ("%s: skb %p (data %p - "
-	    "len %zu) < head %p\n", __func__, skb, skb->data, len, skb->data));
-	skb->len  += len;
+	KASSERT(((skb->data - len) >= skb->head),
+	    ("%s: skb %p (data %p - "
+	     "len %zu) < head %p\n",
+		__func__, skb, skb->data, len, skb->data));
+	skb->len += len;
 	skb->data -= len;
 	return (skb->data);
 }
@@ -323,7 +339,6 @@ skb_headlen(struct sk_buff *skb)
 	return (skb->len - skb->data_len);
 }
 
-
 /* Return the end of data (tail pointer). */
 static inline uint8_t *
 skb_tail_pointer(struct sk_buff *skb)
@@ -339,8 +354,10 @@ skb_tailroom(struct sk_buff *skb)
 {
 
 	SKB_TRACE(skb);
-	KASSERT((skb->end - skb->tail) >= 0, ("%s: skb %p tailroom < 0, "
-	    "end %p tail %p\n", __func__, skb, skb->end, skb->tail));
+	KASSERT((skb->end - skb->tail) >= 0,
+	    ("%s: skb %p tailroom < 0, "
+	     "end %p tail %p\n",
+		__func__, skb, skb->end, skb->tail));
 	return (skb->end - skb->tail);
 }
 
@@ -349,11 +366,12 @@ static inline unsigned int
 skb_headroom(struct sk_buff *skb)
 {
 	SKB_TRACE(skb);
-	KASSERT((skb->data - skb->head) >= 0, ("%s: skb %p headroom < 0, "
-	    "data %p head %p\n", __func__, skb, skb->data, skb->head));
+	KASSERT((skb->data - skb->head) >= 0,
+	    ("%s: skb %p headroom < 0, "
+	     "data %p head %p\n",
+		__func__, skb, skb->data, skb->head));
 	return (skb->data - skb->head);
 }
-
 
 /*
  * Remove tailroom; return the old tail pointer; basically make space at
@@ -365,9 +383,11 @@ __skb_put(struct sk_buff *skb, size_t len)
 	void *s;
 
 	SKB_TRACE(skb);
-	KASSERT(((skb->tail + len) <= skb->end), ("%s: skb %p (tail %p + "
-	    "len %zu) > end %p, head %p data %p len %u\n", __func__,
-	    skb, skb->tail, len, skb->end, skb->head, skb->data, skb->len));
+	KASSERT(((skb->tail + len) <= skb->end),
+	    ("%s: skb %p (tail %p + "
+	     "len %zu) > end %p, head %p data %p len %u\n",
+		__func__, skb, skb->tail, len, skb->end, skb->head, skb->data,
+		skb->len));
 
 	s = skb_tail_pointer(skb);
 	if (len == 0)
@@ -376,9 +396,10 @@ __skb_put(struct sk_buff *skb, size_t len)
 	skb->len += len;
 #ifdef SKB_DEBUG
 	if (linuxkpi_debug_skb & DSKB_TRACEX)
-	printf("%s: skb %p (%u) head %p data %p tail %p end %p, s %p len %zu\n",
-	    __func__, skb, skb->len, skb->head, skb->data, skb->tail, skb->end,
-	    s, len);
+		printf(
+		    "%s: skb %p (%u) head %p data %p tail %p end %p, s %p len %zu\n",
+		    __func__, skb, skb->len, skb->head, skb->data, skb->tail,
+		    skb->end, s, len);
 #endif
 	return (s);
 }
@@ -428,7 +449,7 @@ skb_pull(struct sk_buff *skb, size_t len)
 {
 
 	SKB_TRACE(skb);
-#if 0	/* Apparently this doesn't barf... */
+#if 0 /* Apparently this doesn't barf... */
 	KASSERT(skb->len >= len, ("%s: skb %p skb->len %u < len %u, data %p\n",
 	    __func__, skb, skb->len, len, skb->data));
 #endif
@@ -476,37 +497,43 @@ skb_add_rx_frag(struct sk_buff *skb, int fragno, struct page *page,
 	SKB_TRACE(skb);
 #ifdef SKB_DEBUG
 	if (linuxkpi_debug_skb & DSKB_TRACEX)
-	printf("%s: skb %p head %p data %p tail %p end %p len %u fragno %d "
-	    "page %#jx offset %ju size %zu truesize %u\n", __func__,
-	    skb, skb->head, skb->data, skb->tail, skb->end, skb->len, fragno,
-	    (uintmax_t)(uintptr_t)linux_page_address(page), (uintmax_t)offset,
-	    size, truesize);
+		printf(
+		    "%s: skb %p head %p data %p tail %p end %p len %u fragno %d "
+		    "page %#jx offset %ju size %zu truesize %u\n",
+		    __func__, skb, skb->head, skb->data, skb->tail, skb->end,
+		    skb->len, fragno,
+		    (uintmax_t)(uintptr_t)linux_page_address(page),
+		    (uintmax_t)offset, size, truesize);
 #endif
 
 	shinfo = skb_shinfo(skb);
-	KASSERT(fragno >= 0 && fragno < nitems(shinfo->frags), ("%s: skb %p "
-	    "fragno %d too big\n", __func__, skb, fragno));
+	KASSERT(fragno >= 0 && fragno < nitems(shinfo->frags),
+	    ("%s: skb %p "
+	     "fragno %d too big\n",
+		__func__, skb, fragno));
 	shinfo->frags[fragno].page = page;
 	shinfo->frags[fragno].offset = offset;
 	shinfo->frags[fragno].size = size;
 	shinfo->nr_frags = fragno + 1;
-        skb->len += size;
+	skb->len += size;
 	skb->data_len += size;
-        skb->truesize += truesize;
+	skb->truesize += truesize;
 
 	/* XXX TODO EXTEND truesize? */
 }
 
 /* -------------------------------------------------------------------------- */
 
-/* XXX BZ review this one for terminal condition as Linux "queues" are special. */
-#define	skb_queue_walk(_q, skb)						\
-	for ((skb) = (_q)->next; (skb) != (struct sk_buff *)(_q);	\
-	    (skb) = (skb)->next)
+/* XXX BZ review this one for terminal condition as Linux "queues" are special.
+ */
+#define skb_queue_walk(_q, skb)                                   \
+	for ((skb) = (_q)->next; (skb) != (struct sk_buff *)(_q); \
+	     (skb) = (skb)->next)
 
-#define	skb_queue_walk_safe(_q, skb, tmp)				\
-	for ((skb) = (_q)->next, (tmp) = (skb)->next;			\
-	    (skb) != (struct sk_buff *)(_q); (skb) = (tmp), (tmp) = (skb)->next)
+#define skb_queue_walk_safe(_q, skb, tmp)             \
+	for ((skb) = (_q)->next, (tmp) = (skb)->next; \
+	     (skb) != (struct sk_buff *)(_q);         \
+	     (skb) = (tmp), (tmp) = (skb)->next)
 
 static inline bool
 skb_queue_empty(struct sk_buff_head *q)
@@ -605,7 +632,8 @@ static inline void
 __skb_unlink(struct sk_buff *skb, struct sk_buff_head *head)
 {
 	SKB_TRACE2(skb, head);
-	struct sk_buff *p, *n;;
+	struct sk_buff *p, *n;
+	;
 
 	head->qlen--;
 	p = skb->prev;
@@ -695,7 +723,7 @@ __skb_queue_purge(struct sk_buff_head *q)
 	struct sk_buff *skb;
 
 	SKB_TRACE(q);
-        while ((skb = __skb_dequeue(q)) != NULL)
+	while ((skb = __skb_dequeue(q)) != NULL)
 		kfree_skb(skb);
 }
 
@@ -767,8 +795,7 @@ skb_frag_size(const skb_frag_t *frag)
 	return (-1);
 }
 
-#define	skb_walk_frags(_skb, _frag)					\
-	for ((_frag) = (_skb); false; (_frag)++)
+#define skb_walk_frags(_skb, _frag) for ((_frag) = (_skb); false; (_frag)++)
 
 static inline void
 skb_checksum_help(struct sk_buff *skb)
@@ -824,8 +851,8 @@ skb_mark_not_on_list(struct sk_buff *skb)
 }
 
 static inline void
-___skb_queue_splice_init(const struct sk_buff_head *from,
-    struct sk_buff *p, struct sk_buff *n)
+___skb_queue_splice_init(const struct sk_buff_head *from, struct sk_buff *p,
+    struct sk_buff *n)
 {
 	struct sk_buff *b, *e;
 
@@ -865,7 +892,7 @@ skb_transport_header(struct sk_buff *skb)
 {
 
 	SKB_TRACE(skb);
-        return (skb->head + skb->l4hdroff);
+	return (skb->head + skb->l4hdroff);
 }
 
 static inline uint8_t *
@@ -873,7 +900,7 @@ skb_network_header(struct sk_buff *skb)
 {
 
 	SKB_TRACE(skb);
-        return (skb->head + skb->l3hdroff);
+	return (skb->head + skb->l3hdroff);
 }
 
 static inline bool
@@ -997,7 +1024,7 @@ static inline struct sk_buff *
 skb_get(struct sk_buff *skb)
 {
 
-	SKB_TODO();	/* XXX refcnt? as in get/put_device? */
+	SKB_TODO(); /* XXX refcnt? as in get/put_device? */
 	return (skb);
 }
 
@@ -1074,7 +1101,7 @@ skb_cow_head(struct sk_buff *skb, unsigned int headroom)
 	return (-1);
 }
 
-#define	SKB_WITH_OVERHEAD(_s)						\
+#define SKB_WITH_OVERHEAD(_s) \
 	(_s) - ALIGN(sizeof(struct skb_shared_info), CACHE_LINE_SIZE)
 
-#endif	/* _LINUXKPI_LINUX_SKBUFF_H */
+#endif /* _LINUXKPI_LINUX_SKBUFF_H */

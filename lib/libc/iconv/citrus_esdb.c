@@ -39,20 +39,20 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "citrus_namespace.h"
-#include "citrus_types.h"
 #include "citrus_bcs.h"
-#include "citrus_region.h"
-#include "citrus_memstream.h"
-#include "citrus_mmap.h"
-#include "citrus_lookup.h"
 #include "citrus_db.h"
 #include "citrus_db_hash.h"
 #include "citrus_esdb.h"
 #include "citrus_esdb_file.h"
+#include "citrus_lookup.h"
+#include "citrus_memstream.h"
+#include "citrus_mmap.h"
+#include "citrus_namespace.h"
+#include "citrus_region.h"
+#include "citrus_types.h"
 
-#define ESDB_DIR	"esdb.dir"
-#define ESDB_ALIAS	"esdb.alias"
+#define ESDB_DIR "esdb.dir"
+#define ESDB_ALIAS "esdb.alias"
 
 /*
  * _citrus_esdb_alias:
@@ -65,7 +65,6 @@ _citrus_esdb_alias(const char *esname, char *buf, size_t bufsize)
 	return (_lookup_alias(_PATH_ESDB "/" ESDB_ALIAS, esname, buf, bufsize,
 	    _LOOKUP_CASE_IGNORE));
 }
-
 
 /*
  * conv_esdb:
@@ -146,15 +145,15 @@ conv_esdb(struct _citrus_esdb *esdb, struct _region *fr)
 		goto err3;
 	}
 	for (i = 0; i < num_charsets; i++) {
-		snprintf(buf, sizeof(buf),
-		    _CITRUS_ESDB_SYM_CSID_PREFIX "%d", i);
+		snprintf(buf, sizeof(buf), _CITRUS_ESDB_SYM_CSID_PREFIX "%d",
+		    i);
 		ret = _db_lookup32_by_s(db, buf, &csid, NULL);
 		if (ret)
 			goto err4;
 		esdb->db_charsets[i].ec_csid = csid;
 
-		snprintf(buf, sizeof(buf),
-		    _CITRUS_ESDB_SYM_CSNAME_PREFIX "%d", i);
+		snprintf(buf, sizeof(buf), _CITRUS_ESDB_SYM_CSNAME_PREFIX "%d",
+		    i);
 		ret = _db_lookupstr_by_s(db, buf, &str, NULL);
 		if (ret)
 			goto err4;
@@ -230,10 +229,13 @@ _citrus_esdb_close(struct _citrus_esdb *db)
 	for (int i = 0; i < db->db_num_charsets; i++)
 		free(db->db_charsets[i].ec_csname);
 	db->db_num_charsets = 0;
-	free(db->db_charsets); db->db_charsets = NULL;
-	free(db->db_encname); db->db_encname = NULL;
+	free(db->db_charsets);
+	db->db_charsets = NULL;
+	free(db->db_encname);
+	db->db_encname = NULL;
 	db->db_len_variable = 0;
-	free(db->db_variable); db->db_variable = NULL;
+	free(db->db_variable);
+	db->db_variable = NULL;
 }
 
 /*
@@ -291,10 +293,8 @@ _citrus_esdb_get_list(char ***rlist, size_t *rnum, bool sorted)
 	while ((ret = _lookup_seq_next(cla, &key, &data)) == 0) {
 		/* XXX: sorted? */
 		snprintf(buf, sizeof(buf), "%.*s/%.*s",
-		    (int)_region_size(&data),
-		    (const char *)_region_head(&data),
-		    (int)_region_size(&key),
-		    (const char *)_region_head(&key));
+		    (int)_region_size(&data), (const char *)_region_head(&data),
+		    (int)_region_size(&key), (const char *)_region_head(&key));
 		_bcs_convert_to_upper(buf);
 		list[num] = strdup(buf);
 		if (list[num] == NULL) {

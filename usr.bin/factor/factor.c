@@ -75,43 +75,43 @@ BN_check_prime(BIGNUM *p, BN_CTX *ctx, BN_GENCB *cb)
 }
 #endif
 
-static void	pollard_pminus1(BIGNUM *); /* print factors for big numbers */
+static void pollard_pminus1(BIGNUM *); /* print factors for big numbers */
 
 #else
 
-typedef ubig	BIGNUM;
-typedef u_long	BN_ULONG;
+typedef ubig BIGNUM;
+typedef u_long BN_ULONG;
 
-#define BN_CTX			int
-#define BN_CTX_new()		NULL
-#define BN_new()		((BIGNUM *)calloc(sizeof(BIGNUM), 1))
-#define BN_is_zero(v)		(*(v) == 0)
-#define BN_is_one(v)		(*(v) == 1)
-#define BN_mod_word(a, b)	(*(a) % (b))
+#define BN_CTX int
+#define BN_CTX_new() NULL
+#define BN_new() ((BIGNUM *)calloc(sizeof(BIGNUM), 1))
+#define BN_is_zero(v) (*(v) == 0)
+#define BN_is_one(v) (*(v) == 1)
+#define BN_mod_word(a, b) (*(a) % (b))
 
-static int	BN_dec2bn(BIGNUM **, const char *);
-static int	BN_hex2bn(BIGNUM **, const char *);
+static int BN_dec2bn(BIGNUM **, const char *);
+static int BN_hex2bn(BIGNUM **, const char *);
 static BN_ULONG BN_div_word(BIGNUM *, BN_ULONG);
-static void	BN_print_fp(FILE *, const BIGNUM *);
+static void BN_print_fp(FILE *, const BIGNUM *);
 
 #endif
 
-static void	BN_print_dec_fp(FILE *, const BIGNUM *);
-static void	convert_str2bn(BIGNUM **, char *);
-static bool	is_hex_str(char *);
-static void	pr_fact(BIGNUM *);	/* print factors of a value */
-static void	pr_print(BIGNUM *);	/* print a prime */
-static void	usage(void);
+static void BN_print_dec_fp(FILE *, const BIGNUM *);
+static void convert_str2bn(BIGNUM **, char *);
+static bool is_hex_str(char *);
+static void pr_fact(BIGNUM *);	/* print factors of a value */
+static void pr_print(BIGNUM *); /* print a prime */
+static void usage(void);
 
-static BN_CTX	*ctx;			/* just use a global context */
-static int	hflag;
+static BN_CTX *ctx; /* just use a global context */
+static int hflag;
 
 int
 main(int argc, char *argv[])
 {
 	BIGNUM *val;
 	int ch;
-	char *p, buf[LINE_MAX];		/* > max number of digits. */
+	char *p, buf[LINE_MAX]; /* > max number of digits. */
 
 	ctx = BN_CTX_new();
 	val = BN_new();
@@ -136,9 +136,10 @@ main(int argc, char *argv[])
 			if (fgets(buf, sizeof(buf), stdin) == NULL) {
 				if (ferror(stdin))
 					err(1, "stdin");
-				exit (0);
+				exit(0);
 			}
-			for (p = buf; isblank(*p); ++p);
+			for (p = buf; isblank(*p); ++p)
+				;
 			if (*p == '\n' || *p == '\0')
 				continue;
 			convert_str2bn(&val, p);
@@ -165,10 +166,10 @@ main(int argc, char *argv[])
 static void
 pr_fact(BIGNUM *val)
 {
-	const ubig *fact;	/* The factor found. */
+	const ubig *fact; /* The factor found. */
 
 	/* Firewall - catch 0 and 1. */
-	if (BN_is_zero(val))	/* Historical practice; 0 just exits. */
+	if (BN_is_zero(val)) /* Historical practice; 0 just exits. */
 		exit(0);
 	if (BN_is_one(val)) {
 		printf("1: 1\n");
@@ -212,7 +213,8 @@ pr_fact(BIGNUM *val)
 
 		/* Divide factor out until none are left. */
 		do {
-			printf(hflag ? " 0x%" PRIx64 "" : " %" PRIu64 "", *fact);
+			printf(hflag ? " 0x%" PRIx64 "" : " %" PRIu64 "",
+			    *fact);
 			BN_div_word(val, (BN_ULONG)*fact);
 		} while (BN_mod_word(val, (BN_ULONG)*fact) == 0);
 
@@ -304,7 +306,7 @@ BN_print_dec_fp(FILE *fp, const BIGNUM *num)
 
 	buf = BN_bn2dec(num);
 	if (buf == NULL)
-		return;	/* XXX do anything here? */
+		return; /* XXX do anything here? */
 	fprintf(fp, "%s", buf);
 	free(buf);
 }
@@ -330,7 +332,7 @@ BN_dec2bn(BIGNUM **a, const char *str)
 
 	errno = 0;
 	**a = strtoul(str, &p, 10);
-	return (errno == 0 ? 1 : 0);	/* OpenSSL returns 0 on error! */
+	return (errno == 0 ? 1 : 0); /* OpenSSL returns 0 on error! */
 }
 
 static int
@@ -340,7 +342,7 @@ BN_hex2bn(BIGNUM **a, const char *str)
 
 	errno = 0;
 	**a = strtoul(str, &p, 16);
-	return (errno == 0 ? 1 : 0);	/* OpenSSL returns 0 on error! */
+	return (errno == 0 ? 1 : 0); /* OpenSSL returns 0 on error! */
 }
 
 static BN_ULONG
@@ -373,7 +375,7 @@ is_hex_str(char *str)
 			saw_hex = true;
 			continue;
 		}
-		break;	/* Not a hexadecimal digit. */
+		break; /* Not a hexadecimal digit. */
 	}
 	return saw_hex;
 }
@@ -384,7 +386,8 @@ convert_str2bn(BIGNUM **val, char *p)
 {
 	int n = 0;
 
-	if (*p == '+') p++;
+	if (*p == '+')
+		p++;
 	if (*p == '-')
 		errx(1, "negative numbers aren't permitted.");
 	if (*p == '0') {

@@ -32,7 +32,7 @@
  * SUCH DAMAGE.
  */
 
-#include <stdlib.h>		/* ldiv_t */
+#include <stdlib.h> /* ldiv_t */
 
 ldiv_t
 ldiv(long num, long denom)

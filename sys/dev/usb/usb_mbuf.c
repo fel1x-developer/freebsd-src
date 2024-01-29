@@ -28,30 +28,30 @@
 #ifdef USB_GLOBAL_INCLUDE_FILE
 #include USB_GLOBAL_INCLUDE_FILE
 #else
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
 #include <dev/usb/usb_dev.h>
 #include <dev/usb/usb_mbuf.h>
-#endif			/* USB_GLOBAL_INCLUDE_FILE */
+#include <dev/usb/usbdi.h>
+#endif /* USB_GLOBAL_INCLUDE_FILE */
 
 /*------------------------------------------------------------------------*
  *      usb_alloc_mbufs - allocate mbufs to an usbd interface queue
@@ -60,7 +60,7 @@
  *   A pointer that should be passed to "free()" when the buffer(s)
  *   should be released.
  *------------------------------------------------------------------------*/
-void   *
+void *
 usb_alloc_mbufs(struct malloc_type *type, struct usb_ifqueue *ifq,
     usb_size_t block_size, uint16_t nblocks)
 {
@@ -80,11 +80,9 @@ usb_alloc_mbufs(struct malloc_type *type, struct usb_ifqueue *ifq,
 		data_ptr = (void *)(m_ptr + nblocks);
 
 		while (nblocks--) {
-			m_ptr->cur_data_ptr =
-			    m_ptr->min_data_ptr = data_ptr;
+			m_ptr->cur_data_ptr = m_ptr->min_data_ptr = data_ptr;
 
-			m_ptr->cur_data_len =
-			    m_ptr->max_data_len = block_size;
+			m_ptr->cur_data_len = m_ptr->max_data_len = block_size;
 
 			USB_IF_ENQUEUE(ifq, m_ptr);
 

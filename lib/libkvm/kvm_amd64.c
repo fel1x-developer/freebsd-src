@@ -33,7 +33,6 @@
  * SUCH DAMAGE.
  */
 
-
 /*
  * AMD64 machine dependent routines for kvm.  Hopefully, the forthcoming
  * vm code will one day obsolete this module.
@@ -41,22 +40,23 @@
 
 #include <sys/param.h>
 #include <sys/endian.h>
+
+#include <vm/vm.h>
+
+#include <kvm.h>
+#include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <vm/vm.h>
-#include <kvm.h>
 
-#include <limits.h>
-
-#include "kvm_private.h"
 #include "kvm_amd64.h"
+#include "kvm_private.h"
 
 struct vmstate {
-	size_t		phnum;
-	GElf_Phdr	*phdr;
-	amd64_pml4e_t	*PML4;
+	size_t phnum;
+	GElf_Phdr *phdr;
+	amd64_pml4e_t *PML4;
 };
 
 /*
@@ -121,7 +121,7 @@ _amd64_initvtop(kvm_t *kd)
 
 	if (kd->rawdump == 0) {
 		if (_kvm_read_core_phdrs(kd, &kd->vmst->phnum,
-		    &kd->vmst->phdr) == -1)
+			&kd->vmst->phdr) == -1)
 			return (-1);
 	}
 

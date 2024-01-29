@@ -32,8 +32,8 @@
 #include <sys/time.h>
 
 #include <netinet/in.h>
-#include <arpa/tftp.h>
 
+#include <arpa/tftp.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,9 +42,9 @@
 
 #include "tftp-file.h"
 #include "tftp-io.h"
-#include "tftp-utils.h"
 #include "tftp-options.h"
 #include "tftp-transfer.h"
+#include "tftp-utils.h"
 
 struct block_data {
 	off_t offset;
@@ -72,10 +72,11 @@ tftp_send(int peer, uint16_t *block, struct tftp_stats *ts)
 	windowblock = 0;
 	acktry = 0;
 	do {
-read_block:
+	read_block:
 		if (debug & DEBUG_SIMPLE)
-			tftp_log(LOG_DEBUG, "Sending block %d (window block %d)",
-			    *block, windowblock);
+			tftp_log(LOG_DEBUG,
+			    "Sending block %d (window block %d)", *block,
+			    windowblock);
 
 		window[windowblock].offset = tell_file();
 		window[windowblock].block = *block;
@@ -88,7 +89,7 @@ read_block:
 		window[windowblock].size = size;
 		windowblock++;
 
-		for (sendtry = 0; ; sendtry++) {
+		for (sendtry = 0;; sendtry++) {
 			n_data = send_data(peer, *block, sendbuffer, size);
 			if (n_data == 0)
 				break;
@@ -96,7 +97,8 @@ read_block:
 			if (sendtry == maxtimeouts) {
 				tftp_log(LOG_ERR,
 				    "Cannot send DATA packet #%d, "
-				    "giving up", *block);
+				    "giving up",
+				    *block);
 				return -1;
 			}
 			tftp_log(LOG_ERR,
@@ -106,19 +108,20 @@ read_block:
 
 		/* Only check for ACK for last block in window. */
 		if (windowblock == windowsize || size != segsize) {
-			n_ack = receive_packet(peer, recvbuffer,
-			    MAXPKTSIZE, NULL, timeoutpacket);
+			n_ack = receive_packet(peer, recvbuffer, MAXPKTSIZE,
+			    NULL, timeoutpacket);
 			if (n_ack < 0) {
 				if (n_ack == RP_TIMEOUT) {
 					if (acktry == maxtimeouts) {
 						tftp_log(LOG_ERR,
 						    "Timeout #%d send ACK %d "
-						    "giving up", acktry, *block);
+						    "giving up",
+						    acktry, *block);
 						return -1;
 					}
 					tftp_log(LOG_WARNING,
-					    "Timeout #%d on ACK %d",
-					    acktry, *block);
+					    "Timeout #%d on ACK %d", acktry,
+					    *block);
 
 					acktry++;
 					ts->retries++;
@@ -158,7 +161,7 @@ read_block:
 						    rp->th_block);
 
 					/* Re-synchronize with the other side */
-					(void) synchnet(peer);
+					(void)synchnet(peer);
 
 					/* Resend the current window. */
 					ts->retries++;
@@ -209,7 +212,6 @@ read_block:
 
 				windowblock = 0;
 			}
-
 		}
 		oldblock = *block;
 		(*block)++;
@@ -257,13 +259,14 @@ tftp_receive(int peer, uint16_t *block, struct tftp_stats *ts,
 		ts->blocks++;
 		windowblock++;
 		if (windowsize == 1 || fb_size != segsize) {
-			for (i = 0; ; i++) {
+			for (i = 0;; i++) {
 				n_ack = send_ack(peer, *block);
 				if (n_ack > 0) {
 					if (i == maxtimeouts) {
 						tftp_log(LOG_ERR,
 						    "Cannot send ACK packet #%d, "
-						    "giving up", *block);
+						    "giving up",
+						    *block);
 						return -1;
 					}
 					tftp_log(LOG_ERR,
@@ -302,19 +305,20 @@ tftp_receive(int peer, uint16_t *block, struct tftp_stats *ts,
 			ts->rollovers++;
 		}
 
-		for (retry = 0; ; retry++) {
+		for (retry = 0;; retry++) {
 			if (debug & DEBUG_SIMPLE)
 				tftp_log(LOG_DEBUG,
 				    "Receiving DATA block %d (window block %d)",
 				    *block, windowblock);
 
-			n_data = receive_packet(peer, recvbuffer,
-			    MAXPKTSIZE, NULL, timeoutpacket);
+			n_data = receive_packet(peer, recvbuffer, MAXPKTSIZE,
+			    NULL, timeoutpacket);
 			if (n_data < 0) {
 				if (retry == maxtimeouts) {
 					tftp_log(LOG_ERR,
 					    "Timeout #%d on DATA block %d, "
-					    "giving up", retry, *block);
+					    "giving up",
+					    retry, *block);
 					return -1;
 				}
 				if (n_data == RP_TIMEOUT) {
@@ -355,7 +359,7 @@ tftp_receive(int peer, uint16_t *block, struct tftp_stats *ts,
 				    rp->th_block < *block) {
 					if (debug & DEBUG_SIMPLE)
 						tftp_log(LOG_DEBUG,
-					    "Ignoring duplicate DATA block %d",
+						    "Ignoring duplicate DATA block %d",
 						    rp->th_block);
 					windowblock++;
 					retry = 0;
@@ -367,12 +371,12 @@ tftp_receive(int peer, uint16_t *block, struct tftp_stats *ts,
 				    *block, rp->th_block);
 
 				/* Re-synchronize with the other side */
-				(void) synchnet(peer);
+				(void)synchnet(peer);
 
 				tftp_log(LOG_INFO, "Trying to sync");
 				*block = oldblock;
 				ts->retries++;
-				goto send_ack;	/* rexmit */
+				goto send_ack; /* rexmit */
 
 			} else {
 				tftp_log(LOG_WARNING,
@@ -385,8 +389,8 @@ tftp_receive(int peer, uint16_t *block, struct tftp_stats *ts,
 			writesize = write_file(rp->th_data, n_data);
 			ts->amount += writesize;
 			if (writesize <= 0) {
-				tftp_log(LOG_ERR,
-				    "write_file returned %d", writesize);
+				tftp_log(LOG_ERR, "write_file returned %d",
+				    writesize);
 				if (writesize < 0)
 					send_error(peer, errno + 100);
 				else
@@ -401,15 +405,16 @@ tftp_receive(int peer, uint16_t *block, struct tftp_stats *ts,
 		/* Only send ACKs for the last block in the window. */
 		if (windowblock < windowsize && n_data == segsize)
 			continue;
-send_ack:
-		for (i = 0; ; i++) {
+	send_ack:
+		for (i = 0;; i++) {
 			n_ack = send_ack(peer, *block);
 			if (n_ack > 0) {
 
 				if (i == maxtimeouts) {
 					tftp_log(LOG_ERR,
 					    "Cannot send ACK packet #%d, "
-					    "giving up", *block);
+					    "giving up",
+					    *block);
 					return -1;
 				}
 
@@ -431,15 +436,15 @@ send_ack:
 	if (acting_as_client)
 		return 0;
 
-	for (i = 0; ; i++) {
-		n_data = receive_packet(peer, (char *)rp, pktsize,
-		    NULL, -timeoutpacket);
+	for (i = 0;; i++) {
+		n_data = receive_packet(peer, (char *)rp, pktsize, NULL,
+		    -timeoutpacket);
 		if (n_data <= 0)
 			break;
 		if (n_data > 0 &&
 		    rp->th_opcode == DATA &&	/* and got a data block */
 		    *block == rp->th_block)	/* then my last ack was lost */
-			send_ack(peer, *block);	/* resend final ack */
+			send_ack(peer, *block); /* resend final ack */
 	}
 
 	return 0;

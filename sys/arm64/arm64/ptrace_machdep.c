@@ -58,17 +58,17 @@ cpu_ptrace(struct thread *td, int req, void *arg, int data)
 	if (!SV_CURPROC_FLAG(SV_ILP32))
 		return (EINVAL);
 	switch (req) {
-		case PT_GETVFPREGS32:
-			get_fpcontext32(td, &vfp);
-			error = copyout(&vfp, arg, sizeof(vfp));
-			break;
-		case PT_SETVFPREGS32:
-			error = copyin(arg, &vfp, sizeof(vfp));
-			if (error == 0)
-				set_fpcontext32(td, &vfp);
-			break;
-		default:
-			error = EINVAL;
+	case PT_GETVFPREGS32:
+		get_fpcontext32(td, &vfp);
+		error = copyout(&vfp, arg, sizeof(vfp));
+		break;
+	case PT_SETVFPREGS32:
+		error = copyin(arg, &vfp, sizeof(vfp));
+		if (error == 0)
+			set_fpcontext32(td, &vfp);
+		break;
+	default:
+		error = EINVAL;
 	}
 
 	return (error);
@@ -91,11 +91,10 @@ get_arm_vfp(struct regset *rs, struct thread *td, void *buf, size_t *sizep)
 }
 
 static bool
-set_arm_vfp(struct regset *rs, struct thread *td, void *buf,
-    size_t size)
+set_arm_vfp(struct regset *rs, struct thread *td, void *buf, size_t size)
 {
-	KASSERT(size == sizeof(mcontext32_vfp_t), ("%s: invalid size",
-	    __func__));
+	KASSERT(size == sizeof(mcontext32_vfp_t),
+	    ("%s: invalid size", __func__));
 	set_fpcontext32(td, buf);
 	return (true);
 }
@@ -110,8 +109,7 @@ ELF32_REGSET(regset_arm_vfp);
 #endif
 
 static bool
-get_arm64_tls(struct regset *rs, struct thread *td, void *buf,
-    size_t *sizep)
+get_arm64_tls(struct regset *rs, struct thread *td, void *buf, size_t *sizep)
 {
 	if (buf != NULL) {
 		KASSERT(*sizep == sizeof(td->td_pcb->pcb_tpidr_el0),
@@ -133,8 +131,7 @@ ELF_REGSET(regset_arm64_tls);
 
 #ifdef COMPAT_FREEBSD32
 static bool
-get_arm_tls(struct regset *rs, struct thread *td, void *buf,
-    size_t *sizep)
+get_arm_tls(struct regset *rs, struct thread *td, void *buf, size_t *sizep)
 {
 	if (buf != NULL) {
 		uint32_t tp;
@@ -186,4 +183,3 @@ ptrace_clear_single_step(struct thread *td)
 	td->td_dbgflags &= ~TDB_STEP;
 	return (0);
 }
-

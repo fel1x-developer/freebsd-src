@@ -29,8 +29,8 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/queue.h>
 
 #include <assert.h>
 #include <errno.h>
@@ -41,18 +41,18 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "citrus_types.h"
-#include "citrus_module.h"
 #include "citrus_esdb.h"
 #include "citrus_hash.h"
 #include "citrus_iconv.h"
-
+#include "citrus_module.h"
+#include "citrus_types.h"
 #include "iconv-internal.h"
 
-#define ISBADF(_h_)	(!(_h_) || (_h_) == (iconv_t)-1)
+#define ISBADF(_h_) (!(_h_) || (_h_) == (iconv_t)-1)
 
 static iconv_t
-__bsd___iconv_open(const char *out, const char *in, struct _citrus_iconv *handle)
+__bsd___iconv_open(const char *out, const char *in,
+    struct _citrus_iconv *handle)
 {
 	int ret;
 
@@ -114,8 +114,8 @@ __bsd_iconv(iconv_t handle, char **in, size_t *szin, char **out, size_t *szout)
 		return ((size_t)-1);
 	}
 
-	err = _citrus_iconv_convert((struct _citrus_iconv *)(void *)handle,
-	    in, szin, out, szout, 0, &ret);
+	err = _citrus_iconv_convert((struct _citrus_iconv *)(void *)handle, in,
+	    szin, out, szout, 0, &ret);
 	if (err) {
 		errno = err;
 		ret = (size_t)-1;
@@ -136,8 +136,8 @@ __bsd___iconv(iconv_t handle, char **in, size_t *szin, char **out,
 		return ((size_t)-1);
 	}
 
-	err = _citrus_iconv_convert((struct _citrus_iconv *)(void *)handle,
-	    in, szin, out, szout, flags, &ret);
+	err = _citrus_iconv_convert((struct _citrus_iconv *)(void *)handle, in,
+	    szin, out, szout, flags, &ret);
 	if (invalids)
 		*invalids = ret;
 	if (err) {
@@ -175,8 +175,8 @@ __bsd___iconv_free_list(char **list, size_t sz)
 static int
 qsort_helper(const void *first, const void *second)
 {
-	const char * const *s1;
-	const char * const *s2;
+	const char *const *s1;
+	const char *const *s2;
 
 	s1 = first;
 	s2 = second;
@@ -184,11 +184,11 @@ qsort_helper(const void *first, const void *second)
 }
 
 void
-__bsd_iconvlist(int (*do_one) (unsigned int, const char * const *,
-    void *), void *data)
+__bsd_iconvlist(int (*do_one)(unsigned int, const char *const *, void *),
+    void *data)
 {
 	char **list, **names;
-	const char * const *np;
+	const char *const *np;
 	char *curitem, *curkey, *slashpos;
 	size_t sz;
 	unsigned int i, j, n;
@@ -211,7 +211,9 @@ __bsd_iconvlist(int (*do_one) (unsigned int, const char * const *,
 		if (curkey == NULL)
 			goto out;
 		names[j++] = curkey;
-		for (; (i < sz) && (memcmp(curkey, list[i], strlen(curkey)) == 0); i++) {
+		for (;
+		     (i < sz) && (memcmp(curkey, list[i], strlen(curkey)) == 0);
+		     i++) {
 			slashpos = strchr(list[i], '/');
 			if (strcmp(curkey, &slashpos[1]) == 0)
 				continue;
@@ -220,7 +222,7 @@ __bsd_iconvlist(int (*do_one) (unsigned int, const char * const *,
 				goto out;
 			names[j++] = curitem;
 		}
-		np = (const char * const *)names;
+		np = (const char *const *)names;
 		do_one(j, np, data);
 		for (n = 0; n < j; n++)
 			free(names[n]);
@@ -276,7 +278,7 @@ __bsd_iconvctl(iconv_t cd, int request, void *argument)
 		*i = 1;
 		return (0);
 	case ICONV_SET_TRANSLITERATE:
-		return  ((*i == 1) ? 0 : -1);
+		return ((*i == 1) ? 0 : -1);
 	case ICONV_GET_DISCARD_ILSEQ:
 		*i = cv->cv_shared->ci_discard_ilseq ? 1 : 0;
 		return (0);
@@ -305,5 +307,4 @@ void
 __bsd_iconv_set_relocation_prefix(const char *orig_prefix __unused,
     const char *curr_prefix __unused)
 {
-
 }

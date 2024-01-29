@@ -23,9 +23,10 @@
 
 /* PHY registers */
 
-#define AR_PHY_PLL_CTL_44_5312  0x14d6          /* 44 MHz for 11b, 11g */
-#define AR_PHY_PLL_CTL_40_5312  0x14d4          /* 40 MHz for 11a, turbos */
-#define AR_PHY_PLL_CTL_40_5312_HALF  0x15d4	/* 40 MHz for 11a, turbos (Half)*/
-#define AR_PHY_PLL_CTL_40_5312_QUARTER  0x16d4	/* 40 MHz for 11a, turbos (Quarter)*/
+#define AR_PHY_PLL_CTL_44_5312 0x14d6	   /* 44 MHz for 11b, 11g */
+#define AR_PHY_PLL_CTL_40_5312 0x14d4	   /* 40 MHz for 11a, turbos */
+#define AR_PHY_PLL_CTL_40_5312_HALF 0x15d4 /* 40 MHz for 11a, turbos (Half)*/
+#define AR_PHY_PLL_CTL_40_5312_QUARTER \
+	0x16d4 /* 40 MHz for 11a, turbos (Quarter)*/
 
-#endif	/* _DEV_ATH_AR5312PHY_H_ */
+#endif /* _DEV_ATH_AR5312PHY_H_ */

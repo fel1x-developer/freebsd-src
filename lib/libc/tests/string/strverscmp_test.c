@@ -1,7 +1,7 @@
 /*-
-* SPDX-License-Identifier: BSD-2-Clause
-* Copyright (c) 2022 Aymeric Wibo <obiwac@gmail.com>
-*/
+ * SPDX-License-Identifier: BSD-2-Clause
+ * Copyright (c) 2022 Aymeric Wibo <obiwac@gmail.com>
+ */
 
 #include <atf-c.h>
 #include <string.h>
@@ -17,31 +17,23 @@ check_all(size_t len, const char *ordered[len])
 			b = ordered[j];
 
 			if (i == j)
-				ATF_CHECK_MSG(
-				    strverscmp(a, b) == 0,
-				    "strverscmp(\"%s\", \"%s\") == 0",
-				    a, b
-				);
+				ATF_CHECK_MSG(strverscmp(a, b) == 0,
+				    "strverscmp(\"%s\", \"%s\") == 0", a, b);
 			else if (i < j)
-				ATF_CHECK_MSG(
-				    strverscmp(a, b) < 0,
-				    "strverscmp(\"%s\", \"%s\") < 0",
-				    a, b
-				);
+				ATF_CHECK_MSG(strverscmp(a, b) < 0,
+				    "strverscmp(\"%s\", \"%s\") < 0", a, b);
 			else if (i > j)
-				ATF_CHECK_MSG(
-				    strverscmp(a, b) > 0,
-				    "strverscmp(\"%s\", \"%s\") > 0",
-				    a, b
-				);
+				ATF_CHECK_MSG(strverscmp(a, b) > 0,
+				    "strverscmp(\"%s\", \"%s\") > 0", a, b);
 		}
 	}
 }
 
-#define	CHECK_ALL(...) do {                                     \
-	const char *ordered[] = { __VA_ARGS__ };                \
-	check_all(sizeof(ordered) / sizeof(*ordered), ordered); \
-} while (0)
+#define CHECK_ALL(...)                                                  \
+	do {                                                            \
+		const char *ordered[] = { __VA_ARGS__ };                \
+		check_all(sizeof(ordered) / sizeof(*ordered), ordered); \
+	} while (0)
 
 ATF_TC_WITHOUT_HEAD(strcmp_functionality);
 ATF_TC_BODY(strcmp_functionality, tc)
@@ -68,11 +60,8 @@ ATF_TC_BODY(natural_ordering, tc)
 ATF_TC_WITHOUT_HEAD(glibc_bug_9913);
 ATF_TC_BODY(glibc_bug_9913, tc)
 {
-	CHECK_ALL(
-	    "B0075022800016.gbp.corp.com",
-	    "B007502280067.gbp.corp.com",
-	    "B007502357019.GBP.CORP.COM"
-	);
+	CHECK_ALL("B0075022800016.gbp.corp.com", "B007502280067.gbp.corp.com",
+	    "B007502357019.GBP.CORP.COM");
 }
 
 ATF_TC_WITHOUT_HEAD(semver_ordering);

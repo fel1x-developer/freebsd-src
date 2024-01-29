@@ -38,8 +38,8 @@
 #include <sys/queue.h>
 
 #include <assert.h>
-#include <curses.h>
 #include <ctype.h>
+#include <curses.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -49,102 +49,100 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <sysexits.h>
+#include <unistd.h>
 
+#include "pmcpl_calltree.h"
 #include "pmcstat.h"
 #include "pmcstat_log.h"
 #include "pmcstat_top.h"
-#include "pmcpl_calltree.h"
 
-#define	min(A,B)		((A) < (B) ? (A) : (B))
-#define	max(A,B)		((A) > (B) ? (A) : (B))
+#define min(A, B) ((A) < (B) ? (A) : (B))
+#define max(A, B) ((A) > (B) ? (A) : (B))
 
-#define	PMCPL_CT_GROWSIZE	4
+#define PMCPL_CT_GROWSIZE 4
 
 static int pmcstat_skiplink = 0;
 
 struct pmcpl_ct_node;
 
 /* Get the sample value for PMC a. */
-#define	PMCPL_CT_SAMPLE(a, b) \
-	((a) < (b)->npmcs ? (b)->sb[a] : 0)
+#define PMCPL_CT_SAMPLE(a, b) ((a) < (b)->npmcs ? (b)->sb[a] : 0)
 
 /* Get the sample value in percent related to rsamples. */
-#define	PMCPL_CT_SAMPLEP(a, b) \
-	(PMCPL_CT_SAMPLE(a, b) * 100.0 / rsamples->sb[a])
+#define PMCPL_CT_SAMPLEP(a, b) (PMCPL_CT_SAMPLE(a, b) * 100.0 / rsamples->sb[a])
 
 struct pmcpl_ct_sample {
-	int		npmcs;		/* Max pmc index available. */
-	unsigned	*sb;		/* Sample buffer for 0..npmcs. */
+	int npmcs;    /* Max pmc index available. */
+	unsigned *sb; /* Sample buffer for 0..npmcs. */
 };
 
 struct pmcpl_ct_arc {
-	struct pmcpl_ct_sample	pcta_samples;
-	struct pmcpl_ct_sample	pcta_callid;
-	unsigned		pcta_call;
-	struct pmcpl_ct_node	*pcta_child;
+	struct pmcpl_ct_sample pcta_samples;
+	struct pmcpl_ct_sample pcta_callid;
+	unsigned pcta_call;
+	struct pmcpl_ct_node *pcta_child;
 };
 
 struct pmcpl_ct_instr {
-	uintfptr_t		pctf_func;
-	struct pmcpl_ct_sample	pctf_samples;
+	uintfptr_t pctf_func;
+	struct pmcpl_ct_sample pctf_samples;
 };
 
 /*
  * Each calltree node is tracked by a pmcpl_ct_node struct.
  */
 struct pmcpl_ct_node {
-	struct pmcstat_image	*pct_image;
-	uintfptr_t		pct_func;
+	struct pmcstat_image *pct_image;
+	uintfptr_t pct_func;
 
-	struct pmcstat_symbol	*pct_sym;
-	pmcstat_interned_string	pct_ifl;
-	pmcstat_interned_string	pct_ifn;
+	struct pmcstat_symbol *pct_sym;
+	pmcstat_interned_string pct_ifl;
+	pmcstat_interned_string pct_ifn;
 
-	struct pmcpl_ct_sample	pct_samples;
+	struct pmcpl_ct_sample pct_samples;
 
-	int			pct_narc;
-	int			pct_arc_c;
-	struct pmcpl_ct_arc 	*pct_arc;
+	int pct_narc;
+	int pct_arc_c;
+	struct pmcpl_ct_arc *pct_arc;
 
 	/* TODO: optimize for large number of items. */
-	int			pct_ninstr;
-	int			pct_instr_c;
-	struct pmcpl_ct_instr	*pct_instr;
+	int pct_ninstr;
+	int pct_instr_c;
+	struct pmcpl_ct_instr *pct_instr;
 
-#define PMCPL_PCT_ADDR	0
-#define PMCPL_PCT_NAME	1
-	char			pct_type;
-#define	PMCPL_PCT_WHITE	0
-#define	PMCPL_PCT_GREY	1
-#define	PMCPL_PCT_BLACK	2
-	char			pct_color;
+#define PMCPL_PCT_ADDR 0
+#define PMCPL_PCT_NAME 1
+	char pct_type;
+#define PMCPL_PCT_WHITE 0
+#define PMCPL_PCT_GREY 1
+#define PMCPL_PCT_BLACK 2
+	char pct_color;
 };
 
 struct pmcpl_ct_node_hash {
-	struct pmcpl_ct_node  *pch_ctnode;
+	struct pmcpl_ct_node *pch_ctnode;
 	STAILQ_ENTRY(pmcpl_ct_node_hash) pch_next;
 };
 
 static struct pmcpl_ct_sample pmcpl_ct_callid;
 
-#define	PMCPL_CT_MAXCOL		PMC_CALLCHAIN_DEPTH_MAX
-#define	PMCPL_CT_MAXLINE	1024	/* TODO: dynamic. */
+#define PMCPL_CT_MAXCOL PMC_CALLCHAIN_DEPTH_MAX
+#define PMCPL_CT_MAXLINE 1024 /* TODO: dynamic. */
 
 struct pmcpl_ct_line {
-	unsigned	ln_sum;
-	unsigned	ln_index;
+	unsigned ln_sum;
+	unsigned ln_index;
 };
 
-static struct pmcpl_ct_line	pmcpl_ct_topmax[PMCPL_CT_MAXLINE+1];
+static struct pmcpl_ct_line pmcpl_ct_topmax[PMCPL_CT_MAXLINE + 1];
 static struct pmcpl_ct_node
-    *pmcpl_ct_topscreen[PMCPL_CT_MAXCOL+1][PMCPL_CT_MAXLINE+1];
+    *pmcpl_ct_topscreen[PMCPL_CT_MAXCOL + 1][PMCPL_CT_MAXLINE + 1];
 
 /*
  * All nodes indexed by function/image name are placed in a hash table.
  */
-static STAILQ_HEAD(,pmcpl_ct_node_hash) pmcpl_ct_node_hash[PMCSTAT_NHASH];
+static STAILQ_HEAD(, pmcpl_ct_node_hash) pmcpl_ct_node_hash[PMCSTAT_NHASH];
 
 /*
  * Root node for the graph.
@@ -191,7 +189,7 @@ pmcpl_ct_samples_grow(struct pmcpl_ct_sample *samples)
 
 	/* Enough storage. */
 	if (pmcstat_npmcs <= samples->npmcs)
-                return;
+		return;
 
 	npmcs = samples->npmcs +
 	    max(pmcstat_npmcs - samples->npmcs, PMCPL_CT_GROWSIZE);
@@ -268,13 +266,13 @@ pmcpl_ct_instr_grow(int cursize, int *maxsize, struct pmcpl_ct_instr **items)
  */
 
 static void
-pmcpl_ct_instr_add(struct pmcpl_ct_node *ct, int pmcin,
-    uintfptr_t pc, unsigned v)
+pmcpl_ct_instr_add(struct pmcpl_ct_node *ct, int pmcin, uintfptr_t pc,
+    unsigned v)
 {
 	int i;
 	struct pmcpl_ct_instr *in;
 
-	for (i = 0; i<ct->pct_ninstr; i++) {
+	for (i = 0; i < ct->pct_ninstr; i++) {
 		if (ct->pct_instr[i].pctf_func == pc) {
 			in = &ct->pct_instr[i];
 			pmcpl_ct_samples_grow(&in->pctf_samples);
@@ -306,19 +304,19 @@ pmcpl_ct_node_allocate(void)
 
 	pmcpl_ct_samples_init(&ct->pct_samples);
 
-	ct->pct_sym	= NULL;
-	ct->pct_image	= NULL;
-	ct->pct_func	= 0;
+	ct->pct_sym = NULL;
+	ct->pct_image = NULL;
+	ct->pct_func = 0;
 
-	ct->pct_narc	= 0;
-	ct->pct_arc_c	= 0;
-	ct->pct_arc	= NULL;
+	ct->pct_narc = 0;
+	ct->pct_arc_c = 0;
+	ct->pct_arc = NULL;
 
-	ct->pct_ninstr	= 0;
-	ct->pct_instr_c	= 0;
-	ct->pct_instr	= NULL;
+	ct->pct_ninstr = 0;
+	ct->pct_instr_c = 0;
+	ct->pct_instr = NULL;
 
-	ct->pct_color   = PMCPL_PCT_WHITE;
+	ct->pct_color = PMCPL_PCT_WHITE;
 
 	return (ct);
 }
@@ -353,7 +351,7 @@ pmcpl_ct_node_cleartag(void)
 	struct pmcpl_ct_node_hash *pch;
 
 	for (i = 0; i < PMCSTAT_NHASH; i++)
-		STAILQ_FOREACH(pch, &pmcpl_ct_node_hash[i], pch_next)
+		STAILQ_FOREACH (pch, &pmcpl_ct_node_hash[i], pch_next)
 			pch->pch_ctnode->pct_color = PMCPL_PCT_WHITE;
 
 	pmcpl_ct_root->pct_color = PMCPL_PCT_WHITE;
@@ -361,7 +359,7 @@ pmcpl_ct_node_cleartag(void)
 
 /*
  * Print the callchain line by line with maximum cost at top.
- */ 
+ */
 
 static int
 pmcpl_ct_node_dumptop(int pmcin, struct pmcpl_ct_node *ct,
@@ -388,21 +386,20 @@ pmcpl_ct_node_dumptop(int pmcin, struct pmcpl_ct_node *ct,
 	for (i = 0; i < ct->pct_narc; i++) {
 		arc = &ct->pct_arc[i];
 		if (arc->pcta_child->pct_color != PMCPL_PCT_GREY &&
-		    PMCPL_CT_SAMPLE(pmcin,
-		    &arc->pcta_samples) != 0 &&
-		    PMCPL_CT_SAMPLEP(pmcin,
-		    &arc->pcta_samples) > pmcstat_threshold) {
+		    PMCPL_CT_SAMPLE(pmcin, &arc->pcta_samples) != 0 &&
+		    PMCPL_CT_SAMPLEP(pmcin, &arc->pcta_samples) >
+			pmcstat_threshold) {
 			terminal = 0;
 			break;
 		}
 	}
 
 	if (ct->pct_narc == 0 || terminal) {
-		pmcpl_ct_topscreen[x+1][*y] = NULL;
+		pmcpl_ct_topscreen[x + 1][*y] = NULL;
 		if (*y >= PMCPL_CT_MAXLINE)
 			return 1;
 		*y = *y + 1;
-		for (i=0; i < x; i++)
+		for (i = 0; i < x; i++)
 			pmcpl_ct_topscreen[i][*y] =
 			    pmcpl_ct_topscreen[i][*y - 1];
 		return 0;
@@ -410,14 +407,13 @@ pmcpl_ct_node_dumptop(int pmcin, struct pmcpl_ct_node *ct,
 
 	ct->pct_color = PMCPL_PCT_GREY;
 	for (i = 0; i < ct->pct_narc; i++) {
-		if (PMCPL_CT_SAMPLE(pmcin,
-		    &ct->pct_arc[i].pcta_samples) == 0)
+		if (PMCPL_CT_SAMPLE(pmcin, &ct->pct_arc[i].pcta_samples) == 0)
 			continue;
-		if (PMCPL_CT_SAMPLEP(pmcin,
-		    &ct->pct_arc[i].pcta_samples) > pmcstat_threshold) {
+		if (PMCPL_CT_SAMPLEP(pmcin, &ct->pct_arc[i].pcta_samples) >
+		    pmcstat_threshold) {
 			if (pmcpl_ct_node_dumptop(pmcin,
-			        ct->pct_arc[i].pcta_child,
-			        rsamples, x+1, y)) {
+				ct->pct_arc[i].pcta_child, rsamples, x + 1,
+				y)) {
 				ct->pct_color = PMCPL_PCT_BLACK;
 				return 1;
 			}
@@ -436,8 +432,8 @@ pmcpl_ct_line_compare(const void *a, const void *b)
 {
 	const struct pmcpl_ct_line *ct1, *ct2;
 
-	ct1 = (const struct pmcpl_ct_line *) a;
-	ct2 = (const struct pmcpl_ct_line *) b;
+	ct1 = (const struct pmcpl_ct_line *)a;
+	ct2 = (const struct pmcpl_ct_line *)b;
 
 	/* Sort in reverse order */
 	if (ct1->ln_sum < ct2->ln_sum)
@@ -454,10 +450,10 @@ pmcpl_ct_line_compare(const void *a, const void *b)
 static void
 pmcpl_ct_node_printtop(struct pmcpl_ct_sample *rsamples, int pmcin, int maxy)
 {
-#undef	TS
-#undef	TSI
-#define	TS(x, y)	(pmcpl_ct_topscreen[x][y])
-#define	TSI(x, y)	(pmcpl_ct_topscreen[x][pmcpl_ct_topmax[y].ln_index])
+#undef TS
+#undef TSI
+#define TS(x, y) (pmcpl_ct_topscreen[x][y])
+#define TSI(x, y) (pmcpl_ct_topscreen[x][pmcpl_ct_topmax[y].ln_index])
 
 	int v_attrs, ns_len, vs_len, is_len, width, indentwidth, x, y;
 	float v;
@@ -468,7 +464,7 @@ pmcpl_ct_node_printtop(struct pmcpl_ct_sample *rsamples, int pmcin, int maxy)
 	/*
 	 * Sort by line cost.
 	 */
-	for (y = 0; ; y++) {
+	for (y = 0;; y++) {
 		ct = TS(1, y);
 		if (ct == NULL)
 			break;
@@ -476,8 +472,8 @@ pmcpl_ct_node_printtop(struct pmcpl_ct_sample *rsamples, int pmcin, int maxy)
 		pmcpl_ct_topmax[y].ln_sum = 0;
 		pmcpl_ct_topmax[y].ln_index = y;
 		for (x = 1; TS(x, y) != NULL; x++) {
-			pmcpl_ct_topmax[y].ln_sum +=
-			    PMCPL_CT_SAMPLE(pmcin, &TS(x, y)->pct_samples);
+			pmcpl_ct_topmax[y].ln_sum += PMCPL_CT_SAMPLE(pmcin,
+			    &TS(x, y)->pct_samples);
 		}
 	}
 	qsort(pmcpl_ct_topmax, y, sizeof(pmcpl_ct_topmax[0]),
@@ -493,8 +489,7 @@ pmcpl_ct_node_printtop(struct pmcpl_ct_sample *rsamples, int pmcin, int maxy)
 			PMCSTAT_PRINTW("\n");
 
 		/* Output sum. */
-		v = pmcpl_ct_topmax[y].ln_sum * 100.0 /
-		    rsamples->sb[pmcin];
+		v = pmcpl_ct_topmax[y].ln_sum * 100.0 / rsamples->sb[pmcin];
 		snprintf(vs, sizeof(vs), "%.1f", v);
 		v_attrs = PMCSTAT_ATTRPERCENT(v);
 		PMCSTAT_ATTRON(v_attrs);
@@ -505,35 +500,39 @@ pmcpl_ct_node_printtop(struct pmcpl_ct_sample *rsamples, int pmcin, int maxy)
 
 		for (x = 1; (ct = TSI(x, y)) != NULL; x++) {
 
-			vs[0] = '\0'; vs_len = 0;
-			is[0] = '\0'; is_len = 0;
+			vs[0] = '\0';
+			vs_len = 0;
+			is[0] = '\0';
+			is_len = 0;
 
 			/* Format value. */
 			v = PMCPL_CT_SAMPLEP(pmcin, &ct->pct_samples);
 			if (v > pmcstat_threshold)
-				vs_len  = snprintf(vs, sizeof(vs),
-				    "(%.1f%%)", v);
+				vs_len = snprintf(vs, sizeof(vs), "(%.1f%%)",
+				    v);
 			v_attrs = PMCSTAT_ATTRPERCENT(v);
 
 			if (pmcstat_skiplink && v <= pmcstat_threshold) {
 				strlcpy(ns, ".", sizeof(ns));
 				ns_len = 1;
 			} else {
-			if (ct->pct_sym != NULL) {
-				ns_len = snprintf(ns, sizeof(ns), "%s",
-				    pmcstat_string_unintern(ct->pct_sym->ps_name));
-			} else
-				ns_len = snprintf(ns, sizeof(ns), "%p",
-				    (void *)ct->pct_func);
+				if (ct->pct_sym != NULL) {
+					ns_len = snprintf(ns, sizeof(ns), "%s",
+					    pmcstat_string_unintern(
+						ct->pct_sym->ps_name));
+				} else
+					ns_len = snprintf(ns, sizeof(ns), "%p",
+					    (void *)ct->pct_func);
 
-			/* Format image. */
-			if (x == 1 ||
-			    TSI(x-1, y)->pct_image != ct->pct_image)
-				is_len = snprintf(is, sizeof(is), "@%s",
-				    pmcstat_string_unintern(ct->pct_image->pi_name));
+				/* Format image. */
+				if (x == 1 ||
+				    TSI(x - 1, y)->pct_image != ct->pct_image)
+					is_len = snprintf(is, sizeof(is), "@%s",
+					    pmcstat_string_unintern(
+						ct->pct_image->pi_name));
 
-			/* Check for line wrap. */
-			width += ns_len + is_len + vs_len + 1;
+				/* Check for line wrap. */
+				width += ns_len + is_len + vs_len + 1;
 			}
 			if (width >= pmcstat_displaywidth) {
 				maxy--;
@@ -567,13 +566,13 @@ pmcpl_ct_topdisplay(void)
 	PMCSTAT_PRINTW("%5.5s %s\n", "%SAMP", "CALLTREE");
 
 	y = 0;
-	if (pmcpl_ct_node_dumptop(pmcstat_pmcinfilter,
-	    pmcpl_ct_root, rsamples, 0, &y))
+	if (pmcpl_ct_node_dumptop(pmcstat_pmcinfilter, pmcpl_ct_root, rsamples,
+		0, &y))
 		PMCSTAT_PRINTW("...\n");
 	pmcpl_ct_topscreen[1][y] = NULL;
 
-	pmcpl_ct_node_printtop(rsamples,
-	    pmcstat_pmcinfilter, pmcstat_displayheight - 2);
+	pmcpl_ct_node_printtop(rsamples, pmcstat_pmcinfilter,
+	    pmcstat_displayheight - 2);
 
 	pmcpl_ct_samples_free(rsamples);
 }
@@ -607,8 +606,8 @@ pmcpl_ct_topkeypress(int c, void *arg)
  */
 
 static void
-pmcpl_ct_node_update(struct pmcpl_ct_node *parent,
-    struct pmcpl_ct_node *child, int pmcin, unsigned v, int cd)
+pmcpl_ct_node_update(struct pmcpl_ct_node *parent, struct pmcpl_ct_node *child,
+    int pmcin, unsigned v, int cd)
 {
 	struct pmcpl_ct_arc *arc;
 	int i;
@@ -626,12 +625,13 @@ pmcpl_ct_node_update(struct pmcpl_ct_node *parent,
 			arc->pcta_samples.sb[pmcin] += v;
 			/* Estimate call count. */
 			if (cd) {
-			pmcpl_ct_samples_grow(&arc->pcta_callid);
-			if (pmcpl_ct_callid.sb[pmcin] -
-			    arc->pcta_callid.sb[pmcin] > 1)
-				arc->pcta_call++;
-			arc->pcta_callid.sb[pmcin] =
-			    pmcpl_ct_callid.sb[pmcin];
+				pmcpl_ct_samples_grow(&arc->pcta_callid);
+				if (pmcpl_ct_callid.sb[pmcin] -
+					arc->pcta_callid.sb[pmcin] >
+				    1)
+					arc->pcta_call++;
+				arc->pcta_callid.sb[pmcin] =
+				    pmcpl_ct_callid.sb[pmcin];
 			}
 			return;
 		}
@@ -640,8 +640,8 @@ pmcpl_ct_node_update(struct pmcpl_ct_node *parent,
 	/*
 	 * No arc found for us, add ourself to the parent.
 	 */
-	pmcpl_ct_arc_grow(parent->pct_narc,
-	    &parent->pct_arc_c, &parent->pct_arc);
+	pmcpl_ct_arc_grow(parent->pct_narc, &parent->pct_arc_c,
+	    &parent->pct_arc);
 	arc = &parent->pct_arc[parent->pct_narc];
 	pmcpl_ct_samples_grow(&arc->pcta_samples);
 	arc->pcta_samples.sb[pmcin] = v;
@@ -666,7 +666,7 @@ pmcpl_ct_node_hash_lookup(struct pmcstat_image *image, uintfptr_t pc,
 	unsigned int hash;
 	struct pmcpl_ct_node *ct;
 	struct pmcpl_ct_node_hash *h;
-	pmcstat_interned_string	ifl, ifn;
+	pmcstat_interned_string ifl, ifn;
 
 	if (fn != NULL) {
 		ifl = pmcstat_string_intern(fl);
@@ -681,7 +681,7 @@ pmcpl_ct_node_hash_lookup(struct pmcstat_image *image, uintfptr_t pc,
 
 	hash &= PMCSTAT_HASH_MASK;
 
-	STAILQ_FOREACH(h, &pmcpl_ct_node_hash[hash], pch_next) {
+	STAILQ_FOREACH (h, &pmcpl_ct_node_hash[hash], pch_next) {
 		ct = h->pch_ctnode;
 
 		assert(ct != NULL);
@@ -733,11 +733,11 @@ pmcpl_ct_process(struct pmcstat_process *pp, struct pmcstat_pmcrecord *pmcr,
 	struct pmcstat_pcmap *ppm[PMC_CALLCHAIN_DEPTH_MAX];
 	struct pmcstat_process *km;
 	struct pmcpl_ct_node *ct;
-	struct pmcpl_ct_node *ctl[PMC_CALLCHAIN_DEPTH_MAX+1];
+	struct pmcpl_ct_node *ctl[PMC_CALLCHAIN_DEPTH_MAX + 1];
 
-	(void) cpu;
+	(void)cpu;
 
-	assert(nsamples>0 && nsamples<=PMC_CALLCHAIN_DEPTH_MAX);
+	assert(nsamples > 0 && nsamples <= PMC_CALLCHAIN_DEPTH_MAX);
 
 	/* Get the PMC index. */
 	pmcin = pmcr->pr_pmcin;
@@ -748,8 +748,7 @@ pmcpl_ct_process(struct pmcstat_process *pp, struct pmcstat_pmcrecord *pmcr,
 	 */
 	km = pmcstat_kernproc;
 	for (n = 0; n < (int)nsamples; n++) {
-		ppm[n] = pmcstat_process_find_map(usermode ?
-		    pp : km, cc[n]);
+		ppm[n] = pmcstat_process_find_map(usermode ? pp : km, cc[n]);
 		if (ppm[n] == NULL) {
 			/* Detect full frame capture (kernel + user). */
 			if (!usermode) {
@@ -777,8 +776,8 @@ pmcpl_ct_process(struct pmcstat_process *pp, struct pmcstat_pmcrecord *pmcr,
 	ctl[0] = pmcpl_ct_root;
 	for (i = 1; n >= 0; n--) {
 		image = ppm[n]->ppm_image;
-		loadaddress = ppm[n]->ppm_lowpc +
-		    image->pi_vaddr - image->pi_start;
+		loadaddress = ppm[n]->ppm_lowpc + image->pi_vaddr -
+		    image->pi_start;
 		/* Convert to an offset in the image. */
 		pc = cc[n] - loadaddress;
 		/*
@@ -804,19 +803,21 @@ pmcpl_ct_process(struct pmcstat_process *pp, struct pmcstat_pmcrecord *pmcr,
 
 	ct = ctl[0];
 	for (i = 1; i < n; i++)
-		pmcpl_ct_node_update(ctl[i-1], ctl[i], pmcin, 1, 1);
+		pmcpl_ct_node_update(ctl[i - 1], ctl[i], pmcin, 1, 1);
 
 	/*
 	 * Increment the sample count for this PMC.
 	 */
-	pmcpl_ct_samples_grow(&ctl[n-1]->pct_samples);
-	ctl[n-1]->pct_samples.sb[pmcin]++;
+	pmcpl_ct_samples_grow(&ctl[n - 1]->pct_samples);
+	ctl[n - 1]->pct_samples.sb[pmcin]++;
 
 	/* Update per instruction sample if required. */
 	if (args.pa_ctdumpinstr)
-		pmcpl_ct_instr_add(ctl[n-1], pmcin, cc[0] -
-		    (ppm[0]->ppm_lowpc + ppm[0]->ppm_image->pi_vaddr -
-		     ppm[0]->ppm_image->pi_start), 1);
+		pmcpl_ct_instr_add(ctl[n - 1], pmcin,
+		    cc[0] -
+			(ppm[0]->ppm_lowpc + ppm[0]->ppm_image->pi_vaddr -
+			    ppm[0]->ppm_image->pi_start),
+		    1);
 }
 
 /*
@@ -824,8 +825,7 @@ pmcpl_ct_process(struct pmcstat_process *pp, struct pmcstat_pmcrecord *pmcr,
  */
 
 static void
-pmcpl_ct_node_printchild(struct pmcpl_ct_node *ct, uintfptr_t paddr,
-    int pline)
+pmcpl_ct_node_printchild(struct pmcpl_ct_node *ct, uintfptr_t paddr, int pline)
 {
 	int i, j, line;
 	uintfptr_t addr;
@@ -838,7 +838,7 @@ pmcpl_ct_node_printchild(struct pmcpl_ct_node *ct, uintfptr_t paddr,
 	 * TODO: attach child cost to the real position in the function.
 	 * TODO: cfn=<fn> / call <ncall> addr(<fn>) / addr(call <fn>) <arccost>
 	 */
-	for (i=0 ; i<ct->pct_narc; i++) {
+	for (i = 0; i < ct->pct_narc; i++) {
 		child = ct->pct_arc[i].pcta_child;
 		/* Object binary. */
 		fprintf(args.pa_graphfile, "cob=%s\n",
@@ -852,19 +852,18 @@ pmcpl_ct_node_printchild(struct pmcpl_ct_node *ct, uintfptr_t paddr,
 			    pmcstat_string_unintern(child->pct_ifl),
 			    pmcstat_string_unintern(child->pct_ifn));
 		} else if (pmcstat_image_addr2line(child->pct_image, addr,
-		    sourcefile, sizeof(sourcefile), &line,
-		    funcname, sizeof(funcname))) {
+			       sourcefile, sizeof(sourcefile), &line, funcname,
+			       sizeof(funcname))) {
 			fprintf(args.pa_graphfile, "cfi=%s\ncfn=%s\n",
-				sourcefile, funcname);
+			    sourcefile, funcname);
 		} else {
 			if (child->pct_sym != NULL)
-				fprintf(args.pa_graphfile,
-				    "cfi=???\ncfn=%s\n",
+				fprintf(args.pa_graphfile, "cfi=???\ncfn=%s\n",
 				    pmcstat_string_unintern(
-				        child->pct_sym->ps_name));
+					child->pct_sym->ps_name));
 			else
-				fprintf(args.pa_graphfile,
-				    "cfi=???\ncfn=%p\n", (void *)addr);
+				fprintf(args.pa_graphfile, "cfi=???\ncfn=%p\n",
+				    (void *)addr);
 		}
 
 		/* Child function address, line and call count. */
@@ -876,7 +875,7 @@ pmcpl_ct_node_printchild(struct pmcpl_ct_node *ct, uintfptr_t paddr,
 		 * TODO: Associate call address to the right location.
 		 */
 		fprintf(args.pa_graphfile, "%p %u", (void *)paddr, pline);
-		for (j = 0; j<pmcstat_npmcs; j++)
+		for (j = 0; j < pmcstat_npmcs; j++)
 			fprintf(args.pa_graphfile, " %u",
 			    PMCPL_CT_SAMPLE(j, &ct->pct_arc[i].pcta_samples));
 		fprintf(args.pa_graphfile, "\n");
@@ -910,11 +909,11 @@ pmcpl_ct_node_printself(struct pmcpl_ct_node *ct)
 		fprintf(args.pa_graphfile, "fl=%s\nfn=%s\n",
 		    pmcstat_string_unintern(ct->pct_ifl),
 		    pmcstat_string_unintern(ct->pct_ifn));
-	} else if (pmcstat_image_addr2line(ct->pct_image, faddr,
-	    sourcefile, sizeof(sourcefile), &fline,
-	    funcname, sizeof(funcname))) {
-		fprintf(args.pa_graphfile, "fl=%s\nfn=%s\n",
-		    sourcefile, funcname);
+	} else if (pmcstat_image_addr2line(ct->pct_image, faddr, sourcefile,
+		       sizeof(sourcefile), &fline, funcname,
+		       sizeof(funcname))) {
+		fprintf(args.pa_graphfile, "fl=%s\nfn=%s\n", sourcefile,
+		    funcname);
 	} else {
 		if (ct->pct_sym != NULL)
 			fprintf(args.pa_graphfile, "fl=???\nfn=%s\n",
@@ -935,21 +934,20 @@ pmcpl_ct_node_printself(struct pmcpl_ct_node *ct)
 			addr = ct->pct_image->pi_vaddr +
 			    ct->pct_instr[i].pctf_func;
 			line = 0;
-			pmcstat_image_addr2line(ct->pct_image, addr,
-			    sourcefile, sizeof(sourcefile), &line,
-			    funcname, sizeof(funcname));
-			fprintf(args.pa_graphfile, "%p %u",
-			    (void *)addr, line);
-			for (j = 0; j<pmcstat_npmcs; j++)
+			pmcstat_image_addr2line(ct->pct_image, addr, sourcefile,
+			    sizeof(sourcefile), &line, funcname,
+			    sizeof(funcname));
+			fprintf(args.pa_graphfile, "%p %u", (void *)addr, line);
+			for (j = 0; j < pmcstat_npmcs; j++)
 				fprintf(args.pa_graphfile, " %u",
 				    PMCPL_CT_SAMPLE(j,
-				    &ct->pct_instr[i].pctf_samples));
+					&ct->pct_instr[i].pctf_samples));
 			fprintf(args.pa_graphfile, "\n");
 		}
 	} else {
 		/* Global cost function cost. */
 		fprintf(args.pa_graphfile, "%p %u", (void *)faddr, fline);
-		for (i = 0; i<pmcstat_npmcs ; i++)
+		for (i = 0; i < pmcstat_npmcs; i++)
 			fprintf(args.pa_graphfile, " %u",
 			    PMCPL_CT_SAMPLE(i, &ct->pct_samples));
 		fprintf(args.pa_graphfile, "\n");
@@ -966,7 +964,7 @@ pmcpl_ct_printnode(struct pmcpl_ct_node *ct)
 	if (ct == pmcpl_ct_root) {
 		fprintf(args.pa_graphfile, "fn=root\n");
 		fprintf(args.pa_graphfile, "0x0 1");
-		for (i = 0; i<pmcstat_npmcs ; i++)
+		for (i = 0; i < pmcstat_npmcs; i++)
 			fprintf(args.pa_graphfile, " 0");
 		fprintf(args.pa_graphfile, "\n");
 		pmcpl_ct_node_printchild(ct, 0, 0);
@@ -984,7 +982,7 @@ pmcpl_ct_bfs(struct pmcpl_ct_node *ct)
 	int i;
 	struct pmcpl_ct_node_hash *pch, *pchc;
 	struct pmcpl_ct_node *child;
-	STAILQ_HEAD(,pmcpl_ct_node_hash) q;
+	STAILQ_HEAD(, pmcpl_ct_node_hash) q;
 
 	STAILQ_INIT(&q);
 	if ((pch = malloc(sizeof(*pch))) == NULL)
@@ -997,7 +995,7 @@ pmcpl_ct_bfs(struct pmcpl_ct_node *ct)
 		pch = STAILQ_FIRST(&q);
 		STAILQ_REMOVE_HEAD(&q, pch_next);
 		pmcpl_ct_printnode(pch->pch_ctnode);
-		for (i = 0; i<pch->pch_ctnode->pct_narc; i++) {
+		for (i = 0; i < pch->pch_ctnode->pct_narc; i++) {
 			child = pch->pch_ctnode->pct_arc[i].pcta_child;
 			if (child->pct_color == PMCPL_PCT_WHITE) {
 				child->pct_color = PMCPL_PCT_BLACK;
@@ -1032,18 +1030,15 @@ _pmcpl_ct_expand_inline(struct pmcpl_ct_node *ct)
 	 */
 	faddr = ct->pct_image->pi_vaddr + ct->pct_func;
 	fline = 0;
-	if (!pmcstat_image_addr2line(ct->pct_image, faddr,
-	    sourcefile, sizeof(sourcefile), &fline,
-	    ffuncname, sizeof(ffuncname)))
+	if (!pmcstat_image_addr2line(ct->pct_image, faddr, sourcefile,
+		sizeof(sourcefile), &fline, ffuncname, sizeof(ffuncname)))
 		return;
 
 	for (i = 0; i < ct->pct_ninstr; i++) {
-		addr = ct->pct_image->pi_vaddr +
-		    ct->pct_instr[i].pctf_func;
+		addr = ct->pct_image->pi_vaddr + ct->pct_instr[i].pctf_func;
 		line = 0;
-		if (!pmcstat_image_addr2line(ct->pct_image, addr,
-		    sourcefile, sizeof(sourcefile), &line,
-		    funcname, sizeof(funcname)))
+		if (!pmcstat_image_addr2line(ct->pct_image, addr, sourcefile,
+			sizeof(sourcefile), &line, funcname, sizeof(funcname)))
 			continue;
 
 		if (strcmp(funcname, ffuncname) == 0)
@@ -1060,15 +1055,13 @@ _pmcpl_ct_expand_inline(struct pmcpl_ct_node *ct)
 			    "WARNING: inlined function at %p %s in %s\n",
 			    (void *)addr, funcname, ffuncname);
 
-		snprintf(buffer, sizeof(buffer), "%s@%s",
-			funcname, ffuncname);
-		child = pmcpl_ct_node_hash_lookup(ct->pct_image,
-		    ct->pct_func, ct->pct_sym, sourcefile, buffer);
+		snprintf(buffer, sizeof(buffer), "%s@%s", funcname, ffuncname);
+		child = pmcpl_ct_node_hash_lookup(ct->pct_image, ct->pct_func,
+		    ct->pct_sym, sourcefile, buffer);
 		assert(child != NULL);
 		pc = ct->pct_instr[i].pctf_func;
-		for (j = 0; j<pmcstat_npmcs; j++) {
-			v = PMCPL_CT_SAMPLE(j,
-			    &ct->pct_instr[i].pctf_samples);
+		for (j = 0; j < pmcstat_npmcs; j++) {
+			v = PMCPL_CT_SAMPLE(j, &ct->pct_instr[i].pctf_samples);
 			if (v == 0)
 				continue;
 			pmcpl_ct_instr_add(child, j, pc, v);
@@ -1091,7 +1084,7 @@ pmcpl_ct_expand_inline(void)
 		return;
 
 	for (i = 0; i < PMCSTAT_NHASH; i++)
-		STAILQ_FOREACH(pch, &pmcpl_ct_node_hash[i], pch_next)
+		STAILQ_FOREACH (pch, &pmcpl_ct_node_hash[i], pch_next)
 			if (pch->pch_ctnode->pct_type == PMCPL_PCT_ADDR)
 				_pmcpl_ct_expand_inline(pch->pch_ctnode);
 }
@@ -1125,18 +1118,18 @@ pmcpl_ct_print(void)
 	pmcpl_ct_expand_inline();
 
 	fprintf(args.pa_graphfile,
-		"version: 1\n"
-		"creator: pmcstat\n"
-		"positions: instr line\n"
-		"events:");
-	for (i=0; i<pmcstat_npmcs; i++) {
+	    "version: 1\n"
+	    "creator: pmcstat\n"
+	    "positions: instr line\n"
+	    "events:");
+	for (i = 0; i < pmcstat_npmcs; i++) {
 		snprintf(name, sizeof(name), "%s_%d",
 		    pmcstat_pmcindex_to_name(i), i);
 		pmcpl_ct_fixup_pmcname(name);
 		fprintf(args.pa_graphfile, " %s", name);
 	}
 	fprintf(args.pa_graphfile, "\nsummary:");
-	for (i=0; i<pmcstat_npmcs ; i++)
+	for (i = 0; i < pmcstat_npmcs; i++)
 		fprintf(args.pa_graphfile, " %u",
 		    PMCPL_CT_SAMPLE(i, &rsamples));
 	fprintf(args.pa_graphfile, "\n");
@@ -1149,7 +1142,7 @@ pmcpl_ct_configure(char *opt)
 {
 
 	if (strncmp(opt, "skiplink=", 9) == 0) {
-		pmcstat_skiplink = atoi(opt+9);
+		pmcstat_skiplink = atoi(opt + 9);
 	} else
 		return (0);
 
@@ -1177,7 +1170,7 @@ pmcpl_ct_shutdown(FILE *mf)
 	int i;
 	struct pmcpl_ct_node_hash *pch, *pchtmp;
 
-	(void) mf;
+	(void)mf;
 
 	if (args.pa_flags & FLAG_DO_CALLGRAPHS)
 		pmcpl_ct_print();
@@ -1187,7 +1180,7 @@ pmcpl_ct_shutdown(FILE *mf)
 	 */
 
 	for (i = 0; i < PMCSTAT_NHASH; i++) {
-		STAILQ_FOREACH_SAFE(pch, &pmcpl_ct_node_hash[i], pch_next,
+		STAILQ_FOREACH_SAFE (pch, &pmcpl_ct_node_hash[i], pch_next,
 		    pchtmp) {
 			pmcpl_ct_node_free(pch->pch_ctnode);
 			free(pch);
@@ -1199,4 +1192,3 @@ pmcpl_ct_shutdown(FILE *mf)
 
 	pmcpl_ct_samples_free(&pmcpl_ct_callid);
 }
-

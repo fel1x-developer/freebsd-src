@@ -33,7 +33,7 @@
  */
 
 #ifndef _MACHINE_CPUFUNC_H_
-#define	_MACHINE_CPUFUNC_H_
+#define _MACHINE_CPUFUNC_H_
 
 static __inline void
 breakpoint(void)
@@ -51,10 +51,9 @@ intr_disable(void)
 {
 	uint64_t ret;
 
-	__asm __volatile(
-		"csrrci %0, sstatus, %1"
-		: "=&r" (ret) : "i" (SSTATUS_SIE)
-	);
+	__asm __volatile("csrrci %0, sstatus, %1"
+			 : "=&r"(ret)
+			 : "i"(SSTATUS_SIE));
 
 	return (ret & (SSTATUS_SIE));
 }
@@ -63,20 +62,14 @@ static __inline void
 intr_restore(register_t s)
 {
 
-	__asm __volatile(
-		"csrs sstatus, %0"
-		:: "r" (s)
-	);
+	__asm __volatile("csrs sstatus, %0" ::"r"(s));
 }
 
 static __inline void
 intr_enable(void)
 {
 
-	__asm __volatile(
-		"csrsi sstatus, %0"
-		:: "i" (SSTATUS_SIE)
-	);
+	__asm __volatile("csrsi sstatus, %0" ::"i"(SSTATUS_SIE));
 }
 
 /* NB: fence() is defined as a macro in <machine/atomic.h>. */
@@ -99,28 +92,28 @@ static __inline void
 sfence_vma_page(uintptr_t addr)
 {
 
-	__asm __volatile("sfence.vma %0" :: "r" (addr) : "memory");
+	__asm __volatile("sfence.vma %0" ::"r"(addr) : "memory");
 }
 
-#define	rdcycle()			csr_read64(cycle)
-#define	rdtime()			csr_read64(time)
-#define	rdinstret()			csr_read64(instret)
-#define	rdhpmcounter(n)			csr_read64(hpmcounter##n)
+#define rdcycle() csr_read64(cycle)
+#define rdtime() csr_read64(time)
+#define rdinstret() csr_read64(instret)
+#define rdhpmcounter(n) csr_read64(hpmcounter##n)
 
 extern int64_t dcache_line_size;
 extern int64_t icache_line_size;
 
-#define	cpu_dcache_wbinv_range(a, s)
-#define	cpu_dcache_inv_range(a, s)
-#define	cpu_dcache_wb_range(a, s)
+#define cpu_dcache_wbinv_range(a, s)
+#define cpu_dcache_inv_range(a, s)
+#define cpu_dcache_wb_range(a, s)
 
-#define	cpu_idcache_wbinv_range(a, s)
-#define	cpu_icache_sync_range(a, s)
-#define	cpu_icache_sync_range_checked(a, s)
+#define cpu_idcache_wbinv_range(a, s)
+#define cpu_icache_sync_range(a, s)
+#define cpu_icache_sync_range_checked(a, s)
 
-#define	cpufunc_nullop()		riscv_nullop()
+#define cpufunc_nullop() riscv_nullop()
 
 void riscv_nullop(void);
 
-#endif	/* _KERNEL */
-#endif	/* _MACHINE_CPUFUNC_H_ */
+#endif /* _KERNEL */
+#endif /* _MACHINE_CPUFUNC_H_ */

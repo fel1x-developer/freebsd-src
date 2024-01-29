@@ -29,4 +29,4 @@
  * SUCH DAMAGE.
  */
 
-#define	_PATH_TMP	"/tmp/xstrXXXXXX"
+#define _PATH_TMP "/tmp/xstrXXXXXX"

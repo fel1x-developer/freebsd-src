@@ -30,8 +30,8 @@
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
-#include <arpa/inet.h>
 
+#include <arpa/inet.h>
 #include <err.h>
 #include <errno.h>
 #include <getopt.h>
@@ -59,8 +59,8 @@ static int verbose = 0;
  * us to test whether the same rights are granted using a socket with a
  * privileged cached credential vs. a socket with a regular credential.
  */
-#define	PRIV_ASIS	0
-#define	PRIV_GETROOT	1
+#define PRIV_ASIS 0
+#define PRIV_GETROOT 1
 static int
 get_socket_unpriv(int type)
 {
@@ -76,7 +76,7 @@ get_socket_priv(int type)
 
 	if (getuid() != 0)
 		errx(-1, "get_sock_priv: running without real uid 0");
-	
+
 	olduid = geteuid();
 	if (seteuid(0) < 0)
 		err(-1, "get_sock_priv: seteuid(0)");
@@ -124,19 +124,22 @@ test_ip_options(int sock, const char *socktypename)
 		    socktypename);
 
 	if (len != 0)
-		errx(-1, "test_ip_options(%s): initial getsockopt() returned "
-		    "%d bytes", socktypename, len);
+		errx(-1,
+		    "test_ip_options(%s): initial getsockopt() returned "
+		    "%d bytes",
+		    socktypename, len);
 
-#define	TEST_MAGIC	0xc34e4212
-#define	NEW_OPTIONS	htonl(IPOPT_EOL | (IPOPT_NOP << 8) | (IPOPT_NOP << 16) \
-			 | (IPOPT_NOP << 24))
+#define TEST_MAGIC 0xc34e4212
+#define NEW_OPTIONS                                              \
+	htonl(IPOPT_EOL | (IPOPT_NOP << 8) | (IPOPT_NOP << 16) | \
+	    (IPOPT_NOP << 24))
 
 	/*
 	 * Write some new options into the socket.
 	 */
 	new_options = NEW_OPTIONS;
 	if (setsockopt(sock, IPPROTO_IP, IP_OPTIONS, &new_options,
-	    sizeof(new_options)) < 0)
+		sizeof(new_options)) < 0)
 		err(-1, "test_ip_options(%s): setsockopt(NOP|NOP|NOP|EOL)",
 		    socktypename);
 
@@ -157,24 +160,29 @@ test_ip_options(int sock, const char *socktypename)
 	 * Getting the right amount back is important.
 	 */
 	if (len != sizeof(new_options))
-		errx(-1, "test_ip_options(%s): getsockopt() after set "
-		    "returned %d bytes of data", socktypename, len);
+		errx(-1,
+		    "test_ip_options(%s): getsockopt() after set "
+		    "returned %d bytes of data",
+		    socktypename, len);
 
 	/*
 	 * One possible failure mode is that the call succeeds but neglects to
 	 * copy out the data.
- 	 */
+	 */
 	if (test_options[0] == TEST_MAGIC)
-		errx(-1, "test_ip_options(%s): getsockopt() after set didn't "
-		    "return data", socktypename);
+		errx(-1,
+		    "test_ip_options(%s): getsockopt() after set didn't "
+		    "return data",
+		    socktypename);
 
 	/*
 	 * Make sure we get back what we wrote on.
 	 */
 	if (new_options != test_options[0])
-		errx(-1, "test_ip_options(%s): getsockopt() after set "
-		    "returned wrong options (%08x, %08x)", socktypename,
-		    new_options, test_options[0]);
+		errx(-1,
+		    "test_ip_options(%s): getsockopt() after set "
+		    "returned wrong options (%08x, %08x)",
+		    socktypename, new_options, test_options[0]);
 
 	/*
 	 * Now we reset the value to make sure clearing works.
@@ -194,8 +202,10 @@ test_ip_options(int sock, const char *socktypename)
 		    socktypename);
 
 	if (len != 0)
-		errx(-1, "test_ip_options(%s): getsockopt() after reset "
-		    "returned %d bytes", socktypename, len);
+		errx(-1,
+		    "test_ip_options(%s): getsockopt() after reset "
+		    "returned %d bytes",
+		    socktypename, len);
 }
 
 /*
@@ -228,20 +238,23 @@ test_ip_hdrincl(void)
 		err(-1, "test_ip_hdrincl(): initial getsockopt(IP_HDRINCL)");
 
 	if (errno != ENOPROTOOPT)
-		errx(-1, "test_ip_hdrincl(): initial getsockopt(IP_HDRINC) "
-		    "returned %d (%s) not ENOPROTOOPT", errno,
-		    strerror(errno));
+		errx(-1,
+		    "test_ip_hdrincl(): initial getsockopt(IP_HDRINC) "
+		    "returned %d (%s) not ENOPROTOOPT",
+		    errno, strerror(errno));
 
 	flag[0] = 1;
-	if (setsockopt(sock, IPPROTO_IP, IP_HDRINCL, flag, sizeof(flag[0]))
-	    == 0)
-		err(-1,"test_ip_hdrincl(): setsockopt(IP_HDRINCL) on TCP "
+	if (setsockopt(sock, IPPROTO_IP, IP_HDRINCL, flag, sizeof(flag[0])) ==
+	    0)
+		err(-1,
+		    "test_ip_hdrincl(): setsockopt(IP_HDRINCL) on TCP "
 		    "succeeded\n");
 
 	if (errno != ENOPROTOOPT)
-		errx(-1, "test_ip_hdrincl(): setsockopt(IP_HDRINCL) on TCP "
-		    "returned %d (%s) not ENOPROTOOPT\n", errno,
-		    strerror(errno));
+		errx(-1,
+		    "test_ip_hdrincl(): setsockopt(IP_HDRINCL) on TCP "
+		    "returned %d (%s) not ENOPROTOOPT\n",
+		    errno, strerror(errno));
 
 	close(sock);
 
@@ -255,23 +268,27 @@ test_ip_hdrincl(void)
 	flag[0] = -1;
 	len = sizeof(flag[0]);
 	if (getsockopt(sock, IPPROTO_IP, IP_HDRINCL, flag, &len) == 0)
-		err(-1, "test_ip_hdrincl(): getsockopt(IP_HDRINCL) on UDP "
+		err(-1,
+		    "test_ip_hdrincl(): getsockopt(IP_HDRINCL) on UDP "
 		    "succeeded\n");
 
 	if (errno != ENOPROTOOPT)
-		errx(-1, "test_ip_hdrincl(): getsockopt(IP_HDRINCL) on UDP "
-		    "returned %d (%s) not ENOPROTOOPT\n", errno,
-		    strerror(errno));
+		errx(-1,
+		    "test_ip_hdrincl(): getsockopt(IP_HDRINCL) on UDP "
+		    "returned %d (%s) not ENOPROTOOPT\n",
+		    errno, strerror(errno));
 
-	if (setsockopt(sock, IPPROTO_IP, IP_HDRINCL, flag, sizeof(flag[0]))
-	    == 0)
-		err(-1, "test_ip_hdrincl(): setsockopt(IP_HDRINCL) on UDP "
+	if (setsockopt(sock, IPPROTO_IP, IP_HDRINCL, flag, sizeof(flag[0])) ==
+	    0)
+		err(-1,
+		    "test_ip_hdrincl(): setsockopt(IP_HDRINCL) on UDP "
 		    "succeeded\n");
 
 	if (errno != ENOPROTOOPT)
-		errx(-1, "test_ip_hdrincl(): setsockopt(IP_HDRINCL) on UDP "
-		    "returned %d (%s) not ENOPROTOOPT\n", errno,
-		    strerror(errno));
+		errx(-1,
+		    "test_ip_hdrincl(): setsockopt(IP_HDRINCL) on UDP "
+		    "returned %d (%s) not ENOPROTOOPT\n",
+		    errno, strerror(errno));
 
 	close(sock);
 
@@ -285,8 +302,10 @@ test_ip_hdrincl(void)
 	sock = socket(PF_INET, SOCK_RAW, 0);
 	if (geteuid() != 0) {
 		if (sock != -1)
-			errx(-1, "test_ip_hdrincl: created raw socket as "
-			    "uid %d", geteuid());
+			errx(-1,
+			    "test_ip_hdrincl: created raw socket as "
+			    "uid %d",
+			    geteuid());
 		return;
 	}
 	if (sock == -1)
@@ -299,12 +318,15 @@ test_ip_hdrincl(void)
 	flag[1] = -1;
 	len = sizeof(flag);
 	if (getsockopt(sock, IPPROTO_IP, IP_HDRINCL, flag, &len) < 0)
-		err(-1, "test_ip_hdrincl(): getsockopt(IP_HDRINCL) on raw "
+		err(-1,
+		    "test_ip_hdrincl(): getsockopt(IP_HDRINCL) on raw "
 		    "socket");
 
 	if (len != sizeof(flag[0]))
-		errx(-1, "test_ip_hdrincl(): %d bytes returned on "
-		    "initial get\n", len);
+		errx(-1,
+		    "test_ip_hdrincl(): %d bytes returned on "
+		    "initial get\n",
+		    len);
 
 	if (flag[0] != 0)
 		errx(-1, "test_ip_hdrincl(): initial flag value of %d\n",
@@ -314,8 +336,7 @@ test_ip_hdrincl(void)
 	 * Enable the IP_HDRINCL flag.
 	 */
 	flag[0] = 1;
-	if (setsockopt(sock, IPPROTO_IP, IP_HDRINCL, flag, sizeof(flag[0]))
-	    < 0)
+	if (setsockopt(sock, IPPROTO_IP, IP_HDRINCL, flag, sizeof(flag[0])) < 0)
 		err(-1, "test_ip_hdrincl(): setsockopt(IP_HDRINCL, 1)");
 
 	/*
@@ -325,25 +346,27 @@ test_ip_hdrincl(void)
 	flag[1] = -1;
 	len = sizeof(flag);
 	if (getsockopt(sock, IPPROTO_IP, IP_HDRINCL, flag, &len) < 0)
-		err(-1, "test_ip_hdrincl(): getsockopt(IP_HDRINCL) after "
+		err(-1,
+		    "test_ip_hdrincl(): getsockopt(IP_HDRINCL) after "
 		    "set");
 
 	if (flag[0] == 0)
-		errx(-1, "test_ip_hdrincl(): getsockopt(IP_HDRINCL) "
-		    "after set had flag of %d\n", flag[0]);
+		errx(-1,
+		    "test_ip_hdrincl(): getsockopt(IP_HDRINCL) "
+		    "after set had flag of %d\n",
+		    flag[0]);
 
-#define	HISTORICAL_INP_HDRINCL	8
+#define HISTORICAL_INP_HDRINCL 8
 	if (flag[0] != HISTORICAL_INP_HDRINCL)
 		warnx("test_ip_hdrincl(): WARNING: getsockopt(IP_H"
-		    "DRINCL) after set had non-historical value of %d\n",
+		      "DRINCL) after set had non-historical value of %d\n",
 		    flag[0]);
 
 	/*
 	 * Reset the IP_HDRINCL flag to 0.
 	 */
 	flag[0] = 0;
-	if (setsockopt(sock, IPPROTO_IP, IP_HDRINCL, flag, sizeof(flag[0]))
-	    < 0)
+	if (setsockopt(sock, IPPROTO_IP, IP_HDRINCL, flag, sizeof(flag[0])) < 0)
 		err(-1, "test_ip_hdrincl(): setsockopt(IP_HDRINCL, 0)");
 
 	/*
@@ -353,12 +376,15 @@ test_ip_hdrincl(void)
 	flag[1] = -1;
 	len = sizeof(flag);
 	if (getsockopt(sock, IPPROTO_IP, IP_HDRINCL, flag, &len) < 0)
-		err(-1, "test_ip_hdrincl(): getsockopt(IP_HDRINCL) after "
+		err(-1,
+		    "test_ip_hdrincl(): getsockopt(IP_HDRINCL) after "
 		    "reset");
 
 	if (flag[0] != 0)
-		errx(-1, "test_ip_hdrincl(): getsockopt(IP_HDRINCL) "
-		    "after set had flag of %d\n", flag[0]);
+		errx(-1,
+		    "test_ip_hdrincl(): getsockopt(IP_HDRINCL) "
+		    "after set had flag of %d\n",
+		    flag[0]);
 
 	close(sock);
 }
@@ -404,17 +430,22 @@ test_ip_uchar(int sock, const char *socktypename, int option,
 		    socktypename, optionname);
 
 	if (len != sizeof(val[0]))
-		errx(-1, "test_ip_uchar(%s, %s): initial getsockopt() "
-		    "returned %d bytes", socktypename, optionname, len);
+		errx(-1,
+		    "test_ip_uchar(%s, %s): initial getsockopt() "
+		    "returned %d bytes",
+		    socktypename, optionname, len);
 
 	if (val[0] == -1)
-		errx(-1, "test_ip_uchar(%s, %s): initial getsockopt() didn't "
-		    "return data", socktypename, optionname);
+		errx(-1,
+		    "test_ip_uchar(%s, %s): initial getsockopt() didn't "
+		    "return data",
+		    socktypename, optionname);
 
 	if (val[0] != initial)
-		errx(-1, "test_ip_uchar(%s, %s): initial getsockopt() "
-		    "returned value of %d, not %d", socktypename, optionname,
-		    val[0], initial);
+		errx(-1,
+		    "test_ip_uchar(%s, %s): initial getsockopt() "
+		    "returned value of %d, not %d",
+		    socktypename, optionname, val[0], initial);
 
 	/*
 	 * Set the field to a valid value.
@@ -422,8 +453,8 @@ test_ip_uchar(int sock, const char *socktypename, int option,
 	val[0] = 128;
 	val[1] = -1;
 	if (setsockopt(sock, IPPROTO_IP, option, val, sizeof(val[0])) < 0)
-		err(-1, "test_ip_uchar(%s, %s): setsockopt(128)",
-		    socktypename, optionname);
+		err(-1, "test_ip_uchar(%s, %s): setsockopt(128)", socktypename,
+		    optionname);
 
 	/*
 	 * Check that when we read back the field, we get the same value.
@@ -432,20 +463,28 @@ test_ip_uchar(int sock, const char *socktypename, int option,
 	val[1] = -1;
 	len = sizeof(val);
 	if (getsockopt(sock, IPPROTO_IP, option, val, &len) < 0)
-		err(-1, "test_ip_uchar(%s, %s): getsockopt() after set to "
-		    "128", socktypename, optionname);
+		err(-1,
+		    "test_ip_uchar(%s, %s): getsockopt() after set to "
+		    "128",
+		    socktypename, optionname);
 
 	if (len != sizeof(val[0]))
-		errx(-1, "test_ip_uchar(%s, %s): getsockopt() after set to "
-		    "128 returned %d bytes", socktypename, optionname, len);
+		errx(-1,
+		    "test_ip_uchar(%s, %s): getsockopt() after set to "
+		    "128 returned %d bytes",
+		    socktypename, optionname, len);
 
 	if (val[0] == -1)
-		errx(-1, "test_ip_uchar(%s, %s): getsockopt() after set to "
-		    "128 didn't return data", socktypename, optionname);
+		errx(-1,
+		    "test_ip_uchar(%s, %s): getsockopt() after set to "
+		    "128 didn't return data",
+		    socktypename, optionname);
 
 	if (val[0] != 128)
-		errx(-1, "test_ip_uchar(%s, %s): getsockopt() after set to "
-		    "128 returned %d", socktypename, optionname, val[0]);
+		errx(-1,
+		    "test_ip_uchar(%s, %s): getsockopt() after set to "
+		    "128 returned %d",
+		    socktypename, optionname, val[0]);
 
 	/*
 	 * Reset the value to 0, check that it was reset.
@@ -453,22 +492,28 @@ test_ip_uchar(int sock, const char *socktypename, int option,
 	val[0] = 0;
 	val[1] = 0;
 	if (setsockopt(sock, IPPROTO_IP, option, val, sizeof(val[0])) < 0)
-		err(-1, "test_ip_uchar(%s, %s): setsockopt() to reset from "
-		    "128", socktypename, optionname);
+		err(-1,
+		    "test_ip_uchar(%s, %s): setsockopt() to reset from "
+		    "128",
+		    socktypename, optionname);
 
 	if (len != sizeof(val[0]))
-		errx(-1, "test_ip_uchar(%s, %s): getsockopt() after reset "
-		   "from 128 returned %d bytes", socktypename, optionname,
-		    len);
+		errx(-1,
+		    "test_ip_uchar(%s, %s): getsockopt() after reset "
+		    "from 128 returned %d bytes",
+		    socktypename, optionname, len);
 
 	if (val[0] == -1)
-		errx(-1, "test_ip_uchar(%s, %s): getsockopt() after reset "
-		    "from 128 didn't return data", socktypename, optionname);
+		errx(-1,
+		    "test_ip_uchar(%s, %s): getsockopt() after reset "
+		    "from 128 didn't return data",
+		    socktypename, optionname);
 
 	if (val[0] != 0)
-		errx(-1, "test_ip_uchar(%s, %s): getsockopt() after reset "
-		    "from 128 returned %d", socktypename, optionname,
-		    val[0]);
+		errx(-1,
+		    "test_ip_uchar(%s, %s): getsockopt() after reset "
+		    "from 128 returned %d",
+		    socktypename, optionname, val[0]);
 
 	/*
 	 * Set the value to something out of range and check that it comes
@@ -493,22 +538,28 @@ test_ip_uchar(int sock, const char *socktypename, int option,
 	val[1] = -1;
 	len = sizeof(val);
 	if (getsockopt(sock, IPPROTO_IP, option, val, &len) < 0)
-		err(-1, "test_ip_uchar(%s, %s): getsockopt() after set to "
-		    "32000", socktypename, optionname);
+		err(-1,
+		    "test_ip_uchar(%s, %s): getsockopt() after set to "
+		    "32000",
+		    socktypename, optionname);
 
 	if (len != sizeof(val[0]))
-		errx(-1, "test_ip_uchar(%s, %s): getsockopt() after set to "
-		    "32000 returned %d bytes", socktypename, optionname,
-		    len);
+		errx(-1,
+		    "test_ip_uchar(%s, %s): getsockopt() after set to "
+		    "32000 returned %d bytes",
+		    socktypename, optionname, len);
 
 	if (val[0] == -1)
-		errx(-1, "test_ip_uchar(%s, %s): getsockopt() after set to "
-		    "32000 didn't return data", socktypename, optionname);
+		errx(-1,
+		    "test_ip_uchar(%s, %s): getsockopt() after set to "
+		    "32000 didn't return data",
+		    socktypename, optionname);
 
 	if (val[0] == 32000)
-		errx(-1, "test_ip_uchar(%s, %s): getsockopt() after set to "
-		    "32000 returned 32000: failed to truncate", socktypename,
-		    optionname);
+		errx(-1,
+		    "test_ip_uchar(%s, %s): getsockopt() after set to "
+		    "32000 returned 32000: failed to truncate",
+		    socktypename, optionname);
 }
 
 /*
@@ -523,8 +574,8 @@ test_ip_uchar(int sock, const char *socktypename, int option,
  * - That we can reset the value.
  * - that on reset, the new value can be read back.
  */
-#define	BOOLEAN_ANYONE		1
-#define	BOOLEAN_ROOTONLY	1
+#define BOOLEAN_ANYONE 1
+#define BOOLEAN_ROOTONLY 1
 static void
 test_ip_boolean(int sock, const char *socktypename, int option,
     char *optionname, int initial, int rootonly)
@@ -549,23 +600,28 @@ test_ip_boolean(int sock, const char *socktypename, int option,
 		err(-1, "test_ip_boolean: initial getsockopt()");
 
 	if (len != sizeof(val[0]))
-		errx(-1, "test_ip_boolean(%s, %s): initial getsockopt() "
-		    "returned %d bytes", socktypename, optionname, len);
+		errx(-1,
+		    "test_ip_boolean(%s, %s): initial getsockopt() "
+		    "returned %d bytes",
+		    socktypename, optionname, len);
 
 	if (val[0] == -1)
-		errx(-1, "test_ip_boolean(%s, %s): initial getsockopt() "
-		    "didn't return data", socktypename, optionname);
+		errx(-1,
+		    "test_ip_boolean(%s, %s): initial getsockopt() "
+		    "didn't return data",
+		    socktypename, optionname);
 
 	if (val[0] != initial)
-		errx(-1, "test_ip_boolean(%s, %s): initial getsockopt() "
-		    "returned %d (expected %d)", socktypename, optionname,
-		    val[0], initial);
+		errx(-1,
+		    "test_ip_boolean(%s, %s): initial getsockopt() "
+		    "returned %d (expected %d)",
+		    socktypename, optionname, val[0], initial);
 
 	/*
 	 * Set the socket option to a new non-default value.
 	 */
-	if (setsockopt(sock, IPPROTO_IP, option, &newvalue, sizeof(newvalue))
-	    < 0)
+	if (setsockopt(sock, IPPROTO_IP, option, &newvalue, sizeof(newvalue)) <
+	    0)
 		err(-1, "test_ip_boolean(%s, %s): setsockopt() to %d",
 		    socktypename, optionname, newvalue);
 
@@ -577,33 +633,38 @@ test_ip_boolean(int sock, const char *socktypename, int option,
 	val[1] = -1;
 	len = sizeof(val);
 	if (getsockopt(sock, IPPROTO_IP, option, val, &len) < 0)
-		err(-1, "test_ip_boolean(%s, %s): getsockopt() after set to "
-		    "%d", socktypename, optionname, newvalue);
+		err(-1,
+		    "test_ip_boolean(%s, %s): getsockopt() after set to "
+		    "%d",
+		    socktypename, optionname, newvalue);
 
 	if (len != sizeof(val[0]))
-		errx(-1, "test_ip_boolean(%s, %s): getsockopt() after set "
-		    "to %d returned %d bytes", socktypename, optionname,
-		    newvalue, len);
+		errx(-1,
+		    "test_ip_boolean(%s, %s): getsockopt() after set "
+		    "to %d returned %d bytes",
+		    socktypename, optionname, newvalue, len);
 
 	if (val[0] == -1)
-		errx(-1, "test_ip_boolean(%s, %s): getsockopt() after set "
-		    "to %d didn't return data", socktypename, optionname,
-		    newvalue);
+		errx(-1,
+		    "test_ip_boolean(%s, %s): getsockopt() after set "
+		    "to %d didn't return data",
+		    socktypename, optionname, newvalue);
 
 	/*
 	 * If we set it to true, check for '1', otherwise '0.
 	 */
 	if (val[0] != (newvalue ? 1 : 0))
-		errx(-1, "test_ip_boolean(%s, %s): getsockopt() after set "
-		    "to %d returned %d", socktypename, optionname, newvalue,
-		    val[0]);
+		errx(-1,
+		    "test_ip_boolean(%s, %s): getsockopt() after set "
+		    "to %d returned %d",
+		    socktypename, optionname, newvalue, val[0]);
 
 	/*
 	 * Reset to initial value.
 	 */
 	newvalue = initial;
-	if (setsockopt(sock, IPPROTO_IP, option, &newvalue, sizeof(newvalue))
-	    < 0)
+	if (setsockopt(sock, IPPROTO_IP, option, &newvalue, sizeof(newvalue)) <
+	    0)
 		err(-1, "test_ip_boolean(%s, %s): setsockopt() to reset",
 		    socktypename, optionname);
 
@@ -618,16 +679,22 @@ test_ip_boolean(int sock, const char *socktypename, int option,
 		    socktypename, optionname);
 
 	if (len != sizeof(val[0]))
-		errx(-1, "test_ip_boolean(%s, %s): getsockopt() after reset "
-		    "returned %d bytes", socktypename, optionname, len);
+		errx(-1,
+		    "test_ip_boolean(%s, %s): getsockopt() after reset "
+		    "returned %d bytes",
+		    socktypename, optionname, len);
 
 	if (val[0] == -1)
-		errx(-1, "test_ip_boolean(%s, %s): getsockopt() after reset "
-		    "didn't return data", socktypename, optionname);
+		errx(-1,
+		    "test_ip_boolean(%s, %s): getsockopt() after reset "
+		    "didn't return data",
+		    socktypename, optionname);
 
 	if (val[0] != newvalue)
-		errx(-1, "test_ip_boolean(%s, %s): getsockopt() after reset "
-		    "returned %d", socktypename, optionname, newvalue);
+		errx(-1,
+		    "test_ip_boolean(%s, %s): getsockopt() after reset "
+		    "returned %d",
+		    socktypename, optionname, newvalue);
 }
 
 /*
@@ -638,71 +705,78 @@ test_ip_boolean(int sock, const char *socktypename, int option,
 static void
 test_ip_multicast_membership(int sock, const char *socktypename)
 {
-    char addrbuf[16];
-    struct ip_mreq mreq;
-    uint32_t basegroup;
-    uint16_t i;
-    int sotype;
-    socklen_t sotypelen;
+	char addrbuf[16];
+	struct ip_mreq mreq;
+	uint32_t basegroup;
+	uint16_t i;
+	int sotype;
+	socklen_t sotypelen;
 
-    sotypelen = sizeof(sotype);
-    if (getsockopt(sock, SOL_SOCKET, SO_TYPE, &sotype, &sotypelen) < 0)
-	err(-1, "test_ip_multicast_membership(%s): so_type getsockopt()",
-	    socktypename);
-    /*
-     * Do not perform the test for SOCK_STREAM sockets, as this makes
-     * no sense.
-     */
-    if (sotype == SOCK_STREAM)
-	return;
-    /*
-     * The 224/8 range is administratively scoped and has special meaning,
-     * therefore it is not used for this test.
-     * If we were not told to be non-deterministic:
-     * Join multicast groups from 238.1.1.0 up to nmcastgroups.
-     * Otherwise, pick a multicast group ID in subnet 238/5 with 11 random
-     * bits in the middle, and join groups in linear order up to nmcastgroups.
-     */
-    if (dorandom) {
-	/* be non-deterministic (for interactive operation; a fuller test) */
-	srandomdev();
-	basegroup = 0xEE000000;	/* 238.0.0.0 */
-	basegroup |= ((random() % ((1 << 11) - 1)) << 16);	/* 11 bits */
-    } else {
-	/* be deterministic (for automated operation) */
-	basegroup = 0xEE010100;	/* 238.1.1.0 */
-    }
-    /*
-     * Join the multicast group(s) on the default multicast interface;
-     * this usually maps to the interface to which the default
-     * route is pointing.
-     */
-    for (i = 1; i < nmcastgroups+1; i++) {
-	mreq.imr_multiaddr.s_addr = htonl((basegroup + i));
-	mreq.imr_interface.s_addr = INADDR_ANY;
-	inet_ntop(AF_INET, &mreq.imr_multiaddr, addrbuf, sizeof(addrbuf));
-	if (verbose)
-		fprintf(stderr, "IP_ADD_MEMBERSHIP %s INADDR_ANY\n", addrbuf);
-	if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq,
-		       sizeof(mreq)) < 0) {
+	sotypelen = sizeof(sotype);
+	if (getsockopt(sock, SOL_SOCKET, SO_TYPE, &sotype, &sotypelen) < 0)
 		err(-1,
-"test_ip_multicast_membership(%d, %s): failed IP_ADD_MEMBERSHIP (%s, %s)",
-		    sock, socktypename, addrbuf, "INADDR_ANY");
+		    "test_ip_multicast_membership(%s): so_type getsockopt()",
+		    socktypename);
+	/*
+	 * Do not perform the test for SOCK_STREAM sockets, as this makes
+	 * no sense.
+	 */
+	if (sotype == SOCK_STREAM)
+		return;
+	/*
+	 * The 224/8 range is administratively scoped and has special meaning,
+	 * therefore it is not used for this test.
+	 * If we were not told to be non-deterministic:
+	 * Join multicast groups from 238.1.1.0 up to nmcastgroups.
+	 * Otherwise, pick a multicast group ID in subnet 238/5 with 11 random
+	 * bits in the middle, and join groups in linear order up to
+	 * nmcastgroups.
+	 */
+	if (dorandom) {
+		/* be non-deterministic (for interactive operation; a fuller
+		 * test) */
+		srandomdev();
+		basegroup = 0xEE000000; /* 238.0.0.0 */
+		basegroup |= ((random() % ((1 << 11) - 1)) << 16); /* 11 bits */
+	} else {
+		/* be deterministic (for automated operation) */
+		basegroup = 0xEE010100; /* 238.1.1.0 */
 	}
-    }
-    for (i = 1; i < nmcastgroups+1; i++) {
-	mreq.imr_multiaddr.s_addr = htonl((basegroup + i));
-	mreq.imr_interface.s_addr = INADDR_ANY;
-	inet_ntop(AF_INET, &mreq.imr_multiaddr, addrbuf, sizeof(addrbuf));
-	if (verbose)
-		fprintf(stderr, "IP_DROP_MEMBERSHIP %s INADDR_ANY\n", addrbuf);
-	if (setsockopt(sock, IPPROTO_IP, IP_DROP_MEMBERSHIP, &mreq,
-		       sizeof(mreq)) < 0) {
-		err(-1,
-"test_ip_multicast_membership(%d, %s): failed IP_DROP_MEMBERSHIP (%s, %s)",
-		    sock, socktypename, addrbuf, "INADDR_ANY");
+	/*
+	 * Join the multicast group(s) on the default multicast interface;
+	 * this usually maps to the interface to which the default
+	 * route is pointing.
+	 */
+	for (i = 1; i < nmcastgroups + 1; i++) {
+		mreq.imr_multiaddr.s_addr = htonl((basegroup + i));
+		mreq.imr_interface.s_addr = INADDR_ANY;
+		inet_ntop(AF_INET, &mreq.imr_multiaddr, addrbuf,
+		    sizeof(addrbuf));
+		if (verbose)
+			fprintf(stderr, "IP_ADD_MEMBERSHIP %s INADDR_ANY\n",
+			    addrbuf);
+		if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq,
+			sizeof(mreq)) < 0) {
+			err(-1,
+			    "test_ip_multicast_membership(%d, %s): failed IP_ADD_MEMBERSHIP (%s, %s)",
+			    sock, socktypename, addrbuf, "INADDR_ANY");
+		}
 	}
-    }
+	for (i = 1; i < nmcastgroups + 1; i++) {
+		mreq.imr_multiaddr.s_addr = htonl((basegroup + i));
+		mreq.imr_interface.s_addr = INADDR_ANY;
+		inet_ntop(AF_INET, &mreq.imr_multiaddr, addrbuf,
+		    sizeof(addrbuf));
+		if (verbose)
+			fprintf(stderr, "IP_DROP_MEMBERSHIP %s INADDR_ANY\n",
+			    addrbuf);
+		if (setsockopt(sock, IPPROTO_IP, IP_DROP_MEMBERSHIP, &mreq,
+			sizeof(mreq)) < 0) {
+			err(-1,
+			    "test_ip_multicast_membership(%d, %s): failed IP_DROP_MEMBERSHIP (%s, %s)",
+			    sock, socktypename, addrbuf, "INADDR_ANY");
+		}
+	}
 }
 
 /*
@@ -734,15 +808,15 @@ test_ip_multicast_vif(int sock, const char *socktypename)
 static void
 testsuite(int priv)
 {
-	const char *socktypenameset[] = {"SOCK_DGRAM", "SOCK_STREAM",
-	    "SOCK_RAW"};
-	int socktypeset[] = {SOCK_DGRAM, SOCK_STREAM, SOCK_RAW};
+	const char *socktypenameset[] = { "SOCK_DGRAM", "SOCK_STREAM",
+		"SOCK_RAW" };
+	int socktypeset[] = { SOCK_DGRAM, SOCK_STREAM, SOCK_RAW };
 	const char *socktypename;
 	int i, sock, socktype;
 
 	test_ip_hdrincl();
 
-	for (i = 0; i < sizeof(socktypeset)/sizeof(int); i++) {
+	for (i = 0; i < sizeof(socktypeset) / sizeof(int); i++) {
 		socktype = socktypeset[i];
 		socktypename = socktypenameset[i];
 
@@ -774,56 +848,70 @@ testsuite(int priv)
 
 		sock = get_socket(socktype, priv);
 		if (sock == -1)
-			err(-1, "get_socket(%s, %d) for test_ip_boolean"
-			    "(IP_RECVOPTS)", socktypename, priv);
-		test_ip_boolean(sock, socktypename, IP_RECVOPTS,
-		    "IP_RECVOPTS", 0, BOOLEAN_ANYONE);
+			err(-1,
+			    "get_socket(%s, %d) for test_ip_boolean"
+			    "(IP_RECVOPTS)",
+			    socktypename, priv);
+		test_ip_boolean(sock, socktypename, IP_RECVOPTS, "IP_RECVOPTS",
+		    0, BOOLEAN_ANYONE);
 		close(sock);
 
 		sock = get_socket(socktype, priv);
 		if (sock == -1)
-			err(-1, "get_socket(%s, %d) for test_ip_boolean"
-			     "(IP_RECVRETOPTS)", socktypename, priv);
+			err(-1,
+			    "get_socket(%s, %d) for test_ip_boolean"
+			    "(IP_RECVRETOPTS)",
+			    socktypename, priv);
 		test_ip_boolean(sock, socktypename, IP_RECVRETOPTS,
 		    "IP_RECVRETOPTS", 0, BOOLEAN_ANYONE);
 		close(sock);
 
 		sock = get_socket(socktype, priv);
 		if (sock == -1)
-			err(-1, "get_socket(%s, %d) for test_ip_boolean"
-			    "(IP_RECVDSTADDR)", socktypename, priv);
+			err(-1,
+			    "get_socket(%s, %d) for test_ip_boolean"
+			    "(IP_RECVDSTADDR)",
+			    socktypename, priv);
 		test_ip_boolean(sock, socktypename, IP_RECVDSTADDR,
 		    "IP_RECVDSTADDR", 0, BOOLEAN_ANYONE);
 		close(sock);
 
 		sock = get_socket(socktype, priv);
 		if (sock == -1)
-			err(-1, "get_socket(%s, %d) for test_ip_boolean"
-			    "(IP_RECVTTL)", socktypename, priv);
-		test_ip_boolean(sock, socktypename, IP_RECVTTL, "IP_RECVTTL",
-		    0, BOOLEAN_ANYONE);
+			err(-1,
+			    "get_socket(%s, %d) for test_ip_boolean"
+			    "(IP_RECVTTL)",
+			    socktypename, priv);
+		test_ip_boolean(sock, socktypename, IP_RECVTTL, "IP_RECVTTL", 0,
+		    BOOLEAN_ANYONE);
 		close(sock);
 
 		sock = get_socket(socktype, priv);
 		if (sock == -1)
-			err(-1, "get_socket(%s, %d) for test_ip_boolean"
-			    "(IP_RECVIF)", socktypename, priv);
-		test_ip_boolean(sock, socktypename, IP_RECVIF, "IP_RECVIF",
-		    0, BOOLEAN_ANYONE);
+			err(-1,
+			    "get_socket(%s, %d) for test_ip_boolean"
+			    "(IP_RECVIF)",
+			    socktypename, priv);
+		test_ip_boolean(sock, socktypename, IP_RECVIF, "IP_RECVIF", 0,
+		    BOOLEAN_ANYONE);
 		close(sock);
 
 		sock = get_socket(socktype, priv);
 		if (sock == -1)
-			err(-1, "get_socket(%s, %d) for test_ip_boolean"
-			    "(IP_FAITH)", socktypename, priv);
+			err(-1,
+			    "get_socket(%s, %d) for test_ip_boolean"
+			    "(IP_FAITH)",
+			    socktypename, priv);
 		test_ip_boolean(sock, socktypename, IP_FAITH, "IP_FAITH", 0,
 		    BOOLEAN_ANYONE);
 		close(sock);
 
 		sock = get_socket(socktype, priv);
 		if (sock == -1)
-			err(-1, "get_socket(%s, %d) for test_ip_boolean"
-			    "(IP_ONESBCAST)", socktypename, priv);
+			err(-1,
+			    "get_socket(%s, %d) for test_ip_boolean"
+			    "(IP_ONESBCAST)",
+			    socktypename, priv);
 		test_ip_boolean(sock, socktypename, IP_ONESBCAST,
 		    "IP_ONESBCAST", 0, BOOLEAN_ANYONE);
 		close(sock);
@@ -858,7 +946,7 @@ testsuite(int priv)
 		if (sock == -1)
 			err(-1, "get_socket(%s, %d) for test_ip_options",
 			    socktypename, priv);
-		//test_ip_options(sock, socktypename);
+		// test_ip_options(sock, socktypename);
 		close(sock);
 
 		sock = get_socket(socktype, priv);
@@ -901,7 +989,7 @@ main(int argc, char *argv[])
 			nmcastgroups = atoi(optarg);
 			break;
 		case 'r':
-			dorandom = 1;	/* introduce non-determinism */
+			dorandom = 1; /* introduce non-determinism */
 			break;
 		case 'v':
 			verbose = 1;
@@ -916,14 +1004,13 @@ main(int argc, char *argv[])
 	if (geteuid() != 0) {
 		warnx("Not running as root, can't run tests as root");
 		fprintf(stderr, "\n");
-		fprintf(stderr,
-		   "Running tests with uid %d sock uid %d\n", geteuid(),
-		    geteuid());
+		fprintf(stderr, "Running tests with uid %d sock uid %d\n",
+		    geteuid(), geteuid());
 		testsuite(PRIV_ASIS);
 	} else {
 		fprintf(stderr,
-		    "Running tests with ruid %d euid %d sock uid 0\n",
-		    getuid(), geteuid());
+		    "Running tests with ruid %d euid %d sock uid 0\n", getuid(),
+		    geteuid());
 		testsuite(PRIV_ASIS);
 		if (seteuid(65534) != 0)
 			err(-1, "seteuid(65534)");
@@ -932,8 +1019,8 @@ main(int argc, char *argv[])
 		    getuid(), geteuid());
 		testsuite(PRIV_ASIS);
 		fprintf(stderr,
-		    "Running tests with ruid %d euid %d sock uid 0\n",
-		    getuid(), geteuid());
+		    "Running tests with ruid %d euid %d sock uid 0\n", getuid(),
+		    geteuid());
 		testsuite(PRIV_GETROOT);
 	}
 	printf("ok 1 - ipsockopt\n");

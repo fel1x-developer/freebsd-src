@@ -52,25 +52,27 @@
 #include <sys/cdefs.h>
 #ifndef _STANDALONE
 #include <sys/stat.h>
+
 #include <dirent.h>
 #include <errno.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 #endif
 
 #include <lua.h>
+
 #include "lauxlib.h"
 #include "lfs.h"
 
 #ifdef _STANDALONE
+#include "bootstrap.h"
 #include "lstd.h"
 #include "lutils.h"
-#include "bootstrap.h"
 #endif
 
 #ifndef nitems
-#define	nitems(x)	(sizeof((x)) / sizeof((x)[0]))
+#define nitems(x) (sizeof((x)) / sizeof((x)[0]))
 #endif
 
 /*
@@ -230,12 +232,11 @@ register_metatable(lua_State *L)
 	lua_pop(L, 1);
 }
 
-#define PUSH_INTEGER(lname, stname)				\
-static void							\
-push_st_ ## lname (lua_State *L, struct stat *sb)		\
-{								\
-	lua_pushinteger(L, (lua_Integer)sb->st_ ## stname);	\
-}
+#define PUSH_INTEGER(lname, stname)                                \
+	static void push_st_##lname(lua_State *L, struct stat *sb) \
+	{                                                          \
+		lua_pushinteger(L, (lua_Integer)sb->st_##stname);  \
+	}
 PUSH_INTEGER(dev, dev)
 PUSH_INTEGER(ino, ino)
 PUSH_INTEGER(nlink, nlink)
@@ -288,7 +289,10 @@ push_st_permissions(lua_State *L, struct stat *sb)
 	lua_pushstring(L, buf);
 }
 
-#define PUSH_ENTRY(n)	{ #n, push_st_ ## n }
+#define PUSH_ENTRY(n)           \
+	{                       \
+		#n, push_st_##n \
+	}
 struct stat_members {
 	const char *name;
 	void (*push)(lua_State *, struct stat *);
@@ -361,9 +365,10 @@ lua_attributes(lua_State *L)
 }
 
 #ifndef _STANDALONE
-#define	lfs_mkdir_impl(path)	(mkdir((path), \
-    S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | \
-    S_IROTH | S_IXOTH))
+#define lfs_mkdir_impl(path)                                            \
+	(mkdir((path),                                                  \
+	    S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | \
+		S_IROTH | S_IXOTH))
 
 static int
 lua_mkdir(lua_State *L)
@@ -422,7 +427,10 @@ lua_rmdir(lua_State *L)
 }
 #endif
 
-#define REG_SIMPLE(n)	{ #n, lua_ ## n }
+#define REG_SIMPLE(n)       \
+	{                   \
+		#n, lua_##n \
+	}
 static const struct luaL_Reg fslib[] = {
 	REG_SIMPLE(attributes),
 	REG_SIMPLE(dir),

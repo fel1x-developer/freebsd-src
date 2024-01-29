@@ -36,17 +36,17 @@
  */
 
 #ifndef _MACHINE_CPUFUNC_H_
-#define	_MACHINE_CPUFUNC_H_
+#define _MACHINE_CPUFUNC_H_
 
 struct region_descriptor;
 
-#define readb(va)	(*(volatile uint8_t *) (va))
-#define readw(va)	(*(volatile uint16_t *) (va))
-#define readl(va)	(*(volatile uint32_t *) (va))
+#define readb(va) (*(volatile uint8_t *)(va))
+#define readw(va) (*(volatile uint16_t *)(va))
+#define readl(va) (*(volatile uint32_t *)(va))
 
-#define writeb(va, d)	(*(volatile uint8_t *) (va) = (d))
-#define writew(va, d)	(*(volatile uint16_t *) (va) = (d))
-#define writel(va, d)	(*(volatile uint32_t *) (va) = (d))
+#define writeb(va, d) (*(volatile uint8_t *)(va) = (d))
+#define writew(va, d) (*(volatile uint16_t *)(va) = (d))
+#define writel(va, d) (*(volatile uint32_t *)(va) = (d))
 
 static __inline void
 breakpoint(void)
@@ -57,18 +57,18 @@ breakpoint(void)
 static __inline __pure2 u_int
 bsfl(u_int mask)
 {
-	u_int	result;
+	u_int result;
 
-	__asm("bsfl %1,%0" : "=r" (result) : "rm" (mask) : "cc");
+	__asm("bsfl %1,%0" : "=r"(result) : "rm"(mask) : "cc");
 	return (result);
 }
 
 static __inline __pure2 u_int
 bsrl(u_int mask)
 {
-	u_int	result;
+	u_int result;
 
-	__asm("bsrl %1,%0" : "=r" (result) : "rm" (mask) : "cc");
+	__asm("bsrl %1,%0" : "=r"(result) : "rm"(mask) : "cc");
 	return (result);
 }
 
@@ -76,14 +76,14 @@ static __inline void
 clflush(u_long addr)
 {
 
-	__asm __volatile("clflush %0" : : "m" (*(char *)addr));
+	__asm __volatile("clflush %0" : : "m"(*(char *)addr));
 }
 
 static __inline void
 clflushopt(u_long addr)
 {
 
-	__asm __volatile(".byte 0x66;clflush %0" : : "m" (*(char *)addr));
+	__asm __volatile(".byte 0x66;clflush %0" : : "m"(*(char *)addr));
 }
 
 static __inline void
@@ -104,40 +104,38 @@ static __inline void
 do_cpuid(u_int ax, u_int *p)
 {
 	__asm __volatile("cpuid"
-	    : "=a" (p[0]), "=b" (p[1]), "=c" (p[2]), "=d" (p[3])
-	    :  "0" (ax));
+			 : "=a"(p[0]), "=b"(p[1]), "=c"(p[2]), "=d"(p[3])
+			 : "0"(ax));
 }
 
 static __inline void
 cpuid_count(u_int ax, u_int cx, u_int *p)
 {
 	__asm __volatile("cpuid"
-	    : "=a" (p[0]), "=b" (p[1]), "=c" (p[2]), "=d" (p[3])
-	    :  "0" (ax), "c" (cx));
+			 : "=a"(p[0]), "=b"(p[1]), "=c"(p[2]), "=d"(p[3])
+			 : "0"(ax), "c"(cx));
 }
 #else
 static __inline void
 do_cpuid(u_int ax, u_int *p)
 {
-	__asm __volatile(
-	    "pushl\t%%ebx\n\t"
-	    "cpuid\n\t"
-	    "movl\t%%ebx,%1\n\t"
-	    "popl\t%%ebx"
-	    : "=a" (p[0]), "=DS" (p[1]), "=c" (p[2]), "=d" (p[3])
-	    :  "0" (ax));
+	__asm __volatile("pushl\t%%ebx\n\t"
+			 "cpuid\n\t"
+			 "movl\t%%ebx,%1\n\t"
+			 "popl\t%%ebx"
+			 : "=a"(p[0]), "=DS"(p[1]), "=c"(p[2]), "=d"(p[3])
+			 : "0"(ax));
 }
 
 static __inline void
 cpuid_count(u_int ax, u_int cx, u_int *p)
 {
-	__asm __volatile(
-	    "pushl\t%%ebx\n\t"
-	    "cpuid\n\t"
-	    "movl\t%%ebx,%1\n\t"
-	    "popl\t%%ebx"
-	    : "=a" (p[0]), "=DS" (p[1]), "=c" (p[2]), "=d" (p[3])
-	    :  "0" (ax), "c" (cx));
+	__asm __volatile("pushl\t%%ebx\n\t"
+			 "cpuid\n\t"
+			 "movl\t%%ebx,%1\n\t"
+			 "popl\t%%ebx"
+			 : "=a"(p[0]), "=DS"(p[1]), "=c"(p[2]), "=d"(p[3])
+			 : "0"(ax), "c"(cx));
 }
 #endif
 
@@ -150,14 +148,13 @@ enable_intr(void)
 static __inline void
 cpu_monitor(const void *addr, u_long extensions, u_int hints)
 {
-	__asm __volatile("monitor"
-	    : : "a" (addr), "c" (extensions), "d" (hints));
+	__asm __volatile("monitor" : : "a"(addr), "c"(extensions), "d"(hints));
 }
 
 static __inline void
 cpu_mwait(u_long extensions, u_int hints)
 {
-	__asm __volatile("mwait" : : "a" (hints), "c" (extensions));
+	__asm __volatile("mwait" : : "a"(hints), "c"(extensions));
 }
 
 static __inline void
@@ -187,18 +184,18 @@ halt(void)
 static __inline u_char
 inb(u_int port)
 {
-	u_char	data;
+	u_char data;
 
-	__asm __volatile("inb %w1, %0" : "=a" (data) : "Nd" (port));
+	__asm __volatile("inb %w1, %0" : "=a"(data) : "Nd"(port));
 	return (data);
 }
 
 static __inline u_int
 inl(u_int port)
 {
-	u_int	data;
+	u_int data;
 
-	__asm __volatile("inl %w1, %0" : "=a" (data) : "Nd" (port));
+	__asm __volatile("inl %w1, %0" : "=a"(data) : "Nd"(port));
 	return (data);
 }
 
@@ -206,8 +203,8 @@ static __inline void
 insb(u_int port, void *addr, size_t count)
 {
 	__asm __volatile("cld; rep; insb"
-			 : "+D" (addr), "+c" (count)
-			 : "d" (port)
+			 : "+D"(addr), "+c"(count)
+			 : "d"(port)
 			 : "memory");
 }
 
@@ -215,8 +212,8 @@ static __inline void
 insw(u_int port, void *addr, size_t count)
 {
 	__asm __volatile("cld; rep; insw"
-			 : "+D" (addr), "+c" (count)
-			 : "d" (port)
+			 : "+D"(addr), "+c"(count)
+			 : "d"(port)
 			 : "memory");
 }
 
@@ -224,8 +221,8 @@ static __inline void
 insl(u_int port, void *addr, size_t count)
 {
 	__asm __volatile("cld; rep; insl"
-			 : "+D" (addr), "+c" (count)
-			 : "d" (port)
+			 : "+D"(addr), "+c"(count)
+			 : "d"(port)
 			 : "memory");
 }
 
@@ -238,52 +235,52 @@ invd(void)
 static __inline u_short
 inw(u_int port)
 {
-	u_short	data;
+	u_short data;
 
-	__asm __volatile("inw %w1, %0" : "=a" (data) : "Nd" (port));
+	__asm __volatile("inw %w1, %0" : "=a"(data) : "Nd"(port));
 	return (data);
 }
 
 static __inline void
 outb(u_int port, u_char data)
 {
-	__asm __volatile("outb %0, %w1" : : "a" (data), "Nd" (port));
+	__asm __volatile("outb %0, %w1" : : "a"(data), "Nd"(port));
 }
 
 static __inline void
 outl(u_int port, u_int data)
 {
-	__asm __volatile("outl %0, %w1" : : "a" (data), "Nd" (port));
+	__asm __volatile("outl %0, %w1" : : "a"(data), "Nd"(port));
 }
 
 static __inline void
 outsb(u_int port, const void *addr, size_t count)
 {
 	__asm __volatile("cld; rep; outsb"
-			 : "+S" (addr), "+c" (count)
-			 : "d" (port));
+			 : "+S"(addr), "+c"(count)
+			 : "d"(port));
 }
 
 static __inline void
 outsw(u_int port, const void *addr, size_t count)
 {
 	__asm __volatile("cld; rep; outsw"
-			 : "+S" (addr), "+c" (count)
-			 : "d" (port));
+			 : "+S"(addr), "+c"(count)
+			 : "d"(port));
 }
 
 static __inline void
 outsl(u_int port, const void *addr, size_t count)
 {
 	__asm __volatile("cld; rep; outsl"
-			 : "+S" (addr), "+c" (count)
-			 : "d" (port));
+			 : "+S"(addr), "+c"(count)
+			 : "d"(port));
 }
 
 static __inline void
 outw(u_int port, u_short data)
 {
-	__asm __volatile("outw %0, %w1" : : "a" (data), "Nd" (port));
+	__asm __volatile("outw %0, %w1" : : "a"(data), "Nd"(port));
 }
 
 static __inline void
@@ -295,9 +292,9 @@ ia32_pause(void)
 static __inline u_int
 read_eflags(void)
 {
-	u_int	ef;
+	u_int ef;
 
-	__asm __volatile("pushfl; popl %0" : "=r" (ef));
+	__asm __volatile("pushfl; popl %0" : "=r"(ef));
 	return (ef);
 }
 
@@ -306,7 +303,7 @@ rdmsr(u_int msr)
 {
 	uint64_t rv;
 
-	__asm __volatile("rdmsr" : "=A" (rv) : "c" (msr));
+	__asm __volatile("rdmsr" : "=A"(rv) : "c"(msr));
 	return (rv);
 }
 
@@ -315,7 +312,7 @@ rdmsr32(u_int msr)
 {
 	uint32_t low;
 
-	__asm __volatile("rdmsr" : "=a" (low) : "c" (msr) : "edx");
+	__asm __volatile("rdmsr" : "=a"(low) : "c"(msr) : "edx");
 	return (low);
 }
 
@@ -324,7 +321,7 @@ rdpmc(u_int pmc)
 {
 	uint64_t rv;
 
-	__asm __volatile("rdpmc" : "=A" (rv) : "c" (pmc));
+	__asm __volatile("rdpmc" : "=A"(rv) : "c"(pmc));
 	return (rv);
 }
 
@@ -333,7 +330,7 @@ rdtsc(void)
 {
 	uint64_t rv;
 
-	__asm __volatile("rdtsc" : "=A" (rv));
+	__asm __volatile("rdtsc" : "=A"(rv));
 	return (rv);
 }
 
@@ -356,7 +353,7 @@ rdtscp(void)
 {
 	uint64_t rv;
 
-	__asm __volatile("rdtscp" : "=A" (rv) : : "ecx");
+	__asm __volatile("rdtscp" : "=A"(rv) : : "ecx");
 	return (rv);
 }
 
@@ -365,7 +362,7 @@ rdtscp_aux(uint32_t *aux)
 {
 	uint64_t rv;
 
-	__asm __volatile("rdtscp" : "=A" (rv), "=c" (*aux));
+	__asm __volatile("rdtscp" : "=A"(rv), "=c"(*aux));
 	return (rv);
 }
 
@@ -374,7 +371,7 @@ rdtsc32(void)
 {
 	uint32_t rv;
 
-	__asm __volatile("rdtsc" : "=a" (rv) : : "edx");
+	__asm __volatile("rdtsc" : "=a"(rv) : : "edx");
 	return (rv);
 }
 
@@ -383,7 +380,7 @@ rdtscp32(void)
 {
 	uint32_t rv;
 
-	__asm __volatile("rdtscp" : "=a" (rv) : : "ecx", "edx");
+	__asm __volatile("rdtscp" : "=a"(rv) : : "ecx", "edx");
 	return (rv);
 }
 
@@ -396,37 +393,37 @@ wbinvd(void)
 static __inline void
 write_eflags(u_int ef)
 {
-	__asm __volatile("pushl %0; popfl" : : "r" (ef));
+	__asm __volatile("pushl %0; popfl" : : "r"(ef));
 }
 
 static __inline void
 wrmsr(u_int msr, uint64_t newval)
 {
-	__asm __volatile("wrmsr" : : "A" (newval), "c" (msr));
+	__asm __volatile("wrmsr" : : "A"(newval), "c"(msr));
 }
 
 static __inline void
 load_cr0(u_int data)
 {
 
-	__asm __volatile("movl %0,%%cr0" : : "r" (data));
+	__asm __volatile("movl %0,%%cr0" : : "r"(data));
 }
 
 static __inline u_int
 rcr0(void)
 {
-	u_int	data;
+	u_int data;
 
-	__asm __volatile("movl %%cr0,%0" : "=r" (data));
+	__asm __volatile("movl %%cr0,%0" : "=r"(data));
 	return (data);
 }
 
 static __inline u_int
 rcr2(void)
 {
-	u_int	data;
+	u_int data;
 
-	__asm __volatile("movl %%cr2,%0" : "=r" (data));
+	__asm __volatile("movl %%cr2,%0" : "=r"(data));
 	return (data);
 }
 
@@ -434,30 +431,30 @@ static __inline void
 load_cr3(u_int data)
 {
 
-	__asm __volatile("movl %0,%%cr3" : : "r" (data) : "memory");
+	__asm __volatile("movl %0,%%cr3" : : "r"(data) : "memory");
 }
 
 static __inline u_int
 rcr3(void)
 {
-	u_int	data;
+	u_int data;
 
-	__asm __volatile("movl %%cr3,%0" : "=r" (data));
+	__asm __volatile("movl %%cr3,%0" : "=r"(data));
 	return (data);
 }
 
 static __inline void
 load_cr4(u_int data)
 {
-	__asm __volatile("movl %0,%%cr4" : : "r" (data));
+	__asm __volatile("movl %0,%%cr4" : : "r"(data));
 }
 
 static __inline u_int
 rcr4(void)
 {
-	u_int	data;
+	u_int data;
 
-	__asm __volatile("movl %%cr4,%0" : "=r" (data));
+	__asm __volatile("movl %%cr4,%0" : "=r"(data));
 	return (data);
 }
 
@@ -466,7 +463,7 @@ rxcr(u_int reg)
 {
 	u_int low, high;
 
-	__asm __volatile("xgetbv" : "=a" (low), "=d" (high) : "c" (reg));
+	__asm __volatile("xgetbv" : "=a"(low), "=d"(high) : "c"(reg));
 	return (low | ((uint64_t)high << 32));
 }
 
@@ -477,7 +474,7 @@ load_xcr(u_int reg, uint64_t val)
 
 	low = val;
 	high = val >> 32;
-	__asm __volatile("xsetbv" : : "c" (reg), "a" (low), "d" (high));
+	__asm __volatile("xsetbv" : : "c"(reg), "a"(low), "d"(high));
 }
 
 /*
@@ -498,14 +495,14 @@ static __inline void
 invlpg(u_int addr)
 {
 
-	__asm __volatile("invlpg %0" : : "m" (*(char *)addr) : "memory");
+	__asm __volatile("invlpg %0" : : "m"(*(char *)addr) : "memory");
 }
 
 static __inline u_short
 rfs(void)
 {
 	u_short sel;
-	__asm __volatile("movw %%fs,%0" : "=rm" (sel));
+	__asm __volatile("movw %%fs,%0" : "=rm"(sel));
 	return (sel);
 }
 
@@ -513,7 +510,7 @@ static __inline uint64_t
 rgdt(void)
 {
 	uint64_t gdtr;
-	__asm __volatile("sgdt %0" : "=m" (gdtr));
+	__asm __volatile("sgdt %0" : "=m"(gdtr));
 	return (gdtr);
 }
 
@@ -521,7 +518,7 @@ static __inline u_short
 rgs(void)
 {
 	u_short sel;
-	__asm __volatile("movw %%gs,%0" : "=rm" (sel));
+	__asm __volatile("movw %%gs,%0" : "=rm"(sel));
 	return (sel);
 }
 
@@ -529,7 +526,7 @@ static __inline uint64_t
 ridt(void)
 {
 	uint64_t idtr;
-	__asm __volatile("sidt %0" : "=m" (idtr));
+	__asm __volatile("sidt %0" : "=m"(idtr));
 	return (idtr);
 }
 
@@ -537,7 +534,7 @@ static __inline u_short
 rldt(void)
 {
 	u_short ldtr;
-	__asm __volatile("sldt %0" : "=g" (ldtr));
+	__asm __volatile("sldt %0" : "=g"(ldtr));
 	return (ldtr);
 }
 
@@ -545,7 +542,7 @@ static __inline u_short
 rss(void)
 {
 	u_short sel;
-	__asm __volatile("movw %%ss,%0" : "=rm" (sel));
+	__asm __volatile("movw %%ss,%0" : "=rm"(sel));
 	return (sel);
 }
 
@@ -553,122 +550,122 @@ static __inline u_short
 rtr(void)
 {
 	u_short tr;
-	__asm __volatile("str %0" : "=g" (tr));
+	__asm __volatile("str %0" : "=g"(tr));
 	return (tr);
 }
 
 static __inline void
 load_fs(u_short sel)
 {
-	__asm __volatile("movw %0,%%fs" : : "rm" (sel));
+	__asm __volatile("movw %0,%%fs" : : "rm"(sel));
 }
 
 static __inline void
 load_gs(u_short sel)
 {
-	__asm __volatile("movw %0,%%gs" : : "rm" (sel));
+	__asm __volatile("movw %0,%%gs" : : "rm"(sel));
 }
 
 static __inline void
 lidt(struct region_descriptor *addr)
 {
-	__asm __volatile("lidt (%0)" : : "r" (addr));
+	__asm __volatile("lidt (%0)" : : "r"(addr));
 }
 
 static __inline void
 lldt(u_short sel)
 {
-	__asm __volatile("lldt %0" : : "r" (sel));
+	__asm __volatile("lldt %0" : : "r"(sel));
 }
 
 static __inline void
 ltr(u_short sel)
 {
-	__asm __volatile("ltr %0" : : "r" (sel));
+	__asm __volatile("ltr %0" : : "r"(sel));
 }
 
 static __inline u_int
 rdr0(void)
 {
-	u_int	data;
-	__asm __volatile("movl %%dr0,%0" : "=r" (data));
+	u_int data;
+	__asm __volatile("movl %%dr0,%0" : "=r"(data));
 	return (data);
 }
 
 static __inline void
 load_dr0(u_int dr0)
 {
-	__asm __volatile("movl %0,%%dr0" : : "r" (dr0));
+	__asm __volatile("movl %0,%%dr0" : : "r"(dr0));
 }
 
 static __inline u_int
 rdr1(void)
 {
-	u_int	data;
-	__asm __volatile("movl %%dr1,%0" : "=r" (data));
+	u_int data;
+	__asm __volatile("movl %%dr1,%0" : "=r"(data));
 	return (data);
 }
 
 static __inline void
 load_dr1(u_int dr1)
 {
-	__asm __volatile("movl %0,%%dr1" : : "r" (dr1));
+	__asm __volatile("movl %0,%%dr1" : : "r"(dr1));
 }
 
 static __inline u_int
 rdr2(void)
 {
-	u_int	data;
-	__asm __volatile("movl %%dr2,%0" : "=r" (data));
+	u_int data;
+	__asm __volatile("movl %%dr2,%0" : "=r"(data));
 	return (data);
 }
 
 static __inline void
 load_dr2(u_int dr2)
 {
-	__asm __volatile("movl %0,%%dr2" : : "r" (dr2));
+	__asm __volatile("movl %0,%%dr2" : : "r"(dr2));
 }
 
 static __inline u_int
 rdr3(void)
 {
-	u_int	data;
-	__asm __volatile("movl %%dr3,%0" : "=r" (data));
+	u_int data;
+	__asm __volatile("movl %%dr3,%0" : "=r"(data));
 	return (data);
 }
 
 static __inline void
 load_dr3(u_int dr3)
 {
-	__asm __volatile("movl %0,%%dr3" : : "r" (dr3));
+	__asm __volatile("movl %0,%%dr3" : : "r"(dr3));
 }
 
 static __inline u_int
 rdr6(void)
 {
-	u_int	data;
-	__asm __volatile("movl %%dr6,%0" : "=r" (data));
+	u_int data;
+	__asm __volatile("movl %%dr6,%0" : "=r"(data));
 	return (data);
 }
 
 static __inline void
 load_dr6(u_int dr6)
 {
-	__asm __volatile("movl %0,%%dr6" : : "r" (dr6));
+	__asm __volatile("movl %0,%%dr6" : : "r"(dr6));
 }
 
 static __inline u_int
 rdr7(void)
 {
-	u_int	data;
-	__asm __volatile("movl %%dr7,%0" : "=r" (data));
+	u_int data;
+	__asm __volatile("movl %%dr7,%0" : "=r"(data));
 	return (data);
 }
 
 static __inline void
 load_dr7(u_int dr7)
 {
-	__asm __volatile("movl %0,%%dr7" : : "r" (dr7));
+	__asm __volatile("movl %0,%%dr7" : : "r"(dr7));
 }
 
 static __inline u_char
@@ -706,7 +703,7 @@ rdpkru(void)
 {
 	uint32_t res;
 
-	__asm __volatile("rdpkru" :  "=a" (res) : "c" (0) : "edx");
+	__asm __volatile("rdpkru" : "=a"(res) : "c"(0) : "edx");
 	return (res);
 }
 
@@ -714,14 +711,14 @@ static __inline void
 wrpkru(uint32_t mask)
 {
 
-	__asm __volatile("wrpkru" :  : "a" (mask),  "c" (0), "d" (0));
+	__asm __volatile("wrpkru" : : "a"(mask), "c"(0), "d"(0));
 }
 
-void    reset_dbregs(void);
+void reset_dbregs(void);
 
 #ifdef _KERNEL
-int	rdmsr_safe(u_int msr, uint64_t *val);
-int	wrmsr_safe(u_int msr, uint64_t newval);
+int rdmsr_safe(u_int msr, uint64_t *val);
+int wrmsr_safe(u_int msr, uint64_t newval);
 #endif
 
 #endif /* !_MACHINE_CPUFUNC_H_ */

@@ -30,7 +30,6 @@
 #include <netinet/in.h>
 
 #include <arpa/inet.h>
-
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -58,16 +57,16 @@
  */
 
 #ifdef WARN_TCP
-#define	WARN_SUCCESS	0x00000001	/* Set for TCP to warn on success. */
+#define WARN_SUCCESS 0x00000001 /* Set for TCP to warn on success. */
 #else
-#define	WARN_SUCCESS	0x00000000
+#define WARN_SUCCESS 0x00000000
 #endif
 
 /*
  * Multicast test address, picked arbitrarily.  Will be used with the
  * loopback interface.
  */
-#define	TEST_MADDR	"224.100.100.100"
+#define TEST_MADDR "224.100.100.100"
 
 /*
  * Test that a given IP socket option (optname) has a default value of
@@ -78,8 +77,7 @@
  */
 static void
 test_u_char(int optname, const char *optstring, u_char defaultv,
-    u_char modifiedv, u_char fakev, const char *socktype, int sock,
-    int flags)
+    u_char modifiedv, u_char fakev, const char *socktype, int sock, int flags)
 {
 	socklen_t socklen;
 	u_char uc;
@@ -93,14 +91,16 @@ test_u_char(int optname, const char *optstring, u_char defaultv,
 
 	ret = getsockopt(sock, IPPROTO_IP, optname, &uc, &socklen);
 	if (ret < 0)
-		err(-1, "FAIL: getsockopt(%s, IPPROTO_IP, %s)",
-		    socktype, optstring);
+		err(-1, "FAIL: getsockopt(%s, IPPROTO_IP, %s)", socktype,
+		    optstring);
 	if (ret == 0 && (flags & WARN_SUCCESS))
 		warnx("WARN: getsockopt(%s, IPPROTO_IP, %s) returned 0",
 		    socktype, optstring);
 	if (uc != defaultv)
-		errx(-1, "FAIL: getsockopt(%s, IPPROTO_IP, %s) default is "
-		    "%d not %d", socktype, optstring, uc, defaultv);
+		errx(-1,
+		    "FAIL: getsockopt(%s, IPPROTO_IP, %s) default is "
+		    "%d not %d",
+		    socktype, optstring, uc, defaultv);
 
 	/*
 	 * Set to a modifiedv value, read it back and make sure it got there.
@@ -108,8 +108,8 @@ test_u_char(int optname, const char *optstring, u_char defaultv,
 	uc = modifiedv;
 	ret = setsockopt(sock, IPPROTO_IP, optname, &uc, sizeof(uc));
 	if (ret == -1)
-		err(-1, "FAIL: setsockopt(%s, IPPROTO_IP, %s)",
-		    socktype, optstring);
+		err(-1, "FAIL: setsockopt(%s, IPPROTO_IP, %s)", socktype,
+		    optstring);
 	if (ret == 0 && (flags & WARN_SUCCESS))
 		warnx("WARN: setsockopt(%s, IPPROTO_IP, %s) returned 0",
 		    socktype, optstring);
@@ -118,14 +118,16 @@ test_u_char(int optname, const char *optstring, u_char defaultv,
 	socklen = sizeof(uc);
 	ret = getsockopt(sock, IPPROTO_IP, optname, &uc, &socklen);
 	if (ret < 0)
-		err(-1, "FAIL: getsockopt(%s, IPPROTO_IP, %s)",
-		    socktype, optstring);
+		err(-1, "FAIL: getsockopt(%s, IPPROTO_IP, %s)", socktype,
+		    optstring);
 	if (ret == 0 && (flags & WARN_SUCCESS))
 		warnx("WARN: getsockopt(%s, IPPROTO_IP, %s) returned 0",
 		    socktype, optstring);
 	if (uc != modifiedv)
-		errx(-1, "FAIL: getsockopt(%s, IPPROTO_IP, %s) set value is "
-		    "%d not %d", socktype, optstring, uc, modifiedv);
+		errx(-1,
+		    "FAIL: getsockopt(%s, IPPROTO_IP, %s) set value is "
+		    "%d not %d",
+		    socktype, optstring, uc, modifiedv);
 }
 
 /*
@@ -149,15 +151,16 @@ test_in_addr(int optname, const char *optstring, struct in_addr defaultv,
 
 	ret = getsockopt(sock, IPPROTO_IP, optname, &ia, &socklen);
 	if (ret < 0)
-		err(-1, "FAIL: getsockopt(%s, IPPROTO_IP, %s)",
-		    socktype, optstring);
+		err(-1, "FAIL: getsockopt(%s, IPPROTO_IP, %s)", socktype,
+		    optstring);
 	if (ret == 0 && (flags & WARN_SUCCESS))
 		warnx("WARN: getsockopt(%s, IPPROTO_IP, %s) returned 0",
 		    socktype, optstring);
 	if (memcmp(&ia, &defaultv, sizeof(struct in_addr)))
-		errx(-1, "FAIL: getsockopt(%s, IPPROTO_IP, %s) default is "
-		    "%s not %s", socktype, optstring, inet_ntoa(ia),
-		    inet_ntoa(defaultv));
+		errx(-1,
+		    "FAIL: getsockopt(%s, IPPROTO_IP, %s) default is "
+		    "%s not %s",
+		    socktype, optstring, inet_ntoa(ia), inet_ntoa(defaultv));
 
 	/*
 	 * Set to a modifiedv value, read it back and make sure it got there.
@@ -165,8 +168,8 @@ test_in_addr(int optname, const char *optstring, struct in_addr defaultv,
 	ia = modifiedv;
 	ret = setsockopt(sock, IPPROTO_IP, optname, &ia, sizeof(ia));
 	if (ret == -1)
-		err(-1, "FAIL: setsockopt(%s, IPPROTO_IP, %s)",
-		    socktype, optstring);
+		err(-1, "FAIL: setsockopt(%s, IPPROTO_IP, %s)", socktype,
+		    optstring);
 	if (ret == 0 && (flags & WARN_SUCCESS))
 		warnx("WARN: setsockopt(%s, IPPROTO_IP, %s) returned 0",
 		    socktype, optstring);
@@ -175,27 +178,28 @@ test_in_addr(int optname, const char *optstring, struct in_addr defaultv,
 	socklen = sizeof(ia);
 	ret = getsockopt(sock, IPPROTO_IP, optname, &ia, &socklen);
 	if (ret < 0)
-		err(-1, "FAIL: getsockopt(%s, IPPROTO_IP, %s)",
-		    socktype, optstring);
+		err(-1, "FAIL: getsockopt(%s, IPPROTO_IP, %s)", socktype,
+		    optstring);
 	if (ret == 0 && (flags & WARN_SUCCESS))
 		warnx("WARN: getsockopt(%s, IPPROTO_IP, %s) returned 0",
 		    socktype, optstring);
 	if (memcmp(&ia, &modifiedv, sizeof(struct in_addr)))
-		errx(-1, "FAIL: getsockopt(%s, IPPROTO_IP, %s) set value is "
-		    "%s not %s", socktype, optstring, inet_ntoa(ia),
-		    inet_ntoa(modifiedv));
+		errx(-1,
+		    "FAIL: getsockopt(%s, IPPROTO_IP, %s) set value is "
+		    "%s not %s",
+		    socktype, optstring, inet_ntoa(ia), inet_ntoa(modifiedv));
 }
 
 static void
 test_ttl(int raw_sock, int tcp_sock, int udp_sock)
 {
 
-	test_u_char(IP_MULTICAST_TTL, "IP_MULTICAST_TTL", 1, 2, 243,
-	    "raw_sock", raw_sock, 0);
-	test_u_char(IP_MULTICAST_TTL, "IP_MULTICAST_TTL", 1, 2, 243,
-	    "tcp_sock", tcp_sock, WARN_SUCCESS);
-	test_u_char(IP_MULTICAST_TTL, "IP_MULTICAST_TTL", 1, 2, 243,
-	    "udp_sock", udp_sock, 0);
+	test_u_char(IP_MULTICAST_TTL, "IP_MULTICAST_TTL", 1, 2, 243, "raw_sock",
+	    raw_sock, 0);
+	test_u_char(IP_MULTICAST_TTL, "IP_MULTICAST_TTL", 1, 2, 243, "tcp_sock",
+	    tcp_sock, WARN_SUCCESS);
+	test_u_char(IP_MULTICAST_TTL, "IP_MULTICAST_TTL", 1, 2, 243, "udp_sock",
+	    udp_sock, 0);
 }
 
 static void
@@ -237,8 +241,7 @@ test_if(int raw_sock, int tcp_sock, int udp_sock)
  * to add it a second time and make sure we get back EADDRINUSE.
  */
 static void
-test_add_multi(int sock, const char *socktype, struct ip_mreq imr,
-    int flags)
+test_add_multi(int sock, const char *socktype, struct ip_mreq imr, int flags)
 {
 	char buf[128];
 	int ret;
@@ -247,14 +250,16 @@ test_add_multi(int sock, const char *socktype, struct ip_mreq imr,
 	    sizeof(imr));
 	if (ret < 0) {
 		strlcpy(buf, inet_ntoa(imr.imr_multiaddr), 128);
-		err(-1, "FAIL: setsockopt(%s, IPPROTO_IP, IP_ADD_MEMBERSHIP "
-		    "%s, %s)", socktype, buf, inet_ntoa(imr.imr_interface));
+		err(-1,
+		    "FAIL: setsockopt(%s, IPPROTO_IP, IP_ADD_MEMBERSHIP "
+		    "%s, %s)",
+		    socktype, buf, inet_ntoa(imr.imr_interface));
 	}
 	if (ret == 0 && (flags & WARN_SUCCESS)) {
 		strlcpy(buf, inet_ntoa(imr.imr_multiaddr), 128);
 		warnx("WARN: setsockopt(%s, IPPROTO_IP, IP_ADD_MEMBERSHIP "
-		    "%s, %s) returned 0", socktype, buf,
-		    inet_ntoa(imr.imr_interface));
+		      "%s, %s) returned 0",
+		    socktype, buf, inet_ntoa(imr.imr_interface));
 	}
 
 	/* Try to add a second time to make sure it got there. */
@@ -262,14 +267,17 @@ test_add_multi(int sock, const char *socktype, struct ip_mreq imr,
 	    sizeof(imr));
 	if (ret == 0) {
 		strlcpy(buf, inet_ntoa(imr.imr_multiaddr), 128);
-		err(-1, "FAIL: setsockopt(%s, IPPROTO_IP, IP_ADD_MEMBERSHIP "
-		    "%s, %s) dup returned 0", socktype, buf,
-		    inet_ntoa(imr.imr_interface));
+		err(-1,
+		    "FAIL: setsockopt(%s, IPPROTO_IP, IP_ADD_MEMBERSHIP "
+		    "%s, %s) dup returned 0",
+		    socktype, buf, inet_ntoa(imr.imr_interface));
 	}
 	if (ret < 0 && errno != EADDRINUSE) {
 		strlcpy(buf, inet_ntoa(imr.imr_multiaddr), 128);
-		err(-1, "FAIL: setsockopt(%s, IPPROTO_IP, IP_ADD_MEMBERSHIP "
-		    "%s, %s)", socktype, buf, inet_ntoa(imr.imr_interface));
+		err(-1,
+		    "FAIL: setsockopt(%s, IPPROTO_IP, IP_ADD_MEMBERSHIP "
+		    "%s, %s)",
+		    socktype, buf, inet_ntoa(imr.imr_interface));
 	}
 }
 
@@ -279,8 +287,7 @@ test_add_multi(int sock, const char *socktype, struct ip_mreq imr,
  * try to drop it a second time and make sure we get back EADDRNOTAVAIL.
  */
 static void
-test_drop_multi(int sock, const char *socktype, struct ip_mreq imr,
-    int flags)
+test_drop_multi(int sock, const char *socktype, struct ip_mreq imr, int flags)
 {
 	char buf[128];
 	int ret;
@@ -289,29 +296,34 @@ test_drop_multi(int sock, const char *socktype, struct ip_mreq imr,
 	    sizeof(imr));
 	if (ret < 0) {
 		strlcpy(buf, inet_ntoa(imr.imr_multiaddr), 128);
-		err(-1, "FAIL: setsockopt(%s, IPPROTO_IP, IP_DROP_MEMBERSHIP "
-		    "%s, %s)", socktype, buf, inet_ntoa(imr.imr_interface));
+		err(-1,
+		    "FAIL: setsockopt(%s, IPPROTO_IP, IP_DROP_MEMBERSHIP "
+		    "%s, %s)",
+		    socktype, buf, inet_ntoa(imr.imr_interface));
 	}
 	if (ret == 0 && (flags & WARN_SUCCESS)) {
 		strlcpy(buf, inet_ntoa(imr.imr_multiaddr), 128);
 		warnx("WARN: setsockopt(%s, IPPROTO_IP, IP_DROP_MEMBERSHIP "
-		    "%s, %s) returned 0", socktype, buf,
-		    inet_ntoa(imr.imr_interface));
+		      "%s, %s) returned 0",
+		    socktype, buf, inet_ntoa(imr.imr_interface));
 	}
 
 	/* Try a second time to make sure it's gone. */
 	ret = setsockopt(sock, IPPROTO_IP, IP_DROP_MEMBERSHIP, &imr,
-	    sizeof(imr));	
+	    sizeof(imr));
 	if (ret == 0) {
 		strlcpy(buf, inet_ntoa(imr.imr_multiaddr), 128);
-		err(-1, "FAIL: setsockopt(%s, IPPROTO_IP, IP_DROP_MEMBERSHIP "
-		    "%s, %s) returned 0", socktype, buf,
-		    inet_ntoa(imr.imr_interface));
+		err(-1,
+		    "FAIL: setsockopt(%s, IPPROTO_IP, IP_DROP_MEMBERSHIP "
+		    "%s, %s) returned 0",
+		    socktype, buf, inet_ntoa(imr.imr_interface));
 	}
 	if (ret < 0 && errno != EADDRNOTAVAIL) {
 		strlcpy(buf, inet_ntoa(imr.imr_multiaddr), 128);
-		err(-1, "FAIL: setsockopt(%s, IPPROTO_IP, IP_DROP_MEMBERSHIP "
-		    "%s, %s)", socktype, buf, inet_ntoa(imr.imr_interface));
+		err(-1,
+		    "FAIL: setsockopt(%s, IPPROTO_IP, IP_DROP_MEMBERSHIP "
+		    "%s, %s)",
+		    socktype, buf, inet_ntoa(imr.imr_interface));
 	}
 }
 
@@ -345,7 +357,7 @@ test_addr(int raw_sock, int tcp_sock, int udp_sock)
  * subscribed to, and hope to get it back.  We create a new UDP socket for
  * this purpose because we will need to bind it.
  */
-#define	UDP_PORT	5012
+#define UDP_PORT 5012
 static void
 test_udp(void)
 {
@@ -384,7 +396,7 @@ test_udp(void)
 	 */
 	if_addr.s_addr = inet_addr("127.0.0.1");
 	if (setsockopt(sock, IPPROTO_IP, IP_MULTICAST_IF, &if_addr,
-	    sizeof(if_addr)) < 0)
+		sizeof(if_addr)) < 0)
 		err(-1, "test_udp: setsockopt(IPPROTO_IP, IP_MULTICAST_IF)");
 
 	test_add_multi(sock, "udp_sock", imr, 0);
@@ -414,12 +426,11 @@ test_udp(void)
 		err(-1, "test_udp: recvfrom");
 
 	if (len != sizeof(message))
-		errx(-1, "test_udp: recvfrom: len %d != message len %d",
-		    len, sizeof(message));
+		errx(-1, "test_udp: recvfrom: len %d != message len %d", len,
+		    sizeof(message));
 
 	if (message != 'A')
-		errx(-1, "test_udp: recvfrom: expected 'A', got '%c'",
-		    message);
+		errx(-1, "test_udp: recvfrom: expected 'A', got '%c'", message);
 
 	test_drop_multi(sock, "udp_sock", imr, 0);
 

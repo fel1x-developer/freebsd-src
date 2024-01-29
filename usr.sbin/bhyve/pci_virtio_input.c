@@ -156,13 +156,13 @@ static int pci_vtinput_cfgread(void *, int, int, uint32_t *);
 static int pci_vtinput_cfgwrite(void *, int, int, uint32_t);
 
 static struct virtio_consts vtinput_vi_consts = {
-	.vc_name =	"vtinput",
-	.vc_nvq =	VTINPUT_MAXQ,
-	.vc_cfgsize =	sizeof(struct vtinput_config),
-	.vc_reset =	pci_vtinput_reset,
-	.vc_cfgread =	pci_vtinput_cfgread,
-	.vc_cfgwrite =	pci_vtinput_cfgwrite,
-	.vc_hv_caps =	0,
+	.vc_name = "vtinput",
+	.vc_nvq = VTINPUT_MAXQ,
+	.vc_cfgsize = sizeof(struct vtinput_config),
+	.vc_reset = pci_vtinput_reset,
+	.vc_cfgread = pci_vtinput_cfgread,
+	.vc_cfgwrite = pci_vtinput_cfgwrite,
+	.vc_hv_caps = 0,
 };
 
 static void
@@ -403,8 +403,8 @@ pci_vtinput_read_config(struct pci_vtinput_softc *sc)
 	case VTINPUT_CFG_PROP_BITS:
 		return pci_vtinput_read_config_prop_bits(sc);
 	case VTINPUT_CFG_EV_BITS:
-		return pci_vtinput_read_config_ev_bits(
-		    sc, sc->vsc_config.subsel);
+		return pci_vtinput_read_config_ev_bits(sc,
+		    sc->vsc_config.subsel);
 	case VTINPUT_CFG_ABS_INFO:
 		return pci_vtinput_read_config_abs_info(sc);
 	default:
@@ -464,8 +464,8 @@ pci_vtinput_cfgwrite(void *vsc, int offset, int size, uint32_t value)
 }
 
 static int
-vtinput_eventqueue_add_event(
-    struct vtinput_eventqueue *queue, struct input_event *e)
+vtinput_eventqueue_add_event(struct vtinput_eventqueue *queue,
+    struct input_event *e)
 {
 	/* check if queue is full */
 	if (queue->idx >= queue->size) {
@@ -500,8 +500,8 @@ vtinput_eventqueue_clear(struct vtinput_eventqueue *queue)
 }
 
 static void
-vtinput_eventqueue_send_events(
-    struct vtinput_eventqueue *queue, struct vqueue_info *vq)
+vtinput_eventqueue_send_events(struct vtinput_eventqueue *queue,
+    struct vqueue_info *vq)
 {
 	/*
 	 * First iteration through eventqueue:
@@ -605,8 +605,8 @@ vtinput_read_event(int fd __attribute((unused)),
 		}
 
 		/* send host events to guest */
-		vtinput_eventqueue_send_events(
-		    &sc->vsc_eventqueue, &sc->vsc_queues[VTINPUT_EVENTQ]);
+		vtinput_eventqueue_send_events(&sc->vsc_eventqueue,
+		    &sc->vsc_queues[VTINPUT_EVENTQ]);
 	}
 }
 
@@ -692,8 +692,8 @@ pci_vtinput_init(struct pci_devinst *pi, nvlist_t *nvl)
 	/* init softc */
 	sc->vsc_eventqueue.idx = 0;
 	sc->vsc_eventqueue.size = VTINPUT_MAX_PKT_LEN;
-	sc->vsc_eventqueue.events = calloc(
-	    sc->vsc_eventqueue.size, sizeof(struct vtinput_event_elem));
+	sc->vsc_eventqueue.events = calloc(sc->vsc_eventqueue.size,
+	    sizeof(struct vtinput_event_elem));
 	sc->vsc_config_valid = 0;
 	if (sc->vsc_eventqueue.events == NULL) {
 		WPRINTF(("%s: failed to alloc eventqueue", __func__));
@@ -716,8 +716,8 @@ pci_vtinput_init(struct pci_devinst *pi, nvlist_t *nvl)
 #endif
 
 	/* link virtio to softc */
-	vi_softc_linkup(
-	    &sc->vsc_vs, &vtinput_vi_consts, sc, pi, sc->vsc_queues);
+	vi_softc_linkup(&sc->vsc_vs, &vtinput_vi_consts, sc, pi,
+	    sc->vsc_queues);
 	sc->vsc_vs.vs_mtx = &sc->vsc_mtx;
 
 	/* init virtio queues */

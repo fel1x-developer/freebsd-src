@@ -27,38 +27,38 @@
  */
 
 #include <sys/param.h>
+
 #include <errno.h>
+#include <krb5.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <krb5.h>
-
 #define PAM_SM_AUTH
 #define PAM_SM_CRED
 #include <security/pam_appl.h>
-#include <security/pam_modules.h>
 #include <security/pam_mod_misc.h>
+#include <security/pam_modules.h>
 
 static const char superuser[] = "root";
 
-static long	get_su_principal(krb5_context, const char *, const char *,
-		    char **, krb5_principal *);
-static int	auth_krb5(pam_handle_t *, krb5_context, const char *,
-		    krb5_principal);
+static long get_su_principal(krb5_context, const char *, const char *, char **,
+    krb5_principal *);
+static int auth_krb5(pam_handle_t *, krb5_context, const char *,
+    krb5_principal);
 
 PAM_EXTERN int
-pam_sm_authenticate(pam_handle_t *pamh, int flags __unused,
-    int argc __unused, const char *argv[] __unused)
+pam_sm_authenticate(pam_handle_t *pamh, int flags __unused, int argc __unused,
+    const char *argv[] __unused)
 {
-	krb5_context	 context;
-	krb5_principal	 su_principal;
-	const char	*user;
-	const void	*ruser;
-	char		*su_principal_name;
-	long		 rv;
-	int		 pamret;
+	krb5_context context;
+	krb5_principal su_principal;
+	const char *user;
+	const void *ruser;
+	char *su_principal_name;
+	long rv;
+	int pamret;
 
 	pamret = pam_get_user(pamh, &user, NULL);
 	if (pamret != PAM_SUCCESS)
@@ -75,12 +75,15 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags __unused,
 		krb5_free_error_message(context, msg);
 		return (PAM_SERVICE_ERR);
 	}
-	rv = get_su_principal(context, user, ruser, &su_principal_name, &su_principal);
+	rv = get_su_principal(context, user, ruser, &su_principal_name,
+	    &su_principal);
 	if (rv != 0)
 		return (PAM_AUTH_ERR);
 	PAM_LOG("kuserok: %s -> %s", su_principal_name, user);
 	rv = krb5_kuserok(context, su_principal, user);
-	pamret = rv ? auth_krb5(pamh, context, su_principal_name, su_principal) : PAM_AUTH_ERR;
+	pamret = rv ?
+	    auth_krb5(pamh, context, su_principal_name, su_principal) :
+	    PAM_AUTH_ERR;
 	free(su_principal_name);
 	krb5_free_principal(context, su_principal);
 	krb5_free_context(context);
@@ -88,8 +91,8 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags __unused,
 }
 
 PAM_EXTERN int
-pam_sm_setcred(pam_handle_t *pamh __unused, int flags __unused,
-    int ac __unused, const char *av[] __unused)
+pam_sm_setcred(pam_handle_t *pamh __unused, int flags __unused, int ac __unused,
+    const char *av[] __unused)
 {
 
 	return (PAM_SUCCESS);
@@ -98,9 +101,8 @@ pam_sm_setcred(pam_handle_t *pamh __unused, int flags __unused,
 /* Authenticate using Kerberos 5.
  *   pamh              -- The PAM handle.
  *   context           -- An initialized krb5_context.
- *   su_principal_name -- The target principal name, used only for password prompts.
- *              If NULL, the password prompts will not include a principal
- *              name.
+ *   su_principal_name -- The target principal name, used only for password
+ * prompts. If NULL, the password prompts will not include a principal name.
  *   su_principal      -- The target krb5_principal.
  * Note that a valid keytab in the default location with a host entry
  * must be available, and that the PAM application must have sufficient
@@ -109,16 +111,16 @@ pam_sm_setcred(pam_handle_t *pamh __unused, int flags __unused,
  * PAM error code if it was not.
  */
 static int
-auth_krb5(pam_handle_t *pamh, krb5_context context, const char *su_principal_name,
-    krb5_principal su_principal)
+auth_krb5(pam_handle_t *pamh, krb5_context context,
+    const char *su_principal_name, krb5_principal su_principal)
 {
-	krb5_creds	 creds;
+	krb5_creds creds;
 	krb5_get_init_creds_opt *gic_opt;
 	krb5_verify_init_creds_opt vic_opt;
-	const char	*pass;
-	char		*prompt;
-	long		 rv;
-	int		 pamret;
+	const char *pass;
+	char *prompt;
+	long rv;
+	int pamret;
 
 	prompt = NULL;
 	krb5_verify_init_creds_opt_init(&vic_opt);
@@ -140,8 +142,8 @@ auth_krb5(pam_handle_t *pamh, krb5_context context, const char *su_principal_nam
 		krb5_free_error_message(context, msg);
 		return (PAM_AUTH_ERR);
 	}
-	rv = krb5_get_init_creds_password(context, &creds, su_principal,
-	    pass, NULL, NULL, 0, NULL, gic_opt);
+	rv = krb5_get_init_creds_password(context, &creds, su_principal, pass,
+	    NULL, NULL, 0, NULL, gic_opt);
 	krb5_get_init_creds_opt_free(context, gic_opt);
 	if (rv != 0) {
 		const char *msg = krb5_get_error_message(context, rv);
@@ -178,14 +180,15 @@ auth_krb5(pam_handle_t *pamh, krb5_context context, const char *su_principal_nam
  * Returns 0 for success, or a com_err error code on failure.
  */
 static long
-get_su_principal(krb5_context context, const char *target_user, const char *current_user,
-    char **su_principal_name, krb5_principal *su_principal)
+get_su_principal(krb5_context context, const char *target_user,
+    const char *current_user, char **su_principal_name,
+    krb5_principal *su_principal)
 {
-	krb5_principal	 default_principal;
-	krb5_ccache	 ccache;
-	char		*principal_name, *ccname, *p;
-	long		 rv;
-	uid_t		 euid, ruid;
+	krb5_principal default_principal;
+	krb5_ccache ccache;
+	char *principal_name, *ccname, *p;
+	long rv;
+	uid_t euid, ruid;
 
 	*su_principal = NULL;
 	default_principal = NULL;
@@ -202,7 +205,8 @@ get_su_principal(krb5_context context, const char *target_user, const char *curr
 	if (p != NULL)
 		ccname = strdup(p);
 	else
-		(void)asprintf(&ccname, "%s%lu", KRB5_DEFAULT_CCROOT, (unsigned long)ruid);
+		(void)asprintf(&ccname, "%s%lu", KRB5_DEFAULT_CCROOT,
+		    (unsigned long)ruid);
 	if (ccname == NULL)
 		return (errno);
 	rv = krb5_cc_resolve(context, ccname, &ccache);
@@ -217,7 +221,8 @@ get_su_principal(krb5_context context, const char *target_user, const char *curr
 	if (rv != 0)
 		return (errno);
 	if (default_principal == NULL) {
-		rv = krb5_make_principal(context, &default_principal, NULL, current_user, NULL);
+		rv = krb5_make_principal(context, &default_principal, NULL,
+		    current_user, NULL);
 		if (rv != 0) {
 			PAM_LOG("Could not determine default principal name.");
 			return (rv);
@@ -239,13 +244,15 @@ get_su_principal(krb5_context context, const char *target_user, const char *curr
 	if (strcmp(target_user, superuser) == 0) {
 		p = strrchr(principal_name, '@');
 		if (p == NULL) {
-			PAM_LOG("malformed principal name `%s'", principal_name);
+			PAM_LOG("malformed principal name `%s'",
+			    principal_name);
 			free(principal_name);
 			return (rv);
 		}
 		*p++ = '\0';
 		*su_principal_name = NULL;
-		(void)asprintf(su_principal_name, "%s/%s@%s", principal_name, superuser, p);
+		(void)asprintf(su_principal_name, "%s/%s@%s", principal_name,
+		    superuser, p);
 		free(principal_name);
 	} else
 		*su_principal_name = principal_name;

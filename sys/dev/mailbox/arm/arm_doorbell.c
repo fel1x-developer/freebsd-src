@@ -31,44 +31,42 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 
-#include <dev/fdt/simplebus.h>
 #include <dev/fdt/fdt_common.h>
+#include <dev/fdt/simplebus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
 #include "arm_doorbell.h"
 
-#define	MHU_CHAN_RX_LP		0x000	/* Low priority channel */
-#define	MHU_CHAN_RX_HP		0x020	/* High priority channel */
-#define	MHU_CHAN_RX_SEC		0x200	/* Secure channel */
-#define	 MHU_INTR_STAT		0x00
-#define	 MHU_INTR_SET		0x08
-#define	 MHU_INTR_CLEAR		0x10
+#define MHU_CHAN_RX_LP 0x000  /* Low priority channel */
+#define MHU_CHAN_RX_HP 0x020  /* High priority channel */
+#define MHU_CHAN_RX_SEC 0x200 /* Secure channel */
+#define MHU_INTR_STAT 0x00
+#define MHU_INTR_SET 0x08
+#define MHU_INTR_CLEAR 0x10
 
-#define	MHU_TX_REG_OFFSET	0x100
+#define MHU_TX_REG_OFFSET 0x100
 
-#define	DOORBELL_N_CHANNELS	3
-#define	DOORBELL_N_DOORBELLS	(DOORBELL_N_CHANNELS * 32)
+#define DOORBELL_N_CHANNELS 3
+#define DOORBELL_N_DOORBELLS (DOORBELL_N_CHANNELS * 32)
 
 struct arm_doorbell dbells[DOORBELL_N_DOORBELLS];
 
 static struct resource_spec arm_doorbell_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ SYS_RES_IRQ,		0,	RF_ACTIVE },
-	{ SYS_RES_IRQ,		1,	RF_ACTIVE },
-	{ -1, 0 }
+	{ SYS_RES_MEMORY, 0, RF_ACTIVE }, { SYS_RES_IRQ, 0, RF_ACTIVE },
+	{ SYS_RES_IRQ, 1, RF_ACTIVE }, { -1, 0 }
 };
 
 struct arm_doorbell_softc {
-	struct resource		*res[3];
-	void			*lp_intr_cookie;
-	void			*hp_intr_cookie;
-	device_t		dev;
+	struct resource *res[3];
+	void *lp_intr_cookie;
+	void *hp_intr_cookie;
+	device_t dev;
 };
 
 static void
@@ -208,16 +206,14 @@ arm_doorbell_ofw_get(device_t dev, const char *name)
 
 	error = ofw_bus_find_string_index(node, "mbox-names", name, &idx);
 	if (error != 0) {
-		device_printf(dev, "%s can't find string index.\n",
-		    __func__);
+		device_printf(dev, "%s can't find string index.\n", __func__);
 		return (NULL);
 	}
 
 	error = ofw_bus_parse_xref_list_alloc(node, "mboxes", "#mbox-cells",
 	    idx, &parent, &ncells, &cells);
 	if (error != 0) {
-		device_printf(dev, "%s can't get mbox device xref\n",
-		    __func__);
+		device_printf(dev, "%s can't get mbox device xref\n", __func__);
 		return (NULL);
 	}
 
@@ -312,8 +308,7 @@ arm_doorbell_get(struct arm_doorbell *db)
 
 	reg = bus_read_4(sc->res[0], offset + MHU_INTR_STAT);
 	if (reg & (1 << db->db)) {
-		bus_write_4(sc->res[0], offset + MHU_INTR_CLEAR,
-		    (1 << db->db));
+		bus_write_4(sc->res[0], offset + MHU_INTR_CLEAR, (1 << db->db));
 		return (1);
 	}
 
@@ -329,12 +324,10 @@ arm_doorbell_set_handler(struct arm_doorbell *db, void (*func)(void *),
 	db->arg = arg;
 }
 
-static device_method_t arm_doorbell_methods[] = {
-	DEVMETHOD(device_probe,		arm_doorbell_probe),
-	DEVMETHOD(device_attach,	arm_doorbell_attach),
-	DEVMETHOD(device_detach,	arm_doorbell_detach),
-	DEVMETHOD_END
-};
+static device_method_t arm_doorbell_methods[] = { DEVMETHOD(device_probe,
+						      arm_doorbell_probe),
+	DEVMETHOD(device_attach, arm_doorbell_attach),
+	DEVMETHOD(device_detach, arm_doorbell_detach), DEVMETHOD_END };
 
 DEFINE_CLASS_1(arm_doorbell, arm_doorbell_driver, arm_doorbell_methods,
     sizeof(struct arm_doorbell_softc), simplebus_driver);

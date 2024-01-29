@@ -49,13 +49,11 @@ enum backlight_notification {
 	BACKLIGHT_UNREGISTERED,
 };
 
-enum backlight_update_reason {
-	BACKLIGHT_UPDATE_HOTKEY = 0
-};
+enum backlight_update_reason { BACKLIGHT_UPDATE_HOTKEY = 0 };
 
 struct backlight_ops {
 	int options;
-#define	BL_CORE_SUSPENDRESUME   1
+#define BL_CORE_SUSPENDRESUME 1
 	int (*update_status)(struct backlight_device *);
 	int (*get_brightness)(struct backlight_device *);
 };
@@ -71,11 +69,12 @@ struct backlight_device {
 #define bl_get_data(bd) (bd)->data
 
 struct backlight_device *linux_backlight_device_register(const char *name,
-    struct device *dev, void *data, const struct backlight_ops *ops, struct backlight_properties *props);
+    struct device *dev, void *data, const struct backlight_ops *ops,
+    struct backlight_properties *props);
 void linux_backlight_device_unregister(struct backlight_device *bd);
-#define	backlight_device_register(name, dev, data, ops, props)	\
+#define backlight_device_register(name, dev, data, ops, props) \
 	linux_backlight_device_register(name, dev, data, ops, props)
-#define	backlight_device_unregister(bd)	linux_backlight_device_unregister(bd)
+#define backlight_device_unregister(bd) linux_backlight_device_unregister(bd)
 
 static inline int
 backlight_update_status(struct backlight_device *bd)
@@ -111,7 +110,7 @@ backlight_enable(struct backlight_device *bd)
 {
 	if (bd == NULL)
 		return (0);
-	bd->props.power = 0/* FB_BLANK_UNBLANK */;
+	bd->props.power = 0 /* FB_BLANK_UNBLANK */;
 	return (backlight_update_status(bd));
 }
 
@@ -120,7 +119,7 @@ backlight_disable(struct backlight_device *bd)
 {
 	if (bd == NULL)
 		return (0);
-	bd->props.power = 4/* FB_BLANK_POWERDOWN */;
+	bd->props.power = 4 /* FB_BLANK_POWERDOWN */;
 	return (backlight_update_status(bd));
 }
 
@@ -128,7 +127,7 @@ static inline bool
 backlight_is_blank(struct backlight_device *bd)
 {
 
-	return (bd->props.power != 0/* FB_BLANK_UNBLANK */);
+	return (bd->props.power != 0 /* FB_BLANK_UNBLANK */);
 }
 
-#endif	/* _LINUXKPI_LINUX_BACKLIGHT_H_ */
+#endif /* _LINUXKPI_LINUX_BACKLIGHT_H_ */

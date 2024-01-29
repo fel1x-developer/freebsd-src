@@ -28,28 +28,24 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/consio.h>
+#include <sys/fbio.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/syslog.h>
-#include <sys/consio.h>
-#include <sys/fbio.h>
 
 #include <dev/fb/fbreg.h>
 #include <dev/fb/splashreg.h>
 #include <dev/syscons/syscons.h>
 
-#define SAVER_NAME	 "plasma_saver"
+#define SAVER_NAME "plasma_saver"
 
 #include "fp16.h"
 
 /*
  * Preferred video modes
  */
-static int modes[] = {
-	M_VGA_CG640,
-	M_VGA_CG320,
-	-1
-};
+static int modes[] = { M_VGA_CG640, M_VGA_CG320, -1 };
 
 /*
  * Display parameters
@@ -63,8 +59,8 @@ static unsigned int blanked;
  */
 #define FOCI 3
 static struct {
-	int x, y;		/* coordinates */
-	int vx, vy;		/* velocity */
+	int x, y;   /* coordinates */
+	int vx, vy; /* velocity */
 } plasma_foci[FOCI];
 
 /*
@@ -80,12 +76,12 @@ static struct {
 static void
 plasma_update(video_adapter_t *adp)
 {
-	unsigned int x, y;	/* coordinates */
-	signed int dx, dy;	/* horizontal / vertical distance */
-	fp16_t sqd, d;		/* square of distance and distance */
-	fp16_t m;		/* magnitude */
-	unsigned int org, off;	/* origin and offset */
-	unsigned int i;		/* loop index */
+	unsigned int x, y;     /* coordinates */
+	signed int dx, dy;     /* horizontal / vertical distance */
+	fp16_t sqd, d;	       /* square of distance and distance */
+	fp16_t m;	       /* magnitude */
+	unsigned int org, off; /* origin and offset */
+	unsigned int i;	       /* loop index */
 
 	/* switch to bank 0 */
 	vidd_set_win_org(adp, 0);
@@ -224,12 +220,7 @@ plasma_term(video_adapter_t *adp)
 /*
  * Boilerplate
  */
-static scrn_saver_t plasma_module = {
-	SAVER_NAME,
-	plasma_init,
-	plasma_term,
-	plasma_saver,
-	NULL
-};
+static scrn_saver_t plasma_module = { SAVER_NAME, plasma_init, plasma_term,
+	plasma_saver, NULL };
 
 SAVER_MODULE(plasma_saver, plasma_module);

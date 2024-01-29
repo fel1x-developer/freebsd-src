@@ -26,76 +26,71 @@
  */
 
 #ifndef _USB_REQUEST_H_
-#define	_USB_REQUEST_H_
+#define _USB_REQUEST_H_
 
 struct usb_process;
 
-usb_error_t usbd_req_clear_hub_feature(struct usb_device *udev,
-		    struct mtx *mtx, uint16_t sel);
+usb_error_t usbd_req_clear_hub_feature(struct usb_device *udev, struct mtx *mtx,
+    uint16_t sel);
 usb_error_t usbd_req_clear_port_feature(struct usb_device *udev,
-		    struct mtx *mtx, uint8_t port, uint16_t sel);
+    struct mtx *mtx, uint8_t port, uint16_t sel);
 usb_error_t usbd_req_get_alt_interface_no(struct usb_device *udev,
-		    struct mtx *mtx, uint8_t *alt_iface_no,
-		    uint8_t iface_index);
+    struct mtx *mtx, uint8_t *alt_iface_no, uint8_t iface_index);
 usb_error_t usbd_req_get_config(struct usb_device *udev, struct mtx *mtx,
-		    uint8_t *pconf);
+    uint8_t *pconf);
 usb_error_t usbd_req_get_descriptor_ptr(struct usb_device *udev,
-		    struct usb_config_descriptor **ppcd, uint16_t wValue);
+    struct usb_config_descriptor **ppcd, uint16_t wValue);
 usb_error_t usbd_req_get_config_desc(struct usb_device *udev, struct mtx *mtx,
-		    struct usb_config_descriptor *d, uint8_t conf_index);
+    struct usb_config_descriptor *d, uint8_t conf_index);
 usb_error_t usbd_req_get_config_desc_full(struct usb_device *udev,
-		    struct mtx *mtx, struct usb_config_descriptor **ppcd,
-		    uint8_t conf_index);
+    struct mtx *mtx, struct usb_config_descriptor **ppcd, uint8_t conf_index);
 usb_error_t usbd_req_get_desc(struct usb_device *udev, struct mtx *mtx,
-		    uint16_t *actlen, void *desc, uint16_t min_len,
-		    uint16_t max_len, uint16_t id, uint8_t type,
-		    uint8_t index, uint8_t retries);
+    uint16_t *actlen, void *desc, uint16_t min_len, uint16_t max_len,
+    uint16_t id, uint8_t type, uint8_t index, uint8_t retries);
 usb_error_t usbd_req_get_device_desc(struct usb_device *udev, struct mtx *mtx,
-		    struct usb_device_descriptor *d);
-usb_error_t usbd_req_get_device_status(struct usb_device *udev,
-		    struct mtx *mtx, struct usb_status *st);
+    struct usb_device_descriptor *d);
+usb_error_t usbd_req_get_device_status(struct usb_device *udev, struct mtx *mtx,
+    struct usb_status *st);
 usb_error_t usbd_req_get_hub_descriptor(struct usb_device *udev,
-		    struct mtx *mtx, struct usb_hub_descriptor *hd,
-		    uint8_t nports);
+    struct mtx *mtx, struct usb_hub_descriptor *hd, uint8_t nports);
 usb_error_t usbd_req_get_ss_hub_descriptor(struct usb_device *udev,
-		    struct mtx *mtx, struct usb_hub_ss_descriptor *hd,
-		    uint8_t nports);
+    struct mtx *mtx, struct usb_hub_ss_descriptor *hd, uint8_t nports);
 usb_error_t usbd_req_get_hub_status(struct usb_device *udev, struct mtx *mtx,
-		    struct usb_hub_status *st);
+    struct usb_hub_status *st);
 usb_error_t usbd_req_get_port_status(struct usb_device *udev, struct mtx *mtx,
-		    struct usb_port_status *ps, uint8_t port);
+    struct usb_port_status *ps, uint8_t port);
 usb_error_t usbd_req_reset_port(struct usb_device *udev, struct mtx *mtx,
-		    uint8_t port);
-usb_error_t usbd_req_warm_reset_port(struct usb_device *udev,
-		    struct mtx *mtx, uint8_t port);
+    uint8_t port);
+usb_error_t usbd_req_warm_reset_port(struct usb_device *udev, struct mtx *mtx,
+    uint8_t port);
 usb_error_t usbd_req_set_address(struct usb_device *udev, struct mtx *mtx,
-		    uint16_t addr);
+    uint16_t addr);
 usb_error_t usbd_req_set_hub_feature(struct usb_device *udev, struct mtx *mtx,
-		    uint16_t sel);
-usb_error_t usbd_req_set_port_feature(struct usb_device *udev,
-		    struct mtx *mtx, uint8_t port, uint16_t sel);
+    uint16_t sel);
+usb_error_t usbd_req_set_port_feature(struct usb_device *udev, struct mtx *mtx,
+    uint8_t port, uint16_t sel);
 usb_error_t usbd_setup_device_desc(struct usb_device *udev, struct mtx *mtx);
 usb_error_t usbd_req_re_enumerate(struct usb_device *udev, struct mtx *mtx);
 usb_error_t usbd_req_clear_device_feature(struct usb_device *udev,
-		    struct mtx *mtx, uint16_t sel);
+    struct mtx *mtx, uint16_t sel);
 usb_error_t usbd_req_set_device_feature(struct usb_device *udev,
-		    struct mtx *mtx, uint16_t sel);
+    struct mtx *mtx, uint16_t sel);
 usb_error_t usbd_req_set_hub_u1_timeout(struct usb_device *udev,
-		    struct mtx *mtx, uint8_t port, uint8_t timeout);
+    struct mtx *mtx, uint8_t port, uint8_t timeout);
 usb_error_t usbd_req_set_hub_u2_timeout(struct usb_device *udev,
-		    struct mtx *mtx, uint8_t port, uint8_t timeout);
-usb_error_t usbd_req_set_hub_depth(struct usb_device *udev,
-		    struct mtx *mtx, uint16_t depth);
+    struct mtx *mtx, uint8_t port, uint8_t timeout);
+usb_error_t usbd_req_set_hub_depth(struct usb_device *udev, struct mtx *mtx,
+    uint16_t depth);
 usb_error_t usbd_req_reset_tt(struct usb_device *udev, struct mtx *mtx,
-		    uint8_t port);
+    uint8_t port);
 usb_error_t usbd_req_clear_tt_buffer(struct usb_device *udev, struct mtx *mtx,
-		    uint8_t port, uint8_t addr, uint8_t type, uint8_t endpoint);
+    uint8_t port, uint8_t addr, uint8_t type, uint8_t endpoint);
 usb_error_t usbd_req_set_port_link_state(struct usb_device *udev,
-		    struct mtx *mtx, uint8_t port, uint8_t link_state);
+    struct mtx *mtx, uint8_t port, uint8_t link_state);
 usb_error_t usbd_req_set_lpm_info(struct usb_device *udev, struct mtx *mtx,
-		    uint8_t port, uint8_t besl, uint8_t addr, uint8_t rwe);
+    uint8_t port, uint8_t besl, uint8_t addr, uint8_t rwe);
 
-void *	usbd_alloc_config_desc(struct usb_device *, uint32_t);
-void	usbd_free_config_desc(struct usb_device *, void *);
+void *usbd_alloc_config_desc(struct usb_device *, uint32_t);
+void usbd_free_config_desc(struct usb_device *, void *);
 
-#endif					/* _USB_REQUEST_H_ */
+#endif /* _USB_REQUEST_H_ */

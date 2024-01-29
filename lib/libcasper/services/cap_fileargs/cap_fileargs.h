@@ -27,7 +27,7 @@
  */
 
 #ifndef _FILEARGS_H_
-#define	_FILEARGS_H_
+#define _FILEARGS_H_
 
 #include <sys/cdefs.h>
 #include <sys/dnv.h>
@@ -35,9 +35,9 @@
 
 #include <stdbool.h>
 
-#define	FA_OPEN		1
-#define	FA_LSTAT	2
-#define	FA_REALPATH	4
+#define FA_OPEN 1
+#define FA_LSTAT 2
+#define FA_REALPATH 4
 
 #ifdef WITH_CASPER
 struct fileargs;
@@ -66,13 +66,14 @@ __END_DECLS
 
 #else
 typedef struct fileargs {
-	int	fa_flags;
-	mode_t	fa_mode;
+	int fa_flags;
+	mode_t fa_mode;
 } fileargs_t;
 
 static inline fileargs_t *
 fileargs_init(int argc __unused, char *argv[] __unused, int flags, mode_t mode,
-    cap_rights_t *rightsp __unused, int operations __unused) {
+    cap_rights_t *rightsp __unused, int operations __unused)
+{
 	fileargs_t *fa;
 
 	fa = malloc(sizeof(*fa));
@@ -97,10 +98,8 @@ fileargs_initnv(nvlist_t *limits)
 {
 	fileargs_t *fa;
 
-	fa = fileargs_init(0, NULL,
-	    nvlist_get_number(limits, "flags"),
-	    dnvlist_get_number(limits, "mode", 0),
-	    NULL,
+	fa = fileargs_init(0, NULL, nvlist_get_number(limits, "flags"),
+	    dnvlist_get_number(limits, "mode", 0), NULL,
 	    nvlist_get_number(limits, "operations"));
 	nvlist_destroy(limits);
 
@@ -114,20 +113,18 @@ fileargs_cinitnv(cap_channel_t *cas __unused, nvlist_t *limits)
 	return (fileargs_initnv(limits));
 }
 
-#define fileargs_lstat(fa, name, sb)						\
-	lstat(name, sb)
-#define	fileargs_open(fa, name)							\
-	open(name, fa->fa_flags, fa->fa_mode)
-#define	fileargs_realpath(fa, pathname, reserved_path)				\
+#define fileargs_lstat(fa, name, sb) lstat(name, sb)
+#define fileargs_open(fa, name) open(name, fa->fa_flags, fa->fa_mode)
+#define fileargs_realpath(fa, pathname, reserved_path) \
 	realpath(pathname, reserved_path)
 
-static inline
-FILE *fileargs_fopen(fileargs_t *fa, const char *name, const char *mode)
+static inline FILE *
+fileargs_fopen(fileargs_t *fa, const char *name, const char *mode)
 {
-	(void) fa;
+	(void)fa;
 	return (fopen(name, mode));
 }
-#define	fileargs_free(fa)		(free(fa))
+#define fileargs_free(fa) (free(fa))
 
 static inline fileargs_t *
 fileargs_wrap(cap_channel_t *chan, int fdflags)
@@ -150,4 +147,4 @@ fileargs_unwrap(fileargs_t *fa, int *fdflags)
 
 #endif
 
-#endif	/* !_FILEARGS_H_ */
+#endif /* !_FILEARGS_H_ */

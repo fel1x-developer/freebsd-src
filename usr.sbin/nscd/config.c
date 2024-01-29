@@ -44,14 +44,8 @@
 /*
  * Default entries, which always exist in the configuration
  */
-const char *c_default_entries[6] = {
-	NSDB_PASSWD,
-	NSDB_GROUP,
-	NSDB_HOSTS,
-	NSDB_SERVICES,
-	NSDB_PROTOCOLS,
-	NSDB_RPC
-	};
+const char *c_default_entries[6] = { NSDB_PASSWD, NSDB_GROUP, NSDB_HOSTS,
+	NSDB_SERVICES, NSDB_PROTOCOLS, NSDB_RPC };
 
 static int configuration_entry_cmp(const void *, const void *);
 static int configuration_entry_sort_cmp(const void *, const void *);
@@ -59,62 +53,56 @@ static int configuration_entry_cache_mp_sort_cmp(const void *, const void *);
 static int configuration_entry_cache_mp_cmp(const void *, const void *);
 static int configuration_entry_cache_mp_part_cmp(const void *, const void *);
 static struct configuration_entry *create_configuration_entry(const char *,
-	struct timeval const *, struct timeval const *,
-	struct common_cache_entry_params const *,
-	struct common_cache_entry_params const *,
-	struct mp_cache_entry_params const *);
+    struct timeval const *, struct timeval const *,
+    struct common_cache_entry_params const *,
+    struct common_cache_entry_params const *,
+    struct mp_cache_entry_params const *);
 
 static int
 configuration_entry_sort_cmp(const void *e1, const void *e2)
 {
 	return (strcmp((*((struct configuration_entry **)e1))->name,
-		(*((struct configuration_entry **)e2))->name
-		));
+	    (*((struct configuration_entry **)e2))->name));
 }
 
 static int
 configuration_entry_cmp(const void *e1, const void *e2)
 {
 	return (strcmp((const char *)e1,
-		(*((struct configuration_entry **)e2))->name
-		));
+	    (*((struct configuration_entry **)e2))->name));
 }
 
 static int
 configuration_entry_cache_mp_sort_cmp(const void *e1, const void *e2)
 {
 	return (strcmp((*((cache_entry *)e1))->params->entry_name,
-		(*((cache_entry *)e2))->params->entry_name
-		));
+	    (*((cache_entry *)e2))->params->entry_name));
 }
 
 static int
 configuration_entry_cache_mp_cmp(const void *e1, const void *e2)
 {
 	return (strcmp((const char *)e1,
-		(*((cache_entry *)e2))->params->entry_name
-		));
+	    (*((cache_entry *)e2))->params->entry_name));
 }
 
 static int
 configuration_entry_cache_mp_part_cmp(const void *e1, const void *e2)
 {
 	return (strncmp((const char *)e1,
-		(*((cache_entry *)e2))->params->entry_name,
-		strlen((const char *)e1)
-		));
+	    (*((cache_entry *)e2))->params->entry_name,
+	    strlen((const char *)e1)));
 }
 
 static struct configuration_entry *
 create_configuration_entry(const char *name,
-	struct timeval const *common_timeout,
-	struct timeval const *mp_timeout,
-	struct common_cache_entry_params const *positive_params,
-	struct common_cache_entry_params const *negative_params,
-	struct mp_cache_entry_params const *mp_params)
+    struct timeval const *common_timeout, struct timeval const *mp_timeout,
+    struct common_cache_entry_params const *positive_params,
+    struct common_cache_entry_params const *negative_params,
+    struct mp_cache_entry_params const *mp_params)
 {
 	struct configuration_entry *retval;
-	size_t	size;
+	size_t size;
 	int res;
 
 	TRACE_IN(create_configuration_entry);
@@ -123,15 +111,14 @@ create_configuration_entry(const char *name,
 	assert(negative_params != NULL);
 	assert(mp_params != NULL);
 
-	retval = calloc(1,
-		sizeof(*retval));
+	retval = calloc(1, sizeof(*retval));
 	assert(retval != NULL);
 
 	res = pthread_mutex_init(&retval->positive_cache_lock, NULL);
 	if (res != 0) {
 		free(retval);
 		LOG_ERR_2("create_configuration_entry",
-			"can't create positive cache lock");
+		    "can't create positive cache lock");
 		TRACE_OUT(create_configuration_entry);
 		return (NULL);
 	}
@@ -141,7 +128,7 @@ create_configuration_entry(const char *name,
 		pthread_mutex_destroy(&retval->positive_cache_lock);
 		free(retval);
 		LOG_ERR_2("create_configuration_entry",
-			"can't create negative cache lock");
+		    "can't create negative cache lock");
 		TRACE_OUT(create_configuration_entry);
 		return (NULL);
 	}
@@ -152,17 +139,17 @@ create_configuration_entry(const char *name,
 		pthread_mutex_destroy(&retval->negative_cache_lock);
 		free(retval);
 		LOG_ERR_2("create_configuration_entry",
-			"can't create negative cache lock");
+		    "can't create negative cache lock");
 		TRACE_OUT(create_configuration_entry);
 		return (NULL);
 	}
 
 	memcpy(&retval->positive_cache_params, positive_params,
-		sizeof(struct common_cache_entry_params));
+	    sizeof(struct common_cache_entry_params));
 	memcpy(&retval->negative_cache_params, negative_params,
-		sizeof(struct common_cache_entry_params));
+	    sizeof(struct common_cache_entry_params));
 	memcpy(&retval->mp_cache_params, mp_params,
-		sizeof(struct mp_cache_entry_params));
+	    sizeof(struct mp_cache_entry_params));
 
 	size = strlen(name);
 	retval->name = calloc(1, size + 1);
@@ -170,9 +157,8 @@ create_configuration_entry(const char *name,
 	memcpy(retval->name, name, size);
 
 	memcpy(&retval->common_query_timeout, common_timeout,
-		sizeof(struct timeval));
-	memcpy(&retval->mp_query_timeout, mp_timeout,
-		sizeof(struct timeval));
+	    sizeof(struct timeval));
+	memcpy(&retval->mp_query_timeout, mp_timeout, sizeof(struct timeval));
 
 	asprintf(&retval->positive_cache_params.cep.entry_name, "%s+", name);
 	assert(retval->positive_cache_params.cep.entry_name != NULL);
@@ -200,8 +186,7 @@ create_def_configuration_entry(const char *name)
 	struct configuration_entry *res = NULL;
 
 	TRACE_IN(create_def_configuration_entry);
-	memset(&positive_params, 0,
-		sizeof(struct common_cache_entry_params));
+	memset(&positive_params, 0, sizeof(struct common_cache_entry_params));
 	positive_params.cep.entry_type = CET_COMMON;
 	positive_params.cache_entries_size = DEFAULT_CACHE_HT_SIZE;
 	positive_params.max_elemsize = DEFAULT_POSITIVE_ELEMENTS_SIZE;
@@ -211,7 +196,7 @@ create_def_configuration_entry(const char *name)
 	positive_params.policy = CPT_LRU;
 
 	memcpy(&negative_params, &positive_params,
-		sizeof(struct common_cache_entry_params));
+	    sizeof(struct common_cache_entry_params));
 	negative_params.max_elemsize = DEFAULT_NEGATIVE_ELEMENTS_SIZE;
 	negative_params.satisf_elemsize = DEFAULT_NEGATIVE_ELEMENTS_SIZE / 2;
 	negative_params.max_lifetime.tv_sec = DEFAULT_NEGATIVE_LIFETIME;
@@ -224,16 +209,15 @@ create_def_configuration_entry(const char *name)
 	memset(&default_mp_timeout, 0, sizeof(struct timeval));
 	default_mp_timeout.tv_sec = DEFAULT_MP_ENTRY_TIMEOUT;
 
-	memset(&mp_params, 0,
-		sizeof(struct mp_cache_entry_params));
+	memset(&mp_params, 0, sizeof(struct mp_cache_entry_params));
 	mp_params.cep.entry_type = CET_MULTIPART;
 	mp_params.max_elemsize = DEFAULT_MULTIPART_ELEMENTS_SIZE;
 	mp_params.max_sessions = DEFAULT_MULITPART_SESSIONS_SIZE;
 	mp_params.max_lifetime.tv_sec = DEFAULT_MULITPART_LIFETIME;
 
 	res = create_configuration_entry(name, &default_common_timeout,
-		&default_mp_timeout, &positive_params, &negative_params,
-		&mp_params);
+	    &default_mp_timeout, &positive_params, &negative_params,
+	    &mp_params);
 
 	TRACE_OUT(create_def_configuration_entry);
 	return (res);
@@ -258,7 +242,7 @@ destroy_configuration_entry(struct configuration_entry *entry)
 
 int
 add_configuration_entry(struct configuration *config,
-	struct configuration_entry *entry)
+    struct configuration_entry *entry)
 {
 	TRACE_IN(add_configuration_entry);
 	assert(entry != NULL);
@@ -273,11 +257,11 @@ add_configuration_entry(struct configuration *config,
 
 		config->entries_capacity *= 2;
 		new_entries = calloc(config->entries_capacity,
-			sizeof(*new_entries));
+		    sizeof(*new_entries));
 		assert(new_entries != NULL);
 		memcpy(new_entries, config->entries,
-			sizeof(struct configuration_entry *) *
-		        config->entries_size);
+		    sizeof(struct configuration_entry *) *
+			config->entries_size);
 
 		free(config->entries);
 		config->entries = new_entries;
@@ -285,8 +269,7 @@ add_configuration_entry(struct configuration *config,
 
 	config->entries[config->entries_size++] = entry;
 	qsort(config->entries, config->entries_size,
-		sizeof(struct configuration_entry *),
-		configuration_entry_sort_cmp);
+	    sizeof(struct configuration_entry *), configuration_entry_sort_cmp);
 
 	TRACE_OUT(add_configuration_entry);
 	return (0);
@@ -312,15 +295,14 @@ configuration_get_entry(struct configuration *config, size_t index)
 }
 
 struct configuration_entry *
-configuration_find_entry(struct configuration *config,
-	const char *name)
+configuration_find_entry(struct configuration *config, const char *name)
 {
-	struct configuration_entry	**retval;
+	struct configuration_entry **retval;
 
 	TRACE_IN(configuration_find_entry);
 
 	retval = bsearch(name, config->entries, config->entries_size,
-		sizeof(struct configuration_entry *), configuration_entry_cmp);
+	    sizeof(struct configuration_entry *), configuration_entry_cmp);
 	TRACE_OUT(configuration_find_entry);
 
 	return ((retval != NULL) ? *retval : NULL);
@@ -333,22 +315,21 @@ configuration_find_entry(struct configuration *config,
 
 int
 configuration_entry_add_mp_cache_entry(struct configuration_entry *config_entry,
-	cache_entry c_entry)
+    cache_entry c_entry)
 {
 	cache_entry *new_mp_entries, *old_mp_entries;
 
 	TRACE_IN(configuration_entry_add_mp_cache_entry);
 	++config_entry->mp_cache_entries_size;
-	new_mp_entries = malloc(sizeof(*new_mp_entries) *
-		config_entry->mp_cache_entries_size);
+	new_mp_entries = malloc(
+	    sizeof(*new_mp_entries) * config_entry->mp_cache_entries_size);
 	assert(new_mp_entries != NULL);
 	new_mp_entries[0] = c_entry;
 
 	if (config_entry->mp_cache_entries_size - 1 > 0) {
-		memcpy(new_mp_entries + 1,
-		    config_entry->mp_cache_entries,
+		memcpy(new_mp_entries + 1, config_entry->mp_cache_entries,
 		    (config_entry->mp_cache_entries_size - 1) *
-		    sizeof(cache_entry));
+			sizeof(cache_entry));
 	}
 
 	old_mp_entries = config_entry->mp_cache_entries;
@@ -356,9 +337,8 @@ configuration_entry_add_mp_cache_entry(struct configuration_entry *config_entry,
 	free(old_mp_entries);
 
 	qsort(config_entry->mp_cache_entries,
-		config_entry->mp_cache_entries_size,
-		sizeof(cache_entry),
-		configuration_entry_cache_mp_sort_cmp);
+	    config_entry->mp_cache_entries_size, sizeof(cache_entry),
+	    configuration_entry_cache_mp_sort_cmp);
 
 	TRACE_OUT(configuration_entry_add_mp_cache_entry);
 	return (0);
@@ -366,14 +346,14 @@ configuration_entry_add_mp_cache_entry(struct configuration_entry *config_entry,
 
 cache_entry
 configuration_entry_find_mp_cache_entry(
-	struct configuration_entry *config_entry, const char *mp_name)
+    struct configuration_entry *config_entry, const char *mp_name)
 {
 	cache_entry *result;
 
 	TRACE_IN(configuration_entry_find_mp_cache_entry);
 	result = bsearch(mp_name, config_entry->mp_cache_entries,
-		config_entry->mp_cache_entries_size,
-		sizeof(cache_entry), configuration_entry_cache_mp_cmp);
+	    config_entry->mp_cache_entries_size, sizeof(cache_entry),
+	    configuration_entry_cache_mp_cmp);
 
 	if (result == NULL) {
 		TRACE_OUT(configuration_entry_find_mp_cache_entry);
@@ -390,15 +370,15 @@ configuration_entry_find_mp_cache_entry(
  */
 int
 configuration_entry_find_mp_cache_entries(
-	struct configuration_entry *config_entry, const char *mp_name,
-	cache_entry **start, cache_entry **finish)
+    struct configuration_entry *config_entry, const char *mp_name,
+    cache_entry **start, cache_entry **finish)
 {
 	cache_entry *result;
 
 	TRACE_IN(configuration_entry_find_mp_cache_entries);
 	result = bsearch(mp_name, config_entry->mp_cache_entries,
-		config_entry->mp_cache_entries_size,
-		sizeof(cache_entry), configuration_entry_cache_mp_part_cmp);
+	    config_entry->mp_cache_entries_size, sizeof(cache_entry),
+	    configuration_entry_cache_mp_part_cmp);
 
 	if (result == NULL) {
 		TRACE_OUT(configuration_entry_find_mp_cache_entries);
@@ -409,20 +389,22 @@ configuration_entry_find_mp_cache_entries(
 	*finish = result + 1;
 
 	while (*start != config_entry->mp_cache_entries) {
-	    if (configuration_entry_cache_mp_part_cmp(mp_name, *start - 1) == 0)
-		*start = *start - 1;
-	    else
-		break;
+		if (configuration_entry_cache_mp_part_cmp(mp_name,
+			*start - 1) == 0)
+			*start = *start - 1;
+		else
+			break;
 	}
 
-	while (*finish != config_entry->mp_cache_entries +
+	while (*finish !=
+	    config_entry->mp_cache_entries +
 		config_entry->mp_cache_entries_size) {
 
-	    if (configuration_entry_cache_mp_part_cmp(
-		mp_name, *finish) == 0)
-	    	*finish = *finish + 1;
-	    else
-		break;
+		if (configuration_entry_cache_mp_part_cmp(mp_name, *finish) ==
+		    0)
+			*finish = *finish + 1;
+		else
+			break;
 	}
 
 	TRACE_OUT(configuration_entry_find_mp_cache_entries);
@@ -435,25 +417,25 @@ configuration_entry_find_mp_cache_entries(
 void
 configuration_lock_rdlock(struct configuration *config)
 {
-    TRACE_IN(configuration_lock_rdlock);
-    pthread_rwlock_rdlock(&config->rwlock);
-    TRACE_OUT(configuration_lock_rdlock);
+	TRACE_IN(configuration_lock_rdlock);
+	pthread_rwlock_rdlock(&config->rwlock);
+	TRACE_OUT(configuration_lock_rdlock);
 }
 
 void
 configuration_lock_wrlock(struct configuration *config)
 {
-    TRACE_IN(configuration_lock_wrlock);
-    pthread_rwlock_wrlock(&config->rwlock);
-    TRACE_OUT(configuration_lock_wrlock);
+	TRACE_IN(configuration_lock_wrlock);
+	pthread_rwlock_wrlock(&config->rwlock);
+	TRACE_OUT(configuration_lock_wrlock);
 }
 
 void
 configuration_unlock(struct configuration *config)
 {
-    TRACE_IN(configuration_unlock);
-    pthread_rwlock_unlock(&config->rwlock);
-    TRACE_OUT(configuration_unlock);
+	TRACE_IN(configuration_unlock);
+	pthread_rwlock_unlock(&config->rwlock);
+	TRACE_OUT(configuration_unlock);
 }
 
 /*
@@ -463,7 +445,7 @@ configuration_unlock(struct configuration *config)
  */
 void
 configuration_lock_entry(struct configuration_entry *entry,
-	enum config_entry_lock_type lock_type)
+    enum config_entry_lock_type lock_type)
 {
 	TRACE_IN(configuration_lock_entry);
 	assert(entry != NULL);
@@ -487,7 +469,7 @@ configuration_lock_entry(struct configuration_entry *entry,
 
 void
 configuration_unlock_entry(struct configuration_entry *entry,
-	enum config_entry_lock_type lock_type)
+    enum config_entry_lock_type lock_type)
 {
 	TRACE_IN(configuration_unlock_entry);
 	assert(entry != NULL);
@@ -512,7 +494,7 @@ configuration_unlock_entry(struct configuration_entry *entry,
 struct configuration *
 init_configuration(void)
 {
-	struct configuration	*retval;
+	struct configuration *retval;
 
 	TRACE_IN(init_configuration);
 	retval = calloc(1, sizeof(*retval));
@@ -520,7 +502,7 @@ init_configuration(void)
 
 	retval->entries_capacity = INITIAL_ENTRIES_CAPACITY;
 	retval->entries = calloc(retval->entries_capacity,
-		sizeof(*retval->entries));
+	    sizeof(*retval->entries));
 	assert(retval->entries != NULL);
 
 	pthread_rwlock_init(&retval->rwlock, NULL);
@@ -532,7 +514,7 @@ init_configuration(void)
 void
 fill_configuration_defaults(struct configuration *config)
 {
-	size_t	len, i;
+	size_t len, i;
 
 	TRACE_IN(fill_configuration_defaults);
 	assert(config != NULL);
@@ -550,8 +532,8 @@ fill_configuration_defaults(struct configuration *config)
 	assert(config->pidfile_path != NULL);
 	memcpy(config->pidfile_path, DEFAULT_PIDFILE_PATH, len);
 
-	config->socket_mode =  S_IFSOCK | S_IRUSR | S_IWUSR |
-		S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
+	config->socket_mode = S_IFSOCK | S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP |
+	    S_IROTH | S_IWOTH;
 	config->force_unlink = 1;
 
 	config->query_timeout = DEFAULT_QUERY_TIMEOUT;

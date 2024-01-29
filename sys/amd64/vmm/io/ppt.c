@@ -28,32 +28,30 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
-#include <sys/bus.h>
 #include <sys/pciio.h>
 #include <sys/rman.h>
 #include <sys/smp.h>
 #include <sys/sysctl.h>
 
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
-
 #include <machine/resource.h>
-
 #include <machine/vmm.h>
 #include <machine/vmm_dev.h>
 
-#include "vmm_lapic.h"
-#include "vmm_ktr.h"
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include "iommu.h"
 #include "ppt.h"
+#include "vmm_ktr.h"
+#include "vmm_lapic.h"
 
 /* XXX locking */
 
-#define	MAX_MSIMSGS	32
+#define MAX_MSIMSGS 32
 
 /*
  * If the MSI-X table is located in the middle of a BAR then that MMIO
@@ -63,33 +61,33 @@
  *
  * So, allocate a MMIO segment for each BAR register + 1 additional segment.
  */
-#define	MAX_MMIOSEGS	((PCIR_MAX_BAR_0 + 1) + 1)
+#define MAX_MMIOSEGS ((PCIR_MAX_BAR_0 + 1) + 1)
 
 MALLOC_DEFINE(M_PPTMSIX, "pptmsix", "Passthru MSI-X resources");
 
-struct pptintr_arg {				/* pptintr(pptintr_arg) */
-	struct pptdev	*pptdev;
-	uint64_t	addr;
-	uint64_t	msg_data;
+struct pptintr_arg { /* pptintr(pptintr_arg) */
+	struct pptdev *pptdev;
+	uint64_t addr;
+	uint64_t msg_data;
 };
 
 struct pptseg {
-	vm_paddr_t	gpa;
-	size_t		len;
-	int		wired;
+	vm_paddr_t gpa;
+	size_t len;
+	int wired;
 };
 
 struct pptdev {
-	device_t	dev;
-	struct vm	*vm;			/* owner of this device */
-	TAILQ_ENTRY(pptdev)	next;
+	device_t dev;
+	struct vm *vm; /* owner of this device */
+	TAILQ_ENTRY(pptdev) next;
 	struct pptseg mmio[MAX_MMIOSEGS];
 	struct {
-		int	num_msgs;		/* guest state */
+		int num_msgs; /* guest state */
 
-		int	startrid;		/* host state */
+		int startrid; /* host state */
 		struct resource *res[MAX_MSIMSGS];
-		void	*cookie[MAX_MSIMSGS];
+		void *cookie[MAX_MSIMSGS];
 		struct pptintr_arg arg[MAX_MSIMSGS];
 	} msi;
 
@@ -186,10 +184,9 @@ ppt_detach(device_t dev)
 
 static device_method_t ppt_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		ppt_probe),
-	DEVMETHOD(device_attach,	ppt_attach),
-	DEVMETHOD(device_detach,	ppt_detach),
-	{0, 0}
+	DEVMETHOD(device_probe, ppt_probe),
+	DEVMETHOD(device_attach, ppt_attach),
+	DEVMETHOD(device_detach, ppt_detach), { 0, 0 }
 };
 
 DEFINE_CLASS_0(ppt, ppt_driver, ppt_methods, sizeof(struct pptdev));
@@ -202,7 +199,7 @@ ppt_find(struct vm *vm, int bus, int slot, int func, struct pptdev **pptp)
 	struct pptdev *ppt;
 	int b, s, f;
 
-	TAILQ_FOREACH(ppt, &pptdev_list, next) {
+	TAILQ_FOREACH (ppt, &pptdev_list, next) {
 		dev = ppt->dev;
 		b = pci_get_bus(dev);
 		s = pci_get_slot(dev);
@@ -213,7 +210,7 @@ ppt_find(struct vm *vm, int bus, int slot, int func, struct pptdev **pptp)
 
 	if (ppt == NULL)
 		return (ENOENT);
-	if (ppt->vm != vm)		/* Make sure we own this device */
+	if (ppt->vm != vm) /* Make sure we own this device */
 		return (EBUSY);
 	*pptp = ppt;
 	return (0);
@@ -254,7 +251,7 @@ ppt_teardown_msi(struct pptdev *ppt)
 
 		if (res != NULL)
 			bus_release_resource(ppt->dev, SYS_RES_IRQ, rid, res);
-		
+
 		ppt->msi.res[i] = NULL;
 		ppt->msi.cookie[i] = NULL;
 	}
@@ -265,7 +262,7 @@ ppt_teardown_msi(struct pptdev *ppt)
 	ppt->msi.num_msgs = 0;
 }
 
-static void 
+static void
 ppt_teardown_msix_intr(struct pptdev *ppt, int idx)
 {
 	int rid;
@@ -276,25 +273,25 @@ ppt_teardown_msix_intr(struct pptdev *ppt, int idx)
 	res = ppt->msix.res[idx];
 	cookie = ppt->msix.cookie[idx];
 
-	if (cookie != NULL) 
+	if (cookie != NULL)
 		bus_teardown_intr(ppt->dev, res, cookie);
 
-	if (res != NULL) 
+	if (res != NULL)
 		bus_release_resource(ppt->dev, SYS_RES_IRQ, rid, res);
 
 	ppt->msix.res[idx] = NULL;
 	ppt->msix.cookie[idx] = NULL;
 }
 
-static void 
+static void
 ppt_teardown_msix(struct pptdev *ppt)
 {
 	int i;
 
-	if (ppt->msix.num_msgs == 0) 
+	if (ppt->msix.num_msgs == 0)
 		return;
 
-	for (i = 0; i < ppt->msix.num_msgs; i++) 
+	for (i = 0; i < ppt->msix.num_msgs; i++)
 		ppt_teardown_msix_intr(ppt, i);
 
 	free(ppt->msix.res, M_PPTMSIX);
@@ -304,16 +301,14 @@ ppt_teardown_msix(struct pptdev *ppt)
 	pci_release_msi(ppt->dev);
 
 	if (ppt->msix.msix_table_res) {
-		bus_release_resource(ppt->dev, SYS_RES_MEMORY, 
-				     ppt->msix.msix_table_rid,
-				     ppt->msix.msix_table_res);
+		bus_release_resource(ppt->dev, SYS_RES_MEMORY,
+		    ppt->msix.msix_table_rid, ppt->msix.msix_table_res);
 		ppt->msix.msix_table_res = NULL;
 		ppt->msix.msix_table_rid = 0;
 	}
 	if (ppt->msix.msix_pba_res) {
-		bus_release_resource(ppt->dev, SYS_RES_MEMORY, 
-				     ppt->msix.msix_pba_rid,
-				     ppt->msix.msix_pba_res);
+		bus_release_resource(ppt->dev, SYS_RES_MEMORY,
+		    ppt->msix.msix_pba_rid, ppt->msix.msix_pba_res);
 		ppt->msix.msix_pba_res = NULL;
 		ppt->msix.msix_pba_rid = 0;
 	}
@@ -335,7 +330,7 @@ ppt_assigned_devices(struct vm *vm)
 	int num;
 
 	num = 0;
-	TAILQ_FOREACH(ppt, &pptdev_list, next) {
+	TAILQ_FOREACH (ppt, &pptdev_list, next) {
 		if (ppt->vm == vm)
 			num++;
 	}
@@ -349,7 +344,7 @@ ppt_is_mmio(struct vm *vm, vm_paddr_t gpa)
 	struct pptdev *ppt;
 	struct pptseg *seg;
 
-	TAILQ_FOREACH(ppt, &pptdev_list, next) {
+	TAILQ_FOREACH (ppt, &pptdev_list, next) {
 		if (ppt->vm != vm)
 			continue;
 
@@ -369,8 +364,8 @@ static void
 ppt_pci_reset(device_t dev)
 {
 
-	if (pcie_flr(dev,
-	     max(pcie_get_max_completion_timeout(dev) / 1000, 10), true))
+	if (pcie_flr(dev, max(pcie_get_max_completion_timeout(dev) / 1000, 10),
+		true))
 		return;
 
 	pci_power_reset(dev);
@@ -423,7 +418,7 @@ ppt_unassign_all(struct vm *vm)
 	int bus, slot, func;
 	device_t dev;
 
-	TAILQ_FOREACH(ppt, &pptdev_list, next) {
+	TAILQ_FOREACH (ppt, &pptdev_list, next) {
 		if (ppt->vm == vm) {
 			dev = ppt->dev;
 			bus = pci_get_bus(dev);
@@ -454,8 +449,8 @@ ppt_valid_bar_mapping(struct pptdev *ppt, vm_paddr_t hpa, size_t len)
 }
 
 int
-ppt_map_mmio(struct vm *vm, int bus, int slot, int func,
-	     vm_paddr_t gpa, size_t len, vm_paddr_t hpa)
+ppt_map_mmio(struct vm *vm, int bus, int slot, int func, vm_paddr_t gpa,
+    size_t len, vm_paddr_t hpa)
 {
 	int i, error;
 	struct pptseg *seg;
@@ -487,8 +482,8 @@ ppt_map_mmio(struct vm *vm, int bus, int slot, int func,
 }
 
 int
-ppt_unmap_mmio(struct vm *vm, int bus, int slot, int func,
-	       vm_paddr_t gpa, size_t len)
+ppt_unmap_mmio(struct vm *vm, int bus, int slot, int func, vm_paddr_t gpa,
+    size_t len)
 {
 	int i, error;
 	struct pptseg *seg;
@@ -541,8 +536,8 @@ pptintr(void *arg)
 }
 
 int
-ppt_setup_msi(struct vm *vm, int bus, int slot, int func,
-	      uint64_t addr, uint64_t msg, int numvec)
+ppt_setup_msi(struct vm *vm, int bus, int slot, int func, uint64_t addr,
+    uint64_t msg, int numvec)
 {
 	int i, rid, flags;
 	int msi_count, startrid, error, tmp;
@@ -562,17 +557,17 @@ ppt_setup_msi(struct vm *vm, int bus, int slot, int func,
 	/* Free any allocated resources */
 	ppt_teardown_msi(ppt);
 
-	if (numvec == 0)		/* nothing more to do */
+	if (numvec == 0) /* nothing more to do */
 		return (0);
 
 	flags = RF_ACTIVE;
 	msi_count = pci_msi_count(ppt->dev);
 	if (msi_count == 0) {
-		startrid = 0;		/* legacy interrupt */
+		startrid = 0; /* legacy interrupt */
 		msi_count = 1;
 		flags |= RF_SHAREABLE;
 	} else
-		startrid = 1;		/* MSI */
+		startrid = 1; /* MSI */
 
 	/*
 	 * The device must be capable of supporting the number of vectors
@@ -609,7 +604,7 @@ ppt_setup_msi(struct vm *vm, int bus, int slot, int func,
 
 		rid = startrid + i;
 		ppt->msi.res[i] = bus_alloc_resource_any(ppt->dev, SYS_RES_IRQ,
-							 &rid, flags);
+		    &rid, flags);
 		if (ppt->msi.res[i] == NULL)
 			break;
 
@@ -618,9 +613,8 @@ ppt_setup_msi(struct vm *vm, int bus, int slot, int func,
 		ppt->msi.arg[i].msg_data = msg + i;
 
 		error = bus_setup_intr(ppt->dev, ppt->msi.res[i],
-				       INTR_TYPE_NET | INTR_MPSAFE,
-				       pptintr, NULL, &ppt->msi.arg[i],
-				       &ppt->msi.cookie[i]);
+		    INTR_TYPE_NET | INTR_MPSAFE, pptintr, NULL,
+		    &ppt->msi.arg[i], &ppt->msi.cookie[i]);
 		if (error != 0)
 			break;
 	}
@@ -634,8 +628,8 @@ ppt_setup_msi(struct vm *vm, int bus, int slot, int func,
 }
 
 int
-ppt_setup_msix(struct vm *vm, int bus, int slot, int func,
-	       int idx, uint64_t addr, uint64_t msg, uint32_t vector_control)
+ppt_setup_msix(struct vm *vm, int bus, int slot, int func, int idx,
+    uint64_t addr, uint64_t msg, uint32_t vector_control)
 {
 	struct pptdev *ppt;
 	struct pci_devinfo *dinfo;
@@ -651,10 +645,10 @@ ppt_setup_msix(struct vm *vm, int bus, int slot, int func,
 		return (EBUSY);
 
 	dinfo = device_get_ivars(ppt->dev);
-	if (!dinfo) 
+	if (!dinfo)
 		return (ENXIO);
 
-	/* 
+	/*
 	 * First-time configuration:
 	 * 	Allocate the MSI-X table
 	 *	Allocate the IRQ resources
@@ -674,12 +668,12 @@ ppt_setup_msix(struct vm *vm, int bus, int slot, int func,
 
 		ppt->msix.res = malloc(res_size, M_PPTMSIX, M_WAITOK | M_ZERO);
 		ppt->msix.cookie = malloc(cookie_size, M_PPTMSIX,
-					  M_WAITOK | M_ZERO);
+		    M_WAITOK | M_ZERO);
 		ppt->msix.arg = malloc(arg_size, M_PPTMSIX, M_WAITOK | M_ZERO);
 
 		rid = dinfo->cfg.msix.msix_table_bar;
 		ppt->msix.msix_table_res = bus_alloc_resource_any(ppt->dev,
-					       SYS_RES_MEMORY, &rid, RF_ACTIVE);
+		    SYS_RES_MEMORY, &rid, RF_ACTIVE);
 
 		if (ppt->msix.msix_table_res == NULL) {
 			ppt_teardown_msix(ppt);
@@ -704,7 +698,7 @@ ppt_setup_msix(struct vm *vm, int bus, int slot, int func,
 		error = pci_alloc_msix(ppt->dev, &alloced);
 		if (error || alloced != numvec) {
 			ppt_teardown_msix(ppt);
-			return (error == 0 ? ENOSPC: error);
+			return (error == 0 ? ENOSPC : error);
 		}
 	}
 
@@ -715,8 +709,8 @@ ppt_setup_msix(struct vm *vm, int bus, int slot, int func,
 		/* Allocate the IRQ resource */
 		ppt->msix.cookie[idx] = NULL;
 		rid = ppt->msix.startrid + idx;
-		ppt->msix.res[idx] = bus_alloc_resource_any(ppt->dev, SYS_RES_IRQ,
-							    &rid, RF_ACTIVE);
+		ppt->msix.res[idx] = bus_alloc_resource_any(ppt->dev,
+		    SYS_RES_IRQ, &rid, RF_ACTIVE);
 		if (ppt->msix.res[idx] == NULL)
 			return (ENXIO);
 
@@ -726,12 +720,12 @@ ppt_setup_msix(struct vm *vm, int bus, int slot, int func,
 
 		/* Setup the MSI-X interrupt */
 		error = bus_setup_intr(ppt->dev, ppt->msix.res[idx],
-				       INTR_TYPE_NET | INTR_MPSAFE,
-				       pptintr, NULL, &ppt->msix.arg[idx],
-				       &ppt->msix.cookie[idx]);
+		    INTR_TYPE_NET | INTR_MPSAFE, pptintr, NULL,
+		    &ppt->msix.arg[idx], &ppt->msix.cookie[idx]);
 
 		if (error != 0) {
-			bus_release_resource(ppt->dev, SYS_RES_IRQ, rid, ppt->msix.res[idx]);
+			bus_release_resource(ppt->dev, SYS_RES_IRQ, rid,
+			    ppt->msix.res[idx]);
 			ppt->msix.cookie[idx] = NULL;
 			ppt->msix.res[idx] = NULL;
 			return (ENXIO);

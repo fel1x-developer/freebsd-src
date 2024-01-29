@@ -26,13 +26,12 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_HAST_COMPRESSION_H_
-#define	_HAST_COMPRESSION_H_
-
-#include <stdlib.h>	/* size_t */
+#ifndef _HAST_COMPRESSION_H_
+#define _HAST_COMPRESSION_H_
 
 #include <hast.h>
 #include <nv.h>
+#include <stdlib.h> /* size_t */
 
 const char *compression_name(int num);
 
@@ -41,4 +40,4 @@ int compression_send(const struct hast_resource *res, struct nv *nv,
 int compression_recv(const struct hast_resource *res, struct nv *nv,
     void **datap, size_t *sizep, bool *freedatap);
 
-#endif	/* !_HAST_COMPRESSION_H_ */
+#endif /* !_HAST_COMPRESSION_H_ */

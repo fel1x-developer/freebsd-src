@@ -1,22 +1,22 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
-#include "adf_cfg_bundle.h"
-#include "adf_cfg_strings.h"
-#include "adf_cfg_instance.h"
 #include <sys/cpuset.h>
+
+#include "adf_cfg_bundle.h"
+#include "adf_cfg_instance.h"
+#include "adf_cfg_strings.h"
 
 static bool
 adf_cfg_is_interrupt_mode(struct adf_cfg_bundle *bundle)
 {
 	return (bundle->polling_mode == ADF_CFG_RESP_EPOLL) ||
 	    (bundle->type == KERNEL &&
-	     (bundle->polling_mode != ADF_CFG_RESP_POLL));
+		(bundle->polling_mode != ADF_CFG_RESP_POLL));
 }
 
 static bool
-adf_cfg_can_be_shared(struct adf_cfg_bundle *bundle,
-		      const char *process_name,
-		      int polling_mode)
+adf_cfg_can_be_shared(struct adf_cfg_bundle *bundle, const char *process_name,
+    int polling_mode)
 {
 	if (adf_cfg_is_free(bundle))
 		return true;
@@ -25,9 +25,8 @@ adf_cfg_can_be_shared(struct adf_cfg_bundle *bundle,
 		return false;
 
 	return !adf_cfg_is_interrupt_mode(bundle) ||
-	    !strncmp(process_name,
-		     bundle->sections[0],
-		     ADF_CFG_MAX_SECTION_LEN_IN_BYTES);
+	    !strncmp(process_name, bundle->sections[0],
+		ADF_CFG_MAX_SECTION_LEN_IN_BYTES);
 }
 
 bool
@@ -38,9 +37,8 @@ adf_cfg_is_free(struct adf_cfg_bundle *bundle)
 
 struct adf_cfg_instance *
 adf_cfg_get_free_instance(struct adf_cfg_device *device,
-			  struct adf_cfg_bundle *bundle,
-			  struct adf_cfg_instance *inst,
-			  const char *process_name)
+    struct adf_cfg_bundle *bundle, struct adf_cfg_instance *inst,
+    const char *process_name)
 {
 	int i = 0;
 	struct adf_cfg_instance *ret_instance = NULL;
@@ -72,9 +70,8 @@ adf_cfg_get_free_instance(struct adf_cfg_device *device,
 
 int
 adf_cfg_get_ring_pairs_from_bundle(struct adf_cfg_bundle *bundle,
-				   struct adf_cfg_instance *inst,
-				   const char *process_name,
-				   struct adf_cfg_instance *bundle_inst)
+    struct adf_cfg_instance *inst, const char *process_name,
+    struct adf_cfg_instance *bundle_inst)
 {
 	if (inst->polling_mode == ADF_CFG_RESP_POLL &&
 	    adf_cfg_is_interrupt_mode(bundle)) {
@@ -99,15 +96,14 @@ adf_cfg_get_ring_pairs_from_bundle(struct adf_cfg_bundle *bundle,
 		return EFAULT;
 	}
 
-	strlcpy(bundle->sections[bundle->section_index],
-		process_name,
-		ADF_CFG_MAX_STR_LEN);
+	strlcpy(bundle->sections[bundle->section_index], process_name,
+	    ADF_CFG_MAX_STR_LEN);
 	bundle->section_index++;
 
 	if (adf_cfg_is_free(bundle)) {
 		bundle->polling_mode = inst->polling_mode;
 		bundle->type = (!strcmp(ADF_KERNEL_SEC, process_name) ||
-				!strcmp(ADF_KERNEL_SAL_SEC, process_name)) ?
+				   !strcmp(ADF_KERNEL_SAL_SEC, process_name)) ?
 		    KERNEL :
 		    USER;
 		if (adf_cfg_is_interrupt_mode(bundle)) {
@@ -150,9 +146,8 @@ adf_cfg_get_ring_pairs_from_bundle(struct adf_cfg_bundle *bundle,
 
 static void
 adf_cfg_init_and_insert_inst(struct adf_cfg_bundle *bundle,
-			     struct adf_cfg_device *device,
-			     int bank_num,
-			     struct adf_accel_dev *accel_dev)
+    struct adf_cfg_device *device, int bank_num,
+    struct adf_accel_dev *accel_dev)
 {
 	struct adf_cfg_instance *cfg_instance = NULL;
 	int ring_pair_index = 0;
@@ -166,17 +161,13 @@ adf_cfg_init_and_insert_inst(struct adf_cfg_bundle *bundle,
 	/* init the bundle with instance information */
 	for (ring_pair_index = 0; ring_pair_index < bundle->max_cfg_svc_num;
 	     ring_pair_index++) {
-		adf_get_ring_svc_map_data(hw_data,
-					  bundle->number,
-					  ring_pair_index,
-					  &serv_type,
-					  &ring_index,
-					  &num_rings_per_srv);
+		adf_get_ring_svc_map_data(hw_data, bundle->number,
+		    ring_pair_index, &serv_type, &ring_index,
+		    &num_rings_per_srv);
 
 		for (i = 0; i < num_rings_per_srv; i++) {
-			cfg_instance = malloc(sizeof(*cfg_instance),
-					      M_QAT,
-					      M_WAITOK | M_ZERO);
+			cfg_instance = malloc(sizeof(*cfg_instance), M_QAT,
+			    M_WAITOK | M_ZERO);
 
 			switch (serv_type) {
 			case CRYPTO:
@@ -196,11 +187,9 @@ adf_cfg_init_and_insert_inst(struct adf_cfg_bundle *bundle,
 
 			default:
 				/* Unknown service type */
-				device_printf(
-				    GET_DEV(accel_dev),
+				device_printf(GET_DEV(accel_dev),
 				    "Unknown service type %d of instance, mask is 0x%x\n",
-				    serv_type,
-				    ring_to_svc_map);
+				    serv_type, ring_to_svc_map);
 			}
 			cfg_instance->bundle = bank_num;
 			device->instances[device->instance_index++] =
@@ -209,8 +198,8 @@ adf_cfg_init_and_insert_inst(struct adf_cfg_bundle *bundle,
 		}
 		if (serv_type == CRYPTO) {
 			ring_pair_index++;
-			serv_type =
-			    GET_SRV_TYPE(ring_to_svc_map, ring_pair_index);
+			serv_type = GET_SRV_TYPE(ring_to_svc_map,
+			    ring_pair_index);
 		}
 	}
 
@@ -219,9 +208,8 @@ adf_cfg_init_and_insert_inst(struct adf_cfg_bundle *bundle,
 
 int
 adf_cfg_bundle_init(struct adf_cfg_bundle *bundle,
-		    struct adf_cfg_device *device,
-		    int bank_num,
-		    struct adf_accel_dev *accel_dev)
+    struct adf_cfg_device *device, int bank_num,
+    struct adf_accel_dev *accel_dev)
 {
 	int i = 0;
 
@@ -237,20 +225,19 @@ adf_cfg_bundle_init(struct adf_cfg_bundle *bundle,
 	bundle->polling_mode = -1;
 	bundle->section_index = 0;
 
-	bundle->sections = malloc(sizeof(char *) * bundle->max_section,
-				  M_QAT,
-				  M_WAITOK | M_ZERO);
+	bundle->sections = malloc(sizeof(char *) * bundle->max_section, M_QAT,
+	    M_WAITOK | M_ZERO);
 
 	for (i = 0; i < bundle->max_section; i++) {
-		bundle->sections[i] =
-		    malloc(ADF_CFG_MAX_STR_LEN, M_QAT, M_WAITOK | M_ZERO);
+		bundle->sections[i] = malloc(ADF_CFG_MAX_STR_LEN, M_QAT,
+		    M_WAITOK | M_ZERO);
 	}
 	return 0;
 }
 
 void
 adf_cfg_bundle_clear(struct adf_cfg_bundle *bundle,
-		     struct adf_accel_dev *accel_dev)
+    struct adf_accel_dev *accel_dev)
 {
 	int i = 0;
 
@@ -269,8 +256,7 @@ adf_cfg_bundle_clear(struct adf_cfg_bundle *bundle,
 
 static void
 adf_cfg_assign_serv_to_rings(struct adf_hw_device_data *hw_data,
-			     struct adf_cfg_bundle *bundle,
-			     struct adf_cfg_device *device)
+    struct adf_cfg_bundle *bundle, struct adf_cfg_device *device)
 {
 	int ring_pair_index = 0;
 	int ring_index = 0;
@@ -280,64 +266,42 @@ adf_cfg_assign_serv_to_rings(struct adf_hw_device_data *hw_data,
 
 	for (ring_pair_index = 0; ring_pair_index < bundle->max_cfg_svc_num;
 	     ring_pair_index++) {
-		adf_get_ring_svc_map_data(hw_data,
-					  bundle->number,
-					  ring_pair_index,
-					  &serv_type,
-					  &ring_index,
-					  &num_rings_per_srv);
+		adf_get_ring_svc_map_data(hw_data, bundle->number,
+		    ring_pair_index, &serv_type, &ring_index,
+		    &num_rings_per_srv);
 
 		switch (serv_type) {
 		case CRYPTO:
-			ASSIGN_SERV_TO_RINGS(bundle,
-					     ring_index,
-					     num_req_rings,
-					     ADF_ACCEL_SERV_ASYM,
-					     num_rings_per_srv);
+			ASSIGN_SERV_TO_RINGS(bundle, ring_index, num_req_rings,
+			    ADF_ACCEL_SERV_ASYM, num_rings_per_srv);
 			ring_pair_index++;
 			ring_index = num_rings_per_srv * ring_pair_index;
 			if (ring_pair_index == bundle->max_cfg_svc_num)
 				break;
-			ASSIGN_SERV_TO_RINGS(bundle,
-					     ring_index,
-					     num_req_rings,
-					     ADF_ACCEL_SERV_SYM,
-					     num_rings_per_srv);
+			ASSIGN_SERV_TO_RINGS(bundle, ring_index, num_req_rings,
+			    ADF_ACCEL_SERV_SYM, num_rings_per_srv);
 			break;
 		case COMP:
-			ASSIGN_SERV_TO_RINGS(bundle,
-					     ring_index,
-					     num_req_rings,
-					     ADF_ACCEL_SERV_DC,
-					     num_rings_per_srv);
+			ASSIGN_SERV_TO_RINGS(bundle, ring_index, num_req_rings,
+			    ADF_ACCEL_SERV_DC, num_rings_per_srv);
 			break;
 		case SYM:
-			ASSIGN_SERV_TO_RINGS(bundle,
-					     ring_index,
-					     num_req_rings,
-					     ADF_ACCEL_SERV_SYM,
-					     num_rings_per_srv);
+			ASSIGN_SERV_TO_RINGS(bundle, ring_index, num_req_rings,
+			    ADF_ACCEL_SERV_SYM, num_rings_per_srv);
 			break;
 		case ASYM:
-			ASSIGN_SERV_TO_RINGS(bundle,
-					     ring_index,
-					     num_req_rings,
-					     ADF_ACCEL_SERV_ASYM,
-					     num_rings_per_srv);
+			ASSIGN_SERV_TO_RINGS(bundle, ring_index, num_req_rings,
+			    ADF_ACCEL_SERV_ASYM, num_rings_per_srv);
 			break;
 		case NA:
-			ASSIGN_SERV_TO_RINGS(bundle,
-					     ring_index,
-					     num_req_rings,
-					     ADF_ACCEL_SERV_NA,
-					     num_rings_per_srv);
+			ASSIGN_SERV_TO_RINGS(bundle, ring_index, num_req_rings,
+			    ADF_ACCEL_SERV_NA, num_rings_per_srv);
 			break;
 
 		default:
 			/* unknown service type */
 			pr_err("Unknown service type %d, mask 0x%x.\n",
-			       serv_type,
-			       hw_data->ring_to_svc_map);
+			    serv_type, hw_data->ring_to_svc_map);
 		}
 	}
 
@@ -346,8 +310,7 @@ adf_cfg_assign_serv_to_rings(struct adf_hw_device_data *hw_data,
 
 void
 adf_cfg_init_ring2serv_mapping(struct adf_accel_dev *accel_dev,
-			       struct adf_cfg_bundle *bundle,
-			       struct adf_cfg_device *device)
+    struct adf_cfg_bundle *bundle, struct adf_cfg_device *device)
 {
 	struct adf_hw_device_data *hw_data = accel_dev->hw_device;
 	struct adf_cfg_ring *ring_in_bundle;
@@ -359,17 +322,16 @@ adf_cfg_init_ring2serv_mapping(struct adf_accel_dev *accel_dev,
 	else
 		bundle->max_cfg_svc_num = 1;
 
-	bundle->rings =
-	    malloc(bundle->num_of_rings * sizeof(struct adf_cfg_ring *),
-		   M_QAT,
-		   M_WAITOK | M_ZERO);
+	bundle->rings = malloc(bundle->num_of_rings *
+		sizeof(struct adf_cfg_ring *),
+	    M_QAT, M_WAITOK | M_ZERO);
 
 	for (ring_num = 0; ring_num < bundle->num_of_rings; ring_num++) {
-		ring_in_bundle = malloc(sizeof(struct adf_cfg_ring),
-					M_QAT,
-					M_WAITOK | M_ZERO);
-		ring_in_bundle->mode =
-		    (ring_num < bundle->num_of_rings / 2) ? TX : RX;
+		ring_in_bundle = malloc(sizeof(struct adf_cfg_ring), M_QAT,
+		    M_WAITOK | M_ZERO);
+		ring_in_bundle->mode = (ring_num < bundle->num_of_rings / 2) ?
+		    TX :
+		    RX;
 		ring_in_bundle->number = ring_num;
 		bundle->rings[ring_num] = ring_in_bundle;
 	}

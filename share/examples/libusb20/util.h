@@ -6,7 +6,7 @@
  * ----------------------------------------------------------------------------
  */
 
-#include <stdint.h>
 #include <libusb20.h>
+#include <stdint.h>
 
 void print_formatted(uint8_t *buf, uint32_t len);

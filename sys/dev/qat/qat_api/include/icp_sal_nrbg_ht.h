@@ -60,6 +60,6 @@
  *
  *****************************************************************************/
 CpaStatus icp_sal_nrbgHealthTest(const CpaInstanceHandle instanceHandle,
-				 Cpa32U *pContinuousRngTestFailures);
+    Cpa32U *pContinuousRngTestFailures);
 
 #endif

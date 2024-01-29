@@ -38,9 +38,9 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/ktr.h>
 #include <sys/limits.h>
 #include <sys/lock.h>
@@ -63,32 +63,34 @@
 
 #define KTR_NTB KTR_SPARE3
 
-#define NTB_TRANSPORT_VERSION	4
+#define NTB_TRANSPORT_VERSION 4
 
-static SYSCTL_NODE(_hw, OID_AUTO, ntb_transport,
-    CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
+static SYSCTL_NODE(_hw, OID_AUTO, ntb_transport, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "ntb_transport");
 
 static unsigned g_ntb_transport_debug_level;
 SYSCTL_UINT(_hw_ntb_transport, OID_AUTO, debug_level, CTLFLAG_RWTUN,
     &g_ntb_transport_debug_level, 0,
     "ntb_transport log level -- higher is more verbose");
-#define ntb_printf(lvl, ...) do {			\
-	if ((lvl) <= g_ntb_transport_debug_level) {	\
-		printf(__VA_ARGS__);			\
-	}						\
-} while (0)
+#define ntb_printf(lvl, ...)                                \
+	do {                                                \
+		if ((lvl) <= g_ntb_transport_debug_level) { \
+			printf(__VA_ARGS__);                \
+		}                                           \
+	} while (0)
 
 static unsigned transport_mtu = 0x10000;
 
-static uint64_t max_mw_size = 256*1024*1024;
-SYSCTL_UQUAD(_hw_ntb_transport, OID_AUTO, max_mw_size, CTLFLAG_RDTUN, &max_mw_size, 0,
+static uint64_t max_mw_size = 256 * 1024 * 1024;
+SYSCTL_UQUAD(_hw_ntb_transport, OID_AUTO, max_mw_size, CTLFLAG_RDTUN,
+    &max_mw_size, 0,
     "If enabled (non-zero), limit the size of large memory windows. "
     "Both sides of the NTB MUST set the same value here.");
 
 static unsigned enable_xeon_watchdog;
 SYSCTL_UINT(_hw_ntb_transport, OID_AUTO, enable_xeon_watchdog, CTLFLAG_RDTUN,
-    &enable_xeon_watchdog, 0, "If non-zero, write a register every second to "
+    &enable_xeon_watchdog, 0,
+    "If non-zero, write a register every second to "
     "keep a watchdog from tearing down the NTB link");
 
 STAILQ_HEAD(ntb_queue_list, ntb_queue_entry);
@@ -100,119 +102,119 @@ struct ntb_queue_entry {
 	STAILQ_ENTRY(ntb_queue_entry) entry;
 
 	/* info on data to be transferred */
-	void		*cb_data;
-	void		*buf;
-	uint32_t	len;
-	uint32_t	flags;
+	void *cb_data;
+	void *buf;
+	uint32_t len;
+	uint32_t flags;
 
-	struct ntb_transport_qp		*qp;
-	struct ntb_payload_header	*x_hdr;
-	ntb_q_idx_t	index;
+	struct ntb_transport_qp *qp;
+	struct ntb_payload_header *x_hdr;
+	ntb_q_idx_t index;
 };
 
 struct ntb_rx_info {
-	ntb_q_idx_t	entry;
+	ntb_q_idx_t entry;
 };
 
 struct ntb_transport_qp {
-	struct ntb_transport_ctx	*transport;
-	device_t		 dev;
+	struct ntb_transport_ctx *transport;
+	device_t dev;
 
-	void			*cb_data;
+	void *cb_data;
 
-	bool			client_ready;
-	volatile bool		link_is_up;
-	uint8_t			qp_num;	/* Only 64 QPs are allowed.  0-63 */
+	bool client_ready;
+	volatile bool link_is_up;
+	uint8_t qp_num; /* Only 64 QPs are allowed.  0-63 */
 
-	struct ntb_rx_info	*rx_info;
-	struct ntb_rx_info	*remote_rx_info;
+	struct ntb_rx_info *rx_info;
+	struct ntb_rx_info *remote_rx_info;
 
 	void (*tx_handler)(struct ntb_transport_qp *qp, void *qp_data,
 	    void *data, int len);
-	struct ntb_queue_list	tx_free_q;
-	struct mtx		ntb_tx_free_q_lock;
-	caddr_t			tx_mw;
-	bus_addr_t		tx_mw_phys;
-	ntb_q_idx_t		tx_index;
-	ntb_q_idx_t		tx_max_entry;
-	uint64_t		tx_max_frame;
+	struct ntb_queue_list tx_free_q;
+	struct mtx ntb_tx_free_q_lock;
+	caddr_t tx_mw;
+	bus_addr_t tx_mw_phys;
+	ntb_q_idx_t tx_index;
+	ntb_q_idx_t tx_max_entry;
+	uint64_t tx_max_frame;
 
 	void (*rx_handler)(struct ntb_transport_qp *qp, void *qp_data,
 	    void *data, int len);
-	struct ntb_queue_list	rx_post_q;
-	struct ntb_queue_list	rx_pend_q;
+	struct ntb_queue_list rx_post_q;
+	struct ntb_queue_list rx_pend_q;
 	/* ntb_rx_q_lock: synchronize access to rx_XXXX_q */
-	struct mtx		ntb_rx_q_lock;
-	struct task		rxc_db_work;
-	struct taskqueue	*rxc_tq;
-	caddr_t			rx_buff;
-	ntb_q_idx_t		rx_index;
-	ntb_q_idx_t		rx_max_entry;
-	uint64_t		rx_max_frame;
+	struct mtx ntb_rx_q_lock;
+	struct task rxc_db_work;
+	struct taskqueue *rxc_tq;
+	caddr_t rx_buff;
+	ntb_q_idx_t rx_index;
+	ntb_q_idx_t rx_max_entry;
+	uint64_t rx_max_frame;
 
 	void (*event_handler)(void *data, enum ntb_link_event status);
-	struct callout		link_work;
-	struct callout		rx_full;
+	struct callout link_work;
+	struct callout rx_full;
 
-	uint64_t		last_rx_no_buf;
+	uint64_t last_rx_no_buf;
 
 	/* Stats */
-	uint64_t		rx_bytes;
-	uint64_t		rx_pkts;
-	uint64_t		rx_ring_empty;
-	uint64_t		rx_err_no_buf;
-	uint64_t		rx_err_oflow;
-	uint64_t		rx_err_ver;
-	uint64_t		tx_bytes;
-	uint64_t		tx_pkts;
-	uint64_t		tx_ring_full;
-	uint64_t		tx_err_no_buf;
+	uint64_t rx_bytes;
+	uint64_t rx_pkts;
+	uint64_t rx_ring_empty;
+	uint64_t rx_err_no_buf;
+	uint64_t rx_err_oflow;
+	uint64_t rx_err_ver;
+	uint64_t tx_bytes;
+	uint64_t tx_pkts;
+	uint64_t tx_ring_full;
+	uint64_t tx_err_no_buf;
 
-	struct mtx		tx_lock;
+	struct mtx tx_lock;
 };
 
 struct ntb_transport_mw {
-	vm_paddr_t	phys_addr;
-	size_t		phys_size;
-	size_t		xlat_align;
-	size_t		xlat_align_size;
-	bus_addr_t	addr_limit;
+	vm_paddr_t phys_addr;
+	size_t phys_size;
+	size_t xlat_align;
+	size_t xlat_align_size;
+	bus_addr_t addr_limit;
 	/* Tx buff is vbase / phys_addr / tx_size */
-	caddr_t		vbase;
-	size_t		tx_size;
+	caddr_t vbase;
+	size_t tx_size;
 	/* Rx buff is virt_addr / dma_addr / rx_size */
-	bus_dma_tag_t	dma_tag;
-	bus_dmamap_t	dma_map;
-	caddr_t		virt_addr;
-	bus_addr_t	dma_addr;
-	size_t		rx_size;
+	bus_dma_tag_t dma_tag;
+	bus_dmamap_t dma_map;
+	caddr_t virt_addr;
+	bus_addr_t dma_addr;
+	size_t rx_size;
 	/* rx_size increased to size alignment requirements of the hardware. */
-	size_t		buff_size;
+	size_t buff_size;
 };
 
 struct ntb_transport_child {
-	device_t	dev;
-	int		consumer;
-	int		qpoff;
-	int		qpcnt;
+	device_t dev;
+	int consumer;
+	int qpoff;
+	int qpcnt;
 	struct ntb_transport_child *next;
 };
 
 struct ntb_transport_ctx {
-	device_t		 dev;
+	device_t dev;
 	struct ntb_transport_child *child;
-	struct ntb_transport_mw	*mw_vec;
-	struct ntb_transport_qp	*qp_vec;
-	int			compact;
-	unsigned		mw_count;
-	unsigned		qp_count;
-	uint64_t		qp_bitmap;
-	volatile bool		link_is_up;
-	enum ntb_speed		link_speed;
-	enum ntb_width		link_width;
-	struct callout		link_work;
-	struct callout		link_watchdog;
-	struct task		link_cleanup;
+	struct ntb_transport_mw *mw_vec;
+	struct ntb_transport_qp *qp_vec;
+	int compact;
+	unsigned mw_count;
+	unsigned qp_count;
+	uint64_t qp_bitmap;
+	volatile bool link_is_up;
+	enum ntb_speed link_speed;
+	enum ntb_width link_width;
+	struct callout link_work;
+	struct callout link_watchdog;
+	struct task link_cleanup;
 };
 
 enum {
@@ -257,14 +259,14 @@ enum {
  * Compart version of sratchpad protocol, using twice less registers.
  */
 enum {
-	NTBTC_PARAMS = 0,	/* NUM_QPS << 24 + NUM_MWS << 16 + VERSION */
-	NTBTC_QP_LINKS,		/* QP links status */
-	NTBTC_MW0_SZ,		/* MW size limited to 32 bits. */
+	NTBTC_PARAMS = 0, /* NUM_QPS << 24 + NUM_MWS << 16 + VERSION */
+	NTBTC_QP_LINKS,	  /* QP links status */
+	NTBTC_MW0_SZ,	  /* MW size limited to 32 bits. */
 };
 
-#define QP_TO_MW(nt, qp)	((qp) % nt->mw_count)
-#define NTB_QP_DEF_NUM_ENTRIES	100
-#define NTB_LINK_DOWN_TIMEOUT	100
+#define QP_TO_MW(nt, qp) ((qp) % nt->mw_count)
+#define NTB_QP_DEF_NUM_ENTRIES 100
+#define NTB_LINK_DOWN_TIMEOUT 100
 
 static int ntb_transport_probe(device_t dev);
 static int ntb_transport_attach(device_t dev);
@@ -313,7 +315,7 @@ static inline void
 iowrite32(uint32_t val, void *addr)
 {
 
-	bus_space_write_4(X86_BUS_SPACE_MEM, 0/* HACK */, (uintptr_t)addr,
+	bus_space_write_4(X86_BUS_SPACE_MEM, 0 /* HACK */, (uintptr_t)addr,
 	    val);
 }
 
@@ -368,23 +370,29 @@ ntb_transport_attach(device_t dev)
 	TUNABLE_INT_FETCH(buf, &nt->compact);
 	if (nt->compact) {
 		if (spad_count < 3) {
-			device_printf(dev, "At least 3 scratchpads required.\n");
+			device_printf(dev,
+			    "At least 3 scratchpads required.\n");
 			return (ENXIO);
 		}
 		if (spad_count < 2 + nt->mw_count) {
 			nt->mw_count = spad_count - 2;
-			device_printf(dev, "Scratchpads enough only for %d "
-			    "memory windows.\n", nt->mw_count);
+			device_printf(dev,
+			    "Scratchpads enough only for %d "
+			    "memory windows.\n",
+			    nt->mw_count);
 		}
 	} else {
 		if (spad_count < 6) {
-			device_printf(dev, "At least 6 scratchpads required.\n");
+			device_printf(dev,
+			    "At least 6 scratchpads required.\n");
 			return (ENXIO);
 		}
 		if (spad_count < 4 + 2 * nt->mw_count) {
 			nt->mw_count = (spad_count - 4) / 2;
-			device_printf(dev, "Scratchpads enough only for %d "
-			    "memory windows.\n", nt->mw_count);
+			device_printf(dev,
+			    "Scratchpads enough only for %d "
+			    "memory windows.\n",
+			    nt->mw_count);
 		}
 	}
 	if (db_bitmap == 0) {
@@ -405,14 +413,17 @@ ntb_transport_attach(device_t dev)
 
 		mw->tx_size = mw->phys_size;
 		if (max_mw_size != 0 && mw->tx_size > max_mw_size) {
-			device_printf(dev, "Memory window %d limited from "
-			    "%ju to %ju\n", i, (uintmax_t)mw->tx_size,
-			    max_mw_size);
+			device_printf(dev,
+			    "Memory window %d limited from "
+			    "%ju to %ju\n",
+			    i, (uintmax_t)mw->tx_size, max_mw_size);
 			mw->tx_size = max_mw_size;
 		}
 		if (nt->compact && mw->tx_size > UINT32_MAX) {
-			device_printf(dev, "Memory window %d is too big "
-			    "(%ju)\n", i, (uintmax_t)mw->tx_size);
+			device_printf(dev,
+			    "Memory window %d is too big "
+			    "(%ju)\n",
+			    i, (uintmax_t)mw->tx_size);
 			rc = ENXIO;
 			goto err;
 		}
@@ -472,8 +483,8 @@ ntb_transport_attach(device_t dev)
 		cpp = &nc->next;
 
 		if (bootverbose) {
-			device_printf(dev, "%d \"%s\": queues %d",
-			    i, name, qpu);
+			device_printf(dev, "%d \"%s\": queues %d", i, name,
+			    qpu);
 			if (qp > 1)
 				printf("-%d", qpu + qp - 1);
 			printf("\n");
@@ -505,7 +516,8 @@ ntb_transport_attach(device_t dev)
 		mw = &nt->mw_vec[i];
 		rc = ntb_mw_set_trans(nt->dev, i, mw->dma_addr, mw->buff_size);
 		if (rc != 0)
-			ntb_printf(0, "load time mw%d xlat fails, rc %d\n", i, rc);
+			ntb_printf(0, "load time mw%d xlat fails, rc %d\n", i,
+			    rc);
 	}
 
 	if (enable_xeon_watchdog != 0)
@@ -827,8 +839,7 @@ ntb_tx_copy_callback(void *data)
 		qp->tx_bytes += entry->len;
 
 		if (qp->tx_handler)
-			qp->tx_handler(qp, qp->cb_data, entry->buf,
-			    entry->len);
+			qp->tx_handler(qp, qp->cb_data, entry->buf, entry->len);
 		else
 			m_freem(entry->buf);
 		entry->buf = NULL;
@@ -836,7 +847,8 @@ ntb_tx_copy_callback(void *data)
 
 	CTR3(KTR_NTB,
 	    "TX: entry %p sent. hdr->ver = %u, hdr->flags = 0x%x, Returning "
-	    "to tx_free_q", entry, hdr->ver, hdr->flags);
+	    "to tx_free_q",
+	    entry, hdr->ver, hdr->flags);
 	ntb_list_add(&qp->ntb_tx_free_q_lock, entry, &qp->tx_free_q);
 }
 
@@ -890,8 +902,7 @@ ntb_process_tx(struct ntb_transport_qp *qp, struct ntb_queue_entry *entry)
 
 	if (entry->len > qp->tx_max_frame - sizeof(struct ntb_payload_header)) {
 		if (qp->tx_handler != NULL)
-			qp->tx_handler(qp, qp->cb_data, entry->buf,
-			    EIO);
+			qp->tx_handler(qp, qp->cb_data, entry->buf, EIO);
 		else
 			m_freem(entry->buf);
 
@@ -962,8 +973,10 @@ ntb_process_rxc(struct ntb_transport_qp *qp)
 	}
 
 	if (hdr->ver != (uint32_t)qp->rx_pkts) {
-		CTR2(KTR_NTB,"RX: ver != rx_pkts (%x != %lx). "
-		    "Returning entry to rx_pend_q", hdr->ver, qp->rx_pkts);
+		CTR2(KTR_NTB,
+		    "RX: ver != rx_pkts (%x != %lx). "
+		    "Returning entry to rx_pend_q",
+		    hdr->ver, qp->rx_pkts);
 		qp->rx_err_ver++;
 		return (EIO);
 	}
@@ -1142,19 +1155,21 @@ ntb_transport_link_work(void *arg)
 	if (nt->compact) {
 		for (i = 0; i < nt->mw_count; i++) {
 			size = nt->mw_vec[i].tx_size;
-			KASSERT(size <= UINT32_MAX, ("size too big (%jx)", size));
+			KASSERT(size <= UINT32_MAX,
+			    ("size too big (%jx)", size));
 			ntb_peer_spad_write(dev, NTBTC_MW0_SZ + i, size);
 		}
 		ntb_peer_spad_write(dev, NTBTC_QP_LINKS, 0);
 		ntb_peer_spad_write(dev, NTBTC_PARAMS,
 		    (nt->qp_count << 24) | (nt->mw_count << 16) |
-		    NTB_TRANSPORT_VERSION);
+			NTB_TRANSPORT_VERSION);
 	} else {
 		for (i = 0; i < nt->mw_count; i++) {
 			size = nt->mw_vec[i].tx_size;
 			ntb_peer_spad_write(dev, NTBT_MW0_SZ_HIGH + (i * 2),
 			    size >> 32);
-			ntb_peer_spad_write(dev, NTBT_MW0_SZ_LOW + (i * 2), size);
+			ntb_peer_spad_write(dev, NTBT_MW0_SZ_LOW + (i * 2),
+			    size);
 		}
 		ntb_peer_spad_write(dev, NTBT_NUM_MWS, nt->mw_count);
 		ntb_peer_spad_write(dev, NTBT_NUM_QPS, nt->qp_count);
@@ -1166,8 +1181,9 @@ ntb_transport_link_work(void *arg)
 	val = 0;
 	if (nt->compact) {
 		ntb_spad_read(dev, NTBTC_PARAMS, &val);
-		if (val != ((nt->qp_count << 24) | (nt->mw_count << 16) |
-		    NTB_TRANSPORT_VERSION))
+		if (val !=
+		    ((nt->qp_count << 24) | (nt->mw_count << 16) |
+			NTB_TRANSPORT_VERSION))
 			goto out;
 	} else {
 		ntb_spad_read(dev, NTBT_VERSION, &val);
@@ -1206,12 +1222,13 @@ ntb_transport_link_work(void *arg)
 				goto free_mws;
 			}
 
-			/* Notify HW the memory location of the receive buffer */
+			/* Notify HW the memory location of the receive buffer
+			 */
 			rc = ntb_mw_set_trans(nt->dev, i, mw->dma_addr,
 			    mw->buff_size);
 			if (rc != 0) {
-				ntb_printf(0, "link up mw%d xlat fails, rc %d\n",
-				     i, rc);
+				ntb_printf(0,
+				    "link up mw%d xlat fails, rc %d\n", i, rc);
 				goto free_mws;
 			}
 		}
@@ -1236,8 +1253,8 @@ free_mws:
 		ntb_free_mw(nt, i);
 out:
 	if (ntb_link_is_up(dev, &nt->link_speed, &nt->link_width))
-		callout_reset(&nt->link_work,
-		    NTB_LINK_DOWN_TIMEOUT * hz / 1000, ntb_transport_link_work, nt);
+		callout_reset(&nt->link_work, NTB_LINK_DOWN_TIMEOUT * hz / 1000,
+		    ntb_transport_link_work, nt);
 }
 
 struct ntb_load_cb_args {
@@ -1277,16 +1294,15 @@ ntb_set_mw(struct ntb_transport_ctx *nt, int num_mw, size_t size)
 	mw->buff_size = buff_size;
 
 	if (bus_dma_tag_create(bus_get_dma_tag(nt->dev), mw->xlat_align, 0,
-	    mw->addr_limit, BUS_SPACE_MAXADDR,
-	    NULL, NULL, mw->buff_size, 1, mw->buff_size,
-	    0, NULL, NULL, &mw->dma_tag)) {
+		mw->addr_limit, BUS_SPACE_MAXADDR, NULL, NULL, mw->buff_size, 1,
+		mw->buff_size, 0, NULL, NULL, &mw->dma_tag)) {
 		ntb_printf(0, "Unable to create MW tag of size %zu\n",
 		    mw->buff_size);
 		mw->buff_size = 0;
 		return (ENOMEM);
 	}
 	if (bus_dmamem_alloc(mw->dma_tag, (void **)&mw->virt_addr,
-	    BUS_DMA_WAITOK | BUS_DMA_ZERO, &mw->dma_map)) {
+		BUS_DMA_WAITOK | BUS_DMA_ZERO, &mw->dma_map)) {
 		bus_dma_tag_destroy(mw->dma_tag);
 		ntb_printf(0, "Unable to allocate MW buffer of size %zu\n",
 		    mw->buff_size);
@@ -1294,7 +1310,8 @@ ntb_set_mw(struct ntb_transport_ctx *nt, int num_mw, size_t size)
 		return (ENOMEM);
 	}
 	if (bus_dmamap_load(mw->dma_tag, mw->dma_map, mw->virt_addr,
-	    mw->buff_size, ntb_load_cb, &cba, BUS_DMA_NOWAIT) || cba.error) {
+		mw->buff_size, ntb_load_cb, &cba, BUS_DMA_NOWAIT) ||
+	    cba.error) {
 		bus_dmamem_free(mw->dma_tag, mw->virt_addr, mw->dma_map);
 		bus_dma_tag_destroy(mw->dma_tag);
 		ntb_printf(0, "Unable to load MW buffer of size %zu\n",
@@ -1349,7 +1366,7 @@ ntb_transport_setup_qp_mw(struct ntb_transport_ctx *nt, unsigned int qp_num)
 	qp->rx_buff = mw->virt_addr + rx_size * (qp_num / mw_count);
 	rx_size -= sizeof(struct ntb_rx_info);
 
-	qp->remote_rx_info = (void*)(qp->rx_buff + rx_size);
+	qp->remote_rx_info = (void *)(qp->rx_buff + rx_size);
 
 	/* Due to house-keeping, there must be at least 2 buffs */
 	qp->rx_max_frame = qmin(transport_mtu, rx_size / 2);
@@ -1399,8 +1416,8 @@ ntb_qp_link_work(void *arg)
 
 		ntb_db_clear_mask(dev, 1ull << qp->qp_num);
 	} else if (nt->link_is_up)
-		callout_reset(&qp->link_work,
-		    NTB_LINK_DOWN_TIMEOUT * hz / 1000, ntb_qp_link_work, qp);
+		callout_reset(&qp->link_work, NTB_LINK_DOWN_TIMEOUT * hz / 1000,
+		    ntb_qp_link_work, qp);
 }
 
 /* Link down event*/
@@ -1645,7 +1662,8 @@ out:
  *
  * RETURNS: a zero based number specifying the qp number
  */
-unsigned char ntb_transport_qp_num(struct ntb_transport_qp *qp)
+unsigned char
+ntb_transport_qp_num(struct ntb_transport_qp *qp)
 {
 
 	return (qp->qp_num);
@@ -1677,13 +1695,12 @@ ntb_transport_tx_free_entry(struct ntb_transport_qp *qp)
 
 static device_method_t ntb_transport_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,     ntb_transport_probe),
-	DEVMETHOD(device_attach,    ntb_transport_attach),
-	DEVMETHOD(device_detach,    ntb_transport_detach),
+	DEVMETHOD(device_probe, ntb_transport_probe),
+	DEVMETHOD(device_attach, ntb_transport_attach),
+	DEVMETHOD(device_detach, ntb_transport_detach),
 	/* Bus interface */
 	DEVMETHOD(bus_child_location, ntb_transport_child_location),
-	DEVMETHOD(bus_print_child,  ntb_transport_print_child),
-	DEVMETHOD_END
+	DEVMETHOD(bus_print_child, ntb_transport_print_child), DEVMETHOD_END
 };
 
 static DEFINE_CLASS_0(ntb_transport, ntb_transport_driver,

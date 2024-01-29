@@ -3,8 +3,9 @@
  * It was generated using rpcgen.
  */
 
-#include <nlm/sm_inter.h>
 #include <sys/cdefs.h>
+
+#include <nlm/sm_inter.h>
 bool_t
 xdr_sm_name(XDR *xdrs, sm_name *objp)
 {

@@ -37,33 +37,32 @@
 #ifdef USB_GLOBAL_INCLUDE_FILE
 #include USB_GLOBAL_INCLUDE_FILE
 #else
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
+#include <dev/usb/template/usb_template.h>
 #include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
 #include <dev/usb/usb_core.h>
 #include <dev/usb/usb_ioctl.h>
 #include <dev/usb/usb_util.h>
-
-#include <dev/usb/template/usb_template.h>
-#endif			/* USB_GLOBAL_INCLUDE_FILE */
+#include <dev/usb/usbdi.h>
+#endif /* USB_GLOBAL_INCLUDE_FILE */
 
 enum {
 	MSC_LANG_INDEX,
@@ -75,21 +74,21 @@ enum {
 	MSC_MAX_INDEX,
 };
 
-#define	MSC_DEFAULT_VENDOR_ID		USB_TEMPLATE_VENDOR
-#define	MSC_DEFAULT_PRODUCT_ID		0x27df
-#define	MSC_DEFAULT_INTERFACE		"USB Mass Storage Interface"
-#define	MSC_DEFAULT_CONFIGURATION	"Default Config"
-#define	MSC_DEFAULT_MANUFACTURER	USB_TEMPLATE_MANUFACTURER
-#define	MSC_DEFAULT_PRODUCT		"USB Memory Stick"
-#define	MSC_DEFAULT_SERIAL_NUMBER	"March 2008"
+#define MSC_DEFAULT_VENDOR_ID USB_TEMPLATE_VENDOR
+#define MSC_DEFAULT_PRODUCT_ID 0x27df
+#define MSC_DEFAULT_INTERFACE "USB Mass Storage Interface"
+#define MSC_DEFAULT_CONFIGURATION "Default Config"
+#define MSC_DEFAULT_MANUFACTURER USB_TEMPLATE_MANUFACTURER
+#define MSC_DEFAULT_PRODUCT "USB Memory Stick"
+#define MSC_DEFAULT_SERIAL_NUMBER "March 2008"
 
-static struct usb_string_descriptor	msc_interface;
-static struct usb_string_descriptor	msc_configuration;
-static struct usb_string_descriptor	msc_manufacturer;
-static struct usb_string_descriptor	msc_product;
-static struct usb_string_descriptor	msc_serial_number;
+static struct usb_string_descriptor msc_interface;
+static struct usb_string_descriptor msc_configuration;
+static struct usb_string_descriptor msc_manufacturer;
+static struct usb_string_descriptor msc_product;
+static struct usb_string_descriptor msc_serial_number;
 
-static struct sysctl_ctx_list		msc_ctx_list;
+static struct sysctl_ctx_list msc_ctx_list;
 
 /* prototypes */
 
@@ -217,15 +216,15 @@ msc_init(void *arg __unused)
 	sysctl_ctx_init(&msc_ctx_list);
 
 	parent = SYSCTL_ADD_NODE(&msc_ctx_list,
-	    SYSCTL_STATIC_CHILDREN(_hw_usb_templates), OID_AUTO,
-	    parent_name, CTLFLAG_RW | CTLFLAG_MPSAFE,
-	    0, "USB Mass Storage device side template");
+	    SYSCTL_STATIC_CHILDREN(_hw_usb_templates), OID_AUTO, parent_name,
+	    CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
+	    "USB Mass Storage device side template");
 	SYSCTL_ADD_U16(&msc_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
-	    "vendor_id", CTLFLAG_RWTUN,
-	    &usb_template_msc.idVendor, 1, "Vendor identifier");
+	    "vendor_id", CTLFLAG_RWTUN, &usb_template_msc.idVendor, 1,
+	    "Vendor identifier");
 	SYSCTL_ADD_U16(&msc_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
-	    "product_id", CTLFLAG_RWTUN,
-	    &usb_template_msc.idProduct, 1, "Product identifier");
+	    "product_id", CTLFLAG_RWTUN, &usb_template_msc.idProduct, 1,
+	    "Product identifier");
 #if 0
 	SYSCTL_ADD_PROC(&msc_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
 	    "interface", CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
@@ -238,16 +237,16 @@ msc_init(void *arg __unused)
 #endif
 	SYSCTL_ADD_PROC(&msc_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
 	    "manufacturer", CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    &msc_manufacturer, sizeof(msc_manufacturer), usb_temp_sysctl,
-	    "A", "Manufacturer string");
+	    &msc_manufacturer, sizeof(msc_manufacturer), usb_temp_sysctl, "A",
+	    "Manufacturer string");
 	SYSCTL_ADD_PROC(&msc_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
 	    "product", CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    &msc_product, sizeof(msc_product), usb_temp_sysctl,
-	    "A", "Product string");
+	    &msc_product, sizeof(msc_product), usb_temp_sysctl, "A",
+	    "Product string");
 	SYSCTL_ADD_PROC(&msc_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
 	    "serial_number", CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    &msc_serial_number, sizeof(msc_serial_number), usb_temp_sysctl,
-	    "A", "Serial number string");
+	    &msc_serial_number, sizeof(msc_serial_number), usb_temp_sysctl, "A",
+	    "Serial number string");
 }
 
 static void

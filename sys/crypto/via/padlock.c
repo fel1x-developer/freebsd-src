@@ -27,11 +27,11 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/rwlock.h>
-#include <sys/malloc.h>
 #include <sys/libkern.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/rwlock.h>
 #if defined(__amd64__) || defined(__i386__)
 #include <machine/cpufunc.h>
 #include <machine/cputypes.h>
@@ -40,12 +40,12 @@
 #include <machine/specialreg.h>
 #endif
 
-#include <opencrypto/cryptodev.h>
+#include <sys/bus.h>
+#include <sys/kobj.h>
 
 #include <crypto/via/padlock.h>
+#include <opencrypto/cryptodev.h>
 
-#include <sys/kobj.h>
-#include <sys/bus.h>
 #include "cryptodev_if.h"
 
 /*
@@ -55,7 +55,7 @@
  */
 
 struct padlock_softc {
-	int32_t		sc_cid;
+	int32_t sc_cid;
 };
 
 static int padlock_probesession(device_t, const struct crypto_session_params *);
@@ -117,7 +117,7 @@ padlock_attach(device_t dev)
 
 	sc->sc_cid = crypto_get_driverid(dev, sizeof(struct padlock_session),
 	    CRYPTOCAP_F_SOFTWARE | CRYPTOCAP_F_SYNC |
-	    CRYPTOCAP_F_ACCEL_SOFTWARE);
+		CRYPTOCAP_F_ACCEL_SOFTWARE);
 	if (sc->sc_cid < 0) {
 		device_printf(dev, "Could not get crypto driver id.\n");
 		return (ENOMEM);
@@ -271,17 +271,17 @@ out:
 }
 
 static device_method_t padlock_methods[] = {
-	DEVMETHOD(device_identify,	padlock_identify),
-	DEVMETHOD(device_probe,		padlock_probe),
-	DEVMETHOD(device_attach,	padlock_attach),
-	DEVMETHOD(device_detach,	padlock_detach),
+	DEVMETHOD(device_identify, padlock_identify),
+	DEVMETHOD(device_probe, padlock_probe),
+	DEVMETHOD(device_attach, padlock_attach),
+	DEVMETHOD(device_detach, padlock_detach),
 
 	DEVMETHOD(cryptodev_probesession, padlock_probesession),
-	DEVMETHOD(cryptodev_newsession,	padlock_newsession),
-	DEVMETHOD(cryptodev_freesession,padlock_freesession),
-	DEVMETHOD(cryptodev_process,	padlock_process),
+	DEVMETHOD(cryptodev_newsession, padlock_newsession),
+	DEVMETHOD(cryptodev_freesession, padlock_freesession),
+	DEVMETHOD(cryptodev_process, padlock_process),
 
-	{0, 0},
+	{ 0, 0 },
 };
 
 static driver_t padlock_driver = {

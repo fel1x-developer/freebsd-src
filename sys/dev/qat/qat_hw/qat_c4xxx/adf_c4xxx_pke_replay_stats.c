@@ -1,19 +1,21 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
+#include <sys/sbuf.h>
+#include <sys/sysctl.h>
+
 #include "adf_c4xxx_hw_data.h"
 #include "adf_c4xxx_pke_replay_stats.h"
 #include "adf_common_drv.h"
 #include "icp_qat_fw_init_admin.h"
-#include <sys/sbuf.h>
-#include <sys/sysctl.h>
 
 #define PKE_REPLAY_DBG_FILE "pke_replay_stats"
-#define LINE                                                                   \
+#define LINE \
 	"+-----------------------------------------------------------------+\n"
-#define BANNER                                                                 \
+#define BANNER \
 	"|             PKE Replay Statistics for Qat Device                |\n"
 
-static int qat_pke_replay_counters_show(SYSCTL_HANDLER_ARGS)
+static int
+qat_pke_replay_counters_show(SYSCTL_HANDLER_ARGS)
 {
 	struct sbuf sb;
 	struct adf_accel_dev *accel_dev = arg1;
@@ -30,11 +32,9 @@ static int qat_pke_replay_counters_show(SYSCTL_HANDLER_ARGS)
 	if (ret)
 		return ret;
 
-	sbuf_printf(
-	    &sb,
+	sbuf_printf(&sb,
 	    "| Successful Replays:    %40llu |\n| Unsuccessful Replays:  %40llu |\n",
-	    (unsigned long long)suc_counter,
-	    (unsigned long long)unsuc_counter);
+	    (unsigned long long)suc_counter, (unsigned long long)unsuc_counter);
 
 	sbuf_finish(&sb);
 	SYSCTL_OUT(req, sbuf_data(&sb), sbuf_len(&sb));
@@ -57,25 +57,18 @@ adf_pke_replay_counters_add_c4xxx(struct adf_accel_dev *accel_dev)
 	struct sysctl_oid *qat_sysctl_tree = NULL;
 	struct sysctl_oid *pke_rep_file = NULL;
 
-	qat_sysctl_ctx =
-	    device_get_sysctl_ctx(accel_dev->accel_pci_dev.pci_dev);
-	qat_sysctl_tree =
-	    device_get_sysctl_tree(accel_dev->accel_pci_dev.pci_dev);
+	qat_sysctl_ctx = device_get_sysctl_ctx(
+	    accel_dev->accel_pci_dev.pci_dev);
+	qat_sysctl_tree = device_get_sysctl_tree(
+	    accel_dev->accel_pci_dev.pci_dev);
 
 	pke_rep_file = SYSCTL_ADD_PROC(qat_sysctl_ctx,
-				       SYSCTL_CHILDREN(qat_sysctl_tree),
-				       OID_AUTO,
-				       PKE_REPLAY_DBG_FILE,
-				       CTLTYPE_STRING | CTLFLAG_RD,
-				       accel_dev,
-				       0,
-				       qat_pke_replay_counters_show,
-				       "A",
-				       "QAT PKE Replay Statistics");
+	    SYSCTL_CHILDREN(qat_sysctl_tree), OID_AUTO, PKE_REPLAY_DBG_FILE,
+	    CTLTYPE_STRING | CTLFLAG_RD, accel_dev, 0,
+	    qat_pke_replay_counters_show, "A", "QAT PKE Replay Statistics");
 	accel_dev->pke_replay_dbgfile = pke_rep_file;
 	if (!accel_dev->pke_replay_dbgfile) {
-		device_printf(
-		    GET_DEV(accel_dev),
+		device_printf(GET_DEV(accel_dev),
 		    "Failed to create qat pke replay debugfs entry.\n");
 		return ENOENT;
 	}

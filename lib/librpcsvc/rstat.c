@@ -44,20 +44,19 @@ enum clnt_stat
 rstat(char *host, struct statstime *statp)
 {
 	return (callrpc(host, RSTATPROG, RSTATVERS_TIME, RSTATPROC_STATS,
-			(xdrproc_t)xdr_void, (char *) NULL,
-			(xdrproc_t)xdr_statstime, (char *) statp));
+	    (xdrproc_t)xdr_void, (char *)NULL, (xdrproc_t)xdr_statstime,
+	    (char *)statp));
 }
 
 int
 havedisk(char *host)
 {
 	long have;
-	
+
 	if (callrpc(host, RSTATPROG, RSTATVERS_SWTCH, RSTATPROC_HAVEDISK,
-			(xdrproc_t)xdr_void, (char *) NULL,
-			(xdrproc_t)xdr_long, (char *) &have) != 0)
+		(xdrproc_t)xdr_void, (char *)NULL, (xdrproc_t)xdr_long,
+		(char *)&have) != 0)
 		return (-1);
 	else
 		return (have);
 }
-

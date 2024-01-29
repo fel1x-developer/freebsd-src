@@ -29,16 +29,17 @@
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/linker.h>
-#include <sys/sysctl.h>
 #include <sys/stat.h>
+#include <sys/sysctl.h>
+
 #include <err.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <errno.h>
 
-#define	PATHCTL	"kern.module_path"
+#define PATHCTL "kern.module_path"
 
 /*
  * Check to see if the requested module is specified as a filename with no
@@ -48,14 +49,14 @@
 static int
 path_check(const char *kldname, int quiet)
 {
-	char	*path, *tmppath, *element;
-	struct	stat sb;
-	int	mib[5];
-	char	kldpath[MAXPATHLEN];
-	size_t	miblen, pathlen;
-	dev_t	dev;
-	ino_t	ino;
-	int	found;
+	char *path, *tmppath, *element;
+	struct stat sb;
+	int mib[5];
+	char kldpath[MAXPATHLEN];
+	size_t miblen, pathlen;
+	dev_t dev;
+	ino_t ino;
+	int found;
 
 	if (strchr(kldname, '/') != NULL)
 		return (0);
@@ -96,7 +97,8 @@ path_check(const char *kldname, int quiet)
 		if (sb.st_dev != dev || sb.st_ino != ino) {
 			if (!quiet)
 				warnx("%s will be loaded from %s, not the "
-				    "current directory", kldname, element);
+				      "current directory",
+				    kldname, element);
 			break;
 		} else if (sb.st_dev == dev && sb.st_ino == ino)
 			break;
@@ -122,7 +124,7 @@ usage(void)
 }
 
 int
-main(int argc, char** argv)
+main(int argc, char **argv)
 {
 	int c;
 	int check_loaded;
@@ -166,23 +168,29 @@ main(int argc, char** argv)
 				if (check_loaded != 0 && errno == EEXIST) {
 					if (verbose)
 						printf("%s is already "
-						    "loaded\n", argv[0]);
+						       "loaded\n",
+						    argv[0]);
 				} else {
 					if (!quiet) {
 						switch (errno) {
 						case EEXIST:
-							warnx("can't load %s: module "
+							warnx(
+							    "can't load %s: module "
 							    "already loaded or "
-							    "in kernel", argv[0]);
+							    "in kernel",
+							    argv[0]);
 							break;
 						case ENOEXEC:
-							warnx("an error occurred while "
+							warnx(
+							    "an error occurred while "
 							    "loading module %s. "
 							    "Please check dmesg(8) for "
-							    "more details.", argv[0]);
+							    "more details.",
+							    argv[0]);
 							break;
 						default:
-							warn("can't load %s", argv[0]);
+							warn("can't load %s",
+							    argv[0]);
 							break;
 						}
 					}

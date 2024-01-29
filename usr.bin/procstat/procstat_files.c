@@ -37,10 +37,9 @@
 #include <netinet/in.h>
 
 #include <arpa/inet.h>
-
 #include <err.h>
-#include <libprocstat.h>
 #include <inttypes.h>
+#include <libprocstat.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -106,18 +105,18 @@ addr_to_string(struct sockaddr_storage *ss, char *buffer, int buflen)
 	case AF_INET:
 		sin = (struct sockaddr_in *)ss;
 		if (sin->sin_addr.s_addr == INADDR_ANY)
-		    snprintf(buffer, buflen, "%s:%d", "*",
-		        ntohs(sin->sin_port));
+			snprintf(buffer, buflen, "%s:%d", "*",
+			    ntohs(sin->sin_port));
 		else if (inet_ntop(AF_INET, &sin->sin_addr, buffer2,
-		    sizeof(buffer2)) != NULL)
+			     sizeof(buffer2)) != NULL)
 			snprintf(buffer, buflen, "%s:%d", buffer2,
-		            ntohs(sin->sin_port));
+			    ntohs(sin->sin_port));
 		break;
 
 	case AF_INET6:
 		sin6 = (struct sockaddr_in6 *)ss;
 		if (inet_ntop(AF_INET6, &sin6->sin6_addr, buffer2,
-		    sizeof(buffer2)) != NULL)
+			sizeof(buffer2)) != NULL)
 			snprintf(buffer, buflen, "%s.%d", buffer2,
 			    ntohs(sin6->sin6_port));
 		else
@@ -131,117 +130,117 @@ addr_to_string(struct sockaddr_storage *ss, char *buffer, int buflen)
 }
 
 static struct cap_desc {
-	uint64_t	 cd_right;
-	const char	*cd_desc;
+	uint64_t cd_right;
+	const char *cd_desc;
 } cap_desc[] = {
 	/* General file I/O. */
-	{ CAP_READ,		"rd" },
-	{ CAP_WRITE,		"wr" },
-	{ CAP_SEEK,		"se" },
-	{ CAP_MMAP,		"mm" },
-	{ CAP_CREATE,		"cr" },
-	{ CAP_FEXECVE,		"fe" },
-	{ CAP_FSYNC,		"fy" },
-	{ CAP_FTRUNCATE,	"ft" },
+	{ CAP_READ, "rd" },
+	{ CAP_WRITE, "wr" },
+	{ CAP_SEEK, "se" },
+	{ CAP_MMAP, "mm" },
+	{ CAP_CREATE, "cr" },
+	{ CAP_FEXECVE, "fe" },
+	{ CAP_FSYNC, "fy" },
+	{ CAP_FTRUNCATE, "ft" },
 
 	/* VFS methods. */
-	{ CAP_FCHDIR,		"cd" },
-	{ CAP_FCHFLAGS,		"cf" },
-	{ CAP_FCHMOD,		"cm" },
-	{ CAP_FCHOWN,		"cn" },
-	{ CAP_FCNTL,		"fc" },
-	{ CAP_FLOCK,		"fl" },
-	{ CAP_FPATHCONF,	"fp" },
-	{ CAP_FSCK,		"fk" },
-	{ CAP_FSTAT,		"fs" },
-	{ CAP_FSTATFS,		"sf" },
-	{ CAP_FUTIMES,		"fu" },
-	{ CAP_LINKAT_SOURCE,	"ls" },
-	{ CAP_LINKAT_TARGET,	"lt" },
-	{ CAP_MKDIRAT,		"md" },
-	{ CAP_MKFIFOAT,		"mf" },
-	{ CAP_MKNODAT,		"mn" },
-	{ CAP_RENAMEAT_SOURCE,	"rs" },
-	{ CAP_RENAMEAT_TARGET,	"rt" },
-	{ CAP_SYMLINKAT,	"sl" },
-	{ CAP_UNLINKAT,		"un" },
+	{ CAP_FCHDIR, "cd" },
+	{ CAP_FCHFLAGS, "cf" },
+	{ CAP_FCHMOD, "cm" },
+	{ CAP_FCHOWN, "cn" },
+	{ CAP_FCNTL, "fc" },
+	{ CAP_FLOCK, "fl" },
+	{ CAP_FPATHCONF, "fp" },
+	{ CAP_FSCK, "fk" },
+	{ CAP_FSTAT, "fs" },
+	{ CAP_FSTATFS, "sf" },
+	{ CAP_FUTIMES, "fu" },
+	{ CAP_LINKAT_SOURCE, "ls" },
+	{ CAP_LINKAT_TARGET, "lt" },
+	{ CAP_MKDIRAT, "md" },
+	{ CAP_MKFIFOAT, "mf" },
+	{ CAP_MKNODAT, "mn" },
+	{ CAP_RENAMEAT_SOURCE, "rs" },
+	{ CAP_RENAMEAT_TARGET, "rt" },
+	{ CAP_SYMLINKAT, "sl" },
+	{ CAP_UNLINKAT, "un" },
 
 	/* Lookups - used to constrain *at() calls. */
-	{ CAP_LOOKUP,		"lo" },
+	{ CAP_LOOKUP, "lo" },
 
 	/* Extended attributes. */
-	{ CAP_EXTATTR_GET,	"eg" },
-	{ CAP_EXTATTR_SET,	"es" },
-	{ CAP_EXTATTR_DELETE,	"ed" },
-	{ CAP_EXTATTR_LIST,	"el" },
+	{ CAP_EXTATTR_GET, "eg" },
+	{ CAP_EXTATTR_SET, "es" },
+	{ CAP_EXTATTR_DELETE, "ed" },
+	{ CAP_EXTATTR_LIST, "el" },
 
 	/* Access Control Lists. */
-	{ CAP_ACL_GET,		"ag" },
-	{ CAP_ACL_SET,		"as" },
-	{ CAP_ACL_DELETE,	"ad" },
-	{ CAP_ACL_CHECK,	"ac" },
+	{ CAP_ACL_GET, "ag" },
+	{ CAP_ACL_SET, "as" },
+	{ CAP_ACL_DELETE, "ad" },
+	{ CAP_ACL_CHECK, "ac" },
 
 	/* Socket operations. */
-	{ CAP_ACCEPT,		"at" },
-	{ CAP_BIND,		"bd" },
-	{ CAP_CONNECT,		"co" },
-	{ CAP_GETPEERNAME,	"pn" },
-	{ CAP_GETSOCKNAME,	"sn" },
-	{ CAP_GETSOCKOPT,	"gs" },
-	{ CAP_LISTEN,		"ln" },
-	{ CAP_PEELOFF,		"pf" },
-	{ CAP_SETSOCKOPT,	"ss" },
-	{ CAP_SHUTDOWN,		"sh" },
+	{ CAP_ACCEPT, "at" },
+	{ CAP_BIND, "bd" },
+	{ CAP_CONNECT, "co" },
+	{ CAP_GETPEERNAME, "pn" },
+	{ CAP_GETSOCKNAME, "sn" },
+	{ CAP_GETSOCKOPT, "gs" },
+	{ CAP_LISTEN, "ln" },
+	{ CAP_PEELOFF, "pf" },
+	{ CAP_SETSOCKOPT, "ss" },
+	{ CAP_SHUTDOWN, "sh" },
 
 	/* Mandatory Access Control. */
-	{ CAP_MAC_GET,		"mg" },
-	{ CAP_MAC_SET,		"ms" },
+	{ CAP_MAC_GET, "mg" },
+	{ CAP_MAC_SET, "ms" },
 
 	/* Methods on semaphores. */
-	{ CAP_SEM_GETVALUE,	"sg" },
-	{ CAP_SEM_POST,		"sp" },
-	{ CAP_SEM_WAIT,		"sw" },
+	{ CAP_SEM_GETVALUE, "sg" },
+	{ CAP_SEM_POST, "sp" },
+	{ CAP_SEM_WAIT, "sw" },
 
 	/* Event monitoring and posting. */
-	{ CAP_EVENT,		"ev" },
-	{ CAP_KQUEUE_EVENT,	"ke" },
-	{ CAP_KQUEUE_CHANGE,	"kc" },
+	{ CAP_EVENT, "ev" },
+	{ CAP_KQUEUE_EVENT, "ke" },
+	{ CAP_KQUEUE_CHANGE, "kc" },
 
 	/* Strange and powerful rights that should not be given lightly. */
-	{ CAP_IOCTL,		"io" },
-	{ CAP_TTYHOOK,		"ty" },
+	{ CAP_IOCTL, "io" },
+	{ CAP_TTYHOOK, "ty" },
 
 	/* Process management via process descriptors. */
-	{ CAP_PDGETPID,		"pg" },
-	{ CAP_PDWAIT,		"pw" },
-	{ CAP_PDKILL,		"pk" },
+	{ CAP_PDGETPID, "pg" },
+	{ CAP_PDWAIT, "pw" },
+	{ CAP_PDKILL, "pk" },
 
 	/*
 	 * Rights that allow to use bindat(2) and connectat(2) syscalls on a
 	 * directory descriptor.
 	 */
-	{ CAP_BINDAT,		"ba" },
-	{ CAP_CONNECTAT,	"ca" },
+	{ CAP_BINDAT, "ba" },
+	{ CAP_CONNECTAT, "ca" },
 
 	/* Aliases and defines that combine multiple rights. */
-	{ CAP_PREAD,		"prd" },
-	{ CAP_PWRITE,		"pwr" },
+	{ CAP_PREAD, "prd" },
+	{ CAP_PWRITE, "pwr" },
 
-	{ CAP_MMAP_R,		"mmr" },
-	{ CAP_MMAP_W,		"mmw" },
-	{ CAP_MMAP_X,		"mmx" },
-	{ CAP_MMAP_RW,		"mrw" },
-	{ CAP_MMAP_RX,		"mrx" },
-	{ CAP_MMAP_WX,		"mwx" },
-	{ CAP_MMAP_RWX,		"mma" },
+	{ CAP_MMAP_R, "mmr" },
+	{ CAP_MMAP_W, "mmw" },
+	{ CAP_MMAP_X, "mmx" },
+	{ CAP_MMAP_RW, "mrw" },
+	{ CAP_MMAP_RX, "mrx" },
+	{ CAP_MMAP_WX, "mwx" },
+	{ CAP_MMAP_RWX, "mma" },
 
-	{ CAP_RECV,		"re" },
-	{ CAP_SEND,		"sd" },
+	{ CAP_RECV, "re" },
+	{ CAP_SEND, "sd" },
 
-	{ CAP_SOCK_CLIENT,	"scl" },
-	{ CAP_SOCK_SERVER,	"ssr" },
+	{ CAP_SOCK_CLIENT, "scl" },
+	{ CAP_SOCK_SERVER, "ssr" },
 };
-static const u_int	cap_desc_count = nitems(cap_desc);
+static const u_int cap_desc_count = nitems(cap_desc);
 
 static u_int
 width_capability(cap_rights_t *rightsp)
@@ -305,9 +304,8 @@ procstat_files(struct procstat *procstat, struct kinfo_proc *kipp)
 	 */
 	capwidth = 0;
 	head = procstat_getfiles(procstat, kipp, 0);
-	if (head != NULL &&
-	    (procstat_opts & PS_OPT_CAPABILITIES) != 0) {
-		STAILQ_FOREACH(fst, head, next) {
+	if (head != NULL && (procstat_opts & PS_OPT_CAPABILITIES) != 0) {
+		STAILQ_FOREACH (fst, head, next) {
 			width = width_capability(&fst->fs_cap_rights);
 			if (width > capwidth)
 				capwidth = width;
@@ -319,13 +317,14 @@ procstat_files(struct procstat *procstat, struct kinfo_proc *kipp)
 	if ((procstat_opts & PS_OPT_NOHEADER) == 0) {
 		if ((procstat_opts & PS_OPT_CAPABILITIES) != 0)
 			xo_emit("{T:/%5s %-16s %5s %1s %-8s %-*s "
-			    "%-3s %-12s}\n", "PID", "COMM", "FD", "T",
-			    "FLAGS", capwidth, "CAPABILITIES", "PRO",
-			    "NAME");
+				"%-3s %-12s}\n",
+			    "PID", "COMM", "FD", "T", "FLAGS", capwidth,
+			    "CAPABILITIES", "PRO", "NAME");
 		else
 			xo_emit("{T:/%5s %-16s %5s %1s %1s %-8s "
-			    "%3s %7s %-3s %-12s}\n", "PID", "COMM", "FD", "T",
-			    "V", "FLAGS", "REF", "OFFSET", "PRO", "NAME");
+				"%3s %7s %-3s %-12s}\n",
+			    "PID", "COMM", "FD", "T", "V", "FLAGS", "REF",
+			    "OFFSET", "PRO", "NAME");
 	}
 
 	if (head == NULL)
@@ -333,7 +332,7 @@ procstat_files(struct procstat *procstat, struct kinfo_proc *kipp)
 	xo_emit("{ek:process_id/%5d/%d}", kipp->ki_pid);
 	xo_emit("{e:command/%-16s/%s}", kipp->ki_comm);
 	xo_open_list("files");
-	STAILQ_FOREACH(fst, head, next) {
+	STAILQ_FOREACH (fst, head, next) {
 		xo_open_instance("files");
 		xo_emit("{dk:process_id/%5d/%d} ", kipp->ki_pid);
 		xo_emit("{d:command/%-16s/%s} ", kipp->ki_comm);
@@ -468,7 +467,8 @@ procstat_files(struct procstat *procstat, struct kinfo_proc *kipp)
 
 				case PS_FST_VTYPE_VBAD:
 					str = "x";
-					xo_emit("{eq:vode_type/revoked_device}");
+					xo_emit(
+					    "{eq:vode_type/revoked_device}");
 					break;
 
 				case PS_FST_VTYPE_VNON:
@@ -485,23 +485,23 @@ procstat_files(struct procstat *procstat, struct kinfo_proc *kipp)
 			}
 			xo_emit("{d:vnode_type/%1s/%s} ", str);
 		}
-		
-		xo_emit("{d:/%s}", fst->fs_fflags & PS_FST_FFLAG_READ ?
-		    "r" : "-");
-		xo_emit("{d:/%s}", fst->fs_fflags & PS_FST_FFLAG_WRITE ?
-		    "w" : "-");
-		xo_emit("{d:/%s}", fst->fs_fflags & PS_FST_FFLAG_APPEND ?
-		    "a" : "-");
-		xo_emit("{d:/%s}", fst->fs_fflags & PS_FST_FFLAG_ASYNC ?
-		    "s" : "-");
-		xo_emit("{d:/%s}", fst->fs_fflags & PS_FST_FFLAG_SYNC ?
-		    "f" : "-");
-		xo_emit("{d:/%s}", fst->fs_fflags & PS_FST_FFLAG_NONBLOCK ?
-		    "n" : "-");
-		xo_emit("{d:/%s}", fst->fs_fflags & PS_FST_FFLAG_DIRECT ?
-		    "d" : "-");
-		xo_emit("{d:/%s}", fst->fs_fflags & PS_FST_FFLAG_HASLOCK ?
-		    "l" : "-");
+
+		xo_emit("{d:/%s}",
+		    fst->fs_fflags & PS_FST_FFLAG_READ ? "r" : "-");
+		xo_emit("{d:/%s}",
+		    fst->fs_fflags & PS_FST_FFLAG_WRITE ? "w" : "-");
+		xo_emit("{d:/%s}",
+		    fst->fs_fflags & PS_FST_FFLAG_APPEND ? "a" : "-");
+		xo_emit("{d:/%s}",
+		    fst->fs_fflags & PS_FST_FFLAG_ASYNC ? "s" : "-");
+		xo_emit("{d:/%s}",
+		    fst->fs_fflags & PS_FST_FFLAG_SYNC ? "f" : "-");
+		xo_emit("{d:/%s}",
+		    fst->fs_fflags & PS_FST_FFLAG_NONBLOCK ? "n" : "-");
+		xo_emit("{d:/%s}",
+		    fst->fs_fflags & PS_FST_FFLAG_DIRECT ? "d" : "-");
+		xo_emit("{d:/%s}",
+		    fst->fs_fflags & PS_FST_FFLAG_HASLOCK ? "l" : "-");
 		xo_emit(" ");
 		xo_open_list("fd_flags");
 		if (fst->fs_fflags & PS_FST_FFLAG_READ)
@@ -545,8 +545,8 @@ procstat_files(struct procstat *procstat, struct kinfo_proc *kipp)
 			if (error != 0)
 				break;
 			xo_emit("{:protocol/%-3s/%s} ",
-			    protocol_to_string(sock.dom_family,
-			    sock.type, sock.proto));
+			    protocol_to_string(sock.dom_family, sock.type,
+				sock.proto));
 			if (sock.proto == IPPROTO_TCP ||
 			    sock.proto == IPPROTO_SCTP ||
 			    sock.type == SOCK_STREAM) {
@@ -565,11 +565,11 @@ procstat_files(struct procstat *procstat, struct kinfo_proc *kipp)
 				    (struct sockaddr_un *)&sock.sa_local;
 
 				if (sun->sun_path[0] != 0)
-					addr_to_string(&sock.sa_local,
-					    src_addr, sizeof(src_addr));
+					addr_to_string(&sock.sa_local, src_addr,
+					    sizeof(src_addr));
 				else
-					addr_to_string(&sock.sa_peer,
-					    src_addr, sizeof(src_addr));
+					addr_to_string(&sock.sa_peer, src_addr,
+					    sizeof(src_addr));
 				xo_emit("{:path/%s}", src_addr);
 			} else {
 				addr_to_string(&sock.sa_local, src_addr,
@@ -582,8 +582,8 @@ procstat_files(struct procstat *procstat, struct kinfo_proc *kipp)
 
 		default:
 			xo_emit("{:protocol/%-3s/%s} ", "-");
-			xo_emit("{:path/%-18s/%s}", fst->fs_path != NULL ?
-			    fst->fs_path : "-");
+			xo_emit("{:path/%-18s/%s}",
+			    fst->fs_path != NULL ? fst->fs_path : "-");
 		}
 
 		xo_emit("\n");

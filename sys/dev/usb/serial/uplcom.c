@@ -77,81 +77,81 @@
  * documented in the datasheet.
  */
 
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
+#include <dev/usb/usb_cdc.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
-#include <dev/usb/usb_cdc.h>
+
 #include "usbdevs.h"
 
-#define	USB_DEBUG_VAR uplcom_debug
+#define USB_DEBUG_VAR uplcom_debug
+#include <dev/usb/serial/usb_serial.h>
 #include <dev/usb/usb_debug.h>
 #include <dev/usb/usb_process.h>
-
-#include <dev/usb/serial/usb_serial.h>
 
 #ifdef USB_DEBUG
 static int uplcom_debug = 0;
 
 static SYSCTL_NODE(_hw_usb, OID_AUTO, uplcom, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "USB uplcom");
-SYSCTL_INT(_hw_usb_uplcom, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &uplcom_debug, 0, "Debug level");
+SYSCTL_INT(_hw_usb_uplcom, OID_AUTO, debug, CTLFLAG_RWTUN, &uplcom_debug, 0,
+    "Debug level");
 #endif
 
-#define	UPLCOM_MODVER			1	/* module version */
+#define UPLCOM_MODVER 1 /* module version */
 
-#define	UPLCOM_CONFIG_INDEX		0
-#define	UPLCOM_IFACE_INDEX		0
-#define	UPLCOM_SECOND_IFACE_INDEX	1
+#define UPLCOM_CONFIG_INDEX 0
+#define UPLCOM_IFACE_INDEX 0
+#define UPLCOM_SECOND_IFACE_INDEX 1
 
 #ifndef UPLCOM_INTR_INTERVAL
-#define	UPLCOM_INTR_INTERVAL		0	/* default */
+#define UPLCOM_INTR_INTERVAL 0 /* default */
 #endif
 
-#define	UPLCOM_BULK_BUF_SIZE 1024	/* bytes */
+#define UPLCOM_BULK_BUF_SIZE 1024 /* bytes */
 
-#define	UPLCOM_SET_REQUEST		0x01
-#define	UPLCOM_SET_REQUEST_PL2303HXN	0x80
-#define	UPLCOM_SET_CRTSCTS		0x41
-#define	UPLCOM_SET_CRTSCTS_PL2303X	0x61
-#define	UPLCOM_SET_CRTSCTS_PL2303HXN	0xFA
-#define	UPLCOM_CLEAR_CRTSCTS_PL2303HXN	0xFF
-#define	UPLCOM_CRTSCTS_REG_PL2303HXN	0x0A
-#define	UPLCOM_STATUS_REG_PL2303HX	0x8080
-#define	RSAQ_STATUS_CTS			0x80
-#define	RSAQ_STATUS_OVERRUN_ERROR	0x40
-#define	RSAQ_STATUS_PARITY_ERROR	0x20 
-#define	RSAQ_STATUS_FRAME_ERROR	0x10
-#define	RSAQ_STATUS_RING		0x08
-#define	RSAQ_STATUS_BREAK_ERROR	0x04
-#define	RSAQ_STATUS_DSR			0x02
-#define	RSAQ_STATUS_DCD			0x01
+#define UPLCOM_SET_REQUEST 0x01
+#define UPLCOM_SET_REQUEST_PL2303HXN 0x80
+#define UPLCOM_SET_CRTSCTS 0x41
+#define UPLCOM_SET_CRTSCTS_PL2303X 0x61
+#define UPLCOM_SET_CRTSCTS_PL2303HXN 0xFA
+#define UPLCOM_CLEAR_CRTSCTS_PL2303HXN 0xFF
+#define UPLCOM_CRTSCTS_REG_PL2303HXN 0x0A
+#define UPLCOM_STATUS_REG_PL2303HX 0x8080
+#define RSAQ_STATUS_CTS 0x80
+#define RSAQ_STATUS_OVERRUN_ERROR 0x40
+#define RSAQ_STATUS_PARITY_ERROR 0x20
+#define RSAQ_STATUS_FRAME_ERROR 0x10
+#define RSAQ_STATUS_RING 0x08
+#define RSAQ_STATUS_BREAK_ERROR 0x04
+#define RSAQ_STATUS_DSR 0x02
+#define RSAQ_STATUS_DCD 0x01
 
-#define	TYPE_PL2303			0
-#define	TYPE_PL2303HX			1
-#define	TYPE_PL2303HXD			2
-#define	TYPE_PL2303HXN			3
+#define TYPE_PL2303 0
+#define TYPE_PL2303HX 1
+#define TYPE_PL2303HXD 2
+#define TYPE_PL2303HXN 3
 
-#define	UPLCOM_STATE_INDEX		8
+#define UPLCOM_STATE_INDEX 8
 
 enum {
 	UPLCOM_BULK_DT_WR,
@@ -170,33 +170,32 @@ struct uplcom_softc {
 
 	uint16_t sc_line;
 
-	uint8_t	sc_lsr;			/* local status register */
-	uint8_t	sc_msr;			/* uplcom status register */
-	uint8_t	sc_chiptype;		/* type of chip */
-	uint8_t	sc_ctrl_iface_no;
-	uint8_t	sc_data_iface_no;
-	uint8_t	sc_iface_index[2];
+	uint8_t sc_lsr;	     /* local status register */
+	uint8_t sc_msr;	     /* uplcom status register */
+	uint8_t sc_chiptype; /* type of chip */
+	uint8_t sc_ctrl_iface_no;
+	uint8_t sc_data_iface_no;
+	uint8_t sc_iface_index[2];
 };
 
 /* prototypes */
 
 static usb_error_t uplcom_reset(struct uplcom_softc *, struct usb_device *);
 static usb_error_t uplcom_pl2303_do(struct usb_device *, uint8_t, uint8_t,
-			uint16_t, uint16_t, uint16_t);
-static int	uplcom_pl2303_init(struct usb_device *, uint8_t);
-static void	uplcom_free(struct ucom_softc *);
-static void	uplcom_cfg_set_dtr(struct ucom_softc *, uint8_t);
-static void	uplcom_cfg_set_rts(struct ucom_softc *, uint8_t);
-static void	uplcom_cfg_set_break(struct ucom_softc *, uint8_t);
-static int	uplcom_pre_param(struct ucom_softc *, struct termios *);
-static void	uplcom_cfg_param(struct ucom_softc *, struct termios *);
-static void	uplcom_start_read(struct ucom_softc *);
-static void	uplcom_stop_read(struct ucom_softc *);
-static void	uplcom_start_write(struct ucom_softc *);
-static void	uplcom_stop_write(struct ucom_softc *);
-static void	uplcom_cfg_get_status(struct ucom_softc *, uint8_t *,
-		    uint8_t *);
-static void	uplcom_poll(struct ucom_softc *ucom);
+    uint16_t, uint16_t, uint16_t);
+static int uplcom_pl2303_init(struct usb_device *, uint8_t);
+static void uplcom_free(struct ucom_softc *);
+static void uplcom_cfg_set_dtr(struct ucom_softc *, uint8_t);
+static void uplcom_cfg_set_rts(struct ucom_softc *, uint8_t);
+static void uplcom_cfg_set_break(struct ucom_softc *, uint8_t);
+static int uplcom_pre_param(struct ucom_softc *, struct termios *);
+static void uplcom_cfg_param(struct ucom_softc *, struct termios *);
+static void uplcom_start_read(struct ucom_softc *);
+static void uplcom_stop_read(struct ucom_softc *);
+static void uplcom_start_write(struct ucom_softc *);
+static void uplcom_stop_write(struct ucom_softc *);
+static void uplcom_cfg_get_status(struct ucom_softc *, uint8_t *, uint8_t *);
+static void uplcom_poll(struct ucom_softc *ucom);
 
 static device_probe_t uplcom_probe;
 static device_attach_t uplcom_attach;
@@ -254,86 +253,95 @@ static struct ucom_callback uplcom_callback = {
 	.ucom_free = &uplcom_free,
 };
 
-#define	UPLCOM_DEV(v,p)				\
-  { USB_VENDOR(USB_VENDOR_##v), USB_PRODUCT(USB_PRODUCT_##v##_##p) }
+#define UPLCOM_DEV(v, p)                                                       \
+	{                                                                      \
+		USB_VENDOR(USB_VENDOR_##v), USB_PRODUCT(USB_PRODUCT_##v##_##p) \
+	}
 
 static const STRUCT_USB_HOST_ID uplcom_devs[] = {
-	UPLCOM_DEV(ACERP, S81),			/* BenQ S81 phone */
-	UPLCOM_DEV(ADLINK, ND6530),		/* ADLINK ND-6530 USB-Serial */
-	UPLCOM_DEV(ALCATEL, OT535),		/* Alcatel One Touch 535/735 */
-	UPLCOM_DEV(ALCOR, AU9720),		/* Alcor AU9720 USB 2.0-RS232 */
-	UPLCOM_DEV(ANCHOR, SERIAL),		/* Anchor Serial adapter */
-	UPLCOM_DEV(ATEN, UC232A),		/* PLANEX USB-RS232 URS-03 */
-	UPLCOM_DEV(ATEN, UC232B),		/* Prolific USB-RS232 Controller D */
-	UPLCOM_DEV(BELKIN, F5U257),		/* Belkin F5U257 USB to Serial */
-	UPLCOM_DEV(COREGA, CGUSBRS232R),	/* Corega CG-USBRS232R */
-	UPLCOM_DEV(EPSON, CRESSI_EDY),		/* Cressi Edy diving computer */
-	UPLCOM_DEV(EPSON, N2ITION3),		/* Zeagle N2iTion3 diving computer */
-	UPLCOM_DEV(ELECOM, UCSGT),		/* ELECOM UC-SGT Serial Adapter */
-	UPLCOM_DEV(ELECOM, UCSGT0),		/* ELECOM UC-SGT Serial Adapter */
-	UPLCOM_DEV(HAL, IMR001),		/* HAL Corporation Crossam2+USB */
-	UPLCOM_DEV(HP, LD220),			/* HP LD220 POS Display */
-	UPLCOM_DEV(IODATA, USBRSAQ),		/* I/O DATA USB-RSAQ */
-	UPLCOM_DEV(IODATA, USBRSAQ5),		/* I/O DATA USB-RSAQ5 */
-	UPLCOM_DEV(ITEGNO, WM1080A),		/* iTegno WM1080A GSM/GFPRS modem */
-	UPLCOM_DEV(ITEGNO, WM2080A),		/* iTegno WM2080A CDMA modem */
-	UPLCOM_DEV(LEADTEK, 9531),		/* Leadtek 9531 GPS */
-	UPLCOM_DEV(MICROSOFT, 700WX),		/* Microsoft Palm 700WX */
-	UPLCOM_DEV(MOBILEACTION, MA620),	/* Mobile Action MA-620 Infrared Adapter */
-	UPLCOM_DEV(NETINDEX, WS002IN),		/* Willcom W-S002IN */
-	UPLCOM_DEV(NOKIA2, CA42),		/* Nokia CA-42 cable */
-	UPLCOM_DEV(OTI, DKU5),			/* OTI DKU-5 cable */
-	UPLCOM_DEV(PANASONIC, TYTP50P6S),	/* Panasonic TY-TP50P6-S flat screen */
-	UPLCOM_DEV(PLX, CA42),			/* PLX CA-42 clone cable */
-	UPLCOM_DEV(PROLIFIC, ALLTRONIX_GPRS),	/* Alltronix ACM003U00 modem */
-	UPLCOM_DEV(PROLIFIC, ALDIGA_AL11U),	/* AlDiga AL-11U modem */
-	UPLCOM_DEV(PROLIFIC, DCU11),		/* DCU-11 Phone Cable */
-	UPLCOM_DEV(PROLIFIC, HCR331),		/* HCR331 Card Reader */
-	UPLCOM_DEV(PROLIFIC, MICROMAX_610U),	/* Micromax 610U modem */
-	UPLCOM_DEV(PROLIFIC, MOTOROLA),		/* Motorola cable */
-	UPLCOM_DEV(PROLIFIC, PHAROS),		/* Prolific Pharos */
-	UPLCOM_DEV(PROLIFIC, PL2303),		/* Generic adapter */
-	UPLCOM_DEV(PROLIFIC, PL2303GC),		/* Generic adapter (PL2303HXN, type GC) */
-	UPLCOM_DEV(PROLIFIC, PL2303GB),		/* Generic adapter (PL2303HXN, type GB) */
-	UPLCOM_DEV(PROLIFIC, PL2303GT),		/* Generic adapter (PL2303HXN, type GT) */
-	UPLCOM_DEV(PROLIFIC, PL2303GL),		/* Generic adapter (PL2303HXN, type GL) */
-	UPLCOM_DEV(PROLIFIC, PL2303GE),		/* Generic adapter (PL2303HXN, type GE) */
-	UPLCOM_DEV(PROLIFIC, PL2303GS),		/* Generic adapter (PL2303HXN, type GS) */
-	UPLCOM_DEV(PROLIFIC, RSAQ2),		/* I/O DATA USB-RSAQ2 */
-	UPLCOM_DEV(PROLIFIC, RSAQ3),		/* I/O DATA USB-RSAQ3 */
-	UPLCOM_DEV(PROLIFIC, UIC_MSR206),	/* UIC MSR206 Card Reader */
-	UPLCOM_DEV(PROLIFIC2, PL2303),		/* Prolific adapter */
-	UPLCOM_DEV(RADIOSHACK, USBCABLE),	/* Radio Shack USB Adapter */
-	UPLCOM_DEV(RATOC, REXUSB60),		/* RATOC REX-USB60 */
-	UPLCOM_DEV(SAGEM, USBSERIAL),		/* Sagem USB-Serial Controller */
-	UPLCOM_DEV(SAMSUNG, I330),		/* Samsung I330 phone cradle */
-	UPLCOM_DEV(SANWA, KB_USB2),		/* Sanwa KB-USB2 Multimeter cable */
-	UPLCOM_DEV(SIEMENS3, EF81),		/* Siemens EF81 */
-	UPLCOM_DEV(SIEMENS3, SX1),		/* Siemens SX1 */
-	UPLCOM_DEV(SIEMENS3, X65),		/* Siemens X65 */
-	UPLCOM_DEV(SIEMENS3, X75),		/* Siemens X75 */
-	UPLCOM_DEV(SITECOM, SERIAL),		/* Sitecom USB to Serial */
-	UPLCOM_DEV(SMART, PL2303),		/* SMART Technologies USB to Serial */
-	UPLCOM_DEV(SONY, QN3),			/* Sony QN3 phone cable */
-	UPLCOM_DEV(SONYERICSSON, DATAPILOT),	/* Sony Ericsson Datapilot */
-	UPLCOM_DEV(SONYERICSSON, DCU10),	/* Sony Ericsson DCU-10 Cable */
-	UPLCOM_DEV(SOURCENEXT, KEIKAI8),	/* SOURCENEXT KeikaiDenwa 8 */
-	UPLCOM_DEV(SOURCENEXT, KEIKAI8_CHG),	/* SOURCENEXT KeikaiDenwa 8 with charger */
-	UPLCOM_DEV(SPEEDDRAGON, MS3303H),	/* Speed Dragon USB-Serial */
-	UPLCOM_DEV(SYNTECH, CPT8001C),		/* Syntech CPT-8001C Barcode scanner */
-	UPLCOM_DEV(TDK, UHA6400),		/* TDK USB-PHS Adapter UHA6400 */
-	UPLCOM_DEV(TDK, UPA9664),		/* TDK USB-PHS Adapter UPA9664 */
-	UPLCOM_DEV(TRIPPLITE, U209),		/* Tripp-Lite U209-000-R USB to Serial */
-	UPLCOM_DEV(YCCABLE, PL2303),		/* YC Cable USB-Serial */
+	UPLCOM_DEV(ACERP, S81),		 /* BenQ S81 phone */
+	UPLCOM_DEV(ADLINK, ND6530),	 /* ADLINK ND-6530 USB-Serial */
+	UPLCOM_DEV(ALCATEL, OT535),	 /* Alcatel One Touch 535/735 */
+	UPLCOM_DEV(ALCOR, AU9720),	 /* Alcor AU9720 USB 2.0-RS232 */
+	UPLCOM_DEV(ANCHOR, SERIAL),	 /* Anchor Serial adapter */
+	UPLCOM_DEV(ATEN, UC232A),	 /* PLANEX USB-RS232 URS-03 */
+	UPLCOM_DEV(ATEN, UC232B),	 /* Prolific USB-RS232 Controller D */
+	UPLCOM_DEV(BELKIN, F5U257),	 /* Belkin F5U257 USB to Serial */
+	UPLCOM_DEV(COREGA, CGUSBRS232R), /* Corega CG-USBRS232R */
+	UPLCOM_DEV(EPSON, CRESSI_EDY),	 /* Cressi Edy diving computer */
+	UPLCOM_DEV(EPSON, N2ITION3),	 /* Zeagle N2iTion3 diving computer */
+	UPLCOM_DEV(ELECOM, UCSGT),	 /* ELECOM UC-SGT Serial Adapter */
+	UPLCOM_DEV(ELECOM, UCSGT0),	 /* ELECOM UC-SGT Serial Adapter */
+	UPLCOM_DEV(HAL, IMR001),	 /* HAL Corporation Crossam2+USB */
+	UPLCOM_DEV(HP, LD220),		 /* HP LD220 POS Display */
+	UPLCOM_DEV(IODATA, USBRSAQ),	 /* I/O DATA USB-RSAQ */
+	UPLCOM_DEV(IODATA, USBRSAQ5),	 /* I/O DATA USB-RSAQ5 */
+	UPLCOM_DEV(ITEGNO, WM1080A),	 /* iTegno WM1080A GSM/GFPRS modem */
+	UPLCOM_DEV(ITEGNO, WM2080A),	 /* iTegno WM2080A CDMA modem */
+	UPLCOM_DEV(LEADTEK, 9531),	 /* Leadtek 9531 GPS */
+	UPLCOM_DEV(MICROSOFT, 700WX),	 /* Microsoft Palm 700WX */
+	UPLCOM_DEV(MOBILEACTION,
+	    MA620), /* Mobile Action MA-620 Infrared Adapter */
+	UPLCOM_DEV(NETINDEX, WS002IN), /* Willcom W-S002IN */
+	UPLCOM_DEV(NOKIA2, CA42),      /* Nokia CA-42 cable */
+	UPLCOM_DEV(OTI, DKU5),	       /* OTI DKU-5 cable */
+	UPLCOM_DEV(PANASONIC,
+	    TYTP50P6S),	       /* Panasonic TY-TP50P6-S flat screen */
+	UPLCOM_DEV(PLX, CA42), /* PLX CA-42 clone cable */
+	UPLCOM_DEV(PROLIFIC, ALLTRONIX_GPRS), /* Alltronix ACM003U00 modem */
+	UPLCOM_DEV(PROLIFIC, ALDIGA_AL11U),   /* AlDiga AL-11U modem */
+	UPLCOM_DEV(PROLIFIC, DCU11),	      /* DCU-11 Phone Cable */
+	UPLCOM_DEV(PROLIFIC, HCR331),	      /* HCR331 Card Reader */
+	UPLCOM_DEV(PROLIFIC, MICROMAX_610U),  /* Micromax 610U modem */
+	UPLCOM_DEV(PROLIFIC, MOTOROLA),	      /* Motorola cable */
+	UPLCOM_DEV(PROLIFIC, PHAROS),	      /* Prolific Pharos */
+	UPLCOM_DEV(PROLIFIC, PL2303),	      /* Generic adapter */
+	UPLCOM_DEV(PROLIFIC,
+	    PL2303GC), /* Generic adapter (PL2303HXN, type GC) */
+	UPLCOM_DEV(PROLIFIC,
+	    PL2303GB), /* Generic adapter (PL2303HXN, type GB) */
+	UPLCOM_DEV(PROLIFIC,
+	    PL2303GT), /* Generic adapter (PL2303HXN, type GT) */
+	UPLCOM_DEV(PROLIFIC,
+	    PL2303GL), /* Generic adapter (PL2303HXN, type GL) */
+	UPLCOM_DEV(PROLIFIC,
+	    PL2303GE), /* Generic adapter (PL2303HXN, type GE) */
+	UPLCOM_DEV(PROLIFIC,
+	    PL2303GS),		     /* Generic adapter (PL2303HXN, type GS) */
+	UPLCOM_DEV(PROLIFIC, RSAQ2), /* I/O DATA USB-RSAQ2 */
+	UPLCOM_DEV(PROLIFIC, RSAQ3), /* I/O DATA USB-RSAQ3 */
+	UPLCOM_DEV(PROLIFIC, UIC_MSR206), /* UIC MSR206 Card Reader */
+	UPLCOM_DEV(PROLIFIC2, PL2303),	  /* Prolific adapter */
+	UPLCOM_DEV(RADIOSHACK, USBCABLE), /* Radio Shack USB Adapter */
+	UPLCOM_DEV(RATOC, REXUSB60),	  /* RATOC REX-USB60 */
+	UPLCOM_DEV(SAGEM, USBSERIAL),	  /* Sagem USB-Serial Controller */
+	UPLCOM_DEV(SAMSUNG, I330),	  /* Samsung I330 phone cradle */
+	UPLCOM_DEV(SANWA, KB_USB2),	  /* Sanwa KB-USB2 Multimeter cable */
+	UPLCOM_DEV(SIEMENS3, EF81),	  /* Siemens EF81 */
+	UPLCOM_DEV(SIEMENS3, SX1),	  /* Siemens SX1 */
+	UPLCOM_DEV(SIEMENS3, X65),	  /* Siemens X65 */
+	UPLCOM_DEV(SIEMENS3, X75),	  /* Siemens X75 */
+	UPLCOM_DEV(SITECOM, SERIAL),	  /* Sitecom USB to Serial */
+	UPLCOM_DEV(SMART, PL2303),	  /* SMART Technologies USB to Serial */
+	UPLCOM_DEV(SONY, QN3),		  /* Sony QN3 phone cable */
+	UPLCOM_DEV(SONYERICSSON, DATAPILOT), /* Sony Ericsson Datapilot */
+	UPLCOM_DEV(SONYERICSSON, DCU10),     /* Sony Ericsson DCU-10 Cable */
+	UPLCOM_DEV(SOURCENEXT, KEIKAI8),     /* SOURCENEXT KeikaiDenwa 8 */
+	UPLCOM_DEV(SOURCENEXT,
+	    KEIKAI8_CHG), /* SOURCENEXT KeikaiDenwa 8 with charger */
+	UPLCOM_DEV(SPEEDDRAGON, MS3303H), /* Speed Dragon USB-Serial */
+	UPLCOM_DEV(SYNTECH, CPT8001C), /* Syntech CPT-8001C Barcode scanner */
+	UPLCOM_DEV(TDK, UHA6400),      /* TDK USB-PHS Adapter UHA6400 */
+	UPLCOM_DEV(TDK, UPA9664),      /* TDK USB-PHS Adapter UPA9664 */
+	UPLCOM_DEV(TRIPPLITE, U209),   /* Tripp-Lite U209-000-R USB to Serial */
+	UPLCOM_DEV(YCCABLE, PL2303),   /* YC Cable USB-Serial */
 };
 #undef UPLCOM_DEV
 
-static device_method_t uplcom_methods[] = {
-	DEVMETHOD(device_probe, uplcom_probe),
+static device_method_t uplcom_methods[] = { DEVMETHOD(device_probe,
+						uplcom_probe),
 	DEVMETHOD(device_attach, uplcom_attach),
-	DEVMETHOD(device_detach, uplcom_detach),
-	DEVMETHOD_END
-};
+	DEVMETHOD(device_detach, uplcom_detach), DEVMETHOD_END };
 
 static driver_t uplcom_driver = {
 	.name = "uplcom",
@@ -400,16 +408,19 @@ uplcom_attach(device_t dev)
 	case 0x0400:
 		sc->sc_chiptype = TYPE_PL2303HXD;
 		/* or EA, that is HXD with ESD protection */
-		/* or RA, that has internal voltage level converter that works only up to 1Mbaud (!) */
+		/* or RA, that has internal voltage level converter that works
+		 * only up to 1Mbaud (!) */
 		break;
 	case 0x0500:
 		sc->sc_chiptype = TYPE_PL2303HXD;
 		/* in fact it's TB, that is HXD with external crystal */
 		break;
 	default:
-		/* NOTE: I have no info about the bcdDevice for the base PL2303 (up to 1.2Mbaud,
-		   only fixed rates) and for PL2303SA (8-pin chip, up to 115200 baud */
-		/* Determine the chip type.  This algorithm is taken from Linux. */
+		/* NOTE: I have no info about the bcdDevice for the base PL2303
+		   (up to 1.2Mbaud, only fixed rates) and for PL2303SA (8-pin
+		   chip, up to 115200 baud */
+		/* Determine the chip type.  This algorithm is taken from Linux.
+		 */
 		if (dd->bDeviceClass == 0x02)
 			sc->sc_chiptype = TYPE_PL2303;
 		else if (dd->bMaxPacketSize == 0x40)
@@ -481,19 +492,20 @@ uplcom_attach(device_t dev)
 		}
 		sc->sc_data_iface_no = id->bInterfaceNumber;
 		sc->sc_iface_index[0] = UPLCOM_SECOND_IFACE_INDEX;
-		usbd_set_parent_iface(uaa->device,
-		    UPLCOM_SECOND_IFACE_INDEX, uaa->info.bIfaceIndex);
+		usbd_set_parent_iface(uaa->device, UPLCOM_SECOND_IFACE_INDEX,
+		    uaa->info.bIfaceIndex);
 	} else {
 		sc->sc_data_iface_no = sc->sc_ctrl_iface_no;
 		sc->sc_iface_index[0] = UPLCOM_IFACE_INDEX;
 	}
 
-	error = usbd_transfer_setup(uaa->device,
-	    sc->sc_iface_index, sc->sc_xfer, uplcom_config_data,
-	    UPLCOM_N_TRANSFER, sc, &sc->sc_mtx);
+	error = usbd_transfer_setup(uaa->device, sc->sc_iface_index,
+	    sc->sc_xfer, uplcom_config_data, UPLCOM_N_TRANSFER, sc,
+	    &sc->sc_mtx);
 	if (error) {
 		DPRINTF("one or more missing USB endpoints, "
-		    "error=%s\n", usbd_errstr(error));
+			"error=%s\n",
+		    usbd_errstr(error));
 		goto detach;
 	}
 	error = uplcom_reset(sc, uaa->device);
@@ -510,18 +522,18 @@ uplcom_attach(device_t dev)
 		usbd_xfer_set_stall(sc->sc_xfer[UPLCOM_BULK_DT_RD]);
 		mtx_unlock(&sc->sc_mtx);
 	} else if (sc->sc_chiptype == TYPE_PL2303HX ||
-		   sc->sc_chiptype == TYPE_PL2303HXD) {
+	    sc->sc_chiptype == TYPE_PL2303HXD) {
 		/* reset upstream data pipes */
 		if (uplcom_pl2303_do(sc->sc_udev, UT_WRITE_VENDOR_DEVICE,
-		    UPLCOM_SET_REQUEST, 8, 0, 0) ||
+			UPLCOM_SET_REQUEST, 8, 0, 0) ||
 		    uplcom_pl2303_do(sc->sc_udev, UT_WRITE_VENDOR_DEVICE,
-		    UPLCOM_SET_REQUEST, 9, 0, 0)) {
+			UPLCOM_SET_REQUEST, 9, 0, 0)) {
 			goto detach;
 		}
 	} else if (sc->sc_chiptype == TYPE_PL2303HXN) {
 		/* reset upstream data pipes */
 		if (uplcom_pl2303_do(sc->sc_udev, UT_WRITE_VENDOR_DEVICE,
-		    UPLCOM_SET_REQUEST_PL2303HXN, 0x07, 0x03, 0)) {
+			UPLCOM_SET_REQUEST_PL2303HXN, 0x07, 0x03, 0)) {
 			goto detach;
 		}
 	}
@@ -634,22 +646,34 @@ uplcom_pl2303_init(struct usb_device *udev, uint8_t chiptype)
 		return (0);
 	}
 
-	if (uplcom_pl2303_do(udev, UT_READ_VENDOR_DEVICE, UPLCOM_SET_REQUEST, 0x8484, 0, 1)
-	    || uplcom_pl2303_do(udev, UT_WRITE_VENDOR_DEVICE, UPLCOM_SET_REQUEST, 0x0404, 0, 0)
-	    || uplcom_pl2303_do(udev, UT_READ_VENDOR_DEVICE, UPLCOM_SET_REQUEST, 0x8484, 0, 1)
-	    || uplcom_pl2303_do(udev, UT_READ_VENDOR_DEVICE, UPLCOM_SET_REQUEST, 0x8383, 0, 1)
-	    || uplcom_pl2303_do(udev, UT_READ_VENDOR_DEVICE, UPLCOM_SET_REQUEST, 0x8484, 0, 1)
-	    || uplcom_pl2303_do(udev, UT_WRITE_VENDOR_DEVICE, UPLCOM_SET_REQUEST, 0x0404, 1, 0)
-	    || uplcom_pl2303_do(udev, UT_READ_VENDOR_DEVICE, UPLCOM_SET_REQUEST, 0x8484, 0, 1)
-	    || uplcom_pl2303_do(udev, UT_READ_VENDOR_DEVICE, UPLCOM_SET_REQUEST, 0x8383, 0, 1)
-	    || uplcom_pl2303_do(udev, UT_WRITE_VENDOR_DEVICE, UPLCOM_SET_REQUEST, 0, 1, 0)
-	    || uplcom_pl2303_do(udev, UT_WRITE_VENDOR_DEVICE, UPLCOM_SET_REQUEST, 1, 0, 0))
+	if (uplcom_pl2303_do(udev, UT_READ_VENDOR_DEVICE, UPLCOM_SET_REQUEST,
+		0x8484, 0, 1) ||
+	    uplcom_pl2303_do(udev, UT_WRITE_VENDOR_DEVICE, UPLCOM_SET_REQUEST,
+		0x0404, 0, 0) ||
+	    uplcom_pl2303_do(udev, UT_READ_VENDOR_DEVICE, UPLCOM_SET_REQUEST,
+		0x8484, 0, 1) ||
+	    uplcom_pl2303_do(udev, UT_READ_VENDOR_DEVICE, UPLCOM_SET_REQUEST,
+		0x8383, 0, 1) ||
+	    uplcom_pl2303_do(udev, UT_READ_VENDOR_DEVICE, UPLCOM_SET_REQUEST,
+		0x8484, 0, 1) ||
+	    uplcom_pl2303_do(udev, UT_WRITE_VENDOR_DEVICE, UPLCOM_SET_REQUEST,
+		0x0404, 1, 0) ||
+	    uplcom_pl2303_do(udev, UT_READ_VENDOR_DEVICE, UPLCOM_SET_REQUEST,
+		0x8484, 0, 1) ||
+	    uplcom_pl2303_do(udev, UT_READ_VENDOR_DEVICE, UPLCOM_SET_REQUEST,
+		0x8383, 0, 1) ||
+	    uplcom_pl2303_do(udev, UT_WRITE_VENDOR_DEVICE, UPLCOM_SET_REQUEST,
+		0, 1, 0) ||
+	    uplcom_pl2303_do(udev, UT_WRITE_VENDOR_DEVICE, UPLCOM_SET_REQUEST,
+		1, 0, 0))
 		return (EIO);
 
 	if (chiptype != TYPE_PL2303)
-		err = uplcom_pl2303_do(udev, UT_WRITE_VENDOR_DEVICE, UPLCOM_SET_REQUEST, 2, 0x44, 0);
+		err = uplcom_pl2303_do(udev, UT_WRITE_VENDOR_DEVICE,
+		    UPLCOM_SET_REQUEST, 2, 0x44, 0);
 	else
-		err = uplcom_pl2303_do(udev, UT_WRITE_VENDOR_DEVICE, UPLCOM_SET_REQUEST, 2, 0x24, 0);
+		err = uplcom_pl2303_do(udev, UT_WRITE_VENDOR_DEVICE,
+		    UPLCOM_SET_REQUEST, 2, 0x24, 0);
 	if (err)
 		return (EIO);
 
@@ -676,8 +700,7 @@ uplcom_cfg_set_dtr(struct ucom_softc *ucom, uint8_t onoff)
 	req.wIndex[1] = 0;
 	USETW(req.wLength, 0);
 
-	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, 
-	    &req, NULL, 0, 1000);
+	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, NULL, 0, 1000);
 }
 
 static void
@@ -700,8 +723,7 @@ uplcom_cfg_set_rts(struct ucom_softc *ucom, uint8_t onoff)
 	req.wIndex[1] = 0;
 	USETW(req.wLength, 0);
 
-	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, 
-	    &req, NULL, 0, 1000);
+	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, NULL, 0, 1000);
 }
 
 static void
@@ -722,8 +744,7 @@ uplcom_cfg_set_break(struct ucom_softc *ucom, uint8_t onoff)
 	req.wIndex[1] = 0;
 	USETW(req.wLength, 0);
 
-	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, 
-	    &req, NULL, 0, 1000);
+	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, NULL, 0, 1000);
 }
 
 /*
@@ -745,7 +766,7 @@ static const uint32_t uplcom_rates[] = {
 	19200, 28800, 38400, 56000, 57600, 115200,
 	/*
 	 * Advanced speed rates up to 6Mbs, supported by HX/TA and HXD/TB/EA/RA
-     * NOTE: regardless of the spec, 256000 does not work
+	 * NOTE: regardless of the spec, 256000 does not work
 	 */
 	128000, 134400, 161280, 201600, 230400, 268800, 403200, 460800, 614400,
 	806400, 921600, 1228800, 2457600, 3000000, 6000000,
@@ -755,7 +776,7 @@ static const uint32_t uplcom_rates[] = {
 	12000000
 };
 
-#define	N_UPLCOM_RATES	nitems(uplcom_rates)
+#define N_UPLCOM_RATES nitems(uplcom_rates)
 
 static int
 uplcom_baud_supported(unsigned speed)
@@ -784,26 +805,27 @@ uplcom_pre_param(struct ucom_softc *ucom, struct termios *t)
 	 *
 	 */
 
-	/* accept raw divisor data, if someone wants to do the math in user domain */
+	/* accept raw divisor data, if someone wants to do the math in user
+	 * domain */
 	if (t->c_ospeed & 0x80000000)
 		return 0;
 	switch (sc->sc_chiptype) {
-		case TYPE_PL2303HXN:
-			if (t->c_ospeed <= 12000000)
-				return (0);
-			break;
-		case TYPE_PL2303HXD:
-			if (t->c_ospeed <= 12000000)
-				return (0);
-			break;
-		case TYPE_PL2303HX:
-			if (t->c_ospeed <= 6000000)
-				return (0);
-			break;
-		default:
-			if (uplcom_baud_supported(t->c_ospeed))
-				return (0);
-			break;
+	case TYPE_PL2303HXN:
+		if (t->c_ospeed <= 12000000)
+			return (0);
+		break;
+	case TYPE_PL2303HXD:
+		if (t->c_ospeed <= 12000000)
+			return (0);
+		break;
+	case TYPE_PL2303HX:
+		if (t->c_ospeed <= 6000000)
+			return (0);
+		break;
+	default:
+		if (uplcom_baud_supported(t->c_ospeed))
+			return (0);
+		break;
 	}
 
 	DPRINTF("uplcom_param: bad baud rate (%d)\n", t->c_ospeed);
@@ -815,7 +837,8 @@ uplcom_encode_baud_rate_divisor(uint8_t *buf, unsigned baud)
 {
 	unsigned baseline, mantissa, exponent;
 
-	/* Determine the baud rate divisor. This algorithm is taken from Linux. */
+	/* Determine the baud rate divisor. This algorithm is taken from Linux.
+	 */
 	/*
 	 * Apparently the formula is:
 	 *   baudrate = baseline / (mantissa * 4^exponent)
@@ -832,10 +855,11 @@ uplcom_encode_baud_rate_divisor(uint8_t *buf, unsigned baud)
 	exponent = 0;
 	while (mantissa >= 512) {
 		if (exponent < 7) {
-			mantissa >>= 2;	/* divide by 4 */
+			mantissa >>= 2; /* divide by 4 */
 			exponent++;
 		} else {
-			/* Exponent is maxed. Trim mantissa and leave. This gives approx. 45.8 baud */
+			/* Exponent is maxed. Trim mantissa and leave. This
+			 * gives approx. 45.8 baud */
 			mantissa = 511;
 			break;
 		}
@@ -864,12 +888,14 @@ uplcom_cfg_param(struct ucom_softc *ucom, struct termios *t)
 	memset(&ls, 0, sizeof(ls));
 
 	/*
-	 * NOTE: If unsupported baud rates are set directly, the PL2303* uses 9600 baud.
+	 * NOTE: If unsupported baud rates are set directly, the PL2303* uses
+	 * 9600 baud.
 	 */
 	if ((t->c_ospeed & 0x80000000) || uplcom_baud_supported(t->c_ospeed))
 		USETDW(ls.dwDTERate, t->c_ospeed);
 	else
-		t->c_ospeed = uplcom_encode_baud_rate_divisor((uint8_t*)&ls.dwDTERate, t->c_ospeed);
+		t->c_ospeed = uplcom_encode_baud_rate_divisor(
+		    (uint8_t *)&ls.dwDTERate, t->c_ospeed);
 
 	if (t->c_cflag & CSTOPB) {
 		if ((t->c_cflag & CSIZE) == CS5) {
@@ -910,9 +936,8 @@ uplcom_cfg_param(struct ucom_softc *ucom, struct termios *t)
 		break;
 	}
 
-	DPRINTF("rate=0x%08x fmt=%d parity=%d bits=%d\n",
-	    UGETDW(ls.dwDTERate), ls.bCharFormat,
-	    ls.bParityType, ls.bDataBits);
+	DPRINTF("rate=0x%08x fmt=%d parity=%d bits=%d\n", UGETDW(ls.dwDTERate),
+	    ls.bCharFormat, ls.bParityType, ls.bDataBits);
 
 	req.bmRequestType = UT_WRITE_CLASS_INTERFACE;
 	req.bRequest = UCDC_SET_LINE_CODING;
@@ -921,8 +946,7 @@ uplcom_cfg_param(struct ucom_softc *ucom, struct termios *t)
 	req.wIndex[1] = 0;
 	USETW(req.wLength, UCDC_LINE_STATE_LENGTH);
 
-	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, 
-	    &req, &ls, 0, 1000);
+	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, &ls, 0, 1000);
 
 	if (t->c_cflag & CRTSCTS) {
 		DPRINTF("crtscts = on\n");
@@ -942,23 +966,22 @@ uplcom_cfg_param(struct ucom_softc *ucom, struct termios *t)
 		}
 		USETW(req.wLength, 0);
 
-		ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, 
-		    &req, NULL, 0, 1000);
+		ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, NULL, 0,
+		    1000);
 	} else {
 		req.bmRequestType = UT_WRITE_VENDOR_DEVICE;
 		if (sc->sc_chiptype == TYPE_PL2303HXN) {
 			req.bRequest = UPLCOM_SET_REQUEST_PL2303HXN;
 			USETW(req.wValue, UPLCOM_CRTSCTS_REG_PL2303HXN);
 			USETW(req.wIndex, UPLCOM_CLEAR_CRTSCTS_PL2303HXN);
-		}
-		else {
+		} else {
 			req.bRequest = UPLCOM_SET_REQUEST;
 			USETW(req.wValue, 0);
 			USETW(req.wIndex, 0);
 		}
 		USETW(req.wLength, 0);
-		ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, 
-		    &req, NULL, 0, 1000);
+		ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, NULL, 0,
+		    1000);
 	}
 }
 
@@ -1040,10 +1063,12 @@ uplcom_intr_callback(struct usb_xfer *xfer, usb_error_t error)
 			if (buf[UPLCOM_STATE_INDEX] & RSAQ_STATUS_CTS) {
 				sc->sc_msr |= SER_CTS;
 			}
-			if (buf[UPLCOM_STATE_INDEX] & RSAQ_STATUS_OVERRUN_ERROR) {
+			if (buf[UPLCOM_STATE_INDEX] &
+			    RSAQ_STATUS_OVERRUN_ERROR) {
 				sc->sc_lsr |= ULSR_OE;
 			}
-			if (buf[UPLCOM_STATE_INDEX] & RSAQ_STATUS_PARITY_ERROR) {
+			if (buf[UPLCOM_STATE_INDEX] &
+			    RSAQ_STATUS_PARITY_ERROR) {
 				sc->sc_lsr |= ULSR_PE;
 			}
 			if (buf[UPLCOM_STATE_INDEX] & RSAQ_STATUS_FRAME_ERROR) {
@@ -1064,12 +1089,12 @@ uplcom_intr_callback(struct usb_xfer *xfer, usb_error_t error)
 			ucom_status_change(&sc->sc_ucom);
 		}
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -1089,10 +1114,10 @@ uplcom_write_callback(struct usb_xfer *xfer, usb_error_t error)
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_SETUP:
 	case USB_ST_TRANSFERRED:
-tr_setup:
+	tr_setup:
 		pc = usbd_xfer_get_frame(xfer, 0);
-		if (ucom_get_data(&sc->sc_ucom, pc, 0,
-		    UPLCOM_BULK_BUF_SIZE, &actlen)) {
+		if (ucom_get_data(&sc->sc_ucom, pc, 0, UPLCOM_BULK_BUF_SIZE,
+			&actlen)) {
 			DPRINTF("actlen = %d\n", actlen);
 
 			usbd_xfer_set_frame_len(xfer, 0, actlen);
@@ -1100,7 +1125,7 @@ tr_setup:
 		}
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -1125,12 +1150,12 @@ uplcom_read_callback(struct usb_xfer *xfer, usb_error_t error)
 		ucom_put_data(&sc->sc_ucom, pc, 0, actlen);
 
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);

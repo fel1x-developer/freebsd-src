@@ -26,16 +26,16 @@
 /*
  */
 
-#ifndef	__IF_BWN_PHY_PPR_H__
-#define	__IF_BWN_PHY_PPR_H__
+#ifndef __IF_BWN_PHY_PPR_H__
+#define __IF_BWN_PHY_PPR_H__
 
-#define	BWN_PPR_CCK_RATES_NUM		4
-#define	BWN_PPR_OFDM_RATES_NUM		8
-#define	BWN_PPR_MCS_RATES_NUM		8
+#define BWN_PPR_CCK_RATES_NUM 4
+#define BWN_PPR_OFDM_RATES_NUM 8
+#define BWN_PPR_MCS_RATES_NUM 8
 
-#define	BWN_PPR_RATES_NUM	(BWN_PPR_CCK_RATES_NUM +	\
-				 BWN_PPR_OFDM_RATES_NUM * 2 +	\
-				 BWN_PPR_MCS_RATES_NUM * 4)
+#define BWN_PPR_RATES_NUM                                     \
+	(BWN_PPR_CCK_RATES_NUM + BWN_PPR_OFDM_RATES_NUM * 2 + \
+	    BWN_PPR_MCS_RATES_NUM * 4)
 
 struct bwn_ppr_rates {
 	uint8_t cck[BWN_PPR_CCK_RATES_NUM];
@@ -55,14 +55,14 @@ struct bwn_ppr {
 	};
 };
 
-extern	void bwn_ppr_clear(struct bwn_mac *mac, struct bwn_ppr *ppr);
-extern	void bwn_ppr_add(struct bwn_mac *mac, struct bwn_ppr *ppr, int diff);
-extern	void bwn_ppr_apply_max(struct bwn_mac *mac, struct bwn_ppr *ppr,
-	    uint8_t max);
-extern	void bwn_ppr_apply_min(struct bwn_mac *mac, struct bwn_ppr *ppr,
-	    uint8_t min);
-extern	uint8_t bwn_ppr_get_max(struct bwn_mac *mac, struct bwn_ppr *ppr);
-extern	bool bwn_ppr_load_max_from_sprom(struct bwn_mac *mac,
-	    struct bwn_ppr *ppr, bwn_phy_band_t band);
+extern void bwn_ppr_clear(struct bwn_mac *mac, struct bwn_ppr *ppr);
+extern void bwn_ppr_add(struct bwn_mac *mac, struct bwn_ppr *ppr, int diff);
+extern void bwn_ppr_apply_max(struct bwn_mac *mac, struct bwn_ppr *ppr,
+    uint8_t max);
+extern void bwn_ppr_apply_min(struct bwn_mac *mac, struct bwn_ppr *ppr,
+    uint8_t min);
+extern uint8_t bwn_ppr_get_max(struct bwn_mac *mac, struct bwn_ppr *ppr);
+extern bool bwn_ppr_load_max_from_sprom(struct bwn_mac *mac,
+    struct bwn_ppr *ppr, bwn_phy_band_t band);
 
 #endif

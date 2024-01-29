@@ -61,15 +61,15 @@
 
 #include "collate.h"
 
-#define	EOS	'\0'
+#define EOS '\0'
 
-#define RANGE_MATCH     1
-#define RANGE_NOMATCH   0
-#define RANGE_ERROR     (-1)
+#define RANGE_MATCH 1
+#define RANGE_NOMATCH 0
+#define RANGE_ERROR (-1)
 
 static int rangematch(const char *, wchar_t, int, char **, mbstate_t *);
 static int fnmatch1(const char *, const char *, const char *, int, mbstate_t,
-		mbstate_t);
+    mbstate_t);
 
 int
 fnmatch(const char *pattern, const char *string, int flags)
@@ -116,7 +116,8 @@ fnmatch1(const char *pattern, const char *string, const char *stringstart,
 				goto backtrack;
 			if (sc == '.' && (flags & FNM_PERIOD) &&
 			    (string == stringstart ||
-			    ((flags & FNM_PATHNAME) && *(string - 1) == '/')))
+				((flags & FNM_PATHNAME) &&
+				    *(string - 1) == '/')))
 				goto backtrack;
 			string += sclen;
 			break;
@@ -128,15 +129,18 @@ fnmatch1(const char *pattern, const char *string, const char *stringstart,
 
 			if (sc == '.' && (flags & FNM_PERIOD) &&
 			    (string == stringstart ||
-			    ((flags & FNM_PATHNAME) && *(string - 1) == '/')))
+				((flags & FNM_PATHNAME) &&
+				    *(string - 1) == '/')))
 				goto backtrack;
 
 			/* Optimize for pattern with * at end or before /. */
 			if (c == EOS)
 				if (flags & FNM_PATHNAME)
 					return ((flags & FNM_LEADING_DIR) ||
-					    strchr(string, '/') == NULL ?
-					    0 : FNM_NOMATCH);
+						    strchr(string, '/') ==
+							NULL ?
+						0 :
+						FNM_NOMATCH);
 				else
 					return (0);
 			else if (c == '/' && flags & FNM_PATHNAME) {
@@ -161,11 +165,12 @@ fnmatch1(const char *pattern, const char *string, const char *stringstart,
 				goto backtrack;
 			if (sc == '.' && (flags & FNM_PERIOD) &&
 			    (string == stringstart ||
-			    ((flags & FNM_PATHNAME) && *(string - 1) == '/')))
+				((flags & FNM_PATHNAME) &&
+				    *(string - 1) == '/')))
 				goto backtrack;
 
-			switch (rangematch(pattern, sc, flags, &newp,
-			    &patmbs)) {
+			switch (
+			    rangematch(pattern, sc, flags, &newp, &patmbs)) {
 			case RANGE_ERROR:
 				goto norm;
 			case RANGE_MATCH:
@@ -192,10 +197,10 @@ fnmatch1(const char *pattern, const char *string, const char *stringstart,
 			if (pc == sc)
 				;
 			else if ((flags & FNM_CASEFOLD) &&
-				 (towlower(pc) == towlower(sc)))
+			    (towlower(pc) == towlower(sc)))
 				;
 			else {
-		backtrack:
+			backtrack:
 				/*
 				 * If we have a mismatch (other than hitting
 				 * the end of the string), go back to the last
@@ -236,7 +241,7 @@ rangematch(const char *pattern, wchar_t test, int flags, char **newp,
 	size_t pclen;
 	const char *origpat;
 	struct xlocale_collate *table =
-		(struct xlocale_collate*)__get_locale()->components[XLC_COLLATE];
+	    (struct xlocale_collate *)__get_locale()->components[XLC_COLLATE];
 
 	/*
 	 * A bracket expression starting with an unquoted circumflex
@@ -292,10 +297,9 @@ rangematch(const char *pattern, wchar_t test, int flags, char **newp,
 				c2 = towlower(c2);
 
 			if (table->__collate_load_error ?
-			    c <= test && test <= c2 :
-			       __wcollate_range_cmp(c, test) <= 0
-			    && __wcollate_range_cmp(test, c2) <= 0
-			   )
+				c <= test && test <= c2 :
+				__wcollate_range_cmp(c, test) <= 0 &&
+				    __wcollate_range_cmp(test, c2) <= 0)
 				ok = 1;
 		} else if (c == test)
 			ok = 1;

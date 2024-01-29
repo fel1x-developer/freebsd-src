@@ -58,27 +58,26 @@
  * The code will let you match protocol via src/dst address pair.
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/errno.h>
 #include <sys/eventhandler.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
-#include <sys/mutex.h>
 #include <sys/mbuf.h>
-#include <sys/errno.h>
+#include <sys/mutex.h>
 #include <sys/socket.h>
 
 #include <net/if.h>
 #include <net/if_var.h>
-
 #include <netinet/in.h>
-#include <netinet/ip_var.h>
 #include <netinet/ip_encap.h>
+#include <netinet/ip_var.h>
 
 #ifdef INET6
 #include <netinet6/ip6_var.h>
@@ -89,21 +88,21 @@ static MALLOC_DEFINE(M_NETADDR, "encap_export_host",
 
 struct encaptab {
 	CK_LIST_ENTRY(encaptab) chain;
-	int		proto;
-	int		min_length;
-	int		exact_match;
-	void		*arg;
+	int proto;
+	int min_length;
+	int exact_match;
+	void *arg;
 
-	encap_lookup_t	lookup;
-	encap_check_t	check;
-	encap_input_t	input;
+	encap_lookup_t lookup;
+	encap_check_t check;
+	encap_input_t input;
 };
 
 struct srcaddrtab {
 	CK_LIST_ENTRY(srcaddrtab) chain;
 
-	encap_srcaddr_t	srcaddr;
-	void		*arg;
+	encap_srcaddr_t srcaddr;
+	void *arg;
 };
 
 CK_LIST_HEAD(encaptab_head, encaptab);
@@ -120,21 +119,19 @@ static struct srcaddrtab_head ipv6_srcaddrtab = CK_LIST_HEAD_INITIALIZER();
 static struct mtx encapmtx, srcaddrmtx;
 MTX_SYSINIT(encapmtx, &encapmtx, "encapmtx", MTX_DEF);
 MTX_SYSINIT(srcaddrmtx, &srcaddrmtx, "srcaddrmtx", MTX_DEF);
-#define	ENCAP_WLOCK()		mtx_lock(&encapmtx)
-#define	ENCAP_WUNLOCK()		mtx_unlock(&encapmtx)
-#define	ENCAP_RLOCK_TRACKER	struct epoch_tracker encap_et
-#define	ENCAP_RLOCK()		NET_EPOCH_ENTER(encap_et)
-#define	ENCAP_RUNLOCK()		NET_EPOCH_EXIT(encap_et)
-#define	ENCAP_WAIT()		NET_EPOCH_WAIT()
+#define ENCAP_WLOCK() mtx_lock(&encapmtx)
+#define ENCAP_WUNLOCK() mtx_unlock(&encapmtx)
+#define ENCAP_RLOCK_TRACKER struct epoch_tracker encap_et
+#define ENCAP_RLOCK() NET_EPOCH_ENTER(encap_et)
+#define ENCAP_RUNLOCK() NET_EPOCH_EXIT(encap_et)
+#define ENCAP_WAIT() NET_EPOCH_WAIT()
 
-#define	SRCADDR_WLOCK()		mtx_lock(&srcaddrmtx)
-#define	SRCADDR_WUNLOCK()	mtx_unlock(&srcaddrmtx)
-#define	SRCADDR_RLOCK_TRACKER	struct epoch_tracker srcaddr_et
-#define	SRCADDR_RLOCK()		\
-    epoch_enter_preempt(net_epoch_preempt, &srcaddr_et)
-#define	SRCADDR_RUNLOCK()	\
-    epoch_exit_preempt(net_epoch_preempt, &srcaddr_et)
-#define	SRCADDR_WAIT()		epoch_wait_preempt(net_epoch_preempt)
+#define SRCADDR_WLOCK() mtx_lock(&srcaddrmtx)
+#define SRCADDR_WUNLOCK() mtx_unlock(&srcaddrmtx)
+#define SRCADDR_RLOCK_TRACKER struct epoch_tracker srcaddr_et
+#define SRCADDR_RLOCK() epoch_enter_preempt(net_epoch_preempt, &srcaddr_et)
+#define SRCADDR_RUNLOCK() epoch_exit_preempt(net_epoch_preempt, &srcaddr_et)
+#define SRCADDR_WAIT() epoch_wait_preempt(net_epoch_preempt)
 
 /*
  * ifaddr_event_ext handler.
@@ -146,8 +143,8 @@ MTX_SYSINIT(srcaddrmtx, &srcaddrmtx, "srcaddrmtx", MTX_DEF);
  * spoofed packets.
  */
 static void
-srcaddr_change_event(void *arg __unused, struct ifnet *ifp,
-    struct ifaddr *ifa, int event)
+srcaddr_change_event(void *arg __unused, struct ifnet *ifp, struct ifaddr *ifa,
+    int event)
 {
 	SRCADDR_RLOCK_TRACKER;
 	struct srcaddrtab_head *head;
@@ -173,7 +170,8 @@ srcaddr_change_event(void *arg __unused, struct ifnet *ifp,
 	}
 
 	SRCADDR_RLOCK();
-	CK_LIST_FOREACH(p, head, chain) {
+	CK_LIST_FOREACH(p, head, chain)
+	{
 		(*p->srcaddr)(p->arg, ifa->ifa_addr, event);
 	}
 	SRCADDR_RUNLOCK();
@@ -195,7 +193,8 @@ encap_register_srcaddr(struct srcaddrtab_head *head, encap_srcaddr_t func,
 	p->arg = arg;
 
 	SRCADDR_WLOCK();
-	CK_LIST_FOREACH(tmp, head, chain) {
+	CK_LIST_FOREACH(tmp, head, chain)
+	{
 		if (func == tmp->srcaddr && arg == tmp->arg)
 			break;
 	}
@@ -217,7 +216,8 @@ encap_unregister_srcaddr(struct srcaddrtab_head *head,
 	struct srcaddrtab *p;
 
 	SRCADDR_WLOCK();
-	CK_LIST_FOREACH(p, head, chain) {
+	CK_LIST_FOREACH(p, head, chain)
+	{
 		if (p == cookie) {
 			CK_LIST_REMOVE(p, chain);
 			SRCADDR_WUNLOCK();
@@ -250,12 +250,13 @@ encap_attach(struct encaptab_head *head, const struct encap_config *cfg,
 	ep->min_length = cfg->min_length;
 	ep->exact_match = cfg->exact_match;
 	ep->arg = arg;
-	ep->lookup = cfg->exact_match == ENCAP_DRV_LOOKUP ? cfg->lookup: NULL;
-	ep->check = cfg->exact_match != ENCAP_DRV_LOOKUP ? cfg->check: NULL;
+	ep->lookup = cfg->exact_match == ENCAP_DRV_LOOKUP ? cfg->lookup : NULL;
+	ep->check = cfg->exact_match != ENCAP_DRV_LOOKUP ? cfg->check : NULL;
 	ep->input = cfg->input;
 
 	ENCAP_WLOCK();
-	CK_LIST_FOREACH(tmp, head, chain) {
+	CK_LIST_FOREACH(tmp, head, chain)
+	{
 		if (tmp->exact_match <= ep->exact_match)
 			break;
 	}
@@ -273,7 +274,8 @@ encap_detach(struct encaptab_head *head, const struct encaptab *cookie)
 	struct encaptab *ep;
 
 	ENCAP_WLOCK();
-	CK_LIST_FOREACH(ep, head, chain) {
+	CK_LIST_FOREACH(ep, head, chain)
+	{
 		if (ep == cookie) {
 			CK_LIST_REMOVE(ep, chain);
 			ENCAP_WUNLOCK();
@@ -298,7 +300,8 @@ encap_input(struct encaptab_head *head, struct mbuf *m, int off, int proto)
 	matchprio = 0;
 
 	ENCAP_RLOCK();
-	CK_LIST_FOREACH(ep, head, chain) {
+	CK_LIST_FOREACH(ep, head, chain)
+	{
 		if (ep->proto >= 0 && ep->proto != proto)
 			continue;
 		if (ep->min_length > m->m_pkthdr.len)

@@ -31,9 +31,9 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/counter.h>
 #include <sys/bio.h>
 #include <sys/buf.h>
+#include <sys/counter.h>
 #include <sys/malloc.h>
 #include <sys/mount.h>
 #include <sys/sysctl.h>
@@ -87,17 +87,28 @@ tarfs_sysctl_handle_zio_reset(SYSCTL_HANDLER_ARGS)
 }
 
 SYSCTL_PROC(_vfs_tarfs_zio, OID_AUTO, reset,
-    CTLTYPE_INT | CTLFLAG_MPSAFE | CTLFLAG_RW,
-    NULL, 0, tarfs_sysctl_handle_zio_reset, "IU",
-    "Reset compression counters.");
+    CTLTYPE_INT | CTLFLAG_MPSAFE | CTLFLAG_RW, NULL, 0,
+    tarfs_sysctl_handle_zio_reset, "IU", "Reset compression counters.");
 #endif
 
 MALLOC_DEFINE(M_TARFSZSTATE, "tarfs zstate", "tarfs decompression state");
 MALLOC_DEFINE(M_TARFSZBUF, "tarfs zbuf", "tarfs decompression buffers");
 
-#define XZ_MAGIC		(uint8_t[]){ 0xfd, 0x37, 0x7a, 0x58, 0x5a }
-#define ZLIB_MAGIC		(uint8_t[]){ 0x1f, 0x8b, 0x08 }
-#define ZSTD_MAGIC		(uint8_t[]){ 0x28, 0xb5, 0x2f, 0xfd }
+#define XZ_MAGIC                             \
+	(uint8_t[])                          \
+	{                                    \
+		0xfd, 0x37, 0x7a, 0x58, 0x5a \
+	}
+#define ZLIB_MAGIC               \
+	(uint8_t[])              \
+	{                        \
+		0x1f, 0x8b, 0x08 \
+	}
+#define ZSTD_MAGIC                     \
+	(uint8_t[])                    \
+	{                              \
+		0x28, 0xb5, 0x2f, 0xfd \
+	}
 
 #ifdef ZSTDIO
 struct tarfs_zstd {
@@ -134,13 +145,12 @@ tarfs_io_read(struct tarfs_mount *tmp, bool raw, struct uio *uiop)
 		error = vn_lock(tmp->znode, LK_EXCLUSIVE);
 		if (error == 0) {
 			error = VOP_READ(tmp->znode, uiop,
-			    IO_DIRECT | IO_NODELOCKED,
-			    uiop->uio_td->td_ucred);
+			    IO_DIRECT | IO_NODELOCKED, uiop->uio_td->td_ucred);
 			VOP_UNLOCK(tmp->znode);
 		}
 	}
-	TARFS_DPF(IO, "%s(%zu, %zu) = %d (resid %zd)\n", __func__,
-	    (size_t)off, len, error, uiop->uio_resid);
+	TARFS_DPF(IO, "%s(%zu, %zu) = %d (resid %zd)\n", __func__, (size_t)off,
+	    len, error, uiop->uio_resid);
 	return (error);
 }
 
@@ -151,8 +161,8 @@ tarfs_io_read(struct tarfs_mount *tmp, bool raw, struct uio *uiop)
  * read on success, 0 on EOF, and a negative errno value on failure.
  */
 ssize_t
-tarfs_io_read_buf(struct tarfs_mount *tmp, bool raw,
-    void *buf, off_t off, size_t len)
+tarfs_io_read_buf(struct tarfs_mount *tmp, bool raw, void *buf, off_t off,
+    size_t len)
 {
 	struct uio auio;
 	struct iovec aiov;
@@ -160,8 +170,8 @@ tarfs_io_read_buf(struct tarfs_mount *tmp, bool raw,
 	int error;
 
 	if (len == 0) {
-		TARFS_DPF(IO, "%s(%zu, %zu) null\n", __func__,
-		    (size_t)off, len);
+		TARFS_DPF(IO, "%s(%zu, %zu) null\n", __func__, (size_t)off,
+		    len);
 		return (0);
 	}
 	aiov.iov_base = buf;
@@ -175,18 +185,17 @@ tarfs_io_read_buf(struct tarfs_mount *tmp, bool raw,
 	auio.uio_td = curthread;
 	error = tarfs_io_read(tmp, raw, &auio);
 	if (error != 0) {
-		TARFS_DPF(IO, "%s(%zu, %zu) error %d\n", __func__,
-		    (size_t)off, len, error);
+		TARFS_DPF(IO, "%s(%zu, %zu) error %d\n", __func__, (size_t)off,
+		    len, error);
 		return (-error);
 	}
 	res = len - auio.uio_resid;
 	if (res == 0 && len != 0) {
-		TARFS_DPF(IO, "%s(%zu, %zu) eof\n", __func__,
-		    (size_t)off, len);
+		TARFS_DPF(IO, "%s(%zu, %zu) eof\n", __func__, (size_t)off, len);
 	} else {
 		TARFS_DPF(IO, "%s(%zu, %zu) read %zd | %*D\n", __func__,
-		    (size_t)off, len, res,
-		    (int)(res > 8 ? 8 : res), (uint8_t *)buf, " ");
+		    (size_t)off, len, res, (int)(res > 8 ? 8 : res),
+		    (uint8_t *)buf, " ");
 	}
 	return (res);
 }
@@ -233,8 +242,8 @@ tarfs_zio_update_index(struct tarfs_zio *zio, off_t i, off_t o)
 		if (++zio->nidx > zio->szidx) {
 			zio->szidx *= 2;
 			zio->idx = realloc(zio->idx,
-			    zio->szidx * sizeof(*zio->idx),
-			    M_TARFSZSTATE, M_ZERO | M_WAITOK);
+			    zio->szidx * sizeof(*zio->idx), M_TARFSZSTATE,
+			    M_ZERO | M_WAITOK);
 			TARFS_DPF(ALLOC, "%s: resized zio index\n", __func__);
 		}
 		zio->idx[zio->curidx].i = i;
@@ -263,7 +272,8 @@ tarfs_zaccess(struct vop_access_args *ap)
 	if (accmode == VREAD) {
 		error = vn_lock(tmp->vp, LK_SHARED);
 		if (error == 0) {
-			error = VOP_ACCESS(tmp->vp, accmode, ap->a_cred, ap->a_td);
+			error = VOP_ACCESS(tmp->vp, accmode, ap->a_cred,
+			    ap->a_td);
 			VOP_UNLOCK(tmp->vp);
 		}
 	}
@@ -356,8 +366,9 @@ tarfs_zread_zstd(struct tarfs_zio *zio, struct uio *uiop)
 		zio->ipos = zio->idx[zio->curidx].i;
 		zio->opos = zio->idx[zio->curidx].o;
 		ZSTD_resetDStream(zstd->zds);
-		TARFS_DPF(ZIDX, "%s: skipping to index %u = i %zu o %zu\n", __func__,
-		    zio->curidx, (size_t)zio->ipos, (size_t)zio->opos);
+		TARFS_DPF(ZIDX, "%s: skipping to index %u = i %zu o %zu\n",
+		    __func__, zio->curidx, (size_t)zio->ipos,
+		    (size_t)zio->opos);
 	} else {
 		TARFS_DPF(ZIDX, "%s: continuing at i %zu o %zu\n", __func__,
 		    (size_t)zio->ipos, (size_t)zio->opos);
@@ -429,8 +440,8 @@ tarfs_zread_zstd(struct tarfs_zio *zio, struct uio *uiop)
 			    td->td_ucred);
 			if (error != 0)
 				goto fail;
-			TARFS_DPF(ZIO, "%s: req %zu+%zu got %zu+%zu\n", __func__,
-			    (size_t)zio->ipos, bsize,
+			TARFS_DPF(ZIO, "%s: req %zu+%zu got %zu+%zu\n",
+			    __func__, (size_t)zio->ipos, bsize,
 			    (size_t)zio->ipos, bsize - auio.uio_resid);
 			zib.src = ibuf;
 			zib.size = bsize - auio.uio_resid;
@@ -438,8 +449,8 @@ tarfs_zread_zstd(struct tarfs_zio *zio, struct uio *uiop)
 		}
 		MPASS(zib.pos <= zib.size);
 		if (zib.pos == zib.size) {
-			TARFS_DPF(ZIO, "%s: end of file after i %zu o %zu\n", __func__,
-			    (size_t)zio->ipos, (size_t)zio->opos);
+			TARFS_DPF(ZIO, "%s: end of file after i %zu o %zu\n",
+			    __func__, (size_t)zio->ipos, (size_t)zio->opos);
 			goto fail;
 		}
 		if (zio->opos < off) {
@@ -459,19 +470,21 @@ tarfs_zread_zstd(struct tarfs_zio *zio, struct uio *uiop)
 		if (zio->opos > off)
 			resid -= olen;
 		if (ZSTD_isError(zerror)) {
-			TARFS_DPF(ZIO, "%s: inflate failed after i %zu o %zu: %s\n", __func__,
-			    (size_t)zio->ipos, (size_t)zio->opos, ZSTD_getErrorName(zerror));
+			TARFS_DPF(ZIO,
+			    "%s: inflate failed after i %zu o %zu: %s\n",
+			    __func__, (size_t)zio->ipos, (size_t)zio->opos,
+			    ZSTD_getErrorName(zerror));
 			error = EIO;
 			goto fail;
 		}
 		if (zerror == 0 && olen == 0) {
-			TARFS_DPF(ZIO, "%s: end of stream after i %zu o %zu\n", __func__,
-			    (size_t)zio->ipos, (size_t)zio->opos);
+			TARFS_DPF(ZIO, "%s: end of stream after i %zu o %zu\n",
+			    __func__, (size_t)zio->ipos, (size_t)zio->opos);
 			break;
 		}
 		if (zerror == 0) {
-			TARFS_DPF(ZIO, "%s: end of frame after i %zu o %zu\n", __func__,
-			    (size_t)zio->ipos, (size_t)zio->opos);
+			TARFS_DPF(ZIO, "%s: end of frame after i %zu o %zu\n",
+			    __func__, (size_t)zio->ipos, (size_t)zio->opos);
 			tarfs_zio_update_index(zio, zio->ipos, zio->opos);
 		}
 		TARFS_DPF(ZIO, "%s: inflated %zu\n", __func__, olen);
@@ -502,8 +515,8 @@ fail_unlocked:
 		vn_rangelock_unlock(tmp->vp, rl);
 	if (ibuf != NULL)
 		free(ibuf, M_TEMP);
-	TARFS_DPF(ZIO, "%s(%zu, %zu) = %d (resid %zd)\n", __func__,
-	    (size_t)off, len, error, uiop->uio_resid);
+	TARFS_DPF(ZIO, "%s(%zu, %zu) = %d (resid %zd)\n", __func__, (size_t)off,
+	    len, error, uiop->uio_resid);
 #ifdef TARFS_DEBUG
 	counter_u64_add(tarfs_zio_consumed, len - uiop->uio_resid);
 #endif
@@ -534,16 +547,15 @@ tarfs_zread(struct vop_read_args *ap)
 #endif
 	int error;
 
-	TARFS_DPF(ZIO, "%s(%zu, %zu)\n", __func__,
-	    (size_t)off, len);
+	TARFS_DPF(ZIO, "%s(%zu, %zu)\n", __func__, (size_t)off, len);
 #ifdef ZSTDIO
 	if (zio->zstd != NULL) {
 		error = tarfs_zread_zstd(zio, uiop);
 	} else
 #endif
 		error = EFTYPE;
-	TARFS_DPF(ZIO, "%s(%zu, %zu) = %d (resid %zd)\n", __func__,
-	    (size_t)off, len, error, uiop->uio_resid);
+	TARFS_DPF(ZIO, "%s(%zu, %zu) = %d (resid %zd)\n", __func__, (size_t)off,
+	    len, error, uiop->uio_resid);
 	return (error);
 }
 
@@ -596,13 +608,13 @@ tarfs_zstrategy(struct vop_strategy_args *ap)
 }
 
 static struct vop_vector tarfs_znodeops = {
-	.vop_default =		&default_vnodeops,
+	.vop_default = &default_vnodeops,
 
-	.vop_access =		tarfs_zaccess,
-	.vop_getattr =		tarfs_zgetattr,
-	.vop_read =		tarfs_zread,
-	.vop_reclaim =		tarfs_zreclaim,
-	.vop_strategy =		tarfs_zstrategy,
+	.vop_access = tarfs_zaccess,
+	.vop_getattr = tarfs_zgetattr,
+	.vop_read = tarfs_zread,
+	.vop_reclaim = tarfs_zreclaim,
+	.vop_strategy = tarfs_zstrategy,
 };
 VFS_VOP_VECTOR_REGISTER(tarfs_znodeops);
 

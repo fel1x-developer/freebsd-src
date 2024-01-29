@@ -33,50 +33,47 @@
 
 #include <sys/types.h>
 #include <sys/param.h>
-#include <sys/sysctl.h>
 #include <sys/mount.h>
+#include <sys/sysctl.h>
 
 #include <assert.h>
 #include <err.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 #include <sysexits.h>
+#include <syslog.h>
 
-#include "hostres_snmp.h"
 #include "hostres_oid.h"
+#include "hostres_snmp.h"
 #include "hostres_tree.h"
 
 /*
  * File system access enum
  */
-enum hrFSAccess {
-	FS_READ_WRITE = 1,
-	FS_READ_ONLY  = 2
-};
+enum hrFSAccess { FS_READ_WRITE = 1, FS_READ_ONLY = 2 };
 
 /* maximum length (according to MIB) for fs_entry::mountPoint */
-#define	FS_MP_MLEN	(128 + 1)
+#define FS_MP_MLEN (128 + 1)
 
 /* maximum length (according to MIB) for fs_entry::remoteMountPoint */
-#define	FS_RMP_MLEN	(128 + 1)
+#define FS_RMP_MLEN (128 + 1)
 
 /*
  * This structure is used to hold a SNMP table entry
  * for HOST-RESOURCES-MIB's hrFSTable
  */
 struct fs_entry {
-	int32_t		index;
-	u_char		*mountPoint;
-	u_char		*remoteMountPoint;
+	int32_t index;
+	u_char *mountPoint;
+	u_char *remoteMountPoint;
 	const struct asn_oid *type;
-	int32_t		access;		/* enum hrFSAccess, see above */
-	int32_t		bootable;	/* TruthValue */
-	int32_t		storageIndex;	/* hrStorageTblEntry::index */
-	u_char		lastFullBackupDate[11];
-	u_char		lastPartialBackupDate[11];
-#define	HR_FS_FOUND 0x001
-	uint32_t	flags;		/* not in mib table, for internal use */
+	int32_t access;	      /* enum hrFSAccess, see above */
+	int32_t bootable;     /* TruthValue */
+	int32_t storageIndex; /* hrStorageTblEntry::index */
+	u_char lastFullBackupDate[11];
+	u_char lastPartialBackupDate[11];
+#define HR_FS_FOUND 0x001
+	uint32_t flags; /* not in mib table, for internal use */
 	TAILQ_ENTRY(fs_entry) link;
 };
 TAILQ_HEAD(fs_tbl, fs_entry);
@@ -87,12 +84,12 @@ TAILQ_HEAD(fs_tbl, fs_entry);
  * index for a specific name at least for the duration of one SNMP agent run.
  */
 struct fs_map_entry {
-	int32_t		hrIndex;   /* used for fs_entry::index */
-	u_char		*a_name;   /* map key same as fs_entry::mountPoint */
+	int32_t hrIndex; /* used for fs_entry::index */
+	u_char *a_name;	 /* map key same as fs_entry::mountPoint */
 
 	/* may be NULL if the respective hrFSTblEntry is (temporally) gone */
 	struct fs_entry *entry;
-	STAILQ_ENTRY(fs_map_entry) 	link;
+	STAILQ_ENTRY(fs_map_entry) link;
 };
 STAILQ_HEAD(fs_map, fs_map_entry);
 
@@ -103,7 +100,7 @@ static struct fs_tbl fs_tbl = TAILQ_HEAD_INITIALIZER(fs_tbl);
 static struct fs_map fs_map = STAILQ_HEAD_INITIALIZER(fs_map);
 
 /* next index available for hrFSTable */
-static uint32_t	next_fs_index = 1;
+static uint32_t next_fs_index = 1;
 
 /* last tick when hrFSTable was updated */
 static uint64_t fs_tick;
@@ -125,23 +122,23 @@ static const struct asn_oid OIDX_hrFSUnknown_c = OIDX_hrFSUnknown;
 
 /* file system type map */
 static const struct {
-	const char		*str;	/* the type string */
-	const struct asn_oid	*oid;	/* the OID to return */
+	const char *str;	   /* the type string */
+	const struct asn_oid *oid; /* the OID to return */
 } fs_type_map[] = {
-	{ "ufs",	&OIDX_hrFSBerkeleyFFS_c },
-	{ "zfs",	&OIDX_hrFSOther_c },
-	{ "cd9660",	&OIDX_hrFSiso9660_c },
-	{ "nfs",	&OIDX_hrFSNFS_c },
-	{ "ext2fs",	&OIDX_hrFSLinuxExt2_c },
-	{ "procfs",	&OIDX_hrFSOther_c },
-	{ "devfs",	&OIDX_hrFSOther_c },
-	{ "msdosfs",	&OIDX_hrFSFAT32_c },
-	{ "ntfs",	&OIDX_hrFSNTFS_c },
-	{ "nwfs",	&OIDX_hrFSNetware_c },
-	{ "hpfs",	&OIDX_hrFSHPFS_c },
-	{ "smbfs",	&OIDX_hrFSOther_c },
+	{ "ufs", &OIDX_hrFSBerkeleyFFS_c },
+	{ "zfs", &OIDX_hrFSOther_c },
+	{ "cd9660", &OIDX_hrFSiso9660_c },
+	{ "nfs", &OIDX_hrFSNFS_c },
+	{ "ext2fs", &OIDX_hrFSLinuxExt2_c },
+	{ "procfs", &OIDX_hrFSOther_c },
+	{ "devfs", &OIDX_hrFSOther_c },
+	{ "msdosfs", &OIDX_hrFSFAT32_c },
+	{ "ntfs", &OIDX_hrFSNTFS_c },
+	{ "nwfs", &OIDX_hrFSNetware_c },
+	{ "hpfs", &OIDX_hrFSHPFS_c },
+	{ "smbfs", &OIDX_hrFSOther_c },
 };
-#define	N_FS_TYPE_MAP	nitems(fs_type_map)
+#define N_FS_TYPE_MAP nitems(fs_type_map)
 
 /**
  * Create an entry into the FS table and an entry in the map (if needed).
@@ -149,13 +146,13 @@ static const struct {
 static struct fs_entry *
 fs_entry_create(const char *name)
 {
-	struct fs_entry	*entry;
+	struct fs_entry *entry;
 	struct fs_map_entry *map;
 
 	assert(name != NULL);
 	assert(strlen(name) > 0);
 
-	STAILQ_FOREACH(map, &fs_map, link)
+	STAILQ_FOREACH (map, &fs_map, link)
 		if (strcmp(map->a_name, name) == 0)
 			break;
 
@@ -217,14 +214,14 @@ fs_entry_create(const char *name)
  * Delete an entry in the FS table.
  */
 static void
-fs_entry_delete(struct fs_entry* entry)
+fs_entry_delete(struct fs_entry *entry)
 {
 	struct fs_map_entry *map;
 
 	assert(entry != NULL);
 
 	TAILQ_REMOVE(&fs_tbl, entry, link);
-	STAILQ_FOREACH(map, &fs_map, link)
+	STAILQ_FOREACH (map, &fs_map, link)
 		if (map->entry == entry) {
 			map->entry = NULL;
 			break;
@@ -242,7 +239,7 @@ fs_find_by_name(const char *name)
 {
 	struct fs_entry *entry;
 
-	TAILQ_FOREACH(entry, &fs_tbl, link)
+	TAILQ_FOREACH (entry, &fs_tbl, link)
 		if (strcmp(entry->mountPoint, name) == 0)
 			return (entry);
 
@@ -257,7 +254,7 @@ fini_fs_tbl(void)
 {
 	struct fs_map_entry *n1;
 
-     	while ((n1 = STAILQ_FIRST(&fs_map)) != NULL) {
+	while ((n1 = STAILQ_FIRST(&fs_map)) != NULL) {
 		STAILQ_REMOVE_HEAD(&fs_map, link);
 		if (n1->entry != NULL) {
 			TAILQ_REMOVE(&fs_tbl, n1->entry, link);
@@ -267,7 +264,7 @@ fini_fs_tbl(void)
 		}
 		free(n1->a_name);
 		free(n1);
-     	}
+	}
 	assert(TAILQ_EMPTY(&fs_tbl));
 }
 
@@ -280,7 +277,7 @@ fs_tbl_pre_refresh(void)
 	struct fs_entry *entry;
 
 	/* mark each entry as missisng */
-	TAILQ_FOREACH(entry, &fs_tbl, link)
+	TAILQ_FOREACH (entry, &fs_tbl, link)
 		entry->flags &= ~HR_FS_FOUND;
 }
 
@@ -295,7 +292,7 @@ fs_tbl_post_refresh(void)
 	/*
 	 * Purge items that disappeared
 	 */
-	TAILQ_FOREACH_SAFE(entry, &fs_tbl, link, entry_tmp)
+	TAILQ_FOREACH_SAFE (entry, &fs_tbl, link, entry_tmp)
 		if (!(entry->flags & HR_FS_FOUND))
 			fs_entry_delete(entry);
 
@@ -370,8 +367,8 @@ fs_tbl_process_statfs_entry(const struct statfs *fs_p, int32_t storage_idx)
 			entry->access = FS_READ_WRITE;
 
 		/* FIXME - bootable fs ?! */
-		entry->bootable = TRUTH_MK((fs_p->f_flags & MNT_ROOTFS)
-		    == MNT_ROOTFS);
+		entry->bootable = TRUTH_MK(
+		    (fs_p->f_flags & MNT_ROOTFS) == MNT_ROOTFS);
 
 		entry->storageIndex = storage_idx;
 
@@ -403,22 +400,22 @@ op_hrFSTable(struct snmp_context *ctx __unused, struct snmp_value *value,
 	switch (curr_op) {
 
 	case SNMP_OP_GETNEXT:
-		if ((entry = NEXT_OBJECT_INT(&fs_tbl,
-		    &value->var, sub)) == NULL)
+		if ((entry = NEXT_OBJECT_INT(&fs_tbl, &value->var, sub)) ==
+		    NULL)
 			return (SNMP_ERR_NOSUCHNAME);
 		value->var.len = sub + 1;
 		value->var.subs[sub] = entry->index;
 		goto get;
 
 	case SNMP_OP_GET:
-		if ((entry = FIND_OBJECT_INT(&fs_tbl,
-		    &value->var, sub)) == NULL)
+		if ((entry = FIND_OBJECT_INT(&fs_tbl, &value->var, sub)) ==
+		    NULL)
 			return (SNMP_ERR_NOSUCHNAME);
 		goto get;
 
 	case SNMP_OP_SET:
-		if ((entry = FIND_OBJECT_INT(&fs_tbl,
-		    &value->var, sub)) == NULL)
+		if ((entry = FIND_OBJECT_INT(&fs_tbl, &value->var, sub)) ==
+		    NULL)
 			return (SNMP_ERR_NO_CREATION);
 		return (SNMP_ERR_NOT_WRITEABLE);
 
@@ -427,7 +424,7 @@ op_hrFSTable(struct snmp_context *ctx __unused, struct snmp_value *value,
 		abort();
 	}
 	abort();
-  get:
+get:
 	switch (value->var.subs[sub - 1]) {
 
 	case LEAF_hrFSIndex:

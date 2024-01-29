@@ -37,12 +37,12 @@
  * are hard-coded in _slirp_init().
  *
  * Packets received from the guest (i.e., transmitted by the frontend, such as a
- * virtio NIC device model) are injected into the slirp backend via slirp_send().
- * Packets to be transmitted to the guest (i.e., inserted into the frontend's
- * receive buffers) are buffered in a per-interface socket pair and read by the
- * mevent loop.  Sockets instantiated by libslirp are monitored by a thread
- * which uses poll() and slirp_pollfds_poll() to drive libslirp events; this
- * thread also handles timeout events from the libslirp context.
+ * virtio NIC device model) are injected into the slirp backend via
+ * slirp_send(). Packets to be transmitted to the guest (i.e., inserted into the
+ * frontend's receive buffers) are buffered in a per-interface socket pair and
+ * read by the mevent loop.  Sockets instantiated by libslirp are monitored by a
+ * thread which uses poll() and slirp_pollfds_poll() to drive libslirp events;
+ * this thread also handles timeout events from the libslirp context.
  */
 
 #include <sys/socket.h>
@@ -66,9 +66,8 @@
 #include "net_backends.h"
 #include "net_backends_priv.h"
 
-typedef int (*slirp_add_hostxfwd_p_t)(Slirp *,
-    const struct sockaddr *, socklen_t, const struct sockaddr *, socklen_t,
-    int);
+typedef int (*slirp_add_hostxfwd_p_t)(Slirp *, const struct sockaddr *,
+    socklen_t, const struct sockaddr *, socklen_t, int);
 typedef void (*slirp_cleanup_p_t)(Slirp *);
 typedef void (*slirp_input_p_t)(Slirp *, const uint8_t *, int);
 typedef Slirp *(*slirp_new_p_t)(const SlirpConfig *, const SlirpCb *, void *);
@@ -97,13 +96,14 @@ slirp_init_once(void)
 		return (-1);
 	}
 
-#define IMPORT_SYM(sym) do {					\
-	sym##_p = (sym##_p_t)dlsym(handle, #sym);		\
-	if (sym##_p == NULL) {					\
-		EPRINTLN("failed to resolve %s", #sym);		\
-		goto err;					\
-	}							\
-} while (0)
+#define IMPORT_SYM(sym)                                         \
+	do {                                                    \
+		sym##_p = (sym##_p_t)dlsym(handle, #sym);       \
+		if (sym##_p == NULL) {                          \
+			EPRINTLN("failed to resolve %s", #sym); \
+			goto err;                               \
+		}                                               \
+	} while (0)
 	IMPORT_SYM(slirp_add_hostxfwd);
 	IMPORT_SYM(slirp_cleanup);
 	IMPORT_SYM(slirp_input);
@@ -132,7 +132,7 @@ err:
 struct slirp_priv {
 	Slirp *slirp;
 
-#define	SLIRP_MTU	2048
+#define SLIRP_MTU 2048
 	struct mevent *mevp;
 	int pipe[2];
 
@@ -445,16 +445,16 @@ config_one_hostfwd(struct slirp_priv *priv, const char *rule)
 
 	error = parse_hostfwd_rule(rule, &is_udp, &hostaddr, &guestaddr);
 	if (error != 0) {
-		EPRINTLN("Unable to parse hostfwd rule '%s': %s",
-		    rule, strerror(error));
+		EPRINTLN("Unable to parse hostfwd rule '%s': %s", rule,
+		    strerror(error));
 		return (error);
 	}
 
 	error = slirp_add_hostxfwd_p(priv->slirp, &hostaddr, hostaddr.sa_len,
 	    &guestaddr, guestaddr.sa_len, is_udp ? SLIRP_HOSTFWD_UDP : 0);
 	if (error != 0) {
-		EPRINTLN("Unable to add hostfwd rule '%s': %s",
-		    rule, strerror(errno));
+		EPRINTLN("Unable to add hostfwd rule '%s': %s", rule,
+		    strerror(errno));
 		return (error);
 	}
 
@@ -462,8 +462,8 @@ config_one_hostfwd(struct slirp_priv *priv, const char *rule)
 }
 
 static int
-_slirp_init(struct net_backend *be, const char *devname __unused,
-    nvlist_t *nvl, net_be_rxeof_t cb, void *param)
+_slirp_init(struct net_backend *be, const char *devname __unused, nvlist_t *nvl,
+    net_be_rxeof_t cb, void *param)
 {
 	struct slirp_priv *priv = NET_BE_PRIV(be);
 	SlirpConfig config = {
@@ -471,10 +471,10 @@ _slirp_init(struct net_backend *be, const char *devname __unused,
 		.if_mtu = SLIRP_MTU,
 		.restricted = true,
 		.in_enabled = true,
-		.vnetwork.s_addr = htonl(0x0a000200),	/* 10.0.2.0/24 */
+		.vnetwork.s_addr = htonl(0x0a000200), /* 10.0.2.0/24 */
 		.vnetmask.s_addr = htonl(0xffffff00),
-		.vdhcp_start.s_addr = htonl(0x0a00020f),/* 10.0.2.15 */
-		.vhost.s_addr = htonl(0x0a000202),	/* 10.0.2.2 */
+		.vdhcp_start.s_addr = htonl(0x0a00020f), /* 10.0.2.15 */
+		.vhost.s_addr = htonl(0x0a000202),	 /* 10.0.2.2 */
 		.enable_emu = false,
 	};
 	const char *hostfwd;
@@ -557,8 +557,7 @@ slirp_send(struct net_backend *be, const struct iovec *iov, int iovcnt)
 	if (iovcnt == 1) {
 		/* We can avoid copying if there's a single segment. */
 		pthread_mutex_lock(&priv->mtx);
-		slirp_input_p(priv->slirp, iov->iov_base,
-		    (int)iov->iov_len);
+		slirp_input_p(priv->slirp, iov->iov_base, (int)iov->iov_len);
 		pthread_mutex_unlock(&priv->mtx);
 		return (iov[0].iov_len);
 	} else {

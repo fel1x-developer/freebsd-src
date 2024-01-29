@@ -32,27 +32,25 @@
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
+
 #include <machine/bus.h>
 
-#include <dev/iicbus/iiconf.h>
 #include <dev/iicbus/iicbus.h>
-
+#include <dev/iicbus/iiconf.h>
+#include <dev/iicbus/pmic/act8846.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
 #include <dev/regulator/regulator.h>
-
-#include <dev/iicbus/pmic/act8846.h>
 
 #include "regdev_if.h"
 
 MALLOC_DEFINE(M_ACT8846_REG, "ACT8846 regulator", "ACT8846 power regulator");
 
 #if 0
-#define	dprintf(sc, format, arg...)
+#define dprintf(sc, format, arg...)
 	device_printf(sc->base_sc->dev, "%s: " format, __func__, arg) */
 #else
-#define	dprintf(sc, format, arg...)
+#define dprintf(sc, format, arg...)
 #endif
 
 enum act8846_reg_id {
@@ -72,168 +70,167 @@ enum act8846_reg_id {
 };
 
 struct act8846_regdef {
-	intptr_t		id;		/* ID */
-	char			*name;		/* Regulator name */
-	char			*supply_name;	/* Source property name */
-	uint8_t			enable_reg;
-	uint8_t			enable_mask;
-	uint8_t			voltage_reg;
-	uint8_t			voltage_mask;
-	struct regulator_range	*ranges;
-	int			nranges;
+	intptr_t id;	   /* ID */
+	char *name;	   /* Regulator name */
+	char *supply_name; /* Source property name */
+	uint8_t enable_reg;
+	uint8_t enable_mask;
+	uint8_t voltage_reg;
+	uint8_t voltage_mask;
+	struct regulator_range *ranges;
+	int nranges;
 };
 struct act8846_softc;
 
 struct act8846_reg_sc {
-	struct regnode		*regnode;
-	struct act8846_softc	*base_sc;
-	struct act8846_regdef	*def;
-	phandle_t		xref;
+	struct regnode *regnode;
+	struct act8846_softc *base_sc;
+	struct act8846_regdef *def;
+	phandle_t xref;
 	struct regnode_std_param *param;
 };
 
-
 static struct regulator_range act8846_ranges[] = {
-	REG_RANGE_INIT(  0, 23,  600000, 25000),
-	REG_RANGE_INIT( 24, 47, 1200000, 50000),
-	REG_RANGE_INIT( 48, 64, 2400000, 100000),
+	REG_RANGE_INIT(0, 23, 600000, 25000),
+	REG_RANGE_INIT(24, 47, 1200000, 50000),
+	REG_RANGE_INIT(48, 64, 2400000, 100000),
 };
 
 static struct act8846_regdef act8846_regdefs[] = {
 	{
-		.id = ACT8846_REG_ID_REG1,
-		.name = "REG1",
-		.supply_name = "vp1",
-		.enable_reg = ACT8846_REG1_CTRL,
-		.enable_mask = ACT8846_CTRL_ENA,
+	    .id = ACT8846_REG_ID_REG1,
+	    .name = "REG1",
+	    .supply_name = "vp1",
+	    .enable_reg = ACT8846_REG1_CTRL,
+	    .enable_mask = ACT8846_CTRL_ENA,
 	},
 	{
-		.id = ACT8846_REG_ID_REG2,
-		.name = "REG2",
-		.supply_name = "vp2",
-		.enable_reg = ACT8846_REG2_CTRL,
-		.enable_mask = ACT8846_CTRL_ENA,
-		.voltage_reg = ACT8846_REG2_VSET0,
-		.voltage_mask = ACT8846_VSEL_MASK,
-		.ranges = act8846_ranges,
-		.nranges = nitems(act8846_ranges),
+	    .id = ACT8846_REG_ID_REG2,
+	    .name = "REG2",
+	    .supply_name = "vp2",
+	    .enable_reg = ACT8846_REG2_CTRL,
+	    .enable_mask = ACT8846_CTRL_ENA,
+	    .voltage_reg = ACT8846_REG2_VSET0,
+	    .voltage_mask = ACT8846_VSEL_MASK,
+	    .ranges = act8846_ranges,
+	    .nranges = nitems(act8846_ranges),
 	},
 	{
-		.id = ACT8846_REG_ID_REG3,
-		.name = "REG3",
-		.supply_name = "vp3",
-		.enable_reg = ACT8846_REG3_CTRL,
-		.enable_mask = ACT8846_CTRL_ENA,
-		.voltage_reg = ACT8846_REG3_VSET0,
-		.voltage_mask = ACT8846_VSEL_MASK,
-		.ranges = act8846_ranges,
-		.nranges = nitems(act8846_ranges),
+	    .id = ACT8846_REG_ID_REG3,
+	    .name = "REG3",
+	    .supply_name = "vp3",
+	    .enable_reg = ACT8846_REG3_CTRL,
+	    .enable_mask = ACT8846_CTRL_ENA,
+	    .voltage_reg = ACT8846_REG3_VSET0,
+	    .voltage_mask = ACT8846_VSEL_MASK,
+	    .ranges = act8846_ranges,
+	    .nranges = nitems(act8846_ranges),
 	},
 	{
-		.id = ACT8846_REG_ID_REG4,
-		.name = "REG4",
-		.supply_name = "vp4",
-		.enable_reg = ACT8846_REG4_CTRL,
-		.enable_mask = ACT8846_CTRL_ENA,
-		.voltage_reg = ACT8846_REG4_VSET0,
-		.voltage_mask = ACT8846_VSEL_MASK,
-		.ranges = act8846_ranges,
-		.nranges = nitems(act8846_ranges),
+	    .id = ACT8846_REG_ID_REG4,
+	    .name = "REG4",
+	    .supply_name = "vp4",
+	    .enable_reg = ACT8846_REG4_CTRL,
+	    .enable_mask = ACT8846_CTRL_ENA,
+	    .voltage_reg = ACT8846_REG4_VSET0,
+	    .voltage_mask = ACT8846_VSEL_MASK,
+	    .ranges = act8846_ranges,
+	    .nranges = nitems(act8846_ranges),
 	},
 	{
-		.id = ACT8846_REG_ID_REG5,
-		.name = "REG5",
-		.supply_name = "inl1",
-		.enable_reg = ACT8846_REG5_CTRL,
-		.enable_mask = ACT8846_CTRL_ENA,
-		.voltage_reg = ACT8846_REG5_VSET,
-		.voltage_mask = ACT8846_VSEL_MASK,
-		.ranges = act8846_ranges,
-		.nranges = nitems(act8846_ranges),
+	    .id = ACT8846_REG_ID_REG5,
+	    .name = "REG5",
+	    .supply_name = "inl1",
+	    .enable_reg = ACT8846_REG5_CTRL,
+	    .enable_mask = ACT8846_CTRL_ENA,
+	    .voltage_reg = ACT8846_REG5_VSET,
+	    .voltage_mask = ACT8846_VSEL_MASK,
+	    .ranges = act8846_ranges,
+	    .nranges = nitems(act8846_ranges),
 	},
 	{
-		.id = ACT8846_REG_ID_REG6,
-		.name = "REG6",
-		.supply_name = "inl1",
-		.enable_reg = ACT8846_REG6_CTRL,
-		.enable_mask = ACT8846_CTRL_ENA,
-		.voltage_reg = ACT8846_REG6_VSET,
-		.voltage_mask = ACT8846_VSEL_MASK,
-		.ranges = act8846_ranges,
-		.nranges = nitems(act8846_ranges),
+	    .id = ACT8846_REG_ID_REG6,
+	    .name = "REG6",
+	    .supply_name = "inl1",
+	    .enable_reg = ACT8846_REG6_CTRL,
+	    .enable_mask = ACT8846_CTRL_ENA,
+	    .voltage_reg = ACT8846_REG6_VSET,
+	    .voltage_mask = ACT8846_VSEL_MASK,
+	    .ranges = act8846_ranges,
+	    .nranges = nitems(act8846_ranges),
 	},
 	{
-		.id = ACT8846_REG_ID_REG7,
-		.name = "REG7",
-		.supply_name = "inl1",
-		.enable_reg = ACT8846_REG7_CTRL,
-		.enable_mask = ACT8846_CTRL_ENA,
-		.voltage_reg = ACT8846_REG7_VSET,
-		.voltage_mask = ACT8846_VSEL_MASK,
-		.ranges = act8846_ranges,
-		.nranges = nitems(act8846_ranges),
+	    .id = ACT8846_REG_ID_REG7,
+	    .name = "REG7",
+	    .supply_name = "inl1",
+	    .enable_reg = ACT8846_REG7_CTRL,
+	    .enable_mask = ACT8846_CTRL_ENA,
+	    .voltage_reg = ACT8846_REG7_VSET,
+	    .voltage_mask = ACT8846_VSEL_MASK,
+	    .ranges = act8846_ranges,
+	    .nranges = nitems(act8846_ranges),
 	},
 	{
-		.id = ACT8846_REG_ID_REG8,
-		.name = "REG8",
-		.supply_name = "inl2",
-		.enable_reg = ACT8846_REG8_CTRL,
-		.enable_mask = ACT8846_CTRL_ENA,
-		.voltage_reg = ACT8846_REG8_VSET,
-		.voltage_mask = ACT8846_VSEL_MASK,
-		.ranges = act8846_ranges,
-		.nranges = nitems(act8846_ranges),
+	    .id = ACT8846_REG_ID_REG8,
+	    .name = "REG8",
+	    .supply_name = "inl2",
+	    .enable_reg = ACT8846_REG8_CTRL,
+	    .enable_mask = ACT8846_CTRL_ENA,
+	    .voltage_reg = ACT8846_REG8_VSET,
+	    .voltage_mask = ACT8846_VSEL_MASK,
+	    .ranges = act8846_ranges,
+	    .nranges = nitems(act8846_ranges),
 	},
 	{
-		.id = ACT8846_REG_ID_REG9,
-		.name = "REG9",
-		.supply_name = "inl2",
-		.enable_reg = ACT8846_REG9_CTRL,
-		.enable_mask = ACT8846_CTRL_ENA,
-		.voltage_reg = ACT8846_REG9_VSET,
-		.voltage_mask = ACT8846_VSEL_MASK,
-		.ranges = act8846_ranges,
-		.nranges = nitems(act8846_ranges),
+	    .id = ACT8846_REG_ID_REG9,
+	    .name = "REG9",
+	    .supply_name = "inl2",
+	    .enable_reg = ACT8846_REG9_CTRL,
+	    .enable_mask = ACT8846_CTRL_ENA,
+	    .voltage_reg = ACT8846_REG9_VSET,
+	    .voltage_mask = ACT8846_VSEL_MASK,
+	    .ranges = act8846_ranges,
+	    .nranges = nitems(act8846_ranges),
 	},
 	{
-		.id = ACT8846_REG_ID_REG10,
-		.name = "REG10",
-		.supply_name = "inl3",
-		.enable_reg = ACT8846_REG10_CTRL,
-		.enable_mask = ACT8846_CTRL_ENA,
-		.voltage_reg = ACT8846_REG10_VSET,
-		.voltage_mask = ACT8846_VSEL_MASK,
-		.ranges = act8846_ranges,
-		.nranges = nitems(act8846_ranges),
+	    .id = ACT8846_REG_ID_REG10,
+	    .name = "REG10",
+	    .supply_name = "inl3",
+	    .enable_reg = ACT8846_REG10_CTRL,
+	    .enable_mask = ACT8846_CTRL_ENA,
+	    .voltage_reg = ACT8846_REG10_VSET,
+	    .voltage_mask = ACT8846_VSEL_MASK,
+	    .ranges = act8846_ranges,
+	    .nranges = nitems(act8846_ranges),
 	},
 	{
-		.id = ACT8846_REG_ID_REG11,
-		.name = "REG11",
-		.supply_name = "inl3",
-		.enable_reg = ACT8846_REG11_CTRL,
-		.enable_mask = ACT8846_CTRL_ENA,
-		.voltage_reg = ACT8846_REG11_VSET,
-		.voltage_mask = ACT8846_VSEL_MASK,
-		.ranges = act8846_ranges,
-		.nranges = nitems(act8846_ranges),
+	    .id = ACT8846_REG_ID_REG11,
+	    .name = "REG11",
+	    .supply_name = "inl3",
+	    .enable_reg = ACT8846_REG11_CTRL,
+	    .enable_mask = ACT8846_CTRL_ENA,
+	    .voltage_reg = ACT8846_REG11_VSET,
+	    .voltage_mask = ACT8846_VSEL_MASK,
+	    .ranges = act8846_ranges,
+	    .nranges = nitems(act8846_ranges),
 	},
 	{
-		.id = ACT8846_REG_ID_REG12,
-		.name = "REG12",
-		.supply_name = "inl3",
-		.enable_reg = ACT8846_REG12_CTRL,
-		.enable_mask = ACT8846_CTRL_ENA,
-		.voltage_reg = ACT8846_REG12_VSET,
-		.voltage_mask = ACT8846_VSEL_MASK,
-		.ranges = act8846_ranges,
-		.nranges = nitems(act8846_ranges),
+	    .id = ACT8846_REG_ID_REG12,
+	    .name = "REG12",
+	    .supply_name = "inl3",
+	    .enable_reg = ACT8846_REG12_CTRL,
+	    .enable_mask = ACT8846_CTRL_ENA,
+	    .voltage_reg = ACT8846_REG12_VSET,
+	    .voltage_mask = ACT8846_VSEL_MASK,
+	    .ranges = act8846_ranges,
+	    .nranges = nitems(act8846_ranges),
 	},
 	{
-		.id = ACT8846_REG_ID_REG13,
-		.name = "REG13",
-		.supply_name = "inl1",
-		.enable_reg = ACT8846_REG13_CTRL,
-		.enable_mask = ACT8846_CTRL_ENA,
+	    .id = ACT8846_REG_ID_REG13,
+	    .name = "REG13",
+	    .supply_name = "inl1",
+	    .enable_reg = ACT8846_REG13_CTRL,
+	    .enable_mask = ACT8846_CTRL_ENA,
 	},
 };
 
@@ -258,8 +255,7 @@ act8846_write_sel(struct act8846_reg_sc *sc, uint8_t sel)
 	sel <<= ffs(sc->def->voltage_mask) - 1;
 	sel &= sc->def->voltage_mask;
 
-	rv = RM1(sc->base_sc, sc->def->voltage_reg,
-	    sc->def->voltage_mask, sel);
+	rv = RM1(sc->base_sc, sc->def->voltage_reg, sc->def->voltage_mask, sel);
 	if (rv != 0)
 		return (rv);
 	return (rv);
@@ -279,11 +275,10 @@ act8846_regnode_enable(struct regnode *regnode, bool enable, int *udelay)
 
 	sc = regnode_get_softc(regnode);
 
-	dprintf(sc, "%sabling regulator %s\n",
-	    enable ? "En" : "Dis",
+	dprintf(sc, "%sabling regulator %s\n", enable ? "En" : "Dis",
 	    sc->def->name);
-	rv = RM1(sc->base_sc, sc->def->enable_reg,
-	    sc->def->enable_mask, enable ? sc->def->enable_mask: 0);
+	rv = RM1(sc->base_sc, sc->def->enable_reg, sc->def->enable_mask,
+	    enable ? sc->def->enable_mask : 0);
 	*udelay = sc->param->enable_delay;
 
 	return (rv);
@@ -302,9 +297,7 @@ act8846_regnode_set_voltage(struct regnode *regnode, int min_uvolt,
 	if (sc->def->ranges == NULL)
 		return (ENXIO);
 
-	dprintf(sc, "Setting %s to %d<->%d uvolts\n",
-	    sc->def->name,
-	    min_uvolt,
+	dprintf(sc, "Setting %s to %d<->%d uvolts\n", sc->def->name, min_uvolt,
 	    max_uvolt);
 	rv = regulator_range_volt_to_sel8(sc->def->ranges, sc->def->nranges,
 	    min_uvolt, max_uvolt, &sel);
@@ -314,10 +307,9 @@ act8846_regnode_set_voltage(struct regnode *regnode, int min_uvolt,
 	rv = act8846_write_sel(sc, sel);
 
 	act8846_read_sel(sc, &sel);
-	regulator_range_sel8_to_volt(sc->def->ranges, sc->def->nranges,
-	    sel, &uvolt);
-	dprintf(sc, "Regulator %s set to %d uvolt\n", sc->def->name,
-	    uvolt);
+	regulator_range_sel8_to_volt(sc->def->ranges, sc->def->nranges, sel,
+	    &uvolt);
+	dprintf(sc, "Regulator %s set to %d uvolt\n", sc->def->name, uvolt);
 
 	return (rv);
 }
@@ -344,18 +336,17 @@ act8846_regnode_get_voltage(struct regnode *regnode, int *uvolt)
 		return (rv);
 	rv = regulator_range_sel8_to_volt(sc->def->ranges, sc->def->nranges,
 	    sel, uvolt);
-	dprintf(sc, "Regulator %s is at %d uvolt\n", sc->def->name,
-	    *uvolt);
+	dprintf(sc, "Regulator %s is at %d uvolt\n", sc->def->name, *uvolt);
 
 	return (rv);
 }
 
 static regnode_method_t act8846_regnode_methods[] = {
 	/* Regulator interface */
-	REGNODEMETHOD(regnode_init,		act8846_regnode_init),
-	REGNODEMETHOD(regnode_enable,		act8846_regnode_enable),
-	REGNODEMETHOD(regnode_set_voltage,	act8846_regnode_set_voltage),
-	REGNODEMETHOD(regnode_get_voltage,	act8846_regnode_get_voltage),
+	REGNODEMETHOD(regnode_init, act8846_regnode_init),
+	REGNODEMETHOD(regnode_enable, act8846_regnode_enable),
+	REGNODEMETHOD(regnode_set_voltage, act8846_regnode_set_voltage),
+	REGNODEMETHOD(regnode_get_voltage, act8846_regnode_get_voltage),
 	REGNODEMETHOD_END
 };
 DEFINE_CLASS_1(act8846_regnode, act8846_regnode_class, act8846_regnode_methods,
@@ -373,12 +364,10 @@ act8846_fdt_parse(struct act8846_softc *sc, phandle_t pnode, phandle_t node,
 
 	/* Get parent supply. */
 	if (def->supply_name == NULL)
-		 return (0);
+		return (0);
 
-	snprintf(prop_name, sizeof(prop_name), "%s-supply",
-	    def->supply_name);
-	rv = OF_getencprop(pnode, prop_name, &supply_node,
-	    sizeof(supply_node));
+	snprintf(prop_name, sizeof(prop_name), "%s-supply", def->supply_name);
+	rv = OF_getencprop(pnode, prop_name, &supply_node, sizeof(supply_node));
 	if (rv <= 0)
 		return (rv);
 	supply_node = OF_node_from_xref(supply_node);
@@ -425,12 +414,12 @@ act8846_attach(struct act8846_softc *sc, phandle_t pnode, phandle_t node,
 		rv = regnode_get_voltage(regnode, &volt);
 		if (rv == ENODEV) {
 			device_printf(sc->dev,
-			   " Regulator %s: parent doesn't exist yet.\n",
-			   regnode_get_name(regnode));
+			    " Regulator %s: parent doesn't exist yet.\n",
+			    regnode_get_name(regnode));
 		} else if (rv != 0) {
 			device_printf(sc->dev,
-			   " Regulator %s: voltage: INVALID!!!\n",
-			   regnode_get_name(regnode));
+			    " Regulator %s: voltage: INVALID!!!\n",
+			    regnode_get_name(regnode));
 		} else {
 			device_printf(sc->dev,
 			    " Regulator %s: voltage: %d uV\n",
@@ -441,7 +430,6 @@ act8846_attach(struct act8846_softc *sc, phandle_t pnode, phandle_t node,
 
 	return (reg_sc);
 }
-
 
 int
 act8846_regulator_attach(struct act8846_softc *sc, phandle_t node)
@@ -460,7 +448,6 @@ act8846_regulator_attach(struct act8846_softc *sc, phandle_t node)
 	sc->nregs = nitems(act8846_regdefs);
 	sc->regs = malloc(sizeof(struct act8846_reg_sc *) * sc->nregs,
 	    M_ACT8846_REG, M_WAITOK | M_ZERO);
-
 
 	/* Attach all known regulators if exist in DT. */
 	for (i = 0; i < sc->nregs; i++) {
@@ -484,8 +471,8 @@ act8846_regulator_attach(struct act8846_softc *sc, phandle_t node)
 }
 
 int
-act8846_regulator_map(device_t dev, phandle_t xref, int ncells,
-    pcell_t *cells, int *num)
+act8846_regulator_map(device_t dev, phandle_t xref, int ncells, pcell_t *cells,
+    int *num)
 {
 	struct act8846_softc *sc;
 	int i;

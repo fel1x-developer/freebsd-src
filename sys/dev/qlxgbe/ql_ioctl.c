@@ -32,20 +32,21 @@
  */
 
 #include <sys/cdefs.h>
-#include "ql_os.h"
-#include "ql_hw.h"
-#include "ql_def.h"
-#include "ql_inline.h"
-#include "ql_glbl.h"
-#include "ql_ioctl.h"
-#include "ql_ver.h"
+
 #include "ql_dbg.h"
+#include "ql_def.h"
+#include "ql_glbl.h"
+#include "ql_hw.h"
+#include "ql_inline.h"
+#include "ql_ioctl.h"
+#include "ql_os.h"
+#include "ql_ver.h"
 
 static int ql_slowpath_log(qla_host_t *ha, qla_sp_log_t *log);
 static int ql_drvr_state(qla_host_t *ha, qla_driver_state_t *drvr_state);
 static uint32_t ql_drvr_state_size(qla_host_t *ha);
 static int ql_eioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
-		struct thread *td);
+    struct thread *td);
 
 static struct cdevsw qla_cdevsw = {
 	.d_version = D_VERSION,
@@ -56,18 +57,13 @@ static struct cdevsw qla_cdevsw = {
 int
 ql_make_cdev(qla_host_t *ha)
 {
-        ha->ioctl_dev = make_dev(&qla_cdevsw,
-				if_getdunit(ha->ifp),
-                                UID_ROOT,
-                                GID_WHEEL,
-                                0600,
-                                "%s",
-                                if_name(ha->ifp));
+	ha->ioctl_dev = make_dev(&qla_cdevsw, if_getdunit(ha->ifp), UID_ROOT,
+	    GID_WHEEL, 0600, "%s", if_name(ha->ifp));
 
 	if (ha->ioctl_dev == NULL)
 		return (-1);
 
-        ha->ioctl_dev->si_drv1 = ha;
+	ha->ioctl_dev->si_drv1 = ha;
 
 	return (0);
 }
@@ -82,10 +78,10 @@ ql_del_cdev(qla_host_t *ha)
 
 static int
 ql_eioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
-	struct thread *td)
+    struct thread *td)
 {
-        qla_host_t *ha;
-        int rval = 0;
+	qla_host_t *ha;
+	int rval = 0;
 	device_t pci_dev;
 	if_t ifp;
 	int count;
@@ -93,48 +89,48 @@ ql_eioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
 	q80_offchip_mem_val_t val;
 	qla_rd_pci_ids_t *pci_ids;
 	qla_rd_fw_dump_t *fw_dump;
-        union {
+	union {
 		qla_reg_val_t *rv;
-	        qla_rd_flash_t *rdf;
+		qla_rd_flash_t *rdf;
 		qla_wr_flash_t *wrf;
 		qla_erase_flash_t *erf;
 		qla_offchip_mem_val_t *mem;
 	} u;
 
-        if ((ha = (qla_host_t *)dev->si_drv1) == NULL)
-                return ENXIO;
+	if ((ha = (qla_host_t *)dev->si_drv1) == NULL)
+		return ENXIO;
 
-	pci_dev= ha->pci_dev;
+	pci_dev = ha->pci_dev;
 
-        switch(cmd) {
-        case QLA_RDWR_REG:
+	switch (cmd) {
+	case QLA_RDWR_REG:
 
-                u.rv = (qla_reg_val_t *)data;
+		u.rv = (qla_reg_val_t *)data;
 
-                if (u.rv->direct) {
-                        if (u.rv->rd) {
-                                u.rv->val = READ_REG32(ha, u.rv->reg);
-                        } else {
-                                WRITE_REG32(ha, u.rv->reg, u.rv->val);
-                        }
-                } else {
-                        if ((rval = ql_rdwr_indreg32(ha, u.rv->reg, &u.rv->val,
-                                u.rv->rd)))
-                                rval = ENXIO;
-                }
-                break;
+		if (u.rv->direct) {
+			if (u.rv->rd) {
+				u.rv->val = READ_REG32(ha, u.rv->reg);
+			} else {
+				WRITE_REG32(ha, u.rv->reg, u.rv->val);
+			}
+		} else {
+			if ((rval = ql_rdwr_indreg32(ha, u.rv->reg, &u.rv->val,
+				 u.rv->rd)))
+				rval = ENXIO;
+		}
+		break;
 
-        case QLA_RD_FLASH:
+	case QLA_RD_FLASH:
 
 		if (!ha->hw.flags.fdt_valid) {
 			rval = EIO;
 			break;
-		}	
+		}
 
-                u.rdf = (qla_rd_flash_t *)data;
-                if ((rval = ql_rd_flash32(ha, u.rdf->off, &u.rdf->data)))
-                        rval = ENXIO;
-                break;
+		u.rdf = (qla_rd_flash_t *)data;
+		if ((rval = ql_rd_flash32(ha, u.rdf->off, &u.rdf->data)))
+			rval = ENXIO;
+		break;
 
 	case QLA_WR_FLASH:
 
@@ -153,11 +149,11 @@ ql_eioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
 		if (!ha->hw.flags.fdt_valid) {
 			rval = EIO;
 			break;
-		}	
+		}
 
 		u.wrf = (qla_wr_flash_t *)data;
 		if ((rval = ql_wr_flash_buffer(ha, u.wrf->off, u.wrf->size,
-			u.wrf->buffer))) {
+			 u.wrf->buffer))) {
 			printf("flash write failed[%d]\n", rval);
 			rval = ENXIO;
 		}
@@ -180,11 +176,10 @@ ql_eioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
 		if (!ha->hw.flags.fdt_valid) {
 			rval = EIO;
 			break;
-		}	
-		
+		}
+
 		u.erf = (qla_erase_flash_t *)data;
-		if ((rval = ql_erase_flash(ha, u.erf->off, 
-			u.erf->size))) {
+		if ((rval = ql_erase_flash(ha, u.erf->off, u.erf->size))) {
 			printf("flash erase failed[%d]\n", rval);
 			rval = ENXIO;
 		}
@@ -193,8 +188,8 @@ ql_eioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
 	case QLA_RDWR_MS_MEM:
 		u.mem = (qla_offchip_mem_val_t *)data;
 
-		if ((rval = ql_rdwr_offchip_mem(ha, u.mem->off, &val, 
-			u.mem->rd)))
+		if ((rval = ql_rdwr_offchip_mem(ha, u.mem->off, &val,
+			 u.mem->rd)))
 			rval = ENXIO;
 		else {
 			u.mem->data_lo = val.data_lo;
@@ -211,10 +206,10 @@ ql_eioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
 			rval = EINVAL;
 			break;
 		}
-		
+
 		fw_dump = (qla_rd_fw_dump_t *)data;
-		fw_dump->minidump_size = ha->hw.mdump_buffer_size + 
-						ha->hw.mdump_template_size;
+		fw_dump->minidump_size = ha->hw.mdump_buffer_size +
+		    ha->hw.mdump_template_size;
 		fw_dump->pci_func = ha->pci_func;
 
 		break;
@@ -222,26 +217,30 @@ ql_eioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
 	case QLA_RD_FW_DUMP:
 
 		if (ha->hw.mdump_init == 0) {
-			device_printf(pci_dev, "%s: minidump not initialized\n", __func__);
+			device_printf(pci_dev, "%s: minidump not initialized\n",
+			    __func__);
 			rval = EINVAL;
 			break;
 		}
-		
+
 		fw_dump = (qla_rd_fw_dump_t *)data;
 
 		if ((fw_dump->minidump == NULL) ||
-			(fw_dump->minidump_size != (ha->hw.mdump_buffer_size +
-				ha->hw.mdump_template_size))) {
+		    (fw_dump->minidump_size !=
+			(ha->hw.mdump_buffer_size +
+			    ha->hw.mdump_template_size))) {
 			device_printf(pci_dev,
-				"%s: minidump buffer [%p] size = [%d, %d] invalid\n", __func__,
-				fw_dump->minidump, fw_dump->minidump_size,
-				(ha->hw.mdump_buffer_size + ha->hw.mdump_template_size));
+			    "%s: minidump buffer [%p] size = [%d, %d] invalid\n",
+			    __func__, fw_dump->minidump, fw_dump->minidump_size,
+			    (ha->hw.mdump_buffer_size +
+				ha->hw.mdump_template_size));
 			rval = EINVAL;
 			break;
 		}
 
 		if ((ha->pci_func & 0x1)) {
-			device_printf(pci_dev, "%s: mindump allowed only on Port0\n", __func__);
+			device_printf(pci_dev,
+			    "%s: mindump allowed only on Port0\n", __func__);
 			rval = ENXIO;
 			break;
 		}
@@ -257,28 +256,32 @@ ql_eioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
 
 			if (!ha->hw.mdump_done) {
 				device_printf(pci_dev,
-					"%s: port offline minidump failed\n", __func__);
+				    "%s: port offline minidump failed\n",
+				    __func__);
 				rval = ENXIO;
 				break;
 			}
 		} else {
 #define QLA_LOCK_MDUMP_MS_TIMEOUT (QLA_LOCK_DEFAULT_MS_TIMEOUT * 5)
-			if (QLA_LOCK(ha, __func__, QLA_LOCK_MDUMP_MS_TIMEOUT, 0) == 0) {
+			if (QLA_LOCK(ha, __func__, QLA_LOCK_MDUMP_MS_TIMEOUT,
+				0) == 0) {
 				if (!ha->hw.mdump_done) {
 					fw_dump->saved = 0;
 					QL_INITIATE_RECOVERY(ha);
-					device_printf(pci_dev, "%s: recovery initiated "
-						" to trigger minidump\n",
-						__func__);
+					device_printf(pci_dev,
+					    "%s: recovery initiated "
+					    " to trigger minidump\n",
+					    __func__);
 				}
 				QLA_UNLOCK(ha, __func__);
 			} else {
-				device_printf(pci_dev, "%s: QLA_LOCK() failed0\n", __func__);
+				device_printf(pci_dev,
+				    "%s: QLA_LOCK() failed0\n", __func__);
 				rval = ENXIO;
 				break;
 			}
 
-#define QLNX_DUMP_WAIT_SECS	30
+#define QLNX_DUMP_WAIT_SECS 30
 
 			count = QLNX_DUMP_WAIT_SECS * 1000;
 
@@ -291,34 +294,39 @@ ql_eioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
 
 			if (!ha->hw.mdump_done) {
 				device_printf(pci_dev,
-					"%s: port not offline minidump failed\n", __func__);
+				    "%s: port not offline minidump failed\n",
+				    __func__);
 				rval = ENXIO;
 				break;
 			}
 			fw_dump->usec_ts = ha->hw.mdump_usec_ts;
-			
-			if (QLA_LOCK(ha, __func__, QLA_LOCK_MDUMP_MS_TIMEOUT, 0) == 0) {
+
+			if (QLA_LOCK(ha, __func__, QLA_LOCK_MDUMP_MS_TIMEOUT,
+				0) == 0) {
 				ha->hw.mdump_done = 0;
 				QLA_UNLOCK(ha, __func__);
 			} else {
-				device_printf(pci_dev, "%s: QLA_LOCK() failed1\n", __func__);
+				device_printf(pci_dev,
+				    "%s: QLA_LOCK() failed1\n", __func__);
 				rval = ENXIO;
 				break;
 			}
 		}
 
-		if ((rval = copyout(ha->hw.mdump_template,
-			fw_dump->minidump, ha->hw.mdump_template_size))) {
-			device_printf(pci_dev, "%s: template copyout failed\n", __func__);
+		if ((rval = copyout(ha->hw.mdump_template, fw_dump->minidump,
+			 ha->hw.mdump_template_size))) {
+			device_printf(pci_dev, "%s: template copyout failed\n",
+			    __func__);
 			rval = ENXIO;
 			break;
 		}
 
 		if ((rval = copyout(ha->hw.mdump_buffer,
-				((uint8_t *)fw_dump->minidump +
-					ha->hw.mdump_template_size),
-				ha->hw.mdump_buffer_size))) {
-			device_printf(pci_dev, "%s: minidump copyout failed\n", __func__);
+			 ((uint8_t *)fw_dump->minidump +
+			     ha->hw.mdump_template_size),
+			 ha->hw.mdump_buffer_size))) {
+			device_printf(pci_dev, "%s: minidump copyout failed\n",
+			    __func__);
 			rval = ENXIO;
 		}
 		break;
@@ -340,11 +348,11 @@ ql_eioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
 		pci_ids->rev_id = pci_read_config(pci_dev, PCIR_REVID, 1);
 		break;
 
-        default:
-                break;
-        }
+	default:
+		break;
+	}
 
-        return rval;
+	return rval;
 }
 
 static int
@@ -359,7 +367,7 @@ ql_drvr_state(qla_host_t *ha, qla_driver_state_t *state)
 		state->size = drvr_state_size;
 		return (0);
 	}
-		
+
 	if (state->size < drvr_state_size)
 		return (ENXIO);
 
@@ -381,26 +389,27 @@ ql_drvr_state_size(qla_host_t *ha)
 	uint32_t drvr_state_size;
 	uint32_t size;
 
-	size = sizeof (qla_drvr_state_hdr_t);
+	size = sizeof(qla_drvr_state_hdr_t);
 	drvr_state_size = QL_ALIGN(size, 64);
 
-	size =  ha->hw.num_tx_rings * (sizeof (qla_drvr_state_tx_t));
+	size = ha->hw.num_tx_rings * (sizeof(qla_drvr_state_tx_t));
 	drvr_state_size += QL_ALIGN(size, 64);
 
-	size =  ha->hw.num_rds_rings * (sizeof (qla_drvr_state_rx_t));
+	size = ha->hw.num_rds_rings * (sizeof(qla_drvr_state_rx_t));
 	drvr_state_size += QL_ALIGN(size, 64);
 
-	size =  ha->hw.num_sds_rings * (sizeof (qla_drvr_state_sds_t));
+	size = ha->hw.num_sds_rings * (sizeof(qla_drvr_state_sds_t));
 	drvr_state_size += QL_ALIGN(size, 64);
 
 	size = sizeof(q80_tx_cmd_t) * NUM_TX_DESCRIPTORS * ha->hw.num_tx_rings;
 	drvr_state_size += QL_ALIGN(size, 64);
 
-	size = sizeof(q80_recv_desc_t) * NUM_RX_DESCRIPTORS * ha->hw.num_rds_rings;
+	size = sizeof(q80_recv_desc_t) * NUM_RX_DESCRIPTORS *
+	    ha->hw.num_rds_rings;
 	drvr_state_size += QL_ALIGN(size, 64);
 
 	size = sizeof(q80_stat_desc_t) * NUM_STATUS_DESCRIPTORS *
-			ha->hw.num_sds_rings;
+	    ha->hw.num_sds_rings;
 	drvr_state_size += QL_ALIGN(size, 64);
 
 	return (drvr_state_size);
@@ -459,7 +468,7 @@ ql_capture_drvr_state(qla_host_t *ha)
 	uint32_t size;
 	int i;
 
-	state_buffer =  ha->hw.drvr_state;
+	state_buffer = ha->hw.drvr_state;
 
 	if (state_buffer == NULL)
 		return;
@@ -490,26 +499,26 @@ ql_capture_drvr_state(qla_host_t *ha)
 	hdr->rcv_intr_coalesce = ha->hw.rcv_intr_coalesce;
 	hdr->xmt_intr_coalesce = ha->hw.xmt_intr_coalesce;
 
-	size = sizeof (qla_drvr_state_hdr_t);
+	size = sizeof(qla_drvr_state_hdr_t);
 	hdr->tx_state_offset = QL_ALIGN(size, 64);
 
 	ptr = state_buffer + hdr->tx_state_offset;
 
 	ql_get_tx_state(ha, (qla_drvr_state_tx_t *)ptr);
 
-	size =  ha->hw.num_tx_rings * (sizeof (qla_drvr_state_tx_t));
+	size = ha->hw.num_tx_rings * (sizeof(qla_drvr_state_tx_t));
 	hdr->rx_state_offset = hdr->tx_state_offset + QL_ALIGN(size, 64);
 	ptr = state_buffer + hdr->rx_state_offset;
 
 	ql_get_rx_state(ha, (qla_drvr_state_rx_t *)ptr);
 
-	size =  ha->hw.num_rds_rings * (sizeof (qla_drvr_state_rx_t));
+	size = ha->hw.num_rds_rings * (sizeof(qla_drvr_state_rx_t));
 	hdr->sds_state_offset = hdr->rx_state_offset + QL_ALIGN(size, 64);
 	ptr = state_buffer + hdr->sds_state_offset;
 
 	ql_get_sds_state(ha, (qla_drvr_state_sds_t *)ptr);
 
-	size =  ha->hw.num_sds_rings * (sizeof (qla_drvr_state_sds_t));
+	size = ha->hw.num_sds_rings * (sizeof(qla_drvr_state_sds_t));
 	hdr->txr_offset = hdr->sds_state_offset + QL_ALIGN(size, 64);
 	ptr = state_buffer + hdr->txr_offset;
 
@@ -540,7 +549,8 @@ ql_capture_drvr_state(qla_host_t *ha)
 
 	ptr = state_buffer + hdr->sds_offset;
 	for (i = 0; i < ha->hw.num_sds_rings; i++) {
-		bcopy(ha->hw.dma_buf.sds_ring[i].dma_b, ptr, hdr->sds_ring_size);
+		bcopy(ha->hw.dma_buf.sds_ring[i].dma_b, ptr,
+		    hdr->sds_ring_size);
 		ptr += hdr->sds_ring_size;
 	}
 	return;
@@ -553,7 +563,7 @@ ql_alloc_drvr_state_buffer(qla_host_t *ha)
 
 	drvr_state_size = ql_drvr_state_size(ha);
 
-	ha->hw.drvr_state =  malloc(drvr_state_size, M_QLA83XXBUF, M_NOWAIT);	
+	ha->hw.drvr_state = malloc(drvr_state_size, M_QLA83XXBUF, M_NOWAIT);
 
 	if (ha->hw.drvr_state != NULL)
 		bzero(ha->hw.drvr_state, drvr_state_size);
@@ -571,8 +581,8 @@ ql_free_drvr_state_buffer(qla_host_t *ha)
 
 void
 ql_sp_log(qla_host_t *ha, uint16_t fmtstr_idx, uint16_t num_params,
-	uint32_t param0, uint32_t param1, uint32_t param2, uint32_t param3,
-	uint32_t param4)
+    uint32_t param0, uint32_t param1, uint32_t param2, uint32_t param3,
+    uint32_t param4)
 {
 	qla_sp_log_entry_t *sp_e, *sp_log;
 
@@ -583,7 +593,7 @@ ql_sp_log(qla_host_t *ha, uint16_t fmtstr_idx, uint16_t num_params,
 
 	sp_e = &sp_log[ha->hw.sp_log_index];
 
-	bzero(sp_e, sizeof (qla_sp_log_entry_t));
+	bzero(sp_e, sizeof(qla_sp_log_entry_t));
 
 	sp_e->fmtstr_idx = fmtstr_idx;
 	sp_e->num_params = num_params;
@@ -613,7 +623,7 @@ ql_alloc_sp_log_buffer(qla_host_t *ha)
 
 	size = (sizeof(qla_sp_log_entry_t)) * NUM_LOG_ENTRIES;
 
-	ha->hw.sp_log =  malloc(size, M_QLA83XXBUF, M_NOWAIT);	
+	ha->hw.sp_log = malloc(size, M_QLA83XXBUF, M_NOWAIT);
 
 	if (ha->hw.sp_log != NULL)
 		bzero(ha->hw.sp_log, size);
@@ -652,8 +662,8 @@ ql_slowpath_log(qla_host_t *ha, qla_sp_log_t *log)
 		log->num_entries = ha->hw.sp_log_num_entries;
 	}
 	device_printf(ha->pci_dev,
-		"%s: exit [rval = %d][%p, next_idx = %d, %d entries, %d bytes]\n",
-		__func__, rval, log->buffer, log->next_idx, log->num_entries, size);
+	    "%s: exit [rval = %d][%p, next_idx = %d, %d entries, %d bytes]\n",
+	    __func__, rval, log->buffer, log->next_idx, log->num_entries, size);
 	mtx_unlock(&ha->sp_log_lock);
 
 	return (rval);

@@ -49,6 +49,6 @@ uuid_is_nil(const uuid_t *u, uint32_t *status)
 	 * Pick the largest type that has equivalent alignment constraints
 	 * as an UUID and use it to test if the UUID consists of all zeroes.
 	 */
-	p = (const uint32_t*)u;
+	p = (const uint32_t *)u;
 	return ((p[0] == 0 && p[1] == 0 && p[2] == 0 && p[3] == 0) ? 1 : 0);
 }

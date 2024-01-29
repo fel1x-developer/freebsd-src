@@ -32,35 +32,35 @@
  */
 
 #include <sys/param.h>
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/queue.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/linker_set.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/linker_set.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usb_cdc.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
 #include <dev/usb/usbhid.h>
+
 #include "usb_if.h"
 
-#define	USB_DEBUG_VAR g_audio_debug
-#include <dev/usb/usb_debug.h>
-
+#define USB_DEBUG_VAR g_audio_debug
 #include <dev/usb/gadget/g_audio.h>
+#include <dev/usb/usb_debug.h>
 
 enum {
 	G_AUDIO_ISOC0_RD,
@@ -76,22 +76,22 @@ struct g_audio_softc {
 	struct usb_callout sc_watchdog;
 	struct usb_xfer *sc_xfer[G_AUDIO_N_TRANSFER];
 
-	int	sc_mode;
-	int	sc_pattern_len;
-	int	sc_throughput;
-	int	sc_tx_interval;
-	int	sc_state;
-	int	sc_noise_rem;
+	int sc_mode;
+	int sc_pattern_len;
+	int sc_throughput;
+	int sc_tx_interval;
+	int sc_state;
+	int sc_noise_rem;
 
-	int8_t	sc_pattern[G_AUDIO_MAX_STRLEN];
+	int8_t sc_pattern[G_AUDIO_MAX_STRLEN];
 
 	uint16_t sc_data_len[2][G_AUDIO_FRAMES];
 
-	int16_t	sc_data_buf[2][G_AUDIO_BUFSIZE / 2];
+	int16_t sc_data_buf[2][G_AUDIO_BUFSIZE / 2];
 
-	uint8_t	sc_volume_setting[32];
-	uint8_t	sc_volume_limit[32];
-	uint8_t	sc_sample_rate[32];
+	uint8_t sc_volume_setting[32];
+	uint8_t sc_volume_limit[32];
+	uint8_t sc_sample_rate[32];
 };
 
 static SYSCTL_NODE(_hw_usb, OID_AUTO, g_audio, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
@@ -100,14 +100,14 @@ static SYSCTL_NODE(_hw_usb, OID_AUTO, g_audio, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
 #ifdef USB_DEBUG
 static int g_audio_debug = 0;
 
-SYSCTL_INT(_hw_usb_g_audio, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &g_audio_debug, 0, "Debug level");
+SYSCTL_INT(_hw_usb_g_audio, OID_AUTO, debug, CTLFLAG_RWTUN, &g_audio_debug, 0,
+    "Debug level");
 #endif
 
 static int g_audio_mode = 0;
 
-SYSCTL_INT(_hw_usb_g_audio, OID_AUTO, mode, CTLFLAG_RWTUN,
-    &g_audio_mode, 0, "Mode selection");
+SYSCTL_INT(_hw_usb_g_audio, OID_AUTO, mode, CTLFLAG_RWTUN, &g_audio_mode, 0,
+    "Mode selection");
 
 static int g_audio_pattern_interval = 1000;
 
@@ -122,7 +122,8 @@ SYSCTL_STRING(_hw_usb_g_audio, OID_AUTO, pattern, CTLFLAG_RW,
 static int g_audio_throughput;
 
 SYSCTL_INT(_hw_usb_g_audio, OID_AUTO, throughput, CTLFLAG_RD,
-    &g_audio_throughput, sizeof(g_audio_throughput), "Throughput in bytes per second");
+    &g_audio_throughput, sizeof(g_audio_throughput),
+    "Throughput in bytes per second");
 
 static device_probe_t g_audio_probe;
 static device_attach_t g_audio_attach;
@@ -322,9 +323,8 @@ g_audio_attach(device_t dev)
 		DPRINTF("alt iface setting error=%s\n", usbd_errstr(error));
 		goto detach;
 	}
-	error = usbd_transfer_setup(uaa->device,
-	    iface_index, sc->sc_xfer, g_audio_config,
-	    G_AUDIO_N_TRANSFER, sc, &sc->sc_mtx);
+	error = usbd_transfer_setup(uaa->device, iface_index, sc->sc_xfer,
+	    g_audio_config, G_AUDIO_N_TRANSFER, sc, &sc->sc_mtx);
 
 	if (error) {
 		DPRINTF("error=%s\n", usbd_errstr(error));
@@ -347,12 +347,12 @@ g_audio_attach(device_t dev)
 
 	mtx_unlock(&sc->sc_mtx);
 
-	return (0);			/* success */
+	return (0); /* success */
 
 detach:
 	g_audio_detach(dev);
 
-	return (ENXIO);			/* error */
+	return (ENXIO); /* error */
 }
 
 static int
@@ -432,8 +432,8 @@ g_audio_isoc_write_callback(struct usb_xfer *xfer, usb_error_t error)
 
 	usbd_xfer_status(xfer, &actlen, NULL, &aframes, NULL);
 
-	DPRINTF("st=%d aframes=%d actlen=%d bytes\n",
-	    USB_GET_STATE(xfer), aframes, actlen);
+	DPRINTF("st=%d aframes=%d actlen=%d bytes\n", USB_GET_STATE(xfer),
+	    aframes, actlen);
 
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_TRANSFERRED:
@@ -441,33 +441,37 @@ g_audio_isoc_write_callback(struct usb_xfer *xfer, usb_error_t error)
 		sc->sc_throughput += actlen;
 
 		if (sc->sc_mode == G_AUDIO_MODE_LOOP)
-			break;		/* sync with RX */
+			break; /* sync with RX */
 
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 
 		ptr = sc->sc_data_buf[nr];
 
 		if (sc->sc_mode == G_AUDIO_MODE_PATTERN) {
 			for (i = 0; i != G_AUDIO_FRAMES; i++) {
-				usbd_xfer_set_frame_data(xfer, i, ptr, sc->sc_data_len[nr][i]);
+				usbd_xfer_set_frame_data(xfer, i, ptr,
+				    sc->sc_data_len[nr][i]);
 
-				g_audio_make_samples(sc, ptr, (G_AUDIO_BUFSIZE / G_AUDIO_FRAMES) / 2);
+				g_audio_make_samples(sc, ptr,
+				    (G_AUDIO_BUFSIZE / G_AUDIO_FRAMES) / 2);
 
 				ptr += (G_AUDIO_BUFSIZE / G_AUDIO_FRAMES) / 2;
 			}
 		} else if (sc->sc_mode == G_AUDIO_MODE_LOOP) {
 			for (i = 0; i != G_AUDIO_FRAMES; i++) {
-				usbd_xfer_set_frame_data(xfer, i, ptr, sc->sc_data_len[nr][i] & ~3);
+				usbd_xfer_set_frame_data(xfer, i, ptr,
+				    sc->sc_data_len[nr][i] & ~3);
 
-				g_audio_make_samples(sc, ptr, sc->sc_data_len[nr][i] / 4);
+				g_audio_make_samples(sc, ptr,
+				    sc->sc_data_len[nr][i] / 4);
 
 				ptr += (G_AUDIO_BUFSIZE / G_AUDIO_FRAMES) / 2;
 			}
 		}
 		break;
 
-	default:			/* Error */
+	default: /* Error */
 		DPRINTF("error=%s\n", usbd_errstr(error));
 
 		if (error != USB_ERR_CANCELLED) {
@@ -491,8 +495,8 @@ g_audio_isoc_read_callback(struct usb_xfer *xfer, usb_error_t error)
 
 	usbd_xfer_status(xfer, &actlen, NULL, &aframes, NULL);
 
-	DPRINTF("st=%d aframes=%d actlen=%d bytes\n",
-	    USB_GET_STATE(xfer), aframes, actlen);
+	DPRINTF("st=%d aframes=%d actlen=%d bytes\n", USB_GET_STATE(xfer),
+	    aframes, actlen);
 
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_TRANSFERRED:
@@ -509,7 +513,7 @@ g_audio_isoc_read_callback(struct usb_xfer *xfer, usb_error_t error)
 		break;
 
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		ptr = sc->sc_data_buf[nr];
 
 		for (i = 0; i != G_AUDIO_FRAMES; i++) {
@@ -522,7 +526,7 @@ tr_setup:
 		usbd_transfer_submit(xfer);
 		break;
 
-	default:			/* Error */
+	default: /* Error */
 		DPRINTF("error=%s\n", usbd_errstr(error));
 
 		if (error != USB_ERR_CANCELLED) {
@@ -535,9 +539,8 @@ tr_setup:
 }
 
 static int
-g_audio_handle_request(device_t dev,
-    const void *preq, void **pptr, uint16_t *plen,
-    uint16_t offset, uint8_t *pstate)
+g_audio_handle_request(device_t dev, const void *preq, void **pptr,
+    uint16_t *plen, uint16_t offset, uint8_t *pstate)
 {
 	struct g_audio_softc *sc = device_get_softc(dev);
 	const struct usb_device_request *req = preq;
@@ -545,7 +548,7 @@ g_audio_handle_request(device_t dev,
 
 	if (!is_complete) {
 		if ((req->bmRequestType == UT_READ_CLASS_INTERFACE) &&
-		    (req->bRequest == 0x82 /* get min */ )) {
+		    (req->bRequest == 0x82 /* get min */)) {
 			if (offset == 0) {
 				USETW(sc->sc_volume_limit, 0);
 				*plen = 2;
@@ -555,7 +558,7 @@ g_audio_handle_request(device_t dev,
 			}
 			return (0);
 		} else if ((req->bmRequestType == UT_READ_CLASS_INTERFACE) &&
-		    (req->bRequest == 0x83 /* get max */ )) {
+		    (req->bRequest == 0x83 /* get max */)) {
 			if (offset == 0) {
 				USETW(sc->sc_volume_limit, 0x2000);
 				*plen = 2;
@@ -565,7 +568,7 @@ g_audio_handle_request(device_t dev,
 			}
 			return (0);
 		} else if ((req->bmRequestType == UT_READ_CLASS_INTERFACE) &&
-		    (req->bRequest == 0x84 /* get residue */ )) {
+		    (req->bRequest == 0x84 /* get residue */)) {
 			if (offset == 0) {
 				USETW(sc->sc_volume_limit, 1);
 				*plen = 2;
@@ -575,7 +578,7 @@ g_audio_handle_request(device_t dev,
 			}
 			return (0);
 		} else if ((req->bmRequestType == UT_READ_CLASS_INTERFACE) &&
-		    (req->bRequest == 0x81 /* get value */ )) {
+		    (req->bRequest == 0x81 /* get value */)) {
 			if (offset == 0) {
 				USETW(sc->sc_volume_setting, 0x2000);
 				*plen = sizeof(sc->sc_volume_setting);
@@ -585,7 +588,7 @@ g_audio_handle_request(device_t dev,
 			}
 			return (0);
 		} else if ((req->bmRequestType == UT_WRITE_CLASS_INTERFACE) &&
-		    (req->bRequest == 0x01 /* set value */ )) {
+		    (req->bRequest == 0x01 /* set value */)) {
 			if (offset == 0) {
 				*plen = sizeof(sc->sc_volume_setting);
 				*pptr = &sc->sc_volume_setting;
@@ -594,7 +597,7 @@ g_audio_handle_request(device_t dev,
 			}
 			return (0);
 		} else if ((req->bmRequestType == UT_WRITE_CLASS_ENDPOINT) &&
-		    (req->bRequest == 0x01 /* set value */ )) {
+		    (req->bRequest == 0x01 /* set value */)) {
 			if (offset == 0) {
 				*plen = sizeof(sc->sc_sample_rate);
 				*pptr = &sc->sc_sample_rate;
@@ -604,5 +607,5 @@ g_audio_handle_request(device_t dev,
 			return (0);
 		}
 	}
-	return (ENXIO);			/* use builtin handler */
+	return (ENXIO); /* use builtin handler */
 }

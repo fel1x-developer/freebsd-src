@@ -53,20 +53,16 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <dev/isci/scil/sci_util.h>
 
-void scic_word_copy_with_swap(
-   U32 *destination,
-   U32 *source,
-   U32 word_count
-)
+void
+scic_word_copy_with_swap(U32 *destination, U32 *source, U32 word_count)
 {
-   while (word_count--)
-   {
-      *destination = SCIC_SWAP_DWORD(*source);
+	while (word_count--) {
+		*destination = SCIC_SWAP_DWORD(*source);
 
-      source++;
-      destination++;
-   }
+		source++;
+		destination++;
+	}
 }
-

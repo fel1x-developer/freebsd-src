@@ -39,7 +39,7 @@
 
 #include "hexdump.h"
 
-off_t skip;				/* bytes to skip */
+off_t skip; /* bytes to skip */
 
 void
 newsyntax(int argc, char ***argvp)
@@ -48,8 +48,7 @@ newsyntax(int argc, char ***argvp)
 	char *p, **argv;
 
 	argv = *argvp;
-	if ((p = strrchr(argv[0], 'h')) != NULL &&
-	    strcmp(p, "hd") == 0) {
+	if ((p = strrchr(argv[0], 'h')) != NULL && strcmp(p, "hd") == 0) {
 		/* "Canonical" format, implies -C. */
 		add("\"%08.8_Ax\n\"");
 		add("\"%08.8_ax  \" 8/1 \"%02x \" \"  \" 8/1 \"%02x \" ");
@@ -91,7 +90,7 @@ newsyntax(int argc, char ***argvp)
 		case 's':
 			if ((skip = strtoll(optarg, &p, 0)) < 0)
 				errx(1, "%s: bad skip value", optarg);
-			switch(*p) {
+			switch (*p) {
 			case 'b':
 				skip *= 512;
 				break;
@@ -126,9 +125,9 @@ void
 usage(void)
 {
 	(void)fprintf(stderr, "%s\n%s\n%s\n%s\n",
-"usage: hexdump [-bcCdovx] [-e fmt] [-f fmt_file] [-n length]",
-"               [-s skip] [file ...]",
-"       hd      [-bcdovx]  [-e fmt] [-f fmt_file] [-n length]",
-"               [-s skip] [file ...]");
+	    "usage: hexdump [-bcCdovx] [-e fmt] [-f fmt_file] [-n length]",
+	    "               [-s skip] [file ...]",
+	    "       hd      [-bcdovx]  [-e fmt] [-f fmt_file] [-n length]",
+	    "               [-s skip] [file ...]");
 	exit(1);
 }

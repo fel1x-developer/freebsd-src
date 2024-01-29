@@ -65,8 +65,7 @@ devformat(struct devdesc *d)
 
 /* NB: devspec points to the remainder of the device name after dv_name */
 static int
-default_parsedev(struct devdesc **dev, const char *devspec,
-    const char **path)
+default_parsedev(struct devdesc **dev, const char *devspec, const char **path)
 {
 	struct devdesc *idev;
 	int unit, err;
@@ -77,7 +76,7 @@ default_parsedev(struct devdesc **dev, const char *devspec,
 		return (ENOMEM);
 
 	unit = 0;
-	cp = (char *)devspec;	/* strtol interface, alas */
+	cp = (char *)devspec; /* strtol interface, alas */
 
 	if (*devspec != '\0' && *devspec != ':') {
 		errno = 0;
@@ -168,10 +167,10 @@ devinit(void)
 void
 dev_cleanup(void)
 {
-    int		i;
+	int i;
 
-    /* Call cleanup routines */
-    for (i = 0; devsw[i] != NULL; ++i)
-	if (devsw[i]->dv_cleanup != NULL)
-	    (devsw[i]->dv_cleanup)();
+	/* Call cleanup routines */
+	for (i = 0; devsw[i] != NULL; ++i)
+		if (devsw[i]->dv_cleanup != NULL)
+			(devsw[i]->dv_cleanup)();
 }

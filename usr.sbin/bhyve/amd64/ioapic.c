@@ -28,9 +28,10 @@
  */
 
 #include <sys/types.h>
-#include <stdio.h>
 
 #include <machine/vmm.h>
+
+#include <stdio.h>
 #include <vmmapi.h>
 
 #include "ioapic.h"

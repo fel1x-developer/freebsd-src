@@ -32,7 +32,7 @@
 
 #include <dev/hyperv/include/hyperv_busdma.h>
 
-#define HYPERV_DMA_MASK	(BUS_DMA_WAITOK | BUS_DMA_NOWAIT | BUS_DMA_ZERO)
+#define HYPERV_DMA_MASK (BUS_DMA_WAITOK | BUS_DMA_NOWAIT | BUS_DMA_ZERO)
 
 void
 hyperv_dma_map_paddr(void *arg, bus_dma_segment_t *segs, int nseg, int error)
@@ -45,4 +45,3 @@ hyperv_dma_map_paddr(void *arg, bus_dma_segment_t *segs, int nseg, int error)
 	KASSERT(nseg == 1, ("too many segments %d!", nseg));
 	*paddr = segs->ds_addr;
 }
-

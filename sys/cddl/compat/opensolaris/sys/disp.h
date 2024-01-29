@@ -25,14 +25,14 @@
  */
 
 #ifndef _OPENSOLARIS_SYS_DISP_H_
-#define	_OPENSOLARIS_SYS_DISP_H_
+#define _OPENSOLARIS_SYS_DISP_H_
 
 #ifdef _KERNEL
 
 #include <sys/proc.h>
 
-#define	kpreempt(x)	kern_yield(PRI_USER)
+#define kpreempt(x) kern_yield(PRI_USER)
 
-#endif	/* _KERNEL */
+#endif /* _KERNEL */
 
-#endif	/* _OPENSOLARIS_SYS_DISP_H_ */
+#endif /* _OPENSOLARIS_SYS_DISP_H_ */

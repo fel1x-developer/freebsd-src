@@ -26,7 +26,6 @@
  */
 
 #include <sys/types.h>
-
 #include <sys/event.h>
 #include <sys/socket.h>
 #include <sys/uio.h>
@@ -43,7 +42,7 @@
 #include "nscdcli.h"
 #include "protocol.h"
 
-#define DEFAULT_NSCD_IO_TIMEOUT	4
+#define DEFAULT_NSCD_IO_TIMEOUT 4
 
 static int safe_write(struct nscd_connection_ *, const void *, size_t);
 static int safe_read(struct nscd_connection_ *, void *, size_t);
@@ -51,13 +50,13 @@ static int send_credentials(struct nscd_connection_ *, int);
 
 static int
 safe_write(struct nscd_connection_ *connection, const void *data,
-	size_t data_size)
+    size_t data_size)
 {
 	struct kevent eventlist;
-	int	nevents;
+	int nevents;
 	size_t result;
 	ssize_t s_result;
-	struct timespec	timeout;
+	struct timespec timeout;
 
 	if (data_size == 0)
 		return (0);
@@ -67,12 +66,13 @@ safe_write(struct nscd_connection_ *connection, const void *data,
 	result = 0;
 	do {
 		nevents = kevent(connection->write_queue, NULL, 0, &eventlist,
-	    		1, &timeout);
+		    1, &timeout);
 		if ((nevents == 1) && (eventlist.filter == EVFILT_WRITE)) {
 			s_result = write(connection->sockfd,
-				(char *)data + result,
-				(size_t)eventlist.data < data_size - result ?
-		    		(size_t)eventlist.data : data_size - result);
+			    (char *)data + result,
+			    (size_t)eventlist.data < data_size - result ?
+				(size_t)eventlist.data :
+				data_size - result);
 			if (s_result == -1)
 				return (-1);
 			else
@@ -104,12 +104,13 @@ safe_read(struct nscd_connection_ *connection, void *data, size_t data_size)
 	result = 0;
 	do {
 		nevents = kevent(connection->read_queue, NULL, 0, &eventlist, 1,
-			&timeout);
+		    &timeout);
 		if ((nevents == 1) && (eventlist.filter == EVFILT_READ)) {
 			s_result = read(connection->sockfd,
-				(char *)data + result,
-				(size_t)eventlist.data <= data_size - result ?
-				(size_t)eventlist.data : data_size - result);
+			    (char *)data + result,
+			    (size_t)eventlist.data <= data_size - result ?
+				(size_t)eventlist.data :
+				data_size - result);
 			if (s_result == -1)
 				return (-1);
 			else
@@ -152,15 +153,15 @@ send_credentials(struct nscd_connection_ *connection, int type)
 	iov.iov_base = &type;
 	iov.iov_len = sizeof(int);
 
-	EV_SET(&eventlist, connection->sockfd, EVFILT_WRITE, EV_ADD,
-	    NOTE_LOWAT, sizeof(int), NULL);
+	EV_SET(&eventlist, connection->sockfd, EVFILT_WRITE, EV_ADD, NOTE_LOWAT,
+	    sizeof(int), NULL);
 	kevent(connection->write_queue, &eventlist, 1, NULL, 0, NULL);
 
 	nevents = kevent(connection->write_queue, NULL, 0, &eventlist, 1, NULL);
 	if ((nevents == 1) && (eventlist.filter == EVFILT_WRITE)) {
 		result = sendmsg(connection->sockfd, &mhdr, 0) == -1 ? -1 : 0;
-		EV_SET(&eventlist, connection->sockfd, EVFILT_WRITE, EV_ADD,
-		    0, 0, NULL);
+		EV_SET(&eventlist, connection->sockfd, EVFILT_WRITE, EV_ADD, 0,
+		    0, NULL);
 		kevent(connection->write_queue, &eventlist, 1, NULL, 0, NULL);
 		TRACE_OUT(send_credentials);
 		return (result);
@@ -175,7 +176,7 @@ open_nscd_connection__(struct nscd_connection_params const *params)
 {
 	struct nscd_connection_ *retval;
 	struct kevent eventlist;
-	struct sockaddr_un	client_address;
+	struct sockaddr_un client_address;
 	int client_address_len, client_socket;
 	int res;
 
@@ -185,12 +186,12 @@ open_nscd_connection__(struct nscd_connection_params const *params)
 	client_socket = socket(PF_LOCAL, SOCK_STREAM, 0);
 	client_address.sun_family = PF_LOCAL;
 	strlcpy(client_address.sun_path, params->socket_path,
-		sizeof(client_address.sun_path));
+	    sizeof(client_address.sun_path));
 	client_address_len = sizeof(client_address.sun_family) +
-		strlen(client_address.sun_path) + 1;
+	    strlen(client_address.sun_path) + 1;
 
 	res = connect(client_socket, (struct sockaddr *)&client_address,
-		client_address_len);
+	    client_address_len);
 	if (res == -1) {
 		close(client_socket);
 		TRACE_OUT(open_nscd_connection);
@@ -206,15 +207,13 @@ open_nscd_connection__(struct nscd_connection_params const *params)
 	retval->write_queue = kqueue();
 	assert(retval->write_queue != -1);
 
-	EV_SET(&eventlist, retval->sockfd, EVFILT_WRITE, EV_ADD,
-		0, 0, NULL);
+	EV_SET(&eventlist, retval->sockfd, EVFILT_WRITE, EV_ADD, 0, 0, NULL);
 	res = kevent(retval->write_queue, &eventlist, 1, NULL, 0, NULL);
 
 	retval->read_queue = kqueue();
 	assert(retval->read_queue != -1);
 
-	EV_SET(&eventlist, retval->sockfd, EVFILT_READ, EV_ADD,
-		0, 0, NULL);
+	EV_SET(&eventlist, retval->sockfd, EVFILT_READ, EV_ADD, 0, 0, NULL);
 	res = kevent(retval->read_queue, &eventlist, 1, NULL, 0, NULL);
 
 	TRACE_OUT(open_nscd_connection);
@@ -236,8 +235,8 @@ close_nscd_connection__(struct nscd_connection_ *connection)
 }
 
 int
-nscd_transform__(struct nscd_connection_ *connection,
-	const char *entry_name, int transformation_type)
+nscd_transform__(struct nscd_connection_ *connection, const char *entry_name,
+    int transformation_type)
 {
 	size_t name_size;
 	int error_code;

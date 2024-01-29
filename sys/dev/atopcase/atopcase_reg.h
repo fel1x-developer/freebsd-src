@@ -27,34 +27,34 @@
  */
 
 #ifndef _ATOPCASE_REG_H_
-#define	_ATOPCASE_REG_H_
+#define _ATOPCASE_REG_H_
 
 #include <sys/types.h>
 
-#define	ATOPCASE_PACKET_SIZE	256
-#define	ATOPCASE_DATA_SIZE	246
-#define	ATOPCASE_PKT_PER_MSG	2
-#define	ATOPCASE_MSG_SIZE	(ATOPCASE_DATA_SIZE * ATOPCASE_PKT_PER_MSG)
+#define ATOPCASE_PACKET_SIZE 256
+#define ATOPCASE_DATA_SIZE 246
+#define ATOPCASE_PKT_PER_MSG 2
+#define ATOPCASE_MSG_SIZE (ATOPCASE_DATA_SIZE * ATOPCASE_PKT_PER_MSG)
 
 /* Read == device-initiated, Write == host-initiated or reply to that */
-#define	ATOPCASE_DIR_READ		0x20
-#define	ATOPCASE_DIR_WRITE		0x40
-#define	ATOPCASE_DIR_NOTHING		0x80
+#define ATOPCASE_DIR_READ 0x20
+#define ATOPCASE_DIR_WRITE 0x40
+#define ATOPCASE_DIR_NOTHING 0x80
 
-#define	ATOPCASE_DEV_MGMT		0x00
-#define	ATOPCASE_DEV_KBRD		0x01
-#define	ATOPCASE_DEV_TPAD		0x02
-#define	ATOPCASE_DEV_INFO		0xD0
+#define ATOPCASE_DEV_MGMT 0x00
+#define ATOPCASE_DEV_KBRD 0x01
+#define ATOPCASE_DEV_TPAD 0x02
+#define ATOPCASE_DEV_INFO 0xD0
 
-#define	ATOPCASE_BKL_REPORT_ID		0xB0
+#define ATOPCASE_BKL_REPORT_ID 0xB0
 
-#define	ATOPCASE_INFO_DEVICE		0x01
-#define	ATOPCASE_INFO_IFACE		0x02
-#define	ATOPCASE_INFO_DESCRIPTOR	0x10
+#define ATOPCASE_INFO_DEVICE 0x01
+#define ATOPCASE_INFO_IFACE 0x02
+#define ATOPCASE_INFO_DESCRIPTOR 0x10
 
-#define	ATOPCASE_MSG_TYPE_SET_REPORT(dev,rid)	((rid << 8) | 0x50 | dev)
-#define	ATOPCASE_MSG_TYPE_REPORT(dev)		((dev << 8) | 0x10)
-#define	ATOPCASE_MSG_TYPE_INFO(inf)		((inf << 8) | 0x20)
+#define ATOPCASE_MSG_TYPE_SET_REPORT(dev, rid) ((rid << 8) | 0x50 | dev)
+#define ATOPCASE_MSG_TYPE_REPORT(dev) ((dev << 8) | 0x10)
+#define ATOPCASE_MSG_TYPE_INFO(inf) ((inf << 8) | 0x20)
 
 struct atopcase_bl_payload {
 	uint8_t report_id;

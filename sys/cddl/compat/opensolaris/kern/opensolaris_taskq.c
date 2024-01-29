@@ -30,8 +30,8 @@
 #include <sys/lock.h>
 #include <sys/mutex.h>
 #include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/taskq.h>
+#include <sys/taskqueue.h>
 
 #include <vm/uma.h>
 
@@ -45,12 +45,13 @@ static void
 system_taskq_init(void *arg)
 {
 
-	taskq_zone = uma_zcreate("taskq_zone", sizeof(taskq_ent_t),
-	    NULL, NULL, NULL, NULL, 0, 0);
-	system_taskq = taskq_create("system_taskq", mp_ncpus, minclsyspri,
-	    0, 0, 0);
+	taskq_zone = uma_zcreate("taskq_zone", sizeof(taskq_ent_t), NULL, NULL,
+	    NULL, NULL, 0, 0);
+	system_taskq = taskq_create("system_taskq", mp_ncpus, minclsyspri, 0, 0,
+	    0);
 }
-SYSINIT(system_taskq_init, SI_SUB_CONFIGURE, SI_ORDER_ANY, system_taskq_init, NULL);
+SYSINIT(system_taskq_init, SI_SUB_CONFIGURE, SI_ORDER_ANY, system_taskq_init,
+    NULL);
 
 static void
 system_taskq_fini(void *arg)
@@ -59,7 +60,8 @@ system_taskq_fini(void *arg)
 	taskq_destroy(system_taskq);
 	uma_zdestroy(taskq_zone);
 }
-SYSUNINIT(system_taskq_fini, SI_SUB_CONFIGURE, SI_ORDER_ANY, system_taskq_fini, NULL);
+SYSUNINIT(system_taskq_fini, SI_SUB_CONFIGURE, SI_ORDER_ANY, system_taskq_fini,
+    NULL);
 
 static taskq_t *
 taskq_create_impl(const char *name, int nthreads, pri_t pri, proc_t *proc,
@@ -71,9 +73,9 @@ taskq_create_impl(const char *name, int nthreads, pri_t pri, proc_t *proc,
 		nthreads = MAX((mp_ncpus * nthreads) / 100, 1);
 
 	tq = kmem_alloc(sizeof(*tq), KM_SLEEP);
-	tq->tq_queue = taskqueue_create(name, M_WAITOK, taskqueue_thread_enqueue,
-	    &tq->tq_queue);
-	(void) taskqueue_start_threads_in_proc(&tq->tq_queue, nthreads, pri,
+	tq->tq_queue = taskqueue_create(name, M_WAITOK,
+	    taskqueue_thread_enqueue, &tq->tq_queue);
+	(void)taskqueue_start_threads_in_proc(&tq->tq_queue, nthreads, pri,
 	    proc, "%s", name);
 
 	return ((taskq_t *)tq);

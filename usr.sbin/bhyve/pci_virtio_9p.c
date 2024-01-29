@@ -31,21 +31,20 @@
  */
 
 #include <sys/param.h>
+#include <sys/capsicum.h>
 #include <sys/linker_set.h>
 #include <sys/uio.h>
-#include <sys/capsicum.h>
 
+#include <assert.h>
+#include <backend/fs.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <lib9p.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <assert.h>
-#include <pthread.h>
-
-#include <lib9p.h>
-#include <backend/fs.h>
 
 #include "bhyverun.h"
 #include "config.h"
@@ -53,38 +52,40 @@
 #include "pci_emul.h"
 #include "virtio.h"
 
-#define	VT9P_MAX_IOV	128
-#define VT9P_RINGSZ	256
-#define	VT9P_MAXTAGSZ	256
-#define	VT9P_CONFIGSPACESZ	(VT9P_MAXTAGSZ + sizeof(uint16_t))
+#define VT9P_MAX_IOV 128
+#define VT9P_RINGSZ 256
+#define VT9P_MAXTAGSZ 256
+#define VT9P_CONFIGSPACESZ (VT9P_MAXTAGSZ + sizeof(uint16_t))
 
 static int pci_vt9p_debug;
-#define DPRINTF(params) if (pci_vt9p_debug) printf params
+#define DPRINTF(params)     \
+	if (pci_vt9p_debug) \
+	printf params
 #define WPRINTF(params) printf params
 
 /*
  * Per-device softc
  */
 struct pci_vt9p_softc {
-	struct virtio_softc      vsc_vs;
-	struct vqueue_info       vsc_vq;
-	pthread_mutex_t          vsc_mtx;
-	uint64_t                 vsc_cfg;
-	uint64_t                 vsc_features;
-	char *                   vsc_rootpath;
-	struct pci_vt9p_config * vsc_config;
-	struct l9p_backend *     vsc_fs_backend;
-	struct l9p_server *      vsc_server;
-        struct l9p_connection *  vsc_conn;
+	struct virtio_softc vsc_vs;
+	struct vqueue_info vsc_vq;
+	pthread_mutex_t vsc_mtx;
+	uint64_t vsc_cfg;
+	uint64_t vsc_features;
+	char *vsc_rootpath;
+	struct pci_vt9p_config *vsc_config;
+	struct l9p_backend *vsc_fs_backend;
+	struct l9p_server *vsc_server;
+	struct l9p_connection *vsc_conn;
 };
 
 struct pci_vt9p_request {
-	struct pci_vt9p_softc *	vsr_sc;
-	struct iovec *		vsr_iov;
-	size_t			vsr_niov;
-	size_t			vsr_respidx;
-	size_t			vsr_iolen;
-	uint16_t		vsr_idx;
+	struct pci_vt9p_softc *vsr_sc;
+	struct iovec *vsr_iov;
+	size_t vsr_niov;
+	size_t vsr_respidx;
+	size_t vsr_iolen;
+	uint16_t vsr_idx;
 };
 
 struct pci_vt9p_config {
@@ -102,14 +103,14 @@ static int pci_vt9p_cfgread(void *, int, int, uint32_t *);
 static void pci_vt9p_neg_features(void *, uint64_t);
 
 static struct virtio_consts vt9p_vi_consts = {
-	.vc_name =	"vt9p",
-	.vc_nvq =	1,
-	.vc_cfgsize =	VT9P_CONFIGSPACESZ,
-	.vc_reset =	pci_vt9p_reset,
-	.vc_qnotify =	pci_vt9p_notify,
-	.vc_cfgread =	pci_vt9p_cfgread,
+	.vc_name = "vt9p",
+	.vc_nvq = 1,
+	.vc_cfgsize = VT9P_CONFIGSPACESZ,
+	.vc_reset = pci_vt9p_reset,
+	.vc_qnotify = pci_vt9p_notify,
+	.vc_cfgread = pci_vt9p_cfgread,
 	.vc_apply_features = pci_vt9p_neg_features,
-	.vc_hv_caps =	(1 << 0),
+	.vc_hv_caps = (1 << 0),
 };
 
 static void
@@ -209,8 +210,8 @@ pci_vt9p_notify(void *vsc, struct vqueue_info *vq)
 
 		for (int i = 0; i < n; i++) {
 			DPRINTF(("vt9p: vt9p_notify(): desc%d base=%p, "
-			    "len=%zu\r\n", i, iov[i].iov_base,
-			    iov[i].iov_len));
+				 "len=%zu\r\n",
+			    i, iov[i].iov_base, iov[i].iov_len));
 		}
 
 		l9p_connection_recv(sc->vsc_conn, iov, preq->vsr_respidx, preq);
@@ -230,7 +231,7 @@ pci_vt9p_legacy_config(nvlist_t *nvl, const char *opts)
 		if (strchr(token, '=') != NULL) {
 			if (sharename != NULL) {
 				EPRINTLN(
-			    "virtio-9p: more than one share name given");
+				    "virtio-9p: more than one share name given");
 				return (-1);
 			}
 
@@ -279,20 +280,19 @@ pci_vt9p_init(struct pci_devinst *pi, nvlist_t *nvl)
 	}
 
 	sc = calloc(1, sizeof(struct pci_vt9p_softc));
-	sc->vsc_config = calloc(1, sizeof(struct pci_vt9p_config) +
-	    VT9P_MAXTAGSZ);
+	sc->vsc_config = calloc(1,
+	    sizeof(struct pci_vt9p_config) + VT9P_MAXTAGSZ);
 
 	pthread_mutex_init(&sc->vsc_mtx, NULL);
 
-	cap_rights_init(&rootcap,
-	    CAP_LOOKUP, CAP_ACL_CHECK, CAP_ACL_DELETE, CAP_ACL_GET,
-	    CAP_ACL_SET, CAP_READ, CAP_WRITE, CAP_SEEK, CAP_FSTAT,
+	cap_rights_init(&rootcap, CAP_LOOKUP, CAP_ACL_CHECK, CAP_ACL_DELETE,
+	    CAP_ACL_GET, CAP_ACL_SET, CAP_READ, CAP_WRITE, CAP_SEEK, CAP_FSTAT,
 	    CAP_CREATE, CAP_FCHMODAT, CAP_FCHOWNAT, CAP_FTRUNCATE,
 	    CAP_LINKAT_SOURCE, CAP_LINKAT_TARGET, CAP_MKDIRAT, CAP_MKNODAT,
 	    CAP_PREAD, CAP_PWRITE, CAP_RENAMEAT_SOURCE, CAP_RENAMEAT_TARGET,
 	    CAP_SEEK, CAP_SYMLINKAT, CAP_UNLINKAT, CAP_EXTATTR_DELETE,
-	    CAP_EXTATTR_GET, CAP_EXTATTR_LIST, CAP_EXTATTR_SET,
-	    CAP_FUTIMES, CAP_FSTATFS, CAP_FSYNC, CAP_FPATHCONF);
+	    CAP_EXTATTR_GET, CAP_EXTATTR_LIST, CAP_EXTATTR_SET, CAP_FUTIMES,
+	    CAP_FSTATFS, CAP_FSYNC, CAP_FPATHCONF);
 
 	if (cap_rights_limit(rootfd, &rootcap) != 0)
 		return (1);
@@ -338,11 +338,9 @@ pci_vt9p_init(struct pci_devinst *pi, nvlist_t *nvl)
 	return (0);
 }
 
-static const struct pci_devemu pci_de_v9p = {
-	.pe_emu =	"virtio-9p",
+static const struct pci_devemu pci_de_v9p = { .pe_emu = "virtio-9p",
 	.pe_legacy_config = pci_vt9p_legacy_config,
-	.pe_init =	pci_vt9p_init,
-	.pe_barwrite =	vi_pci_write,
-	.pe_barread =	vi_pci_read
-};
+	.pe_init = pci_vt9p_init,
+	.pe_barwrite = vi_pci_write,
+	.pe_barread = vi_pci_read };
 PCI_EMUL_SET(pci_de_v9p);

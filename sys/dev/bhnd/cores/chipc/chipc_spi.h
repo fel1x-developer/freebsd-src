@@ -33,16 +33,16 @@
  */
 
 #ifndef _BHND_CORES_CHIPC_CHIPC_SPI_H_
-#define	_BHND_CORES_CHIPC_CHIPC_SPI_H_
+#define _BHND_CORES_CHIPC_CHIPC_SPI_H_
 
-#define	CHIPC_SPI_MAXTRIES	1000
+#define CHIPC_SPI_MAXTRIES 1000
 
-#define	CHIPC_SPI_ACTION_INPUT	1
-#define	CHIPC_SPI_ACTION_OUTPUT	2
+#define CHIPC_SPI_ACTION_INPUT 1
+#define CHIPC_SPI_ACTION_OUTPUT 2
 
-#define	CHIPC_SPI_FLASHCTL			0x00
-#define		CHIPC_SPI_FLASHCTL_OPCODE	0x000000ff
-#define		CHIPC_SPI_FLASHCTL_ACTION	0x00000700 //
+#define CHIPC_SPI_FLASHCTL 0x00
+#define CHIPC_SPI_FLASHCTL_OPCODE 0x000000ff
+#define CHIPC_SPI_FLASHCTL_ACTION 0x00000700 //
 /*
  * We don't use action at all. Experimentaly found, that
  *  action 0 - read current MISO byte to data register (interactive mode)
@@ -56,38 +56,38 @@
  * It may be wrong if CS bit is 1.
  * If CS bit is 1, you should write cmd / data to opcode byte-to-byte.
  */
-#define		CHIPC_SPI_FLASHCTL_CSACTIVE	0x00001000
-#define		CHIPC_SPI_FLASHCTL_START	0x80000000 //same as BUSY
-#define		CHIPC_SPI_FLASHCTL_BUSY		0x80000000 //same as BUSY
-#define	CHIPC_SPI_FLASHADDR			0x04
-#define	CHIPC_SPI_FLASHDATA			0x08
+#define CHIPC_SPI_FLASHCTL_CSACTIVE 0x00001000
+#define CHIPC_SPI_FLASHCTL_START 0x80000000 // same as BUSY
+#define CHIPC_SPI_FLASHCTL_BUSY 0x80000000  // same as BUSY
+#define CHIPC_SPI_FLASHADDR 0x04
+#define CHIPC_SPI_FLASHDATA 0x08
 
 struct chipc_spi_softc {
-	device_t		 sc_dev;
-	struct resource		*sc_res;	/**< SPI registers */
-	int			 sc_rid;
+	device_t sc_dev;
+	struct resource *sc_res; /**< SPI registers */
+	int sc_rid;
 
-	struct resource		*sc_flash_res;	/**< flash shadow */
-	int			 sc_flash_rid;
+	struct resource *sc_flash_res; /**< flash shadow */
+	int sc_flash_rid;
 };
 
 /* register space access macros */
-#define	SPI_BARRIER_WRITE(sc)	bus_barrier((sc)->sc_res, 0, 0, 	\
-				    BUS_SPACE_BARRIER_WRITE)
-#define	SPI_BARRIER_READ(sc)	bus_barrier((sc)->sc_res, 0, 0, 	\
-				    BUS_SPACE_BARRIER_READ)
-#define	SPI_BARRIER_RW(sc)	bus_barrier((sc)->sc_res, 0, 0, 	\
-			            BUS_SPACE_BARRIER_READ |		\
-			            BUS_SPACE_BARRIER_WRITE)
+#define SPI_BARRIER_WRITE(sc) \
+	bus_barrier((sc)->sc_res, 0, 0, BUS_SPACE_BARRIER_WRITE)
+#define SPI_BARRIER_READ(sc) \
+	bus_barrier((sc)->sc_res, 0, 0, BUS_SPACE_BARRIER_READ)
+#define SPI_BARRIER_RW(sc)              \
+	bus_barrier((sc)->sc_res, 0, 0, \
+	    BUS_SPACE_BARRIER_READ | BUS_SPACE_BARRIER_WRITE)
 
-#define SPI_WRITE(sc, reg, val)	bus_write_4(sc->sc_res, (reg), (val));
+#define SPI_WRITE(sc, reg, val) bus_write_4(sc->sc_res, (reg), (val));
 
-#define	SPI_READ(sc, reg)	bus_read_4(sc->sc_res, (reg))
+#define SPI_READ(sc, reg) bus_read_4(sc->sc_res, (reg))
 
-#define	SPI_SET_BITS(sc, reg, bits)					\
+#define SPI_SET_BITS(sc, reg, bits) \
 	SPI_WRITE(sc, reg, SPI_READ(sc, (reg)) | (bits))
 
-#define	SPI_CLEAR_BITS(sc, reg, bits)					\
+#define SPI_CLEAR_BITS(sc, reg, bits) \
 	SPI_WRITE(sc, reg, SPI_READ(sc, (reg)) & ~(bits))
 
 #endif /* _BHND_CORES_CHIPC_CHIPC_SPI_H_ */

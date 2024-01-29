@@ -29,22 +29,20 @@
  * SUCH DAMAGE.
  */
 
-
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/socket.h>
 
 #include <ctype.h>
 #include <err.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
 #include <rpc/rpc.h>
 #include <rpc/xdr.h>
 #include <rpcsvc/yp_prot.h>
 #include <rpcsvc/ypclnt.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 static const struct ypalias {
 	char *alias, *name;
@@ -85,8 +83,7 @@ main(int argc, char *argv[])
 		case 'x':
 			for (i = 0; i < nitems(ypaliases); i++)
 				printf("Use \"%s\" for \"%s\"\n",
-					ypaliases[i].alias,
-					ypaliases[i].name);
+				    ypaliases[i].alias, ypaliases[i].name);
 			exit(0);
 		case 'd':
 			domainname = optarg;
@@ -107,7 +104,7 @@ main(int argc, char *argv[])
 	if (domainname == NULL)
 		yp_get_default_domain(&domainname);
 
-	inmap = argv[argc-1];
+	inmap = argv[argc - 1];
 	if (notrans == 0) {
 		for (i = 0; i < nitems(ypaliases); i++)
 			if (strcmp(inmap, ypaliases[i].alias) == 0)
@@ -118,8 +115,8 @@ main(int argc, char *argv[])
 	for (; optind < argc - 1; optind++) {
 		inkey = argv[optind];
 
-		r = yp_match(domainname, inmap, inkey,
-			strlen(inkey), &outbuf, &outbuflen);
+		r = yp_match(domainname, inmap, inkey, strlen(inkey), &outbuf,
+		    &outbuflen);
 		switch (r) {
 		case 0:
 			if (key)

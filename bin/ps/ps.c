@@ -37,13 +37,13 @@
  */
 
 #include <sys/param.h>
-#include <sys/jail.h>
-#include <sys/proc.h>
-#include <sys/user.h>
-#include <sys/stat.h>
 #include <sys/ioctl.h>
-#include <sys/sysctl.h>
+#include <sys/jail.h>
 #include <sys/mount.h>
+#include <sys/proc.h>
+#include <sys/stat.h>
+#include <sys/sysctl.h>
+#include <sys/user.h>
 
 #include <ctype.h>
 #include <err.h>
@@ -52,6 +52,7 @@
 #include <grp.h>
 #include <jail.h>
 #include <kvm.h>
+#include <libxo/xo.h>
 #include <limits.h>
 #include <locale.h>
 #include <paths.h>
@@ -60,102 +61,100 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <libxo/xo.h>
 
 #include "ps.h"
 
-#define	_PATH_PTS	"/dev/pts/"
+#define _PATH_PTS "/dev/pts/"
 
-#define	W_SEP	" \t"		/* "Whitespace" list separators */
-#define	T_SEP	","		/* "Terminate-element" list separators */
+#define W_SEP " \t" /* "Whitespace" list separators */
+#define T_SEP ","   /* "Terminate-element" list separators */
 
 #ifdef LAZY_PS
-#define	DEF_UREAD	0
-#define	OPT_LAZY_f	"f"
+#define DEF_UREAD 0
+#define OPT_LAZY_f "f"
 #else
-#define	DEF_UREAD	1	/* Always do the more-expensive read. */
-#define	OPT_LAZY_f		/* I.e., the `-f' option is not added. */
+#define DEF_UREAD 1 /* Always do the more-expensive read. */
+#define OPT_LAZY_f  /* I.e., the `-f' option is not added. */
 #endif
 
 /*
  * isdigit takes an `int', but expects values in the range of unsigned char.
  * This wrapper ensures that values from a 'char' end up in the correct range.
  */
-#define	isdigitch(Anychar) isdigit((u_char)(Anychar))
+#define isdigitch(Anychar) isdigit((u_char)(Anychar))
 
-int	 cflag;			/* -c */
-int	 eval;			/* Exit value */
-time_t	 now;			/* Current time(3) value */
-int	 rawcpu;		/* -C */
-int	 sumrusage;		/* -S */
-int	 termwidth;		/* Width of the screen (0 == infinity). */
-int	 showthreads;		/* will threads be shown? */
+int cflag;	 /* -c */
+int eval;	 /* Exit value */
+time_t now;	 /* Current time(3) value */
+int rawcpu;	 /* -C */
+int sumrusage;	 /* -S */
+int termwidth;	 /* Width of the screen (0 == infinity). */
+int showthreads; /* will threads be shown? */
 
 struct velisthead varlist = STAILQ_HEAD_INITIALIZER(varlist);
 
-static int	 forceuread = DEF_UREAD; /* Do extra work to get u-area. */
-static kvm_t	*kd;
-static int	 needcomm;	/* -o "command" */
-static int	 needenv;	/* -e */
-static int	 needuser;	/* -o "user" */
-static int	 optfatal;	/* Fatal error parsing some list-option. */
-static int	 pid_max;	/* kern.pid_max */
+static int forceuread = DEF_UREAD; /* Do extra work to get u-area. */
+static kvm_t *kd;
+static int needcomm; /* -o "command" */
+static int needenv;  /* -e */
+static int needuser; /* -o "user" */
+static int optfatal; /* Fatal error parsing some list-option. */
+static int pid_max;  /* kern.pid_max */
 
 static enum sort { DEFAULT, SORTMEM, SORTCPU } sortby = DEFAULT;
 
 struct listinfo;
-typedef	int	addelem_rtn(struct listinfo *_inf, const char *_elem);
+typedef int addelem_rtn(struct listinfo *_inf, const char *_elem);
 
 struct listinfo {
-	int		 count;
-	int		 maxcount;
-	int		 elemsize;
-	addelem_rtn	*addelem;
-	const char	*lname;
+	int count;
+	int maxcount;
+	int elemsize;
+	addelem_rtn *addelem;
+	const char *lname;
 	union {
-		gid_t	*gids;
-		int	*jids;
-		pid_t	*pids;
-		dev_t	*ttys;
-		uid_t	*uids;
-		void	*ptr;
+		gid_t *gids;
+		int *jids;
+		pid_t *pids;
+		dev_t *ttys;
+		uid_t *uids;
+		void *ptr;
 	} l;
 };
 
-static int	 addelem_gid(struct listinfo *, const char *);
-static int	 addelem_jid(struct listinfo *, const char *);
-static int	 addelem_pid(struct listinfo *, const char *);
-static int	 addelem_tty(struct listinfo *, const char *);
-static int	 addelem_uid(struct listinfo *, const char *);
-static void	 add_list(struct listinfo *, const char *);
-static void	 descendant_sort(KINFO *, int);
-static void	 format_output(KINFO *);
-static void	*expand_list(struct listinfo *);
-static const char *
-		 fmt(char **(*)(kvm_t *, const struct kinfo_proc *, int),
-		    KINFO *, char *, char *, int);
-static void	 free_list(struct listinfo *);
-static void	 init_list(struct listinfo *, addelem_rtn, int, const char *);
-static char	*kludge_oldps_options(const char *, char *, const char *);
-static int	 pscomp(const void *, const void *);
-static void	 saveuser(KINFO *);
-static void	 scanvars(void);
-static void	 sizevars(void);
-static void	 pidmax_init(void);
-static void	 usage(void);
+static int addelem_gid(struct listinfo *, const char *);
+static int addelem_jid(struct listinfo *, const char *);
+static int addelem_pid(struct listinfo *, const char *);
+static int addelem_tty(struct listinfo *, const char *);
+static int addelem_uid(struct listinfo *, const char *);
+static void add_list(struct listinfo *, const char *);
+static void descendant_sort(KINFO *, int);
+static void format_output(KINFO *);
+static void *expand_list(struct listinfo *);
+static const char *fmt(char **(*)(kvm_t *, const struct kinfo_proc *, int),
+    KINFO *, char *, char *, int);
+static void free_list(struct listinfo *);
+static void init_list(struct listinfo *, addelem_rtn, int, const char *);
+static char *kludge_oldps_options(const char *, char *, const char *);
+static int pscomp(const void *, const void *);
+static void saveuser(KINFO *);
+static void scanvars(void);
+static void sizevars(void);
+static void pidmax_init(void);
+static void usage(void);
 
 static char dfmt[] = "pid,tt,state,time,command";
 static char jfmt[] = "user,pid,ppid,pgid,sid,jobc,state,tt,time,command";
 static char lfmt[] = "uid,pid,ppid,cpu,pri,nice,vsz,rss,mwchan,state,"
-			"tt,time,command";
-static char   o1[] = "pid";
-static char   o2[] = "tt,state,time,command";
+		     "tt,time,command";
+static char o1[] = "pid";
+static char o2[] = "tt,state,time,command";
 static char ufmt[] = "user,pid,%cpu,%mem,vsz,rss,tt,state,start,time,command";
 static char vfmt[] = "pid,state,time,sl,re,pagein,vsz,rss,lim,tsiz,"
-			"%cpu,%mem,command";
+		     "%cpu,%mem,command";
 static char Zfmt[] = "label";
 
-#define	PS_ARGS	"AaCcD:de" OPT_LAZY_f "G:gHhjJ:LlM:mN:O:o:p:rSTt:U:uvwXxZ"
+#define PS_ARGS "AaCcD:de" OPT_LAZY_f "G:gHhjJ:LlM:mN:O:o:p:rSTt:U:uvwXxZ"
 
 int
 main(int argc, char *argv[])
@@ -176,10 +175,13 @@ main(int argc, char *argv[])
 	char errbuf[_POSIX2_LINE_MAX];
 	char fmtbuf[_POSIX2_LINE_MAX];
 	enum { NONE = 0, UP = 1, DOWN = 2, BOTH = 1 | 2 } directions = NONE;
-	struct { int traversed; int initial; } pid_count;
+	struct {
+		int traversed;
+		int initial;
+	} pid_count;
 
-	(void) setlocale(LC_ALL, "");
-	time(&now);			/* Used by routines in print.c. */
+	(void)setlocale(LC_ALL, "");
+	time(&now); /* Used by routines in print.c. */
 
 	/*
 	 * Compute default output line length before processing options.
@@ -198,9 +200,9 @@ main(int argc, char *argv[])
 	if ((cols = getenv("COLUMNS")) != NULL && *cols != '\0')
 		termwidth = atoi(cols);
 	else if ((ioctl(STDOUT_FILENO, TIOCGWINSZ, (char *)&ws) == -1 &&
-	     ioctl(STDERR_FILENO, TIOCGWINSZ, (char *)&ws) == -1 &&
-	     ioctl(STDIN_FILENO,  TIOCGWINSZ, (char *)&ws) == -1) ||
-	     ws.ws_col == 0)
+		     ioctl(STDERR_FILENO, TIOCGWINSZ, (char *)&ws) == -1 &&
+		     ioctl(STDIN_FILENO, TIOCGWINSZ, (char *)&ws) == -1) ||
+	    ws.ws_col == 0)
 		termwidth = UNLIMITED;
 	else
 		termwidth = ws.ws_col - 1;
@@ -216,7 +218,7 @@ main(int argc, char *argv[])
 
 	all = descendancy = _fmt = nselectors = optfatal = 0;
 	prtheader = showthreads = wflag = xkeep_implied = 0;
-	xkeep = -1;			/* Neither -x nor -X. */
+	xkeep = -1; /* Neither -x nor -X. */
 	init_list(&gidlist, addelem_gid, sizeof(gid_t), "group");
 	init_list(&jidlist, addelem_jid, sizeof(int), "jail id");
 	init_list(&pgrplist, addelem_pid, sizeof(pid_t), "process group");
@@ -252,23 +254,22 @@ main(int argc, char *argv[])
 			cflag = 1;
 			break;
 		case 'D': {
-				size_t len = strlen(optarg);
+			size_t len = strlen(optarg);
 
-				if (len <= 2 &&
-					strncasecmp(optarg, "up", len) == 0)
-					directions |= UP;
-				else if (len <= 4 &&
-					strncasecmp(optarg, "down", len) == 0)
-					directions |= DOWN;
-				else if (len <= 4 &&
-					strncasecmp(optarg, "both", len) == 0)
-					directions |= BOTH;
-				break;
-			}
+			if (len <= 2 && strncasecmp(optarg, "up", len) == 0)
+				directions |= UP;
+			else if (len <= 4 &&
+			    strncasecmp(optarg, "down", len) == 0)
+				directions |= DOWN;
+			else if (len <= 4 &&
+			    strncasecmp(optarg, "both", len) == 0)
+				directions |= BOTH;
+			break;
+		}
 		case 'd':
 			descendancy = 1;
 			break;
-		case 'e':			/* XXX set ufmt */
+		case 'e': /* XXX set ufmt */
 			needenv = 1;
 			break;
 #ifdef LAZY_PS
@@ -295,7 +296,7 @@ main(int argc, char *argv[])
 			break;
 #else
 			/* The historical BSD-ish (from SunOS) behavior. */
-			break;			/* no-op */
+			break; /* no-op */
 #endif
 		case 'H':
 			showthreads = KERN_PROC_INC_THREAD;
@@ -461,8 +462,8 @@ main(int argc, char *argv[])
 		usage();
 	}
 	if (optfatal)
-		exit(1);		/* Error messages already printed. */
-	if (xkeep < 0)			/* Neither -X nor -x was specified. */
+		exit(1); /* Error messages already printed. */
+	if (xkeep < 0)	 /* Neither -X nor -x was specified. */
 		xkeep = xkeep_implied;
 
 	kd = kvm_openfiles(nlistf, memf, NULL, O_RDONLY, errbuf);
@@ -549,13 +550,15 @@ main(int argc, char *argv[])
 				if (kp[i].ki_ppid == pidlist.l.pids[elem]) {
 					if (pidlist.count >= pidlist.maxcount)
 						expand_list(&pidlist);
-					pidlist.l.pids[pidlist.count++] = kp[i].ki_pid;
+					pidlist.l.pids[pidlist.count++] =
+					    kp[i].ki_pid;
 				}
 			}
 	pid_count.traversed = pidlist.count;
 	if (directions & UP)
 		for (elem = 0; elem < pidlist.count; elem++) {
-			if (elem >= pid_count.initial && elem < pid_count.traversed)
+			if (elem >= pid_count.initial &&
+			    elem < pid_count.traversed)
 				continue;
 			for (i = 0; i < nentries; i++) {
 				if (kp[i].ki_ppid == kp[i].ki_pid)
@@ -563,7 +566,8 @@ main(int argc, char *argv[])
 				if (kp[i].ki_pid == pidlist.l.pids[elem]) {
 					if (pidlist.count >= pidlist.maxcount)
 						expand_list(&pidlist);
-					pidlist.l.pids[pidlist.count++] = kp[i].ki_ppid;
+					pidlist.l.pids[pidlist.count++] =
+					    kp[i].ki_ppid;
 				}
 			}
 		}
@@ -588,7 +592,7 @@ main(int argc, char *argv[])
 			 */
 			if (xkeep == 0) {
 				if ((kp->ki_tdev == NODEV ||
-				    (kp->ki_flag & P_CONTROLT) == 0))
+					(kp->ki_flag & P_CONTROLT) == 0))
 					continue;
 			}
 			if (nselectors == 0)
@@ -670,7 +674,6 @@ main(int argc, char *argv[])
 	if (descendancy)
 		descendant_sort(kinfo, nkept);
 
-
 	/*
 	 * Prepare formatted output.
 	 */
@@ -692,13 +695,13 @@ main(int argc, char *argv[])
 	for (i = lineno = 0; i < nkept; i++) {
 		linelen = 0;
 		xo_open_instance("process");
-		STAILQ_FOREACH(vent, &varlist, next_ve) {
+		STAILQ_FOREACH (vent, &varlist, next_ve) {
 			ks = STAILQ_FIRST(&kinfo[i].ki_ks);
 			STAILQ_REMOVE_HEAD(&kinfo[i].ki_ks, ks_next);
 			/* Truncate rightmost column if necessary.  */
 			fwidthmax = _POSIX2_LINE_MAX;
 			if (STAILQ_NEXT(vent, next_ve) == NULL &&
-			   termwidth != UNLIMITED && ks->ks_str != NULL) {
+			    termwidth != UNLIMITED && ks->ks_str != NULL) {
 				left = termwidth - linelen;
 				if (left > 0 && left < (int)strlen(ks->ks_str))
 					fwidthmax = left;
@@ -709,12 +712,15 @@ main(int argc, char *argv[])
 				str = "-";
 			/* No padding for the last column, if it's LJUST. */
 			fwidthmin = (xo_get_style(NULL) != XO_STYLE_TEXT ||
-			    (STAILQ_NEXT(vent, next_ve) == NULL &&
-			    (vent->var->flag & LJUST))) ? 0 : vent->var->width;
+					(STAILQ_NEXT(vent, next_ve) == NULL &&
+					    (vent->var->flag & LJUST))) ?
+			    0 :
+			    vent->var->width;
 			snprintf(fmtbuf, sizeof(fmtbuf), "{:%s/%%%s%d..%dhs}",
-			    vent->var->field ? vent->var->field : vent->var->name,
-			    (vent->var->flag & LJUST) ? "-" : "",
-			    fwidthmin, fwidthmax);
+			    vent->var->field ? vent->var->field :
+					       vent->var->name,
+			    (vent->var->flag & LJUST) ? "-" : "", fwidthmin,
+			    fwidthmax);
 			xo_emit(fmtbuf, str);
 			linelen += fwidthmin;
 
@@ -730,7 +736,7 @@ main(int argc, char *argv[])
 				linelen++;
 			}
 		}
-	        xo_emit("\n");
+		xo_emit("\n");
 		xo_close_instance("process");
 		if (prtheader && lineno++ == prtheader - 4) {
 			xo_emit("\n");
@@ -771,7 +777,7 @@ addelem_gid(struct listinfo *inf, const char *elem)
 		else
 			xo_warnx("%s name too long: %s", inf->lname, elem);
 		optfatal = 1;
-		return (0);		/* Do not add this value. */
+		return (0); /* Do not add this value. */
 	}
 
 	/*
@@ -812,7 +818,7 @@ addelem_jid(struct listinfo *inf, const char *elem)
 	if (*elem == '\0') {
 		warnx("Invalid (zero-length) jail id");
 		optfatal = 1;
-		return (0);		/* Do not add this value. */
+		return (0); /* Do not add this value. */
 	}
 
 	tempid = jail_getid(elem);
@@ -837,7 +843,7 @@ addelem_pid(struct listinfo *inf, const char *elem)
 	if (*elem == '\0') {
 		xo_warnx("Invalid (zero-length) process id");
 		optfatal = 1;
-		return (0);		/* Do not add this value. */
+		return (0); /* Do not add this value. */
 	}
 
 	errno = 0;
@@ -953,7 +959,7 @@ addelem_uid(struct listinfo *inf, const char *elem)
 		else
 			xo_warnx("%s name too long: %s", inf->lname, elem);
 		optfatal = 1;
-		return (0);		/* Do not add this value. */
+		return (0); /* Do not add this value. */
 	}
 
 	pwd = getpwnam(elem);
@@ -1020,8 +1026,8 @@ add_list(struct listinfo *inf, const char *argp)
 			 * The string is too long to copy.  Find the end
 			 * of the string to print out the warning message.
 			 */
-			while (*argp != '\0' && strchr(W_SEP T_SEP,
-			    *argp) == NULL)
+			while (
+			    *argp != '\0' && strchr(W_SEP T_SEP, *argp) == NULL)
 				argp++;
 			xo_warnx("Value too long: %.*s", (int)(argp - savep),
 			    savep);
@@ -1125,8 +1131,10 @@ descendant_sort(KINFO *ki, int items)
 		if ((ki[src].ki_d.prefix = malloc(lvl * 2 + 1)) == NULL)
 			xo_errx(1, "malloc failed");
 		for (n = 0; n < lvl - 2; n++) {
-			ki[src].ki_d.prefix[n * 2] =
-			    path[n / 8] & 1 << (n % 8) ? '|' : ' ';
+			ki[src].ki_d.prefix[n * 2] = path[n / 8] &
+				1 << (n % 8) ?
+			    '|' :
+			    ' ';
 			ki[src].ki_d.prefix[n * 2 + 1] = ' ';
 		}
 		if (n == lvl - 2) {
@@ -1198,7 +1206,7 @@ find_varentry(VAR *v)
 {
 	struct varent *vent;
 
-	STAILQ_FOREACH(vent, &varlist, next_ve) {
+	STAILQ_FOREACH (vent, &varlist, next_ve) {
 		if (strcmp(vent->var->name, v->name) == 0)
 			return vent;
 	}
@@ -1211,7 +1219,7 @@ scanvars(void)
 	struct varent *vent;
 	VAR *v;
 
-	STAILQ_FOREACH(vent, &varlist, next_ve) {
+	STAILQ_FOREACH (vent, &varlist, next_ve) {
 		v = vent->var;
 		if (v->flag & USER)
 			needuser = 1;
@@ -1230,7 +1238,7 @@ format_output(KINFO *ki)
 	int len;
 
 	STAILQ_INIT(&ki->ki_ks);
-	STAILQ_FOREACH(vent, &varlist, next_ve) {
+	STAILQ_FOREACH (vent, &varlist, next_ve) {
 		v = vent->var;
 		str = (v->oproc)(ki, vent);
 		ks = malloc(sizeof(*ks));
@@ -1254,7 +1262,7 @@ sizevars(void)
 	VAR *v;
 	int i;
 
-	STAILQ_FOREACH(vent, &varlist, next_ve) {
+	STAILQ_FOREACH (vent, &varlist, next_ve) {
 		v = vent->var;
 		i = strlen(vent->header);
 		if (v->width < i)
@@ -1273,7 +1281,7 @@ fmt(char **(*fn)(kvm_t *, const struct kinfo_proc *, int), KINFO *ki,
 	return (s);
 }
 
-#define UREADOK(ki)	(forceuread || (ki->ki_p->ki_flag & P_INMEM))
+#define UREADOK(ki) (forceuread || (ki->ki_p->ki_flag & P_INMEM))
 
 static void
 saveuser(KINFO *ki)
@@ -1300,8 +1308,8 @@ saveuser(KINFO *ki)
 		} else if (UREADOK(ki) || (ki->ki_p->ki_args != NULL)) {
 			(void)snprintf(tdname, sizeof(tdname), "%s%s",
 			    ki->ki_p->ki_tdname, ki->ki_p->ki_moretdname);
-			ki->ki_args = fmt(kvm_getargv, ki,
-			    ki->ki_p->ki_comm, tdname, COMMLEN * 2 + 1);
+			ki->ki_args = fmt(kvm_getargv, ki, ki->ki_p->ki_comm,
+			    tdname, COMMLEN * 2 + 1);
 		} else {
 			asprintf(&argsp, "(%s)", ki->ki_p->ki_comm);
 			ki->ki_args = argsp;
@@ -1313,8 +1321,8 @@ saveuser(KINFO *ki)
 	}
 	if (needenv) {
 		if (UREADOK(ki))
-			ki->ki_env = fmt(kvm_getenvv, ki,
-			    (char *)NULL, (char *)NULL, 0);
+			ki->ki_env = fmt(kvm_getenvv, ki, (char *)NULL,
+			    (char *)NULL, 0);
 		else
 			ki->ki_env = strdup("()");
 		if (ki->ki_env == NULL)
@@ -1325,10 +1333,11 @@ saveuser(KINFO *ki)
 }
 
 /* A macro used to improve the readability of pscomp(). */
-#define	DIFF_RETURN(a, b, field) do {	\
-	if ((a)->field != (b)->field)	\
-		return (((a)->field < (b)->field) ? -1 : 1); 	\
-} while (0)
+#define DIFF_RETURN(a, b, field)                                     \
+	do {                                                         \
+		if ((a)->field != (b)->field)                        \
+			return (((a)->field < (b)->field) ? -1 : 1); \
+	} while (0)
 
 static int
 pscomp(const void *a, const void *b)
@@ -1442,7 +1451,7 @@ kludge_oldps_options(const char *optlist, char *origval, const char *nextarg)
 		xo_errx(1, "malloc failed");
 
 	if (*origval != '-')
-		*ns++ = '-';	/* add option flag */
+		*ns++ = '-'; /* add option flag */
 
 	if (pidp == NULL)
 		strcpy(ns, origval);
@@ -1476,13 +1485,12 @@ pidmax_init(void)
 static void __dead2
 usage(void)
 {
-#define	SINGLE_OPTS	"[-aCcde" OPT_LAZY_f "HhjlmrSTuvwXxZ]"
+#define SINGLE_OPTS "[-aCcde" OPT_LAZY_f "HhjlmrSTuvwXxZ]"
 
 	(void)xo_error("%s\n%s\n%s\n%s\n%s\n",
 	    "usage: ps [--libxo] " SINGLE_OPTS " [-O fmt | -o fmt]",
 	    "          [-G gid[,gid...]] [-J jid[,jid...]] [-M core] [-N system]",
 	    "          [-p pid[,pid...]] [-t tty[,tty...]] [-U user[,user...]]",
-	    "          [-D up | down | both]",
-	    "       ps [--libxo] -L");
+	    "          [-D up | down | both]", "       ps [--libxo] -L");
 	exit(1);
 }

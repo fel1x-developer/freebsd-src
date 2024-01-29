@@ -50,14 +50,14 @@
 static void
 print_bytes(void *data, uint32_t length)
 {
-	uint32_t	i, j;
-	uint8_t		*p, *end;
+	uint32_t i, j;
+	uint8_t *p, *end;
 
 	end = (uint8_t *)data + length;
 
 	for (i = 0; i < length; i++) {
-		p = (uint8_t *)data + (i*16);
-		printf("%03x: ", i*16);
+		p = (uint8_t *)data + (i * 16);
+		printf("%03x: ", i * 16);
 		for (j = 0; j < 16 && p < end; j++)
 			printf("%02x ", *p++);
 		if (p >= end)
@@ -70,16 +70,16 @@ print_bytes(void *data, uint32_t length)
 static void
 print_dwords(void *data, uint32_t length)
 {
-	uint32_t	*p;
-	uint32_t	i, j;
+	uint32_t *p;
+	uint32_t i, j;
 
 	p = (uint32_t *)data;
 	length /= sizeof(uint32_t);
 
-	for (i = 0; i < length; i+=8) {
-		printf("%03x: ", i*4);
+	for (i = 0; i < length; i += 8) {
+		printf("%03x: ", i * 4);
 		for (j = 0; j < 8; j++)
-			printf("%08x ", p[i+j]);
+			printf("%08x ", p[i + j]);
 		printf("\n");
 	}
 
@@ -98,7 +98,7 @@ print_hex(void *data, uint32_t length)
 int
 read_controller_data(int fd, struct nvme_controller_data *cdata)
 {
-	struct nvme_pt_command	pt;
+	struct nvme_pt_command pt;
 
 	memset(&pt, 0, sizeof(pt));
 	pt.cmd.opc = NVME_OPC_IDENTIFY;
@@ -121,7 +121,7 @@ read_controller_data(int fd, struct nvme_controller_data *cdata)
 int
 read_namespace_data(int fd, uint32_t nsid, struct nvme_namespace_data *nsdata)
 {
-	struct nvme_pt_command	pt;
+	struct nvme_pt_command pt;
 
 	memset(&pt, 0, sizeof(pt));
 	pt.cmd.opc = NVME_OPC_IDENTIFY;
@@ -145,9 +145,9 @@ read_namespace_data(int fd, uint32_t nsid, struct nvme_namespace_data *nsdata)
 int
 open_dev(const char *str, int *fd, int write, int exit_on_error)
 {
-	char		full_path[64];
+	char full_path[64];
 
-	snprintf(full_path, sizeof(full_path), _PATH_DEV"%s", str);
+	snprintf(full_path, sizeof(full_path), _PATH_DEV "%s", str);
 	*fd = open(full_path, write ? O_RDWR : O_RDONLY);
 	if (*fd < 0) {
 		if (exit_on_error) {

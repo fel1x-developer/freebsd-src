@@ -29,14 +29,13 @@
 #include <sys/ioctl.h>
 
 #include <atf-c.h>
+#include <cam/scsi/scsi_enc.h>
 #include <fcntl.h>
 #include <glob.h>
 #include <regex.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-#include <cam/scsi/scsi_enc.h>
 
 #include "common.h"
 
@@ -57,13 +56,13 @@ do_getelmdesc(const char *devname, int fd)
 	r = regcomp(&re, "(Overall|Element [0-9]+) descriptor: ", REG_EXTENDED);
 	ATF_REQUIRE_EQ(r, 0);
 
-	r = ioctl(fd, ENCIOC_GETNELM, (caddr_t) &nobj);
+	r = ioctl(fd, ENCIOC_GETNELM, (caddr_t)&nobj);
 	ATF_REQUIRE_EQ(r, 0);
 
 	snprintf(cmd, sizeof(cmd), "sg_ses -p7 %s", devname);
 	pipe = popen(cmd, "r");
 	ATF_REQUIRE(pipe != NULL);
-	while(NULL != fgets(line, sizeof(line), pipe)) {
+	while (NULL != fgets(line, sizeof(line), pipe)) {
 		regmatch_t matches[1];
 		encioc_elm_desc_t e_desc;
 		char *expected;
@@ -85,7 +84,7 @@ do_getelmdesc(const char *devname, int fd)
 		e_desc.elm_idx = elm_idx;
 		e_desc.elm_desc_len = UINT16_MAX;
 		e_desc.elm_desc_str = actual;
-		r = ioctl(fd, ENCIOC_GETELMDESC, (caddr_t) &e_desc);
+		r = ioctl(fd, ENCIOC_GETELMDESC, (caddr_t)&e_desc);
 		ATF_REQUIRE_EQ(r, 0);
 		if (0 == strcmp("<empty>", expected)) {
 			/* sg_ses replaces "" with "<empty>" */
@@ -104,8 +103,8 @@ do_getelmdesc(const char *devname, int fd)
 		return (false);
 	} else {
 		ATF_CHECK_EQ_MSG(nobj, elm_idx,
-				"Did not find the expected number of element "
-				"descriptors in sg_ses's output");
+		    "Did not find the expected number of element "
+		    "descriptors in sg_ses's output");
 		return (true);
 	}
 }
@@ -135,14 +134,14 @@ do_getelmdevnames(const char *devname __unused, int fd)
 	char *namebuf;
 	unsigned elm_idx;
 
-	r = ioctl(fd, ENCIOC_GETNELM, (caddr_t) &nobj);
+	r = ioctl(fd, ENCIOC_GETNELM, (caddr_t)&nobj);
 	ATF_REQUIRE_EQ(r, 0);
 
 	namebuf = calloc(namesize, sizeof(char));
 	ATF_REQUIRE(namebuf != NULL);
 	map = calloc(nobj, sizeof(encioc_element_t));
 	ATF_REQUIRE(map != NULL);
-	r = ioctl(fd, ENCIOC_GETELMMAP, (caddr_t) map);
+	r = ioctl(fd, ENCIOC_GETELMMAP, (caddr_t)map);
 	ATF_REQUIRE_EQ(r, 0);
 
 	for (elm_idx = 0; elm_idx < nobj; elm_idx++) {
@@ -165,15 +164,15 @@ do_getelmdevnames(const char *devname __unused, int fd)
 		elmdn.elm_names_size = namesize;
 		elmdn.elm_devnames = namebuf;
 		namebuf[0] = '\0';
-		r = ioctl(fd, ENCIOC_GETELMDEVNAMES, (caddr_t) &elmdn);
+		r = ioctl(fd, ENCIOC_GETELMDEVNAMES, (caddr_t)&elmdn);
 		status = ses_status_common_get_element_status_code(
-			(struct ses_status_common*)&e_status.cstat[0]);
+		    (struct ses_status_common *)&e_status.cstat[0]);
 		if (status != SES_OBJSTAT_UNSUPPORTED &&
 		    status != SES_OBJSTAT_NOTINSTALLED &&
 		    (map[elm_idx].elm_type == ELMTYP_DEVICE ||
-		     map[elm_idx].elm_type == ELMTYP_ARRAY_DEV))
-		{
-			ATF_CHECK_EQ_MSG(r, 0, "devnames not found.  This could be due to a buggy ses driver, buggy ses controller, dead HDD, or an ATA HDD in a SAS slot");
+			map[elm_idx].elm_type == ELMTYP_ARRAY_DEV)) {
+			ATF_CHECK_EQ_MSG(r, 0,
+			    "devnames not found.  This could be due to a buggy ses driver, buggy ses controller, dead HDD, or an ATA HDD in a SAS slot");
 		} else {
 			ATF_CHECK(r != 0);
 		}
@@ -182,12 +181,12 @@ do_getelmdevnames(const char *devname __unused, int fd)
 			size_t z = 0;
 			int da = 0, ada = 0, pass = 0, nda = 0, unknown = 0;
 
-			while(elmdn.elm_devnames[z] != '\0') {
+			while (elmdn.elm_devnames[z] != '\0') {
 				size_t e;
 				char *s;
 
 				if (elmdn.elm_devnames[z] == ',')
-					z++;	/* Skip the comma */
+					z++; /* Skip the comma */
 				s = elmdn.elm_devnames + z;
 				e = strcspn(s, "0123456789");
 				if (0 == strncmp("da", s, e))
@@ -204,8 +203,8 @@ do_getelmdevnames(const char *devname __unused, int fd)
 			}
 			/* There should be one pass dev for each non-pass dev */
 			ATF_CHECK_EQ(pass, da + ada + nda);
-			ATF_CHECK_EQ_MSG(0, unknown,
-			    "Unknown device names %s", elmdn.elm_devnames);
+			ATF_CHECK_EQ_MSG(0, unknown, "Unknown device names %s",
+			    elmdn.elm_devnames);
 		}
 	}
 	free(map);
@@ -254,18 +253,18 @@ do_getelmmap(const char *devname, int fd)
 	unsigned nobj, subenc_id;
 	int r, elm_type;
 
-	r = ioctl(fd, ENCIOC_GETNELM, (caddr_t) &nobj);
+	r = ioctl(fd, ENCIOC_GETNELM, (caddr_t)&nobj);
 	ATF_REQUIRE_EQ(r, 0);
 
 	map = calloc(nobj, sizeof(encioc_element_t));
 	ATF_REQUIRE(map != NULL);
-	r = ioctl(fd, ENCIOC_GETELMMAP, (caddr_t) map);
+	r = ioctl(fd, ENCIOC_GETELMMAP, (caddr_t)map);
 	ATF_REQUIRE_EQ(r, 0);
 
 	snprintf(cmd, sizeof(cmd), "sg_ses -p1 %s", devname);
 	pipe = popen(cmd, "r");
 	ATF_REQUIRE(pipe != NULL);
-	while(NULL != fgets(line, sizeof(line), pipe)) {
+	while (NULL != fgets(line, sizeof(line), pipe)) {
 		char elm_type_name[80];
 		int i, num_elm;
 
@@ -303,8 +302,8 @@ do_getelmmap(const char *devname, int fd)
 		return (false);
 	} else {
 		ATF_CHECK_EQ_MSG(nobj, elm_idx,
-				"Did not find the expected number of element "
-				"descriptors in sg_ses's output");
+		    "Did not find the expected number of element "
+		    "descriptors in sg_ses's output");
 		return (true);
 	}
 }
@@ -333,12 +332,12 @@ do_getelmstat(const char *devname, int fd)
 	int r, elm_subidx;
 	elm_type_t last_elm_type = -1;
 
-	r = ioctl(fd, ENCIOC_GETNELM, (caddr_t) &nobj);
+	r = ioctl(fd, ENCIOC_GETNELM, (caddr_t)&nobj);
 	ATF_REQUIRE_EQ(r, 0);
 
 	map = calloc(nobj, sizeof(encioc_element_t));
 	ATF_REQUIRE(map != NULL);
-	r = ioctl(fd, ENCIOC_GETELMMAP, (caddr_t) map);
+	r = ioctl(fd, ENCIOC_GETELMMAP, (caddr_t)map);
 
 	for (elm_idx = 0; elm_idx < nobj; elm_subidx++, elm_idx++) {
 		encioc_elm_status_t e_status;
@@ -412,7 +411,7 @@ do_getencid(const char *devname, int fd)
 	pipe = popen(cmd, "r");
 	ATF_REQUIRE(pipe != NULL);
 	sg_encid[0] = '\0';
-	while(NULL != fgets(line, sizeof(line), pipe)) {
+	while (NULL != fgets(line, sizeof(line), pipe)) {
 		const char *f = "      enclosure logical identifier (hex): %s";
 
 		if (1 == fscanf(pipe, f, sg_encid))
@@ -422,11 +421,11 @@ do_getencid(const char *devname, int fd)
 
 	stri.bufsiz = sizeof(encid);
 	stri.buf = &encid[0];
-	r = ioctl(fd, ENCIOC_GETENCID, (caddr_t) &stri);
+	r = ioctl(fd, ENCIOC_GETENCID, (caddr_t)&stri);
 	ATF_REQUIRE_EQ(r, 0);
 	if (sg_ses_r == 0) {
 		ATF_REQUIRE(sg_encid[0] != '\0');
-		ATF_CHECK_STREQ(sg_encid, (char*)stri.buf);
+		ATF_CHECK_STREQ(sg_encid, (char *)stri.buf);
 		return (true);
 	} else {
 		/* Probably SGPIO; sg_ses unsupported */
@@ -459,11 +458,13 @@ do_getencname(const char *devname, int fd)
 	char line[256];
 	int r;
 
-	snprintf(cmd, sizeof(cmd), "sg_inq -o %s | awk '"
-		"/Vendor identification/ {vi=$NF} "
-		"/Product identification/ {pi=$NF} "
-		"/Product revision level/ {prl=$NF} "
-		"END {printf(vi \" \" pi \" \" prl)}'", devname);
+	snprintf(cmd, sizeof(cmd),
+	    "sg_inq -o %s | awk '"
+	    "/Vendor identification/ {vi=$NF} "
+	    "/Product identification/ {pi=$NF} "
+	    "/Product revision level/ {prl=$NF} "
+	    "END {printf(vi \" \" pi \" \" prl)}'",
+	    devname);
 	pipe = popen(cmd, "r");
 	ATF_REQUIRE(pipe != NULL);
 	ATF_REQUIRE(NULL != fgets(line, sizeof(line), pipe));
@@ -471,13 +472,13 @@ do_getencname(const char *devname, int fd)
 
 	stri.bufsiz = sizeof(encname);
 	stri.buf = &encname[0];
-	r = ioctl(fd, ENCIOC_GETENCNAME, (caddr_t) &stri);
+	r = ioctl(fd, ENCIOC_GETENCNAME, (caddr_t)&stri);
 	ATF_REQUIRE_EQ(r, 0);
 	if (strlen(line) < 3) {
 		// Probably an SGPIO device, INQUIRY unsupported
 		return (false);
 	} else {
-		ATF_CHECK_STREQ(line, (char*)stri.buf);
+		ATF_CHECK_STREQ(line, (char *)stri.buf);
 		return (true);
 	}
 }
@@ -505,9 +506,10 @@ do_getencstat(const char *devname, int fd)
 	unsigned char e, estat, invop, info, noncrit, crit, unrecov;
 	int r;
 
-	snprintf(cmd, sizeof(cmd), "sg_ses -p2 %s "
-		"| grep 'INVOP='",
-		devname);
+	snprintf(cmd, sizeof(cmd),
+	    "sg_ses -p2 %s "
+	    "| grep 'INVOP='",
+	    devname);
 	pipe = popen(cmd, "r");
 	ATF_REQUIRE(pipe != NULL);
 	r = fscanf(pipe,
@@ -518,7 +520,7 @@ do_getencstat(const char *devname, int fd)
 		/* Probably on SGPIO device */
 		return (false);
 	} else {
-		r = ioctl(fd, ENCIOC_GETENCSTAT, (caddr_t) &estat);
+		r = ioctl(fd, ENCIOC_GETENCSTAT, (caddr_t)&estat);
 		ATF_REQUIRE_EQ(r, 0);
 		/* Exclude the info bit because it changes frequently */
 		e = (invop << 4) | (noncrit << 2) | (crit << 1) | unrecov;
@@ -555,18 +557,18 @@ do_getnelm(const char *devname, int fd)
 	pipe = popen(cmd, "r");
 	ATF_REQUIRE(pipe != NULL);
 
-	while(NULL != fgets(line, sizeof(line), pipe)) {
+	while (NULL != fgets(line, sizeof(line), pipe)) {
 		unsigned nelm;
 
-		if (1 == fscanf(pipe, "      number of possible elements: %u",
-		    &nelm))
-		{
-			expected += 1 + nelm;	// +1 for the Overall element
+		if (1 ==
+		    fscanf(pipe, "      number of possible elements: %u",
+			&nelm)) {
+			expected += 1 + nelm; // +1 for the Overall element
 		}
 	}
 	sg_ses_r = pclose(pipe);
 
-	r = ioctl(fd, ENCIOC_GETNELM, (caddr_t) &nobj);
+	r = ioctl(fd, ENCIOC_GETNELM, (caddr_t)&nobj);
 	ATF_REQUIRE_EQ(r, 0);
 	if (sg_ses_r == 0) {
 		ATF_CHECK_EQ(expected, nobj);
@@ -620,7 +622,7 @@ do_getstring(const char *devname, int fd)
 
 	str_in.bufsiz = 65535;
 	str_in.buf = ses_buf;
-	r = ioctl(fd, ENCIOC_GETSTRING, (caddr_t) &str_in);
+	r = ioctl(fd, ENCIOC_GETSTRING, (caddr_t)&str_in);
 	ATF_REQUIRE_EQ(r, 0);
 	ATF_CHECK_EQ(sg_ses_count, (ssize_t)str_in.bufsiz);
 	ATF_CHECK_EQ(0, memcmp(sg_ses_buf, ses_buf, str_in.bufsiz));
@@ -643,7 +645,8 @@ ATF_TC_BODY(getstring, tc)
 {
 	if (!has_ses())
 		atf_tc_skip("No ses devices found");
-	atf_tc_expect_fail("Bug 258188 ENCIO_GETSTRING does not set the string's returned size");
+	atf_tc_expect_fail(
+	    "Bug 258188 ENCIO_GETSTRING does not set the string's returned size");
 	for_each_ses_dev(do_getstring, O_RDWR);
 }
 

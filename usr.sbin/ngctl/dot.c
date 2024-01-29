@@ -6,7 +6,7 @@
  * Copyright (c) 2004 Brian Fundakowski Feldman
  * Copyright (c) 1996-1999 Whistle Communications, Inc.
  * All rights reserved.
- * 
+ *
  * Subject to the following obligations and disclaimer of warranty, use and
  * redistribution of this software, in source or object code forms, with or
  * without modifications are expressly permitted by Whistle Communications;
@@ -17,7 +17,7 @@
  *    Communications, Inc. trademarks, including the mark "WHISTLE
  *    COMMUNICATIONS" on advertising, endorsements, or otherwise except as
  *    such appears in the above copyright notice or in the software.
- * 
+ *
  * THIS SOFTWARE IS BEING PROVIDED BY WHISTLE COMMUNICATIONS "AS IS", AND
  * TO THE MAXIMUM EXTENT PERMITTED BY LAW, WHISTLE COMMUNICATIONS MAKES NO
  * REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED, REGARDING THIS SOFTWARE,
@@ -46,19 +46,16 @@
 
 #include "ngctl.h"
 
-#define UNNAMED		"\\<unnamed\\>"
+#define UNNAMED "\\<unnamed\\>"
 
 static int DotCmd(int ac, char **av);
 
-const struct ngcmd dot_cmd = {
-	DotCmd,
-	"dot [-c] [outputfile]",
+const struct ngcmd dot_cmd = { DotCmd, "dot [-c] [outputfile]",
 	"Produce a GraphViz (.dot) of the entire netgraph.",
 	"If no outputfile is specified, stdout will be assumed."
 	" The optional -c argument generates a graph without separate"
 	" structures for edge names. Such a graph is more compact.",
-	{ "graphviz", "confdot" }
-};
+	{ "graphviz", "confdot" } };
 
 static int
 DotCmd(int ac, char **av)
@@ -103,8 +100,8 @@ DotCmd(int ac, char **av)
 	}
 
 	/* Get list of nodes */
-	if (NgSendMsg(csock, ".", NGM_GENERIC_COOKIE, NGM_LISTNODES, NULL,
-	    0) < 0) {
+	if (NgSendMsg(csock, ".", NGM_GENERIC_COOKIE, NGM_LISTNODES, NULL, 0) <
+	    0) {
 		warn("send listnodes msg");
 		goto error;
 	}
@@ -127,7 +124,8 @@ DotCmd(int ac, char **av)
 		fprintf(f, "\t\t\"%jx\" [ label = \"{%s:|{%s|[%jx]:}}\" ];\n",
 		    (uintmax_t)nlist->nodeinfo[i].id,
 		    nlist->nodeinfo[i].name[0] != '\0' ?
-		    nlist->nodeinfo[i].name : UNNAMED,
+			nlist->nodeinfo[i].name :
+			UNNAMED,
 		    nlist->nodeinfo[i].type, (uintmax_t)nlist->nodeinfo[i].id);
 	fprintf(f, "\t};\n");
 
@@ -146,12 +144,12 @@ DotCmd(int ac, char **av)
 		char path[NG_PATHSIZ];
 		u_int j;
 
-		(void)snprintf(path, sizeof(path), "[%jx]:",
-		    (uintmax_t)nlist->nodeinfo[i].id);
+		(void)snprintf(path, sizeof(path),
+		    "[%jx]:", (uintmax_t)nlist->nodeinfo[i].id);
 
 		/* Get node info and hook list */
 		if (NgSendMsg(csock, path, NGM_GENERIC_COOKIE, NGM_LISTHOOKS,
-		    NULL, 0) < 0) {
+			NULL, 0) < 0) {
 			free(nlresp);
 			warn("send listhooks msg");
 			goto error;
@@ -170,14 +168,18 @@ DotCmd(int ac, char **av)
 		}
 
 		if (!compact) {
-			fprintf(f, "\tnode [ shape = octagon, fontsize = 10 ] {\n");
+			fprintf(f,
+			    "\tnode [ shape = octagon, fontsize = 10 ] {\n");
 			for (j = 0; j < ninfo->hooks; j++)
-				fprintf(f, "\t\t\"%jx.%s\" [ label = \"%s\" ];\n",
+				fprintf(f,
+				    "\t\t\"%jx.%s\" [ label = \"%s\" ];\n",
 				    (uintmax_t)nlist->nodeinfo[i].id,
-				    hlist->link[j].ourhook, hlist->link[j].ourhook);
+				    hlist->link[j].ourhook,
+				    hlist->link[j].ourhook);
 			fprintf(f, "\t};\n");
 
-			fprintf(f, "\t{\n\t\tedge [ weight = 2.0, style = bold ];\n");
+			fprintf(f,
+			    "\t{\n\t\tedge [ weight = 2.0, style = bold ];\n");
 			for (j = 0; j < ninfo->hooks; j++)
 				fprintf(f, "\t\t\"%jx\" -- \"%jx.%s\";\n",
 				    (uintmax_t)nlist->nodeinfo[i].id,
@@ -191,7 +193,8 @@ DotCmd(int ac, char **av)
 			if (hlist->link[j].nodeinfo.id > nlist->nodeinfo[i].id)
 				continue;
 			if (compact) {
-				fprintf(f, "\t\"%jx\" -> \"%jx\" [ headlabel = \"%s\", taillabel = \"%s\" ] ;\n",
+				fprintf(f,
+				    "\t\"%jx\" -> \"%jx\" [ headlabel = \"%s\", taillabel = \"%s\" ] ;\n",
 				    (uintmax_t)hlist->link[j].nodeinfo.id,
 				    (uintmax_t)nlist->nodeinfo[i].id,
 				    hlist->link[j].ourhook,

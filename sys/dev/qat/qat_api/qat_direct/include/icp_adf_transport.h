@@ -61,8 +61,7 @@ typedef void (*icp_trans_callback)(void *pMsg);
  *
  */
 CpaStatus icp_adf_getDynInstance(icp_accel_dev_t *accel_dev,
-				 adf_service_type_t stype,
-				 Cpa32U *pinstance_id);
+    adf_service_type_t stype, Cpa32U *pinstance_id);
 
 /*
  * icp_adf_putDynInstance
@@ -76,8 +75,7 @@ CpaStatus icp_adf_getDynInstance(icp_accel_dev_t *accel_dev,
  *
  */
 CpaStatus icp_adf_putDynInstance(icp_accel_dev_t *accel_dev,
-				 adf_service_type_t stype,
-				 Cpa32U instance_id);
+    adf_service_type_t stype, Cpa32U instance_id);
 
 /*
  * icp_adf_getNumAvailDynInstance
@@ -91,8 +89,7 @@ CpaStatus icp_adf_putDynInstance(icp_accel_dev_t *accel_dev,
  *
  */
 CpaStatus icp_adf_getNumAvailDynInstance(icp_accel_dev_t *accel_dev,
-					 adf_service_type_t stype,
-					 Cpa32U *num);
+    adf_service_type_t stype, Cpa32U *num);
 
 /*
  * icp_adf_transGetFdForHandle
@@ -110,7 +107,7 @@ CpaStatus icp_adf_getNumAvailDynInstance(icp_accel_dev_t *accel_dev,
  *
  */
 CpaStatus icp_adf_transGetFdForHandle(icp_comms_trans_handle trans_hnd,
-				      int *fd);
+    int *fd);
 
 /*
  * icp_adf_transCreateHandle
@@ -129,17 +126,11 @@ CpaStatus icp_adf_transGetFdForHandle(icp_comms_trans_handle trans_hnd,
  *
  */
 CpaStatus icp_adf_transCreateHandle(icp_accel_dev_t *accel_dev,
-				    icp_transport_type trans_type,
-				    const char *section,
-				    const Cpa32U accel_nr,
-				    const Cpa32U bank_nr,
-				    const char *service_name,
-				    const icp_adf_ringInfoService_t info,
-				    icp_trans_callback callback,
-				    icp_resp_deliv_method resp,
-				    const Cpa32U num_msgs,
-				    const Cpa32U msg_size,
-				    icp_comms_trans_handle *trans_handle);
+    icp_transport_type trans_type, const char *section, const Cpa32U accel_nr,
+    const Cpa32U bank_nr, const char *service_name,
+    const icp_adf_ringInfoService_t info, icp_trans_callback callback,
+    icp_resp_deliv_method resp, const Cpa32U num_msgs, const Cpa32U msg_size,
+    icp_comms_trans_handle *trans_handle);
 
 /*
  * icp_adf_transReinitHandle
@@ -158,17 +149,11 @@ CpaStatus icp_adf_transCreateHandle(icp_accel_dev_t *accel_dev,
  *
  */
 CpaStatus icp_adf_transReinitHandle(icp_accel_dev_t *accel_dev,
-				    icp_transport_type trans_type,
-				    const char *section,
-				    const Cpa32U accel_nr,
-				    const Cpa32U bank_nr,
-				    const char *service_name,
-				    const icp_adf_ringInfoService_t info,
-				    icp_trans_callback callback,
-				    icp_resp_deliv_method resp,
-				    const Cpa32U num_msgs,
-				    const Cpa32U msg_size,
-				    icp_comms_trans_handle *trans_handle);
+    icp_transport_type trans_type, const char *section, const Cpa32U accel_nr,
+    const Cpa32U bank_nr, const char *service_name,
+    const icp_adf_ringInfoService_t info, icp_trans_callback callback,
+    icp_resp_deliv_method resp, const Cpa32U num_msgs, const Cpa32U msg_size,
+    icp_comms_trans_handle *trans_handle);
 
 /*
  * icp_adf_transGetHandle
@@ -182,12 +167,9 @@ CpaStatus icp_adf_transReinitHandle(icp_accel_dev_t *accel_dev,
  *
  */
 CpaStatus icp_adf_transGetHandle(icp_accel_dev_t *accel_dev,
-				 icp_transport_type trans_type,
-				 const char *section,
-				 const Cpa32U accel_nr,
-				 const Cpa32U bank_nr,
-				 const char *service_name,
-				 icp_comms_trans_handle *trans_handle);
+    icp_transport_type trans_type, const char *section, const Cpa32U accel_nr,
+    const Cpa32U bank_nr, const char *service_name,
+    icp_comms_trans_handle *trans_handle);
 
 /*
  * icp_adf_transReleaseHandle
@@ -224,8 +206,7 @@ CpaStatus icp_adf_transResetHandle(icp_comms_trans_handle trans_handle);
  *   CPA_STATUS_FAIL      on failure
  */
 CpaStatus icp_adf_transPutMsg(icp_comms_trans_handle trans_handle,
-			      Cpa32U *inBufs,
-			      Cpa32U bufLen);
+    Cpa32U *inBufs, Cpa32U bufLen);
 
 /*
  * icp_adf_getInflightRequests
@@ -238,8 +219,7 @@ CpaStatus icp_adf_transPutMsg(icp_comms_trans_handle trans_handle,
  *   CPA_STATUS_FAIL      on failure
  */
 CpaStatus icp_adf_getInflightRequests(icp_comms_trans_handle trans_handle,
-				      Cpa32U *maxInflightRequests,
-				      Cpa32U *numInflightRequests);
+    Cpa32U *maxInflightRequests, Cpa32U *numInflightRequests);
 
 /*
  * icp_adf_transPutMsgSync
@@ -253,9 +233,7 @@ CpaStatus icp_adf_getInflightRequests(icp_comms_trans_handle trans_handle,
  *   CPA_STATUS_FAIL      on failure
  */
 CpaStatus icp_adf_transPutMsgSync(icp_comms_trans_handle trans_handle,
-				  Cpa32U *inBuf,
-				  Cpa32U *outBuf,
-				  Cpa32U bufsLen);
+    Cpa32U *inBuf, Cpa32U *outBuf, Cpa32U bufsLen);
 
 /*
  * icp_adf_transGetRingNum
@@ -268,7 +246,7 @@ CpaStatus icp_adf_transPutMsgSync(icp_comms_trans_handle trans_handle,
  *   CPA_STATUS_FAIL      on failure
  */
 CpaStatus icp_adf_transGetRingNum(icp_comms_trans_handle trans_handle,
-				  Cpa32U *ringNum);
+    Cpa32U *ringNum);
 
 /*
  * icp_adf_flush_requests

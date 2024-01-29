@@ -34,30 +34,31 @@
 #include <sys/param.h>
 #include <sys/fnv_hash.h>
 
-#define	_WANT_VNET
+#define _WANT_VNET
 
-#include <sys/user.h>
 #include <sys/linker.h>
+#include <sys/mman.h>
 #include <sys/pcpu.h>
 #include <sys/stat.h>
-#include <sys/mman.h>
+#include <sys/user.h>
 
-#include <stdbool.h>
+#include <vm/vm.h>
+
 #include <net/vnet.h>
 
 #include <assert.h>
 #include <fcntl.h>
-#include <vm/vm.h>
+#include <inttypes.h>
 #include <kvm.h>
 #include <limits.h>
 #include <paths.h>
+#include <stdarg.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <stdarg.h>
-#include <inttypes.h>
 
 #include "kvm_private.h"
 
@@ -85,8 +86,7 @@ _kvm_err(kvm_t *kd, const char *program, const char *fmt, ...)
 		(void)vfprintf(stderr, fmt, ap);
 		(void)fputc('\n', stderr);
 	} else
-		(void)vsnprintf(kd->errbuf,
-		    sizeof(kd->errbuf), fmt, ap);
+		(void)vsnprintf(kd->errbuf, sizeof(kd->errbuf), fmt, ap);
 
 	va_end(ap);
 }
@@ -119,8 +119,8 @@ _kvm_malloc(kvm_t *kd, size_t n)
 	void *p;
 
 	if ((p = calloc(n, sizeof(char))) == NULL)
-		_kvm_err(kd, kd->program, "can't allocate %zu bytes: %s",
-			 n, strerror(errno));
+		_kvm_err(kd, kd->program, "can't allocate %zu bytes: %s", n,
+		    strerror(errno));
 	return (p);
 }
 
@@ -130,7 +130,8 @@ _kvm_probe_elf_kernel(kvm_t *kd, int class, int machine)
 
 	return (kd->nlehdr.e_ident[EI_CLASS] == class &&
 	    ((machine == EM_PPC || machine == EM_PPC64) ?
-	     kd->nlehdr.e_type == ET_DYN : kd->nlehdr.e_type == ET_EXEC) &&
+		    kd->nlehdr.e_type == ET_DYN :
+		    kd->nlehdr.e_type == ET_EXEC) &&
 	    kd->nlehdr.e_machine == machine);
 }
 
@@ -316,8 +317,8 @@ _kvm_pt_init(kvm_t *kd, size_t dump_avail_size, off_t dump_avail_off,
 	 */
 	kd->pt_map = _kvm_malloc(kd, map_len);
 	if (kd->pt_map == NULL) {
-		_kvm_err(kd, kd->program, "cannot allocate %zu bytes for bitmap",
-		    map_len);
+		_kvm_err(kd, kd->program,
+		    "cannot allocate %zu bytes for bitmap", map_len);
 		return (-1);
 	}
 	rd = pread(kd->pmfd, kd->pt_map, map_len, map_off);
@@ -349,7 +350,7 @@ _kvm_pt_init(kvm_t *kd, size_t dump_avail_size, off_t dump_avail_off,
 	}
 
 	for (popcount_bin = &kd->pt_popcounts[1]; res > 0;
-	    addr++, res -= sizeof(*addr)) {
+	     addr++, res -= sizeof(*addr)) {
 		*popcount_bin += popcount_bytes(addr, 0,
 		    MIN(res * NBBY, BITS_IN(*addr)));
 		if (++bin_popcounts == POPCOUNTS_IN(*addr)) {
@@ -372,13 +373,14 @@ _kvm_pt_init(kvm_t *kd, size_t dump_avail_size, off_t dump_avail_off,
 	 * this is much larger than is reasonable to read in up front, so
 	 * mmap it in instead.
 	 */
-	kd->sparse_map = mmap(NULL, kd->pt_sparse_size, PROT_READ,
-	    MAP_PRIVATE, kd->pmfd, kd->pt_sparse_off);
+	kd->sparse_map = mmap(NULL, kd->pt_sparse_size, PROT_READ, MAP_PRIVATE,
+	    kd->pmfd, kd->pt_sparse_off);
 	if (kd->sparse_map == MAP_FAILED) {
-		_kvm_err(kd, kd->program, "cannot map %" PRIu64
+		_kvm_err(kd, kd->program,
+		    "cannot map %" PRIu64
 		    " bytes from fd %d offset %jd for sparse map: %s",
-		    kd->pt_sparse_size, kd->pmfd,
-		    (intmax_t)kd->pt_sparse_off, strerror(errno));
+		    kd->pt_sparse_size, kd->pmfd, (intmax_t)kd->pt_sparse_off,
+		    strerror(errno));
 		return (-1);
 	}
 	return (0);
@@ -393,13 +395,17 @@ _kvm_pmap_init(kvm_t *kd, uint32_t pmap_size, off_t pmap_off)
 	kd->page_map_off = pmap_off;
 	kd->page_map = _kvm_malloc(kd, pmap_size);
 	if (kd->page_map == NULL) {
-		_kvm_err(kd, kd->program, "cannot allocate %u bytes "
-		    "for page map", pmap_size);
+		_kvm_err(kd, kd->program,
+		    "cannot allocate %u bytes "
+		    "for page map",
+		    pmap_size);
 		return (-1);
 	}
 	if (pread(kd->pmfd, kd->page_map, pmap_size, pmap_off) != exp_len) {
-		_kvm_err(kd, kd->program, "cannot read %d bytes from "
-		    "offset %jd for page map", pmap_size, (intmax_t)pmap_off);
+		_kvm_err(kd, kd->program,
+		    "cannot read %d bytes from "
+		    "offset %jd for page map",
+		    pmap_size, (intmax_t)pmap_off);
 		return (-1);
 	}
 	return (0);
@@ -486,9 +492,9 @@ _kvm_pt_find(kvm_t *kd, uint64_t pa, unsigned int page_size)
 	 * minimize the number of popcounts required.
 	 */
 	if ((pte_bit_id % POPCOUNT_BITS) < (POPCOUNT_BITS / 2)) {
-		count = kd->pt_popcounts[popcount_id] + popcount_bytes(
-		    bitmap + popcount_id * POPCOUNTS_IN(*bitmap),
-		    0, pte_bit_id - popcount_id * POPCOUNT_BITS);
+		count = kd->pt_popcounts[popcount_id] +
+		    popcount_bytes(bitmap + popcount_id * POPCOUNTS_IN(*bitmap),
+			0, pte_bit_id - popcount_id * POPCOUNT_BITS);
 	} else {
 		/*
 		 * Counting in reverse is trickier, since we must avoid
@@ -499,9 +505,9 @@ _kvm_pt_find(kvm_t *kd, uint64_t pa, unsigned int page_size)
 		popcount_id++;
 		bitN = MIN(popcount_id * POPCOUNT_BITS,
 		    kd->pt_map_size * BITS_IN(uint8_t));
-		count = kd->pt_popcounts[popcount_id] - popcount_bytes(
-		    bitmap + pte_u64,
-		    pte_bit_id - pte_u64_bit_off, bitN - pte_u64_bit_off);
+		count = kd->pt_popcounts[popcount_id] -
+		    popcount_bytes(bitmap + pte_u64,
+			pte_bit_id - pte_u64_bit_off, bitN - pte_u64_bit_off);
 	}
 
 	/*
@@ -525,7 +531,8 @@ kvm_fdnlist(kvm_t *kd, struct kvm_nlist *list)
 		int count, i;
 
 		for (count = 0; list[count].n_name != NULL &&
-		     list[count].n_name[0] != '\0'; count++)
+		     list[count].n_name[0] != '\0';
+		     count++)
 			;
 		nl = calloc(count + 1, sizeof(*nl));
 		for (i = 0; i < count; i++)
@@ -607,7 +614,9 @@ kvm_fdnlist_prefix(kvm_t *kd, struct kvm_nlist *nl, int missing,
 		/* Save the new\0orig. name so we can later match it again. */
 		slen = snprintf(cp, ce - cp, "%s%s%c%s", prefix,
 		    (prefix[0] != '\0' && p->n_name[0] == '_') ?
-			(p->n_name + 1) : p->n_name, '\0', p->n_name);
+			(p->n_name + 1) :
+			p->n_name,
+		    '\0', p->n_name);
 		if (slen < 0 || slen >= ce - cp)
 			continue;
 		np->n_name = cp;
@@ -630,8 +639,9 @@ kvm_fdnlist_prefix(kvm_t *kd, struct kvm_nlist *nl, int missing,
 		 * The lists are both in the same order,
 		 * so we can walk them in parallel.
 		 */
-		for (p = nl; np->n_name && np->n_name[0] &&
-		    p->n_name && p->n_name[0]; ++p) {
+		for (p = nl;
+		     np->n_name && np->n_name[0] && p->n_name && p->n_name[0];
+		     ++p) {
 			if (p->n_type != N_UNDF)
 				continue;
 			/* Skip expanded name and compare to orig. one. */
@@ -674,7 +684,7 @@ _kvm_nlist(kvm_t *kd, struct kvm_nlist *nl, int initialize)
 	 */
 	if (!ISALIVE(kd)) {
 		error = kvm_fdnlist(kd, nl);
-		if (error <= 0)			/* Hard error or success. */
+		if (error <= 0) /* Hard error or success. */
 			return (error);
 
 		if (_kvm_vnet_initialized(kd, initialize))
@@ -706,7 +716,8 @@ again:
 
 		error = snprintf(symname, sizeof(symname), "%s%s", prefix,
 		    (prefix[0] != '\0' && p->n_name[0] == '_') ?
-			(p->n_name + 1) : p->n_name);
+			(p->n_name + 1) :
+			p->n_name);
 		if (error < 0 || error >= (int)sizeof(symname))
 			continue;
 		lookup.symname = symname;
@@ -717,12 +728,12 @@ again:
 			p->n_type = N_TEXT;
 			if (_kvm_vnet_initialized(kd, initialize) &&
 			    strcmp(prefix, VNET_SYMPREFIX) == 0)
-				p->n_value =
-				    _kvm_vnet_validaddr(kd, lookup.symvalue);
+				p->n_value = _kvm_vnet_validaddr(kd,
+				    lookup.symvalue);
 			else if (_kvm_dpcpu_initialized(kd, initialize) &&
 			    strcmp(prefix, DPCPU_SYMPREFIX) == 0)
-				p->n_value =
-				    _kvm_dpcpu_validaddr(kd, lookup.symvalue);
+				p->n_value = _kvm_dpcpu_validaddr(kd,
+				    lookup.symvalue);
 			else
 				p->n_value = lookup.symvalue;
 			++nvalid;

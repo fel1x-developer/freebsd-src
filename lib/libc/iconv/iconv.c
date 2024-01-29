@@ -27,13 +27,14 @@
  */
 
 #include <sys/types.h>
+
 #include <iconv.h>
+
 #include "iconv-internal.h"
 
 size_t
-iconv(iconv_t a, char ** __restrict b,
-      size_t * __restrict c, char ** __restrict d,
-      size_t * __restrict e)
+iconv(iconv_t a, char **__restrict b, size_t *__restrict c, char **__restrict d,
+    size_t *__restrict e)
 {
 	return __bsd_iconv(a, b, c, d, e);
 }

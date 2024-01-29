@@ -30,8 +30,8 @@
 
 #include "config.h"
 #include "externs.h"
-#include "pathnames.h"
-#include "macros.h"
-#include "structs.h"
 #include "funcs.h"
 #include "globals.h"
+#include "macros.h"
+#include "pathnames.h"
+#include "structs.h"

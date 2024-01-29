@@ -30,71 +30,66 @@
  * SUCH DAMAGE.
  */
 
-
 /*
  * Hack to provide libevent (see devel/libevent port) like API.
  * Should be removed if FreeBSD ever decides to import libevent into base.
  */
 
-#ifndef	_EVENT_H_
-#define	_EVENT_H_	1
+#ifndef _EVENT_H_
+#define _EVENT_H_ 1
 
-#define	EV_READ         0x02
-#define	EV_WRITE        0x04
-#define	EV_PERSIST      0x10		/* Persistent event */
-#define	EV_PENDING	(1 << 13)	/* internal use only! */
-#define	EV_HAS_TIMEOUT	(1 << 14)	/* internal use only! */
-#define	EV_CURRENT	(1 << 15)	/* internal use only! */
+#define EV_READ 0x02
+#define EV_WRITE 0x04
+#define EV_PERSIST 0x10		 /* Persistent event */
+#define EV_PENDING (1 << 13)	 /* internal use only! */
+#define EV_HAS_TIMEOUT (1 << 14) /* internal use only! */
+#define EV_CURRENT (1 << 15)	 /* internal use only! */
 
-struct event
-{
-	int			fd;
-	short			flags;
-	void			(*cb)(int, short, void *);
-	void			*cbarg;
-	struct timeval		timeout;
-	struct timeval		expire;
+struct event {
+	int fd;
+	short flags;
+	void (*cb)(int, short, void *);
+	void *cbarg;
+	struct timeval timeout;
+	struct timeval expire;
 
-#ifdef	EVENT_DEBUG
-	char const		*files[3];
-	int			lines[3];
+#ifdef EVENT_DEBUG
+	char const *files[3];
+	int lines[3];
 #endif
 
-	TAILQ_ENTRY(event)	next;
+	TAILQ_ENTRY(event) next;
 };
 
-void	event_init	(void);
-int	event_dispatch	(void);
+void event_init(void);
+int event_dispatch(void);
 
-void	__event_set	(struct event *, int, short,
-			 void (*)(int, short, void *), void *);
-int	__event_add	(struct event *, struct timeval const *);
-int	__event_del	(struct event *);
+void __event_set(struct event *, int, short, void (*)(int, short, void *),
+    void *);
+int __event_add(struct event *, struct timeval const *);
+int __event_del(struct event *);
 
-#ifdef	EVENT_DEBUG
-#define event_log_err(fmt, args...)	syslog(LOG_ERR, fmt, ##args)
-#define event_log_info(fmt, args...)	syslog(LOG_INFO, fmt, ##args)
-#define event_log_notice(fmt, args...)	syslog(LOG_NOTICE, fmt, ##args)
-#define event_log_debug(fmt, args...)	syslog(LOG_DEBUG, fmt, ##args)
+#ifdef EVENT_DEBUG
+#define event_log_err(fmt, args...) syslog(LOG_ERR, fmt, ##args)
+#define event_log_info(fmt, args...) syslog(LOG_INFO, fmt, ##args)
+#define event_log_notice(fmt, args...) syslog(LOG_NOTICE, fmt, ##args)
+#define event_log_debug(fmt, args...) syslog(LOG_DEBUG, fmt, ##args)
 
-#define	event_set(ev, fd, flags, cb, cbarg) \
+#define event_set(ev, fd, flags, cb, cbarg) \
 	_event_set(__FILE__, __LINE__, ev, fd, flags, cb, cbarg)
-#define	event_add(ev, timeout) \
-	_event_add(__FILE__, __LINE__, ev, timeout)
-#define	event_del(ev) \
-	_event_del(__FILE__, __LINE__, ev)
+#define event_add(ev, timeout) _event_add(__FILE__, __LINE__, ev, timeout)
+#define event_del(ev) _event_del(__FILE__, __LINE__, ev)
 
-#define	evtimer_set(ev, cb, cbarg) \
+#define evtimer_set(ev, cb, cbarg) \
 	_event_set(__FILE__, __LINE__, ev, -1, 0, cb, cbarg)
-#define	evtimer_add(ev, timeout) \
-	_event_add(__FILE__, __LINE__, ev, timeout)
+#define evtimer_add(ev, timeout) _event_add(__FILE__, __LINE__, ev, timeout)
 
 static inline void
 _event_set(char const *file, int line, struct event *ev, int fd, short flags,
-		void (*cb)(int, short, void *), void *cbarg)
+    void (*cb)(int, short, void *), void *cbarg)
 {
 	event_log_debug("set %s:%d ev=%p, fd=%d, flags=%#x, cb=%p, cbarg=%p",
-		file, line, ev, fd, flags, cb, cbarg);
+	    file, line, ev, fd, flags, cb, cbarg);
 
 	ev->files[0] = file;
 	ev->lines[0] = line;
@@ -104,10 +99,11 @@ _event_set(char const *file, int line, struct event *ev, int fd, short flags,
 
 static inline int
 _event_add(char const *file, int line, struct event *ev,
-		struct timeval const *timeout) {
-	event_log_debug("add %s:%d ev=%p, fd=%d, flags=%#x, cb=%p, cbarg=%p, " \
-		"timeout=%p", file, line, ev, ev->fd, ev->flags, ev->cb,
-		ev->cbarg, timeout);
+    struct timeval const *timeout)
+{
+	event_log_debug("add %s:%d ev=%p, fd=%d, flags=%#x, cb=%p, cbarg=%p, "
+			"timeout=%p",
+	    file, line, ev, ev->fd, ev->flags, ev->cb, ev->cbarg, timeout);
 
 	ev->files[1] = file;
 	ev->lines[1] = line;
@@ -119,7 +115,7 @@ static inline int
 _event_del(char const *file, int line, struct event *ev)
 {
 	event_log_debug("del %s:%d ev=%p, fd=%d, flags=%#x, cb=%p, cbarg=%p",
-		file, line, ev, ev->fd, ev->flags, ev->cb, ev->cbarg);
+	    file, line, ev, ev->fd, ev->flags, ev->cb, ev->cbarg);
 
 	ev->files[2] = file;
 	ev->lines[2] = line;
@@ -132,17 +128,13 @@ _event_del(char const *file, int line, struct event *ev)
 #define event_log_notice(fmt, args...)
 #define event_log_debug(fmt, args...)
 
-#define	event_set(ev, fd, flags, cb, cbarg) \
+#define event_set(ev, fd, flags, cb, cbarg) \
 	__event_set(ev, fd, flags, cb, cbarg)
-#define	event_add(ev, timeout) \
-	__event_add(ev, timeout)
-#define	event_del(ev) \
-	__event_del(ev)
+#define event_add(ev, timeout) __event_add(ev, timeout)
+#define event_del(ev) __event_del(ev)
 
-#define	evtimer_set(ev, cb, cbarg) \
-	__event_set(ev, -1, 0, cb, cbarg)
-#define	evtimer_add(ev, timeout) \
-	__event_add(ev, timeout)
-#endif	/* EVENT_DEBUG */
+#define evtimer_set(ev, cb, cbarg) __event_set(ev, -1, 0, cb, cbarg)
+#define evtimer_add(ev, timeout) __event_add(ev, timeout)
+#endif /* EVENT_DEBUG */
 
-#endif	/* ndef _EVENT_H_ */
+#endif /* ndef _EVENT_H_ */

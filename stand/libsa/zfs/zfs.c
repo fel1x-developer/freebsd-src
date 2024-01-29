@@ -29,46 +29,46 @@
  *	Stand-alone file reading package.
  */
 
-#include <stand.h>
-#include <sys/disk.h>
 #include <sys/param.h>
-#include <sys/time.h>
+#include <sys/disk.h>
 #include <sys/queue.h>
-#include <part.h>
-#include <stddef.h>
-#include <stdarg.h>
-#include <string.h>
+#include <sys/time.h>
+
 #include <bootstrap.h>
+#include <part.h>
+#include <stand.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <string.h>
 
 #include "libzfs.h"
 
 #include "zfsimpl.c"
 
 /* Define the range of indexes to be populated with ZFS Boot Environments */
-#define		ZFS_BE_FIRST	4
-#define		ZFS_BE_LAST	8
+#define ZFS_BE_FIRST 4
+#define ZFS_BE_LAST 8
 
-static int	zfs_open(const char *path, struct open_file *f);
-static int	zfs_close(struct open_file *f);
-static int	zfs_read(struct open_file *f, void *buf, size_t size, size_t *resid);
-static off_t	zfs_seek(struct open_file *f, off_t offset, int where);
-static int	zfs_stat(struct open_file *f, struct stat *sb);
-static int	zfs_readdir(struct open_file *f, struct dirent *d);
-static int	zfs_mount(const char *dev, const char *path, void **data);
-static int	zfs_unmount(const char *dev, void *data);
+static int zfs_open(const char *path, struct open_file *f);
+static int zfs_close(struct open_file *f);
+static int zfs_read(struct open_file *f, void *buf, size_t size, size_t *resid);
+static off_t zfs_seek(struct open_file *f, off_t offset, int where);
+static int zfs_stat(struct open_file *f, struct stat *sb);
+static int zfs_readdir(struct open_file *f, struct dirent *d);
+static int zfs_mount(const char *dev, const char *path, void **data);
+static int zfs_unmount(const char *dev, void *data);
 
-static void	zfs_bootenv_initial(const char *envname, spa_t *spa,
-		    const char *name, const char *dsname, int checkpoint);
-static void	zfs_checkpoints_initial(spa_t *spa, const char *name,
-		    const char *dsname);
+static void zfs_bootenv_initial(const char *envname, spa_t *spa,
+    const char *name, const char *dsname, int checkpoint);
+static void zfs_checkpoints_initial(spa_t *spa, const char *name,
+    const char *dsname);
 
-static int	zfs_parsedev(struct devdesc **idev, const char *devspec,
-		    const char **path);
+static int zfs_parsedev(struct devdesc **idev, const char *devspec,
+    const char **path);
 
 struct devsw zfs_dev;
 
-struct fs_ops zfs_fsops = {
-	.fs_name = "zfs",
+struct fs_ops zfs_fsops = { .fs_name = "zfs",
 	.fo_open = zfs_open,
 	.fo_close = zfs_close,
 	.fo_read = zfs_read,
@@ -77,24 +77,24 @@ struct fs_ops zfs_fsops = {
 	.fo_stat = zfs_stat,
 	.fo_readdir = zfs_readdir,
 	.fo_mount = zfs_mount,
-	.fo_unmount = zfs_unmount
-};
+	.fo_unmount = zfs_unmount };
 
 /*
  * In-core open file.
  */
 struct file {
-	off_t		f_seekp;	/* seek pointer */
-	dnode_phys_t	f_dnode;
-	uint64_t	f_zap_type;	/* zap type for readdir */
-	uint64_t	f_num_leafs;	/* number of fzap leaf blocks */
-	zap_leaf_phys_t	*f_zap_leaf;	/* zap leaf buffer */
+	off_t f_seekp; /* seek pointer */
+	dnode_phys_t f_dnode;
+	uint64_t f_zap_type;	     /* zap type for readdir */
+	uint64_t f_num_leafs;	     /* number of fzap leaf blocks */
+	zap_leaf_phys_t *f_zap_leaf; /* zap leaf buffer */
 };
 
-static int	zfs_env_index;
-static int	zfs_env_count;
+static int zfs_env_index;
+static int zfs_env_count;
 
-SLIST_HEAD(zfs_be_list, zfs_be_entry) zfs_be_head = SLIST_HEAD_INITIALIZER(zfs_be_head);
+SLIST_HEAD(zfs_be_list, zfs_be_entry) zfs_be_head = SLIST_HEAD_INITIALIZER(
+    zfs_be_head);
 struct zfs_be_list *zfs_be_headp;
 struct zfs_be_entry {
 	char *name;
@@ -147,7 +147,7 @@ zfs_close(struct open_file *f)
  * Cross block boundaries when necessary.
  */
 static int
-zfs_read(struct open_file *f, void *start, size_t size, size_t *resid	/* out */)
+zfs_read(struct open_file *f, void *start, size_t size, size_t *resid /* out */)
 {
 	struct devdesc *dev = f->f_devdata;
 	const spa_t *spa = ((struct zfsmount *)dev->d_opendata)->spa;
@@ -168,9 +168,9 @@ zfs_read(struct open_file *f, void *start, size_t size, size_t *resid	/* out */)
 		return (rc);
 
 	if (0) {
-	    int i;
-	    for (i = 0; i < n; i++)
-		putchar(((char*) start)[i]);
+		int i;
+		for (i = 0; i < n; i++)
+			putchar(((char *)start)[i]);
 	}
 	fp->f_seekp += n;
 	if (resid)
@@ -191,8 +191,7 @@ zfs_seek(struct open_file *f, off_t offset, int where)
 	case SEEK_CUR:
 		fp->f_seekp += offset;
 		break;
-	case SEEK_END:
-	    {
+	case SEEK_END: {
 		struct stat sb;
 		int error;
 
@@ -203,7 +202,7 @@ zfs_seek(struct open_file *f, off_t offset, int where)
 		}
 		fp->f_seekp = sb.st_size - offset;
 		break;
-	    }
+	}
 	default:
 		errno = EINVAL;
 		return (-1);
@@ -242,8 +241,8 @@ zfs_readdir(struct open_file *f, struct dirent *d)
 	 * If this is the first read, get the zap type.
 	 */
 	if (fp->f_seekp == 0) {
-		rc = dnode_read(spa, &fp->f_dnode,
-				0, &fp->f_zap_type, sizeof(fp->f_zap_type));
+		rc = dnode_read(spa, &fp->f_dnode, 0, &fp->f_zap_type,
+		    sizeof(fp->f_zap_type));
 		if (rc)
 			return (rc);
 
@@ -251,9 +250,8 @@ zfs_readdir(struct open_file *f, struct dirent *d)
 			fp->f_seekp = offsetof(mzap_phys_t, mz_chunk);
 		} else {
 			rc = dnode_read(spa, &fp->f_dnode,
-					offsetof(zap_phys_t, zap_num_leafs),
-					&fp->f_num_leafs,
-					sizeof(fp->f_num_leafs));
+			    offsetof(zap_phys_t, zap_num_leafs),
+			    &fp->f_num_leafs, sizeof(fp->f_num_leafs));
 			if (rc)
 				return (rc);
 
@@ -261,10 +259,8 @@ zfs_readdir(struct open_file *f, struct dirent *d)
 			fp->f_zap_leaf = malloc(bsize);
 			if (fp->f_zap_leaf == NULL)
 				return (ENOMEM);
-			rc = dnode_read(spa, &fp->f_dnode,
-					fp->f_seekp,
-					fp->f_zap_leaf,
-					bsize);
+			rc = dnode_read(spa, &fp->f_dnode, fp->f_seekp,
+			    fp->f_zap_leaf, bsize);
 			if (rc)
 				return (rc);
 		}
@@ -275,8 +271,8 @@ zfs_readdir(struct open_file *f, struct dirent *d)
 		if (fp->f_seekp >= bsize)
 			return (ENOENT);
 
-		rc = dnode_read(spa, &fp->f_dnode,
-				fp->f_seekp, &mze, sizeof(mze));
+		rc = dnode_read(spa, &fp->f_dnode, fp->f_seekp, &mze,
+		    sizeof(mze));
 		if (rc)
 			return (rc);
 		fp->f_seekp += sizeof(mze);
@@ -321,10 +317,8 @@ zfs_readdir(struct open_file *f, struct dirent *d)
 			if (fp->f_seekp >= bsize * fp->f_num_leafs)
 				return (ENOENT);
 
-			rc = dnode_read(spa, &fp->f_dnode,
-					fp->f_seekp,
-					fp->f_zap_leaf,
-					bsize);
+			rc = dnode_read(spa, &fp->f_dnode, fp->f_seekp,
+			    fp->f_zap_leaf, bsize);
 			if (rc)
 				return (rc);
 		}
@@ -464,8 +458,8 @@ vdev_read(vdev_t *vdev, void *priv, off_t offset, void *buf, size_t bytes)
 	off_t start_sec;
 	char *outbuf, *bouncebuf;
 
-	fd = (uintptr_t) priv;
-	outbuf = (char *) buf;
+	fd = (uintptr_t)priv;
+	outbuf = (char *)buf;
 	bouncebuf = NULL;
 
 	ret = ioctl(fd, DIOCGSECTORSIZE, &secsz);
@@ -628,7 +622,7 @@ vdev_write(vdev_t *vdev, off_t offset, void *buf, size_t bytes)
 			goto error;
 		}
 		memcpy(bouncebuf + head, outbuf, min(secsz - head, bytes));
-		(void) lseek(fd, -secsz, SEEK_CUR);
+		(void)lseek(fd, -secsz, SEEK_CUR);
 		res = write(fd, bouncebuf, secsz);
 		if ((unsigned)res != secsz) {
 			ret = EIO;
@@ -651,7 +645,7 @@ vdev_write(vdev_t *vdev, off_t offset, void *buf, size_t bytes)
 				goto error;
 			}
 			memcpy(bouncebuf, outbuf, bytes);
-			(void) lseek(fd, -secsz, SEEK_CUR);
+			(void)lseek(fd, -secsz, SEEK_CUR);
 			res = write(fd, bouncebuf, secsz);
 			if ((unsigned)res != secsz) {
 				ret = EIO;
@@ -675,7 +669,7 @@ vdev_write(vdev_t *vdev, off_t offset, void *buf, size_t bytes)
 			goto error;
 		}
 		memcpy(bouncebuf, outbuf, secsz - tail);
-		(void) lseek(fd, -secsz, SEEK_CUR);
+		(void)lseek(fd, -secsz, SEEK_CUR);
 		res = write(fd, bouncebuf, secsz);
 		if ((unsigned)res != secsz) {
 			ret = EIO;
@@ -718,10 +712,10 @@ zfs_dev_init(void)
 }
 
 struct zfs_probe_args {
-	int		fd;
-	const char	*devname;
-	uint64_t	*pool_guid;
-	u_int		secsz;
+	int fd;
+	const char *devname;
+	uint64_t *pool_guid;
+	u_int secsz;
 };
 
 static int
@@ -730,8 +724,8 @@ zfs_diskread(void *arg, void *buf, size_t blocks, uint64_t offset)
 	struct zfs_probe_args *ppa;
 
 	ppa = (struct zfs_probe_args *)arg;
-	return (vdev_read(NULL, (void *)(uintptr_t)ppa->fd,
-	    offset * ppa->secsz, buf, blocks * ppa->secsz));
+	return (vdev_read(NULL, (void *)(uintptr_t)ppa->fd, offset * ppa->secsz,
+	    buf, blocks * ppa->secsz));
 }
 
 static int
@@ -758,8 +752,7 @@ zfs_probe_partition(void *arg, const char *partname,
 	int ret;
 
 	/* Probe only freebsd-zfs and freebsd partitions */
-	if (part->type != PART_FREEBSD &&
-	    part->type != PART_FREEBSD_ZFS)
+	if (part->type != PART_FREEBSD && part->type != PART_FREEBSD_ZFS)
 		return (0);
 
 	ppa = (struct zfs_probe_args *)arg;
@@ -835,8 +828,7 @@ zfs_get_bootonce(void *vdev, const char *key, char *buf, size_t size)
  * nvstore backend.
  */
 
-static int zfs_nvstore_setter(void *, int, const char *,
-    const void *, size_t);
+static int zfs_nvstore_setter(void *, int, const char *, const void *, size_t);
 static int zfs_nvstore_setter_str(void *, const char *, const char *,
     const char *);
 static int zfs_nvstore_unset_impl(void *, const char *, bool);
@@ -899,8 +891,8 @@ zfs_nvstore_getter(void *vdev, const char *name, void **data)
 	if (spa->spa_bootenv == NULL)
 		return (ENXIO);
 
-	if (nvlist_find(spa->spa_bootenv, OS_NVSTORE, DATA_TYPE_NVLIST,
-	    NULL, &nv, NULL) != 0)
+	if (nvlist_find(spa->spa_bootenv, OS_NVSTORE, DATA_TYPE_NVLIST, NULL,
+		&nv, NULL) != 0)
 		return (ENOENT);
 
 	rv = nvlist_find(nv, name, DATA_TYPE_STRING, NULL, &str, &size);
@@ -915,8 +907,8 @@ zfs_nvstore_getter(void *vdev, const char *name, void **data)
 }
 
 static int
-zfs_nvstore_setter(void *vdev, int type, const char *name,
-    const void *data, size_t size)
+zfs_nvstore_setter(void *vdev, int type, const char *name, const void *data,
+    size_t size)
 {
 	struct zfs_devdesc *dev = (struct zfs_devdesc *)vdev;
 	spa_t *spa;
@@ -933,8 +925,8 @@ zfs_nvstore_setter(void *vdev, int type, const char *name,
 	if (spa->spa_bootenv == NULL)
 		return (ENXIO);
 
-	if (nvlist_find(spa->spa_bootenv, OS_NVSTORE, DATA_TYPE_NVLIST,
-	    NULL, &nv, NULL) != 0) {
+	if (nvlist_find(spa->spa_bootenv, OS_NVSTORE, DATA_TYPE_NVLIST, NULL,
+		&nv, NULL) != 0) {
 		nv = nvlist_create(NV_UNIQUE_NAME);
 		if (nv == NULL)
 			return (ENOMEM);
@@ -942,84 +934,84 @@ zfs_nvstore_setter(void *vdev, int type, const char *name,
 
 	rv = 0;
 	switch (type) {
-        case DATA_TYPE_INT8:
-		if (size != sizeof (int8_t)) {
+	case DATA_TYPE_INT8:
+		if (size != sizeof(int8_t)) {
 			rv = EINVAL;
 			break;
 		}
 		rv = nvlist_add_int8(nv, name, *(int8_t *)data);
 		break;
 
-        case DATA_TYPE_INT16:
-		if (size != sizeof (int16_t)) {
+	case DATA_TYPE_INT16:
+		if (size != sizeof(int16_t)) {
 			rv = EINVAL;
 			break;
 		}
 		rv = nvlist_add_int16(nv, name, *(int16_t *)data);
 		break;
 
-        case DATA_TYPE_INT32:
-		if (size != sizeof (int32_t)) {
+	case DATA_TYPE_INT32:
+		if (size != sizeof(int32_t)) {
 			rv = EINVAL;
 			break;
 		}
 		rv = nvlist_add_int32(nv, name, *(int32_t *)data);
 		break;
 
-        case DATA_TYPE_INT64:
-		if (size != sizeof (int64_t)) {
+	case DATA_TYPE_INT64:
+		if (size != sizeof(int64_t)) {
 			rv = EINVAL;
 			break;
 		}
 		rv = nvlist_add_int64(nv, name, *(int64_t *)data);
 		break;
 
-        case DATA_TYPE_BYTE:
-		if (size != sizeof (uint8_t)) {
+	case DATA_TYPE_BYTE:
+		if (size != sizeof(uint8_t)) {
 			rv = EINVAL;
 			break;
 		}
 		rv = nvlist_add_byte(nv, name, *(int8_t *)data);
 		break;
 
-        case DATA_TYPE_UINT8:
-		if (size != sizeof (uint8_t)) {
+	case DATA_TYPE_UINT8:
+		if (size != sizeof(uint8_t)) {
 			rv = EINVAL;
 			break;
 		}
 		rv = nvlist_add_uint8(nv, name, *(int8_t *)data);
 		break;
 
-        case DATA_TYPE_UINT16:
-		if (size != sizeof (uint16_t)) {
+	case DATA_TYPE_UINT16:
+		if (size != sizeof(uint16_t)) {
 			rv = EINVAL;
 			break;
 		}
 		rv = nvlist_add_uint16(nv, name, *(uint16_t *)data);
 		break;
 
-        case DATA_TYPE_UINT32:
-		if (size != sizeof (uint32_t)) {
+	case DATA_TYPE_UINT32:
+		if (size != sizeof(uint32_t)) {
 			rv = EINVAL;
 			break;
 		}
 		rv = nvlist_add_uint32(nv, name, *(uint32_t *)data);
 		break;
 
-        case DATA_TYPE_UINT64:
-		if (size != sizeof (uint64_t)) {
+	case DATA_TYPE_UINT64:
+		if (size != sizeof(uint64_t)) {
 			rv = EINVAL;
 			break;
 		}
 		rv = nvlist_add_uint64(nv, name, *(uint64_t *)data);
 		break;
 
-        case DATA_TYPE_STRING:
+	case DATA_TYPE_STRING:
 		rv = nvlist_add_string(nv, name, data);
 		break;
 
 	case DATA_TYPE_BOOLEAN_VALUE:
-		if (size != sizeof (boolean_t)) {
+		if (size != sizeof(boolean_t)) {
 			rv = EINVAL;
 			break;
 		}
@@ -1106,8 +1098,8 @@ zfs_nvstore_setter_str(void *vdev, const char *type, const char *name,
 	if (spa->spa_bootenv == NULL)
 		return (ENXIO);
 
-	if (nvlist_find(spa->spa_bootenv, OS_NVSTORE, DATA_TYPE_NVLIST,
-	    NULL, &nv, NULL) != 0) {
+	if (nvlist_find(spa->spa_bootenv, OS_NVSTORE, DATA_TYPE_NVLIST, NULL,
+		&nv, NULL) != 0) {
 		nv = NULL;
 	}
 
@@ -1137,83 +1129,83 @@ zfs_nvstore_setter_str(void *vdev, const char *type, const char *name,
 
 	rv = 0;
 	switch (dt) {
-        case DATA_TYPE_INT8:
+	case DATA_TYPE_INT8:
 		rv = get_int64(data, &val);
 		if (rv == 0) {
 			int8_t v = val;
 
-			rv = zfs_nvstore_setter(vdev, dt, name, &v, sizeof (v));
+			rv = zfs_nvstore_setter(vdev, dt, name, &v, sizeof(v));
 		}
 		break;
-        case DATA_TYPE_INT16:
+	case DATA_TYPE_INT16:
 		rv = get_int64(data, &val);
 		if (rv == 0) {
 			int16_t v = val;
 
-			rv = zfs_nvstore_setter(vdev, dt, name, &v, sizeof (v));
+			rv = zfs_nvstore_setter(vdev, dt, name, &v, sizeof(v));
 		}
 		break;
-        case DATA_TYPE_INT32:
+	case DATA_TYPE_INT32:
 		rv = get_int64(data, &val);
 		if (rv == 0) {
 			int32_t v = val;
 
-			rv = zfs_nvstore_setter(vdev, dt, name, &v, sizeof (v));
+			rv = zfs_nvstore_setter(vdev, dt, name, &v, sizeof(v));
 		}
 		break;
-        case DATA_TYPE_INT64:
+	case DATA_TYPE_INT64:
 		rv = get_int64(data, &val);
 		if (rv == 0) {
 			rv = zfs_nvstore_setter(vdev, dt, name, &val,
-			    sizeof (val));
+			    sizeof(val));
 		}
 		break;
 
-        case DATA_TYPE_BYTE:
+	case DATA_TYPE_BYTE:
 		rv = get_uint64(data, &uval);
 		if (rv == 0) {
 			uint8_t v = uval;
 
-			rv = zfs_nvstore_setter(vdev, dt, name, &v, sizeof (v));
+			rv = zfs_nvstore_setter(vdev, dt, name, &v, sizeof(v));
 		}
 		break;
 
-        case DATA_TYPE_UINT8:
+	case DATA_TYPE_UINT8:
 		rv = get_uint64(data, &uval);
 		if (rv == 0) {
 			uint8_t v = uval;
 
-			rv = zfs_nvstore_setter(vdev, dt, name, &v, sizeof (v));
+			rv = zfs_nvstore_setter(vdev, dt, name, &v, sizeof(v));
 		}
 		break;
 
-        case DATA_TYPE_UINT16:
+	case DATA_TYPE_UINT16:
 		rv = get_uint64(data, &uval);
 		if (rv == 0) {
 			uint16_t v = uval;
 
-			rv = zfs_nvstore_setter(vdev, dt, name, &v, sizeof (v));
+			rv = zfs_nvstore_setter(vdev, dt, name, &v, sizeof(v));
 		}
 		break;
 
-        case DATA_TYPE_UINT32:
+	case DATA_TYPE_UINT32:
 		rv = get_uint64(data, &uval);
 		if (rv == 0) {
 			uint32_t v = uval;
 
-			rv = zfs_nvstore_setter(vdev, dt, name, &v, sizeof (v));
+			rv = zfs_nvstore_setter(vdev, dt, name, &v, sizeof(v));
 		}
 		break;
 
-        case DATA_TYPE_UINT64:
+	case DATA_TYPE_UINT64:
 		rv = get_uint64(data, &uval);
 		if (rv == 0) {
 			rv = zfs_nvstore_setter(vdev, dt, name, &uval,
-			    sizeof (uval));
+			    sizeof(uval));
 		}
 		break;
 
-        case DATA_TYPE_STRING:
+	case DATA_TYPE_STRING:
 		rv = zfs_nvstore_setter(vdev, dt, name, data, strlen(data) + 1);
 		break;
 
@@ -1222,7 +1214,7 @@ zfs_nvstore_setter_str(void *vdev, const char *type, const char *name,
 		if (rv == 0) {
 			boolean_t v = val;
 
-			rv = zfs_nvstore_setter(vdev, dt, name, &v, sizeof (v));
+			rv = zfs_nvstore_setter(vdev, dt, name, &v, sizeof(v));
 		}
 
 	default:
@@ -1248,8 +1240,8 @@ zfs_nvstore_unset_impl(void *vdev, const char *name, bool unset_env)
 	if (spa->spa_bootenv == NULL)
 		return (ENXIO);
 
-	if (nvlist_find(spa->spa_bootenv, OS_NVSTORE, DATA_TYPE_NVLIST,
-	    NULL, &nv, NULL) != 0)
+	if (nvlist_find(spa->spa_bootenv, OS_NVSTORE, DATA_TYPE_NVLIST, NULL,
+		&nv, NULL) != 0)
 		return (ENOENT);
 
 	rv = nvlist_remove(nv, name, DATA_TYPE_UNKNOWN);
@@ -1258,8 +1250,8 @@ zfs_nvstore_unset_impl(void *vdev, const char *name, bool unset_env)
 			rv = nvlist_remove(spa->spa_bootenv, OS_NVSTORE,
 			    DATA_TYPE_NVLIST);
 		} else {
-			rv = nvlist_add_nvlist(spa->spa_bootenv,
-			    OS_NVSTORE, nv);
+			rv = nvlist_add_nvlist(spa->spa_bootenv, OS_NVSTORE,
+			    nv);
 		}
 		if (rv == 0)
 			rv = zfs_set_bootenv(vdev, spa->spa_bootenv);
@@ -1312,26 +1304,26 @@ zfs_nvstore_setenv(void *vdev __unused, void *ptr)
 	switch (nvp_data->nv_type) {
 	case DATA_TYPE_BYTE:
 	case DATA_TYPE_UINT8:
-		(void) asprintf(&value, "%uc",
+		(void)asprintf(&value, "%uc",
 		    *(unsigned *)&nvp_data->nv_data[0]);
 		if (value == NULL)
 			rv = ENOMEM;
 		break;
 
 	case DATA_TYPE_INT8:
-		(void) asprintf(&value, "%c", *(int *)&nvp_data->nv_data[0]);
+		(void)asprintf(&value, "%c", *(int *)&nvp_data->nv_data[0]);
 		if (value == NULL)
 			rv = ENOMEM;
 		break;
 
 	case DATA_TYPE_INT16:
-		(void) asprintf(&value, "%hd", *(short *)&nvp_data->nv_data[0]);
+		(void)asprintf(&value, "%hd", *(short *)&nvp_data->nv_data[0]);
 		if (value == NULL)
 			rv = ENOMEM;
 		break;
 
 	case DATA_TYPE_UINT16:
-		(void) asprintf(&value, "%hu",
+		(void)asprintf(&value, "%hu",
 		    *(unsigned short *)&nvp_data->nv_data[0]);
 		if (value == NULL)
 			rv = ENOMEM;
@@ -1339,28 +1331,28 @@ zfs_nvstore_setenv(void *vdev __unused, void *ptr)
 
 	case DATA_TYPE_BOOLEAN_VALUE:
 	case DATA_TYPE_INT32:
-		(void) asprintf(&value, "%d", *(int *)&nvp_data->nv_data[0]);
+		(void)asprintf(&value, "%d", *(int *)&nvp_data->nv_data[0]);
 		if (value == NULL)
 			rv = ENOMEM;
 		break;
 
 	case DATA_TYPE_UINT32:
-		(void) asprintf(&value, "%u",
+		(void)asprintf(&value, "%u",
 		    *(unsigned *)&nvp_data->nv_data[0]);
 		if (value == NULL)
 			rv = ENOMEM;
 		break;
 
 	case DATA_TYPE_INT64:
-		(void) asprintf(&value, "%jd",
-		    (intmax_t)*(int64_t *)&nvp_data->nv_data[0]);
+		(void)asprintf(&value, "%jd",
+		    (intmax_t) * (int64_t *)&nvp_data->nv_data[0]);
 		if (value == NULL)
 			rv = ENOMEM;
 		break;
 
 	case DATA_TYPE_UINT64:
-		(void) asprintf(&value, "%ju",
-		    (uintmax_t)*(uint64_t *)&nvp_data->nv_data[0]);
+		(void)asprintf(&value, "%ju",
+		    (uintmax_t) * (uint64_t *)&nvp_data->nv_data[0]);
 		if (value == NULL)
 			rv = ENOMEM;
 		break;
@@ -1405,8 +1397,8 @@ zfs_nvstore_iterate(void *vdev, int (*cb)(void *, void *))
 	if (spa->spa_bootenv == NULL)
 		return (ENXIO);
 
-	if (nvlist_find(spa->spa_bootenv, OS_NVSTORE, DATA_TYPE_NVLIST,
-	    NULL, &nv, NULL) != 0)
+	if (nvlist_find(spa->spa_bootenv, OS_NVSTORE, DATA_TYPE_NVLIST, NULL,
+		&nv, NULL) != 0)
 		return (ENOENT);
 
 	rv = 0;
@@ -1419,14 +1411,12 @@ zfs_nvstore_iterate(void *vdev, int (*cb)(void *, void *))
 	return (rv);
 }
 
-nvs_callbacks_t nvstore_zfs_cb = {
-	.nvs_getter = zfs_nvstore_getter,
+nvs_callbacks_t nvstore_zfs_cb = { .nvs_getter = zfs_nvstore_getter,
 	.nvs_setter = zfs_nvstore_setter,
 	.nvs_setter_str = zfs_nvstore_setter_str,
 	.nvs_unset = zfs_nvstore_unset,
 	.nvs_print = zfs_nvstore_print,
-	.nvs_iterate = zfs_nvstore_iterate
-};
+	.nvs_iterate = zfs_nvstore_iterate };
 
 int
 zfs_attach_nvstore(void *vdev)
@@ -1449,10 +1439,10 @@ zfs_attach_nvstore(void *vdev)
 		return (ENXIO);
 	}
 
-	dev = malloc(sizeof (*dev));
+	dev = malloc(sizeof(*dev));
 	if (dev == NULL)
 		return (ENOMEM);
-	memcpy(dev, vdev, sizeof (*dev));
+	memcpy(dev, vdev, sizeof(*dev));
 
 	rv = nvstore_init(spa->spa_name, &nvstore_zfs_cb, dev);
 	if (rv != 0)
@@ -1522,7 +1512,7 @@ zfs_dev_print(int verbose)
 	if (verbose) {
 		return (spa_all_status());
 	}
-	STAILQ_FOREACH(spa, &zfs_pools, spa_link) {
+	STAILQ_FOREACH (spa, &zfs_pools, spa_link) {
 		snprintf(line, sizeof(line), "    zfs:%s\n", spa->spa_name);
 		ret = pager_output(line);
 		if (ret != 0)
@@ -1537,11 +1527,11 @@ zfs_dev_print(int verbose)
 static int
 zfs_dev_open(struct open_file *f, ...)
 {
-	va_list		args;
-	struct zfs_devdesc	*dev;
-	struct zfsmount	*mount;
-	spa_t		*spa;
-	int		rv;
+	va_list args;
+	struct zfs_devdesc *dev;
+	struct zfsmount *mount;
+	spa_t *spa;
+	int rv;
 
 	va_start(args, f);
 	dev = va_arg(args, struct zfs_devdesc *);
@@ -1550,7 +1540,7 @@ zfs_dev_open(struct open_file *f, ...)
 	if ((spa = spa_find_by_dev(dev)) == NULL)
 		return (ENXIO);
 
-	STAILQ_FOREACH(mount, &zfsmount, next) {
+	STAILQ_FOREACH (mount, &zfsmount, next) {
 		if (spa->spa_guid == mount->spa->spa_guid)
 			break;
 	}
@@ -1570,12 +1560,12 @@ static int
 zfs_dev_close(struct open_file *f)
 {
 	struct devdesc *dev;
-	struct zfsmount	*mnt, *mount;
+	struct zfsmount *mnt, *mount;
 
 	dev = f->f_devdata;
 	mnt = dev->d_opendata;
 
-	STAILQ_FOREACH(mount, &zfsmount, next) {
+	STAILQ_FOREACH (mount, &zfsmount, next) {
 		if (mnt->spa->spa_guid == mount->spa->spa_guid)
 			break;
 	}
@@ -1585,7 +1575,8 @@ zfs_dev_close(struct open_file *f)
 }
 
 static int
-zfs_dev_strategy(void *devdata, int rw, daddr_t dblk, size_t size, char *buf, size_t *rsize)
+zfs_dev_strategy(void *devdata, int rw, daddr_t dblk, size_t size, char *buf,
+    size_t *rsize)
 {
 
 	return (ENOSYS);
@@ -1608,16 +1599,16 @@ struct devsw zfs_dev = {
 static int
 zfs_parsedev(struct devdesc **idev, const char *devspec, const char **path)
 {
-	static char	rootname[ZFS_MAXNAMELEN];
-	static char	poolname[ZFS_MAXNAMELEN];
-	spa_t		*spa;
-	const char	*end;
-	const char	*np;
-	const char	*sep;
-	int		rv;
+	static char rootname[ZFS_MAXNAMELEN];
+	static char poolname[ZFS_MAXNAMELEN];
+	spa_t *spa;
+	const char *end;
+	const char *np;
+	const char *sep;
+	int rv;
 	struct zfs_devdesc *dev;
 
-	np = devspec + 3;			/* Skip the leading 'zfs' */
+	np = devspec + 3; /* Skip the leading 'zfs' */
 	if (*np != ':')
 		return (EINVAL);
 	np++;
@@ -1633,8 +1624,7 @@ zfs_parsedev(struct devdesc **idev, const char *devspec, const char **path)
 		sep++;
 		memcpy(rootname, sep, end - sep);
 		rootname[end - sep] = '\0';
-	}
-	else
+	} else
 		rootname[0] = '\0';
 
 	spa = spa_find_by_name(poolname);
@@ -1659,10 +1649,10 @@ zfs_parsedev(struct devdesc **idev, const char *devspec, const char **path)
 char *
 zfs_fmtdev(struct devdesc *vdev)
 {
-	static char		rootname[ZFS_MAXNAMELEN];
-	static char		buf[2 * ZFS_MAXNAMELEN + 8];
-	struct zfs_devdesc	*dev = (struct zfs_devdesc *)vdev;
-	spa_t			*spa;
+	static char rootname[ZFS_MAXNAMELEN];
+	static char buf[2 * ZFS_MAXNAMELEN + 8];
+	struct zfs_devdesc *dev = (struct zfs_devdesc *)vdev;
+	spa_t *spa;
 
 	buf[0] = '\0';
 	if (vdev->d_dev->dv_type != DEVT_ZFS)
@@ -1732,11 +1722,11 @@ split_devname(const char *name, char *poolname, size_t size,
 int
 zfs_list(const char *name)
 {
-	static char	poolname[ZFS_MAXNAMELEN];
-	uint64_t	objid;
-	spa_t		*spa;
-	const char	*dsname;
-	int		rv;
+	static char poolname[ZFS_MAXNAMELEN];
+	uint64_t objid;
+	spa_t *spa;
+	const char *dsname;
+	int rv;
 
 	if (split_devname(name, poolname, sizeof(poolname), &dsname) != 0)
 		return (EINVAL);
@@ -1815,11 +1805,11 @@ zfs_checkpoints_initial(spa_t *spa, const char *name, const char *dsname)
 
 static void
 zfs_bootenv_initial(const char *envprefix, spa_t *spa, const char *rootname,
-   const char *dsname, int checkpoint)
+    const char *dsname, int checkpoint)
 {
-	char		envname[32], envval[256];
-	uint64_t	objid;
-	int		bootenvs_idx, rv;
+	char envname[32], envval[256];
+	uint64_t objid;
+	int bootenvs_idx, rv;
 
 	SLIST_INIT(&zfs_be_head);
 	zfs_env_count = 0;
@@ -1831,10 +1821,10 @@ zfs_bootenv_initial(const char *envprefix, spa_t *spa, const char *rootname,
 	rv = zfs_callback_dataset(spa, objid, zfs_belist_add);
 	bootenvs_idx = 0;
 	/* Populate the initial environment variables */
-	SLIST_FOREACH_SAFE(zfs_be, &zfs_be_head, entries, zfs_be_tmp) {
+	SLIST_FOREACH_SAFE (zfs_be, &zfs_be_head, entries, zfs_be_tmp) {
 		/* Enumerate all bootenvs for general usage */
-		snprintf(envname, sizeof(envname), "%s[%d]",
-		    envprefix, bootenvs_idx);
+		snprintf(envname, sizeof(envname), "%s[%d]", envprefix,
+		    bootenvs_idx);
 		snprintf(envval, sizeof(envval), "zfs:%s%s/%s",
 		    checkpoint ? "!" : "", rootname, zfs_be->name);
 		rv = setenv(envname, envval, 1);
@@ -1858,12 +1848,12 @@ zfs_bootenv_initial(const char *envprefix, spa_t *spa, const char *rootname,
 int
 zfs_bootenv(const char *name)
 {
-	char		poolname[ZFS_MAXNAMELEN], *root;
-	const char	*dsname;
-	char		becount[4];
-	uint64_t	objid;
-	spa_t		*spa;
-	int		rv, pages, perpage, currpage;
+	char poolname[ZFS_MAXNAMELEN], *root;
+	const char *dsname;
+	char becount[4];
+	uint64_t objid;
+	spa_t *spa;
+	int rv, pages, perpage, currpage;
 
 	if (name == NULL)
 		return (EINVAL);
@@ -1891,7 +1881,8 @@ zfs_bootenv(const char *name)
 
 	/* Calculate and store the number of pages of BEs */
 	perpage = (ZFS_BE_LAST - ZFS_BE_FIRST + 1);
-	pages = (zfs_env_count / perpage) + ((zfs_env_count % perpage) > 0 ? 1 : 0);
+	pages = (zfs_env_count / perpage) +
+	    ((zfs_env_count % perpage) > 0 ? 1 : 0);
 	snprintf(becount, 4, "%d", pages);
 	if (setenv("zfs_be_pages", becount, 1) != 0)
 		return (ENOMEM);
@@ -1963,36 +1954,41 @@ zfs_set_env(void)
 	ctr = 1;
 	rv = 0;
 	zfs_env_index = ZFS_BE_FIRST;
-	SLIST_FOREACH_SAFE(zfs_be, &zfs_be_head, entries, zfs_be_tmp) {
+	SLIST_FOREACH_SAFE (zfs_be, &zfs_be_head, entries, zfs_be_tmp) {
 		/* Skip to the requested page number */
 		if (ctr <= ((ZFS_BE_LAST - ZFS_BE_FIRST + 1) * (page - 1))) {
 			ctr++;
 			continue;
 		}
 
-		snprintf(envname, sizeof(envname), "bootenvmenu_caption[%d]", zfs_env_index);
+		snprintf(envname, sizeof(envname), "bootenvmenu_caption[%d]",
+		    zfs_env_index);
 		snprintf(envval, sizeof(envval), "%s", zfs_be->name);
 		rv = setenv(envname, envval, 1);
 		if (rv != 0) {
 			break;
 		}
 
-		snprintf(envname, sizeof(envname), "bootenvansi_caption[%d]", zfs_env_index);
+		snprintf(envname, sizeof(envname), "bootenvansi_caption[%d]",
+		    zfs_env_index);
 		rv = setenv(envname, envval, 1);
-		if (rv != 0){
+		if (rv != 0) {
 			break;
 		}
 
-		snprintf(envname, sizeof(envname), "bootenvmenu_command[%d]", zfs_env_index);
+		snprintf(envname, sizeof(envname), "bootenvmenu_command[%d]",
+		    zfs_env_index);
 		rv = setenv(envname, "set_bootenv", 1);
-		if (rv != 0){
+		if (rv != 0) {
 			break;
 		}
 
-		snprintf(envname, sizeof(envname), "bootenv_root[%d]", zfs_env_index);
-		snprintf(envval, sizeof(envval), "zfs:%s/%s", beroot, zfs_be->name);
+		snprintf(envname, sizeof(envname), "bootenv_root[%d]",
+		    zfs_env_index);
+		snprintf(envval, sizeof(envval), "zfs:%s/%s", beroot,
+		    zfs_be->name);
 		rv = setenv(envname, envval, 1);
-		if (rv != 0){
+		if (rv != 0) {
 			break;
 		}
 
@@ -2000,17 +1996,20 @@ zfs_set_env(void)
 		if (zfs_env_index > ZFS_BE_LAST) {
 			break;
 		}
-
 	}
 
 	for (; zfs_env_index <= ZFS_BE_LAST; zfs_env_index++) {
-		snprintf(envname, sizeof(envname), "bootenvmenu_caption[%d]", zfs_env_index);
+		snprintf(envname, sizeof(envname), "bootenvmenu_caption[%d]",
+		    zfs_env_index);
 		(void)unsetenv(envname);
-		snprintf(envname, sizeof(envname), "bootenvansi_caption[%d]", zfs_env_index);
+		snprintf(envname, sizeof(envname), "bootenvansi_caption[%d]",
+		    zfs_env_index);
 		(void)unsetenv(envname);
-		snprintf(envname, sizeof(envname), "bootenvmenu_command[%d]", zfs_env_index);
+		snprintf(envname, sizeof(envname), "bootenvmenu_command[%d]",
+		    zfs_env_index);
 		(void)unsetenv(envname);
-		snprintf(envname, sizeof(envname), "bootenv_root[%d]", zfs_env_index);
+		snprintf(envname, sizeof(envname), "bootenv_root[%d]",
+		    zfs_env_index);
 		(void)unsetenv(envname);
 	}
 

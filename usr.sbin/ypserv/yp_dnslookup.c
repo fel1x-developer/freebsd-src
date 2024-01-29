@@ -44,24 +44,25 @@
  */
 
 #include <sys/param.h>
-#include <sys/socket.h>
-#include <sys/time.h>
 #include <sys/fcntl.h>
 #include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
 #include <arpa/nameser.h>
-
 #include <ctype.h>
 #include <errno.h>
 #include <netdb.h>
+#include <resolv.h>
+#include <rpcsvc/yp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <resolv.h>
 #include <unistd.h>
 
-#include <rpcsvc/yp.h>
 #include "yp_extern.h"
 
 static char *
@@ -73,10 +74,10 @@ parse(struct hostent *hp)
 	char addr[46];
 
 	if (hp == NULL)
-		return(NULL);
+		return (NULL);
 
 	if (inet_ntop(hp->h_addrtype, hp->h_addr, addr, sizeof(addr)) == NULL)
-		return(NULL);
+		return (NULL);
 
 	len = strlen(addr) + 1 + strlen(hp->h_name);
 	for (i = 0; hp->h_aliases[i]; i++)
@@ -84,7 +85,7 @@ parse(struct hostent *hp)
 	len++;
 
 	if (len > sizeof(result))
-		return(NULL);
+		return (NULL);
 
 	bzero(result, sizeof(result));
 	snprintf(result, sizeof(result), "%s %s", addr, hp->h_name);
@@ -96,7 +97,7 @@ parse(struct hostent *hp)
 	return ((char *)&result);
 }
 
-#define MAXPACKET (64*1024)
+#define MAXPACKET (64 * 1024)
 #define DEF_TTL 50
 
 #define BY_DNS_ID 1
@@ -119,7 +120,7 @@ struct circleq_dnsentry {
 	char *name;
 	int addrtype;
 	int addrlen;
-	uint32_t addr[4];	/* IPv4 or IPv6 */
+	uint32_t addr[4]; /* IPv4 or IPv6 */
 	TAILQ_ENTRY(circleq_dnsentry) links;
 };
 
@@ -131,21 +132,21 @@ yp_init_resolver(void)
 	TAILQ_INIT(&qhead);
 	if (!(_res.options & RES_INIT) && res_init() == -1) {
 		yp_error("res_init failed");
-		return(1);
+		return (1);
 	}
 	if ((resfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
 		yp_error("couldn't create socket");
-		return(1);
+		return (1);
 	}
 	if (fcntl(resfd, F_SETFL, O_NONBLOCK) == -1) {
 		yp_error("couldn't make resolver socket non-blocking");
-		return(1);
+		return (1);
 	}
-	return(0);
+	return (0);
 }
 
-static struct
-circleq_dnsentry *yp_malloc_dnsent(void)
+static struct circleq_dnsentry *
+yp_malloc_dnsent(void)
 {
 	register struct circleq_dnsentry *q;
 
@@ -153,10 +154,10 @@ circleq_dnsentry *yp_malloc_dnsent(void)
 
 	if (q == NULL) {
 		yp_error("failed to malloc() circleq dns entry");
-		return(NULL);
+		return (NULL);
 	}
 
-	return(q);
+	return (q);
 }
 
 /*
@@ -174,11 +175,12 @@ yp_send_dns_query(char *name, int type)
 
 	bzero(buf, sizeof(buf));
 
-	n = res_mkquery(QUERY,name,C_IN,type,NULL,0,NULL,buf,sizeof(buf));
+	n = res_mkquery(QUERY, name, C_IN, type, NULL, 0, NULL, buf,
+	    sizeof(buf));
 
 	if (n <= 0) {
 		yp_error("res_mkquery failed for %s type %d", name, type);
-		return(0);
+		return (0);
 	}
 
 	hptr = (HEADER *)&buf;
@@ -186,15 +188,15 @@ yp_send_dns_query(char *name, int type)
 
 	for (ns = 0; ns < _res.nscount; ns++) {
 		rval = sendto(resfd, buf, n, 0,
-			(struct sockaddr *)&_res.nsaddr_list[ns],
-				sizeof(struct sockaddr));
+		    (struct sockaddr *)&_res.nsaddr_list[ns],
+		    sizeof(struct sockaddr));
 		if (rval == -1) {
 			yp_error("sendto failed");
-			return(0);
+			return (0);
 		}
 	}
 
-	return(id);
+	return (id);
 }
 
 static struct circleq_dnsentry *
@@ -202,16 +204,16 @@ yp_find_dnsqent(unsigned long id, int type)
 {
 	register struct circleq_dnsentry *q;
 
-	TAILQ_FOREACH(q, &qhead, links) {
+	TAILQ_FOREACH (q, &qhead, links) {
 		switch (type) {
 		case BY_RPC_XID:
 			if (id == q->xid)
-				return(q);
+				return (q);
 			break;
 		case BY_DNS_ID:
 		default:
 			if (id == q->id)
-				return(q);
+				return (q);
 			break;
 		}
 	}
@@ -268,13 +270,13 @@ yp_send_dns_reply(struct circleq_dnsentry *q, char *buf)
 		break;
 	default:
 		yp_error("bad YP program version (%lu)!", q->ypvers);
-			return;
+		return;
 		break;
 	}
 
 	if (debug)
 		yp_error("sending dns reply to %s (%lu)",
-			inet_ntoa(q->client_addr.sin_addr), q->id);
+		    inet_ntoa(q->client_addr.sin_addr), q->id);
 	/*
 	 * XXX This is disgusting. There's basically one transport
 	 * handle for UDP, but we're holding off on replying to a
@@ -355,8 +357,8 @@ yp_run_dnsq(void)
 	bzero(buf, sizeof(buf));
 
 	len = sizeof(struct sockaddr_in);
-	rval = recvfrom(resfd, buf, sizeof(buf), 0,
-			(struct sockaddr *)&sin, &len);
+	rval = recvfrom(resfd, buf, sizeof(buf), 0, (struct sockaddr *)&sin,
+	    &len);
 
 	if (rval == -1) {
 		yp_error("recvfrom failed: %s", strerror(errno));
@@ -372,7 +374,7 @@ yp_run_dnsq(void)
 	 */
 	hptr = (HEADER *)&buf;
 	if (!pending ||
-		(q = yp_find_dnsqent(ntohs(hptr->id), BY_DNS_ID)) == NULL) {
+	    (q = yp_find_dnsqent(ntohs(hptr->id), BY_DNS_ID)) == NULL) {
 		/* ignore */
 		return;
 	}
@@ -414,19 +416,19 @@ yp_async_lookup_name(struct svc_req *rqstp, char *name, int af)
 	/* Check for SOCK_DGRAM or SOCK_STREAM -- we need to know later */
 	type = -1;
 	len = sizeof(type);
-	if (getsockopt(rqstp->rq_xprt->xp_fd, SOL_SOCKET,
-					SO_TYPE, &type, &len) == -1) {
+	if (getsockopt(rqstp->rq_xprt->xp_fd, SOL_SOCKET, SO_TYPE, &type,
+		&len) == -1) {
 		yp_error("getsockopt failed: %s", strerror(errno));
-		return(YP_YPERR);
+		return (YP_YPERR);
 	}
 
 	/* Avoid transmitting dupe requests. */
 	if (type == SOCK_DGRAM &&
-	    yp_find_dnsqent(svcudp_get_xid(rqstp->rq_xprt),BY_RPC_XID) != NULL)
-		return(YP_TRUE);
+	    yp_find_dnsqent(svcudp_get_xid(rqstp->rq_xprt), BY_RPC_XID) != NULL)
+		return (YP_TRUE);
 
 	if ((q = yp_malloc_dnsent()) == NULL)
-		return(YP_YPERR);
+		return (YP_YPERR);
 
 	q->type = (af == AF_INET) ? T_A : T_AAAA;
 	q->ttl = DEF_TTL;
@@ -442,7 +444,7 @@ yp_async_lookup_name(struct svc_req *rqstp, char *name, int af)
 	if (q->id == 0) {
 		yp_error("DNS query failed");
 		free(q);
-		return(YP_YPERR);
+		return (YP_YPERR);
 	}
 
 	q->name = strdup(name);
@@ -453,7 +455,7 @@ yp_async_lookup_name(struct svc_req *rqstp, char *name, int af)
 		yp_error("queueing async DNS name lookup (%lu)", q->id);
 
 	yp_prune_dnsq();
-	return(YP_TRUE);
+	return (YP_TRUE);
 }
 
 /*
@@ -464,7 +466,7 @@ yp_async_lookup_addr(struct svc_req *rqstp, char *addr, int af)
 {
 	register struct circleq_dnsentry *q;
 	char buf[MAXHOSTNAMELEN], *qp;
-	uint32_t abuf[4];	/* IPv4 or IPv6 */
+	uint32_t abuf[4]; /* IPv4 or IPv6 */
 	u_char *uaddr = (u_char *)abuf;
 	socklen_t len;
 	int type, n;
@@ -472,29 +474,29 @@ yp_async_lookup_addr(struct svc_req *rqstp, char *addr, int af)
 	/* Check for SOCK_DGRAM or SOCK_STREAM -- we need to know later */
 	type = -1;
 	len = sizeof(type);
-	if (getsockopt(rqstp->rq_xprt->xp_fd, SOL_SOCKET,
-					SO_TYPE, &type, &len) == -1) {
+	if (getsockopt(rqstp->rq_xprt->xp_fd, SOL_SOCKET, SO_TYPE, &type,
+		&len) == -1) {
 		yp_error("getsockopt failed: %s", strerror(errno));
-		return(YP_YPERR);
+		return (YP_YPERR);
 	}
 
 	/* Avoid transmitting dupe requests. */
 	if (type == SOCK_DGRAM &&
-	    yp_find_dnsqent(svcudp_get_xid(rqstp->rq_xprt),BY_RPC_XID) != NULL)
-		return(YP_TRUE);
+	    yp_find_dnsqent(svcudp_get_xid(rqstp->rq_xprt), BY_RPC_XID) != NULL)
+		return (YP_TRUE);
 
 	switch (af) {
 	case AF_INET:
 		if (inet_aton(addr, (struct in_addr *)uaddr) != 1)
-			return(YP_NOKEY);
+			return (YP_NOKEY);
 		snprintf(buf, sizeof(buf), "%u.%u.%u.%u.in-addr.arpa",
-		    (uaddr[3] & 0xff), (uaddr[2] & 0xff),
-		    (uaddr[1] & 0xff), (uaddr[0] & 0xff));
+		    (uaddr[3] & 0xff), (uaddr[2] & 0xff), (uaddr[1] & 0xff),
+		    (uaddr[0] & 0xff));
 		len = INADDRSZ;
 		break;
 	case AF_INET6:
 		if (inet_pton(af, addr, uaddr) != 1)
-			return(YP_NOKEY);
+			return (YP_NOKEY);
 		qp = buf;
 		for (n = IN6ADDRSZ - 1; n >= 0; n--) {
 			qp += (size_t)sprintf(qp, "%x.%x.", uaddr[n] & 0xf,
@@ -504,11 +506,11 @@ yp_async_lookup_addr(struct svc_req *rqstp, char *addr, int af)
 		len = IN6ADDRSZ;
 		break;
 	default:
-		return(YP_YPERR);
+		return (YP_YPERR);
 	}
 
 	if ((q = yp_malloc_dnsent()) == NULL)
-		return(YP_YPERR);
+		return (YP_YPERR);
 
 	if (debug)
 		yp_error("DNS address is: %s", buf);
@@ -527,7 +529,7 @@ yp_async_lookup_addr(struct svc_req *rqstp, char *addr, int af)
 	if (q->id == 0) {
 		yp_error("DNS query failed");
 		free(q);
-		return(YP_YPERR);
+		return (YP_YPERR);
 	}
 
 	memcpy(q->addr, uaddr, len);
@@ -541,5 +543,5 @@ yp_async_lookup_addr(struct svc_req *rqstp, char *addr, int af)
 		yp_error("queueing async DNS address lookup (%lu)", q->id);
 
 	yp_prune_dnsq();
-	return(YP_TRUE);
+	return (YP_TRUE);
 }

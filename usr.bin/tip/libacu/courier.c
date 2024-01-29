@@ -36,24 +36,26 @@
  * Routines for calling up on a Courier modem.
  * Derived from Hayes driver.
  */
-#include "tip.h"
 #include <sys/ioctl.h>
+
 #include <stdio.h>
 
-#define	MAXRETRY	5
+#include "tip.h"
 
-static	int dialtimeout = 0;
-static	int connected = 0;
-static	jmp_buf timeoutbuf;
+#define MAXRETRY 5
 
-static void	sigALRM(int);
-static int	cour_swallow(char *);
-static int	cour_connect(void);
-static int	coursync(void);
-static void	cour_write(int, char *, int);
-static void	cour_nap(void);
+static int dialtimeout = 0;
+static int connected = 0;
+static jmp_buf timeoutbuf;
+
+static void sigALRM(int);
+static int cour_swallow(char *);
+static int cour_connect(void);
+static int coursync(void);
+static void cour_write(int, char *, int);
+static void cour_nap(void);
 #ifdef DEBUG
-static void	cour_verbose_read(void);
+static void cour_verbose_read(void);
 #endif
 
 int
@@ -75,14 +77,14 @@ cour_dialer(char *num, char *acu)
 	 * Get in synch.
 	 */
 	if (!coursync()) {
-badsynch:
+	badsynch:
 		printf("can't synchronize with courier\n");
 #ifdef ACULOG
 		logent(value(HOST), num, "courier", "can't synch up");
 #endif
 		return (0);
 	}
-	cour_write(FD, "AT E0\r", 6);	/* turn off echoing */
+	cour_write(FD, "AT E0\r", 6); /* turn off echoing */
 	sleep(1);
 #ifdef DEBUG
 	if (boolean(value(VERBOSE)))
@@ -103,7 +105,7 @@ badsynch:
 #ifdef ACULOG
 	if (dialtimeout) {
 		(void)snprintf(line, sizeof line, "%ld second dial timeout",
-			number(value(DIALTIMEOUT)));
+		    number(value(DIALTIMEOUT)));
 		logent(value(HOST), num, "cour", line);
 	}
 #endif
@@ -115,18 +117,18 @@ badsynch:
 void
 cour_disconnect(void)
 {
-	 /* first hang up the modem*/
+	/* first hang up the modem*/
 	ioctl(FD, TIOCCDTR, 0);
 	sleep(1);
 	ioctl(FD, TIOCSDTR, 0);
-	coursync();				/* reset */
+	coursync(); /* reset */
 	close(FD);
 }
 
 void
 cour_abort(void)
 {
-	cour_write(FD, "\r", 1);	/* send anything to abort the call */
+	cour_write(FD, "\r", 1); /* send anything to abort the call */
 	cour_disconnect();
 }
 
@@ -148,7 +150,7 @@ cour_swallow(char *match)
 	f = signal(SIGALRM, sigALRM);
 	dialtimeout = 0;
 	do {
-		if (*match =='\0') {
+		if (*match == '\0') {
 			signal(SIGALRM, f);
 			return (1);
 		}
@@ -177,12 +179,12 @@ struct baud_msg {
 	char *msg;
 	int baud;
 } baud_msg[] = {
-	{ "",		B300 },
-	{ " 1200",	B1200 },
-	{ " 2400",	B2400 },
-	{ " 9600",	B9600 },
-	{ " 9600/ARQ",	B9600 },
-	{ 0,		0 },
+	{ "", B300 },
+	{ " 1200", B1200 },
+	{ " 2400", B2400 },
+	{ " 9600", B9600 },
+	{ " 9600/ARQ", B9600 },
+	{ 0, 0 },
 };
 
 static int
@@ -198,10 +200,11 @@ cour_connect(void)
 		return (0);
 	f = signal(SIGALRM, sigALRM);
 again:
-	nc = 0; nl = sizeof(dialer_buf)-1;
+	nc = 0;
+	nl = sizeof(dialer_buf) - 1;
 	bzero(dialer_buf, sizeof(dialer_buf));
 	dialtimeout = 0;
-	for (nc = 0, nl = sizeof(dialer_buf)-1 ; nl > 0 ; nc++, nl--) {
+	for (nc = 0, nl = sizeof(dialer_buf) - 1; nl > 0; nc++, nl--) {
 		if (setjmp(timeoutbuf))
 			break;
 		alarm(number(value(DIALTIMEOUT)));
@@ -223,12 +226,13 @@ again:
 				goto again;
 			}
 			if (strncmp(dialer_buf, "CONNECT",
-				    sizeof("CONNECT")-1) != 0)
+				sizeof("CONNECT") - 1) != 0)
 				break;
-			for (bm = baud_msg ; bm->msg ; bm++)
+			for (bm = baud_msg; bm->msg; bm++)
 				if (strcmp(bm->msg,
-				    dialer_buf+sizeof("CONNECT")-1) == 0) {
-					struct termios	cntrl;
+					dialer_buf + sizeof("CONNECT") - 1) ==
+				    0) {
+					struct termios cntrl;
 
 					tcgetattr(FD, &cntrl);
 					cfsetospeed(&cntrl, bm->baud);
@@ -267,7 +271,7 @@ coursync(void)
 
 	while (already++ < MAXRETRY) {
 		tcflush(FD, TCIOFLUSH);
-		cour_write(FD, "\rAT Z\r", 6);	/* reset modem */
+		cour_write(FD, "\rAT Z\r", 6); /* reset modem */
 		bzero(buf, sizeof(buf));
 		sleep(1);
 		ioctl(FD, FIONREAD, &len);
@@ -277,9 +281,9 @@ coursync(void)
 			buf[len] = '\0';
 			printf("coursync: (\"%s\")\n\r", buf);
 #endif
-			if (strchr(buf, '0') || 
-		   	   (strchr(buf, 'O') && strchr(buf, 'K')))
-				return(1);
+			if (strchr(buf, '0') ||
+			    (strchr(buf, 'O') && strchr(buf, 'K')))
+				return (1);
 		}
 		/*
 		 * If not strapped for DTR control,
@@ -309,7 +313,7 @@ cour_write(int fd, char *cp, int n)
 #endif
 	tcdrain(fd);
 	cour_nap();
-	for ( ; n-- ; cp++) {
+	for (; n--; cp++) {
 		write(fd, cp, 1);
 		tcdrain(fd);
 		cour_nap();

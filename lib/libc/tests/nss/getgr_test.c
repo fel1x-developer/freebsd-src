@@ -26,6 +26,7 @@
  */
 
 #include <arpa/inet.h>
+#include <atf-c.h>
 #include <errno.h>
 #include <grp.h>
 #include <stdio.h>
@@ -33,8 +34,6 @@
 #include <string.h>
 #include <stringlist.h>
 #include <unistd.h>
-
-#include <atf-c.h>
 
 #include "testutil.h"
 
@@ -126,7 +125,7 @@ free_group(struct group *grp)
 	free(grp->gr_mem);
 }
 
-static  int
+static int
 compare_group(struct group *grp1, struct group *grp2, void *mdata)
 {
 	char **c1, **c2;
@@ -140,7 +139,7 @@ compare_group(struct group *grp1, struct group *grp2, void *mdata)
 	if (strcmp(grp1->gr_name, grp2->gr_name) != 0 ||
 	    strcmp(grp1->gr_passwd, grp2->gr_passwd) != 0 ||
 	    grp1->gr_gid != grp2->gr_gid)
-			goto errfin;
+		goto errfin;
 
 	c1 = grp1->gr_mem;
 	c2 = grp2->gr_mem;
@@ -173,8 +172,8 @@ sdump_group(struct group *grp, char *buffer, size_t buflen)
 	char **cp;
 	int written;
 
-	written = snprintf(buffer, buflen, "%s:%s:%d:",
-	    grp->gr_name, grp->gr_passwd, grp->gr_gid);
+	written = snprintf(buffer, buflen, "%s:%s:%d:", grp->gr_name,
+	    grp->gr_passwd, grp->gr_gid);
 	buffer += written;
 	if (written > (int)buflen)
 		return;
@@ -343,8 +342,9 @@ static int
 group_check_ambiguity(struct group_test_data *td, struct group *pwd)
 {
 
-	return (TEST_DATA_FIND(group, td, pwd, compare_group, NULL) !=
-	    NULL ? 0 : -1);
+	return (TEST_DATA_FIND(group, td, pwd, compare_group, NULL) != NULL ?
+		0 :
+		-1);
 }
 
 static int
@@ -361,7 +361,7 @@ group_test_getgrnam(struct group *grp_model, void *mdata)
 
 	if (compare_group(grp, grp_model, NULL) != 0 &&
 	    group_check_ambiguity((struct group_test_data *)mdata, grp) != 0)
-	    goto errfin;
+		goto errfin;
 
 	return (0);
 
@@ -380,7 +380,8 @@ group_test_getgrgid(struct group *grp_model, void *mdata)
 	grp = getgrgid(grp_model->gr_gid);
 	if (group_test_correctness(grp, NULL) != 0 ||
 	    (compare_group(grp, grp_model, NULL) != 0 &&
-	     group_check_ambiguity((struct group_test_data *)mdata, grp) != 0))
+		group_check_ambiguity((struct group_test_data *)mdata, grp) !=
+		    0))
 		return (-1);
 	else
 		return (0);
@@ -421,8 +422,8 @@ run_tests(const char *snapshot_file, enum test_methods method)
 				goto fin;
 			}
 
-			TEST_SNAPSHOT_FILE_READ(group, snapshot_file,
-				&td_snap, group_read_snapshot_func);
+			TEST_SNAPSHOT_FILE_READ(group, snapshot_file, &td_snap,
+			    group_read_snapshot_func);
 		}
 	}
 
@@ -432,34 +433,34 @@ run_tests(const char *snapshot_file, enum test_methods method)
 	switch (method) {
 	case TEST_GETGRNAM:
 		if (snapshot_file == NULL)
-			rv = DO_1PASS_TEST(group, &td,
-				group_test_getgrnam, (void *)&td);
+			rv = DO_1PASS_TEST(group, &td, group_test_getgrnam,
+			    (void *)&td);
 		else
-			rv = DO_1PASS_TEST(group, &td_snap,
-				group_test_getgrnam, (void *)&td_snap);
+			rv = DO_1PASS_TEST(group, &td_snap, group_test_getgrnam,
+			    (void *)&td_snap);
 		break;
 	case TEST_GETGRGID:
 		if (snapshot_file == NULL)
-			rv = DO_1PASS_TEST(group, &td,
-				group_test_getgrgid, (void *)&td);
+			rv = DO_1PASS_TEST(group, &td, group_test_getgrgid,
+			    (void *)&td);
 		else
-			rv = DO_1PASS_TEST(group, &td_snap,
-				group_test_getgrgid, (void *)&td_snap);
+			rv = DO_1PASS_TEST(group, &td_snap, group_test_getgrgid,
+			    (void *)&td_snap);
 		break;
 	case TEST_GETGRENT:
 		if (snapshot_file == NULL)
 			rv = DO_1PASS_TEST(group, &td, group_test_getgrent,
-				(void *)&td);
+			    (void *)&td);
 		else
-			rv = DO_2PASS_TEST(group, &td, &td_snap,
-				compare_group, NULL);
+			rv = DO_2PASS_TEST(group, &td, &td_snap, compare_group,
+			    NULL);
 		break;
 	case TEST_GETGRENT_2PASS:
 		TEST_DATA_INIT(group, &td_2pass, clone_group, free_group);
 		rv = group_fill_test_data(&td_2pass, NULL);
 		if (rv != -1)
-			rv = DO_2PASS_TEST(group, &td, &td_2pass,
-				compare_group, NULL);
+			rv = DO_2PASS_TEST(group, &td, &td_2pass, compare_group,
+			    NULL);
 		TEST_DATA_DESTROY(group, &td_2pass);
 		break;
 	case TEST_GETGRENT_INTERLEAVED_GETGRNAM:
@@ -495,7 +496,7 @@ fin:
 	return (rv);
 }
 
-#define	SNAPSHOT_FILE	"snapshot_grp"
+#define SNAPSHOT_FILE "snapshot_grp"
 
 ATF_TC_WITHOUT_HEAD(getgrent);
 ATF_TC_BODY(getgrent, tc)

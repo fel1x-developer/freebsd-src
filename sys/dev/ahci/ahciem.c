@@ -27,30 +27,33 @@
  */
 
 #include <sys/param.h>
-#include <sys/module.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/endian.h>
-#include <sys/malloc.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
-#include <machine/stdarg.h>
-#include <machine/resource.h>
-#include <machine/bus.h>
 #include <sys/rman.h>
+
+#include <machine/bus.h>
+#include <machine/resource.h>
+#include <machine/stdarg.h>
+
 #include <dev/led/led.h>
-#include <dev/pci/pcivar.h>
 #include <dev/pci/pcireg.h>
-#include "ahci.h"
+#include <dev/pci/pcivar.h>
 
 #include <cam/cam.h>
 #include <cam/cam_ccb.h>
+#include <cam/cam_debug.h>
 #include <cam/cam_sim.h>
 #include <cam/cam_xpt_sim.h>
-#include <cam/cam_debug.h>
 #include <cam/scsi/scsi_ses.h>
+
+#include "ahci.h"
 
 /* local prototypes */
 static void ahciemaction(struct cam_sim *sim, union ccb *ccb);
@@ -83,12 +86,12 @@ ahci_em_attach(device_t dev)
 	enc->ichannels = ctlr->ichannels;
 	mtx_init(&enc->mtx, "AHCI enclosure lock", NULL, MTX_DEF);
 	rid = 0;
-	if ((enc->r_memc = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-	    &rid, RF_ACTIVE)) != NULL) {
+	if ((enc->r_memc = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
+		 RF_ACTIVE)) != NULL) {
 		enc->capsem = ATA_INL(enc->r_memc, 0);
 		rid = 1;
 		if (!(enc->r_memt = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-		    &rid, RF_ACTIVE))) {
+			  &rid, RF_ACTIVE))) {
 			error = ENXIO;
 			goto err0;
 		}
@@ -99,7 +102,7 @@ ahci_em_attach(device_t dev)
 	if ((enc->capsem & (AHCI_EM_XMT | AHCI_EM_SMB)) == 0) {
 		rid = 2;
 		if (!(enc->r_memr = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-		    &rid, RF_ACTIVE))) {
+			  &rid, RF_ACTIVE))) {
 			error = ENXIO;
 			goto err0;
 		}
@@ -107,8 +110,8 @@ ahci_em_attach(device_t dev)
 		enc->r_memr = NULL;
 	mtx_lock(&enc->mtx);
 	if (ahci_em_reset(dev) != 0) {
-	    error = ENXIO;
-	    goto err1;
+		error = ENXIO;
+		goto err1;
 	}
 	rid = ATA_IRQ_RID;
 	/* Create the device queue for our SIM. */
@@ -120,8 +123,7 @@ ahci_em_attach(device_t dev)
 	}
 	/* Construct SIM entry */
 	enc->sim = cam_sim_alloc(ahciemaction, ahciempoll, "ahciem", enc,
-	    device_get_unit(dev), &enc->mtx,
-	    1, 0, devq);
+	    device_get_unit(dev), &enc->mtx, 1, 0, devq);
 	if (enc->sim == NULL) {
 		cam_simq_free(devq);
 		device_printf(dev, "Unable to allocate SIM\n");
@@ -133,8 +135,8 @@ ahci_em_attach(device_t dev)
 		error = ENXIO;
 		goto err2;
 	}
-	if (xpt_create_path(&enc->path, /*periph*/NULL, cam_sim_path(enc->sim),
-	    CAM_TARGET_WILDCARD, CAM_LUN_WILDCARD) != CAM_REQ_CMP) {
+	if (xpt_create_path(&enc->path, /*periph*/ NULL, cam_sim_path(enc->sim),
+		CAM_TARGET_WILDCARD, CAM_LUN_WILDCARD) != CAM_REQ_CMP) {
 		device_printf(dev, "Unable to create path\n");
 		error = ENXIO;
 		goto err3;
@@ -142,14 +144,14 @@ ahci_em_attach(device_t dev)
 	mtx_unlock(&enc->mtx);
 	if (bootverbose) {
 		device_printf(dev, "Caps:%s%s%s%s%s%s%s%s\n",
-		    (enc->capsem & AHCI_EM_PM) ? " PM":"",
-		    (enc->capsem & AHCI_EM_ALHD) ? " ALHD":"",
-		    (enc->capsem & AHCI_EM_XMT) ? " XMT":"",
-		    (enc->capsem & AHCI_EM_SMB) ? " SMB":"",
-		    (enc->capsem & AHCI_EM_SGPIO) ? " SGPIO":"",
-		    (enc->capsem & AHCI_EM_SES2) ? " SES-2":"",
-		    (enc->capsem & AHCI_EM_SAFTE) ? " SAF-TE":"",
-		    (enc->capsem & AHCI_EM_LED) ? " LED":"");
+		    (enc->capsem & AHCI_EM_PM) ? " PM" : "",
+		    (enc->capsem & AHCI_EM_ALHD) ? " ALHD" : "",
+		    (enc->capsem & AHCI_EM_XMT) ? " XMT" : "",
+		    (enc->capsem & AHCI_EM_SMB) ? " SMB" : "",
+		    (enc->capsem & AHCI_EM_SGPIO) ? " SGPIO" : "",
+		    (enc->capsem & AHCI_EM_SES2) ? " SES-2" : "",
+		    (enc->capsem & AHCI_EM_SAFTE) ? " SAF-TE" : "",
+		    (enc->capsem & AHCI_EM_LED) ? " LED" : "");
 	}
 	if ((enc->capsem & AHCI_EM_LED)) {
 		for (c = 0; c < enc->channels; c++) {
@@ -157,26 +159,27 @@ ahci_em_attach(device_t dev)
 				continue;
 			for (i = 0; i < AHCI_NUM_LEDS; i++) {
 				enc->leds[c * AHCI_NUM_LEDS + i].dev = dev;
-				enc->leds[c * AHCI_NUM_LEDS + i].num =
-				    c * AHCI_NUM_LEDS + i;
+				enc->leds[c * AHCI_NUM_LEDS + i].num = c *
+					AHCI_NUM_LEDS +
+				    i;
 			}
 			if ((enc->capsem & AHCI_EM_ALHD) == 0) {
 				snprintf(buf, sizeof(buf), "%s.%d.act",
 				    device_get_nameunit(parent), c);
 				enc->leds[c * AHCI_NUM_LEDS + 0].led =
 				    led_create(ahci_em_led,
-				    &enc->leds[c * AHCI_NUM_LEDS + 0], buf);
+					&enc->leds[c * AHCI_NUM_LEDS + 0], buf);
 			}
 			snprintf(buf, sizeof(buf), "%s.%d.locate",
 			    device_get_nameunit(parent), c);
 			enc->leds[c * AHCI_NUM_LEDS + 1].led =
 			    led_create(ahci_em_led,
-			    &enc->leds[c * AHCI_NUM_LEDS + 1], buf);
+				&enc->leds[c * AHCI_NUM_LEDS + 1], buf);
 			snprintf(buf, sizeof(buf), "%s.%d.fault",
 			    device_get_nameunit(parent), c);
 			enc->leds[c * AHCI_NUM_LEDS + 2].led =
 			    led_create(ahci_em_led,
-			    &enc->leds[c * AHCI_NUM_LEDS + 2], buf);
+				&enc->leds[c * AHCI_NUM_LEDS + 2], buf);
 		}
 	}
 	return (0);
@@ -184,7 +187,7 @@ ahci_em_attach(device_t dev)
 err3:
 	xpt_bus_deregister(cam_sim_path(enc->sim));
 err2:
-	cam_sim_free(enc->sim, /*free_devq*/TRUE);
+	cam_sim_free(enc->sim, /*free_devq*/ TRUE);
 err1:
 	mtx_unlock(&enc->mtx);
 	if (enc->r_memr)
@@ -212,7 +215,7 @@ ahci_em_detach(device_t dev)
 	xpt_async(AC_LOST_DEVICE, enc->path, NULL);
 	xpt_free_path(enc->path);
 	xpt_bus_deregister(cam_sim_path(enc->sim));
-	cam_sim_free(enc->sim, /*free_devq*/TRUE);
+	cam_sim_free(enc->sim, /*free_devq*/ TRUE);
 	mtx_unlock(&enc->mtx);
 
 	if (enc->r_memc)
@@ -236,8 +239,7 @@ ahci_em_reset(device_t dev)
 		return (0);
 	ATA_OUTL(enc->r_memc, 0, AHCI_EM_RST);
 	timeout = 1000;
-	while ((ATA_INL(enc->r_memc, 0) & AHCI_EM_RST) &&
-	    --timeout > 0)
+	while ((ATA_INL(enc->r_memc, 0) & AHCI_EM_RST) && --timeout > 0)
 		DELAY(1000);
 	if (timeout == 0) {
 		device_printf(dev, "EM timeout\n");
@@ -271,19 +273,14 @@ ahci_em_resume(device_t dev)
 	return (0);
 }
 
-static device_method_t ahciem_methods[] = {
-	DEVMETHOD(device_probe,     ahci_em_probe),
-	DEVMETHOD(device_attach,    ahci_em_attach),
-	DEVMETHOD(device_detach,    ahci_em_detach),
-	DEVMETHOD(device_suspend,   ahci_em_suspend),
-	DEVMETHOD(device_resume,    ahci_em_resume),
-	DEVMETHOD_END
-};
-static driver_t ahciem_driver = {
-        "ahciem",
-        ahciem_methods,
-        sizeof(struct ahci_enclosure)
-};
+static device_method_t ahciem_methods[] = { DEVMETHOD(device_probe,
+						ahci_em_probe),
+	DEVMETHOD(device_attach, ahci_em_attach),
+	DEVMETHOD(device_detach, ahci_em_detach),
+	DEVMETHOD(device_suspend, ahci_em_suspend),
+	DEVMETHOD(device_resume, ahci_em_resume), DEVMETHOD_END };
+static driver_t ahciem_driver = { "ahciem", ahciem_methods,
+	sizeof(struct ahci_enclosure) };
 DRIVER_MODULE(ahciem, ahci, ahciem_driver, NULL, NULL);
 
 static void
@@ -298,13 +295,13 @@ ahci_em_setleds(device_t dev, int c)
 		return;
 
 	val = 0;
-	if (enc->status[c][2] & SESCTL_RQSACT)		/* Activity */
+	if (enc->status[c][2] & SESCTL_RQSACT) /* Activity */
 		val |= (1 << 0);
-	if (enc->status[c][1] & SESCTL_RQSRR)		/* Rebuild */
+	if (enc->status[c][1] & SESCTL_RQSRR) /* Rebuild */
 		val |= (1 << 6) | (1 << 3);
-	else if (enc->status[c][2] & SESCTL_RQSID)	/* Identification */
+	else if (enc->status[c][2] & SESCTL_RQSID) /* Identification */
 		val |= (1 << 3);
-	else if (enc->status[c][3] & SESCTL_RQSFLT)	/* Fault */
+	else if (enc->status[c][3] & SESCTL_RQSFLT) /* Fault */
 		val |= (1 << 6);
 
 	timeout = 10000;
@@ -393,8 +390,8 @@ ahci_em_emulate_ses_on_led(device_t dev, union ccb *ccb)
 	if (ccb->ataio.cmd.features == 0xEC &&
 	    ccb->ataio.cmd.sector_count >= 16) {
 		bzero(buf, ccb->ataio.dxfer_len);
-		buf[0] = 64;		/* Valid bytes. */
-		buf[2] = 0x30;		/* NAA Locally Assigned. */
+		buf[0] = 64;   /* Valid bytes. */
+		buf[2] = 0x30; /* NAA Locally Assigned. */
 		strncpy(&buf[3], device_get_nameunit(dev), 7);
 		strncpy(&buf[10], "AHCI    ", SID_VENDOR_SIZE);
 		strncpy(&buf[18], "SGPIO Enclosure ", SID_PRODUCT_SIZE);
@@ -408,8 +405,7 @@ ahci_em_emulate_ses_on_led(device_t dev, union ccb *ccb)
 
 	/* SEMB RECEIVE DIAGNOSTIC RESULT (0) */
 	page = (struct ses_status_page *)buf;
-	if (ccb->ataio.cmd.lba_low == 0x02 &&
-	    ccb->ataio.cmd.features == 0x00 &&
+	if (ccb->ataio.cmd.lba_low == 0x02 && ccb->ataio.cmd.features == 0x00 &&
 	    ccb->ataio.cmd.sector_count >= 3) {
 		bzero(buf, ccb->ataio.dxfer_len);
 		page->hdr.page_code = 0;
@@ -424,8 +420,7 @@ ahci_em_emulate_ses_on_led(device_t dev, union ccb *ccb)
 	}
 
 	/* SEMB RECEIVE DIAGNOSTIC RESULT (1) */
-	if (ccb->ataio.cmd.lba_low == 0x02 &&
-	    ccb->ataio.cmd.features == 0x01 &&
+	if (ccb->ataio.cmd.lba_low == 0x02 && ccb->ataio.cmd.features == 0x01 &&
 	    ccb->ataio.cmd.sector_count >= 16) {
 		struct ses_enc_desc *ed;
 		struct ses_elm_type_desc *td;
@@ -439,7 +434,7 @@ ahci_em_emulate_ses_on_led(device_t dev, union ccb *ccb)
 		ed->subenc_id = 0;
 		ed->num_types = 1;
 		ed->length = 36;
-		ed->logical_id[0] = 0x30;	/* NAA Locally Assigned. */
+		ed->logical_id[0] = 0x30; /* NAA Locally Assigned. */
 		strncpy(&ed->logical_id[1], device_get_nameunit(dev), 7);
 		strncpy(ed->vendor_id, "AHCI    ", SID_VENDOR_SIZE);
 		strncpy(ed->product_id, "SGPIO Enclosure ", SID_PRODUCT_SIZE);
@@ -455,13 +450,11 @@ ahci_em_emulate_ses_on_led(device_t dev, union ccb *ccb)
 	}
 
 	/* SEMB RECEIVE DIAGNOSTIC RESULT (2) */
-	if (ccb->ataio.cmd.lba_low == 0x02 &&
-	    ccb->ataio.cmd.features == 0x02 &&
+	if (ccb->ataio.cmd.lba_low == 0x02 && ccb->ataio.cmd.features == 0x02 &&
 	    ccb->ataio.cmd.sector_count >= (3 + enc->channels)) {
 		bzero(buf, ccb->ataio.dxfer_len);
 		page->hdr.page_code = 0x02;
-		scsi_ulto2b(4 + 4 * (1 + enc->channels),
-		    page->hdr.length);
+		scsi_ulto2b(4 + 4 * (1 + enc->channels), page->hdr.length);
 		for (i = 0; i < enc->channels; i++) {
 			ads = &page->elements[i + 1].array_dev_slot;
 			memcpy(ads, enc->status[i], 4);
@@ -477,7 +470,8 @@ ahci_em_emulate_ses_on_led(device_t dev, union ccb *ccb)
 			else if (ch->disablephy)
 				ads->common.bytes[0] |= SES_OBJSTAT_NOTAVAIL;
 			else
-				ads->common.bytes[0] |= SES_OBJSTAT_NOTINSTALLED;
+				ads->common.bytes[0] |=
+				    SES_OBJSTAT_NOTINSTALLED;
 			if (ch->disablephy)
 				ads->common.bytes[3] |= SESCTL_DEVOFF;
 			ahci_putch(ch);
@@ -487,8 +481,7 @@ ahci_em_emulate_ses_on_led(device_t dev, union ccb *ccb)
 	}
 
 	/* SEMB SEND DIAGNOSTIC (2) */
-	if (ccb->ataio.cmd.lba_low == 0x82 &&
-	    ccb->ataio.cmd.features == 0x02 &&
+	if (ccb->ataio.cmd.lba_low == 0x82 && ccb->ataio.cmd.features == 0x02 &&
 	    ccb->ataio.cmd.sector_count >= (3 + enc->channels)) {
 		ads0 = &page->elements[0].array_dev_slot;
 		for (i = 0; i < enc->channels; i++) {
@@ -518,8 +511,7 @@ ahci_em_emulate_ses_on_led(device_t dev, union ccb *ccb)
 	}
 
 	/* SEMB RECEIVE DIAGNOSTIC RESULT (7) */
-	if (ccb->ataio.cmd.lba_low == 0x02 &&
-	    ccb->ataio.cmd.features == 0x07 &&
+	if (ccb->ataio.cmd.lba_low == 0x02 && ccb->ataio.cmd.features == 0x07 &&
 	    ccb->ataio.cmd.sector_count >= (6 + 3 * enc->channels)) {
 		bzero(buf, ccb->ataio.dxfer_len);
 		page->hdr.page_code = 0x07;
@@ -537,16 +529,15 @@ ahci_em_emulate_ses_on_led(device_t dev, union ccb *ccb)
 	}
 
 	/* SEMB RECEIVE DIAGNOSTIC RESULT (a) */
-	if (ccb->ataio.cmd.lba_low == 0x02 &&
-	    ccb->ataio.cmd.features == 0x0a &&
+	if (ccb->ataio.cmd.lba_low == 0x02 && ccb->ataio.cmd.features == 0x0a &&
 	    ccb->ataio.cmd.sector_count >= (2 + 3 * enc->channels)) {
 		bzero(buf, ccb->ataio.dxfer_len);
 		page->hdr.page_code = 0x0a;
 		scsi_ulto2b(4 + (sizeof(*elma) + sizeof(*elmb)) * enc->channels,
 		    page->hdr.length);
 		for (i = 0; i < enc->channels; i++) {
-			elma = (struct ses_elm_addlstatus_eip_hdr *)&buf[
-			    8 + (sizeof(*elma) + sizeof(*elmb)) * i];
+			elma = (struct ses_elm_addlstatus_eip_hdr
+				*)&buf[8 + (sizeof(*elma) + sizeof(*elmb)) * i];
 			elma->base.byte0 = 0x10 | SPSP_PROTO_ATA;
 			elma->base.length = 2 + sizeof(*elmb);
 			elma->byte2 = 0x01;
@@ -612,17 +603,17 @@ ahciemaction(struct cam_sim *sim, union ccb *ccb)
 	enc = cam_sim_softc(sim);
 	dev = enc->dev;
 	switch (ccb->ccb_h.func_code) {
-	case XPT_ATA_IO:	/* Execute the requested I/O operation */
+	case XPT_ATA_IO: /* Execute the requested I/O operation */
 		if (ahci_check_ids(ccb))
 			return;
 		ahci_em_begin_transaction(dev, ccb);
 		return;
-	case XPT_RESET_BUS:		/* Reset the specified bus */
-	case XPT_RESET_DEV:	/* Bus Device Reset the specified device */
+	case XPT_RESET_BUS: /* Reset the specified bus */
+	case XPT_RESET_DEV: /* Bus Device Reset the specified device */
 		ahci_em_reset(dev);
 		ccb->ccb_h.status = CAM_REQ_CMP;
 		break;
-	case XPT_PATH_INQ:		/* Path routing inquiry */
+	case XPT_PATH_INQ: /* Path routing inquiry */
 	{
 		struct ccb_pathinq *cpi = &ccb->cpi;
 
@@ -663,5 +654,4 @@ ahciemaction(struct cam_sim *sim, union ccb *ccb)
 static void
 ahciempoll(struct cam_sim *sim)
 {
-
 }

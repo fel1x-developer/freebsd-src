@@ -34,7 +34,7 @@
 #include <string.h>
 #include <unistd.h>
 
-static int	isDISP(const char *);
+static int isDISP(const char *);
 
 /*-
  * Trim the current domain name from fullhost, but only if the result
@@ -79,8 +79,7 @@ trimdomain(char *fullhost, int hostsize)
 			if (s[dlen + 1] == '\0') {
 				/* Found -- lose the domain. */
 				*s = '\0';
-			} else if (s[dlen + 1] == ':' &&
-			    isDISP(s + dlen + 2) &&
+			} else if (s[dlen + 1] == ':' && isDISP(s + dlen + 2) &&
 			    (len = strlen(s + dlen + 1)) < (size_t)(end - s)) {
 				/* Found -- shuffle the DISPLAY back. */
 				memmove(s, s + dlen + 1, len + 1);
@@ -102,12 +101,12 @@ isDISP(const char *disp)
 	res = 0;
 	if (w > 0) {
 		if (disp[w] == '\0')
-			res = 1;	/* NN */
+			res = 1; /* NN */
 		else if (disp[w] == '.') {
 			disp += w + 1;
 			w = strspn(disp, "0123456789");
 			if (w > 0 && disp[w] == '\0')
-				res = 1;	/* NN.NN */
+				res = 1; /* NN.NN */
 		}
 	}
 	return (res);

@@ -40,21 +40,21 @@
 #include <string.h>
 #include <unistd.h>
 
-static void	 db_build(char **);
-static void	 dounlink(void);
-static void	 usage(void);
+static void db_build(char **);
+static void dounlink(void);
+static void usage(void);
 
-static DB	*capdbp;
-static int	 verbose;
-static char	*capname, buf[8 * 1024];
+static DB *capdbp;
+static int verbose;
+static char *capname, buf[8 * 1024];
 
 static HASHINFO openinfo = {
-	4096,		/* bsize */
-	0,		/* ffactor */
-	0,		/* nelem */
-	0,		/* cachesize */
-	NULL,		/* hash() */
-	0		/* lorder */
+	4096, /* bsize */
+	0,    /* ffactor */
+	0,    /* nelem */
+	0,    /* cachesize */
+	NULL, /* hash() */
+	0     /* lorder */
 };
 
 /*
@@ -72,7 +72,7 @@ main(int argc, char *argv[])
 	capname = NULL;
 	byteorder = 0;
 	while ((c = getopt(argc, argv, "bf:lv")) != -1) {
-		switch(c) {
+		switch (c) {
 		case 'b':
 		case 'l':
 			if (byteorder != 0)
@@ -106,8 +106,8 @@ main(int argc, char *argv[])
 	(void)snprintf(buf, sizeof(buf), "%s.db", capname ? capname : *argv);
 	if ((capname = strdup(buf)) == NULL)
 		errx(1, "strdup failed");
-	if ((capdbp = dbopen(capname, O_CREAT | O_TRUNC | O_RDWR,
-	    DEFFILEMODE, DB_HASH, &openinfo)) == NULL)
+	if ((capdbp = dbopen(capname, O_CREAT | O_TRUNC | O_RDWR, DEFFILEMODE,
+		 DB_HASH, &openinfo)) == NULL)
 		err(1, "%s", buf);
 
 	if (atexit(dounlink))
@@ -132,9 +132,9 @@ dounlink(void)
  * Any changes to these definitions should be made also in the getcap(3)
  * library routines.
  */
-#define RECOK	(char)0
-#define TCERR	(char)1
-#define SHADOW	(char)2
+#define RECOK (char)0
+#define TCERR (char)1
+#define SHADOW (char)2
 
 /*
  * Db_build() builds the name and capability databases according to the
@@ -171,7 +171,7 @@ db_build(char **ifiles)
 		}
 
 		/* First byte of stored record indicates status. */
-		switch(st) {
+		switch (st) {
 		case 1:
 			((char *)(data.data))[0] = RECOK;
 			break;
@@ -190,13 +190,13 @@ db_build(char **ifiles)
 		key.data = bp;
 		key.size = p - bp;
 
-		switch(capdbp->put(capdbp, &key, &data, R_NOOVERWRITE)) {
+		switch (capdbp->put(capdbp, &key, &data, R_NOOVERWRITE)) {
 		case -1:
 			err(1, "put");
 			/* NOTREACHED */
 		case 1:
-			warnx("ignored duplicate: %.*s",
-			    (int)key.size, (char *)key.data);
+			warnx("ignored duplicate: %.*s", (int)key.size,
+			    (char *)key.data);
 			continue;
 		}
 		++reccnt;
@@ -217,8 +217,8 @@ db_build(char **ifiles)
 			if (p > t && (*p == ':' || *p == '|')) {
 				key.size = p - t;
 				key.data = t;
-				switch(capdbp->put(capdbp,
-				    &key, &data, R_NOOVERWRITE)) {
+				switch (capdbp->put(capdbp, &key, &data,
+				    R_NOOVERWRITE)) {
 				case -1:
 					err(1, "put");
 					/* NOTREACHED */
@@ -233,7 +233,7 @@ db_build(char **ifiles)
 		}
 	}
 
-	switch(st) {
+	switch (st) {
 	case -1:
 		err(1, "file argument");
 		/* NOTREACHED */

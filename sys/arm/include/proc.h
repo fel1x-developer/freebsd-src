@@ -34,13 +34,13 @@
  *	from: FreeBSD: src/sys/i386/include/proc.h,v 1.11 2001/06/29
  */
 
-#ifndef	_MACHINE_PROC_H_
-#define	_MACHINE_PROC_H_
+#ifndef _MACHINE_PROC_H_
+#define _MACHINE_PROC_H_
 
 struct mdthread {
-	int	md_spinlock_count;	/* (k) */
-	register_t md_saved_cspr;	/* (k) */
-	register_t md_spurflt_addr;     /* (k) Spurious page fault address. */
+	int md_spinlock_count;	    /* (k) */
+	register_t md_saved_cspr;   /* (k) */
+	register_t md_spurflt_addr; /* (k) Spurious page fault address. */
 	int md_ptrace_instr;
 	int md_ptrace_addr;
 	int md_ptrace_instr_alt;
@@ -48,9 +48,9 @@ struct mdthread {
 };
 
 struct mdproc {
-	long	md_dummy;
+	long md_dummy;
 };
 
-#define	KINFO_PROC_SIZE 816
+#define KINFO_PROC_SIZE 816
 
 #endif /* !_MACHINE_PROC_H_ */

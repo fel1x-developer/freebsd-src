@@ -47,167 +47,50 @@
 #include "mptutil.h"
 
 static const char *mpt_ioc_status_codes[] = {
-	"Success",				/* 0x0000 */
-	"Invalid function",
-	"Busy",
-	"Invalid scatter-gather list",
-	"Internal error",
-	"Reserved",
-	"Insufficient resources",
-	"Invalid field",
-	"Invalid state",			/* 0x0008 */
-	"Operation state not supported",
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,					/* 0x0010 */
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,					/* 0x0018 */
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	"Invalid configuration action",		/* 0x0020 */
-	"Invalid configuration type",
-	"Invalid configuration page",
-	"Invalid configuration data",
-	"No configuration defaults",
-	"Unable to commit configuration change",
-	NULL,
-	NULL,
-	NULL,					/* 0x0028 */
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,					/* 0x0030 */
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,					/* 0x0038 */
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	"Recovered SCSI error",			/* 0x0040 */
-	"Invalid SCSI bus",
-	"Invalid SCSI target ID",
-	"SCSI device not there",
-	"SCSI data overrun",
-	"SCSI data underrun",
-	"SCSI I/O error",
-	"SCSI protocol error",
-	"SCSI task terminated",			/* 0x0048 */
-	"SCSI residual mismatch",
-	"SCSI task management failed",
-	"SCSI I/O controller terminated",
-	"SCSI external controller terminated",
-	"EEDP guard error",
-	"EEDP reference tag error",
-	"EEDP application tag error",
-	NULL,					/* 0x0050 */
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,					/* 0x0058 */
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	"SCSI target priority I/O",		/* 0x0060 */
-	"Invalid SCSI target port",
-	"Invalid SCSI target I/O index",
-	"SCSI target aborted",
-	"No connection retryable",
-	"No connection",
-	"FC aborted",
-	"Invalid FC receive ID",
-	"FC did invalid",			/* 0x0068 */
-	"FC node logged out",
-	"Transfer count mismatch",
-	"STS data not set",
-	"FC exchange canceled",
-	"Data offset error",
-	"Too much write data",
-	"IU too short",
-	"ACK NAK timeout",			/* 0x0070 */
-	"NAK received",
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,					/* 0x0078 */
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	"LAN device not found",			/* 0x0080 */
-	"LAN device failure",
-	"LAN transmit error",
-	"LAN transmit aborted",
-	"LAN receive error",
-	"LAN receive aborted",
-	"LAN partial packet",
-	"LAN canceled",
-	NULL,					/* 0x0088 */
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	"SAS SMP request failed",		/* 0x0090 */
-	"SAS SMP data overrun",
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	"Inband aborted",			/* 0x0098 */
-	"No inband connection",
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	"Diagnostic released",			/* 0x00A0 */
+	"Success", /* 0x0000 */
+	"Invalid function", "Busy", "Invalid scatter-gather list",
+	"Internal error", "Reserved", "Insufficient resources", "Invalid field",
+	"Invalid state", /* 0x0008 */
+	"Operation state not supported", NULL, NULL, NULL, NULL, NULL, NULL,
+	NULL,						/* 0x0010 */
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, /* 0x0018 */
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	"Invalid configuration action", /* 0x0020 */
+	"Invalid configuration type", "Invalid configuration page",
+	"Invalid configuration data", "No configuration defaults",
+	"Unable to commit configuration change", NULL, NULL, NULL, /* 0x0028 */
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,		   /* 0x0030 */
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,		   /* 0x0038 */
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	"Recovered SCSI error", /* 0x0040 */
+	"Invalid SCSI bus", "Invalid SCSI target ID", "SCSI device not there",
+	"SCSI data overrun", "SCSI data underrun", "SCSI I/O error",
+	"SCSI protocol error", "SCSI task terminated", /* 0x0048 */
+	"SCSI residual mismatch", "SCSI task management failed",
+	"SCSI I/O controller terminated", "SCSI external controller terminated",
+	"EEDP guard error", "EEDP reference tag error",
+	"EEDP application tag error", NULL,		/* 0x0050 */
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, /* 0x0058 */
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	"SCSI target priority I/O", /* 0x0060 */
+	"Invalid SCSI target port", "Invalid SCSI target I/O index",
+	"SCSI target aborted", "No connection retryable", "No connection",
+	"FC aborted", "Invalid FC receive ID", "FC did invalid", /* 0x0068 */
+	"FC node logged out", "Transfer count mismatch", "STS data not set",
+	"FC exchange canceled", "Data offset error", "Too much write data",
+	"IU too short", "ACK NAK timeout",			  /* 0x0070 */
+	"NAK received", NULL, NULL, NULL, NULL, NULL, NULL, NULL, /* 0x0078 */
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	"LAN device not found", /* 0x0080 */
+	"LAN device failure", "LAN transmit error", "LAN transmit aborted",
+	"LAN receive error", "LAN receive aborted", "LAN partial packet",
+	"LAN canceled", NULL, /* 0x0088 */
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	"SAS SMP request failed", /* 0x0090 */
+	"SAS SMP data overrun", NULL, NULL, NULL, NULL, NULL, NULL,
+	"Inband aborted", /* 0x0098 */
+	"No inband connection", NULL, NULL, NULL, NULL, NULL, NULL,
+	"Diagnostic released", /* 0x00A0 */
 };
 
 static const char *mpt_raid_action_status_codes[] = {
@@ -235,8 +118,8 @@ mpt_raid_status(U16 ActionStatus)
 {
 	static char buffer[16];
 
-	if (ActionStatus < sizeof(mpt_raid_action_status_codes) /
-	    sizeof(char *))
+	if (ActionStatus <
+	    sizeof(mpt_raid_action_status_codes) / sizeof(char *))
 		return (mpt_raid_action_status_codes[ActionStatus]);
 	snprintf(buffer, sizeof(buffer), "Status: 0x%04x", ActionStatus);
 	return (buffer);
@@ -592,7 +475,7 @@ hexdump(const void *ptr, int length, const char *hdr, int flags)
 		cols = 16;
 
 	cp = ptr;
-	for (i = 0; i < length; i+= cols) {
+	for (i = 0; i < length; i += cols) {
 		if (hdr != NULL)
 			printf("%s", hdr);
 

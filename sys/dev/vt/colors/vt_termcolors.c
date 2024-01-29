@@ -29,39 +29,39 @@
  */
 
 #include <sys/param.h>
+#include <sys/fbio.h>
 #include <sys/kernel.h>
 #include <sys/libkern.h>
-#include <sys/fbio.h>
 
 #include <dev/vt/colors/vt_termcolors.h>
 
 static struct {
-	unsigned char r;	/* Red percentage value. */
-	unsigned char g;	/* Green percentage value. */
-	unsigned char b;	/* Blue percentage value. */
+	unsigned char r; /* Red percentage value. */
+	unsigned char g; /* Green percentage value. */
+	unsigned char b; /* Blue percentage value. */
 } color_def[NCOLORS] = {
-	{0,	0,	0},	/* black */
-	{50,	0,	0},	/* dark red */
-	{0,	50,	0},	/* dark green */
-	{77,	63,	0},	/* dark yellow */
-	{20,	40,	64},	/* dark blue */
-	{50,	0,	50},	/* dark magenta */
-	{0,	50,	50},	/* dark cyan */
-	{75,	75,	75},	/* light gray */
+	{ 0, 0, 0 },	/* black */
+	{ 50, 0, 0 },	/* dark red */
+	{ 0, 50, 0 },	/* dark green */
+	{ 77, 63, 0 },	/* dark yellow */
+	{ 20, 40, 64 }, /* dark blue */
+	{ 50, 0, 50 },	/* dark magenta */
+	{ 0, 50, 50 },	/* dark cyan */
+	{ 75, 75, 75 }, /* light gray */
 
-	{18,	20,	21},	/* dark gray */
-	{100,	0,	0},	/* light red */
-	{0,	100,	0},	/* light green */
-	{100,	100,	0},	/* light yellow */
-	{45,	62,	81},	/* light blue */
-	{100,	0,	100},	/* light magenta */
-	{0,	100,	100},	/* light cyan */
-	{100,	100,	100},	/* white */
+	{ 18, 20, 21 },	   /* dark gray */
+	{ 100, 0, 0 },	   /* light red */
+	{ 0, 100, 0 },	   /* light green */
+	{ 100, 100, 0 },   /* light yellow */
+	{ 45, 62, 81 },	   /* light blue */
+	{ 100, 0, 100 },   /* light magenta */
+	{ 0, 100, 100 },   /* light cyan */
+	{ 100, 100, 100 }, /* white */
 };
 
 static int
-vt_parse_rgb_triplet(const char *rgb, unsigned char *r,
-    unsigned char *g, unsigned char *b)
+vt_parse_rgb_triplet(const char *rgb, unsigned char *r, unsigned char *g,
+    unsigned char *b)
 {
 	unsigned long v;
 	const char *ptr;
@@ -78,7 +78,7 @@ vt_parse_rgb_triplet(const char *rgb, unsigned char *r,
 			return (-1);
 
 		*r = (v >> 16) & 0xff;
-		*g = (v >>  8) & 0xff;
+		*g = (v >> 8) & 0xff;
 		*b = v & 0xff;
 
 		return (0);
@@ -137,14 +137,13 @@ vt_palette_init(void)
 	unsigned char r, g, b;
 
 	for (i = 0; i < NCOLORS; i++) {
-		snprintf(tunable, sizeof(tunable),
-		    "kern.vt.color.%d.rgb", i);
+		snprintf(tunable, sizeof(tunable), "kern.vt.color.%d.rgb", i);
 		if (TUNABLE_STR_FETCH(tunable, rgb, sizeof(rgb))) {
 			if (vt_parse_rgb_triplet(rgb, &r, &g, &b) == 0) {
 				/* convert to percentages */
-				color_def[i].r = r*100/255;
-				color_def[i].g = g*100/255;
-				color_def[i].b = b*100/255;
+				color_def[i].r = r * 100 / 255;
+				color_def[i].g = g * 100 / 255;
+				color_def[i].b = b * 100 / 255;
 			}
 		}
 	}
@@ -163,10 +162,10 @@ vt_generate_cons_palette(uint32_t *palette, int format, uint32_t rmax,
 		break;
 	case COLOR_FORMAT_RGB:
 		vt_palette_init();
-#define	CF(_f, _i) ((_f ## max * color_def[(_i)]._f / 100) << _f ## offset)
+#define CF(_f, _i) ((_f##max * color_def[(_i)]._f / 100) << _f##offset)
 		for (i = 0; i < NCOLORS; i++)
 			palette[i] = CF(r, i) | CF(g, i) | CF(b, i);
-#undef	CF
+#undef CF
 		break;
 	default:
 		return (ENODEV);
@@ -186,6 +185,6 @@ vt_config_cons_colors(struct fb_info *info, int format, uint32_t rmax,
 	} else
 		memset(&info->fb_rgboffs, 0, sizeof(info->fb_rgboffs));
 
-	return (vt_generate_cons_palette(info->fb_cmap, format, rmax,
-	    roffset, gmax, goffset, bmax, boffset));
+	return (vt_generate_cons_palette(info->fb_cmap, format, rmax, roffset,
+	    gmax, goffset, bmax, boffset));
 }

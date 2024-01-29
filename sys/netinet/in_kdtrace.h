@@ -26,25 +26,23 @@
  */
 
 #ifndef _SYS_IN_KDTRACE_H_
-#define	_SYS_IN_KDTRACE_H_
+#define _SYS_IN_KDTRACE_H_
 
-#define	IP_PROBE(probe, arg0, arg1, arg2, arg3, arg4, arg5)		\
+#define IP_PROBE(probe, arg0, arg1, arg2, arg3, arg4, arg5) \
 	SDT_PROBE6(ip, , , probe, arg0, arg1, arg2, arg3, arg4, arg5)
-#define	UDP_PROBE(probe, arg0, arg1, arg2, arg3, arg4)			\
+#define UDP_PROBE(probe, arg0, arg1, arg2, arg3, arg4) \
 	SDT_PROBE5(udp, , , probe, arg0, arg1, arg2, arg3, arg4)
-#define	UDPLITE_PROBE(probe, arg0, arg1, arg2, arg3, arg4)		\
+#define UDPLITE_PROBE(probe, arg0, arg1, arg2, arg3, arg4) \
 	SDT_PROBE5(udplite, , , probe, arg0, arg1, arg2, arg3, arg4)
-#define	TCP_PROBE1(probe, arg0)						\
-	SDT_PROBE1(tcp, , , probe, arg0)
-#define	TCP_PROBE2(probe, arg0, arg1)					\
-	SDT_PROBE2(tcp, , , probe, arg0, arg1)
-#define	TCP_PROBE3(probe, arg0, arg1, arg2)				\
+#define TCP_PROBE1(probe, arg0) SDT_PROBE1(tcp, , , probe, arg0)
+#define TCP_PROBE2(probe, arg0, arg1) SDT_PROBE2(tcp, , , probe, arg0, arg1)
+#define TCP_PROBE3(probe, arg0, arg1, arg2) \
 	SDT_PROBE3(tcp, , , probe, arg0, arg1, arg2)
-#define	TCP_PROBE4(probe, arg0, arg1, arg2, arg3)			\
+#define TCP_PROBE4(probe, arg0, arg1, arg2, arg3) \
 	SDT_PROBE4(tcp, , , probe, arg0, arg1, arg2, arg3)
-#define	TCP_PROBE5(probe, arg0, arg1, arg2, arg3, arg4)			\
+#define TCP_PROBE5(probe, arg0, arg1, arg2, arg3, arg4) \
 	SDT_PROBE5(tcp, , , probe, arg0, arg1, arg2, arg3, arg4)
-#define	TCP_PROBE6(probe, arg0, arg1, arg2, arg3, arg4, arg5)		\
+#define TCP_PROBE6(probe, arg0, arg1, arg2, arg3, arg4, arg5) \
 	SDT_PROBE6(tcp, , , probe, arg0, arg1, arg2, arg3, arg4, arg5)
 
 SDT_PROVIDER_DECLARE(ip);
@@ -85,45 +83,64 @@ SDT_PROBE_DECLARE(udplite, , , send);
  * are not documented in dtrace_tcp(4), so they are likely to be
  * eventually renamed to something better and extended/trimmed.
  */
-#define	PRU_ATTACH		0	/* attach protocol to up */
-#define	PRU_DETACH		1	/* detach protocol from up */
-#define	PRU_BIND		2	/* bind socket to address */
-#define	PRU_LISTEN		3	/* listen for connection */
-#define	PRU_CONNECT		4	/* establish connection to peer */
-#define	PRU_ACCEPT		5	/* accept connection from peer */
-#define	PRU_DISCONNECT		6	/* disconnect from peer */
-#define	PRU_SHUTDOWN		7	/* won't send any more data */
-#define	PRU_RCVD		8	/* have taken data; more room now */
-#define	PRU_SEND		9	/* send this data */
-#define	PRU_ABORT		10	/* abort (fast DISCONNECT, DETATCH) */
-#define	PRU_CONTROL		11	/* control operations on protocol */
-#define	PRU_SENSE		12	/* return status into m */
-#define	PRU_RCVOOB		13	/* retrieve out of band data */
-#define	PRU_SENDOOB		14	/* send out of band data */
-#define	PRU_SOCKADDR		15	/* fetch socket's address */
-#define	PRU_PEERADDR		16	/* fetch peer's address */
-#define	PRU_CONNECT2		17	/* connect two sockets */
+#define PRU_ATTACH 0	 /* attach protocol to up */
+#define PRU_DETACH 1	 /* detach protocol from up */
+#define PRU_BIND 2	 /* bind socket to address */
+#define PRU_LISTEN 3	 /* listen for connection */
+#define PRU_CONNECT 4	 /* establish connection to peer */
+#define PRU_ACCEPT 5	 /* accept connection from peer */
+#define PRU_DISCONNECT 6 /* disconnect from peer */
+#define PRU_SHUTDOWN 7	 /* won't send any more data */
+#define PRU_RCVD 8	 /* have taken data; more room now */
+#define PRU_SEND 9	 /* send this data */
+#define PRU_ABORT 10	 /* abort (fast DISCONNECT, DETATCH) */
+#define PRU_CONTROL 11	 /* control operations on protocol */
+#define PRU_SENSE 12	 /* return status into m */
+#define PRU_RCVOOB 13	 /* retrieve out of band data */
+#define PRU_SENDOOB 14	 /* send out of band data */
+#define PRU_SOCKADDR 15	 /* fetch socket's address */
+#define PRU_PEERADDR 16	 /* fetch peer's address */
+#define PRU_CONNECT2 17	 /* connect two sockets */
 /* begin for protocols internal use */
-#define	PRU_FASTTIMO		18	/* 200ms timeout */
-#define	PRU_SLOWTIMO		19	/* 500ms timeout */
-#define	PRU_PROTORCV		20	/* receive from below */
-#define	PRU_PROTOSEND		21	/* send to below */
+#define PRU_FASTTIMO 18	 /* 200ms timeout */
+#define PRU_SLOWTIMO 19	 /* 500ms timeout */
+#define PRU_PROTORCV 20	 /* receive from below */
+#define PRU_PROTOSEND 21 /* send to below */
 /* end for protocol's internal use */
-#define PRU_SEND_EOF		22	/* send and close */
-#define	PRU_SOSETLABEL		23	/* MAC label change */
-#define	PRU_CLOSE		24	/* socket close */
-#define	PRU_FLUSH		25	/* flush the socket */
-#define	PRU_NREQ		25
+#define PRU_SEND_EOF 22	  /* send and close */
+#define PRU_SOSETLABEL 23 /* MAC label change */
+#define PRU_CLOSE 24	  /* socket close */
+#define PRU_FLUSH 25	  /* flush the socket */
+#define PRU_NREQ 25
 
 #ifdef PRUREQUESTS
 const char *prurequests[] = {
-	"ATTACH",	"DETACH",	"BIND",		"LISTEN",
-	"CONNECT",	"ACCEPT",	"DISCONNECT",	"SHUTDOWN",
-	"RCVD",		"SEND",		"ABORT",	"CONTROL",
-	"SENSE",	"RCVOOB",	"SENDOOB",	"SOCKADDR",
-	"PEERADDR",	"CONNECT2",	"FASTTIMO",	"SLOWTIMO",
-	"PROTORCV",	"PROTOSEND",	"SEND_EOF",	"SOSETLABEL",
-	"CLOSE",	"FLUSH",
+	"ATTACH",
+	"DETACH",
+	"BIND",
+	"LISTEN",
+	"CONNECT",
+	"ACCEPT",
+	"DISCONNECT",
+	"SHUTDOWN",
+	"RCVD",
+	"SEND",
+	"ABORT",
+	"CONTROL",
+	"SENSE",
+	"RCVOOB",
+	"SENDOOB",
+	"SOCKADDR",
+	"PEERADDR",
+	"CONNECT2",
+	"FASTTIMO",
+	"SLOWTIMO",
+	"PROTORCV",
+	"PROTOSEND",
+	"SEND_EOF",
+	"SOSETLABEL",
+	"CLOSE",
+	"FLUSH",
 };
 #endif
 

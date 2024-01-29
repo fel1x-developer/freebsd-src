@@ -40,7 +40,7 @@
 
 /* Represents client-specific and Innova device-specific information */
 struct mlx5_fpga_client_data {
-	struct list_head  list;
+	struct list_head list;
 	struct mlx5_fpga_client *client;
 	void *data;
 	bool added;
@@ -81,21 +81,21 @@ struct mlx5_fpga_device {
 	struct mlx5_fpga_trans_device_state *trans;
 };
 
-#define mlx5_fpga_dbg(__adev, format, ...) \
+#define mlx5_fpga_dbg(__adev, format, ...)                                   \
 	dev_dbg(&(__adev)->mdev->pdev->dev, "FPGA: %s:%d:(pid %d): " format, \
-		 __func__, __LINE__, current->pid, ##__VA_ARGS__)
+	    __func__, __LINE__, current->pid, ##__VA_ARGS__)
 
-#define mlx5_fpga_err(__adev, format, ...) \
+#define mlx5_fpga_err(__adev, format, ...)                                   \
 	dev_err(&(__adev)->mdev->pdev->dev, "FPGA: %s:%d:(pid %d): " format, \
-		__func__, __LINE__, current->pid, ##__VA_ARGS__)
+	    __func__, __LINE__, current->pid, ##__VA_ARGS__)
 
-#define mlx5_fpga_warn(__adev, format, ...) \
+#define mlx5_fpga_warn(__adev, format, ...)                                   \
 	dev_warn(&(__adev)->mdev->pdev->dev, "FPGA: %s:%d:(pid %d): " format, \
-		__func__, __LINE__, current->pid, ##__VA_ARGS__)
+	    __func__, __LINE__, current->pid, ##__VA_ARGS__)
 
-#define mlx5_fpga_warn_ratelimited(__adev, format, ...) \
-	dev_warn_ratelimited(&(__adev)->mdev->pdev->dev, "FPGA: %s:%d: " \
-		format, __func__, __LINE__, ##__VA_ARGS__)
+#define mlx5_fpga_warn_ratelimited(__adev, format, ...)  \
+	dev_warn_ratelimited(&(__adev)->mdev->pdev->dev, \
+	    "FPGA: %s:%d: " format, __func__, __LINE__, ##__VA_ARGS__)
 
 #define mlx5_fpga_notice(__adev, format, ...) \
 	dev_notice(&(__adev)->mdev->pdev->dev, "FPGA: " format, ##__VA_ARGS__)
@@ -111,26 +111,30 @@ void mlx5_fpga_event(struct mlx5_core_dev *mdev, u8 event, void *data);
 
 #else
 
-static inline int mlx5_fpga_init(struct mlx5_core_dev *mdev)
+static inline int
+mlx5_fpga_init(struct mlx5_core_dev *mdev)
 {
 	return 0;
 }
 
-static inline void mlx5_fpga_cleanup(struct mlx5_core_dev *mdev)
+static inline void
+mlx5_fpga_cleanup(struct mlx5_core_dev *mdev)
 {
 }
 
-static inline int mlx5_fpga_device_start(struct mlx5_core_dev *mdev)
+static inline int
+mlx5_fpga_device_start(struct mlx5_core_dev *mdev)
 {
 	return 0;
 }
 
-static inline void mlx5_fpga_device_stop(struct mlx5_core_dev *mdev)
+static inline void
+mlx5_fpga_device_stop(struct mlx5_core_dev *mdev)
 {
 }
 
-static inline void mlx5_fpga_event(struct mlx5_core_dev *mdev, u8 event,
-				   void *data)
+static inline void
+mlx5_fpga_event(struct mlx5_core_dev *mdev, u8 event, void *data)
 {
 }
 

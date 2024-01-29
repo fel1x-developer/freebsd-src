@@ -32,21 +32,22 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include "un-namespace.h"
-#include "local.h"
+
 #include "libc_private.h"
+#include "local.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 /*
  * MT-safe version
  */
 
 size_t
-fread(void * __restrict buf, size_t size, size_t count, FILE * __restrict fp)
+fread(void *__restrict buf, size_t size, size_t count, FILE *__restrict fp)
 {
 	size_t ret;
 
@@ -57,7 +58,7 @@ fread(void * __restrict buf, size_t size, size_t count, FILE * __restrict fp)
 }
 
 size_t
-__fread(void * __restrict buf, size_t size, size_t count, FILE * __restrict fp)
+__fread(void *__restrict buf, size_t size, size_t count, FILE *__restrict fp)
 {
 	size_t resid;
 	char *p;
@@ -76,8 +77,7 @@ __fread(void * __restrict buf, size_t size, size_t count, FILE * __restrict fp)
 	 * values are less than that, their product can't possible overflow
 	 * (size_t is always at least 32 bits on FreeBSD).
 	 */
-	if (((count | size) > 0xFFFF) &&
-	    (count > SIZE_MAX / size)) {
+	if (((count | size) > 0xFFFF) && (count > SIZE_MAX / size)) {
 		errno = EINVAL;
 		fp->_flags |= __SERR;
 		return (0);

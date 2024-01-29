@@ -37,26 +37,28 @@
  */
 
 #include <sys/file.h>
+
 #include <stdio.h>
+
 #include "ndbm.h"
 
-int my_hash(key, len)
-	char	*key;
-	int	len;
+int
+my_hash(key, len)
+char *key;
+int len;
 {
-	return(17);		/* So I'm cruel... */
+	return (17); /* So I'm cruel... */
 }
 
-main(argc, argv)
-	int	argc;
+main(argc, argv) int argc;
 {
-	DB	*db;
-	DBT	key, content;
-	char	keybuf[2049];
-	char	contentbuf[2049];
-	char	buf[256];
-	int	i;
-	HASHINFO	info;
+	DB *db;
+	DBT key, content;
+	char keybuf[2049];
+	char contentbuf[2049];
+	char buf[256];
+	int i;
+	HASHINFO info;
 
 	info.bsize = 1024;
 	info.ffactor = 5;
@@ -79,11 +81,11 @@ main(argc, argv)
 	content.data = contentbuf;
 	bzero(keybuf, sizeof(keybuf));
 	bzero(contentbuf, sizeof(contentbuf));
-	for (i=1; i <= 500; i++) {
-		key.size = 128 + (random()&1023);
-		content.size = 128 + (random()&1023);
-/*		printf("%d: Key size %d, data size %d\n", i, key.size,
-		       content.size); */
+	for (i = 1; i <= 500; i++) {
+		key.size = 128 + (random() & 1023);
+		content.size = 128 + (random() & 1023);
+		/*		printf("%d: Key size %d, data size %d\n", i,
+		   key.size, content.size); */
 		sprintf(keybuf, "Key #%d", i);
 		sprintf(contentbuf, "Contents #%d", i);
 		if ((db->put)(db, &key, &content, R_NOOVERWRITE)) {
@@ -97,6 +99,3 @@ main(argc, argv)
 	}
 	exit(0);
 }
-
-
-

@@ -43,6 +43,7 @@
  */
 
 #include <wchar.h>
+
 #include "xlocale_private.h"
 
 int

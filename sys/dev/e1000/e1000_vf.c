@@ -32,9 +32,7 @@
 
 ******************************************************************************/
 
-
 #include "e1000_api.h"
-
 
 static s32 e1000_init_phy_params_vf(struct e1000_hw *hw);
 static s32 e1000_init_nvm_params_vf(struct e1000_hw *hw);
@@ -45,11 +43,11 @@ static s32 e1000_get_bus_info_pcie_vf(struct e1000_hw *hw);
 static s32 e1000_init_mac_params_vf(struct e1000_hw *hw);
 static s32 e1000_check_for_link_vf(struct e1000_hw *hw);
 static s32 e1000_get_link_up_info_vf(struct e1000_hw *hw, u16 *speed,
-				     u16 *duplex);
+    u16 *duplex);
 static s32 e1000_init_hw_vf(struct e1000_hw *hw);
 static s32 e1000_reset_hw_vf(struct e1000_hw *hw);
 static void e1000_update_mc_addr_list_vf(struct e1000_hw *hw, u8 *, u32);
-static int  e1000_rar_set_vf(struct e1000_hw *, u8 *, u32);
+static int e1000_rar_set_vf(struct e1000_hw *, u8 *, u32);
 static s32 e1000_read_mac_addr_vf(struct e1000_hw *);
 
 /**
@@ -58,7 +56,8 @@ static s32 e1000_read_mac_addr_vf(struct e1000_hw *);
  *
  *  Doesn't do much - there's no PHY available to the VF.
  **/
-static s32 e1000_init_phy_params_vf(struct e1000_hw *hw)
+static s32
+e1000_init_phy_params_vf(struct e1000_hw *hw)
 {
 	DEBUGFUNC("e1000_init_phy_params_vf");
 	hw->phy.type = e1000_phy_vf;
@@ -74,7 +73,8 @@ static s32 e1000_init_phy_params_vf(struct e1000_hw *hw)
  *
  *  Doesn't do much - there's no NVM available to the VF.
  **/
-static s32 e1000_init_nvm_params_vf(struct e1000_hw *hw)
+static s32
+e1000_init_nvm_params_vf(struct e1000_hw *hw)
 {
 	DEBUGFUNC("e1000_init_nvm_params_vf");
 	hw->nvm.type = e1000_nvm_none;
@@ -88,7 +88,8 @@ static s32 e1000_init_nvm_params_vf(struct e1000_hw *hw)
  *  e1000_init_mac_params_vf - Inits MAC params
  *  @hw: pointer to the HW structure
  **/
-static s32 e1000_init_mac_params_vf(struct e1000_hw *hw)
+static s32
+e1000_init_mac_params_vf(struct e1000_hw *hw)
 {
 	struct e1000_mac_info *mac = &hw->mac;
 
@@ -133,7 +134,6 @@ static s32 e1000_init_mac_params_vf(struct e1000_hw *hw)
 	/* read mac address */
 	mac->ops.read_mac_addr = e1000_read_mac_addr_vf;
 
-
 	return E1000_SUCCESS;
 }
 
@@ -141,7 +141,8 @@ static s32 e1000_init_mac_params_vf(struct e1000_hw *hw)
  *  e1000_init_function_pointers_vf - Inits function pointers
  *  @hw: pointer to the HW structure
  **/
-void e1000_init_function_pointers_vf(struct e1000_hw *hw)
+void
+e1000_init_function_pointers_vf(struct e1000_hw *hw)
 {
 	DEBUGFUNC("e1000_init_function_pointers_vf");
 
@@ -159,7 +160,8 @@ void e1000_init_function_pointers_vf(struct e1000_hw *hw)
  *  In addition, the MAC registers to access PHY/NVM don't exist so we don't
  *  even want any SW to attempt to use them.
  **/
-static s32 e1000_acquire_vf(struct e1000_hw E1000_UNUSEDARG *hw)
+static s32
+e1000_acquire_vf(struct e1000_hw E1000_UNUSEDARG *hw)
 {
 	return -E1000_ERR_PHY;
 }
@@ -172,7 +174,8 @@ static s32 e1000_acquire_vf(struct e1000_hw E1000_UNUSEDARG *hw)
  *  In addition, the MAC registers to access PHY/NVM don't exist so we don't
  *  even want any SW to attempt to use them.
  **/
-static void e1000_release_vf(struct e1000_hw E1000_UNUSEDARG *hw)
+static void
+e1000_release_vf(struct e1000_hw E1000_UNUSEDARG *hw)
 {
 	return;
 }
@@ -183,7 +186,8 @@ static void e1000_release_vf(struct e1000_hw E1000_UNUSEDARG *hw)
  *
  *  Virtual functions cannot change link.
  **/
-static s32 e1000_setup_link_vf(struct e1000_hw E1000_UNUSEDARG *hw)
+static s32
+e1000_setup_link_vf(struct e1000_hw E1000_UNUSEDARG *hw)
 {
 	DEBUGFUNC("e1000_setup_link_vf");
 
@@ -196,7 +200,8 @@ static s32 e1000_setup_link_vf(struct e1000_hw E1000_UNUSEDARG *hw)
  *
  *  Virtual functions are not really on their own bus.
  **/
-static s32 e1000_get_bus_info_pcie_vf(struct e1000_hw *hw)
+static s32
+e1000_get_bus_info_pcie_vf(struct e1000_hw *hw)
 {
 	struct e1000_bus_info *bus = &hw->bus;
 
@@ -218,8 +223,8 @@ static s32 e1000_get_bus_info_pcie_vf(struct e1000_hw *hw)
  *  Since we cannot read the PHY and get accurate link info, we must rely upon
  *  the status register's data which is often stale and inaccurate.
  **/
-static s32 e1000_get_link_up_info_vf(struct e1000_hw *hw, u16 *speed,
-				     u16 *duplex)
+static s32
+e1000_get_link_up_info_vf(struct e1000_hw *hw, u16 *speed, u16 *duplex)
 {
 	s32 status;
 
@@ -255,7 +260,8 @@ static s32 e1000_get_link_up_info_vf(struct e1000_hw *hw, u16 *speed,
  *  VF's provide a function level reset. This is done using bit 26 of ctrl_reg.
  *  This is all the reset we can perform on a VF.
  **/
-static s32 e1000_reset_hw_vf(struct e1000_hw *hw)
+static s32
+e1000_reset_hw_vf(struct e1000_hw *hw)
 {
 	struct e1000_mbx_info *mbx = &hw->mbx;
 	u32 timeout = E1000_VF_INIT_TIMEOUT;
@@ -287,8 +293,8 @@ static s32 e1000_reset_hw_vf(struct e1000_hw *hw)
 		/* set our "perm_addr" based on info provided by PF */
 		ret_val = mbx->ops.read_posted(hw, msgbuf, 3, 0);
 		if (!ret_val) {
-			if (msgbuf[0] == (E1000_VF_RESET |
-			    E1000_VT_MSGTYPE_ACK))
+			if (msgbuf[0] ==
+			    (E1000_VF_RESET | E1000_VT_MSGTYPE_ACK))
 				memcpy(hw->mac.perm_addr, addr, 6);
 			else
 				ret_val = -E1000_ERR_MAC_INIT;
@@ -304,7 +310,8 @@ static s32 e1000_reset_hw_vf(struct e1000_hw *hw)
  *
  *  Not much to do here except clear the PF Reset indication if there is one.
  **/
-static s32 e1000_init_hw_vf(struct e1000_hw *hw)
+static s32
+e1000_init_hw_vf(struct e1000_hw *hw)
 {
 	DEBUGFUNC("e1000_init_hw_vf");
 
@@ -320,8 +327,8 @@ static s32 e1000_init_hw_vf(struct e1000_hw *hw)
  *  @addr: pointer to the receive address
  *  @index receive address array register
  **/
-static int e1000_rar_set_vf(struct e1000_hw *hw, u8 *addr,
-			     u32 E1000_UNUSEDARG index)
+static int
+e1000_rar_set_vf(struct e1000_hw *hw, u8 *addr, u32 E1000_UNUSEDARG index)
 {
 	struct e1000_mbx_info *mbx = &hw->mbx;
 	u32 msgbuf[3];
@@ -354,7 +361,8 @@ static int e1000_rar_set_vf(struct e1000_hw *hw, u8 *addr,
  *  Generates a multicast address hash value which is used to determine
  *  the multicast filter table array address and new table value.
  **/
-static u32 e1000_hash_mc_addr_vf(struct e1000_hw *hw, u8 *mc_addr)
+static u32
+e1000_hash_mc_addr_vf(struct e1000_hw *hw, u8 *mc_addr)
 {
 	u32 hash_value, hash_mask;
 	u8 bit_shift = 0;
@@ -371,14 +379,15 @@ static u32 e1000_hash_mc_addr_vf(struct e1000_hw *hw, u8 *mc_addr)
 	while (hash_mask >> bit_shift != 0xFF)
 		bit_shift++;
 
-	hash_value = hash_mask & (((mc_addr[4] >> (8 - bit_shift)) |
-				  (((u16) mc_addr[5]) << bit_shift)));
+	hash_value = hash_mask &
+	    (((mc_addr[4] >> (8 - bit_shift)) |
+		(((u16)mc_addr[5]) << bit_shift)));
 
 	return hash_value;
 }
 
-static void e1000_write_msg_read_ack(struct e1000_hw *hw,
-				     u32 *msg, u16 size)
+static void
+e1000_write_msg_read_ack(struct e1000_hw *hw, u32 *msg, u16 size)
 {
 	struct e1000_mbx_info *mbx = &hw->mbx;
 	u32 retmsg[E1000_VFMAILBOX_SIZE];
@@ -397,8 +406,9 @@ static void e1000_write_msg_read_ack(struct e1000_hw *hw,
  *  Updates the Multicast Table Array.
  *  The caller must have a packed mc_addr_list of multicast addresses.
  **/
-void e1000_update_mc_addr_list_vf(struct e1000_hw *hw,
-				  u8 *mc_addr_list, u32 mc_addr_count)
+void
+e1000_update_mc_addr_list_vf(struct e1000_hw *hw, u8 *mc_addr_list,
+    u32 mc_addr_count)
 {
 	u32 msgbuf[E1000_VFMAILBOX_SIZE];
 	u16 *hash_list = (u16 *)&msgbuf[1];
@@ -443,7 +453,8 @@ void e1000_update_mc_addr_list_vf(struct e1000_hw *hw,
  *  @vid: determines the vfta register and bit to set/unset
  *  @set: if true then set bit, else clear bit
  **/
-void e1000_vfta_set_vf(struct e1000_hw *hw, u16 vid, bool set)
+void
+e1000_vfta_set_vf(struct e1000_hw *hw, u16 vid, bool set)
 {
 	u32 msgbuf[2];
 
@@ -460,7 +471,8 @@ void e1000_vfta_set_vf(struct e1000_hw *hw, u16 vid, bool set)
  *  @hw: pointer to the HW structure
  *  @max_size: value to assign to max frame size
  **/
-void e1000_rlpml_set_vf(struct e1000_hw *hw, u16 max_size)
+void
+e1000_rlpml_set_vf(struct e1000_hw *hw, u16 max_size)
 {
 	u32 msgbuf[2];
 
@@ -476,7 +488,8 @@ void e1000_rlpml_set_vf(struct e1000_hw *hw, u16 max_size)
  *  @uni: boolean indicating unicast promisc status
  *  @multi: boolean indicating multicast promisc status
  **/
-s32 e1000_promisc_set_vf(struct e1000_hw *hw, enum e1000_promisc_type type)
+s32
+e1000_promisc_set_vf(struct e1000_hw *hw, enum e1000_promisc_type type)
 {
 	struct e1000_mbx_info *mbx = &hw->mbx;
 	u32 msgbuf = E1000_VF_SET_PROMISC;
@@ -498,7 +511,7 @@ s32 e1000_promisc_set_vf(struct e1000_hw *hw, enum e1000_promisc_type type)
 		return -E1000_ERR_MAC_INIT;
 	}
 
-	 ret_val = mbx->ops.write_posted(hw, &msgbuf, 1, 0);
+	ret_val = mbx->ops.write_posted(hw, &msgbuf, 1, 0);
 
 	if (!ret_val)
 		ret_val = mbx->ops.read_posted(hw, &msgbuf, 1, 0);
@@ -513,7 +526,8 @@ s32 e1000_promisc_set_vf(struct e1000_hw *hw, enum e1000_promisc_type type)
  *  e1000_read_mac_addr_vf - Read device MAC address
  *  @hw: pointer to the HW structure
  **/
-static s32 e1000_read_mac_addr_vf(struct e1000_hw *hw)
+static s32
+e1000_read_mac_addr_vf(struct e1000_hw *hw)
 {
 	int i;
 
@@ -531,7 +545,8 @@ static s32 e1000_read_mac_addr_vf(struct e1000_hw *hw)
  *  if it is then it reports the link state to the hardware, otherwise
  *  it reports link down and returns an error.
  **/
-static s32 e1000_check_for_link_vf(struct e1000_hw *hw)
+static s32
+e1000_check_for_link_vf(struct e1000_hw *hw)
 {
 	struct e1000_mbx_info *mbx = &hw->mbx;
 	struct e1000_mac_info *mac = &hw->mac;
@@ -585,4 +600,3 @@ static s32 e1000_check_for_link_vf(struct e1000_hw *hw)
 out:
 	return ret_val;
 }
-

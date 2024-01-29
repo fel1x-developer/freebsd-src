@@ -9,7 +9,6 @@
 
 #include "ipf.h"
 
-
 int
 count6bits(u_32_t *msk)
 {

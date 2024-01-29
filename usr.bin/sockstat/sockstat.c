@@ -30,19 +30,17 @@
 
 #include <sys/param.h>
 #include <sys/file.h>
+#include <sys/jail.h>
+#include <sys/queue.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 #include <sys/sysctl.h>
-#include <sys/jail.h>
-#include <sys/user.h>
-#include <sys/queue.h>
 #include <sys/tree.h>
-
 #include <sys/un.h>
 #include <sys/unpcb.h>
+#include <sys/user.h>
 
 #include <net/route.h>
-
 #include <netinet/in.h>
 #include <netinet/in_pcb.h>
 #include <netinet/sctp.h>
@@ -51,14 +49,19 @@
 #include <netinet/tcp_fsm.h>
 #include <netinet/tcp_seq.h>
 #include <netinet/tcp_var.h>
-#include <arpa/inet.h>
 
+#include <arpa/inet.h>
 #include <capsicum_helpers.h>
+#include <casper/cap_net.h>
+#include <casper/cap_netdb.h>
+#include <casper/cap_pwd.h>
+#include <casper/cap_sysctl.h>
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <inttypes.h>
 #include <jail.h>
+#include <libcasper.h>
 #include <netdb.h>
 #include <pwd.h>
 #include <stdarg.h>
@@ -67,53 +70,50 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <libcasper.h>
-#include <casper/cap_net.h>
-#include <casper/cap_netdb.h>
-#include <casper/cap_pwd.h>
-#include <casper/cap_sysctl.h>
+#define sstosin(ss) ((struct sockaddr_in *)(ss))
+#define sstosin6(ss) ((struct sockaddr_in6 *)(ss))
+#define sstosun(ss) ((struct sockaddr_un *)(ss))
+#define sstosa(ss) ((struct sockaddr *)(ss))
 
-#define	sstosin(ss)	((struct sockaddr_in *)(ss))
-#define	sstosin6(ss)	((struct sockaddr_in6 *)(ss))
-#define	sstosun(ss)	((struct sockaddr_un *)(ss))
-#define	sstosa(ss)	((struct sockaddr *)(ss))
-
-static int	 opt_4;		/* Show IPv4 sockets */
-static int	 opt_6;		/* Show IPv6 sockets */
-static int	 opt_C;		/* Show congestion control */
-static int	 opt_c;		/* Show connected sockets */
-static int	 opt_i;		/* Show inp_gencnt */
-static int	 opt_j;		/* Show specified jail */
-static int	 opt_L;		/* Don't show IPv4 or IPv6 loopback sockets */
-static int	 opt_l;		/* Show listening sockets */
-static int	 opt_n;		/* Don't resolve UIDs to user names */
-static int	 opt_q;		/* Don't show header */
-static int	 opt_S;		/* Show protocol stack if applicable */
-static int	 opt_s;		/* Show protocol state if applicable */
-static int	 opt_U;		/* Show remote UDP encapsulation port number */
-static int	 opt_u;		/* Show Unix domain sockets */
-static int	 opt_v;		/* Verbose mode */
-static int	 opt_w;		/* Wide print area for addresses */
+static int opt_4; /* Show IPv4 sockets */
+static int opt_6; /* Show IPv6 sockets */
+static int opt_C; /* Show congestion control */
+static int opt_c; /* Show connected sockets */
+static int opt_i; /* Show inp_gencnt */
+static int opt_j; /* Show specified jail */
+static int opt_L; /* Don't show IPv4 or IPv6 loopback sockets */
+static int opt_l; /* Show listening sockets */
+static int opt_n; /* Don't resolve UIDs to user names */
+static int opt_q; /* Don't show header */
+static int opt_S; /* Show protocol stack if applicable */
+static int opt_s; /* Show protocol state if applicable */
+static int opt_U; /* Show remote UDP encapsulation port number */
+static int opt_u; /* Show Unix domain sockets */
+static int opt_v; /* Verbose mode */
+static int opt_w; /* Wide print area for addresses */
 
 /*
  * Default protocols to use if no -P was defined.
  */
-static const char *default_protos[] = {"sctp", "tcp", "udp", "divert" };
-static size_t	   default_numprotos = nitems(default_protos);
+static const char *default_protos[] = { "sctp", "tcp", "udp", "divert" };
+static size_t default_numprotos = nitems(default_protos);
 
-static int	*protos;	/* protocols to use */
-static size_t	 numprotos;	/* allocated size of protos[] */
+static int *protos;	 /* protocols to use */
+static size_t numprotos; /* allocated size of protos[] */
 
-static int	*ports;
+static int *ports;
 
-#define	INT_BIT (sizeof(int)*CHAR_BIT)
-#define	SET_PORT(p) do { ports[p / INT_BIT] |= 1 << (p % INT_BIT); } while (0)
-#define	CHK_PORT(p) (ports[p / INT_BIT] & (1 << (p % INT_BIT)))
+#define INT_BIT (sizeof(int) * CHAR_BIT)
+#define SET_PORT(p)                                       \
+	do {                                              \
+		ports[p / INT_BIT] |= 1 << (p % INT_BIT); \
+	} while (0)
+#define CHK_PORT(p) (ports[p / INT_BIT] & (1 << (p % INT_BIT)))
 
 struct addr {
 	union {
 		struct sockaddr_storage address;
-		struct {	/* unix(4) faddr */
+		struct { /* unix(4) faddr */
 			kvaddr_t conn;
 			kvaddr_t firstref;
 			kvaddr_t nextref;
@@ -126,8 +126,8 @@ struct addr {
 
 struct sock {
 	union {
-		RB_ENTRY(sock) socket_tree;	/* tree of pcbs with socket */
-		SLIST_ENTRY(sock) socket_list;	/* list of pcbs w/o socket */
+		RB_ENTRY(sock) socket_tree;    /* tree of pcbs with socket */
+		SLIST_ENTRY(sock) socket_list; /* list of pcbs w/o socket */
 	};
 	RB_ENTRY(sock) pcb_tree;
 	kvaddr_t socket;
@@ -149,7 +149,7 @@ static RB_HEAD(socks_t, sock) socks = RB_INITIALIZER(&socks);
 static int64_t
 socket_compare(const struct sock *a, const struct sock *b)
 {
-	return ((int64_t)(a->socket/2 - b->socket/2));
+	return ((int64_t)(a->socket / 2 - b->socket / 2));
 }
 RB_GENERATE_STATIC(socks_t, sock, socket_tree, socket_compare);
 
@@ -157,25 +157,25 @@ static RB_HEAD(pcbs_t, sock) pcbs = RB_INITIALIZER(&pcbs);
 static int64_t
 pcb_compare(const struct sock *a, const struct sock *b)
 {
-        return ((int64_t)(a->pcb/2 - b->pcb/2));
+	return ((int64_t)(a->pcb / 2 - b->pcb / 2));
 }
 RB_GENERATE_STATIC(pcbs_t, sock, pcb_tree, pcb_compare);
 
 static SLIST_HEAD(, sock) nosocks = SLIST_HEAD_INITIALIZER(&nosocks);
 
 struct file {
-	RB_ENTRY(file)	file_tree;
-	kvaddr_t	xf_data;
-	pid_t	xf_pid;
-	uid_t	xf_uid;
-	int	xf_fd;
+	RB_ENTRY(file) file_tree;
+	kvaddr_t xf_data;
+	pid_t xf_pid;
+	uid_t xf_uid;
+	int xf_fd;
 };
 
 static RB_HEAD(files_t, file) ftree = RB_INITIALIZER(&ftree);
 static int64_t
 file_compare(const struct file *a, const struct file *b)
 {
-	return ((int64_t)(a->xf_data/2 - b->xf_data/2));
+	return ((int64_t)(a->xf_data / 2 - b->xf_data / 2));
 }
 RB_GENERATE_STATIC(files_t, file, file_tree, file_compare);
 
@@ -202,7 +202,8 @@ xprintf(const char *fmt, ...)
 }
 
 static bool
-_check_ksize(size_t received_size, size_t expected_size, const char *struct_name)
+_check_ksize(size_t received_size, size_t expected_size,
+    const char *struct_name)
 {
 	if (received_size != expected_size) {
 		warnx("%s size mismatch: expected %zd, received %zd",
@@ -211,17 +212,20 @@ _check_ksize(size_t received_size, size_t expected_size, const char *struct_name
 	}
 	return true;
 }
-#define check_ksize(_sz, _struct)	(_check_ksize(_sz, sizeof(_struct), #_struct))
+#define check_ksize(_sz, _struct) (_check_ksize(_sz, sizeof(_struct), #_struct))
 
 static void
-_enforce_ksize(size_t received_size, size_t expected_size, const char *struct_name)
+_enforce_ksize(size_t received_size, size_t expected_size,
+    const char *struct_name)
 {
 	if (received_size != expected_size) {
-		errx(1, "fatal: struct %s size mismatch: expected %zd, received %zd",
+		errx(1,
+		    "fatal: struct %s size mismatch: expected %zd, received %zd",
 		    struct_name, expected_size, received_size);
 	}
 }
-#define enforce_ksize(_sz, _struct)	(_enforce_ksize(_sz, sizeof(_struct), #_struct))
+#define enforce_ksize(_sz, _struct) \
+	(_enforce_ksize(_sz, sizeof(_struct), #_struct))
 
 static int
 get_proto_type(const char *proto)
@@ -296,7 +300,7 @@ parse_ports(const char *portspec)
 		if (!isdigit(*p))
 			errx(1, "syntax error in port range");
 		for (q = p; *q != '\0' && isdigit(*q); ++q)
-			/* nothing */ ;
+			/* nothing */;
 		for (port = 0; p < q; ++p)
 			port = port * 10 + digittoint(*p);
 		if (port < 0 || port > 65535)
@@ -314,7 +318,7 @@ parse_ports(const char *portspec)
 			continue;
 		}
 		for (q = p; *q != '\0' && isdigit(*q); ++q)
-			/* nothing */ ;
+			/* nothing */;
 		for (end = 0; p < q; ++p)
 			end = end * 10 + digittoint(*p);
 		if (end < port || end > 65535)
@@ -347,10 +351,10 @@ sockaddr(struct sockaddr_storage *ss, int af, void *addr, int port)
 		sin6->sin6_family = af;
 		sin6->sin6_port = port;
 		sin6->sin6_addr = *(struct in6_addr *)addr;
-#define	s6_addr16	__u6_addr.__u6_addr16
+#define s6_addr16 __u6_addr.__u6_addr16
 		if (IN6_IS_ADDR_LINKLOCAL(&sin6->sin6_addr)) {
-			sin6->sin6_scope_id =
-			    ntohs(sin6->sin6_addr.s6_addr16[1]);
+			sin6->sin6_scope_id = ntohs(
+			    sin6->sin6_addr.s6_addr16[1]);
 			sin6->sin6_addr.s6_addr16[1] = 0;
 		}
 		break;
@@ -450,19 +454,19 @@ gather_sctp(void)
 				err(1, "malloc()");
 			switch (xladdr->address.sa.sa_family) {
 			case AF_INET:
-#define	__IN_IS_ADDR_LOOPBACK(pina) \
+#define __IN_IS_ADDR_LOOPBACK(pina) \
 	((ntohl((pina)->s_addr) >> IN_CLASSA_NSHIFT) == IN_LOOPBACKNET)
 				if (!__IN_IS_ADDR_LOOPBACK(
-				    &xladdr->address.sin.sin_addr))
+					&xladdr->address.sin.sin_addr))
 					local_all_loopback = 0;
-#undef	__IN_IS_ADDR_LOOPBACK
+#undef __IN_IS_ADDR_LOOPBACK
 				sockaddr(&laddr->address, AF_INET,
 				    &xladdr->address.sin.sin_addr,
 				    htons(xinpcb->local_port));
 				break;
 			case AF_INET6:
 				if (!IN6_IS_ADDR_LOOPBACK(
-				    &xladdr->address.sin6.sin6_addr))
+					&xladdr->address.sin6.sin6_addr))
 					local_all_loopback = 0;
 				sockaddr(&laddr->address, AF_INET6,
 				    &xladdr->address.sin6.sin6_addr,
@@ -480,27 +484,27 @@ gather_sctp(void)
 			prev_laddr = laddr;
 		}
 		if (sock->laddr == NULL) {
-			if ((sock->laddr =
-			    calloc(1, sizeof(struct addr))) == NULL)
+			if ((sock->laddr = calloc(1, sizeof(struct addr))) ==
+			    NULL)
 				err(1, "malloc()");
 			sock->laddr->address.ss_family = sock->family;
 			if (sock->family == AF_INET)
-				sock->laddr->address.ss_len =
-				    sizeof(struct sockaddr_in);
+				sock->laddr->address.ss_len = sizeof(
+				    struct sockaddr_in);
 			else
-				sock->laddr->address.ss_len =
-				    sizeof(struct sockaddr_in6);
+				sock->laddr->address.ss_len = sizeof(
+				    struct sockaddr_in6);
 			local_all_loopback = 0;
 		}
 		if ((sock->faddr = calloc(1, sizeof(struct addr))) == NULL)
 			err(1, "malloc()");
 		sock->faddr->address.ss_family = sock->family;
 		if (sock->family == AF_INET)
-			sock->faddr->address.ss_len =
-			    sizeof(struct sockaddr_in);
+			sock->faddr->address.ss_len = sizeof(
+			    struct sockaddr_in);
 		else
-			sock->faddr->address.ss_len =
-			    sizeof(struct sockaddr_in6);
+			sock->faddr->address.ss_len = sizeof(
+			    struct sockaddr_in6);
 		no_stcb = 1;
 		while (offset < len) {
 			xstcb = (struct xsctp_tcb *)(void *)(buf + offset);
@@ -509,7 +513,7 @@ gather_sctp(void)
 				if (opt_l && (sock->vflag & vflag) &&
 				    (!opt_L || !local_all_loopback) &&
 				    ((xinpcb->flags & SCTP_PCB_FLAGS_UDPTYPE) ||
-				     (xstcb->last == 1))) {
+					(xstcb->last == 1))) {
 					RB_INSERT(socks_t, &socks, sock);
 				} else {
 					free_socket(sock);
@@ -527,11 +531,12 @@ gather_sctp(void)
 				sock->state = (int)xstcb->state;
 				if (xinpcb->flags & SCTP_PCB_FLAGS_BOUND_V6) {
 					sock->family = AF_INET6;
-				/*
-				 * Currently there is no way to distinguish
-				 * between IPv6 only sockets or dual family
-				 *  sockets. So mark it as dual socket.
-				 */
+					/*
+					 * Currently there is no way to
+					 * distinguish between IPv6 only sockets
+					 * or dual family sockets. So mark it as
+					 * dual socket.
+					 */
 					sock->vflag = INP_IPV6 | INP_IPV4;
 				} else {
 					sock->family = AF_INET;
@@ -553,19 +558,20 @@ gather_sctp(void)
 					err(1, "malloc()");
 				switch (xladdr->address.sa.sa_family) {
 				case AF_INET:
-#define	__IN_IS_ADDR_LOOPBACK(pina) \
+#define __IN_IS_ADDR_LOOPBACK(pina) \
 	((ntohl((pina)->s_addr) >> IN_CLASSA_NSHIFT) == IN_LOOPBACKNET)
 					if (!__IN_IS_ADDR_LOOPBACK(
-					    &xladdr->address.sin.sin_addr))
+						&xladdr->address.sin.sin_addr))
 						local_all_loopback = 0;
-#undef	__IN_IS_ADDR_LOOPBACK
+#undef __IN_IS_ADDR_LOOPBACK
 					sockaddr(&laddr->address, AF_INET,
 					    &xladdr->address.sin.sin_addr,
 					    htons(xstcb->local_port));
 					break;
 				case AF_INET6:
 					if (!IN6_IS_ADDR_LOOPBACK(
-					    &xladdr->address.sin6.sin6_addr))
+						&xladdr->address.sin6
+						     .sin6_addr))
 						local_all_loopback = 0;
 					sockaddr(&laddr->address, AF_INET6,
 					    &xladdr->address.sin6.sin6_addr,
@@ -598,19 +604,20 @@ gather_sctp(void)
 					err(1, "malloc()");
 				switch (xraddr->address.sa.sa_family) {
 				case AF_INET:
-#define	__IN_IS_ADDR_LOOPBACK(pina) \
+#define __IN_IS_ADDR_LOOPBACK(pina) \
 	((ntohl((pina)->s_addr) >> IN_CLASSA_NSHIFT) == IN_LOOPBACKNET)
 					if (!__IN_IS_ADDR_LOOPBACK(
-					    &xraddr->address.sin.sin_addr))
+						&xraddr->address.sin.sin_addr))
 						foreign_all_loopback = 0;
-#undef	__IN_IS_ADDR_LOOPBACK
+#undef __IN_IS_ADDR_LOOPBACK
 					sockaddr(&faddr->address, AF_INET,
 					    &xraddr->address.sin.sin_addr,
 					    htons(xstcb->remote_port));
 					break;
 				case AF_INET6:
 					if (!IN6_IS_ADDR_LOOPBACK(
-					    &xraddr->address.sin6.sin6_addr))
+						&xraddr->address.sin6
+						     .sin6_addr))
 						foreign_all_loopback = 0;
 					sockaddr(&faddr->address, AF_INET6,
 					    &xraddr->address.sin6.sin6_addr,
@@ -633,8 +640,8 @@ gather_sctp(void)
 			if (opt_c) {
 				if ((sock->vflag & vflag) &&
 				    (!opt_L ||
-				     !(local_all_loopback ||
-				     foreign_all_loopback))) {
+					!(local_all_loopback ||
+					    foreign_all_loopback))) {
 					RB_INSERT(socks_t, &socks, sock);
 				} else {
 					free_socket(sock);
@@ -693,7 +700,7 @@ gather_inet(int proto)
 				err(1, "realloc()");
 			len = bufsize;
 			if (cap_sysctlbyname(capsysctl, varname, buf, &len,
-			    NULL, 0) == 0)
+				NULL, 0) == 0)
 				break;
 			if (errno == ENOENT)
 				goto out;
@@ -702,8 +709,8 @@ gather_inet(int proto)
 			bufsize *= 2;
 		}
 		xig = (struct xinpgen *)buf;
-		exig = (struct xinpgen *)(void *)
-		    ((char *)buf + len - sizeof *exig);
+		exig = (struct xinpgen *)(void *)((char *)buf + len -
+		    sizeof *exig);
 		enforce_ksize(xig->xig_len, struct xinpgen);
 		enforce_ksize(exig->xig_len, struct xinpgen);
 	} while (xig->xig_gen != exig->xig_gen && retry--);
@@ -739,20 +746,20 @@ gather_inet(int proto)
 			if ((xip->inp_fport == 0 && !opt_l) ||
 			    (xip->inp_fport != 0 && !opt_c))
 				continue;
-#define	__IN_IS_ADDR_LOOPBACK(pina) \
+#define __IN_IS_ADDR_LOOPBACK(pina) \
 	((ntohl((pina)->s_addr) >> IN_CLASSA_NSHIFT) == IN_LOOPBACKNET)
 			if (opt_L &&
 			    (__IN_IS_ADDR_LOOPBACK(&xip->inp_faddr) ||
-			     __IN_IS_ADDR_LOOPBACK(&xip->inp_laddr)))
+				__IN_IS_ADDR_LOOPBACK(&xip->inp_laddr)))
 				continue;
-#undef	__IN_IS_ADDR_LOOPBACK
+#undef __IN_IS_ADDR_LOOPBACK
 		} else if (xip->inp_vflag & INP_IPV6) {
 			if ((xip->inp_fport == 0 && !opt_l) ||
 			    (xip->inp_fport != 0 && !opt_c))
 				continue;
 			if (opt_L &&
 			    (IN6_IS_ADDR_LOOPBACK(&xip->in6p_faddr) ||
-			     IN6_IS_ADDR_LOOPBACK(&xip->in6p_laddr)))
+				IN6_IS_ADDR_LOOPBACK(&xip->in6p_laddr)))
 				continue;
 		} else {
 			if (opt_v)
@@ -770,10 +777,10 @@ gather_inet(int proto)
 		sock->inp_gencnt = xip->inp_gencnt;
 		if (xip->inp_vflag & INP_IPV4) {
 			sock->family = AF_INET;
-			sockaddr(&laddr->address, sock->family,
-			    &xip->inp_laddr, xip->inp_lport);
-			sockaddr(&faddr->address, sock->family,
-			    &xip->inp_faddr, xip->inp_fport);
+			sockaddr(&laddr->address, sock->family, &xip->inp_laddr,
+			    xip->inp_lport);
+			sockaddr(&faddr->address, sock->family, &xip->inp_faddr,
+			    xip->inp_fport);
 		} else if (xip->inp_vflag & INP_IPV6) {
 			sock->family = AF_INET6;
 			sockaddr(&laddr->address, sock->family,
@@ -841,15 +848,15 @@ gather_unix(int proto)
 				err(1, "realloc()");
 			len = bufsize;
 			if (cap_sysctlbyname(capsysctl, varname, buf, &len,
-			    NULL, 0) == 0)
+				NULL, 0) == 0)
 				break;
 			if (errno != ENOMEM || len != bufsize)
 				err(1, "cap_sysctlbyname()");
 			bufsize *= 2;
 		}
 		xug = (struct xunpgen *)buf;
-		exug = (struct xunpgen *)(void *)
-		    ((char *)buf + len - sizeof(*exug));
+		exug = (struct xunpgen *)(void *)((char *)buf + len -
+		    sizeof(*exug));
 		if (!check_ksize(xug->xug_len, struct xunpgen) ||
 		    !check_ksize(exug->xug_len, struct xunpgen))
 			goto out;
@@ -880,8 +887,8 @@ gather_unix(int proto)
 		sock->family = AF_UNIX;
 		sock->protoname = protoname;
 		if (xup->xu_addr.sun_family == AF_UNIX)
-			laddr->address =
-			    *(struct sockaddr_storage *)(void *)&xup->xu_addr;
+			laddr->address = *(
+			    struct sockaddr_storage *)(void *)&xup->xu_addr;
 		faddr->conn = xup->unp_conn;
 		faddr->firstref = xup->xu_firstref;
 		faddr->nextref = xup->xu_nextref;
@@ -905,8 +912,8 @@ getfiles(void)
 	olen = len = sizeof(*xfiles);
 	if ((xfiles = malloc(len)) == NULL)
 		err(1, "malloc()");
-	while (cap_sysctlbyname(capsysctl, "kern.file", xfiles, &len, 0, 0)
-	    == -1) {
+	while (cap_sysctlbyname(capsysctl, "kern.file", xfiles, &len, 0, 0) ==
+	    -1) {
 		if (errno != ENOMEM || len != olen)
 			err(1, "cap_sysctlbyname()");
 		olen = len *= 2;
@@ -955,8 +962,8 @@ printaddr(struct sockaddr_storage *ss)
 		return (xprintf("%.*s", sun->sun_len - off, sun->sun_path));
 	}
 	if (addrstr[0] == '\0') {
-		error = cap_getnameinfo(capnet, sstosa(ss), ss->ss_len,
-		    addrstr, sizeof(addrstr), NULL, 0, NI_NUMERICHOST);
+		error = cap_getnameinfo(capnet, sstosa(ss), ss->ss_len, addrstr,
+		    sizeof(addrstr), NULL, 0, NI_NUMERICHOST);
 		if (error)
 			errx(1, "cap_getnameinfo()");
 	}
@@ -978,8 +985,8 @@ getprocname(pid_t pid)
 	mib[2] = KERN_PROC_PID;
 	mib[3] = (int)pid;
 	len = sizeof(proc);
-	if (cap_sysctl(capsysctl, mib, nitems(mib), &proc, &len, NULL, 0)
-	    == -1) {
+	if (cap_sysctl(capsysctl, mib, nitems(mib), &proc, &len, NULL, 0) ==
+	    -1) {
 		/* Do not warn if the process exits before we get its name. */
 		if (errno != ESRCH)
 			warn("cap_sysctl()");
@@ -1000,8 +1007,8 @@ getprocjid(pid_t pid)
 	mib[2] = KERN_PROC_PID;
 	mib[3] = (int)pid;
 	len = sizeof(proc);
-	if (cap_sysctl(capsysctl, mib, nitems(mib), &proc, &len, NULL, 0)
-	    == -1) {
+	if (cap_sysctl(capsysctl, mib, nitems(mib), &proc, &len, NULL, 0) ==
+	    -1) {
 		/* Do not warn if the process exits before we get its jid. */
 		if (errno != ESRCH)
 			warn("cap_sysctl()");
@@ -1154,16 +1161,16 @@ displaysock(struct sock *s, int pos)
 				pos += xprintf("%s-> ",
 				    laddr->address.ss_len > 0 ? " " : "");
 				p = RB_FIND(pcbs_t, &pcbs,
-				    &(struct sock){ .pcb = faddr->conn });
+				    &(struct sock) { .pcb = faddr->conn });
 				if (__predict_false(p == NULL)) {
 					/* XXGL: can this happen at all? */
 					pos += xprintf("??");
-				}  else if (p->laddr->address.ss_len == 0) {
+				} else if (p->laddr->address.ss_len == 0) {
 					struct file *f;
 
 					f = RB_FIND(files_t, &ftree,
-					    &(struct file){ .xf_data =
-					    p->socket });
+					    &(struct file) {
+						.xf_data = p->socket });
 					pos += xprintf("[%lu %d]",
 					    (u_long)f->xf_pid, f->xf_fd);
 				} else
@@ -1178,14 +1185,15 @@ displaysock(struct sock *s, int pos)
 
 				pos += xprintf(" <- ");
 
-				while ((p = RB_FIND(pcbs_t, &pcbs,
-				    &(struct sock){ .pcb = ref })) != 0) {
+				while (
+				    (p = RB_FIND(pcbs_t, &pcbs,
+					 &(struct sock) { .pcb = ref })) != 0) {
 					f = RB_FIND(files_t, &ftree,
-					    &(struct file){ .xf_data =
-					    p->socket });
+					    &(struct file) {
+						.xf_data = p->socket });
 					pos += xprintf("%s[%lu %d]",
-					    fref ? "" : ",",
-					    (u_long)f->xf_pid, f->xf_fd);
+					    fref ? "" : ",", (u_long)f->xf_pid,
+					    f->xf_fd);
 					ref = p->faddr->nextref;
 					fref = false;
 				}
@@ -1207,24 +1215,21 @@ displaysock(struct sock *s, int pos)
 		if (opt_U) {
 			if (faddr != NULL &&
 			    ((s->proto == IPPROTO_SCTP &&
-			      s->state != SCTP_CLOSED &&
-			      s->state != SCTP_BOUND &&
-			      s->state != SCTP_LISTEN) ||
-			     (s->proto == IPPROTO_TCP &&
-			      s->state != TCPS_CLOSED &&
-			      s->state != TCPS_LISTEN))) {
+				 s->state != SCTP_CLOSED &&
+				 s->state != SCTP_BOUND &&
+				 s->state != SCTP_LISTEN) ||
+				(s->proto == IPPROTO_TCP &&
+				    s->state != TCPS_CLOSED &&
+				    s->state != TCPS_LISTEN))) {
 				while (pos < offset)
 					pos += xprintf(" ");
-				pos += xprintf("%u",
-				    ntohs(faddr->encaps_port));
+				pos += xprintf("%u", ntohs(faddr->encaps_port));
 			}
 			offset += 7;
 		}
 		if (opt_s) {
-			if (faddr != NULL &&
-			    s->proto == IPPROTO_SCTP &&
-			    s->state != SCTP_CLOSED &&
-			    s->state != SCTP_BOUND &&
+			if (faddr != NULL && s->proto == IPPROTO_SCTP &&
+			    s->state != SCTP_CLOSED && s->state != SCTP_BOUND &&
 			    s->state != SCTP_LISTEN) {
 				while (pos < offset)
 					pos += xprintf(" ");
@@ -1248,7 +1253,8 @@ displaysock(struct sock *s, int pos)
 						if (s->state >= 0 &&
 						    s->state < TCP_NSTATES)
 							pos += xprintf("%s",
-							    tcpstates[s->state]);
+							    tcpstates
+								[s->state]);
 						else
 							pos += xprintf("?");
 						break;
@@ -1297,9 +1303,8 @@ display(void)
 	int n, pos;
 
 	if (opt_q != 1) {
-		printf("%-8s %-10s %-5s %-3s %-6s %-*s %-*s",
-		    "USER", "COMMAND", "PID", "FD", "PROTO",
-		    opt_w ? 45 : 21, "LOCAL ADDRESS",
+		printf("%-8s %-10s %-5s %-3s %-6s %-*s %-*s", "USER", "COMMAND",
+		    "PID", "FD", "PROTO", opt_w ? 45 : 21, "LOCAL ADDRESS",
 		    opt_w ? 45 : 21, "FOREIGN ADDRESS");
 		if (opt_i)
 			printf(" %-8s", "ID");
@@ -1323,7 +1328,7 @@ display(void)
 		if (opt_j >= 0 && opt_j != getprocjid(xf->xf_pid))
 			continue;
 		s = RB_FIND(socks_t, &socks,
-		    &(struct sock){ .socket = xf->xf_data});
+		    &(struct sock) { .socket = xf->xf_data });
 		if (s != NULL && check_ports(s)) {
 			s->shown = 1;
 			pos = 0;
@@ -1346,20 +1351,18 @@ display(void)
 	}
 	if (opt_j >= 0)
 		return;
-	SLIST_FOREACH(s, &nosocks, socket_list) {
+	SLIST_FOREACH (s, &nosocks, socket_list) {
 		if (!check_ports(s))
 			continue;
-		pos = xprintf("%-8s %-10s %-5s %-2s ",
-		    "?", "?", "?", "?");
+		pos = xprintf("%-8s %-10s %-5s %-2s ", "?", "?", "?", "?");
 		displaysock(s, pos);
 	}
-	RB_FOREACH(s, socks_t, &socks) {
+	RB_FOREACH (s, socks_t, &socks) {
 		if (s->shown)
 			continue;
 		if (!check_ports(s))
 			continue;
-		pos = xprintf("%-8s %-10s %-5s %-2s ",
-		    "?", "?", "?", "?");
+		pos = xprintf("%-8s %-10s %-5s %-2s ", "?", "?", "?", "?");
 		displaysock(s, pos);
 	}
 }
@@ -1413,8 +1416,8 @@ jail_getvnet(int jid)
 	jail_errmsg[0] = '\0';
 	if (jail_get(jiov, nitems(jiov), 0) < 0) {
 		if (!jail_errmsg[0])
-			snprintf(jail_errmsg, JAIL_ERRMSGLEN,
-			    "jail_get: %s", strerror(errno));
+			snprintf(jail_errmsg, JAIL_ERRMSGLEN, "jail_get: %s",
+			    strerror(errno));
 		return (-1);
 	}
 	return (vnet);

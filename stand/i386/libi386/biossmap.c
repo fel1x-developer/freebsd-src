@@ -28,37 +28,39 @@
 /*
  * Obtain memory configuration information from the BIOS
  */
-#include <stand.h>
 #include <sys/param.h>
 #include <sys/linker.h>
 #include <sys/queue.h>
 #include <sys/stddef.h>
+
 #include <machine/metadata.h>
 #include <machine/pc/bios.h>
+
+#include <stand.h>
+
 #include "bootstrap.h"
-#include "libi386.h"
 #include "btxv86.h"
+#include "libi386.h"
 
 struct smap_buf {
-	struct bios_smap	smap;
-	uint32_t		xattr;	/* Extended attribute from ACPI 3.0 */
-	STAILQ_ENTRY(smap_buf)	bufs;
+	struct bios_smap smap;
+	uint32_t xattr; /* Extended attribute from ACPI 3.0 */
+	STAILQ_ENTRY(smap_buf) bufs;
 };
 
-#define	SMAP_BUFSIZE		offsetof(struct smap_buf, bufs)
+#define SMAP_BUFSIZE offsetof(struct smap_buf, bufs)
 
-static struct bios_smap		*smapbase;
-static uint32_t			*smapattr;
-static u_int			smaplen;
+static struct bios_smap *smapbase;
+static uint32_t *smapattr;
+static u_int smaplen;
 
 void
 bios_getsmap(void)
 {
-	struct smap_buf		buf;
-	STAILQ_HEAD(smap_head, smap_buf) head =
-	    STAILQ_HEAD_INITIALIZER(head);
-	struct smap_buf		*cur, *next;
-	u_int			n, x;
+	struct smap_buf buf;
+	STAILQ_HEAD(smap_head, smap_buf) head = STAILQ_HEAD_INITIALIZER(head);
+	struct smap_buf *cur, *next;
+	u_int n, x;
 
 	STAILQ_INIT(&head);
 	n = 0;
@@ -67,7 +69,7 @@ bios_getsmap(void)
 	do {
 		v86.ctl = V86_FLAGS;
 		v86.addr = 0x15;
-		v86.eax = 0xe820;	/* int 0x15 function 0xe820 */
+		v86.eax = 0xe820; /* int 0x15 function 0xe820 */
 		v86.ecx = SMAP_BUFSIZE;
 		v86.edx = SMAP_SIG;
 		v86.es = VTOPSEG(&buf);
@@ -94,14 +96,14 @@ bios_getsmap(void)
 		smapbase = malloc(smaplen * sizeof(*smapbase));
 		if (smapbase != NULL) {
 			n = 0;
-			STAILQ_FOREACH(cur, &head, bufs)
+			STAILQ_FOREACH (cur, &head, bufs)
 				smapbase[n++] = cur->smap;
 		}
 		if (smaplen == x) {
 			smapattr = malloc(smaplen * sizeof(*smapattr));
 			if (smapattr != NULL) {
 				n = 0;
-				STAILQ_FOREACH(cur, &head, bufs)
+				STAILQ_FOREACH (cur, &head, bufs)
 					smapattr[n++] = cur->xattr &
 					    SMAP_XATTR_MASK;
 			}
@@ -119,7 +121,7 @@ bios_getsmap(void)
 void
 bios_addsmapdata(struct preloaded_file *kfp)
 {
-	size_t			size;
+	size_t size;
 
 	if (smapbase == NULL || smaplen == 0)
 		return;
@@ -136,13 +138,14 @@ COMMAND_SET(smap, "smap", "show BIOS SMAP", command_smap);
 static int
 command_smap(int argc, char *argv[])
 {
-	u_int			i;
+	u_int i;
 
 	if (smapbase == NULL || smaplen == 0)
 		return (CMD_ERROR);
 	if (smapattr != NULL)
 		for (i = 0; i < smaplen; i++)
-			printf("SMAP type=%02x base=%016llx len=%016llx attr=%02x\n",
+			printf(
+			    "SMAP type=%02x base=%016llx len=%016llx attr=%02x\n",
 			    (unsigned int)smapbase[i].type,
 			    (unsigned long long)smapbase[i].base,
 			    (unsigned long long)smapbase[i].length,

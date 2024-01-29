@@ -16,171 +16,171 @@
 
 #include "common.h"
 
-
 static void
 add_and_delete(void)
 {
-    const char *test_id = "kevent(EVFILT_USER, EV_ADD and EV_DELETE)";
-    struct kevent kev;
+	const char *test_id = "kevent(EVFILT_USER, EV_ADD and EV_DELETE)";
+	struct kevent kev;
 
-    test_begin(test_id);
+	test_begin(test_id);
 
-    kevent_add(kqfd, &kev, 1, EVFILT_USER, EV_ADD, 0, 0, NULL);
-    test_no_kevents();
+	kevent_add(kqfd, &kev, 1, EVFILT_USER, EV_ADD, 0, 0, NULL);
+	test_no_kevents();
 
-    kevent_add(kqfd, &kev, 1, EVFILT_USER, EV_DELETE, 0, 0, NULL);
-    test_no_kevents();
+	kevent_add(kqfd, &kev, 1, EVFILT_USER, EV_DELETE, 0, 0, NULL);
+	test_no_kevents();
 
-    success();
+	success();
 }
 
 static void
 event_wait(void)
 {
-    const char *test_id = "kevent(EVFILT_USER, wait)";
-    struct kevent kev;
+	const char *test_id = "kevent(EVFILT_USER, wait)";
+	struct kevent kev;
 
-    test_begin(test_id);
+	test_begin(test_id);
 
-    test_no_kevents();
+	test_no_kevents();
 
-    /* Add the event, and then trigger it */
-    kevent_add(kqfd, &kev, 1, EVFILT_USER, EV_ADD | EV_CLEAR, 0, 0, NULL);    
-    kevent_add(kqfd, &kev, 1, EVFILT_USER, 0, NOTE_TRIGGER, 0, NULL);    
+	/* Add the event, and then trigger it */
+	kevent_add(kqfd, &kev, 1, EVFILT_USER, EV_ADD | EV_CLEAR, 0, 0, NULL);
+	kevent_add(kqfd, &kev, 1, EVFILT_USER, 0, NOTE_TRIGGER, 0, NULL);
 
-    kev.fflags &= ~NOTE_FFCTRLMASK;
-    kev.fflags &= ~NOTE_TRIGGER;
-    kev.flags = EV_CLEAR;
-    kevent_cmp(&kev, kevent_get(kqfd));
+	kev.fflags &= ~NOTE_FFCTRLMASK;
+	kev.fflags &= ~NOTE_TRIGGER;
+	kev.flags = EV_CLEAR;
+	kevent_cmp(&kev, kevent_get(kqfd));
 
-    test_no_kevents();
+	test_no_kevents();
 
-    success();
+	success();
 }
 
 static void
 event_wait_keepudata(void)
 {
-    const char *test_id = "kevent(EVFILT_USER, wait w/ EV_KEEPUDATA)";
-    struct kevent kev;
+	const char *test_id = "kevent(EVFILT_USER, wait w/ EV_KEEPUDATA)";
+	struct kevent kev;
 
-    test_begin(test_id);
+	test_begin(test_id);
 
-    test_no_kevents();
+	test_no_kevents();
 
-    kevent_add(kqfd, &kev, 1, EVFILT_USER, EV_ADD | EV_CLEAR, 0, 0, &kev);
-    kevent_add(kqfd, &kev, 1, EVFILT_USER, EV_KEEPUDATA, NOTE_TRIGGER, 0,
-        NULL);
+	kevent_add(kqfd, &kev, 1, EVFILT_USER, EV_ADD | EV_CLEAR, 0, 0, &kev);
+	kevent_add(kqfd, &kev, 1, EVFILT_USER, EV_KEEPUDATA, NOTE_TRIGGER, 0,
+	    NULL);
 
-    kev.fflags &= ~NOTE_FFCTRLMASK;
-    kev.fflags &= ~NOTE_TRIGGER;
-    kev.flags = EV_CLEAR;
-    kev.udata = &kev;
-    kevent_cmp(&kev, kevent_get(kqfd));
+	kev.fflags &= ~NOTE_FFCTRLMASK;
+	kev.fflags &= ~NOTE_TRIGGER;
+	kev.flags = EV_CLEAR;
+	kev.udata = &kev;
+	kevent_cmp(&kev, kevent_get(kqfd));
 
-    test_no_kevents();
+	test_no_kevents();
 
-    success();
+	success();
 }
-
 
 static void
 disable_and_enable(void)
 {
-    const char *test_id = "kevent(EVFILT_USER, EV_DISABLE and EV_ENABLE)";
-    struct kevent kev;
+	const char *test_id = "kevent(EVFILT_USER, EV_DISABLE and EV_ENABLE)";
+	struct kevent kev;
 
-    test_begin(test_id);
+	test_begin(test_id);
 
-    test_no_kevents();
+	test_no_kevents();
 
-    kevent_add(kqfd, &kev, 1, EVFILT_USER, EV_ADD, 0, 0, NULL); 
-    kevent_add(kqfd, &kev, 1, EVFILT_USER, EV_DISABLE, 0, 0, NULL); 
+	kevent_add(kqfd, &kev, 1, EVFILT_USER, EV_ADD, 0, 0, NULL);
+	kevent_add(kqfd, &kev, 1, EVFILT_USER, EV_DISABLE, 0, 0, NULL);
 
-    /* Trigger the event, but since it is disabled, nothing will happen. */
-    kevent_add(kqfd, &kev, 1, EVFILT_USER, 0, NOTE_TRIGGER, 0, NULL); 
-    test_no_kevents();
+	/* Trigger the event, but since it is disabled, nothing will happen. */
+	kevent_add(kqfd, &kev, 1, EVFILT_USER, 0, NOTE_TRIGGER, 0, NULL);
+	test_no_kevents();
 
-    kevent_add(kqfd, &kev, 1, EVFILT_USER, EV_ENABLE, 0, 0, NULL); 
-    kevent_add(kqfd, &kev, 1, EVFILT_USER, 0, NOTE_TRIGGER, 0, NULL); 
+	kevent_add(kqfd, &kev, 1, EVFILT_USER, EV_ENABLE, 0, 0, NULL);
+	kevent_add(kqfd, &kev, 1, EVFILT_USER, 0, NOTE_TRIGGER, 0, NULL);
 
-    kev.flags = EV_CLEAR;
-    kev.fflags &= ~NOTE_FFCTRLMASK;
-    kev.fflags &= ~NOTE_TRIGGER;
-    kevent_cmp(&kev, kevent_get(kqfd));
+	kev.flags = EV_CLEAR;
+	kev.fflags &= ~NOTE_FFCTRLMASK;
+	kev.fflags &= ~NOTE_TRIGGER;
+	kevent_cmp(&kev, kevent_get(kqfd));
 
-    success();
+	success();
 }
 
 static void
 disable_and_enable_keepudata(void)
 {
-    const char *test_id =
-        "kevent(EVFILT_USER, EV_DISABLE and EV_ENABLE w/ EV_KEEPUDATA)";
-    struct kevent kev;
+	const char *test_id =
+	    "kevent(EVFILT_USER, EV_DISABLE and EV_ENABLE w/ EV_KEEPUDATA)";
+	struct kevent kev;
 
-    test_begin(test_id);
+	test_begin(test_id);
 
-    test_no_kevents();
+	test_no_kevents();
 
-    kevent_add(kqfd, &kev, 1, EVFILT_USER, EV_ADD, 0, 0, &kev);
-    kevent_add(kqfd, &kev, 1, EVFILT_USER, EV_DISABLE | EV_KEEPUDATA, 0, 0,
-        NULL);
+	kevent_add(kqfd, &kev, 1, EVFILT_USER, EV_ADD, 0, 0, &kev);
+	kevent_add(kqfd, &kev, 1, EVFILT_USER, EV_DISABLE | EV_KEEPUDATA, 0, 0,
+	    NULL);
 
-    /* Trigger the event, but since it is disabled, nothing will happen. */
-    kevent_add(kqfd, &kev, 1, EVFILT_USER, EV_KEEPUDATA, NOTE_TRIGGER, 0, NULL);
-    test_no_kevents();
+	/* Trigger the event, but since it is disabled, nothing will happen. */
+	kevent_add(kqfd, &kev, 1, EVFILT_USER, EV_KEEPUDATA, NOTE_TRIGGER, 0,
+	    NULL);
+	test_no_kevents();
 
-    kevent_add(kqfd, &kev, 1, EVFILT_USER, EV_ENABLE | EV_KEEPUDATA, 0, 0,
-        NULL);
-    kevent_add(kqfd, &kev, 1, EVFILT_USER, EV_KEEPUDATA, NOTE_TRIGGER, 0, NULL);
+	kevent_add(kqfd, &kev, 1, EVFILT_USER, EV_ENABLE | EV_KEEPUDATA, 0, 0,
+	    NULL);
+	kevent_add(kqfd, &kev, 1, EVFILT_USER, EV_KEEPUDATA, NOTE_TRIGGER, 0,
+	    NULL);
 
-    kev.flags = EV_CLEAR;
-    kev.fflags &= ~NOTE_FFCTRLMASK;
-    kev.fflags &= ~NOTE_TRIGGER;
-    kev.udata = &kev;
-    kevent_cmp(&kev, kevent_get(kqfd));
+	kev.flags = EV_CLEAR;
+	kev.fflags &= ~NOTE_FFCTRLMASK;
+	kev.fflags &= ~NOTE_TRIGGER;
+	kev.udata = &kev;
+	kevent_cmp(&kev, kevent_get(kqfd));
 
-    success();
+	success();
 }
 
 static void
 oneshot(void)
 {
-    const char *test_id = "kevent(EVFILT_USER, EV_ONESHOT)";
-    struct kevent kev;
+	const char *test_id = "kevent(EVFILT_USER, EV_ONESHOT)";
+	struct kevent kev;
 
-    test_begin(test_id);
+	test_begin(test_id);
 
-    test_no_kevents();
+	test_no_kevents();
 
-    kevent_add(kqfd, &kev, 2, EVFILT_USER, EV_ADD | EV_ONESHOT, 0, 0, NULL);
+	kevent_add(kqfd, &kev, 2, EVFILT_USER, EV_ADD | EV_ONESHOT, 0, 0, NULL);
 
-    puts("  -- event 1");
-    kevent_add(kqfd, &kev, 2, EVFILT_USER, 0, NOTE_TRIGGER, 0, NULL);    
+	puts("  -- event 1");
+	kevent_add(kqfd, &kev, 2, EVFILT_USER, 0, NOTE_TRIGGER, 0, NULL);
 
-    kev.flags = EV_ONESHOT;
-    kev.fflags &= ~NOTE_FFCTRLMASK;
-    kev.fflags &= ~NOTE_TRIGGER;
-    kevent_cmp(&kev, kevent_get(kqfd));
+	kev.flags = EV_ONESHOT;
+	kev.fflags &= ~NOTE_FFCTRLMASK;
+	kev.fflags &= ~NOTE_TRIGGER;
+	kevent_cmp(&kev, kevent_get(kqfd));
 
-    test_no_kevents();
+	test_no_kevents();
 
-    success();
+	success();
 }
 
 void
 test_evfilt_user(void)
 {
-    kqfd = kqueue();
+	kqfd = kqueue();
 
-    add_and_delete();
-    event_wait();
-    event_wait_keepudata();
-    disable_and_enable();
-    disable_and_enable_keepudata();
-    oneshot();
-    /* TODO: try different fflags operations */
+	add_and_delete();
+	event_wait();
+	event_wait_keepudata();
+	disable_and_enable();
+	disable_and_enable_keepudata();
+	oneshot();
+	/* TODO: try different fflags operations */
 
-    close(kqfd);
+	close(kqfd);
 }

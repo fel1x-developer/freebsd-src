@@ -29,12 +29,12 @@
  * Emulation of selected legacy test/debug interfaces expected by KVM-unit-tests
  */
 
-#ifndef	_PCTESTDEV_H_
-#define	_PCTESTDEV_H_
+#ifndef _PCTESTDEV_H_
+#define _PCTESTDEV_H_
 
 struct vmctx;
 
-const char	*pctestdev_getname(void);
-int		 pctestdev_init(struct vmctx *ctx);
+const char *pctestdev_getname(void);
+int pctestdev_init(struct vmctx *ctx);
 
 #endif

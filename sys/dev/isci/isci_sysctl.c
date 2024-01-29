@@ -31,12 +31,11 @@
  */
 
 #include <sys/cdefs.h>
-#include <dev/isci/isci.h>
-
 #include <sys/sysctl.h>
 
-#include <dev/isci/scil/scif_controller.h>
+#include <dev/isci/isci.h>
 #include <dev/isci/scil/scic_phy.h>
+#include <dev/isci/scil/scif_controller.h>
 
 static int
 isci_sysctl_coalesce_timeout(SYSCTL_HANDLER_ARGS)
@@ -83,7 +82,7 @@ isci_sysctl_reset_remote_devices(struct ISCI_CONTROLLER *controller,
 	while (remote_devices_to_be_reset != 0) {
 		if (remote_devices_to_be_reset & 0x1) {
 			struct ISCI_REMOTE_DEVICE *remote_device =
-				controller->remote_device[i];
+			    controller->remote_device[i];
 
 			if (remote_device != NULL) {
 				mtx_lock(&controller->lock);
@@ -102,12 +101,14 @@ isci_sysctl_reset_remote_device_on_controller0(SYSCTL_HANDLER_ARGS)
 	struct isci_softc *isci = (struct isci_softc *)arg1;
 	uint32_t remote_devices_to_be_reset = 0;
 	struct ISCI_CONTROLLER *controller = &isci->controllers[0];
-	int error = sysctl_handle_int(oidp, &remote_devices_to_be_reset, 0, req);
+	int error = sysctl_handle_int(oidp, &remote_devices_to_be_reset, 0,
+	    req);
 
 	if (error || remote_devices_to_be_reset == 0)
 		return (error);
 
-	isci_sysctl_reset_remote_devices(controller, remote_devices_to_be_reset);
+	isci_sysctl_reset_remote_devices(controller,
+	    remote_devices_to_be_reset);
 
 	return (0);
 }
@@ -118,8 +119,8 @@ isci_sysctl_reset_remote_device_on_controller1(SYSCTL_HANDLER_ARGS)
 	struct isci_softc *isci = (struct isci_softc *)arg1;
 	uint32_t remote_devices_to_be_reset = 0;
 	struct ISCI_CONTROLLER *controller = &isci->controllers[1];
-	int error =
-	    sysctl_handle_int(oidp, &remote_devices_to_be_reset, 0, req);
+	int error = sysctl_handle_int(oidp, &remote_devices_to_be_reset, 0,
+	    req);
 
 	if (error || remote_devices_to_be_reset == 0)
 		return (error);
@@ -135,8 +136,8 @@ isci_sysctl_stop(struct ISCI_CONTROLLER *controller, uint32_t phy_to_be_stopped)
 {
 	SCI_PHY_HANDLE_T phy_handle = NULL;
 
-	scic_controller_get_phy_handle(
-	    scif_controller_get_scic_handle(controller->scif_controller_handle),
+	scic_controller_get_phy_handle(scif_controller_get_scic_handle(
+					   controller->scif_controller_handle),
 	    phy_to_be_stopped, &phy_handle);
 
 	scic_phy_stop(phy_handle);
@@ -153,7 +154,7 @@ isci_sysctl_stop_phy(SYSCTL_HANDLER_ARGS)
 	controller_index = phy_to_be_stopped / SCI_MAX_PHYS;
 	phy_index = phy_to_be_stopped % SCI_MAX_PHYS;
 
-	if(error || controller_index >= isci->controller_count)
+	if (error || controller_index >= isci->controller_count)
 		return (error);
 
 	isci_sysctl_stop(&isci->controllers[controller_index], phy_index);
@@ -167,8 +168,8 @@ isci_sysctl_start(struct ISCI_CONTROLLER *controller,
 {
 	SCI_PHY_HANDLE_T phy_handle = NULL;
 
-	scic_controller_get_phy_handle(
-	    scif_controller_get_scic_handle(controller->scif_controller_handle),
+	scic_controller_get_phy_handle(scif_controller_get_scic_handle(
+					   controller->scif_controller_handle),
 	    phy_to_be_started, &phy_handle);
 
 	scic_phy_start(phy_handle);
@@ -185,7 +186,7 @@ isci_sysctl_start_phy(SYSCTL_HANDLER_ARGS)
 	controller_index = phy_to_be_started / SCI_MAX_PHYS;
 	phy_index = phy_to_be_started % SCI_MAX_PHYS;
 
-	if(error || controller_index >= isci->controller_count)
+	if (error || controller_index >= isci->controller_count)
 		return error;
 
 	isci_sysctl_start(&isci->controllers[controller_index], phy_index);
@@ -196,10 +197,10 @@ isci_sysctl_start_phy(SYSCTL_HANDLER_ARGS)
 static int
 isci_sysctl_log_frozen_lun_masks(SYSCTL_HANDLER_ARGS)
 {
-	struct isci_softc	*isci = (struct isci_softc *)arg1;
+	struct isci_softc *isci = (struct isci_softc *)arg1;
 	struct ISCI_REMOTE_DEVICE *device;
-	int32_t			log_frozen_devices = 0;
-	int			error, i, j;
+	int32_t log_frozen_devices = 0;
+	int error, i, j;
 
 	error = sysctl_handle_int(oidp, &log_frozen_devices, 0, req);
 
@@ -225,9 +226,9 @@ isci_sysctl_log_frozen_lun_masks(SYSCTL_HANDLER_ARGS)
 static int
 isci_sysctl_fail_on_task_timeout(SYSCTL_HANDLER_ARGS)
 {
-	struct isci_softc	*isci = (struct isci_softc *)arg1;
-	int32_t			fail_on_timeout;
-	int			error, i;
+	struct isci_softc *isci = (struct isci_softc *)arg1;
+	int32_t fail_on_timeout;
+	int error, i;
 
 	fail_on_timeout = isci->controllers[0].fail_on_task_timeout;
 	error = sysctl_handle_int(oidp, &fail_on_timeout, 0, req);
@@ -241,9 +242,11 @@ isci_sysctl_fail_on_task_timeout(SYSCTL_HANDLER_ARGS)
 	return (0);
 }
 
-void isci_sysctl_initialize(struct isci_softc *isci)
+void
+isci_sysctl_initialize(struct isci_softc *isci)
 {
-	struct sysctl_ctx_list *sysctl_ctx = device_get_sysctl_ctx(isci->device);
+	struct sysctl_ctx_list *sysctl_ctx = device_get_sysctl_ctx(
+	    isci->device);
 	struct sysctl_oid *sysctl_tree = device_get_sysctl_tree(isci->device);
 
 	SYSCTL_ADD_PROC(sysctl_ctx, SYSCTL_CHILDREN(sysctl_tree), OID_AUTO,
@@ -264,17 +267,17 @@ void isci_sysctl_initialize(struct isci_softc *isci)
 
 	SYSCTL_ADD_PROC(sysctl_ctx, SYSCTL_CHILDREN(sysctl_tree), OID_AUTO,
 	    "reset_remote_device_on_controller1",
-	    CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_NEEDGIANT,
-	    isci, 0, isci_sysctl_reset_remote_device_on_controller1, "IU",
+	    CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, isci, 0,
+	    isci_sysctl_reset_remote_device_on_controller1, "IU",
 	    "Reset remote device on controller 1");
 
 	SYSCTL_ADD_PROC(sysctl_ctx, SYSCTL_CHILDREN(sysctl_tree), OID_AUTO,
-	    "stop_phy", CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, isci,
-	    0, isci_sysctl_stop_phy, "IU", "Stop PHY on a controller");
+	    "stop_phy", CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, isci, 0,
+	    isci_sysctl_stop_phy, "IU", "Stop PHY on a controller");
 
 	SYSCTL_ADD_PROC(sysctl_ctx, SYSCTL_CHILDREN(sysctl_tree), OID_AUTO,
-	    "start_phy", CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, isci,
-	    0, isci_sysctl_start_phy, "IU", "Start PHY on a controller");
+	    "start_phy", CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, isci, 0,
+	    isci_sysctl_start_phy, "IU", "Start PHY on a controller");
 
 	SYSCTL_ADD_PROC(sysctl_ctx, SYSCTL_CHILDREN(sysctl_tree), OID_AUTO,
 	    "log_frozen_lun_masks",
@@ -288,4 +291,3 @@ void isci_sysctl_initialize(struct isci_softc *isci)
 	    isci_sysctl_fail_on_task_timeout, "IU",
 	    "Fail a command that has encountered a task management timeout");
 }
-

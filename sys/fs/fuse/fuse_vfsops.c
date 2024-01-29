@@ -61,37 +61,37 @@
  */
 
 #include <sys/param.h>
-#include <sys/buf.h>
-#include <sys/module.h>
 #include <sys/systm.h>
-#include <sys/errno.h>
-#include <sys/kernel.h>
+#include <sys/buf.h>
 #include <sys/capsicum.h>
 #include <sys/conf.h>
-#include <sys/filedesc.h>
-#include <sys/uio.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/lock.h>
-#include <sys/sx.h>
-#include <sys/mutex.h>
-#include <sys/proc.h>
-#include <sys/vnode.h>
-#include <sys/namei.h>
-#include <sys/mount.h>
-#include <sys/sysctl.h>
+#include <sys/errno.h>
 #include <sys/fcntl.h>
-
-#include "fuse.h"
-#include "fuse_node.h"
-#include "fuse_ipc.h"
-#include "fuse_internal.h"
-
+#include <sys/filedesc.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mount.h>
+#include <sys/mutex.h>
+#include <sys/namei.h>
 #include <sys/priv.h>
+#include <sys/proc.h>
+#include <sys/queue.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/uio.h>
+#include <sys/vnode.h>
+
 #include <security/mac/mac_framework.h>
 
+#include "fuse.h"
+#include "fuse_internal.h"
+#include "fuse_ipc.h"
+#include "fuse_node.h"
+
 SDT_PROVIDER_DECLARE(fusefs);
-/* 
+/*
  * Fuse trace probe:
  * arg0: verbosity.  Higher numbers give more verbose messages
  * arg1: Textual message
@@ -161,25 +161,25 @@ fuse_getdevice(const char *fspec, struct thread *td, struct cdev **fdevp)
 
 	if (fuse_enforce_dev_perms) {
 		/*
-	         * Check if mounter can open the fuse device.
-	         *
-	         * This has significance only if we are doing a secondary mount
-	         * which doesn't involve actually opening fuse devices, but we
-	         * still want to enforce the permissions of the device (in
-	         * order to keep control over the circle of fuse users).
-	         *
-	         * (In case of primary mounts, we are either the superuser so
-	         * we can do anything anyway, or we can mount only if the
-	         * device is already opened by us, ie. we are permitted to open
-	         * the device.)
-	         */
+		 * Check if mounter can open the fuse device.
+		 *
+		 * This has significance only if we are doing a secondary mount
+		 * which doesn't involve actually opening fuse devices, but we
+		 * still want to enforce the permissions of the device (in
+		 * order to keep control over the circle of fuse users).
+		 *
+		 * (In case of primary mounts, we are either the superuser so
+		 * we can do anything anyway, or we can mount only if the
+		 * device is already opened by us, ie. we are permitted to open
+		 * the device.)
+		 */
 #if 0
 #ifdef MAC
 		err = mac_check_vnode_open(td->td_ucred, devvp, VREAD | VWRITE);
 		if (!err)
 #endif
 #endif /* 0 */
-			err = VOP_ACCESS(devvp, VREAD | VWRITE, td->td_ucred, td);
+		err = VOP_ACCESS(devvp, VREAD | VWRITE, td->td_ucred, td);
 		if (err) {
 			vrele(devvp);
 			dev_rel(fdev);
@@ -192,8 +192,7 @@ fuse_getdevice(const char *fspec, struct thread *td, struct cdev **fdevp)
 	 */
 	vrele(devvp);
 
-	if (!fdev->si_devsw ||
-	    strcmp("fuse", fdev->si_devsw->d_name)) {
+	if (!fdev->si_devsw || strcmp("fuse", fdev->si_devsw->d_name)) {
 		dev_rel(fdev);
 		return ENXIO;
 	}
@@ -202,49 +201,50 @@ fuse_getdevice(const char *fspec, struct thread *td, struct cdev **fdevp)
 	return 0;
 }
 
-#define FUSE_FLAGOPT(fnam, fval) do {				\
-	vfs_flagopt(opts, #fnam, &mntopts, fval);		\
-	vfs_flagopt(opts, "__" #fnam, &__mntopts, fval);	\
-} while (0)
+#define FUSE_FLAGOPT(fnam, fval)                                 \
+	do {                                                     \
+		vfs_flagopt(opts, #fnam, &mntopts, fval);        \
+		vfs_flagopt(opts, "__" #fnam, &__mntopts, fval); \
+	} while (0)
 
 SDT_PROBE_DEFINE1(fusefs, , vfsops, mntopts, "uint64_t");
 SDT_PROBE_DEFINE4(fusefs, , vfsops, mount_err, "char*", "struct fuse_data*",
-	"struct mount*", "int");
+    "struct mount*", "int");
 
 static int
 fuse_vfs_remount(struct mount *mp, struct thread *td, uint64_t mntopts,
-	uint32_t max_read, int daemon_timeout)
+    uint32_t max_read, int daemon_timeout)
 {
 	int err = 0;
 	struct fuse_data *data = fuse_get_mpdata(mp);
 	/* Don't allow these options to be changed */
-	const static unsigned long long cant_update_opts = 
-		MNT_USER;	/* Mount owner must be the user running the daemon */
+	const static unsigned long long cant_update_opts =
+	    MNT_USER; /* Mount owner must be the user running the daemon */
 
 	FUSE_LOCK();
 
 	if ((mp->mnt_flag ^ data->mnt_flag) & cant_update_opts) {
 		err = EOPNOTSUPP;
 		SDT_PROBE4(fusefs, , vfsops, mount_err,
-			"Can't change these mount options during remount",
-			data, mp, err);
+		    "Can't change these mount options during remount", data, mp,
+		    err);
 		goto out;
 	}
 	if (((data->dataflags ^ mntopts) & FSESS_MNTOPTS_MASK) ||
-	     (data->max_read != max_read) ||
-	     (data->daemon_timeout != daemon_timeout)) {
+	    (data->max_read != max_read) ||
+	    (data->daemon_timeout != daemon_timeout)) {
 		// TODO: allow changing options where it makes sense
 		err = EOPNOTSUPP;
 		SDT_PROBE4(fusefs, , vfsops, mount_err,
-			"Can't change fuse mount options during remount",
-			data, mp, err);
+		    "Can't change fuse mount options during remount", data, mp,
+		    err);
 		goto out;
 	}
 
 	if (fdata_get_dead(data)) {
 		err = ENOTCONN;
 		SDT_PROBE4(fusefs, , vfsops, mount_err,
-			"device is dead during mount", data, mp, err);
+		    "device is dead during mount", data, mp, err);
 		goto out;
 	}
 
@@ -264,7 +264,7 @@ out:
 
 static int
 fuse_vfsop_fhtovp(struct mount *mp, struct fid *fhp, int flags,
-	struct vnode **vpp)
+    struct vnode **vpp)
 {
 	struct fuse_fid *ffhp = (struct fuse_fid *)fhp;
 	struct fuse_vnode_data *fvdat;
@@ -280,7 +280,7 @@ fuse_vfsop_fhtovp(struct mount *mp, struct fid *fhp, int flags,
 		return (error);
 	}
 	fvdat = VTOFUD(nvp);
-	if (fvdat->generation != ffhp->gen ) {
+	if (fvdat->generation != ffhp->gen) {
 		vput(nvp);
 		*vpp = NULLVP;
 		return (ESTALE);
@@ -352,7 +352,7 @@ fuse_vfsop_mount(struct mount *mp)
 
 	if (mp->mnt_flag & MNT_UPDATE) {
 		return fuse_vfs_remount(mp, td, mntopts, max_read,
-			daemon_timeout);
+		    daemon_timeout);
 	}
 
 	/* `from' contains the device name (eg. /dev/fuse0); REQUIRED */
@@ -371,7 +371,7 @@ fuse_vfsop_mount(struct mount *mp)
 	err = fget(td, fd, &cap_read_rights, &fp);
 	if (err != 0) {
 		SDT_PROBE2(fusefs, , vfsops, trace, 1,
-			"invalid or not opened device");
+		    "invalid or not opened device");
 		goto out;
 	}
 	fptmp = td->td_fpop;
@@ -384,14 +384,14 @@ fuse_vfsop_mount(struct mount *mp)
 	if (err != 0 || data == NULL) {
 		err = ENXIO;
 		SDT_PROBE4(fusefs, , vfsops, mount_err,
-			"invalid or not opened device", data, mp, err);
+		    "invalid or not opened device", data, mp, err);
 		FUSE_UNLOCK();
 		goto out;
 	}
 	if (fdata_get_dead(data)) {
 		err = ENOTCONN;
 		SDT_PROBE4(fusefs, , vfsops, mount_err,
-			"device is dead during mount", data, mp, err);
+		    "device is dead during mount", data, mp, err);
 		FUSE_UNLOCK();
 		goto out;
 	}
@@ -419,13 +419,13 @@ fuse_vfsop_mount(struct mount *mp)
 	vfs_getnewfsid(mp);
 	MNT_ILOCK(mp);
 	mp->mnt_data = data;
-	/* 
+	/*
 	 * FUSE file systems can be either local or remote, but the kernel
 	 * can't tell the difference.
 	 */
 	mp->mnt_flag &= ~MNT_LOCAL;
 	mp->mnt_kern_flag |= MNTK_USES_BCACHE;
-	/* 
+	/*
 	 * Disable nullfs cacheing because it can consume too many resources in
 	 * the FUSE server.
 	 */
@@ -438,9 +438,9 @@ fuse_vfsop_mount(struct mount *mp)
 		strlcat(mp->mnt_stat.f_fstypename, subtype, MFSNAMELEN);
 	}
 	memset(mp->mnt_stat.f_mntfromname, 0, MNAMELEN);
-	vfs_getopt(opts, "fsname=", (void**)&fsname, &fsnamelen);
-	strlcpy(mp->mnt_stat.f_mntfromname,
-		fsname == NULL ? fspec : fsname, MNAMELEN);
+	vfs_getopt(opts, "fsname=", (void **)&fsname, &fsnamelen);
+	strlcpy(mp->mnt_stat.f_mntfromname, fsname == NULL ? fspec : fsname,
+	    MNAMELEN);
 	mp->mnt_iosize_max = maxphys;
 
 	/* Now handshaking with daemon */
@@ -455,7 +455,7 @@ out:
 			 * it
 			 */
 			SDT_PROBE4(fusefs, , vfsops, mount_err,
-				"mount failed, destroy device", data, mp, err);
+			    "mount failed, destroy device", data, mp, err);
 			data->mp = NULL;
 			mp->mnt_data = NULL;
 			fdata_trydestroy(data);
@@ -527,8 +527,7 @@ alreadydead:
 	return 0;
 }
 
-SDT_PROBE_DEFINE1(fusefs, , vfsops, invalidate_without_export,
-	"struct mount*");
+SDT_PROBE_DEFINE1(fusefs, , vfsops, invalidate_without_export, "struct mount*");
 static int
 fuse_vfsop_vget(struct mount *mp, ino_t ino, int flags, struct vnode **vpp)
 {
@@ -586,10 +585,10 @@ fuse_vfsop_vget(struct mount *mp, ino_t ino, int flags, struct vnode **vpp)
 		 * last attributes we sent to the server, so cache them.
 		 */
 		fuse_internal_cache_attrs(*vpp, &feo->attr, feo->attr_valid,
-			feo->attr_valid_nsec, NULL, true);
+		    feo->attr_valid_nsec, NULL, true);
 	}
 	fuse_validity_2_bintime(feo->entry_valid, feo->entry_valid_nsec,
-		&fvdat->entry_cache_timeout);
+	    &fvdat->entry_cache_timeout);
 out:
 	fdisp_destroy(&fdi);
 	return error;
@@ -613,13 +612,13 @@ fuse_vfsop_root(struct mount *mp, int lkflags, struct vnode **vpp)
 			MPASS(data->vroot == NULL || data->vroot == *vpp);
 			if (data->vroot == NULL) {
 				SDT_PROBE2(fusefs, , vfsops, trace, 1,
-					"new root vnode");
+				    "new root vnode");
 				data->vroot = *vpp;
 				FUSE_UNLOCK();
 				vref(*vpp);
 			} else if (data->vroot != *vpp) {
 				SDT_PROBE2(fusefs, , vfsops, trace, 1,
-					"root vnode race");
+				    "root vnode race");
 				FUSE_UNLOCK();
 				vput(*vpp);
 				vrecycle(*vpp);
@@ -652,10 +651,10 @@ fuse_vfsop_statfs(struct mount *mp, struct statfs *sbp)
 		fdisp_destroy(&fdi);
 		if (err == ENOTCONN) {
 			/*
-	                 * We want to seem a legitimate fs even if the daemon
-	                 * is stiff dead... (so that, eg., we can still do path
-	                 * based unmounting after the daemon dies).
-	                 */
+			 * We want to seem a legitimate fs even if the daemon
+			 * is stiff dead... (so that, eg., we can still do path
+			 * based unmounting after the daemon dies).
+			 */
 			goto fake;
 		}
 		return err;
@@ -666,9 +665,9 @@ fuse_vfsop_statfs(struct mount *mp, struct statfs *sbp)
 	sbp->f_bfree = fsfo->st.bfree;
 	sbp->f_bavail = fsfo->st.bavail;
 	sbp->f_files = fsfo->st.files;
-	sbp->f_ffree = fsfo->st.ffree;	/* cast from uint64_t to int64_t */
+	sbp->f_ffree = fsfo->st.ffree; /* cast from uint64_t to int64_t */
 	sbp->f_namemax = fsfo->st.namelen;
-	sbp->f_bsize = fsfo->st.frsize;	/* cast from uint32_t to uint64_t */
+	sbp->f_bsize = fsfo->st.frsize; /* cast from uint32_t to uint64_t */
 
 	fdisp_destroy(&fdi);
 	return 0;

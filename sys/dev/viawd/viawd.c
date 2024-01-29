@@ -27,31 +27,32 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/eventhandler.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/systm.h>
-#include <sys/bus.h>
-#include <machine/bus.h>
 #include <sys/rman.h>
-#include <machine/resource.h>
 #include <sys/watchdog.h>
 
-#include <isa/isavar.h>
+#include <machine/bus.h>
+#include <machine/resource.h>
+
 #include <dev/pci/pcivar.h>
+
+#include <isa/isavar.h>
 
 #include "viawd.h"
 
-#define	viawd_read_4(sc, off)	bus_read_4((sc)->wd_res, (off))
-#define	viawd_write_4(sc, off, val)	\
-	bus_write_4((sc)->wd_res, (off), (val))
+#define viawd_read_4(sc, off) bus_read_4((sc)->wd_res, (off))
+#define viawd_write_4(sc, off, val) bus_write_4((sc)->wd_res, (off), (val))
 
 static struct viawd_device viawd_devices[] = {
 	{ DEVICEID_VT8251, "VIA VT8251 watchdog timer" },
-	{ DEVICEID_CX700,  "VIA CX700 watchdog timer" },
-	{ DEVICEID_VX800,  "VIA VX800 watchdog timer" },
-	{ DEVICEID_VX855,  "VIA VX855 watchdog timer" },
-	{ DEVICEID_VX900,  "VIA VX900 watchdog timer" },
+	{ DEVICEID_CX700, "VIA CX700 watchdog timer" },
+	{ DEVICEID_VX800, "VIA VX800 watchdog timer" },
+	{ DEVICEID_VX855, "VIA VX855 watchdog timer" },
+	{ DEVICEID_VX900, "VIA VX900 watchdog timer" },
 	{ 0, NULL },
 };
 
@@ -160,8 +161,7 @@ viawd_attach(device_t dev)
 	/* Get watchdog memory base. */
 	pmbase = pci_read_config(sb_dev, VIAWD_CONFIG_BASE, 4);
 	if (pmbase == 0) {
-		device_printf(dev,
-		    "Watchdog disabled in BIOS or hardware\n");
+		device_printf(dev, "Watchdog disabled in BIOS or hardware\n");
 		goto fail;
 	}
 
@@ -182,8 +182,7 @@ viawd_attach(device_t dev)
 	/* Check if watchdog fired last boot. */
 	reg = viawd_read_4(sc, VIAWD_MEM_CTRL);
 	if (reg & VIAWD_MEM_CTRL_FIRED) {
-		device_printf(dev,
-		    "ERROR: watchdog rebooted the system\n");
+		device_printf(dev, "ERROR: watchdog rebooted the system\n");
 		/* Reset bit state. */
 		viawd_write_4(sc, VIAWD_MEM_CTRL, reg);
 	}
@@ -194,8 +193,8 @@ viawd_attach(device_t dev)
 	return (0);
 fail:
 	if (sc->wd_res != NULL)
-		bus_release_resource(sb_dev, SYS_RES_MEMORY,
-		    sc->wd_rid, sc->wd_res);
+		bus_release_resource(sb_dev, SYS_RES_MEMORY, sc->wd_rid,
+		    sc->wd_res);
 	return (ENXIO);
 }
 
@@ -226,20 +225,18 @@ viawd_detach(device_t dev)
 	}
 
 	if (sc->wd_res != NULL)
-		bus_release_resource(sc->sb_dev, SYS_RES_MEMORY,
-		    sc->wd_rid, sc->wd_res);
+		bus_release_resource(sc->sb_dev, SYS_RES_MEMORY, sc->wd_rid,
+		    sc->wd_res);
 
 	return (0);
 }
 
-static device_method_t viawd_methods[] = {
-	DEVMETHOD(device_identify, viawd_identify),
-	DEVMETHOD(device_probe,	viawd_probe),
+static device_method_t viawd_methods[] = { DEVMETHOD(device_identify,
+					       viawd_identify),
+	DEVMETHOD(device_probe, viawd_probe),
 	DEVMETHOD(device_attach, viawd_attach),
 	DEVMETHOD(device_detach, viawd_detach),
-	DEVMETHOD(device_shutdown, viawd_detach),
-	{0,0}
-};
+	DEVMETHOD(device_shutdown, viawd_detach), { 0, 0 } };
 
 static driver_t viawd_driver = {
 	"viawd",

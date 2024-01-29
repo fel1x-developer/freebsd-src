@@ -30,32 +30,31 @@
  * SUCH DAMAGE.
  */
 
-#include "dtb.hh"
 #include <sys/types.h>
+
+#include <errno.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <errno.h>
+
+#include "dtb.hh"
 
 using std::string;
 
 namespace {
 
-void write(dtc::byte_buffer &buffer, int fd)
+void
+write(dtc::byte_buffer &buffer, int fd)
 {
 	size_t size = buffer.size();
 	uint8_t *data = buffer.data();
-	while (size > 0)
-	{
+	while (size > 0) {
 		ssize_t r = ::write(fd, data, size);
-		if (r >= 0)
-		{
+		if (r >= 0) {
 			data += r;
 			size -= r;
-		}
-		else if (errno != EAGAIN)
-		{
+		} else if (errno != EAGAIN) {
 			fprintf(stderr, "Writing to file failed\n");
 			exit(-1);
 		}
@@ -63,15 +62,12 @@ void write(dtc::byte_buffer &buffer, int fd)
 }
 }
 
-namespace dtc
-{
-namespace dtb
-{
+namespace dtc { namespace dtb {
 
-void output_writer::write_data(byte_buffer b)
+void
+output_writer::write_data(byte_buffer b)
 {
-	for (auto i : b)
-	{
+	for (auto i : b) {
 		write_data(i);
 	}
 }
@@ -93,8 +89,7 @@ binary_writer::write_data(uint8_t v)
 void
 binary_writer::write_data(uint32_t v)
 {
-	while (buffer.size() % 4 != 0)
-	{
+	while (buffer.size() % 4 != 0) {
 		buffer.push_back(0);
 	}
 	push_big_endian(buffer, v);
@@ -103,8 +98,7 @@ binary_writer::write_data(uint32_t v)
 void
 binary_writer::write_data(uint64_t v)
 {
-	while (buffer.size() % 8 != 0)
-	{
+	while (buffer.size() % 8 != 0) {
 		buffer.push_back(0);
 	}
 	push_big_endian(buffer, v);
@@ -125,8 +119,7 @@ binary_writer::size()
 void
 asm_writer::write_line(const char *c)
 {
-	if (byte_count != 0)
-	{
+	if (byte_count != 0) {
 		byte_count = 0;
 		buffer.push_back('\n');
 	}
@@ -136,22 +129,18 @@ asm_writer::write_line(const char *c)
 void
 asm_writer::write_byte(uint8_t b)
 {
-	char out[3] = {0};
-	if (byte_count++ == 0)
-	{
+	char out[3] = { 0 };
+	if (byte_count++ == 0) {
 		buffer.push_back('\t');
 	}
 	write_string(".byte 0x");
 	snprintf(out, 3, "%.2hhx", b);
 	buffer.push_back(out[0]);
 	buffer.push_back(out[1]);
-	if (byte_count == 4)
-	{
+	if (byte_count == 4) {
 		buffer.push_back('\n');
 		byte_count = 0;
-	}
-	else
-	{
+	} else {
 		buffer.push_back(';');
 		buffer.push_back(' ');
 	}
@@ -170,7 +159,6 @@ asm_writer::write_label(const string &name)
 	push_string(buffer, name);
 	buffer.push_back(':');
 	buffer.push_back('\n');
-	
 }
 
 void
@@ -184,12 +172,10 @@ asm_writer::write_comment(const string &name)
 void
 asm_writer::write_string(const char *c)
 {
-	while (*c)
-	{
-		buffer.push_back((uint8_t)*(c++));
+	while (*c) {
+		buffer.push_back((uint8_t) * (c++));
 	}
 }
-
 
 void
 asm_writer::write_string(const string &name)
@@ -210,8 +196,7 @@ asm_writer::write_data(uint8_t v)
 void
 asm_writer::write_data(uint32_t v)
 {
-	if (bytes_written % 4 != 0)
-	{
+	if (bytes_written % 4 != 0) {
 		write_line("\t.balign 4\n");
 		bytes_written += (4 - (bytes_written % 4));
 	}
@@ -225,8 +210,7 @@ asm_writer::write_data(uint32_t v)
 void
 asm_writer::write_data(uint64_t v)
 {
-	if (bytes_written % 8 != 0)
-	{
+	if (bytes_written % 8 != 0) {
 		write_line("\t.balign 8\n");
 		bytes_written += (8 - (bytes_written % 8));
 	}
@@ -283,42 +267,39 @@ header::write(output_writer &out)
 bool
 header::read_dtb(input_buffer &input)
 {
-	if (!input.consume_binary(magic))
-	{
+	if (!input.consume_binary(magic)) {
 		fprintf(stderr, "Missing magic token in header.");
 		return false;
 	}
-	if (magic != 0xd00dfeed)
-	{
-		fprintf(stderr, "Bad magic token in header.  Got %" PRIx32
-		                " expected 0xd00dfeed\n", magic);
+	if (magic != 0xd00dfeed) {
+		fprintf(stderr,
+		    "Bad magic token in header.  Got %" PRIx32
+		    " expected 0xd00dfeed\n",
+		    magic);
 		return false;
 	}
 	return input.consume_binary(totalsize) &&
-	       input.consume_binary(off_dt_struct) &&
-	       input.consume_binary(off_dt_strings) &&
-	       input.consume_binary(off_mem_rsvmap) &&
-	       input.consume_binary(version) &&
-	       input.consume_binary(last_comp_version) &&
-	       input.consume_binary(boot_cpuid_phys) &&
-	       input.consume_binary(size_dt_strings) &&
-	       input.consume_binary(size_dt_struct);
+	    input.consume_binary(off_dt_struct) &&
+	    input.consume_binary(off_dt_strings) &&
+	    input.consume_binary(off_mem_rsvmap) &&
+	    input.consume_binary(version) &&
+	    input.consume_binary(last_comp_version) &&
+	    input.consume_binary(boot_cpuid_phys) &&
+	    input.consume_binary(size_dt_strings) &&
+	    input.consume_binary(size_dt_struct);
 }
 uint32_t
 string_table::add_string(const string &str)
 {
 	auto old = string_offsets.find(str);
-	if (old == string_offsets.end())
-	{
+	if (old == string_offsets.end()) {
 		uint32_t start = size;
 		// Don't forget the trailing nul
 		size += str.size() + 1;
 		string_offsets.insert(std::make_pair(str, start));
 		strings.push_back(str);
 		return start;
-	}
-	else
-	{
+	} else {
 		return old->second;
 	}
 }
@@ -328,8 +309,7 @@ string_table::write(dtb::output_writer &writer)
 {
 	writer.write_comment("Strings table.");
 	writer.write_label("dt_strings_start");
-	for (auto &i : strings)
-	{
+	for (auto &i : strings) {
 		writer.write_string(i);
 	}
 	writer.write_label("dt_strings_end");
@@ -338,4 +318,3 @@ string_table::write(dtb::output_writer &writer)
 } // namespace dtb
 
 } // namespace dtc
-

@@ -48,7 +48,7 @@
  * to spell this since LDBL_MAX is broken on i386 (it overflows in 53-bit
  * precision).
  */
-#define	THRESH	0x1p16382L
+#define THRESH 0x1p16382L
 
 long double complex
 csqrtl(long double complex z)
@@ -65,7 +65,7 @@ csqrtl(long double complex z)
 	if (isinf(b))
 		return (CMPLXL(INFINITY, b));
 	if (isnan(a)) {
-		t = (b - b) / (b - b);	/* raise invalid if b is not a NaN */
+		t = (b - b) / (b - b); /* raise invalid if b is not a NaN */
 		return (CMPLXL(a + 0.0L + t, a + 0.0L + t)); /* NaN + NaN i */
 	}
 	if (isinf(a)) {
@@ -81,7 +81,7 @@ csqrtl(long double complex z)
 			return (CMPLXL(a, copysignl(b - b, b)));
 	}
 	if (isnan(b)) {
-		t = (a - a) / (a - a);	/* raise invalid */
+		t = (a - a) / (a - a);			     /* raise invalid */
 		return (CMPLXL(b + 0.0L + t, b + 0.0L + t)); /* NaN + NaN i */
 	}
 

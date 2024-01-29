@@ -29,55 +29,53 @@
  * SUCH DAMAGE.
  */
 
-
 #include <sys/param.h>
-#include <sys/sysctl.h>
-
 #include <sys/_lock.h>
 #include <sys/_mutex.h>
+#include <sys/sysctl.h>
 
-#define	_WANT_NETISR_INTERNAL
+#define _WANT_NETISR_INTERNAL
 #include <net/netisr.h>
 #include <net/netisr_internal.h>
 
 #include <err.h>
+#include <libxo/xo.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
-#include <libxo/xo.h>
+
 #include "netstat.h"
 #include "nl_defs.h"
 
 /*
  * Print statistics for the kernel netisr subsystem.
  */
-static u_int				 bindthreads;
-static u_int				 maxthreads;
-static u_int				 numthreads;
+static u_int bindthreads;
+static u_int maxthreads;
+static u_int numthreads;
 
-static u_int				 defaultqlimit;
-static u_int				 maxqlimit;
+static u_int defaultqlimit;
+static u_int maxqlimit;
 
-static char				 dispatch_policy[20];
+static char dispatch_policy[20];
 
-static struct sysctl_netisr_proto	*proto_array;
-static u_int				 proto_array_len;
+static struct sysctl_netisr_proto *proto_array;
+static u_int proto_array_len;
 
-static struct sysctl_netisr_workstream	*workstream_array;
-static u_int				 workstream_array_len;
+static struct sysctl_netisr_workstream *workstream_array;
+static u_int workstream_array_len;
 
-static struct sysctl_netisr_work	*work_array;
-static u_int				 work_array_len;
+static struct sysctl_netisr_work *work_array;
+static u_int work_array_len;
 
-static u_int				*nws_array;
+static u_int *nws_array;
 
-static u_int				 maxprot;
+static u_int maxprot;
 
 static void
-netisr_dispatch_policy_to_string(u_int policy, char *buf,
-    size_t buflen)
+netisr_dispatch_policy_to_string(u_int policy, char *buf, size_t buflen)
 {
 	const char *str;
 
@@ -239,8 +237,8 @@ netisr_load_kvm_proto(void)
 			continue;
 		snpp = &proto_array[protocount];
 		snpp->snp_version = sizeof(*snpp);
-		netisr_load_kvm_string((uintptr_t)npp->np_name,
-		    snpp->snp_name, sizeof(snpp->snp_name));
+		netisr_load_kvm_string((uintptr_t)npp->np_name, snpp->snp_name,
+		    sizeof(snpp->snp_name));
 		snpp->snp_proto = i;
 		snpp->snp_qlimit = npp->np_qlimit;
 		snpp->snp_policy = npp->np_policy;
@@ -331,8 +329,7 @@ netisr_load_kvm_workstream(void)
 			snwp->snw_len = nwp->nw_len;
 			snwp->snw_watermark = nwp->nw_watermark;
 			snwp->snw_dispatched = nwp->nw_dispatched;
-			snwp->snw_hybrid_dispatched =
-			    nwp->nw_hybrid_dispatched;
+			snwp->snw_hybrid_dispatched = nwp->nw_hybrid_dispatched;
 			snwp->snw_qdrops = nwp->nw_qdrops;
 			snwp->snw_queued = nwp->nw_queued;
 			snwp->snw_handled = nwp->nw_handled;
@@ -355,7 +352,7 @@ netisr_load_sysctl_workstream(void)
 	if (workstream_array == NULL)
 		xo_err(-1, "malloc");
 	if (sysctlbyname("net.isr.workstream", workstream_array, &len, NULL,
-	    0) < 0)
+		0) < 0)
 		xo_err(-1, "net.isr.workstream: query data");
 	if (len % sizeof(*workstream_array) != 0)
 		xo_errx(-1, "net.isr.workstream: invalid len");
@@ -398,15 +395,15 @@ netisr_print_proto(struct sysctl_netisr_proto *snpp)
 	xo_emit(" {:protocol/%5u}", snpp->snp_proto);
 	xo_emit(" {:queue-limit/%6u}", snpp->snp_qlimit);
 	xo_emit(" {:policy-type/%6s}",
-	    (snpp->snp_policy == NETISR_POLICY_SOURCE) ?  "source" :
-	    (snpp->snp_policy == NETISR_POLICY_FLOW) ? "flow" :
-	    (snpp->snp_policy == NETISR_POLICY_CPU) ? "cpu" : "-");
-	netisr_dispatch_policy_to_string(snpp->snp_dispatch, tmp,
-	    sizeof(tmp));
+	    (snpp->snp_policy == NETISR_POLICY_SOURCE)	 ? "source" :
+		(snpp->snp_policy == NETISR_POLICY_FLOW) ? "flow" :
+		(snpp->snp_policy == NETISR_POLICY_CPU)	 ? "cpu" :
+							   "-");
+	netisr_dispatch_policy_to_string(snpp->snp_dispatch, tmp, sizeof(tmp));
 	xo_emit(" {:policy/%8s}", tmp);
 	xo_emit("   {:flags/%s%s%s}\n",
-	    (snpp->snp_flags & NETISR_SNP_FLAGS_M2CPUID) ?  "C" : "-",
-	    (snpp->snp_flags & NETISR_SNP_FLAGS_DRAINEDCPU) ?  "D" : "-",
+	    (snpp->snp_flags & NETISR_SNP_FLAGS_M2CPUID) ? "C" : "-",
+	    (snpp->snp_flags & NETISR_SNP_FLAGS_DRAINEDCPU) ? "D" : "-",
 	    (snpp->snp_flags & NETISR_SNP_FLAGS_M2FLOW) ? "F" : "-");
 }
 
@@ -455,23 +452,22 @@ netisr_stats(void)
 	} else {
 		netisr_load_kvm_config();
 		netisr_load_kvm_proto();
-		netisr_load_kvm_workstream();		/* Also does work. */
+		netisr_load_kvm_workstream(); /* Also does work. */
 	}
 
 	xo_open_container("netisr");
 
 	xo_emit("{T:Configuration}:\n");
-	xo_emit("{T:/%-25s} {T:/%12s} {T:/%12s}\n",
-	    "Setting", "Current", "Limit");
-	xo_emit("{T:/%-25s} {T:/%12u} {T:/%12u}\n",
-	    "Thread count", numthreads, maxthreads);
-	xo_emit("{T:/%-25s} {T:/%12u} {T:/%12u}\n",
-	    "Default queue limit", defaultqlimit, maxqlimit);
-	xo_emit("{T:/%-25s} {T:/%12s} {T:/%12s}\n",
-	    "Dispatch policy", dispatch_policy, "n/a");
-	xo_emit("{T:/%-25s} {T:/%12s} {T:/%12s}\n",
-	    "Threads bound to CPUs", bindthreads ? "enabled" : "disabled",
-	    "n/a");
+	xo_emit("{T:/%-25s} {T:/%12s} {T:/%12s}\n", "Setting", "Current",
+	    "Limit");
+	xo_emit("{T:/%-25s} {T:/%12u} {T:/%12u}\n", "Thread count", numthreads,
+	    maxthreads);
+	xo_emit("{T:/%-25s} {T:/%12u} {T:/%12u}\n", "Default queue limit",
+	    defaultqlimit, maxqlimit);
+	xo_emit("{T:/%-25s} {T:/%12s} {T:/%12s}\n", "Dispatch policy",
+	    dispatch_policy, "n/a");
+	xo_emit("{T:/%-25s} {T:/%12s} {T:/%12s}\n", "Threads bound to CPUs",
+	    bindthreads ? "enabled" : "disabled", "n/a");
 	xo_emit("\n");
 
 	xo_emit("{T:Protocols}:\n");
@@ -491,7 +487,7 @@ netisr_stats(void)
 	xo_emit("{T:/%4s} {T:/%3s} ", "WSID", "CPU");
 	xo_emit("{P:/%2s}", "");
 	xo_emit("{T:/%-6s} {T:/%5s} {T:/%5s} {T:/%8s} {T:/%8s} {T:/%8s} "
-	    "{T:/%8s} {T:/%8s}\n",
+		"{T:/%8s} {T:/%8s}\n",
 	    "Name", "Len", "WMark", "Disp'd", "HDisp'd", "QDrops", "Queued",
 	    "Handled");
 	xo_open_list("workstream");

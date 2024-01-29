@@ -31,10 +31,10 @@
 
 #include <sys/types.h>
 
+#include <db.h>
 #include <errno.h>
 #include <stdio.h>
 
-#include <db.h>
 #include "recno.h"
 
 /*
@@ -98,12 +98,12 @@ __rec_search(BTREE *t, recno_t recno, enum SRCHOP op)
 			mpool_put(t->bt_mp, h, 0);
 			break;
 		}
-
 	}
 	/* Try and recover the tree. */
-err:	sverrno = errno;
+err:
+	sverrno = errno;
 	if (op != SEARCH)
-		while  ((parent = BT_POP(t)) != NULL) {
+		while ((parent = BT_POP(t)) != NULL) {
 			if ((h = mpool_get(t->bt_mp, parent->pgno, 0)) == NULL)
 				break;
 			if (op == SINSERT)

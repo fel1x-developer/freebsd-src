@@ -28,22 +28,22 @@
  */
 
 #ifndef _PROC_SERVICE_H_
-#define	_PROC_SERVICE_H_
+#define _PROC_SERVICE_H_
 
 #include <sys/types.h>
 #include <sys/procfs.h>
 
 typedef enum {
-	PS_OK = 0,		/* No errors. */
-	PS_ERR,			/* Generic error. */
-	PS_BADADDR,		/* Bad address. */
-	PS_BADLID,		/* Bad LWP Id. */
-	PS_BADPID,		/* Bad process Id. */
-	PS_NOFREGS,		/* FPU register set not available. */
-	PS_NOSYM		/* Symbol not found. */
+	PS_OK = 0,  /* No errors. */
+	PS_ERR,	    /* Generic error. */
+	PS_BADADDR, /* Bad address. */
+	PS_BADLID,  /* Bad LWP Id. */
+	PS_BADPID,  /* Bad process Id. */
+	PS_NOFREGS, /* FPU register set not available. */
+	PS_NOSYM    /* Symbol not found. */
 } ps_err_e;
 
-struct ps_prochandle;		/* Opaque type. Defined by the implementor. */
+struct ps_prochandle; /* Opaque type. Defined by the implementor. */
 
 __BEGIN_DECLS
 ps_err_e ps_lcontinue(struct ps_prochandle *, lwpid_t);
@@ -52,8 +52,8 @@ ps_err_e ps_lgetregs(struct ps_prochandle *, lwpid_t, prgregset_t);
 ps_err_e ps_lsetfpregs(struct ps_prochandle *, lwpid_t, const prfpregset_t *);
 ps_err_e ps_lsetregs(struct ps_prochandle *, lwpid_t, const prgregset_t);
 #ifdef __i386__
-ps_err_e ps_lgetxmmregs (struct ps_prochandle *, lwpid_t, char *);
-ps_err_e ps_lsetxmmregs (struct ps_prochandle *, lwpid_t, const char *);
+ps_err_e ps_lgetxmmregs(struct ps_prochandle *, lwpid_t, char *);
+ps_err_e ps_lsetxmmregs(struct ps_prochandle *, lwpid_t, const char *);
 #endif
 ps_err_e ps_lstop(struct ps_prochandle *, lwpid_t);
 ps_err_e ps_linfo(struct ps_prochandle *, lwpid_t, void *);
@@ -61,7 +61,7 @@ ps_err_e ps_pcontinue(struct ps_prochandle *);
 ps_err_e ps_pdmodel(struct ps_prochandle *, int *);
 ps_err_e ps_pglobal_lookup(struct ps_prochandle *, const char *, const char *,
     psaddr_t *);
-void	 ps_plog(const char *, ...);
+void ps_plog(const char *, ...);
 ps_err_e ps_pread(struct ps_prochandle *, psaddr_t, void *, size_t);
 ps_err_e ps_pstop(struct ps_prochandle *);
 ps_err_e ps_pwrite(struct ps_prochandle *, psaddr_t, const void *, size_t);

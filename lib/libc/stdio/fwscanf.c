@@ -37,7 +37,7 @@
 #include <xlocale.h>
 
 int
-fwscanf(FILE * __restrict fp, const wchar_t * __restrict fmt, ...)
+fwscanf(FILE *__restrict fp, const wchar_t *__restrict fmt, ...)
 {
 	va_list ap;
 	int r;
@@ -49,7 +49,8 @@ fwscanf(FILE * __restrict fp, const wchar_t * __restrict fmt, ...)
 	return (r);
 }
 int
-fwscanf_l(FILE * __restrict fp, locale_t locale, const wchar_t * __restrict fmt, ...)
+fwscanf_l(FILE *__restrict fp, locale_t locale, const wchar_t *__restrict fmt,
+    ...)
 {
 	va_list ap;
 	int r;

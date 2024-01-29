@@ -31,8 +31,8 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#include <atf-c.h>
 #include <alias.h>
+#include <atf-c.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -74,11 +74,12 @@ ATF_TC_BODY(3_multiinit, dummy)
 	int i;
 
 	la = LibAliasInit(NULL);
-	for(i = 1; i < 30; i++) {
+	for (i = 1; i < 30; i++) {
 		struct libalias *lo = la;
 
 		la = LibAliasInit(la);
-		ATF_CHECK_MSG(la == lo, "Recreating moved the instance around: %d", i);
+		ATF_CHECK_MSG(la == lo,
+		    "Recreating moved the instance around: %d", i);
 	}
 	LibAliasUninit(la);
 }
@@ -86,7 +87,8 @@ ATF_TC_BODY(3_multiinit, dummy)
 ATF_TC(4_multiinstance);
 ATF_TC_HEAD(4_multiinstance, env)
 {
-	atf_tc_set_md_var(env, "descr", "Create and destoy multiple instances.");
+	atf_tc_set_md_var(env, "descr",
+	    "Create and destoy multiple instances.");
 }
 ATF_TC_BODY(4_multiinstance, dummy)
 {

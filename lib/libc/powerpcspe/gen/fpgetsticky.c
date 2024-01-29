@@ -3,10 +3,10 @@
 /*
  * Copyright (c) 2016 Justin Hibbits
  * All rights reserved.
- * 
+ *
  * This code is derived from software contributed to The NetBSD Foundation
  * by Dan Winship.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -15,7 +15,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE NETBSD FOUNDATION, INC. AND CONTRIBUTORS
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
  * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
@@ -29,20 +29,20 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <sys/types.h>
+
+#include <machine/spr.h>
+
+#include <ieeefp.h>
 
 #include "namespace.h"
 
-#include <sys/types.h>
-#include <machine/spr.h>
-#include <ieeefp.h>
-
 #ifndef _SOFT_FLOAT
 #ifdef __weak_alias
-__weak_alias(fpgetsticky,_fpgetsticky)
+__weak_alias(fpgetsticky, _fpgetsticky)
 #endif
 
-fp_except_t
-fpgetsticky()
+    fp_except_t fpgetsticky()
 {
 	uint32_t fpscr;
 

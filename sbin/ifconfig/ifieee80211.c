@@ -66,16 +66,16 @@
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_dl.h>
-#include <net/if_types.h>
 #include <net/if_media.h>
+#include <net/if_types.h>
 #include <net/route.h>
 
-#define WANT_NET80211	1
-#include <net80211/ieee80211_ioctl.h>
+#define WANT_NET80211 1
 #include <net80211/ieee80211_freebsd.h>
+#include <net80211/ieee80211_ioctl.h>
+#include <net80211/ieee80211_mesh.h>
 #include <net80211/ieee80211_superg.h>
 #include <net80211/ieee80211_tdma.h>
-#include <net80211/ieee80211_mesh.h>
 #include <net80211/ieee80211_wps.h>
 
 #include <assert.h>
@@ -84,90 +84,89 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
+#include <langinfo.h>
+#include <lib80211/lib80211_ioctl.h>
+#include <lib80211/lib80211_regdomain.h>
+#include <locale.h>
+#include <stdarg.h>
+#include <stddef.h> /* NB: for offsetof */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <stdarg.h>
-#include <stddef.h>		/* NB: for offsetof */
-#include <locale.h>
-#include <langinfo.h>
 
 #include "ifconfig.h"
 
-#include <lib80211/lib80211_regdomain.h>
-#include <lib80211/lib80211_ioctl.h>
-
 #ifndef IEEE80211_FIXED_RATE_NONE
-#define	IEEE80211_FIXED_RATE_NONE	0xff
+#define IEEE80211_FIXED_RATE_NONE 0xff
 #endif
 
 /* XXX need these publicly defined or similar */
 #ifndef IEEE80211_NODE_AUTH
-#define	IEEE80211_NODE_AUTH	0x000001	/* authorized for data */
-#define	IEEE80211_NODE_QOS	0x000002	/* QoS enabled */
-#define	IEEE80211_NODE_ERP	0x000004	/* ERP enabled */
-#define	IEEE80211_NODE_PWR_MGT	0x000010	/* power save mode enabled */
-#define	IEEE80211_NODE_AREF	0x000020	/* authentication ref held */
-#define	IEEE80211_NODE_HT	0x000040	/* HT enabled */
-#define	IEEE80211_NODE_HTCOMPAT	0x000080	/* HT setup w/ vendor OUI's */
-#define	IEEE80211_NODE_WPS	0x000100	/* WPS association */
-#define	IEEE80211_NODE_TSN	0x000200	/* TSN association */
-#define	IEEE80211_NODE_AMPDU_RX	0x000400	/* AMPDU rx enabled */
-#define	IEEE80211_NODE_AMPDU_TX	0x000800	/* AMPDU tx enabled */
-#define	IEEE80211_NODE_MIMO_PS	0x001000	/* MIMO power save enabled */
-#define	IEEE80211_NODE_MIMO_RTS	0x002000	/* send RTS in MIMO PS */
-#define	IEEE80211_NODE_RIFS	0x004000	/* RIFS enabled */
-#define	IEEE80211_NODE_SGI20	0x008000	/* Short GI in HT20 enabled */
-#define	IEEE80211_NODE_SGI40	0x010000	/* Short GI in HT40 enabled */
-#define	IEEE80211_NODE_ASSOCID	0x020000	/* xmit requires associd */
-#define	IEEE80211_NODE_AMSDU_RX	0x040000	/* AMSDU rx enabled */
-#define	IEEE80211_NODE_AMSDU_TX	0x080000	/* AMSDU tx enabled */
-#define	IEEE80211_NODE_VHT	0x100000	/* VHT enabled */
-#define	IEEE80211_NODE_LDPC	0x200000	/* LDPC enabled */
-#define	IEEE80211_NODE_UAPSD	0x400000	/* UAPSD enabled */
+#define IEEE80211_NODE_AUTH 0x000001	 /* authorized for data */
+#define IEEE80211_NODE_QOS 0x000002	 /* QoS enabled */
+#define IEEE80211_NODE_ERP 0x000004	 /* ERP enabled */
+#define IEEE80211_NODE_PWR_MGT 0x000010	 /* power save mode enabled */
+#define IEEE80211_NODE_AREF 0x000020	 /* authentication ref held */
+#define IEEE80211_NODE_HT 0x000040	 /* HT enabled */
+#define IEEE80211_NODE_HTCOMPAT 0x000080 /* HT setup w/ vendor OUI's */
+#define IEEE80211_NODE_WPS 0x000100	 /* WPS association */
+#define IEEE80211_NODE_TSN 0x000200	 /* TSN association */
+#define IEEE80211_NODE_AMPDU_RX 0x000400 /* AMPDU rx enabled */
+#define IEEE80211_NODE_AMPDU_TX 0x000800 /* AMPDU tx enabled */
+#define IEEE80211_NODE_MIMO_PS 0x001000	 /* MIMO power save enabled */
+#define IEEE80211_NODE_MIMO_RTS 0x002000 /* send RTS in MIMO PS */
+#define IEEE80211_NODE_RIFS 0x004000	 /* RIFS enabled */
+#define IEEE80211_NODE_SGI20 0x008000	 /* Short GI in HT20 enabled */
+#define IEEE80211_NODE_SGI40 0x010000	 /* Short GI in HT40 enabled */
+#define IEEE80211_NODE_ASSOCID 0x020000	 /* xmit requires associd */
+#define IEEE80211_NODE_AMSDU_RX 0x040000 /* AMSDU rx enabled */
+#define IEEE80211_NODE_AMSDU_TX 0x080000 /* AMSDU tx enabled */
+#define IEEE80211_NODE_VHT 0x100000	 /* VHT enabled */
+#define IEEE80211_NODE_LDPC 0x200000	 /* LDPC enabled */
+#define IEEE80211_NODE_UAPSD 0x400000	 /* UAPSD enabled */
 #endif
 
 /* XXX should also figure out where to put these for k/u-space sharing. */
 #ifndef IEEE80211_FVHT_VHT
-#define	IEEE80211_FVHT_VHT	0x000000001	/* CONF: VHT supported */
-#define	IEEE80211_FVHT_USEVHT40	0x000000002	/* CONF: Use VHT40 */
-#define	IEEE80211_FVHT_USEVHT80	0x000000004	/* CONF: Use VHT80 */
-#define	IEEE80211_FVHT_USEVHT160 0x000000008	/* CONF: Use VHT160 */
-#define	IEEE80211_FVHT_USEVHT80P80 0x000000010	/* CONF: Use VHT 80+80 */
+#define IEEE80211_FVHT_VHT 0x000000001	       /* CONF: VHT supported */
+#define IEEE80211_FVHT_USEVHT40 0x000000002    /* CONF: Use VHT40 */
+#define IEEE80211_FVHT_USEVHT80 0x000000004    /* CONF: Use VHT80 */
+#define IEEE80211_FVHT_USEVHT160 0x000000008   /* CONF: Use VHT160 */
+#define IEEE80211_FVHT_USEVHT80P80 0x000000010 /* CONF: Use VHT 80+80 */
 #endif
 
 /* Helper macros unified. */
-#ifndef	_IEEE80211_MASKSHIFT
-#define	_IEEE80211_MASKSHIFT(_v, _f)	(((_v) & _f) >> _f##_S)
+#ifndef _IEEE80211_MASKSHIFT
+#define _IEEE80211_MASKSHIFT(_v, _f) (((_v) & _f) >> _f##_S)
 #endif
-#ifndef	_IEEE80211_SHIFTMASK
-#define	_IEEE80211_SHIFTMASK(_v, _f)	(((_v) << _f##_S) & _f)
+#ifndef _IEEE80211_SHIFTMASK
+#define _IEEE80211_SHIFTMASK(_v, _f) (((_v) << _f##_S) & _f)
 #endif
 
-#define	MAXCHAN	1536		/* max 1.5K channels */
+#define MAXCHAN 1536 /* max 1.5K channels */
 
-#define	MAXCOL	78
-static	int col;
-static	char spacer;
+#define MAXCOL 78
+static int col;
+static char spacer;
 
 static void LINE_INIT(char c);
 static void LINE_BREAK(void);
 static void LINE_CHECK(const char *fmt, ...);
 
 static const char *modename[IEEE80211_MODE_MAX] = {
-	[IEEE80211_MODE_AUTO]	  = "auto",
-	[IEEE80211_MODE_11A]	  = "11a",
-	[IEEE80211_MODE_11B]	  = "11b",
-	[IEEE80211_MODE_11G]	  = "11g",
-	[IEEE80211_MODE_FH]	  = "fh",
-	[IEEE80211_MODE_TURBO_A]  = "turboA",
-	[IEEE80211_MODE_TURBO_G]  = "turboG",
+	[IEEE80211_MODE_AUTO] = "auto",
+	[IEEE80211_MODE_11A] = "11a",
+	[IEEE80211_MODE_11B] = "11b",
+	[IEEE80211_MODE_11G] = "11g",
+	[IEEE80211_MODE_FH] = "fh",
+	[IEEE80211_MODE_TURBO_A] = "turboA",
+	[IEEE80211_MODE_TURBO_G] = "turboG",
 	[IEEE80211_MODE_STURBO_A] = "sturbo",
-	[IEEE80211_MODE_11NA]	  = "11na",
-	[IEEE80211_MODE_11NG]	  = "11ng",
-	[IEEE80211_MODE_HALF]	  = "half",
-	[IEEE80211_MODE_QUARTER]  = "quarter",
+	[IEEE80211_MODE_11NA] = "11na",
+	[IEEE80211_MODE_11NG] = "11ng",
+	[IEEE80211_MODE_HALF] = "half",
+	[IEEE80211_MODE_QUARTER] = "quarter",
 	[IEEE80211_MODE_VHT_2GHZ] = "11acg",
 	[IEEE80211_MODE_VHT_5GHZ] = "11ac",
 };
@@ -176,8 +175,8 @@ static void set80211(if_ctx *ctx, int type, int val, int len, void *data);
 static int get80211(if_ctx *ctx, int type, void *data, int len);
 static int get80211len(if_ctx *ctx, int type, void *data, int len, int *plen);
 static int get80211val(if_ctx *ctx, int type, int *val);
-static const char *get_string(const char *val, const char *sep,
-    u_int8_t *buf, int *lenp);
+static const char *get_string(const char *val, const char *sep, u_int8_t *buf,
+    int *lenp);
 static void print_string(const u_int8_t *buf, int len);
 static void print_regdomain(const struct ieee80211_regdomain *, int);
 static void print_channels(if_ctx *, const struct ieee80211req_chaninfo *,
@@ -197,7 +196,7 @@ static struct ieee80211_channel curchan;
 static int gotcurchan = 0;
 static struct ifmediareq *global_ifmr;
 static int htconf = 0;
-static	int gothtconf = 0;
+static int gothtconf = 0;
 
 static void
 gethtconf(if_ctx *ctx)
@@ -211,7 +210,7 @@ gethtconf(if_ctx *ctx)
 
 /* VHT */
 static int vhtconf = 0;
-static	int gotvhtconf = 0;
+static int gotvhtconf = 0;
 
 static void
 getvhtconf(if_ctx *ctx)
@@ -236,7 +235,7 @@ getchaninfo(if_ctx *ctx)
 	if (chaninfo == NULL)
 		errx(1, "no space for channel list");
 	if (get80211(ctx, IEEE80211_IOC_CHANINFO, chaninfo,
-	    IEEE80211_CHANINFO_SIZE(MAXCHAN)) < 0)
+		IEEE80211_CHANINFO_SIZE(MAXCHAN)) < 0)
 		err(1, "unable to get channel information");
 	global_ifmr = ifmedia_getstate(ctx);
 	gethtconf(ctx);
@@ -271,16 +270,16 @@ canpromote(unsigned int i, uint32_t from, uint32_t to)
 	if ((fc->ic_flags & from) != from)
 		return i;
 	/* NB: quick check exploiting ordering of chans w/ same frequency */
-	if (i+1 < chaninfo->ic_nchans &&
-	    chaninfo->ic_chans[i+1].ic_freq == fc->ic_freq &&
-	    (chaninfo->ic_chans[i+1].ic_flags & to) == to)
-		return i+1;
+	if (i + 1 < chaninfo->ic_nchans &&
+	    chaninfo->ic_chans[i + 1].ic_freq == fc->ic_freq &&
+	    (chaninfo->ic_chans[i + 1].ic_flags & to) == to)
+		return i + 1;
 	/* brute force search in case channel list is not ordered */
 	for (j = 0; j < chaninfo->ic_nchans; j++) {
 		const struct ieee80211_channel *tc = &chaninfo->ic_chans[j];
-		if (j != i &&
-		    tc->ic_freq == fc->ic_freq && (tc->ic_flags & to) == to)
-		return j;
+		if (j != i && tc->ic_freq == fc->ic_freq &&
+		    (tc->ic_flags & to) == to)
+			return j;
 	}
 	return i;
 }
@@ -316,7 +315,9 @@ promote(unsigned int i)
 	 *     the socket descriptor down to here so we can make
 	 *     the ifmedia_getstate call ourselves.
 	 */
-	int chanmode = global_ifmr != NULL ? IFM_MODE(global_ifmr->ifm_current) : IFM_AUTO;
+	int chanmode = global_ifmr != NULL ?
+	    IFM_MODE(global_ifmr->ifm_current) :
+	    IFM_AUTO;
 
 	/* when ambiguous promote to ``best'' */
 	/* NB: we abitrarily pick HT40+ over HT40- */
@@ -324,22 +325,22 @@ promote(unsigned int i)
 		i = canpromote(i, IEEE80211_CHAN_B, IEEE80211_CHAN_G);
 	if (chanmode != IFM_IEEE80211_11G && (htconf & 1)) {
 		i = canpromote(i, IEEE80211_CHAN_G,
-			IEEE80211_CHAN_G | IEEE80211_CHAN_HT20);
+		    IEEE80211_CHAN_G | IEEE80211_CHAN_HT20);
 		if (htconf & 2) {
 			i = canpromote(i, IEEE80211_CHAN_G,
-				IEEE80211_CHAN_G | IEEE80211_CHAN_HT40D);
+			    IEEE80211_CHAN_G | IEEE80211_CHAN_HT40D);
 			i = canpromote(i, IEEE80211_CHAN_G,
-				IEEE80211_CHAN_G | IEEE80211_CHAN_HT40U);
+			    IEEE80211_CHAN_G | IEEE80211_CHAN_HT40U);
 		}
 	}
 	if (chanmode != IFM_IEEE80211_11A && (htconf & 1)) {
 		i = canpromote(i, IEEE80211_CHAN_A,
-			IEEE80211_CHAN_A | IEEE80211_CHAN_HT20);
+		    IEEE80211_CHAN_A | IEEE80211_CHAN_HT20);
 		if (htconf & 2) {
 			i = canpromote(i, IEEE80211_CHAN_A,
-				IEEE80211_CHAN_A | IEEE80211_CHAN_HT40D);
+			    IEEE80211_CHAN_A | IEEE80211_CHAN_HT40D);
 			i = canpromote(i, IEEE80211_CHAN_A,
-				IEEE80211_CHAN_A | IEEE80211_CHAN_HT40U);
+			    IEEE80211_CHAN_A | IEEE80211_CHAN_HT40U);
 		}
 	}
 	return i;
@@ -390,7 +391,8 @@ getcurchan(if_ctx *ctx)
 {
 	if (gotcurchan)
 		return &curchan;
-	if (get80211(ctx, IEEE80211_IOC_CURCHAN, &curchan, sizeof(curchan)) < 0) {
+	if (get80211(ctx, IEEE80211_IOC_CURCHAN, &curchan, sizeof(curchan)) <
+	    0) {
 		int val;
 		/* fall back to legacy ioctl */
 		if (get80211val(ctx, IEEE80211_IOC_CHANNEL, &val) < 0)
@@ -439,8 +441,8 @@ getroam(if_ctx *ctx)
 {
 	if (gotroam)
 		return;
-	if (get80211(ctx, IEEE80211_IOC_ROAM,
-	    &roamparams, sizeof(roamparams)) < 0)
+	if (get80211(ctx, IEEE80211_IOC_ROAM, &roamparams, sizeof(roamparams)) <
+	    0)
 		err(1, "unable to get roaming parameters");
 	gotroam = 1;
 }
@@ -457,8 +459,8 @@ gettxparams(if_ctx *ctx)
 {
 	if (gottxparams)
 		return;
-	if (get80211(ctx, IEEE80211_IOC_TXPARAMS,
-	    &txparams, sizeof(txparams)) < 0)
+	if (get80211(ctx, IEEE80211_IOC_TXPARAMS, &txparams, sizeof(txparams)) <
+	    0)
 		err(1, "unable to get transmit parameters");
 	gottxparams = 1;
 }
@@ -475,8 +477,8 @@ getregdomain(if_ctx *ctx)
 {
 	if (gotregdomain)
 		return;
-	if (get80211(ctx, IEEE80211_IOC_REGDOMAIN,
-	    &regdomain, sizeof(regdomain)) < 0)
+	if (get80211(ctx, IEEE80211_IOC_REGDOMAIN, &regdomain,
+		sizeof(regdomain)) < 0)
 		err(1, "unable to get regulatory domain info");
 	gotregdomain = 1;
 }
@@ -485,7 +487,7 @@ static void
 getdevcaps(if_ctx *ctx, struct ieee80211_devcaps_req *dc)
 {
 	if (get80211(ctx, IEEE80211_IOC_DEVCAPS, dc,
-	    IEEE80211_DEVCAPS_SPACE(dc)) < 0)
+		IEEE80211_DEVCAPS_SPACE(dc)) < 0)
 		err(1, "unable to get device capabilities");
 }
 
@@ -525,13 +527,15 @@ setregdomain_cb(if_ctx *ctx, void *arg)
 			 */
 			rp = lib80211_regdomain_findbysku(rdp, rd->regdomain);
 			if (rp == NULL)
-				errx(1, "country %s (%s) is not usable with "
-				    "regdomain %d", cc->isoname, cc->name,
-				    rd->regdomain);
+				errx(1,
+				    "country %s (%s) is not usable with "
+				    "regdomain %d",
+				    cc->isoname, cc->name, rd->regdomain);
 			else if (rp->cc != NULL && rp->cc != cc)
-				errx(1, "country %s (%s) is not usable with "
-				   "regdomain %s", cc->isoname, cc->name,
-				   rp->name);
+				errx(1,
+				    "country %s (%s) is not usable with "
+				    "regdomain %s",
+				    cc->isoname, cc->name, rp->name);
 		}
 	}
 	/*
@@ -565,7 +569,7 @@ setregdomain_cb(if_ctx *ctx, void *arg)
 	regdomain_makechannels(ctx, req, dc);
 	if (ctx->args->verbose) {
 		LINE_INIT(':');
-		print_regdomain(rd, 1/*verbose*/);
+		print_regdomain(rd, 1 /*verbose*/);
 		LINE_BREAK();
 		/* blech, reallocate channel list for new data */
 		if (chaninfo != NULL)
@@ -575,7 +579,8 @@ setregdomain_cb(if_ctx *ctx, void *arg)
 			errx(1, "no space for channel list");
 		memcpy(chaninfo, &req->chaninfo,
 		    IEEE80211_CHANINFO_SPACE(&req->chaninfo));
-		print_channels(ctx, &req->chaninfo, 1/*allchans*/, 1/*verbose*/);
+		print_channels(ctx, &req->chaninfo, 1 /*allchans*/,
+		    1 /*verbose*/);
 	}
 	if (req->chaninfo.ic_nchans == 0)
 		errx(1, "no channels calculated");
@@ -596,21 +601,21 @@ ieee80211_mhz2ieee(int freq, int flags)
 static int
 isanyarg(const char *arg)
 {
-	return (strncmp(arg, "-", 1) == 0 ||
-	    strncasecmp(arg, "any", 3) == 0 || strncasecmp(arg, "off", 3) == 0);
+	return (strncmp(arg, "-", 1) == 0 || strncasecmp(arg, "any", 3) == 0 ||
+	    strncasecmp(arg, "off", 3) == 0);
 }
 
 static void
 set80211ssid(if_ctx *ctx, const char *val, int dummy __unused)
 {
-	int		ssid;
-	int		len;
-	u_int8_t	data[IEEE80211_NWID_LEN];
+	int ssid;
+	int len;
+	u_int8_t data[IEEE80211_NWID_LEN];
 
 	ssid = 0;
 	len = strlen(val);
 	if (len > 2 && isdigit((int)val[0]) && val[1] == ':') {
-		ssid = atoi(val)-1;
+		ssid = atoi(val) - 1;
 		val += 2;
 	}
 
@@ -625,8 +630,8 @@ set80211ssid(if_ctx *ctx, const char *val, int dummy __unused)
 static void
 set80211meshid(if_ctx *ctx, const char *val, int dummy __unused)
 {
-	int		len;
-	u_int8_t	data[IEEE80211_NWID_LEN];
+	int len;
+	u_int8_t data[IEEE80211_NWID_LEN];
 
 	memset(data, 0, sizeof(data));
 	len = sizeof(data);
@@ -634,13 +639,13 @@ set80211meshid(if_ctx *ctx, const char *val, int dummy __unused)
 		exit(1);
 
 	set80211(ctx, IEEE80211_IOC_MESH_ID, 0, len, data);
-}	
+}
 
 static void
 set80211stationname(if_ctx *ctx, const char *val, int dummy __unused)
 {
-	int			len;
-	u_int8_t		data[33];
+	int len;
+	u_int8_t data[33];
 
 	bzero(data, sizeof(data));
 	len = sizeof(data);
@@ -660,11 +665,11 @@ set80211stationname(if_ctx *ctx, const char *val, int dummy __unused)
  *
  * The result is not validated here; it's assumed to be
  * checked against the channel table fetched from the kernel.
- */ 
+ */
 static unsigned int
 getchannelflags(const char *val, int freq)
 {
-#define	_CHAN_HT	0x80000000
+#define _CHAN_HT 0x80000000
 	const char *cp;
 	int flags;
 	int is_vht = 0;
@@ -673,37 +678,39 @@ getchannelflags(const char *val, int freq)
 
 	cp = strchr(val, ':');
 	if (cp != NULL) {
-		for (cp++; isalpha((int) *cp); cp++) {
+		for (cp++; isalpha((int)*cp); cp++) {
 			/* accept mixed case */
 			int c = *cp;
 			if (isupper(c))
 				c = tolower(c);
 			switch (c) {
-			case 'a':		/* 802.11a */
+			case 'a': /* 802.11a */
 				flags |= IEEE80211_CHAN_A;
 				break;
-			case 'b':		/* 802.11b */
+			case 'b': /* 802.11b */
 				flags |= IEEE80211_CHAN_B;
 				break;
-			case 'g':		/* 802.11g */
+			case 'g': /* 802.11g */
 				flags |= IEEE80211_CHAN_G;
 				break;
-			case 'v':		/* vht: 802.11ac */
+			case 'v': /* vht: 802.11ac */
 				is_vht = 1;
 				/* Fallthrough */
-			case 'h':		/* ht = 802.11n */
-			case 'n':		/* 802.11n */
-				flags |= _CHAN_HT;	/* NB: private */
+			case 'h':		   /* ht = 802.11n */
+			case 'n':		   /* 802.11n */
+				flags |= _CHAN_HT; /* NB: private */
 				break;
-			case 'd':		/* dt = Atheros Dynamic Turbo */
+			case 'd': /* dt = Atheros Dynamic Turbo */
 				flags |= IEEE80211_CHAN_TURBO;
 				break;
-			case 't':		/* ht, dt, st, t */
+			case 't': /* ht, dt, st, t */
 				/* dt and unadorned t specify Dynamic Turbo */
-				if ((flags & (IEEE80211_CHAN_STURBO|_CHAN_HT)) == 0)
+				if ((flags &
+					(IEEE80211_CHAN_STURBO | _CHAN_HT)) ==
+				    0)
 					flags |= IEEE80211_CHAN_TURBO;
 				break;
-			case 's':		/* st = Atheros Static Turbo */
+			case 's': /* st = Atheros Static Turbo */
 				flags |= IEEE80211_CHAN_STURBO;
 				break;
 			default:
@@ -715,7 +722,7 @@ getchannelflags(const char *val, int freq)
 	cp = strchr(val, '/');
 	if (cp != NULL) {
 		char *ep;
-		u_long cw = strtoul(cp+1, &ep, 10);
+		u_long cw = strtoul(cp + 1, &ep, 10);
 
 		switch (cw) {
 		case 5:
@@ -750,7 +757,7 @@ getchannelflags(const char *val, int freq)
 
 	/*
 	 * Cleanup specifications.
-	 */ 
+	 */
 	if ((flags & _CHAN_HT) == 0) {
 		/*
 		 * If user specified freq/20 or freq/40 quietly remove
@@ -824,7 +831,7 @@ getchannel(if_ctx *ctx, struct ieee80211_channel *chan, const char *val)
 		errx(1, "invalid channel specification%s",
 		    errno == ERANGE ? " (out of range)" : "");
 	flags = getchannelflags(val, v);
-	if (v > 255) {		/* treat as frequency */
+	if (v > 255) { /* treat as frequency */
 		mapfreq(chan, v, flags);
 	} else {
 		mapchan(chan, v, flags);
@@ -854,7 +861,7 @@ set80211chanswitch(if_ctx *ctx, const char *val, int dummy __unused)
 static void
 set80211authmode(if_ctx *ctx, const char *val, int dummy __unused)
 {
-	int	mode;
+	int mode;
 
 	if (strcasecmp(val, "none") == 0) {
 		mode = IEEE80211_AUTH_NONE;
@@ -876,7 +883,7 @@ set80211authmode(if_ctx *ctx, const char *val, int dummy __unused)
 static void
 set80211powersavemode(if_ctx *ctx, const char *val, int dummy __unused)
 {
-	int	mode;
+	int mode;
 
 	if (strcasecmp(val, "off") == 0) {
 		mode = IEEE80211_POWERSAVE_OFF;
@@ -915,7 +922,7 @@ set80211powersavesleep(if_ctx *ctx, const char *val, int dummy __unused)
 static void
 set80211wepmode(if_ctx *ctx, const char *val, int dummy __unused)
 {
-	int	mode;
+	int mode;
 
 	if (strcasecmp(val, "off") == 0) {
 		mode = IEEE80211_WEP_OFF;
@@ -946,20 +953,21 @@ static void
 set80211weptxkey(if_ctx *ctx, const char *val, int dummy __unused)
 {
 	if (isundefarg(val))
-		set80211(ctx, IEEE80211_IOC_WEPTXKEY, IEEE80211_KEYIX_NONE, 0, NULL);
+		set80211(ctx, IEEE80211_IOC_WEPTXKEY, IEEE80211_KEYIX_NONE, 0,
+		    NULL);
 	else
-		set80211(ctx, IEEE80211_IOC_WEPTXKEY, atoi(val)-1, 0, NULL);
+		set80211(ctx, IEEE80211_IOC_WEPTXKEY, atoi(val) - 1, 0, NULL);
 }
 
 static void
 set80211wepkey(if_ctx *ctx, const char *val, int dummy __unused)
 {
-	int		key = 0;
-	int		len;
-	u_int8_t	data[IEEE80211_KEYBUF_SIZE];
+	int key = 0;
+	int len;
+	u_int8_t data[IEEE80211_KEYBUF_SIZE];
 
 	if (isdigit((int)val[0]) && val[1] == ':') {
-		key = atoi(val)-1;
+		key = atoi(val) - 1;
 		val += 2;
 	}
 
@@ -978,14 +986,14 @@ set80211wepkey(if_ctx *ctx, const char *val, int dummy __unused)
 static void
 set80211nwkey(if_ctx *ctx, const char *val, int dummy __unused)
 {
-	int		txkey;
-	int		i, len;
-	u_int8_t	data[IEEE80211_KEYBUF_SIZE];
+	int txkey;
+	int i, len;
+	u_int8_t data[IEEE80211_KEYBUF_SIZE];
 
 	set80211(ctx, IEEE80211_IOC_WEP, IEEE80211_WEP_ON, 0, NULL);
 
 	if (isdigit((int)val[0]) && val[1] == ':') {
-		txkey = val[0]-'0'-1;
+		txkey = val[0] - '0' - 1;
 		val += 2;
 
 		for (i = 0; i < 4; i++) {
@@ -1017,13 +1025,13 @@ static void
 set80211rtsthreshold(if_ctx *ctx, const char *val, int dummy __unused)
 {
 	set80211(ctx, IEEE80211_IOC_RTSTHRESHOLD,
-		isundefarg(val) ? IEEE80211_RTS_MAX : atoi(val), 0, NULL);
+	    isundefarg(val) ? IEEE80211_RTS_MAX : atoi(val), 0, NULL);
 }
 
 static void
 set80211protmode(if_ctx *ctx, const char *val, int dummy __unused)
 {
-	int	mode;
+	int mode;
 
 	if (strcasecmp(val, "off") == 0) {
 		mode = IEEE80211_PROTMODE_OFF;
@@ -1041,7 +1049,7 @@ set80211protmode(if_ctx *ctx, const char *val, int dummy __unused)
 static void
 set80211htprotmode(if_ctx *ctx, const char *val, int dummy __unused)
 {
-	int	mode;
+	int mode;
 
 	if (strcasecmp(val, "off") == 0) {
 		mode = IEEE80211_PROTMODE_OFF;
@@ -1060,15 +1068,15 @@ set80211txpower(if_ctx *ctx, const char *val, int dummy __unused)
 	double v = atof(val);
 	int txpow;
 
-	txpow = (int) (2*v);
-	if (txpow != 2*v)
+	txpow = (int)(2 * v);
+	if (txpow != 2 * v)
 		errx(-1, "invalid tx power (must be .5 dBm units)");
 	set80211(ctx, IEEE80211_IOC_TXPOWER, txpow, 0, NULL);
 }
 
-#define	IEEE80211_ROAMING_DEVICE	0
-#define	IEEE80211_ROAMING_AUTO		1
-#define	IEEE80211_ROAMING_MANUAL	2
+#define IEEE80211_ROAMING_DEVICE 0
+#define IEEE80211_ROAMING_AUTO 1
+#define IEEE80211_ROAMING_MANUAL 2
 
 static void
 set80211roaming(if_ctx *ctx, const char *val, int dummy __unused)
@@ -1139,19 +1147,19 @@ set80211chanlist(if_ctx *ctx, const char *val, int dummy __unused)
 		case 1:
 			if (first > IEEE80211_CHAN_MAX)
 				errx(-1, "channel %u out of range, max %u",
-					first, IEEE80211_CHAN_MAX);
+				    first, IEEE80211_CHAN_MAX);
 			setbit(chanlist.ic_channels, first);
 			break;
 		case 2:
 			if (first > IEEE80211_CHAN_MAX)
 				errx(-1, "channel %u out of range, max %u",
-					first, IEEE80211_CHAN_MAX);
+				    first, IEEE80211_CHAN_MAX);
 			if (last > IEEE80211_CHAN_MAX)
 				errx(-1, "channel %u out of range, max %u",
-					last, IEEE80211_CHAN_MAX);
+				    last, IEEE80211_CHAN_MAX);
 			if (first > last)
-				errx(-1, "void channel range, %u > %u",
-					first, last);
+				errx(-1, "void channel range, %u > %u", first,
+				    last);
 			for (f = first; f <= last; f++)
 				setbit(chanlist.ic_channels, f);
 			break;
@@ -1186,13 +1194,13 @@ set80211bssid(if_ctx *ctx, const char *val, int dummy __unused)
 		free(temp);
 		if (sdl.sdl_alen != IEEE80211_ADDR_LEN)
 			errx(1, "malformed link-level address");
-		set80211(ctx, IEEE80211_IOC_BSSID, 0,
-			IEEE80211_ADDR_LEN, LLADDR(&sdl));
+		set80211(ctx, IEEE80211_IOC_BSSID, 0, IEEE80211_ADDR_LEN,
+		    LLADDR(&sdl));
 	} else {
 		uint8_t zerobssid[IEEE80211_ADDR_LEN];
 		memset(zerobssid, 0, sizeof(zerobssid));
-		set80211(ctx, IEEE80211_IOC_BSSID, 0,
-			IEEE80211_ADDR_LEN, zerobssid);
+		set80211(ctx, IEEE80211_IOC_BSSID, 0, IEEE80211_ADDR_LEN,
+		    zerobssid);
 	}
 }
 
@@ -1261,28 +1269,28 @@ static void
 set80211bsscwmin(if_ctx *ctx, const char *ac, const char *val)
 {
 	set80211(ctx, IEEE80211_IOC_WME_CWMIN, atoi(val),
-		getac(ac)|IEEE80211_WMEPARAM_BSS, NULL);
+	    getac(ac) | IEEE80211_WMEPARAM_BSS, NULL);
 }
 
 static void
 set80211bsscwmax(if_ctx *ctx, const char *ac, const char *val)
 {
 	set80211(ctx, IEEE80211_IOC_WME_CWMAX, atoi(val),
-		getac(ac)|IEEE80211_WMEPARAM_BSS, NULL);
+	    getac(ac) | IEEE80211_WMEPARAM_BSS, NULL);
 }
 
 static void
 set80211bssaifs(if_ctx *ctx, const char *ac, const char *val)
 {
 	set80211(ctx, IEEE80211_IOC_WME_AIFS, atoi(val),
-		getac(ac)|IEEE80211_WMEPARAM_BSS, NULL);
+	    getac(ac) | IEEE80211_WMEPARAM_BSS, NULL);
 }
 
 static void
 set80211bsstxoplimit(if_ctx *ctx, const char *ac, const char *val)
 {
 	set80211(ctx, IEEE80211_IOC_WME_TXOPLIMIT, atoi(val),
-		getac(ac)|IEEE80211_WMEPARAM_BSS, NULL);
+	    getac(ac) | IEEE80211_WMEPARAM_BSS, NULL);
 }
 
 static void
@@ -1374,8 +1382,8 @@ set80211meshrtmac(if_ctx *ctx, int req, const char *val)
 	free(temp);
 	if (sdl.sdl_alen != IEEE80211_ADDR_LEN)
 		errx(1, "malformed link-level address");
-	set80211(ctx, IEEE80211_IOC_MESH_RTCMD, req,
-	    IEEE80211_ADDR_LEN, LLADDR(&sdl));
+	set80211(ctx, IEEE80211_IOC_MESH_RTCMD, req, IEEE80211_ADDR_LEN,
+	    LLADDR(&sdl));
 }
 
 static void
@@ -1498,39 +1506,41 @@ getmodeflags(const char *val)
 
 	cp = strchr(val, ':');
 	if (cp != NULL) {
-		for (cp++; isalpha((int) *cp); cp++) {
+		for (cp++; isalpha((int)*cp); cp++) {
 			/* accept mixed case */
 			int c = *cp;
 			if (isupper(c))
 				c = tolower(c);
 			switch (c) {
-			case 'a':		/* 802.11a */
+			case 'a': /* 802.11a */
 				flags |= IEEE80211_CHAN_A;
 				break;
-			case 'b':		/* 802.11b */
+			case 'b': /* 802.11b */
 				flags |= IEEE80211_CHAN_B;
 				break;
-			case 'g':		/* 802.11g */
+			case 'g': /* 802.11g */
 				flags |= IEEE80211_CHAN_G;
 				break;
-			case 'n':		/* 802.11n */
+			case 'n': /* 802.11n */
 				flags |= IEEE80211_CHAN_HT;
 				break;
-			case 'd':		/* dt = Atheros Dynamic Turbo */
+			case 'd': /* dt = Atheros Dynamic Turbo */
 				flags |= IEEE80211_CHAN_TURBO;
 				break;
-			case 't':		/* ht, dt, st, t */
+			case 't': /* ht, dt, st, t */
 				/* dt and unadorned t specify Dynamic Turbo */
-				if ((flags & (IEEE80211_CHAN_STURBO|IEEE80211_CHAN_HT)) == 0)
+				if ((flags &
+					(IEEE80211_CHAN_STURBO |
+					    IEEE80211_CHAN_HT)) == 0)
 					flags |= IEEE80211_CHAN_TURBO;
 				break;
-			case 's':		/* st = Atheros Static Turbo */
+			case 's': /* st = Atheros Static Turbo */
 				flags |= IEEE80211_CHAN_STURBO;
 				break;
-			case 'h':		/* 1/2-width channels */
+			case 'h': /* 1/2-width channels */
 				flags |= IEEE80211_CHAN_HALF;
 				break;
-			case 'q':		/* 1/4-width channels */
+			case 'q': /* 1/4-width channels */
 				flags |= IEEE80211_CHAN_QUARTER;
 				break;
 			case 'v':
@@ -1538,81 +1548,95 @@ getmodeflags(const char *val)
 				flags |= IEEE80211_CHAN_VHT;
 				break;
 			default:
-				errx(-1, "%s: Invalid mode attribute %c\n",
-				    val, *cp);
+				errx(-1, "%s: Invalid mode attribute %c\n", val,
+				    *cp);
 			}
 		}
 	}
 	return flags;
 }
 
-#define	_APPLY(_flags, _base, _param, _v) do {				\
-    if (_flags & IEEE80211_CHAN_HT) {					\
-	    if ((_flags & (IEEE80211_CHAN_5GHZ|IEEE80211_CHAN_2GHZ)) == 0) {\
-		    _base.params[IEEE80211_MODE_11NA]._param = _v;	\
-		    _base.params[IEEE80211_MODE_11NG]._param = _v;	\
-	    } else if (_flags & IEEE80211_CHAN_5GHZ)			\
-		    _base.params[IEEE80211_MODE_11NA]._param = _v;	\
-	    else							\
-		    _base.params[IEEE80211_MODE_11NG]._param = _v;	\
-    }									\
-    if (_flags & IEEE80211_CHAN_TURBO) {				\
-	    if ((_flags & (IEEE80211_CHAN_5GHZ|IEEE80211_CHAN_2GHZ)) == 0) {\
-		    _base.params[IEEE80211_MODE_TURBO_A]._param = _v;	\
-		    _base.params[IEEE80211_MODE_TURBO_G]._param = _v;	\
-	    } else if (_flags & IEEE80211_CHAN_5GHZ)			\
-		    _base.params[IEEE80211_MODE_TURBO_A]._param = _v;	\
-	    else							\
-		    _base.params[IEEE80211_MODE_TURBO_G]._param = _v;	\
-    }									\
-    if (_flags & IEEE80211_CHAN_STURBO)					\
-	    _base.params[IEEE80211_MODE_STURBO_A]._param = _v;		\
-    if ((_flags & IEEE80211_CHAN_A) == IEEE80211_CHAN_A)		\
-	    _base.params[IEEE80211_MODE_11A]._param = _v;		\
-    if ((_flags & IEEE80211_CHAN_G) == IEEE80211_CHAN_G)		\
-	    _base.params[IEEE80211_MODE_11G]._param = _v;		\
-    if ((_flags & IEEE80211_CHAN_B) == IEEE80211_CHAN_B)		\
-	    _base.params[IEEE80211_MODE_11B]._param = _v;		\
-    if (_flags & IEEE80211_CHAN_HALF)					\
-	    _base.params[IEEE80211_MODE_HALF]._param = _v;		\
-    if (_flags & IEEE80211_CHAN_QUARTER)				\
-	    _base.params[IEEE80211_MODE_QUARTER]._param = _v;		\
-} while (0)
-#define	_APPLY1(_flags, _base, _param, _v) do {				\
-    if (_flags & IEEE80211_CHAN_HT) {					\
-	    if (_flags & IEEE80211_CHAN_5GHZ)				\
-		    _base.params[IEEE80211_MODE_11NA]._param = _v;	\
-	    else							\
-		    _base.params[IEEE80211_MODE_11NG]._param = _v;	\
-    } else if ((_flags & IEEE80211_CHAN_108A) == IEEE80211_CHAN_108A)	\
-	    _base.params[IEEE80211_MODE_TURBO_A]._param = _v;		\
-    else if ((_flags & IEEE80211_CHAN_108G) == IEEE80211_CHAN_108G)	\
-	    _base.params[IEEE80211_MODE_TURBO_G]._param = _v;		\
-    else if ((_flags & IEEE80211_CHAN_ST) == IEEE80211_CHAN_ST)		\
-	    _base.params[IEEE80211_MODE_STURBO_A]._param = _v;		\
-    else if (_flags & IEEE80211_CHAN_HALF)				\
-	    _base.params[IEEE80211_MODE_HALF]._param = _v;		\
-    else if (_flags & IEEE80211_CHAN_QUARTER)				\
-	    _base.params[IEEE80211_MODE_QUARTER]._param = _v;		\
-    else if ((_flags & IEEE80211_CHAN_A) == IEEE80211_CHAN_A)		\
-	    _base.params[IEEE80211_MODE_11A]._param = _v;		\
-    else if ((_flags & IEEE80211_CHAN_G) == IEEE80211_CHAN_G)		\
-	    _base.params[IEEE80211_MODE_11G]._param = _v;		\
-    else if ((_flags & IEEE80211_CHAN_B) == IEEE80211_CHAN_B)		\
-	    _base.params[IEEE80211_MODE_11B]._param = _v;		\
-} while (0)
-#define	_APPLY_RATE(_flags, _base, _param, _v) do {			\
-    if (_flags & IEEE80211_CHAN_HT) {					\
-	(_v) = (_v / 2) | IEEE80211_RATE_MCS;				\
-    }									\
-    _APPLY(_flags, _base, _param, _v);					\
-} while (0)
-#define	_APPLY_RATE1(_flags, _base, _param, _v) do {			\
-    if (_flags & IEEE80211_CHAN_HT) {					\
-	(_v) = (_v / 2) | IEEE80211_RATE_MCS;				\
-    }									\
-    _APPLY1(_flags, _base, _param, _v);					\
-} while (0)
+#define _APPLY(_flags, _base, _param, _v)                                      \
+	do {                                                                   \
+		if (_flags & IEEE80211_CHAN_HT) {                              \
+			if ((_flags &                                          \
+				(IEEE80211_CHAN_5GHZ |                         \
+				    IEEE80211_CHAN_2GHZ)) == 0) {              \
+				_base.params[IEEE80211_MODE_11NA]._param = _v; \
+				_base.params[IEEE80211_MODE_11NG]._param = _v; \
+			} else if (_flags & IEEE80211_CHAN_5GHZ)               \
+				_base.params[IEEE80211_MODE_11NA]._param = _v; \
+			else                                                   \
+				_base.params[IEEE80211_MODE_11NG]._param = _v; \
+		}                                                              \
+		if (_flags & IEEE80211_CHAN_TURBO) {                           \
+			if ((_flags &                                          \
+				(IEEE80211_CHAN_5GHZ |                         \
+				    IEEE80211_CHAN_2GHZ)) == 0) {              \
+				_base.params[IEEE80211_MODE_TURBO_A]._param =  \
+				    _v;                                        \
+				_base.params[IEEE80211_MODE_TURBO_G]._param =  \
+				    _v;                                        \
+			} else if (_flags & IEEE80211_CHAN_5GHZ)               \
+				_base.params[IEEE80211_MODE_TURBO_A]._param =  \
+				    _v;                                        \
+			else                                                   \
+				_base.params[IEEE80211_MODE_TURBO_G]._param =  \
+				    _v;                                        \
+		}                                                              \
+		if (_flags & IEEE80211_CHAN_STURBO)                            \
+			_base.params[IEEE80211_MODE_STURBO_A]._param = _v;     \
+		if ((_flags & IEEE80211_CHAN_A) == IEEE80211_CHAN_A)           \
+			_base.params[IEEE80211_MODE_11A]._param = _v;          \
+		if ((_flags & IEEE80211_CHAN_G) == IEEE80211_CHAN_G)           \
+			_base.params[IEEE80211_MODE_11G]._param = _v;          \
+		if ((_flags & IEEE80211_CHAN_B) == IEEE80211_CHAN_B)           \
+			_base.params[IEEE80211_MODE_11B]._param = _v;          \
+		if (_flags & IEEE80211_CHAN_HALF)                              \
+			_base.params[IEEE80211_MODE_HALF]._param = _v;         \
+		if (_flags & IEEE80211_CHAN_QUARTER)                           \
+			_base.params[IEEE80211_MODE_QUARTER]._param = _v;      \
+	} while (0)
+#define _APPLY1(_flags, _base, _param, _v)                                     \
+	do {                                                                   \
+		if (_flags & IEEE80211_CHAN_HT) {                              \
+			if (_flags & IEEE80211_CHAN_5GHZ)                      \
+				_base.params[IEEE80211_MODE_11NA]._param = _v; \
+			else                                                   \
+				_base.params[IEEE80211_MODE_11NG]._param = _v; \
+		} else if ((_flags & IEEE80211_CHAN_108A) ==                   \
+		    IEEE80211_CHAN_108A)                                       \
+			_base.params[IEEE80211_MODE_TURBO_A]._param = _v;      \
+		else if ((_flags & IEEE80211_CHAN_108G) ==                     \
+		    IEEE80211_CHAN_108G)                                       \
+			_base.params[IEEE80211_MODE_TURBO_G]._param = _v;      \
+		else if ((_flags & IEEE80211_CHAN_ST) == IEEE80211_CHAN_ST)    \
+			_base.params[IEEE80211_MODE_STURBO_A]._param = _v;     \
+		else if (_flags & IEEE80211_CHAN_HALF)                         \
+			_base.params[IEEE80211_MODE_HALF]._param = _v;         \
+		else if (_flags & IEEE80211_CHAN_QUARTER)                      \
+			_base.params[IEEE80211_MODE_QUARTER]._param = _v;      \
+		else if ((_flags & IEEE80211_CHAN_A) == IEEE80211_CHAN_A)      \
+			_base.params[IEEE80211_MODE_11A]._param = _v;          \
+		else if ((_flags & IEEE80211_CHAN_G) == IEEE80211_CHAN_G)      \
+			_base.params[IEEE80211_MODE_11G]._param = _v;          \
+		else if ((_flags & IEEE80211_CHAN_B) == IEEE80211_CHAN_B)      \
+			_base.params[IEEE80211_MODE_11B]._param = _v;          \
+	} while (0)
+#define _APPLY_RATE(_flags, _base, _param, _v)                \
+	do {                                                  \
+		if (_flags & IEEE80211_CHAN_HT) {             \
+			(_v) = (_v / 2) | IEEE80211_RATE_MCS; \
+		}                                             \
+		_APPLY(_flags, _base, _param, _v);            \
+	} while (0)
+#define _APPLY_RATE1(_flags, _base, _param, _v)               \
+	do {                                                  \
+		if (_flags & IEEE80211_CHAN_HT) {             \
+			(_v) = (_v / 2) | IEEE80211_RATE_MCS; \
+		}                                             \
+		_APPLY1(_flags, _base, _param, _v);           \
+	} while (0)
 
 static void
 set80211roamrssi(if_ctx *ctx, const char *val, int dummy __unused)
@@ -1620,12 +1644,12 @@ set80211roamrssi(if_ctx *ctx, const char *val, int dummy __unused)
 	double v = atof(val);
 	int rssi, flags;
 
-	rssi = (int) (2*v);
-	if (rssi != 2*v)
+	rssi = (int)(2 * v);
+	if (rssi != 2 * v)
 		errx(-1, "invalid rssi (must be .5 dBm units)");
 	flags = getmodeflags(val);
 	getroam(ctx);
-	if (flags == 0) {		/* NB: no flags => current channel */
+	if (flags == 0) { /* NB: no flags => current channel */
 		flags = getcurchan(ctx)->ic_flags;
 		_APPLY1(flags, roamparams, rssi, rssi);
 	} else
@@ -1639,10 +1663,10 @@ getrate(const char *val, const char *tag)
 	double v = atof(val);
 	int rate;
 
-	rate = (int) (2*v);
-	if (rate != 2*v)
+	rate = (int)(2 * v);
+	if (rate != 2 * v)
 		errx(-1, "invalid %s rate (must be .5 Mb/s units)", tag);
-	return rate;		/* NB: returns 2x the specified value */
+	return rate; /* NB: returns 2x the specified value */
 }
 
 static void
@@ -1653,7 +1677,7 @@ set80211roamrate(if_ctx *ctx, const char *val, int dummy __unused)
 	rate = getrate(val, "roam");
 	flags = getmodeflags(val);
 	getroam(ctx);
-	if (flags == 0) {		/* NB: no flags => current channel */
+	if (flags == 0) { /* NB: no flags => current channel */
 		flags = getcurchan(ctx)->ic_flags;
 		_APPLY_RATE1(flags, roamparams, rate, rate);
 	} else
@@ -1669,7 +1693,7 @@ set80211mcastrate(if_ctx *ctx, const char *val, int dummy __unused)
 	rate = getrate(val, "mcast");
 	flags = getmodeflags(val);
 	gettxparams(ctx);
-	if (flags == 0) {		/* NB: no flags => current channel */
+	if (flags == 0) { /* NB: no flags => current channel */
 		flags = getcurchan(ctx)->ic_flags;
 		_APPLY_RATE1(flags, txparams, mcastrate, rate);
 	} else
@@ -1685,7 +1709,7 @@ set80211mgtrate(if_ctx *ctx, const char *val, int dummy __unused)
 	rate = getrate(val, "mgmt");
 	flags = getmodeflags(val);
 	gettxparams(ctx);
-	if (flags == 0) {		/* NB: no flags => current channel */
+	if (flags == 0) { /* NB: no flags => current channel */
 		flags = getcurchan(ctx)->ic_flags;
 		_APPLY_RATE1(flags, txparams, mgmtrate, rate);
 	} else
@@ -1701,7 +1725,7 @@ set80211ucastrate(if_ctx *ctx, const char *val, int dummy __unused)
 	gettxparams(ctx);
 	flags = getmodeflags(val);
 	if (isanyarg(val)) {
-		if (flags == 0) {	/* NB: no flags => current channel */
+		if (flags == 0) { /* NB: no flags => current channel */
 			flags = getcurchan(ctx)->ic_flags;
 			_APPLY1(flags, txparams, ucastrate,
 			    IEEE80211_FIXED_RATE_NONE);
@@ -1710,7 +1734,7 @@ set80211ucastrate(if_ctx *ctx, const char *val, int dummy __unused)
 			    IEEE80211_FIXED_RATE_NONE);
 	} else {
 		int rate = getrate(val, "ucast");
-		if (flags == 0) {	/* NB: no flags => current channel */
+		if (flags == 0) { /* NB: no flags => current channel */
 			flags = getcurchan(ctx)->ic_flags;
 			_APPLY_RATE1(flags, txparams, ucastrate, rate);
 		} else
@@ -1726,7 +1750,7 @@ set80211maxretry(if_ctx *ctx, const char *val, int dummy __unused)
 
 	flags = getmodeflags(val);
 	gettxparams(ctx);
-	if (flags == 0) {		/* NB: no flags => current channel */
+	if (flags == 0) { /* NB: no flags => current channel */
 		flags = getcurchan(ctx)->ic_flags;
 		_APPLY1(flags, txparams, maxretry, v);
 	} else
@@ -1740,14 +1764,14 @@ static void
 set80211fragthreshold(if_ctx *ctx, const char *val, int dummy __unused)
 {
 	set80211(ctx, IEEE80211_IOC_FRAGTHRESHOLD,
-		isundefarg(val) ? IEEE80211_FRAG_MAX : atoi(val), 0, NULL);
+	    isundefarg(val) ? IEEE80211_FRAG_MAX : atoi(val), 0, NULL);
 }
 
 static void
 set80211bmissthreshold(if_ctx *ctx, const char *val, int dummy __unused)
 {
 	set80211(ctx, IEEE80211_IOC_BMISSTHRESHOLD,
-		isundefarg(val) ? IEEE80211_HWBMISS_MAX : atoi(val), 0, NULL);
+	    isundefarg(val) ? IEEE80211_HWBMISS_MAX : atoi(val), 0, NULL);
 }
 
 static void
@@ -1772,8 +1796,8 @@ static void
 set80211shortgi(if_ctx *ctx, const char *val __unused, int d)
 {
 	set80211(ctx, IEEE80211_IOC_SHORTGI,
-		d ? (IEEE80211_HTCAP_SHORTGI20 | IEEE80211_HTCAP_SHORTGI40) : 0,
-		0, NULL);
+	    d ? (IEEE80211_HTCAP_SHORTGI20 | IEEE80211_HTCAP_SHORTGI40) : 0, 0,
+	    NULL);
 }
 
 /* XXX 11ac density/size is different */
@@ -1810,16 +1834,16 @@ set80211stbc(if_ctx *ctx, const char *val __unused, int d)
 static void
 set80211ldpc(if_ctx *ctx, const char *val __unused, int d)
 {
-        int ldpc;
- 
-        if (get80211val(ctx, IEEE80211_IOC_LDPC, &ldpc) < 0)
-                errx(-1, "cannot set LDPC setting");
-        if (d < 0) {
-                d = -d;
-                ldpc &= ~d;
-        } else
-                ldpc |= d;
-        set80211(ctx, IEEE80211_IOC_LDPC, ldpc, 0, NULL);
+	int ldpc;
+
+	if (get80211val(ctx, IEEE80211_IOC_LDPC, &ldpc) < 0)
+		errx(-1, "cannot set LDPC setting");
+	if (d < 0) {
+		d = -d;
+		ldpc &= ~d;
+	} else
+		ldpc |= d;
+	set80211(ctx, IEEE80211_IOC_LDPC, ldpc, 0, NULL);
 }
 
 static void
@@ -1835,19 +1859,19 @@ set80211ampdulimit(if_ctx *ctx, const char *val, int dummy __unused)
 
 	switch (atoi(val)) {
 	case 8:
-	case 8*1024:
+	case 8 * 1024:
 		v = IEEE80211_HTCAP_MAXRXAMPDU_8K;
 		break;
 	case 16:
-	case 16*1024:
+	case 16 * 1024:
 		v = IEEE80211_HTCAP_MAXRXAMPDU_16K;
 		break;
 	case 32:
-	case 32*1024:
+	case 32 * 1024:
 		v = IEEE80211_HTCAP_MAXRXAMPDU_32K;
 		break;
 	case 64:
-	case 64*1024:
+	case 64 * 1024:
 		v = IEEE80211_HTCAP_MAXRXAMPDU_64K;
 		break;
 	default:
@@ -1864,34 +1888,35 @@ set80211ampdudensity(if_ctx *ctx, const char *val, int dummy __unused)
 
 	if (isanyarg(val) || strcasecmp(val, "na") == 0)
 		v = IEEE80211_HTCAP_MPDUDENSITY_NA;
-	else switch ((int)(atof(val)*4)) {
-	case 0:
-		v = IEEE80211_HTCAP_MPDUDENSITY_NA;
-		break;
-	case 1:
-		v = IEEE80211_HTCAP_MPDUDENSITY_025;
-		break;
-	case 2:
-		v = IEEE80211_HTCAP_MPDUDENSITY_05;
-		break;
-	case 4:
-		v = IEEE80211_HTCAP_MPDUDENSITY_1;
-		break;
-	case 8:
-		v = IEEE80211_HTCAP_MPDUDENSITY_2;
-		break;
-	case 16:
-		v = IEEE80211_HTCAP_MPDUDENSITY_4;
-		break;
-	case 32:
-		v = IEEE80211_HTCAP_MPDUDENSITY_8;
-		break;
-	case 64:
-		v = IEEE80211_HTCAP_MPDUDENSITY_16;
-		break;
-	default:
-		errx(-1, "invalid A-MPDU density %s", val);
-	}
+	else
+		switch ((int)(atof(val) * 4)) {
+		case 0:
+			v = IEEE80211_HTCAP_MPDUDENSITY_NA;
+			break;
+		case 1:
+			v = IEEE80211_HTCAP_MPDUDENSITY_025;
+			break;
+		case 2:
+			v = IEEE80211_HTCAP_MPDUDENSITY_05;
+			break;
+		case 4:
+			v = IEEE80211_HTCAP_MPDUDENSITY_1;
+			break;
+		case 8:
+			v = IEEE80211_HTCAP_MPDUDENSITY_2;
+			break;
+		case 16:
+			v = IEEE80211_HTCAP_MPDUDENSITY_4;
+			break;
+		case 32:
+			v = IEEE80211_HTCAP_MPDUDENSITY_8;
+			break;
+		case 64:
+			v = IEEE80211_HTCAP_MPDUDENSITY_16;
+			break;
+		default:
+			errx(-1, "invalid A-MPDU density %s", val);
+		}
 	set80211(ctx, IEEE80211_IOC_AMPDU_DENSITY, v, 0, NULL);
 }
 
@@ -2038,7 +2063,7 @@ static void
 set80211meshmetric(if_ctx *ctx, const char *val, int dummy __unused)
 {
 	char v[12];
-	
+
 	memcpy(v, val, sizeof(v));
 	set80211(ctx, IEEE80211_IOC_MESH_PR_METRIC, 0, 0, v);
 }
@@ -2047,7 +2072,7 @@ static void
 set80211meshpath(if_ctx *ctx, const char *val, int dummy __unused)
 {
 	char v[12];
-	
+
 	memcpy(v, val, sizeof(v));
 	set80211(ctx, IEEE80211_IOC_MESH_PR_PATH, 0, 0, v);
 }
@@ -2055,8 +2080,8 @@ set80211meshpath(if_ctx *ctx, const char *val, int dummy __unused)
 static int
 regdomain_sort(const void *a, const void *b)
 {
-#define	CHAN_ALL \
-	(IEEE80211_CHAN_ALLTURBO|IEEE80211_CHAN_HALF|IEEE80211_CHAN_QUARTER)
+#define CHAN_ALL \
+	(IEEE80211_CHAN_ALLTURBO | IEEE80211_CHAN_HALF | IEEE80211_CHAN_QUARTER)
 	const struct ieee80211_channel *ca = a;
 	const struct ieee80211_channel *cb = b;
 
@@ -2067,8 +2092,8 @@ regdomain_sort(const void *a, const void *b)
 }
 
 static const struct ieee80211_channel *
-chanlookup(const struct ieee80211_channel chans[], int nchans,
-	int freq, uint32_t flags)
+chanlookup(const struct ieee80211_channel chans[], int nchans, int freq,
+    uint32_t flags)
 {
 	int i;
 
@@ -2127,12 +2152,13 @@ checkchan(const struct ieee80211req_chaninfo *avail, int freq, uint32_t flags)
 	if ((flags & (IEEE80211_CHAN_HALF | IEEE80211_CHAN_QUARTER)) == 0)
 		return 0;
 	if (chanlookup(avail->ic_chans, avail->ic_nchans, freq,
-	    flags &~ (IEEE80211_CHAN_HALF | IEEE80211_CHAN_QUARTER)) == NULL)
+		flags & ~(IEEE80211_CHAN_HALF | IEEE80211_CHAN_QUARTER)) ==
+	    NULL)
 		return 0;
 	if (flags & IEEE80211_CHAN_HALF) {
 		return chanfind(avail->ic_chans, avail->ic_nchans,
 		    IEEE80211_CHAN_HALF |
-		       (flags & (IEEE80211_CHAN_2GHZ | IEEE80211_CHAN_5GHZ)));
+			(flags & (IEEE80211_CHAN_2GHZ | IEEE80211_CHAN_5GHZ)));
 	} else {
 		return chanfind(avail->ic_chans, avail->ic_nchans,
 		    IEEE80211_CHAN_QUARTER |
@@ -2142,10 +2168,8 @@ checkchan(const struct ieee80211req_chaninfo *avail, int freq, uint32_t flags)
 
 static void
 regdomain_addchans(if_ctx *ctx, struct ieee80211req_chaninfo *ci,
-	const netband_head *bands,
-	const struct ieee80211_regdomain *reg,
-	uint32_t chanFlags,
-	const struct ieee80211req_chaninfo *avail)
+    const netband_head *bands, const struct ieee80211_regdomain *reg,
+    uint32_t chanFlags, const struct ieee80211req_chaninfo *avail)
 {
 	const struct netband *nb;
 	const struct freqband *b;
@@ -2158,7 +2182,7 @@ regdomain_addchans(if_ctx *ctx, struct ieee80211req_chaninfo *ci,
 	lo_adj = (chanFlags & IEEE80211_CHAN_HT40D) ? 20 : 0;
 	channelSep = (chanFlags & IEEE80211_CHAN_2GHZ) ? 0 : 40;
 
-	LIST_FOREACH(nb, bands, next) {
+	LIST_FOREACH (nb, bands, next) {
 		b = nb->band;
 		if (verbose) {
 			printf("%s:", __func__);
@@ -2169,8 +2193,8 @@ regdomain_addchans(if_ctx *ctx, struct ieee80211req_chaninfo *ci,
 		}
 		prev = NULL;
 
-		for (freq = b->freqStart + lo_adj;
-		     freq <= b->freqEnd + hi_adj; freq += b->chanSep) {
+		for (freq = b->freqStart + lo_adj; freq <= b->freqEnd + hi_adj;
+		     freq += b->chanSep) {
 			/*
 			 * Construct flags for the new channel.  We take
 			 * the attributes from the band descriptions except
@@ -2188,35 +2212,40 @@ regdomain_addchans(if_ctx *ctx, struct ieee80211req_chaninfo *ci,
 				    (flags & IEEE80211_CHAN_VHT20) == 0) {
 					if (verbose)
 						printf("%u: skip, not a "
-						    "VHT20 channel\n", freq);
+						       "VHT20 channel\n",
+						    freq);
 					continue;
 				}
 				if ((chanFlags & IEEE80211_CHAN_VHT40) &&
 				    (flags & IEEE80211_CHAN_VHT40) == 0) {
 					if (verbose)
 						printf("%u: skip, not a "
-						    "VHT40 channel\n", freq);
+						       "VHT40 channel\n",
+						    freq);
 					continue;
 				}
 				if ((chanFlags & IEEE80211_CHAN_VHT80) &&
 				    (flags & IEEE80211_CHAN_VHT80) == 0) {
 					if (verbose)
 						printf("%u: skip, not a "
-						    "VHT80 channel\n", freq);
+						       "VHT80 channel\n",
+						    freq);
 					continue;
 				}
 				if ((chanFlags & IEEE80211_CHAN_VHT160) &&
 				    (flags & IEEE80211_CHAN_VHT160) == 0) {
 					if (verbose)
 						printf("%u: skip, not a "
-						    "VHT160 channel\n", freq);
+						       "VHT160 channel\n",
+						    freq);
 					continue;
 				}
 				if ((chanFlags & IEEE80211_CHAN_VHT80P80) &&
 				    (flags & IEEE80211_CHAN_VHT80P80) == 0) {
 					if (verbose)
 						printf("%u: skip, not a "
-						    "VHT80+80 channel\n", freq);
+						       "VHT80+80 channel\n",
+						    freq);
 					continue;
 				}
 				flags &= ~IEEE80211_CHAN_VHT;
@@ -2235,14 +2264,16 @@ regdomain_addchans(if_ctx *ctx, struct ieee80211req_chaninfo *ci,
 				    (flags & IEEE80211_CHAN_HT20) == 0) {
 					if (verbose)
 						printf("%u: skip, not an "
-						    "HT20 channel\n", freq);
+						       "HT20 channel\n",
+						    freq);
 					continue;
 				}
 				if ((chanFlags & IEEE80211_CHAN_HT40) &&
 				    (flags & IEEE80211_CHAN_HT40) == 0) {
 					if (verbose)
 						printf("%u: skip, not an "
-						    "HT40 channel\n", freq);
+						       "HT40 channel\n",
+						    freq);
 					continue;
 				}
 				/* NB: HT attribute comes from caller */
@@ -2278,12 +2309,13 @@ regdomain_addchans(if_ctx *ctx, struct ieee80211req_chaninfo *ci,
 					    freq);
 				continue;
 			}
-			if ((flags & IEEE80211_CHAN_HT40) &&
-			    prev != NULL && (freq - prev->ic_freq) < channelSep) {
+			if ((flags & IEEE80211_CHAN_HT40) && prev != NULL &&
+			    (freq - prev->ic_freq) < channelSep) {
 				if (verbose)
 					printf("%u: skip, only %u channel "
-					    "separation, need %d\n", freq, 
-					    freq - prev->ic_freq, channelSep);
+					       "separation, need %d\n",
+					    freq, freq - prev->ic_freq,
+					    channelSep);
 				continue;
 			}
 			if (ci->ic_nchans == IEEE80211_CHAN_MAX) {
@@ -2296,14 +2328,15 @@ regdomain_addchans(if_ctx *ctx, struct ieee80211req_chaninfo *ci,
 			memset(c, 0, sizeof(*c));
 			c->ic_freq = freq;
 			c->ic_flags = flags;
-		if (c->ic_flags & IEEE80211_CHAN_DFS)
+			if (c->ic_flags & IEEE80211_CHAN_DFS)
 				c->ic_maxregpower = nb->maxPowerDFS;
 			else
 				c->ic_maxregpower = nb->maxPower;
 			if (verbose) {
-				printf("[%3d] add freq %u ",
-				    ci->ic_nchans-1, c->ic_freq);
-				printb("flags", c->ic_flags, IEEE80211_CHAN_BITS);
+				printf("[%3d] add freq %u ", ci->ic_nchans - 1,
+				    c->ic_freq);
+				printb("flags", c->ic_flags,
+				    IEEE80211_CHAN_BITS);
 				printf(" power %u\n", c->ic_maxregpower);
 			}
 			/* NB: kernel fills in other fields */
@@ -2313,10 +2346,8 @@ regdomain_addchans(if_ctx *ctx, struct ieee80211req_chaninfo *ci,
 }
 
 static void
-regdomain_makechannels(
-	if_ctx *ctx,
-	struct ieee80211_regdomain_req *req,
-	const struct ieee80211_devcaps_req *dc)
+regdomain_makechannels(if_ctx *ctx, struct ieee80211_regdomain_req *req,
+    const struct ieee80211_devcaps_req *dc)
 {
 	struct regdata *rdp = getregdata();
 	const struct country *cc;
@@ -2342,7 +2373,7 @@ regdomain_makechannels(
 		rd = lib80211_regdomain_findbysku(rdp, reg->regdomain);
 	if (rd == NULL)
 		errx(1, "internal error, regdomain %d not found",
-			    reg->regdomain);
+		    reg->regdomain);
 	if (rd->sku != SKU_DEBUG) {
 		/*
 		 * regdomain_addchans incrememnts the channel count for
@@ -2366,10 +2397,12 @@ regdomain_makechannels(
 			    IEEE80211_CHAN_A | IEEE80211_CHAN_HT20,
 			    &dc->dc_chaninfo);
 			if (dc->dc_htcaps & IEEE80211_HTCAP_CHWIDTH40) {
-				regdomain_addchans(ctx, ci, &rd->bands_11na, reg,
+				regdomain_addchans(ctx, ci, &rd->bands_11na,
+				    reg,
 				    IEEE80211_CHAN_A | IEEE80211_CHAN_HT40U,
 				    &dc->dc_chaninfo);
-				regdomain_addchans(ctx, ci, &rd->bands_11na, reg,
+				regdomain_addchans(ctx, ci, &rd->bands_11na,
+				    reg,
 				    IEEE80211_CHAN_A | IEEE80211_CHAN_HT40D,
 				    &dc->dc_chaninfo);
 			}
@@ -2377,56 +2410,64 @@ regdomain_makechannels(
 		if (!LIST_EMPTY(&rd->bands_11ac) && dc->dc_vhtcaps != 0) {
 			regdomain_addchans(ctx, ci, &rd->bands_11ac, reg,
 			    IEEE80211_CHAN_A | IEEE80211_CHAN_HT20 |
-			    IEEE80211_CHAN_VHT20,
+				IEEE80211_CHAN_VHT20,
 			    &dc->dc_chaninfo);
 
 			/* VHT40 is a function of HT40.. */
 			if (dc->dc_htcaps & IEEE80211_HTCAP_CHWIDTH40) {
-				regdomain_addchans(ctx, ci, &rd->bands_11ac, reg,
+				regdomain_addchans(ctx, ci, &rd->bands_11ac,
+				    reg,
 				    IEEE80211_CHAN_A | IEEE80211_CHAN_HT40U |
-				    IEEE80211_CHAN_VHT40U,
+					IEEE80211_CHAN_VHT40U,
 				    &dc->dc_chaninfo);
-				regdomain_addchans(ctx, ci, &rd->bands_11ac, reg,
+				regdomain_addchans(ctx, ci, &rd->bands_11ac,
+				    reg,
 				    IEEE80211_CHAN_A | IEEE80211_CHAN_HT40D |
-				    IEEE80211_CHAN_VHT40D,
+					IEEE80211_CHAN_VHT40D,
 				    &dc->dc_chaninfo);
 			}
 
 			/* VHT80 is mandatory (and so should be VHT40 above). */
 			if (1) {
-				regdomain_addchans(ctx, ci, &rd->bands_11ac, reg,
+				regdomain_addchans(ctx, ci, &rd->bands_11ac,
+				    reg,
 				    IEEE80211_CHAN_A | IEEE80211_CHAN_HT40U |
-				    IEEE80211_CHAN_VHT80,
+					IEEE80211_CHAN_VHT80,
 				    &dc->dc_chaninfo);
-				regdomain_addchans(ctx, ci, &rd->bands_11ac, reg,
+				regdomain_addchans(ctx, ci, &rd->bands_11ac,
+				    reg,
 				    IEEE80211_CHAN_A | IEEE80211_CHAN_HT40D |
-				    IEEE80211_CHAN_VHT80,
+					IEEE80211_CHAN_VHT80,
 				    &dc->dc_chaninfo);
 			}
 
 			/* VHT160 */
 			if (IEEE80211_VHTCAP_SUPP_CHAN_WIDTH_IS_160MHZ(
-			    dc->dc_vhtcaps)) {
-				regdomain_addchans(ctx, ci, &rd->bands_11ac, reg,
+				dc->dc_vhtcaps)) {
+				regdomain_addchans(ctx, ci, &rd->bands_11ac,
+				    reg,
 				    IEEE80211_CHAN_A | IEEE80211_CHAN_HT40U |
-				    IEEE80211_CHAN_VHT160,
+					IEEE80211_CHAN_VHT160,
 				    &dc->dc_chaninfo);
-				regdomain_addchans(ctx, ci, &rd->bands_11ac, reg,
+				regdomain_addchans(ctx, ci, &rd->bands_11ac,
+				    reg,
 				    IEEE80211_CHAN_A | IEEE80211_CHAN_HT40D |
-				    IEEE80211_CHAN_VHT160,
+					IEEE80211_CHAN_VHT160,
 				    &dc->dc_chaninfo);
 			}
 
 			/* VHT80P80 */
 			if (IEEE80211_VHTCAP_SUPP_CHAN_WIDTH_IS_160_80P80MHZ(
-			    dc->dc_vhtcaps)) {
-				regdomain_addchans(ctx, ci, &rd->bands_11ac, reg,
+				dc->dc_vhtcaps)) {
+				regdomain_addchans(ctx, ci, &rd->bands_11ac,
+				    reg,
 				    IEEE80211_CHAN_A | IEEE80211_CHAN_HT40U |
-				    IEEE80211_CHAN_VHT80P80,
+					IEEE80211_CHAN_VHT80P80,
 				    &dc->dc_chaninfo);
-				regdomain_addchans(ctx, ci, &rd->bands_11ac, reg,
+				regdomain_addchans(ctx, ci, &rd->bands_11ac,
+				    reg,
 				    IEEE80211_CHAN_A | IEEE80211_CHAN_HT40D |
-				    IEEE80211_CHAN_VHT80P80,
+					IEEE80211_CHAN_VHT80P80,
 				    &dc->dc_chaninfo);
 			}
 		}
@@ -2436,10 +2477,12 @@ regdomain_makechannels(
 			    IEEE80211_CHAN_G | IEEE80211_CHAN_HT20,
 			    &dc->dc_chaninfo);
 			if (dc->dc_htcaps & IEEE80211_HTCAP_CHWIDTH40) {
-				regdomain_addchans(ctx, ci, &rd->bands_11ng, reg,
+				regdomain_addchans(ctx, ci, &rd->bands_11ng,
+				    reg,
 				    IEEE80211_CHAN_G | IEEE80211_CHAN_HT40U,
 				    &dc->dc_chaninfo);
-				regdomain_addchans(ctx, ci, &rd->bands_11ng, reg,
+				regdomain_addchans(ctx, ci, &rd->bands_11ng,
+				    reg,
 				    IEEE80211_CHAN_G | IEEE80211_CHAN_HT40D,
 				    &dc->dc_chaninfo);
 			}
@@ -2461,15 +2504,15 @@ list_countries(void)
 
 	i = 0;
 	printf("\nCountry codes:\n");
-	LIST_FOREACH(cp, &rdp->countries, next) {
-		printf("%2s %-15.15s%s", cp->isoname,
-		    cp->name, ((i+1)%4) == 0 ? "\n" : " ");
+	LIST_FOREACH (cp, &rdp->countries, next) {
+		printf("%2s %-15.15s%s", cp->isoname, cp->name,
+		    ((i + 1) % 4) == 0 ? "\n" : " ");
 		i++;
 	}
 	i = 0;
 	printf("\nRegulatory domains:\n");
-	LIST_FOREACH(dp, &rdp->domains, next) {
-		printf("%-15.15s%s", dp->name, ((i+1)%4) == 0 ? "\n" : " ");
+	LIST_FOREACH (dp, &rdp->domains, next) {
+		printf("%-15.15s%s", dp->name, ((i + 1) % 4) == 0 ? "\n" : " ");
 		i++;
 	}
 	printf("\n");
@@ -2483,8 +2526,10 @@ defaultcountry(const struct regdomain *rd)
 
 	cc = lib80211_country_findbycc(rdp, rd->cc->code);
 	if (cc == NULL)
-		errx(1, "internal error, ISO country code %d not "
-		    "defined for regdomain %s", rd->cc->code, rd->name);
+		errx(1,
+		    "internal error, ISO country code %d not "
+		    "defined for regdomain %s",
+		    rd->cc->code, rd->name);
 	regdomain.country = cc->code;
 	regdomain.isocc[0] = cc->isoname[0];
 	regdomain.isocc[1] = cc->isoname[1];
@@ -2575,7 +2620,7 @@ LINE_BREAK(void)
 		printf("\n");
 		spacer = '\t';
 	}
-	col = 8;		/* 8-col tab */
+	col = 8; /* 8-col tab */
 }
 
 static void
@@ -2586,9 +2631,9 @@ LINE_CHECK(const char *fmt, ...)
 	int n;
 
 	va_start(ap, fmt);
-	n = vsnprintf(buf+1, sizeof(buf)-1, fmt, ap);
+	n = vsnprintf(buf + 1, sizeof(buf) - 1, fmt, ap);
 	va_end(ap);
-	col += 1+n;
+	col += 1 + n;
 	if (col > MAXCOL) {
 		LINE_BREAK();
 		col += n;
@@ -2698,12 +2743,13 @@ getflags(int flags)
 }
 
 static void
-printie(if_ctx *ctx, const char* tag, const uint8_t *ie, size_t ielen, unsigned int maxlen)
+printie(if_ctx *ctx, const char *tag, const uint8_t *ie, size_t ielen,
+    unsigned int maxlen)
 {
 	printf("%s", tag);
 	if (ctx->args->verbose) {
-		maxlen -= strlen(tag)+2;
-		if (2*ielen > maxlen)
+		maxlen -= strlen(tag) + 2;
+		if (2 * ielen > maxlen)
 			maxlen--;
 		printf("<");
 		for (; ielen > 0; ie++, ielen--) {
@@ -2717,16 +2763,14 @@ printie(if_ctx *ctx, const char* tag, const uint8_t *ie, size_t ielen, unsigned 
 	}
 }
 
-#define LE_READ_2(p)					\
-	((u_int16_t)					\
-	 ((((const u_int8_t *)(p))[0]      ) |		\
-	  (((const u_int8_t *)(p))[1] <<  8)))
-#define LE_READ_4(p)					\
-	((u_int32_t)					\
-	 ((((const u_int8_t *)(p))[0]      ) |		\
-	  (((const u_int8_t *)(p))[1] <<  8) |		\
-	  (((const u_int8_t *)(p))[2] << 16) |		\
-	  (((const u_int8_t *)(p))[3] << 24)))
+#define LE_READ_2(p)                                \
+	((u_int16_t)((((const u_int8_t *)(p))[0]) | \
+	    (((const u_int8_t *)(p))[1] << 8)))
+#define LE_READ_4(p)                                \
+	((u_int32_t)((((const u_int8_t *)(p))[0]) | \
+	    (((const u_int8_t *)(p))[1] << 8) |     \
+	    (((const u_int8_t *)(p))[2] << 16) |    \
+	    (((const u_int8_t *)(p))[3] << 24)))
 
 /*
  * NB: The decoding routines assume a properly formatted ie
@@ -2739,7 +2783,7 @@ printwmeparam(if_ctx *ctx, const char *tag, const u_int8_t *ie)
 {
 	static const char *acnames[] = { "BE", "BK", "VO", "VI" };
 	const struct ieee80211_wme_param *wme =
-	    (const struct ieee80211_wme_param *) ie;
+	    (const struct ieee80211_wme_param *)ie;
 	int i;
 
 	printf("%s", tag);
@@ -2753,7 +2797,8 @@ printwmeparam(if_ctx *ctx, const char *tag, const u_int8_t *ie)
 
 		printf(" %s[%saifsn %u cwmin %u cwmax %u txop %u]", acnames[i],
 		    _IEEE80211_MASKSHIFT(ac->acp_aci_aifsn, WME_PARAM_ACM) ?
-			"acm " : "",
+			"acm " :
+			"",
 		    _IEEE80211_MASKSHIFT(ac->acp_aci_aifsn, WME_PARAM_AIFSN),
 		    _IEEE80211_MASKSHIFT(ac->acp_logcwminmax,
 			WME_PARAM_LOGCWMIN),
@@ -2770,9 +2815,9 @@ printwmeinfo(if_ctx *ctx, const char *tag, const u_int8_t *ie)
 	printf("%s", tag);
 	if (ctx->args->verbose) {
 		const struct ieee80211_wme_info *wme =
-		    (const struct ieee80211_wme_info *) ie;
-		printf("<version 0x%x info 0x%x>",
-		    wme->wme_version, wme->wme_info);
+		    (const struct ieee80211_wme_info *)ie;
+		printf("<version 0x%x info 0x%x>", wme->wme_version,
+		    wme->wme_info);
 	}
 }
 
@@ -2822,9 +2867,9 @@ printvhtinfo(if_ctx *ctx, const char *tag, const u_int8_t *ie)
 		/* Skip Element ID and Length. */
 		vhtinfo = (const struct ieee80211_vht_operation *)(ie + 2);
 
-		printf("<chw %d freq0_idx %d freq1_idx %d basic_mcs_set 0x%04x>",
-		    vhtinfo->chan_width,
-		    vhtinfo->center_freq_seq0_idx,
+		printf(
+		    "<chw %d freq0_idx %d freq1_idx %d basic_mcs_set 0x%04x>",
+		    vhtinfo->chan_width, vhtinfo->center_freq_seq0_idx,
 		    vhtinfo->center_freq_seq1_idx,
 		    LE_READ_2(&vhtinfo->basic_mcs_set));
 	}
@@ -2842,20 +2887,20 @@ printvhtpwrenv(if_ctx *ctx, const char *tag, const u_int8_t *ie, size_t ielen)
 	};
 	if (ctx->args->verbose) {
 		const struct ieee80211_ie_vht_txpwrenv *vhtpwr =
-		    (const struct ieee80211_ie_vht_txpwrenv *) ie;
+		    (const struct ieee80211_ie_vht_txpwrenv *)ie;
 		size_t i, n;
 		const char *sep = "";
 
 		/* Get count; trim at ielen */
-		n = (vhtpwr->tx_info &
-		    IEEE80211_VHT_TXPWRENV_INFO_COUNT_MASK) + 1;
+		n = (vhtpwr->tx_info & IEEE80211_VHT_TXPWRENV_INFO_COUNT_MASK) +
+		    1;
 		/* Trim at ielen */
 		if (n + 3 > ielen)
 			n = ielen - 3;
 		printf("<tx_info 0x%02x pwr:[", vhtpwr->tx_info);
 		for (i = 0; i < n; i++) {
 			printf("%s%s:%.2f", sep, txpwrmap[i],
-			    ((float) ((int8_t) ie[i+3])) / 2.0);
+			    ((float)((int8_t)ie[i + 3])) / 2.0);
 			sep = " ";
 		}
 
@@ -2869,17 +2914,18 @@ printhtcap(if_ctx *ctx, const char *tag, const u_int8_t *ie)
 	printf("%s", tag);
 	if (ctx->args->verbose) {
 		const struct ieee80211_ie_htcap *htcap =
-		    (const struct ieee80211_ie_htcap *) ie;
+		    (const struct ieee80211_ie_htcap *)ie;
 		const char *sep;
 		int i, j;
 
-		printf("<cap 0x%x param 0x%x",
-		    LE_READ_2(&htcap->hc_cap), htcap->hc_param);
+		printf("<cap 0x%x param 0x%x", LE_READ_2(&htcap->hc_cap),
+		    htcap->hc_param);
 		printf(" mcsset[");
 		sep = "";
 		for (i = 0; i < IEEE80211_HTRATE_MAXSIZE; i++)
 			if (isset(htcap->hc_mcsset, i)) {
-				for (j = i+1; j < IEEE80211_HTRATE_MAXSIZE; j++)
+				for (j = i + 1; j < IEEE80211_HTRATE_MAXSIZE;
+				     j++)
 					if (isclr(htcap->hc_mcsset, j))
 						break;
 				j--;
@@ -2887,12 +2933,11 @@ printhtcap(if_ctx *ctx, const char *tag, const u_int8_t *ie)
 					printf("%s%u", sep, i);
 				else
 					printf("%s%u-%u", sep, i, j);
-				i += j-i;
+				i += j - i;
 				sep = ",";
 			}
 		printf("] extcap 0x%x txbf 0x%x antenna 0x%x>",
-		    LE_READ_2(&htcap->hc_extcap),
-		    LE_READ_4(&htcap->hc_txbf),
+		    LE_READ_2(&htcap->hc_extcap), LE_READ_4(&htcap->hc_txbf),
 		    htcap->hc_antenna);
 	}
 }
@@ -2903,7 +2948,7 @@ printhtinfo(if_ctx *ctx, const char *tag, const u_int8_t *ie)
 	printf("%s", tag);
 	if (ctx->args->verbose) {
 		const struct ieee80211_ie_htinfo *htinfo =
-		    (const struct ieee80211_ie_htinfo *) ie;
+		    (const struct ieee80211_ie_htinfo *)ie;
 		const char *sep;
 		int i, j;
 
@@ -2914,7 +2959,8 @@ printhtinfo(if_ctx *ctx, const char *tag, const u_int8_t *ie)
 		sep = "";
 		for (i = 0; i < IEEE80211_HTRATE_MAXSIZE; i++)
 			if (isset(htinfo->hi_basicmcsset, i)) {
-				for (j = i+1; j < IEEE80211_HTRATE_MAXSIZE; j++)
+				for (j = i + 1; j < IEEE80211_HTRATE_MAXSIZE;
+				     j++)
 					if (isclr(htinfo->hi_basicmcsset, j))
 						break;
 				j--;
@@ -2922,7 +2968,7 @@ printhtinfo(if_ctx *ctx, const char *tag, const u_int8_t *ie)
 					printf("%s%u", sep, i);
 				else
 					printf("%s%u-%u", sep, i, j);
-				i += j-i;
+				i += j - i;
 				sep = ",";
 			}
 		printf("]>");
@@ -2936,7 +2982,7 @@ printathie(if_ctx *ctx, const char *tag, const u_int8_t *ie)
 	printf("%s", tag);
 	if (ctx->args->verbose) {
 		const struct ieee80211_ath_ie *ath =
-			(const struct ieee80211_ath_ie *)ie;
+		    (const struct ieee80211_ath_ie *)ie;
 
 		printf("<");
 		if (ath->ath_capability & ATHEROS_CAP_TURBO_PRIME)
@@ -2959,7 +3005,6 @@ printathie(if_ctx *ctx, const char *tag, const u_int8_t *ie)
 	}
 }
 
-
 static void
 printmeshconf(if_ctx *ctx, const char *tag, const uint8_t *ie)
 {
@@ -2967,7 +3012,7 @@ printmeshconf(if_ctx *ctx, const char *tag, const uint8_t *ie)
 	printf("%s", tag);
 	if (ctx->args->verbose) {
 		const struct ieee80211_meshconf_ie *mconf =
-			(const struct ieee80211_meshconf_ie *)ie;
+		    (const struct ieee80211_meshconf_ie *)ie;
 		printf("<PATH:");
 		if (mconf->conf_pselid == IEEE80211_MESHCONF_PATH_HWMP)
 			printf("HWMP");
@@ -3004,10 +3049,9 @@ printbssload(if_ctx *ctx, const char *tag, const uint8_t *ie)
 	printf("%s", tag);
 	if (ctx->args->verbose) {
 		const struct ieee80211_bss_load_ie *bssload =
-		    (const struct ieee80211_bss_load_ie *) ie;
+		    (const struct ieee80211_bss_load_ie *)ie;
 		printf("<sta count %d, chan load %d, aac %d>",
-		    LE_READ_2(&bssload->sta_count),
-		    bssload->chan_load,
+		    LE_READ_2(&bssload->sta_count), bssload->chan_load,
 		    bssload->aac);
 	}
 }
@@ -3018,7 +3062,7 @@ printapchanrep(if_ctx *ctx, const char *tag, const u_int8_t *ie, size_t ielen)
 	printf("%s", tag);
 	if (ctx->args->verbose) {
 		const struct ieee80211_ap_chan_report_ie *ap =
-		    (const struct ieee80211_ap_chan_report_ie *) ie;
+		    (const struct ieee80211_ap_chan_report_ie *)ie;
 		const char *sep = "";
 
 		printf("<class %u, chan:[", ap->i_class);
@@ -3034,7 +3078,7 @@ printapchanrep(if_ctx *ctx, const char *tag, const u_int8_t *ie, size_t ielen)
 static const char *
 wpa_cipher(const u_int8_t *sel)
 {
-#define	WPA_SEL(x)	(((x)<<24)|WPA_OUI)
+#define WPA_SEL(x) (((x) << 24) | WPA_OUI)
 	u_int32_t w = LE_READ_4(sel);
 
 	switch (w) {
@@ -3049,14 +3093,14 @@ wpa_cipher(const u_int8_t *sel)
 	case WPA_SEL(WPA_CSE_CCMP):
 		return "AES-CCMP";
 	}
-	return "?";		/* NB: so 1<< is discarded */
+	return "?"; /* NB: so 1<< is discarded */
 #undef WPA_SEL
 }
 
 static const char *
 wpa_keymgmt(const u_int8_t *sel)
 {
-#define	WPA_SEL(x)	(((x)<<24)|WPA_OUI)
+#define WPA_SEL(x) (((x) << 24) | WPA_OUI)
 	u_int32_t w = LE_READ_4(sel);
 
 	switch (w) {
@@ -3081,7 +3125,7 @@ printwpaie(if_ctx *ctx, const char *tag, const u_int8_t *ie)
 		const char *sep;
 		int n;
 
-		ie += 6, len -= 4;		/* NB: len is payload only */
+		ie += 6, len -= 4; /* NB: len is payload only */
 
 		printf("<v%u", LE_READ_2(ie));
 		ie += 2, len -= 2;
@@ -3109,7 +3153,7 @@ printwpaie(if_ctx *ctx, const char *tag, const u_int8_t *ie)
 			sep = "+";
 		}
 
-		if (len > 2)		/* optional capabilities */
+		if (len > 2) /* optional capabilities */
 			printf(", caps 0x%x", LE_READ_2(ie));
 		printf(">");
 	}
@@ -3118,7 +3162,7 @@ printwpaie(if_ctx *ctx, const char *tag, const u_int8_t *ie)
 static const char *
 rsn_cipher(const u_int8_t *sel)
 {
-#define	RSN_SEL(x)	(((x)<<24)|RSN_OUI)
+#define RSN_SEL(x) (((x) << 24) | RSN_OUI)
 	u_int32_t w = LE_READ_4(sel);
 
 	switch (w) {
@@ -3142,7 +3186,7 @@ rsn_cipher(const u_int8_t *sel)
 static const char *
 rsn_keymgmt(const u_int8_t *sel)
 {
-#define	RSN_SEL(x)	(((x)<<24)|RSN_OUI)
+#define RSN_SEL(x) (((x) << 24) | RSN_OUI)
 	u_int32_t w = LE_READ_4(sel);
 
 	switch (w) {
@@ -3193,17 +3237,16 @@ printrsnie(if_ctx *ctx, const char *tag, const u_int8_t *ie, size_t ielen)
 			sep = "+";
 		}
 
-		if (ielen > 2)		/* optional capabilities */
+		if (ielen > 2) /* optional capabilities */
 			printf(", caps 0x%x", LE_READ_2(ie));
 		/* XXXPMKID */
 		printf(">");
 	}
 }
 
-#define BE_READ_2(p)					\
-	((u_int16_t)					\
-	 ((((const u_int8_t *)(p))[1]      ) |		\
-	  (((const u_int8_t *)(p))[0] <<  8)))
+#define BE_READ_2(p)                                \
+	((u_int16_t)((((const u_int8_t *)(p))[1]) | \
+	    (((const u_int8_t *)(p))[0] << 8)))
 
 static void
 printwpsie(if_ctx *ctx, const char *tag, const u_int8_t *ie)
@@ -3213,30 +3256,31 @@ printwpsie(if_ctx *ctx, const char *tag, const u_int8_t *ie)
 	printf("%s", tag);
 	if (ctx->args->verbose) {
 		static const char *dev_pass_id[] = {
-			"D",	/* Default (PIN) */
-			"U",	/* User-specified */
-			"M",	/* Machine-specified */
-			"K",	/* Rekey */
-			"P",	/* PushButton */
-			"R"	/* Registrar-specified */
+			"D", /* Default (PIN) */
+			"U", /* User-specified */
+			"M", /* Machine-specified */
+			"K", /* Rekey */
+			"P", /* PushButton */
+			"R"  /* Registrar-specified */
 		};
 		int n;
 		int f;
 
-		ie +=6, len -= 4;		/* NB: len is payload only */
+		ie += 6, len -= 4; /* NB: len is payload only */
 
-		/* WPS IE in Beacon and Probe Resp frames have different fields */
+		/* WPS IE in Beacon and Probe Resp frames have different fields
+		 */
 		printf("<");
 		while (len) {
 			uint16_t tlv_type = BE_READ_2(ie);
-			uint16_t tlv_len  = BE_READ_2(ie + 2);
+			uint16_t tlv_len = BE_READ_2(ie + 2);
 			uint16_t cfg_mthd;
 
 			/* some devices broadcast invalid WPS frames */
 			if (tlv_len > len) {
 				printf("bad frame length tlv_type=0x%02x "
-				    "tlv_len=%d len=%d", tlv_type, tlv_len,
-				    len);
+				       "tlv_len=%d len=%d",
+				    tlv_type, tlv_len, len);
 				break;
 			}
 
@@ -3247,15 +3291,16 @@ printwpsie(if_ctx *ctx, const char *tag, const u_int8_t *ie)
 				printf("v:%d.%d", *ie >> 4, *ie & 0xf);
 				break;
 			case IEEE80211_WPS_ATTR_AP_SETUP_LOCKED:
-				printf(" ap_setup:%s", *ie ? "locked" :
-				    "unlocked");
+				printf(" ap_setup:%s",
+				    *ie ? "locked" : "unlocked");
 				break;
 			case IEEE80211_WPS_ATTR_CONFIG_METHODS:
 			case IEEE80211_WPS_ATTR_SELECTED_REGISTRAR_CONFIG_METHODS:
-				if (tlv_type == IEEE80211_WPS_ATTR_SELECTED_REGISTRAR_CONFIG_METHODS)
+				if (tlv_type ==
+				    IEEE80211_WPS_ATTR_SELECTED_REGISTRAR_CONFIG_METHODS)
 					printf(" sel_reg_cfg_mthd:");
 				else
-					printf(" cfg_mthd:" );
+					printf(" cfg_mthd:");
 				cfg_mthd = BE_READ_2(ie);
 				f = 0;
 				for (n = 15; n >= 0; n--) {
@@ -3280,9 +3325,8 @@ printwpsie(if_ctx *ctx, const char *tag, const u_int8_t *ie)
 						break;
 					case IEEE80211_WPS_CONFIG_DISPLAY:
 						if (!(cfg_mthd &
-						    (IEEE80211_WPS_CONFIG_VIRT_DISPLAY |
-						    IEEE80211_WPS_CONFIG_PHY_DISPLAY)))
-						    {
+							(IEEE80211_WPS_CONFIG_VIRT_DISPLAY |
+							    IEEE80211_WPS_CONFIG_PHY_DISPLAY))) {
 							printf("display");
 							f++;
 						}
@@ -3301,8 +3345,8 @@ printwpsie(if_ctx *ctx, const char *tag, const u_int8_t *ie)
 						break;
 					case IEEE80211_WPS_CONFIG_PUSHBUTTON:
 						if (!(cfg_mthd &
-						    (IEEE80211_WPS_CONFIG_VIRT_PUSHBUTTON |
-						    IEEE80211_WPS_CONFIG_PHY_PUSHBUTTON))) {
+							(IEEE80211_WPS_CONFIG_VIRT_PUSHBUTTON |
+							    IEEE80211_WPS_CONFIG_PHY_PUSHBUTTON))) {
 							printf("push_button");
 							f++;
 						}
@@ -3332,7 +3376,8 @@ printwpsie(if_ctx *ctx, const char *tag, const u_int8_t *ie)
 						f++;
 						break;
 					default:
-						printf("unknown_wps_config<%04x>",
+						printf(
+						    "unknown_wps_config<%04x>",
 						    cfg_mthd & (1 << n));
 						f++;
 						break;
@@ -3439,12 +3484,14 @@ static void
 printtdmaie(if_ctx *ctx, const char *tag, const u_int8_t *ie, size_t ielen)
 {
 	printf("%s", tag);
-	if (ctx->args->verbose && ielen >= sizeof(struct ieee80211_tdma_param)) {
+	if (ctx->args->verbose &&
+	    ielen >= sizeof(struct ieee80211_tdma_param)) {
 		const struct ieee80211_tdma_param *tdma =
-		   (const struct ieee80211_tdma_param *) ie;
+		    (const struct ieee80211_tdma_param *)ie;
 
 		/* XXX tstamp */
-		printf("<v%u slot:%u slotcnt:%u slotlen:%u bintval:%u inuse:0x%x>",
+		printf(
+		    "<v%u slot:%u slotcnt:%u slotlen:%u bintval:%u inuse:0x%x>",
 		    tdma->tdma_version, tdma->tdma_slot, tdma->tdma_slotcnt,
 		    LE_READ_2(&tdma->tdma_slotlen), tdma->tdma_bintval,
 		    tdma->tdma_inuse[0]);
@@ -3460,7 +3507,7 @@ printtdmaie(if_ctx *ctx, const char *tag, const u_int8_t *ie, size_t ielen)
 static int
 copy_essid(char buf[], size_t bufsize, const u_int8_t *essid, size_t essid_len)
 {
-	const u_int8_t *p; 
+	const u_int8_t *p;
 	size_t maxlen;
 	u_int i;
 
@@ -3473,22 +3520,22 @@ copy_essid(char buf[], size_t bufsize, const u_int8_t *essid, size_t essid_len)
 		if (*p < ' ' || *p > 0x7e)
 			break;
 	}
-	if (i != maxlen) {		/* not printable, print as hex */
+	if (i != maxlen) { /* not printable, print as hex */
 		if (bufsize < 3)
 			return 0;
 		strlcpy(buf, "0x", bufsize);
 		bufsize -= 2;
 		p = essid;
 		for (i = 0; i < maxlen && bufsize >= 2; i++) {
-			sprintf(&buf[2+2*i], "%02x", p[i]);
+			sprintf(&buf[2 + 2 * i], "%02x", p[i]);
 			bufsize -= 2;
 		}
 		if (i != essid_len)
-			memcpy(&buf[2+2*i-3], "...", 3);
-	} else {			/* printable, truncate as needed */
+			memcpy(&buf[2 + 2 * i - 3], "...", 3);
+	} else { /* printable, truncate as needed */
 		memcpy(buf, essid, maxlen);
 		if (maxlen != essid_len)
-			memcpy(&buf[maxlen-3], "...", 3);
+			memcpy(&buf[maxlen - 3], "...", 3);
 	}
 	return maxlen;
 }
@@ -3496,9 +3543,9 @@ copy_essid(char buf[], size_t bufsize, const u_int8_t *essid, size_t essid_len)
 static void
 printssid(const char *tag, const u_int8_t *ie, int maxlen)
 {
-	char ssid[2*IEEE80211_NWID_LEN+1];
+	char ssid[2 * IEEE80211_NWID_LEN + 1];
 
-	printf("%s<%.*s>", tag, copy_essid(ssid, maxlen, ie+2, ie[1]), ssid);
+	printf("%s<%.*s>", tag, copy_essid(ssid, maxlen, ie + 2, ie[1]), ssid);
 }
 
 static void
@@ -3509,8 +3556,7 @@ printrates(const char *tag, const u_int8_t *ie, size_t ielen)
 	printf("%s", tag);
 	sep = "<";
 	for (size_t i = 2; i < ielen; i++) {
-		printf("%s%s%d", sep,
-		    ie[i] & IEEE80211_RATE_BASIC ? "B" : "",
+		printf("%s%s%d", sep, ie[i] & IEEE80211_RATE_BASIC ? "B" : "",
 		    ie[i] & IEEE80211_RATE_VAL);
 		sep = ",";
 	}
@@ -3521,7 +3567,7 @@ static void
 printcountry(const char *tag, const u_int8_t *ie)
 {
 	const struct ieee80211_country_ie *cie =
-	   (const struct ieee80211_country_ie *) ie;
+	    (const struct ieee80211_country_ie *)ie;
 	int i, nbands, schan, nchan;
 
 	printf("%s<%c%c%c", tag, cie->cc[0], cie->cc[1], cie->cc[2]);
@@ -3530,7 +3576,7 @@ printcountry(const char *tag, const u_int8_t *ie)
 		schan = cie->band[i].schan;
 		nchan = cie->band[i].nchan;
 		if (nchan != 1)
-			printf(" %u-%u,%u", schan, schan + nchan-1,
+			printf(" %u-%u,%u", schan, schan + nchan - 1,
 			    cie->band[i].maxtxpwr);
 		else
 			printf(" %u,%u", schan, cie->band[i].maxtxpwr);
@@ -3541,39 +3587,45 @@ printcountry(const char *tag, const u_int8_t *ie)
 static __inline int
 iswpaoui(const u_int8_t *frm)
 {
-	return frm[1] > 3 && LE_READ_4(frm+2) == ((WPA_OUI_TYPE<<24)|WPA_OUI);
+	return frm[1] > 3 &&
+	    LE_READ_4(frm + 2) == ((WPA_OUI_TYPE << 24) | WPA_OUI);
 }
 
 static __inline int
 iswmeinfo(const u_int8_t *frm)
 {
-	return frm[1] > 5 && LE_READ_4(frm+2) == ((WME_OUI_TYPE<<24)|WME_OUI) &&
-		frm[6] == WME_INFO_OUI_SUBTYPE;
+	return frm[1] > 5 &&
+	    LE_READ_4(frm + 2) == ((WME_OUI_TYPE << 24) | WME_OUI) &&
+	    frm[6] == WME_INFO_OUI_SUBTYPE;
 }
 
 static __inline int
 iswmeparam(const u_int8_t *frm)
 {
-	return frm[1] > 5 && LE_READ_4(frm+2) == ((WME_OUI_TYPE<<24)|WME_OUI) &&
-		frm[6] == WME_PARAM_OUI_SUBTYPE;
+	return frm[1] > 5 &&
+	    LE_READ_4(frm + 2) == ((WME_OUI_TYPE << 24) | WME_OUI) &&
+	    frm[6] == WME_PARAM_OUI_SUBTYPE;
 }
 
 static __inline int
 isatherosoui(const u_int8_t *frm)
 {
-	return frm[1] > 3 && LE_READ_4(frm+2) == ((ATH_OUI_TYPE<<24)|ATH_OUI);
+	return frm[1] > 3 &&
+	    LE_READ_4(frm + 2) == ((ATH_OUI_TYPE << 24) | ATH_OUI);
 }
 
 static __inline int
 istdmaoui(const uint8_t *frm)
 {
-	return frm[1] > 3 && LE_READ_4(frm+2) == ((TDMA_OUI_TYPE<<24)|TDMA_OUI);
+	return frm[1] > 3 &&
+	    LE_READ_4(frm + 2) == ((TDMA_OUI_TYPE << 24) | TDMA_OUI);
 }
 
 static __inline int
 iswpsoui(const uint8_t *frm)
 {
-	return frm[1] > 3 && LE_READ_4(frm+2) == ((WPS_OUI_TYPE<<24)|WPA_OUI);
+	return frm[1] > 3 &&
+	    LE_READ_4(frm + 2) == ((WPS_OUI_TYPE << 24) | WPA_OUI);
 }
 
 static const char *
@@ -3581,37 +3633,55 @@ iename(int elemid)
 {
 	static char iename_buf[64];
 	switch (elemid) {
-	case IEEE80211_ELEMID_FHPARMS:	return " FHPARMS";
-	case IEEE80211_ELEMID_CFPARMS:	return " CFPARMS";
-	case IEEE80211_ELEMID_TIM:	return " TIM";
-	case IEEE80211_ELEMID_IBSSPARMS:return " IBSSPARMS";
-	case IEEE80211_ELEMID_BSSLOAD:	return " BSSLOAD";
-	case IEEE80211_ELEMID_CHALLENGE:return " CHALLENGE";
-	case IEEE80211_ELEMID_PWRCNSTR:	return " PWRCNSTR";
-	case IEEE80211_ELEMID_PWRCAP:	return " PWRCAP";
-	case IEEE80211_ELEMID_TPCREQ:	return " TPCREQ";
-	case IEEE80211_ELEMID_TPCREP:	return " TPCREP";
-	case IEEE80211_ELEMID_SUPPCHAN:	return " SUPPCHAN";
-	case IEEE80211_ELEMID_CSA:	return " CSA";
-	case IEEE80211_ELEMID_MEASREQ:	return " MEASREQ";
-	case IEEE80211_ELEMID_MEASREP:	return " MEASREP";
-	case IEEE80211_ELEMID_QUIET:	return " QUIET";
-	case IEEE80211_ELEMID_IBSSDFS:	return " IBSSDFS";
+	case IEEE80211_ELEMID_FHPARMS:
+		return " FHPARMS";
+	case IEEE80211_ELEMID_CFPARMS:
+		return " CFPARMS";
+	case IEEE80211_ELEMID_TIM:
+		return " TIM";
+	case IEEE80211_ELEMID_IBSSPARMS:
+		return " IBSSPARMS";
+	case IEEE80211_ELEMID_BSSLOAD:
+		return " BSSLOAD";
+	case IEEE80211_ELEMID_CHALLENGE:
+		return " CHALLENGE";
+	case IEEE80211_ELEMID_PWRCNSTR:
+		return " PWRCNSTR";
+	case IEEE80211_ELEMID_PWRCAP:
+		return " PWRCAP";
+	case IEEE80211_ELEMID_TPCREQ:
+		return " TPCREQ";
+	case IEEE80211_ELEMID_TPCREP:
+		return " TPCREP";
+	case IEEE80211_ELEMID_SUPPCHAN:
+		return " SUPPCHAN";
+	case IEEE80211_ELEMID_CSA:
+		return " CSA";
+	case IEEE80211_ELEMID_MEASREQ:
+		return " MEASREQ";
+	case IEEE80211_ELEMID_MEASREP:
+		return " MEASREP";
+	case IEEE80211_ELEMID_QUIET:
+		return " QUIET";
+	case IEEE80211_ELEMID_IBSSDFS:
+		return " IBSSDFS";
 	case IEEE80211_ELEMID_RESERVED_47:
-					return " RESERVED_47";
+		return " RESERVED_47";
 	case IEEE80211_ELEMID_MOBILITY_DOMAIN:
-					return " MOBILITY_DOMAIN";
+		return " MOBILITY_DOMAIN";
 	case IEEE80211_ELEMID_RRM_ENACAPS:
-					return " RRM_ENCAPS";
+		return " RRM_ENCAPS";
 	case IEEE80211_ELEMID_OVERLAP_BSS_SCAN_PARAM:
-					return " OVERLAP_BSS";
-	case IEEE80211_ELEMID_TPC:	return " TPC";
-	case IEEE80211_ELEMID_CCKM:	return " CCKM";
-	case IEEE80211_ELEMID_EXTCAP:	return " EXTCAP";
+		return " OVERLAP_BSS";
+	case IEEE80211_ELEMID_TPC:
+		return " TPC";
+	case IEEE80211_ELEMID_CCKM:
+		return " CCKM";
+	case IEEE80211_ELEMID_EXTCAP:
+		return " EXTCAP";
 	}
-	snprintf(iename_buf, sizeof(iename_buf), " UNKNOWN_ELEMID_%d",
-	    elemid);
-	return (const char *) iename_buf;
+	snprintf(iename_buf, sizeof(iename_buf), " UNKNOWN_ELEMID_%d", elemid);
+	return (const char *)iename_buf;
 }
 
 static void
@@ -3629,7 +3699,9 @@ printies(if_ctx *ctx, const u_int8_t *vp, int ielen, unsigned int maxcols)
 		case IEEE80211_ELEMID_XRATES:
 			if (verbose)
 				printrates(vp[0] == IEEE80211_ELEMID_RATES ?
-				    " RATES" : " XRATES", vp, 2+vp[1]);
+					" RATES" :
+					" XRATES",
+				    vp, 2 + vp[1]);
 			break;
 		case IEEE80211_ELEMID_DSPARMS:
 			if (verbose)
@@ -3655,12 +3727,12 @@ printies(if_ctx *ctx, const u_int8_t *vp, int ielen, unsigned int maxcols)
 			else if (iswpsoui(vp))
 				printwpsie(ctx, " WPS", vp);
 			else if (istdmaoui(vp))
-				printtdmaie(ctx, " TDMA", vp, 2+vp[1]);
+				printtdmaie(ctx, " TDMA", vp, 2 + vp[1]);
 			else if (verbose)
-					printie(ctx, " VEN", vp, 2+vp[1], maxcols);
-				break;
+				printie(ctx, " VEN", vp, 2 + vp[1], maxcols);
+			break;
 		case IEEE80211_ELEMID_RSN:
-			printrsnie(ctx, " RSN", vp, 2+vp[1]);
+			printrsnie(ctx, " RSN", vp, 2 + vp[1]);
 			break;
 		case IEEE80211_ELEMID_HTCAP:
 			printhtcap(ctx, " HTCAP", vp);
@@ -3683,21 +3755,22 @@ printies(if_ctx *ctx, const u_int8_t *vp, int ielen, unsigned int maxcols)
 			printvhtinfo(ctx, " VHTOPMODE", vp);
 			break;
 		case IEEE80211_ELEMID_VHT_PWR_ENV:
-			printvhtpwrenv(ctx, " VHTPWRENV", vp, 2+vp[1]);
+			printvhtpwrenv(ctx, " VHTPWRENV", vp, 2 + vp[1]);
 			break;
 		case IEEE80211_ELEMID_BSSLOAD:
 			printbssload(ctx, " BSSLOAD", vp);
 			break;
 		case IEEE80211_ELEMID_APCHANREP:
-			printapchanrep(ctx, " APCHANREP", vp, 2+vp[1]);
+			printapchanrep(ctx, " APCHANREP", vp, 2 + vp[1]);
 			break;
 		default:
 			if (verbose)
-				printie(ctx, iename(vp[0]), vp, 2+vp[1], maxcols);
+				printie(ctx, iename(vp[0]), vp, 2 + vp[1],
+				    maxcols);
 			break;
 		}
-		ielen -= 2+vp[1];
-		vp += 2+vp[1];
+		ielen -= 2 + vp[1];
+		vp += 2 + vp[1];
 	}
 }
 
@@ -3720,13 +3793,9 @@ printmimo(const struct ieee80211_mimo_info *mi)
 
 	/* XXX TODO: ignore EVM; secondary channels for now */
 	printf(" (rssi %.1f:%.1f:%.1f:%.1f nf %d:%d:%d:%d)",
-	    mi->ch[0].rssi[0] / 2.0,
-	    mi->ch[1].rssi[0] / 2.0,
-	    mi->ch[2].rssi[0] / 2.0,
-	    mi->ch[3].rssi[0] / 2.0,
-	    mi->ch[0].noise[0],
-	    mi->ch[1].noise[0],
-	    mi->ch[2].noise[0],
+	    mi->ch[0].rssi[0] / 2.0, mi->ch[1].rssi[0] / 2.0,
+	    mi->ch[2].rssi[0] / 2.0, mi->ch[3].rssi[0] / 2.0,
+	    mi->ch[0].noise[0], mi->ch[1].noise[0], mi->ch[2].noise[0],
 	    mi->ch[3].noise[0]);
 }
 
@@ -3744,33 +3813,28 @@ printbssidname(const struct ether_addr *n)
 static void
 list_scan(if_ctx *ctx)
 {
-	uint8_t buf[24*1024];
-	char ssid[IEEE80211_NWID_LEN+1];
+	uint8_t buf[24 * 1024];
+	char ssid[IEEE80211_NWID_LEN + 1];
 	const uint8_t *cp;
 	int len, idlen;
 
-	if (get80211len(ctx, IEEE80211_IOC_SCAN_RESULTS, buf, sizeof(buf), &len) < 0)
+	if (get80211len(ctx, IEEE80211_IOC_SCAN_RESULTS, buf, sizeof(buf),
+		&len) < 0)
 		errx(1, "unable to get scan results");
 	if (len < (int)sizeof(struct ieee80211req_scan_result))
 		return;
 
 	getchaninfo(ctx);
 
-	printf("%-*.*s  %-17.17s  %4s %4s   %-7s  %3s %4s\n"
-		, IEEE80211_NWID_LEN, IEEE80211_NWID_LEN, "SSID/MESH ID"
-		, "BSSID"
-		, "CHAN"
-		, "RATE"
-		, " S:N"
-		, "INT"
-		, "CAPS"
-	);
+	printf("%-*.*s  %-17.17s  %4s %4s   %-7s  %3s %4s\n",
+	    IEEE80211_NWID_LEN, IEEE80211_NWID_LEN, "SSID/MESH ID", "BSSID",
+	    "CHAN", "RATE", " S:N", "INT", "CAPS");
 	cp = buf;
 	do {
 		const struct ieee80211req_scan_result *sr;
 		const uint8_t *vp, *idp;
 
-		sr = (const struct ieee80211req_scan_result *)(const void *) cp;
+		sr = (const struct ieee80211req_scan_result *)(const void *)cp;
 		vp = cp + sr->isr_ie_off;
 		if (sr->isr_meshid_len) {
 			idp = vp + sr->isr_ssid_len;
@@ -3779,17 +3843,14 @@ list_scan(if_ctx *ctx)
 			idp = vp;
 			idlen = sr->isr_ssid_len;
 		}
-		printf("%-*.*s  %s  %3d  %3dM %4d:%-4d %4d %-4.4s"
-			, IEEE80211_NWID_LEN
-			  , copy_essid(ssid, IEEE80211_NWID_LEN, idp, idlen)
-			  , ssid
-			, ether_ntoa((const struct ether_addr *) sr->isr_bssid)
-			, ieee80211_mhz2ieee(sr->isr_freq, sr->isr_flags)
-			, getmaxrate(sr->isr_rates, sr->isr_nrates)
-			, (sr->isr_rssi/2)+sr->isr_noise, sr->isr_noise
-			, sr->isr_intval
-			, getcaps(sr->isr_capinfo)
-		);
+		printf("%-*.*s  %s  %3d  %3dM %4d:%-4d %4d %-4.4s",
+		    IEEE80211_NWID_LEN,
+		    copy_essid(ssid, IEEE80211_NWID_LEN, idp, idlen), ssid,
+		    ether_ntoa((const struct ether_addr *)sr->isr_bssid),
+		    ieee80211_mhz2ieee(sr->isr_freq, sr->isr_flags),
+		    getmaxrate(sr->isr_rates, sr->isr_nrates),
+		    (sr->isr_rssi / 2) + sr->isr_noise, sr->isr_noise,
+		    sr->isr_intval, getcaps(sr->isr_capinfo));
 		printies(ctx, vp + sr->isr_ssid_len + sr->isr_meshid_len,
 		    sr->isr_ie_len, 24);
 		printbssidname((const struct ether_addr *)sr->isr_bssid);
@@ -3815,10 +3876,8 @@ scan_and_wait(if_ctx *ctx)
 	ireq.i_type = IEEE80211_IOC_SCAN_REQ;
 
 	memset(&sr, 0, sizeof(sr));
-	sr.sr_flags = IEEE80211_IOC_SCAN_ACTIVE
-		    | IEEE80211_IOC_SCAN_BGSCAN
-		    | IEEE80211_IOC_SCAN_NOPICK
-		    | IEEE80211_IOC_SCAN_ONCE;
+	sr.sr_flags = IEEE80211_IOC_SCAN_ACTIVE | IEEE80211_IOC_SCAN_BGSCAN |
+	    IEEE80211_IOC_SCAN_NOPICK | IEEE80211_IOC_SCAN_ONCE;
 	sr.sr_duration = IEEE80211_IOC_SCAN_FOREVER;
 	sr.sr_nssid = 0;
 
@@ -3842,7 +3901,7 @@ scan_and_wait(if_ctx *ctx)
 			rtm = (struct rt_msghdr *)(void *)buf;
 			if (rtm->rtm_version != RTM_VERSION)
 				break;
-			ifan = (struct if_announcemsghdr *) rtm;
+			ifan = (struct if_announcemsghdr *)rtm;
 		} while (rtm->rtm_type != RTM_IEEE80211 ||
 		    ifan->ifan_what != RTM_IEEE80211_SCAN);
 	}
@@ -3893,20 +3952,20 @@ list_stations(if_ctx *ctx)
 {
 	union {
 		struct ieee80211req_sta_req req;
-		uint8_t buf[24*1024];
+		uint8_t buf[24 * 1024];
 	} u;
 	enum ieee80211_opmode opmode = get80211opmode(ctx);
 	const uint8_t *cp;
 	int len;
 
 	/* broadcast address =>'s get all stations */
-	(void) memset(u.req.is_u.macaddr, 0xff, IEEE80211_ADDR_LEN);
+	(void)memset(u.req.is_u.macaddr, 0xff, IEEE80211_ADDR_LEN);
 	if (opmode == IEEE80211_M_STA) {
 		/*
 		 * Get information about the associated AP.
 		 */
-		(void) get80211(ctx, IEEE80211_IOC_BSSID,
-		    u.req.is_u.macaddr, IEEE80211_ADDR_LEN);
+		(void)get80211(ctx, IEEE80211_IOC_BSSID, u.req.is_u.macaddr,
+		    IEEE80211_ADDR_LEN);
 	}
 	if (get80211len(ctx, IEEE80211_IOC_STA_INFO, &u, sizeof(u), &len) < 0)
 		errx(1, "unable to get station information");
@@ -3916,32 +3975,14 @@ list_stations(if_ctx *ctx)
 	getchaninfo(ctx);
 
 	if (opmode == IEEE80211_M_MBSS)
-		printf("%-17.17s %4s %5s %5s %7s %4s %4s %4s %6s %6s\n"
-			, "ADDR"
-			, "CHAN"
-			, "LOCAL"
-			, "PEER"
-			, "STATE"
-			, "RATE"
-			, "RSSI"
-			, "IDLE"
-			, "TXSEQ"
-			, "RXSEQ"
-		);
+		printf("%-17.17s %4s %5s %5s %7s %4s %4s %4s %6s %6s\n", "ADDR",
+		    "CHAN", "LOCAL", "PEER", "STATE", "RATE", "RSSI", "IDLE",
+		    "TXSEQ", "RXSEQ");
 	else
-		printf("%-17.17s %4s %4s %4s %4s %4s %6s %6s %4s %-12s\n"
-			, "ADDR"
-			, "AID"
-			, "CHAN"
-			, "RATE"
-			, "RSSI"
-			, "IDLE"
-			, "TXSEQ"
-			, "RXSEQ"
-			, "CAPS"
-			, "FLAG"
-		);
-	cp = (const uint8_t *) u.req.info;
+		printf("%-17.17s %4s %4s %4s %4s %4s %6s %6s %4s %-12s\n",
+		    "ADDR", "AID", "CHAN", "RATE", "RSSI", "IDLE", "TXSEQ",
+		    "RXSEQ", "CAPS", "FLAG");
+	cp = (const uint8_t *)u.req.info;
 	do {
 		const struct ieee80211req_sta_info *si;
 
@@ -3949,35 +3990,24 @@ list_stations(if_ctx *ctx)
 		if (si->isi_len < sizeof(*si))
 			break;
 		if (opmode == IEEE80211_M_MBSS)
-			printf("%s %4d %5x %5x %7.7s %3dM %4.1f %4d %6d %6d"
-				, ether_ntoa((const struct ether_addr*)
-				    si->isi_macaddr)
-				, ieee80211_mhz2ieee(si->isi_freq,
-				    si->isi_flags)
-				, si->isi_localid
-				, si->isi_peerid
-				, mesh_linkstate_string(si->isi_peerstate)
-				, si->isi_txmbps/2
-				, si->isi_rssi/2.
-				, si->isi_inact
-				, gettxseq(si)
-				, getrxseq(si)
-			);
+			printf("%s %4d %5x %5x %7.7s %3dM %4.1f %4d %6d %6d",
+			    ether_ntoa(
+				(const struct ether_addr *)si->isi_macaddr),
+			    ieee80211_mhz2ieee(si->isi_freq, si->isi_flags),
+			    si->isi_localid, si->isi_peerid,
+			    mesh_linkstate_string(si->isi_peerstate),
+			    si->isi_txmbps / 2, si->isi_rssi / 2.,
+			    si->isi_inact, gettxseq(si), getrxseq(si));
 		else
-			printf("%s %4u %4d %3dM %4.1f %4d %6d %6d %-4.4s %-12.12s"
-				, ether_ntoa((const struct ether_addr*)
-				    si->isi_macaddr)
-				, IEEE80211_AID(si->isi_associd)
-				, ieee80211_mhz2ieee(si->isi_freq,
-				    si->isi_flags)
-				, si->isi_txmbps/2
-				, si->isi_rssi/2.
-				, si->isi_inact
-				, gettxseq(si)
-				, getrxseq(si)
-				, getcaps(si->isi_capinfo)
-				, getflags(si->isi_state)
-			);
+			printf(
+			    "%s %4u %4d %3dM %4.1f %4d %6d %6d %-4.4s %-12.12s",
+			    ether_ntoa(
+				(const struct ether_addr *)si->isi_macaddr),
+			    IEEE80211_AID(si->isi_associd),
+			    ieee80211_mhz2ieee(si->isi_freq, si->isi_flags),
+			    si->isi_txmbps / 2, si->isi_rssi / 2.,
+			    si->isi_inact, gettxseq(si), getrxseq(si),
+			    getcaps(si->isi_capinfo), getflags(si->isi_state));
 		printies(ctx, cp + si->isi_ie_off, si->isi_ie_len, 24);
 		printmimo(&si->isi_mimo);
 		printf("\n");
@@ -3989,12 +4019,12 @@ static const char *
 mesh_linkstate_string(uint8_t state)
 {
 	static const char *state_names[] = {
-	    [0] = "IDLE",
-	    [1] = "OPEN-TX",
-	    [2] = "OPEN-RX",
-	    [3] = "CONF-RX",
-	    [4] = "ESTAB",
-	    [5] = "HOLDING",
+		[0] = "IDLE",
+		[1] = "OPEN-TX",
+		[2] = "OPEN-RX",
+		[3] = "CONF-RX",
+		[4] = "ESTAB",
+		[5] = "HOLDING",
 	};
 
 	if (state >= nitems(state_names)) {
@@ -4006,8 +4036,8 @@ mesh_linkstate_string(uint8_t state)
 }
 
 static const char *
-get_chaninfo(const struct ieee80211_channel *c, int precise,
-	char buf[], size_t bsize)
+get_chaninfo(const struct ieee80211_channel *c, int precise, char buf[],
+    size_t bsize)
 {
 	buf[0] = '\0';
 	if (IEEE80211_IS_CHAN_FHSS(c))
@@ -4073,11 +4103,10 @@ print_chaninfo(const struct ieee80211_channel *c, int verb)
 		    IEEE80211_IS_CHAN_CACDONE(c) ? 'C' : ' ',
 		    get_chaninfo(c, verb, buf, sizeof(buf)));
 	else
-	printf("Channel %3u : %u%c MHz%-14.14s",
-	    ieee80211_mhz2ieee(c->ic_freq, c->ic_flags), c->ic_freq,
-	    IEEE80211_IS_CHAN_PASSIVE(c) ? '*' : ' ',
-	    get_chaninfo(c, verb, buf, sizeof(buf)));
-
+		printf("Channel %3u : %u%c MHz%-14.14s",
+		    ieee80211_mhz2ieee(c->ic_freq, c->ic_flags), c->ic_freq,
+		    IEEE80211_IS_CHAN_PASSIVE(c) ? '*' : ' ',
+		    get_chaninfo(c, verb, buf, sizeof(buf)));
 }
 
 static int
@@ -4117,7 +4146,7 @@ chanpref(const struct ieee80211_channel *c)
 
 static void
 print_channels(if_ctx *ctx, const struct ieee80211req_chaninfo *chans,
-	int allchans, int verb)
+    int allchans, int verb)
 {
 	struct ieee80211req_chaninfo *achans;
 	uint8_t reported[IEEE80211_CHAN_BYTES];
@@ -4132,7 +4161,8 @@ print_channels(if_ctx *ctx, const struct ieee80211req_chaninfo *chans,
 	if (!allchans) {
 		struct ieee80211req_chanlist active;
 
-		if (get80211(ctx, IEEE80211_IOC_CHANLIST, &active, sizeof(active)) < 0)
+		if (get80211(ctx, IEEE80211_IOC_CHANLIST, &active,
+			sizeof(active)) < 0)
 			errx(1, "unable to get active channel list");
 		for (i = 0; i < chans->ic_nchans; i++) {
 			c = &chans->ic_chans[i];
@@ -4146,7 +4176,7 @@ print_channels(if_ctx *ctx, const struct ieee80211req_chaninfo *chans,
 			 */
 			if (isset(reported, c->ic_ieee) && !verb) {
 				/* XXX we assume duplicates are adjacent */
-				achans->ic_chans[achans->ic_nchans-1] = *c;
+				achans->ic_chans[achans->ic_nchans - 1] = *c;
 			} else {
 				achans->ic_chans[achans->ic_nchans++] = *c;
 				setbit(reported, c->ic_ieee);
@@ -4159,7 +4189,7 @@ print_channels(if_ctx *ctx, const struct ieee80211req_chaninfo *chans,
 			if (isset(reported, c->ic_ieee) && !verb) {
 				/* XXX we assume duplicates are adjacent */
 				struct ieee80211_channel *a =
-				    &achans->ic_chans[achans->ic_nchans-1];
+				    &achans->ic_chans[achans->ic_nchans - 1];
 				if (chanpref(c) > chanpref(a))
 					*a = *c;
 			} else {
@@ -4174,7 +4204,7 @@ print_channels(if_ctx *ctx, const struct ieee80211req_chaninfo *chans,
 
 	for (i = 0; i < achans->ic_nchans / 2; i++) {
 		print_chaninfo(&achans->ic_chans[i], verb);
-		print_chaninfo(&achans->ic_chans[half+i], verb);
+		print_chaninfo(&achans->ic_chans[half + i], verb);
 		printf("\n");
 	}
 	if (achans->ic_nchans % 2) {
@@ -4194,19 +4224,18 @@ list_channels(if_ctx *ctx, int allchans)
 static void
 print_txpow(const struct ieee80211_channel *c)
 {
-	printf("Channel %3u : %u MHz %3.1f reg %2d  ",
-	    c->ic_ieee, c->ic_freq,
-	    c->ic_maxpower/2., c->ic_maxregpower);
+	printf("Channel %3u : %u MHz %3.1f reg %2d  ", c->ic_ieee, c->ic_freq,
+	    c->ic_maxpower / 2., c->ic_maxregpower);
 }
 
 static void
 print_txpow_verbose(const struct ieee80211_channel *c)
 {
 	print_chaninfo(c, 1);
-	printf("min %4.1f dBm  max %3.1f dBm  reg %2d dBm",
-	    c->ic_minpower/2., c->ic_maxpower/2., c->ic_maxregpower);
+	printf("min %4.1f dBm  max %3.1f dBm  reg %2d dBm", c->ic_minpower / 2.,
+	    c->ic_maxpower / 2., c->ic_maxregpower);
 	/* indicate where regulatory cap limits power use */
-	if (c->ic_maxpower > 2*c->ic_maxregpower)
+	if (c->ic_maxpower > 2 * c->ic_maxregpower)
 		printf(" <");
 }
 
@@ -4230,7 +4259,7 @@ list_txpow(if_ctx *ctx)
 		if (isset(reported, c->ic_ieee) && !ctx->args->verbose) {
 			/* XXX we assume duplicates are adjacent */
 			assert(achans->ic_nchans > 0);
-			prev = &achans->ic_chans[achans->ic_nchans-1];
+			prev = &achans->ic_chans[achans->ic_nchans - 1];
 			/* display highest power on channel */
 			if (c->ic_maxpower > prev->ic_maxpower)
 				*prev = *c;
@@ -4246,7 +4275,7 @@ list_txpow(if_ctx *ctx)
 
 		for (i = 0; i < achans->ic_nchans / 2; i++) {
 			print_txpow(&achans->ic_chans[i]);
-			print_txpow(&achans->ic_chans[half+i]);
+			print_txpow(&achans->ic_chans[half + i]);
 			printf("\n");
 		}
 		if (achans->ic_nchans % 2) {
@@ -4297,8 +4326,8 @@ list_capabilities(if_ctx *ctx)
 
 	putchar('\n');
 	if (verbose) {
-		chaninfo = &dc->dc_chaninfo;	/* XXX */
-		print_channels(ctx, &dc->dc_chaninfo, 1/*allchans*/, verbose);
+		chaninfo = &dc->dc_chaninfo; /* XXX */
+		print_channels(ctx, &dc->dc_chaninfo, 1 /*allchans*/, verbose);
 	}
 	free(dc);
 }
@@ -4312,8 +4341,8 @@ get80211wme(if_ctx *ctx, int param, int ac, int *val)
 	ireq.i_type = param;
 	ireq.i_len = ac;
 	if (ioctl_ctx(ctx, SIOCG80211, &ireq) < 0) {
-		warn("cannot get WME parameter %d, ac %d%s",
-		    param, ac & IEEE80211_WMEPARAM_VAL,
+		warn("cannot get WME parameter %d, ac %d%s", param,
+		    ac & IEEE80211_WMEPARAM_VAL,
 		    ac & IEEE80211_WMEPARAM_BSS ? " (BSS)" : "");
 		return -1;
 	}
@@ -4345,7 +4374,8 @@ list_wme_aci(if_ctx *ctx, const char *tag, int ac)
 	}
 	/* !BSS only */
 	if ((ac & IEEE80211_WMEPARAM_BSS) == 0) {
-		if (get80211wme(ctx, IEEE80211_IOC_WME_ACKPOLICY, ac, &val) != -1) {
+		if (get80211wme(ctx, IEEE80211_IOC_WME_ACKPOLICY, ac, &val) !=
+		    -1) {
 			if (!val)
 				printf(" -ack");
 			else if (ctx->args->verbose)
@@ -4364,7 +4394,7 @@ list_wme(if_ctx *ctx)
 	if (ctx->args->verbose) {
 		/* display both BSS and local settings */
 		for (ac = WME_AC_BE; ac <= WME_AC_VO; ac++) {
-	again:
+		again:
 			if (ac & IEEE80211_WMEPARAM_BSS)
 				list_wme_aci(ctx, "     ", ac);
 			else
@@ -4398,26 +4428,30 @@ list_roam(if_ctx *ctx)
 		    mode == IEEE80211_MODE_VHT_2GHZ ||
 		    mode == IEEE80211_MODE_VHT_5GHZ) {
 			if (rp->rssi & 1)
-				LINE_CHECK("roam:%-7.7s rssi %2u.5dBm  MCS %2u    ",
-				    modename[mode], rp->rssi/2,
-				    rp->rate &~ IEEE80211_RATE_MCS);
+				LINE_CHECK(
+				    "roam:%-7.7s rssi %2u.5dBm  MCS %2u    ",
+				    modename[mode], rp->rssi / 2,
+				    rp->rate & ~IEEE80211_RATE_MCS);
 			else
-				LINE_CHECK("roam:%-7.7s rssi %4udBm  MCS %2u    ",
-				    modename[mode], rp->rssi/2,
-				    rp->rate &~ IEEE80211_RATE_MCS);
+				LINE_CHECK(
+				    "roam:%-7.7s rssi %4udBm  MCS %2u    ",
+				    modename[mode], rp->rssi / 2,
+				    rp->rate & ~IEEE80211_RATE_MCS);
 		} else {
 			if (rp->rssi & 1)
-				LINE_CHECK("roam:%-7.7s rssi %2u.5dBm rate %2u Mb/s",
-				    modename[mode], rp->rssi/2, rp->rate/2);
+				LINE_CHECK(
+				    "roam:%-7.7s rssi %2u.5dBm rate %2u Mb/s",
+				    modename[mode], rp->rssi / 2, rp->rate / 2);
 			else
-				LINE_CHECK("roam:%-7.7s rssi %4udBm rate %2u Mb/s",
-				    modename[mode], rp->rssi/2, rp->rate/2);
+				LINE_CHECK(
+				    "roam:%-7.7s rssi %4udBm rate %2u Mb/s",
+				    modename[mode], rp->rssi / 2, rp->rate / 2);
 		}
 	}
 }
 
 /* XXX TODO: rate-to-string method... */
-static const char*
+static const char *
 get_mcs_mbs_rate_str(uint8_t rate)
 {
 	return (rate & IEEE80211_RATE_MCS) ? "MCS " : "Mb/s";
@@ -4427,7 +4461,7 @@ static uint8_t
 get_rate_value(uint8_t rate)
 {
 	if (rate & IEEE80211_RATE_MCS)
-		return (rate &~ IEEE80211_RATE_MCS);
+		return (rate & ~IEEE80211_RATE_MCS);
 	return (rate / 2);
 }
 
@@ -4448,7 +4482,7 @@ list_txparams(if_ctx *ctx)
 		    mode == IEEE80211_MODE_VHT_5GHZ) {
 			if (tp->ucastrate == IEEE80211_FIXED_RATE_NONE)
 				LINE_CHECK("%-7.7s ucast NONE    mgmt %2u %s "
-				    "mcast %2u %s maxretry %u",
+					   "mcast %2u %s maxretry %u",
 				    modename[mode],
 				    get_rate_value(tp->mgmtrate),
 				    get_mcs_mbs_rate_str(tp->mgmtrate),
@@ -4457,9 +4491,9 @@ list_txparams(if_ctx *ctx)
 				    tp->maxretry);
 			else
 				LINE_CHECK("%-7.7s ucast %2u MCS  mgmt %2u %s "
-				    "mcast %2u %s maxretry %u",
+					   "mcast %2u %s maxretry %u",
 				    modename[mode],
-				    tp->ucastrate &~ IEEE80211_RATE_MCS,
+				    tp->ucastrate & ~IEEE80211_RATE_MCS,
 				    get_rate_value(tp->mgmtrate),
 				    get_mcs_mbs_rate_str(tp->mgmtrate),
 				    get_rate_value(tp->mcastrate),
@@ -4468,16 +4502,16 @@ list_txparams(if_ctx *ctx)
 		} else {
 			if (tp->ucastrate == IEEE80211_FIXED_RATE_NONE)
 				LINE_CHECK("%-7.7s ucast NONE    mgmt %2u Mb/s "
-				    "mcast %2u Mb/s maxretry %u",
-				    modename[mode],
-				    tp->mgmtrate/2,
-				    tp->mcastrate/2, tp->maxretry);
+					   "mcast %2u Mb/s maxretry %u",
+				    modename[mode], tp->mgmtrate / 2,
+				    tp->mcastrate / 2, tp->maxretry);
 			else
-				LINE_CHECK("%-7.7s ucast %2u Mb/s mgmt %2u Mb/s "
+				LINE_CHECK(
+				    "%-7.7s ucast %2u Mb/s mgmt %2u Mb/s "
 				    "mcast %2u Mb/s maxretry %u",
-				    modename[mode],
-				    tp->ucastrate/2, tp->mgmtrate/2,
-				    tp->mcastrate/2, tp->maxretry);
+				    modename[mode], tp->ucastrate / 2,
+				    tp->mgmtrate / 2, tp->mcastrate / 2,
+				    tp->maxretry);
 		}
 	}
 }
@@ -4531,7 +4565,7 @@ list_mac(if_ctx *ctx)
 	} else if (policy == IEEE80211_MACCMD_POLICY_DENY) {
 		c = '-';
 	} else if (policy == IEEE80211_MACCMD_POLICY_RADIUS) {
-		c = 'r';		/* NB: should never have entries */
+		c = 'r'; /* NB: should never have entries */
 	} else {
 		printf("policy: unknown (%u)\n", policy);
 		c = '?';
@@ -4543,7 +4577,7 @@ list_mac(if_ctx *ctx)
 	ireq.i_len = 0;
 	if (ioctl_ctx(ctx, SIOCG80211, &ireq) < 0)
 		err(1, "unable to get mac acl list size");
-	if (ireq.i_len == 0) {		/* NB: no acls */
+	if (ireq.i_len == 0) { /* NB: no acls */
 		if (!(ctx->args->verbose || c == '?'))
 			printpolicy(policy);
 		return;
@@ -4558,18 +4592,18 @@ list_mac(if_ctx *ctx)
 	if (ioctl_ctx(ctx, SIOCG80211, &ireq) < 0)
 		err(1, "unable to get mac acl list");
 	nacls = len / sizeof(*acllist);
-	acllist = (struct ieee80211req_maclist *) data;
+	acllist = (struct ieee80211req_maclist *)data;
 	for (i = 0; i < nacls; i++)
-		printf("%c%s\n", c, ether_ntoa(
-			(const struct ether_addr *) acllist[i].ml_macaddr));
+		printf("%c%s\n", c,
+		    ether_ntoa(
+			(const struct ether_addr *)acllist[i].ml_macaddr));
 	free(data);
 }
 
 static void
 print_regdomain(const struct ieee80211_regdomain *reg, int verb)
 {
-	if ((reg->regdomain != 0 &&
-	    reg->regdomain != reg->country) || verb) {
+	if ((reg->regdomain != 0 && reg->regdomain != reg->country) || verb) {
 		const struct regdomain *rd =
 		    lib80211_regdomain_findbysku(getregdata(), reg->regdomain);
 		if (rd == NULL)
@@ -4606,7 +4640,7 @@ list_regdomain(if_ctx *ctx, int channelsalso)
 		spacer = ':';
 		print_regdomain(&regdomain, 1);
 		LINE_BREAK();
-		print_channels(ctx, chaninfo, 1/*allchans*/, 1/*verbose*/);
+		print_channels(ctx, chaninfo, 1 /*allchans*/, 1 /*verbose*/);
 	} else
 		print_regdomain(&regdomain, ctx->args->verbose);
 }
@@ -4624,33 +4658,25 @@ list_mesh(if_ctx *ctx)
 	ireq.i_data = &routes;
 	ireq.i_len = sizeof(routes);
 	if (ioctl_ctx(ctx, SIOCG80211, &ireq) < 0)
-	 	err(1, "unable to get the Mesh routing table");
+		err(1, "unable to get the Mesh routing table");
 
-	printf("%-17.17s %-17.17s %4s %4s %4s %6s %s\n"
-		, "DEST"
-		, "NEXT HOP"
-		, "HOPS"
-		, "METRIC"
-		, "LIFETIME"
-		, "MSEQ"
-		, "FLAGS");
+	printf("%-17.17s %-17.17s %4s %4s %4s %6s %s\n", "DEST", "NEXT HOP",
+	    "HOPS", "METRIC", "LIFETIME", "MSEQ", "FLAGS");
 
 	for (unsigned int i = 0; i < ireq.i_len / sizeof(*rt); i++) {
 		rt = &routes[i];
 		printf("%s ",
 		    ether_ntoa((const struct ether_addr *)rt->imr_dest));
 		printf("%s %4u   %4u   %6u %6u    %c%c\n",
-			ether_ntoa((const struct ether_addr *)rt->imr_nexthop),
-			rt->imr_nhops, rt->imr_metric, rt->imr_lifetime,
-			rt->imr_lastmseq,
-			(rt->imr_flags & IEEE80211_MESHRT_FLAGS_DISCOVER) ?
-			    'D' :
-			(rt->imr_flags & IEEE80211_MESHRT_FLAGS_VALID) ?
-			    'V' : '!',
-			(rt->imr_flags & IEEE80211_MESHRT_FLAGS_PROXY) ?
-			    'P' :
-			(rt->imr_flags & IEEE80211_MESHRT_FLAGS_GATE) ?
-			    'G' :' ');
+		    ether_ntoa((const struct ether_addr *)rt->imr_nexthop),
+		    rt->imr_nhops, rt->imr_metric, rt->imr_lifetime,
+		    rt->imr_lastmseq,
+		    (rt->imr_flags & IEEE80211_MESHRT_FLAGS_DISCOVER)  ? 'D' :
+			(rt->imr_flags & IEEE80211_MESHRT_FLAGS_VALID) ? 'V' :
+									 '!',
+		    (rt->imr_flags & IEEE80211_MESHRT_FLAGS_PROXY)    ? 'P' :
+			(rt->imr_flags & IEEE80211_MESHRT_FLAGS_GATE) ? 'G' :
+									' ');
 	}
 }
 
@@ -4658,7 +4684,7 @@ static void
 set80211list(if_ctx *ctx, const char *arg, int dummy __unused)
 {
 	int s = ctx->io_s;
-#define	iseq(a,b)	(strncasecmp(a,b,sizeof(b)-1) == 0)
+#define iseq(a, b) (strncasecmp(a, b, sizeof(b) - 1) == 0)
 
 	LINE_INIT('\t');
 
@@ -4768,36 +4794,37 @@ printkey(if_ctx *ctx, const struct ieee80211req_key *ik)
 	const bool printkeys = ctx->args->printkeys;
 
 	printcontents = printkeys &&
-		(memcmp(ik->ik_keydata, zerodata, keylen) != 0 || verbose);
+	    (memcmp(ik->ik_keydata, zerodata, keylen) != 0 || verbose);
 	if (printcontents)
 		LINE_BREAK();
 	switch (ik->ik_type) {
 	case IEEE80211_CIPHER_WEP:
 		/* compatibility */
-		LINE_CHECK("wepkey %u:%s", ik->ik_keyix+1,
-		    keylen <= 5 ? "40-bit" :
-		    keylen <= 13 ? "104-bit" : "128-bit");
+		LINE_CHECK("wepkey %u:%s", ik->ik_keyix + 1,
+		    keylen <= 5	     ? "40-bit" :
+			keylen <= 13 ? "104-bit" :
+				       "128-bit");
 		break;
 	case IEEE80211_CIPHER_TKIP:
-		if (keylen > 128/8)
-			keylen -= 128/8;	/* ignore MIC for now */
-		LINE_CHECK("TKIP %u:%u-bit", ik->ik_keyix+1, 8*keylen);
+		if (keylen > 128 / 8)
+			keylen -= 128 / 8; /* ignore MIC for now */
+		LINE_CHECK("TKIP %u:%u-bit", ik->ik_keyix + 1, 8 * keylen);
 		break;
 	case IEEE80211_CIPHER_AES_OCB:
-		LINE_CHECK("AES-OCB %u:%u-bit", ik->ik_keyix+1, 8*keylen);
+		LINE_CHECK("AES-OCB %u:%u-bit", ik->ik_keyix + 1, 8 * keylen);
 		break;
 	case IEEE80211_CIPHER_AES_CCM:
-		LINE_CHECK("AES-CCM %u:%u-bit", ik->ik_keyix+1, 8*keylen);
+		LINE_CHECK("AES-CCM %u:%u-bit", ik->ik_keyix + 1, 8 * keylen);
 		break;
 	case IEEE80211_CIPHER_CKIP:
-		LINE_CHECK("CKIP %u:%u-bit", ik->ik_keyix+1, 8*keylen);
+		LINE_CHECK("CKIP %u:%u-bit", ik->ik_keyix + 1, 8 * keylen);
 		break;
 	case IEEE80211_CIPHER_NONE:
-		LINE_CHECK("NULL %u:%u-bit", ik->ik_keyix+1, 8*keylen);
+		LINE_CHECK("NULL %u:%u-bit", ik->ik_keyix + 1, 8 * keylen);
 		break;
 	default:
-		LINE_CHECK("UNKNOWN (0x%x) %u:%u-bit",
-			ik->ik_type, ik->ik_keyix+1, 8*keylen);
+		LINE_CHECK("UNKNOWN (0x%x) %u:%u-bit", ik->ik_type,
+		    ik->ik_keyix + 1, 8 * keylen);
 		break;
 	}
 	if (printcontents) {
@@ -4833,13 +4860,13 @@ printrate(const char *tag, int v, int defrate, int defmcs)
 	if ((v & IEEE80211_RATE_MCS) == 0) {
 		if (v != defrate) {
 			if (v & 1)
-				LINE_CHECK("%s %d.5", tag, v/2);
+				LINE_CHECK("%s %d.5", tag, v / 2);
 			else
-				LINE_CHECK("%s %d", tag, v/2);
+				LINE_CHECK("%s %d", tag, v / 2);
 		}
 	} else {
 		if (v != defmcs)
-			LINE_CHECK("%s %d", tag, v &~ 0x80);
+			LINE_CHECK("%s %d", tag, v & ~0x80);
 	}
 }
 
@@ -4914,7 +4941,9 @@ ieee80211_status(if_ctx *ctx)
 		printf("ssid ");
 		if (num > 1) {
 			for (i = 0; i < num; i++) {
-				if (getid(ctx, i, data, sizeof(data), &len, 0) >= 0 && len > 0) {
+				if (getid(ctx, i, data, sizeof(data), &len,
+					0) >= 0 &&
+				    len > 0) {
 					printf(" %d:", i + 1);
 					print_string(data, len);
 				}
@@ -4926,7 +4955,7 @@ ieee80211_status(if_ctx *ctx)
 	if (c->ic_freq != IEEE80211_CHAN_ANY) {
 		char buf[14];
 		printf(" channel %d (%u MHz%s)", c->ic_ieee, c->ic_freq,
-			get_chaninfo(c, 1, buf, sizeof(buf)));
+		    get_chaninfo(c, 1, buf, sizeof(buf)));
 	} else if (verbose)
 		printf(" channel UNDEF");
 
@@ -4936,12 +4965,13 @@ ieee80211_status(if_ctx *ctx)
 		printbssidname((struct ether_addr *)data);
 	}
 
-	if (get80211len(ctx, IEEE80211_IOC_STATIONNAME, data, sizeof(data), &len) != -1) {
+	if (get80211len(ctx, IEEE80211_IOC_STATIONNAME, data, sizeof(data),
+		&len) != -1) {
 		printf("\n\tstationname ");
 		print_string(data, len);
 	}
 
-	spacer = ' ';		/* force first break */
+	spacer = ' '; /* force first break */
 	LINE_BREAK();
 
 	list_regdomain(ctx, 0);
@@ -4963,7 +4993,7 @@ ieee80211_status(if_ctx *ctx)
 			break;
 		case IEEE80211_AUTH_WPA:
 			if (get80211val(ctx, IEEE80211_IOC_WPA, &wpa) < 0)
-				wpa = 1;	/* default to WPA1 */
+				wpa = 1; /* default to WPA1 */
 			switch (wpa) {
 			case 2:
 				LINE_CHECK("authmode WPA2/802.11i");
@@ -5065,7 +5095,7 @@ ieee80211_status(if_ctx *ctx)
 			goto end;
 		}
 		if (val != -1)
-			LINE_CHECK("deftxkey %d", val+1);
+			LINE_CHECK("deftxkey %d", val + 1);
 		else if (wepmode != IEEE80211_WEP_OFF || verbose)
 			LINE_CHECK("deftxkey UNDEF");
 
@@ -5079,7 +5109,8 @@ ieee80211_status(if_ctx *ctx)
 
 			memset(&ik, 0, sizeof(ik));
 			ik.ik_keyix = i;
-			if (get80211(ctx, IEEE80211_IOC_WPAKEY, &ik, sizeof(ik)) < 0) {
+			if (get80211(ctx, IEEE80211_IOC_WPAKEY, &ik,
+				sizeof(ik)) < 0) {
 				warn("WEP support, but can get keys!");
 				goto end;
 			}
@@ -5091,12 +5122,11 @@ ieee80211_status(if_ctx *ctx)
 		}
 		if (i > 0 && verbose)
 			LINE_BREAK();
-end:
-		;
+	end:;
 	}
 
 	if (get80211val(ctx, IEEE80211_IOC_POWERSAVE, &val) != -1 &&
-	    val != IEEE80211_POWERSAVE_NOSUP ) {
+	    val != IEEE80211_POWERSAVE_NOSUP) {
 		if (val != IEEE80211_POWERSAVE_OFF || verbose) {
 			switch (val) {
 			case IEEE80211_POWERSAVE_OFF:
@@ -5112,20 +5142,21 @@ end:
 				LINE_CHECK("powersavemode PSP-CAM");
 				break;
 			}
-			if (get80211val(ctx, IEEE80211_IOC_POWERSAVESLEEP, &val) != -1)
+			if (get80211val(ctx, IEEE80211_IOC_POWERSAVESLEEP,
+				&val) != -1)
 				LINE_CHECK("powersavesleep %d", val);
 		}
 	}
 
 	if (get80211val(ctx, IEEE80211_IOC_TXPOWER, &val) != -1) {
 		if (val & 1)
-			LINE_CHECK("txpower %d.5", val/2);
+			LINE_CHECK("txpower %d.5", val / 2);
 		else
-			LINE_CHECK("txpower %d", val/2);
+			LINE_CHECK("txpower %d", val / 2);
 	}
 	if (verbose) {
 		if (get80211val(ctx, IEEE80211_IOC_TXPOWMAX, &val) != -1)
-			LINE_CHECK("txpowmax %.1f", val/2.);
+			LINE_CHECK("txpowmax %.1f", val / 2.);
 	}
 
 	if (get80211val(ctx, IEEE80211_IOC_DOTD, &val) != -1) {
@@ -5145,7 +5176,8 @@ end:
 			LINE_CHECK("fragthreshold %d", val);
 	}
 	if (opmode == IEEE80211_M_STA || verbose) {
-		if (get80211val(ctx, IEEE80211_IOC_BMISSTHRESHOLD, &val) != -1) {
+		if (get80211val(ctx, IEEE80211_IOC_BMISSTHRESHOLD, &val) !=
+		    -1) {
 			if (val != IEEE80211_HWBMISS_MAX || verbose)
 				LINE_CHECK("bmiss %d", val);
 		}
@@ -5154,13 +5186,13 @@ end:
 	if (!verbose) {
 		gettxparams(ctx);
 		tp = &txparams.params[chan2mode(c)];
-		printrate("ucastrate", tp->ucastrate,
-		    IEEE80211_FIXED_RATE_NONE, IEEE80211_FIXED_RATE_NONE);
-		printrate("mcastrate", tp->mcastrate, 2*1,
-		    IEEE80211_RATE_MCS|0);
-		printrate("mgmtrate", tp->mgmtrate, 2*1,
-		    IEEE80211_RATE_MCS|0);
-		if (tp->maxretry != 6)		/* XXX */
+		printrate("ucastrate", tp->ucastrate, IEEE80211_FIXED_RATE_NONE,
+		    IEEE80211_FIXED_RATE_NONE);
+		printrate("mcastrate", tp->mcastrate, 2 * 1,
+		    IEEE80211_RATE_MCS | 0);
+		printrate("mgmtrate", tp->mgmtrate, 2 * 1,
+		    IEEE80211_RATE_MCS | 0);
+		if (tp->maxretry != 6) /* XXX */
 			LINE_CHECK("maxretry %d", tp->maxretry);
 	} else {
 		LINE_BREAK();
@@ -5168,7 +5200,7 @@ end:
 	}
 
 	bgscaninterval = -1;
-	(void) get80211val(ctx, IEEE80211_IOC_BGSCAN_INTERVAL, &bgscaninterval);
+	(void)get80211val(ctx, IEEE80211_IOC_BGSCAN_INTERVAL, &bgscaninterval);
 
 	if (get80211val(ctx, IEEE80211_IOC_SCANVALID, &val) != -1) {
 		if (val != bgscaninterval || verbose)
@@ -5191,9 +5223,9 @@ end:
 			getroam(ctx);
 			rp = &roamparams.params[chan2mode(c)];
 			if (rp->rssi & 1)
-				LINE_CHECK("roam:rssi %u.5", rp->rssi/2);
+				LINE_CHECK("roam:rssi %u.5", rp->rssi / 2);
 			else
-				LINE_CHECK("roam:rssi %u", rp->rssi/2);
+				LINE_CHECK("roam:rssi %u", rp->rssi / 2);
 			LINE_CHECK("roam:rate %s%u",
 			    (rp->rate & IEEE80211_RATE_MCS) ? "MCS " : "",
 			    get_rate_value(rp->rate));
@@ -5521,7 +5553,7 @@ end:
 					break;
 				default:
 					LINE_CHECK("roaming UNKNOWN (0x%x)",
-						val);
+					    val);
 					break;
 				}
 			}
@@ -5537,7 +5569,8 @@ end:
 			LINE_CHECK("tdmaslotlen %u", val);
 		if (get80211val(ctx, IEEE80211_IOC_TDMA_BINTERVAL, &val) != -1)
 			LINE_CHECK("tdmabintval %u", val);
-	} else if (get80211val(ctx, IEEE80211_IOC_BEACON_INTERVAL, &val) != -1) {
+	} else if (get80211val(ctx, IEEE80211_IOC_BEACON_INTERVAL, &val) !=
+	    -1) {
 		/* XXX default define not visible */
 		if (val != 100 || verbose)
 			LINE_CHECK("bintval %u", val);
@@ -5571,12 +5604,12 @@ end:
 				LINE_CHECK("-meshgate");
 		}
 		if (get80211len(ctx, IEEE80211_IOC_MESH_PR_METRIC, data, 12,
-		    &len) != -1) {
+			&len) != -1) {
 			data[len] = '\0';
 			LINE_CHECK("meshmetric %s", data);
 		}
 		if (get80211len(ctx, IEEE80211_IOC_MESH_PR_PATH, data, 12,
-		    &len) != -1) {
+			&len) != -1) {
 			data[len] = '\0';
 			LINE_CHECK("meshpath %s", data);
 		}
@@ -5624,7 +5657,8 @@ static int
 get80211len(if_ctx *ctx, int type, void *data, int len, int *plen)
 {
 
-	return (lib80211_get80211len(ctx->io_s, ctx->ifname, type, data, len, plen));
+	return (lib80211_get80211len(ctx->io_s, ctx->ifname, type, data, len,
+	    plen));
 }
 
 static int
@@ -5681,7 +5715,7 @@ get_string(const char *val, const char *sep, u_int8_t *buf, int *lenp)
 			return NULL;
 		}
 		if (hexstr) {
-#define	tohex(x)	(isdigit(x) ? (x) - '0' : tolower(x) - 'a' + 10)
+#define tohex(x) (isdigit(x) ? (x) - '0' : tolower(x) - 'a' + 10)
 			*p++ = (tohex((u_char)val[0]) << 4) |
 			    tohex((u_char)val[1]);
 #undef tohex
@@ -5739,15 +5773,13 @@ setdefregdomain(if_ctx *ctx)
 
 	/* Check if regdomain/country was already set by a previous call. */
 	/* XXX is it possible? */
-	if (regdomain.regdomain != 0 ||
-	    regdomain.country != CTRY_DEFAULT)
+	if (regdomain.regdomain != 0 || regdomain.country != CTRY_DEFAULT)
 		return;
 
 	getregdomain(ctx);
 
 	/* Check if it was already set by the driver. */
-	if (regdomain.regdomain != 0 ||
-	    regdomain.country != CTRY_DEFAULT)
+	if (regdomain.regdomain != 0 || regdomain.country != CTRY_DEFAULT)
 		return;
 
 	/* Set FCC/US as default. */
@@ -5773,7 +5805,7 @@ setdefregdomain(if_ctx *ctx)
  * Virtual AP cloning support.
  */
 static struct ieee80211_clone_params params = {
-	.icp_opmode	= IEEE80211_M_STA,	/* default to station mode */
+	.icp_opmode = IEEE80211_M_STA, /* default to station mode */
 };
 
 static void
@@ -5782,12 +5814,13 @@ wlan_create(if_ctx *ctx, struct ifreq *ifr)
 	static const uint8_t zerobssid[IEEE80211_ADDR_LEN];
 
 	if (params.icp_parent[0] == '\0')
-		errx(1, "must specify a parent device (wlandev) when creating "
+		errx(1,
+		    "must specify a parent device (wlandev) when creating "
 		    "a wlan device");
 	if (params.icp_opmode == IEEE80211_M_WDS &&
 	    memcmp(params.icp_bssid, zerobssid, sizeof(zerobssid)) == 0)
 		errx(1, "no bssid specified for WDS (use wlanbssid)");
-	ifr->ifr_data = (caddr_t) &params;
+	ifr->ifr_data = (caddr_t)&params;
 	ifcreate_ioctl(ctx, ifr);
 
 	setdefregdomain(ctx);
@@ -5800,7 +5833,8 @@ set80211clone_wlandev(if_ctx *ctx __unused, const char *arg, int dummy __unused)
 }
 
 static void
-set80211clone_wlanbssid(if_ctx *ctx __unused, const char *arg, int dummy __unused)
+set80211clone_wlanbssid(if_ctx *ctx __unused, const char *arg,
+    int dummy __unused)
 {
 	const struct ether_addr *ea;
 
@@ -5811,7 +5845,8 @@ set80211clone_wlanbssid(if_ctx *ctx __unused, const char *arg, int dummy __unuse
 }
 
 static void
-set80211clone_wlanaddr(if_ctx *ctx __unused, const char *arg, int dummy __unused)
+set80211clone_wlanaddr(if_ctx *ctx __unused, const char *arg,
+    int dummy __unused)
 {
 	const struct ether_addr *ea;
 
@@ -5825,7 +5860,7 @@ set80211clone_wlanaddr(if_ctx *ctx __unused, const char *arg, int dummy __unused
 static void
 set80211clone_wlanmode(if_ctx *ctx, const char *arg, int dummy __unused)
 {
-#define	iseq(a,b)	(strncasecmp(a,b,sizeof(b)-1) == 0)
+#define iseq(a, b) (strncasecmp(a, b, sizeof(b) - 1) == 0)
 	if (iseq(arg, "sta"))
 		params.icp_opmode = IEEE80211_M_STA;
 	else if (iseq(arg, "ahdemo") || iseq(arg, "adhoc-demo"))
@@ -5877,217 +5912,217 @@ set80211clone_wdslegacy(if_ctx *ctx __unused, const char *val __unused, int d)
 }
 
 static struct cmd ieee80211_cmds[] = {
-	DEF_CMD_ARG("ssid",		set80211ssid),
-	DEF_CMD_ARG("nwid",		set80211ssid),
-	DEF_CMD_ARG("meshid",		set80211meshid),
-	DEF_CMD_ARG("stationname",	set80211stationname),
-	DEF_CMD_ARG("station",		set80211stationname),	/* BSD/OS */
-	DEF_CMD_ARG("channel",		set80211channel),
-	DEF_CMD_ARG("authmode",		set80211authmode),
-	DEF_CMD_ARG("powersavemode",	set80211powersavemode),
-	DEF_CMD("powersave",	1,	set80211powersave),
-	DEF_CMD("-powersave",	0,	set80211powersave),
-	DEF_CMD_ARG("powersavesleep", 	set80211powersavesleep),
-	DEF_CMD_ARG("wepmode",		set80211wepmode),
-	DEF_CMD("wep",		1,	set80211wep),
-	DEF_CMD("-wep",		0,	set80211wep),
-	DEF_CMD_ARG("deftxkey",		set80211weptxkey),
-	DEF_CMD_ARG("weptxkey",		set80211weptxkey),
-	DEF_CMD_ARG("wepkey",		set80211wepkey),
-	DEF_CMD_ARG("nwkey",		set80211nwkey),		/* NetBSD */
-	DEF_CMD("-nwkey",	0,	set80211wep),		/* NetBSD */
-	DEF_CMD_ARG("rtsthreshold",	set80211rtsthreshold),
-	DEF_CMD_ARG("protmode",		set80211protmode),
-	DEF_CMD_ARG("txpower",		set80211txpower),
-	DEF_CMD_ARG("roaming",		set80211roaming),
-	DEF_CMD("wme",		1,	set80211wme),
-	DEF_CMD("-wme",		0,	set80211wme),
-	DEF_CMD("wmm",		1,	set80211wme),
-	DEF_CMD("-wmm",		0,	set80211wme),
-	DEF_CMD("hidessid",	1,	set80211hidessid),
-	DEF_CMD("-hidessid",	0,	set80211hidessid),
-	DEF_CMD("apbridge",	1,	set80211apbridge),
-	DEF_CMD("-apbridge",	0,	set80211apbridge),
-	DEF_CMD_ARG("chanlist",		set80211chanlist),
-	DEF_CMD_ARG("bssid",		set80211bssid),
-	DEF_CMD_ARG("ap",		set80211bssid),
-	DEF_CMD("scan",	0,		set80211scan),
-	DEF_CMD_ARG("list",		set80211list),
-	DEF_CMD_ARG2("cwmin",		set80211cwmin),
-	DEF_CMD_ARG2("cwmax",		set80211cwmax),
-	DEF_CMD_ARG2("aifs",		set80211aifs),
-	DEF_CMD_ARG2("txoplimit",	set80211txoplimit),
-	DEF_CMD_ARG("acm",		set80211acm),
-	DEF_CMD_ARG("-acm",		set80211noacm),
-	DEF_CMD_ARG("ack",		set80211ackpolicy),
-	DEF_CMD_ARG("-ack",		set80211noackpolicy),
-	DEF_CMD_ARG2("bss:cwmin",	set80211bsscwmin),
-	DEF_CMD_ARG2("bss:cwmax",	set80211bsscwmax),
-	DEF_CMD_ARG2("bss:aifs",	set80211bssaifs),
-	DEF_CMD_ARG2("bss:txoplimit",	set80211bsstxoplimit),
-	DEF_CMD_ARG("dtimperiod",	set80211dtimperiod),
-	DEF_CMD_ARG("bintval",		set80211bintval),
-	DEF_CMD("mac:open",	IEEE80211_MACCMD_POLICY_OPEN,	set80211maccmd),
-	DEF_CMD("mac:allow",	IEEE80211_MACCMD_POLICY_ALLOW,	set80211maccmd),
-	DEF_CMD("mac:deny",	IEEE80211_MACCMD_POLICY_DENY,	set80211maccmd),
-	DEF_CMD("mac:radius",	IEEE80211_MACCMD_POLICY_RADIUS,	set80211maccmd),
-	DEF_CMD("mac:flush",	IEEE80211_MACCMD_FLUSH,		set80211maccmd),
-	DEF_CMD("mac:detach",	IEEE80211_MACCMD_DETACH,	set80211maccmd),
-	DEF_CMD_ARG("mac:add",		set80211addmac),
-	DEF_CMD_ARG("mac:del",		set80211delmac),
-	DEF_CMD_ARG("mac:kick",		set80211kickmac),
-	DEF_CMD("pureg",	1,	set80211pureg),
-	DEF_CMD("-pureg",	0,	set80211pureg),
-	DEF_CMD("ff",		1,	set80211fastframes),
-	DEF_CMD("-ff",		0,	set80211fastframes),
-	DEF_CMD("dturbo",	1,	set80211dturbo),
-	DEF_CMD("-dturbo",	0,	set80211dturbo),
-	DEF_CMD("bgscan",	1,	set80211bgscan),
-	DEF_CMD("-bgscan",	0,	set80211bgscan),
-	DEF_CMD_ARG("bgscanidle",	set80211bgscanidle),
-	DEF_CMD_ARG("bgscanintvl",	set80211bgscanintvl),
-	DEF_CMD_ARG("scanvalid",	set80211scanvalid),
-	DEF_CMD("quiet",	1,	set80211quiet),
-	DEF_CMD("-quiet",	0,	set80211quiet),
-	DEF_CMD_ARG("quiet_count",	set80211quietcount),
-	DEF_CMD_ARG("quiet_period",	set80211quietperiod),
-	DEF_CMD_ARG("quiet_duration",	set80211quietduration),
-	DEF_CMD_ARG("quiet_offset",	set80211quietoffset),
-	DEF_CMD_ARG("roam:rssi",	set80211roamrssi),
-	DEF_CMD_ARG("roam:rate",	set80211roamrate),
-	DEF_CMD_ARG("mcastrate",	set80211mcastrate),
-	DEF_CMD_ARG("ucastrate",	set80211ucastrate),
-	DEF_CMD_ARG("mgtrate",		set80211mgtrate),
-	DEF_CMD_ARG("mgmtrate",		set80211mgtrate),
-	DEF_CMD_ARG("maxretry",		set80211maxretry),
-	DEF_CMD_ARG("fragthreshold",	set80211fragthreshold),
-	DEF_CMD("burst",	1,	set80211burst),
-	DEF_CMD("-burst",	0,	set80211burst),
-	DEF_CMD_ARG("bmiss",		set80211bmissthreshold),
-	DEF_CMD_ARG("bmissthreshold",	set80211bmissthreshold),
-	DEF_CMD("shortgi",	1,	set80211shortgi),
-	DEF_CMD("-shortgi",	0,	set80211shortgi),
-	DEF_CMD("ampdurx",	2,	set80211ampdu),
-	DEF_CMD("-ampdurx",	-2,	set80211ampdu),
-	DEF_CMD("ampdutx",	1,	set80211ampdu),
-	DEF_CMD("-ampdutx",	-1,	set80211ampdu),
-	DEF_CMD("ampdu",	3,	set80211ampdu),		/* NB: tx+rx */
-	DEF_CMD("-ampdu",	-3,	set80211ampdu),
-	DEF_CMD_ARG("ampdulimit",	set80211ampdulimit),
-	DEF_CMD_ARG("ampdudensity",	set80211ampdudensity),
-	DEF_CMD("amsdurx",	2,	set80211amsdu),
-	DEF_CMD("-amsdurx",	-2,	set80211amsdu),
-	DEF_CMD("amsdutx",	1,	set80211amsdu),
-	DEF_CMD("-amsdutx",	-1,	set80211amsdu),
-	DEF_CMD("amsdu",	3,	set80211amsdu),		/* NB: tx+rx */
-	DEF_CMD("-amsdu",	-3,	set80211amsdu),
-	DEF_CMD_ARG("amsdulimit",	set80211amsdulimit),
-	DEF_CMD("stbcrx",	2,	set80211stbc),
-	DEF_CMD("-stbcrx",	-2,	set80211stbc),
-	DEF_CMD("stbctx",	1,	set80211stbc),
-	DEF_CMD("-stbctx",	-1,	set80211stbc),
-	DEF_CMD("stbc",		3,	set80211stbc),		/* NB: tx+rx */
-	DEF_CMD("-stbc",	-3,	set80211stbc),
-	DEF_CMD("ldpcrx",	2,	set80211ldpc),
-	DEF_CMD("-ldpcrx",	-2,	set80211ldpc),
-	DEF_CMD("ldpctx",	1,	set80211ldpc),
-	DEF_CMD("-ldpctx",	-1,	set80211ldpc),
-	DEF_CMD("ldpc",		3,	set80211ldpc),		/* NB: tx+rx */
-	DEF_CMD("-ldpc",	-3,	set80211ldpc),
-	DEF_CMD("uapsd",	1,	set80211uapsd),
-	DEF_CMD("-uapsd",	0,	set80211uapsd),
-	DEF_CMD("puren",	1,	set80211puren),
-	DEF_CMD("-puren",	0,	set80211puren),
-	DEF_CMD("doth",		1,	set80211doth),
-	DEF_CMD("-doth",	0,	set80211doth),
-	DEF_CMD("dfs",		1,	set80211dfs),
-	DEF_CMD("-dfs",		0,	set80211dfs),
-	DEF_CMD("htcompat",	1,	set80211htcompat),
-	DEF_CMD("-htcompat",	0,	set80211htcompat),
-	DEF_CMD("dwds",		1,	set80211dwds),
-	DEF_CMD("-dwds",	0,	set80211dwds),
-	DEF_CMD("inact",	1,	set80211inact),
-	DEF_CMD("-inact",	0,	set80211inact),
-	DEF_CMD("tsn",		1,	set80211tsn),
-	DEF_CMD("-tsn",		0,	set80211tsn),
-	DEF_CMD_ARG("regdomain",	set80211regdomain),
-	DEF_CMD_ARG("country",		set80211country),
-	DEF_CMD("indoor",	'I',	set80211location),
-	DEF_CMD("-indoor",	'O',	set80211location),
-	DEF_CMD("outdoor",	'O',	set80211location),
-	DEF_CMD("-outdoor",	'I',	set80211location),
-	DEF_CMD("anywhere",	' ',	set80211location),
-	DEF_CMD("ecm",		1,	set80211ecm),
-	DEF_CMD("-ecm",		0,	set80211ecm),
-	DEF_CMD("dotd",		1,	set80211dotd),
-	DEF_CMD("-dotd",	0,	set80211dotd),
-	DEF_CMD_ARG("htprotmode",	set80211htprotmode),
-	DEF_CMD("ht20",		1,	set80211htconf),
-	DEF_CMD("-ht20",	0,	set80211htconf),
-	DEF_CMD("ht40",		3,	set80211htconf),	/* NB: 20+40 */
-	DEF_CMD("-ht40",	0,	set80211htconf),
-	DEF_CMD("ht",		3,	set80211htconf),	/* NB: 20+40 */
-	DEF_CMD("-ht",		0,	set80211htconf),
-	DEF_CMD("vht",		IEEE80211_FVHT_VHT,		set80211vhtconf),
-	DEF_CMD("-vht",		0,				set80211vhtconf),
-	DEF_CMD("vht40",	IEEE80211_FVHT_USEVHT40,	set80211vhtconf),
-	DEF_CMD("-vht40",	-IEEE80211_FVHT_USEVHT40,	set80211vhtconf),
-	DEF_CMD("vht80",	IEEE80211_FVHT_USEVHT80,	set80211vhtconf),
-	DEF_CMD("-vht80",	-IEEE80211_FVHT_USEVHT80,	set80211vhtconf),
-	DEF_CMD("vht160",	IEEE80211_FVHT_USEVHT160,	set80211vhtconf),
-	DEF_CMD("-vht160",	-IEEE80211_FVHT_USEVHT160,	set80211vhtconf),
-	DEF_CMD("vht80p80",	IEEE80211_FVHT_USEVHT80P80,	set80211vhtconf),
-	DEF_CMD("-vht80p80",	-IEEE80211_FVHT_USEVHT80P80,	set80211vhtconf),
-	DEF_CMD("rifs",		1,	set80211rifs),
-	DEF_CMD("-rifs",	0,	set80211rifs),
-	DEF_CMD("smps",		IEEE80211_HTCAP_SMPS_ENA,	set80211smps),
-	DEF_CMD("smpsdyn",	IEEE80211_HTCAP_SMPS_DYNAMIC,	set80211smps),
-	DEF_CMD("-smps",	IEEE80211_HTCAP_SMPS_OFF,	set80211smps),
+	DEF_CMD_ARG("ssid", set80211ssid),
+	DEF_CMD_ARG("nwid", set80211ssid),
+	DEF_CMD_ARG("meshid", set80211meshid),
+	DEF_CMD_ARG("stationname", set80211stationname),
+	DEF_CMD_ARG("station", set80211stationname), /* BSD/OS */
+	DEF_CMD_ARG("channel", set80211channel),
+	DEF_CMD_ARG("authmode", set80211authmode),
+	DEF_CMD_ARG("powersavemode", set80211powersavemode),
+	DEF_CMD("powersave", 1, set80211powersave),
+	DEF_CMD("-powersave", 0, set80211powersave),
+	DEF_CMD_ARG("powersavesleep", set80211powersavesleep),
+	DEF_CMD_ARG("wepmode", set80211wepmode),
+	DEF_CMD("wep", 1, set80211wep),
+	DEF_CMD("-wep", 0, set80211wep),
+	DEF_CMD_ARG("deftxkey", set80211weptxkey),
+	DEF_CMD_ARG("weptxkey", set80211weptxkey),
+	DEF_CMD_ARG("wepkey", set80211wepkey),
+	DEF_CMD_ARG("nwkey", set80211nwkey), /* NetBSD */
+	DEF_CMD("-nwkey", 0, set80211wep),   /* NetBSD */
+	DEF_CMD_ARG("rtsthreshold", set80211rtsthreshold),
+	DEF_CMD_ARG("protmode", set80211protmode),
+	DEF_CMD_ARG("txpower", set80211txpower),
+	DEF_CMD_ARG("roaming", set80211roaming),
+	DEF_CMD("wme", 1, set80211wme),
+	DEF_CMD("-wme", 0, set80211wme),
+	DEF_CMD("wmm", 1, set80211wme),
+	DEF_CMD("-wmm", 0, set80211wme),
+	DEF_CMD("hidessid", 1, set80211hidessid),
+	DEF_CMD("-hidessid", 0, set80211hidessid),
+	DEF_CMD("apbridge", 1, set80211apbridge),
+	DEF_CMD("-apbridge", 0, set80211apbridge),
+	DEF_CMD_ARG("chanlist", set80211chanlist),
+	DEF_CMD_ARG("bssid", set80211bssid),
+	DEF_CMD_ARG("ap", set80211bssid),
+	DEF_CMD("scan", 0, set80211scan),
+	DEF_CMD_ARG("list", set80211list),
+	DEF_CMD_ARG2("cwmin", set80211cwmin),
+	DEF_CMD_ARG2("cwmax", set80211cwmax),
+	DEF_CMD_ARG2("aifs", set80211aifs),
+	DEF_CMD_ARG2("txoplimit", set80211txoplimit),
+	DEF_CMD_ARG("acm", set80211acm),
+	DEF_CMD_ARG("-acm", set80211noacm),
+	DEF_CMD_ARG("ack", set80211ackpolicy),
+	DEF_CMD_ARG("-ack", set80211noackpolicy),
+	DEF_CMD_ARG2("bss:cwmin", set80211bsscwmin),
+	DEF_CMD_ARG2("bss:cwmax", set80211bsscwmax),
+	DEF_CMD_ARG2("bss:aifs", set80211bssaifs),
+	DEF_CMD_ARG2("bss:txoplimit", set80211bsstxoplimit),
+	DEF_CMD_ARG("dtimperiod", set80211dtimperiod),
+	DEF_CMD_ARG("bintval", set80211bintval),
+	DEF_CMD("mac:open", IEEE80211_MACCMD_POLICY_OPEN, set80211maccmd),
+	DEF_CMD("mac:allow", IEEE80211_MACCMD_POLICY_ALLOW, set80211maccmd),
+	DEF_CMD("mac:deny", IEEE80211_MACCMD_POLICY_DENY, set80211maccmd),
+	DEF_CMD("mac:radius", IEEE80211_MACCMD_POLICY_RADIUS, set80211maccmd),
+	DEF_CMD("mac:flush", IEEE80211_MACCMD_FLUSH, set80211maccmd),
+	DEF_CMD("mac:detach", IEEE80211_MACCMD_DETACH, set80211maccmd),
+	DEF_CMD_ARG("mac:add", set80211addmac),
+	DEF_CMD_ARG("mac:del", set80211delmac),
+	DEF_CMD_ARG("mac:kick", set80211kickmac),
+	DEF_CMD("pureg", 1, set80211pureg),
+	DEF_CMD("-pureg", 0, set80211pureg),
+	DEF_CMD("ff", 1, set80211fastframes),
+	DEF_CMD("-ff", 0, set80211fastframes),
+	DEF_CMD("dturbo", 1, set80211dturbo),
+	DEF_CMD("-dturbo", 0, set80211dturbo),
+	DEF_CMD("bgscan", 1, set80211bgscan),
+	DEF_CMD("-bgscan", 0, set80211bgscan),
+	DEF_CMD_ARG("bgscanidle", set80211bgscanidle),
+	DEF_CMD_ARG("bgscanintvl", set80211bgscanintvl),
+	DEF_CMD_ARG("scanvalid", set80211scanvalid),
+	DEF_CMD("quiet", 1, set80211quiet),
+	DEF_CMD("-quiet", 0, set80211quiet),
+	DEF_CMD_ARG("quiet_count", set80211quietcount),
+	DEF_CMD_ARG("quiet_period", set80211quietperiod),
+	DEF_CMD_ARG("quiet_duration", set80211quietduration),
+	DEF_CMD_ARG("quiet_offset", set80211quietoffset),
+	DEF_CMD_ARG("roam:rssi", set80211roamrssi),
+	DEF_CMD_ARG("roam:rate", set80211roamrate),
+	DEF_CMD_ARG("mcastrate", set80211mcastrate),
+	DEF_CMD_ARG("ucastrate", set80211ucastrate),
+	DEF_CMD_ARG("mgtrate", set80211mgtrate),
+	DEF_CMD_ARG("mgmtrate", set80211mgtrate),
+	DEF_CMD_ARG("maxretry", set80211maxretry),
+	DEF_CMD_ARG("fragthreshold", set80211fragthreshold),
+	DEF_CMD("burst", 1, set80211burst),
+	DEF_CMD("-burst", 0, set80211burst),
+	DEF_CMD_ARG("bmiss", set80211bmissthreshold),
+	DEF_CMD_ARG("bmissthreshold", set80211bmissthreshold),
+	DEF_CMD("shortgi", 1, set80211shortgi),
+	DEF_CMD("-shortgi", 0, set80211shortgi),
+	DEF_CMD("ampdurx", 2, set80211ampdu),
+	DEF_CMD("-ampdurx", -2, set80211ampdu),
+	DEF_CMD("ampdutx", 1, set80211ampdu),
+	DEF_CMD("-ampdutx", -1, set80211ampdu),
+	DEF_CMD("ampdu", 3, set80211ampdu), /* NB: tx+rx */
+	DEF_CMD("-ampdu", -3, set80211ampdu),
+	DEF_CMD_ARG("ampdulimit", set80211ampdulimit),
+	DEF_CMD_ARG("ampdudensity", set80211ampdudensity),
+	DEF_CMD("amsdurx", 2, set80211amsdu),
+	DEF_CMD("-amsdurx", -2, set80211amsdu),
+	DEF_CMD("amsdutx", 1, set80211amsdu),
+	DEF_CMD("-amsdutx", -1, set80211amsdu),
+	DEF_CMD("amsdu", 3, set80211amsdu), /* NB: tx+rx */
+	DEF_CMD("-amsdu", -3, set80211amsdu),
+	DEF_CMD_ARG("amsdulimit", set80211amsdulimit),
+	DEF_CMD("stbcrx", 2, set80211stbc),
+	DEF_CMD("-stbcrx", -2, set80211stbc),
+	DEF_CMD("stbctx", 1, set80211stbc),
+	DEF_CMD("-stbctx", -1, set80211stbc),
+	DEF_CMD("stbc", 3, set80211stbc), /* NB: tx+rx */
+	DEF_CMD("-stbc", -3, set80211stbc),
+	DEF_CMD("ldpcrx", 2, set80211ldpc),
+	DEF_CMD("-ldpcrx", -2, set80211ldpc),
+	DEF_CMD("ldpctx", 1, set80211ldpc),
+	DEF_CMD("-ldpctx", -1, set80211ldpc),
+	DEF_CMD("ldpc", 3, set80211ldpc), /* NB: tx+rx */
+	DEF_CMD("-ldpc", -3, set80211ldpc),
+	DEF_CMD("uapsd", 1, set80211uapsd),
+	DEF_CMD("-uapsd", 0, set80211uapsd),
+	DEF_CMD("puren", 1, set80211puren),
+	DEF_CMD("-puren", 0, set80211puren),
+	DEF_CMD("doth", 1, set80211doth),
+	DEF_CMD("-doth", 0, set80211doth),
+	DEF_CMD("dfs", 1, set80211dfs),
+	DEF_CMD("-dfs", 0, set80211dfs),
+	DEF_CMD("htcompat", 1, set80211htcompat),
+	DEF_CMD("-htcompat", 0, set80211htcompat),
+	DEF_CMD("dwds", 1, set80211dwds),
+	DEF_CMD("-dwds", 0, set80211dwds),
+	DEF_CMD("inact", 1, set80211inact),
+	DEF_CMD("-inact", 0, set80211inact),
+	DEF_CMD("tsn", 1, set80211tsn),
+	DEF_CMD("-tsn", 0, set80211tsn),
+	DEF_CMD_ARG("regdomain", set80211regdomain),
+	DEF_CMD_ARG("country", set80211country),
+	DEF_CMD("indoor", 'I', set80211location),
+	DEF_CMD("-indoor", 'O', set80211location),
+	DEF_CMD("outdoor", 'O', set80211location),
+	DEF_CMD("-outdoor", 'I', set80211location),
+	DEF_CMD("anywhere", ' ', set80211location),
+	DEF_CMD("ecm", 1, set80211ecm),
+	DEF_CMD("-ecm", 0, set80211ecm),
+	DEF_CMD("dotd", 1, set80211dotd),
+	DEF_CMD("-dotd", 0, set80211dotd),
+	DEF_CMD_ARG("htprotmode", set80211htprotmode),
+	DEF_CMD("ht20", 1, set80211htconf),
+	DEF_CMD("-ht20", 0, set80211htconf),
+	DEF_CMD("ht40", 3, set80211htconf), /* NB: 20+40 */
+	DEF_CMD("-ht40", 0, set80211htconf),
+	DEF_CMD("ht", 3, set80211htconf), /* NB: 20+40 */
+	DEF_CMD("-ht", 0, set80211htconf),
+	DEF_CMD("vht", IEEE80211_FVHT_VHT, set80211vhtconf),
+	DEF_CMD("-vht", 0, set80211vhtconf),
+	DEF_CMD("vht40", IEEE80211_FVHT_USEVHT40, set80211vhtconf),
+	DEF_CMD("-vht40", -IEEE80211_FVHT_USEVHT40, set80211vhtconf),
+	DEF_CMD("vht80", IEEE80211_FVHT_USEVHT80, set80211vhtconf),
+	DEF_CMD("-vht80", -IEEE80211_FVHT_USEVHT80, set80211vhtconf),
+	DEF_CMD("vht160", IEEE80211_FVHT_USEVHT160, set80211vhtconf),
+	DEF_CMD("-vht160", -IEEE80211_FVHT_USEVHT160, set80211vhtconf),
+	DEF_CMD("vht80p80", IEEE80211_FVHT_USEVHT80P80, set80211vhtconf),
+	DEF_CMD("-vht80p80", -IEEE80211_FVHT_USEVHT80P80, set80211vhtconf),
+	DEF_CMD("rifs", 1, set80211rifs),
+	DEF_CMD("-rifs", 0, set80211rifs),
+	DEF_CMD("smps", IEEE80211_HTCAP_SMPS_ENA, set80211smps),
+	DEF_CMD("smpsdyn", IEEE80211_HTCAP_SMPS_DYNAMIC, set80211smps),
+	DEF_CMD("-smps", IEEE80211_HTCAP_SMPS_OFF, set80211smps),
 	/* XXX for testing */
-	DEF_CMD_ARG("chanswitch",	set80211chanswitch),
+	DEF_CMD_ARG("chanswitch", set80211chanswitch),
 
-	DEF_CMD_ARG("tdmaslot",		set80211tdmaslot),
-	DEF_CMD_ARG("tdmaslotcnt",	set80211tdmaslotcnt),
-	DEF_CMD_ARG("tdmaslotlen",	set80211tdmaslotlen),
-	DEF_CMD_ARG("tdmabintval",	set80211tdmabintval),
+	DEF_CMD_ARG("tdmaslot", set80211tdmaslot),
+	DEF_CMD_ARG("tdmaslotcnt", set80211tdmaslotcnt),
+	DEF_CMD_ARG("tdmaslotlen", set80211tdmaslotlen),
+	DEF_CMD_ARG("tdmabintval", set80211tdmabintval),
 
-	DEF_CMD_ARG("meshttl",		set80211meshttl),
-	DEF_CMD("meshforward",	1,	set80211meshforward),
-	DEF_CMD("-meshforward",	0,	set80211meshforward),
-	DEF_CMD("meshgate",	1,	set80211meshgate),
-	DEF_CMD("-meshgate",	0,	set80211meshgate),
-	DEF_CMD("meshpeering",	1,	set80211meshpeering),
-	DEF_CMD("-meshpeering",	0,	set80211meshpeering),
-	DEF_CMD_ARG("meshmetric",	set80211meshmetric),
-	DEF_CMD_ARG("meshpath",		set80211meshpath),
-	DEF_CMD("meshrt:flush",	IEEE80211_MESH_RTCMD_FLUSH,	set80211meshrtcmd),
-	DEF_CMD_ARG("meshrt:add",	set80211addmeshrt),
-	DEF_CMD_ARG("meshrt:del",	set80211delmeshrt),
-	DEF_CMD_ARG("hwmprootmode",	set80211hwmprootmode),
-	DEF_CMD_ARG("hwmpmaxhops",	set80211hwmpmaxhops),
+	DEF_CMD_ARG("meshttl", set80211meshttl),
+	DEF_CMD("meshforward", 1, set80211meshforward),
+	DEF_CMD("-meshforward", 0, set80211meshforward),
+	DEF_CMD("meshgate", 1, set80211meshgate),
+	DEF_CMD("-meshgate", 0, set80211meshgate),
+	DEF_CMD("meshpeering", 1, set80211meshpeering),
+	DEF_CMD("-meshpeering", 0, set80211meshpeering),
+	DEF_CMD_ARG("meshmetric", set80211meshmetric),
+	DEF_CMD_ARG("meshpath", set80211meshpath),
+	DEF_CMD("meshrt:flush", IEEE80211_MESH_RTCMD_FLUSH, set80211meshrtcmd),
+	DEF_CMD_ARG("meshrt:add", set80211addmeshrt),
+	DEF_CMD_ARG("meshrt:del", set80211delmeshrt),
+	DEF_CMD_ARG("hwmprootmode", set80211hwmprootmode),
+	DEF_CMD_ARG("hwmpmaxhops", set80211hwmpmaxhops),
 
 	/* vap cloning support */
-	DEF_CLONE_CMD_ARG("wlanaddr",	set80211clone_wlanaddr),
-	DEF_CLONE_CMD_ARG("wlanbssid",	set80211clone_wlanbssid),
-	DEF_CLONE_CMD_ARG("wlandev",	set80211clone_wlandev),
-	DEF_CLONE_CMD_ARG("wlanmode",	set80211clone_wlanmode),
-	DEF_CLONE_CMD("beacons", 1,	set80211clone_beacons),
-	DEF_CLONE_CMD("-beacons", 0,	set80211clone_beacons),
-	DEF_CLONE_CMD("bssid",	1,	set80211clone_bssid),
-	DEF_CLONE_CMD("-bssid",	0,	set80211clone_bssid),
-	DEF_CLONE_CMD("wdslegacy", 1,	set80211clone_wdslegacy),
-	DEF_CLONE_CMD("-wdslegacy", 0,	set80211clone_wdslegacy),
+	DEF_CLONE_CMD_ARG("wlanaddr", set80211clone_wlanaddr),
+	DEF_CLONE_CMD_ARG("wlanbssid", set80211clone_wlanbssid),
+	DEF_CLONE_CMD_ARG("wlandev", set80211clone_wlandev),
+	DEF_CLONE_CMD_ARG("wlanmode", set80211clone_wlanmode),
+	DEF_CLONE_CMD("beacons", 1, set80211clone_beacons),
+	DEF_CLONE_CMD("-beacons", 0, set80211clone_beacons),
+	DEF_CLONE_CMD("bssid", 1, set80211clone_bssid),
+	DEF_CLONE_CMD("-bssid", 0, set80211clone_bssid),
+	DEF_CLONE_CMD("wdslegacy", 1, set80211clone_wdslegacy),
+	DEF_CLONE_CMD("-wdslegacy", 0, set80211clone_wdslegacy),
 };
 static struct afswtch af_ieee80211 = {
-	.af_name	= "af_ieee80211",
-	.af_af		= AF_UNSPEC,
+	.af_name = "af_ieee80211",
+	.af_af = AF_UNSPEC,
 	.af_other_status = ieee80211_status,
 };
 
 static __constructor void
 ieee80211_ctor(void)
 {
-	for (size_t i = 0; i < nitems(ieee80211_cmds);  i++)
+	for (size_t i = 0; i < nitems(ieee80211_cmds); i++)
 		cmd_register(&ieee80211_cmds[i]);
 	af_register(&af_ieee80211);
 	clone_setdefcallback_prefix("wlan", wlan_create);

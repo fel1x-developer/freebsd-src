@@ -31,7 +31,7 @@
 #ifndef _CITRUS_NONE_H_
 #define _CITRUS_NONE_H_
 
-extern struct _citrus_stdenc_ops	 _citrus_NONE_stdenc_ops;
-extern struct _citrus_stdenc_traits	 _citrus_NONE_stdenc_traits;
+extern struct _citrus_stdenc_ops _citrus_NONE_stdenc_ops;
+extern struct _citrus_stdenc_traits _citrus_NONE_stdenc_traits;
 
 #endif

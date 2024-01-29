@@ -40,34 +40,34 @@
 /*
  * parameter defaults
  */
-#define	CLCNT		1
-#define	INCHAR		'\t'
-#define	INGAP		8
-#define	OCHAR		'\t'
-#define OGAP		8
-#define	LINES		66
-#define	NMWD		5
-#define	NMCHAR		'\t'
-#define	SCHAR		'\t'
-#define	PGWD		72
-#define SPGWD		512
+#define CLCNT 1
+#define INCHAR '\t'
+#define INGAP 8
+#define OCHAR '\t'
+#define OGAP 8
+#define LINES 66
+#define NMWD 5
+#define NMCHAR '\t'
+#define SCHAR '\t'
+#define PGWD 72
+#define SPGWD 512
 
 /*
  * misc default values
  */
-#define	HDFMT		"%s %s Page %d\n\n\n"
-#define	HEADLEN		5
-#define	TAILLEN		5
-#define	TIMEFMTD	"%e %b %H:%M %Y"
-#define	TIMEFMTM	"%b %e %H:%M %Y"
-#define	FNAME		""
-#define	LBUF		8192
-#define	HDBUF		512
+#define HDFMT "%s %s Page %d\n\n\n"
+#define HEADLEN 5
+#define TAILLEN 5
+#define TIMEFMTD "%e %b %H:%M %Y"
+#define TIMEFMTM "%b %e %H:%M %Y"
+#define FNAME ""
+#define LBUF 8192
+#define HDBUF 512
 
 /*
  * structure for vertical columns. Used to balance cols on last page
  */
 struct vcol {
-	char *pt;		/* ptr to col */
-	int cnt;		/* char count */
+	char *pt; /* ptr to col */
+	int cnt;  /* char count */
 };

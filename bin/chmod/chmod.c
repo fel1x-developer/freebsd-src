@@ -103,8 +103,15 @@ main(int argc, char *argv[])
 		 * argument, getopt has moved past them, so decrement optind.
 		 * Regardless, we're done argument processing.
 		 */
-		case 'g': case 'o': case 'r': case 's':
-		case 't': case 'u': case 'w': case 'X': case 'x':
+		case 'g':
+		case 'o':
+		case 'r':
+		case 's':
+		case 't':
+		case 'u':
+		case 'w':
+		case 'X':
+		case 'x':
 			if (argv[optind - 1][0] == '-' &&
 			    argv[optind - 1][1] == ch &&
 			    argv[optind - 1][2] == '\0')
@@ -117,7 +124,8 @@ main(int argc, char *argv[])
 		default:
 			usage();
 		}
-done:	argv += optind;
+done:
+	argv += optind;
 	argc -= optind;
 
 	if (argc < 2)
@@ -127,7 +135,8 @@ done:	argv += optind;
 
 	if (Rflag) {
 		if (hflag)
-			errx(1, "the -R and -h options may not be "
+			errx(1,
+			    "the -R and -h options may not be "
 			    "specified together.");
 		if (Lflag) {
 			fts_options = FTS_LOGICAL;
@@ -155,7 +164,7 @@ done:	argv += optind;
 
 		if ((fts_options & FTS_LOGICAL) ||
 		    ((fts_options & FTS_COMFOLLOW) &&
-		    p->fts_level == FTS_ROOTLEVEL))
+			p->fts_level == FTS_ROOTLEVEL))
 			atflag = 0;
 		else
 			atflag = AT_SYMLINK_NOFOLLOW;
@@ -165,13 +174,13 @@ done:	argv += optind;
 			if (!Rflag)
 				fts_set(ftsp, p, FTS_SKIP);
 			break;
-		case FTS_DNR:			/* Warn, chmod. */
+		case FTS_DNR: /* Warn, chmod. */
 			warnx("%s: %s", p->fts_path, strerror(p->fts_errno));
 			rval = 1;
 			break;
-		case FTS_DP:			/* Already changed at FTS_D. */
+		case FTS_DP: /* Already changed at FTS_D. */
 			continue;
-		case FTS_ERR:			/* Warn, continue. */
+		case FTS_ERR: /* Warn, continue. */
 		case FTS_NS:
 			warnx("%s: %s", p->fts_path, strerror(p->fts_errno));
 			rval = 1;
@@ -187,9 +196,9 @@ done:	argv += optind;
 		 */
 		if (may_have_nfs4acl(p, hflag) == 0 &&
 		    (newmode & ALLPERMS) == (p->fts_statp->st_mode & ALLPERMS))
-				continue;
-		if (fchmodat(AT_FDCWD, p->fts_accpath, newmode, atflag) == -1
-		    && !fflag) {
+			continue;
+		if (fchmodat(AT_FDCWD, p->fts_accpath, newmode, atflag) == -1 &&
+		    !fflag) {
 			warn("%s", p->fts_path);
 			rval = 1;
 		} else if (vflag || siginfo) {
@@ -199,12 +208,13 @@ done:	argv += optind;
 				char m1[12], m2[12];
 
 				strmode(p->fts_statp->st_mode, m1);
-				strmode((p->fts_statp->st_mode &
-				    S_IFMT) | newmode, m2);
+				strmode((p->fts_statp->st_mode & S_IFMT) |
+					newmode,
+				    m2);
 				(void)printf(": 0%o [%s] -> 0%o [%s]",
 				    p->fts_statp->st_mode, m1,
-				    (p->fts_statp->st_mode & S_IFMT) |
-				    newmode, m2);
+				    (p->fts_statp->st_mode & S_IFMT) | newmode,
+				    m2);
 			}
 			(void)printf("\n");
 			siginfo = 0;

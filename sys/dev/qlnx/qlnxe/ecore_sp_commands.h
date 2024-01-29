@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018 Cavium, Inc. 
+ * Copyright (c) 2017-2018 Cavium, Inc.
  * All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -30,10 +30,10 @@
 #define __ECORE_SP_COMMANDS_H__
 
 #include "ecore.h"
-#include "ecore_spq.h"
 #include "ecore_sp_api.h"
+#include "ecore_spq.h"
 
-#define ECORE_SP_EQ_COMPLETION  0x01
+#define ECORE_SP_EQ_COMPLETION 0x01
 #define ECORE_SP_CQE_COMPLETION 0x02
 
 struct ecore_sp_init_data {
@@ -41,13 +41,12 @@ struct ecore_sp_init_data {
 	 * e.g., in IOV scenarios. CID might defer between SPQ and
 	 * other elements.
 	 */
-	u32				cid;
-	u16				opaque_fid;
+	u32 cid;
+	u16 opaque_fid;
 
 	/* Information regarding operation upon sending & completion */
-	enum spq_mode			comp_mode;
-	struct ecore_spq_comp_cb	*p_comp_data;
-
+	enum spq_mode comp_mode;
+	struct ecore_spq_comp_cb *p_comp_data;
 };
 
 /**
@@ -62,10 +61,8 @@ struct ecore_sp_init_data {
  * @return ECORE_SUCCESS upon success, otherwise failure.
  */
 enum _ecore_status_t ecore_sp_init_request(struct ecore_hwfn *p_hwfn,
-					   struct ecore_spq_entry **pp_ent,
-					   u8 cmd,
-					   u8 protocol,
-					   struct ecore_sp_init_data *p_data);
+    struct ecore_spq_entry **pp_ent, u8 cmd, u8 protocol,
+    struct ecore_sp_init_data *p_data);
 
 /**
  * @brief ecore_sp_pf_start - PF Function Start Ramrod
@@ -88,9 +85,8 @@ enum _ecore_status_t ecore_sp_init_request(struct ecore_hwfn *p_hwfn,
  */
 
 enum _ecore_status_t ecore_sp_pf_start(struct ecore_hwfn *p_hwfn,
-				       struct ecore_ptt *p_ptt,
-				       struct ecore_tunnel_info *p_tunn,
-				       bool allow_npar_tx_switch);
+    struct ecore_ptt *p_ptt, struct ecore_tunnel_info *p_tunn,
+    bool allow_npar_tx_switch);
 
 /**
  * @brief ecore_sp_pf_update - PF Function Update Ramrod
@@ -142,12 +138,12 @@ struct ecore_rl_update_params {
 	u8 rl_id_first;
 	u8 rl_id_last;
 	u8 rl_dc_qcn_flg; /* If set, RL will used for DCQCN */
-	u32 rl_bc_rate; /* Byte Counter Limit */
-	u32 rl_max_rate; /* Maximum rate in Mbps resolution */
-	u32 rl_r_ai; /* Active increase rate */
-	u32 rl_r_hai; /* Hyper active increase rate */
-	u32 dcqcn_gd; /* DCQCN Alpha update gain */
-	u32 dcqcn_k_us; /* DCQCN Alpha update interval */
+	u32 rl_bc_rate;	  /* Byte Counter Limit */
+	u32 rl_max_rate;  /* Maximum rate in Mbps resolution */
+	u32 rl_r_ai;	  /* Active increase rate */
+	u32 rl_r_hai;	  /* Hyper active increase rate */
+	u32 dcqcn_gd;	  /* DCQCN Alpha update gain */
+	u32 dcqcn_k_us;	  /* DCQCN Alpha update interval */
 	u32 dcqcn_timeuot_us;
 	u32 qcn_timeuot_us;
 };
@@ -161,7 +157,7 @@ struct ecore_rl_update_params {
  * @return enum _ecore_status_t
  */
 enum _ecore_status_t ecore_sp_rl_update(struct ecore_hwfn *p_hwfn,
-					struct ecore_rl_update_params *params);
+    struct ecore_rl_update_params *params);
 
 /**
  * @brief ecore_sp_pf_update_stag - PF STAG value update Ramrod

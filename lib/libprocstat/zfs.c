@@ -26,9 +26,9 @@
  * SUCH DAMAGE.
  */
 
-#include <stdbool.h>
-
 #include <sys/param.h>
+
+#include <stdbool.h>
 #define _KERNEL
 #include <sys/mount.h>
 #undef _KERNEL
@@ -46,8 +46,8 @@
 #include <stdlib.h>
 
 #define ZFS
-#include "libprocstat.h"
 #include "common_kvm.h"
+#include "libprocstat.h"
 #include "zfs_defs.h"
 
 int
@@ -83,8 +83,7 @@ zfs_filestat(kvm_t *kd, struct vnode *vp, struct vnstat *vn)
 
 	/* Since we have problems including vnode.h, we'll use the wrappers. */
 	znodeptr = getvnodedata(vp);
-	if (!kvm_read_all(kd, (unsigned long)znodeptr, dataptr,
-	    (size_t)size)) {
+	if (!kvm_read_all(kd, (unsigned long)znodeptr, dataptr, (size_t)size)) {
 		warnx("can't read znode at %p", (void *)znodeptr);
 		goto bad;
 	}

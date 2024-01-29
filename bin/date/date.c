@@ -30,8 +30,8 @@
  */
 
 #include <sys/param.h>
-#include <sys/time.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 
 #include <ctype.h>
 #include <err.h>
@@ -46,8 +46,8 @@
 
 #include "vary.h"
 
-#ifndef	TM_YEAR_BASE
-#define	TM_YEAR_BASE	1900
+#ifndef TM_YEAR_BASE
+#define TM_YEAR_BASE 1900
 #endif
 
 static time_t tval;
@@ -90,11 +90,11 @@ main(int argc, char *argv[])
 
 	v = NULL;
 	fmt = NULL;
-	(void) setlocale(LC_TIME, "");
+	(void)setlocale(LC_TIME, "");
 	rflag = 0;
 	Iflag = jflag = Rflag = 0;
 	while ((ch = getopt(argc, argv, "f:I::jnRr:uv:z:")) != -1)
-		switch((char)ch) {
+		switch ((char)ch) {
 		case 'f':
 			fmt = optarg;
 			break;
@@ -107,7 +107,8 @@ main(int argc, char *argv[])
 				break;
 			}
 			for (i = 0; i < nitems(iso8601_fmts); i++)
-				if (strcmp(optarg, iso8601_fmts[i].refname) == 0)
+				if (strcmp(optarg, iso8601_fmts[i].refname) ==
+				    0)
 					break;
 			if (i == nitems(iso8601_fmts))
 				iso8601_usage(optarg);
@@ -115,16 +116,16 @@ main(int argc, char *argv[])
 			iso8601_selected = &iso8601_fmts[i];
 			break;
 		case 'j':
-			jflag = 1;	/* don't set time */
+			jflag = 1; /* don't set time */
 			break;
 		case 'n':
 			break;
-		case 'R':		/* RFC 2822 datetime format */
+		case 'R': /* RFC 2822 datetime format */
 			if (Iflag)
 				multipleformats();
 			Rflag = 1;
 			break;
-		case 'r':		/* user specified seconds */
+		case 'r': /* user specified seconds */
 			rflag = 1;
 			tval = strtoq(optarg, &tmp, 0);
 			if (*tmp != 0) {
@@ -134,7 +135,7 @@ main(int argc, char *argv[])
 					usage();
 			}
 			break;
-		case 'u':		/* do everything in UTC */
+		case 'u': /* do everything in UTC */
 			(void)setenv("TZ", "UTC0", 1);
 			break;
 		case 'z':
@@ -185,7 +186,7 @@ main(int argc, char *argv[])
 	badv = vary_apply(v, lt);
 	if (badv) {
 		fprintf(stderr, "%s: Cannot apply date adjustment\n",
-			badv->arg);
+		    badv->arg);
 		vary_destroy(v);
 		usage();
 	}
@@ -200,7 +201,6 @@ main(int argc, char *argv[])
 		 * locale.
 		 */
 		setlocale(LC_TIME, "C");
-
 
 	(void)strftime(buf, sizeof(buf), format, lt);
 	printdate(buf);
@@ -237,7 +237,7 @@ printisodate(struct tm *lt)
 	printdate(buf);
 }
 
-#define	ATOI2(s)	((s) += 2, ((s)[-2] - '0') * 10 + ((s)[-1] - '0'))
+#define ATOI2(s) ((s) += 2, ((s)[-2] - '0') * 10 + ((s)[-1] - '0'))
 
 static void
 setthetime(const char *fmt, const char *p, int jflag)
@@ -251,18 +251,21 @@ setthetime(const char *fmt, const char *p, int jflag)
 	lt = localtime(&tval);
 	if (lt == NULL)
 		errx(1, "invalid time");
-	lt->tm_isdst = -1;		/* divine correct DST */
+	lt->tm_isdst = -1; /* divine correct DST */
 
 	if (fmt != NULL) {
 		t = strptime(p, fmt, lt);
 		if (t == NULL) {
-			fprintf(stderr, "Failed conversion of ``%s''"
-				" using format ``%s''\n", p, fmt);
+			fprintf(stderr,
+			    "Failed conversion of ``%s''"
+			    " using format ``%s''\n",
+			    p, fmt);
 			badformat();
 		} else if (*t != '\0')
-			fprintf(stderr, "Warning: Ignoring %ld extraneous"
-				" characters in date string (%s)\n",
-				(long) strlen(t), t);
+			fprintf(stderr,
+			    "Warning: Ignoring %ld extraneous"
+			    " characters in date string (%s)\n",
+			    (long)strlen(t), t);
 	} else {
 		for (t = p, dot = NULL; *t; ++t) {
 			if (isdigit(*t))
@@ -274,8 +277,8 @@ setthetime(const char *fmt, const char *p, int jflag)
 			badformat();
 		}
 
-		if (dot != NULL) {			/* .ss */
-			dot++; /* *dot++ = '\0'; */
+		if (dot != NULL) { /* .ss */
+			dot++;	   /* *dot++ = '\0'; */
 			if (strlen(dot) != 2)
 				badformat();
 			lt->tm_sec = ATOI2(dot);
@@ -287,38 +290,38 @@ setthetime(const char *fmt, const char *p, int jflag)
 		century = 0;
 		/* if p has a ".ss" field then let's pretend it's not there */
 		switch (strlen(p) - ((dot != NULL) ? 3 : 0)) {
-		case 12:				/* cc */
+		case 12: /* cc */
 			lt->tm_year = ATOI2(p) * 100 - TM_YEAR_BASE;
 			century = 1;
 			/* FALLTHROUGH */
-		case 10:				/* yy */
+		case 10: /* yy */
 			if (century)
 				lt->tm_year += ATOI2(p);
 			else {
 				lt->tm_year = ATOI2(p);
-				if (lt->tm_year < 69)	/* hack for 2000 ;-} */
+				if (lt->tm_year < 69) /* hack for 2000 ;-} */
 					lt->tm_year += 2000 - TM_YEAR_BASE;
 				else
 					lt->tm_year += 1900 - TM_YEAR_BASE;
 			}
 			/* FALLTHROUGH */
-		case 8:					/* mm */
+		case 8: /* mm */
 			lt->tm_mon = ATOI2(p);
 			if (lt->tm_mon > 12)
 				badformat();
-			--lt->tm_mon;		/* time struct is 0 - 11 */
-			/* FALLTHROUGH */
-		case 6:					/* dd */
+			--lt->tm_mon; /* time struct is 0 - 11 */
+				      /* FALLTHROUGH */
+		case 6:		      /* dd */
 			lt->tm_mday = ATOI2(p);
 			if (lt->tm_mday > 31)
 				badformat();
 			/* FALLTHROUGH */
-		case 4:					/* HH */
+		case 4: /* HH */
 			lt->tm_hour = ATOI2(p);
 			if (lt->tm_hour > 23)
 				badformat();
 			/* FALLTHROUGH */
-		case 2:					/* MM */
+		case 2: /* MM */
 			lt->tm_min = ATOI2(p);
 			if (lt->tm_min > 59)
 				badformat();
@@ -378,7 +381,6 @@ usage(void)
 	    "            "
 	    "[ -z output_zone ] [-r filename|seconds] [-v[+|-]val[y|m|w|d|H|M|S]]",
 	    "            "
-	    "[[[[[[cc]yy]mm]dd]HH]MM[.SS] | new_date] [+output_fmt]"
-	    );
+	    "[[[[[[cc]yy]mm]dd]HH]MM[.SS] | new_date] [+output_fmt]");
 	exit(1);
 }

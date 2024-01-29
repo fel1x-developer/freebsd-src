@@ -71,7 +71,7 @@
  *   User   .-- EENTER   -- Go to entry point of enclave
  *    space |   EEXIT    -- Exit back to main application
  *    ENCLU '-- ERESUME  -- Resume enclave execution (e.g. after exception)
- *  
+ *
  * Enclave lifecycle from driver point of view:
  *  1) User calls mmap() on /dev/sgx: we allocate a VM object
  *  2) User calls ioctl SGX_IOC_ENCLAVE_CREATE: we look for the VM object
@@ -119,45 +119,45 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/conf.h>
 #include <sys/ioccom.h>
-#include <sys/malloc.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/rwlock.h>
-#include <sys/conf.h>
+#include <sys/malloc.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/proc.h>
+#include <sys/rwlock.h>
 #include <sys/vmem.h>
 #include <sys/vmmeter.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
+#include <vm/pmap.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_kern.h>
-#include <vm/vm_page.h>
 #include <vm/vm_map.h>
 #include <vm/vm_object.h>
+#include <vm/vm_page.h>
 #include <vm/vm_pager.h>
+#include <vm/vm_param.h>
 #include <vm/vm_phys.h>
 #include <vm/vm_radix.h>
-#include <vm/pmap.h>
 
-#include <machine/md_var.h>
-#include <machine/specialreg.h>
 #include <machine/cpufunc.h>
+#include <machine/md_var.h>
 #include <machine/sgx.h>
 #include <machine/sgxreg.h>
+#include <machine/specialreg.h>
 
 #include <amd64/sgx/sgxvar.h>
 
-#define	SGX_DEBUG
-#undef	SGX_DEBUG
+#define SGX_DEBUG
+#undef SGX_DEBUG
 
-#ifdef	SGX_DEBUG
-#define	dprintf(fmt, ...)	printf(fmt, ##__VA_ARGS__)
+#ifdef SGX_DEBUG
+#define dprintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
-#define	dprintf(fmt, ...)
+#define dprintf(fmt, ...)
 #endif
 
 static struct cdev_pager_ops sgx_pg_ops;
@@ -169,8 +169,8 @@ sgx_get_epc_page(struct sgx_softc *sc, struct epc_page **epc)
 	vmem_addr_t addr;
 	int i;
 
-	if (vmem_alloc(sc->vmem_epc, PAGE_SIZE, M_FIRSTFIT | M_NOWAIT,
-	    &addr) == 0) {
+	if (vmem_alloc(sc->vmem_epc, PAGE_SIZE, M_FIRSTFIT | M_NOWAIT, &addr) ==
+	    0) {
 		i = (addr - sc->epc_base) / PAGE_SIZE;
 		*epc = &sc->epc_pages[i];
 		return (0);
@@ -206,8 +206,7 @@ sgx_va_slot_init_by_index(struct sgx_softc *sc, vm_object_t object,
 	if (p == NULL) {
 		ret = sgx_get_epc_page(sc, &epc);
 		if (ret) {
-			dprintf("%s: No free EPC pages available.\n",
-			    __func__);
+			dprintf("%s: No free EPC pages available.\n", __func__);
 			return (ret);
 		}
 
@@ -225,8 +224,7 @@ sgx_va_slot_init_by_index(struct sgx_softc *sc, vm_object_t object,
 }
 
 static int
-sgx_va_slot_init(struct sgx_softc *sc,
-    struct sgx_enclave *enclave,
+sgx_va_slot_init(struct sgx_softc *sc, struct sgx_enclave *enclave,
     uint64_t addr)
 {
 	vm_pindex_t pidx;
@@ -242,7 +240,7 @@ sgx_va_slot_init(struct sgx_softc *sc,
 	pidx = OFF_TO_IDX(addr);
 
 	va_page_idx = pidx / SGX_VA_PAGE_SLOTS;
-	idx = - SGX_VA_PAGES_OFFS - va_page_idx;
+	idx = -SGX_VA_PAGES_OFFS - va_page_idx;
 
 	ret = sgx_va_slot_init_by_index(sc, object, idx);
 
@@ -250,8 +248,8 @@ sgx_va_slot_init(struct sgx_softc *sc,
 }
 
 static int
-sgx_mem_find(struct sgx_softc *sc, uint64_t addr,
-    vm_map_entry_t *entry0, vm_object_t *object0)
+sgx_mem_find(struct sgx_softc *sc, uint64_t addr, vm_map_entry_t *entry0,
+    vm_object_t *object0)
 {
 	vm_map_t map;
 	vm_map_entry_t entry;
@@ -288,8 +286,7 @@ sgx_mem_find(struct sgx_softc *sc, uint64_t addr,
 }
 
 static int
-sgx_enclave_find(struct sgx_softc *sc, uint64_t addr,
-    struct sgx_enclave **encl)
+sgx_enclave_find(struct sgx_softc *sc, uint64_t addr, struct sgx_enclave **encl)
 {
 	struct sgx_vm_handle *vmh;
 	struct sgx_enclave *enclave;
@@ -324,8 +321,7 @@ sgx_enclave_alloc(struct sgx_softc *sc, struct secs *secs,
 {
 	struct sgx_enclave *enclave;
 
-	enclave = malloc(sizeof(struct sgx_enclave),
-	    M_SGX, M_WAITOK | M_ZERO);
+	enclave = malloc(sizeof(struct sgx_enclave), M_SGX, M_WAITOK | M_ZERO);
 
 	enclave->base = secs->base;
 	enclave->size = secs->size;
@@ -336,8 +332,7 @@ sgx_enclave_alloc(struct sgx_softc *sc, struct secs *secs,
 }
 
 static void
-sgx_epc_page_remove(struct sgx_softc *sc,
-    struct epc_page *epc)
+sgx_epc_page_remove(struct sgx_softc *sc, struct epc_page *epc)
 {
 
 	mtx_lock(&sc->mtx_encls);
@@ -366,8 +361,7 @@ sgx_page_remove(struct sgx_softc *sc, vm_page_t p)
 }
 
 static void
-sgx_enclave_remove(struct sgx_softc *sc,
-    struct sgx_enclave *enclave)
+sgx_enclave_remove(struct sgx_softc *sc, struct sgx_enclave *enclave)
 {
 	vm_object_t object;
 	vm_page_t p, p_secs, p_next;
@@ -385,7 +379,7 @@ sgx_enclave_remove(struct sgx_softc *sc,
 	 * then remove SECS page.
 	 */
 restart:
-	TAILQ_FOREACH_SAFE(p, &object->memq, listq, p_next) {
+	TAILQ_FOREACH_SAFE (p, &object->memq, listq, p_next) {
 		if (p->pindex == SGX_SECS_VM_OBJECT_INDEX)
 			continue;
 		if (vm_page_busy_acquire(p, VM_ALLOC_WAITFAIL) == 0)
@@ -417,8 +411,7 @@ sgx_measure_page(struct sgx_softc *sc, struct epc_page *secs,
 		if (!(j & mrmask))
 			continue;
 
-		ret = sgx_eextend((void *)secs->base,
-		    (void *)(epc->base + i));
+		ret = sgx_eextend((void *)secs->base, (void *)(epc->base + i));
 		if (ret == SGX_EFAULT) {
 			mtx_unlock(&sc->mtx_encls);
 			return (ret);
@@ -452,8 +445,7 @@ sgx_secs_validate(struct sgx_softc *sc, struct secs *secs)
 
 	attr = &secs->attributes;
 
-	if (attr->reserved1 != 0 ||
-	    attr->reserved2 != 0 ||
+	if (attr->reserved1 != 0 || attr->reserved2 != 0 ||
 	    attr->reserved3 != 0)
 		return (EINVAL);
 
@@ -500,8 +492,7 @@ sgx_tcs_validate(struct tcs *tcs)
 {
 	int i;
 
-	if ((tcs->flags) ||
-	    (tcs->ossa & (PAGE_SIZE - 1)) ||
+	if ((tcs->flags) || (tcs->ossa & (PAGE_SIZE - 1)) ||
 	    (tcs->ofsbasgx & (PAGE_SIZE - 1)) ||
 	    (tcs->ogsbasgx & (PAGE_SIZE - 1)) ||
 	    ((tcs->fslimit & 0xfff) != 0xfff) ||
@@ -531,8 +522,8 @@ sgx_tcs_dump(struct sgx_softc *sc, struct tcs *t)
 }
 
 static int
-sgx_pg_ctor(void *handle, vm_ooffset_t size, vm_prot_t prot,
-    vm_ooffset_t foff, struct ucred *cred, u_short *color)
+sgx_pg_ctor(void *handle, vm_ooffset_t size, vm_prot_t prot, vm_ooffset_t foff,
+    struct ucred *cred, u_short *color)
 {
 	struct sgx_vm_handle *vmh;
 
@@ -542,8 +533,8 @@ sgx_pg_ctor(void *handle, vm_ooffset_t size, vm_prot_t prot,
 		return (0);
 	}
 
-	dprintf("%s: vmh->base %lx foff 0x%lx size 0x%lx\n",
-	    __func__, vmh->base, foff, size);
+	dprintf("%s: vmh->base %lx foff 0x%lx size 0x%lx\n", __func__,
+	    vmh->base, foff, size);
 
 	return (0);
 }
@@ -578,8 +569,7 @@ sgx_pg_dtor(void *handle)
 }
 
 static int
-sgx_pg_fault(vm_object_t object, vm_ooffset_t offset,
-    int prot, vm_page_t *mres)
+sgx_pg_fault(vm_object_t object, vm_ooffset_t offset, int prot, vm_page_t *mres)
 {
 
 	/*
@@ -611,8 +601,8 @@ sgx_insert_epc_page_by_index(vm_page_t page, vm_object_t object,
 }
 
 static void
-sgx_insert_epc_page(struct sgx_enclave *enclave,
-    struct epc_page *epc, uint64_t addr)
+sgx_insert_epc_page(struct sgx_enclave *enclave, struct epc_page *epc,
+    uint64_t addr)
 {
 	vm_pindex_t pidx;
 	vm_page_t page;
@@ -672,8 +662,8 @@ sgx_ioctl_create(struct sgx_softc *sc, struct sgx_enclave_create *param)
 		goto error;
 	}
 
-	dprintf("%s: entry start %lx offset %lx\n",
-	    __func__, entry->start, entry->offset);
+	dprintf("%s: entry start %lx offset %lx\n", __func__, entry->start,
+	    entry->offset);
 	vmh->base = (entry->start - entry->offset);
 
 	ret = sgx_enclave_alloc(sc, secs, &enclave);
@@ -708,7 +698,7 @@ sgx_ioctl_create(struct sgx_softc *sc, struct sgx_enclave_create *param)
 	}
 
 	ret = sgx_va_slot_init_by_index(sc, object,
-	    - SGX_VA_PAGES_OFFS - SGX_SECS_VM_OBJECT_INDEX);
+	    -SGX_VA_PAGES_OFFS - SGX_SECS_VM_OBJECT_INDEX);
 	if (ret) {
 		VM_OBJECT_WUNLOCK(object);
 		dprintf("%s: Can't init va slot.\n", __func__);
@@ -720,7 +710,7 @@ sgx_ioctl_create(struct sgx_softc *sc, struct sgx_enclave_create *param)
 		mtx_unlock(&sc->mtx);
 		/* Remove VA page that was just created for SECS page. */
 		p = vm_page_grab(enclave->object,
-		    - SGX_VA_PAGES_OFFS - SGX_SECS_VM_OBJECT_INDEX,
+		    -SGX_VA_PAGES_OFFS - SGX_SECS_VM_OBJECT_INDEX,
 		    VM_ALLOC_NOCREAT);
 		sgx_page_remove(sc, p);
 		VM_OBJECT_WUNLOCK(object);
@@ -734,7 +724,7 @@ sgx_ioctl_create(struct sgx_softc *sc, struct sgx_enclave_create *param)
 		mtx_unlock(&sc->mtx);
 		/* Remove VA page that was just created for SECS page. */
 		p = vm_page_grab(enclave->object,
-		    - SGX_VA_PAGES_OFFS - SGX_SECS_VM_OBJECT_INDEX,
+		    -SGX_VA_PAGES_OFFS - SGX_SECS_VM_OBJECT_INDEX,
 		    VM_ALLOC_NOCREAT);
 		sgx_page_remove(sc, p);
 		VM_OBJECT_WUNLOCK(object);
@@ -769,8 +759,7 @@ error:
 }
 
 static int
-sgx_ioctl_add_page(struct sgx_softc *sc,
-    struct sgx_enclave_add_page *addp)
+sgx_ioctl_add_page(struct sgx_softc *sc, struct sgx_enclave_add_page *addp)
 {
 	struct epc_page *secs_epc_page;
 	struct sgx_enclave *enclave;
@@ -809,8 +798,7 @@ sgx_ioctl_add_page(struct sgx_softc *sc,
 	}
 
 	memset(&secinfo, 0, sizeof(struct secinfo));
-	ret = copyin((void *)addp->secinfo, &secinfo,
-	    sizeof(struct secinfo));
+	ret = copyin((void *)addp->secinfo, &secinfo, sizeof(struct secinfo));
 	if (ret) {
 		dprintf("%s: Failed to copy secinfo.\n", __func__);
 		goto error;
@@ -823,8 +811,7 @@ sgx_ioctl_add_page(struct sgx_softc *sc,
 		goto error;
 	}
 
-	page_type = (secinfo.flags & SECINFO_FLAGS_PT_M) >>
-	    SECINFO_FLAGS_PT_S;
+	page_type = (secinfo.flags & SECINFO_FLAGS_PT_M) >> SECINFO_FLAGS_PT_S;
 	if (page_type != SGX_PT_TCS && page_type != SGX_PT_REG) {
 		dprintf("%s: page can't be added.\n", __func__);
 		goto error;
@@ -833,8 +820,7 @@ sgx_ioctl_add_page(struct sgx_softc *sc,
 		t = (struct tcs *)tmp_vaddr;
 		ret = sgx_tcs_validate(t);
 		if (ret) {
-			dprintf("%s: TCS page validation failed.\n",
-			    __func__);
+			dprintf("%s: TCS page validation failed.\n", __func__);
 			goto error;
 		}
 		sgx_tcs_dump(sc, t);
@@ -920,8 +906,8 @@ sgx_ioctl_init(struct sgx_softc *sc, struct sgx_enclave_init *initp)
 	tmp_vaddr = NULL;
 	object = NULL;
 
-	dprintf("%s: addr %lx, sigstruct %lx, einittoken %lx\n",
-	    __func__, initp->addr, initp->sigstruct, initp->einittoken);
+	dprintf("%s: addr %lx, sigstruct %lx, einittoken %lx\n", __func__,
+	    initp->addr, initp->sigstruct, initp->einittoken);
 
 	/* Find and get reference to VM object. */
 	ret = sgx_enclave_find(sc, initp->addr, &enclave);
@@ -936,8 +922,7 @@ sgx_ioctl_init(struct sgx_softc *sc, struct sgx_enclave_init *initp)
 	sigstruct = tmp_vaddr;
 	einittoken = (void *)((uint64_t)sigstruct + PAGE_SIZE / 2);
 
-	ret = copyin((void *)initp->sigstruct, sigstruct,
-	    SGX_SIGSTRUCT_SIZE);
+	ret = copyin((void *)initp->sigstruct, sigstruct, SGX_SIGSTRUCT_SIZE);
 	if (ret) {
 		dprintf("%s: Failed to copy SIGSTRUCT page.\n", __func__);
 		goto error;
@@ -990,8 +975,8 @@ sgx_ioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flags,
 
 	len = IOCPARM_LEN(cmd);
 
-	dprintf("%s: cmd %lx, addr %lx, len %d\n",
-	    __func__, cmd, (uint64_t)addr, len);
+	dprintf("%s: cmd %lx, addr %lx, len %d\n", __func__, cmd,
+	    (uint64_t)addr, len);
 
 	if (len > SGX_IOCTL_MAX_DATA_LEN)
 		return (EINVAL);
@@ -1017,19 +1002,17 @@ sgx_ioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flags,
 }
 
 static int
-sgx_mmap_single(struct cdev *cdev, vm_ooffset_t *offset,
-    vm_size_t mapsize, struct vm_object **objp, int nprot)
+sgx_mmap_single(struct cdev *cdev, vm_ooffset_t *offset, vm_size_t mapsize,
+    struct vm_object **objp, int nprot)
 {
 	struct sgx_vm_handle *vmh;
 	struct sgx_softc *sc;
 
 	sc = &sgx_sc;
 
-	dprintf("%s: mapsize 0x%lx, offset %lx\n",
-	    __func__, mapsize, *offset);
+	dprintf("%s: mapsize 0x%lx, offset %lx\n", __func__, mapsize, *offset);
 
-	vmh = malloc(sizeof(struct sgx_vm_handle),
-	    M_SGX, M_WAITOK | M_ZERO);
+	vmh = malloc(sizeof(struct sgx_vm_handle), M_SGX, M_WAITOK | M_ZERO);
 	vmh->sc = sc;
 	vmh->size = mapsize;
 	vmh->mem = cdev_pager_allocate(vmh, OBJT_MGTDEVICE, &sgx_pg_ops,
@@ -1049,10 +1032,10 @@ sgx_mmap_single(struct cdev *cdev, vm_ooffset_t *offset,
 }
 
 static struct cdevsw sgx_cdevsw = {
-	.d_version =		D_VERSION,
-	.d_ioctl =		sgx_ioctl,
-	.d_mmap_single =	sgx_mmap_single,
-	.d_name =		"Intel SGX",
+	.d_version = D_VERSION,
+	.d_ioctl = sgx_ioctl,
+	.d_mmap_single = sgx_mmap_single,
+	.d_name = "Intel SGX",
 };
 
 static int
@@ -1085,8 +1068,8 @@ sgx_get_epc_area(struct sgx_softc *sc)
 	epc_base_vaddr = (vm_offset_t)pmap_mapdev_attr(sc->epc_base,
 	    sc->epc_size, VM_MEMATTR_DEFAULT);
 
-	sc->epc_pages = malloc(sizeof(struct epc_page) * sc->npages,
-	    M_DEVBUF, M_WAITOK | M_ZERO);
+	sc->epc_pages = malloc(sizeof(struct epc_page) * sc->npages, M_DEVBUF,
+	    M_WAITOK | M_ZERO);
 
 	for (i = 0; i < sc->npages; i++) {
 		sc->epc_pages[i].base = epc_base_vaddr + SGX_PAGE_SIZE * i;
@@ -1146,8 +1129,8 @@ sgx_load(void)
 
 	TAILQ_INIT(&sc->enclaves);
 
-	sc->sgx_cdev = make_dev(&sgx_cdevsw, 0, UID_ROOT, GID_WHEEL,
-	    0600, "isgx");
+	sc->sgx_cdev = make_dev(&sgx_cdevsw, 0, UID_ROOT, GID_WHEEL, 0600,
+	    "isgx");
 
 	sc->state |= SGX_STATE_RUNNING;
 
@@ -1206,11 +1189,7 @@ sgx_handler(module_t mod, int what, void *arg)
 	return (error);
 }
 
-static moduledata_t sgx_kmod = {
-	"sgx",
-	sgx_handler,
-	NULL
-};
+static moduledata_t sgx_kmod = { "sgx", sgx_handler, NULL };
 
 DECLARE_MODULE(sgx, sgx_kmod, SI_SUB_LAST, SI_ORDER_ANY);
 MODULE_VERSION(sgx, 1);

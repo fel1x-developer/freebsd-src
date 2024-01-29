@@ -30,24 +30,25 @@
 #include <sys/param.h>
 #include <sys/jail.h>
 #include <sys/stat.h>
+#include <sys/sysctl.h>
 #include <sys/uio.h>
 #include <sys/user.h>
-#include <sys/sysctl.h>
-#include <fcntl.h>
+
+#include <ctype.h>
 #include <dirent.h>
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <jail.h>
+#include <locale.h>
+#include <pwd.h>
+#include <regex.h>
+#include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pwd.h>
-#include <signal.h>
-#include <regex.h>
-#include <ctype.h>
-#include <err.h>
-#include <errno.h>
 #include <unistd.h>
-#include <locale.h>
 
 static void __dead2
 usage(void)
@@ -56,17 +57,17 @@ usage(void)
 	fprintf(stderr, "usage: killall [-delmsqvz] [-help] [-I] [-j jail]\n");
 	fprintf(stderr,
 	    "               [-u user] [-t tty] [-c cmd] [-SIGNAL] [cmd]...\n");
-	fprintf(stderr, "At least one option or argument to specify processes must be given.\n");
+	fprintf(stderr,
+	    "At least one option or argument to specify processes must be given.\n");
 	exit(1);
 }
-
 
 static void
 printsig(FILE *fp)
 {
-	const char	*const * p;
-	int		cnt;
-	int		offset = 0;
+	const char *const *p;
+	int cnt;
+	int offset = 0;
 
 	for (cnt = NSIG, p = sys_signame + 1; --cnt; ++p) {
 		offset += fprintf(fp, "%s ", *p);
@@ -90,45 +91,45 @@ nosig(char *name)
 int
 main(int ac, char **av)
 {
-	char		**saved_av;
+	char **saved_av;
 	struct kinfo_proc *procs, *newprocs;
-	struct stat	sb;
-	struct passwd	*pw;
-	regex_t		rgx;
-	regmatch_t	pmatch;
-	int		i, j, ch;
-	char		buf[256];
-	char		first;
-	char		*user = NULL;
-	char		*tty = NULL;
-	char		*cmd = NULL;
-	int		qflag = 0;
-	int		vflag = 0;
-	int		sflag = 0;
-	int		dflag = 0;
-	int		eflag = 0;
-	int		Iflag = 0;
-	int		jflag = 0;
-	int		mflag = 0;
-	int		zflag = 0;
-	uid_t		uid = 0;
-	dev_t		tdev = 0;
-	pid_t		mypid;
-	char		thiscmd[MAXCOMLEN + 1];
-	pid_t		thispid;
-	uid_t		thisuid;
-	dev_t		thistdev;
-	int		sig = SIGTERM;
+	struct stat sb;
+	struct passwd *pw;
+	regex_t rgx;
+	regmatch_t pmatch;
+	int i, j, ch;
+	char buf[256];
+	char first;
+	char *user = NULL;
+	char *tty = NULL;
+	char *cmd = NULL;
+	int qflag = 0;
+	int vflag = 0;
+	int sflag = 0;
+	int dflag = 0;
+	int eflag = 0;
+	int Iflag = 0;
+	int jflag = 0;
+	int mflag = 0;
+	int zflag = 0;
+	uid_t uid = 0;
+	dev_t tdev = 0;
+	pid_t mypid;
+	char thiscmd[MAXCOMLEN + 1];
+	pid_t thispid;
+	uid_t thisuid;
+	dev_t thistdev;
+	int sig = SIGTERM;
 	const char *const *p;
-	char		*ep;
-	int		errors = 0;
-	int		jid;
-	int		mib[4];
-	size_t		miblen;
-	int		st, nprocs;
-	size_t		size;
-	int		matched;
-	int		killed = 0;
+	char *ep;
+	int errors = 0;
+	int jid;
+	int mib[4];
+	size_t miblen;
+	int st, nprocs;
+	size_t size;
+	int matched;
+	int killed = 0;
 
 	setlocale(LC_ALL, "");
 
@@ -153,7 +154,7 @@ main(int ac, char **av)
 				}
 				jflag++;
 				if (*av == NULL)
-				    	errx(1, "must specify jail");
+					errx(1, "must specify jail");
 				jid = jail_getid(*av);
 				if (jid < 0)
 					errx(1, "%s", jail_errmsg);
@@ -167,7 +168,7 @@ main(int ac, char **av)
 					--ac;
 				}
 				if (*av == NULL)
-				    	errx(1, "must specify user");
+					errx(1, "must specify user");
 				user = *av;
 				break;
 			case 't':
@@ -177,7 +178,7 @@ main(int ac, char **av)
 					--ac;
 				}
 				if (*av == NULL)
-				    	errx(1, "must specify tty");
+					errx(1, "must specify tty");
 				tty = *av;
 				break;
 			case 'c':
@@ -187,7 +188,7 @@ main(int ac, char **av)
 					--ac;
 				}
 				if (*av == NULL)
-				    	errx(1, "must specify procname");
+					errx(1, "must specify procname");
 				cmd = *av;
 				break;
 			case 'q':
@@ -233,7 +234,9 @@ main(int ac, char **av)
 				} else if (isdigit((unsigned char)**av)) {
 					sig = strtol(*av, &ep, 10);
 					if (!*av || *ep)
-						errx(1, "illegal signal number: %s", *av);
+						errx(1,
+						    "illegal signal number: %s",
+						    *av);
 					if (sig < 0 || sig >= NSIG)
 						nosig(*av);
 				} else
@@ -319,7 +322,7 @@ main(int ac, char **av)
 		err(1, "could not sysctl(KERN_PROC)");
 	if (size % sizeof(struct kinfo_proc) != 0) {
 		fprintf(stderr, "proc size mismatch (%zu total, %zu chunks)\n",
-			size, sizeof(struct kinfo_proc));
+		    size, sizeof(struct kinfo_proc));
 		fprintf(stderr, "userland out of sync with kernel\n");
 		exit(1);
 	}
@@ -335,9 +338,9 @@ main(int ac, char **av)
 		strlcpy(thiscmd, procs[i].ki_comm, sizeof(thiscmd));
 		thistdev = procs[i].ki_tdev;
 		if (eflag)
-			thisuid = procs[i].ki_uid;	/* effective uid */
+			thisuid = procs[i].ki_uid; /* effective uid */
 		else
-			thisuid = procs[i].ki_ruid;	/* real uid */
+			thisuid = procs[i].ki_ruid; /* real uid */
 
 		if (thispid == mypid)
 			continue;
@@ -353,7 +356,7 @@ main(int ac, char **av)
 		if (cmd) {
 			if (mflag) {
 				if (regcomp(&rgx, cmd,
-				    REG_EXTENDED|REG_NOSUB) != 0) {
+					REG_EXTENDED | REG_NOSUB) != 0) {
 					mflag = 0;
 					warnx("%s: illegal regexp", cmd);
 				}
@@ -362,7 +365,7 @@ main(int ac, char **av)
 				pmatch.rm_so = 0;
 				pmatch.rm_eo = strlen(thiscmd);
 				if (regexec(&rgx, thiscmd, 0, &pmatch,
-				    REG_STARTEND) != 0)
+					REG_STARTEND) != 0)
 					matched = 0;
 				regfree(&rgx);
 			} else {
@@ -379,7 +382,7 @@ main(int ac, char **av)
 		for (j = 0; j < ac; j++) {
 			if (mflag) {
 				if (regcomp(&rgx, av[j],
-				    REG_EXTENDED|REG_NOSUB) != 0) {
+					REG_EXTENDED | REG_NOSUB) != 0) {
 					mflag = 0;
 					warnx("%s: illegal regexp", av[j]);
 				}
@@ -388,7 +391,7 @@ main(int ac, char **av)
 				pmatch.rm_so = 0;
 				pmatch.rm_eo = strlen(thiscmd);
 				if (regexec(&rgx, thiscmd, 0, &pmatch,
-				    REG_STARTEND) == 0)
+					REG_STARTEND) == 0)
 					matched = 1;
 				regfree(&rgx);
 			} else {
@@ -399,8 +402,8 @@ main(int ac, char **av)
 				break;
 		}
 		if (matched != 0 && Iflag) {
-			printf("Send signal %d to %s (pid %d uid %d)? ",
-				sig, thiscmd, thispid, thisuid);
+			printf("Send signal %d to %s (pid %d uid %d)? ", sig,
+			    thiscmd, thispid, thisuid);
 			fflush(stdout);
 			first = ch = getchar();
 			while (ch != '\n' && ch != EOF)
@@ -420,9 +423,9 @@ main(int ac, char **av)
 
 		killed++;
 		if (!dflag && !sflag) {
-			if (kill(thispid, sig) < 0 /* && errno != ESRCH */ ) {
-				warn("warning: kill -%s %d",
-				    sys_signame[sig], thispid);
+			if (kill(thispid, sig) < 0 /* && errno != ESRCH */) {
+				warn("warning: kill -%s %d", sys_signame[sig],
+				    thispid);
 				errors = 1;
 			}
 		}

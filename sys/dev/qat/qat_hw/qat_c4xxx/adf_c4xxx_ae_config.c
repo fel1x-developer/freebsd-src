@@ -1,17 +1,19 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
-#include "adf_c4xxx_hw_data.h"
-#include <linux/kernel.h>
-#include <linux/types.h>
-#include <linux/fs.h>
-#include <linux/errno.h>
-#include <linux/device.h>
-#include <linux/io.h>
 #include <sys/sbuf.h>
 #include <sys/sysctl.h>
+
 #include <adf_accel_devices.h>
-#include <adf_common_drv.h>
 #include <adf_cfg.h>
+#include <adf_common_drv.h>
+#include <linux/device.h>
+#include <linux/errno.h>
+#include <linux/fs.h>
+#include <linux/io.h>
+#include <linux/kernel.h>
+#include <linux/types.h>
+
+#include "adf_c4xxx_hw_data.h"
 
 /* String buffer size */
 #define AE_INFO_BUFFER_SIZE 50
@@ -48,7 +50,8 @@ get_au_index(u8 au_mask)
 	return 0;
 }
 
-static int adf_ae_config_show(SYSCTL_HANDLER_ARGS)
+static int
+adf_ae_config_show(SYSCTL_HANDLER_ARGS)
 {
 	struct sbuf sb;
 	struct adf_accel_dev *accel_dev = arg1;
@@ -75,22 +78,19 @@ static int adf_ae_config_show(SYSCTL_HANDLER_ARGS)
 		/* Retrieve accel unit type */
 		switch (accel_unit[i].services) {
 		case ADF_ACCEL_CRYPTO:
-			sbuf_printf(&sb,
-				    "\tAccel unit %d - CRYPTO\n",
-				    au_index);
+			sbuf_printf(&sb, "\tAccel unit %d - CRYPTO\n",
+			    au_index);
 			/* Display ME assignment for a particular accel unit */
 			for (j = ae_index; j < (num_aes + ae_index); j++)
 				sbuf_printf(&sb, "\t\tAE[%d]: crypto\n", j);
 			break;
 		case ADF_ACCEL_COMPRESSION:
-			sbuf_printf(&sb,
-				    "\tAccel unit %d - COMPRESSION\n",
-				    au_index);
+			sbuf_printf(&sb, "\tAccel unit %d - COMPRESSION\n",
+			    au_index);
 			/* Display ME assignment for a particular accel unit */
 			for (j = ae_index; j < (num_aes + ae_index); j++)
-				sbuf_printf(&sb,
-					    "\t\tAE[%d]: compression\n",
-					    j);
+				sbuf_printf(&sb, "\t\tAE[%d]: compression\n",
+				    j);
 			break;
 		case ADF_ACCEL_SERVICE_NULL:
 		default:
@@ -112,25 +112,19 @@ c4xxx_add_debugfs_ae_config(struct adf_accel_dev *accel_dev)
 	struct sysctl_oid *qat_sysctl_tree = NULL;
 	struct sysctl_oid *ae_conf_ctl = NULL;
 
-	qat_sysctl_ctx =
-	    device_get_sysctl_ctx(accel_dev->accel_pci_dev.pci_dev);
-	qat_sysctl_tree =
-	    device_get_sysctl_tree(accel_dev->accel_pci_dev.pci_dev);
+	qat_sysctl_ctx = device_get_sysctl_ctx(
+	    accel_dev->accel_pci_dev.pci_dev);
+	qat_sysctl_tree = device_get_sysctl_tree(
+	    accel_dev->accel_pci_dev.pci_dev);
 
 	ae_conf_ctl = SYSCTL_ADD_PROC(qat_sysctl_ctx,
-				      SYSCTL_CHILDREN(qat_sysctl_tree),
-				      OID_AUTO,
-				      AE_CONFIG_DBG_FILE,
-				      CTLTYPE_STRING | CTLFLAG_RD,
-				      accel_dev,
-				      0,
-				      adf_ae_config_show,
-				      "A",
-				      "AE config");
+	    SYSCTL_CHILDREN(qat_sysctl_tree), OID_AUTO, AE_CONFIG_DBG_FILE,
+	    CTLTYPE_STRING | CTLFLAG_RD, accel_dev, 0, adf_ae_config_show, "A",
+	    "AE config");
 	accel_dev->debugfs_ae_config = ae_conf_ctl;
 	if (!accel_dev->debugfs_ae_config) {
 		device_printf(GET_DEV(accel_dev),
-			      "Could not create debug ae config entry.\n");
+		    "Could not create debug ae config entry.\n");
 		return EFAULT;
 	}
 	return 0;
@@ -146,7 +140,7 @@ c4xxx_init_ae_config(struct adf_accel_dev *accel_dev)
 	if (ret) {
 		c4xxx_exit_ae_config(accel_dev);
 		device_printf(GET_DEV(accel_dev),
-			      "Could not create debugfs ae config file\n");
+		    "Could not create debugfs ae config file\n");
 		return EINVAL;
 	}
 

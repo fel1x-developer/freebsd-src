@@ -25,9 +25,9 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/malloc.h>
-#include <sys/systm.h>
 #include <sys/sysctl.h>
 
 #include <dev/hyperv/include/hyperv.h>
@@ -37,15 +37,15 @@
 
 #include "vmbus_if.h"
 
-#define VMBUS_IC_BRSIZE		(4 * PAGE_SIZE)
+#define VMBUS_IC_BRSIZE (4 * PAGE_SIZE)
 
-#define VMBUS_IC_VERCNT		2
-#define VMBUS_IC_NEGOSZ		\
+#define VMBUS_IC_VERCNT 2
+#define VMBUS_IC_NEGOSZ \
 	__offsetof(struct vmbus_icmsg_negotiate, ic_ver[VMBUS_IC_VERCNT])
 CTASSERT(VMBUS_IC_NEGOSZ < VMBUS_IC_BRSIZE);
 
-static int	vmbus_ic_fwver_sysctl(SYSCTL_HANDLER_ARGS);
-static int	vmbus_ic_msgver_sysctl(SYSCTL_HANDLER_ARGS);
+static int vmbus_ic_fwver_sysctl(SYSCTL_HANDLER_ARGS);
+static int vmbus_ic_msgver_sysctl(SYSCTL_HANDLER_ARGS);
 
 int
 vmbus_ic_negomsg(struct vmbus_ic_softc *sc, void *data, int *dlen0,
@@ -70,20 +70,26 @@ vmbus_ic_negomsg(struct vmbus_ic_softc *sc, void *data, int *dlen0,
 	nego = data;
 
 	if (nego->ic_fwver_cnt == 0) {
-		device_printf(sc->ic_dev, "ic negotiate does not contain "
-		    "framework version %u\n", nego->ic_fwver_cnt);
+		device_printf(sc->ic_dev,
+		    "ic negotiate does not contain "
+		    "framework version %u\n",
+		    nego->ic_fwver_cnt);
 		return (EINVAL);
 	}
 	if (nego->ic_msgver_cnt == 0) {
-		device_printf(sc->ic_dev, "ic negotiate does not contain "
-		    "message version %u\n", nego->ic_msgver_cnt);
+		device_printf(sc->ic_dev,
+		    "ic negotiate does not contain "
+		    "message version %u\n",
+		    nego->ic_msgver_cnt);
 		return (EINVAL);
 	}
 
 	cnt = nego->ic_fwver_cnt + nego->ic_msgver_cnt;
 	if (dlen < __offsetof(struct vmbus_icmsg_negotiate, ic_ver[cnt])) {
-		device_printf(sc->ic_dev, "ic negotiate does not contain "
-		    "versions %d\n", dlen);
+		device_printf(sc->ic_dev,
+		    "ic negotiate does not contain "
+		    "versions %d\n",
+		    dlen);
 		return (EINVAL);
 	}
 
@@ -98,13 +104,14 @@ vmbus_ic_negomsg(struct vmbus_ic_softc *sc, void *data, int *dlen0,
 				sel_fw_ver = nego->ic_ver[i];
 				has_fw_ver = true;
 			} else if (VMBUS_ICVER_GT(nego->ic_ver[i],
-			    sel_fw_ver)) {
+				       sel_fw_ver)) {
 				sel_fw_ver = nego->ic_ver[i];
 			}
 		}
 	}
 	if (!has_fw_ver) {
-		device_printf(sc->ic_dev, "failed to select framework "
+		device_printf(sc->ic_dev,
+		    "failed to select framework "
 		    "version\n");
 		goto done;
 	}
@@ -113,19 +120,20 @@ vmbus_ic_negomsg(struct vmbus_ic_softc *sc, void *data, int *dlen0,
 	 * Find the best match message version.
 	 */
 	for (i = nego->ic_fwver_cnt;
-	    i < nego->ic_fwver_cnt + nego->ic_msgver_cnt; ++i) {
+	     i < nego->ic_fwver_cnt + nego->ic_msgver_cnt; ++i) {
 		if (VMBUS_ICVER_LE(nego->ic_ver[i], msg_ver)) {
 			if (!has_msg_ver) {
 				sel_msg_ver = nego->ic_ver[i];
 				has_msg_ver = true;
 			} else if (VMBUS_ICVER_GT(nego->ic_ver[i],
-			    sel_msg_ver)) {
+				       sel_msg_ver)) {
 				sel_msg_ver = nego->ic_ver[i];
 			}
 		}
 	}
 	if (!has_msg_ver) {
-		device_printf(sc->ic_dev, "failed to select message "
+		device_printf(sc->ic_dev,
+		    "failed to select message "
 		    "version\n");
 		goto done;
 	}
@@ -134,27 +142,31 @@ vmbus_ic_negomsg(struct vmbus_ic_softc *sc, void *data, int *dlen0,
 done:
 	if (bootverbose || !has_fw_ver || !has_msg_ver) {
 		if (has_fw_ver) {
-			device_printf(sc->ic_dev, "sel framework version: "
+			device_printf(sc->ic_dev,
+			    "sel framework version: "
 			    "%u.%u\n",
 			    VMBUS_ICVER_MAJOR(sel_fw_ver),
 			    VMBUS_ICVER_MINOR(sel_fw_ver));
 		}
 		for (i = 0; i < nego->ic_fwver_cnt; i++) {
-			device_printf(sc->ic_dev, "supp framework version: "
+			device_printf(sc->ic_dev,
+			    "supp framework version: "
 			    "%u.%u\n",
 			    VMBUS_ICVER_MAJOR(nego->ic_ver[i]),
 			    VMBUS_ICVER_MINOR(nego->ic_ver[i]));
 		}
 
 		if (has_msg_ver) {
-			device_printf(sc->ic_dev, "sel message version: "
+			device_printf(sc->ic_dev,
+			    "sel message version: "
 			    "%u.%u\n",
 			    VMBUS_ICVER_MAJOR(sel_msg_ver),
 			    VMBUS_ICVER_MINOR(sel_msg_ver));
 		}
 		for (i = nego->ic_fwver_cnt;
-		    i < nego->ic_fwver_cnt + nego->ic_msgver_cnt; i++) {
-			device_printf(sc->ic_dev, "supp message version: "
+		     i < nego->ic_fwver_cnt + nego->ic_msgver_cnt; i++) {
+			device_printf(sc->ic_dev,
+			    "supp message version: "
 			    "%u.%u\n",
 			    VMBUS_ICVER_MAJOR(nego->ic_ver[i]),
 			    VMBUS_ICVER_MINOR(nego->ic_ver[i]));
@@ -289,8 +301,8 @@ vmbus_ic_sendresp(struct vmbus_ic_softc *sc, struct vmbus_channel *chan,
 	hdr = data;
 
 	hdr->ic_flags = VMBUS_ICMSG_FLAG_XACT | VMBUS_ICMSG_FLAG_RESP;
-	error = vmbus_chan_send(chan, VMBUS_CHANPKT_TYPE_INBAND, 0,
-	    data, dlen, xactid);
+	error = vmbus_chan_send(chan, VMBUS_CHANPKT_TYPE_INBAND, 0, data, dlen,
+	    xactid);
 	if (error)
 		device_printf(sc->ic_dev, "resp send failed: %d\n", error);
 	return (error);

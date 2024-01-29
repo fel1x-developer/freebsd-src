@@ -29,20 +29,32 @@
  */
 
 #ifndef _SYS_IMGACT_ELF_H_
-#define	_SYS_IMGACT_ELF_H_
+#define _SYS_IMGACT_ELF_H_
 
 #include <machine/elf.h>
 
 #ifdef _KERNEL
 
-#define	AUXARGS_ENTRY(pos, id, val) \
-    {(pos)->a_type = (id); (pos)->a_un.a_val = (val); (pos)++;}
+#define AUXARGS_ENTRY(pos, id, val)        \
+	{                                  \
+		(pos)->a_type = (id);      \
+		(pos)->a_un.a_val = (val); \
+		(pos)++;                   \
+	}
 #if (defined(__LP64__) && __ELF_WORD_SIZE == 32)
-#define	AUXARGS_ENTRY_PTR(pos, id, ptr) \
-    {(pos)->a_type = (id); (pos)->a_un.a_val = (uintptr_t)(ptr); (pos)++;}
+#define AUXARGS_ENTRY_PTR(pos, id, ptr)               \
+	{                                             \
+		(pos)->a_type = (id);                 \
+		(pos)->a_un.a_val = (uintptr_t)(ptr); \
+		(pos)++;                              \
+	}
 #else
-#define	AUXARGS_ENTRY_PTR(pos, id, ptr) \
-    {(pos)->a_type = (id); (pos)->a_un.a_ptr = (ptr); (pos)++;}
+#define AUXARGS_ENTRY_PTR(pos, id, ptr)    \
+	{                                  \
+		(pos)->a_type = (id);      \
+		(pos)->a_un.a_ptr = (ptr); \
+		(pos)++;                   \
+	}
 #endif
 
 struct image_params;
@@ -56,79 +68,76 @@ struct sbuf;
  * stack fixup routine.
  */
 typedef struct {
-	Elf_Ssize	execfd;
-	Elf_Size	phdr;
-	Elf_Size	phent;
-	Elf_Size	phnum;
-	Elf_Size	pagesz;
-	Elf_Size	base;
-	Elf_Size	flags;
-	Elf_Size	entry;
-	Elf_Word	hdr_eflags;		/* e_flags field from ehdr */
+	Elf_Ssize execfd;
+	Elf_Size phdr;
+	Elf_Size phent;
+	Elf_Size phnum;
+	Elf_Size pagesz;
+	Elf_Size base;
+	Elf_Size flags;
+	Elf_Size entry;
+	Elf_Word hdr_eflags; /* e_flags field from ehdr */
 } __ElfN(Auxargs);
 
 typedef struct {
-	Elf_Note	hdr;
-	const char *	vendor;
-	int		flags;
-	bool		(*trans_osrel)(const Elf_Note *, int32_t *);
-#define	BN_CAN_FETCH_OSREL	0x0001	/* Deprecated. */
-#define	BN_TRANSLATE_OSREL	0x0002	/* Use trans_osrel to fetch osrel */
-		/* after checking the image ABI specification, if needed. */
+	Elf_Note hdr;
+	const char *vendor;
+	int flags;
+	bool (*trans_osrel)(const Elf_Note *, int32_t *);
+#define BN_CAN_FETCH_OSREL 0x0001 /* Deprecated. */
+#define BN_TRANSLATE_OSREL 0x0002 /* Use trans_osrel to fetch osrel */
+	/* after checking the image ABI specification, if needed. */
 } Elf_Brandnote;
 
 typedef struct {
 	int brand;
 	int machine;
-	const char *compat_3_brand;	/* pre Binutils 2.10 method (FBSD 3) */
+	const char *compat_3_brand; /* pre Binutils 2.10 method (FBSD 3) */
 	const char *interp_path;
 	struct sysentvec *sysvec;
 	const char *interp_newpath;
 	int flags;
 	Elf_Brandnote *brand_note;
-	bool		(*header_supported)(struct image_params *,
-	    int32_t *, uint32_t *);
-		/* High 8 bits of flags is private to the ABI */
-#define	BI_CAN_EXEC_DYN		0x0001
-#define	BI_BRAND_NOTE		0x0002	/* May have note.ABI-tag section. */
-#define	BI_BRAND_NOTE_MANDATORY	0x0004	/* Must have note.ABI-tag section. */
-#define	BI_BRAND_ONLY_STATIC	0x0008	/* Match only interp-less binaries. */
+	bool (*header_supported)(struct image_params *, int32_t *, uint32_t *);
+	/* High 8 bits of flags is private to the ABI */
+#define BI_CAN_EXEC_DYN 0x0001
+#define BI_BRAND_NOTE 0x0002	       /* May have note.ABI-tag section. */
+#define BI_BRAND_NOTE_MANDATORY 0x0004 /* Must have note.ABI-tag section. */
+#define BI_BRAND_ONLY_STATIC 0x0008    /* Match only interp-less binaries. */
 } __ElfN(Brandinfo);
 
 __ElfType(Auxargs);
 __ElfType(Brandinfo);
 
-#define	MAX_BRANDS		8
-#define	FREEBSD_ABI_VENDOR	"FreeBSD"
-#define	GNU_ABI_VENDOR		"GNU"
+#define MAX_BRANDS 8
+#define FREEBSD_ABI_VENDOR "FreeBSD"
+#define GNU_ABI_VENDOR "GNU"
 
 typedef void (*outfunc_t)(void *, struct sbuf *, size_t *);
 
 /* Closure for __elfN(size_segments)(). */
 struct sseg_closure {
-	int count;              /* Count of writable segments. */
-	size_t size;            /* Total size of all writable segments. */
+	int count;   /* Count of writable segments. */
+	size_t size; /* Total size of all writable segments. */
 };
 
-bool	__elfN(brand_inuse)(Elf_Brandinfo *entry);
-int	__elfN(insert_brand_entry)(Elf_Brandinfo *entry);
-int	__elfN(remove_brand_entry)(Elf_Brandinfo *entry);
-int	__elfN(freebsd_fixup)(uintptr_t *, struct image_params *);
-int	__elfN(coredump)(struct thread *, struct vnode *, off_t, int);
-size_t	__elfN(populate_note)(int, void *, void *, size_t, void **);
-int	__elfN(freebsd_copyout_auxargs)(struct image_params *, uintptr_t);
-void	__elfN(puthdr)(struct thread *, void *, size_t, int, size_t, int);
-void	__elfN(prepare_notes)(struct thread *, struct note_info_list *,
-	    size_t *);
-void	__elfN(size_segments)(struct thread *, struct sseg_closure *, int);
-size_t	__elfN(register_note)(struct thread *, struct note_info_list *,
-	    int, outfunc_t, void *);
-bool	__elfN(parse_notes)(struct image_params *, Elf_Note *, const char *,
-	    const Elf_Phdr *, bool (*)(const Elf_Note *, void *, bool *),
-	    void *);
+bool __elfN(brand_inuse)(Elf_Brandinfo *entry);
+int __elfN(insert_brand_entry)(Elf_Brandinfo *entry);
+int __elfN(remove_brand_entry)(Elf_Brandinfo *entry);
+int __elfN(freebsd_fixup)(uintptr_t *, struct image_params *);
+int __elfN(coredump)(struct thread *, struct vnode *, off_t, int);
+size_t __elfN(populate_note)(int, void *, void *, size_t, void **);
+int __elfN(freebsd_copyout_auxargs)(struct image_params *, uintptr_t);
+void __elfN(puthdr)(struct thread *, void *, size_t, int, size_t, int);
+void __elfN(prepare_notes)(struct thread *, struct note_info_list *, size_t *);
+void __elfN(size_segments)(struct thread *, struct sseg_closure *, int);
+size_t __elfN(register_note)(struct thread *, struct note_info_list *, int,
+    outfunc_t, void *);
+bool __elfN(parse_notes)(struct image_params *, Elf_Note *, const char *,
+    const Elf_Phdr *, bool (*)(const Elf_Note *, void *, bool *), void *);
 
 /* Machine specific function to dump per-thread information. */
-void	__elfN(dump_thread)(struct thread *, void *, size_t *);
+void __elfN(dump_thread)(struct thread *, void *, size_t *);
 
 extern int __elfN(fallback_brand);
 extern Elf_Brandnote __elfN(freebsd_brandnote);

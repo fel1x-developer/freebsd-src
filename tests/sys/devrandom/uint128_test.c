@@ -29,19 +29,17 @@
 #include <sys/param.h>
 #include <sys/random.h>
 
-#include <errno.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdbool.h>
-
-#include <crypto/chacha20/chacha.h>
-#include <crypto/rijndael/rijndael-api-fst.h>
-#include <crypto/sha2/sha256.h>
-
 #include <dev/random/hash.h>
 #include <dev/random/uint128.h>
 
 #include <atf-c.h>
+#include <crypto/chacha20/chacha.h>
+#include <crypto/rijndael/rijndael-api-fst.h>
+#include <crypto/sha2/sha256.h>
+#include <errno.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
 
 static void
 vec_u32_tole128(uint8_t dst[static 16], const uint32_t src[static 4])
@@ -105,34 +103,34 @@ ATF_TC_BODY(uint128_inc, tc)
 		const char *descr;
 	} tests[] = {
 		{
-			.input = { 0, 0, 0, 0 },
-			.expected = { 1, 0, 0, 0 },
-			.descr = "0 -> 1",
+		    .input = { 0, 0, 0, 0 },
+		    .expected = { 1, 0, 0, 0 },
+		    .descr = "0 -> 1",
 		},
 		{
-			.input = { 1, 0, 0, 0 },
-			.expected = { 2, 0, 0, 0 },
-			.descr = "0 -> 2",
+		    .input = { 1, 0, 0, 0 },
+		    .expected = { 2, 0, 0, 0 },
+		    .descr = "0 -> 2",
 		},
 		{
-			.input = { 0xff, 0, 0, 0 },
-			.expected = { 0x100, 0, 0, 0 },
-			.descr = "0xff -> 0x100 (byte carry)",
+		    .input = { 0xff, 0, 0, 0 },
+		    .expected = { 0x100, 0, 0, 0 },
+		    .descr = "0xff -> 0x100 (byte carry)",
 		},
 		{
-			.input = { UINT32_MAX, 0, 0, 0 },
-			.expected = { 0, 1, 0, 0 },
-			.descr = "2^32 - 1 -> 2^32 (word carry)",
+		    .input = { UINT32_MAX, 0, 0, 0 },
+		    .expected = { 0, 1, 0, 0 },
+		    .descr = "2^32 - 1 -> 2^32 (word carry)",
 		},
 		{
-			.input = { UINT32_MAX, UINT32_MAX, 0, 0 },
-			.expected = { 0, 0, 1, 0 },
-			.descr = "2^64 - 1 -> 2^64 (u128t_word0 carry)",
+		    .input = { UINT32_MAX, UINT32_MAX, 0, 0 },
+		    .expected = { 0, 0, 1, 0 },
+		    .descr = "2^64 - 1 -> 2^64 (u128t_word0 carry)",
 		},
 		{
-			.input = { UINT32_MAX, UINT32_MAX, UINT32_MAX, 0 },
-			.expected = { 0, 0, 0, 1 },
-			.descr = "2^96 - 1 -> 2^96 (word carry)",
+		    .input = { UINT32_MAX, UINT32_MAX, UINT32_MAX, 0 },
+		    .expected = { 0, 0, 0, 1 },
+		    .descr = "2^96 - 1 -> 2^96 (word carry)",
 		},
 	};
 	uint8_t inputle[16], expectedle[16];
@@ -159,36 +157,36 @@ ATF_TC_BODY(uint128_add64, tc)
 		const char *descr;
 	} tests[] = {
 		{
-			.input = { 0, 0, 0, 0 },
-			.addend = 1,
-			.expected = { 1, 0, 0, 0 },
-			.descr = "0 + 1 -> 1",
+		    .input = { 0, 0, 0, 0 },
+		    .addend = 1,
+		    .expected = { 1, 0, 0, 0 },
+		    .descr = "0 + 1 -> 1",
 		},
 		{
-			.input = { 1, 0, 0, 0 },
-			.addend = UINT32_MAX,
-			.expected = { 0, 1, 0, 0 },
-			.descr = "1 + (2^32 - 1) -> 2^32 (word carry)",
+		    .input = { 1, 0, 0, 0 },
+		    .addend = UINT32_MAX,
+		    .expected = { 0, 1, 0, 0 },
+		    .descr = "1 + (2^32 - 1) -> 2^32 (word carry)",
 		},
 		{
-			.input = { 1, 0, 0, 0 },
-			.addend = UINT64_MAX,
-			.expected = { 0, 0, 1, 0 },
-			.descr = "1 + (2^64 - 1) -> 2^64 (u128t_word0 carry)",
+		    .input = { 1, 0, 0, 0 },
+		    .addend = UINT64_MAX,
+		    .expected = { 0, 0, 1, 0 },
+		    .descr = "1 + (2^64 - 1) -> 2^64 (u128t_word0 carry)",
 		},
 		{
-			.input = { 0x11111111, 0x11111111, 0, 0 },
-			.addend = 0xf0123456789abcdeULL,
-			.expected = { 0x89abcdef, 0x01234567, 1, 0 },
-			.descr = "0x1111_1111_1111_1111 +"
-				 "0xf012_3456_789a_bcde ->"
-			       "0x1_0123_4567_89ab_cdef",
+		    .input = { 0x11111111, 0x11111111, 0, 0 },
+		    .addend = 0xf0123456789abcdeULL,
+		    .expected = { 0x89abcdef, 0x01234567, 1, 0 },
+		    .descr = "0x1111_1111_1111_1111 +"
+			     "0xf012_3456_789a_bcde ->"
+			     "0x1_0123_4567_89ab_cdef",
 		},
 		{
-			.input = { 1, 0, UINT32_MAX, 0 },
-			.addend = UINT64_MAX,
-			.expected = { 0, 0, 0, 1 },
-			.descr = "Carry ~2^96",
+		    .input = { 1, 0, UINT32_MAX, 0 },
+		    .addend = UINT64_MAX,
+		    .expected = { 0, 0, 0, 1 },
+		    .descr = "Carry ~2^96",
 		},
 	};
 	uint8_t inputle[16], expectedle[16];
@@ -218,34 +216,34 @@ ATF_TC_BODY(uint128_chacha_ctr, tc)
 		const char *descr;
 	} tests[] = {
 		{
-			.input = { 0, 0, 0, 0 },
-			.expected = { 1, 0, 0, 0 },
-			.descr = "Single block",
+		    .input = { 0, 0, 0, 0 },
+		    .expected = { 1, 0, 0, 0 },
+		    .descr = "Single block",
 		},
 		{
-			.input = { 1, 0, 0, 0 },
-			.expected = { 2, 0, 0, 0 },
-			.descr = "0 -> 2",
+		    .input = { 1, 0, 0, 0 },
+		    .expected = { 2, 0, 0, 0 },
+		    .descr = "0 -> 2",
 		},
 		{
-			.input = { 0xff, 0, 0, 0 },
-			.expected = { 0x100, 0, 0, 0 },
-			.descr = "0xff -> 0x100 (byte carry)",
+		    .input = { 0xff, 0, 0, 0 },
+		    .expected = { 0x100, 0, 0, 0 },
+		    .descr = "0xff -> 0x100 (byte carry)",
 		},
 		{
-			.input = { UINT32_MAX, 0, 0, 0 },
-			.expected = { 0, 1, 0, 0 },
-			.descr = "2^32 - 1 -> 2^32 (word carry)",
+		    .input = { UINT32_MAX, 0, 0, 0 },
+		    .expected = { 0, 1, 0, 0 },
+		    .descr = "2^32 - 1 -> 2^32 (word carry)",
 		},
 		{
-			.input = { UINT32_MAX, UINT32_MAX, 0, 0 },
-			.expected = { 0, 0, 1, 0 },
-			.descr = "2^64 - 1 -> 2^64 (u128t_word0 carry)",
+		    .input = { UINT32_MAX, UINT32_MAX, 0, 0 },
+		    .expected = { 0, 0, 1, 0 },
+		    .descr = "2^64 - 1 -> 2^64 (u128t_word0 carry)",
 		},
 		{
-			.input = { UINT32_MAX, UINT32_MAX, UINT32_MAX, 0 },
-			.expected = { 0, 0, 0, 1 },
-			.descr = "2^96 - 1 -> 2^96 (word carry)",
+		    .input = { UINT32_MAX, UINT32_MAX, UINT32_MAX, 0 },
+		    .expected = { 0, 0, 0, 1 },
+		    .descr = "2^96 - 1 -> 2^96 (word carry)",
 		},
 	};
 	union randomdev_key context;
@@ -265,7 +263,6 @@ ATF_TC_BODY(uint128_chacha_ctr, tc)
 		randomdev_keystream(&context, &a, trash, sizeof(trash));
 		u128_check_equality(le128dec(expectedle), a, tests[i].descr);
 	}
-
 }
 
 ATF_TP_ADD_TCS(tp)

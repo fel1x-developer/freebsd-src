@@ -33,11 +33,13 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <rpc/rpc.h>
 #include <rpc/svc_dg.h>
+
 #include "yp_extern.h"
 
-#define	su_data(xprt)	((struct svc_dg_data *)((xprt)->xp_p2))
+#define su_data(xprt) ((struct svc_dg_data *)((xprt)->xp_p2))
 
 /*
  * We need to be able to manually set the transaction ID in the
@@ -51,9 +53,9 @@ svcudp_get_xid(SVCXPRT *xprt)
 	struct svc_dg_data *su;
 
 	if (xprt == NULL)
-		return(0);
+		return (0);
 	su = su_data(xprt);
-	return(su->su_xid);
+	return (su->su_xid);
 }
 
 unsigned long
@@ -63,9 +65,9 @@ svcudp_set_xid(SVCXPRT *xprt, unsigned long xid)
 	unsigned long old_xid;
 
 	if (xprt == NULL)
-		return(0);
+		return (0);
 	su = su_data(xprt);
 	old_xid = su->su_xid;
 	su->su_xid = xid;
-	return(old_xid);
+	return (old_xid);
 }

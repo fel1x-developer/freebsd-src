@@ -30,7 +30,6 @@
  */
 
 #include "ice_common.h"
-
 #include "ice_ddp_common.h"
 /**
  * ice_pkg_get_supported_vlan_mode - chk if DDP supports Double VLAN mode (DVM)
@@ -49,8 +48,7 @@ ice_pkg_get_supported_vlan_mode(struct ice_hw *hw, bool *dvm)
 	*dvm = false;
 
 	bld = ice_pkg_buf_alloc_single_section(hw,
-					       ICE_SID_RXPARSER_METADATA_INIT,
-					       meta_init_size, (void **)&sect);
+	    ICE_SID_RXPARSER_METADATA_INIT, meta_init_size, (void **)&sect);
 	if (!bld)
 		return ICE_ERR_NO_MEMORY;
 
@@ -59,8 +57,7 @@ ice_pkg_get_supported_vlan_mode(struct ice_hw *hw, bool *dvm)
 	sect->offset = CPU_TO_LE16(ICE_META_VLAN_MODE_ENTRY);
 
 	status = ice_aq_upload_section(hw,
-				       (struct ice_buf_hdr *)ice_pkg_buf(bld),
-				       ICE_PKG_BUF_SIZE, NULL);
+	    (struct ice_buf_hdr *)ice_pkg_buf(bld), ICE_PKG_BUF_SIZE, NULL);
 	if (!status) {
 		ice_declare_bitmap(entry, ICE_META_INIT_BITS);
 		u32 arr[ICE_META_INIT_DW_CNT];
@@ -90,7 +87,7 @@ ice_pkg_get_supported_vlan_mode(struct ice_hw *hw, bool *dvm)
  */
 static enum ice_status
 ice_aq_get_vlan_mode(struct ice_hw *hw,
-		     struct ice_aqc_get_vlan_mode *get_params)
+    struct ice_aqc_get_vlan_mode *get_params)
 {
 	struct ice_aq_desc desc;
 
@@ -98,10 +95,10 @@ ice_aq_get_vlan_mode(struct ice_hw *hw,
 		return ICE_ERR_PARAM;
 
 	ice_fill_dflt_direct_cmd_desc(&desc,
-				      ice_aqc_opc_get_vlan_mode_parameters);
+	    ice_aqc_opc_get_vlan_mode_parameters);
 
 	return ice_aq_send_cmd(hw, &desc, get_params, sizeof(*get_params),
-			       NULL);
+	    NULL);
 }
 
 /**
@@ -115,15 +112,16 @@ ice_aq_get_vlan_mode(struct ice_hw *hw,
  * Also, return false if this call fails for any reason (i.e. firmware doesn't
  * support this AQ call).
  */
-static bool ice_aq_is_dvm_ena(struct ice_hw *hw)
+static bool
+ice_aq_is_dvm_ena(struct ice_hw *hw)
 {
 	struct ice_aqc_get_vlan_mode get_params = { 0 };
 	enum ice_status status;
 
 	status = ice_aq_get_vlan_mode(hw, &get_params);
 	if (status) {
-		ice_debug(hw, ICE_DBG_AQ, "Failed to get VLAN mode, status %d\n",
-			  status);
+		ice_debug(hw, ICE_DBG_AQ,
+		    "Failed to get VLAN mode, status %d\n", status);
 		return false;
 	}
 
@@ -139,7 +137,8 @@ static bool ice_aq_is_dvm_ena(struct ice_hw *hw)
  * need to make an AQ call every time the driver needs to know the VLAN mode.
  * Instead, use the cached VLAN mode.
  */
-bool ice_is_dvm_ena(struct ice_hw *hw)
+bool
+ice_is_dvm_ena(struct ice_hw *hw)
 {
 	return hw->dvm_ena;
 }
@@ -152,7 +151,8 @@ bool ice_is_dvm_ena(struct ice_hw *hw)
  * configuration lock has been released because all ports on a device need to
  * cache the VLAN mode.
  */
-static void ice_cache_vlan_mode(struct ice_hw *hw)
+static void
+ice_cache_vlan_mode(struct ice_hw *hw)
 {
 	hw->dvm_ena = ice_aq_is_dvm_ena(hw) ? true : false;
 }
@@ -161,15 +161,16 @@ static void ice_cache_vlan_mode(struct ice_hw *hw)
  * ice_pkg_supports_dvm - find out if DDP supports DVM
  * @hw: pointer to the HW structure
  */
-static bool ice_pkg_supports_dvm(struct ice_hw *hw)
+static bool
+ice_pkg_supports_dvm(struct ice_hw *hw)
 {
 	enum ice_status status;
 	bool pkg_supports_dvm;
 
 	status = ice_pkg_get_supported_vlan_mode(hw, &pkg_supports_dvm);
 	if (status) {
-		ice_debug(hw, ICE_DBG_PKG, "Failed to get supported VLAN mode, status %d\n",
-			  status);
+		ice_debug(hw, ICE_DBG_PKG,
+		    "Failed to get supported VLAN mode, status %d\n", status);
 		return false;
 	}
 
@@ -180,7 +181,8 @@ static bool ice_pkg_supports_dvm(struct ice_hw *hw)
  * ice_fw_supports_dvm - find out if FW supports DVM
  * @hw: pointer to the HW structure
  */
-static bool ice_fw_supports_dvm(struct ice_hw *hw)
+static bool
+ice_fw_supports_dvm(struct ice_hw *hw)
 {
 	struct ice_aqc_get_vlan_mode get_vlan_mode = { 0 };
 	enum ice_status status;
@@ -190,8 +192,8 @@ static bool ice_fw_supports_dvm(struct ice_hw *hw)
 	 */
 	status = ice_aq_get_vlan_mode(hw, &get_vlan_mode);
 	if (status) {
-		ice_debug(hw, ICE_DBG_NVM, "Failed to get VLAN mode, status %d\n",
-			  status);
+		ice_debug(hw, ICE_DBG_NVM,
+		    "Failed to get VLAN mode, status %d\n", status);
 		return false;
 	}
 
@@ -208,7 +210,8 @@ static bool ice_fw_supports_dvm(struct ice_hw *hw)
  * should only be called while the global config lock is held and after the
  * package has been successfully downloaded.
  */
-static bool ice_is_dvm_supported(struct ice_hw *hw)
+static bool
+ice_is_dvm_supported(struct ice_hw *hw)
 {
 	if (!ice_pkg_supports_dvm(hw)) {
 		ice_debug(hw, ICE_DBG_PKG, "DDP doesn't support DVM\n");
@@ -232,7 +235,7 @@ static bool ice_is_dvm_supported(struct ice_hw *hw)
  */
 static enum ice_status
 ice_aq_set_vlan_mode(struct ice_hw *hw,
-		     struct ice_aqc_set_vlan_mode *set_params)
+    struct ice_aqc_set_vlan_mode *set_params)
 {
 	u8 rdma_packet, mng_vlan_prot_id;
 	struct ice_aq_desc desc;
@@ -254,30 +257,33 @@ ice_aq_set_vlan_mode(struct ice_hw *hw,
 		return ICE_ERR_PARAM;
 
 	ice_fill_dflt_direct_cmd_desc(&desc,
-				      ice_aqc_opc_set_vlan_mode_parameters);
+	    ice_aqc_opc_set_vlan_mode_parameters);
 	desc.flags |= CPU_TO_LE16(ICE_AQ_FLAG_RD);
 
 	return ice_aq_send_cmd(hw, &desc, set_params, sizeof(*set_params),
-			       NULL);
+	    NULL);
 }
 
 /**
  * ice_set_svm - set single VLAN mode
  * @hw: pointer to the HW structure
  */
-static enum ice_status ice_set_svm(struct ice_hw *hw)
+static enum ice_status
+ice_set_svm(struct ice_hw *hw)
 {
 	struct ice_aqc_set_vlan_mode *set_params;
 	enum ice_status status;
 
-	status = ice_aq_set_port_params(hw->port_info, 0, false, false, false, NULL);
+	status = ice_aq_set_port_params(hw->port_info, 0, false, false, false,
+	    NULL);
 	if (status) {
-		ice_debug(hw, ICE_DBG_INIT, "Failed to set port parameters for single VLAN mode\n");
+		ice_debug(hw, ICE_DBG_INIT,
+		    "Failed to set port parameters for single VLAN mode\n");
 		return status;
 	}
 
-	set_params = (struct ice_aqc_set_vlan_mode *)
-		ice_malloc(hw, sizeof(*set_params));
+	set_params = (struct ice_aqc_set_vlan_mode *)ice_malloc(hw,
+	    sizeof(*set_params));
 	if (!set_params)
 		return ICE_ERR_NO_MEMORY;
 
@@ -288,7 +294,8 @@ static enum ice_status ice_set_svm(struct ice_hw *hw)
 
 	status = ice_aq_set_vlan_mode(hw, set_params);
 	if (status)
-		ice_debug(hw, ICE_DBG_INIT, "Failed to configure port in single VLAN mode\n");
+		ice_debug(hw, ICE_DBG_INIT,
+		    "Failed to configure port in single VLAN mode\n");
 
 	ice_free(hw, set_params);
 	return status;
@@ -298,7 +305,8 @@ static enum ice_status ice_set_svm(struct ice_hw *hw)
  * ice_set_vlan_mode
  * @hw: pointer to the HW structure
  */
-enum ice_status ice_set_vlan_mode(struct ice_hw *hw)
+enum ice_status
+ice_set_vlan_mode(struct ice_hw *hw)
 {
 	if (!ice_is_dvm_supported(hw))
 		return ICE_SUCCESS;
@@ -319,7 +327,8 @@ enum ice_status ice_set_vlan_mode(struct ice_hw *hw)
  * the global configuration lock has been released. All such code should go in
  * this function.
  */
-void ice_post_pkg_dwnld_vlan_mode_cfg(struct ice_hw *hw)
+void
+ice_post_pkg_dwnld_vlan_mode_cfg(struct ice_hw *hw)
 {
 	ice_cache_vlan_mode(hw);
 }

@@ -26,28 +26,27 @@
  */
 
 #ifndef _LINUXKPI_LINUX_RCULIST_H_
-#define	_LINUXKPI_LINUX_RCULIST_H_
+#define _LINUXKPI_LINUX_RCULIST_H_
 
 #include <linux/list.h>
 #include <linux/rcupdate.h>
 
-#define	list_entry_rcu(ptr, type, member) \
+#define list_entry_rcu(ptr, type, member) \
 	container_of(READ_ONCE(ptr), type, member)
 
-#define	list_next_rcu(head)	(*((struct list_head **)(&(head)->next)))
-#define	list_prev_rcu(head)	(*((struct list_head **)(&(head)->prev)))
+#define list_next_rcu(head) (*((struct list_head **)(&(head)->next)))
+#define list_prev_rcu(head) (*((struct list_head **)(&(head)->prev)))
 
-#define	list_for_each_entry_rcu(pos, head, member) \
+#define list_for_each_entry_rcu(pos, head, member)                       \
 	for (pos = list_entry_rcu((head)->next, typeof(*(pos)), member); \
-	     &(pos)->member != (head);					\
+	     &(pos)->member != (head);                                   \
 	     pos = list_entry_rcu((pos)->member.next, typeof(*(pos)), member))
 
-#define	list_for_each_entry_from_rcu(pos, head, member) \
-	for (; \
-	     &(pos)->member != (head);					\
+#define list_for_each_entry_from_rcu(pos, head, member) \
+	for (; &(pos)->member != (head);                \
 	     pos = list_entry_rcu((pos)->member.next, typeof(*(pos)), member))
 
-#define	list_for_each_entry_lockless(pos, head, member) \
+#define list_for_each_entry_lockless(pos, head, member) \
 	list_for_each_entry_rcu(pos, head, member)
 
 static inline void
@@ -91,9 +90,9 @@ list_del_rcu(struct list_head *entry)
 	__list_del_rcu(entry->prev, entry->next);
 }
 
-#define	hlist_first_rcu(head)	(*((struct hlist_node **)(&(head)->first)))
-#define	hlist_next_rcu(node)	(*((struct hlist_node **)(&(node)->next)))
-#define	hlist_pprev_rcu(node)	(*((struct hlist_node **)((node)->pprev)))
+#define hlist_first_rcu(head) (*((struct hlist_node **)(&(head)->first)))
+#define hlist_next_rcu(node) (*((struct hlist_node **)(&(node)->next)))
+#define hlist_pprev_rcu(node) (*((struct hlist_node **)((node)->pprev)))
 
 static inline void
 hlist_add_behind_rcu(struct hlist_node *n, struct hlist_node *prev)
@@ -105,12 +104,13 @@ hlist_add_behind_rcu(struct hlist_node *n, struct hlist_node *prev)
 		n->next->pprev = &n->next;
 }
 
-#define	hlist_for_each_entry_rcu(pos, head, member)			\
-	for (pos = hlist_entry_safe (rcu_dereference_raw(hlist_first_rcu(head)),\
-	        typeof(*(pos)), member);				\
-	     (pos);							\
-	     pos = hlist_entry_safe(rcu_dereference_raw(hlist_next_rcu(	\
-			&(pos)->member)), typeof(*(pos)), member))
+#define hlist_for_each_entry_rcu(pos, head, member)                            \
+	for (pos =                                                             \
+		 hlist_entry_safe(rcu_dereference_raw(hlist_first_rcu(head)),  \
+		     typeof(*(pos)), member);                                  \
+	     (pos); pos = hlist_entry_safe(rcu_dereference_raw(hlist_next_rcu( \
+					       &(pos)->member)),               \
+			typeof(*(pos)), member))
 
 static inline void
 hlist_del_rcu(struct hlist_node *n)
@@ -144,4 +144,4 @@ hlist_del_init_rcu(struct hlist_node *n)
 	}
 }
 
-#endif					/* _LINUXKPI_LINUX_RCULIST_H_ */
+#endif /* _LINUXKPI_LINUX_RCULIST_H_ */

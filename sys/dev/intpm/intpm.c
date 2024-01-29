@@ -24,6 +24,8 @@
  * SUCH DAMAGE.
  */
 
+#include "opt_intpm.h"
+
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -32,35 +34,34 @@
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
+
 #include <machine/bus.h>
+
+#include <dev/amdsbwd/amd_chipset.h>
+#include <dev/intpm/intpmreg.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 #include <dev/smbus/smbconf.h>
 
 #include "smbus_if.h"
 
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
-#include <dev/intpm/intpmreg.h>
-#include <dev/amdsbwd/amd_chipset.h>
-
-#include "opt_intpm.h"
-
 struct intsmb_softc {
-	device_t		dev;
-	struct resource		*io_res;
-	struct resource		*irq_res;
-	void			*irq_hand;
-	device_t		smbus;
-	int			io_rid;
-	int			isbusy;
-	int			cfg_irq9;
-	int			sb8xx;
-	int			poll;
-	struct mtx		lock;
+	device_t dev;
+	struct resource *io_res;
+	struct resource *irq_res;
+	void *irq_hand;
+	device_t smbus;
+	int io_rid;
+	int isbusy;
+	int cfg_irq9;
+	int sb8xx;
+	int poll;
+	struct mtx lock;
 };
 
-#define	INTSMB_LOCK(sc)		mtx_lock(&(sc)->lock)
-#define	INTSMB_UNLOCK(sc)	mtx_unlock(&(sc)->lock)
-#define	INTSMB_LOCK_ASSERT(sc)	mtx_assert(&(sc)->lock, MA_OWNED)
+#define INTSMB_LOCK(sc) mtx_lock(&(sc)->lock)
+#define INTSMB_UNLOCK(sc) mtx_unlock(&(sc)->lock)
+#define INTSMB_LOCK_ASSERT(sc) mtx_assert(&(sc)->lock, MA_OWNED)
 
 static int intsmb_probe(device_t);
 static int intsmb_attach(device_t);
@@ -76,9 +77,12 @@ static int intsmb_writeb(device_t dev, u_char slave, char cmd, char byte);
 static int intsmb_writew(device_t dev, u_char slave, char cmd, short word);
 static int intsmb_readb(device_t dev, u_char slave, char cmd, char *byte);
 static int intsmb_readw(device_t dev, u_char slave, char cmd, short *word);
-static int intsmb_pcall(device_t dev, u_char slave, char cmd, short sdata, short *rdata);
-static int intsmb_bwrite(device_t dev, u_char slave, char cmd, u_char count, char *buf);
-static int intsmb_bread(device_t dev, u_char slave, char cmd, u_char *count, char *buf);
+static int intsmb_pcall(device_t dev, u_char slave, char cmd, short sdata,
+    short *rdata);
+static int intsmb_bwrite(device_t dev, u_char slave, char cmd, u_char count,
+    char *buf);
+static int intsmb_bread(device_t dev, u_char slave, char cmd, u_char *count,
+    char *buf);
 static void intsmb_start(struct intsmb_softc *sc, u_char cmd, int nointr);
 static int intsmb_stop(struct intsmb_softc *sc);
 static int intsmb_stop_poll(struct intsmb_softc *sc);
@@ -123,22 +127,22 @@ intsmb_probe(device_t dev)
 static uint8_t
 amd_pmio_read(struct resource *res, uint8_t reg)
 {
-	bus_write_1(res, 0, reg);	/* Index */
-	return (bus_read_1(res, 1));	/* Data */
+	bus_write_1(res, 0, reg);    /* Index */
+	return (bus_read_1(res, 1)); /* Data */
 }
 
 static int
 sb8xx_attach(device_t dev)
 {
-	static const int	AMDSB_SMBIO_WIDTH = 0x10;
-	struct intsmb_softc	*sc;
-	struct resource		*res;
-	uint32_t		devid;
-	uint8_t			revid;
-	uint16_t		addr;
-	int			rid;
-	int			rc;
-	bool			enabled;
+	static const int AMDSB_SMBIO_WIDTH = 0x10;
+	struct intsmb_softc *sc;
+	struct resource *res;
+	uint32_t devid;
+	uint8_t revid;
+	uint16_t addr;
+	int rid;
+	int rc;
+	bool enabled;
 
 	sc = device_get_softc(dev);
 	rid = 0;
@@ -148,8 +152,7 @@ sb8xx_attach(device_t dev)
 		device_printf(dev, "bus_set_resource for PM IO failed\n");
 		return (ENXIO);
 	}
-	res = bus_alloc_resource_any(dev, SYS_RES_IOPORT, &rid,
-	    RF_ACTIVE);
+	res = bus_alloc_resource_any(dev, SYS_RES_IOPORT, &rid, RF_ACTIVE);
 	if (res == NULL) {
 		device_printf(dev, "bus_alloc_resource for PM IO failed\n");
 		return (ENXIO);
@@ -159,7 +162,7 @@ sb8xx_attach(device_t dev)
 	revid = pci_get_revid(dev);
 	if (devid == AMDSB_SMBUS_DEVID ||
 	    (devid == AMDFCH_SMBUS_DEVID && revid < AMDFCH41_SMBUS_REVID) ||
-	    (devid == AMDCZ_SMBUS_DEVID  && revid < AMDCZ49_SMBUS_REVID)) {
+	    (devid == AMDCZ_SMBUS_DEVID && revid < AMDCZ49_SMBUS_REVID)) {
 		addr = amd_pmio_read(res, AMDSB8_PM_SMBUS_EN + 1);
 		addr <<= 8;
 		addr |= amd_pmio_read(res, AMDSB8_PM_SMBUS_EN);
@@ -229,8 +232,8 @@ intsmb_attach(device_t dev)
 	sc->cfg_irq9 = 0;
 	switch (pci_get_devid(dev)) {
 #ifndef NO_CHANGE_PCICONF
-	case 0x71138086:	/* Intel 82371AB */
-	case 0x719b8086:	/* Intel 82443MX */
+	case 0x71138086: /* Intel 82371AB */
+	case 0x719b8086: /* Intel 82443MX */
 		/* Changing configuration is allowed. */
 		sc->cfg_irq9 = 1;
 		break;
@@ -296,7 +299,7 @@ intsmb_attach(device_t dev)
 	}
 
 	if (sc->poll)
-	    goto no_intr;
+		goto no_intr;
 
 	if (intr != PCI_INTR_SMB_IRQ9 && intr != PCI_INTR_SMB_IRQ_PCI) {
 		device_printf(dev, "Unsupported interrupt mode\n");
@@ -413,7 +416,7 @@ intsmb_free(struct intsmb_softc *sc)
 	/* Reset INTR Flag to prepare INTR. */
 	bus_write_1(sc->io_res, PIIX4_SMBHSTSTS,
 	    PIIX4_SMBHSTSTAT_INTR | PIIX4_SMBHSTSTAT_ERR |
-	    PIIX4_SMBHSTSTAT_BUSC | PIIX4_SMBHSTSTAT_FAIL);
+		PIIX4_SMBHSTSTAT_BUSC | PIIX4_SMBHSTSTAT_FAIL);
 	return (0);
 }
 
@@ -426,8 +429,9 @@ intsmb_intr(struct intsmb_softc *sc)
 	if (status & PIIX4_SMBHSTSTAT_BUSY)
 		return (1);
 
-	if (status & (PIIX4_SMBHSTSTAT_INTR | PIIX4_SMBHSTSTAT_ERR |
-	    PIIX4_SMBHSTSTAT_BUSC | PIIX4_SMBHSTSTAT_FAIL)) {
+	if (status &
+	    (PIIX4_SMBHSTSTAT_INTR | PIIX4_SMBHSTSTAT_ERR |
+		PIIX4_SMBHSTSTAT_BUSC | PIIX4_SMBHSTSTAT_FAIL)) {
 
 		tmp = bus_read_1(sc->io_res, PIIX4_SMBHSTCNT);
 		bus_write_1(sc->io_res, PIIX4_SMBHSTCNT,
@@ -451,14 +455,15 @@ intsmb_slvintr(struct intsmb_softc *sc)
 		return (1);
 	if (status & PIIX4_SMBSLVSTS_ALART)
 		intsmb_alrintr(sc);
-	else if (status & ~(PIIX4_SMBSLVSTS_ALART | PIIX4_SMBSLVSTS_SDW2
-		| PIIX4_SMBSLVSTS_SDW1)) {
+	else if (status &
+	    ~(PIIX4_SMBSLVSTS_ALART | PIIX4_SMBSLVSTS_SDW2 |
+		PIIX4_SMBSLVSTS_SDW1)) {
 	}
 
 	/* Reset Status Register */
 	bus_write_1(sc->io_res, PIIX4_SMBSLVSTS,
 	    PIIX4_SMBSLVSTS_ALART | PIIX4_SMBSLVSTS_SDW2 |
-	    PIIX4_SMBSLVSTS_SDW1 | PIIX4_SMBSLVSTS_SLV);
+		PIIX4_SMBSLVSTS_SDW1 | PIIX4_SMBSLVSTS_SLV);
 	return (0);
 }
 
@@ -632,7 +637,7 @@ intsmb_quick(device_t dev, u_char slave, int how)
 	data = slave;
 
 	/* Quick command is part of Address, I think. */
-	switch(how) {
+	switch (how) {
 	case SMB_QWRITE:
 		data &= ~LSB;
 		break;
@@ -868,22 +873,22 @@ intsmb_bread(device_t dev, u_char slave, char cmd, u_char *count, char *buf)
 
 static device_method_t intsmb_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		intsmb_probe),
-	DEVMETHOD(device_attach,	intsmb_attach),
-	DEVMETHOD(device_detach,	intsmb_detach),
+	DEVMETHOD(device_probe, intsmb_probe),
+	DEVMETHOD(device_attach, intsmb_attach),
+	DEVMETHOD(device_detach, intsmb_detach),
 
 	/* SMBus interface */
-	DEVMETHOD(smbus_callback,	intsmb_callback),
-	DEVMETHOD(smbus_quick,		intsmb_quick),
-	DEVMETHOD(smbus_sendb,		intsmb_sendb),
-	DEVMETHOD(smbus_recvb,		intsmb_recvb),
-	DEVMETHOD(smbus_writeb,		intsmb_writeb),
-	DEVMETHOD(smbus_writew,		intsmb_writew),
-	DEVMETHOD(smbus_readb,		intsmb_readb),
-	DEVMETHOD(smbus_readw,		intsmb_readw),
-	DEVMETHOD(smbus_pcall,		intsmb_pcall),
-	DEVMETHOD(smbus_bwrite,		intsmb_bwrite),
-	DEVMETHOD(smbus_bread,		intsmb_bread),
+	DEVMETHOD(smbus_callback, intsmb_callback),
+	DEVMETHOD(smbus_quick, intsmb_quick),
+	DEVMETHOD(smbus_sendb, intsmb_sendb),
+	DEVMETHOD(smbus_recvb, intsmb_recvb),
+	DEVMETHOD(smbus_writeb, intsmb_writeb),
+	DEVMETHOD(smbus_writew, intsmb_writew),
+	DEVMETHOD(smbus_readb, intsmb_readb),
+	DEVMETHOD(smbus_readw, intsmb_readw),
+	DEVMETHOD(smbus_pcall, intsmb_pcall),
+	DEVMETHOD(smbus_bwrite, intsmb_bwrite),
+	DEVMETHOD(smbus_bread, intsmb_bread),
 
 	DEVMETHOD_END
 };

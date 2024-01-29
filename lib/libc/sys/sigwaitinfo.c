@@ -30,16 +30,18 @@
  */
 
 #include <sys/types.h>
+
 #include <signal.h>
+
 #include "libc_private.h"
 
 __weak_reference(__sys_sigwaitinfo, __sigwaitinfo);
 
 #pragma weak sigwaitinfo
 int
-sigwaitinfo(const sigset_t * __restrict set, siginfo_t * __restrict info)
+sigwaitinfo(const sigset_t *__restrict set, siginfo_t *__restrict info)
 {
 
-	return (((int (*)(const sigset_t *, siginfo_t *))
-	    __libc_interposing[INTERPOS_sigwaitinfo])(set, info));
+	return (((int (*)(const sigset_t *,
+	    siginfo_t *))__libc_interposing[INTERPOS_sigwaitinfo])(set, info));
 }

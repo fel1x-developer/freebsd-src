@@ -7,31 +7,29 @@
  * $Id$
  */
 
+#include <sys/types.h>
+
+#include <limits.h>
 #include <stdio.h>
 #include <string.h>
-#include <limits.h>
-#include <sys/types.h>
 #if !defined(__SVR4) && !defined(__svr4__)
 #include <strings.h>
 #endif
-#include <stdlib.h>
-#include <unistd.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <syslog.h>
+#include <unistd.h>
+
 #include "facpri.h"
 
-
-
-typedef	struct	table	{
-	char	*name;
-	int	value;
+typedef struct table {
+	char *name;
+	int value;
 } table_t;
 
-table_t	facs[] = {
-	{ "kern", LOG_KERN },	{ "user", LOG_USER },
-	{ "mail", LOG_MAIL },	{ "daemon", LOG_DAEMON },
-	{ "auth", LOG_AUTH },	{ "syslog", LOG_SYSLOG },
-	{ "lpr", LOG_LPR },	{ "news", LOG_NEWS },
+table_t facs[] = { { "kern", LOG_KERN }, { "user", LOG_USER },
+	{ "mail", LOG_MAIL }, { "daemon", LOG_DAEMON }, { "auth", LOG_AUTH },
+	{ "syslog", LOG_SYSLOG }, { "lpr", LOG_LPR }, { "news", LOG_NEWS },
 	{ "uucp", LOG_UUCP },
 #if LOG_CRON == LOG_CRON2
 	{ "cron2", LOG_CRON1 },
@@ -44,10 +42,10 @@ table_t	facs[] = {
 #ifdef LOG_AUTHPRIV
 	{ "authpriv", LOG_AUTHPRIV },
 #endif
-#ifdef	LOG_AUDIT
+#ifdef LOG_AUDIT
 	{ "audit", LOG_AUDIT },
 #endif
-#ifdef	LOG_LFMT
+#ifdef LOG_LFMT
 	{ "logalert", LOG_LFMT },
 #endif
 #if LOG_CRON == LOG_CRON1
@@ -55,16 +53,13 @@ table_t	facs[] = {
 #else
 	{ "cron2", LOG_CRON2 },
 #endif
-#ifdef	LOG_SECURITY
+#ifdef LOG_SECURITY
 	{ "security", LOG_SECURITY },
 #endif
-	{ "local0", LOG_LOCAL0 },	{ "local1", LOG_LOCAL1 },
-	{ "local2", LOG_LOCAL2 },	{ "local3", LOG_LOCAL3 },
-	{ "local4", LOG_LOCAL4 },	{ "local5", LOG_LOCAL5 },
-	{ "local6", LOG_LOCAL6 },	{ "local7", LOG_LOCAL7 },
-	{ NULL, 0 }
-};
-
+	{ "local0", LOG_LOCAL0 }, { "local1", LOG_LOCAL1 },
+	{ "local2", LOG_LOCAL2 }, { "local3", LOG_LOCAL3 },
+	{ "local4", LOG_LOCAL4 }, { "local5", LOG_LOCAL5 },
+	{ "local6", LOG_LOCAL6 }, { "local7", LOG_LOCAL7 }, { NULL, 0 } };
 
 /*
  * map a facility number to its name
@@ -72,11 +67,11 @@ table_t	facs[] = {
 char *
 fac_toname(int facpri)
 {
-	int	i, j, fac;
+	int i, j, fac;
 
 	fac = facpri & LOG_FACMASK;
 	j = fac >> 3;
-	if (j < (sizeof(facs)/sizeof(facs[0]))) {
+	if (j < (sizeof(facs) / sizeof(facs[0]))) {
 		if (facs[j].value == fac)
 			return (facs[j].name);
 	}
@@ -87,14 +82,13 @@ fac_toname(int facpri)
 	return (NULL);
 }
 
-
 /*
  * map a facility name to its number
  */
 int
 fac_findname(char *name)
 {
-	int     i;
+	int i;
 
 	for (i = 0; facs[i].name; i++)
 		if (!strcmp(facs[i].name, name))
@@ -102,15 +96,10 @@ fac_findname(char *name)
 	return (-1);
 }
 
-
-table_t	pris[] = {
-	{ "emerg", LOG_EMERG },		{ "alert", LOG_ALERT  },
-	{ "crit", LOG_CRIT },		{ "err", LOG_ERR  },
-	{ "warn", LOG_WARNING },	{ "notice", LOG_NOTICE  },
-	{ "info", LOG_INFO },		{ "debug", LOG_DEBUG  },
-	{ NULL, 0 }
-};
-
+table_t pris[] = { { "emerg", LOG_EMERG }, { "alert", LOG_ALERT },
+	{ "crit", LOG_CRIT }, { "err", LOG_ERR }, { "warn", LOG_WARNING },
+	{ "notice", LOG_NOTICE }, { "info", LOG_INFO }, { "debug", LOG_DEBUG },
+	{ NULL, 0 } };
 
 /*
  * map a facility name to its number
@@ -118,7 +107,7 @@ table_t	pris[] = {
 int
 pri_findname(char *name)
 {
-	int     i;
+	int i;
 
 	for (i = 0; pris[i].name; i++)
 		if (!strcmp(pris[i].name, name))
@@ -126,14 +115,13 @@ pri_findname(char *name)
 	return (-1);
 }
 
-
 /*
  * map a priority number to its name
  */
 char *
 pri_toname(int facpri)
 {
-	int	i, pri;
+	int i, pri;
 
 	pri = facpri & LOG_PRIMASK;
 	if (pris[pri].value == pri)

@@ -23,30 +23,29 @@
  * SUCH DAMAGE.
  */
 
-#include "opt_rss.h"
 #include "opt_ratelimit.h"
+#include "opt_rss.h"
 
-#include <dev/mlx5/driver.h>
-#include <dev/mlx5/port.h>
 #include <dev/mlx5/diagnostics.h>
+#include <dev/mlx5/driver.h>
 #include <dev/mlx5/mlx5_core/mlx5_core.h>
+#include <dev/mlx5/port.h>
+
 #include <net/sff8472.h>
 
 const struct mlx5_core_diagnostics_entry
-	mlx5_core_pci_diagnostics_table[
-		MLX5_CORE_PCI_DIAGNOSTICS_NUM] = {
-	MLX5_CORE_PCI_DIAGNOSTICS(MLX5_CORE_DIAGNOSTICS_ENTRY)
-};
+    mlx5_core_pci_diagnostics_table[MLX5_CORE_PCI_DIAGNOSTICS_NUM] = {
+	    MLX5_CORE_PCI_DIAGNOSTICS(MLX5_CORE_DIAGNOSTICS_ENTRY)
+    };
 
 const struct mlx5_core_diagnostics_entry
-	mlx5_core_general_diagnostics_table[
-		MLX5_CORE_GENERAL_DIAGNOSTICS_NUM] = {
-	MLX5_CORE_GENERAL_DIAGNOSTICS(MLX5_CORE_DIAGNOSTICS_ENTRY)
-};
+    mlx5_core_general_diagnostics_table[MLX5_CORE_GENERAL_DIAGNOSTICS_NUM] = {
+	    MLX5_CORE_GENERAL_DIAGNOSTICS(MLX5_CORE_DIAGNOSTICS_ENTRY)
+    };
 
-static int mlx5_core_get_index_of_diag_counter(
-	const struct mlx5_core_diagnostics_entry *entry,
-	int size, u16 counter_id)
+static int
+mlx5_core_get_index_of_diag_counter(
+    const struct mlx5_core_diagnostics_entry *entry, int size, u16 counter_id)
 {
 	int x;
 
@@ -62,9 +61,9 @@ static int mlx5_core_get_index_of_diag_counter(
 	return -1;
 }
 
-static void mlx5_core_put_diag_counter(
-	const struct mlx5_core_diagnostics_entry *entry,
-	u64 *array, int size, u16 counter_id, u64 value)
+static void
+mlx5_core_put_diag_counter(const struct mlx5_core_diagnostics_entry *entry,
+    u64 *array, int size, u16 counter_id, u64 value)
 {
 	int x;
 
@@ -81,8 +80,9 @@ static void mlx5_core_put_diag_counter(
 	}
 }
 
-int mlx5_core_set_diagnostics_full(struct mlx5_core_dev *dev,
-				   u8 enable_pci, u8 enable_general)
+int
+mlx5_core_set_diagnostics_full(struct mlx5_core_dev *dev, u8 enable_pci,
+    u8 enable_general)
 {
 	void *diag_params_ctx;
 	void *in;
@@ -106,42 +106,36 @@ int mlx5_core_set_diagnostics_full(struct mlx5_core_dev *dev,
 		return -ENOMEM;
 
 	diag_params_ctx = MLX5_ADDR_OF(set_diagnostic_params_in, in,
-				       diagnostic_params_ctx);
+	    diagnostic_params_ctx);
 
-	MLX5_SET(diagnostic_params_context, diag_params_ctx,
-		 enable, enable_pci || enable_general);
-	MLX5_SET(diagnostic_params_context, diag_params_ctx,
-		 single, 1);
-	MLX5_SET(diagnostic_params_context, diag_params_ctx,
-		 on_demand, 1);
+	MLX5_SET(diagnostic_params_context, diag_params_ctx, enable,
+	    enable_pci || enable_general);
+	MLX5_SET(diagnostic_params_context, diag_params_ctx, single, 1);
+	MLX5_SET(diagnostic_params_context, diag_params_ctx, on_demand, 1);
 
 	/* collect the counters we want to enable */
 	for (x = y = 0; x != numcounters; x++) {
-		u16 counter_id =
-			MLX5_CAP_DEBUG(dev, diagnostic_counter[x].counter_id);
+		u16 counter_id = MLX5_CAP_DEBUG(dev,
+		    diagnostic_counter[x].counter_id);
 		int index = -1;
 
 		if (index < 0 && enable_pci != 0) {
 			/* check if counter ID exists in local table */
 			index = mlx5_core_get_index_of_diag_counter(
 			    mlx5_core_pci_diagnostics_table,
-			    MLX5_CORE_PCI_DIAGNOSTICS_NUM,
-			    counter_id);
+			    MLX5_CORE_PCI_DIAGNOSTICS_NUM, counter_id);
 		}
 		if (index < 0 && enable_general != 0) {
 			/* check if counter ID exists in local table */
 			index = mlx5_core_get_index_of_diag_counter(
 			    mlx5_core_general_diagnostics_table,
-			    MLX5_CORE_GENERAL_DIAGNOSTICS_NUM,
-			    counter_id);
+			    MLX5_CORE_GENERAL_DIAGNOSTICS_NUM, counter_id);
 		}
 		if (index < 0)
 			continue;
 
-		MLX5_SET(diagnostic_params_context,
-			 diag_params_ctx,
-			 counter_id[y].counter_id,
-			 counter_id);
+		MLX5_SET(diagnostic_params_context, diag_params_ctx,
+		    counter_id[y].counter_id, counter_id);
 		y++;
 	}
 
@@ -150,8 +144,8 @@ int mlx5_core_set_diagnostics_full(struct mlx5_core_dev *dev,
 	    MLX5_ST_SZ_BYTES(diagnostic_counter) * y;
 
 	/* set number of counters */
-	MLX5_SET(diagnostic_params_context, diag_params_ctx,
-		 num_of_counters, y);
+	MLX5_SET(diagnostic_params_context, diag_params_ctx, num_of_counters,
+	    y);
 
 	/* execute firmware command */
 	err = mlx5_set_diagnostic_params(dev, in, inlen);
@@ -161,9 +155,10 @@ int mlx5_core_set_diagnostics_full(struct mlx5_core_dev *dev,
 	return err;
 }
 
-int mlx5_core_get_diagnostics_full(struct mlx5_core_dev *dev,
-				   union mlx5_core_pci_diagnostics *pdiag,
-				   union mlx5_core_general_diagnostics *pgen)
+int
+mlx5_core_get_diagnostics_full(struct mlx5_core_dev *dev,
+    union mlx5_core_pci_diagnostics *pdiag,
+    union mlx5_core_general_diagnostics *pgen)
 {
 	void *out;
 	void *in;
@@ -190,18 +185,16 @@ int mlx5_core_get_diagnostics_full(struct mlx5_core_dev *dev,
 	err = mlx5_query_diagnostic_counters(dev, 1, 0, out, outlen);
 	if (err == 0) {
 		for (x = 0; x != numcounters; x++) {
-			u16 counter_id = MLX5_GET(
-			    query_diagnostic_counters_out,
+			u16 counter_id = MLX5_GET(query_diagnostic_counters_out,
 			    out, diag_counter[x].counter_id);
-			u64 counter_value = MLX5_GET64(
-			    query_diagnostic_counters_out,
-			    out, diag_counter[x].counter_value_h);
+			u64 counter_value =
+			    MLX5_GET64(query_diagnostic_counters_out, out,
+				diag_counter[x].counter_value_h);
 
 			if (pdiag != NULL) {
 				mlx5_core_put_diag_counter(
 				    mlx5_core_pci_diagnostics_table,
-				    pdiag->array,
-				    MLX5_CORE_PCI_DIAGNOSTICS_NUM,
+				    pdiag->array, MLX5_CORE_PCI_DIAGNOSTICS_NUM,
 				    counter_id, counter_value);
 			}
 			if (pgen != NULL) {
@@ -229,23 +222,21 @@ int mlx5_core_get_diagnostics_full(struct mlx5_core_dev *dev,
 			return -ENOMEM;
 		}
 		MLX5_SET(mpcnt_reg, in, grp,
-			 MLX5_PCIE_PERFORMANCE_COUNTERS_GROUP);
+		    MLX5_PCIE_PERFORMANCE_COUNTERS_GROUP);
 
 		err = mlx5_core_access_reg(dev, in, inlen, out, outlen,
-					   MLX5_REG_MPCNT, 0, 0);
+		    MLX5_REG_MPCNT, 0, 0);
 		if (err == 0) {
 			void *pcounters = MLX5_ADDR_OF(mpcnt_reg, out,
 			    counter_set.pcie_perf_counters);
 
 			pdiag->counter.rx_pci_errors =
-			    MLX5_GET(pcie_perf_counters,
-				     pcounters, rx_errors);
+			    MLX5_GET(pcie_perf_counters, pcounters, rx_errors);
 			pdiag->counter.tx_pci_errors =
-			    MLX5_GET(pcie_perf_counters,
-				     pcounters, tx_errors);
+			    MLX5_GET(pcie_perf_counters, pcounters, tx_errors);
 		}
 		MLX5_SET(mpcnt_reg, in, grp,
-			 MLX5_PCIE_TIMERS_AND_STATES_COUNTERS_GROUP);
+		    MLX5_PCIE_TIMERS_AND_STATES_COUNTERS_GROUP);
 
 		err = mlx5_core_access_reg(dev, in, inlen, out, outlen,
 		    MLX5_REG_MPCNT, 0, 0);
@@ -254,11 +245,10 @@ int mlx5_core_get_diagnostics_full(struct mlx5_core_dev *dev,
 			    counter_set.pcie_timers_states);
 
 			pdiag->counter.tx_pci_non_fatal_errors =
-			    MLX5_GET(pcie_timers_states,
-				     pcounters, non_fatal_err_msg_sent);
-			pdiag->counter.tx_pci_fatal_errors =
-			    MLX5_GET(pcie_timers_states,
-				     pcounters, fatal_err_msg_sent);
+			    MLX5_GET(pcie_timers_states, pcounters,
+				non_fatal_err_msg_sent);
+			pdiag->counter.tx_pci_fatal_errors = MLX5_GET(
+			    pcie_timers_states, pcounters, fatal_err_msg_sent);
 		}
 		kvfree(in);
 		kvfree(out);
@@ -266,7 +256,8 @@ int mlx5_core_get_diagnostics_full(struct mlx5_core_dev *dev,
 	return 0;
 }
 
-int mlx5_core_supports_diagnostics(struct mlx5_core_dev *dev, u16 counter_id)
+int
+mlx5_core_supports_diagnostics(struct mlx5_core_dev *dev, u16 counter_id)
 {
 	int numcounters;
 	int x;
@@ -286,7 +277,7 @@ int mlx5_core_supports_diagnostics(struct mlx5_core_dev *dev, u16 counter_id)
 		    counter_id)
 			return 1;
 	}
-	return 0;			/* not supported counter */
+	return 0; /* not supported counter */
 }
 
 /*
@@ -311,11 +302,11 @@ mlx5_get_eeprom_info(struct mlx5_core_dev *dev, struct mlx5_eeprom *eeprom)
 
 	/* Read the first three bytes to get Identifier, Revision and Status */
 	ret = mlx5_query_eeprom(dev, eeprom->i2c_addr, eeprom->page_num,
-	    eeprom->device_addr, MLX5_EEPROM_INFO_BYTES, eeprom->module_num, &data,
-	    &size_read);
+	    eeprom->device_addr, MLX5_EEPROM_INFO_BYTES, eeprom->module_num,
+	    &data, &size_read);
 	if (ret) {
-		mlx5_core_err(dev,
-		    "Failed query EEPROM module error=0x%x\n", ret);
+		mlx5_core_err(dev, "Failed query EEPROM module error=0x%x\n",
+		    ret);
 		return (-ret);
 	}
 
@@ -326,7 +317,8 @@ mlx5_get_eeprom_info(struct mlx5_core_dev *dev, struct mlx5_eeprom *eeprom)
 		break;
 	case SFF_8024_ID_QSFPPLUS:
 	case SFF_8024_ID_QSFP28:
-		if ((data & MLX5_EEPROM_IDENTIFIER_BYTE_MASK) == SFF_8024_ID_QSFP28 ||
+		if ((data & MLX5_EEPROM_IDENTIFIER_BYTE_MASK) ==
+			SFF_8024_ID_QSFP28 ||
 		    ((data & MLX5_EEPROM_REVISION_ID_BYTE_MASK) >> 8) >= 0x3) {
 			eeprom->type = MLX5_ETH_MODULE_SFF_8636;
 			eeprom->len = MLX5_ETH_MODULE_SFF_8636_LEN;
@@ -362,8 +354,8 @@ mlx5_get_eeprom(struct mlx5_core_dev *dev, struct mlx5_eeprom *ee)
 
 	/* Read low page of the eeprom */
 	while (ee->device_addr < ee->len) {
-		ret = mlx5_query_eeprom(dev, ee->i2c_addr, ee->page_num, ee->device_addr,
-		    ee->len - ee->device_addr, ee->module_num,
+		ret = mlx5_query_eeprom(dev, ee->i2c_addr, ee->page_num,
+		    ee->device_addr, ee->len - ee->device_addr, ee->module_num,
 		    ee->data + (ee->device_addr / 4), &size_read);
 		if (ret) {
 			mlx5_core_err(dev,
@@ -380,9 +372,13 @@ mlx5_get_eeprom(struct mlx5_core_dev *dev, struct mlx5_eeprom *ee)
 		size_read = 0;
 		while (ee->device_addr < MLX5_EEPROM_PAGE_LENGTH) {
 			ret = mlx5_query_eeprom(dev, ee->i2c_addr, ee->page_num,
-			    ee->device_addr, MLX5_EEPROM_PAGE_LENGTH - ee->device_addr,
-			    ee->module_num, ee->data + (ee->len / 4) +
-			    ((ee->device_addr - MLX5_EEPROM_HIGH_PAGE_OFFSET) / 4),
+			    ee->device_addr,
+			    MLX5_EEPROM_PAGE_LENGTH - ee->device_addr,
+			    ee->module_num,
+			    ee->data + (ee->len / 4) +
+				((ee->device_addr -
+				     MLX5_EEPROM_HIGH_PAGE_OFFSET) /
+				    4),
 			    &size_read);
 			if (ret) {
 				mlx5_core_err(dev,
@@ -439,5 +435,3 @@ mlx5_read_eeprom(struct mlx5_core_dev *dev, struct mlx5_eeprom *eeprom)
 
 	return (error);
 }
-
-

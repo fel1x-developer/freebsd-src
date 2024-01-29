@@ -29,21 +29,20 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
+#include <sys/bus.h>
 #include <sys/endian.h>
 #include <sys/errno.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/syslog.h>
-#include <sys/bus.h>
 
-#include <machine/bus.h>
 #include <machine/atomic.h>
+#include <machine/bus.h>
 
-#include <dev/pci/pcivar.h>
 #include <dev/pci/pcireg.h>
-
+#include <dev/pci/pcivar.h>
 #include <dev/smbus/smbconf.h>
 
 #include "imcsmb_reg.h"
@@ -100,48 +99,44 @@
  */
 
 /* PCIe device IDs for (Sandy,Ivy)bridge)-Xeon and (Has,Broad)well-Xeon */
-#define PCI_VENDOR_INTEL		0x8086
-#define IMCSMB_PCI_DEV_ID_IMC0_SBX	0x3ca8
-#define IMCSMB_PCI_DEV_ID_IMC0_IBX	0x0ea8
-#define IMCSMB_PCI_DEV_ID_IMC0_HSX	0x2fa8
-#define IMCSMB_PCI_DEV_ID_IMC0_BDX	0x6fa8
+#define PCI_VENDOR_INTEL 0x8086
+#define IMCSMB_PCI_DEV_ID_IMC0_SBX 0x3ca8
+#define IMCSMB_PCI_DEV_ID_IMC0_IBX 0x0ea8
+#define IMCSMB_PCI_DEV_ID_IMC0_HSX 0x2fa8
+#define IMCSMB_PCI_DEV_ID_IMC0_BDX 0x6fa8
 /* (Sandy,Ivy)bridge-Xeon only have a single memory controller per socket */
-#define IMCSMB_PCI_DEV_ID_IMC1_HSX	0x2f68
-#define IMCSMB_PCI_DEV_ID_IMC1_BDX	0x6f68
+#define IMCSMB_PCI_DEV_ID_IMC1_HSX 0x2f68
+#define IMCSMB_PCI_DEV_ID_IMC1_BDX 0x6f68
 
 /* There are two SMBus controllers in each device. These define the registers
  * for each of these devices.
  */
 static struct imcsmb_reg_set imcsmb_regs[] = {
-	{
-		.smb_stat = IMCSMB_REG_STATUS0,
-		.smb_cmd = IMCSMB_REG_COMMAND0,
-		.smb_cntl = IMCSMB_REG_CONTROL0
-	},
-	{
-		.smb_stat = IMCSMB_REG_STATUS1,
-		.smb_cmd = IMCSMB_REG_COMMAND1,
-		.smb_cntl = IMCSMB_REG_CONTROL1
-	},
+	{ .smb_stat = IMCSMB_REG_STATUS0,
+	    .smb_cmd = IMCSMB_REG_COMMAND0,
+	    .smb_cntl = IMCSMB_REG_CONTROL0 },
+	{ .smb_stat = IMCSMB_REG_STATUS1,
+	    .smb_cmd = IMCSMB_REG_COMMAND1,
+	    .smb_cntl = IMCSMB_REG_CONTROL1 },
 };
 
 static struct imcsmb_pci_device {
-	uint16_t	id;
-	char		*name;
+	uint16_t id;
+	char *name;
 } imcsmb_pci_devices[] = {
-	{IMCSMB_PCI_DEV_ID_IMC0_SBX,
-	    "Intel Sandybridge Xeon iMC 0 SMBus controllers"	},
-	{IMCSMB_PCI_DEV_ID_IMC0_IBX,
-	    "Intel Ivybridge Xeon iMC 0 SMBus controllers"	},
-	{IMCSMB_PCI_DEV_ID_IMC0_HSX,
-	    "Intel Haswell Xeon iMC 0 SMBus controllers"	},
-	{IMCSMB_PCI_DEV_ID_IMC1_HSX,
-	    "Intel Haswell Xeon iMC 1 SMBus controllers"	},
-	{IMCSMB_PCI_DEV_ID_IMC0_BDX,
-	    "Intel Broadwell Xeon iMC 0 SMBus controllers"	},
-	{IMCSMB_PCI_DEV_ID_IMC1_BDX,
-	    "Intel Broadwell Xeon iMC 1 SMBus controllers"	},
-	{0, NULL},
+	{ IMCSMB_PCI_DEV_ID_IMC0_SBX,
+	    "Intel Sandybridge Xeon iMC 0 SMBus controllers" },
+	{ IMCSMB_PCI_DEV_ID_IMC0_IBX,
+	    "Intel Ivybridge Xeon iMC 0 SMBus controllers" },
+	{ IMCSMB_PCI_DEV_ID_IMC0_HSX,
+	    "Intel Haswell Xeon iMC 0 SMBus controllers" },
+	{ IMCSMB_PCI_DEV_ID_IMC1_HSX,
+	    "Intel Haswell Xeon iMC 1 SMBus controllers" },
+	{ IMCSMB_PCI_DEV_ID_IMC0_BDX,
+	    "Intel Broadwell Xeon iMC 0 SMBus controllers" },
+	{ IMCSMB_PCI_DEV_ID_IMC1_BDX,
+	    "Intel Broadwell Xeon iMC 1 SMBus controllers" },
+	{ 0, NULL },
 };
 
 /* Device methods. */
@@ -243,9 +238,8 @@ imcsmb_pci_probe(device_t dev)
 	}
 
 	pci_dev_id = pci_get_device(dev);
-	for (pci_device = imcsmb_pci_devices;
-	    pci_device->name != NULL;
-	    pci_device++) {
+	for (pci_device = imcsmb_pci_devices; pci_device->name != NULL;
+	     pci_device++) {
 		if (pci_dev_id == pci_device->id) {
 			device_set_desc(dev, pci_device->name);
 			rc = BUS_PROBE_DEFAULT;
@@ -319,9 +313,9 @@ imcsmb_pci_request_bus(device_t dev)
 /* Device methods */
 static device_method_t imcsmb_pci_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_attach,	imcsmb_pci_attach),
-	DEVMETHOD(device_detach,	imcsmb_pci_detach),
-	DEVMETHOD(device_probe,		imcsmb_pci_probe),
+	DEVMETHOD(device_attach, imcsmb_pci_attach),
+	DEVMETHOD(device_detach, imcsmb_pci_detach),
+	DEVMETHOD(device_probe, imcsmb_pci_probe),
 
 	DEVMETHOD_END
 };

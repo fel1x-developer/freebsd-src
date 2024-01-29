@@ -27,17 +27,18 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/param.h>
+
 #include <errno.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "un-namespace.h"
 
 #include "libc_private.h"
 #include "local.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 static inline size_t
 p2roundup(size_t n)
@@ -62,7 +63,7 @@ p2roundup(size_t n)
  * Expand *linep to hold len bytes (up to SSIZE_MAX + 1).
  */
 static inline int
-expandtofit(char ** __restrict linep, size_t len, size_t * __restrict capp)
+expandtofit(char **__restrict linep, size_t len, size_t *__restrict capp)
 {
 	char *newline;
 	size_t newcap;
@@ -72,7 +73,7 @@ expandtofit(char ** __restrict linep, size_t len, size_t * __restrict capp)
 		return (-1);
 	}
 	if (len > *capp) {
-		if (len == (size_t)SSIZE_MAX + 1)	/* avoid overflow */
+		if (len == (size_t)SSIZE_MAX + 1) /* avoid overflow */
 			newcap = (size_t)SSIZE_MAX + 1;
 		else
 			newcap = p2roundup(len);
@@ -93,8 +94,8 @@ expandtofit(char ** __restrict linep, size_t len, size_t * __restrict capp)
  * success, -1 on allocation failure.
  */
 static int
-sappend(char ** __restrict dstp, size_t * __restrict dstlenp,
-	size_t * __restrict dstcapp, char * __restrict src, size_t srclen)
+sappend(char **__restrict dstp, size_t *__restrict dstlenp,
+    size_t *__restrict dstcapp, char *__restrict src, size_t srclen)
 {
 
 	/* ensure room for srclen + dstlen + terminating NUL */
@@ -106,8 +107,8 @@ sappend(char ** __restrict dstp, size_t * __restrict dstlenp,
 }
 
 ssize_t
-getdelim(char ** __restrict linep, size_t * __restrict linecapp, int delim,
-	 FILE * __restrict fp)
+getdelim(char **__restrict linep, size_t *__restrict linecapp, int delim,
+    FILE *__restrict fp)
 {
 	u_char *endp;
 	size_t linelen;
@@ -147,8 +148,8 @@ getdelim(char ** __restrict linep, size_t * __restrict linecapp, int delim,
 				 * lose it on the next read.
 				 */
 				while (linelen > 0) {
-					if (__ungetc((*linep)[--linelen],
-					    fp) == EOF)
+					if (__ungetc((*linep)[--linelen], fp) ==
+					    EOF)
 						goto error;
 				}
 				/*
@@ -162,7 +163,7 @@ getdelim(char ** __restrict linep, size_t * __restrict linecapp, int delim,
 			goto error;
 		}
 	}
-	endp++;	/* snarf the delimiter, too */
+	endp++; /* snarf the delimiter, too */
 	if (sappend(linep, &linelen, linecapp, fp->_p, endp - fp->_p))
 		goto error;
 	fp->_r -= endp - fp->_p;

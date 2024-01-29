@@ -50,4 +50,3 @@ void fdt_clock_register_provider(device_t provider);
 void fdt_clock_unregister_provider(device_t provider);
 
 #endif /* DEV_FDT_CLOCK_H */
-

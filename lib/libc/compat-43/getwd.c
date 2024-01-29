@@ -30,18 +30,19 @@
  */
 
 #include <sys/param.h>
-#include <unistd.h>
+
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 char *
 getwd(char *buf)
 {
 	char *p;
 
-	if ( (p = getcwd(buf, MAXPATHLEN)) )
-		return(p);
+	if ((p = getcwd(buf, MAXPATHLEN)))
+		return (p);
 	(void)strerror_r(errno, buf, MAXPATHLEN);
-	return((char *)NULL);
+	return ((char *)NULL);
 }

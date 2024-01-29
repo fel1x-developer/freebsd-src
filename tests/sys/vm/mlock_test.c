@@ -31,6 +31,7 @@
 #include <sys/resource.h>
 #include <sys/wait.h>
 
+#include <atf-c.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
@@ -39,8 +40,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <atf-c.h>
 
 static void
 test_wired_copy_on_write(void *addr, size_t len)
@@ -64,8 +63,8 @@ test_wired_copy_on_write(void *addr, size_t len)
 	}
 
 	ATF_REQUIRE(waitpid(pid, &status, 0) == pid);
-	ATF_REQUIRE_MSG(!WIFEXITED(status),
-	    "child exited with status %d", WEXITSTATUS(status));
+	ATF_REQUIRE_MSG(!WIFEXITED(status), "child exited with status %d",
+	    WEXITSTATUS(status));
 	ATF_REQUIRE(WIFSTOPPED(status));
 	ATF_REQUIRE(WSTOPSIG(status) == SIGSTOP);
 
@@ -76,8 +75,8 @@ test_wired_copy_on_write(void *addr, size_t len)
 	ATF_REQUIRE(ptrace(PT_CONTINUE, pid, (caddr_t)1, 0) == 0);
 	ATF_REQUIRE(waitpid(pid, &status, 0) == pid);
 	ATF_REQUIRE(WIFEXITED(status));
-	ATF_REQUIRE_MSG(WEXITSTATUS(status) == 0,
-	    "child exited with status %d", WSTOPSIG(status));
+	ATF_REQUIRE_MSG(WEXITSTATUS(status) == 0, "child exited with status %d",
+	    WSTOPSIG(status));
 }
 
 /*
@@ -187,8 +186,8 @@ ATF_TC_BODY(mlock__superpage_fault, tc)
 	char vec;
 
 	count = getpagesizes(pagesizes, MAXPAGESIZES);
-	ATF_REQUIRE_MSG(count >= 1,
-	    "failed to get page sizes: %s", strerror(errno));
+	ATF_REQUIRE_MSG(count >= 1, "failed to get page sizes: %s",
+	    strerror(errno));
 	if (count == 1)
 		atf_tc_skip("system does not support multiple page sizes");
 	len = pagesizes[1];
@@ -210,8 +209,8 @@ ATF_TC_BODY(mlock__superpage_fault, tc)
 	ATF_REQUIRE_MSG(addr1 != MAP_FAILED, "mmap: %s", strerror(errno));
 	ATF_REQUIRE_MSG(((uintptr_t)addr1 & (len - 1)) == 0,
 	    "addr %p is misaligned", addr1);
-	addr2 = mmap(NULL, len, PROT_READ,
-	    MAP_SHARED | MAP_ALIGNED_SUPER, shmfd, 0);
+	addr2 = mmap(NULL, len, PROT_READ, MAP_SHARED | MAP_ALIGNED_SUPER,
+	    shmfd, 0);
 	ATF_REQUIRE_MSG(addr2 != MAP_FAILED, "mmap: %s", strerror(errno));
 	ATF_REQUIRE_MSG(((uintptr_t)addr2 & (len - 1)) == 0,
 	    "addr %p is misaligned", addr2);

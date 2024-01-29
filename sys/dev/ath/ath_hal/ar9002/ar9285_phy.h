@@ -25,17 +25,17 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#ifndef	__AR9285_PHY_H__
-#define	__AR9285_PHY_H__
+#ifndef __AR9285_PHY_H__
+#define __AR9285_PHY_H__
 
 /*
  * Manipulate AR9285 antenna diversity configuration
  */
 
-extern	void ar9285_antdiv_comb_conf_set(struct ath_hal *ah,
-		HAL_ANT_COMB_CONFIG *antconf);
-extern	void ar9285_antdiv_comb_conf_get(struct ath_hal *ah,
-		HAL_ANT_COMB_CONFIG *antconf);
-extern	HAL_BOOL ar9285_check_div_comb(struct ath_hal *ah);
+extern void ar9285_antdiv_comb_conf_set(struct ath_hal *ah,
+    HAL_ANT_COMB_CONFIG *antconf);
+extern void ar9285_antdiv_comb_conf_get(struct ath_hal *ah,
+    HAL_ANT_COMB_CONFIG *antconf);
+extern HAL_BOOL ar9285_check_div_comb(struct ath_hal *ah);
 
 #endif

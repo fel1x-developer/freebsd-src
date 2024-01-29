@@ -32,31 +32,31 @@
  */
 
 #ifndef _LMONETARY_H_
-#define	_LMONETARY_H_
+#define _LMONETARY_H_
 #include "xlocale_private.h"
 
 struct lc_monetary_T {
-	const char	*int_curr_symbol;
-	const char	*currency_symbol;
-	const char	*mon_decimal_point;
-	const char	*mon_thousands_sep;
-	const char	*mon_grouping;
-	const char	*positive_sign;
-	const char	*negative_sign;
-	const char	*int_frac_digits;
-	const char	*frac_digits;
-	const char	*p_cs_precedes;
-	const char	*p_sep_by_space;
-	const char	*n_cs_precedes;
-	const char	*n_sep_by_space;
-	const char	*p_sign_posn;
-	const char	*n_sign_posn;
-	const char	*int_p_cs_precedes;
-	const char	*int_n_cs_precedes;
-	const char	*int_p_sep_by_space;
-	const char	*int_n_sep_by_space;
-	const char	*int_p_sign_posn;
-	const char	*int_n_sign_posn;
+	const char *int_curr_symbol;
+	const char *currency_symbol;
+	const char *mon_decimal_point;
+	const char *mon_thousands_sep;
+	const char *mon_grouping;
+	const char *positive_sign;
+	const char *negative_sign;
+	const char *int_frac_digits;
+	const char *frac_digits;
+	const char *p_cs_precedes;
+	const char *p_sep_by_space;
+	const char *n_cs_precedes;
+	const char *n_sep_by_space;
+	const char *p_sign_posn;
+	const char *n_sign_posn;
+	const char *int_p_cs_precedes;
+	const char *int_n_cs_precedes;
+	const char *int_p_sep_by_space;
+	const char *int_n_sep_by_space;
+	const char *int_p_sign_posn;
+	const char *int_n_sign_posn;
 };
 struct xlocale_monetary {
 	struct xlocale_component header;
@@ -65,6 +65,6 @@ struct xlocale_monetary {
 };
 
 struct lc_monetary_T *__get_current_monetary_locale(locale_t loc);
-int	__monetary_load_locale(const char *);
+int __monetary_load_locale(const char *);
 
 #endif /* !_LMONETARY_H_ */

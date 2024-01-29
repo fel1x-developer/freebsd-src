@@ -26,6 +26,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <assert.h>
 #include <err.h>
 #include <stdio.h>
@@ -79,7 +80,7 @@ _lookup_config_node(nvlist_t *parent, const char *path, bool create)
 				if (*copy == '\0')
 					*copy = '.';
 			warnx(
-		    "Configuration node %s is a child of existing variable %s",
+			    "Configuration node %s is a child of existing variable %s",
 			    path, tofree);
 			nvl = NULL;
 			break;
@@ -185,8 +186,8 @@ set_config_value(const char *path, const char *value)
 	}
 
 	if (nvlist_exists_nvlist(nvl, name))
-		errx(4, "Attempting to add value %s to existing node %s",
-		    value, path);
+		errx(4, "Attempting to add value %s to existing node %s", value,
+		    path);
 	set_config_value_node(nvl, name, value);
 }
 
@@ -250,7 +251,7 @@ _expand_config_value(const char *value, int depth)
 		case '%':
 			if (depth > 15) {
 				warnx(
-		    "Too many recursive references in configuration value");
+				    "Too many recursive references in configuration value");
 				fputc('%', valfp);
 				vp++;
 				break;
@@ -261,7 +262,7 @@ _expand_config_value(const char *value, int depth)
 				cp = strchr(vp + 2, ')');
 			if (cp == NULL) {
 				warnx(
-			    "Invalid reference in configuration value \"%s\"",
+				    "Invalid reference in configuration value \"%s\"",
 				    value);
 				fputc('%', valfp);
 				vp++;
@@ -271,7 +272,7 @@ _expand_config_value(const char *value, int depth)
 
 			if (cp == vp) {
 				warnx(
-			    "Empty reference in configuration value \"%s\"",
+				    "Empty reference in configuration value \"%s\"",
 				    value);
 				vp++;
 				break;
@@ -289,7 +290,7 @@ _expand_config_value(const char *value, int depth)
 			cp = get_raw_config_value(path);
 			if (cp == NULL)
 				warnx(
-		    "Failed to fetch referenced configuration variable %s",
+				    "Failed to fetch referenced configuration variable %s",
 				    path);
 			else {
 				nestedval = _expand_config_value(cp, depth + 1);
@@ -302,7 +303,7 @@ _expand_config_value(const char *value, int depth)
 			vp++;
 			if (*vp == '\0') {
 				warnx(
-			    "Trailing \\ in configuration value \"%s\"",
+				    "Trailing \\ in configuration value \"%s\"",
 				    value);
 				break;
 			}
@@ -362,15 +363,11 @@ static bool
 _bool_value(const char *name, const char *value)
 {
 
-	if (strcasecmp(value, "true") == 0 ||
-	    strcasecmp(value, "on") == 0 ||
-	    strcasecmp(value, "yes") == 0 ||
-	    strcmp(value, "1") == 0)
+	if (strcasecmp(value, "true") == 0 || strcasecmp(value, "on") == 0 ||
+	    strcasecmp(value, "yes") == 0 || strcmp(value, "1") == 0)
 		return (true);
-	if (strcasecmp(value, "false") == 0 ||
-	    strcasecmp(value, "off") == 0 ||
-	    strcasecmp(value, "no") == 0 ||
-	    strcmp(value, "0") == 0)
+	if (strcasecmp(value, "false") == 0 || strcasecmp(value, "off") == 0 ||
+	    strcasecmp(value, "no") == 0 || strcmp(value, "0") == 0)
 		return (false);
 	err(4, "Invalid value %s for boolean variable %s", value, name);
 }
@@ -409,8 +406,7 @@ get_config_bool_node(const nvlist_t *parent, const char *name)
 }
 
 bool
-get_config_bool_node_default(const nvlist_t *parent, const char *name,
-    bool def)
+get_config_bool_node_default(const nvlist_t *parent, const char *name, bool def)
 {
 	const char *value;
 

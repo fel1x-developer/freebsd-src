@@ -35,18 +35,17 @@
 #include <sys/param.h>
 #include <sys/resource.h>
 
-#include <ufs/ufs/dinode.h>
-#include <ufs/ffs/fs.h>
-
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <libufs.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
 #include <unistd.h>
 
 static void usage(void) __dead2;
@@ -159,7 +158,7 @@ fsirand(char *device)
 			(void)printf("%s was randomized on %s", device,
 			    ctime((void *)&(sblock->fs_id[0])));
 		(void)printf("fsid: %x %x\n", sblock->fs_id[0],
-			    sblock->fs_id[1]);
+		    sblock->fs_id[1]);
 	}
 
 	/* Randomize fs_id unless old 4.2BSD file system */
@@ -182,22 +181,22 @@ fsirand(char *device)
 			return (1);
 		} else if ((n = read(devfd, inodebuf, ibufsize)) != ibufsize) {
 			warnx("can't read inodes: %s",
-			     (n < ibufsize) ? "short read" : strerror(errno));
+			    (n < ibufsize) ? "short read" : strerror(errno));
 			return (1);
 		}
 
 		dp1 = (struct ufs1_dinode *)(void *)inodebuf;
 		dp2 = (struct ufs2_dinode *)(void *)inodebuf;
-		for (n = cg > 0 ? 0 : UFS_ROOTINO;
-		     n < (int)sblock->fs_ipg;
+		for (n = cg > 0 ? 0 : UFS_ROOTINO; n < (int)sblock->fs_ipg;
 		     n++, inumber++) {
 			if (printonly) {
 				(void)printf("ino %ju gen %08x\n",
 				    (uintmax_t)inumber,
 				    sblock->fs_magic == FS_UFS1_MAGIC ?
-				    dp1->di_gen : dp2->di_gen);
+					dp1->di_gen :
+					dp2->di_gen);
 			} else if (sblock->fs_magic == FS_UFS1_MAGIC) {
-				dp1->di_gen = arc4random(); 
+				dp1->di_gen = arc4random();
 				dp1++;
 			} else {
 				dp2->di_gen = arc4random();
@@ -213,23 +212,23 @@ fsirand(char *device)
 				    (intmax_t)dblk * bsize);
 				return (1);
 			} else if ((n = write(devfd, inodebuf, ibufsize)) !=
-				 ibufsize) {
+			    ibufsize) {
 				warnx("can't write inodes: %s",
-				     (n != ibufsize) ? "short write" :
-				     strerror(errno));
+				    (n != ibufsize) ? "short write" :
+						      strerror(errno));
 				return (1);
 			}
 		}
 	}
 	(void)close(devfd);
 
-	return(0);
+	return (0);
 }
 
 static void
 usage(void)
 {
-	(void)fprintf(stderr, 
-		"usage: fsirand [-b] [-f] [-p] special [special ...]\n");
+	(void)fprintf(stderr,
+	    "usage: fsirand [-b] [-f] [-p] special [special ...]\n");
 	exit(1);
 }

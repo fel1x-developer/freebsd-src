@@ -48,40 +48,43 @@ using namespace testing;
 #define FUSE_FSYNC_FDATASYNC 1
 #endif
 
-class FsyncDir: public FuseTest {
-public:
-void expect_fsyncdir(uint64_t ino, uint32_t flags, int error)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_FSYNCDIR &&
-				in.header.nodeid == ino &&
-				/* 
-				 * TODO: reenable pid check after fixing
-				 * bug 236379
-				 */
-				//(pid_t)in.header.pid == getpid() &&
-				in.body.fsyncdir.fh == FH &&
-				in.body.fsyncdir.fsync_flags == flags);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(error)));
-}
+class FsyncDir : public FuseTest {
+    public:
+	void expect_fsyncdir(uint64_t ino, uint32_t flags, int error)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(
+			ResultOf(
+			    [=](auto in) {
+				    return (in.header.opcode == FUSE_FSYNCDIR &&
+					in.header.nodeid == ino &&
+					/*
+					 * TODO: reenable pid check after fixing
+					 * bug 236379
+					 */
+					//(pid_t)in.header.pid == getpid() &&
+					in.body.fsyncdir.fh == FH &&
+					in.body.fsyncdir.fsync_flags == flags);
+			    },
+			    Eq(true)),
+			_))
+		    .WillOnce(Invoke(ReturnErrno(error)));
+	}
 
-void expect_lookup(const char *relpath, uint64_t ino)
-{
-	FuseTest::expect_lookup(relpath, ino, S_IFDIR | 0755, 0, 1);
-}
-
+	void expect_lookup(const char *relpath, uint64_t ino)
+	{
+		FuseTest::expect_lookup(relpath, ino, S_IFDIR | 0755, 0, 1);
+	}
 };
 
-class AioFsyncDir: public FsyncDir {
-virtual void SetUp() {
-	if (!is_unsafe_aio_enabled())
-		GTEST_SKIP() <<
-			"vfs.aio.enable_unsafe must be set for this test";
-	FuseTest::SetUp();
-}
+class AioFsyncDir : public FsyncDir {
+	virtual void SetUp()
+	{
+		if (!is_unsafe_aio_enabled())
+			GTEST_SKIP()
+			    << "vfs.aio.enable_unsafe must be set for this test";
+		FuseTest::SetUp();
+	}
 };
 
 /* https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=236379 */
@@ -172,7 +175,7 @@ TEST_F(FsyncDir, fsyncdata)
 	leak(fd);
 }
 
-/* 
+/*
  * Unlike regular files, the kernel doesn't know whether a directory is or
  * isn't dirty, so fuse(4) should always send FUSE_FSYNCDIR on fsync(2)
  */

@@ -30,6 +30,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,7 +38,7 @@
 #include "fstyp.h"
 #include "msdosfs.h"
 
-#define LABEL_NO_NAME		"NO NAME    "
+#define LABEL_NO_NAME "NO NAME    "
 
 /*
  * XXX the signature 0x55 0xAA as the last two bytes of 512 is not required
@@ -51,8 +52,8 @@ check_signature(uint8_t sector0[512])
 	if (sector0[510] == 0x55 && sector0[511] == 0xaa)
 		return (true);
 	/* Special case for Raspberry Pi Pico bootloader. */
-	if (sector0[510] == 0 && sector0[511] == 0 &&
-	    sector0[0] == 0xeb && sector0[1] == 0x3c && sector0[2] == 0x90)
+	if (sector0[510] == 0 && sector0[511] == 0 && sector0[0] == 0xeb &&
+	    sector0[1] == 0x3c && sector0[2] == 0x90)
 		return (true);
 	return (false);
 }
@@ -96,7 +97,7 @@ fstyp_msdosfs(FILE *fp, char *label, size_t size)
 
 		/* A volume with no name should have "NO NAME    " as label. */
 		if (strncmp(pfat_bsbpb->BS_VolLab, LABEL_NO_NAME,
-		    sizeof(pfat_bsbpb->BS_VolLab)) == 0) {
+			sizeof(pfat_bsbpb->BS_VolLab)) == 0) {
 			goto endofchecks;
 		}
 		copysize = MIN(size - 1, sizeof(pfat_bsbpb->BS_VolLab));
@@ -117,7 +118,7 @@ fstyp_msdosfs(FILE *fp, char *label, size_t size)
 		 * If the volume label is not "NO NAME    " we're done.
 		 */
 		if (strncmp(pfat32_bsbpb->BS_VolLab, LABEL_NO_NAME,
-		    sizeof(pfat32_bsbpb->BS_VolLab)) != 0) {
+			sizeof(pfat32_bsbpb->BS_VolLab)) != 0) {
 			copysize = MIN(size - 1,
 			    sizeof(pfat32_bsbpb->BS_VolLab));
 			memcpy(label, pfat32_bsbpb->BS_VolLab, copysize);
@@ -130,17 +131,18 @@ fstyp_msdosfs(FILE *fp, char *label, size_t size)
 		 * label of FAT32 volumes may be stored as a special entry in
 		 * the root directory.
 		 */
-		fat_FirstDataSector =
-		    UINT16BYTES(pfat32_bsbpb->BPB_RsvdSecCnt) +
+		fat_FirstDataSector = UINT16BYTES(
+					  pfat32_bsbpb->BPB_RsvdSecCnt) +
 		    (pfat32_bsbpb->BPB_NumFATs *
-		     UINT32BYTES(pfat32_bsbpb->BPB_FATSz32));
+			UINT32BYTES(pfat32_bsbpb->BPB_FATSz32));
 		fat_BytesPerSector = UINT16BYTES(pfat32_bsbpb->BPB_BytsPerSec);
 
 		//    fat_FirstDataSector, fat_BytesPerSector);
 
 		for (offset = fat_BytesPerSector * fat_FirstDataSector;;
-		    offset += fat_BytesPerSector) {
-			sector = (uint8_t *)read_buf(fp, offset, fat_BytesPerSector);
+		     offset += fat_BytesPerSector) {
+			sector = (uint8_t *)read_buf(fp, offset,
+			    fat_BytesPerSector);
 			if (sector == NULL)
 				goto error;
 
@@ -154,8 +156,8 @@ fstyp_msdosfs(FILE *fp, char *label, size_t size)
 				/* Skip empty or long name entries. */
 				if (pfat_entry->DIR_Name[0] == 0xe5 ||
 				    (pfat_entry->DIR_Attr &
-				     FAT_DES_ATTR_LONG_NAME) ==
-				    FAT_DES_ATTR_LONG_NAME) {
+					FAT_DES_ATTR_LONG_NAME) ==
+					FAT_DES_ATTR_LONG_NAME) {
 					continue;
 				}
 
@@ -172,7 +174,7 @@ fstyp_msdosfs(FILE *fp, char *label, size_t size)
 					label[copysize] = '\0';
 					goto endofchecks;
 				}
-			} while((uint8_t *)(++pfat_entry) <
+			} while ((uint8_t *)(++pfat_entry) <
 			    (uint8_t *)(sector + fat_BytesPerSector));
 			free(sector);
 		}

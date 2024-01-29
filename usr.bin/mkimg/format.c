@@ -26,11 +26,12 @@
 
 #include <sys/cdefs.h>
 #include <sys/stat.h>
+
 #include <errno.h>
 #include <string.h>
 
-#include "image.h"
 #include "format.h"
+#include "image.h"
 
 static struct mkimg_format *first;
 static struct mkimg_format *format;

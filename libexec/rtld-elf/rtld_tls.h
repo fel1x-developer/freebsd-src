@@ -32,7 +32,7 @@
  */
 
 #ifndef _RTLD_TLS_H_
-#define	_RTLD_TLS_H_
+#define _RTLD_TLS_H_
 
 /*
  * Allocate a TLS block for a new thread. The memory allocated will
@@ -56,8 +56,8 @@
  * The value returned from this function is suitable for installing
  * directly into the thread pointer register.
  */
-void *_rtld_allocate_tls(void *oldtls, size_t tcbsize, size_t tcbalign)
-    __exported;
+void *_rtld_allocate_tls(void *oldtls, size_t tcbsize,
+    size_t tcbalign) __exported;
 
 /*
  * Free a TLS block allocated using _rtld_allocate_tls(). The tcbsize

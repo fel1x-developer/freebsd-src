@@ -26,35 +26,36 @@
  * SUCH DAMAGE.
  */
 
-#define MAXPIN	(31)
+#define MAXPIN (31)
 
-#define BIT(x)	(1 << (x))
+#define BIT(x) (1 << (x))
 
-#define VALID_PIN(u)	((u) >= 0 && (u) <= MAXPIN)
-#define DEFAULT_CAPS	(GPIO_PIN_INPUT | GPIO_PIN_OUTPUT | \
-			 GPIO_PIN_OPENDRAIN | GPIO_PIN_PUSHPULL)
+#define VALID_PIN(u) ((u) >= 0 && (u) <= MAXPIN)
+#define DEFAULT_CAPS                                             \
+	(GPIO_PIN_INPUT | GPIO_PIN_OUTPUT | GPIO_PIN_OPENDRAIN | \
+	    GPIO_PIN_PUSHPULL)
 
-#define GPIO_LOCK(sc)		mtx_lock_spin(&(sc)->sc_mtx)
-#define	GPIO_UNLOCK(sc)		mtx_unlock_spin(&(sc)->sc_mtx)
-#define GPIO_LOCK_INIT(sc) \
-	mtx_init(&(sc)->sc_mtx, device_get_nameunit((sc)->dev),	\
-	    "gpio", MTX_SPIN)
-#define GPIO_LOCK_DESTROY(_sc)	mtx_destroy(&_sc->sc_mtx);
+#define GPIO_LOCK(sc) mtx_lock_spin(&(sc)->sc_mtx)
+#define GPIO_UNLOCK(sc) mtx_unlock_spin(&(sc)->sc_mtx)
+#define GPIO_LOCK_INIT(sc)                                              \
+	mtx_init(&(sc)->sc_mtx, device_get_nameunit((sc)->dev), "gpio", \
+	    MTX_SPIN)
+#define GPIO_LOCK_DESTROY(_sc) mtx_destroy(&_sc->sc_mtx);
 
-#define	GPIO_GPDIR	0x0
-#define	GPIO_GPODR	0x4
-#define	GPIO_GPDAT	0x8
-#define	GPIO_GPIER	0xc
-#define	GPIO_GPIMR	0x10
-#define	GPIO_GPICR	0x14
-#define	GPIO_GPIBE	0x18
+#define GPIO_GPDIR 0x0
+#define GPIO_GPODR 0x4
+#define GPIO_GPDAT 0x8
+#define GPIO_GPIER 0xc
+#define GPIO_GPIMR 0x10
+#define GPIO_GPICR 0x14
+#define GPIO_GPIBE 0x18
 
 struct qoriq_gpio_softc {
-	device_t	dev;
-	device_t	busdev;
-	struct mtx	sc_mtx;
+	device_t dev;
+	device_t busdev;
+	struct mtx sc_mtx;
 	struct resource *sc_mem;
-	struct gpio_pin	 sc_pins[MAXPIN + 1];
+	struct gpio_pin sc_pins[MAXPIN + 1];
 };
 
 device_attach_t qoriq_gpio_attach;

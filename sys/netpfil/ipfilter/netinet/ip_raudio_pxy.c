@@ -7,8 +7,7 @@
  * $Id: ip_raudio_pxy.c,v 1.40.2.4 2006/07/14 06:12:17 darrenr Exp $
  */
 
-#define	IPF_RAUDIO_PROXY
-
+#define IPF_RAUDIO_PROXY
 
 void ipf_p_raudio_main_load(void);
 void ipf_p_raudio_main_unload(void);
@@ -16,10 +15,9 @@ int ipf_p_raudio_new(void *, fr_info_t *, ap_session_t *, nat_t *);
 int ipf_p_raudio_in(void *, fr_info_t *, ap_session_t *, nat_t *);
 int ipf_p_raudio_out(void *, fr_info_t *, ap_session_t *, nat_t *);
 
-static	frentry_t	raudiofr;
+static frentry_t raudiofr;
 
-int	raudio_proxy_init = 0;
-
+int raudio_proxy_init = 0;
 
 /*
  * Real Audio application proxy initialization.
@@ -29,11 +27,10 @@ ipf_p_raudio_main_load(void)
 {
 	bzero((char *)&raudiofr, sizeof(raudiofr));
 	raudiofr.fr_ref = 1;
-	raudiofr.fr_flags = FR_INQUE|FR_PASS|FR_QUICK|FR_KEEPSTATE;
+	raudiofr.fr_flags = FR_INQUE | FR_PASS | FR_QUICK | FR_KEEPSTATE;
 	MUTEX_INIT(&raudiofr.fr_lock, "Real Audio proxy rule lock");
 	raudio_proxy_init = 1;
 }
-
 
 void
 ipf_p_raudio_main_unload(void)
@@ -44,7 +41,6 @@ ipf_p_raudio_main_unload(void)
 	}
 }
 
-
 /*
  * Setup for a new proxy to handle Real Audio.
  */
@@ -53,7 +49,7 @@ ipf_p_raudio_new(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 {
 	raudio_t *rap;
 
-	nat = nat;	/* LINT */
+	nat = nat; /* LINT */
 
 	if (fin->fin_v != 4)
 		return (-1);
@@ -65,11 +61,9 @@ ipf_p_raudio_new(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 	bzero(aps->aps_data, sizeof(raudio_t));
 	rap = aps->aps_data;
 	aps->aps_psiz = sizeof(raudio_t);
-	rap->rap_mode = RAP_M_TCP;	/* default is for TCP */
+	rap->rap_mode = RAP_M_TCP; /* default is for TCP */
 	return (0);
 }
-
-
 
 int
 ipf_p_raudio_out(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
@@ -82,7 +76,7 @@ ipf_p_raudio_out(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 	int len = 0;
 	mb_t *m;
 
-	nat = nat;	/* LINT */
+	nat = nat; /* LINT */
 
 	/*
 	 * If we've already processed the start messages, then nothing left
@@ -170,7 +164,6 @@ ipf_p_raudio_out(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 	return (0);
 }
 
-
 int
 ipf_p_raudio_in(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 {
@@ -241,12 +234,12 @@ ipf_p_raudio_in(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 	} else
 		return (0);
 
-	for (a3 = a1, a4 = a2; (a4 > 0) && (a3 < 19) && (a3 >= 0); a4--,a3++) {
+	for (a3 = a1, a4 = a2; (a4 > 0) && (a3 < 19) && (a3 >= 0); a4--, a3++) {
 		rap->rap_sbf |= (1 << a3);
 		rap->rap_svr[a3] = *s++;
 	}
 
-	if ((rap->rap_sbf != 0x7ffff) || (!rap->rap_eos))	/* 19 bits */
+	if ((rap->rap_sbf != 0x7ffff) || (!rap->rap_eos)) /* 19 bits */
 		return (0);
 	rap->rap_sdone = 1;
 
@@ -288,17 +281,16 @@ ipf_p_raudio_in(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 		fi.fin_out = 0;
 		MUTEX_ENTER(&softn->ipf_nat_new);
 		nat2 = ipf_nat_add(&fi, nat->nat_ptr, NULL,
-			       NAT_SLAVE|IPN_UDP | (sp ? 0 : SI_W_SPORT),
-			       NAT_OUTBOUND);
+		    NAT_SLAVE | IPN_UDP | (sp ? 0 : SI_W_SPORT), NAT_OUTBOUND);
 		MUTEX_EXIT(&softn->ipf_nat_new);
 		if (nat2 != NULL) {
-			(void) ipf_nat_proto(&fi, nat2, IPN_UDP);
+			(void)ipf_nat_proto(&fi, nat2, IPN_UDP);
 			MUTEX_ENTER(&nat2->nat_lock);
 			ipf_nat_update(&fi, nat2);
 			MUTEX_EXIT(&nat2->nat_lock);
 
-			(void) ipf_state_add(softc, &fi, NULL,
-					     (sp ? 0 : SI_W_SPORT));
+			(void)ipf_state_add(softc, &fi, NULL,
+			    (sp ? 0 : SI_W_SPORT));
 		}
 	}
 
@@ -311,16 +303,15 @@ ipf_p_raudio_in(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 		fi.fin_out = 1;
 		MUTEX_ENTER(&softn->ipf_nat_new);
 		nat2 = ipf_nat_add(&fi, nat->nat_ptr, NULL,
-			       NAT_SLAVE|IPN_UDP|SI_W_DPORT,
-			       NAT_OUTBOUND);
+		    NAT_SLAVE | IPN_UDP | SI_W_DPORT, NAT_OUTBOUND);
 		MUTEX_EXIT(&softn->ipf_nat_new);
 		if (nat2 != NULL) {
-			(void) ipf_nat_proto(&fi, nat2, IPN_UDP);
+			(void)ipf_nat_proto(&fi, nat2, IPN_UDP);
 			MUTEX_ENTER(&nat2->nat_lock);
 			ipf_nat_update(&fi, nat2);
 			MUTEX_EXIT(&nat2->nat_lock);
 
-			(void) ipf_state_add(softc, &fi, NULL, SI_W_DPORT);
+			(void)ipf_state_add(softc, &fi, NULL, SI_W_DPORT);
 		}
 	}
 

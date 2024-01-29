@@ -20,12 +20,11 @@
 
 #include "ah.h"
 #include "ah_internal.h"
-
 #include "ar5210/ar5210.h"
 #include "ar5210/ar5210reg.h"
 
-#define	AR_KEYTABLE_SIZE	64
-#define	KEY_XOR			0xaa
+#define AR_KEYTABLE_SIZE 64
+#define KEY_XOR 0xaa
 
 /*
  * Return the size of the hardware key cache.
@@ -74,7 +73,8 @@ ar5210ResetKeyCacheEntry(struct ath_hal *ah, uint16_t entry)
  * Sets the mac part of the specified key cache entry and mark it valid.
  */
 HAL_BOOL
-ar5210SetKeyCacheEntryMac(struct ath_hal *ah, uint16_t entry, const uint8_t *mac)
+ar5210SetKeyCacheEntryMac(struct ath_hal *ah, uint16_t entry,
+    const uint8_t *mac)
 {
 	uint32_t macHi, macLo;
 
@@ -85,10 +85,10 @@ ar5210SetKeyCacheEntryMac(struct ath_hal *ah, uint16_t entry, const uint8_t *mac
 		 */
 		if (mac != AH_NULL) {
 			macHi = (mac[5] << 8) | mac[4];
-			macLo = (mac[3] << 24)| (mac[2] << 16)
-			      | (mac[1] << 8) | mac[0];
+			macLo = (mac[3] << 24) | (mac[2] << 16) |
+			    (mac[1] << 8) | mac[0];
 			macLo >>= 1;
-			macLo |= (macHi & 1) << 31;	/* carry */
+			macLo |= (macHi & 1) << 31; /* carry */
 			macHi >>= 1;
 		} else {
 			macLo = macHi = 0;
@@ -96,7 +96,7 @@ ar5210SetKeyCacheEntryMac(struct ath_hal *ah, uint16_t entry, const uint8_t *mac
 
 		OS_REG_WRITE(ah, AR_KEYTABLE_MAC0(entry), macLo);
 		OS_REG_WRITE(ah, AR_KEYTABLE_MAC1(entry),
-			macHi | AR_KEYTABLE_VALID);
+		    macHi | AR_KEYTABLE_VALID);
 		return AH_TRUE;
 	}
 	return AH_FALSE;
@@ -106,13 +106,14 @@ ar5210SetKeyCacheEntryMac(struct ath_hal *ah, uint16_t entry, const uint8_t *mac
  * Sets the contents of the specified key cache entry.
  */
 HAL_BOOL
-ar5210SetKeyCacheEntry(struct ath_hal *ah, uint16_t entry,
-                       const HAL_KEYVAL *k, const uint8_t *mac, int xorKey)
+ar5210SetKeyCacheEntry(struct ath_hal *ah, uint16_t entry, const HAL_KEYVAL *k,
+    const uint8_t *mac, int xorKey)
 {
 	uint32_t key0, key1, key2, key3, key4;
 	uint32_t keyType;
-	uint32_t xorMask= xorKey ?
-		(KEY_XOR << 24 | KEY_XOR << 16 | KEY_XOR << 8 | KEY_XOR) : 0;
+	uint32_t xorMask = xorKey ?
+	    (KEY_XOR << 24 | KEY_XOR << 16 | KEY_XOR << 8 | KEY_XOR) :
+	    0;
 
 	if (entry >= AR_KEYTABLE_SIZE)
 		return AH_FALSE;
@@ -132,11 +133,11 @@ ar5210SetKeyCacheEntry(struct ath_hal *ah, uint16_t entry,
 	else
 		keyType = AR_KEYTABLE_TYPE_128;
 
-	key0 = LE_READ_4(k->kv_val+0) ^ xorMask;
-	key1 = (LE_READ_2(k->kv_val+4) ^ xorMask) & 0xffff;
-	key2 = LE_READ_4(k->kv_val+6) ^ xorMask;
-	key3 = (LE_READ_2(k->kv_val+10) ^ xorMask) & 0xffff;
-	key4 = LE_READ_4(k->kv_val+12) ^ xorMask;
+	key0 = LE_READ_4(k->kv_val + 0) ^ xorMask;
+	key1 = (LE_READ_2(k->kv_val + 4) ^ xorMask) & 0xffff;
+	key2 = LE_READ_4(k->kv_val + 6) ^ xorMask;
+	key3 = (LE_READ_2(k->kv_val + 10) ^ xorMask) & 0xffff;
+	key4 = LE_READ_4(k->kv_val + 12) ^ xorMask;
 	if (k->kv_len <= 104 / NBBY)
 		key4 &= 0xff;
 

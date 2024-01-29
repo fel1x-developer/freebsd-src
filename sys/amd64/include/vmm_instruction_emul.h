@@ -26,8 +26,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_VMM_INSTRUCTION_EMUL_H_
-#define	_VMM_INSTRUCTION_EMUL_H_
+#ifndef _VMM_INSTRUCTION_EMUL_H_
+#define _VMM_INSTRUCTION_EMUL_H_
 
 #include <sys/mman.h>
 
@@ -35,10 +35,10 @@
  * Callback functions to read and write memory regions.
  */
 typedef int (*mem_region_read_t)(struct vcpu *vcpu, uint64_t gpa,
-				 uint64_t *rval, int rsize, void *arg);
+    uint64_t *rval, int rsize, void *arg);
 
 typedef int (*mem_region_write_t)(struct vcpu *vcpu, uint64_t gpa,
-				  uint64_t wval, int wsize, void *arg);
+    uint64_t wval, int wsize, void *arg);
 
 /*
  * Emulate the decoded 'vie' instruction.
@@ -55,8 +55,8 @@ int vmm_emulate_instruction(struct vcpu *vcpu, uint64_t gpa, struct vie *vie,
     struct vm_guest_paging *paging, mem_region_read_t mrr,
     mem_region_write_t mrw, void *mrarg);
 
-int vie_update_register(struct vcpu *vcpu, enum vm_reg_name reg,
-    uint64_t val, int size);
+int vie_update_register(struct vcpu *vcpu, enum vm_reg_name reg, uint64_t val,
+    int size);
 
 /*
  * Returns 1 if an alignment check exception should be injected and 0 otherwise.
@@ -80,9 +80,8 @@ int vie_calculate_gla(enum vm_cpu_mode cpu_mode, enum vm_reg_name seg,
  * 'vie' must be initialized before calling 'vmm_fetch_instruction()'
  */
 int vmm_fetch_instruction(struct vcpu *vcpu,
-			  struct vm_guest_paging *guest_paging,
-			  uint64_t rip, int inst_length, struct vie *vie,
-			  int *is_fault);
+    struct vm_guest_paging *guest_paging, uint64_t rip, int inst_length,
+    struct vie *vie, int *is_fault);
 
 /*
  * Translate the guest linear address 'gla' to a guest physical address.
@@ -92,8 +91,8 @@ int vmm_fetch_instruction(struct vcpu *vcpu,
  *   0		   1		An exception was injected into the guest
  * EFAULT	  N/A		An unrecoverable hypervisor error occurred
  */
-int vm_gla2gpa(struct vcpu *vcpu, struct vm_guest_paging *paging,
-    uint64_t gla, int prot, uint64_t *gpa, int *is_fault);
+int vm_gla2gpa(struct vcpu *vcpu, struct vm_guest_paging *paging, uint64_t gla,
+    int prot, uint64_t *gpa, int *is_fault);
 
 /*
  * Like vm_gla2gpa, but no exceptions are injected into the guest and
@@ -112,22 +111,21 @@ void vie_init(struct vie *vie, const char *inst_bytes, int inst_length);
  * 'gla' is the guest linear address provided by the hardware assist
  * that caused the nested page table fault. It is used to verify that
  * the software instruction decoding is in agreement with the hardware.
- * 
+ *
  * Some hardware assists do not provide the 'gla' to the hypervisor.
  * To skip the 'gla' verification for this or any other reason pass
  * in VIE_INVALID_GLA instead.
  */
 #ifdef _KERNEL
-#define	VIE_INVALID_GLA		(1UL << 63)	/* a non-canonical address */
+#define VIE_INVALID_GLA (1UL << 63) /* a non-canonical address */
 int vmm_decode_instruction(struct vcpu *vcpu, uint64_t gla,
-			   enum vm_cpu_mode cpu_mode, int csd, struct vie *vie);
-#else /* !_KERNEL */
+    enum vm_cpu_mode cpu_mode, int csd, struct vie *vie);
+#else  /* !_KERNEL */
 /*
  * Permit instruction decoding logic to be compiled outside of the kernel for
  * rapid iteration and validation.  No GLA validation is performed, obviously.
  */
-int vmm_decode_instruction(enum vm_cpu_mode cpu_mode, int csd,
-    struct vie *vie);
-#endif	/* _KERNEL */
+int vmm_decode_instruction(enum vm_cpu_mode cpu_mode, int csd, struct vie *vie);
+#endif /* _KERNEL */
 
-#endif	/* _VMM_INSTRUCTION_EMUL_H_ */
+#endif /* _VMM_INSTRUCTION_EMUL_H_ */

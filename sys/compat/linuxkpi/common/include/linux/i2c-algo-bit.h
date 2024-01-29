@@ -25,18 +25,18 @@
  */
 
 #ifndef _LINUX_I2C_ALGO_BIT_H_
-#define	_LINUX_I2C_ALGO_BIT_H_
+#define _LINUX_I2C_ALGO_BIT_H_
 
 #include <linux/i2c.h>
 
 struct i2c_algo_bit_data {
 	void *data;
-	void (*setsda) (void *data, int state);
-	void (*setscl) (void *data, int state);
-	int (*getsda) (void *data);
-	int (*getscl) (void *data);
-	int (*pre_xfer)  (struct i2c_adapter *);
-	void (*post_xfer) (struct i2c_adapter *);
+	void (*setsda)(void *data, int state);
+	void (*setscl)(void *data, int state);
+	int (*getsda)(void *data);
+	int (*getscl)(void *data);
+	int (*pre_xfer)(struct i2c_adapter *);
+	void (*post_xfer)(struct i2c_adapter *);
 
 	int udelay;
 	int timeout;
@@ -44,6 +44,6 @@ struct i2c_algo_bit_data {
 
 int lkpi_i2c_bit_add_bus(struct i2c_adapter *adapter);
 
-#define	i2c_bit_add_bus(adapter)	lkpi_i2c_bit_add_bus(adapter)
+#define i2c_bit_add_bus(adapter) lkpi_i2c_bit_add_bus(adapter)
 
-#endif	/*_LINUX_I2C_ALGO_BIT_H_ */
+#endif /*_LINUX_I2C_ALGO_BIT_H_ */

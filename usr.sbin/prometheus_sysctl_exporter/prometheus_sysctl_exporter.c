@@ -50,8 +50,8 @@ static regex_t exc_regex;
  * Cursor for iterating over all of the system's sysctl OIDs.
  */
 struct oid {
-	int	id[CTL_MAXNAME];
-	size_t	len;
+	int id[CTL_MAXNAME];
+	size_t len;
 };
 
 /* Initializes the cursor to point to start of the tree. */
@@ -105,8 +105,8 @@ oid_get_next(const struct oid *cur, struct oid *next)
  * OID formatting metadata.
  */
 struct oidformat {
-	unsigned int	kind;
-	char		format[BUFSIZ];
+	unsigned int kind;
+	char format[BUFSIZ];
 };
 
 /* Returns whether the OID represents a temperature value. */
@@ -150,9 +150,9 @@ oid_get_format(const struct oid *o, struct oidformat *of)
 struct oidvalue {
 	enum { SIGNED, UNSIGNED, FLOAT } type;
 	union {
-		intmax_t	s;
-		uintmax_t	u;
-		double		f;
+		intmax_t s;
+		uintmax_t u;
+		double f;
 	} value;
 };
 
@@ -238,32 +238,32 @@ oid_get_value(const struct oid *o, const struct oidformat *of,
 {
 
 	switch (of->kind & CTLTYPE) {
-#define	GET_VALUE(ctltype, type) \
-	case (ctltype): {						\
-		type value;						\
-		size_t valuesize;					\
-									\
-		valuesize = sizeof(value);				\
+#define GET_VALUE(ctltype, type)                                          \
+	case (ctltype): {                                                 \
+		type value;                                               \
+		size_t valuesize;                                         \
+                                                                          \
+		valuesize = sizeof(value);                                \
 		if (sysctl(o->id, o->len, &value, &valuesize, 0, 0) != 0) \
-			return (false);					\
-		if ((type)-1 > 0)					\
-			oidvalue_set_unsigned(ov, value);		\
-		else							\
-			oidvalue_set_signed(ov, value);			\
-		break;							\
+			return (false);                                   \
+		if ((type)-1 > 0)                                         \
+			oidvalue_set_unsigned(ov, value);                 \
+		else                                                      \
+			oidvalue_set_signed(ov, value);                   \
+		break;                                                    \
 	}
-	GET_VALUE(CTLTYPE_INT, int);
-	GET_VALUE(CTLTYPE_UINT, unsigned int);
-	GET_VALUE(CTLTYPE_LONG, long);
-	GET_VALUE(CTLTYPE_ULONG, unsigned long);
-	GET_VALUE(CTLTYPE_S8, int8_t);
-	GET_VALUE(CTLTYPE_U8, uint8_t);
-	GET_VALUE(CTLTYPE_S16, int16_t);
-	GET_VALUE(CTLTYPE_U16, uint16_t);
-	GET_VALUE(CTLTYPE_S32, int32_t);
-	GET_VALUE(CTLTYPE_U32, uint32_t);
-	GET_VALUE(CTLTYPE_S64, int64_t);
-	GET_VALUE(CTLTYPE_U64, uint64_t);
+		GET_VALUE(CTLTYPE_INT, int);
+		GET_VALUE(CTLTYPE_UINT, unsigned int);
+		GET_VALUE(CTLTYPE_LONG, long);
+		GET_VALUE(CTLTYPE_ULONG, unsigned long);
+		GET_VALUE(CTLTYPE_S8, int8_t);
+		GET_VALUE(CTLTYPE_U8, uint8_t);
+		GET_VALUE(CTLTYPE_S16, int16_t);
+		GET_VALUE(CTLTYPE_U16, uint16_t);
+		GET_VALUE(CTLTYPE_S32, int32_t);
+		GET_VALUE(CTLTYPE_U32, uint32_t);
+		GET_VALUE(CTLTYPE_S64, int64_t);
+		GET_VALUE(CTLTYPE_U64, uint64_t);
 #undef GET_VALUE
 	case CTLTYPE_OPAQUE:
 		if (oidformat_is_timeval(of)) {
@@ -306,7 +306,8 @@ oid_get_value(const struct oid *o, const struct oidformat *of,
 			oidvalue_set_float(ov, NAN);
 		} else {
 			e = of->format[2] >= '0' && of->format[2] <= '9' ?
-			    of->format[2] - '0' : 1;
+			    of->format[2] - '0' :
+			    1;
 			oidvalue_set_float(ov, v / pow(10, e) - 273.15);
 		}
 	}
@@ -317,9 +318,9 @@ oid_get_value(const struct oid *o, const struct oidformat *of,
  * The full name of an OID, stored as a series of components.
  */
 struct oidname {
-	struct oid	oid;
-	char		names[BUFSIZ];
-	char		labels[BUFSIZ];
+	struct oid oid;
+	char names[BUFSIZ];
+	char labels[BUFSIZ];
 };
 
 /*
@@ -353,7 +354,7 @@ oid_get_name(const struct oid *o, struct oidname *on)
 	/* No need to fetch labels for components that we already have. */
 	label = on->labels;
 	for (i = 0; i < o->len && i < on->oid.len && o->id[i] == on->oid.id[i];
-	    ++i)
+	     ++i)
 		label += strlen(label) + 1;
 
 	/* Fetch the remaining labels. */
@@ -410,9 +411,9 @@ oid_get_metric(const struct oidname *on, const struct oidformat *of,
 	for (i = 0; i < on->oid.len; ++i) {
 		if (*label != '\0') {
 			assert(label[strspn(label,
-			    "abcdefghijklmnopqrstuvwxyz"
-			    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-			    "0123456789_")] == '\0');
+				   "abcdefghijklmnopqrstuvwxyz"
+				   "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+				   "0123456789_")] == '\0');
 			snprintf(buf, sizeof(buf), "%c%s=\"", separator, label);
 			strlcat(metric, buf, mlen);
 			while (*name != '\0') {
@@ -541,14 +542,14 @@ static bool
 buf_gzip(const char *in, size_t inlen, char *out, size_t *outlen)
 {
 	z_stream stream = {
-	    .next_in	= __DECONST(unsigned char *, in),
-	    .avail_in	= inlen,
-	    .next_out	= (unsigned char *)out,
-	    .avail_out	= *outlen,
+		.next_in = __DECONST(unsigned char *, in),
+		.avail_in = inlen,
+		.next_out = (unsigned char *)out,
+		.avail_out = *outlen,
 	};
 
 	if (deflateInit2(&stream, Z_DEFAULT_COMPRESSION, Z_DEFLATED,
-	    MAX_WBITS + 16, 8, Z_DEFAULT_STRATEGY) != Z_OK ||
+		MAX_WBITS + 16, 8, Z_DEFAULT_STRATEGY) != Z_OK ||
 	    deflate(&stream, Z_FINISH) != Z_STREAM_END) {
 		return (false);
 	}
@@ -587,7 +588,8 @@ main(int argc, char *argv[])
 		case 'e':
 			error = regcomp(&exc_regex, optarg, REG_EXTENDED);
 			if (error != 0) {
-				regerror(error, &exc_regex, errbuf, sizeof(errbuf));
+				regerror(error, &exc_regex, errbuf,
+				    sizeof(errbuf));
 				errx(1, "bad regular expression '%s': %s",
 				    optarg, errbuf);
 			}
@@ -602,7 +604,8 @@ main(int argc, char *argv[])
 		case 'i':
 			error = regcomp(&inc_regex, optarg, REG_EXTENDED);
 			if (error != 0) {
-				regerror(error, &inc_regex, errbuf, sizeof(errbuf));
+				regerror(error, &inc_regex, errbuf,
+				    sizeof(errbuf));
 				errx(1, "bad regular expression '%s': %s",
 				    optarg, errbuf);
 			}
@@ -631,7 +634,8 @@ main(int argc, char *argv[])
 		/* Print all OIDs. */
 		oid_get_root(&o);
 		do {
-			oid_print(&o, &on, print_descriptions, exclude, include, fp);
+			oid_print(&o, &on, print_descriptions, exclude, include,
+			    fp);
 		} while (oid_get_next(&o, &o));
 	} else {
 		int i;
@@ -651,9 +655,10 @@ main(int argc, char *argv[])
 			}
 			o = root;
 			do {
-				oid_print(&o, &on, print_descriptions, exclude, include, fp);
-			} while (oid_get_next(&o, &o) &&
-			    oid_is_beneath(&o, &root));
+				oid_print(&o, &on, print_descriptions, exclude,
+				    include, fp);
+			} while (
+			    oid_get_next(&o, &o) && oid_is_beneath(&o, &root));
 		}
 	}
 

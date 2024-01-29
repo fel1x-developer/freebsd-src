@@ -1,6 +1,6 @@
 /*-
  * Copyright (c) 1998 Michael Smith <msmith@freebsd.org>
- * Copyright (c) 2007 Semihalf, Rafal Jaworowski <raj@semihalf.com> 
+ * Copyright (c) 2007 Semihalf, Rafal Jaworowski <raj@semihalf.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,19 +35,19 @@
 #include "libuboot.h"
 
 /*
- * MD primitives supporting placement of module data 
+ * MD primitives supporting placement of module data
  */
 
 #ifdef __arm__
-#define	KERN_ALIGN	(2 * 1024 * 1024)
+#define KERN_ALIGN (2 * 1024 * 1024)
 #else
-#define	KERN_ALIGN	PAGE_SIZE
+#define KERN_ALIGN PAGE_SIZE
 #endif
 
 /*
  * Avoid low memory, u-boot puts things like args and dtb blobs there.
  */
-#define	KERN_MINADDR	max(KERN_ALIGN, (1024 * 1024))
+#define KERN_MINADDR max(KERN_ALIGN, (1024 * 1024))
 
 extern void _start(void); /* ubldr entry point address. */
 
@@ -106,20 +106,22 @@ uboot_loadaddr(u_int type, void *data, uint64_t addr)
 			sblock = roundup2((uint64_t)si->mr[i].start,
 			    KERN_ALIGN);
 			eblock = rounddown2((uint64_t)si->mr[i].start +
-			    si->mr[i].size, KERN_ALIGN);
+				si->mr[i].size,
+			    KERN_ALIGN);
 			if (biggest_size == 0)
 				sblock += KERN_MINADDR;
 			if (subldr >= sblock && subldr < eblock) {
 				if (subldr - sblock > eblock - eubldr) {
 					this_block = sblock;
-					this_size  = subldr - sblock;
+					this_size = subldr - sblock;
 				} else {
 					this_block = eubldr;
 					this_size = eblock - eubldr;
 				}
 			} else if (subldr < sblock && eubldr < eblock) {
 				/* Loader is below or engulfs the sblock */
-				this_block = (eubldr < sblock) ? sblock : eubldr;
+				this_block = (eubldr < sblock) ? sblock :
+								 eubldr;
 				this_size = eblock - this_block;
 			} else {
 				this_block = 0;
@@ -127,7 +129,7 @@ uboot_loadaddr(u_int type, void *data, uint64_t addr)
 			}
 			if (biggest_size < this_size) {
 				biggest_block = this_block;
-				biggest_size  = this_size;
+				biggest_size = this_size;
 			}
 		}
 		if (biggest_size == 0)

@@ -9,7 +9,6 @@
 
 #include "ipf.h"
 
-
 void
 printip(int family, u_32_t *addr)
 {

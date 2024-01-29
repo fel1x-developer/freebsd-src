@@ -34,9 +34,9 @@
 #include <ctype.h>
 #include <errno.h>
 #include <getopt.h>
-#include <stdio.h>
 #include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -64,74 +64,40 @@ static const struct {
 	const char *desc;
 	const char *args;
 } cmds[] = {
-	{
-		CMD_ADD,
-		"add",
-		add_cmd,
-		"Add a new binary image activator (requires 'root' privilege)",
-		"<name> --interpreter <path_and_arguments> \\\n"
-		"\t\t--magic <magic_bytes> [--mask <mask_bytes>] \\\n"
-		"\t\t--size <magic_size> [--offset <magic_offset>] \\\n"
-		"\t\t[--set-enabled] \\\n"
-		"\t\t[--pre-open]"
-	},
-	{
-		CMD_REMOVE,
-		"remove",
-		name_cmd,
-		"Remove a binary image activator (requires 'root' privilege)",
-		"<name>"
-	},
-	{
-		CMD_DISABLE,
-		"disable",
-		name_cmd,
-		"Disable a binary image activator (requires 'root' privilege)",
-		"<name>"
-	},
-	{
-		CMD_ENABLE,
-		"enable",
-		name_cmd,
-		"Enable a binary image activator (requires 'root' privilege)",
-		"<name>"
-	},
-	{
-		CMD_LOOKUP,
-		"lookup",
-		name_cmd,
-		"Lookup a binary image activator",
-		"<name>"
-	},
-	{
-		CMD_LIST,
-		"list",
-		noname_cmd,
-		"List all the binary image activators",
-		""
-	},
+	{ CMD_ADD, "add", add_cmd,
+	    "Add a new binary image activator (requires 'root' privilege)",
+	    "<name> --interpreter <path_and_arguments> \\\n"
+	    "\t\t--magic <magic_bytes> [--mask <mask_bytes>] \\\n"
+	    "\t\t--size <magic_size> [--offset <magic_offset>] \\\n"
+	    "\t\t[--set-enabled] \\\n"
+	    "\t\t[--pre-open]" },
+	{ CMD_REMOVE, "remove", name_cmd,
+	    "Remove a binary image activator (requires 'root' privilege)",
+	    "<name>" },
+	{ CMD_DISABLE, "disable", name_cmd,
+	    "Disable a binary image activator (requires 'root' privilege)",
+	    "<name>" },
+	{ CMD_ENABLE, "enable", name_cmd,
+	    "Enable a binary image activator (requires 'root' privilege)",
+	    "<name>" },
+	{ CMD_LOOKUP, "lookup", name_cmd, "Lookup a binary image activator",
+	    "<name>" },
+	{ CMD_LIST, "list", noname_cmd, "List all the binary image activators",
+	    "" },
 };
 
-static const struct option
-add_opts[] = {
-	{ "set-enabled",	no_argument,		NULL,	'e' },
-	{ "interpreter",	required_argument,	NULL,	'i' },
-	{ "mask",		required_argument,	NULL,	'M' },
-	{ "magic",		required_argument,	NULL,	'm' },
-	{ "offset",		required_argument,	NULL,	'o' },
-	{ "size",		required_argument,	NULL,	's' },
-	{ "pre-open",		no_argument,		NULL,	'p' },
-	{ NULL,			0,			NULL,	0   }
-};
+static const struct option add_opts[] = { { "set-enabled", no_argument, NULL,
+					      'e' },
+	{ "interpreter", required_argument, NULL, 'i' },
+	{ "mask", required_argument, NULL, 'M' },
+	{ "magic", required_argument, NULL, 'm' },
+	{ "offset", required_argument, NULL, 'o' },
+	{ "size", required_argument, NULL, 's' },
+	{ "pre-open", no_argument, NULL, 'p' }, { NULL, 0, NULL, 0 } };
 
-static char const *cmd_sysctl_name[] = {
-	IBE_SYSCTL_NAME_ADD,
-	IBE_SYSCTL_NAME_REMOVE,
-	IBE_SYSCTL_NAME_DISABLE,
-	IBE_SYSCTL_NAME_ENABLE,
-	IBE_SYSCTL_NAME_LOOKUP,
-	IBE_SYSCTL_NAME_LIST
-};
+static char const *cmd_sysctl_name[] = { IBE_SYSCTL_NAME_ADD,
+	IBE_SYSCTL_NAME_REMOVE, IBE_SYSCTL_NAME_DISABLE, IBE_SYSCTL_NAME_ENABLE,
+	IBE_SYSCTL_NAME_LOOKUP, IBE_SYSCTL_NAME_LIST };
 
 static void __dead2
 usage(const char *format, ...)
@@ -149,13 +115,13 @@ usage(const char *format, ...)
 	fprintf(stderr, "\n");
 	fprintf(stderr, "usage: %s command [args...]\n\n", __progname);
 
-	for(i = 0; i < nitems(cmds); i++) {
+	for (i = 0; i < nitems(cmds); i++) {
 		fprintf(stderr, "%s:\n", cmds[i].desc);
 		fprintf(stderr, "\t%s %s %s\n\n", __progname, cmds[i].name,
 		    cmds[i].args);
 	}
 
-	exit (error);
+	exit(error);
 }
 
 static void __dead2
@@ -198,24 +164,22 @@ printxbe(ximgact_binmisc_entry_t *xbe)
 	printf("magic offset: %u\n", xbe->xbe_moffset);
 
 	printf("magic: ");
-	for(i = 0; i < xbe->xbe_msize;  i++) {
+	for (i = 0; i < xbe->xbe_msize; i++) {
 		if (i && !(i % 12))
 			printf("\n       ");
-		else
-			if (i && !(i % 4))
-				printf(" ");
+		else if (i && !(i % 4))
+			printf(" ");
 		printf("0x%02x ", xbe->xbe_magic[i]);
 	}
 	printf("\n");
 
 	if (flags & IBF_USE_MASK) {
 		printf("mask:  ");
-		for(i = 0; i < xbe->xbe_msize;  i++) {
+		for (i = 0; i < xbe->xbe_msize; i++) {
 			if (i && !(i % 12))
 				printf("\n       ");
-			else
-				if (i && !(i % 4))
-					printf(" ");
+			else if (i && !(i % 4))
+				printf(" ");
 			printf("0x%02x ", xbe->xbe_mask[i]);
 		}
 		printf("\n");
@@ -232,7 +196,7 @@ demux_cmd(__unused int argc, char *const argv[])
 	optind = 1;
 	optreset = 1;
 
-	for(i = 0; i < nitems(cmds); i++) {
+	for (i = 0; i < nitems(cmds); i++) {
 		if (!strcasecmp(cmds[i].name, argv[0])) {
 			return (i);
 		}
@@ -248,7 +212,7 @@ strlit2bin_cpy(uint8_t *d, char *s, size_t size)
 	int c;
 	size_t cnt = 0;
 
-	while((c = *s++) != '\0') {
+	while ((c = *s++) != '\0') {
 		if (c == '\\') {
 			/* Do '\' escapes. */
 			switch (*s) {
@@ -291,10 +255,10 @@ add_cmd(__unused int argc, char *argv[], ximgact_binmisc_entry_t *xbe)
 		    IBE_NAME_MAX);
 	strlcpy(&xbe->xbe_name[0], argv[0], IBE_NAME_MAX);
 
-	while ((ch = getopt_long(argc, argv, "epi:m:M:o:s:", add_opts, NULL))
-	    != -1) {
+	while ((ch = getopt_long(argc, argv, "epi:m:M:o:s:", add_opts, NULL)) !=
+	    -1) {
 
-		switch(ch) {
+		switch (ch) {
 		case 'i':
 			getoptstr(xbe->xbe_interpreter, IBE_INTERP_LEN_MAX,
 			    "interpreter");
@@ -324,7 +288,7 @@ add_cmd(__unused int argc, char *argv[], ximgact_binmisc_entry_t *xbe)
 			if (xbe->xbe_msize == 0 ||
 			    xbe->xbe_msize > IBE_MAGIC_MAX)
 				usage("Error: Not valid '--size' value. "
-				    "(Must be > 0 and < %u.)\n",
+				      "(Must be > 0 and < %u.)\n",
 				    xbe->xbe_msize);
 			break;
 
@@ -412,8 +376,8 @@ main(int argc, char **argv)
 
 	if (modfind(KMOD_NAME) == -1) {
 		if (kldload(KMOD_NAME) == -1)
-			fatal("Can't load %s kernel module: %s",
-			    KMOD_NAME, strerror(errno));
+			fatal("Can't load %s kernel module: %s", KMOD_NAME,
+			    strerror(errno));
 	}
 
 	bzero(&xbe_in, sizeof(xbe_in));
@@ -449,10 +413,10 @@ main(int argc, char **argv)
 	    xbe_inp, xbe_in_sz);
 
 	if (error)
-		switch(errno) {
+		switch (errno) {
 		case EINVAL:
 			usage("Invalid interpreter name or --interpreter, "
-			    "--magic, --mask, or --size argument value");
+			      "--magic, --mask, or --size argument value");
 			break;
 
 		case EEXIST:
@@ -467,7 +431,8 @@ main(int argc, char **argv)
 
 		case ENOSPC:
 			fatal("Fatal: no more room in the activator list "
-			    "(limited to %d enties)", IBE_MAX_ENTRIES);
+			      "(limited to %d enties)",
+			    IBE_MAX_ENTRIES);
 			break;
 
 		case EPERM:
@@ -481,7 +446,6 @@ main(int argc, char **argv)
 			break;
 		}
 
-
 	if (cmd == CMD_LOOKUP)
 		printxbe(xbe_outp);
 
@@ -489,7 +453,7 @@ main(int argc, char **argv)
 		xbe_outp = malloc(xbe_out_sz);
 		if (!xbe_outp)
 			fatal("Fatal: out of memory");
-		while(1) {
+		while (1) {
 			size_t osize = xbe_out_sz;
 			error = sysctlbyname(cmd_sysctl_name[cmd], xbe_outp,
 			    &xbe_out_sz, NULL, 0);
@@ -511,7 +475,7 @@ main(int argc, char **argv)
 			free(xbe_outp);
 			fatal("Fatal: %s", strerror(errno));
 		}
-		for(i = 0; i < howmany(xbe_out_sz, sizeof(xbe_out)); i++)
+		for (i = 0; i < howmany(xbe_out_sz, sizeof(xbe_out)); i++)
 			printxbe(&xbe_outp[i]);
 	}
 

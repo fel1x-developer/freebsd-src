@@ -27,7 +27,7 @@
  */
 
 #ifndef _DDB_DB_OUTPUT_H_
-#define	_DDB_DB_OUTPUT_H_
+#define _DDB_DB_OUTPUT_H_
 
 /*
  *	Author: David B. Golub, Carnegie Mellon University
@@ -38,10 +38,10 @@
  * Printing routines for kernel debugger.
  */
 
-void	db_disable_pager(void);
-void	db_enable_pager(void);
-void	db_end_line(int);
-void	db_force_whitespace(void);
-int	db_print_position(void);
+void db_disable_pager(void);
+void db_enable_pager(void);
+void db_end_line(int);
+void db_force_whitespace(void);
+int db_print_position(void);
 
 #endif /* !_DDB_DB_OUTPUT_H_ */

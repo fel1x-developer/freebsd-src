@@ -23,7 +23,7 @@
  * SUCH DAMAGE.
  */
 
-typedef bool(*ses_cb)(const char *devname, int fd);
+typedef bool (*ses_cb)(const char *devname, int fd);
 
 // Run a test function on every available ses device
 static void
@@ -42,7 +42,7 @@ for_each_ses_dev(ses_cb cb, int oflags)
 	if (g.gl_matchc == 0)
 		return;
 
-	for(i = 0; i < g.gl_matchc; i++) {
+	for (i = 0; i < g.gl_matchc; i++) {
 		int fd;
 
 		fd = open(g.gl_pathv[i], oflags);

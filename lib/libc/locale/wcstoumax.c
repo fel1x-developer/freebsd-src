@@ -39,13 +39,14 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <wctype.h>
+
 #include "xlocale_private.h"
 
 /*
  * Convert a wide character string to a uintmax_t integer.
  */
 uintmax_t
-wcstoumax_l(const wchar_t * __restrict nptr, wchar_t ** __restrict endptr,
+wcstoumax_l(const wchar_t *__restrict nptr, wchar_t **__restrict endptr,
     int base, locale_t locale)
 {
 	const wchar_t *s;
@@ -70,18 +71,16 @@ wcstoumax_l(const wchar_t * __restrict nptr, wchar_t ** __restrict endptr,
 		if (c == L'+')
 			c = *s++;
 	}
-	if ((base == 0 || base == 16) &&
-	    c == L'0' && (*s == L'x' || *s == L'X') &&
-	    ((s[1] >= L'0' && s[1] <= L'9') ||
-	    (s[1] >= L'A' && s[1] <= L'F') ||
-	    (s[1] >= L'a' && s[1] <= L'f'))) {
+	if ((base == 0 || base == 16) && c == L'0' &&
+	    (*s == L'x' || *s == L'X') &&
+	    ((s[1] >= L'0' && s[1] <= L'9') || (s[1] >= L'A' && s[1] <= L'F') ||
+		(s[1] >= L'a' && s[1] <= L'f'))) {
 		c = s[1];
 		s += 2;
 		base = 16;
 	}
-	if ((base == 0 || base == 2) &&
-	    c == L'0' && (*s == L'b' || *s == L'B') &&
-	    (s[1] >= L'0' && s[1] <= L'1')) {
+	if ((base == 0 || base == 2) && c == L'0' &&
+	    (*s == L'b' || *s == L'B') && (s[1] >= L'0' && s[1] <= L'1')) {
 		c = s[1];
 		s += 2;
 		base = 2;
@@ -94,13 +93,13 @@ wcstoumax_l(const wchar_t * __restrict nptr, wchar_t ** __restrict endptr,
 
 	cutoff = UINTMAX_MAX / base;
 	cutlim = UINTMAX_MAX % base;
-	for ( ; ; c = *s++) {
+	for (;; c = *s++) {
 #ifdef notyet
 		if (iswdigit_l(c, locale))
 			c = digittoint_l(c, locale);
 		else
 #endif
-		if (c >= L'0' && c <= L'9')
+		    if (c >= L'0' && c <= L'9')
 			c -= L'0';
 		else if (c >= L'A' && c <= L'Z')
 			c -= L'A' - 10;
@@ -122,7 +121,7 @@ wcstoumax_l(const wchar_t * __restrict nptr, wchar_t ** __restrict endptr,
 		acc = UINTMAX_MAX;
 		errno = ERANGE;
 	} else if (!any) {
-noconv:
+	noconv:
 		errno = EINVAL;
 	} else if (neg)
 		acc = -acc;
@@ -131,8 +130,7 @@ noconv:
 	return (acc);
 }
 uintmax_t
-wcstoumax(const wchar_t * __restrict nptr, wchar_t ** __restrict endptr,
-    int base)
+wcstoumax(const wchar_t *__restrict nptr, wchar_t **__restrict endptr, int base)
 {
 	return wcstoumax_l(nptr, endptr, base, __get_locale());
 }

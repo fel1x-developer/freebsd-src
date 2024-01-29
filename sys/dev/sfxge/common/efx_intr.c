@@ -31,93 +31,69 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "efx.h"
 #include "efx_impl.h"
 
 #if EFSYS_OPT_SIENA
 
-static	__checkReturn	efx_rc_t
-siena_intr_init(
-	__in		efx_nic_t *enp,
-	__in		efx_intr_type_t type,
-	__in		efsys_mem_t *esmp);
+static __checkReturn efx_rc_t siena_intr_init(__in efx_nic_t *enp,
+    __in efx_intr_type_t type, __in efsys_mem_t *esmp);
 
-static			void
-siena_intr_enable(
-	__in		efx_nic_t *enp);
+static void siena_intr_enable(__in efx_nic_t *enp);
 
-static			void
-siena_intr_disable(
-	__in		efx_nic_t *enp);
+static void siena_intr_disable(__in efx_nic_t *enp);
 
-static			void
-siena_intr_disable_unlocked(
-	__in		efx_nic_t *enp);
+static void siena_intr_disable_unlocked(__in efx_nic_t *enp);
 
-static	__checkReturn	efx_rc_t
-siena_intr_trigger(
-	__in		efx_nic_t *enp,
-	__in		unsigned int level);
+static __checkReturn efx_rc_t siena_intr_trigger(__in efx_nic_t *enp,
+    __in unsigned int level);
 
-static			void
-siena_intr_fini(
-	__in		efx_nic_t *enp);
+static void siena_intr_fini(__in efx_nic_t *enp);
 
-static			void
-siena_intr_status_line(
-	__in		efx_nic_t *enp,
-	__out		boolean_t *fatalp,
-	__out		uint32_t *qmaskp);
+static void siena_intr_status_line(__in efx_nic_t *enp, __out boolean_t *fatalp,
+    __out uint32_t *qmaskp);
 
-static			void
-siena_intr_status_message(
-	__in		efx_nic_t *enp,
-	__in		unsigned int message,
-	__out		boolean_t *fatalp);
+static void siena_intr_status_message(__in efx_nic_t *enp,
+    __in unsigned int message, __out boolean_t *fatalp);
 
-static			void
-siena_intr_fatal(
-	__in		efx_nic_t *enp);
+static void siena_intr_fatal(__in efx_nic_t *enp);
 
-static	__checkReturn	boolean_t
-siena_intr_check_fatal(
-	__in		efx_nic_t *enp);
+static __checkReturn boolean_t siena_intr_check_fatal(__in efx_nic_t *enp);
 
 #endif /* EFSYS_OPT_SIENA */
 
 #if EFSYS_OPT_SIENA
-static const efx_intr_ops_t	__efx_intr_siena_ops = {
-	siena_intr_init,		/* eio_init */
-	siena_intr_enable,		/* eio_enable */
-	siena_intr_disable,		/* eio_disable */
-	siena_intr_disable_unlocked,	/* eio_disable_unlocked */
-	siena_intr_trigger,		/* eio_trigger */
-	siena_intr_status_line,		/* eio_status_line */
-	siena_intr_status_message,	/* eio_status_message */
-	siena_intr_fatal,		/* eio_fatal */
-	siena_intr_fini,		/* eio_fini */
+static const efx_intr_ops_t __efx_intr_siena_ops = {
+	siena_intr_init,	     /* eio_init */
+	siena_intr_enable,	     /* eio_enable */
+	siena_intr_disable,	     /* eio_disable */
+	siena_intr_disable_unlocked, /* eio_disable_unlocked */
+	siena_intr_trigger,	     /* eio_trigger */
+	siena_intr_status_line,	     /* eio_status_line */
+	siena_intr_status_message,   /* eio_status_message */
+	siena_intr_fatal,	     /* eio_fatal */
+	siena_intr_fini,	     /* eio_fini */
 };
-#endif	/* EFSYS_OPT_SIENA */
+#endif /* EFSYS_OPT_SIENA */
 
 #if EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2
-static const efx_intr_ops_t	__efx_intr_ef10_ops = {
-	ef10_intr_init,			/* eio_init */
-	ef10_intr_enable,		/* eio_enable */
-	ef10_intr_disable,		/* eio_disable */
-	ef10_intr_disable_unlocked,	/* eio_disable_unlocked */
-	ef10_intr_trigger,		/* eio_trigger */
-	ef10_intr_status_line,		/* eio_status_line */
-	ef10_intr_status_message,	/* eio_status_message */
-	ef10_intr_fatal,		/* eio_fatal */
-	ef10_intr_fini,			/* eio_fini */
+static const efx_intr_ops_t __efx_intr_ef10_ops = {
+	ef10_intr_init,		    /* eio_init */
+	ef10_intr_enable,	    /* eio_enable */
+	ef10_intr_disable,	    /* eio_disable */
+	ef10_intr_disable_unlocked, /* eio_disable_unlocked */
+	ef10_intr_trigger,	    /* eio_trigger */
+	ef10_intr_status_line,	    /* eio_status_line */
+	ef10_intr_status_message,   /* eio_status_message */
+	ef10_intr_fatal,	    /* eio_fatal */
+	ef10_intr_fini,		    /* eio_fini */
 };
-#endif	/* EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2 */
+#endif /* EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2 */
 
-	__checkReturn	efx_rc_t
-efx_intr_init(
-	__in		efx_nic_t *enp,
-	__in		efx_intr_type_t type,
-	__in_opt	efsys_mem_t *esmp)
+__checkReturn efx_rc_t
+efx_intr_init(__in efx_nic_t *enp, __in efx_intr_type_t type,
+    __in_opt efsys_mem_t *esmp)
 {
 	efx_intr_t *eip = &(enp->en_intr);
 	const efx_intr_ops_t *eiop;
@@ -142,25 +118,25 @@ efx_intr_init(
 	case EFX_FAMILY_SIENA:
 		eiop = &__efx_intr_siena_ops;
 		break;
-#endif	/* EFSYS_OPT_SIENA */
+#endif /* EFSYS_OPT_SIENA */
 
 #if EFSYS_OPT_HUNTINGTON
 	case EFX_FAMILY_HUNTINGTON:
 		eiop = &__efx_intr_ef10_ops;
 		break;
-#endif	/* EFSYS_OPT_HUNTINGTON */
+#endif /* EFSYS_OPT_HUNTINGTON */
 
 #if EFSYS_OPT_MEDFORD
 	case EFX_FAMILY_MEDFORD:
 		eiop = &__efx_intr_ef10_ops;
 		break;
-#endif	/* EFSYS_OPT_MEDFORD */
+#endif /* EFSYS_OPT_MEDFORD */
 
 #if EFSYS_OPT_MEDFORD2
 	case EFX_FAMILY_MEDFORD2:
 		eiop = &__efx_intr_ef10_ops;
 		break;
-#endif	/* EFSYS_OPT_MEDFORD2 */
+#endif /* EFSYS_OPT_MEDFORD2 */
 
 	default:
 		EFSYS_ASSERT(B_FALSE);
@@ -185,9 +161,8 @@ fail1:
 	return (rc);
 }
 
-		void
-efx_intr_fini(
-	__in	efx_nic_t *enp)
+void
+efx_intr_fini(__in efx_nic_t *enp)
 {
 	efx_intr_t *eip = &(enp->en_intr);
 	const efx_intr_ops_t *eiop = eip->ei_eiop;
@@ -201,9 +176,8 @@ efx_intr_fini(
 	enp->en_mod_flags &= ~EFX_MOD_INTR;
 }
 
-			void
-efx_intr_enable(
-	__in		efx_nic_t *enp)
+void
+efx_intr_enable(__in efx_nic_t *enp)
 {
 	efx_intr_t *eip = &(enp->en_intr);
 	const efx_intr_ops_t *eiop = eip->ei_eiop;
@@ -214,9 +188,8 @@ efx_intr_enable(
 	eiop->eio_enable(enp);
 }
 
-			void
-efx_intr_disable(
-	__in		efx_nic_t *enp)
+void
+efx_intr_disable(__in efx_nic_t *enp)
 {
 	efx_intr_t *eip = &(enp->en_intr);
 	const efx_intr_ops_t *eiop = eip->ei_eiop;
@@ -227,9 +200,8 @@ efx_intr_disable(
 	eiop->eio_disable(enp);
 }
 
-			void
-efx_intr_disable_unlocked(
-	__in		efx_nic_t *enp)
+void
+efx_intr_disable_unlocked(__in efx_nic_t *enp)
 {
 	efx_intr_t *eip = &(enp->en_intr);
 	const efx_intr_ops_t *eiop = eip->ei_eiop;
@@ -240,10 +212,8 @@ efx_intr_disable_unlocked(
 	eiop->eio_disable_unlocked(enp);
 }
 
-	__checkReturn	efx_rc_t
-efx_intr_trigger(
-	__in		efx_nic_t *enp,
-	__in		unsigned int level)
+__checkReturn efx_rc_t
+efx_intr_trigger(__in efx_nic_t *enp, __in unsigned int level)
 {
 	efx_intr_t *eip = &(enp->en_intr);
 	const efx_intr_ops_t *eiop = eip->ei_eiop;
@@ -254,11 +224,9 @@ efx_intr_trigger(
 	return (eiop->eio_trigger(enp, level));
 }
 
-			void
-efx_intr_status_line(
-	__in		efx_nic_t *enp,
-	__out		boolean_t *fatalp,
-	__out		uint32_t *qmaskp)
+void
+efx_intr_status_line(__in efx_nic_t *enp, __out boolean_t *fatalp,
+    __out uint32_t *qmaskp)
 {
 	efx_intr_t *eip = &(enp->en_intr);
 	const efx_intr_ops_t *eiop = eip->ei_eiop;
@@ -269,11 +237,9 @@ efx_intr_status_line(
 	eiop->eio_status_line(enp, fatalp, qmaskp);
 }
 
-			void
-efx_intr_status_message(
-	__in		efx_nic_t *enp,
-	__in		unsigned int message,
-	__out		boolean_t *fatalp)
+void
+efx_intr_status_message(__in efx_nic_t *enp, __in unsigned int message,
+    __out boolean_t *fatalp)
 {
 	efx_intr_t *eip = &(enp->en_intr);
 	const efx_intr_ops_t *eiop = eip->ei_eiop;
@@ -284,9 +250,8 @@ efx_intr_status_message(
 	eiop->eio_status_message(enp, message, fatalp);
 }
 
-		void
-efx_intr_fatal(
-	__in	efx_nic_t *enp)
+void
+efx_intr_fatal(__in efx_nic_t *enp)
 {
 	efx_intr_t *eip = &(enp->en_intr);
 	const efx_intr_ops_t *eiop = eip->ei_eiop;
@@ -303,11 +268,9 @@ efx_intr_fatal(
 
 #if EFSYS_OPT_SIENA
 
-static	__checkReturn	efx_rc_t
-siena_intr_init(
-	__in		efx_nic_t *enp,
-	__in		efx_intr_type_t type,
-	__in		efsys_mem_t *esmp)
+static __checkReturn efx_rc_t
+siena_intr_init(__in efx_nic_t *enp, __in efx_intr_type_t type,
+    __in efsys_mem_t *esmp)
 {
 	efx_intr_t *eip = &(enp->en_intr);
 	efx_oword_t oword;
@@ -325,8 +288,7 @@ siena_intr_init(
 	 * interrupts and event queue interrupts. Under MSI-X, they
 	 * must share, or we won't get an interrupt.
 	 */
-	if (enp->en_family == EFX_FAMILY_SIENA &&
-	    eip->ei_type == EFX_INTR_LINE)
+	if (enp->en_family == EFX_FAMILY_SIENA && eip->ei_type == EFX_INTR_LINE)
 		eip->ei_level = 0x1f;
 	else
 		eip->ei_level = 0;
@@ -341,10 +303,10 @@ siena_intr_init(
 	EFX_BAR_WRITEO(enp, FR_AZ_FATAL_INTR_REG_KER, &oword);
 
 	/* Set up the interrupt address register */
-	EFX_POPULATE_OWORD_3(oword,
-	    FRF_AZ_NORM_INT_VEC_DIS_KER, (type == EFX_INTR_MESSAGE) ? 1 : 0,
-	    FRF_AZ_INT_ADR_KER_DW0, EFSYS_MEM_ADDR(esmp) & 0xffffffff,
-	    FRF_AZ_INT_ADR_KER_DW1, EFSYS_MEM_ADDR(esmp) >> 32);
+	EFX_POPULATE_OWORD_3(oword, FRF_AZ_NORM_INT_VEC_DIS_KER,
+	    (type == EFX_INTR_MESSAGE) ? 1 : 0, FRF_AZ_INT_ADR_KER_DW0,
+	    EFSYS_MEM_ADDR(esmp) & 0xffffffff, FRF_AZ_INT_ADR_KER_DW1,
+	    EFSYS_MEM_ADDR(esmp) >> 32);
 	EFX_BAR_WRITEO(enp, FR_AZ_INT_ADR_REG_KER, &oword);
 
 	return (0);
@@ -355,9 +317,8 @@ fail1:
 	return (rc);
 }
 
-static			void
-siena_intr_enable(
-	__in		efx_nic_t *enp)
+static void
+siena_intr_enable(__in efx_nic_t *enp)
 {
 	efx_intr_t *eip = &(enp->en_intr);
 	efx_oword_t oword;
@@ -369,9 +330,8 @@ siena_intr_enable(
 	EFX_BAR_WRITEO(enp, FR_AZ_INT_EN_REG_KER, &oword);
 }
 
-static			void
-siena_intr_disable(
-	__in		efx_nic_t *enp)
+static void
+siena_intr_disable(__in efx_nic_t *enp)
 {
 	efx_oword_t oword;
 
@@ -382,23 +342,20 @@ siena_intr_disable(
 	EFSYS_SPIN(10);
 }
 
-static			void
-siena_intr_disable_unlocked(
-	__in		efx_nic_t *enp)
+static void
+siena_intr_disable_unlocked(__in efx_nic_t *enp)
 {
 	efx_oword_t oword;
 
-	EFSYS_BAR_READO(enp->en_esbp, FR_AZ_INT_EN_REG_KER_OFST,
-			&oword, B_FALSE);
+	EFSYS_BAR_READO(enp->en_esbp, FR_AZ_INT_EN_REG_KER_OFST, &oword,
+	    B_FALSE);
 	EFX_SET_OWORD_FIELD(oword, FRF_AZ_DRV_INT_EN_KER, 0);
-	EFSYS_BAR_WRITEO(enp->en_esbp, FR_AZ_INT_EN_REG_KER_OFST,
-	    &oword, B_FALSE);
+	EFSYS_BAR_WRITEO(enp->en_esbp, FR_AZ_INT_EN_REG_KER_OFST, &oword,
+	    B_FALSE);
 }
 
-static	__checkReturn	efx_rc_t
-siena_intr_trigger(
-	__in		efx_nic_t *enp,
-	__in		unsigned int level)
+static __checkReturn efx_rc_t
+siena_intr_trigger(__in efx_nic_t *enp, __in unsigned int level)
 {
 	efx_intr_t *eip = &(enp->en_intr);
 	efx_oword_t oword;
@@ -432,7 +389,7 @@ siena_intr_trigger(
 	 */
 	count = 0;
 	do {
-		EFSYS_SPIN(100);	/* 100us */
+		EFSYS_SPIN(100); /* 100us */
 
 		EFX_BAR_READO(enp, FR_AZ_INT_EN_REG_KER, &oword);
 	} while (EFX_OWORD_FIELD(oword, FRF_AZ_KER_INT_KER) && ++count < 1000);
@@ -448,9 +405,8 @@ fail1:
 	return (rc);
 }
 
-static	__checkReturn	boolean_t
-siena_intr_check_fatal(
-	__in		efx_nic_t *enp)
+static __checkReturn boolean_t
+siena_intr_check_fatal(__in efx_nic_t *enp)
 {
 	efx_intr_t *eip = &(enp->en_intr);
 	efsys_mem_t *esmp = eip->ei_esmp;
@@ -472,11 +428,9 @@ siena_intr_check_fatal(
 	return (B_FALSE);
 }
 
-static			void
-siena_intr_status_line(
-	__in		efx_nic_t *enp,
-	__out		boolean_t *fatalp,
-	__out		uint32_t *qmaskp)
+static void
+siena_intr_status_line(__in efx_nic_t *enp, __out boolean_t *fatalp,
+    __out uint32_t *qmaskp)
 {
 	efx_intr_t *eip = &(enp->en_intr);
 	efx_dword_t dword;
@@ -499,11 +453,9 @@ siena_intr_status_line(
 		*fatalp = B_FALSE;
 }
 
-static			void
-siena_intr_status_message(
-	__in		efx_nic_t *enp,
-	__in		unsigned int message,
-	__out		boolean_t *fatalp)
+static void
+siena_intr_status_message(__in efx_nic_t *enp, __in unsigned int message,
+    __out boolean_t *fatalp)
 {
 	efx_intr_t *eip = &(enp->en_intr);
 
@@ -516,9 +468,8 @@ siena_intr_status_message(
 		*fatalp = B_FALSE;
 }
 
-static		void
-siena_intr_fatal(
-	__in	efx_nic_t *enp)
+static void
+siena_intr_fatal(__in efx_nic_t *enp)
 {
 #if EFSYS_OPT_DECODE_INTR_FATAL
 	efx_oword_t fatal;
@@ -572,9 +523,8 @@ siena_intr_fatal(
 #endif
 }
 
-static		void
-siena_intr_fini(
-	__in	efx_nic_t *enp)
+static void
+siena_intr_fini(__in efx_nic_t *enp)
 {
 	efx_oword_t oword;
 

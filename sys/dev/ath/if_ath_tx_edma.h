@@ -28,9 +28,9 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
-#ifndef	__IF_ATH_TX_EDMA_H__
-#define	__IF_ATH_TX_EDMA_H__
+#ifndef __IF_ATH_TX_EDMA_H__
+#define __IF_ATH_TX_EDMA_H__
 
-extern	void ath_xmit_setup_edma(struct ath_softc *sc);
+extern void ath_xmit_setup_edma(struct ath_softc *sc);
 
 #endif

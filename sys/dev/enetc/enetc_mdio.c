@@ -38,8 +38,7 @@
 #include <dev/enetc/enetc_hw.h>
 #include <dev/enetc/enetc_mdio.h>
 
-#define ENETC_MDIO_RD4(regs, base, off) \
-	bus_read_4((regs), (base) + (off))
+#define ENETC_MDIO_RD4(regs, base, off) bus_read_4((regs), (base) + (off))
 #define ENETC_MDIO_WR4(regs, base, off, value) \
 	bus_write_4((regs), (base) + (off), (value))
 
@@ -95,7 +94,8 @@ enetc_mdio_read(struct resource *regs, int mdio_base, int phy, int reg)
 	}
 
 	/* Initiate the read. */
-	ENETC_MDIO_WR4(regs, mdio_base, ENETC_MDIO_CTL, mdio_ctl | MDIO_CTL_READ);
+	ENETC_MDIO_WR4(regs, mdio_base, ENETC_MDIO_CTL,
+	    mdio_ctl | MDIO_CTL_READ);
 
 	if (enetc_mdio_wait(regs, mdio_base) == ETIMEDOUT)
 		return (EIO);

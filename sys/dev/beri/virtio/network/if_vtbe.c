@@ -35,101 +35,93 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/malloc.h>
-#include <sys/rman.h>
-#include <sys/timeet.h>
-#include <sys/timetc.h>
+#include <sys/conf.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
 #include <sys/mbuf.h>
+#include <sys/mdioctl.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
-#include <sys/sysctl.h>
-#include <sys/mdioctl.h>
-#include <sys/conf.h>
 #include <sys/stat.h>
+#include <sys/sysctl.h>
+#include <sys/timeet.h>
+#include <sys/timetc.h>
 #include <sys/uio.h>
 
+#include <machine/bus.h>
+#include <machine/cpu.h>
+#include <machine/fdt.h>
+#include <machine/intr.h>
+
+#include <dev/altera/pio/pio.h>
+#include <dev/beri/virtio/virtio.h>
+#include <dev/beri/virtio/virtio_mmio_platform.h>
 #include <dev/fdt/fdt_common.h>
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
+#include <dev/virtio/mmio/virtio_mmio.h>
+#include <dev/virtio/network/virtio_net.h>
+#include <dev/virtio/virtio_config.h>
+#include <dev/virtio/virtio_ids.h>
+#include <dev/virtio/virtio_ring.h>
 
 #include <net/bpf.h>
-#include <net/if.h>
 #include <net/ethernet.h>
+#include <net/if.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
 #include <net/if_var.h>
 #include <net/if_vlan_var.h>
-
 #include <netinet/in.h>
-#include <netinet/udp.h>
 #include <netinet/tcp.h>
-
-#include <machine/bus.h>
-#include <machine/fdt.h>
-#include <machine/cpu.h>
-#include <machine/intr.h>
-
-#include <dev/beri/virtio/virtio.h>
-#include <dev/beri/virtio/virtio_mmio_platform.h>
-
-#include <dev/altera/pio/pio.h>
-
-#include <dev/virtio/mmio/virtio_mmio.h>
-#include <dev/virtio/network/virtio_net.h>
-#include <dev/virtio/virtio_ids.h>
-#include <dev/virtio/virtio_config.h>
-#include <dev/virtio/virtio_ring.h>
+#include <netinet/udp.h>
 
 #include "pio_if.h"
 
-#define	DPRINTF(fmt, args...)	printf(fmt, ##args)
+#define DPRINTF(fmt, args...) printf(fmt, ##args)
 
-#define	READ4(_sc, _reg) \
-	bus_read_4((_sc)->res[0], _reg)
-#define	WRITE4(_sc, _reg, _val) \
-	bus_write_4((_sc)->res[0], _reg, _val)
+#define READ4(_sc, _reg) bus_read_4((_sc)->res[0], _reg)
+#define WRITE4(_sc, _reg, _val) bus_write_4((_sc)->res[0], _reg, _val)
 
-#define	VTBE_LOCK(sc)			mtx_lock(&(sc)->mtx)
-#define	VTBE_UNLOCK(sc)			mtx_unlock(&(sc)->mtx)
-#define	VTBE_ASSERT_LOCKED(sc)		mtx_assert(&(sc)->mtx, MA_OWNED);
-#define	VTBE_ASSERT_UNLOCKED(sc)	mtx_assert(&(sc)->mtx, MA_NOTOWNED);
+#define VTBE_LOCK(sc) mtx_lock(&(sc)->mtx)
+#define VTBE_UNLOCK(sc) mtx_unlock(&(sc)->mtx)
+#define VTBE_ASSERT_LOCKED(sc) mtx_assert(&(sc)->mtx, MA_OWNED);
+#define VTBE_ASSERT_UNLOCKED(sc) mtx_assert(&(sc)->mtx, MA_NOTOWNED);
 
 /*
  * Driver data and defines.
  */
-#define	DESC_COUNT	256
+#define DESC_COUNT 256
 
 struct vtbe_softc {
-	struct resource		*res[2];
-	bus_space_tag_t		bst;
-	bus_space_handle_t	bsh;
-	device_t		dev;
-	if_t			ifp;
-	int			if_flags;
-	struct mtx		mtx;
-	boolean_t		is_attached;
+	struct resource *res[2];
+	bus_space_tag_t bst;
+	bus_space_handle_t bsh;
+	device_t dev;
+	if_t ifp;
+	int if_flags;
+	struct mtx mtx;
+	boolean_t is_attached;
 
-	int			beri_mem_offset;
-	device_t		pio_send;
-	device_t		pio_recv;
-	int			opened;
+	int beri_mem_offset;
+	device_t pio_send;
+	device_t pio_recv;
+	int opened;
 
-	struct vqueue_info	vs_queues[2];
-	int			vs_curq;
-	int			hdrsize;
+	struct vqueue_info vs_queues[2];
+	int vs_curq;
+	int hdrsize;
 };
 
-static struct resource_spec vtbe_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ -1, 0 }
-};
+static struct resource_spec vtbe_spec[] = { { SYS_RES_MEMORY, 0, RF_ACTIVE },
+	{ -1, 0 } };
 
 static void vtbe_txfinish_locked(struct vtbe_softc *sc);
 static void vtbe_rxfinish_locked(struct vtbe_softc *sc);
@@ -184,10 +176,8 @@ vtbe_txstart_locked(struct vtbe_softc *sc)
 			break;
 		}
 
-		n = vq_getchain(sc->beri_mem_offset, vq, iov,
-			DESC_COUNT, NULL);
-		KASSERT(n == 2,
-			("Unexpected amount of descriptors (%d)", n));
+		n = vq_getchain(sc->beri_mem_offset, vq, iov, DESC_COUNT, NULL);
+		KASSERT(n == 2, ("Unexpected amount of descriptors (%d)", n));
 
 		tiov = getcopy(iov, n);
 		vnh = iov[0].iov_base;
@@ -356,8 +346,7 @@ vq_init(struct vtbe_softc *sc)
 	vq->vq_pfn = pfn;
 
 	size = vring_size(vq->vq_qsize, VRING_ALIGN);
-	base = paddr_map(sc->beri_mem_offset,
-		(pfn << PAGE_SHIFT), size);
+	base = paddr_map(sc->beri_mem_offset, (pfn << PAGE_SHIFT), size);
 
 	/* First pages are descriptors */
 	vq->vq_desc = (struct vring_desc *)base;
@@ -394,11 +383,9 @@ vtbe_proc_rx(struct vtbe_softc *sc, struct vqueue_info *vq)
 
 	ifp = sc->ifp;
 
-	n = vq_getchain(sc->beri_mem_offset, vq, iov,
-		DESC_COUNT, NULL);
+	n = vq_getchain(sc->beri_mem_offset, vq, iov, DESC_COUNT, NULL);
 
-	KASSERT(n >= 1 && n <= DESC_COUNT,
-		("wrong n %d", n));
+	KASSERT(n >= 1 && n <= DESC_COUNT, ("wrong n %d", n));
 
 	tiov = getcopy(iov, n);
 
@@ -413,8 +400,8 @@ vtbe_proc_rx(struct vtbe_softc *sc, struct vqueue_info *vq)
 	uio.uio_iovcnt = (n - 1);
 	uio.uio_rw = UIO_WRITE;
 
-	if ((m = m_uiotombuf(&uio, M_NOWAIT, 0, ETHER_ALIGN,
-	    M_PKTHDR)) == NULL) {
+	if ((m = m_uiotombuf(&uio, M_NOWAIT, 0, ETHER_ALIGN, M_PKTHDR)) ==
+	    NULL) {
 		if_inc_counter(ifp, IFCOUNTER_IERRORS, 1);
 		goto done;
 	}
@@ -512,8 +499,8 @@ vtbe_get_hwaddr(struct vtbe_softc *sc, uint8_t *hwaddr)
 	hwaddr[1] = 's';
 	hwaddr[2] = 'd';
 	hwaddr[3] = rnd >> 16;
-	hwaddr[4] = rnd >>  8;
-	hwaddr[5] = rnd >>  0;
+	hwaddr[4] = rnd >> 8;
+	hwaddr[5] = rnd >> 0;
 
 	return (0);
 }
@@ -577,8 +564,8 @@ vtbe_attach(device_t dev)
 	sc->bst = rman_get_bustag(sc->res[0]);
 	sc->bsh = rman_get_bushandle(sc->res[0]);
 
-	mtx_init(&sc->mtx, device_get_nameunit(sc->dev),
-	    MTX_NETWORK_LOCK, MTX_DEF);
+	mtx_init(&sc->mtx, device_get_nameunit(sc->dev), MTX_NETWORK_LOCK,
+	    MTX_DEF);
 
 	if (setup_offset(dev, &sc->beri_mem_offset) != 0)
 		return (ENXIO);
@@ -598,8 +585,7 @@ vtbe_attach(device_t dev)
 	WRITE4(sc, VIRTIO_MMIO_QUEUE_NUM_MAX, reg);
 
 	/* Our features */
-	reg = htobe32(VIRTIO_NET_F_MAC |
-    			VIRTIO_F_NOTIFY_ON_EMPTY);
+	reg = htobe32(VIRTIO_NET_F_MAC | VIRTIO_F_NOTIFY_ON_EMPTY);
 	WRITE4(sc, VIRTIO_MMIO_HOST_FEATURES, reg);
 
 	/* Get MAC */
@@ -613,8 +599,8 @@ vtbe_attach(device_t dev)
 	if_setbaudrate(ifp, IF_Gbps(10));
 	if_setsoftc(ifp, sc);
 	if_initname(ifp, device_get_name(dev), device_get_unit(dev));
-	if_setflags(ifp, IFF_BROADCAST | IFF_SIMPLEX |
-			 IFF_MULTICAST | IFF_PROMISC);
+	if_setflags(ifp,
+	    IFF_BROADCAST | IFF_SIMPLEX | IFF_MULTICAST | IFF_PROMISC);
 	if_setcapabilities(ifp, IFCAP_VLAN_MTU);
 	if_setcapenable(ifp, if_getcapabilities(ifp));
 	if_setstartfn(ifp, vtbe_txstart);
@@ -632,11 +618,8 @@ vtbe_attach(device_t dev)
 	return (0);
 }
 
-static device_method_t vtbe_methods[] = {
-	DEVMETHOD(device_probe,		vtbe_probe),
-	DEVMETHOD(device_attach,	vtbe_attach),
-	{ 0, 0 }
-};
+static device_method_t vtbe_methods[] = { DEVMETHOD(device_probe, vtbe_probe),
+	DEVMETHOD(device_attach, vtbe_attach), { 0, 0 } };
 
 static driver_t vtbe_driver = {
 	"vtbe",

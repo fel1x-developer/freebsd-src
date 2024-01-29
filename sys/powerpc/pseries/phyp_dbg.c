@@ -28,6 +28,7 @@
 #include <sys/linker_set.h>
 
 #include <dev/ofw/openfirm.h>
+
 #include <gdb/gdb.h>
 
 #include "phyp-hvcall.h"
@@ -38,9 +39,8 @@ static gdb_term_f uart_phyp_dbg_term;
 static gdb_getc_f uart_phyp_dbg_getc;
 static gdb_putc_f uart_phyp_dbg_putc;
 
-GDB_DBGPORT(uart_phyp, uart_phyp_dbg_probe,
-    uart_phyp_dbg_init, uart_phyp_dbg_term,
-    uart_phyp_dbg_getc, uart_phyp_dbg_putc);
+GDB_DBGPORT(uart_phyp, uart_phyp_dbg_probe, uart_phyp_dbg_init,
+    uart_phyp_dbg_term, uart_phyp_dbg_getc, uart_phyp_dbg_putc);
 
 static struct uart_phyp_dbgport {
 	cell_t vtermid;
@@ -106,8 +106,8 @@ uart_phyp_dbg_getc(void)
 	int c, err, next;
 
 	if (dbgport.inbuflen == 0) {
-		err = phyp_pft_hcall(H_GET_TERM_CHAR, dbgport.vtermid,
-		    0, 0, 0, &dbgport.inbuflen, &dbgport.inbuf.u64[0],
+		err = phyp_pft_hcall(H_GET_TERM_CHAR, dbgport.vtermid, 0, 0, 0,
+		    &dbgport.inbuflen, &dbgport.inbuf.u64[0],
 		    &dbgport.inbuf.u64[1]);
 		if (err != H_SUCCESS)
 			return (-1);
@@ -143,7 +143,7 @@ uart_phyp_dbg_getc(void)
 static void
 uart_phyp_dbg_putc(int c)
 {
-	int	err;
+	int err;
 
 	union {
 		uint64_t u64;
@@ -153,8 +153,8 @@ uart_phyp_dbg_putc(int c)
 	cbuf.bytes[0] = (unsigned char)c;
 
 	do {
-		err = phyp_hcall(H_PUT_TERM_CHAR, dbgport.vtermid, 1,
-		    cbuf.u64, 0);
+		err = phyp_hcall(H_PUT_TERM_CHAR, dbgport.vtermid, 1, cbuf.u64,
+		    0);
 		DELAY(100);
 	} while (err == H_BUSY);
 }

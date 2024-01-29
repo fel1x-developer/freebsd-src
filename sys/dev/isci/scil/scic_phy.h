@@ -65,50 +65,47 @@
 extern "C" {
 #endif // __cplusplus
 
-#include <dev/isci/scil/sci_types.h>
-#include <dev/isci/scil/sci_status.h>
-
-#include <dev/isci/scil/intel_sata.h>
 #include <dev/isci/scil/intel_sas.h>
-
+#include <dev/isci/scil/intel_sata.h>
+#include <dev/isci/scil/sci_status.h>
+#include <dev/isci/scil/sci_types.h>
 
 /**
  * @struct SCIC_PHY_PROPERTIES
  * @brief This structure defines the properties common to all phys
  *        that can be retrieved.
  */
-typedef struct SCIC_PHY_PROPERTIES
-{
-   /**
-    * This field specifies the port that currently contains the
-    * supplied phy.  This field may be set to SCI_INVALID_HANDLE
-    * if the phy is not currently contained in a port.
-    */
-   SCI_PORT_HANDLE_T  owning_port;
+typedef struct SCIC_PHY_PROPERTIES {
+	/**
+	 * This field specifies the port that currently contains the
+	 * supplied phy.  This field may be set to SCI_INVALID_HANDLE
+	 * if the phy is not currently contained in a port.
+	 */
+	SCI_PORT_HANDLE_T owning_port;
 
-   /**
-    * This field specifies the maximum link rate for which this phy
-    * will negotiate.
-    */
-   SCI_SAS_LINK_RATE max_link_rate;
+	/**
+	 * This field specifies the maximum link rate for which this phy
+	 * will negotiate.
+	 */
+	SCI_SAS_LINK_RATE max_link_rate;
 
-   /**
-    * This field specifies the link rate at which the phy is
-    * currently operating.
-    */
-   SCI_SAS_LINK_RATE  negotiated_link_rate;
+	/**
+	 * This field specifies the link rate at which the phy is
+	 * currently operating.
+	 */
+	SCI_SAS_LINK_RATE negotiated_link_rate;
 
-   /**
-    * This field indicates the identify address frame that will be
-    * transmitted to the connected phy.
-    */
-   SCI_SAS_IDENTIFY_ADDRESS_FRAME_T transmit_iaf;
+	/**
+	 * This field indicates the identify address frame that will be
+	 * transmitted to the connected phy.
+	 */
+	SCI_SAS_IDENTIFY_ADDRESS_FRAME_T transmit_iaf;
 
-   /**
-    * This field specifies the index of the phy in relation to other
-    * phys within the controller.  This index is zero relative.
-    */
-   U8 index;
+	/**
+	 * This field specifies the index of the phy in relation to other
+	 * phys within the controller.  This index is zero relative.
+	 */
+	U8 index;
 
 } SCIC_PHY_PROPERTIES_T;
 
@@ -117,19 +114,18 @@ typedef struct SCIC_PHY_PROPERTIES
  * @brief This structure defines the properties, specific to a
  *        SAS phy, that can be retrieved.
  */
-typedef struct SCIC_SAS_PHY_PROPERTIES
-{
-   /**
-    * This field delineates the Identify Address Frame received
-    * from the remote end point.
-    */
-   SCI_SAS_IDENTIFY_ADDRESS_FRAME_T received_iaf;
+typedef struct SCIC_SAS_PHY_PROPERTIES {
+	/**
+	 * This field delineates the Identify Address Frame received
+	 * from the remote end point.
+	 */
+	SCI_SAS_IDENTIFY_ADDRESS_FRAME_T received_iaf;
 
-   /**
-    * This field delineates the Phy capabilities structure received
-    * from the remote end point.
-    */
-   SAS_CAPABILITIES_T received_capabilities;
+	/**
+	 * This field delineates the Phy capabilities structure received
+	 * from the remote end point.
+	 */
+	SAS_CAPABILITIES_T received_capabilities;
 
 } SCIC_SAS_PHY_PROPERTIES_T;
 
@@ -138,19 +134,18 @@ typedef struct SCIC_SAS_PHY_PROPERTIES
  * @brief This structure defines the properties, specific to a
  *        SATA phy, that can be retrieved.
  */
-typedef struct SCIC_SATA_PHY_PROPERTIES
-{
-   /**
-    * This field delineates the signature FIS received from the
-    * attached target.
-    */
-   SATA_FIS_REG_D2H_T signature_fis;
+typedef struct SCIC_SATA_PHY_PROPERTIES {
+	/**
+	 * This field delineates the signature FIS received from the
+	 * attached target.
+	 */
+	SATA_FIS_REG_D2H_T signature_fis;
 
-   /**
-    * This field specifies to the user if a port selector is connected
-    * on the specified phy.
-    */
-   BOOL is_port_selector_present;
+	/**
+	 * This field specifies to the user if a port selector is connected
+	 * on the specified phy.
+	 */
+	BOOL is_port_selector_present;
 
 } SCIC_SATA_PHY_PROPERTIES_T;
 
@@ -159,108 +154,107 @@ typedef struct SCIC_SATA_PHY_PROPERTIES
  * @brief This enumeration depicts the various pieces of optional
  *        information that can be retrieved for a specific phy.
  */
-typedef enum SCIC_PHY_COUNTER_ID
-{
-   /**
-    * This PHY information field tracks the number of frames received.
-    */
-   SCIC_PHY_COUNTER_RECEIVED_FRAME,
+typedef enum SCIC_PHY_COUNTER_ID {
+	/**
+	 * This PHY information field tracks the number of frames received.
+	 */
+	SCIC_PHY_COUNTER_RECEIVED_FRAME,
 
-   /**
-    * This PHY information field tracks the number of frames transmitted.
-    */
-   SCIC_PHY_COUNTER_TRANSMITTED_FRAME,
+	/**
+	 * This PHY information field tracks the number of frames transmitted.
+	 */
+	SCIC_PHY_COUNTER_TRANSMITTED_FRAME,
 
-   /**
-    * This PHY information field tracks the number of DWORDs received.
-    */
-   SCIC_PHY_COUNTER_RECEIVED_FRAME_DWORD,
+	/**
+	 * This PHY information field tracks the number of DWORDs received.
+	 */
+	SCIC_PHY_COUNTER_RECEIVED_FRAME_DWORD,
 
-   /**
-    * This PHY information field tracks the number of DWORDs transmitted.
-    */
-   SCIC_PHY_COUNTER_TRANSMITTED_FRAME_DWORD,
+	/**
+	 * This PHY information field tracks the number of DWORDs transmitted.
+	 */
+	SCIC_PHY_COUNTER_TRANSMITTED_FRAME_DWORD,
 
-   /**
-    * This PHY information field tracks the number of times DWORD
-    * synchronization was lost.
-    */
-   SCIC_PHY_COUNTER_LOSS_OF_SYNC_ERROR,
+	/**
+	 * This PHY information field tracks the number of times DWORD
+	 * synchronization was lost.
+	 */
+	SCIC_PHY_COUNTER_LOSS_OF_SYNC_ERROR,
 
-   /**
-    * This PHY information field tracks the number of received DWORDs with
-    * running disparity errors.
-    */
-   SCIC_PHY_COUNTER_RECEIVED_DISPARITY_ERROR,
+	/**
+	 * This PHY information field tracks the number of received DWORDs with
+	 * running disparity errors.
+	 */
+	SCIC_PHY_COUNTER_RECEIVED_DISPARITY_ERROR,
 
-   /**
-    * This PHY information field tracks the number of received frames with a
-    * CRC error (not including short or truncated frames).
-    */
-   SCIC_PHY_COUNTER_RECEIVED_FRAME_CRC_ERROR,
+	/**
+	 * This PHY information field tracks the number of received frames with
+	 * a CRC error (not including short or truncated frames).
+	 */
+	SCIC_PHY_COUNTER_RECEIVED_FRAME_CRC_ERROR,
 
-   /**
-    * This PHY information field tracks the number of DONE (ACK/NAK TIMEOUT)
-    * primitives received.
-    */
-   SCIC_PHY_COUNTER_RECEIVED_DONE_ACK_NAK_TIMEOUT,
+	/**
+	 * This PHY information field tracks the number of DONE (ACK/NAK
+	 * TIMEOUT) primitives received.
+	 */
+	SCIC_PHY_COUNTER_RECEIVED_DONE_ACK_NAK_TIMEOUT,
 
-   /**
-    * This PHY information field tracks the number of DONE (ACK/NAK TIMEOUT)
-    * primitives transmitted.
-    */
-   SCIC_PHY_COUNTER_TRANSMITTED_DONE_ACK_NAK_TIMEOUT,
+	/**
+	 * This PHY information field tracks the number of DONE (ACK/NAK
+	 * TIMEOUT) primitives transmitted.
+	 */
+	SCIC_PHY_COUNTER_TRANSMITTED_DONE_ACK_NAK_TIMEOUT,
 
-   /**
-    * This PHY information field tracks the number of times the inactivity
-    * timer for connections on the phy has been utilized.
-    */
-   SCIC_PHY_COUNTER_INACTIVITY_TIMER_EXPIRED,
+	/**
+	 * This PHY information field tracks the number of times the inactivity
+	 * timer for connections on the phy has been utilized.
+	 */
+	SCIC_PHY_COUNTER_INACTIVITY_TIMER_EXPIRED,
 
-   /**
-    * This PHY information field tracks the number of DONE (CREDIT TIMEOUT)
-    * primitives received.
-    */
-   SCIC_PHY_COUNTER_RECEIVED_DONE_CREDIT_TIMEOUT,
+	/**
+	 * This PHY information field tracks the number of DONE (CREDIT TIMEOUT)
+	 * primitives received.
+	 */
+	SCIC_PHY_COUNTER_RECEIVED_DONE_CREDIT_TIMEOUT,
 
-   /**
-    * This PHY information field tracks the number of DONE (CREDIT TIMEOUT)
-    * primitives transmitted.
-    */
-   SCIC_PHY_COUNTER_TRANSMITTED_DONE_CREDIT_TIMEOUT,
+	/**
+	 * This PHY information field tracks the number of DONE (CREDIT TIMEOUT)
+	 * primitives transmitted.
+	 */
+	SCIC_PHY_COUNTER_TRANSMITTED_DONE_CREDIT_TIMEOUT,
 
-   /**
-    * This PHY information field tracks the number of CREDIT BLOCKED
-    * primitives received.
-    * @note Depending on remote device implementation, credit blocks
-    *       may occur regularly.
-    */
-   SCIC_PHY_COUNTER_RECEIVED_CREDIT_BLOCKED,
+	/**
+	 * This PHY information field tracks the number of CREDIT BLOCKED
+	 * primitives received.
+	 * @note Depending on remote device implementation, credit blocks
+	 *       may occur regularly.
+	 */
+	SCIC_PHY_COUNTER_RECEIVED_CREDIT_BLOCKED,
 
-   /**
-    * This PHY information field contains the number of short frames
-    * received.  A short frame is simply a frame smaller then what is
-    * allowed by either the SAS or SATA specification.
-    */
-   SCIC_PHY_COUNTER_RECEIVED_SHORT_FRAME,
+	/**
+	 * This PHY information field contains the number of short frames
+	 * received.  A short frame is simply a frame smaller then what is
+	 * allowed by either the SAS or SATA specification.
+	 */
+	SCIC_PHY_COUNTER_RECEIVED_SHORT_FRAME,
 
-   /**
-    * This PHY information field contains the number of frames received after
-    * credit has been exhausted.
-    */
-   SCIC_PHY_COUNTER_RECEIVED_FRAME_WITHOUT_CREDIT,
+	/**
+	 * This PHY information field contains the number of frames received
+	 * after credit has been exhausted.
+	 */
+	SCIC_PHY_COUNTER_RECEIVED_FRAME_WITHOUT_CREDIT,
 
-   /**
-    * This PHY information field contains the number of frames received after
-    * a DONE has been received.
-    */
-   SCIC_PHY_COUNTER_RECEIVED_FRAME_AFTER_DONE,
+	/**
+	 * This PHY information field contains the number of frames received
+	 * after a DONE has been received.
+	 */
+	SCIC_PHY_COUNTER_RECEIVED_FRAME_AFTER_DONE,
 
-   /**
-    * This PHY information field contains the number of times the phy
-    * failed to achieve DWORD synchronization during speed negotiation.
-    */
-   SCIC_PHY_COUNTER_SN_DWORD_SYNC_ERROR
+	/**
+	 * This PHY information field contains the number of times the phy
+	 * failed to achieve DWORD synchronization during speed negotiation.
+	 */
+	SCIC_PHY_COUNTER_SN_DWORD_SYNC_ERROR
 } SCIC_PHY_COUNTER_ID_T;
 
 /**
@@ -279,10 +273,8 @@ typedef enum SCIC_PHY_COUNTER_ID
  *         is not valid.  When this value is returned, no data is copied to the
  *         properties output parameter.
  */
-SCI_STATUS scic_phy_get_properties(
-   SCI_PHY_HANDLE_T        phy,
-   SCIC_PHY_PROPERTIES_T * properties
-);
+SCI_STATUS scic_phy_get_properties(SCI_PHY_HANDLE_T phy,
+    SCIC_PHY_PROPERTIES_T *properties);
 
 /**
  * @brief This method will enable the user to retrieve information
@@ -301,10 +293,8 @@ SCI_STATUS scic_phy_get_properties(
  * @retval SCI_FAILURE This value is returned if the SAS properties
  *         are not successfully retrieved (e.g. It's not a SAS Phy).
  */
-SCI_STATUS scic_sas_phy_get_properties(
-   SCI_PHY_HANDLE_T            phy,
-   SCIC_SAS_PHY_PROPERTIES_T * properties
-);
+SCI_STATUS scic_sas_phy_get_properties(SCI_PHY_HANDLE_T phy,
+    SCIC_SAS_PHY_PROPERTIES_T *properties);
 
 /**
  * @brief This method will enable the user to retrieve information
@@ -323,10 +313,8 @@ SCI_STATUS scic_sas_phy_get_properties(
  * @retval SCI_FAILURE This value is returned if the SATA properties
  *         are not successfully retrieved (e.g. It's not a SATA Phy).
  */
-SCI_STATUS scic_sata_phy_get_properties(
-   SCI_PHY_HANDLE_T             phy,
-   SCIC_SATA_PHY_PROPERTIES_T * properties
-);
+SCI_STATUS scic_sata_phy_get_properties(SCI_PHY_HANDLE_T phy,
+    SCIC_SATA_PHY_PROPERTIES_T *properties);
 
 /**
  * @brief This method allows the SCIC user to instruct the SCIC
@@ -340,9 +328,7 @@ SCI_STATUS scic_sata_phy_get_properties(
  * @retval SCI_SUCCESS This value is returned if the port selection signal
  *         was successfully transmitted.
  */
-SCI_STATUS scic_sata_phy_send_port_selection_signal(
-   SCI_PHY_HANDLE_T  phy
-);
+SCI_STATUS scic_sata_phy_send_port_selection_signal(SCI_PHY_HANDLE_T phy);
 
 /**
  * @brief This method requests the SCI implementation to begin tracking
@@ -359,10 +345,8 @@ SCI_STATUS scic_sata_phy_send_port_selection_signal(
  * @retval SCI_FAILURE_UNSUPPORTED_INFORMATION_FIELD This value is returned
  *         if the supplied information type is not supported.
  */
-SCI_STATUS scic_phy_enable_counter(
-   SCI_PHY_HANDLE_T       phy,
-   SCIC_PHY_COUNTER_ID_T  counter_id
-);
+SCI_STATUS scic_phy_enable_counter(SCI_PHY_HANDLE_T phy,
+    SCIC_PHY_COUNTER_ID_T counter_id);
 
 /**
  * @brief This method requests the SCI implementation to stop tracking
@@ -379,10 +363,8 @@ SCI_STATUS scic_phy_enable_counter(
  * @retval SCI_FAILURE_UNSUPPORTED_INFORMATION_FIELD This value is returned
  *         if the supplied information type is not supported.
  */
-SCI_STATUS scic_phy_disable_counter(
-   SCI_PHY_HANDLE_T       phy,
-   SCIC_PHY_COUNTER_ID_T  counter_id
-);
+SCI_STATUS scic_phy_disable_counter(SCI_PHY_HANDLE_T phy,
+    SCIC_PHY_COUNTER_ID_T counter_id);
 
 /**
  * @brief This method requests the SCI implementation to retrieve
@@ -401,11 +383,8 @@ SCI_STATUS scic_phy_disable_counter(
  * @retval SCI_FAILURE_UNSUPPORTED_INFORMATION_FIELD This value is returned
  *         if the supplied information type is not supported.
  */
-SCI_STATUS scic_phy_get_counter(
-   SCI_PHY_HANDLE_T        phy,
-   SCIC_PHY_COUNTER_ID_T   counter_id,
-   U32                   * data
-);
+SCI_STATUS scic_phy_get_counter(SCI_PHY_HANDLE_T phy,
+    SCIC_PHY_COUNTER_ID_T counter_id, U32 *data);
 
 /**
  * @brief This method requests the SCI implementation to clear (reset)
@@ -422,10 +401,8 @@ SCI_STATUS scic_phy_get_counter(
  * @retval SCI_FAILURE_UNSUPPORTED_INFORMATION_FIELD This value is returned
  *         if the supplied information type is not supported.
  */
-SCI_STATUS scic_phy_clear_counter(
-   SCI_PHY_HANDLE_T       phy,
-   SCIC_PHY_COUNTER_ID_T  counter_id
-);
+SCI_STATUS scic_phy_clear_counter(SCI_PHY_HANDLE_T phy,
+    SCIC_PHY_COUNTER_ID_T counter_id);
 
 /**
  * @brief This method will attempt to stop the phy object.
@@ -437,9 +414,7 @@ SCI_STATUS scic_phy_clear_counter(
  *         SCI_INVALID_STATE if the phy is not in a valid state
  *         to stop
  */
-SCI_STATUS scic_phy_stop(
-   SCI_PHY_HANDLE_T       phy
-);
+SCI_STATUS scic_phy_stop(SCI_PHY_HANDLE_T phy);
 
 /**
  * @brief This method will attempt to start the phy object. This
@@ -450,13 +425,10 @@ SCI_STATUS scic_phy_stop(
  *
  * @return SCI_STATUS
  */
-SCI_STATUS scic_phy_start(
-   SCI_PHY_HANDLE_T       phy
-);
+SCI_STATUS scic_phy_start(SCI_PHY_HANDLE_T phy);
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
 #endif // _SCIC_PHY_H_
-

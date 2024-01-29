@@ -39,24 +39,22 @@
 #include "clkdev_if.h"
 
 struct qoriq_clk_pll_softc {
-	bus_addr_t	offset;
+	bus_addr_t offset;
 
-	uint32_t	mask;
-	uint32_t	shift;
+	uint32_t mask;
+	uint32_t shift;
 
-	uint32_t	flags;
+	uint32_t flags;
 };
 
-#define	WR4(_clk, offset, val)					\
+#define WR4(_clk, offset, val) \
 	CLKDEV_WRITE_4(clknode_get_device(_clk), offset, val)
-#define	RD4(_clk, offset, val)					\
+#define RD4(_clk, offset, val) \
 	CLKDEV_READ_4(clknode_get_device(_clk), offset, val)
-#define	DEVICE_LOCK(_clk)					\
-	CLKDEV_DEVICE_LOCK(clknode_get_device(_clk))
-#define	DEVICE_UNLOCK(_clk)					\
-	CLKDEV_DEVICE_UNLOCK(clknode_get_device(_clk))
+#define DEVICE_LOCK(_clk) CLKDEV_DEVICE_LOCK(clknode_get_device(_clk))
+#define DEVICE_UNLOCK(_clk) CLKDEV_DEVICE_UNLOCK(clknode_get_device(_clk))
 
-#define	QORIQ_PLL_KILL_BIT	(1 << 31)
+#define QORIQ_PLL_KILL_BIT (1 << 31)
 
 static int
 qoriq_clk_pll_init(struct clknode *clk, device_t dev)
@@ -89,8 +87,8 @@ qoriq_clk_pll_recalc_freq(struct clknode *clk, uint64_t *freq)
 }
 
 static clknode_method_t qoriq_clk_pll_clknode_methods[] = {
-	CLKNODEMETHOD(clknode_init,		qoriq_clk_pll_init),
-	CLKNODEMETHOD(clknode_recalc_freq,	qoriq_clk_pll_recalc_freq),
+	CLKNODEMETHOD(clknode_init, qoriq_clk_pll_init),
+	CLKNODEMETHOD(clknode_recalc_freq, qoriq_clk_pll_recalc_freq),
 
 	CLKNODEMETHOD_END
 };

@@ -35,11 +35,11 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/kernel.h>
+#include <sys/posix4.h>
+#include <sys/proc.h>
 #include <sys/queue.h>
 #include <sys/sysctl.h>
 #include <sys/vnode.h>
-#include <sys/proc.h>
-#include <sys/posix4.h>
 
 static int facility[CTL_P1003_1B_MAXID - 1];
 static int facility_initialized[CTL_P1003_1B_MAXID - 1];
@@ -55,11 +55,11 @@ static int p31b_sysctl_proc(SYSCTL_HANDLER_ARGS);
 
 SYSCTL_DECL(_p1003_1b);
 
-#define P1B_SYSCTL(num, name)  \
+#define P1B_SYSCTL(num, name)                                        \
 	SYSCTL_INT(_p1003_1b, num, name, CTLFLAG_RD | CTLFLAG_CAPRD, \
-	facility + num - 1, 0, "");
-#define P1B_SYSCTL_RW(num, name)  \
-	SYSCTL_PROC(_p1003_1b, num, name, \
+	    facility + num - 1, 0, "");
+#define P1B_SYSCTL_RW(num, name)                                     \
+	SYSCTL_PROC(_p1003_1b, num, name,                            \
 	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, NULL, num, \
 	    p31b_sysctl_proc, "I", "");
 
@@ -67,10 +67,10 @@ SYSCTL_DECL(_p1003_1b);
 
 SYSCTL_DECL(_kern_p1003_1b);
 
-#define P1B_SYSCTL(num, name)  \
+#define P1B_SYSCTL(num, name)                                                  \
 	SYSCTL_INT(_kern_p1003_1b, OID_AUTO, name, CTLFLAG_RD | CTLFLAG_CAPRD, \
 	    facility + num - 1, 0, "");
-#define P1B_SYSCTL_RW(num, name)  \
+#define P1B_SYSCTL_RW(num, name)                                               \
 	SYSCTL_PROC(_p1003_1b, OID_AUTO, name, CTLTYPE_INT | CTLFLAG_RW, NULL, \
 	    num, p31b_sysctl_proc, "I", "");
 SYSCTL_NODE(_kern, OID_AUTO, p1003_1b, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
@@ -103,7 +103,7 @@ P1B_SYSCTL(CTL_P1003_1B_SEM_VALUE_MAX, sem_value_max);
 P1B_SYSCTL(CTL_P1003_1B_SIGQUEUE_MAX, sigqueue_max);
 P1B_SYSCTL(CTL_P1003_1B_TIMER_MAX, timer_max);
 
-#define P31B_VALID(num)	((num) >= 1 && (num) < CTL_P1003_1B_MAXID)
+#define P31B_VALID(num) ((num) >= 1 && (num) < CTL_P1003_1B_MAXID)
 
 static int
 p31b_sysctl_proc(SYSCTL_HANDLER_ARGS)
@@ -171,5 +171,5 @@ p31b_set_standard(void *dummy)
 	p31b_setcfg(CTL_P1003_1B_PAGESIZE, PAGE_SIZE);
 }
 
-SYSINIT(p31b_set_standard, SI_SUB_P1003_1B, SI_ORDER_ANY, p31b_set_standard, 
+SYSINIT(p31b_set_standard, SI_SUB_P1003_1B, SI_ORDER_ANY, p31b_set_standard,
     NULL);

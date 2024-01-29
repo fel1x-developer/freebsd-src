@@ -28,16 +28,16 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_ddb.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
-#include <sys/lock.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
-#include <sys/mutex.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/rman.h>
 #include <sys/sglist.h>
 #include <sys/sysctl.h>
@@ -46,24 +46,23 @@
 #include <ddb/ddb.h>
 #endif
 
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
+#include <vm/vm.h>
+#include <vm/pmap.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
 #include <machine/vmparam.h>
 
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
 #include <opencrypto/cryptodev.h>
 #include <opencrypto/xform.h>
-
-#include <vm/vm.h>
-#include <vm/pmap.h>
-
-#include "cryptodev_if.h"
 
 #include "ccp.h"
 #include "ccp_hardware.h"
 #include "ccp_lsb.h"
+#include "cryptodev_if.h"
 
 CTASSERT(sizeof(struct ccp_desc) == 32);
 
@@ -78,12 +77,11 @@ static struct ccp_xts_unitsize_map_entry {
 	{ CCP_XTS_AES_UNIT_SIZE_4096, 4096 },
 };
 
-SYSCTL_NODE(_hw, OID_AUTO, ccp, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
-    "ccp node");
+SYSCTL_NODE(_hw, OID_AUTO, ccp, CTLFLAG_RD | CTLFLAG_MPSAFE, 0, "ccp node");
 
 unsigned g_ccp_ring_order = 11;
-SYSCTL_UINT(_hw_ccp, OID_AUTO, ring_order, CTLFLAG_RDTUN, &g_ccp_ring_order,
-    0, "Set CCP ring order.  (1 << this) == ring size.  Min: 6, Max: 16");
+SYSCTL_UINT(_hw_ccp, OID_AUTO, ring_order, CTLFLAG_RDTUN, &g_ccp_ring_order, 0,
+    "Set CCP ring order.  (1 << this) == ring size.  Min: 6, Max: 16");
 
 /*
  * Zero buffer, sufficient for padding LSB entries, that does not span a page
@@ -251,8 +249,8 @@ ccp_hw_attach_queue(device_t dev, uint64_t lsbmask, unsigned queue)
 #else
 	    (bus_addr_t)1 << 32, BUS_SPACE_MAXADDR_48BIT,
 #endif
-	    BUS_SPACE_MAXADDR, NULL, NULL, ringsz, 1,
-	    ringsz, 0, NULL, NULL, &qp->ring_desc_tag);
+	    BUS_SPACE_MAXADDR, NULL, NULL, ringsz, 1, ringsz, 0, NULL, NULL,
+	    &qp->ring_desc_tag);
 	if (error != 0)
 		goto out;
 
@@ -268,7 +266,8 @@ ccp_hw_attach_queue(device_t dev, uint64_t lsbmask, unsigned queue)
 
 	qp->desc_ring = desc;
 	qp->completions_ring = malloc(num_descriptors *
-	    sizeof(*qp->completions_ring), M_CCP, M_ZERO | M_WAITOK);
+		sizeof(*qp->completions_ring),
+	    M_CCP, M_ZERO | M_WAITOK);
 
 	/* Zero control register; among other things, clears the RUN flag. */
 	qp->qcontrol = 0;
@@ -301,8 +300,7 @@ ccp_hw_attach_queue(device_t dev, uint64_t lsbmask, unsigned queue)
 out:
 	if (error != 0) {
 		if (qp->desc_ring != NULL)
-			bus_dmamap_unload(qp->ring_desc_tag,
-			    qp->ring_desc_map);
+			bus_dmamap_unload(qp->ring_desc_tag, qp->ring_desc_map);
 		if (desc != NULL)
 			bus_dmamem_free(qp->ring_desc_tag, desc,
 			    qp->ring_desc_map);
@@ -378,10 +376,10 @@ ccp_unmap_pci_bar(device_t dev)
 }
 
 const static struct ccp_error_code {
-	uint8_t		ce_code;
-	const char	*ce_name;
-	int		ce_errno;
-	const char	*ce_desc;
+	uint8_t ce_code;
+	const char *ce_name;
+	int ce_errno;
+	const char *ce_desc;
 } ccp_error_codes[] = {
 	{ 0x01, "ILLEGAL_ENGINE", EIO, "Requested engine was invalid" },
 	{ 0x03, "ILLEGAL_FUNCTION_TYPE", EIO,
@@ -401,9 +399,9 @@ const static struct ccp_error_code {
 	{ 0x08, "ILLEGAL_FUNCTION_RSVD", EIO,
 	    "Reserved bits in a function specification were not 0" },
 	{ 0x09, "ILLEGAL_BUFFER_LENGTH", EIO,
-	    "The buffer length specified was not correct for the selected engine"
-	},
-	{ 0x0A, "VLSB_FAULT", EIO, "Illegal VLSB segment mapping:\n"
+	    "The buffer length specified was not correct for the selected engine" },
+	{ 0x0A, "VLSB_FAULT", EIO,
+	    "Illegal VLSB segment mapping:\n"
 	    "Undefined VLSB segment mapping or\n"
 	    "mapping to unsupported LSB segment id" },
 	{ 0x0B, "ILLEGAL_MEM_ADDR", EFAULT,
@@ -411,8 +409,7 @@ const static struct ccp_error_code {
 	    "Data buffer located in a LSB location disallowed by the LSB protection masks; or\n"
 	    "Data buffer not completely contained within a single segment; or\n"
 	    "Pointer with Fixed=1 is not 32-bit aligned; or\n"
-	    "Pointer with Fixed=1 attempted to reference non-AXI1 (local) memory."
-	},
+	    "Pointer with Fixed=1 attempted to reference non-AXI1 (local) memory." },
 	{ 0x0C, "ILLEGAL_MEM_SEL", EIO,
 	    "A src_mem, dst_mem, or key_mem field was illegal:\n"
 	    "A field was set to a reserved value; or\n"
@@ -480,7 +477,8 @@ ccp_intr_handle_error(struct ccp_queue *qp, const struct ccp_desc *desc)
 	    STATUS_ERRORSOURCE_MASK;
 	faultblock = (status >> STATUS_VLSB_FAULTBLOCK_SHIFT) &
 	    STATUS_VLSB_FAULTBLOCK_MASK;
-	device_printf(sc->dev, "Error: %s (%u) Source: %u Faulting LSB block: %u\n",
+	device_printf(sc->dev,
+	    "Error: %s (%u) Source: %u Faulting LSB block: %u\n",
 	    (ec != NULL) ? ec->ce_name : "(reserved)", error, esource,
 	    faultblock);
 	if (ec != NULL)
@@ -503,8 +501,8 @@ ccp_intr_handle_error(struct ccp_queue *qp, const struct ccp_desc *desc)
 		cctx = &qp->completions_ring[idx];
 
 		/*
-		 * Restart procedure described in § 14.2.5.  Could be used by HoC if we
-		 * used that.
+		 * Restart procedure described in § 14.2.5.  Could be used by
+		 * HoC if we used that.
 		 *
 		 * Advance HEAD_LO past bad descriptor + any remaining in
 		 * transaction manually, then restart queue.
@@ -518,7 +516,8 @@ ccp_intr_handle_error(struct ccp_queue *qp, const struct ccp_desc *desc)
 			else
 				errno = ec->ce_errno;
 			/* TODO More specific error code */
-			cctx->callback_fn(qp, cctx->session, cctx->callback_arg, errno);
+			cctx->callback_fn(qp, cctx->session, cctx->callback_arg,
+			    errno);
 			cctx->callback_fn = NULL;
 			break;
 		}
@@ -564,8 +563,8 @@ ccp_intr_run_completions(struct ccp_queue *qp, uint32_t ints)
 
 		cctx = &qp->completions_ring[qp->cq_head];
 		if (cctx->callback_fn != NULL) {
-			cctx->callback_fn(qp, cctx->session,
-			    cctx->callback_arg, 0);
+			cctx->callback_fn(qp, cctx->session, cctx->callback_arg,
+			    0);
 			cctx->callback_fn = NULL;
 		}
 
@@ -684,8 +683,7 @@ ccp_setup_interrupts(struct ccp_softc *sc)
 		return (error);
 	}
 	if (nvec < 1) {
-		device_printf(sc->dev, "%s: alloc_msix: 0 vectors\n",
-		    __func__);
+		device_printf(sc->dev, "%s: alloc_msix: 0 vectors\n", __func__);
 		return (ENXIO);
 	}
 	if (nvec > nitems(sc->intr_res)) {
@@ -699,8 +697,8 @@ ccp_setup_interrupts(struct ccp_softc *sc)
 		sc->intr_res[rid - 1] = bus_alloc_resource_any(sc->dev,
 		    SYS_RES_IRQ, &ridcopy, RF_ACTIVE);
 		if (sc->intr_res[rid - 1] == NULL) {
-			device_printf(sc->dev, "%s: Failed to alloc IRQ resource\n",
-			    __func__);
+			device_printf(sc->dev,
+			    "%s: Failed to alloc IRQ resource\n", __func__);
 			return (ENXIO);
 		}
 
@@ -709,8 +707,8 @@ ccp_setup_interrupts(struct ccp_softc *sc)
 		    INTR_MPSAFE | INTR_TYPE_MISC, ccp_intr_filter,
 		    ccp_intr_handler, sc, &sc->intr_tag[rid - 1]);
 		if (error != 0)
-			device_printf(sc->dev, "%s: setup_intr: %d\n",
-			    __func__, error);
+			device_printf(sc->dev, "%s: setup_intr: %d\n", __func__,
+			    error);
 	}
 	sc->intr_count = nvec;
 
@@ -757,8 +755,7 @@ ccp_hw_attach(device_t dev)
 
 	error = pci_enable_busmaster(dev);
 	if (error != 0) {
-		device_printf(dev, "%s: couldn't enable busmaster\n",
-		    __func__);
+		device_printf(dev, "%s: couldn't enable busmaster\n", __func__);
 		goto out;
 	}
 
@@ -842,11 +839,10 @@ ccp_hw_detach(device_t dev)
 }
 
 static int __must_check
-ccp_passthrough(struct ccp_queue *qp, bus_addr_t dst,
-    enum ccp_memtype dst_type, bus_addr_t src, enum ccp_memtype src_type,
-    bus_size_t len, enum ccp_passthru_byteswap swapmode,
-    enum ccp_passthru_bitwise bitmode, bool interrupt,
-    const struct ccp_completion_ctx *cctx)
+ccp_passthrough(struct ccp_queue *qp, bus_addr_t dst, enum ccp_memtype dst_type,
+    bus_addr_t src, enum ccp_memtype src_type, bus_size_t len,
+    enum ccp_passthru_byteswap swapmode, enum ccp_passthru_bitwise bitmode,
+    bool interrupt, const struct ccp_completion_ctx *cctx)
 {
 	struct ccp_desc *desc;
 
@@ -996,11 +992,11 @@ const struct SHA_Defn {
 	enum ccp_sha_type engine_type;
 } SHA_definitions[] = {
 	{
-		.version = SHA1,
-		.H_vectors = SHA_H.SHA1,
-		.H_size = sizeof(SHA_H.SHA1),
-		.axf = &auth_hash_hmac_sha1,
-		.engine_type = CCP_SHA_TYPE_1,
+	    .version = SHA1,
+	    .H_vectors = SHA_H.SHA1,
+	    .H_size = sizeof(SHA_H.SHA1),
+	    .axf = &auth_hash_hmac_sha1,
+	    .engine_type = CCP_SHA_TYPE_1,
 	},
 #if 0
 	{
@@ -1012,25 +1008,25 @@ const struct SHA_Defn {
 	},
 #endif
 	{
-		.version = SHA2_256,
-		.H_vectors = SHA_H.SHA256,
-		.H_size = sizeof(SHA_H.SHA256),
-		.axf = &auth_hash_hmac_sha2_256,
-		.engine_type = CCP_SHA_TYPE_256,
+	    .version = SHA2_256,
+	    .H_vectors = SHA_H.SHA256,
+	    .H_size = sizeof(SHA_H.SHA256),
+	    .axf = &auth_hash_hmac_sha2_256,
+	    .engine_type = CCP_SHA_TYPE_256,
 	},
 	{
-		.version = SHA2_384,
-		.H_vectors = SHA_H.SHA384,
-		.H_size = sizeof(SHA_H.SHA384),
-		.axf = &auth_hash_hmac_sha2_384,
-		.engine_type = CCP_SHA_TYPE_384,
+	    .version = SHA2_384,
+	    .H_vectors = SHA_H.SHA384,
+	    .H_size = sizeof(SHA_H.SHA384),
+	    .axf = &auth_hash_hmac_sha2_384,
+	    .engine_type = CCP_SHA_TYPE_384,
 	},
 	{
-		.version = SHA2_512,
-		.H_vectors = SHA_H.SHA512,
-		.H_size = sizeof(SHA_H.SHA512),
-		.axf = &auth_hash_hmac_sha2_512,
-		.engine_type = CCP_SHA_TYPE_512,
+	    .version = SHA2_512,
+	    .H_vectors = SHA_H.SHA512,
+	    .H_size = sizeof(SHA_H.SHA512),
+	    .axf = &auth_hash_hmac_sha2_512,
+	    .engine_type = CCP_SHA_TYPE_512,
 	},
 };
 
@@ -1092,8 +1088,7 @@ ccp_sha(struct ccp_queue *qp, enum sha_version version, struct sglist *sgl_src,
 	error = ccp_passthrough(qp, ccp_queue_lsb_address(qp, LSB_ENTRY_SHA),
 	    CCP_MEMTYPE_SB, pmap_kextract((vm_offset_t)defn->H_vectors),
 	    CCP_MEMTYPE_SYSTEM, roundup2(defn->H_size, LSB_ENTRY_SIZE),
-	    CCP_PASSTHRU_BYTESWAP_NOOP, CCP_PASSTHRU_BITWISE_NOOP, false,
-	    NULL);
+	    CCP_PASSTHRU_BYTESWAP_NOOP, CCP_PASSTHRU_BITWISE_NOOP, false, NULL);
 	if (error != 0)
 		return (error);
 
@@ -1349,7 +1344,7 @@ ccp_blkcipher_done(struct ccp_queue *qp, struct ccp_session *s, void *vcrp,
 static void
 ccp_collect_iv(struct cryptop *crp, const struct crypto_session_params *csp,
     char *iv)
-{	
+{
 
 	crypto_read_iv(crp, iv);
 
@@ -1546,7 +1541,8 @@ ccp_do_blkcipher(struct ccp_queue *qp, struct ccp_session *s,
 	INSECURE_DEBUG(dev, "%s: KEY(%zu): %16D\n", __func__, keydata_len,
 	    keydata, " ");
 	if (csp->csp_cipher_alg == CRYPTO_AES_XTS)
-		INSECURE_DEBUG(dev, "%s: KEY(XTS): %64D\n", __func__, keydata, " ");
+		INSECURE_DEBUG(dev, "%s: KEY(XTS): %64D\n", __func__, keydata,
+		    " ");
 
 	/* Reverse order of key material for HW */
 	ccp_byteswap(keydata, keydata_len);
@@ -1576,12 +1572,14 @@ ccp_do_blkcipher(struct ccp_queue *qp, struct ccp_session *s,
 				return (error);
 			error = ccp_do_pst_to_lsb(qp,
 			    ccp_queue_lsb_address(qp, LSB_ENTRY_KEY) +
-			    keydata_len / 2, g_zeroes, keydata_len / 2);
+				keydata_len / 2,
+			    g_zeroes, keydata_len / 2);
 			if (error != 0)
 				return (error);
 			error = ccp_do_pst_to_lsb(qp,
 			    ccp_queue_lsb_address(qp, LSB_ENTRY_KEY + 1) +
-			    keydata_len / 2, g_zeroes, keydata_len / 2);
+				keydata_len / 2,
+			    g_zeroes, keydata_len / 2);
 		}
 	} else
 		error = ccp_do_pst_to_lsb(qp,
@@ -1786,8 +1784,7 @@ ccp_do_gctr(struct ccp_queue *qp, struct ccp_session *s,
 	desc->key_lo = ccp_queue_lsb_address(qp, LSB_ENTRY_KEY);
 	desc->key_mem = CCP_MEMTYPE_SB;
 
-	qp->cq_tail = (qp->cq_tail + 1) %
-	    (1 << qp->cq_softc->ring_size_order);
+	qp->cq_tail = (qp->cq_tail + 1) % (1 << qp->cq_softc->ring_size_order);
 	return (0);
 }
 
@@ -1819,14 +1816,12 @@ ccp_do_ghash_final(struct ccp_queue *qp, struct ccp_session *s)
 	desc->dst_lo = ccp_queue_lsb_address(qp, LSB_ENTRY_GHASH);
 	desc->dst_mem = CCP_MEMTYPE_SB;
 
-	qp->cq_tail = (qp->cq_tail + 1) %
-	    (1 << qp->cq_softc->ring_size_order);
+	qp->cq_tail = (qp->cq_tail + 1) % (1 << qp->cq_softc->ring_size_order);
 	return (0);
 }
 
 static void
-ccp_gcm_done(struct ccp_queue *qp, struct ccp_session *s, void *vcrp,
-    int error)
+ccp_gcm_done(struct ccp_queue *qp, struct ccp_session *s, void *vcrp, int error)
 {
 	char tag[GMAC_DIGEST_LEN];
 	struct cryptop *crp;
@@ -1917,7 +1912,7 @@ ccp_gcm(struct ccp_queue *qp, struct ccp_session *s, struct cryptop *crp)
 		/* This engine cannot process non-block multiple AAD data. */
 		for (i = 0; i < qp->cq_sg_ulptx->sg_nseg; i++)
 			if ((qp->cq_sg_ulptx->sg_segs[i].ss_len %
-			    GMAC_BLOCK_LEN) != 0) {
+				GMAC_BLOCK_LEN) != 0) {
 				DPRINTF(dev, "%s: AD seg modulo: %zu\n",
 				    __func__,
 				    qp->cq_sg_ulptx->sg_segs[i].ss_len);
@@ -1999,7 +1994,7 @@ ccp_gcm(struct ccp_queue *qp, struct ccp_session *s, struct cryptop *crp)
 	return (error);
 }
 
-#define MAX_TRNG_RETRIES	10
+#define MAX_TRNG_RETRIES 10
 u_int
 random_ccp_read(void *v, u_int c)
 {
@@ -2020,7 +2015,6 @@ random_ccp_read(void *v, u_int c)
 		buf++;
 	}
 	return (c);
-
 }
 
 #ifdef DDB

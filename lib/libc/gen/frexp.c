@@ -37,7 +37,7 @@ frexp(double d, int *ex)
 
 	u.d = d;
 	switch (u.bits.exp) {
-	case 0:		/* 0 or subnormal */
+	case 0: /* 0 or subnormal */
 		if ((u.bits.manl | u.bits.manh) == 0) {
 			*ex = 0;
 		} else {
@@ -46,9 +46,9 @@ frexp(double d, int *ex)
 			u.bits.exp = 1022;
 		}
 		break;
-	case 2047:	/* infinity or NaN; value of *ex is unspecified */
+	case 2047: /* infinity or NaN; value of *ex is unspecified */
 		break;
-	default:	/* normal */
+	default: /* normal */
 		*ex = u.bits.exp - 1022;
 		u.bits.exp = 1022;
 		break;
